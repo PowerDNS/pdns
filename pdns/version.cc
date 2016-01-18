@@ -27,7 +27,7 @@
 #include "version.hh"
 #ifdef HAVE_MBEDTLS2
 #include <mbedtls/version.h>
-#else
+#elif defined(HAVE_MBEDTLS)
 #include <polarssl/version.h>
 #include "mbedtlscompat.hh"
 #endif
@@ -99,6 +99,9 @@ void showBuildConfiguration()
 #ifdef HAVE_LIBSODIUM
     "sodium " <<
 #endif
+#ifdef HAVE_MBEDTLS
+    "mbedtls " <<
+#endif
 #ifdef HAVE_OPENSSL
     "openssl " <<
 #endif
@@ -119,7 +122,7 @@ void showBuildConfiguration()
   // Auth only
   theL()<<Logger::Warning<<"Built-in modules: "<<PDNS_MODULES<<endl;
 #endif
-#ifndef MBEDTLS_SYSTEM
+#if defined(HAVE_MBEDTLS) && !defined(MBEDTLS_SYSTEM)
   theL()<<Logger::Warning<<"Built-in mbed TLS: "<<MBEDTLS_VERSION_STRING<<endl;
 #endif
 #ifdef PDNS_CONFIG_ARGS

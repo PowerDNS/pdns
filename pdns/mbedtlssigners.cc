@@ -7,17 +7,20 @@
 #include <mbedtls/ecdsa.h>
 #include <mbedtls/rsa.h>
 #include <mbedtls/base64.h>
+#include <mbedtls/sha1.h>
+#include <mbedtls/sha256.h>
 #else
 #include <polarssl/entropy.h>
 #include <polarssl/ctr_drbg.h>
 #include <polarssl/ecdsa.h>
 #include <polarssl/rsa.h>
 #include <polarssl/base64.h>
+#include <polarssl/sha1.h>
+#include <polarssl/sha256.h>
 #include "mbedtlscompat.hh"
 #endif
 #include <boost/assign/std/vector.hpp> // for 'operator+=()'
 
-#include "sha.hh"
 #include "dnssecinfra.hh"
 using namespace boost::assign;
 

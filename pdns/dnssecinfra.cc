@@ -15,16 +15,19 @@
 #ifdef HAVE_MBEDTLS2
 #include <mbedtls/md_internal.h>
 #include <mbedtls/md.h>
-#else
+#include <mbedtls/sha1.h>
+#elif defined(HAVE_MBEDTLS)
 #include <polarssl/md5.h>
 #include <polarssl/sha1.h>
 #include <polarssl/md.h>
 #include "mbedtlscompat.hh"
+#elif defined(HAVE_OPENSSL)
+#include <openssl/hmac.h>
+#include <openssl/sha.h>
 #endif
 #include <boost/assign/std/vector.hpp> // for 'operator+=()'
 #include <boost/assign/list_inserter.hpp>
 #include "base64.hh"
-#include "sha.hh"
 #include "namespaces.hh"
 #ifdef HAVE_P11KIT1
 #include "pkcs11signers.hh"
@@ -403,7 +406,11 @@ string hashQNameWithSalt(const NSEC3PARAMRecordContent& ns3prc, const DNSName& q
 
   for(;;) {
     toHash.append(ns3prc.d_salt);
+#ifdef HAVE_MBEDTLS
     mbedtls_sha1((unsigned char*)toHash.c_str(), toHash.length(), hash);
+#elif defined(HAVE_OPENSSL)
+    SHA1((unsigned char*)toHash.c_str(), toHash.length(), hash);
+#endif
     toHash.assign((char*)hash, sizeof(hash));
     if(!times--)
       break;
@@ -495,6 +502,7 @@ void decodeDERIntegerSequence(const std::string& input, vector<string>& output)
 
 string calculateHMAC(const std::string& key, const std::string& text, TSIGHashEnum hasher) {
 
+#ifdef HAVE_MBEDTLS
   mbedtls_md_type_t md_type;
   const mbedtls_md_info_t *md_info;
 
@@ -526,6 +534,41 @@ string calculateHMAC(const std::string& key, const std::string& text, TSIGHashEn
   md_info = mbedtls_md_info_from_type( md_type );
   if( mbedtls_md_hmac( md_info, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash ) == 0 )
     return string( (char*) hash, mbedtls_md_get_size( md_info ) );
+
+#elif defined(HAVE_OPENSSL)
+  const EVP_MD* md_type;
+  unsigned int outlen;
+  unsigned char hash[EVP_MAX_MD_SIZE];
+  switch(hasher) {
+    case TSIG_MD5:
+      md_type = EVP_md5();
+      break;
+    case TSIG_SHA1:
+      md_type = EVP_sha1();
+      break;
+    case TSIG_SHA224:
+      md_type = EVP_sha224();
+      break;
+    case TSIG_SHA256:
+      md_type = EVP_sha256();
+      break;
+    case TSIG_SHA384:
+      md_type = EVP_sha384();
+      break;
+    case TSIG_SHA512:
+      md_type = EVP_sha512();
+      break;
+    default:
+      throw new PDNSException("Unknown hash algorithm requested from calculateHMAC()");
+  }
+
+  unsigned char* out = HMAC(md_type, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash, &outlen);
+  if (out != NULL && outlen > 0) {
+    return string((char*) hash, outlen);
+  }
+#else
+#error "No HMAC implementation found"
+#endif
 
   return "";
 }

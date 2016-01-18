@@ -31,7 +31,7 @@ INCLUDES="iputils.hh arguments.hh base64.hh zoneparser-tng.hh \
 rcpgenerator.hh lock.hh dnswriter.hh  dnsrecords.hh dnsparser.hh utility.hh \
 recursor_cache.hh rec_channel.hh qtype.hh misc.hh dns.hh syncres.hh \
 sstuff.hh mtasker.hh mtasker.cc lwres.hh logger.hh pdnsexception.hh \
-mplexer.hh pubsuffix.hh mbedtlscompat.hh \
+mplexer.hh pubsuffix.hh opensslsigners.hh \
 dns_random.hh lua-recursor4.hh namespaces.hh \
 recpacketcache.hh base32.hh cachecleaner.hh json.hh version.hh \
 ws-recursor.hh ws-api.hh secpoll-recursor.hh \
@@ -50,7 +50,7 @@ devpollmplexer.cc recpacketcache.cc dns.cc reczones.cc base32.cc nsecrecords.cc 
 dnslabeltext.cc json.cc ws-recursor.cc ws-api.cc version.cc dns_random.cc \
 responsestats.cc webserver.cc rec-carbon.cc secpoll-recursor.cc dnsname.cc \
 filterpo.cc rpzloader.cc ixfr.cc dnssecinfra.cc gss_context.cc resolver.cc \
-ednssubnet.cc validate.cc validate-recursor.cc mbedtlssigners.cc rec-lua-conf.cc \
+ednssubnet.cc validate.cc validate-recursor.cc opensslsigners.cc rec-lua-conf.cc \
 sortlist.cc"
 
 curl https://publicsuffix.org/list/public_suffix_list.dat > effective_tld_names.dat
@@ -68,16 +68,9 @@ cat >>$DIRNAME/config.h <<EOF
 #define VERSION "$VERSION"
 #define DIST_HOST "$DIST_HOST"
 #define HAVE_BOOST 1
-#define HAVE_MBEDTLS2 1
+#define HAVE_OPENSSL 1
 EOF
-mkdir -p $DIRNAME/ext/mbedtls/include/mbedtls
-cp -a ../ext/mbedtls/include/mbedtls/{config.h,check_config.h,aes.h,ripemd160.h,sha1.h,md.h,md5.h,sha256.h,sha512.h,ecp.h,ecdsa.h,md_internal.h} ../ext/mbedtls/include/mbedtls/base64.h ../ext/mbedtls/include/mbedtls/platform.h ../ext/mbedtls/include/mbedtls/version.h $DIRNAME/ext/mbedtls/include/mbedtls
-cp -a ../ext/mbedtls/include/mbedtls/{entropy.h,ctr_drbg.h,hmac_drbg.h,rsa.h,ecp.h,bignum.h,oid.h,asn1.h,asn1write.h,pk.h,ecdsa.h,cipher.h,x509.h} $DIRNAME/ext/mbedtls/include/mbedtls
-cp -a ../ext/mbedtls/include/mbedtls/{bn_mul.h,config.h,entropy_poll.h,timing.h} $DIRNAME/ext/mbedtls/include/mbedtls
-
-mkdir -p $DIRNAME/ext/mbedtls/library
-cp -a ../ext/mbedtls/library/{aes.c,base64.c,md.c,md_wrap.c,md5.c,sha1.c,sha256.c,sha512.c,ripemd160.c} $DIRNAME/ext/mbedtls/library
-cp -a ../ext/mbedtls/library/{rsa.c,bignum.c,oid.c,asn1parse.c,ctr_drbg.c,entropy.c,entropy_poll.c,timing.c,ecp.c,ecdsa.c,ecp_curves.c,hmac_drbg.c,asn1write.c} $DIRNAME/ext/mbedtls/library
+mkdir -p $DIRNAME/ext
 
 cp -a ../ext/yahttp/ $DIRNAME/ext/yahttp
 cp -a ../ext/json11/ $DIRNAME/ext/json11
