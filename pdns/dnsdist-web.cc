@@ -88,7 +88,9 @@ static void connectionThread(int sock, ComboAddress remote, string password)
       resp.status=200;
     }
     else if (!compareAuthorization(req, password)) {
-      errlog("HTTP Request \"%s\" from %s: Web Authentication failed", req.url.path, remote.toStringWithPort());
+      YaHTTP::strstr_map_t::iterator header = req.headers.find("authorization");
+      if (header != req.headers.end())
+        errlog("HTTP Request \"%s\" from %s: Web Authentication failed", req.url.path, remote.toStringWithPort());
       resp.status=401;
       resp.body="<h1>Unauthorized</h1>";
       resp.headers["WWW-Authenticate"] = "basic realm=\"PowerDNS\"";
