@@ -683,3 +683,184 @@ class TestAdvancedLuaSpoof(DNSDistTest):
         self.assertTrue(receivedResponse)
         receivedResponse.id = expectedResponse.id
         self.assertEquals(expectedResponse, receivedResponse)
+
+class TestAdvancedTruncateAnyAndTCP(DNSDistTest):
+
+    _config_template = """
+    truncateTC(false)
+    addAction(AndRule({QTypeRule("ANY"), TCPRule(true)}), TCAction())
+    newServer{address="127.0.0.1:%s"}
+    """
+    def testTruncateAnyOverTCP(self):
+        """
+        Advanced: Truncate ANY over TCP
+
+        Send an ANY query to "anytruncatetcp.tests.powerdns.com.",
+        should be truncated over TCP, not over UDP (yes, it makes no sense,
+        deal with it).
+        """
+        name = 'anytruncatetcp.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'ANY', 'IN')
+
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+
+        response.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        receivedResponse.id = response.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.flags |= dns.flags.TC
+
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+        receivedResponse.id = expectedResponse.id
+        self.assertEquals(receivedResponse, expectedResponse)
+
+class TestAdvancedAndNot(DNSDistTest):
+
+    _config_template = """
+    addAction(AndRule({NotRule(QTypeRule("A")), TCPRule(false)}), RCodeAction(4))
+    newServer{address="127.0.0.1:%s"}
+    """
+    def testAOverUDPReturnsNotImplementedCanary(self):
+        """
+        Advanced: !A && UDP canary
+
+        dnsdist is configured to reply 'not implemented' for query
+        over UDP AND !qtype A.
+        We send an A query over UDP and TCP, and check that the
+        response is OK.
+        """
+        name = 'andnot.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        receivedResponse.id = response.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        receivedResponse.id = response.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+    def testAOverUDPReturnsNotImplemented(self):
+        """
+        Advanced: !A && UDP
+
+        dnsdist is configured to reply 'not implemented' for query
+        over UDP AND !qtype A.
+        We send a TXT query over UDP and TCP, and check that the
+        response is OK for TCP and 'not implemented' for UDP.
+        """
+        name = 'andnot.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'TXT', 'IN')
+
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.set_rcode(dns.rcode.NOTIMP)
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        receivedResponse.id = expectedResponse.id
+        self.assertEquals(receivedResponse, expectedResponse)
+
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.TXT,
+                                    'nothing to see here')
+        response.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        receivedResponse.id = response.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+class TestAdvancedOr(DNSDistTest):
+
+    _config_template = """
+    addAction(OrRule({QTypeRule("A"), TCPRule(false)}), RCodeAction(4))
+    newServer{address="127.0.0.1:%s"}
+    """
+    def testAAAAOverUDPReturnsNotImplemented(self):
+        """
+        Advanced: A || UDP: AAAA
+
+        dnsdist is configured to reply 'not implemented' for query
+        over UDP OR qtype A.
+        We send an AAAA query over UDP and TCP, and check that the
+        response is 'not implemented' for UDP and OK for TCP.
+        """
+        name = 'aorudp.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'AAAA', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '::1')
+        response.answer.append(rrset)
+
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.set_rcode(dns.rcode.NOTIMP)
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        receivedResponse.id = expectedResponse.id
+        self.assertEquals(receivedResponse, expectedResponse)
+
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        receivedResponse.id = response.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+    def testAOverUDPReturnsNotImplemented(self):
+        """
+        Advanced: A || UDP: A
+
+        dnsdist is configured to reply 'not implemented' for query
+        over UDP OR qtype A.
+        We send an A query over UDP and TCP, and check that the
+        response is 'not implemented' for both.
+        """
+        name = 'aorudp.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.set_rcode(dns.rcode.NOTIMP)
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        receivedResponse.id = expectedResponse.id
+        self.assertEquals(receivedResponse, expectedResponse)
+
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+        receivedResponse.id = expectedResponse.id
+        self.assertEquals(receivedResponse, expectedResponse)

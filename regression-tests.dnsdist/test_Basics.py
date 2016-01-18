@@ -57,7 +57,7 @@ class TestBasics(DNSDistTest):
         name = 'simplea.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text('simplea.tests.powerdns.com.',
+        rrset = dns.rrset.from_text(name,
                                     3600,
                                     dns.rdataclass.IN,
                                     dns.rdatatype.A,
@@ -98,7 +98,7 @@ class TestBasics(DNSDistTest):
         self.assertEquals(receivedResponse, expectedResponse)
 
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text('any.tests.powerdns.com.',
+        rrset = dns.rrset.from_text(name,
                                     3600,
                                     dns.rdataclass.IN,
                                     dns.rdatatype.A,
@@ -173,7 +173,7 @@ class TestBasics(DNSDistTest):
         Basics: NOTIMPL for specific name and qtype
 
         dnsdist is configured to reply 'not implemented' for query
-        matching "nameAndQtype.tests.powerdns.com." AND qtype TXT/
+        matching "nameAndQtype.tests.powerdns.com." AND qtype TXT.
         We send a TXT query for "nameAndQtype.powerdns.com."
         and check that the response is 'not implemented'.
         """
@@ -195,7 +195,7 @@ class TestBasics(DNSDistTest):
         Basics: NOTIMPL qtype canary
 
         dnsdist is configured to reply 'not implemented' for query
-        matching "nameAndQtype.tests.powerdns.com." AND qtype TXT/
+        matching "nameAndQtype.tests.powerdns.com." AND qtype TXT.
         We send a A query for "nameAndQtype.tests.powerdns.com."
         and check that the response is OK.
         """
@@ -230,7 +230,7 @@ class TestBasics(DNSDistTest):
         Basics: NOTIMPL qname canary
 
         dnsdist is configured to reply 'not implemented' for query
-        matching "nameAndQtype.tests.powerdns.com." AND qtype TXT/
+        matching "nameAndQtype.tests.powerdns.com." AND qtype TXT.
         We send a TXT query for "OtherNameAndQtype.tests.powerdns.com."
         and check that the response is OK.
         """

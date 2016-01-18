@@ -303,7 +303,10 @@ Rules have selectors and actions. Current selectors are:
  * Packet requests DNSSEC processing
  * Query received over UDP or TCP
 
-A special rule is `AndRule{rule1, rule2}`, which only matches if all of its subrules match.
+Special rules are:
+ * `AndRule{rule1, rule2}`, which only matches if all of its subrules match
+ * `OrRule{rule1, rule2}`, which matches if at least one of its subrules match
+ * `NotRule(rule)`, which matches if its subrule does not match
 
 Current actions are:
  * Drop (DropAction)
@@ -334,6 +337,8 @@ A DNS rule can be:
  * a MaxQPSIPRule
  * a MaxQPSRule
  * a NetmaskGroupRule
+ * a NotRule
+ * an OrRule
  * a QTypeRule
  * a RegexRule
  * a SuffixMatchNodeRule
@@ -815,6 +820,8 @@ instantiate a server with additional parameters
    * `MaxQPSIPRule(qps, v4Mask=32, v6Mask=64)`: matches traffic exceeding the qps limit per subnet
    * `MaxQPSRule(qps)`: matches traffic not exceeding this qps limit
    * `NetmaskGroupRule()`: matches traffic from the specified network range
+   * `NotRule()`: matches if the sub-rule does not match
+   * `OrRule()`: matches if at least one of the sub-rules matches
    * `QTypeRule(qtype)`: matches queries with the specified qtype
    * `RegexRule(regex)`: matches the query name against the supplied regex
    * `SuffixMatchNodeRule()`: matches based on a group of domain suffixes for rapid testing of membership

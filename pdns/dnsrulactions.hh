@@ -152,6 +152,41 @@ private:
 };
 
 
+class OrRule : public DNSRule
+{
+public:
+  OrRule(const vector<pair<int, shared_ptr<DNSRule> > >& rules)
+  {
+    for(const auto& r : rules)
+      d_rules.push_back(r.second);
+  }
+
+  bool matches(const DNSQuestion* dq) const override
+  {
+    auto iter = d_rules.begin();
+    for(; iter != d_rules.end(); ++iter)
+      if((*iter)->matches(dq))
+        return true;
+    return false;
+  }
+
+  string toString() const override
+  {
+    string ret;
+    for(const auto& rule : d_rules) {
+      if(!ret.empty())
+        ret+= " || ";
+      ret += "("+ rule->toString()+")";
+    }
+    return ret;
+  }
+private:
+
+  vector<std::shared_ptr<DNSRule> > d_rules;
+
+};
+
+
 class RegexRule : public DNSRule
 {
 public:
@@ -228,6 +263,26 @@ public:
 private:
   bool d_tcp;
 };
+
+
+class NotRule : public DNSRule
+{
+public:
+  NotRule(shared_ptr<DNSRule>& rule): d_rule(rule)
+  {
+  }
+  bool matches(const DNSQuestion* dq) const override
+  {
+    return !d_rule->matches(dq);
+  }
+  string toString() const override
+  {
+    return "!"+ d_rule->toString();
+  }
+private:
+  shared_ptr<DNSRule> d_rule;
+};
+
 
 class DropAction : public DNSAction
 {
