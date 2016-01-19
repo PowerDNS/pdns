@@ -432,7 +432,7 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
   DNSName subdomain(qname);
   if(qtype == QType::DS) subdomain.chopOff();
 
-  set<DNSName> nsset;
+  map< DNSName, pair< ComboAddress, bool > > nsset;
   bool flawedNSSet=false;
 
   // the two retries allow getBestNSNamesFromCache&co to reprime the root
@@ -618,7 +618,7 @@ SyncRes::domainmap_t::const_iterator SyncRes::getBestAuthZone(DNSName* qname)
 }
 
 /** doesn't actually do the work, leaves that to getBestNSFromCache */
-DNSName SyncRes::getBestNSNamesFromCache(const DNSName &qname, const QType& qtype, set<DNSName>& nsset, bool* flawedNSSet, int depth, set<GetBestNSAnswer>&beenthere)
+DNSName SyncRes::getBestNSNamesFromCache(const DNSName &qname, const QType& qtype, map<DNSName, pair<ComboAddress, bool> >& nsset, bool* flawedNSSet, int depth, set<GetBestNSAnswer>&beenthere)
 {
   DNSName subdomain(qname);
   DNSName authdomain(qname);
@@ -626,14 +626,11 @@ DNSName SyncRes::getBestNSNamesFromCache(const DNSName &qname, const QType& qtyp
   domainmap_t::const_iterator iter=getBestAuthZone(&authdomain);
   if(iter!=t_sstorage->domainmap->end()) {
     if( iter->second.d_servers.empty() )
-      nsset.insert(DNSName()); // this gets picked up in doResolveAt, if empty it means "we are auth", otherwise it denotes a forward
+      nsset.insert({DNSName(), {ComboAddress(), false}}); // this gets picked up in doResolveAt, the empty DNSName, combined with the empty ComboAddress means 'we are auth'
     else {
-      for(vector<ComboAddress>::const_iterator server=iter->second.d_servers.begin(); server != iter->second.d_servers.end(); ++server)
-	//        nsset.insert((iter->second.d_rdForward ? "+" : "-") + server->toStringWithPort()); // add a '+' if the rd bit should be set
-      // XXX this doesn't work, nsset can't contain a port number, or a plus etc! DNSNAME PAIN
-	abort();
+      for(auto const &server : iter->second.d_servers)
+        nsset.insert({DNSName(), {server, iter->second.d_rdForward}}); // An empty DNSName, combined with a non-empty ComboAddress means 'this is a forwarded domain'
     }
-
     return authdomain;
   }
 
@@ -641,7 +638,7 @@ DNSName SyncRes::getBestNSNamesFromCache(const DNSName &qname, const QType& qtyp
   getBestNSFromCache(subdomain, qtype, bestns, flawedNSSet, depth, beenthere);
 
   for(auto k=bestns.cbegin() ; k != bestns.cend(); ++k) {
-    nsset.insert(std::dynamic_pointer_cast<NSRecordContent>(k->d_content)->getNS());
+    nsset.insert({std::dynamic_pointer_cast<NSRecordContent>(k->d_content)->getNS(), {ComboAddress(), false}}); // The actual resolver code will not even look at the ComboAddress or bool
     if(k==bestns.cbegin())
       subdomain=k->d_name;
   }
@@ -840,12 +837,12 @@ struct speedOrder
   map<DNSName, double>& d_speeds;
 };
 
-inline vector<DNSName> SyncRes::shuffleInSpeedOrder(set<DNSName> &tnameservers, const string &prefix)
+inline vector<DNSName> SyncRes::shuffleInSpeedOrder(map<DNSName, pair< ComboAddress, bool> > &tnameservers, const string &prefix)
 {
   vector<DNSName> rnameservers;
   rnameservers.reserve(tnameservers.size());
   for(const auto& tns:tnameservers) {
-    rnameservers.push_back(tns);
+    rnameservers.push_back(tns.first);
   }
   map<DNSName, double> speeds;
 
@@ -913,7 +910,7 @@ static void addNXNSECS(vector<DNSRecord>&ret, const vector<DNSRecord>& records)
 }
 
 /** returns -1 in case of no results, rcode otherwise */
-int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSet, const DNSName &qname, const QType &qtype,
+int SyncRes::doResolveAt(map<DNSName, pair<ComboAddress, bool> > &nameservers, DNSName auth, bool flawedNSSet, const DNSName &qname, const QType &qtype,
                          vector<DNSRecord>&ret,
                          int depth, set<GetBestNSAnswer>&beenthere)
 {
@@ -928,12 +925,12 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
   for(;;) { // we may get more specific nameservers
     vector<DNSName > rnameservers = shuffleInSpeedOrder(nameservers, doLog() ? (prefix+qname.toString()+": ") : string() );
 
-		for(vector<DNSName >::const_iterator tns=rnameservers.begin();;++tns) {
+    for(vector<DNSName >::const_iterator tns=rnameservers.begin();;++tns) {
       if(tns==rnameservers.end()) {
         LOG(prefix<<qname.toString()<<": Failed to resolve via any of the "<<(unsigned int)rnameservers.size()<<" offered NS at level '"<<auth.toString()<<"'"<<endl);
         if(auth!=DNSName() && flawedNSSet) {
           LOG(prefix<<qname.toString()<<": Ageing nameservers for level '"<<auth.toString()<<"', next query might succeed"<<endl);
-	  
+
           if(t_RC->doAgeCache(d_now.tv_sec, auth, QType::NS, 10))
             g_stats.nsSetInvalidations++;
         }
@@ -954,14 +951,14 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
       bool sendRDQuery=false;
       boost::optional<Netmask> ednsmask;
       LWResult lwr;
-      if(tns->empty()) {
+      if(tns->empty() && nameservers[*tns].first == ComboAddress() ) {
         LOG(prefix<<qname.toString()<<": Domain is out-of-band"<<endl);
         doOOBResolve(qname, qtype, lwr.d_records, depth, lwr.d_rcode);
         lwr.d_tcbit=false;
         lwr.d_aabit=true;
       }
       else {
-        LOG(prefix<<qname.toString()<<": Trying to resolve NS '"<<tns->toString()<< "' ("<<1+tns-rnameservers.begin()<<"/"<<(unsigned int)rnameservers.size()<<")"<<endl);
+        LOG(prefix<<qname.toString()<<": Trying to resolve NS '"<<(tns->empty() ? nameservers[*tns].first.toString() : tns->toString())<< "' ("<<1+tns-rnameservers.begin()<<"/"<<(unsigned int)rnameservers.size()<<")"<<endl);
 	;
 
 	// XXX NEED TO HANDLE OTHER POLICY KINDS HERE!
@@ -971,14 +968,8 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
         if(!isCanonical(*tns)) {
           LOG(prefix<<qname.toString()<<": Domain has hardcoded nameserver(s)"<<endl);
 
-          string txtAddr = tns->toString();
-          if(!tns->empty()) {
-            sendRDQuery = txtAddr[0] == '+';
-            txtAddr=txtAddr.c_str()+1;
-          }
-          ComboAddress addr=parseIPAndPort(txtAddr, 53);
-
-          remoteIPs.push_back(addr);
+          remoteIPs.push_back(nameservers[*tns].first);
+          sendRDQuery = nameservers[*tns].second;
           pierceDontQuery=true;
         }
         else {
@@ -993,7 +984,7 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
         }
         else {
 
-          LOG(prefix<<qname.toString()<<": Resolved '"+auth.toString()+"' NS "<<tns->toString()<<" to: ");
+          LOG(prefix<<qname.toString()<<": Resolved '"+auth.toString()+"' NS "<<(tns->empty() ? nameservers[*tns].first.toString() : tns->toString())<<" to: ");
           for(remoteIP = remoteIPs.begin(); remoteIP != remoteIPs.end(); ++remoteIP) {
             if(remoteIP != remoteIPs.begin()) {
               LOG(", ");
@@ -1085,7 +1076,7 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
 //	    if(d_timeouts + 0.5*d_throttledqueries > 6.0 && d_timeouts > 2) throw ImmediateServFailException("Too much work resolving "+qname+"|"+qtype.getName()+", timeouts: "+std::to_string(d_timeouts) +", throttles: "+std::to_string(d_throttledqueries));
 
             if(lwr.d_rcode==RCode::ServFail || lwr.d_rcode==RCode::Refused) {
-              LOG(prefix<<qname.toString()<<": "<<tns->toString()<<" returned a "<< (lwr.d_rcode==RCode::ServFail ? "ServFail" : "Refused") << ", trying sibling IP or NS"<<endl);
+              LOG(prefix<<qname.toString()<<": "<<(tns->empty() ? nameservers[*tns].first.toString() : tns->toString())<<" returned a "<< (lwr.d_rcode==RCode::ServFail ? "ServFail" : "Refused") << ", trying sibling IP or NS"<<endl);
               t_sstorage->throttle.throttle(d_now.tv_sec,boost::make_tuple(*remoteIP, qname, qtype.getCode()),60,3); // servfail or refused
               continue;
             }
@@ -1112,7 +1103,7 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
           LOG(prefix<<qname.toString()<<": truncated bit set, over TCP?"<<endl);
           return RCode::ServFail;
         }
-        LOG(prefix<<qname.toString()<<": Got "<<(unsigned int)lwr.d_records.size()<<" answers from "<<tns->toString()<<" ("<< remoteIP->toString() <<"), rcode="<<lwr.d_rcode<<" ("<<RCode::to_s(lwr.d_rcode)<<"), aa="<<lwr.d_aabit<<", in "<<lwr.d_usec/1000<<"ms"<<endl);
+        LOG(prefix<<qname.toString()<<": Got "<<(unsigned int)lwr.d_records.size()<<" answers from "<<(tns->empty() ? nameservers[*tns].first.toString() : tns->toString())<<" ("<< remoteIP->toString() <<"), rcode="<<lwr.d_rcode<<" ("<<RCode::to_s(lwr.d_rcode)<<"), aa="<<lwr.d_aabit<<", in "<<lwr.d_usec/1000<<"ms"<<endl);
 
         /*  // for you IPv6 fanatics :-)
         if(remoteIP->sin4.sin_family==AF_INET6)
@@ -1176,7 +1167,7 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
               continue;
             } else {
               // ugly...
-              LOG("YES! - This answer was retrieved from the local auth store"<<endl);
+              LOG("YES! - This answer was either retrieved from the local auth store or from a server we forward to."<<endl);
             }
           }
         }
@@ -1357,7 +1348,10 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
 	    cout<<endl;*/
 	}
         auth=newauth;
-        nameservers=nsset;
+
+        nameservers.clear();
+        for (auto const &nameserver : nsset)
+          nameservers.insert({nameserver, {ComboAddress(), false}});
         break;
       }
       else if(isCanonical(*tns)) { // means: not OOB (I think)
