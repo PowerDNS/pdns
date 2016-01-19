@@ -493,7 +493,7 @@ static void apiZoneCryptokeys(HttpRequest* req, HttpResponse* resp) {
   if(!B.getDomainInfo(zonename, di))
     throw ApiException("Could not find domain '"+zonename.toString()+"'");
 
-  DNSSECKeeper::keyset_t keyset=dk.getKeys(zonename, boost::indeterminate, false);
+  DNSSECKeeper::keyset_t keyset=dk.getKeys(zonename, false);
 
   if (keyset.empty())
     throw ApiException("No keys for zone '"+zonename.toString()+"'");
@@ -507,11 +507,19 @@ static void apiZoneCryptokeys(HttpRequest* req, HttpResponse* resp) {
         continue;
     }
 
+    string keyType;
+    switch(value.second.keyType){
+      case DNSSECKeeper::KSK: keyType="ksk"; break;
+      case DNSSECKeeper::ZSK: keyType="zsk"; break;
+      case DNSSECKeeper::CSK: keyType="csk"; break;
+    }
+
     Json::object key {
       { "type", "Cryptokey" },
       { "id", (int)value.second.id },
       { "active", value.second.active },
-      { "keytype", value.second.keyOrZone ? "ksk" : "zsk" },
+      { "keytype", keyType },
+      { "flags", (uint16_t)value.first.d_flags },
       { "dnskey", value.first.getDNSKEY().getZoneRepresentation() }
     };
 
@@ -520,7 +528,7 @@ static void apiZoneCryptokeys(HttpRequest* req, HttpResponse* resp) {
       key["content"] = dpk.getKey()->convertToISC();
     }
 
-    if (value.second.keyOrZone) {
+    if (value.second.keyType == DNSSECKeeper::KSK || value.second.keyType == DNSSECKeeper::CSK) {
       Json::array dses;
       for(const int keyid : { 1, 2, 3, 4 })
       try {

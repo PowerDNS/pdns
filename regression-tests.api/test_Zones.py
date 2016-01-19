@@ -1300,10 +1300,12 @@ class AuthZoneKeys(ApiTestCase, AuthZonesHelperMixin):
 
         key0 = deepcopy(keys[0])
         del key0['dnskey']
+        del key0['ds']
         expected = {
             u'active': True,
             u'type': u'Cryptokey',
-            u'keytype': u'zsk',
+            u'keytype': u'csk',
+            u'flags': 257,
             u'id': 1}
         self.assertEquals(key0, expected)
 

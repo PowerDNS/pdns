@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 if [ ! -d .venv ]; then
-	virtualenv .venv
+	virtualenv -p python2 .venv
 fi
 . .venv/bin/activate
 python -V

@@ -56,67 +56,6 @@ string humanTime(time_t t)
   return ret;
 }
 
-static void algorithm2name(uint8_t algo, string &name) {
-        switch(algo) {
-        case 0:
-           name = "Reserved"; return;
-        case 1:
-           name = "RSAMD5"; return;
-        case 2:
-           name = "DH"; return;
-        case 3:
-           name = "DSA"; return;
-        case 4:
-           name = "ECC"; return;
-        case 5:
-           name = "RSASHA1"; return;
-        case 6:
-           name = "DSA-NSEC3-SHA1"; return;
-        case 7:
-           name = "RSASHA1-NSEC3-SHA1"; return;
-        case 8:
-           name = "RSASHA256"; return;
-        case 9:
-           name = "Reserved"; return;
-        case 10:
-           name = "RSASHA512"; return;
-        case 11:
-           name = "Reserved"; return;
-        case 12:
-           name = "ECC-GOST"; return;
-        case 13:
-           name = "ECDSAP256SHA256"; return;
-        case 14:
-           name = "ECDSAP384SHA384"; return;
-        case 250:
-           name = "ED25519SHA512"; return;
-        case 252:
-           name = "INDIRECT"; return;
-        case 253:
-           name = "PRIVATEDNS"; return;
-        case 254:
-           name = "PRIVATEOID"; return;
-        default:
-           name = "Unallocated/Reserved"; return;
-        }
-};
-
-static int shorthand2algorithm(const string &algorithm)
-{
-  if (!algorithm.compare("rsamd5")) return 1;
-  if (!algorithm.compare("dh")) return 2;
-  if (!algorithm.compare("dsa")) return 3;
-  if (!algorithm.compare("ecc")) return 4;
-  if (!algorithm.compare("rsasha1")) return 5;
-  if (!algorithm.compare("rsasha256")) return 8;
-  if (!algorithm.compare("rsasha512")) return 10;
-  if (!algorithm.compare("gost")) return 12;
-  if (!algorithm.compare("ecdsa256")) return 13;
-  if (!algorithm.compare("ecdsa384")) return 14;
-  if (!algorithm.compare("experimental-ed25519")) return 250;
-  return -1;
-}
-
 void loadMainConfig(const std::string& configdir)
 {
   ::arg().set("config-dir","Location of configuration directory (pdns.conf)")=configdir;
@@ -797,7 +736,7 @@ void listKey(DomainInfo const &di, DNSSECKeeper& dk, bool printHeader = true) {
     else
       cout<<string(30 - di.zone.toStringNoDot().length(), ' ');
 
-    cout<<(key.second.keyOrZone ? "KSK" : "ZSK")<<"     ";
+    cout<<DNSSECKeeper::keyTypeToString(key.second.keyType)<<"     ";
 
     spacelen = (std::to_string(key.first.getKey()->getBits()).length() >= 8) ? 1 : 8 - std::to_string(key.first.getKey()->getBits()).length();
     if (key.first.getKey()->getBits() < 1) {
@@ -807,8 +746,7 @@ void listKey(DomainInfo const &di, DNSSECKeeper& dk, bool printHeader = true) {
       cout<<key.first.getKey()->getBits()<<string(spacelen, ' ');
     }
 
-    string algname;
-    algorithm2name(key.first.d_algorithm, algname);
+    string algname = DNSSECKeeper::algorithm2name(key.first.d_algorithm);
     spacelen = (algname.length() >= 13) ? 1 : 13 - algname.length();
     cout<<algname<<string(spacelen, ' ');
 
@@ -1140,11 +1078,6 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone)
   bool narrow;
   bool haveNSEC3=dk.getNSEC3PARAM(zone, &ns3pr, &narrow);
   
-  DNSSECKeeper::keyset_t entryPointKeys=dk.getEntryPoints(zone);
-  set<uint32_t> entryPointIds;
-  for (auto const& value : entryPointKeys)
-    entryPointIds.insert(value.second.id);
-
   DNSSECKeeper::keyset_t keyset=dk.getKeys(zone);
   if (B.getDomainMetadata(zone, "TSIG-ALLOW-AXFR", meta) && meta.size() > 0) {
      cerr << "Zone has following allowed TSIG key(s): " << boost::join(meta, ",") << endl;
@@ -1181,8 +1114,7 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone)
     reverse(keys.begin(),keys.end());
     bool shown=false;
     for(const auto& key : keys) {
-      string algname;
-      algorithm2name(key.d_algorithm,algname);
+      string algname = DNSSECKeeper::algorithm2name(key.d_algorithm);
       int bits;
       if (key.d_key[0] == 0)
         bits = *(uint16_t*)(key.d_key.c_str()+1);
@@ -1218,17 +1150,18 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone)
   
     cout << "keys: "<<endl;
     for(DNSSECKeeper::keyset_t::value_type value :  keyset) {
-      string algname;
-      algorithm2name(value.first.d_algorithm, algname);
+      string algname = DNSSECKeeper::algorithm2name(value.first.d_algorithm);
+      cout<<"ID = "<<value.second.id<<" ("<<DNSSECKeeper::keyTypeToString(value.second.keyType)<<")";
       if (value.first.getKey()->getBits() < 1) {
-        cout<<"ID = "<<value.second.id<<" ("<<(value.second.keyOrZone ? "KSK" : "ZSK")<<") <key missing or defunct>" <<endl;
+        cout<<" <key missing or defunct>" <<endl;
         continue;
       }
-      cout<<"ID = "<<value.second.id<<" ("<<(value.second.keyOrZone ? "KSK" : "ZSK")<<"), tag = "<<value.first.getDNSKEY().getTag();
+      cout<<", flags = "<<std::to_string(value.first.d_flags);
+      cout<<", tag = "<<value.first.getDNSKEY().getTag();
       cout<<", algo = "<<(int)value.first.d_algorithm<<", bits = "<<value.first.getKey()->getBits()<<"\t"<<((int)value.second.active == 1 ? "  A" : "Ina")<<"ctive ( " + algname + " ) "<<endl;
-      if(entryPointIds.count(value.second.id) > 0 || ::arg().mustDo("direct-dnskey"))
-        cout<<(value.second.keyOrZone ? "KSK" : "ZSK")<<" DNSKEY = "<<zone.toString()<<" IN DNSKEY "<< value.first.getDNSKEY().getZoneRepresentation() << " ; ( "  + algname + " )" << endl;
-      if(entryPointIds.count(value.second.id) > 0) {
+      if(value.second.keyType == DNSSECKeeper::KSK || value.second.keyType == DNSSECKeeper::CSK || ::arg().mustDo("direct-dnskey"))
+        cout<<DNSSECKeeper::keyTypeToString(value.second.keyType)<<" DNSKEY = "<<zone.toString()<<" IN DNSKEY "<< value.first.getDNSKEY().getZoneRepresentation() << " ; ( "  + algname + " )" << endl;
+      if(value.second.keyType == DNSSECKeeper::KSK || value.second.keyType == DNSSECKeeper::CSK) {
         cout<<"DS = "<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, value.first.getDNSKEY(), 1).getZoneRepresentation() << " ; ( SHA1 digest )" << endl;
         cout<<"DS = "<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, value.first.getDNSKEY(), 2).getZoneRepresentation() << " ; ( SHA256 digest )" << endl;
         try {
@@ -1300,18 +1233,14 @@ bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
   else
     cout << "Securing zone with default key size" << endl;
 
-
-  DNSSECKeeper::keyset_t zskset=dk.getKeys(zone, false);
-
-  if(!zskset.empty())  {
-    cerr<<"There were ZSKs already for zone '"<<zone.toString()<<"', no need to add more"<<endl;
-    return false;
+  if (k_algos.empty()) { /* only a ZSK was requested by the defaults, set the SEP bit */
   }
 
-  for(auto &k_algo: k_algos) {
-    cout << "Adding KSK with algorithm " << k_algo << endl;
 
-    int algo = shorthand2algorithm(k_algo);
+  for(auto &k_algo: k_algos) {
+    cout << "Adding "<<(z_algos.empty()? "CSK" : "KSK")<<" with algorithm " << k_algo << endl;
+
+    int algo = DNSSECKeeper::shorthand2algorithm(k_algo);
 
     if(!dk.addKey(zone, true, algo, k_size, true)) {
       cerr<<"No backend was able to secure '"<<zone.toString()<<"', most likely because no DNSSEC"<<endl;
@@ -1324,11 +1253,11 @@ bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
 
   for(auto &z_algo :  z_algos)
   {
-    cout << "Adding ZSK with algorithm " << z_algo << endl;
+    cout << "Adding "<<(k_algos.empty()? "CSK" : "ZSK")<<" with algorithm " << z_algo << endl;
 
-    int algo = shorthand2algorithm(z_algo);
+    int algo = DNSSECKeeper::shorthand2algorithm(z_algo);
 
-    if(!dk.addKey(zone, false, algo, z_size, true)) {
+    if(!dk.addKey(zone, k_algos.empty(), algo, z_size, true)) {
       cerr<<"No backend was able to secure '"<<zone.toString()<<"', most likely because no DNSSEC"<<endl;
       cerr<<"capable backends are loaded, or because the backends have DNSSEC disabled."<<endl;
       cerr<<"For the Generic SQL backends, set the 'gsqlite3-dnssec', 'gmysql-dnssec' or"<<endl;
@@ -1767,7 +1696,7 @@ seedRandom(::arg()["entropy-source"]);
         keyOrZone = false;
       else if(pdns_iequals(cmds[n], "ksk"))
         keyOrZone = true;
-      else if((tmp_algo = shorthand2algorithm(cmds[n]))>0) {
+      else if((tmp_algo = DNSSECKeeper::shorthand2algorithm(cmds[n]))>0) {
         algorithm = tmp_algo;
       } else if(pdns_iequals(cmds[n], "active")) {
         active=true;
@@ -2171,7 +2100,7 @@ seedRandom(::arg()["entropy-source"]);
         keyOrZone = false;
       else if(pdns_iequals(cmds[n], "ksk"))
         keyOrZone = true;
-      else if((tmp_algo = shorthand2algorithm(cmds[n]))>0) {
+      else if((tmp_algo = DNSSECKeeper::shorthand2algorithm(cmds[n]))>0) {
         algorithm = tmp_algo;
       } else if(pdns_stou(cmds[n]))
         bits = pdns_stou(cmds[n]);
@@ -2429,7 +2358,7 @@ seedRandom(::arg()["entropy-source"]);
         return 1;
       }
 
-      int algorithm = shorthand2algorithm(cmds[3]);
+      int algorithm = DNSSECKeeper::shorthand2algorithm(cmds[3]);
       if (algorithm<0) {
         cerr << "Unable to use unknown algorithm '" << cmds[3] << "'" << std::endl;
         return 1;
