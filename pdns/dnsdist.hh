@@ -286,7 +286,7 @@ struct DownstreamState
       close(fd);
   }
 
-  int fd;            
+  int fd{-1};
   std::thread tid;
   ComboAddress remote;
   QPSLimiter qps;

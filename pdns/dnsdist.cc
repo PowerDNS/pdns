@@ -306,15 +306,17 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
 
 DownstreamState::DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf_): remote(remote_), sourceAddr(sourceAddr_), sourceItf(sourceItf_)
 {
-  fd = SSocket(remote.sin4.sin_family, SOCK_DGRAM, 0);
-  if (!IsAnyAddress(sourceAddr)) {
-    SSetsockopt(fd, SOL_SOCKET, SO_REUSEADDR, 1);
-    SBind(fd, sourceAddr);
+  if (!IsAnyAddress(remote)) {
+    fd = SSocket(remote.sin4.sin_family, SOCK_DGRAM, 0);
+    if (!IsAnyAddress(sourceAddr)) {
+      SSetsockopt(fd, SOL_SOCKET, SO_REUSEADDR, 1);
+      SBind(fd, sourceAddr);
+    }
+    SConnect(fd, remote);
+    idStates.resize(g_maxOutstanding);
+    sw.start();
+    infolog("Added downstream server %s", remote.toStringWithPort());
   }
-  SConnect(fd, remote);
-  idStates.resize(g_maxOutstanding);
-  sw.start();
-  infolog("Added downstream server %s", remote.toStringWithPort());
 }
 
 std::mutex g_luamutex;
