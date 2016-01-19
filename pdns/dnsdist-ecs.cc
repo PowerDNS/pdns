@@ -174,7 +174,7 @@ int locateEDNSOptRR(const char * packet, const size_t len, const char ** optStar
 }
 
 /* extract the start of the OPT RR in a QUERY packet if any */
-static int getEDNSOptionsStart(char* packet, const size_t offset, const size_t len, char ** optStart, size_t * remaining, uint16_t ** optRDLen)
+static int getEDNSOptionsStart(char* packet, const size_t offset, const size_t len, char ** optStart, size_t * remaining, unsigned char ** optRDLen)
 {
   assert(packet != NULL);
   assert(optStart != NULL);
@@ -205,7 +205,7 @@ static int getEDNSOptionsStart(char* packet, const size_t offset, const size_t l
   *remaining = len - pos;
 
   if (optRDLen) {
-    *optRDLen = (uint16_t *)(packet + pos + DNS_TTL_SIZE);
+    *optRDLen = ((unsigned char*) packet + pos + DNS_TTL_SIZE);
   }
 
   return 0;
@@ -220,16 +220,16 @@ static int getEDNSOption(char* optRR, const size_t len, const uint16_t wantedOpt
   size_t pos = 0;
 
   pos += DNS_TTL_SIZE;
-  const uint16_t rdLen = ntohs(*((uint16_t*) (optRR + pos)));
+  const uint16_t rdLen = (((unsigned char) optRR[pos]) * 256) + ((unsigned char) optRR[pos+1]);
   size_t rdPos = 0;
   pos += DNS_RDLENGTH_SIZE;  
 
   while(pos < (len - ((size_t) EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE)) &&
         rdPos < (rdLen - ((size_t) EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE))) {
-    const uint16_t optionCode = ntohs(*((uint16_t*) (optRR + pos)));
+    const uint16_t optionCode = (((unsigned char) optRR[pos]) * 256) + ((unsigned char) optRR[pos+1]);
     pos += EDNS_OPTION_CODE_SIZE;
     rdPos += EDNS_OPTION_CODE_SIZE;
-    const uint16_t optionLen = ntohs(*((uint16_t*) (optRR + pos)));
+    const uint16_t optionLen = (((unsigned char) optRR[pos]) * 256) + ((unsigned char) optRR[pos+1]);
     pos += EDNS_OPTION_LENGTH_SIZE;
     rdPos += EDNS_OPTION_LENGTH_SIZE;
 
@@ -284,7 +284,7 @@ static void generateECSOptRR(const ComboAddress& source, string & res)
   res.append(optRData.c_str(), optRData.length());
 }
 
-static void replaceEDNSClientSubnetOption(char * const packet, const size_t packetSize, uint16_t * const len, string& largerPacket, const ComboAddress& remote, char * const oldEcsOptionStart, size_t const oldEcsOptionSize, uint16_t * const optRDLen)
+static void replaceEDNSClientSubnetOption(char * const packet, const size_t packetSize, uint16_t * const len, string& largerPacket, const ComboAddress& remote, char * const oldEcsOptionStart, size_t const oldEcsOptionSize, unsigned char * const optRDLen)
 {
   assert(packet != NULL);
   assert(len != NULL);
@@ -304,9 +304,10 @@ static void replaceEDNSClientSubnetOption(char * const packet, const size_t pack
     const size_t dataBehindSize = *len - beforeOptionLen - oldEcsOptionSize;
           
     /* fix the size of ECS Option RDLen */
-    uint16_t newRDLen = htons(*optRDLen);
+    uint16_t newRDLen = (optRDLen[0] * 256) + optRDLen[1];
     newRDLen += (ECSOption.size() - oldEcsOptionSize);
-    *optRDLen = htons(newRDLen);
+    optRDLen[0] = newRDLen / 256;
+    optRDLen[1] = newRDLen % 256;
     
     if (newPacketLen <= packetSize) {
       /* it fits in the existing buffer */
@@ -340,7 +341,7 @@ void handleEDNSClientSubnet(char * const packet, const size_t packetSize, const 
   assert(consumed <= (size_t) *len);
   assert(ednsAdded != NULL);
   char * optRRStart = NULL;
-  uint16_t * optRDLen = NULL;
+  unsigned char * optRDLen = NULL;
   size_t remaining = 0;
         
   int res = getEDNSOptionsStart(packet, consumed, *len, &optRRStart, &remaining, &optRDLen);
@@ -364,9 +365,10 @@ void handleEDNSClientSubnet(char * const packet, const size_t packetSize, const 
       generateECSOption(remote, ECSOption);
       const size_t ECSOptionSize = ECSOption.size();
       
-      uint16_t newRDLen = htons(*optRDLen);
+      uint16_t newRDLen = (optRDLen[0] * 256) + optRDLen[1];
       newRDLen += ECSOptionSize;
-      *optRDLen = htons(newRDLen);
+      optRDLen[0] = newRDLen / 256;
+      optRDLen[1] = newRDLen % 256;
 
       if (packetSize - *len > ECSOptionSize) {
         /* if the existing buffer is large enough */
