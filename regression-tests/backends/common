@@ -55,6 +55,10 @@ start_master ()
 				source ./backends/tinydns-master
 				;;
 
+			ldap*)
+				source ./backends/ldap-master
+				;;
+
 			ext-nsd*)
 				source ./ext/nsd-master
 				;;
