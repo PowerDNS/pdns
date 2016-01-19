@@ -5,6 +5,7 @@
 #include "syncres.hh"
 #include "namespaces.hh"
 #include "rec_channel.hh" 
+#include <unordered_set>
 #if !defined(HAVE_LUA)
 
 RecursorLua4::RecursorLua4(const std::string &fname)
@@ -193,6 +194,32 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   d_lw->registerFunction<uint16_t(ComboAddress::*)()>("getPort", [](const ComboAddress& ca) { return ntohs(ca.sin4.sin_port); } );
 
   d_lw->writeFunction("newCA", [](const std::string& a) { return ComboAddress(a); });
+  typedef std::unordered_set<ComboAddress,ComboAddress::addressOnlyHash,ComboAddress::addressOnlyEqual> cas_t;
+  d_lw->writeFunction("newCAS", []{ return cas_t(); });
+
+
+  d_lw->registerFunction<void(cas_t::*)(boost::variant<string,ComboAddress, vector<pair<unsigned int,string> > >)>("add",
+                                                                                   [](cas_t& cas, const boost::variant<string,ComboAddress,vector<pair<unsigned int,string> > >& in)
+										   {
+										     try {
+										     if(auto s = boost::get<string>(&in)) {
+										       cas.insert(ComboAddress(*s));
+										     }
+										     else if(auto v = boost::get<vector<pair<unsigned int, string> > >(&in)) {
+										       for(const auto& s : *v)
+											 cas.insert(ComboAddress(s.second));
+										     }
+										     else
+										       cas.insert(boost::get<ComboAddress>(in));
+										     }
+										     catch(std::exception& e) { theL() <<Logger::Error<<e.what()<<endl; }
+										   });
+
+  d_lw->registerFunction<bool(cas_t::*)(const ComboAddress&)>("check",[](const cas_t& cas, const ComboAddress&ca) {
+      return (bool)cas.count(ca);
+    });
+
+
 
   d_lw->registerFunction<bool(ComboAddress::*)(const ComboAddress&)>("equal", [](const ComboAddress& lhs, const ComboAddress& rhs) {
       return ComboAddress::addressOnlyEqual()(lhs, rhs);
@@ -224,6 +251,7 @@ RecursorLua4::RecursorLua4(const std::string& fname)
 
   d_lw->registerFunction<void(DNSRecord::*)(const std::string&)>("changeContent", [](DNSRecord& dr, const std::string& newContent) { dr.d_content = shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(dr.d_type, 1, newContent)); });
   d_lw->registerFunction("addAnswer", &DNSQuestion::addAnswer);
+  d_lw->registerFunction("addRecord", &DNSQuestion::addRecord);
   d_lw->registerFunction("getRecords", &DNSQuestion::getRecords);
   d_lw->registerFunction("setRecords", &DNSQuestion::setRecords);
 
@@ -242,7 +270,7 @@ RecursorLua4::RecursorLua4(const std::string& fname)
 										     else
 										       smn.add(boost::get<DNSName>(in));
 										     }
-										     catch(std::exception& e) { cerr<<e.what()<<endl; }
+										     catch(std::exception& e) { theL() <<Logger::Error<<e.what()<<endl; }
 										   });
   d_lw->registerFunction("check",(bool (SuffixMatchNode::*)(const DNSName&) const) &SuffixMatchNode::check);
 
