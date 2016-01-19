@@ -703,8 +703,16 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       return std::shared_ptr<DNSRule>(new AndRule(a));
     });
 
+  g_lua.writeFunction("OrRule", [](vector<pair<int, std::shared_ptr<DNSRule> > >a) {
+      return std::shared_ptr<DNSRule>(new OrRule(a));
+    });
+
   g_lua.writeFunction("TCPRule", [](bool tcp) {
       return std::shared_ptr<DNSRule>(new TCPRule(tcp));
+    });
+
+  g_lua.writeFunction("NotRule", [](std::shared_ptr<DNSRule>rule) {
+      return std::shared_ptr<DNSRule>(new NotRule(rule));
     });
 
   g_lua.writeFunction("addAction", [](luadnsrule_t var, std::shared_ptr<DNSAction> ea) 
