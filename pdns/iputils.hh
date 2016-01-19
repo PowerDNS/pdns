@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002 - 2014  PowerDNS.COM BV
+    Copyright (C) 2002 - 2016  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -118,6 +118,24 @@ union ComboAddress {
     else
       return memcmp(&sin6.sin6_addr.s6_addr, &rhs.sin6.sin6_addr.s6_addr, 16) > 0;
   }
+
+  struct addressOnlyHash
+  {
+    uint32_t operator()(const ComboAddress& ca) const 
+    { 
+      const unsigned char* start;
+      int len;
+      if(ca.sin4.sin_family == AF_INET) {
+        start =(const unsigned char*)&ca.sin4.sin_addr.s_addr;
+        len=4;
+      }
+      else {
+        start =(const unsigned char*)&ca.sin6.sin6_addr.s6_addr;
+        len=16;
+      }
+      return burtle(start, len, 0);
+    }
+  };
 
   struct addressOnlyLessThan: public std::binary_function<ComboAddress, ComboAddress, bool>
   {
