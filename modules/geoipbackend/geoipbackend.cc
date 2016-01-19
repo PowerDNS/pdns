@@ -101,7 +101,7 @@ void GeoIPBackend::initialize() {
 
   for(YAML::Node domain :  config["domains"]) {
     GeoIPDomain dom;
-    dom.id = s_domains.size();
+    dom.id = tmp_domains.size();
     dom.domain = DNSName(domain["domain"].as<string>());
     dom.ttl = domain["ttl"].as<int>();
 
