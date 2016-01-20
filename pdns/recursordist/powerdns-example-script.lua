@@ -1,0 +1,1 @@
+../powerdns-example-script.lua

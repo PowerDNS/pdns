@@ -134,18 +134,21 @@ package if you need a dns cache for your network.
 
 %prep
 %setup -q -n pdns-recursor-${TARBALLVERSION}
-sed -i -e 's!SYSCONFDIR=/etc/powerdns!SYSCONFDIR=/etc/pdns-recursor!' -e 's!STRIP_BINARIES?=1!STRIP_BINARIES?=0!' $HOME/rpmbuild/BUILD/pdns-recursor-${TARBALLVERSION}/Makefile.in
-sed -i -e 's!OS_SPECIFIC_INSTALL=.*!OS_SPECIFIC_INSTALL=!' $HOME/rpmbuild/BUILD/pdns-recursor-${TARBALLVERSION}/sysdeps/Linux.inc
 
 %build
-%configure
-LUA=1 LUA_CPPFLAGS_CONFIG= LUA_LIBS_CONFIG=-llua OPTFLAGS="%{optflags}" LDFLAGS="%{?__global_ldflags}" make %{?_smp_mflags}
+%configure \
+	--sysconfdir=%{_sysconfdir}/%{name} \
+	--libdir=%{_libdir}/%{name} \
+	--disable-static \
+	--disable-dependency-tracking \
+	--disable-silent-rules \
+	--enable-unit-tests
+
+make %{?_smp_mflags}
 
 %install
 %{__rm} -rf %{buildroot}
-make install DESTDIR=%{buildroot} CONFIGDIR="%{_sysconfdir}/%{name}"
-chmod 0755 %{buildroot}/%{_bindir}/rec_control
-chmod 0755 %{buildroot}/%{_sbindir}/pdns_recursor
+make install DESTDIR=%{buildroot}
 %{__install} -D -p %{SOURCE1} %{buildroot}%{_initrddir}/pdns-recursor
 %{buildroot}/%{_sbindir}/pdns_recursor --config > %{buildroot}%{_sysconfdir}/%{name}/recursor.conf
 %{__rm} %{buildroot}%{_sysconfdir}/%{name}/recursor.conf-dist
@@ -221,20 +224,22 @@ package if you need a dns cache for your network.
 
 %prep
 %setup -q -n pdns-recursor-${TARBALLVERSION}
-sed -i -e 's!SYSCONFDIR=/etc/powerdns!SYSCONFDIR=/etc/pdns-recursor!' -e 's!STRIP_BINARIES?=1!STRIP_BINARIES?=0!' $HOME/rpmbuild/BUILD/pdns-recursor-${TARBALLVERSION}/Makefile.in
-sed -i -e 's!OS_SPECIFIC_INSTALL=.*!OS_SPECIFIC_INSTALL=!' $HOME/rpmbuild/BUILD/pdns-recursor-${TARBALLVERSION}/sysdeps/Linux.inc
 
 %build
-%configure
-LUA=1 LUA_CPPFLAGS_CONFIG= LUA_LIBS_CONFIG=-llua OPTFLAGS="%{optflags}" LDFLAGS="%{?__global_ldflags}" make %{?_smp_mflags}
+%configure \
+	--sysconfdir=%{_sysconfdir}/%{name} \
+	--libdir=%{_libdir}/%{name} \
+	--disable-static \
+	--disable-dependency-tracking \
+	--disable-silent-rules \
+	--enable-unit-tests
+
+make %{?_smp_mflags}
 
 %install
-make install DESTDIR=%{buildroot} CONFIGDIR="%{_sysconfdir}/%{name}"
-chmod 0755 %{buildroot}/%{_bindir}/rec_control
-chmod 0755 %{buildroot}/%{_sbindir}/pdns_recursor
+make install DESTDIR=%{buildroot}
 # install systemd unit file
 %{__install} -D -p -m 644 contrib/systemd-pdns-recursor.service %{buildroot}%{_unitdir}/%{name}.service
-
 %{buildroot}/%{_sbindir}/pdns_recursor --config > %{buildroot}%{_sysconfdir}/%{name}/recursor.conf
 %{__rm} %{buildroot}%{_sysconfdir}/%{name}/recursor.conf-dist
 

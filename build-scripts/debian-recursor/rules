@@ -1,10 +1,5 @@
 #!/usr/bin/make -f
 
-# Enable lua
-export LUA := 1
-export LUA_CPPFLAGS_CONFIG := $(shell pkg-config lua5.2 --cflags)
-export LUA_LIBS_CONFIG := $(shell pkg-config lua5.2 --libs)
-
 # Enable hardening features for daemons
 # Note: blhc (build log hardening check) will find these false positivies: CPPFLAGS 2 missing, LDFLAGS 1 missing
 export DEB_BUILD_MAINT_OPTIONS=hardening=+bindnow,+pie
@@ -18,7 +13,20 @@ CXXFLAGS += -DPACKAGEVERSION='"$(version)"'
 
 # Use new build system
 %:
-	dh $@ --with systemd --parallel
+	dh $@ --with autoreconf --with systemd --parallel
+
+override_dh_auto_configure:
+	./configure \
+		--host=$(DEB_HOST_GNU_TYPE) \
+		--build=$(DEB_BUILD_GNU_TYPE) \
+		--prefix=/usr \
+		--sysconfdir=/etc/powerdns \
+		--mandir=\$${prefix}/share/man \
+		--infodir=\$${prefix}/share/info \
+		--libdir='$${prefix}/lib/$(DEB_HOST_MULTIARCH)' \
+		--libexecdir='$${prefix}/lib' \
+		--without-system-mbedtls \
+		--enable-unit-tests
 
 override_dh_auto_install:
 	./pdns_recursor --config | sed \
