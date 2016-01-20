@@ -187,6 +187,8 @@ struct DNSComboWriter {
   ComboAddress d_remote, d_local;
   bool d_tcp;
   int d_socket;
+  int d_tag;
+  string d_query;
   shared_ptr<TCPConnection> d_tcpConnection;
 };
 
@@ -869,8 +871,7 @@ void startDoResolve(void *p)
         L<<Logger::Warning<<"Sending UDP reply to client "<<dc->d_remote.toStringWithPort()<<" failed with: "<<strerror(errno)<<endl;
 
       if(!SyncRes::s_nopacketcache && !variableAnswer && !sr.wasVariable() ) {
-        t_packetCache->insertResponsePacket(string((const char*)&*packet.begin(), packet.size()),
-                                            (edo.d_Z & EDNSOpts::DNSSECOK), // ponder filtering on dnssecmode here
+        t_packetCache->insertResponsePacket(dc->d_tag, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_query, string((const char*)&*packet.begin(), packet.size()),
                                             g_now.tv_sec,
                                             min(minTTL,
                                                 (pw.getHeader()->rcode == RCode::ServFail) ? SyncRes::s_packetcacheservfailttl : SyncRes::s_packetcachettl
@@ -1135,6 +1136,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
 
   string response;
   const struct dnsheader* dh = (struct dnsheader*)question.c_str();
+  unsigned int ctag=0;
   try {
     uint32_t age;
 #ifdef MALLOC_TRACE
@@ -1148,21 +1150,16 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
     g_mtracer->clearAllocators();
     */
 #endif
-    bool needsDNSSEC=false;
-
-    if(dh->arcount) {
+    if((*t_pdl)->d_gettag) {
       unsigned int consumed=0;
-      DNSName qname(question.c_str(), question.length(), sizeof(dnsheader), false, 0, 0, &consumed);
-      if(question.size() > (consumed+12+11) && ((question[consumed+12+11]&0x80)==0x80))
-        needsDNSSEC=true;
+      uint16_t qtype=0;
+      DNSName qname(question.c_str(), question.length(), sizeof(dnsheader), false, &qtype, 0, &consumed);
+      ctag=(*t_pdl)->gettag(fromaddr, destaddr, qname, qtype);
     }
-    
-    if(!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(question, needsDNSSEC, g_now.tv_sec, &response, &age)) {
-      if(!g_quiet)
-        L<<Logger::Notice<<t_id<< " question answered from packet cache from "<<fromaddr.toString()<<endl;
-      // t_queryring->push_back("packetcached");
 
-      
+    if(!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, question, g_now.tv_sec, &response, &age)) {
+      if(!g_quiet)
+        L<<Logger::Notice<<t_id<< " question answered from packet cache tag="<<ctag<<" from "<<fromaddr.toString()<<endl;
 
       g_stats.packetCacheHits++;
       SyncRes::s_queries++;
@@ -1213,6 +1210,8 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
 
   DNSComboWriter* dc = new DNSComboWriter(question.c_str(), question.size(), g_now);
   dc->setSocket(fd);
+  dc->d_tag=ctag;
+  dc->d_query = question;
   dc->setRemote(&fromaddr);
   dc->setLocal(destaddr);
   dc->d_tcp=false;

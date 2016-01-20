@@ -1070,6 +1070,7 @@ testrunner_SOURCES = \
 	packetcache.cc \
 	qtype.cc \
 	rcpgenerator.cc \
+	recpacketcache.cc \
 	responsestats.cc \
 	responsestats-auth.cc \
 	sillyrecords.cc \
@@ -1090,6 +1091,7 @@ testrunner_SOURCES = \
 	test-nmtree.cc \
 	test-packetcache_cc.cc \
 	test-rcpgenerator_cc.cc \
+	test-recpacketcache_cc.cc \
 	test-sha_hh.cc \
 	test-statbag_cc.cc \
 	test-zoneparser_tng_cc.cc \
