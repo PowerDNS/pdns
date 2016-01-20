@@ -1150,7 +1150,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
     g_mtracer->clearAllocators();
     */
 #endif
-    if((*t_pdl)->d_gettag) {
+    if(t_pdl->get() && (*t_pdl)->d_gettag) {
       unsigned int consumed=0;
       uint16_t qtype=0;
       DNSName qname(question.c_str(), question.length(), sizeof(dnsheader), false, &qtype, 0, &consumed);
