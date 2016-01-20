@@ -28,6 +28,7 @@ endif
 EXTRA_DIST = \
 	.version \
 	botan110signers.cc botansigners.cc \
+	build-aux/gen-version \
 	devpollmplexer.cc \
 	dnslabeltext.cc \
 	dnslabeltext.rl \
