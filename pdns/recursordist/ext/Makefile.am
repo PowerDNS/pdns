@@ -7,4 +7,6 @@ DIST_SUBDIRS = \
 	json11
 
 EXTRA_DIST = \
-	luawrapper/include/LuaContext.hpp
+	luawrapper/include/LuaContext.hpp \
+	yahttp/LICENSE \
+	json11/LICENSE.txt
