@@ -8,14 +8,6 @@ to legitimate users while shunting or blocking abusive traffic.
 runtime, and that its statistics can be queried from a console-like
 interface.
 
-WARNING: `dnsdist` is still under HEAVY development, but we are giving it some
-publicity in hopes of getting constructive feedback that will help us guide
-our feature set.
-
-Do not quite yet take this into production, but please DO let us know your
-thoughts!  Test packages and/or tarballs can be found on
-http://xs.powerdns.com/dnsdist/ (but see 'Packaged' below for more links).
-
 Compiling
 ---------
 `dnsdist` depends on boost, Lua or luajit and a pretty recent C++
