@@ -44,6 +44,11 @@ bool RecursorLua4::ipfilter(const ComboAddress& remote, const ComboAddress& loca
   return false;
 }
 
+int RecursorLua4::gettag(const ComboAddress& remote, const ComboAddress& local, const DNSName& qname, uint16_t qtype)
+{
+  return 0;
+}
+
 
 #else
 #undef L
@@ -321,7 +326,7 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   d_preoutquery = d_lw->readVariable<boost::optional<luacall_t>>("preoutquery").get_value_or(0);
 
   d_ipfilter = d_lw->readVariable<boost::optional<ipfilter_t>>("ipfilter").get_value_or(0);
-
+  d_gettag = d_lw->readVariable<boost::optional<gettag_t>>("gettag").get_value_or(0);
 }
 
 bool RecursorLua4::preresolve(const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSRecord>& res, int& ret, bool* variable)
@@ -354,6 +359,13 @@ bool RecursorLua4::ipfilter(const ComboAddress& remote, const ComboAddress& loca
   if(d_ipfilter)
     return d_ipfilter(remote, local, dh);
   return false; // don't block
+}
+
+int RecursorLua4::gettag(const ComboAddress& remote, const ComboAddress& local, const DNSName& qname, uint16_t qtype)
+{
+  if(d_gettag)
+    return d_gettag(remote, local, qname, qtype);
+  return 0;
 }
 
 bool RecursorLua4::genhook(luacall_t& func, const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSRecord>& res, int& ret, bool* variable)

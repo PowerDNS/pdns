@@ -19,6 +19,11 @@ public:
   bool preoutquery(const ComboAddress& ns, const ComboAddress& requestor, const DNSName& query, const QType& qtype, vector<DNSRecord>& res, int& ret);
   bool ipfilter(const ComboAddress& remote, const ComboAddress& local, const struct dnsheader&);
 
+  int gettag(const ComboAddress& remote, const ComboAddress& local, const DNSName& query, uint16_t qtype);
+
+  typedef std::function<int(ComboAddress,ComboAddress, DNSName, uint16_t)> gettag_t;
+  gettag_t d_gettag; // public so you can query if we have this hooked
+
 private:
   struct DNSQuestion
   {
