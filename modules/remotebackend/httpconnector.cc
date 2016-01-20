@@ -130,7 +130,7 @@ void HTTPConnector::restful_requestbuilder(const std::string &method, const Json
     } else if (method == "createSlaveDomain") {
         addUrlComponent(parameters, "ip", ss);
         addUrlComponent(parameters, "domain", ss);
-        if (parameters["account"].is_string()) {
+        if (parameters["account"].is_null() == false && parameters["account"].is_string()) {
            req.POST()["account"] = parameters["account"].string_value();
         }
         req.preparePost();
