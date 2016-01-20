@@ -58,7 +58,7 @@ template <typename T> void pruneCollection(T& collection, unsigned int maxCached
   sidx.erase(iter, eiter);      // just lob it off from the beginning
 }
 
-
+// note: this expects iterator from first index, and sequence MUST be second index!
 template <typename T> void moveCacheItemToFrontOrBack(T& collection, typename T::iterator& iter, bool front)
 {
   typedef typename T::template nth_index<1>::type sequence_t;

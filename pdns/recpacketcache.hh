@@ -8,6 +8,7 @@
 #include <iostream>
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index/hashed_index.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
 #include <boost/multi_index/sequenced_index.hpp>
 
@@ -23,8 +24,8 @@ class RecursorPacketCache
 {
 public:
   RecursorPacketCache();
-  bool getResponsePacket(const std::string& queryPacket, bool wantsDNSSEC, time_t now, std::string* responsePacket, uint32_t* age);
-  void insertResponsePacket(const std::string& responsePacket, bool wantsDNSSEC, time_t now, uint32_t ttd);
+  bool getResponsePacket(unsigned int tag, const std::string& queryPacket, time_t now, std::string* responsePacket, uint32_t* age);
+  void insertResponsePacket(unsigned int tag, const DNSName& qname, uint16_t qtype, const std::string& queryPacket, const std::string& responsePacket, time_t now, uint32_t ttd);
   void doPruneTo(unsigned int maxSize=250000);
   int doWipePacketCache(const DNSName& name, uint16_t qtype=0xffff, bool subtree=false);
   
@@ -34,13 +35,17 @@ public:
   uint64_t bytes();
 
 private:
-
+  struct HashTag {};
+  struct NameTag {};
   struct Entry 
   {
     mutable uint32_t d_ttd;
-    mutable uint32_t d_creation;
+    mutable uint32_t d_creation; // so we can 'age' our packets
+    DNSName d_name;
+    uint16_t d_type;
     mutable std::string d_packet; // "I know what I am doing"
-    bool d_wantsDNSSEC;
+    uint32_t d_qhash;
+    uint32_t d_tag;
     inline bool operator<(const struct Entry& rhs) const;
     
     uint32_t getTTD() const
@@ -48,35 +53,17 @@ private:
       return d_ttd;
     }
   };
- 
+  uint32_t canHashPacket(const std::string& origPacket);
   typedef multi_index_container<
     Entry,
     indexed_by  <
-                  ordered_unique<identity<Entry> >, 
-                  sequenced<> 
-               >
+      hashed_non_unique<tag<HashTag>, composite_key<Entry, member<Entry,uint32_t,&Entry::d_tag>, member<Entry,uint32_t,&Entry::d_qhash> > >,
+      sequenced<> ,
+      ordered_non_unique<tag<NameTag>, member<Entry,DNSName,&Entry::d_name>, CanonDNSNameCompare >
+      >
   > packetCache_t;
   
-   packetCache_t d_packetCache;
+  packetCache_t d_packetCache;
 };
-
-// needs to take into account: qname, qtype, opcode, rd, qdcount, EDNS size
-inline bool RecursorPacketCache::Entry::operator<(const struct RecursorPacketCache::Entry &rhs) const
-{
-  const struct dnsheader* 
-    dh=(const struct dnsheader*) d_packet.c_str(), 
-    *rhsdh=(const struct dnsheader*)rhs.d_packet.c_str();
-  if(std::tie(d_wantsDNSSEC, dh->opcode, dh->rd, dh->qdcount) < 
-     std::tie(rhs.d_wantsDNSSEC, rhsdh->opcode, rhsdh->rd, rhsdh->qdcount))
-    return true;
-
-  if(std::tie(d_wantsDNSSEC, dh->opcode, dh->rd, dh->qdcount) >
-     std::tie(rhs.d_wantsDNSSEC, rhsdh->opcode, rhsdh->rd, rhsdh->qdcount))
-    return false;
-
-  return dnspacketLessThan(d_packet, rhs.d_packet);
-}
-
-
 
 #endif
