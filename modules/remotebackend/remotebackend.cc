@@ -214,13 +214,13 @@ bool RemoteBackend::get(DNSResourceRecord &rr) {
    rr.qname = DNSName(stringFromJson(d_result["result"][d_index], "qname"));
    rr.qclass = QClass::IN;
    rr.content = stringFromJson(d_result["result"][d_index], "content");
-   rr.ttl = intFromJson(d_result["result"][d_index], "ttl", 0);
+   rr.ttl = d_result["result"][d_index]["ttl"].int_value();
    rr.domain_id = intFromJson(d_result["result"][d_index], "domain_id", -1);
    if (d_dnssec)
      rr.auth = intFromJson(d_result["result"][d_index], "auth", 1);
    else
      rr.auth = 1;
-   rr.scopeMask = intFromJson(d_result["result"][d_index], "scopeMask", 0);
+   rr.scopeMask = d_result["result"][d_index]["scopeMask"].int_value();
    d_index++;
 
    // id index is out of bounds, we know the results end here.
@@ -404,7 +404,7 @@ int RemoteBackend::addDomainKey(const DNSName& name, const KeyData& key) {
    if (this->send(query) == false || this->recv(answer) == false)
      return false;
 
-   return intFromJson(answer,"result",0);
+   return answer["result"].int_value();
 }
 
 bool RemoteBackend::activateDomainKey(const DNSName& name, unsigned int id) {
@@ -550,8 +550,8 @@ bool RemoteBackend::getDomainInfo(const DNSName& domain, DomainInfo &di) {
      di.masters.push_back(master.string_value());
 
    di.notified_serial = static_cast<unsigned int>(doubleFromJson(answer["result"], "notified_serial", -1));
-   di.serial = static_cast<unsigned int>(doubleFromJson(answer["result"], "serial", 0));
-   di.last_check = static_cast<time_t>(doubleFromJson(answer["result"], "last_check", 0));
+   di.serial = static_cast<unsigned int>(answer["result"]["serial"].number_value());
+   di.last_check = static_cast<time_t>(answer["result"]["last_check"].number_value());
 
    string kind = "";
    if (answer["result"]["kind"].is_string()) {
@@ -886,13 +886,13 @@ bool RemoteBackend::searchRecords(const string &pattern, int maxResults, vector<
     rr.qname = DNSName(stringFromJson(row, "qname"));
     rr.qclass = QClass::IN;
     rr.content = stringFromJson(row, "content");
-    rr.ttl = intFromJson(row, "ttl", 0);
+    rr.ttl = row["ttl"].int_value();
     rr.domain_id = intFromJson(row, "domain_id", -1);
     if (d_dnssec)
       rr.auth = intFromJson(row, "auth", 1);
     else
       rr.auth = 1;
-    rr.scopeMask = intFromJson(row, "scopeMask", 0);
+    rr.scopeMask = row["scopeMask"].int_value();
     result.push_back(rr);
   }
 
