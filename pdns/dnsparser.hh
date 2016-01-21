@@ -218,7 +218,7 @@ public:
     if(iter != getN2Typemap().end())
       return iter->second.second;
     
-    if(boost::starts_with(name, "TYPE"))
+    if(boost::starts_with(name, "TYPE") || boost::starts_with(name, "type"))
       return pdns_stou(name.substr(4));
     
     throw runtime_error("Unknown DNS type '"+name+"'");
