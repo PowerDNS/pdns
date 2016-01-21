@@ -184,7 +184,7 @@ void moreLua()
   g_lua.registerFunction<bool(nmts_t::*)(const ComboAddress&)>("match", 
 								     [](nmts_t& s, const ComboAddress& ca) { return s.match(ca); });
 
-  g_lua.writeFunction("exceedServfails", [](unsigned int rate, int seconds) {
+  g_lua.writeFunction("exceedServFails", [](unsigned int rate, int seconds) {
       setLuaNoSideEffect();
       return exceedRCode(rate, seconds, RCode::ServFail);
     });
