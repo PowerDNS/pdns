@@ -49,9 +49,7 @@
 #ifdef HAVE_LIBSODIUM
 #include <sodium.h>
 #endif
-#ifdef HAVE_OPENSSL
 #include "opensslsigners.hh"
-#endif
 
 #include "dns.hh"
 #include "dnsbackend.hh"
@@ -509,10 +507,8 @@ int main(int argc, char **argv)
       }
 #endif
 
-#ifdef HAVE_OPENSSL
     openssl_thread_setup();
     openssl_seed();
-#endif
 
     loadModules();
     BackendMakers().launch(::arg()["launch"]); // vrooooom!

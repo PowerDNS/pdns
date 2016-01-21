@@ -79,6 +79,7 @@ pdns_recursor_SOURCES = \
 	mtasker.hh \
 	namespaces.hh \
 	nsecrecords.cc \
+	opensslsigners.cc opensslsigners.hh \
 	pdns_recursor.cc \
 	pdnsexception.hh \
 	pubsuffix.hh pubsuffix.cc \
@@ -116,17 +117,11 @@ pdns_recursor_SOURCES = \
 
 pdns_recursor_LDADD = \
 	$(YAHTTP_LIBS) \
-	$(JSON11_LIBS)
+	$(JSON11_LIBS) \
+	$(OPENSSL_LIBS)
 
-pdns_recursor_LDFLAGS = $(AM_LDFLAGS)
-
-if OPENSSL
-pdns_recursor_SOURCES += \
-	opensslsigners.cc \
-	opensslsigners.hh
-pdns_recursor_LDADD += $(OPENSSL_LIBS)
-pdns_recursor_LDFLAGS += $(OPENSSL_LDFLAGS)
-endif
+pdns_recursor_LDFLAGS = $(AM_LDFLAGS) \
+	$(OPENSSL_LDFLAGS)
 
 if BOTAN110
 pdns_recursor_SOURCES += \

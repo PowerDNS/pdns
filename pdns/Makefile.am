@@ -166,6 +166,7 @@ pdns_server_SOURCES = \
 	nameserver.cc nameserver.hh \
 	namespaces.hh \
 	nsecrecords.cc \
+	opensslsigners.cc opensslsigners.hh \
 	packetcache.cc packetcache.hh \
 	packethandler.cc packethandler.hh \
 	pdnsexception.hh \
@@ -197,14 +198,16 @@ pdns_server_SOURCES = \
 
 pdns_server_LDFLAGS = \
 	$(AM_LDFLAGS) \
-	$(DYNLINKFLAGS) 
+	$(DYNLINKFLAGS) \
+	$(OPENSSL_LDFLAGS)
 
 pdns_server_LDADD = \
 	@moduleobjects@ \
 	@modulelibs@ \
 	$(LIBDL) \
 	$(YAHTTP_LIBS) \
-	$(JSON11_LIBS)
+	$(JSON11_LIBS) \
+	$(OPENSSL_LIBS)
 
 if BOTAN110
 pdns_server_SOURCES += botan110signers.cc botansigners.cc
@@ -214,12 +217,6 @@ endif
 if LIBSODIUM
 pdns_server_SOURCES += sodiumsigners.cc
 pdns_server_LDADD += $(LIBSODIUM_LIBS)
-endif
-
-if OPENSSL
-pdns_server_SOURCES += opensslsigners.cc opensslsigners.hh
-pdns_server_LDFLAGS += $(OPENSSL_LDFLAGS)
-pdns_server_LDADD += $(OPENSSL_LIBS)
 endif
 
 if SQLITE3
@@ -273,6 +270,7 @@ pdnsutil_SOURCES = \
 	logger.cc \
 	misc.cc misc.hh \
 	nsecrecords.cc \
+	opensslsigners.cc opensslsigners.hh \
 	packetcache.cc \
 	pdnsutil.cc \
 	qtype.cc \
@@ -290,7 +288,8 @@ pdnsutil_SOURCES = \
 pdnsutil_LDFLAGS = \
 	$(AM_LDFLAGS) \
 	$(DYNLINKFLAGS) \
-	$(BOOST_PROGRAM_OPTIONS_LDFLAGS) 
+	$(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
+	$(OPENSSL_LDFLAGS)
 
 pdnsutil_LDADD = \
 	@moduleobjects@ \
@@ -298,7 +297,8 @@ pdnsutil_LDADD = \
 	$(LIBDL) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS) \
 	$(YAHTTP_LIBS) \
-	$(JSON11_LIBS)
+	$(JSON11_LIBS) \
+	$(OPENSSL_LIBS)
 
 if BOTAN110
 pdnsutil_SOURCES += botan110signers.cc botansigners.cc
@@ -308,12 +308,6 @@ endif
 if LIBSODIUM
 pdnsutil_SOURCES += sodiumsigners.cc
 pdnsutil_LDADD += $(LIBSODIUM_LIBS)
-endif
-
-if OPENSSL
-pdnsutil_SOURCES += opensslsigners.cc opensslsigners.hh
-pdnsutil_LDFLAGS += $(OPENSSL_LDFLAGS)
-pdnsutil_LDADD += $(OPENSSL_LIBS)
 endif
 
 if SQLITE3
@@ -643,6 +637,7 @@ toysdig_SOURCES = \
 	logger.cc \
 	misc.cc misc.hh \
 	nsecrecords.cc \
+	opensslsigners.cc opensslsigners.hh \
 	qtype.cc \
 	randomhelper.cc \
 	rcpgenerator.cc rcpgenerator.hh \
@@ -654,8 +649,9 @@ toysdig_SOURCES = \
 	validate.cc validate.hh
 
 
-toysdig_LDFLAGS = $(AM_LDFLAGS)
-toysdig_LDADD =
+toysdig_LDFLAGS = $(AM_LDFLAGS) \
+	$(OPENSSL_LDFLAGS)
+toysdig_LDADD = $(OPENSSL_LIBS)
 
 if GSS_TSIG
 toysdig_LDADD += $(GSS_LIBS)
@@ -670,13 +666,6 @@ if PKCS11
 toysdig_SOURCES += pkcs11signers.cc pkcs11signers.hh
 toysdig_LDADD += $(P11KIT1_LIBS)
 endif
-
-if OPENSSL
-toysdig_SOURCES += opensslsigners.cc opensslsigners.hh
-toysdig_LDADD += $(OPENSSL_LIBS)
-toysdig_LDFLAGS += $(OPENSSL_LDFLAGS)
-endif
-
 
 tsig_tests_SOURCES = \
 	arguments.cc \
@@ -1095,6 +1084,7 @@ pdns_recursor_SOURCES = \
 	pdns_recursor.cc \
 	pubsuffix.cc \
 	qtype.cc \
+	opensslsigners.cc opensslsigners.hh \
 	randomhelper.cc \
 	rcpgenerator.cc rcpgenerator.hh \
 	rec-carbon.cc \
@@ -1125,9 +1115,11 @@ pdns_recursor_SOURCES = \
 
 pdns_recursor_LDADD = \
 	$(YAHTTP_LIBS) \
-	$(JSON11_LIBS)
+	$(JSON11_LIBS) \
+	$(OPENSSL_LIBS)
 
-pdns_recursor_LDFLAGS = $(AM_LDFLAGS)
+pdns_recursor_LDFLAGS = $(AM_LDFLAGS) \
+	$(OPENSSL_LDFLAGS)
 
 if PKCS11
 pdns_recursor_SOURCES += pkcs11signers.cc pkcs11signers.hh
@@ -1137,12 +1129,6 @@ endif
 if BOTAN110
 pdns_recursor_SOURCES += botan110signers.cc botansigners.cc
 pdns_recursor_LDADD += $(BOTAN110_LIBS)
-endif
-
-if OPENSSL
-pdns_recursor_SOURCES += opensslsigners.cc opensslsigners.hh
-pdns_recursor_LDADD += $(OPENSSL_LIBS)
-pdns_recursor_LDFLAGS += $(OPENSSL_LDFLAGS)
 endif
 
 if MALLOC_TRACE

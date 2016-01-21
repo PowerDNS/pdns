@@ -19,12 +19,9 @@
 #include "dns_random.hh"
 #include <fstream>
 #include <termios.h>            //termios, TCSANOW, ECHO, ICANON
-
+#include "opensslsigners.hh"
 #ifdef HAVE_LIBSODIUM
 #include <sodium.h>
-#endif
-#ifdef HAVE_OPENSSL
-#include "opensslsigners.hh"
 #endif
 #ifdef HAVE_SQLITE3
 #include "ssqlite3.hh"
@@ -1900,9 +1897,7 @@ seedRandom(::arg()["entropy-source"]);
   }
 #endif
 
-#ifdef HAVE_OPENSSL
   openssl_seed();
-#endif
 
   if (cmds[0] == "test-algorithm") {
     if(cmds.size() != 2) {

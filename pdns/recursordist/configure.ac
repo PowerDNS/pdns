@@ -46,8 +46,6 @@ PDNS_ENABLE_VERBOSE_LOGGING
 # Crypto libraries
 PDNS_ENABLE_BOTAN
 AX_CHECK_OPENSSL([
-  AM_CONDITIONAL([OPENSSL], [true])
-  AC_DEFINE(HAVE_OPENSSL, [1], [Define to 1 if you openssl])
 ],[
   AC_MSG_ERROR([OpenSSL not found])
 ])
