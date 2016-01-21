@@ -61,7 +61,8 @@ map<ComboAddress,int> exceedRespGen(int rate, int seconds, std::function<void(co
   clock_gettime(CLOCK_MONOTONIC, &now);
   cutoff = mintime = now;
   cutoff.tv_sec -= seconds;
-  
+
+  std::lock_guard<std::mutex> lock(g_rings.respMutex);
   for(const auto& c : g_rings.respRing) {
     if(seconds && c.when < cutoff)
       continue;
