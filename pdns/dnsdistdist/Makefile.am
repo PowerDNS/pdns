@@ -20,7 +20,8 @@ EXTRA_DIST=dnslabeltext.rl \
 	   dnsdist.1.md \
 	   .version \
 	   contrib \
-	   build-aux/gen-version
+	   build-aux/gen-version \
+	   ext/incbin/UNLICENSE
 
 if UNIT_TESTS
 bin_PROGRAMS = dnsdist testrunner
