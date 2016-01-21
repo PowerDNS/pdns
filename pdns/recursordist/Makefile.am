@@ -192,6 +192,13 @@ $(srcdir)/effective_tld_names.dat:
 pubsuffix.cc: $(srcdir)/effective_tld_names.dat
 	$(AM_V_GEN)./mkpubsuffixcc
 
+## Config file
+sysconf_DATA = recursor.conf-dist
+
+recursor.conf-dist: pdns_recursor
+	$(AM_V_GEN)./pdns_recursor --config > $@
+
+## Manpages
 MANPAGES=pdns_recursor.1 \
 	 rec_control.1
 
