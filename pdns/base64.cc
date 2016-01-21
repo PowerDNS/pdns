@@ -3,15 +3,8 @@
 #endif
 #include "base64.hh"
 #include <boost/scoped_array.hpp>
-#ifdef HAVE_MBEDTLS2
-#include <mbedtls/base64.h>
-#elif defined(HAVE_MBEDTLS)
-#include <polarssl/base64.h>
-#include "mbedtlscompat.hh"
-#elif defined(HAVE_OPENSSL)
 #include <openssl/bio.h>
 #include <openssl/evp.h>
-#endif
 
 int B64Decode(const std::string& src, std::string& dst)
 {
@@ -22,9 +15,6 @@ int B64Decode(const std::string& src, std::string& dst)
   size_t dlen = ( src.length() * 6 + 7 ) / 8 ;
   size_t olen = 0;
   boost::scoped_array<unsigned char> d( new unsigned char[dlen] );
-#ifdef HAVE_MBEDTLS
-  if ( mbedtls_base64_decode( d.get(), dlen, &olen, (const unsigned char*) src.c_str(), src.length() ) == 0 ) {
-#elif defined(HAVE_OPENSSL)
   BIO *bio, *b64;
   bio = BIO_new(BIO_s_mem());
   BIO_write(bio, src.c_str(), src.length());
@@ -34,9 +24,6 @@ int B64Decode(const std::string& src, std::string& dst)
   olen = BIO_read(b64, d.get(), dlen);
   BIO_free_all(bio);
   if (olen > 0) {
-#else
-#error "No base64 implementation found"
-#endif
     dst = std::string( (const char*) d.get(), olen );
     return 0;
   }
@@ -47,12 +34,6 @@ std::string Base64Encode (const std::string& src)
 {
   if (!src.empty()) {
     size_t olen = 0;
-#ifdef HAVE_MBEDTLS
-    size_t dlen = ( ( ( src.length() + 2 ) / 3 ) * 4 ) + 1;
-    boost::scoped_array<unsigned char> dst( new unsigned char[dlen] );
-    if( mbedtls_base64_encode( dst.get(), dlen, &olen, (const unsigned char*) src.c_str(), src.length() ) == 0 )
-      return std::string( (const char*) dst.get(), olen );
-#elif defined(HAVE_OPENSSL)
     BIO *bio, *b64;
     b64 = BIO_new(BIO_f_base64());
     bio = BIO_new(BIO_s_mem());
@@ -68,9 +49,6 @@ std::string Base64Encode (const std::string& src)
     }
     BIO_free_all(bio);
     return out;
-#else
-#error "No base64 implementation found"
-#endif
   }
   return "";
 }

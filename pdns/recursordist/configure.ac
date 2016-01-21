@@ -44,7 +44,6 @@ AS_IF([test "x$with_luajit" = "xno"], [
 PDNS_ENABLE_VERBOSE_LOGGING
 
 # Crypto libraries
-PDNS_WITH_SYSTEM_MBEDTLS
 PDNS_ENABLE_BOTAN
 AX_CHECK_OPENSSL([
 	AM_CONDITIONAL([OPENSSL], [true])

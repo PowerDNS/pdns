@@ -1,4 +1,4 @@
-AM_CPPFLAGS += $(ORACLE_CFLAGS) $(MBEDTLS_CFLAGS)
+AM_CPPFLAGS += $(ORACLE_CFLAGS)
 
 pkglib_LTLIBRARIES = libgoraclebackend.la
 

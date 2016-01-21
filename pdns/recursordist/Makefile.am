@@ -5,8 +5,7 @@ AM_CPPFLAGS = $(LUA_CFLAGS) $(YAHTTP_CFLAGS) $(BOOST_CPPFLAGS) $(SANITIZER_FLAGS
 AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/json11 \
 	-I$(top_srcdir)/ext/rapidjson/include \
-	$(YAHTTP_CFLAGS) \
-	$(MBEDTLS_CFLAGS)
+	$(YAHTTP_CFLAGS)
 
 AM_CXXFLAGS = \
 	-DSYSCONFDIR=\"$(sysconfdir)\" \
@@ -38,7 +37,6 @@ EXTRA_DIST = \
 	epollmplexer.cc \
 	kqueuemplexer.cc \
 	malloctrace.cc malloctrace.hh \
-	mbedtlscompat.hh mbedtlssigners.cc \
 	mtasker.cc \
 	opensslsigners.hh opensslsigners.cc \
 	pdns_recursor.1.md \
@@ -121,14 +119,6 @@ pdns_recursor_LDADD = \
 	$(JSON11_LIBS)
 
 pdns_recursor_LDFLAGS = $(AM_LDFLAGS)
-
-if MBEDTLS
-pdns_recursor_SOURCES += \
-	mbedtlscompat.hh \
-	mbedtlssigners.cc
-pdns_recursor_LDADD += $(MBEDTLS_LIBS)
-pdns_recursor_LDFLAGS += $(MBEDTLS_LDFLAGS)
-endif
 
 if OPENSSL
 pdns_recursor_SOURCES += \

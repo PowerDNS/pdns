@@ -301,7 +301,7 @@ BuildRequires: systemd-units
 BuildRequires: boost-devel
 BuildRequires: lua-devel
 BuildRequires: bison
-BuildRequires: mbedtls-devel
+BuildRequires: openssl-devel
 Provides: powerdns = %{version}-%{release}
 %global backends %{backends} bind
 
@@ -420,7 +420,6 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
 	--disable-dependency-tracking \
 	--disable-silent-rules \
 	--with-modules='' \
-	--with-system-mbedtls \
 	--with-lua \
 	--with-dynmodules='%{backends} random' \
 	--enable-tools \

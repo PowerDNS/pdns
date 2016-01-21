@@ -1,10 +1,8 @@
 SUBDIRS = \
-	$(MBEDTLS_SUBDIR) \
 	yahttp \
         json11
 
 DIST_SUBDIRS = \
-	mbedtls \
 	yahttp \
         json11
 
