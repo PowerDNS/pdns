@@ -741,7 +741,7 @@ void Bind2Backend::loadConfig(string* status)
     }
     catch(PDNSException &ae) {
       L<<Logger::Error<<"Error parsing bind configuration: "<<ae.reason<<endl;
-      return;
+      throw;
     }
       
     vector<BindDomainInfo> domains=BP.getDomains();
