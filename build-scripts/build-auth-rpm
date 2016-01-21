@@ -62,7 +62,6 @@ Requires(postun): /sbin/service
 
 BuildRequires: boost-devel
 BuildRequires: lua-devel
-BuildRequires: cryptopp-devel
 BuildRequires: bison
 Provides: powerdns = %{version}-%{release}
 
@@ -162,7 +161,6 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
 	--with-modules='' \
 	--with-lua \
 	--with-dynmodules='%{backends} random' \
-	--enable-cryptopp \
 	--enable-tools \
 	--enable-remotebackend-http \
 	--enable-unit-tests
@@ -302,7 +300,6 @@ Requires(postun): systemd-units
 BuildRequires: systemd-units
 BuildRequires: boost-devel
 BuildRequires: lua-devel
-BuildRequires: cryptopp-devel
 BuildRequires: bison
 BuildRequires: mbedtls-devel
 Provides: powerdns = %{version}-%{release}
@@ -426,7 +423,6 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
 	--with-system-mbedtls \
 	--with-lua \
 	--with-dynmodules='%{backends} random' \
-	--enable-cryptopp \
 	--enable-tools \
 	--enable-unit-tests
 

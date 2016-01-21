@@ -7,8 +7,6 @@ Furthermore, RSA, MD5 and the SHA-based algorithms are supplied as a copy of [mb
 
 Optionally, PowerDNS can link in a copy of the open source [Botan](http://botan.randombits.org/) cryptographic library.
 
-Optionally, PowerDNS can link in a copy of the open source [Crypto++](http://www.cryptopp.com/) library.
-
 Optionally, PowerDNS can link in a copy of the open source [Sodium](https://libsodium.org/) library.
 
 ## Specific United States Export Control Notes
