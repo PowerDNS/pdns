@@ -30,6 +30,20 @@ Allow DNS updates from these IP ranges.
 Allow AXFR NOTIFY from these IP ranges.
 Setting this to an empty string will drop all incoming notifies.
 
+## `allow-unsigned-notify`
+* Boolean
+* Default: yes
+* Available since: 4.0
+
+Turning this off requires all notifications that are received to be signed by valid TSIG signature for the zone.
+
+## `allow-unsigned-supermaster`
+* Boolean
+* Default: yes
+* Available since: 4.0
+
+Turning this off requires all supermaster notifications to be signed by valid TSIG signature. It will accept any existing key on slave.
+
 ## `allow-recursion`
 * IP ranges, separated by commas
 * Default: 0.0.0.0/0

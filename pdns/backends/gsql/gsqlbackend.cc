@@ -1102,8 +1102,8 @@ bool GSQLBackend::superMasterBackend(const string &ip, const DNSName &domain, co
     catch (SSqlException &e) {
       throw DBException("GSQLBackend unable to search for a domain: "+e.txtReason());
     }
-    ASSERT_ROW_COLUMNS("supermaster-query", d_result[0], 1);
     if(!d_result.empty()) {
+      ASSERT_ROW_COLUMNS("supermaster-query", d_result[0], 1);
       *nameserver=i->content;
       *account=d_result[0][0];
       *ddb=this;

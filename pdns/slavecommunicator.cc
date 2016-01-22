@@ -541,8 +541,13 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
   }
 
   for(DNSPacket& dp :  trysuperdomains) {
+    // get the TSIG key name
+    TSIGRecordContent trc;
+    DNSName tsigkeyname;
+    string message;
+    dp.getTSIGDetails(&trc, &tsigkeyname, &message);
     int res;
-    res=P->trySuperMasterSynchronous(&dp);
+    res=P->trySuperMasterSynchronous(&dp, tsigkeyname);
     if(res>=0) {
       DNSPacket *r=dp.replyPacket();
       r->setRcode(res);

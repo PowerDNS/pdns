@@ -8,3 +8,8 @@ real_result
 /test-results
 /passed_tests
 /failed_tests
+/master.db
+/pdns-gsqlite3-master.conf
+/pdns-gsqlite3-slave.conf
+/slave.db
+/named.conf
