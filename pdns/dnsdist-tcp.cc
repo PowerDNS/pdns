@@ -132,6 +132,7 @@ void* tcpClientThread(int pipefd)
      from that point on */
      
   typedef std::function<bool(const DNSQuestion*)> blockfilter_t;
+  bool outstanding = false;
   blockfilter_t blockFilter = 0;
   
   {
@@ -167,7 +168,10 @@ void* tcpClientThread(int pipefd)
       goto drop;
 
     try {
-      for(;;) {      
+      for(;;) {
+        ds = nullptr;
+        outstanding = false;
+
         if(!getNonBlockingMsgLen(ci.fd, &qlen, g_tcpRecvTimeout))
           break;
 
@@ -292,11 +296,13 @@ void* tcpClientThread(int pipefd)
 	  goto drop;
 	}
 
+	if(dq.qtype == QType::AXFR || dq.qtype == QType::IXFR)  // XXX fixme we really need to do better
+	  break;
+
 	{
 	  std::lock_guard<std::mutex> lock(g_luamutex);
 	  ds = localPolicy->policy(getDownstreamCandidates(g_dstates.getCopy(), pool), &dq);
 	}
-	int dsock;
 	if(!ds) {
 	  g_stats.noPolicy++;
 	  break;
@@ -314,6 +320,7 @@ void* tcpClientThread(int pipefd)
           }
         }
 
+	int dsock;
 	if(sockets.count(ds->remote) == 0) {
 	  dsock=sockets[ds->remote]=setupTCPDownstream(ds);
 	}
@@ -322,9 +329,7 @@ void* tcpClientThread(int pipefd)
 
         ds->queries++;
         ds->outstanding++;
-
-	if(dq.qtype == QType::AXFR || dq.qtype == QType::IXFR)  // XXX fixme we really need to do better
-	  break;
+        outstanding = true;
 
         uint16_t downstream_failures=0;
       retry:; 
@@ -390,6 +395,8 @@ void* tcpClientThread(int pipefd)
         *responseFlags |= origFlags;
         char* response = answerbuffer;
         uint16_t responseLen = rlen;
+        --ds->outstanding;
+        outstanding = false;
 
         if (ednsAdded) {
           const char * optStart = NULL;
@@ -469,8 +476,10 @@ void* tcpClientThread(int pipefd)
     vinfolog("Closing TCP client connection with %s", ci.remote.toStringWithPort());
     close(ci.fd); 
     ci.fd=-1;
-    if(ds)
+    if (ds && outstanding) {
+      outstanding = false;
       --ds->outstanding;
+    }
   }
   return 0;
 }
