@@ -391,28 +391,31 @@ bool RecursorLua4::genhook(luacall_t& func, const ComboAddress& remote,const Com
   if(handled) {
     ret=dq->rcode;
   loop:;
+    
     if(!dq->followupFunction.empty()) {
       if(dq->followupFunction=="followCNAMERecords") {
-	ret = followCNAMERecords(dq->records, qtype);
+        ret = followCNAMERecords(dq->records, qtype);
       }
       else if(dq->followupFunction=="getFakeAAAARecords") {
-	ret=getFakeAAAARecords(dq->followupName, dq->followupPrefix, dq->records);
+        ret=getFakeAAAARecords(dq->followupName, dq->followupPrefix, dq->records);
       }
       else if(dq->followupFunction=="getFakePTRRecords") {
-	ret=getFakePTRRecords(dq->followupName, dq->followupPrefix, dq->records);
+        ret=getFakePTRRecords(dq->followupName, dq->followupPrefix, dq->records);
       }
       else if(dq->followupFunction=="udpQueryResponse") {
-	dq->udpAnswer = GenUDPQueryResponse(dq->udpQueryDest, dq->udpQuery);
-	auto func = d_lw->readVariable<boost::optional<luacall_t>>(dq->udpCallback).get_value_or(0);
-	if(!func) {
-	  theL()<<Logger::Error<<"Attempted callback for Lua UDP Query/Response which could not be found"<<endl;
-	  return false;
-	}
-        if(!func(dq))
+        dq->udpAnswer = GenUDPQueryResponse(dq->udpQueryDest, dq->udpQuery);
+        auto func = d_lw->readVariable<boost::optional<luacall_t>>(dq->udpCallback).get_value_or(0);
+        if(!func) {
+          theL()<<Logger::Error<<"Attempted callback for Lua UDP Query/Response which could not be found"<<endl;
           return false;
-	goto loop;
+        }
+        bool res=func(dq);
+        if(variable) *variable |= dq->variable; // could still be set to indicate this *name* is variable
+        if(!res) {
+          return false;
+        }
+        goto loop;
       }
-      
     }
     res=dq->records;
   }

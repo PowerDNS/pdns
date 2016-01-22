@@ -15,40 +15,41 @@ To test, use the 'kvresp' example program provided.
 function preresolve (dq)
 	print ("prereesolve handler called for: "..dq.remoteaddr:toString().. ", local: ".. dq.localaddr:toString()..", ".. dq.qname:toString()..", ".. dq.qtype)
 	dq.followupFunction="udpQueryResponse"
-	dq.udpCallback="gotipdetails"
+	dq.udpCallback="gotdomaindetails"
 	dq.udpQueryDest=newCA("127.0.0.1:5555")
-	dq.udpQuery = "IP "..dq.remoteaddr:toString()
-        dq.variable = true;
+	dq.udpQuery = "DOMAIN "..dq.qname:toString()
 	return true;
 end
 
-function gotipdetails(dq)
-	print("gotipdetails called, got: "..dq.udpAnswer)
-        if(dq.udpAnswer ~= "1") 
+function gotdomaindetails(dq)
+	print("gotdomaindetails called, got: "..dq.udpAnswer)
+        if(dq.udpAnswer == "0") 
         then
-                print("IP address wants no filtering, not looking up this domain")
+                print("This domain needs no filtering, not looking up this domain")
                 dq.followupFunction=""   
                 return false
         end
+        print("Domain might need filtering for some users")
+        dq.variable = true -- disable packet cache
 	local data={}
-	data["ipdetails"]= dq.udpAnswer
+	data["domaindetails"]= dq.udpAnswer
 	dq.data=data 
-	dq.udpQuery="DOMAIN "..dq.qname:toString()
-	dq.udpCallback="gotdomaindetails"
+	dq.udpQuery="IP "..dq.remoteaddr:toString()
+	dq.udpCallback="gotipdetails"
 	print("returning true in gotipdetails")
 	return true
 end
 
-function gotdomaindetails(dq)
+function gotipdetails(dq)
         dq.followupFunction=""
-	print("So status of domain is "..dq.udpAnswer.." and status of IP is "..dq.data.ipdetails)
-	if(dq.data.ipdetails=="1" and dq.udpAnswer=="1")
+	print("So status of IP is "..dq.udpAnswer.." and status of domain is "..dq.data.domaindetails)
+	if(dq.data.domaindetails=="1" and dq.udpAnswer=="1")
 	then
 		print("IP wants filtering and domain is of the filtered kind")
 		dq:addAnswer(pdns.CNAME, "blocked.powerdns.com")
 		return true
 	else
-                print("Returning false (normal resolution should proceed)")
+                print("Returning false (normal resolution should proceed, for this user)")
 		return false
 	end
 end
