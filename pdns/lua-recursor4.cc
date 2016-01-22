@@ -247,6 +247,11 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   d_lw->registerMember("followupFunction", &DNSQuestion::followupFunction);
   d_lw->registerMember("followupPrefix", &DNSQuestion::followupPrefix);
   d_lw->registerMember("followupName", &DNSQuestion::followupName);
+  d_lw->registerMember("data", &DNSQuestion::data);
+  d_lw->registerMember("udpQuery", &DNSQuestion::udpQuery);
+  d_lw->registerMember("udpAnswer", &DNSQuestion::udpAnswer);
+  d_lw->registerMember("udpQueryDest", &DNSQuestion::udpQueryDest);
+  d_lw->registerMember("udpCallback", &DNSQuestion::udpCallback);
   d_lw->registerMember("name", &DNSRecord::d_name);
   d_lw->registerMember("type", &DNSRecord::d_type);
   d_lw->registerMember("ttl", &DNSRecord::d_ttl);
@@ -403,6 +408,8 @@ bool RecursorLua4::genhook(luacall_t& func, const ComboAddress& remote,const Com
 	  theL()<<Logger::Error<<"Attempted callback for Lua UDP Query/Response which could not be found"<<endl;
 	  return false;
 	}
+        if(!func(dq))
+          return false;
 	goto loop;
       }
       

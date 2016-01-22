@@ -4,43 +4,53 @@ This implements a two-step domain filtering solution where the status of an IP a
 and a domain name need to be looked up.
 To do so, we use the udpQuestionResponse answers which generically allows us to do asynchronous
 lookups via UDP.
-Such lookups can be slow, they won't block PowerDNS while we wait for them.
+Such lookups can be slow, but they won't block PowerDNS while we wait for them.
 
-To benefit from this hook, return: "udpQueryResponse", UDP-server, data 
-from preresolve (or other hooks).
-The 'data' third return value should be a table with the query in there, plus the callback
-that needs to be called once the data is in.
-
-We'll add more parameters, like 'timeout' and perhaps 'protocol' as we improve this feature
-over time. 
+To benefit from this hook, 
+..
 
 To test, use the 'kvresp' example program provided.
 --]]
 
-function preresolve ( remoteip, domain, qtype )
-	print ("preresolve handler called for: "..remoteip.. ", local: ".. getlocaladdress()..", ".. domain..", ".. qtype)
-	return "udpQueryResponse", "127.0.0.1:5555", {query="IP "..remoteip, callback="getipdetails"}
+function preresolve (dq)
+	print ("prereesolve handler called for: "..dq.remoteaddr:toString().. ", local: ".. dq.localaddr:toString()..", ".. dq.qname:toString()..", ".. dq.qtype)
+	dq.followupFunction="udpQueryResponse"
+	dq.udpCallback="gotipdetails"
+	dq.udpQueryDest=newCA("127.0.0.1:5555")
+	dq.udpQuery = "IP "..dq.remoteaddr:toString()
+        dq.variable = true;
+	return true;
 end
 
-function getipdetails(remoteip, domain, qtype, data)
-	 print("In getipdetails, got ".. data.response.. " from '"..remoteip.."',  for '"..remoteip.."'")
-	 data.ipstatus=data.response
-	 data.query="DOMAIN "..domain
-	 data.callback="getdomaindetails"
-	 return "udpQueryResponse", "127.0.0.1:5555", data
+function gotipdetails(dq)
+	print("gotipdetails called, got: "..dq.udpAnswer)
+        if(dq.udpAnswer ~= "1") 
+        then
+                print("IP address wants no filtering, not looking up this domain")
+                dq.followupFunction=""   
+                return false
+        end
+	local data={}
+	data["ipdetails"]= dq.udpAnswer
+	dq.data=data 
+	dq.udpQuery="DOMAIN "..dq.qname:toString()
+	dq.udpCallback="gotdomaindetails"
+	print("returning true in gotipdetails")
+	return true
 end
 
-function getdomaindetails(remoteip, domain, qtype, data)
-	 print("In getipdetails, got ".. data.response.. " from '"..remoteip.."',  for '"..domain.."'")
-	 print("So status of domain is "..data.response.." and status of IP is "..data.ipstatus)
-	 if(data.ipstatus=="1" and data.response=="1")
-	 then
+function gotdomaindetails(dq)
+        dq.followupFunction=""
+	print("So status of domain is "..dq.udpAnswer.." and status of IP is "..dq.data.ipdetails)
+	if(dq.data.ipdetails=="1" and dq.udpAnswer=="1")
+	then
 		print("IP wants filtering and domain is of the filtered kind")
-		return 0,{{qtype=pdns.CNAME, content="www.blocked.com", ttl=3602},
-		          {qname="www.webserver.com", qtype=pdns.A, content="1.2.3.4", ttl=3602}}
-	 else
-	        return pdns.PASS, {}
-	 end
+		dq:addAnswer(pdns.CNAME, "blocked.powerdns.com")
+		return true
+	else
+                print("Returning false (normal resolution should proceed)")
+		return false
+	end
 end
 
 
