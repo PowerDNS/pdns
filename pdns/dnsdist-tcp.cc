@@ -202,6 +202,17 @@ void* tcpClientThread(int pipefd)
           qlen = decryptedQueryLen;
         }
 #endif
+        struct dnsheader* dh = (struct dnsheader*) query;
+
+        if(dh->qr) {   // don't respond to responses
+          g_stats.nonCompliantQueries++;
+          goto drop;
+        }
+
+        if(dh->qdcount == 0) {
+          g_stats.emptyQueries++;
+          goto drop;
+        }
 
 	uint16_t qtype;
 	unsigned int consumed = 0;

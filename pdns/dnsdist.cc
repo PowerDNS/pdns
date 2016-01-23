@@ -601,6 +601,11 @@ try
 	continue;
       }
 
+      if(dh->qdcount == 0) {
+        g_stats.emptyQueries++;
+        continue;
+      }
+
       if (dh->rd) {
         g_stats.rdQueries++;
       }
