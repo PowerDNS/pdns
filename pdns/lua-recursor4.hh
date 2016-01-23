@@ -3,6 +3,7 @@
 #include "dnsname.hh"
 #include "namespaces.hh"
 #include "dnsrecords.hh"
+#include <unordered_map>
 string GenUDPQueryResponse(const ComboAddress& dest, const string& query);
 
 class LuaContext;
@@ -47,6 +48,8 @@ private:
     string udpAnswer;
     string udpCallback;
     
+    std::unordered_map<string,string> data;
+
     DNSName followupName;
   };
 
