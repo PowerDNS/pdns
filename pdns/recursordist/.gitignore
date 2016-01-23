@@ -33,5 +33,6 @@
 /pdns_recursor
 /rec_control
 /pdns-recursor-*
+/recursor.conf-dist
 /ext/Makefile
 /ext/Makefile.in
