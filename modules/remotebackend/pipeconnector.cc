@@ -1,11 +1,6 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <sstream>
-#include <rapidjson/stringbuffer.h>
-#include <rapidjson/writer.h>
 #include "remotebackend.hh"
 
 PipeConnector::PipeConnector(std::map<std::string,std::string> options) {
@@ -98,32 +93,22 @@ void PipeConnector::launch() {
        no way to log this either - only thing we can do is make sure that our parent catches this soonest! */
   }
 
-  rapidjson::Value val;
-  rapidjson::Document init,res;
-  init.SetObject();
-  val = "initialize";
+  Json::array parameters;
+  Json msg = Json(Json::object{
+    { "method", "initialize" },
+    { "parameters", Json(options) },
+  });
 
-  init.AddMember("method",val, init.GetAllocator());
-  val.SetObject();
-  init.AddMember("parameters", val, init.GetAllocator());
-
-  for(auto i = options.begin(); i != options.end(); i++) {
-    val = i->second.c_str();
-    init["parameters"].AddMember(i->first.c_str(), val, init.GetAllocator());
-  }
-
-  this->send(init);
-  if (this->recv(res)==false) {
+  this->send(msg);
+  msg = nullptr;
+  if (this->recv(msg)==false) {
     L<<Logger::Error<<"Failed to initialize coprocess"<<std::endl;
   }
 }
 
-int PipeConnector::send_message(const rapidjson::Document &input)
+int PipeConnector::send_message(const Json& input)
 {
-   rapidjson::StringBuffer output;
-   rapidjson::Writer<rapidjson::StringBuffer> w(output);
-   input.Accept(w);
-   auto line = std::string(output.GetString(), output.Size());
+   auto line = input.dump();
    launch();
 
    line.append(1,'\n');
@@ -142,11 +127,10 @@ int PipeConnector::send_message(const rapidjson::Document &input)
    return sent;
 }
 
-int PipeConnector::recv_message(rapidjson::Document &output) 
+int PipeConnector::recv_message(Json& output)
 {
    std::string receive;
-   rapidjson::GenericReader<rapidjson::UTF8<> , rapidjson::MemoryPoolAllocator<> > r;
-   std::string tmp;
+   std::string err;
    std::string s_output;
    launch();
 
@@ -170,10 +154,9 @@ int PipeConnector::recv_message(rapidjson::Document &output)
        throw PDNSException("Child closed pipe");
   
       s_output.append(receive);
-      rapidjson::StringStream ss(s_output.c_str());
-      output.ParseStream<0>(ss); 
-      if (output.HasParseError() == false)
-        return s_output.size();
+      // see if it can be parsed
+      output = Json::parse(s_output, err);
+      if (output != nullptr) return s_output.size();
    }
    return 0;
 }

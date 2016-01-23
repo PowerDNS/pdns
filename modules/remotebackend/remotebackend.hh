@@ -1,7 +1,9 @@
 #ifndef REMOTEBACKEND_REMOTEBACKEND_HH
 
+#include <sys/types.h>
+#include <sys/wait.h>
+
 #include <string>
-#include <sstream>
 #include "pdns/arguments.hh"
 #include "pdns/dns.hh"
 #include "pdns/dnsbackend.hh"
@@ -11,10 +13,9 @@
 #include "pdns/pdnsexception.hh"
 #include "pdns/sstuff.hh"
 #include "pdns/ueberbackend.hh"
-#include <rapidjson/rapidjson.h>
-#include <rapidjson/document.h>
+#include "pdns/json.hh"
+#include "pdns/lock.hh"
 #include "yahttp/yahttp.hpp"
-#include <sstream>
 
 #ifdef REMOTEBACKEND_ZEROMQ
 #include <zmq.h>
@@ -25,20 +26,23 @@
 #define zmq_msg_recv(msg, socket, flags) zmq_recv(socket, msg, flags)
 #endif
 #endif
-#define JSON_GET(obj,val,def) (obj.HasMember(val)?obj["" val ""]:def)
-#define JSON_ADD_MEMBER(obj, name, val, alloc) { rapidjson::Value __xval; __xval = val; obj.AddMember(name, __xval, alloc); }
-#define JSON_ADD_MEMBER_DNSNAME(obj, name, val, alloc) { rapidjson::Value __xval(val.toString().c_str(), alloc); obj.AddMember(name, __xval, alloc); }
+
+using json11::Json;
 
 class Connector {
    public:
     virtual ~Connector() {};
-    bool send(rapidjson::Document &value);
-    bool recv(rapidjson::Document &value);
-    virtual int send_message(const rapidjson::Document &input) = 0;
-    virtual int recv_message(rapidjson::Document &output) = 0;
+    bool send(Json &value);
+    bool recv(Json &value);
+    virtual int send_message(const Json &input) = 0;
+    virtual int recv_message(Json &output) = 0;
    protected:
-    bool getBool(rapidjson::Value &value);
-    std::string getString(rapidjson::Value &value);
+    string asString(const Json& value) {
+      if (value.is_number()) return std::to_string(value.int_value());
+      if (value.is_bool()) return (value.bool_value()?"1":"0");
+      if (value.is_string()) return value.string_value();
+      throw JsonException("Json value not convertible to String");
+    };
 };
 
 // fwd declarations
@@ -46,8 +50,8 @@ class UnixsocketConnector: public Connector {
   public:
     UnixsocketConnector(std::map<std::string,std::string> options);
     virtual ~UnixsocketConnector();
-    virtual int send_message(const rapidjson::Document &input);
-    virtual int recv_message(rapidjson::Document &output);
+    virtual int send_message(const Json &input);
+    virtual int recv_message(Json &output);
   private:
     ssize_t read(std::string &data);
     ssize_t write(const std::string &data);
@@ -65,8 +69,8 @@ class HTTPConnector: public Connector {
   HTTPConnector(std::map<std::string,std::string> options);
   ~HTTPConnector();
 
-  virtual int send_message(const rapidjson::Document &input);
-  virtual int recv_message(rapidjson::Document &output);
+  virtual int send_message(const Json &input);
+  virtual int recv_message(Json &output);
   private:
     std::string d_url;
     std::string d_url_suffix;
@@ -74,10 +78,10 @@ class HTTPConnector: public Connector {
     int timeout;
     bool d_post; 
     bool d_post_json;
-    bool json2string(const rapidjson::Value &input, std::string &output);
-    void restful_requestbuilder(const std::string &method, const rapidjson::Value &parameters, YaHTTP::Request& req);
-    void post_requestbuilder(const rapidjson::Document &input, YaHTTP::Request& req);
-    void addUrlComponent(const rapidjson::Value &parameters, const char *element, std::stringstream& ss);
+    void restful_requestbuilder(const std::string &method, const Json &parameters, YaHTTP::Request& req);
+    void post_requestbuilder(const Json &input, YaHTTP::Request& req);
+    void addUrlComponent(const Json &parameters, const string& element, std::stringstream& ss);
+    std::string buildMemberListArgs(std::string prefix, const Json& args);
     Socket* d_socket;
     ComboAddress d_addr;
 };
@@ -87,8 +91,8 @@ class ZeroMQConnector: public Connector {
    public:
     ZeroMQConnector(std::map<std::string,std::string> options);
     virtual ~ZeroMQConnector();
-    virtual int send_message(const rapidjson::Document &input);
-    virtual int recv_message(rapidjson::Document &output);
+    virtual int send_message(const Json &input);
+    virtual int recv_message(Json &output);
    private:
     void connect();
     std::string d_endpoint;
@@ -106,8 +110,8 @@ class PipeConnector: public Connector {
   PipeConnector(std::map<std::string,std::string> options);
   ~PipeConnector();
 
-  virtual int send_message(const rapidjson::Document &input);
-  virtual int recv_message(rapidjson::Document &output);
+  virtual int send_message(const Json &input);
+  virtual int recv_message(Json &output);
 
   private:
 
@@ -170,19 +174,29 @@ class RemoteBackend : public DNSBackend
     int build();
     Connector *connector;
     bool d_dnssec;
-    rapidjson::Document *d_result;
+    Json d_result;
     int d_index;
     int64_t d_trxid;
     std::string d_connstr;
 
-    bool getBool(rapidjson::Value &value);
-    int getInt(rapidjson::Value &value);
-    unsigned int getUInt(rapidjson::Value &value);
-    int64_t getInt64(rapidjson::Value &value);
-    std::string getString(rapidjson::Value &value);
-    double getDouble(rapidjson::Value &value);
+    bool send(Json &value);
+    bool recv(Json &value);
+ 
+    string asString(const Json& value) {
+      if (value.is_number()) return std::to_string(value.int_value());
+      if (value.is_bool()) return (value.bool_value()?"1":"0");
+      if (value.is_string()) return value.string_value();
+      throw JsonException("Json value not convertible to String");
+    };
 
-    bool send(rapidjson::Document &value);
-    bool recv(rapidjson::Document &value);
+    bool asBool(const Json& value) {
+      if (value.is_bool()) return value.bool_value();
+      try {
+        string val = asString(value);
+        if (val == "0") return false;
+        if (val == "1") return true;
+      } catch (JsonException) {};
+      throw JsonException("Json value not convertible to boolean");
+    };
 };
 #endif

@@ -103,6 +103,7 @@ class Handler
           end
         rescue Exception => e
           e.backtrace
+          return false, [e.message]
         end
         break
      end
@@ -195,12 +196,14 @@ class Handler
         d_id = db.get_first_value("SELECT id FROM domains WHERE name = ?", args["name"])
         return false if d_id.nil?
         db do |tx|
-           sql = "DELETE FROM domainmetadata WHERE domain_id = ?"
-           tx.execute(sql, [d_id]) 
-           break if args["value"].nil?
-           sql = "INSERT INTO domainmetadata (domain_id,kind,content) VALUES(?,?,?)"
-           args["value"].each do |value|
-             tx.execute(sql,[d_id, args["kind"], value])
+           sql = "DELETE FROM domainmetadata WHERE domain_id = ? AND kind = ?"
+           tx.execute(sql, [d_id, args["kind"]])
+           unless args["value"].nil?
+             sql = "INSERT INTO domainmetadata (domain_id,kind,content) VALUES(?,?,?)"
+             args["value"].each do |value|
+               STDERR.puts"Executing INSERT INTO domainmetadata (domain_id,kind,content) VALUES(#{d_id}, #{args["kind"]}, #{value})"
+               tx.execute(sql,[d_id, args["kind"], value])
+             end
            end
         end
 	return true
