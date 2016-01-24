@@ -985,10 +985,10 @@ int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
   rr.auth = 1;
   rr.domain_id = di.id;
   rr.qname = name;
-
+  DNSResourceRecord oldrr;
   if(addOrReplace) { // the 'add' case
     B.lookup(rr.qtype, rr.qname, 0, di.id);
-    DNSResourceRecord oldrr;
+
     while(B.get(oldrr)) 
       newrrs.push_back(oldrr);
   }
@@ -1011,8 +1011,8 @@ int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
   bool found=false;
   if(rr.qtype.getCode() == QType::CNAME) { // this will save us SO many questions
 
-    while(B.get(rr)) {
-      if(addOrReplace || rr.qtype.getCode() != QType::CNAME) // the replace case is ok if we replace one CNAME by the other
+    while(B.get(oldrr)) {
+      if(addOrReplace || oldrr.qtype.getCode() != QType::CNAME) // the replace case is ok if we replace one CNAME by the other
         found=true;
     }
     if(found) {
@@ -1021,8 +1021,8 @@ int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
     }
   }
   else {
-    while(B.get(rr)) {
-      if(rr.qtype.getCode() == QType::CNAME)
+    while(B.get(oldrr)) {
+      if(oldrr.qtype.getCode() == QType::CNAME)
         found=true;
     }
     if(found) {
