@@ -919,16 +919,15 @@ int loadZone(DNSName zone, const string& fname) {
   return 0;
 }
 
-int createZone(const DNSName &zone) {
+int createZone(const DNSName &zone, const DNSName& nsname) {
   UeberBackend B;
   DomainInfo di;
   if (B.getDomainInfo(zone, di)) {
     cerr<<"Domain '"<<zone.toString()<<"' exists already"<<endl;
     return 1;
   }
-  cerr<<"Creating '"<<zone.toString()<<"'"<<endl;
+  cerr<<"Creating empty zone '"<<zone.toString()<<"'"<<endl;
   B.createDomain(zone);
-
   if(!B.getDomainInfo(zone, di)) {
     cerr<<"Domain '"<<zone.toString()<<"' was not created!"<<endl;
     return 1;
@@ -939,9 +938,10 @@ int createZone(const DNSName &zone) {
   rr.auth = 1;
   rr.ttl = ::arg().asNum("default-ttl");
   rr.qtype = "SOA";
+  
   string soa = (boost::format("%s %s 1")
-    % ::arg()["default-soa-name"]
-    % (::arg().isEmpty("default-soa-mail") ? (DNSName("hostmaster.") + zone).toString() : ::arg()["default-soa-mail"])
+                % (nsname.empty() ? ::arg()["default-soa-name"] : nsname.toString())
+                % (::arg().isEmpty("default-soa-mail") ? (DNSName("hostmaster.") + zone).toString() : ::arg()["default-soa-mail"])
   ).str();
   SOAData sd;
   fillSOAData(soa, sd);  // fills out default values for us
@@ -949,11 +949,114 @@ int createZone(const DNSName &zone) {
   rr.domain_id = di.id;
   di.backend->startTransaction(zone, di.id);
   di.backend->feedRecord(rr);
+  if(!nsname.empty()) {
+    cout<<"Also adding one NS record"<<endl;
+    rr.qtype=QType::NS;
+    rr.content=nsname.toString();
+    di.backend->feedRecord(rr);
+  }
+  
   di.backend->commitTransaction();
 
   return 1;
 }
 
+// add-record ZONE name type [ttl] "content" ["content"]
+int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
+  DNSResourceRecord rr;
+  vector<DNSResourceRecord> newrrs;
+  DNSName zone(cmds[1]);
+  DNSName name;
+  if(cmds[2]=="@")
+    name=zone;
+  else 
+    name=DNSName(cmds[2])+zone;
+
+  rr.qtype = DNSRecordContent::TypeToNumber(cmds[3]);
+  rr.ttl = ::arg().asNum("default-ttl");
+
+  UeberBackend B;
+  DomainInfo di;
+
+  if(!B.getDomainInfo(zone, di)) {
+    cerr<<"Domain '"<<zone<<"' does not exist"<<endl;
+    return 1;
+  }
+  rr.auth = 1;
+  rr.domain_id = di.id;
+  rr.qname = name;
+
+  if(addOrReplace) { // the 'add' case
+    B.lookup(rr.qtype, rr.qname, 0, di.id);
+    DNSResourceRecord oldrr;
+    while(B.get(oldrr)) 
+      newrrs.push_back(oldrr);
+  }
+
+  unsigned int contentStart = 4;
+  if(cmds.size() > 5) {
+    rr.ttl=atoi(cmds[4].c_str());
+    if(std::to_string(rr.ttl)==cmds[4]) {
+      contentStart++;
+    }
+    else rr.ttl = ::arg().asNum("default-ttl");
+  }
+
+  for(auto i = contentStart ; i < cmds.size() ; ++i) {
+    rr.content = DNSRecordContent::mastermake(rr.qtype.getCode(), 1, cmds[i])->getZoneRepresentation(true);
+    newrrs.push_back(rr);
+  }
+
+  B.lookup(QType(QType::ANY), rr.qname, 0, di.id);
+  bool found=false;
+  if(rr.qtype.getCode() == QType::CNAME) { // this will save us SO many questions
+
+    while(B.get(rr)) {
+      if(addOrReplace || rr.qtype.getCode() != QType::CNAME) // the replace case is ok if we replace one CNAME by the other
+        found=true;
+    }
+    if(found) {
+      cerr<<"Attempting to add CNAME to "<<rr.qname<<" which already had existing records"<<endl;
+      return EXIT_FAILURE;
+    }
+  }
+  else {
+    while(B.get(rr)) {
+      if(rr.qtype.getCode() == QType::CNAME)
+        found=true;
+    }
+    if(found) {
+      cerr<<"Attempting to add record to "<<rr.qname<<" which already had a CNAME record"<<endl;
+      return EXIT_FAILURE;
+    }
+  }
+
+  di.backend->replaceRRSet(di.id, name, rr.qtype, newrrs);
+
+  return 1;
+}
+
+// delete-rrset zone name type
+int deleteRRSet(const std::string& zone_, const std::string& name_, const std::string& type_) 
+{
+  UeberBackend B;
+  DomainInfo di;
+  DNSName zone(zone_);
+  if(!B.getDomainInfo(zone, di)) {
+    cerr<<"Domain '"<<zone<<"' does not exist"<<endl;
+    return 1;
+  }
+
+  DNSName name;
+  if(name_=="@")
+    name=zone;
+  else 
+    name=DNSName(name_)+zone;
+
+  QType qt(QType::chartocode(type_.c_str()));
+  di.backend->replaceRRSet(di.id, name, qt, vector<DNSResourceRecord>());
+  return 0;
+}
 
 int listAllZones(const string &type="") {
 
@@ -985,9 +1088,9 @@ int listAllZones(const string &type="") {
   }
 
   if (kindFilter != -1)
-    cout<<type<<" zonecount:"<<count<<endl;
+    cout<<type<<" zonecount: "<<count<<endl;
   else
-    cout<<"All zonecount:"<<count<<endl;
+    cout<<"All zonecount: "<<count<<endl;
   return 0;
 }
 
@@ -1478,6 +1581,8 @@ try
     cerr<<"activate-tsig-key ZONE NAME {master|slave}"<<endl;
     cerr<<"                                   Enable TSIG key for a zone"<<endl;
     cerr<<"activate-zone-key ZONE KEY-ID      Activate the key with key id KEY-ID in ZONE"<<endl;
+    cerr<<"add-record ZONE NAME TYPE [ttl] content"<<endl;
+    cerr<<"             [content..]           Add one or more records to ZONE"<<endl;
     cerr<<"add-zone-key ZONE {zsk|ksk} [BITS] [active|inactive]"<<endl;
     cerr<<"             [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384";
 #ifdef HAVE_LIBSODIUM
@@ -1492,10 +1597,11 @@ try
     cerr<<"check-all-zones [exit-on-error]    Check all zones for correctness. Set exit-on-error to exit immediately"<<endl;
     cerr<<"                                   after finding an error in a zone."<<endl;
     cerr<<"create-bind-db FNAME               Create DNSSEC db for BIND backend (bind-dnssec-db)"<<endl;
-    cerr<<"create-zone ZONE                   Create empty zone ZONE"<<endl;
+    cerr<<"create-zone ZONE [nsname]          Create empty zone ZONE"<<endl;
     cerr<<"deactivate-tsig-key ZONE NAME {master|slave}"<<endl;
     cerr<<"                                   Disable TSIG key for a zone"<<endl;
     cerr<<"deactivate-zone-key ZONE KEY-ID    Deactivate the key with key id KEY-ID in ZONE"<<endl;
+    cerr<<"delete-rrset ZONE NAME TYPE        Delete named RRSET from zone"<<endl;
     cerr<<"delete-tsig-key NAME               Delete TSIG key (warning! will not unmap key!)"<<endl;
     cerr<<"delete-zone ZONE                   Delete the zone"<<endl;
     cerr<<"disable-dnssec ZONE                Deactivate all keys and unset PRESIGNED in ZONE"<<endl;
@@ -1526,6 +1632,8 @@ try
     cerr<<"rectify-zone ZONE [ZONE ..]        Fix up DNSSEC fields (order, auth)"<<endl;
     cerr<<"rectify-all-zones                  Rectify all zones."<<endl;
     cerr<<"remove-zone-key ZONE KEY-ID        Remove key with KEY-ID from ZONE"<<endl;
+    cerr<<"replace-rrset ZONE NAME TYPE [ttl] Replace named RRSET from zone"<<endl;
+    cerr<<"       content [content..]"<<endl;
     cerr<<"secure-all-zones [increase-serial] Secure all zones without keys."<<endl;
     cerr<<"secure-zone ZONE [ZONE ..]         Add KSK and two ZSKs for ZONE"<<endl;
     cerr<<"set-nsec3 ZONE ['PARAMS' [narrow]] Enable NSEC3 with PARAMS. Optionally narrow"<<endl;
@@ -1806,11 +1914,32 @@ seedRandom(::arg()["entropy-source"]);
     exit(deleteZone(DNSName(cmds[1])));
   }
   else if(cmds[0] == "create-zone") {
-    if(cmds.size() != 2) {
-      cerr<<"Syntax: pdnsutil create-zone ZONE"<<endl;
+    if(cmds.size() != 2 && cmds.size()!=3 ) {
+      cerr<<"Syntax: pdnsutil create-zone ZONE [nsname]"<<endl;
       return 0;
     }
-    exit(createZone(DNSName(cmds[1])));
+    exit(createZone(DNSName(cmds[1]), cmds.size() > 2 ? DNSName(cmds[2]): DNSName()));
+  }
+  else if(cmds[0] == "add-record") {
+    if(cmds.size() < 5) {
+      cerr<<"Syntax: pdnsutil add-record ZONE name type [ttl] \"content\" [\"content\"...]"<<endl;
+      return 0;
+    }
+    exit(addOrReplaceRecord(true, cmds));
+  }
+  else if(cmds[0] == "replace-rrset") {
+    if(cmds.size() < 5) {
+      cerr<<"Syntax: pdnsutil replace-record ZONE name type [ttl] \"content\" [\"content\"...]"<<endl;
+      return 0;
+    }
+    exit(addOrReplaceRecord(false , cmds));
+  }
+  else if(cmds[0] == "delete-rrset") {
+    if(cmds.size() != 4) {
+      cerr<<"Syntax: pdnsutil delete-rrset ZONE name type"<<endl;
+      return 0;
+    }
+    exit(deleteRRSet(cmds[1], cmds[2], cmds[3]));
   }
   else if(cmds[0] == "list-zone") {
     if(cmds.size() != 2) {
