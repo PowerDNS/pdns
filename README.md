@@ -61,7 +61,6 @@ COMPILING THE RECURSOR
 ----------------------
 The portable, and supported, way to build the recursor is:
 
-    bash
     $ cd pdns/recursordist
     $ ./bootstrap
     $ ./configure
