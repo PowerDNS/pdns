@@ -62,7 +62,7 @@ COMPILING THE RECURSOR
 On Linux, `make pdns_recursor` in the `pdns` subdir may work. The portable, and supported, way to
 build the recursor is first running `dist-recursor` and compiling from the `pdns-recursor-x.y` subdirectory.
 
-When building from git `ragel`, `pandoc` and `zip` are build dependencies. 
+When building from git `ragel`, `pandoc`, `zip`, [`yahttp`](https://github.com/cmouse/yahttp) and [`json11`](https://github.com/dropbox/json11) are build dependencies. 
 
 SOLARIS NOTES
 -------------
