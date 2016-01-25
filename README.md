@@ -62,11 +62,11 @@ COMPILING THE RECURSOR
 The portable, and supported, way to build the recursor is:
 
 ```bash
-cd pdns/recursordist
-./bootstrap
-./configure
-make
-make install
+$ cd pdns/recursordist
+$ ./bootstrap
+$ ./configure
+$ make
+# make install
 ```
 
 When building from git `boost`, `pandoc`, `ragel` and `zip`, are build dependencies. 
