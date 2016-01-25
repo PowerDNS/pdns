@@ -1002,11 +1002,6 @@ int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
     else rr.ttl = ::arg().asNum("default-ttl");
   }
 
-  for(auto i = contentStart ; i < cmds.size() ; ++i) {
-    rr.content = DNSRecordContent::mastermake(rr.qtype.getCode(), 1, cmds[i])->getZoneRepresentation(true);
-    newrrs.push_back(rr);
-  }
-
   B.lookup(QType(QType::ANY), rr.qname, 0, di.id);
   bool found=false;
   if(rr.qtype.getCode() == QType::CNAME) { // this will save us SO many questions
@@ -1031,8 +1026,23 @@ int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
     }
   }
 
-  di.backend->replaceRRSet(di.id, name, rr.qtype, newrrs);
+  if(!addOrReplace) {
+    cout<<"Current records for "<<rr.qname.toString()<<" IN "<<rr.qtype.getName()<<" will be replaced"<<endl;
+  }
+  for(auto i = contentStart ; i < cmds.size() ; ++i) {
+    rr.content = DNSRecordContent::mastermake(rr.qtype.getCode(), 1, cmds[i])->getZoneRepresentation(true);
 
+    newrrs.push_back(rr);
+  }
+
+  
+  di.backend->replaceRRSet(di.id, name, rr.qtype, newrrs);
+  // need to be explicit to bypass the ueberbackend cache!
+  di.backend->lookup(rr.qtype, name, 0, di.id);
+  cout<<"New rrset:"<<endl;
+  while(di.backend->get(rr)) {
+    cout<<rr.qname.toString()<<" IN "<<rr.qtype.getName()<<" "<<rr.ttl<<" "<<rr.content<<endl;      
+  }
   return 1;
 }
 
