@@ -59,8 +59,15 @@ See http://doc.powerdns.com/compiling-powerdns.html for more details.
 
 COMPILING THE RECURSOR
 ----------------------
-On Linux, `make pdns_recursor` in the `pdns` subdir may work. The portable, and supported, way to
-build the recursor is first running `./build-scripts/dist-recursor` and compiling with `./configure`, `make`, `make install`from the `pdns/recursordist` subdirectory.
+The portable, and supported, way to build the recursor is:
+
+```bash
+cd pdns/recursordist
+./bootstrap
+./configure
+make
+make install
+```
 
 When building from git `boost`, `pandoc`, `ragel` and `zip`, are build dependencies. 
 
