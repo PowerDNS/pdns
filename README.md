@@ -67,7 +67,7 @@ The portable, and supported, way to build the recursor is:
     $ make
     # make install
 
-When building from git `boost`, `pandoc`, `ragel` and `zip`, are build dependencies. 
+When building from git `boost`, `pandoc`, `ragel` and `zip` are build dependencies. 
 
 SOLARIS NOTES
 -------------
