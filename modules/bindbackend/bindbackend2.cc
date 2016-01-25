@@ -257,11 +257,23 @@ bool Bind2Backend::feedRecord(const DNSResourceRecord &rr, string *ordername)
   BB2DomainInfo bbd;
   safeGetBBDomainInfo(d_transaction_id, &bbd);
 
-  string name=bbd.d_name.toString();
-  string qname=rr.qname.toString();
-
-  if(!stripDomainSuffix(&qname, name))
-    throw DBException("out-of-zone data '"+qname+".' during AXFR of zone '"+name+".'");
+  string qname;
+  string name = bbd.d_name.toString();
+  if (bbd.d_name.empty()) {
+    qname = rr.qname.toString();
+  }
+  else if (rr.qname.isPartOf(bbd.d_name)) {
+    if (rr.qname == bbd.d_name) {
+      qname = "@";
+    }
+    else {
+      DNSName relName = rr.qname.makeRelative(bbd.d_name);
+      qname = relName.toStringNoDot();
+    }
+  }
+  else {
+    throw DBException("out-of-zone data '"+rr.qname.toString()+"' during AXFR of zone '"+bbd.d_name.toString()+"'");
+  }
 
   shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content));
   string content = drc->getZoneRepresentation();
