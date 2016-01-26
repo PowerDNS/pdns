@@ -853,8 +853,8 @@ void* maintThread()
   for(;;) {
     sleep(interval);
 
-    if(g_tcpclientthreads.d_queued > 1 && g_tcpclientthreads.d_numthreads < g_maxTCPClientThreads)
-      g_tcpclientthreads.addTCPClientThread();
+    if(g_tcpclientthreads->d_queued > 1 && g_tcpclientthreads->d_numthreads < g_maxTCPClientThreads)
+      g_tcpclientthreads->addTCPClientThread();
 
     for(auto& dss : g_dstates.getCopy()) { // this points to the actual shared_ptrs!
       if(dss->availability==DownstreamState::Availability::Auto) {
@@ -1264,6 +1264,8 @@ try
 
   /* this need to be done _after_ dropping privileges */
   g_delay = new DelayPipe<DelayedPacket>();
+
+  g_tcpclientthreads = std::make_shared<TCPClientCollection>(g_maxTCPClientThreads);
 
   for(auto& t : todo)
     t();

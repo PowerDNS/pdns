@@ -69,17 +69,22 @@ void* tcpClientThread(int pipefd);
 
 // Should not be called simultaneously!
 void TCPClientCollection::addTCPClientThread()
-{  
+{
+  if (d_numthreads >= d_tcpclientthreads.capacity()) {
+    warnlog("Adding a new TCP client thread would exceed the vector capacity, skipping");
+    return;
+  }
+
   vinfolog("Adding TCP Client thread");
 
-  int pipefds[2];
+  int pipefds[2] = { -1, -1};
   if(pipe(pipefds) < 0)
     unixDie("Creating pipe");
 
   if (!setNonBlocking(pipefds[1]))
     unixDie("Setting pipe non-blocking");
 
-  d_tcpclientthreads.push_back(pipefds[1]);    
+  d_tcpclientthreads.push_back(pipefds[1]);
   thread t1(tcpClientThread, pipefds[0]);
   t1.detach();
   ++d_numthreads;
@@ -124,7 +129,7 @@ catch(...) {
   return false;
 }
 
-TCPClientCollection g_tcpclientthreads;
+std::shared_ptr<TCPClientCollection> g_tcpclientthreads;
 
 void* tcpClientThread(int pipefd)
 {
@@ -150,7 +155,7 @@ void* tcpClientThread(int pipefd)
     ConnectionInfo* citmp, ci;
 
     readn2(pipefd, &citmp, sizeof(citmp));
-    --g_tcpclientthreads.d_queued;
+    --g_tcpclientthreads->d_queued;
     ci=*citmp;
     delete citmp;    
 
@@ -497,7 +502,7 @@ void* tcpAcceptorThread(void* p)
   ComboAddress remote;
   remote.sin4.sin_family = cs->local.sin4.sin_family;
   
-  g_tcpclientthreads.addTCPClientThread();
+  g_tcpclientthreads->addTCPClientThread();
 
   auto acl = g_ACL.getLocal();
   for(;;) {
@@ -521,8 +526,14 @@ void* tcpAcceptorThread(void* p)
       vinfolog("Got TCP connection from %s", remote.toStringWithPort());
       
       ci->remote = remote;
-      int pipe = g_tcpclientthreads.getThread();
-      writen2WithTimeout(pipe, &ci, sizeof(ci), 0);
+      int pipe = g_tcpclientthreads->getThread();
+      if (pipe >= 0) {
+        writen2WithTimeout(pipe, &ci, sizeof(ci), 0);
+      }
+      else {
+        close(ci->fd);
+        delete ci;
+      }
     }
     catch(std::exception& e) {
       errlog("While reading a TCP question: %s", e.what());
