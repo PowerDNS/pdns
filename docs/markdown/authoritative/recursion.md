@@ -54,9 +54,10 @@ In anticipation of future, as-yet-undefined IP literal address formats, an
 implementation may use an optional version flag to indicate such a format explicitly
 rather than rely on heuristic determination.
 
-So, be careful! `pdns-recursor` can't work in IPv6 if you write something wrongly
-like ~~`recursor=::1:5300`~~ without the required square brackets ("[" and "]") 
-enclosing the IP litteral.
+So, be careful! The authoritative `pdns` service won't communicate with `pdns-recursor` 
+if you write wrongly the IPv6 IP number in the `recursor` line of `pdns.conf`. Therefore,
+~~`recursor=::1:5300`~~ won't work because of the missing required square brackets ("[" and "]") 
+enclosing the IP literal. Please respect IPv6 notation.
 
 If the backend does not answer a question within a large amount of time, this is
 logged as 'Recursive query for remote 198.51.100.15 with internal id 0 was not
