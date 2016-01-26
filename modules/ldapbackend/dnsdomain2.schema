@@ -182,6 +182,30 @@ attributetype ( 1.3.6.1.4.1.2428.20.1.99 NAME 'sPFRecord'
 	SUBSTR caseIgnoreIA5SubstringsMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
 
+attributetype ( 1.3.6.1.4.1.2428.20.1.65534 NAME 'TYPE65534Record'
+	DESC ''
+	EQUALITY caseIgnoreIA5Match
+	SUBSTR caseIgnoreIA5SubstringsMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
+
+attributetype ( 1.3.6.1.4.1.2428.20.1.108 NAME 'EUI48Record'
+	DESC ''
+	EQUALITY caseIgnoreIA5Match
+	SUBSTR caseIgnoreIA5SubstringsMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
+
+attributetype ( 1.3.6.1.4.1.2428.20.1.109 NAME 'EUI64Record'
+	DESC ''
+	EQUALITY caseIgnoreIA5Match
+	SUBSTR caseIgnoreIA5SubstringsMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
+
+attributetype ( 1.3.6.1.4.1.2428.20.1.65226 NAME 'TYPE65226Record'
+	DESC ''
+	EQUALITY caseIgnoreIA5Match
+	SUBSTR caseIgnoreIA5SubstringsMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
+
 objectclass ( 1.3.6.1.4.1.2428.20.2 NAME 'dNSDomain2'
 	SUP 'dNSDomain' STRUCTURAL
 	MAY ( DNSTTL $ DNSClass $ WKSRecord $ PTRRecord $
@@ -191,5 +215,6 @@ objectclass ( 1.3.6.1.4.1.2428.20.2 NAME 'dNSDomain2'
 		NAPTRRecord $ KXRecord $ CERTRecord $ A6Record $
 		DNAMERecord $ APLRecord $ DSRecord $ SSHFPRecord $
 		IPSECKEYRecord $ RRSIGRecord $ NSECRecord $
-		DNSKEYRecord $ DHCIDRecord $ SPFRecord
+		DNSKEYRecord $ DHCIDRecord $ SPFRecord $ TYPE65534Record $
+		TYPE65226Record $ EUI48Record $ EUI64Record
 	) )
