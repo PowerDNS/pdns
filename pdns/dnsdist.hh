@@ -258,16 +258,16 @@ struct ClientState
 
 class TCPClientCollection {
   std::vector<int> d_tcpclientthreads;
-  std::atomic<uint64_t> d_pos;
+  std::atomic<uint64_t> d_pos{0};
 public:
-  std::atomic<uint64_t> d_queued, d_numthreads;
+  std::atomic<uint64_t> d_queued{0}, d_numthreads{0};
 
-  TCPClientCollection()
+  TCPClientCollection(size_t maxThreads)
   {
-    d_tcpclientthreads.reserve(1024);
+    d_tcpclientthreads.reserve(maxThreads);
   }
 
-  int getThread() 
+  int getThread()
   {
     int pos = d_pos++;
     ++d_queued;
@@ -276,7 +276,7 @@ public:
   void addTCPClientThread();
 };
 
-extern TCPClientCollection g_tcpclientthreads;
+extern std::shared_ptr<TCPClientCollection> g_tcpclientthreads;
 
 struct DownstreamState
 {
