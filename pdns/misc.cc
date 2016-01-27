@@ -1082,6 +1082,32 @@ bool setCloseOnExec(int sock)
   return true;
 }
 
+string getMACAddress(const ComboAddress& ca)
+{
+  string ret;
+#ifdef __linux__
+  ifstream ifs("/proc/net/arp");
+  if(!ifs)
+    return ret;
+  string line;
+  string match=ca.toString()+' ';
+  while(getline(ifs, line)) {
+    if(boost::starts_with(line, match)) {
+      vector<string> parts;
+      stringtok(parts, line, " \n\t\r");
+      if(parts.size() < 4)
+        return ret;
+      unsigned int tmp[6];
+      sscanf(parts[3].c_str(), "%02x:%02x:%02x:%02x:%02x:%02x", tmp, tmp+1, tmp+2, tmp+3, tmp+4, tmp+5);
+      for(int i = 0 ; i< 6 ; ++i)
+        ret.append(1, (char)tmp[i]);
+      return ret;
+    }
+  }
+#endif
+  return ret;
+}
+
 uint64_t udpErrorStats(const std::string& str)
 {
 #ifdef __linux__

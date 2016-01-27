@@ -536,6 +536,11 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       return std::shared_ptr<DNSAction>(new NoRecurseAction);
     });
 
+  g_lua.writeFunction("MacAddrAction", [](int code) {
+      return std::shared_ptr<DNSAction>(new MacAddrAction(code));
+    });
+
+
   g_lua.writeFunction("PoolAction", [](const string& a) {
       return std::shared_ptr<DNSAction>(new PoolAction(a));
     });

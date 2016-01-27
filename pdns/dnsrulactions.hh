@@ -511,6 +511,51 @@ private:
   DNSName d_cname;
 };
 
+class MacAddrAction : public DNSAction
+{
+public:
+  MacAddrAction(uint16_t code) : d_code(code)
+  {}
+  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  {
+    if(dq->dh->arcount)
+      return Action::None;
+
+    char* dest = ((char*)dq->dh) + dq->len;    
+    dnsrecordheader dh;
+    EDNS0Record edns0;
+    edns0.extRCode = 0;
+    edns0.version = 0;
+    edns0.Z = 0;
+    
+    dh.d_type = htons(QType::OPT);
+    dh.d_class = htons(1500);
+    memcpy(&dh.d_ttl, &edns0, sizeof edns0);
+    string optRData;
+    const uint16_t optionCode=htons(d_code), optionLen=htons(6);
+    optRData.append((const char*)&optionCode, 2);
+    optRData.append((const char*)&optionLen, 2);
+    string mac=getMACAddress(*dq->remote);
+    if(!mac.empty()) {
+      dq->dh->arcount=ntohs(1);
+      optRData.append(mac);
+      dh.d_clen = htons((uint16_t) optRData.length());
+      uint8_t name=0;
+      string res((const char *) &name, sizeof name);
+      res.append((const char *) &dh, sizeof dh);
+      res.append(optRData.c_str(), optRData.length());
+      memcpy(dest, res.c_str(), res.length());
+      dq->len+=res.length();
+    }
+    return Action::None;
+  }  
+  string toString() const override
+  {
+    return "add EDNS MAC (code="+std::to_string(d_code)+")";
+  }
+private:
+  uint16_t d_code{3};
+};
 
 class NoRecurseAction : public DNSAction
 {
