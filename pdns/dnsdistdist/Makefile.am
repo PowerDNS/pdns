@@ -12,6 +12,14 @@ BUILT_SOURCES=htmlfiles.h
 htmlfiles.h: html/*
 	./incfiles > $@
 
+SRC_JS_FILES := $(wildcard src_js/*.js)
+MIN_JS_FILES := $(patsubst src_js/%.js,html/js/%.min.js,$(SRC_JS_FILES))
+
+html/js/%.min.js: src_js/%.js
+	uglifyjs $< > $@
+
+min_js: $(MIN_JS_FILES)
+
 EXTRA_DIST=dnslabeltext.rl \
 	   dnsdistconf.lua \
 	   README.md \
