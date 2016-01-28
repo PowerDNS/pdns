@@ -43,7 +43,8 @@ EXTRA_DIST = \
 	opensslsigners.hh opensslsigners.cc \
 	pdns_recursor.1.md \
 	portsmplexer.cc \
-	rec_control.1.md
+	rec_control.1.md \
+	rrd/*
 
 sbin_PROGRAMS = pdns_recursor
 bin_PROGRAMS = rec_control
