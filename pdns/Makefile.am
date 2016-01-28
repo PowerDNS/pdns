@@ -1056,7 +1056,7 @@ testrunner_SOURCES = \
 	dnsname.cc \
 	dnsname.hh \
 	dnspacket.cc \
-	dnsparser.cc \
+	dnsparser.hh dnsparser.cc \
 	dnsrecords.cc \
 	dnssecinfra.cc \
 	dnswriter.cc \
@@ -1083,6 +1083,7 @@ testrunner_SOURCES = \
 	test-distributor_hh.cc \
 	test-dns_random_hh.cc \
 	test-dnsname_cc.cc \
+	test-dnsparser_hh.cc \
 	test-dnsrecords_cc.cc \
 	test-iputils_hh.cc \
 	test-md5_hh.cc \
