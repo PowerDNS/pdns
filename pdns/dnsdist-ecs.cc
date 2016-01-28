@@ -251,20 +251,25 @@ static int getEDNSOption(char* optRR, const size_t len, const uint16_t wantedOpt
   return ENOENT;
 }
 
-static void generateECSOption(const ComboAddress& source, string& res)
+void generateEDNSOption(uint16_t optionCode, const std::string& payload, std::string& res)
 {
-  const uint16_t ecsOptionCode = htons(EDNS0_OPTION_CODE_ECS);
-  Netmask sourceNetmask(source, source.sin4.sin_family == AF_INET ? g_ECSSourcePrefixV4 : g_ECSSourcePrefixV6);
-  EDNSSubnetOpts ecsOpts;
-  ecsOpts.source = sourceNetmask;
-  string payload = makeEDNSSubnetOptsString(ecsOpts);
+  const uint16_t ecsOptionCode = htons(optionCode);
   const uint16_t payloadLen = htons(payload.length());
   res.append((const char *) &ecsOptionCode, sizeof ecsOptionCode);
   res.append((const char *) &payloadLen, sizeof payloadLen);
   res.append(payload);
 }
 
-static void generateECSOptRR(const ComboAddress& source, string & res)
+static void generateECSOption(const ComboAddress& source, string& res)
+{
+  Netmask sourceNetmask(source, source.sin4.sin_family == AF_INET ? g_ECSSourcePrefixV4 : g_ECSSourcePrefixV6);
+  EDNSSubnetOpts ecsOpts;
+  ecsOpts.source = sourceNetmask;
+  string payload = makeEDNSSubnetOptsString(ecsOpts);
+  generateEDNSOption(EDNS0_OPTION_CODE_ECS, payload, res);
+}
+
+void generateOptRR(const std::string& optRData, string& res)
 {
   const uint8_t name = 0;
   dnsrecordheader dh;
@@ -276,8 +281,6 @@ static void generateECSOptRR(const ComboAddress& source, string & res)
   dh.d_type = htons(QType::OPT);
   dh.d_class = htons(q_EdnsUDPPayloadSize);
   memcpy(&dh.d_ttl, &edns0, sizeof edns0);
-  string optRData;
-  generateECSOption(source, optRData);
   dh.d_clen = htons((uint16_t) optRData.length());
   res.assign((const char *) &name, sizeof name);
   res.append((const char *) &dh, sizeof dh);
@@ -389,7 +392,9 @@ void handleEDNSClientSubnet(char * const packet, const size_t packetSize, const 
     /* we need to add a EDNS0 RR with one EDNS0 ECS option, fixing the AR count */
     string EDNSRR;
     struct dnsheader* dh = (struct dnsheader*) packet;
-    generateECSOptRR(remote, EDNSRR);
+    string optRData;
+    generateECSOption(remote, optRData);
+    generateOptRR(optRData, EDNSRR);
     uint16_t arcount = ntohs(dh->arcount);
     arcount++;
     dh->arcount = htons(arcount);

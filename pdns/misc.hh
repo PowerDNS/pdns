@@ -609,7 +609,7 @@ uint64_t getRealMemoryUsage(const std::string&);
 uint64_t getOpenFileDescriptors(const std::string&);
 uint64_t getCPUTimeUser(const std::string&);
 uint64_t getCPUTimeSystem(const std::string&);
-
+std::string getMACAddress(const ComboAddress& ca);
 template<typename T, typename... Args>
 std::unique_ptr<T> make_unique(Args&&... args)
 {

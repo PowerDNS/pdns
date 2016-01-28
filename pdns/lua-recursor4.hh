@@ -12,7 +12,7 @@ class RecursorLua4 : public boost::noncopyable
 public:
   explicit RecursorLua4(const std::string& fname);
 
-  bool preresolve(const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSRecord>& res, int& ret, bool* variable);
+  bool preresolve(const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSRecord>& res, const vector<pair<uint16_t,string> >* ednsOpts, int& ret, bool* variable);
   bool nxdomain(const ComboAddress& remote, const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSRecord>& res, int& ret, bool* variable);
   bool nodata(const ComboAddress& remote, const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSRecord>& res, int& ret, bool* variable);
   bool postresolve(const ComboAddress& remote, const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSRecord>& res, int& ret, bool* variable);
@@ -37,6 +37,8 @@ private:
     void addAnswer(uint16_t type, const std::string& content, boost::optional<int> ttl, boost::optional<string> name);
     void addRecord(uint16_t type, const std::string& content, DNSResourceRecord::Place place, boost::optional<int> ttl, boost::optional<string> name);
     vector<pair<int,DNSRecord> > getRecords();
+    vector<pair<uint16_t, string> > getEDNSOptions();
+    boost::optional<string> getEDNSOption(uint16_t code);
     void setRecords(const vector<pair<int,DNSRecord> >& records);
     bool variable{false};
     
@@ -49,14 +51,14 @@ private:
     string udpCallback;
     
     std::unordered_map<string,string> data;
-
+    const std::vector<pair<uint16_t, string>>* ednsOptions;
     DNSName followupName;
   };
 
   LuaContext* d_lw;
   typedef std::function<bool(std::shared_ptr<DNSQuestion>)> luacall_t;
   luacall_t d_preresolve, d_nxdomain, d_nodata, d_postresolve, d_preoutquery, d_postoutquery;
-  bool genhook(luacall_t& func, const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSRecord>& res, int& ret, bool* variable);
+  bool genhook(luacall_t& func, const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSRecord>& res, const vector<pair<uint16_t,string> >* ednsOpts, int& ret, bool* variable);
   typedef std::function<bool(ComboAddress,ComboAddress, struct dnsheader)> ipfilter_t;
   ipfilter_t d_ipfilter;
 };

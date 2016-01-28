@@ -1,4 +1,5 @@
 #include "dnsdist.hh"
+#include "dnsdist-ecs.hh"
 #include "dnsname.hh"
 #include "dolog.hh"
 
@@ -511,6 +512,43 @@ private:
   DNSName d_cname;
 };
 
+class MacAddrAction : public DNSAction
+{
+public:
+  MacAddrAction(uint16_t code) : d_code(code)
+  {}
+  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  {
+    if(dq->dh->arcount)
+      return Action::None;
+
+    string mac = getMACAddress(*dq->remote);
+    if(mac.empty())
+      return Action::None;
+
+    string optRData;
+    generateEDNSOption(d_code, mac, optRData);
+
+    string res;
+    generateOptRR(optRData, res);
+
+    if ((dq->size - dq->len) < res.length())
+      return Action::None;
+
+    dq->dh->arcount = htons(1);
+    char* dest = ((char*)dq->dh) + dq->len;
+    memcpy(dest, res.c_str(), res.length());
+    dq->len += res.length();
+
+    return Action::None;
+  }  
+  string toString() const override
+  {
+    return "add EDNS MAC (code="+std::to_string(d_code)+")";
+  }
+private:
+  uint16_t d_code{3};
+};
 
 class NoRecurseAction : public DNSAction
 {

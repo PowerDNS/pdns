@@ -29,7 +29,7 @@ bool RecursorLua4::postresolve(const ComboAddress& remote,const ComboAddress& lo
 }
 
 
-bool RecursorLua4::preresolve(const ComboAddress& remote, const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSRecord>& ret, int& res, bool* variable)
+bool RecursorLua4::preresolve(const ComboAddress& remote, const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSRecord>& ret, const vector<pair<uint16_t,string> >* ednsOpts, int& res, bool* variable)
 {
   return false;
 }
@@ -126,6 +126,25 @@ static int getFakePTRRecords(const DNSName& qname, const std::string& prefix, ve
   return rcode;
 
 }
+
+vector<pair<uint16_t, string> > RecursorLua4::DNSQuestion::getEDNSOptions()
+{
+  if(ednsOptions)
+    return *ednsOptions;
+  else
+    return vector<pair<uint16_t,string>>();
+}
+
+boost::optional<string>  RecursorLua4::DNSQuestion::getEDNSOption(uint16_t code)
+{
+  if(ednsOptions)
+    for(const auto& o : *ednsOptions)
+      if(o.first==code)
+        return o.second;
+        
+  return boost::optional<string>();
+}
+
 
 vector<pair<int, DNSRecord> > RecursorLua4::DNSQuestion::getRecords()
 {
@@ -252,9 +271,12 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   d_lw->registerMember("udpAnswer", &DNSQuestion::udpAnswer);
   d_lw->registerMember("udpQueryDest", &DNSQuestion::udpQueryDest);
   d_lw->registerMember("udpCallback", &DNSQuestion::udpCallback);
+  d_lw->registerFunction("getEDNSOptions", &DNSQuestion::getEDNSOptions);
+  d_lw->registerFunction("getEDNSOption", &DNSQuestion::getEDNSOption);
   d_lw->registerMember("name", &DNSRecord::d_name);
   d_lw->registerMember("type", &DNSRecord::d_type);
   d_lw->registerMember("ttl", &DNSRecord::d_ttl);
+
   
   d_lw->registerFunction<string(DNSRecord::*)()>("getContent", [](const DNSRecord& dr) { return dr.d_content->getZoneRepresentation(); });
 
@@ -334,29 +356,29 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   d_gettag = d_lw->readVariable<boost::optional<gettag_t>>("gettag").get_value_or(0);
 }
 
-bool RecursorLua4::preresolve(const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSRecord>& res, int& ret, bool* variable)
+bool RecursorLua4::preresolve(const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSRecord>& res, const vector<pair<uint16_t,string> >* ednsOpts, int& ret, bool* variable)
 {
-  return genhook(d_preresolve, remote, local, query, qtype, res, ret, variable);
+  return genhook(d_preresolve, remote, local, query, qtype, res, ednsOpts, ret, variable);
 }
 
 bool RecursorLua4::nxdomain(const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSRecord>& res, int& ret, bool* variable)
 {
-  return genhook(d_nxdomain, remote, local, query, qtype, res, ret, variable);
+  return genhook(d_nxdomain, remote, local, query, qtype, res, 0, ret, variable);
 }
 
 bool RecursorLua4::nodata(const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSRecord>& res, int& ret, bool* variable)
 {
-  return genhook(d_nodata, remote, local, query, qtype, res, ret, variable);
+  return genhook(d_nodata, remote, local, query, qtype, res, 0, ret, variable);
 }
 
 bool RecursorLua4::postresolve(const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSRecord>& res, int& ret, bool* variable)
 {
-  return genhook(d_postresolve, remote, local, query, qtype, res, ret, variable);
+  return genhook(d_postresolve, remote, local, query, qtype, res, 0, ret, variable);
 }
 
 bool RecursorLua4::preoutquery(const ComboAddress& ns, const ComboAddress& requestor, const DNSName& query, const QType& qtype, vector<DNSRecord>& res, int& ret)
 {
-  return genhook(d_preoutquery, ns, requestor, query, qtype, res, ret, 0);
+  return genhook(d_preoutquery, ns, requestor, query, qtype, res, 0, ret, 0);
 }
 
 bool RecursorLua4::ipfilter(const ComboAddress& remote, const ComboAddress& local, const struct dnsheader& dh)
@@ -373,7 +395,7 @@ int RecursorLua4::gettag(const ComboAddress& remote, const ComboAddress& local, 
   return 0;
 }
 
-bool RecursorLua4::genhook(luacall_t& func, const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSRecord>& res, int& ret, bool* variable)
+bool RecursorLua4::genhook(luacall_t& func, const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSRecord>& res, const vector<pair<uint16_t,string> >* ednsOpts, int& ret, bool* variable)
 {
   if(!func)
     return false;
@@ -384,7 +406,7 @@ bool RecursorLua4::genhook(luacall_t& func, const ComboAddress& remote,const Com
   dq->local=local;
   dq->remote=remote;
   dq->records = res;
-
+  dq->ednsOptions = ednsOpts;
   bool handled=func(dq);
   if(variable) *variable |= dq->variable; // could still be set to indicate this *name* is variable
 

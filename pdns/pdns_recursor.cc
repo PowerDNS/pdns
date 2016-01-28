@@ -190,6 +190,7 @@ struct DNSComboWriter {
   int d_tag;
   string d_query;
   shared_ptr<TCPConnection> d_tcpConnection;
+  vector<pair<uint16_t, string> > d_ednsOpts;
 };
 
 
@@ -607,6 +608,7 @@ void startDoResolve(void *p)
     if(getEDNSOpts(dc->d_mdp, &edo)) {
       if(!dc->d_tcp)
 	maxanswersize = min(edo.d_packetsize, g_udpTruncationThreshold);
+      dc->d_ednsOpts = edo.d_options;
       haveEDNS=true;
     }
     vector<DNSRecord> ret;
@@ -705,7 +707,7 @@ void startDoResolve(void *p)
     }
 
 
-    if(!t_pdl->get() || !(*t_pdl)->preresolve(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer)) {
+    if(!t_pdl->get() || !(*t_pdl)->preresolve(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, dc->d_ednsOpts.empty() ? 0 : &dc->d_ednsOpts, res, &variableAnswer)) {
       try {
         res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
       }
