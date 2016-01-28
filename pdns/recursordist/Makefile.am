@@ -26,6 +26,7 @@ AM_CPPFLAGS +=$(LUA_CFLAGS)
 endif
 
 EXTRA_DIST = \
+	NOTICE \
 	.version \
 	botan110signers.cc botansigners.cc \
 	build-aux/gen-version \
