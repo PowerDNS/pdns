@@ -40,7 +40,8 @@ public:
   typedef runtime_error exception;
   typedef deque<pair<string::size_type, string::size_type> > parts_t;
   DNSName getZoneName();
-  string getLineOfFile();
+  string getLineOfFile(); // for error reporting purposes
+  pair<string,int> getLineNumAndFile(); // idem
 private:
   bool getLine();
   bool getTemplateLine();
