@@ -1157,6 +1157,25 @@ int createZone(const DNSName &zone, const DNSName& nsname) {
   return 1;
 }
 
+int createSlaveZone(const vector<string>& cmds) {
+  UeberBackend B;
+  DomainInfo di;
+  DNSName zone(cmds[1]);
+  if (B.getDomainInfo(zone, di)) {
+    cerr<<"Domain '"<<zone.toString()<<"' exists already"<<endl;
+    return 1;
+  }
+  cerr<<"Creating empty zone '"<<zone.toString()<<"'"<<endl;
+  B.createDomain(zone);
+  if(!B.getDomainInfo(zone, di)) {
+    cerr<<"Domain '"<<zone.toString()<<"' was not created!"<<endl;
+    return 1;
+  }
+  di.backend->setKind(zone, DomainInfo::Slave);
+  di.backend->setMaster(zone, cmds[2]);
+  return EXIT_SUCCESS;
+}
+
 // add-record ZONE name type [ttl] "content" ["content"]
 int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
   DNSResourceRecord rr;
@@ -2126,6 +2145,13 @@ seedRandom(::arg()["entropy-source"]);
       return 0;
     }
     exit(createZone(DNSName(cmds[1]), cmds.size() > 2 ? DNSName(cmds[2]): DNSName()));
+  }
+  else if(cmds[0] == "create-slave-zone") {
+    if(cmds.size() < 3 ) {
+      cerr<<"Syntax: pdnsutil create-slave-zone ZONE master-ip [master-ip..]"<<endl;
+      return 0;
+    }
+    exit(createSlaveZone(cmds));
   }
   else if(cmds[0] == "add-record") {
     if(cmds.size() < 5) {
