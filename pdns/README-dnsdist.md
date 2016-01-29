@@ -585,27 +585,29 @@ setServerPolicyLua("luaroundrobin", luaroundrobin)
 Incidentally, this is similar to setting: `setServerPolicy(roundrobin)`
 which uses the C++ based roundrobin policy.
 
-Split horizon
--------------
-
-To implement a split horizon, try:
+Lua server policies 
+-------------------
+If the built in rules do not suffice to pick a server pool, full flexibility is available from Lua. For example:
 
 ```
-authServer=newServer({address="2001:888:2000:1d::2", pool="auth"})
+newServer("192.168.1.2")
+newServer({address="8.8.4.4", pool="numbered"})
 
 function splitSetup(servers, dq)
-	 if(dq.dh:getRD() == false)
-	 then
-		return leastOutstanding.policy(getPoolServers("auth"), dq)
-	 else
-		return leastOutstanding.policy(servers, dq)
-	 end
+         if(string.match(dq.qname:toString(), "%d"))
+         then
+                print("numbered pool")
+                return leastOutstanding.policy(getPoolServers("numbered"), dq)
+         else
+                print("standard pool")
+                return leastOutstanding.policy(servers, dq)
+         end
 end
 
 setServerPolicyLua("splitsetup", splitSetup)
 ```
 
-This will forward queries that don't want recursion to the pool of auth
+This will forward queries containing a number to the pool of "numbered" 
 servers, and will apply the default load balancing policy to all other
 queries.
 
