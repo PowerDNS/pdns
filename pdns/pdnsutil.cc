@@ -961,7 +961,7 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
   {
     if(tmpfd < 0 && (tmpfd=open(tmpnam, O_WRONLY, 0600)) < 0)
       unixDie("Error reopening temporary file "+string(tmpnam));
-    string header("; Warning - all zone names in this file are ABSOLUTE!\n$ORIGIN .\n");
+    string header("; Warning - every name in this file is ABSOLUTE!\n$ORIGIN .\n");
     if(write(tmpfd, header.c_str(), header.length()) < 0)
       unixDie("Writing zone to temporary file");
     while(di.backend->get(rr)) {
@@ -983,8 +983,9 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
   if(gotoline > 0)
     cmdline+="+"+std::to_string(gotoline)+" ";
   cmdline += tmpnam;
-  if(system(cmdline.c_str()) < 0) {
-    unixDie("Editing file with: "+cmdline);
+  int err=system(cmdline.c_str());
+  if(err) {
+    unixDie("Editing file with: '"+cmdline+"', perhaps set EDITOR variable");
   }
   cmdline.clear();
   stat(tmpnam,&statafter);
@@ -1070,6 +1071,9 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
       vrr.push_back(drr);
     }
     di.backend->replaceRRSet(di.id, c.first, QType(c.second), vrr);
+  }
+  if(dk.isSecuredZone(zone)) {
+    rectifyZone(dk, zone);
   }
   return 0;
 }
