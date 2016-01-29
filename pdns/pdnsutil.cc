@@ -18,6 +18,8 @@
 #include "signingpipe.hh"
 #include "dns_random.hh"
 #include <fstream>
+#include <termios.h>            //termios, TCSANOW, ECHO, ICANON
+
 #ifdef HAVE_LIBSODIUM
 #include <sodium.h>
 #endif
@@ -28,6 +30,7 @@
 #include "ssqlite3.hh"
 #include "bind-dnssec.schema.sqlite3.sql.h"
 #endif
+#include <curses.h>
 
 StatBag S;
 PacketCache PC;
@@ -401,7 +404,7 @@ void rectifyAllZones(DNSSECKeeper &dk)
   cout<<"Rectified "<<domainInfo.size()<<" zones."<<endl;
 }
 
-int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone)
+int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vector<DNSResourceRecord>* suppliedrecords=0)
 {
   SOAData sd;
   if(!B.getSOAUncached(zone, sd)) {
@@ -447,15 +450,23 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone)
 
   bool hasNsAtApex = false;
   set<DNSName> tlsas, cnames, noncnames, glue, checkglue;
-  set<string> records;
+  set<string> recordcontents;
   map<string, unsigned int> ttl;
 
   ostringstream content;
   pair<map<string, unsigned int>::iterator,bool> ret;
 
-  sd.db->list(zone, sd.domain_id, false);
+  vector<DNSResourceRecord> records;
+  if(!suppliedrecords) {
+    sd.db->list(zone, sd.domain_id, false);
+    while(sd.db->get(rr)) {
+      records.push_back(rr);
+    }
+  }
+  else 
+    records=*suppliedrecords;
 
-  while(sd.db->get(rr)) {
+  for(auto rr : records) { // we modify this
     if(!rr.qtype.getCode())
       continue;
 
@@ -511,12 +522,12 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone)
 
     content.str("");
     content<<rr.qname.toString()<<" "<<rr.qtype.getName()<<" "<<rr.content;
-    if (records.count(toLower(content.str()))) {
+    if (recordcontents.count(toLower(content.str()))) {
       cout<<"[Error] Duplicate record found in rrset: '"<<rr.qname.toString()<<" IN "<<rr.qtype.getName()<<" "<<rr.content<<"'"<<endl;
       numerrors++;
       continue;
     } else
-      records.insert(toLower(content.str()));
+      recordcontents.insert(toLower(content.str()));
 
     content.str("");
     content<<rr.qname.toString()<<" "<<rr.qtype.getName();
@@ -882,6 +893,182 @@ int listZone(const DNSName &zone) {
   }
   return 0;
 }
+
+// lovingly copied from http://stackoverflow.com/questions/1798511/how-to-avoid-press-enter-with-any-getchar
+int read1char(){   
+    int c;   
+    static struct termios oldt, newt;
+
+    /*tcgetattr gets the parameters of the current terminal
+    STDIN_FILENO will tell tcgetattr that it should write the settings
+    of stdin to oldt*/
+    tcgetattr( STDIN_FILENO, &oldt);
+    /*now the settings will be copied*/
+    newt = oldt;
+
+    /*ICANON normally takes care that one line at a time will be processed
+    that means it will return if it sees a "\n" or an EOF or an EOL*/
+    newt.c_lflag &= ~(ICANON);          
+
+    /*Those new settings will be set to STDIN
+    TCSANOW tells tcsetattr to change attributes immediately. */
+    tcsetattr( STDIN_FILENO, TCSANOW, &newt);
+
+    c=getchar();
+
+    /*restore the old settings*/
+    tcsetattr( STDIN_FILENO, TCSANOW, &oldt);
+
+    return c;
+}
+
+
+int editZone(DNSSECKeeper& dk, const DNSName &zone) {
+  UeberBackend B;
+  DomainInfo di;
+  
+  if (! B.getDomainInfo(zone, di)) {
+    cerr<<"Domain '"<<zone.toString()<<"' not found!"<<endl;
+    return 1;
+  }
+  vector<DNSRecord> pre, post;
+  char tmpnam[]="/tmp/pdnsutil-XXXXXX";
+  int tmpfd=mkstemp(tmpnam);
+  if(tmpfd < 0)
+    unixDie("Making temporary filename in "+string(tmpnam));
+  struct deleteme {
+    ~deleteme() { unlink(d_name.c_str()); }
+    deleteme(string name) : d_name(name) {}
+    string d_name;
+  } dm(tmpnam);
+
+  bool first=true;
+  vector<DNSResourceRecord> checkrr;
+  int gotoline=0;
+  string editor="editor";
+  if(auto e=getenv("EDITOR")) // <3
+    editor=e;
+  string cmdline;
+ editAgain:;
+  di.backend->list(zone, di.id);
+  pre.clear(); post.clear();
+  DNSResourceRecord rr;
+  {
+    if(tmpfd < 0 && (tmpfd=open(tmpnam, O_WRONLY, 0600)) < 0)
+      unixDie("Error reopening temporary file "+string(tmpnam));
+    string header("; Warning - all zone names in this file are ABSOLUTE!\n$ORIGIN .\n");
+    if(write(tmpfd, header.c_str(), header.length()) < 0)
+      unixDie("Writing zone to temporary file");
+    while(di.backend->get(rr)) {
+      DNSRecord dr(rr);
+      pre.push_back(dr);
+      ostringstream os;
+      os<<dr.d_name<<"\t"<<dr.d_ttl<<"\tIN\t"<<DNSRecordContent::NumberToType(dr.d_type)<<"\t"<<dr.d_content->getZoneRepresentation(true)<<endl;
+      if(write(tmpfd, os.str().c_str(), os.str().length()) < 0)
+        unixDie("Writing zone to temporary file");
+    }
+    sort(pre.begin(), pre.end());
+    close(tmpfd);
+    tmpfd=-1;
+  }
+ editMore:;
+  struct stat statbefore, statafter;
+  stat(tmpnam,&statbefore);
+  cmdline=editor+" ";
+  if(gotoline > 0)
+    cmdline+="+"+std::to_string(gotoline)+" ";
+  cmdline += tmpnam;
+  if(system(cmdline.c_str()) < 0) {
+    unixDie("Editing file with: "+cmdline);
+  }
+  cmdline.clear();
+  stat(tmpnam,&statafter);
+  if(first && statbefore.st_ctime == statafter.st_ctime) {
+    cout<<"No change to file"<<endl;
+    return(EXIT_SUCCESS);
+  }
+  first=false;
+  ZoneParserTNG zpt(tmpnam, DNSName("."));
+  map<pair<DNSName,uint16_t>, vector<DNSRecord> > grouped;
+  while(zpt.get(rr)) {
+    try {
+      DNSRecord dr(rr);
+      post.push_back(dr);
+      grouped[{dr.d_name,dr.d_type}].push_back(dr);
+    }
+    catch(std::exception& e) {
+      cerr<<"Problem "<<e.what()<<" "<<zpt.getLineOfFile()<<endl;
+      auto fnum = zpt.getLineNumAndFile();
+      gotoline = fnum.second;
+      goto reAsk;
+    }
+  }
+  sort(post.begin(), post.end());
+  checkrr.clear();
+
+  for(const DNSRecord& rr : post) {
+    DNSResourceRecord drr(rr);
+    drr.domain_id = di.id;
+    checkrr.push_back(drr);
+  }
+  if(checkZone(dk, B, zone, &checkrr)) {
+  reAsk:;
+    cerr<<"\x1b[31;1mThere was a problem with your zone\x1b[0m\nOptions are: (e)dit your changes, (r)etry with original zone, (a)pply change anyhow, (q)uit: "<<endl;
+    int c=read1char();
+    cerr<<"\n";
+    post.clear();
+    if(c=='e') 
+      goto editMore;
+    else if(c=='r')
+      goto editAgain;
+    else if(c=='q')
+      return EXIT_FAILURE;
+    else if(c!='a')
+      goto reAsk;
+  }
+
+  cout<<"Detected the following changes:\n"<<endl;
+
+  vector<DNSRecord> diff;
+  set<pair<DNSName,uint16_t>> changed;
+  set_difference(pre.cbegin(), pre.cend(), post.cbegin(), post.cend(), back_inserter(diff));
+  for(const auto& d : diff) {
+    changed.insert({d.d_name,d.d_type});
+    cout<<'-'<< d.d_name <<" "<<d.d_ttl<<" IN "<<DNSRecordContent::NumberToType(d.d_type)<<" "<<d.d_content->getZoneRepresentation(true)<<endl;
+  }
+  diff.clear();
+  set_difference(post.cbegin(), post.cend(), pre.cbegin(), pre.cend(), back_inserter(diff));
+  for(const auto& d : diff) {
+    changed.insert({d.d_name,d.d_type});
+    cout<<'+'<< d.d_name <<" "<<d.d_ttl<<" IN "<<DNSRecordContent::NumberToType(d.d_type)<<" "<<d.d_content->getZoneRepresentation(true)<<endl;
+  }
+
+ reAsk2:;
+  cout<<"\n(a)pply these changes, (e)dit again, (r)etry with original zone, (q)uit: ";
+  int c=read1char();
+  post.clear();
+  cerr<<'\n';
+  if(c=='q')
+    return(EXIT_SUCCESS);
+  else if(c=='e')
+    goto editMore;
+  else if(c=='r')
+    goto editAgain;
+  else if(c!='a')
+    goto reAsk2;
+
+  for(const auto& c : changed) {
+    vector<DNSResourceRecord> vrr;
+    for(const DNSRecord& rr : grouped[c]) {
+      DNSResourceRecord drr(rr);
+      drr.domain_id = di.id;
+      vrr.push_back(drr);
+    }
+    di.backend->replaceRRSet(di.id, c.first, QType(c.second), vrr);
+  }
+  return 0;
+}
+
 
 int loadZone(DNSName zone, const string& fname) {
   UeberBackend B;
@@ -1615,6 +1802,7 @@ try
     cerr<<"delete-tsig-key NAME               Delete TSIG key (warning! will not unmap key!)"<<endl;
     cerr<<"delete-zone ZONE                   Delete the zone"<<endl;
     cerr<<"disable-dnssec ZONE                Deactivate all keys and unset PRESIGNED in ZONE"<<endl;
+    cerr<<"edit-zone ZONE                     Edit zone contents using $EDITOR"<<endl;
     cerr<<"export-zone-dnskey ZONE KEY-ID     Export to stdout the public DNSKEY described"<<endl;
     cerr<<"export-zone-key ZONE KEY-ID        Export to stdout the private key described"<<endl;
     cerr<<"generate-tsig-key NAME ALGORITHM   Generate new TSIG key"<<endl;
@@ -1961,6 +2149,17 @@ seedRandom(::arg()["entropy-source"]);
 
     exit(listZone(DNSName(cmds[1])));
   }
+  else if(cmds[0] == "edit-zone") {
+    if(cmds.size() != 2) {
+      cerr<<"Syntax: pdnsutil edit-zone ZONE"<<endl;
+      return 0;
+    }
+    if(cmds[1]==".")
+      cmds[1].clear();
+
+    exit(editZone(dk, DNSName(cmds[1])));
+  }
+
   else if(cmds[0] == "list-keys") {
     if(cmds.size() > 2) {
       cerr<<"Syntax: pdnsutil list-keys [ZONE]"<<endl;
