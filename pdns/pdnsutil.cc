@@ -495,8 +495,13 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
       tmp = drc->getZoneRepresentation(true);
       if (rr.qtype.getCode() != QType::AAAA) {
         if (!pdns_iequals(tmp, rr.content)) {
-          cout<<"[Warning] Parsed and original record content are not equal: "<<rr.qname.toString()<<" IN " <<rr.qtype.getName()<< " '" << rr.content<<"' (Content parsed as '"<<tmp<<"')"<<endl;
-          numwarnings++;
+          if(rr.qtype.getCode() == QType::SOA) {
+            tmp = drc->getZoneRepresentation(false);
+          }
+          if(!pdns_iequals(tmp, rr.content)) {
+            cout<<"[Warning] Parsed and original record content are not equal: "<<rr.qname.toString()<<" IN " <<rr.qtype.getName()<< " '" << rr.content<<"' (Content parsed as '"<<tmp<<"')"<<endl;
+            numwarnings++;
+          }
         }
       } else {
         struct in6_addr tmpbuf;
