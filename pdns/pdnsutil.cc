@@ -1308,7 +1308,7 @@ int listAllZones(const string &type="") {
   UeberBackend B("default");
 
   vector<DomainInfo> domains;
-  B.getAllDomains(&domains);
+  B.getAllDomains(&domains, true);
 
   int count = 0;
   for (vector<DomainInfo>::const_iterator di=domains.begin(); di != domains.end(); di++) {
