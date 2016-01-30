@@ -241,7 +241,7 @@ bool rectifyZone(DNSSECKeeper& dk, const DNSName& zone)
       cerr<<"Erasing NSEC3 ordering since we are narrow, only setting 'auth' fields"<<endl;
   }
   else
-    cerr<<"Non DNSSEC zone, only adding empty non-terminals"<<endl;
+    cerr<<"Adding empty non-terminals for non-DNSSEC zone"<<endl;
 
   if(doTransaction)
     sd.db->startTransaction(zone, -1);
@@ -1468,7 +1468,7 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone)
   }
 
   if(!dk.isSecuredZone(zone)) {
-    cerr<<"Zone is not actively secured"<<endl;
+    cout<<"Zone is not actively secured"<<endl;
   }
   NSEC3PARAMRecordContent ns3pr;
   bool narrow;
@@ -1476,14 +1476,23 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone)
   
   DNSSECKeeper::keyset_t keyset=dk.getKeys(zone);
   if (B.getDomainMetadata(zone, "TSIG-ALLOW-AXFR", meta) && meta.size() > 0) {
-     cerr << "Zone has following allowed TSIG key(s): " << boost::join(meta, ",") << endl;
+     cout << "Zone has following allowed TSIG key(s): " << boost::join(meta, ",") << endl;
   }
 
   meta.clear();
   if (B.getDomainMetadata(zone, "AXFR-MASTER-TSIG", meta) && meta.size() > 0) {
-     cerr << "Zone uses following TSIG key(s): " << boost::join(meta, ",") << endl;
+     cout << "Zone uses following TSIG key(s): " << boost::join(meta, ",") << endl;
   }
   
+  std::map<std::string, std::vector<std::string> > metamap;
+  if(B.getAllDomainMetadata(zone, metamap)) {
+    cout<<"Meta data items: "<<endl;
+    for(const auto& m : metamap) {
+      for(const auto i : m.second)
+        cout << '\t' << m.first<<'\t' << i <<endl;
+    }
+  }
+
   if (dk.isPresigned(zone)) {
     cout <<"Zone is " << (dk.isPresigned(zone) ? "" : "not ") << "presigned"<<endl;
     // get us some keys
@@ -1873,8 +1882,8 @@ try
     cerr<<"set-publish-cdnskey ZONE           Enable sending CDNSKEY responses for ZONE"<<endl;
     cerr<<"set-publish-cds ZONE [DIGESTALGOS] Enable sending CDS responses for ZONE, using DIGESTALGOS as signature algirithms"<<endl;
     cerr<<"                                   DIGESTALGOS should be a comma separated list of numbers, is is '1,2' by default"<<endl;
-    cerr<<"set-meta ZONE KIND [VALUE ..]"<<endl;
-    cerr<<"                                   Set zone metadata, optionally providing a value. Empty clears meta."<<endl;
+    cerr<<"set-meta ZONE KIND [VALUE] [VALUE] Set zone metadata, optionally providing a value. Empty clears meta"<<endl;
+    cerr<<"                                   Note - this will replace all metadata records of KIND!"<<endl;
     cerr<<"show-zone ZONE                     Show DNSSEC (public) key details about a zone"<<endl;
     cerr<<"unset-nsec3 ZONE                   Switch back to NSEC"<<endl;
     cerr<<"unset-presigned ZONE               No longer use presigned RRSIGs"<<endl;
