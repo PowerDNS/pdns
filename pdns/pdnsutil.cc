@@ -959,12 +959,14 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
   pre.clear(); post.clear();
   DNSResourceRecord rr;
   {
-    if(tmpfd < 0 && (tmpfd=open(tmpnam, O_WRONLY, 0600)) < 0)
+    if(tmpfd < 0 && (tmpfd=open(tmpnam, O_WRONLY | O_TRUNC, 0600)) < 0)
       unixDie("Error reopening temporary file "+string(tmpnam));
     string header("; Warning - every name in this file is ABSOLUTE!\n$ORIGIN .\n");
     if(write(tmpfd, header.c_str(), header.length()) < 0)
       unixDie("Writing zone to temporary file");
     while(di.backend->get(rr)) {
+      if(!rr.qtype.getCode())
+        continue;
       DNSRecord dr(rr);
       pre.push_back(dr);
       ostringstream os;
@@ -1022,7 +1024,8 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
     cerr<<"\x1b[31;1mThere was a problem with your zone\x1b[0m\nOptions are: (e)dit your changes, (r)etry with original zone, (a)pply change anyhow, (q)uit: "<<endl;
     int c=read1char();
     cerr<<"\n";
-    post.clear();
+    if(c!='a')
+      post.clear();
     if(c=='e') 
       goto editMore;
     else if(c=='r')
@@ -1050,7 +1053,12 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
   }
 
  reAsk2:;
-  cout<<"\n(a)pply these changes, (e)dit again, (r)etry with original zone, (q)uit: ";
+  cout<<"\n";
+  if(changed.empty())
+    cout<<"No changes to apply, ";
+  else
+    cout<<"(a)pply these changes, ";
+  cout<<"(e)dit again, (r)etry with original zone, (q)uit: ";
   int c=read1char();
   post.clear();
   cerr<<'\n';
@@ -1060,7 +1068,7 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
     goto editMore;
   else if(c=='r')
     goto editAgain;
-  else if(c!='a')
+  else if(changed.empty() || c!='a')
     goto reAsk2;
 
   for(const auto& c : changed) {
@@ -1072,9 +1080,7 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
     }
     di.backend->replaceRRSet(di.id, c.first, QType(c.second), vrr);
   }
-  if(dk.isSecuredZone(zone)) {
-    rectifyZone(dk, zone);
-  }
+  rectifyZone(dk, zone);
   return 0;
 }
 
