@@ -30,7 +30,6 @@
 #include "ssqlite3.hh"
 #include "bind-dnssec.schema.sqlite3.sql.h"
 #endif
-#include <curses.h>
 
 StatBag S;
 PacketCache PC;
