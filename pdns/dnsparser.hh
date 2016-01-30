@@ -266,10 +266,10 @@ struct DNSRecord
 
   bool operator<(const DNSRecord& rhs) const
   {
-    if(tie(d_name, d_type, d_class) < tie(rhs.d_name, rhs.d_type, rhs.d_class))
+    if(tie(d_name, d_type, d_class, d_ttl) < tie(rhs.d_name, rhs.d_type, rhs.d_class, rhs.d_ttl))
       return true;
     
-    if(tie(d_name, d_type, d_class) != tie(rhs.d_name, rhs.d_type, rhs.d_class))
+    if(tie(d_name, d_type, d_class, d_ttl) != tie(rhs.d_name, rhs.d_type, rhs.d_class, rhs.d_ttl))
       return false;
     
     string lzrp, rzrp;

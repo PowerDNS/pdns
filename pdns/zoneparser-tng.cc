@@ -249,6 +249,11 @@ string ZoneParserTNG::getLineOfFile()
   return "on line "+std::to_string(d_filestates.top().d_lineno)+" of file '"+d_filestates.top().d_filename+"'";
 }
 
+pair<string,int> ZoneParserTNG::getLineNumAndFile()
+{
+  return {d_filestates.top().d_filename, d_filestates.top().d_lineno};
+}
+
 // ODD: this function never fills out the prio field! rest of pdns compensates though
 bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment) 
 {
