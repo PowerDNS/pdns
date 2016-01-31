@@ -1467,6 +1467,44 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone)
     return false;
   }
 
+  cout<<"This is a "<<DomainInfo::getKindString(di.kind)<<" zone"<<endl;
+  if(di.kind == DomainInfo::Master) {
+    cout<<"Last SOA serial number we notified: "<<di.notified_serial<<" ";
+    SOAData sd;
+    if(B.getSOAUncached(zone, sd)) {
+      if(sd.serial == di.notified_serial)
+        cout<< "== ";
+      else
+        cout << "!= ";
+      cout<<sd.serial<<" (serial in the database)"<<endl;
+    }
+    else
+      cout<<"- no serial found in database"<<endl;
+  }
+  else if(di.kind == DomainInfo::Slave) {
+    cout<<"Master"<<addS(di.masters)<<": ";
+    for(const auto& m : di.masters)
+      cout<<m<<" ";
+    cout<<endl;
+    struct tm tm;
+    localtime_r(&di.last_check, &tm);
+    char buf[80];
+    if(di.last_check)
+      strftime(buf, sizeof(buf)-1, "%a %F %H:%M:%S", &tm);
+    else
+      strncpy(buf, "Never", sizeof(buf)-1);
+
+    cout<<"Last time we got update from master: "<<buf<<endl;
+    SOAData sd;
+    if(B.getSOAUncached(zone, sd)) {
+      cout<<"SOA serial in database: "<<sd.serial<<endl;
+      cout<<"Refresh interval: "<<sd.refresh<<" seconds"<<endl;
+    }
+    else
+      cout<<"No SOA serial found in database"<<endl;
+  }
+
+
   if(!dk.isSecuredZone(zone)) {
     cout<<"Zone is not actively secured"<<endl;
   }
@@ -1486,7 +1524,11 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone)
   
   std::map<std::string, std::vector<std::string> > metamap;
   if(B.getAllDomainMetadata(zone, metamap)) {
-    cout<<"Meta data items: "<<endl;
+    cout<<"Metadata items: ";
+    if(metamap.empty())
+      cout<<"None";
+    cout<<endl;
+
     for(const auto& m : metamap) {
       for(const auto i : m.second)
         cout << '\t' << m.first<<'\t' << i <<endl;
