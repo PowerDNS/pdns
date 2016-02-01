@@ -27,7 +27,7 @@ Authoritative Server itself, which leads to a very tight packet loop!
 
 By specifying [`allow-recursion`](settings.md#allow-recursion), recursion can be
 restricted to netmasks specified. The default is to allow recursion from
-everywhere. Example: `allow-recursion=203.0.113.0/24, 198.51.100.0/26, 192.0.2.4`.
+everywhere. Example: `allow-recursion=203.0.113.0/24, 198.51.100.0/26, 192.0.2.4`, `::1`.
 
 ## Details
 Questions carry a number of flags. One of these is called 'Recursion Desired'.
@@ -41,7 +41,23 @@ if the RD flag were unset and the answer will indicate that recursion was not
 available.
 
 It is also possible to use a resolver living on a different port. To do so,
-specify a recursor like this: `recursor=192.0.2.1:5300`
+specify a recursor like this: `recursor=192.0.2.1:5300`.
+
+**Reminder:** [according to RFC3986](https://tools.ietf.org/html/rfc3986#section-3.2.2) for IPv6, the notation is to
+encode the IPv6 IP number in square brackets like this: `recursor=[::1]:5300`, as
+they explain in section 3.2.2: Host:
+
+> A host identified by an Internet Protocol literal address, version 6 [RFC3513] or
+later, is distinguished by enclosing the IP literal within square brackets ("[" and "]").
+This is the only place where square bracket characters are allowed in the URI syntax.
+In anticipation of future, as-yet-undefined IP literal address formats, an
+implementation may use an optional version flag to indicate such a format explicitly
+rather than rely on heuristic determination.
+
+So, be careful! The authoritative `pdns` service won't communicate with `pdns-recursor` 
+if you write wrongly the IPv6 IP number in the `recursor` line of `pdns.conf`. Therefore,
+~~`recursor=::1:5300`~~ won't work because of the missing required square brackets ("[" and "]") 
+enclosing the IP literal. Please respect IPv6 notation.
 
 If the backend does not answer a question within a large amount of time, this is
 logged as 'Recursive query for remote 198.51.100.15 with internal id 0 was not
