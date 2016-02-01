@@ -1849,7 +1849,7 @@ struct LuaContext::Pusher<std::string> {
     static const int maxSize = 1;
 
     static PushedObject push(lua_State* state, const std::string& value) noexcept {
-        lua_pushstring(state, value.c_str());
+        lua_pushlstring(state, value.c_str(), value.length());
         return PushedObject{state, 1};
     }
 };
