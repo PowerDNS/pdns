@@ -16,14 +16,9 @@ extern "C" {
 void openssl_pthreads_locking_callback(int mode, int type, const char *file, int line)
 {
   if (mode & CRYPTO_LOCK) {
-    if(type != 19 && type !=18)
-    cout<<"Lock of "<<type<<" from "<<file<<" " <<line<<": r/w -> " << ((type&CRYPTO_READ)?"r":"w")<<endl;
-
     pthread_mutex_lock(&(openssllocks[type]));
 
   }else {
-    if(type != 19 && type !=18)
-    cout<<"Unlock of "<<type<<" from "<<file<<" " <<line<<" -> "<<((type&CRYPTO_READ)?"r":"w")<<endl;
     pthread_mutex_unlock(&(openssllocks[type]));
   }
 }
@@ -36,11 +31,10 @@ unsigned long openssl_pthreads_id_callback()
 
 void openssl_thread_setup()
 {
-  cout<<"Thread setup!"<<endl;
   openssllocks = (pthread_mutex_t*)OPENSSL_malloc(CRYPTO_num_locks() * sizeof(pthread_mutex_t));
 
   for (int i = 0; i < CRYPTO_num_locks(); i++)
-    pthread_mutex_init(&(openssllocks[i++]), NULL);
+    pthread_mutex_init(&(openssllocks[i]), NULL);
 
   CRYPTO_set_id_callback(openssl_pthreads_id_callback);
   CRYPTO_set_locking_callback(openssl_pthreads_locking_callback);
