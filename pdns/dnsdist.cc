@@ -520,7 +520,7 @@ try
   remote.sin4.sin_family = cs->local.sin4.sin_family;
   char packet[1500];
   string largerQuery;
-  uint16_t qtype;
+  uint16_t qtype, qclass;
 
   typedef std::function<bool(DNSQuestion*)> blockfilter_t;
   blockfilter_t blockFilter = 0;
@@ -613,9 +613,9 @@ try
       const uint16_t * flags = getFlagsFromDNSHeader(dh);
       const uint16_t origFlags = *flags;
       unsigned int consumed = 0;
-      DNSName qname(query, len, sizeof(dnsheader), false, &qtype, NULL, &consumed);
+      DNSName qname(query, len, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
 
-      DNSQuestion dq(&qname, qtype, &cs->local, &remote, dh, sizeof(packet), len, false);
+      DNSQuestion dq(&qname, qtype, qclass, &cs->local, &remote, dh, sizeof(packet), len, false);
 
       struct timespec now;
       clock_gettime(CLOCK_MONOTONIC, &now);

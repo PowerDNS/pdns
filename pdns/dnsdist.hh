@@ -351,10 +351,11 @@ using servers_t =vector<std::shared_ptr<DownstreamState>>;
 
 struct DNSQuestion
 {
-  DNSQuestion(const DNSName* name, uint16_t type, const ComboAddress* lc, const ComboAddress* rem, struct dnsheader* header, size_t bufferSize, uint16_t queryLen, bool isTcp): qname(name), qtype(type), local(lc), remote(rem), dh(header), size(bufferSize), len(queryLen), tcp(isTcp) {};
+  DNSQuestion(const DNSName* name, uint16_t type, uint16_t class_, const ComboAddress* lc, const ComboAddress* rem, struct dnsheader* header, size_t bufferSize, uint16_t queryLen, bool isTcp): qname(name), qtype(type), qclass(class_), local(lc), remote(rem), dh(header), size(bufferSize), len(queryLen), tcp(isTcp) {};
 
   const DNSName* qname;
   const uint16_t qtype;
+  const uint16_t qclass;
   const ComboAddress* local;
   const ComboAddress* remote;
   struct dnsheader* dh;

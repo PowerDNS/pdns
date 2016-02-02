@@ -247,6 +247,25 @@ private:
   uint16_t d_qtype;
 };
 
+class QClassRule : public DNSRule
+{
+public:
+  QClassRule(uint16_t qclass) : d_qclass(qclass)
+  {
+  }
+  bool matches(const DNSQuestion* dq) const override
+  {
+    return d_qclass == dq->qclass;
+  }
+  string toString() const override
+  {
+    return "qclass=="+std::to_string(d_qclass);
+  }
+private:
+  uint16_t d_qclass;
+};
+
+
 class TCPRule : public DNSRule
 {
 public:
@@ -278,7 +297,7 @@ public:
   }
   string toString() const override
   {
-    return "!"+ d_rule->toString();
+    return "!("+ d_rule->toString()+")";
   }
 private:
   shared_ptr<DNSRule> d_rule;

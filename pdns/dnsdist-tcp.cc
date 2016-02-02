@@ -223,10 +223,10 @@ void* tcpClientThread(int pipefd)
           goto drop;
         }
 
-	uint16_t qtype;
+	uint16_t qtype, qclass;
 	unsigned int consumed = 0;
-	DNSName qname(query, qlen, sizeof(dnsheader), false, &qtype, 0, &consumed);
-	DNSQuestion dq(&qname, qtype, &ci.cs->local, &ci.remote, (dnsheader*)query, querySize, qlen, true);
+	DNSName qname(query, qlen, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
+	DNSQuestion dq(&qname, qtype, qclass, &ci.cs->local, &ci.remote, (dnsheader*)query, querySize, qlen, true);
 	string ruleresult;
 	const uint16_t * flags = getFlagsFromDNSHeader(dq.dh);
 	uint16_t origFlags = *flags;
