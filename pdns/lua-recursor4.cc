@@ -317,8 +317,10 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   };
 
   pd.push_back({"loglevels", in_t{
+        {"Alert", LOG_ALERT},
 	{"Critical", LOG_CRIT},
 	{"Debug", LOG_DEBUG},
+        {"Emergency", LOG_EMERG},
 	{"Info", LOG_INFO},
 	{"Notice", LOG_NOTICE},
 	{"Warning", LOG_WARNING},
