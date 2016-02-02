@@ -457,7 +457,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
 
   vector<DNSResourceRecord> records;
   if(!suppliedrecords) {
-    sd.db->list(zone, sd.domain_id, false);
+    sd.db->list(zone, sd.domain_id, g_verbose);
     while(sd.db->get(rr)) {
       records.push_back(rr);
     }
