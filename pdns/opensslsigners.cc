@@ -6,8 +6,75 @@
 #include <openssl/sha.h>
 #include <openssl/rand.h>
 #include <openssl/rsa.h>
-
+#include "opensslsigners.hh"
 #include "dnssecinfra.hh"
+
+
+static pthread_mutex_t *openssllocks;
+
+extern "C" {
+void openssl_pthreads_locking_callback(int mode, int type, const char *file, int line)
+{
+  if (mode & CRYPTO_LOCK) {
+    if(type != 19 && type !=18)
+    cout<<"Lock of "<<type<<" from "<<file<<" " <<line<<": r/w -> " << ((type&CRYPTO_READ)?"r":"w")<<endl;
+
+    pthread_mutex_lock(&(openssllocks[type]));
+
+  }else {
+    if(type != 19 && type !=18)
+    cout<<"Unlock of "<<type<<" from "<<file<<" " <<line<<" -> "<<((type&CRYPTO_READ)?"r":"w")<<endl;
+    pthread_mutex_unlock(&(openssllocks[type]));
+  }
+}
+
+unsigned long openssl_pthreads_id_callback()
+{
+  return (unsigned long)pthread_self();
+}
+}
+
+void openssl_thread_setup()
+{
+  cout<<"Thread setup!"<<endl;
+  openssllocks = (pthread_mutex_t*)OPENSSL_malloc(CRYPTO_num_locks() * sizeof(pthread_mutex_t));
+
+  for (int i = 0; i < CRYPTO_num_locks(); i++)
+    pthread_mutex_init(&(openssllocks[i++]), NULL);
+
+  CRYPTO_set_id_callback(openssl_pthreads_id_callback);
+  CRYPTO_set_locking_callback(openssl_pthreads_locking_callback);
+}
+
+void openssl_thread_cleanup()
+{
+  cout<<"Thread cleanup!"<<endl;
+  CRYPTO_set_locking_callback(NULL);
+
+  for (int i=0; i<CRYPTO_num_locks(); i++) {
+    pthread_mutex_destroy(&(openssllocks[i]));
+  }
+
+  OPENSSL_free(openssllocks);
+}
+
+
+/* seeding PRNG */
+
+void openssl_seed()
+{
+  std::string entropy;
+  entropy.reserve(1024);
+
+  unsigned int r;
+  for(int i=0; i<1024; i+=4) {
+    r=dns_random(0xffffffff);
+    entropy.append((const char*)&r, 4);
+  }
+
+  RAND_seed((const unsigned char*)entropy.c_str(), 1024);
+}
+
 
 class OpenSSLRSADNSCryptoKeyEngine : public DNSCryptoKeyEngine
 {
