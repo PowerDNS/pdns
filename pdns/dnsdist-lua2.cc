@@ -166,15 +166,18 @@ void moreLua()
 			   for(const auto& capair : m) {
 			     unsigned int count = 0;
                              auto got = slow.lookup(Netmask(capair.first));
+                             bool expired=false;
 			     if(got) {
 			       if(until < got->second.until) // had a longer policy
 				 continue;
-			       if(now < got->second.until) // don't inherit count on expired entry
+			       if(now < got->second.until) // only inherit count on fresh query we are extending
 				 count=got->second.blocks;
+                               else
+                                 expired=true;
 			     }
 			     DynBlock db{msg,until};
 			     db.blocks=count;
-                             if(!got)
+                             if(!got || expired)
                                warnlog("Inserting dynamic block for %s for %d seconds: %s", capair.first.toString(), actualSeconds, msg);
 			     slow.insert(Netmask(capair.first)).second=db;
 			   }
