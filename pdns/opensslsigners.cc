@@ -46,7 +46,6 @@ void openssl_thread_setup()
 
 void openssl_thread_cleanup()
 {
-  cout<<"Thread cleanup!"<<endl;
   CRYPTO_set_locking_callback(NULL);
 
   for (int i=0; i<CRYPTO_num_locks(); i++) {
