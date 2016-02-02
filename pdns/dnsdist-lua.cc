@@ -656,7 +656,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
         vector<uint8_t> packet;        
         ComboAddress rem;
         DNSName qname;
-        uint16_t qtype;
+        uint16_t qtype, qclass;
       };
       vector<item> items;
       items.reserve(1000);
@@ -665,6 +665,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
         i.qname=DNSName(std::to_string(random()));
         i.qname += suffix;
         i.qtype = random() % 0xff;
+        i.qclass = 1;
         i.rem=ComboAddress("127.0.0.1");
         i.rem.sin4.sin_addr.s_addr = random();
         DNSPacketWriter pw(i.packet, i.qname, i.qtype);
@@ -677,7 +678,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       dt.set();
       for(int n=0; n < times; ++n) {
         const item& i = items[n % items.size()];
-        DNSQuestion dq(&i.qname, i.qtype, &i.rem, &i.rem, (struct dnsheader*)&i.packet[0], i.packet.size(), i.packet.size(), false);
+        DNSQuestion dq(&i.qname, i.qtype, i.qclass, &i.rem, &i.rem, (struct dnsheader*)&i.packet[0], i.packet.size(), i.packet.size(), false);
         if(rule->matches(&dq))
           matches++;
       }
@@ -703,6 +704,10 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       }
       return std::shared_ptr<DNSRule>(new QTypeRule(qtype));
     });
+    g_lua.writeFunction("QClassRule", [](int c) {
+      return std::shared_ptr<DNSRule>(new QClassRule(c));
+    });
+
 
   g_lua.writeFunction("AndRule", [](vector<pair<int, std::shared_ptr<DNSRule> > >a) {
       return std::shared_ptr<DNSRule>(new AndRule(a));
@@ -1212,7 +1217,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.registerMember<const ComboAddress (DNSQuestion::*)>("localaddr", [](const DNSQuestion& dq) -> const ComboAddress { return *dq.local; }, [](DNSQuestion& dq, const ComboAddress newLocal) { (void) newLocal; });
   g_lua.registerMember<const DNSName (DNSQuestion::*)>("qname", [](const DNSQuestion& dq) -> const DNSName { return *dq.qname; }, [](DNSQuestion& dq, const DNSName newName) { (void) newName; });
   g_lua.registerMember<uint16_t (DNSQuestion::*)>("qtype", [](const DNSQuestion& dq) -> uint16_t { return dq.qtype; }, [](DNSQuestion& dq, uint16_t newType) { (void) newType; });
-  g_lua.registerMember<uint16_t (DNSQuestion::*)>("qclass", [](const DNSQuestion& dq) -> uint16_t { return dq.qclass; });
+  g_lua.registerMember<uint16_t (DNSQuestion::*)>("qclass", [](const DNSQuestion& dq) -> uint16_t { return dq.qclass; }, [](DNSQuestion& dq, uint16_t newClass) { (void) newClass; });
   g_lua.registerMember<int (DNSQuestion::*)>("rcode", [](const DNSQuestion& dq) -> int { return dq.dh->rcode; }, [](DNSQuestion& dq, int newRCode) { dq.dh->rcode = newRCode; });
   g_lua.registerMember<const ComboAddress (DNSQuestion::*)>("remoteaddr", [](const DNSQuestion& dq) -> const ComboAddress { return *dq.remote; }, [](DNSQuestion& dq, const ComboAddress newRemote) { (void) newRemote; });
   /* DNSDist DNSQuestion */
