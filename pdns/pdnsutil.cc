@@ -1456,6 +1456,24 @@ bool disableDNSSECOnZone(DNSSECKeeper& dk, const DNSName& zone)
   dk.unsetPresigned(zone);
   return true;
 }
+
+int setZoneKind(const DNSName& zone, const DomainInfo::DomainKind kind)
+{
+  UeberBackend B("default");
+  DomainInfo di;
+  std::vector<std::string> meta;
+
+  if (!B.getDomainInfo(zone, di)){
+    cerr << "No such zone "<<zone<<" in the database" << endl;
+    return EXIT_FAILURE;
+  }
+  if(!di.backend->setKind(zone, kind)) {
+    cerr<<"Could not find backend willing to accept new zone configuration"<<endl;
+    return EXIT_FAILURE;
+  }
+  return EXIT_SUCCESS;
+}
+
 bool showZone(DNSSECKeeper& dk, const DNSName& zone)
 {
   UeberBackend B("default");
@@ -1919,6 +1937,7 @@ try
     cerr<<"       content [content..]"<<endl;
     cerr<<"secure-all-zones [increase-serial] Secure all zones without keys."<<endl;
     cerr<<"secure-zone ZONE [ZONE ..]         Add KSK and two ZSKs for ZONE"<<endl;
+    cerr<<"set-kind ZONE KIND                 Change the kind of ZONE to KIND (master, slave native)"<<endl;
     cerr<<"set-nsec3 ZONE ['PARAMS' [narrow]] Enable NSEC3 with PARAMS. Optionally narrow"<<endl;
     cerr<<"set-presigned ZONE                 Use presigned RRSIGs from storage"<<endl;
     cerr<<"set-publish-cdnskey ZONE           Enable sending CDNSKEY responses for ZONE"<<endl;
@@ -2329,6 +2348,14 @@ seedRandom(::arg()["entropy-source"]);
       return 1;
     }
     return 0;
+  }
+  else if(cmds[0]=="set-kind") {
+    if(cmds.size() != 3) {
+      cerr<<"Syntax: pdnsutil set-kind ZONE KIND"<<endl;
+    }
+    DNSName zone(cmds[1]);
+    auto kind=DomainInfo::stringToKind(cmds[2]);
+    exit(setZoneKind(zone, kind));
   }
   else if(cmds[0]=="set-nsec3") {
     if(cmds.size() < 2) {
