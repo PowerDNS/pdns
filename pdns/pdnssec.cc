@@ -446,7 +446,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
   ostringstream content;
   pair<map<string, unsigned int>::iterator,bool> ret;
 
-  sd.db->list(zone, sd.domain_id, false);
+  sd.db->list(zone, sd.domain_id, g_verbose);
 
   while(sd.db->get(rr)) {
     if(!rr.qtype.getCode())
