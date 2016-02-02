@@ -290,6 +290,7 @@ Rules have selectors and actions. Current selectors are:
  * Query domain
  * QPS Limit total
  * QPS Limit per IP address or subnet
+ * QClass (QClassRule)
  * QType (QTypeRule)
  * RegexRule on query name
  * Packet requests DNSSEC processing
@@ -331,6 +332,7 @@ A DNS rule can be:
  * a NetmaskGroupRule
  * a NotRule
  * an OrRule
+ * a QClassRule
  * a QTypeRule
  * a RegexRule
  * a SuffixMatchNodeRule
@@ -816,6 +818,7 @@ instantiate a server with additional parameters
    * `NetmaskGroupRule()`: matches traffic from the specified network range
    * `NotRule()`: matches if the sub-rule does not match
    * `OrRule()`: matches if at least one of the sub-rules matches
+   * `QClassRule(qclass)`: matches queries with the specified qclass (numeric)
    * `QTypeRule(qtype)`: matches queries with the specified qtype
    * `RegexRule(regex)`: matches the query name against the supplied regex
    * `SuffixMatchNodeRule()`: matches based on a group of domain suffixes for rapid testing of membership
@@ -913,6 +916,7 @@ instantiate a server with additional parameters
      * member `len`: the question length
      * member `localaddr`: ComboAddress of the local bind this question was received on
      * member `qname`: DNSName of this question
+     * member `qclass`: QClass (as an unsigned integer) of this question
      * member `qtype`: QType (as an unsigned integer) of this question
      * member `remoteaddr`: ComboAddress of the remote client
      * member `rcode`: RCode of this question
