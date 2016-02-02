@@ -270,7 +270,7 @@ HttpResponse WebServer::handleRequest(HttpRequest req)
   }
 
   // always set these headers
-  resp.headers["Server"] = "PowerDNS/"VERSION;
+  resp.headers["Server"] = "PowerDNS/" VERSION;
   resp.headers["Connection"] = "close";
 
   if (req.method == "HEAD") {
