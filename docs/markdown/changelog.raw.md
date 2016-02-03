@@ -75,6 +75,22 @@ There are several **known issues** that will be fixed before the final 4.0.0 rel
 
 to be continued....
 
+# PowerDNS Authoritative Server 3.4.8
+Released 3rd of February 2016
+
+This is a small bugfix release. Additionally, the deb/RPM packages on downloads.powerdns.com (those with -static in the name) for 3.4.8 have been built against Botan 1.10.11 instead of Botan 1.10.3 like previous packages. Please see [the Botan Security page](http://botan.randombit.net/security.html) for more information on the fixes in Botan 1.10.11. As a PowerDNS user, these issues only affect you if you ran our -static packages *and* allowed your users to upload private keys to your configuration.
+
+Changes since 3.4.7:
+- [commit edfa60a](https://github.com/PowerDNS/pdns/commit/edfa60a): Use AC_SEARCH_LIBS (Ruben Kerkhof)
+- [commit 7b7a3af](https://github.com/PowerDNS/pdns/commit/7b7a3af): Check for inet_aton in libresolv (Ruben Kerkhof)
+- [commit 9322aee](https://github.com/PowerDNS/pdns/commit/9322aee): Remove hardcoded -lresolv, -lnsl and -lsocket (Ruben Kerkhof)
+- [commit 23d26d8](https://github.com/PowerDNS/pdns/commit/23d26d8): pdnssec: don't check disabled records (Pieter Lexis)
+- [commit ce92ff1](https://github.com/PowerDNS/pdns/commit/ce92ff1): pdnssec: check all records (including disabled ones) only in verbose mode (Kees Monshouwer)
+- [commit f745312](https://github.com/PowerDNS/pdns/commit/f745312): traling dot in DNAME content (Kees Monshouwer)
+- [commit ed02761](https://github.com/PowerDNS/pdns/commit/ed02761): Fix luabackend compilation on FreeBSD i386 (RvdE)
+- [commit 07ea6ac](https://github.com/PowerDNS/pdns/commit/07ea6ac): silence g++ 6.0 warnings and error (Kees Monshouwer)
+- [commit c6077b1](https://github.com/PowerDNS/pdns/commit/c6077b1): add gcc 5.3 and 6.0 support to boost.m4 (Kees Monshouwer)
+
 # PowerDNS Authoritative Server 3.4.7
 Released 3rd of November 2015
 
