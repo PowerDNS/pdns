@@ -4,22 +4,47 @@
 #include "iputils.hh"
 #include "sstuff.hh"
 #include "statbag.hh"
-
+#include <atomic>
+#include <sys/mman.h>
+#include <thread>
 StatBag S;
+
+std::atomic<uint64_t>* g_counter;
+
+void printStatus()
+{
+  auto prev= g_counter->load();
+  for(;;) {
+    sleep(1);
+    cout<<g_counter->load()-prev<<"\t"<<g_counter->load()<<endl;
+    prev=g_counter->load();
+  }
+}
 
 int main(int argc, char** argv)
 try
 {
   if(argc != 4) {
-    cerr<<"Syntax: dumresp local-address local-port number-of-threads "<<endl;
+    cerr<<"Syntax: dumresp local-address local-port number-of-processes "<<endl;
     exit(EXIT_FAILURE);
   }
 
-  for(int i=1 ; i < atoi(argv[3]); ++i) {
+
+  auto ptr = mmap(NULL, sizeof(std::atomic<uint64_t>), PROT_READ | PROT_WRITE,
+		  MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+
+  g_counter = new(ptr) std::atomic<uint64_t>();
+  
+  int i=1;
+  for(; i < atoi(argv[3]); ++i) {
     if(!fork())
       break;
   }
-
+  if(i==1) {
+    std::thread t(printStatus);
+    t.detach();
+  }
+  
   ComboAddress local(argv[1], atoi(argv[2]));
   Socket s(local.sin4.sin_family, SOCK_DGRAM);  
 #ifdef SO_REUSEPORT
@@ -37,6 +62,7 @@ try
   socklen_t socklen = rem.getSocklen();
   for(;;) {
     len=recvfrom(s.getHandle(), buffer, sizeof(buffer), 0, (struct sockaddr*)&rem, &socklen);
+    (*g_counter)++;
     if(len < 0)
       unixDie("recvfrom");
 
