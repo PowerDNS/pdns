@@ -81,6 +81,7 @@ Released 3rd of February 2016
 This is a small bugfix release. Additionally, the deb/RPM packages on downloads.powerdns.com (those with -static in the name) for 3.4.8 have been built against Botan 1.10.11 instead of Botan 1.10.3 like previous packages. Please see [the Botan Security page](http://botan.randombit.net/security.html) for more information on the fixes in Botan 1.10.11. As a PowerDNS user, these issues only affect you if you ran our -static packages *and* allowed your users to upload private keys to your configuration.
 
 Changes since 3.4.7:
+
 - [commit edfa60a](https://github.com/PowerDNS/pdns/commit/edfa60a): Use AC_SEARCH_LIBS (Ruben Kerkhof)
 - [commit 7b7a3af](https://github.com/PowerDNS/pdns/commit/7b7a3af): Check for inet_aton in libresolv (Ruben Kerkhof)
 - [commit 9322aee](https://github.com/PowerDNS/pdns/commit/9322aee): Remove hardcoded -lresolv, -lnsl and -lsocket (Ruben Kerkhof)
