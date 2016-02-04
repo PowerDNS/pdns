@@ -69,7 +69,17 @@ License:
 
 Files: pdns/install-sh
 Copyright: 1991 by the Massachusetts Institute of Technology
-License:
+License: MIT
+
+Files: pdns/ext/yahttp*
+Copyright: 2014 Aki Tuomi
+License: MIT
+
+Files: pdns/ext/mbedtls/*
+Copyright (C) 2006-2014, ARM Limited
+License: GPL-2+
+
+License: MIT
  Permission to use, copy, modify, distribute, and sell this software and its
  documentation for any purpose is hereby granted without fee, provided that
  the above copyright notice appear in all copies and that both that
@@ -79,14 +89,6 @@ License:
  written prior permission.  M.I.T. makes no representations about the
  suitability of this software for any purpose.  It is provided "as is"
  without express or implied warranty.
-
-Files: pdns/ext/yahttp*
-Copyright: 2014 Aki Tuomi
-License: Expat
-
-Files: pdns/ext/mbedtls/*
-Copyright (C) 2006-2014, ARM Limited
-License: GPL-2+
 
 License: Expat
  Permission is hereby granted, free of charge, to any person obtaining a copy
