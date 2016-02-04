@@ -1,4 +1,4 @@
-JSON11_LIBS = -L$(top_srcdir)/ext/json11 -ljson11
+JSON11_LIBS = -L$(top_builddir)/ext/json11 -ljson11
 
 AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/json11 \
