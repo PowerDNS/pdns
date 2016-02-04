@@ -74,11 +74,11 @@ bool DNSSECKeeper::isPresigned(const DNSName& name)
   return meta=="1";
 }
 
-bool DNSSECKeeper::addKey(const DNSName& name, bool keyOrZone, int algorithm, int bits, bool active)
+bool DNSSECKeeper::addKey(const DNSName& name, bool setSEPBit, int algorithm, int bits, bool active)
 {
   if(!bits) {
     if(algorithm <= 10)
-      bits = keyOrZone ? 2048 : 1024;
+      throw runtime_error("Creating an algorithm " +std::to_string(algorithm)+" ("+algorithm2name(algorithm)+") key requires the size (in bits) to be passed");
     else {
       if(algorithm == 12 || algorithm == 13 || algorithm == 250) // GOST, ECDSAP256SHA256, ED25519SHA512
         bits = 256;
@@ -90,11 +90,11 @@ bool DNSSECKeeper::addKey(const DNSName& name, bool keyOrZone, int algorithm, in
     }
   }
   DNSSECPrivateKey dspk;
-  shared_ptr<DNSCryptoKeyEngine> dpk(DNSCryptoKeyEngine::make(algorithm)); // defaults to RSA for now, could be smart w/algorithm! XXX FIXME
+  shared_ptr<DNSCryptoKeyEngine> dpk(DNSCryptoKeyEngine::make(algorithm));
   dpk->create(bits);
   dspk.setKey(dpk);
   dspk.d_algorithm = algorithm;
-  dspk.d_flags = keyOrZone ? 257 : 256;
+  dspk.d_flags = setSEPBit ? 257 : 256;
   return addKey(name, dspk, active);
 }
 
@@ -134,8 +134,8 @@ bool DNSSECKeeper::addKey(const DNSName& name, const DNSSECPrivateKey& dpk, bool
 
 static bool keyCompareByKindAndID(const DNSSECKeeper::keyset_t::value_type& a, const DNSSECKeeper::keyset_t::value_type& b)
 {
-  return make_pair(!a.second.keyOrZone, a.second.id) <
-         make_pair(!b.second.keyOrZone, b.second.id);
+  return make_pair(!a.second.keyType, a.second.id) <
+         make_pair(!b.second.keyType, b.second.id);
 }
 
 DNSSECPrivateKey DNSSECKeeper::getKeyById(const DNSName& zname, unsigned int id)
@@ -367,7 +367,25 @@ bool DNSSECKeeper::unsetPublishCDNSKEY(const DNSName& zname)
   return d_keymetadb->setDomainMetadata(zname, "PUBLISH_CDNSKEY", vector<string>());
 }
 
-DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const DNSName& zone, boost::tribool allOrKeyOrZone, bool useCache)
+/**
+ * Returns all keys that are used to sign the DNSKEY RRSet in a zone
+ *
+ * @param zname        DNSName of the zone
+ * @return             a keyset_t with all keys that are used to sign the DNSKEY
+ *                     RRSet (these are the entrypoint(s) to the zone)
+ */
+DNSSECKeeper::keyset_t DNSSECKeeper::getEntryPoints(const DNSName& zname)
+{
+  DNSSECKeeper::keyset_t ret;
+  DNSSECKeeper::keyset_t keys = getKeys(zname);
+
+  for(auto const &keymeta : keys)
+    if(keymeta.second.active && (keymeta.second.keyType == KSK || keymeta.second.keyType == CSK))
+      ret.push_back(keymeta);
+  return ret;
+}
+
+DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const DNSName& zone, bool useCache)
 {
   unsigned int now = time(0);
 
@@ -378,56 +396,75 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const DNSName& zone, boost::tribool
   if (useCache) {
     ReadLock l(&s_keycachelock);
     keycache_t::const_iterator iter = s_keycache.find(zone);
-      
-    if(iter != s_keycache.end() && iter->d_ttd > now) { 
+
+    if(iter != s_keycache.end() && iter->d_ttd > now) {
       keyset_t ret;
-      for(const keyset_t::value_type& value :  iter->d_keys) {
-        if(boost::indeterminate(allOrKeyOrZone) || allOrKeyOrZone == value.second.keyOrZone)
-          ret.push_back(value);
-      }
+      for(const keyset_t::value_type& value :  iter->d_keys)
+        ret.push_back(value);
       return ret;
     }
-  }    
-  keyset_t retkeyset, allkeyset;
+  }
+
+  keyset_t retkeyset;
   vector<DNSBackend::KeyData> dbkeyset;
-  
+
   d_keymetadb->getDomainKeys(zone, 0, dbkeyset);
-  
-  for(DNSBackend::KeyData& kd :  dbkeyset)
+
+  // Determine the algorithms that have a KSK/ZSK split
+  set<uint8_t> algoSEP, algoNoSEP;
+  vector<uint8_t> algoHasSeparateKSK;
+  for(const DNSBackend::KeyData &keydata : dbkeyset) {
+    DNSSECPrivateKey dpk;
+    DNSKEYRecordContent dkrc;
+
+    dpk.setKey(shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(dkrc, keydata.content)));
+
+    if(keydata.active) {
+      if(keydata.flags == 257)
+        algoSEP.insert(dkrc.d_algorithm);
+      else
+        algoNoSEP.insert(dkrc.d_algorithm);
+    }
+  }
+  set_intersection(algoSEP.begin(), algoSEP.end(), algoNoSEP.begin(), algoNoSEP.end(), std::back_inserter(algoHasSeparateKSK));
+
+  for(DNSBackend::KeyData& kd : dbkeyset)
   {
     DNSSECPrivateKey dpk;
-
     DNSKEYRecordContent dkrc;
-    
+
     dpk.setKey(shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(dkrc, kd.content)));
-    
+
     dpk.d_flags = kd.flags;
     dpk.d_algorithm = dkrc.d_algorithm;
-    if(dpk.d_algorithm == 5 && getNSEC3PARAM(zone))
+    if(dpk.d_algorithm == 5 && getNSEC3PARAM(zone)) // XXX Needs to go, see #3267
       dpk.d_algorithm+=2;
-    
+
     KeyMetaData kmd;
 
     kmd.active = kd.active;
-    kmd.keyOrZone = (kd.flags == 257);
+    kmd.hasSEPBit = (kd.flags == 257);
     kmd.id = kd.id;
-    
-    if(boost::indeterminate(allOrKeyOrZone) || allOrKeyOrZone == kmd.keyOrZone)
-      retkeyset.push_back(make_pair(dpk, kmd));
-    allkeyset.push_back(make_pair(dpk, kmd));
+
+    if (find(algoHasSeparateKSK.begin(), algoHasSeparateKSK.end(), dpk.d_algorithm) == algoHasSeparateKSK.end())
+      kmd.keyType = CSK;
+    else if(kmd.hasSEPBit)
+      kmd.keyType = KSK;
+    else
+      kmd.keyType = ZSK;
+
+    retkeyset.push_back(make_pair(dpk, kmd));
   }
   sort(retkeyset.begin(), retkeyset.end(), keyCompareByKindAndID);
-  sort(allkeyset.begin(), allkeyset.end(), keyCompareByKindAndID);
-  
+
   KeyCacheEntry kce;
   kce.d_domain=zone;
-  kce.d_keys = allkeyset;
+  kce.d_keys = retkeyset;
   kce.d_ttd = now + 30;
   {
     WriteLock l(&s_keycachelock);
     replacing_insert(s_keycache, kce);
   }
-  
   return retkeyset;
 }
 

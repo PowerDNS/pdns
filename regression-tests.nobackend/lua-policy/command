@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -e
-set -x
+if [ "${PDNS_DEBUG}" = "YES" ]; then
+  set -x
+fi
 
 bindwait ()
 {

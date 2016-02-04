@@ -1,6 +1,8 @@
 #!/bin/sh
 set -e
-set -x
+if [ "${PDNS_DEBUG}" = "YES" ]; then
+  set -x
+fi
 
 export PDNS=${PDNS:-../../../pdns/pdns_server}
 export PDNSRECURSOR=${PDNSRECURSOR:-../../../pdns/pdns_recursor}

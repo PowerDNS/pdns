@@ -50,41 +50,19 @@ int getRRSIGsForRRSET(DNSSECKeeper& dk, const DNSName& signer, const DNSName sig
   rrc.d_sigexpire=startOfWeek + 14*86400;
   rrc.d_signer = signer;
   rrc.d_tag = 0;
-  
-  // we sign the RRSET in toSign + the rrc w/o hash
-  
-  DNSSECKeeper::keyset_t keys = dk.getKeys(signer); // we don't want the . for the root!
-  set<int> algoHasKSK, algoHasZSK;
-  vector<DNSSECPrivateKey> signingKeys;
 
-  for(DNSSECKeeper::keyset_t::value_type& keymeta :  keys) {
-    if(keymeta.second.active) {
-      if(keymeta.second.keyOrZone)
-        algoHasKSK.insert(keymeta.first.d_algorithm);
-      else
-        algoHasZSK.insert(keymeta.first.d_algorithm);
-    }
-  }
+  DNSSECKeeper::keyset_t keys = dk.getKeys(signer);
 
-  for(DNSSECKeeper::keyset_t::value_type& keymeta :  keys) {
+  for(DNSSECKeeper::keyset_t::value_type& keymeta : keys) {
     if(!keymeta.second.active)
       continue;
 
-    if(signQType == QType::DNSKEY) {
-      // skip ZSK, if this algorithm has a KSK
-      if(!keymeta.second.keyOrZone && algoHasKSK.count(keymeta.first.d_algorithm))
-        continue;
-    } else {
-      // skip KSK, if this algorithm has a ZSK
-      if(keymeta.second.keyOrZone && algoHasZSK.count(keymeta.first.d_algorithm))
-        continue;
+    if((signQType == QType::DNSKEY && keymeta.second.keyType == DNSSECKeeper::ZSK) ||
+       (signQType != QType::DNSKEY && keymeta.second.keyType == DNSSECKeeper::KSK)) {
+      continue;
     }
 
-    signingKeys.push_back(keymeta.first);
-  }
-
-  for(DNSSECPrivateKey& dpk :  signingKeys) {
-    fillOutRRSIG(dpk, signQName, rrc, toSign);
+    fillOutRRSIG(keymeta.first, signQName, rrc, toSign);
     rrcs.push_back(rrc);
   }
   return 0;

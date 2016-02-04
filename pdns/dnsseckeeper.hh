@@ -1,5 +1,4 @@
-#ifndef PDNSDNSSECKEEPER_HH
-#define PDNSDNSSECKEEPER_HH
+#pragma once
 /*
     PowerDNS Versatile Database Driven Nameserver
     Copyright (C) 2002-2011  PowerDNS.COM BV
@@ -40,15 +39,104 @@ using namespace ::boost::multi_index;
 class DNSSECKeeper : public boost::noncopyable
 {
 public:
+  enum keytype_t { KSK, ZSK, CSK };
+  enum keyalgorithm_t : uint8_t {
+    RSAMD5=1,
+    DH=2,
+    DSA=3,
+    RSASHA1=5,
+    DSANSEC3SHA1=6,
+    RSASHA1NSEC3SHA1=7,
+    RSASHA256=8,
+    RSASHA512=10,
+    ECCGOST=12,
+    ECDSA256=13,
+    ECDSA384=14,
+    EXPERIMENTALED25519=250
+  };
+
   struct KeyMetaData
   {
     string fname;
     unsigned int id;
     bool active;
-    bool keyOrZone;
+    keytype_t keyType;
+    bool hasSEPBit;
   };
-  typedef std::pair<DNSSECPrivateKey, KeyMetaData> keymeta_t; 
+  typedef std::pair<DNSSECPrivateKey, KeyMetaData> keymeta_t;
   typedef std::vector<keymeta_t > keyset_t;
+
+  static string keyTypeToString(const keytype_t &keyType)
+  {
+    switch(keyType) {
+      case DNSSECKeeper::KSK:
+        return("KSK");
+      case DNSSECKeeper::ZSK:
+        return("ZSK");
+      case DNSSECKeeper::CSK:
+        return("CSK");
+      default:
+        return("UNKNOWN");
+    }
+  }
+
+  static int shorthand2algorithm(const string &algorithm)
+  {
+    if (!algorithm.compare("rsamd5")) return RSAMD5;
+    if (!algorithm.compare("dh")) return DH;
+    if (!algorithm.compare("dsa")) return DSA;
+    if (!algorithm.compare("rsasha1")) return RSASHA1;
+    if (!algorithm.compare("rsasha256")) return RSASHA256;
+    if (!algorithm.compare("rsasha512")) return RSASHA512;
+    if (!algorithm.compare("ecc-gost")) return ECCGOST;
+    if (!algorithm.compare("gost")) return ECCGOST;
+    if (!algorithm.compare("ecdsa256")) return ECDSA256;
+    if (!algorithm.compare("ecdsa384")) return ECDSA384;
+    if (!algorithm.compare("experimental-ed25519")) return EXPERIMENTALED25519;
+    return -1;
+  }
+
+  static string algorithm2name(uint8_t algo) {
+    switch(algo) {
+      case 0:
+      case 4:
+      case 9:
+      case 11:
+        return "Reserved";
+      case RSAMD5:
+        return "RSAMD5";
+      case DH:
+        return "DH";
+      case DSA:
+        return "DSA";
+      case RSASHA1:
+        return "RSASHA1";
+      case DSANSEC3SHA1:
+        return "DSA-NSEC3-SHA1";
+      case RSASHA1NSEC3SHA1:
+        return "RSASHA1-NSEC3-SHA1";
+      case RSASHA256:
+        return "RSASHA256";
+      case RSASHA512:
+        return "RSASHA512";
+      case ECCGOST:
+        return "ECC-GOST";
+      case ECDSA256:
+        return "ECDSAP256SHA256";
+      case ECDSA384:
+        return "ECDSAP384SHA384";
+      case EXPERIMENTALED25519:
+        return "ED25519SHA512";
+      case 252:
+        return "INDIRECT";
+      case 253:
+        return "PRIVATEDNS";
+      case 254:
+        return "PRIVATEOID";
+      default:
+        return "Unallocated/Reserved";
+    }
+  }
 
 private:
   UeberBackend* d_keymetadb;
@@ -70,10 +158,11 @@ public:
       delete d_keymetadb;
   }
   bool isSecuredZone(const DNSName& zone);
-  static uint64_t dbdnssecCacheSizes(const std::string& str);  
-  keyset_t getKeys(const DNSName& zone, boost::tribool allOrKeyOrZone = boost::indeterminate, bool useCache = true);
+  static uint64_t dbdnssecCacheSizes(const std::string& str);
+  keyset_t getEntryPoints(const DNSName& zname);
+  keyset_t getKeys(const DNSName& zone, bool useCache = true);
   DNSSECPrivateKey getKeyById(const DNSName& zone, unsigned int id);
-  bool addKey(const DNSName& zname, bool keyOrZone, int algorithm=5, int bits=0, bool active=true);
+  bool addKey(const DNSName& zname, bool setSEPBit, int algorithm, int bits=0, bool active=true);
   bool addKey(const DNSName& zname, const DNSSECPrivateKey& dpk, bool active=true);
   bool removeKey(const DNSName& zname, unsigned int id);
   bool activateKey(const DNSName& zname, unsigned int id);
@@ -178,4 +267,3 @@ bool editSOARecord(DNSResourceRecord& rr, const string& kind, const DNSName& qna
 // for SOA-EDIT-DNSUPDATE/API
 uint32_t calculateIncreaseSOA(SOAData sd, const string& increaseKind, const string& editKind);
 bool increaseSOARecord(DNSResourceRecord& rr, const string& increaseKind, const string& editKind);
-#endif

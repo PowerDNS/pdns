@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 
 if [ ! -d .venv ]; then
-	virtualenv .venv
+	virtualenv -p python2 .venv
 fi
 . .venv/bin/activate
 python -V
 pip install -r requirements.txt
 
 set -e
-set -x
+if [ "${PDNS_DEBUG}" = "YES" ]; then
+  set -x
+fi
 exec ./runtests.py "$@"

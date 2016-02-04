@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -e
-set -x
+if [ "${PDNS_DEBUG}" = "YES" ]; then
+  set -x
+fi
 
 PDNS=../pdns/pdns_server
 AMOUNT=${1:-1000}

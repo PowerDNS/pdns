@@ -76,3 +76,11 @@ zone stest.com/IN: loaded serial 2000081501 (DNSSEC signed)
 OK
 RETVAL: 0
 
+--- ldns-verify-zone -V2 cdnskey-cds-test.com
+RETVAL: 0
+
+--- named-checkzone cdnskey-cds-test.com
+zone cdnskey-cds-test.com/IN: loaded serial 2005092501 (DNSSEC signed)
+OK
+RETVAL: 0
+
