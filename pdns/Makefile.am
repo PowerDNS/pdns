@@ -212,11 +212,6 @@ pdns_server_SOURCES += botan110signers.cc botansigners.cc
 pdns_server_LDADD += $(BOTAN110_LIBS)
 endif
 
-if CRYPTOPP
-pdns_server_SOURCES += cryptoppsigners.cc
-pdns_server_LDADD += $(CRYPTOPP_LIBS)
-endif
-
 if LIBSODIUM
 pdns_server_SOURCES += sodiumsigners.cc
 pdns_server_LDADD += $(LIBSODIUM_LIBS)
@@ -314,11 +309,6 @@ pdnsutil_LDADD = \
 if BOTAN110
 pdnsutil_SOURCES += botan110signers.cc botansigners.cc
 pdnsutil_LDADD += $(BOTAN110_LIBS)
-endif
-
-if CRYPTOPP
-pdnsutil_SOURCES += cryptoppsigners.cc
-pdnsutil_LDADD += $(CRYPTOPP_LIBS)
 endif
 
 if LIBSODIUM

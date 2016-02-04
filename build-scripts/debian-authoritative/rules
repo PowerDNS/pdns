@@ -28,7 +28,6 @@ override_dh_auto_configure:
 		--with-modules="" \
 		--with-system-mbedtls \
 		--with-pgsql-includes=`pg_config --includedir` \
-		--enable-cryptopp \
 		--enable-botan1.10 \
 		--enable-tools \
 		--enable-unit-tests
