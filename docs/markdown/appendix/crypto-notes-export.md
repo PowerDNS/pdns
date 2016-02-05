@@ -5,6 +5,9 @@ PowerDNS does not itself implement any cryptographic algorithms but relies on th
 
 Furthermore, RSA, MD5 and the SHA-based algorithms are supplied as a copy of [mbed TLS](https://tls.mbed.org/).
 
+Starting with 4.0.0, PowerDNS will link in hash and cryptographic primitives from
+the open source [OpenSSL](https://openssl.org/) library.
+
 Optionally, PowerDNS can link in a copy of the open source [Botan](http://botan.randombits.org/) cryptographic library.
 
 Optionally, PowerDNS can link in a copy of the open source [Sodium](https://libsodium.org/) library.
