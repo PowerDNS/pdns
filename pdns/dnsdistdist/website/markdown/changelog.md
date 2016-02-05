@@ -9,7 +9,7 @@ Changes since 1.0.0-alpha1:
  * Added a `source` option to `newServer()` to specify the local address or interface used to contact a downstream server ([#3138](https://github.com/PowerDNS/pdns/issues/3138))
  * CNAME and IPv6-only support have been added to spoofed responses ([#3064](https://github.com/PowerDNS/pdns/issues/3064))
  * `grepq()` can be used to search for slow queries, along with `topSlow()`
- * New Lua functions: `addDomainCNAMESpoof()`, `AllowAction()` by @bearggg, `exceedQRate()`, `MacAddrAction()`, `makeRule()`, `NotRule()`, `OrRule`, `QClassRule()`, `RCodeAction()`, `SpoofCNAMEAction()`, `SuffixMatchNodeRule()`, `TCPRule()`, `topSlow()`
+ * New Lua functions: `addDomainCNAMESpoof()`, `AllowAction()` by @bearggg, `exceedQRate()`, `MacAddrAction()`, `makeRule()`, `NotRule()`, `OrRule()`, `QClassRule()`, `RCodeAction()`, `SpoofCNAMEAction()`, `SuffixMatchNodeRule()`, `TCPRule()`, `topSlow()`
  * `NetmaskGroup` support have been added in Lua ([#3144](https://github.com/PowerDNS/pdns/issues/3144))
  * Added `MacAddrAction()` to add the source MAC address to the forwarded query ([#3313](https://github.com/PowerDNS/pdns/issues/3313))
 
