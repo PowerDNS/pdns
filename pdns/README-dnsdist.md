@@ -285,6 +285,7 @@ Rules can be inspected with `showRules()`, and can be deleted with
 with `mvRule(from, to)` (see below for exact semantics).
 
 Rules have selectors and actions. Current selectors are:
+
  * Source address
  * Query type
  * Query domain
@@ -297,11 +298,13 @@ Rules have selectors and actions. Current selectors are:
  * Query received over UDP or TCP
 
 Special rules are:
+
  * `AndRule{rule1, rule2}`, which only matches if all of its subrules match
  * `OrRule{rule1, rule2}`, which matches if at least one of its subrules match
  * `NotRule(rule)`, which matches if its subrule does not match
 
 Current actions are:
+
  * Drop (DropAction)
  * Route to a pool (PoolAction)
  * Return with TC=1 (truncated, ie, instruction to retry with TCP)
@@ -311,6 +314,7 @@ Current actions are:
  * Modify query to remove RD bit
 
 Rules can be added via:
+
  * addAction(DNS rule, DNS Action)
  * addAnyTCRule()
  * addDelay(DNS rule, delay in milliseconds)
@@ -325,6 +329,7 @@ Rules can be added via:
  * addQPSPoolRule(DNS rule, qps limit, destination pool)
 
 A DNS rule can be:
+
  * an AllRule
  * an AndRule
  * a MaxQPSIPRule
@@ -734,6 +739,7 @@ Provider fingerprint is: E1D7:2108:9A59:BF8D:F101:16FA:ED5E:EA6A:9F6C:C78F:7F91:
 All functions and types
 -----------------------
 Within `dnsdist` several core object types exist:
+
  * Server: generated with newServer, represents a downstream server
  * ComboAddress: represents an IP address and port
  * DNSName: represents a domain name
@@ -755,204 +761,204 @@ The '.' means 'order' is a data member, while the ':' meand addPool is a member 
 Here are all functions:
 
  * Practical
-   * `shutdown()`: shut down `dnsdist`
-   * quit or ^D: exit the console
-   * `webserver(address, password)`: launch a webserver with stats on that address with that password
+    * `shutdown()`: shut down `dnsdist`
+    * quit or ^D: exit the console
+    * `webserver(address, password)`: launch a webserver with stats on that address with that password
  * ACL related:
-   * `addACL(netmask)`: add to the ACL set who can use this server
-   * `setACL({netmask, netmask})`: replace the ACL set with these netmasks. Use `setACL({})` to reset the list, meaning no one can use us
-   * `showACL()`: show our ACL set
+    * `addACL(netmask)`: add to the ACL set who can use this server
+    * `setACL({netmask, netmask})`: replace the ACL set with these netmasks. Use `setACL({})` to reset the list, meaning no one can use us
+    * `showACL()`: show our ACL set
  * Network related:
-   * `addLocal(netmask, [false])`: add to addresses we listen on. Second optional parameter sets TCP/IP or not.
-   * `setLocal(netmask, [false])`: reset list of addresses we listen on to this address. Second optional parameter sets TCP/IP or not.
+    * `addLocal(netmask, [false])`: add to addresses we listen on. Second optional parameter sets TCP/IP or not.
+    * `setLocal(netmask, [false])`: reset list of addresses we listen on to this address. Second optional parameter sets TCP/IP or not.
  * Blocking related:
-   * `addDomainBlock(domain)`: block queries within this domain
+    * `addDomainBlock(domain)`: block queries within this domain
  * Carbon/Graphite/Metronome statistics related:
-   * `carbonServer(serverIP, [ourname], [interval])`: report statistics to serverIP using our hostname, or 'ourname' if provided, every 'interval' seconds
+    * `carbonServer(serverIP, [ourname], [interval])`: report statistics to serverIP using our hostname, or 'ourname' if provided, every 'interval' seconds
  * Control socket related:
-   * `makeKey()`: generate a new server access key, emit configuration line ready for pasting
-   * `setKey(key)`: set access key to that key. 
-   * `testCrypto()`: test of the crypto all works
-   * `controlSocket(addr)`: open a control socket on this address / connect to this address in client mode
+    * `makeKey()`: generate a new server access key, emit configuration line ready for pasting
+    * `setKey(key)`: set access key to that key. 
+    * `testCrypto()`: test of the crypto all works
+    * `controlSocket(addr)`: open a control socket on this address / connect to this address in client mode
  * Diagnostics and statistics
-   * `dumpStats()`: print all statistics we gather
-   * `grepq(Netmask|DNS Name|100ms [, n])`: shows the last n queries and responses matching the specified client address or range (Netmask), or the specified DNS Name, or slower than 100ms
-   * `grepq({"::1", "powerdns.com", "100ms"} [, n])`: shows the last n queries and responses matching the specified client address AND range (Netmask) AND the specified DNS Name AND slower than 100ms
-   * `topQueries(n[, labels])`: show top 'n' queries, as grouped when optionally cut down to 'labels' labels
-   * `topResponses(n, kind[, labels])`: show top 'n' responses with RCODE=kind (0=NO Error, 2=ServFail, 3=ServFail), as grouped when optionally cut down to 'labels' labels
-   * `topSlow([top][, limit][, labels])`: show `top` queries slower than `limit` milliseconds, grouped by last `labels` labels   
-   * `topBandwidth(top)`: show top-`top` clients that consume the most bandwidth over length of ringbuffer
-   * `showResponseLatency()`: show a plot of the response time latency distribution
+    * `dumpStats()`: print all statistics we gather
+    * `grepq(Netmask|DNS Name|100ms [, n])`: shows the last n queries and responses matching the specified client address or range (Netmask), or the specified DNS Name, or slower than 100ms
+    * `grepq({"::1", "powerdns.com", "100ms"} [, n])`: shows the last n queries and responses matching the specified client address AND range (Netmask) AND the specified DNS Name AND slower than 100ms
+    * `topQueries(n[, labels])`: show top 'n' queries, as grouped when optionally cut down to 'labels' labels
+    * `topResponses(n, kind[, labels])`: show top 'n' responses with RCODE=kind (0=NO Error, 2=ServFail, 3=ServFail), as grouped when optionally cut down to 'labels' labels
+    * `topSlow([top][, limit][, labels])`: show `top` queries slower than `limit` milliseconds, grouped by last `labels` labels   
+    * `topBandwidth(top)`: show top-`top` clients that consume the most bandwidth over length of ringbuffer
+    * `showResponseLatency()`: show a plot of the response time latency distribution
  * Logging related
-   * `infolog(string)`: log at level info
-   * `warnlog(string)`: log at level warning
-   * `errlog(string)`: log at level error
+    * `infolog(string)`: log at level info
+    * `warnlog(string)`: log at level warning
+    * `errlog(string)`: log at level error
  * Server related:
-   * `newServer("ip:port")`: instantiate a new downstream server with default settings
-   * `newServer({address="ip:port", qps=1000, order=1, weight=10, pool="abuse", retries=5, tcpSendTimeout=30, tcpRecvTimeout=30, checkName="a.root-servers.net.", checkType="A", mustResolve=false, useClientSubnet=true, source="address|interface name|address@interface"})`:
+    * `newServer("ip:port")`: instantiate a new downstream server with default settings
+    * `newServer({address="ip:port", qps=1000, order=1, weight=10, pool="abuse", retries=5, tcpSendTimeout=30, tcpRecvTimeout=30, checkName="a.root-servers.net.", checkType="A", mustResolve=false, useClientSubnet=true, source="address|interface name|address@interface"})`:
 instantiate a server with additional parameters
-   * `showServers()`: output all servers
-   * `getServer(n)`: returns server with index n 
-   * `getServers()`: returns a table with all defined servers
-   * `rmServer(n)`: remove server with index n
-   * `rmServer(server)`: remove this server object
+    * `showServers()`: output all servers
+    * `getServer(n)`: returns server with index n 
+    * `getServers()`: returns a table with all defined servers
+    * `rmServer(n)`: remove server with index n
+    * `rmServer(server)`: remove this server object
  * Server member functions:
-   * `addPool(pool)`: add this server to that pool
-   * `getOutstanding()`: this *returns* the number of outstanding queries (doesn't print it!)
-   * `rmPool(pool)`: remove server from that pool
-   * `setQPS(n)`: set the QPS setting to n
-   * `setAuto()`: set this server to automatic availability testing
-   * `setDown()`: force this server to be down
-   * `setUp()`: force this server to be UP
-   * `isUp()`: if this server is available
+    * `addPool(pool)`: add this server to that pool
+    * `getOutstanding()`: this *returns* the number of outstanding queries (doesn't print it!)
+    * `rmPool(pool)`: remove server from that pool
+    * `setQPS(n)`: set the QPS setting to n
+    * `setAuto()`: set this server to automatic availability testing
+    * `setDown()`: force this server to be down
+    * `setUp()`: force this server to be UP
+    * `isUp()`: if this server is available
  * Server member data:
-   * `upStatus`: if `dnsdist` considers this server available (overridden by `setDown()` and `setUp()`)
-   * `order`: order of this server in order-based server selection policies
-   * `weight`: weight of this server in weighted server selection policies
+    * `upStatus`: if `dnsdist` considers this server available (overridden by `setDown()` and `setUp()`)
+    * `order`: order of this server in order-based server selection policies
+    * `weight`: weight of this server in weighted server selection policies
  * Rule related:
-   * `AllRule()`: matches all traffic
-   * `AndRule()`: matches if all sub-rules matches
-   * `DNSSECRule()`: matches queries with the DO flag set
-   * `MaxQPSIPRule(qps, v4Mask=32, v6Mask=64)`: matches traffic exceeding the qps limit per subnet
-   * `MaxQPSRule(qps)`: matches traffic not exceeding this qps limit
-   * `NetmaskGroupRule()`: matches traffic from the specified network range
-   * `NotRule()`: matches if the sub-rule does not match
-   * `OrRule()`: matches if at least one of the sub-rules matches
-   * `QClassRule(qclass)`: matches queries with the specified qclass (numeric)
-   * `QTypeRule(qtype)`: matches queries with the specified qtype
-   * `RegexRule(regex)`: matches the query name against the supplied regex
-   * `SuffixMatchNodeRule()`: matches based on a group of domain suffixes for rapid testing of membership
-   * `TCPRule(tcp)`: matches question received over TCP if `tcp` is true, over UDP otherwise
+    * `AllRule()`: matches all traffic
+    * `AndRule()`: matches if all sub-rules matches
+    * `DNSSECRule()`: matches queries with the DO flag set
+    * `MaxQPSIPRule(qps, v4Mask=32, v6Mask=64)`: matches traffic exceeding the qps limit per subnet
+    * `MaxQPSRule(qps)`: matches traffic not exceeding this qps limit
+    * `NetmaskGroupRule()`: matches traffic from the specified network range
+    * `NotRule()`: matches if the sub-rule does not match
+    * `OrRule()`: matches if at least one of the sub-rules matches
+    * `QClassRule(qclass)`: matches queries with the specified qclass (numeric)
+    * `QTypeRule(qtype)`: matches queries with the specified qtype
+    * `RegexRule(regex)`: matches the query name against the supplied regex
+    * `SuffixMatchNodeRule()`: matches based on a group of domain suffixes for rapid testing of membership
+    * `TCPRule(tcp)`: matches question received over TCP if `tcp` is true, over UDP otherwise
  * Rule management related:
-   * `showRules()`: show all defined rules (Pool, Block, QPS, addAnyTCRule)
-   * `rmRule(n)`: remove rule n
-   * `mvRule(from, to)`: move rule 'from' to a position where it is in front of 'to'. 'to' can be one larger than the largest rule,
+    * `showRules()`: show all defined rules (Pool, Block, QPS, addAnyTCRule)
+    * `rmRule(n)`: remove rule n
+    * `mvRule(from, to)`: move rule 'from' to a position where it is in front of 'to'. 'to' can be one larger than the largest rule,
      in which case the rule will be moved to the last position.
-   * `topRule()`: move the last rule to the first position
+    * `topRule()`: move the last rule to the first position
  * Built-in Actions for Rules:
-   * `AllowAction()`: let these packets go through
-   * `DelayAction()`: delay the response by the specified amount of milliseconds (UDP-only)
-   * `DisableValidationAction()`: set the CD bit in the question, let it go through
-   * `DropAction()`: drop these packets
-   * `LogAction()`: Log a line for each query, to the specified file if any, to the console (require verbose) otherwise
-   * `NoRecurseAction()`: strip RD bit from the question, let it go through
-   * `PoolAction()`: set the packet into the specified pool
-   * `QPSPoolAction()`: set the packet into the specified pool only if it does not exceed the specified QPS limits
-   * `QPSAction()`: drop these packets if the QPS limits are exceeded
-   * `RCodeAction()`: reply immediatly by turning the query into a response with the specified rcode
-   * `SpoofAction()`: forge a response with the specified IPv4 (for an A query) or IPv6 (for an AAAA). If you specify two addresses, the first one should be an IPv4 and will be used for A, the second an IPv6 for an AAAA
-   * `SpoofCNAMEAction()`: forge a response with the specified CNAME value
-   * `TCAction()`: create answer to query with TC and RD bits set, to move to TCP/IP
+    * `AllowAction()`: let these packets go through
+    * `DelayAction()`: delay the response by the specified amount of milliseconds (UDP-only)
+    * `DisableValidationAction()`: set the CD bit in the question, let it go through
+    * `DropAction()`: drop these packets
+    * `LogAction()`: Log a line for each query, to the specified file if any, to the console (require verbose) otherwise
+    * `NoRecurseAction()`: strip RD bit from the question, let it go through
+    * `PoolAction()`: set the packet into the specified pool
+    * `QPSPoolAction()`: set the packet into the specified pool only if it does not exceed the specified QPS limits
+    * `QPSAction()`: drop these packets if the QPS limits are exceeded
+    * `RCodeAction()`: reply immediatly by turning the query into a response with the specified rcode
+    * `SpoofAction()`: forge a response with the specified IPv4 (for an A query) or IPv6 (for an AAAA). If you specify two addresses, the first one should be an IPv4 and will be used for A, the second an IPv6 for an AAAA
+    * `SpoofCNAMEAction()`: forge a response with the specified CNAME value
+    * `TCAction()`: create answer to query with TC and RD bits set, to move to TCP/IP
  * Specialist rule generators
-   * `addAnyTCRule()`: generate TC=1 answers to ANY queries received over UDP, moving them to TCP
-   * `addDomainSpoof(domain, ip[, ip6])`: generate answers for A queries using the ip parameter (AAAA if ip is an IPv6). If ip6 is supplied, generate answers for AAAA queries too
-   * `addDomainCNAMESpoof(domain, cname)`: generate CNAME answers for queries using the specified value
-   * `addDisableValidationRule(domain)`: set the CD flags to 1 for all queries matching the specified domain
-   * `addNoRecurseRule(domain)`: clear the RD flag for all queries matching the specified domain
-   * `setDNSSECPool()`: move queries requesting DNSSEC processing to this pool
+    * `addAnyTCRule()`: generate TC=1 answers to ANY queries received over UDP, moving them to TCP
+    * `addDomainSpoof(domain, ip[, ip6])`: generate answers for A queries using the ip parameter (AAAA if ip is an IPv6). If ip6 is supplied, generate answers for AAAA queries too
+    * `addDomainCNAMESpoof(domain, cname)`: generate CNAME answers for queries using the specified value
+    * `addDisableValidationRule(domain)`: set the CD flags to 1 for all queries matching the specified domain
+    * `addNoRecurseRule(domain)`: clear the RD flag for all queries matching the specified domain
+    * `setDNSSECPool()`: move queries requesting DNSSEC processing to this pool
  * Policy member data:
-   * `name`: the policy name
-   * `policy`: the policy function
+    * `name`: the policy name
+    * `policy`: the policy function
  * Pool related:
-   * `addPoolRule(domain, pool)`: send queries to this domain to that pool
-   * `addPoolRule({domain, domain}, pool)`: send queries to these domains to that pool
-   * `addPoolRule(netmask, pool)`: send queries to this netmask to that pool
-   * `addPoolRule({netmask, netmask}, pool)`: send queries to these netmasks to that pool  
-   * `addQPSPoolRule(x, limit, pool)`: like `addPoolRule`, but only select at most 'limit' queries/s for this pool
-   * `getPoolServers(pool)`: return servers part of this pool
+    * `addPoolRule(domain, pool)`: send queries to this domain to that pool
+    * `addPoolRule({domain, domain}, pool)`: send queries to these domains to that pool
+    * `addPoolRule(netmask, pool)`: send queries to this netmask to that pool
+    * `addPoolRule({netmask, netmask}, pool)`: send queries to these netmasks to that pool  
+    * `addQPSPoolRule(x, limit, pool)`: like `addPoolRule`, but only select at most 'limit' queries/s for this pool
+    * `getPoolServers(pool)`: return servers part of this pool
  * Lua Action related:
-   * `addLuaAction(x, func)`: where 'x' is all the combinations from `addPoolRule`, and func is a 
+    * `addLuaAction(x, func)`: where 'x' is all the combinations from `addPoolRule`, and func is a 
       function with parameters remote, qname, qtype, dh and len, which returns an action to be taken 
       on this packet. Good for rare packets but where you want to do a lot of processing.
  * Server selection policy related:
-   * `setServerPolicy(policy)`: set server selection policy to that policy
-   * `setServerPolicyLua(name, function)`: set server selection policy to one named 'name' and provided by 'function'
-   * `showServerPolicy()`: show name of currently operational server selection policy
-   * `newServerPolicy(name, function)`: create a policy object from a Lua function
+    * `setServerPolicy(policy)`: set server selection policy to that policy
+    * `setServerPolicyLua(name, function)`: set server selection policy to one named 'name' and provided by 'function'
+    * `showServerPolicy()`: show name of currently operational server selection policy
+    * `newServerPolicy(name, function)`: create a policy object from a Lua function
  * Available policies:
-   * `firstAvailable`: Pick first server that has not exceeded its QPS limit, ordered by the server 'order' parameter
-   * `whashed`: Weighted hashed ('sticky') distribution over available servers, based on the server 'weight' parameter
-   * `wrandom`: Weighted random over available servers, based on the server 'weight' parameter
-   * `roundrobin`: Simple round robin over available servers
-   * `leastOutstanding`: Send traffic to downstream server with least outstanding queries, with the lowest 'order', and within that the lowest recent latency
+    * `firstAvailable`: Pick first server that has not exceeded its QPS limit, ordered by the server 'order' parameter
+    * `whashed`: Weighted hashed ('sticky') distribution over available servers, based on the server 'weight' parameter
+    * `wrandom`: Weighted random over available servers, based on the server 'weight' parameter
+    * `roundrobin`: Simple round robin over available servers
+    * `leastOutstanding`: Send traffic to downstream server with least outstanding queries, with the lowest 'order', and within that the lowest recent latency
  * Shaping related:
-   * `addQPSLimit(domain, n)`: limit queries within that domain to n per second
-   * `addQPSLimit({domain, domain}, n)`: limit queries within those domains (together) to n per second
-   * `addQPSLimit(netmask, n)`: limit queries within that netmask to n per second
-   * `addQPSLimit({netmask, netmask}, n)`: limit queries within those netmasks (together) to n per second   
+    * `addQPSLimit(domain, n)`: limit queries within that domain to n per second
+    * `addQPSLimit({domain, domain}, n)`: limit queries within those domains (together) to n per second
+    * `addQPSLimit(netmask, n)`: limit queries within that netmask to n per second
+    * `addQPSLimit({netmask, netmask}, n)`: limit queries within those netmasks (together) to n per second   
  * Delaying related:
-   * `addDelay(domain, n)`: delay answers within that domain by n milliseconds
-   * `addDelay({domain, domain}, n)`: delay answers within those domains (together) by n milliseconds
-   * `addDelay(netmask, n)`: delay answers within that netmask by n milliseconds
-   * `addDelay({netmask, netmask}, n)`: delay answers within those netmasks (together) by n milliseconds
+    * `addDelay(domain, n)`: delay answers within that domain by n milliseconds
+    * `addDelay({domain, domain}, n)`: delay answers within those domains (together) by n milliseconds
+    * `addDelay(netmask, n)`: delay answers within that netmask by n milliseconds
+    * `addDelay({netmask, netmask}, n)`: delay answers within those netmasks (together) by n milliseconds
  * Answer changing functions:
-   * `truncateTC(bool)`: if set (default) truncate TC=1 answers so they are actually empty. Fixes an issue for PowerDNS Authoritative Server 2.9.22.
-   * `fixupCase(bool)`: if set (default to no), rewrite the first qname of the question part of the answer to match the one from the query. It is only useful when you have a downstream server that messes up the case of the question qname in the answer
+    * `truncateTC(bool)`: if set (default) truncate TC=1 answers so they are actually empty. Fixes an issue for PowerDNS Authoritative Server 2.9.22.
+    * `fixupCase(bool)`: if set (default to no), rewrite the first qname of the question part of the answer to match the one from the query. It is only useful when you have a downstream server that messes up the case of the question qname in the answer
  * Dynamic Block related:
-   * `maintenance()`: called every second by dnsdist if defined, call functions below from it
-   * `clearDynBlocks()`: clear all dynamic blocks
-   * `showDynBlocks()`: show dynamic blocks in force
-   * `addDynBlocks(addresses, message[, seconds])`: block the set of addresses with message `msg`, for `seconds` seconds (10 by default)
-   * `exceedServFails(rate, seconds)`: get set of addresses that exceed `rate` servails/s over `seconds` seconds
-   * `exceedNXDOMAINs(rate, seconds)`: get set of addresses that exceed `rate` NXDOMAIN/s over `seconds` seconds
-   * `exceedRespByterate(rate, seconds)`: get set of addresses that exeeded `rate` bytes/s answers over `seconds` seconds
-   * `exceedQRate(rate, seconds)`: get set of address that exceed `rate` queries/s over `seconds` seconds
-   * `exceedQTypeRate(type, rate, seconds)`: get set of address that exceed `rate` queries/s for queries of type `type` over `seconds` seconds
+    * `maintenance()`: called every second by dnsdist if defined, call functions below from it
+    * `clearDynBlocks()`: clear all dynamic blocks
+    * `showDynBlocks()`: show dynamic blocks in force
+    * `addDynBlocks(addresses, message[, seconds])`: block the set of addresses with message `msg`, for `seconds` seconds (10 by default)
+    * `exceedServFails(rate, seconds)`: get set of addresses that exceed `rate` servails/s over `seconds` seconds
+    * `exceedNXDOMAINs(rate, seconds)`: get set of addresses that exceed `rate` NXDOMAIN/s over `seconds` seconds
+    * `exceedRespByterate(rate, seconds)`: get set of addresses that exeeded `rate` bytes/s answers over `seconds` seconds
+    * `exceedQRate(rate, seconds)`: get set of address that exceed `rate` queries/s over `seconds` seconds
+    * `exceedQTypeRate(type, rate, seconds)`: get set of address that exceed `rate` queries/s for queries of type `type` over `seconds` seconds
  * Advanced functions for writing your own policies and hooks
-   * ComboAddress related:
-     * `newCA(address)`: return a new ComboAddress
-     * `getPort()`: return the port number
-     * `tostring()`: return in human-friendly format
-     * `toString()`: alias for `tostring()`
-     * `tostringWithPort()`: return in human-friendly format, with port number
-     * `toStringWithPort()`: alias for `tostringWithPort()`
-   * DNSName related:
-     * `newDNSName(name)`: make a DNSName based on this .-terminated name
-     * member `isPartOf(dnsname)`: is this dnsname part of that dnsname
-     * member `tostring()`: return as a human friendly . terminated string
-     * member `toString()`: alias for `tostring()`
-   * DNSQuestion related:
-     * member `dh`: DNSHeader
-     * member `len`: the question length
-     * member `localaddr`: ComboAddress of the local bind this question was received on
-     * member `qname`: DNSName of this question
-     * member `qclass`: QClass (as an unsigned integer) of this question
-     * member `qtype`: QType (as an unsigned integer) of this question
-     * member `remoteaddr`: ComboAddress of the remote client
-     * member `rcode`: RCode of this question
-     * member `size`: the total size of the buffer starting at `dh`
-     * member `tcp`: whether this question was received over a TCP socket
-   * DNSHeader related
-     * member `getRD()`: get recursion desired flag
-     * member `setRD(bool)`: set recursion desired flag
-     * member `setTC(bool)`: set truncation flag (TC)
-     * member `setQR(bool)`: set Query Response flag (setQR(true) indicates an *answer* packet)
-     * member `getCD()`: get checking disabled flag
-     * member `setCD(bool)`: set checking disabled flag
-   * NetmaskGroup related
-     * function `newNMG()`: returns a NetmaskGroup
-     * member `addMask(mask)`: adds `mask` to the NetmaskGroup
-     * member `match(ComboAddress)`: checks if ComboAddress is matched by this NetmaskGroup
-     * member `clear()`: clears the NetmaskGroup
-     * member `size()`: returns number of netmasks in this NetmaskGroup
-   * QPSLimiter related:
-     * `newQPSLimiter(rate, burst)`: configure a QPS limiter with that rate and that burst capacity
-     * member `check()`: check if this QPSLimiter has a token for us. If yes, you must use it.
-   * SuffixMatchNode related:
-     * `newSuffixMatchNode()`: returns a new SuffixMatchNode
-     * member `check(DNSName)`: returns true if DNSName is matched by this group
-     * member `add(DNSName)`: add this DNSName to the node
+    * ComboAddress related:
+        * `newCA(address)`: return a new ComboAddress
+        * `getPort()`: return the port number
+        * `tostring()`: return in human-friendly format
+        * `toString()`: alias for `tostring()`
+        * `tostringWithPort()`: return in human-friendly format, with port number
+        * `toStringWithPort()`: alias for `tostringWithPort()`
+    * DNSName related:
+        * `newDNSName(name)`: make a DNSName based on this .-terminated name
+        * member `isPartOf(dnsname)`: is this dnsname part of that dnsname
+        * member `tostring()`: return as a human friendly . terminated string
+        * member `toString()`: alias for `tostring()`
+    * DNSQuestion related:
+        * member `dh`: DNSHeader
+        * member `len`: the question length
+        * member `localaddr`: ComboAddress of the local bind this question was received on
+        * member `qname`: DNSName of this question
+        * member `qclass`: QClass (as an unsigned integer) of this question
+        * member `qtype`: QType (as an unsigned integer) of this question
+        * member `remoteaddr`: ComboAddress of the remote client
+        * member `rcode`: RCode of this question
+        * member `size`: the total size of the buffer starting at `dh`
+        * member `tcp`: whether this question was received over a TCP socket
+    * DNSHeader related
+        * member `getRD()`: get recursion desired flag
+        * member `setRD(bool)`: set recursion desired flag
+        * member `setTC(bool)`: set truncation flag (TC)
+        * member `setQR(bool)`: set Query Response flag (setQR(true) indicates an *answer* packet)
+        * member `getCD()`: get checking disabled flag
+        * member `setCD(bool)`: set checking disabled flag
+    * NetmaskGroup related
+        * function `newNMG()`: returns a NetmaskGroup
+        * member `addMask(mask)`: adds `mask` to the NetmaskGroup
+        * member `match(ComboAddress)`: checks if ComboAddress is matched by this NetmaskGroup
+        * member `clear()`: clears the NetmaskGroup
+        * member `size()`: returns number of netmasks in this NetmaskGroup
+    * QPSLimiter related:
+        * `newQPSLimiter(rate, burst)`: configure a QPS limiter with that rate and that burst capacity
+        * member `check()`: check if this QPSLimiter has a token for us. If yes, you must use it.
+    * SuffixMatchNode related:
+        * `newSuffixMatchNode()`: returns a new SuffixMatchNode
+        * member `check(DNSName)`: returns true if DNSName is matched by this group
+        * member `add(DNSName)`: add this DNSName to the node
  * Tuning related:
-   * `setTCPRecvTimeout(n)`: set the read timeout on TCP connections from the client, in seconds
-   * `setTCPSendTimeout(n)`: set the write timeout on TCP connections from the client, in seconds
-   * `setMaxTCPClientThreads(n)`: set the maximum of TCP client threads, handling TCP connections
-   * `setMaxUDPOutstanding(n)`: set the maximum number of outstanding UDP queries to a given backend server. This can only be set at configuration time
+    * `setTCPRecvTimeout(n)`: set the read timeout on TCP connections from the client, in seconds
+    * `setTCPSendTimeout(n)`: set the write timeout on TCP connections from the client, in seconds
+    * `setMaxTCPClientThreads(n)`: set the maximum of TCP client threads, handling TCP connections
+    * `setMaxUDPOutstanding(n)`: set the maximum number of outstanding UDP queries to a given backend server. This can only be set at configuration time
  * DNSCrypt related:
-   * `addDNSCryptBind("127.0.0.1:8443", "provider name", "/path/to/resolver.cert", "/path/to/resolver.key"):` listen to incoming DNSCrypt queries on 127.0.0.1 port 8443, with a provider name of "provider name", using a resolver certificate and associated key stored respectively in the `resolver.cert` and `resolver.key` files
-   * `generateDNSCryptProviderKeys("/path/to/providerPublic.key", "/path/to/providerPrivate.key"):` generate a new provider keypair
-   * `generateDNSCryptCertificate("/path/to/providerPrivate.key", "/path/to/resolver.cert", "/path/to/resolver.key", serial, validFrom, validUntil):` generate a new resolver private key and related certificate, valid from the `validFrom` timestamp until the `validUntil` one, signed with the provider private key
-   * `printDNSCryptProviderFingerprint("/path/to/providerPublic.key")`: display the fingerprint of the provided resolver public key
-   * `showDNSCryptBinds():`: display the currently configured DNSCrypt binds
+    * `addDNSCryptBind("127.0.0.1:8443", "provider name", "/path/to/resolver.cert", "/path/to/resolver.key"):` listen to incoming DNSCrypt queries on 127.0.0.1 port 8443, with a provider name of "provider name", using a resolver certificate and associated key stored respectively in the `resolver.cert` and `resolver.key` files
+    * `generateDNSCryptProviderKeys("/path/to/providerPublic.key", "/path/to/providerPrivate.key"):` generate a new provider keypair
+    * `generateDNSCryptCertificate("/path/to/providerPrivate.key", "/path/to/resolver.cert", "/path/to/resolver.key", serial, validFrom, validUntil):` generate a new resolver private key and related certificate, valid from the `validFrom` timestamp until the `validUntil` one, signed with the provider private key
+    * `printDNSCryptProviderFingerprint("/path/to/providerPublic.key")`: display the fingerprint of the provided resolver public key
+    * `showDNSCryptBinds():`: display the currently configured DNSCrypt binds
 
 All hooks
 ---------
