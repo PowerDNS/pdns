@@ -941,6 +941,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 	  launch();	    
       }
       catch(std::exception& e) {
+	g_outputBuffer="Unable to bind to webserver socket on " + local.toStringWithPort() + ": " + e.what();
 	errlog("Unable to bind to webserver socket on %s: %s", local.toStringWithPort(), e.what());
       }
 
@@ -970,6 +971,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 	    
       }
       catch(std::exception& e) {
+	g_outputBuffer="Unable to bind to control socket on " + local.toStringWithPort() + ": " + e.what();
 	errlog("Unable to bind to control socket on %s: %s", local.toStringWithPort(), e.what());
       }
     });
