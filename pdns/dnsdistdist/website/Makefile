@@ -4,4 +4,4 @@ html/index.html: markdown/*
 	mkdocs build --clean
 
 upload: html/index.html
-	rsync -vr --delete html/* web1.powerdns.com:/srv/www/dnsdist.org/
+	rsync -cvr --no-p --chmod=g=rwX --exclude '*~' --delete html/* web1.powerdns.com:/srv/www/dnsdist.org/
