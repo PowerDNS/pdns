@@ -24,6 +24,9 @@ Grab the master or 1.0 pre-release packages from [our repositories](https://repo
 ## Compiling dnsdist
 Prefer to compile yourself? Checkout the instructions on [the download page](download.md).
 
+# License
+dnsdist is licensed under the GNU General Public License, version 2
+
 # Questions, requests or comments?
 There are several ways to reach us:
 
