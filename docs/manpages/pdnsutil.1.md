@@ -157,6 +157,11 @@ check-zone *ZONE*
 delete-zone *ZONE*:
 :    Delete the zone named *ZONE*.
 
+edit-zone *ZONE*
+:    Opens *ZONE* in zonefile format (regardless of backend it was loaded from)
+     in the editor set in the environment variable **EDITOR**. if **EDITOR** is
+     empty, *pdnsutil* falls back to using *editor*.
+
 get-meta *ZONE* [*ATTRIBUTE*]...
 :    Get zone metadata. If no *ATTRIBUTE* given, lists all known.
 
