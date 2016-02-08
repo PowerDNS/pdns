@@ -805,8 +805,8 @@ Here are all functions:
     * `setACL({netmask, netmask})`: replace the ACL set with these netmasks. Use `setACL({})` to reset the list, meaning no one can use us
     * `showACL()`: show our ACL set
  * Network related:
-    * `addLocal(netmask, [false])`: add to addresses we listen on. Second optional parameter sets TCP/IP or not.
-    * `setLocal(netmask, [false])`: reset list of addresses we listen on to this address. Second optional parameter sets TCP/IP or not.
+    * `addLocal(netmask, [false], [false])`: add to addresses we listen on. Second optional parameter sets TCP/IP or not. Third optional parameter sets SO_REUSEPORT when available.
+    * `setLocal(netmask, [false], [false])`: reset list of addresses we listen on to this address. Second optional parameter sets TCP/IP or not. Third optional parameter sets SO_REUSEPORT when available.
  * Blocking related:
     * `addDomainBlock(domain)`: block queries within this domain
  * Carbon/Graphite/Metronome statistics related:
@@ -1008,7 +1008,7 @@ instantiate a server with additional parameters
     * `setMaxUDPOutstanding(n)`: set the maximum number of outstanding UDP queries to a given backend server. This can only be set at configuration time
     * `setCacheCleaningDelay(n)`: set the interval in seconds between two runs of the cache cleaning algorithm, removing expired entries
  * DNSCrypt related:
-    * `addDNSCryptBind("127.0.0.1:8443", "provider name", "/path/to/resolver.cert", "/path/to/resolver.key"):` listen to incoming DNSCrypt queries on 127.0.0.1 port 8443, with a provider name of "provider name", using a resolver certificate and associated key stored respectively in the `resolver.cert` and `resolver.key` files
+    * `addDNSCryptBind("127.0.0.1:8443", "provider name", "/path/to/resolver.cert", "/path/to/resolver.key", [false]):` listen to incoming DNSCrypt queries on 127.0.0.1 port 8443, with a provider name of "provider name", using a resolver certificate and associated key stored respectively in the `resolver.cert` and `resolver.key` files. The last optional parameter sets SO_REUSEPORT when available
     * `generateDNSCryptProviderKeys("/path/to/providerPublic.key", "/path/to/providerPrivate.key"):` generate a new provider keypair
     * `generateDNSCryptCertificate("/path/to/providerPrivate.key", "/path/to/resolver.cert", "/path/to/resolver.key", serial, validFrom, validUntil):` generate a new resolver private key and related certificate, valid from the `validFrom` timestamp until the `validUntil` one, signed with the provider private key
     * `printDNSCryptProviderFingerprint("/path/to/providerPublic.key")`: display the fingerprint of the provided resolver public key
