@@ -96,6 +96,7 @@ bool g_logCommonErrors;
 bool g_anyToTcp;
 uint16_t g_udpTruncationThreshold, g_outgoingEDNSBufsize;
 __thread shared_ptr<RecursorLua4>* t_pdl;
+bool g_lowercaseOutgoing;
 
 __thread addrringbuf_t* t_remotes, *t_servfailremotes, *t_largeanswerremotes;
 
@@ -626,6 +627,10 @@ void startDoResolve(void *p)
     pw.getHeader()->id=dc->d_mdp.d_header.id;
     pw.getHeader()->rd=dc->d_mdp.d_header.rd;
     pw.getHeader()->cd=dc->d_mdp.d_header.cd;
+
+    // DO NOT MOVE THIS CODE UP!
+    if (g_lowercaseOutgoing)
+      dc->d_mdp.d_qname = DNSName(toLower(dc->d_mdp.d_qname.toString()));
 
     uint32_t minTTL=std::numeric_limits<uint32_t>::max();
 
@@ -2418,6 +2423,8 @@ int serviceMain(int argc, char*argv[])
   g_anyToTcp = ::arg().mustDo("any-to-tcp");
   g_udpTruncationThreshold = ::arg().asNum("udp-truncation-threshold");
 
+  g_lowercaseOutgoing = ::arg().mustDo("lowercase-outgoing");
+
   makeUDPServerSockets();
   makeTCPServerSockets();
 
@@ -2736,6 +2743,7 @@ int main(int argc, char **argv)
     ::arg().setSwitch( "pdns-distributes-queries", "If PowerDNS itself should distribute queries over threads")="";
     ::arg().setSwitch( "root-nx-trust", "If set, believe that an NXDOMAIN from the root means the TLD does not exist")="no";
     ::arg().setSwitch( "any-to-tcp","Answer ANY queries with tc=1, shunting to TCP" )="no";
+    ::arg().setSwitch( "lowercase-outgoing","Force outgoing questions to lowercase")="no";
     ::arg().set("udp-truncation-threshold", "Maximum UDP response size before we truncate")="1680";
     ::arg().set("edns-outgoing-bufsize", "Outgoing EDNS buffer size")="1680";
     ::arg().set("minimum-ttl-override", "Set under adverse conditions, a minimum TTL")="0";
