@@ -9,13 +9,19 @@
 
 pthread_rwlock_t GeoIPBackend::s_state_lock=PTHREAD_RWLOCK_INITIALIZER;
 
+struct GeoIPDNSResourceRecord: DNSResourceRecord {
+public:
+	int weight;
+	bool has_weight;
+};
+
 class GeoIPDomain {
 public:
   int id;
   DNSName domain;
   int ttl;
   map<DNSName, NetmaskTree<vector<string> > > services;
-  map<DNSName, vector<DNSResourceRecord> > records;
+  map<DNSName, vector<GeoIPDNSResourceRecord> > records;
 };
 
 static vector<GeoIPDomain> s_domains;
@@ -107,11 +113,11 @@ void GeoIPBackend::initialize() {
 
     for(YAML::const_iterator recs = domain["records"].begin(); recs != domain["records"].end(); recs++) {
       DNSName qname = DNSName(recs->first.as<string>());
-      vector<DNSResourceRecord> rrs;
+      vector<GeoIPDNSResourceRecord> rrs;
 
       for(YAML::Node item :  recs->second) {
         YAML::const_iterator rec = item.begin();
-        DNSResourceRecord rr;
+        GeoIPDNSResourceRecord rr;
         rr.domain_id = dom.id;
         rr.ttl = dom.ttl;
         rr.qname = qname;
@@ -121,11 +127,34 @@ void GeoIPBackend::initialize() {
           string qtype = boost::to_upper_copy(rec->first.as<string>());
           rr.qtype = qtype;
         }
+        rr.has_weight = false;
+        rr.weight = 100;
         if (rec->second.IsNull()) {
           rr.content = "";
-        } else {
+        } else if (rec->second.IsMap()) {
+           for(YAML::const_iterator iter = rec->second.begin(); iter != rec->second.end(); iter++) {
+             string attr = iter->first.as<string>();
+             if (attr == "content") {
+	       string content = iter->second.as<string>();
+               rr.content = content;
+             } else if (attr == "weight") {
+               rr.weight = iter->second.as<int>();
+               if (rr.weight < 0) {
+                 L<<Logger::Error<<"Weigth cannot be negative for " << rr.qname << endl;
+                 throw PDNSException(string("Weigth cannot be negative for ") + rr.qname.toString());
+               }
+               rr.has_weight = true;
+             } else if (attr == "ttl") {
+               rr.ttl = iter->second.as<int>();
+             } else {
+               L<<Logger::Error<<"Unsupported record attribute " << attr << " for " << rr.qname << endl;
+               throw PDNSException(string("Unsupported record attribute ") + attr + string(" for ") + rr.qname.toString());
+             }
+           }
+	} else {
           string content=rec->second.as<string>();
           rr.content = content;
+          rr.weight = 100;
         } 
         rr.auth = 1;
         rr.d_place = DNSResourceRecord::ANSWER;
@@ -172,14 +201,16 @@ void GeoIPBackend::initialize() {
       DNSName name = item.first;
       while(name.chopOff() && name.isPartOf(dom.domain)) {
         if (dom.records.find(name) == dom.records.end() && !dom.services.count(name)) { // don't ENT out a service!
-          DNSResourceRecord rr;
-          vector<DNSResourceRecord> rrs;
+          GeoIPDNSResourceRecord rr;
+          vector<GeoIPDNSResourceRecord> rrs;
           rr.domain_id = dom.id;
           rr.ttl = dom.ttl;
           rr.qname = name;
           rr.qtype = QType(0); // empty non terminal
           rr.content = "";
           rr.auth = 1;
+          rr.weight = 100;
+          rr.has_weight = false;
           rr.d_place = DNSResourceRecord::ANSWER;
           rrs.push_back(rr);
           std::swap(dom.records[name], rrs);
@@ -193,18 +224,43 @@ void GeoIPBackend::initialize() {
       DNSName name = item.first;
       while(name.chopOff() && name.isPartOf(dom.domain)) {
         if (dom.records.find(name) == dom.records.end()) {
-          DNSResourceRecord rr;
-          vector<DNSResourceRecord> rrs;
+          GeoIPDNSResourceRecord rr;
+          vector<GeoIPDNSResourceRecord> rrs;
           rr.domain_id = dom.id;
           rr.ttl = dom.ttl;
           rr.qname = name;
           rr.qtype = QType(0);
           rr.content = "";
           rr.auth = 1;
+          rr.weight = 100;
+          rr.has_weight = false;
           rr.d_place = DNSResourceRecord::ANSWER;
           rrs.push_back(rr);
           std::swap(dom.records[name], rrs);
         }
+      }
+    }
+
+    // finally fix weights
+    for(auto &item: dom.records) {
+      float weight=0;
+      float sum=0;
+      bool has_weight=false;
+      // first we look for used weight
+      for(const auto &rr: item.second) {
+        weight+=rr.weight;
+        if (rr.has_weight) has_weight = true;
+      }
+      if (has_weight) {
+        // put them back as probabilities and values..
+        for(auto &rr: item.second) {
+          rr.weight=static_cast<int>((static_cast<float>(rr.weight) / weight)*1000.0);
+          sum += rr.weight;
+          rr.has_weight = has_weight;
+        }
+        // remove rounding gap
+        if (sum < 1000)
+          item.second.back().weight += (1000-sum);
       }
     }
 
@@ -229,6 +285,8 @@ void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket 
   GeoIPDomain dom;
   GeoIPLookup gl;
   bool found = false;
+  int probability_rnd = 1+(random() % 1000); // setting probability=0 means it never is used
+  int cumul_probability = 0;
 
   if (d_result.size()>0) 
     throw PDNSException("Cannot perform lookup while another is running");
@@ -262,6 +320,13 @@ void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket 
   auto i = dom.records.find(search);
   if (i != dom.records.end()) { // return static value
     for(const auto& rr : i->second) {
+      if (rr.has_weight) {
+        gl.netmask = (v6?128:32);
+        int comp = cumul_probability;
+        cumul_probability += rr.weight;
+        if (rr.weight == 0 || probability_rnd < comp || probability_rnd > (comp + rr.weight))
+          continue;
+      }
       if (qtype == QType::ANY || rr.qtype == qtype) {
 	d_result.push_back(rr);
         d_result.back().content = format2str(rr.content, ip, v6, &gl);

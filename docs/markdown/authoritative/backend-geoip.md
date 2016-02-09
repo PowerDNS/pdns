@@ -55,7 +55,7 @@ domains:
       - ns: ns2.example.com
       - mx: 10 mx.example.com
     fin.eu.service.geo.example.com:
-      - a: 198.51.100.221
+      - a: 192.0.2.1
       - txt: hello world
       - aaaa: 2001:DB8::12:34DE:3
   services:
@@ -71,13 +71,21 @@ domains:
   records:
     geo.example.com:
       - soa: ns1.example.com hostmaster.example.com 2014090125 7200 3600 1209600 3600
-      - ns: ns1.example.com
+      - ns:
+           content: ns1.example.com
+           ttl: 600
       - ns: ns2.example.com
       - mx: 10 mx.example.com
     fin.eu.service.geo.example.com:
-      - a: 198.51.100.221
+      - a: 192.0.2.2
       - txt: hello world
       - aaaa: 2001:DB8::12:34DE:3
+# this will result first record being handed out 30% of time
+    swe.eu.service.geo.example.com
+      - a:
+           content: 192.0.2.3
+           weight: 50
+      - a: 192.0.2.4
   services:
 # syntax 1
     service.geo.example.com: '%co.%cn.service.geo.example.com'
@@ -102,7 +110,8 @@ domains:
 * From 4.0.0, You can add per-network overrides for format, they will be formatted with the same placeholders as default. Default is short-hand for adding 0.0.0.0/0 and ::/0. Default is default when only string is given for service name.
 * From 4.0.0, You can use array to specify return values, works only if you have those records specified. It matches the format results to your records, and if it finds match that is used. Otherwise the last is returned.
 * From 4.0.0, You can apply all the attributes for the content of static records too.
-
+* From 4.0.0, You can use record attributes to set TTL.
+* From 4.0.0, You can use record attributes to define weight. If this is given, only one record is chosen randomly based on the weight. **DO NOT** mix record types for these. It will not work. PROBABILITY is calculated by summing up the weights and dividing each weight with the sum.
 **WARNING**: If you use ip or time/date specifiers, caching will be disabled for that RR completely. That means, if you have a
 
   something.example.com:
