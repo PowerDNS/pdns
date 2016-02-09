@@ -1,0 +1,14 @@
+#!/bin/sh
+elements="$($RECCONTROL --config-dir=./config/recursor-service help | grep -v -e '^ ' | awk '{print $1}')"
+
+missing_elements=""
+for element in $elements; do
+  grep -e -q "^$element" ../docs/manpages/rec_control.1.md || missing_elements="$element\n$missing_elements"
+done
+
+if [ $missing_elements != "" ]; then
+  echo "The following commands are missing from the manpage:\n"
+  echo $missing_elements
+fi
+
+exit 0
