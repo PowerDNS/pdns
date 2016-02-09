@@ -304,7 +304,8 @@ pdnsutil_LDADD = \
 	$(LIBDL) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS) \
 	$(YAHTTP_LIBS) \
-	$(JSON11_LIBS)
+	$(JSON11_LIBS) \
+	$(LUA_LIBS)
 
 if BOTAN110
 pdnsutil_SOURCES += botan110signers.cc botansigners.cc
