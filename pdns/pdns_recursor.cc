@@ -554,7 +554,7 @@ void startDoResolve(void *p)
     pw.getHeader()->id=dc->d_mdp.d_header.id;
     pw.getHeader()->rd=dc->d_mdp.d_header.rd;
 
-    // DO NOT MOVE THIS CODE UP!
+    // DO NOT MOVE THIS CODE UP - DNSPacketWriter needs to get the original-cased version
     if (g_lowercaseOutgoing)
       dc->d_mdp.d_qname = toLower(dc->d_mdp.d_qname);
 
