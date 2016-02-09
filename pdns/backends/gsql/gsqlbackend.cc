@@ -1032,7 +1032,7 @@ bool GSQLBackend::list(const DNSName &target, int domain_id, bool include_disabl
 bool GSQLBackend::listSubZone(const DNSName &zone, int domain_id) {
   if (!isOurDomain(nullptr, domain_id)) return false;
 
-  string wildzone = "%." + stripDot(zone.toString());  // tolower()?
+  string wildzone = "%." + toLower(zone.toStringNoDot());
 
   try {
     d_query_name = "list-subzone-query";
@@ -1118,7 +1118,7 @@ bool GSQLBackend::createDomain(const DNSName &domain, const string &type, const 
       reset();
   }
   catch(SSqlException &e) {
-    throw DBException("Database error trying to insert new domain '"+domain.toString()+"': "+ e.txtReason());
+    throw DBException("Database error trying to insert new domain '"+domain.toStringRootDot()+"': "+ e.txtReason());
   }
   return true;
 }

@@ -8,6 +8,9 @@ backend is needed to cover all needs.
 a '.' in PowerDNS storage! If a trailing '.' is present it will inevitably cause
 problems, problems that may be hard to debug.
 
+**Note**: Since 4.0.0, a root zone or record should have a name of '.' (no quotes).
+This is the only exception to the 'no terminating dot in SQL storage' rule.
+
 # Basic functionality
 All domains in the generic SQL backends have a 'type' field that describes the
 [mode of operation](modes-of-operation.md).
