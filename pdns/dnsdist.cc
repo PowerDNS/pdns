@@ -537,6 +537,7 @@ try
   auto localDynBlock = g_dynblockNMG.getLocal();
   struct msghdr msgh;
   struct iovec iov;
+  uint16_t queryId = 0;
   /* used by HarvestDestinationAddress */
   char cbuf[256];
   remote.sin6.sin6_family=cs->local.sin6.sin6_family;
@@ -549,6 +550,7 @@ try
 #endif
       char* query = packet;
       ssize_t ret = recvmsg(cs->udpFD, &msgh, 0);
+      queryId = 0;
 
       cs->queries++;
       g_stats.queries++;
@@ -595,6 +597,7 @@ try
 #endif
 
       struct dnsheader* dh = (struct dnsheader*) query;
+      queryId = ntohs(dh->id);
 
       if(dh->qr) {   // don't respond to responses
 	g_stats.nonCompliantQueries++;
@@ -775,7 +778,7 @@ try
       vinfolog("Got query from %s, relayed to %s", remote.toStringWithPort(), ss->getName());
     }
     catch(std::exception& e){
-      errlog("Got an error in UDP question thread: %s", e.what());
+      errlog("Got an error in UDP question thread while parsing a query from %s, id %d: %s", remote.toStringWithPort(), queryId, e.what());
     }
   }
   return 0;
