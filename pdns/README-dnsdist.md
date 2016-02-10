@@ -310,8 +310,9 @@ Current actions are:
  * Return with TC=1 (truncated, ie, instruction to retry with TCP)
  * Force a ServFail, NotImp or Refused answer
  * Send out a crafted response (NXDOMAIN or "real" data)
- * Delay a response by n milliseconds (DelayAction)
- * Modify query to remove RD bit
+ * Delay a response by n milliseconds (DelayAction), over UDP only
+ * Modify query to clear the RD or CD bit
+ * Add the source MAC address to the query (MacAddrAction)
 
 Rules can be added via:
 
@@ -342,6 +343,15 @@ A DNS rule can be:
  * a RegexRule
  * a SuffixMatchNodeRule
  * a TCPRule
+
+Some specific actions do not stop the processing when they match, contrary to all other actions:
+ * Delay
+ * Disable Validation
+ * Log
+ * MacAddr
+ * No Recurse
+ * Route to a pool
+ * and of course None
 
 A convenience function `makeRule()` is supplied which will make a NetmaskGroupRule for you or a SuffixMatchNodeRule
 depending on how you call it. `makeRule("0.0.0.0/0")` will for example match all IPv4 traffic, `makeRule{"be","nl","lu"}` will
@@ -433,12 +443,12 @@ end
 
 Valid return values for `LuaAction` functions are:
  * DNSAction.Allow: let the query pass, skipping other rules
- * DNSAction.Delay: delay the response for the specified milliseconds (UDP-only)
+ * DNSAction.Delay: delay the response for the specified milliseconds (UDP-only), continue to the next rule
  * DNSAction.Drop: drop the query
  * DNSAction.HeaderModify: indicate that the query has been turned into a response
  * DNSAction.None: continue to the next rule
  * DNSAction.Nxdomain: return a response with a NXDomain rcode
- * DNSAction.Pool: use the specified pool to forward this query
+ * DNSAction.Pool: use the specified pool to forward this query, continue to the next rule
  * DNSAction.Spoof: spoof the response using the supplied IPv4 (A), IPv6 (AAAA) or string (CNAME) value
 
 DNSSEC

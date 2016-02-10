@@ -575,7 +575,7 @@ public:
   DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
   {
     dq->dh->rd = false;
-    return Action::HeaderModify;
+    return Action::None;
   }
   string toString() const override
   {
@@ -630,7 +630,7 @@ public:
   DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
   {
     dq->dh->cd = true;
-    return Action::HeaderModify;
+    return Action::None;
   }
   string toString() const override
   {
