@@ -112,9 +112,10 @@ ${INIT_INSTALL}
 ${DEFAULTS_INSTALL}
 
 %files
+%license COPYING
+%doc README.md
 %{_bindir}/*
 %{_mandir}/man1/*
-%doc README.md
 %dir %{_sysconfdir}/dnsdist
 ${INIT_FILES}
 %config(noreplace) ${DEFAULTS_FILES}
