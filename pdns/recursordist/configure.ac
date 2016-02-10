@@ -44,15 +44,11 @@ AS_IF([test "x$with_luajit" = "xno"], [
 PDNS_ENABLE_VERBOSE_LOGGING
 
 # Crypto libraries
-PDNS_WITH_SYSTEM_MBEDTLS
 PDNS_ENABLE_BOTAN
 AX_CHECK_OPENSSL([
-	AM_CONDITIONAL([OPENSSL], [true])
-	AC_DEFINE(HAVE_OPENSSL, [1], [Define to 1 if you openssl])
-	],[
-	AM_CONDITIONAL([OPENSSL], [false])
-	]
-)
+],[
+  AC_MSG_ERROR([OpenSSL not found])
+])
 
 # check for tools we might need
 PDNS_CHECK_RAGEL

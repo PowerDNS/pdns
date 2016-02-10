@@ -1,7 +1,6 @@
 AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/json11 \
 	$(YAHTTP_CFLAGS) \
-	$(MBEDTLS_CFLAGS) \
 	$(OPENSSL_CFLAGS) \
 	$(LIBZMQ_CFLAGS)
 
@@ -132,7 +131,6 @@ libtestremotebackend_la_CPPFLAGS = $(AM_CPPFLAGS)
 
 libtestremotebackend_la_LIBADD = \
 	$(YAHTTP_LIBS) \
-	$(MBEDTLS_LIBS) \
 	$(OPENSSL_LIBS) \
 	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
 	$(BOOST_SERIALIZATION_LIBS) \

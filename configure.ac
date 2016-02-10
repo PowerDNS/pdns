@@ -104,17 +104,17 @@ AC_CHECK_HEADERS(
 	[have_mmap=no]
 )
 
+PDNS_ENABLE_BOTAN
+PDNS_WITH_CRYPTOPP
+PDNS_CHECK_LIBSODIUM
 AX_CHECK_OPENSSL([
-	AM_CONDITIONAL([OPENSSL], [true])
-	AC_DEFINE(HAVE_OPENSSL, [1], [Define to 1 if you openssl])
-	],[
-	AM_CONDITIONAL([OPENSSL], [false])
-	]
+],[
+   AC_MSG_ERROR([OpenSSL not found])
+  ]
 )
 
 PDNS_CHECK_LIBEDIT
 PDNS_CHECK_RAGEL
-PDNS_CHECK_LIBSODIUM
 PDNS_CHECK_CLOCK_GETTIME
 
 BOOST_REQUIRE([1.35])
@@ -141,8 +141,6 @@ AC_SUBST([LIBDL], [$lt_cv_dlopen_libs])
 
 PDNS_CHECK_OS
 PDNS_ENABLE_VERBOSE_LOGGING
-PDNS_WITH_SYSTEM_MBEDTLS
-PDNS_ENABLE_BOTAN
 PDNS_ENABLE_PKCS11
 PDNS_ENABLE_GSS_TSIG
 
@@ -329,8 +327,6 @@ AC_CONFIG_FILES([
   ext/Makefile
   ext/yahttp/Makefile
   ext/yahttp/yahttp/Makefile
-  ext/mbedtls/Makefile
-  ext/mbedtls/library/Makefile
   ext/json11/Makefile
   modules/bindbackend/Makefile
   modules/geoipbackend/Makefile

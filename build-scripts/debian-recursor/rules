@@ -25,7 +25,6 @@ override_dh_auto_configure:
 		--infodir=\$${prefix}/share/info \
 		--libdir='$${prefix}/lib/$(DEB_HOST_MULTIARCH)' \
 		--libexecdir='$${prefix}/lib' \
-		--without-system-mbedtls \
 		--enable-unit-tests
 
 override_dh_auto_install:
