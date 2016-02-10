@@ -1,11 +1,12 @@
 language: cpp
 compiler:
   - gcc
-  - clang
+  # - clang
 before_script:
  - git describe --always --dirty=+
  - sudo /sbin/ip addr add 10.0.3.0/24 dev lo
  - sudo /sbin/ip addr add 1.2.3.4/32 dev lo
+ - sudo sysctl net.ipv6.conf.all.disable_ipv6=0
  - sudo rm -f /etc/apt/sources.list.d/travis_ci_zeromq3-source.list
  - sudo apt-get update --quiet --quiet
  - sudo apt-get install --quiet --quiet --no-install-recommends
