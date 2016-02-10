@@ -5,7 +5,7 @@ ACLOCAL_AMFLAGS = -I m4
 SUBDIRS=ext/yahttp
 
 dnslabeltext.cc: dnslabeltext.rl
-	ragel $< -o dnslabeltext.cc
+	$(AM_V_GEN)$(RAGEL) $< -o dnslabeltext.cc
 
 BUILT_SOURCES=htmlfiles.h
 
