@@ -69,7 +69,6 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_SuperMasterInfoQuery=getArg("supermaster-query");
   d_GetSuperMasterIPs=getArg("supermaster-name-to-ips");
   d_InsertZoneQuery=getArg("insert-zone-query");
-  d_InsertSlaveZoneQuery=getArg("insert-slave-query");
   d_InsertRecordQuery=getArg("insert-record-query");
   d_UpdateMasterOfZoneQuery=getArg("update-master-query");
   d_UpdateKindOfZoneQuery=getArg("update-kind-query");
@@ -140,7 +139,6 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_SuperMasterInfoQuery_stmt = NULL;
   d_GetSuperMasterIPs_stmt = NULL;
   d_InsertZoneQuery_stmt = NULL;
-  d_InsertSlaveZoneQuery_stmt = NULL;
   d_InsertRecordQuery_stmt = NULL;
   d_InsertEmptyNonTerminalOrderQuery_stmt = NULL;
   d_UpdateMasterOfZoneQuery_stmt = NULL;
@@ -1108,11 +1106,14 @@ bool GSQLBackend::superMasterBackend(const string &ip, const DNSName &domain, co
   return false;
 }
 
-bool GSQLBackend::createDomain(const DNSName &domain)
+bool GSQLBackend::createDomain(const DNSName &domain, const string &type, const string &masters, const string &account)
 {
   try {
     d_InsertZoneQuery_stmt->
+      bind("type", type)->
       bind("domain", domain)->
+      bind("masters", masters)->
+      bind("account", account)->
       execute()->
       reset();
   }
@@ -1146,12 +1147,7 @@ bool GSQLBackend::createSlaveDomain(const string &ip, const DNSName &domain, con
         masters = boost::join(tmp, ", ");
       }
     }
-    d_InsertSlaveZoneQuery_stmt->
-      bind("domain", domain)->
-      bind("masters", masters)->
-      bind("account", account)->
-      execute()->
-      reset();
+    createDomain(domain, "SLAVE", masters, account);
   }
   catch(SSqlException &e) {
     throw DBException("Database error trying to insert new slave domain '"+domain.toString()+"': "+ e.txtReason());

@@ -197,7 +197,7 @@ if you wish to calculate ordername and auth without using pdns-rectify.
 
 - `is-our-domain-query`: Checks if the domain (either id or name) is in the 'domains' table. This query is run before any other (possibly heavy) query.
 
-- `insert-zone-query`: Add a new NATIVE domain.
+- `insert-zone-query`: Add a new domain. This query also requires the type, masters and account fields
 - `update-kind-query`: Called to update the type of domain.
 - `delete-zone-query` Called to delete all records of a zone. Used before an incoming AXFR.
 - `delete-domain-query`: Called to delete a domain from the domains-table.
@@ -234,7 +234,6 @@ Most installations will have zero need to change the following queries.
 
 ### On slaves
 - `info-all-slaves-query`: Called to retrieve all slave domains.
-- `insert-slave-query`: Called to add a domain as slave after a supermaster notification.
 - `master-zone-query`: Called to determine the master of a zone.
 - `update-lastcheck-query`: Called to update the last time a slave domain was successfully checked for freshness.
 - `update-master-query`: Called to update the master address of a domain.

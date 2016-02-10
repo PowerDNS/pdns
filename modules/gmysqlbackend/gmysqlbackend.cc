@@ -74,8 +74,7 @@ public:
     declare(suffix,"supermaster-query","", "select account from supermasters where ip=? and nameserver=?");
     declare(suffix,"supermaster-name-to-ips", "", "select ip,account from supermasters where nameserver=? and account=?");
 
-    declare(suffix,"insert-zone-query","", "insert into domains (type,name) values('NATIVE',?)");
-    declare(suffix,"insert-slave-query","", "insert into domains (type,name,master,account) values('SLAVE',?,?,?)");
+    declare(suffix,"insert-zone-query","", "insert into domains (type,name,master,account) values(?,?,?,?)");
 
     declare(suffix, "insert-record-query", "", "insert into records (content,ttl,prio,type,domain_id,disabled,name,ordername,auth) values (?,?,?,?,?,?,?,?,?)");
     declare(suffix, "insert-empty-non-terminal-order-query", "insert empty non-terminal in zone", "insert into records (type,domain_id,disabled,name,ordername,auth) values (null,?,0,?,?,?)");

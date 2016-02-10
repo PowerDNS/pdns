@@ -88,8 +88,7 @@ public:
     declare(suffix, "info-all-slaves-query", "","select id,name,master,last_check from domains where type='SLAVE'");
     declare(suffix, "supermaster-query", "", "select account from supermasters where ip=:ip and nameserver=:nameserver");
     declare(suffix, "supermaster-name-to-ips", "", "select ip,account from supermasters where nameserver=:nameserver and account=:account");
-    declare(suffix, "insert-zone-query", "", "insert into domains (id,type,name) values(domains_id_sequence.nextval,'NATIVE',:domain)");
-    declare(suffix, "insert-slave-query", "", "insert into domains (id,type,name,master,account) values(domains_id_sequence.nextval,'SLAVE',:domain,:masters,:account)");
+    declare(suffix, "insert-zone-query", "", "insert into domains (id,type,name,master,account) values(domains_id_sequence.nextval,:type,:domain,:masters,:account)");
     declare(suffix, "insert-record-query", "", "insert into records (id,content,ttl,prio,type,domain_id,disabled,name,ordername,auth) values (records_id_sequence.nextval,:content,:ttl,:priority,:qtype,:domain_id,:disabled,:qname,:ordername || ' ',:auth)");
     declare(suffix, "insert-empty-non-terminal-order-query", "insert empty non-terminal in zone", "insert into records (id,type,domain_id,disabled,name,ordername,auth) values (records_id_sequence.nextval,null,:domain_id,0,:qname,:ordername,:auth)");
 
