@@ -96,7 +96,9 @@ void loadMainConfig(const std::string& configdir)
   L.toConsole(Logger::Error);   // so we print any errors
   BackendMakers().launch(::arg()["launch"]); // vrooooom!
   L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));  
-  ::arg().laxFile(configname.c_str());    
+
+  if (! ::arg().laxFile(configname.c_str()))
+    cerr<<"Warning: unable to read configuration file '"<<configname<<"'."<<endl;
   //cerr<<"Backend: "<<::arg()["launch"]<<", '" << ::arg()["gmysql-dbname"] <<"'" <<endl;
 
   S.declare("qsize-q","Number of questions waiting for database attention");
