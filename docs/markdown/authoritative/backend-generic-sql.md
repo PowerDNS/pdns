@@ -206,7 +206,6 @@ if you wish to calculate ordername and auth without using pdns-rectify.
 - `info-zone-query`: Called to retrieve (nearly) all information for a domain.
 
 - `insert-record-query`: Called during incoming AXFR.
-- `insert-record-order-query`: Add a new record for a domain, including the ordername.
 - `update-account-query`: Set the account for a domain.
 - `delete-names-query`: Called to delete all records of a certain name.
 - `delete-rrset-query`: Called to delete an RRset based on domain\_id, name and type.

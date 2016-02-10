@@ -44,8 +44,7 @@ public:
       d_GetSuperMasterIPs_stmt = d_db->prepare(d_GetSuperMasterIPs, 2);
       d_InsertZoneQuery_stmt = d_db->prepare(d_InsertZoneQuery, 1);
       d_InsertSlaveZoneQuery_stmt = d_db->prepare(d_InsertSlaveZoneQuery, 3);
-      d_InsertRecordQuery_stmt = d_db->prepare(d_InsertRecordQuery, 8);
-      d_InsertRecordOrderQuery_stmt = d_db->prepare(d_InsertRecordOrderQuery, 9);
+      d_InsertRecordQuery_stmt = d_db->prepare(d_InsertRecordQuery, 9);
       d_InsertEmptyNonTerminalOrderQuery_stmt = d_db->prepare(d_InsertEmptyNonTerminalOrderQuery, 4);
       d_UpdateMasterOfZoneQuery_stmt = d_db->prepare(d_UpdateMasterOfZoneQuery, 2);
       d_UpdateKindOfZoneQuery_stmt = d_db->prepare(d_UpdateKindOfZoneQuery, 2);
@@ -114,7 +113,6 @@ public:
     release(&d_InsertZoneQuery_stmt);
     release(&d_InsertSlaveZoneQuery_stmt);
     release(&d_InsertRecordQuery_stmt);
-    release(&d_InsertRecordOrderQuery_stmt);
     release(&d_InsertEmptyNonTerminalOrderQuery_stmt);
     release(&d_UpdateMasterOfZoneQuery_stmt);
     release(&d_UpdateKindOfZoneQuery_stmt);
@@ -252,7 +250,6 @@ private:
   string d_InsertZoneQuery;
   string d_InsertSlaveZoneQuery;
   string d_InsertRecordQuery;
-  string d_InsertRecordOrderQuery;
   string d_InsertEmptyNonTerminalOrderQuery;
   string d_UpdateMasterOfZoneQuery;
   string d_UpdateKindOfZoneQuery;
@@ -325,7 +322,6 @@ private:
   SSqlStatement* d_InsertZoneQuery_stmt;
   SSqlStatement* d_InsertSlaveZoneQuery_stmt;
   SSqlStatement* d_InsertRecordQuery_stmt;
-  SSqlStatement* d_InsertRecordOrderQuery_stmt;
   SSqlStatement* d_InsertEmptyNonTerminalOrderQuery_stmt;
   SSqlStatement* d_UpdateMasterOfZoneQuery_stmt;
   SSqlStatement* d_UpdateKindOfZoneQuery_stmt;

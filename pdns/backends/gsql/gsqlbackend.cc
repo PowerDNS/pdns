@@ -93,8 +93,6 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_DeleteCommentRRsetQuery = getArg("delete-comment-rrset-query");
   d_DeleteCommentsQuery = getArg("delete-comments-query");
 
-  d_InsertRecordOrderQuery=getArg("insert-record-order-query");
-
   d_firstOrderQuery = getArg("get-order-first-query");
   d_beforeOrderQuery = getArg("get-order-before-query");
   d_afterOrderQuery = getArg("get-order-after-query");
@@ -144,7 +142,6 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_InsertZoneQuery_stmt = NULL;
   d_InsertSlaveZoneQuery_stmt = NULL;
   d_InsertRecordQuery_stmt = NULL;
-  d_InsertRecordOrderQuery_stmt = NULL;
   d_InsertEmptyNonTerminalOrderQuery_stmt = NULL;
   d_UpdateMasterOfZoneQuery_stmt = NULL;
   d_UpdateKindOfZoneQuery_stmt = NULL;
@@ -1305,39 +1302,28 @@ bool GSQLBackend::feedRecord(const DNSResourceRecord &r, string *ordername)
   }
 
   try {
-    if(d_dnssecQueries && ordername)
-    {
-      d_InsertRecordOrderQuery_stmt->
-        bind("content",content)->
-        bind("ttl",r.ttl)->
-        bind("priority",prio)->
-        bind("qtype",r.qtype.getName())->
-        bind("domain_id",r.domain_id)->
-        bind("disabled",r.disabled)->
-        bind("qname",r.qname); // FIXME400 lowercase?
-        if (ordername == NULL)
-          d_InsertRecordOrderQuery_stmt->bindNull("ordername");
-        else 
-          d_InsertRecordOrderQuery_stmt->bind("ordername",*ordername);
-        d_InsertRecordOrderQuery_stmt->
-        bind("auth",r.auth)->
-        execute()->
-        reset();
-    }
+    d_InsertRecordQuery_stmt->
+      bind("content",content)->
+      bind("ttl",r.ttl)->
+      bind("priority",prio)->
+      bind("qtype",r.qtype.getName())->
+      bind("domain_id",r.domain_id)->
+      bind("disabled",r.disabled)->
+      bind("qname",stripDot(r.qname.toString())); // FIXME400 lowercase?
+
+    if (ordername == NULL)
+      d_InsertRecordQuery_stmt->bindNull("ordername");
     else
-    {
-      d_InsertRecordQuery_stmt->
-        bind("content",content)->
-        bind("ttl",r.ttl)->
-        bind("priority",prio)->
-        bind("qtype",r.qtype.getName())-> 
-        bind("domain_id",r.domain_id)->
-        bind("disabled",r.disabled)->
-        bind("qname",r.qname)->
-        bind("auth", (r.auth || !d_dnssecQueries))->
-        execute()->
-        reset();
-    }
+      d_InsertRecordQuery_stmt->bind("ordername",*ordername);
+
+    if (d_dnssecQueries)
+      d_InsertRecordQuery_stmt->bind("auth", r.auth);
+    else
+      d_InsertRecordQuery_stmt->bind("auth", true);
+
+    d_InsertRecordQuery_stmt->
+      execute()->
+      reset();
   }
   catch (SSqlException &e) {
     throw DBException("GSQLBackend unable to feed record: "+e.txtReason());

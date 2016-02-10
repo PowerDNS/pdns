@@ -46,7 +46,7 @@ public:
 #else
     if (sqlite3_prepare(d_db->db(), query.c_str(), -1, &d_stmt, &pTail ) != SQLITE_OK)
 #endif
-      throw SSqlException(string("Unable to compile SQLite statement : ")+sqlite3_errmsg(d_db->db()));
+      throw SSqlException(string("Unable to compile SQLite statement : '")+query+"': "+sqlite3_errmsg(d_db->db()));
     if (pTail && strlen(pTail)>0)
       L<<Logger::Warning<<"Sqlite3 command partially processed. Unprocessed part: "<<pTail<<endl;
   }

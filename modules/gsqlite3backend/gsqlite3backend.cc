@@ -88,8 +88,7 @@ public:
     declare(suffix, "insert-zone-query", "", "insert into domains (type,name) values('NATIVE',:domain)");
     declare(suffix, "insert-slave-query", "", "insert into domains (type,name,master,account) values('SLAVE',:domain,:masters,:account)");
 
-    declare(suffix, "insert-record-query", "", "insert into records (content,ttl,prio,type,domain_id,disabled,name,auth) values (:content,:ttl,:priority,:qtype,:domain_id,:disabled,:qname,:auth)");
-    declare(suffix, "insert-record-order-query", "", "insert into records (content,ttl,prio,type,domain_id,disabled,name,ordername,auth) values (:content,:ttl,:priority,:qtype,:domain_id,:disabled,:qname,:ordername,:auth)");
+    declare(suffix, "insert-record-query", "", "insert into records (content,ttl,prio,type,domain_id,disabled,name,ordername,auth) values (:content,:ttl,:priority,:qtype,:domain_id,:disabled,:qname,:ordername,:auth)");
     declare(suffix, "insert-empty-non-terminal-order-query", "insert empty non-terminal in zone", "insert into records (type,domain_id,disabled,name,ordername,auth) values (null,:domain_id,0,:qname,:ordername,:auth)");
 
     declare(suffix, "get-order-first-query", "DNSSEC Ordering Query, first", "select ordername from records where disabled=0 and domain_id=:domain_id and ordername is not null order by 1 asc limit 1");

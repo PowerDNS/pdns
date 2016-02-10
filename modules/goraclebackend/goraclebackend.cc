@@ -90,8 +90,7 @@ public:
     declare(suffix, "supermaster-name-to-ips", "", "select ip,account from supermasters where nameserver=:nameserver and account=:account");
     declare(suffix, "insert-zone-query", "", "insert into domains (id,type,name) values(domains_id_sequence.nextval,'NATIVE',:domain)");
     declare(suffix, "insert-slave-query", "", "insert into domains (id,type,name,master,account) values(domains_id_sequence.nextval,'SLAVE',:domain,:masters,:account)");
-    declare(suffix, "insert-record-query", "", "insert into records (id,content,ttl,prio,type,domain_id,disabled,name,auth) values (records_id_sequence.nextval,:content,:ttl,:priority,:qtype,:domain_id,:disabled,:qname,:auth)");
-    declare(suffix, "insert-record-order-query", "", "insert into records (id,content,ttl,prio,type,domain_id,disabled,name,ordername,auth) values (records_id_sequence.nextval,:content,:ttl,:priority,:qtype,:domain_id,:disabled,:qname,:ordername || ' ',:auth)");
+    declare(suffix, "insert-record-query", "", "insert into records (id,content,ttl,prio,type,domain_id,disabled,name,ordername,auth) values (records_id_sequence.nextval,:content,:ttl,:priority,:qtype,:domain_id,:disabled,:qname,:ordername || ' ',:auth)");
     declare(suffix, "insert-empty-non-terminal-order-query", "insert empty non-terminal in zone", "insert into records (id,type,domain_id,disabled,name,ordername,auth) values (records_id_sequence.nextval,null,:domain_id,0,:qname,:ordername,:auth)");
 
     declare(suffix, "get-order-first-query", "DNSSEC Ordering Query, first", "select * FROM (select trim(ordername) from records where disabled=0 and domain_id=:domain_id and ordername is not null order by ordername asc) where rownum=1");
