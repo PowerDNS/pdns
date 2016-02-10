@@ -1806,7 +1806,7 @@ try
 
   g_verbose = g_vm.count("verbose");
 
-  if(cmds.empty() || g_vm.count("help")) {
+  if(cmds.empty() || g_vm.count("help") || cmds[0] == "help") {
     cerr<<"Usage: \npdnsutil [options] <command> [params ..]\n"<<endl;
     cerr<<"Commands:"<<endl;
     cerr<<"activate-tsig-key ZONE NAME {master|slave}"<<endl;
