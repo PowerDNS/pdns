@@ -92,6 +92,13 @@ void RecursorPacketCache::insertResponsePacket(const std::string& responsePacket
   packetCache_t::iterator iter = d_packetCache.find(e);
   
   if(iter != d_packetCache.end()) {
+    if (iter->d_ttd <= now) {
+      /* entry had expired, a cache miss might have
+         moved it to the front, and we don't want to
+         get expunged just right now */
+      moveCacheItemToBack(d_packetCache, iter);
+    }
+
     iter->d_packet = responsePacket;
     iter->d_ttd = now + ttl;
     iter->d_creation = now;

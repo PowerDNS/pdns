@@ -191,10 +191,23 @@ void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,
   cache_t::iterator stored=d_cache.find(key);
   uint32_t maxTTD=UINT_MAX;
 
+  bool hadExpired=false;
   bool isNew=false;
   if(stored == d_cache.end()) {
     stored=d_cache.insert(CacheEntry(key,vector<StoredRecord>(), auth)).first;
     isNew=true;
+  } else {
+    vector<StoredRecord>::const_iterator j;
+    bool expired=true;
+    for(j = stored->d_records.begin() ; j != stored->d_records.end(); ++j) {
+      if (now < j->d_ttd) {
+        expired = false;
+        break;
+      }
+    }
+    if (expired) {
+      hadExpired = true;
+    }
   }
   pair<vector<StoredRecord>::iterator, vector<StoredRecord>::iterator> range;
 
@@ -290,6 +303,12 @@ void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,
   if(ce.d_records.capacity() != ce.d_records.size())
     vector<StoredRecord>(ce.d_records).swap(ce.d_records);
   
+  if (hadExpired) {
+    /* previous entry had expired, a cache miss might have
+       moved it to the front, and we don't want to
+       get expunged just right now */
+    moveCacheItemToBack(d_cache, stored);
+  }
   d_cache.replace(stored, ce);
 }
 
