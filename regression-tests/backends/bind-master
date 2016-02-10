@@ -9,7 +9,6 @@ __EOF__
 
 		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --config-dir=. \
 			--config-name=bind --socket-dir=./ --no-shuffle \
-			--send-root-referral \
 			--cache-ttl=$cachettl --dname-processing \
 			--disable-axfr-rectify=yes &
 		skipreasons="nodnssec nodyndns nometa"
@@ -90,7 +89,6 @@ __EOF__
 
 		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --config-dir=. \
 			--config-name=bind --socket-dir=./ --no-shuffle \
-			--send-root-referral \
 			--cache-ttl=$cachettl --dname-processing \
 			--disable-axfr-rectify=yes $lua_prequery &
 

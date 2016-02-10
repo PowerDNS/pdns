@@ -48,7 +48,7 @@ __EOF__
 
 		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --config-dir=. \
 			--config-name=oracle --socket-dir=./ --no-shuffle \
-			--send-root-referral --query-logging \
+			--query-logging \
 			--cache-ttl=$cachettl --dname-processing $lua_prequery &
 
 		if [ $context = oracle-nsec3 ]
