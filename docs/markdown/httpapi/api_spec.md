@@ -348,7 +348,7 @@ zone_collection
   If not set at all during zone creation, defaults to `DEFAULT`.
   **Note**: Authoritative only.
 
-* `account` MAY be set. It's value is defined by local policy.
+* `account` MAY be set. Its value is defined by local policy.
   **Note**: Authoritative only.
 
 * `notified_serial`, `serial` MUST NOT be sent in client bodies.
