@@ -708,5 +708,5 @@ DNSRecord makeOpt(int udpsize, int extRCode, int Z);
 void reportBasicTypes();
 void reportOtherTypes();
 void reportAllTypes();
-
+ComboAddress getAddr(const DNSRecord& dr, uint16_t defport=0);
 #endif 

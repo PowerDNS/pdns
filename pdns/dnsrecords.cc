@@ -608,6 +608,16 @@ void reportAllTypes()
   reportOtherTypes();
 }
 
+ComboAddress getAddr(const DNSRecord& dr, uint16_t defport)
+{
+  if(auto addr=getRR<ARecordContent>(dr)) {
+    return addr->getCA(defport);
+  }
+  else
+    return getRR<AAAARecordContent>(dr)->getCA(defport);
+}
+
+
 #if 0
 static struct Reporter
 {

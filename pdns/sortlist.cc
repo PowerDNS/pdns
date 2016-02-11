@@ -52,14 +52,6 @@ bool SortListOrderCmp::operator()(const ComboAddress& a, const ComboAddress& b) 
   return aOrder < bOrder;
 }
 
-static ComboAddress getAddr(const DNSRecord& dr)
-{
-  if(auto addr=getRR<ARecordContent>(dr)) {
-    return addr->getCA();
-  }
-  else
-    return getRR<AAAARecordContent>(dr)->getCA();
-}
 bool SortListOrderCmp::operator()(const DNSRecord& ar, const DNSRecord& br) const
 {
   if(ar.d_type < br.d_type)
