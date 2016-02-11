@@ -8,6 +8,7 @@
 #include "misc.hh"
 #include "dnswriter.hh"
 #include "dnsrecords.hh"
+#include <unordered_set>
 using namespace boost;
 using std::string;
 
@@ -279,6 +280,25 @@ BOOST_AUTO_TEST_CASE(test_hash) {
   double stdev = sqrt(accum / (counts.size()-1));
   BOOST_CHECK(stdev < 10);      
 }
+
+BOOST_AUTO_TEST_CASE(test_hashContainer) {
+  std::unordered_set<DNSName> s;
+  s.insert(DNSName("www.powerdns.com"));
+  BOOST_CHECK(s.count(DNSName("WwW.PoWerDNS.CoM")));
+  BOOST_CHECK_EQUAL(s.size(), 1);
+  s.insert(DNSName("www.POWERDNS.com"));
+  BOOST_CHECK_EQUAL(s.size(), 1);
+  s.insert(DNSName("www2.POWERDNS.com"));
+  BOOST_CHECK_EQUAL(s.size(), 2);
+
+  s.clear();
+  unsigned int n=0;
+  for(; n < 100000; ++n)
+    s.insert(DNSName(std::to_string(n)+".test.nl"));
+  BOOST_CHECK_EQUAL(s.size(), n);
+
+}
+
 
 BOOST_AUTO_TEST_CASE(test_QuestionHash) {
   vector<unsigned char> packet;
@@ -617,5 +637,6 @@ BOOST_AUTO_TEST_CASE(test_wirelength) { // Testing if we get the correct value f
   sname.prependRawLabel(string("www\x00", 4));
   BOOST_CHECK_EQUAL(sname.wirelength(), 19);
 }
+
 
 BOOST_AUTO_TEST_SUITE_END()

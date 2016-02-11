@@ -251,3 +251,9 @@ struct SuffixMatchNode
 };
 
 std::ostream & operator<<(std::ostream &os, const DNSName& d);
+namespace std {
+    template <>
+    struct hash<DNSName> {
+        size_t operator () (const DNSName& dn) const { return dn.hash(0); }
+    };
+}
