@@ -473,14 +473,6 @@ inline bool isCanonical(const string& qname)
   return qname[qname.size()-1]=='.';
 }
 
-inline bool isCanonical(const DNSName& qname)
-{
-  if(qname.empty())
-    return false;
-  return true;
-}
-
-
 inline DNSName toCanonic(const DNSName& zone, const string& qname)
 {
   if(qname.size()==1 && qname[0]=='@')

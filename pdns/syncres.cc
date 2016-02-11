@@ -628,8 +628,9 @@ DNSName SyncRes::getBestNSNamesFromCache(const DNSName &qname, const QType& qtyp
     if( iter->second.d_servers.empty() )
       nsset.insert({DNSName(), {ComboAddress(), false}}); // this gets picked up in doResolveAt, the empty DNSName, combined with the empty ComboAddress means 'we are auth'
     else {
-      for(auto const &server : iter->second.d_servers)
+      for(auto const &server : iter->second.d_servers) {
         nsset.insert({DNSName(), {server, iter->second.d_rdForward}}); // An empty DNSName, combined with a non-empty ComboAddress means 'this is a forwarded domain'
+      }
     }
     return authdomain;
   }
@@ -965,7 +966,7 @@ int SyncRes::doResolveAt(map<DNSName, pair<ComboAddress, bool> > &nameservers, D
 	if(g_luaconfs.getLocal()->dfe.getProcessingPolicy(*tns).d_kind != DNSFilterEngine::PolicyKind::NoAction)
 	  throw ImmediateServFailException("Dropped because of policy");
 
-        if(!isCanonical(*tns)) {
+        if(tns->empty()) {
           LOG(prefix<<qname.toString()<<": Domain has hardcoded nameserver(s)"<<endl);
 
           remoteIPs.push_back(nameservers[*tns].first);
@@ -1354,7 +1355,7 @@ int SyncRes::doResolveAt(map<DNSName, pair<ComboAddress, bool> > &nameservers, D
           nameservers.insert({nameserver, {ComboAddress(), false}});
         break;
       }
-      else if(isCanonical(*tns)) { // means: not OOB (I think)
+      else if(!tns->empty()) { // means: not OOB, OOB == empty
         goto wasLame;
       }
     }
