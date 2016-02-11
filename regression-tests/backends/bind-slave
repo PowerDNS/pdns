@@ -3,6 +3,9 @@
 
 	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\")
 	do
+		if [ "$zone" = "." ]; then
+			zone="ROOT"
+		fi
 		rm -rf zones/$zone-slave
 	done
 
@@ -14,8 +17,11 @@
 	echo $skipreasons | grep -q nodnssec
 	if [ $? -ne 0 ]
 	then
-		sqlite3 dnssec-slave.sqlite3 "INSERT INTO tsigkeys (name, algorithm,secret) VALUES('test', '$ALGORITHM', '$KEY')"
-		sqlite3 dnssec-slave.sqlite3 "INSERT INTO domainmetadata (domain, kind, content) SELECT 'tsig.com', 'AXFR-MASTER-TSIG', 'test'"
+		sqlite3 dnssec-slave.sqlite3 "select name from domains where name = 'tsig.com'" | grep -q tsig.com
+		if [ $? -ne 0 ]; then
+			sqlite3 dnssec-slave.sqlite3 "INSERT INTO tsigkeys (name, algorithm,secret) VALUES('test', '$ALGORITHM', '$KEY')"
+			sqlite3 dnssec-slave.sqlite3 "INSERT INTO domainmetadata (domain, kind, content) SELECT 'tsig.com', 'AXFR-MASTER-TSIG', 'test'"
+		fi
 		echo $skipreasons | grep -q nolua
 		if [ $? -ne 0 ]
 		then

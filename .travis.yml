@@ -257,6 +257,38 @@ script:
   - ./timestamp ./start-test-stop 5300 tinydns
   - cd ..
 
+  - cd regression-tests.rootzone
+  - ./timestamp ./start-test-stop 5300 bind-both
+#FIXME 400, NSEC record synthesis for root zones is broken
+#  - ./timestamp ./start-test-stop 5300 bind-dnssec-both
+  - ./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-both
+#FIXME 400, NSEC record synthesis for root zones is broken
+#  - ./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-optout-both
+  - ./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-narrow
+  - ./timestamp ./start-test-stop 5300 bind-hybrid-nsec3
+
+  - ./timestamp ./start-test-stop 5300 gmysql-nodnssec-both
+  - ./timestamp ./start-test-stop 5300 gmysql-both
+#FIXME 400, NSEC3 record synthesis for root zones is broken
+#  - ./timestamp ./start-test-stop 5300 gmysql-nsec3-both
+#  - ./timestamp ./start-test-stop 5300 gmysql-nsec3-optout-both
+#  - ./timestamp ./start-test-stop 5300 gmysql-nsec3-narrow
+
+  - ./timestamp ./start-test-stop 5300 gpgsql-nodnssec-both
+  - ./timestamp ./start-test-stop 5300 gpgsql-both
+#FIXME 400, NSEC3 record synthesis for root zones is broken
+#  - ./timestamp ./start-test-stop 5300 gpgsql-nsec3-both
+#  - ./timestamp ./start-test-stop 5300 gpgsql-nsec3-optout-both
+#  - ./timestamp ./start-test-stop 5300 gpgsql-nsec3-narrow
+
+  - ./timestamp ./start-test-stop 5300 gsqlite3-nodnssec-both
+  - ./timestamp ./start-test-stop 5300 gsqlite3-both
+#FIXME 400, NSEC3 record synthesis for root zones is broken
+#  - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-both
+#  - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both
+#  - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-narrow
+
+  - cd ..
 
   ### recursor ###
 

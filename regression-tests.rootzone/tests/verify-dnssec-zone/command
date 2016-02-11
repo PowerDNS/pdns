@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | grep -v '^\(example.com\|nztest.com\)$')
+do
+	TFILE=$(mktemp tmp.XXXXXXXXXX)
+	drill -p $port axfr $zone @$nameserver | ldns-read-zone -z > $TFILE
+	for validator in "ldns-verify-zone -V2" named-checkzone
+	do
+		echo --- $validator $zone
+		if [ "$validator" = "named-checkzone" ]
+		then
+			named-checkzone -i local $zone $TFILE 2>&1 | grep -v 'addnode: NSEC node already exists'
+		else
+			if [ ! -e ${testsdir}/${testname}/allow-missing ] || [[ $(type -P "$validator") ]]
+			then
+				$validator $TFILE 2>&1
+			else
+				#fake output for missing validators
+				if [ "$validator" = "jdnssec-verifyzone" ]
+				then
+					echo zone verified.
+				fi
+			fi
+		fi
+		RETVAL=$?
+		echo RETVAL: $RETVAL
+		if [ $RETVAL -gt 0 ] && { [[ $validator != ldns-verify-zone* ]] || { [[ $skipreasons != *nsec3* ]] && [[ $skipreasons != *optout* ]]; }; }
+		then
+			echo $validator reported error, full zone content:
+			echo ---
+			cat $TFILE
+			echo --- end of zone content
+		fi
+		echo
+	done
+	
+	rm -f $TFILE
+done

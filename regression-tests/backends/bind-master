@@ -65,6 +65,10 @@ __EOF__
 			then
 				$PDNSUTIL --config-dir=. --config-name=bind set-nsec3 $zone '1 1 1 abcd' narrow 2>&1
 			fi
+			if [ "$zone" = "tsig.com" ]; then
+				$PDNSUTIL --config-dir=. --config-name=bind import-tsig-key test $ALGORITHM $KEY
+				$PDNSUTIL --config-dir=. --config-name=bind activate-tsig-key tsig.com test master
+			fi
 		done
 
 		if [ $context = bind-dnssec-nsec3 ] || [ $context = bind-hybrid-nsec3 ]
@@ -83,9 +87,6 @@ __EOF__
 			extracontexts="bind dnssec"
 			skipreasons="nodyndns"
 		fi
-
-		$PDNSUTIL --config-dir=. --config-name=bind import-tsig-key test $ALGORITHM $KEY
-		$PDNSUTIL --config-dir=. --config-name=bind activate-tsig-key tsig.com test master
 
 		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --config-dir=. \
 			--config-name=bind --socket-dir=./ --no-shuffle \
