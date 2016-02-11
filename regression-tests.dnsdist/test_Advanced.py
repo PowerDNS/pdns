@@ -41,7 +41,6 @@ class TestAdvancedFixupCase(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        receivedResponse.id = expectedResponse.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(expectedResponse, receivedResponse)
 
@@ -49,7 +48,6 @@ class TestAdvancedFixupCase(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        receivedResponse.id = expectedResponse.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(expectedResponse, receivedResponse)
 
@@ -85,7 +83,6 @@ class TestAdvancedRemoveRD(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = expectedQuery.id
-        receivedResponse.id = response.id
         self.assertEquals(expectedQuery, receivedQuery)
         self.assertEquals(response, receivedResponse)
 
@@ -93,7 +90,6 @@ class TestAdvancedRemoveRD(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = expectedQuery.id
-        receivedResponse.id = response.id
         self.assertEquals(expectedQuery, receivedQuery)
         self.assertEquals(response, receivedResponse)
 
@@ -119,7 +115,6 @@ class TestAdvancedRemoveRD(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(response, receivedResponse)
 
@@ -127,7 +122,6 @@ class TestAdvancedRemoveRD(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(response, receivedResponse)
 
@@ -163,7 +157,6 @@ class TestAdvancedAddCD(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = expectedQuery.id
-        receivedResponse.id = response.id
         self.assertEquals(expectedQuery, receivedQuery)
         self.assertEquals(response, receivedResponse)
 
@@ -171,7 +164,6 @@ class TestAdvancedAddCD(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = expectedQuery.id
-        receivedResponse.id = response.id
         self.assertEquals(expectedQuery, receivedQuery)
         self.assertEquals(response, receivedResponse)
 
@@ -197,7 +189,6 @@ class TestAdvancedAddCD(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(response, receivedResponse)
 
@@ -205,7 +196,6 @@ class TestAdvancedAddCD(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(response, receivedResponse)
 
@@ -238,12 +228,10 @@ class TestAdvancedSpoof(DNSDistTest):
 
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertTrue(receivedResponse)
-        receivedResponse.id = expectedResponse.id
         self.assertEquals(expectedResponse, receivedResponse)
 
         (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
         self.assertTrue(receivedResponse)
-        receivedResponse.id = expectedResponse.id
         self.assertEquals(expectedResponse, receivedResponse)
 
     def testSpoofAAAA(self):
@@ -267,12 +255,10 @@ class TestAdvancedSpoof(DNSDistTest):
 
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertTrue(receivedResponse)
-        receivedResponse.id = expectedResponse.id
         self.assertEquals(expectedResponse, receivedResponse)
 
         (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
         self.assertTrue(receivedResponse)
-        receivedResponse.id = expectedResponse.id
         self.assertEquals(expectedResponse, receivedResponse)
 
     def testSpoofCNAME(self):
@@ -296,12 +282,10 @@ class TestAdvancedSpoof(DNSDistTest):
 
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertTrue(receivedResponse)
-        receivedResponse.id = expectedResponse.id
         self.assertEquals(expectedResponse, receivedResponse)
 
         (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
         self.assertTrue(receivedResponse)
-        receivedResponse.id = expectedResponse.id
         self.assertEquals(expectedResponse, receivedResponse)
 
 class TestAdvancedPoolRouting(DNSDistTest):
@@ -330,13 +314,11 @@ class TestAdvancedPoolRouting(DNSDistTest):
 
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(response, receivedResponse)
 
         (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(response, receivedResponse)
 
@@ -410,14 +392,12 @@ class TestAdvancedRoundRobinLB(DNSDistTest):
         for idx in range(numberOfQueries):
             (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
             receivedQuery.id = query.id
-            receivedResponse.id = response.id
             self.assertEquals(query, receivedQuery)
             self.assertEquals(response, receivedResponse)
 
         for idx in range(numberOfQueries):
             (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
             receivedQuery.id = query.id
-            receivedResponse.id = response.id
             self.assertEquals(query, receivedQuery)
             self.assertEquals(response, receivedResponse)
 
@@ -460,14 +440,12 @@ class TestAdvancedRoundRobinLBOneDown(DNSDistTest):
         for idx in range(numberOfQueries):
             (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
             receivedQuery.id = query.id
-            receivedResponse.id = response.id
             self.assertEquals(query, receivedQuery)
             self.assertEquals(response, receivedResponse)
 
         for idx in range(numberOfQueries):
             (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
             receivedQuery.id = query.id
-            receivedResponse.id = response.id
             self.assertEquals(query, receivedQuery)
             self.assertEquals(response, receivedResponse)
 
@@ -532,7 +510,6 @@ class TestAdvancedDelay(DNSDistTest):
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
         end = datetime.now()
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(response, receivedResponse)
         self.assertTrue((end - begin) > timedelta(0, 1));
@@ -541,7 +518,6 @@ class TestAdvancedDelay(DNSDistTest):
         (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
         end = datetime.now()
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(response, receivedResponse)
         self.assertTrue((end - begin) < timedelta(0, 1));
@@ -589,12 +565,10 @@ class TestAdvancedLuaSpoof(DNSDistTest):
 
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertTrue(receivedResponse)
-        receivedResponse.id = expectedResponse.id
         self.assertEquals(expectedResponse, receivedResponse)
 
         (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
         self.assertTrue(receivedResponse)
-        receivedResponse.id = expectedResponse.id
         self.assertEquals(expectedResponse, receivedResponse)
 
     def testLuaSpoofAAAA(self):
@@ -618,12 +592,10 @@ class TestAdvancedLuaSpoof(DNSDistTest):
 
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertTrue(receivedResponse)
-        receivedResponse.id = expectedResponse.id
         self.assertEquals(expectedResponse, receivedResponse)
 
         (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
         self.assertTrue(receivedResponse)
-        receivedResponse.id = expectedResponse.id
         self.assertEquals(expectedResponse, receivedResponse)
 
     def testLuaSpoofAWithCNAME(self):
@@ -647,12 +619,10 @@ class TestAdvancedLuaSpoof(DNSDistTest):
 
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertTrue(receivedResponse)
-        receivedResponse.id = expectedResponse.id
         self.assertEquals(expectedResponse, receivedResponse)
 
         (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
         self.assertTrue(receivedResponse)
-        receivedResponse.id = expectedResponse.id
         self.assertEquals(expectedResponse, receivedResponse)
 
     def testLuaSpoofAAAAWithCNAME(self):
@@ -676,12 +646,10 @@ class TestAdvancedLuaSpoof(DNSDistTest):
 
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertTrue(receivedResponse)
-        receivedResponse.id = expectedResponse.id
         self.assertEquals(expectedResponse, receivedResponse)
 
         (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
         self.assertTrue(receivedResponse)
-        receivedResponse.id = expectedResponse.id
         self.assertEquals(expectedResponse, receivedResponse)
 
 class TestAdvancedTruncateAnyAndTCP(DNSDistTest):
@@ -715,7 +683,6 @@ class TestAdvancedTruncateAnyAndTCP(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(receivedResponse, response)
 
@@ -723,7 +690,6 @@ class TestAdvancedTruncateAnyAndTCP(DNSDistTest):
         expectedResponse.flags |= dns.flags.TC
 
         (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
-        receivedResponse.id = expectedResponse.id
         self.assertEquals(receivedResponse, expectedResponse)
 
 class TestAdvancedAndNot(DNSDistTest):
@@ -755,7 +721,6 @@ class TestAdvancedAndNot(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(receivedResponse, response)
 
@@ -763,7 +728,6 @@ class TestAdvancedAndNot(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(receivedResponse, response)
 
@@ -783,7 +747,6 @@ class TestAdvancedAndNot(DNSDistTest):
         expectedResponse.set_rcode(dns.rcode.NOTIMP)
 
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
-        receivedResponse.id = expectedResponse.id
         self.assertEquals(receivedResponse, expectedResponse)
 
         response = dns.message.make_response(query)
@@ -798,7 +761,6 @@ class TestAdvancedAndNot(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(receivedResponse, response)
 
@@ -831,14 +793,12 @@ class TestAdvancedOr(DNSDistTest):
         expectedResponse.set_rcode(dns.rcode.NOTIMP)
 
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
-        receivedResponse.id = expectedResponse.id
         self.assertEquals(receivedResponse, expectedResponse)
 
         (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(receivedResponse, response)
 
@@ -858,9 +818,7 @@ class TestAdvancedOr(DNSDistTest):
         expectedResponse.set_rcode(dns.rcode.NOTIMP)
 
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
-        receivedResponse.id = expectedResponse.id
         self.assertEquals(receivedResponse, expectedResponse)
 
         (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
-        receivedResponse.id = expectedResponse.id
         self.assertEquals(receivedResponse, expectedResponse)

@@ -55,7 +55,6 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = expectedQuery.id
-        receivedResponse.id = expectedResponse.id
         self.assertEquals(expectedQuery, receivedQuery)
         self.assertEquals(expectedResponse, receivedResponse)
 
@@ -63,7 +62,6 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = expectedQuery.id
-        receivedResponse.id = expectedResponse.id
         self.assertEquals(expectedQuery, receivedQuery)
         self.assertEquals(expectedResponse, receivedResponse)
 
@@ -94,7 +92,6 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = expectedQuery.id
-        receivedResponse.id = expectedResponse.id
         self.assertEquals(expectedQuery, receivedQuery)
         self.assertEquals(expectedResponse, receivedResponse)
 
@@ -102,7 +99,6 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = expectedQuery.id
-        receivedResponse.id = expectedResponse.id
         self.assertEquals(expectedQuery, receivedQuery)
         self.assertEquals(expectedResponse, receivedResponse)
 
@@ -131,7 +127,6 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(response, receivedResponse)
 
@@ -139,7 +134,6 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(response, receivedResponse)
 
@@ -193,7 +187,6 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = expectedQuery.id
-        receivedResponse.id = expectedResponse.id
         self.assertEquals(expectedQuery, receivedQuery)
         self.assertEquals(expectedResponse, receivedResponse)
 
@@ -201,7 +194,6 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = expectedQuery.id
-        receivedResponse.id = expectedResponse.id
         self.assertEquals(expectedQuery, receivedQuery)
         self.assertEquals(expectedResponse, receivedResponse)
 
@@ -232,7 +224,6 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = expectedQuery.id
-        receivedResponse.id = expectedResponse.id
         self.assertEquals(expectedQuery, receivedQuery)
         self.assertEquals(expectedResponse, receivedResponse)
 
@@ -240,7 +231,6 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = expectedQuery.id
-        receivedResponse.id = expectedResponse.id
         self.assertEquals(expectedQuery, receivedQuery)
         self.assertEquals(expectedResponse, receivedResponse)
 
@@ -273,7 +263,6 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = expectedQuery.id
-        receivedResponse.id = response.id
         self.assertEquals(expectedQuery, receivedQuery)
         self.assertEquals(response, receivedResponse)
 
@@ -281,7 +270,6 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = expectedQuery.id
-        receivedResponse.id = response.id
         self.assertEquals(expectedQuery, receivedQuery)
         self.assertEquals(response, receivedResponse)
 
@@ -314,7 +302,6 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = expectedQuery.id
-        receivedResponse.id = response.id
         self.assertEquals(expectedQuery, receivedQuery)
         self.assertEquals(response, receivedResponse)
 
@@ -322,7 +309,6 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = expectedQuery.id
-        receivedResponse.id = response.id
         self.assertEquals(expectedQuery, receivedQuery)
         self.assertEquals(response, receivedResponse)
 
@@ -355,7 +341,6 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = expectedQuery.id
-        receivedResponse.id = response.id
         self.assertEquals(expectedQuery, receivedQuery)
         self.assertEquals(response, receivedResponse)
 
@@ -363,7 +348,6 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = expectedQuery.id
-        receivedResponse.id = response.id
         self.assertEquals(expectedQuery, receivedQuery)
         self.assertEquals(response, receivedResponse)
 
