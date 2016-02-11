@@ -290,7 +290,7 @@ int PacketHandler::doChaosRequest(DNSPacket *p, DNSPacket *r, DNSName &target)
 
   if(p->qtype.getCode()==QType::TXT) {
     static const DNSName versionbind("version.bind."), versionpdns("version.pdns."), idserver("id.server.");
-    if (target==versionbind || target==versionbind) {
+    if (target==versionbind || target==versionpdns) {
       // modes: full, powerdns only, anonymous or custom
       const static string mode=::arg()["version-string"];
 
