@@ -298,6 +298,7 @@ size_t hash_value(DNSName const& d)
 string DNSName::escapeLabel(const std::string& label)
 {
   string ret;
+  ret.reserve(label.size()); // saves 15% on bulk .COM load
   for(uint8_t p : label) {
     if(p=='.')
       ret+="\\.";
