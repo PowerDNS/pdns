@@ -216,6 +216,13 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   d_lw->registerFunction<string(ComboAddress::*)()>("toString", [](const ComboAddress& ca) { return ca.toString(); });
   d_lw->registerFunction<string(ComboAddress::*)()>("toStringWithPort", [](const ComboAddress& ca) { return ca.toStringWithPort(); });
   d_lw->registerFunction<uint16_t(ComboAddress::*)()>("getPort", [](const ComboAddress& ca) { return ntohs(ca.sin4.sin_port); } );
+  d_lw->registerFunction<string(ComboAddress::*)()>("getRaw", [](const ComboAddress& ca) { 
+      if(ca.sin4.sin_family == AF_INET) {
+        auto t=ca.sin4.sin_addr.s_addr; return string((const char*)&t, 4); 
+      }
+      else 
+        return string((const char*)&ca.sin6.sin6_addr.s6_addr, 16);
+    } );
 
   d_lw->writeFunction("newCA", [](const std::string& a) { return ComboAddress(a); });
   typedef std::unordered_set<ComboAddress,ComboAddress::addressOnlyHash,ComboAddress::addressOnlyEqual> cas_t;
