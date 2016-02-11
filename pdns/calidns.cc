@@ -135,6 +135,10 @@ try
   struct sched_param param;
   param.sched_priority=99;
 
+  if(argc != 4) {
+    cerr<<"Syntax: calidns file-with-queries destination qps-goal"<<endl;
+    exit(EXIT_FAILURE);
+  }
   if(sched_setscheduler(0, SCHED_FIFO, &param) < 0)
     unixDie("setting scheduler");
 
