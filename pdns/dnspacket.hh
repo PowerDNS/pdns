@@ -159,6 +159,7 @@ public:
   bool d_tcp;
   bool d_dnssecOk;
   bool d_havetsig;
+  bool d_doFakeRRSIG;
 
   bool getTSIGDetails(TSIGRecordContent* tr, DNSName* keyname, string* message) const;
   void setTSIGDetails(const TSIGRecordContent& tr, const DNSName& keyname, const string& secret, const string& previous, bool timersonly=false);

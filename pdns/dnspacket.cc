@@ -60,6 +60,7 @@ DNSPacket::DNSPacket()
   d_wantsnsid=false;
   d_haveednssubnet = false;
   d_dnssecOk=false;
+  d_doFakeRRSIG=false;
   d_ednsversion=0;
   d_ednsrcode=0;
   memset(&d, 0, sizeof(d));
@@ -115,6 +116,7 @@ DNSPacket::DNSPacket(const DNSPacket &orig)
   d_ednsversion = orig.d_ednsversion;
   d_ednsrcode = orig.d_ednsrcode;
   d_dnssecOk = orig.d_dnssecOk;
+  d_doFakeRRSIG = orig.d_doFakeRRSIG;
   d_rrs=orig.d_rrs;
   
   d_tsigkeyname = orig.d_tsigkeyname;
@@ -317,6 +319,8 @@ void DNSPacket::wrapup()
     try {
       uint8_t maxScopeMask=0;
       for(pos=d_rrs.begin(); pos < d_rrs.end(); ++pos) {
+        if(d_doFakeRRSIG && pos->qtype.getCode()!=QType::RRSIG)
+          continue;
         // cerr<<"during wrapup, content=["<<pos->content<<"]"<<endl;
         maxScopeMask = max(maxScopeMask, pos->scopeMask);
 
@@ -414,6 +418,7 @@ DNSPacket *DNSPacket::replyPacket() const
   r->d_ednsping = d_ednsping;
   r->d_wantsnsid = d_wantsnsid;
   r->d_dnssecOk = d_dnssecOk;
+  r->d_doFakeRRSIG = d_doFakeRRSIG;
   r->d_eso = d_eso;
   r->d_haveednssubnet = d_haveednssubnet;
   r->d_haveednssection = d_haveednssection;
@@ -549,6 +554,7 @@ try
 
   d_wantsnsid=false;
   d_dnssecOk=false;
+  d_doFakeRRSIG=false;
   d_ednsping.clear();
   d_havetsig = mdp.getTSIGPos();
   d_haveednssubnet = false;
