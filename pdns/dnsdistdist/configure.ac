@@ -16,7 +16,7 @@ PDNS_ENABLE_UNIT_TESTS
 DNSDIST_ENABLE_DNSCRYPT
 
 AC_SUBST([YAHTTP_CFLAGS], ['-I$(top_srcdir)/ext/yahttp'])
-AC_SUBST([YAHTTP_LIBS], ['-L$(top_builddir)/ext/yahttp/yahttp -lyahttp'])
+AC_SUBST([YAHTTP_LIBS], ['$(top_builddir)/ext/yahttp/yahttp/libyahttp.la'])
 
 PDNS_WITH_LUAJIT
 AS_IF([test "x$with_luajit" = "xno"], [
@@ -60,5 +60,5 @@ AC_SUBST([PROGRAM_LDFLAGS])
 AC_CONFIG_FILES([Makefile
 	ext/yahttp/Makefile
 	ext/yahttp/yahttp/Makefile])
-	
+
 AC_OUTPUT
