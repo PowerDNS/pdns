@@ -513,21 +513,21 @@ struct PacketID
   }
 
   uint16_t id;  // wait for a specific id/remote pair
+  uint16_t type;             // and this is its type
   ComboAddress remote;  // this is the remote
   DNSName domain;             // this is the question
-  uint16_t type;             // and this is its type
 
   Socket* sock;  // or wait for an event on a TCP fd
-  int inNeeded; // if this is set, we'll read until inNeeded bytes are read
   string inMSG; // they'll go here
+  int inNeeded; // if this is set, we'll read until inNeeded bytes are read
   bool inIncompleteOkay;
 
   string outMSG; // the outgoing message that needs to be sent
   string::size_type outPos;    // how far we are along in the outMSG
 
-  mutable uint32_t nearMisses; // number of near misses - host correct, id wrong
   typedef set<uint16_t > chain_t;
   mutable chain_t chain;
+  mutable uint32_t nearMisses; // number of near misses - host correct, id wrong
   int fd;
 
   bool operator<(const PacketID& b) const
