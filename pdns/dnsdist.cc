@@ -645,40 +645,48 @@ try
       DNSAction::Action action=DNSAction::Action::None;
       string ruleresult;
       string pool;
-
-      for(const auto& lr : *localRulactions) {
-	if(lr.first->matches(&dq)) {
-	  action=(*lr.second)(&dq, &ruleresult);
-	  if(action != DNSAction::Action::None) {
-	    lr.first->d_matches++;
-	    break;
-	  }
-	}
-      }
       int delayMsec=0;
-      switch(action) {
-      case DNSAction::Action::Drop:
-	g_stats.ruleDrop++;
-	continue;
-      case DNSAction::Action::Nxdomain:
-	dq.dh->rcode = RCode::NXDomain;
-	dq.dh->qr=true;
-	g_stats.ruleNXDomain++;
-	break;
-      case DNSAction::Action::Pool: 
-	pool=ruleresult;
-	break;
-      case DNSAction::Action::Spoof:
-	spoofResponseFromString(dq, ruleresult);
-	/* fall-through */;
-      case DNSAction::Action::HeaderModify:
-	break;
-      case DNSAction::Action::Delay:
-	delayMsec = static_cast<int>(pdns_stou(ruleresult)); // sorry
-	break;
-      case DNSAction::Action::Allow:
-      case DNSAction::Action::None:
-	break;
+      bool done=false;
+      for(const auto& lr : *localRulactions) {
+        if(lr.first->matches(&dq)) {
+          lr.first->d_matches++;
+          action=(*lr.second)(&dq, &ruleresult);
+
+          switch(action) {
+          case DNSAction::Action::Allow:
+            done = true;
+            break;
+          case DNSAction::Action::Drop:
+            g_stats.ruleDrop++;
+            done = true;
+            break;
+          case DNSAction::Action::Nxdomain:
+            dq.dh->rcode = RCode::NXDomain;
+            dq.dh->qr=true;
+            g_stats.ruleNXDomain++;
+            done = true;
+            break;
+          case DNSAction::Action::Spoof:
+            spoofResponseFromString(dq, ruleresult);
+            done = true;
+            break;
+          case DNSAction::Action::HeaderModify:
+            done = true;
+            break;
+          /* non-terminal actions follow */
+          case DNSAction::Action::Pool:
+            pool=ruleresult;
+            break;
+          case DNSAction::Action::Delay:
+            delayMsec = static_cast<int>(pdns_stou(ruleresult)); // sorry
+            break;
+          case DNSAction::Action::None:
+	    break;
+          }
+          if (done) {
+            break;
+          }
+        }
       }
 
       if(dq.dh->qr) { // something turned it into a response

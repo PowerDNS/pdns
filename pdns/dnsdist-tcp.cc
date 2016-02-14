@@ -268,42 +268,48 @@ void* tcpClientThread(int pipefd)
             dq.dh->qr=false;
           }
         }
-	
+
+        bool done=false;
 	DNSAction::Action action=DNSAction::Action::None;
 	for(const auto& lr : *localRulactions) {
 	  if(lr.first->matches(&dq)) {
-	    action=(*lr.second)(&dq, &ruleresult);
-	    if(action != DNSAction::Action::None) {
-	      lr.first->d_matches++;
+            lr.first->d_matches++;
+            action=(*lr.second)(&dq, &ruleresult);
+            switch(action) {
+            case DNSAction::Action::Allow:
+              done = true;
+              break;
+            case DNSAction::Action::Drop:
+              g_stats.ruleDrop++;
+              goto drop;
+              break;
+            case DNSAction::Action::Nxdomain:
+              dq.dh->rcode = RCode::NXDomain;
+              dq.dh->qr=true;
+              g_stats.ruleNXDomain++;
+              done = true;
+              break;
+            case DNSAction::Action::Spoof:
+              spoofResponseFromString(dq, ruleresult);
+              done = true;
+              break;
+            case DNSAction::Action::HeaderModify:
+              done = true;
+              break;
+            /* non-terminal actions follow */
+            case DNSAction::Action::Pool:
+              pool=ruleresult;
+              break;
+            case DNSAction::Action::Delay:
+            case DNSAction::Action::None:
+              break;
+            }
+	    if(done) {
 	      break;
 	    }
 	  }
 	}
-	switch(action) {
-	case DNSAction::Action::Drop:
-	  g_stats.ruleDrop++;
-	  goto drop;
 
-	case DNSAction::Action::Nxdomain:
-	  dq.dh->rcode = RCode::NXDomain;
-	  dq.dh->qr=true;
-	  g_stats.ruleNXDomain++;
-	  break;
-	case DNSAction::Action::Pool: 
-	  pool=ruleresult;
-	  break;
-	  
-	case DNSAction::Action::Spoof:
-	  spoofResponseFromString(dq, ruleresult);
-	  /* fall-through */;
-	case DNSAction::Action::HeaderModify:
-	  break;
-	case DNSAction::Action::Allow:
-	case DNSAction::Action::None:
-	case DNSAction::Action::Delay:
-	  break;
-	}
-	
 	if(dq.dh->qr) { // something turned it into a response
 	  if (putNonBlockingMsgLen(ci.fd, dq.len, g_tcpSendTimeout))
 	    writen2WithTimeout(ci.fd, query, dq.len, g_tcpSendTimeout);
