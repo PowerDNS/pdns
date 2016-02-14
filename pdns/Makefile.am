@@ -29,6 +29,10 @@ if SQLITE3
 AM_CPPFLAGS += $(SQLITE3_CFLAGS)
 endif
 
+if HAVE_RE2
+AM_CPPFLAGS += $(RE2_CFLAGS)
+endif
+
 if LUA
 AM_CPPFLAGS +=$(LUA_CFLAGS)
 endif
@@ -1214,6 +1218,10 @@ dnsdist_LDADD = \
 	$(YAHTTP_LIBS) \
 	$(LIBSODIUM_LIBS) \
 	$(OPENSSL_LIBS)
+
+if HAVE_RE2
+dnsdist_LDADD += $(RE2_LIBS)
+endif
 
 htmlfiles.h: $(srcdir)/dnsdistdist/html/*
 	$(srcdir)/dnsdistdist/incfiles $(srcdir)/dnsdistdist > $@

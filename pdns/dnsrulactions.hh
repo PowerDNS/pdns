@@ -202,12 +202,36 @@ public:
 
   string toString() const override
   {
-    return "Regex qname: "+d_visual;
+    return "Regex: "+d_visual;
   }
 private:
   Regex d_regex;
   string d_visual;
 };
+
+#ifdef HAVE_RE2
+#include <re2/re2.h>
+class RE2Rule : public DNSRule
+{
+public:
+  RE2Rule(const std::string& re2) : d_re2(re2, RE2::Latin1), d_visual(re2)
+  {
+    
+  }
+  bool matches(const DNSQuestion* dq) const override
+  {
+    return RE2::FullMatch(dq->qname->toStringNoDot(), d_re2);
+  }
+
+  string toString() const override
+  {
+    return "RE2 match: "+d_visual;
+  }
+private:
+  RE2 d_re2;
+  string d_visual;
+};
+#endif
 
 
 class SuffixMatchNodeRule : public DNSRule
