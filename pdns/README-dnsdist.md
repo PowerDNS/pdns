@@ -840,7 +840,7 @@ instantiate a server with additional parameters
     * `DelayAction()`: delay the response by the specified amount of milliseconds (UDP-only)
     * `DisableValidationAction()`: set the CD bit in the question, let it go through
     * `DropAction()`: drop these packets
-    * `LogAction()`: Log a line for each query, to the specified file if any, to the console (require verbose) otherwise
+    * `LogAction([filename], [binary])`: Log a line for each query, to the specified file if any, to the console (require verbose) otherwise. When logging to a file, the `binary` optional parameter specifies whether we log in binary form (default) or in textual form
     * `NoRecurseAction()`: strip RD bit from the question, let it go through
     * `PoolAction()`: set the packet into the specified pool
     * `QPSPoolAction()`: set the packet into the specified pool only if it does not exceed the specified QPS limits

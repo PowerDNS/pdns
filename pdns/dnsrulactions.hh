@@ -589,7 +589,7 @@ public:
   LogAction() : d_fp(0)
   {
   }
-  LogAction(const std::string& str) : d_fname(str)
+  LogAction(const std::string& str, bool binary=true) : d_fname(str), d_binary(binary)
   {
     if(str.empty())
       return;
@@ -608,19 +608,28 @@ public:
       vinfolog("Packet from %s for %s %s with id %d", dq->remote->toStringWithPort(), dq->qname->toString(), QType(dq->qtype).getName(), dq->dh->id);
     }
     else {
-      string out = dq->qname->toDNSString();
-      fwrite(out.c_str(), 1, out.size(), d_fp);
-      fwrite((void*)&dq->qtype, 1, 2, d_fp);
+      if(d_binary) {
+        string out = dq->qname->toDNSString();
+        fwrite(out.c_str(), 1, out.size(), d_fp);
+        fwrite((void*)&dq->qtype, 1, 2, d_fp);
+      }
+      else {
+        fprintf(d_fp, "Packet from %s for %s %s with id %d\n", dq->remote->toStringWithPort().c_str(), dq->qname->toString().c_str(), QType(dq->qtype).getName().c_str(), dq->dh->id);
+      }
     }
     return Action::None;
   }
   string toString() const override
   {
+    if (!d_fname.empty()) {
+      return "log to " + d_fname;
+    }
     return "log";
   }
 private:
   string d_fname;
   FILE* d_fp{0};
+  bool d_binary{true};
 };
 
 

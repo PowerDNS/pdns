@@ -619,8 +619,8 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       return std::shared_ptr<DNSAction>(new DisableValidationAction);
     });
 
-  g_lua.writeFunction("LogAction", [](const std::string& fname) {
-      return std::shared_ptr<DNSAction>(new LogAction(fname));
+  g_lua.writeFunction("LogAction", [](const std::string& fname, boost::optional<bool> binary) {
+      return std::shared_ptr<DNSAction>(new LogAction(fname, binary ? *binary : true));
     });
 
   g_lua.writeFunction("RCodeAction", [](int rcode) {
