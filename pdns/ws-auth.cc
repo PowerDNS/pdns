@@ -1112,6 +1112,17 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       }
     }
 
+    // determine signing algorithms
+    vector<string> k_algos;
+    vector<string> z_algos;
+    int k_size;
+    int z_size;
+
+    stringtok(k_algos, arg()["default-ksk-algorithms"], " ,");
+    stringtok(z_algos, arg()["default-zsk-algorithms"], " ,");
+    k_size = arg().asNum("default-ksk-size");
+    z_size = arg().asNum("default-zsk-size");
+
     // no going back after this
     if(!B.createDomain(zonename))
       throw ApiException("Creating domain '"+zonename.toString()+"' failed");
@@ -1134,6 +1145,40 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       c.domain_id = di.id;
       di.backend->feedComment(c);
     }
+
+    if (boolFromJson(document, "dnssec", false)) {
+      for (auto &k_algo: k_algos) {
+        int algo = DNSSECKeeper::shorthand2algorithm(k_algo);
+
+        if (!dk.addKey(zonename, true, algo, k_size, true)) {
+          throw ApiException("No backend was able to secure '" + zonename.toString() + "', most likely because no DNSSEC"
+                             + "capable backends are loaded, or because the backends have DNSSEC disabled."
+                             + "For the Generic SQL backends, set the 'gsqlite3-dnssec', 'gmysql-dnssec' or"
+                             + "'gpgsql-dnssec' flag. Also make sure the schema has been updated for DNSSEC!");
+        }
+      }
+
+      for (auto &z_algo :  z_algos) {
+        int algo = DNSSECKeeper::shorthand2algorithm(z_algo);
+
+        if (!dk.addKey(zonename, k_algos.empty(), algo, z_size, true)) {
+          throw ApiException("No backend was able to secure '" + zonename.toString() + "', most likely because no DNSSEC"
+                             + "capable backends are loaded, or because the backends have DNSSEC disabled."
+                             + "For the Generic SQL backends, set the 'gsqlite3-dnssec', 'gmysql-dnssec' or"
+                             + "'gpgsql-dnssec' flag. Also make sure the schema has been updated for DNSSEC!");
+        }
+      }
+
+      if (!dk.isSecuredZone(zonename)) {
+        throw ApiException("Failed to secure '" + zonename.toString() + "'. Is your backend dnssec enabled? (set "
+                           + "gsqlite3-dnssec, or gmysql-dnssec etc). Check this first."
+                           + "If you run with the BIND backend, make sure you have configured"
+                           + "it to use DNSSEC with 'bind-dnssec-db=/path/fname' and"
+                           + "'pdnsutil create-bind-db /path/fname'!");
+      }
+    }
+
+    // TODO rectify zone
 
     updateDomainSettingsFromDocument(di, zonename, document);
 
