@@ -114,7 +114,7 @@ static void connectionThread(int sock, ComboAddress remote, string password)
 
         for(const auto& e : g_stats.entries) {
           if(const auto& val = boost::get<DNSDistStats::stat_t*>(&e.second))
-            obj.insert({e.first, (int)(*val)->load()});
+            obj.insert({e.first, (double)(*val)->load()});
           else if (const auto& val = boost::get<double*>(&e.second))
             obj.insert({e.first, (**val)});
           else

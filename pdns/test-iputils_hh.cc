@@ -134,8 +134,17 @@ BOOST_AUTO_TEST_CASE(test_ComboAddressTruncate) {
 
     BOOST_CHECK_EQUAL(result, manual);
   }
+}
 
 
+BOOST_AUTO_TEST_CASE(test_Mapping)
+{
+  ComboAddress lh("::1");
+  BOOST_CHECK_EQUAL(lh.toString(), "::1");
+
+  ComboAddress lh2("::2");
+  BOOST_CHECK_EQUAL(lh2.toString(), "::2");  
+  
 }
 
 BOOST_AUTO_TEST_CASE(test_Netmask) {

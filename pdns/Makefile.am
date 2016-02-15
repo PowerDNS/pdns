@@ -96,6 +96,7 @@ endif
 
 EXTRA_PROGRAMS = \
 	calidns \
+	comfun \
 	dnsbulktest \
 	dnsdemog \
 	dnsgram \
@@ -770,6 +771,37 @@ dnsbulktest_LDFLAGS = \
 dnsbulktest_LDADD = \
 	$(OPENSSL_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS)
+
+comfun_SOURCES = \
+	base32.cc \
+	base64.cc \
+	comfun.cc \
+	dns.cc \
+	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
+	dnsparser.cc \
+	dnsrecords.cc \
+	dnswriter.cc \
+	logger.cc \
+	misc.cc \
+	nsecrecords.cc \
+	qtype.cc \
+	rcpgenerator.cc \
+	sillyrecords.cc \
+	statbag.cc \
+	unix_utility.cc \
+	zoneparser-tng.cc zoneparser-tng.hh
+
+comfun_LDFLAGS = \
+	$(AM_LDFLAGS) \
+	$(OPENSSL_LDFLAGS) \
+	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
+
+comfun_LDADD = \
+	$(MBEDTLS_LIBS) \
+	$(OPENSSL_LIBS) \
+	$(BOOST_PROGRAM_OPTIONS_LIBS)
+
 
 dnsscan_SOURCES = \
 	anadns.hh \
