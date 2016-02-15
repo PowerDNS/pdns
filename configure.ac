@@ -296,10 +296,6 @@ PDNS_ENABLE_COVERAGE
 PDNS_ENABLE_SANITIZERS
 PDNS_ENABLE_MALLOC_TRACE
 
-# Test if the pdns/dnsdistdist/html directory exists, so `make dnsdist` from the
-# repo root can still work.
-AM_CONDITIONAL([HAVE_DNSDISTDISTHTML], [test -d $srcdir/pdns/dnsdistdist/html])
-
 AC_SUBST(LIBS)
 
 AC_SUBST([AM_CPPFLAGS],
