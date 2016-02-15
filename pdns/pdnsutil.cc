@@ -97,8 +97,6 @@ void loadMainConfig(const std::string& configdir)
   BackendMakers().launch(::arg()["launch"]); // vrooooom!
   L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));  
 
-  if (! ::arg().laxFile(configname.c_str()))
-    cerr<<"Warning: unable to read configuration file '"<<configname<<"'."<<endl;
   //cerr<<"Backend: "<<::arg()["launch"]<<", '" << ::arg()["gmysql-dbname"] <<"'" <<endl;
 
   S.declare("qsize-q","Number of questions waiting for database attention");
@@ -120,6 +118,10 @@ void loadMainConfig(const std::string& configdir)
   ::arg().set("soa-retry-default","Default SOA retry")="3600";
   ::arg().set("soa-expire-default","Default SOA expire")="604800";
   ::arg().set("soa-minimum-ttl","Default SOA minimum ttl")="3600";    
+
+  // Keep this line below all ::arg().set() statements
+  if (! ::arg().laxFile(configname.c_str()))
+    cerr<<"Warning: unable to read configuration file '"<<configname<<"'."<<endl;
 
   UeberBackend::go();
 }
