@@ -644,6 +644,12 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       return std::shared_ptr<DNSRule>(new RegexRule(str));
     });
 
+#ifdef HAVE_RE2
+  g_lua.writeFunction("RE2Rule", [](const std::string& str) {
+      return std::shared_ptr<DNSRule>(new RE2Rule(str));
+    });
+#endif
+
   g_lua.writeFunction("SuffixMatchNodeRule", [](const SuffixMatchNode& smn) {
       return std::shared_ptr<DNSRule>(new SuffixMatchNodeRule(smn));
     });

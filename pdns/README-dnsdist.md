@@ -294,6 +294,7 @@ Rules have selectors and actions. Current selectors are:
  * QClass (QClassRule)
  * QType (QTypeRule)
  * RegexRule on query name
+ * RE2Rule on query name (optional)
  * Packet requests DNSSEC processing
  * Query received over UDP or TCP
 
@@ -341,6 +342,7 @@ A DNS rule can be:
  * a QClassRule
  * a QTypeRule
  * a RegexRule
+ * a RE2Rule
  * a SuffixMatchNodeRule
  * a TCPRule
 
@@ -478,6 +480,8 @@ The second rule drops anything with more than 4 consecutive digits within a .CN 
 
 Note that the query name is presented without a trailing dot to the regex.
 The regex is applied case insensitively. 
+
+Alternatively, if compiled in, RE2Rule provides similar functionality, but against libre2.
 
 Inspecting live traffic
 -----------------------

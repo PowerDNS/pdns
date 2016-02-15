@@ -20,6 +20,11 @@ html/js/%.min.js: src_js/%.js
 
 min_js: $(MIN_JS_FILES)
 
+if HAVE_RE2
+AM_CPPFLAGS += $(RE2_CFLAGS)
+endif
+
+
 EXTRA_DIST=dnslabeltext.rl \
 	   dnsdistconf.lua \
 	   README.md \
@@ -87,6 +92,10 @@ dnsdist_LDADD = \
 	$(YAHTTP_LIBS) \
 	$(LIBSODIUM_LIBS) \
 	$(SANITIZER_FLAGS)
+
+if HAVE_RE2
+dnsdist_LDADD += $(RE2_LIBS)
+endif
 
 
 testrunner_SOURCES = \
