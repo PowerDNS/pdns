@@ -1080,3 +1080,11 @@ $(srcdir)/effective_tld_names.dat:
 
 pubsuffix.cc: $(srcdir)/effective_tld_names.dat
 	$(AM_V_GEN)./mkpubsuffixcc
+
+pdns_recursor rec_control:
+	@echo "Please build the recursor from the recursordist/ dir"
+	@exit 1
+
+dnsdist:
+	@echo "Please build dnsdist from the dnsdistdist/ dir"
+	@exit 1
