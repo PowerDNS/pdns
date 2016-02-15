@@ -243,6 +243,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			  ret->qps=QPSLimiter(qps, qps);
 			}
 
+			auto localPools = g_pools.getCopy();
 			if(vars.count("pool")) {
 			  if(auto* pool = boost::get<string>(&vars["pool"]))
 			    ret->pools.insert(*pool);
@@ -251,7 +252,14 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			    for(auto& p : *pools)
 			      ret->pools.insert(p.second);
 			  }
+			  for(const auto& poolName: ret->pools) {
+			    addServerToPool(localPools, poolName, ret);
+			  }
 			}
+			else {
+			  addServerToPool(localPools, "", ret);
+			}
+			g_pools.setState(localPools);
 
 			if(vars.count("order")) {
 			  ret->order=std::stoi(boost::get<string>(vars["order"]));
@@ -369,12 +377,23 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 		      [](boost::variant<std::shared_ptr<DownstreamState>, int> var)
 		      { 
                         setLuaSideEffect();
-			auto states = g_dstates.getCopy();
-			if(auto* rem = boost::get<shared_ptr<DownstreamState>>(&var))
-			  states.erase(remove(states.begin(), states.end(), *rem), states.end());
-			else
-			  states.erase(states.begin() + boost::get<int>(var));
-			g_dstates.setState(states);
+                        shared_ptr<DownstreamState> server;
+                        auto* rem = boost::get<shared_ptr<DownstreamState>>(&var);
+                        auto states = g_dstates.getCopy();
+                        if(rem) {
+                          server = *rem;
+                        }
+                        else {
+                          int idx = boost::get<int>(var);
+                          server = states[idx];
+                        }
+                        auto localPools = g_pools.getCopy();
+                        for (const string& poolName : server->pools) {
+                          removeServerFromPool(localPools, poolName, server);
+                        }
+                        g_pools.setState(localPools);
+                        states.erase(remove(states.begin(), states.end(), server), states.end());
+                        g_dstates.setState(states);
 		      } );
 
 
@@ -610,7 +629,6 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       return std::shared_ptr<DNSAction>(new DelayAction(msec));
     });
 
-
   g_lua.writeFunction("TCAction", []() {
       return std::shared_ptr<DNSAction>(new TCAction);
     });
@@ -625,6 +643,10 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
   g_lua.writeFunction("RCodeAction", [](int rcode) {
       return std::shared_ptr<DNSAction>(new RCodeAction(rcode));
+    });
+
+  g_lua.writeFunction("SkipCacheAction", []() {
+      return std::shared_ptr<DNSAction>(new SkipCacheAction);
     });
 
   g_lua.writeFunction("MaxQPSIPRule", [](unsigned int qps, boost::optional<int> ipv4trunc, boost::optional<int> ipv6trunc) {
@@ -826,7 +848,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
     });
 
   g_lua.writeFunction("getPoolServers", [](string pool) {
-      return getDownstreamCandidates(g_dstates.getCopy(), pool);
+      return getDownstreamCandidates(g_pools.getCopy(), pool);
     });
 
   g_lua.writeFunction("getServer", [client](int i) {
@@ -836,8 +858,18 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
     });
 
   g_lua.registerFunction<void(DownstreamState::*)(int)>("setQPS", [](DownstreamState& s, int lim) { s.qps = lim ? QPSLimiter(lim, lim) : QPSLimiter(); });
-  g_lua.registerFunction<void(DownstreamState::*)(string)>("addPool", [](DownstreamState& s, string pool) { s.pools.insert(pool);});
-  g_lua.registerFunction<void(DownstreamState::*)(string)>("rmPool", [](DownstreamState& s, string pool) { s.pools.erase(pool);});
+  g_lua.registerFunction<void(std::shared_ptr<DownstreamState>::*)(string)>("addPool", [](std::shared_ptr<DownstreamState> s, string pool) {
+      auto localPools = g_pools.getCopy();
+      addServerToPool(localPools, pool, s);
+      g_pools.setState(localPools);
+      s->pools.insert(pool);
+    });
+  g_lua.registerFunction<void(std::shared_ptr<DownstreamState>::*)(string)>("rmPool", [](std::shared_ptr<DownstreamState> s, string pool) {
+      auto localPools = g_pools.getCopy();
+      removeServerFromPool(localPools, pool, s);
+      g_pools.setState(localPools);
+      s->pools.erase(pool);
+    });
 
   g_lua.registerFunction<void(DownstreamState::*)()>("getOutstanding", [](const DownstreamState& s) { g_outputBuffer=std::to_string(s.outstanding.load()); });
 
@@ -1230,6 +1262,8 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
   g_lua.writeFunction("setMaxTCPClientThreads", [](uint64_t max) { g_maxTCPClientThreads = max; });
 
+  g_lua.writeFunction("setCacheCleaningDelay", [](uint32_t delay) { g_cacheCleaningDelay = delay; });
+
   g_lua.writeFunction("setECSSourcePrefixV4", [](uint16_t prefix) { g_ECSSourcePrefixV4=prefix; });
 
   g_lua.writeFunction("setECSSourcePrefixV6", [](uint16_t prefix) { g_ECSSourcePrefixV6=prefix; });
@@ -1280,7 +1314,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       }
     });
 
-  moreLua();
+  moreLua(client);
   
   std::ifstream ifs(config);
   if(!ifs) 

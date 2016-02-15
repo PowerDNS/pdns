@@ -1,4 +1,5 @@
 #include "dnsdist.hh"
+#include "dnsdist-cache.hh"
 #include "dnsrulactions.hh"
 #include <thread>
 #include "dolog.hh"
@@ -118,7 +119,7 @@ map<ComboAddress,int> exceedRespByterate(int rate, int seconds)
 }
 
 
-void moreLua()
+void moreLua(bool client)
 {
   typedef NetmaskTree<DynBlock> nmts_t;
   g_lua.writeFunction("newCA", [](const std::string& name) { return ComboAddress(name); });
@@ -493,4 +494,68 @@ void moreLua()
 #endif
     });
 
+    g_lua.writeFunction("showPools", []() {
+      setLuaNoSideEffect();
+      try {
+        ostringstream ret;
+        boost::format fmt("%1$-20.20s %|25t|%2$20s %|50t|%3%" );
+        //             1        3         4
+        ret << (fmt % "Name" % "Cache" % "Servers" ) << endl;
+
+        const auto localPools = g_pools.getCopy();
+        for (const auto& entry : localPools) {
+          const string& name = entry.first;
+          const std::shared_ptr<ServerPool> pool = entry.second;
+          string cache = pool->packetCache != nullptr ? pool->packetCache->toString() : "";
+          string servers;
+
+          for (const auto& server: pool->servers) {
+            if (!servers.empty()) {
+              servers += ", ";
+            }
+            if (!server.second->name.empty()) {
+              servers += server.second->name;
+              servers += " ";
+            }
+            servers += server.second->remote.toStringWithPort();
+          }
+
+          ret << (fmt % name % cache % servers) << endl;
+        }
+        g_outputBuffer=ret.str();
+      }catch(std::exception& e) { g_outputBuffer=e.what(); throw; }
+    });
+
+    g_lua.registerFunction<void(std::shared_ptr<ServerPool>::*)(std::shared_ptr<DNSDistPacketCache>)>("setCache", [](std::shared_ptr<ServerPool> pool, std::shared_ptr<DNSDistPacketCache> cache) {
+        pool->packetCache = cache;
+    });
+    g_lua.registerFunction("getCache", &ServerPool::getCache);
+
+    g_lua.writeFunction("newPacketCache", [client](size_t maxEntries, boost::optional<uint32_t> maxTTL, boost::optional<uint32_t> minTTL) {
+        return std::make_shared<DNSDistPacketCache>(maxEntries, maxTTL ? *maxTTL : 86400, minTTL ? *minTTL : 60);
+      });
+    g_lua.registerFunction("toString", &DNSDistPacketCache::toString);
+    g_lua.registerFunction("isFull", &DNSDistPacketCache::isFull);
+    g_lua.registerFunction("purge", &DNSDistPacketCache::purge);
+    g_lua.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)(const DNSName& dname, boost::optional<uint16_t> qtype)>("expungeByName", [](std::shared_ptr<DNSDistPacketCache> cache, const DNSName& dname, boost::optional<uint16_t> qtype) {
+        cache->expunge(dname, qtype ? *qtype : QType::ANY);
+      });
+    g_lua.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)()>("printStats", [](const std::shared_ptr<DNSDistPacketCache> cache) {
+        g_outputBuffer="Hits: " + std::to_string(cache->getHits()) + "\n";
+        g_outputBuffer+="Misses: " + std::to_string(cache->getMisses()) + "\n";
+        g_outputBuffer+="Deferred inserts: " + std::to_string(cache->getDeferredInserts()) + "\n";
+        g_outputBuffer+="Deferred lookups: " + std::to_string(cache->getDeferredLookups()) + "\n";
+        g_outputBuffer+="Lookup Collisions: " + std::to_string(cache->getLookupCollisions()) + "\n";
+        g_outputBuffer+="Insert Collisions: " + std::to_string(cache->getInsertCollisions()) + "\n";
+      });
+
+    g_lua.writeFunction("getPool", [client](const string& poolName) {
+        if (client) {
+          return std::make_shared<ServerPool>();
+        }
+        auto localPools = g_pools.getCopy();
+        std::shared_ptr<ServerPool> pool = createPoolIfNotExists(localPools, poolName);
+        g_pools.setState(localPools);
+        return pool;
+      });
 }

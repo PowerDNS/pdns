@@ -150,6 +150,7 @@ void* tcpClientThread(int pipefd)
   auto localPolicy = g_policy.getLocal();
   auto localRulactions = g_rulactions.getLocal();
   auto localDynBlockNMG = g_dynblockNMG.getLocal();
+  auto localPools = g_pools.getLocal();
 
   map<ComboAddress,int> sockets;
   for(;;) {
@@ -161,7 +162,7 @@ void* tcpClientThread(int pipefd)
     delete citmp;    
 
     uint16_t qlen, rlen;
-    string pool; 
+    string poolname;
     const uint16_t rdMask = 1 << FLAGS_RD_OFFSET;
     const uint16_t cdMask = 1 << FLAGS_CD_OFFSET;
     const uint16_t restoreFlagsMask = UINT16_MAX & ~(rdMask | cdMask);
@@ -298,7 +299,7 @@ void* tcpClientThread(int pipefd)
               break;
             /* non-terminal actions follow */
             case DNSAction::Action::Pool:
-              pool=ruleresult;
+              poolname=ruleresult;
               break;
             case DNSAction::Action::Delay:
             case DNSAction::Action::None:
@@ -321,9 +322,10 @@ void* tcpClientThread(int pipefd)
 	if(dq.qtype == QType::AXFR || dq.qtype == QType::IXFR)  // XXX fixme we really need to do better
 	  break;
 
+        std::shared_ptr<ServerPool> serverPool = getPool(*localPools, poolname);
 	{
 	  std::lock_guard<std::mutex> lock(g_luamutex);
-	  ds = localPolicy->policy(getDownstreamCandidates(g_dstates.getCopy(), pool), &dq);
+	  ds = localPolicy->policy(serverPool->servers, &dq);
 	}
 	if(!ds) {
 	  g_stats.noPolicy++;
@@ -340,6 +342,19 @@ void* tcpClientThread(int pipefd)
           } else {
             dq.len = newLen;
           }
+        }
+
+        uint32_t cacheKey = 0;
+        if (serverPool->packetCache && !dq.skipCache) {
+          char cachedResponse[4096];
+          uint16_t cachedResponseSize = sizeof cachedResponse;
+          if (serverPool->packetCache->get((unsigned char*) query, dq.len, *dq.qname, dq.qtype, dq.qclass, consumed, dq.dh->id, cachedResponse, &cachedResponseSize, &cacheKey)) {
+            if (putNonBlockingMsgLen(ci.fd, cachedResponseSize, g_tcpSendTimeout))
+              writen2WithTimeout(ci.fd, cachedResponse, cachedResponseSize, g_tcpSendTimeout);
+            g_stats.cacheHits++;
+            goto drop;
+          }
+          g_stats.cacheMisses++;
         }
 
 	int dsock;
@@ -458,6 +473,10 @@ void* tcpClientThread(int pipefd)
 	if(g_fixupCase) {
 	  string realname = qname.toDNSString();
 	  memcpy(response + sizeof(dnsheader), realname.c_str(), realname.length());
+	}
+
+	if (serverPool->packetCache && !dq.skipCache) {
+	  serverPool->packetCache->insert(cacheKey, qname, qtype, qclass, response, responseLen);
 	}
 
 #ifdef HAVE_DNSCRYPT

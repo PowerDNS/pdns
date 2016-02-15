@@ -646,3 +646,17 @@ public:
     return "set cd=1";
   }
 };
+
+class SkipCacheAction : public DNSAction
+{
+public:
+  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  {
+    dq->skipCache = true;
+    return Action::None;
+  }
+  string toString() const override
+  {
+    return "skip cache";
+  }
+};

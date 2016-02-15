@@ -40,6 +40,7 @@
 #include <pwd.h>
 #include "lock.hh"
 #include <getopt.h>
+#include "dnsdist-cache.hh"
 
 /* Known sins:
 
@@ -68,6 +69,7 @@ vector<std::pair<ComboAddress, bool>> g_locals;
 std::vector<std::pair<ComboAddress,DnsCryptContext>> g_dnsCryptLocals;
 #endif
 vector<ClientState *> g_frontends;
+GlobalStateHolder<pools_t> g_pools;
 
 /* UDP: the grand design. Per socket we listen on for incoming queries there is one thread.
    Then we have a bunch of connected sockets for talking to downstream servers. 
@@ -237,6 +239,10 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
 
     g_stats.responses++;
 
+    if (ids->packetCache && !ids->skipCache) {
+      ids->packetCache->insert(ids->cacheKey, ids->qname, ids->qtype, ids->qclass, response, responseLen);
+    }
+
 #ifdef HAVE_DNSCRYPT
     uint16_t encryptedResponseLen = 0;
     if(ids->dnsCryptQuery) {
@@ -336,6 +342,10 @@ shared_ptr<DownstreamState> firstAvailable(const NumberedServerVector& servers, 
 // get server with least outstanding queries, and within those, with the lowest order, and within those: the fastest
 shared_ptr<DownstreamState> leastOutstanding(const NumberedServerVector& servers, const DNSQuestion* dq)
 {
+  if (servers.size() == 1 && servers[0].second->isUp()) {
+    return servers[0].second;
+  }
+
   vector<pair<tuple<int,int,double>, shared_ptr<DownstreamState>>> poss;
   /* so you might wonder, why do we go through this trouble? The data on which we sort could change during the sort,
      which would suck royally and could even lead to crashes. So first we snapshot on what we sort, and then we sort */
@@ -444,16 +454,62 @@ static void daemonize(void)
 
 ComboAddress g_serverControl{"127.0.0.1:5199"};
 
-
-NumberedServerVector getDownstreamCandidates(const servers_t& servers, const std::string& pool)
+std::shared_ptr<ServerPool> createPoolIfNotExists(pools_t& pools, const string& poolName)
 {
-  NumberedServerVector ret;
-  int count=0;
-  for(const auto& s : servers) 
-    if((pool.empty() && s->pools.empty()) || s->pools.count(pool))
-      ret.push_back(make_pair(++count, s));
-  
-  return ret;
+  std::shared_ptr<ServerPool> pool;
+  pools_t::iterator it = pools.find(poolName);
+  if (it != pools.end()) {
+    pool = it->second;
+  }
+  else {
+    vinfolog("Creating pool %s", poolName);
+    pool = std::make_shared<ServerPool>();
+    pools.insert(std::pair<std::string,std::shared_ptr<ServerPool> >(poolName, pool));
+  }
+  return pool;
+}
+
+void addServerToPool(pools_t& pools, const string& poolName, std::shared_ptr<DownstreamState> server)
+{
+  std::shared_ptr<ServerPool> pool = createPoolIfNotExists(pools, poolName);
+  unsigned int count = pool->servers.size();
+  vinfolog("Adding server to pool %s", poolName);
+  pool->servers.push_back(make_pair(++count, server));
+}
+
+void removeServerFromPool(pools_t& pools, const string& poolName, std::shared_ptr<DownstreamState> server)
+{
+  vinfolog("Removing from pool %s", poolName);
+  pools_t::iterator poolIt = pools.find(poolName);
+  if (poolIt == pools.end()) {
+    throw std::out_of_range("No pool named " + poolName);
+  }
+
+  std::shared_ptr<ServerPool> pool = poolIt->second;
+
+  for (NumberedVector<shared_ptr<DownstreamState> >::iterator it = pool->servers.begin(); it != pool->servers.end(); it++) {
+    if (it->second == server) {
+      pool->servers.erase(it);
+      break;
+    }
+  }
+}
+
+std::shared_ptr<ServerPool> getPool(const pools_t& pools, const std::string& poolName)
+{
+  pools_t::const_iterator it = pools.find(poolName);
+
+  if (it == pools.end()) {
+    throw std::out_of_range("No pool named " + poolName);
+  }
+
+  return it->second;
+}
+
+const NumberedServerVector& getDownstreamCandidates(const pools_t& pools, const std::string& poolName)
+{
+  std::shared_ptr<ServerPool> pool = getPool(pools, poolName);
+  return pool->servers;
 }
 
 // goal in life - if you send us a reasonably normal packet, we'll get Z for you, otherwise 0
@@ -535,6 +591,7 @@ try
   auto localRulactions = g_rulactions.getLocal();
   auto localServers = g_dstates.getLocal();
   auto localDynBlock = g_dynblockNMG.getLocal();
+  auto localPools = g_pools.getLocal();
   struct msghdr msgh;
   struct iovec iov;
   /* used by HarvestDestinationAddress */
@@ -644,7 +701,7 @@ try
 
       DNSAction::Action action=DNSAction::Action::None;
       string ruleresult;
-      string pool;
+      string poolname;
       int delayMsec=0;
       bool done=false;
       for(const auto& lr : *localRulactions) {
@@ -675,7 +732,7 @@ try
             break;
           /* non-terminal actions follow */
           case DNSAction::Action::Pool:
-            pool=ruleresult;
+            poolname=ruleresult;
             break;
           case DNSAction::Action::Delay:
             delayMsec = static_cast<int>(pdns_stou(ruleresult)); // sorry
@@ -720,17 +777,38 @@ try
         continue;
       }
 
-      DownstreamState* ss = 0;
-      auto candidates=getDownstreamCandidates(*localServers, pool);
+      DownstreamState* ss = nullptr;
+      std::shared_ptr<ServerPool> serverPool = getPool(*localPools, poolname);
       auto policy=localPolicy->policy;
       {
 	std::lock_guard<std::mutex> lock(g_luamutex);
-	ss = policy(candidates, &dq).get();
+	ss = policy(serverPool->servers, &dq).get();
       }
 
       if(!ss) {
 	g_stats.noPolicy++;
 	continue;
+      }
+
+      bool ednsAdded = false;
+      if (ss->useECS) {
+        handleEDNSClientSubnet(query, dq.size, consumed, &dq.len, largerQuery, &(ednsAdded), remote);
+      }
+
+      uint32_t cacheKey = 0;
+      if (serverPool->packetCache && !dq.skipCache) {
+        char cachedResponse[4096];
+        uint16_t cachedResponseSize = sizeof cachedResponse;
+        if (serverPool->packetCache->get((unsigned char*) query, dq.len, *dq.qname, dq.qtype, dq.qclass, consumed, dh->id, cachedResponse, &cachedResponseSize, &cacheKey)) {
+          ComboAddress dest;
+          if(HarvestDestinationAddress(&msgh, &dest))
+            sendfromto(cs->udpFD, cachedResponse, cachedResponseSize, 0, dest, remote);
+          else
+            sendto(cs->udpFD, cachedResponse, cachedResponseSize, 0, (struct sockaddr*)&remote, remote.getSocklen());
+          g_stats.cacheHits++;
+          continue;
+        }
+        g_stats.cacheMisses++;
       }
 
       ss->queries++;
@@ -752,20 +830,21 @@ try
       ids->sentTime.start();
       ids->qname = qname;
       ids->qtype = dq.qtype;
+      ids->qclass = dq.qclass;
       ids->origDest.sin4.sin_family=0;
       ids->delayMsec = delayMsec;
       ids->origFlags = origFlags;
       ids->ednsAdded = false;
+      ids->cacheKey = cacheKey;
+      ids->skipCache = dq.skipCache;
+      ids->packetCache = serverPool->packetCache;
+      ids->ednsAdded = ednsAdded;
 #ifdef HAVE_DNSCRYPT
       ids->dnsCryptQuery = dnsCryptQuery;
 #endif
       HarvestDestinationAddress(&msgh, &ids->origDest);
 
       dh->id = idOffset;
-
-      if (ss->useECS) {
-        handleEDNSClientSubnet(query, dq.size, consumed, &dq.len, largerQuery, &(ids->ednsAdded), remote);
-      }
 
       if (largerQuery.empty()) {
         ret = udpClientSendRequestToBackend(ss, ss->fd, query, dq.len);
@@ -853,8 +932,38 @@ catch(...)
 }
 
 std::atomic<uint64_t> g_maxTCPClientThreads{10};
+std::atomic<uint16_t> g_cacheCleaningDelay{60};
 
 void* maintThread()
+{
+  int interval = 1;
+  size_t counter = 0;
+
+  for(;;) {
+    sleep(interval);
+
+    std::lock_guard<std::mutex> lock(g_luamutex);
+    auto f =g_lua.readVariable<boost::optional<std::function<void()> > >("maintenance");
+    if(f)
+      (*f)();
+
+    counter++;
+    if (counter >= g_cacheCleaningDelay) {
+      const auto localPools = g_pools.getCopy();
+      for (const auto& entry : localPools) {
+        if (entry.second->packetCache) {
+          entry.second->packetCache->purge();
+        }
+      }
+      counter = 0;
+    }
+
+    // ponder pruning g_dynblocks of expired entries here
+  }
+  return 0;
+}
+
+void* healthChecksThread()
 {
   int interval = 1;
 
@@ -900,14 +1009,6 @@ void* maintThread()
         }          
       }
     }
-    
-    std::lock_guard<std::mutex> lock(g_luamutex);
-    auto f =g_lua.readVariable<boost::optional<std::function<void()> > >("maintenance");
-    if(f)
-      (*f)();
-    
-
-    // ponder pruning g_dynblocks of expired entries here
   }
   return 0;
 }
@@ -1278,14 +1379,16 @@ try
   for(auto& t : todo)
     t();
 
-
+  auto localPools = g_pools.getCopy();
   if(g_cmdLine.remotes.size()) {
     for(const auto& address : g_cmdLine.remotes) {
       auto ret=std::make_shared<DownstreamState>(ComboAddress(address, 53));
+      addServerToPool(localPools, "", ret);
       ret->tid = move(thread(responderThread, ret));
       g_dstates.modify([ret](servers_t& servers) { servers.push_back(ret); });
     }
   }
+  g_pools.setState(localPools);
 
   if(g_dstates.getCopy().empty()) {
     errlog("No downstream servers defined: all packets will get dropped");
@@ -1315,12 +1418,15 @@ try
   carbonthread.detach();
 
   thread stattid(maintThread);
+  stattid.detach();
   
+  thread healththread(healthChecksThread);
+
   if(g_cmdLine.beDaemon || g_cmdLine.beSupervised) {
-    stattid.join();
+    healththread.join();
   }
   else {
-    stattid.detach();
+    healththread.detach();
     doConsole();
   }
   _exit(EXIT_SUCCESS);

@@ -313,6 +313,7 @@ Current actions are:
  * Delay a response by n milliseconds (DelayAction), over UDP only
  * Modify query to clear the RD or CD bit
  * Add the source MAC address to the query (MacAddrAction)
+ * Skip the cache, if any
 
 Rules can be added via:
 
@@ -695,6 +696,25 @@ fe80::/10
 ::/0
 ```
 
+Caching
+-------
+
+`dnsdist` implements a simple but effective packet cache, not enabled by default.
+It is enabled per-pool, but the same cache can be shared between several pools.
+The first step is to define a cache, then to assign that cache to the chosen pool,
+the default one being represented by the empty string:
+
+```
+pc = newPacketCache(10000, 86400, 600)
+getPool(""):setCache(pc)
+```
+
+The first parameter is the maximum number of entries stored in the cache, the
+second one, optional, is the maximum lifetime of an entry in the cache, in seconds,
+and the last one, optional too, is the minimum TTL an entry should have to be considered
+for insertion in the cache.
+
+
 Carbon/Graphite/Metronome
 -------------------------
 To emit metrics to Graphite, or any other software supporting the Carbon protocol, use:
@@ -856,6 +876,7 @@ instantiate a server with additional parameters
     * `QPSPoolAction()`: set the packet into the specified pool only if it does not exceed the specified QPS limits
     * `QPSAction()`: drop these packets if the QPS limits are exceeded
     * `RCodeAction()`: reply immediatly by turning the query into a response with the specified rcode
+    * `SkipCacheAction()`: don't lookup the cache for this query, don't store the answer
     * `SpoofAction()`: forge a response with the specified IPv4 (for an A query) or IPv6 (for an AAAA). If you specify two addresses, the first one should be an IPv4 and will be used for A, the second an IPv6 for an AAAA
     * `SpoofCNAMEAction()`: forge a response with the specified CNAME value
     * `TCAction()`: create answer to query with TC and RD bits set, to move to TCP/IP
@@ -875,7 +896,9 @@ instantiate a server with additional parameters
     * `addPoolRule(netmask, pool)`: send queries to this netmask to that pool
     * `addPoolRule({netmask, netmask}, pool)`: send queries to these netmasks to that pool  
     * `addQPSPoolRule(x, limit, pool)`: like `addPoolRule`, but only select at most 'limit' queries/s for this pool
+    * `getPool(poolname)`: return the ServerPool named `poolname`
     * `getPoolServers(pool)`: return servers part of this pool
+    * `showPools()`: list the current server pools
  * Lua Action related:
     * `addLuaAction(x, func)`: where 'x' is all the combinations from `addPoolRule`, and func is a 
       function with parameters remote, qname, qtype, dh and len, which returns an action to be taken 
@@ -914,6 +937,16 @@ instantiate a server with additional parameters
     * `exceedRespByterate(rate, seconds)`: get set of addresses that exeeded `rate` bytes/s answers over `seconds` seconds
     * `exceedQRate(rate, seconds)`: get set of address that exceed `rate` queries/s over `seconds` seconds
     * `exceedQTypeRate(type, rate, seconds)`: get set of address that exceed `rate` queries/s for queries of type `type` over `seconds` seconds
+ * ServerPool related:
+    * `getCache()`: return the current packet cache, if any
+    * `setCache(PacketCache)`: set the cache for this pool
+ * PacketCache related:
+    * `expungeByName(DNSName)`: remove entries matching the supplied DNSName from the cache
+    * `isFull()`: return true if the cache has reached the maximum number of entries
+    * `newPacketCache(maxEntries, maxTTL=86400, minTTL=60)`: return a new PacketCache
+    * `printStats()`: print the cache stats (hits, misses, deferred lookups and deferred inserts)
+    * `purge()`: remove entries from the cache until it the number of entries is lower than the maximum, starting with expired ones.
+    * `toString()`: return the number of entries in the Packet Cache, and the maximum number of entries
  * Advanced functions for writing your own policies and hooks
     * ComboAddress related:
         * `newCA(address)`: return a new ComboAddress
@@ -963,6 +996,7 @@ instantiate a server with additional parameters
     * `setTCPSendTimeout(n)`: set the write timeout on TCP connections from the client, in seconds
     * `setMaxTCPClientThreads(n)`: set the maximum of TCP client threads, handling TCP connections
     * `setMaxUDPOutstanding(n)`: set the maximum number of outstanding UDP queries to a given backend server. This can only be set at configuration time
+    * `setCacheCleaningDelay(n)`: set the interval in seconds between to run of the cache cleaning algorithm, removing expired entries
  * DNSCrypt related:
     * `addDNSCryptBind("127.0.0.1:8443", "provider name", "/path/to/resolver.cert", "/path/to/resolver.key"):` listen to incoming DNSCrypt queries on 127.0.0.1 port 8443, with a provider name of "provider name", using a resolver certificate and associated key stored respectively in the `resolver.cert` and `resolver.key` files
     * `generateDNSCryptProviderKeys("/path/to/providerPublic.key", "/path/to/providerPrivate.key"):` generate a new provider keypair
