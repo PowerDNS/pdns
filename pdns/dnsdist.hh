@@ -12,6 +12,7 @@
 #include <thread>
 #include "sholder.hh"
 #include "dnscrypt.hh"
+#include "dnsdist-cache.hh"
 void* carbonDumpThread();
 uint64_t uptimeOfProcess(const std::string& str);
 
@@ -53,6 +54,8 @@ struct DNSDistStats
   stat_t downstreamSendErrors{0};
   stat_t truncFail{0};
   stat_t noPolicy{0};
+  stat_t cacheHits{0};
+  stat_t cacheMisses{0};
   stat_t latency0_1{0}, latency1_10{0}, latency10_50{0}, latency50_100{0}, latency100_1000{0}, latencySlow{0};
   
   double latencyAvg100{0}, latencyAvg1000{0}, latencyAvg10000{0}, latencyAvg1000000{0};
@@ -75,6 +78,8 @@ struct DNSDistStats
     {"noncompliant-queries", &nonCompliantQueries},
     {"rdqueries", &rdQueries},
     {"empty-queries", &emptyQueries},
+    {"cache-hits", &cacheHits},
+    {"cache-misses", &cacheMisses},
     {"cpu-user-msec", getCPUTimeUser},
     {"cpu-sys-msec", getCPUTimeSystem},
     {"fd-usage", getOpenFileDescriptors}, {"dyn-blocked", &dynBlocked}, 
@@ -199,12 +204,16 @@ struct IDState
 #ifdef HAVE_DNSCRYPT
   std::shared_ptr<DnsCryptQuery> dnsCryptQuery{0};
 #endif
+  std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};
+  uint32_t cacheKey;                                          // 8
   std::atomic<uint16_t> age;                                  // 4
   uint16_t qtype;                                             // 2
+  uint16_t qclass;                                            // 2
   uint16_t origID;                                            // 2
   uint16_t origFlags;                                         // 2
   int delayMsec;
   bool ednsAdded{false};
+  bool skipCache{false};
 };
 
 struct Rings {
@@ -362,6 +371,7 @@ struct DNSQuestion
   size_t size;
   uint16_t len;
   const bool tcp;
+  bool skipCache{false};
 };
 
 template <class T> using NumberedVector = std::vector<std::pair<unsigned int, T> >;
@@ -405,6 +415,17 @@ struct ServerPolicy
   policyfunc_t policy;
 };
 
+struct ServerPool
+{
+  const std::shared_ptr<DNSDistPacketCache> getCache() const { return packetCache; };
+
+  NumberedVector<shared_ptr<DownstreamState>> servers;
+  std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};
+};
+using pools_t=map<std::string,std::shared_ptr<ServerPool>>;
+void addServerToPool(pools_t& pools, const string& poolName, std::shared_ptr<DownstreamState> server);
+void removeServerFromPool(pools_t& pools, const string& poolName, std::shared_ptr<DownstreamState> server);
+
 struct CarbonConfig
 {
   ComboAddress server{"0.0.0.0", 0};
@@ -425,6 +446,7 @@ enum ednsOptionCodes {
 extern GlobalStateHolder<CarbonConfig> g_carbon;
 extern GlobalStateHolder<ServerPolicy> g_policy;
 extern GlobalStateHolder<servers_t> g_dstates;
+extern GlobalStateHolder<pools_t> g_pools;
 extern GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > > g_rulactions;
 extern GlobalStateHolder<NetmaskGroup> g_ACL;
 
@@ -440,6 +462,7 @@ extern int g_tcpSendTimeout;
 extern uint16_t g_maxOutstanding;
 extern std::atomic<bool> g_configurationDone;
 extern std::atomic<uint64_t> g_maxTCPClientThreads;
+extern std::atomic<uint16_t> g_cacheCleaningDelay;
 extern uint16_t g_ECSSourcePrefixV4;
 extern uint16_t g_ECSSourcePrefixV6;
 extern bool g_ECSOverride;
@@ -448,7 +471,9 @@ struct dnsheader;
 
 void controlThread(int fd, ComboAddress local);
 vector<std::function<void(void)>> setupLua(bool client, const std::string& config);
-NumberedServerVector getDownstreamCandidates(const servers_t& servers, const std::string& pool);
+std::shared_ptr<ServerPool> getPool(const pools_t& pools, const std::string& poolName);
+std::shared_ptr<ServerPool> createPoolIfNotExists(pools_t& pools, const string& poolName);
+const NumberedServerVector& getDownstreamCandidates(const pools_t& pools, const std::string& poolName);
 
 std::shared_ptr<DownstreamState> firstAvailable(const NumberedServerVector& servers, const DNSQuestion* dq);
 
@@ -464,7 +489,7 @@ bool getMsgLen32(int fd, uint32_t* len);
 bool putMsgLen32(int fd, uint32_t len);
 void* tcpAcceptorThread(void* p);
 
-void moreLua();
+void moreLua(bool client);
 void doClient(ComboAddress server, const std::string& command);
 void doConsole();
 void controlClientThread(int fd, ComboAddress client);

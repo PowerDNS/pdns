@@ -565,7 +565,10 @@ class DNSPacketMangler
 {
 public:
   explicit DNSPacketMangler(std::string& packet)
-    : d_packet(packet), d_notyouroffset(12), d_offset(d_notyouroffset)
+    : d_packet((char*) packet.c_str()), d_length(packet.length()), d_notyouroffset(12), d_offset(d_notyouroffset)
+  {}
+  DNSPacketMangler(char* packet, size_t length)
+    : d_packet(packet), d_length(length), d_notyouroffset(12), d_offset(d_notyouroffset)
   {}
   
   void skipLabel()
@@ -585,7 +588,7 @@ public:
   }
   uint16_t get16BitInt()
   {
-    const char* p = d_packet.c_str() + d_offset;
+    const char* p = d_packet + d_offset;
     moveOffset(2);
     uint16_t ret;
     memcpy(&ret, (void*)p, 2);
@@ -594,7 +597,7 @@ public:
   
   uint8_t get8BitInt()
   {
-    const char* p = d_packet.c_str() + d_offset;
+    const char* p = d_packet + d_offset;
     moveOffset(1);
     return *p;
   }
@@ -606,7 +609,7 @@ public:
   }
   void decreaseAndSkip32BitInt(uint32_t decrease)
   {
-    const char *p = (const char*)d_packet.c_str() + d_offset;
+    const char *p = d_packet + d_offset;
     moveOffset(4);
     
     uint32_t tmp;
@@ -614,17 +617,18 @@ public:
     tmp = ntohl(tmp);
     tmp-=decrease;
     tmp = htonl(tmp);
-    d_packet.replace(d_offset-4, sizeof(tmp), (const char*)&tmp, sizeof(tmp));
+    memcpy(d_packet + d_offset-4, (const char*)&tmp, sizeof(tmp));
   }
 private:
   void moveOffset(uint16_t by)
   {
     d_notyouroffset += by;
-    if(d_notyouroffset > d_packet.length())
+    if(d_notyouroffset > d_length)
       throw std::out_of_range("dns packet out of range: "+std::to_string(d_notyouroffset) +" > " 
-      + std::to_string(d_packet.length()) );
+      + std::to_string(d_length) );
   }
-  std::string& d_packet;
+  char* d_packet;
+  size_t d_length;
   
   uint32_t d_notyouroffset;  // only 'moveOffset' can touch this
   const uint32_t&  d_offset; // look.. but don't touch
@@ -632,16 +636,16 @@ private:
 };
 
 // method of operation: silently fail if it doesn't work - we're only trying to be nice, don't fall over on it
-void ageDNSPacket(std::string& packet, uint32_t seconds)
+void ageDNSPacket(char* packet, size_t length, uint32_t seconds)
 {
-  if(packet.length() < sizeof(dnsheader))
+  if(length < sizeof(dnsheader))
     return;
   try 
   {
     dnsheader dh;
-    memcpy((void*)&dh, (const dnsheader*)packet.c_str(), sizeof(dh));
+    memcpy((void*)&dh, (const dnsheader*)packet, sizeof(dh));
     int numrecords = ntohs(dh.ancount) + ntohs(dh.nscount) + ntohs(dh.arcount);
-    DNSPacketMangler dpm(packet);
+    DNSPacketMangler dpm(packet, length);
     
     int n;
     for(n=0; n < ntohs(dh.qdcount) ; ++n) {
@@ -666,4 +670,9 @@ void ageDNSPacket(std::string& packet, uint32_t seconds)
   {
     return;
   }
+}
+
+void ageDNSPacket(std::string& packet, uint32_t seconds)
+{
+  ageDNSPacket((char*)packet.c_str(), packet.length(), seconds);
 }

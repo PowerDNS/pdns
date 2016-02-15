@@ -49,6 +49,7 @@ dnsdist_SOURCES = \
 	dns.cc dns.hh \
 	dnscrypt.cc dnscrypt.hh \
 	dnsdist.cc dnsdist.hh \
+	dnsdist-cache.cc dnsdist-cache.hh \
 	dnsdist-carbon.cc \
 	dnsdist-console.cc \
 	dnsdist-dnscrypt.cc \
@@ -103,8 +104,10 @@ testrunner_SOURCES = \
 	dns.hh \
 	test-base64_cc.cc \
 	test-dnsdist_cc.cc \
+	test-dnsdistpacketcache_cc.cc \
 	test-dnscrypt_cc.cc \
 	dnsdist.hh \
+	dnsdist-cache.cc dnsdist-cache.hh \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
 	dnscrypt.cc dnscrypt.hh \
 	dnslabeltext.cc \
