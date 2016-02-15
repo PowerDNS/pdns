@@ -254,8 +254,6 @@ AM_CONDITIONAL([LDAP],[test "x$needldap" = "xyes"])
 PDNS_CHECK_SQLITE3
 AM_CONDITIONAL([SQLITE3], [test "x$needsqlite3" = "xyes"])
 
-PDNS_CHECK_RE2
-
 for a in $modules; do
   AC_MSG_CHECKING([whether we can build module "${a}"])
   if [[ -d "$srcdir/modules/${a}backend" ]]; then
