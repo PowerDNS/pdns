@@ -40,13 +40,11 @@ class TestBasics(DNSDistTest):
 
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(response, receivedResponse)
 
         (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(response, receivedResponse)
 
@@ -68,7 +66,6 @@ class TestBasics(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(response, receivedResponse)
 
@@ -76,7 +73,6 @@ class TestBasics(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(response, receivedResponse)
 
@@ -94,7 +90,6 @@ class TestBasics(DNSDistTest):
         expectedResponse.flags |= dns.flags.TC
 
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
-        receivedResponse.id = expectedResponse.id
         self.assertEquals(receivedResponse, expectedResponse)
 
         response = dns.message.make_response(query)
@@ -110,7 +105,6 @@ class TestBasics(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(receivedResponse, response)
 
@@ -137,7 +131,6 @@ class TestBasics(DNSDistTest):
 
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(response.flags, receivedResponse.flags)
         self.assertEquals(response.question, receivedResponse.question)
@@ -161,11 +154,9 @@ class TestBasics(DNSDistTest):
         expectedResponse.set_rcode(dns.rcode.REFUSED)
 
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
-        receivedResponse.id = expectedResponse.id
         self.assertEquals(receivedResponse, expectedResponse)
 
         (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
-        receivedResponse.id = expectedResponse.id
         self.assertEquals(receivedResponse, expectedResponse)
 
     def testDomainAndQTypeReturnsNotImplemented(self):
@@ -183,11 +174,9 @@ class TestBasics(DNSDistTest):
         expectedResponse.set_rcode(dns.rcode.NOTIMP)
 
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
-        receivedResponse.id = expectedResponse.id
         self.assertEquals(receivedResponse, expectedResponse)
 
         (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
-        receivedResponse.id = expectedResponse.id
         self.assertEquals(receivedResponse, expectedResponse)
 
     def testDomainWithoutQTypeIsNotAffected(self):
@@ -213,7 +202,6 @@ class TestBasics(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(response, receivedResponse)
 
@@ -221,7 +209,6 @@ class TestBasics(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(response, receivedResponse)
 
@@ -248,7 +235,6 @@ class TestBasics(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(response, receivedResponse)
 
@@ -256,7 +242,6 @@ class TestBasics(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(response, receivedResponse)
 

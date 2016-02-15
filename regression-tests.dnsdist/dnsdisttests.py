@@ -1,6 +1,7 @@
 #!/usr/bin/env python2
 
 import clientsubnetoption
+import copy
 import dns
 import dns.message
 import Queue
@@ -149,6 +150,7 @@ class DNSDistTest(unittest.TestCase):
             if str(request.question[0].name).endswith('tests.powerdns.com.') and not cls._toResponderQueue.empty():
                 response = cls._toResponderQueue.get(True, cls._queueTimeout)
                 if response:
+                    response = copy.copy(response)
                     response.id = request.id
                     cls._fromResponderQueue.put(request, True, cls._queueTimeout)
                     cls.ResponderIncrementCounter()
@@ -204,6 +206,7 @@ class DNSDistTest(unittest.TestCase):
             if str(request.question[0].name).endswith('tests.powerdns.com.') and not cls._toResponderQueue.empty():
                 response = cls._toResponderQueue.get(True, cls._queueTimeout)
                 if response:
+                    response = copy.copy(response)
                     response.id = request.id
                     cls._fromResponderQueue.put(request, True, cls._queueTimeout)
                     cls.ResponderIncrementCounter()
