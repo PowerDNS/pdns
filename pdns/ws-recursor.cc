@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2003 - 2014  PowerDNS.COM BV
+    Copyright (C) 2003 - 2016  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -38,6 +38,7 @@
 #include "webserver.hh"
 #include "ws-api.hh"
 #include "logger.hh"
+#include "ext/incbin/incbin.h"
 
 extern __thread FDMultiplexer* t_fdm;
 
@@ -375,6 +376,18 @@ static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
   });
 }
 
+INCBIN(Index, "index.html");
+
+void serveStuff(HttpRequest* req, HttpResponse* resp) 
+{
+  resp->headers["Cache-Control"] = "max-age=86400";
+  resp->headers["Content-Type"] = "text/css";
+
+  resp->body = string((const char*)gIndexData, gIndexSize);
+  resp->status = 200;
+}
+
+
 RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
 {
   RecursorControlParser rcp; // inits
@@ -395,6 +408,8 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
   d_ws->registerApiHandler("/api/v1/servers/localhost", &apiServerDetail);
   d_ws->registerApiHandler("/api/v1/servers", &apiServer);
 
+  d_ws->registerWebHandler("/", serveStuff);
+  
   d_ws->go();
 }
 
