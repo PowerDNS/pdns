@@ -154,6 +154,9 @@ check-all-zones
 check-zone *ZONE*
 :    Check zone *ZONE* for correctness.
 
+clear-zone *ZONE*
+:    Clear the records in zone *ZONE*, but leave actual domain and settings unchanged
+
 delete-zone *ZONE*:
 :    Delete the zone named *ZONE*.
 
