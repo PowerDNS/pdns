@@ -420,8 +420,8 @@ bool RecursorLua4::genhook(luacall_t& func, const ComboAddress& remote,const Com
   if(variable) *variable |= dq->variable; // could still be set to indicate this *name* is variable
 
   if(handled) {
+loop:;
     ret=dq->rcode;
-  loop:;
     
     if(!dq->followupFunction.empty()) {
       if(dq->followupFunction=="followCNAMERecords") {
