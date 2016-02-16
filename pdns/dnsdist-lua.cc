@@ -22,6 +22,7 @@ public:
 
   Action operator()(DNSQuestion* dq, string* ruleresult) const override
   {
+    std::lock_guard<std::mutex> lock(g_luamutex);
     auto ret = d_func(dq);
     if(ruleresult)
       *ruleresult=std::get<1>(ret);
