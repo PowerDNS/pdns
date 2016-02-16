@@ -84,6 +84,10 @@ static const char* ldap_attrany[] = {
         "dNSKeyRecord",
         "dHCIDRecord",
         "sPFRecord",
+        "TYPE65534Record",
+        "EUI48Record",
+        "EUI64Record",
+        "TYPE65226Record",
         "modifyTimestamp",
         NULL
 };

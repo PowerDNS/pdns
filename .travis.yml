@@ -111,6 +111,22 @@ before_script:
   - echo -e "[pdns-sqlite3-1]\nDriver = SQLite3\nDatabase = ${PWD}/regression-tests/pdns.sqlite3\n\n[pdns-sqlite3-2]\nDriver = SQLite3\nDatabase = ${PWD}/regression-tests/pdns.sqlite32\n" > ${HOME}/.odbc.ini
   - export GODBC_SQLITE3_DSN=pdns-sqlite3-1
 
+  # ldap-backend test setup
+  - sudo apt-get -qq --no-install-recommends install
+    slapd
+    ldap-utils
+  - mkdir /tmp/ldap-dns
+  - pushd /tmp/ldap-dns
+  - for schema in /etc/ldap/schema/{core,cosine}.schema ${TRAVIS_BUILD_DIR}/modules/ldapbackend/{dnsdomain2,pdns-domaininfo}.schema ; do echo include $schema ; done > ldap.conf
+  - mkdir slapd.d
+  - slaptest -f ldap.conf -F slapd.d
+  - sudo cp slapd.d/cn=config/cn=schema/cn={*dns*.ldif /etc/ldap/slapd.d/cn=config/cn=schema/
+  - sudo chown -R openldap:openldap /etc/ldap/slapd.d/
+  - sudo service slapd restart
+  - popd
+  - sudo -u openldap mkdir -p /var/lib/ldap/powerdns
+  - sudo ldapadd -Y EXTERNAL -H ldapi:/// -f ./modules/ldapbackend/testfiles/add.ldif
+
   # remote-backend tests requirements
   - sudo apt-get -qq --no-install-recommends install
     ruby-json
@@ -189,6 +205,10 @@ script:
   - cd ..
 
   - cd regression-tests
+
+  - ./timestamp ./start-test-stop 5300 ldap-tree
+  - ./timestamp ./start-test-stop 5300 ldap-simple
+
   - ./timestamp ./start-test-stop 5300 bind-both
   - ./timestamp ./start-test-stop 5300 bind-dnssec-both
   - ./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-both
