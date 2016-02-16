@@ -1000,7 +1000,7 @@ instantiate a server with additional parameters
     * `setTCPSendTimeout(n)`: set the write timeout on TCP connections from the client, in seconds
     * `setMaxTCPClientThreads(n)`: set the maximum of TCP client threads, handling TCP connections
     * `setMaxUDPOutstanding(n)`: set the maximum number of outstanding UDP queries to a given backend server. This can only be set at configuration time
-    * `setCacheCleaningDelay(n)`: set the interval in seconds between to run of the cache cleaning algorithm, removing expired entries
+    * `setCacheCleaningDelay(n)`: set the interval in seconds between two runs of the cache cleaning algorithm, removing expired entries
  * DNSCrypt related:
     * `addDNSCryptBind("127.0.0.1:8443", "provider name", "/path/to/resolver.cert", "/path/to/resolver.key"):` listen to incoming DNSCrypt queries on 127.0.0.1 port 8443, with a provider name of "provider name", using a resolver certificate and associated key stored respectively in the `resolver.cert` and `resolver.key` files
     * `generateDNSCryptProviderKeys("/path/to/providerPublic.key", "/path/to/providerPrivate.key"):` generate a new provider keypair
