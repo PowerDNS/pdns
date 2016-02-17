@@ -263,7 +263,7 @@ pdnsutil_SOURCES = \
 	dynlistener.cc \
 	ednssubnet.cc \
 	gss_context.cc gss_context.hh \
-        iputils.cc iputils.hh \
+	iputils.cc iputils.hh \
 	json.cc \
 	logger.cc \
 	misc.cc misc.hh \
@@ -488,7 +488,7 @@ kvresp_SOURCES = \
 saxfr_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
-        dns_random.cc dns_random.hh \
+	dns_random.cc dns_random.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
@@ -525,7 +525,7 @@ ixplore_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	dns.cc \
-        dns_random.cc dns_random.hh \
+	dns_random.cc dns_random.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
@@ -631,6 +631,7 @@ toysdig_SOURCES = \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
 	ednssubnet.cc ednssubnet.hh \
+	filterpo.hh \
 	gss_context.cc gss_context.hh \
 	logger.cc \
 	misc.cc misc.hh \
@@ -639,7 +640,11 @@ toysdig_SOURCES = \
 	qtype.cc \
 	randomhelper.cc \
 	rcpgenerator.cc rcpgenerator.hh \
+	rec-lua-conf.hh \
+	recursor_cache.hh \
+	sholder.hh \
 	sillyrecords.cc \
+	sortlist.hh \
 	sstuff.hh \
 	statbag.cc \
 	toysdig.cc \
@@ -831,16 +836,21 @@ nproxy_SOURCES = \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
+	filterpo.hh \
 	logger.cc \
+	lwres.hh \
 	misc.cc \
 	mplexer.hh \
+	mtasker.hh \
 	nproxy.cc \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
+	recursor_cache.hh \
 	selectmplexer.cc \
 	sillyrecords.cc \
 	statbag.cc \
+	syncres.hh \
 	unix_utility.cc
 
 nproxy_LDFLAGS = \
@@ -862,15 +872,20 @@ notify_SOURCES = \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
+	filterpo.hh \
 	logger.cc \
+	lwres.hh \
 	misc.cc \
+	mtasker.hh \
 	notify.cc \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
+	recursor_cache.hh \
 	selectmplexer.cc \
 	sillyrecords.cc \
 	statbag.cc \
+	syncres.hh \
 	unix_utility.cc
 
 notify_LDFLAGS = \
@@ -985,7 +1000,7 @@ testrunner_SOURCES = \
 	dnssecinfra.cc \
 	dnswriter.cc \
 	ednssubnet.cc \
-        gss_context.cc gss_context.hh \
+	gss_context.cc gss_context.hh \
 	iputils.cc \
 	logger.cc \
 	misc.cc \
@@ -994,7 +1009,7 @@ testrunner_SOURCES = \
 	packetcache.cc \
 	qtype.cc \
 	rcpgenerator.cc \
-	recpacketcache.cc \
+	recpacketcache.cc recpacketcache.hh \
 	responsestats.cc \
 	responsestats-auth.cc \
 	sillyrecords.cc \
