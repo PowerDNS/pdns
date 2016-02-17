@@ -2,7 +2,7 @@ AC_DEFUN([PDNS_CHECK_OS],[
   THREADFLAGS=""
 
   case "$host_os" in
-  solaris2.10)
+  solaris2.1*)
     LIBS="-lposix4 -lpthread $LIBS"
     CXXFLAGS="-D_REENTRANT $CXXFLAGS"
     have_solaris="yes"

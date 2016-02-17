@@ -12,13 +12,17 @@ AC_DEFUN([PDNS_ENABLE_REPRODUCIBLE], [
     AC_DEFINE([REPRODUCIBLE], [1], [Define to 1 for reproducible builds])
   ],[
     build_user=$(id -u -n)
-    if [ test x"$host_os" = "xSunOS" ]; then
+
+    case "$host_os" in
+    solaris2.1* | SunOS)
       build_host_host=$(hostname)
       build_host_domain=$(domainname)
       build_host="$build_host_host.$build_host_domain"
-    else
+      ;;
+    *)
       build_host=$(hostname -f || hostname || echo 'localhost')
-    fi
+      ;;
+    esac
     AC_DEFINE_UNQUOTED([BUILD_HOST], ["$build_user@$build_host"], [Set to the user and host that builds PowerDNS])
   ])
 ])
