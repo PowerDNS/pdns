@@ -501,9 +501,9 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       setLuaNoSideEffect();
       try {
       ostringstream ret;
-      boost::format fmt("%1$-3d %2$-20.20s %|25t|%3% %|55t|%4$5s %|51t|%5$7.1f %|66t|%6$7d %|69t|%7$3d %|78t|%8$2d %|80t|%9$10d %|86t|%10$7d %|91t|%11$5.1f %|109t|%12$5.1f %13%" );
-      //             1        2          3       4        5       6       7       8           9        10        11       12
-      ret << (fmt % "#" % "Name" % "Address" % "State" % "Qps" % "Qlim" % "Ord" % "Wt" % "Queries" % "Drops" % "Drate" % "Lat" % "Pools") << endl;
+      boost::format fmt("%1$-3d %2$-20.20s %|25t|%3% %|55t|%4$5s %|51t|%5$7.1f %|66t|%6$7d %|69t|%7$3d %|78t|%8$2d %|80t|%9$10d %|86t|%10$7d %|91t|%11$5.1f %|109t|%12$5.1f %|115t|%13$11d %14%" );
+      //             1        2          3       4        5       6       7       8           9        10        11       12     13              14
+      ret << (fmt % "#" % "Name" % "Address" % "State" % "Qps" % "Qlim" % "Ord" % "Wt" % "Queries" % "Drops" % "Drate" % "Lat" % "Outstanding" % "Pools") << endl;
 
       uint64_t totQPS{0}, totQueries{0}, totDrops{0};
       int counter=0;
@@ -526,7 +526,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
 	ret << (fmt % counter % s->name % s->remote.toStringWithPort() %
 		status % 
-		s->queryLoad % s->qps.getRate() % s->order % s->weight % s->queries.load() % s->reuseds.load() % (s->dropRate) % (s->latencyUsec/1000.0) % pools) << endl;
+		s->queryLoad % s->qps.getRate() % s->order % s->weight % s->queries.load() % s->reuseds.load() % (s->dropRate) % (s->latencyUsec/1000.0) % s->outstanding.load() % pools) << endl;
 
 	totQPS += s->queryLoad;
 	totQueries += s->queries.load();
@@ -535,7 +535,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       }
       ret<< (fmt % "All" % "" % "" % ""
 		% 
-	     (double)totQPS % "" % "" % "" % totQueries % totDrops % "" % "" % "" ) << endl;
+	     (double)totQPS % "" % "" % "" % totQueries % totDrops % "" % "" % "" % "" ) << endl;
 
       g_outputBuffer=ret.str();
       }catch(std::exception& e) { g_outputBuffer=e.what(); throw; }
