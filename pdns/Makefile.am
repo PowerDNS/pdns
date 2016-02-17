@@ -29,10 +29,6 @@ if SQLITE3
 AM_CPPFLAGS += $(SQLITE3_CFLAGS)
 endif
 
-if HAVE_RE2
-AM_CPPFLAGS += $(RE2_CFLAGS)
-endif
-
 if LUA
 AM_CPPFLAGS +=$(LUA_CFLAGS)
 endif
@@ -114,8 +110,6 @@ EXTRA_PROGRAMS = \
 	notify \
 	nproxy \
 	nsec3dig \
-	pdns_recursor \
-	rec_control \
 	saxfr \
 	sdig \
 	speedtest \
@@ -973,19 +967,6 @@ dnsdemog_LDFLAGS = \
 dnsdemog_LDADD = \
 	$(OPENSSL_LIBS)
 
-rec_control_SOURCES = \
-	arguments.cc arguments.hh \
-	dnsname.hh dnsname.cc \
-	dnslabeltext.cc \
-	logger.cc \
-	misc.cc \
-	qtype.cc \
-	rec_channel.cc rec_channel.hh \
-	rec_control.cc \
-	statbag.cc \
-	unix_utility.cc
-
-
 testrunner_SOURCES = \
 	arguments.cc \
 	base32.cc \
@@ -1060,104 +1041,6 @@ testrunner_SOURCES += pkcs11signers.cc pkcs11signers.hh
 testrunner_LDADD += $(P11KIT1_LIBS)
 endif
 
-pdns_recursor_SOURCES = \
-	arguments.cc \
-	base32.cc \
-	base64.cc base64.hh \
-	cachecleaner.hh \
-	dns.cc \
-	dns_random.cc \
-	dnslabeltext.cc \
-	dnsname.cc dnsname.hh \
-	dnsparser.cc \
-	dnsrecords.cc dnsrecords.hh \
-	dnssecinfra.cc \
-	dnswriter.cc dnswriter.hh \
-	ednssubnet.cc ednssubnet.hh \
-	filterpo.cc filterpo.hh \
-	gss_context.cc gss_context.hh \
-	iputils.cc \
-	ixfr.cc ixfr.hh \
-	json.cc json.hh \
-	logger.cc \
-	lua-recursor4.cc lua-recursor4.hh \
-	lwres.cc lwres.hh \
-	misc.cc \
-	mtasker.hh \
-	nsecrecords.cc \
-	pdns_recursor.cc \
-	pubsuffix.cc \
-	qtype.cc \
-	opensslsigners.cc opensslsigners.hh \
-	randomhelper.cc \
-	rcpgenerator.cc rcpgenerator.hh \
-	rec-carbon.cc \
-	rec_channel.cc rec_channel.hh \
-	rec_channel_rec.cc \
-	rec-lua-conf.cc \
-	recpacketcache.cc recpacketcache.hh \
-	recursor_cache.cc recursor_cache.hh \
-	reczones.cc \
-	resolver.cc \
-	resolver.hh \
-	responsestats.cc \
-	rpzloader.cc rpzloader.hh \
-	secpoll-recursor.cc \
-	secpoll-recursor.hh \
-	selectmplexer.cc \
-	sillyrecords.cc \
-	sortlist.cc sortlist.hh \
-	statbag.cc \
-	syncres.cc syncres.hh \
-	unix_utility.cc \
-	validate.cc validate.hh validate-recursor.cc validate-recursor.hh \
-	version.cc version.hh \
-	webserver.cc webserver.hh \
-	ws-api.cc ws-api.hh \
-	ws-recursor.cc ws-recursor.hh \
-	zoneparser-tng.cc zoneparser-tng.hh
-
-pdns_recursor_LDADD = \
-	$(YAHTTP_LIBS) \
-	$(JSON11_LIBS) \
-	$(OPENSSL_LIBS)
-
-pdns_recursor_LDFLAGS = $(AM_LDFLAGS) \
-	$(OPENSSL_LDFLAGS)
-
-if PKCS11
-pdns_recursor_SOURCES += pkcs11signers.cc pkcs11signers.hh
-pdns_recursor_LDADD += $(P11KIT1_LIBS)
-endif
-
-if BOTAN110
-pdns_recursor_SOURCES += botan110signers.cc botansigners.cc
-pdns_recursor_LDADD += $(BOTAN110_LIBS)
-endif
-
-if MALLOC_TRACE
-pdns_recursor_SOURCES += malloctrace.cc malloctrace.hh 
-pdns_recursor_LDFLAGS += -rdynamic
-endif
-
-if LUA
-pdns_recursor_LDADD += $(LUA_LIBS)
-endif
-
-if HAVE_FREEBSD
-pdns_recursor_SOURCES += kqueuemplexer.cc
-endif
-
-if HAVE_LINUX
-pdns_recursor_SOURCES += epollmplexer.cc
-endif
-
-if HAVE_SOLARIS
-pdns_recursor_SOURCES += \
-	devpollmplexer.cc \
-	portsmplexer.cc
-endif
-
 pdns_control_SOURCES = \
 	arguments.cc \
 	dynloader.cc \
@@ -1169,63 +1052,6 @@ pdns_control_SOURCES = \
 	unix_utility.cc \
 	dnsname.cc \
 	dnslabeltext.cc
-
-if HAVE_DNSDISTDISTHTML
-BUILT_SOURCES += htmlfiles.h
-EXTRA_PROGRAMS += dnsdist
-
-testrunner_SOURCES += \
-	test-sholder_hh.cc
-
-nodist_dnsdist_SOURCES = \
-	base32.cc \
-	base64.hh \
-	dns.cc \
-	dnscrypt.cc dnscrypt.hh \
-	dnsparser.hh dnsparser.cc \
-	ednssubnet.cc ednssubnet.hh \
-	dnsdist.cc \
-	dnsdist-carbon.cc \
-	dnsdist-console.cc \
-	dnsdist-dnscrypt.cc \
-	dnsdist-ecs.cc dnsdist-ecs.hh \
-	dnsdist-lua.cc \
-	dnsdist-lua2.cc \
-	dnsdist-rings.cc \
-	dnsdist-tcp.cc \
-	dnsdist-web.cc \
-	dnslabeltext.cc \
-	dnsname.cc dnsname.hh \
-	dnswriter.cc \
-	dolog.hh \
-	iputils.cc \
-	htmlfiles.h \
-	misc.cc misc.hh \
-	qtype.cc \
-	sholder.hh \
-	sodcrypto.cc sodcrypto.hh \
-	sstuff.hh \
-	../ext/json11/json11.cpp
-
-dnsdist_LDFLAGS = \
-	$(AM_LDFLAGS) \
-	$(OPENSSL_LDFLAGS)
-
-dnsdist_LDADD = \
-	$(LUA_LIBS) \
-	$(LIBEDIT_LIBS) \
-	$(RT_LIBS) \
-	$(YAHTTP_LIBS) \
-	$(LIBSODIUM_LIBS) \
-	$(OPENSSL_LIBS)
-
-if HAVE_RE2
-dnsdist_LDADD += $(RE2_LIBS)
-endif
-
-htmlfiles.h: $(srcdir)/dnsdistdist/html/*
-	$(srcdir)/dnsdistdist/incfiles $(srcdir)/dnsdistdist > $@
-endif
 
 if UNIT_TESTS
 TESTS_ENVIRONMENT = env BOOST_TEST_LOG_LEVEL=message SRCDIR='$(srcdir)'
@@ -1254,3 +1080,11 @@ $(srcdir)/effective_tld_names.dat:
 
 pubsuffix.cc: $(srcdir)/effective_tld_names.dat
 	$(AM_V_GEN)./mkpubsuffixcc
+
+pdns_recursor rec_control:
+	@echo "Please build the recursor from the recursordist/ dir"
+	@exit 1
+
+dnsdist:
+	@echo "Please build dnsdist from the dnsdistdist/ dir"
+	@exit 1

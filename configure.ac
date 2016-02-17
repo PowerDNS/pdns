@@ -254,8 +254,6 @@ AM_CONDITIONAL([LDAP],[test "x$needldap" = "xyes"])
 PDNS_CHECK_SQLITE3
 AM_CONDITIONAL([SQLITE3], [test "x$needsqlite3" = "xyes"])
 
-PDNS_CHECK_RE2
-
 for a in $modules; do
   AC_MSG_CHECKING([whether we can build module "${a}"])
   if [[ -d "$srcdir/modules/${a}backend" ]]; then
@@ -295,10 +293,6 @@ AC_SUBST([PROGRAM_LDFLAGS])
 PDNS_ENABLE_COVERAGE
 PDNS_ENABLE_SANITIZERS
 PDNS_ENABLE_MALLOC_TRACE
-
-# Test if the pdns/dnsdistdist/html directory exists, so `make dnsdist` from the
-# repo root can still work.
-AM_CONDITIONAL([HAVE_DNSDISTDISTHTML], [test -d $srcdir/pdns/dnsdistdist/html])
 
 AC_SUBST(LIBS)
 

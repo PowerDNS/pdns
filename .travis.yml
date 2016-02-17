@@ -259,12 +259,6 @@ script:
 
   ### recursor ###
 
-  # in-tree build
-  - cd pdns
-  - make -k -j3 pdns_recursor
-  - rm -f pdns_recursor
-  - cd ..
-
   # distribution build
   - ./build-scripts/dist-recursor
   - cd pdns/recursordist
