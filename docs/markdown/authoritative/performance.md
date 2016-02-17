@@ -10,27 +10,27 @@ When PowerDNS starts up it creates a number of threads to listen for packets. Th
 
 Different backends will have different characteristics - some will want to have more parallel instances than others. In general, if your backend is latency bound, like most relational databases are, it pays to open more backends.
 
-This is done with the [`distributor-threads`](settings.md#distributor-threads) setting which says how many distributors will be opened for each receiver thread. Of special importance is the choice between 1 or more backends. In case of only 1 thread, PDNS reverts to unthreaded operation which may be a lot faster, depending on your operating system and architecture.
+This is done with the [`distributor-threads`](settings.md#distributor-threads) setting which says how many distributors will be opened for each receiver thread. Of special importance is the choice between 1 or more backends. In case of only 1 thread, PowerDNS reverts to unthreaded operation which may be a lot faster, depending on your operating system and architecture.
 
-Another very important setting is [`cache-ttl`](settings.md#cache-ttl). PDNS caches entire packets it sends out so as to save the time to query backends to assemble all data. The default setting of 20 seconds may be low for high traffic sites, a value of 60 seconds rarely leads to problems.
+Another very important setting is [`cache-ttl`](settings.md#cache-ttl). PowerDNS caches entire packets it sends out so as to save the time to query backends to assemble all data. The default setting of 20 seconds may be low for high traffic sites, a value of 60 seconds rarely leads to problems.
 
-Some PDNS operators set cache-ttl to many hours or even days, and use [`pdns_control`](internals.md#pdns_control)` purge` to selectively or globally notify PDNS of changes made in the backend. Also look at the [Query Cache](#query-cache) described in this chapter. It may materially improve your performance.
+Some PowerDNS operators set cache-ttl to many hours or even days, and use [`pdns_control`](running.md#pdns_control)` purge` to selectively or globally notify PowerDNS of changes made in the backend. Also look at the [Query Cache](#query-cache) described in this chapter. It may materially improve your performance.
 
-To determine if PDNS is unable to keep up with packets, determine the value of the [`qsize-q`](../common/logging.md#counters) variable. This represents the number of packets waiting for database attention. During normal operations the queue should be small.
+To determine if PowerDNS is unable to keep up with packets, determine the value of the [`qsize-q`](../common/logging.md#counters) variable. This represents the number of packets waiting for database attention. During normal operations the queue should be small.
 
 Logging truly kills performance as answering a question from the cache is an order of magnitude less work than logging a line about it. Busy sites will prefer to turn [`log-dns-details`](settings.md#log-dns-details) off.
 
 # Packet Cache
-PDNS by default uses the 'Packet Cache' to recognise identical questions and supply them with identical answers, without any further processing. The default time to live is 10 seconds. It has been observed that the utility of the packet cache increases with the load on your nameserver.
+PowerDNS by default uses the 'Packet Cache' to recognise identical questions and supply them with identical answers, without any further processing. The default time to live is 10 seconds. It has been observed that the utility of the packet cache increases with the load on your nameserver.
 
 Not all backends may benefit from the packetcache. If your backend is memory based and does not lead to context switches, the packetcache may actually hurt performance.
 
 The size of the packetcache can be observed with `/etc/init.d/pdns show packetcache-size`
 
 # Query Cache
-Besides entire packets, PDNS can also cache individual backend queries. Each DNS query leads to a number of backend queries, the most obvious additional backend query is the check for a possible CNAME. So, when a query comes in for the 'A' record for 'www.powerdns.com', PDNS must first check for a CNAME for 'www.powerdns.com'.
+Besides entire packets, PowerDNS can also cache individual backend queries. Each DNS query leads to a number of backend queries, the most obvious additional backend query is the check for a possible CNAME. So, when a query comes in for the 'A' record for 'www.powerdns.com', PowerDNS must first check for a CNAME for 'www.powerdns.com'.
 
-The Query Cache caches these backend queries, many of which are quite repetitive. PDNS only caches queries with no answer, or with exactly one. In the future this may be expanded but this lightweight solution is very simple and therefore fast.
+The Query Cache caches these backend queries, many of which are quite repetitive. PowerDNS only caches queries with no answer, or with exactly one. In the future this may be expanded but this lightweight solution is very simple and therefore fast.
 
 Most gain is made from caching negative entries, ie, queries that have no answer. As these take little memory to store and are typically not a real problem in terms of speed-of-propagation, the default TTL for negative queries is a rather high 60 seconds.
 
@@ -40,7 +40,7 @@ The default values should work fine for many sites. When tuning, keep in mind th
 
 # Performance Monitoring
 ## Counters & variables
-A number of counters and variables are set during PDNS Authoritative Server operation.
+A number of counters and variables are set during PowerDNS Authoritative Server operation.
 
 ### Counters
 All counters that show the "number of X" count since the last startup of the
@@ -55,7 +55,7 @@ daemon.
 * `dnsupdate-refused`: Number of DNS update packets that were refused
 * `incoming-notifications`: Number of NOTIFY packets that were received
 * `key-cache-size`: Number of entries in the key cache
-* `latency`: Average number of microseconds a packet spends within PDNS
+* `latency`: Average number of microseconds a packet spends within PowerDNS
 * `meta-cache-size`: Number of entries in the metadata cache
 * `packetcache-hit`: Number of packets which were answered out of the cache
 * `packetcache-miss`: Number of times a packet could not be answered out of the cache
@@ -100,7 +100,7 @@ daemon.
 * `user-msec`: Number of milliseconds spend in CPU 'user' time
 
 ### Ring buffers
-Besides counters, PDNS also maintains the ringbuffers. A ringbuffer records events, each new event gets a place in the buffer until it is full. When full, earlier entries get overwritten, hence the name 'ring'.
+Besides counters, PowerDNS also maintains the ringbuffers. A ringbuffer records events, each new event gets a place in the buffer until it is full. When full, earlier entries get overwritten, hence the name 'ring'.
 
 By counting the entries in the buffer, statistics can be generated. These statistics can currently only be viewed using the webserver and are in fact not even collected without the webserver running.
 
@@ -110,15 +110,15 @@ The following ringbuffers are available:
 * **noerror-queries**: Queries for existing records but for a type we don't have.
 Queries for, say, the AAAA record of a domain, when only an A is available. Queries are listed in the following format: name/type. So an AAAA query for pdns.powerdns.com looks like pdns.powerdns.com/AAAA.
 * **nxdomain-queries**: Queries for non-existing records within existing domains.
-If PDNS knows it is authoritative over a domain, and it sees a question for a record in that domain that does not exist, it is able to send out an authoritative 'no such domain' message. Indicates that hosts are trying to connect to services really not in your zone.
+If PowerDNS knows it is authoritative over a domain, and it sees a question for a record in that domain that does not exist, it is able to send out an authoritative 'no such domain' message. Indicates that hosts are trying to connect to services really not in your zone.
 * **udp-queries**: All UDP queries seen.
 * **remotes**: Remote server IP addresses.
-Number of hosts querying PDNS. Be aware that UDP is anonymous - person A can send queries that appear to be coming from person B.
+Number of hosts querying PowerDNS. Be aware that UDP is anonymous - person A can send queries that appear to be coming from person B.
 * **remote-corrupts**: Remotes sending corrupt packets.
-Hosts sending PDNS broken packets, possibly meant to disrupt service. Be aware that UDP is anonymous - person A can send queries that appear to be coming from person B.
+Hosts sending PowerDNS broken packets, possibly meant to disrupt service. Be aware that UDP is anonymous - person A can send queries that appear to be coming from person B.
 * **remote-unauth**: Remotes querying domains for which we are not authoritative.
-It may happen that there are misconfigured hosts on the internet which are configured to think that a PDNS installation is in fact a resolving nameserver. These hosts will not get useful answers from PDNS. This buffer lists hosts sending queries for domains which PDNS does not know about.
+It may happen that there are misconfigured hosts on the internet which are configured to think that a PowerDNS installation is in fact a resolving nameserver. These hosts will not get useful answers from PowerDNS. This buffer lists hosts sending queries for domains which PowerDNS does not know about.
 * **servfail-queries**: Queries that could not be answered due to backend errors.
-For one reason or another, a backend may be unable to extract answers for a certain domain from its storage. This may be due to a corrupt database or to inconsistent data. When this happens, PDNS sends out a 'servfail' packet indicating that it was unable to answer the question. This buffer shows which queries have been causing servfails.
+For one reason or another, a backend may be unable to extract answers for a certain domain from its storage. This may be due to a corrupt database or to inconsistent data. When this happens, PowerDNS sends out a 'servfail' packet indicating that it was unable to answer the question. This buffer shows which queries have been causing servfails.
 * **unauth-queries**: Queries for domains that we are not authoritative for.
-If a domain is delegated to a PDNS instance, but the backend is not made aware of this fact, questions come in for which no answer is available, nor is the authority. Use this ringbuffer to spot such queries.
+If a domain is delegated to a PowerDNS instance, but the backend is not made aware of this fact, questions come in for which no answer is available, nor is the authority. Use this ringbuffer to spot such queries.

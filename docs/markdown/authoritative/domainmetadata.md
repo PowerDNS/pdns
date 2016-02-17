@@ -16,10 +16,10 @@ tries to allow all potential slaves in.
 Example:
 
 ```
-sql> select id from domains where name='example.com';
+select id from domains where name='example.com';
 7
-sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR-FROM','AUTO-NS');
-sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR-FROM','2001:db8::/48');
+insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR-FROM','AUTO-NS');
+insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR-FROM','2001:db8::/48');
 ```
 
 ## AXFR-SOURCE
@@ -32,16 +32,16 @@ See the documentation on [Dynamic DNS update](dnsupdate.md)
 When notifying this domain, also notify this nameserver (can occur multiple times).
 
 ## AXFR-MASTER-TSIG
-Use this named TSIG key to retrieve this zone from its master (see
-[Provisioning signed notification and AXFR requests](modes-of-operation.md#provisioning-signed-notification-and-axfr-requests)).
+Use this named TSIG key to retrieve this zone from its master, see
+[Provisioning signed notification and AXFR requests](tsig.md#provisioning-signed-notification-and-axfr-requests).
 
 ## GSS-ALLOW-AXFR-PRINCIPAL
 Allow this GSS principal to perform AXFR retrieval. Most commonly it is
 `host/something@REALM`, `DNS/something@REALM` or `user@REALM`. (See
-[GSS-TSIG support](gss-tsig.md)).
+[GSS-TSIG support](tsig.md#gss-tsig-support)).
 
 ## GSS-ACCEPTOR-PRINCIPAL
-Use this principal for accepting GSS context. (See [GSS-TSIG support](gss-tsig.md)).
+Use this principal for accepting GSS context. (See [GSS-TSIG support](tsig.md#gss-tsig-support)).
 
 ## LUA-AXFR-SCRIPT
 Script to be used to edit incoming AXFRs, see [Modifying a slave zone using a script](modes-of-operation.md#modifying-a-slave-zone-using-a-script).
@@ -78,26 +78,12 @@ key rollover, see the [CDS and CDNSKEY howto](howtos.md#cds-dnskey-key-rollover)
 ## SOA-EDIT
 When serving this zone, modify the SOA serial number in one of several ways.
 Mostly useful to get slaves to re-transfer a zone regularly to get fresh RRSIGs.
-
-Inception refers to the time the RRSIGs got updated in
-[live-signing mode](dnssec.md#records-keys-signatures-hashes-within-powerdnssec-in-online-signing-mode).
-This happens every week (see [Signatures](dnssec.md#signatures)). The inception
-time does not depend on local timezone, but some modes below will use localtime
-for representation.
-
-Available modes are:
-
-* INCREMENT-WEEKS: Increments the serial with the number of weeks since the epoch. This should work in every setup; but the result won't look like YYYYMMDDSS anymore.
-* INCEPTION-EPOCH (available since 3.1): Sets the new SOA serial number to the maximum of the old SOA serial number, and age in seconds of the last inception. This requires your backend zone to use age in seconds as SOA serial. The result is still the age in seconds of the last change.
-* INCEPTION-INCREMENT (available since 3.3): Uses YYYYMMDDSS format for SOA serial numbers. If the SOA serial from the backend is within two days after inception, it gets incremented by two (the backend should keep SS below 98). Otherwise it uses the maximum of the backend SOA serial number and inception time in YYYYMMDD01 format. This requires your backend zone to use YYYYMMDDSS as SOA serial format. Uses localtime to find the day for inception time.
-* INCEPTION (not recommended): Sets the SOA serial to the last inception time in YYYYMMDD01 format. Uses localtime to find the day for inception time. **Warning**: The SOA serial will only change on inception day, so changes to the zone will get visible on slaves only on the following inception day.
-* INCEPTION-WEEK (not recommended): Sets the SOA serial to the number of weeks since the epoch, which is the last inception time in weeks. **Warning**: Same problem as INCEPTION
-* EPOCH: Sets the SOA serial to the number of seconds since the epoch. **Warning**: Don't combine this with AXFR - the slaves would keep refreshing all the time. If you need fast updates, sync the backend databases directly with incremental updates (or use the same database server on the slaves)
-* NONE: Ignore [`default-soa-edit`](settings.md#default-soa-edit) and/or [`default-soa-edit-signed`](settings.md#default-soa-edit-signed) setings.
+See the [DNSSEC documentation](dnssec.md#soa-edit-ensure-signature-freshness-on-slaves)
+for more information.
 
 ## TSIG-ALLOW-AXFR
-Allow these named TSIG keys to AXFR this zone (see [Provisioning outbound AXFR access](modes-of-operation.md#provisioning-outbound-axfr-access)).
+Allow these named TSIG keys to AXFR this zone, see [Provisioning outbound AXFR access](tsig.md#provisioning-outbound-axfr-access).
 
 ## TSIG-ALLOW-DNSUPDATE
-This setting allows you to set the TSIG key required to do an DNS update. If
-GSS-TSIG is enabled, you can put kerberos principals here as well.
+This setting allows you to set the TSIG key required to do an [DNS update](dnsupdate.md). If
+[GSS-TSIG](tsig.md#gss-tsig) is enabled, you can put kerberos principals here as well.

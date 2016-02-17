@@ -1,4 +1,4 @@
-Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution file.
+Before proceeding, it is advised to check the release notes for your PowerDNS version, as specified in the name of the distribution file.
 
 **WARNING**: Version 3.X of the PowerDNS Authoritative Server is a major upgrade if you are coming from 2.9.x. Please follow **all** instructions.
 
@@ -155,7 +155,7 @@ EDNS option number to use
 Process URL and MBOXFW records
 
 #### `log-failed-updates`
-If PDNS should log failed update requests
+If PowerDNS should log failed update requests
 
 #### `smtpredirector`
 Our smtpredir MX host
@@ -175,7 +175,7 @@ Allow zonetransfers only to these subnets
 * new value: 127.0.0.0/8,::1
 
 #### log-dns-details
-If PDNS should log DNS non-erroneous details
+If PowerDNS should log DNS non-erroneous details
 
 * old value:
 * new value: no

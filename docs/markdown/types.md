@@ -1,5 +1,5 @@
 # Supported Record Types
-This chapter lists all record types PDNS supports, and how they are stored in
+This chapter lists all record types PowerDNS supports, and how they are stored in
 backends. The list is mostly alphabetical but some types are grouped.
 
 **Warning**: Host names and the MNAME of a SOA records are NEVER terminated with
@@ -50,7 +50,7 @@ Like all other records, it is not terminated by a dot. A sample might be
 
 ## DNSKEY
 The DNSKEY DNSSEC record type is fully supported, as described in [RFC 4034](https://tools.ietf.org/html/rfc4034).
-Enabeling DNSSEC for domains can be done with [`pdnsutil`](authoritative/dnssec.md#pdnsutil "'pdnsutil' for PowerDNSSEC command & control").
+Enabeling DNSSEC for domains can be done with [`pdnsutil`](authoritative/dnssec.md#pdnsutil "'pdnsutil' for PowerDNS command & control").
 
 ## DNAME
 The DNAME record, as specified in [RFC 6672](http://tools.ietf.org/html/rfc6672)
@@ -59,7 +59,7 @@ to be set to `yes` for PowerDNS to process these records.
 
 ## DS
 The DS DNSSEC record type is fully supported, as described in [RFC 4034](https://tools.ietf.org/html/rfc4034).
-Enabeling DNSSEC for domains can be done with [`pdnsutil`](authoritative/dnssec.md#pdnsutil "'pdnsutil' for PowerDNSSEC command & control").
+Enabeling DNSSEC for domains can be done with [`pdnsutil`](authoritative/dnssec.md#pdnsutil "'pdnsutil' for PowerDNS command & control").
 
 ## HINFO
 Hardware Info record, used to specify CPU and operating system. Stored with a
@@ -96,7 +96,7 @@ Nameserver record. Specifies nameservers for a domain. Stored plainly:
 ## NSEC, NSEC3, NSEC3PARAM
 The NSEC, NSEC3 and NSEC3PARAM DNSSEC record type are fully supported, as described
 in [RFC 4034](http://tools.ietf.org/html/rfc4034). To enable DNSSEC, use
-[`pdnsutil`](authoritative/dnssec.md#pdnsutil "'pdnsutil' for PowerDNSSEC command & control").
+[`pdnsutil`](authoritative/dnssec.md#pdnsutil "'pdnsutil' for PowerDNS command & control").
 
 ## OPENPGPKEY
 Since 3.4.7. The OPENPGPKEY records, specified in [RFC TBD](https://tools.ietf.org/html/draft-ietf-dane-openpgpkey-06),
@@ -130,7 +130,7 @@ The stored format is:
  primary hostmaster serial refresh retry expire default_ttl
 ```
 
-Besides the primary and the hostmaster, all fields are numerical. PDNS has a set of default values:
+Besides the primary and the hostmaster, all fields are numerical. PowerDNS has a set of default values:
 
  * primary: [`default-soa-name`](authoritative/settings.md#default-soa-name) configuration option
  * hostmaster: `hostmaster@domain-name`
@@ -141,7 +141,7 @@ Besides the primary and the hostmaster, all fields are numerical. PDNS has a set
  * default\_ttl: 3600 (1 hour)
 
 The fields have complicated and sometimes controversial meanings. The 'serial'
-field is special. If left at 0, the default, PDNS will perform an internal list
+field is special. If left at 0, the default, PowerDNS will perform an internal list
 of the domain to determine highest change\_date field of all records within the
 zone, and use that as the zone serial number. This means that the serial number
 is always raised when changes are made to the zone, as long as the change\_date

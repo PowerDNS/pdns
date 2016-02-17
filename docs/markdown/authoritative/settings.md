@@ -145,7 +145,7 @@ this depends on `SYSCONFDIR` during compile-time.
 * String
 
 Name of this virtual configuration - will rename the binary image. See
-["Virtual hosting"](virtual.md).
+["Virtual hosting"](running.md#virtual-hosting).
 
 ## `control-console`
 Debugging switch - don't use.
@@ -161,7 +161,7 @@ Operate as a daemon.
 * Default: rsasha256
 
 The algorithm that should be used for the KSK when running
-[`pdnsutil secure-zone`](internals.md#pdnsutil).
+[`pdnsutil secure-zone`](../manpages/pdnsutil.1.md).
 Must be one of:
 * rsamd5
 * dh
@@ -180,7 +180,7 @@ Must be one of:
 * Default: whichever is default for `default-ksk-algorithms`
 
 The default keysize for the KSK generated with
-[`pdnsutil secure-zone`](internals.md#pdnsutil).
+[`pdnsutil secure-zone`](../manpages/pdnsutil.1.md).
 
 ## `default-soa-name`
 * String
@@ -218,7 +218,7 @@ TTL to use when none is provided.
 * Default: rsasha256
 
 The algorithm that should be used for the ZSK when running
-[`pdnsutil secure-zone`](internals.md#pdnsutil).
+[`pdnsutil secure-zone`](../manpages/pdnsutil.1.md).
 Must be one of:
 * rsamd5
 * dh
@@ -237,7 +237,7 @@ Must be one of:
 * Default: whichever is default for `default-zsk-algorithms`
 
 The default keysize for the ZSK generated with
-[`pdnsutil secure-zone`](internals.md#pdnsutil).
+[`pdnsutil secure-zone`](../manpages/pdnsutil.1.md).
 
 ## `direct-dnskey`
 * Boolean
@@ -321,10 +321,7 @@ Forward DNS updates sent to a slave to the master.
 * Boolean
 * Default: no
 
-Run within a guardian process. See ["Guardian"](internals.md#guardian).
-
-## `help`
-Provide a helpful message
+Run within a guardian process. See ["Guardian"](running.md#guardian).
 
 ## `include-dir`
 * Path
@@ -335,8 +332,24 @@ loaded in order using `POSIX` as locale.
 ## `launch`
 * Backend names, separated by commas
 
-Which backends to launch and order to query them in. See
-["Modules & Backends"](internals.md#modules-backends).
+Which backends to launch and order to query them in. Launches backends. In its
+most simple form, supply all backends that need to be launched. e.g.
+
+```
+launch=bind,gmysql,remote
+```
+
+If you find that you need to a backend multiple times with different configuration,
+you can specify a name for later instantiations. e.g.:
+
+```
+launch=gmysql,gmysql:server2
+```
+
+In this case, there are 2 instances of the gmysql backend, one by the normal name
+and the second one is called 'server2'. The backend configuration item names
+change: e.g. `gmysql-host` is available to configure the `host` setting of the
+first or main instance, and `gmysql-server2-host` for the second one.
 
 ## `lazy-recursion`
 * Boolean
@@ -346,10 +359,11 @@ Which backends to launch and order to query them in. See
 Check local data first before recursing. See ["Recursion"](recursion.md).
 
 ## `load-modules`
-* Path
+* Paths, seperated by commas
 
-Load this module - supply absolute or relative path. See
-["Modules & Backends"](internals.md#modules-backends).
+If backends are available in nonstandard directories, specify their location here.
+Multiple files can be loaded if separated by commas. Only available in non-static
+distributions.
 
 ## `local-address`
 * IPv4 Addresses, separated by commas or whitespace
@@ -479,8 +493,7 @@ Allow this many incoming TCP DNS connections simultaneously.
 ## `module-dir`
 * Path
 
-Directory for modules. See ["Modules and Backends"](internals.md#modules-backends).
-Default depends on `PKGLIBDIR` during compile-time.
+Directory for modules. Default depends on `PKGLIBDIR` during compile-time.
 
 ## `negquery-cache-ttl`
 * Integer
@@ -620,7 +633,7 @@ Number of receiver (listening) threads to start. See
 * Default: 10
 
 Seconds to store recursive packets in the PacketCache. See
-["Packet Cache"](internals.md#packet-cache).
+["Packet Cache"](performance.md#packet-cache).
 
 ## `recursor`
 * IP Address
@@ -722,11 +735,11 @@ under that offset.
 
 Where the controlsocket will live. The default depends on `LOCALSTATEDIR` during
 compile-time (usually `/var/run` or `/run`). See
-["Controlsocket"](internals.md#controlsocket).
+["Controlsocket"](running.md#controlsocket).
 
 This path will also contain the pidfile for this instance of PowerDNS called
 `pdns.pid` by default. See [`config-name`](#config-name) and
-[Virtual Hosting](virtual.md) how this can differ.
+[Virtual Hosting](running.md#virtual-hosting) how this can differ.
 
 ## `strict-rfc-axfrs`
 * Boolean

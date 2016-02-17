@@ -6,7 +6,7 @@ wiki](http://wiki.powerdns.com).  Also please read [this blog
 post](http://blog.powerdns.com/2015/06/23/what-is-a-powerdns-backend-and-how-do-i-make-it-send-an-nxdomain/)
 which has a FAQ and several pictures that help explain what a backend is.
 
-A backend contains zero DNS logic. It need not look for CNAMEs, it need not return NS records unless explicitly asked for, etcetera. All DNS logic is contained within PDNS itself - backends should simply return records matching the description asked for.
+A backend contains zero DNS logic. It need not look for CNAMEs, it need not return NS records unless explicitly asked for, etcetera. All DNS logic is contained within PowerDNS itself - backends should simply return records matching the description asked for.
 
 **Warning**: However, please note that your backend can get queries in aNy CAsE! If your database is case sensitive, like most are (with the notable exception of MySQL), you must make sure that you do find answers which differ only in case.
 
@@ -40,7 +40,7 @@ Implementing a backend consists of inheriting from the DNSBackend class. For rea
 
 Note that the first three methods must be implemented. `getSOA()` has a useful default implementation.
 
-The semantics are simple. Each instance of your class only handles one (1) query at a time. There is no need for locking as PDNS guarantees that your backend will never be called reentrantly.
+The semantics are simple. Each instance of your class only handles one (1) query at a time. There is no need for locking as PowerDNS guarantees that your backend will never be called reentrantly.
 
 **Note**: Queries for wildcard names should be answered literally, without expansion. So, if a backend gets a question for "*.powerdns.com", it should only answer with data if there is an actual "*.powerdns.com" name
 
@@ -51,9 +51,9 @@ Some examples, a more formal specification is down below. A normal lookup starts
     yb.lookup(QType::CNAME,"www.powerdns.com");
 ```
 
-Your class should now do everything to start this query. Perform as much preparation as possible - handling errors at this stage is better for PDNS than doing so later on. A real error should be reported by throwing an exception.
+Your class should now do everything to start this query. Perform as much preparation as possible - handling errors at this stage is better for PowerDNS than doing so later on. A real error should be reported by throwing an exception.
 
-PDNS will then call the `get()` method to get `DNSResourceRecord`s back. The following code illustrates a typical query:
+PowerDNS will then call the `get()` method to get `DNSResourceRecord`s back. The following code illustrates a typical query:
 
 ```
     yb.lookup(QType::CNAME,"www.powerdns.com");
@@ -66,7 +66,7 @@ PDNS will then call the `get()` method to get `DNSResourceRecord`s back. The fol
 
 Each zone starts with a Start of Authority (SOA) record. This record is special so many backends will choose to implement it specially. The default `getSOA()` method performs a regular lookup on your backend to figure out the SOA, so if you have no special treatment for SOA records, where is no need to implement your own `getSOA()`.
 
-Besides direct queries, PDNS also needs to be able to list a zone, to do zone transfers for example. Each zone has an id which should be unique within the backend. To list all records belonging to a zone id, the `list()` method is used. Conveniently, the domain\_id is also available in the `SOAData` structure.
+Besides direct queries, PowerDNS also needs to be able to list a zone, to do zone transfers for example. Each zone has an id which should be unique within the backend. To list all records belonging to a zone id, the `list()` method is used. Conveniently, the domain\_id is also available in the `SOAData` structure.
 
 The following lists the contents of a zone called "powerdns.com".
 
@@ -154,11 +154,11 @@ static RandomLoader randomloader;
 
 This simple backend can be used as an 'overlay'. In other words, it only knows about a single record, another loaded backend would have to know about the SOA and NS records and such. But nothing prevents us from loading it without another backend.
 
-The first part of the code contains the actual logic and should be pretty straightforward. The second part is a boilerplate 'factory' class which PDNS calls to create randombackend instances. Note that a 'suffix' parameter is passed. Real life backends also declare parameters for the configuration file; these get the 'suffix' appended to them. Note that the "random" in the constructor denotes the name by which the backend will be known.
+The first part of the code contains the actual logic and should be pretty straightforward. The second part is a boilerplate 'factory' class which PowerDNS calls to create randombackend instances. Note that a 'suffix' parameter is passed. Real life backends also declare parameters for the configuration file; these get the 'suffix' appended to them. Note that the "random" in the constructor denotes the name by which the backend will be known.
 
-The third part registers the RandomFactory with PDNS. This is a simple C++ trick which makes sure that this function is called on execution of the binary or when loading the dynamic module.
+The third part registers the RandomFactory with PowerDNS. This is a simple C++ trick which makes sure that this function is called on execution of the binary or when loading the dynamic module.
 
-Please note that a RandomBackend is actually in most PDNS releases. By default it lives on random.example.com, but you can change that by setting [`random-hostname`](../authoritative/backend-random.md#random-hostname).
+Please note that a RandomBackend is actually in most PowerDNS releases. By default it lives on random.example.com, but you can change that by setting [`random-hostname`](../authoritative/backend-random.md#random-hostname).
 
 **Note**: this simple backend neglects to handle case properly!
 
@@ -208,7 +208,7 @@ Should throw an PDNSException if an error occurred accessing the database. Retur
 It is legal to return here, and have the first call to `get()` return false. This is interpreted as 'no data'.
 
 #### `bool list(int domain_id, bool include_disabled=false)`
-Initiates a list of the indicated domain. Records should then be made available via the `get()` method. Need not include the SOA record. If it is, PDNS will not get confused. If include\_disabled is given as true, records that are configured but should not be served to DNS clients must also be made available.
+Initiates a list of the indicated domain. Records should then be made available via the `get()` method. Need not include the SOA record. If it is, PowerDNS will not get confused. If include\_disabled is given as true, records that are configured but should not be served to DNS clients must also be made available.
 
 Should return false if the backend does not consider itself authoritative for this zone. Should throw an PDNSException if an error occurred accessing the database. Returning true indicates that data is or should be available.
 
@@ -228,9 +228,9 @@ To report errors, the Logger class is available which works mostly like an iostr
 To indicate the importance of an error, the standard syslog errorlevels are available. They can be set by outputting `Logger::Critical`, `Logger::Error`, `Logger::Warning`, `Logger::Notice`, `Logger::Info` or `Logger::Debug` to `L`, in descending order of graveness.
 
 ## Declaring and reading configuration details
-It is highly likely that a backend needs configuration details. On launch, these parameters need to be declared with PDNS so it knows it should accept them in the configuration file and on the command line. Furthermore, they will be listed in the output of `--help`.
+It is highly likely that a backend needs configuration details. On launch, these parameters need to be declared with PowerDNS so it knows it should accept them in the configuration file and on the command line. Furthermore, they will be listed in the output of `--help`.
 
-Declaring arguments is done by implementing the member function `declareArguments()` in the factory class of your backend. PDNS will call this method after launching the backend.
+Declaring arguments is done by implementing the member function `declareArguments()` in the factory class of your backend. PowerDNS will call this method after launching the backend.
 
 In the `declareArguments()` method, the function `declare()` is available. The exact definitions:
 
@@ -266,34 +266,29 @@ Returns the exact value of a parameter.
 ### `int getArgAsNum(const string &key)`
 Returns the numerical value of a parameter. Uses `atoi()` internally
 
-Sample usage from the BindBackend, using the [`bind-example-zones`](../authoritative/backend-bind.md#bind-example-zones) and [`bind-config`](../authoritative/backend-bind.md#bind-config) parameters.
+Sample usage from the BindBackend: getting the 'check-interval' setting:
 
 ```
-  if(mustDo("example-zones")) {
-    insert(0,"www.example.com","A","192.0.2.4");
-    /* ... */
-  }
-
-  if(!getArg("config").empty()) {
-    BindParser BP;
-
-    BP.parse(getArg("config"));
-  }
-
+if(!safeGetBBDomainInfo(i->name, &bbd)) {
+  bbd.d_id=domain_id++;
+  bbd.setCheckInterval(getArgAsNum("check-interval"));
+  bbd.d_lastnotified=0;
+  bbd.d_loaded=false;
+}
 ```
 
 ## Read/write slave-capable backends
 The backends above are 'natively capable' in that they contain all data relevant for a domain and do not pull in data from other nameservers. To enable storage of information, a backend must be able to do more.
 
-Before diving into the details of the implementation some theory is in order. Slave domains are pulled from the master. PDNS needs to know for which domains it is to be a slave, and for each slave domain, what the IP address of the master is.
+Before diving into the details of the implementation some theory is in order. Slave domains are pulled from the master. PowerDNS needs to know for which domains it is to be a slave, and for each slave domain, what the IP address of the master is.
 
 A slave zone is pulled from a master, after which it is 'fresh', but this is only temporary. In the SOA record of a zone there is a field which specifies the 'refresh' interval. After that interval has elapsed, the slave nameserver needs to check at the master ff the serial number there is higher than what is stored in the backend locally.
 
-If this is the case, PDNS dubs the domain 'stale', and schedules a transfer of data from the remote. This transfer remains scheduled until the serial numbers remote and locally are identical again.
+If this is the case, PowerDNS dubs the domain 'stale', and schedules a transfer of data from the remote. This transfer remains scheduled until the serial numbers remote and locally are identical again.
 
 This theory is implemented by the `getUnfreshSlaveInfos` method, which is called on all backends periodically. This method fills a vector of **SlaveDomain**s with domains that are unfresh and possibly stale.
 
-PDNS then retrieves the SOA of those domains remotely and locally and creates a list of stale domains. For each of these domains, PDNS starts a zone transfer to resynchronise. Because zone transfers can fail, it is important that the interface to the backend allows for transaction semantics because a zone might otherwise be left in a halfway updated situation.
+PowerDNS then retrieves the SOA of those domains remotely and locally and creates a list of stale domains. For each of these domains, PowerDNS starts a zone transfer to resynchronise. Because zone transfers can fail, it is important that the interface to the backend allows for transaction semantics because a zone might otherwise be left in a halfway updated situation.
 
 The following excerpt from the DNSBackend shows the relevant functions:
 
@@ -352,9 +347,9 @@ Abort changes. In SQL terms, execute **ABORT**.
 ### `bool setFresh()`
 Indicate that a domain has either been updated or refreshed without the need for a retransfer. This causes the domain to vanish from the vector modified by `getUnfreshSlaveInfos()`.
 
-PDNS will always call `startTransaction()` before making calls to `feedRecord()`. Although it is likely that `abortTransaction()` will be called in case of problems, backends should also be prepared to abort from their destructor.
+PowerDNS will always call `startTransaction()` before making calls to `feedRecord()`. Although it is likely that `abortTransaction()` will be called in case of problems, backends should also be prepared to abort from their destructor.
 
-The actual code in PDNS is currently (1.99.9):
+The actual code in PowerDNS is currently (1.99.9):
 
 ```
     Resolver resolver;
@@ -392,9 +387,9 @@ Using the supplied data, the backend needs to determine if this is a bonafide 's
 Supermaster/superslave is a complicated concept, if this is all unclear see the [Supermaster and Superslave](../authoritative/modes-of-operation.md#supermaster-automatic-provisioning-of-slaves) documentation.
 
 ## Read/write master-capable backends
-In order to be a useful master for a domain, notifies must be sent out whenever a domain is changed. Periodically, PDNS queries backends for domains that may have changed, and sends out notifications for slave nameservers.
+In order to be a useful master for a domain, notifies must be sent out whenever a domain is changed. Periodically, PowerDNS queries backends for domains that may have changed, and sends out notifications for slave nameservers.
 
-In order to do so, PDNS calls the `getUpdatedMasters()` method. Like the `getUnfreshSlaveInfos()` function mentioned above, this should add changed domain names to the vector passed.
+In order to do so, PowerDNS calls the `getUpdatedMasters()` method. Like the `getUnfreshSlaveInfos()` function mentioned above, this should add changed domain names to the vector passed.
 
 The following excerpt from the DNSBackend shows the relevant functions:
 

@@ -18,20 +18,20 @@ pages:
     - End of life statements: end-of-life.md
   - Authoritative:
     - Introduction: authoritative/index.md
-    - Installing and Running: authoritative/installation.md
+    - Installing PowerDNS: authoritative/installation.md
+    - Running PowerDNS: authoritative/running.md
     - Upgrade Notes: authoritative/upgrading.md
-    - Modes of Operation: authoritative/modes-of-operation.md
-    - Domain metadata: authoritative/domainmetadata.md
+    - Native, Master and Slave Operation: authoritative/modes-of-operation.md
+    - DNSSEC with PowerDNS: authoritative/dnssec.md
+    - Domain Metadata: authoritative/domainmetadata.md
     - Dynamic DNS Update: authoritative/dnsupdate.md
-    - GSS-TSIG: authoritative/gss-tsig.md
+    - Using TSIG for AXFR: authoritative/tsig.md
     - Various How To's: authoritative/howtos.md
-    - Internals: authoritative/internals.md
-    - Virtual Hosting: authoritative/virtual.md
     - Performance Tuning and Monitoring: authoritative/performance.md
     - Migrating to PowerDNS: authoritative/migration.md
     - Recursion with the Authoritative Server: authoritative/recursion.md
-    - Serve DNSSEC Signed Data: authoritative/dnssec.md
     - List of Settings: authoritative/settings.md
+    - 'Manpage: zone2json.1': manpages/zone2json.1.md
     - 'Manpage: zone2ldap.1': manpages/zone2ldap.1.md
     - 'Manpage: zone2sql.1': manpages/zone2sql.1.md
     - 'Manpage: pdns_control.1': manpages/pdns_control.1.md

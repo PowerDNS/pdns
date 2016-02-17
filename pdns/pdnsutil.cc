@@ -1860,6 +1860,7 @@ try
     cerr<<"       [active|inactive] [ksk|zsk]  Defaults to KSK and active"<<endl;
     cerr<<"load-zone ZONE FILE                Load ZONE from FILE, possibly creating zone or atomically"<<endl;
     cerr<<"                                   replacing contents"<<endl;
+    cerr<<"list-algorithms [with-backend]     List all DNSSEC algorithms supported, optionally also listing the crypto library used"<<endl;
     cerr<<"list-keys [ZONE]                   List DNSSEC keys for ZONE. When ZONE is unset or \"all\", display all keys for all zones"<<endl;
     cerr<<"list-zone ZONE                     List zone contents"<<endl;
     cerr<<"list-all-zones [master|slave|native]"<<endl;
@@ -1917,6 +1918,25 @@ seedRandom(::arg()["entropy-source"]);
     if (testAlgorithms())
       return 0;
     return 1;
+  }
+
+  if(cmds[0] == "list-algorithms") {
+    if((cmds.size() == 2 && cmds[1] != "with-backend") || cmds.size() > 2) {
+      cerr<<"Syntax: pdnsutil list-algorithms [with-backend]"<<endl;
+      return 1;
+    }
+
+    cout<<"DNSKEY algorithms supported by this installation of PowerDNS:"<<endl;
+
+    auto algosWithBackend = DNSCryptoKeyEngine::listAllAlgosWithBackend();
+    for (auto const algoWithBackend : algosWithBackend){
+      string algoName = DNSSECKeeper::algorithm2name(algoWithBackend.first);
+      cout<<std::to_string(algoWithBackend.first)<<" - "<<algoName;
+      if (cmds.size() == 2 && cmds[1] == "with-backend")
+        cout<<" using "<<algoWithBackend.second;
+      cout<<endl;
+    }
+    return 0;
   }
 
   reportAllTypes();

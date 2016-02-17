@@ -123,6 +123,21 @@ DNSCryptoKeyEngine* DNSCryptoKeyEngine::make(unsigned int algo)
   }
 }
 
+/**
+ * Returns the supported DNSSEC algorithms with the name of the Crypto Backend used
+ *
+ * @return   A vector with pairs of (algorithm-number (int), backend-name (string))
+ */
+vector<pair<uint8_t, string>> DNSCryptoKeyEngine::listAllAlgosWithBackend()
+{
+  vector<pair<uint8_t, string>> ret;
+  for (auto const& value : getMakers()) {
+    shared_ptr<DNSCryptoKeyEngine> dcke(value.second(value.first));
+    ret.push_back(make_pair(value.first, dcke->getName()));
+  }
+  return ret;
+}
+
 void DNSCryptoKeyEngine::report(unsigned int algo, maker_t* maker, bool fallback)
 {
   getAllMakers()[algo].push_back(maker);

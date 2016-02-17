@@ -1,34 +1,34 @@
 # Security Settings
-PDNS has several options to easily allow it to run more securely. Most notable are the [`chroot`](../authoritative/settings.md#chroot), [`setuid`](../authoritative/settings.md#setuid) and [`setgid`](../authoritative/settings.md#setgid) options which can be specified.
+PowerDNS has several options to easily allow it to run more securely. Most notable are the [`chroot`](../authoritative/settings.md#chroot), [`setuid`](../authoritative/settings.md#setuid) and [`setgid`](../authoritative/settings.md#setgid) options which can be specified.
 
 For additional information on PowerDNS security, PowerDNS security incidents and PowerDNS security policy, see [our security policy](../security/index.md).
 
 ## Running as a less privileged identity
 
-By specifying [`setuid`](../authoritative/settings.md#setuid) and [`setgid`](../authoritative/settings.md#setgid), PDNS changes to this identity shortly after binding to the privileged DNS ports. These options are highly recommended. It is suggested that a separate identity is created for PDNS as the user 'nobody' is in fact quite powerful on most systems.
+By specifying [`setuid`](../authoritative/settings.md#setuid) and [`setgid`](../authoritative/settings.md#setgid), PowerDNS changes to this identity shortly after binding to the privileged DNS ports. These options are highly recommended. It is suggested that a separate identity is created for PowerDNS as the user 'nobody' is in fact quite powerful on most systems.
 
 Both these parameters can be specified either numerically or as real names. You should set these parameters immediately if they are not set!
 
 ## Jailing the process in a chroot
 
-The [`chroot`](../authoritative/settings.md#chroot) option secures PDNS to its own directory so that even if it should become compromised and under control of external influences, it will have a hard time affecting the rest of the system.
+The [`chroot`](../authoritative/settings.md#chroot) option secures PowerDNS to its own directory so that even if it should become compromised and under control of external influences, it will have a hard time affecting the rest of the system.
 
 Even though this will hamper hackers a lot, chroot jails have been known to be broken.
 
-**Warning**: When chrooting PDNS, take care that backends will be able to get to their files. Many databases need access to a UNIX domain socket which should live within the chroot. It is often possible to hardlink such a socket into the chroot dir.
+**Warning**: When chrooting PowerDNS, take care that backends will be able to get to their files. Many databases need access to a UNIX domain socket which should live within the chroot. It is often possible to hardlink such a socket into the chroot dir.
 
 When running with master or slave support, be aware that many operating systems need access to specific libraries (often `/lib/libnss*`) in order to support resolution of domain names! You can also hardlink these.
 
 In addition, make sure that `/dev/log` is available from within the chroot. Logging will silently fail over time otherwise (on logrotate).
 
-The default PDNS configuration is best chrooted to `./`, which boils down to the configured location of the controlsocket.
+The default PowerDNS configuration is best chrooted to `./`, which boils down to the configured location of the controlsocket.
 
-This is achieved by adding the following to pdns.conf: `chroot=./`, and restarting PDNS.
+This is achieved by adding the following to pdns.conf: `chroot=./`, and restarting PowerDNS.
 
 # Security Considerations
-In general, make sure that the PDNS process is unable to execute commands on your backend database. Most database backends will only need SELECT privilege. Take care to not connect to your database as the 'root' or 'sa' user, and configure the chosen user to have very slight privileges.
+In general, make sure that the PowerDNS process is unable to execute commands on your backend database. Most database backends will only need SELECT privilege. Take care to not connect to your database as the 'root' or 'sa' user, and configure the chosen user to have very slight privileges.
 
-Databases empathically do not need to run on the same machine that runs PDNS! In fact, in benchmarks it has been discovered that having a separate database machine actually improves performance.
+Databases empathically do not need to run on the same machine that runs PowerDNS! In fact, in benchmarks it has been discovered that having a separate database machine actually improves performance.
 
 Separation will enhance your database security highly. Recommended.
 

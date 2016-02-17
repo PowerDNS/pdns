@@ -1,11 +1,11 @@
-In a production environment, you will want to be able to monitor PDNS performance. Furthermore, PDNS can perform a configurable amount of operational logging. This chapter also explains how to configure syslog for best results.
+In a production environment, you will want to be able to monitor PowerDNS performance. Furthermore, PowerDNS can perform a configurable amount of operational logging. This chapter also explains how to configure syslog for best results.
 
 # Logging
-This chapter assumes familiarity with syslog, the unix logging device. PDNS logs messages with different levels. The more urgent the message, the lower the 'priority'. By default, PDNS will only log messages with an urgency of 3 or lower, but this can be changed using the [loglevel](../authoritative/settings.md#loglevel) setting in the configuration file. Setting it to 0 will eliminate all logging, 9 will log everything.
+This chapter assumes familiarity with syslog, the unix logging device. PowerDNS logs messages with different levels. The more urgent the message, the lower the 'priority'. By default, PowerDNS will only log messages with an urgency of 3 or lower, but this can be changed using the [loglevel](../authoritative/settings.md#loglevel) setting in the configuration file. Setting it to 0 will eliminate all logging, 9 will log everything.
 
-By default, logging is performed under the 'DAEMON' facility which is shared with lots of other programs. If you regard nameserving as important, you may want to have it under a dedicated facility so PDNS can log to its own files, and not clutter generic files.
+By default, logging is performed under the 'DAEMON' facility which is shared with lots of other programs. If you regard nameserving as important, you may want to have it under a dedicated facility so PowerDNS can log to its own files, and not clutter generic files.
 
-For this purpose, syslog knows about 'local' facilities, numbered from LOCAL0 to LOCAL7. To move PDNS logging to LOCAL0, add [`logging-facility`](../authoritative/settings.md#logging-facility)`=0` to your configuration.
+For this purpose, syslog knows about 'local' facilities, numbered from LOCAL0 to LOCAL7. To move PowerDNS logging to LOCAL0, add [`logging-facility`](../authoritative/settings.md#logging-facility)`=0` to your configuration.
 
 Furthermore, you may want to have separate files for the differing priorities - preventing lower priority messages from obscuring important ones.
 
@@ -17,7 +17,7 @@ local0.warn                       -/var/log/pdns.warn
 local0.err                        /var/log/pdns.err
 ```
 
-Where local0.err would store the really important messages. For performance and disk space reasons, it is advised to audit your `syslog.conf` for statements also logging PDNS activities. Many `syslog.conf`s have a '*.*' statement to /var/log/syslog, which you may want to remove.
+Where local0.err would store the really important messages. For performance and disk space reasons, it is advised to audit your `syslog.conf` for statements also logging PowerDNS activities. Many `syslog.conf`s have a '*.*' statement to /var/log/syslog, which you may want to remove.
 
 For performance reasons, be especially certain that no large amounts of synchronous logging take place. Under Linux, this is indicated by file names not starting with a '-' - indicating a synchronous log, which hurts performance.
 
@@ -27,7 +27,7 @@ Be aware that syslog by default logs messages at the configured priority and hig
 Both PowerDNS daemons generate ample metrics which can be used to monitor performance. These metrics can be polled using the rec\_control and pdns\_control commands, and they are also available via the http-based API. Finally, they can be pushed to a Carbon/Graphite server, either native carbon, or our own Metronome implementation.
 
 ## Webserver
-To launch the internal webserver, add a [`webserver`](../authoritative/settings.md#webserver) statement to the `pdns.conf`. This will instruct the PDNS daemon to start a webserver on localhost at port 8081, without password protection. Only local users (on the same host) will be able to access the webserver by default. The webserver lists a lot of information about the PDNS process, including frequent queries, frequently failing queries, lists of remote hosts sending queries, hosts sending corrupt queries etc. The webserver does not allow remote management of the daemon. The following webserver related configuration items are available:
+To launch the internal webserver, add a [`webserver`](../authoritative/settings.md#webserver) statement to the `pdns.conf`. This will instruct the PowerDNS daemon to start a webserver on localhost at port 8081, without password protection. Only local users (on the same host) will be able to access the webserver by default. The webserver lists a lot of information about the PowerDNS process, including frequent queries, frequently failing queries, lists of remote hosts sending queries, hosts sending corrupt queries etc. The webserver does not allow remote management of the daemon. The following webserver related configuration items are available:
 
 * `webserver`: If set to anything but 'no', a webserver is launched.
 * `webserver-address`: Address to bind the webserver to. Defaults to 127.0.0.1, which implies that only the local computer is able to connect to the nameserver! To allow remote hosts to connect, change to 0.0.0.0 or the physical IP address of your nameserver.
@@ -36,7 +36,7 @@ To launch the internal webserver, add a [`webserver`](../authoritative/settings.
 * `webserver-print-arguments`: Whether or not the webserver should print the server arguments.
 
 ## Via init.d commands
-As mentioned before, the init.d commands **dump**, **show** and **mrtg** fetch data from a running PDNS process. Especially **mrtg** is powerful - it outputs data in a format that is ready for processing by the MRTG graphing tool.
+As mentioned before, the init.d commands **dump**, **show** and **mrtg** fetch data from a running PowerDNS process. Especially **mrtg** is powerful - it outputs data in a format that is ready for processing by the MRTG graphing tool.
 
 MRTG can make insightful graphics on the performance of your nameserver, enabling the operator to easily spot trends. MRTG can be found on the (MRTG website)[http://people.ee.ethz.ch/~oetiker/webtools/mrtg/mrtg.html]
 
