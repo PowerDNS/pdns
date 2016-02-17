@@ -376,14 +376,30 @@ static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
   });
 }
 
-INCBIN(Index, "index.html");
+#include "htmlfiles.h"
 
 void serveStuff(HttpRequest* req, HttpResponse* resp) 
 {
   resp->headers["Cache-Control"] = "max-age=86400";
-  resp->headers["Content-Type"] = "text/css";
 
-  resp->body = string((const char*)gIndexData, gIndexSize);
+  const string charset = "; charset=utf-8";
+  if(boost::ends_with(req->url.path, ".html"))
+    resp->headers["Content-Type"] = "text/html" + charset;
+  else if(boost::ends_with(req->url.path, ".css"))
+    resp->headers["Content-Type"] = "text/css" + charset;
+  else if(boost::ends_with(req->url.path,".js"))
+    resp->headers["Content-Type"] = "application/javascript" + charset;
+  else if(boost::ends_with(req->url.path, ".png"))
+    resp->headers["Content-Type"] = "image/png";
+
+  resp->headers["X-Content-Type-Options"] = "nosniff";
+  resp->headers["X-Frame-Options"] = "deny";
+  resp->headers["X-Permitted-Cross-Domain-Policies"] = "none";
+
+  resp->headers["X-XSS-Protection"] = "1; mode=block";
+  //  resp->headers["Content-Security-Policy"] = "default-src 'self'; style-src 'self' 'unsafe-inline'";
+
+  resp->body = g_urlmap[req->url.path.c_str()+1];
   resp->status = 200;
 }
 
@@ -408,8 +424,9 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
   d_ws->registerApiHandler("/api/v1/servers/localhost", &apiServerDetail);
   d_ws->registerApiHandler("/api/v1/servers", &apiServer);
 
+  for(const auto& u : g_urlmap) 
+    d_ws->registerWebHandler("/"+u.first, serveStuff);
   d_ws->registerWebHandler("/", serveStuff);
-  
   d_ws->go();
 }
 

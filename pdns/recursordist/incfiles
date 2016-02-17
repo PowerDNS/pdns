@@ -1,0 +1,21 @@
+#!/bin/sh
+
+if [ -n "$1" ]
+then
+	DIR=$1/
+fi
+
+for a in $(find ${DIR}html -type f | grep -v \~)
+do
+	c=$(echo $a | sed s:${DIR}html/:: | tr "/.-" "___")
+	echo "INCBIN(${c}, \"$a\");"
+done
+
+echo "map<string,string> g_urlmap={"
+for a in $(find ${DIR}html -type f | grep -v \~)
+do
+	b=$(echo $a | sed s:${DIR}html/::g)
+	c=$(echo $b | tr "/.-" "___")
+	echo "{\"$b\", string((const char*)g${c}Data, g${c}Size)},"
+done
+echo "};"

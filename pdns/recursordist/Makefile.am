@@ -18,6 +18,12 @@ AM_LDFLAGS = \
 
 ACLOCAL_AMFLAGS = -I m4
 
+BUILT_SOURCES=htmlfiles.h
+
+htmlfiles.h: html/*
+	./incfiles > $@
+
+
 SUBDIRS=ext
 
 if LUA
