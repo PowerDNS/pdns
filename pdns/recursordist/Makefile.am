@@ -48,7 +48,8 @@ EXTRA_DIST = \
 	pdns_recursor.1.md \
 	portsmplexer.cc \
 	rec_control.1.md \
-	rrd/*
+	rrd/* \
+	html incfiles
 
 sbin_PROGRAMS = pdns_recursor
 bin_PROGRAMS = rec_control
