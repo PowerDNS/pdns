@@ -5,7 +5,6 @@
 #include "sstuff.hh"
 #include <iostream>
 #include "misc.hh"
-#include "syncres.hh"
 #include "utility.hh" 
 
 
