@@ -746,6 +746,10 @@ try
         }
       }
 
+      if (action == DNSAction::Action::Drop) {
+        continue;
+      }
+
       if(dq.dh->qr) { // something turned it into a response
         char* response = query;
         uint16_t responseLen = dq.len;

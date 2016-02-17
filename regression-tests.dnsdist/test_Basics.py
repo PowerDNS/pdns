@@ -6,6 +6,22 @@ from dnsdisttests import DNSDistTest
 
 class TestBasics(DNSDistTest):
 
+    def testDropped(self):
+        """
+        Basics: Dropped query
+
+        Send an A query for drop.test.powerdns.com. domain,
+        which is dropped by configuration. We expect
+        no response.
+        """
+        name = 'drop.test.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, None)
+
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, None)
+
     def testBlockedA(self):
         """
         Basics: Blocked A query
