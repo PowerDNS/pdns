@@ -382,6 +382,9 @@ void serveStuff(HttpRequest* req, HttpResponse* resp)
 {
   resp->headers["Cache-Control"] = "max-age=86400";
 
+  if(req->url.path == "/")
+    req->url.path = "/index.html";
+
   const string charset = "; charset=utf-8";
   if(boost::ends_with(req->url.path, ".html"))
     resp->headers["Content-Type"] = "text/html" + charset;
