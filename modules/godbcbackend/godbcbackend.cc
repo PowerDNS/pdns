@@ -72,10 +72,10 @@ public:
     declare(suffix,"supermaster-query","", "select account from supermasters where ip=? and nameserver=?");
     declare(suffix,"supermaster-name-to-ips", "", "select ip,account from supermasters where nameserver=? and account=?");
 
-    declare(suffix,"insert-zone-query","", "insert into domains (type,name,master,account) values(?,?,?,?)");
+    declare(suffix,"insert-zone-query","", "insert into domains (type,name,master,account,last_check,notified_serial) values(?,?,?,?,null,null)");
 
-    declare(suffix, "insert-record-query", "", "insert into records (content,ttl,prio,type,domain_id,disabled,name,ordername,auth) values (?,?,?,?,?,?,?,convert(varbinary(255),?),?)");
-    declare(suffix, "insert-empty-non-terminal-order-query", "insert empty non-terminal in zone", "insert into records (type,domain_id,disabled,name,ordername,auth) values (null,?,0,?,convert(varbinary(255),?),?)");
+    declare(suffix, "insert-record-query", "", "insert into records (content,ttl,prio,type,domain_id,disabled,name,ordername,auth,change_date) values (?,?,?,?,?,?,?,convert(varbinary(255),?),?,null)");
+    declare(suffix, "insert-empty-non-terminal-order-query", "insert empty non-terminal in zone", "insert into records (type,domain_id,disabled,name,ordername,auth,ttl,prio,change_date,content) values (null,?,0,?,convert(varbinary(255),?),?,null,null,null,null)");
 
     declare(suffix, "get-order-first-query", "DNSSEC Ordering Query, first", "select top 1 convert(varchar(255), ordername) from records where domain_id=? and disabled=0 and ordername is not null order by 1 asc");
     declare(suffix, "get-order-before-query", "DNSSEC Ordering Query, before", "select top 1 convert(varchar(255), ordername), name from records where ordername <= convert(varbinary(255),?) and domain_id=? and disabled=0 and ordername is not null order by 1 desc");
