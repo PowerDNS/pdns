@@ -1,4 +1,4 @@
-JSON11_LIBS = -L$(top_srcdir)/ext/json11 -ljson11
+JSON11_LIBS = $(top_srcdir)/ext/json11/libjson11.la
 
 AM_CPPFLAGS = $(LUA_CFLAGS) $(YAHTTP_CFLAGS) $(BOOST_CPPFLAGS) $(SANITIZER_FLAGS) -O3 -Wall -pthread -DSYSCONFDIR=\"${sysconfdir}\"
 

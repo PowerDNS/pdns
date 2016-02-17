@@ -1,4 +1,4 @@
-JSON11_LIBS = -L$(top_builddir)/ext/json11 -ljson11
+JSON11_LIBS = $(top_builddir)/ext/json11/libjson11.la
 
 AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/json11 \
@@ -292,10 +292,10 @@ pdnsutil_LDFLAGS = \
 pdnsutil_LDADD = \
 	@moduleobjects@ \
 	@modulelibs@ \
-	$(LIBDL) \
-	$(BOOST_PROGRAM_OPTIONS_LIBS) \
 	$(YAHTTP_LIBS) \
 	$(JSON11_LIBS) \
+	$(LIBDL) \
+	$(BOOST_PROGRAM_OPTIONS_LIBS) \
 	$(OPENSSL_LIBS)
 
 if BOTAN110
