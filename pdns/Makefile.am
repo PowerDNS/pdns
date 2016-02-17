@@ -142,7 +142,7 @@ pdns_server_SOURCES = \
 	dnspacket.cc dnspacket.hh \
 	dnsparser.cc \
 	dnsproxy.cc dnsproxy.hh \
-	dnsrecords.cc \
+	dnsrecords.cc dnsrecords.hh \
 	dnssecinfra.cc dnssecinfra.hh \
 	dnsseckeeper.hh \
 	dnssecsigner.cc \
