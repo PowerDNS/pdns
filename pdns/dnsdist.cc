@@ -462,7 +462,8 @@ std::shared_ptr<ServerPool> createPoolIfNotExists(pools_t& pools, const string& 
     pool = it->second;
   }
   else {
-    vinfolog("Creating pool %s", poolName);
+    if (!poolName.empty())
+      vinfolog("Creating pool %s", poolName);
     pool = std::make_shared<ServerPool>();
     pools.insert(std::pair<std::string,std::shared_ptr<ServerPool> >(poolName, pool));
   }
@@ -473,19 +474,21 @@ void addServerToPool(pools_t& pools, const string& poolName, std::shared_ptr<Dow
 {
   std::shared_ptr<ServerPool> pool = createPoolIfNotExists(pools, poolName);
   unsigned int count = pool->servers.size();
-  vinfolog("Adding server to pool %s", poolName);
+  if (!poolName.empty())
+    vinfolog("Adding server to pool %s", poolName);
+  else
+    vinfolog("Adding server to default pool");
   pool->servers.push_back(make_pair(++count, server));
 }
 
 void removeServerFromPool(pools_t& pools, const string& poolName, std::shared_ptr<DownstreamState> server)
 {
-  vinfolog("Removing from pool %s", poolName);
-  pools_t::iterator poolIt = pools.find(poolName);
-  if (poolIt == pools.end()) {
-    throw std::out_of_range("No pool named " + poolName);
-  }
+  std::shared_ptr<ServerPool> pool = getPool(pools, poolName);
 
-  std::shared_ptr<ServerPool> pool = poolIt->second;
+  if (!poolName.empty())
+    vinfolog("Removing server from pool %s", poolName);
+  else
+    vinfolog("Removing server from default pool");
 
   for (NumberedVector<shared_ptr<DownstreamState> >::iterator it = pool->servers.begin(); it != pool->servers.end(); it++) {
     if (it->second == server) {
@@ -1384,6 +1387,8 @@ try
     t();
 
   auto localPools = g_pools.getCopy();
+  /* create the default pool no matter what */
+  createPoolIfNotExists(localPools, "");
   if(g_cmdLine.remotes.size()) {
     for(const auto& address : g_cmdLine.remotes) {
       auto ret=std::make_shared<DownstreamState>(ComboAddress(address, 53));
