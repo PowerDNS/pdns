@@ -440,7 +440,7 @@ choose the "tree" method, whereby the search is done along the directory
 tree, e.g. "host.example.dom" is translated into
 "dc=host,dc=example,dc=dom,...". This requires your LDAP DNS subtree
 layout to be 1:1 to the DNS tree, but then you will gain additional 7%
-better performance values
+better performance values.
 
 # Troubleshooting
 
