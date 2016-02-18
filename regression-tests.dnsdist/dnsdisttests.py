@@ -1,9 +1,6 @@
 #!/usr/bin/env python2
 
-import clientsubnetoption
 import copy
-import dns
-import dns.message
 import Queue
 import os
 import socket
@@ -13,7 +10,8 @@ import sys
 import threading
 import time
 import unittest
-import random
+import dns
+import dns.message
 
 
 class DNSDistTest(unittest.TestCase):
@@ -30,9 +28,10 @@ class DNSDistTest(unittest.TestCase):
     _toResponderQueue = Queue.Queue()
     _fromResponderQueue = Queue.Queue()
     _queueTimeout = 1
-    _dnsdistStartupDelay = 2
+    _dnsdistStartupDelay = 2.0
     _dnsdist = None
     _responsesCounter = {}
+    _shutUp = True
     _config_template = """
     newServer{address="127.0.0.1:%s"}
     truncateTC(true)
@@ -110,7 +109,7 @@ class DNSDistTest(unittest.TestCase):
     def setUpClass(cls):
 
         cls.startResponders()
-        cls.startDNSDist()
+        cls.startDNSDist(cls._shutUp)
         cls.setUpSockets()
 
         print("Launching tests..")
@@ -120,7 +119,7 @@ class DNSDistTest(unittest.TestCase):
         if 'DNSDIST_FAST_TESTS' in os.environ:
             delay = 0.1
         else:
-            delay = 1
+            delay = 1.0
         if cls._dnsdist:
             cls._dnsdist.terminate()
             if cls._dnsdist.poll() is None:
@@ -195,7 +194,7 @@ class DNSDistTest(unittest.TestCase):
         sock.listen(100)
         while True:
             answered = False
-            (conn, address) = sock.accept()
+            (conn, _) = sock.accept()
             conn.settimeout(2.0)
             data = conn.recv(2)
             (datalen,) = struct.unpack("!H", data)
@@ -250,7 +249,7 @@ class DNSDistTest(unittest.TestCase):
         try:
             cls._sock.send(query.to_wire())
             data = cls._sock.recv(4096)
-        except socket.timeout as e:
+        except socket.timeout:
             data = None
         finally:
             if timeout:

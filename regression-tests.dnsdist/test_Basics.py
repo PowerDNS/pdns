@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-import clientsubnetoption
-import dns
 import unittest
+import dns
+import clientsubnetoption
 from dnsdisttests import DNSDistTest
 
 class TestBasics(DNSDistTest):

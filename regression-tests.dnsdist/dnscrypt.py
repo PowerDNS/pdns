@@ -40,8 +40,8 @@ class DNSCryptResolverCertificate:
         resolverPK = orig[0:32]
         clientMagic = orig[32:40]
         serial = struct.unpack_from("I", orig[40:44])
-        validFrom = struct.unpack_from("!I", orig[44:48])[0];
-        validUntil = struct.unpack_from("!I", orig[48:52])[0];
+        validFrom = struct.unpack_from("!I", orig[44:48])[0]
+        validUntil = struct.unpack_from("!I", orig[48:52])[0]
         return DNSCryptResolverCertificate(serial, validFrom, validUntil, resolverPK, clientMagic)
 
 class DNSCryptClient:
@@ -104,7 +104,7 @@ class DNSCryptClient:
         for item in an.items:
             if len(item.strings) != 1:
                 continue
-            
+
             cert = DNSCryptResolverCertificate.fromBinary(item.strings[0], self._providerFingerprint)
             if cert.isValid():
                 self._resolverCertificates.append(cert)
