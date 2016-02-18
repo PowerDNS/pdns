@@ -444,27 +444,6 @@ better performance values.
 
 # Troubleshooting
 
-Trying to set unexisting parameter
-----------------------------------
-
-If your PowerDNS config file contains an unknown parameter or at least
-one of your parameters is not in the form
-
-`ldap-`*`name`*`=`*`value`*
-
-the PowerDNS server won't start up and you will see a fatal error in the
-log file. For a list of available parameters, please have a look at
-[configuration
-options](PowerDNS_LDAP_Backend/Installation#Configuration_options "wikilink").
-
-Use of quotation marks ("")
----------------------------
-
-Do never use quotation marks in the PowerDNS configuration files! They
-are not evaluated and remain part of the parameter value. This leads to
-hard to find errors, e.g. no objects are returned from the LDAP
-directory.
-
 No reverse zone transfer
 ------------------------
 
