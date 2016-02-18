@@ -31,75 +31,23 @@ This backend enables PowerDNS to retrieve DNS information from any
 standard compliant LDAP server. This is extremely handy if you have
 already stored information about your hosts in your LDAP tree.
 
-Download
---------
-
-The LDAP DNS backend is included in the PowerDNS source tree. You can
-get the latest packages of PowerDNS by visiting
-[PowerDNS.com](http://www.powerdns.com) or
-<http://download.powerdns.com>.
-
-Credits
+Schemas
 -------
 
-I would like to thank Bert Hubert for his courage to write a clean
-implementation of the DNS protocol, which is a real nightmare for every
-good programmer. You will understand what I mean, if you read the specs
-yourself
+The schema is based on the 'uninett' dnszone schema, with a few types
+added by number as designed in that schema.
 
-As a result PowerDNS is an extremely versatile DNS server consisting of
-very good source code which is easy to understand and to extend. Please
-support him by contributing code or bug reports or spread the word of
-PowerDNS ;-)
-
-# Download
-
-The PowerDNS LDAP backend is part of the PowerDNS distribution which is
-available at [PowerDNS.com](http://www.powerdns.com/en/downloads.aspx)
-
-Resources
----------
-
-**Note:** As of 2008-03-24 the schema contains many new record types
-which are backed by the IANA list of DNS record types.
-
-[dnsdomain2.schema](http://www.linuxnetworks.de/pdnsldap/dnsdomain2.schema)
+```
+!!include=../modules/ldapbackend/dnsdomain2.schema
+```
 
 The LDAP dnsdomain2 schema contains the additional object descriptions
 which are required by the LDAP server to check the validity of entries
 when they are added. Please consult the documentation of your LDAP
 server to find out how to add this schema to the server.
 
-Patches
--------
-
-None at the moment
 
 # Installation
-
-Compilation
------------
-
-Before performing the steps to compile the PowerDNS server and the LDAP
-DNS backend you have to install a LDAP development package, which
-includes all necessary headers. The openldap-devel package is provided
-by most distributions. Apply these steps to the source .tar.gz file, if
-you don't want to use a pre-compiled package:
-
-`* Extract the tar file`\
-`* Change into the newly created pdns directory`\
-`* Type ./configure --help for the available options`\
-`* For dynamic modules:`\
-`  ./configure`\
-`     --with-modules=""`\
-`     --with-dynmodules="ldap"`\
-`     --enable-recursor`\
-`* For a static binary:`\
-`  ./configure`\
-`     --with-modules="ldap"`\
-`     --with-dynmodules=""`\
-`     --enable-recursor`\
-`* make && make install`
 
 Configuration options
 ---------------------
