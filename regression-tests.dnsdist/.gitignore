@@ -6,3 +6,4 @@ dnsdist_*.conf
 DNSCryptResolver*
 .dnsdist_history
 .history
+dnsdist.log

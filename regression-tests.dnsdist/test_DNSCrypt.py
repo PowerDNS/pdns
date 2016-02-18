@@ -1,11 +1,8 @@
 #!/usr/bin/env python
-import dns
-import dns.message
-import os
-import socket
-import subprocess
 import time
 import unittest
+import dns
+import dns.message
 from dnsdisttests import DNSDistTest
 import dnscrypt
 

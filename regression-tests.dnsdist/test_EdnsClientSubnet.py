@@ -1,10 +1,7 @@
 #!/usr/bin/env python
-import clientsubnetoption
-import dns
-import os
-import subprocess
-import time
 import unittest
+import dns
+import clientsubnetoption
 from dnsdisttests import DNSDistTest
 
 class TestEdnsClientSubnetNoOverride(DNSDistTest):

@@ -565,6 +565,10 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       return std::shared_ptr<DNSAction>(new PoolAction(a));
     });
 
+  g_lua.writeFunction("QPSPoolAction", [](int limit, const string& a) {
+      return std::shared_ptr<DNSAction>(new QPSPoolAction(limit, a));
+    });
+
   g_lua.writeFunction("SpoofAction", [](const string& a, boost::optional<string> b) {
       if(b) 
 	return std::shared_ptr<DNSAction>(new SpoofAction(ComboAddress(a), ComboAddress(*b)));
@@ -748,6 +752,10 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
   g_lua.writeFunction("TCPRule", [](bool tcp) {
       return std::shared_ptr<DNSRule>(new TCPRule(tcp));
+    });
+
+  g_lua.writeFunction("DNSSECRule", []() {
+      return std::shared_ptr<DNSRule>(new DNSSECRule());
     });
 
   g_lua.writeFunction("NotRule", [](std::shared_ptr<DNSRule>rule) {

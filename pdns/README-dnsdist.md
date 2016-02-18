@@ -871,18 +871,18 @@ instantiate a server with additional parameters
     * `topRule()`: move the last rule to the first position
  * Built-in Actions for Rules:
     * `AllowAction()`: let these packets go through
-    * `DelayAction()`: delay the response by the specified amount of milliseconds (UDP-only)
+    * `DelayAction(milliseconds)`: delay the response by the specified amount of milliseconds (UDP-only)
     * `DisableValidationAction()`: set the CD bit in the question, let it go through
     * `DropAction()`: drop these packets
     * `LogAction([filename], [binary])`: Log a line for each query, to the specified file if any, to the console (require verbose) otherwise. When logging to a file, the `binary` optional parameter specifies whether we log in binary form (default) or in textual form
     * `NoRecurseAction()`: strip RD bit from the question, let it go through
-    * `PoolAction()`: set the packet into the specified pool
-    * `QPSPoolAction()`: set the packet into the specified pool only if it does not exceed the specified QPS limits
-    * `QPSAction()`: drop these packets if the QPS limits are exceeded
-    * `RCodeAction()`: reply immediatly by turning the query into a response with the specified rcode
+    * `PoolAction(poolname)`: set the packet into the specified pool
+    * `QPSPoolAction(maxqps, poolname)`: set the packet into the specified pool only if it does not exceed the specified QPS limits
+    * `QPSAction(rule, maxqps)`: drop these packets if the QPS limits are exceeded
+    * `RCodeAction(rcode)`: reply immediatly by turning the query into a response with the specified rcode
     * `SkipCacheAction()`: don't lookup the cache for this query, don't store the answer
-    * `SpoofAction()`: forge a response with the specified IPv4 (for an A query) or IPv6 (for an AAAA). If you specify two addresses, the first one should be an IPv4 and will be used for A, the second an IPv6 for an AAAA
-    * `SpoofCNAMEAction()`: forge a response with the specified CNAME value
+    * `SpoofAction(ip[, ip6])`: forge a response with the specified IPv4 (for an A query) or IPv6 (for an AAAA). If you specify two addresses, the first one should be an IPv4 and will be used for A, the second an IPv6 for an AAAA
+    * `SpoofCNAMEAction(cname)`: forge a response with the specified CNAME value
     * `TCAction()`: create answer to query with TC and RD bits set, to move to TCP/IP
  * Specialist rule generators
     * `addAnyTCRule()`: generate TC=1 answers to ANY queries received over UDP, moving them to TCP
