@@ -127,11 +127,13 @@ To change the QPS for a server:
 
 By default, the availability of a downstream server is checked by regularly
 sending an A query for "a.root-servers.net.". A different query type and target
-can be specified by passing, respectively, the 'checkType' and 'checkName'
+can be specified by passing, respectively, the `checkType` and `checkName`
 parameters to `newServer`. The default behavior is to consider any valid response
-with a RCODE different from ServFail as valid. If the 'mustResolve' parameter
+with a RCODE different from ServFail as valid. If the `mustResolve` parameter
 of `newServer` is set to true, a response will only be considered valid if
 its RCODE differs from NXDomain, ServFail and Refused.
+The number of health check failures before a server is considered down is
+configurable via the`maxCheckFailures` parameter, defaulting to 1.
 
 ```
 newServer({address="192.0.2.1", checkType="AAAA", checkName="a.root-servers.net.", mustResolve=true})
@@ -141,7 +143,7 @@ In order to provide the downstream server with the address of the real client,
 or at least the one talking to `dnsdist`, the 'useClientSubnet' parameter can be used
 when declaring a new server. This parameter indicates whether an EDNS Client Subnet option
 should be added to the request. If the incoming request already contains an EDNS Client Subnet value,
-it will not be overriden unless setECSOverride is set to true. The source prefix-length may be
+it will not be overriden unless `setECSOverride()` is set to true. The source prefix-length may be
 configured with:
 ```
 > setECSSourcePrefixV4(24)
@@ -161,9 +163,10 @@ or if the answer can't be sent in less than 2s. This can be configured with:
 
 The same kind of timeouts is enforced on the TCP connections to the downstream servers.
 The default value of 30s can be modified by passing the `tcpRecvTimeout` and `tcpSendTimeout`
-parameters to `newServer`:
+parameters to `newServer`. If the TCP connection to a downstream server fails, `dnsdist`
+will try to establish a new one up to `retries` times before giving up.
 ```
-newServer({address="192.0.2.1", tcpRecvTimeout=10, tcpSendTimeout=10})
+newServer({address="192.0.2.1", tcpRecvTimeout=10, tcpSendTimeout=10, retries=5})
 ```
 
 Source address
@@ -827,9 +830,10 @@ Here are all functions:
     * `infolog(string)`: log at level info
     * `warnlog(string)`: log at level warning
     * `errlog(string)`: log at level error
+    * `setVerboseHealthChecks(bool)`: whether health check errors will be logged. Note that even if set to true, health check errors will be logged at verbose level only.
  * Server related:
     * `newServer("ip:port")`: instantiate a new downstream server with default settings
-    * `newServer({address="ip:port", qps=1000, order=1, weight=10, pool="abuse", retries=5, tcpSendTimeout=30, tcpRecvTimeout=30, checkName="a.root-servers.net.", checkType="A", mustResolve=false, useClientSubnet=true, source="address|interface name|address@interface"})`:
+    * `newServer({address="ip:port", qps=1000, order=1, weight=10, pool="abuse", retries=5, tcpSendTimeout=30, tcpRecvTimeout=30, checkName="a.root-servers.net.", checkType="A", maxCheckFailures=1, mustResolve=false, useClientSubnet=true, source="address|interface name|address@interface"})`:
 instantiate a server with additional parameters
     * `showServers()`: output all servers
     * `getServer(n)`: returns server with index n 
