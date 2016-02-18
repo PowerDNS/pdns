@@ -406,8 +406,10 @@ aAAARecord attribute for reverse mapping of IP addresses to names. To
 maintain an index (pres,eq) on these attributes also improves
 performance of the LDAP server:
 
-`index aAAARecord pres,eq`\
-`index aRecord pres,eq`
+```
+index aAAARecord pres,eq
+index aRecord pres,eq
+```
 
 All other attributes than associatedDomain, aRecord or aAAARecord are
 only read if the object matches the specified criteria. Thus,
