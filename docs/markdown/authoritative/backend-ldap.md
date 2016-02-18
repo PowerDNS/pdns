@@ -339,9 +339,9 @@ the command line by:
 
 ```
 ./bind2pdns-ldap
- --host=`<host name or IP>
- --basedn=`<subtree dn>
- --binddn=`<admin dn>
+ --host=<host name or IP>
+ --basedn=<subtree dn>
+ --binddn=<admin dn>
  > update.ldif
 ```
 
