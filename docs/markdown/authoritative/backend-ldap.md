@@ -57,60 +57,50 @@ for your environment. Add them to the pdns.conf file located in
 /etc/powerdns or /usr/local/etc/ (depends on your configuration while
 compiling):
 
-launch=ldap
+`launch=ldap`
 
 You'll have to add the LDAP DNS backend to the PowerDNS backends first
-by altering the launch declaration in the pdns.conf file. Otherwise the
+by altering the `launch` declaration in the pdns.conf file. Otherwise the
 options below won't have any effect.
 
 ldap-host (default "ldap://127.0.0.1:389/") : The values assigned to this parameter can be LDAP URIs (e.g. <ldap://127.0.0.1/> or <ldaps://127.0.0.1/>) describing the connection to the LDAP server. There can be multiple LDAP URIs specified for load balancing and high availability if they are separated by spaces. In case the used LDAP client library doesn't support LDAP URIs as connection parameter, use plain host names or IP addresses instead (both may optionally be followed by a colon and the port).
 
-<!-- -->
+## `ldap-starttls`
+(default "no") : Use TLS encrypted connections to the LDAP server. This is only allowed if ldap-host is a <ldap://> URI or a host name / IP address.
 
-ldap-starttls (default "no") : Use TLS encrypted connections to the LDAP server. This is only allowed if ldap-host is a <ldap://> URI or a host name / IP address.
 
-<!-- -->
+## `ldap-basedn`
+(default "") : The PowerDNS LDAP DNS backend searches below this path for objects containing the specified DNS information. The retrieval of attributes is limited to this subtree. This option must be set to the path according to the layout of your LDAP tree, e.g. ou=hosts,o=linuxnetworks,c=de is the DN to my objects containing the DNS information.
 
-ldap-basedn (default "") : The PowerDNS LDAP DNS backend searches below this path for objects containing the specified DNS information. The retrieval of attributes is limited to this subtree. This option must be set to the path according to the layout of your LDAP tree, e.g. ou=hosts,o=linuxnetworks,c=de is the DN to my objects containing the DNS information.
+## `ldap-binddn`
+(default "") : Path to the object to authenticate against. Should only be used, if the LDAP server doesn't support anonymous binds.
 
-<!-- -->
+## `ldap-secret`
+(default "") : Password for authentication against the object specified by ldap-binddn
 
-ldap-binddn (default "") : Path to the object to authenticate against. Should only be used, if the LDAP server doesn't support anonymous binds.
+## `ldap-method`
+(default "simple") :
 
-<!-- -->
-
-ldap-secret (default "") : Password for authentication against the object specified by ldap-binddn
-
-<!-- -->
-
-ldap-method (default "simple") :
-
--   simple
-
-:   Search the requested domain by comparing the associatedDomain
+-   `simple`: Search the requested domain by comparing the associatedDomain
     attributes with the domain string in the question.
 
--   tree
-
-:   Search entires by translating the domain string into a LDAP dn. Your
+-   `tree`: Search entires by translating the domain string into a LDAP dn. Your
     LDAP tree must be designed in the same way as your DNS LDAP tree.
     The question for "myhost.linuxnetworks.de" would translate into
     "dc=myhost,dc=linuxnetworks,dc=de,ou=hosts=..." and the entry where
     this dn points to would be evaluated for dns records.
 
--   strict
-
-:   Like simple, but generates PTR records from aRecords or aAAARecords.
+-   `strict`: Like simple, but generates PTR records from aRecords or aAAARecords.
     Using "strict", you won't be able to do zone transfers for
     reverse zones.
 
+## `ldap-filter-axfr`
+(default "(:target:)" ) : LDAP filter for limiting AXFR results (zone transfers), e.g. (&(:target:)(active=yes)) for returning only entries whose attribute "active" is set to "yes".
+
 <!-- -->
 
-ldap-filter-axfr (default "(:target:)" ) : LDAP filter for limiting AXFR results (zone transfers), e.g. (&(:target:)(active=yes)) for returning only entries whose attribute "active" is set to "yes".
-
-<!-- -->
-
-ldap-filter-lookup (default "(:target:)" ) : LDAP filter for limiting IP or name lookups, e.g. (&(:target:)(active=yes)) for returning only entries whose attribute "active" is set to "yes".
+## `ldap-filter-lookup`
+(default "(:target:)" ) : LDAP filter for limiting IP or name lookups, e.g. (&(:target:)(active=yes)) for returning only entries whose attribute "active" is set to "yes".
 
 # Example
 
@@ -139,17 +129,19 @@ attribute for a MX (Mail eXchange) and a NS (Name Server) record. These
 attributes allow one or more values, e.g. for a backup mail or name
 server:
 
-`dn: dc=linuxnetworks,ou=hosts,o=linuxnetworks,c=de`\
-`objectclass: top`\
-`objectclass: dcobject`\
-`objectclass: dnsdomain`\
-`objectclass: domainrelatedobject`\
-`dc: linuxnetworks`\
-`soarecord: ns.linuxnetworks.de me@linuxnetworks.de 1 1800 3600 86400 7200`\
-`nsrecord: ns.linuxnetworks.de`\
-`mxrecord: 10 mail.linuxnetworks.de`\
-`mxrecord: 20 mail2.linuxnetworks.de`\
-`associateddomain: linuxnetworks.de `
+```
+dn: dc=linuxnetworks,ou=hosts,o=linuxnetworks,c=de
+objectclass: top
+objectclass: dcobject
+objectclass: dnsdomain
+objectclass: domainrelatedobject
+dc: linuxnetworks
+soarecord: ns.linuxnetworks.de me@linuxnetworks.de 1 1800 3600 86400 7200
+nsrecord: ns.linuxnetworks.de
+mxrecord: 10 mail.linuxnetworks.de
+mxrecord: 20 mail2.linuxnetworks.de
+associateddomain: linuxnetworks.de
+```
 
 A simple mapping between name and IP address can be specified by an
 object containing an arecord and an associateddomain. You don't have to
@@ -157,14 +149,16 @@ bother about a reverse mapping (ip address to name) if you don't want
 to, because this can be done automagically by the LDAP DNS backend if
 you set ldap-method=strict in pdns.conf.
 
-`dn: dc=server,dc=linuxnetworks,ou=hosts,o=linuxnetworks,c=de`\
-`objectclass: top`\
-`objectclass: dnsdomain`\
-`objectclass: domainrelatedobject`\
-`dc: server`\
-`arecord: 10.1.0.1`\
-`arecord: 192.168.0.1`\
-`associateddomain: server.linuxnetworks.de`
+```
+dn: dc=server,dc=linuxnetworks,ou=hosts,o=linuxnetworks,c=de
+objectclass: top
+objectclass: dnsdomain
+objectclass: domainrelatedobject
+dc: server
+arecord: 10.1.0.1
+arecord: 192.168.0.1
+associateddomain: server.linuxnetworks.de
+```
 
 Be aware of the fact that these examples work if ldap-method is simple
 or strict. For tree mode you have to modify all DNs according to the
@@ -178,23 +172,25 @@ associatedDomain value like it is used in the bind zone files. The "dc"
 attribute can be set to any value in simple or strict mode - this
 doesn't matter.
 
-`dn: dc=any,dc=linuxnetworks,ou=hosts,o=linuxnetworks,c=de`\
-`objectclass: top`\
-`objectclass: dnsdomain`\
-`objectclass: domainrelatedobject`\
-`dc: any`\
-`arecord: 192.168.0.1`\
-`associateddomain: *.linuxnetworks.de`
+dn: dc=any,dc=linuxnetworks,ou=hosts,o=linuxnetworks,c=de
+objectclass: top
+objectclass: dnsdomain
+objectclass: domainrelatedobject
+dc: any
+arecord: 192.168.0.1
+associateddomain: *.linuxnetworks.de
 
 In tree mode wild-card entries has to look like this instead:
 
-`dn: dc=*,dc=linuxnetworks,dc=de,ou=hosts,o=linuxnetworks,c=de`\
-`objectclass: top`\
-`objectclass: dnsdomain`\
-`objectclass: domainrelatedobject`\
-`dc: *`\
-`arecord: 192.168.0.1`\
-`associateddomain: *.linuxnetworks.de`
+```
+dn: dc=*,dc=linuxnetworks,dc=de,ou=hosts,o=linuxnetworks,c=de
+objectclass: top
+objectclass: dnsdomain
+objectclass: domainrelatedobject
+dc: *
+arecord: 192.168.0.1
+associateddomain: *.linuxnetworks.de
+```
 
 Aliases
 -------
@@ -205,31 +201,35 @@ mode) or add all aliases (as values of associateddomain) to one object.
 The only thing which is not allowed is to create loops by using the same
 name in associateddomain and in cnamerecord
 
-`dn: dc=server-aliases,dc=linuxnetworks,ou=hosts,o=linuxnetworks,c=de`\
-`objectclass: top`\
-`objectclass: dnsdomain`\
-`objectclass: domainrelatedobject`\
-`dc: server-aliases`\
-`cnamerecord: server.linuxnetworks.de`\
-`associateddomain: proxy.linuxnetworks.de`\
-`associateddomain: mail2.linuxnetworks.de`\
-`associateddomain: ns.linuxnetworks.de `
+```
+dn: dc=server-aliases,dc=linuxnetworks,ou=hosts,o=linuxnetworks,c=de
+objectclass: top
+objectclass: dnsdomain
+objectclass: domainrelatedobject
+dc: server-aliases
+cnamerecord: server.linuxnetworks.de
+associateddomain: proxy.linuxnetworks.de
+associateddomain: mail2.linuxnetworks.de
+associateddomain: ns.linuxnetworks.de
+```
 
 Aliases are optional. You can also add all alias domains to the
 associateddomain attribute. The only difference is that these additional
 domains aren't recognized as aliases anymore, but instead as a normal
 arecord:
 
-`dn: dc=server,dc=linuxnetworks,ou=hosts,o=linuxnetworks,c=de`\
-`objectclass: top`\
-`objectclass: dnsdomain`\
-`objectclass: domainrelatedobject`\
-`dc: server`\
-`arecord: 10.1.0.1`\
-`associateddomain: server.linuxnetworks.de`\
-`associateddomain: proxy.linuxnetworks.de`\
-`associateddomain: mail2.linuxnetworks.de`\
-`associateddomain: ns.linuxnetworks.de`
+```
+dn: dc=server,dc=linuxnetworks,ou=hosts,o=linuxnetworks,c=de
+objectclass: top
+objectclass: dnsdomain
+objectclass: domainrelatedobject
+dc: server
+arecord: 10.1.0.1
+associateddomain: server.linuxnetworks.de
+associateddomain: proxy.linuxnetworks.de
+associateddomain: mail2.linuxnetworks.de
+associateddomain: ns.linuxnetworks.de
+```
 
 Reverse lookups
 ---------------
@@ -240,32 +240,38 @@ directory. If you want to derive PTR records from A records, you have
 set "ldap-method" to "strict". Otherwise add objects like below to your
 directory:
 
-`dn: dc=1.10.in-addr.arpa,ou=hosts,o=linuxnetworks,c=de`\
-`objectclass: top`\
-`objectclass: dnsdomain2`\
-`objectclass: domainrelatedobject`\
-`dc: 1.10.in-addr.arpa`\
-`soarecord: ns.linuxnetworks.de me@linuxnetworks.de 1 1800 3600 86400 7200`\
-`nsrecord: ns.linuxnetworks.de`\
-`associateddomain: 1.10.in-addr.arpa `
+```
+dn: dc=1.10.in-addr.arpa,ou=hosts,o=linuxnetworks,c=de
+objectclass: top
+objectclass: dnsdomain2
+objectclass: domainrelatedobject
+dc: 1.10.in-addr.arpa
+soarecord: ns.linuxnetworks.de me@linuxnetworks.de 1 1800 3600 86400 7200
+nsrecord: ns.linuxnetworks.de
+associateddomain: 1.10.in-addr.arpa
+```
 
-`dn: dc=1.0,dc=1.10.in-addr.arpa,ou=hosts,o=linuxnetworks,c=de`\
-`objectclass: top`\
-`objectclass: dnsdomain2`\
-`objectclass: domainrelatedobject`\
-`dc: 1.0`\
-`ptrrecord: server.linuxnetworks.de`\
-`associateddomain: 1.0.1.10.in-addr.arpa `
+```
+dn: dc=1.0,dc=1.10.in-addr.arpa,ou=hosts,o=linuxnetworks,c=de
+objectclass: top
+objectclass: dnsdomain2
+objectclass: domainrelatedobject
+dc: 1.0
+ptrrecord: server.linuxnetworks.de
+associateddomain: 1.0.1.10.in-addr.arpa
+```
 
 Tree mode requires each component to be a dc element of its own:
 
-`dn: dc=1,dc=0,dc=1,dc=10,dc=in-addr,dc=arpa,ou=hosts,o=linuxnetworks,c=de`\
-`objectclass: top`\
-`objectclass: dnsdomain2`\
-`objectclass: domainrelatedobject`\
-`dc: 1`\
-`ptrrecord: server.linuxnetworks.de`\
-`associateddomain: 1.0.1.10.in-addr.arpa `
+```
+dn: dc=1,dc=0,dc=1,dc=10,dc=in-addr,dc=arpa,ou=hosts,o=linuxnetworks,c=de
+objectclass: top
+objectclass: dnsdomain2
+objectclass: domainrelatedobject
+dc: 1
+ptrrecord: server.linuxnetworks.de
+associateddomain: 1.0.1.10.in-addr.arpa
+```
 
 To use this kind of record, you also have to add the dnsdomain2 schema
 to the configuration of your LDAP server.
