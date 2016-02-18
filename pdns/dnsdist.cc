@@ -181,8 +181,15 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
 
     if(origFD < 0) // duplicate
       continue;
-    else
+    else {
+      /* setting age to 0 to prevent the maintainer thread from
+         cleaning this IDS while we process the response.
+         We have already a copy of the origFD, so it would
+         mostly mess up the outstanding counter.
+      */
+      ids->age = 0;
       --state->outstanding;  // you'd think an attacker could game this, but we're using connected socket
+    }
 
     if(g_fixupCase) {
       string realname = ids->qname.toDNSString();
