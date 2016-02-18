@@ -297,23 +297,27 @@ and writes the dns record entries in ldif format to stdout:
 
 Usage:
 
-`zone2ldap`\
-`   --basedn=`<your-basedn>\
-`   --named-conf=`<file>\
-`   --resume`\
-`   > zones.ldif`
+```
+zone2ldap
+   --basedn=`<your-basedn
+   --named-conf=`<file
+   --resume
+   > zones.ldif
+```
 
 Alternatively zone2ldap can be used to convert only single zone files
 instead all zones:
 
 Usage:
 
-`zone2ldap`\
-`   --basedn=`<your-basedn>\
-`   --zone-file=`<file>\
-`   --zone-name=`<file>\
-`   --resume`\
-`   > zone.ldif`
+```
+zone2ldap
+   --basedn=`<your-basedn
+   --zone-file=`<file
+   --zone-name=`<file
+   --resume
+   > zone.ldif
+```
 
 Here is a complete list of all options:
 
