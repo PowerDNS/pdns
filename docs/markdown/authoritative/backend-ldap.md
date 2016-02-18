@@ -337,11 +337,13 @@ creates a file in LDIF format with the necessary LDAP updates including
 the "associatedDomain" and "dc" attributes. The utility is executed on
 the command line by:
 
-`./bind2pdns-ldap`\
-` --host=`<host name or IP>\
-` --basedn=`<subtree dn>\
-` --binddn=`<admin dn>\
-` > update.ldif`
+```
+./bind2pdns-ldap
+ --host=`<host name or IP>
+ --basedn=`<subtree dn>
+ --binddn=`<admin dn>
+ > update.ldif
+```
 
 The parameter "host" and "basedn" are mandatory, "binddn" is optional.
 If "binddn" is given, you will be asked for a password, otherwise an
@@ -374,13 +376,15 @@ into a file and call zone2ldap with the file name as option to the
 which you can import into your LDAP tree. The bash script except below
 automates this for you.
 
-`DNSSERVER=127.0.0.1`\
-`DOMAINS="linuxnetworks.de 10.10.in-addr.arpa"`
+```
+DNSSERVER=127.0.0.1
+DOMAINS="linuxnetworks.de 10.10.in-addr.arpa"
 
-`for DOMAIN in $DOMAINS; do`\
-`   dig @$DNSSERVER $DOMAIN AXFR> $DOMAIN.zone;`\
-`   zone2ldap --zone-name=$DOMAIN --zone-file=$DOMAIN.zone> $DOMAIN.ldif;`\
-`done`
+for DOMAIN in $DOMAINS; do
+   dig @$DNSSERVER $DOMAIN AXFR> $DOMAIN.zone;
+   zone2ldap --zone-name=$DOMAIN --zone-file=$DOMAIN.zone> $DOMAIN.ldif;
+done
+```
 
 # Optimization
 
