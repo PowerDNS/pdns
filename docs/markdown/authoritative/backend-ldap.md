@@ -25,10 +25,6 @@ He also maintains the [LDAP backends documentation](http://wiki.linuxnetworks.de
 
 # Introduction
 
-TITLE: INTRODUCTION
-
-\_\_TOC\_\_
-
 Rationale
 ---------
 
@@ -59,7 +55,7 @@ very good source code which is easy to understand and to extend. Please
 support him by contributing code or bug reports or spread the word of
 PowerDNS ;-)
 
-TITLE: DOWNLOAD
+# Download
 
 The PowerDNS LDAP backend is part of the PowerDNS distribution which is
 available at [PowerDNS.com](http://www.powerdns.com/en/downloads.aspx)
@@ -82,9 +78,7 @@ Patches
 
 None at the moment
 
-TITLE: INSTALLATION
-
-\_\_TOC\_\_
+# Installation
 
 Compilation
 -----------
@@ -173,9 +167,7 @@ ldap-filter-axfr (default "(:target:)" ) : LDAP filter for limiting AXFR results
 
 ldap-filter-lookup (default "(:target:)" ) : LDAP filter for limiting IP or name lookups, e.g. (&(:target:)(active=yes)) for returning only entries whose attribute "active" is set to "yes".
 
-TITLE: EXAMPLE
-
-\_\_TOC\_\_
+# Example
 
 Tree design
 -----------
@@ -340,9 +332,7 @@ other name servers. Distributing zones can only be done directly via
 LDAP replication in this case, because for a full zone transfer the
 reverse records are missing
 
-TITLE: MIGRATION
-
-\_\_TOC\_\_
+# Migration
 
 BIND zone files
 ---------------
@@ -467,9 +457,7 @@ automates this for you.
 `   zone2ldap --zone-name=$DOMAIN --zone-file=$DOMAIN.zone> $DOMAIN.ldif;`\
 `done`
 
-TITLE: OPTIMIZATION
-
-\_\_TOC\_\_
+# Optimization
 
 LDAP indices
 ------------
@@ -523,9 +511,7 @@ tree, e.g. "host.example.dom" is translated into
 layout to be 1:1 to the DNS tree, but then you will gain additional 7%
 better performance values
 
-TITLE: TROUBLESHOOTING
-
-\_\_TOC\_\_
+# Troubleshooting
 
 Trying to set unexisting parameter
 ----------------------------------
@@ -590,7 +576,7 @@ The bug will be fixed in version 2.9.21 and later versions.
 
 **Feel free to add your own tips**
 
-TITLE: FUTURE
+# Future
 
 DNS notification support
 ------------------------
