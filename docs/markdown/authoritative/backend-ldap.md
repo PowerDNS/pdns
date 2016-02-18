@@ -319,37 +319,7 @@ zone2ldap
    > zone.ldif
 ```
 
-Here is a complete list of all options:
-
---help : Provides a short description of all options
-
-<!-- -->
-
---basedn=... : Node below the new objects should be created. All nodes mentioned in the basedn must exist before you can add the ldif file to your LDAP DNS tree
-
-<!-- -->
-
---layout=... : How the entries will be arranged in the LDAP directory. Currently "tree" (e.g. dc=host,dc=subdomain,dc=linuxnetworks,dc=de) and "list" (e.g. dc=host,dc=subdomain.linuxnetworks.de) are supported.
-
-<!-- -->
-
---named-conf=... : Location of the BIND named.conf file
-
-<!-- -->
-
---resume : Resume processing the zone files if an error occurs. An error message is written to stderr in this case and one or more objects may be missing but the rest of the zones are converted to ldif format
-
-<!-- -->
-
---verbose : Outputs additional information about the operations to stderr
-
-<!-- -->
-
---zone-file=... : Instead of a complete named.conf file you can also parse only a single zone file. If you pass a single dash ("-") as parameter, input is read from stdin.
-
-<!-- -->
-
---zone-name=... : Name of the zone like it is mentioned in the named.conf or in the zone file, e.g. linuxnetworks.de. Necessary if you only want to parse single zone files
+See [its manpage](../manpages/zone2ldap.1.md) for a complete list of options.
 
 Bind LDAP backend
 -----------------
