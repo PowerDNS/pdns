@@ -327,8 +327,8 @@ Bind LDAP backend
 If you are using the [Bind LDAP sdb
 backend](http://bind9-ldap.bayour.com/), you can keep the records in the
 LDAP tree also for the PowerDNS LDAP backend. The schemas both backends
-utilize is almost the same exept for one important thing: Domains for
-PowerDNS are stored in the attibute "associatedDomain" whereas Bind
+utilize is almost the same except for one important thing: Domains for
+PowerDNS are stored in the attribute "associatedDomain" whereas Bind
 stores them split in "relativeDomainName" and "zoneName".
 
 There is a [migration
