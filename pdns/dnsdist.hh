@@ -325,6 +325,8 @@ struct DownstreamState
   int tcpSendTimeout{30};
   unsigned int sourceItf{0};
   uint16_t retries{5};
+  uint8_t currentCheckFailures{0};
+  uint8_t maxCheckFailures{1};
   StopWatch sw;
   set<string> pools;
   enum class Availability { Up, Down, Auto} availability{Availability::Auto};
@@ -466,6 +468,7 @@ extern std::atomic<uint16_t> g_cacheCleaningDelay;
 extern uint16_t g_ECSSourcePrefixV4;
 extern uint16_t g_ECSSourcePrefixV6;
 extern bool g_ECSOverride;
+extern bool g_verboseHealthChecks;
 
 struct dnsheader;
 

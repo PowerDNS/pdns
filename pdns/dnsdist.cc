@@ -61,6 +61,7 @@ bool g_verbose;
 struct DNSDistStats g_stats;
 uint16_t g_maxOutstanding;
 bool g_console;
+bool g_verboseHealthChecks{false};
 
 GlobalStateHolder<NetmaskGroup> g_ACL;
 string g_outputBuffer;
@@ -911,34 +912,75 @@ try
   }
   sock.connect(ds.remote);
   ssize_t sent = udpClientSendRequestToBackend(&ds, sock.getHandle(), (char*)&packet[0], packet.size());
-  if (sent < 0)
+  if (sent < 0) {
+    int ret = errno;
+    if (g_verboseHealthChecks)
+      vinfolog("Error while sending a health check query to backend %s: %d", ds.getNameWithAddr(), ret);
     return false;
+  }
 
   int ret=waitForRWData(sock.getHandle(), true, 1, 0);
-  if(ret < 0 || !ret) // error, timeout, both are down!
+  if(ret < 0 || !ret) { // error, timeout, both are down!
+    if (ret < 0) {
+      ret = errno;
+      if (g_verboseHealthChecks)
+        vinfolog("Error while waiting for the health check response from backend %s: %d", ds.getNameWithAddr(), ret);
+    }
+    else {
+      if (g_verboseHealthChecks)
+        vinfolog("Timeout while waiting for the health check response from backend %s", ds.getNameWithAddr());
+    }
     return false;
+  }
+
   string reply;
   sock.recvFrom(reply, ds.remote);
 
   const dnsheader * responseHeader = (const dnsheader *) reply.c_str();
 
-  if (reply.size() < sizeof(*responseHeader))
+  if (reply.size() < sizeof(*responseHeader)) {
+    if (g_verboseHealthChecks)
+      vinfolog("Invalid health check response of size %d from backend %s, expecting at least %d", reply.size(), ds.getNameWithAddr(), sizeof(*responseHeader));
     return false;
+  }
 
-  if (responseHeader->id != requestHeader->id)
+  if (responseHeader->id != requestHeader->id) {
+    if (g_verboseHealthChecks)
+      vinfolog("Invalid health check response id %d from backend %s, expecting %d", responseHeader->id, ds.getNameWithAddr(), requestHeader->id);
     return false;
-  if (!responseHeader->qr)
+  }
+
+  if (!responseHeader->qr) {
+    if (g_verboseHealthChecks)
+      vinfolog("Invalid health check response from backend %s, expecting QR to be set", ds.getNameWithAddr());
     return false;
-  if (responseHeader->rcode == RCode::ServFail)
+  }
+
+  if (responseHeader->rcode == RCode::ServFail) {
+    if (g_verboseHealthChecks)
+      vinfolog("Backend %s responded to health check with ServFail", ds.getNameWithAddr());
     return false;
-  if (ds.mustResolve && (responseHeader->rcode == RCode::NXDomain || responseHeader->rcode == RCode::Refused))
+  }
+
+  if (ds.mustResolve && (responseHeader->rcode == RCode::NXDomain || responseHeader->rcode == RCode::Refused)) {
+    if (g_verboseHealthChecks)
+      vinfolog("Backend %s responded to health check with %s while mustResolve is set", ds.getNameWithAddr(), responseHeader->rcode == RCode::NXDomain ? "NXDomain" : "Refused");
     return false;
+  }
 
   // XXX fixme do bunch of checking here etc 
   return true;
 }
+catch(const std::exception& e)
+{
+  if (g_verboseHealthChecks)
+    vinfolog("Error checking the health of backend %s: %s", ds.getNameWithAddr(), e.what());
+  return false;
+}
 catch(...)
 {
+  if (g_verboseHealthChecks)
+    vinfolog("Unknown exception while checking the health of backend %s", ds.getNameWithAddr());
   return false;
 }
 
@@ -987,10 +1029,18 @@ void* healthChecksThread()
     for(auto& dss : g_dstates.getCopy()) { // this points to the actual shared_ptrs!
       if(dss->availability==DownstreamState::Availability::Auto) {
 	bool newState=upCheck(*dss);
+	if (!newState && dss->upStatus) {
+	  dss->currentCheckFailures++;
+	  if (dss->currentCheckFailures < dss->maxCheckFailures) {
+	    newState = true;
+	  }
+	}
+
 	if(newState != dss->upStatus) {
 	  warnlog("Marking downstream %s as '%s'", dss->getNameWithAddr(), newState ? "up" : "down");
+	  dss->upStatus = newState;
+	  dss->currentCheckFailures = 0;
 	}
-	dss->upStatus = newState;
       }
 
       auto delta = dss->sw.udiffAndSet()/1000000.0;

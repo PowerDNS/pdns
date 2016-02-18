@@ -207,7 +207,7 @@ char* my_generator(const char* text, int state)
       "setACL(", "setDNSSECPool(", "setECSOverride(",
       "setECSSourcePrefixV4(", "setECSSourcePrefixV6(", "setKey(", "setLocal(",
       "setMaxTCPClientThreads(", "setMaxUDPOutstanding(", "setServerPolicy(", "setServerPolicyLua(",
-      "setTCPRecvTimeout(", "setTCPSendTimeout(", "show(", "showACL()",
+      "setTCPRecvTimeout(", "setTCPSendTimeout(", "setVerboseHealthChecks(", "show(", "showACL()",
       "showDNSCryptBinds()", "showDynBlocks()", "showResponseLatency()", "showRules()",
       "showServerPolicy()", "showServers()", "shutdown()", "SpoofAction(",
       "TCAction(", "testCrypto()", "topBandwidth(", "topClients(",

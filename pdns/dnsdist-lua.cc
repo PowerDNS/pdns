@@ -302,6 +302,10 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			  ret->useECS=boost::get<bool>(vars["useClientSubnet"]);
 			}
 
+			if(vars.count("maxCheckFailures")) {
+			  ret->maxCheckFailures=std::stoi(boost::get<string>(vars["maxCheckFailures"]));
+			}
+
 			if(g_launchWork) {
 			  g_launchWork->push_back([ret]() {
 			      ret->tid = move(thread(responderThread, ret));

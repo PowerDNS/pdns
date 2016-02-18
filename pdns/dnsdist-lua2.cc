@@ -558,4 +558,6 @@ void moreLua(bool client)
         g_pools.setState(localPools);
         return pool;
       });
+
+    g_lua.writeFunction("setVerboseHealthChecks", [](bool verbose) { g_verboseHealthChecks=verbose; });
 }
