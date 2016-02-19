@@ -77,6 +77,7 @@ pdns_recursor_SOURCES = \
 	iputils.hh iputils.cc \
 	ixfr.cc ixfr.hh \
 	json.cc json.hh \
+	lazy_allocator.hh \
 	lock.hh \
 	logger.hh logger.cc \
 	lua-recursor4.cc lua-recursor4.hh \
@@ -84,6 +85,7 @@ pdns_recursor_SOURCES = \
 	misc.hh misc.cc \
 	mplexer.hh \
 	mtasker.hh \
+	mtasker_context.hh mtasker_ucontext.cc \
 	namespaces.hh \
 	nsecrecords.cc \
 	opensslsigners.cc opensslsigners.hh \

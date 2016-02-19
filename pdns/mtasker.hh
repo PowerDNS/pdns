@@ -22,10 +22,6 @@
 #ifndef MTASKER_HH
 #define MTASKER_HH
 #include <stdint.h>
-#include <signal.h>
-#include <ucontext.h>
-// don't pollute the namespace with the DS register (i386 only)
-#undef DS
 #include <queue>
 #include <vector>
 #include <map>
@@ -35,6 +31,8 @@
 #include <boost/multi_index/key_extractors.hpp>
 #include "namespaces.hh"
 #include "misc.hh"
+#include "mtasker_context.hh"
+#include <memory>
 using namespace ::boost::multi_index;
 
 // #define MTASKERTIMING 1
@@ -47,16 +45,18 @@ struct KeyTag {};
     \tparam EventVal Type of the content or value of an event. Defaults to int. Cannot be set to void.
     \note The EventKey needs to have an operator< defined because it is used as the key of an associative array
 */
+
 template<class EventKey=int, class EventVal=int> class MTasker
 {
 private:
-  ucontext_t d_kernel;     
+  pdns_ucontext_t d_kernel;
   std::queue<int> d_runQueue;
   std::queue<int> d_zombiesQueue;
 
   struct ThreadInfo
   {
-	ucontext_t* context;
+	std::shared_ptr<pdns_ucontext_t> context;
+	std::function<void(void)> start;
 	char* startOfStack;
 	char* highestStackSeen;
 #ifdef MTASKERTIMING
@@ -78,7 +78,7 @@ public:
   struct Waiter
   {
     EventKey key;
-    ucontext_t *context;
+    std::shared_ptr<pdns_ucontext_t> context;
     struct timeval ttd;
     int tid;    
   };
@@ -117,7 +117,6 @@ public:
   unsigned int getUsec();
 
 private:
-  static void threadWrapper(uint32_t self1, uint32_t self2, tfunc_t *tf, int tid, uint32_t val1, uint32_t val2);
   EventKey d_eventkey;   // for waitEvent, contains exact key it was awoken for
 };
 #include "mtasker.cc"
