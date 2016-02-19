@@ -25,6 +25,9 @@ public:
 
 vState validateRecords(const vector<DNSRecord>& recs)
 {
+  if(recs.empty())
+    return Insecure; // can't secure nothing 
+
   cspmap_t cspmap=harvestCSPFromRecs(recs);
   //  cerr<<"Got "<<cspmap.size()<<" RRSETs: ";
   int numsigs=0;
