@@ -26,6 +26,12 @@ uint32_t burtleCI(const unsigned char* k, uint32_t lengh, uint32_t init);
    NOTE: For now, everything MUST be . terminated, otherwise it is an error
 */
 
+inline char dns2_tolower(char c)
+{
+  if(c>='A' && c<='Z')
+    c+='a'-'A';
+  return c;
+}
 
 class DNSName
 {
@@ -83,7 +89,7 @@ public:
     return std::lexicographical_compare(d_storage.rbegin(), d_storage.rend(), 
 				 rhs.d_storage.rbegin(), rhs.d_storage.rend(),
 				 [](const char& a, const char& b) {
-					  return tolower(a) < tolower(b); 
+					  return dns2_tolower(a) < dns2_tolower(b); 
 					}); // note that this is case insensitive, including on the label lengths
   }
 
@@ -101,13 +107,6 @@ private:
 };
 
 size_t hash_value(DNSName const& d);
-
-inline char dns2_tolower(char c)
-{
-  if(c>='A' && c<='Z')
-    c+='a'-'A';
-  return c;
-}
 
 
 inline bool DNSName::canonCompare(const DNSName& rhs) const

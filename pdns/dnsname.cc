@@ -284,7 +284,7 @@ bool DNSName::operator==(const DNSName& rhs) const
   auto us = d_storage.crbegin();
   auto p = rhs.d_storage.crbegin();
   for(; us != d_storage.crend() && p != rhs.d_storage.crend(); ++us, ++p) {   // why does this go backward? 
-    if(tolower(*p) != tolower(*us))
+    if(dns2_tolower(*p) != dns2_tolower(*us))
       return false;
   }
   return true;
