@@ -1969,7 +1969,7 @@ retryWithName:
     }
     g_stats.unexpectedCount++; // if we made it here, it really is an unexpected answer
     if(g_logCommonErrors) {
-      L<<Logger::Warning<<"Discarding unexpected packet from "<<fromaddr.toStringWithPort()<<": "<<pident.domain<<", "<<pident.type<<", "<<MT->d_waiters.size()<<" waiters"<<endl;
+      L<<Logger::Warning<<"Discarding unexpected packet from "<<fromaddr.toStringWithPort()<<": "<< (pident.domain.empty() ? "<empty>" : pident.domain.toString())<<", "<<pident.type<<", "<<MT->d_waiters.size()<<" waiters"<<endl;
     }
   }
   else if(fd >= 0) {
