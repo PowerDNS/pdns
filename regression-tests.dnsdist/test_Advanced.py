@@ -1256,22 +1256,37 @@ class TestAdvancedCaching(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(receivedResponse, response)
 
         for _ in range(numberOfQueries):
             (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
-            receivedResponse.id = response.id
-            self.assertEquals(receivedResponse, response)
-
-            (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
-            receivedResponse.id = response.id
             self.assertEquals(receivedResponse, response)
 
         total = 0
         for key in TestAdvancedCaching._responsesCounter:
             total += TestAdvancedCaching._responsesCounter[key]
+            TestAdvancedCaching._responsesCounter[key] = 0
+
+        self.assertEquals(total, 1)
+
+        # TCP should not be cached
+        # first query to fill the cache
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+        for _ in range(numberOfQueries):
+            (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+            self.assertEquals(receivedResponse, response)
+
+        total = 0
+        for key in TestAdvancedCaching._responsesCounter:
+            total += TestAdvancedCaching._responsesCounter[key]
+            TestAdvancedCaching._responsesCounter[key] = 0
 
         self.assertEquals(total, 1)
 
@@ -1298,7 +1313,6 @@ class TestAdvancedCaching(DNSDistTest):
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
-            receivedResponse.id = response.id
             self.assertEquals(query, receivedQuery)
             self.assertEquals(receivedResponse, response)
 
@@ -1306,7 +1320,6 @@ class TestAdvancedCaching(DNSDistTest):
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
-            receivedResponse.id = response.id
             self.assertEquals(query, receivedQuery)
             self.assertEquals(receivedResponse, response)
 
@@ -1340,18 +1353,12 @@ class TestAdvancedCaching(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(receivedResponse, response)
         misses += 1
 
         # next queries should hit the cache
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
-        receivedResponse.id = response.id
-        self.assertEquals(receivedResponse, response)
-
-        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
-        receivedResponse.id = response.id
         self.assertEquals(receivedResponse, response)
 
         # now we wait a bit for the cache entry to expire
@@ -1362,18 +1369,12 @@ class TestAdvancedCaching(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(receivedResponse, response)
         misses += 1
 
         # following queries should hit the cache again
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
-        receivedResponse.id = response.id
-        self.assertEquals(receivedResponse, response)
-
-        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
-        receivedResponse.id = response.id
         self.assertEquals(receivedResponse, response)
 
         total = 0
@@ -1415,18 +1416,12 @@ class TestAdvancedCaching(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(receivedResponse, response)
         misses += 1
 
         # next queries should hit the cache
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
-        receivedResponse.id = response.id
-        self.assertEquals(receivedResponse, response)
-
-        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
-        receivedResponse.id = response.id
         self.assertEquals(receivedResponse, response)
 
         # now we wait a bit for the cache entry to expire
@@ -1437,18 +1432,12 @@ class TestAdvancedCaching(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(receivedResponse, response)
         misses += 1
 
         # following queries should hit the cache again
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
-        receivedResponse.id = response.id
-        self.assertEquals(receivedResponse, response)
-
-        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
-        receivedResponse.id = response.id
         self.assertEquals(receivedResponse, response)
 
         total = 0
@@ -1481,20 +1470,12 @@ class TestAdvancedCaching(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(receivedResponse, response)
         misses += 1
 
         # next queries should hit the cache
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
-        receivedResponse.id = response.id
-        self.assertEquals(receivedResponse, response)
-        for an in receivedResponse.answer:
-            self.assertTrue(an.ttl <= ttl)
-
-        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
-        receivedResponse.id = response.id
         self.assertEquals(receivedResponse, response)
         for an in receivedResponse.answer:
             self.assertTrue(an.ttl <= ttl)
@@ -1504,13 +1485,6 @@ class TestAdvancedCaching(DNSDistTest):
 
         # next queries should hit the cache
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
-        receivedResponse.id = response.id
-        self.assertEquals(receivedResponse, response)
-        for an in receivedResponse.answer:
-            self.assertTrue(an.ttl < ttl)
-
-        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
-        receivedResponse.id = response.id
         self.assertEquals(receivedResponse, response)
         for an in receivedResponse.answer:
             self.assertTrue(an.ttl < ttl)
@@ -1549,18 +1523,13 @@ class TestAdvancedCaching(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(receivedResponse, response)
 
         # different case query should still hit the cache
         (_, receivedResponse) = self.sendUDPQuery(differentCaseQuery, response=None, useQueue=False)
-        receivedResponse.id = differentCaseResponse.id
         self.assertEquals(receivedResponse, differentCaseResponse)
 
-        (_, receivedResponse) = self.sendTCPQuery(differentCaseQuery, response=None, useQueue=False)
-        receivedResponse.id = differentCaseResponse.id
-        self.assertEquals(receivedResponse, differentCaseResponse)
 
 class TestAdvancedCachingWithExistingEDNS(DNSDistTest):
 
@@ -1592,7 +1561,6 @@ class TestAdvancedCachingWithExistingEDNS(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(response, receivedResponse)
         misses += 1
@@ -1610,7 +1578,6 @@ class TestAdvancedCachingWithExistingEDNS(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(response, receivedResponse)
         misses += 1
@@ -1648,7 +1615,6 @@ class TestAdvancedLogAction(DNSDistTest):
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
-            receivedResponse.id = response.id
             self.assertEquals(query, receivedQuery)
             self.assertEquals(response, receivedResponse)
 
@@ -1681,7 +1647,6 @@ class TestAdvancedDNSSEC(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(response, receivedResponse)
 
@@ -1689,7 +1654,6 @@ class TestAdvancedDNSSEC(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(response, receivedResponse)
 
@@ -1743,7 +1707,6 @@ class TestAdvancedQClass(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(response, receivedResponse)
 
@@ -1751,6 +1714,5 @@ class TestAdvancedQClass(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        receivedResponse.id = response.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(response, receivedResponse)

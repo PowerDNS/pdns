@@ -15,14 +15,14 @@ DNSDistPacketCache::~DNSDistPacketCache()
   WriteLock l(&d_lock);
 }
 
-bool DNSDistPacketCache::cachedValueMatches(const CacheValue& cachedValue, const DNSName& qname, uint16_t qtype, uint16_t qclass)
+bool DNSDistPacketCache::cachedValueMatches(const CacheValue& cachedValue, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool tcp)
 {
-  if (cachedValue.qname != qname || cachedValue.qtype != qtype || cachedValue.qclass != qclass)
+  if (cachedValue.tcp != tcp || cachedValue.qtype != qtype || cachedValue.qclass != qclass || cachedValue.qname != qname)
     return false;
   return true;
 }
 
-void DNSDistPacketCache::insert(uint32_t key, const DNSName& qname, uint16_t qtype, uint16_t qclass, const char* response, uint16_t responseLen)
+void DNSDistPacketCache::insert(uint32_t key, const DNSName& qname, uint16_t qtype, uint16_t qclass, const char* response, uint16_t responseLen, bool tcp)
 {
   if (responseLen == 0)
     return;
@@ -56,6 +56,7 @@ void DNSDistPacketCache::insert(uint32_t key, const DNSName& qname, uint16_t qty
   newValue.len = responseLen;
   newValue.validity = newValidity;
   newValue.added = now;
+  newValue.tcp = tcp;
   newValue.value = std::string(response, responseLen);
 
   {
@@ -77,7 +78,7 @@ void DNSDistPacketCache::insert(uint32_t key, const DNSName& qname, uint16_t qty
     CacheValue& value = it->second;
     bool wasExpired = value.validity <= now;
 
-    if (!wasExpired && !cachedValueMatches(value, qname, qtype, qclass)) {
+    if (!wasExpired && !cachedValueMatches(value, qname, qtype, qclass, tcp)) {
       d_insertCollisions++;
       return;
     }
@@ -90,9 +91,9 @@ void DNSDistPacketCache::insert(uint32_t key, const DNSName& qname, uint16_t qty
   }
 }
 
-bool DNSDistPacketCache::get(const unsigned char* query, uint16_t queryLen, const DNSName& qname, uint16_t qtype, uint16_t qclass, uint16_t consumed, uint16_t queryId, char* response, uint16_t* responseLen, uint32_t* keyOut, bool skipAging)
+bool DNSDistPacketCache::get(const unsigned char* query, uint16_t queryLen, const DNSName& qname, uint16_t qtype, uint16_t qclass, uint16_t consumed, uint16_t queryId, char* response, uint16_t* responseLen, bool tcp, uint32_t* keyOut, bool skipAging)
 {
-  uint32_t key = getKey(qname, consumed, query, queryLen);
+  uint32_t key = getKey(qname, consumed, query, queryLen, tcp);
   if (keyOut)
     *keyOut = key;
 
@@ -122,7 +123,7 @@ bool DNSDistPacketCache::get(const unsigned char* query, uint16_t queryLen, cons
     }
 
     /* check for collision */
-    if (!cachedValueMatches(value, qname, qtype, qclass)) {
+    if (!cachedValueMatches(value, qname, qtype, qclass, tcp)) {
       d_misses++;
       d_lookupCollisions++;
       return false;
@@ -236,7 +237,7 @@ uint32_t DNSDistPacketCache::getMinTTL(const char* packet, uint16_t length)
   return result;
 }
 
-uint32_t DNSDistPacketCache::getKey(const DNSName& qname, uint16_t consumed, const unsigned char* packet, uint16_t packetLen)
+uint32_t DNSDistPacketCache::getKey(const DNSName& qname, uint16_t consumed, const unsigned char* packet, uint16_t packetLen, bool tcp)
 {
   uint32_t result = 0;
   /* skip the query ID */
@@ -244,6 +245,7 @@ uint32_t DNSDistPacketCache::getKey(const DNSName& qname, uint16_t consumed, con
   string lc(qname.toDNSStringLC());
   result = burtle((const unsigned char*) lc.c_str(), lc.length(), result);
   result = burtle(packet + sizeof(dnsheader) + consumed, packetLen - (sizeof(dnsheader) + consumed), result);
+  result = burtle((const unsigned char*) &tcp, sizeof(tcp), result);
   return result;
 }
 

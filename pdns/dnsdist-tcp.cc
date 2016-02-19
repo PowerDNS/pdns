@@ -348,7 +348,7 @@ void* tcpClientThread(int pipefd)
         if (serverPool->packetCache && !dq.skipCache) {
           char cachedResponse[4096];
           uint16_t cachedResponseSize = sizeof cachedResponse;
-          if (serverPool->packetCache->get((unsigned char*) query, dq.len, *dq.qname, dq.qtype, dq.qclass, consumed, dq.dh->id, cachedResponse, &cachedResponseSize, &cacheKey)) {
+          if (serverPool->packetCache->get((unsigned char*) query, dq.len, *dq.qname, dq.qtype, dq.qclass, consumed, dq.dh->id, cachedResponse, &cachedResponseSize, true, &cacheKey)) {
             if (putNonBlockingMsgLen(ci.fd, cachedResponseSize, g_tcpSendTimeout))
               writen2WithTimeout(ci.fd, cachedResponse, cachedResponseSize, g_tcpSendTimeout);
             g_stats.cacheHits++;
@@ -476,7 +476,7 @@ void* tcpClientThread(int pipefd)
 	}
 
 	if (serverPool->packetCache && !dq.skipCache) {
-	  serverPool->packetCache->insert(cacheKey, qname, qtype, qclass, response, responseLen);
+	  serverPool->packetCache->insert(cacheKey, qname, qtype, qclass, response, responseLen, true);
 	}
 
 #ifdef HAVE_DNSCRYPT
