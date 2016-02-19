@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2003 - 2014  PowerDNS.COM BV
+    Copyright (C) 2003 - 2016  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -38,6 +38,7 @@
 #include "webserver.hh"
 #include "ws-api.hh"
 #include "logger.hh"
+#include "ext/incbin/incbin.h"
 
 extern __thread FDMultiplexer* t_fdm;
 
@@ -375,6 +376,37 @@ static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
   });
 }
 
+#include "htmlfiles.h"
+
+void serveStuff(HttpRequest* req, HttpResponse* resp) 
+{
+  resp->headers["Cache-Control"] = "max-age=86400";
+
+  if(req->url.path == "/")
+    req->url.path = "/index.html";
+
+  const string charset = "; charset=utf-8";
+  if(boost::ends_with(req->url.path, ".html"))
+    resp->headers["Content-Type"] = "text/html" + charset;
+  else if(boost::ends_with(req->url.path, ".css"))
+    resp->headers["Content-Type"] = "text/css" + charset;
+  else if(boost::ends_with(req->url.path,".js"))
+    resp->headers["Content-Type"] = "application/javascript" + charset;
+  else if(boost::ends_with(req->url.path, ".png"))
+    resp->headers["Content-Type"] = "image/png";
+
+  resp->headers["X-Content-Type-Options"] = "nosniff";
+  resp->headers["X-Frame-Options"] = "deny";
+  resp->headers["X-Permitted-Cross-Domain-Policies"] = "none";
+
+  resp->headers["X-XSS-Protection"] = "1; mode=block";
+  //  resp->headers["Content-Security-Policy"] = "default-src 'self'; style-src 'self' 'unsafe-inline'";
+
+  resp->body = g_urlmap[req->url.path.c_str()+1];
+  resp->status = 200;
+}
+
+
 RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
 {
   RecursorControlParser rcp; // inits
@@ -395,6 +427,9 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
   d_ws->registerApiHandler("/api/v1/servers/localhost", &apiServerDetail);
   d_ws->registerApiHandler("/api/v1/servers", &apiServer);
 
+  for(const auto& u : g_urlmap) 
+    d_ws->registerWebHandler("/"+u.first, serveStuff);
+  d_ws->registerWebHandler("/", serveStuff);
   d_ws->go();
 }
 
