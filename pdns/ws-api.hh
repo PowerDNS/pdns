@@ -35,6 +35,7 @@ void apiServerStatistics(HttpRequest* req, HttpResponse* resp);
 DNSName apiZoneIdToName(const string& id);
 string apiZoneNameToId(const DNSName& name);
 void apiCheckNameAllowedCharacters(const string& name);
+void apiCheckQNameAllowedCharacters(const string& name);
 DNSName apiNameToDNSName(const string& name);
 
 // To be provided by product code.

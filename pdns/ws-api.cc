@@ -287,3 +287,8 @@ void apiCheckNameAllowedCharacters(const string& name) {
   if (name.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890_/.-") != std::string::npos)
     throw ApiException("Name '"+name+"' contains unsupported characters");
 }
+
+void apiCheckQNameAllowedCharacters(const string& qname) {
+  if (qname.compare(0, 2, "*.") == 0) apiCheckNameAllowedCharacters(qname.substr(2));
+  else apiCheckNameAllowedCharacters(qname);
+}
