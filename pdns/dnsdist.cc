@@ -482,10 +482,11 @@ void addServerToPool(pools_t& pools, const string& poolName, std::shared_ptr<Dow
 {
   std::shared_ptr<ServerPool> pool = createPoolIfNotExists(pools, poolName);
   unsigned int count = pool->servers.size();
-  if (!poolName.empty())
+  if (!poolName.empty()) {
     vinfolog("Adding server to pool %s", poolName);
-  else
+  } else {
     vinfolog("Adding server to default pool");
+  }
   pool->servers.push_back(make_pair(++count, server));
 }
 
@@ -493,10 +494,12 @@ void removeServerFromPool(pools_t& pools, const string& poolName, std::shared_pt
 {
   std::shared_ptr<ServerPool> pool = getPool(pools, poolName);
 
-  if (!poolName.empty())
+  if (!poolName.empty()) {
     vinfolog("Removing server from pool %s", poolName);
-  else
+  }
+  else {
     vinfolog("Removing server from default pool");
+  }
 
   for (NumberedVector<shared_ptr<DownstreamState> >::iterator it = pool->servers.begin(); it != pool->servers.end(); it++) {
     if (it->second == server) {
