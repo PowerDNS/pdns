@@ -88,7 +88,7 @@ public:
   }
 
   string getName() const { return "OpenSSL RSA"; }
-  int getBits() const { return RSA_size(d_key); }
+  int getBits() const { return RSA_size(d_key) << 3; }
 
   void create(unsigned int bits);
   storvector_t convertToISCVector() const;
