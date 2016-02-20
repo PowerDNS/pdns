@@ -39,12 +39,12 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
       char responseBuf[4096];
       uint16_t responseBufSize = sizeof(responseBuf);
       uint32_t key = 0;
-      bool found = PC.get((const unsigned char*) query.data(), query.size(), a, QType::A, QClass::IN, a.wirelength(), 0, responseBuf, &responseBufSize, &key);
+      bool found = PC.get((const unsigned char*) query.data(), query.size(), a, QType::A, QClass::IN, a.wirelength(), 0, responseBuf, &responseBufSize, false, &key);
       BOOST_CHECK_EQUAL(found, false);
 
-      PC.insert(key, a, QType::A, QClass::IN, (const char*) response.data(), responseLen);
+      PC.insert(key, a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false);
 
-      found = PC.get((const unsigned char*) query.data(), query.size(), a, QType::A, QClass::IN, a.wirelength(), pwR.getHeader()->id, responseBuf, &responseBufSize, &key, true);
+      found = PC.get((const unsigned char*) query.data(), query.size(), a, QType::A, QClass::IN, a.wirelength(), pwR.getHeader()->id, responseBuf, &responseBufSize, false, &key, true);
       if (found == true) {
         BOOST_CHECK_EQUAL(responseBufSize, responseLen);
         int match = memcmp(responseBuf, response.data(), responseLen);
@@ -68,7 +68,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
       char responseBuf[4096];
       uint16_t responseBufSize = sizeof(responseBuf);
       uint32_t key = 0;
-      bool found = PC.get((const unsigned char*) query.data(), query.size(), a, QType::A, QClass::IN, a.wirelength(), 0, responseBuf, &responseBufSize, &key);
+      bool found = PC.get((const unsigned char*) query.data(), query.size(), a, QType::A, QClass::IN, a.wirelength(), 0, responseBuf, &responseBufSize, false, &key);
       if (found == true) {
         PC.expunge(a);
         deleted++;
@@ -88,7 +88,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
       uint32_t key = 0;
       char response[4096];
       uint16_t responseSize = sizeof(response);
-      if(PC.get(query.data(), len, a, QType::A, QClass::IN, a.wirelength(), pwQ.getHeader()->id, response, &responseSize, &key)) {
+      if(PC.get(query.data(), len, a, QType::A, QClass::IN, a.wirelength(), pwQ.getHeader()->id, response, &responseSize, false, &key)) {
 	matches++;
       }
     }
@@ -126,9 +126,9 @@ static void *threadMangler(void* a)
       char responseBuf[4096];
       uint16_t responseBufSize = sizeof(responseBuf);
       uint32_t key = 0;
-      PC.get((const unsigned char*) query.data(), query.size(), a, QType::A, QClass::IN, a.wirelength(), 0, responseBuf, &responseBufSize, &key);
+      PC.get((const unsigned char*) query.data(), query.size(), a, QType::A, QClass::IN, a.wirelength(), 0, responseBuf, &responseBufSize, false, &key);
 
-      PC.insert(key, a, QType::A, QClass::IN, (const char*) response.data(), responseLen);
+      PC.insert(key, a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false);
     }
   }
   catch(PDNSException& e) {
@@ -155,7 +155,7 @@ static void *threadReader(void* a)
       char responseBuf[4096];
       uint16_t responseBufSize = sizeof(responseBuf);
       uint32_t key = 0;
-      bool found = PC.get((const unsigned char*) query.data(), query.size(), a, QType::A, QClass::IN, a.wirelength(), 0, responseBuf, &responseBufSize, &key);
+      bool found = PC.get((const unsigned char*) query.data(), query.size(), a, QType::A, QClass::IN, a.wirelength(), 0, responseBuf, &responseBufSize, false, &key);
       if (!found) {
 	g_missing++;
       }

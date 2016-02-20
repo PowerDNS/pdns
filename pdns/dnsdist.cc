@@ -248,7 +248,7 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
     g_stats.responses++;
 
     if (ids->packetCache && !ids->skipCache) {
-      ids->packetCache->insert(ids->cacheKey, ids->qname, ids->qtype, ids->qclass, response, responseLen);
+      ids->packetCache->insert(ids->cacheKey, ids->qname, ids->qtype, ids->qclass, response, responseLen, false);
     }
 
 #ifdef HAVE_DNSCRYPT
@@ -820,7 +820,7 @@ try
       if (serverPool->packetCache && !dq.skipCache) {
         char cachedResponse[4096];
         uint16_t cachedResponseSize = sizeof cachedResponse;
-        if (serverPool->packetCache->get((unsigned char*) query, dq.len, *dq.qname, dq.qtype, dq.qclass, consumed, dh->id, cachedResponse, &cachedResponseSize, &cacheKey)) {
+        if (serverPool->packetCache->get((unsigned char*) query, dq.len, *dq.qname, dq.qtype, dq.qclass, consumed, dh->id, cachedResponse, &cachedResponseSize, false, &cacheKey)) {
           ComboAddress dest;
           if(HarvestDestinationAddress(&msgh, &dest))
             sendfromto(cs->udpFD, cachedResponse, cachedResponseSize, 0, dest, remote);
