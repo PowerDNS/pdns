@@ -620,7 +620,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     for(auto& rr : new_records) {
       if (!rr.qname.isPartOf(zonename) && rr.qname != zonename)
         throw ApiException("RRset "+rr.qname.toString()+" IN "+rr.qtype.getName()+": Name is out of zone");
-      apiCheckNameAllowedCharacters(rr.qname.toString());
+      apiCheckQNameAllowedCharacters(rr.qname.toString());
 
       if (rr.qtype.getCode() == QType::SOA && rr.qname==zonename) {
         have_soa = true;
@@ -889,7 +889,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
       string changetype;
       QType qtype;
       DNSName qname = apiNameToDNSName(stringFromJson(rrset, "name"));
-      apiCheckNameAllowedCharacters(qname.toString());
+      apiCheckQNameAllowedCharacters(qname.toString());
       qtype = stringFromJson(rrset, "type");
       changetype = toUpper(stringFromJson(rrset, "changetype"));
 

@@ -109,6 +109,22 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
         # check our record has appeared
         self.assertEquals([r for r in data['records'] if r['type'] == records[0]['type']], records)
 
+    def test_create_zone_with_wildcard_records(self):
+        name = unique_zone_name()
+        records = [
+            {
+                "name": "*."+name,
+                "type": "A",
+                "ttl": 3600,
+                "content": "4.3.2.1",
+                "disabled": False
+            }
+        ]
+        payload, data = self.create_zone(name=name, records=records)
+        # check our record has appeared
+        self.assertEquals([r for r in data['records'] if r['type'] == records[0]['type']], records)
+
+
     def test_create_zone_with_comments(self):
         name = unique_zone_name()
         comments = [
