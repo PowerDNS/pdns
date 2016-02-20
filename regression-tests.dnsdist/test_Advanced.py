@@ -400,6 +400,7 @@ class TestAdvancedSpoof(DNSDistTest):
     addDomainCNAMESpoof("cnamespoof.advanced.tests.powerdns.com.", "cname.advanced.tests.powerdns.com.")
     addAction(makeRule("spoofaction.advanced.tests.powerdns.com."), SpoofAction("192.0.2.1", "2001:DB8::1"))
     addAction(makeRule("cnamespoofaction.advanced.tests.powerdns.com."), SpoofCNAMEAction("cnameaction.advanced.tests.powerdns.com."))
+    addDomainSpoof("multispoof.advanced.tests.powerdns.com", {"192.0.2.1", "192.0.2.2", "2001:DB8::1", "2001:DB8::2"})
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -564,6 +565,96 @@ class TestAdvancedSpoof(DNSDistTest):
         (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
         self.assertTrue(receivedResponse)
         self.assertEquals(expectedResponse, receivedResponse)
+
+    def testSpoofActionMultiA(self):
+        """
+        Advanced: Spoof multiple IPv4 addresses via AddDomainSpoof
+
+        Send an A query for "multispoof.advanced.tests.powerdns.com.",
+        check that dnsdist sends a spoofed result.
+        """
+        name = 'multispoof.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        # dnsdist set RA = RD for spoofed responses
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.2', '192.0.2.1')
+        expectedResponse.answer.append(rrset)
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        self.assertEquals(expectedResponse, receivedResponse)
+
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        self.assertEquals(expectedResponse, receivedResponse)
+
+    def testSpoofActionMultiAAAA(self):
+        """
+        Advanced: Spoof multiple IPv6 addresses via AddDomainSpoof
+
+        Send an AAAA query for "multispoof.advanced.tests.powerdns.com.",
+        check that dnsdist sends a spoofed result.
+        """
+        name = 'multispoof.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'AAAA', 'IN')
+        # dnsdist set RA = RD for spoofed responses
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '2001:DB8::1', '2001:DB8::2')
+        expectedResponse.answer.append(rrset)
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        self.assertEquals(expectedResponse, receivedResponse)
+
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        self.assertEquals(expectedResponse, receivedResponse)
+
+    def testSpoofActionMultiANY(self):
+        """
+        Advanced: Spoof multiple addresses via AddDomainSpoof
+
+        Send an ANY query for "multispoof.advanced.tests.powerdns.com.",
+        check that dnsdist sends a spoofed result.
+        """
+        name = 'multispoof.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'ANY', 'IN')
+        # dnsdist set RA = RD for spoofed responses
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.2', '192.0.2.1')
+        expectedResponse.answer.append(rrset)
+        
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '2001:DB8::1', '2001:DB8::2')
+        expectedResponse.answer.append(rrset)
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        self.assertEquals(expectedResponse, receivedResponse)
+
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        self.assertEquals(expectedResponse, receivedResponse)
+
 
 class TestAdvancedPoolRouting(DNSDistTest):
 

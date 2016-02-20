@@ -573,37 +573,51 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       return std::shared_ptr<DNSAction>(new QPSPoolAction(limit, a));
     });
 
-  g_lua.writeFunction("SpoofAction", [](const string& a, boost::optional<string> b) {
-      if(b) 
-	return std::shared_ptr<DNSAction>(new SpoofAction(ComboAddress(a), ComboAddress(*b)));
-      else 
-	return std::shared_ptr<DNSAction>(new SpoofAction(ComboAddress(a)));
+  g_lua.writeFunction("SpoofAction", [](boost::variant<string,vector<pair<int, string>>> inp, boost::optional<string> b ) {
+      vector<ComboAddress> addrs;
+      if(auto s = boost::get<string>(&inp))
+        addrs.push_back(ComboAddress(*s));
+      else {
+        const auto& v = boost::get<vector<pair<int,string>>>(inp);
+        for(const auto& a: v)
+          addrs.push_back(ComboAddress(a.second));
+      }
+      if(b)
+        addrs.push_back(ComboAddress(*b));
+      return std::shared_ptr<DNSAction>(new SpoofAction(addrs));
     });
 
   g_lua.writeFunction("SpoofCNAMEAction", [](const string& a) {
       return std::shared_ptr<DNSAction>(new SpoofAction(a));
     });
 
-  g_lua.writeFunction("addDomainSpoof", [](const std::string& domain, const std::string& ip, boost::optional<string> ip6) { 
+  g_lua.writeFunction("addDomainSpoof", [](const std::string& domain, boost::variant<string,vector<pair<int, string>>> inp, boost::optional<string> b) { 
       setLuaSideEffect();
       SuffixMatchNode smn;
-      ComboAddress a, b;
-      b.sin6.sin6_family=0;
+      vector<ComboAddress> outp;
       try
       {
 	smn.add(DNSName(domain));
-	a=ComboAddress(ip);
-	if(ip6)
-	  b=ComboAddress(*ip6);
+
+        if(auto s = boost::get<string>(&inp))
+          outp.push_back(ComboAddress(*s));
+        else {
+          const auto& v = boost::get<vector<pair<int,string>>>(inp);
+          for(const auto& a: v)
+            outp.push_back(ComboAddress(a.second));
+        }
+        if(b)
+          outp.push_back(ComboAddress(*b));
+          
       }
       catch(std::exception& e) {
 	g_outputBuffer="Error parsing parameters: "+string(e.what());
 	return;
       }
-      g_rulactions.modify([&smn,&a,&b](decltype(g_rulactions)::value_type& rulactions) {
+      g_rulactions.modify([&smn,&outp](decltype(g_rulactions)::value_type& rulactions) {
 	  rulactions.push_back({
 	      std::make_shared<SuffixMatchNodeRule>(smn), 
-		std::make_shared<SpoofAction>(a, b)  });
+		std::make_shared<SpoofAction>(outp)  });
 	});
 
     });
