@@ -189,6 +189,7 @@ struct SendReceive
 };
 
 int main(int argc, char** argv)
+try
 {
   po::options_description desc("Allowed options");
   desc.add_options()
@@ -325,4 +326,9 @@ int main(int argc, char** argv)
     cout<<"DBT_OKPERCENTAGE="<<((float)sr.d_oks/domains.size()*100)<<endl;
     cout<<"DBT_OKPERCENTAGEINT="<<(int)((float)sr.d_oks/domains.size()*100)<<endl;
   }
+}
+catch(PDNSException& pe)
+{
+  cerr<<"Fatal error: "<<pe.reason<<endl;
+  exit(EXIT_FAILURE);
 }
