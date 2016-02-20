@@ -1,5 +1,5 @@
 case $context in
-	ldap-tree | ldap-simple)
+	ldap-tree | ldap-simple | ldap-strict)
 		[ -z "$LDAPUSER" ] && LDAPUSER='uid=testuser,o=power'
 		[ -z "$LDAPPASSWD" ] && LDAPPASSWD='secret'
 		[ -z "$LDAPBASEDN" ] && LDAPBASEDN='ou=dns,o=power'
