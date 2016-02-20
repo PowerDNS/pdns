@@ -830,7 +830,7 @@ Here are all functions:
     * `infolog(string)`: log at level info
     * `warnlog(string)`: log at level warning
     * `errlog(string)`: log at level error
-    * `setVerboseHealthChecks(bool)`: whether health check errors will be logged. Note that even if set to true, health check errors will be logged at verbose level only.
+    * `setVerboseHealthChecks(bool)`: set whether health check errors will be logged
  * Server related:
     * `newServer("ip:port")`: instantiate a new downstream server with default settings
     * `newServer({address="ip:port", qps=1000, order=1, weight=10, pool="abuse", retries=5, tcpSendTimeout=30, tcpRecvTimeout=30, checkName="a.root-servers.net.", checkType="A", maxCheckFailures=1, mustResolve=false, useClientSubnet=true, source="address|interface name|address@interface"})`:
