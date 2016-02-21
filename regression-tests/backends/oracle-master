@@ -53,13 +53,13 @@ __EOF__
 
 		if [ $context = oracle-nsec3 ]
 		then
-			skipreasons="nodyndns oracle-nsec3"
+			skipreasons="nodyndns oracle-nsec3 oracle-master-nsec3"
 			extracontexts="dnssec nsec3"
 		elif [ $context = oracle-nodnssec ]
 		then
 			skipreasons="nodyndns nodnssec"
 		else
-			skipreasons="nodyndns oracle-nsec"
+			skipreasons="nodyndns oracle-nsec oracle-master-nsec"
 			extracontexts="dnssec"
 		fi
 		skipreasons="$skipreasons noent noaxfr" # TODO add ent support to oracle backend
