@@ -2,6 +2,7 @@
 /*.bind
 /*.com-slave
 /*.dyndns-slave
+/2.0.192.in-addr.arpa-slave
 /*.signed
 /*.nsd
 /ixfr.state
