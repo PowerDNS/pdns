@@ -1,4 +1,5 @@
-#!/bin/sh -ex
+#!/usr/bin/env bash
+set -exu
 
 startdir=`pwd`
 tcpclient=/usr/bin/tcpclient
