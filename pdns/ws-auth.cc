@@ -359,7 +359,7 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp) {
   di.backend->listComments(di.id);
   while(di.backend->getComment(comment)) {
     comments.push_back(Json::object {
-      { "name", comment.qname },
+      { "name", comment.qname.toString() },
       { "type", comment.qtype.getName() },
       { "modified_at", (double)comment.modified_at },
       { "account", comment.account },
@@ -1068,7 +1068,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
     {
       auto object = Json::object {
         { "object_type", "comment" },
-        { "name", c.qname },
+        { "name", c.qname.toString() },
         { "content", c.content }
       };
       if ((val = zoneIdZone.find(c.domain_id)) != zoneIdZone.end()) {

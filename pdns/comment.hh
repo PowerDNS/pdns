@@ -33,7 +33,7 @@ public:
   ~Comment() {};
 
   // data
-  string qname; //!< the name of the associated RRset, for example: www.powerdns.com
+  DNSName qname; //!< the name of the associated RRset, for example: www.powerdns.com
   time_t modified_at;
   string account; //!< account last updating this comment
   string content; //!< The actual comment. Example: blah blah
