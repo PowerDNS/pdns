@@ -20273,3 +20273,10 @@ Ztsig.com:ns1.example.com.:ahu.example.com.:2000081501:28800:7200:604800:86400:1
 Zstest.com:ns1.example.com.:ahu.example.com.:2000081501:28800:7200:604800:86400:120
 &stest.com::ns1.example.com.:120
 &stest.com::ns2.example.com.:120
+#2005092501 auto axfr-get
+Zcdnskey-cds-test.com:ns1.cdnskey-cds-test.:ahu.example.com.:2005092501:28800:7200:604800:86400:3600
+&cdnskey-cds-test.com::ns1.cdnskey-cds-test.com.:3600
+&cdnskey-cds-test.com::ns2.cdnskey-cds-test.com.:3600
++cdnskey-cds-test.com:127.0.0.1:3600
++ns1.cdnskey-cds-test.com:1.1.1.1:3600
++ns2.cdnskey-cds-test.com:2.2.2.2:3600
