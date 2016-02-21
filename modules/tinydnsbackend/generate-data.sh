@@ -22,7 +22,7 @@ cd ../../regression-tests
   --no-shuffle --launch=bind --bind-config=../regression-tests/named.conf \
   --query-logging --send-root-referral --loglevel=0 \
   --cache-ttl=0 --no-config --local-address=127.0.0.1 \
-  --bind-ignore-broken-records=yes &
+  --bind-ignore-broken-records=yes --module-dir=modules &
 
 # wait for pdns to start up
 sleep 5
