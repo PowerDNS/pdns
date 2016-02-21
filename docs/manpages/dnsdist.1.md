@@ -47,6 +47,11 @@ Server for example is often mentioned.
 -C,--config *FILE*
 :    Load configuration from *FILE*.
 
+--check-config
+:    Test the configuration file (which may be set with **--config** or **-c**)
+     for errors. dnsdist will show the errors and exit with a non-zero exit-code
+     when errors are found.
+
 -c,--client
 :    Operate as a client, connect to dnsdist.
 

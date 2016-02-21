@@ -1159,6 +1159,7 @@ struct
 {
   vector<string> locals;
   vector<string> remotes;
+  bool checkConfig{false};
   bool beDaemon{false};
   bool beClient{false};
   bool beSupervised{false};
@@ -1202,6 +1203,7 @@ try
   struct option longopts[]={ 
     {"acl", required_argument, 0, 'a'},
     {"config", required_argument, 0, 'C'},
+    {"check-config", 0, 0, 1},
     {"execute", required_argument, 0, 'e'},
     {"client", 0, 0, 'c'},
     {"gid",  required_argument, 0, 'g'},
@@ -1222,6 +1224,9 @@ try
     if(c==-1)
       break;
     switch(c) {
+    case 1:
+      g_cmdLine.checkConfig=true;
+      break;
     case 'C':
       g_cmdLine.config=optarg;
       break;
@@ -1307,6 +1312,13 @@ try
     for(auto& addr : {"127.0.0.0/8", "10.0.0.0/8", "100.64.0.0/10", "169.254.0.0/16", "192.168.0.0/16", "172.16.0.0/12", "::1/128", "fc00::/7", "fe80::/10"})
       acl.addMask(addr);
     g_ACL.setState(acl);
+  }
+
+  if (g_cmdLine.checkConfig) {
+    setupLua(true, g_cmdLine.config);
+    // No exception was thrown
+    infolog("Configuration '%s' OK!", g_cmdLine.config);
+    _exit(0);
   }
 
   auto todo=setupLua(false, g_cmdLine.config);
