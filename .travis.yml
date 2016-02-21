@@ -208,6 +208,7 @@ script:
 
   - ./timestamp ./start-test-stop 5300 ldap-tree
   - ./timestamp ./start-test-stop 5300 ldap-simple
+  - ./timestamp ./start-test-stop 5300 ldap-strict
 
   - ./timestamp ./start-test-stop 5300 bind-both
   - ./timestamp ./start-test-stop 5300 bind-dnssec-both
