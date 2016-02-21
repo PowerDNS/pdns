@@ -199,6 +199,7 @@ void LdapBackend::lookup( const QType &qtype, const DNSName &qname, DNSPacket *d
         	m_axfrqlen = 0;
         	m_qname = qname;
         	m_adomain = m_adomains.end();   // skip loops in get() first time
+        	m_qtype = qtype;
 
         	if( m_qlog ) { L.log( "Query: '" + qname.toStringRootDot() + "|" + qtype.getName() + "'", Logger::Error ); }
         	(this->*m_lookup_fcnt)( qtype, qname, dnspkt, zoneid );
@@ -441,6 +442,10 @@ bool LdapBackend::get( DNSResourceRecord &rr )
 
         				while( m_value != m_attribute->second.end() )
         				{
+        					if(m_qtype != qt && m_qtype != QType::ANY) {
+        						m_value++;
+        						continue;
+        					}
 
         					rr.qtype = qt;
         					rr.qname = *m_adomain;
