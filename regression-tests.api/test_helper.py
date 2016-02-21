@@ -1,5 +1,4 @@
 from datetime import datetime
-from pprint import pprint
 import os
 import requests
 import urlparse
@@ -42,27 +41,6 @@ def is_auth():
 
 def is_recursor():
     return DAEMON == 'recursor'
-
-
-def eq_zone_dict(rrsets, expected):
-    data_got = {}
-    data_expected = {}
-    for type_, expected_records in expected.iteritems():
-        type_ = str(type_)
-        uses_name = any(['name' in expected_record for expected_record in expected_records])
-        # minify + convert received data
-        data_got[type_] = set((str(rec['name']) if uses_name else '@', str(rec['content']))
-                              for rec in rrsets if rec['type'] == type_)
-        # minify expected data
-        data_expected[type_] = set((str(rec['name']) if uses_name else '@', str(rec['content']))
-                                   for rec in expected_records)
-
-    print "eq_zone_dict: got:"
-    pprint(data_got)
-    print "eq_zone_dict: expected:"
-    pprint(data_expected)
-
-    assert data_got == data_expected, "%r != %r" % (data_got, data_expected)
 
 
 def get_auth_db():

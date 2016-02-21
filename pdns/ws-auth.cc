@@ -335,38 +335,91 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp) {
   di.backend->getDomainMetadataOne(zonename, "SOA-EDIT", soa_edit);
   doc["soa_edit"] = soa_edit;
 
-  // fill records
-  DNSResourceRecord rr;
-  Json::array records;
-  di.backend->list(zonename, di.id, true); // incl. disabled
-  while(di.backend->get(rr)) {
-    if (!rr.qtype.getCode())
-      continue; // skip empty non-terminals
+  vector<DNSResourceRecord> records;
+  vector<Comment> comments;
 
-    records.push_back(Json::object {
-      { "name", rr.qname.toString() },
-      { "type", rr.qtype.getName() },
-      { "ttl", (double)rr.ttl },
-      { "disabled", rr.disabled },
-      { "content", makeApiRecordContent(rr.qtype, rr.content) }
-    });
+  // load all records + sort
+  {
+    DNSResourceRecord rr;
+    di.backend->list(zonename, di.id, true); // incl. disabled
+    while(di.backend->get(rr)) {
+      if (!rr.qtype.getCode())
+        continue; // skip empty non-terminals
+      records.push_back(rr);
+    }
+    sort(records.begin(), records.end(), [](const DNSResourceRecord& a, const DNSResourceRecord& b) {
+            if (a.qname == b.qname) {
+                return b.qtype < a.qtype;
+            }
+            return b.qname < a.qname;
+        });
   }
-  doc["records"] = records;
 
-  // fill comments
-  Comment comment;
-  Json::array comments;
-  di.backend->listComments(di.id);
-  while(di.backend->getComment(comment)) {
-    comments.push_back(Json::object {
-      { "name", comment.qname.toString() },
-      { "type", comment.qtype.getName() },
-      { "modified_at", (double)comment.modified_at },
-      { "account", comment.account },
-      { "content", comment.content }
-    });
+  // load all comments + sort
+  {
+    Comment comment;
+    di.backend->listComments(di.id);
+    while(di.backend->getComment(comment)) {
+      comments.push_back(comment);
+    }
+    sort(comments.begin(), comments.end(), [](const Comment& a, const Comment& b) {
+            if (a.qname == b.qname) {
+                return b.qtype < a.qtype;
+            }
+            return b.qname < a.qname;
+        });
   }
-  doc["comments"] = comments;
+
+  Json::array rrsets;
+  Json::object rrset;
+  Json::array rrset_records;
+  Json::array rrset_comments;
+  DNSName current_qname;
+  QType current_qtype;
+  uint32_t ttl;
+  auto rit = records.begin();
+  auto cit = comments.begin();
+
+  while (rit != records.end() || cit != comments.end()) {
+    if (cit == comments.end() || cit->qname.toString() < rit->qname.toString() || cit->qtype < rit->qtype) {
+      current_qname = rit->qname;
+      current_qtype = rit->qtype;
+      ttl = rit->ttl;
+    } else {
+      current_qname = cit->qname;
+      current_qtype = cit->qtype;
+      ttl = 0;
+    }
+
+    while(rit != records.end() && rit->qname == current_qname && rit->qtype == current_qtype) {
+      ttl = min(ttl, rit->ttl);
+      rrset_records.push_back(Json::object {
+        { "disabled", rit->disabled },
+        { "content", makeApiRecordContent(rit->qtype, rit->content) }
+      });
+      rit++;
+    }
+    while (cit != comments.end() && cit->qname == current_qname && cit->qtype == current_qtype) {
+      rrset_comments.push_back(Json::object {
+        { "modified_at", (double)cit->modified_at },
+        { "account", cit->account },
+        { "content", cit->content }
+      });
+      cit++;
+    }
+
+    rrset["name"] = current_qname.toString();
+    rrset["type"] = current_qtype.getName();
+    rrset["records"] = rrset_records;
+    rrset["comments"] = rrset_comments;
+    rrset["ttl"] = (double)ttl;
+    rrsets.push_back(rrset);
+    rrset.clear();
+    rrset_records.clear();
+    rrset_comments.clear();
+  }
+
+  doc["rrsets"] = rrsets;
 
   resp->setBody(doc);
 }
@@ -382,20 +435,16 @@ void productServerStatisticsFetch(map<string,string>& out)
   out["uptime"] = std::to_string(time(0) - s_starttime);
 }
 
-static void gatherRecords(const Json container, vector<DNSResourceRecord>& new_records, vector<DNSResourceRecord>& new_ptrs) {
+static void gatherRecords(const Json container, const DNSName& qname, const QType qtype, const int ttl, vector<DNSResourceRecord>& new_records, vector<DNSResourceRecord>& new_ptrs) {
   UeberBackend B;
   DNSResourceRecord rr;
+  rr.qname = qname;
+  rr.qtype = qtype;
+  rr.auth = 1;
+  rr.ttl = ttl;
   for(auto record : container["records"].array_items()) {
-    rr.qname = apiNameToDNSName(stringFromJson(record, "name"));
-    rr.qtype = stringFromJson(record, "type");
     string content = stringFromJson(record, "content");
-    rr.auth = 1;
-    rr.ttl = intFromJson(record, "ttl");
     rr.disabled = boolFromJson(record, "disabled");
-
-    if (rr.qtype.getCode() == 0) {
-      throw ApiException("Record "+rr.qname.toString()+"/"+stringFromJson(record, "type")+" is of unknown type");
-    }
 
     // validate that the client sent something we can actually parse, and require that data to be dotted.
     try {
@@ -437,19 +486,13 @@ static void gatherRecords(const Json container, vector<DNSResourceRecord>& new_r
   }
 }
 
-static void gatherComments(const Json container, vector<Comment>& new_comments, bool use_name_type_from_container) {
+static void gatherComments(const Json container, const DNSName& qname, const QType qtype, vector<Comment>& new_comments) {
   Comment c;
-  if (use_name_type_from_container) {
-    c.qname = stringFromJson(container, "name");
-    c.qtype = stringFromJson(container, "type");
-  }
+  c.qname = qname;
+  c.qtype = qtype;
 
   time_t now = time(0);
   for (auto comment : container["comments"].array_items()) {
-    if (!use_name_type_from_container) {
-      c.qname = stringFromJson(comment, "name");
-      c.qtype = stringFromJson(comment, "type");
-    }
     c.modified_at = intFromJson(comment, "modified_at", now);
     c.content = stringFromJson(comment, "content");
     c.account = stringFromJson(comment, "account");
@@ -577,8 +620,6 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     DNSName zonename = apiNameToDNSName(stringFromJson(document, "name"));
     apiCheckNameAllowedCharacters(zonename.toString());
 
-    string zonestring = document["zone"].string_value();
-
     bool exists = B.getDomainInfo(zonename, di);
     if(exists)
       throw ApiException("Domain '"+zonename.toString()+"' already exists");
@@ -586,9 +627,10 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     // validate 'kind' is set
     DomainInfo::DomainKind zonekind = DomainInfo::stringToKind(stringFromJson(document, "kind"));
 
-    auto records = document["records"];
-    if (records.is_array() && zonestring != "")
-      throw ApiException("You cannot give zonedata AND records");
+    string zonestring = document["zone"].string_value();
+    auto rrsets = document["rrsets"];
+    if (rrsets.is_array() && zonestring != "")
+      throw ApiException("You cannot give rrsets AND zone data as text");
 
     auto nameservers = document["nameservers"];
     if (!nameservers.is_array() && zonekind != DomainInfo::Slave)
@@ -609,13 +651,26 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     vector<Comment> new_comments;
     vector<DNSResourceRecord> new_ptrs;
 
-    if (records.is_array()) {
-      gatherRecords(document, new_records, new_ptrs);
+    if (rrsets.is_array()) {
+      for (const auto& rrset : rrsets.array_items()) {
+        DNSName qname = apiNameToDNSName(stringFromJson(rrset, "name"));
+        apiCheckQNameAllowedCharacters(qname.toString());
+        QType qtype;
+        qtype = stringFromJson(rrset, "type");
+        if (qtype.getCode() == 0) {
+          throw ApiException("RRset "+qname.toString()+" IN "+stringFromJson(rrset, "type")+": unknown type given");
+        }
+        if (rrset["records"].is_array()) {
+          int ttl = intFromJson(rrset, "ttl");
+          gatherRecords(rrset, qname, qtype, ttl, new_records, new_ptrs);
+        }
+        if (rrset["comments"].is_array()) {
+          gatherComments(rrset, qname, qtype, new_comments);
+        }
+      }
     } else if (zonestring != "") {
       gatherRecordsFromZone(zonestring, new_records, zonename);
     }
-
-    gatherComments(document, new_comments, false);
 
     for(auto& rr : new_records) {
       if (!rr.qname.isPartOf(zonename) && rr.qname != zonename)
@@ -885,13 +940,15 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
     di.backend->getDomainMetadataOne(zonename, "SOA-EDIT", soa_edit_kind);
     bool soa_edit_done = false;
 
-    for (auto rrset : rrsets.array_items()) {
-      string changetype;
-      QType qtype;
+    for (const auto& rrset : rrsets.array_items()) {
+      string changetype = toUpper(stringFromJson(rrset, "changetype"));
       DNSName qname = apiNameToDNSName(stringFromJson(rrset, "name"));
       apiCheckQNameAllowedCharacters(qname.toString());
+      QType qtype;
       qtype = stringFromJson(rrset, "type");
-      changetype = toUpper(stringFromJson(rrset, "changetype"));
+      if (qtype.getCode() == 0) {
+        throw ApiException("RRset "+qname.toString()+" IN "+stringFromJson(rrset, "type")+": unknown type given");
+      }
 
       if (changetype == "DELETE") {
         // delete all matching qname/qtype RRs (and, implictly comments).
@@ -904,33 +961,37 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
         if (!qname.isPartOf(zonename) && qname != zonename)
           throw ApiException("RRset "+qname.toString()+" IN "+qtype.getName()+": Name is out of zone");
 
-        new_records.clear();
-        new_comments.clear();
-        // new_ptrs is merged
-        gatherRecords(rrset, new_records, new_ptrs);
-        gatherComments(rrset, new_comments, true);
-
-        for(DNSResourceRecord& rr :  new_records) {
-          rr.domain_id = di.id;
-
-          if (rr.qname != qname || rr.qtype != qtype)
-            throw ApiException("Record "+rr.qname.toString()+"/"+rr.qtype.getName()+" "+rr.content+": Record wrongly bundled with RRset " + qname.toString() + "/" + qtype.getName());
-
-          if (rr.qtype.getCode() == QType::SOA && rr.qname==zonename) {
-            soa_edit_done = increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
-            rr.content = makeBackendRecordContent(rr.qtype, rr.content);
-          }
-        }
-
-        for(Comment& c :  new_comments) {
-          c.domain_id = di.id;
-        }
-
         bool replace_records = rrset["records"].is_array();
         bool replace_comments = rrset["comments"].is_array();
 
         if (!replace_records && !replace_comments) {
-          throw ApiException("No change for RRset " + qname.toString() + "/" + qtype.getName());
+          throw ApiException("No change for RRset " + qname.toString() + " IN " + qtype.getName());
+        }
+
+        new_records.clear();
+        new_comments.clear();
+
+        if (replace_records) {
+          // ttl shouldn't be part of DELETE, and it shouldn't be required if we don't get new records.
+          int ttl = intFromJson(rrset, "ttl");
+          // new_ptrs is merged.
+          gatherRecords(rrset, qname, qtype, ttl, new_records, new_ptrs);
+
+          for(DNSResourceRecord& rr : new_records) {
+            rr.domain_id = di.id;
+            if (rr.qtype.getCode() == QType::SOA && rr.qname==zonename) {
+              soa_edit_done = increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
+              rr.content = makeBackendRecordContent(rr.qtype, rr.content);
+            }
+          }
+        }
+
+        if (replace_comments) {
+          gatherComments(rrset, qname, qtype, new_comments);
+
+          for(Comment& c : new_comments) {
+            c.domain_id = di.id;
+          }
         }
 
         if (replace_records) {
