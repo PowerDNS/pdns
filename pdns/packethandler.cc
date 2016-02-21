@@ -74,6 +74,33 @@ PacketHandler::PacketHandler():B(s_programname), d_dk(&B)
 
 }
 
+/**
+ * Set TTL of all DNSResourceRecords in rrset to the same value. Modifies rrset inplace.
+ * Note: does not respect qname/qtype differences. From a DNS POV, the caller MUST NOT
+ * pass in an rrset with different qnames/qtypes.
+ *
+ * @param rrset  DNSResourceRecord vector
+ * @return       void
+**/
+static void makeConsistentTTL(vector<DNSResourceRecord>& rrset) {
+  if (rrset.empty()) {
+    return;
+  }
+  uint32_t ttl = rrset[0].ttl;
+  bool changed;
+  do {
+    changed = false;
+    for(auto& rr : rrset) {
+      if (rr.ttl < ttl) {
+        ttl = rr.ttl;
+        changed = true;
+      } else if (rr.ttl > ttl) {
+        rr.ttl = ttl;
+      }
+    }
+  } while (changed);
+}
+
 UeberBackend *PacketHandler::getBackend()
 {
   return &B;
@@ -297,6 +324,7 @@ vector<DNSResourceRecord> PacketHandler::getBestReferralNS(DNSPacket *p, SOAData
     while(B.get(rr)) {
       ret.push_back(rr); // this used to exclude auth NS records for some reason
     }
+    makeConsistentTTL(ret);
     if(!ret.empty())
       return ret;
   } while( subdomain.chopOff() );   // 'www.powerdns.org' -> 'powerdns.org' -> 'org' -> ''
@@ -322,6 +350,7 @@ vector<DNSResourceRecord> PacketHandler::getBestDNAMESynth(DNSPacket *p, SOAData
       target= DNSName(rr.content);
       ret.push_back(rr); 
     }
+    makeConsistentTTL(ret);
     if(!ret.empty())
       return ret;
     if(subdomain.countLabels())
@@ -335,9 +364,9 @@ vector<DNSResourceRecord> PacketHandler::getBestDNAMESynth(DNSPacket *p, SOAData
 
 
 // Return best matching wildcard or next closer name
-bool PacketHandler::getBestWildcard(DNSPacket *p, SOAData& sd, const DNSName &target, DNSName &wildcard, vector<DNSResourceRecord>* ret)
+bool PacketHandler::getBestWildcard(DNSPacket *p, SOAData& sd, const DNSName &target, DNSName &wildcard, vector<DNSResourceRecord>& ret)
 {
-  ret->clear();
+  ret.clear();
   DNSResourceRecord rr;
   DNSName subdomain(target);
   bool haveSomething=false;
@@ -350,11 +379,14 @@ bool PacketHandler::getBestWildcard(DNSPacket *p, SOAData& sd, const DNSName &ta
       B.lookup(QType(QType::ANY), DNSName("*")+subdomain, p, sd.domain_id);
     }
     while(B.get(rr)) {
-      if(rr.qtype == p->qtype || rr.qtype.getCode() == QType::CNAME || (p->qtype.getCode() == QType::ANY && rr.qtype.getCode() != QType::RRSIG))
-        ret->push_back(rr);
+      if(rr.qtype == p->qtype || rr.qtype.getCode() == QType::CNAME || (p->qtype.getCode() == QType::ANY && rr.qtype.getCode() != QType::RRSIG)) {
+        ret.push_back(rr);
+      }
       wildcard=DNSName("*")+subdomain;
       haveSomething=true;
     }
+
+    makeConsistentTTL(ret);
 
     if ( subdomain == sd.qname || haveSomething ) // stop at SOA or result
       break;
@@ -1064,7 +1096,7 @@ bool PacketHandler::tryWildcard(DNSPacket *p, DNSPacket*r, SOAData& sd, DNSName 
   DNSName bestmatch;
 
   vector<DNSResourceRecord> rrset;
-  if(!getBestWildcard(p, sd, target, wildcard, &rrset))
+  if(!getBestWildcard(p, sd, target, wildcard, rrset))
     return false;
 
   if(rrset.empty()) {
@@ -1364,6 +1396,11 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
         continue;
 
       rrset.push_back(rr);
+    }
+
+    // Don't mix up TTLs when replying with mixed qtypes.
+    if(p->qtype.getCode() != QType::ANY) {
+      makeConsistentTTL(rrset);
     }
 
     /* Add in SOA if required */

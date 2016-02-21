@@ -95,7 +95,7 @@ private:
   bool tryDNAME(DNSPacket *p, DNSPacket*r, SOAData& sd, DNSName &target);
   bool tryReferral(DNSPacket *p, DNSPacket*r, SOAData& sd, const DNSName &target, bool retargeted);
 
-  bool getBestWildcard(DNSPacket *p, SOAData& sd, const DNSName &target, DNSName &wildcard, vector<DNSResourceRecord>* ret);
+  bool getBestWildcard(DNSPacket *p, SOAData& sd, const DNSName &target, DNSName &wildcard, vector<DNSResourceRecord>& ret);
   bool tryWildcard(DNSPacket *p, DNSPacket*r, SOAData& sd, DNSName &target, DNSName &wildcard, bool& retargeted, bool& nodata);
   bool addDSforNS(DNSPacket* p, DNSPacket* r, SOAData& sd, const DNSName& dsname);
   void completeANYRecords(DNSPacket *p, DNSPacket*r, SOAData& sd, const DNSName &target);
