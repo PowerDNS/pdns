@@ -559,11 +559,11 @@ void spoofResponseFromString(DNSQuestion& dq, const string& spoofContent)
   string result;
   try {
     ComboAddress spoofAddr(spoofContent);
-    SpoofAction sa(spoofAddr);
+    SpoofAction sa({spoofAddr});
     sa(&dq, &result);
   }
   catch(PDNSException &e) {
-    SpoofAction sa(spoofContent);
+    SpoofAction sa(spoofContent); // CNAME then
     sa(&dq, &result);
   }
 }

@@ -473,85 +473,110 @@ public:
 class SpoofAction : public DNSAction
 {
 public:
-  SpoofAction(const ComboAddress& a)
+  SpoofAction(const vector<ComboAddress>& addrs) : d_addrs(addrs)
   {
-    if (a.sin4.sin_family == AF_INET) {
-      d_a = a;
-      d_aaaa.sin4.sin_family = 0;
-    } else {
-      d_a.sin4.sin_family = 0;
-      d_aaaa = a;
-    }
   }
-  SpoofAction(const ComboAddress& a, const ComboAddress& aaaa) : d_a(a), d_aaaa(aaaa) {}
-  SpoofAction(const string& cname): d_cname(cname) { d_a.sin4.sin_family = 0; d_aaaa.sin4.sin_family = 0; }
+
+  SpoofAction(const string& cname): d_cname(cname) { }
+
   DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
   {
     uint16_t qtype = dq->qtype;
-    if(d_cname.empty() &&
-       ((qtype == QType::A && d_a.sin4.sin_family == 0) ||
-        (qtype == QType::AAAA && d_aaaa.sin4.sin_family == 0) || (qtype != QType::A && qtype != QType::AAAA)))
+    // do we even have a response? 
+    if(d_cname.empty() && !std::count_if(d_addrs.begin(), d_addrs.end(), [qtype](const ComboAddress& a)
+                                    {
+                                      return (qtype == QType::ANY || ((a.sin4.sin_family == AF_INET && qtype == QType::A) ||
+                                                                      (a.sin4.sin_family == AF_INET6 && qtype == QType::AAAA)));
+                                    })) 
       return Action::None;
-
-    unsigned int consumed=0;
-    uint8_t rdatalen = 0;
+    
+    vector<ComboAddress> addrs;
+    unsigned int totrdatalen=0;
     if (!d_cname.empty()) {
       qtype = QType::CNAME;
-      rdatalen = d_cname.wirelength();
+      totrdatalen += d_cname.toDNSString().size();
     } else {
-      rdatalen = qtype == QType::A ? 4 : 16;
+      for(const auto& addr : d_addrs) {
+        if(qtype != QType::ANY && ((addr.sin4.sin_family == AF_INET && qtype != QType::A) ||
+                                   (addr.sin4.sin_family == AF_INET6 && qtype != QType::AAAA)))
+          continue;
+        totrdatalen += addr.sin4.sin_family == AF_INET ? 4 : 16;
+        addrs.push_back(addr);
+      }
     }
 
-    const unsigned char recordstart[]={0xc0, 0x0c,    // compressed name
-				       0, (unsigned char) qtype,
-				       0, QClass::IN, // IN
-				       0, 0, 0, 60,   // TTL
-				       0, rdatalen};
+    if(addrs.size() > 1)
+      random_shuffle(addrs.begin(), addrs.end());
 
+    unsigned int consumed=0;
     DNSName ignore((char*)dq->dh, dq->len, sizeof(dnsheader), false, 0, 0, &consumed);
 
-    if (dq->size < (sizeof(dnsheader) + consumed + 4 + sizeof(recordstart) + rdatalen)) {
+    if (dq->size < (sizeof(dnsheader) + consumed + 4 + ((d_cname.empty() ? 0 : 1) + addrs.size())*12 /* recordstart */ + totrdatalen)) {
       return Action::None;
     }
 
+    dq->len = sizeof(dnsheader) + consumed + 4; // there goes your EDNS
+    char* dest = ((char*)dq->dh) + dq->len;
+    
     dq->dh->qr = true; // for good measure
     dq->dh->ra = dq->dh->rd; // for good measure
     dq->dh->ad = false;
-    dq->dh->ancount = htons(1);
+    dq->dh->ancount = 0;
     dq->dh->arcount = 0; // for now, forget about your EDNS, we're marching over it
 
-    char* dest = ((char*)dq->dh) +sizeof(dnsheader) + consumed + 4;
-    memcpy(dest, recordstart, sizeof(recordstart));
-    if(qtype==QType::A) 
-      memcpy(dest+sizeof(recordstart), &d_a.sin4.sin_addr.s_addr, 4);
-    else if (qtype==QType::AAAA)
-      memcpy(dest+sizeof(recordstart), &d_aaaa.sin6.sin6_addr.s6_addr, 16);
-    else if (qtype==QType::CNAME) {
-      string wireData = d_cname.toDNSString();
-      memcpy(dest+sizeof(recordstart), wireData.c_str(), wireData.length());
+    if(qtype == QType::CNAME) {
+      string wireData = d_cname.toDNSString(); // Note! This doesn't do compression!
+      const unsigned char recordstart[]={0xc0, 0x0c,    // compressed name
+                                         0, (unsigned char) qtype,
+                                         0, QClass::IN, // IN
+                                         0, 0, 0, 60,   // TTL
+                                         0, (unsigned char)wireData.length()};
+
+
+      memcpy(dest, recordstart, sizeof(recordstart));
+      dest += sizeof(recordstart);
+      memcpy(dest, wireData.c_str(), wireData.length());
+      dq->len += wireData.length() + sizeof(recordstart);
+      dq->dh->ancount++;
     }
-    dq->len = (dest + sizeof(recordstart) + rdatalen) - (char*)dq->dh;
+    else for(const auto& addr : addrs) 
+    {
+      unsigned char rdatalen = addr.sin4.sin_family == AF_INET ? 4 : 16;
+      const unsigned char recordstart[]={0xc0, 0x0c,    // compressed name
+                                         0, (unsigned char) (addr.sin4.sin_family == AF_INET ? QType::A : QType::AAAA),
+                                         0, QClass::IN, // IN
+                                         0, 0, 0, 60,   // TTL
+                                         0, rdatalen};
+
+      memcpy(dest, recordstart, sizeof(recordstart));
+      dest += sizeof(recordstart);
+
+      memcpy(dest, 
+             rdatalen==4 ? (void*)&addr.sin4.sin_addr.s_addr : (void*)&addr.sin6.sin6_addr.s6_addr,
+             rdatalen); 
+      dest += rdatalen;
+      dq->len += rdatalen + sizeof(recordstart);
+      dq->dh->ancount++;
+    }
+    
+    dq->dh->ancount = htons(dq->dh->ancount);
+    
     return Action::HeaderModify;
   }
+
   string toString() const override
   {
-    string ret;
+    string ret = "spoof in ";
     if(!d_cname.empty()) {
-      if(!ret.empty()) ret += ", ";
-      ret+="spoof in "+d_cname.toString();
+      ret+=d_cname.toString()+ " ";
     } else {
-      if(d_a.sin4.sin_family)
-        ret="spoof in "+d_a.toString();
-      if(d_aaaa.sin6.sin6_family) {
-        if(!ret.empty()) ret += ", ";
-        ret+="spoof in "+d_aaaa.toString();
-      }
+      for(const auto& a : d_addrs)
+        ret += a.toString()+" ";
     }
     return ret;
   }
 private:
-  ComboAddress d_a;
-  ComboAddress d_aaaa;
+  std::vector<ComboAddress> d_addrs;
   DNSName d_cname;
 };
 

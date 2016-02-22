@@ -326,7 +326,7 @@ Rules can be added via:
  * addDelay(DNS rule, delay in milliseconds)
  * addDisableValidationRule(DNS rule)
  * addDomainBlock(domain)
- * addDomainSpoof(domain, IPv4[, IPv6])
+ * addDomainSpoof(domain, IPv4[, IPv6]) or addDomainSpoof(domain, {IP, IP, IP..})
  * addDomainCNAMESpoof(domain, CNAME)
  * addLuaAction(DNS rule, lua function)
  * addNoRecurseRule(DNS rule)
@@ -885,12 +885,12 @@ instantiate a server with additional parameters
     * `QPSAction(rule, maxqps)`: drop these packets if the QPS limits are exceeded
     * `RCodeAction(rcode)`: reply immediatly by turning the query into a response with the specified rcode
     * `SkipCacheAction()`: don't lookup the cache for this query, don't store the answer
-    * `SpoofAction(ip[, ip6])`: forge a response with the specified IPv4 (for an A query) or IPv6 (for an AAAA). If you specify two addresses, the first one should be an IPv4 and will be used for A, the second an IPv6 for an AAAA
+    * `SpoofAction(ip[, ip])` or `SpoofAction({ip, ip, ..}): forge a response with the specified IPv4 (for an A query) or IPv6 (for an AAAA). If you specify multiple addresses, all that match the query type (A, AAAA or ANY) will get spoofed in
     * `SpoofCNAMEAction(cname)`: forge a response with the specified CNAME value
     * `TCAction()`: create answer to query with TC and RD bits set, to move to TCP/IP
  * Specialist rule generators
     * `addAnyTCRule()`: generate TC=1 answers to ANY queries received over UDP, moving them to TCP
-    * `addDomainSpoof(domain, ip[, ip6])`: generate answers for A queries using the ip parameter (AAAA if ip is an IPv6). If ip6 is supplied, generate answers for AAAA queries too
+    * `addDomainSpoof(domain, ip[, ip6])` or `addDomainSpoof(domain, {IP, IP, IP..})`: generate answers for A/AAAA/ANY queries using the ip parameters
     * `addDomainCNAMESpoof(domain, cname)`: generate CNAME answers for queries using the specified value
     * `addDisableValidationRule(domain)`: set the CD flags to 1 for all queries matching the specified domain
     * `addNoRecurseRule(domain)`: clear the RD flag for all queries matching the specified domain

@@ -3,7 +3,7 @@ webserver("0.0.0.0:8083", "geheim2")
 addLocal("0.0.0.0:5200")
 setKey("MXNeLFWHUe4363BBKrY06cAsH8NWNb+Se2eXU5+Bb74=")
 truncateTC(true) -- fix up possibly badly truncated answers from pdns 2.9.22
-carbonServer("2001:888:2000:1d::2")
+-- carbonServer("2001:888:2000:1d::2")
 
 warnlog(string.format("Script starting %s", "up!"))
 
