@@ -1331,13 +1331,15 @@ int SyncRes::doResolveAt(map<DNSName, pair<ComboAddress, bool> > &nameservers, D
       if(lwr.d_rcode==RCode::NXDomain) {
         LOG(prefix<<qname.toString()<<": status=NXDOMAIN, we are done "<<(negindic ? "(have negative SOA)" : "")<<endl);
 
-	addNXNSECS(ret, lwr.d_records);
+        if(d_doDNSSEC)
+          addNXNSECS(ret, lwr.d_records);
 
         return RCode::NXDomain;
       }
       if(nsset.empty() && !lwr.d_rcode && (negindic || lwr.d_aabit || sendRDQuery)) {
         LOG(prefix<<qname.toString()<<": status=noerror, other types may exist, but we are done "<<(negindic ? "(have negative SOA) " : "")<<(lwr.d_aabit ? "(have aa bit) " : "")<<endl);
-	addNXNSECS(ret, lwr.d_records);
+        if(d_doDNSSEC)
+          addNXNSECS(ret, lwr.d_records);
         return 0;
       }
       else if(realreferral) {
