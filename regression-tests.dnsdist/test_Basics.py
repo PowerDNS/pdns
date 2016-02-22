@@ -261,6 +261,34 @@ class TestBasics(DNSDistTest):
         self.assertEquals(query, receivedQuery)
         self.assertEquals(response, receivedResponse)
 
+    def testWrongResponse(self):
+        """
+        Basics: Unrelated response from the backend
+
+        The backend send an unrelated answer over UDP, it should
+        be discarded by dnsdist. It could happen if we wrap around
+        maxOutstanding queries too quickly or have more than maxOustanding
+        queries to a specific backend in the air over UDP,
+        but does not really make sense over TCP.
+        """
+        name = 'query.unrelated.tests.powerdns.com.'
+        unrelatedName = 'answer.unrelated.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'TXT', 'IN')
+        unrelatedQuery = dns.message.make_query(unrelatedName, 'TXT', 'IN')
+        unrelatedResponse = dns.message.make_response(unrelatedQuery)
+        rrset = dns.rrset.from_text(unrelatedName,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.TXT,
+                                    'nothing to see here')
+        unrelatedResponse.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, unrelatedResponse)
+        self.assertTrue(receivedQuery)
+        self.assertEquals(receivedResponse, None)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+
 
 if __name__ == '__main__':
     unittest.main()
