@@ -85,7 +85,7 @@ pdns_recursor_SOURCES = \
 	misc.hh misc.cc \
 	mplexer.hh \
 	mtasker.hh \
-	mtasker_context.hh mtasker_ucontext.cc \
+	mtasker_context.hh mtasker_fcontext.cc \
 	namespaces.hh \
 	nsecrecords.cc \
 	opensslsigners.cc opensslsigners.hh \
@@ -127,7 +127,8 @@ pdns_recursor_SOURCES = \
 pdns_recursor_LDADD = \
 	$(YAHTTP_LIBS) \
 	$(JSON11_LIBS) \
-	$(OPENSSL_LIBS)
+	$(OPENSSL_LIBS) \
+	$(BOOST_CONTEXT_LIBS)
 
 pdns_recursor_LDFLAGS = $(AM_LDFLAGS) \
 	$(OPENSSL_LDFLAGS)
