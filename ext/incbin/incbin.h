@@ -92,7 +92,7 @@
 #  define INCBIN_GLOBAL(NAME)    ".globl " INCBIN_STRINGIZE(INCBIN_PREFIX) #NAME "\n"
 #  define INCBIN_INT             ".long "
 #  define INCBIN_MANGLE          "_"
-#  define INCBIN_BYTE            ".byte"
+#  define INCBIN_BYTE            ".byte "
 #  define INCBIN_TYPE(...)
 #else
 #  define INCBIN_SECTION         ".section .rodata\n"
