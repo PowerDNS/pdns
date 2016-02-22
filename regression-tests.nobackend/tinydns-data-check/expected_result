@@ -10,4 +10,4 @@ a63dc120391d9df0003f2ec4f461a6af  ../regression-tests/zones/secure-delegated.dns
 0b20d7a0250576451135483b863750bf  ../regression-tests/zones/tsig.com
 b1f775045fa2cf0a3b91aa834af06e49  ../regression-tests/zones/stest.com
 a98864b315f16bcf49ce577426063c42  ../regression-tests/zones/cdnskey-cds-test.com
-2d30ff6855f531368c72e2195a76eabb  ../modules/tinydnsbackend/data.cdb
+ce8464687f59b932745eb8adbf810c9f  ../modules/tinydnsbackend/data.cdb
