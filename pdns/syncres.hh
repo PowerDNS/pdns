@@ -676,5 +676,6 @@ void doCarbonDump(void*);
 boost::optional<Netmask> getEDNSSubnetMask(const ComboAddress& local, const DNSName&dn, const ComboAddress& rem);
 void  parseEDNSSubnetWhitelist(const std::string& wlist);
 
+extern __thread struct timeval g_now;
 
 #endif

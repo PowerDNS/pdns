@@ -318,7 +318,7 @@ RecursorLua4::RecursorLua4(const std::string& fname)
       theL() << (Logger::Urgency)loglevel << msg<<endl;
     });
   typedef vector<pair<string, int> > in_t;
-  vector<pair<string, boost::variant<int, in_t > > >  pd{
+  vector<pair<string, boost::variant<int, in_t, struct timeval* > > >  pd{
     {"PASS", (int)PolicyDecision::PASS}, {"DROP",  (int)PolicyDecision::DROP},
     {"TRUNCATE", (int)PolicyDecision::TRUNCATE}
   };
@@ -336,6 +336,10 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   
   for(const auto& n : QType::names)
     pd.push_back({n.first, n.second});
+  pd.push_back({"now", &g_now});
+  d_lw->registerMember("tv_sec", &timeval::tv_sec);
+  d_lw->registerMember("tv_usec", &timeval::tv_usec);
+
   d_lw->writeVariable("pdns", pd);
 
   d_lw->writeFunction("getMetric", [](const std::string& str) {
