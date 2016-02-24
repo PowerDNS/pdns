@@ -160,7 +160,8 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
   const uint16_t cdMask = 1 << FLAGS_CD_OFFSET;
   const uint16_t restoreFlagsMask = UINT16_MAX & ~(rdMask | cdMask);
   vector<uint8_t> rewrittenResponse;
-  
+  uint16_t qtype, qclass;
+
   struct dnsheader* dh = (struct dnsheader*)packet;
   for(;;) {
     ssize_t got = recv(state->fd, packet, sizeof(packet), 0);
@@ -182,15 +183,19 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
 
     if(origFD < 0) // duplicate
       continue;
-    else {
-      /* setting age to 0 to prevent the maintainer thread from
-         cleaning this IDS while we process the response.
-         We have already a copy of the origFD, so it would
-         mostly mess up the outstanding counter.
-      */
-      ids->age = 0;
-      --state->outstanding;  // you'd think an attacker could game this, but we're using connected socket
-    }
+
+    /* setting age to 0 to prevent the maintainer thread from
+       cleaning this IDS while we process the response.
+       We have already a copy of the origFD, so it would
+       mostly mess up the outstanding counter.
+    */
+    ids->age = 0;
+    unsigned int consumed;
+    DNSName qname(packet, responseLen, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
+    if (qtype != ids->qtype || qclass != ids->qclass || qname != ids->qname)
+      continue;
+
+    --state->outstanding;  // you'd think an attacker could game this, but we're using connected socket
 
     if(g_fixupCase) {
       string realname = ids->qname.toDNSString();
@@ -248,7 +253,7 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
     g_stats.responses++;
 
     if (ids->packetCache && !ids->skipCache) {
-      ids->packetCache->insert(ids->cacheKey, ids->qname, ids->qtype, ids->qclass, response, responseLen, false);
+      ids->packetCache->insert(ids->cacheKey, qname, qtype, qclass, response, responseLen, false);
     }
 
 #ifdef HAVE_DNSCRYPT
@@ -284,7 +289,7 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
       struct timespec ts;
       clock_gettime(CLOCK_MONOTONIC, &ts);
       std::lock_guard<std::mutex> lock(g_rings.respMutex);
-      g_rings.respRing.push_back({ts, ids->origRemote, ids->qname, ids->qtype, (unsigned int)udiff, (unsigned int)got, *dh, state->remote});
+      g_rings.respRing.push_back({ts, ids->origRemote, qname, qtype, (unsigned int)udiff, (unsigned int)got, *dh, state->remote});
     }
     if(dh->rcode == RCode::ServFail)
       g_stats.servfailResponses++;
