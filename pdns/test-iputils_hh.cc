@@ -39,6 +39,17 @@ BOOST_AUTO_TEST_CASE(test_ComboAddress) {
   ComboAddress a = ComboAddress();
   ComboAddress b = ComboAddress();
   BOOST_CHECK(a == b);
+
+  // Verify that 2 ComboAddresses are not the same
+  ComboAddress c = ComboAddress("127.0.0.1:53");
+  ComboAddress d = ComboAddress("127.0.0.1:52");
+  ComboAddress e = ComboAddress("127.0.0.2:53");
+
+  BOOST_CHECK(a != c);
+  BOOST_CHECK(c != d);
+  BOOST_CHECK(c != e);
+  BOOST_CHECK(d != e);
+  BOOST_CHECK(!(a != b));
 }
 
 BOOST_AUTO_TEST_CASE(test_ComboAddressTruncate) {

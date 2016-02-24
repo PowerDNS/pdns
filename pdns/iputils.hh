@@ -93,6 +93,11 @@ union ComboAddress {
       return memcmp(&sin6.sin6_addr.s6_addr, &rhs.sin6.sin6_addr.s6_addr, 16)==0;
   }
 
+  bool operator!=(const ComboAddress& rhs) const
+  {
+    return(!operator==(rhs));
+  }
+
   bool operator<(const ComboAddress& rhs) const
   {
     if(boost::tie(sin4.sin_family, sin4.sin_port) < boost::tie(rhs.sin4.sin_family, rhs.sin4.sin_port))
