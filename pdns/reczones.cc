@@ -327,8 +327,13 @@ void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, const TSIGT
     sleep(refresh);
     
     L<<Logger::Info<<"Getting IXFR deltas for "<<zone<<" from "<<master.toStringWithPort()<<", our serial: "<<std::dynamic_pointer_cast<SOARecordContent>(dr.d_content)->d_st.serial<<endl;
-
-    auto deltas = getIXFRDeltas(master, zone, dr, tt);
+    vector<pair<vector<DNSRecord>, vector<DNSRecord> > > deltas;
+    try {
+      deltas = getIXFRDeltas(master, zone, dr, tt);
+    } catch(std::runtime_error& e ){
+      L<<Logger::Warning<<e.what()<<endl;
+      continue;
+    }
     if(deltas.empty())
       continue;
     L<<Logger::Info<<"Processing "<<deltas.size()<<" delta"<<addS(deltas)<<" for RPZ "<<zone<<endl;
