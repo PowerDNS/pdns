@@ -95,6 +95,9 @@ union ComboAddress {
 
   bool operator<(const ComboAddress& rhs) const
   {
+    if(sin4.sin_family == 0) {
+      return false;
+    } 
     if(boost::tie(sin4.sin_family, sin4.sin_port) < boost::tie(rhs.sin4.sin_family, rhs.sin4.sin_port))
       return true;
     if(boost::tie(sin4.sin_family, sin4.sin_port) > boost::tie(rhs.sin4.sin_family, rhs.sin4.sin_port))
@@ -293,6 +296,7 @@ public:
   Netmask()
   {
 	d_network.sin4.sin_family=0; // disable this doing anything useful
+	d_network.sin4.sin_port = 0; // this guarantees d_network compares identical
 	d_mask=0;
 	d_bits=0;
   }
