@@ -45,13 +45,15 @@ After restarting `pdns_server`, the following examples should start working:
     curl -X PATCH --data '{"rrsets": [
       {"name": "test1.example.org.",
        "type": "A",
+       "ttl": 86400,
        "changetype": "REPLACE",
-       "records": [ {"content": "192.0.2.5", "disabled": false, "name": "test1.example.org.", "ttl": 86400, "type": "A" } ]
+       "records": [ {"content": "192.0.2.5", "disabled": false} ]
       },
       {"name": "test2.example.org.",
        "type": "AAAA",
+       "ttl": 86400,
        "changetype": "REPLACE",
-       "records": [ {"content": "2001:db8::6/32", "disabled": false, "name": "test2.example.org.", "ttl": 86400, "type": "AAAA" } ]
+       "records": [ {"content": "2001:db8::6/32", "disabled": false} ]
       }
       ] }' -H 'X-API-Key: changeme' http://127.0.0.1:8081/api/v1/servers/localhost/zones/example.org. | jq .
 
@@ -121,44 +123,60 @@ Response:
       "last_check": 0,
       "soa_edit_api": "",
       "soa_edit": "",
-      "records": [
+      "rrsets": [
         {
+          "comments": [],
           "name": "example.org.",
-          "type": "NS",
+          "records": [
+            {
+              "content": "ns2.example.org.",
+              "disabled": false
+            },
+            {
+              "content": "ns1.example.org.",
+              "disabled": false
+            }
+          ],
           "ttl": 86400,
-          "disabled": false,
-          "content": "ns1.example.org."
+          "type": "NS"
         },
         {
-          "name": "example.org.",
-          "type": "NS",
-          "ttl": 86400,
-          "disabled": false,
-          "content": "ns2.powerdns.com."
-        },
-        {
+          "comments": [],
           "name": "example.org.",
           "type": "SOA",
           "ttl": 86400,
-          "disabled": false,
-          "content": "ns1.example.org. hostmaster.example.org. 2015120401 10800 15 604800 10800"
+          "records": [
+            {
+              "disabled": false,
+              "content": "ns1.example.org. hostmaster.example.org. 2015120401 10800 15 604800 10800"
+            }
+          ]
         },
         {
+          "comments": [],
           "name": "ns1.example.org.",
           "type": "A",
           "ttl": 86400,
-          "disabled": false,
-          "content": "192.168.0.1"
+          "records": [
+            {
+              "content": "192.168.0.1",
+              "disabled": false
+            }
+          ]
         },
         {
+          "comments": [],
           "name": "www.example.org.",
           "type": "A",
           "ttl": 86400,
-          "disabled": false,
-          "content": "192.168.0.2"
+          "records": [
+            {
+              "disabled": false,
+              "content": "192.168.0.2"
+            }
+          }
         }
-      ],
-      "comments": []
+      ]
     }
 
 

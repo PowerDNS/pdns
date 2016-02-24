@@ -62,6 +62,12 @@ wait = ('--wait' in sys.argv)
 if wait:
     sys.argv.remove('--wait')
 
+tests = [opt for opt in sys.argv if opt.startswith('--tests=')]
+if tests:
+    for opt in tests:
+        sys.argv.remove(opt)
+tests = [opt.split('=', 1)[1] for opt in tests]
+
 daemon = (len(sys.argv) == 2) and sys.argv[1] or None
 if daemon not in ('authoritative', 'recursor'):
     print "Usage: ./runtests (authoritative|recursor)"
@@ -136,7 +142,7 @@ test_env.update({'WEBPORT': WEBPORT, 'APIKEY': APIKEY, 'DAEMON': daemon, 'SQLITE
 
 try:
     print ""
-    p = subprocess.check_call(["nosetests", "--with-xunit"], env=test_env)
+    p = subprocess.check_call(["nosetests", "--with-xunit"] + tests, env=test_env)
 except subprocess.CalledProcessError as ex:
     rc = ex.returncode
 finally:

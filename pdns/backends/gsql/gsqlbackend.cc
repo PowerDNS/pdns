@@ -1316,7 +1316,7 @@ bool GSQLBackend::feedRecord(const DNSResourceRecord &r, string *ordername)
         bind("qtype",r.qtype.getName())->
         bind("domain_id",r.domain_id)->
         bind("disabled",r.disabled)->
-        bind("qname",stripDot(r.qname.toString())); // FIXME400 lowercase?
+        bind("qname",r.qname); // FIXME400 lowercase?
         if (ordername == NULL)
           d_InsertRecordOrderQuery_stmt->bindNull("ordername");
         else 
@@ -1335,7 +1335,7 @@ bool GSQLBackend::feedRecord(const DNSResourceRecord &r, string *ordername)
         bind("qtype",r.qtype.getName())-> 
         bind("domain_id",r.domain_id)->
         bind("disabled",r.disabled)->
-        bind("qname",stripDot(r.qname.toString()))->
+        bind("qname",r.qname)->
         bind("auth", (r.auth || !d_dnssecQueries))->
         execute()->
         reset();
@@ -1495,25 +1495,30 @@ bool GSQLBackend::getComment(Comment& comment)
 {
   SSqlStatement::row_t row;
 
-  if (!d_query_stmt->hasNextRow()) {
+  for(;;) {
+    if (!d_query_stmt->hasNextRow()) {
+      try {
+        d_query_stmt->reset();
+      } catch(SSqlException &e) {
+        throw DBException("GSQLBackend comment get: "+e.txtReason());
+      }
+      d_query_stmt = NULL;
+      return false;
+    }
+
     try {
-      d_query_stmt->reset();
+      d_query_stmt->nextRow(row);
+      ASSERT_ROW_COLUMNS(d_query_name, row, 6);
     } catch(SSqlException &e) {
       throw DBException("GSQLBackend comment get: "+e.txtReason());
     }
-    d_query_stmt = NULL;
-    return false;
+    try {
+      extractComment(row, comment);
+    } catch (...) {
+      continue;
+    }
+    return true;
   }
-
-  try {
-    d_query_stmt->nextRow(row);
-    ASSERT_ROW_COLUMNS(d_query_name, row, 6);
-  } catch(SSqlException &e) {
-    throw DBException("GSQLBackend comment get: "+e.txtReason());
-  }
-  // domain_id,name,type,modified_at,account,comment
-  extractComment(row, comment);
-  return true;
 }
 
 void GSQLBackend::feedComment(const Comment& comment)
@@ -1521,7 +1526,7 @@ void GSQLBackend::feedComment(const Comment& comment)
   try {
     d_InsertCommentQuery_stmt->
       bind("domain_id",comment.domain_id)->
-      bind("qname",toLower(comment.qname))->
+      bind("qname",comment.qname)->
       bind("qtype",comment.qtype.getName())->
       bind("modified_at",comment.modified_at)->
       bind("account",comment.account)->
@@ -1592,6 +1597,7 @@ string GSQLBackend::pattern2SQLPattern(const string &pattern)
 
 bool GSQLBackend::searchRecords(const string &pattern, int maxResults, vector<DNSResourceRecord>& result)
 {
+  d_qname.clear();
   try {
     string escaped_pattern = pattern2SQLPattern(pattern);
 
@@ -1690,12 +1696,12 @@ void GSQLBackend::extractRecord(const SSqlStatement::row_t& row, DNSResourceReco
 
 void GSQLBackend::extractComment(const SSqlStatement::row_t& row, Comment& comment)
 {
- comment.domain_id = pdns_stou(row[0]);
- comment.qname = row[1];
- comment.qtype = row[2];
- comment.modified_at = pdns_stou(row[3]);
- comment.account = row[4];
- comment.content = row[5];
+  comment.domain_id = pdns_stou(row[0]);
+  comment.qname = DNSName(row[1]);
+  comment.qtype = row[2];
+  comment.modified_at = pdns_stou(row[3]);
+  comment.account = row[4];
+  comment.content = row[5];
 }
 
 bool GSQLBackend::isOurDomain(const DNSName *zone, int domain_id) {
