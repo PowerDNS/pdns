@@ -419,7 +419,7 @@ public:
     if(ret<0)
       throw PDNSException("Making a socket for resolver (family = "+std::to_string(family)+"): "+stringerror());
 
-    setCloseOnExec(ret);
+    //    setCloseOnExec(ret); // we're not going to exec
 
     int tries=10;
     ComboAddress sin;
