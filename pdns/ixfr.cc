@@ -19,8 +19,14 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > > getIXFRDeltas(const ComboAd
 
   pw.commit();
   if(!tt.algo.empty()) {
+    TSIGHashEnum the;
+    getTSIGHashEnum(tt.algo, the);
     TSIGRecordContent trc;
-    trc.d_algoName = tt.algo;
+    try {
+      trc.d_algoName = getTSIGAlgoName(the);
+    } catch(PDNSException& pe) {
+      throw std::runtime_error("TSIG algorithm '"+tt.algo.toString()+"' is unknown.");
+    }
     trc.d_time = time((time_t*)NULL);
     trc.d_fudge = 300;
     trc.d_origID=ntohs(pw.getHeader()->id);
