@@ -419,7 +419,7 @@ public:
     if(ret<0)
       throw PDNSException("Making a socket for resolver (family = "+std::to_string(family)+"): "+stringerror());
 
-    setCloseOnExec(ret);
+    //    setCloseOnExec(ret); // we're not going to exec
 
     int tries=10;
     ComboAddress sin;
@@ -1367,6 +1367,14 @@ void makeTCPServerSockets()
     if( ::arg().mustDo("non-local-bind") )
 	Utility::setBindAny(AF_INET, fd);
 
+#ifdef SO_REUSEPORT
+    if(::arg().mustDo("reuseport")) {
+      int one=1;
+      if(setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &one, sizeof(one)) < 0)
+        throw PDNSException("SO_REUSEPORT: "+stringerror());
+    }
+#endif
+
     sin.sin4.sin_port = htons(st.port);
     int socklen=sin.sin4.sin_family==AF_INET ? sizeof(sin.sin4) : sizeof(sin.sin6);
     if (::bind(fd, (struct sockaddr *)&sin, socklen )<0)
@@ -1438,8 +1446,15 @@ void makeUDPServerSockets()
     setSocketReceiveBuffer(fd, 250000);
     sin.sin4.sin_port = htons(st.port);
 
-    int socklen=sin.getSocklen();
-
+  
+#ifdef SO_REUSEPORT  
+    if(::arg().mustDo("reuseport")) {
+      int one=1;
+      if(setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &one, sizeof(one)) < 0)
+        throw PDNSException("SO_REUSEPORT: "+stringerror());
+    }
+#endif
+  int socklen=sin.getSocklen();      
     if (::bind(fd, (struct sockaddr *)&sin, socklen)<0)
       throw PDNSException("Resolver binding to server socket on port "+ std::to_string(st.port) +" for "+ st.host+": "+stringerror());
 
@@ -2663,6 +2678,8 @@ int main(int argc, char **argv)
 
     ::arg().set("include-dir","Include *.conf files from this directory")="";
     ::arg().set("security-poll-suffix","Domain name from which to query security update notifications")="secpoll.powerdns.com.";
+    
+    ::arg().setSwitch("reuseport","Enable SO_REUSEPORT allowing multiple recursors processes to listen to 1 address")="no";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");

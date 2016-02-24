@@ -554,7 +554,7 @@ struct PacketIDBirthdayCompare: public std::binary_function<PacketID, PacketID, 
     if( tie(a.remote, ourSock, a.type) > tie(b.remote, bSock, b.type))
       return false;
 
-    return pdns_ilexicographical_compare(a.domain.toString(), b.domain.toString()); // FIXME400
+    return a.domain < b.domain;
   }
 };
 extern __thread MemRecursorCache* t_RC;

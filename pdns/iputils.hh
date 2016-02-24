@@ -95,6 +95,9 @@ union ComboAddress {
 
   bool operator<(const ComboAddress& rhs) const
   {
+    if(sin4.sin_family == 0) {
+      return false;
+    } 
     if(boost::tie(sin4.sin_family, sin4.sin_port) < boost::tie(rhs.sin4.sin_family, rhs.sin4.sin_port))
       return true;
     if(boost::tie(sin4.sin_family, sin4.sin_port) > boost::tie(rhs.sin4.sin_family, rhs.sin4.sin_port))
@@ -108,15 +111,7 @@ union ComboAddress {
 
   bool operator>(const ComboAddress& rhs) const
   {
-    if(boost::tie(sin4.sin_family, sin4.sin_port) > boost::tie(rhs.sin4.sin_family, rhs.sin4.sin_port))
-      return true;
-    if(boost::tie(sin4.sin_family, sin4.sin_port) < boost::tie(rhs.sin4.sin_family, rhs.sin4.sin_port))
-      return false;
-    
-    if(sin4.sin_family == AF_INET)
-      return sin4.sin_addr.s_addr > rhs.sin4.sin_addr.s_addr;
-    else
-      return memcmp(&sin6.sin6_addr.s6_addr, &rhs.sin6.sin6_addr.s6_addr, 16) > 0;
+    return rhs.operator<(*this);
   }
 
   struct addressOnlyHash
@@ -293,6 +288,7 @@ public:
   Netmask()
   {
 	d_network.sin4.sin_family=0; // disable this doing anything useful
+	d_network.sin4.sin_port = 0; // this guarantees d_network compares identical
 	d_mask=0;
 	d_bits=0;
   }

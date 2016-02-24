@@ -41,6 +41,14 @@ BOOST_AUTO_TEST_CASE(test_ComboAddress) {
   BOOST_CHECK(a == b);
 }
 
+BOOST_AUTO_TEST_CASE(test_ComboAddressCompare) {
+  ComboAddress a, b;
+  memset(&a, 0, sizeof(a));
+  memset(&b, 0, sizeof(b));
+  BOOST_CHECK(!(a<b));
+  BOOST_CHECK(!(a>b));
+}
+
 BOOST_AUTO_TEST_CASE(test_ComboAddressTruncate) {
   ComboAddress ca4("130.161.252.29");
   ca4.truncate(24);
