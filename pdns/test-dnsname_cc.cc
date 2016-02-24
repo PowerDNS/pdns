@@ -430,6 +430,13 @@ BOOST_AUTO_TEST_CASE(test_compare_naive) {
   BOOST_CHECK(DNSName("abc.com.") < DNSName("Zdf.com."));
 }
 
+BOOST_AUTO_TEST_CASE(test_compare_empty) {
+  DNSName a, b;
+  BOOST_CHECK(!(a<b));
+  BOOST_CHECK(!a.canonCompare(b));
+}
+
+
 BOOST_AUTO_TEST_CASE(test_compare_canonical) {
   DNSName lower("bert.com."), higher("alpha.nl.");
   BOOST_CHECK(lower.canonCompare(higher));
