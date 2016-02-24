@@ -127,10 +127,12 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
   d_cachecachevalid=false;
 
   cache_t::iterator stored;
+  bool isNew = false;
   auto key=boost::make_tuple(qname, qt.getCode(), ednsmask ? *ednsmask : Netmask());
   stored=d_cache.find(key);
   if(stored == d_cache.end()) {
     stored=d_cache.insert(CacheEntry(key,CacheEntry::records_t(), auth)).first;
+    isNew = true;
   }
 
   uint32_t maxTTD=UINT_MAX;
@@ -174,6 +176,9 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
     // there was code here that did things with TTL and auth. Unsure if it was good. XXX
   }
 
+  if (!isNew) {
+    moveCacheItemToBack(d_cache, stored);
+  }
   d_cache.replace(stored, ce);
 }
 

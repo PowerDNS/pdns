@@ -126,6 +126,7 @@ void RecursorPacketCache::insertResponsePacket(unsigned int tag, const DNSName& 
     DNSName respname(iter->d_packet.c_str(), iter->d_packet.length(), sizeof(dnsheader), false, 0, 0, 0);
     if(qname != respname)
       continue;
+    moveCacheItemToBack(d_packetCache, iter);
     iter->d_packet = responsePacket;
     iter->d_ttd = now + ttl;
     iter->d_creation = now;
