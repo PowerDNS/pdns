@@ -10,7 +10,7 @@ you or your users from malicious traffic.
 
 Lua is extremely fast and lightweight, easily supporting hundreds of
 thousands of queries per second. The Lua language is explained very
-well in the excellent book [Programming in Lua](http://www.amazon.com/exec/obidos/ASIN/859037985X/lua-pilindex-20).
+well in the excellent book [Programming in Lua](http://www.amazon.com/exec/obidos/ASIN/859037985X/lua-pilindex-20). If you already have programming experience, [Learn Lua in 15 Minutes](http://tylerneylon.com/a/learn-lua/) is a great primer.
 
 For extra performance, a Just In Time compiled version of Lua called
 [LuaJIT](http://luajit.org/) is supported.
