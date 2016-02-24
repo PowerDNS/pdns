@@ -1166,6 +1166,9 @@ struct
   string pidfile;
   string command;
   string config;
+#ifdef HAVE_LIBSODIUM
+  string setKey;
+#endif
   string uid;
   string gid;
 } g_cmdLine;
@@ -1208,6 +1211,9 @@ try
     {"execute", required_argument, 0, 'e'},
     {"client", 0, 0, 'c'},
     {"gid",  required_argument, 0, 'g'},
+#ifdef HAVE_LIBSODIUM
+    {"setkey",  required_argument, 0, 'k'},
+#endif
     {"local",  required_argument, 0, 'l'},
     {"daemon", 0, 0, 'd'},
     {"pidfile",  required_argument, 0, 'p'},
@@ -1221,7 +1227,11 @@ try
   int longindex=0;
   string optstring;
   for(;;) {
+#ifdef HAVE_LIBSODIUM
+    int c=getopt_long(argc, argv, "a:hcde:C:k:l:vp:g:u:V", longopts, &longindex);
+#else
     int c=getopt_long(argc, argv, "a:hcde:C:l:vp:g:u:V", longopts, &longindex);
+#endif
     if(c==-1)
       break;
     switch(c) {
@@ -1255,6 +1265,11 @@ try
       cout<<"-c,--client           Operate as a client, connect to dnsdist. This reads\n";
       cout<<"                      controlSocket from your configuration file, but also\n";
       cout<<"                      accepts an IP:PORT argument\n";
+#ifdef HAVE_LIBSODIUM
+      cout<<"-k,--setkey KEY       Use KEY for encrypted communication to dnsdist. This\n";
+      cout<<"                      is similar to setting setKey in the configuration file.\n";
+      cout<<"                      NOTE: this will leak this key in your shell's history!\n";
+#endif
       cout<<"-d,--daemon           Operate as a daemon\n";
       cout<<"-e,--execute cmd      Connect to dnsdist and execute 'cmd'\n";
       cout<<"-g,--gid gid          Change the process group ID after binding sockets\n";
@@ -1272,6 +1287,14 @@ try
       optstring=optarg;
       g_ACL.modify([optstring](NetmaskGroup& nmg) { nmg.addMask(optstring); });
       break;
+#ifdef HAVE_LIBSODIUM
+    case 'k':
+      if (B64Decode(string(optarg), g_cmdLine.setKey) < 0) {
+        cerr<<"Unable to decode key '"<<optarg<<"'."<<endl;
+        exit(EXIT_FAILURE);
+      }
+      break;
+#endif
     case 'l':
       g_cmdLine.locals.push_back(trim_copy(string(optarg)));
       break;
@@ -1312,6 +1335,10 @@ try
     setupLua(true, g_cmdLine.config);
     if (clientAddress != ComboAddress())
       g_serverControl = clientAddress;
+#ifdef HAVE_LIBSODIUM
+    if (!g_cmdLine.setKey.empty())
+      g_key = g_cmdLine.setKey;
+#endif
     doClient(g_serverControl, g_cmdLine.command);
     _exit(EXIT_SUCCESS);
   }
