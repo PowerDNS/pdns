@@ -752,10 +752,11 @@ try
           case DNSAction::Action::HeaderModify:
             done = true;
             break;
-          /* non-terminal actions follow */
           case DNSAction::Action::Pool:
             poolname=ruleresult;
+            done = true;
             break;
+          /* non-terminal actions follow */
           case DNSAction::Action::Delay:
             delayMsec = static_cast<int>(pdns_stou(ruleresult)); // sorry
             break;

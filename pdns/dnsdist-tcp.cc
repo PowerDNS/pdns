@@ -297,10 +297,11 @@ void* tcpClientThread(int pipefd)
             case DNSAction::Action::HeaderModify:
               done = true;
               break;
-            /* non-terminal actions follow */
             case DNSAction::Action::Pool:
               poolname=ruleresult;
+              done = true;
               break;
+            /* non-terminal actions follow */
             case DNSAction::Action::Delay:
             case DNSAction::Action::None:
               break;

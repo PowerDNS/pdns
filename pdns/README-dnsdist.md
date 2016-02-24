@@ -356,7 +356,6 @@ Some specific actions do not stop the processing when they match, contrary to al
  * Log
  * MacAddr
  * No Recurse
- * Route to a pool
  * and of course None
 
 A convenience function `makeRule()` is supplied which will make a NetmaskGroupRule for you or a SuffixMatchNodeRule
@@ -454,7 +453,7 @@ Valid return values for `LuaAction` functions are:
  * DNSAction.HeaderModify: indicate that the query has been turned into a response
  * DNSAction.None: continue to the next rule
  * DNSAction.Nxdomain: return a response with a NXDomain rcode
- * DNSAction.Pool: use the specified pool to forward this query, continue to the next rule
+ * DNSAction.Pool: use the specified pool to forward this query
  * DNSAction.Spoof: spoof the response using the supplied IPv4 (A), IPv6 (AAAA) or string (CNAME) value
 
 DNSSEC
