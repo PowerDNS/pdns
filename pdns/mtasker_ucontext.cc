@@ -47,7 +47,7 @@ void
 threadWrapper (int const ctx0, int const ctx1, int const fun0, int const fun1) {
     auto ctx = joinPtr<pdns_ucontext_t>(ctx0, ctx1);
     try {
-        auto start = std::move(*joinPtr<std::function<void()>>(fun0, fun1));
+        auto start = std::move(*joinPtr<boost::function<void()>>(fun0, fun1));
         start();
     } catch (...) {
         ctx->exception = std::current_exception();
@@ -78,7 +78,7 @@ pdns_swapcontext
 
 void
 pdns_makecontext
-(pdns_ucontext_t& ctx, std::function<void(void)>& start) {
+(pdns_ucontext_t& ctx, boost::function<void(void)>& start) {
     assert (ctx.uc_link);
     assert (ctx.uc_stack.size());
 

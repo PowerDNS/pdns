@@ -2,7 +2,7 @@
 #define MTASKER_CONTEXT_HH
 
 #include "lazy_allocator.hh"
-#include <functional>
+#include <boost/function.hpp>
 #include <vector>
 #include <exception>
 
@@ -24,6 +24,6 @@ pdns_swapcontext
 
 void
 pdns_makecontext
-(pdns_ucontext_t& ctx, std::function<void(void)>& start);
+(pdns_ucontext_t& ctx, boost::function<void(void)>& start);
 
 #endif // MTASKER_CONTEXT_HH

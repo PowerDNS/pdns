@@ -34,7 +34,7 @@ static_assert (std::is_pointer<fcontext_t>::value,
 struct args_t {
     fcontext_t prev_ctx = nullptr;
     pdns_ucontext_t* self = nullptr;
-    std::function<void(void)>* work = nullptr;
+    boost::function<void(void)>* work = nullptr;
 };
 
 extern "C" {
@@ -84,7 +84,7 @@ pdns_swapcontext
 
 void
 pdns_makecontext
-(pdns_ucontext_t& ctx, std::function<void(void)>& start) {
+(pdns_ucontext_t& ctx, boost::function<void(void)>& start) {
     assert (ctx.uc_link);
     assert (ctx.uc_stack.size() >= 8192);
     assert (!ctx.uc_mcontext);
