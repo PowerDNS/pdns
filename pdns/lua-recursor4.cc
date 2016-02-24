@@ -264,6 +264,8 @@ RecursorLua4::RecursorLua4(const std::string& fname)
 
   d_lw->registerFunction("match", (bool (NetmaskGroup::*)(const ComboAddress&) const)&NetmaskGroup::match);
   d_lw->registerFunction<string(DNSName::*)()>("toString", [](const DNSName&dn ) { return dn.toString(); });
+  d_lw->registerFunction<string(DNSName::*)()>("toStringNoDot", [](const DNSName&dn ) { return dn.toStringNoDot(); });
+  d_lw->registerFunction<bool(DNSName::*)()>("chopOff", [](DNSName&dn ) { return dn.chopOff(); });
   d_lw->registerMember("qname", &DNSQuestion::qname);
   d_lw->registerMember("qtype", &DNSQuestion::qtype);
   d_lw->registerMember("localaddr", &DNSQuestion::local);
