@@ -6,6 +6,26 @@ from dnsdisttests import DNSDistTest
 
 class TestBasics(DNSDistTest):
 
+    _config_template = """
+    newServer{address="127.0.0.1:%s"}
+    truncateTC(true)
+    addAnyTCRule()
+    addAction(RegexRule("evil[0-9]{4,}\\\\.regex\\\\.tests\\\\.powerdns\\\\.com$"), RCodeAction(5))
+    mySMN = newSuffixMatchNode()
+    mySMN:add(newDNSName("nameAndQtype.tests.powerdns.com."))
+    addAction(AndRule{SuffixMatchNodeRule(mySMN), QTypeRule("TXT")}, RCodeAction(4))
+    addAction(makeRule("drop.test.powerdns.com."), DropAction())
+    block=newDNSName("powerdns.org.")
+    function blockFilter(dq)
+        if(dq.qname:isPartOf(block))
+        then
+            print("Blocking *.powerdns.org")
+            return true
+        end
+        return false
+    end
+    """
+
     def testDropped(self):
         """
         Basics: Dropped query
