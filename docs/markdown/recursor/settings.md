@@ -428,6 +428,10 @@ Settings can contain:
 * defpol = Policy.Custom, Policy.Drop, Policy.NXDOMAIN, Policy.NODATA, Policy.Truncate, Policy.NoAction
 * defcontent = CNAME field to return in case of defpol=Policy.Custom
 * defttl = the TTL of the CNAME field to be synthesized
+* tsigname = the name of the TSIG key to authenticate to the server (also set tsigalgo, tsigsecret)
+* tsigalgo = the name of the TSIG algorithm (like 'hmac-md5') used
+* tsigsecret = base64 encoded TSIG secret
+* refresh = an integer describing the interval between checks for updates. By default, the RPZ zone's default is used
 
 If no settings are included, the RPZ is taken literally with no overrides applied.
 
