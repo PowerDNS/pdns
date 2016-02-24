@@ -1199,6 +1199,7 @@ try
   }
   
 #endif
+  ComboAddress clientAddress = ComboAddress();
   g_cmdLine.config=SYSCONFDIR "/dnsdist.conf";
   struct option longopts[]={ 
     {"acl", required_argument, 0, 'a'},
@@ -1245,13 +1246,15 @@ try
     case 'h':
       cout<<"dnsdist "<<VERSION<<endl;
       cout<<endl;
-      cout<<"Syntax: dnsdist [-C,--config file] [-c,--client] [-d,--daemon]\n";
+      cout<<"Syntax: dnsdist [-C,--config file] [-c,--client [IP[:PORT]]] [-d,--daemon]\n";
       cout<<"[-p,--pidfile file] [-e,--execute cmd] [-h,--help] [-l,--local addr]\n";
       cout<<"[-v,--verbose]\n";
       cout<<"\n";
       cout<<"-a,--acl netmask      Add this netmask to the ACL\n";
       cout<<"-C,--config file      Load configuration from 'file'\n";
-      cout<<"-c,--client           Operate as a client, connect to dnsdist\n";
+      cout<<"-c,--client           Operate as a client, connect to dnsdist. This reads\n";
+      cout<<"                      controlSocket from your configuration file, but also\n";
+      cout<<"                      accepts an IP:PORT argument\n";
       cout<<"-d,--daemon           Operate as a daemon\n";
       cout<<"-e,--execute cmd      Connect to dnsdist and execute 'cmd'\n";
       cout<<"-g,--gid gid          Change the process group ID after binding sockets\n";
@@ -1293,7 +1296,11 @@ try
   argc-=optind;
   argv+=optind;
   for(auto p = argv; *p; ++p) {
-    g_cmdLine.remotes.push_back(*p);
+    if(g_cmdLine.beClient) {
+      clientAddress = ComboAddress(*p, 5199);
+    } else {
+      g_cmdLine.remotes.push_back(*p);
+    }
   }
 
   g_maxOutstanding = 1024;
@@ -1303,6 +1310,8 @@ try
   g_policy.setState(leastOutstandingPol);
   if(g_cmdLine.beClient || !g_cmdLine.command.empty()) {
     setupLua(true, g_cmdLine.config);
+    if (clientAddress != ComboAddress())
+      g_serverControl = clientAddress;
     doClient(g_serverControl, g_cmdLine.command);
     _exit(EXIT_SUCCESS);
   }
