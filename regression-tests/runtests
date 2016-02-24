@@ -66,6 +66,16 @@ do
 		done
 	fi
 
+	FAIL=0
+	for reason in $skipreasons $context
+	do
+		if [ -e $a/fail.$reason ]
+		then
+			FAIL=1
+			break
+		fi
+	done
+
 	if [ "$spectest" != "" ] && [ "$spectest" != "$testname" ] && [ "$testname" != "00dnssec-grabkeys" ]
 	then
 		SKIPIT=1
@@ -95,13 +105,27 @@ do
 		diff ${diffopts} $expected $a/real_result > $a/diff 2>&1
 		if [ -s $a/diff ] 
 		then
-			result="	Failed test $a"
-			echo $testname >> failed_tests
-			failed=$[$failed+1]
+			if [ $FAIL = 0 ]
+			then
+				result="	Failed test $a"
+				echo $testname >> failed_tests
+				failed=$[$failed+1]
+			else
+				result="	Expected failure for reason $reason, test passed $a"
+				echo $testname >> passed_tests
+				passed=$[$passed+1]
+			fi
 		else
-			result="	Passed test $a"
-			echo $testname >> passed_tests
-			passed=$[$passed+1]
+			if [ $FAIL = 0 ]
+			then
+				result="	Passed test $a"
+				echo $testname >> passed_tests
+				passed=$[$passed+1]
+			else
+				result="	Unexpected pass for reason $reason, test failed $a"
+				echo $testname >> failed_tests
+				failed=$[$failed+1]
+			fi
 		fi
 	fi	
 	echo "$result"
