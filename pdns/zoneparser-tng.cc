@@ -35,6 +35,8 @@
 #include <deque>
 #include <boost/algorithm/string.hpp>
 
+static string g_INstr("IN");
+
 ZoneParserTNG::ZoneParserTNG(const string& fname, const DNSName& zname, const string& reldir) : d_reldir(reldir), 
                                                                                                d_zonename(zname), d_defaultttl(3600), 
                                                                                                d_templatecounter(0), d_templatestop(0),
@@ -98,24 +100,24 @@ unsigned int ZoneParserTNG::makeTTLFromZone(const string& str)
     return 0;
 
   unsigned int val=pdns_stou(str);
-  char lc=toupper(str[str.length()-1]);
+  char lc=dns_tolower(str[str.length()-1]);
   if(!isdigit(lc))
     switch(lc) {
-    case 'S':
+    case 's':
       break;
-    case 'M':
+    case 'm':
       val*=60; // minutes, not months!
       break;
-    case 'H':
+    case 'h':
       val*=3600;
       break;
-    case 'D':
+    case 'd':
       val*=3600*24;
       break;
-    case 'W':
+    case 'w':
       val*=3600*24*7;
       break;
-    case 'Y': // ? :-)
+    case 'y': // ? :-)
       val*=3600*24*365;
       break;
 
@@ -203,6 +205,8 @@ bool ZoneParserTNG::getTemplateLine()
 
 void chopComment(string& line)
 {
+  if(line.find(';')==string::npos)
+    return;
   string::size_type pos, len = line.length();
   bool inQuote=false;
   for(pos = 0 ; pos < len; ++pos) {
@@ -272,7 +276,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
   if(parts.empty())
     goto retry;
 
-  if(parts[0].first != parts[0].second && makeString(d_line, parts[0])[0]==';') // line consisting of nothing but comments
+  if(parts[0].first != parts[0].second && d_line[parts[0].first]==';') // line consisting of nothing but comments
     goto retry;
 
   if(d_line[0]=='$') { 
@@ -310,7 +314,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
 
   bool prevqname=false;
   string qname = makeString(d_line, parts[0]); // Don't use DNSName here!
-  if(isspace(d_line[0])) {
+  if(dns_isspace(d_line[0])) {
     rr.qname=d_prevqname;
     prevqname=true;
   }else {
@@ -346,8 +350,8 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
     }
 
     // cout<<"Next part: '"<<nextpart<<"'"<<endl;
-    
-    if(pdns_iequals(nextpart, "IN")) {
+
+    if(pdns_iequals(nextpart, g_INstr)) {
       // cout<<"Ignoring 'IN'\n";
       continue;
     }
@@ -375,12 +379,12 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
   if(!haveQTYPE) 
     throw exception("Malformed line "+getLineOfFile()+": '"+d_line+"'");
 
-  rr.content=d_line.substr(range.first);
-
+  //  rr.content=d_line.substr(range.first);
+  rr.content.assign(d_line, range.first, string::npos);
   chopComment(rr.content);
-  trim(rr.content);
+  trim_if(rr.content, is_any_of(" \r\n\x1a"));
 
-  if(equals(rr.content, "@"))
+  if(rr.content.size()==1 && rr.content[0]=='@')
     rr.content=d_zonename.toString();
 
   if(findAndElide(rr.content, '(')) {      // have found a ( and elided it
