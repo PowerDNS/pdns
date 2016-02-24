@@ -48,7 +48,7 @@ Server for example is often mentioned.
 :    Load configuration from *FILE*.
 
 --check-config
-:    Test the configuration file (which may be set with **--config** or **-c**)
+:    Test the configuration file (which may be set with **--config** or **-C**)
      for errors. dnsdist will show the errors and exit with a non-zero exit-code
      when errors are found.
 
