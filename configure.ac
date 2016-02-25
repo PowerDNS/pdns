@@ -64,7 +64,7 @@ AS_IF([test "x$enable_hardening" != "xno"], [
   AC_LD_RELRO
 ])
 
-AX_LIB_SOCKET_NSL
+PDNS_CHECK_NETWORK_LIBS
 
 LT_PREREQ([2.2.2])
 LT_INIT([disable-static dlopen])
