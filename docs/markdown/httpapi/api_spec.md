@@ -16,10 +16,7 @@ Data format
 
 Input data format: JSON.
 
-Output data formats: JSON, JSONP
-
-All GET requests support appending a `_callback` URL parameter, which, if
-present, will turn the response into a JSONP response.
+Output data formats: JSON.
 
 The `Accept:` header determines the output format. An unknown value or
 `*/*` will cause a `400 Bad Request`.

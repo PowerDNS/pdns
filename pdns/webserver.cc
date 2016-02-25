@@ -148,12 +148,12 @@ static void apiWrapper(WebServer::HandlerFunction handler, HttpRequest* req, Htt
 
   resp->headers["Content-Type"] = "application/json";
 
-  string callback;
-
-  if(req->getvars.count("callback")) {
-    callback=req->getvars["callback"];
-    req->getvars.erase("callback");
-  }
+  // security headers
+  resp->headers["X-Content-Type-Options"] = "nosniff";
+  resp->headers["X-Frame-Options"] = "deny";
+  resp->headers["X-Permitted-Cross-Domain-Policies"] = "none";
+  resp->headers["X-XSS-Protection"] = "1; mode=block";
+  resp->headers["Content-Security-Policy"] = "default-src 'self'; style-src 'self' 'unsafe-inline'";
 
   req->getvars.erase("_"); // jQuery cache buster
 
@@ -171,10 +171,6 @@ static void apiWrapper(WebServer::HandlerFunction handler, HttpRequest* req, Htt
   if (resp->status == 204) {
     // No Content -> no Content-Type.
     resp->headers.erase("Content-Type");
-  }
-
-  if(!callback.empty()) {
-    resp->body = callback + "(" + resp->body + ");";
   }
 }
 
