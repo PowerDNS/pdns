@@ -324,9 +324,11 @@ void* tcpClientThread(int pipefd)
 	  break;
 
         std::shared_ptr<ServerPool> serverPool = getPool(*localPools, poolname);
+        std::shared_ptr<DNSDistPacketCache> packetCache = nullptr;
 	{
 	  std::lock_guard<std::mutex> lock(g_luamutex);
 	  ds = localPolicy->policy(serverPool->servers, &dq);
+	  packetCache = serverPool->packetCache;
 	}
 	if(!ds) {
 	  g_stats.noPolicy++;
@@ -346,10 +348,10 @@ void* tcpClientThread(int pipefd)
         }
 
         uint32_t cacheKey = 0;
-        if (serverPool->packetCache && !dq.skipCache) {
+        if (packetCache && !dq.skipCache) {
           char cachedResponse[4096];
           uint16_t cachedResponseSize = sizeof cachedResponse;
-          if (serverPool->packetCache->get((unsigned char*) query, dq.len, *dq.qname, dq.qtype, dq.qclass, consumed, dq.dh->id, cachedResponse, &cachedResponseSize, true, &cacheKey)) {
+          if (packetCache->get((unsigned char*) query, dq.len, *dq.qname, dq.qtype, dq.qclass, consumed, dq.dh->id, cachedResponse, &cachedResponseSize, true, &cacheKey)) {
             if (putNonBlockingMsgLen(ci.fd, cachedResponseSize, g_tcpSendTimeout))
               writen2WithTimeout(ci.fd, cachedResponse, cachedResponseSize, g_tcpSendTimeout);
             g_stats.cacheHits++;
@@ -476,8 +478,8 @@ void* tcpClientThread(int pipefd)
 	  memcpy(response + sizeof(dnsheader), realname.c_str(), realname.length());
 	}
 
-	if (serverPool->packetCache && !dq.skipCache) {
-	  serverPool->packetCache->insert(cacheKey, qname, qtype, qclass, response, responseLen, true);
+	if (packetCache && !dq.skipCache) {
+	  packetCache->insert(cacheKey, qname, qtype, qclass, response, responseLen, true);
 	}
 
 #ifdef HAVE_DNSCRYPT
