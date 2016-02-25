@@ -2,6 +2,7 @@
 #include "config.h"
 #endif
 #include "base64.hh"
+#include <stdexcept>
 #include <boost/scoped_array.hpp>
 #include <openssl/bio.h>
 #include <openssl/evp.h>
@@ -12,8 +13,8 @@ int B64Decode(const std::string& src, std::string& dst)
     dst.clear();
     return 0;
   }
-  size_t dlen = ( src.length() * 6 + 7 ) / 8 ;
-  size_t olen = 0;
+  int dlen = ( src.length() * 6 + 7 ) / 8 ;
+  ssize_t olen = 0;
   boost::scoped_array<unsigned char> d( new unsigned char[dlen] );
   BIO *bio, *b64;
   bio = BIO_new(BIO_s_mem());
@@ -22,15 +23,19 @@ int B64Decode(const std::string& src, std::string& dst)
   bio = BIO_push(b64, bio);
   BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL);
   olen = BIO_read(b64, d.get(), dlen);
+  if ((olen == 0 || olen == -1) && BIO_should_retry(bio)) {
+    BIO_free_all(bio);
+    throw std::runtime_error("BIO_read failed to read all data from memory buffer");
+  }
   BIO_free_all(bio);
   if (olen > 0) {
-    dst = std::string( (const char*) d.get(), olen );
+    dst = std::string( reinterpret_cast<const char*>(d.get()), olen );
     return 0;
   }
   return -1;
 }
 
-std::string Base64Encode (const std::string& src)
+std::string Base64Encode(const std::string& src)
 {
   if (!src.empty()) {
     size_t olen = 0;
@@ -39,8 +44,11 @@ std::string Base64Encode (const std::string& src)
     bio = BIO_new(BIO_s_mem());
     bio = BIO_push(b64, bio);
     BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL);
-    BIO_write(bio, src.c_str(), src.length());
-    BIO_flush(bio);
+    if (BIO_write(bio, src.c_str(), src.length()) != src.length()) {
+      BIO_free_all(bio);
+      throw std::runtime_error("BIO_write failed to write all data to memory buffer");
+    }
+    (void)BIO_flush(bio);
     char* pp;
     std::string out;
     olen = BIO_get_mem_data(bio, &pp);
