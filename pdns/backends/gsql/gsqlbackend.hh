@@ -42,12 +42,9 @@ public:
       d_InfoOfAllSlaveDomainsQuery_stmt = d_db->prepare(d_InfoOfAllSlaveDomainsQuery, 0);
       d_SuperMasterInfoQuery_stmt = d_db->prepare(d_SuperMasterInfoQuery, 2);
       d_GetSuperMasterIPs_stmt = d_db->prepare(d_GetSuperMasterIPs, 2);
-      d_InsertZoneQuery_stmt = d_db->prepare(d_InsertZoneQuery, 1);
-      d_InsertSlaveZoneQuery_stmt = d_db->prepare(d_InsertSlaveZoneQuery, 3);
-      d_InsertRecordQuery_stmt = d_db->prepare(d_InsertRecordQuery, 8);
-      d_InsertEntQuery_stmt = d_db->prepare(d_InsertEntQuery, 3);
-      d_InsertRecordOrderQuery_stmt = d_db->prepare(d_InsertRecordOrderQuery, 9);
-      d_InsertEntOrderQuery_stmt = d_db->prepare(d_InsertEntOrderQuery, 4);
+      d_InsertZoneQuery_stmt = d_db->prepare(d_InsertZoneQuery, 4);
+      d_InsertRecordQuery_stmt = d_db->prepare(d_InsertRecordQuery, 9);
+      d_InsertEmptyNonTerminalOrderQuery_stmt = d_db->prepare(d_InsertEmptyNonTerminalOrderQuery, 4);
       d_UpdateMasterOfZoneQuery_stmt = d_db->prepare(d_UpdateMasterOfZoneQuery, 2);
       d_UpdateKindOfZoneQuery_stmt = d_db->prepare(d_UpdateKindOfZoneQuery, 2);
       d_UpdateAccountOfZoneQuery_stmt = d_db->prepare(d_UpdateAccountOfZoneQuery, 2);
@@ -67,9 +64,8 @@ public:
       d_updateOrderNameAndAuthTypeQuery_stmt = d_db->prepare(d_updateOrderNameAndAuthTypeQuery, 5);
       d_nullifyOrderNameAndUpdateAuthQuery_stmt = d_db->prepare(d_nullifyOrderNameAndUpdateAuthQuery, 3);
       d_nullifyOrderNameAndUpdateAuthTypeQuery_stmt = d_db->prepare(d_nullifyOrderNameAndUpdateAuthTypeQuery, 4);
-      d_removeEmptyNonTerminalsFromZoneQuery_stmt = d_db->prepare(d_removeEmptyNonTerminalsFromZoneQuery, 1);
-      d_insertEmptyNonTerminalQuery_stmt = d_db->prepare(d_insertEmptyNonTerminalQuery, 2);
-      d_deleteEmptyNonTerminalQuery_stmt = d_db->prepare(d_deleteEmptyNonTerminalQuery, 2);
+      d_RemoveEmptyNonTerminalsFromZoneQuery_stmt = d_db->prepare(d_RemoveEmptyNonTerminalsFromZoneQuery, 1);
+      d_DeleteEmptyNonTerminalQuery_stmt = d_db->prepare(d_DeleteEmptyNonTerminalQuery, 2);
       d_AddDomainKeyQuery_stmt = d_db->prepare(d_AddDomainKeyQuery, 4);
       d_ListDomainKeysQuery_stmt = d_db->prepare(d_ListDomainKeysQuery, 1);
       d_GetAllDomainMetadataQuery_stmt = d_db->prepare(d_GetAllDomainMetadataQuery, 1);
@@ -114,11 +110,8 @@ public:
     release(&d_SuperMasterInfoQuery_stmt);
     release(&d_GetSuperMasterIPs_stmt);
     release(&d_InsertZoneQuery_stmt);
-    release(&d_InsertSlaveZoneQuery_stmt);
     release(&d_InsertRecordQuery_stmt);
-    release(&d_InsertEntQuery_stmt);
-    release(&d_InsertRecordOrderQuery_stmt);
-    release(&d_InsertEntOrderQuery_stmt);
+    release(&d_InsertEmptyNonTerminalOrderQuery_stmt);
     release(&d_UpdateMasterOfZoneQuery_stmt);
     release(&d_UpdateKindOfZoneQuery_stmt);
     release(&d_UpdateAccountOfZoneQuery_stmt);
@@ -138,9 +131,8 @@ public:
     release(&d_updateOrderNameAndAuthTypeQuery_stmt);
     release(&d_nullifyOrderNameAndUpdateAuthQuery_stmt);
     release(&d_nullifyOrderNameAndUpdateAuthTypeQuery_stmt);
-    release(&d_removeEmptyNonTerminalsFromZoneQuery_stmt);
-    release(&d_insertEmptyNonTerminalQuery_stmt);
-    release(&d_deleteEmptyNonTerminalQuery_stmt);
+    release(&d_RemoveEmptyNonTerminalsFromZoneQuery_stmt);
+    release(&d_DeleteEmptyNonTerminalQuery_stmt);
     release(&d_AddDomainKeyQuery_stmt);
     release(&d_ListDomainKeysQuery_stmt);
     release(&d_GetAllDomainMetadataQuery_stmt);
@@ -178,7 +170,10 @@ public:
   bool feedRecord(const DNSResourceRecord &r, string *ordername=0);
   bool feedEnts(int domain_id, map<DNSName,bool>& nonterm);
   bool feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow);
-  bool createDomain(const DNSName &domain);
+  bool createDomain(const DNSName &domain, const string &type, const string &masters, const string &account);
+  bool createDomain(const DNSName &domain) {
+    return createDomain(domain, "NATIVE", "", "");
+  };
   bool createSlaveDomain(const string &ip, const DNSName &domain, const string &nameserver, const string &account);
   bool deleteDomain(const DNSName &domain);
   bool superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db);
@@ -254,11 +249,8 @@ private:
   string d_GetSuperMasterIPs;
 
   string d_InsertZoneQuery;
-  string d_InsertSlaveZoneQuery;
   string d_InsertRecordQuery;
-  string d_InsertEntQuery;
-  string d_InsertRecordOrderQuery;
-  string d_InsertEntOrderQuery;
+  string d_InsertEmptyNonTerminalOrderQuery;
   string d_UpdateMasterOfZoneQuery;
   string d_UpdateKindOfZoneQuery;
   string d_UpdateAccountOfZoneQuery;
@@ -281,9 +273,8 @@ private:
   string d_nullifyOrderNameAndUpdateAuthQuery;
   string d_nullifyOrderNameAndUpdateAuthTypeQuery;
 
-  string d_removeEmptyNonTerminalsFromZoneQuery;
-  string d_insertEmptyNonTerminalQuery;
-  string d_deleteEmptyNonTerminalQuery;
+  string d_RemoveEmptyNonTerminalsFromZoneQuery;
+  string d_DeleteEmptyNonTerminalQuery;
 
   string d_AddDomainKeyQuery;
   string d_ListDomainKeysQuery;
@@ -329,11 +320,8 @@ private:
   SSqlStatement* d_SuperMasterInfoQuery_stmt;
   SSqlStatement* d_GetSuperMasterIPs_stmt;
   SSqlStatement* d_InsertZoneQuery_stmt;
-  SSqlStatement* d_InsertSlaveZoneQuery_stmt;
   SSqlStatement* d_InsertRecordQuery_stmt;
-  SSqlStatement* d_InsertEntQuery_stmt;
-  SSqlStatement* d_InsertRecordOrderQuery_stmt;
-  SSqlStatement* d_InsertEntOrderQuery_stmt;
+  SSqlStatement* d_InsertEmptyNonTerminalOrderQuery_stmt;
   SSqlStatement* d_UpdateMasterOfZoneQuery_stmt;
   SSqlStatement* d_UpdateKindOfZoneQuery_stmt;
   SSqlStatement* d_UpdateAccountOfZoneQuery_stmt;
@@ -353,9 +341,8 @@ private:
   SSqlStatement* d_updateOrderNameAndAuthTypeQuery_stmt;
   SSqlStatement* d_nullifyOrderNameAndUpdateAuthQuery_stmt;
   SSqlStatement* d_nullifyOrderNameAndUpdateAuthTypeQuery_stmt;
-  SSqlStatement* d_removeEmptyNonTerminalsFromZoneQuery_stmt;
-  SSqlStatement* d_insertEmptyNonTerminalQuery_stmt;
-  SSqlStatement* d_deleteEmptyNonTerminalQuery_stmt;
+  SSqlStatement* d_RemoveEmptyNonTerminalsFromZoneQuery_stmt;
+  SSqlStatement* d_DeleteEmptyNonTerminalQuery_stmt;
   SSqlStatement* d_AddDomainKeyQuery_stmt;
   SSqlStatement* d_ListDomainKeysQuery_stmt;
   SSqlStatement* d_GetAllDomainMetadataQuery_stmt;

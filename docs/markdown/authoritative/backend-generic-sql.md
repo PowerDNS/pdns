@@ -180,9 +180,7 @@ These queries are used by e.g. `pdnsutil rectify-zone`. Make sure to read
 [Rules for filling out fields in database backends](dnssec.md#rules-for-filling-out-fields-in-database-backends)
 if you wish to calculate ordername and auth without using pdns-rectify.
 
-- `insert-ent-query`: Insert empty non-terminal in zone.
-- `insert-empty-non-terminal-query`: Insert empty non-terminal in zone.
-- `insert-ent-order-query`: Insert empty non-terminal in zone with the ordername set.
+- `insert-empty-non-terminal-order--query`: Insert empty non-terminal in zone.
 - `delete-empty-non-terminal-query`: Delete an empty non-terminal in a zone.
 - `remove-empty-non-terminals-from-zone-query`: remove all empty non-terminals from zone.
 
@@ -199,7 +197,7 @@ if you wish to calculate ordername and auth without using pdns-rectify.
 
 - `is-our-domain-query`: Checks if the domain (either id or name) is in the 'domains' table. This query is run before any other (possibly heavy) query.
 
-- `insert-zone-query`: Add a new NATIVE domain.
+- `insert-zone-query`: Add a new domain. This query also requires the type, masters and account fields
 - `update-kind-query`: Called to update the type of domain.
 - `delete-zone-query` Called to delete all records of a zone. Used before an incoming AXFR.
 - `delete-domain-query`: Called to delete a domain from the domains-table.
@@ -208,7 +206,6 @@ if you wish to calculate ordername and auth without using pdns-rectify.
 - `info-zone-query`: Called to retrieve (nearly) all information for a domain.
 
 - `insert-record-query`: Called during incoming AXFR.
-- `insert-record-order-query`: Add a new record for a domain, including the ordername.
 - `update-account-query`: Set the account for a domain.
 - `delete-names-query`: Called to delete all records of a certain name.
 - `delete-rrset-query`: Called to delete an RRset based on domain\_id, name and type.
@@ -237,7 +234,6 @@ Most installations will have zero need to change the following queries.
 
 ### On slaves
 - `info-all-slaves-query`: Called to retrieve all slave domains.
-- `insert-slave-query`: Called to add a domain as slave after a supermaster notification.
 - `master-zone-query`: Called to determine the master of a zone.
 - `update-lastcheck-query`: Called to update the last time a slave domain was successfully checked for freshness.
 - `update-master-query`: Called to update the master address of a domain.
