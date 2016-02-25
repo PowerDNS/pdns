@@ -139,7 +139,7 @@ Notable changes since 4.0.0-alpha1
 
 ### Bug fixes
 
-- [#3124](https://github.com/PowerDNS/pdns/pull/3124) Fix several bugs with introduced with the change to a single signing key
+- [#3124](https://github.com/PowerDNS/pdns/pull/3124) Fix several bugs with introduced with the change to a single signing key (e.g. the SEP bit is set on these single keys)
 - [#3151](https://github.com/PowerDNS/pdns/pull/3151) Catch DNSName build errors in dynhandler (Christian Hofstaedtler)
 - [#3264](https://github.com/PowerDNS/pdns/pull/3264) GeoIP backend: Use correct id numbers for domains (Aki Tuomi)
 - [#3271](https://github.com/PowerDNS/pdns/pull/3271) ZoneParser: Throw PDNSException on too many SOA data elements
