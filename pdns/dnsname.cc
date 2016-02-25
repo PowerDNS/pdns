@@ -17,18 +17,45 @@ std::ostream & operator<<(std::ostream &os, const DNSName& d)
   return os <<d.toString();
 }
 
-
 DNSName::DNSName(const char* p)
 {
   if(p[0]==0 || (p[0]=='.' && p[1]==0)) {
     d_storage.assign(1, (char)0);
   } else {
-    d_storage.reserve(strlen(p)+1);
-    auto labels = segmentDNSName(p);
-    for(const auto& e : labels)
-      appendRawLabel(e);
+    if(!strchr(p, '\\')) {
+      unsigned char lenpos=0;
+      unsigned char labellen=0;
+      unsigned int plen=strlen(p);
+      const char* const pbegin=p, *pend=p+plen;
+      d_storage.reserve(plen+1);
+      for(auto iter = pbegin; iter != pend; ) {
+        lenpos = d_storage.size();
+        if(*iter=='.')
+          throw std::runtime_error("Found . in wrong position in DNSName "+string(p));
+        d_storage.append(1, (char)0);
+        labellen=0;
+        auto begiter=iter;
+        for(; iter != pend && *iter!='.'; ++iter) {
+          labellen++;
+        }
+        d_storage.append(begiter,iter);
+        if(iter != pend)
+          ++iter;
+        if(labellen > 63)
+          throw std::range_error("label too long to append");
+
+        if(iter-pbegin > 254) // reserve two bytes, one for length and one for the root label
+          throw std::range_error("name too long to append");
+
+        d_storage[lenpos]=labellen;
+      }
+      d_storage.append(1, (char)0);
+    }
+    else
+      d_storage=segmentDNSNameRaw(p); 
   }
 }
+
 
 DNSName::DNSName(const char* pos, int len, int offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed)
 {

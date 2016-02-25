@@ -5,7 +5,11 @@
 #include <deque>
 #include <strings.h>
 #include <stdexcept>
+
+// it crashes on OSX..
+#ifndef __APPLE__
 #include <boost/container/string.hpp>
+#endif
 
 uint32_t burtleCI(const unsigned char* k, uint32_t lengh, uint32_t init);
 
@@ -38,7 +42,7 @@ class DNSName
 public:
   DNSName()  {}          //!< Constructs an *empty* DNSName, NOT the root!
   explicit DNSName(const char* p);      //!< Constructs from a human formatted, escaped presentation
-  explicit DNSName(const std::string& str) : DNSName(str.c_str()) {}   //!< Constructs from a human formatted, escaped presentation
+  explicit DNSName(const std::string& str) : DNSName(str.c_str()) {}; //!< Constructs from a human formatted, escaped presentation
   DNSName(const char* p, int len, int offset, bool uncompress, uint16_t* qtype=0, uint16_t* qclass=0, unsigned int* consumed=0); //!< Construct from a DNS Packet, taking the first question if offset=12
   
   bool isPartOf(const DNSName& rhs) const;   //!< Are we part of the rhs name?
@@ -95,10 +99,14 @@ public:
 
   inline bool canonCompare(const DNSName& rhs) const;
   bool slowCanonCompare(const DNSName& rhs) const;  
-private:
-  typedef boost::container::string string_t;
-  // typedef std::string string_t;
 
+#ifdef __APPLE__
+  typedef std::string string_t;
+#else
+  typedef boost::container::string string_t;
+#endif
+
+private:
   string_t d_storage;
 
   void packetParser(const char* p, int len, int offset, bool uncompress, uint16_t* qtype=0, uint16_t* qclass=0, unsigned int* consumed=0, int depth=0);
@@ -256,3 +264,5 @@ namespace std {
         size_t operator () (const DNSName& dn) const { return dn.hash(0); }
     };
 }
+
+DNSName::string_t segmentDNSNameRaw(const char* input); // from ragel
