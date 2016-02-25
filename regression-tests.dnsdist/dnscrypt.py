@@ -1,13 +1,13 @@
 #!/usr/bin/env python2
-import dns
-import dns.message
 import socket
 import struct
 import time
+import dns
+import dns.message
 import libnacl
 import libnacl.utils
 
-class DNSCryptResolverCertificate:
+class DNSCryptResolverCertificate(object):
     DNSCRYPT_CERT_MAGIC = '\x44\x4e\x53\x43'
     DNSCRYPT_ES_VERSION = '\x00\x01'
     DNSCRYPT_PROTOCOL_MIN_VERSION = '\x00\x00'
@@ -44,7 +44,7 @@ class DNSCryptResolverCertificate:
         validUntil = struct.unpack_from("!I", orig[48:52])[0]
         return DNSCryptResolverCertificate(serial, validFrom, validUntil, resolverPK, clientMagic)
 
-class DNSCryptClient:
+class DNSCryptClient(object):
     DNSCRYPT_NONCE_SIZE = 24
     DNSCRYPT_MAC_SIZE = 16
     DNSCRYPT_PADDED_BLOCK_SIZE = 64

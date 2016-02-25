@@ -112,11 +112,33 @@ class DNSDistTest(unittest.TestCase):
                 cls._dnsdist.wait()
 
     @classmethod
-    def ResponderIncrementCounter(cls):
+    def _ResponderIncrementCounter(cls):
         if threading.currentThread().name in cls._responsesCounter:
             cls._responsesCounter[threading.currentThread().name] += 1
         else:
             cls._responsesCounter[threading.currentThread().name] = 1
+
+    @classmethod
+    def _getResponse(cls, request):
+        response = None
+        if len(request.question) != 1:
+            print("Skipping query with question count %d" % (len(request.question)))
+            return None
+        healthcheck = not str(request.question[0].name).endswith('tests.powerdns.com.')
+        if not healthcheck:
+            cls._ResponderIncrementCounter()
+            if not cls._toResponderQueue.empty():
+                response = cls._toResponderQueue.get(True, cls._queueTimeout)
+                if response:
+                    response = copy.copy(response)
+                    response.id = request.id
+                    cls._fromResponderQueue.put(request, True, cls._queueTimeout)
+
+        if not response:
+            # unexpected query, or health check
+            response = dns.message.make_response(request)
+
+        return response
 
     @classmethod
     def UDPResponder(cls, port):
@@ -126,38 +148,9 @@ class DNSDistTest(unittest.TestCase):
         while True:
             data, addr = sock.recvfrom(4096)
             request = dns.message.from_wire(data)
-            answered = False
-            if len(request.question) != 1:
-                print("Skipping query with question count %d" % (len(request.question)))
+            response = cls._getResponse(request)
+            if not response:
                 continue
-            if str(request.question[0].name).endswith('tests.powerdns.com.') and not cls._toResponderQueue.empty():
-                response = cls._toResponderQueue.get(True, cls._queueTimeout)
-                if response:
-                    response = copy.copy(response)
-                    response.id = request.id
-                    cls._fromResponderQueue.put(request, True, cls._queueTimeout)
-                    cls.ResponderIncrementCounter()
-                    answered = True
-
-            if not answered:
-                # unexpected query, or health check
-                response = dns.message.make_response(request)
-                rrset = None
-                if request.question[0].rdclass == dns.rdataclass.IN:
-                    if request.question[0].rdtype == dns.rdatatype.A:
-                        rrset = dns.rrset.from_text(request.question[0].name,
-                                                    3600,
-                                                    request.question[0].rdclass,
-                                                    request.question[0].rdtype,
-                                                    '127.0.0.1')
-                    elif request.question[0].rdtype == dns.rdatatype.AAAA:
-                        rrset = dns.rrset.from_text(request.question[0].name,
-                                                    3600,
-                                                    request.question[0].rdclass,
-                                                    request.question[0].rdtype,
-                                                    '::1')
-                if rrset:
-                    response.answer.append(rrset)
 
             sock.settimeout(2.0)
             sock.sendto(response.to_wire(), addr)
@@ -176,44 +169,15 @@ class DNSDistTest(unittest.TestCase):
 
         sock.listen(100)
         while True:
-            answered = False
             (conn, _) = sock.accept()
             conn.settimeout(2.0)
             data = conn.recv(2)
             (datalen,) = struct.unpack("!H", data)
             data = conn.recv(datalen)
             request = dns.message.from_wire(data)
-            if len(request.question) != 1:
-                print("Skipping query with question count %d" % (len(request.question)))
+            response = cls._getResponse(request)
+            if not response:
                 continue
-            if str(request.question[0].name).endswith('tests.powerdns.com.') and not cls._toResponderQueue.empty():
-                response = cls._toResponderQueue.get(True, cls._queueTimeout)
-                if response:
-                    response = copy.copy(response)
-                    response.id = request.id
-                    cls._fromResponderQueue.put(request, True, cls._queueTimeout)
-                    cls.ResponderIncrementCounter()
-                    answered = True
-
-            if not answered:
-                # unexpected query, or health check
-                response = dns.message.make_response(request)
-                rrset = None
-                if request.question[0].rdclass == dns.rdataclass.IN:
-                    if request.question[0].rdtype == dns.rdatatype.A:
-                        rrset = dns.rrset.from_text(request.question[0].name,
-                                                    3600,
-                                                    request.question[0].rdclass,
-                                                    request.question[0].rdtype,
-                                                    '127.0.0.1')
-                    elif request.question[0].rdtype == dns.rdatatype.AAAA:
-                        rrset = dns.rrset.from_text(request.question[0].name,
-                                                    3600,
-                                                    request.question[0].rdclass,
-                                                    request.question[0].rdtype,
-                                                    '::1')
-                if rrset:
-                    response.answer.append(rrset)
 
             wire = response.to_wire()
             conn.send(struct.pack("!H", len(wire)))
@@ -294,4 +258,4 @@ class DNSDistTest(unittest.TestCase):
             self._toResponderQueue.get(False)
 
         while not self._fromResponderQueue.empty():
-            self._toResponderQueue.get(False)
+            self._fromResponderQueue.get(False)

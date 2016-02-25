@@ -6,11 +6,12 @@ from dnsdisttests import DNSDistTest
 class TestCaching(DNSDistTest):
 
     _config_template = """
-    pc = newPacketCache(5, 86400, 1)
+    pc = newPacketCache(100, 86400, 1)
     getPool(""):setCache(pc)
     addAction(makeRule("nocache.cache.tests.powerdns.com."), SkipCacheAction())
     newServer{address="127.0.0.1:%s"}
     """
+
     def testCached(self):
         """
         Cache: Served from cache
@@ -364,5 +365,76 @@ class TestCachingWithExistingEDNS(DNSDistTest):
         total = 0
         for key in TestCachingWithExistingEDNS._responsesCounter:
             total += TestCachingWithExistingEDNS._responsesCounter[key]
+
+        self.assertEquals(total, misses)
+
+class TestCachingCacheFull(DNSDistTest):
+
+    _config_template = """
+    pc = newPacketCache(1, 86400, 1)
+    getPool(""):setCache(pc)
+    newServer{address="127.0.0.1:%s"}
+    """
+    def testCacheFull(self):
+        """
+        Cache: No new entries are cached when the cache is full
+
+        """
+        misses = 0
+        name = 'cachenotfullyet.cache.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        # Miss
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+        misses += 1
+
+        # next queries should hit the cache
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, response)
+
+        # ok, now the cache is full, send another query
+        name = 'cachefull.cache.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'AAAA', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '::1')
+        response.answer.append(rrset)
+
+        # Miss
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+        misses += 1
+
+        # next queries should NOT hit the cache
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+        misses += 1
+
+        total = 0
+        for key in TestCachingCacheFull._responsesCounter:
+            total += TestCachingCacheFull._responsesCounter[key]
 
         self.assertEquals(total, misses)
