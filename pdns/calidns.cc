@@ -151,6 +151,8 @@ try
     boost::trim(line);
     auto p = splitField(line, ' ');
     DNSPacketWriter pw(packet, DNSName(p.first), DNSRecordContent::TypeToNumber(p.second));
+    pw.getHeader()->rd=1;
+    pw.getHeader()->id=random();
     packets.push_back(packet);
   }
   cout<<"Generated "<<packets.size()<<" queries"<<endl;
