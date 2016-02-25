@@ -13,15 +13,6 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
 
     _config_template = """
     truncateTC(true)
-    block=newDNSName("powerdns.org.")
-    function blockFilter(dq)
-        if(dq.qname:isPartOf(block))
-        then
-            print("Blocking *.powerdns.org")
-            return true
-        end
-        return false
-    end
     newServer{address="127.0.0.1:%s", useClientSubnet=true}
     """
 
@@ -142,15 +133,6 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
 
     _config_template = """
     truncateTC(true)
-    block=newDNSName("powerdns.org.")
-    function blockFilter(dq)
-        if(dq.qname:isPartOf(block))
-        then
-            print("Blocking *.powerdns.org")
-            return true
-        end
-        return false
-    end
     setECSOverride(true)
     setECSSourcePrefixV4(24)
     setECSSourcePrefixV6(56)

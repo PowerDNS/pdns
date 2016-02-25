@@ -241,14 +241,14 @@ class TestSpoofingSpoof(DNSDistTest):
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
-        
+
         rrset = dns.rrset.from_text(name,
                                     60,
                                     dns.rdataclass.IN,
                                     dns.rdatatype.A,
                                     '192.0.2.2', '192.0.2.1')
         expectedResponse.answer.append(rrset)
-        
+
         rrset = dns.rrset.from_text(name,
                                     60,
                                     dns.rdataclass.IN,
