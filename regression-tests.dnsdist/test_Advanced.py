@@ -758,3 +758,45 @@ class TestAdvancedQClass(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(response, receivedResponse)
+
+class TestAdvancedNonTerminalRule(DNSDistTest):
+
+    _config_template = """
+    newServer{address="127.0.0.1:%s", pool="real"}
+    addAction(AllRule(), DisableValidationAction())
+    addAction(AllRule(), PoolAction("real"))
+    addAction(AllRule(), DropAction())
+    """
+    def testAdvancedNonTerminalRules(self):
+        """
+        Advanced: Non terminal rules
+
+        We check that DisableValidationAction() is applied
+        but does not stop the processing, then that
+        PoolAction() is applied _and_ stop the processing.
+        """
+        name = 'nonterminal.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        expectedQuery = dns.message.make_query(name, 'A', 'IN')
+        expectedQuery.flags |= dns.flags.CD
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.2.0.1')
+        response.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = expectedQuery.id
+        self.assertEquals(expectedQuery, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = expectedQuery.id
+        self.assertEquals(expectedQuery, receivedQuery)
+        self.assertEquals(response, receivedResponse)
