@@ -805,10 +805,12 @@ try
 
       DownstreamState* ss = nullptr;
       std::shared_ptr<ServerPool> serverPool = getPool(*localPools, poolname);
+      std::shared_ptr<DNSDistPacketCache> packetCache = nullptr;
       auto policy=localPolicy->policy;
       {
 	std::lock_guard<std::mutex> lock(g_luamutex);
 	ss = policy(serverPool->servers, &dq).get();
+	packetCache = serverPool->packetCache;
       }
 
       if(!ss) {
@@ -822,10 +824,10 @@ try
       }
 
       uint32_t cacheKey = 0;
-      if (serverPool->packetCache && !dq.skipCache) {
+      if (packetCache && !dq.skipCache) {
         char cachedResponse[4096];
         uint16_t cachedResponseSize = sizeof cachedResponse;
-        if (serverPool->packetCache->get((unsigned char*) query, dq.len, *dq.qname, dq.qtype, dq.qclass, consumed, dh->id, cachedResponse, &cachedResponseSize, false, &cacheKey)) {
+        if (packetCache->get((unsigned char*) query, dq.len, *dq.qname, dq.qtype, dq.qclass, consumed, dh->id, cachedResponse, &cachedResponseSize, false, &cacheKey)) {
           ComboAddress dest;
           if(HarvestDestinationAddress(&msgh, &dest))
             sendfromto(cs->udpFD, cachedResponse, cachedResponseSize, 0, dest, remote);
@@ -863,7 +865,7 @@ try
       ids->ednsAdded = false;
       ids->cacheKey = cacheKey;
       ids->skipCache = dq.skipCache;
-      ids->packetCache = serverPool->packetCache;
+      ids->packetCache = packetCache;
       ids->ednsAdded = ednsAdded;
 #ifdef HAVE_DNSCRYPT
       ids->dnsCryptQuery = dnsCryptQuery;
@@ -1017,9 +1019,14 @@ void* maintThread()
     counter++;
     if (counter >= g_cacheCleaningDelay) {
       const auto localPools = g_pools.getCopy();
+      std::shared_ptr<DNSDistPacketCache> packetCache = nullptr;
       for (const auto& entry : localPools) {
-        if (entry.second->packetCache) {
-          entry.second->packetCache->purge();
+        {
+          std::lock_guard<std::mutex> lock(g_luamutex);
+          packetCache = entry.second->packetCache;
+        }
+        if (packetCache) {
+          packetCache->purge();
         }
       }
       counter = 0;
