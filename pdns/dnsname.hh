@@ -6,8 +6,10 @@
 #include <strings.h>
 #include <stdexcept>
 
+#include <boost/version.hpp>
+
 // it crashes on OSX..
-#ifndef __APPLE__
+#if BOOST_VERSION >= 104800 && ! defined( __APPLE__ )
 #include <boost/container/string.hpp>
 #endif
 
@@ -100,10 +102,10 @@ public:
   inline bool canonCompare(const DNSName& rhs) const;
   bool slowCanonCompare(const DNSName& rhs) const;  
 
-#ifdef __APPLE__
-  typedef std::string string_t;
-#else
+#if BOOST_VERSION >= 104800 && ! defined( __APPLE__ )
   typedef boost::container::string string_t;
+#else
+  typedef std::string string_t;
 #endif
 
 private:
