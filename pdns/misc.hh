@@ -244,6 +244,13 @@ inline char dns_tolower(char c)
   return c;
 }
 
+inline char dns_toupper(char c)
+{
+  if(c>='a' && c<='z')
+    c+='A'-'a';
+  return c;
+}
+
 inline const string toLower(const string &upper)
 {
   string reply(upper);
@@ -281,7 +288,7 @@ inline string toUpper( const string& s )
 {
         string r(s);
         for( unsigned int i = 0; i < s.length(); i++ ) {
-        	r[i] = toupper( r[i] );
+          r[i] = dns_toupper(r[i]);
         }
         return r;
 }
