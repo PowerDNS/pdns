@@ -1012,10 +1012,12 @@ void* maintThread()
   for(;;) {
     sleep(interval);
 
-    std::lock_guard<std::mutex> lock(g_luamutex);
-    auto f =g_lua.readVariable<boost::optional<std::function<void()> > >("maintenance");
-    if(f)
-      (*f)();
+    {
+      std::lock_guard<std::mutex> lock(g_luamutex);
+      auto f =g_lua.readVariable<boost::optional<std::function<void()> > >("maintenance");
+      if(f)
+        (*f)();
+    }
 
     counter++;
     if (counter >= g_cacheCleaningDelay) {
