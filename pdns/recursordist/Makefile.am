@@ -77,6 +77,7 @@ pdns_recursor_SOURCES = \
 	iputils.hh iputils.cc \
 	ixfr.cc ixfr.hh \
 	json.cc json.hh \
+	lazy_allocator.hh \
 	lock.hh \
 	logger.hh logger.cc \
 	lua-recursor4.cc lua-recursor4.hh \
@@ -84,6 +85,7 @@ pdns_recursor_SOURCES = \
 	misc.hh misc.cc \
 	mplexer.hh \
 	mtasker.hh \
+	mtasker_context.hh mtasker_fcontext.cc \
 	namespaces.hh \
 	nsecrecords.cc \
 	opensslsigners.cc opensslsigners.hh \
@@ -125,7 +127,8 @@ pdns_recursor_SOURCES = \
 pdns_recursor_LDADD = \
 	$(YAHTTP_LIBS) \
 	$(JSON11_LIBS) \
-	$(OPENSSL_LIBS)
+	$(OPENSSL_LIBS) \
+	$(BOOST_CONTEXT_LIBS)
 
 pdns_recursor_LDFLAGS = $(AM_LDFLAGS) \
 	$(OPENSSL_LDFLAGS)
