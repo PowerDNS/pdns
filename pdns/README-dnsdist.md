@@ -10,7 +10,7 @@ interface.
 
 Compiling
 ---------
-`dnsdist` depends on boost, Lua or luajit and a pretty recent C++
+`dnsdist` depends on boost, Lua or LuaJIT and a pretty recent C++
 compiler (g++ 4.8 or higher, clang 3.5 or higher). It can optionally use libsodium
 for encrypted communications with its client.
 
@@ -351,6 +351,7 @@ A DNS rule can be:
  * a TCPRule
 
 Some specific actions do not stop the processing when they match, contrary to all other actions:
+
  * Delay
  * Disable Validation
  * Log
@@ -447,6 +448,7 @@ end
 ```
 
 Valid return values for `LuaAction` functions are:
+
  * DNSAction.Allow: let the query pass, skipping other rules
  * DNSAction.Delay: delay the response for the specified milliseconds (UDP-only), continue to the next rule
  * DNSAction.Drop: drop the query
@@ -704,7 +706,6 @@ fe80::/10
 
 Caching
 -------
-
 `dnsdist` implements a simple but effective packet cache, not enabled by default.
 It is enabled per-pool, but the same cache can be shared between several pools.
 The first step is to define a cache, then to assign that cache to the chosen pool,
@@ -719,6 +720,86 @@ The first parameter is the maximum number of entries stored in the cache, the
 second one, optional, is the maximum lifetime of an entry in the cache, in seconds,
 and the last one, optional too, is the minimum TTL an entry should have to be considered
 for insertion in the cache.
+
+
+Performance tuning
+------------------
+First, a few words about `dnsdist` architecture:
+
+ * Each local bind has its own thread listening for incoming UDP queries
+ * and its own thread listening for incoming TCP connections,
+ dispatching them right away to a pool of threads
+ * Each backend has its own thread listening for UDP responses
+ * A maintenance thread calls the `maintenance()` Lua function every second
+ if any, and is responsible for cleaning the cache
+ * A health check thread checks the backends availability
+ * A control thread handles console connections
+ * A carbon thread exports statistics to a carbon server if needed
+ * One or more webserver threads handle queries to the internal webserver
+
+The maximum number of threads in the TCP pool is controlled by the
+`setMaxTCPClientThreads()` directive, and defaults to 10. This number can be
+increased to handle a large number of simultaneous TCP connections.
+
+When dispatching UDP queries to backend servers, `dnsdist` keeps track of at
+most `n` outstanding queries for each backend. This number `n` can be tuned by
+the `setMaxUDPOutstanding()` directive, defaulting to 10240, with a maximum
+value of 65535. Large installations are advised to increase the default value
+at the cost of a slightly increased memory usage.
+
+Most of the query processing is done in C++ for maximum performance,
+but some operations are executed in Lua for maximum flexibility:
+
+ * the `blockfilter()` function
+ * rules added by `addLuaAction()`
+ * server selection policies defined via `setServerPolicyLua()` or `newServerPolicy()`
+
+While Lua is fast, its use should be restricted to the strict necessary in order
+to achieve maximum performance, it might be worth considering using LuaJIT instead
+of Lua. When Lua inspection is needed, the best course of action is to restrict
+the queries sent to Lua inspection by using `addLuaAction()` instead of inspecting
+all queries in the `blockfilter()` function.
+
+`dnsdist` design choices mean that the processing of UDP queries is done by only
+one thread per local bind. This is great to keep lock contention to a low level,
+but might not be optimal for setups using a lot of processing power, caused for
+example by a large number of complicated rules. To be able to use more CPU cores
+for UDP queries processing, it is possible to use the `reuseport` parameter of
+the `addLocal()` and `setLocal()` directives to be able to add several identical
+local binds to `dnsdist`:
+
+```
+addLocal("192.0.2.1:53", true, true)
+addLocal("192.0.2.1:53", true, true)
+addLocal("192.0.2.1:53", true, true)
+addLocal("192.0.2.1:53", true, true)
+```
+
+`dnsdist` will then add four identical local binds as if they were different IPs
+or ports, start four threads to handle incoming queries and let the kernel load
+balance those randomly to the threads, thus using four CPU cores for rules
+processing. Note that this require SO_REUSEPORT support in the underlying
+operating system (added for example in Linux 3.9).
+Please also be aware that doing so will increase lock contention and might not
+therefore scale linearly. This is especially true for Lua-intensive setups,
+because Lua processing in `dnsdist` is serialized by an unique lock for all
+threads.
+
+Another possibility is to use the reuseport option to run several `dnsdist`
+processes in parallel on the same host, thus avoiding the lock contention issue
+at the cost of having to deal with the fact that the different processes will
+not share informations, like statistics or DDoS offenders.
+
+The UDP threads handling the responses from the backends do not use a lot of CPU,
+but if needed it is also possible to add the same backend several times to the
+`dnsdist` configuration to distribute the load over several responder threads.
+
+```
+newServer({address="192.0.2.127:53", name="Backend1"})
+newServer({address="192.0.2.127:53", name="Backend2"})
+newServer({address="192.0.2.127:53", name="Backend3"})
+newServer({address="192.0.2.127:53", name="Backend4"})
+```
 
 
 Carbon/Graphite/Metronome
@@ -805,8 +886,8 @@ Here are all functions:
     * `setACL({netmask, netmask})`: replace the ACL set with these netmasks. Use `setACL({})` to reset the list, meaning no one can use us
     * `showACL()`: show our ACL set
  * Network related:
-    * `addLocal(netmask, [false])`: add to addresses we listen on. Second optional parameter sets TCP/IP or not.
-    * `setLocal(netmask, [false])`: reset list of addresses we listen on to this address. Second optional parameter sets TCP/IP or not.
+    * `addLocal(netmask, [false], [false])`: add to addresses we listen on. Second optional parameter sets TCP/IP or not. Third optional parameter sets SO_REUSEPORT when available.
+    * `setLocal(netmask, [false], [false])`: reset list of addresses we listen on to this address. Second optional parameter sets TCP/IP or not. Third optional parameter sets SO_REUSEPORT when available.
  * Blocking related:
     * `addDomainBlock(domain)`: block queries within this domain
  * Carbon/Graphite/Metronome statistics related:
@@ -1005,10 +1086,10 @@ instantiate a server with additional parameters
     * `setTCPRecvTimeout(n)`: set the read timeout on TCP connections from the client, in seconds
     * `setTCPSendTimeout(n)`: set the write timeout on TCP connections from the client, in seconds
     * `setMaxTCPClientThreads(n)`: set the maximum of TCP client threads, handling TCP connections
-    * `setMaxUDPOutstanding(n)`: set the maximum number of outstanding UDP queries to a given backend server. This can only be set at configuration time
+    * `setMaxUDPOutstanding(n)`: set the maximum number of outstanding UDP queries to a given backend server. This can only be set at configuration time and defaults to 10240
     * `setCacheCleaningDelay(n)`: set the interval in seconds between two runs of the cache cleaning algorithm, removing expired entries
  * DNSCrypt related:
-    * `addDNSCryptBind("127.0.0.1:8443", "provider name", "/path/to/resolver.cert", "/path/to/resolver.key"):` listen to incoming DNSCrypt queries on 127.0.0.1 port 8443, with a provider name of "provider name", using a resolver certificate and associated key stored respectively in the `resolver.cert` and `resolver.key` files
+    * `addDNSCryptBind("127.0.0.1:8443", "provider name", "/path/to/resolver.cert", "/path/to/resolver.key", [false]):` listen to incoming DNSCrypt queries on 127.0.0.1 port 8443, with a provider name of "provider name", using a resolver certificate and associated key stored respectively in the `resolver.cert` and `resolver.key` files. The last optional parameter sets SO_REUSEPORT when available
     * `generateDNSCryptProviderKeys("/path/to/providerPublic.key", "/path/to/providerPrivate.key"):` generate a new provider keypair
     * `generateDNSCryptCertificate("/path/to/providerPrivate.key", "/path/to/resolver.cert", "/path/to/resolver.key", serial, validFrom, validUntil):` generate a new resolver private key and related certificate, valid from the `validFrom` timestamp until the `validUntil` one, signed with the provider private key
     * `printDNSCryptProviderFingerprint("/path/to/providerPublic.key")`: display the fingerprint of the provided resolver public key

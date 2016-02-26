@@ -59,15 +59,15 @@ using std::thread;
 bool g_verbose;
 
 struct DNSDistStats g_stats;
-uint16_t g_maxOutstanding;
+uint16_t g_maxOutstanding{10240};
 bool g_console;
 bool g_verboseHealthChecks{false};
 
 GlobalStateHolder<NetmaskGroup> g_ACL;
 string g_outputBuffer;
-vector<std::pair<ComboAddress, bool>> g_locals;
+vector<std::tuple<ComboAddress, bool, bool>> g_locals;
 #ifdef HAVE_DNSCRYPT
-std::vector<std::pair<ComboAddress,DnsCryptContext>> g_dnsCryptLocals;
+std::vector<std::tuple<ComboAddress,DnsCryptContext,bool>> g_dnsCryptLocals;
 #endif
 vector<ClientState *> g_frontends;
 GlobalStateHolder<pools_t> g_pools;
@@ -1311,8 +1311,6 @@ try
     g_cmdLine.remotes.push_back(*p);
   }
 
-  g_maxOutstanding = 1024;
-
   ServerPolicy leastOutstandingPol{"leastOutstanding", leastOutstanding};
 
   g_policy.setState(leastOutstandingPol);
@@ -1341,11 +1339,11 @@ try
   if(g_cmdLine.locals.size()) {
     g_locals.clear();
     for(auto loc : g_cmdLine.locals)
-      g_locals.push_back({ComboAddress(loc, 53), true});
+      g_locals.push_back(std::make_tuple(ComboAddress(loc, 53), true, false));
   }
   
   if(g_locals.empty())
-    g_locals.push_back({ComboAddress("127.0.0.1", 53), true});
+    g_locals.push_back(std::make_tuple(ComboAddress("127.0.0.1", 53), true, false));
   
 
   g_configurationDone = true;
@@ -1353,25 +1351,30 @@ try
   vector<ClientState*> toLaunch;
   for(const auto& local : g_locals) {
     ClientState* cs = new ClientState;
-    cs->local= local.first;
+    cs->local= std::get<0>(local);
     cs->udpFD = SSocket(cs->local.sin4.sin_family, SOCK_DGRAM, 0);
     if(cs->local.sin4.sin_family == AF_INET6) {
       SSetsockopt(cs->udpFD, IPPROTO_IPV6, IPV6_V6ONLY, 1);
     }
     //if(g_vm.count("bind-non-local"))
-    bindAny(local.first.sin4.sin_family, cs->udpFD);
+    bindAny(cs->local.sin4.sin_family, cs->udpFD);
 
     //    if (!setSocketTimestamps(cs->udpFD))
     //      L<<Logger::Warning<<"Unable to enable timestamp reporting for socket"<<endl;
 
 
-    if(IsAnyAddress(local.first)) {
+    if(IsAnyAddress(cs->local)) {
       int one=1;
       setsockopt(cs->udpFD, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));     // linux supports this, so why not - might fail on other systems
 #ifdef IPV6_RECVPKTINFO
       setsockopt(cs->udpFD, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one));
 #endif
     }
+#ifdef SO_REUSEPORT
+    if (std::get<2>(local)) {
+      SSetsockopt(cs->udpFD, SOL_SOCKET, SO_REUSEPORT, 1);
+    }
+#endif
 
     SBind(cs->udpFD, cs->local);
     toLaunch.push_back(cs);
@@ -1379,12 +1382,12 @@ try
   }
 
   for(const auto& local : g_locals) {
-    if(!local.second) { // no TCP/IP
-      warnlog("Not providing TCP/IP service on local address '%s'", local.first.toStringWithPort());
+    if(!std::get<1>(local)) { // no TCP/IP
+      warnlog("Not providing TCP/IP service on local address '%s'", std::get<0>(local).toStringWithPort());
       continue;
     }
     ClientState* cs = new ClientState;
-    cs->local= local.first;
+    cs->local= std::get<0>(local);
 
     cs->tcpFD = SSocket(cs->local.sin4.sin_family, SOCK_STREAM, 0);
 
@@ -1395,6 +1398,11 @@ try
     if(cs->local.sin4.sin_family == AF_INET6) {
       SSetsockopt(cs->tcpFD, IPPROTO_IPV6, IPV6_V6ONLY, 1);
     }
+#ifdef SO_REUSEPORT
+    if (std::get<2>(local)) {
+      SSetsockopt(cs->tcpFD, SOL_SOCKET, SO_REUSEPORT, 1);
+    }
+#endif
     //    if(g_vm.count("bind-non-local"))
       bindAny(cs->local.sin4.sin_family, cs->tcpFD);
     SBind(cs->tcpFD, cs->local);
@@ -1408,8 +1416,8 @@ try
 #ifdef HAVE_DNSCRYPT
   for(auto& dcLocal : g_dnsCryptLocals) {
     ClientState* cs = new ClientState;
-    cs->local = dcLocal.first;
-    cs->dnscryptCtx = &dcLocal.second;
+    cs->local = std::get<0>(dcLocal);
+    cs->dnscryptCtx = &(std::get<1>(dcLocal));
     cs->udpFD = SSocket(cs->local.sin4.sin_family, SOCK_DGRAM, 0);
     if(cs->local.sin4.sin_family == AF_INET6) {
       SSetsockopt(cs->udpFD, IPPROTO_IPV6, IPV6_V6ONLY, 1);
@@ -1427,12 +1435,17 @@ try
     g_frontends.push_back(cs);
 
     cs = new ClientState;
-    cs->local = dcLocal.first;
-    cs->dnscryptCtx = &dcLocal.second;
+    cs->local = std::get<0>(dcLocal);
+    cs->dnscryptCtx = &(std::get<1>(dcLocal));
     cs->tcpFD = SSocket(cs->local.sin4.sin_family, SOCK_STREAM, 0);
     SSetsockopt(cs->tcpFD, SOL_SOCKET, SO_REUSEADDR, 1);
 #ifdef TCP_DEFER_ACCEPT
     SSetsockopt(cs->tcpFD, SOL_TCP,TCP_DEFER_ACCEPT, 1);
+#endif
+#ifdef SO_REUSEPORT
+    if (std::get<2>(dcLocal)) {
+      SSetsockopt(cs->tcpFD, SOL_SOCKET, SO_REUSEPORT, 1);
+    }
 #endif
     if(cs->local.sin4.sin_family == AF_INET6) {
       SSetsockopt(cs->tcpFD, IPPROTO_IPV6, IPV6_V6ONLY, 1);

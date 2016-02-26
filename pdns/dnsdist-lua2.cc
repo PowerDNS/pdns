@@ -356,7 +356,7 @@ void moreLua(bool client)
       }
     });
 
-  g_lua.writeFunction("addDNSCryptBind", [](const std::string& addr, const std::string& providerName, const std::string& certFile, const std::string keyFile) {
+  g_lua.writeFunction("addDNSCryptBind", [](const std::string& addr, const std::string& providerName, const std::string& certFile, const std::string keyFile, boost::optional<bool> reusePort) {
       if (g_configurationDone) {
         g_outputBuffer="addDNSCryptBind cannot be used at runtime!\n";
         return;
@@ -364,7 +364,7 @@ void moreLua(bool client)
 #ifdef HAVE_DNSCRYPT
       try {
         DnsCryptContext ctx(providerName, certFile, keyFile);
-        g_dnsCryptLocals.push_back({ComboAddress(addr, 443), ctx});
+        g_dnsCryptLocals.push_back(std::make_tuple(ComboAddress(addr, 443), ctx, reusePort ? *reusePort : false));
       }
       catch(std::exception& e) {
         errlog(e.what());
@@ -384,12 +384,12 @@ void moreLua(bool client)
       size_t idx = 0;
 
       for (const auto& local : g_dnsCryptLocals) {
-        const DnsCryptContext& ctx = local.second;
+        const DnsCryptContext& ctx = std::get<1>(local);
         bool const hasOldCert = ctx.hadOldCertificate();
         const DnsCryptCert& cert = ctx.getCurrentCertificate();
         const DnsCryptCert& oldCert = ctx.getOldCertificate();
 
-        ret<< (fmt % idx % local.first.toStringWithPort() % ctx.getProviderName() % cert.signedData.serial % DnsCryptContext::certificateDateToStr(cert.signedData.tsEnd) % (hasOldCert ? oldCert.signedData.serial : 0) % (hasOldCert ? DnsCryptContext::certificateDateToStr(oldCert.signedData.tsEnd) : "-")) << endl;
+        ret<< (fmt % idx % std::get<0>(local).toStringWithPort() % ctx.getProviderName() % cert.signedData.serial % DnsCryptContext::certificateDateToStr(cert.signedData.tsEnd) % (hasOldCert ? oldCert.signedData.serial : 0) % (hasOldCert ? DnsCryptContext::certificateDateToStr(oldCert.signedData.tsEnd) : "-")) << endl;
         idx++;
       }
 

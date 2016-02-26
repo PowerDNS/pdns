@@ -206,7 +206,7 @@ static void connectionThread(int sock, ComboAddress remote, string password)
       string localaddresses;
       for(const auto& loc : g_locals) {
         if(!localaddresses.empty()) localaddresses += ", ";
-        localaddresses += loc.first.toStringWithPort();
+        localaddresses += std::get<0>(loc).toStringWithPort();
       }
  
       Json my_json = Json::object {
