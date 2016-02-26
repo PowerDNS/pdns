@@ -394,12 +394,14 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
                         }
                         else {
                           int idx = boost::get<int>(var);
-                          server = states[idx];
+                          server = states.at(idx);
                         }
                         auto localPools = g_pools.getCopy();
                         for (const string& poolName : server->pools) {
                           removeServerFromPool(localPools, poolName, server);
                         }
+                        /* the server might also be in the default pool */
+                        removeServerFromPool(localPools, "", server);
                         g_pools.setState(localPools);
                         states.erase(remove(states.begin(), states.end(), server), states.end());
                         g_dstates.setState(states);
