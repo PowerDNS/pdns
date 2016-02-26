@@ -59,7 +59,7 @@ using std::thread;
 bool g_verbose;
 
 struct DNSDistStats g_stats;
-uint16_t g_maxOutstanding;
+uint16_t g_maxOutstanding{10240};
 bool g_console;
 bool g_verboseHealthChecks{false};
 
@@ -1308,8 +1308,6 @@ try
   for(auto p = argv; *p; ++p) {
     g_cmdLine.remotes.push_back(*p);
   }
-
-  g_maxOutstanding = 1024;
 
   ServerPolicy leastOutstandingPol{"leastOutstanding", leastOutstanding};
 
