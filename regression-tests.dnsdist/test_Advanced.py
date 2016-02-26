@@ -759,6 +759,7 @@ class TestAdvancedQClass(DNSDistTest):
         self.assertEquals(query, receivedQuery)
         self.assertEquals(response, receivedResponse)
 
+
 class TestAdvancedNonTerminalRule(DNSDistTest):
 
     _config_template = """
@@ -784,7 +785,7 @@ class TestAdvancedNonTerminalRule(DNSDistTest):
                                     3600,
                                     dns.rdataclass.IN,
                                     dns.rdatatype.A,
-                                    '192.2.0.1')
+                                    '192.0.2.1')
         response.answer.append(rrset)
 
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
@@ -799,4 +800,38 @@ class TestAdvancedNonTerminalRule(DNSDistTest):
         self.assertTrue(receivedResponse)
         receivedQuery.id = expectedQuery.id
         self.assertEquals(expectedQuery, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+
+class TestAdvancedStringOnlyServer(DNSDistTest):
+
+    _config_template = """
+    newServer("127.0.0.1:%s")
+    """
+
+    def testAdvancedStringOnlyServer(self):
+        """
+        Advanced: "string-only" server is placed in the default pool
+        """
+        name = 'string-only-server.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+        response.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
         self.assertEquals(response, receivedResponse)

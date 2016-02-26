@@ -170,6 +170,10 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
 			    });
 
+			  auto localPools = g_pools.getCopy();
+			  addServerToPool(localPools, "", ret);
+			  g_pools.setState(localPools);
+
 			  if(g_launchWork) {
 			    g_launchWork->push_back([ret]() {
 				ret->tid = move(thread(responderThread, ret));
@@ -911,9 +915,12 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.registerFunction("setDown", &DownstreamState::setDown);
   g_lua.registerFunction("setUp", &DownstreamState::setUp);
   g_lua.registerFunction("setAuto", &DownstreamState::setAuto);
+  g_lua.registerFunction("getName", &DownstreamState::getName);
+  g_lua.registerFunction("getNameWithAddr", &DownstreamState::getNameWithAddr);
   g_lua.registerMember("upStatus", &DownstreamState::upStatus);
   g_lua.registerMember("weight", &DownstreamState::weight);
   g_lua.registerMember("order", &DownstreamState::order);
+  g_lua.registerMember("name", &DownstreamState::name);
   
   g_lua.writeFunction("infolog", [](const string& arg) {
       infolog("%s", arg);

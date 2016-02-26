@@ -841,6 +841,8 @@ instantiate a server with additional parameters
     * `rmServer(server)`: remove this server object
  * Server member functions:
     * `addPool(pool)`: add this server to that pool
+    * `getName()`: return the server name if any
+    * `getNameWithAddr()`: return a string containing the server name if any plus the server address and port
     * `getOutstanding()`: this *returns* the number of outstanding queries (doesn't print it!)
     * `rmPool(pool)`: remove server from that pool
     * `setQPS(n)`: set the QPS setting to n
@@ -850,6 +852,7 @@ instantiate a server with additional parameters
     * `isUp()`: if this server is available
  * Server member data:
     * `upStatus`: if `dnsdist` considers this server available (overridden by `setDown()` and `setUp()`)
+    * `name`: name of the server
     * `order`: order of this server in order-based server selection policies
     * `weight`: weight of this server in weighted server selection policies
  * Rule related:
