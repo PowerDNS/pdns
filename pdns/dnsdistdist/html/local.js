@@ -30,7 +30,7 @@ $(document).ready(function() {
         width: 400,
         height: 200,
         renderer: 'line',
-        series: new Rickshaw.Series.FixedDuration([{ name: 'one' }], undefined, {
+        series: new Rickshaw.Series.FixedDuration([{ name: 'one' }, {name: 'two'}], undefined, {
             timeInterval: 1000,
             maxDataPoints: 100,
             timeBase: new Date().getTime() / 1000
@@ -151,7 +151,7 @@ $(document).ready(function() {
                 $("#rule-drops").text(data["rule-drop"]);
 		$("#blockfilter-drops").text(data["block-filter"]);
                 $("#uptime").text(moment.duration(data["uptime"]*1000.0).humanize());
-                $("#latency").text((data["latency-avg100"]/1000.0).toFixed(2));
+                $("#latency").text((data["latency-avg10000"]/1000.0).toFixed(2));
                 if(!gdata["cpu-sys-msec"]) 
                     gdata=data;
 
@@ -164,16 +164,19 @@ $(document).ready(function() {
 
                 var servfailps=1.0*data["servfail-responses"]-1.0*gdata["servfail-responses"];
 
-                var totpcache=1.0*data["packetcache-hits"]-1.0*gdata["packetcache-hits"]+1.0*data["packetcache-misses"]-1.0*gdata["packetcache-misses"];
-                if(totpcache > 0)
-                    $("#phitrate").text((100.0*(data["packetcache-hits"]-1.0*gdata["packetcache-hits"])/totpcache).toFixed(2));
+                var totpcache=1.0*data["cache-hits"]-1.0*gdata["cache-hits"]+1.0*data["cache-misses"]-1.0*gdata["cache-misses"];
+                var hitrate=0;
+                if(totpcache > 0) {
+                    hitrate=100.0*(data["cache-hits"]-1.0*gdata["cache-hits"])/totpcache;
+                    $("#phitrate").text(hitrate.toFixed(2));
+                }
                 else
                     $("#phitrate").text(0);
                 
                 qpsgraph.series.addData({ qps: qps, servfailps: servfailps});
                 qpsgraph.render();
 
-                cpugraph.series.addData({ one: cpu});
+                cpugraph.series.addData({ one: cpu, two: hitrate});
                 cpugraph.render();
 
                 gdata=data;
