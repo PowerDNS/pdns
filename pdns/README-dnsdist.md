@@ -1061,6 +1061,7 @@ instantiate a server with additional parameters
         * member `remoteaddr`: ComboAddress of the remote client
         * member `rcode`: RCode of this question
         * member `size`: the total size of the buffer starting at `dh`
+        * member `skipCache`: whether to skip cache lookup / storing the answer for this question (settable)
         * member `tcp`: whether this question was received over a TCP socket
     * DNSHeader related
         * member `getRD()`: get recursion desired flag
