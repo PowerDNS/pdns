@@ -146,6 +146,17 @@ struct DelayedPacket
 
 DelayPipe<DelayedPacket> * g_delay = 0;
 
+static void doLatencyAverages(double udiff)
+{
+  auto doAvg = [](double& var, double n, double weight) {
+    var = (weight -1) * var/weight + n/weight;
+  };
+
+  doAvg(g_stats.latencyAvg100,     udiff,     100);
+  doAvg(g_stats.latencyAvg1000,    udiff,    1000);
+  doAvg(g_stats.latencyAvg10000,   udiff,   10000);
+  doAvg(g_stats.latencyAvg1000000, udiff, 1000000);
+}
 
 // listens on a dedicated socket, lobs answers from downstream servers to original requestors
 void* responderThread(std::shared_ptr<DownstreamState> state)
@@ -302,14 +313,7 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
     else if(udiff < 1000000) g_stats.latency100_1000++;
     else g_stats.latencySlow++;
     
-    auto doAvg = [](double& var, double n, double weight) {
-      var = (weight -1) * var/weight + n/weight;
-    };
-
-    doAvg(g_stats.latencyAvg100,     udiff,     100);
-    doAvg(g_stats.latencyAvg1000,    udiff,    1000);
-    doAvg(g_stats.latencyAvg10000,   udiff,   10000);
-    doAvg(g_stats.latencyAvg1000000, udiff, 1000000);
+    doLatencyAverages(udiff);
 
     if (ids->origFD == origFD) {
 #ifdef HAVE_DNSCRYPT
@@ -835,6 +839,8 @@ try
           else
             sendto(cs->udpFD, cachedResponse, cachedResponseSize, 0, (struct sockaddr*)&remote, remote.getSocklen());
           g_stats.cacheHits++;
+          g_stats.latency0_1++;  // we're not going to measure this
+          doLatencyAverages(0);  // same
           continue;
         }
         g_stats.cacheMisses++;
