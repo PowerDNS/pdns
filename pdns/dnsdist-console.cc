@@ -9,6 +9,8 @@ vector<pair<struct timeval, string> > g_confDelta;
 // MUST BE CALLED UNDER A LOCK - right now the LuaLock
 void feedConfigDelta(const std::string& line)
 {
+  if(line.empty())
+    return;
   struct timeval now;
   gettimeofday(&now, 0);
   g_confDelta.push_back({now,line});

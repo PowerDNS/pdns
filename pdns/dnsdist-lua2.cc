@@ -238,7 +238,7 @@ void moreLua(bool client)
         struct tm tm;
         localtime_r(&d.first.tv_sec, &tm);
         char date[80];
-        strftime(date, sizeof(date)-1, "# %a %b %d %Y %H:%M:%S %Z\n", &tm);
+        strftime(date, sizeof(date)-1, "-- %a %b %d %Y %H:%M:%S %Z\n", &tm);
         g_outputBuffer += date;
         g_outputBuffer += d.second + "\n";
       }
