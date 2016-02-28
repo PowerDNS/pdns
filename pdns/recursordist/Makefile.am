@@ -44,6 +44,7 @@ EXTRA_DIST = \
 	kqueuemplexer.cc \
 	malloctrace.cc malloctrace.hh \
 	mtasker.cc \
+	mtasker_fcontext.cc mtasker_ucontext.cc \
 	opensslsigners.hh opensslsigners.cc \
 	pdns_recursor.1.md \
 	portsmplexer.cc \
