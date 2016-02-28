@@ -86,7 +86,7 @@ pdns_recursor_SOURCES = \
 	misc.hh misc.cc \
 	mplexer.hh \
 	mtasker.hh \
-	mtasker_context.hh mtasker_context.cc \
+	mtasker_context.cc mtasker_context.hh \
 	namespaces.hh \
 	nsecrecords.cc \
 	opensslsigners.cc opensslsigners.hh \
