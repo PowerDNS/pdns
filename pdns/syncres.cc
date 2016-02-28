@@ -1212,6 +1212,8 @@ int SyncRes::doResolveAt(map<DNSName, pair<ComboAddress, bool> > &nameservers, D
 
 	//	cout<<"Have "<<i->second.records.size()<<" records and "<<i->second.signatures.size()<<" signatures for "<<i->first.first.toString();
 	//	cout<<'|'<<DNSRecordContent::NumberToType(i->first.second.getCode())<<endl;
+        if(i->second.records.empty()) // this happens when we did store signatures, but passed on the records themselves
+          continue;
         t_RC->replace(d_now.tv_sec, i->first.name, QType(i->first.type), i->second.records, i->second.signatures, lwr.d_aabit, i->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::optional<Netmask>());
 	if(i->first.place == DNSResourceRecord::ANSWER && ednsmask)
 	  d_wasVariable=true;
