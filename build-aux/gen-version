@@ -35,4 +35,4 @@ elif [ -f .version ]; then
   VERSION="$(cat .version)"
 fi
 
-echo $VERSION
+printf $VERSION
