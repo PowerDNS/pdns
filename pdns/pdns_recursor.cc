@@ -1028,7 +1028,7 @@ void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   }
   else if(conn->state==TCPConnection::GETQUESTION) {
     ssize_t bytes=recv(conn->getFD(), conn->data + conn->bytesread, conn->qlen - conn->bytesread, 0);
-    if(!bytes || bytes < 0 || bytes > UINT16_MAX) {
+    if(!bytes || bytes < 0 || bytes > std::numeric_limits<std::uint16_t>::max()) {
       L<<Logger::Error<<"TCP client "<< conn->d_remote.toString() <<" disconnected while reading question body"<<endl;
       t_fdm->removeReadFD(fd);
       return;
