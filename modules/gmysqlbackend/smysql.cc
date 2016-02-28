@@ -255,7 +255,7 @@ public:
 
   SSqlStatement* reset() {
     if (!d_stmt) return this;
-    int err;
+    int err=0;
     mysql_stmt_free_result(d_stmt);
 #if MYSQL_VERSION_ID >= 50500
     while((err = mysql_stmt_next_result(d_stmt)) == 0) {
