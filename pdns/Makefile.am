@@ -868,21 +868,16 @@ nproxy_SOURCES = \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
-	filterpo.hh \
 	logger.cc \
-	lwres.hh \
 	misc.cc \
 	mplexer.hh \
-	mtasker.hh \
 	nproxy.cc \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
-	recursor_cache.hh \
 	selectmplexer.cc \
 	sillyrecords.cc \
 	statbag.cc \
-	syncres.hh \
 	unix_utility.cc
 
 nproxy_LDFLAGS = \
@@ -904,20 +899,15 @@ notify_SOURCES = \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
-	filterpo.hh \
 	logger.cc \
-	lwres.hh \
 	misc.cc \
-	mtasker.hh \
 	notify.cc \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
-	recursor_cache.hh \
 	selectmplexer.cc \
 	sillyrecords.cc \
 	statbag.cc \
-	syncres.hh \
 	unix_utility.cc
 
 notify_LDFLAGS = \
