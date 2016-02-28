@@ -61,14 +61,14 @@ pdns_ucontext_t::pdns_ucontext_t() {
 }
 
 pdns_ucontext_t::~pdns_ucontext_t() {
-    delete static_cast<::ucontext_t*>(uc_mcontext);
+    delete static_cast<ucontext_t*>(uc_mcontext);
 }
 
 void
 pdns_swapcontext
 (pdns_ucontext_t& __restrict octx, pdns_ucontext_t const& __restrict ctx) {
-    if (::swapcontext (static_cast<::ucontext*>(octx.uc_mcontext),
-                       static_cast<::ucontext*>(ctx.uc_mcontext))) {
+    if (::swapcontext (static_cast<ucontext*>(octx.uc_mcontext),
+                       static_cast<ucontext*>(ctx.uc_mcontext))) {
         throw_errno ("swapcontext() failed");
     }
     if (ctx.exception) {
@@ -82,8 +82,8 @@ pdns_makecontext
     assert (ctx.uc_link);
     assert (ctx.uc_stack.size());
 
-    auto const mcp = static_cast<::ucontext*>(ctx.uc_mcontext);
-    auto const next = static_cast<::ucontext*>(ctx.uc_link->uc_mcontext);
+    auto const mcp = static_cast<ucontext*>(ctx.uc_mcontext);
+    auto const next = static_cast<ucontext*>(ctx.uc_link->uc_mcontext);
     if (::getcontext (mcp)) {
         throw_errno ("getcontext() failed");
     }

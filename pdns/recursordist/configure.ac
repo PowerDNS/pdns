@@ -33,8 +33,26 @@ AC_PROG_LIBTOOL
 
 PDNS_CHECK_OS
 
+AC_DEFUN([PDNS_SELECT_CONTEXT_IMPL], [
+    AC_MSG_CHECKING([for Boost version >= 1.52])
+    AC_PREPROC_IFELSE([AC_LANG_SOURCE([[
+#include <boost/version.hpp>
+#if BOOST_VERSION <= 105100
+#error
+#endif
+    ]])], [
+        AC_MSG_RESULT([yes])
+        AC_MSG_NOTICE([MTasker will use the Boost Context library for context switching])
+        BOOST_CONTEXT
+    ], [
+        AC_MSG_RESULT([no])
+        AC_MSG_NOTICE([MTasker will use System V contexts for context switching])
+    ])
+])
+
 BOOST_REQUIRE([1.35])
-BOOST_CONTEXT()
+PDNS_SELECT_CONTEXT_IMPL
+
 PDNS_ENABLE_REPRODUCIBLE
 
 PDNS_WITH_LUAJIT

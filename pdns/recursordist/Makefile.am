@@ -44,6 +44,7 @@ EXTRA_DIST = \
 	kqueuemplexer.cc \
 	malloctrace.cc malloctrace.hh \
 	mtasker.cc \
+	mtasker_fcontext.cc mtasker_ucontext.cc \
 	opensslsigners.hh opensslsigners.cc \
 	pdns_recursor.1.md \
 	portsmplexer.cc \
@@ -85,7 +86,7 @@ pdns_recursor_SOURCES = \
 	misc.hh misc.cc \
 	mplexer.hh \
 	mtasker.hh \
-	mtasker_context.hh mtasker_fcontext.cc \
+	mtasker_context.cc mtasker_context.hh \
 	namespaces.hh \
 	nsecrecords.cc \
 	opensslsigners.cc opensslsigners.hh \
