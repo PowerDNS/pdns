@@ -372,7 +372,7 @@ AS_IF([test "x$LUAPC" != "x"],
   [AC_MSG_NOTICE([Lua support: $LUAPC])],
   [AC_MSG_NOTICE([Lua support: no])]
 )
-AS_IF(test "x$enable_experimental_gss_tsig" == "xyes"],
+AS_IF([test "x$enable_experimental_gss_tsig" == "xyes"],
   [AC_MSG_NOTICE([GSS-TSIG support: yes])]
 )
 AC_MSG_NOTICE([])
