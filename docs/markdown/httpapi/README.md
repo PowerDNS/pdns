@@ -65,7 +65,7 @@ When running multiple instances you might want to specify on which address the w
     # Port of web server to listen on
     webserver-port=8081
     # Web server access is only allowed from these subnets
-    webserver-allow-from=0.0.0.0/0,::/0"
+    webserver-allow-from=0.0.0.0/0,::/0
 
 Try it (Recursor edition)
 -------------------------
