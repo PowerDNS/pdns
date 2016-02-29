@@ -207,7 +207,8 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
       qname=DNSName(packet, responseLen, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
     }
     catch(std::exception& e) {
-      infolog("Backend %s sent us a response that did not parse: %s", state->remote.toStringWithPort(), e.what());
+      if(got > (ssize_t)sizeof(dnsheader))
+        infolog("Backend %s sent us a response with id %d that did not parse: %s", state->remote.toStringWithPort(), ntohs(dh->id), e.what());
       g_stats.nonCompliantResponses++;
       continue;
     }

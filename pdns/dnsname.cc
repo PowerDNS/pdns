@@ -60,7 +60,7 @@ DNSName::DNSName(const char* p)
 DNSName::DNSName(const char* pos, int len, int offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed)
 {
   if (offset >= len)
-    throw std::range_error("Trying to read past the end of the buffer");
+    throw std::range_error("Trying to read past the end of the buffer ("+std::to_string(offset)+ " >= "+std::to_string(len)+")");
 
   if(!uncompress) {
     if(const void * fnd=memchr(pos+offset, 0, len-offset)) {
@@ -79,7 +79,7 @@ void DNSName::packetParser(const char* qpos, int len, int offset, bool uncompres
   const unsigned char *opos = pos;
 
   if (offset >= len)
-    throw std::range_error("Trying to read past the end of the buffer");
+    throw std::range_error("Trying to read past the end of the buffer ("+std::to_string(offset)+ " >= "+std::to_string(len)+")");
 
   pos += offset;
   const unsigned char* end = pos + len;
