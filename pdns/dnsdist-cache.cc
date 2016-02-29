@@ -2,7 +2,7 @@
 #include "dnsdist-cache.hh"
 #include "dnsparser.hh"
 
-DNSDistPacketCache::DNSDistPacketCache(size_t maxEntries, uint32_t maxTTL, uint32_t minTTL): d_maxEntries(maxEntries), d_maxTTL(maxTTL), d_minTTL(minTTL)
+DNSDistPacketCache::DNSDistPacketCache(size_t maxEntries, uint32_t maxTTL, uint32_t minTTL, uint32_t servFailTTL): d_maxEntries(maxEntries), d_maxTTL(maxTTL), d_servFailTTL(servFailTTL), d_minTTL(minTTL)
 {
   pthread_rwlock_init(&d_lock, 0);
   /* we reserve maxEntries + 1 to avoid rehashing from occuring
@@ -22,17 +22,24 @@ bool DNSDistPacketCache::cachedValueMatches(const CacheValue& cachedValue, const
   return true;
 }
 
-void DNSDistPacketCache::insert(uint32_t key, const DNSName& qname, uint16_t qtype, uint16_t qclass, const char* response, uint16_t responseLen, bool tcp)
+void DNSDistPacketCache::insert(uint32_t key, const DNSName& qname, uint16_t qtype, uint16_t qclass, const char* response, uint16_t responseLen, bool tcp, bool servFail)
 {
   if (responseLen == 0)
     return;
 
-  uint32_t minTTL = getMinTTL(response, responseLen);
-  if (minTTL > d_maxTTL)
-    minTTL = d_maxTTL;
+  uint32_t minTTL;
 
-  if (minTTL < d_minTTL)
-    return;
+  if (servFail) {
+    minTTL = d_servFailTTL;
+  }
+  else {
+    minTTL = getMinTTL(response, responseLen);
+    if (minTTL > d_maxTTL)
+      minTTL = d_maxTTL;
+
+    if (minTTL < d_minTTL)
+      return;
+  }
 
   {
     TryReadLock r(&d_lock);

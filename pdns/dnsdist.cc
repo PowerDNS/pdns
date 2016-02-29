@@ -264,7 +264,7 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
     g_stats.responses++;
 
     if (ids->packetCache && !ids->skipCache) {
-      ids->packetCache->insert(ids->cacheKey, qname, qtype, qclass, response, responseLen, false);
+      ids->packetCache->insert(ids->cacheKey, qname, qtype, qclass, response, responseLen, false, dh->rcode == RCode::ServFail);
     }
 
 #ifdef HAVE_DNSCRYPT

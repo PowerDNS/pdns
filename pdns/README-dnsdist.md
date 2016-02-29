@@ -712,14 +712,15 @@ The first step is to define a cache, then to assign that cache to the chosen poo
 the default one being represented by the empty string:
 
 ```
-pc = newPacketCache(10000, 86400, 600)
+pc = newPacketCache(10000, 86400, 600, 60)
 getPool(""):setCache(pc)
 ```
 
 The first parameter is the maximum number of entries stored in the cache, the
 second one, optional, is the maximum lifetime of an entry in the cache, in seconds,
-and the last one, optional too, is the minimum TTL an entry should have to be considered
-for insertion in the cache.
+the third one, optional too, is the minimum TTL an entry should have to be considered
+for insertion in the cache, and the last one, still optional, is the TTL used for a
+Server Failure response.
 
 
 Performance tuning
@@ -1035,7 +1036,7 @@ instantiate a server with additional parameters
     * `expunge(n)`: remove entries from the cache, leaving at most `n` entries
     * `expungeByName(DNSName [, qtype=ANY])`: remove entries matching the supplied DNSName and type from the cache
     * `isFull()`: return true if the cache has reached the maximum number of entries
-    * `newPacketCache(maxEntries, maxTTL=86400, minTTL=60)`: return a new PacketCache
+    * `newPacketCache(maxEntries[, maxTTL=86400, minTTL=60, servFailTTL=60])`: return a new PacketCache
     * `printStats()`: print the cache stats (hits, misses, deferred lookups and deferred inserts)
     * `purgeExpired(n)`: remove expired entries from the cache until there is at most `n` entries remaining in the cache
     * `toString()`: return the number of entries in the Packet Cache, and the maximum number of entries
