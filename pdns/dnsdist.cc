@@ -202,7 +202,16 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
     */
     ids->age = 0;
     unsigned int consumed;
-    DNSName qname(packet, responseLen, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
+    DNSName qname;
+    try {
+      // XXX will this move?
+      qname=DNSName(packet, responseLen, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
+    }
+    catch(std::exception& e) {
+      infolog("Backend %s sent us a response that did not parse: %s", state->remote.toStringWithPort(), e.what());
+      g_stats.nonCompliantResponses++;
+      continue;
+    }
     if (qtype != ids->qtype || qclass != ids->qclass || qname != ids->qname)
       continue;
 
@@ -537,6 +546,7 @@ const NumberedServerVector& getDownstreamCandidates(const pools_t& pools, const 
 
 // goal in life - if you send us a reasonably normal packet, we'll get Z for you, otherwise 0
 int getEDNSZ(const char* packet, unsigned int len)
+try
 {
   struct dnsheader* dh =(struct dnsheader*)packet;
 
@@ -561,6 +571,10 @@ int getEDNSZ(const char* packet, unsigned int len)
 
   uint8_t* z = (uint8_t*)packet+sizeof(dnsheader)+pos+consumed+DNS_TYPE_SIZE+DNS_CLASS_SIZE+EDNS_EXTENDED_RCODE_SIZE+EDNS_VERSION_SIZE;
   return 0x100 * (*z) + *(z+1);
+}
+catch(...)
+{
+  return 0;
 }
 
 void spoofResponseFromString(DNSQuestion& dq, const string& spoofContent)
