@@ -20,6 +20,12 @@ magicMetric = getMetric("magic")
 function preresolve(dq)
 	print("Got question for "..dq.qname:toString().." from "..dq.remoteaddr:toString().." to "..dq.localaddr:toString())
 
+        local ednssubnet=dq:getEDNSSubnet()
+	if(ednssubnet) then
+        	print("Packet EDNS subnet source: "..ednssubnet:toString()..", "..ednssubnet:getNetwork():toString())
+        end
+                                        
+
 	local a=dq:getEDNSOption(3)
 	if(a) then
 		print("There is an EDNS option 3 present: "..a)
