@@ -5,6 +5,7 @@
 #include "syncres.hh"
 #include "namespaces.hh"
 #include "rec_channel.hh" 
+#include "ednssubnet.hh"
 #include <unordered_set>
 #if !defined(HAVE_LUA)
 
@@ -145,6 +146,23 @@ boost::optional<string>  RecursorLua4::DNSQuestion::getEDNSOption(uint16_t code)
   return boost::optional<string>();
 }
 
+boost::optional<Netmask>  RecursorLua4::DNSQuestion::getEDNSSubnet()
+{
+
+  if(ednsOptions) {
+    for(const auto& o : *ednsOptions) {
+      if(o.first==8) {
+        EDNSSubnetOpts eso;
+        if(getEDNSSubnetOptsFromString(o.second, &eso))
+          return eso.source;
+        else 
+          break;
+      }
+    }
+  }
+  return boost::optional<Netmask>();
+}
+
 
 vector<pair<int, DNSRecord> > RecursorLua4::DNSQuestion::getRecords()
 {
@@ -256,6 +274,10 @@ RecursorLua4::RecursorLua4(const std::string& fname)
       return ComboAddress::addressOnlyEqual()(lhs, rhs);
     });
   
+
+  d_lw->registerFunction<ComboAddress(Netmask::*)()>("getNetwork", [](const Netmask& nm) { return nm.getNetwork(); } ); // const reference makes this necessary
+  d_lw->registerFunction("toString", &Netmask::toString);
+
   d_lw->writeFunction("newNMG", []() { return NetmaskGroup(); });
   d_lw->registerFunction<void(NetmaskGroup::*)(const std::string&mask)>("addMask", [](NetmaskGroup&nmg, const std::string& mask)
 			 {
@@ -282,6 +304,7 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   d_lw->registerMember("udpCallback", &DNSQuestion::udpCallback);
   d_lw->registerFunction("getEDNSOptions", &DNSQuestion::getEDNSOptions);
   d_lw->registerFunction("getEDNSOption", &DNSQuestion::getEDNSOption);
+  d_lw->registerFunction("getEDNSSubnet", &DNSQuestion::getEDNSSubnet);
   d_lw->registerMember("name", &DNSRecord::d_name);
   d_lw->registerMember("type", &DNSRecord::d_type);
   d_lw->registerMember("ttl", &DNSRecord::d_ttl);

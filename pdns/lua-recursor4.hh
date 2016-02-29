@@ -39,6 +39,7 @@ private:
     vector<pair<int,DNSRecord> > getRecords();
     vector<pair<uint16_t, string> > getEDNSOptions();
     boost::optional<string> getEDNSOption(uint16_t code);
+    boost::optional<Netmask> getEDNSSubnet();
     void setRecords(const vector<pair<int,DNSRecord> >& records);
     bool variable{false};
     
