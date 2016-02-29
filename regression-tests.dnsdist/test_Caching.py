@@ -9,6 +9,11 @@ class TestCaching(DNSDistTest):
     pc = newPacketCache(100, 86400, 1)
     getPool(""):setCache(pc)
     addAction(makeRule("nocache.cache.tests.powerdns.com."), SkipCacheAction())
+    function skipViaLua(dq)
+        dq.skipCache = true
+        return DNSAction.None, ""
+    end
+    addLuaAction("nocachevialua.cache.tests.powerdns.com.", skipViaLua)
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -78,6 +83,43 @@ class TestCaching(DNSDistTest):
          we are sending several requests and checking that the backend get them all.
         """
         name = 'nocache.cache.tests.powerdns.com.'
+        numberOfQueries = 10
+        query = dns.message.make_query(name, 'AAAA', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '::1')
+        response.answer.append(rrset)
+
+        for _ in range(numberOfQueries):
+            (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = query.id
+            self.assertEquals(query, receivedQuery)
+            self.assertEquals(receivedResponse, response)
+
+            (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = query.id
+            self.assertEquals(query, receivedQuery)
+            self.assertEquals(receivedResponse, response)
+
+        for key in TestCaching._responsesCounter:
+            value = TestCaching._responsesCounter[key]
+            self.assertEquals(value, numberOfQueries)
+
+    def testSkipCacheViaLua(self):
+        """
+        Cache: SkipCache via Lua
+
+        dnsdist is configured to not cache entries for nocachevialua.cache.tests.powerdns.com.
+         we are sending several requests and checking that the backend get them all.
+        """
+        name = 'nocachevialua.cache.tests.powerdns.com.'
         numberOfQueries = 10
         query = dns.message.make_query(name, 'AAAA', 'IN')
         response = dns.message.make_response(query)
