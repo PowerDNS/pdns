@@ -204,7 +204,6 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
     unsigned int consumed;
     DNSName qname;
     try {
-      // XXX will this move?
       qname=DNSName(packet, responseLen, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
     }
     catch(std::exception& e) {
