@@ -42,6 +42,7 @@ struct DNSDistStats
   stat_t servfailResponses{0};
   stat_t queries{0};
   stat_t nonCompliantQueries{0};
+  stat_t nonCompliantResponses{0};
   stat_t rdQueries{0};
   stat_t emptyQueries{0};
   stat_t aclDrops{0};
@@ -76,6 +77,7 @@ struct DNSDistStats
     {"uptime", uptimeOfProcess},
     {"real-memory-usage", getRealMemoryUsage},
     {"noncompliant-queries", &nonCompliantQueries},
+    {"noncompliant-responses", &nonCompliantResponses},
     {"rdqueries", &rdQueries},
     {"empty-queries", &emptyQueries},
     {"cache-hits", &cacheHits},

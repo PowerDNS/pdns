@@ -30,6 +30,7 @@ unsigned int MemRecursorCache::bytes()
   return ret;
 }
 
+// returns -1 for no hits
 int MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt, vector<DNSRecord>* res, const ComboAddress& who, vector<std::shared_ptr<RRSIGRecordContent>>* signatures)
 {
   unsigned int ttd=0;
@@ -61,6 +62,7 @@ int MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt, vec
          ) {
 
 	ttd = i->d_ttd;	
+        //        cerr<<"Looking at "<<i->d_records.size()<<" records for this name"<<endl;
 	for(auto k=i->d_records.begin(); k != i->d_records.end(); ++k) {
 	  if(res) {
 	    DNSRecord dr;
@@ -136,13 +138,13 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
   }
 
   uint32_t maxTTD=UINT_MAX;
-  CacheEntry ce=*stored;
+  CacheEntry ce=*stored; // this is a COPY
   ce.d_qtype=qt.getCode();
   ce.d_signatures=signatures;
 
-  // cerr<<"asked to store "<< (qname.empty() ? "EMPTY" : qname.toString()) <<"|"+qt.getName()<<" -> '"<<content.begin()->d_content->getZoneRepresentation()<<"', auth="<<auth<<", ce.auth="<<ce.d_auth<<", "<< (ednsmask ? ednsmask->toString() : "")<<endl;
-
-  ce.d_records.clear();
+  //  cerr<<"asked to store "<< (qname.empty() ? "EMPTY" : qname.toString()) <<"|"+qt.getName()<<" -> '";
+  //  cerr<<(content.empty() ? string("EMPTY CONTENT")  : content.begin()->d_content->getZoneRepresentation())<<"', auth="<<auth<<", ce.auth="<<ce.d_auth;
+  //   cerr<<", ednsmask: "  <<  (ednsmask ? ednsmask->toString() : "none") <<endl;
 
   if(!auth && ce.d_auth) {  // unauth data came in, we have some auth data, but is it fresh?
     if(ce.d_ttd > now) { // we still have valid data, ignore unauth data
@@ -153,6 +155,8 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
       ce.d_auth = false;  // new data won't be auth
     }
   }
+  ce.d_records.clear();
+
 
   // limit TTL of auth->auth NSset update if needed, except for root
   if(ce.d_auth && auth && qt.getCode()==QType::NS && !qname.isRoot()) {
