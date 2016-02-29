@@ -1035,7 +1035,7 @@ void* maintThread()
           packetCache = entry.second->packetCache;
         }
         if (packetCache) {
-          packetCache->purge();
+          packetCache->purgeExpired();
         }
       }
       counter = 0;

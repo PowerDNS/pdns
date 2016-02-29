@@ -144,12 +144,16 @@ bool DNSDistPacketCache::get(const unsigned char* query, uint16_t queryLen, cons
   return true;
 }
 
-void DNSDistPacketCache::purge(size_t upTo)
+/* Remove expired entries, until the cache has at most
+   upTo entries in it.
+*/
+void DNSDistPacketCache::purgeExpired(size_t upTo)
 {
   time_t now = time(NULL);
   WriteLock w(&d_lock);
-  if (upTo <= d_map.size())
+  if (upTo >= d_map.size()) {
     return;
+  }
 
   size_t toRemove = d_map.size() - upTo;
   for(auto it = d_map.begin(); toRemove > 0 && it != d_map.end(); ) {
@@ -164,7 +168,24 @@ void DNSDistPacketCache::purge(size_t upTo)
   }
 }
 
-void DNSDistPacketCache::expunge(const DNSName& name, uint16_t qtype)
+/* Remove all entries, keeping only upTo
+   entries in the cache */
+void DNSDistPacketCache::expunge(size_t upTo)
+{
+  WriteLock w(&d_lock);
+
+  if (upTo >= d_map.size()) {
+    return;
+  }
+
+  size_t toRemove = d_map.size() - upTo;
+  auto beginIt = d_map.begin();
+  auto endIt = beginIt;
+  std::advance(endIt, toRemove);
+  d_map.erase(beginIt, endIt);
+}
+
+void DNSDistPacketCache::expungeByName(const DNSName& name, uint16_t qtype)
 {
   WriteLock w(&d_lock);
 

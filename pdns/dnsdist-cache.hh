@@ -12,8 +12,9 @@ public:
 
   void insert(uint32_t key, const DNSName& qname, uint16_t qtype, uint16_t qclass, const char* response, uint16_t responseLen, bool tcp);
   bool get(const unsigned char* query, uint16_t queryLen, const DNSName& qname, uint16_t qtype, uint16_t qclass, uint16_t consumed, uint16_t queryId, char* response, uint16_t* responseLen, bool tcp, uint32_t* keyOut, bool skipAging=false);
-  void purge(size_t upTo=0);
-  void expunge(const DNSName& name, uint16_t qtype=QType::ANY);
+  void purgeExpired(size_t upTo=0);
+  void expunge(size_t upTo=0);
+  void expungeByName(const DNSName& name, uint16_t qtype=QType::ANY);
   bool isFull();
   string toString();
   uint64_t getSize() const { return d_map.size(); };

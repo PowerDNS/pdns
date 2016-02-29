@@ -536,9 +536,10 @@ void moreLua(bool client)
       });
     g_lua.registerFunction("toString", &DNSDistPacketCache::toString);
     g_lua.registerFunction("isFull", &DNSDistPacketCache::isFull);
-    g_lua.registerFunction("purge", &DNSDistPacketCache::purge);
+    g_lua.registerFunction("purgeExpired", &DNSDistPacketCache::purgeExpired);
+    g_lua.registerFunction("expunge", &DNSDistPacketCache::expunge);
     g_lua.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)(const DNSName& dname, boost::optional<uint16_t> qtype)>("expungeByName", [](std::shared_ptr<DNSDistPacketCache> cache, const DNSName& dname, boost::optional<uint16_t> qtype) {
-        cache->expunge(dname, qtype ? *qtype : QType::ANY);
+        cache->expungeByName(dname, qtype ? *qtype : QType::ANY);
       });
     g_lua.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)()>("printStats", [](const std::shared_ptr<DNSDistPacketCache> cache) {
         g_outputBuffer="Hits: " + std::to_string(cache->getHits()) + "\n";

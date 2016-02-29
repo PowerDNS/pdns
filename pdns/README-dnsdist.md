@@ -1032,11 +1032,12 @@ instantiate a server with additional parameters
     * `getCache()`: return the current packet cache, if any
     * `setCache(PacketCache)`: set the cache for this pool
  * PacketCache related:
-    * `expungeByName(DNSName)`: remove entries matching the supplied DNSName from the cache
+    * `expunge(n)`: remove entries from the cache, leaving at most `n` entries
+    * `expungeByName(DNSName [, qtype=ANY])`: remove entries matching the supplied DNSName and type from the cache
     * `isFull()`: return true if the cache has reached the maximum number of entries
     * `newPacketCache(maxEntries, maxTTL=86400, minTTL=60)`: return a new PacketCache
     * `printStats()`: print the cache stats (hits, misses, deferred lookups and deferred inserts)
-    * `purge()`: remove entries from the cache until it the number of entries is lower than the maximum, starting with expired ones.
+    * `purgeExpired(n)`: remove expired entries from the cache until there is at most `n` entries remaining in the cache
     * `toString()`: return the number of entries in the Packet Cache, and the maximum number of entries
  * Advanced functions for writing your own policies and hooks
     * ComboAddress related:

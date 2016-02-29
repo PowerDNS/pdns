@@ -70,7 +70,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
       uint32_t key = 0;
       bool found = PC.get((const unsigned char*) query.data(), query.size(), a, QType::A, QClass::IN, a.wirelength(), 0, responseBuf, &responseBufSize, false, &key);
       if (found == true) {
-        PC.expunge(a);
+        PC.expungeByName(a);
         deleted++;
       }
     }
