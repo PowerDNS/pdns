@@ -1194,7 +1194,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       }
     }
 
-    if (!dk.isPresigned(zonename)) {
+    if (dk.isSecuredZone(zonename) && !dk.isPresigned(zonename)) {
       if (!dk.rectifyZone(B, zonename)) {
         throw ApiException("Failed to rectify '" + zonename.toString() + "'. Check if the zone contains too many non-empty terminals.");
       }
@@ -1547,7 +1547,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
   }
 
   DNSSECKeeper dk;
-  if (!dk.isPresigned(zonename)) {
+  if (dk.isSecuredZone(zonename) && !dk.isPresigned(zonename)) {
     if (!dk.rectifyZone(B, zonename))
       throw ApiException("Failed to rectify '" + zonename.toString() + "'. Check if the zone contains too many non-empty terminals.");
   }
