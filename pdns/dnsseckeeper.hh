@@ -182,6 +182,7 @@ public:
 
   bool getNSEC3PARAM(const DNSName& zname, NSEC3PARAMRecordContent* n3p=0, bool* narrow=0);
   bool setNSEC3PARAM(const DNSName& zname, const NSEC3PARAMRecordContent& n3p, const bool& narrow=false);
+  bool checkNSEC3PARAM(const NSEC3PARAMRecordContent& n3p);
   bool unsetNSEC3PARAM(const DNSName& zname);
   void clearAllCaches();
   void clearCaches(const DNSName& name);
