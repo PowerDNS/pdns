@@ -1123,6 +1123,13 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     k_size = arg().asNum("default-ksk-size");
     z_size = arg().asNum("default-zsk-size");
 
+    if (boolFromJson(document, "dnssec", false) && document["nsec3param"].string_value().length() > 0) {
+      NSEC3PARAMRecordContent ns3pr(document["nsec3param"].string_value());
+      if (!dk.checkNSEC3PARAM(ns3pr)) {
+        throw ApiException("NSEC3PARAMs provided for zone '"+zonename.toString()+"' are invalid. Check if the number of NSEC3 iterations is above 'max-nsec3-iterations'");
+      }
+    }
+
     // no going back after this
     if(!B.createDomain(zonename))
       throw ApiException("Creating domain '"+zonename.toString()+"' failed");
@@ -1151,7 +1158,8 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       if (document["nsec3param"].string_value().length() > 0) {
         NSEC3PARAMRecordContent ns3pr(document["nsec3param"].string_value());
         if (!dk.setNSEC3PARAM(zonename, ns3pr, boolFromJson(document, "nsec3narrow", false))) {
-          throw ApiException("Cannot use given NSEC3 parameters for zone '" + zonename.toString() + "'.");
+          throw ApiException("NSEC3PARAMs provided for zone '" + zonename.toString() +
+                             "' passed our basic sanity checks, but cannot be used with the current backend.");
         }
       }
 
