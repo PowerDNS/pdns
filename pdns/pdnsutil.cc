@@ -150,6 +150,7 @@ bool rectifyZone(DNSSECKeeper& dk, const DNSName& zone)
 
   if(!B.getSOAUncached(zone, sd)) {
     cerr<<"No SOA known for '"<<zone.toString()<<"', is such a zone in the database?"<<endl;
+    return false;
   }
 
   NSEC3PARAMRecordContent ns3pr;
