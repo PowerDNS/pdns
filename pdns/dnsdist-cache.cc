@@ -190,51 +190,7 @@ bool DNSDistPacketCache::isFull()
 
 uint32_t DNSDistPacketCache::getMinTTL(const char* packet, uint16_t length)
 {
-  const struct dnsheader* dh = (const struct dnsheader*) packet;
-  uint32_t result = std::numeric_limits<uint32_t>::max();
-  vector<uint8_t> content(length - sizeof(dnsheader));
-  copy(packet + sizeof(dnsheader), packet + length, content.begin());
-  PacketReader pr(content);
-  size_t idx = 0;
-  DNSName rrname;
-  uint16_t qdcount = ntohs(dh->qdcount);
-  uint16_t ancount = ntohs(dh->ancount);
-  uint16_t nscount = ntohs(dh->nscount);
-  uint16_t arcount = ntohs(dh->arcount);
-  uint16_t rrtype;
-  uint16_t rrclass;
-  struct dnsrecordheader ah;
-
-  /* consume qd */
-  for(idx = 0; idx < qdcount; idx++) {
-    rrname = pr.getName();
-    rrtype = pr.get16BitInt();
-    rrclass = pr.get16BitInt();
-    (void) rrtype;
-    (void) rrclass;
-  }
-
-  /* consume AN and NS */
-  for (idx = 0; idx < ancount + nscount; idx++) {
-    rrname = pr.getName();
-    pr.getDnsrecordheader(ah);
-    pr.d_pos += ah.d_clen;
-    if (result > ah.d_ttl)
-      result = ah.d_ttl;
-  }
-
-  /* consume AR, watch for OPT */
-  for (idx = 0; idx < arcount; idx++) {
-    rrname = pr.getName();
-    pr.getDnsrecordheader(ah);
-    pr.d_pos += ah.d_clen;
-    if (ah.d_type == QType::OPT) {
-      continue;
-    }
-    if (result > ah.d_ttl)
-      result = ah.d_ttl;
-  }
-  return result;
+  return getDNSPacketMinTTL(packet, length);
 }
 
 uint32_t DNSDistPacketCache::getKey(const DNSName& qname, uint16_t consumed, const unsigned char* packet, uint16_t packetLen, bool tcp)

@@ -586,6 +586,14 @@ public:
   {
       moveOffset(bytes);
   }
+  uint32_t get32BitInt()
+  {
+    const char* p = d_packet + d_offset;
+    moveOffset(4);
+    uint32_t ret;
+    memcpy(&ret, (void*)p, 4);
+    return ntohl(ret);
+  }
   uint16_t get16BitInt()
   {
     const char* p = d_packet + d_offset;
@@ -675,4 +683,43 @@ void ageDNSPacket(char* packet, size_t length, uint32_t seconds)
 void ageDNSPacket(std::string& packet, uint32_t seconds)
 {
   ageDNSPacket((char*)packet.c_str(), packet.length(), seconds);
+}
+
+uint32_t getDNSPacketMinTTL(const char* packet, size_t length)
+{
+  uint32_t result = std::numeric_limits<uint32_t>::max();
+  if(length < sizeof(dnsheader)) {
+    return result;
+  }
+  try
+  {
+    const dnsheader* dh = (const dnsheader*) packet;
+    DNSPacketMangler dpm(const_cast<char*>(packet), length);
+
+    const uint16_t qdcount = ntohs(dh->qdcount);
+    for(size_t n = 0; n < qdcount; ++n) {
+      dpm.skipLabel();
+      dpm.skipBytes(4); // qtype, qclass
+    }
+    const size_t numrecords = ntohs(dh->ancount) + ntohs(dh->nscount) + ntohs(dh->arcount);
+    for(size_t n = 0; n < numrecords; ++n) {
+      dpm.skipLabel();
+
+      const uint16_t dnstype = dpm.get16BitInt();
+      /* uint16_t dnsclass = */ dpm.get16BitInt();
+
+      if(dnstype == QType::OPT)
+        break;
+
+      const uint32_t ttl = dpm.get32BitInt();
+      if (result > ttl)
+        result = ttl;
+
+      dpm.skipRData();
+    }
+  }
+  catch(...)
+  {
+  }
+  return result;
 }
