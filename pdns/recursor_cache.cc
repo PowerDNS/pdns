@@ -127,7 +127,6 @@ bool MemRecursorCache::attemptToRefreshNSTTL(const QType& qt, const vector<DNSRe
 void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt,  const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, bool auth, boost::optional<Netmask> ednsmask)
 {
   d_cachecachevalid=false;
-
   cache_t::iterator stored;
   bool isNew = false;
   auto key=boost::make_tuple(qname, qt.getCode(), ednsmask ? *ednsmask : Netmask());
@@ -141,7 +140,7 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
   CacheEntry ce=*stored; // this is a COPY
   ce.d_qtype=qt.getCode();
   ce.d_signatures=signatures;
-
+  
   //  cerr<<"asked to store "<< (qname.empty() ? "EMPTY" : qname.toString()) <<"|"+qt.getName()<<" -> '";
   //  cerr<<(content.empty() ? string("EMPTY CONTENT")  : content.begin()->d_content->getZoneRepresentation())<<"', auth="<<auth<<", ce.auth="<<ce.d_auth;
   //   cerr<<", ednsmask: "  <<  (ednsmask ? ednsmask->toString() : "none") <<endl;
@@ -157,10 +156,9 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
   }
   ce.d_records.clear();
 
-
-  // limit TTL of auth->auth NSset update if needed, except for root
-  if(ce.d_auth && auth && qt.getCode()==QType::NS && !qname.isRoot()) {
-    // cerr<<"\tLimiting TTL of auth->auth NS set replace"<<endl;
+  // limit TTL of auth->auth NSset update if needed, except for root 
+  if(ce.d_auth && auth && qt.getCode()==QType::NS && !isNew && !qname.isRoot()) {
+    //    cerr<<"\tLimiting TTL of auth->auth NS set replace to "<<ce.d_ttd<<endl;
     maxTTD = ce.d_ttd;
   }
 
@@ -174,8 +172,9 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
 
 
   for(auto i=content.cbegin(); i != content.cend(); ++i) {
-    //    cerr<<"To store: "<<i->d_content->getZoneRepresentation()<<" with ttl/ttd "<<i->d_ttl<<endl;
+
     ce.d_ttd=min(maxTTD, i->d_ttl);   // XXX this does weird things if TTLs differ in the set
+    //    cerr<<"To store: "<<i->d_content->getZoneRepresentation()<<" with ttl/ttd "<<i->d_ttl<<", capped at: "<<maxTTD<<endl;
     ce.d_records.push_back(i->d_content);
     // there was code here that did things with TTL and auth. Unsure if it was good. XXX
   }
