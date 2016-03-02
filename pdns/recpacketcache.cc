@@ -6,6 +6,7 @@
 #include "recpacketcache.hh"
 #include "cachecleaner.hh"
 #include "dns.hh"
+#include "dnsparser.hh"
 #include "namespaces.hh"
 #include "lock.hh"
 #include "dnswriter.hh"
@@ -165,3 +166,27 @@ void RecursorPacketCache::doPruneTo(unsigned int maxCached)
   pruneCollection(d_packetCache, maxCached);
 }
 
+uint64_t RecursorPacketCache::doDump(int fd)
+{
+  FILE* fp=fdopen(dup(fd), "w");
+  if(!fp) { // dup probably failed
+    return 0;
+  }
+  fprintf(fp, "; main packet cache dump from thread follows\n;\n");
+  const auto& sidx=d_packetCache.get<1>();
+
+  uint64_t count=0;
+  time_t now=time(0);
+  for(auto i=sidx.cbegin(); i != sidx.cend(); ++i) {
+    count++;
+    try {
+      fprintf(fp, "%s %d %s  ; tag %d\n", i->d_name.toString().c_str(), (int32_t)(i->d_ttd - now), DNSRecordContent::NumberToType(i->d_type).c_str(), i->d_tag);
+    }
+    catch(...) {
+      fprintf(fp, "; error printing '%s'\n", i->d_name.empty() ? "EMPTY" : i->d_name.toString().c_str());
+    }
+  }
+  fclose(fp);
+  return count;
+
+}

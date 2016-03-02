@@ -634,8 +634,10 @@ void startDoResolve(void *p)
       sr.d_requestor=dc->d_remote;
     }
     
-    if(pw.getHeader()->cd || edo.d_Z & EDNSOpts::DNSSECOK)
+    if(pw.getHeader()->cd || edo.d_Z & EDNSOpts::DNSSECOK) {
+      g_stats.dnssecQueries++;
       sr.d_doDNSSEC=true;
+    }
 
     bool tracedQuery=false; // we could consider letting Lua know about this too
     bool variableAnswer = false;
@@ -856,7 +858,6 @@ void startDoResolve(void *p)
 	pw.commit();
     }
   sendit:;
-
 
     g_rs.submitResponse(dc->d_mdp.d_qtype, packet.size(), !dc->d_tcp);
     updateResponseStats(res, dc->d_remote, packet.size(), &dc->d_mdp.d_qname, dc->d_mdp.d_qtype);

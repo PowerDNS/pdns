@@ -27,6 +27,7 @@ public:
   bool getResponsePacket(unsigned int tag, const std::string& queryPacket, time_t now, std::string* responsePacket, uint32_t* age);
   void insertResponsePacket(unsigned int tag, const DNSName& qname, uint16_t qtype, const std::string& queryPacket, const std::string& responsePacket, time_t now, uint32_t ttd);
   void doPruneTo(unsigned int maxSize=250000);
+  uint64_t doDump(int fd);
   int doWipePacketCache(const DNSName& name, uint16_t qtype=0xffff, bool subtree=false);
   
   void prune();

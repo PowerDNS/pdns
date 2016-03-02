@@ -508,6 +508,7 @@ uint16_t DNSKEYRecordContent::getTag()
 
 bool getEDNSOpts(const MOADNSParser& mdp, EDNSOpts* eo)
 {
+  eo->d_Z=0;
   if(mdp.d_header.arcount && !mdp.d_answers.empty()) {
     for(const MOADNSParser::answers_t::value_type& val :  mdp.d_answers) {
       if(val.first.d_place == DNSResourceRecord::ADDITIONAL && val.first.d_type == QType::OPT) {

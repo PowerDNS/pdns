@@ -175,7 +175,7 @@ static uint64_t dumpNegCache(SyncRes::negcache_t& negcache, int fd)
 
 static uint64_t* pleaseDump(int fd)
 {
-  return new uint64_t(t_RC->doDump(fd) + dumpNegCache(t_sstorage->negcache, fd));
+  return new uint64_t(t_RC->doDump(fd) + dumpNegCache(t_sstorage->negcache, fd) + t_packetCache->doDump(fd));
 }
 
 static uint64_t* pleaseDumpNSSpeeds(int fd)
@@ -624,6 +624,7 @@ RecursorControlParser::RecursorControlParser()
 
   addGetStat("edns-ping-matches", &g_stats.ednsPingMatches);
   addGetStat("edns-ping-mismatches", &g_stats.ednsPingMismatches);
+  addGetStat("dnssec-queries", &g_stats.dnssecQueries);
 
   addGetStat("noping-outqueries", &g_stats.noPingOutQueries);
   addGetStat("noedns-outqueries", &g_stats.noEdnsOutQueries);
