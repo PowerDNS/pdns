@@ -175,7 +175,7 @@ static uint64_t dumpNegCache(SyncRes::negcache_t& negcache, int fd)
 
 static uint64_t* pleaseDump(int fd)
 {
-  return new uint64_t(t_RC->doDump(fd) + dumpNegCache(t_sstorage->negcache, fd));
+  return new uint64_t(t_RC->doDump(fd) + dumpNegCache(t_sstorage->negcache, fd) + t_packetCache->doDump(fd));
 }
 
 static uint64_t* pleaseDumpNSSpeeds(int fd)
