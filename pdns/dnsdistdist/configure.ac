@@ -1,4 +1,4 @@
-AC_INIT([dnsdist], m4_esyscmd_s(build-aux/gen-version))
+AC_INIT([dnsdist], m4_esyscmd(build-aux/gen-version))
 AM_INIT_AUTOMAKE([foreign dist-bzip2 parallel-tests 1.11 subdir-objects])
 AM_SILENT_RULES([yes])
 AC_CONFIG_MACRO_DIR([m4])
