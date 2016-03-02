@@ -1211,6 +1211,7 @@ void AuthWebServer::webThread()
       d_ws->registerApiHandler("/api/v1/servers/localhost/zones", &apiServerZones);
       d_ws->registerApiHandler("/api/v1/servers/localhost", &apiServerDetail);
       d_ws->registerApiHandler("/api/v1/servers", &apiServer);
+      d_ws->registerApiHandler("/api", &apiDiscovery);
     }
     d_ws->registerWebHandler("/style.css", boost::bind(&AuthWebServer::cssfunction, this, _1, _2));
     d_ws->registerWebHandler("/", boost::bind(&AuthWebServer::indexfunction, this, _1, _2));
