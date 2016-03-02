@@ -197,10 +197,17 @@ uint32_t DNSDistPacketCache::getKey(const DNSName& qname, uint16_t consumed, con
 {
   uint32_t result = 0;
   /* skip the query ID */
+  if (packetLen < sizeof(dnsheader))
+    throw std::range_error("Computing packet cache key for an invalid packet size");
   result = burtle(packet + 2, sizeof(dnsheader) - 2, result);
   string lc(qname.toDNSStringLC());
   result = burtle((const unsigned char*) lc.c_str(), lc.length(), result);
-  result = burtle(packet + sizeof(dnsheader) + consumed, packetLen - (sizeof(dnsheader) + consumed), result);
+  if (packetLen < sizeof(dnsheader) + consumed) {
+    throw std::range_error("Computing packet cache key for an invalid packet");
+  }
+  if (packetLen > ((sizeof(dnsheader) + consumed))) {
+    result = burtle(packet + sizeof(dnsheader) + consumed, packetLen - (sizeof(dnsheader) + consumed), result);
+  }
   result = burtle((const unsigned char*) &tcp, sizeof(tcp), result);
   return result;
 }
