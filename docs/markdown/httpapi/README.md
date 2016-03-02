@@ -39,7 +39,7 @@ After restarting `pdns_server`, the following examples should start working:
     curl -H 'X-API-Key: changeme' http://127.0.0.1:8081/api/v1/servers/localhost/zones/example.org. | jq .
     
     # Add a new record to the new zone (would replace any existing test.example.org/A records)
-    curl -X PATCH --data '{"rrsets": [ {"name": "test.example.org.", "type": "A", "changetype": "REPLACE", "records": [ {"content": "192.0.5.4", "disabled": false, "name": "test.example.org.", "ttl": 86400, "type": "A" } ] } ] }' -H 'X-API-Key: changeme' http://127.0.0.1:8081/api/v1/servers/localhost/zones/example.org. | jq .
+    curl -X PATCH --data '{"rrsets": [ {"name": "test.example.org.", "type": "A", "ttl": 86400, "changetype": "REPLACE", "records": [ {"content": "192.0.5.4", "disabled": false } ] } ] }' -H 'X-API-Key: changeme' http://127.0.0.1:8081/api/v1/servers/localhost/zones/example.org. | jq .
 
     # Combined replacement of multiple RRsets
     curl -X PATCH --data '{"rrsets": [
