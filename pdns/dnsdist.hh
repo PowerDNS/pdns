@@ -432,7 +432,7 @@ void removeServerFromPool(pools_t& pools, const string& poolName, std::shared_pt
 
 struct CarbonConfig
 {
-  ComboAddress server{"0.0.0.0", 0};
+  vector<ComboAddress> servers;
   std::string ourname;
   unsigned int interval{30};
 };
