@@ -48,12 +48,20 @@ Server for example is often mentioned.
 :    Load configuration from *FILE*.
 
 --check-config
-:    Test the configuration file (which may be set with **--config** or **-c**)
+:    Test the configuration file (which may be set with **--config** or **-C**)
      for errors. dnsdist will show the errors and exit with a non-zero exit-code
      when errors are found.
 
--c,--client
-:    Operate as a client, connect to dnsdist.
+-c,--client [*ADDRESS*[:*PORT*]]
+:    Operate as a client, connect to dnsdist. This will read the dnsdist configuration
+     for the **controlSocket** statement and connect to it. When *ADDRESS* (with
+     optional *PORT*) is set, dnsdist will connect to that instead.
+
+-k,--setkey *KEY*
+:    When operating as a client(**-c**, **--client**), use *KEY* as shared secret
+     to connect to dnsdist. This should be the same key that is used on the
+     server (set with **setKey()**). Note that this will leak the key into your
+     shell's history. Only available when dnsdist is compiled with libsodium support.
 
 -d,--daemon
 :    Operate as a daemon.

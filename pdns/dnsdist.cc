@@ -1201,6 +1201,9 @@ struct
   string pidfile;
   string command;
   string config;
+#ifdef HAVE_LIBSODIUM
+  string setKey;
+#endif
   string uid;
   string gid;
 } g_cmdLine;
@@ -1234,6 +1237,7 @@ try
   }
   
 #endif
+  ComboAddress clientAddress = ComboAddress();
   g_cmdLine.config=SYSCONFDIR "/dnsdist.conf";
   struct option longopts[]={ 
     {"acl", required_argument, 0, 'a'},
@@ -1242,6 +1246,9 @@ try
     {"execute", required_argument, 0, 'e'},
     {"client", 0, 0, 'c'},
     {"gid",  required_argument, 0, 'g'},
+#ifdef HAVE_LIBSODIUM
+    {"setkey",  required_argument, 0, 'k'},
+#endif
     {"local",  required_argument, 0, 'l'},
     {"daemon", 0, 0, 'd'},
     {"pidfile",  required_argument, 0, 'p'},
@@ -1255,7 +1262,11 @@ try
   int longindex=0;
   string optstring;
   for(;;) {
+#ifdef HAVE_LIBSODIUM
+    int c=getopt_long(argc, argv, "a:hcde:C:k:l:vp:g:u:V", longopts, &longindex);
+#else
     int c=getopt_long(argc, argv, "a:hcde:C:l:vp:g:u:V", longopts, &longindex);
+#endif
     if(c==-1)
       break;
     switch(c) {
@@ -1280,13 +1291,20 @@ try
     case 'h':
       cout<<"dnsdist "<<VERSION<<endl;
       cout<<endl;
-      cout<<"Syntax: dnsdist [-C,--config file] [-c,--client] [-d,--daemon]\n";
+      cout<<"Syntax: dnsdist [-C,--config file] [-c,--client [IP[:PORT]]] [-d,--daemon]\n";
       cout<<"[-p,--pidfile file] [-e,--execute cmd] [-h,--help] [-l,--local addr]\n";
       cout<<"[-v,--verbose]\n";
       cout<<"\n";
       cout<<"-a,--acl netmask      Add this netmask to the ACL\n";
       cout<<"-C,--config file      Load configuration from 'file'\n";
-      cout<<"-c,--client           Operate as a client, connect to dnsdist\n";
+      cout<<"-c,--client           Operate as a client, connect to dnsdist. This reads\n";
+      cout<<"                      controlSocket from your configuration file, but also\n";
+      cout<<"                      accepts an IP:PORT argument\n";
+#ifdef HAVE_LIBSODIUM
+      cout<<"-k,--setkey KEY       Use KEY for encrypted communication to dnsdist. This\n";
+      cout<<"                      is similar to setting setKey in the configuration file.\n";
+      cout<<"                      NOTE: this will leak this key in your shell's history!\n";
+#endif
       cout<<"-d,--daemon           Operate as a daemon\n";
       cout<<"-e,--execute cmd      Connect to dnsdist and execute 'cmd'\n";
       cout<<"-g,--gid gid          Change the process group ID after binding sockets\n";
@@ -1304,6 +1322,14 @@ try
       optstring=optarg;
       g_ACL.modify([optstring](NetmaskGroup& nmg) { nmg.addMask(optstring); });
       break;
+#ifdef HAVE_LIBSODIUM
+    case 'k':
+      if (B64Decode(string(optarg), g_cmdLine.setKey) < 0) {
+        cerr<<"Unable to decode key '"<<optarg<<"'."<<endl;
+        exit(EXIT_FAILURE);
+      }
+      break;
+#endif
     case 'l':
       g_cmdLine.locals.push_back(trim_copy(string(optarg)));
       break;
@@ -1328,7 +1354,11 @@ try
   argc-=optind;
   argv+=optind;
   for(auto p = argv; *p; ++p) {
-    g_cmdLine.remotes.push_back(*p);
+    if(g_cmdLine.beClient) {
+      clientAddress = ComboAddress(*p, 5199);
+    } else {
+      g_cmdLine.remotes.push_back(*p);
+    }
   }
 
   ServerPolicy leastOutstandingPol{"leastOutstanding", leastOutstanding};
@@ -1336,6 +1366,12 @@ try
   g_policy.setState(leastOutstandingPol);
   if(g_cmdLine.beClient || !g_cmdLine.command.empty()) {
     setupLua(true, g_cmdLine.config);
+    if (clientAddress != ComboAddress())
+      g_serverControl = clientAddress;
+#ifdef HAVE_LIBSODIUM
+    if (!g_cmdLine.setKey.empty())
+      g_key = g_cmdLine.setKey;
+#endif
     doClient(g_serverControl, g_cmdLine.command);
     _exit(EXIT_SUCCESS);
   }
