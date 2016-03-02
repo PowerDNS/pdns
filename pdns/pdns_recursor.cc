@@ -1949,11 +1949,12 @@ void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
   }
   else {
     try {
-      pident.domain=DNSName(data, len, 12, false, &pident.type); // don't copy this from above - we need to do the actual read
+      if(len > 12)
+        pident.domain=DNSName(data, len, 12, false, &pident.type); // don't copy this from above - we need to do the actual read
     }
     catch(std::exception& e) {
       g_stats.serverParseError++; // won't be fed to lwres.cc, so we have to increment
-      L<<Logger::Warning<<"Error in packet from "<< fromaddr.toStringWithPort() << ": "<<e.what() << endl;
+      L<<Logger::Warning<<"Error in packet from remote nameserver "<< fromaddr.toStringWithPort() << ": "<<e.what() << endl;
       return;
     }
   }
