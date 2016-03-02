@@ -872,14 +872,13 @@ void startDoResolve(void *p)
         msgh.msg_control=NULL;
       if(sendmsg(dc->d_socket, &msgh, 0) < 0 && g_logCommonErrors) 
         L<<Logger::Warning<<"Sending UDP reply to client "<<dc->d_remote.toStringWithPort()<<" failed with: "<<strerror(errno)<<endl;
-
       if(!SyncRes::s_nopacketcache && !variableAnswer && !sr.wasVariable() ) {
-        t_packetCache->insertResponsePacket(dc->d_tag, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_query, string((const char*)&*packet.begin(), packet.size()),
+
+        t_packetCache->insertResponsePacket(dc->d_tag, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_query, 
+                                            string((const char*)&*packet.begin(), packet.size()),
                                             g_now.tv_sec,
-                                            min(minTTL,
-                                                (pw.getHeader()->rcode == RCode::ServFail) ? SyncRes::s_packetcacheservfailttl : SyncRes::s_packetcachettl
-                                            )
-        );
+                                            pw.getHeader()->rcode == RCode::ServFail ? SyncRes::s_packetcacheservfailttl :
+                                            min(minTTL,SyncRes::s_packetcachettl));
       }
       //      else cerr<<"Not putting in packet cache: "<<sr.wasVariable()<<endl;
     }
@@ -1723,10 +1722,12 @@ void handlePipeRequest(int fd, FDMultiplexer::funcparam_t& var)
     resp = tmsg->func();
   }
   catch(std::exception& e) {
-    L<<Logger::Error<<"PIPE function we executed created exception: "<<e.what()<<endl; // but what if they wanted an answer.. we send 0
+    if(g_logCommonErrors)
+      L<<Logger::Error<<"PIPE function we executed created exception: "<<e.what()<<endl; // but what if they wanted an answer.. we send 0
   }
   catch(PDNSException& e) {
-    L<<Logger::Error<<"PIPE function we executed created PDNS exception: "<<e.reason<<endl; // but what if they wanted an answer.. we send 0
+    if(g_logCommonErrors)
+      L<<Logger::Error<<"PIPE function we executed created PDNS exception: "<<e.reason<<endl; // but what if they wanted an answer.. we send 0
   }
   if(tmsg->wantAnswer)
     if(write(g_pipes[t_id].writeFromThread, &resp, sizeof(resp)) != sizeof(resp))
@@ -1948,11 +1949,12 @@ void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
   }
   else {
     try {
-      pident.domain=DNSName(data, len, 12, false, &pident.type); // don't copy this from above - we need to do the actual read
+      if(len > 12)
+        pident.domain=DNSName(data, len, 12, false, &pident.type); // don't copy this from above - we need to do the actual read
     }
     catch(std::exception& e) {
       g_stats.serverParseError++; // won't be fed to lwres.cc, so we have to increment
-      L<<Logger::Warning<<"Error in packet from "<< fromaddr.toStringWithPort() << ": "<<e.what() << endl;
+      L<<Logger::Warning<<"Error in packet from remote nameserver "<< fromaddr.toStringWithPort() << ": "<<e.what() << endl;
       return;
     }
   }

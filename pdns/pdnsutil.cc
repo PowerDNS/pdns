@@ -2069,10 +2069,10 @@ seedRandom(::arg()["entropy-source"]);
       return 0;
     }
     DNSName zone(cmds[1]);
-    unsigned int id=pdns_stou(cmds[2]);
+    unsigned int id=atoi(cmds[2].c_str()); // if you make this pdns_stou, the error gets worse
     if(!id)
     {
-      cerr<<"Invalid KEY-ID"<<endl;
+      cerr<<"Invalid KEY-ID '"<<cmds[2]<<"'"<<endl;
       return 1;
     }
     if (!dk.activateKey(zone, id)) {
