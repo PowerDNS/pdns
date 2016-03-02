@@ -67,7 +67,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
   pw.getHeader()->id=dns_random(0xffff);
   
   string ping;
-
+  bool weWantEDNSSubnet=false;
   if(EDNS0Level && !doTCP) {
     DNSPacketWriter::optvect_t opts;
     if(srcmask) {
@@ -76,6 +76,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
       //      cout<<"Adding request mask: "<<eo.source.toString()<<endl;
       opts.push_back(make_pair(8, makeEDNSSubnetOptsString(eo)));
       srcmask=boost::optional<Netmask>(); // this is also our return value
+      weWantEDNSSubnet=true;
     }
 
     pw.addOpt(g_outgoingEDNSBufsize, 0, g_dnssecmode == DNSSECMode::Off ? 0 : EDNSOpts::DNSSECOK, opts); 
@@ -186,16 +187,17 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
     if(EDNS0Level > 0 && getEDNSOpts(mdp, &edo)) {
       lwr->d_haveEDNS = true;
 
-      for(const auto& opt : edo.d_options) {
-	if(opt.first==8) {
-	  EDNSSubnetOpts reso;
-	  if(getEDNSSubnetOptsFromString(opt.second, &reso)) {
-	    //	    cerr<<"EDNS Subnet response: "<<reso.source.toString()<<", scope: "<<reso.scope.toString()<<", family = "<<reso.scope.getNetwork().sin4.sin_family<<endl;
-	    if(reso.scope.getBits())
-	      srcmask = reso.scope;
-	  }
-	}
-
+      if(weWantEDNSSubnet) {
+        for(const auto& opt : edo.d_options) {
+          if(opt.first==8) {
+            EDNSSubnetOpts reso;
+            if(getEDNSSubnetOptsFromString(opt.second, &reso)) {
+              //	    cerr<<"EDNS Subnet response: "<<reso.source.toString()<<", scope: "<<reso.scope.toString()<<", family = "<<reso.scope.getNetwork().sin4.sin_family<<endl;
+              if(reso.scope.getBits())
+                srcmask = reso.scope;
+            }
+          }
+        }
       }
     }
         
