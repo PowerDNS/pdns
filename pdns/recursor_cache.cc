@@ -279,7 +279,7 @@ uint64_t MemRecursorCache::doDump(int fd)
     return 0;
   }
   fprintf(fp, "; main record cache dump from thread follows\n;\n");
-  auto& sidx=d_cache.get<0>();
+  const auto& sidx=d_cache.get<1>();
 
   uint64_t count=0;
   time_t now=time(0);
