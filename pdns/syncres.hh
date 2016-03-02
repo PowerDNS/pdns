@@ -596,6 +596,7 @@ struct RecursorStats
   uint64_t noPacketError;
   uint64_t ignoredCount;
   time_t startupTime;
+  uint64_t dnssecQueries;
   unsigned int maxMThreadStackUsage;
 };
 
