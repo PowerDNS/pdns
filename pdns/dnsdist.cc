@@ -62,6 +62,7 @@ struct DNSDistStats g_stats;
 uint16_t g_maxOutstanding{10240};
 bool g_console;
 bool g_verboseHealthChecks{false};
+uint32_t g_staleCacheEntriesTTL{0};
 
 GlobalStateHolder<NetmaskGroup> g_ACL;
 string g_outputBuffer;
@@ -818,13 +819,8 @@ try
 	packetCache = serverPool->packetCache;
       }
 
-      if(!ss) {
-	g_stats.noPolicy++;
-	continue;
-      }
-
       bool ednsAdded = false;
-      if (ss->useECS) {
+      if (ss && ss->useECS) {
         handleEDNSClientSubnet(query, dq.size, consumed, &dq.len, largerQuery, &(ednsAdded), remote);
       }
 
@@ -832,7 +828,8 @@ try
       if (packetCache && !dq.skipCache) {
         char cachedResponse[4096];
         uint16_t cachedResponseSize = sizeof cachedResponse;
-        if (packetCache->get((unsigned char*) query, dq.len, *dq.qname, dq.qtype, dq.qclass, consumed, dh->id, cachedResponse, &cachedResponseSize, false, &cacheKey)) {
+        uint32_t allowExpired = ss ? 0 : g_staleCacheEntriesTTL;
+        if (packetCache->get(dq, consumed, dh->id, cachedResponse, &cachedResponseSize, &cacheKey, allowExpired)) {
           ComboAddress dest;
           if(HarvestDestinationAddress(&msgh, &dest))
             sendfromto(cs->udpFD, cachedResponse, cachedResponseSize, 0, dest, remote);
@@ -844,6 +841,11 @@ try
           continue;
         }
         g_stats.cacheMisses++;
+      }
+
+      if(!ss) {
+	g_stats.noPolicy++;
+	continue;
       }
 
       ss->queries++;

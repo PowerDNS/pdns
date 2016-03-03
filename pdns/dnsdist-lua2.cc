@@ -531,8 +531,8 @@ void moreLua(bool client)
     });
     g_lua.registerFunction("getCache", &ServerPool::getCache);
 
-    g_lua.writeFunction("newPacketCache", [client](size_t maxEntries, boost::optional<uint32_t> maxTTL, boost::optional<uint32_t> minTTL, boost::optional<uint32_t> servFailTTL) {
-        return std::make_shared<DNSDistPacketCache>(maxEntries, maxTTL ? *maxTTL : 86400, minTTL ? *minTTL : 60, servFailTTL ? *servFailTTL : 60);
+    g_lua.writeFunction("newPacketCache", [client](size_t maxEntries, boost::optional<uint32_t> maxTTL, boost::optional<uint32_t> minTTL, boost::optional<uint32_t> servFailTTL, boost::optional<uint32_t> staleTTL) {
+        return std::make_shared<DNSDistPacketCache>(maxEntries, maxTTL ? *maxTTL : 86400, minTTL ? *minTTL : 60, servFailTTL ? *servFailTTL : 60, staleTTL ? *staleTTL : 60);
       });
     g_lua.registerFunction("toString", &DNSDistPacketCache::toString);
     g_lua.registerFunction("isFull", &DNSDistPacketCache::isFull);
@@ -561,4 +561,5 @@ void moreLua(bool client)
       });
 
     g_lua.writeFunction("setVerboseHealthChecks", [](bool verbose) { g_verboseHealthChecks=verbose; });
+    g_lua.writeFunction("setStaleCacheEntriesTTL", [](uint32_t ttl) { g_staleCacheEntriesTTL = ttl; });
 }
