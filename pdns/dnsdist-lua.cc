@@ -985,7 +985,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 					 boost::optional<int> interval) {
                         setLuaSideEffect();
 			auto ours = g_carbon.getCopy();
-			ours.server=ComboAddress(address, 2003);
+			ours.servers.push_back(ComboAddress(address, 2003));
 			if(ourName)
 			  ours.ourname=*ourName;
 			if(interval)
