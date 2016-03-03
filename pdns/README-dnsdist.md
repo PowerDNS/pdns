@@ -880,7 +880,7 @@ Here are all functions:
  * Practical
     * `shutdown()`: shut down `dnsdist`
     * quit or ^D: exit the console
-    * `webserver(address, password)`: launch a webserver with stats on that address with that password
+    * `webserver(address, password [, apiKey])`: launch a webserver with stats on that address with that password
  * ACL related:
     * `addACL(netmask)`: add to the ACL set who can use this server
     * `setACL({netmask, netmask})`: replace the ACL set with these netmasks. Use `setACL({})` to reset the list, meaning no one can use us

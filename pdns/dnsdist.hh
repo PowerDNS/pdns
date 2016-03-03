@@ -489,7 +489,7 @@ std::shared_ptr<DownstreamState> roundrobin(const NumberedServerVector& servers,
 int getEDNSZ(const char* packet, unsigned int len);
 void spoofResponseFromString(DNSQuestion& dq, const string& spoofContent);
 uint16_t getEDNSOptionCode(const char * packet, size_t len);
-void dnsdistWebserverThread(int sock, const ComboAddress& local, const string& password);
+void dnsdistWebserverThread(int sock, const ComboAddress& local, const string& password, const string& apiKey);
 bool getMsgLen32(int fd, uint32_t* len);
 bool putMsgLen32(int fd, uint32_t len);
 void* tcpAcceptorThread(void* p);
