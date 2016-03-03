@@ -81,8 +81,8 @@ void DNSName::packetParser(const char* qpos, int len, int offset, bool uncompres
   if (offset >= len)
     throw std::range_error("Trying to read past the end of the buffer ("+std::to_string(offset)+ " >= "+std::to_string(len)+")");
 
-  pos += offset;
   const unsigned char* end = pos + len;
+  pos += offset;
   while((labellen=*pos++) && pos < end) { // "scan and copy"
     if(labellen & 0xc0) {
       if(!uncompress)

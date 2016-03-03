@@ -256,6 +256,15 @@ BOOST_AUTO_TEST_CASE(test_PacketParse) {
   DNSPacketWriter dpw1(packet, DNSName("."), QType::AAAA);
   DNSName p((char*)&packet[0], packet.size(), 12, false);
   BOOST_CHECK_EQUAL(p, root);
+  unsigned char* buffer=&packet[0];
+  /* set invalid label len:
+     - packet.size() == 17 (sizeof(dnsheader) + 1 + 2 + 2)
+     - label len < packet.size() but
+     - offset is 12, label len of 15 should be rejected
+     because offset + 15 >= packet.size()
+  */
+  buffer[sizeof(dnsheader)] = 15;
+  BOOST_CHECK_THROW(DNSName((char*)&packet[0], packet.size(), 12, false), std::range_error);
 }
 
 
