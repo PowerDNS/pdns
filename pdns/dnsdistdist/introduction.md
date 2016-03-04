@@ -46,10 +46,10 @@ Or add them to the configuration file like this:
 ```
 setLocal("130.161.252.29:53")
 setACL("130.161.0.0/16") 
-addServer("8.8.8.8")
-addServer("208.67.222.222")
-addServer("2620:0:ccc::2")
-addServer("2620:0:0ccd::2")
+newServer("8.8.8.8")
+newServer("208.67.222.222")
+newServer("2620:0:ccc::2")
+newServer("2620:0:0ccd::2")
 ```
 
 In the default environment, put this file in `/etc/dnsdist/dnsdist.conf` (or
