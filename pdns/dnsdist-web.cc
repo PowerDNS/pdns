@@ -14,7 +14,7 @@
 #include "base64.hh"
 
 
-static bool compareAuthorization(YaHTTP::Request& req, const string &expected_password)
+static bool compareAuthorization(YaHTTP::Request& req, const string &expected_password, const string& expectedApiKey)
 {
   // validate password
   YaHTTP::strstr_map_t::iterator header = req.headers.find("authorization");
@@ -31,6 +31,17 @@ static bool compareAuthorization(YaHTTP::Request& req, const string &expected_pa
     // this gets rid of terminating zeros
     auth_ok = (cparts.size()==2 && (0==strcmp(cparts[1].c_str(), expected_password.c_str())));
   }
+  if (!auth_ok && !expectedApiKey.empty()) {
+    /* if this is a request for the API,
+       check if the API key is correct */
+    if (req.url.path=="/jsonstat" ||
+        req.url.path=="/api/v1/servers/localhost") {
+      header = req.headers.find("x-api-key");
+      if (header != req.headers.end()) {
+        auth_ok = (0==strcmp(header->second.c_str(), expectedApiKey.c_str()));
+      }
+    }
+  }
   return auth_ok;
 }
 
@@ -41,7 +52,7 @@ static void handleCORS(YaHTTP::Request& req, YaHTTP::Response& resp)
     if (req.method == "OPTIONS") {
       /* Pre-flight request */
       resp.headers["Access-Control-Allow-Methods"] = "GET";
-      resp.headers["Access-Control-Allow-Headers"] = "Authorization";
+      resp.headers["Access-Control-Allow-Headers"] = "Authorization, X-API-Key";
     }
 
     resp.headers["Access-Control-Allow-Origin"] = origin->second;
@@ -49,7 +60,7 @@ static void handleCORS(YaHTTP::Request& req, YaHTTP::Response& resp)
   }
 }
 
-static void connectionThread(int sock, ComboAddress remote, string password)
+static void connectionThread(int sock, ComboAddress remote, string password, string apiKey)
 {
   using namespace json11;
   vinfolog("Webserver handling connection from %s", remote.toStringWithPort());
@@ -81,13 +92,15 @@ static void connectionThread(int sock, ComboAddress remote, string password)
     resp.headers["X-Permitted-Cross-Domain-Policies"] = "none";
     resp.headers["X-XSS-Protection"] = "1; mode=block";
     resp.headers["Content-Security-Policy"] = "default-src 'self'; style-src 'self' 'unsafe-inline'";
+    /* no need to send back the API key if any */
+    resp.headers.erase("X-API-Key");
 
     if(req.method == "OPTIONS") {
       /* the OPTIONS method should not require auth, otherwise it breaks CORS */
       handleCORS(req, resp);
       resp.status=200;
     }
-    else if (!compareAuthorization(req, password)) {
+    else if (!compareAuthorization(req, password, apiKey)) {
       YaHTTP::strstr_map_t::iterator header = req.headers.find("authorization");
       if (header != req.headers.end())
         errlog("HTTP Request \"%s\" from %s: Web Authentication failed", req.url.path, remote.toStringWithPort());
@@ -261,7 +274,7 @@ static void connectionThread(int sock, ComboAddress remote, string password)
 	fclose(fp);
     }
 }
-void dnsdistWebserverThread(int sock, const ComboAddress& local, const std::string& password)
+void dnsdistWebserverThread(int sock, const ComboAddress& local, const std::string& password, const std::string& apiKey)
 {
   warnlog("Webserver launched on %s", local.toStringWithPort());
   for(;;) {
@@ -269,7 +282,7 @@ void dnsdistWebserverThread(int sock, const ComboAddress& local, const std::stri
       ComboAddress remote(local);
       int fd = SAccept(sock, remote);
       vinfolog("Got connection from %s", remote.toStringWithPort());
-      std::thread t(connectionThread, fd, remote, password);
+      std::thread t(connectionThread, fd, remote, password, apiKey);
       t.detach();
     }
     catch(std::exception& e) {
