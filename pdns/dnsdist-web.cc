@@ -195,6 +195,21 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
 	servers.push_back(server);
       }
 
+      Json::array frontends;
+      num=0;
+      for(const auto& front : g_frontends) {
+        if (front->udpFD == -1 && front->tcpFD == -1)
+          continue;
+        Json::object frontend{
+          { "id", num++ },
+          { "address", front->local.toStringWithPort() },
+          { "udp", front->udpFD >= 0 },
+          { "tcp", front->tcpFD >= 0 },
+          { "queries", (double) front->queries.load() }
+        };
+        frontends.push_back(frontend);
+      }
+
       Json::array rules;
       auto localRules = g_rulactions.getCopy();
       num=0;
@@ -228,6 +243,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
 	{ "daemon_type", "dnsdist" },
 	{ "version", VERSION},
 	{ "servers", servers},
+	{ "frontends", frontends },
 	{ "rules", rules},
 	{ "acl", acl},
 	{ "local", localaddresses}
