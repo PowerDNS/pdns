@@ -114,7 +114,7 @@ void apiServerConfig(HttpRequest* req, HttpResponse* resp) {
   string value;
   Json::array doc;
   for(const string& item : items) {
-    if(item.find("password") != string::npos)
+    if(item.find("password") != string::npos || item.find("api-key") != string::npos)
       value = "***";
     else
       value = ::arg()[item];
