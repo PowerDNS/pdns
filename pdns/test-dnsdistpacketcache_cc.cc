@@ -3,9 +3,10 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include "dnsdist.hh"
 #include "iputils.hh"
-#include "dnsdist-cache.hh"
 #include "dnswriter.hh"
+#include "dnsdist-cache.hh"
 
 BOOST_AUTO_TEST_SUITE(dnsdistpacketcache_cc)
 
@@ -16,6 +17,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
 
   size_t counter=0;
   size_t skipped=0;
+  ComboAddress remote;
   try {
     for(counter = 0; counter < 100000; ++counter) {
       DNSName a=DNSName("hello ")+DNSName(std::to_string(counter));
@@ -39,12 +41,13 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
       char responseBuf[4096];
       uint16_t responseBufSize = sizeof(responseBuf);
       uint32_t key = 0;
-      bool found = PC.get((const unsigned char*) query.data(), query.size(), a, QType::A, QClass::IN, a.wirelength(), 0, responseBuf, &responseBufSize, false, &key);
+      DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, (struct dnsheader*) query.data(), query.size(), query.size(), false);
+      bool found = PC.get(dq, a.wirelength(), 0, responseBuf, &responseBufSize, &key);
       BOOST_CHECK_EQUAL(found, false);
 
       PC.insert(key, a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false);
 
-      found = PC.get((const unsigned char*) query.data(), query.size(), a, QType::A, QClass::IN, a.wirelength(), pwR.getHeader()->id, responseBuf, &responseBufSize, false, &key, true);
+      found = PC.get(dq, a.wirelength(), pwR.getHeader()->id, responseBuf, &responseBufSize, &key, 0, true);
       if (found == true) {
         BOOST_CHECK_EQUAL(responseBufSize, responseLen);
         int match = memcmp(responseBuf, response.data(), responseLen);
@@ -68,9 +71,10 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
       char responseBuf[4096];
       uint16_t responseBufSize = sizeof(responseBuf);
       uint32_t key = 0;
-      bool found = PC.get((const unsigned char*) query.data(), query.size(), a, QType::A, QClass::IN, a.wirelength(), 0, responseBuf, &responseBufSize, false, &key);
+      DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, (struct dnsheader*) query.data(), query.size(), query.size(), false);
+      bool found = PC.get(dq, a.wirelength(), 0, responseBuf, &responseBufSize, &key);
       if (found == true) {
-        PC.expunge(a);
+        PC.expungeByName(a);
         deleted++;
       }
     }
@@ -88,7 +92,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
       uint32_t key = 0;
       char response[4096];
       uint16_t responseSize = sizeof(response);
-      if(PC.get(query.data(), len, a, QType::A, QClass::IN, a.wirelength(), pwQ.getHeader()->id, response, &responseSize, false, &key)) {
+      DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, (struct dnsheader*) query.data(), len, query.size(), false);
+      if(PC.get(dq, a.wirelength(), pwQ.getHeader()->id, response, &responseSize, &key)) {
 	matches++;
       }
     }
@@ -105,6 +110,7 @@ static DNSDistPacketCache PC(500000);
 static void *threadMangler(void* a)
 {
   try {
+    ComboAddress remote;
     unsigned int offset=(unsigned int)(unsigned long)a;
     for(unsigned int counter=0; counter < 100000; ++counter) {
       DNSName a=DNSName("hello ")+DNSName(std::to_string(counter+offset));
@@ -126,7 +132,8 @@ static void *threadMangler(void* a)
       char responseBuf[4096];
       uint16_t responseBufSize = sizeof(responseBuf);
       uint32_t key = 0;
-      PC.get((const unsigned char*) query.data(), query.size(), a, QType::A, QClass::IN, a.wirelength(), 0, responseBuf, &responseBufSize, false, &key);
+      DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, (struct dnsheader*) query.data(), query.size(), query.size(), false);
+      PC.get(dq, a.wirelength(), 0, responseBuf, &responseBufSize, &key);
 
       PC.insert(key, a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false);
     }
@@ -146,6 +153,7 @@ static void *threadReader(void* a)
   {
     unsigned int offset=(unsigned int)(unsigned long)a;
     vector<DNSResourceRecord> entry;
+    ComboAddress remote;
     for(unsigned int counter=0; counter < 100000; ++counter) {
       DNSName a=DNSName("hello ")+DNSName(std::to_string(counter+offset));
       vector<uint8_t> query;
@@ -155,7 +163,8 @@ static void *threadReader(void* a)
       char responseBuf[4096];
       uint16_t responseBufSize = sizeof(responseBuf);
       uint32_t key = 0;
-      bool found = PC.get((const unsigned char*) query.data(), query.size(), a, QType::A, QClass::IN, a.wirelength(), 0, responseBuf, &responseBufSize, false, &key);
+      DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, (struct dnsheader*) query.data(), query.size(), query.size(), false);
+      bool found = PC.get(dq, a.wirelength(), 0, responseBuf, &responseBufSize, &key);
       if (!found) {
 	g_missing++;
       }

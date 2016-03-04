@@ -712,14 +712,56 @@ The first step is to define a cache, then to assign that cache to the chosen poo
 the default one being represented by the empty string:
 
 ```
-pc = newPacketCache(10000, 86400, 600)
+pc = newPacketCache(10000, 86400, 600, 60, 60)
 getPool(""):setCache(pc)
 ```
 
-The first parameter is the maximum number of entries stored in the cache, the
-second one, optional, is the maximum lifetime of an entry in the cache, in seconds,
-and the last one, optional too, is the minimum TTL an entry should have to be considered
-for insertion in the cache.
+The first parameter is the maximum number of entries stored in the cache, and is the
+only one required. All the others parameters are optional and in seconds.
+The second one is the maximum lifetime of an entry in the cache, the third one is
+the minimum TTL an entry should have to be considered for insertion in the cache,
+the fourth one is the TTL used for a Server Failure response. The last one is the
+TTL that will be used when a stale cache entry is returned.
+
+The `setStaleCacheEntriesTTL(n)` directive can be used to allow `dnsdist` to use
+expired entries from the cache when no backend is available. Only entries that have
+expired for less than `n` seconds will be used, and the returned TTL can be set
+when creating a new cache with `newPacketCache()`.
+
+A reference to the cache affected to a specific pool can be retrieved with:
+
+```
+getPool("poolname"):getCache()
+```
+
+Cache usage stats (hits, misses, deferred inserts and lookups, collisions)
+can be displayed by using the `printStats()` method:
+
+```
+getPool("poolname"):getCache():printStats()
+```
+
+Expired cached entries can be removed from a cache using the `purgeExpired(n)`
+method, which will remove expired entries from the cache until at least `n`
+entries remain in the cache. For example, to remove all expired entries:
+
+```
+getPool("poolname"):getCache():purgeExpired(0)
+```
+
+Specific entries can also be removed using the `expungeByName(DNSName [, qtype=ANY])`
+method.
+
+```
+getPool("poolname"):getCache():expungeByName(newDNSName("powerdns.com"), dnsdist.A)
+```
+
+Finally, the `expunge(n)` method will remove all entries until at most `n`
+entries remain in the cache:
+
+```
+getPool("poolname"):getCache():expunge(0)
+```
 
 
 Performance tuning
@@ -1032,11 +1074,12 @@ instantiate a server with additional parameters
     * `getCache()`: return the current packet cache, if any
     * `setCache(PacketCache)`: set the cache for this pool
  * PacketCache related:
-    * `expungeByName(DNSName)`: remove entries matching the supplied DNSName from the cache
+    * `expunge(n)`: remove entries from the cache, leaving at most `n` entries
+    * `expungeByName(DNSName [, qtype=ANY])`: remove entries matching the supplied DNSName and type from the cache
     * `isFull()`: return true if the cache has reached the maximum number of entries
-    * `newPacketCache(maxEntries, maxTTL=86400, minTTL=60)`: return a new PacketCache
+    * `newPacketCache(maxEntries[, maxTTL=86400, minTTL=60, servFailTTL=60, stateTTL=60])`: return a new PacketCache
     * `printStats()`: print the cache stats (hits, misses, deferred lookups and deferred inserts)
-    * `purge()`: remove entries from the cache until it the number of entries is lower than the maximum, starting with expired ones.
+    * `purgeExpired(n)`: remove expired entries from the cache until there is at most `n` entries remaining in the cache
     * `toString()`: return the number of entries in the Packet Cache, and the maximum number of entries
  * Advanced functions for writing your own policies and hooks
     * ComboAddress related:
@@ -1089,6 +1132,7 @@ instantiate a server with additional parameters
     * `setMaxTCPClientThreads(n)`: set the maximum of TCP client threads, handling TCP connections
     * `setMaxUDPOutstanding(n)`: set the maximum number of outstanding UDP queries to a given backend server. This can only be set at configuration time and defaults to 10240
     * `setCacheCleaningDelay(n)`: set the interval in seconds between two runs of the cache cleaning algorithm, removing expired entries
+    * `setStaleCacheEntriesTTL(n)`: allows using cache entries expired for at most `n` seconds when no backend available to answer for a query
  * DNSCrypt related:
     * `addDNSCryptBind("127.0.0.1:8443", "provider name", "/path/to/resolver.cert", "/path/to/resolver.key", [false]):` listen to incoming DNSCrypt queries on 127.0.0.1 port 8443, with a provider name of "provider name", using a resolver certificate and associated key stored respectively in the `resolver.cert` and `resolver.key` files. The last optional parameter sets SO_REUSEPORT when available
     * `generateDNSCryptProviderKeys("/path/to/providerPublic.key", "/path/to/providerPrivate.key"):` generate a new provider keypair

@@ -12,7 +12,8 @@ import time
 import unittest
 import dns
 import dns.message
-
+import libnacl
+import libnacl.utils
 
 class DNSDistTest(unittest.TestCase):
     """
@@ -36,6 +37,8 @@ class DNSDistTest(unittest.TestCase):
     """
     _config_params = ['_testServerPort']
     _acl = ['127.0.0.1/32']
+    _consolePort = 5199
+    _consoleKey = None
 
     @classmethod
     def startResponders(cls):
@@ -259,3 +262,40 @@ class DNSDistTest(unittest.TestCase):
 
         while not self._fromResponderQueue.empty():
             self._fromResponderQueue.get(False)
+
+    @staticmethod
+    def generateConsoleKey():
+        return libnacl.utils.salsa_key()
+
+    @classmethod
+    def _encryptConsole(cls, command, nonce):
+        if cls._consoleKey is None:
+            return command
+        return libnacl.crypto_secretbox(command, nonce, cls._consoleKey)
+
+    @classmethod
+    def _decryptConsole(cls, command, nonce):
+        if cls._consoleKey is None:
+            return command
+        return libnacl.crypto_secretbox_open(command, nonce, cls._consoleKey)
+
+    @classmethod
+    def sendConsoleCommand(cls, command, timeout=1.0):
+        ourNonce = libnacl.utils.rand_nonce()
+        theirNonce = None
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        if timeout:
+            sock.settimeout(timeout)
+
+        sock.connect(("127.0.0.1", cls._consolePort))
+        sock.send(ourNonce)
+        theirNonce = sock.recv(len(ourNonce))
+
+        msg = cls._encryptConsole(command, ourNonce)
+        sock.send(struct.pack("!I", len(msg)))
+        sock.send(msg)
+        data = sock.recv(4)
+        (responseLen,) = struct.unpack("!I", data)
+        data = sock.recv(responseLen)
+        response = cls._decryptConsole(data, theirNonce)
+        return response

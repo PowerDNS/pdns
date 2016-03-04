@@ -1,8 +1,9 @@
+#include "dnsdist.hh"
 #include "dolog.hh"
-#include "dnsdist-cache.hh"
 #include "dnsparser.hh"
+#include "dnsdist-cache.hh"
 
-DNSDistPacketCache::DNSDistPacketCache(size_t maxEntries, uint32_t maxTTL, uint32_t minTTL): d_maxEntries(maxEntries), d_maxTTL(maxTTL), d_minTTL(minTTL)
+DNSDistPacketCache::DNSDistPacketCache(size_t maxEntries, uint32_t maxTTL, uint32_t minTTL, uint32_t servFailTTL, uint32_t staleTTL): d_maxEntries(maxEntries), d_maxTTL(maxTTL), d_servFailTTL(servFailTTL), d_minTTL(minTTL), d_staleTTL(staleTTL)
 {
   pthread_rwlock_init(&d_lock, 0);
   /* we reserve maxEntries + 1 to avoid rehashing from occuring
@@ -22,17 +23,24 @@ bool DNSDistPacketCache::cachedValueMatches(const CacheValue& cachedValue, const
   return true;
 }
 
-void DNSDistPacketCache::insert(uint32_t key, const DNSName& qname, uint16_t qtype, uint16_t qclass, const char* response, uint16_t responseLen, bool tcp)
+void DNSDistPacketCache::insert(uint32_t key, const DNSName& qname, uint16_t qtype, uint16_t qclass, const char* response, uint16_t responseLen, bool tcp, bool servFail)
 {
   if (responseLen == 0)
     return;
 
-  uint32_t minTTL = getMinTTL(response, responseLen);
-  if (minTTL > d_maxTTL)
-    minTTL = d_maxTTL;
+  uint32_t minTTL;
 
-  if (minTTL < d_minTTL)
-    return;
+  if (servFail) {
+    minTTL = d_servFailTTL;
+  }
+  else {
+    minTTL = getMinTTL(response, responseLen);
+    if (minTTL > d_maxTTL)
+      minTTL = d_maxTTL;
+
+    if (minTTL < d_minTTL)
+      return;
+  }
 
   {
     TryReadLock r(&d_lock);
@@ -91,14 +99,15 @@ void DNSDistPacketCache::insert(uint32_t key, const DNSName& qname, uint16_t qty
   }
 }
 
-bool DNSDistPacketCache::get(const unsigned char* query, uint16_t queryLen, const DNSName& qname, uint16_t qtype, uint16_t qclass, uint16_t consumed, uint16_t queryId, char* response, uint16_t* responseLen, bool tcp, uint32_t* keyOut, bool skipAging)
+bool DNSDistPacketCache::get(const DNSQuestion& dq, uint16_t consumed, uint16_t queryId, char* response, uint16_t* responseLen, uint32_t* keyOut, uint32_t allowExpired, bool skipAging)
 {
-  uint32_t key = getKey(qname, consumed, query, queryLen, tcp);
+  uint32_t key = getKey(*dq.qname, consumed, (const unsigned char*)dq.dh, dq.len, dq.tcp);
   if (keyOut)
     *keyOut = key;
 
   time_t now = time(NULL);
   time_t age;
+  bool stale = false;
   {
     TryReadLock r(&d_lock);
     if (!r.gotIt()) {
@@ -114,8 +123,13 @@ bool DNSDistPacketCache::get(const unsigned char* query, uint16_t queryLen, cons
 
     const CacheValue& value = it->second;
     if (value.validity < now) {
-      d_misses++;
-      return false;
+      if ((value.validity + allowExpired) < now) {
+        d_misses++;
+        return false;
+      }
+      else {
+        stale = true;
+      }
     }
 
     if (*responseLen < value.len) {
@@ -123,33 +137,44 @@ bool DNSDistPacketCache::get(const unsigned char* query, uint16_t queryLen, cons
     }
 
     /* check for collision */
-    if (!cachedValueMatches(value, qname, qtype, qclass, tcp)) {
+    if (!cachedValueMatches(value, *dq.qname, dq.qtype, dq.qclass, dq.tcp)) {
       d_misses++;
       d_lookupCollisions++;
       return false;
     }
 
-    string dnsQName(qname.toDNSString());
+    string dnsQName(dq.qname->toDNSString());
     memcpy(response, &queryId, sizeof(queryId));
     memcpy(response + sizeof(queryId), value.value.c_str() + sizeof(queryId), sizeof(dnsheader) - sizeof(queryId));
     memcpy(response + sizeof(dnsheader), dnsQName.c_str(), dnsQName.length());
     memcpy(response + sizeof(dnsheader) + dnsQName.length(), value.value.c_str() + sizeof(dnsheader) + dnsQName.length(), value.value.length() - (sizeof(dnsheader) + dnsQName.length()));
     *responseLen = value.len;
-    age = now - value.added;
+    if (!stale) {
+      age = now - value.added;
+    }
+    else {
+      age = (value.validity - value.added) - d_staleTTL;
+    }
   }
 
-  if (!skipAging)
+  if (!skipAging) {
     ageDNSPacket(response, *responseLen, age);
+  }
+
   d_hits++;
   return true;
 }
 
-void DNSDistPacketCache::purge(size_t upTo)
+/* Remove expired entries, until the cache has at most
+   upTo entries in it.
+*/
+void DNSDistPacketCache::purgeExpired(size_t upTo)
 {
   time_t now = time(NULL);
   WriteLock w(&d_lock);
-  if (upTo <= d_map.size())
+  if (upTo >= d_map.size()) {
     return;
+  }
 
   size_t toRemove = d_map.size() - upTo;
   for(auto it = d_map.begin(); toRemove > 0 && it != d_map.end(); ) {
@@ -164,7 +189,24 @@ void DNSDistPacketCache::purge(size_t upTo)
   }
 }
 
-void DNSDistPacketCache::expunge(const DNSName& name, uint16_t qtype)
+/* Remove all entries, keeping only upTo
+   entries in the cache */
+void DNSDistPacketCache::expunge(size_t upTo)
+{
+  WriteLock w(&d_lock);
+
+  if (upTo >= d_map.size()) {
+    return;
+  }
+
+  size_t toRemove = d_map.size() - upTo;
+  auto beginIt = d_map.begin();
+  auto endIt = beginIt;
+  std::advance(endIt, toRemove);
+  d_map.erase(beginIt, endIt);
+}
+
+void DNSDistPacketCache::expungeByName(const DNSName& name, uint16_t qtype)
 {
   WriteLock w(&d_lock);
 

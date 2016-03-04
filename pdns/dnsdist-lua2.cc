@@ -531,14 +531,15 @@ void moreLua(bool client)
     });
     g_lua.registerFunction("getCache", &ServerPool::getCache);
 
-    g_lua.writeFunction("newPacketCache", [client](size_t maxEntries, boost::optional<uint32_t> maxTTL, boost::optional<uint32_t> minTTL) {
-        return std::make_shared<DNSDistPacketCache>(maxEntries, maxTTL ? *maxTTL : 86400, minTTL ? *minTTL : 60);
+    g_lua.writeFunction("newPacketCache", [client](size_t maxEntries, boost::optional<uint32_t> maxTTL, boost::optional<uint32_t> minTTL, boost::optional<uint32_t> servFailTTL, boost::optional<uint32_t> staleTTL) {
+        return std::make_shared<DNSDistPacketCache>(maxEntries, maxTTL ? *maxTTL : 86400, minTTL ? *minTTL : 60, servFailTTL ? *servFailTTL : 60, staleTTL ? *staleTTL : 60);
       });
     g_lua.registerFunction("toString", &DNSDistPacketCache::toString);
     g_lua.registerFunction("isFull", &DNSDistPacketCache::isFull);
-    g_lua.registerFunction("purge", &DNSDistPacketCache::purge);
+    g_lua.registerFunction("purgeExpired", &DNSDistPacketCache::purgeExpired);
+    g_lua.registerFunction("expunge", &DNSDistPacketCache::expunge);
     g_lua.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)(const DNSName& dname, boost::optional<uint16_t> qtype)>("expungeByName", [](std::shared_ptr<DNSDistPacketCache> cache, const DNSName& dname, boost::optional<uint16_t> qtype) {
-        cache->expunge(dname, qtype ? *qtype : QType::ANY);
+        cache->expungeByName(dname, qtype ? *qtype : QType::ANY);
       });
     g_lua.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)()>("printStats", [](const std::shared_ptr<DNSDistPacketCache> cache) {
         g_outputBuffer="Hits: " + std::to_string(cache->getHits()) + "\n";
@@ -560,4 +561,5 @@ void moreLua(bool client)
       });
 
     g_lua.writeFunction("setVerboseHealthChecks", [](bool verbose) { g_verboseHealthChecks=verbose; });
+    g_lua.writeFunction("setStaleCacheEntriesTTL", [](uint32_t ttl) { g_staleCacheEntriesTTL = ttl; });
 }

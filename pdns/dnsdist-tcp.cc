@@ -330,12 +330,8 @@ void* tcpClientThread(int pipefd)
 	  ds = localPolicy->policy(serverPool->servers, &dq);
 	  packetCache = serverPool->packetCache;
 	}
-	if(!ds) {
-	  g_stats.noPolicy++;
-	  break;
-	}
 
-        if (ds->useECS) {
+        if (ds && ds->useECS) {
           uint16_t newLen = dq.len;
           handleEDNSClientSubnet(queryBuffer, dq.size, consumed, &newLen, largerQuery, &ednsAdded, ci.remote);
           if (largerQuery.empty() == false) {
@@ -351,7 +347,8 @@ void* tcpClientThread(int pipefd)
         if (packetCache && !dq.skipCache) {
           char cachedResponse[4096];
           uint16_t cachedResponseSize = sizeof cachedResponse;
-          if (packetCache->get((unsigned char*) query, dq.len, *dq.qname, dq.qtype, dq.qclass, consumed, dq.dh->id, cachedResponse, &cachedResponseSize, true, &cacheKey)) {
+          uint32_t allowExpired = ds ? 0 : g_staleCacheEntriesTTL;
+          if (packetCache->get(dq, consumed, dq.dh->id, cachedResponse, &cachedResponseSize, &cacheKey, allowExpired)) {
             if (putNonBlockingMsgLen(ci.fd, cachedResponseSize, g_tcpSendTimeout))
               writen2WithTimeout(ci.fd, cachedResponse, cachedResponseSize, g_tcpSendTimeout);
             g_stats.cacheHits++;
@@ -359,6 +356,11 @@ void* tcpClientThread(int pipefd)
           }
           g_stats.cacheMisses++;
         }
+
+	if(!ds) {
+	  g_stats.noPolicy++;
+	  break;
+	}
 
 	int dsock;
 	if(sockets.count(ds->remote) == 0) {
@@ -479,7 +481,7 @@ void* tcpClientThread(int pipefd)
 	}
 
 	if (packetCache && !dq.skipCache) {
-	  packetCache->insert(cacheKey, qname, qtype, qclass, response, responseLen, true);
+	  packetCache->insert(cacheKey, qname, qtype, qclass, response, responseLen, true, dh->rcode == RCode::ServFail);
 	}
 
 #ifdef HAVE_DNSCRYPT

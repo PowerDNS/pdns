@@ -13,6 +13,7 @@
 #include "sholder.hh"
 #include "dnscrypt.hh"
 #include "dnsdist-cache.hh"
+
 void* carbonDumpThread();
 uint64_t uptimeOfProcess(const std::string& str);
 
@@ -471,6 +472,7 @@ extern uint16_t g_ECSSourcePrefixV4;
 extern uint16_t g_ECSSourcePrefixV6;
 extern bool g_ECSOverride;
 extern bool g_verboseHealthChecks;
+extern uint32_t g_staleCacheEntriesTTL;
 
 struct dnsheader;
 
