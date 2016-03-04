@@ -734,6 +734,12 @@ A reference to the cache affected to a specific pool can be retrieved with:
 getPool("poolname"):getCache()
 ```
 
+And removed with:
+
+```
+getPool("poolname"):unsetCache()
+```
+
 Cache usage stats (hits, misses, deferred inserts and lookups, collisions)
 can be displayed by using the `printStats()` method:
 
@@ -1073,6 +1079,7 @@ instantiate a server with additional parameters
  * ServerPool related:
     * `getCache()`: return the current packet cache, if any
     * `setCache(PacketCache)`: set the cache for this pool
+    * `unsetCache()`: remove the packet cache from this pool
  * PacketCache related:
     * `expunge(n)`: remove entries from the cache, leaving at most `n` entries
     * `expungeByName(DNSName [, qtype=ANY])`: remove entries matching the supplied DNSName and type from the cache

@@ -530,6 +530,9 @@ void moreLua(bool client)
         pool->packetCache = cache;
     });
     g_lua.registerFunction("getCache", &ServerPool::getCache);
+    g_lua.registerFunction<void(std::shared_ptr<ServerPool>::*)()>("unsetCache", [](std::shared_ptr<ServerPool> pool) {
+        pool->packetCache = nullptr;
+    });
 
     g_lua.writeFunction("newPacketCache", [client](size_t maxEntries, boost::optional<uint32_t> maxTTL, boost::optional<uint32_t> minTTL, boost::optional<uint32_t> servFailTTL, boost::optional<uint32_t> staleTTL) {
         return std::make_shared<DNSDistPacketCache>(maxEntries, maxTTL ? *maxTTL : 86400, minTTL ? *minTTL : 60, servFailTTL ? *servFailTTL : 60, staleTTL ? *staleTTL : 60);

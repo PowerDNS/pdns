@@ -309,6 +309,12 @@ class TestBasics(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEquals(query, receivedQuery)
 
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, unrelatedResponse)
+        self.assertTrue(receivedQuery)
+        self.assertEquals(receivedResponse, None)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+
 
 if __name__ == '__main__':
     unittest.main()
