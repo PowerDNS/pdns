@@ -1155,8 +1155,15 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
     if(t_pdl->get() && (*t_pdl)->d_gettag) {
       unsigned int consumed=0;
       uint16_t qtype=0;
-      DNSName qname(question.c_str(), question.length(), sizeof(dnsheader), false, &qtype, 0, &consumed);
-      ctag=(*t_pdl)->gettag(fromaddr, destaddr, qname, qtype);
+      try {
+        DNSName qname(question.c_str(), question.length(), sizeof(dnsheader), false, &qtype, 0, &consumed);
+        ctag=(*t_pdl)->gettag(fromaddr, destaddr, qname, qtype);
+      }
+      catch(std::exception& e)
+      {
+        if(g_logCommonErrors)
+          L<<Logger::Warning<<"Error parsing a query packet for tag determination, setting tag=0: "<<e.what()<<endl;
+      } 
     }
 
     if(!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, question, g_now.tv_sec, &response, &age)) {
