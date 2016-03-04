@@ -339,8 +339,8 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   d_lw->registerFunction("check",(bool (SuffixMatchNode::*)(const DNSName&) const) &SuffixMatchNode::check);
 
 
-  d_lw->writeFunction("pdnslog", [](const std::string& msg, int loglevel) {
-      theL() << (Logger::Urgency)loglevel << msg<<endl;
+  d_lw->writeFunction("pdnslog", [](const std::string& msg, boost::optional<int> loglevel) {
+      theL() << loglevel.get_value_or(Logger::Warning) << msg<<endl;
     });
   typedef vector<pair<string, int> > in_t;
   vector<pair<string, boost::variant<int, in_t, struct timeval* > > >  pd{
@@ -358,7 +358,7 @@ RecursorLua4::RecursorLua4(const std::string& fname)
 	{"Warning", LOG_WARNING},
 	{"Error", LOG_ERR}
 	  }});
-  
+
   for(const auto& n : QType::names)
     pd.push_back({n.first, n.second});
   pd.push_back({"now", &g_now});
