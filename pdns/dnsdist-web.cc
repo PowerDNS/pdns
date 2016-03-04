@@ -35,7 +35,9 @@ static bool compareAuthorization(YaHTTP::Request& req, const string &expected_pa
     /* if this is a request for the API,
        check if the API key is correct */
     if (req.url.path=="/jsonstat" ||
-        req.url.path=="/api/v1/servers/localhost") {
+        req.url.path=="/api/v1/servers/localhost" ||
+        req.url.path=="/api/v1/servers/localhost/config" ||
+        req.url.path=="/api/v1/servers/localhost/statistics") {
       header = req.headers.find("x-api-key");
       if (header != req.headers.end()) {
         auth_ok = (0==strcmp(header->second.c_str(), expectedApiKey.c_str()));
@@ -232,7 +234,87 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
       };
       resp.headers["Content-Type"] = "application/json";
       resp.body=my_json.dump();
+    }
+    else if(req.url.path=="/api/v1/servers/localhost/statistics") {
+      handleCORS(req, resp);
+      resp.status=200;
 
+      Json::array doc;
+      for(const auto& item : g_stats.entries) {
+        if(const auto& val = boost::get<DNSDistStats::stat_t*>(&item.second)) {
+          doc.push_back(Json::object {
+              { "type", "StatisticItem" },
+              { "name", item.first },
+              { "value", (double)(*val)->load() }
+            });
+        }
+        else if (const auto& val = boost::get<double*>(&item.second)) {
+          doc.push_back(Json::object {
+              { "type", "StatisticItem" },
+              { "name", item.first },
+              { "value", (**val) }
+            });
+        }
+        else {
+          doc.push_back(Json::object {
+              { "type", "StatisticItem" },
+              { "name", item.first },
+              { "value", (int)(*boost::get<DNSDistStats::statfunction_t>(&item.second))(item.first) }
+            });
+        }
+      }
+      Json my_json = doc;
+      resp.body=my_json.dump();
+      resp.headers["Content-Type"] = "application/json";
+    }
+    else if(req.url.path=="/api/v1/servers/localhost/config") {
+      handleCORS(req, resp);
+      resp.status=200;
+
+      Json::array doc;
+      typedef boost::variant<bool, double, std::string> configentry_t;
+      std::vector<std::pair<std::string, configentry_t> > configEntries {
+        { "acl", g_ACL.getCopy().toString() },
+        { "control-socket", g_serverControl.toStringWithPort() },
+        { "ecs-override", g_ECSOverride },
+        { "ecs-source-prefix-v4", (double) g_ECSSourcePrefixV4 },
+        { "ecs-source-prefix-v6", (double)  g_ECSSourcePrefixV6 },
+        { "fixup-case", g_fixupCase },
+        { "max-outstanding", (double) g_maxOutstanding },
+        { "server-policy", g_policy.getLocal()->name },
+        { "stale-cache-entries-ttl", (double) g_staleCacheEntriesTTL },
+        { "tcp-recv-timeout", (double) g_tcpRecvTimeout },
+        { "tcp-send-timeout", (double) g_tcpSendTimeout },
+        { "truncate-tc", g_truncateTC },
+        { "verbose", g_verbose },
+        { "verbose-health-checks", g_verboseHealthChecks }
+      };
+      for(const auto& item : configEntries) {
+        if (const auto& val = boost::get<bool>(&item.second)) {
+          doc.push_back(Json::object {
+              { "type", "ConfigSetting" },
+              { "name", item.first },
+              { "value", *val }
+          });
+        }
+        else if (const auto& val = boost::get<string>(&item.second)) {
+          doc.push_back(Json::object {
+              { "type", "ConfigSetting" },
+              { "name", item.first },
+              { "value", *val }
+          });
+        }
+        else if (const auto& val = boost::get<double>(&item.second)) {
+          doc.push_back(Json::object {
+              { "type", "ConfigSetting" },
+              { "name", item.first },
+              { "value", *val }
+          });
+        }
+      }
+      Json my_json = doc;
+      resp.body=my_json.dump();
+      resp.headers["Content-Type"] = "application/json";
     }
     else if(!resp.url.path.empty() && g_urlmap.count(resp.url.path.c_str()+1)) {
       resp.body.assign(g_urlmap[resp.url.path.c_str()+1]);
