@@ -709,7 +709,7 @@ void startDoResolve(void *p)
     }
 
 
-    if(!t_pdl->get() || !(*t_pdl)->preresolve(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, dc->d_ednsOpts.empty() ? 0 : &dc->d_ednsOpts, res, &variableAnswer)) {
+    if(!t_pdl->get() || !(*t_pdl)->preresolve(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, dc->d_ednsOpts.empty() ? 0 : &dc->d_ednsOpts, dc->d_tag, res, &variableAnswer)) {
       try {
         res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
       }
