@@ -84,25 +84,6 @@ private:
   vector<uint8_t> d_record;
 };
 
-//FIXME400 lots of overlap with DNSPacketWriter::xfrName
-static const string EncodeDNSLabel(const DNSName& input)
-{  
-  if(!input.countLabels()) // otherwise we encode .. (long story)
-    return string (1, 0);
-    
-  auto parts = input.getRawLabels();
-  string ret;
-
-  for(auto &label: parts) {
-    ret.append(1, label.size());
-    ret.append(label);
-  }
-
-  ret.append(1, 0);
-  return ret;
-}
-
-
 shared_ptr<DNSRecordContent> DNSRecordContent::unserialize(const DNSName& qname, uint16_t qtype, const string& serialized)
 {
   dnsheader dnsheader;
@@ -114,7 +95,7 @@ shared_ptr<DNSRecordContent> DNSRecordContent::unserialize(const DNSName& qname,
 
   /* will look like: dnsheader, 5 bytes, encoded qname, dns record header, serialized data */
 
-  string encoded=EncodeDNSLabel(qname);
+  string encoded=qname.toDNSString();
 
   packet.resize(sizeof(dnsheader) + 5 + encoded.size() + sizeof(struct dnsrecordheader) + serialized.size());
 
