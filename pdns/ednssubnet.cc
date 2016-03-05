@@ -36,35 +36,38 @@ namespace {
 
 }
 
-
 bool getEDNSSubnetOptsFromString(const string& options, EDNSSubnetOpts* eso)
 {
+  return getEDNSSubnetOptsFromString(options.c_str(), options.length(), eso);
+}
+bool getEDNSSubnetOptsFromString(const char* options, unsigned int len, EDNSSubnetOpts* eso)
+{
   //cerr<<"options.size:"<<options.size()<<endl;
-  if(options.size() <= 4)
+  if(len <= 4)
     return false;  
   EDNSSubnetOptsWire esow;
-  memcpy(&esow, options.c_str(), sizeof(esow));
+  memcpy(&esow, options, sizeof(esow));
   esow.family = ntohs(esow.family);
   //cerr<<"Family when parsing from string: "<<esow.family<<endl;
   ComboAddress address;
   unsigned int octetsin = ((esow.sourceMask - 1)>> 3)+1;
   //cerr<<"octetsin:"<<octetsin<<endl;
   if(esow.family == 1) {
-    if(options.size() != 4+octetsin)
+    if(len != 4+octetsin)
       return false;
     if(octetsin > 4)
       return false;
     memset(&address, 0, sizeof(address));
     address.sin4.sin_family = AF_INET;
-    memcpy(&address.sin4.sin_addr.s_addr, options.c_str()+4, octetsin);
+    memcpy(&address.sin4.sin_addr.s_addr, options+4, octetsin);
   } else if(esow.family == 2) {
-    if(options.size() != 4+octetsin)
+    if(len != 4+octetsin)
       return false;
     if(octetsin > 16)
       return false;
     memset(&address, 0, sizeof(address));
     address.sin4.sin_family = AF_INET6;
-    memcpy(&address.sin6.sin6_addr.s6_addr, options.c_str()+4, octetsin);
+    memcpy(&address.sin6.sin6_addr.s6_addr, options+4, octetsin);
   }
   else
     return false;
