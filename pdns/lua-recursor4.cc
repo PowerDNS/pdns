@@ -45,7 +45,7 @@ bool RecursorLua4::ipfilter(const ComboAddress& remote, const ComboAddress& loca
   return false;
 }
 
-int RecursorLua4::gettag(const ComboAddress& remote, const ComboAddress& local, const DNSName& qname, uint16_t qtype)
+int RecursorLua4::gettag(const ComboAddress& remote, const EDNSSubnet& subnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype)
 {
   return 0;
 }
@@ -277,6 +277,7 @@ RecursorLua4::RecursorLua4(const std::string& fname)
 
   d_lw->registerFunction<ComboAddress(Netmask::*)()>("getNetwork", [](const Netmask& nm) { return nm.getNetwork(); } ); // const reference makes this necessary
   d_lw->registerFunction("toString", &Netmask::toString);
+  d_lw->registerFunction("empty", &Netmask::empty);
 
   d_lw->writeFunction("newNMG", []() { return NetmaskGroup(); });
   d_lw->registerFunction<void(NetmaskGroup::*)(const std::string&mask)>("addMask", [](NetmaskGroup&nmg, const std::string& mask)
@@ -340,7 +341,7 @@ RecursorLua4::RecursorLua4(const std::string& fname)
 
 
   d_lw->writeFunction("pdnslog", [](const std::string& msg, boost::optional<int> loglevel) {
-      theL() << loglevel.get_value_or(Logger::Warning) << msg<<endl;
+      theL() << (Logger::Urgency)loglevel.get_value_or(Logger::Warning) << msg<<endl;
     });
   typedef vector<pair<string, int> > in_t;
   vector<pair<string, boost::variant<int, in_t, struct timeval* > > >  pd{
@@ -426,10 +427,10 @@ bool RecursorLua4::ipfilter(const ComboAddress& remote, const ComboAddress& loca
   return false; // don't block
 }
 
-int RecursorLua4::gettag(const ComboAddress& remote, const ComboAddress& local, const DNSName& qname, uint16_t qtype)
+int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype)
 {
   if(d_gettag)
-    return d_gettag(remote, local, qname, qtype);
+    return d_gettag(remote, ednssubnet, local, qname, qtype);
   return 0;
 }
 
