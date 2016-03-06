@@ -184,9 +184,12 @@ try
     }
 
   }
-
 }
 catch(std::exception &e)
 {
   cerr<<"Fatal: "<<e.what()<<endl;
+}
+catch(PDNSException &e)
+{
+  cerr<<"Fatal: "<<e.reason<<endl;
 }
