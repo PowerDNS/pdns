@@ -47,7 +47,7 @@ static bool qrMatch(const std::string& query, const std::string& response)
   uint16_t rqtype, rqclass, qqtype, qqclass;
   DNSName queryname(query.c_str(), query.length(), sizeof(dnsheader), false, &qqtype, &qqclass, 0);
   DNSName respname(response.c_str(), response.length(), sizeof(dnsheader), false, &rqtype, &rqclass, 0);
-  
+  // this ignores checking on the EDNS subnet flags! 
   return queryname==respname && rqtype == qqtype && rqclass == qqclass;
 }
 
