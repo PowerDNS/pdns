@@ -1169,7 +1169,13 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
             }
           }
         }
-        ctag=(*t_pdl)->gettag(fromaddr, ednssubnet, destaddr, qname, qtype);
+        try {
+          ctag=(*t_pdl)->gettag(fromaddr, ednssubnet, destaddr, qname, qtype);
+        }
+        catch(std::exception& e)  {
+          if(g_logCommonErrors)
+            L<<Logger::Warning<<"Error parsing a query packet qname='"<<qname<<"' for tag determination, setting tag=0: "<<e.what()<<endl;
+        }
       }
       catch(std::exception& e)
       {
