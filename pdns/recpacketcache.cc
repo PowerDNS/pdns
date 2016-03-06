@@ -62,7 +62,29 @@ uint32_t RecursorPacketCache::canHashPacket(const std::string& origPacket)
   for(; p < end && *p; ++p) { // XXX if you embed a 0 in your qname we'll stop lowercasing there
     const char l = dns_tolower(*p); // label lengths can safely be lower cased
     ret=burtle((const unsigned char*)&l, 1, ret);
+  }                           // XXX the embedded 0 in the qname will break the subnet stripping
+  
+  // this code will only function properly with *1* EDNS option
+  struct dnsheader* dh = (struct dnsheader*)origPacket.c_str();
+  if(ntohs(dh->arcount)==1 && p+12 < end) {
+    const unsigned char *q = (const unsigned char*) p;
+    q+=5; 
+    unsigned int optlen=(0x100*q[9] + q[10]);
+    /*
+    cout<<"Option length: "<< optlen <<endl;
+    cout<<"Option code: "<< (0x100*q[11] + q[12]) <<endl;
+    cout<<makeHexDump(string((const char*)q, end))<<endl;
+    */
+    if(end - optlen > p) {
+      /*
+      cout<<"Had "<<(end-p)<<" bytes left to hash, removing "<<optlen<<" of those"<<endl;
+      cout<<"Removing: "<<makeHexDump(string(end-optlen, optlen))<<endl;
+      */
+      end -= optlen;
+      
+    }
   }
+  // cout<<"Hashing: "<<makeHexDump({p, end})<<endl;
   return burtle((const unsigned char*)p, end-p, ret);
 }
 
