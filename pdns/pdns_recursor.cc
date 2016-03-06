@@ -1159,7 +1159,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
         DNSName qname(question.c_str(), question.length(), sizeof(dnsheader), false, &qtype, 0, &consumed);
         Netmask ednssubnet;
         auto pos= sizeof(dnsheader)+consumed+4;        
-        if(dh->arcount && question.length() > pos + 16) { // this code can extract one (1) EDNS Subnet option
+        if(ntohs(dh->arcount) == 1 && question.length() > pos + 16) { // this code can extract one (1) EDNS Subnet option
           uint16_t optlen=0x100*question.at(pos+9)+question.at(pos+10);
           uint16_t optcode=0x100*question.at(pos+11)+question.at(pos+12);
           if(question.at(pos)==0 && question.at(pos+1)==0 && question.at(pos+2)==QType::OPT && optlen && optcode==8) {
