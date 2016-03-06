@@ -36,7 +36,7 @@ pthread_mutex_t g_carbon_config_lock=PTHREAD_MUTEX_INITIALIZER;
 
 map<string, const uint32_t*> d_get32bitpointers;
 map<string, const uint64_t*> d_get64bitpointers;
-map<string, function< uint32_t() > >  d_get32bitmembers;
+map<string, function< uint64_t() > >  d_get64bitmembers;
 pthread_mutex_t d_dynmetricslock = PTHREAD_MUTEX_INITIALIZER;
 map<string, std::atomic<unsigned long>* > d_dynmetrics;
 void addGetStat(const string& name, const uint32_t* place)
@@ -47,10 +47,12 @@ void addGetStat(const string& name, const uint64_t* place)
 {
   d_get64bitpointers[name]=place;
 }
-void addGetStat(const string& name, function<uint32_t ()> f ) 
+
+void addGetStat(const string& name, function<uint64_t ()> f ) 
 {
-  d_get32bitmembers[name]=f;
+  d_get64bitmembers[name]=f;
 }
+
 
 std::atomic<unsigned long>* getDynMetric(const std::string& str)
 {
@@ -72,8 +74,8 @@ optional<uint64_t> get(const string& name)
     return *d_get32bitpointers.find(name)->second;
   if(d_get64bitpointers.count(name))
     return *d_get64bitpointers.find(name)->second;
-  if(d_get32bitmembers.count(name))
-    return d_get32bitmembers.find(name)->second();
+  if(d_get64bitmembers.count(name))
+    return d_get64bitmembers.find(name)->second();
 
   Lock l(&d_dynmetricslock);
   auto f =rplookup(d_dynmetrics, name);
@@ -93,10 +95,10 @@ map<string,string> getAllStatsMap()
   for(const auto& the64bits :  d_get64bitpointers) {
     ret.insert(make_pair(the64bits.first, std::to_string(*the64bits.second)));
   }
-  for(const auto& the32bitmembers :  d_get32bitmembers) { 
-    if(the32bitmembers.first == "cache-bytes" || the32bitmembers.first=="packetcache-bytes")
+  for(const auto& the64bitmembers :  d_get64bitmembers) { 
+    if(the64bitmembers.first == "cache-bytes" || the64bitmembers.first=="packetcache-bytes")
       continue; // too slow for 'get-all'
-    ret.insert(make_pair(the32bitmembers.first, std::to_string(the32bitmembers.second())));
+    ret.insert(make_pair(the64bitmembers.first, std::to_string(the64bitmembers.second())));
   }
   Lock l(&d_dynmetricslock);
   for(const auto& a : d_dynmetrics)
