@@ -172,7 +172,10 @@ static int ldp_getWild(lua_State *L) {
 
 static int ldp_getZone(lua_State *L) {
   DNSPacket *p=ldp_checkDNSPacket(L);
-  lua_pushstring(L, p->qdomainzone.toString().c_str());
+  if(p->qdomainzone.empty())
+    lua_pushnil(L);
+  else
+    lua_pushstring(L, p->qdomainzone.toString().c_str());
   return 1;
 }
 
