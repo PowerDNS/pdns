@@ -85,7 +85,7 @@ function police (req, resp, isTcp)
 		reqsize = req:getSize()
 		respsize = resp:getSize()
 		rcode = resp:getRcode()
-		print ("< ", qname, qtype, remote, "wild: "..(wild or "EMPTY"), "zone: "..zone, reqsize.."/"..respsize, rcode, isTcp )
+		print ("< ", qname, qtype, remote, "wild: "..(wild or "EMPTY"), "zone: "..(zone or "EMPTY"), reqsize.."/"..respsize, rcode, isTcp )
 		if isTcp then return pdns.PASS end
 
 		-- mywindow[1][1] = mywindow[1][1]+1
@@ -100,7 +100,7 @@ function police (req, resp, isTcp)
 			imputedname = wild
 		elseif rcode == pdns.NXDOMAIN or errorstatus
 		then
-			imputedname = zone
+			imputedname = zone or "EMPTY"
 		end
 		token = mask(remote).."/"..imputedname.."/"..tostring(errorstatus)
 		submit(mywindow[1], token) -- FIXME: only submit when doing PASS/TRUNCATE?
