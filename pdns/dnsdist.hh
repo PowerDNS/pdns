@@ -435,9 +435,9 @@ void removeServerFromPool(pools_t& pools, const string& poolName, std::shared_pt
 
 struct CarbonConfig
 {
-  vector<ComboAddress> servers;
+  ComboAddress server;
   std::string ourname;
-  unsigned int interval{30};
+  unsigned int interval;
 };
 
 enum ednsHeaderFlags {
@@ -445,7 +445,7 @@ enum ednsHeaderFlags {
   EDNS_HEADER_FLAG_DO = 32768
 };
 
-extern GlobalStateHolder<CarbonConfig> g_carbon;
+extern GlobalStateHolder<vector<CarbonConfig> > g_carbon;
 extern GlobalStateHolder<ServerPolicy> g_policy;
 extern GlobalStateHolder<servers_t> g_dstates;
 extern GlobalStateHolder<pools_t> g_pools;

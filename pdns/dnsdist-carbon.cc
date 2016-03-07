@@ -9,7 +9,7 @@
 #undef L
 #include "dnsdist.hh"
 
-GlobalStateHolder<CarbonConfig> g_carbon;
+GlobalStateHolder<vector<CarbonConfig> > g_carbon;
 static time_t s_start=time(0);
 uint64_t uptimeOfProcess(const std::string& str)
 {
@@ -21,24 +21,30 @@ try
 {
   auto localCarbon = g_carbon.getLocal();
   for(int numloops=0;;++numloops) {
-    if(localCarbon->servers.empty()) {
+    if(localCarbon->empty()) {
       sleep(1);
       continue;
     }
-    if(numloops) 
-      sleep(localCarbon->interval);
-
-    string hostname=localCarbon->ourname;
-    if(hostname.empty()) {
-      char tmp[80];
-      memset(tmp, 0, sizeof(tmp));
-      gethostname(tmp, sizeof(tmp));
-      char *p = strchr(tmp, '.');
-      if(p) *p=0;
-      hostname=tmp;
-      boost::replace_all(hostname, ".", "_");
+    /* this is wrong, we use the interval of the first server
+       for every single one of them */
+    if(numloops) {
+      const unsigned int interval = localCarbon->at(0).interval;
+      sleep(interval);
     }
-    for (auto server : localCarbon->servers) {
+
+    for (const auto& conf : *localCarbon) {
+      const auto& server = conf.server;
+      std::string hostname = conf.ourname;
+      if(hostname.empty()) {
+        char tmp[80];
+        memset(tmp, 0, sizeof(tmp));
+        gethostname(tmp, sizeof(tmp));
+        char *p = strchr(tmp, '.');
+        if(p) *p=0;
+        hostname=tmp;
+        boost::replace_all(hostname, ".", "_");
+      }
+
       try {
         Socket s(server.sin4.sin_family, SOCK_STREAM);
         s.setNonBlocking();

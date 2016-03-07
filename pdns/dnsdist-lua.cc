@@ -982,16 +982,10 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.registerFunction("check",(bool (SuffixMatchNode::*)(const DNSName&) const) &SuffixMatchNode::check);
 
   g_lua.writeFunction("carbonServer", [](const std::string& address, boost::optional<string> ourName,
-					 boost::optional<int> interval) {
+					 boost::optional<unsigned int> interval) {
                         setLuaSideEffect();
 			auto ours = g_carbon.getCopy();
-			ours.servers.push_back(ComboAddress(address, 2003));
-			if(ourName)
-			  ours.ourname=*ourName;
-			if(interval)
-			  ours.interval=*interval;
-			if(!ours.interval)
-			  ours.interval=1;
+			ours.push_back({ComboAddress(address, 2003), ourName ? *ourName : "", interval ? *interval : 30});
 			g_carbon.setState(ours);
 		      });
 
