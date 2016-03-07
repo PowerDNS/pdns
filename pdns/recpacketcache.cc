@@ -63,29 +63,54 @@ uint32_t RecursorPacketCache::canHashPacket(const std::string& origPacket)
     const char l = dns_tolower(*p); // label lengths can safely be lower cased
     ret=burtle((const unsigned char*)&l, 1, ret);
   }                           // XXX the embedded 0 in the qname will break the subnet stripping
-  
-  // this code will only function properly with *1* EDNS option
+
   struct dnsheader* dh = (struct dnsheader*)origPacket.c_str();
-  if(ntohs(dh->arcount)==1 && p+12 < end) {
-    const unsigned char *q = (const unsigned char*) p;
-    q+=5; 
-    unsigned int optlen=(0x100*q[9] + q[10]);
-    /*
-    cout<<"Option length: "<< optlen <<endl;
-    cout<<"Option code: "<< (0x100*q[11] + q[12]) <<endl;
-    cout<<makeHexDump(string((const char*)q, end))<<endl;
-    */
-    if(end - optlen > p) {
-      /*
-      cout<<"Had "<<(end-p)<<" bytes left to hash, removing "<<optlen<<" of those"<<endl;
-      cout<<"Removing: "<<makeHexDump(string(end-optlen, optlen))<<endl;
-      */
-      end -= optlen;
-      
+  const char* skipBegin = p;
+  const char* skipEnd = p;
+  /* we need at least 1 (final empty label) + 2 (QTYPE) + 2 (QCLASS)
+     + OPT root label (1), type (2), class (2) and ttl (4)
+     + the OPT RR rdlen (2)
+     = 16
+  */
+  if(ntohs(dh->arcount)==1 && (p+16) < end) {
+    /* skip the final empty label (1), the qtype (2), qclass (2) */
+    /* root label (1), type (2), class (2) and ttl (4) */
+    const unsigned char *q = (const unsigned char*) p + 14;
+    uint16_t optRRLen = (0x100*q[0] + q[1]);
+    q += 2;
+    if ((q + optRRLen) <= (const unsigned char*) end) {
+      const unsigned char* optRRend = q + optRRLen;
+      while((q + 4) <= optRRend) {
+        const unsigned char* optionBegin = q;
+        uint16_t optionCode = 0x100*q[0] + q[1];
+        //cout << "OPT RR Option Code is " << optionCode << endl;
+        q += 2;
+        uint16_t optionLen = 0x100*q[0] + q[1];
+        //cout << "OPT RR Option Length is " << optionLen << endl;
+        q += 2;
+        if ((q + optionLen) > (const unsigned char*) end) {
+          break;
+        }
+        if (optionCode == 8) {
+          //cout << "Skipping OPT RR Option Client Subnet:" << endl;
+          //cout << makeHexDump(string((const char*)optionBegin, (const char*) q + optionLen)) << endl;
+          skipBegin = (const char*) optionBegin;
+          skipEnd = (const char*) q + optionLen;
+          break;
+        }
+        q += optionLen;
+      }
     }
   }
-  // cout<<"Hashing: "<<makeHexDump({p, end})<<endl;
-  return burtle((const unsigned char*)p, end-p, ret);
+  if (skipBegin > p) {
+    //cout << "Hashing from " << (p-origPacket.c_str()) << " for " << skipBegin-p << "bytes, end is at "<< end-origPacket.c_str() << endl;
+    ret = burtle((const unsigned char*)p, skipBegin-p, ret);
+  }
+  if (skipEnd < end) {
+    //cout << "Hashing from " << (skipEnd-origPacket.c_str()) << " for " << end-skipEnd << "bytes, end is at " << end-origPacket.c_str() << endl;
+    ret = burtle((const unsigned char*) skipEnd, end-skipEnd, ret);
+  }
+  return ret;
 }
 
 bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string& queryPacket, time_t now, 
