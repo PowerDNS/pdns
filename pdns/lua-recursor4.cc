@@ -45,7 +45,7 @@ bool RecursorLua4::ipfilter(const ComboAddress& remote, const ComboAddress& loca
   return false;
 }
 
-int RecursorLua4::gettag(const ComboAddress& remote, const EDNSSubnet& subnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype)
+int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype)
 {
   return 0;
 }
