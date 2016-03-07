@@ -1,6 +1,7 @@
 #ifndef PDNS_SYNCRES_HH
 #define PDNS_SYNCRES_HH
 #include <string>
+#include <atomic>
 #include "utility.hh"
 #include "dns.hh"
 #include "qtype.hh"
@@ -307,16 +308,16 @@ public:
 
   static void doEDNSDumpAndClose(int fd);
 
-  static uint64_t s_queries;
-  static uint64_t s_outgoingtimeouts;
-  static uint64_t s_outgoing4timeouts;
-  static uint64_t s_outgoing6timeouts;
-  static uint64_t s_throttledqueries;
-  static uint64_t s_dontqueries;
-  static uint64_t s_outqueries;
-  static uint64_t s_tcpoutqueries;
-  static uint64_t s_nodelegated;
-  static uint64_t s_unreachables;
+  static std::atomic<uint64_t> s_queries;
+  static std::atomic<uint64_t> s_outgoingtimeouts;
+  static std::atomic<uint64_t> s_outgoing4timeouts;
+  static std::atomic<uint64_t> s_outgoing6timeouts;
+  static std::atomic<uint64_t> s_throttledqueries;
+  static std::atomic<uint64_t> s_dontqueries;
+  static std::atomic<uint64_t> s_outqueries;
+  static std::atomic<uint64_t> s_tcpoutqueries;
+  static std::atomic<uint64_t> s_nodelegated;
+  static std::atomic<uint64_t> s_unreachables;
   static unsigned int s_minimumTTL;
   static bool s_doIPv6;
   static unsigned int s_maxqperq;
@@ -564,39 +565,39 @@ extern __thread MT_t* MT;
 
 struct RecursorStats
 {
-  uint64_t servFails;
-  uint64_t nxDomains;
-  uint64_t noErrors;
-  uint64_t answers0_1, answers1_10, answers10_100, answers100_1000, answersSlow;
-  uint64_t auth4Answers0_1, auth4Answers1_10, auth4Answers10_100, auth4Answers100_1000, auth4AnswersSlow;
-  uint64_t auth6Answers0_1, auth6Answers1_10, auth6Answers10_100, auth6Answers100_1000, auth6AnswersSlow;
+  std::atomic<uint64_t> servFails;
+  std::atomic<uint64_t> nxDomains;
+  std::atomic<uint64_t> noErrors;
+  std::atomic<uint64_t> answers0_1, answers1_10, answers10_100, answers100_1000, answersSlow;
+  std::atomic<uint64_t> auth4Answers0_1, auth4Answers1_10, auth4Answers10_100, auth4Answers100_1000, auth4AnswersSlow;
+  std::atomic<uint64_t> auth6Answers0_1, auth6Answers1_10, auth6Answers10_100, auth6Answers100_1000, auth6AnswersSlow;
   double avgLatencyUsec;
-  uint64_t qcounter;     // not increased for unauth packets
-  uint64_t ipv6qcounter;
-  uint64_t tcpqcounter;
-  uint64_t unauthorizedUDP;  // when this is increased, qcounter isn't
-  uint64_t unauthorizedTCP;  // when this is increased, qcounter isn't
-  uint64_t policyDrops;
-  uint64_t tcpClientOverflow;
-  uint64_t clientParseError;
-  uint64_t serverParseError;
-  uint64_t tooOldDrops;
-  uint64_t unexpectedCount;
-  uint64_t caseMismatchCount;
-  uint64_t spoofCount;
-  uint64_t resourceLimits;
-  uint64_t overCapacityDrops;
-  uint64_t ipv6queries;
-  uint64_t chainResends;
-  uint64_t nsSetInvalidations;
-  uint64_t ednsPingMatches;
-  uint64_t ednsPingMismatches;
-  uint64_t noPingOutQueries, noEdnsOutQueries;
-  uint64_t packetCacheHits;
-  uint64_t noPacketError;
-  uint64_t ignoredCount;
+  std::atomic<uint64_t> qcounter;     // not increased for unauth packets
+  std::atomic<uint64_t> ipv6qcounter;
+  std::atomic<uint64_t> tcpqcounter;
+  std::atomic<uint64_t> unauthorizedUDP;  // when this is increased, qcounter isn't
+  std::atomic<uint64_t> unauthorizedTCP;  // when this is increased, qcounter isn't
+  std::atomic<uint64_t> policyDrops;
+  std::atomic<uint64_t> tcpClientOverflow;
+  std::atomic<uint64_t> clientParseError;
+  std::atomic<uint64_t> serverParseError;
+  std::atomic<uint64_t> tooOldDrops;
+  std::atomic<uint64_t> unexpectedCount;
+  std::atomic<uint64_t> caseMismatchCount;
+  std::atomic<uint64_t> spoofCount;
+  std::atomic<uint64_t> resourceLimits;
+  std::atomic<uint64_t> overCapacityDrops;
+  std::atomic<uint64_t> ipv6queries;
+  std::atomic<uint64_t> chainResends;
+  std::atomic<uint64_t> nsSetInvalidations;
+  std::atomic<uint64_t> ednsPingMatches;
+  std::atomic<uint64_t> ednsPingMismatches;
+  std::atomic<uint64_t> noPingOutQueries, noEdnsOutQueries;
+  std::atomic<uint64_t> packetCacheHits;
+  std::atomic<uint64_t> noPacketError;
+  std::atomic<uint64_t> ignoredCount;
   time_t startupTime;
-  uint64_t dnssecQueries;
+  std::atomic<uint64_t> dnssecQueries;
   unsigned int maxMThreadStackUsage;
 };
 
