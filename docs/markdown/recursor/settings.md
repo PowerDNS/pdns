@@ -169,7 +169,7 @@ cached.
 
 ## `dnssec`
 * One of `off`, `process`, `log-fail`, `validate`, String
-* Default: `process`
+* Default: `off` (**note**: was `process` until 4.0.0-alpha2)
 * Available since: 4.0.0
 
 Set the mode for DNSSEC processing:
