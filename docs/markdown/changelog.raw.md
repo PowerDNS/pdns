@@ -30,15 +30,16 @@ In addition to this cleanup, which has many internal benefits and solves longsta
 
 Please be aware that beyond the items listed here, there have been heaps of tiny changes. As always, please carefully test a new release before deploying it.
 
-As of alpha1, we are aware of the following brokenness:
+As of alpha2, we are aware of the following brokenness:
 
 - The validator misjudges the DNSSEC status of many domains. Please report such errors if you find them.
-- The Recursor will die with SIGABRT when `forward-zones`, `forward-zones-recurse` or `forward-zones-file` are set in the config.
 
 ## PowerDNS Recursor 4.0.0-alpha2
-UNRELEASED
+Released March 9th 2016
 
-Notable changes since 4.0.0-alpha1
+Note that the DNSSEC implementation has several bugs in this release, it is advised to set `dnssec=off` in your recursor.conf.
+
+This release features many low-level performance fixes. Other notable changes since 4.0.0-alpha1 are:
 
 - [#3259](https://github.com/PowerDNS/pdns/pull/3259), [#3280](https://github.com/PowerDNS/pdns/pull/3280) The PowerDNS Recursor now properly uses GNU autoconf and autotools for building and installing
 - OpenSSL crypto primitives are now used for DNSSEC validation
@@ -46,6 +47,8 @@ Notable changes since 4.0.0-alpha1
 - [#3350](https://github.com/PowerDNS/pdns/pull/3350) Add lowercase-outgoing feature to Recursor
 - [#3410](https://github.com/PowerDNS/pdns/pull/3410) Recuweb is now built-in to the daemon
 - [#3230](https://github.com/PowerDNS/pdns/pull/3230) API: drop JSONP, add web security headers (Christian Hofstaedtler)
+- [#3485](https://github.com/PowerDNS/pdns/pull/3485) Allow multiple carbon-servers
+- [#3427](https://github.com/PowerDNS/pdns/pull/3427), [#3479](https://github.com/PowerDNS/pdns/pull/3479), [#3472](https://github.com/PowerDNS/pdns/pull/3472) MTasker modernization (Andrew Nelless)
 
 ### Bug fixes
 
@@ -55,13 +58,15 @@ Notable changes since 4.0.0-alpha1
 - [#3365](https://github.com/PowerDNS/pdns/pull/3365) Apply rcode set in UDPQueryResponse callback (Jan Broers)
 - [#3244](https://github.com/PowerDNS/pdns/pull/3244) Fix the forward zones in the recursor
 - [#3135](https://github.com/PowerDNS/pdns/pull/3135) Use 56 bits instead of 64 in EDNS Client Subnet option (Winfried Angele)
+- [#3527](https://github.com/PowerDNS/pdns/pull/3527) Make the recursor counters atomic
 
 ### Improvements
 
 - [#3435](https://github.com/PowerDNS/pdns/pull/3435) Add `toStringNoDot` and `chopOff` functions to Lua
-- [#3437](https://github.com/PowerDNS/pdns/pull/3352) Add `pdns.now` imeval struct to recursor Lua
+- [#3437](https://github.com/PowerDNS/pdns/pull/3352) Add `pdns.now` timeval struct to recursor Lua
 - [#3352](https://github.com/PowerDNS/pdns/pull/3352) Cache improvements
-- 
+- [#3502](https://github.com/PowerDNS/pdns/pull/3502) Make second argument to pdnslog optional (Thiago Farina)
+- [#3520](https://github.com/PowerDNS/pdns/pull/3520) Reduce log level of periodic statistics to notice (Jan Broers)
 
 ## PowerDNS Recursor 4.0.0-alpha1
 Released December 24th 2015
