@@ -220,7 +220,9 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
 
     if(g_fixupCase) {
       string realname = ids->qname.toDNSString();
-      memcpy(packet+12, realname.c_str(), realname.length());
+      if (responseLen >= (sizeof(dnsheader) + realname.length())) {
+        memcpy(packet+12, realname.c_str(), realname.length());
+      }
     }
 
     if(dh->tc && g_truncateTC) {

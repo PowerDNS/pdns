@@ -440,6 +440,27 @@ void* tcpClientThread(int pipefd)
         --ds->outstanding;
         outstanding = false;
 
+        if (rlen < sizeof(dnsheader)) {
+          break;
+        }
+
+        dh = (struct dnsheader*) response;
+        DNSName rqname;
+        uint16_t rqtype, rqclass;
+        try {
+          rqname=DNSName(response, responseLen, sizeof(dnsheader), false, &rqtype, &rqclass, &consumed);
+        }
+        catch(std::exception& e) {
+          if(rlen > (ssize_t)sizeof(dnsheader))
+            infolog("Backend %s sent us a response with id %d that did not parse: %s", ds->remote.toStringWithPort(), ntohs(dh->id), e.what());
+          g_stats.nonCompliantResponses++;
+          break;
+        }
+
+        if (rqtype != qtype || rqclass != qclass || rqname != qname) {
+          break;
+        }
+
         if (ednsAdded) {
           const char * optStart = NULL;
           size_t optLen = 0;
@@ -477,7 +498,9 @@ void* tcpClientThread(int pipefd)
 
 	if(g_fixupCase) {
 	  string realname = qname.toDNSString();
-	  memcpy(response + sizeof(dnsheader), realname.c_str(), realname.length());
+	  if (responseLen >= (sizeof(dnsheader) + realname.length())) {
+	    memcpy(response + sizeof(dnsheader), realname.c_str(), realname.length());
+	  }
 	}
 
 	if (packetCache && !dq.skipCache) {

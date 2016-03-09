@@ -25,7 +25,7 @@ bool DNSDistPacketCache::cachedValueMatches(const CacheValue& cachedValue, const
 
 void DNSDistPacketCache::insert(uint32_t key, const DNSName& qname, uint16_t qtype, uint16_t qclass, const char* response, uint16_t responseLen, bool tcp, bool servFail)
 {
-  if (responseLen == 0)
+  if (responseLen < sizeof(dnsheader))
     return;
 
   uint32_t minTTL;
@@ -144,10 +144,17 @@ bool DNSDistPacketCache::get(const DNSQuestion& dq, uint16_t consumed, uint16_t 
     }
 
     string dnsQName(dq.qname->toDNSString());
+    const size_t dnsQNameLen = dnsQName.length();
+    if (value.len < (sizeof(dnsheader) + dnsQNameLen)) {
+      return false;
+    }
+
     memcpy(response, &queryId, sizeof(queryId));
     memcpy(response + sizeof(queryId), value.value.c_str() + sizeof(queryId), sizeof(dnsheader) - sizeof(queryId));
-    memcpy(response + sizeof(dnsheader), dnsQName.c_str(), dnsQName.length());
-    memcpy(response + sizeof(dnsheader) + dnsQName.length(), value.value.c_str() + sizeof(dnsheader) + dnsQName.length(), value.value.length() - (sizeof(dnsheader) + dnsQName.length()));
+    memcpy(response + sizeof(dnsheader), dnsQName.c_str(), dnsQNameLen);
+    if (value.len > (sizeof(dnsheader) + dnsQNameLen)) {
+      memcpy(response + sizeof(dnsheader) + dnsQNameLen, value.value.c_str() + sizeof(dnsheader) + dnsQNameLen, value.len - (sizeof(dnsheader) + dnsQNameLen));
+    }
     *responseLen = value.len;
     if (!stale) {
       age = now - value.added;
