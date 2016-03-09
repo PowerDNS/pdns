@@ -529,17 +529,6 @@ string simpleCompress(const string& elabel, const string& root)
 }
 
 
-// FIXME400 this function needs to go
-void simpleExpandTo(const string& label, unsigned int frompos, string& ret)
-{
-  unsigned int labellen=0;
-  while((labellen=(unsigned char)label.at(frompos++))) {
-    ret.append(label.c_str()+frompos, labellen);
-    ret.append(1,'.');
-    frompos+=labellen;
-  }
-}
-
 /** Simple DNSPacketMangler. Ritual is: get a pointer into the packet and moveOffset() to beyond your needs
  *  If you survive that, feel free to read from the pointer */
 class DNSPacketMangler
