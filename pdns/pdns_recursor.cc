@@ -1537,35 +1537,35 @@ void doStats(void)
   uint64_t cacheMisses = broadcastAccFunction<uint64_t>(pleaseGetCacheMisses);
 
   if(g_stats.qcounter && (cacheHits + cacheMisses) && SyncRes::s_queries && SyncRes::s_outqueries) {
-    L<<Logger::Warning<<"stats: "<<g_stats.qcounter<<" questions, "<<
+    L<<Logger::Notice<<"stats: "<<g_stats.qcounter<<" questions, "<<
       broadcastAccFunction<uint64_t>(pleaseGetCacheSize)<< " cache entries, "<<
       broadcastAccFunction<uint64_t>(pleaseGetNegCacheSize)<<" negative entries, "<<
       (int)((cacheHits*100.0)/(cacheHits+cacheMisses))<<"% cache hits"<<endl;
 
-    L<<Logger::Warning<<"stats: throttle map: "
+    L<<Logger::Notice<<"stats: throttle map: "
       << broadcastAccFunction<uint64_t>(pleaseGetThrottleSize) <<", ns speeds: "
       << broadcastAccFunction<uint64_t>(pleaseGetNsSpeedsSize)<<endl;
-    L<<Logger::Warning<<"stats: outpacket/query ratio "<<(int)(SyncRes::s_outqueries*100.0/SyncRes::s_queries)<<"%";
-    L<<Logger::Warning<<", "<<(int)(SyncRes::s_throttledqueries*100.0/(SyncRes::s_outqueries+SyncRes::s_throttledqueries))<<"% throttled, "
+    L<<Logger::Notice<<"stats: outpacket/query ratio "<<(int)(SyncRes::s_outqueries*100.0/SyncRes::s_queries)<<"%";
+    L<<Logger::Notice<<", "<<(int)(SyncRes::s_throttledqueries*100.0/(SyncRes::s_outqueries+SyncRes::s_throttledqueries))<<"% throttled, "
      <<SyncRes::s_nodelegated<<" no-delegation drops"<<endl;
-    L<<Logger::Warning<<"stats: "<<SyncRes::s_tcpoutqueries<<" outgoing tcp connections, "<<
+    L<<Logger::Notice<<"stats: "<<SyncRes::s_tcpoutqueries<<" outgoing tcp connections, "<<
       broadcastAccFunction<uint64_t>(pleaseGetConcurrentQueries)<<" queries running, "<<SyncRes::s_outgoingtimeouts<<" outgoing timeouts"<<endl;
 
-    //L<<Logger::Warning<<"stats: "<<g_stats.ednsPingMatches<<" ping matches, "<<g_stats.ednsPingMismatches<<" mismatches, "<<
+    //L<<Logger::Notice<<"stats: "<<g_stats.ednsPingMatches<<" ping matches, "<<g_stats.ednsPingMismatches<<" mismatches, "<<
       //g_stats.noPingOutQueries<<" outqueries w/o ping, "<< g_stats.noEdnsOutQueries<<" w/o EDNS"<<endl;
 
-    L<<Logger::Warning<<"stats: " <<  broadcastAccFunction<uint64_t>(pleaseGetPacketCacheSize) <<
+    L<<Logger::Notice<<"stats: " <<  broadcastAccFunction<uint64_t>(pleaseGetPacketCacheSize) <<
     " packet cache entries, "<<(int)(100.0*broadcastAccFunction<uint64_t>(pleaseGetPacketCacheHits)/SyncRes::s_queries) << "% packet cache hits"<<endl;
 
     time_t now = time(0);
     if(lastOutputTime && lastQueryCount && now != lastOutputTime) {
-      L<<Logger::Warning<<"stats: "<< (SyncRes::s_queries - lastQueryCount) / (now - lastOutputTime) <<" qps (average over "<< (now - lastOutputTime) << " seconds)"<<endl;
+      L<<Logger::Notice<<"stats: "<< (SyncRes::s_queries - lastQueryCount) / (now - lastOutputTime) <<" qps (average over "<< (now - lastOutputTime) << " seconds)"<<endl;
     }
     lastOutputTime = now;
     lastQueryCount = SyncRes::s_queries;
   }
   else if(statsWanted)
-    L<<Logger::Warning<<"stats: no stats yet!"<<endl;
+    L<<Logger::Notice<<"stats: no stats yet!"<<endl;
 
   statsWanted=false;
 }
