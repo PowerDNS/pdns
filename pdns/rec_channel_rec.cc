@@ -36,6 +36,7 @@ pthread_mutex_t g_carbon_config_lock=PTHREAD_MUTEX_INITIALIZER;
 
 map<string, const uint32_t*> d_get32bitpointers;
 map<string, const uint64_t*> d_get64bitpointers;
+map<string, const std::atomic<uint64_t>*> d_getatomics;
 map<string, function< uint64_t() > >  d_get64bitmembers;
 pthread_mutex_t d_dynmetricslock = PTHREAD_MUTEX_INITIALIZER;
 map<string, std::atomic<unsigned long>* > d_dynmetrics;
@@ -47,6 +48,12 @@ void addGetStat(const string& name, const uint64_t* place)
 {
   d_get64bitpointers[name]=place;
 }
+
+void addGetStat(const string& name, const std::atomic<uint64_t>* place)
+{
+  d_getatomics[name]=place;
+}
+
 
 void addGetStat(const string& name, function<uint64_t ()> f ) 
 {
@@ -74,6 +81,8 @@ optional<uint64_t> get(const string& name)
     return *d_get32bitpointers.find(name)->second;
   if(d_get64bitpointers.count(name))
     return *d_get64bitpointers.find(name)->second;
+  if(d_getatomics.count(name))
+    return d_getatomics.find(name)->second->load();
   if(d_get64bitmembers.count(name))
     return d_get64bitmembers.find(name)->second();
 
@@ -95,6 +104,10 @@ map<string,string> getAllStatsMap()
   for(const auto& the64bits :  d_get64bitpointers) {
     ret.insert(make_pair(the64bits.first, std::to_string(*the64bits.second)));
   }
+  for(const auto& atomic :  d_getatomics) {
+    ret.insert(make_pair(atomic.first, std::to_string(atomic.second->load())));
+  }
+
   for(const auto& the64bitmembers :  d_get64bitmembers) { 
     if(the64bitmembers.first == "cache-bytes" || the64bitmembers.first=="packetcache-bytes")
       continue; // too slow for 'get-all'
