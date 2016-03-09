@@ -241,8 +241,8 @@ class TestRoutingRoundRobinLB(DNSDistTest):
             self.assertEquals(query, receivedQuery)
             self.assertEquals(response, receivedResponse)
 
-        for key in TestRoutingRoundRobinLB._responsesCounter:
-            value = TestRoutingRoundRobinLB._responsesCounter[key]
+        for key in self._responsesCounter:
+            value = self._responsesCounter[key]
             self.assertEquals(value, numberOfQueries / 2)
 
 class TestRoutingRoundRobinLBOneDown(DNSDistTest):
@@ -290,8 +290,8 @@ class TestRoutingRoundRobinLBOneDown(DNSDistTest):
             self.assertEquals(response, receivedResponse)
 
         total = 0
-        for key in TestRoutingRoundRobinLBOneDown._responsesCounter:
-            value = TestRoutingRoundRobinLBOneDown._responsesCounter[key]
+        for key in self._responsesCounter:
+            value = self._responsesCounter[key]
             self.assertTrue(value == numberOfQueries or value == 0)
             total += value
 
