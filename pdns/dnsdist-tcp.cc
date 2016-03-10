@@ -22,6 +22,7 @@
 
 #include "dnsdist.hh"
 #include "dnsdist-ecs.hh"
+#include "ednsoptions.hh"
 #include "dolog.hh"
 #include "lock.hh"
 #include <thread>
@@ -187,7 +188,6 @@ void* tcpClientThread(int pipefd)
     string poolname;
     string largerQuery;
     vector<uint8_t> rewrittenResponse;
-    bool ednsAdded = false;
     shared_ptr<DownstreamState> ds;
     if (!setNonBlocking(ci.fd))
       goto drop;
@@ -208,6 +208,8 @@ void* tcpClientThread(int pipefd)
           break;
         }
 
+        bool ednsAdded = false;
+        bool ecsAdded = false;
         /* if the query is small, allocate a bit more
            memory to be able to spoof the content,
            or to add ECS without allocating a new buffer */
@@ -294,7 +296,7 @@ void* tcpClientThread(int pipefd)
 
         if (ds && ds->useECS) {
           uint16_t newLen = dq.len;
-          handleEDNSClientSubnet(queryBuffer, dq.size, consumed, &newLen, largerQuery, &ednsAdded, ci.remote);
+          handleEDNSClientSubnet(queryBuffer, dq.size, consumed, &newLen, largerQuery, &ednsAdded, &ecsAdded, ci.remote);
           if (largerQuery.empty() == false) {
             query = largerQuery.c_str();
             dq.len = largerQuery.size();
@@ -408,7 +410,7 @@ void* tcpClientThread(int pipefd)
           break;
         }
 
-        if (!fixUpResponse(&response, &responseLen, &responseSize, qname, origFlags, ednsAdded, rewrittenResponse, addRoom)) {
+        if (!fixUpResponse(&response, &responseLen, &responseSize, qname, origFlags, ednsAdded, ecsAdded, rewrittenResponse, addRoom)) {
           break;
         }
 

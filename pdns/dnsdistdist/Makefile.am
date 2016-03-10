@@ -68,6 +68,7 @@ dnsdist_SOURCES = \
 	dnswriter.cc dnswriter.hh \
 	dolog.hh \
 	ednsoptions.cc ednsoptions.hh \
+	ednscookies.cc ednscookies.hh \
 	ednssubnet.cc ednssubnet.hh \
 	iputils.cc iputils.hh \
 	lock.hh \
@@ -128,6 +129,7 @@ testrunner_SOURCES = \
 	dnswriter.cc dnswriter.hh \
 	dolog.hh \
 	ednsoptions.cc ednsoptions.hh \
+	ednscookies.cc ednscookies.hh \
 	ednssubnet.cc ednssubnet.hh \
 	iputils.cc iputils.hh \
 	misc.cc misc.hh \

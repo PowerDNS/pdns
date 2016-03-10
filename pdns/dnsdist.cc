@@ -203,7 +203,7 @@ void restoreFlags(struct dnsheader* dh, uint16_t origFlags)
   *flags |= origFlags;
 }
 
-bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize, const DNSName& qname, uint16_t origFlags, bool ednsAdded, std::vector<uint8_t>& rewrittenResponse, uint16_t addRoom)
+bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize, const DNSName& qname, uint16_t origFlags, bool ednsAdded, bool ecsAdded, std::vector<uint8_t>& rewrittenResponse, uint16_t addRoom)
 {
   struct dnsheader* dh = (struct dnsheader*) *response;
 
@@ -220,33 +220,62 @@ bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize,
 
   restoreFlags(dh, origFlags);
 
-  if (ednsAdded) {
-    const char * optStart = NULL;
+  if (ednsAdded || ecsAdded) {
+    char * optStart = NULL;
     size_t optLen = 0;
     bool last = false;
 
     int res = locateEDNSOptRR(*response, *responseLen, &optStart, &optLen, &last);
 
     if (res == 0) {
-      if (last) {
-        /* simply remove the last AR */
-        *responseLen -= optLen;
-        uint16_t arcount = ntohs(dh->arcount);
-        arcount--;
-        dh->arcount = htons(arcount);
-      }
-      else {
-        /* Removing an intermediary RR could lead to compression error */
-        if (rewriteResponseWithoutEDNS(*response, *responseLen, rewrittenResponse) == 0) {
-          *responseLen = rewrittenResponse.size();
-          if (addRoom && (UINT16_MAX - *responseLen) > addRoom) {
-            rewrittenResponse.reserve(*responseLen + addRoom);
-          }
-          *responseSize = rewrittenResponse.capacity();
-          *response = reinterpret_cast<char*>(rewrittenResponse.data());
+      if (ednsAdded) {
+        /* we added the entire OPT RR,
+           therefore we need to remove it entirely */
+        if (last) {
+          /* simply remove the last AR */
+          *responseLen -= optLen;
+          uint16_t arcount = ntohs(dh->arcount);
+          arcount--;
+          dh->arcount = htons(arcount);
         }
         else {
-          warnlog("Error rewriting content");
+          /* Removing an intermediary RR could lead to compression error */
+          if (rewriteResponseWithoutEDNS(*response, *responseLen, rewrittenResponse) == 0) {
+            *responseLen = rewrittenResponse.size();
+            if (addRoom && (UINT16_MAX - *responseLen) > addRoom) {
+              rewrittenResponse.reserve(*responseLen + addRoom);
+            }
+            *responseSize = rewrittenResponse.capacity();
+            *response = reinterpret_cast<char*>(rewrittenResponse.data());
+          }
+          else {
+            warnlog("Error rewriting content");
+          }
+        }
+      }
+      else {
+        /* the OPT RR was already present, but without ECS,
+           we need to remove the ECS option if any */
+        if (last) {
+          /* nothing after the OPT RR, we can simply remove the
+             ECS option */
+          size_t existingOptLen = optLen;
+          removeEDNSOptionFromOPT(optStart, &optLen, EDNSOptionCode::ECS);
+          *responseLen -= (existingOptLen - optLen);
+        }
+        else {
+          /* Removing an intermediary RR could lead to compression error */
+          if (rewriteResponseWithoutEDNSOption(*response, *responseLen, EDNSOptionCode::ECS, rewrittenResponse) == 0) {
+            *responseLen = rewrittenResponse.size();
+            if (addRoom && (UINT16_MAX - *responseLen) > addRoom) {
+              rewrittenResponse.reserve(*responseLen + addRoom);
+            }
+            *responseSize = rewrittenResponse.capacity();
+            *response = reinterpret_cast<char*>(rewrittenResponse.data());
+          }
+          else {
+            warnlog("Error rewriting content");
+          }
         }
       }
     }
@@ -354,7 +383,7 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
       addRoom = DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE;
     }
 #endif
-    if (!fixUpResponse(&response, &responseLen, &responseSize, ids->qname, ids->origFlags, ids->ednsAdded, rewrittenResponse, addRoom)) {
+    if (!fixUpResponse(&response, &responseLen, &responseSize, ids->qname, ids->origFlags, ids->ednsAdded, ids->ecsAdded, rewrittenResponse, addRoom)) {
       continue;
     }
 
@@ -912,8 +941,9 @@ try
       }
 
       bool ednsAdded = false;
+      bool ecsAdded = false;
       if (ss && ss->useECS) {
-        handleEDNSClientSubnet(query, dq.size, consumed, &dq.len, largerQuery, &(ednsAdded), remote);
+        handleEDNSClientSubnet(query, dq.size, consumed, &dq.len, largerQuery, &(ednsAdded), &(ecsAdded), remote);
       }
 
       uint32_t cacheKey = 0;
@@ -968,11 +998,11 @@ try
       ids->origDest.sin4.sin_family=0;
       ids->delayMsec = delayMsec;
       ids->origFlags = origFlags;
-      ids->ednsAdded = false;
       ids->cacheKey = cacheKey;
       ids->skipCache = dq.skipCache;
       ids->packetCache = packetCache;
       ids->ednsAdded = ednsAdded;
+      ids->ecsAdded = ecsAdded;
 #ifdef HAVE_DNSCRYPT
       ids->dnsCryptQuery = dnsCryptQuery;
 #endif
