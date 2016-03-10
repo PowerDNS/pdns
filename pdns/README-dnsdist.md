@@ -209,16 +209,16 @@ it to your configuration file.
 > showACL()
 192.0.2.0/24
 > delta()
-# Wed Dec 23 2015 15:15:35 CET
+-- Wed Dec 23 2015 15:15:35 CET
 setACL("192.0.2.0/24")
 > addACL("127.0.0.1/8")
 > showACL()
 192.0.2.0/24
 127.0.0.1/8
 > delta()
-# Wed Dec 23 2015 15:15:35 CET
+-- Wed Dec 23 2015 15:15:35 CET
 setACL("192.0.2.0/24")
-# Wed Dec 23 2015 15:15:44 CET
+-- Wed Dec 23 2015 15:15:44 CET
 addACL("127.0.0.1/8")
 >
 ```
@@ -495,6 +495,7 @@ This is still much in flux, but for now, try:
  * `grepq(Netmask|DNS Name|100ms [, n])`: shows the last n queries and responses matching the specified client address or range (Netmask), or the specified DNS Name, or slower than 100ms
  * `grepq({"::1", "powerdns.com", "100ms"} [, n])`: shows the last n queries and responses matching the specified client address AND range (Netmask) AND the specified DNS Name AND slower than 100ms
  * `topBandwidth(top)`: show top-`top` clients that consume the most bandwidth over length of ringbuffer
+ * `topClients(n)`: show top-`n` clients sending the most queries over length of ringbuffer
  * `topQueries(20)`: shows the top-20 queries
  * `topQueries(20,2)`: shows the top-20 two-level domain queries (so `topQueries(20,1)` only shows TLDs)
  * `topResponses(20, 2)`: top-20 servfail responses (use ,3 for NXDOMAIN)
@@ -782,7 +783,7 @@ First, a few words about `dnsdist` architecture:
  if any, and is responsible for cleaning the cache
  * A health check thread checks the backends availability
  * A control thread handles console connections
- * A carbon thread exports statistics to a carbon server if needed
+ * A carbon thread exports statistics to carbon servers if needed
  * One or more webserver threads handle queries to the internal webserver
 
 The maximum number of threads in the TCP pool is controlled by the
@@ -953,6 +954,7 @@ Here are all functions:
     * `topResponses(n, kind[, labels])`: show top 'n' responses with RCODE=kind (0=NO Error, 2=ServFail, 3=ServFail), as grouped when optionally cut down to 'labels' labels
     * `topSlow([top][, limit][, labels])`: show `top` queries slower than `limit` milliseconds, grouped by last `labels` labels   
     * `topBandwidth(top)`: show top-`top` clients that consume the most bandwidth over length of ringbuffer
+    * `topClients(n)`: show top-`n` clients sending the most queries over length of ringbuffer
     * `showResponseLatency()`: show a plot of the response time latency distribution
  * Logging related
     * `infolog(string)`: log at level info
