@@ -4,6 +4,7 @@
 #include "dnsdist-ecs.hh"
 #include "dnsparser.hh"
 #include "dnswriter.hh"
+#include "ednsoptions.hh"
 #include "ednssubnet.hh"
 
 /* when we add EDNS to a query, we don't want to advertise
@@ -174,10 +175,10 @@ int locateEDNSOptRR(const char * packet, const size_t len, const char ** optStar
 }
 
 /* extract the start of the OPT RR in a QUERY packet if any */
-static int getEDNSOptionsStart(char* packet, const size_t offset, const size_t len, char ** optStart, size_t * remaining, unsigned char ** optRDLen)
+static int getEDNSOptionsStart(char* packet, const size_t offset, const size_t len, char ** optRDLen, size_t * remaining)
 {
   assert(packet != NULL);
-  assert(optStart != NULL);
+  assert(optRDLen != NULL);
   assert(remaining != NULL);
   const struct dnsheader* dh = (const struct dnsheader*) packet;
   
@@ -201,63 +202,11 @@ static int getEDNSOptionsStart(char* packet, const size_t offset, const size_t l
   if(qtype != QType::OPT || (len - pos) < (DNS_TTL_SIZE + DNS_RDLENGTH_SIZE))
     return ENOENT;
 
-  *optStart = packet + pos;
+  pos += DNS_TTL_SIZE;
+  *optRDLen = packet + pos;
   *remaining = len - pos;
 
-  if (optRDLen) {
-    *optRDLen = ((unsigned char*) packet + pos + DNS_TTL_SIZE);
-  }
-
   return 0;
-}
-
-/* extract a specific EDNS0 option from a pointer on the beginning of the OPT RR */
-static int getEDNSOption(char* optRR, const size_t len, const uint16_t wantedOption, char ** optionValue, size_t * optionValueSize)
-{
-  assert(optRR != NULL);
-  assert(optionValue != NULL);
-  assert(optionValueSize != NULL);
-  size_t pos = 0;
-
-  pos += DNS_TTL_SIZE;
-  const uint16_t rdLen = (((unsigned char) optRR[pos]) * 256) + ((unsigned char) optRR[pos+1]);
-  size_t rdPos = 0;
-  pos += DNS_RDLENGTH_SIZE;  
-
-  while(pos < (len - ((size_t) EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE)) &&
-        rdPos < (rdLen - ((size_t) EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE))) {
-    const uint16_t optionCode = (((unsigned char) optRR[pos]) * 256) + ((unsigned char) optRR[pos+1]);
-    pos += EDNS_OPTION_CODE_SIZE;
-    rdPos += EDNS_OPTION_CODE_SIZE;
-    const uint16_t optionLen = (((unsigned char) optRR[pos]) * 256) + ((unsigned char) optRR[pos+1]);
-    pos += EDNS_OPTION_LENGTH_SIZE;
-    rdPos += EDNS_OPTION_LENGTH_SIZE;
-
-    if (optionLen > (rdLen - rdPos) || optionLen > (len - pos))
-      return EINVAL;
-    
-    if (optionCode == wantedOption) {
-      *optionValue = optRR + pos - (EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE);
-      *optionValueSize = optionLen + EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE;
-      return 0;
-    }
-    else {
-      /* skip this option */
-      pos += optionLen;
-      rdPos += optionLen;
-    }
-  }
-  
-  return ENOENT;
-}
-
-void generateEDNSOption(uint16_t optionCode, const std::string& payload, std::string& res)
-{
-  const uint16_t ecsOptionCode = htons(optionCode);
-  const uint16_t payloadLen = htons(payload.length());
-  res.append((const char *) &ecsOptionCode, sizeof ecsOptionCode);
-  res.append((const char *) &payloadLen, sizeof payloadLen);
-  res.append(payload);
 }
 
 static void generateECSOption(const ComboAddress& source, string& res)
@@ -266,7 +215,7 @@ static void generateECSOption(const ComboAddress& source, string& res)
   EDNSSubnetOpts ecsOpts;
   ecsOpts.source = sourceNetmask;
   string payload = makeEDNSSubnetOptsString(ecsOpts);
-  generateEDNSOption(EDNS0_OPTION_CODE_ECS, payload, res);
+  generateEDNSOption(EDNSOptionCode::ECS, payload, res);
 }
 
 void generateOptRR(const std::string& optRData, string& res)
@@ -343,20 +292,19 @@ void handleEDNSClientSubnet(char * const packet, const size_t packetSize, const 
   assert(len != NULL);
   assert(consumed <= (size_t) *len);
   assert(ednsAdded != NULL);
-  char * optRRStart = NULL;
   unsigned char * optRDLen = NULL;
   size_t remaining = 0;
         
-  int res = getEDNSOptionsStart(packet, consumed, *len, &optRRStart, &remaining, &optRDLen);
+  int res = getEDNSOptionsStart(packet, consumed, *len, (char**) &optRDLen, &remaining);
         
   if (res == 0) {
     char * ecsOptionStart = NULL;
     size_t ecsOptionSize = 0;
     
-    res = getEDNSOption(optRRStart, remaining, EDNS0_OPTION_CODE_ECS, &ecsOptionStart, &ecsOptionSize);
+    res = getEDNSOption((char*)optRDLen, remaining, EDNSOptionCode::ECS, &ecsOptionStart, &ecsOptionSize);
     
     if (res == 0) {
-      /* there is already an EDNS0_OPTION_CODE_ECS value */
+      /* there is already an ECS value */
       if (g_ECSOverride) {
         replaceEDNSClientSubnetOption(packet, packetSize, len, largerPacket, remote, ecsOptionStart, ecsOptionSize, optRDLen);
       }

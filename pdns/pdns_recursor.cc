@@ -80,6 +80,7 @@ extern SortList g_sortlist;
 #include "rpzloader.hh"
 #include "validate-recursor.hh"
 #include "rec-lua-conf.hh"
+#include "ednsoptions.hh"
 
 #ifndef RECURSOR
 #include "statbag.hh"
@@ -1156,16 +1157,23 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
       unsigned int consumed=0;
       uint16_t qtype=0;
       try {
-        DNSName qname(question.c_str(), question.length(), sizeof(dnsheader), false, &qtype, 0, &consumed);
+        size_t questionLen = question.length();
+        DNSName qname(question.c_str(), questionLen, sizeof(dnsheader), false, &qtype, 0, &consumed);
         Netmask ednssubnet;
-        auto pos= sizeof(dnsheader)+consumed+4;        
-        if(ntohs(dh->arcount) == 1 && question.length() > pos + 16) { // this code can extract one (1) EDNS Subnet option
-          uint16_t optlen=0x100*question.at(pos+9)+question.at(pos+10);
-          uint16_t optcode=0x100*question.at(pos+11)+question.at(pos+12);
-          if(question.at(pos)==0 && question.at(pos+1)==0 && question.at(pos+2)==QType::OPT && optlen && optcode==8) {
-            EDNSSubnetOpts eso;
-            if(getEDNSSubnetOptsFromString(question.c_str()+pos+15, question.length()-15-pos, &eso)) {
-              ednssubnet=eso.source;
+        size_t pos= sizeof(dnsheader)+consumed+4;
+        /* at least OPT root label (1), type (2), class (2) and ttl (4) + OPT RR rdlen (2)
+           = 11 */
+        if(ntohs(dh->arcount) == 1 && questionLen > pos + 11) { // this code can extract one (1) EDNS Subnet option
+          /* OPT root label (1) followed by type (2) */
+          if(question.at(pos)==0 && question.at(pos+1)==0 && question.at(pos+2)==QType::OPT) {
+            char* ecsStart = nullptr;
+            size_t ecsLen = 0;
+            int res = getEDNSOption((char*)question.c_str()+pos+9, questionLen - pos - 9, EDNSOptionCode::ECS, &ecsStart, &ecsLen);
+            if (res == 0 && ecsLen > 4) {
+              EDNSSubnetOpts eso;
+              if(getEDNSSubnetOptsFromString(ecsStart + 4, ecsLen - 4, &eso)) {
+                ednssubnet=eso.source;
+              }
             }
           }
         }

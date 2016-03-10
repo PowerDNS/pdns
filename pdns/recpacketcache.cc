@@ -10,6 +10,7 @@
 #include "namespaces.hh"
 #include "lock.hh"
 #include "dnswriter.hh"
+#include "ednsoptions.hh"
 
 RecursorPacketCache::RecursorPacketCache()
 {
@@ -73,33 +74,14 @@ uint32_t RecursorPacketCache::canHashPacket(const std::string& origPacket)
      = 16
   */
   if(ntohs(dh->arcount)==1 && (p+16) < end) {
+    char* optionBegin = nullptr;
+    size_t optionLen = 0;
     /* skip the final empty label (1), the qtype (2), qclass (2) */
     /* root label (1), type (2), class (2) and ttl (4) */
-    const unsigned char *q = (const unsigned char*) p + 14;
-    uint16_t optRRLen = (0x100*q[0] + q[1]);
-    q += 2;
-    if ((q + optRRLen) <= (const unsigned char*) end) {
-      const unsigned char* optRRend = q + optRRLen;
-      while((q + 4) <= optRRend) {
-        const unsigned char* optionBegin = q;
-        uint16_t optionCode = 0x100*q[0] + q[1];
-        //cout << "OPT RR Option Code is " << optionCode << endl;
-        q += 2;
-        uint16_t optionLen = 0x100*q[0] + q[1];
-        //cout << "OPT RR Option Length is " << optionLen << endl;
-        q += 2;
-        if ((q + optionLen) > (const unsigned char*) end) {
-          break;
-        }
-        if (optionCode == 8) {
-          //cout << "Skipping OPT RR Option Client Subnet:" << endl;
-          //cout << makeHexDump(string((const char*)optionBegin, (const char*) q + optionLen)) << endl;
-          skipBegin = (const char*) optionBegin;
-          skipEnd = (const char*) q + optionLen;
-          break;
-        }
-        q += optionLen;
-      }
+    int res = getEDNSOption((char*) p + 14, end - (p + 14), EDNSOptionCode::ECS, &optionBegin, &optionLen);
+    if (res == 0) {
+      skipBegin = optionBegin;
+      skipEnd = optionBegin + optionLen;
     }
   }
   if (skipBegin > p) {
