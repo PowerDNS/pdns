@@ -61,7 +61,7 @@ Release: ${RELEASE}
 Summary: A modern, advanced and high performance authoritative-only nameserver
 Group: System Environment/Daemons
 License: GPLv2
-URL: http://powerdns.com
+URL: https://powerdns.com
 Source: ../%{name}-${TARBALLVERSION}.tar.bz2
 
 Requires(pre): shadow-utils
@@ -298,7 +298,7 @@ Release: ${RELEASE}
 Summary: A modern, advanced and high performance authoritative-only nameserver
 Group: System Environment/Daemons
 License: GPLv2
-URL: http://powerdns.com
+URL: https://powerdns.com
 Source: ../pdns-${TARBALLVERSION}.tar.bz2
 
 Requires(pre): shadow-utils
@@ -579,7 +579,7 @@ Release: ${RELEASE}
 Summary: A modern, advanced and high performance authoritative-only nameserver
 Group: System Environment/Daemons
 License: GPLv2
-URL: http://powerdns.com
+URL: https://powerdns.com
 Source: ../pdns-${TARBALLVERSION}.tar.bz2
 
 %{?systemd_requires}
