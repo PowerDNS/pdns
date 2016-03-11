@@ -266,7 +266,7 @@ for a in $modules; do
     modulelibs="$modulelibs `cat $srcdir/modules/${a}backend/OBJECTLIBS`"
   else
     AC_MSG_RESULT([no])
-    AC_MSG_ERROR([Do not know how to build module "$a", "$srcdir/modules/${a}backend" doesn't exist! Please review --with-modules parameter for supported values.])
+    AC_MSG_ERROR([Do not know how to build module "$a", "$srcdir/modules/${a}backend" does not exist! Please review --with-modules parameter for supported values.])
   fi
 done
 
@@ -277,7 +277,7 @@ for a in $dynmodules; do
     moduledirs="$moduledirs ${a}backend"
   else
     AC_MSG_RESULT([no])
-    AC_MSG_ERROR([Do not know how to build module "$a", "$srcdir/modules/${a}backend" doesn't exist! Please review --with-dynmodules parameter for supported values.])
+    AC_MSG_ERROR([Do not know how to build module "$a", "$srcdir/modules/${a}backend" does not exist! Please review --with-dynmodules parameter for supported values.])
   fi
 done
 
