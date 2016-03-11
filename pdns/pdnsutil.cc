@@ -1519,12 +1519,15 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone)
     bool shown=false;
     for(const auto& key : keys) {
       string algname = DNSSECKeeper::algorithm2name(key.d_algorithm);
-      int bits;
-      if (key.d_key[0] == 0)
-        bits = *(uint16_t*)(key.d_key.c_str()+1);
-      else
-        bits = *(uint8_t*)key.d_key.c_str();
-      bits = (key.d_key.size() - (bits+1))*8;
+
+      int bits = -1;
+      try {
+        std::unique_ptr<DNSCryptoKeyEngine> engine(DNSCryptoKeyEngine::makeFromPublicKeyString(key.d_algorithm, key.d_key)); // throws on unknown algo or bad key
+        bits=engine->getBits();
+      }
+      catch(std::exception& e) {
+        cout<<"Could not process key to extract metadata: "<<e.what()<<endl;
+      }
       cout << (key.d_flags == 257 ? "KSK" : "ZSK") << ", tag = " << key.getTag() << ", algo = "<<(int)key.d_algorithm << ", bits = " << bits << endl;
       cout << "DNSKEY = " <<zone.toString()<<" IN DNSKEY "<< key.getZoneRepresentation() << "; ( " + algname + " ) " <<endl;
       if (shown) continue;
