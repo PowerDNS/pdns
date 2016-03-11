@@ -28,9 +28,9 @@ AC_DEFINE([_GNU_SOURCE], [1],
 )
 
 # Warn when pkg.m4 is missing
-m4_pattern_forbid([^_?PKG_[A-Z_]+$],[*** pkg.m4 missing, please install pkg-config])
+m4_pattern_forbid([^_?PKG_[A-Z_]+$], [*** pkg.m4 missing, please install pkg-config])
 
-AX_CXX_COMPILE_STDCXX_11(ext,mandatory)
+AX_CXX_COMPILE_STDCXX_11([ext], [mandatory])
 AC_PROG_LIBTOOL
 
 PDNS_CHECK_OS
@@ -90,16 +90,16 @@ PDNS_CHECK_CURL
 
 AC_CHECK_FUNCS([strcasestr])
 
-AC_SUBST(socketdir)
+AC_SUBST([socketdir])
 socketdir="/var/run"
 AC_ARG_WITH([socketdir],
-  [AS_HELP_STRING([--with-socketdir],[where the controlsocket lives @<:@default=/var/run@:>@])],
+  [AS_HELP_STRING([--with-socketdir], [where the controlsocket lives @<:@default=/var/run@:>@])],
   [socketdir="$withval"]
 )
 
 AC_MSG_CHECKING([whether we will enable compiler security checks])
 AC_ARG_ENABLE([hardening],
-  [AS_HELP_STRING([--disable-hardening],[disable compiler security checks @<:@default=no@:>@])],
+  [AS_HELP_STRING([--disable-hardening], [disable compiler security checks @<:@default=no@:>@])],
   [enable_hardening=$enableval],
   [enable_hardening=yes]
 )
