@@ -443,11 +443,6 @@ enum ednsHeaderFlags {
   EDNS_HEADER_FLAG_DO = 32768
 };
 
-enum ednsOptionCodes {
-  EDNS0_OPTION_CODE_NONE = 0,
-  EDNS0_OPTION_CODE_ECS = 8,
-};
-
 extern GlobalStateHolder<CarbonConfig> g_carbon;
 extern GlobalStateHolder<ServerPolicy> g_policy;
 extern GlobalStateHolder<servers_t> g_dstates;

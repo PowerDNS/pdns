@@ -2,6 +2,7 @@
 #include "dnsdist-ecs.hh"
 #include "dnsname.hh"
 #include "dolog.hh"
+#include "ednsoptions.hh"
 
 class MaxQPSIPRule : public DNSRule
 {

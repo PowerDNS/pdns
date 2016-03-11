@@ -32,6 +32,7 @@
 #include "dnsname.hh"
 #include "dnsparser.hh"
 #include "dnswriter.hh"
+#include "ednsoptions.hh"
 #include "ednssubnet.hh"
 #include <unistd.h>
 
@@ -164,7 +165,7 @@ BOOST_AUTO_TEST_CASE(replaceECSWithSameSize) {
   ecsOpts.source = Netmask(origRemote, g_ECSSourcePrefixV4);
   string origECSOption = makeEDNSSubnetOptsString(ecsOpts);
   DNSPacketWriter::optvect_t opts;
-  opts.push_back(make_pair(EDNS0_OPTION_CODE_ECS, origECSOption));
+  opts.push_back(make_pair(EDNSOptionCode::ECS, origECSOption));
   pw.addOpt(512, 0, 0, opts);
   pw.commit();
   uint16_t len = query.size();
@@ -201,7 +202,7 @@ BOOST_AUTO_TEST_CASE(replaceECSWithSmaller) {
   ecsOpts.source = Netmask(origRemote, 32);
   string origECSOption = makeEDNSSubnetOptsString(ecsOpts);
   DNSPacketWriter::optvect_t opts;
-  opts.push_back(make_pair(EDNS0_OPTION_CODE_ECS, origECSOption));
+  opts.push_back(make_pair(EDNSOptionCode::ECS, origECSOption));
   pw.addOpt(512, 0, 0, opts);
   pw.commit();
   uint16_t len = query.size();
@@ -238,7 +239,7 @@ BOOST_AUTO_TEST_CASE(replaceECSWithLarger) {
   ecsOpts.source = Netmask(origRemote, 8);
   string origECSOption = makeEDNSSubnetOptsString(ecsOpts);
   DNSPacketWriter::optvect_t opts;
-  opts.push_back(make_pair(EDNS0_OPTION_CODE_ECS, origECSOption));
+  opts.push_back(make_pair(EDNSOptionCode::ECS, origECSOption));
   pw.addOpt(512, 0, 0, opts);
   pw.commit();
   uint16_t len = query.size();
