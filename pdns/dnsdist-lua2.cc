@@ -527,11 +527,15 @@ void moreLua(bool client)
     });
 
     g_lua.registerFunction<void(std::shared_ptr<ServerPool>::*)(std::shared_ptr<DNSDistPacketCache>)>("setCache", [](std::shared_ptr<ServerPool> pool, std::shared_ptr<DNSDistPacketCache> cache) {
-        pool->packetCache = cache;
+        if (pool) {
+          pool->packetCache = cache;
+        }
     });
     g_lua.registerFunction("getCache", &ServerPool::getCache);
     g_lua.registerFunction<void(std::shared_ptr<ServerPool>::*)()>("unsetCache", [](std::shared_ptr<ServerPool> pool) {
-        pool->packetCache = nullptr;
+        if (pool) {
+          pool->packetCache = nullptr;
+        }
     });
 
     g_lua.writeFunction("newPacketCache", [client](size_t maxEntries, boost::optional<uint32_t> maxTTL, boost::optional<uint32_t> minTTL, boost::optional<uint32_t> servFailTTL, boost::optional<uint32_t> staleTTL) {
@@ -542,15 +546,19 @@ void moreLua(bool client)
     g_lua.registerFunction("purgeExpired", &DNSDistPacketCache::purgeExpired);
     g_lua.registerFunction("expunge", &DNSDistPacketCache::expunge);
     g_lua.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)(const DNSName& dname, boost::optional<uint16_t> qtype)>("expungeByName", [](std::shared_ptr<DNSDistPacketCache> cache, const DNSName& dname, boost::optional<uint16_t> qtype) {
-        cache->expungeByName(dname, qtype ? *qtype : QType::ANY);
+        if (cache) {
+          cache->expungeByName(dname, qtype ? *qtype : QType::ANY);
+        }
       });
     g_lua.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)()>("printStats", [](const std::shared_ptr<DNSDistPacketCache> cache) {
-        g_outputBuffer="Hits: " + std::to_string(cache->getHits()) + "\n";
-        g_outputBuffer+="Misses: " + std::to_string(cache->getMisses()) + "\n";
-        g_outputBuffer+="Deferred inserts: " + std::to_string(cache->getDeferredInserts()) + "\n";
-        g_outputBuffer+="Deferred lookups: " + std::to_string(cache->getDeferredLookups()) + "\n";
-        g_outputBuffer+="Lookup Collisions: " + std::to_string(cache->getLookupCollisions()) + "\n";
-        g_outputBuffer+="Insert Collisions: " + std::to_string(cache->getInsertCollisions()) + "\n";
+        if (cache) {
+          g_outputBuffer="Hits: " + std::to_string(cache->getHits()) + "\n";
+          g_outputBuffer+="Misses: " + std::to_string(cache->getMisses()) + "\n";
+          g_outputBuffer+="Deferred inserts: " + std::to_string(cache->getDeferredInserts()) + "\n";
+          g_outputBuffer+="Deferred lookups: " + std::to_string(cache->getDeferredLookups()) + "\n";
+          g_outputBuffer+="Lookup Collisions: " + std::to_string(cache->getLookupCollisions()) + "\n";
+          g_outputBuffer+="Insert Collisions: " + std::to_string(cache->getInsertCollisions()) + "\n";
+        }
       });
 
     g_lua.writeFunction("getPool", [client](const string& poolName) {
