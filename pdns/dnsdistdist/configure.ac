@@ -58,6 +58,10 @@ AS_IF([test "x$static" != "xyes"], [
 ])
 AC_SUBST([PROGRAM_LDFLAGS])
 
+AC_SUBST([AM_CPPFLAGS],
+  ["AS_ESCAPE([-I$(top_builddir) -I$(top_srcdir)]) -Wall -O3 -pthread $BOOST_CPPFLAGS"]
+)
+
 AC_CONFIG_FILES([Makefile
 	ext/yahttp/Makefile
 	ext/yahttp/yahttp/Makefile])
