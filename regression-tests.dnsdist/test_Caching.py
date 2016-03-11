@@ -50,8 +50,8 @@ class TestCaching(DNSDistTest):
             self.assertEquals(receivedResponse, response)
 
         total = 0
-        for key in TestCaching._responsesCounter:
-            total += TestCaching._responsesCounter[key]
+        for key in self._responsesCounter:
+            total += self._responsesCounter[key]
             TestCaching._responsesCounter[key] = 0
 
         self.assertEquals(total, 1)
@@ -70,8 +70,8 @@ class TestCaching(DNSDistTest):
             self.assertEquals(receivedResponse, response)
 
         total = 0
-        for key in TestCaching._responsesCounter:
-            total += TestCaching._responsesCounter[key]
+        for key in self._responsesCounter:
+            total += self._responsesCounter[key]
             TestCaching._responsesCounter[key] = 0
 
         self.assertEquals(total, 1)
@@ -109,8 +109,8 @@ class TestCaching(DNSDistTest):
             self.assertEquals(query, receivedQuery)
             self.assertEquals(receivedResponse, response)
 
-        for key in TestCaching._responsesCounter:
-            value = TestCaching._responsesCounter[key]
+        for key in self._responsesCounter:
+            value = self._responsesCounter[key]
             self.assertEquals(value, numberOfQueries)
 
     def testSkipCacheViaLua(self):
@@ -146,8 +146,8 @@ class TestCaching(DNSDistTest):
             self.assertEquals(query, receivedQuery)
             self.assertEquals(receivedResponse, response)
 
-        for key in TestCaching._responsesCounter:
-            value = TestCaching._responsesCounter[key]
+        for key in self._responsesCounter:
+            value = self._responsesCounter[key]
             self.assertEquals(value, numberOfQueries)
 
     def testCacheExpiration(self):
@@ -201,8 +201,8 @@ class TestCaching(DNSDistTest):
         self.assertEquals(receivedResponse, response)
 
         total = 0
-        for key in TestCaching._responsesCounter:
-            total += TestCaching._responsesCounter[key]
+        for key in self._responsesCounter:
+            total += self._responsesCounter[key]
 
         self.assertEquals(total, misses)
 
@@ -264,8 +264,8 @@ class TestCaching(DNSDistTest):
         self.assertEquals(receivedResponse, response)
 
         total = 0
-        for key in TestCaching._responsesCounter:
-            total += TestCaching._responsesCounter[key]
+        for key in self._responsesCounter:
+            total += self._responsesCounter[key]
 
         self.assertEquals(total, misses)
 
@@ -313,8 +313,8 @@ class TestCaching(DNSDistTest):
             self.assertTrue(an.ttl < ttl)
 
         total = 0
-        for key in TestCaching._responsesCounter:
-            total += TestCaching._responsesCounter[key]
+        for key in self._responsesCounter:
+            total += self._responsesCounter[key]
 
         self.assertEquals(total, misses)
 
@@ -406,8 +406,8 @@ class TestCachingWithExistingEDNS(DNSDistTest):
         misses += 1
 
         total = 0
-        for key in TestCachingWithExistingEDNS._responsesCounter:
-            total += TestCachingWithExistingEDNS._responsesCounter[key]
+        for key in self._responsesCounter:
+            total += self._responsesCounter[key]
 
         self.assertEquals(total, misses)
 
@@ -477,8 +477,8 @@ class TestCachingCacheFull(DNSDistTest):
         misses += 1
 
         total = 0
-        for key in TestCachingCacheFull._responsesCounter:
-            total += TestCachingCacheFull._responsesCounter[key]
+        for key in self._responsesCounter:
+            total += self._responsesCounter[key]
 
         self.assertEquals(total, misses)
 
@@ -588,8 +588,8 @@ class TestCachingStale(DNSDistTest):
             self.assertEquals(an.ttl, self._staleCacheTTL)
 
         total = 0
-        for key in TestCachingCacheFull._responsesCounter:
-            total += TestCachingCacheFull._responsesCounter[key]
+        for key in self._responsesCounter:
+            total += self._responsesCounter[key]
 
         self.assertEquals(total, misses)
 
@@ -652,8 +652,8 @@ class TestCacheManagement(DNSDistTest):
         self.assertEquals(receivedResponse, response)
 
         total = 0
-        for key in TestCachingCacheFull._responsesCounter:
-            total += TestCachingCacheFull._responsesCounter[key]
+        for key in self._responsesCounter:
+            total += self._responsesCounter[key]
 
         self.assertEquals(total, misses)
 
@@ -734,8 +734,8 @@ class TestCacheManagement(DNSDistTest):
         self.assertEquals(receivedResponse, response2)
 
         total = 0
-        for key in TestCachingCacheFull._responsesCounter:
-            total += TestCachingCacheFull._responsesCounter[key]
+        for key in self._responsesCounter:
+            total += self._responsesCounter[key]
 
         self.assertEquals(total, misses)
 
@@ -815,7 +815,6 @@ class TestCacheManagement(DNSDistTest):
         self.assertEquals(receivedResponse, response2)
 
         total = 0
-        for key in TestCachingCacheFull._responsesCounter:
-            total += TestCachingCacheFull._responsesCounter[key]
-
+        for key in self._responsesCounter:
+            total += self._responsesCounter[key]
         self.assertEquals(total, misses)
