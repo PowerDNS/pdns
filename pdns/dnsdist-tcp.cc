@@ -65,13 +65,14 @@ struct ConnectionInfo
   ClientState* cs;
 };
 
+uint64_t g_maxTCPQueuedConnections{0};
 void* tcpClientThread(int pipefd);
 
 // Should not be called simultaneously!
 void TCPClientCollection::addTCPClientThread()
 {
   if (d_numthreads >= d_tcpclientthreads.capacity()) {
-    warnlog("Adding a new TCP client thread would exceed the vector capacity, skipping");
+    warnlog("Adding a new TCP client thread would exceed the vector capacity (%d/%d), skipping", d_numthreads.load(), d_tcpclientthreads.capacity());
     return;
   }
 
@@ -81,13 +82,16 @@ void TCPClientCollection::addTCPClientThread()
   if(pipe(pipefds) < 0)
     unixDie("Creating pipe");
 
-  if (!setNonBlocking(pipefds[1]))
+  if (!setNonBlocking(pipefds[1])) {
+    close(pipefds[0]);
+    close(pipefds[1]);
     unixDie("Setting pipe non-blocking");
+  }
 
   d_tcpclientthreads.push_back(pipefds[1]);
+  ++d_numthreads;
   thread t1(tcpClientThread, pipefds[0]);
   t1.detach();
-  ++d_numthreads;
 }
 
 static bool getNonBlockingMsgLen(int fd, uint16_t* len, int timeout)
@@ -585,6 +589,14 @@ void* tcpAcceptorThread(void* p)
 	continue;
       }
 
+      if(g_maxTCPQueuedConnections > 0 && g_tcpclientthreads->d_queued >= g_maxTCPQueuedConnections) {
+        close(ci->fd);
+        delete ci;
+        ci=nullptr;
+        vinfolog("Dropping TCP connection from %s because we have too many queued already", remote.toStringWithPort());
+        continue;
+      }
+
       vinfolog("Got TCP connection from %s", remote.toStringWithPort());
       
       ci->remote = remote;
@@ -593,6 +605,7 @@ void* tcpAcceptorThread(void* p)
         writen2WithTimeout(pipe, &ci, sizeof(ci), 0);
       }
       else {
+        --g_tcpclientthreads->d_queued;
         close(ci->fd);
         delete ci;
       }

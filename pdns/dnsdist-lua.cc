@@ -1303,7 +1303,21 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.registerMember<bool (DNSQuestion::*)>("tcp", [](const DNSQuestion& dq) -> bool { return dq.tcp; }, [](DNSQuestion& dq, bool newTcp) { (void) newTcp; });
   g_lua.registerMember<bool (DNSQuestion::*)>("skipCache", [](const DNSQuestion& dq) -> bool { return dq.skipCache; }, [](DNSQuestion& dq, bool newSkipCache) { dq.skipCache = newSkipCache; });
 
-  g_lua.writeFunction("setMaxTCPClientThreads", [](uint64_t max) { g_maxTCPClientThreads = max; });
+  g_lua.writeFunction("setMaxTCPClientThreads", [](uint64_t max) {
+      if (!g_configurationDone) {
+        g_maxTCPClientThreads = max;
+      } else {
+        g_outputBuffer="Maximum TCP client threads count cannot be altered at runtime!\n";
+      }
+    });
+
+  g_lua.writeFunction("setMaxTCPQueuedConnections", [](uint64_t max) {
+      if (!g_configurationDone) {
+        g_maxTCPQueuedConnections = max;
+      } else {
+        g_outputBuffer="The maximum number of queued TCP connections cannot be altered at runtime!\n";
+      }
+    });
 
   g_lua.writeFunction("setCacheCleaningDelay", [](uint32_t delay) { g_cacheCleaningDelay = delay; });
 

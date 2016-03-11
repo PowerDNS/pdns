@@ -101,6 +101,7 @@ void doClient(ComboAddress server, const std::string& command)
       cout<<endl;
     }
   }
+  close(fd);
 }
 
 void doConsole()
@@ -208,7 +209,8 @@ char* my_generator(const char* text, int state)
       "QTypeRule(",
       "setACL(", "setDNSSECPool(", "setECSOverride(",
       "setECSSourcePrefixV4(", "setECSSourcePrefixV6(", "setKey(", "setLocal(",
-      "setMaxTCPClientThreads(", "setMaxUDPOutstanding(", "setServerPolicy(", "setServerPolicyLua(",
+      "setMaxTCPClientThreads(", "setMaxTCPQueuedConnections(", "setMaxUDPOutstanding(", "setServerPolicy(",
+      "setServerPolicyLua(",
       "setTCPRecvTimeout(", "setTCPSendTimeout(", "setVerboseHealthChecks(", "show(", "showACL()",
       "showDNSCryptBinds()", "showDynBlocks()", "showResponseLatency()", "showRules()",
       "showServerPolicy()", "showServers()", "shutdown()", "SpoofAction(",
