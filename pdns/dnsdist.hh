@@ -273,15 +273,17 @@ class TCPClientCollection {
   std::atomic<uint64_t> d_pos{0};
 public:
   std::atomic<uint64_t> d_queued{0}, d_numthreads{0};
+  uint64_t d_maxthreads{0};
 
   TCPClientCollection(size_t maxThreads)
   {
+    d_maxthreads = maxThreads;
     d_tcpclientthreads.reserve(maxThreads);
   }
 
   int getThread()
   {
-    int pos = d_pos++;
+    uint64_t pos = d_pos++;
     ++d_queued;
     return d_tcpclientthreads[pos % d_numthreads];
   }
@@ -461,7 +463,8 @@ extern int g_tcpRecvTimeout;
 extern int g_tcpSendTimeout;
 extern uint16_t g_maxOutstanding;
 extern std::atomic<bool> g_configurationDone;
-extern std::atomic<uint64_t> g_maxTCPClientThreads;
+extern uint64_t g_maxTCPClientThreads;
+extern uint64_t g_maxTCPQueuedConnections;
 extern std::atomic<uint16_t> g_cacheCleaningDelay;
 extern uint16_t g_ECSSourcePrefixV4;
 extern uint16_t g_ECSSourcePrefixV6;
