@@ -79,6 +79,10 @@
 
 #endif
 
+#ifdef __FreeBSD__
+#include <sys/endian.h>
+#endif
+
 union ComboAddress {
   struct sockaddr_in sin4;
   struct sockaddr_in6 sin6;
