@@ -1022,7 +1022,7 @@ testrunner_SOURCES = \
 	dnsrecords.cc \
 	dnssecinfra.cc \
 	dnswriter.cc \
-	ednsoptions.cc \
+	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc \
 	gss_context.cc gss_context.hh \
 	iputils.cc \
