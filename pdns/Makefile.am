@@ -3,7 +3,8 @@ JSON11_LIBS = $(top_builddir)/ext/json11/libjson11.la
 AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/json11 \
 	$(YAHTTP_CFLAGS) \
-	$(LIBEDIT_CFLAGS)
+	$(LIBEDIT_CFLAGS) \
+	$(OPENSSL_INCLUDES)
 
 AM_CXXFLAGS = \
 	-DSYSCONFDIR=\"$(sysconfdir)\" \
