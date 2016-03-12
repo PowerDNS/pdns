@@ -1874,8 +1874,8 @@ try
     cerr<<"remove-zone-key ZONE KEY-ID        Remove key with KEY-ID from ZONE"<<endl;
     cerr<<"replace-rrset ZONE NAME TYPE [ttl] Replace named RRSET from zone"<<endl;
     cerr<<"       content [content..]"<<endl;
-    cerr<<"secure-all-zones [increase-serial] Secure all zones without keys."<<endl;
-    cerr<<"secure-zone ZONE [ZONE ..]         Add KSK and two ZSKs for ZONE"<<endl;
+    cerr<<"secure-all-zones [increase-serial] Secure all zones without keys"<<endl;
+    cerr<<"secure-zone ZONE [ZONE ..]         Add DNSSEC to zone ZONE"<<endl;
     cerr<<"set-kind ZONE KIND                 Change the kind of ZONE to KIND (master, slave native)"<<endl;
     cerr<<"set-nsec3 ZONE ['PARAMS' [narrow]] Enable NSEC3 with PARAMS. Optionally narrow"<<endl;
     cerr<<"set-presigned ZONE                 Use presigned RRSIGs from storage"<<endl;
