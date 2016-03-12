@@ -5,7 +5,8 @@ AM_CPPFLAGS = $(LUA_CFLAGS) $(YAHTTP_CFLAGS) $(BOOST_CPPFLAGS) $(SANITIZER_FLAGS
 AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/json11 \
 	-I$(top_srcdir)/ext/rapidjson/include \
-	$(YAHTTP_CFLAGS)
+	$(YAHTTP_CFLAGS) \
+	$(OPENSSL_INCLUDES)
 
 AM_CXXFLAGS = \
 	-DSYSCONFDIR=\"$(sysconfdir)\" \
