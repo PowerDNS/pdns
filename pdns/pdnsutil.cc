@@ -1493,12 +1493,12 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone)
   }
 
   if (dk.isPresigned(zone)) {
-    cout <<"Zone is " << (dk.isPresigned(zone) ? "" : "not ") << "presigned"<<endl;
+    cout <<"Zone is presigned"<<endl;
     // get us some keys
     vector<DNSKEYRecordContent> keys;
     DNSResourceRecord rr;
 
-    B.lookup(QType(QType::DNSKEY), DNSName(zone));
+    B.lookup(QType(QType::DNSKEY), zone);
     while(B.get(rr)) {
       if (rr.qtype != QType::DNSKEY) continue;
       keys.push_back(*dynamic_cast<DNSKEYRecordContent*>(DNSKEYRecordContent::make(rr.getZoneRepresentation())));
