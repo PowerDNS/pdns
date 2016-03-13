@@ -22,6 +22,12 @@ insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR-FROM
 insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR-FROM','2001:db8::/48');
 ```
 
+To dissallow all IP's, except those explicitly allowed by domainmetadata records, add 
+
+```
+allow-axfr-ips=
+``` 
+
 ## AXFR-SOURCE
 The IP address to use as a source address for sending AXFR requests.
 
