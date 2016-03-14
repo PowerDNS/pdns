@@ -401,6 +401,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
       }
     }
   }
+  trim_if(rr.content, is_any_of(" \r\n\x1a"));
 
   vector<string> recparts;
   switch(rr.qtype.getCode()) {
