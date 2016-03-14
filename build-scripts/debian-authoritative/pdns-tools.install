@@ -6,6 +6,7 @@ usr/bin/dnsscope
 usr/bin/dnstcpbench
 usr/bin/dnswasher
 usr/bin/ixplore
+usr/bin/notify
 usr/bin/nsec3dig
 usr/bin/saxfr
 usr/bin/sdig

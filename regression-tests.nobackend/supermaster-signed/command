@@ -2,17 +2,11 @@
 set -e
 set -x
 
-PDNS=${PDNS:-../pdns/pdns_server}
-PDNS2=${PDNS2:-../pdns/pdns_server}
-
 ALGORITHM=${ALGORITHM:="hmac-md5"}
 KEY=${KEY:="kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys="}
 if [ "$RUNWRAPPER" = "" ]; then
   RUNWRAPPER="authbind"
 fi
-MAKE=${MAKE:-make}
-
-$MAKE -C ../pdns notify > /dev/null
 
 export ALGORITHM
 export KEY
@@ -24,8 +18,7 @@ trap "kill_process 2" EXIT INT TERM
 
 tosql ()
 {
-        ${MAKE} -C ../pdns zone2sql > /dev/null
-        ../pdns/zone2sql --transactions --$1 --named-conf=./named.conf
+        ${ZONE2SQL} --transactions --$1 --named-conf=./named.conf
 }
 
 prepare()
@@ -73,17 +66,17 @@ EOF
 UPDATE domains SET type = 'MASTER', notified_serial = NULL;
 EOF
 	# setup tsig keys
-        ../pdns/pdnsutil --config-name=gsqlite3-master --config-dir=. import-tsig-key tsig.com $ALGORITHM "$KEY"
-	../pdns/pdnsutil --config-name=gsqlite3-slave --config-dir=. import-tsig-key tsig.com $ALGORITHM "$KEY"
-	../pdns/zone2sql --transactions --gsqlite --zone=zones/example.com --zone-name=example.com | sqlite3 slave.db
+        $PDNSUTIL --config-name=gsqlite3-master --config-dir=. import-tsig-key tsig.com $ALGORITHM "$KEY"
+	$PDNSUTIL --config-name=gsqlite3-slave --config-dir=. import-tsig-key tsig.com $ALGORITHM "$KEY"
+	$ZONE2SQL --transactions --gsqlite --zone=zones/example.com --zone-name=example.com | sqlite3 slave.db
 	# setup supermaster
 	sqlite3 slave.db <<EOF
 UPDATE domains SET type = 'SLAVE', master = '127.0.0.1' WHERE name = 'example.com';
 EOF
 	# setup metadata on master
-        ../pdns/pdnsutil --config-name=gsqlite3-master --config-dir=. set-meta example.com TSIG-ALLOW-AXFR tsig.com
-	../pdns/pdnsutil --config-name=gsqlite3-master --config-dir=. set-meta test.com TSIG-ALLOW-AXFR tsig.com
-        ../pdns/pdnsutil --config-name=gsqlite3-slave --config-dir=. set-meta example.com AXFR-MASTER-TSIG tsig.com
+        $PDNSUTIL --config-name=gsqlite3-master --config-dir=. set-meta example.com TSIG-ALLOW-AXFR tsig.com
+	$PDNSUTIL --config-name=gsqlite3-master --config-dir=. set-meta test.com TSIG-ALLOW-AXFR tsig.com
+        $PDNSUTIL --config-name=gsqlite3-slave --config-dir=. set-meta example.com AXFR-MASTER-TSIG tsig.com
 	# i suppose we are done here...
 }
 
@@ -213,7 +206,7 @@ INSERT INTO supermasters (ip,nameserver,account) VALUES('127.0.0.1','ns1.example
 EOF
 
 # send notifications
-../pdns/pdns_control --config-dir=. --config-name=gsqlite3-master --socket-dir=. notify test.com
+$PDNSCONTROL --config-dir=. --config-name=gsqlite3-master --socket-dir=. notify test.com
 sleep 2
 
 # hopefully notifications have gone thru
@@ -232,6 +225,6 @@ for domain in test.com; do
 done
 
 # ensure unsigned notifications are refused
-../pdns/notify 127.0.0.2:53 test.com 2>&1
+$NOTIFY 127.0.0.2:53 test.com 2>&1
 
 kill_process 0
