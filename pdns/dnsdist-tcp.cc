@@ -160,7 +160,13 @@ void* tcpClientThread(int pipefd)
   for(;;) {
     ConnectionInfo* citmp, ci;
 
-    readn2(pipefd, &citmp, sizeof(citmp));
+    try {
+      readn2(pipefd, &citmp, sizeof(citmp));
+    }
+    catch(const std::runtime_error& e) {
+      throw std::runtime_error("Error reading from TCP acceptor pipe (" + std::to_string(pipefd) + ") in " + std::string(isNonBlocking(pipefd) ? "non-blocking" : "blocking") + " mode: " + e.what());
+    }
+
     --g_tcpclientthreads->d_queued;
     ci=*citmp;
     delete citmp;    
@@ -366,7 +372,7 @@ void* tcpClientThread(int pipefd)
 	  break;
 	}
 
-	int dsock;
+	int dsock = -1;
 	if(sockets.count(ds->remote) == 0) {
 	  dsock=sockets[ds->remote]=setupTCPDownstream(ds);
 	}
@@ -387,6 +393,7 @@ void* tcpClientThread(int pipefd)
         if (ds->retries > 0 && downstream_failures > ds->retries) {
           vinfolog("Downstream connection to %s failed %d times in a row, giving up.", ds->getName(), downstream_failures);
           close(dsock);
+          dsock=-1;
           sockets.erase(ds->remote);
           break;
         }
@@ -608,6 +615,7 @@ void* tcpAcceptorThread(void* p)
         --g_tcpclientthreads->d_queued;
         close(ci->fd);
         delete ci;
+        ci=nullptr;
       }
     }
     catch(std::exception& e) {

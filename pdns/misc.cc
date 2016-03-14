@@ -1063,6 +1063,12 @@ bool setBlocking(int sock)
   return true;
 }
 
+bool isNonBlocking(int sock)
+{
+  int flags=fcntl(sock,F_GETFL,0);
+  return flags & O_NONBLOCK;
+}
+
 // Closes a socket.
 int closesocket( int socket )
 {
