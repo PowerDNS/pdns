@@ -188,7 +188,7 @@ struct DNSComboWriter {
   ComboAddress d_remote, d_local;
   bool d_tcp;
   int d_socket;
-  int d_tag;
+  int d_tag{0};
   string d_query;
   shared_ptr<TCPConnection> d_tcpConnection;
   vector<pair<uint16_t, string> > d_ednsOpts;

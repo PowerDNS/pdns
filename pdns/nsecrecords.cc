@@ -282,9 +282,9 @@ NSEC3PARAMRecordContent::DNSRecordContent* NSEC3PARAMRecordContent::make(const D
   pr.xfr8BitInt(ret->d_algorithm); 
         pr.xfr8BitInt(ret->d_flags); 
         pr.xfr16BitInt(ret->d_iterations); 
-  pr.xfr8BitInt(ret->d_saltlength);
-  pr.xfrHexBlob(ret->d_salt);
- 
+  uint8_t len;
+  pr.xfr8BitInt(len);
+  pr.xfrHexBlob(ret->d_salt, len);
   return ret;
 }
 

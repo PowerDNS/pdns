@@ -283,6 +283,9 @@ bool SyncRes::doOOBResolve(const DNSName &qname, const QType &qtype, vector<DNSR
 void SyncRes::doEDNSDumpAndClose(int fd)
 {
   FILE* fp=fdopen(fd, "w");
+  if (!fp) {
+    return;
+  }
   fprintf(fp,"IP Address\tMode\tMode last updated at\n");
   for(const auto& eds : t_sstorage->ednsstatus) {
     fprintf(fp, "%s\t%d\t%s", eds.first.toString().c_str(), (int)eds.second.mode, ctime(&eds.second.modeSetAt));
