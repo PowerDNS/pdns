@@ -600,6 +600,7 @@ bool setBlocking( int sock );
 
 //! Sets the socket into non-blocking mode.
 bool setNonBlocking( int sock );
+bool isNonBlocking(int sock);
 int closesocket(int fd);
 bool setCloseOnExec(int sock);
 uint64_t udpErrorStats(const std::string& str);
