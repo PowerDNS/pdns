@@ -1,0 +1,3 @@
+#!/bin/sh
+cleandig google-alias.example.com A hidettl
+cleandig google-alias.example.com AAAA hidettl
