@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2003 - 2010  PowerDNS.COM BV
+    Copyright (C) 2003 - 2016  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 
@@ -32,6 +32,7 @@
 #include <thread>
 #include "ixfr.hh"
 #include "rpzloader.hh"
+#include "root-addresses.hh"
 
 extern int g_argc;
 extern char** g_argv;
@@ -44,15 +45,6 @@ void primeHints(void)
     t_RC = new MemRecursorCache();
 
   if(::arg()["hint-file"].empty()) {
-    static const char*ips[]={"198.41.0.4", "192.228.79.201", "192.33.4.12", "199.7.91.13", "192.203.230.10", "192.5.5.241", 
-                             "192.112.36.4", "198.97.190.53",
-                             "192.36.148.17","192.58.128.30", "193.0.14.129", "199.7.83.42", "202.12.27.33"};
-    static const char *ip6s[]={
-      "2001:503:ba3e::2:30", "2001:500:84::b", "2001:500:2::c", "2001:500:2d::d", NULL,
-      "2001:500:2f::f", NULL, "2001:500:1::53", "2001:7fe::53",
-      "2001:503:c27::2:30", "2001:7fd::1", "2001:500:3::42", "2001:dc3::35"
-    };
-    
     DNSRecord arr, aaaarr, nsrr;
     nsrr.d_name=DNSName(".");
     arr.d_type=QType::A;
@@ -66,12 +58,12 @@ void primeHints(void)
       *templ=c;
       aaaarr.d_name=arr.d_name=DNSName(templ);
       nsrr.d_content=std::make_shared<NSRecordContent>(DNSName(templ));
-      arr.d_content=std::make_shared<ARecordContent>(ComboAddress(ips[c-'a']));
+      arr.d_content=std::make_shared<ARecordContent>(ComboAddress(rootIps4[c-'a']));
       vector<DNSRecord> aset;
       aset.push_back(arr);
       t_RC->replace(time(0), DNSName(templ), QType(QType::A), aset, vector<std::shared_ptr<RRSIGRecordContent>>(), true); // auth, nuke it all
-      if (ip6s[c-'a'] != NULL) {
-        aaaarr.d_content=std::make_shared<AAAARecordContent>(ComboAddress(ip6s[c-'a']));
+      if (rootIps6[c-'a'] != NULL) {
+        aaaarr.d_content=std::make_shared<AAAARecordContent>(ComboAddress(rootIps6[c-'a']));
 
         vector<DNSRecord> aaaaset;
         aaaaset.push_back(aaaarr);

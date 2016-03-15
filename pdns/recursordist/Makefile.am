@@ -107,6 +107,7 @@ pdns_recursor_SOURCES = \
 	reczones.cc \
 	resolver.hh resolver.cc \
 	responsestats.hh responsestats.cc \
+	root-addresses.hh \
 	rpzloader.cc rpzloader.hh \
 	secpoll-recursor.cc \
 	secpoll-recursor.hh \
