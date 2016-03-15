@@ -29,11 +29,11 @@ AS_IF([test "x$LUAPC" = "x" -a "x$LUAJITPC" = "x"], [
   AC_MSG_ERROR([Neither Lua nor LuaJIT found, Lua support is not optional])
 ])
 
-AX_CXX_COMPILE_STDCXX_11(ext,mandatory)
+AX_CXX_COMPILE_STDCXX_11([ext], [mandatory])
 
 AC_MSG_CHECKING([whether we will enable compiler security checks])
 AC_ARG_ENABLE([hardening],
-  [AS_HELP_STRING([--disable-hardening],[disable compiler security checks @<:@default=no@:>@])],
+  [AS_HELP_STRING([--disable-hardening], [disable compiler security checks @<:@default=no@:>@])],
   [enable_hardening=$enableval],
   [enable_hardening=yes]
 )
