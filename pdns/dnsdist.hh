@@ -506,6 +506,13 @@ void setLuaSideEffect();   // set to report a side effect, cancelling all _no_ s
 bool getLuaNoSideEffect(); // set if there were only explicit declarations of _no_ side effect
 void resetLuaSideEffect(); // reset to indeterminate state
 
+bool responseContentMatches(const char* response, const uint16_t responseLen, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const ComboAddress& remote);
+bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize, const DNSName& qname, uint16_t origFlags, bool ednsAdded,
+#ifdef HAVE_DNSCRYPT
+                   std::shared_ptr<DnsCryptQuery> dnsCryptQuery,
+#endif
+                   std::vector<uint8_t>& rewrittenResponse);
+
 #ifdef HAVE_DNSCRYPT
 extern std::vector<std::tuple<ComboAddress,DnsCryptContext,bool>> g_dnsCryptLocals;
 

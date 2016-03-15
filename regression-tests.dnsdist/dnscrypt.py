@@ -70,15 +70,35 @@ class DNSCryptClient(object):
         self._resolverPort = resolverPort
         self._resolverCertificates = []
         self._publicKey, self._privateKey = libnacl.crypto_box_keypair()
+        self._timeout = timeout
 
         addrType = self._addrToSocketType(self._resolverAddress)
         self._sock = socket.socket(addrType, socket.SOCK_DGRAM)
         self._sock.settimeout(timeout)
         self._sock.connect((self._resolverAddress, self._resolverPort))
 
-    def _sendQuery(self, queryContent):
-        self._sock.send(queryContent)
-        data = self._sock.recv(4096)
+    def _sendQuery(self, queryContent, tcp=False):
+        if tcp:
+            addrType = self._addrToSocketType(self._resolverAddress)
+            sock = socket.socket(addrType, socket.SOCK_STREAM)
+            sock.settimeout(self._timeout)
+            sock.connect((self._resolverAddress, self._resolverPort))
+            sock.send(struct.pack("!H", len(queryContent)))
+        else:
+            sock = self._sock
+
+        sock.send(queryContent)
+
+        data = None
+        if tcp:
+            got = sock.recv(2)
+            print(len(got))
+            if got:
+                (rlen,) = struct.unpack("!H", got)
+                data = sock.recv(rlen)
+        else:
+            data = sock.recv(4096)
+
         return data
 
     def _hasValidResolverCertificate(self):
@@ -124,12 +144,12 @@ class DNSCryptClient(object):
         nonce = libnacl.utils.rand_nonce()
         return nonce[:(DNSCryptClient.DNSCRYPT_NONCE_SIZE / 2)]
 
-    def _encryptQuery(self, queryContent, resolverCert, nonce):
+    def _encryptQuery(self, queryContent, resolverCert, nonce, tcp=False):
         header = resolverCert.clientMagic + self._publicKey + nonce
         requiredSize = len(header) + self.DNSCRYPT_MAC_SIZE + len(queryContent)
         paddingSize = self.DNSCRYPT_PADDED_BLOCK_SIZE - (len(queryContent) % self.DNSCRYPT_PADDED_BLOCK_SIZE)
         # padding size should be DNSCRYPT_PADDED_BLOCK_SIZE <= padding size <= 4096
-        if requiredSize < self.DNSCRYPT_MIN_UDP_LENGTH:
+        if not tcp and requiredSize < self.DNSCRYPT_MIN_UDP_LENGTH:
             paddingSize += self.DNSCRYPT_MIN_UDP_LENGTH - requiredSize
             requiredSize = self.DNSCRYPT_MIN_UDP_LENGTH
 
@@ -168,7 +188,7 @@ class DNSCryptClient(object):
 
         return cleartext[:idx+1]
 
-    def query(self, queryContent):
+    def query(self, queryContent, tcp=False):
 
         if not self._hasValidResolverCertificate():
             self._getResolverCertificates()
@@ -177,7 +197,7 @@ class DNSCryptClient(object):
         resolverCert = self._getResolverCertificate()
         if resolverCert is None:
             raise Exception("No valid certificate found")
-        encryptedQuery = self._encryptQuery(queryContent, resolverCert, nonce)
-        encryptedResponse = self._sendQuery(encryptedQuery)
+        encryptedQuery = self._encryptQuery(queryContent, resolverCert, nonce, tcp)
+        encryptedResponse = self._sendQuery(encryptedQuery, tcp)
         response = self._decryptResponse(encryptedResponse, resolverCert, nonce)
         return response
