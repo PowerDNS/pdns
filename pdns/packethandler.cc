@@ -1340,7 +1340,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       if(rr.qtype.getCode() == QType::CNAME && p->qtype.getCode() != QType::CNAME) 
         weRedirected=1;
 
-      if(DP && rr.qtype.getCode() == QType::ALIAS) {
+      if(DP && rr.qtype.getCode() == QType::ALIAS && (p->qtype.getCode() == QType::A || p->qtype.getCode() == QType::AAAA || p->qtype.getCode() == QType::ANY)) {
         haveAlias=DNSName(rr.content);
       }
 
@@ -1370,7 +1370,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       goto sendit;
     }
 
-    if(!haveAlias.empty() && !weDone) {
+    if(!haveAlias.empty() && (!weDone || p->qtype.getCode() == QType::ANY)) {
       DLOG(L<<Logger::Warning<<"Found nothing that matched for '"<<target<<"', but did get alias to '"<<haveAlias<<"', referring"<<endl);
       DP->completePacket(r, haveAlias, target);
       return 0;
@@ -1429,7 +1429,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     else if(weDone) {
       bool haveRecords = false;
       for(const auto& rr: rrset) {
-        if((p->qtype.getCode() == QType::ANY || rr.qtype == p->qtype) && rr.qtype.getCode() && rr.auth) {
+        if((p->qtype.getCode() == QType::ANY || rr.qtype == p->qtype) && rr.qtype.getCode() && rr.qtype != QType::ALIAS && rr.auth) {
           r->addRecord(rr);
           haveRecords = true;
         }

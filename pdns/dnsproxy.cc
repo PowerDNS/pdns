@@ -251,7 +251,7 @@ void DNSProxy::mainloop(void)
 	    
 	      DNSResourceRecord rr;
 
-	      if(j->first.d_type == i->second.qtype || j->first.d_type==QType::SOA) {
+	      if(j->first.d_type == i->second.qtype || (i->second.qtype == QType::ANY && (j->first.d_type == QType::A || j->first.d_type == QType::AAAA))) {
 		rr.qname=i->second.aname;
 		rr.qtype = j->first.d_type;
 		rr.ttl=j->first.d_ttl;
