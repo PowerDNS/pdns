@@ -1,3 +1,5 @@
+AC_PREREQ([2.61])
+
 AC_INIT([dnsdist], m4_esyscmd(build-aux/gen-version))
 AM_INIT_AUTOMAKE([foreign dist-bzip2 parallel-tests 1.11 subdir-objects])
 AM_SILENT_RULES([yes])
