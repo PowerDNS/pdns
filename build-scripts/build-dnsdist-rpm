@@ -65,7 +65,7 @@ if [ -f /etc/redhat-release ]; then
       INIT_INSTALL='install -d -m 755 %{buildroot}/%{_initrddir} && install -m 755 contrib/dnsdist.init.centos6 %{buildroot}/%{_initrddir}/dnsdist'
       INIT_FILES='%{_initrddir}/dnsdist'
       SETUP="%setup -n %{name}-${TARBALLVERSION}"
-      RPMBUILD_COMMAND="scl enable devtoolset-2 -- ${RPMBUILD_COMMAND}"
+      RPMBUILD_COMMAND="scl enable devtoolset-3 -- ${RPMBUILD_COMMAND}"
       ;;
     CentOS\ Linux\ *\ 7*)
       ;;
