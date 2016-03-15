@@ -334,7 +334,7 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
     --state->outstanding;  // you'd think an attacker could game this, but we're using connected socket
 
     if(dh->tc && g_truncateTC) {
-      truncateTC(response, (uint16_t*) &responseLen);
+      truncateTC(response, &responseLen);
     }
 
     dh->id = ids->origID;
@@ -648,6 +648,76 @@ void spoofResponseFromString(DNSQuestion& dq, const string& spoofContent)
   }
 }
 
+bool processQuery(LocalStateHolder<NetmaskTree<DynBlock> >& localDynBlock, LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > >& localRulactions, blockfilter_t blockFilter, DNSQuestion& dq, const ComboAddress& remote, string& poolname, int* delayMsec, const struct timespec& now)
+{
+  {
+    WriteLock wl(&g_rings.queryLock);
+    g_rings.queryRing.push_back({now,remote,*dq.qname,dq.len,dq.qtype,*dq.dh});
+  }
+
+  if(auto got=localDynBlock->lookup(remote)) {
+    if(now < got->second.until) {
+      vinfolog("Query from %s dropped because of dynamic block", remote.toStringWithPort());
+      g_stats.dynBlocked++;
+      got->second.blocks++;
+      return false;
+    }
+  }
+
+  if(blockFilter) {
+    std::lock_guard<std::mutex> lock(g_luamutex);
+
+    if(blockFilter(&dq)) {
+      g_stats.blockFilter++;
+      return false;
+    }
+  }
+
+  DNSAction::Action action=DNSAction::Action::None;
+  string ruleresult;
+  for(const auto& lr : *localRulactions) {
+    if(lr.first->matches(&dq)) {
+      lr.first->d_matches++;
+      action=(*lr.second)(&dq, &ruleresult);
+
+      switch(action) {
+      case DNSAction::Action::Allow:
+        return true;
+        break;
+      case DNSAction::Action::Drop:
+        g_stats.ruleDrop++;
+        return false;
+        break;
+      case DNSAction::Action::Nxdomain:
+        dq.dh->rcode = RCode::NXDomain;
+        dq.dh->qr=true;
+        g_stats.ruleNXDomain++;
+        return true;
+        break;
+      case DNSAction::Action::Spoof:
+        spoofResponseFromString(dq, ruleresult);
+        return true;
+        break;
+      case DNSAction::Action::HeaderModify:
+        return true;
+        break;
+      case DNSAction::Action::Pool:
+        poolname=ruleresult;
+        return true;
+        break;
+        /* non-terminal actions follow */
+      case DNSAction::Action::Delay:
+        *delayMsec = static_cast<int>(pdns_stou(ruleresult)); // sorry
+        break;
+      case DNSAction::Action::None:
+        break;
+      }
+    }
+  }
+
+  return true;
+}
+
 static ssize_t udpClientSendRequestToBackend(DownstreamState* ss, const int sd, const char* request, const size_t requestLen)
 {
   if (ss->sourceItf == 0) {
@@ -672,7 +742,6 @@ try
   string largerQuery;
   uint16_t qtype, qclass;
 
-  typedef std::function<bool(DNSQuestion*)> blockfilter_t;
   blockfilter_t blockFilter = 0;
   {
     std::lock_guard<std::mutex> lock(g_luamutex);
@@ -703,6 +772,12 @@ try
       ssize_t ret = recvmsg(cs->udpFD, &msgh, 0);
       queryId = 0;
 
+      if(!acl->match(remote)) {
+	vinfolog("Query from %s dropped because of ACL", remote.toStringWithPort());
+	g_stats.aclDrops++;
+	continue;
+      }
+
       cs->queries++;
       g_stats.queries++;
 
@@ -716,12 +791,6 @@ try
         vinfolog("Dropping message too large for our buffer");
         g_stats.nonCompliantQueries++;
         continue;
-      }
-
-      if(!acl->match(remote)) {
-	vinfolog("Query from %s dropped because of ACL", remote.toStringWithPort());
-	g_stats.aclDrops++;
-	continue;
       }
 
       uint16_t len = (uint16_t) ret;
@@ -739,11 +808,7 @@ try
             if(!HarvestDestinationAddress(&msgh, &dest)) {
               dest.sin4.sin_family = 0;
             }
-            sendUDPResponse(cs->udpFD, reinterpret_cast<char*>(response.data()), response.size(), response.size(),
-#ifdef HAVE_DNSCRYPT
-                            nullptr,
-#endif
-                            0, dest, remote);
+            sendUDPResponse(cs->udpFD, reinterpret_cast<char*>(response.data()), response.size(), response.size(), nullptr, 0, dest, remote);
           }
           continue;
         }
@@ -772,83 +837,15 @@ try
       const uint16_t origFlags = *flags;
       unsigned int consumed = 0;
       DNSName qname(query, len, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
-
       DNSQuestion dq(&qname, qtype, qclass, &cs->local, &remote, dh, sizeof(packet), len, false);
 
-      struct timespec now;
-      clock_gettime(CLOCK_MONOTONIC, &now);
-      {
-        WriteLock wl(&g_rings.queryLock);
-        g_rings.queryRing.push_back({now,remote,qname,dq.len,dq.qtype,*dq.dh});
-      }
-
-      if(auto got=localDynBlock->lookup(remote)) {
-	if(now < got->second.until) {
-	  vinfolog("Query from %s dropped because of dynamic block", remote.toStringWithPort());
-	  g_stats.dynBlocked++;
-	  got->second.blocks++;
-	  continue;
-	}
-      }
-
-      if(blockFilter) {
-	std::lock_guard<std::mutex> lock(g_luamutex);
-	
-	if(blockFilter(&dq)) {
-	  g_stats.blockFilter++;
-	  continue;
-	}
-      }
-
-      DNSAction::Action action=DNSAction::Action::None;
-      string ruleresult;
       string poolname;
       int delayMsec=0;
-      bool done=false;
-      for(const auto& lr : *localRulactions) {
-        if(lr.first->matches(&dq)) {
-          lr.first->d_matches++;
-          action=(*lr.second)(&dq, &ruleresult);
+      struct timespec now;
+      clock_gettime(CLOCK_MONOTONIC, &now);
 
-          switch(action) {
-          case DNSAction::Action::Allow:
-            done = true;
-            break;
-          case DNSAction::Action::Drop:
-            g_stats.ruleDrop++;
-            done = true;
-            break;
-          case DNSAction::Action::Nxdomain:
-            dq.dh->rcode = RCode::NXDomain;
-            dq.dh->qr=true;
-            g_stats.ruleNXDomain++;
-            done = true;
-            break;
-          case DNSAction::Action::Spoof:
-            spoofResponseFromString(dq, ruleresult);
-            done = true;
-            break;
-          case DNSAction::Action::HeaderModify:
-            done = true;
-            break;
-          case DNSAction::Action::Pool:
-            poolname=ruleresult;
-            done = true;
-            break;
-          /* non-terminal actions follow */
-          case DNSAction::Action::Delay:
-            delayMsec = static_cast<int>(pdns_stou(ruleresult)); // sorry
-            break;
-          case DNSAction::Action::None:
-	    break;
-          }
-          if (done) {
-            break;
-          }
-        }
-      }
-
-      if (action == DNSAction::Action::Drop) {
+      if (!processQuery(localDynBlock, localRulactions, blockFilter, dq, remote, poolname, &delayMsec, now))
+      {
         continue;
       }
 

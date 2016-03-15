@@ -381,6 +381,7 @@ struct DNSQuestion
   bool skipCache{false};
 };
 
+typedef std::function<bool(const DNSQuestion*)> blockfilter_t;
 template <class T> using NumberedVector = std::vector<std::pair<unsigned int, T> >;
 
 void* responderThread(std::shared_ptr<DownstreamState> state);
@@ -507,6 +508,7 @@ bool getLuaNoSideEffect(); // set if there were only explicit declarations of _n
 void resetLuaSideEffect(); // reset to indeterminate state
 
 bool responseContentMatches(const char* response, const uint16_t responseLen, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const ComboAddress& remote);
+bool processQuery(LocalStateHolder<NetmaskTree<DynBlock> >& localDynBlock, LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > >& localRulactions, blockfilter_t blockFilter, DNSQuestion& dq, const ComboAddress& remote, string& poolname, int* delayMsec, const struct timespec& now);
 bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize, const DNSName& qname, uint16_t origFlags, bool ednsAdded,
 #ifdef HAVE_DNSCRYPT
                    std::shared_ptr<DnsCryptQuery> dnsCryptQuery,

@@ -167,7 +167,6 @@ void* tcpClientThread(int pipefd)
   /* we get launched with a pipe on which we receive file descriptors from clients that we own
      from that point on */
      
-  typedef std::function<bool(const DNSQuestion*)> blockfilter_t;
   bool outstanding = false;
   blockfilter_t blockFilter = 0;
   
@@ -215,6 +214,9 @@ void* tcpClientThread(int pipefd)
         if(!getNonBlockingMsgLen(ci.fd, &qlen, g_tcpRecvTimeout))
           break;
 
+        ci.cs->queries++;
+        g_stats.queries++;
+
         if (qlen < sizeof(dnsheader)) {
           g_stats.nonCompliantQueries++;
           break;
@@ -227,6 +229,7 @@ void* tcpClientThread(int pipefd)
         char queryBuffer[querySize];
         const char* query = queryBuffer;
         readn2WithTimeout(ci.fd, queryBuffer, qlen, g_tcpRecvTimeout);
+
 #ifdef HAVE_DNSCRYPT
         std::shared_ptr<DnsCryptQuery> dnsCryptQuery = 0;
 
@@ -257,92 +260,24 @@ void* tcpClientThread(int pipefd)
           goto drop;
         }
 
+        if (dh->rd) {
+          g_stats.rdQueries++;
+        }
+
+	const uint16_t* flags = getFlagsFromDNSHeader(dh);
+	uint16_t origFlags = *flags;
 	uint16_t qtype, qclass;
 	unsigned int consumed = 0;
 	DNSName qname(query, qlen, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
 	DNSQuestion dq(&qname, qtype, qclass, &ci.cs->local, &ci.remote, (dnsheader*)query, querySize, qlen, true);
-	string ruleresult;
-	const uint16_t * flags = getFlagsFromDNSHeader(dq.dh);
-	uint16_t origFlags = *flags;
+
+	string poolname;
+	int delayMsec=0;
 	struct timespec now;
 	clock_gettime(CLOCK_MONOTONIC, &now);
 
-	{
-	  WriteLock wl(&g_rings.queryLock);
-	  g_rings.queryRing.push_back({now,ci.remote,qname,dq.len,dq.qtype,*dq.dh});
-	}
-
-	g_stats.queries++;
-	if (ci.cs) {
-	  ci.cs->queries++;
-	}
-
-	if(auto got=localDynBlockNMG->lookup(ci.remote)) {
-	  if(now < got->second.until) {
-	    vinfolog("Query from %s dropped because of dynamic block", ci.remote.toStringWithPort());
-	    g_stats.dynBlocked++;
-	    got->second.blocks++;
-	    goto drop;
-	  }
-	}
-
-        if (dq.dh->rd) {
-          g_stats.rdQueries++;
-        }
-
-        if(blockFilter) {
-	  std::lock_guard<std::mutex> lock(g_luamutex);
-	
-	  if(blockFilter(&dq)) {
-	    g_stats.blockFilter++;
-	    goto drop;
-          }
-          if(dq.dh->tc && dq.dh->qr) { // don't truncate on TCP/IP!
-            dq.dh->tc=false;        // maybe we should just pass blockFilter the TCP status
-            dq.dh->qr=false;
-          }
-        }
-
-        bool done=false;
-	DNSAction::Action action=DNSAction::Action::None;
-	for(const auto& lr : *localRulactions) {
-	  if(lr.first->matches(&dq)) {
-            lr.first->d_matches++;
-            action=(*lr.second)(&dq, &ruleresult);
-            switch(action) {
-            case DNSAction::Action::Allow:
-              done = true;
-              break;
-            case DNSAction::Action::Drop:
-              g_stats.ruleDrop++;
-              goto drop;
-              break;
-            case DNSAction::Action::Nxdomain:
-              dq.dh->rcode = RCode::NXDomain;
-              dq.dh->qr=true;
-              g_stats.ruleNXDomain++;
-              done = true;
-              break;
-            case DNSAction::Action::Spoof:
-              spoofResponseFromString(dq, ruleresult);
-              done = true;
-              break;
-            case DNSAction::Action::HeaderModify:
-              done = true;
-              break;
-            case DNSAction::Action::Pool:
-              poolname=ruleresult;
-              done = true;
-              break;
-            /* non-terminal actions follow */
-            case DNSAction::Action::Delay:
-            case DNSAction::Action::None:
-              break;
-            }
-	    if(done) {
-	      break;
-	    }
-	  }
+	if (!processQuery(localDynBlockNMG, localRulactions, blockFilter, dq, ci.remote, poolname, &delayMsec, now)) {
+	  goto drop;
 	}
 
 	if(dq.dh->qr) { // something turned it into a response
