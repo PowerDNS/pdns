@@ -112,6 +112,7 @@ ${INIT_INSTALL}
 ${DEFAULTS_INSTALL}
 
 %files
+%{!?_licensedir:%global license %%doc}
 %license COPYING
 %doc README.md
 %{_bindir}/*
