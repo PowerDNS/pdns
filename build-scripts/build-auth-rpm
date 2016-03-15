@@ -51,7 +51,7 @@ case "$OS" in
 #    Fedora\ *\ 21*)
 #      ;;
   CentOS\ *\ 6*)
-    RPMBUILD_COMMAND="scl enable devtoolset-2 -- ${RPMBUILD_COMMAND}"
+    RPMBUILD_COMMAND="scl enable devtoolset-3 -- ${RPMBUILD_COMMAND}"
     cat > pdns.spec << EOF
 %global backends %{nil}
 
