@@ -875,6 +875,21 @@ int read1char(){
     return c;
 }
 
+int clearZone(DNSSECKeeper& dk, const DNSName &zone) {
+  UeberBackend B;
+  DomainInfo di;
+  
+  if (! B.getDomainInfo(zone, di)) {
+    cerr<<"Domain '"<<zone.toString()<<"' not found!"<<endl;
+    return 1;
+  }
+  if(!di.backend->startTransaction(zone, di.id)) {
+    cerr<<"Unable to start transaction for load of zone '"<<zone.toString()<<"'"<<endl;
+    return 1;
+  }
+  di.backend->commitTransaction();
+  return 0;
+}
 
 int editZone(DNSSECKeeper& dk, const DNSName &zone) {
   UeberBackend B;
@@ -1844,6 +1859,7 @@ try
     cerr<<"check-zone ZONE                    Check a zone for correctness"<<endl;
     cerr<<"check-all-zones [exit-on-error]    Check all zones for correctness. Set exit-on-error to exit immediately"<<endl;
     cerr<<"                                   after finding an error in a zone."<<endl;
+    cerr<<"clear-zone ZONE                    Clear all records of a zone, but keep everything else"<<endl;
     cerr<<"create-bind-db FNAME               Create DNSSEC db for BIND backend (bind-dnssec-db)"<<endl;
     cerr<<"create-zone ZONE [nsname]          Create empty zone ZONE"<<endl;
     cerr<<"deactivate-tsig-key ZONE NAME {master|slave}"<<endl;
@@ -2234,7 +2250,16 @@ loadMainConfig(g_vm["config-dir"].as<string>());
 
     exit(editZone(dk, DNSName(cmds[1])));
   }
+  else if(cmds[0] == "clear-zone") {
+    if(cmds.size() != 2) {
+      cerr<<"Syntax: pdnsutil edit-zone ZONE"<<endl;
+      return 0;
+    }
+    if(cmds[1]==".")
+      cmds[1].clear();
 
+    exit(clearZone(dk, DNSName(cmds[1])));
+  }
   else if(cmds[0] == "list-keys") {
     if(cmds.size() > 2) {
       cerr<<"Syntax: pdnsutil list-keys [ZONE]"<<endl;
