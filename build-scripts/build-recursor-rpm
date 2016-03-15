@@ -115,7 +115,7 @@ Release: ${RELEASE}
 Summary: Modern, advanced and high performance recursing/non authoritative name server
 Group: System Environment/Daemons
 License: GPLv2
-URL: http://powerdns.com
+URL: https://powerdns.com
 Source0: ../%{name}-${TARBALLVERSION}.tar.bz2
 Source1: pdns-recursor.init
 
@@ -202,7 +202,7 @@ Release: ${RELEASE}
 Summary: Modern, advanced and high performance recursing/non authoritative name server
 Group: System Environment/Daemons
 License: GPLv2
-URL: http://powerdns.com
+URL: https://powerdns.com
 Source0: ../%{name}-${TARBALLVERSION}.tar.bz2
 
 Provides: powerdns-recursor = %{version}-%{release}
