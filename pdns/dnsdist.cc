@@ -63,6 +63,7 @@ uint16_t g_maxOutstanding{10240};
 bool g_console;
 bool g_verboseHealthChecks{false};
 uint32_t g_staleCacheEntriesTTL{0};
+bool g_syslog{true};
 
 GlobalStateHolder<NetmaskGroup> g_ACL;
 string g_outputBuffer;
@@ -1257,6 +1258,7 @@ try
     {"daemon", 0, 0, 'd'},
     {"pidfile",  required_argument, 0, 'p'},
     {"supervised", 0, 0, 's'},
+    {"disable-syslog", 0, 0, 2},
     {"uid",  required_argument, 0, 'u'},
     {"verbose", 0, 0, 'v'},
     {"version", 0, 0, 'V'},
@@ -1276,6 +1278,9 @@ try
     switch(c) {
     case 1:
       g_cmdLine.checkConfig=true;
+      break;
+    case 2:
+      g_syslog=false;
       break;
     case 'C':
       g_cmdLine.config=optarg;
@@ -1316,6 +1321,8 @@ try
       cout<<"-l,--local address    Listen on this local address\n";
       cout<<"--supervised          Don't open a console, I'm supervised\n";
       cout<<"                        (use with e.g. systemd and daemontools)\n";
+      cout<<"--disable-syslog      Don't log to syslog, only to stdout\n";
+      cout<<"                        (use with e.g. systemd)\n";
       cout<<"-p,--pidfile file     Write a pidfile, works only with --daemon\n";
       cout<<"-u,--uid uid          Change the process user ID after binding sockets\n";
       cout<<"-v,--verbose          Enable verbose mode\n";
