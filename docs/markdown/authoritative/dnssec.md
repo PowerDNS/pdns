@@ -17,7 +17,6 @@ As an example, securing an existing zone can be as simple as:
 
 ```
 $ pdnsutil secure-zone powerdnssec.org
-$ pdnsutil rectify-zone powerdnssec.org
 ```
 
 Alternatively, PowerDNS can serve pre-signed zones, without knowledge of
