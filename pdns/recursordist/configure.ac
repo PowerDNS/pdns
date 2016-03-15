@@ -35,21 +35,34 @@ AC_PROG_LIBTOOL
 
 PDNS_CHECK_OS
 
+# Boost Context was introduced in 1.51 (Aug 2012), but there was an immediate
+# API break in 1.52 (Nov 2012), so we only support that, and later.
+
 AC_DEFUN([PDNS_SELECT_CONTEXT_IMPL], [
-    AC_MSG_CHECKING([for Boost version >= 1.52])
-    AC_PREPROC_IFELSE([AC_LANG_SOURCE([[
-#include <boost/version.hpp>
-#if BOOST_VERSION <= 105100
-#error
-#endif
-    ]])], [
-        AC_MSG_RESULT([yes])
-        AC_MSG_NOTICE([MTasker will use the Boost Context library for context switching])
-        BOOST_CONTEXT
-    ], [
-        AC_MSG_RESULT([no])
-        AC_MSG_NOTICE([MTasker will use System V contexts for context switching])
-    ])
+  AC_MSG_CHECKING([whether Boost is new enough to use the context library...])
+  if test $boost_major_version -ge 152; then
+    AC_MSG_RESULT([yes])
+    if test $boost_major_version -ge 157; then
+      BOOST_THREAD([$1])
+      m4_pattern_allow([^BOOST_THREAD_(LIBS|LDFLAGS)$])dnl
+      LIBS="$LIBS $BOOST_THREAD_LIBS"
+      LDFLAGS="$LDFLAGS $BOOST_THREAD_LDFLAGS"
+    fi
+    AC_MSG_NOTICE([checking whether the Boost context library actually links...])
+    BOOST_FIND_LIB([context], [$1], [boost/context/fcontext.hpp], [[]])
+    case $boost_cv_lib_context in
+      (yes)
+        AC_MSG_NOTICE([MTasker will use the Boost context library for context switching])
+        ;;
+      *)
+        AC_MSG_NOTICE([Boost context library is missing])
+        AC_MSG_NOTICE([MTasker will use System V ucontexts for context switching])
+        ;;
+    esac
+  else
+    AC_MSG_RESULT([no])
+    AC_MSG_NOTICE([MTasker will use System V ucontexts for context switching])
+  fi
 ])
 
 BOOST_REQUIRE([1.35])
