@@ -118,10 +118,20 @@ void loadMainConfig(const std::string& configdir)
   ::arg().set("soa-retry-default","Default SOA retry")="3600";
   ::arg().set("soa-expire-default","Default SOA expire")="604800";
   ::arg().set("soa-minimum-ttl","Default SOA minimum ttl")="3600";    
+  ::arg().set("chroot","Switch to this chroot jail")="";
 
   // Keep this line below all ::arg().set() statements
   if (! ::arg().laxFile(configname.c_str()))
     cerr<<"Warning: unable to read configuration file '"<<configname<<"'."<<endl;
+
+  seedRandom(::arg()["entropy-source"]);
+
+  if (!::arg()["chroot"].empty()) {
+    if (chroot(::arg()["chroot"].c_str())<0 || chdir("/") < 0) {
+      cerr<<"Unable to chroot to '"+::arg()["chroot"]+"': "<<strerror (errno)<<endl;
+      exit(1);
+    }
+  }
 
   UeberBackend::go();
 }
@@ -1895,8 +1905,6 @@ try
   }
 
 loadMainConfig(g_vm["config-dir"].as<string>());
-
-seedRandom(::arg()["entropy-source"]);
 
 #ifdef HAVE_LIBSODIUM
   if (sodium_init() == -1) {
