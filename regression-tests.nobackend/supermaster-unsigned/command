@@ -2,24 +2,18 @@
 set -e
 set -x
 
-PDNS=${PDNS:-../pdns/pdns_server}
-PDNS2=${PDNS2:-../pdns/pdns_server}
 if [ "$RUNWRAPPER" = "" ]; then
   RUNWRAPPER="authbind"
 fi
-MAKE=${MAKE:-make}
 
 port=$1
 [ -z "$port" ] && port=53
 
 trap "kill_process 2" EXIT INT TERM
 
-$MAKE -C ../pdns notify > /dev/null
-
 tosql ()
 {
-        ${MAKE} -C ../pdns zone2sql > /dev/null
-        ../pdns/zone2sql --transactions --$1 --named-conf=./named.conf
+        $ZONE2SQL --transactions --$1 --named-conf=./named.conf
 }
 
 prepare()
@@ -66,14 +60,14 @@ EOF
 	sqlite3 master.db <<EOF
 UPDATE domains SET type = 'MASTER', notified_serial = NULL;
 EOF
-	../pdns/zone2sql --transactions --gsqlite --zone=zones/example.com --zone-name=example.com | sqlite3 slave.db
+	$ZONE2SQL --transactions --gsqlite --zone=zones/example.com --zone-name=example.com | sqlite3 slave.db
 	# setup supermaster
 	sqlite3 slave.db <<EOF
 UPDATE domains SET type = 'SLAVE', master = '127.0.0.1' WHERE name = 'example.com';
 EOF
 	# setup metadata on master
-        ../pdns/pdnsutil --config-name=gsqlite3-master --config-dir=. set-meta example.com ALLOW-AXFR-FROM 127.0.0.2
-        ../pdns/pdnsutil --config-name=gsqlite3-master --config-dir=. set-meta test.com ALLOW-AXFR-FROM 127.0.0.2
+        $PDNSUTIL --config-name=gsqlite3-master --config-dir=. set-meta example.com ALLOW-AXFR-FROM 127.0.0.2
+        $PDNSUTIL --config-name=gsqlite3-master --config-dir=. set-meta test.com ALLOW-AXFR-FROM 127.0.0.2
 	# i suppose we are done here...
 }
 
@@ -203,7 +197,7 @@ INSERT INTO supermasters (ip,nameserver,account) VALUES('127.0.0.1','ns1.example
 EOF
 
 # send notifications
-../pdns/pdns_control --config-dir=. --config-name=gsqlite3-master --socket-dir=. notify test.com
+$PDNSCONTROL --config-dir=. --config-name=gsqlite3-master --socket-dir=. notify test.com
 sleep 2
 
 # hopefully notifications have gone thru
