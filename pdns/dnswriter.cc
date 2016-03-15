@@ -146,14 +146,19 @@ void DNSPacketWriter::xfr8BitInt(uint8_t val)
 
 
 /* input:
+ if lenField is true
   "" -> 0
   "blah" -> 4blah
   "blah" "blah" -> output 4blah4blah
   "verylongstringlongerthan256....characters" \xffverylongstring\x23characters (autosplit)
   "blah\"blah" -> 9blah"blah
   "blah\97" -> 5blahb
+
+ if lenField is false
+  "blah" -> blah
+  "blah\"blah" -> blah"blah
   */
-void DNSPacketWriter::xfrText(const string& text, bool)
+void DNSPacketWriter::xfrText(const string& text, bool, bool lenField)
 {
   if(text.empty()) {
     d_record.push_back(0);
@@ -161,9 +166,21 @@ void DNSPacketWriter::xfrText(const string& text, bool)
   }
   vector<string> segments = segmentDNSText(text);
   for(const string& str :  segments) {
-    d_record.push_back(str.length());
+    if(lenField)
+      d_record.push_back(str.length());
     d_record.insert(d_record.end(), str.c_str(), str.c_str() + str.length());
   }
+}
+
+void DNSPacketWriter::xfrUnquotedText(const string& text, bool lenField)
+{
+  if(text.empty()) {
+    d_record.push_back(0);
+    return;
+  }
+  if(lenField)
+    d_record.push_back(text.length());
+  d_record.insert(d_record.end(), text.c_str(), text.c_str() + text.length());
 }
 
 /* FIXME400: check that this beats a map */

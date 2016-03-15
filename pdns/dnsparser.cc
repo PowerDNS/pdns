@@ -439,7 +439,7 @@ static string txtEscape(const string &name)
 }
 
 // exceptions thrown here do not result in logging in the main pdns auth server - just so you know!
-string PacketReader::getText(bool multi)
+string PacketReader::getText(bool multi, bool lenField)
 {
   string ret;
   ret.reserve(40);
@@ -447,7 +447,11 @@ string PacketReader::getText(bool multi)
     if(!ret.empty()) {
       ret.append(1,' ');
     }
-    unsigned char labellen=d_content.at(d_pos++);
+    uint16_t labellen;
+    if(lenField)
+      labellen=d_content.at(d_pos++);
+    else
+      labellen=d_recordlen - (d_pos - d_startrecordpos);
     
     ret.append(1,'"');
     if(labellen) { // no need to do anything for an empty string
@@ -463,6 +467,22 @@ string PacketReader::getText(bool multi)
   return ret;
 }
 
+string PacketReader::getUnquotedText(bool lenField)
+{
+  int16_t stop_at;
+  if(lenField)
+    stop_at = (uint8_t)d_content.at(d_pos) + d_pos + 1;
+  else
+    stop_at = d_recordlen;
+
+  if(stop_at == d_pos)
+    return "";
+
+  d_pos++;
+  string ret(&d_content.at(d_pos), &d_content.at(stop_at));
+  d_pos = stop_at;
+  return ret;
+}
 
 void PacketReader::xfrBlob(string& blob)
 try

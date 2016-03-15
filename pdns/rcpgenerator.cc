@@ -333,7 +333,7 @@ void RecordTextWriter::xfrBase32HexBlob(const string& val)
 }
 
 
-void RecordTextReader::xfrText(string& val, bool multi)
+void RecordTextReader::xfrText(string& val, bool multi, bool lenField)
 {
   val.clear();
   val.reserve(d_end - d_pos);
@@ -369,6 +369,21 @@ void RecordTextReader::xfrText(string& val, bool multi)
     d_pos++;
     if(!multi)
       break;
+  }
+}
+
+void RecordTextReader::xfrUnquotedText(string& val, bool lenField)
+{
+  val.clear();
+  val.reserve(d_end - d_pos);
+
+  if(!val.empty())
+    val.append(1, ' ');
+
+  skipSpaces();
+  val.append(1, d_string[d_pos]);
+  while(++d_pos < d_end && d_string[d_pos] != ' '){
+    val.append(1, d_string[d_pos]);
   }
 }
 
@@ -547,7 +562,7 @@ void RecordTextWriter::xfrHexBlob(const string& val, bool)
   }
 }
 
-void RecordTextWriter::xfrText(const string& val, bool multi)
+void RecordTextWriter::xfrText(const string& val, bool multi, bool lenField)
 {
   if(!d_string.empty())
     d_string.append(1,' ');
@@ -555,6 +570,12 @@ void RecordTextWriter::xfrText(const string& val, bool multi)
   d_string.append(val);
 }
 
+void RecordTextWriter::xfrUnquotedText(const string& val, bool lenField)
+{
+  if(!d_string.empty())
+    d_string.append(1,' ');
+  d_string.append(val);
+}
 
 #ifdef TESTING
 

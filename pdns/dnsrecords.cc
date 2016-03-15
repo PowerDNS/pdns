@@ -480,6 +480,18 @@ boilerplate_conv(TKEY, QType::TKEY,
                  )
 TKEYRecordContent::TKEYRecordContent() { d_othersize = 0; } // fix CID#1288932
 
+boilerplate_conv(URI, QType::URI,
+                 conv.xfr8BitInt(d_priority);
+                 conv.xfr8BitInt(d_weight);
+                 conv.xfrText(d_target, true, false);
+                 )
+
+boilerplate_conv(CAA, QType::CAA,
+                 conv.xfr8BitInt(d_flags);
+                 conv.xfrUnquotedText(d_tag, true);
+                 conv.xfrText(d_value, true, false); /* no lenField */
+                )
+
 static uint16_t makeTag(const std::string& data)
 {
   const unsigned char* key=(const unsigned char*)data.c_str();
@@ -601,6 +613,8 @@ void reportOtherTypes()
    EUI48RecordContent::report();
    EUI64RecordContent::report();
    MINFORecordContent::report();
+   URIRecordContent::report();
+   CAARecordContent::report();
 }
 
 void reportAllTypes()

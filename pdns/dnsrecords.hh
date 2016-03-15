@@ -630,6 +630,22 @@ public:
 private:
 };
 
+class URIRecordContent : public DNSRecordContent {
+  public:
+    includeboilerplate(URI)
+  private:
+    uint8_t d_priority, d_weight;
+    string d_target;
+};
+
+class CAARecordContent : public DNSRecordContent {
+  public:
+    includeboilerplate(CAA)
+  private:
+    uint8_t d_flags;
+    string d_tag, d_value;
+};
+
 #define boilerplate(RNAME, RTYPE)                                                                         \
 RNAME##RecordContent::DNSRecordContent* RNAME##RecordContent::make(const DNSRecord& dr, PacketReader& pr) \
 {                                                                                                  \

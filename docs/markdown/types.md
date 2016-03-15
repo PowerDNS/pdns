@@ -31,6 +31,11 @@ mechanisms on a zone's apex. See the [howto](authoritative/howtos.md#using-alias
 for information on how to configure PowerDNS to serve records synthesized from
 ALIAS records.
 
+## CAA
+Since 4.0.0. The "Certification Authority Authorization" record, specified in
+[RFC 6844](https://tools.ietf.org/html/rfc6844), is used to specify Certificate
+Authorities that may issue certificates for a domain.
+
 ## CERT
 Specialised record type for storing certificates, defined in
 [RFC 2538](http://tools.ietf.org/html/rfc2538).
@@ -195,6 +200,10 @@ or the escaped variant to the content field. e.g. `"ç"` is equal to `"\195\167"
 When a TXT record is longer than 255 characters/bytes (excluding possible enclosing
 quotes), PowerDNS will cut up the content into 255 character/byte chunks for
 transmission to the client.
+
+## URI
+The URI record, specified in [RFC 7553](http://tools.ietf.org/html/rfc7553), is
+used to publish mappings from hostnames to URIs.
 
 ## Other types
 The following, rarely used or obsolete record types, are also supported:
