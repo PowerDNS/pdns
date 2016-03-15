@@ -41,7 +41,7 @@ try
       if (strcmp(argv[i], "tcp") == 0)
         tcp=true;
       if (strcmp(argv[i], "ednssubnet") == 0) {
-	ednsnm=Netmask(argv[++i]);
+        ednsnm=Netmask(argv[++i]);
       }
     }
   }
