@@ -957,7 +957,7 @@ void PacketHandler::increaseSerial(const string &msgPrefix, const DomainInfo *di
   }
   SOAData soa2Update;
   fillSOAData(rec.content, soa2Update);
-  int oldSerial = soa2Update.serial;
+  uint32_t oldSerial = soa2Update.serial;
 
   if (oldSerial == 0) { // using Autoserial, leave the serial alone.
     L<<Logger::Notice<<msgPrefix<<"AutoSerial being used, not updating SOA serial."<<endl;
