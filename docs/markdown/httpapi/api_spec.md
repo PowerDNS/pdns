@@ -96,6 +96,21 @@ Common Error Causes
 3. For requests that operate on a zone, the `zone_id` URL part was invalid. To get a valid `zone_id`, list the zones with the `/api/v1/servers/:server_id/zones` endpoint.
 
 
+URL: /api
+---------
+
+Version discovery endpoint.
+
+Allowed methods: `GET`
+
+    [
+      {
+        "url": "/api/v1",
+        "version": 1
+      }
+    ]
+
+
 URL: /api/v1
 ------------
 
@@ -103,7 +118,7 @@ Allowed methods: `GET`
 
     {
       "server_url": "/api/v1/servers{/server}",
-      "api_features": [],
+      "api_features": []
     }
 
 **TODO**:
