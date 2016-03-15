@@ -58,6 +58,10 @@ public:
   void toConsole(Urgency);
   void setLoglevel( Urgency );
 
+  void disableSyslog(bool d) {
+    d_disableSyslog = d;
+  }
+
   //! Log to a file.
   void toFile( const string & filename );
   
@@ -91,6 +95,7 @@ private:
   Urgency d_loglevel;
   Urgency consoleUrgency;
   pthread_mutex_t lock;
+  bool d_disableSyslog;
 };
 
 extern Logger &theL(const string &pname="");
