@@ -835,3 +835,41 @@ class TestAdvancedStringOnlyServer(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(response, receivedResponse)
+
+class TestAdvancedRestoreFlagsOnSelfResponse(DNSDistTest):
+
+    _config_template = """
+    addAction(AllRule(), DisableValidationAction())
+    addAction(AllRule(), SpoofAction("192.0.2.1"))
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testAdvancedRestoreFlagsOnSpoofResponse(self):
+        """
+        Advanced: Restore flags on spoofed response
+
+        Send a query with CD flag cleared, dnsdist is
+        instructed to set it, then to spoof the response,
+        check that response has the flag cleared.
+        """
+        name = 'spoofed.restoreflags.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        # dnsdist set RA = RD for spoofed responses
+        query.flags &= ~dns.flags.RD
+        expectedQuery = dns.message.make_query(name, 'A', 'IN')
+
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+        response.answer.append(rrset)
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        self.assertEquals(response, receivedResponse)
+
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        self.assertEquals(response, receivedResponse)

@@ -133,26 +133,8 @@ catch(...) {
   return false;
 }
 
-static bool sendResponseToClient(int fd, char* response, uint16_t responseLen, size_t responseSize
-#ifdef HAVE_DNSCRYPT
-                                 , DnsCryptContext* dnscryptCtx,
-                                 std::shared_ptr<DnsCryptQuery> dnsCryptQuery
-#endif
-  )
+static bool sendResponseToClient(int fd, const char* response, uint16_t responseLen)
 {
-#ifdef HAVE_DNSCRYPT
-  if (dnscryptCtx && dnsCryptQuery) {
-    uint16_t encryptedResponseLen = 0;
-    int res = dnscryptCtx->encryptResponse(response, responseLen, responseSize, dnsCryptQuery, true, &encryptedResponseLen);
-    if (res == 0) {
-      responseLen = encryptedResponseLen;
-    } else {
-      /* dropping response */
-      vinfolog("Error encrypting the response, dropping.");
-      return false;
-    }
-  }
-#endif
   if (!putNonBlockingMsgLen(fd, responseLen, g_tcpSendTimeout))
     return false;
 
@@ -241,7 +223,7 @@ void* tcpClientThread(int pipefd)
 
           if (!decrypted) {
             if (response.size() > 0) {
-              sendResponseToClient(ci.fd, reinterpret_cast<char*>(response.data()), response.size(), response.size(), nullptr, nullptr);
+              sendResponseToClient(ci.fd, reinterpret_cast<char*>(response.data()), response.size());
             }
             break;
           }
@@ -281,11 +263,13 @@ void* tcpClientThread(int pipefd)
 	}
 
 	if(dq.dh->qr) { // something turned it into a response
-          sendResponseToClient(ci.fd, queryBuffer, dq.len, dq.size
+          restoreFlags(dh, origFlags);
 #ifdef HAVE_DNSCRYPT
-                               , ci.cs->dnscryptCtx, dnsCryptQuery
+          if (!encryptResponse(queryBuffer, &dq.len, dq.size, true, dnsCryptQuery)) {
+            goto drop;
+          }
 #endif
-            );
+          sendResponseToClient(ci.fd, query, dq.len);
 	  g_stats.selfAnswered++;
 	  goto drop;
 	}
@@ -319,11 +303,12 @@ void* tcpClientThread(int pipefd)
           uint16_t cachedResponseSize = sizeof cachedResponse;
           uint32_t allowExpired = ds ? 0 : g_staleCacheEntriesTTL;
           if (packetCache->get(dq, consumed, dq.dh->id, cachedResponse, &cachedResponseSize, &cacheKey, allowExpired)) {
-            sendResponseToClient(ci.fd, cachedResponse, cachedResponseSize, sizeof cachedResponse
 #ifdef HAVE_DNSCRYPT
-                                 , ci.cs->dnscryptCtx, dnsCryptQuery
+            if (!encryptResponse(cachedResponse, &cachedResponseSize, sizeof cachedResponse, true, dnsCryptQuery)) {
+              goto drop;
+            }
 #endif
-              );
+            sendResponseToClient(ci.fd, cachedResponse, cachedResponseSize);
             g_stats.cacheHits++;
             goto drop;
           }
@@ -394,11 +379,13 @@ void* tcpClientThread(int pipefd)
         }
 
         size_t responseSize = rlen;
+        uint16_t addRoom = 0;
 #ifdef HAVE_DNSCRYPT
-        if (ci.cs->dnscryptCtx && (UINT16_MAX - DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE) > rlen) {
-          responseSize += DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE;
+        if (dnsCryptQuery && (UINT16_MAX - rlen) > (uint16_t) DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE) {
+          addRoom = DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE;
         }
 #endif
+        responseSize += addRoom;
         char answerbuffer[responseSize];
         readn2WithTimeout(dsock, answerbuffer, rlen, ds->tcpRecvTimeout);
         char* response = answerbuffer;
@@ -414,11 +401,7 @@ void* tcpClientThread(int pipefd)
           break;
         }
 
-        if (!fixUpResponse(&response, &responseLen, &responseSize, qname, origFlags, ednsAdded,
-#ifdef HAVE_DNSCRYPT
-                           dnsCryptQuery,
-#endif
-                           rewrittenResponse)) {
+        if (!fixUpResponse(&response, &responseLen, &responseSize, qname, origFlags, ednsAdded, rewrittenResponse, addRoom)) {
           break;
         }
 
@@ -426,11 +409,12 @@ void* tcpClientThread(int pipefd)
 	  packetCache->insert(cacheKey, qname, qtype, qclass, response, responseLen, true, dh->rcode == RCode::ServFail);
 	}
 
-        if (!sendResponseToClient(ci.fd, response, responseLen, responseSize
 #ifdef HAVE_DNSCRYPT
-                                 , ci.cs->dnscryptCtx, dnsCryptQuery
+        if (!encryptResponse(response, &responseLen, responseSize, true, dnsCryptQuery)) {
+          goto drop;
+        }
 #endif
-              )) {
+        if (!sendResponseToClient(ci.fd, response, responseLen)) {
           break;
         }
 

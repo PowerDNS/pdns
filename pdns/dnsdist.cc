@@ -187,15 +187,22 @@ bool responseContentMatches(const char* response, const uint16_t responseLen, co
   return true;
 }
 
-bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize, const DNSName& qname, uint16_t origFlags, bool ednsAdded,
-#ifdef HAVE_DNSCRYPT
-                   std::shared_ptr<DnsCryptQuery> dnsCryptQuery,
-#endif
-                   std::vector<uint8_t>& rewrittenResponse)
+void restoreFlags(struct dnsheader* dh, uint16_t origFlags)
 {
   static const uint16_t rdMask = 1 << FLAGS_RD_OFFSET;
   static const uint16_t cdMask = 1 << FLAGS_CD_OFFSET;
   static const uint16_t restoreFlagsMask = UINT16_MAX & ~(rdMask | cdMask);
+  uint16_t * flags = getFlagsFromDNSHeader(dh);
+  /* clear the flags we are about to restore */
+  *flags &= restoreFlagsMask;
+  /* only keep the flags we want to restore */
+  origFlags &= ~restoreFlagsMask;
+  /* set the saved flags as they were */
+  *flags |= origFlags;
+}
+
+bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize, const DNSName& qname, uint16_t origFlags, bool ednsAdded, std::vector<uint8_t>& rewrittenResponse, uint16_t addRoom)
+{
   struct dnsheader* dh = (struct dnsheader*) *response;
 
   if (*responseLen < sizeof(dnsheader)) {
@@ -209,13 +216,7 @@ bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize,
     }
   }
 
-  uint16_t * flags = getFlagsFromDNSHeader(dh);
-  /* clear the flags we are about to restore */
-  *flags &= restoreFlagsMask;
-  /* only keep the flags we want to restore */
-  origFlags &= ~restoreFlagsMask;
-  /* set the saved flags as they were */
-  *flags |= origFlags;
+  restoreFlags(dh, origFlags);
 
   if (ednsAdded) {
     const char * optStart = NULL;
@@ -236,12 +237,10 @@ bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize,
         /* Removing an intermediary RR could lead to compression error */
         if (rewriteResponseWithoutEDNS(*response, *responseLen, rewrittenResponse) == 0) {
           *responseLen = rewrittenResponse.size();
-#ifdef HAVE_DNSCRYPT
-          if (dnsCryptQuery && (UINT16_MAX - DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE) > *responseLen) {
-            rewrittenResponse.reserve(*responseLen + DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE);
+          if (addRoom && (UINT16_MAX - *responseLen) > addRoom) {
+            rewrittenResponse.reserve(*responseLen + addRoom);
           }
           *responseSize = rewrittenResponse.capacity();
-#endif
           *response = reinterpret_cast<char*>(rewrittenResponse.data());
         }
         else {
@@ -254,27 +253,26 @@ bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize,
   return true;
 }
 
-static bool sendUDPResponse(int origFD, char* response, uint16_t responseLen, size_t responseSize,
 #ifdef HAVE_DNSCRYPT
-                            std::shared_ptr<DnsCryptQuery> dnsCryptQuery,
-#endif
-                            int delayMsec, const ComboAddress& origDest, const ComboAddress& origRemote)
+bool encryptResponse(char* response, uint16_t* responseLen, size_t responseSize, bool tcp, std::shared_ptr<DnsCryptQuery> dnsCryptQuery)
 {
-#ifdef HAVE_DNSCRYPT
-  uint16_t encryptedResponseLen = 0;
-  if(dnsCryptQuery) {
-    int res = dnsCryptQuery->ctx->encryptResponse(response, responseLen, responseSize, dnsCryptQuery, false, &encryptedResponseLen);
-
+  if (dnsCryptQuery) {
+    uint16_t encryptedResponseLen = 0;
+    int res = dnsCryptQuery->ctx->encryptResponse(response, *responseLen, responseSize, dnsCryptQuery, tcp, &encryptedResponseLen);
     if (res == 0) {
-      responseLen = encryptedResponseLen;
+      *responseLen = encryptedResponseLen;
     } else {
       /* dropping response */
       vinfolog("Error encrypting the response, dropping.");
       return false;
     }
   }
+  return true;
+}
 #endif
 
+static bool sendUDPResponse(int origFD, char* response, uint16_t responseLen, int delayMsec, const ComboAddress& origDest, const ComboAddress& origRemote)
+{
   if(delayMsec && g_delay) {
     DelayedPacket dp{origFD, string(response,responseLen), origRemote, origDest};
     g_delay->submit(dp, delayMsec);
@@ -339,11 +337,13 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
 
     dh->id = ids->origID;
 
-    if (!fixUpResponse(&response, &responseLen, &responseSize, ids->qname, ids->origFlags, ids->ednsAdded,
+    uint16_t addRoom = 0;
 #ifdef HAVE_DNSCRYPT
-                       ids->dnsCryptQuery,
+    if (ids->dnsCryptQuery) {
+      addRoom = DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE;
+    }
 #endif
-                       rewrittenResponse)) {
+    if (!fixUpResponse(&response, &responseLen, &responseSize, ids->qname, ids->origFlags, ids->ednsAdded, rewrittenResponse, addRoom)) {
       continue;
     }
 
@@ -351,11 +351,12 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
       ids->packetCache->insert(ids->cacheKey, ids->qname, ids->qtype, ids->qclass, response, responseLen, false, dh->rcode == RCode::ServFail);
     }
 
-    sendUDPResponse(origFD, response, responseLen, responseSize,
 #ifdef HAVE_DNSCRYPT
-                    ids->dnsCryptQuery,
+    if (!encryptResponse(response, &responseLen, responseSize, false, ids->dnsCryptQuery)) {
+      continue;
+    }
 #endif
-                    ids->delayMsec, ids->origDest, ids->origRemote);
+    sendUDPResponse(origFD, response, responseLen, ids->delayMsec, ids->origDest, ids->origRemote);
 
     g_stats.responses++;
 
@@ -808,7 +809,7 @@ try
             if(!HarvestDestinationAddress(&msgh, &dest)) {
               dest.sin4.sin_family = 0;
             }
-            sendUDPResponse(cs->udpFD, reinterpret_cast<char*>(response.data()), response.size(), response.size(), nullptr, 0, dest, remote);
+            sendUDPResponse(cs->udpFD, reinterpret_cast<char*>(response.data()), response.size(), 0, dest, remote);
           }
           continue;
         }
@@ -852,18 +853,20 @@ try
       if(dq.dh->qr) { // something turned it into a response
         char* response = query;
         uint16_t responseLen = dq.len;
-        uint16_t responseSize = dq.size;
         g_stats.selfAnswered++;
+
+        restoreFlags(dh, origFlags);
 
         ComboAddress dest;
         if(!HarvestDestinationAddress(&msgh, &dest)) {
           dest.sin4.sin_family = 0;
         }
-        sendUDPResponse(cs->udpFD, response, responseLen, responseSize,
 #ifdef HAVE_DNSCRYPT
-                        dnsCryptQuery,
+        if (!encryptResponse(response, &responseLen, dq.size, false, dnsCryptQuery)) {
+          continue;
+        }
 #endif
-                        0, dest, remote);
+        sendUDPResponse(cs->udpFD, response, responseLen, 0, dest, remote);
         continue;
       }
 
@@ -892,11 +895,12 @@ try
           if(!HarvestDestinationAddress(&msgh, &dest)) {
             dest.sin4.sin_family = 0;
           }
-          sendUDPResponse(cs->udpFD, cachedResponse, cachedResponseSize, sizeof cachedResponse,
 #ifdef HAVE_DNSCRYPT
-                          dnsCryptQuery,
+          if (!encryptResponse(cachedResponse, &cachedResponseSize, sizeof cachedResponse, false, dnsCryptQuery)) {
+            continue;
+          }
 #endif
-                          0, dest, remote);
+          sendUDPResponse(cs->udpFD, cachedResponse, cachedResponseSize, 0, dest, remote);
           g_stats.cacheHits++;
           g_stats.latency0_1++;  // we're not going to measure this
           doLatencyAverages(0);  // same
