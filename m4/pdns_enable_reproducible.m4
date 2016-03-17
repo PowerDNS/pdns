@@ -1,4 +1,5 @@
 AC_DEFUN([PDNS_ENABLE_REPRODUCIBLE], [
+  AC_REQUIRE([PDNS_CHECK_OS])
   AC_MSG_CHECKING([whether to enable reproducible builds.])
   AC_ARG_ENABLE([reproducible],
     AS_HELP_STRING([--enable-reproducible],
