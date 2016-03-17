@@ -81,7 +81,7 @@ Run PowerDNS as (to test gmysql):
 ```
 $ ../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./  \
 --no-shuffle --launch=gmysql --gmysql-dbname=pdnstest --gmysql-user=root \
---fancy-records --query-logging --send-root-referral --loglevel=9 \
+--fancy-records --query-logging --loglevel=9 \
 --cache-ttl=0 --no-config
 ```
 
@@ -89,7 +89,7 @@ or (to test bind, without DNSSEC):
 ```
 $ ../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./  \
 --no-shuffle --launch=bind --bind-config=./named.conf                \
---fancy-records --query-logging --send-root-referral --loglevel=9    \
+--fancy-records --query-logging --loglevel=9    \
 --cache-ttl=0 --no-config
 ```
 
@@ -99,7 +99,7 @@ or (to test bind with DNSSEC):
 $ ./bind-dnssec-setup
 $ ../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./  \
 --no-shuffle --launch=bind --bind-config=./named.conf                \
---query-logging --send-root-referral --loglevel=9                    \
+--query-logging --loglevel=9                    \
 --cache-ttl=0 --no-config
 ```
 
@@ -115,7 +115,7 @@ echo 'analyze;' | sqlite3 powerdns.sqlite3
 $ ../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./  \
 --no-shuffle --launch=gsqlite3 \
 --gsqlite3-database=./powerdns.sqlite3 --gsqlite3-dnssec             \
---query-logging --send-root-referral --loglevel=9                    \
+--query-logging --loglevel=9                    \
 --cache-ttl=0 --no-config
 ```
 

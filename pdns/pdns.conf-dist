@@ -410,11 +410,6 @@
 # security-poll-suffix=secpoll.powerdns.com.
 
 #################################
-# send-root-referral	Send out old-fashioned root-referral instead of ServFail in case of no authority
-#
-# send-root-referral=no
-
-#################################
 # server-id	Returned when queried for 'server.id' TXT or NSID, defaults to hostname - disabled or custom
 #
 # server-id=

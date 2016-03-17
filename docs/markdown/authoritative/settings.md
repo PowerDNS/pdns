@@ -647,16 +647,6 @@ If set, recursive queries will be handed to the recursor specified here. See
 
 Number of AXFR slave threads to start.
 
-## `send-root-referral`
-* Boolean or `lean`
-* Default: no
-
-if set, PowerDNS will send out old-fashioned root-referrals when queried for
-domains for which it is not authoritative. Wastes some bandwidth but may solve
-incoming query floods if domains are delegated to you for which you are not
-authoritative, but which are queried by broken recursors. It is possible to
-specify 'lean' root referrals, which waste less bandwidth.
-
 ## `setgid`
 * String
 

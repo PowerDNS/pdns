@@ -20,7 +20,7 @@ done
 cd ../../regression-tests
 ../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./ \
   --no-shuffle --launch=bind --bind-config=../regression-tests/named.conf \
-  --query-logging --send-root-referral --loglevel=0 \
+  --query-logging --loglevel=0 \
   --cache-ttl=0 --no-config --local-address=127.0.0.1 \
   --bind-ignore-broken-records=yes --module-dir=modules &
 

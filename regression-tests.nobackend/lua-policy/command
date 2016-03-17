@@ -29,7 +29,7 @@ rm -f pdns*.pid
 $PDNS --daemon=no --local-port=$port --socket-dir=./          \
 	--no-shuffle --launch=bind --bind-config=lua-policy/named.conf   \
 	--experimental-lua-policy-script=lua-policy/policy.lua \
-	--send-root-referral --cache-ttl=60 --no-config --module-dir=../regression-tests/modules &
+	--cache-ttl=60 --no-config --module-dir=../regression-tests/modules &
 bindwait
 
 # plain SOA query
