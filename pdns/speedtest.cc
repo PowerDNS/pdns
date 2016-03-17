@@ -350,39 +350,6 @@ vector<uint8_t> makeEmptyQuery()
   return  packet;
 }
 
-
-vector<uint8_t> makeRootReferral()
-{
-  vector<uint8_t> packet;
-  DNSPacketWriter pw(packet, DNSName("outpost.ds9a.nl"), QType::SOA);
-
-  // nobody reads what we output, but it appears to be the magic that shuts some nameservers up
-  static const char*ips[]={"198.41.0.4", "192.228.79.201", "192.33.4.12", "199.7.91.13", "192.203.230.10", "192.5.5.241", "192.112.36.4", "198.97.190.53", 
-                     "192.36.148.17","192.58.128.30", "193.0.14.129", "199.7.83.42", "202.12.27.33"};
-  static char templ[40];
-  strncpy(templ,"a.root-servers.net", sizeof(templ) - 1);
-  
-  
-  for(char c='a';c<='m';++c) {
-    *templ=c;
-    pw.startRecord(DNSName(), QType::NS, 3600, 1, DNSResourceRecord::AUTHORITY);
-    DNSRecordContent* drc = DNSRecordContent::mastermake(QType::NS, 1, templ);
-    drc->toPacket(pw);
-    delete drc;
-  }
-
-  for(char c='a';c<='m';++c) {
-    *templ=c;
-    pw.startRecord(DNSName(), QType::A, 3600, 1, DNSResourceRecord::ADDITIONAL);
-    DNSRecordContent* drc = DNSRecordContent::mastermake(QType::A, 1, ips[c-'a']);
-    drc->toPacket(pw);
-    delete drc;
-  }
-  pw.commit();
-  return  packet;
-
-}
-
 vector<uint8_t> makeTypicalReferral()
 {
   vector<uint8_t> packet;
@@ -412,22 +379,6 @@ vector<uint8_t> makeTypicalReferral()
   pw.commit();
   return  packet;
 }
-
-
-
-struct RootRefTest
-{
-  string getName() const
-  {
-    return "write rootreferral";
-  }
-
-  void operator()() const
-  {
-    vector<uint8_t> packet=makeRootReferral();
-  }
-
-};
 
 struct StackMallocTest
 {
@@ -732,12 +683,6 @@ try
   doRun(B64DecodeTest());
 
   doRun(StackMallocTest());
-
-  vector<uint8_t> packet = makeRootReferral();
-  doRun(ParsePacketBareTest(packet, "root-referral"));
-  doRun(ParsePacketTest(packet, "root-referral"));
-
-  doRun(RootRefTest());
 
   doRun(EmptyQueryTest());
   doRun(TypicalRefTest());

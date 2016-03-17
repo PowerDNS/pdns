@@ -55,12 +55,6 @@ AtomicCounter PacketHandler::s_count;
 NetmaskGroup PacketHandler::s_allowNotifyFrom;
 extern string s_programname;
 
-enum root_referral {
-    NO_ROOT_REFERRAL,
-    LEAN_ROOT_REFERRAL,
-    FULL_ROOT_REFERRAL
-};
-
 PacketHandler::PacketHandler():B(s_programname), d_dk(&B)
 {
   ++s_count;
@@ -68,9 +62,6 @@ PacketHandler::PacketHandler():B(s_programname), d_dk(&B)
   d_doRecursion= ::arg().mustDo("recursor");
   d_logDNSDetails= ::arg().mustDo("log-dns-details");
   d_doIPv6AdditionalProcessing = ::arg().mustDo("do-ipv6-additional-processing");
-  d_sendRootReferral = ::arg().mustDo("send-root-referral")
-                            ? ( pdns_iequals(::arg()["send-root-referral"], "lean") ? LEAN_ROOT_REFERRAL : FULL_ROOT_REFERRAL )
-                            : NO_ROOT_REFERRAL;
   string fname= ::arg()["lua-prequery-script"];
   if(fname.empty())
   {
@@ -92,44 +83,6 @@ PacketHandler::~PacketHandler()
 {
   --s_count;
   DLOG(L<<Logger::Error<<"PacketHandler destructor called - "<<s_count<<" left"<<endl);
-}
-
-void PacketHandler::addRootReferral(DNSPacket* r)
-{  
-  // nobody reads what we output, but it appears to be the magic that shuts some nameservers up
-  static const char*ips[]={"198.41.0.4", "192.228.79.201", "192.33.4.12", "199.7.91.13", "192.203.230.10", "192.5.5.241", "192.112.36.4", "198.97.190.53", 
-                     "192.36.148.17","192.58.128.30", "193.0.14.129", "199.7.83.42", "202.12.27.33"};
-  static char templ[40];
-  strncpy(templ,"a.root-servers.net", sizeof(templ) - 1);
-
-  // add . NS records
-  DNSResourceRecord rr;
-  rr.qname = DNSName(".");
-  rr.qtype=QType::NS;
-  rr.ttl=518400;
-  rr.d_place=DNSResourceRecord::AUTHORITY;
-  
-  for(char c='a';c<='m';++c) {
-    *templ=c;
-    rr.content=templ;
-    r->addRecord(rr);
-  }
-
-  if( d_sendRootReferral == LEAN_ROOT_REFERRAL )
-     return;
-
-  // add the additional stuff
-  
-  rr.ttl=3600000;
-  rr.qtype=QType::A;
-  rr.d_place=DNSResourceRecord::ADDITIONAL;
-
-  for(char c='a';c<='m';++c) {
-    *templ=c;
-    rr.qname=DNSName(templ);
-    rr.content=ips[c-'a'];
-    r->addRecord(rr);
-  }
 }
 
 /**
@@ -1314,15 +1267,9 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
         return 0;
       }
       
-      if(!retargetcount)
+      if(!retargetcount) {
         r->setA(false); // drop AA if we never had a SOA in the first place
-      if( d_sendRootReferral != NO_ROOT_REFERRAL ) {
-        DLOG(L<<Logger::Warning<<"Adding root-referral"<<endl);
-        addRootReferral(r);
-      }
-      else {
-        if (!retargetcount)
-          r->setRcode(RCode::Refused); // send REFUSED - but only on empty 'no idea'
+        r->setRcode(RCode::Refused); // send REFUSED - but only on empty 'no idea'
       }
       goto sendit;
     }

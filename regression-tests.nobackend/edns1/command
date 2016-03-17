@@ -26,7 +26,7 @@ bindwait ()
 
 $RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./          \
         --no-shuffle --launch=bind --bind-config=edns-packet-cache/named.conf   \
-        --send-root-referral --cache-ttl=60 --no-config --module-dir=../regression-tests/modules &
+        --cache-ttl=60 --no-config --module-dir=../regression-tests/modules &
 bindwait
 
 timeout 5 ./edns1/test-edns.py

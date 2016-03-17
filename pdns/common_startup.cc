@@ -119,7 +119,6 @@ void declareArguments()
   ::arg().setSwitch("master","Act as a master")="no";
   ::arg().setSwitch("disable-axfr-rectify","Disable the rectify step during an outgoing AXFR. Only required for regression testing.")="no";
   ::arg().setSwitch("guardian","Run within a guardian process")="no";
-  ::arg().setSwitch("send-root-referral","Send out old-fashioned root-referral instead of ServFail in case of no authority")="no";
   ::arg().setSwitch("prevent-self-notification","Don't send notifications to what we think is ourself")="yes";
   ::arg().setSwitch("webserver","Start a webserver for monitoring")="no"; 
   ::arg().setSwitch("webserver-print-arguments","If the webserver should print arguments")="no"; 
