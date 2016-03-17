@@ -1210,6 +1210,7 @@ bool Bind2Backend::list(const DNSName& target, int id, bool include_disabled)
   d_handle.d_qname_end=d_handle.d_records->end();   // iter now points to a vector of pointers to vector<BBResourceRecords>
 
   d_handle.id=id;
+  d_handle.domain=bbd.d_name;
   d_handle.d_list=true;
   return true;
 }
