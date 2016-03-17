@@ -14,6 +14,11 @@
 #include "dnscrypt.hh"
 #include "dnsdist-cache.hh"
 
+#ifdef HAVE_PROTOBUF
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#endif
+
 void* carbonDumpThread();
 uint64_t uptimeOfProcess(const std::string& str);
 
@@ -207,6 +212,9 @@ struct IDState
 #ifdef HAVE_DNSCRYPT
   std::shared_ptr<DnsCryptQuery> dnsCryptQuery{0};
 #endif
+#ifdef HAVE_PROTOBUF
+  boost::uuids::uuid uniqueId;
+#endif
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};
   uint32_t cacheKey;                                          // 8
   std::atomic<uint16_t> age;                                  // 4
@@ -367,8 +375,11 @@ using servers_t =vector<std::shared_ptr<DownstreamState>>;
 
 struct DNSQuestion
 {
-  DNSQuestion(const DNSName* name, uint16_t type, uint16_t class_, const ComboAddress* lc, const ComboAddress* rem, struct dnsheader* header, size_t bufferSize, uint16_t queryLen, bool isTcp): qname(name), qtype(type), qclass(class_), local(lc), remote(rem), dh(header), size(bufferSize), len(queryLen), tcp(isTcp) {};
+  DNSQuestion(const DNSName* name, uint16_t type, uint16_t class_, const ComboAddress* lc, const ComboAddress* rem, struct dnsheader* header, size_t bufferSize, uint16_t queryLen, bool isTcp): qname(name), qtype(type), qclass(class_), local(lc), remote(rem), dh(header), size(bufferSize), len(queryLen), tcp(isTcp) { }
 
+#ifdef HAVE_PROTOBUF
+  boost::uuids::uuid uniqueId;
+#endif
   const DNSName* qname;
   const uint16_t qtype;
   const uint16_t qclass;
@@ -451,6 +462,7 @@ extern GlobalStateHolder<ServerPolicy> g_policy;
 extern GlobalStateHolder<servers_t> g_dstates;
 extern GlobalStateHolder<pools_t> g_pools;
 extern GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > > g_rulactions;
+extern GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > > g_resprulactions;
 extern GlobalStateHolder<NetmaskGroup> g_ACL;
 
 extern ComboAddress g_serverControl; // not changed during runtime

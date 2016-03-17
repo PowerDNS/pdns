@@ -1321,6 +1321,14 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
   g_lua.writeFunction("setECSOverride", [](bool override) { g_ECSOverride=override; });
 
+  g_lua.writeFunction("addResponseAction", [](luadnsrule_t var, std::shared_ptr<DNSAction> ea) {
+      setLuaSideEffect();
+      auto rule=makeRule(var);
+      g_resprulactions.modify([rule, ea](decltype(g_resprulactions)::value_type& rulactions){
+          rulactions.push_back({rule, ea});
+        });
+    });
+
   g_lua.writeFunction("dumpStats", [] {
       setLuaNoSideEffect();
       vector<string> leftcolumn, rightcolumn;
@@ -1374,6 +1382,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
     infolog("Read configuration from '%s'", config);
 
   g_lua.executeCode(ifs);
+
   auto ret=*g_launchWork;
   delete g_launchWork;
   g_launchWork=0;

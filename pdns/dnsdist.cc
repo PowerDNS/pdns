@@ -108,6 +108,7 @@ GlobalStateHolder<pools_t> g_pools;
    If all downstreams are over QPS, we pick the fastest server */
 
 GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > > g_rulactions;
+GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > > g_resprulactions;
 Rings g_rings;
 
 GlobalStateHolder<servers_t> g_dstates;
@@ -291,6 +292,7 @@ static bool sendUDPResponse(int origFD, char* response, uint16_t responseLen, in
 // listens on a dedicated socket, lobs answers from downstream servers to original requestors
 void* responderThread(std::shared_ptr<DownstreamState> state)
 {
+  auto localRespRulactions = g_resprulactions.getLocal();
 #ifdef HAVE_DNSCRYPT
   char packet[4096 + DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE];
 #else
@@ -339,6 +341,19 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
     dh->id = ids->origID;
 
     uint16_t addRoom = 0;
+    DNSQuestion dq(&ids->qname, ids->qtype, ids->qclass, &ids->origDest, &ids->origRemote, dh, sizeof(packet), responseLen, false);
+#ifdef HAVE_PROTOBUF
+    dq.uniqueId = ids->uniqueId;
+#endif
+    string ruleresult;
+    for(const auto& lr : *localRespRulactions) {
+      if(lr.first->matches(&dq)) {
+        lr.first->d_matches++;
+        /* for now we only support actions returning None */
+        (*lr.second)(&dq, &ruleresult);
+      }
+    }
+
 #ifdef HAVE_DNSCRYPT
     if (ids->dnsCryptQuery) {
       addRoom = DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE;
@@ -743,6 +758,9 @@ try
   char packet[1500];
   string largerQuery;
   uint16_t qtype, qclass;
+#ifdef HAVE_PROTOBUF
+  boost::uuids::random_generator uuidGenerator;
+#endif
 
   blockfilter_t blockFilter = 0;
   {
@@ -840,6 +858,9 @@ try
       unsigned int consumed = 0;
       DNSName qname(query, len, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
       DNSQuestion dq(&qname, qtype, qclass, &cs->local, &remote, dh, sizeof(packet), len, false);
+#ifdef HAVE_PROTOBUF
+      dq.uniqueId = uuidGenerator();
+#endif
 
       string poolname;
       int delayMsec=0;
@@ -945,6 +966,9 @@ try
       ids->ednsAdded = ednsAdded;
 #ifdef HAVE_DNSCRYPT
       ids->dnsCryptQuery = dnsCryptQuery;
+#endif
+#ifdef HAVE_PROTOBUF
+      ids->uniqueId = dq.uniqueId;
 #endif
       HarvestDestinationAddress(&msgh, &ids->origDest);
 
@@ -1448,7 +1472,7 @@ try
     setupLua(true, g_cmdLine.config);
     // No exception was thrown
     infolog("Configuration '%s' OK!", g_cmdLine.config);
-    _exit(0);
+    _exit(EXIT_SUCCESS);
   }
 
   auto todo=setupLua(false, g_cmdLine.config);

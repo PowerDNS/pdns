@@ -3,6 +3,7 @@
 #include "dnsname.hh"
 #include "dolog.hh"
 #include "ednsoptions.hh"
+#include "dnsdist-remotelogger.hh"
 
 class MaxQPSIPRule : public DNSRule
 {
@@ -709,4 +710,42 @@ public:
   {
     return "skip cache";
   }
+};
+
+class RemoteLogAction : public DNSAction, public boost::noncopyable
+{
+public:
+  RemoteLogAction(std::shared_ptr<RemoteLogger> logger): d_logger(logger)
+  {
+  }
+  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  {
+    d_logger->logQuery(*dq);
+    return Action::None;
+  }
+  string toString() const override
+  {
+    return "remote log to " + d_logger->toString();
+  }
+private:
+  std::shared_ptr<RemoteLogger> d_logger;
+};
+
+class RemoteLogResponseAction : public DNSAction, public boost::noncopyable
+{
+public:
+  RemoteLogResponseAction(std::shared_ptr<RemoteLogger> logger): d_logger(logger)
+  {
+  }
+  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  {
+    d_logger->logResponse(*dq);
+    return Action::None;
+  }
+  string toString() const override
+  {
+    return "remote log response to " + d_logger->toString();
+  }
+private:
+  std::shared_ptr<RemoteLogger> d_logger;
 };
