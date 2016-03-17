@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+../../../pdns/pdns_control --config-dir=./ --socket-dir=./ $@
