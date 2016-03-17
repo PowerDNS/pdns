@@ -4,6 +4,7 @@ export PDNSRECURSOR=/usr/sbin/pdns_recursor
 export PDNS=/usr/sbin/pdns_server
 export SDIG=/usr/bin/sdig
 export NSEC3DIG=/usr/bin/nsec3dig
+export NOTIFY=/usr/bin/notify
 export SAXFR=/usr/bin/saxfr
 
 if [ "$0" != "./build-scripts/test-recursor" ]; then
