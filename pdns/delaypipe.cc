@@ -30,8 +30,10 @@ template<class T>
 void ObjectPipe<T>::write(T& t)
 {
   auto ptr = new T(t);
-  if(::write(d_fds[1], &ptr, sizeof(ptr)) != sizeof(ptr))
+  if(::write(d_fds[1], &ptr, sizeof(ptr)) != sizeof(ptr)) {
+    delete ptr;
     unixDie("write");
+  }
 }
 
 template<class T>

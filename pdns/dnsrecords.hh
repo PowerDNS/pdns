@@ -498,8 +498,6 @@ public:
   string d_salt;
   string d_nexthash;
   std::set<uint16_t> d_set;
-  uint8_t d_saltlength;
-  uint8_t d_nexthashlength;
 
   uint16_t getType() const override
   {
@@ -533,7 +531,6 @@ public:
   uint8_t d_algorithm, d_flags;
   uint16_t d_iterations;
   string d_salt;
-  uint8_t d_saltlength;
 };
 
 
