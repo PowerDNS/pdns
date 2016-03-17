@@ -47,45 +47,43 @@ public:
 
 //  SLAVE BACKEND
 
-    bool getDomainInfo(const string &domain, DomainInfo &di);
-    bool isMaster(const string &name, const string &ip);
-    void getUnfreshSlaveInfos(vector<DomainInfo>* domains);
-    void setFresh(uint32_t id);
+    bool getDomainInfo(const DNSName& domain, DomainInfo &di) override;
+    bool isMaster(const DNSName& name, const string &ip) override;
+    void getUnfreshSlaveInfos(vector<DomainInfo>* domains) override;
+    void setFresh(uint32_t id) override;
 
-    bool startTransaction(const string &qname, int id);
-    bool commitTransaction();
-    bool abortTransaction();
-    bool feedRecord(const DNSResourceRecord &rr, string *ordername=0);
+    bool startTransaction(const DNSName &qname, int id) override;
+    bool commitTransaction() override;
+    bool abortTransaction() override;
+    bool feedRecord(const DNSResourceRecord &rr, string *ordername=0) override;
 
 
 //  SUPERMASTER BACKEND
 
-    bool superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db);
-    bool createSlaveDomain(const string &ip, const string &domain, const string &nameserver, const string &account);
+    bool superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db) override;
+    bool createSlaveDomain(const string &ip, const DNSName &domain, const string &nameserver, const string &account) override;
 
 
 //  DNSSEC BACKEND
 
     //! get a list of IP addresses that should also be notified for a domain
-    void alsoNotifies(const string &domain, set<string> *ips);
-    bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta);
-    bool setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta);
+    void alsoNotifies(const DNSName &domain, set<string> *ips) override;
+    bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta) override;
+    bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta) override;
 
-    bool getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys);
-    bool removeDomainKey(const string& name, unsigned int id);
-    bool activateDomainKey(const string& name, unsigned int id);
-    bool deactivateDomainKey(const string& name, unsigned int id);
-    bool getTSIGKey(const string& name, string* algorithm, string* content);
-    int addDomainKey(const string& name, const KeyData& key);
-
-    bool getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& unhashed, std::string& before, std::string& after);
-    bool updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const std::string& qname, const std::string& ordername, bool auth);
-    bool updateDNSSECOrderAndAuth(uint32_t domain_id, const std::string& zonename, const std::string& qname, bool auth);
-
-
+    bool getDomainKeys(const DNSName& name, unsigned int kind, std::vector<KeyData>& keys) override ;
+    bool removeDomainKey(const DNSName& name, unsigned int id) override ;
+    bool activateDomainKey(const DNSName& name, unsigned int id) override ;
+    bool deactivateDomainKey(const DNSName& name, unsigned int id) override ;
+    bool getTSIGKey(const DNSName& name, DNSName* algorithm, string* content) override ;
+    int addDomainKey(const DNSName& name, const KeyData& key) override ;
+    bool updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const DNSName& qname, const std::string& ordername, bool auth);
+    bool getBeforeAndAfterNamesAbsolute(uint32_t id, const      string& qname, DNSName& unhashed, string& before, string& after) override;
+    bool updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& zonename, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype=QType::ANY) override;
+    bool updateDNSSECOrderAndAuth(uint32_t domain_id, const DNSName& zonename, const DNSName& qname, bool auth);
 //  OTHER
-    void reload();
-    void rediscover(string* status=0);
+    void reload() override ;
+    void rediscover(string* status=0) override ;
 
 
     string backend_name;
@@ -177,7 +175,7 @@ private:
     bool logging;
 
     //dnssec.cc
-    bool updateDomainKey(const string& name, unsigned int &id, bool toowhat);
+    bool updateDomainKey(const DNSName& name, unsigned int &id, bool toowhat);
 
 
 /*

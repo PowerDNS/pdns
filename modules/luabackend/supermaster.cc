@@ -33,7 +33,7 @@
 
 */
 
-bool LUABackend::superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db) {
+bool LUABackend::superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db) {
 	
     if (f_lua_supermasterbackend == 0)
         return false;
@@ -44,14 +44,14 @@ bool LUABackend::superMasterBackend(const string &ip, const string &domain, cons
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_supermasterbackend);
 
     lua_pushstring(lua, ip.c_str());
-    lua_pushstring(lua, domain.c_str());
+    lua_pushstring(lua, domain.toString().c_str());
     
     
     lua_newtable(lua);
     int c = 0;
     for(vector<DNSResourceRecord>::const_iterator i=nsset.begin();i!=nsset.end();++i) {
 	c++;
-	lua_pushnumber(lua, c);
+	lua_pushinteger(lua, c);
 	
 	DNSResourceRecord rr;
 	
@@ -98,7 +98,7 @@ bool LUABackend::superMasterBackend(const string &ip, const string &domain, cons
     return ok;
 }
 
-bool LUABackend::createSlaveDomain(const string &ip, const string &domain, const string &nameserver, const string &account) {
+bool LUABackend::createSlaveDomain(const string &ip, const DNSName& domain, const string &nameserver, const string &account) {
 	
     if (f_lua_createslavedomain == 0)
         return false;
@@ -109,7 +109,7 @@ bool LUABackend::createSlaveDomain(const string &ip, const string &domain, const
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_createslavedomain);
 
     lua_pushstring(lua, ip.c_str());
-    lua_pushstring(lua, domain.c_str());
+    lua_pushstring(lua, domain.toString().c_str());
     lua_pushstring(lua, account.c_str());
 
     if(lua_pcall(lua, 3, 1, f_lua_exec_error) != 0) {

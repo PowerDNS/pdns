@@ -106,11 +106,11 @@ void LUABackend::dnsrr_to_table(lua_State *lua, const DNSResourceRecord *rr) {
     lua_settable(lua, -3);
     
     lua_pushliteral(lua, "qclass");
-    lua_pushnumber(lua, rr->qclass);
+    lua_pushinteger(lua, rr->qclass);
     lua_settable(lua, -3);
 
     lua_pushliteral(lua, "ttl");
-    lua_pushnumber(lua, rr->ttl);
+    lua_pushinteger(lua, rr->ttl);
     lua_settable(lua, -3);
 
     lua_pushliteral(lua, "auth");

@@ -297,7 +297,7 @@ bool LUABackend::getValueFromTable(lua_State *lua, const std::string& key, uint3
   bool ret = false;
 
   if(!lua_isnil(lua, -1)) {
-    value = (uint32_t)lua_tonumber(lua, -1);
+    value = (uint32_t)lua_tointeger(lua, -1);
     ret = true;
   }
 
@@ -313,7 +313,7 @@ bool LUABackend::getValueFromTable(lua_State *lua, const std::string& key, uint1
   bool ret = false;
 
   if(!lua_isnil(lua, -1)) {
-    value = (uint16_t)lua_tonumber(lua, -1);
+    value = (uint16_t)lua_tointeger(lua, -1);
     ret = true;
   }
 
@@ -329,7 +329,7 @@ bool LUABackend::getValueFromTable(lua_State *lua, const std::string& key, uint8
   bool ret = false;
   
   if(!lua_isnil(lua, -1)) {
-    value = (uint8_t)lua_tonumber(lua, -1);
+    value = (uint8_t)lua_tointeger(lua, -1);
     ret = true;
   }
   
@@ -345,7 +345,7 @@ bool LUABackend::getValueFromTable(lua_State *lua, const std::string& key, int& 
   bool ret = false;
 
   if(!lua_isnil(lua, -1)) {
-    value = (int)lua_tonumber(lua, -1);
+    value = (int)lua_tointeger(lua, -1);
     ret = true;
   }
 
