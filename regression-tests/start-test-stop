@@ -76,9 +76,7 @@ securezone ()
 	if [ "${zone: 0:16}" = "secure-delegated" ]
 	then
 		$PDNSUTIL --config-dir=. $configname import-zone-key $zone $zone.private ksk 2>&1
-		$PDNSUTIL --config-dir=. $configname add-zone-key $zone 1024 zsk 2>&1
-		keyid=`$PDNSUTIL --config-dir=. $configname show-zone $zone | grep ZSK | cut -d' ' -f3`
-		$PDNSUTIL --config-dir=. $configname activate-zone-key $zone $keyid 2>&1
+		$PDNSUTIL --config-dir=. $configname add-zone-key $zone 1024 zsk active 2>&1
 		$PDNSUTIL --config-dir=. $configname rectify-zone $zone 2>&1
 		$PDNSUTIL --config-dir=. $configname set-publish-cds $zone 2>&1
 		$PDNSUTIL --config-dir=. $configname set-publish-cdnskey $zone 2>&1
