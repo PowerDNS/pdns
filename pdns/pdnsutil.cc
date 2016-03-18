@@ -2148,7 +2148,7 @@ loadMainConfig(g_vm["config-dir"].as<string>());
     bool keyOrZone=false;
     int tmp_algo=0;
     int bits=0;
-    int algorithm=8;
+    int algorithm=13; // ecdsa256
     bool active=false;
     for(unsigned int n=2; n < cmds.size(); ++n) {
       if(pdns_iequals(cmds[n], "zsk"))
@@ -2609,7 +2609,7 @@ loadMainConfig(g_vm["config-dir"].as<string>());
     bool keyOrZone=false;
     int tmp_algo=0;
     int bits=0;
-    int algorithm=8;
+    int algorithm=13; // ecdsa256
     for(unsigned int n=1; n < cmds.size(); ++n) {
       if(pdns_iequals(cmds[n], "zsk"))
         keyOrZone = false;
