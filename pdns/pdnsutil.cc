@@ -1690,7 +1690,7 @@ bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
 
     int algo = DNSSECKeeper::shorthand2algorithm(z_algo);
 
-    if(!dk.addKey(zone, k_algos.empty(), algo, z_size, true)) {
+    if(!dk.addKey(zone, false, algo, z_size, true)) {
       cerr<<"No backend was able to secure '"<<zone.toString()<<"', most likely because no DNSSEC"<<endl;
       cerr<<"capable backends are loaded, or because the backends have DNSSEC disabled."<<endl;
       cerr<<"For the Generic SQL backends, set the 'gsqlite3-dnssec', 'gmysql-dnssec' or"<<endl;
