@@ -1671,7 +1671,7 @@ bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
 
 
   for(auto &k_algo: k_algos) {
-    cout << "Adding "<<(z_algos.empty()? "CSK" : "KSK")<<" with algorithm " << k_algo << endl;
+    cout << "Adding "<<(z_algos.empty()? "CSK (257)" : "KSK")<<" with algorithm " << k_algo << endl;
 
     int algo = DNSSECKeeper::shorthand2algorithm(k_algo);
 
@@ -1686,7 +1686,7 @@ bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
 
   for(auto &z_algo :  z_algos)
   {
-    cout << "Adding "<<(k_algos.empty()? "CSK" : "ZSK")<<" with algorithm " << z_algo << endl;
+    cout << "Adding "<<(k_algos.empty()? "CSK (256)" : "ZSK")<<" with algorithm " << z_algo << endl;
 
     int algo = DNSSECKeeper::shorthand2algorithm(z_algo);
 
