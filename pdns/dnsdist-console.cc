@@ -33,18 +33,23 @@ void doClient(ComboAddress server, const std::string& command)
   readn2(fd, (char*)theirs.value, sizeof(theirs.value));
 
   if(!command.empty()) {
-    string response;
     string msg=sodEncryptSym(command, g_key, ours);
     putMsgLen32(fd, msg.length());
     if(!msg.empty())
       writen2(fd, msg);
     uint32_t len;
-    getMsgLen32(fd, &len);
-    boost::scoped_array<char> resp(new char[len]);
-    readn2(fd, resp.get(), len);
-    msg.assign(resp.get(), len);
-    msg=sodDecryptSym(msg, g_key, theirs);
-    cout<<msg<<endl;
+    if(getMsgLen32(fd, &len)) {
+      if (len > 0) {
+        boost::scoped_array<char> resp(new char[len]);
+        readn2(fd, resp.get(), len);
+        msg.assign(resp.get(), len);
+        msg=sodDecryptSym(msg, g_key, theirs);
+        cout<<msg<<endl;
+      }
+    }
+    else {
+      cout << "Connection closed by the server." << endl;
+    }
     close(fd);
     return; 
   }
@@ -80,7 +85,6 @@ void doClient(ComboAddress server, const std::string& command)
     if(line.empty())
       continue;
 
-    string response;
     string msg=sodEncryptSym(line, g_key, ours);
     putMsgLen32(fd, msg.length());
     writen2(fd, msg);
