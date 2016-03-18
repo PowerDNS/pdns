@@ -69,8 +69,8 @@ void LUABackend::setNotifed(int id, uint32_t serial) {
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_setnotifed);
 
-    lua_pushnumber(lua, id);
-    lua_pushnumber(lua, serial);
+    lua_pushinteger(lua, id);
+    lua_pushinteger(lua, serial);
 
     if(lua_pcall(lua, 2, 0, f_lua_exec_error) != 0) {
         string e = backend_name + lua_tostring(lua, -1);

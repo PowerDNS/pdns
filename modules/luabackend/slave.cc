@@ -37,7 +37,7 @@
    virtual void setFresh(uint32_t id);
 */
 
-bool LUABackend::startTransaction(const string &qname, int id) {
+bool LUABackend::startTransaction(const DNSName& qname, int id) {
 
     if (f_lua_starttransaction == 0)
         return false;
@@ -47,8 +47,8 @@ bool LUABackend::startTransaction(const string &qname, int id) {
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_starttransaction);
 
-    lua_pushstring(lua, qname.c_str());
-    lua_pushnumber(lua, id);
+    lua_pushstring(lua, qname.toString().c_str());
+    lua_pushinteger(lua, id);
 
     if(lua_pcall(lua, 2, 1, f_lua_exec_error) != 0) {
         string e = backend_name + lua_tostring(lua, -1);
@@ -174,7 +174,7 @@ void LUABackend::setFresh(uint32_t id) {
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_setfresh);
 
-    lua_pushnumber(lua, id);
+    lua_pushinteger(lua, id);
 
     if(lua_pcall(lua, 1, 0, f_lua_exec_error) != 0) {
         string e = backend_name + lua_tostring(lua, -1);
@@ -220,7 +220,7 @@ void LUABackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains) {
 
 }
 
-bool LUABackend::isMaster(const string &domain, const string &ip) {
+bool LUABackend::isMaster(const DNSName& domain, const string &ip) {
 	
     if (f_lua_ismaster == 0)
         return false;
@@ -230,7 +230,7 @@ bool LUABackend::isMaster(const string &domain, const string &ip) {
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_ismaster);
 
-    lua_pushstring(lua, domain.c_str());
+    lua_pushstring(lua, domain.toString().c_str());
     lua_pushstring(lua, ip.c_str());
     
     if(lua_pcall(lua, 2, 1, f_lua_exec_error) != 0) {
@@ -254,7 +254,7 @@ bool LUABackend::isMaster(const string &domain, const string &ip) {
     return ok;
 }
 
-bool LUABackend::getDomainInfo(const string &domain, DomainInfo &di) {
+bool LUABackend::getDomainInfo(const DNSName&domain, DomainInfo &di) {
     if (f_lua_getdomaininfo == 0)
         return false;
 
@@ -263,7 +263,7 @@ bool LUABackend::getDomainInfo(const string &domain, DomainInfo &di) {
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_getdomaininfo);
 
-    lua_pushstring(lua, domain.c_str());
+    lua_pushstring(lua, domain.toString().c_str());
     
     if(lua_pcall(lua, 1, 1, f_lua_exec_error) != 0) {
         string e = backend_name + lua_tostring(lua, -1);
