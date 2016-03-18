@@ -107,7 +107,7 @@
 #################################
 # default-ksk-algorithms	Default KSK algorithms
 #
-# default-ksk-algorithms=
+# default-ksk-algorithms=ecdsa256
 
 #################################
 # default-ksk-size	Default KSK size (0 means default)
@@ -142,7 +142,7 @@
 #################################
 # default-zsk-algorithms	Default ZSK algorithms
 #
-# default-zsk-algorithms=ecdsa256
+# default-zsk-algorithms=
 
 #################################
 # default-zsk-size	Default ZSK size (0 means default)
