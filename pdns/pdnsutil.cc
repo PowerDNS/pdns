@@ -95,7 +95,6 @@ void loadMainConfig(const std::string& configdir)
 
   L.toConsole(Logger::Error);   // so we print any errors
   BackendMakers().launch(::arg()["launch"]); // vrooooom!
-  L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));  
 
   //cerr<<"Backend: "<<::arg()["launch"]<<", '" << ::arg()["gmysql-dbname"] <<"'" <<endl;
 
@@ -146,6 +145,7 @@ bool rectifyZone(DNSSECKeeper& dk, const DNSName& zone)
   }
 
   UeberBackend B("default");
+  L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));
   bool doTransaction=true; // but see above
   SOAData sd;
 
@@ -302,6 +302,7 @@ void dbBench(const std::string& fname)
   ::arg().set("query-cache-ttl")="0";
   ::arg().set("negquery-cache-ttl")="0";
   UeberBackend B("default");
+  L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));
 
   vector<string> domains;
   if(!fname.empty()) {
@@ -343,6 +344,7 @@ void dbBench(const std::string& fname)
 void rectifyAllZones(DNSSECKeeper &dk) 
 {
   UeberBackend B("default");
+  L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));
   vector<DomainInfo> domainInfo;
 
   B.getAllDomains(&domainInfo);
@@ -633,6 +635,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
 int checkAllZones(DNSSECKeeper &dk, bool exitOnError)
 {
   UeberBackend B("default");
+  L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));
   vector<DomainInfo> domainInfo;
 
   B.getAllDomains(&domainInfo, true);
@@ -653,6 +656,7 @@ int checkAllZones(DNSSECKeeper &dk, bool exitOnError)
 int increaseSerial(const DNSName& zone, DNSSECKeeper &dk)
 {
   UeberBackend B("default");
+  L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));
   SOAData sd;
   if(!B.getSOAUncached(zone, sd)) {
     cerr<<"No SOA for zone '"<<zone.toString()<<"'"<<endl;
@@ -806,6 +810,7 @@ void listKey(DomainInfo const &di, DNSSECKeeper& dk, bool printHeader = true) {
 
 bool listKeys(const string &zname, DNSSECKeeper& dk){
   UeberBackend B("default");
+  L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));
 
   if (zname != "all") {
     DomainInfo di;
@@ -1270,6 +1275,7 @@ int listAllZones(const string &type="") {
   }
 
   UeberBackend B("default");
+  L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));
 
   vector<DomainInfo> domains;
   B.getAllDomains(&domains, true);
@@ -1394,6 +1400,7 @@ void verifyCrypto(const string& zone)
 bool disableDNSSECOnZone(DNSSECKeeper& dk, const DNSName& zone)
 {
   UeberBackend B("default");
+  L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));
   DomainInfo di;
 
   if (!B.getDomainInfo(zone, di)){
@@ -1424,6 +1431,7 @@ bool disableDNSSECOnZone(DNSSECKeeper& dk, const DNSName& zone)
 int setZoneKind(const DNSName& zone, const DomainInfo::DomainKind kind)
 {
   UeberBackend B("default");
+  L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));
   DomainInfo di;
   std::vector<std::string> meta;
 
@@ -1441,6 +1449,7 @@ int setZoneKind(const DNSName& zone, const DomainInfo::DomainKind kind)
 bool showZone(DNSSECKeeper& dk, const DNSName& zone)
 {
   UeberBackend B("default");
+  L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));
   DomainInfo di;
   std::vector<std::string> meta;
 
@@ -1649,6 +1658,7 @@ bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
 
   DomainInfo di;
   UeberBackend B("default");
+  L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));
   if(!B.getDomainInfo(zone, di) || !di.backend) { // di.backend and B are mostly identical
     cerr<<"Can't find a zone called '"<<zone.toString()<<"'"<<endl;
     return false;
@@ -1720,6 +1730,7 @@ void testSchema(DNSSECKeeper& dk, const DNSName& zone)
   cout<<endl;
   cout<<"Constructing UeberBackend"<<endl;
   UeberBackend B("default");
+  L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));
   cout<<"Picking first backend - if this is not what you want, edit launch line!"<<endl;
   DNSBackend *db = B.backends[0];
   cout<<"Creating slave domain "<<zone.toString()<<endl;
@@ -2022,6 +2033,7 @@ loadMainConfig(g_vm["config-dir"].as<string>());
       return 0;
     }
     UeberBackend B("default");
+    L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));
     exit(checkZone(dk, B, DNSName(cmds[1])));
   }
   else if(cmds[0] == "bench-db") {
@@ -2134,6 +2146,7 @@ loadMainConfig(g_vm["config-dir"].as<string>());
     DNSName zone(cmds[1]);
 
     UeberBackend B("default");
+    L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));
     DomainInfo di;
 
     if (!B.getDomainInfo(zone, di)){
@@ -2311,6 +2324,7 @@ loadMainConfig(g_vm["config-dir"].as<string>());
     }
 
     UeberBackend B("default");
+    L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));
 
     vector<DomainInfo> domainInfo;
     B.getAllDomains(&domainInfo);
@@ -2683,6 +2697,7 @@ loadMainConfig(g_vm["config-dir"].as<string>());
      key = Base64Encode(std::string(tmpkey, klen));
 
      UeberBackend B("default");
+     L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));
      if (B.setTSIGKey(name, DNSName(algo), key)) { // you are feeling bored, put up DNSName(algo) up earlier
        cout << "Create new TSIG key " << name << " " << algo << " " << key << endl;
      } else {
@@ -2700,6 +2715,7 @@ loadMainConfig(g_vm["config-dir"].as<string>());
      string key = cmds[3];
 
      UeberBackend B("default");
+     L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));
      if (B.setTSIGKey(name, DNSName(algo), key)) {
        cout << "Imported TSIG key " << name << " " << algo << endl;
      } else {
@@ -2715,6 +2731,7 @@ loadMainConfig(g_vm["config-dir"].as<string>());
      DNSName name(cmds[1]);
 
      UeberBackend B("default");
+     L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));
      if (B.deleteTSIGKey(name)) {
        cout << "Deleted TSIG key " << name << endl;
      } else {
@@ -2725,6 +2742,7 @@ loadMainConfig(g_vm["config-dir"].as<string>());
   } else if (cmds[0]=="list-tsig-keys") {
      std::vector<struct TSIGKey> keys;
      UeberBackend B("default");
+     L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));
      if (B.getTSIGKeys(keys)) {
         for(const struct TSIGKey &key :  keys) {
            cout << key.name.toString() << " " << key.algorithm.toString() << " " << key.key << endl;
@@ -2748,6 +2766,7 @@ loadMainConfig(g_vm["config-dir"].as<string>());
         return 1;
      }
      UeberBackend B("default");
+     L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));
      std::vector<std::string> meta; 
      if (!B.getDomainMetadata(zname, metaKey, meta)) {
        cerr << "Failure enabling TSIG key " << name << " for " << zname << endl;
@@ -2783,6 +2802,7 @@ loadMainConfig(g_vm["config-dir"].as<string>());
      }
 
      UeberBackend B("default");
+     L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));
      std::vector<std::string> meta;
      if (!B.getDomainMetadata(zname, metaKey, meta)) {
        cerr << "Failure disabling TSIG key " << name << " for " << zname << endl;
@@ -2800,6 +2820,7 @@ loadMainConfig(g_vm["config-dir"].as<string>());
      return 0;
   } else if (cmds[0]=="get-meta") {
     UeberBackend B("default");
+    L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));
     if (cmds.size() < 2) {
        cerr << "Syntax: " << cmds[0] << " zone [kind kind ..]" << endl;
        return 1;
@@ -2835,6 +2856,7 @@ loadMainConfig(g_vm["config-dir"].as<string>());
 
   } else if (cmds[0]=="set-meta") {
     UeberBackend B("default");
+    L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));
     if (cmds.size() < 3) {
        cerr << "Syntax: " << cmds[0] << " zone kind [value value ..]" << endl;
        return 1;
@@ -2852,6 +2874,7 @@ loadMainConfig(g_vm["config-dir"].as<string>());
   } else if (cmds[0]=="hsm") {
 #ifdef HAVE_P11KIT1
     UeberBackend B("default");
+    L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));
     if (cmds[1] == "assign") {
       DNSCryptoKeyEngine::storvector_t storvect;
       DomainInfo di;
