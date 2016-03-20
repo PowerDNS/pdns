@@ -87,7 +87,7 @@ void loadMainConfig(const std::string& configdir)
   ::arg().set("module-dir","Default directory for modules")=PKGLIBDIR;
   ::arg().set("entropy-source", "If set, read entropy from this file")="/dev/urandom";
   ::arg().setSwitch("query-logging","Hint backends that queries should be logged")="no";
-  ::arg().set("loglevel","Amount of logging. Higher is more.")="0";
+  ::arg().set("loglevel","Amount of logging. Higher is more.")="3";
   ::arg().setSwitch("direct-dnskey","Fetch DNSKEY RRs from backend during DNSKEY synthesis")="no";
   ::arg().set("max-nsec3-iterations","Limit the number of NSEC3 hash iterations")="500"; // RFC5155 10.3
   ::arg().set("max-signature-cache-entries", "Maximum number of signatures cache entries")="";
@@ -95,7 +95,8 @@ void loadMainConfig(const std::string& configdir)
 
   L.toConsole(Logger::Error);   // so we print any errors
   BackendMakers().launch(::arg()["launch"]); // vrooooom!
-  L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));  
+  if(::arg().asNum("loglevel") >= 3) // so you can't kill our errors
+    L.toConsole((Logger::Urgency)::arg().asNum("loglevel"));  
 
   //cerr<<"Backend: "<<::arg()["launch"]<<", '" << ::arg()["gmysql-dbname"] <<"'" <<endl;
 
