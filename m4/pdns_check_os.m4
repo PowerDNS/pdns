@@ -35,6 +35,12 @@ AC_DEFUN([PDNS_CHECK_OS],[
   AM_CONDITIONAL([HAVE_LINUX], [test "x$have_linux" = "xyes"])
   AM_CONDITIONAL([HAVE_SOLARIS], [test "x$have_solaris" = "xyes"])
 
+  case "$host" in
+  mips*)
+    LDFLAGS="-latomic $LDFLAGS"
+    ;;
+  esac
+
   AC_SUBST(THREADFLAGS)
   AC_SUBST([DYNLINKFLAGS], [-export-dynamic])
 ])
