@@ -5,7 +5,7 @@ if [ "${PDNS_DEBUG}" = "YES" ]; then
 fi
 
 export PDNS=${PDNS:-../../../pdns/pdns_server}
-export PDNSRECURSOR=${PDNSRECURSOR:-../../../pdns/pdns_recursor}
+export PDNSRECURSOR=${PDNSRECURSOR:-../../../pdns/recursordist/pdns_recursor}
 
 . ./vars
 

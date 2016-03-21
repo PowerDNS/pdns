@@ -268,9 +268,9 @@ script:
   - cd pdns-recursor-*
   - ./configure
   - make -k -j3
+  - cd ../
+  - ln -s pdns-recursor*/pdns_recursor .
   - cd ../..
-  - ln -s recursordist/pdns-recursor*/pdns_recursor .
-  - cd ..
 
   # regression-tests
   - cd regression-tests.recursor
