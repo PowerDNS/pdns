@@ -39,6 +39,7 @@
 BOOST_AUTO_TEST_SUITE(dnsdist_cc)
 
 bool g_console{true};
+bool g_syslog{true};
 bool g_verbose{true};
 
 static void validateQuery(const char * packet, size_t packetSize)

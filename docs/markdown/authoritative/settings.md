@@ -259,6 +259,14 @@ Do not allow zone transfers.
 Disable the rectify step during an outgoing AXFR. Only required for regression
 testing.
 
+## `disable-syslog`
+* Boolean
+* Default: no
+
+Do not log to syslog, only to stdout. Use this setting when running inside a
+supervisor that handles logging (like systemd). **Note**: do not use this setting
+in combination with [`daemon`](#daemon) as all logging will disappear.
+
 ## `disable-tcp`
 * Boolean
 * Default: no

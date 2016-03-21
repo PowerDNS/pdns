@@ -167,6 +167,14 @@ Which domains we only accept delegations from (a Verisign special).
 Turn off the packet cache. Useful when running with Lua scripts that can not be
 cached.
 
+## `disable-syslog`
+* Boolean
+* Default: no
+
+Do not log to syslog, only to stdout. Use this setting when running inside a
+supervisor that handles logging (like systemd). **Note**: do not use this setting
+in combination with [`daemon`](#daemon) as all logging will disappear.
+
 ## `dnssec`
 * One of `off`, `process`, `log-fail`, `validate`, String
 * Default: `off` (**note**: was `process` until 4.0.0-alpha2)

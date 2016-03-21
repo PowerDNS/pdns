@@ -34,6 +34,7 @@
 
 bool g_verbose{true};
 bool g_console{true};
+bool g_syslog{true};
 
 BOOST_AUTO_TEST_SUITE(dnscrypt_cc)
 

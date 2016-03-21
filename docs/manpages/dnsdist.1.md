@@ -81,6 +81,10 @@ Server for example is often mentioned.
 :    Run in foreground, but do not spawn a console. Use this switch to run
      dnsdist inside a supervisor (use with e.g. systemd and daemontools).
 
+--disable-syslog
+:    Disable logging to syslog. Use this when running inside a supervisor that
+     handles logging (like systemd). Do not use in combination with **--daemon**.
+
 -p,--pidfile *FILE*
 :    Write a pidfile to *FILE*, works only with **--daemon**.
 
