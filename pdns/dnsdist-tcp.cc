@@ -133,6 +133,15 @@ catch(...) {
   return false;
 }
 
+static bool sendResponseToClient(int fd, const char* response, uint16_t responseLen)
+{
+  if (!putNonBlockingMsgLen(fd, responseLen, g_tcpSendTimeout))
+    return false;
+
+  writen2WithTimeout(fd, response, responseLen, g_tcpSendTimeout);
+  return true;
+}
+
 std::shared_ptr<TCPClientCollection> g_tcpclientthreads;
 
 void* tcpClientThread(int pipefd)
@@ -140,7 +149,6 @@ void* tcpClientThread(int pipefd)
   /* we get launched with a pipe on which we receive file descriptors from clients that we own
      from that point on */
      
-  typedef std::function<bool(const DNSQuestion*)> blockfilter_t;
   bool outstanding = false;
   blockfilter_t blockFilter = 0;
   
@@ -173,9 +181,6 @@ void* tcpClientThread(int pipefd)
 
     uint16_t qlen, rlen;
     string poolname;
-    const uint16_t rdMask = 1 << FLAGS_RD_OFFSET;
-    const uint16_t cdMask = 1 << FLAGS_CD_OFFSET;
-    const uint16_t restoreFlagsMask = UINT16_MAX & ~(rdMask | cdMask);
     string largerQuery;
     vector<uint8_t> rewrittenResponse;
     bool ednsAdded = false;
@@ -191,6 +196,9 @@ void* tcpClientThread(int pipefd)
         if(!getNonBlockingMsgLen(ci.fd, &qlen, g_tcpRecvTimeout))
           break;
 
+        ci.cs->queries++;
+        g_stats.queries++;
+
         if (qlen < sizeof(dnsheader)) {
           g_stats.nonCompliantQueries++;
           break;
@@ -203,6 +211,7 @@ void* tcpClientThread(int pipefd)
         char queryBuffer[querySize];
         const char* query = queryBuffer;
         readn2WithTimeout(ci.fd, queryBuffer, qlen, g_tcpRecvTimeout);
+
 #ifdef HAVE_DNSCRYPT
         std::shared_ptr<DnsCryptQuery> dnsCryptQuery = 0;
 
@@ -214,8 +223,7 @@ void* tcpClientThread(int pipefd)
 
           if (!decrypted) {
             if (response.size() > 0) {
-              if (putNonBlockingMsgLen(ci.fd, response.size(), g_tcpSendTimeout))
-                writen2WithTimeout(ci.fd, (const char *) response.data(), response.size(), g_tcpSendTimeout);
+              sendResponseToClient(ci.fd, reinterpret_cast<char*>(response.data()), response.size());
             }
             break;
           }
@@ -234,98 +242,34 @@ void* tcpClientThread(int pipefd)
           goto drop;
         }
 
+        if (dh->rd) {
+          g_stats.rdQueries++;
+        }
+
+	const uint16_t* flags = getFlagsFromDNSHeader(dh);
+	uint16_t origFlags = *flags;
 	uint16_t qtype, qclass;
 	unsigned int consumed = 0;
 	DNSName qname(query, qlen, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
 	DNSQuestion dq(&qname, qtype, qclass, &ci.cs->local, &ci.remote, (dnsheader*)query, querySize, qlen, true);
-	string ruleresult;
-	const uint16_t * flags = getFlagsFromDNSHeader(dq.dh);
-	uint16_t origFlags = *flags;
+
+	string poolname;
+	int delayMsec=0;
 	struct timespec now;
 	clock_gettime(CLOCK_MONOTONIC, &now);
 
-	{
-	  WriteLock wl(&g_rings.queryLock);
-	  g_rings.queryRing.push_back({now,ci.remote,qname,dq.len,dq.qtype,*dq.dh});
-	}
-
-	g_stats.queries++;
-	if (ci.cs) {
-	  ci.cs->queries++;
-	}
-
-	if(auto got=localDynBlockNMG->lookup(ci.remote)) {
-	  if(now < got->second.until) {
-	    vinfolog("Query from %s dropped because of dynamic block", ci.remote.toStringWithPort());
-	    g_stats.dynBlocked++;
-	    got->second.blocks++;
-	    goto drop;
-	  }
-	}
-
-        if (dq.dh->rd) {
-          g_stats.rdQueries++;
-        }
-
-        if(blockFilter) {
-	  std::lock_guard<std::mutex> lock(g_luamutex);
-	
-	  if(blockFilter(&dq)) {
-	    g_stats.blockFilter++;
-	    goto drop;
-          }
-          if(dq.dh->tc && dq.dh->qr) { // don't truncate on TCP/IP!
-            dq.dh->tc=false;        // maybe we should just pass blockFilter the TCP status
-            dq.dh->qr=false;
-          }
-        }
-
-        bool done=false;
-	DNSAction::Action action=DNSAction::Action::None;
-	for(const auto& lr : *localRulactions) {
-	  if(lr.first->matches(&dq)) {
-            lr.first->d_matches++;
-            action=(*lr.second)(&dq, &ruleresult);
-            switch(action) {
-            case DNSAction::Action::Allow:
-              done = true;
-              break;
-            case DNSAction::Action::Drop:
-              g_stats.ruleDrop++;
-              goto drop;
-              break;
-            case DNSAction::Action::Nxdomain:
-              dq.dh->rcode = RCode::NXDomain;
-              dq.dh->qr=true;
-              g_stats.ruleNXDomain++;
-              done = true;
-              break;
-            case DNSAction::Action::Spoof:
-              spoofResponseFromString(dq, ruleresult);
-              done = true;
-              break;
-            case DNSAction::Action::HeaderModify:
-              done = true;
-              break;
-            case DNSAction::Action::Pool:
-              poolname=ruleresult;
-              done = true;
-              break;
-            /* non-terminal actions follow */
-            case DNSAction::Action::Delay:
-            case DNSAction::Action::None:
-              break;
-            }
-	    if(done) {
-	      break;
-	    }
-	  }
+	if (!processQuery(localDynBlockNMG, localRulactions, blockFilter, dq, ci.remote, poolname, &delayMsec, now)) {
+	  goto drop;
 	}
 
 	if(dq.dh->qr) { // something turned it into a response
-	  if (putNonBlockingMsgLen(ci.fd, dq.len, g_tcpSendTimeout))
-	    writen2WithTimeout(ci.fd, query, dq.len, g_tcpSendTimeout);
-
+          restoreFlags(dh, origFlags);
+#ifdef HAVE_DNSCRYPT
+          if (!encryptResponse(queryBuffer, &dq.len, dq.size, true, dnsCryptQuery)) {
+            goto drop;
+          }
+#endif
+          sendResponseToClient(ci.fd, query, dq.len);
 	  g_stats.selfAnswered++;
 	  goto drop;
 	}
@@ -359,8 +303,12 @@ void* tcpClientThread(int pipefd)
           uint16_t cachedResponseSize = sizeof cachedResponse;
           uint32_t allowExpired = ds ? 0 : g_staleCacheEntriesTTL;
           if (packetCache->get(dq, consumed, dq.dh->id, cachedResponse, &cachedResponseSize, &cacheKey, allowExpired)) {
-            if (putNonBlockingMsgLen(ci.fd, cachedResponseSize, g_tcpSendTimeout))
-              writen2WithTimeout(ci.fd, cachedResponse, cachedResponseSize, g_tcpSendTimeout);
+#ifdef HAVE_DNSCRYPT
+            if (!encryptResponse(cachedResponse, &cachedResponseSize, sizeof cachedResponse, true, dnsCryptQuery)) {
+              goto drop;
+            }
+#endif
+            sendResponseToClient(ci.fd, cachedResponse, cachedResponseSize);
             g_stats.cacheHits++;
             goto drop;
           }
@@ -430,22 +378,16 @@ void* tcpClientThread(int pipefd)
           goto retry;
         }
 
-        uint16_t responseSize = rlen;
+        size_t responseSize = rlen;
+        uint16_t addRoom = 0;
 #ifdef HAVE_DNSCRYPT
-        if (ci.cs->dnscryptCtx && (UINT16_MAX - DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE) > rlen) {
-          responseSize += DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE;
+        if (dnsCryptQuery && (UINT16_MAX - rlen) > (uint16_t) DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE) {
+          addRoom = DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE;
         }
 #endif
+        responseSize += addRoom;
         char answerbuffer[responseSize];
         readn2WithTimeout(dsock, answerbuffer, rlen, ds->tcpRecvTimeout);
-        struct dnsheader* responseHeaders = (struct dnsheader*)answerbuffer;
-        uint16_t * responseFlags = getFlagsFromDNSHeader(responseHeaders);
-        /* clear the flags we are about to restore */
-        *responseFlags &= restoreFlagsMask;
-        /* only keep the flags we want to restore */
-        origFlags &= ~restoreFlagsMask;
-        /* set the saved flags as they were */
-        *responseFlags |= origFlags;
         char* response = answerbuffer;
         uint16_t responseLen = rlen;
         --ds->outstanding;
@@ -455,86 +397,26 @@ void* tcpClientThread(int pipefd)
           break;
         }
 
-        dh = (struct dnsheader*) response;
-        DNSName rqname;
-        uint16_t rqtype, rqclass;
-        try {
-          rqname=DNSName(response, responseLen, sizeof(dnsheader), false, &rqtype, &rqclass, &consumed);
-        }
-        catch(std::exception& e) {
-          if(rlen > (ssize_t)sizeof(dnsheader))
-            infolog("Backend %s sent us a response with id %d that did not parse: %s", ds->remote.toStringWithPort(), ntohs(dh->id), e.what());
-          g_stats.nonCompliantResponses++;
+        if (!responseContentMatches(response, responseLen, qname, qtype, qclass, ds->remote)) {
           break;
         }
 
-        if (rqtype != qtype || rqclass != qclass || rqname != qname) {
+        if (!fixUpResponse(&response, &responseLen, &responseSize, qname, origFlags, ednsAdded, rewrittenResponse, addRoom)) {
           break;
         }
-
-        if (ednsAdded) {
-          const char * optStart = NULL;
-          size_t optLen = 0;
-          bool last = false;
-
-          int res = locateEDNSOptRR(response, responseLen, &optStart, &optLen, &last);
-
-          if (res == 0) {
-            if (last) {
-              /* simply remove the last AR */
-              responseLen -= optLen;
-              uint16_t arcount = ntohs(responseHeaders->arcount);
-              arcount--;
-              responseHeaders->arcount = htons(arcount);
-            }
-            else {
-              /* Removing an intermediary RR could lead to compression error */
-              if (rewriteResponseWithoutEDNS(response, responseLen, rewrittenResponse) == 0) {
-#ifdef HAVE_DNSCRYPT
-                if (ci.cs->dnscryptCtx && rewrittenResponse.capacity() < responseSize && ci.cs->dnscryptCtx) {
-                  /* we preserve room for dnscrypt */
-                  rewrittenResponse.reserve(responseSize);
-                }
-#endif
-                responseSize = responseLen;
-                responseLen = rewrittenResponse.size();
-                response = reinterpret_cast<char*>(rewrittenResponse.data());
-              }
-              else {
-                warnlog("Error rewriting content");
-              }
-            }
-          }
-        }
-
-	if(g_fixupCase) {
-	  string realname = qname.toDNSString();
-	  if (responseLen >= (sizeof(dnsheader) + realname.length())) {
-	    memcpy(response + sizeof(dnsheader), realname.c_str(), realname.length());
-	  }
-	}
 
 	if (packetCache && !dq.skipCache) {
 	  packetCache->insert(cacheKey, qname, qtype, qclass, response, responseLen, true, dh->rcode == RCode::ServFail);
 	}
 
 #ifdef HAVE_DNSCRYPT
-        if (ci.cs->dnscryptCtx) {
-          uint16_t encryptedResponseLen = 0;
-          int res = ci.cs->dnscryptCtx->encryptResponse(response, responseLen, responseSize, dnsCryptQuery, true, &encryptedResponseLen);
-
-          if (res == 0) {
-            responseLen = encryptedResponseLen;
-          } else {
-            /* dropping response */
-            vinfolog("Error encrypting the response, dropping.");
-            break;
-          }
+        if (!encryptResponse(response, &responseLen, responseSize, true, dnsCryptQuery)) {
+          goto drop;
         }
 #endif
-
-        if (putNonBlockingMsgLen(ci.fd, responseLen, ds->tcpSendTimeout))
-          writen2WithTimeout(ci.fd, response, responseLen, ds->tcpSendTimeout);
+        if (!sendResponseToClient(ci.fd, response, responseLen)) {
+          break;
+        }
 
         g_stats.responses++;
         struct timespec answertime;

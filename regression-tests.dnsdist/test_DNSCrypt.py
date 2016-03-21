@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import time
-import unittest
 import dns
 import dns.message
 from dnsdisttests import DNSDistTest
@@ -43,11 +42,24 @@ class TestDNSCrypt(DNSDistTest):
                                     3600,
                                     dns.rdataclass.IN,
                                     dns.rdatatype.A,
-                                    '127.0.0.1')
+                                    '192.2.0.1')
         response.answer.append(rrset)
 
         self._toResponderQueue.put(response)
         data = client.query(query.to_wire())
+        receivedResponse = dns.message.from_wire(data)
+        receivedQuery = None
+        if not self._fromResponderQueue.empty():
+            receivedQuery = self._fromResponderQueue.get(query)
+
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+
+        self._toResponderQueue.put(response)
+        data = client.query(query.to_wire(), tcp=True)
         receivedResponse = dns.message.from_wire(data)
         receivedQuery = None
         if not self._fromResponderQueue.empty():
@@ -95,6 +107,65 @@ class TestDNSCrypt(DNSDistTest):
         self.assertTrue(len(receivedResponse.authority) == 0)
         self.assertTrue(len(receivedResponse.additional) == 0)
 
-if __name__ == '__main__':
-    unittest.main()
-    exit(0)
+class TestDNSCryptWithCache(DNSDistTest):
+    _dnsDistPortDNSCrypt = 8443
+    _providerFingerprint = 'E1D7:2108:9A59:BF8D:F101:16FA:ED5E:EA6A:9F6C:C78F:7F91:AF6B:027E:62F4:69C3:B1AA'
+    _providerName = "2.provider.name"
+    _resolverCertificateSerial = 42
+    # valid from 60s ago until 2h from now
+    _resolverCertificateValidFrom = time.time() - 60
+    _resolverCertificateValidUntil = time.time() + 7200
+    _config_params = ['_resolverCertificateSerial', '_resolverCertificateValidFrom', '_resolverCertificateValidUntil', '_dnsDistPortDNSCrypt', '_providerName', '_testServerPort']
+    _config_template = """
+    generateDNSCryptCertificate("DNSCryptProviderPrivate.key", "DNSCryptResolver.cert", "DNSCryptResolver.key", %d, %d, %d)
+    addDNSCryptBind("127.0.0.1:%d", "%s", "DNSCryptResolver.cert", "DNSCryptResolver.key")
+    pc = newPacketCache(5, 86400, 1)
+    getPool(""):setCache(pc)
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testCachedSimpleA(self):
+        """
+        DNSCrypt: encrypted A query served from cache
+        """
+        misses = 0
+        client = dnscrypt.DNSCryptClient(self._providerName, self._providerFingerprint, "127.0.0.1", 8443)
+        name = 'cacheda.dnscrypt.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.2.0.1')
+        response.answer.append(rrset)
+
+        # first query to fill the cache
+        self._toResponderQueue.put(response)
+        data = client.query(query.to_wire())
+        receivedResponse = dns.message.from_wire(data)
+        receivedQuery = None
+        if not self._fromResponderQueue.empty():
+            receivedQuery = self._fromResponderQueue.get(query)
+
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+        misses += 1
+
+        # second query should get a cached response
+        data = client.query(query.to_wire())
+        receivedResponse = dns.message.from_wire(data)
+        receivedQuery = None
+        if not self._fromResponderQueue.empty():
+            receivedQuery = self._fromResponderQueue.get(query)
+
+        self.assertEquals(receivedQuery, None)
+        self.assertTrue(receivedResponse)
+        self.assertEquals(response, receivedResponse)
+        total = 0
+        for key in self._responsesCounter:
+            total += self._responsesCounter[key]
+        self.assertEquals(total, misses)
