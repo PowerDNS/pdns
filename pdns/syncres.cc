@@ -1067,7 +1067,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
               }
               else {
                 s_unreachables++; d_unreachables++;
-                LOG(prefix<<qname.toString()<<": error resolving"<< (doTCP ? " over TCP" : "") <<", possible error: "<<strerror(errno)<< endl);
+                LOG(prefix<<qname.toString()<<": error resolving from "<<remoteIP->toString()<< (doTCP ? " over TCP" : "") <<", possible error: "<<strerror(errno)<< endl);
               }
 
               if(resolveret!=-2) { // don't account for resource limits, they are our own fault
