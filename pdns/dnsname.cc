@@ -137,6 +137,23 @@ std::string DNSName::toString(const std::string& separator, const bool trailing)
   return ret.substr(0, ret.size()-!trailing);
 }
 
+std::string DNSName::toLogString() const
+{
+  if (empty()) {
+    return "(empty)";
+  }
+
+ if(isRoot())
+    return ".";
+
+  std::string ret;
+  for(const auto& s : getRawLabels()) {
+    ret+= escapeLabel(s) + ".";
+  }
+
+  return ret;
+}
+
 std::string DNSName::toDNSString() const
 {
   if (empty())

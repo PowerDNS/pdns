@@ -1509,7 +1509,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     throw; // we WANT to die at this point
   }
   catch(std::exception &e) {
-    L<<Logger::Error<<"Exception building answer packet ("<<e.what()<<") sending out servfail"<<endl;
+    L<<Logger::Error<<"Exception building answer packet for "<<p->qdomain.toLogString()<<"/"<<p->qtype.getName()<<" ("<<e.what()<<") sending out servfail"<<endl;
     delete r;
     r=p->replyPacket(); // generate an empty reply packet
     r->setRcode(RCode::ServFail);
