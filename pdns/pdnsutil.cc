@@ -1118,7 +1118,7 @@ int createZone(const DNSName &zone, const DNSName& nsname) {
   if(!nsname.empty()) {
     cout<<"Also adding one NS record"<<endl;
     rr.qtype=QType::NS;
-    rr.content=nsname.toString();
+    rr.content=nsname.toStringNoDot();
     di.backend->feedRecord(rr);
   }
   
