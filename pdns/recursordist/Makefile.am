@@ -34,7 +34,7 @@ endif
 EXTRA_DIST = \
 	NOTICE \
 	.version \
-	botan110signers.cc botansigners.cc \
+	botan110signers.cc \
 	build-aux/gen-version \
 	contrib/* \
 	devpollmplexer.cc \
@@ -139,8 +139,7 @@ pdns_recursor_LDFLAGS = $(AM_LDFLAGS) \
 
 if BOTAN110
 pdns_recursor_SOURCES += \
-	botan110signers.cc \
-	botansigners.cc
+	botan110signers.cc
 pdns_recursor_LDADD += $(BOTAN110_LIBS)
 endif
 

@@ -1,15 +1,9 @@
-// utf-8 UTF-8 utf8 UTF8
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 #include <botan/botan.h>
-#include <botan/ecdsa.h>
 #include <botan/gost_3410.h>
 #include <botan/gost_3411.h>
-#include <botan/sha2_32.h>
-#include <botan/sha2_64.h>
-#include <botan/pubkey.h>
-#include <botan/look_pk.h>
 #include "dnssecinfra.hh"
 
 using namespace Botan;
@@ -251,194 +245,16 @@ bool GOSTDNSCryptoKeyEngine::verify(const std::string& message, const std::strin
 
 //////////////////////////////
 
-class ECDSADNSCryptoKeyEngine : public DNSCryptoKeyEngine
-{
-public:
-  explicit ECDSADNSCryptoKeyEngine(unsigned int algo) : DNSCryptoKeyEngine(algo)
-  {}
-  
-  ~ECDSADNSCryptoKeyEngine() {}
-  // XXX FIXME NEEDS DEEP COPY CONSTRUCTOR SO WE DON'T SHARE KEYS
-  string getName() const { return "Botan 1.10 ECDSA"; }
-  void create(unsigned int bits);
-  storvector_t convertToISCVector() const;
-  std::string getPubKeyHash() const;
-  std::string sign(const std::string& hash) const; 
-  std::string hash(const std::string& hash) const; 
-  bool verify(const std::string& hash, const std::string& signature) const;
-  std::string getPublicKeyString() const;
-  int getBits() const;
-  void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap);
-  void fromPublicKeyString(const std::string& content);
-  void fromPEMString(DNSKEYRecordContent& drc, const std::string& raw)
-  {}
-
-  static DNSCryptoKeyEngine* maker(unsigned int algorithm)
-  {
-    return new ECDSADNSCryptoKeyEngine(algorithm);
-  }
-
-private:
-  static EC_Domain_Params getECParams(unsigned int algorithm);
-  shared_ptr<ECDSA_PrivateKey> d_key;
-  shared_ptr<ECDSA_PublicKey> d_pubkey;
-};
-
-EC_Domain_Params ECDSADNSCryptoKeyEngine::getECParams(unsigned int algorithm) 
-{
-  if(algorithm==13)
-    return EC_Domain_Params("1.2.840.10045.3.1.7");
-  else if(algorithm == 14)
-    return EC_Domain_Params("1.3.132.0.34");
-  else
-    throw runtime_error("Requested for unknown EC domain parameters for algorithm "+to_string(algorithm));
-}
-
-void ECDSADNSCryptoKeyEngine::create(unsigned int bits)
-{
-  AutoSeeded_RNG rng;
-  EC_Domain_Params params;
-  if(bits==256) {
-    params = getECParams(13);
-  } 
-  else if(bits == 384){
-    params = getECParams(14);
-  }
-  else {
-    throw runtime_error("Unknown key length of "+to_string(bits)+" bits requested from ECDSA class");
-  }
-  d_key = shared_ptr<ECDSA_PrivateKey>(new ECDSA_PrivateKey(rng, params));
-}
-
-int ECDSADNSCryptoKeyEngine::getBits() const
-{
-  if(d_algorithm == 13)
-    return 256;
-  else if(d_algorithm == 14)
-    return 384;
-  return -1;
-}
-
-DNSCryptoKeyEngine::storvector_t ECDSADNSCryptoKeyEngine::convertToISCVector() const
-{
-  /* Algorithm: 13 (ECDSAP256SHA256)
-   PrivateKey: GU6SnQ/Ou+xC5RumuIUIuJZteXT2z0O/ok1s38Et6mQ= */
-  storvector_t storvect;
-  
-  string algorithm;
-  if(getBits()==256) 
-    algorithm = "13 (ECDSAP256SHA256)";
-  else if(getBits()==384) 
-    algorithm ="14 (ECDSAP384SHA384)";
-  else 
-    algorithm =" ? (?)";
-  storvect.push_back(make_pair("Algorithm", algorithm));
-  
-  const BigInt&x = d_key->private_value();
-  SecureVector<byte> buffer=BigInt::encode(x);
-  storvect.push_back(make_pair("PrivateKey", string((char*)&*buffer.begin(), (char*)&*buffer.end())));
-  
-  return storvect;
-}
-
-void ECDSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap)
-{
-  /*Private-key-format: v1.2
-   Algorithm: 13 (ECDSAP256SHA256)
-   PrivateKey: GU6SnQ/Ou+xC5RumuIUIuJZteXT2z0O/ok1s38Et6mQ= */
-  
-  drc.d_algorithm = pdns_stou(stormap["algorithm"]);
-  if(drc.d_algorithm != d_algorithm) 
-    throw runtime_error("Tried to feed an algorithm "+to_string(drc.d_algorithm)+" to a "+to_string(d_algorithm)+" key!");
-  string privateKey=stormap["privatekey"];
-  
-  BigInt bigint((byte*)privateKey.c_str(), privateKey.length());
-  EC_Domain_Params params=getECParams(d_algorithm);
-  AutoSeeded_RNG rng;
-
-  d_key=shared_ptr<ECDSA_PrivateKey>(new ECDSA_PrivateKey(rng, params, bigint));
-}
-
-std::string ECDSADNSCryptoKeyEngine::getPubKeyHash() const 
-{
-  const BigInt&x = d_key->private_value();   // um, this is not the 'pubkeyhash', ahu
-  SecureVector<byte> buffer=BigInt::encode(x);
-  return string((const char*)buffer.begin(), (const char*)buffer.end());
-}
-
-std::string ECDSADNSCryptoKeyEngine::getPublicKeyString() const
-{
-  const BigInt&x =d_key->public_point().get_affine_x();
-  const BigInt&y =d_key->public_point().get_affine_y();
-  
-  size_t part_size = std::max(x.bytes(), y.bytes());
-  MemoryVector<byte> bits(2*part_size);
-  
-  x.binary_encode(&bits[part_size - x.bytes()]);
-  y.binary_encode(&bits[2*part_size - y.bytes()]);
-  return string((const char*)bits.begin(), (const char*)bits.end());
-}
-
-void ECDSADNSCryptoKeyEngine::fromPublicKeyString(const std::string&input) 
-{
-  BigInt x, y;
-  
-  x.binary_decode((const byte*)input.c_str(), input.length()/2);
-  y.binary_decode((const byte*)input.c_str() + input.length()/2, input.length()/2);
-
-  EC_Domain_Params params=getECParams(d_algorithm);
-  PointGFp point(params.get_curve(), x,y);
-  d_pubkey = shared_ptr<ECDSA_PublicKey>(new ECDSA_PublicKey(params, point));
-  d_key.reset();
-}
-
-
-std::string ECDSADNSCryptoKeyEngine::sign(const std::string& msg) const
-{
-  string hash = this->hash(msg);
-  ECDSA_Signature_Operation ops(*d_key);
-  AutoSeeded_RNG rng;
-  SecureVector<byte> signature=ops.sign((byte*)hash.c_str(), hash.length(), rng);
-  
-  return string((const char*)signature.begin(), (const char*) signature.end());
-}
-
-std::string ECDSADNSCryptoKeyEngine::hash(const std::string& orig) const
-{
-  SecureVector<byte> result;
-  if(getBits() == 256) { // SHA256
-    SHA_256 hasher;
-    result= hasher.process(orig);
-  }
-  else { // SHA384
-    SHA_384 hasher;
-    result = hasher.process(orig);
-  }
-  
-  return string((const char*)result.begin(), (const char*) result.end());
-}
-
-bool ECDSADNSCryptoKeyEngine::verify(const std::string& msg, const std::string& signature) const
-{
-  string hash = this->hash(msg);
-  ECDSA_PublicKey* key;
-  if(d_key)
-    key = d_key.get();
-  else
-    key = d_pubkey.get();
-  ECDSA_Verification_Operation ops(*key);
-  return ops.verify ((byte*)hash.c_str(), hash.length(), (byte*)signature.c_str(), signature.length());
-}
-
 namespace {
 struct LoaderStruct
 {
   LoaderStruct()
   {
-    // 'botansigners' inits Botan for us
+    new Botan::LibraryInitializer("thread_safe=true");
+    // this leaks, but is fine
+    Botan::global_state().set_default_allocator("malloc"); // the other Botan allocator slows down for us
+
     DNSCryptoKeyEngine::report(12, &GOSTDNSCryptoKeyEngine::maker);
-    DNSCryptoKeyEngine::report(13, &ECDSADNSCryptoKeyEngine::maker, true);
-    DNSCryptoKeyEngine::report(14, &ECDSADNSCryptoKeyEngine::maker, true);
   }
-} loaderBotan19;
+} loaderBotan110;
 }

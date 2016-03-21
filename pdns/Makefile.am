@@ -210,7 +210,7 @@ pdns_server_LDADD = \
 	$(OPENSSL_LIBS)
 
 if BOTAN110
-pdns_server_SOURCES += botan110signers.cc botansigners.cc
+pdns_server_SOURCES += botan110signers.cc
 pdns_server_LDADD += $(BOTAN110_LIBS)
 endif
 
@@ -301,7 +301,7 @@ pdnsutil_LDADD = \
 	$(OPENSSL_LIBS)
 
 if BOTAN110
-pdnsutil_SOURCES += botan110signers.cc botansigners.cc
+pdnsutil_SOURCES += botan110signers.cc
 pdnsutil_LDADD += $(BOTAN110_LIBS)
 endif
 
@@ -663,7 +663,7 @@ toysdig_LDADD += $(GSS_LIBS)
 endif
 
 if BOTAN110
-toysdig_SOURCES += botan110signers.cc botansigners.cc
+toysdig_SOURCES += botan110signers.cc
 toysdig_LDADD += $(BOTAN110_LIBS)
 endif
 
