@@ -552,7 +552,8 @@ void moreLua(bool client)
       });
     g_lua.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)()>("printStats", [](const std::shared_ptr<DNSDistPacketCache> cache) {
         if (cache) {
-          g_outputBuffer="Hits: " + std::to_string(cache->getHits()) + "\n";
+          g_outputBuffer="Entries: " + std::to_string(cache->getEntriesCount()) + "/" + std::to_string(cache->getMaxEntries()) + "\n";
+          g_outputBuffer+="Hits: " + std::to_string(cache->getHits()) + "\n";
           g_outputBuffer+="Misses: " + std::to_string(cache->getMisses()) + "\n";
           g_outputBuffer+="Deferred inserts: " + std::to_string(cache->getDeferredInserts()) + "\n";
           g_outputBuffer+="Deferred lookups: " + std::to_string(cache->getDeferredLookups()) + "\n";

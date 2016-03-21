@@ -81,6 +81,28 @@ try
           const string base = "dnsdist." + hostname + ".main.frontends." + frontName + ".";
           str<<base<<"queries" << ' ' << front->queries.load() << " " << now << "\r\n";
         }
+        const auto localPools = g_pools.getCopy();
+        for (const auto& entry : localPools) {
+          string poolName = entry.first;
+          boost::replace_all(poolName, ".", "_");
+          if (poolName.empty()) {
+            poolName = "_default_";
+          }
+          const string base = "dnsdist." + hostname + ".main.pools." + poolName + ".";
+          const std::shared_ptr<ServerPool> pool = entry.second;
+          str<<base<<"servers" << " " << pool->servers.size() << " " << now << "\r\n";
+          if (pool->packetCache != nullptr) {
+            const auto& cache = pool->packetCache;
+            str<<base<<"cache-size" << " " << cache->getMaxEntries() << " " << now << "\r\n";
+            str<<base<<"cache-entries" << " " << cache->getEntriesCount() << " " << now << "\r\n";
+            str<<base<<"cache-hits" << " " << cache->getHits() << " " << now << "\r\n";
+            str<<base<<"cache-misses" << " " << cache->getMisses() << " " << now << "\r\n";
+            str<<base<<"cache-deferred-inserts" << " " << cache->getDeferredInserts() << " " << now << "\r\n";
+            str<<base<<"cache-deferred-lookups" << " " << cache->getDeferredLookups() << " " << now << "\r\n";
+            str<<base<<"cache-lookup-collisions" << " " << cache->getLookupCollisions() << " " << now << "\r\n";
+            str<<base<<"cache-insert-collisions" << " " << cache->getInsertCollisions() << " " << now << "\r\n";
+          }
+        }
         const string msg = str.str();
 
         int ret = waitForRWData(s.getHandle(), false, 1 , 0);

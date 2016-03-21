@@ -92,8 +92,9 @@ void DNSDistPacketCache::insert(uint32_t key, const DNSName& qname, uint16_t qty
     }
 
     /* if the existing entry had a longer TTD, keep it */
-    if (newValidity <= value.validity)
+    if (newValidity <= value.validity) {
       return;
+    }
 
     value = newValue;
   }
@@ -265,4 +266,10 @@ string DNSDistPacketCache::toString()
 {
   ReadLock r(&d_lock);
   return std::to_string(d_map.size()) + "/" + std::to_string(d_maxEntries);
+}
+
+uint64_t DNSDistPacketCache::getEntriesCount()
+{
+  ReadLock r(&d_lock);
+  return d_map.size();
 }
