@@ -731,13 +731,13 @@ private:
   std::shared_ptr<RemoteLogger> d_logger;
 };
 
-class RemoteLogResponseAction : public DNSAction, public boost::noncopyable
+class RemoteLogResponseAction : public DNSResponseAction, public boost::noncopyable
 {
 public:
   RemoteLogResponseAction(std::shared_ptr<RemoteLogger> logger): d_logger(logger)
   {
   }
-  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  DNSResponseAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
   {
     d_logger->logResponse(*dq);
     return Action::None;

@@ -108,7 +108,7 @@ GlobalStateHolder<pools_t> g_pools;
    If all downstreams are over QPS, we pick the fastest server */
 
 GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > > g_rulactions;
-GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > > g_resprulactions;
+GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSResponseAction> > > > g_resprulactions;
 Rings g_rings;
 
 GlobalStateHolder<servers_t> g_dstates;
@@ -341,17 +341,12 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
     dh->id = ids->origID;
 
     uint16_t addRoom = 0;
-    DNSQuestion dq(&ids->qname, ids->qtype, ids->qclass, &ids->origDest, &ids->origRemote, dh, sizeof(packet), responseLen, false);
+    DNSQuestion dr(&ids->qname, ids->qtype, ids->qclass, &ids->origDest, &ids->origRemote, dh, sizeof(packet), responseLen, false);
 #ifdef HAVE_PROTOBUF
-    dq.uniqueId = ids->uniqueId;
+    dr.uniqueId = ids->uniqueId;
 #endif
-    string ruleresult;
-    for(const auto& lr : *localRespRulactions) {
-      if(lr.first->matches(&dq)) {
-        lr.first->d_matches++;
-        /* for now we only support actions returning None */
-        (*lr.second)(&dq, &ruleresult);
-      }
+    if (!processResponse(localRespRulactions, dr)) {
+      break;
     }
 
 #ifdef HAVE_DNSCRYPT
@@ -665,16 +660,16 @@ void spoofResponseFromString(DNSQuestion& dq, const string& spoofContent)
   }
 }
 
-bool processQuery(LocalStateHolder<NetmaskTree<DynBlock> >& localDynBlock, LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > >& localRulactions, blockfilter_t blockFilter, DNSQuestion& dq, const ComboAddress& remote, string& poolname, int* delayMsec, const struct timespec& now)
+bool processQuery(LocalStateHolder<NetmaskTree<DynBlock> >& localDynBlock, LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > >& localRulactions, blockfilter_t blockFilter, DNSQuestion& dq, string& poolname, int* delayMsec, const struct timespec& now)
 {
   {
     WriteLock wl(&g_rings.queryLock);
-    g_rings.queryRing.push_back({now,remote,*dq.qname,dq.len,dq.qtype,*dq.dh});
+    g_rings.queryRing.push_back({now,*dq.remote,*dq.qname,dq.len,dq.qtype,*dq.dh});
   }
 
-  if(auto got=localDynBlock->lookup(remote)) {
+  if(auto got=localDynBlock->lookup(*dq.remote)) {
     if(now < got->second.until) {
-      vinfolog("Query from %s dropped because of dynamic block", remote.toStringWithPort());
+      vinfolog("Query from %s dropped because of dynamic block", dq.remote->toStringWithPort());
       g_stats.dynBlocked++;
       got->second.blocks++;
       return false;
@@ -729,6 +724,20 @@ bool processQuery(LocalStateHolder<NetmaskTree<DynBlock> >& localDynBlock, Local
       case DNSAction::Action::None:
         break;
       }
+    }
+  }
+
+  return true;
+}
+
+bool processResponse(LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSResponseAction> > > >& localRespRulactions, DNSQuestion& dr)
+{
+  std::string ruleresult;
+  for(const auto& lr : *localRespRulactions) {
+    if(lr.first->matches(&dr)) {
+      lr.first->d_matches++;
+      /* for now we only support actions returning None */
+      (*lr.second)(&dr, &ruleresult);
     }
   }
 
@@ -867,7 +876,7 @@ try
       struct timespec now;
       clock_gettime(CLOCK_MONOTONIC, &now);
 
-      if (!processQuery(localDynBlock, localRulactions, blockFilter, dq, remote, poolname, &delayMsec, now))
+      if (!processQuery(localDynBlock, localRulactions, blockFilter, dq, poolname, &delayMsec, now))
       {
         continue;
       }

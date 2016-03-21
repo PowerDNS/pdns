@@ -265,7 +265,7 @@ void* tcpClientThread(int pipefd)
 	struct timespec now;
 	clock_gettime(CLOCK_MONOTONIC, &now);
 
-	if (!processQuery(localDynBlockNMG, localRulactions, blockFilter, dq, ci.remote, poolname, &delayMsec, now)) {
+	if (!processQuery(localDynBlockNMG, localRulactions, blockFilter, dq, poolname, &delayMsec, now)) {
 	  goto drop;
 	}
 
@@ -412,16 +412,12 @@ void* tcpClientThread(int pipefd)
           break;
         }
 
-        DNSQuestion dr(&rqname, rqtype, rqclass, &ci.cs->local, &ci.remote, dh, responseSize, responseLen, true);
+        DNSQuestion dr(&qname, qtype, qclass, &ci.cs->local, &ci.remote, dh, responseSize, responseLen, true);
 #ifdef HAVE_PROTOBUF
         dr.uniqueId = dq.uniqueId;
 #endif
-        for(const auto& lr : *localRespRulactions) {
-          if(lr.first->matches(&dr)) {
-            lr.first->d_matches++;
-            /* for now we only support actions returning None */
-            (*lr.second)(&dr, &ruleresult);
-          }
+        if (!processResponse(localRespRulactions, dr)) {
+          break;
         }
 
 	if (packetCache && !dq.skipCache) {

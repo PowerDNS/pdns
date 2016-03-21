@@ -578,7 +578,7 @@ void moreLua(bool client)
         return std::shared_ptr<DNSAction>(new RemoteLogAction(logger));
       });
     g_lua.writeFunction("RemoteLogResponseAction", [](std::shared_ptr<RemoteLogger> logger) {
-        return std::shared_ptr<DNSAction>(new RemoteLogResponseAction(logger));
+        return std::shared_ptr<DNSResponseAction>(new RemoteLogResponseAction(logger));
       });
     g_lua.writeFunction("newRemoteLogger", [client](const std::string& remote) {
         return std::make_shared<RemoteLogger>(ComboAddress(remote));

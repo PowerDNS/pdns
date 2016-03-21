@@ -134,6 +134,10 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       {"Delay", (int)DNSAction::Action::Delay}}
     );
 
+    g_lua.writeVariable("DNSResponseAction", std::unordered_map<string,int>{
+      {"None",(int)DNSResponseAction::Action::None}}
+    );
+
   vector<pair<string, int> > dd;
   for(const auto& n : QType::names)
     dd.push_back({n.first, n.second});
@@ -1321,7 +1325,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
   g_lua.writeFunction("setECSOverride", [](bool override) { g_ECSOverride=override; });
 
-  g_lua.writeFunction("addResponseAction", [](luadnsrule_t var, std::shared_ptr<DNSAction> ea) {
+  g_lua.writeFunction("addResponseAction", [](luadnsrule_t var, std::shared_ptr<DNSResponseAction> ea) {
       setLuaSideEffect();
       auto rule=makeRule(var);
       g_resprulactions.modify([rule, ea](decltype(g_resprulactions)::value_type& rulactions){
