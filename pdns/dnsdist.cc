@@ -1596,6 +1596,15 @@ try
   else {
     vinfolog("Running in the foreground");
     warnlog("dnsdist %s comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it according to the terms of the GPL version 2", VERSION);
+    vector<string> vec;
+    std::string acls;
+    g_ACL.getCopy().toStringVector(&vec);
+    for(const auto& s : vec) {
+      if (!acls.empty())
+        acls += ", ";
+      acls += s;
+    }
+    infolog("ACL allowing queries from: %s", acls.c_str());
   }
 
   /* this need to be done _after_ dropping privileges */
