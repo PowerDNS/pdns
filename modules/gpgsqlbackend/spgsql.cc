@@ -77,7 +77,7 @@ public:
     if (status != PGRES_COMMAND_OK && status != PGRES_TUPLES_OK && status != PGRES_NONFATAL_ERROR) {
       string errmsg(PQresultErrorMessage(d_res_set));
       PQclear(d_res_set);
-      d_res = NULL;
+      d_res_set = NULL;
       throw SSqlException("Fatal error during query: " + d_query + string(": ") + errmsg);
     }
     d_cur_set = 0;
