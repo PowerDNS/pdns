@@ -630,14 +630,18 @@ void startDoResolve(void *p)
     uint32_t minTTL=std::numeric_limits<uint32_t>::max();
 
     SyncRes sr(dc->d_now);
+    bool DNSSECOK=false;
     if(t_pdl) {
       sr.setLuaEngine(*t_pdl);
       sr.d_requestor=dc->d_remote;
     }
-    
-    if(pw.getHeader()->cd || edo.d_Z & EDNSOpts::DNSSECOK) {
-      g_stats.dnssecQueries++;
+
+    if(g_dnssecmode != DNSSECMode::Off)
       sr.d_doDNSSEC=true;
+    
+    if(pw.getHeader()->cd || (edo.d_Z & EDNSOpts::DNSSECOK)) {
+      DNSSECOK=true;
+      g_stats.dnssecQueries++;
     }
 
     bool tracedQuery=false; // we could consider letting Lua know about this too
@@ -808,20 +812,41 @@ void startDoResolve(void *p)
 
       if(haveEDNS) {
 	if(g_dnssecmode != DNSSECMode::Off && ((edo.d_Z & EDNSOpts::DNSSECOK) || g_dnssecmode == DNSSECMode::ValidateAll || g_dnssecmode==DNSSECMode::ValidateForLog)) {
+          if(sr.doLog()) {
+            L<<Logger::Warning<<"Starting validation of answer to "<<dc->d_mdp.d_qname<<" for "<<dc->d_remote.toStringWithPort()<<endl;
+          }
 	  auto state=validateRecords(ret);
 	  if(state == Secure) {
+            if(sr.doLog()) {
+              L<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<" for "<<dc->d_remote.toStringWithPort()<<" validates correctly"<<endl;
+            }
+          
 	    pw.getHeader()->ad=1;
 	  }
 	  else if(state == Insecure) {
+            if(sr.doLog()) {
+              L<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<" for "<<dc->d_remote.toStringWithPort()<<" validates as Insecure"<<endl;
+            }
+
 	    pw.getHeader()->ad=0;
 	  }
-	  else if(state == Bogus && !pw.getHeader()->cd) {
-            if(g_dnssecmode == DNSSECMode::ValidateAll || (edo.d_Z & EDNSOpts::DNSSECOK)) {
+	  else if(state == Bogus ) {
+            if(sr.doLog()) {
+              L<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<" for "<<dc->d_remote.toStringWithPort()<<" validates as Bogus"<<endl;
+            }
+            
+            if(!pw.getHeader()->cd && (g_dnssecmode == DNSSECMode::ValidateAll || (edo.d_Z & EDNSOpts::DNSSECOK))) {
+              if(sr.doLog()) {
+                L<<Logger::Warning<<"Sending out SERVFAIL for "<<dc->d_mdp.d_qname<<" because recursor or query demands it for Bogus results"<<endl;
+              }
+
               pw.getHeader()->rcode=RCode::ServFail;
               goto sendit;
-            }
-            else {
-              L<<Logger::Warning<<"Failed to validate "<<dc->d_mdp.d_qname<<" for "<<dc->d_remote.toStringWithPort()<<endl;
+            } else {
+              if(sr.doLog()) {
+                L<<Logger::Warning<<"Not sending out SERVFAIL for "<<dc->d_mdp.d_qname<<" Bogus validation since neither config nor query demands this"<<endl;
+              }
+
             }
 	  }
 	}
@@ -841,6 +866,8 @@ void startDoResolve(void *p)
       }
       
       for(auto i=ret.cbegin(); i!=ret.cend(); ++i) {
+        if(!DNSSECOK && (i->d_type == QType::RRSIG || i->d_type==QType::NSEC || i->d_type==QType::NSEC3))
+          continue;
 	pw.startRecord(i->d_name, i->d_type, i->d_ttl, i->d_class, i->d_place);
 	if(i->d_type != QType::OPT) // their TTL ain't real
 	  minTTL = min(minTTL, i->d_ttl);
@@ -2633,7 +2660,7 @@ int main(int argc, char **argv)
     ::arg().set("local-address","IP addresses to listen on, separated by spaces or commas. Also accepts ports.")="127.0.0.1";
     ::arg().setSwitch("non-local-bind", "Enable binding to non-local addresses by using FREEBIND / BINDANY socket options")="no";
     ::arg().set("trace","if we should output heaps of logging. set to 'fail' to only log failing domains")="off";
-    ::arg().set("dnssec", "DNSSEC mode: off (default)/process/log-fail/validate")="off";
+    ::arg().set("dnssec", "DNSSEC mode: off/process (default)/log-fail/validate")="process";
     ::arg().set("daemon","Operate as a daemon")="no";
     ::arg().setSwitch("write-pid","Write a PID file")="yes";
     ::arg().set("loglevel","Amount of logging. Higher is more. Do not set below 3")="4";

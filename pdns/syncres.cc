@@ -387,7 +387,7 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
     prefix.append(depth, ' ');
   }
   
-  LOG(prefix<<qname.toString()<<": Wants "<< (d_doDNSSEC ? "" : "NO ") << "DNSSEC processing"<<endl);
+  LOG(prefix<<qname.toString()<<": Wants "<< (d_doDNSSEC ? "" : "NO ") << "DNSSEC processing in query for "<<qtype.getName()<<endl);
 
   int res=0;
   if(!(d_nocache && qtype.getCode()==QType::NS && qname.isRoot())) {
@@ -759,14 +759,14 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSR
 	  giveNegative=true;
 	  sqname=ni->d_qname;
 	  sqt=QType::SOA;
-	  if(d_doDNSSEC) {
-	    for(const auto& p : ni->d_dnssecProof) {
-	      for(const auto& rec: p.second.records) 
-		ret.push_back(rec);
-	      for(const auto& rec: p.second.signatures) 
-		ret.push_back(rec);
-	    }
-	  }
+          if(d_doDNSSEC) {
+            for(const auto& p : ni->d_dnssecProof) {
+              for(const auto& rec: p.second.records) 
+                ret.push_back(rec);
+              for(const auto& rec: p.second.signatures) 
+                ret.push_back(rec);
+            }
+          }
 	  moveCacheItemToBack(t_sstorage->negcache, ni);
 	  break;
 	}
@@ -1257,7 +1257,7 @@ int SyncRes::doResolveAt(map<DNSName, pair<ComboAddress, bool> > &nameservers, D
           ret.push_back(rec);
           newtarget=std::dynamic_pointer_cast<CNAMERecordContent>(rec.d_content)->getTarget();
         }
-	else if(d_doDNSSEC && (rec.d_type==QType::RRSIG || rec.d_type==QType::NSEC || rec.d_type==QType::NSEC3) && rec.d_place==DNSResourceRecord::ANSWER){
+	else if((rec.d_type==QType::RRSIG || rec.d_type==QType::NSEC || rec.d_type==QType::NSEC3) && rec.d_place==DNSResourceRecord::ANSWER){
 	  if(rec.d_type != QType::RRSIG || rec.d_name == qname)
 	    ret.push_back(rec); // enjoy your DNSSEC
 	}
@@ -1343,6 +1343,7 @@ int SyncRes::doResolveAt(map<DNSName, pair<ComboAddress, bool> > &nameservers, D
       }
       if(nsset.empty() && !lwr.d_rcode && (negindic || lwr.d_aabit || sendRDQuery)) {
         LOG(prefix<<qname.toString()<<": status=noerror, other types may exist, but we are done "<<(negindic ? "(have negative SOA) " : "")<<(lwr.d_aabit ? "(have aa bit) " : "")<<endl);
+        
         if(d_doDNSSEC)
           addNXNSECS(ret, lwr.d_records);
         return 0;
