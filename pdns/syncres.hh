@@ -52,6 +52,13 @@ struct NegCacheEntry
   recsig_t d_dnssecProof;
 };
 
+typedef map<
+  DNSName,
+  pair<
+    vector<ComboAddress>,
+    bool
+  >
+> NsSet;
 
 template<class Thing> class Throttle : public boost::noncopyable
 {
@@ -461,7 +468,7 @@ public:
 
 private:
   struct GetBestNSAnswer;
-  int doResolveAt(map<DNSName, pair<ComboAddress, bool> > &nameservers, DNSName auth, bool flawedNSSet, const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret,
+  int doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret,
         	  int depth, set<GetBestNSAnswer>&beenthere);
   int doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, int depth, set<GetBestNSAnswer>& beenthere);
   bool doOOBResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, int depth, int &res);
@@ -469,9 +476,9 @@ private:
   bool doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, int depth, int &res);
   bool doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, int depth, int &res);
   void getBestNSFromCache(const DNSName &qname, const QType &qtype, vector<DNSRecord>&bestns, bool* flawedNSSet, int depth, set<GetBestNSAnswer>& beenthere);
-  DNSName getBestNSNamesFromCache(const DNSName &qname, const QType &qtype, map<DNSName, pair<ComboAddress, bool> >& nsset, bool* flawedNSSet, int depth, set<GetBestNSAnswer>&beenthere);
+  DNSName getBestNSNamesFromCache(const DNSName &qname, const QType &qtype, NsSet& nsset, bool* flawedNSSet, int depth, set<GetBestNSAnswer>&beenthere);
 
-  inline vector<DNSName> shuffleInSpeedOrder(map<DNSName, pair<ComboAddress, bool> > &nameservers, const string &prefix);
+  inline vector<DNSName> shuffleInSpeedOrder(NsSet &nameservers, const string &prefix);
   bool moreSpecificThan(const DNSName& a, const DNSName &b);
   vector<ComboAddress> getAddrs(const DNSName &qname, int depth, set<GetBestNSAnswer>& beenthere);
 private:
