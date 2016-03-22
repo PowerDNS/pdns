@@ -44,6 +44,7 @@ pdns-*.tar.bz2
 .*DS_Store
 *~
 pdns.pid
+pdns_recursor.pid
 *.gcda
 *.gcno
 *.gcov
