@@ -268,9 +268,9 @@ script:
   - cd pdns-recursor-*
   - ./configure
   - make -k -j3
+  - cd ../
+  - ln -s pdns-recursor*/pdns_recursor .
   - cd ../..
-  - ln -s recursordist/pdns-recursor*/pdns_recursor .
-  - cd ..
 
   # regression-tests
   - cd regression-tests.recursor
@@ -280,7 +280,7 @@ script:
   - sleep 3
   - svstat configs/*
   - ./runtests
-  #DNSName: - test ! -s ./failed_tests
+  - test ! -s ./failed_tests
   - ./stop.sh
   - sleep 3
   - ./clean.sh
