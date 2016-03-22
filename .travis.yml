@@ -280,7 +280,7 @@ script:
   - sleep 3
   - svstat configs/*
   - ./runtests
-  #DNSName: - test ! -s ./failed_tests
+  - test ! -s ./failed_tests
   - ./stop.sh
   - sleep 3
   - ./clean.sh
