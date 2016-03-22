@@ -19,13 +19,15 @@ public:
   void expungeByName(const DNSName& name, uint16_t qtype=QType::ANY);
   bool isFull();
   string toString();
-  uint64_t getSize() const { return d_map.size(); };
-  uint64_t getHits() const { return d_hits; };
-  uint64_t getMisses() const { return d_misses; };
-  uint64_t getDeferredLookups() const { return d_deferredLookups; };
-  uint64_t getDeferredInserts() const { return d_deferredInserts; };
-  uint64_t getLookupCollisions() const { return d_lookupCollisions; };
-  uint64_t getInsertCollisions() const { return d_insertCollisions; };
+  uint64_t getSize() const { return d_map.size(); }
+  uint64_t getHits() const { return d_hits; }
+  uint64_t getMisses() const { return d_misses; }
+  uint64_t getDeferredLookups() const { return d_deferredLookups; }
+  uint64_t getDeferredInserts() const { return d_deferredInserts; }
+  uint64_t getLookupCollisions() const { return d_lookupCollisions; }
+  uint64_t getInsertCollisions() const { return d_insertCollisions; }
+  uint64_t getMaxEntries() const { return d_maxEntries; }
+  uint64_t getEntriesCount();
 
   static uint32_t getMinTTL(const char* packet, uint16_t length);
 
