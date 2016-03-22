@@ -21,10 +21,8 @@ then
     exit 1
 fi
 
-
 rm -rf configs/
 mkdir configs
-cd configs
 
 cat > run-auth <<EOF
 #!/bin/sh
@@ -32,17 +30,34 @@ $AUTHRUN
 EOF
 chmod +x run-auth
 
+cd configs
+
 mkdir recursor-service
-cat > recursor-service/run <<EOF
+cd recursor-service
+if [ \! -x "$PDNSRECURSOR" ]
+then
+	echo "Could not find an executable pdns_recursor at \"$PDNSRECURSOR\", check PDNSRECURSOR"
+	echo "Continuing with configuration anyhow"
+fi
+
+if [ \! -x "$PDNS" ]
+then
+	echo "Could not find an executable pdns_server at \"$PDNS\", check PDNS"
+	echo "Continuing with configuration anyhow"
+fi
+
+cat > run <<EOF
 #!/bin/sh
 $RECRUN
 EOF
-chmod +x recursor-service/run
+chmod +x run
 
-cat > recursor-service/hintfile << EOF
+cat > hintfile << EOF
 .                        3600 IN NS  ns.root.
 ns.root.                 3600 IN A   $PREFIX.8
 EOF
+
+cd ..
 
 SOA="ns.example.net. hostmaster.example.net. 1 3600 1800 1209600 300"
 
@@ -453,7 +468,7 @@ zone "$realzone"{
 };
 EOF
     done
-    ln -s ../run-auth $dir/run
+    ln -s ../../run-auth $dir/run
 done
 
 cat > recursor-service/forward-zones-file << EOF

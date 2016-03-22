@@ -16,9 +16,12 @@ The suite also requires `bind()` access to port 53. The example config
 relies on authbind for this:
 
     $ ls -al /etc/authbind/byport/53
-    -rwxr-xr-x 1 root root 0 May 31  2012 /etc/authbind/byport/53
+    -rwxr-xr-x 1 you you 0 May 31  2012 /etc/authbind/byport/53
 
-Other dependencies: daemontools.
+Note that this file needs to be executable by the user you run as for
+authbind to work!
+
+Other dependencies: daemontools, lua-posix
 
 SETTING UP
 ----------
@@ -27,7 +30,7 @@ Copy `vars.sample` to `vars`
 
     $ cp vars.sample vars
 
-Edit `vars`.
+Edit `vars`:
 
 The /24 to bind the various daemons in:
 
@@ -39,7 +42,7 @@ How to run the auth server (usually no need to change this):
 
 How to run the recursor (usually, again, no need to change this):
 
-    RECRUN="exec authbind ../../../pdns/pdns_recursor --config-dir=. --socket-dir=. --daemon=no --trace=yes --dont-query= --local-address=$PREFIX.9 --hint-file=hintfile --packetcache-ttl=0 --max-cache-ttl=15 --threads=1 > logfile 2>&1"
+    RECRUN="exec authbind ../../../pdns/recursordist/pdns_recursor --config-dir=. --socket-dir=. --daemon=no --trace=yes --dont-query= --local-address=$PREFIX.9 --hint-file=hintfile --packetcache-ttl=0 --max-cache-ttl=15 --threads=1 > logfile 2>&1"
 
 
 RUNNING
@@ -63,11 +66,9 @@ Check that they are all up:
     ...
     configs/10.0.3.8: up (pid 1138) 13 seconds
     configs/recursor-service: up (pid 1140) 13 seconds
-    configs/run-auth: unable to chdir: not a directory
 
 (They all need to be up more than a few seconds, otherwise they might be
 crashing on startup. Check the per-service `logfile` if something is wrong).
-The `run- auth` error is normal.
 
 Run the tests:
 
