@@ -179,7 +179,7 @@ bool rectifyZone(DNSSECKeeper& dk, const DNSName& zone)
   bool narrow;
   bool haveNSEC3=dk.getNSEC3PARAM(zone, &ns3pr, &narrow);
   bool isOptOut=(haveNSEC3 && ns3pr.d_flags);
-  if(sd.db->doesDNSSEC())
+  if(dk.isSecuredZone(zone))
   {
     if(!haveNSEC3)
       cerr<<"Adding NSEC ordering information "<<endl;
