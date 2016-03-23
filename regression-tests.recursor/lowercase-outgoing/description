@@ -1,0 +1,1 @@
+Test if the recursor indeed lowercases outgoing queries with lowercase-outgoing set

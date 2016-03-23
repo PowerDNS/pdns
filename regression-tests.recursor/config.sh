@@ -30,34 +30,37 @@ $AUTHRUN
 EOF
 chmod +x run-auth
 
-cd configs
-
-mkdir recursor-service
-cd recursor-service
 if [ \! -x "$PDNSRECURSOR" ]
 then
-	echo "Could not find an executable pdns_recursor at \"$PDNSRECURSOR\", check PDNSRECURSOR"
-	echo "Continuing with configuration anyhow"
+  echo "Could not find an executable pdns_recursor at \"$PDNSRECURSOR\", check PDNSRECURSOR"
+  echo "Continuing with configuration anyhow"
 fi
 
 if [ \! -x "$PDNS" ]
 then
-	echo "Could not find an executable pdns_server at \"$PDNS\", check PDNS"
-	echo "Continuing with configuration anyhow"
+  echo "Could not find an executable pdns_server at \"$PDNS\", check PDNS"
+  echo "Continuing with configuration anyhow"
 fi
 
-cat > run <<EOF
+cd configs
+
+for dir in recursor-service recursor-service2; do
+  mkdir $dir
+  cd $dir
+
+  cat > run <<EOF
 #!/bin/sh
 $RECRUN
 EOF
-chmod +x run
+  chmod +x run
 
-cat > hintfile << EOF
+  cat > hintfile << EOF
 .                        3600 IN NS  ns.root.
 ns.root.                 3600 IN A   $PREFIX.8
 EOF
 
-cd ..
+  cd ..
+done
 
 SOA="ns.example.net. hostmaster.example.net. 1 3600 1800 1209600 300"
 
@@ -107,6 +110,8 @@ box.answer-cname-in-local.example.net. 3600 IN NS ns.answer-cname-in-local.examp
 ns.answer-cname-in-local.example.net. 3600 IN A  $PREFIX.22
 not-auth-zone.example.net. 3600 IN NS ns.not-auth-zone.example.net.
 ns.not-auth-zone.example.net. 3600 IN A $PREFIX.23
+lowercase-outgoing.example.net. 3600 IN NS ns.lowercase-outgoing.example.net.
+ns.lowercase-outgoing.example.net. 3600 IN A $PREFIX.24
 EOF
 
 mkdir $PREFIX.11
@@ -419,6 +424,32 @@ host3.auth-zone.example.net. 20 IN CNAME host1.not-auth-zone.example.net.
 *.wild.auth-zone.example.net.	3600 IN	TXT "Hi there!"
 EOF
 
+mkdir $PREFIX.24
+cat > $PREFIX.24/lowercase-outgoing.example.net.zone <<EOF
+lowercase-outgoing.example.net. 3600 IN SOA $SOA
+lowercase-outgoing.example.net. 20 IN NS ns.lowercase-outgoing.example.net.
+
+ns.lowercase-outgoing.example.net. 20 IN  A $PREFIX.24
+host.lowercase-outgoing.example.net. 20 IN  A 127.0.0.57
+EOF
+
+cat > $PREFIX.24/prequery.lua <<EOF
+filename = "questions.txt"
+
+--- Truncate file
+file = io.open(filename, "w")
+file:close()
+
+function prequery ( dnspacket )
+    qname, qtype = dnspacket:getQuestion()
+    file = io.open('questions.txt', "a")
+    file:write(qname .. "\n")
+    file:close()
+
+    return false
+end
+EOF
+
 cat > recursor-service/another-auth-zone.example.net.zone <<EOF
 another-auth-zone.example.net. 3600 IN SOA $SOA
 another-auth-zone.example.net. 20 IN NS localhost.example.net.
@@ -485,5 +516,12 @@ forward-zones-file=$(pwd)/recursor-service/forward-zones-file
 
 socket-dir=$(pwd)/recursor-serviceS
 auth-zones=global.box.answer-cname-in-local.example.net=$(pwd)/recursor-service/global.box.answer-cname-in-local.example.net.zone,auth-zone.example.net=$(pwd)/recursor-service/auth-zone.example.net.zone,another-auth-zone.example.net=$(pwd)/recursor-service/another-auth-zone.example.net.zone
+
+EOF
+
+cat > recursor-service2/recursor.conf <<EOF
+local-port=5300
+socket-dir=$(pwd)/recursor-service2S
+lowercase-outgoing=yes
 
 EOF
