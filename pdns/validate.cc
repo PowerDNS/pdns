@@ -236,13 +236,13 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
 	}
 
         if(isValid) {
-	  //          cerr<<"got valid DNSKEY (it matches the DS) for "<<qname<<endl;
+	  LOG("got valid DNSKEY (it matches the DS) for "<<qname<<endl);
 	  
           validkeys.insert(drc);
 	  dotNode("DS", qname, "" /*std::to_string(dsrc.d_tag)*/, (boost::format("tag=%d, digest algo=%d, algo=%d") % dsrc.d_tag % static_cast<int>(dsrc.d_digesttype) % static_cast<int>(dsrc.d_algorithm)).str());
         }
 	else {
-	  //	  cerr<<"DNSKEY did not match the DS, parent DS: "<<drc.getZoneRepresentation() << " ! = "<<dsrc2.getZoneRepresentation()<<endl;
+	  LOG("DNSKEY did not match the DS, parent DS: "<<drc.getZoneRepresentation() << " ! = "<<dsrc2.getZoneRepresentation()<<endl);
 	}
         // cout<<"    subgraph "<<dotEscape("cluster "+qname)<<" { "<<dotEscape("DS "+qname)<<" -> "<<dotEscape("DNSKEY "+qname)<<" [ label = \""<<dsrc.d_tag<<"/"<<static_cast<int>(dsrc.d_digesttype)<<"\" ]; label = \"zone: "<<qname<<"\"; }"<<endl;
 	dotEdge(DNSName("."), "DS", qname, "" /*std::to_string(dsrc.d_tag)*/, "DNSKEY", qname, std::to_string(drc.getTag()), isValid ? "green" : "red");
@@ -283,7 +283,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
 	  
           if(isValid)
           {
-	    //            cerr<<"validation succeeded - whole DNSKEY set is valid"<<endl;
+	    LOG("validation succeeded - whole DNSKEY set is valid"<<endl);
             // cout<<"    "<<dotEscape("DNSKEY "+stripDot(i->d_signer))<<" -> "<<dotEscape("DNSKEY "+qname)<<";"<<endl;
             validkeys=tkeys;
             break;
@@ -298,13 +298,13 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
 
     if(validkeys.empty())
     {
-      //      cerr<<"ended up with zero valid DNSKEYs, going Bogus"<<endl;
+      LOG("ended up with zero valid DNSKEYs, going Bogus"<<endl);
       state=Bogus;
       break;
     }
-    //    cerr<<"situation: we have one or more valid DNSKEYs for ["<<qname<<"] (want ["<<zone<<"])"<<endl;
+    LOG("situation: we have one or more valid DNSKEYs for ["<<qname<<"] (want ["<<zone<<"])"<<endl);
     if(qname == zone) {
-      //      cerr<<"requested keyset found! returning Secure for the keyset"<<endl;
+      LOG("requested keyset found! returning Secure for the keyset"<<endl);
       keyset.insert(validkeys.begin(), validkeys.end());
       return Secure;
     }
@@ -313,7 +313,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
     do {
       qname=DNSName(labels.back())+qname;
       labels.pop_back();
-      //      cerr<<"next name ["<<qname<<"], trying to get DS"<<endl;
+      LOG("next name ["<<qname<<"], trying to get DS"<<endl);
 
       dsmap_t tdsmap; // tentative DSes
       dsmap.clear();
