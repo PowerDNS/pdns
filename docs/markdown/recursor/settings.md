@@ -367,6 +367,19 @@ Some DNS errors occur rather frequently and are no cause for alarm.
 If set to a digit, logging is performed under this LOCAL facility. See
 [Logging](../common/logging.md#logging). Do not pass names like 'local0'!
 
+## `lowercase-outgoing`
+* Boolean
+* Default: no
+* Available since: 4.0.0
+
+Set to true to lowercase the outgoing queries. When set to 'no' (the default) a
+query from a client using mixed case in the DNS labels (such as a user entering
+mixed-case names or [draft-vixie-dnsext-dns0x20-00](http://tools.ietf.org/html/draft-vixie-dnsext-dns0x20-00)),
+PowerDNS preserves the case of the query. Broken authoritative servers might give
+a wrong or broken answer on this encoding. Setting `lowercase-outgoing` to 'yes'
+makes the PowerDNS Recursor lowercase all the labels in the query to the authoritative
+servers, but still return the proper case to the client requesting.
+
 ## `lua-config-file`
 * Filename
 * Available since 4.0.0
