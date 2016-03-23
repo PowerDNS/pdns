@@ -17,7 +17,7 @@ For boolean settings, specifying the name of the setting without a value means
 
 If set, only these IP addresses or netmasks will be able to perform AXFR.
 
-## `allow-dns-update-from`
+## `allow-dnsupdate-from`
 * IP ranges, separated by commas
 
 Allow DNS updates from these IP ranges.
@@ -319,7 +319,7 @@ Enables EDNS subnet processing, for backends that support it.
 
 Entropy source file to use.
 
-## `forward-dnsupdates`
+## `forward-dnsupdate`
 * Boolean
 * Default: no
 

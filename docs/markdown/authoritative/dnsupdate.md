@@ -29,7 +29,7 @@ The semantics are that first a dynamic update has to be allowed either by the gl
 
 Secondly, if a zone has a TSIG-ALLOW-DNSUPDATE metadata setting, that must match too.
 
-So to only allow dynamic DNS updates to a zone based on TSIG key, and regardless of IP address, set allow-dns-update-from to empty, set ALLOW-DNSUPDATE-FROM to "0.0.0.0/0" and "::/0" and set the TSIG-ALLOW-DNSUPDATE to the proper key name.
+So to only allow dynamic DNS updates to a zone based on TSIG key, and regardless of IP address, set allow-dnsupdate-from to empty, set ALLOW-DNSUPDATE-FROM to "0.0.0.0/0" and "::/0" and set the TSIG-ALLOW-DNSUPDATE to the proper key name.
 
 Further information can be found [below](#how-it-works).
 
