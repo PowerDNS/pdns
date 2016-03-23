@@ -253,8 +253,8 @@ string reloadAuthAndForwards()
     string configname=::arg()["config-dir"]+"/recursor.conf";
     cleanSlashes(configname);
     
-    if(!::arg().preParseFile(configname.c_str(), "forward-zones")) 
-      L<<Logger::Warning<<"Unable to re-parse configuration file '"<<configname<<"'"<<endl;
+    if(!::arg().preParseFile(configname.c_str(), "forward-zones"))
+      throw runtime_error("Unable to re-parse configuration file '"+configname+"'");
     ::arg().preParseFile(configname.c_str(), "forward-zones-file");
     ::arg().preParseFile(configname.c_str(), "forward-zones-recurse");
     ::arg().preParseFile(configname.c_str(), "auth-zones");
@@ -268,7 +268,8 @@ string reloadAuthAndForwards()
     ::arg().gatherIncludes(extraConfigs);
 
     for(const std::string& fn :  extraConfigs) {
-      ::arg().preParseFile(fn.c_str(), "forward-zones", ::arg()["forward-zones"]);
+      if(!::arg().preParseFile(fn.c_str(), "forward-zones", ::arg()["forward-zones"]))
+        throw runtime_error("Unable to re-parse configuration file include '"+fn+"'");
       ::arg().preParseFile(fn.c_str(), "forward-zones-file", ::arg()["forward-zones-file"]);
       ::arg().preParseFile(fn.c_str(), "forward-zones-recurse", ::arg()["forward-zones-recurse"]);
       ::arg().preParseFile(fn.c_str(), "auth-zones",::arg()["auth-zones"]);
