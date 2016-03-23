@@ -2358,6 +2358,7 @@ int serviceMain(int argc, char*argv[])
     SyncRes::setDefaultLogMode(SyncRes::Log);
     ::arg().set("quiet")="no";
     g_quiet=false;
+    g_dnssecLOG=true;
   }
 
   SyncRes::s_minimumTTL = ::arg().asNum("minimum-ttl-override");

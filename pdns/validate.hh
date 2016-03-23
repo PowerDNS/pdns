@@ -6,6 +6,8 @@
 #include "namespaces.hh"
 #include "dnsrecords.hh"
  
+extern bool g_dnssecLOG;
+
 // 4033 5
 enum vState { Indeterminate, Bogus, Insecure, Secure };
 extern const char *vStates[];
