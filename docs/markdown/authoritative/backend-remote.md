@@ -20,6 +20,10 @@ Please do not use remotebackend shipped before version 3.3. This version has sev
 
 There is a breaking change on v4.0 and later. Before version 4.0, the DNS names passed in queries were without trailing dot, after version 4.0 the DNS names are sent with trailing dot. F.ex. example.org is now sent as example.org.
 
+In some (broken) network setups, the IP addresses provided in the request (when
+this is an IPv6 address) may be suffixed with a `%` and the name of the network
+interface (e.g. `%eth1`). Keep this in mind when checking the IP addresses.
+
 ## Compiling
 To compile this backend, you need to configure `--with-modules="remote"`.
 

@@ -98,6 +98,11 @@ Type is the tag above, `qname` is the domain the question is about. `qclass` is 
 
 **Note**: Queries for wildcard names should be answered literally, without expansion. So, if a backend gets a question for "*.powerdns.com", it should only answer with data if there is an actual "*.powerdns.com" name
 
+**Note**: In some (broken) network setups, the `remote-ip-address` and/or
+`local-ip-address`, when it is an IPv6 address, may be suffixed with a `%` and
+the name of the network interface (e.g. `%eth1`). Keep this in mind when checking
+the IP addresses.
+
 ### `AXFR`: List an entire zone
 
 AXFR-queries look like this:
