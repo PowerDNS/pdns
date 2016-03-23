@@ -4,7 +4,9 @@
 #include "rec-lua-conf.hh"
 #include "base32.hh"
 #include "logger.hh"
+bool g_dnssecLOG{false};
 
+#define LOG(x) if(g_dnssecLOG) { L <<Logger::Warning << x; }
 void dotEdge(DNSName zone, string type1, DNSName name1, string tag1, string type2, DNSName name2, string tag2, string color="");
 void dotNode(string type, DNSName name, string tag, string content);
 string dotName(string type, DNSName name, string tag);
@@ -104,11 +106,11 @@ void validateWithKeySet(const cspmap_t& rrsets, cspmap_t& validated, const keyse
 	  if(signature->d_siginception < now && signature->d_sigexpire > now)
 	    isValid = DNSCryptoKeyEngine::makeFromPublicKeyString(l.d_algorithm, l.d_key)->verify(msg, signature->d_signature);
 	  else {
-	    DLOG(cerr<<"signature is expired/not yet valid"<<endl);
+	    LOG("signature is expired/not yet valid"<<endl);
           }
 	}
 	catch(std::exception& e) {
-	  DLOG(cerr<<"Error validating with engine: "<<e.what()<<endl);
+	  LOG("Error validating with engine: "<<e.what()<<endl);
 	}
 	if(isValid) {
 	  validated[i->first] = i->second;
@@ -116,7 +118,7 @@ void validateWithKeySet(const cspmap_t& rrsets, cspmap_t& validated, const keyse
 	  //	  cerr<<"! validated "<<i->first.first<<"/"<<DNSRecordContent::NumberToType(signature->d_type)<<endl;
 	}
 	else {
-          DLOG(cerr<<"signature invalid"<<endl);
+          LOG("signature invalid"<<endl);
         }
 	if(signature->d_type != QType::DNSKEY) {
 	  dotEdge(signature->d_signer,
@@ -287,7 +289,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
             break;
           }
 	  else {
-	    DLOG(cerr<<"Validation did not succeed!"<<endl);
+	    LOG("Validation did not succeed!"<<endl);
           }
         }
 	//        if(validkeys.empty()) cerr<<"did not manage to validate DNSKEY set based on DS-validated KSK, only passing KSK on"<<endl;
@@ -325,9 +327,29 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
       cspmap_t validrrsets;
       validateWithKeySet(cspmap, validrrsets, validkeys);
 
-      //      cerr<<"got "<<cspmap.count(make_pair(qname,QType::DS))<<" DS of which "<<validrrsets.count(make_pair(qname,QType::DS))<<" valid "<<endl;
+      LOG("got "<<cspmap.count(make_pair(qname,QType::DS))<<" records for DS query of which "<<validrrsets.count(make_pair(qname,QType::DS))<<" valid "<<endl);
 
       auto r = validrrsets.equal_range(make_pair(qname, QType::DS));
+      if(r.first == r.second) {
+        LOG("No DS for "<<qname<<", now look for a secure denial"<<endl);
+
+        for(const auto& v : validrrsets) {
+          LOG("Do have: "<<v.first.first<<"/"<<DNSRecordContent::NumberToType(v.first.second)<<endl);
+          if(v.first.second==QType::NSEC) { // check that it covers us!
+            for(const auto& r : v.second.records) {
+              LOG("\t"<<r->getZoneRepresentation()<<endl);
+              auto nsec = std::dynamic_pointer_cast<NSECRecordContent>(r);
+              if(v.first.first == qname && !nsec->d_set.count(QType::DS))
+                return Insecure;
+              else {
+                LOG("Did not deny existence of DS, "<<v.first.first<<"?="<<qname<<", "<<nsec->d_set.count(QType::DS)<<endl);
+              }
+            }
+
+          }
+        }
+        return Bogus;
+      }
       for(auto cspiter =r.first;  cspiter!=r.second; cspiter++) {
         for(auto j=cspiter->second.records.cbegin(); j!=cspiter->second.records.cend(); j++)
         {
