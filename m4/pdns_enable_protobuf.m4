@@ -1,4 +1,4 @@
-AC_DEFUN([DNSDIST_ENABLE_PROTOBUF], [
+AC_DEFUN([PDNS_ENABLE_PROTOBUF], [
   AC_MSG_CHECKING([whether to enable protobuf support])
   AC_ARG_ENABLE([protobuf],
     AS_HELP_STRING([--enable-protobuf],[enable protobuf support @<:@default=no@:>@]),

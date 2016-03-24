@@ -120,6 +120,10 @@ EXTRA_PROGRAMS = \
 	tsig-tests \
 	zone2ldap
 
+if HAVE_PROTOBUF
+EXTRA_PROGRAMS += dnspcap2protobuf
+endif
+
 pdns_server_SOURCES = \
 	arguments.cc arguments.hh \
 	auth-carbon.cc \
@@ -1004,6 +1008,42 @@ dnsdemog_LDFLAGS = \
 
 dnsdemog_LDADD = \
 	$(OPENSSL_LIBS)
+
+dnsmessage.pb.cc: dnsmessage.proto
+	protoc --cpp_out=./ $<
+
+if HAVE_PROTOBUF
+dnspcap2protobuf_SOURCES = \
+	base32.cc \
+	base64.cc base64.hh \
+	dnslabeltext.cc \
+	dnsmessage.pb.cc dnsmessage.pb.h \
+	dnsname.cc dnsname.hh \
+	dnsparser.cc dnsparser.hh \
+	dnspcap.cc dnspcap.hh \
+	dnspcap2protobuf.cc \
+	dnsrecords.cc \
+	dnswriter.cc dnswriter.hh \
+	logger.cc \
+	misc.cc \
+	nsecrecords.cc \
+	qtype.cc \
+	rcpgenerator.cc rcpgenerator.hh \
+	sillyrecords.cc \
+	statbag.cc \
+	unix_utility.cc \
+	utility.hh
+
+dnspcap2protobuf_LDFLAGS = \
+	$(AM_LDFLAGS) \
+	$(OPENSSL_LDFLAGS) \
+	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
+
+dnspcap2protobuf_LDADD = \
+	$(OPENSSL_LIBS) \
+	$(PROTOBUF_LIBS) \
+	$(BOOST_PROGRAM_OPTIONS_LIBS)
+endif
 
 testrunner_SOURCES = \
 	arguments.cc \
