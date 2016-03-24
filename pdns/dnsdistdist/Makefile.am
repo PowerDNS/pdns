@@ -27,6 +27,7 @@ endif
 
 EXTRA_DIST=dnslabeltext.rl \
 	   dnsdistconf.lua \
+	   dnsmessage.proto \
 	   README.md \
 	   delaypipe.cc delaypipe.hh \
 	   html \
@@ -107,7 +108,7 @@ dnsmessage.pb.cc: dnsmessage.proto
 if HAVE_PROTOBUF
 BUILT_SOURCES += dnsmessage.pb.cc
 dnsdist_LDADD += $(PROTOBUF_LIBS)
-dnsdist_SOURCES += dnsmessage.pb.cc dnsmessage.pb.h 
+nodist_dnsdist_SOURCES = dnsmessage.pb.cc dnsmessage.pb.h 
 endif
 
 testrunner_SOURCES = \
