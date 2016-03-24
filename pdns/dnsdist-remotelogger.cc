@@ -69,7 +69,8 @@ void RemoteLogger::worker()
     }
 
     try {
-      uint32_t len = htonl(data.length());
+      uint16_t len = data.length();
+      len = htons(len);
       writen2WithTimeout(d_socket, &len, sizeof(len), (int) d_timeout);
       writen2WithTimeout(d_socket, data.c_str(), data.length(), (int) d_timeout);
     }
@@ -242,10 +243,9 @@ void RemoteLogger::logResponse(const DNSQuestion& dr)
 
   PBDNSMessage_DNSResponse response;
   response.set_rcode(dr.dh->rcode);
-
+  addRRs((const char*) dr.dh, dr.len, response);
   message.set_allocated_response(&response);
 
-  addRRs((const char*) dr.dh, dr.len, response);
 
   //cerr <<message.DebugString()<<endl;
   std::string str;
