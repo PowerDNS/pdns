@@ -89,6 +89,9 @@ int main(int argc, char **argv)
     if (!dh->qdcount)
       continue;
 
+    if (pr.d_len < sizeof(dnsheader))
+      continue;
+
     uint16_t qtype, qclass;
     DNSName qname;
     try {
