@@ -56,6 +56,7 @@ dnsdist_SOURCES = \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
 	dnsdist-lua.cc \
 	dnsdist-lua2.cc \
+	dnsdist-remotelogger.cc dnsdist-remotelogger.hh \
 	dnsdist-rings.cc \
 	dnsdist-tcp.cc \
 	dnsdist-web.cc \
@@ -99,6 +100,10 @@ if HAVE_RE2
 dnsdist_LDADD += $(RE2_LIBS)
 endif
 
+if HAVE_PROTOBUF
+dnsdist_LDADD += $(PROTOBUF_LIBS)
+dnsdist_SOURCES += dnsmessage.pb.cc dnsmessage.pb.h
+endif
 
 testrunner_SOURCES = \
 	base64.hh \

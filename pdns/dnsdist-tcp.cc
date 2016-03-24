@@ -161,8 +161,12 @@ void* tcpClientThread(int pipefd)
      
   auto localPolicy = g_policy.getLocal();
   auto localRulactions = g_rulactions.getLocal();
+  auto localRespRulactions = g_resprulactions.getLocal();
   auto localDynBlockNMG = g_dynblockNMG.getLocal();
   auto localPools = g_pools.getLocal();
+#ifdef HAVE_PROTOBUF
+  boost::uuids::random_generator uuidGenerator;
+#endif
 
   map<ComboAddress,int> sockets;
   for(;;) {
@@ -252,13 +256,16 @@ void* tcpClientThread(int pipefd)
 	unsigned int consumed = 0;
 	DNSName qname(query, qlen, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
 	DNSQuestion dq(&qname, qtype, qclass, &ci.cs->local, &ci.remote, (dnsheader*)query, querySize, qlen, true);
+#ifdef HAVE_PROTOBUF
+        dq.uniqueId = uuidGenerator();
+#endif
 
 	string poolname;
 	int delayMsec=0;
 	struct timespec now;
 	clock_gettime(CLOCK_MONOTONIC, &now);
 
-	if (!processQuery(localDynBlockNMG, localRulactions, blockFilter, dq, ci.remote, poolname, &delayMsec, now)) {
+	if (!processQuery(localDynBlockNMG, localRulactions, blockFilter, dq, poolname, &delayMsec, now)) {
 	  goto drop;
 	}
 
@@ -402,6 +409,14 @@ void* tcpClientThread(int pipefd)
         }
 
         if (!fixUpResponse(&response, &responseLen, &responseSize, qname, origFlags, ednsAdded, rewrittenResponse, addRoom)) {
+          break;
+        }
+
+        DNSQuestion dr(&qname, qtype, qclass, &ci.cs->local, &ci.remote, dh, responseSize, responseLen, true);
+#ifdef HAVE_PROTOBUF
+        dr.uniqueId = dq.uniqueId;
+#endif
+        if (!processResponse(localRespRulactions, dr)) {
           break;
         }
 

@@ -574,4 +574,15 @@ void moreLua(bool client)
 
     g_lua.writeFunction("setVerboseHealthChecks", [](bool verbose) { g_verboseHealthChecks=verbose; });
     g_lua.writeFunction("setStaleCacheEntriesTTL", [](uint32_t ttl) { g_staleCacheEntriesTTL = ttl; });
+
+    g_lua.writeFunction("RemoteLogAction", [](std::shared_ptr<RemoteLogger> logger) {
+        return std::shared_ptr<DNSAction>(new RemoteLogAction(logger));
+      });
+    g_lua.writeFunction("RemoteLogResponseAction", [](std::shared_ptr<RemoteLogger> logger) {
+        return std::shared_ptr<DNSResponseAction>(new RemoteLogResponseAction(logger));
+      });
+    g_lua.writeFunction("newRemoteLogger", [client](const std::string& remote) {
+        return std::make_shared<RemoteLogger>(ComboAddress(remote));
+      });
+
 }
