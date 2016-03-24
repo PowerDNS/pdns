@@ -100,9 +100,14 @@ if HAVE_RE2
 dnsdist_LDADD += $(RE2_LIBS)
 endif
 
+
+dnsmessage.pb.cc: dnsmessage.proto
+	protoc --cpp_out=./ $<
+
 if HAVE_PROTOBUF
+BUILT_SOURCES += dnsmessage.pb.cc
 dnsdist_LDADD += $(PROTOBUF_LIBS)
-dnsdist_SOURCES += dnsmessage.pb.cc dnsmessage.pb.h
+dnsdist_SOURCES += dnsmessage.pb.cc dnsmessage.pb.h 
 endif
 
 testrunner_SOURCES = \
