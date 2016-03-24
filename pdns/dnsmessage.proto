@@ -1,0 +1,47 @@
+
+message PBDNSMessage {
+  enum Type {
+    DNSQueryType = 1;
+    DNSResponseType = 2;
+  }
+  enum SocketFamily {
+    INET = 1;   // IPv4 (RFC 791)
+    INET6 = 2;  // IPv6 (RFC 2460)
+  }
+  enum SocketProtocol {
+    UDP = 1;    // User Datagram Protocol (RFC 768)
+    TCP = 2;    // Transmission Control Protocol (RFC 793)
+  }
+  required Type type = 1;
+  optional bytes messageId = 2;
+  optional bytes serverIdentity = 3;
+  optional SocketFamily socketFamily = 4;
+  optional SocketProtocol socketProtocol = 5;
+  optional bytes from = 6;
+  optional bytes to = 7;
+  optional uint64 inBytes = 8;
+  optional uint32 timeSec = 9;
+  optional uint32 timeUsec = 10;
+  optional uint32 id = 11;
+
+  message DNSQuestion {
+    optional string qName = 1;
+    optional uint32 qType = 2;
+    optional uint32 qClass = 3;
+  }
+  optional DNSQuestion question = 12;
+
+  message DNSResponse {
+    message DNSRR {
+      optional string name = 1;
+      optional uint32 type = 2;
+      optional uint32 class = 3;
+      optional uint32 ttl = 4;
+      optional bytes rdata = 5;
+  }
+    optional uint32 rcode = 1;
+    repeated DNSRR rrs = 2;
+  }
+
+  optional DNSResponse response = 13;
+}

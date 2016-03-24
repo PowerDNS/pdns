@@ -17,6 +17,7 @@ BOOST_FOREACH
 PDNS_ENABLE_UNIT_TESTS
 PDNS_CHECK_RE2
 DNSDIST_ENABLE_DNSCRYPT
+DNSDIST_ENABLE_PROTOBUF
 
 AC_SUBST([YAHTTP_CFLAGS], ['-I$(top_srcdir)/ext/yahttp'])
 AC_SUBST([YAHTTP_LIBS], ['$(top_builddir)/ext/yahttp/yahttp/libyahttp.la'])

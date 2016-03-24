@@ -27,6 +27,7 @@ endif
 
 EXTRA_DIST=dnslabeltext.rl \
 	   dnsdistconf.lua \
+	   dnsmessage.proto \
 	   README.md \
 	   delaypipe.cc delaypipe.hh \
 	   html \
@@ -56,6 +57,7 @@ dnsdist_SOURCES = \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
 	dnsdist-lua.cc \
 	dnsdist-lua2.cc \
+	dnsdist-remotelogger.cc dnsdist-remotelogger.hh \
 	dnsdist-rings.cc \
 	dnsdist-tcp.cc \
 	dnsdist-web.cc \
@@ -99,6 +101,15 @@ if HAVE_RE2
 dnsdist_LDADD += $(RE2_LIBS)
 endif
 
+
+dnsmessage.pb.cc: dnsmessage.proto
+	protoc --cpp_out=./ $<
+
+if HAVE_PROTOBUF
+BUILT_SOURCES += dnsmessage.pb.cc
+dnsdist_LDADD += $(PROTOBUF_LIBS)
+nodist_dnsdist_SOURCES = dnsmessage.pb.cc dnsmessage.pb.h 
+endif
 
 testrunner_SOURCES = \
 	base64.hh \
