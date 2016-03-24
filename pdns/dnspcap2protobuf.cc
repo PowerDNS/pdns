@@ -1,3 +1,7 @@
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
+
 #include "dnsmessage.pb.h"
 #include "iputils.hh"
 #include "misc.hh"
@@ -83,7 +87,8 @@ int main(int argc, char **argv)
     cerr<<"Error opening output file "<<argv[2]<<": "<<strerror(errno)<<endl;
     exit(EXIT_FAILURE);
   }
-
+  std::map<uint16_t,boost::uuids::uuid> ids;
+  boost::uuids::random_generator uuidGenerator;
   while (pr.getUDPPacket()) {
     const dnsheader* dh=(dnsheader*)pr.d_payload;
     if (!dh->qdcount)
@@ -129,18 +134,26 @@ int main(int argc, char **argv)
     PBDNSMessage_DNSQuestion question;
     PBDNSMessage_DNSResponse response;
     if (!dh->qr) {
+      boost::uuids::uuid uniqueId = uuidGenerator();
+      ids[dh->id] = uniqueId;
+      message.set_messageid(boost::uuids::to_string(uniqueId));
       question.set_qname(qname.toString());
       question.set_qtype(qtype);
       question.set_qclass(qclass);
       message.set_allocated_question(&question);
     }
     else {
+      const auto& it = ids.find(dh->id);
+      if (it != ids.end()) {
+        message.set_messageid(boost::uuids::to_string(it->second));
+      }
       response.set_rcode(dh->rcode);
       addRRs((const char*) dh, pr.d_len, response);
       message.set_allocated_response(&response);
     }
 
     std::string str;
+    //cerr<<message.DebugString()<<endl;
     message.SerializeToString(&str);
     uint16_t mlen = str.length();
     fwrite(&mlen, 1, sizeof(mlen), fp);
