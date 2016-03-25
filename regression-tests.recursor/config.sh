@@ -6,6 +6,7 @@ fi
 
 export PDNS=${PDNS:-../../../pdns/pdns_server}
 export PDNSRECURSOR=${PDNSRECURSOR:-../../../pdns/recursordist/pdns_recursor}
+export RECCONTROL=${RECCONTROL:-../../../pdns/recursordist/rec_control}
 
 . ./vars
 
@@ -483,7 +484,8 @@ api-key=secret
 api-readonly=yes
 forward-zones-file=$(pwd)/recursor-service/forward-zones-file
 
-socket-dir=$(pwd)/recursor-serviceS
+socket-dir=$(pwd)/recursor-service
 auth-zones=global.box.answer-cname-in-local.example.net=$(pwd)/recursor-service/global.box.answer-cname-in-local.example.net.zone,auth-zone.example.net=$(pwd)/recursor-service/auth-zone.example.net.zone,another-auth-zone.example.net=$(pwd)/recursor-service/another-auth-zone.example.net.zone
+loglevel=9
 
 EOF
