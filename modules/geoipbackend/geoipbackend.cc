@@ -140,8 +140,8 @@ void GeoIPBackend::initialize() {
              } else if (attr == "weight") {
                rr.weight = iter->second.as<int>();
                if (rr.weight < 0) {
-                 L<<Logger::Error<<"Weigth cannot be negative for " << rr.qname << endl;
-                 throw PDNSException(string("Weigth cannot be negative for ") + rr.qname.toString());
+                 L<<Logger::Error<<"Weight cannot be negative for " << rr.qname << endl;
+                 throw PDNSException(string("Weight cannot be negative for ") + rr.qname.toString());
                }
                rr.has_weight = true;
              } else if (attr == "ttl") {
