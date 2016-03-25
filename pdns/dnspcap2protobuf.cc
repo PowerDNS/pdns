@@ -13,6 +13,7 @@
 StatBag S;
 
 static void addRRs(const char* packet, const size_t len, PBDNSMessage_DNSResponse& response)
+try
 {
   if (len < sizeof(struct dnsheader))
     return;
@@ -71,7 +72,10 @@ static void addRRs(const char* packet, const size_t len, PBDNSMessage_DNSRespons
     }
   }
 }
-
+catch(std::exception& e)
+{
+  cerr<<"Error parsing response records: "<<e.what()<<endl;
+}
 int main(int argc, char **argv)
 {
   if(argc != 3) {
@@ -155,7 +159,7 @@ int main(int argc, char **argv)
     std::string str;
     //cerr<<message.DebugString()<<endl;
     message.SerializeToString(&str);
-    uint16_t mlen = str.length();
+    uint16_t mlen = htons(str.length());
     fwrite(&mlen, 1, sizeof(mlen), fp);
     fwrite(str.c_str(), 1, str.length(), fp);
     if (!dh->qr) {
