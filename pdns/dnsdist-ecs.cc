@@ -87,7 +87,6 @@ int rewriteResponseWithoutEDNS(const char * packet, const size_t len, vector<uin
     pr.xfrBlob(blob);
     pw.xfrBlob(blob);
   }
-
   /* consume AR, looking for OPT */
   for (idx = 0; idx < arcount; idx++) {
     rrname = pr.getName();
@@ -106,7 +105,7 @@ int rewriteResponseWithoutEDNS(const char * packet, const size_t len, vector<uin
   return 0;
 }
 
-int locateEDNSOptRR(const char * packet, const size_t len, const char ** optStart, size_t * optLen, bool * last)
+int locateEDNSOptRR(char * packet, const size_t len, char ** optStart, size_t * optLen, bool * last)
 {
   assert(packet != NULL);
   assert(optStart != NULL);
@@ -286,12 +285,13 @@ static void replaceEDNSClientSubnetOption(char * const packet, const size_t pack
   }
 }
 
-void handleEDNSClientSubnet(char * const packet, const size_t packetSize, const unsigned int consumed, uint16_t * const len, string& largerPacket, bool * const ednsAdded, const ComboAddress& remote)
+void handleEDNSClientSubnet(char* const packet, const size_t packetSize, const unsigned int consumed, uint16_t* const len, string& largerPacket, bool* const ednsAdded, bool* const ecsAdded, const ComboAddress& remote)
 {
   assert(packet != NULL);
   assert(len != NULL);
   assert(consumed <= (size_t) *len);
   assert(ednsAdded != NULL);
+  assert(ecsAdded != NULL);
   unsigned char * optRDLen = NULL;
   size_t remaining = 0;
         
@@ -334,6 +334,7 @@ void handleEDNSClientSubnet(char * const packet, const size_t packetSize, const 
         largerPacket.append(packet, *len);
         largerPacket.append(ECSOption);
       }
+      *ecsAdded = true;
     }
   }
   else {
@@ -362,4 +363,157 @@ void handleEDNSClientSubnet(char * const packet, const size_t packetSize, const 
       largerPacket.append(EDNSRR);
     }
   }
+}
+
+static int removeEDNSOptionFromOptions(unsigned char* optionsStart, const uint16_t optionsLen, const uint16_t optionCodeToRemove, uint16_t* newOptionsLen)
+{
+  unsigned char* p = optionsStart;
+  const unsigned char* end = p + optionsLen;
+  while ((p + 4) <= end) {
+    unsigned char* optionBegin = p;
+    const uint16_t optionCode = 0x100*p[0] + p[1];
+    p += sizeof(optionCode);
+    const uint16_t optionLen = 0x100*p[0] + p[1];
+    p += sizeof(optionLen);
+    if ((p + optionLen) > end) {
+      return EINVAL;
+    }
+    if (optionCode == optionCodeToRemove) {
+      if (p + optionLen < end) {
+        /* move remaining options over the removed one,
+           if any */
+        memmove(optionBegin, p + optionLen, end - (p + optionLen));
+      }
+      *newOptionsLen = optionsLen - (sizeof(optionCode) + sizeof(optionLen) + optionLen);
+      return 0;
+    }
+    p += optionLen;
+  }
+  return ENOENT;
+}
+
+int removeEDNSOptionFromOPT(char* optStart, size_t* optLen, const uint16_t optionCodeToRemove)
+{
+  /* we need at least:
+     root label (1), type (2), class (2), ttl (4) + rdlen (2)*/
+  if (*optLen < 11) {
+    return EINVAL;
+  }
+  const unsigned char* end = (const unsigned char*) optStart + *optLen;
+  unsigned char* p = (unsigned char*) optStart + 9;
+  unsigned char* rdLenPtr = p;
+  uint16_t rdLen = (0x100*p[0] + p[1]);
+  p += sizeof(rdLen);
+  if (p + rdLen != end) {
+    return EINVAL;
+  }
+  uint16_t newRdLen = 0;
+  int res = removeEDNSOptionFromOptions(p, rdLen, optionCodeToRemove, &newRdLen);
+  if (res != 0) {
+    return res;
+  }
+  *optLen -= (rdLen - newRdLen);
+  rdLenPtr[0] = newRdLen / 0x100;
+  rdLenPtr[1] = newRdLen % 0x100;
+  return 0;
+}
+
+int rewriteResponseWithoutEDNSOption(const char * packet, const size_t len, const uint16_t optionCodeToSkip, vector<uint8_t>& newContent)
+{
+  assert(packet != NULL);
+  assert(len >= sizeof(dnsheader));
+  const struct dnsheader* dh = (const struct dnsheader*) packet;
+
+  if (ntohs(dh->arcount) == 0)
+    return ENOENT;
+
+  if (ntohs(dh->qdcount) == 0)
+    return ENOENT;
+
+  vector<uint8_t> content(len - sizeof(dnsheader));
+  copy(packet + sizeof(dnsheader), packet + len, content.begin());
+  PacketReader pr(content);
+
+  size_t idx = 0;
+  DNSName rrname;
+  uint16_t qdcount = ntohs(dh->qdcount);
+  uint16_t ancount = ntohs(dh->ancount);
+  uint16_t nscount = ntohs(dh->nscount);
+  uint16_t arcount = ntohs(dh->arcount);
+  uint16_t rrtype;
+  uint16_t rrclass;
+  string blob;
+  struct dnsrecordheader ah;
+
+  rrname = pr.getName();
+  rrtype = pr.get16BitInt();
+  rrclass = pr.get16BitInt();
+
+  DNSPacketWriter pw(newContent, rrname, rrtype, rrclass, dh->opcode);
+  pw.getHeader()->id=dh->id;
+  pw.getHeader()->qr=dh->qr;
+  pw.getHeader()->aa=dh->aa;
+  pw.getHeader()->tc=dh->tc;
+  pw.getHeader()->rd=dh->rd;
+  pw.getHeader()->ra=dh->ra;
+  pw.getHeader()->ad=dh->ad;
+  pw.getHeader()->cd=dh->cd;
+  pw.getHeader()->rcode=dh->rcode;
+
+  /* consume remaining qd if any */
+  if (qdcount > 1) {
+    for(idx = 1; idx < qdcount; idx++) {
+      rrname = pr.getName();
+      rrtype = pr.get16BitInt();
+      rrclass = pr.get16BitInt();
+      (void) rrtype;
+      (void) rrclass;
+    }
+  }
+
+  /* copy AN and NS */
+  for (idx = 0; idx < ancount; idx++) {
+    rrname = pr.getName();
+    pr.getDnsrecordheader(ah);
+
+    pw.startRecord(rrname, ah.d_type, ah.d_ttl, ah.d_class, DNSResourceRecord::ANSWER, true);
+    pr.xfrBlob(blob);
+    pw.xfrBlob(blob);
+  }
+
+  for (idx = 0; idx < nscount; idx++) {
+    rrname = pr.getName();
+    pr.getDnsrecordheader(ah);
+
+    pw.startRecord(rrname, ah.d_type, ah.d_ttl, ah.d_class, DNSResourceRecord::AUTHORITY, true);
+    pr.xfrBlob(blob);
+    pw.xfrBlob(blob);
+  }
+
+  /* consume AR, looking for OPT */
+  for (idx = 0; idx < arcount; idx++) {
+    rrname = pr.getName();
+    pr.getDnsrecordheader(ah);
+
+    if (ah.d_type != QType::OPT) {
+      pw.startRecord(rrname, ah.d_type, ah.d_ttl, ah.d_class, DNSResourceRecord::ADDITIONAL, true);
+      pr.xfrBlob(blob);
+      pw.xfrBlob(blob);
+    } else {
+      pw.startRecord(rrname, ah.d_type, ah.d_ttl, ah.d_class, DNSResourceRecord::ADDITIONAL, false);
+      pr.xfrBlob(blob);
+      uint16_t rdLen = blob.length();
+      removeEDNSOptionFromOptions((unsigned char*)blob.c_str(), rdLen, optionCodeToSkip, &rdLen);
+      /* xfrBlob(string, size) completely ignores size.. */
+      if (rdLen > 0) {
+        blob.resize((size_t)rdLen);
+        pw.xfrBlob(blob);
+      } else {
+        pw.commit();
+      }
+    }
+  }
+  pw.commit();
+
+  return 0;
 }

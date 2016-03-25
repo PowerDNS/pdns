@@ -141,7 +141,7 @@ class ClientSubnetOption(dns.edns.Option):
         test = test[-(mask_bits // 8):]
 
         format = "!HBB%ds" % (mask_bits // 8)
-        data = struct.pack(format, self.family, self.mask, 0, test)
+        data = struct.pack(format, self.family, self.mask, self.scope, test)
         file.write(data)
 
     def from_wire(cls, otype, wire, current, olen):
