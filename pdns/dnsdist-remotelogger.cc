@@ -4,9 +4,8 @@
 #include "dnsdist-remotelogger.hh"
 #include "dnsparser.hh"
 
-#include <boost/uuid/uuid_io.hpp>
-
 #ifdef HAVE_PROTOBUF
+#include <boost/uuid/uuid_io.hpp>
 #include "dnsmessage.pb.h"
 #endif
 
