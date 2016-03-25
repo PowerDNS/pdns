@@ -465,6 +465,7 @@ int DNSPacket::noparse(const char *mesg, int length)
 void DNSPacket::setTSIGDetails(const TSIGRecordContent& tr, const DNSName& keyname, const string& secret, const string& previous, bool timersonly)
 {
   d_trc=tr;
+  d_trc.d_origID = (((d.id & 0xFF)<<8) | ((d.id & 0xFF00)>>8));
   d_tsigkeyname = keyname;
   d_tsigsecret = secret;
   d_tsigprevious = previous;
