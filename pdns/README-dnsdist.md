@@ -28,6 +28,8 @@ scl enable devtoolset-2 bash
 make
 ```
 
+To build on OS X, `./configure LIBEDIT_LIBS='-L/usr/lib -ledit' LIBEDIT_CFLAGS=-I/usr/include/editline`
+
 On other recent platforms, installing a Lua and the system C++ compiler should be enough. 
 
 `dnsdist` can drop privileges using the `--uid` and `--gid` commandline-switches
