@@ -41,6 +41,7 @@ endif
 EXTRA_DIST = \
 	dnslabeltext.rl \
 	dnslabeltext.cc \
+	dnsmessage.proto \
 	effective_tld_names.dat \
 	mtasker.cc \
 	inflighter.cc \
@@ -1017,7 +1018,6 @@ dnspcap2protobuf_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	dnslabeltext.cc \
-	dnsmessage.pb.cc dnsmessage.pb.h \
 	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnspcap.cc dnspcap.hh \
@@ -1033,6 +1033,8 @@ dnspcap2protobuf_SOURCES = \
 	statbag.cc \
 	unix_utility.cc \
 	utility.hh
+
+nodist_dnspcap2protobuf_SOURCES=dnsmessage.pb.cc dnsmessage.pb.h 
 
 dnspcap2protobuf_LDFLAGS = \
 	$(AM_LDFLAGS) \

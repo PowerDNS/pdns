@@ -198,7 +198,7 @@ script:
   - test -f modules/remotebackend/test-suite.log && cat modules/remotebackend/test-suite.log || true
 
   #DNSName - make -k -j3 -C pdns $(grep '(EXEEXT):' pdns/Makefile | cut -f1 -d\$ | grep -E -v 'dnsdist|calidns')
-  - make -k -j3 -C pdns $(grep '(EXEEXT):' pdns/Makefile | cut -f1 -d\$ | grep -E -v 'dnsdist|calidns|speedtest')
+  - make -k -j3 -C pdns $(grep '(EXEEXT):' pdns/Makefile | cut -f1 -d\$ | grep -E -v 'dnspcap2protobuf|dnsdist|calidns|speedtest')
 
   - cd pdns
   - ./pdnsutil test-algorithms
