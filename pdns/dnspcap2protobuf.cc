@@ -78,7 +78,7 @@ catch(std::exception& e)
 }
 int main(int argc, char **argv)
 {
-  if(argc != 3) {
+  if(argc < 3) {
     cerr<<"This program reads DNS queries and responses from a PCAP file and stores them into our protobuf format."<<endl;
     cerr<<"Usage: "<<argv[0]<<" <PCAP file> <out file>"<<endl;
     exit(EXIT_FAILURE);
@@ -91,6 +91,11 @@ int main(int argc, char **argv)
     cerr<<"Error opening output file "<<argv[2]<<": "<<strerror(errno)<<endl;
     exit(EXIT_FAILURE);
   }
+
+  int ind=0;
+  if(argc==4)
+    ind=atoi(argv[3]);
+
   std::map<uint16_t,boost::uuids::uuid> ids;
   boost::uuids::random_generator uuidGenerator;
   while (pr.getUDPPacket()) {
@@ -99,6 +104,9 @@ int main(int argc, char **argv)
       continue;
 
     if (pr.d_len < sizeof(dnsheader))
+      continue;
+
+    if(!dh.rd)
       continue;
 
     uint16_t qtype, qclass;
@@ -116,22 +124,25 @@ int main(int argc, char **argv)
     message.set_timeusec(pr.d_pheader.ts.tv_usec);
     message.set_id(ntohs(dh->id));
     message.set_type(dh->qr ? PBDNSMessage_Type_DNSResponseType : PBDNSMessage_Type_DNSQueryType);
-    const ComboAddress source = pr.getSource();
-    const ComboAddress dest = pr.getDest();
-    message.set_socketfamily(source.sin4.sin_family == AF_INET ? PBDNSMessage_SocketFamily_INET : PBDNSMessage_SocketFamily_INET6);
+    const ComboAddress requestor = dh->qr ? pr.getDest() : pr.getSource();
+    const ComboAddress responder = dh->qr ? pr.getSource() : pr.getDest();
+
+    *((char*)&requestor.sin4.sin_addr.s_addr)|=ind;
+    *((char*)&responder.sin4.sin_addr.s_addr)|=ind;
+    message.set_socketfamily(requestor.sin4.sin_family == AF_INET ? PBDNSMessage_SocketFamily_INET : PBDNSMessage_SocketFamily_INET6);
     // we handle UDP packets only for now
     message.set_socketprotocol(PBDNSMessage_SocketProtocol_UDP);
-    if (source.sin4.sin_family == AF_INET) {
-      message.set_from(&source.sin4.sin_addr.s_addr, sizeof(source.sin4.sin_addr.s_addr));
+    if (requestor.sin4.sin_family == AF_INET) {
+      message.set_from(&requestor.sin4.sin_addr.s_addr, sizeof(requestor.sin4.sin_addr.s_addr));
     }
-    else if (source.sin4.sin_family == AF_INET6) {
-      message.set_from(&source.sin6.sin6_addr.s6_addr, sizeof(source.sin6.sin6_addr.s6_addr));
+    else if (requestor.sin4.sin_family == AF_INET6) {
+      message.set_from(&requestor.sin6.sin6_addr.s6_addr, sizeof(requestor.sin6.sin6_addr.s6_addr));
     }
-    if (dest.sin4.sin_family == AF_INET) {
-      message.set_to(&dest.sin4.sin_addr.s_addr, sizeof(dest.sin4.sin_addr.s_addr));
+    if (responder.sin4.sin_family == AF_INET) {
+      message.set_to(&responder.sin4.sin_addr.s_addr, sizeof(responder.sin4.sin_addr.s_addr));
     }
-    else if (dest.sin4.sin_family == AF_INET6) {
-      message.set_to(&dest.sin6.sin6_addr.s6_addr, sizeof(dest.sin6.sin6_addr.s6_addr));
+    else if (responder.sin4.sin_family == AF_INET6) {
+      message.set_to(&responder.sin6.sin6_addr.s6_addr, sizeof(responder.sin6.sin6_addr.s6_addr));
     }
     message.set_inbytes(pr.d_len);
 
