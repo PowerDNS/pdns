@@ -106,7 +106,7 @@ int main(int argc, char **argv)
     if (pr.d_len < sizeof(dnsheader))
       continue;
 
-    if(!dh.rd)
+    if(!dh->rd)
       continue;
 
     uint16_t qtype, qclass;
