@@ -1,27 +1,5 @@
 0	.	IN	NS	518400	a.root-servers.net.
-0	.	IN	NS	518400	b.root-servers.net.
-0	.	IN	NS	518400	c.root-servers.net.
-0	.	IN	NS	518400	d.root-servers.net.
-0	.	IN	NS	518400	e.root-servers.net.
-0	.	IN	NS	518400	f.root-servers.net.
-0	.	IN	NS	518400	g.root-servers.net.
-0	.	IN	NS	518400	h.root-servers.net.
-0	.	IN	NS	518400	i.root-servers.net.
-0	.	IN	NS	518400	j.root-servers.net.
-0	.	IN	NS	518400	k.root-servers.net.
-0	.	IN	NS	518400	l.root-servers.net.
-0	.	IN	NS	518400	m.root-servers.net.
 2	a.root-servers.net.	IN	A	518400	198.41.0.4
 2	a.root-servers.net.	IN	AAAA	518400	2001:503:ba3e::2:30
-2	b.root-servers.net.	IN	A	518400	192.228.79.201
-2	b.root-servers.net.	IN	AAAA	518400	2001:500:84::b
-2	c.root-servers.net.	IN	A	518400	192.33.4.12
-2	c.root-servers.net.	IN	AAAA	518400	2001:500:2::c
-2	d.root-servers.net.	IN	A	518400	199.7.91.13
-2	d.root-servers.net.	IN	AAAA	518400	2001:500:2d::d
-2	e.root-servers.net.	IN	A	518400	192.203.230.10
-2	f.root-servers.net.	IN	A	518400	192.5.5.241
-2	f.root-servers.net.	IN	AAAA	518400	2001:500:2f::f
-2	g.root-servers.net.	IN	A	518400	192.112.36.4
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='.', qtype=NS
