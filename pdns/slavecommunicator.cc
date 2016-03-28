@@ -642,7 +642,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
   typedef DomainNotificationInfo val_t;
   BOOST_FOREACH(val_t& val, sdomains) {
     DomainInfo& di(val.di);
-    DomaintInfo tempdi;
+    DomainInfo tempdi;
     // might've come from the packethandler
     // Please do not overwrite received DI just to make sure it exists in backend.
     if(!di.backend && !B->getDomainInfo(di.zone, tempdi)) {
