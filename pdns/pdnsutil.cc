@@ -160,10 +160,12 @@ bool rectifyZone(DNSSECKeeper& dk, const DNSName& zone)
   set<DNSName> qnames, nsset, dsnames, insnonterm, delnonterm;
   map<DNSName,bool> nonterm;
   bool doent=true;
+  vector<DNSResourceRecord> rrs;
 
   while(sd.db->get(rr)) {
     if (rr.qtype.getCode())
     {
+      rrs.push_back(rr);
       qnames.insert(rr.qname);
       if(rr.qtype.getCode() == QType::NS && rr.qname != zone)
         nsset.insert(rr.qname);
@@ -194,6 +196,31 @@ bool rectifyZone(DNSSECKeeper& dk, const DNSName& zone)
   else
     cerr<<"Adding empty non-terminals for non-DNSSEC zone"<<endl;
 
+  set<DNSName> nsec3set;
+  if (haveNSEC3 && !narrow) {
+    for (auto &rr: rrs) {
+      bool skip=false;
+      DNSName shorter = rr.qname;
+      if (shorter != zone && shorter.chopOff() && shorter != zone) {
+        do {
+          if(nsset.count(shorter)) {
+            skip=true;
+            break;
+          }
+        } while(shorter.chopOff() && shorter != zone);
+      }
+      shorter = rr.qname;
+      if(!skip && (rr.qtype.getCode() != QType::NS || !isOptOut)) {
+
+        do {
+          if(!nsec3set.count(shorter)) {
+            nsec3set.insert(shorter);
+          }
+        } while(shorter != zone && shorter.chopOff());
+      }
+    }
+  }
+
   if(doTransaction)
     sd.db->startTransaction(zone, -1);
 
@@ -214,13 +241,17 @@ bool rectifyZone(DNSSECKeeper& dk, const DNSName& zone)
           break;
         }
       } while(shorter.chopOff());
+    } else {
+      auth=nonterm.find(qname)->second;
     }
 
     if(haveNSEC3) // NSEC3
     {
-      if(!narrow && (realrr || !isOptOut || nonterm.find(qname)->second))
+      if(!narrow && nsec3set.count(qname)) {
         ordername=DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, qname))) + zone;
-      else if(!realrr)
+        if(!realrr)
+          auth=true;
+      } else if(!realrr)
         auth=false;
     }
     else if (realrr) // NSEC
