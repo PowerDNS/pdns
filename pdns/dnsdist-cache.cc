@@ -38,8 +38,10 @@ void DNSDistPacketCache::insert(uint32_t key, const DNSName& qname, uint16_t qty
     if (minTTL > d_maxTTL)
       minTTL = d_maxTTL;
 
-    if (minTTL < d_minTTL)
+    if (minTTL < d_minTTL) {
+      d_ttlTooShorts++;
       return;
+    }
   }
 
   {
@@ -139,7 +141,6 @@ bool DNSDistPacketCache::get(const DNSQuestion& dq, uint16_t consumed, uint16_t 
 
     /* check for collision */
     if (!cachedValueMatches(value, *dq.qname, dq.qtype, dq.qclass, dq.tcp)) {
-      d_misses++;
       d_lookupCollisions++;
       return false;
     }

@@ -818,3 +818,121 @@ class TestCacheManagement(DNSDistTest):
         for key in self._responsesCounter:
             total += self._responsesCounter[key]
         self.assertEquals(total, misses)
+
+class TestCachingTTL(DNSDistTest):
+
+    _maxCacheTTL = 86400
+    _minCacheTTL = 600
+    _config_params = ['_maxCacheTTL', '_minCacheTTL', '_testServerPort']
+    _config_template = """
+    pc = newPacketCache(1000, %s, %s)
+    getPool(""):setCache(pc)
+    newServer{address="127.0.0.1:%s"}
+    """
+    def testCacheShortTTL(self):
+        """
+        Cache: Entries with a TTL shorter than minTTL
+
+        """
+        misses = 0
+        ttl = 60
+        name = 'ttltooshort.cache.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    ttl,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        # Miss
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+        for an in receivedResponse.answer:
+            self.assertEquals(an.ttl, ttl)
+        misses += 1
+
+        # We should not have been cached
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+        for an in receivedResponse.answer:
+            self.assertEquals(an.ttl, ttl)
+        misses += 1
+
+        total = 0
+        for key in self._responsesCounter:
+            total += self._responsesCounter[key]
+
+        self.assertEquals(total, misses)
+
+class TestCachingLongTTL(DNSDistTest):
+
+    _maxCacheTTL = 2
+    _config_params = ['_maxCacheTTL', '_testServerPort']
+    _config_template = """
+    pc = newPacketCache(1000, %s)
+    getPool(""):setCache(pc)
+    newServer{address="127.0.0.1:%s"}
+    """
+    def testCacheLongTTL(self):
+        """
+        Cache: Entries with a longer TTL than the maximum
+
+        """
+        misses = 0
+        ttl = 172800
+        name = 'longttl.cache.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    ttl,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        # Miss
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+        for an in receivedResponse.answer:
+            self.assertEquals(an.ttl, ttl)
+        misses += 1
+
+        # next queries should hit the cache
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, response)
+        for an in receivedResponse.answer:
+            self.assertTrue(an.ttl <= ttl)
+
+        time.sleep(self._maxCacheTTL + 1)
+
+        # we should not have cached for longer than max cache
+        # so it should be a miss
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+        for an in receivedResponse.answer:
+            self.assertEquals(an.ttl, ttl)
+        misses += 1
+
+        total = 0
+        for key in self._responsesCounter:
+            total += self._responsesCounter[key]
+
+        self.assertEquals(total, misses)
