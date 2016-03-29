@@ -358,6 +358,8 @@ void* tcpClientThread(int pipefd)
         if(!sendNonBlockingMsgLen(dsock, dq.len, ds->tcpSendTimeout, ds->remote, ds->sourceAddr, ds->sourceItf)) {
 	  vinfolog("Downstream connection to %s died on us, getting a new one!", ds->getName());
           close(dsock);
+          dsock=-1;
+          sockets.erase(ds->remote);
           sockets[ds->remote]=dsock=setupTCPDownstream(ds);
           downstream_failures++;
           goto retry;
@@ -374,6 +376,8 @@ void* tcpClientThread(int pipefd)
         catch(const runtime_error& e) {
           vinfolog("Downstream connection to %s died on us, getting a new one!", ds->getName());
           close(dsock);
+          dsock=-1;
+          sockets.erase(ds->remote);
           sockets[ds->remote]=dsock=setupTCPDownstream(ds);
           downstream_failures++;
           goto retry;
@@ -382,6 +386,8 @@ void* tcpClientThread(int pipefd)
         if(!getNonBlockingMsgLen(dsock, &rlen, ds->tcpRecvTimeout)) {
 	  vinfolog("Downstream connection to %s died on us phase 2, getting a new one!", ds->getName());
           close(dsock);
+          dsock=-1;
+          sockets.erase(ds->remote);
           sockets[ds->remote]=dsock=setupTCPDownstream(ds);
           downstream_failures++;
           goto retry;
