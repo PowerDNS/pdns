@@ -267,7 +267,7 @@ bool rectifyZone(DNSSECKeeper& dk, const DNSName& zone)
         sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, zone, qname, ordername, true, QType::DS);
       if (!auth || nsset.count(qname)) {
         ordername.clear();
-        if(isOptOut)
+        if(isOptOut && !dsnames.count(qname))
           sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, zone, qname, ordername, false, QType::NS);
         sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, zone, qname, ordername, false, QType::A);
         sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, zone, qname, ordername, false, QType::AAAA);
