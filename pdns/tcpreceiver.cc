@@ -815,7 +815,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
     if (rr.qtype.getCode() == QType::RRSIG) {
       RRSIGRecordContent rrc(rr.content);
       if(presignedZone && rrc.d_type == QType::NSEC3)
-        ns3rrs.insert(fromBase32Hex(makeRelative(rr.qname.toString(), target.toString())));
+        ns3rrs.insert(fromBase32Hex(makeRelative(rr.qname.toStringNoDot(), target.toStringNoDot()))); // FIXME400
       continue;
     }
 
