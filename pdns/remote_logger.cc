@@ -97,6 +97,7 @@ RemoteLogger::~RemoteLogger()
   d_exiting = true;
   if (d_socket >= 0)
     close(d_socket);
+  d_queueCond.notify_one();
   d_thread.join();
 }
 
