@@ -1149,6 +1149,32 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
   }
 }
 
+void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* qtype, Netmask* ednssubnet)
+{
+  const struct dnsheader* dh = (struct dnsheader*)question.c_str();
+  size_t questionLen = question.length();
+  unsigned int consumed=0;
+  *dnsname=DNSName(question.c_str(), questionLen, sizeof(dnsheader), false, qtype, 0, &consumed);
+
+  size_t pos= sizeof(dnsheader)+consumed+4;
+  /* at least OPT root label (1), type (2), class (2) and ttl (4) + OPT RR rdlen (2)
+     = 11 */
+  if(ntohs(dh->arcount) == 1 && questionLen > pos + 11) { // this code can extract one (1) EDNS Subnet option
+    /* OPT root label (1) followed by type (2) */
+    if(question.at(pos)==0 && question.at(pos+1)==0 && question.at(pos+2)==QType::OPT) {
+      char* ecsStart = nullptr;
+      size_t ecsLen = 0;
+      int res = getEDNSOption((char*)question.c_str()+pos+9, questionLen - pos - 9, EDNSOptionCode::ECS, &ecsStart, &ecsLen);
+      if (res == 0 && ecsLen > 4) {
+        EDNSSubnetOpts eso;
+        if(getEDNSSubnetOptsFromString(ecsStart + 4, ecsLen - 4, &eso)) {
+          *ednssubnet=eso.source;
+        }
+      }
+    }
+  }
+}
+
 string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fromaddr, const ComboAddress& destaddr, struct timeval tv, int fd)
 {
   gettimeofday(&g_now, 0);
@@ -1181,29 +1207,14 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
     */
 #endif
     if(t_pdl->get() && (*t_pdl)->d_gettag) {
-      unsigned int consumed=0;
+
       uint16_t qtype=0;
       try {
-        size_t questionLen = question.length();
-        DNSName qname(question.c_str(), questionLen, sizeof(dnsheader), false, &qtype, 0, &consumed);
+        DNSName qname;
         Netmask ednssubnet;
-        size_t pos= sizeof(dnsheader)+consumed+4;
-        /* at least OPT root label (1), type (2), class (2) and ttl (4) + OPT RR rdlen (2)
-           = 11 */
-        if(ntohs(dh->arcount) == 1 && questionLen > pos + 11) { // this code can extract one (1) EDNS Subnet option
-          /* OPT root label (1) followed by type (2) */
-          if(question.at(pos)==0 && question.at(pos+1)==0 && question.at(pos+2)==QType::OPT) {
-            char* ecsStart = nullptr;
-            size_t ecsLen = 0;
-            int res = getEDNSOption((char*)question.c_str()+pos+9, questionLen - pos - 9, EDNSOptionCode::ECS, &ecsStart, &ecsLen);
-            if (res == 0 && ecsLen > 4) {
-              EDNSSubnetOpts eso;
-              if(getEDNSSubnetOptsFromString(ecsStart + 4, ecsLen - 4, &eso)) {
-                ednssubnet=eso.source;
-              }
-            }
-          }
-        }
+        
+        getQNameAndSubnet(question, &qname, &qtype, &ednssubnet);
+       
         try {
           ctag=(*t_pdl)->gettag(fromaddr, ednssubnet, destaddr, qname, qtype);
         }
