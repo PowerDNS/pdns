@@ -309,7 +309,7 @@ string reloadAuthAndForwards()
 }
 
 
-void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, const TSIGTriplet& tt, shared_ptr<SOARecordContent> oursr) 
+void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, const std::string& polName, const TSIGTriplet& tt, shared_ptr<SOARecordContent> oursr)
 {
   int refresh = oursr->d_st.refresh;
   for(;;) {
@@ -351,7 +351,7 @@ void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, const TSIGT
 	}
 	else {
 	  L<<Logger::Info<<"Had removal of "<<rr.d_name<<endl;
-	  RPZRecordToPolicy(rr, luaconfsCopy.dfe, false, boost::optional<DNSFilterEngine::Policy>(), 0);
+	  RPZRecordToPolicy(rr, luaconfsCopy.dfe, polName, false, boost::optional<DNSFilterEngine::Policy>(), 0);
 	}
       }
 
@@ -364,7 +364,7 @@ void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, const TSIGT
 	}
 	else {
 	  L<<Logger::Info<<"Had addition of "<<rr.d_name<<endl;
-	  RPZRecordToPolicy(rr, luaconfsCopy.dfe, true, boost::optional<DNSFilterEngine::Policy>(), 0);
+	  RPZRecordToPolicy(rr, luaconfsCopy.dfe, polName, true, boost::optional<DNSFilterEngine::Policy>(), 0);
 	}
       }
     }

@@ -42,7 +42,7 @@ bool findNamedPolicy(const map<DNSName, DNSFilterEngine::Policy>& polmap, const 
 DNSFilterEngine::Policy DNSFilterEngine::getProcessingPolicy(const DNSName& qname) const
 {
   //  cout<<"Got question for nameserver name "<<qname<<endl;
-  Policy pol{PolicyKind::NoAction, nullptr, 0};
+  Policy pol{PolicyKind::NoAction, nullptr, "", 0};
   for(const auto& z : d_zones) {
     if(findNamedPolicy(z.propolName, qname, pol)) {
       //      cerr<<"Had a hit on the nameserver ("<<qname<<") used to process the query"<<endl;
@@ -57,7 +57,7 @@ DNSFilterEngine::Policy DNSFilterEngine::getQueryPolicy(const DNSName& qname, co
 {
   //  cout<<"Got question for "<<qname<<" from "<<ca.toString()<<endl;
 
-  Policy pol{PolicyKind::NoAction, nullptr, 0};
+  Policy pol{PolicyKind::NoAction, nullptr, "", 0};
   for(const auto& z : d_zones) {
     if(findNamedPolicy(z.qpolName, qname, pol)) {
       //      cerr<<"Had a hit on the name of the query"<<endl;
@@ -92,7 +92,7 @@ DNSFilterEngine::Policy DNSFilterEngine::getPostPolicy(const vector<DNSRecord>& 
 	return fnd->second;
     }
   }
-  return Policy{PolicyKind::NoAction, nullptr, 0};
+  return Policy{PolicyKind::NoAction, nullptr, "", 0};
 }
 
 void DNSFilterEngine::assureZones(int zone)

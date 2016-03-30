@@ -692,6 +692,7 @@ void startDoResolve(void *p)
     vector<uint8_t> packet;
 
     auto luaconfsLocal = g_luaconfs.getLocal();
+    std::string appliedPolicy;
 #ifdef HAVE_PROTOBUF
     PBDNSMessage_DNSResponse protobufResponse;
     if(luaconfsLocal->protobufServer) {
@@ -768,10 +769,12 @@ void startDoResolve(void *p)
       return; 
     case DNSFilterEngine::PolicyKind::NXDOMAIN:
       res=RCode::NXDomain;
+      appliedPolicy=dfepol.d_name;
       goto haveAnswer;
 
     case DNSFilterEngine::PolicyKind::NODATA:
       res=RCode::NoError;
+      appliedPolicy=dfepol.d_name;
       goto haveAnswer;
 
     case DNSFilterEngine::PolicyKind::Custom:
@@ -783,6 +786,7 @@ void startDoResolve(void *p)
       spoofed.d_content = dfepol.d_custom;
       spoofed.d_place = DNSResourceRecord::ANSWER;
       ret.push_back(spoofed);
+      appliedPolicy=dfepol.d_name;
       goto haveAnswer;
 
 
@@ -790,6 +794,7 @@ void startDoResolve(void *p)
       if(!dc->d_tcp) {
 	res=RCode::NoError;	
 	pw.getHeader()->tc=1;
+        appliedPolicy=dfepol.d_name;
 	goto haveAnswer;
       }
       break;
@@ -818,11 +823,13 @@ void startDoResolve(void *p)
       case DNSFilterEngine::PolicyKind::NXDOMAIN:
 	ret.clear();
 	res=RCode::NXDomain;
+        appliedPolicy=dfepol.d_name;
 	goto haveAnswer;
 	
       case DNSFilterEngine::PolicyKind::NODATA:
 	ret.clear();
 	res=RCode::NoError;
+        appliedPolicy=dfepol.d_name;
 	goto haveAnswer;
 	
       case DNSFilterEngine::PolicyKind::Truncate:
@@ -830,6 +837,7 @@ void startDoResolve(void *p)
 	  ret.clear();
 	  res=RCode::NoError;	
 	  pw.getHeader()->tc=1;
+          appliedPolicy=dfepol.d_name;
 	  goto haveAnswer;
 	}
 	break;
@@ -844,6 +852,7 @@ void startDoResolve(void *p)
 	spoofed.d_content = dfepol.d_custom;
 	spoofed.d_place = DNSResourceRecord::ANSWER;
 	ret.push_back(spoofed);
+        appliedPolicy=dfepol.d_name;
 	goto haveAnswer;
       }
 
@@ -995,6 +1004,9 @@ void startDoResolve(void *p)
 #ifdef HAVE_PROTOBUF
     if (luaconfsLocal->protobufServer) {
       protobufResponse.set_rcode(pw.getHeader()->rcode);
+      if (!appliedPolicy.empty()) {
+        protobufResponse.set_appliedpolicy(appliedPolicy);
+      }
       protobufLogResponse(luaconfsLocal->protobufServer, dc, packet.size(), protobufResponse);
     }
 #endif
