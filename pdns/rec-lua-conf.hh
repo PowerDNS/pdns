@@ -2,6 +2,7 @@
 #include "sholder.hh"
 #include "sortlist.hh"
 #include "filterpo.hh"
+#include "remote_logger.hh"
 
 class LuaConfigItems 
 {
@@ -10,6 +11,7 @@ public:
   SortList sortlist;
   DNSFilterEngine dfe;
   map<DNSName,DSRecordContent> dsAnchors;
+  std::shared_ptr<RemoteLogger> protobufServer{nullptr};
 };
 
 extern GlobalStateHolder<LuaConfigItems> g_luaconfs;

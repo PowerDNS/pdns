@@ -38,9 +38,10 @@ message PBDNSMessage {
       optional uint32 class = 3;
       optional uint32 ttl = 4;
       optional bytes rdata = 5;
-  }
+    }
     optional uint32 rcode = 1;
     repeated DNSRR rrs = 2;
+    optional string appliedPolicy = 3;
   }
 
   optional DNSResponse response = 13;

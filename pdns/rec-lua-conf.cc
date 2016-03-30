@@ -13,6 +13,7 @@
 #include "syncres.hh"
 #include "rpzloader.hh"
 #include "base64.hh"
+#include "remote_logger.hh"
 
 GlobalStateHolder<LuaConfigItems> g_luaconfs; 
 
@@ -214,6 +215,26 @@ void loadRecursorLuaConfig(const std::string& fname)
       else
         lci.dsAnchors.clear();
     });
+
+#if HAVE_PROTOBUF
+  Lua.writeFunction("protobufServer", [&lci](const string& server_, const boost::optional<uint16_t> timeout, const boost::optional<uint64_t> maxQueuedEntries, const boost::optional<uint8_t> reconnectWaitTime) {
+      try {
+	ComboAddress server(server_);
+        if (!lci.protobufServer) {
+          lci.protobufServer = std::make_shared<RemoteLogger>(server, timeout ? *timeout : 2, maxQueuedEntries ? *maxQueuedEntries : 100, reconnectWaitTime ? *reconnectWaitTime : 1);
+        }
+        else {
+          theL()<<Logger::Error<<"Only one protobuf server can be configured, we already have "<<lci.protobufServer->toString()<<endl;
+        }
+      }
+      catch(std::exception& e) {
+	theL()<<Logger::Error<<"Error while starting protobuf logger to '"<<server_<<": "<<e.what()<<endl;
+      }
+      catch(PDNSException& e) {
+        theL()<<Logger::Error<<"Error while starting protobuf logger to '"<<server_<<": "<<e.reason<<endl;
+      }
+    });
+#endif
 
   try {
     Lua.executeCode(ifs);

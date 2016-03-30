@@ -1,0 +1,1 @@
+../../../m4/pdns_enable_protobuf.m4
