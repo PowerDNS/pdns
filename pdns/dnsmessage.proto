@@ -45,4 +45,5 @@ message PBDNSMessage {
   }
 
   optional DNSResponse response = 13;
+  optional bytes originalRequestorSubnet = 14;
 }

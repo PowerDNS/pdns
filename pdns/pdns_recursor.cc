@@ -199,6 +199,7 @@ struct DNSComboWriter {
   ComboAddress d_remote, d_local;
 #ifdef HAVE_PROTOBUF
   boost::uuids::uuid d_uuid;
+  Netmask ednssubnet;
 #endif
   bool d_tcp;
   int d_socket;
@@ -629,6 +630,16 @@ static void protobufFillMessageFromDC(PBDNSMessage& message, const DNSComboWrite
   else if (dc->d_remote.sin4.sin_family == AF_INET6) {
     message.set_from(&dc->d_remote.sin6.sin6_addr.s6_addr, sizeof(dc->d_remote.sin6.sin6_addr.s6_addr));
   }
+  if (!dc->ednssubnet.empty()) {
+    const ComboAddress ca = dc->ednssubnet.getNetwork();
+    if (ca.sin4.sin_family == AF_INET) {
+      message.set_originalrequestorsubnet(&ca.sin4.sin_addr.s_addr, sizeof(ca.sin4.sin_addr.s_addr));
+    }
+    else if (ca.sin4.sin_family == AF_INET6) {
+      message.set_originalrequestorsubnet(&ca.sin6.sin6_addr.s6_addr, sizeof(ca.sin6.sin6_addr.s6_addr));
+    }
+  }
+
   struct timespec ts;
   clock_gettime(CLOCK_REALTIME, &ts);
   message.set_timesec(ts.tv_sec);
@@ -1316,6 +1327,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
   string response;
   const struct dnsheader* dh = (struct dnsheader*)question.c_str();
   unsigned int ctag=0;
+  Netmask ednssubnet;
   try {
     uint32_t age;
 #ifdef MALLOC_TRACE
@@ -1334,7 +1346,6 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
       uint16_t qtype=0;
       try {
         DNSName qname;
-        Netmask ednssubnet;
         
         getQNameAndSubnet(question, &qname, &qtype, &ednssubnet);
        
@@ -1413,6 +1424,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
   dc->d_tcp=false;
 #ifdef HAVE_PROTOBUF
   dc->d_uuid = (*t_uuidGenerator)();
+  dc->ednssubnet = ednssubnet;
 #endif
 
   MT->makeThread(startDoResolve, (void*) dc); // deletes dc
