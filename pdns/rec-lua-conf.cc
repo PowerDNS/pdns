@@ -13,6 +13,7 @@
 #include "syncres.hh"
 #include "rpzloader.hh"
 #include "base64.hh"
+#include "remote_logger.hh"
 
 GlobalStateHolder<LuaConfigItems> g_luaconfs; 
 
@@ -88,11 +89,16 @@ void loadRecursorLuaConfig(const std::string& fname)
   Lua.writeFunction("rpzFile", [&lci](const string& fname, const boost::optional<std::unordered_map<string,boost::variant<int, string>>>& options) {
       try {
 	boost::optional<DNSFilterEngine::Policy> defpol;
+	std::string polName;
 	if(options) {
 	  auto& have = *options;
+	  if(have.count("policyName")) {
+	    polName = boost::get<std::string>(constGet(have, "policyName"));
+	  }
 	  if(have.count("defpol")) {
 	    defpol=DNSFilterEngine::Policy();
 	    defpol->d_kind = (DNSFilterEngine::PolicyKind)boost::get<int>(constGet(have, "defpol"));
+	    defpol->d_name = polName;
 	    if(defpol->d_kind == DNSFilterEngine::PolicyKind::Custom) {
 	      defpol->d_custom=
 		shared_ptr<DNSRecordContent>(
@@ -107,9 +113,8 @@ void loadRecursorLuaConfig(const std::string& fname)
 		defpol->d_ttl = -1; // get it from the zone
 	    }
 	  }
-	    
 	}
-	loadRPZFromFile(fname, lci.dfe, defpol, 0);
+	loadRPZFromFile(fname, lci.dfe, polName, defpol, 0);
       }
       catch(std::exception& e) {
 	theL()<<Logger::Error<<"Unable to load RPZ zone from '"<<fname<<"': "<<e.what()<<endl;
@@ -122,13 +127,17 @@ void loadRecursorLuaConfig(const std::string& fname)
 	boost::optional<DNSFilterEngine::Policy> defpol;
         TSIGTriplet tt;
         int refresh=0;
+	std::string polName;
 	if(options) {
 	  auto& have = *options;
-
+	  if(have.count("policyName")) {
+	    polName = boost::get<std::string>(constGet(have, "policyName"));
+	  }
 	  if(have.count("defpol")) {
 	    //	    cout<<"Set a default policy"<<endl;
 	    defpol=DNSFilterEngine::Policy();
 	    defpol->d_kind = (DNSFilterEngine::PolicyKind)boost::get<int>(constGet(have, "defpol"));
+	    defpol->d_name = polName;
 	    if(defpol->d_kind == DNSFilterEngine::PolicyKind::Custom) {
 	      //	      cout<<"Setting a custom field even!"<<endl;
 	      defpol->d_custom=
@@ -141,7 +150,6 @@ void loadRecursorLuaConfig(const std::string& fname)
 		defpol->d_ttl = boost::get<int>(constGet(have, "defttl"));
 	      else
 		defpol->d_ttl = -1; // get it from the zone
-
 	    }
 	  }
 	  if(have.count("tsigname")) {
@@ -157,10 +165,10 @@ void loadRecursorLuaConfig(const std::string& fname)
 	ComboAddress master(master_, 53);
 	DNSName zone(zone_);
 
-	auto sr=loadRPZFromServer(master,zone, lci.dfe, defpol, 0, tt);
+	auto sr=loadRPZFromServer(master, zone, lci.dfe, polName, defpol, 0, tt);
         if(refresh)
           sr->d_st.refresh=refresh;
-	std::thread t(RPZIXFRTracker, master, zone, tt, sr);
+	std::thread t(RPZIXFRTracker, master, zone, polName, tt, sr);
 	t.detach();
       }
       catch(std::exception& e) {
@@ -214,6 +222,26 @@ void loadRecursorLuaConfig(const std::string& fname)
       else
         lci.dsAnchors.clear();
     });
+
+#if HAVE_PROTOBUF
+  Lua.writeFunction("protobufServer", [&lci](const string& server_, const boost::optional<uint16_t> timeout, const boost::optional<uint64_t> maxQueuedEntries, const boost::optional<uint8_t> reconnectWaitTime) {
+      try {
+	ComboAddress server(server_);
+        if (!lci.protobufServer) {
+          lci.protobufServer = std::make_shared<RemoteLogger>(server, timeout ? *timeout : 2, maxQueuedEntries ? *maxQueuedEntries : 100, reconnectWaitTime ? *reconnectWaitTime : 1);
+        }
+        else {
+          theL()<<Logger::Error<<"Only one protobuf server can be configured, we already have "<<lci.protobufServer->toString()<<endl;
+        }
+      }
+      catch(std::exception& e) {
+	theL()<<Logger::Error<<"Error while starting protobuf logger to '"<<server_<<": "<<e.what()<<endl;
+      }
+      catch(PDNSException& e) {
+        theL()<<Logger::Error<<"Error while starting protobuf logger to '"<<server_<<": "<<e.reason<<endl;
+      }
+    });
+#endif
 
   try {
     Lua.executeCode(ifs);

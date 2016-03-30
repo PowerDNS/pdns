@@ -24,7 +24,6 @@ BUILT_SOURCES=htmlfiles.h
 htmlfiles.h: html/*
 	./incfiles > $@
 
-
 SUBDIRS=ext
 
 if LUA
@@ -40,6 +39,7 @@ EXTRA_DIST = \
 	devpollmplexer.cc \
 	dnslabeltext.cc \
 	dnslabeltext.rl \
+	dnsmessage.proto \
 	effective_tld_names.dat \
 	epollmplexer.cc \
 	kqueuemplexer.cc \
@@ -105,6 +105,7 @@ pdns_recursor_SOURCES = \
 	recpacketcache.cc recpacketcache.hh \
 	recursor_cache.cc recursor_cache.hh \
 	reczones.cc \
+	remote_logger.cc remote_logger.hh \
 	resolver.hh resolver.cc \
 	responsestats.hh responsestats.cc \
 	root-addresses.hh \
@@ -166,6 +167,15 @@ if HAVE_SOLARIS
 pdns_recursor_SOURCES += \
 	devpollmplexer.cc \
 	portsmplexer.cc
+endif
+
+dnsmessage.pb.cc: dnsmessage.proto
+	protoc --cpp_out=./ $<
+
+if HAVE_PROTOBUF
+BUILT_SOURCES += dnsmessage.pb.cc
+pdns_recursor_LDADD += $(PROTOBUF_LIBS)
+nodist_pdns_recursor_SOURCES = dnsmessage.pb.cc dnsmessage.pb.h
 endif
 
 rec_control_SOURCES = \
