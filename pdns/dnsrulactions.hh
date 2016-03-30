@@ -365,7 +365,7 @@ public:
   DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
   {
     if(d_qps.check())
-      return Action::Allow;
+      return Action::None;
     else
       return Action::Drop;
   }
