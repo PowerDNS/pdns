@@ -660,7 +660,7 @@ static void protobufLogQuery(const std::shared_ptr<RemoteLogger>& logger, const 
   question.set_qclass(dc->d_mdp.d_qclass);
   message.set_allocated_question(&question);
 
-  cerr <<message.DebugString()<<endl;
+//  cerr <<message.DebugString()<<endl;
   std::string str;
   message.SerializeToString(&str);
   logger->queueData(str);
@@ -676,7 +676,7 @@ static void protobufLogResponse(const std::shared_ptr<RemoteLogger>& logger, con
 
   message.set_allocated_response(&protobufResponse);
 
-  cerr <<message.DebugString()<<endl;
+//  cerr <<message.DebugString()<<endl;
   std::string str;
   message.SerializeToString(&str);
   logger->queueData(str);
