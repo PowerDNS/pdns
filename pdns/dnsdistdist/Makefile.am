@@ -47,6 +47,8 @@ else
 bin_PROGRAMS = dnsdist
 endif
 
+dnsdist-web.$(OBJEXT): htmlfiles.h
+
 dnsdist_SOURCES = \
 	base64.hh \
 	dns.cc dns.hh \
