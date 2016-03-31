@@ -4,6 +4,8 @@ ACLOCAL_AMFLAGS = -I m4
 
 SUBDIRS=ext/yahttp
 
+CLEANFILES = dnsmessage.pb.cc dnsmessage.pb.h
+
 dnslabeltext.cc: dnslabeltext.rl
 	$(AM_V_GEN)$(RAGEL) $< -o dnslabeltext.cc
 
@@ -103,13 +105,18 @@ dnsdist_LDADD += $(RE2_LIBS)
 endif
 
 
-dnsmessage.pb.cc: dnsmessage.proto
-	protoc --cpp_out=./ $<
-
 if HAVE_PROTOBUF
+if HAVE_PROTOC
+dnsmessage.pb.cc: dnsmessage.proto
+	$(AM_V_GEN)$(PROTOC) --cpp_out=./ $<
+
 BUILT_SOURCES += dnsmessage.pb.cc
+
+nodist_dnsdist_SOURCES = dnsmessage.pb.cc dnsmessage.pb.h
 dnsdist_LDADD += $(PROTOBUF_LIBS)
-nodist_dnsdist_SOURCES = dnsmessage.pb.cc dnsmessage.pb.h 
+
+dnsdist.$(OBJEXT): dnsmessage.pb.cc
+endif
 endif
 
 testrunner_SOURCES = \
