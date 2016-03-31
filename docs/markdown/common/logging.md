@@ -38,7 +38,7 @@ To launch the internal webserver, add a [`webserver`](../authoritative/settings.
 ## Via init.d commands
 As mentioned before, the init.d commands **dump**, **show** and **mrtg** fetch data from a running PowerDNS process. Especially **mrtg** is powerful - it outputs data in a format that is ready for processing by the MRTG graphing tool.
 
-MRTG can make insightful graphics on the performance of your nameserver, enabling the operator to easily spot trends. MRTG can be found on the (MRTG website)[http://people.ee.ethz.ch/~oetiker/webtools/mrtg/mrtg.html]
+MRTG can make insightful graphics on the performance of your nameserver, enabling the operator to easily spot trends. MRTG can be found on the [MRTG website](http://oss.oetiker.ch/mrtg/).
 
 A sample mrtg.conf:
 
