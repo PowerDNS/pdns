@@ -36,3 +36,5 @@
 /recursor.conf-dist
 /ext/Makefile
 /ext/Makefile.in
+/dnsmessage.pb.cc
+/dnsmessage.pb.h
