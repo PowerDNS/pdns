@@ -203,7 +203,6 @@ template<class Answer, class Question, class Backend>void *MultiThreadDistributo
 
 	delete QD->Q;
 	QD->callback(a);
-	// do NOT remove this. We want to die on PDNSException
 	throw;
       }
       catch(...) {
