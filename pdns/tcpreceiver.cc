@@ -737,6 +737,22 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
 
   while(sd.db->get(rr)) {
     if(rr.qname.isPartOf(target)) {
+      if (rr.qtype.getCode() == QType::ALIAS) {
+        FindNS fns;
+        vector<string> ips=fns.lookup(DNSName(rr.content), (DNSBackend *) NULL);
+        for(const auto& ip: ips) {
+          if(ip.find(":") == string::npos)
+            rr.qtype = QType(QType::A);
+          else
+            rr.qtype = QType(QType::AAAA);
+          rr.content = ip;
+          rrs.push_back(rr);
+        }
+      }
+      else {
+        rrs.push_back(rr);
+      }
+
       if (rectify) {
         if (rr.qtype.getCode()) {
           qnames.insert(rr.qname);
@@ -747,7 +763,6 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
           continue;
         }
       }
-      rrs.push_back(rr);
     } else {
       if (rr.qtype.getCode())
         L<<Logger::Warning<<"Zone '"<<target<<"' contains out-of-zone data '"<<rr.qname<<"|"<<rr.qtype.getName()<<"', ignoring"<<endl;
