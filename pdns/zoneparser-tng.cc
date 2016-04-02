@@ -265,7 +265,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
   if(!getTemplateLine() && !getLine())
     return false;
 
-  boost::trim_right_if(d_line, is_any_of(" \r\n\x1a"));
+  boost::trim_right_if(d_line, is_any_of(" \t\r\n\x1a"));
   if(comment)
     comment->clear();
   if(comment && d_line.find(';') != string::npos)
@@ -382,7 +382,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
   //  rr.content=d_line.substr(range.first);
   rr.content.assign(d_line, range.first, string::npos);
   chopComment(rr.content);
-  trim_if(rr.content, is_any_of(" \r\n\x1a"));
+  trim_if(rr.content, is_any_of(" \r\n\t\x1a"));
 
   if(rr.content.size()==1 && rr.content[0]=='@')
     rr.content=d_zonename.toString();
@@ -401,7 +401,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
       }
     }
   }
-  trim_if(rr.content, is_any_of(" \r\n\x1a"));
+  trim_if(rr.content, is_any_of(" \r\n\t\x1a"));
 
   vector<string> recparts;
   switch(rr.qtype.getCode()) {
