@@ -326,7 +326,7 @@ bool DNSSECKeeper::setPublishCDS(const DNSName& zname, const string& digestAlgos
   clearCaches(zname);
   vector<string> meta;
   meta.push_back(digestAlgos);
-  return d_keymetadb->setDomainMetadata(zname, "PUBLISH_CDS", meta);
+  return d_keymetadb->setDomainMetadata(zname, "PUBLISH-CDS", meta);
 }
 
 /**
@@ -338,7 +338,7 @@ bool DNSSECKeeper::setPublishCDS(const DNSName& zname, const string& digestAlgos
 bool DNSSECKeeper::unsetPublishCDS(const DNSName& zname)
 {
   clearCaches(zname);
-  return d_keymetadb->setDomainMetadata(zname, "PUBLISH_CDS", vector<string>());
+  return d_keymetadb->setDomainMetadata(zname, "PUBLISH-CDS", vector<string>());
 }
 
 /**
@@ -352,7 +352,7 @@ bool DNSSECKeeper::setPublishCDNSKEY(const DNSName& zname)
   clearCaches(zname);
   vector<string> meta;
   meta.push_back("1");
-  return d_keymetadb->setDomainMetadata(zname, "PUBLISH_CDNSKEY", meta);
+  return d_keymetadb->setDomainMetadata(zname, "PUBLISH-CDNSKEY", meta);
 }
 
 /**
@@ -364,7 +364,7 @@ bool DNSSECKeeper::setPublishCDNSKEY(const DNSName& zname)
 bool DNSSECKeeper::unsetPublishCDNSKEY(const DNSName& zname)
 {
   clearCaches(zname);
-  return d_keymetadb->setDomainMetadata(zname, "PUBLISH_CDNSKEY", vector<string>());
+  return d_keymetadb->setDomainMetadata(zname, "PUBLISH-CDNSKEY", vector<string>());
 }
 
 /**

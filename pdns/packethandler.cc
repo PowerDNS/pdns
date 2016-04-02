@@ -96,7 +96,7 @@ PacketHandler::~PacketHandler()
 bool PacketHandler::addCDNSKEY(DNSPacket *p, DNSPacket *r, const SOAData& sd)
 {
   string publishCDNSKEY;
-  d_dk.getFromMeta(p->qdomain, "PUBLISH_CDNSKEY", publishCDNSKEY);
+  d_dk.getFromMeta(p->qdomain, "PUBLISH-CDNSKEY", publishCDNSKEY);
   if (publishCDNSKEY != "1")
     return false;
 
@@ -177,7 +177,7 @@ bool PacketHandler::addDNSKEY(DNSPacket *p, DNSPacket *r, const SOAData& sd)
 bool PacketHandler::addCDS(DNSPacket *p, DNSPacket *r, const SOAData& sd)
 {
   string publishCDS;
-  d_dk.getFromMeta(p->qdomain, "PUBLISH_CDS", publishCDS);
+  d_dk.getFromMeta(p->qdomain, "PUBLISH-CDS", publishCDS);
   if (publishCDS.empty())
     return false;
 
@@ -448,11 +448,11 @@ void PacketHandler::emitNSEC(DNSPacket *r, const SOAData& sd, const DNSName& nam
     nrc.d_set.insert(QType::SOA); // 1dfd8ad SOA can live outside the records table
     nrc.d_set.insert(QType::DNSKEY);
     string publishCDNSKEY;
-    d_dk.getFromMeta(name, "PUBLISH_CDNSKEY", publishCDNSKEY);
+    d_dk.getFromMeta(name, "PUBLISH-CDNSKEY", publishCDNSKEY);
     if (publishCDNSKEY == "1")
       nrc.d_set.insert(QType::CDNSKEY);
     string publishCDS;
-    d_dk.getFromMeta(name, "PUBLISH_CDS", publishCDS);
+    d_dk.getFromMeta(name, "PUBLISH-CDS", publishCDS);
     if (! publishCDS.empty())
       nrc.d_set.insert(QType::CDS);
   }
@@ -492,11 +492,11 @@ void PacketHandler::emitNSEC3(DNSPacket *r, const SOAData& sd, const NSEC3PARAMR
       n3rc.d_set.insert(QType::NSEC3PARAM);
       n3rc.d_set.insert(QType::DNSKEY);
       string publishCDNSKEY;
-      d_dk.getFromMeta(name, "PUBLISH_CDNSKEY", publishCDNSKEY);
+      d_dk.getFromMeta(name, "PUBLISH-CDNSKEY", publishCDNSKEY);
       if (publishCDNSKEY == "1")
         n3rc.d_set.insert(QType::CDNSKEY);
       string publishCDS;
-      d_dk.getFromMeta(name, "PUBLISH_CDS", publishCDS);
+      d_dk.getFromMeta(name, "PUBLISH-CDS", publishCDS);
       if (! publishCDS.empty())
         n3rc.d_set.insert(QType::CDS);
     }
