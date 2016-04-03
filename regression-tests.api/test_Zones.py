@@ -957,9 +957,8 @@ fred   IN  A      192.168.0.4
 
     def test_zone_auto_ptr_ipv4(self):
         revzone = '0.2.192.in-addr.arpa.'
-        self.create_zone(name=revzone)
+        _, _, revzonedata = self.create_zone(name=revzone)
         name, payload, zone = self.create_zone()
-        # replace with qname mismatch
         rrset = {
             'changetype': 'replace',
             'name': name,
@@ -979,8 +978,8 @@ fred   IN  A      192.168.0.4
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assert_success_json(r)
-        r = self.session.get(self.url("/api/v1/servers/localhost/zones/" + revzone))
-        revsets = [s for s in r.json()['rrsets'] if s['type'] == 'PTR']
+        r = self.session.get(self.url("/api/v1/servers/localhost/zones/" + revzone)).json()
+        revsets = [s for s in r['rrsets'] if s['type'] == 'PTR']
         print revsets
         self.assertEquals(revsets, [{
             u'name': u'2.0.2.192.in-addr.arpa.',
@@ -992,13 +991,14 @@ fred   IN  A      192.168.0.4
                 u'disabled': False,
             }],
         }])
+        # with SOA-EDIT-API DEFAULT on the revzone, the serial should now be higher.
+        self.assertGreater(r['serial'], revzonedata['serial'])
 
     def test_zone_auto_ptr_ipv6(self):
         # 2001:DB8::bb:aa
         revzone = '8.b.d.0.1.0.0.2.ip6.arpa.'
-        self.create_zone(name=revzone)
+        _, _, revzonedata = self.create_zone(name=revzone)
         name, payload, zone = self.create_zone()
-        # replace with qname mismatch
         rrset = {
             'changetype': 'replace',
             'name': name,
@@ -1018,8 +1018,8 @@ fred   IN  A      192.168.0.4
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assert_success_json(r)
-        r = self.session.get(self.url("/api/v1/servers/localhost/zones/" + revzone))
-        revsets = [s for s in r.json()['rrsets'] if s['type'] == 'PTR']
+        r = self.session.get(self.url("/api/v1/servers/localhost/zones/" + revzone)).json()
+        revsets = [s for s in r['rrsets'] if s['type'] == 'PTR']
         print revsets
         self.assertEquals(revsets, [{
             u'name': u'a.a.0.0.b.b.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa.',
@@ -1031,6 +1031,8 @@ fred   IN  A      192.168.0.4
                 u'disabled': False,
             }],
         }])
+        # with SOA-EDIT-API DEFAULT on the revzone, the serial should now be higher.
+        self.assertGreater(r['serial'], revzonedata['serial'])
 
     def test_search_rr_exact_zone(self):
         name = unique_zone_name()
