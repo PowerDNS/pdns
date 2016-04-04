@@ -176,6 +176,10 @@ int main(int argc, char **argv)
     cerr<<"Fatal error: "<<ae.reason<<endl;
     return 1;
   }
+  catch(const std::runtime_error& e) {
+    cerr<<"Runtime error: "<<e.what()<<endl;
+    return 2;
+  }
   return 0;
 }
 

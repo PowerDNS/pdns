@@ -141,7 +141,7 @@ public:
   void go();
 
   void serveConnection(Socket *client);
-  HttpResponse handleRequest(HttpRequest request);
+  void handleRequest(HttpRequest& request, HttpResponse& resp);
 
   typedef boost::function<void(HttpRequest* req, HttpResponse* resp)> HandlerFunction;
   void registerApiHandler(const string& url, HandlerFunction handler);

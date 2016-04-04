@@ -53,6 +53,8 @@ public:
     d_dolog = dolog;
     d_residx = 0;
     d_paridx = 0;
+    d_result = SQL_NO_DATA;
+    m_columncount = 0;
 
     // Allocate statement handle.
     result = SQLAllocHandle( SQL_HANDLE_STMT, d_conn, &d_statement );
@@ -232,7 +234,6 @@ public:
 private:
   string d_query;
   bool d_dolog;
-  bool d_havenextrow;
   int d_residx;
   size_t d_paridx,d_parnum;
   SQLRETURN d_result;

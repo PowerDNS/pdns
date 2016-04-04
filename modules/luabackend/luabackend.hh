@@ -97,7 +97,7 @@ public:
 private:
 
     pthread_t backend_pid;
-    unsigned int backend_count;
+    unsigned int backend_count{0};
 
     int f_lua_exec_error;
 

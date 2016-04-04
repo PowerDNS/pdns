@@ -191,7 +191,7 @@ try
     sockets.push_back(sock);
   }
   new thread(recvThread, &sockets);
-  int qps=atoi(argv[3]);
+  int qps;
 
   ofstream plot("plot");
   for(qps=qpsstart;;qps *= 1.1) {

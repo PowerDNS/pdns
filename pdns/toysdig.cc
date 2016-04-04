@@ -60,8 +60,10 @@ public:
     int numread;
     while(n<len) {
       numread=d_rsock.read(creply+n, len-n);
-      if(numread<0)
+      if(numread<0) {
+        delete[] creply;
         throw PDNSException("tcp read failed: "+std::string(strerror(errno)));
+      }
       n+=numread;
     }
 

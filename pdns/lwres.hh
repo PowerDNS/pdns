@@ -60,10 +60,10 @@ public:
   LWResult() : d_usec(0) {}
 
   vector<DNSRecord> d_records;
-  int d_rcode;
-  bool d_aabit, d_tcbit;
-  uint32_t d_usec;
-  bool d_haveEDNS;
+  int d_rcode{0};
+  bool d_aabit{false}, d_tcbit{false};
+  uint32_t d_usec{0};
+  bool d_haveEDNS{false};
 };
 
 int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res);

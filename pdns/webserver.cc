@@ -209,10 +209,8 @@ static void *WebServerConnectionThreadStart(void *p) {
   return NULL;
 }
 
-HttpResponse WebServer::handleRequest(HttpRequest req)
+void WebServer::handleRequest(HttpRequest& req, HttpResponse& resp)
 {
-  HttpResponse resp;
-
   // set default headers
   resp.headers["Content-Type"] = "text/html; charset=utf-8";
 
@@ -286,8 +284,6 @@ HttpResponse WebServer::handleRequest(HttpRequest req)
   } else {
     resp.headers["Content-Length"] = std::to_string(resp.body.size());
   }
-
-  return resp;
 }
 
 void WebServer::serveConnection(Socket *client)
@@ -316,7 +312,8 @@ try {
     // request stays incomplete
   }
 
-  HttpResponse resp = WebServer::handleRequest(req);
+  HttpResponse resp;
+  WebServer::handleRequest(req, resp);
   ostringstream ss;
   resp.write(ss);
   string reply = ss.str();

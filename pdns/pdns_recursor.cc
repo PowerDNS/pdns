@@ -1150,7 +1150,9 @@ void makeControlChannelSocket(int processNum=-1)
   // do mode change if socket-mode is given
   if(!::arg().isEmpty("socket-mode")) {
     mode_t sockmode=::arg().asMode("socket-mode");
-    chmod(sockname.c_str(), sockmode);
+    if(chmod(sockname.c_str(), sockmode) < 0) {
+      unixDie("Failed to chmod control socket");
+    }
   }
 }
 

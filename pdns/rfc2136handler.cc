@@ -596,6 +596,10 @@ int PacketHandler::forwardPacket(const string &msgPrefix, DNSPacket *p, DomainIn
     else
       local = ComboAddress("::");
     int sock = makeQuerySocket(local, false); // create TCP socket. RFC2136 section 6.2 seems to be ok with this.
+    if(sock < 0) {
+      L<<Logger::Error<<msgPrefix<<"Error creating socket: "<<stringerror()<<endl;
+      continue;
+    }
 
     if( connect(sock, (struct sockaddr*)&remote, remote.getSocklen()) < 0 ) {
       L<<Logger::Error<<msgPrefix<<"Failed to connect to "<<remote.toStringWithPort()<<": "<<stringerror()<<endl;

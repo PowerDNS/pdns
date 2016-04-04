@@ -144,15 +144,15 @@ public:
   includeboilerplate(TSIG)
   TSIGRecordContent() {}
 
-  uint16_t d_origID;
-  uint16_t d_fudge;
+  uint16_t d_origID{0};
+  uint16_t d_fudge{0};
 
   DNSName d_algoName;
   string d_mac;
   string d_otherData;
-  uint64_t d_time;
+  uint64_t d_time{0};
   //  uint16_t d_macSize;
-  uint16_t d_eRcode;
+  uint16_t d_eRcode{0};
   // uint16_t d_otherLen
 };
 
@@ -281,9 +281,9 @@ public:
   uint16_t getTag() const;
   uint16_t getTag();
 
-  uint16_t d_flags;
-  uint8_t d_protocol;
-  uint8_t d_algorithm;
+  uint16_t d_flags{0};
+  uint8_t d_protocol{0};
+  uint8_t d_algorithm{0};
   string d_key;
   bool operator<(const DNSKEYRecordContent& rhs) const
   {
@@ -299,9 +299,9 @@ public:
   includeboilerplate(CDNSKEY)
   uint16_t getTag();
 
-  uint16_t d_flags;
-  uint8_t d_protocol;
-  uint8_t d_algorithm;
+  uint16_t d_flags{0};
+  uint8_t d_protocol{0};
+  uint8_t d_algorithm{0};
   string d_key;
 };
 
@@ -322,8 +322,8 @@ public:
 
   includeboilerplate(DS)
 
-  uint16_t d_tag;
-  uint8_t d_algorithm, d_digesttype;
+  uint16_t d_tag{0};
+  uint8_t d_algorithm{0}, d_digesttype{0};
   string d_digest;
 };
 
@@ -333,8 +333,8 @@ public:
   CDSRecordContent();
   includeboilerplate(CDS)
 
-  uint16_t d_tag;
-  uint8_t d_algorithm, d_digesttype;
+  uint16_t d_tag{0};
+  uint8_t d_algorithm{0}, d_digesttype{0};
   string d_digest;
 };
 
@@ -344,8 +344,8 @@ public:
   DLVRecordContent();
   includeboilerplate(DLV)
 
-  uint16_t d_tag;
-  uint8_t d_algorithm, d_digesttype;
+  uint16_t d_tag{0};
+  uint8_t d_algorithm{0}, d_digesttype{0};
   string d_digest;
 };
 
@@ -419,12 +419,12 @@ public:
   RRSIGRecordContent(); 
   includeboilerplate(RRSIG)
 
-  uint16_t d_type;
-  uint16_t d_tag;
+  uint16_t d_type{0};
+  uint16_t d_tag{0};
   DNSName d_signer;
   string d_signature;
-  uint32_t d_originalttl, d_sigexpire, d_siginception;
-  uint8_t d_algorithm, d_labels;
+  uint32_t d_originalttl{0}, d_sigexpire{0}, d_siginception{0};
+  uint8_t d_algorithm{0}, d_labels{0};
 };
 
 //namespace {
@@ -443,8 +443,8 @@ class RKEYRecordContent : public DNSRecordContent
 public:
   RKEYRecordContent();
   includeboilerplate(RKEY)
-  uint16_t d_flags;
-  uint8_t d_protocol, d_algorithm;
+  uint16_t d_flags{0};
+  uint8_t d_protocol{0}, d_algorithm{0};
   string d_key;
 };
 
@@ -493,8 +493,8 @@ public:
   string getZoneRepresentation(bool noDot=false) const override;
   void toPacket(DNSPacketWriter& pw) override;
 
-  uint8_t d_algorithm, d_flags;
-  uint16_t d_iterations;
+  uint8_t d_algorithm{0}, d_flags{0};
+  uint16_t d_iterations{0};
   string d_salt;
   string d_nexthash;
   std::set<uint16_t> d_set;
@@ -528,8 +528,8 @@ public:
   }
 
 
-  uint8_t d_algorithm, d_flags;
-  uint16_t d_iterations;
+  uint8_t d_algorithm{0}, d_flags{0};
+  uint16_t d_iterations{0};
   string d_salt;
 };
 
@@ -547,8 +547,8 @@ public:
   string getZoneRepresentation(bool noDot=false) const override;
   void toPacket(DNSPacketWriter& pw) override;
 
-  uint8_t d_version, d_size, d_horizpre, d_vertpre;
-  uint32_t d_latitude, d_longitude, d_altitude;
+  uint8_t d_version{0}, d_size{0}, d_horizpre{0}, d_vertpre{0};
+  uint32_t d_latitude{0}, d_longitude{0}, d_altitude{0};
   uint16_t getType() const override
   {
     return QType::LOC;
@@ -571,7 +571,7 @@ public:
   string getZoneRepresentation(bool noDot=false) const override;
   void toPacket(DNSPacketWriter& pw) override;
 
-  uint32_t d_ip;
+  uint32_t d_ip{0};
   std::bitset<65535> d_services;
 private:
 };
@@ -613,17 +613,17 @@ public:
   includeboilerplate(TKEY)
 
   // storage for the bytes
-  uint16_t d_othersize;
-  uint16_t d_mode;
-  uint32_t d_inception;
-  uint32_t d_expiration;
+  uint16_t d_othersize{0};
+  uint16_t d_mode{0};
+  uint32_t d_inception{0};
+  uint32_t d_expiration{0};
 
   DNSName d_algo;
   string d_key;
   string d_other;
 
-  uint16_t d_error;
-  uint16_t d_keysize;
+  uint16_t d_error{0};
+  uint16_t d_keysize{0};
 private:
 };
 
