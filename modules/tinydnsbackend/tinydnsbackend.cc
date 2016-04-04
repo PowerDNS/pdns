@@ -312,7 +312,7 @@ public:
     declare(suffix, "dbfile", "Location of the cdb data file", "data.cdb");
     declare(suffix, "tai-adjust", "This adjusts the TAI value if timestamps are used. These seconds will be added to the start point (1970) and will allow you to adjust for leap seconds. The default is 11.", "11");
     declare(suffix, "locations", "Enable or Disable location support in the backend. Changing the value to 'no' will make the backend ignore the locations. This then returns all records!", "yes");
-    declare(suffix, "ignore-bogus-records", "The data.cdb file might have some wront record data, this causes PowerDNS to fail, where tinydns would send out truncated data. This option makes powerdns ignore that data!", "no");
+    declare(suffix, "ignore-bogus-records", "The data.cdb file might have some incorrect record data, this causes PowerDNS to fail, where tinydns would send out truncated data. This option makes powerdns ignore that data!", "no");
   }
 
   DNSBackend *make(const string &suffix="") {
