@@ -87,6 +87,12 @@ pdns_server_SOURCES += cryptoppsigners.cc
 pdns_server_LDADD += $(CRYPTOPP_LIBS)
 endif
 
+if OPENSSL
+pdns_server_SOURCES += opensslsigners.cc opensslsigners.hh
+pdns_server_LDFLAGS += $(OPENSSL_LDFLAGS)
+pdns_server_LDADD += $(OPENSSL_LIBS)
+endif
+
 if SQLITE3
 pdns_server_SOURCES += ssqlite3.cc ssqlite3.hh
 endif
@@ -172,6 +178,12 @@ endif
 if CRYPTOPP
 pdnssec_SOURCES += cryptoppsigners.cc
 pdnssec_LDADD += -lcryptopp
+endif
+
+if OPENSSL
+pdnssec_SOURCES += opensslsigners.cc opensslsigners.hh
+pdnssec_LDFLAGS += $(OPENSSL_LDFLAGS)
+pdnssec_LDADD += $(OPENSSL_LIBS)
 endif
 
 if SQLITE3

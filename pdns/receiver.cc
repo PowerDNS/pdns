@@ -43,6 +43,9 @@
 #include <fcntl.h>
 #include <fstream>
 #include <boost/algorithm/string.hpp>
+#ifdef HAVE_OPENSSL
+#include "opensslsigners.hh"
+#endif
 
 #include "config.h"
 #include "dns.hh"
@@ -482,6 +485,12 @@ int main(int argc, char **argv)
 
     seedRandom(::arg()["entropy-source"]);
     
+
+#ifdef HAVE_OPENSSL
+    openssl_thread_setup();
+    openssl_seed();
+#endif
+
     loadModules();
     BackendMakers().launch(::arg()["launch"]); // vrooooom!
 
