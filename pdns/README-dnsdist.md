@@ -264,12 +264,14 @@ We can similarly add clients to the abuse server:
 > addPoolRule({"192.168.12.0/24", "192.168.13.14"}, "abuse")
 ```
 
-To define a pool that should receive a QPS-limited amount of traffic, do:
+To define a pool that should receive only a QPS-limited amount of traffic, do:
 
 ```
 > addQPSPoolRule("com.", 10000, "gtld-cluster")
 ```
 
+Traffic exceeding the QPS limit will not match that rule, and subsequent
+rules will apply normally.
 
 Both `addDomainBlock` and `addPoolRule` end up the list of Rules 
 and Actions (for which see below).
@@ -422,7 +424,7 @@ addAction(MaxQPSIPRule(5), TCAction())
 This will respectively drop traffic exceeding that 5 QPS limit per IP or range, or return it with TC=1, forcing
 clients to fall back to TCP/IP.
 
-To turn this per IP or range limit into a global limit, use MaxQPSRule(5000) instead of MaxQPSIPRule.
+To turn this per IP or range limit into a global limit, use NotRule(MaxQPSRule(5000)) instead of MaxQPSIPRule.
 
 Lua actions in rules
 --------------------
@@ -996,7 +998,7 @@ instantiate a server with additional parameters
     * `AndRule()`: matches if all sub-rules matches
     * `DNSSECRule()`: matches queries with the DO flag set
     * `MaxQPSIPRule(qps, v4Mask=32, v6Mask=64)`: matches traffic exceeding the qps limit per subnet
-    * `MaxQPSRule(qps)`: matches traffic not exceeding this qps limit
+    * `MaxQPSRule(qps)`: matches traffic **not** exceeding this qps limit
     * `NetmaskGroupRule()`: matches traffic from the specified network range
     * `NotRule()`: matches if the sub-rule does not match
     * `OrRule()`: matches if at least one of the sub-rules matches
@@ -1019,7 +1021,7 @@ instantiate a server with additional parameters
     * `LogAction([filename], [binary])`: Log a line for each query, to the specified file if any, to the console (require verbose) otherwise. When logging to a file, the `binary` optional parameter specifies whether we log in binary form (default) or in textual form
     * `NoRecurseAction()`: strip RD bit from the question, let it go through
     * `PoolAction(poolname)`: set the packet into the specified pool
-    * `QPSPoolAction(maxqps, poolname)`: set the packet into the specified pool only if it does not exceed the specified QPS limits
+    * `QPSPoolAction(maxqps, poolname)`: set the packet into the specified pool only if it **does not** exceed the specified QPS limits, letting the subsequent rules apply otherwise
     * `QPSAction(rule, maxqps)`: drop these packets if the QPS limits are exceeded
     * `RCodeAction(rcode)`: reply immediatly by turning the query into a response with the specified rcode
     * `SkipCacheAction()`: don't lookup the cache for this query, don't store the answer
@@ -1041,7 +1043,7 @@ instantiate a server with additional parameters
     * `addPoolRule({domain, domain}, pool)`: send queries to these domains to that pool
     * `addPoolRule(netmask, pool)`: send queries to this netmask to that pool
     * `addPoolRule({netmask, netmask}, pool)`: send queries to these netmasks to that pool  
-    * `addQPSPoolRule(x, limit, pool)`: like `addPoolRule`, but only select at most 'limit' queries/s for this pool
+    * `addQPSPoolRule(x, limit, pool)`: like `addPoolRule`, but only select at most 'limit' queries/s for this pool, letting the subsequent rules apply otherwise
     * `getPool(poolname)`: return the ServerPool named `poolname`
     * `getPoolServers(pool)`: return servers part of this pool
     * `showPools()`: list the current server pools
