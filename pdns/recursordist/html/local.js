@@ -56,7 +56,7 @@ $(document).ready(function() {
     function updateRingBuffers()
     {
 	var filtered=$("#filter1").is(':checked')
-	var qstring='/jsonstat?api-key='+password+'&command=get-query-ring&name=queries';
+	var qstring='jsonstat?api-key='+password+'&command=get-query-ring&name=queries';
 
 	if(filtered)
 	    qstring=qstring+"&public-filtered=1";
@@ -84,7 +84,7 @@ $(document).ready(function() {
 		  });
 
 	filtered=$("#filter2").is(':checked')
-	qstring='/jsonstat?api-key='+password+'&command=get-query-ring&name=servfail-queries';
+	qstring='jsonstat?api-key='+password+'&command=get-query-ring&name=servfail-queries';
 
 	if(filtered)
 	    qstring=qstring+"&public-filtered=1";
@@ -109,7 +109,7 @@ $(document).ready(function() {
 
 		  });
 
-	$.getJSON('/jsonstat?api-key='+password+'&command=get-remote-ring&name=remotes', 
+	$.getJSON('jsonstat?api-key='+password+'&command=get-remote-ring&name=remotes', 
 		  function(data) {
 		      var bouw="<table><tr><th>Number</th><th>Remote</th></tr>";
 		      var num=0, total=0, rest=0;
@@ -127,7 +127,7 @@ $(document).ready(function() {
 
 		  });
 
-	$.getJSON('/jsonstat?api-key='+password+'&command=get-remote-ring&name=servfail-remotes', 
+	$.getJSON('jsonstat?api-key='+password+'&command=get-remote-ring&name=servfail-remotes', 
 		  function(data) {
 		      var bouw="<table><tr><th>Number</th><th>Servfail Remote</th></tr>";
 		      var num=0, total=0, rest=0;
@@ -151,7 +151,7 @@ $(document).ready(function() {
     function update()
     {
 	$.ajax({
-            url: '/api/v1/servers/localhost/statistics?api-key='+password,
+            url: 'api/v1/servers/localhost/statistics?api-key='+password,
             type: 'GET',
             dataType: 'json',
             success: function(adata, x, y) {
@@ -203,7 +203,7 @@ $(document).ready(function() {
 	    }
         });
 	
-	$.ajax({ url: '/api/v1/servers/localhost?api-key='+password, type: 'GET', dataType: 'json',
+	$.ajax({ url: 'api/v1/servers/localhost?api-key='+password, type: 'GET', dataType: 'json',
 		 success: function(data) {
 		     $("#version").text("PowerDNS "+data["daemon_type"]+" "+data["version"]);
 		 }
