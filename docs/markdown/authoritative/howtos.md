@@ -203,7 +203,7 @@ pdnsutil show-zone example.net
 ```
 
 And communicate this securely to your registrar/parent zone. Now wait until the
-new DS is published in the parent zone and at least the TLL for the DS records
+new DS is published in the parent zone and at least the TTL for the DS records
 has passed. The rollover is now in the "DS Change" state and can continue to the
 "DNSKEY Removal" stage by actually deleting the old KSK.
 
