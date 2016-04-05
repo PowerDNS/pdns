@@ -146,6 +146,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
 
     bool first=true;
     bool firstNSEC3=true;
+    bool soa_received = false;
     unsigned int soa_serial = 0;
     set<string> nsset, qnames, secured;
     vector<DNSResourceRecord> rrs;
@@ -198,11 +199,12 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
               continue;
             }
             case QType::SOA: {
-              if(soa_serial != 0)
+              if(soa_received)
                 continue; //skip the last SOA
               SOAData sd;
               fillSOAData(rr.content,sd);
               soa_serial = sd.serial;
+              soa_received = true;
               break;
             }
             case QType::NS: {
