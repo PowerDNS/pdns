@@ -125,3 +125,29 @@ recursor-3.6.2-1.fc22.fedora.security-status            60 IN TXT "3 Upgrade now
 recursor-3.6.2-1.el5.fedora.security-status             60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
 recursor-3.6.2-1.el6.fedora.security-status             60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
 recursor-3.6.2-1.el7.fedora.security-status             60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
+
+
+;; Builder Generated packages (auth)
+
+; Debian
+auth-4.0.0_alpha2-1pdns.jessie.debian.security-status   60 IN TXT "0 Unknown, prerelease"
+
+; Ubuntu
+auth-4.0.0_alpha2-1pdns.wily.ubuntu.security-status     60 IN TXT "0 Unknown, prerelease"
+auth-4.0.0_alpha2-1pdns.trusty.ubuntu.security-status   60 IN TXT "0 Unknown, prerelease"
+
+; Raspbian
+auth-4.0.0_alpha2-1pdns.jessie.raspbian.security-status 60 IN TXT "0 Unknown, prerelease"
+
+
+;; Builder Generated packages (recursor)
+
+; Debian
+recursor-4.0.0_alpha2-1pdns.jessie.debian.security-status 60 IN TXT "0 Unknown, prerelease"
+
+; Ubuntu
+recursor-4.0.0_alpha2-1pdns.wily.ubuntu.security-status   60 IN TXT "0 Unknown, prerelease"
+recursor-4.0.0_alpha2-1pdns.trusty.ubuntu.security-status 60 IN TXT "0 Unknown, prerelease"
+
+; Raspbian
+recursor-4.0.0_alpha2-1pdns.jessie.raspbian.security-status 60 IN TXT "0 Unknown, prerelease"
