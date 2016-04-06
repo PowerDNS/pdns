@@ -38,7 +38,7 @@ The `tinydns-data` program can create data.cdb files that have bad/corrupt RDATA
 
 ### `tinydns-locations`
 * Boolean
-* Default: no
+* Default: yes
 Enable or Disable location support in the backend. Changing the value to 'no' will make the backend ignore the locations. This then returns all records. When the setting is changed to 'no' an AXFR will also return all the records. With the setting on 'yes' an AXFR will only return records without a location.
 
 ## Location and Timestamp support
