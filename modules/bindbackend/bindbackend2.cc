@@ -1,4 +1,4 @@
-  /*
+/*
     PowerDNS Versatile Database Driven Nameserver
     Copyright (C) 2002 - 2014  PowerDNS.COM BV
 
@@ -457,15 +457,9 @@ void Bind2Backend::parseZoneFile(BB2DomainInfo *bbd)
     if(rr.qtype.getCode() == QType::NSEC || rr.qtype.getCode() == QType::NSEC3)
       continue; // we synthesise NSECs on demand
 
-    if(nsec3zone) {
-      if(rr.qtype.getCode() != QType::NSEC3 && rr.qtype.getCode() != QType::RRSIG)
-        hashed=toBase32Hex(hashQNameWithSalt(ns3pr, rr.qname));
-      else
-        hashed="";
-    }
-    insertRecord(*bbd, rr.qname, rr.qtype, rr.content, rr.ttl, hashed);
+    insertRecord(*bbd, rr.qname, rr.qtype, rr.content, rr.ttl, "");
   }
-  fixupAuth(bbd->d_records.getWRITABLE());
+  fixupOrderAndAuth(*bbd, nsec3zone, ns3pr);
   doEmptyNonTerminals(*bbd, nsec3zone, ns3pr);
   bbd->setCtime();
   bbd->d_loaded=true; 
@@ -656,43 +650,55 @@ void Bind2Backend::reload()
   }
 }
 
-void Bind2Backend::fixupAuth(shared_ptr<recordstorage_t> records)
+void Bind2Backend::fixupOrderAndAuth(BB2DomainInfo& bbd, bool nsec3zone, NSEC3PARAMRecordContent ns3pr)
 {
-  pair<recordstorage_t::const_iterator, recordstorage_t::const_iterator> range;
-  DNSName sqname;
-  
-  recordstorage_t nssets;
-  for(const Bind2DNSRecord& bdr :  *records) {
-    if(bdr.qtype==QType::NS) 
-      nssets.insert(bdr);
-  }
-  
-  for(const Bind2DNSRecord& bdr :  *records) {
-    bdr.auth=true;
-    
-    if(bdr.qtype == QType::DS) // as are delegation signer records
-      continue;
+  shared_ptr<recordstorage_t> records = bbd.d_records.getWRITABLE();
+  recordstorage_t::const_iterator iter;
 
-    sqname = bdr.qname;
-    
-    do {
-      if(sqname.empty() || sqname.isRoot()) // this is auth of course!
-        continue; 
-      if(bdr.qtype == QType::NS || nssets.count(sqname)) { // NS records which are not apex are unauth by definition
-        bdr.auth=false;
-      }
-    } while(sqname.chopOff());
+  bool skip;
+  DNSName shorter;
+  set<DNSName> nssets, dssets;
+
+  for(const auto& bdr: *records) {
+    if(!bdr.qname.isRoot() && bdr.qtype == QType::NS)
+      nssets.insert(bdr.qname);
+    else if(bdr.qtype == QType::DS)
+      dssets.insert(bdr.qname);
+  }
+
+  for(auto iter = records->begin(); iter != records->end(); iter++) {
+    skip = false;
+    shorter = iter->qname;
+
+    if (!iter->qname.isRoot() && shorter.chopOff() && !iter->qname.isRoot()) {
+      do {
+        if(nssets.count(shorter)) {
+          skip = true;
+          break;
+        }
+      } while(shorter.chopOff() && !iter->qname.isRoot());
+    }
+
+    iter->auth = (!skip && (iter->qtype == QType::DS || iter->qtype == QType::RRSIG || !nssets.count(iter->qname)));
+
+    if(!skip && nsec3zone && iter->qtype != QType::RRSIG && (iter->auth || (iter->qtype == QType::NS && !ns3pr.d_flags) || dssets.count(iter->qname))) {
+      Bind2DNSRecord bdr = *iter;
+      bdr.nsec3hash = toBase32Hex(hashQNameWithSalt(ns3pr, bdr.qname+bbd.d_name));
+      records->replace(iter, bdr);
+    }
+
+    // cerr<<iter->qname.toString()<<"\t"<<QType(iter->qtype).getName()<<"\t"<<iter->nsec3hash<<"\t"<<iter->auth<<endl;
   }
 }
 
 void Bind2Backend::doEmptyNonTerminals(BB2DomainInfo& bbd, bool nsec3zone, NSEC3PARAMRecordContent ns3pr)
 {
   shared_ptr<const recordstorage_t> records = bbd.d_records.get();
-  bool auth, doent=true;
+
+  bool auth;
+  DNSName shorter;
   set<DNSName> qnames;
   map<DNSName, bool> nonterm;
-  DNSName shorter;
-  string hashed;
 
   uint32_t maxent = ::arg().asNum("max-ent-entries");
 
@@ -700,13 +706,13 @@ void Bind2Backend::doEmptyNonTerminals(BB2DomainInfo& bbd, bool nsec3zone, NSEC3
     qnames.insert(bdr.qname);
 
   for(const auto& bdr : *records) {
-    shorter=bdr.qname;
 
     if (!bdr.auth && bdr.qtype == QType::NS)
-      auth=(!nsec3zone || !ns3pr.d_flags);
+      auth = (!nsec3zone || !ns3pr.d_flags);
     else
-      auth=bdr.auth;
+      auth = bdr.auth;
 
+    shorter = bdr.qname;
     while(shorter.chopOff())
     {
       if(!qnames.count(shorter))
@@ -714,31 +720,31 @@ void Bind2Backend::doEmptyNonTerminals(BB2DomainInfo& bbd, bool nsec3zone, NSEC3
         if(!(maxent))
         {
           L<<Logger::Error<<"Zone '"<<bbd.d_name<<"' has too many empty non terminals."<<endl;
-          doent=false;
-          break;
+          return;
         }
 
         if (!nonterm.count(shorter)) {
           nonterm.insert(pair<DNSName, bool>(shorter, auth));
           --maxent;
         } else if (auth)
-          nonterm[shorter]=true;
+          nonterm[shorter] = true;
       }
     }
-    if(!doent)
-      return;
   }
 
   DNSResourceRecord rr;
-  rr.qtype="#0";
-  rr.content="";
-  rr.ttl=0;
-  for(auto &nt: nonterm)
+  rr.qtype = "#0";
+  rr.content = "";
+  rr.ttl = 0;
+  for(auto& nt : nonterm)
   {
-    rr.qname=nt.first+bbd.d_name;
-    if(nsec3zone)
-      hashed=toBase32Hex(hashQNameWithSalt(ns3pr, rr.qname));
+    string hashed;
+    rr.qname = nt.first + bbd.d_name;
+    if(nsec3zone && nt.second)
+      hashed = toBase32Hex(hashQNameWithSalt(ns3pr, rr.qname));
     insertRecord(bbd, rr.qname, rr.qtype, rr.content, rr.ttl, hashed, &nt.second);
+
+    // cerr<<rr.qname<<"\t"<<rr.qtype.getName()<<"\t"<<hashed<<"\t"<<nt.second<<endl;
   }
 }
 
@@ -962,85 +968,32 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
     return findBeforeAndAfterUnhashed(bbd, dqname, unhashed, before, after);
   }
   else {
-    string lqname = toLower(qname);
-    // cerr<<"\nin bind2backend::getBeforeAndAfterAbsolute: nsec3 HASH for "<<auth<<", asked for: "<<lqname<< " (auth: "<<auth<<".)"<<endl;
     typedef recordstorage_t::index<HashedTag>::type records_by_hashindex_t;
-    records_by_hashindex_t& hashindex=boost::multi_index::get<HashedTag>(*bbd.d_records.getWRITABLE()); // needlessly dangerous
-    
-//    for(const Bind2DNSRecord& bdr :  hashindex) {
-//      cerr<<"Hash: "<<bdr.nsec3hash<<"\t"<< (lqname < bdr.nsec3hash) <<endl;
-//    }
+    records_by_hashindex_t& hashindex=boost::multi_index::get<HashedTag>(*bbd.d_records.getWRITABLE());
 
-    records_by_hashindex_t::const_iterator iter;
-    bool wraponce;
+    records_by_hashindex_t::const_iterator iter, first;
+    first = hashindex.upper_bound(""); // skip records without a hash
 
-    if (before.empty()) {
-      iter = hashindex.upper_bound(lqname);
+    // for(auto iter = first; iter != hashindex.end(); iter++)
+    //   cerr<<iter->nsec3hash<<endl;
 
-      if(iter != hashindex.begin() && (iter == hashindex.end() || iter->nsec3hash > lqname))
-      {
-        iter--;
-      }
-
-      if(iter == hashindex.begin() && (iter->nsec3hash > lqname))
-      {
-        iter = hashindex.end();
-      }
-
-      wraponce = false;
-      while(iter == hashindex.end() || (!iter->auth && !(iter->qtype == QType::NS && iter->qname!= auth && !ns3pr.d_flags)) || iter->nsec3hash.empty())
-      {
-        iter--;
-        if(iter == hashindex.begin()) {
-          if (!wraponce) {
-            iter = hashindex.end();
-            wraponce = true;
-          }
-          else {
-            before.clear();
-            after.clear();
-            return false;
-          }
-        }
-      }
-
+    iter = hashindex.upper_bound(toLower(qname));
+    if (iter == hashindex.end()) {
+      --iter;
       before = iter->nsec3hash;
-      unhashed = iter->qname + auth;
-      // cerr<<"before: "<<(iter->nsec3hash)<<"/"<<(iter->qname)<<endl;
+      after = first->nsec3hash;
+    } else {
+      after = iter->nsec3hash;
+      if (iter != first)
+        --iter;
+      else
+        iter = --hashindex.end();
+      before = iter->nsec3hash;
     }
-    else {
-      before = lqname;
-    }
+    unhashed = iter->qname+bbd.d_name;
 
-    iter = hashindex.upper_bound(lqname);
-    if(iter == hashindex.end())
-    {
-      iter = hashindex.begin();
-    }
-
-    wraponce = false;
-    while((!iter->auth && !(iter->qtype == QType::NS && iter->qname != auth && !ns3pr.d_flags)) || iter->nsec3hash.empty())
-    {
-      iter++;
-      if(iter == hashindex.end()) {
-        if (!wraponce) {
-          iter = hashindex.begin();
-          wraponce = true;
-        }
-        else {
-          before.clear();
-          after.clear();
-          return false;
-        }
-      }
-    }
-
-    after = iter->nsec3hash;
-    // cerr<<"after: "<<(iter->nsec3hash)<<"/"<<(iter->qname)<<endl;
-    //cerr<<"Before: '"<<before<<"', after: '"<<after<<"'\n";
     return true;
   }
-  return false;
 }
 
 void Bind2Backend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *pkt_p, int zoneId )
