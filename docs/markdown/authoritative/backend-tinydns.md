@@ -56,4 +56,11 @@ This backend might solve some issues you have with the current tinydns noted on 
 
 The `data.cdb` file format support all types of records. They are sometimes difficult to create because you need to specify the actual content of the rdata. [Tinydns.org](http://tinydns.org/) provides a number of links to tools/cgi-scripts that allow you to create records. [Anders Brownworth](http://anders.com/) also provides a number of useful record building scripts on his [djbdnsRecordBuilder](http://anders.com/projects/sysadmin/djbdnsRecordBuilder/).
 
+PowerDNS and TinyDNS handle wildcards differently. Looking up foo.www.example.com with the below records on TinyDNS will return 198.51.100.1, PowerDNS will return NXDOMAIN. According to [RFC 4592](https://tools.ietf.org/html/rfc4592) \*.example.com should only match subdomains in under example.com, not \*.\*.example.com. This compatibility issue is [noted on the axfer-get page for the djbdns suite](https://cr.yp.to/djbdns/axfr-get.html).
+
+```
+*.example.com     A 198.51.100.1
+www.example.com   A 198.51.100.1
+```
+
 Compiling the TinyDNS backend requires you to have [tinycdb](http://www.corpit.ru/mjt/tinycdb.html) version 0.77.
