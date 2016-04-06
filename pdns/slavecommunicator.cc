@@ -462,7 +462,7 @@ struct SlaveSenderReceiver
 
   Identifier send(DomainNotificationInfo& dni)
   {
-    random_shuffle(dni.di.masters.begin(), dni.di.masters.end());
+    //random_shuffle(dni.di.masters.begin(), dni.di.masters.end());
     try {
       ComboAddress remote(*dni.di.masters.begin());
       if (dni.localaddr.sin4.sin_family == 0) {
