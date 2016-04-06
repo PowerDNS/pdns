@@ -1,5 +1,4 @@
 # TinyDNS Backend
-**Warning**: The TinyDNS Backend is available since PowerDNS Authoritative Server 3.1. This backend is marked as experimental!
 
 * Native: Yes
 * Master: Yes
