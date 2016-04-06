@@ -19,26 +19,31 @@ These are the configuration file parameters that are available for the TinyDNS b
 ### `tinydns-dbfile`
 * String
 * Default: data.cdb
+
 Specifies the name of the data file to use.
 
 ### `tinydns-tai-adjust`
 * Integer
 * Default: 11
+
 This adjusts the [TAI](http://www.tai64.com/) value if timestamps are used. These seconds will be added to the start point (1970) and will allow you to adjust for leap seconds. The current default is 11. The last update was on [june 30th 2012](http://hpiers.obspm.fr/iers/bul/bulc/bulletinc.dat).
 
 ### `tinydns-notify-on-startup`
 * Boolean
 * Default: no
+
 Tell the TinyDNSBackend to notify all the slave nameservers on startup. This might cause broadcast storms.
 
 ### `tinydns-ignore-bogus-records`
 * Boolean
 * Default: no
+
 The `tinydns-data` program can create data.cdb files that have bad/corrupt RDATA. PowerDNS will crash when it tries to read that bad/corrupt data. This option (change to yes), allows you to ignore that bad RDATA to make PowerDNS operate when bad data is in your CDB file. Be aware that the records are then ignored, where tinydns would still send out the bogus data. The option is primarily useful in master mode, as that reads all the packets in the zone to find all the SOA records.
 
 ### `tinydns-locations`
 * Boolean
 * Default: yes
+
 Enable or Disable location support in the backend. Changing the value to 'no' will make the backend ignore the locations. This then returns all records. When the setting is changed to 'no' an AXFR will also return all the records. With the setting on 'yes' an AXFR will only return records without a location.
 
 ## Location and Timestamp support
