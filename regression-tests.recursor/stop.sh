@@ -14,7 +14,7 @@ fi
 
 cd configs
 
-for dir in $PREFIX.* recursor-service
+for dir in $PREFIX.* recursor-service recursor-service2
 do
 	svc -d $dir
 	svc -k $dir
