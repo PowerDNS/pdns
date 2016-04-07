@@ -654,8 +654,8 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   rr.auth = 1; // please sign!
 
   string publishCDNSKEY, publishCDS;
-  dk.getFromMeta(q->qdomain, "PUBLISH_CDNSKEY", publishCDNSKEY);
-  dk.getFromMeta(q->qdomain, "PUBLISH_CDS", publishCDS);
+  dk.getFromMeta(q->qdomain, "PUBLISH-CDNSKEY", publishCDNSKEY);
+  dk.getFromMeta(q->qdomain, "PUBLISH-CDS", publishCDS);
   vector<DNSResourceRecord> cds, cdnskey;
   DNSSECKeeper::keyset_t entryPoints = dk.getEntryPoints(q->qdomain);
   set<uint32_t> entryPointIds;
