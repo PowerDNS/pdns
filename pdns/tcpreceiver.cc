@@ -774,32 +774,52 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
     if(NSEC3Zone) {
       // ents are only required for NSEC3 zones
       uint32_t maxent = ::arg().asNum("max-ent-entries");
-      map<DNSName,bool> nonterm;
+      set<DNSName> nsec3set, nonterm;
+      for (auto &rr: rrs) {
+        bool skip=false;
+        DNSName shorter = rr.qname;
+        if (shorter != target && shorter.chopOff() && shorter != target) {
+          do {
+            if(nsset.count(shorter)) {
+              skip=true;
+              break;
+            }
+          } while(shorter.chopOff() && shorter != target);
+        }
+        shorter = rr.qname;
+        if(!skip && (rr.qtype.getCode() != QType::NS || !ns3pr.d_flags)) {
+          do {
+            if(!nsec3set.count(shorter)) {
+              nsec3set.insert(shorter);
+            }
+          } while(shorter != target && shorter.chopOff());
+        }
+      }
+
       for(DNSResourceRecord &rr :  rrs) {
         DNSName shorter(rr.qname);
         while(shorter != target && shorter.chopOff()) {
-          if(!qnames.count(shorter)) {
+          if(!qnames.count(shorter) && !nonterm.count(shorter) && nsec3set.count(shorter)) {
             if(!(maxent)) {
               L<<Logger::Warning<<"Zone '"<<target<<"' has too many empty non terminals."<<endl;
               return 0;
             }
-            if (!nonterm.count(shorter)) {
-              nonterm.insert(pair<DNSName, bool>(shorter, rr.auth));
-              --maxent;
-            } else if (rr.auth)
-              nonterm[shorter]=true;
+            nonterm.insert(shorter);
+            --maxent;
           }
         }
       }
 
       for(const auto& nt :  nonterm) {
         DNSResourceRecord rr;
-        rr.qname=nt.first;
+        rr.qname=nt;
         rr.qtype="TYPE0";
-        rr.auth=(nt.second || !ns3pr.d_flags);
+        rr.auth=true;
         rrs.push_back(rr);
       }
     }
+
+    DLOG(for(const auto &rr: rrs) cerr<<rr.qname.toString()<<"\t"<<rr.qtype.getName()<<"\t"<<rr.auth<<endl;);
   }
 
 
@@ -815,7 +835,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
     if (rr.qtype.getCode() == QType::RRSIG) {
       RRSIGRecordContent rrc(rr.content);
       if(presignedZone && rrc.d_type == QType::NSEC3)
-        ns3rrs.insert(fromBase32Hex(makeRelative(rr.qname.toString(), target.toString())));
+        ns3rrs.insert(fromBase32Hex(makeRelative(rr.qname.toStringNoDot(), target.toStringNoDot()))); // FIXME400
       continue;
     }
 

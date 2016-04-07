@@ -190,8 +190,10 @@ void CommunicatorClass::suck(const DNSName &domain,const string &remote)
               } else if (optOutFlag != (ns3rc.d_flags & 1))
                 throw PDNSException("Zones with a mixture of Opt-Out NSEC3 RRs and non-Opt-Out NSEC3 RRs are not supported.");
               optOutFlag = ns3rc.d_flags & 1;
-              if (ns3rc.d_set.count(QType::NS) && !(rr.qname==domain))
-                secured.insert(DNSName(toLower(makeRelative(rr.qname.toString(), domain.toString())))); // XXX DNSName pain
+              if (ns3rc.d_set.count(QType::NS) && !(rr.qname==domain)) {
+                DNSName hashPart = DNSName(toLower(rr.qname.makeRelative(domain).toString()));
+                secured.insert(hashPart);
+              }
               continue;
             }
             case QType::NSEC: {
@@ -362,7 +364,7 @@ void CommunicatorClass::suck(const DNSName &domain,const string &remote)
         } else {
           // NSEC
           if (rr.auth || rr.qtype.getCode() == QType::NS) {
-            ordername=toLower(labelReverse(makeRelative(rr.qname.toString(), domain.toString())));
+            ordername=toLower(labelReverse(makeRelative(rr.qname.toStringNoDot(), domain.toStringNoDot()))); // FIXME400
             di.backend->feedRecord(rr, &ordername);
           } else
             di.backend->feedRecord(rr);

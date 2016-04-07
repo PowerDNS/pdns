@@ -16,14 +16,16 @@ __EOF__
 	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | tac)
 	do
 		echo "INSERT INTO domains (name, type, master) VALUES('$zone','SLAVE','127.0.0.1:$port');" | $ISQL -b
+		if [ "$zone" = "tsig.com" ]; then
+			../pdns/pdnssec --config-dir=. --config-name=godbc2 import-tsig-key test $ALGORITHM $KEY
+			../pdns/pdnssec --config-dir=. --config-name=godbc2 activate-tsig-key tsig.com test slave
+		fi
+		if [ "$zone" = "stest.com" ]; then
+			if [[ $skipreasons != *nolua* ]]; then
+				$PDNSUTIL --config-dir=. --config-name=gmysql2 set-meta stest.com AXFR-SOURCE 127.0.0.2
+			fi
+		fi
 	done
-
-	../pdns/pdnssec --config-dir=. --config-name=godbc2 import-tsig-key test $ALGORITHM $KEY
-	../pdns/pdnssec --config-dir=. --config-name=godbc2 activate-tsig-key tsig.com test slave
-	if [[ $skipreasons != *nolua* ]]
-	then
-		../pdns/pdnssec --config-dir=. --config-name=godbc2 set-meta stest.com AXFR-SOURCE 127.0.0.2
-	fi
 
 	port=$((port+100))
 

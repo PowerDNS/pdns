@@ -1032,7 +1032,7 @@ bool GSQLBackend::list(const DNSName &target, int domain_id, bool include_disabl
 bool GSQLBackend::listSubZone(const DNSName &zone, int domain_id) {
   if (!isOurDomain(nullptr, domain_id)) return false;
 
-  string wildzone = "%." + stripDot(zone.toString());  // tolower()?
+  string wildzone = "%." + toLower(zone.toStringNoDot());
 
   try {
     d_query_name = "list-subzone-query";
