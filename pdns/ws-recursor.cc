@@ -584,7 +584,8 @@ void AsyncWebServer::serveConnection(Socket *client)
     // request stays incomplete
   }
 
-  HttpResponse resp = handleRequest(req);
+  HttpResponse resp;
+  handleRequest(req, resp);
   ostringstream ss;
   resp.write(ss);
   data = ss.str();

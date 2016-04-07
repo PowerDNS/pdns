@@ -136,7 +136,7 @@ void BackendMakerClass::load_all()
 
 void BackendMakerClass::load(const string &module)
 {
-  int res;
+  bool res;
 
   if(module.find(".")==string::npos)
     res=UeberBackend::loadmodule(arg()["module-dir"]+"/lib"+module+"backend.so");

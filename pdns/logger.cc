@@ -101,6 +101,7 @@ Logger::Logger(const string &n, int facility)
   flags=LOG_PID|LOG_NDELAY;
   d_facility=facility;
   d_loglevel=Logger::None;
+  d_disableSyslog=false;
   consoleUrgency=Error;
   name=n;
 

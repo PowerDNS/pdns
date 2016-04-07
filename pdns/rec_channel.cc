@@ -21,6 +21,7 @@ RecursorControlChannel::RecursorControlChannel()
 {
   d_fd=-1;
   *d_local.sun_path=0;
+  d_local.sun_family=0;
 }
 
 RecursorControlChannel::~RecursorControlChannel() 

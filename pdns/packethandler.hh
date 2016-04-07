@@ -108,7 +108,6 @@ private:
   bool d_logDNSDetails;
   bool d_doIPv6AdditionalProcessing;
   bool d_doDNAME;
-  int d_sendRootReferral;
   AuthLua* d_pdl;
 
   UeberBackend B; // every thread an own instance
