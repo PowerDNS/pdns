@@ -462,7 +462,7 @@ struct SlaveSenderReceiver
 
   Identifier send(DomainNotificationInfo& dni)
   {
-    //random_shuffle(dni.di.masters.begin(), dni.di.masters.end());
+    random_shuffle(dni.di.masters.begin(), dni.di.masters.end());
     try {
       ComboAddress remote(*dni.di.masters.begin());
       if (dni.localaddr.sin4.sin_family == 0) {
@@ -508,10 +508,14 @@ void CommunicatorClass::addSlaveCheckRequest(const DomainInfo& di, const ComboAd
   DomainInfo ours = di;
   ours.backend = 0;
   string remote_address = remote.toString();
-  for (vector<string>::iterator it = ours.masters.begin();it!=ours.masters.end();++it) {
+
+  // When adding a check, if the remote addr from whcih notification was
+  // received is a master, clear all other masters so we can be sure the
+  // query goes to that one.
+  for (vector<string>::iterator it = ours.masters.begin(); it != ours.masters.end(); ++it) {
     if (*it == remote_address) {
 	ours.masters.erase(it);
-        ours.masters.insert(ours.masters.begin(), remote_address);
+        ours.masters.push_back(remote_address);
         break;
     } 
   }
