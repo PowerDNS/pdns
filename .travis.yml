@@ -259,11 +259,9 @@ script:
 
   - cd regression-tests.rootzone
   - ./timestamp ./start-test-stop 5300 bind-both
-#FIXME 400, NSEC record synthesis for root zones is broken
-#  - ./timestamp ./start-test-stop 5300 bind-dnssec-both
+  - ./timestamp ./start-test-stop 5300 bind-dnssec-both
   - ./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-both
-#FIXME 400, NSEC record synthesis for root zones is broken
-#  - ./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-optout-both
+  - ./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-optout-both
   - ./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-narrow
   - ./timestamp ./start-test-stop 5300 bind-hybrid-nsec3
 
