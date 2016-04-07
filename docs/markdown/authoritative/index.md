@@ -21,7 +21,7 @@ The following table describes the capabilities of the backends.
 | [Generic PostgreSQL](backend-generic-postgresql.md) | Supported | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | `gpgsql` |
 | [Generic SQLite 3](backend-generic-sqlite.md) 3 | Supported | Yes | Yes | Yes | Yes | Yes | Yes  | Yes | Yes | `gsqlite3` |
 | [GeoIP](backend-geoip.md) | Supported | Yes | No | No | No | No | Yes | No | No | `geoip` |
-| [LDAP](backend-ldap.md) | Supported | Yes | No | No | No | No | No | No | No | Unknown |
+| [LDAP](backend-ldap.md) | Supported | Yes | No | No | No | No | No | No | No | `ldap` |
 | [MyDNS](backend-mydns.md) | Supported | Yes | No | No | No | No | No | No | No | `mydns` |
 | [OpenDBX](backend-opendbx.md) | Supported | Yes | Yes | Yes | Yes | No | No | No | No | `opendbx` |
 | [Oracle](backend-oracle.md) | Supported | Yes | Yes | Yes | Yes | Yes | Yes | No | No | `oracle` |
