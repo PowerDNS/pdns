@@ -1,1 +1,3 @@
-../../../m4/pdns_check_libedit.m4
+AC_DEFUN([PDNS_CHECK_LIBEDIT], [
+  PKG_CHECK_MODULES([LIBEDIT], [libedit])
+])
