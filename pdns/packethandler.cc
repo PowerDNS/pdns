@@ -604,7 +604,7 @@ bool getNSEC3Hashes(bool narrow, DNSBackend* db, int id, const std::string& hash
 
 void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const DNSName& target, const DNSName& wildcard, const DNSName& auth, const NSEC3PARAMRecordContent& ns3rc, bool narrow, int mode)
 {
-  DLOG(L<<"addNSEC3() mode="<<mode<<" auth="<<auth<<" target="<<target<<" wildcard="<<wildcard<<endl);
+  DLOG(L<<"addNSEC3() mode="<<mode<<" auth="<<auth<<" target="<<target<<" wildcard="<<wildcard.toLogString()<<endl);
 
   SOAData sd;
   if(!B.getSOAUncached(auth, sd)) {
@@ -690,7 +690,7 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const DNSName& target, 
 
 void PacketHandler::addNSEC(DNSPacket *p, DNSPacket *r, const DNSName& target, const DNSName& wildcard, const DNSName& auth, int mode)
 {
-  DLOG(L<<"addNSEC() mode="<<mode<<" auth="<<auth<<" target="<<target<<" wildcard="<<(wildcard.empty() ? "<empty>" : wildcard.toString())<<endl);
+  DLOG(L<<"addNSEC() mode="<<mode<<" auth="<<auth<<" target="<<target<<" wildcard="<<wildcard.toLogString()<<endl);
 
   SOAData sd;
   if(!B.getSOAUncached(auth, sd)) {
