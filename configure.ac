@@ -80,20 +80,6 @@ eval full_libdir="\"$libdir\""
 # detect pkg-config explicitly
 PKG_PROG_PKG_CONFIG
 
-# check if we want a static build
-AC_MSG_CHECKING([whether we will be building static binaries])
-
-AC_ARG_ENABLE([static-binaries],
-  [AS_HELP_STRING([--enable-static-binaries],[build static binaries @<:@default=no@:>@])],
-  [static=$enableval],
-  [static=no],
-)
-AC_MSG_RESULT([$static])
-
-AS_IF([test "x$static" != "xno"], [
-  PKG_CONFIG="$PKG_CONFIG --static"
-])
-
 AC_CHECK_HEADERS(
 	[sys/mman.h],
 	[AC_CHECK_FUNC(
@@ -142,10 +128,6 @@ PDNS_CHECK_OS
 PDNS_ENABLE_VERBOSE_LOGGING
 PDNS_ENABLE_PKCS11
 PDNS_ENABLE_GSS_TSIG
-
-AS_IF([test "x$static" != "xno"], [
-  LDFLAGS="-all-static $LDFLAGS"
-])
 
 modules="bind gmysql random"
 AC_ARG_WITH([modules],
@@ -282,11 +264,9 @@ done
 
 LDFLAGS="$RELRO_LDFLAGS $LDFLAGS"
 
-AS_IF([test "x$static" != "xyes"], [
-  CFLAGS="$PIE_CFLAGS $CFLAGS"
-  CXXFLAGS="$PIE_CFLAGS $CXXFLAGS"
-  PROGRAM_LDFLAGS="$PIE_LDFLAGS $PROGRAM_LDFLAGS"
-])
+CFLAGS="$PIE_CFLAGS $CFLAGS"
+CXXFLAGS="$PIE_CFLAGS $CXXFLAGS"
+PROGRAM_LDFLAGS="$PIE_LDFLAGS $PROGRAM_LDFLAGS"
 AC_SUBST([PROGRAM_LDFLAGS])
 
 PDNS_ENABLE_COVERAGE
