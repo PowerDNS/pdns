@@ -1049,8 +1049,8 @@ instantiate a server with additional parameters
     * `showPools()`: list the current server pools
  * Lua Action related:
     * `addLuaAction(x, func)`: where 'x' is all the combinations from `addPoolRule`, and func is a 
-      function with parameters remote, qname, qtype, dh and len, which returns an action to be taken 
-      on this packet. Good for rare packets but where you want to do a lot of processing.
+      function with the parameter `dq`, which returns an action to be taken on this packet.
+      Good for rare packets but where you want to do a lot of processing.
  * Server selection policy related:
     * `setServerPolicy(policy)`: set server selection policy to that policy
     * `setServerPolicyLua(name, function)`: set server selection policy to one named 'name' and provided by 'function'

@@ -14,21 +14,21 @@ The following table describes the capabilities of the backends.
 
 | Name | Status | Native | Master | Slave | Superslave | [Autoserial](backend-generic-sql.md#autoserial) | DNSSEC | [Disabled Data](backend-generic-sql.md#disabled-data) | Comments | Launch Name |
 |:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|
-| [BIND](backend-bind.md) | Supported | Yes | Yes | Yes | Experimental | No | Yes | No | No | `bind` |
+| [BIND](backend-bind.md) | Supported | Yes | Yes | Yes | Experimental | No | Yes | No | No\* | `bind` |
 | [Generic MySQL](backend-generic-mysql.md) | Supported | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | `gmysql` |
 | [Generic ODBC](backend-generic-odbc.md) | Supported | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes| `godbc` |
 | [Generic Oracle](backend-generic-oracle.md) | Supported | Yes | Yes | Yes | Yes | Yes | Yes  | Yes | Yes | `goracle` |
 | [Generic PostgreSQL](backend-generic-postgresql.md) | Supported | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | `gpgsql` |
 | [Generic SQLite 3](backend-generic-sqlite.md) 3 | Supported | Yes | Yes | Yes | Yes | Yes | Yes  | Yes | Yes | `gsqlite3` |
 | [GeoIP](backend-geoip.md) | Supported | Yes | No | No | No | No | Yes | No | No | `geoip` |
-| [LDAP](backend-ldap.md) | Unmaintained | Yes | No | No | No | No | No | Unknown (No) | Unknown (No) | Unknown |
+| [LDAP](backend-ldap.md) | Supported | Yes | No | No | No | No | No | No | No | Unknown |
 | [MyDNS](backend-mydns.md) | Supported | Yes | No | No | No | No | No | No | No | `mydns` |
-| [OpenDBX](backend-opendbx.md) | Supported | Yes | Yes | Yes | Yes | Unknown (No) | No | Unknown (No) | Unknown (No) | `opendbx` |
-| [Oracle](backend-oracle.md) | Supported | Yes | Yes | Yes | Yes | Yes | Yes | Unknown (No) | No | `oracle` |
+| [OpenDBX](backend-opendbx.md) | Supported | Yes | Yes | Yes | Yes | No | No | No | No | `opendbx` |
+| [Oracle](backend-oracle.md) | Supported | Yes | Yes | Yes | Yes | Yes | Yes | No | No | `oracle` |
 | [Pipe](backend-pipe.md) | Supported | Yes | No | No | No | No | Partial (no delegation, no key storage) | No | No | `pipe` |
 | [Random](backend-random.md) | Supported | Yes | No | No | No | No | Yes (no key storage) | No | No | `random` |
-| [Remote](backend-remote.md) | Supported | Yes | Yes\* | Yes\* | Yes\* | Yes\* | Yes\* | Unknown (No) | Unknown(No) | `remote` |
-| [TinyDNS](backend-tinydns.md) | Experimental | Yes | Yes | No | No | No | No | Unknown (No) | Unknown (No) | `tinydns` |
+| [Remote](backend-remote.md) | Supported | Yes | Yes\* | Yes\* | Yes\* | Yes\* | Yes\* | No | No | `remote` |
+| [TinyDNS](backend-tinydns.md) | Experimental | Yes | Yes | No | No | No | No | No | No | `tinydns` |
 
 \*: Please read the backend-specific documentation.
 
@@ -36,12 +36,13 @@ The following table describes the capabilities of the backends.
 Which [Mode of Operation](modes-of-operation.md) (DNS data replication) is supported.
 
 ### Autoserial
+Can the backend [automatically](backend-generic-sql.md#autoserial) generate a SOA serial
 
 ### DNSSEC
 Is serving DNSSEC signed data supported?
 
 ### Disabled Data
-Can a record be marked 'disabled' and not be served but still be in the datastore?
+Can a record be [marked 'disabled'](backend-generic-sql.md#disabled-data) and not be served but still be in the datastore?
 
 ### Comments
 Are comments on records supported?
