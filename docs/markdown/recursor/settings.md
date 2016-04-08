@@ -188,8 +188,8 @@ DNSSEC information from authoritative servers. This behaviour is similar to
 PowerDNS Recursor pre-4.0.
 
 ### `process`
-Respond with DNSSEC records to clients that ask for it, set the DO bit on all
-outgoing queries. Don't do any validation.
+Respond with DNSSEC records (or SERVFAIL if validation fails) to clients that ask for it, set the DO bit on all
+outgoing queries. Only validate unless CD bit is set.
 
 ### `log-fail`
 Similar behaviour to `process`, but validate RRSIGs on responses and log bogus
