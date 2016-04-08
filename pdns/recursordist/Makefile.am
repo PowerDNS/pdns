@@ -20,6 +20,9 @@ AM_LDFLAGS = \
 ACLOCAL_AMFLAGS = -I m4
 
 BUILT_SOURCES=htmlfiles.h
+CLEANFILES = htmlfiles.h \
+	dnsmessage.pb.cc \
+	dnsmessage.pb.h
 
 htmlfiles.h: html/*
 	./incfiles > $@
@@ -169,13 +172,16 @@ pdns_recursor_SOURCES += \
 	portsmplexer.cc
 endif
 
-dnsmessage.pb.cc: dnsmessage.proto
-	protoc --cpp_out=./ $<
-
 if HAVE_PROTOBUF
+if HAVE_PROTOC
+dnsmessage.pb.cc: dnsmessage.proto
+	$(AM_V_GEN)$(PROTOC) --cpp_out=./ $<
+
 BUILT_SOURCES += dnsmessage.pb.cc
 pdns_recursor_LDADD += $(PROTOBUF_LIBS)
 nodist_pdns_recursor_SOURCES = dnsmessage.pb.cc dnsmessage.pb.h
+pdns_recursor.$(OBJEXT): dnsmessage.pb.cc
+endif
 endif
 
 rec_control_SOURCES = \

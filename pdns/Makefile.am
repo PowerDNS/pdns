@@ -61,7 +61,8 @@ CLEANFILES = \
 	*.gcov \
 	backends/gsql/gsqlbackend.gcda \
 	backends/gsql/gsqlbackend.gcno \
-	backends/gsql/gsqlbackend.gcov
+	backends/gsql/gsqlbackend.gcov \
+	dnsmessage.pb.cc dnsmessage.pb.h
 
 noinst_SCRIPTS = pdns.init
 sysconf_DATA = pdns.conf-dist
@@ -120,10 +121,6 @@ EXTRA_PROGRAMS = \
 	toysdig \
 	tsig-tests \
 	zone2ldap
-
-if HAVE_PROTOBUF
-EXTRA_PROGRAMS += dnspcap2protobuf
-endif
 
 pdns_server_SOURCES = \
 	arguments.cc arguments.hh \
@@ -1010,10 +1007,16 @@ dnsdemog_LDFLAGS = \
 dnsdemog_LDADD = \
 	$(OPENSSL_LIBS)
 
-dnsmessage.pb.cc: dnsmessage.proto
-	protoc --cpp_out=./ $<
-
 if HAVE_PROTOBUF
+if HAVE_PROTOC
+EXTRA_PROGRAMS += dnspcap2protobuf
+
+dnsmessage.pb.cc: dnsmessage.proto
+	$(AM_V_GEN)$(PROTOC) --cpp_out=./ $<
+
+BUILT_SOURCES += dnsmessage.pb.cc
+dnspcap2protobuf.$(OBJEXT): dnsmessage.pb.cc
+
 dnspcap2protobuf_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
@@ -1034,7 +1037,7 @@ dnspcap2protobuf_SOURCES = \
 	unix_utility.cc \
 	utility.hh
 
-nodist_dnspcap2protobuf_SOURCES=dnsmessage.pb.cc dnsmessage.pb.h 
+nodist_dnspcap2protobuf_SOURCES=dnsmessage.pb.cc dnsmessage.pb.h
 
 dnspcap2protobuf_LDFLAGS = \
 	$(AM_LDFLAGS) \
@@ -1045,6 +1048,7 @@ dnspcap2protobuf_LDADD = \
 	$(OPENSSL_LIBS) \
 	$(PROTOBUF_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS)
+endif
 endif
 
 testrunner_SOURCES = \

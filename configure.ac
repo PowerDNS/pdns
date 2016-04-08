@@ -176,6 +176,7 @@ AC_ARG_ENABLE([tools],
 AC_MSG_RESULT([$enable_tools])
 AM_CONDITIONAL([TOOLS], [test "x$enable_tools" != "xno"])
 
+PDNS_WITH_PROTOBUF
 
 for a in $modules $dynmodules; do
   case "$a" in
@@ -271,8 +272,6 @@ AC_SUBST([PROGRAM_LDFLAGS])
 PDNS_ENABLE_COVERAGE
 PDNS_ENABLE_SANITIZERS
 PDNS_ENABLE_MALLOC_TRACE
-
-PDNS_ENABLE_PROTOBUF
 
 AC_SUBST(LIBS)
 
