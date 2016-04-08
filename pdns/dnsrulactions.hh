@@ -3,6 +3,7 @@
 #include "dnsname.hh"
 #include "dolog.hh"
 #include "ednsoptions.hh"
+#include "lock.hh"
 #include "dnsdist-remotelogger.hh"
 
 class MaxQPSIPRule : public DNSRule
@@ -10,18 +11,30 @@ class MaxQPSIPRule : public DNSRule
 public:
   MaxQPSIPRule(unsigned int qps, unsigned int ipv4trunc=32, unsigned int ipv6trunc=64) : 
     d_qps(qps), d_ipv4trunc(ipv4trunc), d_ipv6trunc(ipv6trunc)
-  {}
+  {
+    pthread_rwlock_init(&d_lock, 0);
+  }
 
   bool matches(const DNSQuestion* dq) const override
   {
     ComboAddress zeroport(*dq->remote);
     zeroport.sin4.sin_port=0;
     zeroport.truncate(zeroport.sin4.sin_family == AF_INET ? d_ipv4trunc : d_ipv6trunc);
-    auto iter = d_limits.find(zeroport);
-    if(iter == d_limits.end()) {
-      iter=d_limits.insert({zeroport,QPSLimiter(d_qps, d_qps)}).first;
+    {
+      ReadLock r(&d_lock);
+      const auto iter = d_limits.find(zeroport);
+      if (iter != d_limits.end()) {
+        return !iter->second.check();
+      }
     }
-    return !iter->second.check();
+    {
+      WriteLock w(&d_lock);
+      auto iter = d_limits.find(zeroport);
+      if(iter == d_limits.end()) {
+        iter=d_limits.insert({zeroport,QPSLimiter(d_qps, d_qps)}).first;
+      }
+      return !iter->second.check();
+    }
   }
 
   string toString() const override
@@ -31,6 +44,7 @@ public:
 
 
 private:
+  mutable pthread_rwlock_t d_lock;
   mutable std::map<ComboAddress, QPSLimiter> d_limits;
   unsigned int d_qps, d_ipv4trunc, d_ipv6trunc;
 
