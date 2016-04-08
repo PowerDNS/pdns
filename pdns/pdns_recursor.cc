@@ -1334,6 +1334,10 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
   string response;
   const struct dnsheader* dh = (struct dnsheader*)question.c_str();
   unsigned int ctag=0;
+  bool needECS = false;
+#ifdef HAVE_PROTOBUF
+  needECS = true;
+#endif
   Netmask ednssubnet;
   try {
     uint32_t age;
@@ -1348,27 +1352,28 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
     g_mtracer->clearAllocators();
     */
 #endif
-    if(t_pdl->get() && (*t_pdl)->d_gettag) {
 
+    if(needECS || (t_pdl->get() && (*t_pdl)->d_gettag)) {
       uint16_t qtype=0;
       try {
         DNSName qname;
-        
         getQNameAndSubnet(question, &qname, &qtype, &ednssubnet);
-       
-        try {
-          ctag=(*t_pdl)->gettag(fromaddr, ednssubnet, destaddr, qname, qtype);
-        }
-        catch(std::exception& e)  {
-          if(g_logCommonErrors)
-            L<<Logger::Warning<<"Error parsing a query packet qname='"<<qname<<"' for tag determination, setting tag=0: "<<e.what()<<endl;
+
+        if(t_pdl->get() && (*t_pdl)->d_gettag) {
+          try {
+            ctag=(*t_pdl)->gettag(fromaddr, ednssubnet, destaddr, qname, qtype);
+          }
+          catch(std::exception& e)  {
+            if(g_logCommonErrors)
+              L<<Logger::Warning<<"Error parsing a query packet qname='"<<qname<<"' for tag determination, setting tag=0: "<<e.what()<<endl;
+          }
         }
       }
       catch(std::exception& e)
       {
         if(g_logCommonErrors)
           L<<Logger::Warning<<"Error parsing a query packet for tag determination, setting tag=0: "<<e.what()<<endl;
-      } 
+      }
     }
 
     if(!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, question, g_now.tv_sec, &response, &age)) {
