@@ -113,20 +113,17 @@ version
 :    Report running version.
 
 wipe-cache *DOMAIN* [*DOMAIN*] [...]
-:    Wipe entries for *DOMAIN* from the cache. This is useful if, for example,
-     an important server has a new IP address, but the TTL has not yet
-     expired. Multiple domain names can be passed. Note that you must
-     terminate a domain with a .!  So to wipe powerdns.org, issue
-     'rec_control wipe-cache powerdns.org.'.
-     Versions beyond 3.1 don't need the trailing dot. Consider not only
-     wiping 'www.domain.com.' but also 'domain.com.', as the cached nameservers
-     or target of CNAME may continue to be undesired.
+:    Wipe entries for *DOMAIN* (exact name match) from the cache. This is useful
+     if, for example, an important server has a new IP address, but the TTL has
+     not yet expired. Multiple domain names can be passed. *DOMAIN* can be
+     suffixed with a '$' to delete the whole tree from the cache. i.e. 'powerdns.com$'
+     will remove all cached entries under and including the powerdns.com name.
 
 # BUGS
 None known. File new ones at https://github.com/PowerDNS/pdns/issues.
 
 # RESOURCES
-Website: http://wiki.powerdns.com, http://www.powerdns.com
+Website: https://docs.powerdns.com, https://www.powerdns.com
 
 # SEE ALSO
 pdns_recursor(1)
