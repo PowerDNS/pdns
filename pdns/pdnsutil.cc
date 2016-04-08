@@ -673,13 +673,13 @@ int checkAllZones(DNSSECKeeper &dk, bool exitOnError)
     if (checkZone(dk, B, di.zone) > 0) {
       errors++;
       if(exitOnError)
-        return 1;
+        return EXIT_FAILURE;
     }
   }
   cout<<"Checked "<<domainInfo.size()<<" zones, "<<errors<<" had errors."<<endl;
   if(!errors)
-    return 0;
-  return 1;
+    return EXIT_SUCCESS;
+  return EXIT_FAILURE;
 }
 
 int increaseSerial(const DNSName& zone, DNSSECKeeper &dk)
@@ -771,14 +771,14 @@ int deleteZone(const DNSName &zone) {
   DomainInfo di;
   if (! B.getDomainInfo(zone, di)) {
     cerr<<"Domain '"<<zone.toString()<<"' not found!"<<endl;
-    return 1;
+    return EXIT_FAILURE;
   }
 
   if(di.backend->deleteDomain(zone))
-    return 0;
+    return EXIT_SUCCESS;
 
   cerr<<"Failed to delete domain '"<<zone.toString()<<"'"<<endl;;
-  return 1;
+  return EXIT_FAILURE;
 }
 
 void listKey(DomainInfo const &di, DNSSECKeeper& dk, bool printHeader = true) {
@@ -836,14 +836,14 @@ void listKey(DomainInfo const &di, DNSSECKeeper& dk, bool printHeader = true) {
   }
 }
 
-bool listKeys(const string &zname, DNSSECKeeper& dk){
+int listKeys(const string &zname, DNSSECKeeper& dk){
   UeberBackend B("default");
 
   if (zname != "all") {
     DomainInfo di;
     if(!B.getDomainInfo(DNSName(zname), di)) {
       cerr << "Zone "<<zname<<" not found."<<endl;
-      return false;
+      return EXIT_FAILURE;
     }
     listKey(di, dk);
   } else {
@@ -855,7 +855,7 @@ bool listKeys(const string &zname, DNSSECKeeper& dk){
       printHeader = false;
     }
   }
-  return true;
+  return EXIT_SUCCESS;
 }
 
 int listZone(const DNSName &zone) {
@@ -864,7 +864,7 @@ int listZone(const DNSName &zone) {
   
   if (! B.getDomainInfo(zone, di)) {
     cerr<<"Domain '"<<zone.toString()<<"' not found!"<<endl;
-    return 1;
+    return EXIT_FAILURE;
   }
   di.backend->list(zone, di.id);
   DNSResourceRecord rr;
@@ -876,7 +876,7 @@ int listZone(const DNSName &zone) {
       cout<<rr.qname.toString()<<"\t"<<rr.ttl<<"\tIN\t"<<rr.qtype.getName()<<"\t"<<rr.content<<endl;
     }
   }
-  return 0;
+  return EXIT_SUCCESS;
 }
 
 // lovingly copied from http://stackoverflow.com/questions/1798511/how-to-avoid-press-enter-with-any-getchar
@@ -913,14 +913,14 @@ int clearZone(DNSSECKeeper& dk, const DNSName &zone) {
   
   if (! B.getDomainInfo(zone, di)) {
     cerr<<"Domain '"<<zone.toString()<<"' not found!"<<endl;
-    return 1;
+    return EXIT_FAILURE;
   }
   if(!di.backend->startTransaction(zone, di.id)) {
     cerr<<"Unable to start transaction for load of zone '"<<zone.toString()<<"'"<<endl;
-    return 1;
+    return EXIT_FAILURE;
   }
   di.backend->commitTransaction();
-  return 0;
+  return EXIT_SUCCESS;
 }
 
 int editZone(DNSSECKeeper& dk, const DNSName &zone) {
@@ -929,7 +929,7 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
   
   if (! B.getDomainInfo(zone, di)) {
     cerr<<"Domain '"<<zone.toString()<<"' not found!"<<endl;
-    return 1;
+    return EXIT_FAILURE;
   }
   vector<DNSRecord> pre, post;
   char tmpnam[]="/tmp/pdnsutil-XXXXXX";
@@ -988,7 +988,7 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
   stat(tmpnam,&statafter);
   if(first && statbefore.st_ctime == statafter.st_ctime) {
     cout<<"No change to file"<<endl;
-    return(EXIT_SUCCESS);
+    return EXIT_SUCCESS;
   }
   first=false;
   ZoneParserTNG zpt(tmpnam, DNSName("."));
@@ -1076,7 +1076,7 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
     di.backend->replaceRRSet(di.id, c.first, QType(c.second), vrr);
   }
   rectifyZone(dk, zone);
-  return 0;
+  return EXIT_SUCCESS;
 }
 
 
@@ -1093,7 +1093,7 @@ int loadZone(DNSName zone, const string& fname) {
     
     if(!B.getDomainInfo(zone, di)) {
       cerr<<"Domain '"<<zone.toString()<<"' was not created - perhaps backend ("<<::arg()["launch"]<<") does not support storing new zones."<<endl;
-      return 1;
+      return EXIT_FAILURE;
     }
   }
   DNSBackend* db = di.backend;
@@ -1102,18 +1102,18 @@ int loadZone(DNSName zone, const string& fname) {
   DNSResourceRecord rr;
   if(!db->startTransaction(zone, di.id)) {
     cerr<<"Unable to start transaction for load of zone '"<<zone.toString()<<"'"<<endl;
-    return 1;
+    return EXIT_FAILURE;
   }
   rr.domain_id=di.id;  
   while(zpt.get(rr)) {
     if(!rr.qname.isPartOf(zone) && rr.qname!=zone) {
       cerr<<"File contains record named '"<<rr.qname.toString()<<"' which is not part of zone '"<<zone.toString()<<"'"<<endl;
-      return 1;
+      return EXIT_FAILURE;
     }
     db->feedRecord(rr);
   }
   db->commitTransaction();
-  return 0;
+  return EXIT_SUCCESS;
 }
 
 int createZone(const DNSName &zone, const DNSName& nsname) {
@@ -1121,13 +1121,13 @@ int createZone(const DNSName &zone, const DNSName& nsname) {
   DomainInfo di;
   if (B.getDomainInfo(zone, di)) {
     cerr<<"Domain '"<<zone.toString()<<"' exists already"<<endl;
-    return 1;
+    return EXIT_FAILURE;
   }
   cerr<<"Creating empty zone '"<<zone.toString()<<"'"<<endl;
   B.createDomain(zone);
   if(!B.getDomainInfo(zone, di)) {
     cerr<<"Domain '"<<zone.toString()<<"' was not created!"<<endl;
-    return 1;
+    return EXIT_FAILURE;
   }
 
   DNSResourceRecord rr;
@@ -1155,7 +1155,7 @@ int createZone(const DNSName &zone, const DNSName& nsname) {
   
   di.backend->commitTransaction();
 
-  return 1;
+  return EXIT_SUCCESS;
 }
 
 int createSlaveZone(const vector<string>& cmds) {
@@ -1164,14 +1164,14 @@ int createSlaveZone(const vector<string>& cmds) {
   DNSName zone(cmds[1]);
   if (B.getDomainInfo(zone, di)) {
     cerr<<"Domain '"<<zone.toString()<<"' exists already"<<endl;
-    return 1;
+    return EXIT_FAILURE;
   }
   ComboAddress master(cmds[2], 53);
   cerr<<"Creating slave zone '"<<zone.toString()<<"', master is "<<master.toStringWithPort()<<endl;
   B.createDomain(zone);
   if(!B.getDomainInfo(zone, di)) {
     cerr<<"Domain '"<<zone.toString()<<"' was not created!"<<endl;
-    return 1;
+    return EXIT_FAILURE;
   }
   di.backend->setKind(zone, DomainInfo::Slave);
   di.backend->setMaster(zone, master.toStringWithPort());
@@ -1197,7 +1197,7 @@ int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
 
   if(!B.getDomainInfo(zone, di)) {
     cerr<<"Domain '"<<zone<<"' does not exist"<<endl;
-    return 1;
+    return EXIT_FAILURE;
   }
   rr.auth = 1;
   rr.domain_id = di.id;
@@ -1260,7 +1260,7 @@ int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
   while(di.backend->get(rr)) {
     cout<<rr.qname.toString()<<" IN "<<rr.qtype.getName()<<" "<<rr.ttl<<" "<<rr.content<<endl;      
   }
-  return 1;
+  return EXIT_SUCCESS;
 }
 
 // delete-rrset zone name type
@@ -1271,7 +1271,7 @@ int deleteRRSet(const std::string& zone_, const std::string& name_, const std::s
   DNSName zone(zone_);
   if(!B.getDomainInfo(zone, di)) {
     cerr<<"Domain '"<<zone<<"' does not exist"<<endl;
-    return 1;
+    return EXIT_FAILURE;
   }
 
   DNSName name;
@@ -1282,7 +1282,7 @@ int deleteRRSet(const std::string& zone_, const std::string& name_, const std::s
 
   QType qt(QType::chartocode(type_.c_str()));
   di.backend->replaceRRSet(di.id, name, qt, vector<DNSResourceRecord>());
-  return 0;
+  return EXIT_SUCCESS;
 }
 
 int listAllZones(const string &type="") {
