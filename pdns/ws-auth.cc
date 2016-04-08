@@ -527,27 +527,27 @@ static void apiZoneCryptokeys(HttpRequest* req, HttpResponse* resp) {
   if(req->method != "GET")
     throw ApiException("Only GET is implemented");
 
+  bool inquireSingleKey = false;
+  int inquireKeyId;
+  if (req->parameters.count("key_id")) {
+    inquireSingleKey = true;
+    inquireKeyId = std::stoi(req->parameters["key_id"]);
+  }
+
   DNSName zonename = apiZoneIdToName(req->parameters["id"]);
 
   UeberBackend B;
+  DNSSECKeeper dk(&B);
   DomainInfo di;
-  DNSSECKeeper dk;
-
   if(!B.getDomainInfo(zonename, di))
-    throw ApiException("Could not find domain '"+zonename.toString()+"'");
+    throw HttpNotFoundException();
 
   DNSSECKeeper::keyset_t keyset=dk.getKeys(zonename, false);
 
-  if (keyset.empty())
-    throw ApiException("No keys for zone '"+zonename.toString()+"'");
-
   Json::array doc;
-  for(const DNSSECKeeper::keyset_t::value_type value : keyset) {
-    if (req->parameters.count("key_id")) {
-      int keyid = std::stoi(req->parameters["key_id"]);
-      int curid = value.second.id;
-      if (keyid != curid)
-        continue;
+  for(const auto& value : keyset) {
+    if (inquireSingleKey && inquireKeyId != value.second.id) {
+      continue;
     }
 
     string keyType;
@@ -566,11 +566,6 @@ static void apiZoneCryptokeys(HttpRequest* req, HttpResponse* resp) {
       { "dnskey", value.first.getDNSKEY().getZoneRepresentation() }
     };
 
-    if (req->parameters.count("key_id")) {
-      DNSSECPrivateKey dpk=dk.getKeyById(zonename, std::stoi(req->parameters["key_id"]));
-      key["content"] = dpk.getKey()->convertToISC();
-    }
-
     if (value.second.keyType == DNSSECKeeper::KSK || value.second.keyType == DNSSECKeeper::CSK) {
       Json::array dses;
       for(const int keyid : { 1, 2, 3, 4 })
@@ -579,9 +574,19 @@ static void apiZoneCryptokeys(HttpRequest* req, HttpResponse* resp) {
       } catch (...) {}
       key["ds"] = dses;
     }
+
+    if (inquireSingleKey) {
+      key["privatekey"] = value.first.getKey()->convertToISC();
+      resp->setBody(key);
+      return;
+    }
     doc.push_back(key);
   }
 
+  if (inquireSingleKey) {
+    // we came here because we couldn't find the requested key.
+    throw HttpNotFoundException();
+  }
   resp->setBody(doc);
 }
 
