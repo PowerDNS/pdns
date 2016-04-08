@@ -77,9 +77,9 @@ void loadMainConfig(const std::string& configdir)
   string configname=::arg()["config-dir"]+"/"+s_programname+".conf";
   cleanSlashes(configname);
 
-  ::arg().set("default-ksk-algorithms","Default KSK algorithms")="";
+  ::arg().set("default-ksk-algorithms","Default KSK algorithms")="ecdsa256";
   ::arg().set("default-ksk-size","Default KSK size (0 means default)")="0";
-  ::arg().set("default-zsk-algorithms","Default ZSK algorithms")="ecdsa256";
+  ::arg().set("default-zsk-algorithms","Default ZSK algorithms")="";
   ::arg().set("default-zsk-size","Default ZSK size (0 means default)")="0";
   ::arg().set("default-soa-edit","Default SOA-EDIT value")="";
   ::arg().set("default-soa-edit-signed","Default SOA-EDIT value for signed zones")="";
@@ -1702,7 +1702,7 @@ bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
 
 
   for(auto &k_algo: k_algos) {
-    cout << "Adding "<<(z_algos.empty()? "CSK" : "KSK")<<" with algorithm " << k_algo << endl;
+    cout << "Adding "<<(z_algos.empty()? "CSK (257)" : "KSK")<<" with algorithm " << k_algo << endl;
 
     int algo = DNSSECKeeper::shorthand2algorithm(k_algo);
 
@@ -1717,11 +1717,11 @@ bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
 
   for(auto &z_algo :  z_algos)
   {
-    cout << "Adding "<<(k_algos.empty()? "CSK" : "ZSK")<<" with algorithm " << z_algo << endl;
+    cout << "Adding "<<(k_algos.empty()? "CSK (256)" : "ZSK")<<" with algorithm " << z_algo << endl;
 
     int algo = DNSSECKeeper::shorthand2algorithm(z_algo);
 
-    if(!dk.addKey(zone, k_algos.empty(), algo, z_size, true)) {
+    if(!dk.addKey(zone, false, algo, z_size, true)) {
       cerr<<"No backend was able to secure '"<<zone.toString()<<"', most likely because no DNSSEC"<<endl;
       cerr<<"capable backends are loaded, or because the backends have DNSSEC disabled."<<endl;
       cerr<<"For the Generic SQL backends, set the 'gsqlite3-dnssec', 'gmysql-dnssec' or"<<endl;
@@ -2179,7 +2179,7 @@ loadMainConfig(g_vm["config-dir"].as<string>());
     bool keyOrZone=false;
     int tmp_algo=0;
     int bits=0;
-    int algorithm=8;
+    int algorithm=13; // ecdsa256
     bool active=false;
     for(unsigned int n=2; n < cmds.size(); ++n) {
       if(pdns_iequals(cmds[n], "zsk"))
@@ -2640,7 +2640,7 @@ loadMainConfig(g_vm["config-dir"].as<string>());
     bool keyOrZone=false;
     int tmp_algo=0;
     int bits=0;
-    int algorithm=8;
+    int algorithm=13; // ecdsa256
     for(unsigned int n=1; n < cmds.size(); ++n) {
       if(pdns_iequals(cmds[n], "zsk"))
         keyOrZone = false;
