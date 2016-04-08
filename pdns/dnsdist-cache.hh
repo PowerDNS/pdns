@@ -9,7 +9,7 @@ struct DNSQuestion;
 class DNSDistPacketCache : boost::noncopyable
 {
 public:
-  DNSDistPacketCache(size_t maxEntries, uint32_t maxTTL=86400, uint32_t minTTL=60, uint32_t servFailTTL=60, uint32_t staleTTL=60);
+  DNSDistPacketCache(size_t maxEntries, uint32_t maxTTL=86400, uint32_t minTTL=0, uint32_t servFailTTL=60, uint32_t staleTTL=60);
   ~DNSDistPacketCache();
 
   void insert(uint32_t key, const DNSName& qname, uint16_t qtype, uint16_t qclass, const char* response, uint16_t responseLen, bool tcp, bool servFail=false);
@@ -27,6 +27,7 @@ public:
   uint64_t getLookupCollisions() const { return d_lookupCollisions; }
   uint64_t getInsertCollisions() const { return d_insertCollisions; }
   uint64_t getMaxEntries() const { return d_maxEntries; }
+  uint64_t getTTLTooShorts() const { return d_ttlTooShorts; }
   uint64_t getEntriesCount();
 
   static uint32_t getMinTTL(const char* packet, uint16_t length);
@@ -57,6 +58,7 @@ private:
   std::atomic<uint64_t> d_misses{0};
   std::atomic<uint64_t> d_insertCollisions{0};
   std::atomic<uint64_t> d_lookupCollisions{0};
+  std::atomic<uint64_t> d_ttlTooShorts{0};
   size_t d_maxEntries;
   uint32_t d_maxTTL;
   uint32_t d_servFailTTL;
