@@ -514,7 +514,7 @@ void CommunicatorClass::addSlaveCheckRequest(const DomainInfo& di, const ComboAd
   // query goes to that one.
   for (vector<string>::iterator it = ours.masters.begin(); it != ours.masters.end(); ++it) {
     if (*it == remote_address) {
-	ours.masters.erase(it);
+	ours.masters.clear();
         ours.masters.push_back(remote_address);
         break;
     } 
