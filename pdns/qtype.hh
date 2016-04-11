@@ -77,7 +77,6 @@ public:
   bool isMetadataType();
 
   static int chartocode(const char *p); //!< convert a character string to a code
-// more solaris fun
   enum typeenum : uint16_t {
     A=1,
     NS=2,
