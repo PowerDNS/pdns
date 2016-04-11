@@ -41,10 +41,10 @@ EXTRA_DIST=dnslabeltext.rl \
 	   incfiles \
 	   src_js
 
-if UNIT_TESTS
-bin_PROGRAMS = dnsdist testrunner
-else
 bin_PROGRAMS = dnsdist
+
+if UNIT_TESTS
+noinst_PROGRAMS = testrunner
 endif
 
 dnsdist-web.$(OBJEXT): htmlfiles.h
