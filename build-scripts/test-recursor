@@ -1,11 +1,11 @@
 #!/bin/sh
 
-export PDNSRECURSOR=/usr/sbin/pdns_recursor
-export PDNS=/usr/sbin/pdns_server
-export SDIG=/usr/bin/sdig
-export NSEC3DIG=/usr/bin/nsec3dig
-export NOTIFY=/usr/bin/notify
-export SAXFR=/usr/bin/saxfr
+export PDNSRECURSOR=${PDNSRECURSOR:-"/usr/sbin/pdns_recursor"}
+export PDNS=${PDNS:-"/usr/sbin/pdns_server"}
+export SDIG=${SDIG:-"/usr/bin/sdig"}
+export NSEC3DIG=${NSEC3DIG:-"/usr/bin/nsec3dig"}
+export NOTIFY=${NOTIFY:-"/usr/bin/notify"}
+export SAXFR=${SAXFR:-"/usr/bin/saxfr"}
 
 if [ "$0" != "./build-scripts/test-recursor" ]; then
   echo "Please run me from the root checkout dir"
