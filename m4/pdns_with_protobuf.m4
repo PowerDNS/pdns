@@ -9,7 +9,7 @@ AC_DEFUN([PDNS_WITH_PROTOBUF], [
 
   AS_IF([test "x$with_protobuf" != "xno"], [
     AS_IF([test "x$with_protobuf" = "xyes" -o "x$with_protobuf" = "xauto"], [
-      PKG_CHECK_MODULES([PROTOBUF], [protobuf], [ ], [ ])
+      PKG_CHECK_MODULES([PROTOBUF], [protobuf], [ : ], [ : ])
       AC_CHECK_PROG([PROTOC], [protoc], [protoc])
     ])
   ])
