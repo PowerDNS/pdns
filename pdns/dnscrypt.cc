@@ -180,6 +180,8 @@ void DnsCryptContext::parsePlaintextQuery(const char * packet, uint16_t packetSi
   unsigned int consumed;
   uint16_t qtype, qclass;
   DNSName qname(packet, packetSize, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
+  if ((packetSize - sizeof(dnsheader)) < (consumed + sizeof(qtype) + sizeof(qclass)))
+    return;
 
   if (qtype != QType::TXT || qclass != QClass::IN)
     return;

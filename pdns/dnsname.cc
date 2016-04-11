@@ -111,13 +111,19 @@ void DNSName::packetParser(const char* qpos, int len, int offset, bool uncompres
     d_storage.append(1, (char)0); // we just parsed the root
   if(consumed)
     *consumed = pos - opos - offset;
-  if(qtype && pos + labellen + 2 <= end)
+  if(qtype) {
+    if (pos + labellen + 2 > end) {
+      throw std::range_error("Trying to read qtype past the end of the buffer ("+std::to_string((pos - opos) + labellen + 2)+ " > "+std::to_string(len)+")");
+    }
     *qtype=(*(const unsigned char*)pos)*256 + *((const unsigned char*)pos+1);
-
+  }
   pos+=2;
-  if(qclass && pos + labellen + 2 <= end)
+  if(qclass) {
+    if (pos + labellen + 2 > end) {
+      throw std::range_error("Trying to read qclass past the end of the buffer ("+std::to_string((pos - opos) + labellen + 2)+ " > "+std::to_string(len)+")");
+    }
     *qclass=(*(const unsigned char*)pos)*256 + *((const unsigned char*)pos+1);
-
+  }
 }
 
 std::string DNSName::toString(const std::string& separator, const bool trailing) const

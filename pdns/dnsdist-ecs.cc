@@ -197,6 +197,9 @@ static int getEDNSOptionsStart(char* packet, const size_t offset, const size_t l
   unsigned int consumed;
   DNSName aname(packet, len, pos, true, &qtype, &qclass, &consumed);
 
+  if ((len - pos) < (consumed + DNS_TYPE_SIZE + DNS_CLASS_SIZE))
+    return ENOENT;
+
   pos += consumed + DNS_TYPE_SIZE + DNS_CLASS_SIZE;
   if(qtype != QType::OPT || (len - pos) < (DNS_TTL_SIZE + DNS_RDLENGTH_SIZE))
     return ENOENT;
