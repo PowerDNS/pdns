@@ -14,6 +14,10 @@ Compiling
 compiler (g++ 4.8 or higher, clang 3.5 or higher). It can optionally use libsodium
 for encrypted communications with its client.
 
+Should `dnsdist` be run on a system with systemd, it is highly recommended to have
+the systemd header files (`libsystemd-dev` on debian and `systemd-devel` on CentOS)
+installed to have `dnsdist` support systemd-notify.
+
 To compile on CentOS 6 / RHEL6, use this script to install a working compiler:
 
 ```

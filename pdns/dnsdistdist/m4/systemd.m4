@@ -1,6 +1,7 @@
 # systemd.m4 - Macros to check for and enable systemd          -*- Autoconf -*-
 #
 # Copyright (C) 2014 Luis R. Rodriguez <mcgrof@suse.com>
+# Copyright (C) 2016 Pieter Lexis <pieter.lexis@powerdns.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,6 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+#serial 2
 
 dnl Some optional path options
 AC_DEFUN([AX_SYSTEMD_OPTIONS], [
@@ -39,13 +42,13 @@ AC_DEFUN([AX_ALLOW_SYSTEMD_OPTS], [
 
 AC_DEFUN([AX_CHECK_SYSTEMD_LIBS], [
 	AC_CHECK_HEADER([systemd/sd-daemon.h], [
-	    AC_CHECK_LIB([systemd-daemon], [sd_listen_fds], [libsystemddaemon="y"])
+	    AC_CHECK_LIB([systemd], [sd_listen_fds], [libsystemd="y"])
 	])
-	AS_IF([test "x$libsystemddaemon" = x], [
-	    AC_MSG_ERROR([Unable to find a suitable libsystemd-daemon library])
+	AS_IF([test "x$libsystemd" = x], [
+	    AC_MSG_ERROR([Unable to find a suitable libsystemd library])
 	])
 
-	PKG_CHECK_MODULES([SYSTEMD], [libsystemd-daemon])
+	PKG_CHECK_MODULES([SYSTEMD], [libsystemd])
 	dnl pkg-config older than 0.24 does not set these for
 	dnl PKG_CHECK_MODULES() worth also noting is that as of version 208
 	dnl of systemd pkg-config --cflags currently yields no extra flags yet.
@@ -95,7 +98,7 @@ AC_DEFUN([AX_CHECK_SYSTEMD], [
 
 AC_DEFUN([AX_CHECK_SYSTEMD_ENABLE_AVAILABLE], [
 	AC_CHECK_HEADER([systemd/sd-daemon.h], [
-	    AC_CHECK_LIB([systemd-daemon], [sd_listen_fds], [systemd="y"])
+	    AC_CHECK_LIB([systemd], [sd_listen_fds], [systemd="y"])
 	])
 ])
 

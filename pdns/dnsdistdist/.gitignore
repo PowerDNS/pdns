@@ -31,3 +31,4 @@
 /dnsdist
 /dnsmessage.pb.cc
 /dnsmessage.pb.h
+/dnsdist.service

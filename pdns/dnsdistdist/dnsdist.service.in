@@ -1,11 +1,11 @@
 [Unit]
-Description=dnsdist
+Description=DNS Loadbalancer
 Wants=network-online.target
 After=network-online.target
 
 [Service]
 # Note: when editing the ExecStart command, keep --supervised and --disable-syslog
-ExecStart=/usr/bin/dnsdist --supervised --disable-syslog -u _dnsdist -g _dnsdist
+ExecStart=@bindir@/dnsdist --supervised --disable-syslog
 
 Type=notify
 Restart=on-failure

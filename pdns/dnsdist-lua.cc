@@ -9,6 +9,10 @@
 #include "lock.hh"
 #include <net/if.h>
 
+#ifdef HAVE_SYSTEMD
+#include <systemd/sd-daemon.h>
+#endif
+
 using std::thread;
 
 static vector<std::function<void(void)>>* g_launchWork;
@@ -497,7 +501,12 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
         g_outputBuffer+=s+"\n";
 
     });
-  g_lua.writeFunction("shutdown", []() { _exit(0);} );
+  g_lua.writeFunction("shutdown", []() {
+#ifdef HAVE_SYSTEMD
+      sd_notify(0, "STOPPING=1");
+#endif
+      _exit(0);
+  } );
 
 
   g_lua.writeFunction("addDomainBlock", [](const std::string& domain) { 

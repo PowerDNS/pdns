@@ -9,6 +9,9 @@ include /usr/share/dpkg/default.mk
 
 ENABLE_LIBSODIUM := --enable-libsodium
 LIBSODIUM_DEV := , libsodium-dev
+
+ENABLE_SYSTEMD := --enable-systemd --with-systemd=/lib/systemd/system
+LIBSYSTEMD_DEV := , libsystemd-dev
 DEBHELPER_WITH_SYSTEMD := --with systemd
 
 # $(ID) and $(VERSION_ID) come from the environment, source this from /etc/os-release
@@ -16,13 +19,16 @@ ifeq ($(ID), ubuntu)
   ifeq ($(VERSION_ID), 14.04)
     # Disable building and depending on libsodium on Ubuntu Trusty
     ENABLE_LIBSODIUM=
+    ENABLE_SYSTEMD=
+    LIBSYSTEMD_DEV=
     LIBSODIUM_DEV=
     DEBHELPER_WITH_SYSTEMD=
   endif
 endif
 
 debian/control: debian/control.in
-	sed -E "s!@LIBSODIUMDEV@!$(LIBSODIUM_DEV)!" $< > $@
+	sed -e "s!@LIBSODIUMDEV@!$(LIBSODIUM_DEV)!" \
+	    -e "s!@LIBSYSTEMDDEV@!$(LIBSYSTEMD_DEV)!" $< > $@
 
 %:
 	dh $@ \
@@ -40,6 +46,7 @@ override_dh_auto_configure:
 	  --infodir=\$${prefix}/share/info \
 	  --libdir='$${prefix}/lib/$(DEB_HOST_MULTIARCH)' \
 	  --libexecdir='$${prefix}/lib' \
+	  $(ENABLE_SYSTEMD) \
 	  $(ENABLE_LIBSODIUM)
 
 override_dh_auto_build-arch:
