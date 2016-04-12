@@ -41,14 +41,12 @@ AC_DEFUN([AX_ALLOW_SYSTEMD_OPTS], [
 ])
 
 AC_DEFUN([AX_CHECK_SYSTEMD_LIBS], [
-	AC_CHECK_HEADER([systemd/sd-daemon.h], [
-	    AC_CHECK_LIB([systemd], [sd_listen_fds], [libsystemd="y"])
-	])
+	AC_REQUIRE([AX_CHECK_SYSTEMD_DETECT_AND_ENABLE])
 	AS_IF([test "x$libsystemd" = x], [
 	    AC_MSG_ERROR([Unable to find a suitable libsystemd library])
 	])
 
-	PKG_CHECK_MODULES([SYSTEMD], [libsystemd])
+	PKG_CHECK_MODULES([SYSTEMD], [$libsystemd_daemon])
 	dnl pkg-config older than 0.24 does not set these for
 	dnl PKG_CHECK_MODULES() worth also noting is that as of version 208
 	dnl of systemd pkg-config --cflags currently yields no extra flags yet.
@@ -96,9 +94,15 @@ AC_DEFUN([AX_CHECK_SYSTEMD], [
 	],[systemd=n])
 ])
 
-AC_DEFUN([AX_CHECK_SYSTEMD_ENABLE_AVAILABLE], [
+AC_DEFUN([AX_CHECK_SYSTEMD_DETECT_AND_ENABLE], [
 	AC_CHECK_HEADER([systemd/sd-daemon.h], [
-	    AC_CHECK_LIB([systemd], [sd_listen_fds], [systemd="y"])
+		for libname in systemd-daemon systemd; do
+			AC_CHECK_LIB([$libname], [sd_listen_fds], [
+				libsystemd_daemon="lib$libname"
+				systemd=y
+				libsystemd=y
+			])
+		done
 	])
 ])
 
@@ -121,6 +125,6 @@ dnl to have systemd build libraries it will be enabled. You can always force
 dnl disable with --disable-systemd
 AC_DEFUN([AX_AVAILABLE_SYSTEMD], [
 	AX_ALLOW_SYSTEMD_OPTS()
-	AX_CHECK_SYSTEMD_ENABLE_AVAILABLE()
+	AX_CHECK_SYSTEMD_DETECT_AND_ENABLE()
 	AX_CHECK_SYSTEMD()
 ])
