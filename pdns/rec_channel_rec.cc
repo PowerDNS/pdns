@@ -294,20 +294,29 @@ uint64_t* pleaseWipeAndCountNegCache(const DNSName& canon, bool subtree)
 template<typename T>
 string doWipeCache(T begin, T end)
 {
-  int count=0, pcount=0, countNeg=0;
+  vector<pair<DNSName, bool> > toWipe;
   for(T i=begin; i != end; ++i) {
     DNSName canon;
     bool subtree=false;
-    if(boost::ends_with(*i, "$")) {
-      canon=DNSName(i->substr(0, i->size()-1));
-      subtree=true;
+
+    try {
+      if(boost::ends_with(*i, "$")) {
+        canon=DNSName(i->substr(0, i->size()-1));
+        subtree=true;
+      } else {
+        canon=DNSName(*i);
+      }
+    } catch (std::exception &e) {
+      return "Error: " + std::string(e.what()) + ", nothing wiped\n";
     }
-    else 
-      canon=DNSName(*i);
-    
-    count+= broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, canon, subtree));
-    pcount+= broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, canon, subtree));
-    countNeg+=broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, canon, subtree));
+    toWipe.push_back({canon, subtree});
+  }
+
+  int count=0, pcount=0, countNeg=0;
+  for (auto wipe : toWipe) {
+    count+= broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, wipe.first, wipe.second));
+    pcount+= broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, wipe.first, wipe.second));
+    countNeg+=broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, wipe.first, wipe.second));
   }
 
   return "wiped "+std::to_string(count)+" records, "+std::to_string(countNeg)+" negative records, "+std::to_string(pcount)+" packets\n";
