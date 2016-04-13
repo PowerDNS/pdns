@@ -48,7 +48,8 @@ What to do with timeouts. We keep around at most 65536 outstanding answers.
 #include "anadns.hh"
 #include <boost/program_options.hpp>
 #include "dnsrecords.hh"
-
+#include "ednssubnet.hh"
+#include "ednsoptions.hh"
 // this is needed because boost multi_index also uses 'L', as do we (which is sad enough)
 #undef L
 
@@ -534,7 +535,55 @@ Orig    9           21      29     36         47        57       66    72
 
 bool g_rdSelector;
 
-bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote)
+static void generateOptRR(const std::string& optRData, string& res)
+{
+  const uint8_t name = 0;
+  dnsrecordheader dh;
+  EDNS0Record edns0;
+  edns0.extRCode = 0;
+  edns0.version = 0;
+  edns0.Z = 0;
+  
+  dh.d_type = htons(QType::OPT);
+  dh.d_class = htons(1280);
+  memcpy(&dh.d_ttl, &edns0, sizeof edns0);
+  dh.d_clen = htons((uint16_t) optRData.length());
+  res.assign((const char *) &name, sizeof name);
+  res.append((const char *) &dh, sizeof dh);
+  res.append(optRData.c_str(), optRData.length());
+}
+
+static void addECSOption(char* packet, const size_t& packetSize, uint16_t* len, const ComboAddress& remote, int stamp)
+{
+  string EDNSRR;
+  struct dnsheader* dh = (struct dnsheader*) packet;
+
+  EDNSSubnetOpts eso;
+  if(stamp < 0)
+    eso.source = Netmask(remote);
+  else {
+    ComboAddress stamped(remote);
+    *((char*)&stamped.sin4.sin_addr.s_addr)=stamp;
+    eso.source = Netmask(stamped);
+  }
+  string optRData=makeEDNSSubnetOptsString(eso);
+  string record;
+  generateEDNSOption(EDNSOptionCode::ECS, optRData, record);
+  generateOptRR(record, EDNSRR);
+
+
+  uint16_t arcount = ntohs(dh->arcount);
+  /* does it fit in the existing buffer? */
+  if (packetSize - *len > EDNSRR.size()) {
+    arcount++;
+    dh->arcount = htons(arcount);
+    memcpy(packet + *len, EDNSRR.c_str(), EDNSRR.size());
+    *len += EDNSRR.size();
+  }
+}
+
+
+bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote, int stamp)
 {
   dnsheader* dh=(dnsheader*)pr.d_payload;
   bool sent=false;
@@ -550,7 +599,11 @@ bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote)
       uint16_t tmp=dh->id;
       dh->id=htons(qd.d_assignedID);
       //      dh->rd=1; // useful to replay traffic to auths to a recursor
-      s_socket->sendTo((const char*)pr.d_payload, pr.d_len, remote);
+      uint16_t dlen = pr.d_len;
+
+      addECSOption((char*)pr.d_payload, 1500, &dlen, pr.getSource(), stamp);
+      pr.d_len=dlen;
+      s_socket->sendTo((const char*)pr.d_payload, dlen, remote);
       sent=true;
       dh->id=tmp;
     }
@@ -600,11 +653,16 @@ bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote)
   }
   catch(MOADNSException &e)
   {
+    if(!g_quiet)
+      cerr<<"Error parsing packet: "<<e.what()<<endl;
     s_idmanager.releaseID(qd.d_assignedID);  // not added to qids for cleanup
     s_origdnserrors++;
   }
   catch(std::exception &e)
   {
+    if(!g_quiet)
+      cerr<<"Error parsing packet: "<<e.what()<<endl;
+
     s_idmanager.releaseID(qd.d_assignedID);  // not added to qids for cleanup
     s_origdnserrors++;    
   }
@@ -622,7 +680,9 @@ try
     ("quiet", po::value<bool>()->default_value(true), "don't be too noisy")
     ("recursive", po::value<bool>()->default_value(true), "look at recursion desired packets, or not (defaults true)")
     ("speedup", po::value<float>()->default_value(1), "replay at this speedup")
-    ("timeout-msec", po::value<uint32_t>()->default_value(500), "wait at least this many milliseconds for a reply");
+    ("timeout-msec", po::value<uint32_t>()->default_value(500), "wait at least this many milliseconds for a reply")
+    ("ecs-stamp", "Add original IP address to ECS in replay")
+    ("ecs-mask", po::value<uint16_t>(), "Replace first octet of src IP address with this value in ECS");
 
   po::options_description alloptions;
   po::options_description hidden("hidden options");
@@ -675,6 +735,10 @@ try
   ComboAddress remote(g_vm["target-ip"].as<string>(), 
                     g_vm["target-port"].as<uint16_t>());
 
+ int stamp = -1;
+ if(g_vm.count("ecs-stamp") && g_vm.count("ecs-mask"))
+   stamp=g_vm["ecs-mask"].as<uint16_t>();
+
   cerr<<"Replaying packets to: '"<<g_vm["target-ip"].as<string>()<<"', port "<<g_vm["target-port"].as<uint16_t>()<<endl;
 
   unsigned int once=0;
@@ -701,10 +765,11 @@ try
       if(!first && !pr.getUDPPacket()) // otherwise we miss the first packet
         goto out;
       first=false;
+
       packet_ts.tv_sec = pr.d_pheader.ts.tv_sec;
       packet_ts.tv_usec = pr.d_pheader.ts.tv_usec;
 
-      if(sendPacketFromPR(pr, remote))
+      if(sendPacketFromPR(pr, remote, stamp))
         count++;
     } 
     if(packetLimit && count > packetLimit) 
