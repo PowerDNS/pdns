@@ -327,6 +327,11 @@ Current actions are:
  * Modify query to clear the RD or CD bit
  * Add the source MAC address to the query (MacAddrAction)
  * Skip the cache, if any
+ * Log query content to a remote server (RemoteLogAction)
+
+Current response actions are:
+
+ * Log response content to a remote server (RemoteLogResponseAction)
 
 Rules can be added via:
 
@@ -342,6 +347,10 @@ Rules can be added via:
  * addPoolRule(DNS rule, destination pool)
  * addQPSLimit(DNS rule, qps limit)
  * addQPSPoolRule(DNS rule, qps limit, destination pool)
+
+Response rules can be added via:
+
+ * addResponseAction(DNS rule, DNS Response Action)
 
 A DNS rule can be:
 
@@ -1031,6 +1040,8 @@ instantiate a server with additional parameters
     * `QPSPoolAction(maxqps, poolname)`: set the packet into the specified pool only if it **does not** exceed the specified QPS limits, letting the subsequent rules apply otherwise
     * `QPSAction(rule, maxqps)`: drop these packets if the QPS limits are exceeded
     * `RCodeAction(rcode)`: reply immediatly by turning the query into a response with the specified rcode
+    * `RemoteLogAction(RemoteLogger)`: send the content of this query to a remote logger via Protocol Buffer
+    * `RemoteLogResponseAction(RemoteLogger)`: send the content of this response to a remote logger via Protocol Buffer
     * `SkipCacheAction()`: don't lookup the cache for this query, don't store the answer
     * `SpoofAction(ip[, ip])` or `SpoofAction({ip, ip, ..}): forge a response with the specified IPv4 (for an A query) or IPv6 (for an AAAA). If you specify multiple addresses, all that match the query type (A, AAAA or ANY) will get spoofed in
     * `SpoofCNAMEAction(cname)`: forge a response with the specified CNAME value
@@ -1163,6 +1174,8 @@ instantiate a server with additional parameters
     * `generateDNSCryptCertificate("/path/to/providerPrivate.key", "/path/to/resolver.cert", "/path/to/resolver.key", serial, validFrom, validUntil):` generate a new resolver private key and related certificate, valid from the `validFrom` timestamp until the `validUntil` one, signed with the provider private key
     * `printDNSCryptProviderFingerprint("/path/to/providerPublic.key")`: display the fingerprint of the provided resolver public key
     * `showDNSCryptBinds():`: display the currently configured DNSCrypt binds
+ * RemoteLogger related:
+    * `newRemoteLogger(address:port)`: create a Remote Logger object, to use with `RemoteLogAction()` and `RemoteLogResponseAction()`
 
 All hooks
 ---------
