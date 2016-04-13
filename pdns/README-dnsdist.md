@@ -1175,7 +1175,7 @@ instantiate a server with additional parameters
     * `printDNSCryptProviderFingerprint("/path/to/providerPublic.key")`: display the fingerprint of the provided resolver public key
     * `showDNSCryptBinds():`: display the currently configured DNSCrypt binds
  * RemoteLogger related:
-    * `newRemoteLogger(address:port)`: create a Remote Logger object, to use with `RemoteLogAction()` and `RemoteLogResponseAction()`
+    * `newRemoteLogger(address:port [, timeout=2, maxQueuedEntries=100, reconnectWaitTime=1])`: create a Remote Logger object, to use with `RemoteLogAction()` and `RemoteLogResponseAction()`
 
 All hooks
 ---------

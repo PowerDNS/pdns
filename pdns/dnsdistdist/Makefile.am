@@ -62,7 +62,7 @@ dnsdist_SOURCES = \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
 	dnsdist-lua.cc \
 	dnsdist-lua2.cc \
-	dnsdist-remotelogger.cc dnsdist-remotelogger.hh \
+	dnsdist-protobuf.cc dnsdist-protobuf.hh \
 	dnsdist-rings.cc \
 	dnsdist-tcp.cc \
 	dnsdist-web.cc \
@@ -82,6 +82,7 @@ dnsdist_SOURCES = \
 	namespaces.hh \
 	pdnsexception.hh \
 	qtype.cc qtype.hh \
+	remote_logger.cc remote_logger.hh \
 	sholder.hh \
 	sodcrypto.cc sodcrypto.hh \
 	sstuff.hh \

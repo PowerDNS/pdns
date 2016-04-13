@@ -85,7 +85,6 @@ extern SortList g_sortlist;
 #ifdef HAVE_PROTOBUF
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
 #include "dnsmessage.pb.h"
 #endif
 
@@ -616,7 +615,10 @@ catch(...)
 #ifdef HAVE_PROTOBUF
 static void protobufFillMessageFromDC(PBDNSMessage& message, const DNSComboWriter* dc)
 {
-  message.set_messageid(boost::uuids::to_string(dc->d_uuid));
+  std::string* messageId = message.mutable_messageid();
+  messageId->resize(dc->d_uuid.size());
+  std::copy(dc->d_uuid.begin(), dc->d_uuid.end(), messageId->begin());
+
   message.set_socketfamily(dc->d_remote.sin4.sin_family == AF_INET ? PBDNSMessage_SocketFamily_INET : PBDNSMessage_SocketFamily_INET6);
   message.set_socketprotocol(dc->d_tcp ? PBDNSMessage_SocketProtocol_TCP : PBDNSMessage_SocketProtocol_UDP);
   if (dc->d_local.sin4.sin_family == AF_INET) {
@@ -646,6 +648,11 @@ static void protobufFillMessageFromDC(PBDNSMessage& message, const DNSComboWrite
   message.set_timesec(ts.tv_sec);
   message.set_timeusec(ts.tv_nsec / 1000);
   message.set_id(ntohs(dc->d_mdp.d_header.id));
+
+  PBDNSMessage_DNSQuestion* question = message.mutable_question();
+  question->set_qname(dc->d_mdp.d_qname.toString());
+  question->set_qtype(dc->d_mdp.d_qtype);
+  question->set_qclass(dc->d_mdp.d_qclass);
 }
 
 static void protobufLogQuery(const std::shared_ptr<RemoteLogger>& logger, const DNSComboWriter* dc)
@@ -654,12 +661,6 @@ static void protobufLogQuery(const std::shared_ptr<RemoteLogger>& logger, const 
   message.set_type(PBDNSMessage_Type_DNSQueryType);
   message.set_inbytes(dc->d_query.length());
   protobufFillMessageFromDC(message, dc);
-
-  PBDNSMessage_DNSQuestion question;
-  question.set_qname(dc->d_mdp.d_qname.toString());
-  question.set_qtype(dc->d_mdp.d_qtype);
-  question.set_qclass(dc->d_mdp.d_qclass);
-  message.set_allocated_question(&question);
 
 //  cerr <<message.DebugString()<<endl;
   std::string str;

@@ -4,7 +4,8 @@
 #include "dolog.hh"
 #include "ednsoptions.hh"
 #include "lock.hh"
-#include "dnsdist-remotelogger.hh"
+#include "remote_logger.hh"
+#include "dnsdist-protobuf.hh"
 
 class MaxQPSIPRule : public DNSRule
 {
@@ -734,7 +735,11 @@ public:
   }
   DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
   {
-    d_logger->logQuery(*dq);
+#ifdef HAVE_PROTOBUF
+    std::string data;
+    protobufMessageFromQuestion(*dq, data);
+    d_logger->queueData(data);
+#endif /* HAVE_PROTOBUF */
     return Action::None;
   }
   string toString() const override
@@ -753,7 +758,11 @@ public:
   }
   DNSResponseAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
   {
-    d_logger->logResponse(*dq);
+#ifdef HAVE_PROTOBUF
+    std::string data;
+    protobufMessageFromResponse(*dq, data);
+    d_logger->queueData(data);
+#endif /* HAVE_PROTOBUF */
     return Action::None;
   }
   string toString() const override
