@@ -618,7 +618,7 @@ static void gatherRecordsFromZone(const std::string& zonestring, vector<DNSResou
 
 static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
   UeberBackend B;
-  DNSSECKeeper dk;
+  DNSSECKeeper dk(&B);
   if (req->method == "POST" && !::arg().mustDo("api-readonly")) {
     DomainInfo di;
     auto document = req->json();
