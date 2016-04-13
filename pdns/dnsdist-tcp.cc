@@ -420,6 +420,7 @@ void* tcpClientThread(int pipefd)
           break;
         }
 
+        dh = (struct dnsheader*) response;
         DNSQuestion dr(&qname, qtype, qclass, &ci.cs->local, &ci.remote, dh, responseSize, responseLen, true);
 #ifdef HAVE_PROTOBUF
         dr.uniqueId = dq.uniqueId;

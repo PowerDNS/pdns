@@ -1,6 +1,5 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
 
 #include "dnsmessage.pb.h"
 #include "iputils.hh"
@@ -151,22 +150,27 @@ int main(int argc, char **argv)
     if (!dh->qr) {
       boost::uuids::uuid uniqueId = uuidGenerator();
       ids[dh->id] = uniqueId;
-      message.set_messageid(boost::uuids::to_string(uniqueId));
-      question.set_qname(qname.toString());
-      question.set_qtype(qtype);
-      question.set_qclass(qclass);
-      message.set_allocated_question(&question);
+      std::string* messageId = message.mutable_messageid();
+      messageId->resize(uniqueId.size());
+      std::copy(uniqueId.begin(), uniqueId.end(), messageId->begin());
     }
     else {
       const auto& it = ids.find(dh->id);
       if (it != ids.end()) {
-        message.set_messageid(boost::uuids::to_string(it->second));
+        std::string* messageId = message.mutable_messageid();
+        messageId->resize(it->second.size());
+        std::copy(it->second.begin(), it->second.end(), messageId->begin());
       }
+
       response.set_rcode(dh->rcode);
       addRRs((const char*) dh, pr.d_len, response);
       message.set_allocated_response(&response);
     }
 
+    question.set_qname(qname.toString());
+    question.set_qtype(qtype);
+    question.set_qclass(qclass);
+    message.set_allocated_question(&question);
     std::string str;
     //cerr<<message.DebugString()<<endl;
     message.SerializeToString(&str);
