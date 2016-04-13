@@ -17,6 +17,8 @@
 PROG=dnsdist
 DNSDIST=/usr/bin/${PROG}
 PIDFILE=/var/run/${PROG}.pid
+DNSDIST_USER='dnsdist'
+DNSDIST_GROUP='dnsdist'
 DNSDIST_OPTIONS=""
 
 if [ -f /etc/default/${PROG} ]; then
@@ -31,7 +33,7 @@ RETVAL=0
 
 do_start() {
   echo -n "Starting ${PROG}..."
-  daemon --pidfile=${PIDFILE} $DNSDIST -d -p ${PIDFILE} ${DNSDIST_OPTIONS}
+  daemon --pidfile=${PIDFILE} $DNSDIST -u ${DNSDIST_USER} -g ${DNSDIST_GROUP} -d -p ${PIDFILE} ${DNSDIST_OPTIONS}
   ret=$?
   echo
   return $ret
