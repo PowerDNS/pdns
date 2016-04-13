@@ -1060,11 +1060,35 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
     if (!B.getAuth(&fakePacket, &sd, rr.qname))
       throw ApiException("Could not find domain for PTR '"+rr.qname.toString()+"' requested for '"+rr.content+"' (while saving)");
 
-    sd.db->startTransaction(rr.qname);
+    string soa_edit_api_kind;
+    string soa_edit_kind;
+    bool soa_changed = false;
+    DNSResourceRecord soarr;
+    sd.db->getDomainMetadataOne(sd.qname, "SOA-EDIT-API", soa_edit_api_kind);
+    sd.db->getDomainMetadataOne(sd.qname, "SOA-EDIT", soa_edit_kind);
+    if (!soa_edit_api_kind.empty()) {
+      soarr.qname = sd.qname;
+      soarr.content = serializeSOAData(sd);
+      soarr.qtype = "SOA";
+      soarr.domain_id = sd.domain_id;
+      soarr.auth = 1;
+      soarr.ttl = sd.ttl;
+      increaseSOARecord(soarr, soa_edit_api_kind, soa_edit_kind);
+      // fixup dots after serializeSOAData/increaseSOARecord
+      soarr.content = makeBackendRecordContent(soarr.qtype, soarr.content);
+      soa_changed = true;
+    }
+
+    sd.db->startTransaction(sd.qname);
     if (!sd.db->replaceRRSet(sd.domain_id, rr.qname, rr.qtype, vector<DNSResourceRecord>(1, rr))) {
       sd.db->abortTransaction();
       throw ApiException("PTR-Hosting backend for "+rr.qname.toString()+"/"+rr.qtype.getName()+" does not support editing records.");
     }
+
+    if (soa_changed) {
+      sd.db->replaceRRSet(sd.domain_id, soarr.qname, soarr.qtype, vector<DNSResourceRecord>(1, soarr));
+    }
+
     sd.db->commitTransaction();
     PC.purgeExact(rr.qname);
   }
