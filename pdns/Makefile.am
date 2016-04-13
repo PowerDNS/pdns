@@ -844,6 +844,8 @@ dnsreplay_SOURCES = \
 	dnsrecords.cc \
 	dnsreplay.cc \
 	dnswriter.cc dnswriter.hh \
+	ednssubnet.cc ednssubnet.hh \
+	ednsoptions.cc ednsoptions.hh \
 	logger.cc \
 	misc.cc \
 	nsecrecords.cc \
