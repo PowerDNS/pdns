@@ -1,4 +1,4 @@
-AM_CPPFLAGS += $(LUA_CFLAGS) $(LIBEDIT_CFLAGS) $(YAHTTP_CFLAGS) $(SANITIZER_FLAGS) -DSYSCONFDIR=\"${sysconfdir}\"
+AM_CPPFLAGS += $(SYSTEMD_CFLAGS) $(LUA_CFLAGS) $(LIBEDIT_CFLAGS) $(YAHTTP_CFLAGS) $(SANITIZER_FLAGS) -DSYSCONFDIR=\"${sysconfdir}\"
 
 ACLOCAL_AMFLAGS = -I m4
 
@@ -39,7 +39,8 @@ EXTRA_DIST=dnslabeltext.rl \
 	   build-aux/gen-version \
 	   ext/incbin/UNLICENSE \
 	   incfiles \
-	   src_js
+	   src_js \
+	   dnsdist.service.in
 
 bin_PROGRAMS = dnsdist
 
@@ -100,7 +101,8 @@ dnsdist_LDADD = \
 	$(RT_LIBS) \
 	$(YAHTTP_LIBS) \
 	$(LIBSODIUM_LIBS) \
-	$(SANITIZER_FLAGS)
+	$(SANITIZER_FLAGS) \
+	$(SYSTEMD_LIBS)
 
 if HAVE_RE2
 dnsdist_LDADD += $(RE2_LIBS)
@@ -177,4 +179,14 @@ $(MANPAGES):
 	echo "You need pandoc to generate the manpages"
 	exit 1
 endif
+endif
+
+if HAVE_SYSTEMD
+dnsdist.service: dnsdist.service.in
+	$(AM_V_GEN)sed -e 's![@]bindir[@]!$(bindir)!' < $< > $@
+
+systemdsystemunitdir = $(SYSTEMD_DIR)
+
+systemdsystemunit_DATA = \
+	dnsdist.service
 endif

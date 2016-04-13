@@ -40,8 +40,10 @@ SODIUM_CONFIGURE=''
 
 # Some RPM platforms use systemd, others sysv, we default to systemd here
 INIT_BUILDREQUIRES='BuildRequires: systemd'
-INIT_INSTALL='install -d -m 755 %{buildroot}/%{_sysconfdir}/systemd/system/ && install -m 664 contrib/dnsdist.service %{buildroot}/%{_sysconfdir}/systemd/system/dnsdist.service'
-INIT_FILES='%{_sysconfdir}/systemd/system/dnsdist.service'
+#INIT_INSTALL='install -d -m 755 %{buildroot}/lib/systemd/system/ && install -m 664 dnsdist.service %{buildroot}/lib/systemd/system/dnsdist.service'
+INIT_INSTALL=''
+INIT_FILES='/lib/systemd/system/dnsdist.service'
+INIT_CONFIGURE='--enable-systemd --with-systemd=/lib/systemd/system \'
 
 # These two are the same for sysv and systemd (we don't install defaults files at the moment)
 DEFAULTS_INSTALL=''
@@ -64,6 +66,7 @@ if [ -f /etc/redhat-release ]; then
       INIT_BUILDREQUIRES=''
       INIT_INSTALL='install -d -m 755 %{buildroot}/%{_initrddir} && install -m 755 contrib/dnsdist.init.centos6 %{buildroot}/%{_initrddir}/dnsdist'
       INIT_FILES='%{_initrddir}/dnsdist'
+      INIT_CONFIGURE='\'
       SETUP="%setup -n %{name}-${TARBALLVERSION}"
       RPMBUILD_COMMAND="scl enable devtoolset-3 -- ${RPMBUILD_COMMAND}"
       ;;
@@ -101,6 +104,7 @@ ${SETUP}
 %build
 %configure \
   --sysconfdir=/etc/dnsdist \
+  ${INIT_CONFIGURE}
   ${SODIUM_CONFIGURE}
 
 make

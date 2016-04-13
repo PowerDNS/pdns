@@ -3,7 +3,7 @@ Description=dnsdist
 After=network.target
 
 [Service]
-# Keep the --supervised option when changing the default options
+Type=notify
 ExecStart=/usr/bin/dnsdist --supervised
 
 [Install]

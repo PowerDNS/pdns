@@ -42,6 +42,10 @@
 #include <getopt.h>
 #include "dnsdist-cache.hh"
 
+#ifdef HAVE_SYSTEMD
+#include <systemd/sd-daemon.h>
+#endif
+
 /* Known sins:
 
    Receiver is currently single threaded
@@ -1475,6 +1479,7 @@ try
       break;
     }
   }
+
   argc-=optind;
   argv+=optind;
   for(auto p = argv; *p; ++p) {
@@ -1724,6 +1729,9 @@ try
   thread healththread(healthChecksThread);
 
   if(g_cmdLine.beDaemon || g_cmdLine.beSupervised) {
+#ifdef HAVE_SYSTEMD
+    sd_notify(0, "READY=1");
+#endif
     healththread.join();
   }
   else {
