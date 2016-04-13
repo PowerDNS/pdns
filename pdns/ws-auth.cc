@@ -737,6 +737,11 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     if(!B.getDomainInfo(zonename, di))
       throw ApiException("Creating domain '"+zonename.toString()+"' failed: lookup of domain ID failed");
 
+    // updateDomainSettingsFromDocument does NOT fill out the default we've established above.
+    if (!soa_edit_api_kind.empty()) {
+      di.backend->setDomainMetadataOne(zonename, "SOA-EDIT-API", soa_edit_api_kind);
+    }
+
     di.backend->startTransaction(zonename, di.id);
 
     for(auto rr : new_records) {

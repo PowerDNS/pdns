@@ -133,6 +133,11 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
             if k in payload:
                 self.assertEquals(data[k], payload[k])
 
+    def test_create_zone_default_soa_edit_api(self):
+        name, payload, data = self.create_zone()
+        print data
+        self.assertEquals(data['soa_edit_api'], 'DEFAULT')
+
     def test_create_zone_with_records(self):
         name = unique_zone_name()
         rrset = {
