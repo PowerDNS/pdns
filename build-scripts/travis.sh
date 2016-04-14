@@ -576,6 +576,6 @@ build_$PDNS_BUILD_PRODUCT
 
 test_$PDNS_BUILD_PRODUCT
 
-if [ $PDNS_BUILD_PRODUCT == "auth"]; then
+if [ $PDNS_BUILD_PRODUCT == "auth" ]; then
   test_repo
 fi
