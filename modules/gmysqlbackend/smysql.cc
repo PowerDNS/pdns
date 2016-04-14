@@ -337,7 +337,7 @@ SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const 
 #endif
 
 #if MYSQL_VERSION_ID >= 50100
-    unsigned int timeout = 10;
+    unsigned int timeout = 180;
     mysql_options(&d_db, MYSQL_OPT_READ_TIMEOUT, &timeout);
     mysql_options(&d_db, MYSQL_OPT_WRITE_TIMEOUT, &timeout);
 #endif
