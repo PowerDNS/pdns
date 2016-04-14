@@ -1,3 +1,44 @@
+# dnsdist 1.0.0-beta1
+Released April 14th 2016
+
+Changes since 1.0.0-alpha2:
+
+## New features
+
+ * Per-pool packet cache
+ * Some actions do not stop the processing anymore when they match, allowing more complex setups: Delay, Disable Validation, Log, MacAddr, No Recurse and of course None
+ * The new RE2Rule() is available, using the RE2 regular expression library to match queries, in addition to the existing POSIX-based RegexRule()
+ * SpoofAction() now supports multiple A and AAAA records
+ * Remote logging of questions and answers via Protocol Buffer
+
+## Improvements
+
+ * [#3405](https://github.com/PowerDNS/pdns/pull/3405) Add health check logging, `maxCheckFailures` to backend
+ * [#3412](https://github.com/PowerDNS/pdns/pull/3412) Check config
+ * [#3440](https://github.com/PowerDNS/pdns/pull/3440) Client operation improvements
+ * [#3466](https://github.com/PowerDNS/pdns/pull/3466) Add dq binding for skipping packet cache in LuaAction (Jan Broer)
+ * [#3499](https://github.com/PowerDNS/pdns/pull/3499) Add support for multiple carbon servers
+ * [#3504](https://github.com/PowerDNS/pdns/pull/3504) Allow accessing the API with an optional API key
+ * [#3556](https://github.com/PowerDNS/pdns/pull/3556) Add an option to limit the number of queued TCP connections
+ * [#3578](https://github.com/PowerDNS/pdns/pull/3578) Add a `disable-syslog` option
+ * [#3608](https://github.com/PowerDNS/pdns/pull/3608) Export cache stats to carbon
+ * [#3622](https://github.com/PowerDNS/pdns/pull/3622) Display the ACL content on startup
+ * [#3627](https://github.com/PowerDNS/pdns/pull/3627) Remove ECS option from response's OPT RR when necessary
+ * [#3633](https://github.com/PowerDNS/pdns/pull/3633) Count "TTL too short" cache events
+ * [#3677](https://github.com/PowerDNS/pdns/pull/3677) systemd-notify support
+
+## Bug fixes
+
+ * [#3388](https://github.com/PowerDNS/pdns/pull/3388) Lock the Lua context before executing a LuaAction
+ * [#3433](https://github.com/PowerDNS/pdns/pull/3433) Check that the answer matches the initial query
+ * [#3461](https://github.com/PowerDNS/pdns/pull/3461) Fix crash when calling rmServer() with an invalid index
+ * [#355O](https://github.com/PowerDNS/pdns/pull/3550),[#3551](https://github.com/PowerDNS/pdns/pull/3551) Fix build failure on FreeBSD (Ruben Kerkhof)
+ * [#3594](https://github.com/PowerDNS/pdns/pull/3594) Prevent EOF error for empty console response w/o sodium
+ * [#3634](https://github.com/PowerDNS/pdns/pull/3634) Prevent dangling TCP fd in case setupTCPDownstream() fails
+ * [#3641](https://github.com/PowerDNS/pdns/pull/3641) Under threshold, QPS action should return None, not Allow
+ * [#3658](https://github.com/PowerDNS/pdns/pull/3658) Fix a race condition in MaxQPSIPRule
+
+
 # dnsdist 1.0.0-alpha2
 Released February 5th 2016
 
