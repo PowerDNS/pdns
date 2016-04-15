@@ -46,6 +46,12 @@ bin_PROGRAMS = dnsdist
 
 if UNIT_TESTS
 noinst_PROGRAMS = testrunner
+TESTS_ENVIRONMENT = env BOOST_TEST_LOG_LEVEL=message SRCDIR='$(srcdir)'
+TESTS=testrunner
+else
+check-local:
+	@echo "Unit tests are not enabled"
+	@echo "Run ./configure --enable-unit-tests"
 endif
 
 dnsdist-web.$(OBJEXT): htmlfiles.h
