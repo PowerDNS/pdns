@@ -59,6 +59,11 @@ See http://doc.powerdns.com/compiling-powerdns.html for more details.
 
 COMPILING THE RECURSOR
 ----------------------
+
+On Ubuntu 14.04, the following is useful:
+
+    apt-get install git libboost1.55-dev autoconf libtool pandoc ragel zip automake pkg-config g++ libssl-dev make
+
 The portable, and supported, way to build the recursor is:
 
     $ cd pdns/recursordist
