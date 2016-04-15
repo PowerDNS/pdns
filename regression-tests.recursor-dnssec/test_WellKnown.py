@@ -2,6 +2,8 @@ from recursortests import RecursorTest
 import dns
 
 class TestWellKnown(RecursorTest):
+    _launch_auths = False
+    _confdir = 'WellKnown'
     _config_template = """
 dnssec=validate
 """
