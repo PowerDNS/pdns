@@ -285,6 +285,13 @@ RecursorLua4::RecursorLua4(const std::string& fname)
 			   nmg.addMask(mask);
 			 });
 
+  d_lw->registerFunction<void(NetmaskGroup::*)(const vector<pair<unsigned int, std::string>>&)>("addMasks", [](NetmaskGroup&nmg, const vector<pair<unsigned int, std::string>>& masks)
+			 {
+                           for(const auto& mask: masks) 
+                             nmg.addMask(mask.second);
+			 });
+
+
   d_lw->registerFunction("match", (bool (NetmaskGroup::*)(const ComboAddress&) const)&NetmaskGroup::match);
   d_lw->registerFunction<string(DNSName::*)()>("toString", [](const DNSName&dn ) { return dn.toString(); });
   d_lw->registerFunction<string(DNSName::*)()>("toStringNoDot", [](const DNSName&dn ) { return dn.toStringNoDot(); });
@@ -313,6 +320,15 @@ RecursorLua4::RecursorLua4(const std::string& fname)
 
   
   d_lw->registerFunction<string(DNSRecord::*)()>("getContent", [](const DNSRecord& dr) { return dr.d_content->getZoneRepresentation(); });
+  d_lw->registerFunction<boost::optional<ComboAddress>(DNSRecord::*)()>("getCA", [](const DNSRecord& dr) { 
+      boost::optional<ComboAddress> ret;
+
+      if(auto rec = std::dynamic_pointer_cast<ARecordContent>(dr.d_content))
+        ret=rec->getCA(53);
+      else if(auto rec = std::dynamic_pointer_cast<AAAARecordContent>(dr.d_content))
+        ret=rec->getCA(53);
+      return ret;
+    });
 
 
   d_lw->registerFunction<void(DNSRecord::*)(const std::string&)>("changeContent", [](DNSRecord& dr, const std::string& newContent) { dr.d_content = shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(dr.d_type, 1, newContent)); });
