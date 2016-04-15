@@ -925,7 +925,9 @@ void startDoResolve(void *p)
     else {
       pw.getHeader()->rcode=res;
 
-      if(haveEDNS) {
+      // FIXME: haveEDNS is not the way to handle initiation of validation, we
+      // should look for the AD bit in the header, see #3682
+      if(haveEDNS || g_dnssecmode == DNSSECMode::ValidateAll || g_dnssecmode==DNSSECMode::ValidateForLog) {
 	if(g_dnssecmode != DNSSECMode::Off && ((edo.d_Z & EDNSOpts::DNSSECOK) || g_dnssecmode == DNSSECMode::ValidateAll || g_dnssecmode==DNSSECMode::ValidateForLog)) {
           if(sr.doLog()) {
             L<<Logger::Warning<<"Starting validation of answer to "<<dc->d_mdp.d_qname<<" for "<<dc->d_remote.toStringWithPort()<<endl;
