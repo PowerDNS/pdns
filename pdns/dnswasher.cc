@@ -17,6 +17,7 @@ otherwise, obfuscate the response IP address
 #endif
 #include "statbag.hh"
 #include "dnspcap.hh"
+#include "iputils.hh"
 
 #include "namespaces.hh"
 #include "namespaces.hh"
@@ -89,9 +90,9 @@ try
         uint64_t *dst=(uint64_t*)&pr.d_ip6->ip6_dst;
 
         if(dh->qr)
-          *dst=ipo.obf6(*dst);
+          *dst=htobe64(ipo.obf6(*dst));
         else
-          *src=ipo.obf6(*src);
+          *src=htobe64(ipo.obf6(*src));
       }
       pw.write();
     }
