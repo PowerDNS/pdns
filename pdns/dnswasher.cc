@@ -82,6 +82,8 @@ try
           *dst=htonl(ipo.obf4(*dst));
         else
           *src=htonl(ipo.obf4(*src));
+
+        pr.d_ip->ip_sum=0;
       } else if (pr.d_ip->ip_v == 6) {
         uint64_t *src=1+(uint64_t*)&pr.d_ip6->ip6_src;
         uint64_t *dst=1+(uint64_t*)&pr.d_ip6->ip6_dst;
@@ -91,7 +93,6 @@ try
         else
           *src=ipo.obf6(*src);
       }
-      pr.d_ip->ip_sum=0;
       pw.write();
     }
   }
