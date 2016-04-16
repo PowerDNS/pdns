@@ -5,7 +5,7 @@ for analysis.
 
 algorithm:
 
-read a packet, check if it has the recursion desired bit set. 
+read a packet, check if it has the QR bit set.
 
 If the question has the response bit set, obfuscate the destination IP address
 otherwise, obfuscate the response IP address
