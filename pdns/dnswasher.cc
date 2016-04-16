@@ -85,8 +85,8 @@ try
 
         pr.d_ip->ip_sum=0;
       } else if (pr.d_ip->ip_v == 6) {
-        uint64_t *src=1+(uint64_t*)&pr.d_ip6->ip6_src;
-        uint64_t *dst=1+(uint64_t*)&pr.d_ip6->ip6_dst;
+        uint64_t *src=(uint64_t*)&pr.d_ip6->ip6_src;
+        uint64_t *dst=(uint64_t*)&pr.d_ip6->ip6_dst;
 
         if(dh->qr)
           *dst=ipo.obf6(*dst);
