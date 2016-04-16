@@ -42,7 +42,6 @@ public:
 
   uint64_t obf6(uint64_t orig)
   {
-    cout<<d_counter<<endl;
     if(d_ro6map.count(orig))
       return d_ip6map[orig];
     else {
