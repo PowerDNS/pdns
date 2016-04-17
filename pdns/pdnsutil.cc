@@ -1034,19 +1034,25 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
   cout<<"Detected the following changes:\n"<<endl;
 
   vector<DNSRecord> diff;
-  set<pair<DNSName,uint16_t>> changed;
+  map<pair<DNSName,uint16_t>, string> changed;
   set_difference(pre.cbegin(), pre.cend(), post.cbegin(), post.cend(), back_inserter(diff));
   for(const auto& d : diff) {
-    changed.insert({d.d_name,d.d_type});
-    cout<<'-'<< d.d_name <<" "<<d.d_ttl<<" IN "<<DNSRecordContent::NumberToType(d.d_type)<<" "<<d.d_content->getZoneRepresentation(true)<<endl;
+    ostringstream str;
+    str<<'-'<< d.d_name <<" "<<d.d_ttl<<" IN "<<DNSRecordContent::NumberToType(d.d_type)<<" "<<d.d_content->getZoneRepresentation(true)<<endl;
+    changed[{d.d_name,d.d_type}] += str.str();
+
   }
   diff.clear();
   set_difference(post.cbegin(), post.cend(), pre.cbegin(), pre.cend(), back_inserter(diff));
   for(const auto& d : diff) {
-    changed.insert({d.d_name,d.d_type});
-    cout<<'+'<< d.d_name <<" "<<d.d_ttl<<" IN "<<DNSRecordContent::NumberToType(d.d_type)<<" "<<d.d_content->getZoneRepresentation(true)<<endl;
-  }
+    ostringstream str;
 
+    str<<'+'<< d.d_name <<" "<<d.d_ttl<<" IN "<<DNSRecordContent::NumberToType(d.d_type)<<" "<<d.d_content->getZoneRepresentation(true)<<endl;
+    changed[{d.d_name,d.d_type}]+=str.str();
+  }
+  for(const auto& c : changed) {
+    cout<<c.second;
+  }
  reAsk2:;
   cout<<"\n";
   if(changed.empty())
@@ -1068,12 +1074,12 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
 
   for(const auto& c : changed) {
     vector<DNSResourceRecord> vrr;
-    for(const DNSRecord& rr : grouped[c]) {
+    for(const DNSRecord& rr : grouped[c.first]) {
       DNSResourceRecord drr(rr);
       drr.domain_id = di.id;
       vrr.push_back(drr);
     }
-    di.backend->replaceRRSet(di.id, c.first, QType(c.second), vrr);
+    di.backend->replaceRRSet(di.id, c.first.first, QType(c.first.second), vrr);
   }
   rectifyZone(dk, zone);
   return EXIT_SUCCESS;
