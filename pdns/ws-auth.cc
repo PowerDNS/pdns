@@ -48,8 +48,10 @@
 using json11::Json;
 
 extern StatBag S;
+extern PacketCache PC;
 
 static void patchZone(HttpRequest* req, HttpResponse* resp);
+static void storeChangedPTRs(UeberBackend& B, vector<DNSResourceRecord>& new_ptrs);
 static void makePtr(const DNSResourceRecord& rr, DNSResourceRecord* ptr);
 
 AuthWebServer::AuthWebServer()
@@ -618,7 +620,7 @@ static void gatherRecordsFromZone(const std::string& zonestring, vector<DNSResou
 
 static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
   UeberBackend B;
-  DNSSECKeeper dk;
+  DNSSECKeeper dk(&B);
   if (req->method == "POST" && !::arg().mustDo("api-readonly")) {
     DomainInfo di;
     auto document = req->json();
@@ -737,6 +739,11 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     if(!B.getDomainInfo(zonename, di))
       throw ApiException("Creating domain '"+zonename.toString()+"' failed: lookup of domain ID failed");
 
+    // updateDomainSettingsFromDocument does NOT fill out the default we've established above.
+    if (!soa_edit_api_kind.empty()) {
+      di.backend->setDomainMetadataOne(zonename, "SOA-EDIT-API", soa_edit_api_kind);
+    }
+
     di.backend->startTransaction(zonename, di.id);
 
     for(auto rr : new_records) {
@@ -751,6 +758,8 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     updateDomainSettingsFromDocument(di, zonename, document);
 
     di.backend->commitTransaction();
+
+    storeChangedPTRs(B, new_ptrs);
 
     fillZone(zonename, resp);
     resp->status = 201;
@@ -919,6 +928,50 @@ static void makePtr(const DNSResourceRecord& rr, DNSResourceRecord* ptr) {
   ptr->content = rr.qname.toString();
 }
 
+static void storeChangedPTRs(UeberBackend& B, vector<DNSResourceRecord>& new_ptrs) {
+  for(const DNSResourceRecord& rr :  new_ptrs) {
+    DNSPacket fakePacket;
+    SOAData sd;
+    sd.db = (DNSBackend *)-1;  // getAuth() cache bypass
+    fakePacket.qtype = QType::PTR;
+
+    if (!B.getAuth(&fakePacket, &sd, rr.qname))
+      throw ApiException("Could not find domain for PTR '"+rr.qname.toString()+"' requested for '"+rr.content+"' (while saving)");
+
+    string soa_edit_api_kind;
+    string soa_edit_kind;
+    bool soa_changed = false;
+    DNSResourceRecord soarr;
+    sd.db->getDomainMetadataOne(sd.qname, "SOA-EDIT-API", soa_edit_api_kind);
+    sd.db->getDomainMetadataOne(sd.qname, "SOA-EDIT", soa_edit_kind);
+    if (!soa_edit_api_kind.empty()) {
+      soarr.qname = sd.qname;
+      soarr.content = serializeSOAData(sd);
+      soarr.qtype = "SOA";
+      soarr.domain_id = sd.domain_id;
+      soarr.auth = 1;
+      soarr.ttl = sd.ttl;
+      increaseSOARecord(soarr, soa_edit_api_kind, soa_edit_kind);
+      // fixup dots after serializeSOAData/increaseSOARecord
+      soarr.content = makeBackendRecordContent(soarr.qtype, soarr.content);
+      soa_changed = true;
+    }
+
+    sd.db->startTransaction(sd.qname);
+    if (!sd.db->replaceRRSet(sd.domain_id, rr.qname, rr.qtype, vector<DNSResourceRecord>(1, rr))) {
+      sd.db->abortTransaction();
+      throw ApiException("PTR-Hosting backend for "+rr.qname.toString()+"/"+rr.qtype.getName()+" does not support editing records.");
+    }
+
+    if (soa_changed) {
+      sd.db->replaceRRSet(sd.domain_id, soarr.qname, soarr.qtype, vector<DNSResourceRecord>(1, soarr));
+    }
+
+    sd.db->commitTransaction();
+    PC.purgeExact(rr.qname);
+  }
+}
+
 static void patchZone(HttpRequest* req, HttpResponse* resp) {
   UeberBackend B;
   DomainInfo di;
@@ -1042,27 +1095,10 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
   }
   di.backend->commitTransaction();
 
-  extern PacketCache PC;
   PC.purgeExact(zonename);
 
   // now the PTRs
-  for(const DNSResourceRecord& rr :  new_ptrs) {
-    DNSPacket fakePacket;
-    SOAData sd;
-    sd.db = (DNSBackend *)-1;  // getAuth() cache bypass
-    fakePacket.qtype = QType::PTR;
-
-    if (!B.getAuth(&fakePacket, &sd, rr.qname))
-      throw ApiException("Could not find domain for PTR '"+rr.qname.toString()+"' requested for '"+rr.content+"' (while saving)");
-
-    sd.db->startTransaction(rr.qname);
-    if (!sd.db->replaceRRSet(sd.domain_id, rr.qname, rr.qtype, vector<DNSResourceRecord>(1, rr))) {
-      sd.db->abortTransaction();
-      throw ApiException("PTR-Hosting backend for "+rr.qname.toString()+"/"+rr.qtype.getName()+" does not support editing records.");
-    }
-    sd.db->commitTransaction();
-    PC.purgeExact(rr.qname);
-  }
+  storeChangedPTRs(B, new_ptrs);
 
   // success
   fillZone(zonename, resp);
@@ -1154,7 +1190,6 @@ void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
 
   DNSName canon = apiNameToDNSName(req->getvars["domain"]);
 
-  extern PacketCache PC;
   int count = PC.purgeExact(canon);
   resp->setBody(Json::object {
     { "count", count },
