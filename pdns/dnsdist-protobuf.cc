@@ -2,6 +2,7 @@
 #include "config.h"
 
 #include "dnsdist.hh"
+#include "gettime.hh"
 
 #include "dnsparser.hh"
 #include "dnsdist-protobuf.hh"
@@ -33,7 +34,7 @@ static void protobufFillMessage(PBDNSMessage& message, const DNSQuestion& dq)
   message.set_inbytes(dq.len);
 
   struct timespec ts;
-  clock_gettime(CLOCK_REALTIME, &ts);
+  gettime(&ts, true);
   message.set_timesec(ts.tv_sec);
   message.set_timeusec(ts.tv_nsec / 1000);
   message.set_id(ntohs(dq.dh->id));

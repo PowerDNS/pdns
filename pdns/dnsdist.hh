@@ -13,6 +13,7 @@
 #include "sholder.hh"
 #include "dnscrypt.hh"
 #include "dnsdist-cache.hh"
+#include "gettime.hh"
 
 #ifdef HAVE_PROTOBUF
 #include <boost/uuid/uuid.hpp>
@@ -101,19 +102,16 @@ extern struct DNSDistStats g_stats;
 
 struct StopWatch
 {
-#ifndef CLOCK_MONOTONIC_RAW
-#define CLOCK_MONOTONIC_RAW CLOCK_MONOTONIC
-#endif
   struct timespec d_start{0,0};
   void start() {  
-    if(clock_gettime(CLOCK_MONOTONIC_RAW, &d_start) < 0)
+    if(gettime(&d_start) < 0)
       unixDie("Getting timestamp");
     
   }
   
   double udiff() const {
     struct timespec now;
-    if(clock_gettime(CLOCK_MONOTONIC_RAW, &now) < 0)
+    if(gettime(&now) < 0)
       unixDie("Getting timestamp");
     
     return 1000000.0*(now.tv_sec - d_start.tv_sec) + (now.tv_nsec - d_start.tv_nsec)/1000.0;
@@ -121,7 +119,7 @@ struct StopWatch
 
   double udiffAndSet() {
     struct timespec now;
-    if(clock_gettime(CLOCK_MONOTONIC_RAW, &now) < 0)
+    if(gettime(&now) < 0)
       unixDie("Getting timestamp");
     
     auto ret= 1000000.0*(now.tv_sec - d_start.tv_sec) + (now.tv_nsec - d_start.tv_nsec)/1000.0;

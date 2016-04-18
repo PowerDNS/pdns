@@ -25,6 +25,7 @@
 #include "ednsoptions.hh"
 #include "dolog.hh"
 #include "lock.hh"
+#include "gettime.hh"
 #include <thread>
 #include <atomic>
 
@@ -264,7 +265,7 @@ void* tcpClientThread(int pipefd)
 	string poolname;
 	int delayMsec=0;
 	struct timespec now;
-	clock_gettime(CLOCK_MONOTONIC, &now);
+	gettime(&now);
 
 	if (!processQuery(localDynBlockNMG, localRulactions, blockFilter, dq, poolname, &delayMsec, now)) {
 	  goto drop;
@@ -443,7 +444,7 @@ void* tcpClientThread(int pipefd)
 
         g_stats.responses++;
         struct timespec answertime;
-        clock_gettime(CLOCK_MONOTONIC, &answertime);
+        gettime(&answertime);
         unsigned int udiff = 1000000.0*DiffTime(now,answertime);
         {
           std::lock_guard<std::mutex> lock(g_rings.respMutex);

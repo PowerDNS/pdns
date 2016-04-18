@@ -81,6 +81,7 @@ dnsdist_SOURCES = \
 	ednsoptions.cc ednsoptions.hh \
 	ednscookies.cc ednscookies.hh \
 	ednssubnet.cc ednssubnet.hh \
+	gettime.cc gettime.hh \
 	iputils.cc iputils.hh \
 	lock.hh \
 	misc.cc misc.hh \
@@ -149,6 +150,7 @@ testrunner_SOURCES = \
 	ednsoptions.cc ednsoptions.hh \
 	ednscookies.cc ednscookies.hh \
 	ednssubnet.cc ednssubnet.hh \
+	gettime.cc gettime.hh \
 	iputils.cc iputils.hh \
 	misc.cc misc.hh \
 	namespaces.hh \

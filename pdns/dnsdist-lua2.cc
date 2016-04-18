@@ -6,6 +6,7 @@
 #include "sodcrypto.hh"
 #include "base64.hh"
 #include "lock.hh"
+#include "gettime.hh"
 #include <map>
 #include <fstream>
 #include <boost/logic/tribool.hpp>
@@ -59,7 +60,7 @@ map<ComboAddress,int> exceedRespGen(int rate, int seconds, std::function<void(co
 {
   counts_t counts;
   struct timespec cutoff, mintime, now;
-  clock_gettime(CLOCK_MONOTONIC, &now);
+  gettime(&now);
   cutoff = mintime = now;
   cutoff.tv_sec -= seconds;
 
@@ -82,7 +83,7 @@ map<ComboAddress,int> exceedQueryGen(int rate, int seconds, std::function<void(c
 {
   counts_t counts;
   struct timespec cutoff, mintime, now;
-  clock_gettime(CLOCK_MONOTONIC, &now);
+  gettime(&now);
   cutoff = mintime = now;
   cutoff.tv_sec -= seconds;
 
@@ -140,7 +141,7 @@ void moreLua(bool client)
       setLuaNoSideEffect();
       auto slow = g_dynblockNMG.getCopy();
       struct timespec now;
-      clock_gettime(CLOCK_MONOTONIC, &now);
+      gettime(&now);
       boost::format fmt("%-24s %8d %8d %s\n");
       g_outputBuffer = (fmt % "Netmask" % "Seconds" % "Blocks" % "Reason").str();
       for(const auto& e: slow) {
@@ -160,7 +161,7 @@ void moreLua(bool client)
                            setLuaSideEffect();
 			   auto slow = g_dynblockNMG.getCopy();
 			   struct timespec until, now;
-			   clock_gettime(CLOCK_MONOTONIC, &now);
+			   gettime(&now);
 			   until=now;
                            int actualSeconds = seconds ? *seconds : 10;
 			   until.tv_sec += actualSeconds; 
@@ -296,7 +297,7 @@ void moreLua(bool client)
       
       unsigned int num=0;
       struct timespec now;
-      clock_gettime(CLOCK_MONOTONIC, &now);
+      gettime(&now);
             
       std::multimap<struct timespec, string> out;
 

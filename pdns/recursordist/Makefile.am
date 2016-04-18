@@ -80,6 +80,7 @@ pdns_recursor_SOURCES = \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
 	filterpo.cc filterpo.hh \
+	gettime.cc gettime.hh \
 	gss_context.cc gss_context.hh \
 	iputils.hh iputils.cc \
 	ixfr.cc ixfr.hh \

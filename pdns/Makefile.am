@@ -1104,6 +1104,7 @@ testrunner_SOURCES = \
 	dnswriter.cc \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc \
+	gettime.cc gettime.hh \
 	gss_context.cc gss_context.hh \
 	iputils.cc \
 	logger.cc \
