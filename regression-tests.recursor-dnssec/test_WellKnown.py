@@ -18,7 +18,7 @@ class TestWellKnown(RecursorTest):
         self.assertEqual(len(results), len(names))
 
         for result in results:
-            self.assertEqual(result.rcode(), dns.rcode.SERVFAIL)
+            self.assertRcodeEqual(result, dns.rcode.SERVFAIL)
 
     def testNoError(self):
         names = ['powerdns.com', 'nlnetlabs.nl', 'knot-dns.cz']
@@ -30,4 +30,4 @@ class TestWellKnown(RecursorTest):
         self.assertEqual(len(results), len(names))
 
         for result in results:
-            self.assertEqual(result.rcode(), dns.rcode.NOERROR)
+            self.assertRcodeEqual(result, dns.rcode.NOERROR)

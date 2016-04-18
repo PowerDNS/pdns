@@ -48,7 +48,7 @@ ns.root.                 3600 IN A   %s.8
     _root_DS = "63149 13 1 a59da3f5c1b97fcd5fa2b3b2b0ac91d38a60d33a"
 
     # The default SOA for zones in the authoritative servers
-    _SOA = "ns.example.net. hostmaster.example.net. 1 3600 1800 1209600 300"
+    _SOA = "ns1.example.net. hostmaster.example.net. 1 3600 1800 1209600 300"
 
     # The definitions of the authoritative servers, the key is the suffix of the
     # IP address. The values are a dict of key zonename and the value is the
@@ -63,10 +63,10 @@ ns.root.                 3600 IN A   %s.8
 .                        3600 IN SOA {soa}
 .                        3600 IN NS  ns.root.
 ns.root.                 3600 IN A   {prefix}.8
-net.                     3600 IN NS  ns.example.net.
+net.                     3600 IN NS  ns1.example.net.
 net.                     3600 IN NS  ns2.example.net.
 net.                     3600 IN DS  53174 13 1 f8884460a162a688192fbb2ef414f267e8a77150
-ns.example.net.          3600 IN A   {prefix}.10
+ns1.example.net.         3600 IN A   {prefix}.10
 ns2.example.net.         3600 IN A   {prefix}.11""",
 
                 'privateKey': """Private-key-format: v1.2
@@ -79,10 +79,10 @@ PrivateKey: rhWuEydDz3QaIspSVj683B8Xq5q/ozzA38XUgzD4Fbo=
             'net': {
                 'content': """
 net.             3600 IN SOA {soa}
-example.net.             3600 IN NS  ns.example.net.
+example.net.             3600 IN NS  ns1.example.net.
 example.net.             3600 IN NS  ns2.example.net.
 example.net.             3600 IN DS  64723 13 1 c51eab719a495db0097bdc17ad0ed37cf6af992b
-ns.example.net.          3600 IN A   {prefix}.10
+ns1.example.net.         3600 IN A   {prefix}.10
 ns2.example.net.         3600 IN A   {prefix}.11""",
                 'privateKey':"""Private-key-format: v1.2
 Algorithm: 13 (ECDSAP256SHA256)
@@ -91,9 +91,9 @@ PrivateKey: Lt0v0Gol3pRUFM7fDdcy0IWN0O/MnEmVPA+VylL8Y4U="""
             'example.net': {
                 'content': """
 example.net.             3600 IN SOA {soa}
-example.net.             3600 IN NS  ns.example.net.
+example.net.             3600 IN NS  ns1.example.net.
 example.net.             3600 IN NS  ns2.example.net.
-ns.example.net.          3600 IN A   {prefix}.10
+ns1.example.net.         3600 IN A   {prefix}.10
 ns2.example.net.         3600 IN A   {prefix}.11
             """,
                 'privateKey':"""Private-key-format: v1.2
@@ -106,10 +106,10 @@ PrivateKey: 1G4WRoOFJJXk+fotDCHVORtJmIG2OUhKi8AO2jDPGZA=
             'net': {
                 'content': """
 net.             3600 IN SOA {soa}
-example.net.             3600 IN NS  ns.example.net.
+example.net.             3600 IN NS  ns1.example.net.
 example.net.             3600 IN NS  ns2.example.net.
 example.net.             3600 IN DS  64723 13 1 c51eab719a495db0097bdc17ad0ed37cf6af992b
-ns.example.net.          3600 IN A   {prefix}.10
+ns1.example.net.         3600 IN A   {prefix}.10
 ns2.example.net.         3600 IN A   {prefix}.11""",
                 'privateKey':"""Private-key-format: v1.2
 Algorithm: 13 (ECDSAP256SHA256)
@@ -118,9 +118,9 @@ PrivateKey: Lt0v0Gol3pRUFM7fDdcy0IWN0O/MnEmVPA+VylL8Y4U="""
             'example.net': {
                 'content': """
 example.net.             3600 IN SOA {soa}
-example.net.             3600 IN NS  ns.example.net.
+example.net.             3600 IN NS  ns1.example.net.
 example.net.             3600 IN NS  ns2.example.net.
-ns.example.net.          3600 IN A   {prefix}.10
+ns1.example.net.         3600 IN A   {prefix}.10
 ns2.example.net.         3600 IN A   {prefix}.11
             """,
                 'privateKey':"""Private-key-format: v1.2
@@ -428,3 +428,80 @@ distributor-threads=1""".format(confdir = confdir,
     def setUp(self):
         # This function is called before every tests
         return
+
+
+    ## Functions for comparisons
+    def assertMessageHasFlags(cls, msg, flags):
+        """Asserts that msg has all the flags from flags set
+
+        @param msg: the dns.message.Message to check
+        @param flags: a list of strings with flag mnemonics (like ['RD', 'RA'])"""
+
+        ret = ""
+
+        if type(msg) != dns.message.Message:
+            raise TypeError("msg is not a dns.message.Message")
+
+        if type(flags) == list:
+            for elem in flags:
+                if type(elem) != str:
+                    raise TypeError("flags is not a list of strings")
+
+        msgFlags = dns.flags.to_text(msg.flags).split()
+        missingFlags = [flag for flag in flags if flag not in msgFlags]
+
+        if len(missingFlags) or len(msgFlags) > len(flags):
+            raise AssertionError("Expected flags '%s', found '%s' in query %s"
+                    % (' '.join(flags), ' '.join(msgFlags), msg.question[0]))
+
+    def assertMessageIsAuthenticated(cls, msg):
+        """Asserts that the message has the AD bit set
+
+        @param msg: the dns.message.Message to check"""
+
+        if type(msg) != dns.message.Message:
+            raise TypeError("msg is not a dns.message.Message")
+
+        msgFlags = dns.flags.to_text(msg.flags)
+        cls.assertTrue('AD' in msgFlags, "No AD flag found in the message for %s" % msg.question[0].name)
+
+    def assertRRsetInAnswer(cls, msg, rrset):
+        """Asserts the rrset (without comparing TTL) exists in the
+        answer section of msg
+
+        @param msg: the dns.message.Message to check
+        @param rrset: a dns.rrset.RRset object"""
+
+        ret = ''
+        if type(msg) != dns.message.Message:
+            raise TypeError("msg is not a dns.message.Message")
+
+        if type(rrset) != dns.rrset.RRset:
+            raise TypeError("rrset is not a dns.rrset.RRset")
+
+        found = False
+        for ans in msg.answer:
+            ret += "%s\n" % ans.to_text()
+            if ans.match(rrset.name, rrset.rdclass, rrset.rdtype, 0, None):
+                cls.assertEqual(ans, rrset)
+                found = True
+
+        if not found:
+            raise AssertionError("RRset not found in answer")
+
+
+    def assertRcodeEqual(cls, msg, rcode):
+        if type(msg) != dns.message.Message:
+            raise TypeError("msg is not a dns.message.Message")
+
+        if type(rcode) != int:
+            if type(rcode) == str:
+                rcode = dns.rcode.from_text(rcode)
+            else:
+                raise TypeError("rcode is neither a str nor int")
+
+        if msg.rcode() != rcode:
+            msgRcode = dns.rcode._by_value[msg.rcode()]
+            wantedRcode = dns.rcode._by_value[rcode]
+
+            raise AssertionError("Rcode for %s is %s, expected %s." % (msg.question[0].to_text(), msgRcode, wantedRcode))
