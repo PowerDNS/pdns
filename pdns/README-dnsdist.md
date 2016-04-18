@@ -704,6 +704,13 @@ Please note that, without libsodium support, 'makeKey()' will return
 setKey("plaintext") and the communication between the client and the
 server will not be encrypted.
 
+Some versions of libedit, notably the CentOS 6 one, may require the following
+addition to ~/.editrc in order to support searching through the history:
+
+```
+bind "^R" em-inc-search-prev
+```
+
 ACL, who can use dnsdist
 ------------------------
 For safety reasons, by default only private networks can use `dnsdist`, see below
