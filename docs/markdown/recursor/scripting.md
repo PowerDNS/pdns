@@ -202,7 +202,8 @@ IP addresses are passed to Lua in native format. They can be matched against net
 ```
 nmg = newNMG()
 nmg:addMask("127.0.0.0/8")
-nmg:addMask({"213.244.168.0/24", "130.161.0.0/16"})
+nmg:addMasks({"213.244.168.0/24", "130.161.0.0/16"})
+nmg:addMasks(dofile("bad.ips")) -- contains return {"ip1","ip2"..}
 
 if nmg:match(dq.remote) then
 	print("Intercepting query from ", dq.remote)
