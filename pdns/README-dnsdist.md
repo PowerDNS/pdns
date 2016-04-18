@@ -603,14 +603,15 @@ inspected or edited using showRule(), rmRule(), topRule(), mvRule() etc.
 
 Dynamic load balancing
 ----------------------
-The default load balancing policy is called 'leastOutstanding', which means 
-we pick the server with the least queries 'in the air' (and within those, the one with the lowest 'order', and within those, the one with the lowest latency). 
+The default load balancing policy is called `leastOutstanding`, which means
+we pick the server with the least queries 'in the air' (and within those,
+the one with the lowest `order`, and within those, the one with the lowest latency).
 
-Another policy, 'firstAvailable', picks the first server that has not
-exceeded its QPS limit gets the traffic.  
+Another policy, `firstAvailable`, picks the server with the lowest `order` that has not
+exceeded its QPS limit. For now this is the only policy using the QPS limit.
 
-A further policy, 'wrandom' assigns queries randomly, but based on the
-'weight' parameter passed to `newServer`. `whashed` is a similar weighted policy,
+A further policy, `wrandom` assigns queries randomly, but based on the
+`weight` parameter passed to `newServer`. `whashed` is a similar weighted policy,
 but assigns questions with identical hash to identical servers, allowing for
 better cache concentration ('sticky queries').
 
