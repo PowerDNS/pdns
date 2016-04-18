@@ -13,7 +13,7 @@ class TestWellKnown(RecursorTest):
         results = []
         for name in names:
             query = dns.message.make_query(name, 'SOA')
-            results.append(self.sendUDPQuery(query))
+            results.append(self.sendUDPQuery(query, timeout=5.0))
 
         self.assertEqual(len(results), len(names))
 

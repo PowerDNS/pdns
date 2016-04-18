@@ -534,6 +534,7 @@ test_recursor() {
   run "cd regression-tests"
   run "THRESHOLD=90 TRACE=no ./timestamp ./recursor-test 5300 25000"
   run "cd .."
+
   run "cd regression-tests.api"
   run "./runtests recursor"
   run "cd .."
