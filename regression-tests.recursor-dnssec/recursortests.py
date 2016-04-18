@@ -45,7 +45,7 @@ disable-syslog=yes
 .                        3600 IN NS  ns.root.
 ns.root.                 3600 IN A   %s.8
 """ % _PREFIX
-    _root_DS = None
+    _root_DS = "63149 13 1 a59da3f5c1b97fcd5fa2b3b2b0ac91d38a60d33a"
 
     # The default SOA for zones in the authoritative servers
     _SOA = "ns.example.net. hostmaster.example.net. 1 3600 1800 1209600 300"
@@ -58,25 +58,78 @@ ns.root.                 3600 IN A   %s.8
     # Make this None to not launch auths
     _auths_zones = {
         '8': {
-            '.':"""
+            '.': {
+                'content': """
 .                        3600 IN SOA {soa}
 .                        3600 IN NS  ns.root.
 ns.root.                 3600 IN A   {prefix}.8
 net.                     3600 IN NS  ns.example.net.
 net.                     3600 IN NS  ns2.example.net.
+net.                     3600 IN DS  53174 13 1 f8884460a162a688192fbb2ef414f267e8a77150
 ns.example.net.          3600 IN A   {prefix}.10
-ns2.example.net.         3600 IN A   {prefix}.11"""
-            },
+ns2.example.net.         3600 IN A   {prefix}.11""",
+
+                'privateKey': """Private-key-format: v1.2
+Algorithm: 13 (ECDSAP256SHA256)
+PrivateKey: rhWuEydDz3QaIspSVj683B8Xq5q/ozzA38XUgzD4Fbo=
+""",
+            }
+        },
         '10': {
-            'example.net': """
+            'net': {
+                'content': """
+net.             3600 IN SOA {soa}
+example.net.             3600 IN NS  ns.example.net.
+example.net.             3600 IN NS  ns2.example.net.
+example.net.             3600 IN DS  64723 13 1 c51eab719a495db0097bdc17ad0ed37cf6af992b
+ns.example.net.          3600 IN A   {prefix}.10
+ns2.example.net.         3600 IN A   {prefix}.11""",
+                'privateKey':"""Private-key-format: v1.2
+Algorithm: 13 (ECDSAP256SHA256)
+PrivateKey: Lt0v0Gol3pRUFM7fDdcy0IWN0O/MnEmVPA+VylL8Y4U="""
+            },
+            'example.net': {
+                'content': """
 example.net.             3600 IN SOA {soa}
 example.net.             3600 IN NS  ns.example.net.
 example.net.             3600 IN NS  ns2.example.net.
 ns.example.net.          3600 IN A   {prefix}.10
 ns2.example.net.         3600 IN A   {prefix}.11
-            """
+            """,
+                'privateKey':"""Private-key-format: v1.2
+Algorithm: 13 (ECDSAP256SHA256)
+PrivateKey: 1G4WRoOFJJXk+fotDCHVORtJmIG2OUhKi8AO2jDPGZA=
+"""
+            }
+        },
+        '11': {
+            'net': {
+                'content': """
+net.             3600 IN SOA {soa}
+example.net.             3600 IN NS  ns.example.net.
+example.net.             3600 IN NS  ns2.example.net.
+example.net.             3600 IN DS  64723 13 1 c51eab719a495db0097bdc17ad0ed37cf6af992b
+ns.example.net.          3600 IN A   {prefix}.10
+ns2.example.net.         3600 IN A   {prefix}.11""",
+                'privateKey':"""Private-key-format: v1.2
+Algorithm: 13 (ECDSAP256SHA256)
+PrivateKey: Lt0v0Gol3pRUFM7fDdcy0IWN0O/MnEmVPA+VylL8Y4U="""
+            },
+            'example.net': {
+                'content': """
+example.net.             3600 IN SOA {soa}
+example.net.             3600 IN NS  ns.example.net.
+example.net.             3600 IN NS  ns2.example.net.
+ns.example.net.          3600 IN A   {prefix}.10
+ns2.example.net.         3600 IN A   {prefix}.11
+            """,
+                'privateKey':"""Private-key-format: v1.2
+Algorithm: 13 (ECDSAP256SHA256)
+PrivateKey: 1G4WRoOFJJXk+fotDCHVORtJmIG2OUhKi8AO2jDPGZA=
+"""
             }
         }
+    }
 
     _auths = {}
 
@@ -145,36 +198,31 @@ distributor-threads=1""".format(confdir = confdir,
             raise
 
     @classmethod
-    def secureZone(cls, confdir, zone):
-        pdnsutilCmd = [ os.environ['PDNSUTIL'],
-                        '--config-dir=%s' % confdir,
-                        'secure-zone',
-                        zone]
+    def secureZone(cls, confdir, zone, key=None):
+        if not key:
+            pdnsutilCmd = [ os.environ['PDNSUTIL'],
+                            '--config-dir=%s' % confdir,
+                            'secure-zone',
+                            zone]
+        else:
+            keyfile = os.path.join((confdir), 'dnssec.key')
+            with open(keyfile, 'w') as fdKeyfile:
+                fdKeyfile.write(key)
+
+            pdnsutilCmd = [ os.environ['PDNSUTIL'],
+                            '--config-dir=%s' % confdir,
+                            'import-zone-key',
+                            zone,
+                            keyfile,
+                            'active',
+                            'ksk' ]
+
         print ' '.join(pdnsutilCmd)
         try:
             subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
             print e.output
             raise
-
-        if zone == '.':
-            pdnsutilCmd = [ os.environ['PDNSUTIL'],
-                            '--config-dir=%s' % confdir,
-                            'show-zone',
-                            zone]
-            print ' '.join(pdnsutilCmd)
-            try:
-                output = subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
-            except subprocess.CalledProcessError as e:
-                print e.output
-                raise
-
-            lines = output.split('\n')
-            for line in lines:
-                elems = line.split('DS = . IN DS ')
-                if len(elems) == 2:
-                    cls._root_DS = ' '.join(elems[1].split(' ')[0:4]) # FIXME
-                    break
 
     @classmethod
     def startAuth(cls, confdir, ipaddress):
@@ -213,9 +261,9 @@ distributor-threads=1""".format(confdir = confdir,
         with open(recursorconf, 'w') as conf:
             conf.write("# Autogenerated by recursortests.py\n")
             conf.write(cls._config_template_default)
-            conf.write("socket-dir=%s\n" % confdir)
             conf.write(cls._config_template % params)
             conf.write("\n")
+            conf.write("socket-dir=%s\n" % confdir)
             if cls._lua_config_file or cls._root_DS:
                 luaconfpath = os.path.join(confdir, 'conffile.lua')
                 with open(luaconfpath, 'w') as luaconf:
@@ -283,9 +331,9 @@ distributor-threads=1""".format(confdir = confdir,
                 cls.generateAuthConfig(authconfdir)
                 cls.generateAuthNamedConf(authconfdir, zones)
 
-                for zonename, zonecontent in zones.items():
-                    cls.generateAuthZone(authconfdir, zonename, zonecontent)
-                    cls.secureZone(authconfdir, zonename)
+                for zonename, elems in zones.items():
+                    cls.generateAuthZone(authconfdir, zonename, elems['content'])
+                    cls.secureZone(authconfdir, zonename, elems.get('privateKey', None))
 
                 ipaddress = cls._PREFIX + '.' + auth_suffix
                 cls.startAuth(authconfdir, ipaddress)

@@ -5,7 +5,8 @@ class TestWellKnown(RecursorTest):
     _auths_zones = None
     _confdir = 'WellKnown'
     _roothints = None
-    _recursor_ports = {'validate': 5300}
+    _root_DS = None
+    _config_template = """dnssec=validate"""
 
     def testServFail(self):
         names = ['servfail.nl', 'dnssec-failed.org']
