@@ -39,7 +39,7 @@ SODIUM_BUILDREQUIRES=''
 SODIUM_CONFIGURE=''
 
 # Some RPM platforms use systemd, others sysv, we default to systemd here
-INIT_BUILDREQUIRES='BuildRequires: systemd'
+INIT_BUILDREQUIRES='BuildRequires: systemd-devel'
 #INIT_INSTALL='install -d -m 755 %{buildroot}/lib/systemd/system/ && install -m 664 dnsdist.service %{buildroot}/lib/systemd/system/dnsdist.service'
 INIT_INSTALL=''
 INIT_FILES='/lib/systemd/system/dnsdist.service'
