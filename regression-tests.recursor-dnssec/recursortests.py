@@ -14,12 +14,18 @@ import dns.message
 
 class RecursorTest(unittest.TestCase):
     """
-    Set up a recursor instance.
+    Setup all recursors and auths required for the tests
     """
+
+    _confdir = 'recursor'
+
     _recursorStartupDelay = 2.0
     _recursorPort = 5300
+
     _recursor = None
-    _confdir = 'recursor'
+
+    _PREFIX = os.environ['PREFIX']
+
     _config_template_default = """
 daemon=no
 trace=yes
@@ -35,10 +41,11 @@ disable-syslog=yes
 """
     _config_params = []
     _lua_config_file = None
-    _roothints = None
+    _roothints = """
+.                        3600 IN NS  ns.root.
+ns.root.                 3600 IN A   %s.8
+""" % _PREFIX
     _root_DS = None
-
-    _PREFIX = os.environ['PREFIX']
 
     # The default SOA for zones in the authoritative servers
     _SOA = "ns.example.net. hostmaster.example.net. 1 3600 1800 1209600 300"
@@ -48,9 +55,10 @@ disable-syslog=yes
     # zonefile content. several strings are replaced:
     #   - {soa} => value of _SOA
     #   - {prefix} value of _PREFIX
+    # Make this None to not launch auths
     _auths_zones = {
         '8': {
-            'ROOT': """
+            '.':"""
 .                        3600 IN SOA {soa}
 .                        3600 IN NS  ns.root.
 ns.root.                 3600 IN A   {prefix}.8
@@ -70,7 +78,6 @@ ns2.example.net.         3600 IN A   {prefix}.11
             }
         }
 
-    _launch_auths = True
     _auths = {}
 
     @classmethod
@@ -83,60 +90,117 @@ ns2.example.net.         3600 IN A   {prefix}.11
         os.mkdir(confdir, 0755)
 
     @classmethod
-    def generateAuthConfig(cls, confdir, suffix, zones):
-        zonedir = os.path.join(confdir, 'zones-%s' % suffix)
-        os.mkdir(zonedir)
+    def generateAuthZone(cls, confdir, zone, zonecontent):
+        zonename = 'ROOT' if zone == '.' else zone
 
-        with open(os.path.join(confdir, 'named-%s.conf' % suffix), 'w') as namedconf:
+        with open(os.path.join(confdir, '%s.zone' % zonename), 'w') as zonefile:
+            zonefile.write(zonecontent.format(prefix=cls._PREFIX, soa=cls._SOA))
+
+    @classmethod
+    def generateAuthNamedConf(cls, confdir, zones):
+        with open(os.path.join(confdir, 'named.conf'), 'w') as namedconf:
             namedconf.write("""
 options {
-    directory "./%s";
-};""" % zonedir)
-            for zonename, zonecontent in zones.items():
-                zone = '.' if zonename == 'ROOT' else zonename
-                with open(os.path.join(zonedir, '%s.zone' % zone), 'w') as zonefile:
-                    zonefile.write(zonecontent.format(prefix=cls._PREFIX, soa=cls._SOA))
-                namedconf.write("""
-zone "%s"{
-    type master;
-    file "./%s.zone";
-};""" % (zone, zonename))
+    directory "%s";
+};""" % confdir)
+            for zone, zonecontent in zones.items():
+                zonename = 'ROOT' if zone == '.' else zone
 
-        with open(os.path.join(confdir, 'pdns-%s.conf' % suffix), 'w') as pdnsconf:
+                namedconf.write("""
+        zone "%s" {
+            type master;
+            file "%s.zone";
+        };""" % (zone, zonename))
+
+
+    @classmethod
+    def generateAuthConfig(cls, confdir):
+        bind_dnssec_db = os.path.join(confdir, 'bind-dnssec.sqlite3')
+
+        with open(os.path.join(confdir, 'pdns.conf'), 'w') as pdnsconf:
             pdnsconf.write("""
 module-dir=../regression-tests/modules
 launch=bind
 daemon=no
-local-address={ipaddress}
 local-ipv6=
-bind-config={confdir}/named-{suffix}.conf
-no-shuffle
+bind-config={confdir}/named.conf
+bind-dnssec-db={bind_dnssec_db}
 socket-dir={confdir}
 cache-ttl=0
 negquery-cache-ttl=0
 query-cache-ttl=0
-distributor-threads=1""".format(ipaddress = cls._PREFIX + '.' + suffix, suffix = suffix, confdir = confdir))
+distributor-threads=1""".format(confdir = confdir,
+                                bind_dnssec_db=bind_dnssec_db))
 
+        pdnsutilCmd = [ os.environ['PDNSUTIL'],
+                        '--config-dir=%s' % confdir,
+                        'create-bind-db',
+                        bind_dnssec_db]
+
+        print ' '.join(pdnsutilCmd)
+        try:
+            subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as e:
+            print e.output
+            raise
 
     @classmethod
-    def startAuth(cls, confdir, suffix):
+    def secureZone(cls, confdir, zone):
+        pdnsutilCmd = [ os.environ['PDNSUTIL'],
+                        '--config-dir=%s' % confdir,
+                        'secure-zone',
+                        zone]
+        print ' '.join(pdnsutilCmd)
+        try:
+            subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as e:
+            print e.output
+            raise
+
+        if zone == '.':
+            pdnsutilCmd = [ os.environ['PDNSUTIL'],
+                            '--config-dir=%s' % confdir,
+                            'show-zone',
+                            zone]
+            print ' '.join(pdnsutilCmd)
+            try:
+                output = subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
+            except subprocess.CalledProcessError as e:
+                print e.output
+                raise
+
+            lines = output.split('\n')
+            for line in lines:
+                elems = line.split('DS = . IN DS ')
+                if len(elems) == 2:
+                    cls._root_DS = ' '.join(elems[1].split(' ')[0:4]) # FIXME
+                    break
+
+    @classmethod
+    def startAuth(cls, confdir, ipaddress):
         print("Launching pdns_server..")
         authcmd = [ 'authbind',
                     os.environ['PDNS'],
                     '--config-dir=%s' % confdir,
-                    '--config-name=%s' % suffix]
+                    '--local-address=%s' % ipaddress ]
         print(' '.join(authcmd))
 
-        logFile = os.path.join(confdir, 'auth-%s.log' % suffix)
+        logFile = os.path.join(confdir, 'pdns.log')
         with open(logFile, 'w') as fdLog:
-            cls._auths[suffix] = subprocess.Popen(authcmd, close_fds=True,
+            cls._auths[ipaddress] = subprocess.Popen(authcmd, close_fds=True,
                                                   stdout=fdLog, stderr=fdLog)
 
         time.sleep(2)
 
-        if cls._auths[suffix].poll() is not None:
-            cls._auths[suffix].kill()
-            sys.exit(cls._auths[suffix].returncode)
+        if cls._auths[ipaddress].poll() is not None:
+            try:
+                cls._auths[ipaddress].kill()
+            except OSError as e:
+                if e.errno != errno.ESRCH:
+                    raise
+                with open(logFile, 'r') as fdLog:
+                    print fdLog.read()
+            sys.exit(cls._auths[ipaddress].returncode)
 
     @classmethod
     def generateRecursorConfig(cls, confdir):
@@ -144,11 +208,14 @@ distributor-threads=1""".format(ipaddress = cls._PREFIX + '.' + suffix, suffix =
         if len(params):
             print(params)
 
-        with open(os.path.join(confdir, 'recursor.conf'), 'w') as conf:
+        recursorconf = os.path.join(confdir, 'recursor.conf')
+
+        with open(recursorconf, 'w') as conf:
             conf.write("# Autogenerated by recursortests.py\n")
             conf.write(cls._config_template_default)
             conf.write("socket-dir=%s\n" % confdir)
             conf.write(cls._config_template % params)
+            conf.write("\n")
             if cls._lua_config_file or cls._root_DS:
                 luaconfpath = os.path.join(confdir, 'conffile.lua')
                 with open(luaconfpath, 'w') as luaconf:
@@ -156,19 +223,19 @@ distributor-threads=1""".format(ipaddress = cls._PREFIX + '.' + suffix, suffix =
                         luaconf.write("addDS('.', '%s')" % cls._root_DS)
                     if cls._lua_config_file:
                         luaconf.write(cls._lua_config_file)
-                conf.write("lua-config-file=%s" % luaconfpath)
+                conf.write("lua-config-file=%s\n" % luaconfpath)
             if cls._roothints:
                 roothintspath = os.path.join(confdir, 'root.hints')
                 with open(roothintspath, 'w') as roothints:
-                    luaconf.write(cls._roothints)
-                conf.write("hint-file=%s" % roothintspath)
+                    roothints.write(cls._roothints)
+                conf.write("hint-file=%s\n" % roothintspath)
 
     @classmethod
-    def startRecursor(cls, confdir):
+    def startRecursor(cls, confdir, port):
         print("Launching pdns_recursor..")
         recursorcmd = [os.environ['PDNSRECURSOR'],
                        '--config-dir=%s' % confdir,
-                       '--local-port=%s' % cls._recursorPort]
+                       '--local-port=%s' % port]
         print(' '.join(recursorcmd))
 
         logFile = os.path.join(confdir, 'recursor.log')
@@ -184,7 +251,13 @@ distributor-threads=1""".format(ipaddress = cls._PREFIX + '.' + suffix, suffix =
         time.sleep(delay)
 
         if cls._recursor.poll() is not None:
-            cls._recursor.kill()
+            try:
+                cls._recursor.kill()
+            except OSError as e:
+                if e.errno != errno.ESRCH:
+                    raise
+                with open(logFile, 'r') as fdLog:
+                    print fdLog.read()
             sys.exit(cls._recursor.returncode)
 
     @classmethod
@@ -198,18 +271,27 @@ distributor-threads=1""".format(ipaddress = cls._PREFIX + '.' + suffix, suffix =
     def setUpClass(cls):
 
         cls.setUpSockets()
-
         confdir = os.path.join('configs', cls._confdir)
-
         cls.createConfigDir(confdir)
 
-        if cls._launch_auths:
+        if cls._auths_zones:
             for auth_suffix, zones in cls._auths_zones.items():
-                cls.generateAuthConfig(confdir, auth_suffix, zones)
-                cls.startAuth(confdir, auth_suffix)
+                authconfdir = os.path.join(confdir, 'auth-%s' % auth_suffix)
+
+                os.mkdir(authconfdir)
+
+                cls.generateAuthConfig(authconfdir)
+                cls.generateAuthNamedConf(authconfdir, zones)
+
+                for zonename, zonecontent in zones.items():
+                    cls.generateAuthZone(authconfdir, zonename, zonecontent)
+                    cls.secureZone(authconfdir, zonename)
+
+                ipaddress = cls._PREFIX + '.' + auth_suffix
+                cls.startAuth(authconfdir, ipaddress)
 
         cls.generateRecursorConfig(confdir)
-        cls.startRecursor(confdir)
+        cls.startRecursor(confdir, cls._recursorPort)
 
         print("Launching tests..")
 
@@ -228,6 +310,9 @@ distributor-threads=1""".format(ipaddress = cls._PREFIX + '.' + suffix, suffix =
                             cls._recursor.kill()
                     cls._recursor.wait()
         except OSError as e:
+            # There is a race-condition with the poll() and
+            # kill() statements, when the process is dead on the
+            # kill(), this is fine
             if e.errno != errno.ESRCH:
                 raise
 

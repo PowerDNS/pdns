@@ -2,11 +2,10 @@ from recursortests import RecursorTest
 import dns
 
 class TestWellKnown(RecursorTest):
-    _launch_auths = False
+    _auths_zones = None
     _confdir = 'WellKnown'
-    _config_template = """
-dnssec=validate
-"""
+    _roothints = None
+    _recursor_ports = {'validate': 5300}
 
     def testServFail(self):
         names = ['servfail.nl', 'dnssec-failed.org']
