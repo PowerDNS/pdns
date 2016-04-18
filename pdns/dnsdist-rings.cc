@@ -4,36 +4,53 @@
 unsigned int Rings::numDistinctRequestors()
 {
   std::set<ComboAddress, ComboAddress::addressOnlyLessThan> s;
-  WriteLock wl(&queryLock);
+  ReadLock rl(&queryLock);
   for(const auto& q : queryRing)
     s.insert(q.requestor);
   return s.size();
 }
 
-vector<pair<unsigned int,ComboAddress> > Rings::getTopBandwidth(unsigned int numentries)
+std::unordered_map<int, vector<boost::variant<string,double>>> Rings::getTopBandwidth(unsigned int numentries)
 {
   map<ComboAddress, unsigned int, ComboAddress::addressOnlyLessThan> counts;
+  uint64_t total=0;
   {
-    WriteLock wl(&queryLock);
-    for(const auto& q : queryRing)
+    ReadLock rl(&queryLock);
+    for(const auto& q : queryRing) {
       counts[q.requestor]+=q.size;
+      total+=q.size;
+    }
   }
 
   {
     std::lock_guard<std::mutex> lock(respMutex);
-    for(const auto& r : respRing)
+    for(const auto& r : respRing) {
       counts[r.requestor]+=r.size;
+      total+=r.size;
+    }
   }
 
   typedef vector<pair<unsigned int, ComboAddress>> ret_t;
-  ret_t ret;
+  ret_t rcounts;
+  rcounts.reserve(counts.size());
   for(const auto& p : counts)
-    ret.push_back({p.second, p.first});
-  numentries = ret.size() < numentries ? ret.size() : numentries;
-  partial_sort(ret.begin(), ret.begin()+numentries, ret.end(), [](const ret_t::value_type&a, const ret_t::value_type&b)
+    rcounts.push_back({p.second, p.first});
+  numentries = rcounts.size() < numentries ? rcounts.size() : numentries;
+  partial_sort(rcounts.begin(), rcounts.begin()+numentries, rcounts.end(), [](const ret_t::value_type&a, const ret_t::value_type&b)
 	       {
-		 return(b.second < a.second);
+		 return(b.first < a.first);
 	       });
-  ret.resize(numentries);
+  std::unordered_map<int, vector<boost::variant<string,double>>> ret;
+  uint64_t rest = 0;
+  unsigned int count = 1;
+  for(const auto& rc : rcounts) {
+    if(count==numentries+1) {
+      rest+=rc.first;
+    }
+    else {
+      ret.insert({count++, {rc.second.toString(), rc.first, 100.0*rc.first/total}});
+    }
+  }
+  ret.insert({count, {"Rest", rest, total > 0 ? 100.0*rest/total : 100.0}});
   return ret;
 }

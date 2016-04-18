@@ -260,7 +260,7 @@ struct Rings {
   std::mutex respMutex;
   pthread_rwlock_t queryLock;
 
-  vector<pair<unsigned int, ComboAddress> > getTopBandwidth(unsigned int numentries);
+  std::unordered_map<int, vector<boost::variant<string,double> > > getTopBandwidth(unsigned int numentries);
   unsigned int numDistinctRequestors();
 };
 
