@@ -923,16 +923,6 @@ int clearZone(DNSSECKeeper& dk, const DNSName &zone) {
   return EXIT_SUCCESS;
 }
 
-bool prettyDROrder(const DNSRecord& a, const DNSRecord& b) 
-{
-  if(a.d_type == QType::SOA && b.d_type != QType::SOA)
-    return true;
-  if(a.d_type != QType::SOA && b.d_type == QType::SOA)
-    return false;
-
-  return a<b;
-}
-
 int editZone(DNSSECKeeper& dk, const DNSName &zone) {
   UeberBackend B;
   DomainInfo di;
@@ -975,7 +965,7 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
       DNSRecord dr(rr);
       pre.push_back(dr);
     }
-    sort(pre.begin(), pre.end(), prettyDROrder);
+    sort(pre.begin(), pre.end(), DNSRecord::prettyCompare);
     for(const auto& dr : pre) {
       ostringstream os;
       os<<dr.d_name<<"\t"<<dr.d_ttl<<"\tIN\t"<<DNSRecordContent::NumberToType(dr.d_type)<<"\t"<<dr.d_content->getZoneRepresentation(true)<<endl;
@@ -1018,7 +1008,7 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
       goto reAsk;
     }
   }
-  sort(post.begin(), post.end(), prettyDROrder);
+  sort(post.begin(), post.end(), DNSRecord::prettyCompare);
   checkrr.clear();
 
   for(const DNSRecord& rr : post) {
@@ -1048,7 +1038,7 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
   vector<DNSRecord> diff;
 
   map<pair<DNSName,uint16_t>, string> changed;
-  set_difference(pre.cbegin(), pre.cend(), post.cbegin(), post.cend(), back_inserter(diff), prettyDROrder);
+  set_difference(pre.cbegin(), pre.cend(), post.cbegin(), post.cend(), back_inserter(diff), DNSRecord::prettyCompare);
   for(const auto& d : diff) {
     ostringstream str;
     str<<'-'<< d.d_name <<" "<<d.d_ttl<<" IN "<<DNSRecordContent::NumberToType(d.d_type)<<" "<<d.d_content->getZoneRepresentation(true)<<endl;
@@ -1056,7 +1046,7 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
 
   }
   diff.clear();
-  set_difference(post.cbegin(), post.cend(), pre.cbegin(), pre.cend(), back_inserter(diff), prettyDROrder);
+  set_difference(post.cbegin(), post.cend(), pre.cbegin(), pre.cend(), back_inserter(diff), DNSRecord::prettyCompare);
   for(const auto& d : diff) {
     ostringstream str;
 

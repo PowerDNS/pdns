@@ -286,6 +286,33 @@ struct DNSRecord
     return lzrp < rzrp;
   }
 
+  // this orders in canonical order and keeps the SOA record on top
+  static bool prettyCompare(const DNSRecord& a, const DNSRecord& b) 
+  {
+    auto aType = (a.d_type == QType::SOA) ? 0 : a.d_type; 
+    auto bType = (b.d_type == QType::SOA) ? 0 : b.d_type; 
+
+    if(a.d_name.canonCompare(b.d_name))
+      return true;
+    if(b.d_name.canonCompare(a.d_name))
+      return false;
+
+    if(tie(aType, a.d_class, a.d_ttl) < tie(bType, b.d_class, b.d_ttl))
+      return true;
+    
+    if(tie(aType, a.d_class, a.d_ttl) != tie(bType, b.d_class, b.d_ttl))
+      return false;
+    
+    string lzrp, rzrp;
+    if(a.d_content)
+      lzrp=toLower(a.d_content->getZoneRepresentation());
+    if(b.d_content)
+      rzrp=toLower(b.d_content->getZoneRepresentation());
+    
+    return lzrp < rzrp;
+  }
+
+
   bool operator==(const DNSRecord& rhs) const
   {
     string lzrp, rzrp;
