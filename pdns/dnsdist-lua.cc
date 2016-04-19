@@ -718,6 +718,10 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       return std::shared_ptr<DNSRule>(new SuffixMatchNodeRule(smn));
     });
 
+  g_lua.writeFunction("NetmaskGroupRule", [](const NetmaskGroup& nmg) {
+      return std::shared_ptr<DNSRule>(new NetmaskGroupRule(nmg));
+    });
+
   g_lua.writeFunction("benchRule", [](std::shared_ptr<DNSRule> rule, boost::optional<int> times_, boost::optional<string> suffix_)  {
       setLuaNoSideEffect();
       int times = times_.get_value_or(100000);

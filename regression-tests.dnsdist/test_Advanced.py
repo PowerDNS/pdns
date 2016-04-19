@@ -949,3 +949,30 @@ class TestAdvancedQPSNone(DNSDistTest):
 
         (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
         self.assertEquals(receivedResponse, expectedResponse)
+
+class TestAdvancedNMGRule(DNSDistTest):
+
+    _config_template = """
+    allowed = newNMG()
+    allowed:addMask("192.0.2.1/32")
+    addAction(NotRule(NetmaskGroupRule(allowed)), RCodeAction(5))
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testAdvancedNMGRule(self):
+        """
+        Advanced: NMGRule should refuse our queries
+
+        Send queries to "nmgrule.advanced.tests.powerdns.com.",
+        check that we are getting a REFUSED response.
+        """
+        name = 'nmgrule.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.set_rcode(dns.rcode.REFUSED)
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, expectedResponse)
+
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, expectedResponse)
