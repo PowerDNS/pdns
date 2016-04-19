@@ -40,8 +40,7 @@ SODIUM_CONFIGURE=''
 
 # Some RPM platforms use systemd, others sysv, we default to systemd here
 INIT_BUILDREQUIRES='BuildRequires: systemd-devel'
-#INIT_INSTALL='install -d -m 755 %{buildroot}/lib/systemd/system/ && install -m 664 dnsdist.service %{buildroot}/lib/systemd/system/dnsdist.service'
-INIT_INSTALL=''
+INIT_INSTALL='sed -i "s!/dnsdist!/dnsdist -u dnsdist -g dnsdist!" %{buildroot}/lib/systemd/system/dnsdist.service'
 INIT_FILES='/lib/systemd/system/dnsdist.service'
 INIT_CONFIGURE='--enable-systemd --with-systemd=/lib/systemd/system \'
 
@@ -89,6 +88,7 @@ License: GPLv2
 Vendor: PowerDNS.COM BV
 Group: System/DNS
 Source: dnsdist-${TARBALLVERSION}.tar.bz2
+Requires(pre): shadow-utils
 BuildRequires: readline-devel
 BuildRequires: boost-devel
 BuildRequires: lua-devel
@@ -114,6 +114,41 @@ make
 install -d %{buildroot}/%{_sysconfdir}/dnsdist
 ${INIT_INSTALL}
 ${DEFAULTS_INSTALL}
+
+%pre
+getent group dnsdist >/dev/null || groupadd -r dnsdist
+getent passwd dnsdist >/dev/null || \
+	useradd -r -g dnsdist -d / -s /sbin/nologin \
+	-c "dnsdist user" dnsdist
+exit 0
+
+
+%post
+%if 0%{?el6}
+/sbin/chkconfig --add %{name}
+%else
+%systemd_post %{name}.service
+%endif
+
+%preun
+%if 0%{?el6}
+if [ "\$1" -eq "0" ]; then
+  # Package removal, not upgrade
+  /sbin/service %{name} stop > /dev/null 2>&1 || :
+  /sbin/chkconfig --del %{name}
+fi
+%else
+%systemd_preun %{name}.service
+%endif
+
+%postun
+%if 0%{?el6}
+if [ "\$1" -ge "1" ] ; then
+  /sbin/service %{name} condrestart >/dev/null 2>&1 || :
+fi
+%else
+%systemd_postun_with_restart %{name}.service
+%endif
 
 %files
 %{!?_licensedir:%global license %%doc}

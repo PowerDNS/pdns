@@ -30,6 +30,11 @@ make
 
 On other recent platforms, installing a Lua and the system C++ compiler should be enough. 
 
+`dnsdist` can drop privileges using the `--uid` and `--gid` commandline-switches
+to ensure it does not run with root privileges after binding its listen-sockets.
+It is highly recommended to create a system user and group for `dnsdist`. Note that
+most packaged versions of `dnsdist` already create this user.
+
 Packaged
 --------
 We build packages for `dnsdist` on our [repositories](https://repo.powerdns.com). In addition
