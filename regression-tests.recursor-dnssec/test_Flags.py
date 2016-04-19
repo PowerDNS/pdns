@@ -280,4 +280,208 @@ class TestFlags(RecursorTest):
         self.assertMessageHasFlags(res, ['QR', 'RA', 'RD', 'CD'])
         self.assertRRsetInAnswer(res, expected)
         self.assertNoRRSIGsInAnswer(res)
+
+
+    ### Bogus
+    def getQueryForBogus(self, flags='', ednsflags=''):
+        return self.createQuery('ted.bogus.net.', 'A', flags, ednsflags)
+
+    ##
+    #   -AD -CD -DO
+    ##
+    def testOff_Bogus_None(self):
+        msg = self.getQueryForBogus()
+        res = self.sendUDPQuery(msg, 'off')
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
+    def testProcess_Bogus_None(self):
+        msg = self.getQueryForBogus()
+        res = self.sendUDPQuery(msg, 'process')
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
+    def testValidate_Bogus_None(self):
+        msg = self.getQueryForBogus()
+        res = self.sendUDPQuery(msg, 'validate')
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
+        self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
+        self.assertAnswerEmpty(res)
+
+    ##
+    # +AD -CD -DO
+    ##
+    @unittest.skip("See #3682")
+    def testOff_Bogus_AD(self):
+        msg = self.getQueryForBogus('AD')
+        res = self.sendUDPQuery(msg, 'off')
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
+        # These asserts trigger because of #3682
+        self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
+        self.assertAnswerEmpty(res)
+
+    @unittest.skip("See #3682")
+    def testProcess_Bogus_AD(self):
+        msg = self.getQueryForBogus('AD')
+        res = self.sendUDPQuery(msg, 'process')
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
+        # These asserts trigger because of #3682
+        self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
+        self.assertAnswerEmpty(res)
+
+    def testValidate_Bogus_AD(self):
+        msg = self.getQueryForBogus('AD')
+        res = self.sendUDPQuery(msg, 'validate')
+
+        self.assertMessageHasFlags(res, ['RD', 'RA', 'QR'])
+        self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
+        self.assertAnswerEmpty(res)
+
+    ##
+    # +AD -CD +DO
+    ##
+    def testOff_Bogus_ADDO(self):
+        msg = self.getQueryForBogus('AD', 'DO')
+        res = self.sendUDPQuery(msg, 'off')
+
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
+    def testProcess_Bogus_ADDO(self):
+        msg = self.getQueryForBogus('AD', 'DO')
+        res = self.sendUDPQuery(msg, 'process')
+
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'], ['DO'])
+        # This assert triggers because of #3682
+        self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
+        self.assertAnswerEmpty(res)
+
+    def testValidate_Bogus_ADDO(self):
+        msg = self.getQueryForBogus('AD', 'DO')
+        res = self.sendUDPQuery(msg, 'validate')
+
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'], ['DO'])
+        self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
+        self.assertAnswerEmpty(res)
+    ##
+    # +AD +CD +DO
+    ##
+    def testOff_Bogus_ADDOCD(self):
+        msg = self.getQueryForBogus('AD CD', 'DO')
+        res = self.sendUDPQuery(msg, 'off')
+
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD', 'CD'])
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
+    def testProcess_Bogus_ADDOCD(self):
+        msg = self.getQueryForBogus('AD CD', 'DO')
+        expected = dns.rrset.from_text('ted.bogus.net.', 0, dns.rdataclass.IN, 'A', '192.0.2.1')
+        res = self.sendUDPQuery(msg, 'process')
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMessageHasFlags(res, ['CD', 'QR', 'RA', 'RD'], ['DO'])
+        self.assertMatchingRRSIGInAnswer(res, expected)
+
+    def testValidate_Bogus_ADDOCD(self):
+        msg = self.getQueryForBogus('AD CD', 'DO')
+        expected = dns.rrset.from_text('ted.bogus.net.', 0, dns.rdataclass.IN, 'A', '192.0.2.1')
+        res = self.sendUDPQuery(msg, 'validate')
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD', 'CD'], ['DO'])
+        self.assertMatchingRRSIGInAnswer(res, expected)
+
+    ##
+    # -AD -CD +DO
+    ##
+    def testOff_Bogus_DO(self):
+        msg = self.getQueryForBogus('', 'DO')
+        res = self.sendUDPQuery(msg, 'off')
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
+        self.assertNoRRSIGsInAnswer(res)
+
+    @unittest.skip("See #3682")
+    def testProcess_Bogus_DO(self):
+        msg = self.getQueryForBogus('', 'DO')
+        expected = dns.rrset.from_text('ted.bogus.net.', 0, dns.rdataclass.IN, 'A', '192.0.2.1')
+        res = self.sendUDPQuery(msg, 'process')
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'], ['DO'])
+        self.assertMatchingRRSIGInAnswer(res, expected)
+
+    def testValidate_Bogus_DO(self):
+        msg = self.getQueryForBogus('', 'DO')
+        res = self.sendUDPQuery(msg, 'validate')
+
+        self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'], ['DO'])
+        self.assertAnswerEmpty(res)
+
+    ##
+    # -AD +CD +DO
+    ##
+    @unittest.skip("See #3682")
+    def testOff_Bogus_DOCD(self):
+        msg = self.getQueryForBogus('CD', 'DO')
+        res = self.sendUDPQuery(msg, 'off')
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
+        self.assertNoRRSIGsInAnswer(res)
+
+    def testProcess_Bogus_DOCD(self):
+        msg = self.getQueryForBogus('CD', 'DO')
+        expected = dns.rrset.from_text('ted.bogus.net.', 0, dns.rdataclass.IN, 'A', '192.0.2.1')
+        res = self.sendUDPQuery(msg, 'process')
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD', 'CD'], ['DO'])
+        self.assertMatchingRRSIGInAnswer(res, expected)
+
+    def testValidate_Bogus_DOCD(self):
+        msg = self.getQueryForBogus('CD', 'DO')
+        expected = dns.rrset.from_text('ted.bogus.net.', 0, dns.rdataclass.IN, 'A', '192.0.2.1')
+        res = self.sendUDPQuery(msg, 'validate')
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD', 'CD'], ['DO'])
+        self.assertMatchingRRSIGInAnswer(res, expected)
+
+    ##
+    # -AD +CD -DO
+    ##
+    @unittest.skip("See #3682")
+    def testOff_Bogus_CD(self):
+        msg = self.getQueryForBogus('CD')
+        expected = dns.rrset.from_text('ted.bogus.net.', 0, dns.rdataclass.IN, 'A', '192.0.2.1')
+        res = self.sendUDPQuery(msg, 'off')
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
+        self.assertRRsetInAnswer(res, expected)
+        self.assertNoRRSIGsInAnswer(res)
+
+    @unittest.skip("See #3682")
+    def testProcess_Bogus_CD(self):
+        msg = self.getQueryForBogus('CD')
+        expected = dns.rrset.from_text('ted.bogus.net.', 0, dns.rdataclass.IN, 'A', '192.0.2.1')
+        res = self.sendUDPQuery(msg, 'process')
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD', 'CD'])
+        self.assertRRsetInAnswer(res, expected)
+        self.assertNoRRSIGsInAnswer(res)
+
+    @unittest.skip("See #3682")
+    def testValidate_Bogus_CD(self):
+        msg = self.getQueryForBogus('CD')
+        expected = dns.rrset.from_text('ted.bogus.net.', 0, dns.rdataclass.IN, 'A', '192.0.2.1')
+        res = self.sendUDPQuery(msg, 'validate')
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD', 'CD'])
+        self.assertRRsetInAnswer(res, expected)
         self.assertNoRRSIGsInAnswer(res)
