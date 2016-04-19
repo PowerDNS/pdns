@@ -19,7 +19,7 @@ class RecursorTest(unittest.TestCase):
 
     _confdir = 'recursor'
 
-    _recursorStartupDelay = 5.0
+    _recursorStartupDelay = 2.0
     _recursorPort = 5300
 
     _recursor = None
