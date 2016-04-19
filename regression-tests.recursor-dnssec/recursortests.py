@@ -51,16 +51,12 @@ ns.root.                 3600 IN A   %s.8
     # The default SOA for zones in the authoritative servers
     _SOA = "ns1.example.net. hostmaster.example.net. 1 3600 1800 1209600 300"
 
-    # The definitions of the authoritative servers, the key is the suffix of the
-    # IP address. The values are a dict of key zonename and the value is the
-    # zonefile content. several strings are replaced:
+    # The definitions of the zones on the authoritative servers, the key is the
+    # zonename and the value is the zonefile content. several strings are replaced:
     #   - {soa} => value of _SOA
     #   - {prefix} value of _PREFIX
-    # Make this None to not launch auths
-    _auths_zones = {
-        '8': {
-            '.': {
-                'content': """
+    _zones = {
+        'ROOT': """
 .                        3600 IN SOA {soa}
 .                        3600 IN NS  ns.root.
 ns.root.                 3600 IN A   {prefix}.8
@@ -68,18 +64,10 @@ net.                     3600 IN NS  ns1.example.net.
 net.                     3600 IN NS  ns2.example.net.
 net.                     3600 IN DS  53174 13 1 f8884460a162a688192fbb2ef414f267e8a77150
 ns1.example.net.         3600 IN A   {prefix}.10
-ns2.example.net.         3600 IN A   {prefix}.11""",
-
-                'privateKey': """Private-key-format: v1.2
-Algorithm: 13 (ECDSAP256SHA256)
-PrivateKey: rhWuEydDz3QaIspSVj683B8Xq5q/ozzA38XUgzD4Fbo=
-""",
-            }
-        },
-        '10': {
-            'net': {
-                'content': """
-net.             3600 IN SOA {soa}
+ns2.example.net.         3600 IN A   {prefix}.11
+        """,
+        'net': """
+net.                     3600 IN SOA {soa}
 example.net.             3600 IN NS  ns1.example.net.
 example.net.             3600 IN NS  ns2.example.net.
 example.net.             3600 IN DS  64723 13 1 c51eab719a495db0097bdc17ad0ed37cf6af992b
@@ -88,69 +76,62 @@ ns2.example.net.         3600 IN A   {prefix}.11
 
 bogus.net.               3600 IN NS  ns1.bogus.net.
 bogus.net.               3600 IN DS  65034 13 1 6df3bb50ea538e90eacdd7ae5419730783abb0ee
-ns1.bogus.net.           3600 IN A   {prefix}.12""",
-                'privateKey':"""Private-key-format: v1.2
-Algorithm: 13 (ECDSAP256SHA256)
-PrivateKey: Lt0v0Gol3pRUFM7fDdcy0IWN0O/MnEmVPA+VylL8Y4U="""
-            },
-            'example.net': {
-                'content': """
+ns1.bogus.net.           3600 IN A   {prefix}.12
+        """,
+        'example.net': """
 example.net.             3600 IN SOA {soa}
 example.net.             3600 IN NS  ns1.example.net.
 example.net.             3600 IN NS  ns2.example.net.
 ns1.example.net.         3600 IN A   {prefix}.10
 ns2.example.net.         3600 IN A   {prefix}.11
-            """,
-                'privateKey':"""Private-key-format: v1.2
-Algorithm: 13 (ECDSAP256SHA256)
-PrivateKey: 1G4WRoOFJJXk+fotDCHVORtJmIG2OUhKi8AO2jDPGZA=
-"""
-            }
-        },
-        '11': {
-            'net': {
-                'content': """
-net.             3600 IN SOA {soa}
-example.net.             3600 IN NS  ns1.example.net.
-example.net.             3600 IN NS  ns2.example.net.
-example.net.             3600 IN DS  64723 13 1 c51eab719a495db0097bdc17ad0ed37cf6af992b
-ns1.example.net.         3600 IN A   {prefix}.10
-ns2.example.net.         3600 IN A   {prefix}.11
-
-bogus.net.               3600 IN NS  ns1.bogus.net.
-bogus.net.               3600 IN DS  65034 13 1 6df3bb50ea538e90eacdd7ae5419730783abb0ee
-ns1.bogus.net.           3600 IN A   {prefix}.12""",
-                'privateKey':"""Private-key-format: v1.2
-Algorithm: 13 (ECDSAP256SHA256)
-PrivateKey: Lt0v0Gol3pRUFM7fDdcy0IWN0O/MnEmVPA+VylL8Y4U="""
-            },
-            'example.net': {
-                'content': """
-example.net.             3600 IN SOA {soa}
-example.net.             3600 IN NS  ns1.example.net.
-example.net.             3600 IN NS  ns2.example.net.
-ns1.example.net.         3600 IN A   {prefix}.10
-ns2.example.net.         3600 IN A   {prefix}.11
-            """,
-                'privateKey':"""Private-key-format: v1.2
-Algorithm: 13 (ECDSAP256SHA256)
-PrivateKey: 1G4WRoOFJJXk+fotDCHVORtJmIG2OUhKi8AO2jDPGZA=
-"""
-            }
-        },
-        '12': {
-            'bogus.net': {
-                'content': """
+        """,
+        'bogus.net': """
 bogus.net.               3600 IN SOA  {soa}
 bogus.net.               3600 IN NS   ns1.bogus.net.
 ns1.bogus.net.           3600 IN A    {prefix}.12
 ted.bogus.net.           3600 IN A    192.0.2.1
-bill.bogus.net.          3600 IN AAAA 2001:db8:12::3""",
-                'privateKey': """Private-key-format: v1.2
+bill.bogus.net.          3600 IN AAAA 2001:db8:12::3
+        """,
+        'insecure.net': """"""
+    }
+
+    # The private keys for the zones (note that DS records should go into
+    # the zonecontent in _zones
+    _zone_keys = {
+        'ROOT': """
+Private-key-format: v1.2
 Algorithm: 13 (ECDSAP256SHA256)
-PrivateKey: f5jV7Q8kd5hDpMWObsuQ6SQda0ftf+JrO3uZwEg6nVw="""
-            }
-        }
+PrivateKey: rhWuEydDz3QaIspSVj683B8Xq5q/ozzA38XUgzD4Fbo=
+        """,
+
+        'net': """
+Private-key-format: v1.2
+Algorithm: 13 (ECDSAP256SHA256)
+PrivateKey: Lt0v0Gol3pRUFM7fDdcy0IWN0O/MnEmVPA+VylL8Y4U=
+        """,
+
+        'example.net': """
+Private-key-format: v1.2
+Algorithm: 13 (ECDSAP256SHA256)
+PrivateKey: 1G4WRoOFJJXk+fotDCHVORtJmIG2OUhKi8AO2jDPGZA=
+        """,
+
+        'bogus.net': """
+Private-key-format: v1.2
+Algorithm: 13 (ECDSAP256SHA256)
+PrivateKey: f5jV7Q8kd5hDpMWObsuQ6SQda0ftf+JrO3uZwEg6nVw=
+        """,
+    }
+
+    # This dict is keyed with the suffix of the IP address and its value
+    # is a list of zones hosted on that IP. Note that delegations should
+    # go into the _zones's zonecontent
+    _auth_zones = {
+        '8': ['ROOT'],
+        '10': ['example.net', 'net'],
+        '11': ['example.net', 'net'],
+        '12': ['bogus.net'],
+        '13': ['insecure.net']
     }
 
     _auths = {}
@@ -165,9 +146,7 @@ PrivateKey: f5jV7Q8kd5hDpMWObsuQ6SQda0ftf+JrO3uZwEg6nVw="""
         os.mkdir(confdir, 0755)
 
     @classmethod
-    def generateAuthZone(cls, confdir, zone, zonecontent):
-        zonename = 'ROOT' if zone == '.' else zone
-
+    def generateAuthZone(cls, confdir, zonename, zonecontent):
         with open(os.path.join(confdir, '%s.zone' % zonename), 'w') as zonefile:
             zonefile.write(zonecontent.format(prefix=cls._PREFIX, soa=cls._SOA))
 
@@ -178,15 +157,14 @@ PrivateKey: f5jV7Q8kd5hDpMWObsuQ6SQda0ftf+JrO3uZwEg6nVw="""
 options {
     directory "%s";
 };""" % confdir)
-            for zone, zonecontent in zones.items():
-                zonename = 'ROOT' if zone == '.' else zone
+            for zonename in zones:
+                zone = '.' if zonename == 'ROOT' else zonename
 
                 namedconf.write("""
         zone "%s" {
             type master;
             file "%s.zone";
         };""" % (zone, zonename))
-
 
     @classmethod
     def generateAuthConfig(cls, confdir):
@@ -220,7 +198,8 @@ distributor-threads=1""".format(confdir = confdir,
             raise
 
     @classmethod
-    def secureZone(cls, confdir, zone, key=None):
+    def secureZone(cls, confdir, zonename, key=None):
+        zone = '.' if zonename == 'ROOT' else zonename
         if not key:
             pdnsutilCmd = [ os.environ['PDNSUTIL'],
                             '--config-dir=%s' % confdir,
@@ -248,8 +227,8 @@ distributor-threads=1""".format(confdir = confdir,
 
     @classmethod
     def generateAllAuthConfig(cls, confdir):
-        if cls._auths_zones:
-            for auth_suffix, zones in cls._auths_zones.items():
+        if cls._auth_zones:
+            for auth_suffix, zones in cls._auth_zones.items():
                 authconfdir = os.path.join(confdir, 'auth-%s' % auth_suffix)
 
                 os.mkdir(authconfdir)
@@ -257,14 +236,15 @@ distributor-threads=1""".format(confdir = confdir,
                 cls.generateAuthConfig(authconfdir)
                 cls.generateAuthNamedConf(authconfdir, zones)
 
-                for zonename, elems in zones.items():
-                    cls.generateAuthZone(authconfdir, zonename, elems['content'])
-                    cls.secureZone(authconfdir, zonename, elems.get('privateKey', None))
+                for zonename, content in cls._zones.items():
+                    cls.generateAuthZone(authconfdir, zonename, content)
+                    if cls._zone_keys.get(zonename, None):
+                        cls.secureZone(authconfdir, zonename, cls._zone_keys.get(zonename))
 
     @classmethod
     def startAllAuth(cls, confdir):
-        if cls._auths_zones:
-            for auth_suffix, _ in cls._auths_zones.items():
+        if cls._auth_zones:
+            for auth_suffix, _ in cls._auth_zones.items():
                 authconfdir = os.path.join(confdir, 'auth-%s' % auth_suffix)
                 ipaddress = cls._PREFIX + '.' + auth_suffix
                 cls.startAuth(authconfdir, ipaddress)
