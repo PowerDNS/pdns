@@ -17,7 +17,7 @@ local0.warn                       -/var/log/pdns.warn
 local0.err                        /var/log/pdns.err
 ```
 
-Where local0.err would store the really important messages. For performance and disk space reasons, it is advised to audit your `syslog.conf` for statements also logging PowerDNS activities. Many `syslog.conf`s have a '*.*' statement to /var/log/syslog, which you may want to remove.
+Where local0.err would store the really important messages. For performance and disk space reasons, it is advised to audit your `syslog.conf` for statements also logging PowerDNS activities. Many `syslog.conf`s have a '\*.\*' statement to /var/log/syslog, which you may want to remove.
 
 For performance reasons, be especially certain that no large amounts of synchronous logging take place. Under Linux, this is indicated by file names not starting with a '-' - indicating a synchronous log, which hurts performance.
 
