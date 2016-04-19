@@ -5,7 +5,7 @@ for analysis.
 
 algorithm:
 
-read a packet, check if it has the recursion desired bit set. 
+read a packet, check if it has the QR bit set.
 
 If the question has the response bit set, obfuscate the destination IP address
 otherwise, obfuscate the response IP address
@@ -17,6 +17,7 @@ otherwise, obfuscate the response IP address
 #endif
 #include "statbag.hh"
 #include "dnspcap.hh"
+#include "iputils.hh"
 
 #include "namespaces.hh"
 #include "namespaces.hh"
@@ -42,7 +43,6 @@ public:
 
   uint64_t obf6(uint64_t orig)
   {
-    cout<<d_counter<<endl;
     if(d_ro6map.count(orig))
       return d_ip6map[orig];
     else {
@@ -83,16 +83,17 @@ try
           *dst=htonl(ipo.obf4(*dst));
         else
           *src=htonl(ipo.obf4(*src));
+
+        pr.d_ip->ip_sum=0;
       } else if (pr.d_ip->ip_v == 6) {
-        uint64_t *src=1+(uint64_t*)&pr.d_ip6->ip6_src;
-        uint64_t *dst=1+(uint64_t*)&pr.d_ip6->ip6_dst;
+        uint64_t *src=(uint64_t*)&pr.d_ip6->ip6_src;
+        uint64_t *dst=(uint64_t*)&pr.d_ip6->ip6_dst;
 
         if(dh->qr)
-          *dst=ipo.obf6(*dst);
+          *dst=htobe64(ipo.obf6(*dst));
         else
-          *src=ipo.obf6(*src);
+          *src=htobe64(ipo.obf6(*src));
       }
-      pr.d_ip->ip_sum=0;
       pw.write();
     }
   }

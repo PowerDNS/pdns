@@ -88,7 +88,7 @@ try
       if(d_ip->ip_v==4)
 	contentCode = 0x0800;
       else
-	contentCode = 0x0806; 
+	contentCode = 0x86dd;
     }
     else if(d_pfh.linktype==113)
       contentCode=ntohs(d_lcc->lcc_protocol);
