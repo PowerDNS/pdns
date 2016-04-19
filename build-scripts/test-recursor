@@ -1,6 +1,7 @@
 #!/bin/sh
 
 export PDNSRECURSOR=${PDNSRECURSOR:-"/usr/sbin/pdns_recursor"}
+export RECCONTROL=${RECCONTROL:-"/usr/bin/rec_control"}
 export PDNS=${PDNS:-"/usr/sbin/pdns_server"}
 export PDNSUTIL=${PDNSUTIL:-"/usr/bin/pdnsutil"}
 export SDIG=${SDIG:-"/usr/bin/sdig"}
