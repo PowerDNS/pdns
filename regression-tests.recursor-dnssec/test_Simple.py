@@ -1,5 +1,5 @@
-from recursortests import RecursorTest
 import dns
+from recursortests import RecursorTest
 
 class testSimple(RecursorTest):
     _confdir = 'Simple'
@@ -9,7 +9,7 @@ class testSimple(RecursorTest):
     def testSOAs(self):
         for zone in ['.', 'example.net.']:
             expected = dns.rrset.from_text(zone, 0, dns.rdataclass.IN, 'SOA', self._SOA)
-            query = dns.message.make_query(zone, 'SOA', want_dnssec = True)
+            query = dns.message.make_query(zone, 'SOA', want_dnssec=True)
 
             res = self.sendUDPQuery(query)
 
@@ -18,7 +18,7 @@ class testSimple(RecursorTest):
 
     def testA(self):
         expected = dns.rrset.from_text('ns1.example.net.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
-        query = dns.message.make_query('ns1.example.net', 'A', want_dnssec = True)
+        query = dns.message.make_query('ns1.example.net', 'A', want_dnssec=True)
 
         res = self.sendUDPQuery(query)
 

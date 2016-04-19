@@ -182,13 +182,13 @@ socket-dir={confdir}
 cache-ttl=0
 negquery-cache-ttl=0
 query-cache-ttl=0
-distributor-threads=1""".format(confdir = confdir,
+distributor-threads=1""".format(confdir=confdir,
                                 bind_dnssec_db=bind_dnssec_db))
 
-        pdnsutilCmd = [ os.environ['PDNSUTIL'],
-                        '--config-dir=%s' % confdir,
-                        'create-bind-db',
-                        bind_dnssec_db]
+        pdnsutilCmd = [os.environ['PDNSUTIL'],
+                       '--config-dir=%s' % confdir,
+                       'create-bind-db',
+                       bind_dnssec_db]
 
         print ' '.join(pdnsutilCmd)
         try:
@@ -201,22 +201,22 @@ distributor-threads=1""".format(confdir = confdir,
     def secureZone(cls, confdir, zonename, key=None):
         zone = '.' if zonename == 'ROOT' else zonename
         if not key:
-            pdnsutilCmd = [ os.environ['PDNSUTIL'],
-                            '--config-dir=%s' % confdir,
-                            'secure-zone',
-                            zone]
+            pdnsutilCmd = [os.environ['PDNSUTIL'],
+                           '--config-dir=%s' % confdir,
+                           'secure-zone',
+                           zone]
         else:
-            keyfile = os.path.join((confdir), 'dnssec.key')
+            keyfile = os.path.join(confdir, 'dnssec.key')
             with open(keyfile, 'w') as fdKeyfile:
                 fdKeyfile.write(key)
 
-            pdnsutilCmd = [ os.environ['PDNSUTIL'],
-                            '--config-dir=%s' % confdir,
-                            'import-zone-key',
-                            zone,
-                            keyfile,
-                            'active',
-                            'ksk' ]
+            pdnsutilCmd = [os.environ['PDNSUTIL'],
+                           '--config-dir=%s' % confdir,
+                           'import-zone-key',
+                           zone,
+                           keyfile,
+                           'active',
+                           'ksk']
 
         print ' '.join(pdnsutilCmd)
         try:
@@ -252,16 +252,16 @@ distributor-threads=1""".format(confdir = confdir,
     @classmethod
     def startAuth(cls, confdir, ipaddress):
         print("Launching pdns_server..")
-        authcmd = [ 'authbind',
-                    os.environ['PDNS'],
-                    '--config-dir=%s' % confdir,
-                    '--local-address=%s' % ipaddress ]
+        authcmd = ['authbind',
+                   os.environ['PDNS'],
+                   '--config-dir=%s' % confdir,
+                   '--local-address=%s' % ipaddress]
         print(' '.join(authcmd))
 
         logFile = os.path.join(confdir, 'pdns.log')
         with open(logFile, 'w') as fdLog:
             cls._auths[ipaddress] = subprocess.Popen(authcmd, close_fds=True,
-                                                  stdout=fdLog, stderr=fdLog)
+                                                     stdout=fdLog, stderr=fdLog)
 
         time.sleep(2)
 
@@ -335,10 +335,10 @@ distributor-threads=1""".format(confdir = confdir,
 
     @classmethod
     def wipeRecursorCache(cls, confdir):
-        rec_controlCmd = [ os.environ['RECCONTROL'],
-                           '--config-dir=%s' % confdir,
-                           'wipe-cache',
-                           '.$']
+        rec_controlCmd = [os.environ['RECCONTROL'],
+                          '--config-dir=%s' % confdir,
+                          'wipe-cache',
+                          '.$']
         try:
             subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
@@ -401,7 +401,7 @@ distributor-threads=1""".format(confdir = confdir,
                 if cls._recursor.poll() is None:
                     time.sleep(delay)
                     if cls._recursor.poll() is None:
-                            cls._recursor.kill()
+                        cls._recursor.kill()
                     cls._recursor.wait()
         except OSError as e:
             # There is a race-condition with the poll() and
@@ -464,27 +464,30 @@ distributor-threads=1""".format(confdir = confdir,
         # This function is called before every tests
         return
 
-
     ## Functions for comparisons
-    def assertMessageHasFlags(cls, msg, flags, ednsflags=[]):
+    def assertMessageHasFlags(self, msg, flags, ednsflags=[]):
         """Asserts that msg has all the flags from flags set
 
         @param msg: the dns.message.Message to check
         @param flags: a list of strings with flag mnemonics (like ['RD', 'RA'])
         @param ednsflags: a list of strings with edns-flag mnemonics (like ['DO'])"""
 
-        if type(msg) != dns.message.Message:
+        if not isinstance(msg, dns.message.Message):
             raise TypeError("msg is not a dns.message.Message")
 
-        if type(flags) == list:
+        if isinstance(flags, list):
             for elem in flags:
-                if type(elem) != str:
+                if not isinstance(elem, str):
                     raise TypeError("flags is not a list of strings")
+        else:
+            raise TypeError("flags is not a list of strings")
 
-        if type(ednsflags) == list:
+        if isinstance(ednsflags, list):
             for elem in ednsflags:
-                if type(elem) != str:
+                if not isinstance(elem, str):
                     raise TypeError("ednsflags is not a list of strings")
+        else:
+            raise TypeError("ednsflags is not a list of strings")
 
         msgFlags = dns.flags.to_text(msg.flags).split()
         missingFlags = [flag for flag in flags if flag not in msgFlags]
@@ -493,23 +496,23 @@ distributor-threads=1""".format(confdir = confdir,
         missingEdnsFlags = [ednsflag for ednsflag in ednsflags if ednsflag not in msgEdnsFlags]
 
         if len(missingFlags) or len(missingEdnsFlags) or len(msgFlags) > len(flags):
-            raise AssertionError("Expected flags '%s' (EDNS: '%s'), found '%s' (EDNS: '%s') in query %s"
-                    % (' '.join(flags), ' '.join(ednsflags),
-                       ' '.join(msgFlags), ' '.join(msgEdnsFlags),
-                       msg.question[0]))
+            raise AssertionError("Expected flags '%s' (EDNS: '%s'), found '%s' (EDNS: '%s') in query %s" %
+                                 (' '.join(flags), ' '.join(ednsflags),
+                                  ' '.join(msgFlags), ' '.join(msgEdnsFlags),
+                                  msg.question[0]))
 
-    def assertMessageIsAuthenticated(cls, msg):
+    def assertMessageIsAuthenticated(self, msg):
         """Asserts that the message has the AD bit set
 
         @param msg: the dns.message.Message to check"""
 
-        if type(msg) != dns.message.Message:
+        if not isinstance(msg, dns.message.Message):
             raise TypeError("msg is not a dns.message.Message")
 
         msgFlags = dns.flags.to_text(msg.flags)
-        cls.assertTrue('AD' in msgFlags, "No AD flag found in the message for %s" % msg.question[0].name)
+        self.assertTrue('AD' in msgFlags, "No AD flag found in the message for %s" % msg.question[0].name)
 
-    def assertRRsetInAnswer(cls, msg, rrset):
+    def assertRRsetInAnswer(self, msg, rrset):
         """Asserts the rrset (without comparing TTL) exists in the
         answer section of msg
 
@@ -517,23 +520,23 @@ distributor-threads=1""".format(confdir = confdir,
         @param rrset: a dns.rrset.RRset object"""
 
         ret = ''
-        if type(msg) != dns.message.Message:
+        if not isinstance(msg, dns.message.Message):
             raise TypeError("msg is not a dns.message.Message")
 
-        if type(rrset) != dns.rrset.RRset:
+        if not isinstance(rrset, dns.rrset.RRset):
             raise TypeError("rrset is not a dns.rrset.RRset")
 
         found = False
         for ans in msg.answer:
             ret += "%s\n" % ans.to_text()
             if ans.match(rrset.name, rrset.rdclass, rrset.rdtype, 0, None):
-                cls.assertEqual(ans, rrset)
+                self.assertEqual(ans, rrset)
                 found = True
 
         if not found:
             raise AssertionError("RRset not found in answer")
 
-    def assertMatchingRRSIGInAnswer(cls, msg, coveredRRset, keys=None):
+    def assertMatchingRRSIGInAnswer(self, msg, coveredRRset, keys=None):
         """Looks for coveredRRset in the answer section and if there is an RRSIG RRset
         that covers that RRset. If keys is not None, this function will also try to
         validate the RRset against the RRSIG
@@ -542,10 +545,10 @@ distributor-threads=1""".format(confdir = confdir,
         @param coveredRRset: The RRSet to check for
         @param keys: a dictionary keyed by dns.name.Name with node or rdataset values to use for validation"""
 
-        if type(msg) != dns.message.Message:
+        if not isinstance(msg, dns.message.Message):
             raise TypeError("msg is not a dns.message.Message")
 
-        if type(coveredRRset) != dns.rrset.RRset:
+        if not isinstance(coveredRRset, dns.rrset.RRset):
             raise TypeError("coveredRRset is not a dns.rrset.RRset")
 
         msgRRsigRRSet = None
@@ -574,10 +577,10 @@ distributor-threads=1""".format(confdir = confdir,
             except dns.dnssec.ValidationFailure as e:
                 raise AssertionError("Signature validation failed for %s:\n%s" % (msg.question[0].to_text(), e))
 
-    def assertNoRRSIGsInAnswer(cls, msg):
+    def assertNoRRSIGsInAnswer(self, msg):
         """Checks if there are _no_ RRSIGs in the answer section of msg"""
 
-        if type(msg) != dns.message.Message:
+        if not isinstance(msg, dns.message.Message):
             raise TypeError("msg is not a dns.message.Message")
 
         ret = ""
@@ -588,15 +591,15 @@ distributor-threads=1""".format(confdir = confdir,
         if len(ret):
             raise AssertionError("RRSIG found in answers for:\n%s" % ret)
 
-    def assertAnswerEmpty(cls, msg):
-        cls.assertTrue(len(msg.answer) == 0, "Data found in the the answer section for %s:\n%s" % (msg.question[0].to_text(), '\n'.join([i.to_text() for i in msg.answer])))
+    def assertAnswerEmpty(self, msg):
+        self.assertTrue(len(msg.answer) == 0, "Data found in the the answer section for %s:\n%s" % (msg.question[0].to_text(), '\n'.join([i.to_text() for i in msg.answer])))
 
-    def assertRcodeEqual(cls, msg, rcode):
-        if type(msg) != dns.message.Message:
+    def assertRcodeEqual(self, msg, rcode):
+        if not isinstance(msg, dns.message.Message):
             raise TypeError("msg is not a dns.message.Message but a %s" % type(msg))
 
-        if type(rcode) != int:
-            if type(rcode) == str:
+        if not isinstance(rcode, int):
+            if isinstance(rcode, str):
                 rcode = dns.rcode.from_text(rcode)
             else:
                 raise TypeError("rcode is neither a str nor int")

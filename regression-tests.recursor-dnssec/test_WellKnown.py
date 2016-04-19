@@ -1,5 +1,5 @@
-from recursortests import RecursorTest
 import dns
+from recursortests import RecursorTest
 
 class TestWellKnown(RecursorTest):
     _auths_zones = None

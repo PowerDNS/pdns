@@ -1,8 +1,9 @@
-from recursortests import RecursorTest
-import dns
 import os
 import socket
 import unittest
+
+import dns
+from recursortests import RecursorTest
 
 class TestFlags(RecursorTest):
     _confdir = 'Flags'
@@ -14,50 +15,50 @@ class TestFlags(RecursorTest):
     _dnssec_setting_ports = {'off': 5300, 'process': 5301, 'validate': 5302}
 
     @classmethod
-    def setUp(self):
-        for setting in self._dnssec_setting_ports:
-            confdir = os.path.join('configs', self._confdir, setting)
-            self.wipeRecursorCache(confdir)
+    def setUp(cls):
+        for setting in cls._dnssec_setting_ports:
+            confdir = os.path.join('configs', cls._confdir, setting)
+            cls.wipeRecursorCache(confdir)
 
     @classmethod
-    def setUpClass(self):
-        self.setUpSockets()
-        confdir = os.path.join('configs', self._confdir)
-        self.createConfigDir(confdir)
+    def setUpClass(cls):
+        cls.setUpSockets()
+        confdir = os.path.join('configs', cls._confdir)
+        cls.createConfigDir(confdir)
 
-        self.generateAllAuthConfig(confdir)
-        self.startAllAuth(confdir)
+        cls.generateAllAuthConfig(confdir)
+        cls.startAllAuth(confdir)
 
-        for dnssec_setting, port in self._dnssec_setting_ports.items():
-            self._dnssec_setting = dnssec_setting
+        for dnssec_setting, port in cls._dnssec_setting_ports.items():
+            cls._dnssec_setting = dnssec_setting
             recConfdir = os.path.join(confdir, dnssec_setting)
-            self.createConfigDir(recConfdir)
-            self.generateRecursorConfig(recConfdir)
-            self.startRecursor(recConfdir, port)
-            self._recursors[dnssec_setting] = self._recursor
+            cls.createConfigDir(recConfdir)
+            cls.generateRecursorConfig(recConfdir)
+            cls.startRecursor(recConfdir, port)
+            cls._recursors[dnssec_setting] = cls._recursor
 
     @classmethod
-    def setUpSockets(self):
-        self._sock = {}
-        for dnssec_setting, port in self._dnssec_setting_ports.items():
+    def setUpSockets(cls):
+        cls._sock = {}
+        for dnssec_setting, port in cls._dnssec_setting_ports.items():
             print("Setting up UDP socket..")
-            self._sock[dnssec_setting] = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            self._sock[dnssec_setting].settimeout(2.0)
-            self._sock[dnssec_setting].connect(("127.0.0.1", port))
+            cls._sock[dnssec_setting] = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            cls._sock[dnssec_setting].settimeout(2.0)
+            cls._sock[dnssec_setting].connect(("127.0.0.1", port))
 
     @classmethod
-    def sendUDPQuery(self, query, dnssec_setting, timeout=2.0):
+    def sendUDPQuery(cls, query, dnssec_setting, timeout=2.0):
         if timeout:
-            self._sock[dnssec_setting].settimeout(timeout)
+            cls._sock[dnssec_setting].settimeout(timeout)
 
         try:
-            self._sock[dnssec_setting].send(query.to_wire())
-            data = self._sock[dnssec_setting].recv(4096)
+            cls._sock[dnssec_setting].send(query.to_wire())
+            data = cls._sock[dnssec_setting].recv(4096)
         except socket.timeout:
             data = None
         finally:
             if timeout:
-                self._sock[dnssec_setting].settimeout(None)
+                cls._sock[dnssec_setting].settimeout(None)
 
         msg = None
         if data:
@@ -65,11 +66,11 @@ class TestFlags(RecursorTest):
         return msg
 
     @classmethod
-    def tearDownClass(self):
-        self.tearDownAuth()
-        for _, recursor in self._recursors.items():
-            self._recursor = recursor
-            self.tearDownRecursor()
+    def tearDownClass(cls):
+        cls.tearDownAuth()
+        for _, recursor in cls._recursors.items():
+            cls._recursor = recursor
+            cls.tearDownRecursor()
 
     def createQuery(self, name, rdtype, flags, ednsflags):
         """Helper function that creates the query with the specified flags.
@@ -122,7 +123,7 @@ class TestFlags(RecursorTest):
         msg = self.getQueryForSecure('AD')
         res = self.sendUDPQuery(msg, 'process')
         self.assertMessageIsAuthenticated(res)
-        self.assertMessageHasFlags(res, ['AD','QR', 'RA', 'RD'])
+        self.assertMessageHasFlags(res, ['AD', 'QR', 'RA', 'RD'])
         self.assertNoRRSIGsInAnswer(res)
 
     @unittest.skip("See #3682")
