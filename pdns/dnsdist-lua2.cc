@@ -221,15 +221,11 @@ void moreLua(bool client)
     });
 
 
-  g_lua.writeFunction("topBandwidth", [](boost::optional<unsigned int> top_) {
+  g_lua.writeFunction("getTopBandwidth", [](unsigned int top) {
       setLuaNoSideEffect();
-      auto top = top_.get_value_or(10);
-      auto res = g_rings.getTopBandwidth(top);
-      boost::format fmt("%7d  %s\n");
-      for(const auto& l : res) {
-	g_outputBuffer += (fmt % l.first % l.second.toString()).str();
-      }
+      return g_rings.getTopBandwidth(top);
     });
+  g_lua.executeCode(R"(function topBandwidth(top) top = top or 10; for k,v in ipairs(getTopBandwidth(top)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2],v[3])) end end)");
 
   g_lua.writeFunction("delta", []() {
       setLuaNoSideEffect();
