@@ -34,3 +34,10 @@ class testSimple(RecursorTest):
 
         self.assertMessageIsAuthenticated(res)
         self.assertRRsetInAnswer(res, expectedNS)
+
+    def testBogus(self):
+        query = dns.message.make_query('ted.bogus.net', 'A', want_dnssec=True)
+
+        res = self.sendUDPQuery(query)
+
+        self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
