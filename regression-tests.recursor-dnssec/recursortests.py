@@ -345,6 +345,30 @@ distributor-threads=1""".format(confdir = confdir,
 
     @classmethod
     def tearDownClass(cls):
+        cls.tearDownRecursor()
+        cls.tearDownAuth()
+
+    @classmethod
+    def tearDownAuth(cls):
+        if 'PDNSRECURSOR_FAST_TESTS' in os.environ:
+            delay = 0.1
+        else:
+            delay = 1.0
+
+        for _, auth in cls._auths.items():
+            try:
+                auth.terminate()
+                if auth.poll() is None:
+                    time.sleep(delay)
+                    if auth.poll() is None:
+                        auth.kill()
+                    auth.wait()
+            except OSError as e:
+                if e.errno != errno.ESRCH:
+                    raise
+
+    @classmethod
+    def tearDownRecursor(cls):
         if 'PDNSRECURSOR_FAST_TESTS' in os.environ:
             delay = 0.1
         else:
@@ -364,17 +388,6 @@ distributor-threads=1""".format(confdir = confdir,
             if e.errno != errno.ESRCH:
                 raise
 
-        for _, auth in cls._auths.items():
-            try:
-                auth.terminate()
-                if auth.poll() is None:
-                    time.sleep(delay)
-                    if auth.poll() is None:
-                        auth.kill()
-                    auth.wait()
-            except OSError as e:
-                if e.errno != errno.ESRCH:
-                    raise
 
     @classmethod
     def sendUDPQuery(cls, query, timeout=2.0):
@@ -492,7 +505,7 @@ distributor-threads=1""".format(confdir = confdir,
 
     def assertRcodeEqual(cls, msg, rcode):
         if type(msg) != dns.message.Message:
-            raise TypeError("msg is not a dns.message.Message")
+            raise TypeError("msg is not a dns.message.Message but a %s" % type(msg))
 
         if type(rcode) != int:
             if type(rcode) == str:
