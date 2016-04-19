@@ -32,6 +32,7 @@ trace=yes
 dont-query=
 local-address=127.0.0.1
 packetcache-ttl=0
+packetcache-servfail-ttl=0
 max-cache-ttl=15
 threads=1
 loglevel=9
@@ -246,6 +247,29 @@ distributor-threads=1""".format(confdir = confdir,
             raise
 
     @classmethod
+    def generateAllAuthConfig(cls, confdir):
+        if cls._auths_zones:
+            for auth_suffix, zones in cls._auths_zones.items():
+                authconfdir = os.path.join(confdir, 'auth-%s' % auth_suffix)
+
+                os.mkdir(authconfdir)
+
+                cls.generateAuthConfig(authconfdir)
+                cls.generateAuthNamedConf(authconfdir, zones)
+
+                for zonename, elems in zones.items():
+                    cls.generateAuthZone(authconfdir, zonename, elems['content'])
+                    cls.secureZone(authconfdir, zonename, elems.get('privateKey', None))
+
+    @classmethod
+    def startAllAuth(cls, confdir):
+        if cls._auths_zones:
+            for auth_suffix, _ in cls._auths_zones.items():
+                authconfdir = os.path.join(confdir, 'auth-%s' % auth_suffix)
+                ipaddress = cls._PREFIX + '.' + auth_suffix
+                cls.startAuth(authconfdir, ipaddress)
+
+    @classmethod
     def startAuth(cls, confdir, ipaddress):
         print("Launching pdns_server..")
         authcmd = [ 'authbind',
@@ -330,6 +354,18 @@ distributor-threads=1""".format(confdir = confdir,
             sys.exit(cls._recursor.returncode)
 
     @classmethod
+    def wipeRecursorCache(cls, confdir):
+        rec_controlCmd = [ os.environ['RECCONTROL'],
+                           '--config-dir=%s' % confdir,
+                           'wipe-cache',
+                           '.$']
+        try:
+            subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as e:
+            print e.output
+            raise
+
+    @classmethod
     def setUpSockets(cls):
         print("Setting up UDP socket..")
         cls._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -338,26 +374,11 @@ distributor-threads=1""".format(confdir = confdir,
 
     @classmethod
     def setUpClass(cls):
-
         cls.setUpSockets()
         confdir = os.path.join('configs', cls._confdir)
         cls.createConfigDir(confdir)
-
-        if cls._auths_zones:
-            for auth_suffix, zones in cls._auths_zones.items():
-                authconfdir = os.path.join(confdir, 'auth-%s' % auth_suffix)
-
-                os.mkdir(authconfdir)
-
-                cls.generateAuthConfig(authconfdir)
-                cls.generateAuthNamedConf(authconfdir, zones)
-
-                for zonename, elems in zones.items():
-                    cls.generateAuthZone(authconfdir, zonename, elems['content'])
-                    cls.secureZone(authconfdir, zonename, elems.get('privateKey', None))
-
-                ipaddress = cls._PREFIX + '.' + auth_suffix
-                cls.startAuth(authconfdir, ipaddress)
+        cls.generateAllAuthConfig(confdir)
+        cls.startAllAuth(confdir)
 
         cls.generateRecursorConfig(confdir)
         cls.startRecursor(confdir, cls._recursorPort)
@@ -465,13 +486,12 @@ distributor-threads=1""".format(confdir = confdir,
 
 
     ## Functions for comparisons
-    def assertMessageHasFlags(cls, msg, flags):
+    def assertMessageHasFlags(cls, msg, flags, ednsflags=[]):
         """Asserts that msg has all the flags from flags set
 
         @param msg: the dns.message.Message to check
-        @param flags: a list of strings with flag mnemonics (like ['RD', 'RA'])"""
-
-        ret = ""
+        @param flags: a list of strings with flag mnemonics (like ['RD', 'RA'])
+        @param ednsflags: a list of strings with edns-flag mnemonics (like ['DO'])"""
 
         if type(msg) != dns.message.Message:
             raise TypeError("msg is not a dns.message.Message")
@@ -481,12 +501,22 @@ distributor-threads=1""".format(confdir = confdir,
                 if type(elem) != str:
                     raise TypeError("flags is not a list of strings")
 
+        if type(ednsflags) == list:
+            for elem in ednsflags:
+                if type(elem) != str:
+                    raise TypeError("ednsflags is not a list of strings")
+
         msgFlags = dns.flags.to_text(msg.flags).split()
         missingFlags = [flag for flag in flags if flag not in msgFlags]
 
-        if len(missingFlags) or len(msgFlags) > len(flags):
-            raise AssertionError("Expected flags '%s', found '%s' in query %s"
-                    % (' '.join(flags), ' '.join(msgFlags), msg.question[0]))
+        msgEdnsFlags = dns.flags.edns_to_text(msg.flags).split()
+        missingEdnsFlags = [ednsflag for ednsflag in ednsflags if ednsflag not in msgEdnsFlags]
+
+        if len(missingFlags) or len(missingEdnsFlags) or len(msgFlags) > len(flags):
+            raise AssertionError("Expected flags '%s' (EDNS: '%s'), found '%s' (EDNS: '%s') in query %s"
+                    % (' '.join(flags), ' '.join(ednsflags),
+                       ' '.join(msgFlags), ' '.join(msgEdnsFlags),
+                       msg.question[0]))
 
     def assertMessageIsAuthenticated(cls, msg):
         """Asserts that the message has the AD bit set
@@ -523,6 +553,63 @@ distributor-threads=1""".format(confdir = confdir,
         if not found:
             raise AssertionError("RRset not found in answer")
 
+    def assertMatchingRRSIGInAnswer(cls, msg, coveredRRset, keys=None):
+        """Looks for coveredRRset in the answer section and if there is an RRSIG RRset
+        that covers that RRset. If keys is not None, this function will also try to
+        validate the RRset against the RRSIG
+
+        @param msg: The dns.message.Message to check
+        @param coveredRRset: The RRSet to check for
+        @param keys: a dictionary keyed by dns.name.Name with node or rdataset values to use for validation"""
+
+        if type(msg) != dns.message.Message:
+            raise TypeError("msg is not a dns.message.Message")
+
+        if type(coveredRRset) != dns.rrset.RRset:
+            raise TypeError("coveredRRset is not a dns.rrset.RRset")
+
+        msgRRsigRRSet = None
+        msgRRSet = None
+
+        ret = ''
+        for ans in msg.answer:
+            ret += ans.to_text() + "\n"
+
+            if ans.match(coveredRRset.name, coveredRRset.rdclass, coveredRRset.rdtype, 0, None):
+                msgRRSet = ans
+            if ans.match(coveredRRset.name, dns.rdataclass.IN, dns.rdatatype.RRSIG, coveredRRset.rdtype, None):
+                msgRRsigRRSet = ans
+            if msgRRSet and msgRRsigRRSet:
+                break
+
+        if not msgRRSet:
+            raise AssertionError("RRset for '%s' not found in answer" % msg.question[0].to_text())
+
+        if not msgRRsigRRSet:
+            raise AssertionError("No RRSIGs found in answer for %s:\nFull answer:\n%s" % (msg.question[0].to_text(), ret))
+
+        if keys:
+            try:
+                dns.dnssec.validate(msgRRSet, msgRRsigRRSet.to_rdataset(), keys)
+            except dns.dnssec.ValidationFailure as e:
+                raise AssertionError("Signature validation failed for %s:\n%s" % (msg.question[0].to_text(), e))
+
+    def assertNoRRSIGsInAnswer(cls, msg):
+        """Checks if there are _no_ RRSIGs in the answer section of msg"""
+
+        if type(msg) != dns.message.Message:
+            raise TypeError("msg is not a dns.message.Message")
+
+        ret = ""
+        for ans in msg.answer:
+            if ans.rdtype == dns.rdatatype.RRSIG:
+                ret += ans.name.to_text() + "\n"
+
+        if len(ret):
+            raise AssertionError("RRSIG found in answers for:\n%s" % ret)
+
+    def assertAnswerEmpty(cls, msg):
+        cls.assertTrue(len(msg.answer) == 0, "Data found in the the answer section for %s:\n%s" % (msg.question[0].to_text(), '\n'.join([i.to_text() for i in msg.answer])))
 
     def assertRcodeEqual(cls, msg, rcode):
         if type(msg) != dns.message.Message:
