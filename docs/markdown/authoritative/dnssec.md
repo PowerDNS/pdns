@@ -294,7 +294,7 @@ changes in database schemas as shown in the [upgrade documentation](upgrading.md
 **Warning**: Once the relevant `backend-dnssec` switch has been set, stricter
 rules apply for filling out the database! The short version is: run
 `pdnsutil rectify-all-zones`, even those not secured with DNSSEC! For more
-information, see the [DNSSEC documentation for Generic SQL backends](backend-generic-sql.md#handeling-dnssec-signed-zones).
+information, see the [DNSSEC documentation for Generic SQL backends](backend-generic-sql.md#handling-dnssec-signed-zones).
 
 To deliver a correctly signed zone with the [DNSSEC defaults](#dnssec-defaults),
 invoke:

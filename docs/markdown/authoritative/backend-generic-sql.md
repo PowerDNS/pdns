@@ -104,7 +104,7 @@ serial set to `0` in the database. The serial in SOA responses is set to the
 highest value of the `change_date` field in the "records" table.
 
 
-# Handeling DNSSEC signed zones
+# Handling DNSSEC signed zones
 To enable DNSSEC processing, the `backend-dnssec` option must be set to 'yes'.
 
 ## Rules for filling out DNSSEC fields
