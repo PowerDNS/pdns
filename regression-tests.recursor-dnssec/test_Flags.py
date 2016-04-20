@@ -515,3 +515,168 @@ class TestFlags(RecursorTest):
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
         self.assertNoRRSIGsInAnswer(res)
+
+    ##
+    # +AD -CD -DO
+    ##
+    def testOff_Insecure_AD(self):
+        msg = self.getQueryForInsecure('AD')
+        res = self.sendUDPQuery(msg, 'off')
+
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
+        self.assertNoRRSIGsInAnswer(res)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
+    def testProcess_Insecure_AD(self):
+        msg = self.getQueryForInsecure('AD')
+        res = self.sendUDPQuery(msg, 'process')
+
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
+        self.assertNoRRSIGsInAnswer(res)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
+    def testValidate_Insecure_AD(self):
+        msg = self.getQueryForInsecure('AD')
+        res = self.sendUDPQuery(msg, 'validate')
+
+        self.assertMessageHasFlags(res, ['RD', 'RA', 'QR'])
+        self.assertNoRRSIGsInAnswer(res)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
+    ##
+    # +AD -CD +DO
+    ##
+    def testOff_Insecure_ADDO(self):
+        msg = self.getQueryForInsecure('AD', 'DO')
+        res = self.sendUDPQuery(msg, 'off')
+
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
+        self.assertNoRRSIGsInAnswer(res)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
+    def testProcess_Insecure_ADDO(self):
+        msg = self.getQueryForInsecure('AD', 'DO')
+        res = self.sendUDPQuery(msg, 'process')
+
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'], ['DO'])
+        self.assertNoRRSIGsInAnswer(res)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
+    def testValidate_Insecure_ADDO(self):
+        msg = self.getQueryForInsecure('AD', 'DO')
+        res = self.sendUDPQuery(msg, 'validate')
+
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'], ['DO'])
+        self.assertNoRRSIGsInAnswer(res)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
+    ##
+    # +AD +CD +DO
+    ##
+    def testOff_Insecure_ADDOCD(self):
+        msg = self.getQueryForInsecure('AD CD', 'DO')
+        res = self.sendUDPQuery(msg, 'off')
+
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD', 'CD'])
+        self.assertNoRRSIGsInAnswer(res)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
+    def testProcess_Insecure_ADDOCD(self):
+        msg = self.getQueryForInsecure('AD CD', 'DO')
+        res = self.sendUDPQuery(msg, 'process')
+
+        self.assertMessageHasFlags(res, ['CD', 'QR', 'RA', 'RD'], ['DO'])
+        self.assertNoRRSIGsInAnswer(res)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
+    def testValidate_Insecure_ADDOCD(self):
+        msg = self.getQueryForInsecure('AD CD', 'DO')
+        expected = dns.rrset.from_text('ns1.example.net.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
+        res = self.sendUDPQuery(msg, 'validate')
+
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD', 'CD'], ['DO'])
+        self.assertNoRRSIGsInAnswer(res)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
+    ##
+    # -AD -CD +DO
+    ##
+    def testOff_Insecure_DO(self):
+        msg = self.getQueryForInsecure('', 'DO')
+        res = self.sendUDPQuery(msg, 'off')
+
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
+        self.assertNoRRSIGsInAnswer(res)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
+    def testProcess_Insecure_DO(self):
+        msg = self.getQueryForInsecure('', 'DO')
+        res = self.sendUDPQuery(msg, 'process')
+
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'], ['DO'])
+        self.assertNoRRSIGsInAnswer(res)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
+    def testValidate_Insecure_DO(self):
+        msg = self.getQueryForInsecure('', 'DO')
+        res = self.sendUDPQuery(msg, 'validate')
+
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'], ['DO'])
+        self.assertNoRRSIGsInAnswer(res)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
+    ##
+    # -AD +CD +DO
+    ##
+    @unittest.skip("See #3682")
+    def testOff_Insecure_DOCD(self):
+        msg = self.getQueryForInsecure('CD', 'DO')
+        res = self.sendUDPQuery(msg, 'off')
+
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
+        self.assertNoRRSIGsInAnswer(res)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
+    def testProcess_Insecure_DOCD(self):
+        msg = self.getQueryForInsecure('CD', 'DO')
+        res = self.sendUDPQuery(msg, 'process')
+
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD', 'CD'], ['DO'])
+        self.assertNoRRSIGsInAnswer(res)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
+    def testValidate_Insecure_DOCD(self):
+        msg = self.getQueryForInsecure('CD', 'DO')
+        res = self.sendUDPQuery(msg, 'validate')
+
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD', 'CD'], ['DO'])
+        self.assertNoRRSIGsInAnswer(res)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
+    ##
+    # -AD +CD -DO
+    ##
+    @unittest.skip("See #3682")
+    def testOff_Insecure_CD(self):
+        msg = self.getQueryForInsecure('CD')
+        res = self.sendUDPQuery(msg, 'off')
+
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
+        self.assertNoRRSIGsInAnswer(res)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
+    def testProcess_Insecure_CD(self):
+        msg = self.getQueryForInsecure('CD')
+        res = self.sendUDPQuery(msg, 'process')
+
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD', 'CD'])
+        self.assertNoRRSIGsInAnswer(res)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
+    def testValidate_Insecure_CD(self):
+        msg = self.getQueryForInsecure('CD')
+        res = self.sendUDPQuery(msg, 'validate')
+
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD', 'CD'])
+        self.assertNoRRSIGsInAnswer(res)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)

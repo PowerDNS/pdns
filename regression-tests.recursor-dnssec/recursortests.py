@@ -68,6 +68,9 @@ ns2.example.net.         3600 IN A    {prefix}.11
         """,
         'net': """
 net.                     3600 IN SOA  {soa}
+net.                     3600 IN NS   ns1.example.net.
+net.                     3600 IN NS   ns2.example.net.
+
 example.net.             3600 IN NS   ns1.example.net.
 example.net.             3600 IN NS   ns2.example.net.
 example.net.             3600 IN DS   64723 13 1 c51eab719a495db0097bdc17ad0ed37cf6af992b
