@@ -1,3 +1,25 @@
+# dnsdist 1.0.0
+Released April 21st 2016
+
+Changes since 1.0.0-beta1:
+
+## Improvements
+
+ * [#3700](https://github.com/PowerDNS/pdns/pull/3700) Create user from the RPM package to drop privs
+ * [#3712](https://github.com/PowerDNS/pdns/pull/3712) Make check should run testrunner
+ * [#3713](https://github.com/PowerDNS/pdns/pull/3713) Remove contrib/dnsdist.service (Ruben Kerkhof)
+ * [#3722](https://github.com/PowerDNS/pdns/pull/3722) Use LT_INIT and disable static objects (Ruben Kerkhof)
+ * [#3724](https://github.com/PowerDNS/pdns/pull/3724) Include PDNS_CHECK_OS in configure (Christian Hofstaedtler)
+ * [#3728](https://github.com/PowerDNS/pdns/pull/3728) Document libedit Ctrl-R workaround for CentOS 6
+ * [#3730](https://github.com/PowerDNS/pdns/pull/3730) Make `topBandwidth()` behave like other top* functions
+ * [#3731](https://github.com/PowerDNS/pdns/pull/3731) Clarify a bit the documentation of load-balancing policies
+
+## Bug fixes
+
+ * [#3711](https://github.com/PowerDNS/pdns/pull/3711) Building rpm needs systemd headers (Ruben Kerkhof)
+ * [#3736](https://github.com/PowerDNS/pdns/pull/3736) Add missing Lua binding for NetmaskGroupRule()
+ * [#3739](https://github.com/PowerDNS/pdns/pull/3739) Drop privileges after daemonizing and writing our pid
+
 # dnsdist 1.0.0-beta1
 Released April 14th 2016
 
@@ -32,7 +54,7 @@ Changes since 1.0.0-alpha2:
  * [#3388](https://github.com/PowerDNS/pdns/pull/3388) Lock the Lua context before executing a LuaAction
  * [#3433](https://github.com/PowerDNS/pdns/pull/3433) Check that the answer matches the initial query
  * [#3461](https://github.com/PowerDNS/pdns/pull/3461) Fix crash when calling rmServer() with an invalid index
- * [#355O](https://github.com/PowerDNS/pdns/pull/3550),[#3551](https://github.com/PowerDNS/pdns/pull/3551) Fix build failure on FreeBSD (Ruben Kerkhof)
+ * [#3550](https://github.com/PowerDNS/pdns/pull/3550),[#3551](https://github.com/PowerDNS/pdns/pull/3551) Fix build failure on FreeBSD (Ruben Kerkhof)
  * [#3594](https://github.com/PowerDNS/pdns/pull/3594) Prevent EOF error for empty console response w/o sodium
  * [#3634](https://github.com/PowerDNS/pdns/pull/3634) Prevent dangling TCP fd in case setupTCPDownstream() fails
  * [#3641](https://github.com/PowerDNS/pdns/pull/3641) Under threshold, QPS action should return None, not Allow
