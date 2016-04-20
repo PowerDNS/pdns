@@ -1644,18 +1644,6 @@ try
   }
 #endif
 
-  uid_t newgid=0;
-  gid_t newuid=0;
-
-  if(!g_cmdLine.gid.empty())
-    newgid = strToGID(g_cmdLine.gid.c_str());
-
-  if(!g_cmdLine.uid.empty())
-    newuid = strToUID(g_cmdLine.uid.c_str());
-
-  dropGroupPrivs(newgid);
-  dropUserPrivs(newuid);
-
   if(g_cmdLine.beDaemon) {
     g_console=false;
     daemonize();
@@ -1674,6 +1662,18 @@ try
     }
     infolog("ACL allowing queries from: %s", acls.c_str());
   }
+
+  uid_t newgid=0;
+  gid_t newuid=0;
+
+  if(!g_cmdLine.gid.empty())
+    newgid = strToGID(g_cmdLine.gid.c_str());
+
+  if(!g_cmdLine.uid.empty())
+    newuid = strToUID(g_cmdLine.uid.c_str());
+
+  dropGroupPrivs(newgid);
+  dropUserPrivs(newuid);
 
   /* this need to be done _after_ dropping privileges */
   g_delay = new DelayPipe<DelayedPacket>();
