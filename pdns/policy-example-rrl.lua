@@ -43,9 +43,28 @@ function getwindow ()
 end
 
 function mask (host)
-	-- assumes /24 and ipv4
-	f = host:gmatch('%d+')
-	return f().."."..f().."."..f()
+	isv6 = #host == 16
+	prefixlen = isv6 and conf.v6len or conf.v4len
+	separator = isv6 and ":" or "."
+	format = isv6 and "%02x" or "%d"
+
+	maskedhost = ""
+	for i = 1,#host do
+		maskedhost = #maskedhost > 0 and (not isv6 or (i-1)%2 == 0) and maskedhost..separator or maskedhost
+		if (i-1)*8 < prefixlen then
+			val = string.byte(host, i)
+			if i*8 > prefixlen then
+				val = bit32.band(val, bit32.lshift(0xFF, (8-prefixlen%8)))
+			end
+		else
+			val = 0
+		end
+		maskedhost = maskedhost..string.format(format, val)
+
+	end
+	maskedhost = maskedhost.."/"..prefixlen
+
+	return maskedhost
 end
 
 function submit (slot, token)
@@ -80,6 +99,7 @@ function police (req, resp, isTcp)
 	then
 		qname, qtype = resp:getQuestion()
 		remote = resp:getRemote()
+		remoteraw = resp:getRemoteRaw()
 		wild = resp:getWild()
 		zone = resp:getZone()
 		reqsize = req:getSize()
@@ -102,7 +122,7 @@ function police (req, resp, isTcp)
 		then
 			imputedname = zone or "EMPTY"
 		end
-		token = mask(remote).."/"..imputedname.."/"..tostring(errorstatus)
+		token = mask(remoteraw).."/"..imputedname.."/"..tostring(errorstatus)
 		submit(mywindow[1], token) -- FIXME: only submit when doing PASS/TRUNCATE?
 		qps = count(mywindow, token)
 		print("qps for token "..token.." is "..qps)
