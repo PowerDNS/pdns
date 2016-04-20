@@ -486,3 +486,32 @@ class TestFlags(RecursorTest):
         self.assertMessageHasFlags(res, ['QR', 'RA', 'RD', 'CD'])
         self.assertRRsetInAnswer(res, expected)
         self.assertNoRRSIGsInAnswer(res)
+
+
+    ## Insecure
+    def getQueryForInsecure(self, flags='', ednsflags=''):
+        return self.createQuery('node1.insecure.net.', 'A', flags, ednsflags)
+
+    ##
+    #   -AD -CD -DO
+    ##
+    def testOff_Insecure_None(self):
+        msg = self.getQueryForInsecure()
+        res = self.sendUDPQuery(msg, 'off')
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
+        self.assertNoRRSIGsInAnswer(res)
+
+    def testProcess_Insecure_None(self):
+        msg = self.getQueryForInsecure()
+        res = self.sendUDPQuery(msg, 'process')
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
+        self.assertNoRRSIGsInAnswer(res)
+
+    def testValidate_Insecure_None(self):
+        msg = self.getQueryForInsecure()
+        res = self.sendUDPQuery(msg, 'validate')
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
+        self.assertNoRRSIGsInAnswer(res)
