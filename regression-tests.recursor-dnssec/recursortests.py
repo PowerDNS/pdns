@@ -60,49 +60,52 @@ ns.root.                 3600 IN A   %s.8
 .                        3600 IN SOA  {soa}
 .                        3600 IN NS   ns.root.
 ns.root.                 3600 IN A    {prefix}.8
-net.                     3600 IN NS   ns1.example.net.
-net.                     3600 IN NS   ns2.example.net.
-net.                     3600 IN DS   53174 13 1 f8884460a162a688192fbb2ef414f267e8a77150
-ns1.example.net.         3600 IN A    {prefix}.10
-ns2.example.net.         3600 IN A    {prefix}.11
-        """,
-        'net': """
-net.                     3600 IN SOA  {soa}
-net.                     3600 IN NS   ns1.example.net.
-net.                     3600 IN NS   ns2.example.net.
 
-example.net.             3600 IN NS   ns1.example.net.
-example.net.             3600 IN NS   ns2.example.net.
-example.net.             3600 IN DS   64723 13 1 c51eab719a495db0097bdc17ad0ed37cf6af992b
-ns1.example.net.         3600 IN A    {prefix}.10
-ns2.example.net.         3600 IN A    {prefix}.11
+example.                 3600 IN NS   ns1.example.
+example.                 3600 IN NS   ns2.example.
+example.                 3600 IN DS   53174 13 1 50c9e913818767c236c06c2d8272723cb78cbf26
 
-bogus.net.               3600 IN NS   ns1.bogus.net.
-bogus.net.               3600 IN DS   65034 13 1 6df3bb50ea538e90eacdd7ae5419730783abb0ee
-ns1.bogus.net.           3600 IN A    {prefix}.12
+ns1.example.             3600 IN A    {prefix}.10
+ns2.example.             3600 IN A    {prefix}.11
+        """,
+        'example': """
+example.                 3600 IN SOA  {soa}
+example.                 3600 IN NS   ns1.nic.example.
+example.                 3600 IN NS   ns2.nic.example.
+ns1.example.             3600 IN A    {prefix}.10
+ns2.example.             3600 IN A    {prefix}.11
 
-insecure.net.            3600 IN NS   ns1.insecure.net.
-ns1.insecure.net.        3600 IN A    {prefix}.13
+secure.example.          3600 IN NS   ns.secure.example.
+secure.example.          3600 IN DS   64723 13 1 53eb985040d3a89bacf29dbddb55a65834706f33
+ns.secure.example.       3600 IN A    {prefix}.9
+
+bogus.example.           3600 IN NS   ns.bogus.example.
+bogus.example.           3600 IN DS   65034 13 1 6df3bb50ea538e90eacdd7ae5419730783abb0ee
+ns.bogus.example.        3600 IN A    {prefix}.12
+
+insecure.example.        3600 IN NS   ns.insecure.example.
+ns.insecure.example.     3600 IN A    {prefix}.13
         """,
-        'example.net': """
-example.net.             3600 IN SOA  {soa}
-example.net.             3600 IN NS   ns1.example.net.
-example.net.             3600 IN NS   ns2.example.net.
-ns1.example.net.         3600 IN A    {prefix}.10
-ns2.example.net.         3600 IN A    {prefix}.11
+        'secure.example': """
+secure.example.          3600 IN SOA  {soa}
+secure.example.          3600 IN NS   ns.secure.example.
+ns.secure.example.       3600 IN A    {prefix}.9
+
+host1.secure.example.    3600 IN A    192.0.2.2
         """,
-        'bogus.net': """
-bogus.net.               3600 IN SOA  {soa}
-bogus.net.               3600 IN NS   ns1.bogus.net.
-ns1.bogus.net.           3600 IN A    {prefix}.12
-ted.bogus.net.           3600 IN A    192.0.2.1
-bill.bogus.net.          3600 IN AAAA 2001:db8:12::3
+        'bogus.example': """
+bogus.example.           3600 IN SOA  {soa}
+bogus.example.           3600 IN NS   ns1.bogus.example.
+ns1.bogus.example.       3600 IN A    {prefix}.12
+ted.bogus.example.       3600 IN A    192.0.2.1
+bill.bogus.example.      3600 IN AAAA 2001:db8:12::3
         """,
-        'insecure.net': """
-insecure.net.            3600 IN SOA  {soa}
-insecure.net.            3600 IN NS   ns1.insecure.net.
-ns1.insecure.net.        3600 IN A    {prefix}.13
-node1.insecure.net.      3600 IN A    192.0.2.6
+        'insecure.example': """
+insecure.example.        3600 IN SOA  {soa}
+insecure.example.        3600 IN NS   ns1.insecure.example.
+ns1.insecure.example.    3600 IN A    {prefix}.13
+
+node1.insecure.example.  3600 IN A    192.0.2.6
         """
     }
 
@@ -115,19 +118,19 @@ Algorithm: 13 (ECDSAP256SHA256)
 PrivateKey: rhWuEydDz3QaIspSVj683B8Xq5q/ozzA38XUgzD4Fbo=
         """,
 
-        'net': """
+        'example': """
 Private-key-format: v1.2
 Algorithm: 13 (ECDSAP256SHA256)
 PrivateKey: Lt0v0Gol3pRUFM7fDdcy0IWN0O/MnEmVPA+VylL8Y4U=
         """,
 
-        'example.net': """
+        'secure.example': """
 Private-key-format: v1.2
 Algorithm: 13 (ECDSAP256SHA256)
 PrivateKey: 1G4WRoOFJJXk+fotDCHVORtJmIG2OUhKi8AO2jDPGZA=
         """,
 
-        'bogus.net': """
+        'bogus.example': """
 Private-key-format: v1.2
 Algorithm: 13 (ECDSAP256SHA256)
 PrivateKey: f5jV7Q8kd5hDpMWObsuQ6SQda0ftf+JrO3uZwEg6nVw=
@@ -139,10 +142,11 @@ PrivateKey: f5jV7Q8kd5hDpMWObsuQ6SQda0ftf+JrO3uZwEg6nVw=
     # go into the _zones's zonecontent
     _auth_zones = {
         '8': ['ROOT'],
-        '10': ['example.net', 'net'],
-        '11': ['example.net', 'net'],
-        '12': ['bogus.net'],
-        '13': ['insecure.net']
+        '9': ['secure.example'],
+        '10': ['example'],
+        '11': ['example'],
+        '12': ['bogus.example'],
+        '13': ['insecure.example']
     }
 
     _auths = {}

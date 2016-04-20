@@ -82,7 +82,7 @@ class TestFlags(RecursorTest):
         return msg
 
     def getQueryForSecure(self, flags='', ednsflags=''):
-        return self.createQuery('ns1.example.net.', 'A', flags, ednsflags)
+        return self.createQuery('ns1.example.', 'A', flags, ednsflags)
 
     ##
     #   -AD -CD -DO
@@ -149,7 +149,7 @@ class TestFlags(RecursorTest):
     @unittest.skip("See #3682")
     def testProcess_Secure_ADDO(self):
         msg = self.getQueryForSecure('AD', 'DO')
-        expected = dns.rrset.from_text('ns1.example.net.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
+        expected = dns.rrset.from_text('ns1.example.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
         res = self.sendUDPQuery(msg, 'process')
 
         self.assertMessageIsAuthenticated(res)
@@ -158,7 +158,7 @@ class TestFlags(RecursorTest):
 
     def testValidate_Secure_ADDO(self):
         msg = self.getQueryForSecure('AD', 'DO')
-        expected = dns.rrset.from_text('ns1.example.net.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
+        expected = dns.rrset.from_text('ns1.example.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
         res = self.sendUDPQuery(msg, 'validate')
 
         self.assertMessageIsAuthenticated(res)
@@ -176,7 +176,7 @@ class TestFlags(RecursorTest):
 
     def testProcess_Secure_ADDOCD(self):
         msg = self.getQueryForSecure('AD CD', 'DO')
-        expected = dns.rrset.from_text('ns1.example.net.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
+        expected = dns.rrset.from_text('ns1.example.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
         res = self.sendUDPQuery(msg, 'process')
 
         self.assertMessageIsAuthenticated(res)
@@ -185,7 +185,7 @@ class TestFlags(RecursorTest):
 
     def testValidate_Secure_ADDOCD(self):
         msg = self.getQueryForSecure('AD CD', 'DO')
-        expected = dns.rrset.from_text('ns1.example.net.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
+        expected = dns.rrset.from_text('ns1.example.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
         res = self.sendUDPQuery(msg, 'validate')
 
         self.assertMessageIsAuthenticated(res)
@@ -205,7 +205,7 @@ class TestFlags(RecursorTest):
     @unittest.skip("See #3682")
     def testProcess_Secure_DO(self):
         msg = self.getQueryForSecure('', 'DO')
-        expected = dns.rrset.from_text('ns1.example.net.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
+        expected = dns.rrset.from_text('ns1.example.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
         res = self.sendUDPQuery(msg, 'process')
 
         self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'], ['DO'])
@@ -214,7 +214,7 @@ class TestFlags(RecursorTest):
     @unittest.skip("See #3682")
     def testValidate_Secure_DO(self):
         msg = self.getQueryForSecure('', 'DO')
-        expected = dns.rrset.from_text('ns1.example.net.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
+        expected = dns.rrset.from_text('ns1.example.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
         res = self.sendUDPQuery(msg, 'validate')
 
         self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'], ['DO'])
@@ -234,7 +234,7 @@ class TestFlags(RecursorTest):
     @unittest.skip("See #3682")
     def testProcess_Secure_DOCD(self):
         msg = self.getQueryForSecure('CD', 'DO')
-        expected = dns.rrset.from_text('ns1.example.net.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
+        expected = dns.rrset.from_text('ns1.example.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
         res = self.sendUDPQuery(msg, 'process')
 
         self.assertMessageHasFlags(res, ['QR', 'RA', 'RD', 'CD'], ['DO'])
@@ -243,7 +243,7 @@ class TestFlags(RecursorTest):
     @unittest.skip("See #3682")
     def testValidate_Secure_DOCD(self):
         msg = self.getQueryForSecure('CD', 'DO')
-        expected = dns.rrset.from_text('ns1.example.net.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
+        expected = dns.rrset.from_text('ns1.example.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
         res = self.sendUDPQuery(msg, 'validate')
 
         self.assertMessageHasFlags(res, ['QR', 'RA', 'RD', 'CD'], ['DO'])
@@ -255,7 +255,7 @@ class TestFlags(RecursorTest):
     @unittest.skip("See #3682")
     def testOff_Secure_CD(self):
         msg = self.getQueryForSecure('CD')
-        expected = dns.rrset.from_text('ns1.example.net.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
+        expected = dns.rrset.from_text('ns1.example.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
         res = self.sendUDPQuery(msg, 'off')
 
         self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
@@ -265,7 +265,7 @@ class TestFlags(RecursorTest):
     @unittest.skip("See #3682")
     def testProcess_Secure_CD(self):
         msg = self.getQueryForSecure('CD')
-        expected = dns.rrset.from_text('ns1.example.net.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
+        expected = dns.rrset.from_text('ns1.example.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
         res = self.sendUDPQuery(msg, 'process')
 
         self.assertMessageHasFlags(res, ['QR', 'RA', 'RD', 'CD'])
@@ -275,7 +275,7 @@ class TestFlags(RecursorTest):
     @unittest.skip("See #3682")
     def testValidate_Secure_CD(self):
         msg = self.getQueryForSecure('CD')
-        expected = dns.rrset.from_text('ns1.example.net.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
+        expected = dns.rrset.from_text('ns1.example.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
         res = self.sendUDPQuery(msg, 'validate')
 
         self.assertMessageHasFlags(res, ['QR', 'RA', 'RD', 'CD'])
@@ -285,7 +285,7 @@ class TestFlags(RecursorTest):
 
     ### Bogus
     def getQueryForBogus(self, flags='', ednsflags=''):
-        return self.createQuery('ted.bogus.net.', 'A', flags, ednsflags)
+        return self.createQuery('ted.bogus.example.', 'A', flags, ednsflags)
 
     ##
     #   -AD -CD -DO
@@ -312,14 +312,11 @@ class TestFlags(RecursorTest):
     ##
     # +AD -CD -DO
     ##
-    @unittest.skip("See #3682")
     def testOff_Bogus_AD(self):
         msg = self.getQueryForBogus('AD')
         res = self.sendUDPQuery(msg, 'off')
         self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
-        # These asserts trigger because of #3682
-        self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
-        self.assertAnswerEmpty(res)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
 
     @unittest.skip("See #3682")
     def testProcess_Bogus_AD(self):
@@ -376,7 +373,7 @@ class TestFlags(RecursorTest):
 
     def testProcess_Bogus_ADDOCD(self):
         msg = self.getQueryForBogus('AD CD', 'DO')
-        expected = dns.rrset.from_text('ted.bogus.net.', 0, dns.rdataclass.IN, 'A', '192.0.2.1')
+        expected = dns.rrset.from_text('ted.bogus.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.1')
         res = self.sendUDPQuery(msg, 'process')
 
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -385,7 +382,7 @@ class TestFlags(RecursorTest):
 
     def testValidate_Bogus_ADDOCD(self):
         msg = self.getQueryForBogus('AD CD', 'DO')
-        expected = dns.rrset.from_text('ted.bogus.net.', 0, dns.rdataclass.IN, 'A', '192.0.2.1')
+        expected = dns.rrset.from_text('ted.bogus.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.1')
         res = self.sendUDPQuery(msg, 'validate')
 
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -406,7 +403,7 @@ class TestFlags(RecursorTest):
     @unittest.skip("See #3682")
     def testProcess_Bogus_DO(self):
         msg = self.getQueryForBogus('', 'DO')
-        expected = dns.rrset.from_text('ted.bogus.net.', 0, dns.rdataclass.IN, 'A', '192.0.2.1')
+        expected = dns.rrset.from_text('ted.bogus.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.1')
         res = self.sendUDPQuery(msg, 'process')
 
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -435,7 +432,7 @@ class TestFlags(RecursorTest):
 
     def testProcess_Bogus_DOCD(self):
         msg = self.getQueryForBogus('CD', 'DO')
-        expected = dns.rrset.from_text('ted.bogus.net.', 0, dns.rdataclass.IN, 'A', '192.0.2.1')
+        expected = dns.rrset.from_text('ted.bogus.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.1')
         res = self.sendUDPQuery(msg, 'process')
 
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -444,7 +441,7 @@ class TestFlags(RecursorTest):
 
     def testValidate_Bogus_DOCD(self):
         msg = self.getQueryForBogus('CD', 'DO')
-        expected = dns.rrset.from_text('ted.bogus.net.', 0, dns.rdataclass.IN, 'A', '192.0.2.1')
+        expected = dns.rrset.from_text('ted.bogus.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.1')
         res = self.sendUDPQuery(msg, 'validate')
 
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -457,7 +454,7 @@ class TestFlags(RecursorTest):
     @unittest.skip("See #3682")
     def testOff_Bogus_CD(self):
         msg = self.getQueryForBogus('CD')
-        expected = dns.rrset.from_text('ted.bogus.net.', 0, dns.rdataclass.IN, 'A', '192.0.2.1')
+        expected = dns.rrset.from_text('ted.bogus.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.1')
         res = self.sendUDPQuery(msg, 'off')
 
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -468,7 +465,7 @@ class TestFlags(RecursorTest):
     @unittest.skip("See #3682")
     def testProcess_Bogus_CD(self):
         msg = self.getQueryForBogus('CD')
-        expected = dns.rrset.from_text('ted.bogus.net.', 0, dns.rdataclass.IN, 'A', '192.0.2.1')
+        expected = dns.rrset.from_text('ted.bogus.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.1')
         res = self.sendUDPQuery(msg, 'process')
 
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -479,7 +476,7 @@ class TestFlags(RecursorTest):
     @unittest.skip("See #3682")
     def testValidate_Bogus_CD(self):
         msg = self.getQueryForBogus('CD')
-        expected = dns.rrset.from_text('ted.bogus.net.', 0, dns.rdataclass.IN, 'A', '192.0.2.1')
+        expected = dns.rrset.from_text('ted.bogus.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.1')
         res = self.sendUDPQuery(msg, 'validate')
 
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -490,7 +487,7 @@ class TestFlags(RecursorTest):
 
     ## Insecure
     def getQueryForInsecure(self, flags='', ednsflags=''):
-        return self.createQuery('node1.insecure.net.', 'A', flags, ednsflags)
+        return self.createQuery('node1.insecure.example.', 'A', flags, ednsflags)
 
     ##
     #   -AD -CD -DO
@@ -591,7 +588,7 @@ class TestFlags(RecursorTest):
 
     def testValidate_Insecure_ADDOCD(self):
         msg = self.getQueryForInsecure('AD CD', 'DO')
-        expected = dns.rrset.from_text('ns1.example.net.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
+        expected = dns.rrset.from_text('ns1.example.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
         res = self.sendUDPQuery(msg, 'validate')
 
         self.assertMessageHasFlags(res, ['QR', 'RA', 'RD', 'CD'], ['DO'])
