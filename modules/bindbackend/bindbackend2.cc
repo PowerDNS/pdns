@@ -940,7 +940,8 @@ bool Bind2Backend::findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const DNSName&
         break;
       }
     }
-    after = (iter)->qname.labelReverse().toString(" ",false);
+    if(iter != records->end())
+      after = (iter)->qname.labelReverse().toString(" ",false);
   }
 
   // cerr<<"Before: '"<<before<<"', after: '"<<after<<"'\n";
