@@ -1,5 +1,5 @@
 <center>
-![PowerDNS Logo](http://www.powerdns.com/img/powerdns-logo-500px.png)
+![PowerDNS Logo](img/powerdns-logo-500px.png)
 <br/>
 
 # dnsdist
