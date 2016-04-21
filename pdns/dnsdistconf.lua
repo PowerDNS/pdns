@@ -182,7 +182,7 @@ end
 -- addAction(QClassRule(3), DropAction())
 
 -- return 'refused' for domains matching the regex evil[0-9]{4,}.powerdns.com$
--- addAction(RegexRule("evil[0-9]{4,}\\\\.powerdns\\\\.com$"), RCodeAction(5))
+-- addAction(RegexRule("evil[0-9]{4,}\\.powerdns\\.com$"), RCodeAction(5))
 
 -- spoof responses for A, AAAA and ANY for spoof.powerdns.com.
 -- A queries will get 192.0.2.1, AAAA 2001:DB8::1 and ANY both
