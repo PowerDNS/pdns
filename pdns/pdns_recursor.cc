@@ -925,48 +925,48 @@ void startDoResolve(void *p)
     else {
       pw.getHeader()->rcode=res;
 
-      // FIXME: haveEDNS is not the way to handle initiation of validation, we
-      // should look for the AD bit in the header, see #3682
-      if(haveEDNS || g_dnssecmode == DNSSECMode::ValidateAll || g_dnssecmode==DNSSECMode::ValidateForLog) {
-	if(g_dnssecmode != DNSSECMode::Off && ((edo.d_Z & EDNSOpts::DNSSECOK) || g_dnssecmode == DNSSECMode::ValidateAll || g_dnssecmode==DNSSECMode::ValidateForLog)) {
+      // Does the validation mode or query demand validation?
+      if(g_dnssecmode == DNSSECMode::ValidateAll || g_dnssecmode==DNSSECMode::ValidateForLog || (dc->d_mdp.d_header.ad && g_dnssecmode==DNSSECMode::Process)) {
+        if(sr.doLog()) {
+          L<<Logger::Warning<<"Starting validation of answer to "<<dc->d_mdp.d_qname<<" for "<<dc->d_remote.toStringWithPort()<<endl;
+        }
+
+        auto state=validateRecords(ret);
+        if(state == Secure) {
           if(sr.doLog()) {
-            L<<Logger::Warning<<"Starting validation of answer to "<<dc->d_mdp.d_qname<<" for "<<dc->d_remote.toStringWithPort()<<endl;
+            L<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<" for "<<dc->d_remote.toStringWithPort()<<" validates correctly"<<endl;
           }
-	  auto state=validateRecords(ret);
-	  if(state == Secure) {
+
+          // Is the query source interested in the value of the ad-bit?
+          if (dc->d_mdp.d_header.ad)
+            pw.getHeader()->ad=1;
+        }
+        else if(state == Insecure) {
+          if(sr.doLog()) {
+            L<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<" for "<<dc->d_remote.toStringWithPort()<<" validates as Insecure"<<endl;
+          }
+
+          pw.getHeader()->ad=0;
+        }
+        else if(state == Bogus) {
+          if(sr.doLog()) {
+            L<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<" for "<<dc->d_remote.toStringWithPort()<<" validates as Bogus"<<endl;
+          }
+
+          // Does the query or validation mode sending out a SERVFAIL on validation errors?
+          if(!pw.getHeader()->cd && (g_dnssecmode == DNSSECMode::ValidateAll || (dc->d_mdp.d_header.ad && g_dnssecmode != DNSSECMode::Off))) {
             if(sr.doLog()) {
-              L<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<" for "<<dc->d_remote.toStringWithPort()<<" validates correctly"<<endl;
-            }
-          
-	    pw.getHeader()->ad=1;
-	  }
-	  else if(state == Insecure) {
-            if(sr.doLog()) {
-              L<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<" for "<<dc->d_remote.toStringWithPort()<<" validates as Insecure"<<endl;
+              L<<Logger::Warning<<"Sending out SERVFAIL for "<<dc->d_mdp.d_qname<<" because recursor or query demands it for Bogus results"<<endl;
             }
 
-	    pw.getHeader()->ad=0;
-	  }
-	  else if(state == Bogus ) {
+            pw.getHeader()->rcode=RCode::ServFail;
+            goto sendit;
+          } else {
             if(sr.doLog()) {
-              L<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<" for "<<dc->d_remote.toStringWithPort()<<" validates as Bogus"<<endl;
+              L<<Logger::Warning<<"Not sending out SERVFAIL for "<<dc->d_mdp.d_qname<<" Bogus validation since neither config nor query demands this"<<endl;
             }
-            
-            if(!pw.getHeader()->cd && (g_dnssecmode == DNSSECMode::ValidateAll || (edo.d_Z & EDNSOpts::DNSSECOK))) {
-              if(sr.doLog()) {
-                L<<Logger::Warning<<"Sending out SERVFAIL for "<<dc->d_mdp.d_qname<<" because recursor or query demands it for Bogus results"<<endl;
-              }
-
-              pw.getHeader()->rcode=RCode::ServFail;
-              goto sendit;
-            } else {
-              if(sr.doLog()) {
-                L<<Logger::Warning<<"Not sending out SERVFAIL for "<<dc->d_mdp.d_qname<<" Bogus validation since neither config nor query demands this"<<endl;
-              }
-
-            }
-	  }
-	}
+          }
+        }
       }
 
 
