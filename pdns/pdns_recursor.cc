@@ -736,12 +736,17 @@ void startDoResolve(void *p)
       sr.d_requestor=dc->d_remote;
     }
 
-    if(g_dnssecmode != DNSSECMode::Off)
+    if(g_dnssecmode != DNSSECMode::Off) {
       sr.d_doDNSSEC=true;
-    
-    if(pw.getHeader()->cd || (edo.d_Z & EDNSOpts::DNSSECOK)) {
-      DNSSECOK=true;
-      g_stats.dnssecQueries++;
+
+      // Does the requestor want DNSSEC records?
+      if(edo.d_Z & EDNSOpts::DNSSECOK) {
+        DNSSECOK=true;
+        g_stats.dnssecQueries++;
+      }
+    } else {
+      // Ignore the client-set CD flag
+      pw.getHeader()->cd=0;
     }
 
     bool tracedQuery=false; // we could consider letting Lua know about this too
