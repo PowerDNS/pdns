@@ -137,6 +137,9 @@ latlon2ul(const char **latlonstrptr, int *which)
     break;
   }
 
+  if (!*cp)
+    return 0;
+
   cp++;                   /* skip the hemisphere */
   
   while (*cp && !isspace(*cp))   /* if any trailing garbage */
