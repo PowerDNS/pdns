@@ -62,7 +62,40 @@ static void handleCORS(YaHTTP::Request& req, YaHTTP::Response& resp)
   }
 }
 
-static void connectionThread(int sock, ComboAddress remote, string password, string apiKey)
+static void addSecurityHeaders(YaHTTP::Response& resp, const boost::optional<std::map<std::string, std::string> >& customHeaders)
+{
+  static const std::vector<std::pair<std::string, std::string> > headers = {
+    { "X-Content-Type-Options", "nosniff" },
+    { "X-Frame-Options", "deny" },
+    { "X-Permitted-Cross-Domain-Policies", "none" },
+    { "X-XSS-Protection", "1; mode=block" },
+    { "Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'" },
+  };
+
+  for (const auto& h : headers) {
+    if (customHeaders) {
+      const auto& custom = customHeaders->find(h.first);
+      if (custom != customHeaders->end()) {
+        continue;
+      }
+    }
+    resp.headers[h.first] = h.second;
+  }
+}
+
+static void addCustomHeaders(YaHTTP::Response& resp, const boost::optional<std::map<std::string, std::string> >& customHeaders)
+{
+  if (!customHeaders)
+    return;
+
+  for (const auto& c : *customHeaders) {
+    if (!c.second.empty()) {
+      resp.headers[c.first] = c.second;
+    }
+  }
+}
+
+static void connectionThread(int sock, ComboAddress remote, string password, string apiKey, const boost::optional<std::map<std::string, std::string> >& customHeaders)
 {
   using namespace json11;
   vinfolog("Webserver handling connection from %s", remote.toStringWithPort());
@@ -89,11 +122,10 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
 
     YaHTTP::Response resp(req);
     const string charset = "; charset=utf-8";
-    resp.headers["X-Content-Type-Options"] = "nosniff";
-    resp.headers["X-Frame-Options"] = "deny";
-    resp.headers["X-Permitted-Cross-Domain-Policies"] = "none";
-    resp.headers["X-XSS-Protection"] = "1; mode=block";
-    resp.headers["Content-Security-Policy"] = "default-src 'self'; style-src 'self' 'unsafe-inline'";
+
+    addCustomHeaders(resp, customHeaders);
+    addSecurityHeaders(resp, customHeaders);
+
     /* no need to send back the API key if any */
     resp.headers.erase("X-API-Key");
 
@@ -372,7 +404,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
 	fclose(fp);
     }
 }
-void dnsdistWebserverThread(int sock, const ComboAddress& local, const std::string& password, const std::string& apiKey)
+void dnsdistWebserverThread(int sock, const ComboAddress& local, const std::string& password, const std::string& apiKey, const boost::optional<std::map<std::string, std::string> >& customHeaders)
 {
   warnlog("Webserver launched on %s", local.toStringWithPort());
   for(;;) {
@@ -380,7 +412,7 @@ void dnsdistWebserverThread(int sock, const ComboAddress& local, const std::stri
       ComboAddress remote(local);
       int fd = SAccept(sock, remote);
       vinfolog("Got connection from %s", remote.toStringWithPort());
-      std::thread t(connectionThread, fd, remote, password, apiKey);
+      std::thread t(connectionThread, fd, remote, password, apiKey, customHeaders);
       t.detach();
     }
     catch(std::exception& e) {

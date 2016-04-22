@@ -1006,7 +1006,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			g_carbon.setState(ours);
 		      });
 
-  g_lua.writeFunction("webserver", [client](const std::string& address, const std::string& password, const boost::optional<std::string> apiKey) {
+  g_lua.writeFunction("webserver", [client](const std::string& address, const std::string& password, const boost::optional<std::string> apiKey, const boost::optional<std::map<std::string, std::string> > customHeaders) {
       setLuaSideEffect();
       if(client)
 	return;
@@ -1016,8 +1016,8 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 	SSetsockopt(sock, SOL_SOCKET, SO_REUSEADDR, 1);
 	SBind(sock, local);
 	SListen(sock, 5);
-	auto launch=[sock, local, password, apiKey]() {
-	  thread t(dnsdistWebserverThread, sock, local, password, apiKey ? *apiKey : "");
+	auto launch=[sock, local, password, apiKey, customHeaders]() {
+	  thread t(dnsdistWebserverThread, sock, local, password, apiKey ? *apiKey : "", customHeaders);
 	  t.detach();
 	};
 	if(g_launchWork) 
