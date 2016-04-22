@@ -172,7 +172,7 @@ class TestFlags(RecursorTest):
         msg = self.getQueryForSecure('AD CD', 'DO')
         res = self.sendUDPQuery(msg, 'off')
 
-        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD', 'CD'])
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
 
     def testProcess_Secure_ADDOCD(self):
         msg = self.getQueryForSecure('AD CD', 'DO')
@@ -368,7 +368,7 @@ class TestFlags(RecursorTest):
         msg = self.getQueryForBogus('AD CD', 'DO')
         res = self.sendUDPQuery(msg, 'off')
 
-        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD', 'CD'])
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
 
     def testProcess_Bogus_ADDOCD(self):
@@ -574,7 +574,7 @@ class TestFlags(RecursorTest):
         msg = self.getQueryForInsecure('AD CD', 'DO')
         res = self.sendUDPQuery(msg, 'off')
 
-        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD', 'CD'])
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
         self.assertNoRRSIGsInAnswer(res)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
 
