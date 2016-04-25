@@ -50,7 +50,8 @@ EXTRA_DIST = \
 	bindparser.h \
 	named.conf.parsertest \
 	pdns.conf-dist \
-	delaypipe.hh delaypipe.cc
+	delaypipe.hh delaypipe.cc \
+	pdns.service.in
 
 BUILT_SOURCES = \
 	bind-dnssec.schema.sqlite3.sql.h \
@@ -1178,3 +1179,13 @@ pdns_recursor rec_control:
 dnsdist:
 	@echo "Please build dnsdist from the dnsdistdist/ dir"
 	@exit 1
+
+if HAVE_SYSTEMD
+pdns.service: pdns.service.in
+	$(AM_V_GEN)sed -e 's![@]sbindir[@]!$(sbindir)!' < $< > $@
+
+systemdsystemunitdir = $(SYSTEMD_DIR)
+
+systemdsystemunit_DATA = \
+	pdns.service
+endif

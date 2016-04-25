@@ -12,7 +12,6 @@ EXTRA_DIST = \
 	build-aux/gen-version \
 	codedocs/doxygen.conf \
 	contrib/powerdns.solaris.init.d \
-	contrib/systemd-pdns.service \
 	pdns/named.conf.parsertest \
 	regression-tests/zones/unit.test
 

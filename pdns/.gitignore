@@ -57,4 +57,4 @@ version_generated.h
 effective_tld_names.dat
 /dnsmessage.pb.cc
 /dnsmessage.pb.h
-
+/pdns.service
