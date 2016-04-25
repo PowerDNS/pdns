@@ -4,7 +4,8 @@ AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/json11 \
 	$(YAHTTP_CFLAGS) \
 	$(LIBEDIT_CFLAGS) \
-	$(OPENSSL_INCLUDES)
+	$(OPENSSL_INCLUDES) \
+	$(SYSTEMD_CFLAGS)
 
 AM_CXXFLAGS = \
 	-DSYSCONFDIR=\"$(sysconfdir)\" \
@@ -210,7 +211,8 @@ pdns_server_LDADD = \
 	$(LIBDL) \
 	$(YAHTTP_LIBS) \
 	$(JSON11_LIBS) \
-	$(OPENSSL_LIBS)
+	$(OPENSSL_LIBS) \
+	$(SYSTEMD_LIBS)
 
 if BOTAN110
 pdns_server_SOURCES += botan110signers.cc
