@@ -425,9 +425,9 @@ private:
   void worker();
 
   int d_fd;
-  mutable unsigned long d_senderrors{0};
+  mutable std::atomic<unsigned long> d_senderrors{0};
   unsigned long d_recverrors{0};
-  mutable unsigned long d_queries{0};
+  mutable std::atomic<unsigned long> d_queries{0};
   unsigned long d_responses{0};
   unsigned long d_nxdomains{0};
   unsigned long d_servfails{0};

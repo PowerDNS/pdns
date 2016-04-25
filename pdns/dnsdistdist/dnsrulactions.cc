@@ -66,7 +66,7 @@ void TeeAction::worker()
     if(res==0)
       continue;
     res=recv(d_fd, packet, sizeof(packet), 0);
-    if(res <= 0) 
+    if(res <= (int)sizeof(struct dnsheader)) 
       d_recverrors++;
     else if(res > 0)
       d_responses++;
