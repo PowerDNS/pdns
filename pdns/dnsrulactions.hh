@@ -411,6 +411,28 @@ private:
 };
 
 
+class TeeAction : public DNSAction
+{
+public:
+  TeeAction(const ComboAddress& ca);
+  ~TeeAction();
+  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override;
+  string toString() const override;
+  std::unordered_map<string, double> getStats() const override;
+private:
+  ComboAddress d_remote;
+  std::thread d_worker;
+  void worker();
+
+  int d_fd;
+  unsigned long d_errors{0};
+  mutable unsigned long d_queries{0};
+  unsigned long d_responses{0};
+  std::atomic<bool> d_pleaseQuit{false};
+};
+
+
+
 class PoolAction : public DNSAction
 {
 public:

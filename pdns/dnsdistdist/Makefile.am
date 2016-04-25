@@ -75,7 +75,7 @@ dnsdist_SOURCES = \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.hh dnsparser.cc \
-	dnsrulactions.hh \
+	dnsrulactions.cc dnsrulactions.hh \
 	dnswriter.cc dnswriter.hh \
 	dolog.hh \
 	ednsoptions.cc ednsoptions.hh \
