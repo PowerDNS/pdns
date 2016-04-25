@@ -54,7 +54,8 @@ EXTRA_DIST = \
 	portsmplexer.cc \
 	rec_control.1.md \
 	rrd/* \
-	html incfiles
+	html incfiles \
+	pdns-recursor.service.in
 
 sbin_PROGRAMS = pdns_recursor
 bin_PROGRAMS = rec_control
@@ -232,4 +233,14 @@ $(MANPAGES):
 	echo "You need pandoc to generate the manpages"
 	exit 1
 endif
+endif
+
+if HAVE_SYSTEMD
+pdns-recursor.service: pdns-recursor.service.in
+	$(AM_V_GEN)sed -e 's![@]sbindir[@]!$(sbindir)!' < $< > $@
+
+systemdsystemunitdir = $(SYSTEMD_DIR)
+
+systemdsystemunit_DATA = \
+	pdns-recursor.service
 endif
