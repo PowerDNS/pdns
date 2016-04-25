@@ -447,6 +447,29 @@ clients to fall back to TCP/IP.
 
 To turn this per IP or range limit into a global limit, use NotRule(MaxQPSRule(5000)) instead of MaxQPSIPRule.
 
+TeeAction
+---------
+This action sends off a copy of a UDP query to another server, and keeps statistics
+on the responses received. Sample use:
+
+```
+> addAction(AllRule(), TeeAction("192.168.1.54"))
+> getAction(0):printStats()
+refuseds	0
+nxdomains	0
+noerrors	0
+servfails	0
+recv-errors	0
+tcp-drops	0
+responses	0
+other-rcode	0
+send-errors	0
+queries	0
+```
+
+It is also possible to share a TeeAction between several rules. Statistics
+will be combined in that case.
+
 Lua actions in rules
 --------------------
 While we can pass every packet through the `blockFilter()` functions, it is also
@@ -1037,6 +1060,7 @@ instantiate a server with additional parameters
     * `SuffixMatchNodeRule()`: matches based on a group of domain suffixes for rapid testing of membership
     * `TCPRule(tcp)`: matches question received over TCP if `tcp` is true, over UDP otherwise
  * Rule management related:
+    * `getAction(num)`: returns the Action associate with rule 'num'.
     * `showRules()`: show all defined rules (Pool, Block, QPS, addAnyTCRule)
     * `rmRule(n)`: remove rule n
     * `mvRule(from, to)`: move rule 'from' to a position where it is in front of 'to'. 'to' can be one larger than the largest rule,
@@ -1059,6 +1083,7 @@ instantiate a server with additional parameters
     * `SpoofAction(ip[, ip])` or `SpoofAction({ip, ip, ..}): forge a response with the specified IPv4 (for an A query) or IPv6 (for an AAAA). If you specify multiple addresses, all that match the query type (A, AAAA or ANY) will get spoofed in
     * `SpoofCNAMEAction(cname)`: forge a response with the specified CNAME value
     * `TCAction()`: create answer to query with TC and RD bits set, to move to TCP/IP
+    * `TeeAction(remote)`: send copy of query to remote, keep stats on responses
  * Specialist rule generators
     * `addAnyTCRule()`: generate TC=1 answers to ANY queries received over UDP, moving them to TCP
     * `addDomainSpoof(domain, ip[, ip6])` or `addDomainSpoof(domain, {IP, IP, IP..})`: generate answers for A/AAAA/ANY queries using the ip parameters
