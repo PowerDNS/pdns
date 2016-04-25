@@ -266,13 +266,15 @@ bool Resolver::tryGetSOASerial(DNSName *domain, uint32_t *theirSerial, uint32_t 
   bool gotSOA=false;
   for(const MOADNSParser::answers_t::value_type& drc :  mdp.d_answers) {
     if(drc.first.d_type == QType::SOA) {
-      shared_ptr<SOARecordContent> src=std::dynamic_pointer_cast<SOARecordContent>(drc.first.d_content);
-      *theirSerial=src->d_st.serial;
-      gotSOA = true;
+      shared_ptr<SOARecordContent> src=getRR<SOARecordContent>(drc.first);
+      if (src) {
+        *theirSerial=src->d_st.serial;
+        gotSOA = true;
+      }
     }
     if(drc.first.d_type == QType::RRSIG) {
-      shared_ptr<RRSIGRecordContent> rrc=std::dynamic_pointer_cast<RRSIGRecordContent>(drc.first.d_content);
-      if(rrc->d_type == QType::SOA) {
+      shared_ptr<RRSIGRecordContent> rrc=getRR<RRSIGRecordContent>(drc.first);
+      if(rrc && rrc->d_type == QType::SOA) {
         *theirInception= std::max(*theirInception, rrc->d_siginception);
         *theirExpire = std::max(*theirExpire, rrc->d_sigexpire);
       }
@@ -480,10 +482,12 @@ int AXFRRetriever::getChunk(Resolver::res_t &res, vector<DNSRecord>* records) //
         checkTSIG = true;
       
       if(answer.first.d_type == QType::TSIG) {
-        shared_ptr<TSIGRecordContent> trc = std::dynamic_pointer_cast<TSIGRecordContent>(answer.first.d_content);
-        theirMac = trc->d_mac;
-        d_trc.d_time = trc->d_time;
-        checkTSIG = true;
+        shared_ptr<TSIGRecordContent> trc = getRR<TSIGRecordContent>(answer.first);
+        if(trc) {
+          theirMac = trc->d_mac;
+          d_trc.d_time = trc->d_time;
+          checkTSIG = true;
+        }
       }
     }
 

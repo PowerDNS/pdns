@@ -319,7 +319,7 @@ void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, const std::
 
     sleep(refresh);
     
-    L<<Logger::Info<<"Getting IXFR deltas for "<<zone<<" from "<<master.toStringWithPort()<<", our serial: "<<std::dynamic_pointer_cast<SOARecordContent>(dr.d_content)->d_st.serial<<endl;
+    L<<Logger::Info<<"Getting IXFR deltas for "<<zone<<" from "<<master.toStringWithPort()<<", our serial: "<<getRR<SOARecordContent>(dr)->d_st.serial<<endl;
     vector<pair<vector<DNSRecord>, vector<DNSRecord> > > deltas;
     try {
       deltas = getIXFRDeltas(master, zone, dr, tt);
@@ -343,8 +343,8 @@ void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, const std::
       for(const auto& rr : remove) { // should always contain the SOA
 	totremove++;
 	if(rr.d_type == QType::SOA) {
-	  auto oldsr = std::dynamic_pointer_cast<SOARecordContent>(rr.d_content);
-	  if(oldsr->d_st.serial == oursr->d_st.serial) {
+	  auto oldsr = getRR<SOARecordContent>(rr);
+	  if(oldsr && oldsr->d_st.serial == oursr->d_st.serial) {
 	    //	    cout<<"Got good removal of SOA serial "<<oldsr->d_st.serial<<endl;
 	  }
 	  else
@@ -359,9 +359,11 @@ void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, const std::
       for(const auto& rr : add) { // should always contain the new SOA
 	totadd++;
 	if(rr.d_type == QType::SOA) {
-	  auto newsr = std::dynamic_pointer_cast<SOARecordContent>(rr.d_content);
+	  auto newsr = getRR<SOARecordContent>(rr);
 	  //	  L<<Logger::Info<<"New SOA serial for "<<zone<<": "<<newsr->d_st.serial<<endl;
-	  oursr = newsr;
+	  if (newsr) {
+	    oursr = newsr;
+	  }
 	}
 	else {
 	  L<<Logger::Info<<"Had addition of "<<rr.d_name<<endl;

@@ -23,8 +23,16 @@ void RPZRecordToPolicy(const DNSRecord& dr, DNSFilterEngine& target, const std::
 
   DNSFilterEngine::Policy pol{DNSFilterEngine::PolicyKind::NoAction, nullptr, polName, 0};
 
+  if(dr.d_class != QClass::IN) {
+    return;
+  }
+
   if(dr.d_type == QType::CNAME) {
-    auto target=std::dynamic_pointer_cast<CNAMERecordContent>(dr.d_content)->getTarget();
+    auto crc = getRR<CNAMERecordContent>(dr);
+    if (!crc) {
+      return;
+    }
+    auto target=crc->getTarget();
     if(defpol) {
       pol=*defpol;
     }
@@ -118,7 +126,7 @@ shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const
 
       dr.d_name.makeUsRelative(zone);
       if(dr.d_type==QType::SOA) {
-	sr = std::dynamic_pointer_cast<SOARecordContent>(dr.d_content);
+	sr = getRR<SOARecordContent>(dr);
 	continue;
       }
 

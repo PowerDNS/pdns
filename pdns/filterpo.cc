@@ -80,10 +80,16 @@ DNSFilterEngine::Policy DNSFilterEngine::getPostPolicy(const vector<DNSRecord>& 
   for(const auto& r : records) {
     if(r.d_place != DNSResourceRecord::ANSWER) 
       continue;
-    if(r.d_type == QType::A) 
-      ca = std::dynamic_pointer_cast<ARecordContent>(r.d_content)->getCA();
-    else if(r.d_type == QType::AAAA) 
-      ca = std::dynamic_pointer_cast<AAAARecordContent>(r.d_content)->getCA();
+    if(r.d_type == QType::A) {
+      if (auto rec = getRR<ARecordContent>(r)) {
+        ca = rec->getCA();
+      }
+    }
+    else if(r.d_type == QType::AAAA) {
+      if (auto rec = getRR<AAAARecordContent>(r)) {
+        ca = rec->getCA();
+      }
+    }
     else
       continue;
 

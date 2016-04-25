@@ -504,8 +504,10 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, int depth, set<GetB
 	if(t_RC->get(d_now.tv_sec, qname, QType(QType::AAAA), &cset, d_requestor) > 0) {
 	  for(auto k=cset.cbegin();k!=cset.cend();++k) {
 	    if(k->d_ttl > (unsigned int)d_now.tv_sec ) {
-	      ComboAddress ca=std::dynamic_pointer_cast<AAAARecordContent>(k->d_content)->getCA(53);
-	      ret.push_back(ca);
+	      if (auto drc = std::dynamic_pointer_cast<AAAARecordContent>(k->d_content)) {
+	        ComboAddress ca=drc->getCA(53);
+	        ret.push_back(ca);
+	      }
 	    }
 	  }
 	}
@@ -556,9 +558,9 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vecto
           vector<DNSRecord> aset;
 
           const DNSRecord& dr=*k;
-	  auto nrr = std::dynamic_pointer_cast<NSRecordContent>(dr.d_content);
-          if(!nrr->getNS().isPartOf(subdomain) || t_RC->get(d_now.tv_sec, nrr->getNS(), s_doIPv6 ? QType(QType::ADDR) : QType(QType::A),
-                                                            doLog() ? &aset : 0, d_requestor) > 5) {
+	  auto nrr = getRR<NSRecordContent>(dr);
+          if(nrr && (!nrr->getNS().isPartOf(subdomain) || t_RC->get(d_now.tv_sec, nrr->getNS(), s_doIPv6 ? QType(QType::ADDR) : QType(QType::A),
+                                                                    doLog() ? &aset : 0, d_requestor) > 5)) {
             bestns.push_back(dr);
             LOG(prefix<<qname.toString()<<": NS (with ip, or non-glue) in cache for '"<<subdomain.toString()<<"' -> '"<<nrr->getNS()<<"'"<<endl);
             LOG(prefix<<qname.toString()<<": within bailiwick: "<< nrr->getNS().isPartOf(subdomain));
@@ -580,7 +582,7 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vecto
         answer.qname=qname;
 	answer.qtype=qtype.getCode();
 	for(const auto& dr : bestns)
-	  answer.bestns.insert(make_pair(dr.d_name, std::dynamic_pointer_cast<NSRecordContent>(dr.d_content)->getNS()));
+	  answer.bestns.insert(make_pair(dr.d_name, getRR<NSRecordContent>(dr)->getNS()));
 
         if(beenthere.count(answer)) {
 	  brokeloop=true;
@@ -892,7 +894,7 @@ recsig_t harvestRecords(const vector<DNSRecord>& records, const set<uint16_t>& t
   for(const auto& rec : records) {
     if(rec.d_type == QType::RRSIG) {
       auto rrs=getRR<RRSIGRecordContent>(rec);
-      if(types.count(rrs->d_type))
+      if(rrs && types.count(rrs->d_type))
 	ret[make_pair(rec.d_name, rrs->d_type)].signatures.push_back(rec);
     }
     else if(types.count(rec.d_type))
@@ -1151,9 +1153,11 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
 
       for(const auto& rec : lwr.d_records) {
         if(rec.d_type == QType::RRSIG) {
-          auto rrsig = std::dynamic_pointer_cast<RRSIGRecordContent>(rec.d_content);
-          //	    cerr<<"Got an RRSIG for "<<DNSRecordContent::NumberToType(rrsig->d_type)<<" with name '"<<rec.d_name<<"'"<<endl;
-          tcache[{rec.d_name, rrsig->d_type, rec.d_place}].signatures.push_back(rrsig);
+          auto rrsig = getRR<RRSIGRecordContent>(rec);
+          if (rrsig) {
+            //	    cerr<<"Got an RRSIG for "<<DNSRecordContent::NumberToType(rrsig->d_type)<<" with name '"<<rec.d_name<<"'"<<endl;
+            tcache[{rec.d_name, rrsig->d_type, rec.d_place}].signatures.push_back(rrsig);
+          }
         }
       }
 
@@ -1244,6 +1248,9 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
       DNSName newtarget;
 
       for(auto& rec : lwr.d_records) {
+        if (rec.d_type!=QType::OPT && rec.d_class!=QClass::IN)
+          continue;
+
         if(rec.d_place==DNSResourceRecord::AUTHORITY && rec.d_type==QType::SOA &&
            lwr.d_rcode==RCode::NXDomain && qname.isPartOf(rec.d_name) && rec.d_name.isPartOf(auth)) {
           LOG(prefix<<qname.toString()<<": got negative caching indication for name '"<<qname.toString()+"' (accept="<<rec.d_name.isPartOf(auth)<<"), newtarget='"<<(newtarget.empty()?string("<empty>"):newtarget.toString())<<"'"<<endl);
@@ -1270,7 +1277,9 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
         }
         else if(rec.d_place==DNSResourceRecord::ANSWER && rec.d_name == qname && rec.d_type==QType::CNAME && (!(qtype==QType(QType::CNAME)))) {
           ret.push_back(rec);
-          newtarget=std::dynamic_pointer_cast<CNAMERecordContent>(rec.d_content)->getTarget();
+          if (auto content = getRR<CNAMERecordContent>(rec)) {
+            newtarget=content->getTarget();
+          }
         }
 	else if((rec.d_type==QType::RRSIG || rec.d_type==QType::NSEC || rec.d_type==QType::NSEC3) && rec.d_place==DNSResourceRecord::ANSWER){
 	  if(rec.d_type != QType::RRSIG || rec.d_name == qname)
@@ -1298,7 +1307,9 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
           else {
             LOG(prefix<<qname.toString()<<": got upwards/level NS record '"<<rec.d_name.toString()<<"' -> '"<<rec.d_content->getZoneRepresentation()<<"', had '"<<auth.toString()<<"'"<<endl);
 	  }
-          nsset.insert(std::dynamic_pointer_cast<NSRecordContent>(rec.d_content)->getNS());
+          if (auto content = getRR<NSRecordContent>(rec)) {
+            nsset.insert(content->getNS());
+          }
         }
         else if(rec.d_place==DNSResourceRecord::AUTHORITY && qname.isPartOf(rec.d_name) && rec.d_type==QType::DS) {
 	  LOG(prefix<<qname.toString()<<": got DS record '"<<rec.d_name.toString()<<"' -> '"<<rec.d_content->getZoneRepresentation()<<"'"<<endl);
