@@ -18,14 +18,15 @@ void feedConfigDelta(const std::string& line)
 
 void doClient(ComboAddress server, const std::string& command)
 {
-  cout<<"Connecting to "<<server.toStringWithPort()<<endl;
+  if(g_verbose)
+    cout<<"Connecting to "<<server.toStringWithPort()<<endl;
   int fd=socket(server.sin4.sin_family, SOCK_STREAM, 0);
   if (fd < 0) {
     cerr<<"Unable to connect to "<<server.toStringWithPort()<<endl;
     return;
   }
   SConnect(fd, server);
-
+  setTCPNoDelay(fd);
   SodiumNonce theirs, ours;
   ours.init();
 
@@ -255,6 +256,7 @@ char** my_completion( const char * text , int start,  int end)
 void controlClientThread(int fd, ComboAddress client)
 try
 {
+  setTCPNoDelay(fd);
   SodiumNonce theirs;
   readn2(fd, (char*)theirs.value, sizeof(theirs.value));
   SodiumNonce ours;
