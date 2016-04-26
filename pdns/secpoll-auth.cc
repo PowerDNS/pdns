@@ -109,7 +109,7 @@ int doResolve(const string& qname, uint16_t qtype, vector<DNSResourceRecord>& re
 
 
     for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
-      if(i->first.d_place == 1 && i->first.d_type==QType::TXT) {
+      if(i->first.d_place == 1 && i->first.d_type==qtype) {
         DNSResourceRecord rr;
         rr.qname = i->first.d_name;
         rr.qtype = QType(i->first.d_type);
