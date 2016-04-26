@@ -1,7 +1,9 @@
 #!/bin/sh
 
 export PDNSRECURSOR=${PDNSRECURSOR:-"/usr/sbin/pdns_recursor"}
+export RECCONTROL=${RECCONTROL:-"/usr/bin/rec_control"}
 export PDNS=${PDNS:-"/usr/sbin/pdns_server"}
+export PDNSUTIL=${PDNSUTIL:-"/usr/bin/pdnsutil"}
 export SDIG=${SDIG:-"/usr/bin/sdig"}
 export NSEC3DIG=${NSEC3DIG:-"/usr/bin/nsec3dig"}
 export NOTIFY=${NOTIFY:-"/usr/bin/notify"}
@@ -46,5 +48,8 @@ svstat configs/*
 ./stop.sh
 sleep 3
 ./clean.sh
+
+cd ../regression-tests.recursor-dnssec
+./runtests || EXIT=1
 
 exit $EXIT

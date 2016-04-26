@@ -527,13 +527,14 @@ test_auth() {
 
 test_recursor() {
   export PDNSRECURSOR="${PDNS_RECURSOR_DIR}/sbin/pdns_recursor"
-  run "./build-scripts/test-recursor"
-  export RECURSOR="${PDNSRECURSOR}"
   export DNSBULKTEST="/usr/bin/dnsbulktest"
   export RECCONTROL="${PDNS_RECURSOR_DIR}/bin/rec_control"
+  run "./build-scripts/test-recursor"
+  export RECURSOR="${PDNSRECURSOR}"
   run "cd regression-tests"
   run "THRESHOLD=90 TRACE=no ./timestamp ./recursor-test 5300 25000"
   run "cd .."
+
   run "cd regression-tests.api"
   run "./runtests recursor"
   run "cd .."
