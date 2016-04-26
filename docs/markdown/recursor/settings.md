@@ -559,6 +559,9 @@ the original TTL specified.
 * Available since: 3.2
 
 Maximum number of seconds to cache a 'server failure' answer in the packet cache.
+From 4.0.0 onward, this settings maximum is capped to [`packetcache-ttl`](#packetcache-ttl).
+i.e. setting `packetcache-ttl=15` and keeping `packetcache-servfail-ttl` at the
+default will lower `packetcache-servfail-ttl` to `15`.
 
 ## `pdns-distributes-queries`
 * Boolean
