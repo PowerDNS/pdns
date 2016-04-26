@@ -583,4 +583,31 @@ void moreLua(bool client)
         return std::make_shared<RemoteLogger>(ComboAddress(remote), timeout ? *timeout : 2, maxQueuedEntries ? *maxQueuedEntries : 100, reconnectWaitTime ? *reconnectWaitTime : 1);
       });
 
+    g_lua.writeFunction("TeeAction", [](const std::string& remote) {
+        setLuaNoSideEffect();
+        return std::shared_ptr<DNSAction>(new TeeAction(ComboAddress(remote, 53)));
+      });
+
+    g_lua.registerFunction<void(DNSAction::*)()>("printStats", [](const DNSAction& ta) {
+        setLuaNoSideEffect();
+        auto stats = ta.getStats();
+        for(const auto& s : stats) {
+          g_outputBuffer+=s.first+"\t";
+          if((uint64_t)s.second == s.second)
+            g_outputBuffer += std::to_string((uint64_t)s.second)+"\n";
+          else
+            g_outputBuffer += std::to_string(s.second)+"\n";
+        }
+      });
+
+    g_lua.writeFunction("getAction", [](unsigned int num) {
+        setLuaNoSideEffect();
+        auto rulactions = g_rulactions.getCopy();
+        if(num >= rulactions.size())
+          return std::shared_ptr<DNSAction>();
+        return rulactions[num].second;
+      });
+
+    g_lua.registerFunction("getStats", &DNSAction::getStats);
+
 }

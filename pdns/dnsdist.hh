@@ -424,6 +424,10 @@ public:
   enum class Action { Drop, Nxdomain, Spoof, Allow, HeaderModify, Pool, Delay, None};
   virtual Action operator()(DNSQuestion*, string* ruleresult) const =0;
   virtual string toString() const = 0;
+  virtual std::unordered_map<string, double> getStats() const 
+  {
+    return {{}};
+  }
 };
 
 class DNSResponseAction

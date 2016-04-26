@@ -216,9 +216,11 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
       for(const auto& a : localRules) {
 	Json::object rule{
 	  {"id", num++},
-	    {"matches", (int)a.first->d_matches},
-	      {"rule", a.first->toString()},
-		{"action", a.second->toString()} };
+	  {"matches", (int)a.first->d_matches},
+	  {"rule", a.first->toString()},
+          {"action", a.second->toString()}, 
+          {"action-stats", a.second->getStats()} 
+        };
 	rules.push_back(rule);
       }
       

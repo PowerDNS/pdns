@@ -165,16 +165,17 @@ void doConsole()
         feedConfigDelta(line);
     }
     catch(const LuaContext::ExecutionErrorException& e) {
-      std::cerr << e.what() << ": ";
+      std::cerr << e.what(); 
       try {
         std::rethrow_if_nested(e);
+        std::cerr << std::endl;
       } catch(const std::exception& e) {
         // e is the exception that was thrown from inside the lambda
-        std::cerr << e.what() << std::endl;      
+        std::cerr << ": " << e.what() << std::endl;      
       }
       catch(const PDNSException& e) {
         // e is the exception that was thrown from inside the lambda
-        std::cerr << e.reason << std::endl;      
+        std::cerr << ": " << e.reason << std::endl;      
       }
     }
     catch(const std::exception& e) {
