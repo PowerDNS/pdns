@@ -36,11 +36,11 @@ typedef int ProtocolType; //!< Supported protocol types
 //! Representation of a Socket and many of the Berkeley functions available
 class Socket : public boost::noncopyable
 {
+  static const std::size_t min_recvsize = 4096;
+
   Socket(int fd)
   {
     d_socket = fd;
-    d_buflen=4096;
-    d_buffer=new char[d_buflen];
   }
 
 public:
@@ -50,15 +50,11 @@ public:
     if((d_socket=(int)socket(af,st, pt))<0)
       throw NetworkError(strerror(errno));
     setCloseOnExec(d_socket);
-
-    d_buflen=4096;
-    d_buffer=new char[d_buflen];
   }
 
   ~Socket()
   {
     closesocket(d_socket);
-    delete[] d_buffer;
   }
 
   //! If the socket is capable of doing so, this function will wait for a connection
@@ -151,19 +147,31 @@ public:
   void recvFrom(string &dgram, ComboAddress &ep)
   {
     socklen_t remlen=sizeof(ep);
+    auto const origsize = dgram.size();
+    if (origsize < min_recvsize) {
+        dgram.resize (min_recvsize);
+    }
     int bytes;
-    if((bytes=recvfrom(d_socket, d_buffer, d_buflen, 0, (sockaddr *)&ep , &remlen)) <0)
+    if((bytes=recvfrom(d_socket, &dgram[0], dgram.size(), 0, (sockaddr *)&ep , 
+                       &remlen)) <0) {
+      dgram.resize (origsize);
       throw NetworkError("After recvfrom: "+string(strerror(errno)));
+    }
     
-    dgram.assign(d_buffer,bytes);
+    dgram.resize (bytes);
   }
 
   bool recvFromAsync(string &dgram, ComboAddress &ep)
   {
     struct sockaddr_in remote;
     socklen_t remlen=sizeof(remote);
+    auto const origsize = dgram.size();
+    if (origsize < min_recvsize) {
+        dgram.resize (min_recvsize);
+    }
     int bytes;
-    if((bytes=recvfrom(d_socket, d_buffer, d_buflen, 0, (sockaddr *)&remote, &remlen))<0) {
+    if((bytes=recvfrom(d_socket, &dgram[0], dgram.size(), 0, (sockaddr *)&remote, &remlen))<0) {
+      dgram.resize (origsize);
       if(errno!=EAGAIN) {
         throw NetworkError("After async recvfrom: "+string(strerror(errno)));
       }
@@ -171,7 +179,7 @@ public:
         return false;
       }
     }
-    dgram.assign(d_buffer,bytes);
+    dgram.resize (bytes);
     return true;
   }
 
@@ -308,10 +316,16 @@ public:
   //! Reads a block of data from the socket to a string
   void read(string &data)
   {
-    int res=::recv(d_socket,d_buffer,d_buflen,0);
-    if(res<0) 
+    auto const origsize = data.size();
+    if (origsize < min_recvsize) {
+        data.resize (min_recvsize);
+    }
+    int res=::recv(d_socket,&data[0],min_recvsize,0);
+    if(res<0) {
+      data.resize (origsize);
       throw NetworkError("Reading from a socket: "+string(strerror(errno)));
-    data.assign(d_buffer,res);
+    }
+    data.resize(res);
   }
 
   //! Reads a block of data from the socket to a block of memory
@@ -349,9 +363,7 @@ public:
   }
   
 private:
-  char *d_buffer;
   int d_socket;
-  int d_buflen;
 };
 
 
