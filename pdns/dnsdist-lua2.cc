@@ -602,10 +602,11 @@ void moreLua(bool client)
 
     g_lua.writeFunction("getAction", [](unsigned int num) {
         setLuaNoSideEffect();
+        boost::optional<std::shared_ptr<DNSAction>> ret;
         auto rulactions = g_rulactions.getCopy();
-        if(num >= rulactions.size())
-          return std::shared_ptr<DNSAction>();
-        return rulactions[num].second;
+        if(num < rulactions.size())
+          ret=rulactions[num].second;
+        return ret;
       });
 
     g_lua.registerFunction("getStats", &DNSAction::getStats);
