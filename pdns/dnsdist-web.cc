@@ -87,7 +87,8 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
 
     req.getvars.erase("_"); // jQuery cache buster
 
-    YaHTTP::Response resp(req);
+    YaHTTP::Response resp;
+    resp.version = req.version;
     const string charset = "; charset=utf-8";
     resp.headers["X-Content-Type-Options"] = "nosniff";
     resp.headers["X-Frame-Options"] = "deny";
@@ -334,10 +335,10 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
       resp.body=my_json.dump();
       resp.headers["Content-Type"] = "application/json";
     }
-    else if(!resp.url.path.empty() && g_urlmap.count(resp.url.path.c_str()+1)) {
-      resp.body.assign(g_urlmap[resp.url.path.c_str()+1]);
+    else if(!req.url.path.empty() && g_urlmap.count(req.url.path.c_str()+1)) {
+      resp.body.assign(g_urlmap[req.url.path.c_str()+1]);
       vector<string> parts;
-      stringtok(parts, resp.url.path, ".");
+      stringtok(parts, req.url.path, ".");
       if(parts.back() == "html")
         resp.headers["Content-Type"] = "text/html" + charset;
       else if(parts.back() == "css")
@@ -348,13 +349,13 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
         resp.headers["Content-Type"] = "image/png";
       resp.status=200;
     }
-    else if(resp.url.path=="/") {
+    else if(req.url.path=="/") {
       resp.body.assign(g_urlmap["index.html"]);
       resp.headers["Content-Type"] = "text/html" + charset;
       resp.status=200;
     }
     else {
-      // cerr<<"404 for: "<<resp.url.path<<endl;
+      // cerr<<"404 for: "<<req.url.path<<endl;
       resp.status=404;
     }
 
