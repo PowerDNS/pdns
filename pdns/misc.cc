@@ -46,6 +46,7 @@
 #include <boost/optional.hpp>
 #include <poll.h>
 #include <iomanip>
+#include <netinet/tcp.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -1046,6 +1047,17 @@ bool setSocketTimestamps(int fd)
 #endif
   return true; // we pretend this happened.
 }
+
+void setTCPNoDelay(int sock)
+{
+  int flag = 1;
+  setsockopt(sock,            /* socket affected */
+             IPPROTO_TCP,     /* set option at TCP level */
+             TCP_NODELAY,     /* name of option */
+             (char *) &flag,  /* the cast is historical cruft */
+             sizeof(flag));    /* length of option value */
+}
+
 
 bool setNonBlocking(int sock)
 {
