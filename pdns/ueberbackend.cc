@@ -310,7 +310,7 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const string &target, int 
       vector<pair<size_t, SOAData> >::iterator j = bestmatch.begin();
       for(; i != backends.end() && j != bestmatch.end(); ++i, ++j) {
 
-        L<<Logger::Error<<"backend: "<<i-backends.begin()<<", qname: "<<shorter<<endl;
+        DLOG(L<<Logger::Error<<"backend: "<<i-backends.begin()<<", qname: "<<shorter<<endl);
 
         if(j->first < shorter.length()) {
           DLOG(L<<Logger::Error<<"skipped, already found shorter best match: "<<j->second.qname<<endl);
@@ -320,15 +320,15 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const string &target, int 
           *sd = j->second;
           break;
         } else {
-          L<<Logger::Error<<"lookup: "<<shorter<<endl;
+          DLOG(L<<Logger::Error<<"lookup: "<<shorter<<endl);
           if((*i)->getAuth(p, sd, shorter)) {
-            L<<Logger::Error<<"got: "<<sd->qname<<endl;
+            DLOG(L<<Logger::Error<<"got: "<<sd->qname<<endl);
             j->first = sd->qname.length();
             if(sd->qname.length() == shorter.length()) {
               break;
             }
           } else {
-            L<<Logger::Error<<"no match for: "<<shorter<<endl;
+            DLOG(L<<Logger::Error<<"no match for: "<<shorter<<endl);
           }
         }
       }
@@ -336,13 +336,13 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const string &target, int 
       // Add to cache
       if(i == backends.end()) {
         if(d_negcache_ttl) {
-          L<<Logger::Error<<"add neg:"<<shorter<<endl;
+          DLOG(L<<Logger::Error<<"add neg:"<<shorter<<endl);
           d_question.qname=shorter;
           addNegCache(d_question);
         }
         continue;
       } else if(d_cache_ttl) {
-        L<<Logger::Error<<"add pos: "<<sd->qname<<endl;
+        DLOG(L<<Logger::Error<<"add pos: "<<sd->qname<<endl);
         d_question.qtype = QType::SOA;
         d_question.qname = sd->qname;
         d_question.zoneId = -1;
