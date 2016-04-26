@@ -5,10 +5,17 @@ YaHTTP aims to be a pure http request/response parser that has no IO ties. It is
 
 [![Build Status](https://travis-ci.org/cmouse/yahttp.svg?branch=master)](https://travis-ci.org/cmouse/yahttp)
 [![Coverity Scan Build Status](https://scan.coverity.com/projects/2161/badge.svg)](https://scan.coverity.com/projects/2161)
+[![Coverage Status](https://coveralls.io/repos/cmouse/yahttp/badge.svg?branch=master%0A)](https://coveralls.io/r/cmouse/yahttp?branch=master%0A)
 
 WARNINGS
 --------
 If you are upgrading from version before May 02, 2014 - *PLEASE BE SURE TO CHECK THAT EVERYTHING WORKS AS EXPECTED*. There has been complete overhaul of the library and many things have changed. 
+
+NOTES
+-----
+Do not use resp = req, or resp(req) to build the response object, despite it being supported. This will cause request headers to get duplicated. Also, you *must* set response#version to request#version if you intend to support older than HTTP/1.1 clients. Set response#status to at least 200, it won't be done for you. No Server or Product token is sent either, you can add those if you want. 
+
+If you do not want to send chunked responses, set content-length header. Setting this header will always disable chunked responses. This will also happen if you downgrade your responses to version 10 or 9.
 
 Integration guide
 -----------------
