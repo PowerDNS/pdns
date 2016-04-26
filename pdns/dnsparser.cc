@@ -399,7 +399,7 @@ DNSName PacketReader::getName()
 {
   unsigned int consumed;
   try {
-    DNSName dn((const char*) d_content.data() - 12, d_content.size() + 12, d_pos + sizeof(dnsheader), true /* uncompress */, 0 /* qtype */, 0 /* qclass */, &consumed);
+    DNSName dn((const char*) d_content.data() - 12, d_content.size() + 12, d_pos + sizeof(dnsheader), true /* uncompress */, 0 /* qtype */, 0 /* qclass */, &consumed, sizeof(dnsheader));
     
     // the -12 fakery is because we don't have the header in 'd_content', but we do need to get 
     // the internal offsets to work
