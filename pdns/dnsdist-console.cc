@@ -3,6 +3,7 @@
 #include <readline.h>
 #include <fstream>
 #include "dolog.hh"
+#include "ext/json11/json11.hpp"
 
 vector<pair<struct timeval, string> > g_confDelta;
 
@@ -45,7 +46,7 @@ void doClient(ComboAddress server, const std::string& command)
         readn2(fd, resp.get(), len);
         msg.assign(resp.get(), len);
         msg=sodDecryptSym(msg, g_key, theirs);
-        cout<<msg<<endl;
+        cout<<msg;
       }
     }
     else {
@@ -100,7 +101,8 @@ void doClient(ComboAddress server, const std::string& command)
       readn2(fd, resp.get(), len);
       msg.assign(resp.get(), len);
       msg=sodDecryptSym(msg, g_key, theirs);
-      cout<<msg<<endl;
+      cout<<msg;
+      cout.flush();
     }
     else {
       cout<<endl;
@@ -140,30 +142,54 @@ void doConsole()
 
     string response;
     try {
-      std::lock_guard<std::mutex> lock(g_luamutex);
-      g_outputBuffer.clear();
-      resetLuaSideEffect();
-      auto ret=g_lua.executeCode<
-	boost::optional<
-	  boost::variant<
-	    string, 
-	    shared_ptr<DownstreamState>
-	    >
-	  >
-	>(line);
-
-      if(ret) {
-	if (const auto strValue = boost::get<shared_ptr<DownstreamState>>(&*ret)) {
-	  cout<<(*strValue)->getName()<<endl;
-	}
-	else if (const auto strValue = boost::get<string>(&*ret)) {
-	  cout<<*strValue<<endl;
-	}
+      bool withReturn=true;
+    retry:;
+      try {
+        std::lock_guard<std::mutex> lock(g_luamutex);
+        g_outputBuffer.clear();
+        resetLuaSideEffect();
+        auto ret=g_lua.executeCode<
+          boost::optional<
+            boost::variant<
+              string, 
+              shared_ptr<DownstreamState>,
+              std::unordered_map<string, double>
+              >
+            >
+          >(withReturn ? ("return "+line) : line);
+        
+        if(ret) {
+          if (const auto strValue = boost::get<shared_ptr<DownstreamState>>(&*ret)) {
+            cout<<(*strValue)->getName()<<endl;
+          }
+          else if (const auto strValue = boost::get<string>(&*ret)) {
+            cout<<*strValue<<endl;
+          }
+          else if(const auto um = boost::get<std::unordered_map<string, double> >(&*ret)) {
+            using namespace json11;
+            Json::object o;
+            for(const auto& v : *um)
+              o[v.first]=v.second;
+            Json out = o;
+            cout<<out.dump()<<endl;
+          }
+        }
+        else 
+          cout << g_outputBuffer;
+        if(!getLuaNoSideEffect())
+          feedConfigDelta(line);
       }
-      else 
-	cout << g_outputBuffer;
-      if(!getLuaNoSideEffect())
-        feedConfigDelta(line);
+      catch(const LuaContext::SyntaxErrorException&) {
+        if(withReturn) {
+          withReturn=false;
+          goto retry;
+        }
+        throw;
+      }
+    }
+    catch(const LuaContext::WrongTypeException& e) {
+      std::cerr<<"Command returned an object we can't print"<<std::endl;
+      // tried to return something we don't understand
     }
     catch(const LuaContext::ExecutionErrorException& e) {
       std::cerr << e.what(); 
@@ -283,30 +309,51 @@ try
     //    cerr<<"Have decrypted line: "<<line<<endl;
     string response;
     try {
-      std::lock_guard<std::mutex> lock(g_luamutex);
-      g_outputBuffer.clear();
-      resetLuaSideEffect();
-      auto ret=g_lua.executeCode<
-	boost::optional<
-	  boost::variant<
-	    string, 
-	    shared_ptr<DownstreamState>
-	    >
-	  >
-	>(line);
+      bool withReturn=true;
+    retry:;
+      try {
+        std::lock_guard<std::mutex> lock(g_luamutex);
+        
+        g_outputBuffer.clear();
+        resetLuaSideEffect();
+        auto ret=g_lua.executeCode<
+          boost::optional<
+            boost::variant<
+              string, 
+              shared_ptr<DownstreamState>,
+              std::unordered_map<string, double>
+              >
+            >
+          >(withReturn ? ("return "+line) : line);
 
       if(ret) {
 	if (const auto strValue = boost::get<shared_ptr<DownstreamState>>(&*ret)) {
-	  response=(*strValue)->getName();
+	  response=(*strValue)->getName()+"\n";
 	}
 	else if (const auto strValue = boost::get<string>(&*ret)) {
-	  response=*strValue;
+	  response=*strValue+"\n";
 	}
+        else if(const auto um = boost::get<std::unordered_map<string, double> >(&*ret)) {
+          using namespace json11;
+          Json::object o;
+          for(const auto& v : *um)
+            o[v.first]=v.second;
+          Json out = o;
+          response=out.dump()+"\n";
+        }
       }
       else
 	response=g_outputBuffer;
       if(!getLuaNoSideEffect())
         feedConfigDelta(line);
+      }
+      catch(const LuaContext::SyntaxErrorException&) {
+        if(withReturn) {
+          withReturn=false;
+          goto retry;
+        }
+        throw;
+      }
     }
     catch(const LuaContext::ExecutionErrorException& e) {
       response = "Error: " + string(e.what()) + ": ";
