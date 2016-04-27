@@ -404,12 +404,17 @@ uint32_t getStartOfWeek()
 
 string hashQNameWithSalt(const NSEC3PARAMRecordContent& ns3prc, const DNSName& qname)
 {
-  unsigned int times = ns3prc.d_iterations;
+  return hashQNameWithSalt(ns3prc.d_salt, ns3prc.d_iterations, qname);
+}
+
+string hashQNameWithSalt(const std::string& salt, unsigned int iterations, const DNSName& qname)
+{
+  unsigned int times = iterations;
   unsigned char hash[20];
   string toHash(qname.toDNSStringLC());
 
   for(;;) {
-    toHash.append(ns3prc.d_salt);
+    toHash.append(salt);
     SHA1((unsigned char*)toHash.c_str(), toHash.length(), hash);
     toHash.assign((char*)hash, sizeof(hash));
     if(!times--)
