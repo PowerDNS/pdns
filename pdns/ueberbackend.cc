@@ -249,84 +249,73 @@ void UeberBackend::getUpdatedMasters(vector<DomainInfo>* domains)
 
 bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const DNSName &target)
 {
-  int best_match_len = -1;
-  bool from_cache = false;  // Was this result fetched from the cache?
-  map<DNSName,int> negCacheMap;
+  bool found = false;
+  int cstat;
+  DNSName shorter(target);
+  vector<pair<size_t, SOAData> > bestmatch (backends.size(), make_pair(target.wirelength()+1, SOAData()));
+  do {
 
-  // If not special case of caching explicitly disabled (sd->db = -1), first
-  // find the best match from the cache. If DS then we need to find parent so
-  // dont bother with caching as it confuses matters.
-  if( sd->db != (DNSBackend *)-1 && (d_cache_ttl || d_negcache_ttl)) {
-      DNSName subdomain(target);
-      int cstat, loops = 0;
-      do {
-        d_question.qtype = QType::SOA;
-        d_question.qname = subdomain;
-        d_question.zoneId = -1;
+    // Check cache
+    if(sd->db != (DNSBackend *)-1 && (d_cache_ttl || d_negcache_ttl)) {
+      d_question.qtype = QType::SOA;
+      d_question.qname = shorter;
+      d_question.zoneId = -1;
 
-        cstat = cacheHas(d_question,d_answers);
+      cstat = cacheHas(d_question,d_answers);
 
-        if(cstat==1 && !d_answers.empty() && d_cache_ttl) {
-          fillSOAData(d_answers[0].content,*sd);
-          sd->domain_id = d_answers[0].domain_id;
-          sd->ttl = d_answers[0].ttl;
-          sd->db = 0;
-          sd->qname = subdomain;
-          //L<<Logger::Error<<"Best cache match: " << sd->qname << " itteration " << loops <<endl;
-
-          // Found first time round this must be the best match
-          if( loops == 0  && p->qtype != QType::DS)
-            return true;
-
-          from_cache = true;
-          best_match_len = sd->qname.countLabels();
-
-          if ( p->qtype != QType::DS || best_match_len < (int)target.countLabels())
-            break;
-        } else if (cstat==0 && d_negcache_ttl) {
-          negCacheMap[subdomain]=1;
-        } else
-          negCacheMap[subdomain]=0;
-        loops++;
+      if(cstat == 1 && !d_answers.empty() && d_cache_ttl) {
+        DLOG(L<<Logger::Error<<"has pos: "<<shorter.toLogString()<<endl);
+        fillSOAData(d_answers[0].content, *sd);
+        sd->domain_id = d_answers[0].domain_id;
+        sd->ttl = d_answers[0].ttl;
+        sd->db = 0;
+        sd->qname = shorter;
+        goto found;
+      } else if(cstat == 0 && d_negcache_ttl) {
+        DLOG(L<<Logger::Error<<"has neg: "<<shorter.toLogString()<<endl);
+        continue;
       }
-      while( subdomain.chopOff() );   // 'www.powerdns.org' -> 'powerdns.org' -> 'org' -> ''
-  }
-
-  for(vector<DNSBackend *>::const_iterator i=backends.begin(); i!=backends.end();++i) {
-    // Shortcut for the case that we got a direct hit - no need to go
-    // through the other backends then.
-    if( best_match_len == (int)target.countLabels() && p->qtype != QType::DS )
-      goto auth_found;
-
-    if((*i)->getAuth(p, sd, target, best_match_len, negCacheMap)) {
-        best_match_len = sd->qname.countLabels(); // FIXME400
-        from_cache = false;
     }
-  }
 
-  if( sd->db != (DNSBackend *)-1 && d_negcache_ttl) {
-    DNSName shorter(target);
+    // Check backends
+    {
+      vector<DNSBackend *>::const_iterator i = backends.begin();
+      vector<pair<size_t, SOAData> >::iterator j = bestmatch.begin();
+      for(; i != backends.end() && j != bestmatch.end(); ++i, ++j) {
 
-    d_question.qtype=QType::SOA;
-    d_question.zoneId=-1;
-    while((int)shorter.countLabels() > best_match_len ) {
-      map<DNSName,int>::iterator it = negCacheMap.find(shorter);
-      if (it == negCacheMap.end() || it->second == 0) {
-        d_question.qname=shorter;
-        addNegCache(d_question);
+        DLOG(L<<Logger::Error<<"backend: "<<i-backends.begin()<<", qname: "<<shorter<<endl);
+
+        if(j->first < shorter.wirelength()) {
+          DLOG(L<<Logger::Error<<"skipped, already found shorter best match: "<<j->second.qname.toLogString()<<endl);
+          continue;
+        } else if(j->first == shorter.wirelength()) {
+          DLOG(L<<Logger::Error<<"use shorter best match: "<<j->second.qname.toLogString()<<endl);
+          *sd = j->second;
+          break;
+        } else {
+          DLOG(L<<Logger::Error<<"lookup: "<<shorter<<endl);
+          if((*i)->getAuth(p, sd, shorter)) {
+            DLOG(L<<Logger::Error<<"got: "<<sd->qname<<endl);
+            j->first = sd->qname.wirelength();
+            if(sd->qname == shorter) {
+              break;
+            }
+          } else {
+            DLOG(L<<Logger::Error<<"no match for: "<<shorter.toLogString()<<endl);
+          }
+        }
       }
-      if (!shorter.chopOff())
-        break;
-    }
-  }
 
-  if( best_match_len == -1 )
-      return false;
-
-auth_found:
-    // Insert into cache. Don't cache if the query was a DS
-    if( d_cache_ttl && ! from_cache && p->qtype != QType::DS ) {
-        //L<<Logger::Error<<"Saving auth cache for " << sd->qname <<endl;
+      // Add to cache
+      if(i == backends.end()) {
+        if(d_negcache_ttl) {
+          DLOG(L<<Logger::Error<<"add neg:"<<shorter.toLogString()<<endl);
+          d_question.qname=shorter;
+          addNegCache(d_question);
+        }
+        continue;
+      } else if(d_cache_ttl) {
+        DLOG(L<<Logger::Error<<"add pos: "<<sd->qname.toLogString()<<endl);
         d_question.qtype = QType::SOA;
         d_question.qname = sd->qname;
         d_question.zoneId = -1;
@@ -340,9 +329,20 @@ auth_found:
         vector<DNSResourceRecord> rrs;
         rrs.push_back(rr);
         addCache(d_question, rrs);
+      }
     }
 
-    return true;
+found:
+    if(found == (p->qtype == QType::DS)){
+      DLOG(L<<Logger::Error<<"found: "<<sd->qname.toLogString()<<endl);
+      return true;
+    } else {
+      DLOG(L<<Logger::Error<<"chasing next: "<<sd->qname.toLogString()<<endl);
+      found = true;
+    }
+
+  } while(shorter.chopOff());
+  return found;
 }
 
 bool UeberBackend::getSOA(const DNSName &domain, SOAData &sd, DNSPacket *p)
