@@ -79,6 +79,9 @@ Enable DNSSEC processing for this backend. Default=no.
 ## `gmysql-innodb-read-committed`
 Use the InnoDB READ-COMMITTED transaction isolation level. Default=yes.
 
+## `gmysql-timeout`
+The timeout in seconds for each attempt to read from, or write to the server. A value of 0 will disable the timeout. Default: 10
+
 # Default Schema
 ```
 !!include=../modules/gmysqlbackend/schema.mysql.sql

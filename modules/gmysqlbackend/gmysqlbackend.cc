@@ -25,7 +25,8 @@ gMySQLBackend::gMySQLBackend(const string &mode, const string &suffix)  : GSQLBa
                      getArg("user"),
                      getArg("password"),
                      getArg("group"),
-                     mustDo("innodb-read-committed")));
+                     mustDo("innodb-read-committed"),
+                     getArgAsNum("timeout")));
   }
 
   catch(SSqlException &e) {
@@ -50,6 +51,7 @@ public:
     declare(suffix,"password","Pdns backend password to connect with","");
     declare(suffix,"group", "Pdns backend MySQL 'group' to connect as", "client");
     declare(suffix,"innodb-read-committed","Use InnoDB READ-COMMITTED transaction isolation level","yes");
+    declare(suffix,"timeout", "The timeout in seconds for each attempt to read/write to the server", "10");
 
     declare(suffix,"dnssec","Enable DNSSEC processing","no");
 

@@ -321,7 +321,7 @@ private:
 };
 
 SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const string &msocket, const string &user,
-               const string &password, const string &group, bool setIsolation)
+               const string &password, const string &group, bool setIsolation, unsigned int timeout)
 {
   int retry=1;
 
@@ -337,9 +337,10 @@ SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const 
 #endif
 
 #if MYSQL_VERSION_ID >= 50100
-    unsigned int timeout = 180;
-    mysql_options(&d_db, MYSQL_OPT_READ_TIMEOUT, &timeout);
-    mysql_options(&d_db, MYSQL_OPT_WRITE_TIMEOUT, &timeout);
+    if(timeout) {
+      mysql_options(&d_db, MYSQL_OPT_READ_TIMEOUT, &timeout);
+      mysql_options(&d_db, MYSQL_OPT_WRITE_TIMEOUT, &timeout);
+    }
 #endif
 
 #if MYSQL_VERSION_ID >= 50500
@@ -399,7 +400,7 @@ void SMySQL::execute(const string& query)
 
   int err;
   if((err=mysql_query(&d_db,query.c_str())))
-    throw sPerrorException("Failed to execute mysql_query '" + query + "', perhaps connection died? Err="+itoa(err));
+    throw sPerrorException("Failed to execute mysql_query '" + query + "' Err="+itoa(err));
 }
 
 void SMySQL::startTransaction() {
