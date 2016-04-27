@@ -347,6 +347,22 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
             }
 
           }
+          else if(v.first.second==QType::NSEC3) {
+            for(const auto& r : v.second.records) {
+              LOG("\t"<<r->getZoneRepresentation()<<endl);
+
+              auto nsec3 = std::dynamic_pointer_cast<NSEC3RecordContent>(r);
+              string h = hashQNameWithSalt(nsec3->d_salt, nsec3->d_iterations, qname);
+              LOG("\tquery hash: "<<toBase32Hex(h)<<endl);
+              if(fromBase32Hex(v.first.first.getRawLabels()[0]) < h && h < nsec3->d_nexthash) {
+                LOG("Denies existence of DS!"<<endl);
+                return Insecure;
+              }
+              else {
+                LOG("Did not cover us, start="<<v.first.first<<", us="<<toBase32Hex(h)<<", end="<<toBase32Hex(nsec3->d_nexthash)<<endl);
+              }
+            }
+          }
         }
         return Bogus;
       }
