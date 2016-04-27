@@ -52,10 +52,6 @@ using namespace ::boost::multi_index;
 
 typedef enum { TSIG_MD5, TSIG_SHA1, TSIG_SHA224, TSIG_SHA256, TSIG_SHA384, TSIG_SHA512, TSIG_GSS } TSIGHashEnum;
 
-bool chopOff(string &domain);
-bool chopOffDotted(string &domain);
-
-bool endsOn(const string &domain, const string &suffix);
 string nowTime();
 const string unquotify(const string &item);
 string humanDuration(time_t passed);
@@ -146,11 +142,11 @@ vstringtok (Container &container, string const &in,
   }
 }
 
-int writen2(int fd, const void *buf, size_t count);
-inline int writen2(int fd, const std::string &s) { return writen2(fd, s.data(), s.size()); }
-int readn2(int fd, void* buffer, unsigned int len);
-int readn2WithTimeout(int fd, void* buffer, size_t len, int timeout);
-int writen2WithTimeout(int fd, const void * buffer, size_t len, int timeout);
+size_t writen2(int fd, const void *buf, size_t count);
+inline size_t writen2(int fd, const std::string &s) { return writen2(fd, s.data(), s.size()); }
+size_t readn2(int fd, void* buffer, size_t len);
+size_t readn2WithTimeout(int fd, void* buffer, size_t len, int timeout);
+size_t writen2WithTimeout(int fd, const void * buffer, size_t len, int timeout);
 
 const string toLower(const string &upper);
 const string toLowerCanonic(const string &upper);

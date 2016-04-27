@@ -309,7 +309,7 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
 {
   ComboAddress remote;
   extern StatBag S;
-  int len=-1;
+  ssize_t len=-1;
   char mesg[DNSPacket::s_udpTruncationThreshold];
   Utility::sock_t sock=-1;
 
@@ -380,7 +380,7 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
   else
     packet->d_dt.set(); // timing    
 
-  if(packet->parse(mesg, len)<0) {
+  if(packet->parse(mesg, (size_t) len)<0) {
     S.inc("corrupt-packets");
     S.ringAccount("remotes-corrupt", packet->d_remote);
 

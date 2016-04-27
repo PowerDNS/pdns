@@ -44,7 +44,7 @@ std::string RCode::to_s(unsigned short rcode) {
 class BoundsCheckingPointer
 {
 public:
-  explicit BoundsCheckingPointer(const char* a, unsigned int length)
+  explicit BoundsCheckingPointer(const char* a, size_t length)
     : d_ptr(a), d_length(length) 
     {}
   
@@ -53,7 +53,7 @@ public:
     {}
   
     
-  char operator[](unsigned int offset) const
+  char operator[](size_t offset) const
   {
     if(offset < d_length)
       return d_ptr[offset];
@@ -61,7 +61,7 @@ public:
   }
 private:  
   const char* d_ptr;
-  const unsigned int d_length;
+  const size_t d_length;
 };
 
 

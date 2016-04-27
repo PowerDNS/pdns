@@ -447,7 +447,7 @@ void DNSPacket::spoofQuestion(const DNSPacket *qd)
   }
 }
 
-int DNSPacket::noparse(const char *mesg, int length)
+int DNSPacket::noparse(const char *mesg, size_t length)
 {
   d_rawpacket.assign(mesg,length); 
   if(length < 12) { 
@@ -532,7 +532,7 @@ bool DNSPacket::getTKEYRecord(TKEYRecordContent *tr, DNSName *keyname) const
     it into our class. Results of calling this function multiple times on one packet are
     unknown. Returns -1 if the packet cannot be parsed.
 */
-int DNSPacket::parse(const char *mesg, int length)
+int DNSPacket::parse(const char *mesg, size_t length)
 try
 {
   d_rawpacket.assign(mesg,length); 

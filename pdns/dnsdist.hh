@@ -261,7 +261,7 @@ struct Rings {
   pthread_rwlock_t queryLock;
 
   std::unordered_map<int, vector<boost::variant<string,double> > > getTopBandwidth(unsigned int numentries);
-  unsigned int numDistinctRequestors();
+  size_t numDistinctRequestors();
 };
 
 extern Rings g_rings;

@@ -510,7 +510,7 @@ extern __thread SyncRes::StaticStorage* t_sstorage;
 class Socket;
 /* external functions, opaque to us */
 int asendtcp(const string& data, Socket* sock);
-int arecvtcp(string& data, int len, Socket* sock, bool incompleteOkay);
+int arecvtcp(string& data, size_t len, Socket* sock, bool incompleteOkay);
 
 
 struct PacketID
@@ -527,7 +527,7 @@ struct PacketID
 
   Socket* sock;  // or wait for an event on a TCP fd
   string inMSG; // they'll go here
-  int inNeeded; // if this is set, we'll read until inNeeded bytes are read
+  size_t inNeeded; // if this is set, we'll read until inNeeded bytes are read
   bool inIncompleteOkay;
 
   string outMSG; // the outgoing message that needs to be sent

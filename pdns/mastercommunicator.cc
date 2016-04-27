@@ -158,7 +158,8 @@ time_t CommunicatorClass::doNotifications()
   ComboAddress from;
   Utility::socklen_t fromlen;
   char buffer[1500];
-  int size, sock;
+  int sock;
+  ssize_t size;
 
   // receive incoming notifications on the nonblocking socket and take them off the list
   while(waitFor2Data(d_nsock4, d_nsock6, 0, 0, &sock) > 0) {
@@ -170,7 +171,7 @@ time_t CommunicatorClass::doNotifications()
 
     p.setRemote(&from);
 
-    if(p.parse(buffer,size)<0) {
+    if(p.parse(buffer,(size_t)size)<0) {
       L<<Logger::Warning<<"Unable to parse SOA notification answer from "<<p.getRemote()<<endl;
       continue;
     }

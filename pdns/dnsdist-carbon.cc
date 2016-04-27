@@ -112,11 +112,7 @@ try
           continue;
         }
         s.setBlocking();
-        ret=writen2(s.getHandle(), msg.c_str(), msg.size());
-        if(ret < 0)
-          warnlog("Error writing carbon data to %s: %s", server.toStringWithPort(), strerror(errno));
-        if(ret==0)
-          warnlog("EOF writing carbon data to %s", server.toStringWithPort());
+        writen2(s.getHandle(), msg.c_str(), msg.size());
       }
       catch(std::exception& e) {
         warnlog("Problem sending carbon data: %s", e.what());

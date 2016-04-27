@@ -1516,7 +1516,7 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone)
       strftime(buf, sizeof(buf)-1, "%a %F %H:%M:%S", &tm);
     else
       strncpy(buf, "Never", sizeof(buf)-1);
-
+    buf[sizeof(buf)-1] = '\0';
     cout<<"Last time we got update from master: "<<buf<<endl;
     SOAData sd;
     if(B.getSOAUncached(zone, sd)) {

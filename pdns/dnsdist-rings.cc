@@ -1,7 +1,7 @@
 #include "dnsdist.hh"
 #include "lock.hh"
 
-unsigned int Rings::numDistinctRequestors()
+size_t Rings::numDistinctRequestors()
 {
   std::set<ComboAddress, ComboAddress::addressOnlyLessThan> s;
   ReadLock rl(&queryLock);

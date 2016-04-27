@@ -117,7 +117,7 @@ ComboAddress ARecordContent::getCA(int port) const
   ComboAddress ret;
   ret.sin4.sin_family=AF_INET;
   ret.sin4.sin_port=htons(port);
-  memcpy(&ret.sin4.sin_addr.s_addr, &d_ip, 4);
+  memcpy(&ret.sin4.sin_addr.s_addr, &d_ip, sizeof(ret.sin4.sin_addr.s_addr));
   return ret;
 }
 
@@ -128,7 +128,7 @@ ComboAddress AAAARecordContent::getCA(int port) const
 
   ret.sin4.sin_family=AF_INET6;
   ret.sin6.sin6_port = htons(port);
-  memcpy(&ret.sin6.sin6_addr.s6_addr, d_ip6.c_str(), 16);
+  memcpy(&ret.sin6.sin6_addr.s6_addr, d_ip6.c_str(), sizeof(ret.sin6.sin6_addr.s6_addr));
   return ret;
 }
 
@@ -414,7 +414,7 @@ void EUI48RecordContent::toPacket(DNSPacketWriter& pw)
 string EUI48RecordContent::getZoneRepresentation(bool noDot) const
 {
     char tmp[18]; 
-    snprintf(tmp,18,"%02x-%02x-%02x-%02x-%02x-%02x", 
+    snprintf(tmp,sizeof(tmp),"%02x-%02x-%02x-%02x-%02x-%02x",
            d_eui48[0], d_eui48[1], d_eui48[2], 
            d_eui48[3], d_eui48[4], d_eui48[5]);
     return tmp;
@@ -458,7 +458,7 @@ void EUI64RecordContent::toPacket(DNSPacketWriter& pw)
 string EUI64RecordContent::getZoneRepresentation(bool noDot) const
 {
     char tmp[24]; 
-    snprintf(tmp,24,"%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x",
+    snprintf(tmp,sizeof(tmp),"%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x",
            d_eui64[0], d_eui64[1], d_eui64[2],
            d_eui64[3], d_eui64[4], d_eui64[5],
            d_eui64[6], d_eui64[7]);
@@ -528,6 +528,7 @@ bool getEDNSOpts(const MOADNSParser& mdp, EDNSOpts* eo)
        
         EDNS0Record stuff;
         uint32_t ttl=ntohl(val.first.d_ttl);
+        static_assert(sizeof(EDNS0Record) == sizeof(uint32_t), "sizeof(EDNS0Record) must match sizeof(uint32_t)");
         memcpy(&stuff, &ttl, sizeof(stuff));
         
         eo->d_extRCode=stuff.extRCode;
@@ -552,6 +553,7 @@ DNSRecord makeOpt(int udpsize, int extRCode, int Z)
   stuff.version=0;
   stuff.Z=htons(Z);
   DNSRecord dr;
+  static_assert(sizeof(EDNS0Record) == sizeof(dr.d_ttl), "sizeof(EDNS0Record) must match sizeof(DNSRecord.d_ttl)");
   memcpy(&dr.d_ttl, &stuff, sizeof(stuff));
   dr.d_ttl=ntohl(dr.d_ttl);
   dr.d_name=DNSName(".");

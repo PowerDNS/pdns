@@ -186,7 +186,7 @@ void DNSProxy::mainloop(void)
 {
   try {
     char buffer[1500];
-    int len;
+    ssize_t len;
 
     struct msghdr msgh;
     struct iovec iov;
@@ -194,7 +194,7 @@ void DNSProxy::mainloop(void)
 
     for(;;) {
       len=recv(d_sock, buffer, sizeof(buffer),0); // answer from our backend
-      if(len<12) {
+      if(len<(ssize_t)sizeof(dnsheader)) {
         if(len<0)
           L<<Logger::Error<<"Error receiving packet from recursor backend: "<<stringerror()<<endl;
         else if(len==0)
@@ -229,8 +229,8 @@ void DNSProxy::mainloop(void)
         memcpy(buffer,&d,sizeof(d));  // commit spoofed id
 
         DNSPacket p,q;
-        p.parse(buffer,len);
-        q.parse(buffer,len);
+        p.parse(buffer,(size_t)len);
+        q.parse(buffer,(size_t)len);
 
         if(p.qtype.getCode() != i->second.qtype || p.qdomain != i->second.qname) {
           L<<Logger::Error<<"Discarding packet from recursor backend with id "<<(d.id^d_xor)<<

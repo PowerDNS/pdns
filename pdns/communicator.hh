@@ -258,8 +258,10 @@ private:
       if(!getaddrinfo(name.toString().c_str(), 0, &hints, &res)) {
         struct addrinfo* address = res;
         do {
-          memcpy(&remote, address->ai_addr, address->ai_addrlen);
-          addresses->push_back(remote.toString());
+          if (address->ai_addrlen <= sizeof(remote)) {
+            memcpy(&remote, address->ai_addr, address->ai_addrlen);
+            addresses->push_back(remote.toString());
+          }
         } while((address = address->ai_next));
         freeaddrinfo(res);
       }

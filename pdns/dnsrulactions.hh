@@ -548,7 +548,7 @@ public:
         if(qtype != QType::ANY && ((addr.sin4.sin_family == AF_INET && qtype != QType::A) ||
                                    (addr.sin4.sin_family == AF_INET6 && qtype != QType::AAAA)))
           continue;
-        totrdatalen += addr.sin4.sin_family == AF_INET ? 4 : 16;
+        totrdatalen += addr.sin4.sin_family == AF_INET ? sizeof(addr.sin4.sin_addr.s_addr) : sizeof(addr.sin6.sin6_addr.s6_addr);
         addrs.push_back(addr);
       }
     }
@@ -579,7 +579,7 @@ public:
                                          0, QClass::IN, // IN
                                          0, 0, 0, 60,   // TTL
                                          0, (unsigned char)wireData.length()};
-
+      static_assert(sizeof(recordstart) == 12, "sizeof(recordstart) must be equal to 12, otherwise the above check is invalid");
 
       memcpy(dest, recordstart, sizeof(recordstart));
       dest += sizeof(recordstart);
@@ -587,26 +587,28 @@ public:
       dq->len += wireData.length() + sizeof(recordstart);
       dq->dh->ancount++;
     }
-    else for(const auto& addr : addrs) 
-    {
-      unsigned char rdatalen = addr.sin4.sin_family == AF_INET ? 4 : 16;
-      const unsigned char recordstart[]={0xc0, 0x0c,    // compressed name
-                                         0, (unsigned char) (addr.sin4.sin_family == AF_INET ? QType::A : QType::AAAA),
-                                         0, QClass::IN, // IN
-                                         0, 0, 0, 60,   // TTL
-                                         0, rdatalen};
+    else {
+      for(const auto& addr : addrs) {
+        unsigned char rdatalen = addr.sin4.sin_family == AF_INET ? sizeof(addr.sin4.sin_addr.s_addr) : sizeof(addr.sin6.sin6_addr.s6_addr);
+        const unsigned char recordstart[]={0xc0, 0x0c,    // compressed name
+                                           0, (unsigned char) (addr.sin4.sin_family == AF_INET ? QType::A : QType::AAAA),
+                                           0, QClass::IN, // IN
+                                           0, 0, 0, 60,   // TTL
+                                           0, rdatalen};
+        static_assert(sizeof(recordstart) == 12, "sizeof(recordstart) must be equal to 12, otherwise the above check is invalid");
 
-      memcpy(dest, recordstart, sizeof(recordstart));
-      dest += sizeof(recordstart);
+        memcpy(dest, recordstart, sizeof(recordstart));
+        dest += sizeof(recordstart);
 
-      memcpy(dest, 
-             rdatalen==4 ? (void*)&addr.sin4.sin_addr.s_addr : (void*)&addr.sin6.sin6_addr.s6_addr,
-             rdatalen); 
-      dest += rdatalen;
-      dq->len += rdatalen + sizeof(recordstart);
-      dq->dh->ancount++;
+        memcpy(dest,
+               addr.sin4.sin_family == AF_INET ? (void*)&addr.sin4.sin_addr.s_addr : (void*)&addr.sin6.sin6_addr.s6_addr,
+               rdatalen);
+        dest += rdatalen;
+        dq->len += rdatalen + sizeof(recordstart);
+        dq->dh->ancount++;
+      }
     }
-    
+
     dq->dh->ancount = htons(dq->dh->ancount);
     
     return Action::HeaderModify;

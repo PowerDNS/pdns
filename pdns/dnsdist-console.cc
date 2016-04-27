@@ -34,7 +34,7 @@ void doClient(ComboAddress server, const std::string& command)
 
   if(!command.empty()) {
     string msg=sodEncryptSym(command, g_key, ours);
-    putMsgLen32(fd, msg.length());
+    putMsgLen32(fd, (uint32_t) msg.length());
     if(!msg.empty())
       writen2(fd, msg);
     uint32_t len;
@@ -86,7 +86,7 @@ void doClient(ComboAddress server, const std::string& command)
       continue;
 
     string msg=sodEncryptSym(line, g_key, ours);
-    putMsgLen32(fd, msg.length());
+    putMsgLen32(fd, (uint32_t) msg.length());
     writen2(fd, msg);
     uint32_t len;
     if(!getMsgLen32(fd, &len)) {

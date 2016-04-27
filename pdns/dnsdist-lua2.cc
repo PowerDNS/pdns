@@ -455,12 +455,9 @@ void moreLua(bool client)
     g_lua.writeFunction("generateDNSCryptCertificate", [](const std::string& providerPrivateKeyFile, const std::string& certificateFile, const std::string privateKeyFile, uint32_t serial, time_t begin, time_t end) {
         setLuaNoSideEffect();
 #ifdef HAVE_DNSCRYPT
-        unsigned char privateKey[DNSCRYPT_PRIVATE_KEY_SIZE];
         unsigned char providerPrivateKey[DNSCRYPT_PROVIDER_PRIVATE_KEY_SIZE];
         sodium_mlock(providerPrivateKey, sizeof(providerPrivateKey));
-        sodium_mlock(privateKey, sizeof(privateKey));
         sodium_memzero(providerPrivateKey, sizeof(providerPrivateKey));
-        sodium_memzero(privateKey, sizeof(privateKey));
 
         try {
           DnsCryptPrivateKey privateKey;
@@ -483,9 +480,7 @@ void moreLua(bool client)
         }
 
         sodium_memzero(providerPrivateKey, sizeof(providerPrivateKey));
-        sodium_memzero(privateKey, sizeof(privateKey));
         sodium_munlock(providerPrivateKey, sizeof(providerPrivateKey));
-        sodium_munlock(privateKey, sizeof(privateKey));
 #else
       g_outputBuffer="Error: DNSCrypt support is not enabled.\n";
 #endif

@@ -25,7 +25,7 @@ DNSName::DNSName(const char* p)
     if(!strchr(p, '\\')) {
       unsigned char lenpos=0;
       unsigned char labellen=0;
-      unsigned int plen=strlen(p);
+      size_t plen=strlen(p);
       const char* const pbegin=p, *pend=p+plen;
       d_storage.reserve(plen+1);
       for(auto iter = pbegin; iter != pend; ) {

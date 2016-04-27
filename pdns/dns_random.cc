@@ -33,6 +33,7 @@ void dns_random_init(const char data[16])
   struct timeval now;
   gettimeofday(&now, 0);
 
+  static_assert(sizeof(g_counter) >= (sizeof(now.tv_usec) + sizeof(now.tv_sec)), "g_counter must be large enough to get tv_sec + tv_usec");
   memcpy(g_counter, &now.tv_usec, sizeof(now.tv_usec));
   memcpy(g_counter+sizeof(now.tv_usec), &now.tv_sec, sizeof(now.tv_sec));
   g_in = getpid() | (getppid()<<16);

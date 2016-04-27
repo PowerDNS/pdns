@@ -243,7 +243,7 @@ int asendtcp(const string& data, Socket* sock)
 void handleTCPClientReadable(int fd, FDMultiplexer::funcparam_t& var);
 
 // -1 is error, 0 is timeout, 1 is success
-int arecvtcp(string& data, int len, Socket* sock, bool incompleteOkay)
+int arecvtcp(string& data, size_t len, Socket* sock, bool incompleteOkay)
 {
   data.clear();
   PacketID pident;
@@ -267,10 +267,10 @@ void handleGenUDPQueryResponse(int fd, FDMultiplexer::funcparam_t& var)
 {
   PacketID pident=*any_cast<PacketID>(&var);
   char resp[512];
-  int ret=recv(fd, resp, sizeof(resp), 0);
+  ssize_t ret=recv(fd, resp, sizeof(resp), 0);
   t_fdm->removeReadFD(fd);
   if(ret >= 0) {
-    string data(resp, ret);
+    string data(resp, (size_t) ret);
     MT->sendEvent(pident, &data);
   }
   else {
@@ -427,7 +427,7 @@ public:
   // returns -1 for errors which might go away, throws for ones that won't
   static int makeClientSocket(int family)
   {
-    int ret=(int)socket(family, SOCK_DGRAM, 0 ); // turns out that setting CLO_EXEC and NONBLOCK from here is not a performance win on Linux (oddly enough)
+    int ret=socket(family, SOCK_DGRAM, 0 ); // turns out that setting CLO_EXEC and NONBLOCK from here is not a performance win on Linux (oddly enough)
 
     if(ret < 0 && errno==EMFILE) // this is not a catastrophic error
       return ret;
@@ -464,7 +464,7 @@ static __thread UDPClientSocks* t_udpclientsocks;
 
 /* these two functions are used by LWRes */
 // -2 is OS error, -1 is error that depends on the remote, > 0 is success
-int asendto(const char *data, int len, int flags,
+int asendto(const char *data, size_t len, int flags,
             const ComboAddress& toaddr, uint16_t id, const DNSName& domain, uint16_t qtype, int* fd)
 {
 
@@ -509,7 +509,7 @@ int asendto(const char *data, int len, int flags,
 }
 
 // -1 is error, 0 is timeout, 1 is success
-int arecvfrom(char *data, int len, int flags, const ComboAddress& fromaddr, int *d_len,
+int arecvfrom(char *data, size_t len, int flags, const ComboAddress& fromaddr, size_t *d_len,
               uint16_t id, const DNSName& domain, uint16_t qtype, int fd, struct timeval* now)
 {
   static optional<unsigned int> nearMissLimit;
@@ -530,7 +530,7 @@ int arecvfrom(char *data, int len, int flags, const ComboAddress& fromaddr, int 
     if(packet.empty()) // means "error"
       return -1;
 
-    *d_len=(int)packet.size();
+    *d_len=packet.size();
     memcpy(data,packet.c_str(),min(len,*d_len));
     if(*nearMissLimit && pident.nearMisses > *nearMissLimit) {
       L<<Logger::Error<<"Too many ("<<pident.nearMisses<<" > "<<*nearMissLimit<<") bogus answers for '"<<domain<<"' from "<<fromaddr.toString()<<", assuming spoof attempt."<<endl;
@@ -1264,7 +1264,7 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
 {
   ComboAddress addr;
   socklen_t addrlen=sizeof(addr);
-  int newsock=(int)accept(fd, (struct sockaddr*)&addr, &addrlen);
+  int newsock=accept(fd, (struct sockaddr*)&addr, &addrlen);
   if(newsock>=0) {
     if(MT->numProcesses() > g_maxMThreads) {
       g_stats.overCapacityDrops++;
@@ -1456,7 +1456,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
 
 void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 {
-  int len;
+  ssize_t len;
   char data[1500];
   ComboAddress fromaddr;
   struct msghdr msgh;
@@ -1500,7 +1500,7 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           L<<Logger::Error<<"Ignoring non-query opcode "<<dh->opcode<<" from "<<fromaddr.toString()<<" on server socket!"<<endl;
       }
       else {
-        string question(data, len);
+        string question(data, (size_t)len);
 	struct timeval tv={0,0};
 	HarvestTimestamp(&msgh, &tv);
 	ComboAddress dest;
@@ -1517,8 +1517,8 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           }
           else {
             dest.sin4.sin_family = fromaddr.sin4.sin_family;
-            socklen_t len = dest.getSocklen();
-            getsockname(fd, (sockaddr*)&dest, &len); // if this fails, we're ok with it
+            socklen_t slen = dest.getSocklen();
+            getsockname(fd, (sockaddr*)&dest, &slen); // if this fails, we're ok with it
           }
         }
         if(g_weDistributeQueries)
@@ -1608,7 +1608,7 @@ void makeTCPServerSockets()
 #endif
 
     sin.sin4.sin_port = htons(st.port);
-    int socklen=sin.sin4.sin_family==AF_INET ? sizeof(sin.sin4) : sizeof(sin.sin6);
+    socklen_t socklen=sin.sin4.sin_family==AF_INET ? sizeof(sin.sin4) : sizeof(sin.sin6);
     if (::bind(fd, (struct sockaddr *)&sin, socklen )<0)
       throw PDNSException("Binding TCP server socket for "+ st.host +": "+stringerror());
 
@@ -1686,7 +1686,7 @@ void makeUDPServerSockets()
         throw PDNSException("SO_REUSEPORT: "+stringerror());
     }
 #endif
-  int socklen=sin.getSocklen();      
+  socklen_t socklen=sin.getSocklen();
     if (::bind(fd, (struct sockaddr *)&sin, socklen)<0)
       throw PDNSException("Resolver binding to server socket on port "+ std::to_string(st.port) +" for "+ st.host+": "+stringerror());
 
@@ -2048,7 +2048,7 @@ void handleRCC(int fd, FDMultiplexer::funcparam_t& var)
 
   // If we are inside a chroot, we need to strip
   if (!arg()["chroot"].empty()) {
-    int len = arg()["chroot"].length();
+    size_t len = arg()["chroot"].length();
     remote = remote.substr(len);
   }
 
@@ -2071,10 +2071,10 @@ void handleTCPClientReadable(int fd, FDMultiplexer::funcparam_t& var)
 
   shared_array<char> buffer(new char[pident->inNeeded]);
 
-  int ret=recv(fd, buffer.get(), pident->inNeeded,0);
+  ssize_t ret=recv(fd, buffer.get(), pident->inNeeded,0);
   if(ret > 0) {
     pident->inMSG.append(&buffer[0], &buffer[ret]);
-    pident->inNeeded-=ret;
+    pident->inNeeded-=(size_t)ret;
     if(!pident->inNeeded || pident->inIncompleteOkay) {
       //      cerr<<"Got entire load of "<<pident->inMSG.size()<<" bytes"<<endl;
       PacketID pid=*pident;
@@ -2098,9 +2098,9 @@ void handleTCPClientReadable(int fd, FDMultiplexer::funcparam_t& var)
 void handleTCPClientWritable(int fd, FDMultiplexer::funcparam_t& var)
 {
   PacketID* pid=any_cast<PacketID>(&var);
-  int ret=send(fd, pid->outMSG.c_str() + pid->outPos, pid->outMSG.size() - pid->outPos,0);
+  ssize_t ret=send(fd, pid->outMSG.c_str() + pid->outPos, pid->outMSG.size() - pid->outPos,0);
   if(ret > 0) {
-    pid->outPos+=ret;
+    pid->outPos+=(ssize_t)ret;
     if(pid->outPos==pid->outMSG.size()) {
       PacketID tmp=*pid;
       t_fdm->removeWriteFD(fd);
@@ -2134,14 +2134,14 @@ void doResends(MT_t::waiters_t::iterator& iter, PacketID resend, const string& c
 void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
 {
   PacketID pid=any_cast<PacketID>(var);
-  int len;
+  ssize_t len;
   char data[g_outgoingEDNSBufsize];
   ComboAddress fromaddr;
   socklen_t addrlen=sizeof(fromaddr);
 
   len=recvfrom(fd, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen);
 
-  if(len < (int)sizeof(dnsheader)) {
+  if(len < (ssize_t) sizeof(dnsheader)) {
     if(len < 0)
       ; //      cerr<<"Error on fd "<<fd<<": "<<stringerror()<<"\n";
     else {

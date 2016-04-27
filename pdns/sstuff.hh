@@ -47,7 +47,7 @@ public:
   //! Construct a socket of specified address family and socket type.
   Socket(int af, int st, ProtocolType pt=0)
   {
-    if((d_socket=(int)socket(af,st, pt))<0)
+    if((d_socket=socket(af,st, pt))<0)
       throw NetworkError(strerror(errno));
     setCloseOnExec(d_socket);
 
@@ -67,7 +67,7 @@ public:
     struct sockaddr_in remote;
     socklen_t remlen=sizeof(remote);
     memset(&remote, 0, sizeof(remote));
-    int s=(int)::accept(d_socket,(sockaddr *)&remote, &remlen);
+    int s=::accept(d_socket,(sockaddr *)&remote, &remlen);
     if(s<0) {
       if(errno==EAGAIN)
         return 0;
@@ -151,7 +151,7 @@ public:
   void recvFrom(string &dgram, ComboAddress &ep)
   {
     socklen_t remlen=sizeof(ep);
-    int bytes;
+    ssize_t bytes;
     if((bytes=recvfrom(d_socket, d_buffer, d_buflen, 0, (sockaddr *)&ep , &remlen)) <0)
       throw NetworkError("After recvfrom: "+string(strerror(errno)));
     
@@ -162,7 +162,7 @@ public:
   {
     struct sockaddr_in remote;
     socklen_t remlen=sizeof(remote);
-    int bytes;
+    ssize_t bytes;
     if((bytes=recvfrom(d_socket, d_buffer, d_buflen, 0, (sockaddr *)&remote, &remlen))<0) {
       if(errno!=EAGAIN) {
         throw NetworkError("After async recvfrom: "+string(strerror(errno)));
@@ -177,7 +177,7 @@ public:
 
 
   //! For datagram sockets, send a datagram to a destination
-  void sendTo(const char* msg, unsigned int len, const ComboAddress &ep)
+  void sendTo(const char* msg, size_t len, const ComboAddress &ep)
   {
     if(sendto(d_socket, msg, len, 0, (sockaddr *)&ep, ep.getSocklen())<0)
       throw NetworkError("After sendto: "+string(strerror(errno)));
@@ -206,8 +206,8 @@ public:
     if(data.empty())
       return;
 
-    int toWrite=(int)data.length();
-    int res;
+    size_t toWrite=data.length();
+    ssize_t res;
     const char *ptr=data.c_str();
 
     do {
@@ -216,8 +216,8 @@ public:
         throw NetworkError("Writing to a socket: "+string(strerror(errno)));
       if(!res)
         throw NetworkError("EOF on socket");
-      toWrite-=res;
-      ptr+=res;
+      toWrite-=(size_t)res;
+      ptr+=(size_t)res;
     }while(toWrite);
 
   }
@@ -227,9 +227,9 @@ public:
       \param ptr Location to write from
       \param toWrite number of bytes to try
   */
-  unsigned int tryWrite(const char *ptr, int toWrite)
+  size_t tryWrite(const char *ptr, size_t toWrite)
   {
-    int res;
+    ssize_t res;
     res=::send(d_socket,ptr,toWrite,0);
     if(res==0)
       throw NetworkError("EOF on writing to a socket");
@@ -245,9 +245,9 @@ public:
 
   //! Writes toWrite bytes from ptr to the socket
   /** Writes toWrite bytes from ptr to the socket. Returns how many bytes were written */
-  unsigned int write(const char *ptr, int toWrite)
+  size_t write(const char *ptr, size_t toWrite)
   {
-    int res;
+    ssize_t res;
     res=::send(d_socket,ptr,toWrite,0);
     if(res<0) {
       throw NetworkError("Writing to a socket: "+string(strerror(errno)));
@@ -255,11 +255,11 @@ public:
     return res;
   }
 
-  void writenWithTimeout(const void *buffer, unsigned int n, int timeout)
+  void writenWithTimeout(const void *buffer, size_t n, int timeout)
   {
-    unsigned int bytes=n;
+    size_t bytes=n;
     const char *ptr = (char*)buffer;
-    int ret;
+    ssize_t ret;
     while(bytes) {
       ret=::write(d_socket, ptr, bytes);
       if(ret < 0) {
@@ -278,8 +278,8 @@ public:
         throw NetworkError("Did not fulfill TCP write due to EOF");
       }
 
-      ptr += ret;
-      bytes -= ret;
+      ptr += (size_t) ret;
+      bytes -= (size_t) ret;
     }
   }
 
@@ -288,7 +288,7 @@ public:
   {
     char c;
 
-    int res=::recv(d_socket,&c,1,0);
+    ssize_t res=::recv(d_socket,&c,1,0);
     if(res)
       return c;
     return -1;
@@ -308,22 +308,22 @@ public:
   //! Reads a block of data from the socket to a string
   void read(string &data)
   {
-    int res=::recv(d_socket,d_buffer,d_buflen,0);
+    ssize_t res=::recv(d_socket,d_buffer,d_buflen,0);
     if(res<0) 
       throw NetworkError("Reading from a socket: "+string(strerror(errno)));
     data.assign(d_buffer,res);
   }
 
   //! Reads a block of data from the socket to a block of memory
-  int read(char *buffer, int bytes)
+  size_t read(char *buffer, size_t bytes)
   {
-    int res=::recv(d_socket,buffer,bytes,0);
+    ssize_t res=::recv(d_socket,buffer,bytes,0);
     if(res<0) 
       throw NetworkError("Reading from a socket: "+string(strerror(errno)));
-    return res;
+    return (size_t) res;
   }
 
-  int readWithTimeout(char* buffer, int n, int timeout)
+  ssize_t readWithTimeout(char* buffer, size_t n, int timeout)
   {
     int err = waitForRWData(d_socket, true, timeout, 0);
 
@@ -351,7 +351,7 @@ public:
 private:
   char *d_buffer;
   int d_socket;
-  int d_buflen;
+  size_t d_buflen;
 };
 
 

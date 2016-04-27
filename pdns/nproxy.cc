@@ -153,10 +153,6 @@ try
   if(nif.domain != mdp.d_qname) {
     syslogFmt(boost::format("Response from inner nameserver for different domain '%s' than original notification '%s'") % mdp.d_qname.toString() % nif.domain.toString());
   } else {
-    struct dnsheader dh;
-    memcpy(&dh, buffer, sizeof(dh));
-    dh.id = nif.origID;
-    
     if(sendto(nif.origSocket, buffer, len, 0, (sockaddr*) &nif.source, nif.source.getSocklen()) < 0) {
       syslogFmt(boost::format("Unable to send notification response to external nameserver %s - %s") % nif.source.toStringWithPort() % stringerror());
     }

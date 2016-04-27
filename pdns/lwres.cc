@@ -56,8 +56,8 @@
  */
 int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult *lwr)
 {
-  int len; 
-  int bufsize=g_outgoingEDNSBufsize;
+  size_t len;
+  size_t bufsize=g_outgoingEDNSBufsize;
   scoped_array<unsigned char> buf(new unsigned char[bufsize]);
   vector<uint8_t> vpacket;
   //  string mapped0x20=dns0x20(domain);
@@ -95,7 +95,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
     if(ip.sin4.sin_family==AF_INET6)
       g_stats.ipv6queries++;
 
-    if((ret=asendto((const char*)&*vpacket.begin(), (int)vpacket.size(), 0, ip, pw.getHeader()->id, 
+    if((ret=asendto((const char*)&*vpacket.begin(), vpacket.size(), 0, ip, pw.getHeader()->id,
                     domain, type, &queryfd)) < 0) {
       return ret; // passes back the -2 EMFILE
     }
@@ -132,7 +132,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
       if(!(ret > 0))
         return ret;
       
-      memcpy(&tlen, packet.c_str(), 2);
+      memcpy(&tlen, packet.c_str(), sizeof(tlen));
       len=ntohs(tlen); // switch to the 'len' shared with the rest of the function
       
       ret=arecvtcp(packet, len, &s, false);

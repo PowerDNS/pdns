@@ -231,6 +231,7 @@ void generateOptRR(const std::string& optRData, string& res)
   
   dh.d_type = htons(QType::OPT);
   dh.d_class = htons(q_EdnsUDPPayloadSize);
+  static_assert(sizeof(EDNS0Record) == sizeof(dh.d_ttl), "sizeof(EDNS0Record) must match sizeof(dnsrecordheader.d_ttl)");
   memcpy(&dh.d_ttl, &edns0, sizeof edns0);
   dh.d_clen = htons((uint16_t) optRData.length());
   res.assign((const char *) &name, sizeof name);

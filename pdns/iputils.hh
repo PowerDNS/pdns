@@ -94,7 +94,7 @@ union ComboAddress {
     if(sin4.sin_family == AF_INET)
       return sin4.sin_addr.s_addr == rhs.sin4.sin_addr.s_addr;
     else
-      return memcmp(&sin6.sin6_addr.s6_addr, &rhs.sin6.sin6_addr.s6_addr, 16)==0;
+      return memcmp(&sin6.sin6_addr.s6_addr, &rhs.sin6.sin6_addr.s6_addr, sizeof(sin6.sin6_addr.s6_addr))==0;
   }
 
   bool operator!=(const ComboAddress& rhs) const
@@ -115,7 +115,7 @@ union ComboAddress {
     if(sin4.sin_family == AF_INET)
       return sin4.sin_addr.s_addr < rhs.sin4.sin_addr.s_addr;
     else
-      return memcmp(&sin6.sin6_addr.s6_addr, &rhs.sin6.sin6_addr.s6_addr, 16) < 0;
+      return memcmp(&sin6.sin6_addr.s6_addr, &rhs.sin6.sin6_addr.s6_addr, sizeof(sin6.sin6_addr.s6_addr)) < 0;
   }
 
   bool operator>(const ComboAddress& rhs) const
@@ -152,7 +152,7 @@ union ComboAddress {
       if(a.sin4.sin_family == AF_INET)
         return a.sin4.sin_addr.s_addr < b.sin4.sin_addr.s_addr;
       else
-        return memcmp(&a.sin6.sin6_addr.s6_addr, &b.sin6.sin6_addr.s6_addr, 16) < 0;
+        return memcmp(&a.sin6.sin6_addr.s6_addr, &b.sin6.sin6_addr.s6_addr, sizeof(a.sin6.sin6_addr.s6_addr)) < 0;
     }
   };
 
@@ -165,7 +165,7 @@ union ComboAddress {
       if(a.sin4.sin_family == AF_INET)
         return a.sin4.sin_addr.s_addr == b.sin4.sin_addr.s_addr;
       else
-        return !memcmp(&a.sin6.sin6_addr.s6_addr, &b.sin6.sin6_addr.s6_addr, 16);
+        return !memcmp(&a.sin6.sin6_addr.s6_addr, &b.sin6.sin6_addr.s6_addr, sizeof(a.sin6.sin6_addr.s6_addr));
     }
   };
 
@@ -245,8 +245,8 @@ union ComboAddress {
     ret.sin4.sin_port=sin4.sin_port;
     
     const unsigned char*ptr = (unsigned char*) &sin6.sin6_addr.s6_addr;
-    ptr+=12;
-    memcpy(&ret.sin4.sin_addr.s_addr, ptr, 4);
+    ptr+=(sizeof(sin6.sin6_addr.s6_addr) - sizeof(ret.sin4.sin_addr.s_addr));
+    memcpy(&ret.sin4.sin_addr.s_addr, ptr, sizeof(ret.sin4.sin_addr.s_addr));
     return ret;
   }
 
@@ -323,7 +323,7 @@ public:
     d_network=makeComboAddress(split.first);
     
     if(!split.second.empty()) {
-      d_bits = pdns_stou(split.second);
+      d_bits = (uint8_t)pdns_stou(split.second);
       if(d_bits<32)
         d_mask=~(0xFFFFFFFF>>d_bits);
       else
@@ -365,7 +365,7 @@ public:
       }
       // still here, now match remaining bits
       uint8_t bits= d_bits % 8;
-      uint8_t mask= ~(0xFF>>bits);
+      uint8_t mask= (uint8_t) ~(0xFF>>bits);
 
       return((us[n] & mask) == (them[n] & mask));
     }
@@ -854,7 +854,7 @@ bool IsAnyAddress(const ComboAddress& addr);
 bool HarvestDestinationAddress(struct msghdr* msgh, ComboAddress* destination);
 bool HarvestTimestamp(struct msghdr* msgh, struct timeval* tv);
 void fillMSGHdr(struct msghdr* msgh, struct iovec* iov, char* cbuf, size_t cbufsize, char* data, size_t datalen, ComboAddress* addr);
-int sendfromto(int sock, const char* data, int len, int flags, const ComboAddress& from, const ComboAddress& to);
+ssize_t sendfromto(int sock, const char* data, size_t len, int flags, const ComboAddress& from, const ComboAddress& to);
 ssize_t sendMsgWithTimeout(int fd, const char* buffer, size_t len, int timeout, ComboAddress& dest, const ComboAddress& local, unsigned int localItf);
 
 #endif

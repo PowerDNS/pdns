@@ -71,7 +71,10 @@ public:
   PacketReader(const vector<uint8_t>& content) 
     : d_pos(0), d_startrecordpos(0), d_content(content)
   {
-    d_recordlen = content.size();
+    if(content.size() > std::numeric_limits<uint16_t>::max())
+      throw std::out_of_range("packet too large");
+
+    d_recordlen = (uint16_t) content.size();
     not_used = 0;
   }
 
@@ -224,7 +227,7 @@ public:
       return iter->second.second;
     
     if(boost::starts_with(name, "TYPE") || boost::starts_with(name, "type"))
-      return pdns_stou(name.substr(4));
+      return (uint16_t) pdns_stou(name.substr(4));
     
     throw runtime_error("Unknown DNS type '"+name+"'");
   }

@@ -127,7 +127,7 @@ try
 {
   unsigned int consumed;
   DNSName qname(packet, *len, sizeof(dnsheader), false, 0, 0, &consumed);
-  *len=sizeof(dnsheader)+consumed+DNS_TYPE_SIZE+DNS_CLASS_SIZE;
+  *len=(uint16_t) (sizeof(dnsheader)+consumed+DNS_TYPE_SIZE+DNS_CLASS_SIZE);
   struct dnsheader* dh =(struct dnsheader*)packet;
   dh->ancount = dh->arcount = dh->nscount=0;
 }
@@ -343,7 +343,7 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
     if (got < (ssize_t) sizeof(dnsheader))
       continue;
 
-    uint16_t responseLen = (size_t) got;
+    uint16_t responseLen = (uint16_t) got;
 
     if(dh->id >= state->idStates.size())
       continue;
@@ -601,7 +601,7 @@ std::shared_ptr<ServerPool> createPoolIfNotExists(pools_t& pools, const string& 
 void addServerToPool(pools_t& pools, const string& poolName, std::shared_ptr<DownstreamState> server)
 {
   std::shared_ptr<ServerPool> pool = createPoolIfNotExists(pools, poolName);
-  unsigned int count = pool->servers.size();
+  unsigned int count = (unsigned int) pool->servers.size();
   if (!poolName.empty()) {
     vinfolog("Adding server to pool %s", poolName);
   } else {
@@ -870,7 +870,7 @@ try
             if(!HarvestDestinationAddress(&msgh, &dest)) {
               dest.sin4.sin_family = 0;
             }
-            sendUDPResponse(cs->udpFD, reinterpret_cast<char*>(response.data()), response.size(), 0, dest, remote);
+            sendUDPResponse(cs->udpFD, reinterpret_cast<char*>(response.data()), (uint16_t) response.size(), 0, dest, remote);
           }
           continue;
         }
