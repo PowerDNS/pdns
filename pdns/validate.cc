@@ -354,8 +354,13 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
               auto nsec3 = std::dynamic_pointer_cast<NSEC3RecordContent>(r);
               string h = hashQNameWithSalt(nsec3->d_salt, nsec3->d_iterations, qname);
               LOG("\tquery hash: "<<toBase32Hex(h)<<endl);
-              if(fromBase32Hex(v.first.first.getRawLabels()[0]) < h && h < nsec3->d_nexthash) {
+              string beginHash=fromBase32Hex(v.first.first.getRawLabels()[0]);
+              if(beginHash < h && h < nsec3->d_nexthash) {
                 LOG("Denies existence of DS!"<<endl);
+                return Insecure;
+              }
+              else if(beginHash == h && !nsec3->d_set.count(QType::DS)) {
+                LOG("Denies existence of DS (not opt-out)"<<endl);
                 return Insecure;
               }
               else {
