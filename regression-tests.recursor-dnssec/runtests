@@ -9,12 +9,16 @@ pip install -r requirements.txt
 
 mkdir -p configs
 
+[ -f ./vars ] && . ./vars
+
 export PDNS=${PDNS:-${PWD}/../pdns/pdns_server}
 export PDNSUTIL=${PDNSUTIL:-${PWD}/../pdns/pdnsutil}
 export PDNSRECURSOR=${PDNSRECURSOR:-${PWD}/../pdns/recursordist/pdns_recursor}
 export RECCONTROL=${RECCONTROL:-${PWD}/../pdns/recursordist/rec_control}
+export LIBFAKETIME=${LIBFAKETIME:-/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1} # ubuntu default
 
 export PREFIX=10.0.3
+
 
 set -e
 if [ "${PDNS_DEBUG}" = "YES" ]; then

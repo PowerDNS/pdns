@@ -149,6 +149,9 @@ PrivateKey: f5jV7Q8kd5hDpMWObsuQ6SQda0ftf+JrO3uZwEg6nVw=
         '13': ['insecure.example']
     }
 
+    _auth_cmd = ['authbind',
+                 os.environ['PDNS']]
+    _auth_env = {}
     _auths = {}
 
     @classmethod
@@ -270,16 +273,16 @@ distributor-threads=1""".format(confdir=confdir,
     @classmethod
     def startAuth(cls, confdir, ipaddress):
         print("Launching pdns_server..")
-        authcmd = ['authbind',
-                   os.environ['PDNS'],
-                   '--config-dir=%s' % confdir,
-                   '--local-address=%s' % ipaddress]
+        authcmd = cls._auth_cmd
+        authcmd.append('--config-dir=%s' % confdir)
+        authcmd.append('--local-address=%s' % ipaddress)
         print(' '.join(authcmd))
 
         logFile = os.path.join(confdir, 'pdns.log')
         with open(logFile, 'w') as fdLog:
             cls._auths[ipaddress] = subprocess.Popen(authcmd, close_fds=True,
-                                                     stdout=fdLog, stderr=fdLog)
+                                                     stdout=fdLog, stderr=fdLog,
+                                                     env=cls._auth_env)
 
         time.sleep(2)
 
