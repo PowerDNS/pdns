@@ -1396,7 +1396,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   if(!ifs) 
     warnlog("Unable to read configuration from '%s'", config);
   else
-    infolog("Read configuration from '%s'", config);
+    vinfolog("Read configuration from '%s'", config);
 
   g_lua.executeCode(ifs);
 
