@@ -127,6 +127,7 @@ int getRRSIGsForRRSET(DNSSECKeeper& dk, const DNSName& signer, const DNSName sig
   vector<shared_ptr<DNSRecordContent> >& toSign, vector<RRSIGRecordContent> &rrc);
 
 string hashQNameWithSalt(const NSEC3PARAMRecordContent& ns3prc, const DNSName& qname);
+string hashQNameWithSalt(const std::string& salt, unsigned int iterations, const DNSName& qname);
 void decodeDERIntegerSequence(const std::string& input, vector<string>& output);
 class DNSPacket;
 void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const std::set<DNSName>& authMap, vector<DNSResourceRecord>& rrs);
