@@ -290,8 +290,9 @@ vector<string> DNSName::getRawLabels() const
   vector<string> ret;
   ret.reserve(countLabels());
   // 3www4ds9a2nl0
-  for(const char* p = d_storage.c_str(); p < d_storage.c_str() + d_storage.size() && *p; p+=*p+1)
-    ret.push_back({p+1, (unsigned int)*p}); // XXX FIXME
+  for(const unsigned char* p = (const unsigned char*) d_storage.c_str(); p < ((const unsigned char*) d_storage.c_str()) + d_storage.size() && *p; p+=*p+1) {
+    ret.push_back({(const char*)p+1, (size_t)*p}); // XXX FIXME
+  }
   return ret;
 }
 
@@ -315,7 +316,7 @@ bool DNSName::isWildcard() const
 unsigned int DNSName::countLabels() const
 {
   unsigned int count=0;
-  for(const char* p = d_storage.c_str(); p < d_storage.c_str() + d_storage.size() && *p; p+=*p+1)
+  for(const unsigned char* p = (const unsigned char*) d_storage.c_str(); p < ((const unsigned char*) d_storage.c_str()) + d_storage.size() && *p; p+=*p+1)
     ++count;
   return count;
 }
