@@ -67,8 +67,8 @@ public:
   DNSPacket();
   DNSPacket(const DNSPacket &orig);
 
-  int noparse(const char *mesg, int len); //!< just suck the data inward
-  int parse(const char *mesg, int len); //!< parse a raw UDP or TCP packet and suck the data inward
+  int noparse(const char *mesg, size_t len); //!< just suck the data inward
+  int parse(const char *mesg, size_t len); //!< parse a raw UDP or TCP packet and suck the data inward
   const string& getString(); //!< for serialization - just passes the whole packet
 
   // address & socket manipulation

@@ -581,7 +581,7 @@ public:
     const char* p = d_packet + d_offset;
     moveOffset(4);
     uint32_t ret;
-    memcpy(&ret, (void*)p, 4);
+    memcpy(&ret, (void*)p, sizeof(ret));
     return ntohl(ret);
   }
   uint16_t get16BitInt()
@@ -589,7 +589,7 @@ public:
     const char* p = d_packet + d_offset;
     moveOffset(2);
     uint16_t ret;
-    memcpy(&ret, (void*)p, 2);
+    memcpy(&ret, (void*)p, sizeof(ret));
     return ntohs(ret);
   }
   
@@ -642,10 +642,10 @@ void ageDNSPacket(char* packet, size_t length, uint32_t seconds)
   {
     dnsheader dh;
     memcpy((void*)&dh, (const dnsheader*)packet, sizeof(dh));
-    int numrecords = ntohs(dh.ancount) + ntohs(dh.nscount) + ntohs(dh.arcount);
+    uint64_t numrecords = ntohs(dh.ancount) + ntohs(dh.nscount) + ntohs(dh.arcount);
     DNSPacketMangler dpm(packet, length);
-    
-    int n;
+
+    uint64_t n;
     for(n=0; n < ntohs(dh.qdcount) ; ++n) {
       dpm.skipLabel();
       dpm.skipBytes(4); // qtype, qclass

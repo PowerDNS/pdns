@@ -61,12 +61,12 @@
 
 bool g_singleThreaded;
 
-int writen2(int fd, const void *buf, size_t count)
+size_t writen2(int fd, const void *buf, size_t count)
 {
   const char *ptr = (char*)buf;
   const char *eptr = ptr + count;
 
-  int res;
+  ssize_t res;
   while(ptr != eptr) {
     res = ::write(fd, ptr, eptr - ptr);
     if(res < 0) {
@@ -78,16 +78,16 @@ int writen2(int fd, const void *buf, size_t count)
     else if (res == 0)
       throw std::runtime_error("could not write all bytes, got eof in writen2");
 
-    ptr += res;
+    ptr += (size_t) res;
   }
 
   return count;
 }
 
-int readn2(int fd, void* buffer, unsigned int len)
+size_t readn2(int fd, void* buffer, size_t len)
 {
-  unsigned int pos=0;
-  int res;
+  size_t pos=0;
+  ssize_t res;
   for(;;) {
     res = read(fd, (char*)buffer + pos, len - pos);
     if(res == 0)
@@ -99,14 +99,14 @@ int readn2(int fd, void* buffer, unsigned int len)
         unixDie("failed in readn2");
     }
 
-    pos+=res;
+    pos+=(size_t)res;
     if(pos == len)
       break;
   }
   return len;
 }
 
-int readn2WithTimeout(int fd, void* buffer, size_t len, int timeout)
+size_t readn2WithTimeout(int fd, void* buffer, size_t len, int timeout)
 {
   size_t pos = 0;
   do {
@@ -139,7 +139,7 @@ int readn2WithTimeout(int fd, void* buffer, size_t len, int timeout)
   return len;
 }
 
-int writen2WithTimeout(int fd, const void * buffer, size_t len, int timeout)
+size_t writen2WithTimeout(int fd, const void * buffer, size_t len, int timeout)
 {
   size_t pos = 0;
   do {
@@ -204,67 +204,7 @@ uint32_t getLong(const char* p)
   return getLong((unsigned char *)p);
 }
 
-
-
-/** strips a domain suffix from a domain, returns true if it stripped */
-bool stripDomainSuffix(string *qname, const string &domain)
-{
-  if(!endsOn(*qname, domain))
-    return false;
-
-  if(toLower(*qname)==toLower(domain))
-    *qname="@";
-  else {
-    if((*qname)[qname->size()-domain.size()-1]!='.')
-      return false;
-
-    qname->resize(qname->size()-domain.size()-1);
-  }
-  return true;
-}
-
-/** Chops off the start of a domain, so goes from 'www.ds9a.nl' to 'ds9a.nl' to 'nl' to ''. Return zero on the empty string */
-bool chopOff(string &domain)
-{
-  if(domain.empty())
-    return false;
-
-  string::size_type fdot=domain.find('.');
-
-  if(fdot==string::npos)
-    domain="";
-  else {
-    string::size_type remain = domain.length() - (fdot + 1);
-    char tmp[remain];
-    memcpy(tmp, domain.c_str()+fdot+1, remain);
-    domain.assign(tmp, remain); // don't dare to do this w/o tmp holder :-)
-  }
-  return true;
-}
-
-/** Chops off the start of a domain, so goes from 'www.ds9a.nl.' to 'ds9a.nl.' to 'nl.' to '.' Return zero on the empty string */
-bool chopOffDotted(string &domain)
-{
-  if(domain.empty() || (domain.size()==1 && domain[0]=='.'))
-    return false;
-
-  string::size_type fdot=domain.find('.');
-  if(fdot == string::npos)
-    return false;
-
-  if(fdot==domain.size()-1)
-    domain=".";
-  else  {
-    string::size_type remain = domain.length() - (fdot + 1);
-    char tmp[remain];
-    memcpy(tmp, domain.c_str()+fdot+1, remain);
-    domain.assign(tmp, remain);
-  }
-  return true;
-}
-
-
-bool ciEqual(const string& a, const string& b)
+static bool ciEqual(const string& a, const string& b)
 {
   if(a.size()!=b.size())
     return false;
@@ -277,7 +217,7 @@ bool ciEqual(const string& a, const string& b)
 }
 
 /** does domain end on suffix? Is smart about "wwwds9a.nl" "ds9a.nl" not matching */
-bool endsOn(const string &domain, const string &suffix)
+static bool endsOn(const string &domain, const string &suffix)
 {
   if( suffix.empty() || ciEqual(domain, suffix) )
     return true;
@@ -294,6 +234,23 @@ bool endsOn(const string &domain, const string &suffix)
     if(dns_tolower(domain[dpos]) != dns_tolower(suffix[spos]))
       return false;
 
+  return true;
+}
+
+/** strips a domain suffix from a domain, returns true if it stripped */
+bool stripDomainSuffix(string *qname, const string &domain)
+{
+  if(!endsOn(*qname, domain))
+    return false;
+
+  if(toLower(*qname)==toLower(domain))
+    *qname="@";
+  else {
+    if((*qname)[qname->size()-domain.size()-1]!='.')
+      return false;
+
+    qname->resize(qname->size()-domain.size()-1);
+  }
   return true;
 }
 

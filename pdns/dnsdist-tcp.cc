@@ -99,7 +99,7 @@ static bool getNonBlockingMsgLen(int fd, uint16_t* len, int timeout)
 try
 {
   uint16_t raw;
-  int ret = readn2WithTimeout(fd, &raw, sizeof raw, timeout);
+  size_t ret = readn2WithTimeout(fd, &raw, sizeof raw, timeout);
   if(ret != sizeof raw)
     return false;
   *len = ntohs(raw);
@@ -113,7 +113,7 @@ static bool putNonBlockingMsgLen(int fd, uint16_t len, int timeout)
 try
 {
   uint16_t raw = htons(len);
-  int ret = writen2WithTimeout(fd, &raw, sizeof raw, timeout);
+  size_t ret = writen2WithTimeout(fd, &raw, sizeof raw, timeout);
   return ret == sizeof raw;
 }
 catch(...) {
@@ -185,7 +185,6 @@ void* tcpClientThread(int pipefd)
     delete citmp;    
 
     uint16_t qlen, rlen;
-    string poolname;
     string largerQuery;
     vector<uint8_t> rewrittenResponse;
     shared_ptr<DownstreamState> ds;
@@ -229,7 +228,7 @@ void* tcpClientThread(int pipefd)
 
           if (!decrypted) {
             if (response.size() > 0) {
-              sendResponseToClient(ci.fd, reinterpret_cast<char*>(response.data()), response.size());
+              sendResponseToClient(ci.fd, reinterpret_cast<char*>(response.data()), (uint16_t) response.size());
             }
             break;
           }
@@ -299,7 +298,7 @@ void* tcpClientThread(int pipefd)
           handleEDNSClientSubnet(queryBuffer, dq.size, consumed, &newLen, largerQuery, &ednsAdded, &ecsAdded, ci.remote);
           if (largerQuery.empty() == false) {
             query = largerQuery.c_str();
-            dq.len = largerQuery.size();
+            dq.len = (uint16_t) largerQuery.size();
             dq.size = largerQuery.size();
           } else {
             dq.len = newLen;
@@ -311,7 +310,7 @@ void* tcpClientThread(int pipefd)
           char cachedResponse[4096];
           uint16_t cachedResponseSize = sizeof cachedResponse;
           uint32_t allowExpired = ds ? 0 : g_staleCacheEntriesTTL;
-          if (packetCache->get(dq, consumed, dq.dh->id, cachedResponse, &cachedResponseSize, &cacheKey, allowExpired)) {
+          if (packetCache->get(dq, (uint16_t) consumed, dq.dh->id, cachedResponse, &cachedResponseSize, &cacheKey, allowExpired)) {
 #ifdef HAVE_DNSCRYPT
             if (!encryptResponse(cachedResponse, &cachedResponseSize, sizeof cachedResponse, true, dnsCryptQuery)) {
               goto drop;
@@ -541,7 +540,7 @@ bool getMsgLen32(int fd, uint32_t* len)
 try
 {
   uint32_t raw;
-  int ret = readn2(fd, &raw, sizeof raw);
+  size_t ret = readn2(fd, &raw, sizeof raw);
   if(ret != sizeof raw)
     return false;
   *len = ntohl(raw);
@@ -557,7 +556,7 @@ bool putMsgLen32(int fd, uint32_t len)
 try
 {
   uint32_t raw = htonl(len);
-  int ret = writen2(fd, &raw, sizeof raw);
+  size_t ret = writen2(fd, &raw, sizeof raw);
   return ret==sizeof raw;
 }
 catch(...) {

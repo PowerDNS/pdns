@@ -42,10 +42,10 @@
 #include "dns.hh"
 #include "namespaces.hh"
 
-int asendto(const char *data, int len, int flags, const ComboAddress& ip, uint16_t id, 
+int asendto(const char *data, size_t len, int flags, const ComboAddress& ip, uint16_t id,
             const DNSName& domain, uint16_t qtype,  int* fd);
-int arecvfrom(char *data, int len, int flags, const ComboAddress& ip, int *d_len, uint16_t id, 
-              const DNSName& domain, uint16_t, int fd, struct timeval* now);
+int arecvfrom(char *data, size_t len, int flags, const ComboAddress& ip, size_t *d_len, uint16_t id,
+              const DNSName& domain, uint16_t qtype, int fd, struct timeval* now);
 
 class LWResException : public PDNSException
 {

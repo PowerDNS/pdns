@@ -48,7 +48,7 @@ struct DnsCryptCertSignedData
 
 struct DnsCryptCert
 {
-  unsigned char magic[4];
+  unsigned char magic[DNSCRYPT_CERT_MAGIC_SIZE];
   unsigned char esVersion[2];
   unsigned char protocolMinorVersion[2];
   unsigned char signature[DNSCRYPT_SIGNATURE_SIZE];

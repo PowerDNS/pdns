@@ -55,6 +55,7 @@ void primeHints(void)
     for(char c='a';c<='m';++c) {
       static char templ[40];
       strncpy(templ,"a.root-servers.net.", sizeof(templ) - 1);
+      templ[sizeof(templ)-1] = '\0';
       *templ=c;
       aaaarr.d_name=arr.d_name=DNSName(templ);
       nsrr.d_content=std::make_shared<NSRecordContent>(DNSName(templ));

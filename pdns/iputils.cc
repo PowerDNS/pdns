@@ -118,7 +118,7 @@ bool IsAnyAddress(const ComboAddress& addr)
   return false;
 }
 
-int sendfromto(int sock, const char* data, int len, int flags, const ComboAddress& from, const ComboAddress& to)
+ssize_t sendfromto(int sock, const char* data, size_t len, int flags, const ComboAddress& from, const ComboAddress& to)
 {
   struct msghdr msgh;
   struct iovec iov;

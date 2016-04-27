@@ -145,6 +145,8 @@ struct EDNS0Record
         uint16_t Z; 
 } GCCPACKATTRIBUTE;
 
+static_assert(sizeof(EDNS0Record) == 4, "EDNS0Record size must be 4");
+
 #if defined(__FreeBSD__) || defined(__APPLE__) || defined(__OpenBSD__) || defined(__DragonFly__) || defined(__FreeBSD_kernel__)
 #include <machine/endian.h>
 #elif __linux__ || __GNU__
