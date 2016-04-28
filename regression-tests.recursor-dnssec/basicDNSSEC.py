@@ -107,3 +107,29 @@ class BasicDNSSEC(RecursorTest):
         self.assertRcodeEqual(res, dns.rcode.NXDOMAIN)
         self.assertMatchingRRSIGInAnswer(res, expectedCNAME)
         self.assertMessageIsAuthenticated(res)
+
+    def testSecureNoData(self):
+        res = self.sendQuery('host1.secure.example.', 'AAAA')
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnswerEmpty(res)
+        self.assertAuthorityHasSOA(res)
+        self.assertMessageIsAuthenticated(res)
+
+    def testSecureCNAMENoData(self):
+        res = self.sendQuery('cname.secure.example.', 'AAAA')
+        expectedCNAME = dns.rrset.from_text('cname.secure.example.', 0, dns.rdataclass.IN, 'CNAME', 'host1.secure.example.')
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMatchingRRSIGInAnswer(res, expectedCNAME)
+        self.assertAuthorityHasSOA(res)
+        self.assertMessageIsAuthenticated(res)
+
+    def testSecureWildCardNoData(self):
+        res = self.sendQuery('something.cnamewildcard.secure.example.', 'AAAA')
+        expectedCNAME = dns.rrset.from_text('something.cnamewildcard.secure.example.', 0, dns.rdataclass.IN, 'CNAME', 'host1.secure.example.')
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMatchingRRSIGInAnswer(res, expectedCNAME)
+        self.assertAuthorityHasSOA(res)
+        self.assertMessageIsAuthenticated(res)

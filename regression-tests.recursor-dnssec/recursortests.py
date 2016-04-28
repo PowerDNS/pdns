@@ -96,6 +96,7 @@ secure.example.          3600 IN NS   ns.secure.example.
 ns.secure.example.       3600 IN A    {prefix}.9
 
 host1.secure.example.    3600 IN A    192.0.2.2
+cname.secure.example.    3600 IN CNAME host1.secure.example.
 
 host1.sub.secure.example. 3600 IN A    192.0.2.11
 
@@ -684,3 +685,16 @@ distributor-threads=1""".format(confdir=confdir,
             wantedRcode = dns.rcode._by_value[rcode]
 
             raise AssertionError("Rcode for %s is %s, expected %s." % (msg.question[0].to_text(), msgRcode, wantedRcode))
+
+    def assertAuthorityHasSOA(self, msg):
+        if not isinstance(msg, dns.message.Message):
+            raise TypeError("msg is not a dns.message.Message but a %s" % type(msg))
+
+        found = False
+        for rrset in msg.authority:
+            if rrset.rdtype == dns.rdatatype.SOA:
+                found = True
+                break
+
+        if not found:
+            raise AssertionError("No SOA record found in the authority section:\n%s" % msg.to_text())
