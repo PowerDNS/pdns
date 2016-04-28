@@ -190,7 +190,6 @@ namespace YaHTTP {
 
     bool cookieSent = false;
     bool sendChunked = false;
-    bool hasBody = true;
 
     if (this->version > 10) { // 1.1 or better
       if (headers.find("content-length") == headers.end()) {
@@ -204,14 +203,7 @@ namespace YaHTTP {
           os << "Transfer-Encoding: chunked\r\n";
         }
       } else {
-        hasBody = (headers.find("content-length")->second != "0");
-        if ((headers.find("transfer-encoding") == headers.end() && kind == YAHTTP_TYPE_RESPONSE)) {
-          sendChunked = hasBody;
-          if (sendChunked)
-            os << "Transfer-Encoding: chunked\r\n";
-        } else if (headers.find("transfer-encoding") != headers.end() && headers.find("transfer-encoding")->second == "chunked") {
-          sendChunked = hasBody;
-        }
+	sendChunked = false;
       }
     }
 
