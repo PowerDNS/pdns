@@ -57,7 +57,7 @@ DNSName::DNSName(const char* p)
 }
 
 
-DNSName::DNSName(const char* pos, int len, int offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed)
+DNSName::DNSName(const char* pos, int len, int offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed, uint16_t minOffset)
 {
   if (offset >= len)
     throw std::range_error("Trying to read past the end of the buffer ("+std::to_string(offset)+ " >= "+std::to_string(len)+")");
@@ -68,11 +68,11 @@ DNSName::DNSName(const char* pos, int len, int offset, bool uncompress, uint16_t
     }
   }
 
-  packetParser(pos, len, offset, uncompress, qtype, qclass, consumed);
+  packetParser(pos, len, offset, uncompress, qtype, qclass, consumed, 0, minOffset);
 }
 
 // this should be the __only__ dns name parser in PowerDNS.
-void DNSName::packetParser(const char* qpos, int len, int offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed, int depth)
+void DNSName::packetParser(const char* qpos, int len, int offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed, int depth, uint16_t minOffset)
 {
   const unsigned char* pos=(const unsigned char*)qpos;
   unsigned char labellen;
@@ -80,6 +80,8 @@ void DNSName::packetParser(const char* qpos, int len, int offset, bool uncompres
 
   if (offset >= len)
     throw std::range_error("Trying to read past the end of the buffer ("+std::to_string(offset)+ " >= "+std::to_string(len)+")");
+  if (offset < (int) minOffset)
+    throw std::range_error("Trying to read before the beginning of the buffer ("+std::to_string(offset)+ " < "+std::to_string(minOffset)+")");
 
   const unsigned char* end = pos + len;
   pos += offset;
@@ -92,9 +94,11 @@ void DNSName::packetParser(const char* qpos, int len, int offset, bool uncompres
       int newpos = (labellen << 8) + *(const unsigned char*)pos;
 
       if(newpos < offset) {
+        if(newpos < (int) minOffset)
+          throw std::range_error("Invalid label position during decompression ("+std::to_string(newpos)+ " < "+std::to_string(minOffset)+")");
         if (++depth > 100)
           throw std::range_error("Abort label decompression after 100 redirects");
-        packetParser((const char*)opos, len, newpos, true, 0, 0, 0, depth);
+        packetParser((const char*)opos, len, newpos, true, 0, 0, 0, depth, minOffset);
       } else
         throw std::range_error("Found a forward reference during label decompression");
       pos++;

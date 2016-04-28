@@ -45,7 +45,7 @@ public:
   DNSName()  {}          //!< Constructs an *empty* DNSName, NOT the root!
   explicit DNSName(const char* p);      //!< Constructs from a human formatted, escaped presentation
   explicit DNSName(const std::string& str) : DNSName(str.c_str()) {}; //!< Constructs from a human formatted, escaped presentation
-  DNSName(const char* p, int len, int offset, bool uncompress, uint16_t* qtype=0, uint16_t* qclass=0, unsigned int* consumed=0); //!< Construct from a DNS Packet, taking the first question if offset=12
+  DNSName(const char* p, int len, int offset, bool uncompress, uint16_t* qtype=0, uint16_t* qclass=0, unsigned int* consumed=0, uint16_t minOffset=0); //!< Construct from a DNS Packet, taking the first question if offset=12
   
   bool isPartOf(const DNSName& rhs) const;   //!< Are we part of the rhs name?
   bool operator==(const DNSName& rhs) const; //!< DNS-native comparison (case insensitive) - empty compares to empty
@@ -112,7 +112,7 @@ public:
 private:
   string_t d_storage;
 
-  void packetParser(const char* p, int len, int offset, bool uncompress, uint16_t* qtype=0, uint16_t* qclass=0, unsigned int* consumed=0, int depth=0);
+  void packetParser(const char* p, int len, int offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed, int depth, uint16_t minOffset);
   static std::string escapeLabel(const std::string& orig);
   static std::string unescapeLabel(const std::string& orig);
 };
