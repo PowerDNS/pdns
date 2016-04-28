@@ -67,3 +67,17 @@ class BasicDNSSEC(RecursorTest):
 
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertNoRRSIGsInAnswer(res)
+
+    def testSecureSubtreeInZoneAnswer(self):
+        res = self.sendQuery('host1.sub.secure.example.', 'A')
+        expected = dns.rrset.from_text('host1.sub.secure.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.11')
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMatchingRRSIGInAnswer(res, expected)
+        self.assertMessageIsAuthenticated(res)
+
+    def testSecureSubtreeInZoneNXDOMAIN(self):
+        res = self.sendQuery('host2.sub.secure.example.', 'A')
+
+        self.assertRcodeEqual(res, dns.rcode.NXDOMAIN)
+        self.assertMessageIsAuthenticated(res)
