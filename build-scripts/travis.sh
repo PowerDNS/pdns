@@ -330,6 +330,7 @@ install_recursor() {
     authbind \
     daemontools \
     libbotan-1.10-0 \
+    libfaketime \
     liblua5.2-0 \
     moreutils \
     jq"

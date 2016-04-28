@@ -85,6 +85,10 @@ ns.bogus.example.        3600 IN A    {prefix}.12
 
 insecure.example.        3600 IN NS   ns.insecure.example.
 ns.insecure.example.     3600 IN A    {prefix}.13
+
+optout.example.          3600 IN NS   ns1.optout.example.
+optout.example.          3600 IN DS   59332 13 1 e664f886ae1b5df03d918bc1217d22afc29925b9
+ns1.optout.example.      3600 IN A    {prefix}.14
         """,
         'secure.example': """
 secure.example.          3600 IN SOA  {soa}
@@ -106,6 +110,32 @@ insecure.example.        3600 IN NS   ns1.insecure.example.
 ns1.insecure.example.    3600 IN A    {prefix}.13
 
 node1.insecure.example.  3600 IN A    192.0.2.6
+        """,
+        'optout.example': """
+optout.example.        3600 IN SOA  {soa}
+optout.example.        3600 IN NS   ns1.optout.example.
+ns1.optout.example.    3600 IN A    {prefix}.14
+
+insecure.optout.example.     3600 IN NS ns1.insecure.optout.example.
+ns1.insecure.optout.example. 3600 IN A  {prefix}.15
+
+secure.optout.example.     3600 IN NS ns1.secure.optout.example.
+secure.optout.example.     3600 IN DS 64215 13 1 b88284d7a8d8605c398e8942262f97b9a5a31787
+ns1.secure.optout.example. 3600 IN A  {prefix}.15
+        """,
+        'insecure.optout.example': """
+insecure.optout.example.        3600 IN SOA  {soa}
+insecure.optout.example.        3600 IN NS   ns1.insecure.optout.example.
+ns1.insecure.optout.example.    3600 IN A    {prefix}.15
+
+node1.insecure.optout.example.  3600 IN A    192.0.2.7
+        """,
+        'secure.optout.example': """
+secure.optout.example.          3600 IN SOA  {soa}
+secure.optout.example.          3600 IN NS   ns1.secure.optout.example.
+ns1.secure.optout.example.      3600 IN A    {prefix}.15
+
+node1.secure.optout.example.    3600 IN A    192.0.2.8
         """
     }
 
@@ -135,6 +165,18 @@ Private-key-format: v1.2
 Algorithm: 13 (ECDSAP256SHA256)
 PrivateKey: f5jV7Q8kd5hDpMWObsuQ6SQda0ftf+JrO3uZwEg6nVw=
         """,
+
+        'optout.example': """
+Private-key-format: v1.2
+Algorithm: 13 (ECDSAP256SHA256)
+PrivateKey: efmq9G+J4Y2iPnIBRwJiy6Z/nIHSzpsCy/7XHhlS19A=
+        """,
+
+        'secure.optout.example': """
+Private-key-format: v1.2
+Algorithm: 13 (ECDSAP256SHA256)
+PrivateKey: xcNUxt1Knj14A00lKQFDboluiJyM2f7FxpgsQaQ3AQ4=
+        """
     }
 
     # This dict is keyed with the suffix of the IP address and its value
@@ -146,9 +188,14 @@ PrivateKey: f5jV7Q8kd5hDpMWObsuQ6SQda0ftf+JrO3uZwEg6nVw=
         '10': ['example'],
         '11': ['example'],
         '12': ['bogus.example'],
-        '13': ['insecure.example']
+        '13': ['insecure.example'],
+        '14': ['optout.example'],
+        '15': ['insecure.optout.example', 'secure.optout.example']
     }
 
+    _auth_cmd = ['authbind',
+                 os.environ['PDNS']]
+    _auth_env = {}
     _auths = {}
 
     @classmethod
@@ -254,10 +301,12 @@ distributor-threads=1""".format(confdir=confdir,
                 cls.generateAuthConfig(authconfdir)
                 cls.generateAuthNamedConf(authconfdir, zones)
 
-                for zonename, content in cls._zones.items():
-                    cls.generateAuthZone(authconfdir, zonename, content)
-                    if cls._zone_keys.get(zonename, None):
-                        cls.secureZone(authconfdir, zonename, cls._zone_keys.get(zonename))
+                for zone in zones:
+                    cls.generateAuthZone(authconfdir,
+                                         zone,
+                                         cls._zones[zone])
+                    if cls._zone_keys.get(zone, None):
+                        cls.secureZone(authconfdir, zone, cls._zone_keys.get(zone))
 
     @classmethod
     def startAllAuth(cls, confdir):
@@ -270,16 +319,16 @@ distributor-threads=1""".format(confdir=confdir,
     @classmethod
     def startAuth(cls, confdir, ipaddress):
         print("Launching pdns_server..")
-        authcmd = ['authbind',
-                   os.environ['PDNS'],
-                   '--config-dir=%s' % confdir,
-                   '--local-address=%s' % ipaddress]
+        authcmd = list(cls._auth_cmd)
+        authcmd.append('--config-dir=%s' % confdir)
+        authcmd.append('--local-address=%s' % ipaddress)
         print(' '.join(authcmd))
 
         logFile = os.path.join(confdir, 'pdns.log')
         with open(logFile, 'w') as fdLog:
             cls._auths[ipaddress] = subprocess.Popen(authcmd, close_fds=True,
-                                                     stdout=fdLog, stderr=fdLog)
+                                                     stdout=fdLog, stderr=fdLog,
+                                                     env=cls._auth_env)
 
         time.sleep(2)
 
