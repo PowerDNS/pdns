@@ -89,3 +89,21 @@ class BasicDNSSEC(RecursorTest):
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertMatchingRRSIGInAnswer(res, expected)
         self.assertMessageIsAuthenticated(res)
+
+    def testSecureCNAMEWildCardAnswer(self):
+        res = self.sendQuery('something.cnamewildcard.secure.example.', 'A')
+        expectedCNAME = dns.rrset.from_text('something.cnamewildcard.secure.example.', 0, dns.rdataclass.IN, 'CNAME', 'host1.secure.example.')
+        expectedA = dns.rrset.from_text('host1.secure.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.2')
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMatchingRRSIGInAnswer(res, expectedCNAME)
+        self.assertMatchingRRSIGInAnswer(res, expectedA)
+        self.assertMessageIsAuthenticated(res)
+
+    def testSecureCNAMEWildCardNXDOMAIN(self):
+        res = self.sendQuery('something.cnamewildcardnxdomain.secure.example.', 'A')
+        expectedCNAME = dns.rrset.from_text('something.cnamewildcardnxdomain.secure.example.', 0, dns.rdataclass.IN, 'CNAME', 'doesntexist.secure.example.')
+
+        self.assertRcodeEqual(res, dns.rcode.NXDOMAIN)
+        self.assertMatchingRRSIGInAnswer(res, expectedCNAME)
+        self.assertMessageIsAuthenticated(res)
