@@ -133,3 +133,24 @@ class BasicDNSSEC(RecursorTest):
         self.assertMatchingRRSIGInAnswer(res, expectedCNAME)
         self.assertAuthorityHasSOA(res)
         self.assertMessageIsAuthenticated(res)
+
+    def testInsecureToSecureCNAMEAnswer(self):
+        res = self.sendQuery('cname-to-secure.insecure.example.', 'A')
+        expectedA = dns.rrset.from_text('host1.secure.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.2')
+        expectedCNAME = dns.rrset.from_text('cname-to-secure.insecure.example.', 0, dns.rdataclass.IN, 'CNAME', 'host1.secure.example.')
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMessageHasFlags(res, ['QR', 'RD', 'RA'], ['DO'])
+        self.assertRRsetInAnswer(res, expectedCNAME)
+        self.assertMatchingRRSIGInAnswer(res, expectedA)
+
+    def testSecureToInsecureCNAMEAnswer(self):
+        res = self.sendQuery('cname-to-insecure.secure.example.', 'A')
+        expectedA = dns.rrset.from_text('node1.insecure.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.6')
+        expectedCNAME = dns.rrset.from_text('cname-to-insecure.secure.example.', 0, dns.rdataclass.IN, 'CNAME', 'node1.secure.example.')
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMessageHasFlags(res, ['QR', 'RD', 'RA'], ['DO'])
+        self.assertRRsetInAnswer(res, expectedA)
+        self.assertMatchingRRSIGInAnswer(res, expectedCNAME)
+
