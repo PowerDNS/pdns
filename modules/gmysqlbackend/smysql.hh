@@ -14,7 +14,7 @@ public:
   SMySQL(const string &database, const string &host="", uint16_t port=0,
          const string &msocket="",const string &user="",
          const string &password="", const string &group="",
-         bool setIsolation=false);
+         bool setIsolation=false, unsigned int timeout=10);
 
   ~SMySQL();
 
