@@ -81,3 +81,11 @@ class BasicDNSSEC(RecursorTest):
 
         self.assertRcodeEqual(res, dns.rcode.NXDOMAIN)
         self.assertMessageIsAuthenticated(res)
+
+    def testSecureWildcardAnswer(self):
+        res = self.sendQuery('something.wildcard.secure.example.', 'A')
+        expected = dns.rrset.from_text('something.wildcard.secure.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.10')
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMatchingRRSIGInAnswer(res, expected)
+        self.assertMessageIsAuthenticated(res)

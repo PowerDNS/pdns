@@ -98,6 +98,8 @@ ns.secure.example.       3600 IN A    {prefix}.9
 host1.secure.example.    3600 IN A    192.0.2.2
 
 host1.sub.secure.example. 3600 IN A    192.0.2.11
+
+*.wildcard.secure.example.    3600 IN A    192.0.2.10
         """,
         'bogus.example': """
 bogus.example.           3600 IN SOA  {soa}
