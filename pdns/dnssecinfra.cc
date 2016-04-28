@@ -308,7 +308,20 @@ bool sharedDNSSECCompare(const shared_ptr<DNSRecordContent>& a, const shared_ptr
   return a->serialize(DNSName("."), true, true) < b->serialize(DNSName("."), true, true);
 }
 
-string getMessageForRRSET(const DNSName& qname, const RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& signRecords) 
+/**
+ * Returns the string that should be hashed to create/verify the RRSIG content
+ *
+ * @param qname               DNSName of the RRSIG's owner name.
+ * @param rrc                 The RRSIGRecordContent we take the Type Covered and
+ *                            original TTL fields from.
+ * @param signRecords         A vector of DNSRecordContent shared_ptr's that are covered
+ *                            by the RRSIG, where we get the RDATA from.
+ * @param processRRSIGLabels  A boolean to trigger processing the RRSIG's "Labels"
+ *                            field. This is usually only needed for validation
+ *                            purposes, as the authoritative server correctly
+ *                            sets qname to the wildcard.
+ */
+string getMessageForRRSET(const DNSName& qname, const RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& signRecords, bool processRRSIGLabels)
 {
   sort(signRecords.begin(), signRecords.end(), sharedDNSSECCompare);
 
@@ -316,8 +329,26 @@ string getMessageForRRSET(const DNSName& qname, const RRSIGRecordContent& rrc, v
   toHash.append(const_cast<RRSIGRecordContent&>(rrc).serialize(DNSName("."), true, true));
   toHash.resize(toHash.size() - rrc.d_signature.length()); // chop off the end, don't sign the signature!
 
+  string nameToHash(qname.toDNSStringLC());
+
+  if (processRRSIGLabels) {
+    unsigned int rrsig_labels = rrc.d_labels;
+    unsigned int fqdn_labels = qname.countLabels();
+
+    if (rrsig_labels < fqdn_labels) {
+      DNSName choppedQname(qname);
+      while (choppedQname.countLabels() > rrsig_labels)
+        choppedQname.chopOff();
+      nameToHash = "\x01*" + choppedQname.toDNSStringLC();
+    } else if (rrsig_labels > fqdn_labels) {
+      // The RRSIG Labels field is a lie (or the qname is wrong) and the RRSIG
+      // can never be valid
+      return "";
+    }
+  }
+
   for(shared_ptr<DNSRecordContent>& add :  signRecords) {
-    toHash.append(qname.toDNSStringLC()); 
+    toHash.append(nameToHash);
     uint16_t tmp=htons(rrc.d_type);
     toHash.append((char*)&tmp, 2);
     tmp=htons(1); // class
