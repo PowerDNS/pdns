@@ -10,7 +10,7 @@ update_init() {
 
 
 update_pdns() {
-	if [ -n "$2" ] ; then
+	if [ -z "$2" ] ; then
 		invoke-rc.d pdns start
 	else
 		invoke-rc.d pdns restart
