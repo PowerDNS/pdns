@@ -250,6 +250,9 @@ string ZoneParserTNG::getLineOfFile()
   if (d_zonedata.size() > 0)
     return "on line "+std::to_string(std::distance(d_zonedata.begin(), d_zonedataline))+" of given string";
 
+  if (d_filestates.empty())
+    return "";
+
   return "on line "+std::to_string(d_filestates.top().d_lineno)+" of file '"+d_filestates.top().d_filename+"'";
 }
 

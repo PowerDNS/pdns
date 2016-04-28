@@ -73,23 +73,24 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > > getIXFRDeltas(const ComboAd
       r.first.d_name = r.first.d_name.makeRelative(zone);
       records.push_back(r.first);
       if(r.first.d_type == QType::SOA) {
-	auto sr = std::dynamic_pointer_cast<SOARecordContent>(r.first.d_content);
-	if(!masterSOA) {
-	  if(sr->d_st.serial == std::dynamic_pointer_cast<SOARecordContent>(oursr.d_content)->d_st.serial) // we are up to date
+	auto sr = getRR<SOARecordContent>(r.first);
+	if(sr) {
+	  if(!masterSOA) {
+	    if(sr->d_st.serial == std::dynamic_pointer_cast<SOARecordContent>(oursr.d_content)->d_st.serial) { // we are up to date
+	      goto done;
+	    }
+	    masterSOA=sr;
+	  }
+	  else if(sr->d_st.serial == masterSOA->d_st.serial)
 	    goto done;
-	  masterSOA=sr;
-
 	}
-	else if(sr->d_st.serial == masterSOA->d_st.serial)
-	  goto done;
-
       }
     }
   }
   //  cout<<"Got "<<records.size()<<" records"<<endl;
  done:;
   for(unsigned int pos = 1;pos < records.size();) {
-    auto sr = std::dynamic_pointer_cast<SOARecordContent>(records[pos].d_content);
+    auto sr = getRR<SOARecordContent>(records[pos]);
     vector<DNSRecord> remove, add;
     if(!sr) { // this is an actual AXFR!
       return {{remove, records}};
@@ -102,7 +103,7 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > > getIXFRDeltas(const ComboAd
     for(pos++; pos < records.size() && records[pos].d_type != QType::SOA; ++pos) {
       remove.push_back(records[pos]);
     }
-    sr = std::dynamic_pointer_cast<SOARecordContent>(records[pos].d_content);
+    sr = getRR<SOARecordContent>(records[pos]);
 
     add.push_back(records[pos]); // this adds the new SOA
     for(pos++; pos < records.size() && records[pos].d_type != QType::SOA; ++pos)  {

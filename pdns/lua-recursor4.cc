@@ -61,8 +61,11 @@ static int followCNAMERecords(vector<DNSRecord>& ret, const QType& qtype)
   DNSName target;
   for(const DNSRecord& rr :  ret) {
     if(rr.d_type == QType::CNAME) {
-      target=getRR<CNAMERecordContent>(rr)->getTarget();
-      break;
+      auto rec = getRR<CNAMERecordContent>(rr);
+      if(rec) {
+        target=rec->getTarget();
+        break;
+      }
     }
   }
   if(target.empty())
@@ -86,13 +89,15 @@ static int getFakeAAAARecords(const DNSName& qname, const std::string& prefix, v
   for(DNSRecord& rr :  ret)
   {
     if(rr.d_type == QType::A && rr.d_place==DNSResourceRecord::ANSWER) {
-      ComboAddress ipv4(getRR<ARecordContent>(rr)->getCA());
-      uint32_t tmp;
-      memcpy((void*)&tmp, &ipv4.sin4.sin_addr.s_addr, 4);
-      // tmp=htonl(tmp);
-      memcpy(((char*)&prefixAddress.sin6.sin6_addr.s6_addr)+12, &tmp, 4);
-      rr.d_content = std::make_shared<AAAARecordContent>(prefixAddress);
-      rr.d_type = QType::AAAA;
+      if(auto rec = getRR<ARecordContent>(rr)) {
+        ComboAddress ipv4(rec->getCA());
+        uint32_t tmp;
+        memcpy((void*)&tmp, &ipv4.sin4.sin_addr.s_addr, 4);
+        // tmp=htonl(tmp);
+        memcpy(((char*)&prefixAddress.sin6.sin6_addr.s6_addr)+12, &tmp, 4);
+        rr.d_content = std::make_shared<AAAARecordContent>(prefixAddress);
+        rr.d_type = QType::AAAA;
+      }
     }
   }
   return rcode;

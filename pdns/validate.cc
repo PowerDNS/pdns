@@ -150,7 +150,9 @@ cspmap_t harvestCSPFromRecs(const vector<DNSRecord>& recs)
     
     if(rec.d_type == QType::RRSIG) {
       auto rrc = getRR<RRSIGRecordContent>(rec);
-      cspmap[{rec.d_name,rrc->d_type}].signatures.push_back(getRR<RRSIGRecordContent>(rec));
+      if (rrc) {
+        cspmap[{rec.d_name,rrc->d_type}].signatures.push_back(rrc);
+      }
     }
     else {
       cspmap[{rec.d_name, rec.d_type}].records.push_back(rec.d_content);
@@ -200,19 +202,21 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
       if(rec.d_type == QType::RRSIG)
       {
         auto rrc=getRR<RRSIGRecordContent> (rec);
-        if(rrc->d_type != QType::DNSKEY)
+        if(rrc && rrc->d_type != QType::DNSKEY)
           continue;
         sigs.push_back(*rrc);
       }
       else if(rec.d_type == QType::DNSKEY)
       {
         auto drc=getRR<DNSKEYRecordContent> (rec);
-        tkeys.insert(*drc);
-	//	cerr<<"Inserting key with tag "<<drc->getTag()<<": "<<drc->getZoneRepresentation()<<endl;
-	dotNode("DNSKEY", qname, std::to_string(drc->getTag()), (boost::format("tag=%d, algo=%d") % drc->getTag() % static_cast<int>(drc->d_algorithm)).str());
+        if(drc) {
+          tkeys.insert(*drc);
+          //	cerr<<"Inserting key with tag "<<drc->getTag()<<": "<<drc->getZoneRepresentation()<<endl;
+          dotNode("DNSKEY", qname, std::to_string(drc->getTag()), (boost::format("tag=%d, algo=%d") % drc->getTag() % static_cast<int>(drc->d_algorithm)).str());
 
-        toSign.push_back(rec.d_content);
-        toSignTags.push_back(drc->getTag());
+          toSign.push_back(rec.d_content);
+          toSignTags.push_back(drc->getTag());
+        }
       }
     }
     //    cerr<<"got "<<tkeys.size()<<" keys and "<<sigs.size()<<" sigs from server"<<endl;
@@ -339,10 +343,12 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
             for(const auto& r : v.second.records) {
               LOG("\t"<<r->getZoneRepresentation()<<endl);
               auto nsec = std::dynamic_pointer_cast<NSECRecordContent>(r);
-              if(v.first.first == qname && !nsec->d_set.count(QType::DS))
-                return Insecure;
-              else {
-                LOG("Did not deny existence of DS, "<<v.first.first<<"?="<<qname<<", "<<nsec->d_set.count(QType::DS)<<endl);
+              if(nsec) {
+                if(v.first.first == qname && !nsec->d_set.count(QType::DS))
+                  return Insecure;
+                else {
+                  LOG("Did not deny existence of DS, "<<v.first.first<<"?="<<qname<<", "<<nsec->d_set.count(QType::DS)<<endl);
+                }
               }
             }
 
@@ -375,11 +381,13 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
         for(auto j=cspiter->second.records.cbegin(); j!=cspiter->second.records.cend(); j++)
         {
           const auto dsrc=std::dynamic_pointer_cast<DSRecordContent>(*j);
-          dsmap.insert(make_pair(dsrc->d_tag, *dsrc));
-          // dotEdge(keyqname,
-          //         "DNSKEY", keyqname, ,
-          //         "DS", qname, std::to_string(dsrc.d_tag));
-          // cout<<"    "<<dotEscape("DNSKEY "+keyqname)<<" -> "<<dotEscape("DS "+qname)<<";"<<endl;
+          if(dsrc) {
+            dsmap.insert(make_pair(dsrc->d_tag, *dsrc));
+            // dotEdge(keyqname,
+            //         "DNSKEY", keyqname, ,
+            //         "DS", qname, std::to_string(dsrc.d_tag));
+            // cout<<"    "<<dotEscape("DNSKEY "+keyqname)<<" -> "<<dotEscape("DS "+qname)<<";"<<endl;
+          }
         }
       }
       if(!dsmap.size()) {
