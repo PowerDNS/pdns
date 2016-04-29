@@ -31,11 +31,28 @@ ArgvMap &arg()
   return arg;
 }
 
+void usage() {
+  cerr<<"Syntax: notify IP_ADDRESS[:PORT] DOMAIN"<<endl;
+}
+
 int main(int argc, char** argv)
 try
 {
+
+  for(int n=1 ; n < argc; ++n) {
+    if ((string) argv[n] == "--help") {
+      usage();
+      return EXIT_SUCCESS;
+    }
+
+    if ((string) argv[n] == "--version") {
+      cerr<<"notify "<<VERSION<<endl;
+      return EXIT_SUCCESS;
+    }
+  }
+
   if(argc!=3) {
-    cerr<<"Syntax: notify ip:port domain"<<endl;
+    usage();
     exit(1);
   }
 
