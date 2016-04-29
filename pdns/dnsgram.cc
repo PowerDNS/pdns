@@ -79,10 +79,31 @@ void makeReport(const struct pdns_timeval& tv)
   g_skipped=0;
 }
 
+void usage() {
+  cerr<<"syntax: dnsgram INFILE..."<<endl;
+}
 
 int main(int argc, char** argv)
 try
 {
+  // Parse possible options
+  if (argc == 1) {
+    usage();
+    return EXIT_SUCCESS;
+  }
+
+  for(int n=1 ; n < argc; ++n) {
+    if ((string) argv[n] == "--help") {
+      usage();
+      return EXIT_SUCCESS;
+    }
+
+    if ((string) argv[n] == "--version") {
+      cerr<<"dnsgram "<<VERSION<<endl;
+      return EXIT_SUCCESS;
+    }
+  }
+
   reportAllTypes();
   for(int n=1 ; n < argc; ++n) {
     cout<<argv[n]<<endl;
