@@ -246,6 +246,22 @@ webserver("127.0.0.1:8083", "supersecretpassword", "supersecretAPIkey")
 to the configuration, and point your browser at http://127.0.0.1:8083 and
 log in with any username, and that password. Enjoy!
 
+By default, our web server sends some security-related headers:
+
+ * X-Content-Type-Options: nosniff
+ * X-Frame-Options: deny
+ * X-Permitted-Cross-Domain-Policies: none
+ * X-XSS-Protection: 1; mode=block
+ * Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline'
+
+You can override those headers, or add custom headers by using the last parameter to
+`webserver()`. For example, to remove the `X-Frame-Options` header and add a
+`X-Custom` one:
+```
+webserver("127.0.0.1:8080", "supersecret", "apikey", {["X-Frame-Options"]= "", ["X-Custom"]="custom"})
+```
+
+
 Server pools
 ------------
 Now for some cool stuff. Let's say we know we're getting a whole bunch of
@@ -988,7 +1004,7 @@ Here are all functions:
  * Practical
     * `shutdown()`: shut down `dnsdist`
     * quit or ^D: exit the console
-    * `webserver(address:port, password [, apiKey])`: launch a webserver with stats on that address with that password
+    * `webserver(address:port, password [, apiKey [, customHeaders ]])`: launch a webserver with stats on that address with that password
  * ACL related:
     * `addACL(netmask)`: add to the ACL set who can use this server
     * `setACL({netmask, netmask})`: replace the ACL set with these netmasks. Use `setACL({})` to reset the list, meaning no one can use us
