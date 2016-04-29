@@ -89,6 +89,7 @@ pages:
     - Documentation details: appendix/documentation.md
     - Compiling PowerDNS: appendix/compiling-powerdns.md
     - DNS Analysis Tools: tools/analysis.md
+    - 'Manpage: calidns.1': manpages/calidns.1.md
     - 'Manpage: dnsbulktest.1': manpages/dnsbulktest.1.md
     - 'Manpage: dnsgram.1': manpages/dnsgram.1.md
     - 'Manpage: dnsreplay.1': manpages/dnsreplay.1.md

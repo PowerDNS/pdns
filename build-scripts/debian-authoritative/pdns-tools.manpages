@@ -1,3 +1,4 @@
+debian/tmp/usr/share/man/man1/calidns.1
 debian/tmp/usr/share/man/man1/dnsbulktest.1
 debian/tmp/usr/share/man/man1/dnsgram.1
 debian/tmp/usr/share/man/man1/dnsreplay.1

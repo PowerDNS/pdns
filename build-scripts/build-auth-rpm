@@ -246,6 +246,7 @@ fi
 %{_bindir}/nsec3dig
 %{_bindir}/saxfr
 %{_bindir}/sdig
+%{_mandir}/man1/calidns.1.gz
 %{_mandir}/man1/dnsbulktest.1.gz
 %{_mandir}/man1/dnsgram.1.gz
 %{_mandir}/man1/dnsreplay.1.gz
@@ -518,6 +519,7 @@ exit 0
 %{_bindir}/nsec3dig
 %{_bindir}/saxfr
 %{_bindir}/sdig
+%{_mandir}/man1/calidns.1.gz
 %{_mandir}/man1/dnsbulktest.1.gz
 %{_mandir}/man1/dnsgram.1.gz
 %{_mandir}/man1/dnsreplay.1.gz
@@ -773,6 +775,7 @@ exit 0
 %{_bindir}/nsec3dig
 %{_bindir}/saxfr
 %{_bindir}/sdig
+%{_mandir}/man1/calidns.1.gz
 %{_mandir}/man1/dnsbulktest.1.gz
 %{_mandir}/man1/dnsgram.1.gz
 %{_mandir}/man1/dnsreplay.1.gz

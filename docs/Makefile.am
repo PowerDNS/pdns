@@ -5,7 +5,8 @@ MANPAGES_TARGET_AUTH = pdns_server.1 \
 	zone2ldap.1 \
 	zone2sql.1
 
-MANPAGES_TARGET_TOOLS = dnsbulktest.1 \
+MANPAGES_TARGET_TOOLS = calidns.1 \
+	dnsbulktest.1 \
 	dnsgram.1 \
 	dnsreplay.1 \
 	dnsscan.1 \
