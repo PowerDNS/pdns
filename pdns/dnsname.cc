@@ -51,8 +51,12 @@ DNSName::DNSName(const char* p)
       }
       d_storage.append(1, (char)0);
     }
-    else
+    else {
       d_storage=segmentDNSNameRaw(p); 
+      if(d_storage.size() > 255) {
+        throw std::range_error("name too long");
+      }
+    }
   }
 }
 
@@ -204,6 +208,9 @@ bool DNSName::isPartOf(const DNSName& parent) const
           return false;
       }
       return true;
+    }
+    if (*us < 0) {
+      throw std::out_of_range("negative label length in dnsname");
     }
   }
   return false;
