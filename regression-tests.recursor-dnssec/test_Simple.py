@@ -10,6 +10,7 @@ class testSimple(RecursorTest):
         for zone in ['.', 'example.', 'secure.example.']:
             expected = dns.rrset.from_text(zone, 0, dns.rdataclass.IN, 'SOA', self._SOA)
             query = dns.message.make_query(zone, 'SOA', want_dnssec=True)
+            query.flags |= dns.flags.AD
 
             res = self.sendUDPQuery(query)
 
@@ -20,6 +21,7 @@ class testSimple(RecursorTest):
     def testA(self):
         expected = dns.rrset.from_text('ns.secure.example.', 0, dns.rdataclass.IN, 'A', '{prefix}.9'.format(prefix=self._PREFIX))
         query = dns.message.make_query('ns.secure.example', 'A', want_dnssec=True)
+        query.flags |= dns.flags.AD
 
         res = self.sendUDPQuery(query)
 
@@ -29,6 +31,7 @@ class testSimple(RecursorTest):
 
     def testDelegation(self):
         query = dns.message.make_query('example', 'NS', want_dnssec=True)
+        query.flags |= dns.flags.AD
 
         expectedNS = dns.rrset.from_text('example.', 0, 'IN', 'NS', 'ns1.example.', 'ns2.example.')
 
