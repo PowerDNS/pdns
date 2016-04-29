@@ -281,7 +281,7 @@ This updates the CDS records to reflect only the new key.
 
 Wait for the parent to pick up on the CDS change. Once the upstream DS records
 show only the DS records for the new KSK, you may disable sending out the CDS
-responses: `pdnsutil unset-pushish-cds example.com`.
+responses: `pdnsutil unset-publish-cds example.com`.
 
 Done!
 
