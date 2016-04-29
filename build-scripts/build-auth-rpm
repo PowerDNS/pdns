@@ -254,6 +254,7 @@ fi
 %{_mandir}/man1/dnsscope.1.gz
 %{_mandir}/man1/dnstcpbench.1.gz
 %{_mandir}/man1/dnswasher.1.gz
+%{_mandir}/man1/dumresp.1.gz
 %{_mandir}/man1/ixplore.1.gz
 %{_mandir}/man1/nsec3dig.1.gz
 %{_mandir}/man1/saxfr.1.gz
@@ -527,6 +528,7 @@ exit 0
 %{_mandir}/man1/dnsscope.1.gz
 %{_mandir}/man1/dnstcpbench.1.gz
 %{_mandir}/man1/dnswasher.1.gz
+%{_mandir}/man1/dumresp.1.gz
 %{_mandir}/man1/ixplore.1.gz
 %{_mandir}/man1/nsec3dig.1.gz
 %{_mandir}/man1/saxfr.1.gz
@@ -783,6 +785,7 @@ exit 0
 %{_mandir}/man1/dnsscope.1.gz
 %{_mandir}/man1/dnstcpbench.1.gz
 %{_mandir}/man1/dnswasher.1.gz
+%{_mandir}/man1/dumresp.1.gz
 %{_mandir}/man1/ixplore.1.gz
 %{_mandir}/man1/nsec3dig.1.gz
 %{_mandir}/man1/saxfr.1.gz

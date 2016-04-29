@@ -13,6 +13,7 @@ MANPAGES_TARGET_TOOLS = calidns.1 \
 	dnsscope.1 \
 	dnstcpbench.1 \
 	dnswasher.1 \
+	dumresp.1 \
 	ixplore.1 \
 	nsec3dig.1 \
 	saxfr.1 \
