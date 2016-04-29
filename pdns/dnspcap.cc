@@ -11,7 +11,7 @@ PcapPacketReader::PcapPacketReader(const string& fname) : d_fname(fname)
 {
   d_fp=fopen(fname.c_str(),"r");
   if(!d_fp)
-    unixDie("Unable to open file");
+    unixDie("Unable to open file " + fname);
   
   int flags=fcntl(fileno(d_fp),F_GETFL,0);
   fcntl(fileno(d_fp), F_SETFL,flags&(~O_NONBLOCK)); // bsd needs this in stdin (??)
