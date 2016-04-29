@@ -25,3 +25,6 @@ domain names from STDIN in the alexa topX format and outputs statistics on STDOU
 
 --envoutput, -e
 :    Write results on STDOUT as shell environment variables
+
+--version
+:    Display the version of dnsbulktest
