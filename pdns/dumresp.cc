@@ -21,14 +21,29 @@ void printStatus()
   }
 }
 
+void usage() {
+  cerr<<"Syntax: dumresp LOCAL-ADDRESS LOCAL-PORT NUMBER-OF-PROCESSES"<<endl;
+}
+
 int main(int argc, char** argv)
 try
 {
-  if(argc != 4) {
-    cerr<<"Syntax: dumresp local-address local-port number-of-processes "<<endl;
-    exit(EXIT_FAILURE);
+  for(int i = 1; i < argc; i++) {
+    if((string) argv[i] == "--help"){
+      usage();
+      return(EXIT_SUCCESS);
+    }
+
+    if((string) argv[i] == "--version"){
+      cerr<<"dumresp "<<VERSION<<endl;
+      return(EXIT_SUCCESS);
+    }
   }
 
+  if(argc != 4) {
+    usage();
+    exit(EXIT_FAILURE);
+  }
 
   auto ptr = mmap(NULL, sizeof(std::atomic<uint64_t>), PROT_READ | PROT_WRITE,
 		  MAP_SHARED | MAP_ANONYMOUS, -1, 0);
