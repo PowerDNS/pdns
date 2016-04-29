@@ -182,6 +182,11 @@ void expireOldNotifications()
 
 void daemonize(int null_fd);
 
+void usage(po::options_description &desc) {
+  cerr<<"nproxy"<<endl;
+  cerr<<desc<<endl;
+}
+
 int main(int argc, char** argv)
 try
 {
@@ -191,6 +196,7 @@ try
   po::options_description desc("Allowed options");
   desc.add_options()
     ("help,h", "produce help message")
+    ("version", "print the version")
     ("powerdns-address", po::value<string>(), "IP address of PowerDNS server")
     ("chroot", po::value<string>(), "chroot to this directory for additional security")
     ("setuid", po::value<int>(), "setuid to this numerical user id")
@@ -205,12 +211,18 @@ try
   po::notify(g_vm);
 
   if (g_vm.count("help")) {
-    cerr << desc << "\n";
+    usage(desc);
+    return EXIT_SUCCESS;
+  }
+
+  if (g_vm.count("version")) {
+    cerr << "nproxy " << VERSION << endl;
     return EXIT_SUCCESS;
   }
 
   if(!g_vm.count("powerdns-address")) {
-    cerr<<"Mandatory setting 'powerdns-address' unset:\n"<<desc<<endl;
+    cerr<<"Mandatory setting 'powerdns-address' unset:\n"<<endl;
+    usage(desc);
     return EXIT_FAILURE;
   }
 
