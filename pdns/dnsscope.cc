@@ -257,6 +257,7 @@ try
   po::options_description desc("Allowed options"), hidden, alloptions;
   desc.add_options()
     ("help,h", "produce help message")
+    ("version", "print version number")
     ("rd", po::value<bool>(), "If set to true, only process RD packets, to false only non-RD, unset: both")
     ("ipv4", po::value<bool>()->default_value(true), "Process IPv4 packets")
     ("ipv6", po::value<bool>()->default_value(true), "Process IPv6 packets")
@@ -279,10 +280,16 @@ try
   vector<string> files;
   if(g_vm.count("files")) 
     files = g_vm["files"].as<vector<string> >(); 
+
+  if(g_vm.count("version")) {
+    cerr<<"dnsscope "<<VERSION<<endl;
+    exit(0);
+  }
+
   if(files.empty() || g_vm.count("help")) {
     cerr<<"Syntax: dnsscope filename.pcap"<<endl;
     cout << desc << endl;
-    exit(1);
+    exit(0);
   }
 
   StatNode root;
