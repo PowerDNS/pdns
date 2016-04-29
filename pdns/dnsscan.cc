@@ -25,6 +25,10 @@ using namespace ::boost::multi_index;
 #include "namespaces.hh"
 StatBag S;
 
+void usage() {
+  cerr<<"syntax: dnsscan INFILE ..."<<endl;
+}
+
 int main(int argc, char** argv)
 try
 {
@@ -37,8 +41,20 @@ try
   */
 
   if(argc<2) {
-    cerr<<"Syntax: dnsscan file1 [file2 ..] "<<endl;
-    exit(1);
+    usage();
+    exit(EXIT_SUCCESS);
+  }
+
+  for(int n=1; n < argc; ++n) {
+    if ((string) argv[n] == "--help") {
+      usage();
+      return EXIT_SUCCESS;
+    }
+
+    if ((string) argv[n] == "--version") {
+      cerr<<"dnsscan "<<VERSION<<endl;
+      return EXIT_SUCCESS;
+    }
   }
 
   unsigned int counts[256];
