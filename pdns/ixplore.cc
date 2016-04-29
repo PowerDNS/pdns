@@ -176,14 +176,30 @@ void loadZoneFromDisk(records_t& records, const string& fname, const DNSName& zo
   }
 }
 
+void usage() {
+  cerr<<"Syntax: ixplore diff ZONE BEFORE_FILE AFTER_FILE"<<endl;
+  cerr<<"Syntax: ixplore track IP-ADDRESS PORT ZONE DIRECTORY [TSIGKEY TSIGALGO TSIGSECRET]"<<endl;
+}
+
 int main(int argc, char** argv)
 try
 {
+  for(int n=1 ; n < argc; ++n) {
+    if ((string) argv[n] == "--help") {
+      usage();
+      return EXIT_SUCCESS;
+    }
+
+    if ((string) argv[n] == "--version") {
+      cerr<<"ixplore "<<VERSION<<endl;
+      return EXIT_SUCCESS;
+    }
+  }
+
   reportAllTypes();
   string command;
   if(argc < 5 || (command=argv[1], (command!="diff" && command !="track"))) {
-    cerr<<"Syntax: ixplore diff zone file1 file2"<<endl;
-    cerr<<"Syntax: ixplore track IP-address port zone directory [tsigkey tsigalgo tsigsecret]"<<endl;
+    usage();
     exit(EXIT_FAILURE);
   }
   if(command=="diff") {
