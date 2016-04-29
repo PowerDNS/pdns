@@ -2566,7 +2566,9 @@ int serviceMain(int argc, char*argv[])
   SyncRes::s_maxnegttl=::arg().asNum("max-negative-ttl");
   SyncRes::s_maxcachettl=::arg().asNum("max-cache-ttl");
   SyncRes::s_packetcachettl=::arg().asNum("packetcache-ttl");
-  SyncRes::s_packetcacheservfailttl=::arg().asNum("packetcache-servfail-ttl");
+  // Cap the packetcache-servfail-ttl to the packetcache-ttl
+  uint32_t packetCacheServFailTTL = ::arg().asNum("packetcache-servfail-ttl");
+  SyncRes::s_packetcacheservfailttl=(packetCacheServFailTTL > SyncRes::s_packetcachettl) ? SyncRes::s_packetcachettl : packetCacheServFailTTL;
   SyncRes::s_serverdownmaxfails=::arg().asNum("server-down-max-fails");
   SyncRes::s_serverdownthrottletime=::arg().asNum("server-down-throttle-time");
   SyncRes::s_serverID=::arg()["server-id"];
