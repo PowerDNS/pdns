@@ -97,7 +97,7 @@ void validateWithKeySet(const cspmap_t& rrsets, cspmap_t& validated, const keyse
 	continue;
       }
       
-      string msg=getMessageForRRSET(i->first.first, *signature, toSign);
+      string msg=getMessageForRRSET(i->first.first, *signature, toSign, true);
       auto r = getByTag(keys,signature->d_tag); // FIXME: also take algorithm into account? right now we wrongly validate unknownalgorithm.bad-dnssec.wb.sidnlabs.nl
       for(const auto& l : r) {
 	bool isValid = false;

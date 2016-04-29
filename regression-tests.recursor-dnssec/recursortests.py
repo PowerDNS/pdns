@@ -96,6 +96,16 @@ secure.example.          3600 IN NS   ns.secure.example.
 ns.secure.example.       3600 IN A    {prefix}.9
 
 host1.secure.example.    3600 IN A    192.0.2.2
+cname.secure.example.    3600 IN CNAME host1.secure.example.
+cname-to-insecure.secure.example. 3600 IN CNAME node1.insecure.example.
+
+host1.sub.secure.example. 3600 IN A    192.0.2.11
+
+*.wildcard.secure.example.    3600 IN A    192.0.2.10
+
+*.cnamewildcard.secure.example. 3600 IN CNAME host1.secure.example.
+
+*.cnamewildcardnxdomain.secure.example. 3600 IN CNAME doesntexist.secure.example.
         """,
         'bogus.example': """
 bogus.example.           3600 IN SOA  {soa}
@@ -110,6 +120,8 @@ insecure.example.        3600 IN NS   ns1.insecure.example.
 ns1.insecure.example.    3600 IN A    {prefix}.13
 
 node1.insecure.example.  3600 IN A    192.0.2.6
+
+cname-to-secure.insecure.example. 3600 IN CNAME host1.secure.example.
         """,
         'optout.example': """
 optout.example.        3600 IN SOA  {soa}
@@ -601,7 +613,7 @@ distributor-threads=1""".format(confdir=confdir,
                 found = True
 
         if not found:
-            raise AssertionError("RRset not found in answer")
+            raise AssertionError("RRset not found in answer\n\n%s" % ret)
 
     def assertMatchingRRSIGInAnswer(self, msg, coveredRRset, keys=None):
         """Looks for coveredRRset in the answer section and if there is an RRSIG RRset
@@ -676,3 +688,16 @@ distributor-threads=1""".format(confdir=confdir,
             wantedRcode = dns.rcode._by_value[rcode]
 
             raise AssertionError("Rcode for %s is %s, expected %s." % (msg.question[0].to_text(), msgRcode, wantedRcode))
+
+    def assertAuthorityHasSOA(self, msg):
+        if not isinstance(msg, dns.message.Message):
+            raise TypeError("msg is not a dns.message.Message but a %s" % type(msg))
+
+        found = False
+        for rrset in msg.authority:
+            if rrset.rdtype == dns.rdatatype.SOA:
+                found = True
+                break
+
+        if not found:
+            raise AssertionError("No SOA record found in the authority section:\n%s" % msg.to_text())

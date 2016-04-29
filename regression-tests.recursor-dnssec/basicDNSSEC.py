@@ -67,3 +67,90 @@ class BasicDNSSEC(RecursorTest):
 
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertNoRRSIGsInAnswer(res)
+
+    def testSecureSubtreeInZoneAnswer(self):
+        res = self.sendQuery('host1.sub.secure.example.', 'A')
+        expected = dns.rrset.from_text('host1.sub.secure.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.11')
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMatchingRRSIGInAnswer(res, expected)
+        self.assertMessageIsAuthenticated(res)
+
+    def testSecureSubtreeInZoneNXDOMAIN(self):
+        res = self.sendQuery('host2.sub.secure.example.', 'A')
+
+        self.assertRcodeEqual(res, dns.rcode.NXDOMAIN)
+        self.assertMessageIsAuthenticated(res)
+
+    def testSecureWildcardAnswer(self):
+        res = self.sendQuery('something.wildcard.secure.example.', 'A')
+        expected = dns.rrset.from_text('something.wildcard.secure.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.10')
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMatchingRRSIGInAnswer(res, expected)
+        self.assertMessageIsAuthenticated(res)
+
+    def testSecureCNAMEWildCardAnswer(self):
+        res = self.sendQuery('something.cnamewildcard.secure.example.', 'A')
+        expectedCNAME = dns.rrset.from_text('something.cnamewildcard.secure.example.', 0, dns.rdataclass.IN, 'CNAME', 'host1.secure.example.')
+        expectedA = dns.rrset.from_text('host1.secure.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.2')
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMatchingRRSIGInAnswer(res, expectedCNAME)
+        self.assertMatchingRRSIGInAnswer(res, expectedA)
+        self.assertMessageIsAuthenticated(res)
+
+    def testSecureCNAMEWildCardNXDOMAIN(self):
+        res = self.sendQuery('something.cnamewildcardnxdomain.secure.example.', 'A')
+        expectedCNAME = dns.rrset.from_text('something.cnamewildcardnxdomain.secure.example.', 0, dns.rdataclass.IN, 'CNAME', 'doesntexist.secure.example.')
+
+        self.assertRcodeEqual(res, dns.rcode.NXDOMAIN)
+        self.assertMatchingRRSIGInAnswer(res, expectedCNAME)
+        self.assertMessageIsAuthenticated(res)
+
+    def testSecureNoData(self):
+        res = self.sendQuery('host1.secure.example.', 'AAAA')
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnswerEmpty(res)
+        self.assertAuthorityHasSOA(res)
+        self.assertMessageIsAuthenticated(res)
+
+    def testSecureCNAMENoData(self):
+        res = self.sendQuery('cname.secure.example.', 'AAAA')
+        expectedCNAME = dns.rrset.from_text('cname.secure.example.', 0, dns.rdataclass.IN, 'CNAME', 'host1.secure.example.')
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMatchingRRSIGInAnswer(res, expectedCNAME)
+        self.assertAuthorityHasSOA(res)
+        self.assertMessageIsAuthenticated(res)
+
+    def testSecureWildCardNoData(self):
+        res = self.sendQuery('something.cnamewildcard.secure.example.', 'AAAA')
+        expectedCNAME = dns.rrset.from_text('something.cnamewildcard.secure.example.', 0, dns.rdataclass.IN, 'CNAME', 'host1.secure.example.')
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMatchingRRSIGInAnswer(res, expectedCNAME)
+        self.assertAuthorityHasSOA(res)
+        self.assertMessageIsAuthenticated(res)
+
+    def testInsecureToSecureCNAMEAnswer(self):
+        res = self.sendQuery('cname-to-secure.insecure.example.', 'A')
+        expectedA = dns.rrset.from_text('host1.secure.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.2')
+        expectedCNAME = dns.rrset.from_text('cname-to-secure.insecure.example.', 0, dns.rdataclass.IN, 'CNAME', 'host1.secure.example.')
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMessageHasFlags(res, ['QR', 'RD', 'RA'], ['DO'])
+        self.assertRRsetInAnswer(res, expectedCNAME)
+        self.assertMatchingRRSIGInAnswer(res, expectedA)
+
+    def testSecureToInsecureCNAMEAnswer(self):
+        res = self.sendQuery('cname-to-insecure.secure.example.', 'A')
+        expectedA = dns.rrset.from_text('node1.insecure.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.6')
+        expectedCNAME = dns.rrset.from_text('cname-to-insecure.secure.example.', 0, dns.rdataclass.IN, 'CNAME', 'node1.secure.example.')
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMessageHasFlags(res, ['QR', 'RD', 'RA'], ['DO'])
+        self.assertRRsetInAnswer(res, expectedA)
+        self.assertMatchingRRSIGInAnswer(res, expectedCNAME)
+
