@@ -97,6 +97,7 @@ pages:
     - 'Manpage: dnsscope.1': manpages/dnsscope.1.md
     - 'Manpage: dnstcpbench.1': manpages/dnstcpbench.1.md
     - 'Manpage: dnswasher.1': manpages/dnswasher.1.md
+    - 'Manpage: ixplore.1': manpages/ixplore.1.md
     - 'Manpage: notify.1': manpages/notify.1.md
     - 'Manpage: nproxy.1': manpages/nproxy.1.md
     - 'Manpage: nsec3dig.1': manpages/nsec3dig.1.md
