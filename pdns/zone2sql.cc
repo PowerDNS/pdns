@@ -292,6 +292,7 @@ try
     ::arg().set("soa-expire-default","Do not change")="0";
 
     ::arg().setCmd("help","Provide a helpful message");
+    ::arg().setCmd("version","Print the version");
 
     S.declare("logmessages");
 
@@ -299,6 +300,11 @@ try
     string zonefile="";
 
     ::arg().parse(argc, argv);
+
+    if(::arg().mustDo("version")) {
+      cerr<<"zone2sql "<<VERSION<<endl;
+      exit(0);
+    }
   
     if(::arg().mustDo("help")) {
       cout<<"syntax:"<<endl<<endl;
