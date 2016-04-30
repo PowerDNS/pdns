@@ -881,21 +881,6 @@ int PacketHandler::processNotify(DNSPacket *p)
   return 0;
 }
 
-bool validDNSName(const string &name)
-{
-  string::size_type pos, length=name.length();
-  char c;
-  for(pos=0; pos < length; ++pos) {
-    c=name[pos];
-    if(!((c >= 'a' && c <= 'z') ||
-         (c >= 'A' && c <= 'Z') ||
-         (c >= '0' && c <= '9') ||
-         c =='-' || c == '_' || c=='*' || c=='.' || c=='/' || c=='@' || c==' ' || c=='\\' || c==':'))
-      return false;
-  }
-  return true;
-}  
-
 DNSPacket *PacketHandler::question(DNSPacket *p)
 {
   DNSPacket *ret;
