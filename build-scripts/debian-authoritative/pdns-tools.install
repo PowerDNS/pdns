@@ -9,6 +9,7 @@ usr/bin/dnswasher
 usr/bin/dumresp
 usr/bin/ixplore
 usr/bin/notify
+usr/bin/nproxy
 usr/bin/nsec3dig
 usr/bin/saxfr
 usr/bin/sdig

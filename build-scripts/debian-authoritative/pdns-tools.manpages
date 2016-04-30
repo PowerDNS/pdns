@@ -9,5 +9,6 @@ debian/tmp/usr/share/man/man1/dnswasher.1
 debian/tmp/usr/share/man/man1/dumresp.1
 debian/tmp/usr/share/man/man1/ixplore.1
 debian/tmp/usr/share/man/man1/notify.1
+debian/tmp/usr/share/man/man1/nproxy.1
 debian/tmp/usr/share/man/man1/nsec3dig.1
 debian/tmp/usr/share/man/man1/saxfr.1
