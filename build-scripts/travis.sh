@@ -320,7 +320,7 @@ install_docs() {
   # documentation test requirements
   run "virtualenv $HOME/.venv"
   run "source $HOME/.venv/bin/activate"
-  run "pip install -q pandocfilters==1.2.3 mkdocs==0.14 linkchecker==9.3 click==5.1"
+  run "pip install -q pandocfilters==1.2.3 mkdocs==0.14 linkchecker==9.3 click==5.1 requests==2.9.2"
   run "deactivate"
 }
 
