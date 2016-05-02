@@ -142,6 +142,7 @@ shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const
   return sr;
 }
 
+// this function is silent - you do the logging
 int loadRPZFromFile(const std::string& fname, DNSFilterEngine& target, const std::string& polName, boost::optional<DNSFilterEngine::Policy> defpol, int place)
 {
   ZoneParserTNG zpt(fname);
@@ -154,7 +155,6 @@ int loadRPZFromFile(const std::string& fname, DNSFilterEngine& target, const std
       DNSRecord dr(drr);
       if(dr.d_type == QType::SOA) {
 	domain = dr.d_name;
-//	cerr<<"Origin is "<<domain<<endl;
       }
       else if(dr.d_type == QType::NS) {
 	continue;
@@ -165,8 +165,7 @@ int loadRPZFromFile(const std::string& fname, DNSFilterEngine& target, const std
       }
     }
     catch(PDNSException& pe) {
-      cerr<<"Issue parsing '"<<drr.qname<<"' '"<<drr.content<<"' at "<<zpt.getLineOfFile()<<endl;
-      cerr<<pe.reason<<endl;
+      throw PDNSException("Issue parsing '"+drr.qname.toString()+"' '"+drr.content+"' at "+zpt.getLineOfFile()+": "+pe.reason);
     }
   }
   
