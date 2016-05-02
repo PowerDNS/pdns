@@ -114,7 +114,9 @@ void loadRecursorLuaConfig(const std::string& fname)
 	    }
 	  }
 	}
+        theL()<<Logger::Warning<<"Loading RPZ from file '"<<fname<<"'"<<endl;
 	loadRPZFromFile(fname, lci.dfe, polName, defpol, 0);
+        theL()<<Logger::Warning<<"Done loading RPZ from file '"<<fname<<"'"<<endl;
       }
       catch(std::exception& e) {
 	theL()<<Logger::Error<<"Unable to load RPZ zone from '"<<fname<<"': "<<e.what()<<endl;
