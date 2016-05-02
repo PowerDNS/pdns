@@ -371,6 +371,20 @@ RecursorLua4::RecursorLua4(const std::string& fname)
     {"TRUNCATE", (int)PolicyDecision::TRUNCATE}
   };
 
+  vector<pair<string, int> > rcodes = {{"NOERROR",  RCode::NoError  },
+                                       {"FORMERR",  RCode::FormErr  },
+                                       {"SERVFAIL", RCode::ServFail },
+                                       {"NXDOMAIN", RCode::NXDomain },
+                                       {"NOTIMP",   RCode::NotImp   },
+                                       {"REFUSED",  RCode::Refused  },
+                                       {"YXDOMAIN", RCode::YXDomain },
+                                       {"YXRRSET",  RCode::YXRRSet  },
+                                       {"NXRRSET",  RCode::NXRRSet  },
+                                       {"NOTAUTH",  RCode::NotAuth  },
+                                       {"NOTZONE",  RCode::NotZone  }};
+  for(const auto& rcode : rcodes)
+    pd.push_back({rcode.first, rcode.second});
+
   pd.push_back({"loglevels", in_t{
         {"Alert", LOG_ALERT},
 	{"Critical", LOG_CRIT},
