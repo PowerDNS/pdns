@@ -1,6 +1,12 @@
 #include <unistd.h>
-
 #include "remote_logger.hh"
+#include "config.h"
+#ifdef PDNS_CONFIG_ARGS
+#include "logger.hh"
+#define WE_ARE_RECURSOR
+#else
+#include "dolog.hh"
+#endif
 
 bool RemoteLogger::reconnect()
 {
@@ -13,7 +19,11 @@ bool RemoteLogger::reconnect()
     setNonBlocking(d_socket);
   }
   catch(const std::exception& e) {
-    std::cerr<<"Error connecting to remote logger "<<d_remote.toStringWithPort()<<": "<<e.what()<<std::endl;
+#ifdef WE_ARE_RECURSOR
+    L<<Logger::Warning<<"Error connecting to remote logger "<<d_remote.toStringWithPort()<<": "<<e.what()<<std::endl;
+#else
+    warnlog("Error connecting to remote logger %s: %s", d_remote.toStringWithPort(), e.what());
+#endif
     return false;
   }
   return true;
@@ -67,7 +77,11 @@ void RemoteLogger::worker()
       writen2WithTimeout(d_socket, data.c_str(), data.length(), (int) d_timeout);
     }
     catch(const std::runtime_error& e) {
-      //vinfolog("Error sending data to remote logger (%s): %s", d_remote.toStringWithPort(), e.what());
+#ifdef WE_ARE_RECURSOR
+      L<<Logger::Info<<"Error sending data to remote logger "<<d_remote.toStringWithPort()<<": "<< e.what()<<endl;
+#else
+      vinfolog("Error sending data to remote logger (%s): %s", d_remote.toStringWithPort(), e.what());
+#endif
       while (!reconnect()) {
         sleep(d_reconnectWaitTime);
       }
