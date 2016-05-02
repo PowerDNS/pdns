@@ -58,6 +58,11 @@ void proveOrDeny(const nsec3set &nsec3s, const DNSName &qname, const string &sal
   }
 }
 
+void usage() {
+  cerr<<"nsec3dig"<<endl;
+  cerr<<"Syntax: nsec3dig IP-ADDRESS PORT QUESTION QUESTION-TYPE [recurse]\n";
+}
+
 int main(int argc, char** argv)
 try
 {
@@ -65,8 +70,20 @@ try
 
   reportAllTypes();
 
+  for (int i = 1; i < argc; i++) {
+    if ((string) argv[i] == "--help") {
+      usage();
+      return EXIT_SUCCESS;
+    }
+
+    if ((string) argv[i] == "--version") {
+      cerr<<"nsec3dig "<<VERSION<<endl;
+      return EXIT_SUCCESS;
+    }
+  }
+
   if(argc < 5) {
-    cerr<<"Syntax: nsec3dig IP-address port question question-type [recurse]\n";
+    usage();
     exit(EXIT_FAILURE);
   }
 

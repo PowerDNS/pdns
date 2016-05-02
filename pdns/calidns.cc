@@ -125,6 +125,9 @@ void sendPackets(const vector<Socket*>* sockets, const vector<vector<uint8_t>* >
   }
 }
 
+void usage() {
+  cerr<<"Syntax: calidns QUERY_FILE DESTINATION INITIAL_QPS HITRATE"<<endl;
+}
 
 /*
   New plan. Set cache hit percentage, which we achieve on a per second basis.
@@ -156,10 +159,27 @@ try
   struct sched_param param;
   param.sched_priority=99;
 
-  if(argc != 5) {
-    cerr<<"Syntax: calidns file-with-queries destination qps-start hitperc"<<endl;
+  if (argc == 1 || (argc > 1 && argc <5)) {
+    for(int i = 1; i<argc; i++) {
+      string opt(argv[i]);
+
+      if(opt == "--help") {
+        usage();
+        exit(EXIT_SUCCESS);
+      }
+
+      if(opt == "--version") {
+        cerr<<"calidns "<<VERSION<<endl;
+        exit(EXIT_SUCCESS);
+      }
+    }
+
+    usage();
+    if (argc == 1)
+      exit(EXIT_SUCCESS);
     exit(EXIT_FAILURE);
   }
+
   if(sched_setscheduler(0, SCHED_FIFO, &param) < 0)
     cerr<<"Unable to set SCHED_FIFO: "<<strerror(errno)<<endl;
 

@@ -188,6 +188,11 @@ struct SendReceive
   unsigned int d_receiveds, d_receiveerrors, d_senderrors;
 };
 
+void usage(po::options_description &desc) {
+  cerr << "Usage: dnsbulktest [OPTION].. IPADDRESS PORTNUMBER [LIMIT]"<<endl;
+  cerr << desc << "\n";
+}
+
 int main(int argc, char** argv)
 try
 {
@@ -197,6 +202,7 @@ try
     ("quiet,q", "be quiet about individual queries")
     ("type,t",  po::value<string>()->default_value("A"), "What type to query for")
     ("envoutput,e", "write report in shell environment format")
+    ("version", "show the version number")
   ;
 
   po::options_description alloptions;
@@ -216,15 +222,18 @@ try
   po::notify(g_vm);
 
   if (g_vm.count("help")) {
-    cerr << "Usage: dnsbulktest [--options] ip-address portnumber [limit]"<<endl;
-    cerr << desc << "\n";
+    usage(desc);
     return EXIT_SUCCESS;
   }
-  
+
+  if (g_vm.count("version")) {
+    cerr<<"dnsbulktest "<<VERSION<<endl;
+    return EXIT_SUCCESS;
+  }
+
   if(!g_vm.count("portnumber")) {
     cerr<<"Fatal, need to specify ip-address and portnumber"<<endl;
-    cerr << "Usage: dnsbulktest [--options] ip-address portnumber [limit]"<<endl;
-    cerr << desc << "\n";
+    usage(desc);
     return EXIT_FAILURE;
   }
 

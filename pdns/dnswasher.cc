@@ -60,13 +60,30 @@ private:
   uint32_t d_counter;
 };
 
+void usage() {
+  cerr<<"Syntax: dnswasher INFILE OUTFILE"<<endl;
+}
+
 int main(int argc, char** argv)
 try
 {
+  for (int i = 1; i < argc; i++) {
+    if ((string) argv[i] == "--help") {
+      usage();
+      exit(EXIT_SUCCESS);
+    }
+
+    if ((string) argv[i] == "--version") {
+      cerr<<"dnswasher "<<VERSION<<endl;
+      exit(EXIT_SUCCESS);
+    }
+  }
+
   if(argc!=3) {
-    cerr<<"Syntax: dnswasher infile outfile\n";
+    usage();
     exit(1);
   }
+
   PcapPacketReader pr(argv[1]);
   PcapPacketWriter pw(argv[2], pr);
   IPObfuscator ipo;

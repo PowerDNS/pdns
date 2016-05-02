@@ -50,6 +50,7 @@ static void initArguments(int argc, char** argv)
   arg().set("timeout", "Number of seconds to wait for the recursor to respond")="5";
   arg().set("config-name","Name of this virtual configuration - will rename the binary image")="";
   arg().setCmd("help","Provide this helpful message");
+  arg().setCmd("version","Show the version of this program");
 
   arg().laxParse(argc,argv);  
   if(arg().mustDo("help") || arg().getCommands().empty()) {
@@ -57,6 +58,11 @@ static void initArguments(int argc, char** argv)
     cout<<arg().helpstring(arg()["help"])<<endl;
     cout<<"In addition, 'rec_control help' can be used to retrieve a list\nof available commands from PowerDNS"<<endl;
     exit(arg().mustDo("help") ? 0 : 99);
+  }
+
+  if(arg().mustDo("version")) {
+    cout<<"rec_control version "<<VERSION<<endl;
+    exit(0);
   }
 
   string configname=::arg()["config-dir"]+"/recursor.conf";

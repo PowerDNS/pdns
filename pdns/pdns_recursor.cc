@@ -2980,7 +2980,7 @@ int main(int argc, char **argv)
     if(::arg().mustDo("version")) {
       showProductVersion();
       showBuildConfiguration();
-      exit(99);
+      exit(0);
     }
 
     Logger::Urgency logUrgency = (Logger::Urgency)::arg().asNum("loglevel");

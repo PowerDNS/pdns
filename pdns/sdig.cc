@@ -21,6 +21,11 @@ string ttl(uint32_t ttl)
     return std::to_string(ttl);
 }
 
+void usage() {
+  cerr<<"sdig"<<endl;
+  cerr<<"Syntax: sdig IP-ADDRESS PORT QUESTION QUESTION-TYPE [dnssec] [recurse] [showflags] [hidesoadetails] [hidettl] [tcp] [ednssubnet SUBNET]"<<endl;
+}
+
 int main(int argc, char** argv)
 try
 {
@@ -31,12 +36,25 @@ try
   bool hidesoadetails=false;
   boost::optional<Netmask> ednsnm;
 
-  reportAllTypes();
+
+  for(int i=1; i<argc; i++) {
+    if ((string) argv[i] == "--help") {
+      usage();
+      exit(EXIT_SUCCESS);
+    }
+
+    if ((string) argv[i] == "--version") {
+      cerr<<"sdig "<<VERSION<<endl;
+      exit(EXIT_SUCCESS);
+    }
+  }
 
   if(argc < 5) {
-    cerr<<"Syntax: sdig IP-address port question question-type [dnssec] [recurse] [showflags] [hidesoadetails] [hidettl] [tcp] [ednssubnet SUBNET]\n";
+    usage();
     exit(EXIT_FAILURE);
   }
+
+  reportAllTypes();
 
   if (argc > 5) {
     for(int i=5; i<argc; i++) {

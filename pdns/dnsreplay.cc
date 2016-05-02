@@ -670,12 +670,18 @@ bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote, int stam
   return sent;
 }
 
+void usage(po::options_description &desc) {
+  cerr << "Usage: dnsreplay [OPTIONS] FILENAME [IP-ADDRESS] [PORT]"<<endl;
+  cerr << desc << "\n";
+}
+
 int main(int argc, char** argv)
 try
 {
   po::options_description desc("Allowed options");
   desc.add_options()
     ("help,h", "produce help message")
+    ("version", "show version number")
     ("packet-limit", po::value<uint32_t>()->default_value(0), "stop after this many packets")
     ("quiet", po::value<bool>()->default_value(true), "don't be too noisy")
     ("recursive", po::value<bool>()->default_value(true), "look at recursion desired packets, or not (defaults true)")
@@ -703,15 +709,18 @@ try
   reportAllTypes();
 
   if (g_vm.count("help")) {
-    cerr << "Usage: dnsreplay [--options] filename [ip-address] [port]"<<endl;
-    cerr << desc << "\n";
+    usage(desc);
     return EXIT_SUCCESS;
   }
-  
+
+  if (g_vm.count("version")) {
+    cerr<<"dnsreplay "<<VERSION<<endl;
+    return EXIT_SUCCESS;
+  }
+
   if(!g_vm.count("pcap-source")) {
     cerr<<"Fatal, need to specify at least a PCAP source file"<<endl;
-    cerr << "Usage: dnsreplay [--options] filename [ip-address] [port]"<<endl;
-    cerr << desc << "\n";
+    usage(desc);
     return EXIT_FAILURE;
   }
 

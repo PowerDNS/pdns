@@ -184,12 +184,19 @@ static void* worker(void*)
   return 0;
 }
 
+void usage(po::options_description &desc) {
+  cerr<<"Syntax: dnstcpbench REMOTE [PORT] < QUERIES"<<endl;
+  cerr<<"Where QUERIES is one query per line, format: qname qtype, just 1 space"<<endl;
+  cerr<<desc<<endl;
+}
+
 int main(int argc, char** argv)
 try
 {
   po::options_description desc("Allowed options"), hidden, alloptions;
   desc.add_options()
     ("help,h", "produce help message")
+    ("version", "print version number")
     ("verbose,v", "be verbose")
     ("udp-first,u", "try UDP first")
     ("file,f", po::value<string>(), "source file - if not specified, defaults to stdin")
@@ -208,9 +215,14 @@ try
 
   po::store(po::command_line_parser(argc, argv).options(alloptions).positional(p).run(), g_vm);
   po::notify(g_vm);
-  
+
+  if(g_vm.count("version")) {
+    cerr<<"dnstcpbench "<<VERSION<<endl;
+    exit(EXIT_SUCCESS);
+  }
+
   if(g_vm.count("help")) {
-    cout << desc<<endl;
+    usage(desc);
     exit(EXIT_SUCCESS);
   }
   g_tcpNoDelay = g_vm["tcp-no-delay"].as<bool>();
@@ -222,9 +234,7 @@ try
   reportAllTypes();
 
   if(g_vm["remote-host"].empty()) {
-    cerr<<"Syntax: tcpbench remote [port] < queries"<<endl;
-    cerr<<"Where queries is one query per line, format: qname qtype, just 1 space"<<endl;
-    cerr<<desc<<endl;
+    usage(desc);
     exit(EXIT_FAILURE);
   }
 

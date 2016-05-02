@@ -152,6 +152,7 @@ int main( int argc, char* argv[] )
 #endif
                 reportAllTypes();
                 args.setCmd( "help", "Provide a helpful message" );
+                args.setCmd( "version", "Print the version" );
                 args.setSwitch( "verbose", "Verbose comments on operation" ) = "no";
                 args.setSwitch( "resume", "Continue after errors" ) = "no";
                 args.setSwitch( "dnsttl", "Add dnsttl attribute to every entry" ) = "no";
@@ -162,6 +163,11 @@ int main( int argc, char* argv[] )
                 args.set( "layout", "How to arrange entries in the directory (simple or as tree)" ) = "simple";
 
                 args.parse( argc, argv );
+
+                if(args.mustDo("version")) {
+                  cerr<<"zone2ldap "<<VERSION<<endl;
+                  exit(0);
+                }
 
                 if( args.mustDo( "help" ) )
                 {

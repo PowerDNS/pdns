@@ -1861,6 +1861,7 @@ try
   po::options_description desc("Allowed options");
   desc.add_options()
     ("help,h", "produce help message")
+    ("version", "show version")
     ("verbose,v", "be verbose")
     ("force", "force an action")
     ("config-name", po::value<string>()->default_value(""), "virtual configuration name")
@@ -1874,10 +1875,15 @@ try
 
   vector<string> cmds;
 
-  if(g_vm.count("commands")) 
+  if(g_vm.count("commands"))
     cmds = g_vm["commands"].as<vector<string> >();
 
   g_verbose = g_vm.count("verbose");
+
+  if (g_vm.count("version")) {
+    cout<<"pdnsutil "<<VERSION<<endl;
+    return 0;
+  }
 
   if(cmds.empty() || g_vm.count("help") || cmds[0] == "help") {
     cout<<"Usage: \npdnsutil [options] <command> [params ..]\n"<<endl;
