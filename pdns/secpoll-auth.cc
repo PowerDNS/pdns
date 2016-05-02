@@ -46,7 +46,7 @@ void doSecPoll(bool first)
 
   vector<DNSResourceRecord> ret;
 
-  int res=doResolve(query, QType::TXT, ret);
+  int res=stubDoResolve(query, QType::TXT, ret);
 
   int security_status=0;
 

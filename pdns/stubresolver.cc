@@ -14,14 +14,14 @@
 #include "statbag.hh"
 #include "stubresolver.hh"
 
-// s_secpollresolvers contains the ComboAddresses that are used to resolve the
-// secpoll status of PowerDNS
-static vector<ComboAddress> s_secpollresolvers;
+// s_stubresolvers contains the ComboAddresses that are used by
+// stubDoResolve
+static vector<ComboAddress> s_stubresolvers;
 
 /** Parse /etc/resolv.conf and add the nameservers to the vector
- * s_secpollresolvers.
+ * s_stubresolvers.
  */
-void secPollParseResolveConf()
+void stubParseResolveConf()
 {
   ifstream ifs("/etc/resolv.conf");
   if(!ifs)
@@ -41,7 +41,7 @@ void secPollParseResolveConf()
       stringtok(parts, line, " \t,"); // be REALLY nice
       for(vector<string>::const_iterator iter = parts.begin()+1; iter != parts.end(); ++iter) {
         try {
-          s_secpollresolvers.push_back(ComboAddress(*iter, 53));
+          s_stubresolvers.push_back(ComboAddress(*iter, 53));
         }
         catch(...)
         {
@@ -51,34 +51,34 @@ void secPollParseResolveConf()
   }
 
   if(::arg().mustDo("recursor"))
-    s_secpollresolvers.push_back(ComboAddress(::arg()["recursor"], 53));
+    s_stubresolvers.push_back(ComboAddress(::arg()["recursor"], 53));
 
   // Last resort, add 127.0.0.1
-  if(s_secpollresolvers.empty()) {
-    s_secpollresolvers.push_back(ComboAddress("127.0.0.1", 53));
+  if(s_stubresolvers.empty()) {
+    s_stubresolvers.push_back(ComboAddress("127.0.0.1", 53));
   }
 }
 
-// s_secpollresolvers contains the ComboAddresses that are used to resolve the
-int doResolve(const string& qname, uint16_t qtype, vector<DNSResourceRecord>& ret)
+// s_stubresolvers contains the ComboAddresses that are used to resolve the
+int stubDoResolve(const string& qname, uint16_t qtype, vector<DNSResourceRecord>& ret)
 {
   vector<uint8_t> packet;
 
   DNSPacketWriter pw(packet, DNSName(qname), qtype);
   pw.getHeader()->id=dns_random(0xffff);
   pw.getHeader()->rd=1;
-  if (s_secpollresolvers.empty()) {
-    L<<Logger::Warning<<"No recursors set, secpoll impossible."<<endl;
+  if (s_stubresolvers.empty()) {
+    L<<Logger::Warning<<"No recursors set, stub resolving (including secpoll and ALIAS) impossible."<<endl;
     return RCode::ServFail;
   }
 
-  string msg ="Doing secpoll, using resolvers: ";
-  for (const auto& server : s_secpollresolvers) {
+  string msg ="Doing stub resolving, using resolvers: ";
+  for (const auto& server : s_stubresolvers) {
     msg += server.toString() + ", ";
   }
   L<<Logger::Debug<<msg.substr(0, msg.length() - 2)<<endl;
 
-  for(ComboAddress& dest :  s_secpollresolvers) {
+  for(ComboAddress& dest :  s_stubresolvers) {
     Socket sock(dest.sin4.sin_family, SOCK_DGRAM);
     sock.setNonBlocking();
     sock.sendTo(string(packet.begin(), packet.end()), dest);
@@ -103,7 +103,6 @@ int doResolve(const string& qname, uint16_t qtype, vector<DNSResourceRecord>& re
     if(mdp.d_header.rcode == RCode::ServFail)
       continue;
 
-
     for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
       if(i->first.d_place == 1 && i->first.d_type==qtype) {
         DNSResourceRecord rr;
@@ -114,7 +113,7 @@ int doResolve(const string& qname, uint16_t qtype, vector<DNSResourceRecord>& re
         ret.push_back(rr);
       }
     }
-    L<<Logger::Debug<<"Secpoll got answered by "<<dest.toString()<<endl;
+    L<<Logger::Debug<<"Question got answered by "<<dest.toString()<<endl;
     return mdp.d_header.rcode;
   }
   return RCode::ServFail;
