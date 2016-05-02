@@ -737,7 +737,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
 
   while(sd.db->get(rr)) {
     if(rr.qname.isPartOf(target)) {
-      if (rr.qtype.getCode() == QType::ALIAS) {
+      if (rr.qtype.getCode() == QType::ALIAS && ::arg().mustDo("outgoing-axfr-expand-alias")) {
         FindNS fns;
         vector<string> ips=fns.lookup(DNSName(rr.content), (DNSBackend *) NULL);
         for(const auto& ip: ips) {
