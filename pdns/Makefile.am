@@ -186,6 +186,7 @@ pdns_server_SOURCES = \
 	sillyrecords.cc \
 	slavecommunicator.cc \
 	statbag.cc statbag.hh \
+	stubresolver.cc stubresolver.hh \
 	tcpreceiver.cc tcpreceiver.hh \
 	tkey.cc \
 	ueberbackend.cc ueberbackend.hh \
