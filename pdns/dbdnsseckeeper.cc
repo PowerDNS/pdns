@@ -468,6 +468,22 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const DNSName& zone, bool useCache)
   return retkeyset;
 }
 
+bool DNSSECKeeper::checkKeys(const DNSName& zone)
+{
+  vector<DNSBackend::KeyData> dbkeyset;
+  d_keymetadb->getDomainKeys(zone, 0, dbkeyset);
+
+  for(const DNSBackend::KeyData &keydata : dbkeyset) {
+    DNSKEYRecordContent dkrc;
+    shared_ptr<DNSCryptoKeyEngine> dke(DNSCryptoKeyEngine::makeFromISCString(dkrc, keydata.content));
+    if (!dke->checkKey()) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 bool DNSSECKeeper::getPreRRSIGs(UeberBackend& db, const DNSName& signer, const DNSName& qname,
         const DNSName& wildcardname, const QType& qtype,
         DNSResourceRecord::Place signPlace, vector<DNSResourceRecord>& rrsigs, uint32_t signTTL)

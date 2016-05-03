@@ -401,6 +401,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
 
   bool isSecure=dk.isSecuredZone(zone);
   bool presigned=dk.isPresigned(zone);
+  bool validKeys=dk.checkKeys(zone);
 
   DNSResourceRecord rr;
   uint64_t numrecords=0, numerrors=0, numwarnings=0;
@@ -408,6 +409,11 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
   if (haveNSEC3 && isSecure && zone.wirelength() > 222) {
     numerrors++;
     cout<<"[Error] zone '" << zone.toStringNoDot() << "' has NSEC3 semantics but is too long to have the hash prepended. Zone name is " << zone.wirelength() << " bytes long, whereas the maximum is 222 bytes." << endl;
+  }
+
+  if (!validKeys) {
+    numerrors++;
+    cout<<"[Error] zone '" << zone.toStringNoDot() << "' has at least one invalid DNS Private Key." << endl;
   }
 
   // Check for delegation in parent zone
@@ -2943,8 +2949,14 @@ loadMainConfig(g_vm["config-dir"].as<string>());
      DNSKEYRecordContent drc; 
      DNSSECPrivateKey dpk;
      dpk.d_flags = (keyOrZone ? 257 : 256);
-     dpk.setKey(shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(drc, iscString.str())));
- 
+
+     shared_ptr<DNSCryptoKeyEngine> dke(DNSCryptoKeyEngine::makeFromISCString(drc, iscString.str()));
+     if(!dke->checkKey()) {
+       cerr << "Invalid DNS Private Key in engine " << module << " slot " << slot << std::endl;
+       return 1;
+     }
+     dpk.setKey(dke);
+
      // make sure this key isn't being reused.
      B.getDomainKeys(zone, 0, keys);
      id = -1;

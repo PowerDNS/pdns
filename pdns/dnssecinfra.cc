@@ -38,7 +38,12 @@ DNSCryptoKeyEngine* DNSCryptoKeyEngine::makeFromISCFile(DNSKEYRecordContent& drc
     isc += sline;
   }
   fclose(fp);
-  return makeFromISCString(drc, isc);
+  DNSCryptoKeyEngine* dke = makeFromISCString(drc, isc);
+  if(!dke->checkKey()) {
+    delete dke;
+    throw runtime_error("Invalid DNS Private Key in file '"+string(fname));
+  }
+  return dke;
 }
 
 DNSCryptoKeyEngine* DNSCryptoKeyEngine::makeFromISCString(DNSKEYRecordContent& drc, const std::string& content)
@@ -252,6 +257,9 @@ pair<unsigned int, unsigned int> DNSCryptoKeyEngine::testMakers(unsigned int alg
       stormap[toLower(key)]=raw;
     }
     dckeSign->fromISCMap(dkrc, stormap);
+    if(!dckeSign->checkKey()) {
+      throw runtime_error("Verification of key with creator "+dckeCreate->getName()+" with signer "+dckeSign->getName()+" and verifier "+dckeVerify->getName()+" failed");
+    }
   }
 
   string message("Hi! How is life?");

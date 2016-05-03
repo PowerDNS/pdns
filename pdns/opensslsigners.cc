@@ -99,6 +99,7 @@ public:
   std::string getPublicKeyString() const;
   void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap);
   void fromPublicKeyString(const std::string& content);
+  bool checkKey() const override;
 
   static DNSCryptoKeyEngine* maker(unsigned int algorithm)
   {
@@ -353,16 +354,15 @@ void OpenSSLRSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map
     throw runtime_error(getName()+" tried to feed an algorithm "+std::to_string(drc.d_algorithm)+" to a "+std::to_string(d_algorithm)+" key");
   }
 
-  int ret = RSA_check_key(key);
-  if (ret != 1) {
-    RSA_free(key);
-    throw runtime_error(getName()+" invalid public key");
-  }
-
   if (d_key)
     RSA_free(d_key);
 
   d_key = key;
+}
+
+bool OpenSSLRSADNSCryptoKeyEngine::checkKey() const
+{
+  return (RSA_check_key(d_key) == 1);
 }
 
 void OpenSSLRSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& input)
@@ -409,8 +409,7 @@ void OpenSSLRSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& input)
     RSA_free(key);
     throw runtime_error(getName()+" error loading n value of public key");
   }
-  /* we cannot use RSA_check_key(), because it requires the private key information
-     to be present. */
+
   if (d_key)
     RSA_free(d_key);
 
@@ -472,6 +471,7 @@ public:
   std::string getPublicKeyString() const;
   void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap);
   void fromPublicKeyString(const std::string& content);
+  bool checkKey() const override;
 
   static DNSCryptoKeyEngine* maker(unsigned int algorithm)
   {
@@ -678,14 +678,12 @@ void OpenSSLECDSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::m
   }
 
   EC_POINT_free(pub_key);
-
-  ret = EC_KEY_check_key(d_eckey);
-  if (ret != 1) {
-    throw runtime_error(getName()+" invalid public key");
-  }
-
 }
 
+bool OpenSSLECDSADNSCryptoKeyEngine::checkKey() const
+{
+  return (EC_KEY_check_key(d_eckey) == 1);
+}
 
 void OpenSSLECDSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& input)
 {
@@ -717,11 +715,6 @@ void OpenSSLECDSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& inpu
   }
 
   EC_POINT_free(pub_key);
-
-  ret = EC_KEY_check_key(d_eckey);
-  if (ret != 1) {
-    throw runtime_error(getName()+" invalid public key");
-  }
 }
 
 
