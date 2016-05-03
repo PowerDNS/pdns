@@ -476,7 +476,7 @@ bool DNSSECKeeper::checkKeys(const DNSName& zone)
   for(const DNSBackend::KeyData &keydata : dbkeyset) {
     DNSKEYRecordContent dkrc;
     shared_ptr<DNSCryptoKeyEngine> dke(DNSCryptoKeyEngine::makeFromISCString(dkrc, keydata.content));
-    if (!dke->checkKeys()) {
+    if (!dke->checkKey()) {
       return false;
     }
   }

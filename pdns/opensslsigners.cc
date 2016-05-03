@@ -99,7 +99,7 @@ public:
   std::string getPublicKeyString() const;
   void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap);
   void fromPublicKeyString(const std::string& content);
-  bool checkKeys() const override;
+  bool checkKey() const override;
 
   static DNSCryptoKeyEngine* maker(unsigned int algorithm)
   {
@@ -360,7 +360,7 @@ void OpenSSLRSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map
   d_key = key;
 }
 
-bool OpenSSLRSADNSCryptoKeyEngine::checkKeys() const
+bool OpenSSLRSADNSCryptoKeyEngine::checkKey() const
 {
   return (RSA_check_key(d_key) == 1);
 }
@@ -471,7 +471,7 @@ public:
   std::string getPublicKeyString() const;
   void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap);
   void fromPublicKeyString(const std::string& content);
-  bool checkKeys() const override;
+  bool checkKey() const override;
 
   static DNSCryptoKeyEngine* maker(unsigned int algorithm)
   {
@@ -680,7 +680,7 @@ void OpenSSLECDSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::m
   EC_POINT_free(pub_key);
 }
 
-bool OpenSSLECDSADNSCryptoKeyEngine::checkKeys() const
+bool OpenSSLECDSADNSCryptoKeyEngine::checkKey() const
 {
   return (EC_KEY_check_key(d_eckey) == 1);
 }
