@@ -287,11 +287,11 @@ Number of Distributor (backend) threads to start per receiver thread. See
 Synthesise CNAME records from DNAME records as required. This approximately
 doubles query load. **Do not combine with DNSSEC!**
 
-## `dns-key-cache-ttl`
+## `dnssec-key-cache-ttl`
 * Integer
 * Default: 30
 
-Seconds to store domain DNS keys in cache.
+Seconds to cache DNSSEC keys from the database. A value of 0 disables caching.
 
 ## `dnsupdate`
 * Boolean
@@ -310,7 +310,7 @@ section when sending a referral.
 * Integer
 * Default: 60
 
-Seconds to store domain metadata in cache.
+Seconds to cache domain metadata from the database. A value of 0 disables caching.
 
 ## `edns-subnet-option-number`
 * Integer

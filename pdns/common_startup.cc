@@ -149,8 +149,8 @@ void declareArguments()
   ::arg().set("soa-expire-default","Default SOA expire")="604800";
   ::arg().set("default-soa-edit","Default SOA-EDIT value")="";
   ::arg().set("default-soa-edit-signed","Default SOA-EDIT value for signed zones")="";
-  ::arg().set("dns-key-cache-ttl","Seconds to store domain DNS keys in cache")="30";
-  ::arg().set("domain-metadata-cache-ttl","Seconds to store domain metadata in cache")="60";
+  ::arg().set("dnssec-key-cache-ttl","Seconds to cache DNSSEC keys from the database")="30";
+  ::arg().set("domain-metadata-cache-ttl","Seconds to cache domain metadata from the database")="60";
 
   ::arg().set("trusted-notification-proxy", "IP address of incoming notification proxy")="";
   ::arg().set("slave-renotify", "If we should send out notifications for slaved updates")="no";

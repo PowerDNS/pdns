@@ -183,6 +183,7 @@ bool DNSSECKeeper::activateKey(const DNSName& zname, unsigned int id)
 
 void DNSSECKeeper::getFromMeta(const DNSName& zname, const std::string& key, std::string& value)
 {
+  static int ttl = ::arg().asNum("domain-metadata-cache-ttl");
   value.clear();
   unsigned int now = time(0);
 
@@ -190,7 +191,7 @@ void DNSSECKeeper::getFromMeta(const DNSName& zname, const std::string& key, std
     cleanup();
   }
 
-  {
+  if (ttl > 0) {
     ReadLock l(&s_metacachelock); 
     
     metacache_t::const_iterator iter = s_metacache.find(tie(zname, key));
@@ -203,15 +204,17 @@ void DNSSECKeeper::getFromMeta(const DNSName& zname, const std::string& key, std
   d_keymetadb->getDomainMetadata(zname, key, meta);
   if(!meta.empty())
     value=*meta.begin();
-    
-  METACacheEntry nce;
-  nce.d_domain=zname;
-  nce.d_ttd = now + ::arg().asNum("domain-metadata-cache-ttl");
-  nce.d_key= key;
-  nce.d_value = value;
-  { 
-    WriteLock l(&s_metacachelock);
-    replacing_insert(s_metacache, nce);
+
+  if (ttl > 0) {
+    METACacheEntry nce;
+    nce.d_domain=zname;
+    nce.d_ttd = now + ttl;
+    nce.d_key= key;
+    nce.d_value = value;
+    {
+      WriteLock l(&s_metacachelock);
+      replacing_insert(s_metacache, nce);
+    }
   }
 }
 
@@ -387,13 +390,14 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getEntryPoints(const DNSName& zname)
 
 DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const DNSName& zone, bool useCache)
 {
+  static int ttl = ::arg().asNum("dnssec-key-cache-ttl");
   unsigned int now = time(0);
 
   if(!((++s_ops) % 100000)) {
     cleanup();
   }
 
-  if (useCache) {
+  if (useCache && ttl > 0) {
     ReadLock l(&s_keycachelock);
     keycache_t::const_iterator iter = s_keycache.find(zone);
 
@@ -457,14 +461,17 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const DNSName& zone, bool useCache)
   }
   sort(retkeyset.begin(), retkeyset.end(), keyCompareByKindAndID);
 
-  KeyCacheEntry kce;
-  kce.d_domain=zone;
-  kce.d_keys = retkeyset;
-  kce.d_ttd = now + ::arg().asNum("dns-key-cache-ttl");
-  {
-    WriteLock l(&s_keycachelock);
-    replacing_insert(s_keycache, kce);
+  if (ttl > 0) {
+    KeyCacheEntry kce;
+    kce.d_domain=zone;
+    kce.d_keys = retkeyset;
+    kce.d_ttd = now + ttl;
+    {
+      WriteLock l(&s_keycachelock);
+      replacing_insert(s_keycache, kce);
+    }
   }
+
   return retkeyset;
 }
 
