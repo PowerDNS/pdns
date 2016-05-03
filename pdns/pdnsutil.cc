@@ -2949,8 +2949,14 @@ loadMainConfig(g_vm["config-dir"].as<string>());
      DNSKEYRecordContent drc; 
      DNSSECPrivateKey dpk;
      dpk.d_flags = (keyOrZone ? 257 : 256);
-     dpk.setKey(shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(drc, iscString.str())));
- 
+
+     shared_ptr<DNSCryptoKeyEngine> dke(DNSCryptoKeyEngine::makeFromISCString(drc, iscString.str()));
+     if(!dke->checkKey()) {
+       cerr << "Invalid DNS Private Key in engine " << module << " slot " << slot << std::endl;
+       return 1;
+     }
+     dpk.setKey(dke);
+
      // make sure this key isn't being reused.
      B.getDomainKeys(zone, 0, keys);
      id = -1;
