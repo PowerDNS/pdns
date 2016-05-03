@@ -120,6 +120,8 @@ void loadMainConfig(const std::string& configdir)
   ::arg().set("soa-expire-default","Default SOA expire")="604800";
   ::arg().set("soa-minimum-ttl","Default SOA minimum ttl")="3600";    
   ::arg().set("chroot","Switch to this chroot jail")="";
+  ::arg().set("dns-key-cache-ttl","Seconds to store domain DNS keys in cache")="30";
+  ::arg().set("domain-metadata-cache-ttl","Seconds to store domain metadata in cache")="60";
 
   // Keep this line below all ::arg().set() statements
   if (! ::arg().laxFile(configname.c_str()))

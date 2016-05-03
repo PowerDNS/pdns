@@ -287,6 +287,12 @@ Number of Distributor (backend) threads to start per receiver thread. See
 Synthesise CNAME records from DNAME records as required. This approximately
 doubles query load. **Do not combine with DNSSEC!**
 
+## `dns-key-cache-ttl`
+* Integer
+* Default: 30
+
+Seconds to store domain DNS keys in cache.
+
 ## `dnsupdate`
 * Boolean
 * Default: no
@@ -299,6 +305,12 @@ Enable/Disable DNS update (RFC2136) support.
 
 Perform AAAA additional processing. This sends AAAA records in the ADDITIONAL
 section when sending a referral.
+
+## `domain-metadata-cache-ttl`
+* Integer
+* Default: 60
+
+Seconds to store domain metadata in cache.
 
 ## `edns-subnet-option-number`
 * Integer

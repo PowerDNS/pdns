@@ -185,6 +185,11 @@
 # dname-processing=no
 
 #################################
+# dns-key-cache-ttl	Seconds to store domain DNS keys in cache
+#
+# dns-key-cache-ttl=30
+
+#################################
 # dnsupdate	Enable/Disable DNS update (RFC2136) support. Default is no.
 #
 # dnsupdate=no
@@ -193,6 +198,11 @@
 # do-ipv6-additional-processing	Do AAAA additional processing
 #
 # do-ipv6-additional-processing=yes
+
+#################################
+# domain-metadata-cache-ttl	Seconds to store domain metadata in cache
+#
+# domain-metadata-cache-ttl=60
 
 #################################
 # edns-subnet-processing	If we should act on EDNS Subnet options

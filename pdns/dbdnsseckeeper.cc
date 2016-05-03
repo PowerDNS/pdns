@@ -206,7 +206,7 @@ void DNSSECKeeper::getFromMeta(const DNSName& zname, const std::string& key, std
     
   METACacheEntry nce;
   nce.d_domain=zname;
-  nce.d_ttd = now+60;
+  nce.d_ttd = now + ::arg().asNum("domain-metadata-cache-ttl");
   nce.d_key= key;
   nce.d_value = value;
   { 
@@ -460,7 +460,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const DNSName& zone, bool useCache)
   KeyCacheEntry kce;
   kce.d_domain=zone;
   kce.d_keys = retkeyset;
-  kce.d_ttd = now + 30;
+  kce.d_ttd = now + ::arg().asNum("dns-key-cache-ttl");
   {
     WriteLock l(&s_keycachelock);
     replacing_insert(s_keycache, kce);
