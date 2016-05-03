@@ -38,7 +38,10 @@ class DNSCryptoKeyEngine
       throw std::runtime_error("Can't import from PEM string");
     }
     virtual void fromPublicKeyString(const std::string& content) = 0;
-    
+    virtual bool checkKeys() const
+    {
+      return true;
+    }
     static DNSCryptoKeyEngine* makeFromISCFile(DNSKEYRecordContent& drc, const char* fname);
     static DNSCryptoKeyEngine* makeFromISCString(DNSKEYRecordContent& drc, const std::string& content);
     static DNSCryptoKeyEngine* makeFromPEMString(DNSKEYRecordContent& drc, const std::string& raw);

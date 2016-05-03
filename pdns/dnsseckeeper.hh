@@ -167,6 +167,7 @@ public:
   bool removeKey(const DNSName& zname, unsigned int id);
   bool activateKey(const DNSName& zname, unsigned int id);
   bool deactivateKey(const DNSName& zname, unsigned int id);
+  bool checkKeys(const DNSName& zname);
 
   bool getNSEC3PARAM(const DNSName& zname, NSEC3PARAMRecordContent* n3p=0, bool* narrow=0);
   bool setNSEC3PARAM(const DNSName& zname, const NSEC3PARAMRecordContent& n3p, const bool& narrow=false);

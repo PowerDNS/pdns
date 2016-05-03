@@ -401,6 +401,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
 
   bool isSecure=dk.isSecuredZone(zone);
   bool presigned=dk.isPresigned(zone);
+  bool validKeys=dk.checkKeys(zone);
 
   DNSResourceRecord rr;
   uint64_t numrecords=0, numerrors=0, numwarnings=0;
@@ -408,6 +409,11 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
   if (haveNSEC3 && isSecure && zone.wirelength() > 222) {
     numerrors++;
     cout<<"[Error] zone '" << zone.toStringNoDot() << "' has NSEC3 semantics but is too long to have the hash prepended. Zone name is " << zone.wirelength() << " bytes long, whereas the maximum is 222 bytes." << endl;
+  }
+
+  if (!validKeys) {
+    numerrors++;
+    cout<<"[Error] zone '" << zone.toStringNoDot() << "' has at least one invalid DNS Private Key." << endl;
   }
 
   // Check for delegation in parent zone
