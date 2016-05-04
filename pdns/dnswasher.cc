@@ -39,21 +39,34 @@ public:
     }
   }
 
-  uint64_t obf6(uint64_t orig)
+  struct in6_addr obf6(const struct in6_addr& orig)
   {
+    uint32_t val;
     if(d_ro6map.count(orig))
-      return d_ip6map[orig];
+      val=d_ip6map[orig];
     else {
-      return d_ip6map[orig]=d_counter++;
+      val=d_ip6map[orig]=d_counter++;
     }
+    struct in6_addr ret;
+    val=htonl(val);
+    memcpy(((char*)&ret)+12, &val, 4);
+    return ret;
   }
 
 private:
   map<uint32_t, uint32_t> d_ipmap;
-  const map<uint32_t, uint32_t>& d_romap;
+  const decltype(d_ipmap)& d_romap;
+
+  struct cmp {
+    bool operator()(const struct in6_addr&a , const struct in6_addr&b) const
+    {
+      return memcmp(&a, &b, sizeof(a)) < 0;
+    }
+  };
   // For IPv6 addresses
-  map<uint64_t, uint32_t> d_ip6map;
-  const map<uint64_t, uint32_t>& d_ro6map;
+  map<struct in6_addr, uint32_t, cmp> d_ip6map;
+  const decltype(d_ip6map)& d_ro6map;
+
   // The counter that we'll convert to an IP address
   uint32_t d_counter;
 };
@@ -105,13 +118,13 @@ try
           
           pr.d_ip->ip_sum=0;
         } else if (pr.d_ip->ip_v == 6) {
-          uint64_t *src=(uint64_t*)&pr.d_ip6->ip6_src;
-          uint64_t *dst=(uint64_t*)&pr.d_ip6->ip6_dst;
+          auto src=&pr.d_ip6->ip6_src;
+          auto dst=&pr.d_ip6->ip6_dst;
           
           if(dh->qr)
-            *dst=htobe64(ipo.obf6(*dst));
+            *dst=ipo.obf6(*dst);
           else
-            *src=htobe64(ipo.obf6(*src));
+            *src=ipo.obf6(*src);
         }
         pw.write();
       }
