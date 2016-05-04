@@ -20,10 +20,8 @@ otherwise, obfuscate the response IP address
 #include "iputils.hh"
 
 #include "namespaces.hh"
-#include "namespaces.hh"
 
 StatBag S;
-
 
 class IPObfuscator
 {
@@ -61,7 +59,7 @@ private:
 };
 
 void usage() {
-  cerr<<"Syntax: dnswasher INFILE OUTFILE"<<endl;
+  cerr<<"Syntax: dnswasher INFILE1 [INFILE2..] OUTFILE"<<endl;
 }
 
 int main(int argc, char** argv)
@@ -79,43 +77,48 @@ try
     }
   }
 
-  if(argc!=3) {
+  if(argc < 3) {
     usage();
     exit(1);
   }
 
-  PcapPacketReader pr(argv[1]);
-  PcapPacketWriter pw(argv[2], pr);
+  PcapPacketWriter pw(argv[argc-1]);
   IPObfuscator ipo;
+  // 0          1   2   3    - argc == 4
+  // dnswasher in1 in2 out
+  for(int n=1; n < argc -1; ++n) {
+    PcapPacketReader pr(argv[n]);
+    pw.setPPR(pr);
 
-  while(pr.getUDPPacket()) {
-    if(ntohs(pr.d_udp->uh_dport)==53 || (ntohs(pr.d_udp->uh_sport)==53 && pr.d_len > sizeof(dnsheader))) {
-      dnsheader* dh=(dnsheader*)pr.d_payload;
-
-      if (pr.d_ip->ip_v == 4){
-        uint32_t *src=(uint32_t*)&pr.d_ip->ip_src;
-        uint32_t *dst=(uint32_t*)&pr.d_ip->ip_dst;
-
-        if(dh->qr)
-          *dst=htonl(ipo.obf4(*dst));
-        else
-          *src=htonl(ipo.obf4(*src));
-
-        pr.d_ip->ip_sum=0;
-      } else if (pr.d_ip->ip_v == 6) {
-        uint64_t *src=(uint64_t*)&pr.d_ip6->ip6_src;
-        uint64_t *dst=(uint64_t*)&pr.d_ip6->ip6_dst;
-
-        if(dh->qr)
-          *dst=htobe64(ipo.obf6(*dst));
-        else
-          *src=htobe64(ipo.obf6(*src));
+    while(pr.getUDPPacket()) {
+      if(ntohs(pr.d_udp->uh_dport)==53 || (ntohs(pr.d_udp->uh_sport)==53 && pr.d_len > sizeof(dnsheader))) {
+        dnsheader* dh=(dnsheader*)pr.d_payload;
+        
+        if (pr.d_ip->ip_v == 4){
+          uint32_t *src=(uint32_t*)&pr.d_ip->ip_src;
+          uint32_t *dst=(uint32_t*)&pr.d_ip->ip_dst;
+          
+          if(dh->qr)
+            *dst=htonl(ipo.obf4(*dst));
+          else
+            *src=htonl(ipo.obf4(*src));
+          
+          pr.d_ip->ip_sum=0;
+        } else if (pr.d_ip->ip_v == 6) {
+          uint64_t *src=(uint64_t*)&pr.d_ip6->ip6_src;
+          uint64_t *dst=(uint64_t*)&pr.d_ip6->ip6_dst;
+          
+          if(dh->qr)
+            *dst=htobe64(ipo.obf6(*dst));
+          else
+            *src=htobe64(ipo.obf6(*src));
+        }
+        pw.write();
       }
-      pw.write();
     }
+    cerr<<"Saw "<<pr.d_correctpackets<<" correct packets, "<<pr.d_runts<<" runts, "<< pr.d_oversized<<" oversize, "<<
+      pr.d_nonetheripudp<<" unknown encaps"<<endl;
   }
-  cerr<<"Saw "<<pr.d_correctpackets<<" correct packets, "<<pr.d_runts<<" runts, "<< pr.d_oversized<<" oversize, "<<
-    pr.d_nonetheripudp<<" unknown encaps"<<endl;
 }
 catch(std::exception& e)
 {
