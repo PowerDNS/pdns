@@ -3,7 +3,7 @@
 % December 2002
 
 # NAME
-**pdns_control** - Contreol the PowerDNS nameserver
+**pdns_control** - Control the PowerDNS nameserver
 
 # SYNOPSIS
 **pdns_control** [*OPTION*]... *COMMAND*
@@ -38,6 +38,21 @@
 
 
 # COMMANDS
+bind-add-zone *DOMAIN* *FILENAME*
+:    When using the bindbackend, add a zone. This zone is added in-memory and served
+     immediately. Note that this does not add the zone to the bind-config file.
+     *FILENAME* must be an absolute path.
+
+bind-domain-status [*DOMAIN*...]
+:    When using the bindbackend, list status of all domains. Optionally, append
+     *DOMAIN*s to get the status of specific zones.
+
+bind-list-rejects
+:    When using the bindbackend, get a list of all rejected domains.
+
+bind-reload-now *DOMAIN* [*DOMAIN*...]
+:    When using the bindbackend, immediately reload *DOMAIN* from disk.
+
 ccounts
 :    Show the content of the cache.
 
