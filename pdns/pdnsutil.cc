@@ -1122,10 +1122,17 @@ int loadZone(DNSName zone, const string& fname) {
     return EXIT_FAILURE;
   }
   rr.domain_id=di.id;  
+  bool haveSOA = false;
   while(zpt.get(rr)) {
     if(!rr.qname.isPartOf(zone) && rr.qname!=zone) {
       cerr<<"File contains record named '"<<rr.qname.toString()<<"' which is not part of zone '"<<zone.toString()<<"'"<<endl;
       return EXIT_FAILURE;
+    }
+    if (rr.qtype == QType::SOA) {
+      if (haveSOA)
+        continue;
+      else
+        haveSOA = true;
     }
     db->feedRecord(rr);
   }
