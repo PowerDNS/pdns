@@ -316,7 +316,7 @@ zone_collection
       "nameservers": ["<string>", ...],
       "servers": ["<string>", ...],
       "recursion_desired": <bool>,
-      "rrset": [<RRset>, ...],
+      "rrsets": [<RRset>, ...],
     }
 
 
