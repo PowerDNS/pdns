@@ -49,7 +49,6 @@ EXTRA_DIST = \
 	bind-dnssec.schema.sqlite3.sql \
 	bindparser.h \
 	named.conf.parsertest \
-	pdns.conf-dist \
 	delaypipe.hh delaypipe.cc \
 	pdns.service.in
 
@@ -64,7 +63,8 @@ CLEANFILES = \
 	backends/gsql/gsqlbackend.gcda \
 	backends/gsql/gsqlbackend.gcno \
 	backends/gsql/gsqlbackend.gcov \
-	dnsmessage.pb.cc dnsmessage.pb.h
+	dnsmessage.pb.cc dnsmessage.pb.h \
+	pdns.conf-dist
 
 noinst_SCRIPTS = pdns.init
 sysconf_DATA = pdns.conf-dist
@@ -1056,6 +1056,9 @@ dnspcap2protobuf_LDADD = \
 	$(BOOST_PROGRAM_OPTIONS_LIBS)
 endif
 endif
+
+pdns.conf-dist: pdns_server
+	$(AM_V_GEN)./pdns_server --no-config --config 2>/dev/null > $@
 
 testrunner_SOURCES = \
 	arguments.cc \

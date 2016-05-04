@@ -527,7 +527,7 @@ int main(int argc, char **argv)
     
     if(::arg().mustDo("config")) {
       cout<<::arg().configstring()<<endl;
-      exit(99);
+      exit(0);
     }
 
     if(::arg().mustDo("list-modules")) {

@@ -109,9 +109,6 @@ if [ -z "$context" ]; then
 
 	cd ../regression-tests.nobackend/
 
-	# The package builds define other dirs, so the distconf test fails, so skip it
-	touch pdnsconfdist/skip
-
 	./runtests || EXITCODE=1
 elif [ "$context" = "odbc" ]; then
 	cat > ~/.odbc.ini << __EOF__
