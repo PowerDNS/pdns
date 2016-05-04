@@ -48,7 +48,9 @@ public:
       val=d_ip6map[orig]=d_counter++;
     }
     struct in6_addr ret;
+
     val=htonl(val);
+    memset(&ret, 0, sizeof(ret));
     memcpy(((char*)&ret)+12, &val, 4);
     return ret;
   }
