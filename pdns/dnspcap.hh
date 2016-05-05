@@ -108,17 +108,19 @@ private:
 class PcapPacketWriter
 {
 public: 
-  PcapPacketWriter(const string& fname, PcapPacketReader& ppr);
+  PcapPacketWriter(const string& fname, const PcapPacketReader& ppr);
+  PcapPacketWriter(const string& fname);
   
   void write();
-
+  void setPPR(const PcapPacketReader& ppr) { d_ppr = &ppr; }
   ~PcapPacketWriter();
 
 private:
   string d_fname;
-  const PcapPacketReader& d_ppr;
+  const PcapPacketReader* d_ppr;
 
   FILE *d_fp;
+  bool d_first{true};
 }; 
 
 #endif // DNSPCAP_HH
