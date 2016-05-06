@@ -254,7 +254,7 @@ private:
 class SuffixMatchNodeRule : public DNSRule
 {
 public:
-  SuffixMatchNodeRule(const SuffixMatchNode& smn) : d_smn(smn)
+  SuffixMatchNodeRule(const SuffixMatchNode& smn, bool quiet=false) : d_smn(smn), d_quiet(quiet)
   {
   }
   bool matches(const DNSQuestion* dq) const override
@@ -263,10 +263,14 @@ public:
   }
   string toString() const override
   {
-    return "qname=="+d_smn.toString();
+    if(d_quiet)
+      return "qname==in-set";
+    else
+      return "qname=="+d_smn.toString();
   }
 private:
   SuffixMatchNode d_smn;
+  bool d_quiet;
 };
 
 class QTypeRule : public DNSRule
