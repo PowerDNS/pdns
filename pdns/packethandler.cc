@@ -1013,7 +1013,7 @@ bool PacketHandler::tryReferral(DNSPacket *p, DNSPacket*r, SOAData& sd, const DN
 
 void PacketHandler::completeANYRecords(DNSPacket *p, DNSPacket*r, SOAData& sd, const DNSName &target)
 {
-  if(!p->d_dnssecOk)
+  if(!p->d_dnssecOk && !r->d_doFakeRRSIG)
     return; // Don't send dnssec info to non validating resolvers.
 
   if(!d_dk.isSecuredZone(sd.qname))
@@ -1307,8 +1307,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     // this TRUMPS a cname!
     if(p->qtype.getCode() == QType::RRSIG) {
       L<<Logger::Info<<"Direct RRSIG query for "<<target<<" from "<<p->getRemote()<<endl;
-      r->setRcode(RCode::NotImp);
-      goto sendit;
+      r->d_doFakeRRSIG = true;
     }
 
     DLOG(L<<"Checking for referrals first, unless this is a DS query"<<endl);
@@ -1325,13 +1324,13 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     
     while(B.get(rr)) {
       //cerr<<"got content: ["<<rr.content<<"]"<<endl;
-      if (p->qtype.getCode() == QType::ANY && !p->d_dnssecOk && (rr.qtype.getCode() == QType:: DNSKEY || rr.qtype.getCode() == QType::NSEC3PARAM))
+      if (p->qtype.getCode() == QType::ANY && !p->d_dnssecOk && !r->d_doFakeRRSIG && (rr.qtype.getCode() == QType:: DNSKEY || rr.qtype.getCode() == QType::NSEC3PARAM))
         continue; // Don't send dnssec info to non validating resolvers.
       if (rr.qtype.getCode() == QType::RRSIG) // RRSIGS are added later any way.
         continue; // TODO: this actually means addRRSig should check if the RRSig is already there
 
       // cerr<<"Auth: "<<rr.auth<<", "<<(rr.qtype == p->qtype)<<", "<<rr.qtype.getName()<<endl;
-      if((p->qtype.getCode() == QType::ANY || rr.qtype == p->qtype) && rr.auth) 
+      if((p->qtype.getCode() == QType::ANY || rr.qtype == p->qtype || r->d_doFakeRRSIG) && rr.auth) 
         weDone=1;
       // the line below fakes 'unauth NS' for delegations for non-DNSSEC backends.
       if((rr.qtype == p->qtype && !rr.auth) || (rr.qtype.getCode() == QType::NS && (!rr.auth || !(sd.qname==rr.qname))))
@@ -1429,14 +1428,14 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     else if(weDone) {
       bool haveRecords = false;
       for(const auto& rr: rrset) {
-        if((p->qtype.getCode() == QType::ANY || rr.qtype == p->qtype) && rr.qtype.getCode() && rr.auth) {
+        if((p->qtype.getCode() == QType::ANY || rr.qtype == p->qtype || r->d_doFakeRRSIG) && rr.qtype.getCode() && rr.auth) {
           r->addRecord(rr);
           haveRecords = true;
         }
       }
 
       if (haveRecords) {
-        if(p->qtype.getCode() == QType::ANY)
+        if(p->qtype.getCode() == QType::ANY || r->d_doFakeRRSIG)
           completeANYRecords(p, r, sd, target);
       }
       else
@@ -1474,7 +1473,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
         break;
       }
     }
-    if(p->d_dnssecOk)
+    if(p->d_dnssecOk || r->d_doFakeRRSIG)
       addRRSigs(d_dk, B, authSet, r->getRRS());
       
     r->wrapup(); // needed for inserting in cache
