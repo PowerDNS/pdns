@@ -714,8 +714,8 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
     });
 #endif
 
-  g_lua.writeFunction("SuffixMatchNodeRule", [](const SuffixMatchNode& smn) {
-      return std::shared_ptr<DNSRule>(new SuffixMatchNodeRule(smn));
+  g_lua.writeFunction("SuffixMatchNodeRule", [](const SuffixMatchNode& smn, boost::optional<bool> quiet) {
+      return std::shared_ptr<DNSRule>(new SuffixMatchNodeRule(smn, quiet ? *quiet : false));
     });
 
   g_lua.writeFunction("NetmaskGroupRule", [](const NetmaskGroup& nmg) {

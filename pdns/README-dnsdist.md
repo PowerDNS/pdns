@@ -1073,7 +1073,7 @@ instantiate a server with additional parameters
     * `QClassRule(qclass)`: matches queries with the specified qclass (numeric)
     * `QTypeRule(qtype)`: matches queries with the specified qtype
     * `RegexRule(regex)`: matches the query name against the supplied regex
-    * `SuffixMatchNodeRule()`: matches based on a group of domain suffixes for rapid testing of membership
+    * `SuffixMatchNodeRule(smn, [quiet-bool])`: matches based on a group of domain suffixes for rapid testing of membership. Pass `true` as second parameter to prevent listing of all domains matched.
     * `TCPRule(tcp)`: matches question received over TCP if `tcp` is true, over UDP otherwise
  * Rule management related:
     * `getAction(num)`: returns the Action associate with rule 'num'.
