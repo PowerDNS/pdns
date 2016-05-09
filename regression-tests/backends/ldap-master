@@ -29,7 +29,7 @@ __EOF__
 			--query-logging \
 			--cache-ttl=$cachettl --dname-processing $lua_prequery &
 
-		skipreasons="nodnssec noent nodyndns nometa noaxfr"
+		skipreasons="nodnssec noent nodyndns nometa noaxfr noalias"
 
 		;;
 	*)
