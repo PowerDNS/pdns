@@ -400,12 +400,16 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
     fclose(fp);
     fp=0;
   }
-  catch(...)
-    {
-      errlog("Webserver thread died with exception");
-      if(fp)
-	fclose(fp);
-    }
+  catch(const std::exception& e) {
+    errlog("Webserver thread died with exception: %s", e.what());
+    if(fp)
+      fclose(fp);
+  }
+  catch(...) {
+    errlog("Webserver thread died with exception");
+    if(fp)
+      fclose(fp);
+  }
 }
 void dnsdistWebserverThread(int sock, const ComboAddress& local, const std::string& password, const std::string& apiKey, const boost::optional<std::map<std::string, std::string> >& customHeaders)
 {
