@@ -54,6 +54,7 @@
 #include "communicator.hh"
 #include "namespaces.hh"
 #include "signingpipe.hh"
+#include "stubresolver.hh"
 extern PacketCache PC;
 extern StatBag S;
 
@@ -738,14 +739,18 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   while(sd.db->get(rr)) {
     if(rr.qname.isPartOf(target)) {
       if (rr.qtype.getCode() == QType::ALIAS && ::arg().mustDo("outgoing-axfr-expand-alias")) {
-        FindNS fns;
-        vector<string> ips=fns.lookup(DNSName(rr.content), (DNSBackend *) NULL);
+        vector<DNSResourceRecord> ips;
+        int ret1 = stubDoResolve(rr.content, QType::A, ips);
+        int ret2 = stubDoResolve(rr.content, QType::AAAA, ips);
+        if(ret1 != RCode::NoError || ret2 != RCode::NoError) {
+          L<<Logger::Error<<"Error resolving for ALIAS "<<rr.content<<", aborting AXFR"<<endl;
+          outpacket->setRcode(2); // 'SERVFAIL'
+          sendPacket(outpacket,outsock);
+          return 0;
+        }
         for(const auto& ip: ips) {
-          if(ip.find(":") == string::npos)
-            rr.qtype = QType(QType::A);
-          else
-            rr.qtype = QType(QType::AAAA);
-          rr.content = ip;
+          rr.qtype = ip.qtype;
+          rr.content = ip.content;
           rrs.push_back(rr);
         }
       }
