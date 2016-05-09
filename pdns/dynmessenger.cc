@@ -119,10 +119,7 @@ DynMessenger::~DynMessenger()
 int DynMessenger::send(const string &msg) const
 {
   try {
-    if(writen2(d_s, msg+"\n") < 0) { // sue me
-      perror("sendto");
-      return -1;
-    }
+    writen2(d_s, msg+"\n");
     return 0;
   } catch(std::runtime_error& e) {
     if (errno == EAGAIN)
