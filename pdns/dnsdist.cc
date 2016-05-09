@@ -144,10 +144,17 @@ struct DelayedPacket
   ComboAddress origDest;
   void operator()()
   {
-    if(origDest.sin4.sin_family == 0)
-      sendto(fd, packet.c_str(), packet.size(), 0, (struct sockaddr*)&destination, destination.getSocklen());
-    else
-      sendfromto(fd, packet.c_str(), packet.size(), 0, origDest, destination);
+    ssize_t res;
+    if(origDest.sin4.sin_family == 0) {
+      res = sendto(fd, packet.c_str(), packet.size(), 0, (struct sockaddr*)&destination, destination.getSocklen());
+    }
+    else {
+      res = sendfromto(fd, packet.c_str(), packet.size(), 0, origDest, destination);
+    }
+    if (res == -1) {
+      int err = errno;
+      vinfolog("Error sending delayed response to %s: %s", destination.toStringWithPort(), strerror(err));
+    }
   }
 };
 
@@ -313,10 +320,17 @@ static bool sendUDPResponse(int origFD, char* response, uint16_t responseLen, in
     g_delay->submit(dp, delayMsec);
   }
   else {
-    if(origDest.sin4.sin_family == 0)
-      sendto(origFD, response, responseLen, 0, (struct sockaddr*)&origRemote, origRemote.getSocklen());
-    else
-      sendfromto(origFD, response, responseLen, 0, origDest, origRemote);
+    ssize_t res;
+    if(origDest.sin4.sin_family == 0) {
+      res = sendto(origFD, response, responseLen, 0, (struct sockaddr*)&origRemote, origRemote.getSocklen());
+    }
+    else {
+      res = sendfromto(origFD, response, responseLen, 0, origDest, origRemote);
+    }
+    if (res == -1) {
+      int err = errno;
+      vinfolog("Error sending response to %s: %s", origRemote.toStringWithPort(), strerror(err));
+    }
   }
 
   return true;
