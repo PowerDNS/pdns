@@ -530,7 +530,7 @@ static void apiZoneCryptokeys(HttpRequest* req, HttpResponse* resp) {
     throw ApiException("Only GET is implemented");
 
   bool inquireSingleKey = false;
-  int inquireKeyId;
+  unsigned int inquireKeyId = 0;
   if (req->parameters.count("key_id")) {
     inquireSingleKey = true;
     inquireKeyId = std::stoi(req->parameters["key_id"]);
