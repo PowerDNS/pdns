@@ -38,3 +38,4 @@
 /ext/Makefile.in
 /dnsmessage.pb.cc
 /dnsmessage.pb.h
+/pdns-recursor.service
