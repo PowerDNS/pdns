@@ -82,6 +82,9 @@ void showBuildConfiguration()
 #ifdef HAVE_CRYPTOPP
     "cryptopp " <<
 #endif
+#ifdef HAVE_OPENSSL
+    "openssl " <<
+#endif
 #ifdef HAVE_LIBDL
     "libdl " <<
 #endif
