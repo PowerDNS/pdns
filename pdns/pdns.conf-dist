@@ -360,6 +360,11 @@
 # out-of-zone-additional-processing=yes
 
 #################################
+# outgoing-axfr-expand-alias	Expand ALIAS records during outgoing AXFR
+#
+# outgoing-axfr-expand-alias=no
+
+#################################
 # overload-queue-length	Maximum queuelength moving to packetcache only
 #
 # overload-queue-length=0

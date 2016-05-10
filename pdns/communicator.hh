@@ -220,12 +220,13 @@ public:
 
     this->resolve_name(&addresses, name);
     
-    b->lookup(QType(QType::ANY),name);
-    DNSResourceRecord rr;
-    while(b->get(rr))
-      if(rr.qtype.getCode() == QType::A || rr.qtype.getCode()==QType::AAAA)
-        addresses.push_back(rr.content);   // SOL if you have a CNAME for an NS
-
+    if(b) {
+        b->lookup(QType(QType::ANY),name);
+        DNSResourceRecord rr;
+        while(b->get(rr))
+          if(rr.qtype.getCode() == QType::A || rr.qtype.getCode()==QType::AAAA)
+            addresses.push_back(rr.content);   // SOL if you have a CNAME for an NS
+    }
     return addresses;
   }
 
@@ -235,12 +236,13 @@ public:
 
     this->resolve_name(&addresses, name);
 
-    b->lookup(QType(QType::ANY),name);
-    DNSResourceRecord rr;
-    while(b->get(rr))
-      if(rr.qtype.getCode() == QType::A || rr.qtype.getCode()==QType::AAAA)
-         addresses.push_back(rr.content);   // SOL if you have a CNAME for an NS
-
+    if(b) {
+        b->lookup(QType(QType::ANY),name);
+        DNSResourceRecord rr;
+        while(b->get(rr))
+          if(rr.qtype.getCode() == QType::A || rr.qtype.getCode()==QType::AAAA)
+             addresses.push_back(rr.content);   // SOL if you have a CNAME for an NS
+    }
     return addresses;
   }
 

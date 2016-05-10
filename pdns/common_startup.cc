@@ -183,6 +183,8 @@ void declareArguments()
 
   ::arg().set("include-dir","Include *.conf files from this directory");
   ::arg().set("security-poll-suffix","Domain name from which to query security update notifications")="secpoll.powerdns.com.";
+
+  ::arg().setSwitch("outgoing-axfr-expand-alias", "Expand ALIAS records during outgoing AXFR")="no";
 }
 
 static time_t s_start=time(0);

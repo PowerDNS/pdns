@@ -11,7 +11,7 @@ __EOF__
 			--config-name=bind --socket-dir=./ --no-shuffle \
 			--cache-ttl=$cachettl --dname-processing \
 			--disable-axfr-rectify=yes &
-		skipreasons="nodnssec nodyndns nometa"
+		skipreasons="nodnssec nodyndns nometa noalias"
 		bindwait bind
 		;;
 
@@ -74,18 +74,18 @@ __EOF__
 		if [ $context = bind-dnssec-nsec3 ] || [ $context = bind-hybrid-nsec3 ]
 		then
 			extracontexts="bind dnssec nsec3"
-			skipreasons="nsec3 nodyndns"
+			skipreasons="nsec3 nodyndns noalias"
 		elif [ $context = bind-dnssec-nsec3-optout ]
 		then
 			extracontexts="bind dnssec nsec3 nsec3-optout"
-			skipreasons="optout nodyndns"
+			skipreasons="optout nodyndns noalias"
 		elif [ $context = bind-dnssec-nsec3-narrow ]
 		then
 			extracontexts="bind dnssec narrow"
-			skipreasons="narrow nodyndns"
+			skipreasons="narrow nodyndns noalias"
 		else
 			extracontexts="bind dnssec"
-			skipreasons="nodyndns"
+			skipreasons="nodyndns noalias"
 		fi
 
 		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --config-dir=. \

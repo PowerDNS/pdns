@@ -588,6 +588,18 @@ with untrusted users.
 The docs had previously indicated that the default was "no", but the default has
 been "yes" since 2005.
 
+## `outgoing-axfr-expand-alias`
+* Boolean
+* Default: no
+
+If this is enabled, ALIAS records are expanded (synthesised to their A/AAAA)
+during outgoing AXFR. This means slaves will not automatically follow changes
+in those A/AAAA records unless you AXFR regularly!
+
+If this is disabled (the default), ALIAS records are sent verbatim during
+outgoing AXFR. Note that if your slaves do not support ALIAS, they will return
+NODATA for A/AAAA queries for such names.
+
 ## `pipebackend-abi-version`
 * Integer
 * Default: 1

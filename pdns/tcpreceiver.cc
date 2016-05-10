@@ -54,6 +54,7 @@
 #include "communicator.hh"
 #include "namespaces.hh"
 #include "signingpipe.hh"
+#include "stubresolver.hh"
 extern PacketCache PC;
 extern StatBag S;
 
@@ -737,6 +738,26 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
 
   while(sd.db->get(rr)) {
     if(rr.qname.isPartOf(target)) {
+      if (rr.qtype.getCode() == QType::ALIAS && ::arg().mustDo("outgoing-axfr-expand-alias")) {
+        vector<DNSResourceRecord> ips;
+        int ret1 = stubDoResolve(rr.content, QType::A, ips);
+        int ret2 = stubDoResolve(rr.content, QType::AAAA, ips);
+        if(ret1 != RCode::NoError || ret2 != RCode::NoError) {
+          L<<Logger::Error<<"Error resolving for ALIAS "<<rr.content<<", aborting AXFR"<<endl;
+          outpacket->setRcode(2); // 'SERVFAIL'
+          sendPacket(outpacket,outsock);
+          return 0;
+        }
+        for(const auto& ip: ips) {
+          rr.qtype = ip.qtype;
+          rr.content = ip.content;
+          rrs.push_back(rr);
+        }
+      }
+      else {
+        rrs.push_back(rr);
+      }
+
       if (rectify) {
         if (rr.qtype.getCode()) {
           qnames.insert(rr.qname);
@@ -747,7 +768,6 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
           continue;
         }
       }
-      rrs.push_back(rr);
     } else {
       if (rr.qtype.getCode())
         L<<Logger::Warning<<"Zone '"<<target<<"' contains out-of-zone data '"<<rr.qname<<"|"<<rr.qtype.getName()<<"', ignoring"<<endl;

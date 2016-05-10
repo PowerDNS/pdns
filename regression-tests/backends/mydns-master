@@ -27,7 +27,7 @@ __EOF__
 			--no-shuffle --master \
 			--cache-ttl=0 --dname-processing \
 			--mydns-rr-active=no --mydns-soa-active=no --mydns-use-minimal-ttl=no &
-		skipreasons="nodnssec noent nodyndns nometa noaxfr"
+		skipreasons="nodnssec noent nodyndns nometa noaxfr noalias"
 		;;
 
 		*)
