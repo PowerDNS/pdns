@@ -355,6 +355,10 @@ try
         throw;
       }
     }
+    catch(const LuaContext::WrongTypeException& e) {
+      response = "Command returned an object we can't print: " +std::string(e.what()) + "\n";
+      // tried to return something we don't understand
+    }
     catch(const LuaContext::ExecutionErrorException& e) {
       response = "Error: " + string(e.what()) + ": ";
       try {
