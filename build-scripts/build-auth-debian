@@ -43,6 +43,10 @@ PDNS_VERSION=$VERSION
 export ID="${ID}"
 export VERSION_ID="${VERSION_ID}"
 
+if [ ${ID} = "ubuntu" -a ${VERSION_ID} = "14.04" ]; then
+  sed -i '/lib\/systemd\/system\/pdns\.service/d' debian/pdns-server.install
+fi
+
 fakeroot debian/rules debian/control
 
 if $(echo $PDNS_VERSION | grep -q -E '^0\.0\.'); then
