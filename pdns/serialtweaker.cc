@@ -66,6 +66,7 @@ bool editSOARecord(DNSResourceRecord& rr, const string& kind, const DNSName& qna
 
 uint32_t calculateEditSOA(SOAData sd, const string& kind) {
   if(pdns_iequals(kind,"INCEPTION")) {
+    L<<Logger::Warning<<"Deprecation warning: The 'INCEPTION' soa-edit value will be removed in PowerDNS 4.1"<<endl;
     time_t inception = getStartOfWeek();
     return localtime_format_YYYYMMDDSS(inception, 1);
   }
@@ -81,6 +82,7 @@ uint32_t calculateEditSOA(SOAData sd, const string& kind) {
     }
   }
   else if(pdns_iequals(kind,"INCEPTION-WEEK")) {
+    L<<Logger::Warning<<"Deprecation warning: The 'INCEPTION-WEEK' soa-edit value will be removed in PowerDNS 4.1"<<endl;
     time_t inception = getStartOfWeek();
     return ( inception / (7*86400) );
   }
@@ -89,6 +91,7 @@ uint32_t calculateEditSOA(SOAData sd, const string& kind) {
     return (sd.serial + (inception / (7*86400)));
   }
   else if(pdns_iequals(kind,"EPOCH")) {
+    L<<Logger::Warning<<"Deprecation warning: The 'EPOCH' soa-edit value will be removed in PowerDNS 4.1"<<endl;
     return time(0);
   }
   else if(pdns_iequals(kind,"INCEPTION-EPOCH")) {

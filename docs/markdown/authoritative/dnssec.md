@@ -517,11 +517,15 @@ to find the day for inception time.
 **Warning**: The SOA serial will only change on inception day, so changes to the
 zone will get visible on slaves only on the following inception day.
 
+**Note**: Will be removed in PowerDNS Authoritative Server 4.1.0
+
 #### INCEPTION-WEEK (not recommended)
 Sets the SOA serial to the number of weeks since the epoch, which is the last
 inception time in weeks.
 
 **Warning**: Same problem as INCEPTION.
+
+**Note**: Will be removed in PowerDNS Authoritative Server 4.1.0
 
 #### EPOCH
 Sets the SOA serial to the number of seconds since the epoch.
@@ -529,6 +533,8 @@ Sets the SOA serial to the number of seconds since the epoch.
 **Warning**: Don't combine this with AXFR - the slaves would keep refreshing all
 the time. If you need fast updates, sync the backend databases directly with
 incremental updates (or use the same database server on the slaves)
+
+**Note**: Will be removed in PowerDNS Authoritative Server 4.1.0
 
 #### NONE
 Ignore [`default-soa-edit`](settings.md#default-soa-edit) and/or

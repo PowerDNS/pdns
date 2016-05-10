@@ -141,6 +141,7 @@ Important changes:
     - `insert-record-order-query` has been dropped, `insert-record-query` now sets the ordername (or NULL)
     - `insert-slave-query` has been dropped, `insert-zone-query` now sets the type of zone
 - Crypto++ and mbedTLS support is dropped, these are replaced by OpenSSL
+- The INCEPTION, INCEPTION-WEEK and EPOCH SOA-EDIT metadata values are marked as deprecated and will be removed in 4.1
 
 There are several **known issues** that will be fixed before the final 4.0.0 release:
 
