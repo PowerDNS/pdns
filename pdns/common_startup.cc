@@ -29,6 +29,9 @@
 #include <sys/resource.h>
 #include "dynhandler.hh"
 
+#ifdef HAVE_SYSTEMD
+#include <systemd/sd-daemon.h>
+#endif
 
 bool g_anyToTcp;
 typedef Distributor<DNSPacket,DNSPacket,PacketHandler> DNSDistributor;
@@ -532,6 +535,15 @@ void mainthread()
     pthread_create(&qtid,0,qthread, reinterpret_cast<void *>(n)); // receives packets
 
   pthread_create(&qtid,0,carbonDumpThread, 0); // runs even w/o carbon, might change @ runtime    
+
+#ifdef HAVE_SYSTEMD
+  /* If we are here, notify systemd that we are ay-ok! This might have some
+   * timing issues with the backend-threads. e.g. if the initial MySQL connection
+   * is slow and times out (leading to process termination through the backend)
+   * We probably have told systemd already that we have started correctly.
+   */
+    sd_notify(0, "READY=1");
+#endif
 
   for(;;) {
     sleep(1800);

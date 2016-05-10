@@ -209,6 +209,7 @@ Provides: powerdns-recursor = %{version}-%{release}
 BuildRequires: boost-devel
 BuildRequires: lua-devel
 BuildRequires: systemd-units
+BuildRequires: systemd-devel
 BuildRequires: hostname
 
 Requires(pre): shadow-utils
@@ -231,14 +232,13 @@ package if you need a dns cache for your network.
 	--disable-static \
 	--disable-dependency-tracking \
 	--disable-silent-rules \
-	--enable-unit-tests
+	--enable-unit-tests \
+	--enable-systemd
 
 make %{?_smp_mflags}
 
 %install
 make install DESTDIR=%{buildroot}
-# install systemd unit file
-%{__install} -D -p -m 644 contrib/systemd-pdns-recursor.service %{buildroot}%{_unitdir}/%{name}.service
 %{__mv} %{buildroot}%{_sysconfdir}/%{name}/recursor.conf-dist %{buildroot}%{_sysconfdir}/%{name}/recursor.conf
 
 # add pdns user and group to top of configfile

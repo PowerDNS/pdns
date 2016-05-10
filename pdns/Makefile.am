@@ -4,7 +4,8 @@ AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/json11 \
 	$(YAHTTP_CFLAGS) \
 	$(LIBEDIT_CFLAGS) \
-	$(OPENSSL_INCLUDES)
+	$(OPENSSL_INCLUDES) \
+	$(SYSTEMD_CFLAGS)
 
 AM_CXXFLAGS = \
 	-DSYSCONFDIR=\"$(sysconfdir)\" \
@@ -49,7 +50,8 @@ EXTRA_DIST = \
 	bindparser.h \
 	named.conf.parsertest \
 	pdns.conf-dist \
-	delaypipe.hh delaypipe.cc
+	delaypipe.hh delaypipe.cc \
+	pdns.service.in
 
 BUILT_SOURCES = \
 	bind-dnssec.schema.sqlite3.sql.h \
@@ -210,7 +212,8 @@ pdns_server_LDADD = \
 	$(LIBDL) \
 	$(YAHTTP_LIBS) \
 	$(JSON11_LIBS) \
-	$(OPENSSL_LIBS)
+	$(OPENSSL_LIBS) \
+	$(SYSTEMD_LIBS)
 
 if BOTAN110
 pdns_server_SOURCES += botan110signers.cc
@@ -1176,3 +1179,13 @@ pdns_recursor rec_control:
 dnsdist:
 	@echo "Please build dnsdist from the dnsdistdist/ dir"
 	@exit 1
+
+if HAVE_SYSTEMD
+pdns.service: pdns.service.in
+	$(AM_V_GEN)sed -e 's![@]sbindir[@]!$(sbindir)!' < $< > $@
+
+systemdsystemunitdir = $(SYSTEMD_DIR)
+
+systemdsystemunit_DATA = \
+	pdns.service
+endif

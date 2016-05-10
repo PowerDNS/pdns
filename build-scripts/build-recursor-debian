@@ -25,7 +25,10 @@ set -x
 
 rm -rf $DISTDIR/debian
 cp -r build-scripts/debian-recursor $DISTDIR/debian
-cat > $DISTDIR/debian/changelog << EOF
+
+cd $DISTDIR
+
+cat > debian/changelog << EOF
 pdns-recursor (${VERSION}-${RELEASE}) unstable; urgency=medium
 
   * Automatic build
@@ -34,6 +37,12 @@ pdns-recursor (${VERSION}-${RELEASE}) unstable; urgency=medium
 
 EOF
 
-cd $DISTDIR
+PDNS_VERSION=$VERSION
+
+. /etc/os-release
+export ID="${ID}"
+export VERSION_ID="${VERSION_ID}"
+
+fakeroot debian/rules debian/control
 
 fakeroot debian/rules binary

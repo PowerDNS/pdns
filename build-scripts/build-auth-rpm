@@ -312,6 +312,7 @@ Requires(preun): systemd-units
 Requires(postun): systemd-units
 
 BuildRequires: systemd-units
+BuildRequires: systemd-devel
 BuildRequires: boost-devel
 BuildRequires: lua-devel
 BuildRequires: bison
@@ -437,20 +438,20 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
 	--with-lua \
 	--with-dynmodules='%{backends} random' \
 	--enable-tools \
-	--enable-unit-tests
+	--enable-unit-tests \
+	--enable-systemd
 
 make %{?_smp_mflags}
 
 %install
-
 make install DESTDIR=%{buildroot}
 
 %{__rm} -f %{buildroot}%{_libdir}/%{name}/*.la
 %{__rm} -rf %{buildroot}%{_docdir}
 %{buildroot}/usr/sbin/pdns_server --no-config --config | sed \
   -e 's!# config-dir=.*!config-dir=%{_sysconfdir}%{name}!' \
-  -e 's!# daemon=.*!daemon=yes!' \
-  -e 's!# guardian=.*!guardian=yes!' \
+  -e 's!# daemon=.*!daemon=no!' \
+  -e 's!# guardian=.*!guardian=no!' \
   -e 's!# launch=.*!&\\nlaunch=!' \
   -e 's!# setgid=.*!setgid=pdns!' \
   -e 's!# setuid=.*!setuid=pdns!' \
@@ -462,9 +463,6 @@ chmod 600 %{buildroot}%{_sysconfdir}/%{name}/pdns.conf
 # rename zone2ldap to pdns-zone2ldap (#1193116)
 %{__mv} %{buildroot}/%{_bindir}/zone2ldap %{buildroot}/%{_bindir}/pdns-zone2ldap
 %{__mv} %{buildroot}/%{_mandir}/man1/zone2ldap.1 %{buildroot}/%{_mandir}/man1/pdns-zone2ldap.1
-
-# install systemd unit file
-%{__install} -D -p -m 644 contrib/systemd-pdns.service %{buildroot}%{_unitdir}/%{name}.service
 
 %check
 make %{?_smp_mflags} -C pdns check
@@ -597,6 +595,7 @@ BuildRequires: lua-devel
 BuildRequires: bison
 BuildRequires: openssl-devel
 BuildRequires: systemd-rpm-macros
+BuildRequires: systemd-devel
 Provides: powerdns = %{version}-%{release}
 %global backends %{backends} bind
 
@@ -695,7 +694,8 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
 	--with-lua \
 	--with-dynmodules='%{backends} random' \
 	--enable-tools \
-	--enable-unit-tests
+	--enable-unit-tests \
+	--enable-systemd
 
 make %{?_smp_mflags}
 
@@ -719,9 +719,6 @@ chmod 600 %{buildroot}%{_sysconfdir}/%{name}/pdns.conf
 # rename zone2ldap to pdns-zone2ldap (#1193116)
 %{__mv} %{buildroot}/%{_bindir}/zone2ldap %{buildroot}/%{_bindir}/pdns-zone2ldap
 %{__mv} %{buildroot}/%{_mandir}/man1/zone2ldap.1 %{buildroot}/%{_mandir}/man1/pdns-zone2ldap.1
-
-# install systemd unit file
-%{__install} -D -p -m 644 contrib/systemd-pdns.service %{buildroot}%{_unitdir}/%{name}.service
 
 %check
 make %{?_smp_mflags} -C pdns check

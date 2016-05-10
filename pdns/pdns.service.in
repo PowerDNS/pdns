@@ -1,12 +1,13 @@
 [Unit]
 Description=PowerDNS Authoritative Server
 Documentation=man:pdns_server(1) man:pdns_control(1)
+Documentation=https://doc.powerdns.com
 Wants=network-online.target
 After=network-online.target mysqld.service postgresql.service slapd.service
 
 [Service]
-Type=forking
-ExecStart=/usr/sbin/pdns_server --daemon
+Type=notify
+ExecStart=@sbindir@/pdns_server --guardian=no --daemon=no --disable-syslog --write-pid=no
 Restart=on-failure
 StartLimitInterval=0
 PrivateTmp=true

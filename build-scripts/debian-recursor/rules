@@ -11,9 +11,29 @@ include /usr/share/dpkg/buildflags.mk
 version := $(shell dpkg-parsechangelog -SVersion).$(shell dpkg-vendor --query Vendor)
 CXXFLAGS += -DPACKAGEVERSION='"$(version)"'
 
+ENABLE_SYSTEMD := --enable-systemd --with-systemd=/lib/systemd/system
+LIBSYSTEMD_DEV := , libsystemd-dev
+DEBHELPER_WITH_SYSTEMD := --with systemd
+
+# $(ID) and $(VERSION_ID) come from the environment, source this from /etc/os-release
+ifeq ($(ID), ubuntu)
+  ifeq ($(VERSION_ID), 14.04)
+    # Disable building with and depending on systemd on Ubuntu Trusty
+    ENABLE_SYSTEMD=
+    LIBSYSTEMD_DEV=
+    DEBHELPER_WITH_SYSTEMD=
+  endif
+endif
+
+debian/control: debian/control.in
+	sed -e "s!@LIBSYSTEMDDEV@!$(LIBSYSTEMD_DEV)!" $< > $@
+
 # Use new build system
 %:
-	dh $@ --with autoreconf --with systemd --parallel
+	dh $@ \
+	  --with autoreconf \
+	  --parallel \
+	  $(DEBHELPER_WITH_SYSTEMD)
 
 override_dh_auto_configure:
 	./configure \
@@ -25,7 +45,8 @@ override_dh_auto_configure:
 		--infodir=\$${prefix}/share/info \
 		--libdir='$${prefix}/lib/$(DEB_HOST_MULTIARCH)' \
 		--libexecdir='$${prefix}/lib' \
-		--enable-unit-tests
+		--enable-unit-tests \
+		$(ENABLE_SYSTEMD)
 
 override_dh_auto_install:
 	./pdns_recursor --config | sed \

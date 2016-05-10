@@ -262,6 +262,9 @@ for a in $dynmodules; do
   fi
 done
 
+AX_AVAILABLE_SYSTEMD
+AM_CONDITIONAL([HAVE_SYSTEMD], [ test x"$systemd" = "xy" ])
+
 LDFLAGS="$RELRO_LDFLAGS $LDFLAGS"
 
 CFLAGS="$PIE_CFLAGS $CFLAGS"

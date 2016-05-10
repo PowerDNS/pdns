@@ -88,6 +88,10 @@ extern SortList g_sortlist;
 #include "dnsmessage.pb.h"
 #endif
 
+#ifdef HAVE_SYSTEMD
+#include <systemd/sd-daemon.h>
+#endif
+
 #ifndef RECURSOR
 #include "statbag.hh"
 StatBag S;
@@ -2657,6 +2661,9 @@ int serviceMain(int argc, char*argv[])
 
   if(g_numThreads == 1) {
     L<<Logger::Warning<<"Operating unthreaded"<<endl;
+#ifdef HAVE_SYSTEMD
+    sd_notify(0, "READY=1");
+#endif
     recursorThread(0);
   }
   else {
@@ -2666,8 +2673,9 @@ int serviceMain(int argc, char*argv[])
       pthread_create(&tid, 0, recursorThread, (void*)(long)n);
     }
     void* res;
-
-
+#ifdef HAVE_SYSTEMD
+    sd_notify(0, "READY=1");
+#endif
     pthread_join(tid, &res);
   }
   return 0;
