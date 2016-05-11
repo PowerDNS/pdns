@@ -2424,6 +2424,10 @@ loadMainConfig(g_vm["config-dir"].as<string>());
       cerr<<"Cannot enable NSEC3 for " << zone.toString() << " as it is too long (" << zone.wirelength() << " bytes, maximum is 222 bytes)"<<endl;
       return 1;
     }
+    if(ns3pr.d_algorithm != 1) {
+      cerr<<"NSEC3PARAM algorithm set to '"<<std::to_string(ns3pr.d_algorithm)<<"', but '1' is the only valid value"<<endl;
+      return EXIT_FAILURE;
+    }
     if (! dk.setNSEC3PARAM(zone, ns3pr, narrow)) {
       cerr<<"Cannot set NSEC3 param for " << zone.toString() << endl;
       return 1;

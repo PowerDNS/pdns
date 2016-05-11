@@ -265,6 +265,10 @@ bool DNSSECKeeper::getNSEC3PARAM(const DNSName& zname, NSEC3PARAMRecordContent* 
       ns3p->d_iterations = maxNSEC3Iterations;
       L<<Logger::Error<<"Number of NSEC3 iterations for zone '"<<zname<<"' is above 'max-nsec3-iterations'. Value adjusted to: "<<maxNSEC3Iterations<<endl;
     }
+    if (ns3p->d_algorithm != 1) {
+      L<<Logger::Error<<"Invalid hash algorithm for NSEC3: '"<<std::to_string(ns3p->d_algorithm)<<"', setting to 1 for zone '"<<zname<<"'."<<endl;
+      ns3p->d_algorithm = 1;
+    }
   }
   if(narrow) {
     getFromMeta(zname, "NSEC3NARROW", value);
@@ -278,6 +282,9 @@ bool DNSSECKeeper::setNSEC3PARAM(const DNSName& zname, const NSEC3PARAMRecordCon
   static int maxNSEC3Iterations=::arg().asNum("max-nsec3-iterations");
   if (ns3p.d_iterations > maxNSEC3Iterations)
     throw runtime_error("Can't set NSEC3PARAM for zone '"+zname.toString()+"': number of NSEC3 iterations is above 'max-nsec3-iterations'");
+
+  if (ns3p.d_algorithm != 1)
+    throw runtime_error("Invalid hash algorithm for NSEC3: '"+std::to_string(ns3p.d_algorithm)+"' for zone '"+zname.toString()+"'. The only valid value is '1'");
 
   clearCaches(zname);
   string descr = ns3p.getZoneRepresentation();
