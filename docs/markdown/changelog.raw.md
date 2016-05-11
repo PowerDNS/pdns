@@ -151,7 +151,7 @@ There are several **known issues** that will be fixed before the final 4.0.0 rel
 to be continued....
 
 ## PowerDNS Authoritative Server 4.0.0-alpha3
-Unreleased
+Released May 11th 2016
 
 Notable changes since 4.0.0-alpha2
 
@@ -173,6 +173,7 @@ Notable changes since 4.0.0-alpha2
 - [#3612](https://github.com/PowerDNS/pdns/pull/3612) Prevent segfault in PostgreSQL backend
 - [#3779](https://github.com/PowerDNS/pdns/pull/3779), [#3768](https://github.com/PowerDNS/pdns/pull/3768), [#3766](https://github.com/PowerDNS/pdns/pull/3766), [#3783](https://github.com/PowerDNS/pdns/pull/3783) and [#3789](https://github.com/PowerDNS/pdns/pull/3789) DNSName and other hardening improvements
 - [#3784](https://github.com/PowerDNS/pdns/pull/3784) fix SOA caching with multiple backends (Kees Monshouwer)
+- [#3827](https://github.com/PowerDNS/pdns/pull/3827) Force NSEC3PARAM algorithm to 1, fixes validation issues when set to not 1
 
 ### Improvements
 
