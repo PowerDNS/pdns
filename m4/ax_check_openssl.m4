@@ -119,7 +119,7 @@ AC_DEFUN([AX_CHECK_OPENSSL], [
                 openssl_ecdsa=no
             ])
             AS_IF([test "x$openssl_ecdsa" = "xyes"], [
-                AC_DEFINE([OPENSSL_USE_ECDSA], [1], [define to 1 if OpenSSL ecdsa support is avalable.])
+                AC_DEFINE([HAVE_OPENSSL_ECDSA], [1], [define to 1 if OpenSSL ecdsa support is avalable.])
             ])
             $1
         ], [

@@ -2,7 +2,7 @@
 #include "config.h"
 #endif
 #include <openssl/obj_mac.h>
-#ifdef OPENSSL_USE_ECDSA
+#ifdef HAVE_OPENSSL_ECDSA
 #include <openssl/ecdsa.h>
 #endif
 #include <openssl/sha.h>
@@ -418,7 +418,7 @@ void OpenSSLRSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& input)
   d_key = key;
 }
 
-#ifdef OPENSSL_USE_ECDSA
+#ifdef HAVE_OPENSSL_ECDSA
 class OpenSSLECDSADNSCryptoKeyEngine : public DNSCryptoKeyEngine
 {
 public:
@@ -731,7 +731,7 @@ namespace {
       DNSCryptoKeyEngine::report(7, &OpenSSLRSADNSCryptoKeyEngine::maker);
       DNSCryptoKeyEngine::report(8, &OpenSSLRSADNSCryptoKeyEngine::maker);
       DNSCryptoKeyEngine::report(10, &OpenSSLRSADNSCryptoKeyEngine::maker);
-#ifdef OPENSSL_USE_ECDSA
+#ifdef HAVE_OPENSSL_ECDSA
       DNSCryptoKeyEngine::report(13, &OpenSSLECDSADNSCryptoKeyEngine::maker);
       DNSCryptoKeyEngine::report(14, &OpenSSLECDSADNSCryptoKeyEngine::maker);
 #endif
