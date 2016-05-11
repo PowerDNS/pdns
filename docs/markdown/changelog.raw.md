@@ -168,7 +168,7 @@ Notable changes since 4.0.0-alpha2
 - [#3507](https://github.com/PowerDNS/pdns/pull/3553) webserver: mask out the api-key setting (Christian Hofstaedtler)
 - [#3580](https://github.com/PowerDNS/pdns/pull/3580) bindbackend: set domain in list() (Kees Monshouwer)
 - [#3595](https://github.com/PowerDNS/pdns/pull/3595) pdnsutil: add NS record without trailing dot with create-zone
-- [#3653](https://github.com/PowerDNS/pdns/pull/3653) Allow tabs at whitespace in zonefiles
+- [#3653](https://github.com/PowerDNS/pdns/pull/3653) Allow tabs as whitespace in zonefiles
 - [#3666](https://github.com/PowerDNS/pdns/pull/3666) Restore recycle backend behaviour (Kees Monshouwer)
 - [#3612](https://github.com/PowerDNS/pdns/pull/3612) Prevent segfault in PostgreSQL backend
 - [#3779](https://github.com/PowerDNS/pdns/pull/3779), [#3768](https://github.com/PowerDNS/pdns/pull/3768), [#3766](https://github.com/PowerDNS/pdns/pull/3766), [#3783](https://github.com/PowerDNS/pdns/pull/3783) and [#3789](https://github.com/PowerDNS/pdns/pull/3789) DNSName and other hardening improvements
