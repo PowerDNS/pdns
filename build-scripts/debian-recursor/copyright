@@ -33,10 +33,6 @@ Copyright: 2002 - 2004 Wichert Akkermann <wichert@wiggy.net>
  2014 Christian Hofstaedtler <zeha@debian.org>
 License: GPL-2
 
-Files: pdns/ext/mbedtls/*
-Copyright (C) 2006-2014, ARM Limited
-License: GPL-2+
-
 Files: pdns/ext/yahttp*
 Copyright: 2014 Aki Tuomi
 License: LGPL-2.1+
