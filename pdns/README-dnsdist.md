@@ -1235,7 +1235,7 @@ All hooks
 ---------
 `dnsdist` can call Lua per packet if so configured, and will do so with the following hooks:
 
-  * `bool blockFilter(ComboAddress, DNSQuestion)`: if defined, called for every function. If this
+  * `bool blockFilter(ComboAddress, DNSQuestion)`: if defined, called for every packet. If this
     returns true, the packet is dropped. If false is returned, `dnsdist` will check if the DNSHeader indicates
     the packet is now a query response. If so, `dnsdist` will answer the client directly with the modified packet.
   * `server policy(candidates, DNSQuestion)`: if configured with `setServerPolicyLua()`
