@@ -449,7 +449,6 @@ make install DESTDIR=%{buildroot}
 %{__rm} -f %{buildroot}%{_libdir}/%{name}/*.la
 %{__rm} -rf %{buildroot}%{_docdir}
 %{buildroot}/usr/sbin/pdns_server --no-config --config | sed \
-  -e 's!# config-dir=.*!config-dir=%{_sysconfdir}%{name}!' \
   -e 's!# daemon=.*!daemon=no!' \
   -e 's!# guardian=.*!guardian=no!' \
   -e 's!# launch=.*!&\\nlaunch=!' \
@@ -705,7 +704,6 @@ make install DESTDIR=%{buildroot}
 %{__rm} -f %{buildroot}%{_libdir}/%{name}/*.la
 %{__rm} -rf %{buildroot}/usr/share/doc
 %{buildroot}/usr/sbin/pdns_server --no-config --config | sed \
-  -e 's!# config-dir=.*!config-dir=%{_sysconfdir}%{name}!' \
   -e 's!# daemon=.*!daemon=yes!' \
   -e 's!# guardian=.*!guardian=yes!' \
   -e 's!# launch=.*!&\\nlaunch=!' \
