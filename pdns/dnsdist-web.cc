@@ -400,13 +400,18 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
     fclose(fp);
     fp=0;
   }
+  catch(const YaHTTP::ParseError& e) {
+    vinfolog("Webserver thread died with parse error exception while processing a request from %s: %s", remote.toStringWithPort(), e.what());
+    if(fp)
+      fclose(fp);
+  }
   catch(const std::exception& e) {
-    errlog("Webserver thread died with exception: %s", e.what());
+    errlog("Webserver thread died with exception while processing a request from %s: %s", remote.toStringWithPort(), e.what());
     if(fp)
       fclose(fp);
   }
   catch(...) {
-    errlog("Webserver thread died with exception");
+    errlog("Webserver thread died with exception while processing a request from %s", remote.toStringWithPort());
     if(fp)
       fclose(fp);
   }
