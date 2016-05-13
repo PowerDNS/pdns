@@ -50,7 +50,7 @@ void Logger::log(const string &msg, Urgency u)
     clog<<buffer;
     clog <<msg <<endl;
   }
-  if( u <= d_loglevel ) {
+  if( u <= d_loglevel && !d_disableSyslog ) {
 #ifndef RECURSOR
     S.ringAccount("logmessages",msg);
 #endif

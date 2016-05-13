@@ -135,6 +135,11 @@
 # disable-axfr-rectify=no
 
 #################################
+# disable-syslog	Disable logging to syslog, useful when running inside a supervisor that logs stdout
+#
+# disable-syslog=no
+
+#################################
 # disable-tcp	Do not listen to TCP queries
 #
 # disable-tcp=no

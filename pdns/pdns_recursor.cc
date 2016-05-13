@@ -1749,6 +1749,7 @@ int serviceMain(int argc, char*argv[])
   L.setName(s_programname);
 
   L.setLoglevel((Logger::Urgency)(6)); // info and up
+  L.disableSyslog(::arg().mustDo("disable-syslog"));
 
   if(!::arg()["logging-facility"].empty()) {
     int val=logFacilityToLOG(::arg().asNum("logging-facility") );
@@ -2086,6 +2087,7 @@ int main(int argc, char **argv)
     ::arg().set("trace","if we should output heaps of logging. set to 'fail' to only log failing domains")="off";
     ::arg().set("daemon","Operate as a daemon")="yes";
     ::arg().set("loglevel","Amount of logging. Higher is more. Do not set below 3")="4";
+    ::arg().set("disable-syslog","Disable logging to syslog, useful when running inside a supervisor that logs stdout")="no";
     ::arg().set("log-common-errors","If we should log rather common errors")="yes";
     ::arg().set("chroot","switch to chroot jail")="";
     ::arg().set("setgid","If set, change group id to this gid for more security")="";
