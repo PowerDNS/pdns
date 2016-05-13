@@ -234,7 +234,7 @@ void DNSProxy::mainloop(void)
 
         if(p.qtype.getCode() != i->second.qtype || p.qdomain != i->second.qname) {
           L<<Logger::Error<<"Discarding packet from recursor backend with id "<<(d.id^d_xor)<<
-            ", qname or qtype mismatch ("<<p.qtype.getCode()<<" v " <<i->second.qtype<<", "<<p.qdomain<<" v "<<i->second.qname<<")"<<endl;
+            ", qname or qtype mismatch ("<<p.qtype.getCode()<<" v " <<i->second.qtype<<", "<<p.qdomain.toLogString()<<" v "<<i->second.qname.toLogString()<<")"<<endl;
           continue;
         }
 
