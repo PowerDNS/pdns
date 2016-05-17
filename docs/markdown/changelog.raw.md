@@ -179,7 +179,7 @@ Notable changes since 4.0.0-alpha2
 ### Bug fixes
 
 - [#3553](https://github.com/PowerDNS/pdns/pull/3553) pdnsutil: properly show key sizes for presigned zones in show-zone
-- [#3507](https://github.com/PowerDNS/pdns/pull/3553) webserver: mask out the api-key setting (Christian Hofstaedtler)
+- [#3507](https://github.com/PowerDNS/pdns/pull/3507) webserver: mask out the api-key setting (Christian Hofstaedtler)
 - [#3580](https://github.com/PowerDNS/pdns/pull/3580) bindbackend: set domain in list() (Kees Monshouwer)
 - [#3595](https://github.com/PowerDNS/pdns/pull/3595) pdnsutil: add NS record without trailing dot with create-zone
 - [#3653](https://github.com/PowerDNS/pdns/pull/3653) Allow tabs as whitespace in zonefiles
