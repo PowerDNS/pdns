@@ -1,5 +1,19 @@
 **Note**: Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
 
+# PowerDNS Authoritative Server 3.4.9
+Released 17th of May 2016
+
+This is a minor bugfix and performance release. Two contributions by Kees Monshouwer make 3.4.9 fully compatible with the new single key ECDSA default that is coming in version 4.0.0.
+
+Changes since 3.4.8:
+
+- [commit 4627ea0](https://github.com/PowerDNS/pdns/commit/4627ea0), [commit 8350828](https://github.com/PowerDNS/pdns/commit/8350828): use OpenSSL for ECDSA signing where available (Kees Monshouwer)
+- [commit 558ff84](https://github.com/PowerDNS/pdns/commit/558ff84): allow common signing key (Kees Monshouwer)
+- [commit 280d665](https://github.com/PowerDNS/pdns/commit/280d665): Add a disable-syslog setting
+- [commit 58d6ab6](https://github.com/PowerDNS/pdns/commit/58d6ab6): fix SOA caching with multiple backends (Kees Monshouwer)
+- [commit e9e413f](https://github.com/PowerDNS/pdns/commit/e9e413f), [commit 6af4652](https://github.com/PowerDNS/pdns/commit/6af4652): whitespace-related zone parsing fixes [ticket #3568](https://github.com/PowerDNS/pdns/issues/3568)
+- [commit 7473a5e](https://github.com/PowerDNS/pdns/commit/7473a5e): bindbackend: fix, set domain in list() (Kees Monshouwer)
+
 # PowerDNS Authoritative Server 3.4.8
 Released 3rd of February 2016
 
