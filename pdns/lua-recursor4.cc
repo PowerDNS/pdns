@@ -7,8 +7,8 @@
 #include "rec_channel.hh" 
 #include "ednssubnet.hh"
 #include <unordered_set>
-#if !defined(HAVE_LUA)
 
+#if !defined(HAVE_LUA)
 RecursorLua4::RecursorLua4(const std::string &fname)
 {
   throw std::runtime_error("Attempt to load a Lua script in a PowerDNS binary without Lua support");
@@ -214,7 +214,7 @@ struct DynMetric
 
 RecursorLua4::RecursorLua4(const std::string& fname)
 {
-  d_lw = new LuaContext;
+  d_lw = std::unique_ptr<LuaContext>(new LuaContext);
 
   d_lw->registerFunction<int(dnsheader::*)()>("getID", [](dnsheader& dh) { return dh.id; });
   d_lw->registerFunction<bool(dnsheader::*)()>("getCD", [](dnsheader& dh) { return dh.cd; });
@@ -522,4 +522,6 @@ loop:;
   // see if they added followup work for us too
   return handled;
 }
+
 #endif
+RecursorLua4::~RecursorLua4(){}
