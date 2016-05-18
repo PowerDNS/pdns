@@ -7,11 +7,15 @@
 string GenUDPQueryResponse(const ComboAddress& dest, const string& query);
 
 class LuaContext;
+
 class RecursorLua4 : public boost::noncopyable
 {
+private:
+  std::unique_ptr<LuaContext> d_lw; // this is way on top because it must get destroyed _last_
+
 public:
   explicit RecursorLua4(const std::string& fname);
-
+  ~RecursorLua4(); // this is so unique_ptr works with an incomplete type
   bool preresolve(const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSRecord>& res, const vector<pair<uint16_t,string> >* ednsOpts, unsigned int tag, int& ret, bool* variable);
   bool nxdomain(const ComboAddress& remote, const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSRecord>& res, int& ret, bool* variable);
   bool nodata(const ComboAddress& remote, const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSRecord>& res, int& ret, bool* variable);
@@ -57,7 +61,6 @@ private:
     DNSName followupName;
   };
 
-  LuaContext* d_lw;
   typedef std::function<bool(std::shared_ptr<DNSQuestion>)> luacall_t;
   luacall_t d_preresolve, d_nxdomain, d_nodata, d_postresolve, d_preoutquery, d_postoutquery;
   bool genhook(luacall_t& func, const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSRecord>& res,  const vector<pair<uint16_t,string> >* ednsOpts, unsigned int tag, int& ret, bool* variable);
