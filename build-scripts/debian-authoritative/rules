@@ -74,7 +74,6 @@ override_dh_installinit:
 override_dh_install:
 	dh_install
 	./pdns/pdns_server --no-config --config | sed \
-	  -e 's!# config-dir=.*!config-dir=/etc/powerdns!' \
 	  -e 's!# daemon=.*!daemon=yes!' \
 	  -e 's!# guardian=.*!guardian=yes!' \
 	  -e 's!# include-dir=.*!&\ninclude-dir=/etc/powerdns/pdns.d!' \
