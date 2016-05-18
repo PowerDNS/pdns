@@ -44,6 +44,7 @@ Logger &theL(const string &pname)
 
 void Logger::log(const string &msg, Urgency u)
 {
+  bool mustAccount(false);
   struct tm tm;
   time_t t;
   time(&t);
@@ -55,13 +56,17 @@ void Logger::log(const string &msg, Urgency u)
     static pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
     Lock l(&m); // the C++-2011 spec says we need this, and OSX actually does
     clog << string(buffer) + msg <<endl;
+    mustAccount=true;
   }
   if( u <= d_loglevel && !d_disableSyslog ) {
+    syslog(u,"%s",msg.c_str());
+    mustAccount=true;
+  }
+
 #ifndef RECURSOR
+  if(mustAccount)
     S.ringAccount("logmessages",msg);
 #endif
-    syslog(u,"%s",msg.c_str());
-  }
 }
 
 void Logger::setLoglevel( Urgency u )
