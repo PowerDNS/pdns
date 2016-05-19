@@ -1078,9 +1078,13 @@ instantiate a server with additional parameters
  * Rule management related:
     * `getAction(num)`: returns the Action associate with rule 'num'.
     * `showRules()`: show all defined rules (Pool, Block, QPS, addAnyTCRule)
-    * `rmRule(n)`: remove rule n
+    * `mvResponseRule(from, to)`: move response rule 'from' to a position where it is in front of 'to'. 'to' can be one larger than the largest rule,
+     in which case the rule will be moved to the last position.
     * `mvRule(from, to)`: move rule 'from' to a position where it is in front of 'to'. 'to' can be one larger than the largest rule,
      in which case the rule will be moved to the last position.
+    * `rmResponseRule(n)`: remove response rule n
+    * `rmRule(n)`: remove rule n
+    * `topResponseRule()`: move the last response rule to the first position
     * `topRule()`: move the last rule to the first position
  * Built-in Actions for Rules:
     * `AllowAction()`: let these packets go through
