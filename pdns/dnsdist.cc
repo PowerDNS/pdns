@@ -40,6 +40,7 @@
 #include <pwd.h>
 #include "lock.hh"
 #include <getopt.h>
+#include <sys/resource.h>
 #include "dnsdist-cache.hh"
 
 #ifdef HAVE_SYSTEMD
@@ -1325,6 +1326,46 @@ static void dropUserPrivs(uid_t uid)
   }
 }
 
+static void checkFileDescriptorsLimits(size_t udpBindsCount, size_t tcpBindsCount)
+{
+  /* stdin, stdout, stderr */
+  size_t requiredFDsCount = 3;
+  size_t backendsCount = g_dstates.getCopy().size();
+  requiredFDsCount += udpBindsCount;
+  requiredFDsCount += tcpBindsCount;
+  /* max TCP connections currently served */
+  requiredFDsCount += g_maxTCPClientThreads;
+  /* max pipes for communicatin between TCP acceptors and client threads */
+  requiredFDsCount += (g_maxTCPClientThreads * 2);
+  /* UDP sockets to backends */
+  requiredFDsCount += backendsCount;
+  /* TCP sockets to backends */
+  requiredFDsCount += (backendsCount * g_maxTCPClientThreads);
+  /* max TCP queued connections */
+  requiredFDsCount += (tcpBindsCount * g_maxTCPQueuedConnections);
+  /* DelayPipe pipe */
+  requiredFDsCount += 2;
+  /* syslog socket */
+  requiredFDsCount++;
+  /* webserver main socket */
+  requiredFDsCount++;
+  /* console main socket */
+  requiredFDsCount++;
+  /* carbon export */
+  requiredFDsCount++;
+  /* history file */
+  requiredFDsCount++;
+  struct rlimit rl;
+  getrlimit(RLIMIT_NOFILE, &rl);
+  if (((rl.rlim_cur * 3) / 4) < requiredFDsCount) {
+    warnlog("Warning, this configuration can use more than %d file descriptors, web server and console connections not included, and the current limit is %d.", std::to_string(requiredFDsCount), std::to_string(rl.rlim_cur));
+#ifdef HAVE_SYSTEMD
+    warnlog("You can increase this value by using LimitNOFILE= in the systemd unit file or ulimit.");
+#else
+    warnlog("You can increase this value by using ulimit.");
+#endif
+  }
+}
 
 struct 
 {
@@ -1349,6 +1390,8 @@ std::atomic<bool> g_configurationDone{false};
 int main(int argc, char** argv)
 try
 {
+  size_t udpBindsCount = 0;
+  size_t tcpBindsCount = 0;
   rl_attempted_completion_function = my_completion;
   rl_completion_append_character = 0;
 
@@ -1578,6 +1621,7 @@ try
     SBind(cs->udpFD, cs->local);
     toLaunch.push_back(cs);
     g_frontends.push_back(cs);
+    udpBindsCount++;
   }
 
   for(const auto& local : g_locals) {
@@ -1610,6 +1654,7 @@ try
 
     toLaunch.push_back(cs);
     g_frontends.push_back(cs);
+    tcpBindsCount++;
   }
 
 #ifdef HAVE_DNSCRYPT
@@ -1632,6 +1677,7 @@ try
     SBind(cs->udpFD, cs->local);    
     toLaunch.push_back(cs);
     g_frontends.push_back(cs);
+    udpBindsCount++;
 
     cs = new ClientState;
     cs->local = std::get<0>(dcLocal);
@@ -1655,6 +1701,7 @@ try
     warnlog("Listening on %s", cs->local.toStringWithPort());
     toLaunch.push_back(cs);
     g_frontends.push_back(cs);
+    tcpBindsCount++;
   }
 #endif
 
@@ -1714,6 +1761,8 @@ try
     errlog("No downstream servers defined: all packets will get dropped");
     // you might define them later, but you need to know
   }
+
+  checkFileDescriptorsLimits(udpBindsCount, tcpBindsCount);
 
   for(auto& dss : g_dstates.getCopy()) { // it is a copy, but the internal shared_ptrs are the real deal
     if(dss->availability==DownstreamState::Availability::Auto) {
