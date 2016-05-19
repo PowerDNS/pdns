@@ -230,7 +230,7 @@ Query:
 
 Response:
 ```
-{"result":{"PRESIGNED":["NO"]}}
+{"result":{"PRESIGNED":["0"]}}
 ```
 
 #### Example HTTP/RPC
@@ -244,7 +244,7 @@ Response:
 HTTP/1.1 200 OK
 Content-Type: text/javascript; charset=utf-8
 
-{"result":{"PRESIGNED":["NO"]}}
+{"result":{"PRESIGNED":["0"]}}
 ```
 
 ### `getDomainMetadata`
@@ -262,7 +262,7 @@ Query:
 
 Response:
 ```
-{"result":["NO"]}
+{"result":["0"]}
 ```
 
 #### Example HTTP/RPC
@@ -276,7 +276,7 @@ Response:
 HTTP/1.1 200 OK
 Content-Type: text/javascript; charset=utf-8
 
-{"result":["NO"]}
+{"result":["0"]}
 ```
 
 ### `setDomainMetadata`
