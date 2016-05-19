@@ -294,6 +294,27 @@ void SyncRes::doEDNSDumpAndClose(int fd)
   fclose(fp);
 }
 
+/* so here is the story. First we complete the full resolution process for a domain name. And only THEN do we decide
+   to also do DNSSEC validation, which leads to new queries. To make this simple, we *always* ask for DNSSEC records
+   so that if there are RRSIGs for a name, we'll have them.
+
+   However, some hosts simply can't answer questions which ask for DNSSEC. This can manifest itself as:
+   * No answer
+   * FormErr
+   * Nonsense answer
+
+   The cause of "No answer" may be fragmentation, and it is tempting to probe if smaller answers would get through.
+   Another cause of "No answer" may simply be a network condition.
+   Nonsense answers are a clearer indication this host won't be able to do DNSSEC evah.
+
+   Previous implementations have suffered from turning off DNSSEC questions for an authoritative server based on timeouts. 
+   A clever idea is to only turn off DNSSEC if we know a domain isn't signed anyhow. The problem with that really
+   clever idea however is that at this point in PowerDNS, we may simply not know that yet. All the DNSSEC thinking happens 
+   elsewhere. It may not have happened yet. 
+
+   For now this means we can't be clever, but will turn off DNSSEC if you reply with FormError or gibberish.
+*/
+
 int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res)
 {
   /* what is your QUEST?
@@ -303,7 +324,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
      0) UNKNOWN Unknown state 
      1) EDNS: Honors EDNS0
      2) EDNSIGNORANT: Ignores EDNS0, gives replies without EDNS0
-     3) NOEDNS: Generates FORMERR on EDNS queries
+     3) NOEDNS: Generates FORMERR/NOTIMP on EDNS queries
 
      Everybody starts out assumed to be '0'.
      If '0', send out EDNS0
@@ -334,23 +355,19 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
   for(int tries = 0; tries < 3; ++tries) {
     //    cerr<<"Remote '"<<ip.toString()<<"' currently in mode "<<mode<<endl;
     
-    if(ednsMANDATORY || mode==EDNSStatus::UNKNOWN || mode==EDNSStatus::EDNSOK || mode==EDNSStatus::EDNSIGNORANT)
-      EDNSLevel = 1;
-    else if(mode==EDNSStatus::NOEDNS) {
+    if(mode==EDNSStatus::NOEDNS) {
       g_stats.noEdnsOutQueries++;
-      EDNSLevel = 0;
+      EDNSLevel = 0; // level != mode
     }
+    else if(ednsMANDATORY || mode==EDNSStatus::UNKNOWN || mode==EDNSStatus::EDNSOK || mode==EDNSStatus::EDNSIGNORANT)
+      EDNSLevel = 1;
     
     ret=asyncresolve(ip, domain, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, res);
+    if(ret < 0) {
+      return ret; // transport error, nothing to learn here
+    }
 
-    if(ret == 0 || ret < 0) {
-//      cerr<< (ret < 0 ? "Transport error" : "Timeout")<<" for query to "<<ip.toString()<<" for '"<<domain.toString()<<"' (ret = "<<ret<<", mode = "<<(int)mode<<")"<<endl;
-      // timeout = downgrade to EDNS
-      if(ret==0 && mode != EDNSStatus::NOEDNS) {
-        //	cerr<<"\tDowngrading to NOEDNS"<<endl;
-	mode = EDNSStatus::NOEDNS;
-	continue;
-      }
+    if(ret == 0) { // timeout, not doing anything with it now
       return ret;
     }
     else if(mode==EDNSStatus::UNKNOWN || mode==EDNSStatus::EDNSOK || mode == EDNSStatus::EDNSIGNORANT ) {
