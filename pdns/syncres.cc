@@ -294,7 +294,7 @@ void SyncRes::doEDNSDumpAndClose(int fd)
   fclose(fp);
 }
 
-int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res)
+int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsRequired, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res)
 {
   /* what is your QUEST?
      the goal is to get as many remotes as possible on the highest level of EDNS support
@@ -334,9 +334,11 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
   for(int tries = 0; tries < 3; ++tries) {
     //    cerr<<"Remote '"<<ip.toString()<<"' currently in mode "<<mode<<endl;
     
-    if(ednsMANDATORY || mode==EDNSStatus::UNKNOWN || mode==EDNSStatus::EDNSOK || mode==EDNSStatus::EDNSIGNORANT)
+    if(ednsRequired || mode==EDNSStatus::UNKNOWN || mode==EDNSStatus::EDNSOK || mode==EDNSStatus::EDNSIGNORANT)
       EDNSLevel = 1;
-    else if(mode==EDNSStatus::NOEDNS) {
+
+    // Even if ednsRequired == true, don't do edns to known broken auths
+    if(mode==EDNSStatus::NOEDNS) {
       g_stats.noEdnsOutQueries++;
       EDNSLevel = 0;
     }

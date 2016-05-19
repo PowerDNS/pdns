@@ -311,7 +311,7 @@ public:
     return d_wasVariable;
   }
 
-  int asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res);
+  int asyncresolveWrapper(const ComboAddress& ip, bool ednsRequired, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res);
 
   static void doEDNSDumpAndClose(int fd);
 
