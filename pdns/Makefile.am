@@ -90,6 +90,7 @@ bin_PROGRAMS += \
 	nproxy \
 	nsec3dig \
 	saxfr \
+	stubquery \
 	ixplore \
 	sdig
 
@@ -117,6 +118,7 @@ EXTRA_PROGRAMS = \
 	nproxy \
 	nsec3dig \
 	saxfr \
+	stubquery \
 	sdig \
 	speedtest \
 	testrunner \
@@ -492,6 +494,30 @@ kvresp_SOURCES = \
 	statbag.cc \
 	unix_utility.cc \
 	qtype.cc 
+
+stubquery_SOURCES = \
+	arguments.cc arguments.hh \
+	base32.cc \
+	base64.cc \
+	dns_random.cc \
+	dnslabeltext.cc \
+	dnsname.cc \
+	dnsparser.cc \
+	dnsrecords.cc \
+	dnswriter.cc \
+	logger.cc \
+	misc.cc \
+	nsecrecords.cc \
+	qtype.cc \
+	rcpgenerator.cc \
+	sillyrecords.cc \
+	statbag.cc \
+	stubresolver.cc stubresolver.hh \
+	stubquery.cc \
+	unix_utility.cc
+
+stubquery_LDADD = $(OPENSSL_LIBS)
+stubquery_LDFLAGS = $(AM_LDFLAGS) $(OPENSSL_LDFLAGS)
 
 saxfr_SOURCES = \
 	base32.cc \
