@@ -81,6 +81,7 @@ extern SortList g_sortlist;
 #include "validate-recursor.hh"
 #include "rec-lua-conf.hh"
 #include "ednsoptions.hh"
+#include "gettime.hh"
 
 #ifdef HAVE_PROTOBUF
 #include <boost/uuid/uuid.hpp>
@@ -648,7 +649,7 @@ static void protobufFillMessageFromDC(PBDNSMessage& message, const DNSComboWrite
   }
 
   struct timespec ts;
-  clock_gettime(CLOCK_REALTIME, &ts);
+  gettime(&ts, true);
   message.set_timesec(ts.tv_sec);
   message.set_timeusec(ts.tv_nsec / 1000);
   message.set_id(ntohs(dc->d_mdp.d_header.id));

@@ -1,5 +1,6 @@
 #include "delaypipe.hh"
 #include "misc.hh"
+#include "gettime.hh"
 #include <thread>
 
 template<class T>
@@ -86,14 +87,7 @@ DelayPipe<T>::DelayPipe() : d_thread(&DelayPipe<T>::worker, this)
 template<class T>
 void DelayPipe<T>::gettime(struct timespec* ts)
 {
-#ifdef __MACH__  // this is a 'limp home' solution since it doesn't do monotonic time. see http://stackoverflow.com/questions/5167269/clock-gettime-alternative-in-mac-os-x
-  struct timeval tv;
-  gettimeofday(&tv, 0);
-  ts->tv_sec = tv.tv_sec;
-  ts->tv_nsec = tv.tv_usec * 1000;
-#else
-  clock_gettime(CLOCK_MONOTONIC, ts);
-#endif
+  ::gettime(ts);
 }
 
 

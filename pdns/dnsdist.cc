@@ -41,6 +41,7 @@
 #include "lock.hh"
 #include <getopt.h>
 #include "dnsdist-cache.hh"
+#include "gettime.hh"
 
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
@@ -423,7 +424,7 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
 
     {
       struct timespec ts;
-      clock_gettime(CLOCK_MONOTONIC, &ts);
+      gettime(&ts);
       std::lock_guard<std::mutex> lock(g_rings.respMutex);
       g_rings.respRing.push_back({ts, ids->origRemote, ids->qname, ids->qtype, (unsigned int)udiff, (unsigned int)got, *dh, state->remote});
     }
@@ -921,7 +922,7 @@ try
       string poolname;
       int delayMsec=0;
       struct timespec now;
-      clock_gettime(CLOCK_MONOTONIC, &now);
+      gettime(&now);
 
       if (!processQuery(localDynBlock, localRulactions, blockFilter, dq, poolname, &delayMsec, now))
       {
@@ -1235,7 +1236,7 @@ void* healthChecksThread()
           dss->reuseds++;
           --dss->outstanding;
           struct timespec ts;
-          clock_gettime(CLOCK_MONOTONIC, &ts);
+          gettime(&ts);
 
           struct dnsheader fake;
           memset(&fake, 0, sizeof(fake));

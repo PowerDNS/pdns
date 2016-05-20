@@ -12,6 +12,7 @@
 #include "ext/incbin/incbin.h"
 #include "htmlfiles.h"
 #include "base64.hh"
+#include "gettime.hh"
 
 
 static bool compareAuthorization(YaHTTP::Request& req, const string &expected_password, const string& expectedApiKey)
@@ -176,7 +177,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
         Json::object obj;
         auto slow = g_dynblockNMG.getCopy();
         struct timespec now;
-        clock_gettime(CLOCK_MONOTONIC, &now);
+        gettime(&now);
         for(const auto& e: slow) {
           if(now < e->second.until ) {
             Json::object thing{{"reason", e->second.reason}, {"seconds", (double)(e->second.until.tv_sec - now.tv_sec)},
