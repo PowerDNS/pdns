@@ -316,8 +316,6 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
      If '3', send bare queries
   */
 
-  g_stats.noEdnsOutQueries++;
-  
   SyncRes::EDNSStatus* ednsstatus;
   ednsstatus = &t_sstorage->ednsstatus[ip]; // does this include port? 
 
