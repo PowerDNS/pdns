@@ -122,7 +122,6 @@ pdns_recursor_SOURCES = \
 	sillyrecords.cc \
 	sortlist.cc sortlist.hh \
 	sstuff.hh \
-	statbag.hh statbag.cc \
 	syncres.cc syncres.hh \
 	ueberbackend.hh \
 	unix_utility.cc \
@@ -196,7 +195,6 @@ rec_control_SOURCES = \
 	qtype.cc \
 	rec_channel.cc rec_channel.hh \
 	rec_control.cc \
-	statbag.cc \
 	unix_utility.cc
 
 dnslabeltext.cc: dnslabeltext.rl

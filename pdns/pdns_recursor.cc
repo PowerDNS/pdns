@@ -93,11 +93,6 @@ extern SortList g_sortlist;
 #include <systemd/sd-daemon.h>
 #endif
 
-#ifndef RECURSOR
-#include "statbag.hh"
-StatBag S;
-#endif
-
 __thread FDMultiplexer* t_fdm;
 __thread unsigned int t_id;
 unsigned int g_maxTCPPerClient;

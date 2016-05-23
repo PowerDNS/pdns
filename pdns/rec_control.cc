@@ -29,11 +29,6 @@
 
 #include "namespaces.hh"
 
-#ifndef RECURSOR
-#include "statbag.hh"
-StatBag S;
-#endif
-
 ArgvMap &arg()
 {
   static ArgvMap arg;
