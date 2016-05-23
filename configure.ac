@@ -346,6 +346,10 @@ AC_MSG_NOTICE([LIBS: $LIBS])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([BOOST_CPPFLAGS: $BOOST_CPPFLAGS])
 AC_MSG_NOTICE([])
+AS_IF([test "x$openssl_ecdsa" == "xyes"],
+  [AC_MSG_NOTICE([OpenSSL ecdsa support: yes])],
+  [AC_MSG_NOTICE([OpenSSL ecdsa support: no])]
+)
 AS_IF([test "x$needsqlite3" != "x"],
   [AC_MSG_NOTICE([SQLite3 support: yes])],
   [AC_MSG_NOTICE([SQLite3 support: no])]

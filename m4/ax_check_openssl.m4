@@ -109,6 +109,18 @@ AC_DEFUN([AX_CHECK_OPENSSL], [
         [AC_LANG_PROGRAM([#include <openssl/crypto.h>], [CRYPTO_free(NULL)])],
         [
             AC_MSG_RESULT([yes])
+            openssl_ecdsa=yes
+            AC_CHECK_FUNC(ECDSA_do_sign,
+            [
+                AC_CHECK_DECLS([NID_X9_62_prime256v1, NID_secp384r1], [ : ], [ openssl_ecdsa=no ], [AC_INCLUDES_DEFAULT
+#include <openssl/evp.h>
+                ])
+            ], [
+                openssl_ecdsa=no
+            ])
+            AS_IF([test "x$openssl_ecdsa" = "xyes"], [
+                AC_DEFINE([HAVE_OPENSSL_ECDSA], [1], [define to 1 if OpenSSL ecdsa support is avalable.])
+            ])
             $1
         ], [
             AC_MSG_RESULT([no])
