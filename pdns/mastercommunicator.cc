@@ -47,30 +47,32 @@ void CommunicatorClass::queueNotifyDomain(const string &domain, DNSBackend *B)
   DNSResourceRecord rr;
   FindNS fns;
 
-  B->lookup(QType(QType::NS),domain);
-  while(B->get(rr))
-    nsset.insert(rr.content);
+  if (d_onlyNotify.size()) {
+    B->lookup(QType(QType::NS),domain);
+    while(B->get(rr))
+      nsset.insert(rr.content);
 
-  for(set<string>::const_iterator j=nsset.begin();j!=nsset.end();++j) {
-    vector<string> nsips=fns.lookup(*j, B);
-    if(nsips.empty())
-      L<<Logger::Warning<<"Unable to queue notification of domain '"<<domain<<"': nameservers do not resolve!"<<endl;
-    else
-      for(vector<string>::const_iterator k=nsips.begin();k!=nsips.end();++k) {
-        const ComboAddress caIp(*k, 53);
-        if(!d_preventSelfNotification || !AddressIsUs(caIp)) {
-          if(!d_onlyNotify.match(&caIp))
-            L<<Logger::Info<<"Skiped notification of domain '"<<domain<<"' to "<<*j<<" because it does not match only-notify."<<endl;
-          else
-            ips.insert(caIp.toStringWithPort());
+    for(set<string>::const_iterator j=nsset.begin();j!=nsset.end();++j) {
+      vector<string> nsips=fns.lookup(*j, B);
+      if(nsips.empty())
+        L<<Logger::Warning<<"Unable to queue notification of domain '"<<domain<<"': nameservers do not resolve!"<<endl;
+      else
+        for(vector<string>::const_iterator k=nsips.begin();k!=nsips.end();++k) {
+          const ComboAddress caIp(*k, 53);
+          if(!d_preventSelfNotification || !AddressIsUs(caIp)) {
+            if(!d_onlyNotify.match(&caIp))
+              L<<Logger::Info<<"Skiped notification of domain '"<<domain<<"' to "<<*j<<" because it does not match only-notify."<<endl;
+            else
+              ips.insert(caIp.toStringWithPort());
+          }
         }
-      }
-  }
+    }
 
-  for(set<string>::const_iterator j=ips.begin();j!=ips.end();++j) {
-    L<<Logger::Warning<<"Queued notification of domain '"<<domain<<"' to "<<*j<<endl;
-    d_nq.add(domain,*j);
-    hasQueuedItem=true;
+    for(set<string>::const_iterator j=ips.begin();j!=ips.end();++j) {
+      L<<Logger::Warning<<"Queued notification of domain '"<<domain<<"' to "<<*j<<endl;
+      d_nq.add(domain,*j);
+      hasQueuedItem=true;
+    }
   }
 
   set<string> alsoNotify(d_alsoNotify);
@@ -91,7 +93,7 @@ void CommunicatorClass::queueNotifyDomain(const string &domain, DNSBackend *B)
     }
   }
 
-  if (!hasQueuedItem)
+  if (!hasQueuedItem && d_onlyNotify.size())
     L<<Logger::Warning<<"Request to queue notification for domain '"<<domain<<"' was processed, but no valid nameservers or ALSO-NOTIFYs found. Not notifying!"<<endl;
 }
 
