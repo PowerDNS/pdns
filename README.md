@@ -17,35 +17,42 @@ But please check if the issue is already reported there first.
 
 SOURCE CODE / GIT
 -----------------
-
 Source code is available on GitHub:
 
-    $ git clone https://github.com/PowerDNS/pdns.git
-    
-This repository contains the sources for the PowerDNS Recursor, the PowerDNS Authoritative Server,
-and the PowerDNS dns load balancer. All three can be built from this repository. All three are
-released separately as .tar.bz2, .deb and .rpm however!
+```
+$ git clone https://github.com/PowerDNS/pdns.git
+```
+
+This repository contains the sources for the PowerDNS Recursor, the PowerDNS
+Authoritative Server, and dnsdist (a powerful DNS loadbalancer). All three can
+be built from this repository. However, all three released separately as .tar.bz2,
+.deb and .rpm.
 
 COMPILING Authoritative Server
 ------------------------------
-PowerDNS Authoritative Server 3.0 and beyond depend on Boost.
+The PowerDNS Authoritative Server depends on Boost, OpenSSL and requires a
+compiler with C++-2011 support.
 
-On Debian 7.0, the following is useful:
+On Debian 8.0, the following is useful:
 
-    apt-get install autoconf automake bison flex g++ git libboost-all-dev libtool make pkg-config ragel libmysqlclient-dev
+```
+$ apt-get install g++ libboost-all-dev libtool make pkg-config libmysqlclient-dev libssl-dev
+```
 
-If you build from git, first build configure:
+When building from git, the following packages are also required: autoconf, automake,
+ragel, bison and flex, then generate the configure file:
 
-    $ ./bootstrap
-
-(You may need to do that twice. You also need libtool-1.4, 1.3 won't work.
-Autoconf 2.61 or newer and Automake 1.11 or newer are required, too.)
+```
+$ ./bootstrap
+```
 
 To compile a very clean version, use:
 
-    $ ./configure --with-modules="" --without-lua
-    $ make
-    # make install
+```
+$ ./configure --with-modules="" --without-lua
+$ make
+# make install
+```
 
 This generates a PowerDNS Authoritative Server binary with no modules built in.
 
@@ -54,27 +61,21 @@ built-in by default and the pipe-backend is compiled for runtime loading.
 
 To add multiple modules, try:
 
-    $ ./configure --with-modules="bind gmysql gpgsql"
+```
+$ ./configure --with-modules="bind gmysql gpgsql"
+```
 
-See http://doc.powerdns.com/compiling-powerdns.html for more details.
+Note that you will need the development headers for PostgreSQL as well in this case.
+
+See https://doc.powerdns.com/md/appendix/compiling-powerdns/ for more details.
 
 COMPILING THE RECURSOR
 ----------------------
+See the README in pdns/recursordist.
 
-On Ubuntu 14.04, the following is useful:
-
-    apt-get install git libboost1.55-dev autoconf libtool pandoc ragel zip automake pkg-config g++ libssl-dev make
-
-The portable, and supported, way to build the recursor is:
-
-    $ cd pdns/recursordist
-    $ ./bootstrap
-    $ ./configure
-    $ make
-    # make install
-
-You need `autoconf`, `libtool` and `automake` installed to bootstrap it.
-Furthermore, when building from git `boost`, `pandoc`, `ragel` and `zip` are build dependencies. 
+COMPILING DNSDIST
+----------------------
+See the README in pdns/dnsdistdist.
 
 SOLARIS NOTES
 -------------
@@ -90,20 +91,28 @@ MAC OS X NOTES
 --------------
 PowerDNS Authoritative Server is available through Homebrew:
 
-    $ brew install pdns
+```
+$ brew install pdns
+```
 
 If you want to compile yourself, the dependencies can be installed using
 Homebrew:
 
-    $ brew install boost lua pkg-config ragel
+```
+$ brew install boost lua pkg-config ragel
+```
 
 For PostgreSQL support:
 
-    $ brew install postgresql
+```
+$ brew install postgresql
+```
 
 For MySQL support:
 
-    $ brew install mariadb
+```
+$ brew install mariadb
+```
 
 LINUX NOTES
 -----------
