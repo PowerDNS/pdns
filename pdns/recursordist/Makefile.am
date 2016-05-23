@@ -139,7 +139,8 @@ pdns_recursor_LDADD = \
 	$(JSON11_LIBS) \
 	$(OPENSSL_LIBS) \
 	$(BOOST_CONTEXT_LIBS) \
-	$(SYSTEMD_LIBS)
+	$(SYSTEMD_LIBS) \
+	$(RT_LIBS)
 
 pdns_recursor_LDFLAGS = $(AM_LDFLAGS) \
 	$(OPENSSL_LDFLAGS)
