@@ -142,6 +142,7 @@ package if you need a dns cache for your network.
 	--disable-static \
 	--disable-dependency-tracking \
 	--disable-silent-rules \
+	--without-protobuf \
 	--enable-unit-tests
 
 make %{?_smp_mflags}
@@ -233,6 +234,7 @@ package if you need a dns cache for your network.
 	--disable-dependency-tracking \
 	--disable-silent-rules \
 	--enable-unit-tests \
+	--without-protobuf \
 	--enable-systemd
 
 make %{?_smp_mflags}

@@ -104,6 +104,7 @@ ${SETUP}
 %build
 %configure \
   --sysconfdir=/etc/dnsdist \
+  --without-protobuf \
   ${INIT_CONFIGURE}
   ${SODIUM_CONFIGURE}
 
