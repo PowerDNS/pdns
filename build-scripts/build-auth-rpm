@@ -184,6 +184,7 @@ make install DESTDIR=%{buildroot}
 %{__install} -p -D -m 0755 pdns/pdns %{buildroot}%{_initrddir}/pdns
 %{buildroot}/usr/sbin/pdns_server --no-config --config > %{buildroot}%{_sysconfdir}/%{name}/pdns.conf
 %{__rm} %{buildroot}%{_sysconfdir}/%{name}/pdns.conf-dist
+%{__rm} %{buildroot}/usr/bin/stubquery
 
 chmod 600 %{buildroot}%{_sysconfdir}/%{name}/pdns.conf
 
@@ -458,6 +459,7 @@ make install DESTDIR=%{buildroot}
   -e 's!# setuid=.*!setuid=pdns!' \
   > %{buildroot}%{_sysconfdir}/%{name}/pdns.conf
 %{__rm} %{buildroot}%{_sysconfdir}/%{name}/pdns.conf-dist
+%{__rm} %{buildroot}/usr/bin/stubquery
 
 chmod 600 %{buildroot}%{_sysconfdir}/%{name}/pdns.conf
 
@@ -714,6 +716,7 @@ make install DESTDIR=%{buildroot}
   -e 's!# setuid=.*!setuid=pdns!' \
   > %{buildroot}%{_sysconfdir}/%{name}/pdns.conf
 %{__rm} %{buildroot}%{_sysconfdir}/%{name}/pdns.conf-dist
+%{__rm} %{buildroot}/usr/bin/stubquery
 
 chmod 600 %{buildroot}%{_sysconfdir}/%{name}/pdns.conf
 
