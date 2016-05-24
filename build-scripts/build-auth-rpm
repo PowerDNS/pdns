@@ -171,6 +171,7 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
 	--with-lua \
 	--with-dynmodules='%{backends} random' \
 	--enable-tools \
+	--without-protobuf \
 	--enable-remotebackend-http \
 	--enable-unit-tests
 
@@ -438,6 +439,7 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
 	--with-lua \
 	--with-dynmodules='%{backends} random' \
 	--enable-tools \
+	--without-protobuf \
 	--enable-unit-tests \
 	--enable-systemd
 
@@ -693,6 +695,7 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
 	--with-lua \
 	--with-dynmodules='%{backends} random' \
 	--enable-tools \
+	--without-protobuf \
 	--enable-unit-tests \
 	--enable-systemd
 
