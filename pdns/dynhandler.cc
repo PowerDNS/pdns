@@ -261,7 +261,7 @@ string DLNotifyHostHandler(const vector<string>&parts, Utility::pid_t ppid)
   ostringstream os;
   if(parts.size()!=3)
     return "syntax: notify-host domain ip";
-  if(!::arg().mustDo("master") && !::arg().mustDo("slave-renotify"))
+  if(!::arg().mustDo("master") && !(::arg().mustDo("slave") && ::arg().mustDo("slave-renotify")))
       return "PowerDNS not configured as master or slave with re-notifications";
 
   DNSName domain;
@@ -289,7 +289,7 @@ string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid)
   UeberBackend B;
   if(parts.size()!=2)
     return "syntax: notify domain";
-  if(!::arg().mustDo("master") && !::arg().mustDo("slave-renotify"))
+  if(!::arg().mustDo("master") && !(::arg().mustDo("slave") && ::arg().mustDo("slave-renotify")))
       return "PowerDNS not configured as master or slave with re-notifications";
   g_log<<Logger::Warning<<"Notification request for domain '"<<parts[1]<<"' received from operator"<<endl;
 
