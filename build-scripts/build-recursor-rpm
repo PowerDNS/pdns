@@ -122,6 +122,8 @@ Source1: pdns-recursor.init
 Provides: powerdns-recursor = %{version}-%{release}
 BuildRequires: boost-devel
 BuildRequires: lua-devel
+BuildRequires: protobuf-devel
+BuildRequires: protobuf-compiler
 
 Requires(pre): shadow-utils
 Requires(post): /sbin/chkconfig
@@ -142,7 +144,7 @@ package if you need a dns cache for your network.
 	--disable-static \
 	--disable-dependency-tracking \
 	--disable-silent-rules \
-	--without-protobuf \
+	--with-protobuf \
 	--enable-unit-tests
 
 make %{?_smp_mflags}
@@ -212,6 +214,8 @@ BuildRequires: lua-devel
 BuildRequires: systemd-units
 BuildRequires: systemd-devel
 BuildRequires: hostname
+BuildRequires: protobuf-devel
+BuildRequires: protobuf-compiler
 
 Requires(pre): shadow-utils
 Requires(post): systemd-sysv
@@ -234,7 +238,7 @@ package if you need a dns cache for your network.
 	--disable-dependency-tracking \
 	--disable-silent-rules \
 	--enable-unit-tests \
-	--without-protobuf \
+	--with-protobuf \
 	--enable-systemd
 
 make %{?_smp_mflags}
