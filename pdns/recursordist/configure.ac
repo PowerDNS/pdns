@@ -27,6 +27,10 @@ AC_DEFINE([_GNU_SOURCE], [1],
   [Define _GNU_SOURCE so that we get all necessary prototypes]
 )
 
+AC_DEFINE([RECURSOR], [1],
+  [This is the PowerDNS Recursor]
+)
+
 # Warn when pkg.m4 is missing
 m4_pattern_forbid([^_?PKG_[A-Z_]+$], [*** pkg.m4 missing, please install pkg-config])
 
@@ -142,3 +146,38 @@ AC_CONFIG_FILES([Makefile
 	ext/yahttp/yahttp/Makefile])
 
 AC_OUTPUT
+
+AC_MSG_NOTICE([])
+AC_MSG_NOTICE([Configuration summary])
+AC_MSG_NOTICE([=====================])
+AC_MSG_NOTICE([])
+AS_IF([test "x$pdns_configure_args" != "x"],
+  [summary_conf_opts=$pdns_configure_args],
+  [summary_conf_opts="(no options)"]
+)
+AC_MSG_NOTICE([PowerDNS Recursor configured with: $summary_conf_opts])
+AC_MSG_NOTICE([])
+AC_MSG_NOTICE([CC: $CC])
+AC_MSG_NOTICE([CXX: $CXX])
+AC_MSG_NOTICE([LD: $LD])
+AC_MSG_NOTICE([CFLAGS: $CFLAGS])
+AC_MSG_NOTICE([CPPFLAGS: $CPPFLAGS])
+AC_MSG_NOTICE([CXXFLAGS: $CXXFLAGS])
+AC_MSG_NOTICE([LDFLAGS: $LDFLAGS])
+AC_MSG_NOTICE([LIBS: $LIBS])
+AC_MSG_NOTICE([])
+AC_MSG_NOTICE([BOOST_CPPFLAGS: $BOOST_CPPFLAGS])
+AC_MSG_NOTICE([])
+AS_IF([test "x$LUAPC" != "x"],
+  [AC_MSG_NOTICE([Lua support: $LUAPC])],
+  [AC_MSG_NOTICE([Lua support: no])]
+)
+AS_IF([test "x$PROTOBUF_LIBS" != "x" -a x"$PROTOC" != "x"],
+  [AC_MSG_NOTICE([Protobuf support: yes])],
+  [AC_MSG_NOTICE([Protobuf support: no])]
+)
+AS_IF([test "x$systemd" != "x"],
+  [AC_MSG_NOTICE([systemd support: yes])],
+  [AC_MSG_NOTICE([systemd support: no])]
+)
+AC_MSG_NOTICE([])

@@ -6,7 +6,9 @@
 #include "misc.hh"
 #include "dnswriter.hh"
 #include "dnsrecords.hh"
+#ifndef RECURSOR
 #include "statbag.hh"
+#endif
 #include "iputils.hh"
 
 #include <boost/algorithm/string.hpp>
