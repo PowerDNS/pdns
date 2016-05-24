@@ -89,6 +89,9 @@ ns.insecure.example.     3600 IN A    {prefix}.13
 optout.example.          3600 IN NS   ns1.optout.example.
 optout.example.          3600 IN DS   59332 13 1 e664f886ae1b5df03d918bc1217d22afc29925b9
 ns1.optout.example.      3600 IN A    {prefix}.14
+
+insecure-formerr.example. 3600 IN NS   ns1.insecure-formerr.example.
+ns1.insecure-formerr.example. 3600 IN A    {prefix}.2
         """,
         'secure.example': """
 secure.example.          3600 IN SOA  {soa}
@@ -106,6 +109,8 @@ host1.sub.secure.example. 3600 IN A    192.0.2.11
 *.cnamewildcard.secure.example. 3600 IN CNAME host1.secure.example.
 
 *.cnamewildcardnxdomain.secure.example. 3600 IN CNAME doesntexist.secure.example.
+
+cname-to-formerr.secure.example. 3600 IN CNAME host1.insecure-formerr.example.
         """,
         'bogus.example': """
 bogus.example.           3600 IN SOA  {soa}
@@ -383,11 +388,16 @@ distributor-threads=1""".format(confdir=confdir,
                 conf.write("hint-file=%s\n" % roothintspath)
 
     @classmethod
+    def startResponders(cls):
+        pass
+
+    @classmethod
     def startRecursor(cls, confdir, port):
         print("Launching pdns_recursor..")
         recursorcmd = [os.environ['PDNSRECURSOR'],
                        '--config-dir=%s' % confdir,
-                       '--local-port=%s' % port]
+                       '--local-port=%s' % port,
+                       '--security-poll-suffix=']
         print(' '.join(recursorcmd))
 
         logFile = os.path.join(confdir, 'recursor.log')
@@ -434,6 +444,9 @@ distributor-threads=1""".format(confdir=confdir,
     @classmethod
     def setUpClass(cls):
         cls.setUpSockets()
+
+        cls.startResponders()
+
         confdir = os.path.join('configs', cls._confdir)
         cls.createConfigDir(confdir)
         cls.generateAllAuthConfig(confdir)
@@ -448,6 +461,11 @@ distributor-threads=1""".format(confdir=confdir,
     def tearDownClass(cls):
         cls.tearDownRecursor()
         cls.tearDownAuth()
+        cls.tearDownResponders()
+
+    @classmethod
+    def tearDownResponders(cls):
+        pass
 
     @classmethod
     def tearDownAuth(cls):
@@ -488,7 +506,6 @@ distributor-threads=1""".format(confdir=confdir,
             # kill(), this is fine
             if e.errno != errno.ESRCH:
                 raise
-
 
     @classmethod
     def sendUDPQuery(cls, query, timeout=2.0):
