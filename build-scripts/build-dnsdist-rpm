@@ -92,6 +92,8 @@ Requires(pre): shadow-utils
 BuildRequires: readline-devel
 BuildRequires: boost-devel
 BuildRequires: lua-devel
+BuildRequires: protobuf-devel
+BuildRequires: protobuf-compiler
 ${SODIUM_BUILDREQUIRES}
 ${INIT_BUILDREQUIRES}
 
