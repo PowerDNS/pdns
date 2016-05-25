@@ -170,12 +170,29 @@ Important changes:
 - Crypto++ and mbedTLS support is dropped, these are replaced by OpenSSL
 - The INCEPTION, INCEPTION-WEEK and EPOCH SOA-EDIT metadata values are marked as deprecated and will be removed in 4.1
 
-There are several **known issues** that will be fixed before the final 4.0.0 release:
+There is one **known issue** that will be fixed before the final 4.0.0 release:
 
 - There is no dynamic signing of synthesized records from ALIAS, these are only signed on outgoing AXFR
-- Several thrown exceptions are not caught, causing program abortion. Please run inside a supervisor or the guardian and reports these exceptions.
 
 to be continued....
+
+## PowerDNS Authoritative Server 4.0.0-beta1
+Released May 27th 2016
+
+This release features several small fixes and deprecations.
+
+## Improvements and Additions
+
+- [#3851](https://github.com/PowerDNS/pdns/pull/3851) Disable algorithm 13 and 14 if OpenSSL does not support ecdsa or the required curves (Kees Monshouwer)
+- [#3857](https://github.com/PowerDNS/pdns/pull/3857) Add simple stubquery tool for testing the stubresolver
+- [#3859](https://github.com/PowerDNS/pdns/pull/3859) build scripts: Stop patching config-dir in pdns.conf (Christian Hofstaedtler)
+- [#3872](https://github.com/PowerDNS/pdns/pull/3872) Add support for multiple carbon servers
+- [#3901](https://github.com/PowerDNS/pdns/pull/3901) Add support for virtual hosting with systemd
+
+## Bug fixes
+
+- [#3856](https://github.com/PowerDNS/pdns/pull/3856) Deal with unset name in nproxy replies
+- 
 
 ## PowerDNS Authoritative Server 4.0.0-alpha3
 Released May 11th 2016
