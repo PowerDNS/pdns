@@ -42,6 +42,7 @@ message PBDNSMessage {
     optional uint32 rcode = 1;
     repeated DNSRR rrs = 2;
     optional string appliedPolicy = 3;
+    repeated string tags = 4;
   }
 
   optional DNSResponse response = 13;
