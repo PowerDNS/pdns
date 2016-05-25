@@ -277,19 +277,24 @@ string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid)
     vector<DomainInfo> domains;
     B.getAllDomains(&domains);
 
-    int total = 0;
+    int master = 0, slave = 0;
     int notified = 0;
     for (vector<DomainInfo>::const_iterator di=domains.begin(); di != domains.end(); di++) {
       if (di->kind == 0) { // MASTER
-        total++;
+        master++;
+        if(Communicator.notifyDomain(di->zone))
+          notified++;
+      }
+      if (di->kind == 1) { // SLAVE
+        slave++;
         if(Communicator.notifyDomain(di->zone))
           notified++;
       }
     }
 
-    if (total != notified)
-      return itoa(notified)+" out of "+itoa(total)+" zones added to queue - see log";
-    return "Added "+itoa(total)+" MASTER zones to queue";
+    if (master + slave != notified)
+      return itoa(notified)+" out of "+itoa(master + slave)+" zones added to queue - see log";
+    return "Added "+itoa(master)+" MASTER and "+itoa(slave)+" SLAVE zones to queue";
   } else {
     if(!Communicator.notifyDomain(parts[1]))
       return "Failed to add to the queue - see log";
