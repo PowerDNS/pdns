@@ -7,13 +7,6 @@ version 3.4, for the Recursor starting with version 3.6.
 The released versions use the standard webserver password for authentication,
 while newer versions use a static API key mechanism (shown below).
 
-You can get suitable packages for testing (RPM or DEB) from these links:
-
-  * https://autotest.powerdns.com/job/auth-git-semistatic-deb-amd64/lastSuccessfulBuild/artifact/
-  * https://autotest.powerdns.com/job/auth-git-semistatic-rpm-amd64/lastSuccessfulBuild/artifact/
-  * https://autotest.powerdns.com/job/recursor-git-semistatic-pkgs-amd64/lastSuccessfulBuild/artifact/
-
-
 Try it
 ------
 

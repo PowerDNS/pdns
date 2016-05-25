@@ -3,7 +3,6 @@ Installation of the PowerDNS Authoritative server on UNIX systems can be done in
 
   * Binary packages provided by your distribution
   * Binary packages provided by PowerDNS on [repo.powerdns.com](https://repo.powerdns.com)
-  * Using the statically linked binary packages provided on the [website](https://www.powerdns.com/downloads.html) (not available for 4.X)
   * Compiling from source
 
 ## Binary Packages
@@ -18,12 +17,6 @@ Debian splits the backends into [several different packages](https://packages.de
 
 ```
 # apt-get install pdns-backend-$backend
-```
-
-A statically linked package can be installed by downloading it and issueing:
-
-```
-# dpkg -i pdns-static_$version_$arch.deb
 ```
 
 ### Redhat-based Systems
