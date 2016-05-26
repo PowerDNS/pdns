@@ -502,6 +502,7 @@ exit 0
 %{_mandir}/man1/pdns-zone2ldap.1.gz
 %{_mandir}/man1/pdnsutil.1.gz
 %{_unitdir}/pdns.service
+%{_unitdir}/pdns@.service
 %dir %{_libdir}/%{name}/
 %{_libdir}/%{name}/librandombackend.so
 %dir %{_sysconfdir}/%{name}/
@@ -761,6 +762,7 @@ exit 0
 %{_mandir}/man1/pdns-zone2ldap.1.gz
 %{_mandir}/man1/pdnsutil.1.gz
 %{_unitdir}/pdns.service
+%{_unitdir}/pdns@.service
 %dir %{_libdir}/%{name}/
 %{_libdir}/%{name}/librandombackend.so
 %dir %{_sysconfdir}/%{name}/

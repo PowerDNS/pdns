@@ -1213,8 +1213,14 @@ if HAVE_SYSTEMD
 pdns.service: pdns.service.in
 	$(AM_V_GEN)sed -e 's![@]sbindir[@]!$(sbindir)!' < $< > $@
 
+pdns@.service: pdns.service
+	$(AM_V_GEN)sed -e 's!/pdns_server!& --config-name=%i!' \
+	  -e 's!Authoritative Server!& %i!' \
+	  < $< > $@
+
 systemdsystemunitdir = $(SYSTEMD_DIR)
 
 systemdsystemunit_DATA = \
-	pdns.service
+	pdns.service \
+	pdns@.service
 endif
