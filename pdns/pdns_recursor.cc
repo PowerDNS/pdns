@@ -706,6 +706,7 @@ void startDoResolve(void *p)
 
     auto luaconfsLocal = g_luaconfs.getLocal();
     std::string appliedPolicy;
+    std::vector<std::string> policyTags;
 #ifdef HAVE_PROTOBUF
     PBDNSMessage_DNSResponse protobufResponse;
     if(luaconfsLocal->protobufServer) {
@@ -830,7 +831,7 @@ void startDoResolve(void *p)
     }
 
 
-    if(!t_pdl->get() || !(*t_pdl)->preresolve(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, dc->d_ednsOpts.empty() ? 0 : &dc->d_ednsOpts, dc->d_tag, res, &variableAnswer)) {
+    if(!t_pdl->get() || !(*t_pdl)->preresolve(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, dc->d_ednsOpts.empty() ? 0 : &dc->d_ednsOpts, dc->d_tag, &appliedPolicy, &policyTags, res, &variableAnswer)) {
       try {
         res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
       }
@@ -898,7 +899,7 @@ void startDoResolve(void *p)
 	  (*t_pdl)->nxdomain(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
 	
 
-	(*t_pdl)->postresolve(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
+	(*t_pdl)->postresolve(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, &appliedPolicy, &policyTags, res, &variableAnswer);
 	
       }
     }
@@ -1037,6 +1038,11 @@ void startDoResolve(void *p)
       protobufResponse.set_rcode(pw.getHeader()->rcode);
       if (!appliedPolicy.empty()) {
         protobufResponse.set_appliedpolicy(appliedPolicy);
+      }
+      if (!policyTags.empty()) {
+        for(const auto tag : policyTags) {
+          protobufResponse.add_tags(tag);
+        }
       }
       protobufLogResponse(luaconfsLocal->protobufServer, dc, packet.size(), protobufResponse);
     }
