@@ -975,8 +975,6 @@ void startDoResolve(void *p)
         }
       }
 
-
-
       if(ret.size()) {
         orderAndShuffle(ret);
 	if(auto sl = luaconfsLocal->sortlist.getOrderCmp(dc->d_remote)) {
@@ -2521,14 +2519,14 @@ int serviceMain(int argc, char*argv[])
   setupDelegationOnly();
   g_outgoingEDNSBufsize=::arg().asNum("edns-outgoing-bufsize");
 
-  if(::arg()["dnssec"]=="off") 
+  if(::arg()["dnssec"]=="off")
     g_dnssecmode=DNSSECMode::Off;
   else if(::arg()["dnssec"]=="process-no-validate")
     g_dnssecmode=DNSSECMode::ProcessNoValidate;
-  else if(::arg()["dnssec"]=="process") 
+  else if(::arg()["dnssec"]=="process")
     g_dnssecmode=DNSSECMode::Process;
   else if(::arg()["dnssec"]=="validate")
-    g_dnssecmode=DNSSECMode::ValidateAll; 
+    g_dnssecmode=DNSSECMode::ValidateAll;
   else if(::arg()["dnssec"]=="log-fail")
     g_dnssecmode=DNSSECMode::ValidateForLog;
   else {
