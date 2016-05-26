@@ -3,7 +3,7 @@
 #include "syncres.hh"
 #include "logger.hh"
 
-DNSSECMode g_dnssecmode{DNSSECMode::Process};
+DNSSECMode g_dnssecmode{DNSSECMode::ProcessNoValidate};
 
 #define LOG(x) if(g_dnssecLOG) { L <<Logger::Warning << x; }
 
