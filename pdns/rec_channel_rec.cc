@@ -28,6 +28,7 @@
 #include <sys/time.h>
 #include "lock.hh"
 #include "responsestats.hh"
+#include "rec-lua-conf.hh"
 
 #include "secpoll-recursor.hh"
 #include "pubsuffix.hh"
@@ -341,6 +342,93 @@ string doSetCarbonServer(T begin, T end)
   return ret;
 }
 
+template<typename T>
+string doAddNTA(T begin, T end)
+{
+  if(begin == end)
+    return "No NTA specified, doing nothing\n";
+
+  DNSName who;
+  try {
+    who = DNSName(*begin);
+  }
+  catch(std::exception &e) {
+    string ret("Can't add Negative Trust Anchor: ");
+    ret += e.what();
+    ret += "\n";
+    return ret;
+  }
+  begin++;
+
+  string why("");
+  while (begin != end) {
+    why += *begin;
+    begin++;
+    if (begin != end)
+      why += " ";
+  }
+  g_luaconfs.modify([who, why](LuaConfigItems& lci) {
+      lci.negAnchors[who] = why;
+      });
+  broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, who, true));
+  return "Added Negative Trust Anchor for " + who.toLogString() + " with reason '" + why + "'\n";
+}
+
+template<typename T>
+string doClearNTA(T begin, T end)
+{
+  if(begin == end)
+    return "No Negative Trust Anchor specified, doing nothing.\n";
+
+  if (begin + 1 == end && *begin == "*"){
+    g_luaconfs.modify([](LuaConfigItems& lci) {
+        lci.negAnchors.clear();
+      });
+    return "Cleared all Negative Trust Anchors.\n";
+  }
+
+  vector<DNSName> toRemove;
+  DNSName who;
+  while (begin != end) {
+    if (*begin == "*")
+      return "Don't mix all Negative Trust Anchor removal with multiple Negative Trust Anchor removal. Nothing removed\n";
+    try {
+      who = DNSName(*begin);
+    }
+    catch(std::exception &e) {
+      string ret("Error: ");
+      ret += e.what();
+      ret += ". No Negative Anchors removed\n";
+      return ret;
+    }
+    toRemove.push_back(who);
+    begin++;
+  }
+
+  string removed("");
+  bool first(true);
+  for (auto const &who : toRemove) {
+    g_luaconfs.modify([who](LuaConfigItems& lci) {
+        lci.negAnchors.erase(who);
+      });
+    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, who, true));
+    if (!first) {
+      first = false;
+      removed += ",";
+    }
+    removed += " " + who.toStringRootDot();
+  }
+  return "Removed Negative Trust Anchors for " + removed + "\n";
+}
+
+static string getNTAs()
+{
+  string ret("Configured Negative Trust Anchors:\n");
+  auto luaconf = g_luaconfs.getLocal();
+  for (auto negAnchor : luaconf->negAnchors)
+    ret += negAnchor.first.toLogString() + "\t" + negAnchor.second + "\n";
+  return ret;
+}
 
 template<typename T>
 string setMinimumTTL(T begin, T end)
@@ -902,12 +990,15 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
   // should probably have a smart dispatcher here, like auth has
   if(cmd=="help")
     return
+"add-nta DOMAIN [REASON]          add a Negative Trust Anchor for DOMAIN with the comment REASON\n"
 "current-queries                  show currently active queries\n"
+"clear-nta [DOMAIN]...            Clear the Negative Trust Anchor for DOMAINs, if no DOMAIN is specified, remove all\n"
 "dump-cache <filename>            dump cache contents to the named file\n"
 "dump-edns[status] <filename>     dump EDNS status to the named file\n"
 "dump-nsspeeds <filename>         dump nsspeeds statistics to the named file\n"
 "get [key1] [key2] ..             get specific statistics\n"
 "get-all                          get all statistics\n"
+"get-ntas                         get all configured Negative Trust Anchors\n"
 "get-parameter [key1] [key2] ..   get configuration parameters\n"
 "get-qtypelist                    get QType statistics\n"
 "                                 notice: queries from cache aren't being counted yet\n"
@@ -1047,6 +1138,18 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
   
   if(cmd=="get-qtypelist") {
     return g_rs.getQTypeReport();
+  }
+
+  if(cmd=="add-nta") {
+    return doAddNTA(begin, end);
+  }
+
+  if(cmd=="clear-nta") {
+    return doClearNTA(begin, end);
+  }
+
+  if(cmd=="get-ntas") {
+    return getNTAs();
   }
   
   return "Unknown command '"+cmd+"', try 'help'\n";

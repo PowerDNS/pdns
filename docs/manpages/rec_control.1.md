@@ -43,8 +43,15 @@ To dump the cache to disk, execute:
      respond. Set to 0 for infinite.
 
 # COMMANDS
+add-nta *DOMAIN* [*REASON*]
+:    Add a Negative Trust Anchor for *DOMAIN*, suffixed optionally with *REASON*.
+
 current-queries
 :    Shows the currently active queries.
+
+clear-nta *DOMAIN*...
+:    Remove Negative Trust Anchor for one or more *DOMAIN*s. Set domain to `'*'`
+     to remove all NTA's.
 
 dump-cache *FILENAME*
 :    Dumps the entire cache to *FILENAME*. This file should
@@ -67,6 +74,9 @@ get *STATISTIC* [*STATISTIC*]...
 
 get-all
 :    Retrieve all known statistics.
+
+get-ntas
+:    Get a list of the currently configured Negative Trust Anchors.
 
 get-parameter *KEY* [*KEY*]...
 :    Retrieves the specified configuration parameter(s).
