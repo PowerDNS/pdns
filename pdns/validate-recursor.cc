@@ -49,6 +49,8 @@ vState validateRecords(const vector<DNSRecord>& recs)
     for(const auto& csp : cspmap) {
       for(const auto& sig : csp.second.signatures) {
         state = getKeysFor(sro, sig->d_signer, keys); // XXX check validity here
+        if(state == NTA)
+          return Insecure;
         LOG("! state = "<<vStates[state]<<", now have "<<keys.size()<<" keys"<<endl);
         // this sort of charges on and 'state' ends up as the last thing to have been checked
         // maybe not the right idea
