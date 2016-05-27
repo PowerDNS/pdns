@@ -45,7 +45,7 @@ In addition to this cleanup, which has many internal benefits and solves longsta
 Please be aware that beyond the items listed here, there have been heaps of tiny changes. As always, please carefully test a new release before deploying it.
 
 ## PowerDNS Recursor 4.0.0-beta1
-Unreleased
+Released May 27th 2016
 
 This release fixes a bug in the DNSSEC implementation where a name would we validated as bogus when talking to non-compliant authoritative servers:
 
