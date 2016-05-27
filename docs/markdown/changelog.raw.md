@@ -192,7 +192,6 @@ This release features several small fixes and deprecations.
 ## Bug fixes
 
 - [#3856](https://github.com/PowerDNS/pdns/pull/3856) Deal with unset name in nproxy replies
-- 
 
 ## PowerDNS Authoritative Server 4.0.0-alpha3
 Released May 11th 2016
