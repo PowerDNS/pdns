@@ -71,7 +71,15 @@ AC_DEFUN([PDNS_SELECT_CONTEXT_IMPL], [
 
 PDNS_CHECK_CLOCK_GETTIME
 
-BOOST_REQUIRE([1.35])
+boost_required_version=1.35
+
+PDNS_WITH_PROTOBUF
+AS_IF([test "x$PROTOBUF_LIBS" != "x" -a x"$PROTOC" != "x"],
+  # The protobuf code needs boost::uuid, which is available from 1.42 onward
+  [boost_required_version=1.42]
+)
+
+BOOST_REQUIRE([$boost_required_version])
 PDNS_SELECT_CONTEXT_IMPL
 
 PDNS_ENABLE_REPRODUCIBLE
@@ -121,7 +129,6 @@ AS_IF([test "x$enable_hardening" != "xno"], [
 
 PDNS_ENABLE_SANITIZERS
 PDNS_ENABLE_MALLOC_TRACE
-PDNS_WITH_PROTOBUF
 AX_AVAILABLE_SYSTEMD
 AM_CONDITIONAL([HAVE_SYSTEMD], [ test x"$systemd" = "xy" ])
 PDNS_CHECK_PANDOC
