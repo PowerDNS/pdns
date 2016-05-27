@@ -15,12 +15,21 @@ PDNS_CHECK_LIBSODIUM
 DNSDIST_CHECK_RAGEL
 PDNS_CHECK_LIBEDIT
 PDNS_CHECK_CLOCK_GETTIME
-BOOST_REQUIRE([1.35])
+
+boost_required_version=1.35
+
+PDNS_WITH_PROTOBUF
+AS_IF([test "x$PROTOBUF_LIBS" != "x" -a x"$PROTOC" != "x"],
+  # The protobuf code needs boost::uuid, which is available from 1.42 onward
+  [boost_required_version=1.42]
+)
+
+BOOST_REQUIRE([$boost_required_version])
 BOOST_FOREACH
+
 PDNS_ENABLE_UNIT_TESTS
 PDNS_CHECK_RE2
 DNSDIST_ENABLE_DNSCRYPT
-PDNS_WITH_PROTOBUF
 
 AX_AVAILABLE_SYSTEMD
 AM_CONDITIONAL([HAVE_SYSTEMD], [ test x"$systemd" = "xy" ])
