@@ -40,9 +40,7 @@ The FreeBSD Boost include files are installed in `/usr/local/include`, so prefix
 
 ### Linux
 Linux is probably the best supported platform as most of the main coders are
-Linux users. The static DEB distribution is known to have problems on Debian
-'Sid', but that doesn't matter as PowerDNS is a native part of Debian 'Sid'.
-Just `apt-get`!
+Linux users.
 
 ### Mac OS X
 The [installation from Homebrew](../authoritative/installation.md#mac-os-x)
