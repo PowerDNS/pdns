@@ -1,9 +1,10 @@
 import os
 import socket
-import unittest
+#import unittest
 
 import dns
 from recursortests import RecursorTest
+
 
 class TestFlags(RecursorTest):
     _confdir = 'Flags'
@@ -12,7 +13,10 @@ class TestFlags(RecursorTest):
     _dnssec_setting = None
     _recursors = {}
 
-    _dnssec_setting_ports = {'off': 5300, 'process': 5301, 'validate': 5302}
+    _dnssec_setting_ports = {'off': 5300,
+                             'process-no-validate': 5301,
+                             'process': 5302,
+                             'validate': 5303}
 
     @classmethod
     def setUp(cls):
@@ -42,7 +46,8 @@ class TestFlags(RecursorTest):
         cls._sock = {}
         for dnssec_setting, port in cls._dnssec_setting_ports.items():
             print("Setting up UDP socket..")
-            cls._sock[dnssec_setting] = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            cls._sock[dnssec_setting] = socket.socket(socket.AF_INET,
+                                                      socket.SOCK_DGRAM)
             cls._sock[dnssec_setting].settimeout(2.0)
             cls._sock[dnssec_setting].connect(("127.0.0.1", port))
 
@@ -93,6 +98,12 @@ class TestFlags(RecursorTest):
         self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
         self.assertNoRRSIGsInAnswer(res)
 
+    def testProcessNoValidate_Secure_None(self):
+        msg = self.getQueryForSecure()
+        res = self.sendUDPQuery(msg, 'process-no-validate')
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
+        self.assertNoRRSIGsInAnswer(res)
+
     def testProcess_Secure_None(self):
         msg = self.getQueryForSecure()
         res = self.sendUDPQuery(msg, 'process')
@@ -113,6 +124,12 @@ class TestFlags(RecursorTest):
         res = self.sendUDPQuery(msg, 'off')
         self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
 
+        self.assertNoRRSIGsInAnswer(res)
+
+    def testProcessNoValidate_Secure_AD(self):
+        msg = self.getQueryForSecure('AD')
+        res = self.sendUDPQuery(msg, 'process-no-validate')
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
         self.assertNoRRSIGsInAnswer(res)
 
     def testProcess_Secure_AD(self):
@@ -140,6 +157,14 @@ class TestFlags(RecursorTest):
         self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
         self.assertNoRRSIGsInAnswer(res)
 
+    def testProcessNoValidate_Secure_ADDO(self):
+        msg = self.getQueryForSecure('AD', 'DO')
+        expected = dns.rrset.from_text('ns1.example.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
+        res = self.sendUDPQuery(msg, 'process-no-validate')
+
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'], ['DO'])
+        self.assertMatchingRRSIGInAnswer(res, expected)
+
     def testProcess_Secure_ADDO(self):
         msg = self.getQueryForSecure('AD', 'DO')
         expected = dns.rrset.from_text('ns1.example.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
@@ -166,6 +191,14 @@ class TestFlags(RecursorTest):
         res = self.sendUDPQuery(msg, 'off')
 
         self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
+
+    def testProcessNoValidate_Secure_ADDOCD(self):
+        msg = self.getQueryForSecure('AD CD', 'DO')
+        expected = dns.rrset.from_text('ns1.example.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
+        res = self.sendUDPQuery(msg, 'process-no-validate')
+
+        self.assertMessageHasFlags(res, ['CD', 'QR', 'RA', 'RD'], ['DO'])
+        self.assertMatchingRRSIGInAnswer(res, expected)
 
     def testProcess_Secure_ADDOCD(self):
         msg = self.getQueryForSecure('AD CD', 'DO')
@@ -195,6 +228,14 @@ class TestFlags(RecursorTest):
         self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
         self.assertNoRRSIGsInAnswer(res)
 
+    def testProcessNoValidate_Secure_DO(self):
+        msg = self.getQueryForSecure('', 'DO')
+        expected = dns.rrset.from_text('ns1.example.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
+        res = self.sendUDPQuery(msg, 'process-no-validate')
+
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'], ['DO'])
+        self.assertMatchingRRSIGInAnswer(res, expected)
+
     def testProcess_Secure_DO(self):
         msg = self.getQueryForSecure('', 'DO')
         expected = dns.rrset.from_text('ns1.example.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
@@ -221,6 +262,14 @@ class TestFlags(RecursorTest):
         self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
         self.assertNoRRSIGsInAnswer(res)
 
+    def testProcessNoValidate_Secure_DOCD(self):
+        msg = self.getQueryForSecure('CD', 'DO')
+        expected = dns.rrset.from_text('ns1.example.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
+        res = self.sendUDPQuery(msg, 'process-no-validate')
+
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD', 'CD'], ['DO'])
+        self.assertMatchingRRSIGInAnswer(res, expected)
+
     def testProcess_Secure_DOCD(self):
         msg = self.getQueryForSecure('CD', 'DO')
         expected = dns.rrset.from_text('ns1.example.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
@@ -246,6 +295,15 @@ class TestFlags(RecursorTest):
         res = self.sendUDPQuery(msg, 'off')
 
         self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
+        self.assertRRsetInAnswer(res, expected)
+        self.assertNoRRSIGsInAnswer(res)
+
+    def testProcessNoValidate_Secure_CD(self):
+        msg = self.getQueryForSecure('CD')
+        expected = dns.rrset.from_text('ns1.example.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
+        res = self.sendUDPQuery(msg, 'process-no-validate')
+
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD', 'CD'])
         self.assertRRsetInAnswer(res, expected)
         self.assertNoRRSIGsInAnswer(res)
 
@@ -281,6 +339,12 @@ class TestFlags(RecursorTest):
         self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
 
+    def testProcessNoValidate_Bogus_None(self):
+        msg = self.getQueryForBogus()
+        res = self.sendUDPQuery(msg, 'process-no-validate')
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
     def testProcess_Bogus_None(self):
         msg = self.getQueryForBogus()
         res = self.sendUDPQuery(msg, 'process')
@@ -300,6 +364,12 @@ class TestFlags(RecursorTest):
     def testOff_Bogus_AD(self):
         msg = self.getQueryForBogus('AD')
         res = self.sendUDPQuery(msg, 'off')
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
+    def testProcessNoValidate_Bogus_AD(self):
+        msg = self.getQueryForBogus('AD')
+        res = self.sendUDPQuery(msg, 'process-no-validate')
         self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
 
@@ -328,6 +398,13 @@ class TestFlags(RecursorTest):
         self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
 
+    def testProcessNoValidate_Bogus_ADDO(self):
+        msg = self.getQueryForBogus('AD', 'DO')
+        res = self.sendUDPQuery(msg, 'process-no-validate')
+
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'], ['DO'])
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
     def testProcess_Bogus_ADDO(self):
         msg = self.getQueryForBogus('AD', 'DO')
         res = self.sendUDPQuery(msg, 'process')
@@ -352,6 +429,15 @@ class TestFlags(RecursorTest):
 
         self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
+    def testProcessNoValidate_Bogus_ADDOCD(self):
+        msg = self.getQueryForBogus('AD CD', 'DO')
+        expected = dns.rrset.from_text('ted.bogus.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.1')
+        res = self.sendUDPQuery(msg, 'process-no-validate')
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMessageHasFlags(res, ['CD', 'QR', 'RA', 'RD'], ['DO'])
+        self.assertMatchingRRSIGInAnswer(res, expected)
 
     def testProcess_Bogus_ADDOCD(self):
         msg = self.getQueryForBogus('AD CD', 'DO')
@@ -382,6 +468,15 @@ class TestFlags(RecursorTest):
         self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
         self.assertNoRRSIGsInAnswer(res)
 
+    def testProcessNoValidate_Bogus_DO(self):
+        msg = self.getQueryForBogus('', 'DO')
+        expected = dns.rrset.from_text('ted.bogus.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.1')
+        res = self.sendUDPQuery(msg, 'process-no-validate')
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'], ['DO'])
+        self.assertMatchingRRSIGInAnswer(res, expected)
+
     def testProcess_Bogus_DO(self):
         msg = self.getQueryForBogus('', 'DO')
         expected = dns.rrset.from_text('ted.bogus.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.1')
@@ -409,6 +504,15 @@ class TestFlags(RecursorTest):
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
         self.assertNoRRSIGsInAnswer(res)
+
+    def testProcessNoValidate_Bogus_DOCD(self):
+        msg = self.getQueryForBogus('CD', 'DO')
+        expected = dns.rrset.from_text('ted.bogus.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.1')
+        res = self.sendUDPQuery(msg, 'process-no-validate')
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD', 'CD'], ['DO'])
+        self.assertMatchingRRSIGInAnswer(res, expected)
 
     def testProcess_Bogus_DOCD(self):
         msg = self.getQueryForBogus('CD', 'DO')
@@ -438,6 +542,16 @@ class TestFlags(RecursorTest):
 
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
+        self.assertRRsetInAnswer(res, expected)
+        self.assertNoRRSIGsInAnswer(res)
+
+    def testProcessNoValidate_Bogus_CD(self):
+        msg = self.getQueryForBogus('CD')
+        expected = dns.rrset.from_text('ted.bogus.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.1')
+        res = self.sendUDPQuery(msg, 'process-no-validate')
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD', 'CD'])
         self.assertRRsetInAnswer(res, expected)
         self.assertNoRRSIGsInAnswer(res)
 
@@ -476,6 +590,13 @@ class TestFlags(RecursorTest):
         self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
         self.assertNoRRSIGsInAnswer(res)
 
+    def testProcessNoValidate_Insecure_None(self):
+        msg = self.getQueryForInsecure()
+        res = self.sendUDPQuery(msg, 'process-no-validate')
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
+        self.assertNoRRSIGsInAnswer(res)
+
     def testProcess_Insecure_None(self):
         msg = self.getQueryForInsecure()
         res = self.sendUDPQuery(msg, 'process')
@@ -496,6 +617,14 @@ class TestFlags(RecursorTest):
     def testOff_Insecure_AD(self):
         msg = self.getQueryForInsecure('AD')
         res = self.sendUDPQuery(msg, 'off')
+
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
+        self.assertNoRRSIGsInAnswer(res)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
+    def testProcessNoValidate_Insecure_AD(self):
+        msg = self.getQueryForInsecure('AD')
+        res = self.sendUDPQuery(msg, 'process-no-validate')
 
         self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
         self.assertNoRRSIGsInAnswer(res)
@@ -528,6 +657,14 @@ class TestFlags(RecursorTest):
         self.assertNoRRSIGsInAnswer(res)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
 
+    def testProcessNoValidate_Insecure_ADDO(self):
+        msg = self.getQueryForInsecure('AD', 'DO')
+        res = self.sendUDPQuery(msg, 'process-no-validate')
+
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'], ['DO'])
+        self.assertNoRRSIGsInAnswer(res)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
     def testProcess_Insecure_ADDO(self):
         msg = self.getQueryForInsecure('AD', 'DO')
         res = self.sendUDPQuery(msg, 'process')
@@ -552,6 +689,14 @@ class TestFlags(RecursorTest):
         res = self.sendUDPQuery(msg, 'off')
 
         self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
+        self.assertNoRRSIGsInAnswer(res)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
+    def testProcessNoValidate_Insecure_ADDOCD(self):
+        msg = self.getQueryForInsecure('AD CD', 'DO')
+        res = self.sendUDPQuery(msg, 'process-no-validate')
+
+        self.assertMessageHasFlags(res, ['CD', 'QR', 'RA', 'RD'], ['DO'])
         self.assertNoRRSIGsInAnswer(res)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
 
@@ -583,6 +728,14 @@ class TestFlags(RecursorTest):
         self.assertNoRRSIGsInAnswer(res)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
 
+    def testProcessNoValidate_Insecure_DO(self):
+        msg = self.getQueryForInsecure('', 'DO')
+        res = self.sendUDPQuery(msg, 'process-no-validate')
+
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'], ['DO'])
+        self.assertNoRRSIGsInAnswer(res)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
     def testProcess_Insecure_DO(self):
         msg = self.getQueryForInsecure('', 'DO')
         res = self.sendUDPQuery(msg, 'process')
@@ -610,6 +763,14 @@ class TestFlags(RecursorTest):
         self.assertNoRRSIGsInAnswer(res)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
 
+    def testProcessNoValidate_Insecure_DOCD(self):
+        msg = self.getQueryForInsecure('CD', 'DO')
+        res = self.sendUDPQuery(msg, 'process-no-validate')
+
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD', 'CD'], ['DO'])
+        self.assertNoRRSIGsInAnswer(res)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
     def testProcess_Insecure_DOCD(self):
         msg = self.getQueryForInsecure('CD', 'DO')
         res = self.sendUDPQuery(msg, 'process')
@@ -634,6 +795,14 @@ class TestFlags(RecursorTest):
         res = self.sendUDPQuery(msg, 'off')
 
         self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'])
+        self.assertNoRRSIGsInAnswer(res)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
+    def testProcessNoValidate_Insecure_CD(self):
+        msg = self.getQueryForInsecure('CD')
+        res = self.sendUDPQuery(msg, 'process-no-validate')
+
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD', 'CD'])
         self.assertNoRRSIGsInAnswer(res)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
 

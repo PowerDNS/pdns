@@ -960,7 +960,7 @@ void startDoResolve(void *p)
           }
 
           // Does the query or validation mode sending out a SERVFAIL on validation errors?
-          if(!pw.getHeader()->cd && (g_dnssecmode == DNSSECMode::ValidateAll || (dc->d_mdp.d_header.ad && g_dnssecmode != DNSSECMode::Off))) {
+          if(!pw.getHeader()->cd && (g_dnssecmode == DNSSECMode::ValidateAll || dc->d_mdp.d_header.ad)) {
             if(sr.doLog()) {
               L<<Logger::Warning<<"Sending out SERVFAIL for "<<dc->d_mdp.d_qname<<" because recursor or query demands it for Bogus results"<<endl;
             }
@@ -974,8 +974,6 @@ void startDoResolve(void *p)
           }
         }
       }
-
-
 
       if(ret.size()) {
         orderAndShuffle(ret);
@@ -2521,12 +2519,14 @@ int serviceMain(int argc, char*argv[])
   setupDelegationOnly();
   g_outgoingEDNSBufsize=::arg().asNum("edns-outgoing-bufsize");
 
-  if(::arg()["dnssec"]=="off") 
+  if(::arg()["dnssec"]=="off")
     g_dnssecmode=DNSSECMode::Off;
-  else if(::arg()["dnssec"]=="process") 
+  else if(::arg()["dnssec"]=="process-no-validate")
+    g_dnssecmode=DNSSECMode::ProcessNoValidate;
+  else if(::arg()["dnssec"]=="process")
     g_dnssecmode=DNSSECMode::Process;
   else if(::arg()["dnssec"]=="validate")
-    g_dnssecmode=DNSSECMode::ValidateAll; 
+    g_dnssecmode=DNSSECMode::ValidateAll;
   else if(::arg()["dnssec"]=="log-fail")
     g_dnssecmode=DNSSECMode::ValidateForLog;
   else {
@@ -2855,7 +2855,7 @@ int main(int argc, char **argv)
     ::arg().set("local-address","IP addresses to listen on, separated by spaces or commas. Also accepts ports.")="127.0.0.1";
     ::arg().setSwitch("non-local-bind", "Enable binding to non-local addresses by using FREEBIND / BINDANY socket options")="no";
     ::arg().set("trace","if we should output heaps of logging. set to 'fail' to only log failing domains")="off";
-    ::arg().set("dnssec", "DNSSEC mode: off/process (default)/log-fail/validate")="process";
+    ::arg().set("dnssec", "DNSSEC mode: off/process-no-validate (default)/process/log-fail/validate")="process-no-validate";
     ::arg().set("daemon","Operate as a daemon")="no";
     ::arg().setSwitch("write-pid","Write a PID file")="yes";
     ::arg().set("loglevel","Amount of logging. Higher is more. Do not set below 3")="4";

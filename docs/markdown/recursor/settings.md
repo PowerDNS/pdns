@@ -176,8 +176,8 @@ supervisor that handles logging (like systemd). **Note**: do not use this settin
 in combination with [`daemon`](#daemon) as all logging will disappear.
 
 ## `dnssec`
-* One of `off`, `process`, `log-fail`, `validate`, String
-* Default: `off` (**note**: was `process` until 4.0.0-alpha2)
+* One of `off`, `process-no-validate`, `process`, `log-fail`, `validate`, String
+* Default: `process-no-validate` (**note**: was `process` until 4.0.0-alpha2)
 * Available since: 4.0.0
 
 Set the mode for DNSSEC processing:
@@ -187,9 +187,14 @@ No DNSSEC processing whatsoever. Ignore DO-bits in queries, don't request any
 DNSSEC information from authoritative servers. This behaviour is similar to
 PowerDNS Recursor pre-4.0.
 
-### `process`
+### `process-no-validate`
 Respond with DNSSEC records to clients that ask for it, set the DO bit on all
 outgoing queries. Don't do any validation.
+
+### `process`
+Respond with DNSSEC records to clients that ask for it, set the DO bit on all
+outgoing queries. Do validation for clients that request it (by means of the AD-
+bit in the query).
 
 ### `log-fail`
 Similar behaviour to `process`, but validate RRSIGs on responses and log bogus
