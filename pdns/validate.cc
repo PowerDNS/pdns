@@ -167,21 +167,22 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
 {
   auto luaLocal = g_luaconfs.getLocal();
   auto anchors = luaLocal->dsAnchors;
+  // Determine the lowest (i.e. with the most labels) Trust Anchor for zone
+  DNSName lowestTA(".");
+  for (auto const &anchor : anchors)
+    if (zone.isPartOf(anchor.first) && lowestTA.countLabels() < anchor.first.countLabels())
+      lowestTA = anchor.first;
 
   // Before searching for the keys, see if we have a Negative Trust Anchor. If
   // so, test if the NTA is valid and return an NTA state
   auto negAnchors = luaLocal->negAnchors;
 
   if (!negAnchors.empty()) {
-    DNSName lowestNTA, lowestTA;
+    DNSName lowestNTA;
 
     for (auto const &negAnchor : negAnchors)
       if (zone.isPartOf(negAnchor.first) && lowestNTA.countLabels() < negAnchor.first.countLabels())
         lowestNTA = negAnchor.first;
-
-    for (auto const &anchor : anchors)
-      if (zone.isPartOf(anchor.first) && lowestTA.countLabels() < anchor.first.countLabels())
-        lowestTA = anchor.first;
 
     if(!lowestNTA.empty()) {
       LOG("Found a Negative Trust Anchor for "<<lowestNTA.toStringRootDot()<<", which was added with reason '"<<negAnchors[lowestNTA]<<"', ");
@@ -208,8 +209,9 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
   dsmap_t dsmap;
   keyset_t validkeys;
 
-  DNSName qname(".");
-  state = Secure; // the root is secure
+  DNSName qname = lowestTA;
+  state = Secure; // the lowest Trust Anchor is secure
+
   while(zone.isPartOf(qname))
   {
     if(auto ds = rplookup(luaLocal->dsAnchors, qname))
