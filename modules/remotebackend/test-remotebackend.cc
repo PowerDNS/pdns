@@ -193,6 +193,21 @@ BOOST_AUTO_TEST_CASE(test_method_getDomainInfo) {
    BOOST_CHECK_EQUAL(di.backend, be);
 }
 
+BOOST_AUTO_TEST_CASE(test_method_getAllDomains) {
+   DomainInfo di;
+   BOOST_TEST_MESSAGE("Testing getAllDomains method");
+   vector<DomainInfo> result;
+
+   be->getAllDomains(&result, true);
+
+   di = result[0];
+   BOOST_CHECK_EQUAL(di.zone.toString(), "unit.test.");
+   BOOST_CHECK_EQUAL(di.serial, 2);
+   BOOST_CHECK_EQUAL(di.notified_serial, 2);
+   BOOST_CHECK_EQUAL(di.kind, DomainInfo::Native);
+   BOOST_CHECK_EQUAL(di.backend, be);
+}
+
 BOOST_AUTO_TEST_CASE(test_method_isMaster) {
    BOOST_TEST_MESSAGE("Testing isMaster method");
    BOOST_CHECK(be->isMaster(DNSName("ns1.unit.test."), "10.0.0.1"));
