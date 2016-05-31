@@ -301,8 +301,8 @@ extern std::shared_ptr<TCPClientCollection> g_tcpclientthreads;
 
 struct DownstreamState
 {
-  DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf);
-  DownstreamState(const ComboAddress& remote_): DownstreamState(remote_, ComboAddress(), 0) {}
+  DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf, bool sourceBindAny);
+  DownstreamState(const ComboAddress& remote_): DownstreamState(remote_, ComboAddress(), 0, false) {}
   ~DownstreamState()
   {
     if (fd >= 0)
@@ -345,6 +345,7 @@ struct DownstreamState
   bool mustResolve{false};
   bool upStatus{false};
   bool useECS{false};
+  bool sourceBindAny{false};
   bool isUp() const
   {
     if(availability == Availability::Down)

@@ -156,6 +156,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			}
 			ComboAddress sourceAddr;
 			unsigned int sourceItf = 0;
+			bool sourceBindAny = false;
 			if(auto address = boost::get<string>(&pvars)) {
 			  std::shared_ptr<DownstreamState> ret;
 			  try {
@@ -241,9 +242,13 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			  }
 			}
 
+			if(vars.count("sourceBindAny")) {
+			  sourceBindAny = boost::get<bool>(vars["sourceBindAny"]);
+			}
+
 			std::shared_ptr<DownstreamState> ret;
 			try {
-			  ret=std::make_shared<DownstreamState>(ComboAddress(boost::get<string>(vars["address"]), 53), sourceAddr, sourceItf);
+			  ret=std::make_shared<DownstreamState>(ComboAddress(boost::get<string>(vars["address"]), 53), sourceAddr, sourceItf, sourceBindAny);
 			}
 			catch(std::exception& e) {
 			  g_outputBuffer="Error creating new server: "+string(e.what());
