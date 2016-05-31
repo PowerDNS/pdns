@@ -22,11 +22,18 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
+#include <boost/version.hpp>
+#if BOOST_VERSION >= 104400
+#include <boost/array.hpp>
+#include <boost/program_options.hpp>
+
 #include <boost/accumulators/statistics/median.hpp>
 #include <boost/accumulators/statistics/mean.hpp>
 #include <boost/accumulators/accumulators.hpp>
 
 #include <boost/accumulators/statistics.hpp>
+#endif
 
 #include "dnsparser.hh"
 #include "sstuff.hh"
@@ -35,11 +42,11 @@
 #include "dnsrecords.hh"
 #include "statbag.hh"
 #include <netinet/tcp.h>
-#include <boost/array.hpp>
-#include <boost/program_options.hpp>
 
 
 StatBag S;
+
+#if BOOST_VERSION >= 104400
 namespace po = boost::program_options;
 
 po::variables_map g_vm;
@@ -312,3 +319,10 @@ catch(std::exception &e)
 {
   cerr<<"Fatal: "<<e.what()<<endl;
 }
+#else /* BOOST_VERSION */
+int main(int argc, char** argv)
+{
+  std::cerr<<"dnstcpbench requires boost >= 1.44.\n"<<std::endl;
+  return(EXIT_FAILURE);
+}
+#endif /* BOOST_VERSION */
