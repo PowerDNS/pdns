@@ -39,6 +39,8 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > > getIXFRDeltas(const ComboAd
 
   Socket s(master.sin4.sin_family, SOCK_STREAM);
   //  cout<<"going to connect"<<endl;
+  ComboAddress local("2001:470:1f15:86f:4413:6149:48d1:16a3", 0);
+  s.bind(local);
   s.connect(master);
   //  cout<<"Connected"<<endl;
   s.writen(msg);

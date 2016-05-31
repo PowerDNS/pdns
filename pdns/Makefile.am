@@ -165,6 +165,7 @@ pdns_server_SOURCES = \
 	ednssubnet.cc ednssubnet.hh \
 	gss_context.cc gss_context.hh \
 	iputils.cc iputils.hh \
+	ixfr.cc ixfr.hh \
 	json.cc json.hh \
 	lock.hh \
 	logger.cc logger.hh \

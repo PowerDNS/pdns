@@ -140,7 +140,7 @@ public:
   void connect(const ComboAddress &ep)
   {
     if(::connect(d_socket,(struct sockaddr *)&ep, ep.getSocklen()) < 0 && errno != EINPROGRESS)
-      throw NetworkError("While connecting: "+string(strerror(errno)));
+      throw NetworkError("While connecting to "+ep.toStringWithPort()+": "+string(strerror(errno)));
   }
 
 

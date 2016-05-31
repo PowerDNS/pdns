@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002-2012  PowerDNS.COM BV
+    Copyright (C) 2002-2016  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as
@@ -46,15 +46,17 @@
 #include "namespaces.hh"
 #include "common_startup.hh"
 #include <boost/scoped_ptr.hpp>
+#include "ixfr.hh"
 using boost::scoped_ptr;
 
 
-void CommunicatorClass::addSuckRequest(const DNSName &domain, const string &master)
+void CommunicatorClass::addSuckRequest(const DNSName &domain, const string &master, uint32_t curser)
 {
   Lock l(&d_lock);
   SuckRequest sr;
   sr.domain = domain;
   sr.master = master;
+  sr.currentSerial = curser;
   pair<UniQueue::iterator, bool>  res;
 
   res=d_suckdomains.push_back(sr);
@@ -64,8 +66,106 @@ void CommunicatorClass::addSuckRequest(const DNSName &domain, const string &mast
   }
 }
 
-void CommunicatorClass::suck(const DNSName &domain,const string &remote)
+void CommunicatorClass::ixfrSuck(const DNSName &domain, const string &remote, uint32_t curser)
 {
+  UeberBackend B; // fresh UeberBackend
+
+  DomainInfo di;
+  di.backend=0;
+  //  bool transaction=false;
+  try {
+    DNSSECKeeper dk (&B); // reuse our UeberBackend copy for DNSSECKeeper
+
+    if(!B.getDomainInfo(domain, di) || !di.backend) { // di.backend and B are mostly identical
+      L<<Logger::Error<<"Can't determine backend for domain '"<<domain<<"'"<<endl;
+      return;
+    }
+    //    uint32_t domain_id=di.id;
+
+    TSIGTriplet tt;
+    if(dk.getTSIGForAccess(domain, remote, &tt.name)) {
+      string tsigsecret64;
+      if(B.getTSIGKey(tt.name, &tt.algo, &tsigsecret64)) {
+        if(B64Decode(tsigsecret64, tt.secret)) {
+          L<<Logger::Error<<"Unable to Base-64 decode TSIG key '"<<tt.name<<"' for domain '"<<domain<<"' not found"<<endl;
+          return;
+        }
+      } else {
+        L<<Logger::Error<<"TSIG key '"<<tt.name<<"' for domain '"<<domain<<"' not found"<<endl;
+        return;
+      }
+    }
+
+    soatimes st;
+    memset(&st, 0, sizeof(st));
+    st.serial=curser;
+
+    DNSRecord dr;
+    dr.d_content = std::make_shared<SOARecordContent>(DNSName("."), DNSName("."), st);
+    auto deltas = getIXFRDeltas(ComboAddress(remote, 53), domain, dr, tt);
+    cout<<"Got "<<deltas.size()<<" deltas from serial "<<curser<<", applying.."<<endl;
+    cout<<"ID: "<<di.id<<endl;
+    
+    for(const auto& d : deltas) {
+      const auto& before= d.first;
+      const auto& after = d.second;
+      
+      // our hammer is 'replaceRRSet(domain_id, qname, qt, vector<DNSResourceRecord>& rrset)
+      // first thing we need to do is delete every {qname/qt} present in before and not in after
+      
+      typedef set<pair<DNSName,uint16_t>> present_t;
+      present_t pbefore, pafter;
+      for(const auto& b: before)
+        pbefore.insert({b.d_name, b.d_type});
+      for(const auto& a: after)
+        pafter.insert({a.d_name, a.d_type});
+
+      vector<pair<DNSName,uint16_t>> diff;
+    
+      set_difference(pbefore.cbegin(), pbefore.cend(), pafter.cbegin(), pafter.cend(), back_inserter(diff));
+
+      di.backend->startTransaction(domain, -1);
+      for(const auto& gone : diff) {
+        cerr<<"Removing "<<gone.first<<"/"<<QType(gone.second).getName()<<endl;
+        di.backend->replaceRRSet(di.id, gone.first+domain, QType(gone.second), vector<DNSResourceRecord>());
+      }
+
+      map<pair<DNSName,uint16_t>, vector<DNSResourceRecord>> replacement;
+      
+      for(const auto& add : after) {
+        DNSResourceRecord dr(add);
+        dr.qname += domain;
+        dr.domain_id=di.id;
+        replacement[{add.d_name, add.d_type}].push_back(dr);
+      }
+      for(const auto& rep : replacement) {
+        cerr<<"Adding back in "<<rep.first.first<<"/"<<QType(rep.first.second).getName()<<": "<<rep.second.begin()->content<<endl;
+        di.backend->replaceRRSet(di.id, rep.first.first+domain, QType(rep.first.second), rep.second);
+      }
+      cerr<<"And commit!"<<endl;
+      di.backend->commitTransaction();
+    }
+
+    exit(1);
+
+  }
+  catch(std::exception& p) {
+    cerr<<"Got exception: "<<p.what()<<endl;
+    exit(1);
+  }
+  catch(PDNSException& p) {
+    cerr<<"Got exception: "<<p.reason<<endl;
+    exit(1);
+  }
+
+  
+}
+
+
+void CommunicatorClass::suck(const DNSName &domain, const string &remote, uint32_t* curser)
+{
+  if(curser)
+    return ixfrSuck(domain, remote, *curser);
   L<<Logger::Error<<"Initiating transfer of '"<<domain<<"' from remote '"<<remote<<"'"<<endl;
   UeberBackend B; // fresh UeberBackend
 
@@ -573,6 +673,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       std::vector<std::string> localaddr;
       SuckRequest sr;
       sr.domain=di.zone;
+      sr.currentSerial = di.serial;
       if(di.masters.empty()) // slave domains w/o masters are ignored
         continue;
       // remove unfresh domains already queued for AXFR, no sense polling them again
@@ -684,13 +785,13 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
         }
         else {
           L<<Logger::Warning<<"Domain '"<< di.zone<<"' is fresh, but RRSIGS differ, so DNSSEC stale"<<endl;
-          addSuckRequest(di.zone, *di.masters.begin());
+          addSuckRequest(di.zone, *di.masters.begin(), ourserial);
         }
       }
     }
     else {
       L<<Logger::Warning<<"Domain '"<< di.zone<<"' is stale, master serial "<<theirserial<<", our serial "<< ourserial <<endl;
-      addSuckRequest(di.zone, *di.masters.begin());
+      addSuckRequest(di.zone, *di.masters.begin(), ourserial);
     }
   }
 }

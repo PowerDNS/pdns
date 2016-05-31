@@ -46,6 +46,7 @@ struct SuckRequest
 {
   DNSName domain;
   string master;
+  uint32_t currentSerial;
   bool operator<(const SuckRequest& b) const
   {
     return tie(domain, master) < tie(b.domain, b.master);
@@ -164,7 +165,7 @@ public:
   
   void drillHole(const DNSName &domain, const string &ip);
   bool justNotified(const DNSName &domain, const string &ip);
-  void addSuckRequest(const DNSName &domain, const string &master);
+  void addSuckRequest(const DNSName &domain, const string &master, uint32_t curser);
   void addSlaveCheckRequest(const DomainInfo& di, const ComboAddress& remote);
   void addTrySuperMasterRequest(DNSPacket *p);
   void notify(const DNSName &domain, const string &ip);
@@ -190,7 +191,9 @@ private:
   map<pair<DNSName,string>,time_t>d_holes;
   pthread_mutex_t d_holelock;
   void launchRetrievalThreads();
-  void suck(const DNSName &domain, const string &remote);
+  void suck(const DNSName &domain, const string &remote, uint32_t* curser);
+  void ixfrSuck(const DNSName &domain, const string &remote, uint32_t curser);
+
   void slaveRefresh(PacketHandler *P);
   void masterUpdateCheck(PacketHandler *P);
   pthread_mutex_t d_lock;
