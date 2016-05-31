@@ -115,7 +115,7 @@ The DNSQuestion object contains at least the following fields:
 * rcode - current DNS Result Code, which can be overridden, including to several magical values
 * remoteaddr - address of the requestor
 * localaddr - address this query was received on
-* variable - a boolean which, if sets, indicates the recursor should not packet cache this answer. Honored even when returning 'false'! 
+* variable - a boolean which, if set, indicates the recursor should not packet cache this answer. Honored even when returning 'false'! Important when providing answers that vary over time or based on sender details.
 
 It also supports the following methods:
 
