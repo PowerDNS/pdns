@@ -1027,6 +1027,80 @@ move the address check on `dnsdist`'s side:
 > addAction(AndRule({OpcodeRule(DNSOpcode.Notify), NotRule(makeRule("192.168.1.0/24"))}), RCodeAction(dnsdist.REFUSED))
 ```
 
+eBPF Socket Filtering
+---------------------
+`dnsdist` can use eBPF socket filtering on recent Linux kernels (4.1+) built with eBPF
+support (`CONFIG_BPF`, `CONFIG_BPF_SYSCALL`, ideally `CONFIG_BPF_JIT`).
+This feature might require an increase of the memory limit associated to socket, via
+`the sysctl` setting `net.core.optmem_max`. When attaching an eBPF program to a socket,
+the size of the program is checked against this limit, and the default value might not be
+enough. Large map sizes might also require an increase of `RLIMIT_MEMLOCK`.
+
+This feature allows `dnsdist` to ask the kernel to discard incoming packets in kernel-space
+instead of them being copied to userspace just to be dropped, thus being a lot of faster.
+
+The BPF filter can be used to block incoming queries manually:
+
+```
+> bpf = newBPFFilter(1024, 1024, 1024)
+> bpf:attachToAllBinds()
+> bpf:block(ComboAddress("2001:DB8::42"))
+> bpf:blockQName(newDNSName("evildomain.com"), 255)
+> bpf:getStats()
+[2001:DB8::42]: 0
+evildomain.com. 255: 0
+> bpf:unblock(ComboAddress("2001:DB8::42"))
+> bpf:unblockQName(newDNSName("evildomain.com"), 255)
+> bpf:getStats()
+>
+```
+
+The `blockQName()` method can be used to block queries based on the exact qname supplied,
+and an optional qtype. Using the 255 (ANY) qtype will block all queries for the qname,
+regardless of the qtype. Contrary to source address filtering, qname filtering only works
+over UDP. TCP qname filtering can be done the usual way:
+
+```
+> addAction(AndRule({TCPRule(true), makeRule("evildomain.com")}), DropAction())
+```
+
+The `attachToAllBinds()` method attach the filter to every existing binds at runtime,
+but it's also possible to define a default BPF filter at configuration time, so that
+it's automatically attached to every binds:
+
+```
+bpf = newBPFFilter(1024, 1024, 1024)
+setDefaultBPFFilter(bpf)
+```
+
+Finally, it's also possible to attach it to only specific binds at runtime:
+
+```
+> bpf = newBPFFilter(1024, 1024, 1024)
+> showBinds()
+#   Address              Protocol  Queries
+0   [::]:53              UDP       0
+1   [::]:53              TCP       0
+> bd = getBind(0)
+> bd:attachFilter(bpf)
+```
+
+`dnsdist` also supports adding dynamic, expiring blocks to a BPF filter:
+
+```
+bpf = newBPFFilter(1024, 1024, 1024)
+setDefaultBPFFilter(bpf)
+dbpf = newDynBPFFilter(bpf)
+function maintenance()
+        addBPFFilterDynBlocks(exceedQRate(20, 10), dbpf, 60)
+        dbpf:purgeExpired()
+end
+```
+
+This will dynamically block all hosts that exceeded 20 queries/s as measured
+over the past 10 seconds, and the dynamic block will last for 60 seconds.
+
+Arch and Fedora Core 23 are known to support this feature.
 
 All functions and types
 -----------------------
@@ -1060,6 +1134,11 @@ Here are all functions:
     * `addACL(netmask)`: add to the ACL set who can use this server
     * `setACL({netmask, netmask})`: replace the ACL set with these netmasks. Use `setACL({})` to reset the list, meaning no one can use us
     * `showACL()`: show our ACL set
+ * ClientState related:
+    * function `showBinds()`: list every local binds
+    * function `getBind(n)`: return the corresponding `ClientState` object
+    * member `attachFilter(BPFFilter)`: attach a BPF Filter to this bind
+    * member `toString()`: print the address this bind listens to
  * Network related:
     * `addLocal(netmask, [false], [false])`: add to addresses we listen on. Second optional parameter sets TCP/IP or not. Third optional parameter sets SO_REUSEPORT when available.
     * `setLocal(netmask, [false], [false])`: reset list of addresses we listen on to this address. Second optional parameter sets TCP/IP or not. Third optional parameter sets SO_REUSEPORT when available.
@@ -1212,6 +1291,7 @@ instantiate a server with additional parameters
     * `clearDynBlocks()`: clear all dynamic blocks
     * `showDynBlocks()`: show dynamic blocks in force
     * `addDynBlocks(addresses, message[, seconds])`: block the set of addresses with message `msg`, for `seconds` seconds (10 by default)
+    * `addBPFFilterDynBlocks(addresses, DynBPFFilter[, seconds])`: block the set of addresses using the supplied BPF Filter, for `seconds` seconds (10 by default)
     * `exceedServFails(rate, seconds)`: get set of addresses that exceed `rate` servails/s over `seconds` seconds
     * `exceedNXDOMAINs(rate, seconds)`: get set of addresses that exceed `rate` NXDOMAIN/s over `seconds` seconds
     * `exceedRespByterate(rate, seconds)`: get set of addresses that exeeded `rate` bytes/s answers over `seconds` seconds
@@ -1289,6 +1369,19 @@ instantiate a server with additional parameters
     * `generateDNSCryptCertificate("/path/to/providerPrivate.key", "/path/to/resolver.cert", "/path/to/resolver.key", serial, validFrom, validUntil):` generate a new resolver private key and related certificate, valid from the `validFrom` timestamp until the `validUntil` one, signed with the provider private key
     * `printDNSCryptProviderFingerprint("/path/to/providerPublic.key")`: display the fingerprint of the provided resolver public key
     * `showDNSCryptBinds():`: display the currently configured DNSCrypt binds
+ * BPFFilter related:
+    * function `newBPFFilter(maxV4, maxV6, maxQNames)`: return a new eBPF socket filter with a maximum of maxV4 IPv4, maxV6 IPv6 and maxQNames qname entries in the block tables
+    * function `setDefaultBPFFilter(BPFFilter)`: when used at configuration time, the corresponding BPFFilter will be attached to every binds
+    * member `attachToAllBinds()`: attach this filter to every binds already defined. This is the run-time equivalent of `setDefaultBPFFilter(bpf)`
+    * member `block(ComboAddress)`: block this address
+    * member `blockQName(DNSName [, qtype=255])`: block queries for this exact qname. An optional qtype can be used, default to 255
+    * member `getStats()`: print the block tables
+    * member `unblock(ComboAddress)`: unblock this address
+    * member `unblockQName(DNSName [, qtype=255])`: remove this qname from the block list
+ * DynBPFFilter related:
+    * function `newDynBPFFilter(BPFFilter)`: return a new DynBPFFilter object using this BPF Filter
+    * member `block(ComboAddress[, seconds]): add this address to the underlying BPF Filter for `seconds` seconds (default to 10 seconds)
+    * member `purgeExpired()`: remove expired entries
  * RemoteLogger related:
     * `newRemoteLogger(address:port [, timeout=2, maxQueuedEntries=100, reconnectWaitTime=1])`: create a Remote Logger object, to use with `RemoteLogAction()` and `RemoteLogResponseAction()`
 

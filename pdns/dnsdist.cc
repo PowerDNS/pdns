@@ -77,6 +77,9 @@ vector<std::tuple<ComboAddress, bool, bool>> g_locals;
 #ifdef HAVE_DNSCRYPT
 std::vector<std::tuple<ComboAddress,DnsCryptContext,bool>> g_dnsCryptLocals;
 #endif
+#ifdef HAVE_EBPF
+shared_ptr<BPFFilter> g_defaultBPFFilter;
+#endif /* HAVE_EBPF */
 vector<ClientState *> g_frontends;
 GlobalStateHolder<pools_t> g_pools;
 
@@ -1639,6 +1642,13 @@ try
     }
 #endif
 
+#ifdef HAVE_EBPF
+    if (g_defaultBPFFilter) {
+      g_defaultBPFFilter->addSocket(cs->udpFD);
+      vinfolog("Attaching default BPF Filter to UDP frontend %s", cs->local.toStringWithPort());
+    }
+#endif /* HAVE_EBPF */
+
     SBind(cs->udpFD, cs->local);
     toLaunch.push_back(cs);
     g_frontends.push_back(cs);
@@ -1667,6 +1677,13 @@ try
       SSetsockopt(cs->tcpFD, SOL_SOCKET, SO_REUSEPORT, 1);
     }
 #endif
+#ifdef HAVE_EBPF
+    if (g_defaultBPFFilter) {
+      g_defaultBPFFilter->addSocket(cs->tcpFD);
+      vinfolog("Attaching default BPF Filter to TCP frontend %s", cs->local.toStringWithPort());
+    }
+#endif /* HAVE_EBPF */
+
     //    if(g_vm.count("bind-non-local"))
       bindAny(cs->local.sin4.sin_family, cs->tcpFD);
     SBind(cs->tcpFD, cs->local);
@@ -1695,6 +1712,12 @@ try
       setsockopt(cs->udpFD, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one)); 
 #endif
     }
+#ifdef HAVE_EBPF
+    if (g_defaultBPFFilter) {
+      g_defaultBPFFilter->addSocket(cs->udpFD);
+      vinfolog("Attaching default BPF Filter to UDP DNSCrypt frontend %s", cs->local.toStringWithPort());
+    }
+#endif /* HAVE_EBPF */
     SBind(cs->udpFD, cs->local);    
     toLaunch.push_back(cs);
     g_frontends.push_back(cs);
@@ -1716,6 +1739,12 @@ try
     if(cs->local.sin4.sin_family == AF_INET6) {
       SSetsockopt(cs->tcpFD, IPPROTO_IPV6, IPV6_V6ONLY, 1);
     }
+#ifdef HAVE_EBPF
+    if (g_defaultBPFFilter) {
+      g_defaultBPFFilter->addSocket(cs->tcpFD);
+      vinfolog("Attaching default BPF Filter to TCP DNSCrypt frontend %s", cs->local.toStringWithPort());
+    }
+#endif /* HAVE_EBPF */
     bindAny(cs->local.sin4.sin_family, cs->tcpFD);
     SBind(cs->tcpFD, cs->local);
     SListen(cs->tcpFD, 64);
