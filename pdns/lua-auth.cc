@@ -113,9 +113,11 @@ bool AuthLua::axfrfilter(const ComboAddress& remote, const DNSName& zone, const 
     if(!getFromTable("ttl", rr.ttl))
       rr.ttl=3600;
 
-    string qname = rr.qname.toString();
+    string qname;
     if(!getFromTable("qname", qname))
       rr.qname = zone;
+    else
+      rr.qname=DNSName(qname);
 
     if(!getFromTable("place", tmpnum))
       rr.d_place = DNSResourceRecord::ANSWER;
