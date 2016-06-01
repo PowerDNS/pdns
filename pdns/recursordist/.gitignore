@@ -39,3 +39,4 @@
 /dnsmessage.pb.cc
 /dnsmessage.pb.h
 /pdns-recursor.service
+/pdns-recursor@.service
