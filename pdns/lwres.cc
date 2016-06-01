@@ -65,7 +65,18 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
 
   pw.getHeader()->rd=sendRDQuery;
   pw.getHeader()->id=dns_random(0xffff);
-  
+  /* RFC 6840 section 5.9:
+   *  This document further specifies that validating resolvers SHOULD set
+   *  the CD bit on every upstream query.  This is regardless of whether
+   *  the CD bit was set on the incoming query [...]
+   *
+   * sendRDQuery is only true if the qname is part of a forward-zone-recurse (or
+   * set in the forward-zone-file), so we use this as an indicator for it being
+   * an "upstream query". To stay true to "dnssec=off means 3.X behaviour", we
+   * only set +CD on forwarded query in any mode other than dnssec=off.
+   */
+  pw.getHeader()->cd=(sendRDQuery && ::arg()["dnssec"] != "off");
+
   string ping;
   bool weWantEDNSSubnet=false;
   if(EDNS0Level && !doTCP) {
