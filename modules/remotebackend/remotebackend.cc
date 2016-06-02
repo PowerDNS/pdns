@@ -531,6 +531,31 @@ bool RemoteBackend::getTSIGKeys(std::vector<struct TSIGKey>& keys) {
    return true;
 }
 
+void RemoteBackend::parseDomainInfo(const Json &obj, DomainInfo &di)
+{
+   di.id = intFromJson(obj, "id", -1);
+   di.zone = DNSName(stringFromJson(obj, "zone"));
+   for(const auto& master: obj["masters"].array_items())
+     di.masters.push_back(master.string_value());
+
+   di.notified_serial = static_cast<unsigned int>(doubleFromJson(obj, "notified_serial", -1));
+   di.serial = static_cast<unsigned int>(obj["serial"].number_value());
+   di.last_check = static_cast<time_t>(obj["last_check"].number_value());
+
+   string kind = "";
+   if (obj["kind"].is_string()) {
+     kind = stringFromJson(obj, "kind");
+   }
+   if (kind == "master") {
+      di.kind = DomainInfo::Master;
+   } else if (kind == "slave") {
+      di.kind = DomainInfo::Slave;
+   } else {
+      di.kind = DomainInfo::Native;
+   }
+   di.backend = this;
+}
+
 bool RemoteBackend::getDomainInfo(const DNSName& domain, DomainInfo &di) {
    if (domain.empty()) return false;
    Json query = Json::object{
@@ -544,27 +569,7 @@ bool RemoteBackend::getDomainInfo(const DNSName& domain, DomainInfo &di) {
    if (this->send(query) == false || this->recv(answer) == false)
      return false;
 
-   di.id = intFromJson(answer["result"], "id", -1);
-   di.zone = DNSName(stringFromJson(answer["result"], "zone"));
-   for(const auto& master: answer["result"]["masters"].array_items())
-     di.masters.push_back(master.string_value());
-
-   di.notified_serial = static_cast<unsigned int>(doubleFromJson(answer["result"], "notified_serial", -1));
-   di.serial = static_cast<unsigned int>(answer["result"]["serial"].number_value());
-   di.last_check = static_cast<time_t>(answer["result"]["last_check"].number_value());
-
-   string kind = "";
-   if (answer["result"]["kind"].is_string()) {
-     kind = stringFromJson(answer["result"], "kind");
-   }
-   if (kind == "master") {
-      di.kind = DomainInfo::Master;
-   } else if (kind == "slave") {
-      di.kind = DomainInfo::Slave;
-   } else {
-      di.kind = DomainInfo::Native;
-   }
-   di.backend = this;
+   this->parseDomainInfo(answer["result"], di);
    return true;
 }
 
@@ -905,6 +910,29 @@ bool RemoteBackend::searchComments(const string &pattern, int maxResults, vector
   return false;
 }
 
+void RemoteBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabled)
+{
+  Json query = Json::object{
+    { "method", "getAllDomains" },
+    { "parameters", Json::object{
+      { "include_disabled", include_disabled }
+    }}
+  };
+
+  Json answer;
+  if (this->send(query) == false || this->recv(answer) == false)
+    return;
+
+  if (answer["result"].is_array() == false)
+    return;
+  
+  for(const auto& row: answer["result"].array_items()) {
+    DomainInfo di;
+    this->parseDomainInfo(row, di);
+    domains->push_back(di);
+  }
+}
+
 DNSBackend *RemoteBackend::maker()
 {
    try {
@@ -915,6 +943,8 @@ DNSBackend *RemoteBackend::maker()
       return 0;
    };
 }
+
+
 
 class RemoteBackendFactory : public BackendFactory
 {

@@ -167,6 +167,7 @@ class RemoteBackend : public DNSBackend
   virtual string directBackendCmd(const string& querystr);
   virtual bool searchRecords(const string &pattern, int maxResults, vector<DNSResourceRecord>& result);
   virtual bool searchComments(const string &pattern, int maxResults, vector<Comment>& result);
+  virtual void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false);
 
   static DNSBackend *maker();
 
@@ -198,5 +199,7 @@ class RemoteBackend : public DNSBackend
       } catch (JsonException) {};
       throw JsonException("Json value not convertible to boolean");
     };
+
+    void parseDomainInfo(const json11::Json &obj, DomainInfo &di);
 };
 #endif

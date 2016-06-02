@@ -1052,6 +1052,38 @@ Content-Type: text/javascript; charset=utf-8
 {"result":"PONG"}
 ```
 
+### `getAllDomains`
+Get DomainInfo records for all domains in your backend.
+
+* Mandatory: no
+* Parameters: include_disabled
+* Reply: array of DomainInfo
+
+#### Example JSON/RPC
+Query:
+```
+{"method": "getAllDomains", "parameters": {"include_disabled": true}}
+```
+
+Response:
+```
+{"result":[{"id":1,"zone":"unit.test.","masters":["10.0.0.1"],"notified_serial":2,"serial":2,"last_check":1464693331,"kind":"native"}]}
+```
+
+#### Example HTTP/RPC
+Query:
+```
+GET /dnsapi/getAllDomains?includeDisabled=true
+```
+
+Response:
+```
+HTTP/1.1 200 OK
+Content-Type: text/javascript; charset=utf-8
+Content-Length: 135
+{"result":[{"id":1,"zone":"unit.test.","masters":["10.0.0.1"],"notified_serial":2,"serial":2,"last_check":1464693331,"kind":"native"}]}
+```
+
 ### `searchRecords`
 Can be used to search records from the backend. This is used by web api.
 

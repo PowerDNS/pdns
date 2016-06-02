@@ -221,6 +221,9 @@ void HTTPConnector::restful_requestbuilder(const std::string &method, const Json
         req.GET()["pattern"] = parameters["pattern"].string_value();
         req.GET()["maxResults"] = std::to_string(parameters["maxResults"].int_value());
         verb = "GET";
+   } else if (method == "getAllDomains") {
+        req.GET()["includeDisabled"] = (parameters["include_disabled"].bool_value()?"true":"false");
+        verb = "GET";
     } else {
         // perform normal get
         verb = "GET";

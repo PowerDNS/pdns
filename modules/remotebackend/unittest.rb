@@ -253,5 +253,9 @@ class Handler
    def do_directbackendcmd(args)
      [args["query"]]
    end
+
+   def do_getalldomains(args)
+     [do_getdomaininfo({'name'=>'unit.test.'})]
+   end
 end
 
