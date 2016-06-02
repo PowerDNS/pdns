@@ -287,6 +287,80 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
       resp.headers["Content-Type"] = "application/json";
       resp.body=my_json.dump();
     }
+    else if(req.url.path=="/prometheus") {
+        handleCORS(req, resp);
+        resp.status=200;
+
+        ostringstream str;
+        str<<"# a first stab at reporting prometheus metrics from inside powerdns\n";
+        time_t now=time(0);
+        string mainPool = "main";
+        for(const auto& e : g_stats.entries) {
+          str<<"# HELP "<< std::get<0>(e) << std::get<3>(e)<<"\n";
+          str<<"# TYPE "<< std::get<0>(e) << std::get<2>(e)<<"\n";
+          str<<"dnsdist_"<<std::get<0>(e)<<"{pool="<<mainPool<<"} ";
+          if(const auto& val = boost::get<DNSDistStats::stat_t*>(&std::get<1>(e)))
+            str<<(*val)->load();
+          else if (const auto& val = boost::get<double*>(&std::get<1>(e)))
+            str<<**val;
+          else
+            str<<(*boost::get<DNSDistStats::statfunction_t>(&std::get<1>(e)))(std::get<0>(e));
+          str<<"\n";
+        }
+        const auto states = g_dstates.getCopy();
+        for(const auto& s : states) {
+          string serverName = s->getName();
+          boost::replace_all(serverName, ".", "_");
+          const string base = "dnsdist_";
+          str<<base<<"queries{server="<<serverName<<",pool="<<mainPool<<"} "<< s->queries.load() << "\n";
+          str<<base<<"drops{server="<<serverName<<",pool="<<mainPool<<"} "<< s->reuseds.load() << "\n";
+          str<<base<<"latency{server="<<serverName<<",pool="<<mainPool<<"} "<< s->latencyUsec/1000.0 << "\n";
+          str<<base<<"senderrors{server="<<serverName<<",pool="<<mainPool<<"} "<< s->sendErrors.load() << "\n";
+          str<<base<<"outstanding{server="<<serverName<<",pool="<<mainPool<<"} "<< s->outstanding.load() << "\n";
+        }
+        for(const auto& front : g_frontends) {
+          if (front->udpFD == -1 && front->tcpFD == -1)
+            continue;
+
+          string frontName = front->local.toStringWithPort();
+          string proto = (front->udpFD >= 0 ? "udp" : "tcp");
+          const string base = "dnsdist_frontend";
+          str<<base<<"queries{frontend="<<frontName << ",proto=" << proto << "} " << front->queries.load() << "\n";
+        }
+        const auto localPools = g_pools.getCopy();
+        for (const auto& entry : localPools) {
+          string poolName = entry.first;
+          if (poolName.empty())
+            poolName = "default";
+
+          const string base = "dnsdist_pools_";
+          const std::shared_ptr<ServerPool> pool = entry.second;
+          str<<base<<"servers" << "{pool="<<poolName<<"} " << pool->servers.size()<< "\n";
+          if (pool->packetCache != nullptr) {
+            const auto& cache = pool->packetCache;
+            str<<base<<"cache-size" << " " << cache->getMaxEntries() << " " << now << "\r\n";
+            str<<base<<"cache-entries" << " " << cache->getEntriesCount() << " " << now << "\r\n";
+            str<<base<<"cache-hits" << " " << cache->getHits() << " " << now << "\r\n";
+            str<<base<<"cache-misses" << " " << cache->getMisses() << " " << now << "\r\n";
+            str<<base<<"cache-deferred-inserts" << " " << cache->getDeferredInserts() << " " << now << "\r\n";
+            str<<base<<"cache-deferred-lookups" << " " << cache->getDeferredLookups() << " " << now << "\r\n";
+            str<<base<<"cache-lookup-collisions" << " " << cache->getLookupCollisions() << " " << now << "\r\n";
+            str<<base<<"cache-insert-collisions" << " " << cache->getInsertCollisions() << " " << now << "\r\n";
+            str<<base<<"cache-ttl-too-shorts" << " " << cache->getTTLTooShorts() << " " << now << "\r\n";
+          }
+        }
+        const string msg = str.str();
+        for(const auto& item : g_stats.entries) {
+                
+            if(const auto& val = boost::get<DNSDistStats::stat_t*>(&std::get<1>(item)))
+              str<<(*val)->load();
+            else if (const auto& val = boost::get<double*>(&std::get<1>(item)))
+              str<<**val;
+            else
+              str<<(*boost::get<DNSDistStats::statfunction_t>(&std::get<1>(item)))(std::get<0>(e));
+
+        }
+    }
     else if(req.url.path=="/api/v1/servers/localhost/statistics") {
       handleCORS(req, resp);
       resp.status=200;
