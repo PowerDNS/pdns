@@ -22,6 +22,7 @@
 
 #include "dnsdist.hh"
 #include "dnsdist-ecs.hh"
+#include "dnsparser.hh"
 #include "ednsoptions.hh"
 #include "dolog.hh"
 #include "lock.hh"
@@ -283,9 +284,6 @@ void* tcpClientThread(int pipefd)
 	  goto drop;
 	}
 
-	if(dq.qtype == QType::AXFR || dq.qtype == QType::IXFR)  // XXX fixme we really need to do better
-	  break;
-
         std::shared_ptr<ServerPool> serverPool = getPool(*localPools, poolname);
         std::shared_ptr<DNSDistPacketCache> packetCache = nullptr;
 	{
@@ -383,6 +381,14 @@ void* tcpClientThread(int pipefd)
           goto retry;
         }
 
+        bool xfrStarted = false;
+        bool isXFR = (dq.qtype == QType::AXFR || dq.qtype == QType::IXFR);
+        if (isXFR) {
+          dq.skipCache = true;
+        }
+
+      getpacket:;
+
         if(!getNonBlockingMsgLen(dsock, &rlen, ds->tcpRecvTimeout)) {
 	  vinfolog("Downstream connection to %s died on us phase 2, getting a new one!", ds->getName());
           close(dsock);
@@ -390,6 +396,9 @@ void* tcpClientThread(int pipefd)
           sockets.erase(ds->remote);
           sockets[ds->remote]=dsock=setupTCPDownstream(ds);
           downstream_failures++;
+          if(xfrStarted) {
+            goto drop;
+          }
           goto retry;
         }
 
@@ -440,6 +449,18 @@ void* tcpClientThread(int pipefd)
 #endif
         if (!sendResponseToClient(ci.fd, response, responseLen)) {
           break;
+        }
+
+        if (isXFR && dh->rcode == 0 && dh->ancount != 0) {
+          if (xfrStarted == false) {
+            xfrStarted = true;
+            if (getRecordsOfTypeCount(response, responseLen, 1, QType::SOA) == 1) {
+              goto getpacket;
+            }
+          }
+          else if (getRecordsOfTypeCount(response, responseLen, 1, QType::SOA) == 0) {
+            goto getpacket;
+          }
         }
 
         g_stats.responses++;
