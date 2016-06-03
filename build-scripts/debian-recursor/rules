@@ -7,10 +7,6 @@ DPKG_EXPORT_BUILDFLAGS = 1
 # Include buildflags.mk so we can append to the vars it sets.
 include /usr/share/dpkg/buildflags.mk
 
-# Vendor and version (after buildflags.mk so we don't overwrite CXXFLAGS)
-version := $(shell dpkg-parsechangelog -SVersion).$(shell dpkg-vendor --query Vendor)
-CXXFLAGS += -DPACKAGEVERSION='"$(version)"'
-
 ENABLE_SYSTEMD := --enable-systemd --with-systemd=/lib/systemd/system
 LIBSYSTEMD_DEV := , libsystemd-dev
 DEBHELPER_WITH_SYSTEMD := --with systemd
@@ -45,12 +41,15 @@ override_dh_auto_configure:
 		--infodir=\$${prefix}/share/info \
 		--libdir='$${prefix}/lib/$(DEB_HOST_MULTIARCH)' \
 		--libexecdir='$${prefix}/lib' \
-		--enable-unit-tests \
+		--with-lua \
 		--with-protobuf=yes \
 		$(ENABLE_SYSTEMD)
 
 override_dh_auto_install:
 	./pdns_recursor --config | sed \
+	  -e 's!# config-dir=.*!config-dir=/etc/powerdns!' \
+	  -e 's!# local-address=.*!local-address=127.0.0.1!' \
+	  -e 's!# quiet=.*!quiet=yes!' \
 	  -e 's!# setgid=.*!setgid=pdns!' \
 	  -e 's!# setuid=.*!setuid=pdns!' \
 	  > debian/pdns-recursor/etc/powerdns/recursor.conf
