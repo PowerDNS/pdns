@@ -431,6 +431,91 @@ static string getNTAs()
 }
 
 template<typename T>
+string doAddTA(T begin, T end)
+{
+  if(begin == end)
+    return "No TA specified, doing nothing\n";
+
+  DNSName who;
+  try {
+    who = DNSName(*begin);
+  }
+  catch(std::exception &e) {
+    string ret("Can't add Trust Anchor: ");
+    ret += e.what();
+    ret += "\n";
+    return ret;
+  }
+  begin++;
+
+  string what("");
+  while (begin != end) {
+    what += *begin + " ";
+    begin++;
+  }
+
+  try {
+    g_luaconfs.modify([who, what](LuaConfigItems& lci) {
+      lci.dsAnchors[who] = *std::unique_ptr<DSRecordContent>(dynamic_cast<DSRecordContent*>(DSRecordContent::make(what)));
+      });
+    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, who, true));
+    return "Added Trust Anchor for " + who.toStringRootDot() + " with data " + what + "\n";
+  }
+  catch(std::exception &e) {
+    return "Unable to add Trust Anchor for " + who.toStringRootDot() + ": " + e.what() + "\n";
+  }
+}
+
+template<typename T>
+string doClearTA(T begin, T end)
+{
+  if(begin == end)
+    return "No Trust Anchor to clear\n";
+
+  vector<DNSName> toRemove;
+  DNSName who;
+  while (begin != end) {
+    try {
+      who = DNSName(*begin);
+    }
+    catch(std::exception &e) {
+      string ret("Error: ");
+      ret += e.what();
+      ret += ". No Anchors removed\n";
+      return ret;
+    }
+    if (who.isRoot())
+      return "Refusing to remove root Trust Anchor, no Anchors removed\n";
+    toRemove.push_back(who);
+    begin++;
+  }
+
+  string removed("");
+  bool first(true);
+  for (auto const &who : toRemove) {
+    g_luaconfs.modify([who](LuaConfigItems& lci) {
+        lci.dsAnchors.erase(who);
+      });
+    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, who, true));
+    if (!first) {
+      first = false;
+      removed += ",";
+    }
+    removed += " " + who.toStringRootDot();
+  }
+  return "Removed Trust Anchor(s) for" + removed + "\n";
+}
+
+static string getTAs()
+{
+  string ret("Configured Trust Anchors:\n");
+  auto luaconf = g_luaconfs.getLocal();
+  for (auto anchor : luaconf->dsAnchors)
+    ret += anchor.first.toLogString() + "\t" + anchor.second.getZoneRepresentation() + "\n";
+  return ret;
+}
+
+template<typename T>
 string setMinimumTTL(T begin, T end)
 {
   if(end-begin != 1) 
@@ -991,14 +1076,17 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
   if(cmd=="help")
     return
 "add-nta DOMAIN [REASON]          add a Negative Trust Anchor for DOMAIN with the comment REASON\n"
+"add-ta DOMAIN DSRECORD           add a Trust Anchor for DOMAIN with data DSRECORD\n"
 "current-queries                  show currently active queries\n"
 "clear-nta [DOMAIN]...            Clear the Negative Trust Anchor for DOMAINs, if no DOMAIN is specified, remove all\n"
+"clear-ta [DOMAIN]...             Clear the Trust Anchor for DOMAINs\n"
 "dump-cache <filename>            dump cache contents to the named file\n"
 "dump-edns[status] <filename>     dump EDNS status to the named file\n"
 "dump-nsspeeds <filename>         dump nsspeeds statistics to the named file\n"
 "get [key1] [key2] ..             get specific statistics\n"
 "get-all                          get all statistics\n"
 "get-ntas                         get all configured Negative Trust Anchors\n"
+"get-tas                          get all configured Trust Anchors\n"
 "get-parameter [key1] [key2] ..   get configuration parameters\n"
 "get-qtypelist                    get QType statistics\n"
 "                                 notice: queries from cache aren't being counted yet\n"
@@ -1150,6 +1238,18 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 
   if(cmd=="get-ntas") {
     return getNTAs();
+  }
+
+  if(cmd=="add-ta") {
+    return doAddTA(begin, end);
+  }
+
+  if(cmd=="clear-ta") {
+    return doClearTA(begin, end);
+  }
+
+  if(cmd=="get-tas") {
+    return getTAs();
   }
   
   return "Unknown command '"+cmd+"', try 'help'\n";
