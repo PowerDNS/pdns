@@ -380,7 +380,16 @@ struct DownstreamState
     }
     return name + " (" + remote.toStringWithPort()+ ")";
   }
-
+  /*
+  typedef boost::variant<std::atomic<uint64_t>*> entry_t;
+  std::vector<std::tuple<std::string, entry_t, std::string, std::string>> metrics{
+      std::make_tuple("queries", &queries, "counter", "Number of queries to this backend"),
+      std::make_tuple("drops", &reuseds, "counter", "Number of drops from this backend"),
+      std::make_tuple("latency", &latencyUsec, "gauge", "Average latency in usec"),
+      std::make_tuple("senderrors", &sendErrors, "counter", "Number of errors with sends to backend"),
+      std::make_tuple("outstanding", &outstanding, "gauge", "Number of outstanding queries to this backend"),
+  };
+  */
 };
 using servers_t =vector<std::shared_ptr<DownstreamState>>;
 

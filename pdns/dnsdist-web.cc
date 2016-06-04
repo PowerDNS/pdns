@@ -293,12 +293,11 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
 
         ostringstream str;
         str<<"# a first stab at reporting prometheus metrics from inside powerdns\n";
-        time_t now=time(0);
         string mainPool = "main";
         for(const auto& e : g_stats.entries) {
           str<<"# HELP "<< std::get<0>(e) << std::get<3>(e)<<"\n";
           str<<"# TYPE "<< std::get<0>(e) << std::get<2>(e)<<"\n";
-          str<<"dnsdist_"<<std::get<0>(e)<<"{pool="<<mainPool<<"} ";
+          str<<"dnsdist_"<<std::get<0>(e) << ' ';
           if(const auto& val = boost::get<DNSDistStats::stat_t*>(&std::get<1>(e)))
             str<<(*val)->load();
           else if (const auto& val = boost::get<double*>(&std::get<1>(e)))
@@ -309,14 +308,20 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
         }
         const auto states = g_dstates.getCopy();
         for(const auto& s : states) {
-          string serverName = s->getName();
-          boost::replace_all(serverName, ".", "_");
-          const string base = "dnsdist_";
-          str<<base<<"queries{server="<<serverName<<",pool="<<mainPool<<"} "<< s->queries.load() << "\n";
-          str<<base<<"drops{server="<<serverName<<",pool="<<mainPool<<"} "<< s->reuseds.load() << "\n";
-          str<<base<<"latency{server="<<serverName<<",pool="<<mainPool<<"} "<< s->latencyUsec/1000.0 << "\n";
-          str<<base<<"senderrors{server="<<serverName<<",pool="<<mainPool<<"} "<< s->sendErrors.load() << "\n";
-          str<<base<<"outstanding{server="<<serverName<<",pool="<<mainPool<<"} "<< s->outstanding.load() << "\n";
+          const string base = "dnsdist_backend_";
+          const string label = "{backend=" + s->getName() + "}";
+          //for(const auto& m : s.metrics) {
+              //str<<"# HELP"<<std::get<0>(m)<<std::get<3>(m)<<"\n";
+              //str<<"# TYPE"<<std::get<0>(m)<<std::get<2>(m)<<"\n";
+              //str<<"dnsdist_backend_"<<std::get<0>(m)<<"{backend="<<s->getName()<<"}";
+              //const auto& val = boost::get<std::atomic<uint64_t>*>(&std::get<1>(m));
+              //str<<(*val)->load()<<"\n";
+          //}
+	  str<<base<<"queries"<<label<<' '<< s->queries.load() <<"\n";
+          str<<base<<"drops"<<label<<' '<< s->reuseds.load() << "\n";
+          str<<base<<"latency"<<label<<' '<< s->latencyUsec/1000.0 << "\n";
+          str<<base<<"senderrors"<<label<<' '<< s->sendErrors.load() << "\n";
+          str<<base<<"outstanding"<<label<<' '<< s->outstanding.load() << "\n";
         }
         for(const auto& front : g_frontends) {
           if (front->udpFD == -1 && front->tcpFD == -1)
@@ -324,42 +329,41 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
 
           string frontName = front->local.toStringWithPort();
           string proto = (front->udpFD >= 0 ? "udp" : "tcp");
-          const string base = "dnsdist_frontend";
-          str<<base<<"queries{frontend="<<frontName << ",proto=" << proto << "} " << front->queries.load() << "\n";
+          /* for(const auto& m : front.metrics) {
+              str<<"# HELP"<<std::get<0>(m)<<std::get<3>(m)<<"\n";
+              str<<"# TYPE"<<std::get<0>(m)<<std::get<2>(m)<<"\n";
+              str<<"dnsdist_frontend_"<<std::get<0>(m)<<"{frontend="<<frontName<<",proto="<<proto<<"}";
+              const auto& val = boost::get<std::atomic<uint64_t>*>(&std::get<1>(m));
+              str<<(*val)->load()<<"\n";
+          } */
+          str<<"dnsdist_frontend_queries{frontend="<<frontName<<",proto="<<proto<<"} "<< front->queries.load() << "\n";
         }
         const auto localPools = g_pools.getCopy();
         for (const auto& entry : localPools) {
           string poolName = entry.first;
-          if (poolName.empty())
+          if (poolName.empty()) {
             poolName = "default";
+          }
 
-          const string base = "dnsdist_pools_";
+          const string label = "{pool=" + poolName + "}";
           const std::shared_ptr<ServerPool> pool = entry.second;
-          str<<base<<"servers" << "{pool="<<poolName<<"} " << pool->servers.size()<< "\n";
+          str<<"dnsdist_pool_servers"<<label<< pool->servers.size() << "\n";
           if (pool->packetCache != nullptr) {
+            const string cachebase = "dnsdist_pool_cache_";
             const auto& cache = pool->packetCache;
-            str<<base<<"cache-size" << " " << cache->getMaxEntries() << " " << now << "\r\n";
-            str<<base<<"cache-entries" << " " << cache->getEntriesCount() << " " << now << "\r\n";
-            str<<base<<"cache-hits" << " " << cache->getHits() << " " << now << "\r\n";
-            str<<base<<"cache-misses" << " " << cache->getMisses() << " " << now << "\r\n";
-            str<<base<<"cache-deferred-inserts" << " " << cache->getDeferredInserts() << " " << now << "\r\n";
-            str<<base<<"cache-deferred-lookups" << " " << cache->getDeferredLookups() << " " << now << "\r\n";
-            str<<base<<"cache-lookup-collisions" << " " << cache->getLookupCollisions() << " " << now << "\r\n";
-            str<<base<<"cache-insert-collisions" << " " << cache->getInsertCollisions() << " " << now << "\r\n";
-            str<<base<<"cache-ttl-too-shorts" << " " << cache->getTTLTooShorts() << " " << now << "\r\n";
+            str<<cachebase<<"size" << " " << cache->getMaxEntries() << "\n";
+            str<<cachebase<<"entries" << " " << cache->getEntriesCount() << "\n";
+            str<<cachebase<<"hits" << " " << cache->getHits() << "\n";
+            str<<cachebase<<"misses" << " " << cache->getMisses() << "\n";
+            str<<cachebase<<"deferred_inserts" << " " << cache->getDeferredInserts() << "\n";
+            str<<cachebase<<"deferred_lookups" << " " << cache->getDeferredLookups() << "\n";
+            str<<cachebase<<"lookup_collisions" << " " << cache->getLookupCollisions() << "\n";
+            str<<cachebase<<"insert_collisions" << " " << cache->getInsertCollisions() << "\n";
+            str<<cachebase<<"ttl_too_shorts" << " " << cache->getTTLTooShorts() << "\n";
           }
         }
-        const string msg = str.str();
-        for(const auto& item : g_stats.entries) {
-                
-            if(const auto& val = boost::get<DNSDistStats::stat_t*>(&std::get<1>(item)))
-              str<<(*val)->load();
-            else if (const auto& val = boost::get<double*>(&std::get<1>(item)))
-              str<<**val;
-            else
-              str<<(*boost::get<DNSDistStats::statfunction_t>(&std::get<1>(item)))(std::get<0>(e));
-
-        }
+        resp.body=str.str();
+        resp.headers["Content-Type"] = "text/plain";
     }
     else if(req.url.path=="/api/v1/servers/localhost/statistics") {
       handleCORS(req, resp);
