@@ -45,7 +45,7 @@
 #include "lua-auth.hh"
 #include "namespaces.hh"
 #include "common_startup.hh"
-#include <boost/scoped_ptr.hpp>
+
 #include "ixfr.hh"
 using boost::scoped_ptr;
 
@@ -59,10 +59,10 @@ void CommunicatorClass::addSuckRequest(const DNSName &domain, const string &mast
   pair<UniQueue::iterator, bool>  res;
 
   res=d_suckdomains.push_back(sr);
-
   if(res.second) {
     d_suck_sem.post();
   }
+
 }
 
 struct ZoneStatus
@@ -77,10 +77,12 @@ struct ZoneStatus
   unsigned int soa_serial{0};
   set<DNSName> nsset, qnames, secured;
   uint32_t domain_id;
+  int numDeltas{0};
 };
 
 
-void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, const ComboAddress& laddr, const ComboAddress& remote)
+void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, const ComboAddress& laddr, const ComboAddress& remote, scoped_ptr<AuthLua>& pdl,
+                                 ZoneStatus& zs, vector<DNSRecord>* axfr)
 {
   UeberBackend B; // fresh UeberBackend
 
@@ -101,63 +103,121 @@ void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, c
 
     DNSRecord dr;
     dr.d_content = std::make_shared<SOARecordContent>(DNSName("."), DNSName("."), st);
-    auto deltas = getIXFRDeltas(remote, domain, dr, tt);
-    cout<<"Got "<<deltas.size()<<" deltas from serial "<<di.serial<<", applying.."<<endl;
+    auto deltas = getIXFRDeltas(remote, domain, dr, tt, laddr.sin4.sin_family ? &laddr : 0);
+    zs.numDeltas=deltas.size();
+    //    cout<<"Got "<<deltas.size()<<" deltas from serial "<<di.serial<<", applying.."<<endl;
     
     for(const auto& d : deltas) {
-      const auto& before= d.first;
-      const auto& after = d.second;
+      const auto& remove = d.first;
+      const auto& add = d.second;
+      //      cout<<"Delta sizes: "<<remove.size()<<", "<<add.size()<<endl;
       
-      // our hammer is 'replaceRRSet(domain_id, qname, qt, vector<DNSResourceRecord>& rrset)
-      // first thing we need to do is delete every {qname/qt} present in before and not in after
-      
-      typedef set<pair<DNSName,uint16_t>> present_t;
-      present_t pbefore, pafter;
-      for(const auto& b: before)
-        pbefore.insert({b.d_name, b.d_type});
-      for(const auto& a: after)
-        pafter.insert({a.d_name, a.d_type});
+      if(remove.empty()) { // we got passed an AXFR!
+        *axfr = add;
+        return;
+      }
+        
 
-      vector<pair<DNSName,uint16_t>> diff;
-    
-      set_difference(pbefore.cbegin(), pbefore.cend(), pafter.cbegin(), pafter.cend(), back_inserter(diff));
+      // our hammer is 'replaceRRSet(domain_id, qname, qt, vector<DNSResourceRecord>& rrset)
+      // which thinks in terms of RRSETs
+      // however, IXFR does not, and removes and adds *records* (bummer)
+      // this means that we must group updates by {qname,qtype}, retrieve the RRSET, apply
+      // the add/remove updates, and replaceRRSet the whole thing. 
+      
+      
+      map<pair<DNSName,uint16_t>, pair<vector<DNSRecord>, vector<DNSRecord> > > grouped;
+      
+      for(const auto& x: remove)
+        grouped[{x.d_name, x.d_type}].first.push_back(x);
+      for(const auto& x: add)
+        grouped[{x.d_name, x.d_type}].second.push_back(x);
 
       di.backend->startTransaction(domain, -1);
-      for(const auto& gone : diff) {
-        //        cerr<<"Removing "<<gone.first<<"/"<<QType(gone.second).getName()<<endl;
-        di.backend->replaceRRSet(di.id, gone.first+domain, QType(gone.second), vector<DNSResourceRecord>());
-      }
-      cout<<"Removed "<<diff.size()<<" entries"<<endl;
+      for(const auto g : grouped) {
+        DNSResourceRecord rr;
+        vector<DNSRecord> rrset;
+        B.lookup(QType(g.first.second), g.first.first, 0, di.id);
+        while(B.get(rr)) {
+          rrset.push_back(DNSRecord{rr});
+        }
+        // O(N^2)!
+        rrset.erase(remove_if(rrset.begin(), rrset.end(), 
+                              [&g](const DNSRecord& dr) {
+                                return count(g.second.first.cbegin(), 
+                                             g.second.first.cend(), dr);
+                              }), rrset.end());
+        // the DNSRecord== operator compares on name, type, class and lowercase content representation
 
-      map<pair<DNSName,uint16_t>, vector<DNSResourceRecord>> replacement;
-      
-      for(const auto& add : after) {
-        DNSResourceRecord dr(add);
-        dr.qname += domain;
-        dr.domain_id=di.id;
-        if(add.d_type == QType::SOA)
-          cout<<"New SOA: "<<add.d_content->getZoneRepresentation()<<endl;
-        replacement[{add.d_name, add.d_type}].push_back(dr);
-      }
-      for(const auto& rep : replacement) {
-        //        cout<<"Adding back in "<<rep.first.first<<"/"<<QType(rep.first.second).getName()<<": "<<rep.second.begin()->content<<endl;
-        di.backend->replaceRRSet(di.id, rep.first.first+domain, QType(rep.first.second), rep.second);
-      }
+        for(const auto& x : g.second.second) {
+          rrset.push_back(x);
+        }
 
-      cout<<"Added "<<replacement.size()<<" rrsets. And commit!"<<endl;
+        vector<DNSResourceRecord> replacement;
+        for(const auto& x : rrset) {
+          DNSResourceRecord dr(x);
+          dr.qname += domain;
+          dr.domain_id = di.id;
+          if(x.d_type == QType::SOA) {
+            //            cout<<"New SOA: "<<x.d_content->getZoneRepresentation()<<endl;
+            auto sr = getRR<SOARecordContent>(x);
+            zs.soa_serial=sr->d_st.serial;
+          }
+          
+          replacement.push_back(dr);
+        }
+
+        di.backend->replaceRRSet(di.id, g.first.first+domain, QType(g.first.second), replacement);
+      }
       di.backend->commitTransaction();
     }
   }
   catch(std::exception& p) {
-    cerr<<"Got exception: "<<p.what()<<endl;
-    exit(1);
+    L<<Logger::Error<<"Got exception during IXFR: "<<p.what()<<endl;
+    throw;
   }
   catch(PDNSException& p) {
-    cerr<<"Got exception: "<<p.reason<<endl;
-    exit(1);
+    L<<Logger::Error<<"Got exception during IXFR: "<<p.reason<<endl;
+    throw;
+  }  
+}
+
+
+static bool processRecordForZS(const DNSName& domain, bool& firstNSEC3, DNSResourceRecord& rr, ZoneStatus& zs)
+{
+  switch(rr.qtype.getCode()) {
+  case QType::NSEC3PARAM: 
+    zs.ns3pr = NSEC3PARAMRecordContent(rr.content);
+    zs.isDnssecZone = zs.isNSEC3 = true;
+    zs.isNarrow = false;
+  
+  case QType::NSEC3: {
+    NSEC3RecordContent ns3rc(rr.content);
+    if (firstNSEC3) {
+      zs.isDnssecZone = zs.isPresigned = true;
+      firstNSEC3 = false;
+    } else if (zs.optOutFlag != (ns3rc.d_flags & 1))
+      throw PDNSException("Zones with a mixture of Opt-Out NSEC3 RRs and non-Opt-Out NSEC3 RRs are not supported.");
+    zs.optOutFlag = ns3rc.d_flags & 1;
+    if (ns3rc.d_set.count(QType::NS) && !(rr.qname==domain)) {
+      DNSName hashPart = DNSName(toLower(rr.qname.makeRelative(domain).toString()));
+      zs.secured.insert(hashPart);
+    }
+  }
+  
+  case QType::NSEC: 
+    zs.isDnssecZone = zs.isPresigned = true;
+  
+  
+  case QType::NS: 
+    if(rr.qname!=domain)
+      zs.nsset.insert(rr.qname);
+  
   }
 
-  
+  zs.qnames.insert(rr.qname);
+
+  rr.domain_id=zs.domain_id;
+  return true;
 }
 
 /* So this code does a number of things. 
@@ -196,65 +256,40 @@ vector<DNSResourceRecord> doAxfr(const ComboAddress& raddr, const DNSName& domai
 
       vector<DNSResourceRecord> out;
       if(!pdl || !pdl->axfrfilter(raddr, domain, *i, out)) {
-        out.push_back(*i);
+        out.push_back(*i); // if axfrfilter didn't do anything, we put our record in 'out' ourselves
       }
 
       for(DNSResourceRecord& rr :  out) {
-        switch(rr.qtype.getCode()) {
-        case QType::NSEC3PARAM: {
-          zs.ns3pr = NSEC3PARAMRecordContent(rr.content);
-          zs.isDnssecZone = zs.isNSEC3 = true;
-          zs.isNarrow = false;
-          continue;
-        }
-        case QType::NSEC3: {
-          NSEC3RecordContent ns3rc(rr.content);
-          if (firstNSEC3) {
-            zs.isDnssecZone = zs.isPresigned = true;
-            firstNSEC3 = false;
-          } else if (zs.optOutFlag != (ns3rc.d_flags & 1))
-            throw PDNSException("Zones with a mixture of Opt-Out NSEC3 RRs and non-Opt-Out NSEC3 RRs are not supported.");
-          zs.optOutFlag = ns3rc.d_flags & 1;
-          if (ns3rc.d_set.count(QType::NS) && !(rr.qname==domain)) {
-            DNSName hashPart = DNSName(toLower(rr.qname.makeRelative(domain).toString()));
-            zs.secured.insert(hashPart);
-          }
-          continue;
-        }
-        case QType::NSEC: {
-          zs.isDnssecZone = zs.isPresigned = true;
-          continue;
-        }
-        case QType::SOA: {
+        processRecordForZS(domain, firstNSEC3, rr, zs);
+        if(rr.qtype.getCode() == QType::SOA) {
           if(soa_received)
             continue; //skip the last SOA
           SOAData sd;
           fillSOAData(rr.content,sd);
           zs.soa_serial = sd.serial;
           soa_received = true;
-          break;
-        }
-        case QType::NS: {
-          if(rr.qname!=domain)
-            zs.nsset.insert(rr.qname);
-          break;
-        }
-        default:
-          break;
         }
 
-        zs.qnames.insert(rr.qname);
-
-        rr.domain_id=zs.domain_id;
         rrs.push_back(rr);
+
       }
     }
   }
   return rrs;
 }   
 
+
 void CommunicatorClass::suck(const DNSName &domain, const string &remote)
 {
+  {
+    Lock l(&d_lock);
+    if(d_inprogress.count(domain)) {
+      return; 
+    }
+    d_inprogress.insert(domain);
+  }
+  RemoveSentinel rs(domain, this); // this removes us from d_inprogress when we go out of scope
+
   L<<Logger::Error<<"Initiating transfer of '"<<domain<<"' from remote '"<<remote<<"'"<<endl;
   UeberBackend B; // fresh UeberBackend
 
@@ -321,7 +356,7 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
     bool hadNarrow=false;
 
     ComboAddress raddr(remote, 53);
-
+    vector<DNSResourceRecord> rrs;
     if(dk.isSecuredZone(domain)) {
       hadDnssecZone=true;
       hadPresigned=dk.isPresigned(domain);
@@ -334,11 +369,37 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
     else if(di.serial) {
       vector<string> meta;
       B.getDomainMetadata(domain, "IXFR", meta);
-      if(!meta.empty() && meta[0]=="1")
-        return ixfrSuck(domain, tt, laddr, raddr);
+      if(!meta.empty() && meta[0]=="1") {
+        vector<DNSRecord> axfr;
+        ixfrSuck(domain, tt, laddr, raddr, pdl, zs, &axfr);
+        if(!axfr.empty()) {
+          L<<Logger::Warning<<"IXFR of '"<<domain<<"' from remote '"<<raddr.toStringWithPort()<<"' turned into an AXFR"<<endl;
+          bool firstNSEC3=true;
+          rrs.reserve(axfr.size());
+          for(const auto& dr : axfr) {
+            DNSResourceRecord rr(dr);
+            rr.qname += domain;
+            rr.domain_id = zs.domain_id;
+            processRecordForZS(domain, firstNSEC3, rr, zs);
+            if(dr.d_type == QType::SOA) {
+              auto sd = getRR<SOARecordContent>(dr);
+              zs.soa_serial = sd->d_st.serial;
+            }
+            rrs.push_back(rr);
+          }
+        }
+        else {
+          L<<Logger::Warning<<"Done with IXFR of '"<<domain<<"' from remote '"<<remote<<"', got "<<zs.numDeltas<<" delta"<<addS(zs.numDeltas)<<", serial now "<<zs.soa_serial<<endl;
+          return;
+        }
+      }
     }
 
-    vector<DNSResourceRecord> rrs = doAxfr(raddr, domain, tt, laddr, pdl, zs);
+    if(rrs.empty()) {
+      L<<Logger::Warning<<"Starting AXFR of '"<<domain<<"' from remote "<<raddr.toStringWithPort()<<endl;
+      rrs = doAxfr(raddr, domain, tt, laddr, pdl, zs);
+      L<<Logger::Warning<<"AXFR of '"<<domain<<"' from remote "<<raddr.toStringWithPort()<<" done"<<endl;
+    }
  
     if(zs.isNSEC3) {
       zs.ns3pr.d_flags = zs.optOutFlag ? 1 : 0;
@@ -366,7 +427,7 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
 
 
     transaction=di.backend->startTransaction(domain, zs.domain_id);
-    L<<Logger::Error<<"Transaction started for '"<<domain<<"'"<<endl;
+    L<<Logger::Error<<"Backend transaction started for '"<<domain<<"' storage"<<endl;
 
     // update the presigned flag and NSEC3PARAM
     if (zs.isDnssecZone) {
@@ -643,7 +704,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
 
   UeberBackend *B=P->getBackend();
   vector<DomainInfo> rdomains;
-  vector<DomainNotificationInfo> sdomains; // the bool is for 'presigned'
+  vector<DomainNotificationInfo> sdomains; 
   vector<DNSPacket> trysuperdomains;
 
   {
@@ -670,10 +731,9 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       delete r;
     }
   }
-
-  if(rdomains.empty()) // if we have priority domains, check them first
+  if(rdomains.empty()) { // if we have priority domains, check them first
     B->getUnfreshSlaveInfos(&rdomains);
-
+  }
   DNSSECKeeper dk(B); // NOW HEAR THIS! This DK uses our B backend, so no interleaved access!
   {
     Lock l(&d_lock);
@@ -687,9 +747,12 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
         continue;
       // remove unfresh domains already queued for AXFR, no sense polling them again
       sr.master=*di.masters.begin();
-      if(nameindex.count(sr)) {
+      if(nameindex.count(sr)) {  // this does NOT however protect us against AXFRs already in progress!
         continue;
       }
+      if(d_inprogress.count(sr.domain)) // this does
+        continue;
+
       DomainNotificationInfo dni;
       dni.di=di;
       dni.dnssecOk = dk.isPresigned(di.zone);
@@ -718,12 +781,11 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       sdomains.push_back(dni);
     }
   }
-
   if(sdomains.empty())
   {
     if(d_slaveschanged) {
       Lock l(&d_lock);
-      L<<Logger::Warning<<"No new unfresh slave domains, "<<d_suckdomains.size()<<" queued for AXFR already"<<endl;
+      L<<Logger::Warning<<"No new unfresh slave domains, "<<d_suckdomains.size()<<" queued for AXFR already, "<<d_inprogress.size()<<" in progress"<<endl;
     }
     d_slaveschanged = !rdomains.empty();
     return;
@@ -753,7 +815,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       L<<Logger::Error<<"While checking domain freshness: " << re.reason<<endl;
     }
   }
-  L<<Logger::Warning<<"Received serial number updates for "<<ssr.d_freshness.size()<<" zones, had "<<ifl.getTimeouts()<<" timeouts"<<endl;
+  L<<Logger::Warning<<"Received serial number updates for "<<ssr.d_freshness.size()<<" zone"<<addS(ssr.d_freshness.size())<<", had "<<ifl.getTimeouts()<<" timeout"<<addS(ifl.getTimeouts())<<endl;
 
   typedef DomainNotificationInfo val_t;
   for(val_t& val :  sdomains) {
@@ -764,7 +826,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
         continue;
     }
 
-    if(!ssr.d_freshness.count(di.id))
+    if(!ssr.d_freshness.count(di.id)) // what does this mean? XXX
       continue;
     uint32_t theirserial = ssr.d_freshness[di.id].theirSerial, ourserial = di.serial;
 

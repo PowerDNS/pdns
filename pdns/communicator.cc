@@ -37,8 +37,7 @@
 #include "arguments.hh"
 #include "packetcache.hh"
 
-// #include "namespaces.hh"
-
+// there can be MANY OF THESE
 void CommunicatorClass::retrievalLoopThread(void)
 {
   for(;;) {
