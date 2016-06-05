@@ -20,7 +20,7 @@
 /*
 ** Set all the parameters in the compiled SQL statement to NULL.
 *
-* copied from sqlite 3.3.6 // cmouse 
+* copied from sqlite 3.3.6 // cmouse
 */
 int pdns_sqlite3_clear_bindings(sqlite3_stmt *pStmt){
   int i;
@@ -31,7 +31,7 @@ int pdns_sqlite3_clear_bindings(sqlite3_stmt *pStmt){
   return rc;
 }
 
-class SSQLite3Statement: public SSqlStatement 
+class SSQLite3Statement: public SSqlStatement
 {
 public:
   SSQLite3Statement(SSQLite3 *db, bool dolog, const string& query) : d_prepared(false)
@@ -47,7 +47,7 @@ public:
     string zName = string(":")+name;
     prepareStatement();
     return sqlite3_bind_parameter_index(d_stmt, zName.c_str());
-    // XXX: support @ and $?    
+    // XXX: support @ and $?
   }
 
   SSqlStatement* bind(const string& name, bool value) { int idx = name2idx(name); if (idx>0) { sqlite3_bind_int(d_stmt, idx, value ? 1 : 0); }; return this; }
@@ -89,7 +89,7 @@ public:
         row.push_back("");
       } else {
         const char *pData = (const char*) sqlite3_column_text(d_stmt, i);
-        row.push_back(string(pData, sqlite3_column_bytes(d_stmt, i))); 
+        row.push_back(string(pData, sqlite3_column_bytes(d_stmt, i)));
       }
     }
     d_rc = sqlite3_step(d_stmt);
@@ -175,7 +175,7 @@ SSQLite3::SSQLite3( const std::string & database, bool creat )
 }
 
 void SSQLite3::setLog(bool state)
-{ 
+{
   m_dolog=state;
 }
 
