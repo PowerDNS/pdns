@@ -296,12 +296,12 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
         str<<"# a first stab at reporting prometheus metrics from inside powerdns\n";
         string mainPool = "main";
         for(const auto& e : g_stats.entries) {
-          string metricName = std::get<0>(e);
+          string metricName = "dnsdist_" + std::get<0>(e);
           boost::replace_all(metricName, "-", "_");
 
           str<<"# HELP "<<metricName<<' '<< std::get<3>(e)<<"\n";
           str<<"# TYPE "<<metricName<<' '<< std::get<2>(e)<<"\n";
-          str<<"dnsdist_"<<metricName<<' ';
+          str<<metricName<<' ';
           if(const auto& val = boost::get<DNSDistStats::stat_t*>(&std::get<1>(e)))
             str<<(*val)->load();
           else if (const auto& val = boost::get<double*>(&std::get<1>(e)))
