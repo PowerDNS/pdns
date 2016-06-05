@@ -204,3 +204,38 @@ class TestBasics(DNSDistTest):
 
             for key in ['blocks']:
                 self.assertTrue(content[key] >= 0)
+
+    def testPrometheus(self):
+        """
+        API: /prometheus
+        """
+        headers = {'x-api-key': self._webServerAPIKey}
+        url = 'http://127.0.0.1:' + str(self._webServerPort) + '/prometheus'
+        r = requests.get(url, headers=headers, timeout=self._webTimeout)
+        self.assertTrue(r)
+        self.assertEquals(r.status_code, 200)
+        values = {}
+        for line in r.split("\n"):
+            fields = line.split(" ")
+            if line.find("dnsdist_") == 0:
+                # every metric should live within the dnsdist_ prefix
+                self.assertIn('dnsdist_', field[0])
+                self.assertTrue(len(fields) == 2)
+
+                # metric names cannot contain dash
+                self.assertTrue(m.find('-') < 0)
+                # values are 0 or higher
+                self.assertTrue(v >= 0)
+                continue
+
+            # these should say something about the metrics
+            if line.find("# HELP") == 0:
+                self.assertIn('dnsdist_', fields[2])
+                continue
+            if line.find("# TYPE") == 0:
+                self.assertIn('dnsdist_', fields[2])
+                self.assertTrue(len(fields) == 3)
+                continue
+
+            # All other lines can only be comments
+            self.assertTrue(line[0] == "#")
