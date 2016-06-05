@@ -19,41 +19,27 @@ pthread_mutex_t SMySQL::s_myinitlock = PTHREAD_MUTEX_INITIALIZER;
 class SMySQLStatement: public SSqlStatement
 {
 public:
-  SMySQLStatement(const string& query, bool dolog, int nparams, MYSQL* db) 
+  SMySQLStatement(const string& query, bool dolog, int nparams, MYSQL* db) : d_prepared(false)
   {
-    int err;
     d_db = db;
     d_dolog = dolog;
     d_query = query;
-    d_parnum = d_paridx = d_fnum = d_resnum = d_residx = 0;
+    d_paridx = d_fnum = d_resnum = d_residx = 0;
+    d_parnum = nparams;
     d_req_bind = d_res_bind = NULL;
     d_stmt = NULL;
 
     if (query.empty()) {
       return;
     }
-
-    if ((d_stmt = mysql_stmt_init(d_db))==NULL) 
-      throw SSqlException("Could not initialize mysql statement, out of memory: " + d_query);
-    
-    if ((err = mysql_stmt_prepare(d_stmt, query.c_str(), query.size()))) {
-      string error(mysql_stmt_error(d_stmt));
-      throw SSqlException("Could not prepare statement: " + d_query + string(": ") + error);
-    }
-
-    if (static_cast<int>(mysql_stmt_param_count(d_stmt)) != nparams) 
-      throw SSqlException("Provided parameter count does not match statement: " + d_query);
-   
-    d_parnum = nparams;
-    if (d_parnum>0) {
-      d_req_bind = new MYSQL_BIND[d_parnum];
-      memset(d_req_bind, 0, sizeof(MYSQL_BIND)*d_parnum);
-    }
   }
 
   SSqlStatement* bind(const string& name, bool value) {
-    if (d_paridx >= d_parnum) 
+    prepareStatement();
+    if (d_paridx >= d_parnum) {
+      releaseStatement();
       throw SSqlException("Attempt to bind more parameters than query has: " + d_query);
+    }
     d_req_bind[d_paridx].buffer_type = MYSQL_TYPE_TINY;
     d_req_bind[d_paridx].buffer = new char[1];
     *((char*)d_req_bind[d_paridx].buffer) = (value?1:0);
@@ -67,8 +53,11 @@ public:
     return bind(name, (unsigned long)value);
   }
   SSqlStatement* bind(const string& name, long value) {
-    if (d_paridx >= d_parnum)
+    prepareStatement();
+    if (d_paridx >= d_parnum) {
+      releaseStatement();
       throw SSqlException("Attempt to bind more parameters than query has: " + d_query);
+    }
     d_req_bind[d_paridx].buffer_type = MYSQL_TYPE_LONG;
     d_req_bind[d_paridx].buffer = new long[1];
     *((long*)d_req_bind[d_paridx].buffer) = value;
@@ -76,8 +65,11 @@ public:
     return this;
   }
   SSqlStatement* bind(const string& name, unsigned long value) {
-    if (d_paridx >= d_parnum)
+    prepareStatement();
+    if (d_paridx >= d_parnum) {
+      releaseStatement();
       throw SSqlException("Attempt to bind more parameters than query has: " + d_query);
+    }
     d_req_bind[d_paridx].buffer_type = MYSQL_TYPE_LONG;
     d_req_bind[d_paridx].buffer = new unsigned long[1];
     d_req_bind[d_paridx].is_unsigned = 1;
@@ -86,8 +78,11 @@ public:
     return this;
   }
   SSqlStatement* bind(const string& name, long long value) {
-    if (d_paridx >= d_parnum)
+    prepareStatement();
+    if (d_paridx >= d_parnum) {
+      releaseStatement();
       throw SSqlException("Attempt to bind more parameters than query has: " + d_query);
+    }
     d_req_bind[d_paridx].buffer_type = MYSQL_TYPE_LONGLONG;
     d_req_bind[d_paridx].buffer = new long long[1];
     *((long long*)d_req_bind[d_paridx].buffer) = value;
@@ -95,8 +90,11 @@ public:
     return this;
   }
   SSqlStatement* bind(const string& name, unsigned long long value) {
-    if (d_paridx >= d_parnum)
+    prepareStatement();
+    if (d_paridx >= d_parnum) {
+      releaseStatement();
       throw SSqlException("Attempt to bind more parameters than query has: " + d_query);
+    }
     d_req_bind[d_paridx].buffer_type = MYSQL_TYPE_LONGLONG;
     d_req_bind[d_paridx].buffer = new unsigned long long[1];
     d_req_bind[d_paridx].is_unsigned = 1;
@@ -105,8 +103,11 @@ public:
     return this;
   }
   SSqlStatement* bind(const string& name, const std::string& value) {
-    if (d_paridx >= d_parnum)
+    prepareStatement();
+    if (d_paridx >= d_parnum) {
+      releaseStatement();
       throw SSqlException("Attempt to bind more parameters than query has: " + d_query);
+    }
     d_req_bind[d_paridx].buffer_type = MYSQL_TYPE_STRING;
     d_req_bind[d_paridx].buffer = new char[value.size()+1];
     d_req_bind[d_paridx].length = new unsigned long[1];
@@ -118,8 +119,11 @@ public:
     return this;
   }
   SSqlStatement* bindNull(const string& name) { 
-    if (d_paridx >= d_parnum)
+    prepareStatement();
+    if (d_paridx >= d_parnum) {
+      releaseStatement();
       throw SSqlException("Attempt to bind more parameters than query has: " + d_query);
+    }
     d_req_bind[d_paridx].buffer_type = MYSQL_TYPE_NULL;
     d_paridx++;
     return this;
@@ -127,6 +131,8 @@ public:
 
   SSqlStatement* execute() {
     int err;
+
+    prepareStatement();
 
     if (!d_stmt) return this;
 
@@ -136,17 +142,20 @@ public:
 
     if ((err = mysql_stmt_bind_param(d_stmt, d_req_bind))) {
       string error(mysql_stmt_error(d_stmt));
+      releaseStatement();
       throw SSqlException("Could not bind mysql statement: " + d_query + string(": ") + error);
     }
 
     if ((err = mysql_stmt_execute(d_stmt))) {
       string error(mysql_stmt_error(d_stmt));
+      releaseStatement();
       throw SSqlException("Could not execute mysql statement: " + d_query + string(": ") + error);
     }
 
     // MySQL documentation says you can call this safely for all queries
     if ((err = mysql_stmt_store_result(d_stmt))) {
       string error(mysql_stmt_error(d_stmt));
+      releaseStatement();
       throw SSqlException("Could not store mysql statement: " + d_query + string(": ") + error);
     }
 
@@ -175,6 +184,7 @@ public:
   
         if ((err = mysql_stmt_bind_result(d_stmt, d_res_bind))) {
           string error(mysql_stmt_error(d_stmt));
+          releaseStatement();
           throw SSqlException("Could not bind parameters to mysql statement: " + d_query + string(": ") + error);
         }
       }
@@ -195,6 +205,7 @@ public:
     if ((err =mysql_stmt_fetch(d_stmt))) {
       if (err != MYSQL_DATA_TRUNCATED) {
         string error(mysql_stmt_error(d_stmt));
+        releaseStatement();
         throw SSqlException("Could not fetch result: " + d_query + string(": ") + error);
       }
     }
@@ -220,6 +231,7 @@ public:
       while(!mysql_stmt_next_result(d_stmt)) {
         if ((err = mysql_stmt_store_result(d_stmt))) {
           string error(mysql_stmt_error(d_stmt));
+          releaseStatement();
           throw PDNSException("Could not store mysql statement: " + d_query + string(": ") + error);
         }
         d_resnum = mysql_stmt_num_rows(d_stmt);
@@ -228,6 +240,7 @@ public:
         if (d_resnum>0) { // ignore empty result set
           if ((err = mysql_stmt_bind_result(d_stmt, d_res_bind))) {
             string error(mysql_stmt_error(d_stmt));
+            releaseStatement();
             throw SSqlException("Could not bind parameters to mysql statement: " + d_query + string(": ") + error);
           }
           d_residx = 0;
@@ -264,6 +277,7 @@ public:
 #endif
     if (err>0) {
       string error(mysql_stmt_error(d_stmt));
+      releaseStatement();
       throw SSqlException("Could not get next result from mysql statement: " + d_query + string(": ") + error);
     }
     mysql_stmt_reset(d_stmt);
@@ -282,6 +296,43 @@ public:
   const std::string& getQuery() { return d_query; }
 
   ~SMySQLStatement() {
+    releaseStatement();
+  }
+private:
+
+  void prepareStatement() {
+    int err;
+
+    if (d_prepared) return;
+    if (d_query.empty()) {
+      d_prepared = true;
+      return;
+    }
+
+    if ((d_stmt = mysql_stmt_init(d_db))==NULL)
+      throw SSqlException("Could not initialize mysql statement, out of memory: " + d_query);
+
+    if ((err = mysql_stmt_prepare(d_stmt, d_query.c_str(), d_query.size()))) {
+      string error(mysql_stmt_error(d_stmt));
+      releaseStatement();
+      throw SSqlException("Could not prepare statement: " + d_query + string(": ") + error);
+    }
+
+    if (static_cast<int>(mysql_stmt_param_count(d_stmt)) != d_parnum) {
+      releaseStatement();
+      throw SSqlException("Provided parameter count does not match statement: " + d_query);
+    }
+
+    if (d_parnum>0) {
+      d_req_bind = new MYSQL_BIND[d_parnum];
+      memset(d_req_bind, 0, sizeof(MYSQL_BIND)*d_parnum);
+    }
+
+    d_prepared = true;
+  }
+
+  void releaseStatement() {
+    d_prepared = false;
     if (d_stmt)
       mysql_stmt_close(d_stmt);
     d_stmt = NULL;
@@ -302,8 +353,8 @@ public:
       delete [] d_res_bind;
       d_res_bind = NULL;
     }
+    d_paridx = d_fnum = d_resnum = d_residx = 0;
   }
-private:
   MYSQL* d_db;
 
   MYSQL_STMT* d_stmt;
@@ -312,6 +363,7 @@ private:
 
   string d_query;
   
+  bool d_prepared;
   bool d_dolog;
   int d_parnum;
   int d_paridx;
