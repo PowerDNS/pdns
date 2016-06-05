@@ -295,9 +295,12 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
         str<<"# a first stab at reporting prometheus metrics from inside powerdns\n";
         string mainPool = "main";
         for(const auto& e : g_stats.entries) {
-          str<<"# HELP "<< std::get<0>(e) << std::get<3>(e)<<"\n";
-          str<<"# TYPE "<< std::get<0>(e) << std::get<2>(e)<<"\n";
-          str<<"dnsdist_"<<std::get<0>(e) << ' ';
+          string metricName = std::get<0>(e);
+          boost::replace_all(metricName, "-", "_");
+
+          str<<"# HELP "<<metricName<<' '<< std::get<3>(e)<<"\n";
+          str<<"# TYPE "<<metricName<<' '<< std::get<2>(e)<<"\n";
+          str<<"dnsdist_"<<metricName<<' ';
           if(const auto& val = boost::get<DNSDistStats::stat_t*>(&std::get<1>(e)))
             str<<(*val)->load();
           else if (const auto& val = boost::get<double*>(&std::get<1>(e)))
@@ -309,7 +312,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
         const auto states = g_dstates.getCopy();
         for(const auto& s : states) {
           const string base = "dnsdist_backend_";
-          const string label = "{backend=" + s->getName() + "}";
+          const string label = "{backend=\"" + s->getName() + "\"}";
           //for(const auto& m : s.metrics) {
               //str<<"# HELP"<<std::get<0>(m)<<std::get<3>(m)<<"\n";
               //str<<"# TYPE"<<std::get<0>(m)<<std::get<2>(m)<<"\n";
@@ -336,7 +339,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
               const auto& val = boost::get<std::atomic<uint64_t>*>(&std::get<1>(m));
               str<<(*val)->load()<<"\n";
           } */
-          str<<"dnsdist_frontend_queries{frontend="<<frontName<<",proto="<<proto<<"} "<< front->queries.load() << "\n";
+          str<<"dnsdist_frontend_queries{frontend=\""<<frontName<<"\",proto=\""<<proto<<"\"} "<< front->queries.load() << "\n";
         }
         const auto localPools = g_pools.getCopy();
         for (const auto& entry : localPools) {
@@ -345,21 +348,21 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
             poolName = "default";
           }
 
-          const string label = "{pool=" + poolName + "}";
+          const string label = "{pool=\"" + poolName + "\"}";
           const std::shared_ptr<ServerPool> pool = entry.second;
-          str<<"dnsdist_pool_servers"<<label<< pool->servers.size() << "\n";
+          str<<"dnsdist_pool_servers{pool=\""<<poolName<<"\"} "<< pool->servers.size() <<"\n";
           if (pool->packetCache != nullptr) {
             const string cachebase = "dnsdist_pool_cache_";
             const auto& cache = pool->packetCache;
-            str<<cachebase<<"size" << " " << cache->getMaxEntries() << "\n";
-            str<<cachebase<<"entries" << " " << cache->getEntriesCount() << "\n";
-            str<<cachebase<<"hits" << " " << cache->getHits() << "\n";
-            str<<cachebase<<"misses" << " " << cache->getMisses() << "\n";
-            str<<cachebase<<"deferred_inserts" << " " << cache->getDeferredInserts() << "\n";
-            str<<cachebase<<"deferred_lookups" << " " << cache->getDeferredLookups() << "\n";
-            str<<cachebase<<"lookup_collisions" << " " << cache->getLookupCollisions() << "\n";
-            str<<cachebase<<"insert_collisions" << " " << cache->getInsertCollisions() << "\n";
-            str<<cachebase<<"ttl_too_shorts" << " " << cache->getTTLTooShorts() << "\n";
+            str<<cachebase<<"size"<<label << ' ' << cache->getMaxEntries() << "\n";
+            str<<cachebase<<"entries"<<label << ' ' << cache->getEntriesCount() << "\n";
+            str<<cachebase<<"hits"<<label << ' ' << cache->getHits() << "\n";
+            str<<cachebase<<"misses"<<label << ' ' << cache->getMisses() << "\n";
+            str<<cachebase<<"deferred_inserts"<<label << ' ' << cache->getDeferredInserts() << "\n";
+            str<<cachebase<<"deferred_lookups"<<label << ' ' << cache->getDeferredLookups() << "\n";
+            str<<cachebase<<"lookup_collisions"<<label << ' ' << cache->getLookupCollisions() << "\n";
+            str<<cachebase<<"insert_collisions"<<label << ' ' << cache->getInsertCollisions() << "\n";
+            str<<cachebase<<"ttl_too_shorts"<<label << ' ' << cache->getTTLTooShorts() << "\n";
           }
         }
         resp.body=str.str();
