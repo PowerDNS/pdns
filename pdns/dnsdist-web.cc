@@ -36,6 +36,7 @@ static bool compareAuthorization(YaHTTP::Request& req, const string &expected_pa
     /* if this is a request for the API,
        check if the API key is correct */
     if (req.url.path=="/jsonstat" ||
+        req.url.path=="/prometheus" ||
         req.url.path=="/api/v1/servers/localhost" ||
         req.url.path=="/api/v1/servers/localhost/config" ||
         req.url.path=="/api/v1/servers/localhost/statistics") {
