@@ -189,7 +189,7 @@ static bool processRecordForZS(const DNSName& domain, bool& firstNSEC3, DNSResou
     zs.ns3pr = NSEC3PARAMRecordContent(rr.content);
     zs.isDnssecZone = zs.isNSEC3 = true;
     zs.isNarrow = false;
-  
+    break;
   case QType::NSEC3: {
     NSEC3RecordContent ns3rc(rr.content);
     if (firstNSEC3) {
@@ -202,16 +202,17 @@ static bool processRecordForZS(const DNSName& domain, bool& firstNSEC3, DNSResou
       DNSName hashPart = DNSName(toLower(rr.qname.makeRelative(domain).toString()));
       zs.secured.insert(hashPart);
     }
+    break;
   }
   
   case QType::NSEC: 
     zs.isDnssecZone = zs.isPresigned = true;
-  
+    break;
   
   case QType::NS: 
     if(rr.qname!=domain)
       zs.nsset.insert(rr.qname);
-  
+    break;
   }
 
   zs.qnames.insert(rr.qname);
@@ -345,7 +346,7 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
         L<<Logger::Error<<"Failed to load AXFR source '"<<localaddr[0]<<"' for incoming AXFR of '"<<domain<<"': "<<e.what()<<endl;
         return;
       }
-    } else {
+    } else { // should use global query-local-addr here! XXX
       laddr.sin4.sin_family = 0;
     }
 
