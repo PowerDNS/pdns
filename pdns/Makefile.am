@@ -78,12 +78,10 @@ bin_PROGRAMS = \
 
 if TOOLS
 bin_PROGRAMS += \
-	dnsbulktest \
 	dnsgram \
 	dnsreplay \
 	dnsscan \
 	dnsscope \
-	dnstcpbench \
 	dnswasher \
 	dumresp \
 	notify \
@@ -96,6 +94,12 @@ bin_PROGRAMS += \
 
 if HAVE_RECVMMSG
 bin_PROGRAMS += calidns
+endif
+
+if HAVE_BOOST_GE_148
+bin_PROGRAMS += \
+	dnsbulktest \
+	dnstcpbench
 endif
 
 endif
