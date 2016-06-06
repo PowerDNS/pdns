@@ -347,9 +347,9 @@ private:
         throw SSqlException("Cannot prepare statement (1): " + d_query + string(": ") + OCIErrStr());
       }
       d_init = true;
-    } else d_init = false;
-
-
+    } else {
+      d_init = false;
+    }
 
     d_bind = new struct obind[d_parnum];
     memset(d_bind, 0, sizeof(struct obind)*d_parnum);
@@ -370,6 +370,7 @@ private:
         throw SSqlException("Cannot prepare statement (3): " + d_query + string(": ") + OCIErrStr());
       }
     }
+
     d_prepared = true;
   }
 
