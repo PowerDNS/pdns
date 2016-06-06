@@ -296,3 +296,68 @@ class TestRoutingRoundRobinLBOneDown(DNSDistTest):
             total += value
 
         self.assertEquals(total, numberOfQueries * 2)
+
+class TestRoutingOrder(DNSDistTest):
+
+    _testServer2Port = 5351
+    _config_params = ['_testServerPort', '_testServer2Port']
+    _config_template = """
+    setServerPolicy(firstAvailable)
+    s1 = newServer{address="127.0.0.1:%s", order=2}
+    s1:setUp()
+    s2 = newServer{address="127.0.0.1:%s", order=1}
+    s2:setUp()
+    """
+
+    @classmethod
+    def startResponders(cls):
+        print("Launching responders..")
+        cls._UDPResponder = threading.Thread(name='UDP Responder', target=cls.UDPResponder, args=[cls._testServerPort])
+        cls._UDPResponder.setDaemon(True)
+        cls._UDPResponder.start()
+        cls._UDPResponder2 = threading.Thread(name='UDP Responder 2', target=cls.UDPResponder, args=[cls._testServer2Port])
+        cls._UDPResponder2.setDaemon(True)
+        cls._UDPResponder2.start()
+
+        cls._TCPResponder = threading.Thread(name='TCP Responder', target=cls.TCPResponder, args=[cls._testServerPort])
+        cls._TCPResponder.setDaemon(True)
+        cls._TCPResponder.start()
+
+        cls._TCPResponder2 = threading.Thread(name='TCP Responder 2', target=cls.TCPResponder, args=[cls._testServer2Port])
+        cls._TCPResponder2.setDaemon(True)
+        cls._TCPResponder2.start()
+
+    def testOrder(self):
+        """
+        Routing: firstAvailable policy based on 'order'
+
+        Send 50 A queries to "order.routing.tests.powerdns.com.",
+        check that dnsdist routes all of it to the second backend
+        because it has the lower order value.
+        """
+        numberOfQueries = 50
+        name = 'order.routing.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+        response.answer.append(rrset)
+
+        for _ in range(numberOfQueries):
+            (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+            receivedQuery.id = query.id
+            self.assertEquals(query, receivedQuery)
+            self.assertEquals(response, receivedResponse)
+            (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+            receivedQuery.id = query.id
+            self.assertEquals(query, receivedQuery)
+            self.assertEquals(response, receivedResponse)
+
+        total = 0
+        self.assertEquals(self._responsesCounter['UDP Responder'], 0)
+        self.assertEquals(self._responsesCounter['UDP Responder 2'], numberOfQueries)
+        self.assertEquals(self._responsesCounter['TCP Responder'], 0)
+        self.assertEquals(self._responsesCounter['TCP Responder 2'], numberOfQueries)

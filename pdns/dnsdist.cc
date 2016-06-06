@@ -624,6 +624,15 @@ void addServerToPool(pools_t& pools, const string& poolName, std::shared_ptr<Dow
     vinfolog("Adding server to default pool");
   }
   pool->servers.push_back(make_pair(++count, server));
+  /* we need to reorder based on the server 'order' */
+  std::stable_sort(pool->servers.begin(), pool->servers.end(), [](const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& a, const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& b) {
+      return a.second->order < b.second->order;
+    });
+  /* and now we need to renumber for Lua (custom policies) */
+  size_t idx = 1;
+  for (auto& server : pool->servers) {
+    server.first = idx++;
+  }
 }
 
 void removeServerFromPool(pools_t& pools, const string& poolName, std::shared_ptr<DownstreamState> server)
@@ -637,10 +646,21 @@ void removeServerFromPool(pools_t& pools, const string& poolName, std::shared_pt
     vinfolog("Removing server from default pool");
   }
 
-  for (NumberedVector<shared_ptr<DownstreamState> >::iterator it = pool->servers.begin(); it != pool->servers.end(); it++) {
-    if (it->second == server) {
-      pool->servers.erase(it);
-      break;
+  size_t idx = 1;
+  bool found = false;
+  for (NumberedVector<shared_ptr<DownstreamState> >::iterator it = pool->servers.begin(); it != pool->servers.end();) {
+    if (found) {
+      /* we need to renumber the servers placed
+         after the removed one, for Lua (custom policies) */
+      it->first = idx++;
+      it++;
+    }
+    else if (it->second == server) {
+      it = pool->servers.erase(it);
+      found = true;
+    } else {
+      idx++;
+      it++;
     }
   }
 }
