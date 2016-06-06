@@ -652,14 +652,16 @@ void ageDNSPacket(char* packet, size_t length, uint32_t seconds)
     uint64_t n;
     for(n=0; n < ntohs(dh.qdcount) ; ++n) {
       dpm.skipLabel();
-      dpm.skipBytes(4); // qtype, qclass
+      /* type and class */
+      dpm.skipBytes(4);
     }
    // cerr<<"Skipped "<<n<<" questions, now parsing "<<numrecords<<" records"<<endl;
     for(n=0; n < numrecords; ++n) {
       dpm.skipLabel();
       
       uint16_t dnstype = dpm.get16BitInt();
-      /* uint16_t dnsclass = */ dpm.get16BitInt();
+      /* class */
+      dpm.skipBytes(2);
       
       if(dnstype == QType::OPT) // not aging that one with a stick
         break;
@@ -693,14 +695,15 @@ uint32_t getDNSPacketMinTTL(const char* packet, size_t length)
     const uint16_t qdcount = ntohs(dh->qdcount);
     for(size_t n = 0; n < qdcount; ++n) {
       dpm.skipLabel();
-      dpm.skipBytes(4); // qtype, qclass
+      /* type and class */
+      dpm.skipBytes(4);
     }
     const size_t numrecords = ntohs(dh->ancount) + ntohs(dh->nscount) + ntohs(dh->arcount);
     for(size_t n = 0; n < numrecords; ++n) {
       dpm.skipLabel();
-
       const uint16_t dnstype = dpm.get16BitInt();
-      /* uint16_t dnsclass = */ dpm.get16BitInt();
+      /* class */
+      dpm.skipBytes(2);
 
       if(dnstype == QType::OPT)
         break;
@@ -732,15 +735,14 @@ uint32_t getDNSPacketLength(const char* packet, size_t length)
     const uint16_t qdcount = ntohs(dh->qdcount);
     for(size_t n = 0; n < qdcount; ++n) {
       dpm.skipLabel();
-      dpm.skipBytes(4); // qtype, qclass
+      /* type and class */
+      dpm.skipBytes(4);
     }
     const size_t numrecords = ntohs(dh->ancount) + ntohs(dh->nscount) + ntohs(dh->arcount);
     for(size_t n = 0; n < numrecords; ++n) {
       dpm.skipLabel();
-
-      /* const uint16_t dnstype */ dpm.get16BitInt();
-      /* uint16_t dnsclass */ dpm.get16BitInt();
-      /* const uint32_t ttl */ dpm.get32BitInt();
+      /* type (2), class (2) and ttl (4) */
+      dpm.skipBytes(8);
       dpm.skipRData();
     }
     result = dpm.getOffset();
@@ -770,9 +772,11 @@ uint16_t getRecordsOfTypeCount(const char* packet, size_t length, uint8_t sectio
         if (dnstype == type) {
           result++;
         }
-        dpm.skipBytes(2); // qclass
+        /* class */
+        dpm.skipBytes(2);
       } else {
-        dpm.skipBytes(4); // qtype, qclass
+        /* type and class */
+        dpm.skipBytes(4);
       }
     }
     const uint16_t ancount = ntohs(dh->ancount);
@@ -783,11 +787,14 @@ uint16_t getRecordsOfTypeCount(const char* packet, size_t length, uint8_t sectio
         if (dnstype == type) {
           result++;
         }
-        dpm.skipBytes(2); // qclass
+        /* class */
+        dpm.skipBytes(2);
       } else {
-        dpm.skipBytes(4); // qtype, qclass
+        /* type and class */
+        dpm.skipBytes(4);
       }
-      /* const uint32_t ttl */ dpm.get32BitInt();
+      /* ttl */
+      dpm.skipBytes(4);
       dpm.skipRData();
     }
     const uint16_t nscount = ntohs(dh->nscount);
@@ -798,11 +805,14 @@ uint16_t getRecordsOfTypeCount(const char* packet, size_t length, uint8_t sectio
         if (dnstype == type) {
           result++;
         }
-        dpm.skipBytes(2); // qclass
+        /* class */
+        dpm.skipBytes(2);
       } else {
-        dpm.skipBytes(4); // qtype, qclass
+        /* type and class */
+        dpm.skipBytes(4);
       }
-      /* const uint32_t ttl */ dpm.get32BitInt();
+      /* ttl */
+      dpm.skipBytes(4);
       dpm.skipRData();
     }
     const uint16_t arcount = ntohs(dh->arcount);
@@ -813,11 +823,14 @@ uint16_t getRecordsOfTypeCount(const char* packet, size_t length, uint8_t sectio
         if (dnstype == type) {
           result++;
         }
-        dpm.skipBytes(2); // qclass
+        /* class */
+        dpm.skipBytes(2);
       } else {
-        dpm.skipBytes(4); // qtype, qclass
+        /* type and class */
+        dpm.skipBytes(4);
       }
-      /* const uint32_t ttl */ dpm.get32BitInt();
+      /* ttl */
+      dpm.skipBytes(4);
       dpm.skipRData();
     }
   }
