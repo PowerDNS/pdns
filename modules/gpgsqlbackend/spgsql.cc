@@ -1,4 +1,4 @@
-/* Copyright 2003 - 2005 Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE 
+/* Copyright 2003 - 2005 Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE
    for more information. */
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -104,7 +104,7 @@ public:
     }
   }
 
-  bool hasNextRow() 
+  bool hasNextRow()
   {
     return d_residx<d_resnum;
   }
@@ -149,15 +149,15 @@ public:
        PQclear(res);
      }
      d_do_commit = false;
-     if (d_res) 
+     if (d_res)
        PQclear(d_res);
      if (d_res_set)
        PQclear(d_res_set);
      d_res_set = NULL;
      d_res = NULL;
      d_paridx = d_residx = d_resnum = 0;
-     if (paramValues) 
-       for(i=0;i<d_nparams;i++) 
+     if (paramValues)
+       for(i=0;i<d_nparams;i++)
          if (paramValues[i]) delete [] paramValues[i];
      delete [] paramValues;
      paramValues = NULL;
@@ -235,7 +235,7 @@ private:
 
 bool SPgSQL::s_dolog;
 
-SPgSQL::SPgSQL(const string &database, const string &host, const string& port, const string &user, 
+SPgSQL::SPgSQL(const string &database, const string &host, const string& port, const string &user,
                const string &password)
 {
   d_db=0;
@@ -260,7 +260,7 @@ SPgSQL::SPgSQL(const string &database, const string &host, const string& port, c
     d_connectlogstr+=" password=<HIDDEN>";
     d_connectstr+=" password="+password;
   }
-  
+
   d_db=PQconnectdb(d_connectstr.c_str());
 
   if (!d_db || PQstatus(d_db)==CONNECTION_BAD) {
@@ -291,7 +291,7 @@ SSqlException SPgSQL::sPerrorException(const string &reason)
   return SSqlException(reason+string(": ")+(d_db ? PQerrorMessage(d_db) : "no connection"));
 }
 
-void SPgSQL::execute(const string& query) 
+void SPgSQL::execute(const string& query)
 {
   PGresult* res = PQexec(d_db, query.c_str());
   ExecStatusType status = PQresultStatus(res);
@@ -302,7 +302,7 @@ void SPgSQL::execute(const string& query)
   }
 }
 
-SSqlStatement* SPgSQL::prepare(const string& query, int nparams) 
+SSqlStatement* SPgSQL::prepare(const string& query, int nparams)
 {
   return new SPgSQLStatement(query, s_dolog, nparams, this);
 }
