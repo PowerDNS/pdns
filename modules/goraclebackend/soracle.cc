@@ -344,7 +344,7 @@ private:
       if (OCIStmtPrepare2(d_svcctx, &d_stmt, d_err, (text*)d_query.c_str(), d_query.size(),
           NULL, 0, OCI_NTV_SYNTAX, OCI_DEFAULT) != OCI_SUCCESS) {
         // failed.
-        throw SSqlException("Cannot prepare statement (1): " + d_query + string(": ") + OCIErrStr());
+        throw SSqlException("Cannot prepare statement: " + d_query + string(": ") + OCIErrStr());
       }
       d_init = true;
     } else {
@@ -362,12 +362,12 @@ private:
     if (d_query.size()==0) return;
     if (d_init == false) {
       if (OCIStmtPrepare2(d_svcctx, &d_stmt, d_err, (text*)d_query.c_str(), d_query.size(), NULL, 0, OCI_NTV_SYNTAX, OCI_DEFAULT) != OCI_SUCCESS) {
-        throw SSqlException("Cannot prepare statement (2): " + d_query + string(": ") + OCIErrStr());
+        throw SSqlException("Cannot prepare statement: " + d_query + string(": ") + OCIErrStr());
       }
       d_init = true;
     } else {
       if (OCIStmtPrepare2(d_svcctx, &d_stmt, d_err, (text*)d_query.c_str(), d_query.size(), d_stmt_key, d_stmt_keysize, OCI_NTV_SYNTAX, OCI_DEFAULT) != OCI_SUCCESS) {
-        throw SSqlException("Cannot prepare statement (3): " + d_query + string(": ") + OCIErrStr());
+        throw SSqlException("Cannot prepare statement: " + d_query + string(": ") + OCIErrStr());
       }
     }
 
