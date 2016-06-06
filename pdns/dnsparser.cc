@@ -617,6 +617,10 @@ public:
     tmp = htonl(tmp);
     memcpy(d_packet + d_offset-4, (const char*)&tmp, sizeof(tmp));
   }
+  uint32_t getOffset() const
+  {
+    return d_offset;
+  }
 private:
   void moveOffset(uint16_t by)
   {
@@ -705,6 +709,115 @@ uint32_t getDNSPacketMinTTL(const char* packet, size_t length)
       if (result > ttl)
         result = ttl;
 
+      dpm.skipRData();
+    }
+  }
+  catch(...)
+  {
+  }
+  return result;
+}
+
+uint32_t getDNSPacketLength(const char* packet, size_t length)
+{
+  uint32_t result = length;
+  if(length < sizeof(dnsheader)) {
+    return result;
+  }
+  try
+  {
+    const dnsheader* dh = (const dnsheader*) packet;
+    DNSPacketMangler dpm(const_cast<char*>(packet), length);
+
+    const uint16_t qdcount = ntohs(dh->qdcount);
+    for(size_t n = 0; n < qdcount; ++n) {
+      dpm.skipLabel();
+      dpm.skipBytes(4); // qtype, qclass
+    }
+    const size_t numrecords = ntohs(dh->ancount) + ntohs(dh->nscount) + ntohs(dh->arcount);
+    for(size_t n = 0; n < numrecords; ++n) {
+      dpm.skipLabel();
+
+      /* const uint16_t dnstype */ dpm.get16BitInt();
+      /* uint16_t dnsclass */ dpm.get16BitInt();
+      /* const uint32_t ttl */ dpm.get32BitInt();
+      dpm.skipRData();
+    }
+    result = dpm.getOffset();
+  }
+  catch(...)
+  {
+  }
+  return result;
+}
+
+uint16_t getRecordsOfTypeCount(const char* packet, size_t length, uint8_t section, uint16_t type)
+{
+  uint16_t result = 0;
+  if(length < sizeof(dnsheader)) {
+    return result;
+  }
+  try
+  {
+    const dnsheader* dh = (const dnsheader*) packet;
+    DNSPacketMangler dpm(const_cast<char*>(packet), length);
+
+    const uint16_t qdcount = ntohs(dh->qdcount);
+    for(size_t n = 0; n < qdcount; ++n) {
+      dpm.skipLabel();
+      if (section == 0) {
+        uint16_t dnstype = dpm.get16BitInt();
+        if (dnstype == type) {
+          result++;
+        }
+        dpm.skipBytes(2); // qclass
+      } else {
+        dpm.skipBytes(4); // qtype, qclass
+      }
+    }
+    const uint16_t ancount = ntohs(dh->ancount);
+    for(size_t n = 0; n < ancount; ++n) {
+      dpm.skipLabel();
+      if (section == 1) {
+        uint16_t dnstype = dpm.get16BitInt();
+        if (dnstype == type) {
+          result++;
+        }
+        dpm.skipBytes(2); // qclass
+      } else {
+        dpm.skipBytes(4); // qtype, qclass
+      }
+      /* const uint32_t ttl */ dpm.get32BitInt();
+      dpm.skipRData();
+    }
+    const uint16_t nscount = ntohs(dh->nscount);
+    for(size_t n = 0; n < nscount; ++n) {
+      dpm.skipLabel();
+      if (section == 2) {
+        uint16_t dnstype = dpm.get16BitInt();
+        if (dnstype == type) {
+          result++;
+        }
+        dpm.skipBytes(2); // qclass
+      } else {
+        dpm.skipBytes(4); // qtype, qclass
+      }
+      /* const uint32_t ttl */ dpm.get32BitInt();
+      dpm.skipRData();
+    }
+    const uint16_t arcount = ntohs(dh->arcount);
+    for(size_t n = 0; n < arcount; ++n) {
+      dpm.skipLabel();
+      if (section == 3) {
+        uint16_t dnstype = dpm.get16BitInt();
+        if (dnstype == type) {
+          result++;
+        }
+        dpm.skipBytes(2); // qclass
+      } else {
+        dpm.skipBytes(4); // qtype, qclass
+      }
+      /* const uint32_t ttl */ dpm.get32BitInt();
       dpm.skipRData();
     }
   }

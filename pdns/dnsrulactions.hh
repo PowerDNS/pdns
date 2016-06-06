@@ -6,6 +6,7 @@
 #include "lock.hh"
 #include "remote_logger.hh"
 #include "dnsdist-protobuf.hh"
+#include "dnsparser.hh"
 
 class MaxQPSIPRule : public DNSRule
 {
@@ -310,6 +311,23 @@ private:
   uint16_t d_qclass;
 };
 
+class OpcodeRule : public DNSRule
+{
+public:
+  OpcodeRule(uint8_t opcode) : d_opcode(opcode)
+  {
+  }
+  bool matches(const DNSQuestion* dq) const override
+  {
+    return d_opcode == dq->dh->opcode;
+  }
+  string toString() const override
+  {
+    return "opcode=="+d_opcode;
+  }
+private:
+  uint8_t d_opcode;
+};
 
 class TCPRule : public DNSRule
 {
@@ -348,6 +366,127 @@ private:
   shared_ptr<DNSRule> d_rule;
 };
 
+class RecordsCountRule : public DNSRule
+{
+public:
+  RecordsCountRule(uint8_t section, uint16_t minCount, uint16_t maxCount): d_minCount(minCount), d_maxCount(maxCount), d_section(section)
+  {
+  }
+  bool matches(const DNSQuestion* dq) const override
+  {
+    uint16_t count = 0;
+    switch(d_section) {
+    case 0:
+      count = ntohs(dq->dh->qdcount);
+      break;
+    case 1:
+      count = ntohs(dq->dh->ancount);
+      break;
+    case 2:
+      count = ntohs(dq->dh->nscount);
+      break;
+    case 3:
+      count = ntohs(dq->dh->arcount);
+      break;
+    }
+    return count >= d_minCount && count <= d_maxCount;
+  }
+  string toString() const override
+  {
+    string section;
+    switch(d_section) {
+    case 0:
+      section = "QD";
+      break;
+    case 1:
+      section = "AN";
+      break;
+    case 2:
+      section = "NS";
+      break;
+    case 3:
+      section = "AR";
+      break;
+    }
+    return std::to_string(d_minCount) + " <= records in " + section + " <= "+ std::to_string(d_maxCount);
+  }
+private:
+  uint16_t d_minCount;
+  uint16_t d_maxCount;
+  uint8_t d_section;
+};
+
+class RecordsTypeCountRule : public DNSRule
+{
+public:
+  RecordsTypeCountRule(uint8_t section, uint16_t type, uint16_t minCount, uint16_t maxCount): d_type(type), d_minCount(minCount), d_maxCount(maxCount), d_section(section)
+  {
+  }
+  bool matches(const DNSQuestion* dq) const override
+  {
+    uint16_t count = 0;
+    switch(d_section) {
+    case 0:
+      count = ntohs(dq->dh->qdcount);
+      break;
+    case 1:
+      count = ntohs(dq->dh->ancount);
+      break;
+    case 2:
+      count = ntohs(dq->dh->nscount);
+      break;
+    case 3:
+      count = ntohs(dq->dh->arcount);
+      break;
+    }
+    if (count < d_minCount || count > d_maxCount) {
+      return false;
+    }
+    count = getRecordsOfTypeCount(reinterpret_cast<const char*>(dq->dh), dq->len, d_section, d_type);
+    return count >= d_minCount && count <= d_maxCount;
+  }
+  string toString() const override
+  {
+    string section;
+    switch(d_section) {
+    case 0:
+      section = "QD";
+      break;
+    case 1:
+      section = "AN";
+      break;
+    case 2:
+      section = "NS";
+      break;
+    case 3:
+      section = "AR";
+      break;
+    }
+    return std::to_string(d_minCount) + " <= " + QType(d_type).getName() + " records in " + section + " <= "+ std::to_string(d_maxCount);
+  }
+private:
+  uint16_t d_type;
+  uint16_t d_minCount;
+  uint16_t d_maxCount;
+  uint8_t d_section;
+};
+
+class TrailingDataRule : public DNSRule
+{
+public:
+  TrailingDataRule()
+  {
+  }
+  bool matches(const DNSQuestion* dq) const override
+  {
+    uint16_t length = getDNSPacketLength(reinterpret_cast<const char*>(dq->dh), dq->len);
+    return length < dq->len;
+  }
+  string toString() const override
+  {
+    return "trailing data";
+  }
+};
 
 class DropAction : public DNSAction
 {

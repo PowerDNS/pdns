@@ -2,7 +2,6 @@
 import unittest
 import os
 import subprocess
-import sys
 import time
 
 class TestCheckConfig(unittest.TestCase):
@@ -35,10 +34,10 @@ class TestCheckConfig(unittest.TestCase):
             newServer{address="127.0.0.1:53"}
             truncateTC(true)
             addAnyTCRule()
-            addAction(RegexRule("evil[0-9]{4,}\\\\.regex\\\\.tests\\\\.powerdns\\\\.com$"), RCodeAction(5))
+            addAction(RegexRule("evil[0-9]{4,}\\\\.regex\\\\.tests\\\\.powerdns\\\\.com$"), RCodeAction(dnsdist.REFUSED))
             mySMN = newSuffixMatchNode()
             mySMN:add(newDNSName("nameAndQtype.tests.powerdns.com."))
-            addAction(AndRule{SuffixMatchNodeRule(mySMN), QTypeRule("TXT")}, RCodeAction(4))
+            addAction(AndRule{SuffixMatchNodeRule(mySMN), QTypeRule("TXT")}, RCodeAction(dnsdist.NOTIMP))
             addAction(makeRule("drop.test.powerdns.com."), DropAction())
             block=newDNSName("powerdns.org.")
             function blockFilter(dq)
