@@ -31,7 +31,7 @@
 /dnswasher
 /ixplore
 /kvresp
-/notify
+/pdns_notify
 /nproxy
 /speedtest
 /tcpbench

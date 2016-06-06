@@ -15,7 +15,7 @@ MANPAGES_TARGET_TOOLS = calidns.1 \
 	dnswasher.1 \
 	dumresp.1 \
 	ixplore.1 \
-	notify.1 \
+	pdns_notify.1 \
 	nproxy.1 \
 	nsec3dig.1 \
 	saxfr.1 \
