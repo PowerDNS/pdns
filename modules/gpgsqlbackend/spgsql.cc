@@ -22,6 +22,11 @@ public:
     d_parent = db;
     d_prepared = false;
     d_nparams = nparams;
+    d_res = NULL;
+    d_res_set = NULL;
+    paramValues = NULL;
+    paramLengths = NULL;
+    d_do_commit = false;
   }
 
   SSqlStatement* bind(const string& name, bool value) { return bind(name, string(value ? "t" : "f")); }
