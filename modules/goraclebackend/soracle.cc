@@ -34,46 +34,14 @@ public:
     d_non_null_ind = 0;
     d_null_ind = -1;
     d_init = false;
-
-    if (query.size() == 0) return;
-
+    d_prepared = false;
+    d_parnum = nparams;
     // create a key
-    string key = pdns_md5sum(query);
+    string key = pdns_md5sum(d_query);
     d_stmt_keysize = std::min(key.size()*2, sizeof(d_stmt_key));
     for(string::size_type i = 0; i < key.size() && i*2 < d_stmt_keysize; i++)
       snprintf((char*)&(d_stmt_key[i*2]), 3, "%02x", (unsigned char)key[i]);
     d_stmt_key[d_stmt_keysize] = 0;
-
-    if (OCIHandleAlloc(d_ctx, (dvoid**)&d_err, OCI_HTYPE_ERROR, 0, NULL)) 
-      throw SSqlException("Cannot allocate statement error handle");
-
-    if (d_release_stmt) {
-      if (OCIStmtPrepare2(d_svcctx, &d_stmt, d_err, (text*)query.c_str(), query.size(), NULL, 0, OCI_NTV_SYNTAX, OCI_DEFAULT) != OCI_SUCCESS) {
-        // failed.
-        throw SSqlException("Cannot prepare statement: " + d_query + string(": ") + OCIErrStr());
-      }
-      d_init = true;
-    } else d_init = false;
-    
-    d_parnum = nparams;
-    d_bind = new struct obind[d_parnum];
-    memset(d_bind, 0, sizeof(struct obind)*d_parnum);
-    // and we are done.
-  }
-
-  void prepareStatement() {
-    if (d_stmt) return; // no-op 
-    if (d_query.size()==0) return;
-    if (d_init == false) {
-      if (OCIStmtPrepare2(d_svcctx, &d_stmt, d_err, (text*)d_query.c_str(), d_query.size(), NULL, 0, OCI_NTV_SYNTAX, OCI_DEFAULT) != OCI_SUCCESS) {
-        throw SSqlException("Cannot prepare statement: " + d_query + string(": ") + OCIErrStr());
-      }
-      d_init = true;
-    } else {
-      if (OCIStmtPrepare2(d_svcctx, &d_stmt, d_err, (text*)d_query.c_str(), d_query.size(), d_stmt_key, d_stmt_keysize, OCI_NTV_SYNTAX, OCI_DEFAULT) != OCI_SUCCESS) {
-        throw SSqlException("Cannot prepare statement: " + d_query + string(": ") + OCIErrStr());
-      }
-    }
   }
 
   SSqlStatement* bind(const string& name, bool value) 
@@ -359,10 +327,61 @@ public:
     return d_query;
   }
 
-  ~SOracleStatement() { 
+  ~SOracleStatement() {
+    releaseStatement();
+  }
+
+private:
+
+  void initStatement() {
+    if (d_query.size()==0) return;
+    if (d_prepared) return;
+
+    if (OCIHandleAlloc(d_ctx, (dvoid**)&d_err, OCI_HTYPE_ERROR, 0, NULL))
+      throw SSqlException("Cannot allocate statement error handle");
+
+    if (d_release_stmt) {
+      if (OCIStmtPrepare2(d_svcctx, &d_stmt, d_err, (text*)d_query.c_str(), d_query.size(),
+          NULL, 0, OCI_NTV_SYNTAX, OCI_DEFAULT) != OCI_SUCCESS) {
+        // failed.
+        throw SSqlException("Cannot prepare statement (1): " + d_query + string(": ") + OCIErrStr());
+      }
+      d_init = true;
+    } else d_init = false;
+
+
+
+    d_bind = new struct obind[d_parnum];
+    memset(d_bind, 0, sizeof(struct obind)*d_parnum);
+    // and we are done.
+  }
+
+  void prepareStatement() {
+    initStatement();
+    if (d_stmt) return; // no-op
+    if (d_query.size()==0) return;
+    if (d_init == false) {
+      if (OCIStmtPrepare2(d_svcctx, &d_stmt, d_err, (text*)d_query.c_str(), d_query.size(), NULL, 0, OCI_NTV_SYNTAX, OCI_DEFAULT) != OCI_SUCCESS) {
+        throw SSqlException("Cannot prepare statement (2): " + d_query + string(": ") + OCIErrStr());
+      }
+      d_init = true;
+    } else {
+      if (OCIStmtPrepare2(d_svcctx, &d_stmt, d_err, (text*)d_query.c_str(), d_query.size(), d_stmt_key, d_stmt_keysize, OCI_NTV_SYNTAX, OCI_DEFAULT) != OCI_SUCCESS) {
+        throw SSqlException("Cannot prepare statement (3): " + d_query + string(": ") + OCIErrStr());
+      }
+    }
+    d_prepared = true;
+  }
+
+  void releaseStatement() {
+    try {
+      reset();
+    } catch(SSqlException) {
+      // ignore, can't be helped.
+    }
     if (d_stmt)
       OCIStmtRelease(d_stmt, d_err, d_stmt_key, d_stmt_keysize, OCI_STRLS_CACHE_DELETE);
-    if (d_err) 
+    if (d_err)
       OCIHandleFree(d_err, OCI_HTYPE_ERROR);
     if (d_res) {
       for(int i=0;i<d_fnum;i++)
@@ -374,15 +393,17 @@ public:
         if (d_bind[i].vals && d_bind[i].release) delete [] (text*)d_bind[i].vals;
       }
     }
+    d_init = false;
+    d_prepared = false;
   }
 
-private:
   string d_query;
   OCIEnv *d_ctx;
   OCISvcCtx *d_svcctx;
   bool d_dolog;
   bool d_release_stmt;
   bool d_init;
+  bool d_prepared;
   OCIStmt* d_stmt;
   OCIError* d_err;
   int d_parnum;
@@ -467,7 +488,7 @@ SOracle::~SOracle()
 }
 
 void SOracle::startTransaction() {
-  std::string cmd = "SET TRANSACTION NAME '" + std::to_string(s_txid++) + "'";
+  std::string cmd = "SET TRANSACTION NAME 'tx_" + std::to_string(s_txid++) + "'";
   execute(cmd);
 }
 
