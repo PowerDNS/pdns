@@ -489,7 +489,7 @@ SOracle::~SOracle()
 }
 
 void SOracle::startTransaction() {
-  std::string cmd = "SET TRANSACTION NAME 'tx_" + std::to_string(s_txid++) + "'";
+  std::string cmd = "SET TRANSACTION NAME 'pdns_" + std::to_string(s_txid++) + "'";
   execute(cmd);
 }
 
