@@ -261,7 +261,8 @@ vector<DNSResourceRecord> doAxfr(const ComboAddress& raddr, const DNSName& domai
       }
 
       for(DNSResourceRecord& rr :  out) {
-        processRecordForZS(domain, firstNSEC3, rr, zs);
+        if(!processRecordForZS(domain, firstNSEC3, rr, zs))
+          continue;
         if(rr.qtype.getCode() == QType::SOA) {
           if(soa_received)
             continue; //skip the last SOA
@@ -381,7 +382,8 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
             DNSResourceRecord rr(dr);
             rr.qname += domain;
             rr.domain_id = zs.domain_id;
-            processRecordForZS(domain, firstNSEC3, rr, zs);
+            if(!processRecordForZS(domain, firstNSEC3, rr, zs))
+              continue;
             if(dr.d_type == QType::SOA) {
               auto sd = getRR<SOARecordContent>(dr);
               zs.soa_serial = sd->d_st.serial;
