@@ -189,7 +189,7 @@ static bool processRecordForZS(const DNSName& domain, bool& firstNSEC3, DNSResou
     zs.ns3pr = NSEC3PARAMRecordContent(rr.content);
     zs.isDnssecZone = zs.isNSEC3 = true;
     zs.isNarrow = false;
-    break;
+    return false;
   case QType::NSEC3: {
     NSEC3RecordContent ns3rc(rr.content);
     if (firstNSEC3) {
@@ -202,12 +202,12 @@ static bool processRecordForZS(const DNSName& domain, bool& firstNSEC3, DNSResou
       DNSName hashPart = DNSName(toLower(rr.qname.makeRelative(domain).toString()));
       zs.secured.insert(hashPart);
     }
-    break;
+    return false;
   }
   
   case QType::NSEC: 
     zs.isDnssecZone = zs.isPresigned = true;
-    break;
+    return false;
   
   case QType::NS: 
     if(rr.qname!=domain)
