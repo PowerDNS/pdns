@@ -367,6 +367,7 @@ string doAddNTA(T begin, T end)
     if (begin != end)
       why += " ";
   }
+  L<<Logger::Warning<<"Adding Negative Trust Anchor for "<<who<<" with reason '"<<why<<"', requested via control channel"<<endl;
   g_luaconfs.modify([who, why](LuaConfigItems& lci) {
       lci.negAnchors[who] = why;
       });
@@ -381,6 +382,7 @@ string doClearNTA(T begin, T end)
     return "No Negative Trust Anchor specified, doing nothing.\n";
 
   if (begin + 1 == end && *begin == "*"){
+    L<<Logger::Warning<<"Clearing all Negative Trust Anchors, requested via control channel"<<endl;
     g_luaconfs.modify([](LuaConfigItems& lci) {
         lci.negAnchors.clear();
       });
@@ -408,6 +410,7 @@ string doClearNTA(T begin, T end)
   string removed("");
   bool first(true);
   for (auto const &who : toRemove) {
+    L<<Logger::Warning<<"Clearing Negative Trust Anchor for "<<who<<", requested via control channel"<<endl;
     g_luaconfs.modify([who](LuaConfigItems& lci) {
         lci.negAnchors.erase(who);
       });
@@ -455,13 +458,16 @@ string doAddTA(T begin, T end)
   }
 
   try {
+    L<<Logger::Warning<<"Adding Trust Anchor for "<<who<<" with data '"<<what<<"', requested via control channel";
     g_luaconfs.modify([who, what](LuaConfigItems& lci) {
       lci.dsAnchors[who] = *std::unique_ptr<DSRecordContent>(dynamic_cast<DSRecordContent*>(DSRecordContent::make(what)));
       });
     broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, who, true));
+    L<<Logger::Warning<<endl;
     return "Added Trust Anchor for " + who.toStringRootDot() + " with data " + what + "\n";
   }
   catch(std::exception &e) {
+    L<<Logger::Warning<<", failed: "<<e.what()<<endl;
     return "Unable to add Trust Anchor for " + who.toStringRootDot() + ": " + e.what() + "\n";
   }
 }
@@ -493,6 +499,7 @@ string doClearTA(T begin, T end)
   string removed("");
   bool first(true);
   for (auto const &who : toRemove) {
+    L<<Logger::Warning<<"Removing Trust Anchor for "<<who<<", requested via control channel"<<endl;
     g_luaconfs.modify([who](LuaConfigItems& lci) {
         lci.dsAnchors.erase(who);
       });
