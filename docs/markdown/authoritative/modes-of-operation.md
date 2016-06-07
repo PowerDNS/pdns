@@ -85,7 +85,26 @@ PowerDNS supports multiple masters. For the BIND backend, the native BIND
 configuration language suffices to specify multiple masters, for SQL based backends,
 list all master servers separated by commas in the 'master' field of the domains table.
 
-Since version 4.0.0, PowerDNS requires that masters sign their notifications. During transition and interoperation with other nameservers, you can use options **allow-unsigned-notify** to permit unsigned notifications. For 4.0.0 this is turned off by default, but it might be turned on permanently in future releases.
+Since version 4.0.0, PowerDNS requires that masters sign their
+notifications.  During transition and interoperation with other nameservers,
+you can use options **allow-unsigned-notify** to permit unsigned
+notifications.  For 4.0.0 this is turned off by default, but it might be
+turned on permanently in future releases.
+
+## IXFR: incremental zone transfers
+If the 'IXFR' zone metadata item is set to 1 for a zone, PowerDNS will attempt to retrieve
+zone updates via IXFR. 
+
+As of 4.0.0, if a slave zone changes from non-DNSSEC to DNSSEC, an IXFR
+update will not set the PRESIGNED flag.  In addition, a change in NSEC3 mode
+will also not be picked up.  
+
+In such cases, make sure to delete the zone contents to force a fresh retrieval. 
+
+Finally, IXFR updates that "plug" Empty Non Terminals do not yet remove ENT
+records.  A 'pdnsutil rectify-zone' may be required.
+
+PowerDNS itself is currently only able to retrieve updates via IXFR. It can not serve IXFR updates.
 
 ## Supermaster: automatic provisioning of slaves
 PowerDNS can recognize so called 'supermasters'. A supermaster is a host which is
