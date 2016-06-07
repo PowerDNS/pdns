@@ -88,7 +88,7 @@ After restarting `pdns_recursor`, the following examples should start working:
 API Specification
 -----------------
 
-The complete API docs are available in [`api_spec.md`](http://doc.powerdns.com/md/httpapi/api_spec/).
+The complete API docs are available in [`api_spec.md`](https://doc.powerdns.com/3/httpapi/api_spec/).
 
 
 Additional help
