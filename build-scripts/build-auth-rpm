@@ -243,7 +243,7 @@ fi
 %{_bindir}/dnswasher
 %{_bindir}/dumresp
 %{_bindir}/ixplore
-%{_bindir}/notify
+%{_bindir}/pdns_notify
 %{_bindir}/nproxy
 %{_bindir}/nsec3dig
 %{_bindir}/saxfr
@@ -258,7 +258,7 @@ fi
 %{_mandir}/man1/dnswasher.1.gz
 %{_mandir}/man1/dumresp.1.gz
 %{_mandir}/man1/ixplore.1.gz
-%{_mandir}/man1/notify.1.gz
+%{_mandir}/man1/pdns_notify.1.gz
 %{_mandir}/man1/nproxy.1.gz
 %{_mandir}/man1/nsec3dig.1.gz
 %{_mandir}/man1/saxfr.1.gz
@@ -519,7 +519,7 @@ exit 0
 %{_bindir}/dnswasher
 %{_bindir}/dumresp
 %{_bindir}/ixplore
-%{_bindir}/notify
+%{_bindir}/pdns_notify
 %{_bindir}/nproxy
 %{_bindir}/nsec3dig
 %{_bindir}/saxfr
@@ -534,7 +534,7 @@ exit 0
 %{_mandir}/man1/dnswasher.1.gz
 %{_mandir}/man1/dumresp.1.gz
 %{_mandir}/man1/ixplore.1.gz
-%{_mandir}/man1/notify.1.gz
+%{_mandir}/man1/pdns_notify.1.gz
 %{_mandir}/man1/nproxy.1.gz
 %{_mandir}/man1/nsec3dig.1.gz
 %{_mandir}/man1/saxfr.1.gz
@@ -779,7 +779,7 @@ exit 0
 %{_bindir}/dnswasher
 %{_bindir}/dumresp
 %{_bindir}/ixplore
-%{_bindir}/notify
+%{_bindir}/pdns_notify
 %{_bindir}/nproxy
 %{_bindir}/nsec3dig
 %{_bindir}/saxfr
@@ -794,7 +794,7 @@ exit 0
 %{_mandir}/man1/dnswasher.1.gz
 %{_mandir}/man1/dumresp.1.gz
 %{_mandir}/man1/ixplore.1.gz
-%{_mandir}/man1/notify.1.gz
+%{_mandir}/man1/pdns_notify.1.gz
 %{_mandir}/man1/nproxy.1.gz
 %{_mandir}/man1/nsec3dig.1.gz
 %{_mandir}/man1/saxfr.1.gz

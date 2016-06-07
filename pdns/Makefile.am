@@ -84,7 +84,7 @@ bin_PROGRAMS += \
 	dnsscope \
 	dnswasher \
 	dumresp \
-	notify \
+	pdns_notify \
 	nproxy \
 	nsec3dig \
 	saxfr \
@@ -118,7 +118,7 @@ EXTRA_PROGRAMS = \
 	dumresp \
 	kvresp \
 	ixplore \
-	notify \
+	pdns_notify \
 	nproxy \
 	nsec3dig \
 	saxfr \
@@ -927,7 +927,7 @@ nproxy_LDADD = \
 	$(OPENSSL_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS)
 
-notify_SOURCES = \
+pdns_notify_SOURCES = \
 	arguments.cc \
 	base32.cc \
 	base64.cc base64.hh \
@@ -948,12 +948,12 @@ notify_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-notify_LDFLAGS = \
+pdns_notify_LDFLAGS = \
 	$(AM_LDFLAGS) \
 	$(OPENSSL_LDFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
-notify_LDADD = \
+pdns_notify_LDADD = \
 	$(OPENSSL_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS)
 
