@@ -338,6 +338,7 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
 
     vector<string> localaddr;
     ComboAddress laddr;
+    ComboAddress raddr(remote, 53);
     if(B.getDomainMetadata(domain, "AXFR-SOURCE", localaddr) && !localaddr.empty()) {
       try {
         laddr = ComboAddress(localaddr[0]);
@@ -347,8 +348,13 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
         L<<Logger::Error<<"Failed to load AXFR source '"<<localaddr[0]<<"' for incoming AXFR of '"<<domain<<"': "<<e.what()<<endl;
         return;
       }
-    } else { // should use global query-local-addr here! XXX
-      laddr.sin4.sin_family = 0;
+    } else { 
+      if(raddr.sin4.sin_family == AF_INET)
+        laddr=ComboAddress(::arg()["query-local-address"]);
+      else if(!::arg()["query-local-address6"].empty())
+        laddr=ComboAddress(::arg()["query-local-address6"]);
+      else
+        laddr.sin4.sin_family = 0;
     }
 
     bool hadDnssecZone = false;
@@ -357,7 +363,7 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
     NSEC3PARAMRecordContent hadNs3pr;
     bool hadNarrow=false;
 
-    ComboAddress raddr(remote, 53);
+
     vector<DNSResourceRecord> rrs;
     if(dk.isSecuredZone(domain)) {
       hadDnssecZone=true;
@@ -373,6 +379,7 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
       B.getDomainMetadata(domain, "IXFR", meta);
       if(!meta.empty() && meta[0]=="1") {
         vector<DNSRecord> axfr;
+        L<<Logger::Warning<<"Starting IXFR of '"<<domain<<"' from remote "<<raddr.toStringWithPort()<<endl;
         ixfrSuck(domain, tt, laddr, raddr, pdl, zs, &axfr);
         if(!axfr.empty()) {
           L<<Logger::Warning<<"IXFR of '"<<domain<<"' from remote '"<<raddr.toStringWithPort()<<"' turned into an AXFR"<<endl;
