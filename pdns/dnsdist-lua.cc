@@ -138,12 +138,48 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       {"Delay", (int)DNSAction::Action::Delay}}
     );
 
-    g_lua.writeVariable("DNSResponseAction", std::unordered_map<string,int>{
+  g_lua.writeVariable("DNSResponseAction", std::unordered_map<string,int>{
       {"None",(int)DNSResponseAction::Action::None}}
     );
 
+  g_lua.writeVariable("DNSClass", std::unordered_map<string,int>{
+      {"IN",    QClass::IN    },
+      {"CHAOS", QClass::CHAOS },
+      {"NONE",  QClass::NONE  },
+      {"ANY",   QClass::ANY   }
+    });
+
+  g_lua.writeVariable("DNSOpcode", std::unordered_map<string,int>{
+      {"Query",  Opcode::Query  },
+      {"IQuery", Opcode::IQuery },
+      {"Status", Opcode::Status },
+      {"Notify", Opcode::Notify },
+      {"Update", Opcode::Update }
+    });
+
+  g_lua.writeVariable("DNSSection", std::unordered_map<string,int>{
+      {"Question",  0 },
+      {"Answer",    1 },
+      {"Authority", 2 },
+      {"Additional",3 }
+    });
+
+  vector<pair<string, int> > rcodes = {{"NOERROR",  RCode::NoError  },
+                                       {"FORMERR",  RCode::FormErr  },
+                                       {"SERVFAIL", RCode::ServFail },
+                                       {"NXDOMAIN", RCode::NXDomain },
+                                       {"NOTIMP",   RCode::NotImp   },
+                                       {"REFUSED",  RCode::Refused  },
+                                       {"YXDOMAIN", RCode::YXDomain },
+                                       {"YXRRSET",  RCode::YXRRSet  },
+                                       {"NXRRSET",  RCode::NXRRSet  },
+                                       {"NOTAUTH",  RCode::NotAuth  },
+                                       {"NOTZONE",  RCode::NotZone  }
+  };
   vector<pair<string, int> > dd;
   for(const auto& n : QType::names)
+    dd.push_back({n.first, n.second});
+  for(const auto& n : rcodes)
     dd.push_back({n.first, n.second});
   g_lua.writeVariable("dnsdist", dd);
   
@@ -778,10 +814,13 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       }
       return std::shared_ptr<DNSRule>(new QTypeRule(qtype));
     });
-    g_lua.writeFunction("QClassRule", [](int c) {
+  g_lua.writeFunction("QClassRule", [](int c) {
       return std::shared_ptr<DNSRule>(new QClassRule(c));
     });
 
+  g_lua.writeFunction("OpcodeRule", [](uint8_t code) {
+      return std::shared_ptr<DNSRule>(new OpcodeRule(code));
+    });
 
   g_lua.writeFunction("AndRule", [](vector<pair<int, std::shared_ptr<DNSRule> > >a) {
       return std::shared_ptr<DNSRule>(new AndRule(a));
@@ -803,7 +842,19 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       return std::shared_ptr<DNSRule>(new NotRule(rule));
     });
 
-  g_lua.writeFunction("addAction", [](luadnsrule_t var, std::shared_ptr<DNSAction> ea) 
+  g_lua.writeFunction("RecordsCountRule", [](uint8_t section, uint16_t minCount, uint16_t maxCount) {
+      return std::shared_ptr<DNSRule>(new RecordsCountRule(section, minCount, maxCount));
+    });
+
+  g_lua.writeFunction("RecordsTypeCountRule", [](uint8_t section, uint16_t type, uint16_t minCount, uint16_t maxCount) {
+      return std::shared_ptr<DNSRule>(new RecordsTypeCountRule(section, type, minCount, maxCount));
+    });
+
+  g_lua.writeFunction("TrailingDataRule", []() {
+      return std::shared_ptr<DNSRule>(new TrailingDataRule());
+    });
+
+  g_lua.writeFunction("addAction", [](luadnsrule_t var, std::shared_ptr<DNSAction> ea)
 		      {
                         setLuaSideEffect();
 			auto rule=makeRule(var);
@@ -1310,6 +1361,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   /* DNSDist DNSQuestion */
   g_lua.registerMember("dh", &DNSQuestion::dh);
   g_lua.registerMember<uint16_t (DNSQuestion::*)>("len", [](const DNSQuestion& dq) -> uint16_t { return dq.len; }, [](DNSQuestion& dq, uint16_t newlen) { dq.len = newlen; });
+  g_lua.registerMember<uint8_t (DNSQuestion::*)>("opcode", [](const DNSQuestion& dq) -> uint8_t { return dq.dh->opcode; }, [](DNSQuestion& dq, uint8_t newOpcode) { (void) newOpcode; });
   g_lua.registerMember<size_t (DNSQuestion::*)>("size", [](const DNSQuestion& dq) -> size_t { return dq.size; }, [](DNSQuestion& dq, size_t newSize) { (void) newSize; });
   g_lua.registerMember<bool (DNSQuestion::*)>("tcp", [](const DNSQuestion& dq) -> bool { return dq.tcp; }, [](DNSQuestion& dq, bool newTcp) { (void) newTcp; });
   g_lua.registerMember<bool (DNSQuestion::*)>("skipCache", [](const DNSQuestion& dq) -> bool { return dq.skipCache; }, [](DNSQuestion& dq, bool newSkipCache) { dq.skipCache = newSkipCache; });

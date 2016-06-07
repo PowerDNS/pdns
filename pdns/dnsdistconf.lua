@@ -1,4 +1,3 @@
-
 -- listen for console connection with the given secret key
 controlSocket("0.0.0.0")
 setKey("MXNeLFWHUe4363BBKrY06cAsH8NWNb+Se2eXU5+Bb74=")
@@ -167,10 +166,10 @@ end
 -- addAction(AndRule({QTypeRule("ANY"), TCPRule(true)}), TCAction())
 
 -- return 'not implemented' for qtype != A over UDP
--- addAction(AndRule({NotRule(QTypeRule("A")), TCPRule(false)}), RCodeAction(4))
+-- addAction(AndRule({NotRule(QTypeRule("A")), TCPRule(false)}), RCodeAction(dnsdist.NOTIMPL))
 
 -- return 'not implemented' for qtype == A OR received over UDP
--- addAction(OrRule({QTypeRule("A"), TCPRule(false)}), RCodeAction(4))
+-- addAction(OrRule({QTypeRule("A"), TCPRule(false)}), RCodeAction(dnsdist.NOTIMPL))
 
 -- log all queries to a 'dndist.log' file, in text-mode (not binary)
 -- addAction(AllRule(), LogAction("dnsdist.log", false))
@@ -180,9 +179,16 @@ end
 
 -- drop all queries for the CHAOS class
 -- addAction(QClassRule(3), DropAction())
+-- addAction(QClassRule(DNSClass.CHAOS), DropAction())
+
+-- drop all queries with the UPDATE opcode
+-- addAction(OpcodeRule(DNSOpcode.Update), DropAction())
+
+-- refuse all queries not having exactly one question
+-- addAction(NotRule(RecordsCountRule(DNSSection.Question, 1, 1)), RCodeAction(dnsdist.REFUSED))
 
 -- return 'refused' for domains matching the regex evil[0-9]{4,}.powerdns.com$
--- addAction(RegexRule("evil[0-9]{4,}\\.powerdns\\.com$"), RCodeAction(5))
+-- addAction(RegexRule("evil[0-9]{4,}\\.powerdns\\.com$"), RCodeAction(dnsdist.REFUSED))
 
 -- spoof responses for A, AAAA and ANY for spoof.powerdns.com.
 -- A queries will get 192.0.2.1, AAAA 2001:DB8::1 and ANY both

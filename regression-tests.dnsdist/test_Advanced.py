@@ -502,7 +502,7 @@ class TestAdvancedTruncateAnyAndTCP(DNSDistTest):
 class TestAdvancedAndNot(DNSDistTest):
 
     _config_template = """
-    addAction(AndRule({NotRule(QTypeRule("A")), TCPRule(false)}), RCodeAction(4))
+    addAction(AndRule({NotRule(QTypeRule("A")), TCPRule(false)}), RCodeAction(dnsdist.NOTIMP))
     newServer{address="127.0.0.1:%s"}
     """
     def testAOverUDPReturnsNotImplementedCanary(self):
@@ -574,7 +574,7 @@ class TestAdvancedAndNot(DNSDistTest):
 class TestAdvancedOr(DNSDistTest):
 
     _config_template = """
-    addAction(OrRule({QTypeRule("A"), TCPRule(false)}), RCodeAction(4))
+    addAction(OrRule({QTypeRule("A"), TCPRule(false)}), RCodeAction(dnsdist.NOTIMP))
     newServer{address="127.0.0.1:%s"}
     """
     def testAAAAOverUDPReturnsNotImplemented(self):
@@ -709,7 +709,7 @@ class TestAdvancedQClass(DNSDistTest):
 
     _config_template = """
     newServer{address="127.0.0.1:%s"}
-    addAction(QClassRule(3), DropAction())
+    addAction(QClassRule(DNSClass.CHAOS), DropAction())
     """
     def testAdvancedQClassChaosDrop(self):
         """
@@ -718,17 +718,10 @@ class TestAdvancedQClass(DNSDistTest):
         """
         name = 'qclasschaos.advanced.tests.powerdns.com.'
         query = dns.message.make_query(name, 'TXT', 'CHAOS')
-        response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.CH,
-                                    dns.rdatatype.TXT,
-                                    'hop')
-        response.answer.append(rrset)
 
-        (_, receivedResponse) = self.sendUDPQuery(query, response)
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None)
         self.assertEquals(receivedResponse, None)
-        (_, receivedResponse) = self.sendTCPQuery(query, response)
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None)
         self.assertEquals(receivedResponse, None)
 
     def testAdvancedQClassINAllow(self):
@@ -760,6 +753,55 @@ class TestAdvancedQClass(DNSDistTest):
         self.assertEquals(query, receivedQuery)
         self.assertEquals(response, receivedResponse)
 
+class TestAdvancedOpcode(DNSDistTest):
+
+    _config_template = """
+    newServer{address="127.0.0.1:%s"}
+    addAction(OpcodeRule(DNSOpcode.Notify), DropAction())
+    """
+    def testAdvancedOpcodeNotifyDrop(self):
+        """
+        Advanced: Drop Opcode NOTIFY
+
+        """
+        name = 'opcodenotify.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        query.set_opcode(dns.opcode.NOTIFY)
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None)
+        self.assertEquals(receivedResponse, None)
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None)
+        self.assertEquals(receivedResponse, None)
+
+    def testAdvancedOpcodeUpdateINAllow(self):
+        """
+        Advanced: Allow Opcode UPDATE
+
+        """
+        name = 'opcodeupdate.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        query.set_opcode(dns.opcode.UPDATE)
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(response, receivedResponse)
 
 class TestAdvancedNonTerminalRule(DNSDistTest):
 
@@ -857,7 +899,6 @@ class TestAdvancedRestoreFlagsOnSelfResponse(DNSDistTest):
         query = dns.message.make_query(name, 'A', 'IN')
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
-        expectedQuery = dns.message.make_query(name, 'A', 'IN')
 
         response = dns.message.make_response(query)
         rrset = dns.rrset.from_text(name,
@@ -927,7 +968,7 @@ class TestAdvancedQPSNone(DNSDistTest):
 
     _config_template = """
     addQPSLimit("qpsnone.advanced.tests.powerdns.com", 100)
-    addAction(AllRule(), RCodeAction(5))
+    addAction(AllRule(), RCodeAction(dnsdist.REFUSED))
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -955,7 +996,7 @@ class TestAdvancedNMGRule(DNSDistTest):
     _config_template = """
     allowed = newNMG()
     allowed:addMask("192.0.2.1/32")
-    addAction(NotRule(NetmaskGroupRule(allowed)), RCodeAction(5))
+    addAction(NotRule(NetmaskGroupRule(allowed)), RCodeAction(dnsdist.REFUSED))
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -976,3 +1017,4 @@ class TestAdvancedNMGRule(DNSDistTest):
 
         (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
         self.assertEquals(receivedResponse, expectedResponse)
+

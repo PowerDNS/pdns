@@ -332,6 +332,10 @@ Rules have selectors and actions. Current selectors are:
  * RE2Rule on query name (optional)
  * Packet requests DNSSEC processing
  * Query received over UDP or TCP
+ * Opcode (OpcodeRule)
+ * Number of entries in a given section (RecordsCountRule)
+ * Number of entries of a specific type in a given section (RecordsTypeCountRule)
+ * Presence of trailing data (TrailingDataRule)
 
 Special rules are:
 
@@ -383,13 +387,17 @@ A DNS rule can be:
  * a MaxQPSRule
  * a NetmaskGroupRule
  * a NotRule
+ * an OpcodeRule
  * an OrRule
  * a QClassRule
  * a QTypeRule
  * a RegexRule
  * a RE2Rule
+ * a RecordsCountRule
+ * a RecordsTypeCountRule
  * a SuffixMatchNodeRule
  * a TCPRule
+ * a TrailingDataRule
 
 Some specific actions do not stop the processing when they match, contrary to all other actions:
 
@@ -1072,11 +1080,16 @@ instantiate a server with additional parameters
     * `NetmaskGroupRule()`: matches traffic from the specified network range
     * `NotRule()`: matches if the sub-rule does not match
     * `OrRule()`: matches if at least one of the sub-rules matches
+    * `OpcodeRule()`: matches queries with the specified opcode
     * `QClassRule(qclass)`: matches queries with the specified qclass (numeric)
     * `QTypeRule(qtype)`: matches queries with the specified qtype
     * `RegexRule(regex)`: matches the query name against the supplied regex
+    * `RecordsCountRule(section, minCount, maxCount)`: matches if there is at least `minCount` and at most `maxCount` records in the `section` section
+    * `RecordsTypeCountRule(section, type, minCount, maxCount)`: matches if there is at least `minCount` and at most `maxCount` records of type `type` in the `section` section
+    * `RE2Rule(regex)`: matches the query name against the supplied regex using the RE2 engine
     * `SuffixMatchNodeRule(smn, [quiet-bool])`: matches based on a group of domain suffixes for rapid testing of membership. Pass `true` as second parameter to prevent listing of all domains matched.
     * `TCPRule(tcp)`: matches question received over TCP if `tcp` is true, over UDP otherwise
+    * `TrailingDataRule()`: matches if the query has trailing data
  * Rule management related:
     * `getAction(num)`: returns the Action associate with rule 'num'.
     * `showRules()`: show all defined rules (Pool, Block, QPS, addAnyTCRule)
@@ -1192,6 +1205,7 @@ instantiate a server with additional parameters
         * member `dh`: DNSHeader
         * member `len`: the question length
         * member `localaddr`: ComboAddress of the local bind this question was received on
+        * member `opcode`: the question opcode
         * member `qname`: DNSName of this question
         * member `qclass`: QClass (as an unsigned integer) of this question
         * member `qtype`: QType (as an unsigned integer) of this question

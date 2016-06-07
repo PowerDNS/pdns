@@ -2,9 +2,8 @@
 import Queue
 import threading
 import socket
+import sys
 import time
-import unittest
-import dns
 from dnsdisttests import DNSDistTest
 
 class TestCarbon(DNSDistTest):
