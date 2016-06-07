@@ -6,12 +6,10 @@ MANPAGES_TARGET_AUTH = pdns_server.1 \
 	zone2sql.1
 
 MANPAGES_TARGET_TOOLS = calidns.1 \
-	dnsbulktest.1 \
 	dnsgram.1 \
 	dnsreplay.1 \
 	dnsscan.1 \
 	dnsscope.1 \
-	dnstcpbench.1 \
 	dnswasher.1 \
 	dumresp.1 \
 	ixplore.1 \
@@ -20,6 +18,11 @@ MANPAGES_TARGET_TOOLS = calidns.1 \
 	nsec3dig.1 \
 	saxfr.1 \
 	sdig.1
+
+if HAVE_BOOST_GE_148
+MANPAGES_TARGET_TOOLS += dnsbulktest.1 \
+	dnstcpbench.1
+endif
 
 MANPAGES_TARGET_DNSDIST = dnsdist.1
 
