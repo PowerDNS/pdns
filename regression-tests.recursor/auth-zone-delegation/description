@@ -1,0 +1,3 @@
+Test:
+(1) lookup of a record below a delegation in an auth zone
+(2) lookup of a record AT a delegation in an auth zone
