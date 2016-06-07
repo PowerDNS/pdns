@@ -239,8 +239,14 @@ if HAVE_SYSTEMD
 pdns-recursor.service: pdns-recursor.service.in
 	$(AM_V_GEN)sed -e 's![@]sbindir[@]!$(sbindir)!' < $< > $@
 
+pdns-recursor@.service: pdns-recursor.service
+	$(AM_V_GEN)sed -e 's!/pdns_recursor!& --config-name=%i!' \
+	  -e 's!Recursor!& %i!' \
+	  < $< > $@
+
 systemdsystemunitdir = $(SYSTEMD_DIR)
 
 systemdsystemunit_DATA = \
-	pdns-recursor.service
+	pdns-recursor.service \
+	pdns-recursor@.service
 endif
