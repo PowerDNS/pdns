@@ -148,5 +148,5 @@ $ rec_control clear-nta subdomain.example
 Removed Negative Trust Anchors for subdomain.example
 ```
 
-`clear-nta` accepts multiple domain-names and when invoked without any domain-name,
-it will remove **all** negative trust anchors.
+`clear-nta` accepts multiple domain-names and accepts '*' (beware the shell quoting)
+to remove all negative trust anchors.

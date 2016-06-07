@@ -43,8 +43,22 @@ To dump the cache to disk, execute:
      respond. Set to 0 for infinite.
 
 # COMMANDS
+add-nta *DOMAIN* [*REASON*]
+:    Add a Negative Trust Anchor for *DOMAIN*, suffixed optionally with *REASON*.
+
+add-ta *DOMAIN* *DSRECORD*
+:    Add a Trust Anchor for *DOMAIN* with DS record data *DSRECORD*.
+
 current-queries
 :    Shows the currently active queries.
+
+clear-nta *DOMAIN*...
+:    Remove Negative Trust Anchor for one or more *DOMAIN*s. Set domain to `'*'`
+     to remove all NTA's.
+
+clear-ta [*DOMAIN*]...
+:    Remove Trust Anchor for one or more *DOMAIN*s. Note that removing the root
+     trust anchor is not possible.
 
 dump-cache *FILENAME*
 :    Dumps the entire cache to *FILENAME*. This file should
@@ -67,6 +81,12 @@ get *STATISTIC* [*STATISTIC*]...
 
 get-all
 :    Retrieve all known statistics.
+
+get-ntas
+:    Get a list of the currently configured Negative Trust Anchors.
+
+get-tas
+:    Get a list of the currently configured Trust Anchors.
 
 get-parameter *KEY* [*KEY*]...
 :    Retrieves the specified configuration parameter(s).

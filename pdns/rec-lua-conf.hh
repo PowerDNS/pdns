@@ -11,6 +11,7 @@ public:
   SortList sortlist;
   DNSFilterEngine dfe;
   map<DNSName,DSRecordContent> dsAnchors;
+  map<DNSName,std::string> negAnchors;
   std::shared_ptr<RemoteLogger> protobufServer{nullptr};
 };
 

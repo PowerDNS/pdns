@@ -28,6 +28,7 @@
 #include <sys/time.h>
 #include "lock.hh"
 #include "responsestats.hh"
+#include "rec-lua-conf.hh"
 
 #include "secpoll-recursor.hh"
 #include "pubsuffix.hh"
@@ -341,6 +342,185 @@ string doSetCarbonServer(T begin, T end)
   return ret;
 }
 
+template<typename T>
+string doAddNTA(T begin, T end)
+{
+  if(begin == end)
+    return "No NTA specified, doing nothing\n";
+
+  DNSName who;
+  try {
+    who = DNSName(*begin);
+  }
+  catch(std::exception &e) {
+    string ret("Can't add Negative Trust Anchor: ");
+    ret += e.what();
+    ret += "\n";
+    return ret;
+  }
+  begin++;
+
+  string why("");
+  while (begin != end) {
+    why += *begin;
+    begin++;
+    if (begin != end)
+      why += " ";
+  }
+  L<<Logger::Warning<<"Adding Negative Trust Anchor for "<<who<<" with reason '"<<why<<"', requested via control channel"<<endl;
+  g_luaconfs.modify([who, why](LuaConfigItems& lci) {
+      lci.negAnchors[who] = why;
+      });
+  broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, who, true));
+  return "Added Negative Trust Anchor for " + who.toLogString() + " with reason '" + why + "'\n";
+}
+
+template<typename T>
+string doClearNTA(T begin, T end)
+{
+  if(begin == end)
+    return "No Negative Trust Anchor specified, doing nothing.\n";
+
+  if (begin + 1 == end && *begin == "*"){
+    L<<Logger::Warning<<"Clearing all Negative Trust Anchors, requested via control channel"<<endl;
+    g_luaconfs.modify([](LuaConfigItems& lci) {
+        lci.negAnchors.clear();
+      });
+    return "Cleared all Negative Trust Anchors.\n";
+  }
+
+  vector<DNSName> toRemove;
+  DNSName who;
+  while (begin != end) {
+    if (*begin == "*")
+      return "Don't mix all Negative Trust Anchor removal with multiple Negative Trust Anchor removal. Nothing removed\n";
+    try {
+      who = DNSName(*begin);
+    }
+    catch(std::exception &e) {
+      string ret("Error: ");
+      ret += e.what();
+      ret += ". No Negative Anchors removed\n";
+      return ret;
+    }
+    toRemove.push_back(who);
+    begin++;
+  }
+
+  string removed("");
+  bool first(true);
+  for (auto const &who : toRemove) {
+    L<<Logger::Warning<<"Clearing Negative Trust Anchor for "<<who<<", requested via control channel"<<endl;
+    g_luaconfs.modify([who](LuaConfigItems& lci) {
+        lci.negAnchors.erase(who);
+      });
+    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, who, true));
+    if (!first) {
+      first = false;
+      removed += ",";
+    }
+    removed += " " + who.toStringRootDot();
+  }
+  return "Removed Negative Trust Anchors for " + removed + "\n";
+}
+
+static string getNTAs()
+{
+  string ret("Configured Negative Trust Anchors:\n");
+  auto luaconf = g_luaconfs.getLocal();
+  for (auto negAnchor : luaconf->negAnchors)
+    ret += negAnchor.first.toLogString() + "\t" + negAnchor.second + "\n";
+  return ret;
+}
+
+template<typename T>
+string doAddTA(T begin, T end)
+{
+  if(begin == end)
+    return "No TA specified, doing nothing\n";
+
+  DNSName who;
+  try {
+    who = DNSName(*begin);
+  }
+  catch(std::exception &e) {
+    string ret("Can't add Trust Anchor: ");
+    ret += e.what();
+    ret += "\n";
+    return ret;
+  }
+  begin++;
+
+  string what("");
+  while (begin != end) {
+    what += *begin + " ";
+    begin++;
+  }
+
+  try {
+    L<<Logger::Warning<<"Adding Trust Anchor for "<<who<<" with data '"<<what<<"', requested via control channel";
+    g_luaconfs.modify([who, what](LuaConfigItems& lci) {
+      lci.dsAnchors[who] = *std::unique_ptr<DSRecordContent>(dynamic_cast<DSRecordContent*>(DSRecordContent::make(what)));
+      });
+    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, who, true));
+    L<<Logger::Warning<<endl;
+    return "Added Trust Anchor for " + who.toStringRootDot() + " with data " + what + "\n";
+  }
+  catch(std::exception &e) {
+    L<<Logger::Warning<<", failed: "<<e.what()<<endl;
+    return "Unable to add Trust Anchor for " + who.toStringRootDot() + ": " + e.what() + "\n";
+  }
+}
+
+template<typename T>
+string doClearTA(T begin, T end)
+{
+  if(begin == end)
+    return "No Trust Anchor to clear\n";
+
+  vector<DNSName> toRemove;
+  DNSName who;
+  while (begin != end) {
+    try {
+      who = DNSName(*begin);
+    }
+    catch(std::exception &e) {
+      string ret("Error: ");
+      ret += e.what();
+      ret += ". No Anchors removed\n";
+      return ret;
+    }
+    if (who.isRoot())
+      return "Refusing to remove root Trust Anchor, no Anchors removed\n";
+    toRemove.push_back(who);
+    begin++;
+  }
+
+  string removed("");
+  bool first(true);
+  for (auto const &who : toRemove) {
+    L<<Logger::Warning<<"Removing Trust Anchor for "<<who<<", requested via control channel"<<endl;
+    g_luaconfs.modify([who](LuaConfigItems& lci) {
+        lci.dsAnchors.erase(who);
+      });
+    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, who, true));
+    if (!first) {
+      first = false;
+      removed += ",";
+    }
+    removed += " " + who.toStringRootDot();
+  }
+  return "Removed Trust Anchor(s) for" + removed + "\n";
+}
+
+static string getTAs()
+{
+  string ret("Configured Trust Anchors:\n");
+  auto luaconf = g_luaconfs.getLocal();
+  for (auto anchor : luaconf->dsAnchors)
+    ret += anchor.first.toLogString() + "\t" + anchor.second.getZoneRepresentation() + "\n";
+  return ret;
+}
 
 template<typename T>
 string setMinimumTTL(T begin, T end)
@@ -902,12 +1082,18 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
   // should probably have a smart dispatcher here, like auth has
   if(cmd=="help")
     return
+"add-nta DOMAIN [REASON]          add a Negative Trust Anchor for DOMAIN with the comment REASON\n"
+"add-ta DOMAIN DSRECORD           add a Trust Anchor for DOMAIN with data DSRECORD\n"
 "current-queries                  show currently active queries\n"
+"clear-nta [DOMAIN]...            Clear the Negative Trust Anchor for DOMAINs, if no DOMAIN is specified, remove all\n"
+"clear-ta [DOMAIN]...             Clear the Trust Anchor for DOMAINs\n"
 "dump-cache <filename>            dump cache contents to the named file\n"
 "dump-edns[status] <filename>     dump EDNS status to the named file\n"
 "dump-nsspeeds <filename>         dump nsspeeds statistics to the named file\n"
 "get [key1] [key2] ..             get specific statistics\n"
 "get-all                          get all statistics\n"
+"get-ntas                         get all configured Negative Trust Anchors\n"
+"get-tas                          get all configured Trust Anchors\n"
 "get-parameter [key1] [key2] ..   get configuration parameters\n"
 "get-qtypelist                    get QType statistics\n"
 "                                 notice: queries from cache aren't being counted yet\n"
@@ -1047,6 +1233,30 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
   
   if(cmd=="get-qtypelist") {
     return g_rs.getQTypeReport();
+  }
+
+  if(cmd=="add-nta") {
+    return doAddNTA(begin, end);
+  }
+
+  if(cmd=="clear-nta") {
+    return doClearNTA(begin, end);
+  }
+
+  if(cmd=="get-ntas") {
+    return getNTAs();
+  }
+
+  if(cmd=="add-ta") {
+    return doAddTA(begin, end);
+  }
+
+  if(cmd=="clear-ta") {
+    return doClearTA(begin, end);
+  }
+
+  if(cmd=="get-tas") {
+    return getTAs();
   }
   
   return "Unknown command '"+cmd+"', try 'help'\n";

@@ -13,7 +13,7 @@ string dotName(string type, DNSName name, string tag);
 string dotEscape(string name);
 
 const char *dStates[]={"nodata", "nxdomain", "empty non-terminal", "insecure (no-DS proof)"};
-const char *vStates[]={"Indeterminate", "Bogus", "Insecure", "Secure"};
+const char *vStates[]={"Indeterminate", "Bogus", "Insecure", "Secure", "NTA"};
 
 typedef set<DNSKEYRecordContent> keyset_t;
 vector<DNSKEYRecordContent> getByTag(const keyset_t& keys, uint16_t tag)
@@ -165,6 +165,41 @@ cspmap_t harvestCSPFromRecs(const vector<DNSRecord>& recs)
 
 vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
 {
+  auto luaLocal = g_luaconfs.getLocal();
+  auto anchors = luaLocal->dsAnchors;
+  // Determine the lowest (i.e. with the most labels) Trust Anchor for zone
+  DNSName lowestTA(".");
+  for (auto const &anchor : anchors)
+    if (zone.isPartOf(anchor.first) && lowestTA.countLabels() < anchor.first.countLabels())
+      lowestTA = anchor.first;
+
+  // Before searching for the keys, see if we have a Negative Trust Anchor. If
+  // so, test if the NTA is valid and return an NTA state
+  auto negAnchors = luaLocal->negAnchors;
+
+  if (!negAnchors.empty()) {
+    DNSName lowestNTA;
+
+    for (auto const &negAnchor : negAnchors)
+      if (zone.isPartOf(negAnchor.first) && lowestNTA.countLabels() < negAnchor.first.countLabels())
+        lowestNTA = negAnchor.first;
+
+    if(!lowestNTA.empty()) {
+      LOG("Found a Negative Trust Anchor for "<<lowestNTA.toStringRootDot()<<", which was added with reason '"<<negAnchors[lowestNTA]<<"', ");
+
+      /* RFC 7646 section 2.1 tells us that we SHOULD still validate if there
+       * is a Trust Anchor below the Negative Trust Anchor for the name we
+       * attempt validation for. However, section 3 tells us this positive
+       * Trust Anchor MUST be *below* the name and not the name itself
+       */
+      if(lowestTA.countLabels() < lowestNTA.countLabels()) {
+        LOG("marking answer Insecure"<<endl);
+        return NTA; // Not Insecure, this way validateRecords() can shortcut
+      }
+      LOG("but a Trust Anchor for "<<lowestTA.toStringRootDot()<<" is configured, continuing validation."<<endl);
+    }
+  }
+
   vector<string> labels = zone.getRawLabels();
   vState state;
 
@@ -174,9 +209,9 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
   dsmap_t dsmap;
   keyset_t validkeys;
 
-  DNSName qname(".");
-  state = Secure; // the root is secure
-  auto luaLocal = g_luaconfs.getLocal();
+  DNSName qname = lowestTA;
+  state = Secure; // the lowest Trust Anchor is secure
+
   while(zone.isPartOf(qname))
   {
     if(auto ds = rplookup(luaLocal->dsAnchors, qname))

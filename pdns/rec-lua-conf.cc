@@ -225,6 +225,20 @@ void loadRecursorLuaConfig(const std::string& fname)
         lci.dsAnchors.clear();
     });
 
+  Lua.writeFunction("addNTA", [&lci](const std::string& who, const boost::optional<std::string> why) {
+      if(why)
+        lci.negAnchors[DNSName(who)] = static_cast<string>(*why);
+      else
+        lci.negAnchors[DNSName(who)] = "";
+    });
+
+  Lua.writeFunction("clearNTA", [&lci](boost::optional<string> who) {
+      if(who)
+        lci.negAnchors.erase(DNSName(*who));
+      else
+        lci.negAnchors.clear();
+    });
+
 #if HAVE_PROTOBUF
   Lua.writeFunction("protobufServer", [&lci](const string& server_, const boost::optional<uint16_t> timeout, const boost::optional<uint64_t> maxQueuedEntries, const boost::optional<uint8_t> reconnectWaitTime) {
       try {

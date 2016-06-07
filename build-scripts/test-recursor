@@ -51,5 +51,6 @@ sleep 3
 
 cd ../regression-tests.recursor-dnssec
 ./runtests || EXIT=1
+./printlogs.py || true
 
 exit $EXIT
