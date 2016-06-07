@@ -25,7 +25,7 @@ insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR-FROM
 To dissallow all IP's, except those explicitly allowed by domainmetadata records, add `allow-axfr-ips=` to `pdns.conf`.
 
 ## AXFR-SOURCE
-The IP address to use as a source address for sending AXFR requests.
+The IP address to use as a source address for sending AXFR and IXFR requests.
 
 ## ALLOW-DNSUPDATE-FROM, TSIG-ALLOW-DNSUPDATE, FORWARD-DNSUPDATE, SOA-EDIT-DNSUPDATE
 See the documentation on [Dynamic DNS update](dnsupdate.md)
@@ -44,6 +44,9 @@ Allow this GSS principal to perform AXFR retrieval. Most commonly it is
 
 ## GSS-ACCEPTOR-PRINCIPAL
 Use this principal for accepting GSS context. (See [GSS-TSIG support](tsig.md#gss-tsig-support)).
+
+## IXFR
+If set to 1, attempt IXFR when retrieving zone updates. Otherwise IXFR is not attempted.
 
 ## LUA-AXFR-SCRIPT
 Script to be used to edit incoming AXFRs, see [Modifying a slave zone using a script](modes-of-operation.md#modifying-a-slave-zone-using-a-script).

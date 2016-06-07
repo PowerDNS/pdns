@@ -37,8 +37,7 @@
 #include "arguments.hh"
 #include "packetcache.hh"
 
-// #include "namespaces.hh"
-
+// there can be MANY OF THESE
 void CommunicatorClass::retrievalLoopThread(void)
 {
   for(;;) {
@@ -52,7 +51,7 @@ void CommunicatorClass::retrievalLoopThread(void)
       sr=d_suckdomains.front();
       d_suckdomains.pop_front();
     }
-    suck(sr.domain,sr.master);
+    suck(sr.domain, sr.master);
   }
 }
 

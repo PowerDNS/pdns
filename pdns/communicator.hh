@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002-2010  PowerDNS.COM BV
+    Copyright (C) 2002-2016  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -31,6 +31,7 @@
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/identity.hpp>
 #include <boost/multi_index/sequenced_index.hpp>
+#include <boost/scoped_ptr.hpp>
 using namespace boost::multi_index;
 
 #include <unistd.h>
@@ -140,6 +141,8 @@ private:
 
 };
 
+struct ZoneStatus;
+
 /** this class contains a thread that communicates with other nameserver and does housekeeping.
     Initially, it is notified only of zones that need to be pulled in because they have been updated. */
 
@@ -191,11 +194,15 @@ private:
   pthread_mutex_t d_holelock;
   void launchRetrievalThreads();
   void suck(const DNSName &domain, const string &remote);
+  void ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, const ComboAddress& laddr, const ComboAddress& remote, boost::scoped_ptr<AuthLua>& pdl,
+                ZoneStatus& zs, vector<DNSRecord>* axfr);
+
   void slaveRefresh(PacketHandler *P);
   void masterUpdateCheck(PacketHandler *P);
   pthread_mutex_t d_lock;
   
   UniQueue d_suckdomains;
+  set<DNSName> d_inprogress;
   
   Semaphore d_suck_sem;
   Semaphore d_any_sem;
@@ -208,6 +215,21 @@ private:
   bool d_havepriosuckrequest;
   bool d_masterschanged, d_slaveschanged;
   bool d_preventSelfNotification;
+
+  struct RemoveSentinel
+  {
+    explicit RemoveSentinel(const DNSName& dn, CommunicatorClass* cc) : d_dn(dn), d_cc(cc)
+    {}
+    
+    ~RemoveSentinel()
+    {
+      Lock l(&d_cc->d_lock);
+      d_cc->d_inprogress.erase(d_dn);
+    }
+    DNSName d_dn;
+    CommunicatorClass* d_cc;
+};
+
 };
 
 // class that one day might be more than a function to help you get IP addresses for a nameserver

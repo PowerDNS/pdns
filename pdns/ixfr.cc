@@ -5,8 +5,9 @@
 #include "dnssecinfra.hh"
 
 
-// if you the remove,add pairs always remove a SOA and add a new one. If you get an empty remove, it means you got an AXFR!
-vector<pair<vector<DNSRecord>, vector<DNSRecord> > > getIXFRDeltas(const ComboAddress& master, const DNSName& zone, const DNSRecord& oursr, const TSIGTriplet& tt)
+// Returns pairs of "remove & add" vectors. If you get an empty remove, it means you got an AXFR!
+vector<pair<vector<DNSRecord>, vector<DNSRecord> > > getIXFRDeltas(const ComboAddress& master, const DNSName& zone, const DNSRecord& oursr, 
+                                                                   const TSIGTriplet& tt, const ComboAddress* laddr)
 {
   vector<pair<vector<DNSRecord>, vector<DNSRecord> > >  ret;
   vector<uint8_t> packet;
@@ -39,6 +40,8 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > > getIXFRDeltas(const ComboAd
 
   Socket s(master.sin4.sin_family, SOCK_STREAM);
   //  cout<<"going to connect"<<endl;
+  if(laddr)
+    s.bind(*laddr);
   s.connect(master);
   //  cout<<"Connected"<<endl;
   s.writen(msg);
