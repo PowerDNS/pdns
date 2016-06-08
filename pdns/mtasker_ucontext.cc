@@ -17,8 +17,12 @@ static inline
 std::pair<int, int>
 splitPointer (void* const ptr) noexcept {
     static_assert (sizeof(int) == 4, "splitPointer() requires an 4 byte 'int'");
-    static_assert (sizeof(uintptr_t) == 8,
-                    "splitPointer() requires an 8 byte 'uintptr_t'");
+// In theory, we need this assertion. In practice, it prevents compilation
+// on EL6 i386. Without the assertion, everything works.
+// If you ever run into trouble with this code, please heed the warnings at
+// http://man7.org/linux/man-pages/man3/makecontext.3.html#NOTES
+//    static_assert (sizeof(uintptr_t) == 8,
+//                    "splitPointer() requires an 8 byte 'uintptr_t'");
     std::pair<int, int> words;
     auto rep = reinterpret_cast<uintptr_t>(ptr);
     uint32_t const hw = rep >> 32;
@@ -32,8 +36,9 @@ template <typename T> static inline
 T*
 joinPtr (int const first, int const second) noexcept {
     static_assert (sizeof(int) == 4, "joinPtr() requires an 4 byte 'int'");
-    static_assert (sizeof(uintptr_t) == 8,
-                    "joinPtr() requires an 8 byte 'uintptr_t'");
+// See above.
+//    static_assert (sizeof(uintptr_t) == 8,
+//                    "joinPtr() requires an 8 byte 'uintptr_t'");
     uint32_t hw;
     uint32_t lw;
     std::memcpy (&hw, &first, 4);
