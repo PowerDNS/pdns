@@ -44,6 +44,27 @@ In addition to this cleanup, which has many internal benefits and solves longsta
 
 Please be aware that beyond the items listed here, there have been heaps of tiny changes. As always, please carefully test a new release before deploying it.
 
+## PowerDNS Recursor 4.0.0-rc1
+Released June 9th 2016
+
+This first (and hopefully last) Release Candidate contains the finishing touches
+to the experimental DNSSEC support by adding (Negative) Trust Anchor support and
+fixing a possible issue with DNSSEC and forwarded domains:
+
+- [#3910](https://github.com/PowerDNS/pdns/pull/3910) Add (Negative) Trust Anchor management
+- [#3926](https://github.com/PowerDNS/pdns/pull/3926) Set +CD on forwarded recursive queries
+
+Other changes:
+
+- [#3941](https://github.com/PowerDNS/pdns/pull/3941) Ensure delegations from local auth zones are followed
+- [#3924](https://github.com/PowerDNS/pdns/pull/3924) Add a virtual hosting unit-file
+- [#3929](https://github.com/PowerDNS/pdns/pull/3929) Set the FDs in the unit file to a sane value
+
+Bug fixes:
+
+- [#3961](https://github.com/PowerDNS/pdns/pull/3961) Fix building on EL6 i386
+- [#3957](https://github.com/PowerDNS/pdns/pull/3957) Add error reporting when parsing forward-zones(-recurse) (Aki Tuomi)
+
 ## PowerDNS Recursor 4.0.0-beta1
 Released May 27th 2016
 
