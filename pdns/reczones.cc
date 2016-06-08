@@ -392,6 +392,8 @@ SyncRes::domainmap_t* parseAuthAndForwards()
     stringtok(parts, ::arg()[option_names[n]], " ,\t\n\r");
     for(parts_t::const_iterator iter = parts.begin(); iter != parts.end(); ++iter) {
       SyncRes::AuthDomain ad;
+      if ((*iter).find('=') == string::npos)
+        throw PDNSException("Error parsing '" + *iter + "', missing =");
       pair<string,string> headers=splitField(*iter, '=');
       trim(headers.first);
       trim(headers.second);
