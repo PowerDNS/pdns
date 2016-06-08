@@ -291,7 +291,10 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
 /** Helper to build a record content as needed. */
 static inline string makeRecordContent(const QType& qtype, const string& content, bool noDot) {
   // noDot: for backend storage, pass true. for API users, pass false.
-  return DNSRecordContent::mastermake(qtype.getCode(), 1, content)->getZoneRepresentation(noDot);
+  auto *record = DNSRecordContent::mastermake(qtype.getCode(), 1, content);
+  auto representation = record->getZoneRepresentation(noDot);
+  delete record;
+  return representation;
 }
 
 /** "Normalize" record content for API consumers. */
