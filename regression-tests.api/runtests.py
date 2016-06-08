@@ -100,7 +100,7 @@ if daemon == 'authoritative':
         named_conf.write(AUTH_CONF_TPL)
 
     subprocess.check_call(["../pdns/pdnsutil", "--config-dir=.", "secure-zone", "powerdnssec.org"])
-    pdnscmd = ("../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./ --no-shuffle --dnsupdate=yes --cache-ttl=0 --config-dir=. --api=yes --webserver=yes --webserver-port="+WEBPORT+" --webserver-address=127.0.0.1 --webserver-password=something --api-key="+APIKEY).split()
+    pdnscmd = ("../pdns/pdns_server --daemon=no --local-address=127.0.0.1 --local-port=5300 --socket-dir=./ --no-shuffle --dnsupdate=yes --cache-ttl=0 --config-dir=. --api=yes --webserver=yes --webserver-port="+WEBPORT+" --webserver-address=127.0.0.1 --webserver-password=something --api-key="+APIKEY).split()
 
 else:
     conf_dir = 'rec-conf.d'
@@ -112,7 +112,7 @@ else:
     with open(conf_dir+'/example.com..conf', 'w') as conf_file:
         conf_file.write(REC_EXAMPLE_COM_CONF_TPL)
 
-    pdnscmd = (pdns_recursor + " --daemon=no --socket-dir=. --config-dir=. --allow-from-file=acl.list --local-port=5555 --webserver=yes --webserver-port="+WEBPORT+" --webserver-address=127.0.0.1 --webserver-password=something --api-key="+APIKEY).split()
+    pdnscmd = (pdns_recursor + " --daemon=no --socket-dir=. --config-dir=. --allow-from-file=acl.list --local-address=127.0.0.1 --local-port=5555 --webserver=yes --webserver-port="+WEBPORT+" --webserver-address=127.0.0.1 --webserver-password=something --api-key="+APIKEY).split()
 
 
 # Now run pdns and the tests.
