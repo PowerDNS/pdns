@@ -8,8 +8,8 @@
 
 #include <boost/version.hpp>
 
-// it crashes on OSX..
-#if BOOST_VERSION >= 104800 && ! defined( __APPLE__ )
+// it crashes on OSX and doesn't compile on OpenBSD
+#if BOOST_VERSION >= 104800 && ! defined( __APPLE__ ) && ! defined(__OpenBSD__)
 #include <boost/container/string.hpp>
 #endif
 
@@ -103,7 +103,7 @@ public:
   inline bool canonCompare(const DNSName& rhs) const;
   bool slowCanonCompare(const DNSName& rhs) const;  
 
-#if BOOST_VERSION >= 104800 && ! defined( __APPLE__ )
+#if BOOST_VERSION >= 104800 && ! defined( __APPLE__ ) && ! defined(__OpenBSD__)
   typedef boost::container::string string_t;
 #else
   typedef std::string string_t;
