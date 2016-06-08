@@ -49,7 +49,7 @@ before_script:
  - sudo sh -c 'sed s/precise/trusty/g /etc/apt/sources.list > /etc/apt/sources.list.d/trusty.list'
  - sudo apt-get update --quiet --quiet
  - sudo apt-get install --quiet --quiet liblmdb0 liblmdb-dev lmdb-utils libyaml-cpp-dev libzmq3-dev pandoc
- - sudo pip install pandoc==1.0.0-alpha.3 pandocfilters mkdocs==0.11.1 linkchecker==9.3
+ - sudo pip install requests==2.9.2 pandoc==1.0.0-alpha.3 pandocfilters mkdocs==0.11.1 linkchecker==9.3
  - sudo update-alternatives --set ruby /usr/bin/ruby1.9.1
  - sudo touch /etc/authbind/byport/53
  - sudo chmod 755 /etc/authbind/byport/53
