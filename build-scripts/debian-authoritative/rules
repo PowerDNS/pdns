@@ -1,9 +1,5 @@
 #!/usr/bin/make -f
 
-# Vendor and version
-version := $(shell dpkg-parsechangelog -SVersion).$(shell dpkg-vendor --query Vendor)
-CXXFLAGS += -DPACKAGEVERSION='"$(version)"'
-
 # Backends
 backends := bind ldap pipe gmysql godbc gpgsql gsqlite3 geoip lua mydns remote random opendbx tinydns
 
@@ -75,8 +71,7 @@ override_dh_installinit:
 override_dh_install:
 	dh_install
 	./pdns/pdns_server --no-config --config | sed \
-	  -e 's!# daemon=.*!daemon=yes!' \
-	  -e 's!# guardian=.*!guardian=yes!' \
+	  -e 's!# module-dir=.*!!' \
 	  -e 's!# include-dir=.*!&\ninclude-dir=/etc/powerdns/pdns.d!' \
 	  -e 's!# launch=.*!&\nlaunch=!' \
 	  -e 's!# setgid=.*!setgid=pdns!' \
