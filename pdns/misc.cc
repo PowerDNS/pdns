@@ -845,7 +845,6 @@ void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, const ComboAddress* sour
     memset(pkt, 0, sizeof(*pkt));
     pkt->ipi6_addr = source->sin6.sin6_addr;
     pkt->ipi6_ifindex = itfIndex;
-    msgh->msg_controllen = cmsg->cmsg_len; // makes valgrind happy and is slightly better style
   }
   else {
 #ifdef IP_PKTINFO
@@ -863,7 +862,6 @@ void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, const ComboAddress* sour
     memset(pkt, 0, sizeof(*pkt));
     pkt->ipi_spec_dst = source->sin4.sin_addr;
     pkt->ipi_ifindex = itfIndex;
-    msgh->msg_controllen = cmsg->cmsg_len;
 #endif
 #ifdef IP_SENDSRCADDR
     struct in_addr *in;
@@ -878,7 +876,6 @@ void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, const ComboAddress* sour
 
     in = (struct in_addr *) CMSG_DATA(cmsg);
     *in = source->sin4.sin_addr;
-    msgh->msg_controllen = cmsg->cmsg_len;
 #endif
   }
 }
