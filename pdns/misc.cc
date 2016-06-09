@@ -826,6 +826,9 @@ Regex::Regex(const string &expr)
     throw PDNSException("Regular expression did not compile");
 }
 
+// if you end up here because valgrind told you were are doing something wrong
+// with msgh->msg_controllen, please refer to https://github.com/PowerDNS/pdns/pull/3962
+// first.
 void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, const ComboAddress* source, int itfIndex)
 {
   struct cmsghdr *cmsg = NULL;
