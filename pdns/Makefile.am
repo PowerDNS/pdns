@@ -977,6 +977,7 @@ dnsscope_SOURCES = \
 	rcpgenerator.cc rcpgenerator.hh \
 	sillyrecords.cc \
 	statbag.cc \
+	statnode.cc statnode.hh \
 	unix_utility.cc \
 	utility.hh
 
