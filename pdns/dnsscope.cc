@@ -20,6 +20,7 @@
 #include "namespaces.hh"
 #include <deque>
 #include "dnsrecords.hh"
+#include "statnode.hh"
 
 namespace po = boost::program_options;
 po::variables_map g_vm;
@@ -31,175 +32,7 @@ ArgvMap& arg()
 }
 StatBag S;
 
-struct comboCompare
-{
-  bool operator()(const ComboAddress& a, const ComboAddress& b) const
-  {
-    return ntohl(a.sin4.sin_addr.s_addr) < ntohl(b.sin4.sin_addr.s_addr);
-  }
-};
 
-
-class StatNode
-{
-public:
-  void submit(const DNSName& domain, int rcode, const ComboAddress& remote);
-  void submit(deque<string>& labels, const std::string& domain, int rcode, const ComboAddress& remote);
-
-  string name;
-  string fullname;
-  struct Stat 
-  {
-    Stat() : queries(0), noerrors(0), nxdomains(0), servfails(0), drops(0){}
-    int queries, noerrors, nxdomains, servfails, drops;
-
-    Stat& operator+=(const Stat& rhs) {
-      queries+=rhs.queries;
-      noerrors+=rhs.noerrors;
-      nxdomains+=rhs.nxdomains;
-      servfails+=rhs.servfails;
-      drops+=rhs.drops;
-
-      for(const remotes_t::value_type& rem :  rhs.remotes) {
-	remotes[rem.first]+=rem.second;
-      }
-      return *this;
-    }
-    typedef map<ComboAddress,int,comboCompare> remotes_t;
-    remotes_t remotes;
-  };
-
-  Stat s;
-  Stat print(int depth=0, Stat newstat=Stat(), bool silent=false) const;
-  typedef boost::function<void(const StatNode*, const Stat& selfstat, const Stat& childstat)> visitor_t;
-  void visit(visitor_t visitor, Stat& newstat, int depth=0) const;
-  typedef map<string,StatNode, CIStringCompare> children_t;
-  children_t children;
-  
-};
-
-StatNode::Stat StatNode::print(int depth, Stat newstat, bool silent) const
-{
-  if(!silent) {
-    cout<<string(depth, ' ');
-    cout<<name<<": "<<endl;
-  }
-  Stat childstat;
-  childstat.queries += s.queries;
-  childstat.noerrors += s.noerrors;
-  childstat.nxdomains += s.nxdomains;
-  childstat.servfails += s.servfails;
-  childstat.drops += s.drops;
-  if(children.size()>1024 && !silent) {
-    cout<<string(depth, ' ')<<name<<": too many to print"<<endl;
-  }
-  for(const children_t::value_type& child :  children) {
-    childstat=child.second.print(depth+8, childstat, silent || children.size()>1024);
-  }
-  if(!silent || children.size()>1)
-    cout<<string(depth, ' ')<<childstat.queries<<" queries, " << 
-      childstat.noerrors<<" noerrors, "<< 
-      childstat.nxdomains<<" nxdomains, "<< 
-      childstat.servfails<<" servfails, "<< 
-      childstat.drops<<" drops"<<endl;
-
-  newstat+=childstat;
-
-  return newstat;
-}
-
-
-void  StatNode::visit(visitor_t visitor, Stat &newstat, int depth) const
-{
-  Stat childstat;
-  childstat.queries += s.queries;
-  childstat.noerrors += s.noerrors;
-  childstat.nxdomains += s.nxdomains;
-  childstat.servfails += s.servfails;
-  childstat.drops += s.drops;
-  childstat.remotes = s.remotes;
-  
-  Stat selfstat(childstat);
-
-
-  for(const children_t::value_type& child :  children) {
-    child.second.visit(visitor, childstat, depth+8);
-  }
-
-  visitor(this, selfstat, childstat);
-
-  newstat+=childstat;
-}
-
-
-void StatNode::submit(const DNSName& domain, int rcode, const ComboAddress& remote)
-{
-  //  cerr<<"FIRST submit called on '"<<domain<<"'"<<endl;
-  vector<string> tmp = domain.getRawLabels();
-  if(tmp.empty())
-    return;
-
-  deque<string> parts;
-  for(auto const i : tmp) {
-    parts.push_back(i);
-  }
-  children[parts.back()].submit(parts, "", rcode, remote);
-}
-
-/* www.powerdns.com. -> 
-   .                 <- fullnames
-   com.
-   powerdns.com
-   www.powerdns.com. 
-*/
-
-void StatNode::submit(deque<string>& labels, const std::string& domain, int rcode, const ComboAddress& remote)
-{
-  if(labels.empty())
-    return;
-  //  cerr<<"Submit called for domain='"<<domain<<"': ";
-  //  for(const std::string& n :  labels) 
-  //    cerr<<n<<".";
-  //  cerr<<endl;
-  if(name.empty()) {
-
-    name=labels.back();
-    //    cerr<<"Set short name to '"<<name<<"'"<<endl;
-  }
-  else 
-    ; //    cerr<<"Short name was already set to '"<<name<<"'"<<endl;
-
-  if(labels.size()==1) {
-    fullname=name+"."+domain;
-    //    cerr<<"Hit the end, set our fullname to '"<<fullname<<"'"<<endl<<endl;
-    s.queries++;
-    if(rcode<0)
-      s.drops++;
-    else if(rcode==0)
-      s.noerrors++;
-    else if(rcode==2)
-      s.servfails++;
-    else if(rcode==3)
-      s.nxdomains++;
-    s.remotes[remote]++;
-  }
-  else {
-    fullname=name+"."+domain;
-    //    cerr<<"Not yet end, set our fullname to '"<<fullname<<"', recursing"<<endl;
-    labels.pop_back();
-    children[labels.back()].submit(labels, fullname, rcode, remote);
-  }
-}
-
-void visitor(const StatNode* node, const StatNode::Stat& selfstat, const StatNode::Stat& childstat)
-{
-  if(1.0*childstat.servfails / (childstat.servfails+childstat.noerrors) > 0.8 && node->children.size()>100) {
-    cout<<node->fullname<<", servfails: "<<childstat.servfails<<", remotes: "<<childstat.remotes.size()<<", children: "<<node->children.size()<<endl;
-    for(const StatNode::Stat::remotes_t::value_type& rem :  childstat.remotes) {
-      cout<<"source: "<<node->fullname<<"\t"<<rem.first.toString()<<"\t"<<rem.second<<endl;
-    }
-  }
-}
 
 struct QuestionData
 {
@@ -250,6 +83,21 @@ struct LiveCounts
   }
 };
 
+void visitor(const StatNode* node, const StatNode::Stat& selfstat, const StatNode::Stat& childstat)
+{
+  // 20% servfails, >100 children, on average less than 2 copies of a query
+  // >100 different subqueries
+  double dups=1.0*childstat.queries/node->children.size();
+  if(dups > 2.0)
+    return;
+  if(1.0*childstat.servfails / childstat.queries > 0.2 && node->children.size()>100) {
+    cout<<node->fullname<<", servfails: "<<childstat.servfails<<", nxdomains: "<<childstat.nxdomains<<", remotes: "<<childstat.remotes.size()<<", children: "<<node->children.size()<<", childstat.queries: "<<childstat.queries;
+    cout<<", dups2: "<<dups<<endl;
+    for(const StatNode::Stat::remotes_t::value_type& rem :  childstat.remotes) {
+      cout<<"source: "<<node->fullname<<"\t"<<rem.first.toString()<<"\t"<<rem.second<<endl;
+    }
+  }
+}
 
 int main(int argc, char** argv)
 try
@@ -322,7 +170,7 @@ try
   time_t lowestTime=2000000000, highestTime=0;
   time_t lastsec=0;
   LiveCounts lastcounts;
-  set<ComboAddress, comboCompare> requestors, recipients, rdnonra;
+  set<ComboAddress, ComboAddress::addressOnlyLessThan> requestors, recipients, rdnonra;
   typedef vector<pair<time_t, LiveCounts> > pcounts_t;
   pcounts_t pcounts;
   OPTRecordContent::report();
@@ -578,7 +426,7 @@ try
   }
 
   vector<ComboAddress> diff;
-  set_difference(requestors.begin(), requestors.end(), recipients.begin(), recipients.end(), back_inserter(diff), comboCompare());
+  set_difference(requestors.begin(), requestors.end(), recipients.begin(), recipients.end(), back_inserter(diff), ComboAddress::addressOnlyLessThan());
   cout<<"Saw "<<diff.size()<<" unique remotes asking questions, but not getting RA answers"<<endl;
   
   ofstream ignored("ignored");
