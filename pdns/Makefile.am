@@ -1180,8 +1180,15 @@ pdns_control_SOURCES = \
 	dnslabeltext.cc
 
 if UNIT_TESTS
+
+if HAVE_BOOST_GE_148
 TESTS_ENVIRONMENT = env BOOST_TEST_LOG_LEVEL=message SRCDIR='$(srcdir)'
 TESTS=testrunner
+else
+check-local:
+	@echo "Unit tests disabled, boost is too old"
+endif
+
 else
 check-local:
 	@echo "Unit tests are not enabled"
