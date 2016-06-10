@@ -44,12 +44,14 @@ if HAVE_MANPAGES
 dist_man_MANS = $(MANPAGES_TARGET_AUTH) $(MANPAGES_TARGET_TOOLS)
 endif
 
-EXTRA_DIST = manpages \
-	markdown
+EXTRA_DIST = manpages markdown/*.md markdown/appendix markdown/authoritative markdown/common markdown/httpapi markdown/recursor markdown/security markdown/tools
+
 
 .PHONY: html all-manpages
+
 html: html/index.html
 
+if FROM_GIT
 html/index.html: process-md.sh mkdocs.yml markdown/** markdown/*/** manpages/*
 	mkdir -p doc-build
 	rsync -a --delete markdown/. doc-build/.
@@ -60,6 +62,18 @@ html/index.html: process-md.sh mkdocs.yml markdown/** markdown/*/** manpages/*
 
 html.tar.bz2: html
 	tar cjf html.tar.bz2 html/
+
+check-links: html
+	./checklinks.sh
+
+publish: html html.tar.bz2
+	rsync -crv --no-p --chmod=g=rwX --exclude '*~' ./html/ web1.powerdns.com:/srv/www/doc.powerdns.com/md
+	rsync -crv --no-p --chmod=g=rwX --exclude '*~' ./html.tar.bz2 web1.powerdns.com:/srv/www/doc.powerdns.com/html.tar.bz2
+else
+html/index.html:
+	@echo "Building the documentation HTML is only"
+	@echo "supported from a git checkout"
+endif
 
 all-manpages: $(MANPAGES_TARGET_ALL)
 
@@ -72,14 +86,5 @@ $(MANPAGES_TARGET_ALL):
 	exit 1
 endif
 
-if HAVE_LINKCHECKER
-check-links: html
-	./checklinks.sh
-endif
-
 clean:
 	rm -rf html html.tar.bz2 *.8 *.1
-
-publish: html html.tar.bz2
-	rsync -crv --no-p --chmod=g=rwX --exclude '*~' ./html/ web1.powerdns.com:/srv/www/doc.powerdns.com/md
-	rsync -crv --no-p --chmod=g=rwX --exclude '*~' ./html.tar.bz2 web1.powerdns.com:/srv/www/doc.powerdns.com/html.tar.bz2
