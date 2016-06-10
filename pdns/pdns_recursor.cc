@@ -1050,10 +1050,11 @@ void startDoResolve(void *p)
       struct iovec iov;
       char cbuf[256];
       fillMSGHdr(&msgh, &iov, cbuf, 0, (char*)&*packet.begin(), packet.size(), &dc->d_remote);
+      msgh.msg_control=NULL;
+
       if(g_fromtosockets.count(dc->d_socket)) {
 	addCMsgSrcAddr(&msgh, cbuf, &dc->d_local, 0);
-      } else
-        msgh.msg_control=NULL;
+      }
       if(sendmsg(dc->d_socket, &msgh, 0) < 0 && g_logCommonErrors) 
         L<<Logger::Warning<<"Sending UDP reply to client "<<dc->d_remote.toStringWithPort()<<" failed with: "<<strerror(errno)<<endl;
       if(!SyncRes::s_nopacketcache && !variableAnswer && !sr.wasVariable() ) {
@@ -1406,11 +1407,10 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
       struct iovec iov;
       char cbuf[256];
       fillMSGHdr(&msgh, &iov, cbuf, 0, (char*)response.c_str(), response.length(), const_cast<ComboAddress*>(&fromaddr));
+      msgh.msg_control=NULL;
+
       if(g_fromtosockets.count(fd)) {
 	addCMsgSrcAddr(&msgh, cbuf, &destaddr, 0);
-      }
-      else {
-        msgh.msg_control=NULL;
       }
       if(sendmsg(fd, &msgh, 0) < 0 && g_logCommonErrors)
         L<<Logger::Warning<<"Sending UDP reply to client "<<fromaddr.toStringWithPort()<<" failed with: "<<strerror(errno)<<endl;
