@@ -10,6 +10,7 @@
 #include <map>
 #include <fstream>
 #include <boost/logic/tribool.hpp>
+#include "statnode.hh"
 
 boost::tribool g_noLuaSideEffect;
 
@@ -54,6 +55,61 @@ map<ComboAddress,int> filterScore(const map<ComboAddress, unsigned int,ComboAddr
   return ret;
 }
 
+
+typedef std::function<void(const StatNode&, const StatNode::Stat&, const StatNode::Stat&)> statvisitor_t;
+
+void statNodeRespRing(statvisitor_t visitor)
+{
+  std::lock_guard<std::mutex> lock(g_rings.respMutex);
+  
+  StatNode root;
+  for(const auto& c : g_rings.respRing) {
+    root.submit(c.name, c.dh.rcode, c.requestor);
+  }
+  StatNode::Stat node;
+  try {
+    root.visit([&visitor](const StatNode* node, const StatNode::Stat& self, const StatNode::Stat& children) {
+        visitor(*node, self, children);}
+      , node);  
+  }
+  catch(const LuaContext::ExecutionErrorException& e) {
+    std::cerr << e.what(); 
+    try {
+      std::rethrow_if_nested(e);
+      std::cerr << std::endl;
+    } catch(const std::exception& e) {
+      // e is the exception that was thrown from inside the lambda
+      std::cerr << ": " << e.what() << std::endl;      
+    }
+    catch(const PDNSException& e) {
+      // e is the exception that was thrown from inside the lambda
+      std::cerr << ": " << e.reason << std::endl;      
+    }
+  }
+  catch(std::exception& e) {
+    cerr<<"error: "<<e.what()<<endl;
+  }
+
+}
+
+vector<pair<unsigned int, std::unordered_map<string,string> > > getRespRing(boost::optional<int> rcode) 
+{
+  typedef std::unordered_map<string,string>  entry_t;
+  vector<pair<unsigned int, entry_t > > ret;
+  std::lock_guard<std::mutex> lock(g_rings.respMutex);
+  
+  entry_t e;
+  unsigned int count=1;
+  for(const auto& c : g_rings.respRing) {
+    if(rcode && (rcode.get() != c.dh.rcode))
+      continue;
+    e["qname"]=c.name.toString();
+    e["rcode"]=std::to_string(c.dh.rcode);
+    ret.push_back(std::make_pair(count,e));
+    count++;
+  }
+  return ret;
+}
 
 typedef   map<ComboAddress, unsigned int,ComboAddress::addressOnlyLessThan > counts_t;
 map<ComboAddress,int> exceedRespGen(int rate, int seconds, std::function<void(counts_t&, const Rings::Response&)> T) 
@@ -120,6 +176,7 @@ map<ComboAddress,int> exceedRespByterate(int rate, int seconds)
 }
 
 
+
 void moreLua(bool client)
 {
   typedef NetmaskTree<DynBlock> nmts_t;
@@ -143,17 +200,29 @@ void moreLua(bool client)
       struct timespec now;
       gettime(&now);
       boost::format fmt("%-24s %8d %8d %s\n");
-      g_outputBuffer = (fmt % "Netmask" % "Seconds" % "Blocks" % "Reason").str();
+      g_outputBuffer = (fmt % "What" % "Seconds" % "Blocks" % "Reason").str();
       for(const auto& e: slow) {
 	if(now < e->second.until)
 	  g_outputBuffer+= (fmt % e->first.toString() % (e->second.until.tv_sec - now.tv_sec) % e->second.blocks % e->second.reason).str();
       }
+      auto slow2 = g_dynblockSMT.getCopy();
+      slow2.visit([&now, &fmt](const SuffixMatchTree<DynBlock>& node) {
+          if(now <node.d_value.until) {
+            string dom("empty");
+            if(!node.d_value.domain.empty())
+              dom = node.d_value.domain.toString();
+            g_outputBuffer+= (fmt % dom % (node.d_value.until.tv_sec - now.tv_sec) % node.d_value.blocks % node.d_value.reason).str();
+          }
+        });
+
     });
 
   g_lua.writeFunction("clearDynBlocks", []() {
       setLuaSideEffect();
       nmts_t nmg;
       g_dynblockNMG.setState(nmg);
+      SuffixMatchTree<DynBlock> smt;
+      g_dynblockSMT.setState(smt);
     });
 
   g_lua.writeFunction("addDynBlocks", 
@@ -185,6 +254,40 @@ void moreLua(bool client)
 			   }
 			   g_dynblockNMG.setState(slow);
 			 });
+
+  g_lua.writeFunction("addDynBlockSMT", 
+                      [](const vector<pair<unsigned int, string> >&names, const std::string& msg, boost::optional<int> seconds) { 
+                           setLuaSideEffect();
+			   auto slow = g_dynblockSMT.getCopy();
+			   struct timespec until, now;
+			   gettime(&now);
+			   until=now;
+                           int actualSeconds = seconds ? *seconds : 10;
+			   until.tv_sec += actualSeconds; 
+
+ 			   for(const auto& capair : names) {
+			     unsigned int count = 0;
+                             DNSName domain(capair.second);
+                             auto got = slow.lookup(domain);
+                             bool expired=false;
+			     if(got) {
+			       if(until < got->until) // had a longer policy
+				 continue;
+			       if(now < got->until) // only inherit count on fresh query we are extending
+				 count=got->blocks;
+                               else
+                                 expired=true;
+			     }
+
+			     DynBlock db{msg,until,domain};
+			     db.blocks=count;
+                             if(!got || expired)
+                               warnlog("Inserting dynamic block for %s for %d seconds: %s", domain, actualSeconds, msg);
+			     slow.add(domain, db);
+			   }
+			   g_dynblockSMT.setState(slow);
+			 });
+
 
 
   g_lua.registerFunction<bool(nmts_t::*)(const ComboAddress&)>("match", 
@@ -221,6 +324,20 @@ void moreLua(bool client)
 	});
     });
 
+  g_lua.writeFunction("getRespRing", getRespRing);
+
+  g_lua.registerFunction<StatNode, unsigned int()>("numChildren", 
+                                                      [](StatNode& sn) -> unsigned int {
+
+                                                        return sn.children.size();
+                                                      } );
+
+  g_lua.registerMember("fullname", &StatNode::fullname);
+  g_lua.registerMember("servfails", &StatNode::Stat::servfails);
+  g_lua.registerMember("nxdomains", &StatNode::Stat::nxdomains);
+  g_lua.registerMember("queries", &StatNode::Stat::queries);
+
+  g_lua.writeFunction("statNodeRespRing", statNodeRespRing);
 
   g_lua.writeFunction("getTopBandwidth", [](unsigned int top) {
       setLuaNoSideEffect();

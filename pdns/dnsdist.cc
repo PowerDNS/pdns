@@ -119,6 +119,7 @@ Rings g_rings;
 
 GlobalStateHolder<servers_t> g_dstates;
 GlobalStateHolder<NetmaskTree<DynBlock>> g_dynblockNMG;
+GlobalStateHolder<SuffixMatchTree<DynBlock>> g_dynblockSMT;
 int g_tcpRecvTimeout{2};
 int g_tcpSendTimeout{2};
 
@@ -729,14 +730,16 @@ void spoofResponseFromString(DNSQuestion& dq, const string& spoofContent)
   }
 }
 
-bool processQuery(LocalStateHolder<NetmaskTree<DynBlock> >& localDynBlock, LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > >& localRulactions, blockfilter_t blockFilter, DNSQuestion& dq, string& poolname, int* delayMsec, const struct timespec& now)
+bool processQuery(LocalStateHolder<NetmaskTree<DynBlock> >& localDynNMGBlock, 
+                  LocalStateHolder<SuffixMatchTree<DynBlock> >& localDynSMTBlock,
+                  LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > >& localRulactions, blockfilter_t blockFilter, DNSQuestion& dq, string& poolname, int* delayMsec, const struct timespec& now)
 {
   {
     WriteLock wl(&g_rings.queryLock);
     g_rings.queryRing.push_back({now,*dq.remote,*dq.qname,dq.len,dq.qtype,*dq.dh});
   }
 
-  if(auto got=localDynBlock->lookup(*dq.remote)) {
+  if(auto got=localDynNMGBlock->lookup(*dq.remote)) {
     if(now < got->second.until) {
       vinfolog("Query from %s dropped because of dynamic block", dq.remote->toStringWithPort());
       g_stats.dynBlocked++;
@@ -744,6 +747,16 @@ bool processQuery(LocalStateHolder<NetmaskTree<DynBlock> >& localDynBlock, Local
       return false;
     }
   }
+
+  if(auto got=localDynSMTBlock->lookup(*dq.qname)) {
+    if(now < got->until) {
+      vinfolog("Query from %s for %s dropped because of dynamic block", dq.remote->toStringWithPort(), dq.qname->toString());
+      g_stats.dynBlocked++;
+      got->blocks++;
+      return false;
+    }
+  }
+
 
   if(blockFilter) {
     std::lock_guard<std::mutex> lock(g_luamutex);
@@ -851,7 +864,8 @@ try
   auto localPolicy = g_policy.getLocal();
   auto localRulactions = g_rulactions.getLocal();
   auto localServers = g_dstates.getLocal();
-  auto localDynBlock = g_dynblockNMG.getLocal();
+  auto localDynNMGBlock = g_dynblockNMG.getLocal();
+  auto localDynSMTBlock = g_dynblockSMT.getLocal();
   auto localPools = g_pools.getLocal();
   struct msghdr msgh;
   struct iovec iov;
@@ -945,7 +959,7 @@ try
       struct timespec now;
       gettime(&now);
 
-      if (!processQuery(localDynBlock, localRulactions, blockFilter, dq, poolname, &delayMsec, now))
+      if (!processQuery(localDynNMGBlock, localDynSMTBlock, localRulactions, blockFilter, dq, poolname, &delayMsec, now))
       {
         continue;
       }

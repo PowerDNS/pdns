@@ -153,7 +153,8 @@ void doConsole()
             boost::variant<
               string, 
               shared_ptr<DownstreamState>,
-              std::unordered_map<string, double>
+              std::unordered_map<string, double>,
+              std::vector<pair<unsigned int, std::unordered_map<string, string> > >
               >
             >
           >(withReturn ? ("return "+line) : line);
@@ -171,6 +172,20 @@ void doConsole()
             for(const auto& v : *um)
               o[v.first]=v.second;
             Json out = o;
+            cout<<out.dump()<<endl;
+          }
+          else if(const auto um = boost::get<std::vector<pair<unsigned int, std::unordered_map<string, string> > >>(&*ret)) {
+            cerr<<"So.. "<<um->size()<<endl;
+            using namespace json11;
+
+            Json::array a;
+            for(auto& e : *um) {
+              Json::object o;
+              o["qname"]=e.second["qname"];
+              o["rcode"]=e.second["rcode"];
+              a.push_back(o);
+            }
+            Json out=a;
             cout<<out.dump()<<endl;
           }
         }
