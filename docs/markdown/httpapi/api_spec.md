@@ -35,7 +35,7 @@ REST
 
 * GET: List/Retrieve. Success reply: `200 OK`
 * POST: Create. Success reply: `201 Created`, with new object as body.
-* PUT: Update. Success reply: `200 OK`, with modified object as body.
+* PUT: Update. Success reply: `200 OK`, with modified object as body. For some operations, `204 No Content` is returned instead (and the modified object is not given in the body).
 * DELETE: Delete. Success reply: `200 OK`, no body.
 
 not-so-REST
@@ -467,6 +467,7 @@ Deletes this zone, all attached metadata and rrsets.
 #### PATCH
 
 Modifies present RRsets and comments.
+Returns `204 No Content` on success.
 
 **Note**: Authoritative only.
 
@@ -536,6 +537,7 @@ Client body for PATCH:
 Modifies basic zone data (metadata).
 
 Allowed fields in client body: all except `id` and `url`.
+Returns `204 No Content` on success.
 
 Changing `name` renames the zone, as expected.
 
