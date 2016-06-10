@@ -440,6 +440,9 @@ int main(int argc, char **argv)
     UNIX_declareArguments();
 
     ::arg().laxParse(argc,argv); // do a lax parse
+    // ensure we pick up logging preferences from the cmdline early
+    L.disableSyslog(::arg().mustDo("disable-syslog"));
+    L.disableTimeStamp(::arg().mustDo("disable-log-timestamp"));
     
     if(::arg().mustDo("version")) {
       showProductVersion();
@@ -459,7 +462,10 @@ int main(int argc, char **argv)
       ::arg().laxFile(configname.c_str());
     
     ::arg().laxParse(argc,argv); // reparse so the commandline still wins
-    if(!::arg()["logging-facility"].empty()) {
+    L.disableSyslog(::arg().mustDo("disable-syslog"));
+    L.disableTimeStamp(::arg().mustDo("disable-log-timestamp"));
+
+    if(!::arg().mustDo("disable-syslog") && !::arg()["logging-facility"].empty()) {
       int val=logFacilityToLOG(::arg().asNum("logging-facility") );
       if(val >= 0)
         theL().setFacility(val);
@@ -468,7 +474,6 @@ int main(int argc, char **argv)
     }
 
     L.setLoglevel((Logger::Urgency)(::arg().asNum("loglevel")));
-    L.disableSyslog(::arg().mustDo("disable-syslog"));
     L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));  
 
     if(::arg().mustDo("help") || ::arg().mustDo("config")) {
