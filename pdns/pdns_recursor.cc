@@ -2483,7 +2483,7 @@ int serviceMain(int argc, char*argv[])
   L.setName(s_programname);
   L.setLoglevel((Logger::Urgency)(6)); // info and up
 
-  if(!::arg()["logging-facility"].empty()) {
+  if(!::arg().mustDo("disable-syslog") && !::arg()["logging-facility"].empty()) {
     int val=logFacilityToLOG(::arg().asNum("logging-facility") );
     if(val >= 0)
       theL().setFacility(val);
