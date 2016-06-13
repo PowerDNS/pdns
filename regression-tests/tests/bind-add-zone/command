@@ -6,10 +6,10 @@ fi
 
 cleandig ns1.addzone.com A
 cleandig ns1.test.com A
-$PDNSCONTROL --config-name=bind --socket-dir=. --no-config bind-add-zone addzone.com zones/addzone.com
+$PDNSCONTROL --config-name=bind --socket-dir=. --no-config bind-add-zone addzone.com ${PWD}/zones/addzone.com >/dev/null 2>&1
 $PDNSCONTROL --config-name=bind --socket-dir=. --no-config purge addzone.com
 sleep 1
-$PDNSCONTROL --config-name=bind --socket-dir=. --no-config bind-add-zone addzone.com zones/addzone.com
+$PDNSCONTROL --config-name=bind --socket-dir=. --no-config bind-add-zone addzone.com ${PWD}/zones/addzone.com
 sleep 1
 cleandig ns1.addzone.com A
 cleandig ns1.test.com A

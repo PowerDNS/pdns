@@ -576,6 +576,14 @@ string Bind2Backend::DLAddDomainHandler(const vector<string>&parts, Utility::pid
   BB2DomainInfo bbd;
   if(safeGetBBDomainInfo(domainname, &bbd))
     return "Already loaded";
+
+  if (!boost::starts_with(filename, "/") && ::arg()["chroot"].empty())
+    return "Unable to load zone " + domainname.toStringRootDot() + " from " + filename + " as the filename is not absolute.";
+
+  struct stat buf;
+  if (stat(filename.c_str(), &buf) != 0)
+    return "Unable to load zone " + domainname.toStringRootDot() + " from " + filename + ": " + strerror(errno);
+
   Bind2Backend bb2; // createdomainentry needs access to our configuration
   bbd=bb2.createDomainEntry(domainname, filename);
   bbd.d_filename=filename;
