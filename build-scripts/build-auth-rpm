@@ -52,6 +52,219 @@ case "$OS" in
 #      ;;
   CentOS\ *\ 6*)
     RPMBUILD_COMMAND="scl enable devtoolset-3 -- ${RPMBUILD_COMMAND}"
+    cat > $HOME/rpmbuild/SOURCES/pdns.init <<EOF
+#!/bin/sh
+# chkconfig: - 80 75
+# description: PDNS is a versatile high performance authoritative nameserver
+
+### BEGIN INIT INFO
+# Provides:          pdns
+# Required-Start:    \$remote_fs \$network \$syslog
+# Required-Stop:     \$remote_fs \$network \$syslog
+# Should-Start:
+# Should-Stop:
+# Default-Start:     
+# Default-Stop:      0 1 6
+# Short-Description: PowerDNS authoritative server
+# Description:       PowerDNS authoritative server
+### END INIT INFO
+
+set -e
+
+prefix=/usr
+exec_prefix=/usr
+BINARYPATH=/usr/bin
+SBINARYPATH=/usr/sbin
+SOCKETPATH=/var/run
+
+[ -f "\$SBINARYPATH/pdns_server" ] || exit 0
+
+[ -r /etc/default/pdns ] && . /etc/default/pdns
+
+cd \$SOCKETPATH
+suffix=\$(basename \$0 | cut -d- -f2- -s)
+if [ -n "\$suffix" ] 
+then
+	EXTRAOPTS=--config-name=\$suffix
+	PROGNAME=pdns-\$suffix
+else
+	PROGNAME=pdns
+fi
+
+pdns_server="\$SBINARYPATH/pdns_server \$EXTRAOPTS"
+
+doPC()
+{
+	ret=\$(\$BINARYPATH/pdns_control \$EXTRAOPTS \$1 \$2 2> /dev/null)
+}
+
+NOTRUNNING=0
+doPC ping || NOTRUNNING=\$?
+
+case "\$1" in
+	status)
+		if test "\$NOTRUNNING" = "0" 
+		then 
+			doPC status
+			echo \$ret
+		else
+			echo "not running"
+			exit 3
+		fi 
+	;;	
+
+	stop)
+		echo -n "Stopping PowerDNS authoritative nameserver: "
+		if test "\$NOTRUNNING" = "0" 
+		then 
+			doPC quit
+			rm -f /var/lock/subsys/pdns
+			echo \$ret
+		else
+			echo "not running"
+		fi 
+	;;		
+
+
+	force-stop)
+		echo -n "Stopping PowerDNS authoritative nameserver: "
+		killall -v -9 pdns_server
+		rm -f /var/lock/subsys/pdns
+		echo "killed"
+	;;
+
+	start)
+		echo -n "Starting PowerDNS authoritative nameserver: "
+		if test "\$NOTRUNNING" = "0" 
+		then 
+			echo "already running"
+		else
+			if \$pdns_server --daemon --guardian=yes
+			then
+				touch /var/lock/subsys/pdns
+				echo "started"	
+	            	else
+				echo "starting failed"
+		                exit 1
+			fi
+		fi 
+	;;		
+
+	condrestart)
+		if [ -f /var/lock/subsys/pdns ]; 
+		then
+			echo "running, restarting"
+		\$0 restart
+		else
+			echo "not running"
+		fi
+	;;
+
+	force-reload | restart)
+		echo -n "Restarting PowerDNS authoritative nameserver: "
+		if test "\$NOTRUNNING" = "1" 
+		then 
+			echo "not running, starting"
+		else
+			
+			echo -n stopping and waiting.. 
+			doPC quit
+			sleep 3
+			echo done
+		fi
+		\$0 start
+	;;
+
+	reload) 
+		echo -n "Reloading PowerDNS authoritative nameserver: "
+		if test "\$NOTRUNNING" = "0" 
+		then 
+			doPC cycle
+			echo requested reload
+		else
+			echo not running yet
+			\$0 start
+		fi 
+	;;		
+		
+	monitor)
+		if test "\$NOTRUNNING" = "0" 
+		then 
+			echo "already running"
+		else
+			\$pdns_server --daemon=no --guardian=no --control-console --loglevel=9
+		fi 
+	;;		
+
+	dump)
+		if test "\$NOTRUNNING" = "0" 
+		then 
+			doPC list
+			echo \$ret
+		else
+			echo "not running"
+		fi 
+	;;		
+
+	show)
+		if [ \$# -lt 2 ]
+		then
+			echo Insufficient parameters
+			exit
+		fi 
+		if test "\$NOTRUNNING" = "0" 
+		then 
+			echo -n "\$2="
+			doPC show \$2 ; echo \$ret
+		else
+			echo "not running"
+		fi 
+	;;		
+
+	mrtg)
+		if [ \$# -lt 2 ]
+		then
+			echo Insufficient parameters
+			exit
+		fi 
+		if test "\$NOTRUNNING" = "0" 
+		then 
+			doPC show \$2 ; echo \$ret
+			if [ "\$3x" != "x" ]
+			then
+				doPC show \$3 ; echo \$ret
+			else
+				echo 0
+			fi
+			doPC uptime ; echo \$ret
+			echo PowerDNS daemon
+		else
+			echo "not running"
+		fi 
+	
+	;;		
+
+	cricket)
+		if [ \$# -lt 2 ]
+		then
+			echo Insufficient parameters
+			exit
+		fi 
+		if test "\$NOTRUNNING" = "0" 
+		then 
+			doPC show \$2 ; echo \$ret
+		else
+			echo "not running"
+		fi 
+	
+	;;
+
+	*)
+	echo pdns [start\|stop\|condrestart\|force-reload\|reload\|restart\|status\|dump\|show\|mrtg\|cricket\|monitor]
+
+	;;
+esac
+EOF
     cat > pdns.spec << EOF
 %global backends %{nil}
 
@@ -62,7 +275,8 @@ Summary: A modern, advanced and high performance authoritative-only nameserver
 Group: System Environment/Daemons
 License: GPLv2
 URL: https://powerdns.com
-Source: ../%{name}-${TARBALLVERSION}.tar.bz2
+Source0: ../%{name}-${TARBALLVERSION}.tar.bz2
+Source1: pdns.init
 
 Requires(pre): shadow-utils
 Requires(post): /sbin/chkconfig
@@ -163,7 +377,7 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
 
 %configure \
 	--sysconfdir=%{_sysconfdir}/%{name} \
-	--libdir=%{_libdir}/%{name} \
+	--libdir=%{_libdir} \
 	--disable-static \
 	--disable-dependency-tracking \
 	--disable-silent-rules \
@@ -181,7 +395,7 @@ make %{?_smp_mflags}
 make install DESTDIR=%{buildroot}
 
 %{__rm} -f %{buildroot}%{_libdir}/%{name}/*.la
-%{__install} -p -D -m 0755 pdns/pdns %{buildroot}%{_initrddir}/pdns
+%{__install} -D -p %{SOURCE1} %{buildroot}%{_initrddir}/pdns
 %{buildroot}/usr/sbin/pdns_server --no-config --config > %{buildroot}%{_sysconfdir}/%{name}/pdns.conf
 %{__rm} %{buildroot}%{_sysconfdir}/%{name}/pdns.conf-dist
 %{__rm} %{buildroot}/usr/bin/stubquery
@@ -234,12 +448,10 @@ fi
 
 %files tools
 %{_bindir}/calidns
-%{_bindir}/dnsbulktest
 %{_bindir}/dnsgram
 %{_bindir}/dnsreplay
 %{_bindir}/dnsscan
 %{_bindir}/dnsscope
-%{_bindir}/dnstcpbench
 %{_bindir}/dnswasher
 %{_bindir}/dumresp
 %{_bindir}/ixplore
@@ -249,12 +461,10 @@ fi
 %{_bindir}/saxfr
 %{_bindir}/sdig
 %{_mandir}/man1/calidns.1.gz
-%{_mandir}/man1/dnsbulktest.1.gz
 %{_mandir}/man1/dnsgram.1.gz
 %{_mandir}/man1/dnsreplay.1.gz
 %{_mandir}/man1/dnsscan.1.gz
 %{_mandir}/man1/dnsscope.1.gz
-%{_mandir}/man1/dnstcpbench.1.gz
 %{_mandir}/man1/dnswasher.1.gz
 %{_mandir}/man1/dumresp.1.gz
 %{_mandir}/man1/ixplore.1.gz
@@ -265,13 +475,15 @@ fi
 %{_mandir}/man1/sdig.1.gz
 
 %files backend-mysql
-%doc pdns/dnssec.schema.mysql.sql
-%doc pdns/no-dnssec.schema.mysql.sql
+%doc %{_defaultdocdir}/%{name}/schema.mysql.sql
+%doc %{_defaultdocdir}/%{name}/nodnssec-3.x_to_3.4.0_schema.mysql.sql
+%doc %{_defaultdocdir}/%{name}/dnssec-3.x_to_3.4.0_schema.mysql.sql
 %{_libdir}/%{name}/libgmysqlbackend.so
 
 %files backend-postgresql
-%doc pdns/dnssec.schema.pgsql.sql
-%doc pdns/no-dnssec.schema.pgsql.sql
+%doc %{_defaultdocdir}/%{name}/schema.pgsql.sql
+%doc %{_defaultdocdir}/%{name}/nodnssec-3.x_to_3.4.0_schema.pgsql.sql
+%doc %{_defaultdocdir}/%{name}/dnssec-3.x_to_3.4.0_schema.pgsql.sql
 %{_libdir}/%{name}/libgpgsqlbackend.so
 
 %files backend-pipe
@@ -287,9 +499,9 @@ fi
 %{_libdir}/%{name}/libluabackend.so
 
 %files backend-sqlite
-%doc pdns/dnssec.schema.sqlite3.sql
-%doc pdns/no-dnssec.schema.sqlite3.sql
-%doc pdns/bind-dnssec.schema.sqlite3.sql
+%doc %{_defaultdocdir}/%{name}/schema.sqlite3.sql
+%doc %{_defaultdocdir}/%{name}/nodnssec-3.x_to_3.4.0_schema.sqlite3.sql
+%doc %{_defaultdocdir}/%{name}/dnssec-3.x_to_3.4.0_schema.sqlite3.sql
 %{_libdir}/%{name}/libgsqlite3backend.so
 EOF
     ;;

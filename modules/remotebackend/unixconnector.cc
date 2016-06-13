@@ -89,7 +89,7 @@ ssize_t UnixsocketConnector::read(std::string &data) {
   // just try again later...
   if (nread==-1 && errno == EAGAIN) return 0;
 
-  if (nread==-1) {
+  if (nread==-1 || nread==0) {
     connected = false;
     close(fd);
     return -1;
