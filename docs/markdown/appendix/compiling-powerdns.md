@@ -61,3 +61,15 @@ make has some issues with some PowerDNS Makefile constructs.
 When compiling, make sure that you have `/usr/ccs/bin` in your path.
 Furthermore, with some versions of MySQL, you may have to add `LDFLAGS=-lz`
 before `./configure`.
+
+### OpenIndiana
+Compiles on OpenIndiana Hipster with `developer/gcc-49`. Other required packages
+are:
+
+ * bison
+ * boost
+ * developer/gcc-49
+ * flex
+ * libtool
+ * pkg-config
+ * system/header
