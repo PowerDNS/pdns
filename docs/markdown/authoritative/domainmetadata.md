@@ -38,6 +38,12 @@ See the documentation on [Dynamic DNS update](dnsupdate.md)
 
 ## ALSO-NOTIFY
 When notifying this domain, also notify this nameserver (can occur multiple times).
+The nameserver may have contain an optional port number. e.g.:
+
+```
+insert into domainmetadata (domain_id, kind, content) values (7,'ALSO-NOTIFY','192.0.2.1:5300');
+insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR-FROM','2001:db8:53::1');
+```
 
 ## AXFR-MASTER-TSIG
 Use this named TSIG key to retrieve this zone from its master, see
@@ -73,6 +79,9 @@ records in the zone. However, if you import a presigned zone using `zone2sql` or
 `pdnsutil load-zone` you must explicitly set the zone to be `PRESIGNED`. Note that
 PowerDNS will not be able to correctly serve the zone if the imported data is
 bogus or incomplete. Also see `set-presigned` in [`pdnsutil`](dnssec.md#pdnsutil).
+
+If a zone is presigned, the content of the metadata must be "1" (without the
+quotes). Any other value will not signal prisignedness.
 
 ## PUBLISH-CDNSKEY, PUBLISH-CDS
 Whether to publish CDNSKEY and/or CDS recording defined in [RFC 7344](https://tools.ietf.org/html/rfc7344).
