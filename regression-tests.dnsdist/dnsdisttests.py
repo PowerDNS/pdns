@@ -162,7 +162,7 @@ class DNSDistTest(unittest.TestCase):
         sock.close()
 
     @classmethod
-    def TCPResponder(cls, port, ignoreTrailing=False):
+    def TCPResponder(cls, port, ignoreTrailing=False, multipleResponses=False):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         try:
@@ -182,12 +182,29 @@ class DNSDistTest(unittest.TestCase):
             response = cls._getResponse(request)
 
             if not response:
+                conn.close()
                 continue
 
             wire = response.to_wire()
             conn.send(struct.pack("!H", len(wire)))
             conn.send(wire)
+
+            while multipleResponses:
+                if cls._toResponderQueue.empty():
+                    break
+
+                response = cls._toResponderQueue.get(True, cls._queueTimeout)
+                if not response:
+                    break
+
+                response = copy.copy(response)
+                response.id = request.id
+                wire = response.to_wire()
+                conn.send(struct.pack("!H", len(wire)))
+                conn.send(wire)
+
             conn.close()
+
         sock.close()
 
     @classmethod
@@ -255,6 +272,46 @@ class DNSDistTest(unittest.TestCase):
         if data:
             message = dns.message.from_wire(data)
         return (receivedQuery, message)
+
+    @classmethod
+    def sendTCPQueryWithMultipleResponses(cls, query, responses, useQueue=True, timeout=2.0, rawQuery=False):
+        if useQueue:
+            for response in responses:
+                cls._toResponderQueue.put(response, True, timeout)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        if timeout:
+            sock.settimeout(timeout)
+
+        sock.connect(("127.0.0.1", cls._dnsDistPort))
+        messages = []
+
+        try:
+            if not rawQuery:
+                wire = query.to_wire()
+            else:
+                wire = query
+
+            sock.send(struct.pack("!H", len(wire)))
+            sock.send(wire)
+            while True:
+                data = sock.recv(2)
+                if not data:
+                    break
+                (datalen,) = struct.unpack("!H", data)
+                data = sock.recv(datalen)
+                messages.append(dns.message.from_wire(data))
+
+        except socket.timeout as e:
+            print("Timeout: %s" % (str(e)))
+        except socket.error as e:
+            print("Network error: %s" % (str(e)))
+        finally:
+            sock.close()
+
+        receivedQuery = None
+        if useQueue and not cls._fromResponderQueue.empty():
+            receivedQuery = cls._fromResponderQueue.get(True, timeout)
+        return (receivedQuery, messages)
 
     def setUp(self):
         # This function is called before every tests

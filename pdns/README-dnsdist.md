@@ -987,6 +987,45 @@ If you forgot to write down the provider fingerprint value after generating the 
 Provider fingerprint is: E1D7:2108:9A59:BF8D:F101:16FA:ED5E:EA6A:9F6C:C78F:7F91:AF6B:027E:62F4:69C3:B1AA
 ```
 
+AXFR, IXFR and NOTIFY
+---------------------
+When `dnsdist` is deployed in front of a master authoritative server, it might
+receive AXFR or IXFR queries destined to this master. There are two issues
+that can arise in this kind of setup:
+
+ * If the master is part of a pool of servers, the first SOA query can be directed
+   by `dnsdist` to a different server than the following AXFR/IXFR one. If all servers are not
+   perfectly synchronised at all times, it might to synchronisation issues.
+ * If the master only allows AXFR/IXFR based on the source address of the requestor,
+   it might be confused by the fact that the source address will be the one from
+   the `dnsdist` server.
+
+The first issue can be solved by routing SOA, AXFR and IXFR requests explicitely
+to the master:
+
+```
+> newServer({address="192.168.1.2", name="master", pool={"master", "otherpool"}})
+> addAction(OrRule({QTypeRule(dnsdist.SOA), QTypeRule(dnsdist.AXFR), QTypeRule(dnsdist.IXFR)}), PoolAction("master"))
+```
+
+The second one might requires allowing AXFR/IXFR from the `dnsdist` source address
+and moving the source address check on `dnsdist`'s side:
+
+```
+> addAction(AndRule({OrRule({QTypeRule(dnsdist.AXFR), QTypeRule(dnsdist.IXFR)}), NotRule(makeRule("192.168.1.0/24"))}), RCodeAction(dnsdist.REFUSED))
+```
+
+When `dnsdist` is deployed in front of slaves, however, an issue might arise with NOTIFY
+queries, because the slave will receive a notification coming from the `dnsdist` address,
+and not the master's one. One way to fix this issue is to allow NOTIFY from the `dnsdist`
+address on the slave side (for example with PowerDNS's `trusted-notification-proxy`) and
+move the address check on `dnsdist`'s side:
+
+```
+> addAction(AndRule({OpcodeRule(DNSOpcode.Notify), NotRule(makeRule("192.168.1.0/24"))}), RCodeAction(dnsdist.REFUSED))
+```
+
+
 All functions and types
 -----------------------
 Within `dnsdist` several core object types exist:
