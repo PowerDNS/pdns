@@ -200,8 +200,12 @@ bool DNSName::isPartOf(const DNSName& parent) const
     return false;
 
   // this is slightly complicated since we can't start from the end, since we can't see where a label begins/ends then
-  for(auto us=d_storage.cbegin(); us<d_storage.cend() && std::distance(us,d_storage.cend()) >= static_cast<unsigned int>(parent.d_storage.size()); us+=*us+1) {
-    if (std::distance(us,d_storage.cend()) == static_cast<unsigned int>(parent.d_storage.size())) {
+  for(auto us=d_storage.cbegin(); us<d_storage.cend(); us+=*us+1) {
+    auto distance = std::distance(us,d_storage.cend());
+    if (distance < 0 || static_cast<size_t>(distance) < parent.d_storage.size()) {
+      break;
+    }
+    if (static_cast<size_t>(distance) == parent.d_storage.size()) {
       auto p = parent.d_storage.cbegin();
       for(; us != d_storage.cend(); ++us, ++p) {
         if(dns2_tolower(*p) != dns2_tolower(*us))
