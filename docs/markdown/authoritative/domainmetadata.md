@@ -1,10 +1,16 @@
 # Per zone settings aka Domain Metadata
-Starting with the PowerDNS Authoritative Server 3.0, each served zone can have
-"metadata". Such metadata determines how this zone behaves in certain circumstances.
+Each served zone can have "metadata". Such metadata determines how this zone
+behaves in certain circumstances.
 
 **Warning**: Domain metadata is only available for DNSSEC capable backends! Make
 sure to enable the proper '-dnssec' setting to benefit, and to have performed
 the DNSSEC schema update.
+
+For the BIND backend, this information is either stored in the
+[`bind-dnssec-db`](backend-bind.md) or the hybrid database, depending on your
+settings.
+
+For the implementation in non-sql backends, please review your backend's documentation.
 
 ## ALLOW-AXFR-FROM
 Starting with the PowerDNS Authoritative Server 3.1, per-zone AXFR ACLs can be
