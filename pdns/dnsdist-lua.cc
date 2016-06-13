@@ -1,3 +1,4 @@
+#include <net/if.h>
 #include "dnsdist.hh"
 #include "dnsrulactions.hh"
 #include <thread>
@@ -7,7 +8,6 @@
 #include <fstream>
 #include "dnswriter.hh"
 #include "lock.hh"
-#include <net/if.h>
 
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>

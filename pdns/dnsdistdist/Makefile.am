@@ -40,7 +40,8 @@ EXTRA_DIST=dnslabeltext.rl \
 	   ext/incbin/UNLICENSE \
 	   incfiles \
 	   src_js \
-	   dnsdist.service.in
+	   dnsdist.service.in \
+	   lua_hpp.mk
 
 bin_PROGRAMS = dnsdist
 
@@ -116,6 +117,11 @@ if HAVE_RE2
 dnsdist_LDADD += $(RE2_LIBS)
 endif
 
+if !HAVE_LUA_HPP
+BUILT_SOURCES += lua.hpp
+nodist_dnsdist_SOURCES = lua.hpp
+CLEANFILES += lua.hpp
+endif
 
 if HAVE_PROTOBUF
 if HAVE_PROTOC
@@ -198,4 +204,8 @@ systemdsystemunitdir = $(SYSTEMD_DIR)
 
 systemdsystemunit_DATA = \
 	dnsdist.service
+endif
+
+if !HAVE_LUA_HPP
+include lua_hpp.mk
 endif
