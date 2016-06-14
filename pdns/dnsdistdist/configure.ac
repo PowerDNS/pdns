@@ -48,6 +48,7 @@ AS_IF([test "x$with_luajit" = "xno"], [
 AS_IF([test "x$LUAPC" = "x" -a "x$LUAJITPC" = "x"], [
   AC_MSG_ERROR([Neither Lua nor LuaJIT found, Lua support is not optional])
 ])
+PDNS_CHECK_LUA_HPP
 
 AX_CXX_COMPILE_STDCXX_11([ext], [mandatory])
 
