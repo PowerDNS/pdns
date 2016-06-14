@@ -81,7 +81,7 @@ domains:
       - txt: hello world
       - aaaa: 2001:DB8::12:34DE:3
 # this will result first record being handed out 30% of time
-    swe.eu.service.geo.example.com
+    swe.eu.service.geo.example.com:
       - a:
            content: 192.0.2.3
            weight: 50
