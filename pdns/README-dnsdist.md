@@ -994,8 +994,8 @@ receive AXFR or IXFR queries destined to this master. There are two issues
 that can arise in this kind of setup:
 
  * If the master is part of a pool of servers, the first SOA query can be directed
-   by `dnsdist` to a different server than the following AXFR/IXFR one. If all servers are not
-   perfectly synchronised at all times, it might to synchronisation issues.
+   by `dnsdist` to a different server than the following AXFR/IXFR one, which might
+   fail if the servers are not perfectly synchronised.
  * If the master only allows AXFR/IXFR based on the source address of the requestor,
    it might be confused by the fact that the source address will be the one from
    the `dnsdist` server.
@@ -1008,7 +1008,7 @@ to the master:
 > addAction(OrRule({QTypeRule(dnsdist.SOA), QTypeRule(dnsdist.AXFR), QTypeRule(dnsdist.IXFR)}), PoolAction("master"))
 ```
 
-The second one might requires allowing AXFR/IXFR from the `dnsdist` source address
+The second one might require allowing AXFR/IXFR from the `dnsdist` source address
 and moving the source address check on `dnsdist`'s side:
 
 ```
