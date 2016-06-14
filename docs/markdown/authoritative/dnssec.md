@@ -111,8 +111,8 @@ In order to facilitate interoperability with existing technologies, PowerDNS key
 can be imported and exported in industry standard formats.
 
 When using OpenSSL for ECDSA signatures (this is default), starting from OpenSSL
-1.1.0, [RFC 6979](http://tools.ietf.org/html/rfc6979) deterministic signatures are
-used.
+1.1.0, the algorithm used is resilient against PRNG failure, while not
+strictly conforming to [RFC 6979](http://tools.ietf.org/html/rfc6979).
 
 **Note**: Actual supported algorithms depend on the crypto-libraries PowerDNS was
 compiled against. To check the supported DNSSEC algoritms in your build of PowerDNS,
