@@ -37,3 +37,11 @@ in `/etc/tnsnames.ora`.
 
 ## `goracle-dnssec`
 Enable DNSSEC processing for this backend. Default=no.
+
+# Caveats
+## Password Expiry
+When your password is about to expire, and logging into oracle warns about this,
+the Generic Oracle backend can no longer login, and will a OCILogin2 warning.
+
+To work around this, either update the password in time or remove expiration
+from the account used.
