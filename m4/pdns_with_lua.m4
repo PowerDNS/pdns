@@ -28,10 +28,8 @@ AC_DEFUN([PDNS_WITH_LUA],[
       AS_IF([test "x$with_lua" = "xyes"],
         [AC_MSG_ERROR([cannot find lua])],
         [AC_MSG_RESULT([not found])]
-      )],
-      [AC_MSG_RESULT([$LUAPC])
-       AC_CHECK_HEADER([lua.hpp], [ have_lua_hpp=y ])
-       AM_CONDITIONAL([HAVE_LUA_HPP], [ test x"$have_lua_hpp" = "xy" ])
+      )],[
+        AC_MSG_RESULT([$LUAPC])
       ])
     ])
   AM_CONDITIONAL([LUA], [test "x$with_lua" = "xyes"])
