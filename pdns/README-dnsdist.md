@@ -576,11 +576,13 @@ This is still much in flux, but for now, try:
 For example:
 ```
 > grepq("127.0.0.1/24")
--11.9   127.0.0.1:52599                                 16127 nxdomain.powerdns.com.    A             RD    Question
--11.7   127.0.0.1:52599                                 16127 nxdomain.powerdns.com.    A     175.6    RD    Non-Existent domain
+Time    Client                                          Server       ID    Name                      Type  Lat.   TC RD AA Rcode
+-11.9   127.0.0.1:52599                                              16127 nxdomain.powerdns.com.    A               RD    Question
+-11.7   127.0.0.1:52599                                 127.0.0.1:53 16127 nxdomain.powerdns.com.    A     175.6     RD    Non-Existent domain
 > grepq("powerdns.com")
--38.7   127.0.0.1:52599                                 16127 nxdomain.powerdns.com.    A             RD    Question
--38.6   127.0.0.1:52599                                 16127 nxdomain.powerdns.com.    A     175.6    RD    Non-Existent domain
+Time    Client                                          Server       ID    Name                      Type  Lat.   TC RD AA Rcode
+-38.7   127.0.0.1:52599                                              16127 nxdomain.powerdns.com.    A               RD    Question
+-38.6   127.0.0.1:52599                                 127.0.0.1:53 16127 nxdomain.powerdns.com.    A     175.6     RD    Non-Existent domain
 ```
 
 Live histogram of latency
