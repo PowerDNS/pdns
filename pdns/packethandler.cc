@@ -883,17 +883,19 @@ int PacketHandler::processNotify(DNSPacket *p)
 
 bool validDNSName(const DNSName &name)
 {
-  string::size_type pos, length;
-  char c;
-  for(const auto& s : name.getRawLabels()) {
-    length=s.length();
-    for(pos=0; pos < length; ++pos) {
-      c=s[pos];
-      if(!((c >= 'a' && c <= 'z') ||
-           (c >= 'A' && c <= 'Z') ||
-           (c >= '0' && c <= '9') ||
-           c =='-' || c == '_' || c=='*' || c=='.' || c=='/' || c=='@' || c==' ' || c=='\\' || c==':'))
-        return false;
+  if (!g_8bitDNS) {
+    string::size_type pos, length;
+    char c;
+    for(const auto& s : name.getRawLabels()) {
+      length=s.length();
+      for(pos=0; pos < length; ++pos) {
+        c=s[pos];
+        if(!((c >= 'a' && c <= 'z') ||
+             (c >= 'A' && c <= 'Z') ||
+             (c >= '0' && c <= '9') ||
+             c =='-' || c == '_' || c=='*' || c=='.' || c=='/' || c=='@' || c==' ' || c=='\\' || c==':'))
+          return false;
+      }
     }
   }
   return true;

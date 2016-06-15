@@ -11,6 +11,13 @@ setting. This is mostly useful for [`include-dir`](#include-dir) directive.
 For boolean settings, specifying the name of the setting without a value means
 `yes`.
 
+## `8bit-dns`
+* Allow 8 bit dns queries
+* Default: no
+* Available since: 4.0.0
+
+Allow 8 bit DNS queries.
+
 ## `allow-axfr-ips`
 * IP ranges, separated by commas
 * Default: 127.0.0.0/8,::1
