@@ -22,7 +22,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 m4_define([_BOOST_SERIAL], [m4_translit([
-# serial 25
+# serial 26 PowerDNS modified
 ], [#
 ], [])])
 
@@ -86,9 +86,10 @@ dnl boost-lib-version =
 dnl # 2 "conftest.cc" 3
 dnl                    "1_56"
 dnl
-dnl So get rid of the # lines, and glue the remaining ones together.
+dnl So get rid of the # and empty lines, and glue the remaining ones together.
 (eval "$ac_cpp conftest.$ac_ext") 2>&AS_MESSAGE_LOG_FD |
   grep -v '#' |
+  grep -v '^[[[:space:]]]*$' |
   tr -d '\r' |
   tr -s '\n' ' ' |
   $SED -n -e "$1" >conftest.i 2>&1],
@@ -546,6 +547,13 @@ BOOST_DEFUN([Array],
 BOOST_DEFUN([Asio],
 [AC_REQUIRE([BOOST_SYSTEM])dnl
 BOOST_FIND_HEADER([boost/asio.hpp])])
+
+
+# BOOST_ASSIGN()
+# -------------
+# Look for Boost.Assign
+BOOST_DEFUN([Assign],
+[BOOST_FIND_HEADER([boost/assign.hpp])])
 
 
 # BOOST_BIND()
