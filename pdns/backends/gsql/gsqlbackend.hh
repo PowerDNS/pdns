@@ -220,7 +220,7 @@ public:
   string directBackendCmd(const string &query);
   bool searchRecords(const string &pattern, int maxResults, vector<DNSResourceRecord>& result);
   bool searchComments(const string &pattern, int maxResults, vector<Comment>& result);
-  bool isOurDomain(const DNSName *zone, int domain_id=-1);
+  bool isOurDomain(const DNSName &zone, int domain_id=-1);
 protected:
   string pattern2SQLPattern(const string& pattern);
   void extractRecord(const SSqlStatement::row_t& row, DNSResourceRecord& rr);
