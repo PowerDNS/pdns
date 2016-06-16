@@ -67,28 +67,9 @@ void statNodeRespRing(statvisitor_t visitor)
     root.submit(c.name, c.dh.rcode, c.requestor);
   }
   StatNode::Stat node;
-  try {
-    root.visit([&visitor](const StatNode* node, const StatNode::Stat& self, const StatNode::Stat& children) {
-        visitor(*node, self, children);}
-      , node);  
-  }
-  catch(const LuaContext::ExecutionErrorException& e) {
-    std::cerr << e.what(); 
-    try {
-      std::rethrow_if_nested(e);
-      std::cerr << std::endl;
-    } catch(const std::exception& e) {
-      // e is the exception that was thrown from inside the lambda
-      std::cerr << ": " << e.what() << std::endl;      
-    }
-    catch(const PDNSException& e) {
-      // e is the exception that was thrown from inside the lambda
-      std::cerr << ": " << e.reason << std::endl;      
-    }
-  }
-  catch(std::exception& e) {
-    cerr<<"error: "<<e.what()<<endl;
-  }
+
+  root.visit([&visitor](const StatNode* node, const StatNode::Stat& self, const StatNode::Stat& children) {
+      visitor(*node, self, children);},  node);  
 
 }
 
