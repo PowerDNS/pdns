@@ -1345,10 +1345,13 @@ private:
                     // an exception_ptr was pushed on the stack
                     // rethrowing it with an additional ExecutionErrorException
                     try {
-                        std::rethrow_exception(readTopAndPop<std::exception_ptr>(state, std::move(errorCode)));
+                        if (const auto exp = readTopAndPop<std::exception_ptr>(state, std::move(errorCode))) {
+                            std::rethrow_exception(exp);
+                        }
                     } catch(...) {
                         std::throw_with_nested(ExecutionErrorException{"Exception thrown by a callback function called by Lua"});
                     }
+                    throw ExecutionErrorException{"Unknown Lua error"};
                 }
             }
         }
