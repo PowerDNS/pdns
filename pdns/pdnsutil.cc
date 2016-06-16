@@ -1721,11 +1721,19 @@ bool exportZoneDS(DNSSECKeeper& dk, const DNSName& zone)
     return true;
   }
 
+  bool has_ksks = false;
+  for (const auto &key: keys) {
+    if (key.d_flags == 257) {
+      has_ksks = true;
+      break;
+    }
+  }
+
   sort(keys.begin(),keys.end());
   reverse(keys.begin(),keys.end());
   for(const auto& key : keys) {
-    if (key.d_flags != 257) {
-      // only KSKs are printed
+    if (key.d_flags != 257 || !has_ksks) {
+      // if there are any, print only KSKs
       continue;
     }
 
