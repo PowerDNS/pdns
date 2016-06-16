@@ -99,7 +99,7 @@ extern char bpf_log_buf[LOG_BUF_SIZE];
 		.dst_reg = DST,					\
 		.src_reg = SRC,					\
 		.off   = 0,					\
-		.imm   = (__u32) (IMM) }),			\
+		.imm   = (__s32) (IMM) }),			\
 	((struct bpf_insn) {					\
 		.code  = 0, /* zero is reserved opcode */	\
 		.dst_reg = 0,					\

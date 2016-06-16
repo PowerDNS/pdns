@@ -41,8 +41,10 @@ EXTRA_DIST=dnslabeltext.rl \
 	   incfiles \
 	   src_js \
 	   dnsdist.service.in \
-	   lua_hpp.mk
-	   bpf-filter.ebpf bpf-filter.ebpf.src
+	   lua_hpp.mk \
+	   bpf-filter.main.ebpf \
+	   bpf-filter.qname.ebpf \
+	   bpf-filter.ebpf.src
 
 bin_PROGRAMS = dnsdist
 

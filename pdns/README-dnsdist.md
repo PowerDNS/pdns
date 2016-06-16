@@ -1031,7 +1031,7 @@ eBPF Socket Filtering
 ---------------------
 `dnsdist` can use eBPF socket filtering on recent Linux kernels (4.1+) built with eBPF
 support (`CONFIG_BPF`, `CONFIG_BPF_SYSCALL`, ideally `CONFIG_BPF_JIT`).
-This feature might require an increase of the memory limit associated to socket, via
+This feature might require an increase of the memory limit associated to a socket, via
 `the sysctl` setting `net.core.optmem_max`. When attaching an eBPF program to a socket,
 the size of the program is checked against this limit, and the default value might not be
 enough. Large map sizes might also require an increase of `RLIMIT_MEMLOCK`.
@@ -1044,21 +1044,22 @@ The BPF filter can be used to block incoming queries manually:
 ```
 > bpf = newBPFFilter(1024, 1024, 1024)
 > bpf:attachToAllBinds()
-> bpf:block(ComboAddress("2001:DB8::42"))
+> bpf:block(newCA("2001:DB8::42"))
 > bpf:blockQName(newDNSName("evildomain.com"), 255)
 > bpf:getStats()
 [2001:DB8::42]: 0
 evildomain.com. 255: 0
-> bpf:unblock(ComboAddress("2001:DB8::42"))
+> bpf:unblock(newCA("2001:DB8::42"))
 > bpf:unblockQName(newDNSName("evildomain.com"), 255)
 > bpf:getStats()
 >
 ```
 
 The `blockQName()` method can be used to block queries based on the exact qname supplied,
-and an optional qtype. Using the 255 (ANY) qtype will block all queries for the qname,
-regardless of the qtype. Contrary to source address filtering, qname filtering only works
-over UDP. TCP qname filtering can be done the usual way:
+in a case-insensitive way, and an optional qtype. Using the 255 (ANY) qtype will block all
+queries for the qname, regardless of the qtype.
+Contrary to source address filtering, qname filtering only works over UDP. TCP qname
+filtering can be done the usual way:
 
 ```
 > addAction(AndRule({TCPRule(true), makeRule("evildomain.com")}), DropAction())
@@ -1100,7 +1101,8 @@ end
 This will dynamically block all hosts that exceeded 20 queries/s as measured
 over the past 10 seconds, and the dynamic block will last for 60 seconds.
 
-Arch and Fedora Core 23 are known to support this feature.
+This feature has been successfully tested on Arch Linux, Arch Linux ARM,
+Fedora Core 23 and Ubuntu Xenial.
 
 All functions and types
 -----------------------

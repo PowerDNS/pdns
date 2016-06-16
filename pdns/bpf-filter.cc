@@ -112,54 +112,62 @@ struct QNameValue
 
 BPFFilter::BPFFilter(uint32_t maxV4Addresses, uint32_t maxV6Addresses, uint32_t maxQNames): d_maxV4(maxV4Addresses), d_maxV6(maxV6Addresses), d_maxQNames(maxQNames)
 {
-  d_v4map = bpf_create_map(BPF_MAP_TYPE_HASH, sizeof(uint32_t), sizeof(uint64_t), (int) maxV4Addresses);
-  if (d_v4map == -1) {
+  d_v4map.fd = bpf_create_map(BPF_MAP_TYPE_HASH, sizeof(uint32_t), sizeof(uint64_t), (int) maxV4Addresses);
+  if (d_v4map.fd == -1) {
     throw std::runtime_error("Error creating a BPF v4 map of size " + std::to_string(maxV4Addresses) + ": " + std::string(strerror(errno)));
   }
 
-  d_v6map = bpf_create_map(BPF_MAP_TYPE_HASH, sizeof(struct KeyV6), sizeof(uint64_t), (int) maxV6Addresses);
-  if (d_v6map == -1) {
+  d_v6map.fd = bpf_create_map(BPF_MAP_TYPE_HASH, sizeof(struct KeyV6), sizeof(uint64_t), (int) maxV6Addresses);
+  if (d_v6map.fd == -1) {
     throw std::runtime_error("Error creating a BPF v6 map of size " + std::to_string(maxV6Addresses) + ": " + std::string(strerror(errno)));
   }
 
-  d_qnamemap = bpf_create_map(BPF_MAP_TYPE_HASH, sizeof(struct QNameKey), sizeof(struct QNameValue), (int) maxQNames);
-  if (d_qnamemap == -1) {
+  d_qnamemap.fd = bpf_create_map(BPF_MAP_TYPE_HASH, sizeof(struct QNameKey), sizeof(struct QNameValue), (int) maxQNames);
+  if (d_qnamemap.fd == -1) {
     throw std::runtime_error("Error creating a BPF qname map of size " + std::to_string(maxQNames) + ": " + std::string(strerror(errno)));
   }
-  struct bpf_insn filter[] = {
-#include "bpf-filter.ebpf"
+
+  d_filtermap.fd = bpf_create_map(BPF_MAP_TYPE_PROG_ARRAY, sizeof(uint32_t), sizeof(uint32_t), 1);
+  if (d_filtermap.fd == -1) {
+    throw std::runtime_error("Error creating a BPF program map of size 1: " + std::string(strerror(errno)));
+  }
+
+  struct bpf_insn main_filter[] = {
+#include "bpf-filter.main.ebpf"
   };
 
-  d_filter = bpf_prog_load(BPF_PROG_TYPE_SOCKET_FILTER,
-                           filter,
-                           sizeof(filter),
-                           "GPL",
-                           0);
+  d_mainfilter.fd = bpf_prog_load(BPF_PROG_TYPE_SOCKET_FILTER,
+                                  main_filter,
+                                  sizeof(main_filter),
+                                  "GPL",
+                                  0);
+  if (d_mainfilter.fd == -1) {
+    throw std::runtime_error("Error loading BPF main filter: " + std::string(strerror(errno)));
+  }
 
-  if (d_filter == -1) {
-    throw std::runtime_error("Error loading BPF filter: " + std::string(strerror(errno)));
-  }
-}
+  struct bpf_insn qname_filter[] = {
+#include "bpf-filter.qname.ebpf"
+  };
 
-BPFFilter::~BPFFilter()
-{
-  if (d_filter != -1) {
-    close(d_filter);
+  d_qnamefilter.fd = bpf_prog_load(BPF_PROG_TYPE_SOCKET_FILTER,
+                                   qname_filter,
+                                   sizeof(qname_filter),
+                                   "GPL",
+                                   0);
+  if (d_qnamefilter.fd == -1) {
+    throw std::runtime_error("Error loading BPF qname filter: " + std::string(strerror(errno)));
   }
-  if (d_v4map != -1) {
-    close(d_v4map);
-  }
-  if (d_v6map != -1) {
-    close(d_v6map);
-  }
-  if (d_qnamemap != -1) {
-    close(d_qnamemap);
+
+  uint32_t key = 0;
+  int res = bpf_update_elem(d_filtermap.fd, &key, &d_qnamefilter.fd, BPF_ANY);
+  if (res != 0) {
+    throw std::runtime_error("Error updating BPF filters map: " + std::string(strerror(errno)));
   }
 }
 
 void BPFFilter::addSocket(int sock)
 {
-  int res = setsockopt(sock, SOL_SOCKET, SO_ATTACH_BPF, &d_filter, sizeof(d_filter));
+  int res = setsockopt(sock, SOL_SOCKET, SO_ATTACH_BPF, &d_mainfilter.fd, sizeof(d_mainfilter.fd));
 
   if (res != 0) {
     throw std::runtime_error("Error attaching BPF filter to this socket: " + std::string(strerror(errno)));
@@ -178,12 +186,12 @@ void BPFFilter::block(const ComboAddress& addr)
       throw std::runtime_error("Table full when trying to block " + addr.toString());
     }
 
-    res = bpf_lookup_elem(d_v4map, &key, &counter);
+    res = bpf_lookup_elem(d_v4map.fd, &key, &counter);
     if (res != -1) {
       throw std::runtime_error("Trying to block an already blocked address: " + addr.toString());
     }
 
-    res = bpf_update_elem(d_v4map, &key, &counter, 0);
+    res = bpf_update_elem(d_v4map.fd, &key, &counter, BPF_NOEXIST);
     if (res == 0) {
       d_v4Count++;
     }
@@ -199,12 +207,12 @@ void BPFFilter::block(const ComboAddress& addr)
       throw std::runtime_error("Table full when trying to block " + addr.toString());
     }
 
-    res = bpf_lookup_elem(d_v6map, &key, &counter);
+    res = bpf_lookup_elem(d_v6map.fd, &key, &counter);
     if (res != -1) {
       throw std::runtime_error("Trying to block an already blocked address: " + addr.toString());
     }
 
-    res = bpf_update_elem(d_v6map, key, &counter, 0);
+    res = bpf_update_elem(d_v6map.fd, key, &counter, BPF_NOEXIST);
     if (res == 0) {
       d_v6Count++;
     }
@@ -222,7 +230,7 @@ void BPFFilter::unblock(const ComboAddress& addr)
   int res = 0;
   if (addr.sin4.sin_family == AF_INET) {
     uint32_t key = htonl(addr.sin4.sin_addr.s_addr);
-    res = bpf_delete_elem(d_v4map, &key);
+    res = bpf_delete_elem(d_v4map.fd, &key);
     if (res == 0) {
       d_v4Count--;
     }
@@ -234,7 +242,7 @@ void BPFFilter::unblock(const ComboAddress& addr)
       key[idx] = addr.sin6.sin6_addr.s6_addr[idx];
     }
 
-    res = bpf_delete_elem(d_v6map, key);
+    res = bpf_delete_elem(d_v6map.fd, key);
     if (res == 0) {
       d_v6Count--;
     }
@@ -254,7 +262,7 @@ void BPFFilter::block(const DNSName& qname, uint16_t qtype)
   value.counter = 0;
   value.qtype = qtype;
 
-  std::string keyStr = qname.toDNSString();
+  std::string keyStr = qname.toDNSStringLC();
   if (keyStr.size() > sizeof(key.qname)) {
     throw std::runtime_error("Invalid QName to block " + qname.toString());
   }
@@ -266,12 +274,12 @@ void BPFFilter::block(const DNSName& qname, uint16_t qtype)
       throw std::runtime_error("Table full when trying to block " + qname.toString());
     }
 
-    int res = bpf_lookup_elem(d_qnamemap, &key, &value);
+    int res = bpf_lookup_elem(d_qnamemap.fd, &key, &value);
     if (res != -1) {
       throw std::runtime_error("Trying to block an already blocked qname: " + qname.toString());
     }
 
-    res = bpf_update_elem(d_qnamemap, &key, &value, 0);
+    res = bpf_update_elem(d_qnamemap.fd, &key, &value, BPF_NOEXIST);
     if (res == 0) {
       d_qNamesCount++;
     }
@@ -285,7 +293,7 @@ void BPFFilter::block(const DNSName& qname, uint16_t qtype)
 void BPFFilter::unblock(const DNSName& qname, uint16_t qtype)
 {
   struct QNameKey key = { 0 };
-  std::string keyStr = qname.toDNSString();
+  std::string keyStr = qname.toDNSStringLC();
   (void) qtype;
 
   if (keyStr.size() > sizeof(key.qname)) {
@@ -296,7 +304,7 @@ void BPFFilter::unblock(const DNSName& qname, uint16_t qtype)
   {
     std::unique_lock<std::mutex> lock(d_mutex);
 
-    int res = bpf_delete_elem(d_qnamemap, &key);
+    int res = bpf_delete_elem(d_qnamemap.fd, &key);
     if (res == 0) {
       d_qNamesCount--;
     }
@@ -314,19 +322,19 @@ std::vector<std::pair<ComboAddress, uint64_t> > BPFFilter::getAddrStats()
   uint32_t v4Key = 0;
   uint32_t nextV4Key;
   uint64_t value;
-  int res = bpf_get_next_key(d_v4map, &v4Key, &nextV4Key);
+  int res = bpf_get_next_key(d_v4map.fd, &v4Key, &nextV4Key);
   sockaddr_in v4Addr = { 0 };
   v4Addr.sin_port = 0;
   v4Addr.sin_family = AF_INET;
 
   while (res == 0) {
     v4Key = nextV4Key;
-    if (bpf_lookup_elem(d_v4map, &v4Key, &value) == 0) {
+    if (bpf_lookup_elem(d_v4map.fd, &v4Key, &value) == 0) {
       v4Addr.sin_addr.s_addr = ntohl(v4Key);
       result.push_back(make_pair(ComboAddress(&v4Addr), value));
     }
 
-    res = bpf_get_next_key(d_v4map, &v4Key, &nextV4Key);
+    res = bpf_get_next_key(d_v4map.fd, &v4Key, &nextV4Key);
   }
 
   uint8_t v6Key[16];
@@ -339,17 +347,17 @@ std::vector<std::pair<ComboAddress, uint64_t> > BPFFilter::getAddrStats()
     v6Key[idx] = 0;
   }
 
-  res = bpf_get_next_key(d_v6map, &v6Key, &nextV6Key);
+  res = bpf_get_next_key(d_v6map.fd, &v6Key, &nextV6Key);
 
   while (res == 0) {
-    if (bpf_lookup_elem(d_v6map, &nextV6Key, &value) == 0) {
+    if (bpf_lookup_elem(d_v6map.fd, &nextV6Key, &value) == 0) {
       for (size_t idx = 0; idx < sizeof(nextV6Key); idx++) {
         v6Addr.sin6_addr.s6_addr[idx] = nextV6Key[idx];
       }
       result.push_back(make_pair(ComboAddress(&v6Addr), value));
     }
 
-    res = bpf_get_next_key(d_v6map, &nextV6Key, &nextV6Key);
+    res = bpf_get_next_key(d_v6map.fd, &nextV6Key, &nextV6Key);
   }
   return result;
 }
@@ -363,15 +371,15 @@ std::vector<std::tuple<DNSName, uint16_t, uint64_t> > BPFFilter::getQNameStats()
   struct QNameKey nextKey = {0};
   struct QNameValue value;
 
-  int res = bpf_get_next_key(d_qnamemap, &key, &nextKey);
+  int res = bpf_get_next_key(d_qnamemap.fd, &key, &nextKey);
 
   while (res == 0) {
-    if (bpf_lookup_elem(d_qnamemap, &nextKey, &value) == 0) {
+    if (bpf_lookup_elem(d_qnamemap.fd, &nextKey, &value) == 0) {
       nextKey.qname[sizeof(nextKey.qname) - 1 ] = '\0';
       result.push_back(std::make_tuple(DNSName((const char*) nextKey.qname, sizeof(nextKey.qname), 0, false), value.qtype, value.counter));
     }
 
-    res = bpf_get_next_key(d_qnamemap, &nextKey, &nextKey);
+    res = bpf_get_next_key(d_qnamemap.fd, &nextKey, &nextKey);
   }
   return result;
 }

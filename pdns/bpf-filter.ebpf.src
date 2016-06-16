@@ -59,16 +59,348 @@ struct QNameValue
   u16 qtype;
 };
 
-#define IP_MF 0x2000
-#define IP_OFFSET 0x1FFF
-
 BPF_TABLE("hash", u32, u64, v4filter, 1024);
 BPF_TABLE("hash", struct KeyV6, u64, v6filter, 1024);
 BPF_TABLE("hash", struct QNameKey, struct QNameValue, qnamefilter, 1024);
+BPF_TABLE("prog", int, int, progsarray, 1);
+
+int bpf_qname_filter(struct __sk_buff *skb)
+{
+  uint32_t qname_off = skb->cb[0];
+  ssize_t labellen = skb->cb[3];
+  size_t idx = 2;
+  struct QNameKey qkey = { 0 };
+  u32 val = skb->cb[1];
+  if (val) {
+    qkey.qname[0] = val;
+  }
+  val = skb->cb[2];
+  if (val) {
+    qkey.qname[1] = val;
+  }
+  uint8_t temp;
+
+#define FILL_ONE_KEY                                    \
+  temp = load_byte(skb, qname_off + idx);               \
+  labellen--;                                           \
+  if (labellen < 0) {                                   \
+    labellen = temp;                                    \
+    if (labellen == 0) {                                \
+      goto end;                                         \
+    }                                                   \
+  } else if (temp >= 'A' && temp <= 'Z') {              \
+    temp += ('a' - 'A');                                \
+  }                                                     \
+  qkey.qname[idx] = temp;                               \
+  idx++;
+
+  /* 2 - 52 */
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  /* 52 - 102 */
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  /* 102 - 152 */
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  /* 152 - 202 */
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  /* 202 - 252 */
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  /* 252 - 254 */
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  /* the only value that makes sense for
+     qkey.qname[255] is 0, and it's already
+     there */
+  end:
+
+  {
+    idx++;
+    u16 qtype = load_half(skb, (qname_off + idx));
+
+    struct QNameValue* qvalue = qnamefilter.lookup(&qkey);
+    if (qvalue &&
+      (qvalue->qtype == 255 || qtype == qvalue->qtype)) {
+      __sync_fetch_and_add(&qvalue->counter, 1);
+      return 0;
+    }
+  }
+
+  return 2147483647;
+}
 
 int bpf_dns_filter(struct __sk_buff *skb) {
   u8 ip_proto;
-  u32 proto_off;
+  int proto_off;
   int nh_off = BPF_LL_OFF + ETH_HLEN;
 
   if (skb->protocol == ntohs(0x0800)) {
@@ -82,12 +414,6 @@ int bpf_dns_filter(struct __sk_buff *skb) {
       return 0;
     }
 
-#if 0
-    if (load_half(skb, (nh_off + (int32_t)offsetof(struct iphdr, frag_off)) & (IP_MF | IP_OFFSET))) {
-      /* fragment */
-      return 2147483647;
-    }
-#endif
     ip_proto = load_byte(skb, nh_off + offsetof(struct iphdr, protocol));
     proto_off = nh_off + sizeof(struct iphdr);
   }
@@ -130,320 +456,20 @@ int bpf_dns_filter(struct __sk_buff *skb) {
     return 2147483647;
   }
 
+  struct QNameKey qkey = { 0 };
   int dns_off = proto_off + sizeof(struct udphdr);
   int qname_off = dns_off + sizeof(struct dnsheader);
-  size_t idx = 0;
-  struct QNameKey qkey = { 0 };
-  int32_t labellen = 0;
-  uint8_t temp;
+  skb->cb[0] = (uint32_t) qname_off;
+  u16 qtype;
 
-#define FILL_ONE_KEY                                    \
-  temp = load_byte(skb, qname_off + idx);               \
-  labellen--;                                           \
-  if (labellen < 0) {                                   \
-    labellen = temp;                                    \
-    if (labellen == 0) {                                \
-      goto end;                                         \
-    }                                                   \
-  }                                                     \
-  qkey.qname[idx] = temp;                               \
-  idx++;
+  uint8_t temp = load_byte(skb, qname_off);
+  if (temp > 63) {
+    return 0;
+  }
 
-  /* 0 - 50 */
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-
-  /* 50 - 100 */
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-
-  /* 100 - 150 */
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-
-  /* 150 - 200 */
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-
-  /* 200 - 250 */
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-
-  /* 250 - 255 */
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-  FILL_ONE_KEY
-
-  end:
-
-  {
-    if (idx < 255) {
-      idx++;
-    }
-    u16 qtype = load_half(skb, (qname_off + idx));
-    idx += 2;
+  if (temp == 0) {
+    /* root, nothing else to see */
+    qtype = load_half(skb, (qname_off + 1));
 
     struct QNameValue* qvalue = qnamefilter.lookup(&qkey);
     if (qvalue &&
@@ -451,7 +477,21 @@ int bpf_dns_filter(struct __sk_buff *skb) {
       __sync_fetch_and_add(&qvalue->counter, 1);
       return 0;
     }
+    return 2147483647;
   }
+
+  ssize_t labellen = temp;
+  skb->cb[1] = temp;
+  qkey.qname[0] = temp;
+
+  temp = load_byte(skb, qname_off + 1);
+  labellen--;
+  if (temp >= 'A' && temp <= 'Z') {
+    temp += ('a' - 'A');
+  }
+  skb->cb[2] = temp;
+  skb->cb[3] = labellen;
+  progsarray.call(skb, 0);
 
   return 2147483647;
 }
