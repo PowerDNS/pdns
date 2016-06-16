@@ -1673,6 +1673,86 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone)
   return true;
 }
 
+bool exportZoneDS(DNSSECKeeper& dk, const DNSName& zone)
+{
+  UeberBackend B("default");
+  DomainInfo di;
+
+  static const std::vector<std::pair<unsigned int, std::string> > DS_HASH_NAMES = {
+    std::make_pair(1, "SHA1"),
+    std::make_pair(2, "SHA256"),
+    std::make_pair(3, "GOST R 34.11-94"),
+    std::make_pair(4, "SHA384"),
+  };
+
+  if (!B.getDomainInfo(zone, di)) {
+    cerr << "No such zone in the database" << endl;
+    return false;
+  }
+
+  if (!dk.isSecuredZone(zone)) {
+    cerr << "Zone is not actively secured" << endl;
+    return false;
+  }
+
+  vector<DNSKEYRecordContent> keys;
+
+  if (dk.isPresigned(zone)) {
+    // get us some keys
+    vector<DNSKEYRecordContent> keys;
+    DNSResourceRecord rr;
+
+    B.lookup(QType(QType::DNSKEY), zone);
+    while(B.get(rr)) {
+      if (rr.qtype != QType::DNSKEY) continue;
+      keys.push_back(*dynamic_cast<DNSKEYRecordContent*>(DNSKEYRecordContent::make(rr.getZoneRepresentation())));
+    }
+
+  } else {
+    DNSSECKeeper::keyset_t keyset = dk.getKeys(zone);
+    for (const auto &value: keyset) {
+      keys.push_back(value.first.getDNSKEY());
+    }
+
+  }
+
+  if(keys.empty()) {
+    cerr << "No keys for zone '" << zone.toString() << "'."<<endl;
+    return true;
+  }
+
+  sort(keys.begin(),keys.end());
+  reverse(keys.begin(),keys.end());
+  for(const auto& key : keys) {
+    if (key.d_flags != 257) {
+      // only KSKs are printed
+      continue;
+    }
+
+    for (const auto &id_name_pair: DS_HASH_NAMES) {
+      const unsigned int hash_id = id_name_pair.first;
+      const std::string &name = id_name_pair.second;
+      std::string ds_representation;
+      try {
+        ds_representation = makeDSFromDNSKey(
+          zone,
+          key,
+          hash_id
+        ).getZoneRepresentation();
+      } catch (...) {
+        continue;
+      }
+      cout << zone.toString()
+           << " IN DS "
+           << ds_representation
+           << " ; ( " << name << " digest )"
+           << endl;
+    }
+  }
+
+  return true;
+}
+
 bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
 {
   // parse attribute
@@ -1935,6 +2015,7 @@ try
     cout<<"disable-dnssec ZONE                Deactivate all keys and unset PRESIGNED in ZONE"<<endl;
     cout<<"edit-zone ZONE                     Edit zone contents using $EDITOR"<<endl;
     cout<<"export-zone-dnskey ZONE KEY-ID     Export to stdout the public DNSKEY described"<<endl;
+    cout<<"export-zone-ds ZONE                Export to stdout all KSK DS records for ZONE"<<endl;
     cout<<"export-zone-key ZONE KEY-ID        Export to stdout the private key described"<<endl;
     cout<<"generate-tsig-key NAME ALGORITHM   Generate new TSIG key"<<endl;
     cout<<"generate-zone-key {zsk|ksk} [ALGORITHM] [BITS]"<<endl;
@@ -2142,6 +2223,13 @@ loadMainConfig(g_vm["config-dir"].as<string>());
       return 0;
     }
     if (!showZone(dk, DNSName(cmds[1]))) return 1;
+  }
+  else if(cmds[0] == "export-zone-ds") {
+    if(cmds.size() != 2) {
+      cerr << "Syntax: pdnsutil export-zone-ds ZONE"<<endl;
+      return 0;
+    }
+    if (!exportZoneDS(dk, DNSName(cmds[1]))) return 1;
   }
   else if(cmds[0] == "disable-dnssec") {
     if(cmds.size() != 2) {
