@@ -1567,7 +1567,8 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = false)
   }
 
   if(!dk.isSecuredZone(zone)) {
-    cerr<<"Zone is not actively secured"<<endl;
+    auto &outstream = (exportDS ? cerr : cout);
+    outstream << "Zone is not actively secured" << endl;
     if (exportDS) {
       // it does not make sense to proceed here, and it might be useful
       // for scripts to know that something is odd here
