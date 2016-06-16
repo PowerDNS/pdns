@@ -1517,87 +1517,102 @@ int setZoneKind(const DNSName& zone, const DomainInfo::DomainKind kind)
   return EXIT_SUCCESS;
 }
 
-bool showZone(DNSSECKeeper& dk, const DNSName& zone)
+bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = false)
 {
   UeberBackend B("default");
   DomainInfo di;
-  std::vector<std::string> meta;
 
   if (!B.getDomainInfo(zone, di)){
     cerr << "No such zone in the database" << endl;
     return false;
   }
 
-  cout<<"This is a "<<DomainInfo::getKindString(di.kind)<<" zone"<<endl;
-  if(di.kind == DomainInfo::Master) {
-    cout<<"Last SOA serial number we notified: "<<di.notified_serial<<" ";
-    SOAData sd;
-    if(B.getSOAUncached(zone, sd)) {
-      if(sd.serial == di.notified_serial)
-        cout<< "== ";
+  if (!exportDS) {
+    cout<<"This is a "<<DomainInfo::getKindString(di.kind)<<" zone"<<endl;
+    if(di.kind == DomainInfo::Master) {
+      cout<<"Last SOA serial number we notified: "<<di.notified_serial<<" ";
+      SOAData sd;
+      if(B.getSOAUncached(zone, sd)) {
+        if(sd.serial == di.notified_serial)
+          cout<< "== ";
+        else
+          cout << "!= ";
+        cout<<sd.serial<<" (serial in the database)"<<endl;
+      }
       else
-        cout << "!= ";
-      cout<<sd.serial<<" (serial in the database)"<<endl;
+        cout<<"- no serial found in database"<<endl;
     }
-    else
-      cout<<"- no serial found in database"<<endl;
-  }
-  else if(di.kind == DomainInfo::Slave) {
-    cout<<"Master"<<addS(di.masters)<<": ";
-    for(const auto& m : di.masters)
-      cout<<m<<" ";
-    cout<<endl;
-    struct tm tm;
-    localtime_r(&di.last_check, &tm);
-    char buf[80];
-    if(di.last_check)
-      strftime(buf, sizeof(buf)-1, "%a %F %H:%M:%S", &tm);
-    else
-      strncpy(buf, "Never", sizeof(buf)-1);
-    buf[sizeof(buf)-1] = '\0';
-    cout<<"Last time we got update from master: "<<buf<<endl;
-    SOAData sd;
-    if(B.getSOAUncached(zone, sd)) {
-      cout<<"SOA serial in database: "<<sd.serial<<endl;
-      cout<<"Refresh interval: "<<sd.refresh<<" seconds"<<endl;
+    else if(di.kind == DomainInfo::Slave) {
+      cout<<"Master"<<addS(di.masters)<<": ";
+      for(const auto& m : di.masters)
+        cout<<m<<" ";
+      cout<<endl;
+      struct tm tm;
+      localtime_r(&di.last_check, &tm);
+      char buf[80];
+      if(di.last_check)
+        strftime(buf, sizeof(buf)-1, "%a %F %H:%M:%S", &tm);
+      else
+        strncpy(buf, "Never", sizeof(buf)-1);
+      buf[sizeof(buf)-1] = '\0';
+      cout<<"Last time we got update from master: "<<buf<<endl;
+      SOAData sd;
+      if(B.getSOAUncached(zone, sd)) {
+        cout<<"SOA serial in database: "<<sd.serial<<endl;
+        cout<<"Refresh interval: "<<sd.refresh<<" seconds"<<endl;
+      }
+      else
+        cout<<"No SOA serial found in database"<<endl;
     }
-    else
-      cout<<"No SOA serial found in database"<<endl;
   }
-
 
   if(!dk.isSecuredZone(zone)) {
-    cout<<"Zone is not actively secured"<<endl;
+    cerr<<"Zone is not actively secured"<<endl;
+    if (exportDS) {
+      // it does not make sense to proceed here, and it might be useful
+      // for scripts to know that something is odd here
+      return false;
+    }
   }
+
   NSEC3PARAMRecordContent ns3pr;
   bool narrow;
   bool haveNSEC3=dk.getNSEC3PARAM(zone, &ns3pr, &narrow);
-  
+
   DNSSECKeeper::keyset_t keyset=dk.getKeys(zone);
-  if (B.getDomainMetadata(zone, "TSIG-ALLOW-AXFR", meta) && meta.size() > 0) {
-     cout << "Zone has following allowed TSIG key(s): " << boost::join(meta, ",") << endl;
-  }
 
-  meta.clear();
-  if (B.getDomainMetadata(zone, "AXFR-MASTER-TSIG", meta) && meta.size() > 0) {
-     cout << "Zone uses following TSIG key(s): " << boost::join(meta, ",") << endl;
-  }
-  
-  std::map<std::string, std::vector<std::string> > metamap;
-  if(B.getAllDomainMetadata(zone, metamap)) {
-    cout<<"Metadata items: ";
-    if(metamap.empty())
-      cout<<"None";
-    cout<<endl;
+  if (!exportDS) {
+    std::vector<std::string> meta;
 
-    for(const auto& m : metamap) {
-      for(const auto i : m.second)
-        cout << '\t' << m.first<<'\t' << i <<endl;
+    if (B.getDomainMetadata(zone, "TSIG-ALLOW-AXFR", meta) && meta.size() > 0) {
+      cout << "Zone has following allowed TSIG key(s): " << boost::join(meta, ",") << endl;
     }
+
+    meta.clear();
+    if (B.getDomainMetadata(zone, "AXFR-MASTER-TSIG", meta) && meta.size() > 0) {
+      cout << "Zone uses following TSIG key(s): " << boost::join(meta, ",") << endl;
+    }
+
+    std::map<std::string, std::vector<std::string> > metamap;
+    if(B.getAllDomainMetadata(zone, metamap)) {
+      cout<<"Metadata items: ";
+      if(metamap.empty())
+        cout<<"None";
+      cout<<endl;
+
+      for(const auto& m : metamap) {
+        for(const auto i : m.second)
+          cout << '\t' << m.first<<'\t' << i <<endl;
+      }
+    }
+
   }
 
   if (dk.isPresigned(zone)) {
-    cout <<"Zone is presigned"<<endl;
+    if (!exportDS) {
+      cout <<"Zone is presigned"<<endl;
+    }
+
     // get us some keys
     vector<DNSKEYRecordContent> keys;
     DNSResourceRecord rr;
@@ -1613,11 +1628,14 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone)
       return true;
     }
 
-    if(!haveNSEC3)
-      cout<<"Zone has NSEC semantics"<<endl;
-    else
-      cout<<"Zone has " << (narrow ? "NARROW " : "") <<"hashed NSEC3 semantics, configuration: "<<ns3pr.getZoneRepresentation()<<endl;
-    cout << "keys: "<<endl;
+    if (!exportDS) {
+      if(!haveNSEC3)
+        cout<<"Zone has NSEC semantics"<<endl;
+      else
+        cout<<"Zone has " << (narrow ? "NARROW " : "") <<"hashed NSEC3 semantics, configuration: "<<ns3pr.getZoneRepresentation()<<endl;
+      cout << "keys: "<<endl;
+    }
+
     sort(keys.begin(),keys.end());
     reverse(keys.begin(),keys.end());
     bool shown=false;
@@ -1630,21 +1648,26 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone)
         bits=engine->getBits();
       }
       catch(std::exception& e) {
-        cout<<"Could not process key to extract metadata: "<<e.what()<<endl;
+        cerr<<"Could not process key to extract metadata: "<<e.what()<<endl;
       }
-      cout << (key.d_flags == 257 ? "KSK" : "ZSK") << ", tag = " << key.getTag() << ", algo = "<<(int)key.d_algorithm << ", bits = " << bits << endl;
-      cout << "DNSKEY = " <<zone.toString()<<" IN DNSKEY "<< key.getZoneRepresentation() << "; ( " + algname + " ) " <<endl;
+      if (!exportDS) {
+        cout << (key.d_flags == 257 ? "KSK" : "ZSK") << ", tag = " << key.getTag() << ", algo = "<<(int)key.d_algorithm << ", bits = " << bits << endl;
+        cout << "DNSKEY = " <<zone.toString()<<" IN DNSKEY "<< key.getZoneRepresentation() << "; ( " + algname + " ) " <<endl;
+      }
+
       if (shown) continue;
       shown=true;
-      cout<<"DS = "<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, key, 1).getZoneRepresentation() << " ; ( SHA1 digest )" << endl;
-      cout<<"DS = "<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, key, 2).getZoneRepresentation() << " ; ( SHA256 digest )" << endl;
+
+      const std::string prefix(exportDS ? "DS = " : "");
+      cout<<prefix<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, key, 1).getZoneRepresentation() << " ; ( SHA1 digest )" << endl;
+      cout<<prefix<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, key, 2).getZoneRepresentation() << " ; ( SHA256 digest )" << endl;
       try {
-        cout<<"DS = "<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, key, 3).getZoneRepresentation() << " ; ( GOST R 34.11-94 digest )" << endl;
+        cout<<prefix<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, key, 3).getZoneRepresentation() << " ; ( GOST R 34.11-94 digest )" << endl;
       }
       catch(...)
       {}
       try {
-        cout<<"DS = "<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, key, 4).getZoneRepresentation() << " ; ( SHA-384 digest )" << endl;
+        cout<<prefix<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, key, 4).getZoneRepresentation() << " ; ( SHA-384 digest )" << endl;
       }
       catch(...)
       {}
@@ -1653,43 +1676,50 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone)
   else if(keyset.empty())  {
     cerr << "No keys for zone '"<<zone<<"'."<<endl;
   }
-  else {  
-    if(!haveNSEC3) 
-      cout<<"Zone has NSEC semantics"<<endl;
-    else
-      cout<<"Zone has " << (narrow ? "NARROW " : "") <<"hashed NSEC3 semantics, configuration: "<<ns3pr.getZoneRepresentation()<<endl;
-  
-    cout << "keys: "<<endl;
+  else {
+    if (!exportDS) {
+      if(!haveNSEC3)
+        cout<<"Zone has NSEC semantics"<<endl;
+      else
+        cout<<"Zone has " << (narrow ? "NARROW " : "") <<"hashed NSEC3 semantics, configuration: "<<ns3pr.getZoneRepresentation()<<endl;
+      cout << "keys: "<<endl;
+    }
+
     for(DNSSECKeeper::keyset_t::value_type value :  keyset) {
       string algname = DNSSECKeeper::algorithm2name(value.first.d_algorithm);
-      cout<<"ID = "<<value.second.id<<" ("<<DNSSECKeeper::keyTypeToString(value.second.keyType)<<")";
+      if (!exportDS) {
+        cout<<"ID = "<<value.second.id<<" ("<<DNSSECKeeper::keyTypeToString(value.second.keyType)<<")";
+      }
       if (value.first.getKey()->getBits() < 1) {
-        cout<<" <key missing or defunct>" <<endl;
+        cerr<<" <key missing or defunct>" <<endl;
         continue;
       }
-      cout<<", flags = "<<std::to_string(value.first.d_flags);
-      cout<<", tag = "<<value.first.getDNSKEY().getTag();
-      cout<<", algo = "<<(int)value.first.d_algorithm<<", bits = "<<value.first.getKey()->getBits()<<"\t"<<((int)value.second.active == 1 ? "  A" : "Ina")<<"ctive ( " + algname + " ) "<<endl;
-      if(value.second.keyType == DNSSECKeeper::KSK || value.second.keyType == DNSSECKeeper::CSK || ::arg().mustDo("direct-dnskey"))
-        cout<<DNSSECKeeper::keyTypeToString(value.second.keyType)<<" DNSKEY = "<<zone.toString()<<" IN DNSKEY "<< value.first.getDNSKEY().getZoneRepresentation() << " ; ( "  + algname + " )" << endl;
-      if(value.second.keyType == DNSSECKeeper::KSK || value.second.keyType == DNSSECKeeper::CSK) {
-        cout<<"DS = "<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, value.first.getDNSKEY(), 1).getZoneRepresentation() << " ; ( SHA1 digest )" << endl;
-        cout<<"DS = "<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, value.first.getDNSKEY(), 2).getZoneRepresentation() << " ; ( SHA256 digest )" << endl;
+      if (!exportDS) {
+        cout<<", flags = "<<std::to_string(value.first.d_flags);
+        cout<<", tag = "<<value.first.getDNSKEY().getTag();
+        cout<<", algo = "<<(int)value.first.d_algorithm<<", bits = "<<value.first.getKey()->getBits()<<"\t"<<((int)value.second.active == 1 ? "  A" : "Ina")<<"ctive ( " + algname + " ) "<<endl;
+      }
+
+      if (!exportDS) {
+        if (value.second.keyType == DNSSECKeeper::KSK || value.second.keyType == DNSSECKeeper::CSK || ::arg().mustDo("direct-dnskey")) {
+          cout<<DNSSECKeeper::keyTypeToString(value.second.keyType)<<" DNSKEY = "<<zone.toString()<<" IN DNSKEY "<< value.first.getDNSKEY().getZoneRepresentation() << " ; ( "  + algname + " )" << endl;
+        }
+      }
+      if (value.second.keyType == DNSSECKeeper::KSK || value.second.keyType == DNSSECKeeper::CSK) {
+        const auto &key = value.first.getDNSKEY();
+        const std::string prefix(exportDS ? "DS = " : "");
+        cout<<prefix<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, key, 1).getZoneRepresentation() << " ; ( SHA1 digest )" << endl;
+        cout<<prefix<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, key, 2).getZoneRepresentation() << " ; ( SHA256 digest )" << endl;
         try {
-          string output=makeDSFromDNSKey(zone, value.first.getDNSKEY(), 3).getZoneRepresentation();
-          cout<<"DS = "<<zone.toString()<<" IN DS "<< output << " ; ( GOST R 34.11-94 digest )" << endl;
+          cout<<prefix<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, key, 3).getZoneRepresentation() << " ; ( GOST R 34.11-94 digest )" << endl;
         }
         catch(...)
-        {
-        }
+        {}
         try {
-          string output=makeDSFromDNSKey(zone, value.first.getDNSKEY(), 4).getZoneRepresentation();
-          cout<<"DS = "<<zone.toString()<<" IN DS "<< output << " ; ( SHA-384 digest )" << endl;
+          cout<<prefix<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, key, 4).getZoneRepresentation() << " ; ( SHA-384 digest )" << endl;
         }
         catch(...)
-        {
-        }
-        cout<<endl;  
+        {}
       }
     }
   }
@@ -1960,6 +1990,7 @@ try
     cout<<"disable-dnssec ZONE                Deactivate all keys and unset PRESIGNED in ZONE"<<endl;
     cout<<"edit-zone ZONE                     Edit zone contents using $EDITOR"<<endl;
     cout<<"export-zone-dnskey ZONE KEY-ID     Export to stdout the public DNSKEY described"<<endl;
+    cout<<"export-zone-ds ZONE                Export to stdout all KSK DS records for ZONE"<<endl;
     cout<<"export-zone-key ZONE KEY-ID        Export to stdout the private key described"<<endl;
     cout<<"generate-tsig-key NAME ALGORITHM   Generate new TSIG key"<<endl;
     cout<<"generate-zone-key {zsk|ksk} [ALGORITHM] [BITS]"<<endl;
@@ -2167,6 +2198,13 @@ loadMainConfig(g_vm["config-dir"].as<string>());
       return 0;
     }
     if (!showZone(dk, DNSName(cmds[1]))) return 1;
+  }
+  else if(cmds[0] == "export-zone-ds") {
+    if(cmds.size() != 2) {
+      cerr << "Syntax: pdnsutil export-zone-ds ZONE"<<endl;
+      return 0;
+    }
+    if (!showZone(dk, DNSName(cmds[1]), true)) return 1;
   }
   else if(cmds[0] == "disable-dnssec") {
     if(cmds.size() != 2) {
