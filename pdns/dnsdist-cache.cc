@@ -126,7 +126,7 @@ bool DNSDistPacketCache::get(const DNSQuestion& dq, uint16_t consumed, uint16_t 
 
     const CacheValue& value = it->second;
     if (value.validity < now) {
-      if ((value.validity + allowExpired) < now) {
+      if ((now - value.validity) >= static_cast<time_t>(allowExpired)) {
         d_misses++;
         return false;
       }
