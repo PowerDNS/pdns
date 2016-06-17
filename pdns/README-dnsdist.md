@@ -1032,7 +1032,7 @@ eBPF Socket Filtering
 `dnsdist` can use eBPF socket filtering on recent Linux kernels (4.1+) built with eBPF
 support (`CONFIG_BPF`, `CONFIG_BPF_SYSCALL`, ideally `CONFIG_BPF_JIT`).
 This feature might require an increase of the memory limit associated to a socket, via
-`the sysctl` setting `net.core.optmem_max`. When attaching an eBPF program to a socket,
+the `sysctl` setting `net.core.optmem_max`. When attaching an eBPF program to a socket,
 the size of the program is checked against this limit, and the default value might not be
 enough. Large map sizes might also require an increase of `RLIMIT_MEMLOCK`.
 
@@ -1065,16 +1065,16 @@ filtering can be done the usual way:
 > addAction(AndRule({TCPRule(true), makeRule("evildomain.com")}), DropAction())
 ```
 
-The `attachToAllBinds()` method attach the filter to every existing binds at runtime,
-but it's also possible to define a default BPF filter at configuration time, so that
-it's automatically attached to every binds:
+The `attachToAllBinds()` method attaches the filter to every existing bind at runtime,
+but it's also possible to define a default BPF filter at configuration time, so
+it's automatically attached to every bind:
 
 ```
 bpf = newBPFFilter(1024, 1024, 1024)
 setDefaultBPFFilter(bpf)
 ```
 
-Finally, it's also possible to attach it to only specific binds at runtime:
+Finally, it's also possible to attach it to specific binds at runtime:
 
 ```
 > bpf = newBPFFilter(1024, 1024, 1024)
@@ -1137,7 +1137,7 @@ Here are all functions:
     * `setACL({netmask, netmask})`: replace the ACL set with these netmasks. Use `setACL({})` to reset the list, meaning no one can use us
     * `showACL()`: show our ACL set
  * ClientState related:
-    * function `showBinds()`: list every local binds
+    * function `showBinds()`: list every local bind
     * function `getBind(n)`: return the corresponding `ClientState` object
     * member `attachFilter(BPFFilter)`: attach a BPF Filter to this bind
     * member `toString()`: print the address this bind listens to
@@ -1373,8 +1373,8 @@ instantiate a server with additional parameters
     * `showDNSCryptBinds():`: display the currently configured DNSCrypt binds
  * BPFFilter related:
     * function `newBPFFilter(maxV4, maxV6, maxQNames)`: return a new eBPF socket filter with a maximum of maxV4 IPv4, maxV6 IPv6 and maxQNames qname entries in the block tables
-    * function `setDefaultBPFFilter(BPFFilter)`: when used at configuration time, the corresponding BPFFilter will be attached to every binds
-    * member `attachToAllBinds()`: attach this filter to every binds already defined. This is the run-time equivalent of `setDefaultBPFFilter(bpf)`
+    * function `setDefaultBPFFilter(BPFFilter)`: when used at configuration time, the corresponding BPFFilter will be attached to every bind
+    * member `attachToAllBinds()`: attach this filter to every bind already defined. This is the run-time equivalent of `setDefaultBPFFilter(bpf)`
     * member `block(ComboAddress)`: block this address
     * member `blockQName(DNSName [, qtype=255])`: block queries for this exact qname. An optional qtype can be used, default to 255
     * member `getStats()`: print the block tables
