@@ -74,11 +74,16 @@ class PDNSPBConnHandler(object):
             if response.HasField('appliedPolicy') and response.appliedPolicy:
                 policystr = ', Applied policy: ' + response.appliedPolicy
 
+            tagsstr = ''
+            if response.tags:
+                tagsstr = ', Tags: ' + ','.join(response.tags)
+
             rrscount = len(response.rrs)
 
-            print("- Response Code: %d, RRs: %d%s" % (response.rcode,
+            print("- Response Code: %d, RRs: %d%s%s" % (response.rcode,
                                                       rrscount,
-                                                      policystr))
+                                                      policystr,
+                                                      tagsstr))
 
             for rr in response.rrs:
                 rrclass = 1
