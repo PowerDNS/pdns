@@ -7,9 +7,8 @@ import struct
 import sys
 import threading
 
-# you need to get the dnsmessage.proto file from the PDNS
-# repository, then run:
-# protoc -I=. --python_out=. dnsmessage.proto
+# run: protoc -I=../pdns/ --python_out=. ../pdns/dnsmessage.proto
+# to generate dnsmessage_pb2
 import dnsmessage_pb2
 
 class PDNSPBConnHandler(object):
