@@ -297,6 +297,7 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const DNSName &target)
           if((*i)->getAuth(p, sd, shorter)) {
             DLOG(L<<Logger::Error<<"got: "<<sd->qname<<endl);
             j->first = sd->qname.wirelength();
+            j->second = *sd;
             if(sd->qname == shorter) {
               break;
             }
