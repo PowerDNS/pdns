@@ -324,6 +324,7 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const string &target, int 
           if((*i)->getAuth(p, sd, shorter)) {
             DLOG(L<<Logger::Error<<"got: "<<sd->qname<<endl);
             j->first = sd->qname.length();
+            j->second = *sd;
             if(sd->qname.length() == shorter.length()) {
               break;
             }
