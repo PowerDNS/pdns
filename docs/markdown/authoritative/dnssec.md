@@ -442,7 +442,7 @@ The quoted part is the content of the NSEC3PARAM records, as defined in [RFC 515
 
 * Hash algorithm, should always be `1` (SHA1)
 * Flags, set to `1` for [NSEC3 Opt-out](https://tools.ietf.org/html/rfc5155#section-6), this best set as `0`
-* Number of iterations of the hash function, read [RFC 5155, Section 10.3](https://tools.ietf.org/html/rfc5155#section-6) for recommendations
+* Number of iterations of the hash function, read [RFC 5155, Section 10.3](https://tools.ietf.org/html/rfc5155#section-10.3) for recommendations
 * Salt (in hexadecimal) to apply during hashing
 
 To convert a zone from NSEC3 to NSEC operations, run:
