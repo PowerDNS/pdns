@@ -83,6 +83,7 @@ The DNSQuestion object contains at least the following fields:
 * qname - DNS native version of the name this query is for
 * qtype - type this query is for, can be compared against pdns.A, pdns.AAAA etc
 * rcode - current DNS Result Code, which can be overridden, including to several magical values
+* isTcp - whether the query have been received over TCP or UDP
 * remoteaddr - address of the requestor
 * localaddr - address this query was received on
 * variable - a boolean which, if set, indicates the recursor should not packet cache this answer. Honored even when returning 'false'! Important when providing answers that vary over time or based on sender details.

@@ -1060,7 +1060,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
 	    if(s_maxtotusec && d_totUsec > s_maxtotusec)
 	      throw ImmediateServFailException("Too much time waiting for "+qname.toString()+"|"+qtype.getName()+", timeouts: "+std::to_string(d_timeouts) +", throttles: "+std::to_string(d_throttledqueries) + ", queries: "+std::to_string(d_outqueries)+", "+std::to_string(d_totUsec/1000)+"msec");
 
-	    if(d_pdl && d_pdl->preoutquery(*remoteIP, d_requestor, qname, qtype, lwr.d_records, resolveret)) {
+	    if(d_pdl && d_pdl->preoutquery(*remoteIP, d_requestor, qname, qtype, doTCP, lwr.d_records, resolveret)) {
 	      LOG(prefix<<qname.toString()<<": query handled by Lua"<<endl);
 	    }
 	    else {
