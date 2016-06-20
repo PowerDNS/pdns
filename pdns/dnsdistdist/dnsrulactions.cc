@@ -3,7 +3,7 @@
 
 using namespace std;
 
-TeeAction::TeeAction(const ComboAddress& ca) : d_remote(ca)
+TeeAction::TeeAction(const ComboAddress& ca, bool addECS) : d_remote(ca), d_addECS(addECS)
 {
   d_fd=SSocket(d_remote.sin4.sin_family, SOCK_DGRAM, 0);
   SConnect(d_fd, d_remote);
@@ -23,8 +23,32 @@ DNSAction::Action TeeAction::operator()(DNSQuestion* dq, string* ruleresult) con
   if(dq->tcp) 
     d_tcpdrops++;
   else {
+    ssize_t res;
     d_queries++;
-    if(send(d_fd, (char*)dq->dh, dq->len, 0) <= 0) 
+
+    if(d_addECS) {
+      std::string query;
+      std::string larger;
+      uint16_t len = dq->len;
+      bool ednsAdded = false;
+      bool ecsAdded = false;
+      query.reserve(dq->size);
+      query.assign((char*) dq->dh, len);
+
+      handleEDNSClientSubnet((char*) query.c_str(), query.size(), dq->qname->wirelength(), &len, larger, &ednsAdded, &ecsAdded, *dq->remote);
+
+      if (larger.empty()) {
+        res = send(d_fd, query.c_str(), len, 0);
+      }
+      else {
+        res = send(d_fd, larger.c_str(), larger.length(), 0);
+      }
+    }
+    else {
+      res = send(d_fd, (char*)dq->dh, dq->len, 0);
+    }
+
+    if (res <= 0)
       d_senderrors++;
   }
   return DNSAction::Action::None;

@@ -557,7 +557,7 @@ private:
 class TeeAction : public DNSAction
 {
 public:
-  TeeAction(const ComboAddress& ca);
+  TeeAction(const ComboAddress& ca, bool addECS=false);
   ~TeeAction();
   DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override;
   string toString() const override;
@@ -581,6 +581,7 @@ private:
   mutable unsigned long d_tcpdrops{0};
   unsigned long d_otherrcode{0};
   std::atomic<bool> d_pleaseQuit{false};
+  bool d_addECS{false};
 };
 
 

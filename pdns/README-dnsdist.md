@@ -1159,7 +1159,7 @@ instantiate a server with additional parameters
     * `SpoofAction(ip[, ip])` or `SpoofAction({ip, ip, ..}): forge a response with the specified IPv4 (for an A query) or IPv6 (for an AAAA). If you specify multiple addresses, all that match the query type (A, AAAA or ANY) will get spoofed in
     * `SpoofCNAMEAction(cname)`: forge a response with the specified CNAME value
     * `TCAction()`: create answer to query with TC and RD bits set, to move to TCP/IP
-    * `TeeAction(remote)`: send copy of query to remote, keep stats on responses
+    * `TeeAction(remote[, addECS])`: send copy of query to remote, keep stats on responses. If `addECS` is set to `true`, EDNS Client Subnet information will be added to the query
  * Specialist rule generators
     * `addAnyTCRule()`: generate TC=1 answers to ANY queries received over UDP, moving them to TCP
     * `addDomainSpoof(domain, ip[, ip6])` or `addDomainSpoof(domain, {IP, IP, IP..})`: generate answers for A/AAAA/ANY queries using the ip parameters
