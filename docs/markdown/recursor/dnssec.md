@@ -26,7 +26,7 @@ However, when the query has the AD-bit set, the recursor will try to validate th
 data and set the AD-bit in the response when the data is validated and send a
 SERVFAIL on a bogus answer.
 
-## `validate-log`
+## `log-fail`
 In this mode , the recursor will attempt to validate all data it retrieves from
 authoritative servers, regardless of the client's DNSSEC desires, and will log the
 validation result. This mode can be used to determine the extra load and amount
@@ -42,7 +42,7 @@ client's request.
 The descriptions above are a bit terse, here's a table describing different scenarios
 with regards to the `dnssec` mode.
 
-|    | `off` | `process-no-validate` | `process` | `validate-log` | `validate` |
+|    | `off` | `process-no-validate` | `process` | `log-fail` | `validate` |
 |:------------|:-------|:-------------|:-------------|:-------------|:-------------|
 |Perform validation| No | No | Only on +AD from client | Always (logs result) | Always |
 |SERVFAIL on bogus| No | No | Only on +AD from client | Only on +AD from client | Always |
