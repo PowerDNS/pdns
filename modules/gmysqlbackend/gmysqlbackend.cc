@@ -83,7 +83,7 @@ public:
 
     declare(suffix, "get-order-first-query", "DNSSEC Ordering Query, first", "select ordername from records where domain_id=? and disabled=0 and ordername is not null order by 1 asc limit 1");
     declare(suffix, "get-order-before-query", "DNSSEC Ordering Query, before", "select ordername, name from records where ordername <= ? and domain_id=? and disabled=0 and ordername is not null order by 1 desc limit 1");
-    declare(suffix, "get-order-after-query", "DNSSEC Ordering Query, after", "select min(ordername) from records where ordername > ? and domain_id=? and disabled=0 and ordername is not null");
+    declare(suffix, "get-order-after-query", "DNSSEC Ordering Query, after", "select ordername from records where ordername > ? and domain_id=? and disabled=0 and ordername is not null order by 1 asc limit 1");
     declare(suffix, "get-order-last-query", "DNSSEC Ordering Query, last", "select ordername, name from records where ordername != '' and domain_id=? and disabled=0 and ordername is not null order by 1 desc limit 1");
 
     declare(suffix, "update-ordername-and-auth-query", "DNSSEC update ordername and auth for a qname query", "update records set ordername=?,auth=? where domain_id=? and name=? and disabled=0");
