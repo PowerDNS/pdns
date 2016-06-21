@@ -138,6 +138,7 @@ would require packet parsing, which is what we are trying to prevent with `ipfil
 The `gettag` function is invoked when `dq.tag` is called on a dq object or when
 the Recursor attempts to discover in which packetcache an answer is available.
 This function must return an integer, which is the tag number of the packetcache.
+In addition to this integer, this function can return a table of policy tags.
 
 The tagged packetcache can e.g. be used to answer queries from cache that have
 e.g. been filtered for certain IPs (this logic should be implemented in the

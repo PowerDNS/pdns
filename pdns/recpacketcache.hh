@@ -12,6 +12,15 @@
 #include <boost/tuple/tuple_comparison.hpp>
 #include <boost/multi_index/sequenced_index.hpp>
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+#ifdef HAVE_PROTOBUF
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include "dnsmessage.pb.h"
+#endif
+
 
 using namespace ::boost::multi_index;
 
@@ -26,6 +35,10 @@ public:
   RecursorPacketCache();
   bool getResponsePacket(unsigned int tag, const std::string& queryPacket, time_t now, std::string* responsePacket, uint32_t* age);
   void insertResponsePacket(unsigned int tag, const DNSName& qname, uint16_t qtype, const std::string& queryPacket, const std::string& responsePacket, time_t now, uint32_t ttd);
+#ifdef HAVE_PROTOBUF
+  bool getResponsePacket(unsigned int tag, const std::string& queryPacket, time_t now, std::string* responsePacket, uint32_t* age, PBDNSMessage* protobufMessage);
+  void insertResponsePacket(unsigned int tag, const DNSName& qname, uint16_t qtype, const std::string& queryPacket, const std::string& responsePacket, time_t now, uint32_t ttd, const PBDNSMessage* protobufMessage);
+#endif
   void doPruneTo(unsigned int maxSize=250000);
   uint64_t doDump(int fd);
   int doWipePacketCache(const DNSName& name, uint16_t qtype=0xffff, bool subtree=false);
@@ -45,6 +58,9 @@ private:
     DNSName d_name;
     uint16_t d_type;
     mutable std::string d_packet; // "I know what I am doing"
+#ifdef HAVE_PROTOBUF
+    mutable PBDNSMessage d_protobufMessage;
+#endif
     uint32_t d_qhash;
     uint32_t d_tag;
     inline bool operator<(const struct Entry& rhs) const;
