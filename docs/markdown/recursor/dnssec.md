@@ -49,6 +49,10 @@ with regards to the `dnssec` mode.
 |AD in response on authenticated data| Never | Never | Only on +AD from client | Only on +AD from client | Only on +AD from client |
 |RRSIGs/NSECs in answer on +DO from client| No | Yes | Yes | Yes | Yes |
 
+**Note**: the `dig` tool sets the AD-bit in the query. This might lead to unexpected
+query results when testing. Set `+noad` on the `dig` commandline when this is the
+case.
+
 # Trust Anchor Management
 In the PowerDNS Recursor, both positive and negative trust anchors can be configured
 during startup (from a persistent configuration file) and at runtime (which is
