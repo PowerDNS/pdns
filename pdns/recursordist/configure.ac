@@ -174,19 +174,22 @@ AC_MSG_NOTICE([CPPFLAGS: $CPPFLAGS])
 AC_MSG_NOTICE([CXXFLAGS: $CXXFLAGS])
 AC_MSG_NOTICE([LDFLAGS: $LDFLAGS])
 AC_MSG_NOTICE([LIBS: $LIBS])
-AC_MSG_NOTICE([])
 AC_MSG_NOTICE([BOOST_CPPFLAGS: $BOOST_CPPFLAGS])
 AC_MSG_NOTICE([])
+AC_MSG_NOTICE([Features enabled])
+AC_MSG_NOTICE([----------------])
 AS_IF([test "x$LUAPC" != "x"],
-  [AC_MSG_NOTICE([Lua support: $LUAPC])],
-  [AC_MSG_NOTICE([Lua support: no])]
-)
+  [AC_MSG_NOTICE([Lua: $LUAPC])],
+  [AS_IF([test "x$LUAJITPC" != "x"],
+    [AC_MSG_NOTICE([LuaJit: $LUAJITPC])],
+    [AC_MSG_NOTICE([Lua/LuaJit: no])])
+])
 AS_IF([test "x$PROTOBUF_LIBS" != "x" -a x"$PROTOC" != "x"],
-  [AC_MSG_NOTICE([Protobuf support: yes])],
-  [AC_MSG_NOTICE([Protobuf support: no])]
+  [AC_MSG_NOTICE([Protobuf: yes])],
+  [AC_MSG_NOTICE([Protobuf: no])]
 )
-AS_IF([test "x$systemd" != "x"],
-  [AC_MSG_NOTICE([systemd support: yes])],
-  [AC_MSG_NOTICE([systemd support: no])]
+AS_IF([test "x$systemd" != "xn"],
+  [AC_MSG_NOTICE([systemd: yes])],
+  [AC_MSG_NOTICE([systemd: no])]
 )
 AC_MSG_NOTICE([])
