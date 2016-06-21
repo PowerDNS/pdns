@@ -45,7 +45,6 @@ override_dh_auto_configure:
 		--with-pgsql-includes=`pg_config --includedir` \
 		--enable-botan1.10 \
 		--enable-tools \
-		--without-protobuf \
 		--enable-unit-tests \
 		$(ENABLE_SYSTEMD)
 

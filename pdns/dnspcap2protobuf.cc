@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 
@@ -75,13 +78,32 @@ catch(std::exception& e)
 {
   cerr<<"Error parsing response records: "<<e.what()<<endl;
 }
+
+void usage()
+{
+  cerr<<"This program reads DNS queries and responses from a PCAP file and stores them into our protobuf format."<<endl;
+  cerr<<"Usage: dnspcap2protobuf PCAPFILE OUTFILE"<<endl;
+}
+
 int main(int argc, char **argv)
 {
+  for(int n=1 ; n < argc; ++n) {
+    if ((string) argv[n] == "--help") {
+      usage();
+      return EXIT_SUCCESS;
+    }
+
+    if ((string) argv[n] == "--version") {
+      cerr<<"dnspcap2protobuf "<<VERSION<<endl;
+      return EXIT_SUCCESS;
+    }
+  }
+
   if(argc < 3) {
-    cerr<<"This program reads DNS queries and responses from a PCAP file and stores them into our protobuf format."<<endl;
-    cerr<<"Usage: "<<argv[0]<<" <PCAP file> <out file>"<<endl;
+    usage();
     exit(EXIT_FAILURE);
   }
+
 
   PcapPacketReader pr(argv[1]);
 

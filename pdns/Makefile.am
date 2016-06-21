@@ -1046,7 +1046,7 @@ dnsdemog_LDADD = \
 
 if HAVE_PROTOBUF
 if HAVE_PROTOC
-EXTRA_PROGRAMS += dnspcap2protobuf
+bin_PROGRAMS += dnspcap2protobuf
 
 dnsmessage.pb.cc: dnsmessage.proto
 	$(AM_V_GEN)$(PROTOC) --cpp_out=./ $<
@@ -1163,11 +1163,13 @@ testrunner_LDADD = \
 	$(LIBDL)
 
 if HAVE_PROTOBUF
+if HAVE_PROTOC
 nodist_testrunner_SOURCES = \
 	dnsmessage.pb.cc dnsmessage.pb.h
 
 testrunner_LDADD += \
 	$(PROTOBUF_LIBS)
+endif
 endif
 
 if PKCS11

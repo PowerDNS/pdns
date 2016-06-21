@@ -531,6 +531,8 @@ BuildRequires: boost-devel
 BuildRequires: lua-devel
 BuildRequires: bison
 BuildRequires: openssl-devel
+BuildRequires: protobuf-devel
+BuildRequires: protobuf-compiler
 Provides: powerdns = %{version}-%{release}
 %global backends %{backends} bind
 
@@ -652,7 +654,6 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
 	--with-lua \
 	--with-dynmodules='%{backends} random' \
 	--enable-tools \
-	--without-protobuf \
 	--enable-unit-tests \
 	--enable-systemd
 
@@ -724,6 +725,7 @@ exit 0
 %{_bindir}/calidns
 %{_bindir}/dnsbulktest
 %{_bindir}/dnsgram
+%{_bindir}/dnspcap2protobuf
 %{_bindir}/dnsreplay
 %{_bindir}/dnsscan
 %{_bindir}/dnsscope
@@ -739,6 +741,7 @@ exit 0
 %{_mandir}/man1/calidns.1.gz
 %{_mandir}/man1/dnsbulktest.1.gz
 %{_mandir}/man1/dnsgram.1.gz
+%{_mandir}/man1/dnspcap2protobuf.1.gz
 %{_mandir}/man1/dnsreplay.1.gz
 %{_mandir}/man1/dnsscan.1.gz
 %{_mandir}/man1/dnsscope.1.gz
