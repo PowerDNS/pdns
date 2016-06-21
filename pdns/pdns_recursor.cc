@@ -955,7 +955,7 @@ void startDoResolve(void *p)
           pw.getHeader()->ad=0;
         }
         else if(state == Bogus) {
-          if(sr.doLog()) {
+          if(sr.doLog() || g_dnssecmode == DNSSECMode::ValidateForLog) {
             L<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<" for "<<dc->d_remote.toStringWithPort()<<" validates as Bogus"<<endl;
           }
 
