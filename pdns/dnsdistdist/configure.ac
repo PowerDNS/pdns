@@ -88,3 +88,53 @@ AC_CONFIG_FILES([Makefile
 	ext/yahttp/yahttp/Makefile])
 
 AC_OUTPUT
+
+AC_MSG_NOTICE([])
+AC_MSG_NOTICE([Configuration summary])
+AC_MSG_NOTICE([=====================])
+AC_MSG_NOTICE([])
+AS_IF([test "x$ac_configure_args" != "x"],
+  [summary_conf_opts=$ac_configure_args],
+  [summary_conf_opts="(no options)"]
+)
+AC_MSG_NOTICE([dnsdist configured with: $summary_conf_opts])
+AC_MSG_NOTICE([])
+AC_MSG_NOTICE([CC: $CC])
+AC_MSG_NOTICE([CXX: $CXX])
+AC_MSG_NOTICE([LD: $LD])
+AC_MSG_NOTICE([CFLAGS: $CFLAGS])
+AC_MSG_NOTICE([CPPFLAGS: $CPPFLAGS])
+AC_MSG_NOTICE([CXXFLAGS: $CXXFLAGS])
+AC_MSG_NOTICE([LDFLAGS: $LDFLAGS])
+AC_MSG_NOTICE([LIBS: $LIBS])
+AC_MSG_NOTICE([BOOST_CPPFLAGS: $BOOST_CPPFLAGS])
+AC_MSG_NOTICE([])
+AC_MSG_NOTICE([Features enabled])
+AC_MSG_NOTICE([----------------])
+AS_IF([test "x$LUAPC" != "x"],
+  [AC_MSG_NOTICE([Lua: $LUAPC])],
+  [AS_IF([test "x$LUAJITPC" != "x"],
+    [AC_MSG_NOTICE([LuaJit: $LUAJITPC])],
+    [AC_MSG_NOTICE([Lua/LuaJit: no])])
+])
+AS_IF([test "x$PROTOBUF_LIBS" != "x" -a x"$PROTOC" != "x"],
+  [AC_MSG_NOTICE([Protobuf: yes])],
+  [AC_MSG_NOTICE([Protobuf: no])]
+)
+AS_IF([test "x$systemd" != "xn"],
+  [AC_MSG_NOTICE([systemd: yes])],
+  [AC_MSG_NOTICE([systemd: no])]
+)
+AS_IF([test "x$LIBSODIUM_LIBS" != "x"],
+  [AC_MSG_NOTICE([libsodium: yes])],
+  [AC_MSG_NOTICE([libsodium: no])]
+)
+AS_IF([test "x$enable_dnscrypt" != "xno"],
+  [AC_MSG_NOTICE([DNSCrypt: yes])],
+  [AC_MSG_NOTICE([DNSCrypt: no])]
+)
+AS_IF([test "x$RE2_LIBS" != "x"],
+  [AC_MSG_NOTICE([re2: yes])],
+  [AC_MSG_NOTICE([re2: no])]
+)
+AC_MSG_NOTICE([])
