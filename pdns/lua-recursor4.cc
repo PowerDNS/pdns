@@ -44,7 +44,7 @@ bool RecursorLua4::ipfilter(const ComboAddress& remote, const ComboAddress& loca
   return false;
 }
 
-int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype)
+int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags)
 {
   return 0;
 }
@@ -480,10 +480,21 @@ bool RecursorLua4::ipfilter(const ComboAddress& remote, const ComboAddress& loca
   return false; // don't block
 }
 
-int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype)
+int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags)
 {
-  if(d_gettag)
-    return d_gettag(remote, ednssubnet, local, qname, qtype);
+  if(d_gettag) {
+    auto ret = d_gettag(remote, ednssubnet, local, qname, qtype);
+
+    if (policyTags) {
+      const auto& tags = std::get<1>(ret);
+      if (tags) {
+        for (const auto& tag : *tags) {
+          policyTags->push_back(tag.second);
+        }
+      }
+    }
+    return std::get<0>(ret);
+  }
   return 0;
 }
 

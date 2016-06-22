@@ -30,9 +30,9 @@ public:
   bool preoutquery(const ComboAddress& ns, const ComboAddress& requestor, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, int& ret);
   bool ipfilter(const ComboAddress& remote, const ComboAddress& local, const struct dnsheader&);
 
-  int gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& query, uint16_t qtype);
+  int gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& query, uint16_t qtype, std::vector<std::string>* policyTags);
 
-  typedef std::function<int(ComboAddress, Netmask, ComboAddress, DNSName, uint16_t)> gettag_t;
+  typedef std::function<std::tuple<int,boost::optional<std::unordered_map<int,string> > >(ComboAddress, Netmask, ComboAddress, DNSName, uint16_t)> gettag_t;
   gettag_t d_gettag; // public so you can query if we have this hooked
 
 private:
