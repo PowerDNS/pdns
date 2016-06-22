@@ -1162,6 +1162,14 @@ testrunner_LDADD = \
 	$(RT_LIBS) \
 	$(LIBDL)
 
+if HAVE_PROTOBUF
+nodist_testrunner_SOURCES = \
+	dnsmessage.pb.cc dnsmessage.pb.h
+
+testrunner_LDADD += \
+	$(PROTOBUF_LIBS)
+endif
+
 if PKCS11
 testrunner_SOURCES += pkcs11signers.cc pkcs11signers.hh
 testrunner_LDADD += $(P11KIT1_LIBS)
