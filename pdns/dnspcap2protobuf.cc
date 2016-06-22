@@ -11,7 +11,7 @@
 #include "statbag.hh"
 StatBag S;
 
-static void addRRs(const char* packet, const size_t len, PBDNSMessage_DNSResponse& response)
+static void addRRs(const char* packet, const size_t len, PBDNSMessage_DNSResponse* response)
 try
 {
   if (len < sizeof(struct dnsheader))
@@ -60,7 +60,7 @@ try
 
     pr.xfrBlob(blob);
     if (ah.d_type == QType::A || ah.d_type == QType::AAAA) {
-      PBDNSMessage_DNSResponse_DNSRR* rr = response.add_rrs();
+      PBDNSMessage_DNSResponse_DNSRR* rr = response->add_rrs();
       if (rr) {
         rr->set_name(rrname.toString());
         rr->set_type(ah.d_type);
@@ -145,8 +145,9 @@ int main(int argc, char **argv)
     }
     message.set_inbytes(pr.d_len);
 
-    PBDNSMessage_DNSQuestion question;
-    PBDNSMessage_DNSResponse response;
+    PBDNSMessage_DNSQuestion* question = message.mutable_question();
+    PBDNSMessage_DNSResponse* response = message.mutable_response();
+
     if (!dh->qr) {
       boost::uuids::uuid uniqueId = uuidGenerator();
       ids[dh->id] = uniqueId;
@@ -162,27 +163,20 @@ int main(int argc, char **argv)
         std::copy(it->second.begin(), it->second.end(), messageId->begin());
       }
 
-      response.set_rcode(dh->rcode);
+      response->set_rcode(dh->rcode);
       addRRs((const char*) dh, pr.d_len, response);
-      message.set_allocated_response(&response);
     }
 
-    question.set_qname(qname.toString());
-    question.set_qtype(qtype);
-    question.set_qclass(qclass);
-    message.set_allocated_question(&question);
+    question->set_qname(qname.toString());
+    question->set_qtype(qtype);
+    question->set_qclass(qclass);
+
     std::string str;
     //cerr<<message.DebugString()<<endl;
     message.SerializeToString(&str);
     uint16_t mlen = htons(str.length());
     fwrite(&mlen, 1, sizeof(mlen), fp);
     fwrite(str.c_str(), 1, str.length(), fp);
-    if (!dh->qr) {
-      message.release_question();
-    }
-    else {
-      message.release_response();
-    }
   }
   fclose(fp);
 }
