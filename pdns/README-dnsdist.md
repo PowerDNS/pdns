@@ -1061,8 +1061,8 @@ Here are all functions:
     * `setACL({netmask, netmask})`: replace the ACL set with these netmasks. Use `setACL({})` to reset the list, meaning no one can use us
     * `showACL()`: show our ACL set
  * Network related:
-    * `addLocal(netmask, [false], [false])`: add to addresses we listen on. Second optional parameter sets TCP/IP or not. Third optional parameter sets SO_REUSEPORT when available.
-    * `setLocal(netmask, [false], [false])`: reset list of addresses we listen on to this address. Second optional parameter sets TCP/IP or not. Third optional parameter sets SO_REUSEPORT when available.
+    * `addLocal(netmask, [true], [false])`: add to addresses we listen on. Second optional parameter sets TCP/IP or not. Third optional parameter sets SO_REUSEPORT when available.
+    * `setLocal(netmask, [true], [false])`: reset list of addresses we listen on to this address. Second optional parameter sets TCP/IP or not. Third optional parameter sets SO_REUSEPORT when available.
  * Blocking related:
     * `addDomainBlock(domain)`: block queries within this domain
  * Carbon/Graphite/Metronome statistics related:
