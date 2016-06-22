@@ -52,6 +52,9 @@ vState validateRecords(const vector<DNSRecord>& recs)
         if(state == NTA)
           return Insecure;
         LOG("! state = "<<vStates[state]<<", now have "<<keys.size()<<" keys"<<endl);
+        for(const auto& k : keys) {
+          LOG("Key: "<<k.getZoneRepresentation()<< " {tag="<<k.getTag()<<"}"<<endl);
+        }
         // this sort of charges on and 'state' ends up as the last thing to have been checked
         // maybe not the right idea
       }
@@ -90,9 +93,9 @@ vState validateRecords(const vector<DNSRecord>& recs)
 #endif
   //  cerr<<"Input to validate: "<<endl;
   for(const auto& csp : cspmap) {
-    LOG(csp.first.first<<"|"<<csp.first.second<<" with "<<csp.second.signatures.size()<<" signatures"<<endl);
+    LOG(csp.first.first<<"|"<<DNSRecordContent::NumberToType(csp.first.second)<<" with "<<csp.second.signatures.size()<<" signatures"<<endl);
     if(!csp.second.signatures.empty() && !validrrsets.count(csp.first)) {
-      LOG("Lacks signature, must have one"<<endl);
+      LOG("Lacks signature, must have one, signatures: "<<csp.second.signatures.size()<<", valid rrsets: "<<validrrsets.count(csp.first)<<endl);
       return Bogus;
     }
   }
