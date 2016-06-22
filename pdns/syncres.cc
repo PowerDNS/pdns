@@ -988,7 +988,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
       }
       else {
         if(!tns->empty()) {
-          LOG(prefix<<qname.toString()<<": Trying to resolve NS '"<<tns->toLogString()<< "' ("<<1+tns-rnameservers.begin()<<"/"<<(unsigned int)rnameservers.size()<<")"<<endl);
+          LOG(prefix<<qname.toString()<<": Trying to resolve NS '"<<*tns<< "' ("<<1+tns-rnameservers.begin()<<"/"<<(unsigned int)rnameservers.size()<<")"<<endl);
         }
         //
 	// XXX NEED TO HANDLE OTHER POLICY KINDS HERE!
@@ -1013,12 +1013,12 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
         }
 
         if(remoteIPs.empty()) {
-          LOG(prefix<<qname.toString()<<": Failed to get IP for NS "<<tns->toLogString()<<", trying next if available"<<endl);
+          LOG(prefix<<qname.toString()<<": Failed to get IP for NS "<<*tns<<", trying next if available"<<endl);
           flawedNSSet=true;
           continue;
         }
         else {
-          LOG(prefix<<qname.toString()<<": Resolved '"+auth.toString()+"' NS "<<tns->toLogString()<<" to: ");
+          LOG(prefix<<qname.toString()<<": Resolved '"+auth.toString()+"' NS "<<*tns<<" to: ");
           for(remoteIP = remoteIPs.begin(); remoteIP != remoteIPs.end(); ++remoteIP) {
             if(remoteIP != remoteIPs.begin()) {
               LOG(", ");
@@ -1110,7 +1110,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
 //	    if(d_timeouts + 0.5*d_throttledqueries > 6.0 && d_timeouts > 2) throw ImmediateServFailException("Too much work resolving "+qname+"|"+qtype.getName()+", timeouts: "+std::to_string(d_timeouts) +", throttles: "+std::to_string(d_throttledqueries));
 
             if(lwr.d_rcode==RCode::ServFail || lwr.d_rcode==RCode::Refused) {
-              LOG(prefix<<qname.toString()<<": "<<tns->toLogString()<<" ("<<remoteIP->toString()<<") returned a "<< (lwr.d_rcode==RCode::ServFail ? "ServFail" : "Refused") << ", trying sibling IP or NS"<<endl);
+              LOG(prefix<<qname.toString()<<": "<<*tns<<" ("<<remoteIP->toString()<<") returned a "<< (lwr.d_rcode==RCode::ServFail ? "ServFail" : "Refused") << ", trying sibling IP or NS"<<endl);
               t_sstorage->throttle.throttle(d_now.tv_sec,boost::make_tuple(*remoteIP, qname, qtype.getCode()),60,3); // servfail or refused
               continue;
             }
@@ -1120,7 +1120,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
 
             break;  // this IP address worked!
           wasLame:; // well, it didn't
-            LOG(prefix<<qname.toString()<<": status=NS "<<tns->toLogString()<<" ("<< remoteIP->toString() <<") is lame for '"<<auth.toString()<<"', trying sibling IP or NS"<<endl);
+            LOG(prefix<<qname.toString()<<": status=NS "<<*tns<<" ("<< remoteIP->toString() <<") is lame for '"<<auth.toString()<<"', trying sibling IP or NS"<<endl);
             t_sstorage->throttle.throttle(d_now.tv_sec, boost::make_tuple(*remoteIP, qname, qtype.getCode()), 60, 100); // lame
           }
         }
@@ -1137,7 +1137,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
           LOG(prefix<<qname.toString()<<": truncated bit set, over TCP?"<<endl);
           return RCode::ServFail;
         }
-        LOG(prefix<<qname.toString()<<": Got "<<(unsigned int)lwr.d_records.size()<<" answers from "<<tns->toLogString()<<" ("<< remoteIP->toString() <<"), rcode="<<lwr.d_rcode<<" ("<<RCode::to_s(lwr.d_rcode)<<"), aa="<<lwr.d_aabit<<", in "<<lwr.d_usec/1000<<"ms"<<endl);
+        LOG(prefix<<qname.toString()<<": Got "<<(unsigned int)lwr.d_records.size()<<" answers from "<<*tns<<" ("<< remoteIP->toString() <<"), rcode="<<lwr.d_rcode<<" ("<<RCode::to_s(lwr.d_rcode)<<"), aa="<<lwr.d_aabit<<", in "<<lwr.d_usec/1000<<"ms"<<endl);
 
         /*  // for you IPv6 fanatics :-)
         if(remoteIP->sin4.sin_family==AF_INET6)

@@ -264,7 +264,7 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const DNSName &target)
       cstat = cacheHas(d_question,d_answers);
 
       if(cstat == 1 && !d_answers.empty() && d_cache_ttl) {
-        DLOG(L<<Logger::Error<<"has pos cache entry: "<<choppedOff.toLogString()<<endl);
+        DLOG(L<<Logger::Error<<"has pos cache entry: "<<choppedOff<<endl);
         fillSOAData(d_answers[0].content, *sd);
         sd->domain_id = d_answers[0].domain_id;
         sd->ttl = d_answers[0].ttl;
@@ -272,7 +272,7 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const DNSName &target)
         sd->qname = choppedOff;
         goto found;
       } else if(cstat == 0 && d_negcache_ttl) {
-        DLOG(L<<Logger::Error<<"has neg cache entry: "<<choppedOff.toLogString()<<endl);
+        DLOG(L<<Logger::Error<<"has neg cache entry: "<<choppedOff<<endl);
         continue;
       }
     }
@@ -292,10 +292,10 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const DNSName &target)
         DLOG(L<<Logger::Error<<"backend: "<<i-backends.begin()<<", qname: "<<choppedOff<<endl);
 
         if(j->first < choppedOff.wirelength()) {
-          DLOG(L<<Logger::Error<<"skip this backend, we already know the 'higher' match: "<<j->second.qname.toLogString()<<endl);
+          DLOG(L<<Logger::Error<<"skip this backend, we already know the 'higher' match: "<<j->second.qname<<endl);
           continue;
         } else if(j->first == choppedOff.wirelength()) {
-          DLOG(L<<Logger::Error<<"use 'higher' match: "<<j->second.qname.toLogString()<<endl);
+          DLOG(L<<Logger::Error<<"use 'higher' match: "<<j->second.qname<<endl);
           *sd = j->second;
           break;
         } else {
@@ -308,7 +308,7 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const DNSName &target)
               break;
             }
           } else {
-            DLOG(L<<Logger::Error<<"no match for: "<<choppedOff.toLogString()<<endl);
+            DLOG(L<<Logger::Error<<"no match for: "<<choppedOff<<endl);
           }
         }
       }
@@ -316,13 +316,13 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const DNSName &target)
       // Add to cache
       if(i == backends.end()) {
         if(d_negcache_ttl) {
-          DLOG(L<<Logger::Error<<"add neg cache entry:"<<choppedOff.toLogString()<<endl);
+          DLOG(L<<Logger::Error<<"add neg cache entry:"<<choppedOff<<endl);
           d_question.qname=choppedOff;
           addNegCache(d_question);
         }
         continue;
       } else if(d_cache_ttl) {
-        DLOG(L<<Logger::Error<<"add pos cache entry: "<<sd->qname.toLogString()<<endl);
+        DLOG(L<<Logger::Error<<"add pos cache entry: "<<sd->qname<<endl);
         d_question.qtype = QType::SOA;
         d_question.qname = sd->qname;
         d_question.zoneId = -1;
@@ -341,10 +341,10 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const DNSName &target)
 
 found:
     if(found == (p->qtype == QType::DS)){
-      DLOG(L<<Logger::Error<<"found: "<<sd->qname.toLogString()<<endl);
+      DLOG(L<<Logger::Error<<"found: "<<sd->qname<<endl);
       return true;
     } else {
-      DLOG(L<<Logger::Error<<"chasing next: "<<sd->qname.toLogString()<<endl);
+      DLOG(L<<Logger::Error<<"chasing next: "<<sd->qname<<endl);
       found = true;
     }
 
