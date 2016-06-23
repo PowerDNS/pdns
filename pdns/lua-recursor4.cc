@@ -512,6 +512,9 @@ bool RecursorLua4::genhook(luacall_t& func, const ComboAddress& remote,const Com
   dq->tag = tag;
   dq->ednsOptions = ednsOpts;
   dq->isTcp = isTcp;
+  if (policyTags) {
+    dq->policyTags = *policyTags;
+  }
   bool handled=func(dq);
   if(variable) *variable |= dq->variable; // could still be set to indicate this *name* is variable, even if not 'handled'
 
