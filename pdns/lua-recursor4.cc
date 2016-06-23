@@ -343,18 +343,22 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   d_lw->registerFunction("getRecords", &DNSQuestion::getRecords);
   d_lw->registerFunction("setRecords", &DNSQuestion::setRecords);
 
-  d_lw->registerFunction<void(DNSQuestion::*)(const std::string&)>("addPolicyTag", [](DNSQuestion& dq, const std::string& tag) { dq.policyTags.push_back(tag); });
+  d_lw->registerFunction<void(DNSQuestion::*)(const std::string&)>("addPolicyTag", [](DNSQuestion& dq, const std::string& tag) { if (dq.policyTags) { dq.policyTags->push_back(tag); } });
   d_lw->registerFunction<void(DNSQuestion::*)(const std::vector<std::pair<int, std::string> >&)>("setPolicyTags", [](DNSQuestion& dq, const std::vector<std::pair<int, std::string> >& tags) {
-      dq.policyTags.clear();
-      for (const auto& tag : tags) {
-        dq.policyTags.push_back(tag.second);
+      if (dq.policyTags) {
+        dq.policyTags->clear();
+        for (const auto& tag : tags) {
+          dq.policyTags->push_back(tag.second);
+        }
       }
     });
   d_lw->registerFunction<std::vector<std::pair<int, std::string> >(DNSQuestion::*)()>("getPolicyTags", [](const DNSQuestion& dq) {
       std::vector<std::pair<int, std::string> > ret;
-      int count = 1;
-      for (const auto& tag : dq.policyTags) {
-        ret.push_back({count++, tag});
+      if (dq.policyTags) {
+        int count = 1;
+        for (const auto& tag : *dq.policyTags) {
+          ret.push_back({count++, tag});
+        }
       }
       return ret;
     });
@@ -512,15 +516,9 @@ bool RecursorLua4::genhook(luacall_t& func, const ComboAddress& remote,const Com
   dq->tag = tag;
   dq->ednsOptions = ednsOpts;
   dq->isTcp = isTcp;
-  if (policyTags) {
-    dq->policyTags = *policyTags;
-  }
+  dq->policyTags = policyTags;
   bool handled=func(dq);
   if(variable) *variable |= dq->variable; // could still be set to indicate this *name* is variable, even if not 'handled'
-
-  if (policyTags) { // same
-    *policyTags = dq->policyTags;
-  }
 
   if(handled) {
 loop:;
