@@ -4,8 +4,8 @@ MAKE=${MAKE:-make}
 
 export PDNS=${PDNS:-${PWD}/../pdns/pdns_server}
 export PDNS2=${PDNS2:-${PWD}/../pdns/pdns_server}
-export PDNSRECURSOR=${PDNSRECURSOR:-${PWD}/../pdns_recursor}
-export RECCONTROL=${RECCONTROL:-${PWD}/../rec_control}
+export PDNSRECURSOR=${PDNSRECURSOR:-${PWD}/../pdns/recursordist/pdns_recursor}
+export RECCONTROL=${RECCONTROL:-${PWD}/../pdns/recursordist/rec_control}
 export SDIG=${SDIG:-${PWD}/../pdns/sdig}
 export NOTIFY=${NOTIFY:-${PWD}/../pdns/pdns_notify}
 export NSEC3DIG=${NSEC3DIG:-${PWD}/../pdns/nsec3dig}
