@@ -1169,6 +1169,8 @@ nodist_testrunner_SOURCES = \
 
 testrunner_LDADD += \
 	$(PROTOBUF_LIBS)
+
+recpacketcache.$(OBJEXT): dnsmessage.pb.cc
 endif
 endif
 
@@ -1214,6 +1216,8 @@ bind-dnssec.schema.sqlite3.sql.h: bind-dnssec.schema.sqlite3.sql
 # for bindparser.h/hh
 .hh.h:
 	cp $< $@
+
+bindlexer.$(OBJEXT): bindparser.h
 
 curl_verbose = $(curl_verbose_$(V))
 curl_verbose_ = $(curl_verbose_$(AM_DEFAULT_VERBOSITY))
