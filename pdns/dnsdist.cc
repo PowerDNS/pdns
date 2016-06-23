@@ -1552,7 +1552,24 @@ try
       g_verbose=true;
       break;
     case 'V':
-      cout<<"dnsdist "<<VERSION<<endl;
+      cout<<"dnsdist "<<VERSION<<" ("<<LUA_VERSION<<")"<<endl;
+      cout<<"Enabled features: ";
+#ifdef HAVE_DNSCRYPT
+      cout<<"dnscrypt ";
+#endif
+#ifdef HAVE_LIBSODIUM
+      cout<<"libsodium ";
+#endif
+#ifdef HAVE_PROTOBUF
+      cout<<"protobuf ";
+#endif
+#ifdef HAVE_RE2
+      cout<<"re2 ";
+#endif
+#ifdef HAVE_SYSTEMD
+      cout<<"systemd";
+#endif
+      cout<<endl;
       exit(EXIT_SUCCESS);
       break;
     }
