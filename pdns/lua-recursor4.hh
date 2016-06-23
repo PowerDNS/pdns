@@ -67,7 +67,7 @@ private:
     DNSName followupName;
 
     string appliedPolicy;
-    std::vector<std::string> policyTags;
+    std::vector<std::string>* policyTags;
     bool isTcp;
   };
 
