@@ -365,7 +365,8 @@ string getMessageForRRSET(const DNSName& qname, const RRSIGRecordContent& rrc, v
     toHash.append((char*)&tmp, 2);
     uint32_t ttl=htonl(rrc.d_originalttl);
     toHash.append((char*)&ttl, 4);
-    string rdata=add->serialize(DNSName("."), true, true); 
+    // for NSEC signatures, we should not lowercase the rdata section
+    string rdata=add->serialize(DNSName("."), true, (add->getType() == QType::NSEC) ? false : true);  // RFC 6840, 5.1
     tmp=htons(rdata.length());
     toHash.append((char*)&tmp, 2);
     toHash.append(rdata);

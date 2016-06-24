@@ -79,7 +79,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
 
   string ping;
   bool weWantEDNSSubnet=false;
-  if(EDNS0Level && !doTCP) {
+  if(EDNS0Level) { 
     DNSPacketWriter::optvect_t opts;
     if(srcmask) {
       EDNSSubnetOpts eo;
