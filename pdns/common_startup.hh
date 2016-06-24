@@ -52,5 +52,6 @@ extern void mainthread();
 extern int isGuarded( char ** );
 void* carbonDumpThread(void*);
 extern bool g_anyToTcp;
+extern bool g_8bitDNS;
 
 #endif // COMMON_STARTUP_HH
