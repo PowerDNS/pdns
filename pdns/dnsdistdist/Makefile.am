@@ -41,7 +41,10 @@ EXTRA_DIST=dnslabeltext.rl \
 	   incfiles \
 	   src_js \
 	   dnsdist.service.in \
-	   lua_hpp.mk
+	   lua_hpp.mk \
+	   bpf-filter.main.ebpf \
+	   bpf-filter.qname.ebpf \
+	   bpf-filter.ebpf.src
 
 bin_PROGRAMS = dnsdist
 
@@ -59,9 +62,11 @@ dnsdist-web.$(OBJEXT): htmlfiles.h
 
 dnsdist_SOURCES = \
 	base64.hh \
+	bpf-filter.cc bpf-filter.hh \
 	dns.cc dns.hh \
 	dnscrypt.cc dnscrypt.hh \
 	dnsdist.cc dnsdist.hh \
+	dnsdist-dynbpf.cc dnsdist-dynbpf.hh \
 	dnsdist-cache.cc dnsdist-cache.hh \
 	dnsdist-carbon.cc \
 	dnsdist-console.cc \
@@ -98,7 +103,8 @@ dnsdist_SOURCES = \
 	ext/luawrapper/include/LuaContext.hpp \
 	ext/json11/json11.cpp \
 	ext/json11/json11.hpp \
-	ext/incbin/incbin.h
+	ext/incbin/incbin.h \
+	ext/libbpf/libbpf.h
 
 dnsdist_LDFLAGS = \
 	$(AM_LDFLAGS) \

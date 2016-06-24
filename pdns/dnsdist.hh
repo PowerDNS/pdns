@@ -14,6 +14,8 @@
 #include "dnscrypt.hh"
 #include "dnsdist-cache.hh"
 #include "gettime.hh"
+#include "dnsdist-dynbpf.hh"
+#include "bpf-filter.hh"
 
 #ifdef HAVE_PROTOBUF
 #include <boost/uuid/uuid.hpp>
@@ -593,6 +595,10 @@ extern uint16_t g_ECSSourcePrefixV6;
 extern bool g_ECSOverride;
 extern bool g_verboseHealthChecks;
 extern uint32_t g_staleCacheEntriesTTL;
+
+#ifdef HAVE_EBPF
+extern shared_ptr<BPFFilter> g_defaultBPFFilter;
+#endif /* HAVE_EBPF */
 
 struct dnsheader;
 
