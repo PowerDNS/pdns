@@ -913,8 +913,9 @@ public:
   DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
   {
 #ifdef HAVE_PROTOBUF
+    DNSDistProtoBufMessage message(DNSDistProtoBufMessage::Query, *dq);
     std::string data;
-    protobufMessageFromQuestion(*dq, data);
+    message.serialize(data);
     d_logger->queueData(data);
 #endif /* HAVE_PROTOBUF */
     return Action::None;
@@ -936,8 +937,9 @@ public:
   DNSResponseAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
   {
 #ifdef HAVE_PROTOBUF
+    DNSDistProtoBufMessage message(DNSDistProtoBufMessage::Response, *dq);
     std::string data;
-    protobufMessageFromResponse(*dq, data);
+    message.serialize(data);
     d_logger->queueData(data);
 #endif /* HAVE_PROTOBUF */
     return Action::None;
