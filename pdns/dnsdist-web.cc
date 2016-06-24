@@ -185,6 +185,22 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
             obj.insert({e->first.toString(), thing});
           }
         }
+
+        auto slow2 = g_dynblockSMT.getCopy();
+        slow2.visit([&now,&obj](const SuffixMatchTree<DynBlock>& node) {
+            if(now <node.d_value.until) {
+              string dom("empty");
+              if(!node.d_value.domain.empty())
+                dom = node.d_value.domain.toString();
+              Json::object thing{{"reason", node.d_value.reason}, {"seconds", (double)(node.d_value.until.tv_sec - now.tv_sec)},
+							     {"blocks", (double)node.d_value.blocks} };
+
+              obj.insert({dom, thing});
+          }
+        });
+
+
+
         Json my_json = obj;
         resp.body=my_json.dump();
         resp.headers["Content-Type"] = "application/json";

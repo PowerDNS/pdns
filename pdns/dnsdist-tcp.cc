@@ -166,6 +166,7 @@ void* tcpClientThread(int pipefd)
   auto localRulactions = g_rulactions.getLocal();
   auto localRespRulactions = g_resprulactions.getLocal();
   auto localDynBlockNMG = g_dynblockNMG.getLocal();
+  auto localDynBlockSMT = g_dynblockSMT.getLocal();
   auto localPools = g_pools.getLocal();
 #ifdef HAVE_PROTOBUF
   boost::uuids::random_generator uuidGenerator;
@@ -268,7 +269,7 @@ void* tcpClientThread(int pipefd)
 	struct timespec now;
 	gettime(&now);
 
-	if (!processQuery(localDynBlockNMG, localRulactions, blockFilter, dq, poolname, &delayMsec, now)) {
+	if (!processQuery(localDynBlockNMG, localDynBlockSMT, localRulactions, blockFilter, dq, poolname, &delayMsec, now)) {
 	  goto drop;
 	}
 

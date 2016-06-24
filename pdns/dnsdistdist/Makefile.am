@@ -94,6 +94,7 @@ dnsdist_SOURCES = \
 	sholder.hh \
 	sodcrypto.cc sodcrypto.hh \
 	sstuff.hh \
+	statnode.cc statnode.hh \
 	ext/luawrapper/include/LuaContext.hpp \
 	ext/json11/json11.cpp \
 	ext/json11/json11.hpp \

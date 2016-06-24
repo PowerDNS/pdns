@@ -29,12 +29,14 @@ struct DynBlock
   {
     reason=rhs.reason;
     until=rhs.until;
+    domain=rhs.domain;
     blocks.store(rhs.blocks);
     return *this;
   }
-  
+
   string reason;
   struct timespec until;
+  DNSName domain;
   mutable std::atomic<unsigned int> blocks;
 };
 
@@ -468,6 +470,102 @@ enum ednsHeaderFlags {
   EDNS_HEADER_FLAG_DO = 32768
 };
 
+/* Quest in life: serve as a rapid block list. If you add a DNSName to a root SuffixMatchNode, 
+   anything part of that domain will return 'true' in check */
+template<typename T>
+struct SuffixMatchTree
+{
+  SuffixMatchTree(const std::string& name_="", bool endNode_=false) : name(name_), endNode(endNode_)
+  {}
+
+  SuffixMatchTree(const SuffixMatchTree& rhs)
+  {
+    name = rhs.name;
+    d_human = rhs.d_human;
+    children = rhs.children;
+    endNode = rhs.endNode;
+    d_value = rhs.d_value;
+  }
+  std::string name;
+  std::string d_human;
+  mutable std::set<SuffixMatchTree> children;
+  mutable bool endNode;
+  mutable T d_value;
+  bool operator<(const SuffixMatchTree& rhs) const
+  {
+    return strcasecmp(name.c_str(), rhs.name.c_str()) < 0;
+  }
+  typedef SuffixMatchTree value_type;
+
+  template<typename V>
+  void visit(const V& v) const {
+    for(const auto& c : children) 
+      c.visit(v);
+    if(endNode)
+      v(*this);
+  }
+
+  void add(const DNSName& name, const T& t) 
+  {
+    add(name.getRawLabels(), t);
+  }
+
+  void add(std::vector<std::string> labels, const T& value) const
+  {
+    if(labels.empty()) { // this allows insertion of the root
+      endNode=true;
+      d_value=value;
+    }
+    else if(labels.size()==1) {
+      SuffixMatchTree newChild(*labels.begin(), true);
+      newChild.d_value=value;
+      children.insert(newChild);
+    }
+    else {
+      SuffixMatchTree newnode(*labels.rbegin(), false);
+      auto res=children.insert(newnode);
+      if(!res.second) {
+        children.erase(newnode);
+        res=children.insert(newnode);
+      }
+      labels.pop_back();
+      res.first->add(labels, value);
+    }
+  }
+
+  T* lookup(const DNSName& name)  const
+  {
+    if(children.empty()) { // speed up empty set
+      if(endNode)
+        return &d_value;
+      return 0;
+    }
+    return lookup(name.getRawLabels());
+  }
+
+  T* lookup(std::vector<std::string> labels) const
+  {
+    if(labels.empty()) { // optimization
+      if(endNode)
+        return &d_value;
+      return 0;
+    }
+
+    SuffixMatchTree smn(*labels.rbegin());
+    auto child = children.find(smn);
+    if(child == children.end()) {
+      if(endNode)
+        return &d_value;
+      return 0;
+    }
+    labels.pop_back();
+    return child->lookup(labels);
+  }
+  
+};
+
+extern GlobalStateHolder<SuffixMatchTree<DynBlock>> g_dynblockSMT;
+
 extern GlobalStateHolder<vector<CarbonConfig> > g_carbon;
 extern GlobalStateHolder<ServerPolicy> g_policy;
 extern GlobalStateHolder<servers_t> g_dstates;
@@ -531,7 +629,8 @@ bool getLuaNoSideEffect(); // set if there were only explicit declarations of _n
 void resetLuaSideEffect(); // reset to indeterminate state
 
 bool responseContentMatches(const char* response, const uint16_t responseLen, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const ComboAddress& remote);
-bool processQuery(LocalStateHolder<NetmaskTree<DynBlock> >& localDynBlock, LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > >& localRulactions, blockfilter_t blockFilter, DNSQuestion& dq, string& poolname, int* delayMsec, const struct timespec& now);
+bool processQuery(LocalStateHolder<NetmaskTree<DynBlock> >& localDynBlockNMG,
+                  LocalStateHolder<SuffixMatchTree<DynBlock> >& localDynBlockSMT, LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > >& localRulactions, blockfilter_t blockFilter, DNSQuestion& dq, string& poolname, int* delayMsec, const struct timespec& now);
 bool processResponse(LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSResponseAction> > > >& localRespRulactions, DNSQuestion& dq);
 bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize, const DNSName& qname, uint16_t origFlags, bool ednsAdded, bool ecsAdded, std::vector<uint8_t>& rewrittenResponse, uint16_t addRoom);
 void restoreFlags(struct dnsheader* dh, uint16_t origFlags);
