@@ -610,9 +610,11 @@ catch(...)
 }
 
 #ifdef HAVE_PROTOBUF
-static void protobufLogQuery(const std::shared_ptr<RemoteLogger>& logger, const boost::uuids::uuid& uniqueId, const ComboAddress& remote, const ComboAddress& local, const Netmask& ednssubnet, bool tcp, uint16_t id, size_t len, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::string appliedPolicy, const std::vector<std::string>& policyTags)
+static void protobufLogQuery(const std::shared_ptr<RemoteLogger>& logger, uint8_t maskV4, uint8_t maskV6, const boost::uuids::uuid& uniqueId, const ComboAddress& remote, const ComboAddress& local, const Netmask& ednssubnet, bool tcp, uint16_t id, size_t len, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::string appliedPolicy, const std::vector<std::string>& policyTags)
 {
-  RecProtoBufMessage message(DNSProtoBufMessage::Query, uniqueId, &remote, &local, qname, qtype, qclass, id, tcp, len);
+  Netmask requestorNM(remote, remote.sin4.sin_family == AF_INET ? maskV4 : maskV6);
+  const ComboAddress& requestor = requestorNM.getMaskedNetwork();
+  RecProtoBufMessage message(DNSProtoBufMessage::Query, uniqueId, &requestor, &local, qname, qtype, qclass, id, tcp, len);
   message.setEDNSSubnet(ednssubnet);
 
   if (!appliedPolicy.empty()) {
@@ -660,7 +662,9 @@ void startDoResolve(void *p)
     RecProtoBufMessage pbMessage(RecProtoBufMessage::Response);
 #ifdef HAVE_PROTOBUF
     if (luaconfsLocal->protobufServer) {
-      pbMessage.update(dc->d_uuid, &dc->d_remote, &dc->d_local, dc->d_tcp, dc->d_mdp.d_header.id);
+      Netmask requestorNM(dc->d_remote, dc->d_remote.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
+      const ComboAddress& requestor = requestorNM.getMaskedNetwork();
+      pbMessage.update(dc->d_uuid, &requestor, &dc->d_local, dc->d_tcp, dc->d_mdp.d_header.id);
       pbMessage.setEDNSSubnet(dc->d_ednssubnet);
       pbMessage.setQuestion(dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass);
     }
@@ -1215,7 +1219,7 @@ void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           getQNameAndSubnet(std::string(conn->data, conn->qlen), &qname, &qtype, &qclass, &ednssubnet);
           dc->d_ednssubnet = ednssubnet;
 
-          protobufLogQuery(luaconfsLocal->protobufServer, dc->d_uuid, dest, conn->d_remote, ednssubnet, true, dh->id, conn->qlen, qname, qtype, qclass, std::string(), std::vector<std::string>());
+          protobufLogQuery(luaconfsLocal->protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, dc->d_uuid, dest, conn->d_remote, ednssubnet, true, dh->id, conn->qlen, qname, qtype, qclass, std::string(), std::vector<std::string>());
         }
         catch(std::exception& e) {
           if(g_logCommonErrors)
@@ -1357,7 +1361,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
     RecProtoBufMessage pbMessage(DNSProtoBufMessage::DNSProtoBufMessageType::Response);
 #ifdef HAVE_PROTOBUF
     if(luaconfsLocal->protobufServer) {
-      protobufLogQuery(luaconfsLocal->protobufServer, uniqueId, fromaddr, destaddr, ednssubnet, false, dh->id, question.size(), qname, qtype, qclass, std::string(), policyTags);
+      protobufLogQuery(luaconfsLocal->protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, uniqueId, fromaddr, destaddr, ednssubnet, false, dh->id, question.size(), qname, qtype, qclass, std::string(), policyTags);
     }
 #endif /* HAVE_PROTOBUF */
 
@@ -1365,7 +1369,9 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
     if (cacheHit) {
 #ifdef HAVE_PROTOBUF
       if(luaconfsLocal->protobufServer) {
-        pbMessage.update(uniqueId, &fromaddr, &destaddr, false, dh->id);
+        Netmask requestorNM(fromaddr, fromaddr.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
+        const ComboAddress& requestor = requestorNM.getMaskedNetwork();
+        pbMessage.update(uniqueId, &requestor, &destaddr, false, dh->id);
         pbMessage.setEDNSSubnet(ednssubnet);
         protobufLogResponse(luaconfsLocal->protobufServer, pbMessage);
       }
