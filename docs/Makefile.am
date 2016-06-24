@@ -13,15 +13,22 @@ MANPAGES_TARGET_TOOLS = calidns.1 \
 	dnswasher.1 \
 	dumresp.1 \
 	ixplore.1 \
-	pdns_notify.1 \
 	nproxy.1 \
 	nsec3dig.1 \
+	pdns_notify.1 \
 	saxfr.1 \
 	sdig.1
 
 if HAVE_BOOST_GE_148
 MANPAGES_TARGET_TOOLS += dnsbulktest.1 \
 	dnstcpbench.1
+endif
+
+
+if HAVE_PROTOBUF
+if HAVE_PROTOC
+MANPAGES_TARGET_TOOLS += dnspcap2protobuf.1
+endif
 endif
 
 MANPAGES_TARGET_DNSDIST = dnsdist.1
