@@ -870,6 +870,10 @@ int PacketHandler::processNotify(DNSPacket *p)
       return RCode::Refused;
     }
   }
+  else if(::arg().mustDo("master") && di.kind == DomainInfo::Master) {
+    L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" but we are master, rejecting"<<endl;
+    return RCode::Refused;
+  }
   else if(!db->isMaster(p->qdomain, p->getRemote())) {
     L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" which is not a master"<<endl;
     return RCode::Refused;
