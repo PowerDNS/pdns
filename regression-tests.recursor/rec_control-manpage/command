@@ -1,12 +1,19 @@
 #!/bin/sh
-elements="$($RECCONTROL --config-dir=./config/recursor-service help | grep -v -e '^ ' | awk '{print $1}')"
+elements="$($RECCONTROL --config-dir=./configs/recursor-service help | grep -v -e '^ ' | awk '{print $1}')"
+
+num_elems="$( echo $elements | wc -l)"
+
+if [ $num_elems -lt 5 ]; then
+  echo "Not enough elements"
+  exit 1
+fi
 
 missing_elements=""
 for element in $elements; do
   grep -e -q "^$element" ../docs/manpages/rec_control.1.md || missing_elements="$element\n$missing_elements"
 done
 
-if [ $missing_elements != "" ]; then
+if [ "x$missing_elements" != "x" ]; then
   echo "The following commands are missing from the manpage:\n"
   echo $missing_elements
 fi

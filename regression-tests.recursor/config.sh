@@ -4,9 +4,9 @@ if [ "${PDNS_DEBUG}" = "YES" ]; then
   set -x
 fi
 
-export PDNS=${PDNS:-../../../pdns/pdns_server}
-export PDNSRECURSOR=${PDNSRECURSOR:-../../../pdns/recursordist/pdns_recursor}
-export RECCONTROL=${RECCONTROL:-../../../pdns/recursordist/rec_control}
+export PDNS=${PDNS:-${PWD}/../pdns/pdns_server}
+export PDNSRECURSOR=${PDNSRECURSOR:-${PWD}/../pdns/recursordist/pdns_recursor}
+export RECCONTROL=${RECCONTROL:-${PWD}/../pdns/recursordist/rec_control}
 
 . ./vars
 
