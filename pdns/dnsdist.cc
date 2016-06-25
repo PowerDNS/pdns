@@ -1753,6 +1753,13 @@ try
       setsockopt(cs->udpFD, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one)); 
 #endif
     }
+    if (std::get<2>(dcLocal)) {
+#ifdef SO_REUSEPORT
+      SSetsockopt(cs->udpFD, SOL_SOCKET, SO_REUSEPORT, 1);
+#else
+      warnlog("SO_REUSEPORT has been configured on local address '%s' but is not supported", std::get<0>(dcLocal).toStringWithPort());
+#endif
+    }
 #ifdef HAVE_EBPF
     if (g_defaultBPFFilter) {
       g_defaultBPFFilter->addSocket(cs->udpFD);
@@ -1779,13 +1786,12 @@ try
       warnlog("TCP Fast Open has been configured on local address '%s' but is not supported", std::get<0>(dcLocal).toStringWithPort());
 #endif
     }
-    if (std::get<2>(dcLocal)) {
 #ifdef SO_REUSEPORT
+    /* no need to warn again if configured but support is not available, we already did for UDP */
+    if (std::get<2>(dcLocal)) {
       SSetsockopt(cs->tcpFD, SOL_SOCKET, SO_REUSEPORT, 1);
-#else
-      warnlog("SO_REUSEPORT has been configured on local address '%s' but is not supported", std::get<0>(dcLocal).toStringWithPort());
-#endif
     }
+#endif
     if(cs->local.sin4.sin_family == AF_INET6) {
       SSetsockopt(cs->tcpFD, IPPROTO_IPV6, IPV6_V6ONLY, 1);
     }
