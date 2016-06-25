@@ -73,9 +73,9 @@ bool g_syslog{true};
 
 GlobalStateHolder<NetmaskGroup> g_ACL;
 string g_outputBuffer;
-vector<std::tuple<ComboAddress, bool, bool>> g_locals;
+vector<std::tuple<ComboAddress, bool, bool, int>> g_locals;
 #ifdef HAVE_DNSCRYPT
-std::vector<std::tuple<ComboAddress,DnsCryptContext,bool>> g_dnsCryptLocals;
+std::vector<std::tuple<ComboAddress,DnsCryptContext,bool, int>> g_dnsCryptLocals;
 #endif
 #ifdef HAVE_EBPF
 shared_ptr<BPFFilter> g_defaultBPFFilter;
@@ -1636,11 +1636,11 @@ try
   if(g_cmdLine.locals.size()) {
     g_locals.clear();
     for(auto loc : g_cmdLine.locals)
-      g_locals.push_back(std::make_tuple(ComboAddress(loc, 53), true, false));
+      g_locals.push_back(std::make_tuple(ComboAddress(loc, 53), true, false, 0));
   }
   
   if(g_locals.empty())
-    g_locals.push_back(std::make_tuple(ComboAddress("127.0.0.1", 53), true, false));
+    g_locals.push_back(std::make_tuple(ComboAddress("127.0.0.1", 53), true, false, 0));
   
 
   g_configurationDone = true;
@@ -1699,6 +1699,11 @@ try
     SSetsockopt(cs->tcpFD, SOL_SOCKET, SO_REUSEADDR, 1);
 #ifdef TCP_DEFER_ACCEPT
     SSetsockopt(cs->tcpFD, SOL_TCP,TCP_DEFER_ACCEPT, 1);
+#endif
+#ifdef TCP_FASTOPEN
+    if (std::get<3>(local) > 0) {
+      SSetsockopt(cs->tcpFD, SOL_TCP, TCP_FASTOPEN, std::get<3>(local));
+    }
 #endif
     if(cs->local.sin4.sin_family == AF_INET6) {
       SSetsockopt(cs->tcpFD, IPPROTO_IPV6, IPV6_V6ONLY, 1);
@@ -1761,6 +1766,11 @@ try
     SSetsockopt(cs->tcpFD, SOL_SOCKET, SO_REUSEADDR, 1);
 #ifdef TCP_DEFER_ACCEPT
     SSetsockopt(cs->tcpFD, SOL_TCP,TCP_DEFER_ACCEPT, 1);
+#endif
+#ifdef TCP_FASTOPEN
+    if (std::get<3>(dcLocal) > 0) {
+      SSetsockopt(cs->tcpFD, SOL_TCP, TCP_FASTOPEN, std::get<3>(dcLocal));
+    }
 #endif
 #ifdef SO_REUSEPORT
     if (std::get<2>(dcLocal)) {

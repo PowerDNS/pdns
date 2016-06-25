@@ -578,7 +578,7 @@ extern GlobalStateHolder<NetmaskGroup> g_ACL;
 
 extern ComboAddress g_serverControl; // not changed during runtime
 
-extern std::vector<std::tuple<ComboAddress, bool, bool>> g_locals; // not changed at runtime (we hope XXX)
+extern std::vector<std::tuple<ComboAddress, bool, bool, int>> g_locals; // not changed at runtime (we hope XXX)
 extern vector<ClientState*> g_frontends;
 extern std::string g_key; // in theory needs locking
 extern bool g_truncateTC;
@@ -642,7 +642,7 @@ bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize,
 void restoreFlags(struct dnsheader* dh, uint16_t origFlags);
 
 #ifdef HAVE_DNSCRYPT
-extern std::vector<std::tuple<ComboAddress,DnsCryptContext,bool>> g_dnsCryptLocals;
+extern std::vector<std::tuple<ComboAddress,DnsCryptContext,bool,int>> g_dnsCryptLocals;
 
 int handleDnsCryptQuery(DnsCryptContext* ctx, char* packet, uint16_t len, std::shared_ptr<DnsCryptQuery>& query, uint16_t* decryptedQueryLen, bool tcp, std::vector<uint8_t>& reponse);
 bool encryptResponse(char* response, uint16_t* responseLen, size_t responseSize, bool tcp, std::shared_ptr<DnsCryptQuery> dnsCryptQuery);

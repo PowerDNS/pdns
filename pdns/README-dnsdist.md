@@ -1142,8 +1142,8 @@ Here are all functions:
     * member `attachFilter(BPFFilter)`: attach a BPF Filter to this bind
     * member `toString()`: print the address this bind listens to
  * Network related:
-    * `addLocal(netmask, [true], [false])`: add to addresses we listen on. Second optional parameter sets TCP/IP or not. Third optional parameter sets SO_REUSEPORT when available.
-    * `setLocal(netmask, [true], [false])`: reset list of addresses we listen on to this address. Second optional parameter sets TCP/IP or not. Third optional parameter sets SO_REUSEPORT when available.
+    * `addLocal(netmask, [true], [false], [TCP Fast Open queue size])`: add to addresses we listen on. Second optional parameter sets TCP/IP or not. Third optional parameter sets SO_REUSEPORT when available. Last parameter sets the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0.
+    * `setLocal(netmask, [true], [false], [TCP Fast Open queue size])`: reset list of addresses we listen on to this address. Second optional parameter sets TCP/IP or not. Third optional parameter sets SO_REUSEPORT when available. Last parameter sets the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0.
  * Blocking related:
     * `addDomainBlock(domain)`: block queries within this domain
  * Carbon/Graphite/Metronome statistics related:
@@ -1366,7 +1366,7 @@ instantiate a server with additional parameters
     * `setCacheCleaningDelay(n)`: set the interval in seconds between two runs of the cache cleaning algorithm, removing expired entries
     * `setStaleCacheEntriesTTL(n)`: allows using cache entries expired for at most `n` seconds when no backend available to answer for a query
  * DNSCrypt related:
-    * `addDNSCryptBind("127.0.0.1:8443", "provider name", "/path/to/resolver.cert", "/path/to/resolver.key", [false]):` listen to incoming DNSCrypt queries on 127.0.0.1 port 8443, with a provider name of "provider name", using a resolver certificate and associated key stored respectively in the `resolver.cert` and `resolver.key` files. The last optional parameter sets SO_REUSEPORT when available
+    * `addDNSCryptBind("127.0.0.1:8443", "provider name", "/path/to/resolver.cert", "/path/to/resolver.key", [false], [TCP Fast Open queue size]):` listen to incoming DNSCrypt queries on 127.0.0.1 port 8443, with a provider name of "provider name", using a resolver certificate and associated key stored respectively in the `resolver.cert` and `resolver.key` files. The fifth optional parameter sets SO_REUSEPORT when available. The last parameter sets the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0.
     * `generateDNSCryptProviderKeys("/path/to/providerPublic.key", "/path/to/providerPrivate.key"):` generate a new provider keypair
     * `generateDNSCryptCertificate("/path/to/providerPrivate.key", "/path/to/resolver.cert", "/path/to/resolver.key", serial, validFrom, validUntil):` generate a new resolver private key and related certificate, valid from the `validFrom` timestamp until the `validUntil` one, signed with the provider private key
     * `printDNSCryptProviderFingerprint("/path/to/providerPublic.key")`: display the fingerprint of the provided resolver public key
