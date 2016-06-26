@@ -73,14 +73,14 @@ public:
 
   // address & socket manipulation
   void setRemote(const ComboAddress*);
-  string getRemote() const;
+  ComboAddress getRemote() const;
   Netmask getRealRemote() const;
-  string getLocal() const
+  ComboAddress getLocal() const
   {
     ComboAddress ca;
     socklen_t len=sizeof(ca);
     getsockname(d_socket, (sockaddr*)&ca, &len);
-    return ca.toString();
+    return ca;
   }
   uint16_t getRemotePort() const;
 
