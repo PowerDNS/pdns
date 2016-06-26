@@ -15,22 +15,21 @@
 
 The PipeBackend allows for easy dynamic resolution based on a 'Coprocess' which can be written in any programming language that can read a question on standard input and answer on standard output.
 
-The PipeBackend is primarily meant for allowing rapid development of new
-backends without tight integration with PowerDNS.  It allows end-users to
-write PowerDNS backends in any language.  A perl sample is provided.  The
-PipeBackend is also very well suited for dynamic resolution of queries. 
-Example applications include DNS based load balancing, geo-direction, DNS
-based failover with low TTLs.
+The PipeBackend is primarily meant for allowing rapid development of new backends without tight integration with PowerDNS.
+It allows end-users to write PowerDNS backends in any language, a perl sample is provided.
+The PipeBackend is also very well suited for dynamic resolution of queries.
+Example applications include DNS based load balancing, geo-direction, DNS-based failover with low TTLs.
 
 **Note**: The [Remote Backend](backend-remote.md) offers a superset of the functionality of the PipeBackend.
 
-**Note**: Please do read the [Backend Writer' guide](../appendix/backend-writers-guide.md) carefully. The PipeBackend, like all other backends,
-must not do any DNS thinking, but answer all questions (INCLUDING THE ANY QUESTION) faithfully. Specifically, the queries that the PipeBackend receives
-will not correspond to the queries that arrived over DNS. So, a query for an AAAA record may turn into a backend query for an ANY record. There is nothing that 
-can or should be done about this.
+**Note**: Please do read the [Backend Writer' guide](../appendix/backend-writers-guide.md) carefully.
+The PipeBackend, like all other backends, must not do any DNS thinking, but answer all questions (INCLUDING THE ANY QUESTION) faithfully.
+Specifically, the queries that the PipeBackend receives will not correspond to the queries that arrived over DNS.
+So, a query for an AAAA record may turn into a backend query for an ANY record.
+There is nothing that can or should be done about this.
 
-## Configuration Parameters
-### `pipe-abi-version`
+# Configuration Parameters
+## `pipe-abi-version`
 |&nbsp;|&nbsp;|
 |:-|:-|
 |Type|Integer|
@@ -39,72 +38,92 @@ can or should be done about this.
 
 This is the version of the question format that is sent to the co-process ([`pipe-command`](#pipe-command)) for the pipe backend.
 
-If not set the default `pipe-abi-version` is 1. When set to 2, the local-ip-address field is added after the remote-ip-address. (the local-ip-address refers to the IP address the question was received on). When set to 3, the real remote IP/subnet is added based on edns-subnet support (this also requires enabling 'edns-subnet-processing'). When set to 4 it sends zone name in AXFR request.
+If not set the default `pipe-abi-version` is 1.
+When set to 2, the local-ip-address field is added after the remote-ip-address, the local-ip-address refers to the IP address the question was received on.
+When set to 3, the real remote IP/subnet is added based on edns-subnet support (this also requires enabling [`edns-subnet-processing`](settings.md#edns-subnet-processing)).
+When set to 4 it sends zone name in AXFR request. See also [PipeBackend Protocol](#pipebackend-protocol) below.
 
-### `pipe-command`
+## `pipe-command`
 |&nbsp;|&nbsp;|
 |:-|:-|
 |Type|String|
 |Mandatory|Yes|
 
-Command to launch as backend or the path to a unix domain socket file. The socket should already be open and listening before pdns starts. Using the socket is supported since PowerDNS 3.3.
+Command to launch as backend or the path to a unix domain socket file.
+The socket should already be open and listening before PowerDNS starts.
 
-### `pipe-timeout`
+## `pipe-timeout`
 |&nbsp;|&nbsp;|
 |:-|:-|
 |Type|Integer|
 |Default|2000|
 
-Number of milliseconds to wait for an answer from the backend. If this time is ever exceeded, the backend is declared dead and a new process is spawned.
+Number of milliseconds to wait for an answer from the backend.
+If this time is ever exceeded, the backend is declared dead and a new process is spawned.
 
-### `pipe-regex`
+## `pipe-regex`
 |&nbsp;|&nbsp;|
 |:-|:-|
 |Type|String (a regex)|
 
-If set, only questions matching this regular expression are even sent to the backend. This makes sure that most of PowerDNS does not slow down if you you deploy a slow backend. A query for 'www.powerdns.com' would be presented to the regex as 'www.powerdns.com'. A matching regex would be '^www.powerdns.com$'.
+If set, only questions matching this regular expression are even sent to the backend.
+This makes sure that most of PowerDNS does not slow down if you you deploy a slow backend.
+A query for 'www.powerdns.com' would be presented to the regex as 'www.powerdns.com', a matching regex would be '^www.powerdns.com$'.
 
-## PipeBackend protocol
-
-Questions come in over a file descriptor, by default standard input. Answers are sent out over another file descriptor, standard output by default. Questions and answers are terminated by single newline (`\n`) characters.
+# PipeBackend protocol
+Questions come in over a file descriptor, by default standard input.
+Answers are sent out over another file descriptor, standard output by default.
+Questions and answers are terminated by single newline (`\n`) characters.
+Fields in lines must be seperated by tab ('\t') characters.
 
 ## Handshake
-PowerDNS sends out `HELO\t1`, indicating that it wants to speak the protocol as defined in this document, version 1. For abi-version 2 or 3, PowerDNS sends `HELO\t2` or `HELO\t3`. A PowerDNS Coprocess must then send out a banner, prefixed by `OK\t`, indicating it launched successfully. If it does not support the indicated version, it should respond with `FAIL`, but not exit. Suggested behaviour is to try and read a further line, and wait to be terminated.
+PowerDNS sends out `HELO\t1`, indicating that it wants to speak the protocol as defined in this document, version 1.
+For abi-version 2 or 3, PowerDNS sends `HELO\t2` or `HELO\t3`.
+A PowerDNS Coprocess must then send out a banner, prefixed by `OK\t`, indicating it launched successfully.
+If it does not support the indicated version, it should respond with `FAIL`, but not exit.
+Suggested behaviour is to try and read a further line, and wait to be terminated.
 
-### `Q`: Regular queries for data
+**Note**: fields are separated by a tab ('\t') character, even though they are displayed with spaces in this document.
 
-The question format, for type Q questions:
 
-#### pipe-abi-version = 1 [default]
+## `Q`: Regular queries for data
+The question format, for type Q questions.
+
+### pipe-abi-version = 1 [default]
 ```
-Q   qname       qclass  qtype   id  remote-ip-address
+Q qname       qclass  qtype   id  remote-ip-address
 ```
 
-#### pipe-abi-version = 2
+### pipe-abi-version = 2
 ```
 Q   qname       qclass  qtype   id  remote-ip-address   local-ip-address
 ```
 
-#### pipe-abi-version = 3
+### pipe-abi-version = 3
 ```
 Q   qname       qclass  qtype   id  remote-ip-address   local-ip-address    edns-subnet-address
 ```
 
-Fields are tab separated, and terminated with a single `\n`. The `remote-ip-address` is the IP address of the nameserver asking the question; the `local-ip-address` is the IP address on which the question was received.
+Fields are tab separated, and terminated with a single `\n`.
+The `remote-ip-address` is the IP address of the nameserver asking the question, the `local-ip-address` is the IP address on which the question was received.
 
-Type is the tag above, `qname` is the domain the question is about. `qclass` is always 'IN' currently, denoting an INternet question. `qtype` is the kind of information desired, the record type, like A, CNAME or AAAA. `id` can be specified to help your backend find an answer if the `id` is already known from an earlier query. You can ignore it unless you want to support `AXFR`.
+Type is the tag above, `qname` is the domain the question is about.
+`qclass` is always 'IN' currently, denoting an INternet question.
+`qtype` is the kind of information desired, the record type, like A, CNAME or AAAA.
+`id` can be specified to help your backend find an answer if the `id` is already known from an earlier query.
+You can ignore it unless you want to support `AXFR`.
 
-`edns-subnet-address` is the actual client subnet as provided via edns-subnet support. Note that for the SOA query that precedes an AXFR, edns-subnet is always set to 0.0.0.0/0.
+`edns-subnet-address` is the actual client subnet as provided via edns-subnet support.
+Note that for the SOA query that precedes an AXFR, edns-subnet is always set to 0.0.0.0/0.
 
-**Note**: Queries for wildcard names should be answered literally, without expansion. So, if a backend gets a question for "*.powerdns.com", it should only answer with data if there is an actual "*.powerdns.com" name
+**Note**: Queries for wildcard names should be answered literally, without expansion.
+So, if a backend gets a question for "*.powerdns.com", it should only answer with data if there is an actual "*.powerdns.com" name.
 
-**Note**: In some (broken) network setups, the `remote-ip-address` and/or
-`local-ip-address`, when it is an IPv6 address, may be suffixed with a `%` and
-the name of the network interface (e.g. `%eth1`). Keep this in mind when checking
-the IP addresses.
+**Note**: In some (broken) network setups, the `remote-ip-address` and/or `local-ip-address`, when it is an IPv6 address, may be suffixed with a `%` and
+the name of the network interface (e.g. `%eth1`).
+Keep this in mind when checking the IP addresses.
 
-### `AXFR`: List an entire zone
-
+## `AXFR`: List an entire zone
 AXFR-queries look like this:
 
 ```
@@ -113,7 +132,7 @@ AXFR    id  zone-name
 
 The `id` is gathered from the answer to a SOA query. `zone-name` is given in ABI version 4.
 
-### Answers
+## Answers
 Each answer starts with a tag, possibly followed by a TAB and more data.
 
 * `DATA`: Indicating a successful line of DATA.
@@ -121,13 +140,18 @@ Each answer starts with a tag, possibly followed by a TAB and more data.
 * `FAIL`: Indicating a lookup failure. Also serves as 'END'. No further data.
 * `LOG`: For specifying things that should be logged. Can only be sent after a query and before an END line. After the tab, the message to be logged.
 
-So, letting it be known that there is no data consists of sending 'END' without anything else. The answer format (for abi-version 1 and 2):
+### ABI version 1 and 2
+So, letting it be known that there is no data consists of sending 'END' without anything else.
+The answer format (for abi-version 1 and 2):
 
 ```
 DATA    qname       qclass  qtype   ttl id  content
 ```
 
-`content` is as specified in [Types](../types.md). For MX and SRV, content consists of the priority, followed by a tab, followed by the actual content.
+Again, all fields are tab-separated.
+
+`content` is as specified in [Types](../types.md).
+For MX and SRV, content consists of the priority, followed by a tab, followed by the actual content.
 
 A sample dialogue may look like this (note that in reality, almost all queries will actually be for the ANY qtype):
 
@@ -144,7 +168,8 @@ DATA    ws1.example.org IN  A   3600    1   192.0.2.6
 END
 ```
 
-This would correspond to a remote webserver 203.0.113.210 wanting to resolve the IP address of www.example.org, and PowerDNS traversing the CNAMEs to find the IP addresses of ws1.example.org Another dialogue might be:
+This would correspond to a remote webserver 203.0.113.210 wanting to resolve the IP address of www.example.org, and PowerDNS traversing the CNAMEs to find the IP addresses of ws1.example.org.
+Another dialogue might be:
 
 ```
 Q   example.org     IN  SOA -1  203.0.113.210
@@ -163,27 +188,39 @@ END
 
 This is a typical zone transfer.
 
+### ABI version 3 and higher
+
 For abi-version 3, DATA-responses get two extra fields:
 
 ```
 DATA    scopebits   auth    qname       qclass  qtype   ttl id  content
 ```
 
-`scopebits` indicates how many bits from the subnet provided in the question (originally from edns-subnet) were used in determining this answer. This can aid caching (although PowerDNS does not currently use this value). The `auth` field indicates whether this response is authoritative; this is for DNSSEC. In the `auth` field, use 0 for non-authoritative or 1 for authoritative.
+`scopebits` indicates how many bits from the subnet provided in the question (originally from edns-subnet) were used in determining this answer.
+This can aid caching (although PowerDNS does not currently use this value).
 
-For abi-versions 1 and 2, the two new fields fall back to default values. The default value for scopebits is 0. The default for auth is 1 (meaning authoritative).
+The `auth` field indicates whether this response is authoritative, this is for DNSSEC.
+The `auth` field should be set to '1' for data for which the zone itself is authoritative, which includes the SOA record and its own NS records.
+The `auth` field should be 0 for NS records which are used for delegation, and also for any glue (A, AAAA) records present for this purpose. Do note that the DS record for a secure delegation should be authoritative!
+
+For abi-versions 1 and 2, the two new fields fall back to default values.
+The default value for scopebits is 0.
+The default for auth is 1 (meaning authoritative).
 
 ## Direct backend commands
-With abi-version 5 you can use [backend-cmd](dnssec.md#pdnsutil) for executing commands on your backend. PowerDNS will use the following query/answer format
+With abi-version 5 you can use [backend-cmd](dnssec.md#pdnsutil) for executing commands on your backend.
+PowerDNS will use the following query/answer format:
+
 ```
-CMD	Whatever you wrote
+CMD     Whatever you wrote
 Answer goes here
 And can be multiple lines
 until we see
 END
 ```
 
-## Sample perl backend
-```
-!!include=../modules/pipebackend/backend.pl
-```
+# Sample backends
+
+* [ABI version 1](https://raw.githubusercontent.com/PowerDNS/pdns/master/modules/pipebackend/backend.pl)
+* [ABI version 3](https://raw.githubusercontent.com/PowerDNS/pdns/master/modules/pipebackend/backend-v3.pl)
+* [ABI version 5](https://raw.githubusercontent.com/PowerDNS/pdns/master/modules/pipebackend/backend-v5.pl)
