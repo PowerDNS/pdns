@@ -31,6 +31,7 @@
 
 #include "namespaces.hh"
 #include "dnsname.hh"
+#include "iputils.hh"
 
 //! The Logger class can be used to log messages in various ways.
 class Logger
@@ -80,7 +81,7 @@ public:
   Logger& operator<<(unsigned long);   //!< log an unsigned int
   Logger& operator<<(unsigned long long);   //!< log an unsigned 64 bit int
   Logger& operator<<(const DNSName&); 
-
+  Logger& operator<<(const ComboAddress&); //!< log an address
   Logger& operator<<(Urgency);    //!< set the urgency, << style
 
   Logger& operator<<(std::ostream & (&)(std::ostream &)); //!< this is to recognise the endl, and to commit the log

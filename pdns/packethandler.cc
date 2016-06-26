@@ -763,8 +763,8 @@ int PacketHandler::trySuperMasterSynchronous(DNSPacket *p, const DNSName& tsigke
   try {
     Resolver resolver;
     uint32_t theirserial;
-    resolver.getSoaSerial(p->getRemote(),p->qdomain, &theirserial);    
-    resolver.resolve(p->getRemote(), p->qdomain, QType::NS, &nsset);
+    resolver.getSoaSerial(p->getRemote().toString(),p->qdomain, &theirserial);
+    resolver.resolve(p->getRemote().toString(), p->qdomain, QType::NS, &nsset);
   }
   catch(ResolverException &re) {
     L<<Logger::Error<<"Error resolving SOA or NS for "<<p->qdomain<<" at: "<< p->getRemote() <<": "<<re.reason<<endl;
@@ -791,7 +791,7 @@ int PacketHandler::trySuperMasterSynchronous(DNSPacket *p, const DNSName& tsigke
     return RCode::Refused;
   }
 
-  if(!B.superMasterBackend(p->getRemote(), p->qdomain, nsset, &nameserver, &account, &db)) {
+  if(!B.superMasterBackend(p->getRemote().toString(), p->qdomain, nsset, &nameserver, &account, &db)) {
     L<<Logger::Error<<"Unable to find backend willing to host "<<p->qdomain<<" for potential supermaster "<<p->getRemote()<<". Remote nameservers: "<<endl;
     for(const auto& rr: nsset) {
       if(rr.qtype.getCode()==QType::NS)
@@ -800,7 +800,7 @@ int PacketHandler::trySuperMasterSynchronous(DNSPacket *p, const DNSName& tsigke
     return RCode::Refused;
   }
   try {
-    db->createSlaveDomain(p->getRemote(), p->qdomain, nameserver, account);
+    db->createSlaveDomain(p->getRemote().toString(), p->qdomain, nameserver, account);
     if (tsigkeyname.empty() == false) {
       vector<string> meta;
       meta.push_back(tsigkeyname.toStringNoDot());
@@ -863,7 +863,7 @@ int PacketHandler::processNotify(DNSPacket *p)
     }
   }
 
-  if(::arg().contains("trusted-notification-proxy", p->getRemote())) {
+  if(::arg().contains("trusted-notification-proxy", p->getRemote().toString())) {
     L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from trusted-notification-proxy "<< p->getRemote()<<endl;
     if(di.masters.empty()) {
       L<<Logger::Error<<"However, "<<p->qdomain<<" does not have any masters defined"<<endl;
@@ -874,7 +874,7 @@ int PacketHandler::processNotify(DNSPacket *p)
     L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" but we are master, rejecting"<<endl;
     return RCode::Refused;
   }
-  else if(!db->isMaster(p->qdomain, p->getRemote())) {
+  else if(!db->isMaster(p->qdomain, p->getRemote().toString())) {
     L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" which is not a master"<<endl;
     return RCode::Refused;
   }

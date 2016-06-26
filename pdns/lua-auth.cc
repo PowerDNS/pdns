@@ -193,13 +193,13 @@ static int ldp_addRecords(lua_State *L) {
 
 static int ldp_getRemote(lua_State *L) {
   DNSPacket *p=ldp_checkDNSPacket(L);
-  lua_pushstring(L, p->getRemote().c_str());
+  lua_pushstring(L, p->getRemote().toString().c_str());
   return 1;
 }
 
 static int ldp_getRemoteRaw(lua_State *L) {
   DNSPacket *p=ldp_checkDNSPacket(L);
-  const ComboAddress& ca=p->d_remote;
+  const ComboAddress& ca=p->getRemote();
   if(ca.sin4.sin_family == AF_INET) {
     lua_pushlstring(L, (const char*)&ca.sin4.sin_addr.s_addr, 4);
   }

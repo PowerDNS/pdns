@@ -157,9 +157,9 @@ void RemoteBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket
    string realRemote="0.0.0.0/0";
 
    if (pkt_p) {
-     localIP=pkt_p->getLocal();
+     localIP=pkt_p->getLocal().toString();
      realRemote = pkt_p->getRealRemote().toString();
-     remoteIP = pkt_p->getRemote();
+     remoteIP = pkt_p->getRemote().toString();
    }
 
    Json query = Json::object{

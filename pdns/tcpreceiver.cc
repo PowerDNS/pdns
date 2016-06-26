@@ -322,9 +322,9 @@ void *TCPNameserver::doConnection(void *data)
       if(logDNSQueries)  {
         string remote;
         if(packet->hasEDNSSubnet()) 
-          remote = packet->getRemote() + "<-" + packet->getRealRemote().toString();
+          remote = packet->getRemote().toString() + "<-" + packet->getRealRemote().toString();
         else
-          remote = packet->getRemote();
+          remote = packet->getRemote().toString();
         L << Logger::Notice<<"TCP Remote "<< remote <<" wants '" << packet->qdomain<<"|"<<packet->qtype.getName() << 
         "', do = " <<packet->d_dnssecOk <<", bufsize = "<< packet->getMaxReplyLen()<<": ";
       }
@@ -470,7 +470,7 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
           vector<string> nsips=fns.lookup(j, B);
           for(vector<string>::const_iterator k=nsips.begin();k!=nsips.end();++k) {
             // cerr<<"got "<<*k<<" from AUTO-NS"<<endl;
-            if(*k == q->getRemote())
+            if(*k == q->getRemote().toString())
             {
               // cerr<<"got AUTO-NS hit"<<endl;
               L<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' allowed: client IP "<<q->getRemote()<<" is in NSset"<<endl;
@@ -494,7 +494,7 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
 
   extern CommunicatorClass Communicator;
 
-  if(Communicator.justNotified(q->qdomain, q->getRemote())) { // we just notified this ip 
+  if(Communicator.justNotified(q->qdomain, q->getRemote().toString())) { // we just notified this ip
     L<<Logger::Warning<<"Approved AXFR of '"<<q->qdomain<<"' from recently notified slave "<<q->getRemote()<<endl;
     return true;
   }
