@@ -30,6 +30,7 @@
 #include "packetcache.hh"
 #include "dnsseckeeper.hh"
 #include "lua-auth.hh"
+#include "lua-auth4.hh"
 #include "gss_context.hh"
 
 #include "namespaces.hh"
@@ -109,6 +110,7 @@ private:
   bool d_doIPv6AdditionalProcessing;
   bool d_doDNAME;
   AuthLua* d_pdl;
+  AuthLua4* d_update_policy_lua;
 
   UeberBackend B; // every thread an own instance
   DNSSECKeeper d_dk; // B is shared with DNSSECKeeper

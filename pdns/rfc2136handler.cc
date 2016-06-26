@@ -673,61 +673,66 @@ int PacketHandler::processUpdate(DNSPacket *p) {
   string msgPrefix="UPDATE (" + itoa(p->d.id) + ") from " + p->getRemote().toString() + " for " + p->qdomain.toLogString() + ": ";
   L<<Logger::Info<<msgPrefix<<"Processing started."<<endl;
 
-  // Check permissions - IP based
-  vector<string> allowedRanges;
-  B.getDomainMetadata(p->qdomain, "ALLOW-DNSUPDATE-FROM", allowedRanges);
-  if (! ::arg()["allow-dnsupdate-from"].empty())
-    stringtok(allowedRanges, ::arg()["allow-dnsupdate-from"], ", \t" );
+  // if there is policy, we delegate all checks to it
+  if (this->d_update_policy_lua == NULL) {
 
-  NetmaskGroup ng;
-  for(vector<string>::const_iterator i=allowedRanges.begin(); i != allowedRanges.end(); i++)
-    ng.addMask(*i);
+    // Check permissions - IP based
+    vector<string> allowedRanges;
+    B.getDomainMetadata(p->qdomain, "ALLOW-DNSUPDATE-FROM", allowedRanges);
+    if (! ::arg()["allow-dnsupdate-from"].empty())
+      stringtok(allowedRanges, ::arg()["allow-dnsupdate-from"], ", \t" );
 
-  if ( ! ng.match(&p->d_remote)) {
-    L<<Logger::Error<<msgPrefix<<"Remote not listed in allow-dnsupdate-from or domainmetadata. Sending REFUSED"<<endl;
-    return RCode::Refused;
-  }
+    NetmaskGroup ng;
+    for(vector<string>::const_iterator i=allowedRanges.begin(); i != allowedRanges.end(); i++)
+      ng.addMask(*i);
 
-
-  // Check permissions - TSIG based.
-  vector<string> tsigKeys;
-  B.getDomainMetadata(p->qdomain, "TSIG-ALLOW-DNSUPDATE", tsigKeys);
-  if (tsigKeys.size() > 0) {
-    bool validKey = false;
-
-    TSIGRecordContent trc;
-    DNSName inputkey;
-    string message;
-    if (! p->getTSIGDetails(&trc,  &inputkey, 0)) {
-      L<<Logger::Error<<msgPrefix<<"TSIG key required, but packet does not contain key. Sending REFUSED"<<endl;
+    if ( ! ng.match(&p->d_remote)) {
+      L<<Logger::Error<<msgPrefix<<"Remote not listed in allow-dnsupdate-from or domainmetadata. Sending REFUSED"<<endl;
       return RCode::Refused;
     }
 
-    if (p->d_tsig_algo == TSIG_GSS) {
-      GssName inputname(p->d_peer_principal); // match against principal since GSS
-      for(vector<string>::const_iterator key=tsigKeys.begin(); key != tsigKeys.end(); key++) {
-        if (inputname.match(*key)) {
-          validKey = true;
-          break;
+
+    // Check permissions - TSIG based.
+    vector<string> tsigKeys;
+    B.getDomainMetadata(p->qdomain, "TSIG-ALLOW-DNSUPDATE", tsigKeys);
+    if (tsigKeys.size() > 0) {
+      bool validKey = false;
+
+      TSIGRecordContent trc;
+      DNSName inputkey;
+      string message;
+      if (! p->getTSIGDetails(&trc,  &inputkey, 0)) {
+        L<<Logger::Error<<msgPrefix<<"TSIG key required, but packet does not contain key. Sending REFUSED"<<endl;
+        return RCode::Refused;
+      }
+
+      if (p->d_tsig_algo == TSIG_GSS) {
+        GssName inputname(p->d_peer_principal); // match against principal since GSS
+        for(vector<string>::const_iterator key=tsigKeys.begin(); key != tsigKeys.end(); key++) {
+          if (inputname.match(*key)) {
+            validKey = true;
+            break;
+          }
+        }
+      } else {
+        for(vector<string>::const_iterator key=tsigKeys.begin(); key != tsigKeys.end(); key++) {
+          if (inputkey == DNSName(*key)) { // because checkForCorrectTSIG has already been performed earlier on, if the names of the ky match with the domain given. THis is valid.
+            validKey=true;
+            break;
+          }
         }
       }
-    } else {
-      for(vector<string>::const_iterator key=tsigKeys.begin(); key != tsigKeys.end(); key++) {
-        if (inputkey == DNSName(*key)) { // because checkForCorrectTSIG has already been performed earlier on, if the names of the ky match with the domain given. THis is valid.
-          validKey=true;
-          break;
-        }
+
+      if (!validKey) {
+        L<<Logger::Error<<msgPrefix<<"TSIG key ("<<inputkey<<") required, but no matching key found in domainmetadata, tried "<<tsigKeys.size()<<". Sending REFUSED"<<endl;
+        return RCode::Refused;
       }
     }
 
-    if (!validKey) {
-      L<<Logger::Error<<msgPrefix<<"TSIG key ("<<inputkey<<") required, but no matching key found in domainmetadata, tried "<<tsigKeys.size()<<". Sending REFUSED"<<endl;
-      return RCode::Refused;
-    }
+    if (tsigKeys.size() == 0 && p->d_havetsig)
+      L<<Logger::Warning<<msgPrefix<<"TSIG is provided, but domain is not secured with TSIG. Processing continues"<<endl;
+
   }
-
-  if (tsigKeys.size() == 0 && p->d_havetsig)
-    L<<Logger::Warning<<msgPrefix<<"TSIG is provided, but domain is not secured with TSIG. Processing continues"<<endl;
 
   // RFC2136 uses the same DNS Header and Message as defined in RFC1035.
   // This means we can use the MOADNSParser to parse the incoming packet. The result is that we have some different
@@ -871,6 +876,16 @@ int PacketHandler::processUpdate(DNSPacket *p) {
     for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i != mdp.d_answers.end(); ++i) {
       const DNSRecord *rr = &i->first;
       if (rr->d_place == DNSResourceRecord::AUTHORITY) {
+        /* see if it's permitted by policy */
+        if (this->d_update_policy_lua != NULL) {
+          if (this->d_update_policy_lua->updatePolicy(rr->d_name, QType(rr->d_type), di.zone, p) == false) {
+            L<<Logger::Warning<<msgPrefix<<"Refusing update for " << rr->d_name << "/" << QType(rr->d_type).getName() << ": Not permitted by policy"<<endl;
+            continue;
+          } else {
+            L<<Logger::Debug<<msgPrefix<<"Accepting update for " << rr->d_name << "/" << QType(rr->d_type).getName() << ": Permitted by policy"<<endl;
+          }
+        }
+
         if (rr->d_class == QClass::NONE  && rr->d_type == QType::NS && rr->d_name == di.zone)
           nsRRtoDelete.push_back(rr);
         else
