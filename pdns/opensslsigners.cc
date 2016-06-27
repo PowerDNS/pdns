@@ -8,12 +8,12 @@
 #include <openssl/sha.h>
 #include <openssl/rand.h>
 #include <openssl/rsa.h>
+#include <openssl/opensslv.h>
 #include "opensslsigners.hh"
 #include "dnssecinfra.hh"
 
-
-/* pthread locking */
-
+#if OPENSSL_VERSION_NUMBER < 0x1010000fL
+/* OpenSSL < 1.1.0 needs support for threading/locking in the calling application. */
 static pthread_mutex_t *openssllocks;
 
 extern "C" {
@@ -54,7 +54,10 @@ void openssl_thread_cleanup()
 
   OPENSSL_free(openssllocks);
 }
-
+#else
+void openssl_thread_setup() {}
+void openssl_thread_cleanup() {}
+#endif
 
 /* seeding PRNG */
 
