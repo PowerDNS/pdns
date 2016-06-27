@@ -433,7 +433,9 @@ commas instead of semicolons. For the rest everything is identical.
 Response Policy Zone is an open standard developed by ISC, the authors of the BIND nameserver, to modify
 DNS responses based on a policy loaded via a zonefile.
 
-Frequently, Response Policy Zones get to be very large, so it is customary to update them over IXFR.
+Frequently, Response Policy Zones get to be very large and change quickly,
+so it is customary to update them over IXFR.
+It allows the use of third-party feeds, and near real-time policy updates.
 
 An RPZ can be loaded from file or slaved from a master. To load from file, use for example:
 
@@ -449,17 +451,30 @@ rpzMaster("192.0.2.4", "policy.rpz", {defpol=Policy.Drop})
 
 In this example, 'policy.rpz' denotes the name of the zone to query for. 
 
-Settings can contain:
+Settings for `rpzFile` and `rpzMaster` can contain:
 
 * defpol = Policy.Custom, Policy.Drop, Policy.NXDOMAIN, Policy.NODATA, Policy.Truncate, Policy.NoAction
 * defcontent = CNAME field to return in case of defpol=Policy.Custom
-* defttl = the TTL of the CNAME field to be synthesized
+* defttl = the TTL of the CNAME field to be synthesized. The default is to use the zone's TTL
+* policyName = the name logged as 'appliedPolicy' in protobuf messages when this policy is applied
+
+In addition to those, `rpzMaster` accepts:
+
 * tsigname = the name of the TSIG key to authenticate to the server (also set tsigalgo, tsigsecret)
 * tsigalgo = the name of the TSIG algorithm (like 'hmac-md5') used
 * tsigsecret = base64 encoded TSIG secret
 * refresh = an integer describing the interval between checks for updates. By default, the RPZ zone's default is used
 
 If no settings are included, the RPZ is taken literally with no overrides applied.
+
+The policy action are:
+
+* Policy.Custom will return a NoError, CNAME answer with the value specified with `defcontent`
+* Policy.Drop will simply cause the query to be dropped
+* Policy.NoAction will continue normal processing of the query
+* Policy.NODATA will return a NoError response with no value in the answer section
+* Policy.NXDOMAIN will return a response with a NXDomain rcode
+* Policy.Truncate will return a NoError, no answer, truncated response over UDP. Normal processing will continue over TCP
 
 ## `lua-dns-script`
 * Path
