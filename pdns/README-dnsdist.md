@@ -412,6 +412,20 @@ A convenience function `makeRule()` is supplied which will make a NetmaskGroupRu
 depending on how you call it. `makeRule("0.0.0.0/0")` will for example match all IPv4 traffic, `makeRule{"be","nl","lu"}` will
 match all Benelux DNS traffic.
 
+All the current rules can be removed at once with:
+
+```
+> clearRules()
+```
+
+It is also possible to replace the current rules by a list of new ones in a
+single operation with `setRules()`:
+
+```
+> setRules( { newRuleAction(TCPRule(), AllowAction()), newRuleAction(AllRule(), DropAction()) } )
+```
+
+
 More power
 ----------
 More powerful things can be achieved by defining a function called
@@ -1213,14 +1227,17 @@ instantiate a server with additional parameters
     * `TCPRule(tcp)`: matches question received over TCP if `tcp` is true, over UDP otherwise
     * `TrailingDataRule()`: matches if the query has trailing data
  * Rule management related:
+    * `clearRules()`: remove all current rules
     * `getAction(num)`: returns the Action associate with rule 'num'.
-    * `showRules()`: show all defined rules (Pool, Block, QPS, addAnyTCRule)
     * `mvResponseRule(from, to)`: move response rule 'from' to a position where it is in front of 'to'. 'to' can be one larger than the largest rule,
      in which case the rule will be moved to the last position.
     * `mvRule(from, to)`: move rule 'from' to a position where it is in front of 'to'. 'to' can be one larger than the largest rule,
      in which case the rule will be moved to the last position.
+    * `newRuleAction(DNS Rule, DNS Action)`: return a pair of DNS Rule and DNS Action, to be used with `setRules()`
     * `rmResponseRule(n)`: remove response rule n
     * `rmRule(n)`: remove rule n
+    * `setRules(list)`: replace the current rules with the supplied list of pairs of DNS Rules and DNS Actions (see `newRuleAction()`)
+    * `showRules()`: show all defined rules (Pool, Block, QPS, addAnyTCRule)
     * `topResponseRule()`: move the last response rule to the first position
     * `topRule()`: move the last rule to the first position
  * Built-in Actions for Rules:
