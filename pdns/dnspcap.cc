@@ -172,6 +172,10 @@ PcapPacketWriter::PcapPacketWriter(const string& fname) : d_fname(fname)
 
 void PcapPacketWriter::write()
 {
+  if (!d_ppr) {
+    return;
+  }
+
   if(d_first) {
     fwrite(&d_ppr->d_pfh, 1, sizeof(d_ppr->d_pfh), d_fp);
     d_first=false;
