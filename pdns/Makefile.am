@@ -4,7 +4,7 @@ AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/json11 \
 	$(YAHTTP_CFLAGS) \
 	$(LIBEDIT_CFLAGS) \
-	$(OPENSSL_INCLUDES) \
+	$(LIBCRYPTO_INCLUDES) \
 	$(SYSTEMD_CFLAGS)
 
 AM_CXXFLAGS = \
@@ -211,7 +211,7 @@ pdns_server_SOURCES = \
 pdns_server_LDFLAGS = \
 	$(AM_LDFLAGS) \
 	$(DYNLINKFLAGS) \
-	$(OPENSSL_LDFLAGS)
+	$(LIBCRYPTO_LDFLAGS)
 
 pdns_server_LDADD = \
 	@moduleobjects@ \
@@ -219,7 +219,7 @@ pdns_server_LDADD = \
 	$(LIBDL) \
 	$(YAHTTP_LIBS) \
 	$(JSON11_LIBS) \
-	$(OPENSSL_LIBS) \
+	$(LIBCRYPTO_LIBS) \
 	$(SYSTEMD_LIBS)
 
 if BOTAN110
@@ -302,7 +302,7 @@ pdnsutil_LDFLAGS = \
 	$(AM_LDFLAGS) \
 	$(DYNLINKFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
-	$(OPENSSL_LDFLAGS)
+	$(LIBCRYPTO_LDFLAGS)
 
 pdnsutil_LDADD = \
 	@moduleobjects@ \
@@ -311,7 +311,7 @@ pdnsutil_LDADD = \
 	$(JSON11_LIBS) \
 	$(LIBDL) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS) \
-	$(OPENSSL_LIBS)
+	$(LIBCRYPTO_LIBS)
 
 if BOTAN110
 pdnsutil_SOURCES += botan110signers.cc
@@ -368,8 +368,8 @@ zone2sql_SOURCES = \
 	zone2sql.cc \
 	zoneparser-tng.cc
 
-zone2sql_LDADD = $(OPENSSL_LIBS) $(JSON11_LIBS)
-zone2sql_LDFLAGS = $(AM_LDFLAGS) $(OPENSSL_LDFLAGS)
+zone2sql_LDADD = $(LIBCRYPTO_LIBS) $(JSON11_LIBS)
+zone2sql_LDFLAGS = $(AM_LDFLAGS) $(LIBCRYPTO_LDFLAGS)
 
 zone2json_SOURCES = \
 	arguments.cc \
@@ -395,8 +395,8 @@ zone2json_SOURCES = \
 	zone2json.cc \
 	zoneparser-tng.cc
 
-zone2json_LDADD = $(OPENSSL_LIBS) $(JSON11_LIBS)
-zone2json_LDFLAGS = $(AM_LDFLAGS) $(OPENSSL_LDFLAGS)
+zone2json_LDADD = $(LIBCRYPTO_LIBS) $(JSON11_LIBS)
+zone2json_LDFLAGS = $(AM_LDFLAGS) $(LIBCRYPTO_LDFLAGS)
 
 # pkglib_LTLIBRARIES = iputils.la
 # iputils_la_SOURCES = lua-iputils.cc
@@ -431,8 +431,8 @@ zone2ldap_SOURCES = \
 	zone2ldap.cc \
 	zoneparser-tng.cc
 
-zone2ldap_LDADD = $(OPENSSL_LIBS)
-zone2ldap_LDFLAGS = $(AM_LDFLAGS) $(OPENSSL_LDFLAGS)
+zone2ldap_LDADD = $(LIBCRYPTO_LIBS)
+zone2ldap_LDFLAGS = $(AM_LDFLAGS) $(LIBCRYPTO_LDFLAGS)
 
 sdig_SOURCES = \
 	base32.cc \
@@ -455,8 +455,8 @@ sdig_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-sdig_LDADD = $(OPENSSL_LIBS)
-sdig_LDFLAGS = $(AM_LDFLAGS) $(OPENSSL_LDFLAGS)
+sdig_LDADD = $(LIBCRYPTO_LIBS)
+sdig_LDFLAGS = $(AM_LDFLAGS) $(LIBCRYPTO_LDFLAGS)
 
 calidns_SOURCES = \
 	base32.cc \
@@ -478,8 +478,8 @@ calidns_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-calidns_LDADD = $(OPENSSL_LIBS)
-calidns_LDFLAGS = $(AM_LDFLAGS) $(THREADFLAGS) $(OPENSSL_LDFLAGS)
+calidns_LDADD = $(LIBCRYPTO_LIBS)
+calidns_LDFLAGS = $(AM_LDFLAGS) $(THREADFLAGS) $(LIBCRYPTO_LDFLAGS)
 
 dumresp_SOURCES = \
 	dnslabeltext.cc \
@@ -521,8 +521,8 @@ stubquery_SOURCES = \
 	stubquery.cc \
 	unix_utility.cc
 
-stubquery_LDADD = $(OPENSSL_LIBS)
-stubquery_LDFLAGS = $(AM_LDFLAGS) $(OPENSSL_LDFLAGS)
+stubquery_LDADD = $(LIBCRYPTO_LIBS)
+stubquery_LDFLAGS = $(AM_LDFLAGS) $(LIBCRYPTO_LDFLAGS)
 
 saxfr_SOURCES = \
 	base32.cc \
@@ -546,8 +546,8 @@ saxfr_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-saxfr_LDADD = $(OPENSSL_LIBS)
-saxfr_LDFLAGS = $(AM_LDFLAGS) $(OPENSSL_LDFLAGS)
+saxfr_LDADD = $(LIBCRYPTO_LIBS)
+saxfr_LDFLAGS = $(AM_LDFLAGS) $(LIBCRYPTO_LDFLAGS)
 
 if PKCS11
 saxfr_SOURCES += pkcs11signers.cc pkcs11signers.hh
@@ -585,8 +585,8 @@ ixplore_SOURCES = \
 	statbag.cc \
 	unix_utility.cc zoneparser-tng.cc
 
-ixplore_LDADD = $(OPENSSL_LIBS)
-ixplore_LDFLAGS = $(AM_LDFLAGS) $(OPENSSL_LDFLAGS)
+ixplore_LDADD = $(LIBCRYPTO_LIBS)
+ixplore_LDFLAGS = $(AM_LDFLAGS) $(LIBCRYPTO_LDFLAGS)
 
 if PKCS11
 ixplore_SOURCES += pkcs11signers.cc pkcs11signers.hh
@@ -619,11 +619,11 @@ dnstcpbench_SOURCES = \
 
 dnstcpbench_LDFLAGS = \
 	$(AM_LDFLAGS) \
-	$(OPENSSL_LDFLAGS) \
+	$(LIBCRYPTO_LDFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
 dnstcpbench_LDADD = \
-	$(OPENSSL_LIBS) \
+	$(LIBCRYPTO_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS)
 
 nsec3dig_SOURCES = \
@@ -647,8 +647,8 @@ nsec3dig_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-nsec3dig_LDADD = $(OPENSSL_LIBS)
-nsec3dig_LDFLAGS = $(AM_LDFLAGS) $(OPENSSL_LDFLAGS)
+nsec3dig_LDADD = $(LIBCRYPTO_LIBS)
+nsec3dig_LDFLAGS = $(AM_LDFLAGS) $(LIBCRYPTO_LDFLAGS)
 
 if PKCS11
 nsec3dig_SOURCES += pkcs11signers.cc pkcs11signers.hh
@@ -692,8 +692,8 @@ toysdig_SOURCES = \
 
 
 toysdig_LDFLAGS = $(AM_LDFLAGS) \
-	$(OPENSSL_LDFLAGS)
-toysdig_LDADD = $(OPENSSL_LIBS)
+	$(LIBCRYPTO_LDFLAGS)
+toysdig_LDADD = $(LIBCRYPTO_LIBS)
 
 if GSS_TSIG
 toysdig_LDADD += $(GSS_LIBS)
@@ -735,8 +735,8 @@ tsig_tests_SOURCES = \
 	tsig-tests.cc \
 	unix_utility.cc
 
-tsig_tests_LDADD = $(OPENSSL_LIBS)
-tsig_tests_LDFLAGS = $(AM_LDFLAGS) $(OPENSSL_LDFLAGS)
+tsig_tests_LDADD = $(LIBCRYPTO_LIBS)
+tsig_tests_LDFLAGS = $(AM_LDFLAGS) $(LIBCRYPTO_LDFLAGS)
 
 if PKCS11
 tsig_tests_SOURCES += pkcs11signers.cc pkcs11signers.hh
@@ -765,8 +765,8 @@ speedtest_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-speedtest_LDFLAGS = $(AM_LDFLAGS) $(OPENSSL_LDFLAGS)
-speedtest_LDADD = $(OPENSSL_LIBS) \
+speedtest_LDFLAGS = $(AM_LDFLAGS) $(LIBCRYPTO_LDFLAGS)
+speedtest_LDADD = $(LIBCRYPTO_LIBS) \
 	$(RT_LIBS)
 
 dnswasher_SOURCES = \
@@ -803,11 +803,11 @@ dnsbulktest_SOURCES = \
 
 dnsbulktest_LDFLAGS = \
 	$(AM_LDFLAGS) \
-	$(OPENSSL_LDFLAGS) \
+	$(LIBCRYPTO_LDFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
 dnsbulktest_LDADD = \
-	$(OPENSSL_LIBS) \
+	$(LIBCRYPTO_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS)
 
 comfun_SOURCES = \
@@ -832,11 +832,11 @@ comfun_SOURCES = \
 
 comfun_LDFLAGS = \
 	$(AM_LDFLAGS) \
-	$(OPENSSL_LDFLAGS) \
+	$(LIBCRYPTO_LDFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
 comfun_LDADD = \
-	$(OPENSSL_LIBS) \
+	$(LIBCRYPTO_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS)
 
 
@@ -863,9 +863,9 @@ dnsscan_SOURCES = \
 
 dnsscan_LDFLAGS = \
 	$(AM_LDFLAGS) \
-	$(OPENSSL_LDFLAGS)
+	$(LIBCRYPTO_LDFLAGS)
 
-dnsscan_LDADD = $(OPENSSL_LIBS)
+dnsscan_LDADD = $(LIBCRYPTO_LIBS)
 
 dnsreplay_SOURCES = \
 	anadns.hh \
@@ -892,11 +892,11 @@ dnsreplay_SOURCES = \
 
 dnsreplay_LDFLAGS = \
 	$(AM_LDFLAGS) \
-	$(OPENSSL_LDFLAGS) \
+	$(LIBCRYPTO_LDFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
 dnsreplay_LDADD = \
-	$(OPENSSL_LIBS) \
+	$(LIBCRYPTO_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS)
 
 nproxy_SOURCES = \
@@ -921,11 +921,11 @@ nproxy_SOURCES = \
 
 nproxy_LDFLAGS = \
 	$(AM_LDFLAGS) \
-	$(OPENSSL_LDFLAGS) \
+	$(LIBCRYPTO_LDFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
 nproxy_LDADD = \
-	$(OPENSSL_LIBS) \
+	$(LIBCRYPTO_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS)
 
 pdns_notify_SOURCES = \
@@ -951,11 +951,11 @@ pdns_notify_SOURCES = \
 
 pdns_notify_LDFLAGS = \
 	$(AM_LDFLAGS) \
-	$(OPENSSL_LDFLAGS) \
+	$(LIBCRYPTO_LDFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
 pdns_notify_LDADD = \
-	$(OPENSSL_LIBS) \
+	$(LIBCRYPTO_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS)
 
 dnsscope_SOURCES = \
@@ -983,11 +983,11 @@ dnsscope_SOURCES = \
 
 dnsscope_LDFLAGS = \
 	$(AM_LDFLAGS) \
-	$(OPENSSL_LDFLAGS) \
+	$(LIBCRYPTO_LDFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
 dnsscope_LDADD = \
-	$(OPENSSL_LIBS) \
+	$(LIBCRYPTO_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS)
 
 dnsgram_SOURCES = \
@@ -1012,10 +1012,10 @@ dnsgram_SOURCES = \
 
 dnsgram_LDFLAGS = \
 	$(AM_LDFLAGS) \
-	$(OPENSSL_LDFLAGS)
+	$(LIBCRYPTO_LDFLAGS)
 
 dnsgram_LDADD = \
-	$(OPENSSL_LIBS)
+	$(LIBCRYPTO_LIBS)
 
 dnsdemog_SOURCES = \
 	base32.cc \
@@ -1039,10 +1039,10 @@ dnsdemog_SOURCES = \
 
 dnsdemog_LDFLAGS = \
 	$(AM_LDFLAGS) \
-	$(OPENSSL_LDFLAGS)
+	$(LIBCRYPTO_LDFLAGS)
 
 dnsdemog_LDADD = \
-	$(OPENSSL_LIBS)
+	$(LIBCRYPTO_LIBS)
 
 if HAVE_PROTOBUF
 if HAVE_PROTOC
@@ -1080,11 +1080,11 @@ nodist_dnspcap2protobuf_SOURCES=dnsmessage.pb.cc dnsmessage.pb.h
 
 dnspcap2protobuf_LDFLAGS = \
 	$(AM_LDFLAGS) \
-	$(OPENSSL_LDFLAGS) \
+	$(LIBCRYPTO_LDFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
 dnspcap2protobuf_LDADD = \
-	$(OPENSSL_LIBS) \
+	$(LIBCRYPTO_LIBS) \
 	$(PROTOBUF_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS)
 endif
@@ -1156,11 +1156,11 @@ testrunner_SOURCES = \
 
 testrunner_LDFLAGS = \
 	$(AM_LDFLAGS) \
-	$(OPENSSL_LDFLAGS) \
+	$(LIBCRYPTO_LDFLAGS) \
 	$(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) 
 
 testrunner_LDADD = \
-	$(OPENSSL_LIBS) \
+	$(LIBCRYPTO_LIBS) \
 	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
 	$(RT_LIBS) \
 	$(LIBDL)

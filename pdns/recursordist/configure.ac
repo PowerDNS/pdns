@@ -98,10 +98,12 @@ PDNS_ENABLE_VERBOSE_LOGGING
 
 # Crypto libraries
 PDNS_ENABLE_BOTAN
-AX_CHECK_OPENSSL([
+PDNS_CHECK_LIBCRYPTO([
 ],[
-  AC_MSG_ERROR([OpenSSL not found])
-])
+   AC_MSG_ERROR([OpenSSL/libcrypto not found])
+  ]
+)
+PDNS_CHECK_LIBCRYPTO_ECDSA
 
 # check for tools we might need
 PDNS_CHECK_RAGEL
@@ -187,6 +189,7 @@ AS_IF([test "x$LUAPC" != "x"],
     [AC_MSG_NOTICE([LuaJit: $LUAJITPC])],
     [AC_MSG_NOTICE([Lua/LuaJit: no])])
 ])
+AC_MSG_NOTICE([OpenSSL ECDSA: $libcrypto_ecdsa])
 AS_IF([test "x$PROTOBUF_LIBS" != "x" -a x"$PROTOC" != "x"],
   [AC_MSG_NOTICE([Protobuf: yes])],
   [AC_MSG_NOTICE([Protobuf: no])]
