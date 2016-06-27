@@ -424,7 +424,30 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       }
       g_rulactions.setState(rules);
     });
+  g_lua.writeFunction("clearRules", []() {
+      setLuaSideEffect();
+      g_rulactions.modify([](decltype(g_rulactions)::value_type& rulactions) {
+          rulactions.clear();
+        });
+    });
 
+  g_lua.writeFunction("newRuleAction", [](luadnsrule_t dnsrule, std::shared_ptr<DNSAction> action) {
+      auto rule=makeRule(dnsrule);
+      return std::make_shared<std::pair< luadnsrule_t, std::shared_ptr<DNSAction> > >(rule, action);
+    });
+
+  g_lua.writeFunction("setRules", [](std::vector< std::pair<int, std::shared_ptr<std::pair<luadnsrule_t, std::shared_ptr<DNSAction> > > > > newruleactions) {
+      setLuaSideEffect();
+      g_rulactions.modify([newruleactions](decltype(g_rulactions)::value_type& gruleactions) {
+          gruleactions.clear();
+          for (const auto& newruleaction : newruleactions) {
+            if (newruleaction.second) {
+              auto rule=makeRule(newruleaction.second->first);
+              gruleactions.push_back({rule, newruleaction.second->second});
+            }
+          }
+        });
+    });
 
   g_lua.writeFunction("rmServer", 
 		      [](boost::variant<std::shared_ptr<DownstreamState>, int> var)
