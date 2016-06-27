@@ -40,14 +40,14 @@ struct pdns_pcap_file_header {
 
 struct pdns_timeval
 {
-  uint32_t tv_sec;
-  uint32_t tv_usec;
+  uint32_t tv_sec{0};
+  uint32_t tv_usec{0};
 };
 
 struct pdns_pcap_pkthdr {
   struct pdns_timeval ts;      /* time stamp */
-  uint32_t caplen;     /* length of portion present */
-  uint32_t len;        /* length this packet (off wire) */
+  uint32_t caplen{0};     /* length of portion present */
+  uint32_t len{0};        /* length this packet (off wire) */
 };
 
 struct pdns_lcc_header {
@@ -86,14 +86,14 @@ public:
   ComboAddress getSource() const;
   ComboAddress getDest() const;
 
-  struct pdns_lcc_header* d_lcc;
-  struct ether_header* d_ether;
-  struct ip *d_ip;
-  struct ip6_hdr *d_ip6;
-  const struct tcphdr *d_tcp;
-  const struct udphdr *d_udp;
-  const uint8_t* d_payload;
-  unsigned int d_len;
+  struct pdns_lcc_header* d_lcc{nullptr};
+  struct ether_header* d_ether{nullptr};
+  struct ip *d_ip{nullptr};
+  struct ip6_hdr *d_ip6{nullptr};
+  const struct tcphdr *d_tcp{nullptr};
+  const struct udphdr *d_udp{nullptr};
+  const uint8_t* d_payload{nullptr};
+  unsigned int d_len{0};
   struct pdns_pcap_pkthdr d_pheader;
 
   pdns_pcap_file_header d_pfh;
@@ -117,7 +117,7 @@ public:
 
 private:
   string d_fname;
-  const PcapPacketReader* d_ppr;
+  const PcapPacketReader* d_ppr{nullptr};
 
   FILE *d_fp;
   bool d_first{true};

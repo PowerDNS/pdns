@@ -120,7 +120,7 @@ try
     /* we measure every 60 seconds, each interval with 10% less answers than questions is interesting */
     /* report chunked */
     
-    struct pdns_timeval lastreport={0, 0};
+    struct pdns_timeval lastreport;
     
     typedef set<pair<DNSName, uint16_t> > queries_t;
     queries_t questions, answers;
