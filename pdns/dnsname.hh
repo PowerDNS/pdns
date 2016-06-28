@@ -78,7 +78,7 @@ public:
   }
   DNSName& operator+=(const DNSName& rhs)
   {
-    if(d_storage.size() + rhs.d_storage.size() > 256) // reserve one byte for the root label
+    if(d_storage.size() + rhs.d_storage.size() > 256) // one extra byte for the second root label
       throw std::range_error("name too long");
     if(rhs.empty())
       return *this;
