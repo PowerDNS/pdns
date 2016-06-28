@@ -69,7 +69,7 @@ static Json::object emitRecord(const string& zoneName, const DNSName &DNSqname, 
 
   Json::object dict;
  
-  dict["name"] = DNSqname.toStringNoDot();
+  dict["name"] = DNSqname.toString();
   dict["type"] = qtype;
   dict["ttl"] = ttl;
   dict["prio"] = prio;
@@ -167,7 +167,7 @@ try
           ++i)
         {
           if(i->type!="master" && i->type!="slave") {
-            cerr<<" Warning! Skipping '"<<i->type<<"' zone '"<<i->name.toString()<<"'"<<endl;
+            cerr<<" Warning! Skipping '"<<i->type<<"' zone '"<<i->name<<"'"<<endl;
             continue;
           }
           lines.clear(); 
@@ -176,10 +176,10 @@ try
             Json::array recs;
             ZoneParserTNG zpt(i->filename, i->name, BP.getDirectory());
             DNSResourceRecord rr;
-            obj["name"] = i->name.toStringNoDot();
+            obj["name"] = i->name.toString();
 
             while(zpt.get(rr)) 
-              recs.push_back(emitRecord(i->name.toStringNoDot(), rr.qname, rr.qtype.getName(), rr.content, rr.ttl));
+              recs.push_back(emitRecord(i->name.toString(), rr.qname, rr.qtype.getName(), rr.content, rr.ttl));
             obj["records"] = recs;
             Json tmp = obj;
             cout<<tmp.dump();
