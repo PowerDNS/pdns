@@ -3,11 +3,11 @@
 #include "sodbc.hh"
 #include <string.h>
 
-static void testResult( SQLRETURN result, SQLSMALLINT type, SQLHANDLE handle, const std::string & message )
+static bool realTestResult( SQLRETURN result, SQLSMALLINT type, SQLHANDLE handle, const std::string & message, std::string & errorMessage)
 {
   // cerr<<"result = "<<result<<endl;
   if ( result == SQL_SUCCESS || result == SQL_SUCCESS_WITH_INFO )
-    return;
+    return true;
 
   ostringstream errmsg;
 
@@ -16,7 +16,8 @@ static void testResult( SQLRETURN result, SQLSMALLINT type, SQLHANDLE handle, co
   if ( result != SQL_ERROR && result != SQL_SUCCESS_WITH_INFO ) {
     cerr<<"handle "<<handle<<" got result "<<result<<endl;
     errmsg << "SQL function returned "<<result<<", no additional information available"<<endl;
-    throw SSqlException( errmsg.str() );
+    errorMessage = errmsg.str();
+    return false;
   }
 
   SQLINTEGER i = 0;
@@ -37,7 +38,8 @@ static void testResult( SQLRETURN result, SQLSMALLINT type, SQLHANDLE handle, co
     }
   }
   while( ret == SQL_SUCCESS );
-  throw SSqlException( errmsg.str() );
+  errorMessage = errmsg.str();
+  return false;
 }
 
 class SODBCStatement: public SSqlStatement
@@ -45,33 +47,16 @@ class SODBCStatement: public SSqlStatement
 public:
   SODBCStatement(const string& query, bool dolog, int nparams, SQLHDBC connection)
   {
-    SQLRETURN result;
-
     d_query = query;
-    // d_nparams = nparams;
     d_conn = connection;
     d_dolog = dolog;
     d_residx = 0;
     d_paridx = 0;
     d_result = SQL_NO_DATA;
+    d_statement = NULL;
+    d_prepared = false;
     m_columncount = 0;
-
-    // Allocate statement handle.
-    result = SQLAllocHandle( SQL_HANDLE_STMT, d_conn, &d_statement );
-    testResult( result, SQL_HANDLE_DBC, d_conn, "Could not allocate a statement handle." );
-
-    result = SQLPrepare(d_statement, (SQLCHAR *) query.c_str(), SQL_NTS);
-    testResult( result, SQL_HANDLE_STMT, d_statement, "Could not prepare query." );
-
-    SQLSMALLINT paramcount;
-    result = SQLNumParams(d_statement, &paramcount);
-    testResult( result, SQL_HANDLE_STMT, d_statement, "Could not get parameter count." );
-
-    if (paramcount != nparams)
-      throw SSqlException("Provided parameter count does not match statement: " + d_query);
-
     d_parnum = nparams;
-    // cerr<<"prepared ("<<query<<")"<<endl;
   }
 
   struct ODBCParam {
@@ -231,9 +216,54 @@ public:
   }
   const std::string& getQuery() { return d_query; }
 
+  ~SODBCStatement() {
+    releaseStatement();
+  }
 private:
+
+  void testResult(SQLRETURN result, SQLSMALLINT type, SQLHANDLE handle, const std::string & message) {
+     std::string errorMessage;
+     if (!realTestResult(result, type, handle, message, errorMessage)) {
+       releaseStatement();
+       throw errorMessage;
+     }
+  }
+
+  void releaseStatement() {
+    reset();
+    if (d_statement != NULL)
+      SQLFreeHandle(SQL_HANDLE_STMT, d_statement);
+    d_prepared = false;
+  }
+
+  void prepareStatement() {
+    if (d_prepared) return;
+
+    SQLRETURN result;
+
+    // Allocate statement handle.
+    result = SQLAllocHandle( SQL_HANDLE_STMT, d_conn, &d_statement );
+    testResult( result, SQL_HANDLE_DBC, d_conn, "Could not allocate a statement handle." );
+
+    result = SQLPrepare(d_statement, (SQLCHAR *) d_query.c_str(), SQL_NTS);
+    testResult( result, SQL_HANDLE_STMT, d_statement, "Could not prepare query." );
+
+    SQLSMALLINT paramcount;
+    result = SQLNumParams(d_statement, &paramcount);
+    testResult( result, SQL_HANDLE_STMT, d_statement, "Could not get parameter count." );
+
+    if (paramcount != static_cast<SQLSMALLINT>(d_parnum)) {
+      releaseStatement();
+      throw SSqlException("Provided parameter count does not match statement: " + d_query);
+    }
+
+    // cerr<<"prepared ("<<query<<")"<<endl;
+    d_prepared = true;
+  }
+
   string d_query;
   bool d_dolog;
+  bool d_prepared;
   int d_residx;
   size_t d_paridx,d_parnum;
   SQLRETURN d_result;
@@ -421,4 +451,9 @@ void SODBC::rollback() {
 
   result = SQLSetConnectAttr(m_connection, SQL_ATTR_AUTOCOMMIT, SQL_AUTOCOMMIT_OFF, 0);
   testResult( result, SQL_HANDLE_DBC, m_connection, "disabling autocommit after rollback failed" );
+}
+
+void SODBC::testResult(SQLRETURN result, SQLSMALLINT type, SQLHANDLE handle, const std::string & message) {
+  std::string errorMessage;
+  if (!realTestResult(result, type, handle, message, errorMessage)) throw errorMessage;
 }

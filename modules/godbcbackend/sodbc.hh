@@ -24,7 +24,7 @@ private:
   SQLHDBC   m_connection;   //!< Database connection handle.
   SQLHENV   m_environment;  //!< Database environment handle
 
-
+  void testResult(SQLRETURN result, SQLSMALLINT type, SQLHANDLE handle, const std::string & message);
 
 public:
   //! Default constructor.

@@ -1,4 +1,4 @@
-/* Copyright 2003 - 2005 Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE 
+/* Copyright 2003 - 2005 Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE
    for more information. */
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -17,31 +17,16 @@ class SPgSQLStatement: public SSqlStatement
 {
 public:
   SPgSQLStatement(const string& query, bool dolog, int nparams, SPgSQL* db) {
-    struct timeval tv;
-
     d_query = query;
     d_dolog = dolog;
     d_parent = db;
-
-    // prepare a statement
-    gettimeofday(&tv,NULL);
-    this->d_stmt = string("stmt") + std::to_string(tv.tv_sec) + std::to_string(tv.tv_usec);
-
+    d_prepared = false;
     d_nparams = nparams;
- 
-    PGresult* res = PQprepare(d_db(), d_stmt.c_str(), d_query.c_str(), d_nparams, NULL);
-    ExecStatusType status = PQresultStatus(res);
-    string errmsg(PQresultErrorMessage(res));
-    PQclear(res);
-    if (status != PGRES_COMMAND_OK && status != PGRES_TUPLES_OK && status != PGRES_NONFATAL_ERROR) {
-      throw SSqlException("Fatal error during prepare: " + d_query + string(": ") + errmsg);
-    } 
-    paramValues=NULL;
-    d_cur_set=d_paridx=d_residx=d_resnum=d_fnum=0;
-    paramLengths=NULL;
-    d_res=NULL;
-    d_res_set=NULL;
-    d_do_commit=false;
+    d_res = NULL;
+    d_res_set = NULL;
+    paramValues = NULL;
+    paramLengths = NULL;
+    d_do_commit = false;
   }
 
   SSqlStatement* bind(const string& name, bool value) { return bind(name, string(value ? "t" : "f")); }
@@ -52,9 +37,12 @@ public:
   SSqlStatement* bind(const string& name, long long value) { return bind(name, std::to_string(value)); }
   SSqlStatement* bind(const string& name, unsigned long long value) { return bind(name, std::to_string(value)); }
   SSqlStatement* bind(const string& name, const std::string& value) {
+    prepareStatement();
     allocate();
-    if (d_paridx>=d_nparams) 
+    if (d_paridx>=d_nparams) {
+      releaseStatement();
       throw SSqlException("Attempt to bind more parameters than query has: " + d_query);
+    }
     paramValues[d_paridx] = new char[value.size()+1];
     memset(paramValues[d_paridx], 0, sizeof(char)*(value.size()+1));
     value.copy(paramValues[d_paridx], value.size());
@@ -62,8 +50,9 @@ public:
     d_paridx++;
     return this;
   }
-  SSqlStatement* bindNull(const string& name) { d_paridx++; return this; } // these are set null in allocate()
+  SSqlStatement* bindNull(const string& name) { prepareStatement(); d_paridx++; return this; } // these are set null in allocate()
   SSqlStatement* execute() {
+    prepareStatement();
     if (d_dolog) {
       L<<Logger::Warning<<"Query: "<<d_query<<endl;
     }
@@ -76,8 +65,7 @@ public:
     string errmsg(PQresultErrorMessage(d_res_set));
     if (status != PGRES_COMMAND_OK && status != PGRES_TUPLES_OK && status != PGRES_NONFATAL_ERROR) {
       string errmsg(PQresultErrorMessage(d_res_set));
-      PQclear(d_res_set);
-      d_res_set = NULL;
+      releaseStatement();
       throw SSqlException("Fatal error during query: " + d_query + string(": ") + errmsg);
     }
     d_cur_set = 0;
@@ -121,7 +109,7 @@ public:
     }
   }
 
-  bool hasNextRow() 
+  bool hasNextRow()
   {
     return d_residx<d_resnum;
   }
@@ -162,18 +150,19 @@ public:
   SSqlStatement* reset() {
      int i;
      if (!d_parent->in_trx() && d_do_commit) {
-       PQexec(d_db(),"COMMIT");
+       PGresult *res = PQexec(d_db(),"COMMIT");
+       PQclear(res);
      }
      d_do_commit = false;
-     if (d_res) 
+     if (d_res)
        PQclear(d_res);
      if (d_res_set)
        PQclear(d_res_set);
      d_res_set = NULL;
      d_res = NULL;
      d_paridx = d_residx = d_resnum = 0;
-     if (paramValues) 
-       for(i=0;i<d_nparams;i++) 
+     if (paramValues)
+       for(i=0;i<d_nparams;i++)
          if (paramValues[i]) delete [] paramValues[i];
      delete [] paramValues;
      paramValues = NULL;
@@ -185,11 +174,42 @@ public:
   const std::string& getQuery() { return d_query; }
 
   ~SPgSQLStatement() {
-    reset();
+    releaseStatement();
   }
 private:
   PGconn* d_db() {
     return d_parent->db();
+  }
+
+  void releaseStatement() {
+    d_prepared = false;
+    reset();
+    string cmd = string("DEALLOCATE " + d_stmt);
+    PGresult *res = PQexec(d_db(), cmd.c_str());
+    PQclear(res);
+  }
+
+  void prepareStatement() {
+    struct timeval tv;
+    if (d_prepared) return;
+    // prepare a statement
+    gettimeofday(&tv,NULL);
+    this->d_stmt = string("stmt") + std::to_string(tv.tv_sec) + std::to_string(tv.tv_usec);
+    PGresult* res = PQprepare(d_db(), d_stmt.c_str(), d_query.c_str(), d_nparams, NULL);
+    ExecStatusType status = PQresultStatus(res);
+    string errmsg(PQresultErrorMessage(res));
+    PQclear(res);
+    if (status != PGRES_COMMAND_OK && status != PGRES_TUPLES_OK && status != PGRES_NONFATAL_ERROR) {
+      releaseStatement();
+      throw SSqlException("Fatal error during prepare: " + d_query + string(": ") + errmsg);
+    }
+    paramValues=NULL;
+    d_cur_set=d_paridx=d_residx=d_resnum=d_fnum=0;
+    paramLengths=NULL;
+    d_res=NULL;
+    d_res_set=NULL;
+    d_do_commit=false;
+    d_prepared = true;
   }
 
   void allocate() {
@@ -206,6 +226,7 @@ private:
   PGresult *d_res_set;
   PGresult *d_res;
   bool d_dolog;
+  bool d_prepared;
   int d_nparams;
   int d_paridx;
   char **paramValues;
@@ -219,7 +240,7 @@ private:
 
 bool SPgSQL::s_dolog;
 
-SPgSQL::SPgSQL(const string &database, const string &host, const string& port, const string &user, 
+SPgSQL::SPgSQL(const string &database, const string &host, const string& port, const string &user,
                const string &password)
 {
   d_db=0;
@@ -244,7 +265,7 @@ SPgSQL::SPgSQL(const string &database, const string &host, const string& port, c
     d_connectlogstr+=" password=<HIDDEN>";
     d_connectstr+=" password="+password;
   }
-  
+
   d_db=PQconnectdb(d_connectstr.c_str());
 
   if (!d_db || PQstatus(d_db)==CONNECTION_BAD) {
@@ -275,7 +296,7 @@ SSqlException SPgSQL::sPerrorException(const string &reason)
   return SSqlException(reason+string(": ")+(d_db ? PQerrorMessage(d_db) : "no connection"));
 }
 
-void SPgSQL::execute(const string& query) 
+void SPgSQL::execute(const string& query)
 {
   PGresult* res = PQexec(d_db, query.c_str());
   ExecStatusType status = PQresultStatus(res);
@@ -286,7 +307,7 @@ void SPgSQL::execute(const string& query)
   }
 }
 
-SSqlStatement* SPgSQL::prepare(const string& query, int nparams) 
+SSqlStatement* SPgSQL::prepare(const string& query, int nparams)
 {
   return new SPgSQLStatement(query, s_dolog, nparams, this);
 }
