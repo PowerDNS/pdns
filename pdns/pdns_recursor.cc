@@ -607,7 +607,7 @@ void updateResponseStats(int res, const ComboAddress& remote, unsigned int packe
 static string makeLoginfo(DNSComboWriter* dc)
 try
 {
-  return "("+dc->d_mdp.d_qname.toString()+"/"+DNSRecordContent::NumberToType(dc->d_mdp.d_qtype)+" from "+(dc->d_remote.toString())+")";
+  return "("+dc->d_mdp.d_qname.toLogString()+"/"+DNSRecordContent::NumberToType(dc->d_mdp.d_qtype)+" from "+(dc->d_remote.toString())+")";
 }
 catch(...)
 {
