@@ -14,7 +14,7 @@
 
 std::ostream & operator<<(std::ostream &os, const DNSName& d)
 {
-  return os <<d.toString();
+  return os <<d.toLogString();
 }
 
 DNSName::DNSName(const char* p)
