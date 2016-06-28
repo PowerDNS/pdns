@@ -157,7 +157,7 @@ std::string DNSName::toLogString() const
     return "(empty)";
   }
 
- if(isRoot())
+  if(isRoot())
     return ".";
 
   std::string ret;
