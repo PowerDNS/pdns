@@ -843,7 +843,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
       }
     }
 
-    DLOG(for(const auto &rr: rrs) cerr<<rr.qname.toString()<<"\t"<<rr.qtype.getName()<<"\t"<<rr.auth<<endl;);
+    DLOG(for(const auto &rr: rrs) cerr<<rr.qname<<"\t"<<rr.qtype.getName()<<"\t"<<rr.auth<<endl;);
   }
 
 
