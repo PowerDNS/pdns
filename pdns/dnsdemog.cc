@@ -56,7 +56,7 @@ try
           entry.id=dh->id;
 
           cout << "insert into dnsstats (source, port, id, query, qtype, tstampSec, tstampUsec, arcount) values ('" << entry.ip.toString() <<"', "<< ntohs(entry.port) <<", "<< ntohs(dh->id);
-          cout <<", '"<<mdp.d_qname.toString()<<"', "<<mdp.d_qtype<<", " << pr.d_pheader.ts.tv_sec <<", " << pr.d_pheader.ts.tv_usec;
+          cout <<", '"<<mdp.d_qname<<"', "<<mdp.d_qtype<<", " << pr.d_pheader.ts.tv_sec <<", " << pr.d_pheader.ts.tv_usec;
           cout <<", "<< ntohs(dh->arcount) <<");\n";
 
         }
