@@ -22,7 +22,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 m4_define([_BOOST_SERIAL], [m4_translit([
-# serial 24
+# serial 26 PowerDNS modified
 ], [#
 ], [])])
 
@@ -86,9 +86,10 @@ dnl boost-lib-version =
 dnl # 2 "conftest.cc" 3
 dnl                    "1_56"
 dnl
-dnl So get rid of the # lines, and glue the remaining ones together.
+dnl So get rid of the # and empty lines, and glue the remaining ones together.
 (eval "$ac_cpp conftest.$ac_ext") 2>&AS_MESSAGE_LOG_FD |
   grep -v '#' |
+  grep -v '^[[[:space:]]]*$' |
   tr -d '\r' |
   tr -s '\n' ' ' |
   $SED -n -e "$1" >conftest.i 2>&1],
@@ -110,7 +111,7 @@ AC_LANG_POP([C++])dnl
 # On # success, defines HAVE_BOOST.  On failure, calls the optional
 # ACTION-IF-NOT-FOUND action if one was supplied.
 # Otherwise aborts with an error message.
-AC_DEFUN([BOOST_REQUIRE],
+AC_DEFUN_ONCE([BOOST_REQUIRE],
 [AC_REQUIRE([AC_PROG_CXX])dnl
 AC_REQUIRE([AC_PROG_GREP])dnl
 echo "$as_me: this is boost.m4[]_BOOST_SERIAL" >&AS_MESSAGE_LOG_FD
@@ -548,6 +549,13 @@ BOOST_DEFUN([Asio],
 BOOST_FIND_HEADER([boost/asio.hpp])])
 
 
+# BOOST_ASSIGN()
+# -------------
+# Look for Boost.Assign
+BOOST_DEFUN([Assign],
+[BOOST_FIND_HEADER([boost/assign.hpp])])
+
+
 # BOOST_BIND()
 # ------------
 # Look for Boost.Bind.
@@ -584,27 +592,79 @@ LDFLAGS=$boost_filesystem_save_LDFLAGS
 # BOOST_CONTEXT([PREFERRED-RT-OPT])
 # -----------------------------------
 # Look for Boost.Context.  For the documentation of PREFERRED-RT-OPT, see the
-# documentation of BOOST_FIND_LIB above.  This library was introduced in Boost
-# 1.51.0
+# documentation of BOOST_FIND_LIB above.
+#
+# * This library was introduced in Boost 1.51.0
+# * The signatures of make_fcontext() and jump_fcontext were changed in 1.56.0
+# * A dependency on boost_thread appears in 1.57.0
 BOOST_DEFUN([Context],
-[BOOST_FIND_LIB([context], [$1],
+[boost_context_save_LIBS=$LIBS
+ boost_context_save_LDFLAGS=$LDFLAGS
+if test $boost_major_version -ge 157; then
+  BOOST_THREAD([$1])
+  m4_pattern_allow([^BOOST_THREAD_(LIBS|LDFLAGS)$])dnl
+  LIBS="$LIBS $BOOST_THREAD_LIBS"
+  LDFLAGS="$LDFLAGS $BOOST_THREAD_LDFLAGS"
+fi
+BOOST_FIND_LIB([context], [$1],
                 [boost/context/all.hpp],[[
+
 // creates a stack
 void * stack_pointer = new void*[4096];
 std::size_t const size = sizeof(void*[4096]);
 
-// context fc uses f() as context function
-// fcontext_t is placed on top of context stack
-// a pointer to fcontext_t is returned
+#if BOOST_VERSION <= 105100
+ctx::make_fcontext(&fc, f);
+return ctx::jump_fcontext(&fcm, &fc, 3) == 6;
+
+#else
+
 fc = ctx::make_fcontext(stack_pointer, size, f);
-return ctx::jump_fcontext(&fcm, fc, 3) == 6;]],[dnl
+return ctx::jump_fcontext(&fcm, fc, 3) == 6;
+
+#endif
+
+
+]],[dnl
+
+#include <boost/version.hpp>
+#if BOOST_VERSION <= 105100
+
+namespace ctx = boost::ctx;
+
+static ctx::fcontext_t fcm, fc;
+
+static void f(intptr_t i) {
+    ctx::jump_fcontext(&fc, &fcm, i * 2);
+}
+
+#elif BOOST_VERSION <= 105500
+
 namespace ctx = boost::context;
+
 // context
 static ctx::fcontext_t fcm, *fc;
+
 // context-function
 static void f(intptr_t i) {
     ctx::jump_fcontext(fc, &fcm, i * 2);
-}])
+}
+
+#else
+
+namespace ctx = boost::context;
+
+// context
+static ctx::fcontext_t fcm, fc;
+
+// context-function
+static void f(intptr_t i) {
+    ctx::jump_fcontext(&fc, fcm, i * 2);
+}
+#endif
+])
+LIBS=$boost_context_save_LIBS
+LDFLAGS=$boost_context_save_LDFLAGS
 ])# BOOST_CONTEXT
 
 
@@ -636,10 +696,21 @@ m4_pattern_allow([^BOOST_(CONTEXT|SYSTEM)_(LIBS|LDFLAGS)])
 LIBS="$LIBS $BOOST_CONTEXT_LIBS $BOOST_SYSTEM_LIBS"
 LDFLAGS="$LDFLAGS $BOOST_CONTEXT_LDFLAGS"
 
-BOOST_FIND_LIB([coroutine], [$1],
-                [boost/coroutine/coroutine.hpp],
-                [boost::coroutines::coroutine< int(int) > coro; coro.empty();])
-
+# in 1.53 coroutine was a header only library
+if test $boost_major_version -eq 153; then
+  BOOST_FIND_HEADER([boost/coroutine/coroutine.hpp])
+else
+  BOOST_FIND_LIB([coroutine], [$1],
+		  [boost/coroutine/coroutine.hpp],
+		  [
+  #include <boost/version.hpp>
+  #if   BOOST_VERSION <= 105500
+  boost::coroutines::coroutine<int(int)> coro; coro.get();
+  #else
+  boost::coroutines::asymmetric_coroutine<int>::pull_type coro; coro.get();
+  #endif
+  ])
+fi
 # Link-time dependency from coroutine to context, existed only in 1.53, in 1.54
 # coroutine doesn't use context from its headers but from its library.
 if test $boost_major_version -eq 153 || test $enable_static_boost = yes && test $boost_major_version -ge 154; then
@@ -751,8 +822,19 @@ BOOST_DEFUN([Geometry],
 # Look for Boost.Graphs.  For the documentation of PREFERRED-RT-OPT, see the
 # documentation of BOOST_FIND_LIB above.
 BOOST_DEFUN([Graph],
-[BOOST_FIND_LIB([graph], [$1],
+[boost_graph_save_LIBS=$LIBS
+boost_graph_save_LDFLAGS=$LDFLAGS
+# Link-time dependency from graph to regex was added as of 1.40.0.
+if test $boost_major_version -ge 140; then
+  BOOST_REGEX([$1])
+  m4_pattern_allow([^BOOST_REGEX_(LIBS|LDFLAGS)$])dnl
+  LIBS="$LIBS $BOOST_REGEX_LIBS"
+  LDFLAGS="$LDFLAGS $BOOST_REGEX_LDFLAGS"
+fi
+BOOST_FIND_LIB([graph], [$1],
                 [boost/graph/adjacency_list.hpp], [boost::adjacency_list<> g;])
+LIBS=$boost_graph_save_LIBS
+LDFLAGS=$boost_graph_save_LDFLAGS
 ])# BOOST_GRAPH
 
 
@@ -785,9 +867,21 @@ BOOST_DEFUN([Lambda],
 # --------------
 # Look for Boost.Locale
 BOOST_DEFUN([Locale],
-[BOOST_FIND_LIB([locale], [$1],
+[
+boost_locale_save_LIBS=$LIBS
+boost_locale_save_LDFLAGS=$LDFLAGS
+# require SYSTEM for boost-1.50.0 and up
+if test $boost_major_version -ge 150; then
+  BOOST_SYSTEM([$1])
+  m4_pattern_allow([^BOOST_SYSTEM_(LIBS|LDFLAGS)$])dnl
+  LIBS="$LIBS $BOOST_SYSTEM_LIBS"
+  LDFLAGS="$LDFLAGS $BOOST_SYSTEM_LDFLAGS"
+fi # end of the Boost.System check.
+BOOST_FIND_LIB([locale], [$1],
     [boost/locale.hpp],
     [[boost::locale::generator gen; std::locale::global(gen(""));]])
+LIBS=$boost_locale_save_LIBS
+LDFLAGS=$boost_locale_save_LDFLAGS
 ])# BOOST_LOCALE
 
 # BOOST_LOG([PREFERRED-RT-OPT])
@@ -795,9 +889,19 @@ BOOST_DEFUN([Locale],
 # Look for Boost.Log.  For the documentation of PREFERRED-RT-OPT, see the
 # documentation of BOOST_FIND_LIB above.
 BOOST_DEFUN([Log],
-[BOOST_FIND_LIB([log], [$1],
+[boost_log_save_LIBS=$LIBS
+boost_log_save_LDFLAGS=$LDFLAGS
+BOOST_SYSTEM([$1])
+BOOST_FILESYSTEM([$1])
+BOOST_DATE_TIME([$1])
+m4_pattern_allow([^BOOST_(SYSTEM|FILESYSTEM|DATE_TIME)_(LIBS|LDFLAGS)$])dnl
+LIBS="$LIBS $BOOST_DATE_TIME_LIBS $BOOST_FILESYSTEM_LIBS $BOOST_SYSTEM_LIBS"
+LDFLAGS="$LDFLAGS $BOOST_DATE_TIME_LDFLAGS $BOOST_FILESYSTEM_LDFLAGS $BOOST_SYSTEM_LDFLAGS"
+BOOST_FIND_LIB([log], [$1],
     [boost/log/core/core.hpp],
     [boost::log::attribute a; a.get_value();])
+LIBS=$boost_log_save_LIBS
+LDFLAGS=$boost_log_save_LDFLAGS
 ])# BOOST_LOG
 
 
@@ -806,10 +910,17 @@ BOOST_DEFUN([Log],
 # Look for Boost.Log.  For the documentation of PREFERRED-RT-OPT, see the
 # documentation of BOOST_FIND_LIB above.
 BOOST_DEFUN([Log_Setup],
-[AC_REQUIRE([BOOST_LOG])dnl
+[boost_log_setup_save_LIBS=$LIBS
+boost_log_setup_save_LDFLAGS=$LDFLAGS
+BOOST_LOG([$1])
+m4_pattern_allow([^BOOST_LOG_(LIBS|LDFLAGS)$])dnl
+LIBS="$LIBS $BOOST_LOG_LIBS"
+LDFLAGS="$LDFLAGS $BOOST_LOG_LDFLAGS"
 BOOST_FIND_LIB([log_setup], [$1],
     [boost/log/utility/setup/from_settings.hpp],
     [boost::log::basic_settings<char> bs; bs.empty();])
+LIBS=$boost_log_setup_save_LIBS
+LDFLAGS=$boost_log_setup_save_LDFLAGS
 ])# BOOST_LOG_SETUP
 
 
@@ -1067,15 +1178,24 @@ LDFLAGS="$LDFLAGS $BOOST_SYSTEM_LDFLAGS"
 CPPFLAGS="$CPPFLAGS $boost_cv_pthread_flag"
 
 # When compiling for the Windows platform, the threads library is named
-# differently.
-case $host_os in
-  (*mingw*) boost_thread_lib_ext=_win32;;
-esac
+# differently.  This suffix doesn't exist in new versions of Boost, or
+# possibly new versions of GCC on mingw I am assuming it's Boost's change for
+# now and I am setting version to 1.48, for lack of knowledge as to when this
+# change occurred.
+if test $boost_major_version -lt 148; then
+  case $host_os in
+    (*mingw*) boost_thread_lib_ext=_win32;;
+  esac
+fi
 BOOST_FIND_LIBS([thread], [thread$boost_thread_lib_ext],
                 [$1],
                 [boost/thread.hpp], [boost::thread t; boost::mutex m;])
 
-BOOST_THREAD_LIBS="$BOOST_THREAD_LIBS $BOOST_SYSTEM_LIBS $boost_cv_pthread_flag"
+case $host_os in
+  (*mingw*) boost_thread_w32_socket_link=-lws2_32;;
+esac
+
+BOOST_THREAD_LIBS="$BOOST_THREAD_LIBS $BOOST_SYSTEM_LIBS $boost_cv_pthread_flag $boost_thread_w32_socket_link"
 BOOST_THREAD_LDFLAGS="$BOOST_SYSTEM_LDFLAGS"
 BOOST_CPPFLAGS="$BOOST_CPPFLAGS $boost_cv_pthread_flag"
 LIBS=$boost_thread_save_LIBS
