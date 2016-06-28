@@ -229,7 +229,7 @@ void UDPNameserver::bindIPv6()
       setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one));      // if this fails, we report an error in tcpreceiver too
     }
 
-    if (setSocketTimestamps(s))
+    if (!setSocketTimestamps(s))
       L<<Logger::Warning<<"Unable to enable timestamp reporting for socket"<<endl;
 
 #ifdef SO_REUSEPORT
