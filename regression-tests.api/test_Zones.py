@@ -567,8 +567,8 @@ fred   IN  A      192.168.0.4
             self.url("/api/v1/servers/localhost/zones/" + name),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
-        self.assert_success_json(r)
-        data = r.json()
+        self.assert_success(r)
+        data = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name)).json()
         for k in payload.keys():
             self.assertIn(k, data)
             self.assertEquals(data[k], payload[k])
@@ -582,8 +582,8 @@ fred   IN  A      192.168.0.4
             self.url("/api/v1/servers/localhost/zones/" + name),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
-        self.assert_success_json(r)
-        data = r.json()
+        self.assert_success(r)
+        data = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name)).json()
         for k in payload.keys():
             self.assertIn(k, data)
             self.assertEquals(data[k], payload[k])
@@ -612,10 +612,9 @@ fred   IN  A      192.168.0.4
             self.url("/api/v1/servers/localhost/zones/" + name),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
-        self.assert_success_json(r)
+        self.assert_success(r)
         # verify that (only) the new record is there
-        r = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name))
-        data = r.json()
+        data = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name)).json()
         self.assertEquals(get_rrset(data, name, 'NS')['records'], rrset['records'])
 
     def test_zone_rr_update_mx(self):
@@ -639,10 +638,9 @@ fred   IN  A      192.168.0.4
             self.url("/api/v1/servers/localhost/zones/" + name),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
-        self.assert_success_json(r)
+        self.assert_success(r)
         # verify that (only) the new record is there
-        r = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name))
-        data = r.json()
+        data = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name)).json()
         self.assertEquals(get_rrset(data, name, 'MX')['records'], rrset['records'])
 
     def test_zone_rr_update_multiple_rrsets(self):
@@ -677,10 +675,9 @@ fred   IN  A      192.168.0.4
             self.url("/api/v1/servers/localhost/zones/" + name),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
-        self.assert_success_json(r)
+        self.assert_success(r)
         # verify that all rrsets have been updated
-        r = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name))
-        data = r.json()
+        data = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name)).json()
         self.assertEquals(get_rrset(data, name, 'NS')['records'], rrset1['records'])
         self.assertEquals(get_rrset(data, name, 'MX')['records'], rrset2['records'])
 
@@ -697,10 +694,9 @@ fred   IN  A      192.168.0.4
             self.url("/api/v1/servers/localhost/zones/" + name),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
-        self.assert_success_json(r)
+        self.assert_success(r)
         # verify that the records are gone
-        r = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name))
-        data = r.json()
+        data = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name)).json()
         self.assertIsNone(get_rrset(data, name, 'NS'))
 
     def test_zone_disable_reenable(self):
@@ -724,9 +720,10 @@ fred   IN  A      192.168.0.4
             self.url("/api/v1/servers/localhost/zones/" + name),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
-        self.assert_success_json(r)
+        self.assert_success(r)
         # check SOA serial has been edited
-        soa_serial1 = get_first_rec(r.json(), name, 'SOA')['content'].split()[2]
+        data = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name)).json()
+        soa_serial1 = get_first_rec(data, name, 'SOA')['content'].split()[2]
         self.assertNotEquals(soa_serial1, '1')
         # make sure domain is still in zone list (disabled SOA!)
         r = self.session.get(self.url("/api/v1/servers/localhost/zones"))
@@ -741,10 +738,10 @@ fred   IN  A      192.168.0.4
             self.url("/api/v1/servers/localhost/zones/" + name),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
-        self.assert_success_json(r)
+        self.assert_success(r)
         # check SOA serial has been edited again
-        print r.json()
-        soa_serial2 = get_first_rec(r.json(), name, 'SOA')['content'].split()[2]
+        data = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name)).json()
+        soa_serial2 = get_first_rec(data, name, 'SOA')['content'].split()[2]
         self.assertNotEquals(soa_serial2, '1')
         self.assertNotEquals(soa_serial2, soa_serial1)
 
@@ -848,7 +845,7 @@ fred   IN  A      192.168.0.4
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         print r.content
-        self.assertEquals(r.status_code, 200)  # succeed so users can fix their wrong, old data
+        self.assert_success(r)  # succeed so users can fix their wrong, old data
 
     def test_zone_delete(self):
         name, payload, zone = self.create_zone()
@@ -879,11 +876,11 @@ fred   IN  A      192.168.0.4
             self.url("/api/v1/servers/localhost/zones/" + name),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
-        self.assert_success_json(r)
+        self.assert_success(r)
         # make sure the comments have been set, and that the NS
         # records are still present
-        r = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name))
-        serverset = get_rrset(r.json(), name, 'NS')
+        data = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name)).json()
+        serverset = get_rrset(data, name, 'NS')
         print serverset
         self.assertNotEquals(serverset['records'], [])
         self.assertNotEquals(serverset['comments'], [])
@@ -904,10 +901,10 @@ fred   IN  A      192.168.0.4
             self.url("/api/v1/servers/localhost/zones/" + name),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
-        self.assert_success_json(r)
+        self.assert_success(r)
         # make sure the NS records are still present
-        r = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name))
-        serverset = get_rrset(r.json(), name, 'NS')
+        data = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name)).json()
+        serverset = get_rrset(data, name, 'NS')
         print serverset
         self.assertNotEquals(serverset['records'], [])
         self.assertEquals(serverset['comments'], [])
@@ -933,7 +930,7 @@ fred   IN  A      192.168.0.4
             self.url("/api/v1/servers/localhost/zones/" + name),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
-        self.assert_success_json(r)
+        self.assert_success(r)
         # replace rrset records
         rrset2 = {
             'changetype': 'replace',
@@ -952,10 +949,10 @@ fred   IN  A      192.168.0.4
             self.url("/api/v1/servers/localhost/zones/" + name),
             data=json.dumps(payload2),
             headers={'content-type': 'application/json'})
-        self.assert_success_json(r)
+        self.assert_success(r)
         # make sure the comments still exist
-        r = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name))
-        serverset = get_rrset(r.json(), name, 'NS')
+        data = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name)).json()
+        serverset = get_rrset(data, name, 'NS')
         print serverset
         self.assertEquals(serverset['records'], rrset2['records'])
         self.assertEquals(serverset['comments'], rrset['comments'])
@@ -1015,7 +1012,7 @@ fred   IN  A      192.168.0.4
             self.url("/api/v1/servers/localhost/zones/" + name),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
-        self.assert_success_json(r)
+        self.assert_success(r)
         r = self.session.get(self.url("/api/v1/servers/localhost/zones/" + revzone)).json()
         revsets = [s for s in r['rrsets'] if s['type'] == 'PTR']
         print revsets
@@ -1055,7 +1052,7 @@ fred   IN  A      192.168.0.4
             self.url("/api/v1/servers/localhost/zones/" + name),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
-        self.assert_success_json(r)
+        self.assert_success(r)
         r = self.session.get(self.url("/api/v1/servers/localhost/zones/" + revzone)).json()
         revsets = [s for s in r['rrsets'] if s['type'] == 'PTR']
         print revsets
@@ -1159,8 +1156,8 @@ class AuthRootZone(ApiTestCase, AuthZonesHelperMixin):
             self.url("/api/v1/servers/localhost/zones/" + zone_id),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
-        self.assert_success_json(r)
-        data = r.json()
+        self.assert_success(r)
+        data = self.session.get(self.url("/api/v1/servers/localhost/zones/" + zone_id)).json()
         for k in payload.keys():
             self.assertIn(k, data)
             self.assertEquals(data[k], payload[k])
@@ -1174,8 +1171,8 @@ class AuthRootZone(ApiTestCase, AuthZonesHelperMixin):
             self.url("/api/v1/servers/localhost/zones/" + zone_id),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
-        self.assert_success_json(r)
-        data = r.json()
+        self.assert_success(r)
+        data = self.session.get(self.url("/api/v1/servers/localhost/zones/" + zone_id)).json()
         for k in payload.keys():
             self.assertIn(k, data)
             self.assertEquals(data[k], payload[k])
@@ -1257,8 +1254,8 @@ class RecursorZones(ApiTestCase):
             self.url("/api/v1/servers/localhost/zones/" + name),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
-        self.assert_success_json(r)
-        data = r.json()
+        self.assert_success(r)
+        data = self.session.get(self.url("/api/v1/servers/localhost/zones/" + payload['name'])).json()
         for k in payload.keys():
             self.assertEquals(data[k], payload[k])
 

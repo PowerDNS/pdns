@@ -300,7 +300,8 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp)
     doDeleteZone(zonename);
     doCreateZone(document);
     reloadAuthAndForwards();
-    fillZone(apiNameToDNSName(stringFromJson(document, "name")), resp);
+    resp->body = "";
+    resp->status = 204; // No Content, but indicate success
   }
   else if(req->method == "DELETE" && !::arg().mustDo("api-readonly")) {
     if (!doDeleteZone(zonename)) {

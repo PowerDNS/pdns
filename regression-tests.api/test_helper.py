@@ -30,6 +30,13 @@ class ApiTestCase(unittest.TestCase):
             raise
         self.assertEquals(result.headers['Content-Type'], 'application/json')
 
+    def assert_success(self, result):
+        try:
+            result.raise_for_status()
+        except:
+            print result.content
+            raise
+
 
 def unique_zone_name():
     return 'test-' + datetime.now().strftime('%d%H%S%M%f') + '.org.'

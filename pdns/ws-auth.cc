@@ -792,7 +792,8 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
 
     updateDomainSettingsFromDocument(di, zonename, req->json());
 
-    fillZone(zonename, resp);
+    resp->body = "";
+    resp->status = 204; // No Content, but indicate success
     return;
   }
   else if(req->method == "DELETE" && !::arg().mustDo("api-readonly")) {
@@ -1101,8 +1102,9 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
   // now the PTRs
   storeChangedPTRs(B, new_ptrs);
 
-  // success
-  fillZone(zonename, resp);
+  resp->body = "";
+  resp->status = 204; // No Content, but indicate success
+  return;
 }
 
 static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
