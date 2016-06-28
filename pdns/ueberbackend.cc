@@ -251,58 +251,64 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const DNSName &target)
 {
   bool found = false;
   int cstat;
-  DNSName shorter(target);
+  DNSName choppedOff(target);
   vector<pair<size_t, SOAData> > bestmatch (backends.size(), make_pair(target.wirelength()+1, SOAData()));
   do {
 
     // Check cache
     if(sd->db != (DNSBackend *)-1 && (d_cache_ttl || d_negcache_ttl)) {
       d_question.qtype = QType::SOA;
-      d_question.qname = shorter;
+      d_question.qname = choppedOff;
       d_question.zoneId = -1;
 
       cstat = cacheHas(d_question,d_answers);
 
       if(cstat == 1 && !d_answers.empty() && d_cache_ttl) {
-        DLOG(L<<Logger::Error<<"has pos: "<<shorter.toLogString()<<endl);
+        DLOG(L<<Logger::Error<<"has pos cache entry: "<<choppedOff.toLogString()<<endl);
         fillSOAData(d_answers[0].content, *sd);
         sd->domain_id = d_answers[0].domain_id;
         sd->ttl = d_answers[0].ttl;
         sd->db = 0;
-        sd->qname = shorter;
+        sd->qname = choppedOff;
         goto found;
       } else if(cstat == 0 && d_negcache_ttl) {
-        DLOG(L<<Logger::Error<<"has neg: "<<shorter.toLogString()<<endl);
+        DLOG(L<<Logger::Error<<"has neg cache entry: "<<choppedOff.toLogString()<<endl);
         continue;
       }
     }
 
     // Check backends
+    // A backend can respond to our SOA request with the 'best'
+    // match it has. For example, when asked the SOA for a.b.c.powerdns.com.
+    // it might respond with the SOA for powerdns.com.
+    // We then store that, keep querying the other backends in case
+    // one of them has a more specific SOA but don't bother
+    // asking this specific backend again for b.c.powerdns.com. or c.powerdns.com.
     {
       vector<DNSBackend *>::const_iterator i = backends.begin();
       vector<pair<size_t, SOAData> >::iterator j = bestmatch.begin();
       for(; i != backends.end() && j != bestmatch.end(); ++i, ++j) {
 
-        DLOG(L<<Logger::Error<<"backend: "<<i-backends.begin()<<", qname: "<<shorter<<endl);
+        DLOG(L<<Logger::Error<<"backend: "<<i-backends.begin()<<", qname: "<<choppedOff<<endl);
 
-        if(j->first < shorter.wirelength()) {
-          DLOG(L<<Logger::Error<<"skipped, already found shorter best match: "<<j->second.qname.toLogString()<<endl);
+        if(j->first < choppedOff.wirelength()) {
+          DLOG(L<<Logger::Error<<"skip this backend, we already know the 'higher' match: "<<j->second.qname.toLogString()<<endl);
           continue;
-        } else if(j->first == shorter.wirelength()) {
-          DLOG(L<<Logger::Error<<"use shorter best match: "<<j->second.qname.toLogString()<<endl);
+        } else if(j->first == choppedOff.wirelength()) {
+          DLOG(L<<Logger::Error<<"use 'higher' match: "<<j->second.qname.toLogString()<<endl);
           *sd = j->second;
           break;
         } else {
-          DLOG(L<<Logger::Error<<"lookup: "<<shorter<<endl);
-          if((*i)->getAuth(p, sd, shorter)) {
+          DLOG(L<<Logger::Error<<"lookup: "<<choppedOff<<endl);
+          if((*i)->getAuth(p, sd, choppedOff)) {
             DLOG(L<<Logger::Error<<"got: "<<sd->qname<<endl);
             j->first = sd->qname.wirelength();
             j->second = *sd;
-            if(sd->qname == shorter) {
+            if(sd->qname == choppedOff) {
               break;
             }
           } else {
-            DLOG(L<<Logger::Error<<"no match for: "<<shorter.toLogString()<<endl);
+            DLOG(L<<Logger::Error<<"no match for: "<<choppedOff.toLogString()<<endl);
           }
         }
       }
@@ -310,13 +316,13 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const DNSName &target)
       // Add to cache
       if(i == backends.end()) {
         if(d_negcache_ttl) {
-          DLOG(L<<Logger::Error<<"add neg:"<<shorter.toLogString()<<endl);
-          d_question.qname=shorter;
+          DLOG(L<<Logger::Error<<"add neg cache entry:"<<choppedOff.toLogString()<<endl);
+          d_question.qname=choppedOff;
           addNegCache(d_question);
         }
         continue;
       } else if(d_cache_ttl) {
-        DLOG(L<<Logger::Error<<"add pos: "<<sd->qname.toLogString()<<endl);
+        DLOG(L<<Logger::Error<<"add pos cache entry: "<<sd->qname.toLogString()<<endl);
         d_question.qtype = QType::SOA;
         d_question.qname = sd->qname;
         d_question.zoneId = -1;
@@ -342,7 +348,7 @@ found:
       found = true;
     }
 
-  } while(shorter.chopOff());
+  } while(choppedOff.chopOff());
   return found;
 }
 
