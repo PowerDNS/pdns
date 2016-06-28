@@ -10,6 +10,7 @@
 #include <boost/variant.hpp>
 #include <mutex>
 #include <thread>
+#include <unistd.h>
 #include "sholder.hh"
 #include "dnscrypt.hh"
 #include "dnsdist-cache.hh"

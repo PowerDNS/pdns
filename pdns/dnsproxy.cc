@@ -276,6 +276,7 @@ void DNSProxy::mainloop(void)
         msgh.msg_iovlen = 1;
         msgh.msg_name = (struct sockaddr*)&i->second.remote;
         msgh.msg_namelen = i->second.remote.getSocklen();
+        msgh.msg_control=NULL;
 
         if(i->second.anyLocal) {
           addCMsgSrcAddr(&msgh, cbuf, i->second.anyLocal.get_ptr(), 0);

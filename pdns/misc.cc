@@ -826,6 +826,9 @@ Regex::Regex(const string &expr)
     throw PDNSException("Regular expression did not compile");
 }
 
+// if you end up here because valgrind told you were are doing something wrong
+// with msgh->msg_controllen, please refer to https://github.com/PowerDNS/pdns/pull/3962
+// first.
 void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, const ComboAddress* source, int itfIndex)
 {
   struct cmsghdr *cmsg = NULL;
@@ -845,7 +848,6 @@ void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, const ComboAddress* sour
     memset(pkt, 0, sizeof(*pkt));
     pkt->ipi6_addr = source->sin6.sin6_addr;
     pkt->ipi6_ifindex = itfIndex;
-    msgh->msg_controllen = cmsg->cmsg_len; // makes valgrind happy and is slightly better style
   }
   else {
 #ifdef IP_PKTINFO
@@ -863,7 +865,6 @@ void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, const ComboAddress* sour
     memset(pkt, 0, sizeof(*pkt));
     pkt->ipi_spec_dst = source->sin4.sin_addr;
     pkt->ipi_ifindex = itfIndex;
-    msgh->msg_controllen = cmsg->cmsg_len;
 #endif
 #ifdef IP_SENDSRCADDR
     struct in_addr *in;
@@ -878,7 +879,6 @@ void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, const ComboAddress* sour
 
     in = (struct in_addr *) CMSG_DATA(cmsg);
     *in = source->sin4.sin_addr;
-    msgh->msg_controllen = cmsg->cmsg_len;
 #endif
   }
 }
