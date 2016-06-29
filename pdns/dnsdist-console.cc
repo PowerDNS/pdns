@@ -1,7 +1,6 @@
 #include "dnsdist.hh"
 #include "sodcrypto.hh"
-#include <readline.h>
-#include <history.h>
+#include <editline/readline.h>
 #include <fstream>
 #include "dolog.hh"
 #include "ext/json11/json11.hpp"
