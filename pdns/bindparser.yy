@@ -102,6 +102,7 @@ void BindParser::commit(BindDomainInfo DI)
 
 %token AWORD QUOTEDWORD OBRACE EBRACE SEMICOLON ZONETOK FILETOK OPTIONSTOK
 %token DIRECTORYTOK ACLTOK LOGGINGTOK CLASSTOK TYPETOK MASTERTOK ALSONOTIFYTOK
+%token VIEWTOK
 
 %%
 
@@ -110,7 +111,7 @@ root_commands:
 	root_commands root_command SEMICOLON
   	;
 
-root_command: command | acl_command | global_zone_command | global_options_command
+root_command: command | acl_command | global_zone_command | global_options_command | global_view_command
 	;
 
 commands:
@@ -120,6 +121,25 @@ commands:
 
 command:
 	terms 
+	;
+
+global_view_command:
+	VIEWTOK quotedname view_block
+	;
+
+view_block:
+	OBRACE view_commands EBRACE
+	;
+
+view_commands:
+	|
+	view_commands view_command SEMICOLON
+	;
+
+view_command:
+	command
+	|
+	global_zone_command
 	;
 
 global_zone_command:

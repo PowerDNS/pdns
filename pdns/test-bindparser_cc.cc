@@ -18,8 +18,6 @@ using std::string;
 
 BOOST_AUTO_TEST_SUITE(bindparser_cc)
 
-BOOST_AUTO_TEST_CASE_EXPECTED_FAILURES(test_parser, 1)
-
 BOOST_AUTO_TEST_CASE(test_parser) {
         const char *srcdir;
         std::ostringstream pathbuf;

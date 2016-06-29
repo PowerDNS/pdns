@@ -1196,7 +1196,6 @@ if UNIT_TESTS
 if HAVE_BOOST_GE_148
 TESTS_ENVIRONMENT = env BOOST_TEST_LOG_LEVEL=message SRCDIR='$(srcdir)'
 TESTS=testrunner
-XFAIL_TESTS=testrunner
 else
 check-local:
 	@echo "Unit tests disabled, boost is too old"

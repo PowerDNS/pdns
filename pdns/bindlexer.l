@@ -104,6 +104,7 @@ also-notify		return ALSONOTIFYTOK;
 acl                     return ACLTOK;
 logging                 return LOGGINGTOK;
 directory               return DIRECTORYTOK;
+view                    return VIEWTOK;
 masters                 return MASTERTOK;
 type                    return TYPETOK;
 \"                      yy_push_state(quoted);
