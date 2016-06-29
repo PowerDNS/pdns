@@ -126,7 +126,17 @@ template<class Answer, class Question, class Backend>Distributor<Answer,Question
 template<class Answer, class Question, class Backend>SingleThreadDistributor<Answer,Question,Backend>::SingleThreadDistributor()
 {
   L<<Logger::Error<<"Only asked for 1 backend thread - operating unthreaded"<<endl;
-  b=new Backend;
+  try {
+    b=new Backend;
+  }
+  catch(const PDNSException &AE) {
+    L<<Logger::Error<<"Distributor caught fatal exception: "<<AE.reason<<endl;
+    exit(1);
+  }
+  catch(...) {
+    L<<Logger::Error<<"Caught an unknown exception when creating backend, probably"<<endl;
+    exit(1);
+  }
 }
 
 template<class Answer, class Question, class Backend>MultiThreadDistributor<Answer,Question,Backend>::MultiThreadDistributor(int n)
@@ -188,13 +198,15 @@ template<class Answer, class Question, class Backend>void *MultiThreadDistributo
       }        
       // this is the only point where we interact with the backend (synchronous)
       try {
+        if (!b)
+          b=new Backend();
         a=b->question(QD->Q); 
 	delete QD->Q;
       }
       catch(const PDNSException &e) {
         L<<Logger::Error<<"Backend error: "<<e.reason<<endl;
 	delete b;
-	b=new Backend();
+        b=NULL;
         a=QD->Q->replyPacket();
 
         a->setRcode(RCode::ServFail);
@@ -206,7 +218,7 @@ template<class Answer, class Question, class Backend>void *MultiThreadDistributo
       catch(...) {
         L<<Logger::Error<<"Caught unknown exception in Distributor thread "<<(long)pthread_self()<<endl;
 	delete b;
-	b=new Backend();
+	b=NULL;
         a=QD->Q->replyPacket();
 	
         a->setRcode(RCode::ServFail);
@@ -223,9 +235,11 @@ template<class Answer, class Question, class Backend>void *MultiThreadDistributo
   }
   catch(const PDNSException &AE) {
     L<<Logger::Error<<"Distributor caught fatal exception: "<<AE.reason<<endl;
+    exit(1);
   }
   catch(...) {
     L<<Logger::Error<<"Caught an unknown exception when creating backend, probably"<<endl;
+    exit(1);
   }
   return 0;
 }
@@ -234,12 +248,14 @@ template<class Answer, class Question, class Backend>int SingleThreadDistributor
 {
   Answer *a;
   try {
+    if (!b)
+      b=new Backend;
     a=b->question(q); // a can be NULL!
   }
   catch(const PDNSException &e) {
     L<<Logger::Error<<"Backend error: "<<e.reason<<endl;
     delete b;
-    b=new Backend;
+    b=NULL;
     a=q->replyPacket();
     a->setRcode(RCode::ServFail);
     S.inc("servfail-packets");
@@ -248,7 +264,7 @@ template<class Answer, class Question, class Backend>int SingleThreadDistributor
   catch(...) {
     L<<Logger::Error<<"Caught unknown exception in Distributor thread "<<(unsigned long)pthread_self()<<endl;
     delete b;
-    b=new Backend;
+    b=NULL;
     a=q->replyPacket();
     a->setRcode(RCode::ServFail);
     S.inc("servfail-packets");
