@@ -232,7 +232,7 @@ public:
         if ((err = mysql_stmt_store_result(d_stmt))) {
           string error(mysql_stmt_error(d_stmt));
           releaseStatement();
-          throw PDNSException("Could not store mysql statement: " + d_query + string(": ") + error);
+          throw SSqlException("Could not store mysql statement: " + d_query + string(": ") + error);
         }
         d_resnum = mysql_stmt_num_rows(d_stmt);
         // XXX: For some reason mysql_stmt_result_metadata returns NULL here, so we cannot
