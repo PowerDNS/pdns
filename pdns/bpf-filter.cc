@@ -174,6 +174,15 @@ void BPFFilter::addSocket(int sock)
   }
 }
 
+void BPFFilter::removeSocket(int sock)
+{
+  int res = setsockopt(sock, SOL_SOCKET, SO_DETACH_BPF, &d_mainfilter.fd, sizeof(d_mainfilter.fd));
+
+  if (res != 0) {
+    throw std::runtime_error("Error detaching BPF filter from this socket: " + std::string(strerror(errno)));
+  }
+}
+
 void BPFFilter::block(const ComboAddress& addr)
 {
   std::unique_lock<std::mutex> lock(d_mutex);

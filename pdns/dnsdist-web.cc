@@ -180,8 +180,11 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
         gettime(&now);
         for(const auto& e: slow) {
           if(now < e->second.until ) {
-            Json::object thing{{"reason", e->second.reason}, {"seconds", (double)(e->second.until.tv_sec - now.tv_sec)},
-							     {"blocks", (double)e->second.blocks} };
+            Json::object thing{
+              {"reason", e->second.reason},
+              {"seconds", (double)(e->second.until.tv_sec - now.tv_sec)},
+              {"blocks", (double)e->second.blocks}
+            };
             obj.insert({e->first.toString(), thing});
           }
         }
@@ -201,6 +204,27 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
 
 
 
+        Json my_json = obj;
+        resp.body=my_json.dump();
+        resp.headers["Content-Type"] = "application/json";
+      }
+      else if(command=="ebpfblocklist") {
+        Json::object obj;
+#ifdef HAVE_EBPF
+        struct timespec now;
+        gettime(&now);
+        for (const auto& dynbpf : g_dynBPFFilters) {
+          std::vector<std::tuple<ComboAddress, uint64_t, struct timespec> > addrStats = dynbpf->getAddrStats();
+          for (const auto& entry : addrStats) {
+            Json::object thing
+            {
+              {"seconds", (double)(std::get<2>(entry).tv_sec - now.tv_sec)},
+              {"blocks", (double)(std::get<1>(entry))}
+            };
+            obj.insert({std::get<0>(entry).toString(), thing });
+          }
+        }
+#endif /* HAVE_EBPF */
         Json my_json = obj;
         resp.body=my_json.dump();
         resp.headers["Content-Type"] = "application/json";

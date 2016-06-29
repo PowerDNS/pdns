@@ -236,6 +236,22 @@ $(document).ready(function() {
 
                  }});
 
+        $.ajax({ url: 'jsonstat?command=ebpfblocklist', type: 'GET', dataType: 'json', jsonp: false,
+                 success: function(data) {
+                     var bouw='<table width="100%"><tr align=left><th>Kernel-based dyn blocked netmask</th><th>Seconds</th></th><th>Blocks</th></tr>';
+		     var gotsome=false;
+                     $.each(data, function(a,b) {
+                         bouw=bouw+("<tr><td>"+a+"</td><td>"+b.seconds+"</td><td>"+b.blocks+"</td></tr>");
+			 gotsome=true;
+                     });
+
+		     if(!gotsome)
+                         bouw = bouw + '<tr><td align="center" colspan="4"><font color="#aaaaaa">No eBPF blocks active</font></td></tr>';
+
+                     bouw=bouw+"</table>";
+                     $("#ebpfblock").html(bouw);
+
+                 }});
 
     };
     

@@ -871,15 +871,19 @@ void moreLua(bool client)
     g_lua.registerFunction<void(std::shared_ptr<BPFFilter>::*)()>("attachToAllBinds", [](std::shared_ptr<BPFFilter> bpf) {
         std::string res;
         if (bpf) {
-          for (const auto& front : g_frontends) {
-            bpf->addSocket(front->udpFD != -1 ? front->udpFD : front->tcpFD);
+          for (const auto& frontend : g_frontends) {
+            frontend->attachFilter(bpf);
           }
         }
       });
 
+    g_lua.registerFunction<void(ClientState::*)()>("detachFilter", [](ClientState& frontend) {
+        frontend.detachFilter();
+    });
+
     g_lua.registerFunction<void(ClientState::*)(std::shared_ptr<BPFFilter>)>("attachFilter", [](ClientState& frontend, std::shared_ptr<BPFFilter> bpf) {
         if (bpf) {
-          bpf->addSocket(frontend.udpFD != -1 ? frontend.udpFD : frontend.tcpFD);
+          frontend.attachFilter(bpf);
         }
     });
 
@@ -893,6 +897,23 @@ void moreLua(bool client)
 
     g_lua.writeFunction("newDynBPFFilter", [](std::shared_ptr<BPFFilter> bpf) {
         return std::make_shared<DynBPFFilter>(bpf);
+      });
+
+    g_lua.writeFunction("registerDynBPFFilter", [](std::shared_ptr<DynBPFFilter> dbpf) {
+        if (dbpf) {
+          g_dynBPFFilters.push_back(dbpf);
+        }
+      });
+
+    g_lua.writeFunction("unregisterDynBPFFilter", [](std::shared_ptr<DynBPFFilter> dbpf) {
+        if (dbpf) {
+          for (auto it = g_dynBPFFilters.cbegin(); it != g_dynBPFFilters.cend(); it++) {
+            if (*it == dbpf) {
+              g_dynBPFFilters.erase(it);
+              break;
+            }
+          }
+        }
       });
 
     g_lua.registerFunction<void(std::shared_ptr<DynBPFFilter>::*)(const ComboAddress& addr, boost::optional<int> seconds)>("block", [](std::shared_ptr<DynBPFFilter> dbpf, const ComboAddress& addr, boost::optional<int> seconds) {
