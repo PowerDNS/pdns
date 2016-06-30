@@ -103,6 +103,7 @@ options                 return OPTIONSTOK;
 also-notify		return ALSONOTIFYTOK;
 acl                     return ACLTOK;
 logging                 return LOGGINGTOK;
+channel                 return CHANNELTOK;
 directory               return DIRECTORYTOK;
 view                    return VIEWTOK;
 masters                 return MASTERTOK;
