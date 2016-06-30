@@ -80,14 +80,16 @@ int UnixsocketConnector::recv_message(Json& output) {
 
 ssize_t UnixsocketConnector::read(std::string &data) {
   ssize_t nread;
+  int avail;
   char buf[1500] = {0};
 
   reconnect();
   if (!connected) return -1;
-  nread = ::read(this->fd, buf, sizeof buf);
 
-  // just try again later...
-  if (nread==-1 && errno == EAGAIN) return 0;
+  avail = waitForData(this->fd, 0, 1000); // see if there is data waiting
+  if (avail < 1) return avail;
+
+  nread = ::read(this->fd, buf, sizeof buf);
 
   if (nread==-1 || nread==0) {
     connected = false;

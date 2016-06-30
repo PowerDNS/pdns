@@ -185,10 +185,11 @@ function stop_unix() {
     exit 99
   fi
 
+## It is OK for socat to die when socket closes.
   if ! kill -0 ${socat_pid} 2>/dev/null; then
-    # should never happen - did the test crashed the service?
-    echo >&2 "ERROR: Unable to stop \"UNIX socket\" test service: service (${socat_pid}) not running"
-    exit 69
+#    # should never happen - did the test crashed the service?
+#    echo >&2 "ERROR: Unable to stop \"UNIX socket\" test service: service (${socat_pid}) not running"
+    return 0
   fi
 
   kill -TERM ${socat_pid}
