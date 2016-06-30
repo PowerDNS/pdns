@@ -26,6 +26,13 @@ The `rec_control get` command can be used to query the following statistics, eit
 * `client-parse-errors`: counts number of client packets that could not be parsed
 * `concurrent-queries`: shows the number of MThreads currently running
 * `dlg-only-drops`: number of records dropped because of delegation only setting
+* `dnssec-queries`: number of queries received with the DO and/or AD bit set
+* `dnssec-result-bogus`: number of DNSSEC validations that had the Bogus state
+* `dnssec-result-indeterminate`: number of DNSSEC validations that had the Indeterminate state
+* `dnssec-result-insecure`: number of DNSSEC validations that had the Insecure state
+* `dnssec-result-nta`: number of DNSSEC validations that had the NTA (negative trust anchor) state
+* `dnssec-result-secure`: number of DNSSEC validations that had the Secure state
+* `dnssec-validations`: number of DNSSEC validations performed
 * `dont-outqueries`: number of outgoing queries dropped because of 'dont-query' setting (since 3.3)
 * `edns-ping-matches`: number of servers that sent a valid EDNS PING response
 * `edns-ping-mismatches`: number of servers that sent an invalid EDNS PING response
