@@ -1,7 +1,13 @@
 #include "dnsdist.hh"
 #include "sodcrypto.hh"
-#include <readline.h>
-#include <history.h>
+
+#if defined (__OpenBSD__)
+#include <readline/readline.h>
+#include <readline/history.h>
+#else
+#include <editline/readline.h>
+#endif
+
 #include <fstream>
 #include "dolog.hh"
 #include "ext/json11/json11.hpp"
