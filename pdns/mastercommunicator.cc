@@ -49,30 +49,42 @@ void CommunicatorClass::queueNotifyDomain(const DNSName &domain, UeberBackend *B
   DNSResourceRecord rr;
   FindNS fns;
 
-  B->lookup(QType(QType::NS),domain);
-  while(B->get(rr))
-    nsset.insert(rr.content);
+  // modes: yes, no, explicit
+  const static string mode=::arg()["notify"];
 
-  for(set<string>::const_iterator j=nsset.begin();j!=nsset.end();++j) {
-    vector<string> nsips=fns.lookup(DNSName(*j), B);
-    if(nsips.empty())
-      L<<Logger::Warning<<"Unable to queue notification of domain '"<<domain<<"': nameservers do not resolve!"<<endl;
-    else
-      for(vector<string>::const_iterator k=nsips.begin();k!=nsips.end();++k) {
-        const ComboAddress caIp(*k, 53);
-        if(!d_preventSelfNotification || !AddressIsUs(caIp)) {
-          if(!d_onlyNotify.match(&caIp))
-            L<<Logger::Info<<"Skipped notification of domain '"<<domain<<"' to "<<*j<<" because it does not match only-notify."<<endl;
-          else
-            ips.insert(caIp.toStringWithPort());
-        }
-      }
+  if(mode=="no" || mode=="off") {
+    L<<Logger::Info<<"Skipped notification of domain '"<<domain<<"' because notify=no."<<endl;
+    return;
   }
 
-  for(set<string>::const_iterator j=ips.begin();j!=ips.end();++j) {
-    L<<Logger::Warning<<"Queued notification of domain '"<<domain<<"' to "<<*j<<endl;
-    d_nq.add(domain,*j);
-    hasQueuedItem=true;
+  if(mode=="explicit") {
+    L<<Logger::Info<<"Skipped implicit notification of domain '"<<domain<<"' because notify=explicit."<<endl;
+  } else {
+    B->lookup(QType(QType::NS),domain);
+    while(B->get(rr))
+      nsset.insert(rr.content);
+
+    for(set<string>::const_iterator j=nsset.begin();j!=nsset.end();++j) {
+      vector<string> nsips=fns.lookup(DNSName(*j), B);
+      if(nsips.empty())
+        L<<Logger::Warning<<"Unable to queue notification of domain '"<<domain<<"': nameservers do not resolve!"<<endl;
+      else
+        for(vector<string>::const_iterator k=nsips.begin();k!=nsips.end();++k) {
+          const ComboAddress caIp(*k, 53);
+          if(!d_preventSelfNotification || !AddressIsUs(caIp)) {
+            if(!d_onlyNotify.match(&caIp))
+              L<<Logger::Info<<"Skipped notification of domain '"<<domain<<"' to "<<*j<<" because it does not match only-notify."<<endl;
+            else
+              ips.insert(caIp.toStringWithPort());
+          }
+        }
+    }
+
+    for(set<string>::const_iterator j=ips.begin();j!=ips.end();++j) {
+      L<<Logger::Warning<<"Queued notification of domain '"<<domain<<"' to "<<*j<<endl;
+      d_nq.add(domain,*j);
+      hasQueuedItem=true;
+    }
   }
 
   set<string> alsoNotify(d_alsoNotify);
