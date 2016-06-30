@@ -27,7 +27,13 @@
 #include <netinet/tcp.h>
 #include <limits>
 #include "dolog.hh"
-#include <readline.h>
+
+#if defined (__OpenBSD__)
+#include <readline/readline.h>
+#else
+#include <editline/readline.h>
+#endif
+
 #include "dnsname.hh"
 #include "dnswriter.hh"
 #include "base64.hh"
