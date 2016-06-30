@@ -30,7 +30,7 @@ make
 
 To build on OS X, `./configure LIBEDIT_LIBS='-L/usr/lib -ledit' LIBEDIT_CFLAGS=-I/usr/include/editline`
 
-To build on OpenBSD, `./configure CXX=eg++ CPP=ecpp LIBEDIT_LIBS='-ledit -lcurses' LIBEDIT_CFLAGS=-I/usr/include/readline`
+To build on OpenBSD, `./configure CXX=eg++ CPP=ecpp LIBEDIT_LIBS='-ledit -lcurses' LIBEDIT_CFLAGS=' '`
 
 On other recent platforms, installing a Lua and the system C++ compiler should be enough. 
 
