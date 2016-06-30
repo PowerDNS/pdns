@@ -323,7 +323,7 @@ public:
   }
   string toString() const override
   {
-    return "opcode=="+d_opcode;
+    return "opcode=="+std::to_string(d_opcode);
   }
 private:
   uint8_t d_opcode;
