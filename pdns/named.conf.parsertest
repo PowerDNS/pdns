@@ -11,6 +11,13 @@ options {
 	minimal-responses yes;
 };
 
+logging {
+	channel default_debug {
+		file "data/named.run";
+		severity dynamic;
+	};
+};
+
 view "basic" {
 	zone "example.com"{
 		type master;
