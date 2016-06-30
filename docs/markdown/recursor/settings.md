@@ -300,7 +300,7 @@ Comments are allowed since version 4.0.0. Everything behind '#' is ignored.
 
 Like regular [`forward-zones`](#forward-zones), but forwarded queries have the
 'recursion desired' bit set to 1, meaning that this setting is intended to
-forward queries to authoritative servers or to resolving servers.
+forward queries to other recursive servers.
 
 ## `hint-file`
 * Path
