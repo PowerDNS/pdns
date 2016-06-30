@@ -196,41 +196,57 @@ template<class Answer, class Question, class Backend>void *MultiThreadDistributo
         S.inc("timedout-packets");
         continue;
       }        
+
+      bool allowRetry=true;
+retry:
       // this is the only point where we interact with the backend (synchronous)
       try {
-        if (!b)
+        if (!b) {
+          allowRetry=false;
           b=new Backend();
-        a=b->question(QD->Q); 
-	delete QD->Q;
+        }
+        a=b->question(QD->Q);
+        delete QD->Q;
       }
       catch(const PDNSException &e) {
-        L<<Logger::Error<<"Backend error: "<<e.reason<<endl;
-	delete b;
+        delete b;
         b=NULL;
-        a=QD->Q->replyPacket();
+        if (!allowRetry) {
+          L<<Logger::Error<<"Backend error: "<<e.reason<<endl;
+          a=QD->Q->replyPacket();
 
-        a->setRcode(RCode::ServFail);
-        S.inc("servfail-packets");
-        S.ringAccount("servfail-queries",QD->Q->qdomain.toString());
+          a->setRcode(RCode::ServFail);
+          S.inc("servfail-packets");
+          S.ringAccount("servfail-queries",QD->Q->qdomain.toString());
 
-	delete QD->Q;
+          delete QD->Q;
+        } else {
+          L<<Logger::Error<<"Backend error (retry once): "<<e.reason<<endl;
+          goto retry;
+        }
       }
       catch(...) {
-        L<<Logger::Error<<"Caught unknown exception in Distributor thread "<<(long)pthread_self()<<endl;
-	delete b;
-	b=NULL;
-        a=QD->Q->replyPacket();
-	
-        a->setRcode(RCode::ServFail);
-        S.inc("servfail-packets");
-        S.ringAccount("servfail-queries",QD->Q->qdomain.toString());
-	delete QD->Q;
+        delete b;
+        b=NULL;
+        if (!allowRetry) {
+          L<<Logger::Error<<"Caught unknown exception in Distributor thread "<<(long)pthread_self()<<endl;
+          a=QD->Q->replyPacket();
+
+          a->setRcode(RCode::ServFail);
+          S.inc("servfail-packets");
+          S.ringAccount("servfail-queries",QD->Q->qdomain.toString());
+
+          delete QD->Q;
+        } else {
+          L<<Logger::Error<<"Caught unknown exception in Distributor thread "<<(long)pthread_self()<<" (retry once)"<<endl;
+          goto retry;
+        }
       }
 
       QD->callback(a);
       delete QD;
     }
-    
+
     delete b;
   }
   catch(const PDNSException &AE) {
@@ -247,28 +263,44 @@ template<class Answer, class Question, class Backend>void *MultiThreadDistributo
 template<class Answer, class Question, class Backend>int SingleThreadDistributor<Answer,Question,Backend>::question(Question* q, callback_t callback)
 {
   Answer *a;
+  bool allowRetry=true;
+retry:
   try {
-    if (!b)
+    if (!b) {
+      allowRetry=false;
       b=new Backend;
+    }
     a=b->question(q); // a can be NULL!
   }
   catch(const PDNSException &e) {
-    L<<Logger::Error<<"Backend error: "<<e.reason<<endl;
     delete b;
     b=NULL;
-    a=q->replyPacket();
-    a->setRcode(RCode::ServFail);
-    S.inc("servfail-packets");
-    S.ringAccount("servfail-queries",q->qdomain.toString());
+    if (!allowRetry) {
+      L<<Logger::Error<<"Backend error: "<<e.reason<<endl;
+      a=q->replyPacket();
+
+      a->setRcode(RCode::ServFail);
+      S.inc("servfail-packets");
+      S.ringAccount("servfail-queries",q->qdomain.toString());
+    } else {
+      L<<Logger::Error<<"Backend error (retry once): "<<e.reason<<endl;
+      goto retry;
+    }
   }
   catch(...) {
-    L<<Logger::Error<<"Caught unknown exception in Distributor thread "<<(unsigned long)pthread_self()<<endl;
     delete b;
     b=NULL;
-    a=q->replyPacket();
-    a->setRcode(RCode::ServFail);
-    S.inc("servfail-packets");
-    S.ringAccount("servfail-queries",q->qdomain.toString());
+    if (!allowRetry) {
+      L<<Logger::Error<<"Caught unknown exception in Distributor thread "<<(unsigned long)pthread_self()<<endl;
+      a=q->replyPacket();
+
+      a->setRcode(RCode::ServFail);
+      S.inc("servfail-packets");
+      S.ringAccount("servfail-queries",q->qdomain.toString());
+    } else {
+      L<<Logger::Error<<"Caught unknown exception in Distributor thread "<<(unsigned long)pthread_self()<<" (retry once)"<<endl;
+      goto retry;
+    }
   }
   callback(a);
   return 0;
