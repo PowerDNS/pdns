@@ -164,6 +164,36 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
             headers={'content-type': 'application/json'})
         self.assertEquals(r.status_code, 422)
 
+    def test_domainmetadata(self):
+        # test metadata creation
+        payload_metadata = {"type": "Metadata", "kind": "AXFR-SOURCE", "metadata": ["127.0.0.2"]}
+        r = self.session.post(self.url("/servers/localhost/zones/example.com/metadata"),
+                              data=json.dumps(payload_metadata))
+        rdata = r.json()
+        self.assertEquals(r.status_code, 201)
+        self.assertEquals(rdata["metadata"], payload_metadata["metadata"])
+
+        # test metadata retrieval
+        r = self.session.get(self.url("/servers/localhost/zones/example.com/metadata"))
+        rdata = r.json()
+        self.assertEquals(r.status_code, 200)
+        self.assertIn(payload_metadata, rdata)
+
+        # test metadata removal
+        r = self.session.delete(self.url("/servers/localhost/zones/example.com/metadata/AXFR-SOURCE"))
+        self.assertEquals(r.status_code, 200)
+        r = self.session.get(self.url("/servers/localhost/zones/example.com/metadata/AXFR-SOURCE"))
+        rdata = r.json()
+        self.assertEquals(r.status_code, 200)
+        self.assertEquals(rdata["metadata"], [])
+
+        # test whether it prevents modification of certain kinds
+        for k in ("NSEC3NARROW", "NSEC3PARAM", "PRESIGNED"):
+            payload = {"metadata": ["FOO", "BAR"]}
+            r = self.session.put(self.url("/servers/localhost/zones/example.com/metadata/%s" % k),
+                                 data=json.dumps(payload))
+            self.assertEquals(r.status_code, 422)
+
     def test_create_slave_zone(self):
         # Test that nameservers can be absent for slave zones.
         payload, data = self.create_zone(kind='Slave', nameservers=None, masters=['127.0.0.2'])
