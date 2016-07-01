@@ -33,6 +33,7 @@
 #include "recpacketcache.hh"
 #include "utility.hh"
 #include "dns_random.hh"
+#include "opensslsigners.hh"
 #include <iostream>
 #include <errno.h>
 #include <boost/static_assert.hpp>
@@ -2566,6 +2567,7 @@ int serviceMain(int argc, char*argv[])
 
   showProductVersion();
   seedRandom(::arg()["entropy-source"]);
+
   g_disthashseed=dns_random(0xffffffff);
 
   loadRecursorLuaConfig(::arg()["lua-config-file"]);
@@ -2709,6 +2711,9 @@ int serviceMain(int argc, char*argv[])
   g_numWorkerThreads = ::arg().asNum("threads");
   g_maxMThreads = ::arg().asNum("max-mthreads");
   checkOrFixFDS();
+
+  openssl_thread_setup();
+  openssl_seed();
 
   int newgid=0;
   if(!::arg()["setgid"].empty())
