@@ -388,8 +388,12 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
               if(nsec) {
                 if(v.first.first == qname && !nsec->d_set.count(QType::DS))
                   return Insecure;
+                else if(v.first.first < qname && qname < nsec->d_next ) {
+                  LOG("Did not find DS for this level, trying one lower"<<endl);
+                  goto skipLevel;
+                }
                 else {
-                  LOG("Did not deny existence of DS, "<<v.first.first<<"?="<<qname<<", "<<nsec->d_set.count(QType::DS)<<endl);
+                  LOG("Did not deny existence of DS, "<<v.first.first<<"?="<<qname<<", "<<nsec->d_set.count(QType::DS)<<", next: "<<nsec->d_next<<endl);
                 }
               }
             }
@@ -442,6 +446,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
         dState dres = getDenial(validrrsets, qname, QType::DS);
         if(dres == INSECURE) return Insecure;
       }
+    skipLevel:;
     } while(!dsmap.size() && labels.size());
 
     // break;
