@@ -388,7 +388,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
               if(nsec) {
                 if(v.first.first == qname && !nsec->d_set.count(QType::DS))
                   return Insecure;
-                else if(v.first.first < qname && qname < nsec->d_next ) {
+                else if(v.first.first.canonCompare(qname) && qname.canonCompare(nsec->d_next) ) {
                   LOG("Did not find DS for this level, trying one lower"<<endl);
                   goto skipLevel;
                 }
