@@ -150,16 +150,27 @@ bool chopOff(string &domain)
   if(domain.empty())
     return false;
 
-  string::size_type fdot=domain.find('.');
+  bool escaped = false;
+  const string::size_type domainLen = domain.length();
+  for (size_t fdot = 0; fdot < domainLen; fdot++)
+  {
+    if (domain[fdot] == '.' && !escaped) {
+      string::size_type remain = domainLen - (fdot + 1);
+      char tmp[remain];
+      memcpy(tmp, domain.c_str()+fdot+1, remain);
+      domain.assign(tmp, remain); // don't dare to do this w/o tmp holder :-)
 
-  if(fdot==string::npos) 
-    domain="";
-  else {
-    string::size_type remain = domain.length() - (fdot + 1);
-    char tmp[remain];
-    memcpy(tmp, domain.c_str()+fdot+1, remain);
-    domain.assign(tmp, remain); // don't dare to do this w/o tmp holder :-)
+      return true;
+    }
+    else if (domain[fdot] == '\\' && !escaped) {
+      escaped = true;
+    }
+    else {
+      escaped = false;
+    }
   }
+
+  domain = "";
   return true;
 }
 
@@ -169,19 +180,31 @@ bool chopOffDotted(string &domain)
   if(domain.empty() || (domain.size()==1 && domain[0]=='.'))
     return false;
 
-  string::size_type fdot=domain.find('.');
-  if(fdot == string::npos)
-    return false;
-
-  if(fdot==domain.size()-1) 
-    domain=".";
-  else  {
-    string::size_type remain = domain.length() - (fdot + 1);
-    char tmp[remain];
-    memcpy(tmp, domain.c_str()+fdot+1, remain);
-    domain.assign(tmp, remain);
+  bool escaped = false;
+  const string::size_type domainLen = domain.length();
+  for (size_t fdot = 0; fdot < domainLen; fdot++)
+  {
+    if (domain[fdot] == '.' && !escaped) {
+      if (fdot==domain.size()-1) {
+        domain=".";
+      }
+      else {
+        string::size_type remain = domainLen - (fdot + 1);
+        char tmp[remain];
+        memcpy(tmp, domain.c_str()+fdot+1, remain);
+        domain.assign(tmp, remain); // don't dare to do this w/o tmp holder :-)
+      }
+      return true;
+    }
+    else if (domain[fdot] == '\\' && !escaped) {
+      escaped = true;
+    }
+    else {
+      escaped = false;
+    }
   }
-  return true;
+
+  return false;
 }
 
 
