@@ -405,7 +405,8 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
               LOG("\tquery hash: "<<toBase32Hex(h)<<endl);
               string beginHash=fromBase32Hex(v.first.first.getRawLabels()[0]);
               if( (beginHash < h && h < nsec3->d_nexthash) ||
-                  (nsec3->d_nexthash > h  && beginHash > nsec3->d_nexthash) ||  //wrap
+                  (nsec3->d_nexthash > h  && beginHash > nsec3->d_nexthash) ||  // wrap // HASH --- END --- BEGINNING
+                  (nsec3->d_nexthash < beginHash  && beginHash < h) ||  // wrap other case // END -- BEGINNING -- HASH
                   beginHash == nsec3->d_nexthash)  // "we have only 1 NSEC3 record, LOL!"  
               {
                 LOG("Denies existence of DS!"<<endl);
