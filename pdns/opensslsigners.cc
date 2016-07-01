@@ -90,18 +90,18 @@ public:
       RSA_free(d_key);
   }
 
-  string getName() const { return "OpenSSL RSA"; }
-  int getBits() const { return RSA_size(d_key) << 3; }
+  string getName() const override { return "OpenSSL RSA"; }
+  int getBits() const override { return RSA_size(d_key) << 3; }
 
-  void create(unsigned int bits);
-  storvector_t convertToISCVector() const;
-  std::string hash(const std::string& hash) const;
-  std::string sign(const std::string& hash) const;
-  bool verify(const std::string& hash, const std::string& signature) const;
-  std::string getPubKeyHash() const;
-  std::string getPublicKeyString() const;
-  void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap);
-  void fromPublicKeyString(const std::string& content);
+  void create(unsigned int bits) override;
+  storvector_t convertToISCVector() const override;
+  std::string hash(const std::string& hash) const override;
+  std::string sign(const std::string& hash) const override;
+  bool verify(const std::string& hash, const std::string& signature) const override;
+  std::string getPubKeyHash() const override;
+  std::string getPublicKeyString() const override;
+  void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap) override;
+  void fromPublicKeyString(const std::string& content) override;
   bool checkKey() const override;
 
   static DNSCryptoKeyEngine* maker(unsigned int algorithm)
@@ -463,18 +463,18 @@ public:
     BN_CTX_free(d_ctx);
   }
 
-  string getName() const { return "OpenSSL ECDSA"; }
-  int getBits() const { return d_len << 3; }
+  string getName() const override { return "OpenSSL ECDSA"; }
+  int getBits() const override { return d_len << 3; }
 
-  void create(unsigned int bits);
-  storvector_t convertToISCVector() const;
-  std::string hash(const std::string& hash) const;
-  std::string sign(const std::string& hash) const;
-  bool verify(const std::string& hash, const std::string& signature) const;
-  std::string getPubKeyHash() const;
-  std::string getPublicKeyString() const;
-  void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap);
-  void fromPublicKeyString(const std::string& content);
+  void create(unsigned int bits) override;
+  storvector_t convertToISCVector() const override;
+  std::string hash(const std::string& hash) const override;
+  std::string sign(const std::string& hash) const override;
+  bool verify(const std::string& hash, const std::string& signature) const override;
+  std::string getPubKeyHash() const override;
+  std::string getPublicKeyString() const override;
+  void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap) override;
+  void fromPublicKeyString(const std::string& content) override;
   bool checkKey() const override;
 
   static DNSCryptoKeyEngine* maker(unsigned int algorithm)
