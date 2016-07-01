@@ -464,12 +464,40 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
   return 0;
 }
 
-DownstreamState::DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf_): remote(remote_), sourceAddr(sourceAddr_), sourceItf(sourceItf_)
+static void bindAny(int af, int sock)
+{
+  int one = 1;
+
+#ifdef IP_FREEBIND
+  if (setsockopt(sock, IPPROTO_IP, IP_FREEBIND, &one, sizeof(one)) < 0)
+    warnlog("Warning: IP_FREEBIND setsockopt failed: %s", strerror(errno));
+#endif
+
+#ifdef IP_BINDANY
+  if (af == AF_INET)
+    if (setsockopt(sock, IPPROTO_IP, IP_BINDANY, &one, sizeof(one)) < 0)
+      warnlog("Warning: IP_BINDANY setsockopt failed: %s", strerror(errno));
+#endif
+#ifdef IPV6_BINDANY
+  if (af == AF_INET6)
+    if (setsockopt(sock, IPPROTO_IPV6, IPV6_BINDANY, &one, sizeof(one)) < 0)
+      warnlog("Warning: IPV6_BINDANY setsockopt failed: %s", strerror(errno));
+#endif
+#ifdef SO_BINDANY
+  if (setsockopt(sock, SOL_SOCKET, SO_BINDANY, &one, sizeof(one)) < 0)
+    warnlog("Warning: SO_BINDANY setsockopt failed: %s", strerror(errno));
+#endif
+}
+
+DownstreamState::DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf_, bool sourceBindAny_): remote(remote_), sourceAddr(sourceAddr_), sourceItf(sourceItf_), sourceBindAny(sourceBindAny_)
 {
   if (!IsAnyAddress(remote)) {
     fd = SSocket(remote.sin4.sin_family, SOCK_DGRAM, 0);
     if (!IsAnyAddress(sourceAddr)) {
       SSetsockopt(fd, SOL_SOCKET, SO_REUSEADDR, 1);
+      if (sourceBindAny) {
+        bindAny(sourceAddr.sin4.sin_family, fd);
+      }
       SBind(fd, sourceAddr);
     }
     SConnect(fd, remote);
@@ -1126,6 +1154,9 @@ try
   sock.setNonBlocking();
   if (!IsAnyAddress(ds.sourceAddr)) {
     sock.setReuseAddr();
+    if (ds.sourceBindAny) {
+      bindAny(ds.sourceAddr.sin4.sin_family, sock.getHandle());
+    }
     sock.bind(ds.sourceAddr);
   }
   sock.connect(ds.remote);
@@ -1318,33 +1349,6 @@ catch(std::exception& e)
 {
   close(fd);
   errlog("Control connection died: %s", e.what());
-}
-
-
-
-static void bindAny(int af, int sock)
-{
-  int one = 1;
-
-#ifdef IP_FREEBIND
-  if (setsockopt(sock, IPPROTO_IP, IP_FREEBIND, &one, sizeof(one)) < 0)
-    warnlog("Warning: IP_FREEBIND setsockopt failed: %s", strerror(errno));
-#endif
-
-#ifdef IP_BINDANY
-  if (af == AF_INET)
-    if (setsockopt(sock, IPPROTO_IP, IP_BINDANY, &one, sizeof(one)) < 0)
-      warnlog("Warning: IP_BINDANY setsockopt failed: %s", strerror(errno));
-#endif
-#ifdef IPV6_BINDANY
-  if (af == AF_INET6)
-    if (setsockopt(sock, IPPROTO_IPV6, IPV6_BINDANY, &one, sizeof(one)) < 0)
-      warnlog("Warning: IPV6_BINDANY setsockopt failed: %s", strerror(errno));
-#endif
-#ifdef SO_BINDANY
-  if (setsockopt(sock, SOL_SOCKET, SO_BINDANY, &one, sizeof(one)) < 0)
-    warnlog("Warning: SO_BINDANY setsockopt failed: %s", strerror(errno));
-#endif
 }
 
 static void dropGroupPrivs(gid_t gid)
