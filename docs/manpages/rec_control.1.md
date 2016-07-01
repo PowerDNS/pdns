@@ -109,8 +109,15 @@ quit-nicely
 reload-acls
 :    Reloads ACLs.
 
-reload-lua-script *FILENAME*
-:    (Re)loads Lua script *FILENAME*. This replaces the script currently loaded.
+reload-lua-script [*FILENAME*]
+:    (Re)loads Lua script *FILENAME*. If *FILENAME* is empty, attempt to reload
+     the currently loaded script. This replaces the script currently loaded.
+
+reload-lua-config [*FILENAME*]
+:    (Re)loads Lua configuration *FILENAME*. If *FILENAME* is empty, attempt to
+     reload the currently loaded file. Note that *FILENAME* will be fully executed,
+     any settings changed at runtime that are not modified in this file, will
+     still be active.
 
 reload-zones
 :    Reload authoritative and forward zones. Retains current configuration
