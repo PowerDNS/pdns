@@ -273,7 +273,9 @@ pair<unsigned int, unsigned int> DNSCryptoKeyEngine::testMakers(unsigned int alg
   unsigned int udiffSign= dt.udiff()/100, udiffVerify;
   
   dckeVerify->fromPublicKeyString(dckeSign->getPublicKeyString());
-  
+  if (dckeVerify->getPublicKeyString().compare(dckeSign->getPublicKeyString())) {
+    throw runtime_error("Comparison of public key loaded into verifier produced by signer failed");
+  }
   dt.set();
   if(dckeVerify->verify(message, signature)) {
     udiffVerify = dt.udiff();
