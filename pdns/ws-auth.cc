@@ -526,6 +526,181 @@ static void updateDomainSettingsFromDocument(const DomainInfo& di, const DNSName
   }
 }
 
+static bool isValidMetadataKind(const string& kind, bool readonly) {
+  static vector<string> builtinOptions {
+    "ALLOW-AXFR-FROM",
+    "AXFR-SOURCE",
+    "ALLOW-DNSUPDATE-FROM",
+    "TSIG-ALLOW-DNSUPDATE",
+    "FORWARD-DNSUPDATE",
+    "SOA-EDIT-DNSUPDATE",
+    "ALSO-NOTIFY",
+    "AXFR-MASTER-TSIG",
+    "GSS-ALLOW-AXFR-PRINCIPAL",
+    "GSS-ACCEPTOR-PRINCIPAL",
+    "IXFR",
+    "LUA-AXFR-SCRIPT",
+    "NSEC3NARROW",
+    "NSEC3PARAM",
+    "PRESIGNED",
+    "PUBLISH-CDNSKEY",
+    "PUBLISH-CDS",
+    "SOA-EDIT",
+    "TSIG-ALLOW-AXFR",
+    "TSIG-ALLOW-DNSUPDATE"
+  };
+
+  // the following options do not allow modifications via API
+  static vector<string> protectedOptions {
+    "NSEC3NARROW",
+    "NSEC3PARAM",
+    "PRESIGNED",
+    "LUA-AXFR-SCRIPT"
+  };
+
+  bool found = false;
+
+  for (string& s : builtinOptions) {
+    if (kind == s) {
+      for (string& s2 : protectedOptions) {
+        if (!readonly && s == s2)
+          return false;
+      }
+      found = true;
+      break;
+    }
+  }
+
+  return found;
+}
+
+static void apiZoneMetadata(HttpRequest* req, HttpResponse *resp) {
+  DNSName zonename = apiZoneIdToName(req->parameters["id"]);
+  UeberBackend B;
+
+  if (req->method == "GET") {
+    map<string, vector<string> > md;
+    Json::array document;
+
+    if (!B.getAllDomainMetadata(zonename, md))
+      throw HttpNotFoundException();
+
+    for (const auto& i : md) {
+      Json::array entries;
+      for (string j : i.second)
+        entries.push_back(j);
+
+      Json::object key {
+        { "type", "Metadata" },
+        { "kind", i.first },
+        { "metadata", entries }
+      };
+
+      document.push_back(key);
+    }
+
+    resp->setBody(document);
+  } else if (req->method == "POST" && !::arg().mustDo("api-readonly")) {
+    auto document = req->json();
+    string kind;
+    vector<string> entries;
+
+    try {
+      kind = stringFromJson(document, "kind");
+    } catch (JsonException) {
+      throw ApiException("kind is not specified or not a string");
+    }
+
+    if (!isValidMetadataKind(kind, false))
+      throw ApiException("Unsupported metadata kind '" + kind + "'");
+
+    vector<string> vecMetadata;
+    auto& metadata = document["metadata"];
+    if (!metadata.is_array())
+      throw ApiException("metadata is not specified or not an array");
+
+    for (const auto& i : metadata.array_items()) {
+      if (!i.is_string())
+        throw ApiException("metadata must be strings");
+      vecMetadata.push_back(i.string_value());
+    }
+
+    if (!B.setDomainMetadata(zonename, kind, vecMetadata))
+      throw ApiException("Could not update metadata entries for domain '" + zonename.toString() + "'");
+
+    Json::object key {
+      { "type", "Metadata" },
+      { "kind", document["kind"] },
+      { "metadata", metadata }
+    };
+
+    resp->status = 201;
+    resp->setBody(key);
+  } else
+    throw HttpMethodNotAllowedException();
+}
+
+static void apiZoneMetadataKind(HttpRequest* req, HttpResponse* resp) {
+  DNSName zonename = apiZoneIdToName(req->parameters["id"]);
+  string kind = req->parameters["kind"];
+  UeberBackend B;
+
+  if (req->method == "GET") {
+    vector<string> metadata;
+    Json::object document;
+    Json::array entries;
+
+    if (!B.getDomainMetadata(zonename, kind, metadata))
+      throw HttpNotFoundException();
+    else if (!isValidMetadataKind(kind, true))
+      throw ApiException("Unsupported metadata kind '" + kind + "'");
+
+    document["type"] = "Metadata";
+    document["kind"] = kind;
+
+    for (const string& i : metadata)
+      entries.push_back(i);
+
+    document["metadata"] = entries;
+    resp->setBody(document);
+  } else if (req->method == "PUT" && !::arg().mustDo("api-readonly")) {
+    auto document = req->json();
+
+    if (!isValidMetadataKind(kind, false))
+      throw ApiException("Unsupported metadata kind '" + kind + "'");
+
+    vector<string> vecMetadata;
+    auto& metadata = document["metadata"];
+    if (!metadata.is_array())
+      throw ApiException("metadata is not specified or not an array");
+
+    for (const auto& i : metadata.array_items()) {
+      if (!i.is_string())
+        throw ApiException("metadata must be strings");
+      vecMetadata.push_back(i.string_value());
+    }
+
+    if (!B.setDomainMetadata(zonename, kind, vecMetadata))
+      throw ApiException("Could not update metadata entries for domain '" + zonename.toString() + "'");
+
+    Json::object key {
+      { "type", "Metadata" },
+      { "kind", kind },
+      { "metadata", metadata }
+    };
+
+    resp->setBody(key);
+  } else if (req->method == "DELETE" && !::arg().mustDo("api-readonly")) {
+    if (!isValidMetadataKind(kind, false))
+      throw ApiException("Unsupported metadata kind '" + kind + "'");
+
+    vector<string> md;  // an empty vector will do it
+    if (!B.setDomainMetadata(zonename, kind, md))
+      throw ApiException("Could not delete metadata for domain '" + zonename.toString() + "' (" + kind + ")");
+  } else
+    throw HttpMethodNotAllowedException();
+}
+
 static void apiZoneCryptokeys(HttpRequest* req, HttpResponse* resp) {
   if(req->method != "GET")
     throw ApiException("Only GET is implemented");
@@ -1249,6 +1424,8 @@ void AuthWebServer::webThread()
       d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/cryptokeys/<key_id>", &apiZoneCryptokeys);
       d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/cryptokeys", &apiZoneCryptokeys);
       d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/export", &apiServerZoneExport);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/metadata/<kind>", &apiZoneMetadataKind);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/metadata", &apiZoneMetadata);
       d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/notify", &apiServerZoneNotify);
       d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", &apiServerZoneDetail);
       d_ws->registerApiHandler("/api/v1/servers/localhost/zones", &apiServerZones);
