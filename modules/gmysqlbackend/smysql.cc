@@ -384,7 +384,7 @@ SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const 
   do {
 
 #if MYSQL_VERSION_ID >= 50013
-    my_bool reconnect = 1;
+    my_bool reconnect = 0;
     mysql_options(&d_db, MYSQL_OPT_RECONNECT, &reconnect);
 #endif
 
