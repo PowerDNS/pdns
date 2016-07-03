@@ -560,9 +560,9 @@ static bool isValidMetadataKind(const string& kind, bool readonly) {
 
   bool found = false;
 
-  for (string& s : builtinOptions) {
+  for (const string& s : builtinOptions) {
     if (kind == s) {
-      for (string& s2 : protectedOptions) {
+      for (const string& s2 : protectedOptions) {
         if (!readonly && s == s2)
           return false;
       }
