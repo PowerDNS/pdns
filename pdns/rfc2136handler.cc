@@ -670,7 +670,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
   if (! ::arg().mustDo("dnsupdate"))
     return RCode::Refused;
 
-  string msgPrefix="UPDATE (" + itoa(p->d.id) + ") from " + p->getRemote() + " for " + p->qdomain.toString() + ": ";
+  string msgPrefix="UPDATE (" + itoa(p->d.id) + ") from " + p->getRemote() + " for " + p->qdomain.toLogString() + ": ";
   L<<Logger::Info<<msgPrefix<<"Processing started."<<endl;
 
   // Check permissions - IP based
@@ -978,7 +978,7 @@ void PacketHandler::increaseSerial(const string &msgPrefix, const DomainInfo *di
       string soaEditSetting;
       d_dk.getSoaEdit(di->zone, soaEditSetting);
       if (soaEditSetting.empty()) {
-        L<<Logger::Error<<msgPrefix<<"Using "<<soaEdit2136<<" for SOA-EDIT-DNSUPDATE increase on DNS update, but SOA-EDIT is not set for domain \""<< di->zone.toString() <<"\". Using DEFAULT for SOA-EDIT-DNSUPDATE"<<endl;
+        L<<Logger::Error<<msgPrefix<<"Using "<<soaEdit2136<<" for SOA-EDIT-DNSUPDATE increase on DNS update, but SOA-EDIT is not set for domain \""<< di->zone <<"\". Using DEFAULT for SOA-EDIT-DNSUPDATE"<<endl;
         soaEdit2136 = "DEFAULT";
       } else
         soaEdit = soaEditSetting;

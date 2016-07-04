@@ -49,7 +49,7 @@ struct QuestionIdentifier
 
 inline ostream& operator<<(ostream &s, const QuestionIdentifier& qi) 
 {
-  s<< "'"<<qi.d_qname.toString()<<"|"<<DNSRecordContent::NumberToType(qi.d_qtype)<<"', with id " << qi.d_id <<" from "<<qi.d_source.toStringWithPort();
+  s<< "'"<<qi.d_qname<<"|"<<DNSRecordContent::NumberToType(qi.d_qtype)<<"', with id " << qi.d_id <<" from "<<qi.d_source.toStringWithPort();
   
   s<<" to " << qi.d_dest.toStringWithPort();
   return s;

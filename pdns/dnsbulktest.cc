@@ -123,7 +123,7 @@ struct SendReceive
       
       MOADNSParser mdp(string(buf, len));
       if(!g_quiet) {
-        cout<<"Reply to question for qname='"<<mdp.d_qname.toString()<<"', qtype="<<DNSRecordContent::NumberToType(mdp.d_qtype)<<endl;
+        cout<<"Reply to question for qname='"<<mdp.d_qname<<"', qtype="<<DNSRecordContent::NumberToType(mdp.d_qtype)<<endl;
         cout<<"Rcode: "<<mdp.d_header.rcode<<", RD: "<<mdp.d_header.rd<<", QR: "<<mdp.d_header.qr;
         cout<<", TC: "<<mdp.d_header.tc<<", AA: "<<mdp.d_header.aa<<", opcode: "<<mdp.d_header.opcode<<endl;
       }
@@ -136,7 +136,7 @@ struct SendReceive
         }
         if(!g_quiet)
         {
-          cout<<i->first.d_place-1<<"\t"<<i->first.d_name.toString()<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type);
+          cout<<i->first.d_place-1<<"\t"<<i->first.d_name<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type);
           cout<<"\t"<<i->first.d_ttl<<"\t"<< i->first.d_content->getZoneRepresentation()<<"\n";
         }
       }

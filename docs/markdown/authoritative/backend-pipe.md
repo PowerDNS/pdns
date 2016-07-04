@@ -68,7 +68,8 @@ If this time is ever exceeded, the backend is declared dead and a new process is
 
 If set, only questions matching this regular expression are even sent to the backend.
 This makes sure that most of PowerDNS does not slow down if you you deploy a slow backend.
-A query for 'www.powerdns.com' would be presented to the regex as 'www.powerdns.com', a matching regex would be '^www.powerdns.com$'.
+A query for 'www.powerdns.com' would be presented to the regex as 'www.powerdns.com', a matching regex would be `^www\.powerdns\.com$`.
+**Note**: to match the root domain, use a dot, e.g. `^\.$`
 
 # PipeBackend protocol
 Questions come in over a file descriptor, by default standard input.

@@ -55,7 +55,7 @@ static void callback_simple( unsigned int domain_id, const DNSName &domain, cons
 
         if( ! domain.isPartOf(g_zonename) )
         {
-                cerr << "Domain '" << domain.toString() << "'' not part of '" << g_zonename.toString() << "'"<< endl;
+                cerr << "Domain '" << domain << "'' not part of '" << g_zonename << "'"<< endl;
                 return;
         }
 
@@ -205,14 +205,14 @@ int main( int argc, char* argv[] )
                         for( vector<BindDomainInfo>::const_iterator i = domains.begin(); i != domains.end(); i++ )
                         {
                                         if(i->type!="master" && i->type!="slave") {
-                                                cerr<<" Warning! Skipping '"<<i->type<<"' zone '"<<i->name.toString()<<"'"<<endl;
+                                                cerr<<" Warning! Skipping '"<<i->type<<"' zone '"<<i->name<<"'"<<endl;
                                                 continue;
                                         }
                                 try
                                 {
 				  if( i->name != DNSName(".") && i->name != DNSName("localhost") && i->name != DNSName("0.0.127.in-addr.arpa") )
                                         {
-                                                cerr << "Parsing file: " << i->filename << ", domain: " << i->name.toString() << endl;
+                                                cerr << "Parsing file: " << i->filename << ", domain: " << i->name << endl;
                                                 g_zonename = i->name;
                                                 ZoneParserTNG zpt(i->filename, i->name, BP.getDirectory());
                                                 DNSResourceRecord rr;

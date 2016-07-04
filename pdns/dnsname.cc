@@ -14,7 +14,7 @@
 
 std::ostream & operator<<(std::ostream &os, const DNSName& d)
 {
-  return os <<d.toString();
+  return os <<d.toLogString();
 }
 
 DNSName::DNSName(const char* p)
@@ -157,15 +157,7 @@ std::string DNSName::toLogString() const
     return "(empty)";
   }
 
- if(isRoot())
-    return ".";
-
-  std::string ret;
-  for(const auto& s : getRawLabels()) {
-    ret+= escapeLabel(s) + ".";
-  }
-
-  return ret;
+  return toStringRootDot();
 }
 
 std::string DNSName::toDNSString() const

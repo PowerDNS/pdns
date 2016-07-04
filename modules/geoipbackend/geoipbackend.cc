@@ -141,14 +141,14 @@ void GeoIPBackend::initialize() {
                rr.weight = iter->second.as<int>();
                if (rr.weight < 0) {
                  L<<Logger::Error<<"Weight cannot be negative for " << rr.qname << endl;
-                 throw PDNSException(string("Weight cannot be negative for ") + rr.qname.toString());
+                 throw PDNSException(string("Weight cannot be negative for ") + rr.qname.toLogString());
                }
                rr.has_weight = true;
              } else if (attr == "ttl") {
                rr.ttl = iter->second.as<int>();
              } else {
                L<<Logger::Error<<"Unsupported record attribute " << attr << " for " << rr.qname << endl;
-               throw PDNSException(string("Unsupported record attribute ") + attr + string(" for ") + rr.qname.toString());
+               throw PDNSException(string("Unsupported record attribute ") + attr + string(" for ") + rr.qname.toLogString());
              }
            }
 	} else {

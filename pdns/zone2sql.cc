@@ -373,7 +373,7 @@ try
           ++i)
         {
           if(i->type!="master" && i->type!="slave") {
-            cerr<<" Warning! Skipping '"<<i->type<<"' zone '"<<i->name.toString()<<"'"<<endl;
+            cerr<<" Warning! Skipping '"<<i->type<<"' zone '"<<i->name<<"'"<<endl;
             continue;
           }
           try {

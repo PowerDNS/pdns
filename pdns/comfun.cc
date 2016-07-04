@@ -101,7 +101,7 @@ struct SendReceive
       
       MOADNSParser mdp(string(buf, len));
       if(!g_quiet) {
-        cout<<"Reply to question for qname='"<<mdp.d_qname.toString()<<"', qtype="<<DNSRecordContent::NumberToType(mdp.d_qtype)<<endl;
+        cout<<"Reply to question for qname='"<<mdp.d_qname<<"', qtype="<<DNSRecordContent::NumberToType(mdp.d_qtype)<<endl;
         cout<<"Rcode: "<<mdp.d_header.rcode<<", RD: "<<mdp.d_header.rd<<", QR: "<<mdp.d_header.qr;
         cout<<", TC: "<<mdp.d_header.tc<<", AA: "<<mdp.d_header.aa<<", opcode: "<<mdp.d_header.opcode<<endl;
       }
@@ -133,9 +133,9 @@ struct SendReceive
   
   void deliverAnswer(NSQuery& domain, const DNSResult& dr, unsigned int usec)
   {
-    cout<<domain.a.toString()<<"\t"<<domain.qname.toString()<<"\t";
+    cout<<domain.a.toString()<<"\t"<<domain.qname<<"\t";
     for(const auto& n : domain.nsnames)
-      cout<<n.toString()<<",";
+      cout<<n<<",";
     cout<<"\t"<<domain.count<<"\t"<<dr.qclass<<'\t'<<dr.ttl<<": "<<dr.content<<endl;
     
     if(dr.qclass==1 || toLower(dr.content).find("powerdns") != string::npos || dr.ttl==5) {
@@ -143,7 +143,7 @@ struct SendReceive
       if(!f->second.isPowerDNS) {
         (*g_powerdns)<<domain.a.toString()<<'\t'<<domain.count<<'\t';
         for(const auto& n : domain.nsnames)
-          (*g_powerdns)<<n.toString()<<'\t';
+          (*g_powerdns)<<n<<'\t';
         (*g_powerdns)<<"\n";
         f->second.isPowerDNS=true;
       }
@@ -232,7 +232,7 @@ struct SendReceiveRes
       
       MOADNSParser mdp(string(buf, len));
       if(!g_quiet) {
-        cout<<"Reply to question for qname='"<<mdp.d_qname.toString()<<"', qtype="<<DNSRecordContent::NumberToType(mdp.d_qtype)<<endl;
+        cout<<"Reply to question for qname='"<<mdp.d_qname<<"', qtype="<<DNSRecordContent::NumberToType(mdp.d_qtype)<<endl;
         cout<<"Rcode: "<<mdp.d_header.rcode<<", RD: "<<mdp.d_header.rd<<", QR: "<<mdp.d_header.qr<<", answers: "<<mdp.d_answers.size();
         cout<<", TC: "<<mdp.d_header.tc<<", AA: "<<mdp.d_header.aa<<", opcode: "<<mdp.d_header.opcode<<endl;
       }

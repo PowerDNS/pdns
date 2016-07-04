@@ -117,7 +117,7 @@ void NotificationQueue::dump()
 {
   cerr<<"Waiting for notification responses: "<<endl;
   for(NotificationRequest& nr :  d_nqueue) {
-    cerr<<nr.domain.toString()<<", "<<nr.ip<<endl;
+    cerr<<nr.domain<<", "<<nr.ip<<endl;
   }
 }
 
@@ -207,7 +207,7 @@ time_t CommunicatorClass::doNotifications()
         drillHole(domain, ip);
       }
       catch(ResolverException &re) {
-        L<<Logger::Error<<"Error trying to resolve '"+ip+"' for notifying '"+domain.toString()+"' to server: "+re.reason<<endl;
+        L<<Logger::Error<<"Error trying to resolve '"<<ip<<"' for notifying '"<<domain<<"' to server: "<<re.reason<<endl;
       }
     }
     else

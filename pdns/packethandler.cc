@@ -604,7 +604,7 @@ bool getNSEC3Hashes(bool narrow, DNSBackend* db, int id, const std::string& hash
 
 void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const DNSName& target, const DNSName& wildcard, const DNSName& auth, const NSEC3PARAMRecordContent& ns3rc, bool narrow, int mode)
 {
-  DLOG(L<<"addNSEC3() mode="<<mode<<" auth="<<auth<<" target="<<target<<" wildcard="<<wildcard.toLogString()<<endl);
+  DLOG(L<<"addNSEC3() mode="<<mode<<" auth="<<auth<<" target="<<target<<" wildcard="<<wildcard<<endl);
 
   SOAData sd;
   if(!B.getSOAUncached(auth, sd)) {
@@ -690,7 +690,7 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const DNSName& target, 
 
 void PacketHandler::addNSEC(DNSPacket *p, DNSPacket *r, const DNSName& target, const DNSName& wildcard, const DNSName& auth, int mode)
 {
-  DLOG(L<<"addNSEC() mode="<<mode<<" auth="<<auth<<" target="<<target<<" wildcard="<<wildcard.toLogString()<<endl);
+  DLOG(L<<"addNSEC() mode="<<mode<<" auth="<<auth<<" target="<<target<<" wildcard="<<wildcard<<endl);
 
   SOAData sd;
   if(!B.getSOAUncached(auth, sd)) {
@@ -1387,7 +1387,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     }
 
 
-    DLOG(L<<"After first ANY query for '"<<target<<"', id="<<sd.domain_id<<": weDone="<<weDone<<", weHaveUnauth="<<weHaveUnauth<<", weRedirected="<<weRedirected<<", haveAlias='"<<(haveAlias.empty() ? "(none)" : haveAlias.toString())<<"'"<<endl);
+    DLOG(L<<"After first ANY query for '"<<target<<"', id="<<sd.domain_id<<": weDone="<<weDone<<", weHaveUnauth="<<weHaveUnauth<<", weRedirected="<<weRedirected<<", haveAlias='"<<(haveAlias.empty() ? "(none)" : haveAlias)<<"'"<<endl);
     if(p->qtype.getCode() == QType::DS && weHaveUnauth &&  !weDone && !weRedirected && d_dk.isSecuredZone(sd.qname)) {
       DLOG(L<<"Q for DS of a name for which we do have NS, but for which we don't have on a zone with DNSSEC need to provide an AUTH answer that proves we don't"<<endl);
       makeNOError(p, r, target, DNSName(), sd, 1);
@@ -1518,7 +1518,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     throw; // we WANT to die at this point
   }
   catch(std::exception &e) {
-    L<<Logger::Error<<"Exception building answer packet for "<<p->qdomain.toLogString()<<"/"<<p->qtype.getName()<<" ("<<e.what()<<") sending out servfail"<<endl;
+    L<<Logger::Error<<"Exception building answer packet for "<<p->qdomain<<"/"<<p->qtype.getName()<<" ("<<e.what()<<") sending out servfail"<<endl;
     delete r;
     r=p->replyPacket(); // generate an empty reply packet
     r->setRcode(RCode::ServFail);

@@ -211,7 +211,7 @@ try
     ofstream failed("failed");
     failed<<"name\ttype\tnumber\n";
     for(diff_t::const_iterator i = diff.begin(); i != diff.end() ; ++i) {
-      failed << i->first.toString() << "\t" << DNSRecordContent::NumberToType(i->second) << "\t"<< counts[make_pair(i->first, i->second)]<<"\n";
+      failed << i->first << "\t" << DNSRecordContent::NumberToType(i->second) << "\t"<< counts[make_pair(i->first, i->second)]<<"\n";
     }
 
     diff.clear();
@@ -223,7 +223,7 @@ try
     ofstream succeeded("succeeded");
     succeeded<<"name\ttype\tnumber\n";
     for(queries_t::const_iterator i = answers.begin(); i != answers.end() ; ++i) {
-      succeeded << i->first.toString() << "\t" <<DNSRecordContent::NumberToType(i->second) << "\t" << counts[make_pair(i->first, i->second)]<<"\n";
+      succeeded << i->first << "\t" <<DNSRecordContent::NumberToType(i->second) << "\t" << counts[make_pair(i->first, i->second)]<<"\n";
     }
   }
 }

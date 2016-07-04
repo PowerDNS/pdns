@@ -231,7 +231,7 @@ Logger& Logger::operator<<(ostream & (&)(ostream &))
 
 Logger& Logger::operator<<(const DNSName &d)
 {
-  *this<<d.toString();
+  *this<<d.toLogString();
 
   return *this;
 }
