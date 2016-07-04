@@ -30,6 +30,8 @@
 #include "responsestats.hh"
 #include "rec-lua-conf.hh"
 
+#include "validate-recursor.hh"
+
 #include "secpoll-recursor.hh"
 #include "pubsuffix.hh"
 #include "namespaces.hh"
@@ -340,6 +342,33 @@ string doSetCarbonServer(T begin, T end)
     ret+="set carbon-ourname to '"+*begin+"'\n";
   }
   return ret;
+}
+
+template<typename T>
+string doSetDnssecLogBogus(T begin, T end)
+{
+  if (begin == end)
+    return "No DNSSEC Bogus logging setting specified\n";
+
+  if (pdns_iequals(*begin, "on") || pdns_iequals(*begin, "yes")) {
+    if (!g_dnssecLogBogus) {
+      L<<Logger::Warning<<"Enabeling DNSSEC Bogus logging, requested via control channel"<<endl;
+      g_dnssecLogBogus = true;
+      return "DNSSEC Bogus logging enabled\n";
+    }
+    return "DNSSEC Bogus logging was already enabled\n";
+  }
+
+  if (pdns_iequals(*begin, "off") || pdns_iequals(*begin, "no")) {
+    if (g_dnssecLogBogus) {
+      L<<Logger::Warning<<"Disabeling DNSSEC Bogus logging, requested via control channel"<<endl;
+      g_dnssecLogBogus = false;
+      return "DNSSEC Bogus logging disabled\n";
+    }
+    return "DNSSEC Bogus logging was already disabled\n";
+  }
+
+  return "Unknown DNSSEC Bogus setting: '" + *begin +"'\n";
 }
 
 template<typename T>
@@ -1106,6 +1135,7 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 "reload-zones                     reload all auth and forward zones\n"
 "set-minimum-ttl value            set minimum-ttl-override\n"
 "set-carbon-server                set a carbon server for telemetry\n"
+"set-dnssec-log-bogus SETTING     enable (SETTING=yes) or disable (SETTING=no) logging of DNSSEC validation failures\n"
 "trace-regex [regex]              emit resolution trace for matching queries (empty regex to clear trace)\n"
 "top-largeanswer-remotes          show top remotes receiving large answers\n"
 "top-queries                      show top queries\n"
@@ -1258,6 +1288,9 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
   if(cmd=="get-tas") {
     return getTAs();
   }
-  
+
+  if (cmd=="set-dnssec-log-bogus")
+    return doSetDnssecLogBogus(begin, end);
+
   return "Unknown command '"+cmd+"', try 'help'\n";
 }

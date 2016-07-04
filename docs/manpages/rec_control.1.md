@@ -116,6 +116,10 @@ reload-zones
 :    Reload authoritative and forward zones. Retains current configuration
      in case of errors.
 
+set-dnssec-log-bogus *SETTING*
+:    Set dnssec-log-bogus setting to *SETTING*. Set to 'on' or 'yes' to log DNSSEC
+     validation failures and to 'no' or 'off' to disable logging these failures.
+
 set-minimum-ttl *NUM*
 :    Set minimum-ttl-override to *NUM*.
 

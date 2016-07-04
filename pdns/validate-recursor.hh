@@ -14,3 +14,4 @@ vState validateRecords(const vector<DNSRecord>& recs);
 
 enum class DNSSECMode { Off, Process, ProcessNoValidate, ValidateForLog, ValidateAll };
 extern DNSSECMode g_dnssecmode;
+extern bool g_dnssecLogBogus;
