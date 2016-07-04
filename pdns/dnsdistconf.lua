@@ -166,10 +166,10 @@ end
 -- addAction(AndRule({QTypeRule("ANY"), TCPRule(true)}), TCAction())
 
 -- return 'not implemented' for qtype != A over UDP
--- addAction(AndRule({NotRule(QTypeRule("A")), TCPRule(false)}), RCodeAction(dnsdist.NOTIMPL))
+-- addAction(AndRule({NotRule(QTypeRule("A")), TCPRule(false)}), RCodeAction(dnsdist.NOTIMP))
 
 -- return 'not implemented' for qtype == A OR received over UDP
--- addAction(OrRule({QTypeRule("A"), TCPRule(false)}), RCodeAction(dnsdist.NOTIMPL))
+-- addAction(OrRule({QTypeRule("A"), TCPRule(false)}), RCodeAction(dnsdist.NOTIMP))
 
 -- log all queries to a 'dndist.log' file, in text-mode (not binary)
 -- addAction(AllRule(), LogAction("dnsdist.log", false))
