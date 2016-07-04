@@ -91,18 +91,19 @@ int makeQuerySocket(const ComboAddress& local, bool udpOrTCP)
 }
 
 Resolver::Resolver()
-try
 {
-  locals["default4"] = makeQuerySocket(ComboAddress(::arg()["query-local-address"]), true);
-  if(!::arg()["query-local-address6"].empty())
-    locals["default6"] = makeQuerySocket(ComboAddress(::arg()["query-local-address6"]), true);
-  else 
-    locals["default6"] = -1;
-}
-catch(...) {
-  if(locals["default4"]>=0)
-    close(locals["default4"]);
-  throw;
+  locals["default4"] = -1;
+  locals["default6"] = -1;
+  try {
+    locals["default4"] = makeQuerySocket(ComboAddress(::arg()["query-local-address"]), true);
+    if(!::arg()["query-local-address6"].empty())
+      locals["default6"] = makeQuerySocket(ComboAddress(::arg()["query-local-address6"]), true);
+  }
+  catch(...) {
+    if(locals["default4"]>=0)
+      close(locals["default4"]);
+    throw;
+  }
 }
 
 Resolver::~Resolver()
