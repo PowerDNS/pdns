@@ -160,7 +160,7 @@ void declareArguments()
   ::arg().set("slave-renotify", "If we should send out notifications for slaved updates")="no";
 
   ::arg().set("default-ttl","Seconds a result is valid if not set otherwise")="3600";
-  ::arg().set("max-tcp-connections","Maximum number of TCP connections")="10";
+  ::arg().set("max-tcp-connections","Maximum number of TCP connections")="20";
   ::arg().setSwitch("no-shuffle","Set this to prevent random shuffling of answers - for regression testing")="off";
 
   ::arg().set("setuid","If set, change user id to this uid for more security")="";

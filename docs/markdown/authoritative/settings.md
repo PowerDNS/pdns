@@ -513,7 +513,7 @@ Maximum number of signatures cache entries
 
 ## `max-tcp-connections`
 * Integer
-* Default: 10
+* Default: 20
 
 Allow this many incoming TCP DNS connections simultaneously.
 
