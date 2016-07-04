@@ -1299,6 +1299,7 @@ void TCPNameserver::thread()
             if(pthread_create(&tid, 0, &doConnection, reinterpret_cast<void*>(fd))) {
               L<<Logger::Error<<"Error creating thread: "<<stringerror()<<endl;
               d_connectionroom_sem->post();
+              close(fd);
             }
           }
         }
