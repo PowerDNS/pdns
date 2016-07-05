@@ -90,7 +90,11 @@ int DNSSECKeeper::addKey(const DNSName& name, bool setSEPBit, int algorithm, int
   }
   DNSSECPrivateKey dspk;
   shared_ptr<DNSCryptoKeyEngine> dpk(DNSCryptoKeyEngine::make(algorithm));
-  dpk->create(bits);
+  try{
+    dpk->create(bits);
+  } catch (std::runtime_error error){
+    throw runtime_error("Wrong bit size!");
+  }
   dspk.setKey(dpk);
   dspk.d_algorithm = algorithm;
   dspk.d_flags = setSEPBit ? 257 : 256;
