@@ -289,6 +289,7 @@ private:
   SSqlStatement* d_getDomainKeysQuery_stmt;
   SSqlStatement* d_deleteDomainKeyQuery_stmt;
   SSqlStatement* d_insertDomainKeyQuery_stmt;
+  SSqlStatement* d_GetLastInsertedKeyIdQuery_stmt;
   SSqlStatement* d_activateDomainKeyQuery_stmt;
   SSqlStatement* d_deactivateDomainKeyQuery_stmt;
   SSqlStatement* d_getTSIGKeyQuery_stmt;

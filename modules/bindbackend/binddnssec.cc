@@ -114,6 +114,7 @@ void Bind2Backend::setupStatements()
   d_getDomainKeysQuery_stmt = d_dnssecdb->prepare("select id,flags, active, content from cryptokeys where domain=:domain",1);
   d_deleteDomainKeyQuery_stmt = d_dnssecdb->prepare("delete from cryptokeys where domain=:domain and id=:key_id",2);
   d_insertDomainKeyQuery_stmt = d_dnssecdb->prepare("insert into cryptokeys (domain, flags, active, content) values (:domain, :flags, :active, :content)", 4);
+  d_GetLastInsertedKeyIdQuery_stmt = d_dnssecdb->prepare("select last_insert_rowid()", 0);
   d_activateDomainKeyQuery_stmt = d_dnssecdb->prepare("update cryptokeys set active=1 where domain=:domain and id=:key_id", 2);
   d_deactivateDomainKeyQuery_stmt = d_dnssecdb->prepare("update cryptokeys set active=0 where domain=:domain and id=:key_id", 2);
   d_getTSIGKeyQuery_stmt = d_dnssecdb->prepare("select algorithm, secret from tsigkeys where name=:key_name", 1);
@@ -136,6 +137,7 @@ void Bind2Backend::freeStatements()
   release(&d_getDomainKeysQuery_stmt);
   release(&d_deleteDomainKeyQuery_stmt);
   release(&d_insertDomainKeyQuery_stmt);
+  release(&d_GetLastInsertedKeyIdQuery_stmt);
   release(&d_activateDomainKeyQuery_stmt);
   release(&d_deactivateDomainKeyQuery_stmt);
   release(&d_getTSIGKeyQuery_stmt);
@@ -323,7 +325,22 @@ int Bind2Backend::addDomainKey(const DNSName& name, const KeyData& key)
   catch(SSqlException& se) {
     throw PDNSException("Error accessing DNSSEC database in BIND backend, addDomainKey(): "+se.txtReason());
   }
-  return true;
+
+  try {
+    d_GetLastInsertedKeyIdQuery_stmt->execute();
+    if (!d_GetLastInsertedKeyIdQuery_stmt->hasNextRow())
+      throw PDNSException("GSQLBackend unable to get id");
+    SSqlStatement::row_t row;
+    d_GetLastInsertedKeyIdQuery_stmt->nextRow(row);
+    int id = std::stoi(row[0]);
+    d_GetLastInsertedKeyIdQuery_stmt->reset();
+    return id;
+  }
+  catch (SSqlException &e) {
+    throw PDNSException("DNSSEC database in BIND backend unable to get id: "+e.txtReason());
+  }
+
+  return -1;
 }
 
 bool Bind2Backend::activateDomainKey(const DNSName& name, unsigned int id)
