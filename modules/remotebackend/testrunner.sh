@@ -186,9 +186,8 @@ function stop_unix() {
   fi
 
   if ! kill -0 ${socat_pid} 2>/dev/null; then
-    # should never happen - did the test crashed the service?
-    echo >&2 "ERROR: Unable to stop \"UNIX socket\" test service: service (${socat_pid}) not running"
-    exit 69
+    # might very well happen, since socat will stop after getting EOF
+    return 0
   fi
 
   kill -TERM ${socat_pid}
