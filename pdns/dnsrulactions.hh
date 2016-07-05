@@ -90,16 +90,27 @@ protected:
 class NetmaskGroupRule : public NMGRule
 {
 public:
-  NetmaskGroupRule(const NetmaskGroup& nmg) : NMGRule(nmg) {}
+  NetmaskGroupRule(const NetmaskGroup& nmg, bool src) : NMGRule(nmg)
+  {
+      d_src = src;
+  }
   bool matches(const DNSQuestion* dq) const override
   {
+    if(!d_src) {
+        return d_nmg.match(*dq->local);
+    }
     return d_nmg.match(*dq->remote);
   }
 
   string toString() const override
   {
+    if(!d_src) {
+        return "Dst: "+d_nmg.toString();
+    }
     return "Src: "+d_nmg.toString();
   }
+private:
+  bool d_src;
 };
 
 class AllRule : public DNSRule
