@@ -55,6 +55,11 @@ Reload access control lists.
 (Re-)Load Lua script. Note that loading a script fully replaces the one currently
 loaded.
 
+### `reload-lua-config [filename]`
+(Re-)Load the Lua configuration file.
+Note that *FILENAME* will be fully executed, any settings changed at runtime that are not modified in this file, will still be active.
+Also note that the process will block (not answering queries) when reloading, this might take a long time when an RPZ has to be transferred.
+
 ### `reload-zones`
 Reload data about all authoritative and forward zones. The configuration file is also scanned to see if the **auth-domain**, **forward-domain** and **export-etc-hosts** statements have changed, and if so, these changes are incorporated.
 
