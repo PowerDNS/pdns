@@ -1064,9 +1064,11 @@ dnspcap2protobuf_SOURCES = \
 	dnspcap2protobuf.cc \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
+	gettime.cc gettime.hh \
 	logger.cc \
 	misc.cc \
 	nsecrecords.cc \
+	protobuf.cc protobuf.hh \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
 	sillyrecords.cc \

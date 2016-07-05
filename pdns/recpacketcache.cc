@@ -95,7 +95,6 @@ uint32_t RecursorPacketCache::canHashPacket(const std::string& origPacket)
   return ret;
 }
 
-#ifdef HAVE_PROTOBUF
 bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string& queryPacket, time_t now,
                                             std::string* responsePacket, uint32_t* age)
 {
@@ -103,11 +102,7 @@ bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string&
 }
 
 bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string& queryPacket, time_t now,
-                                            std::string* responsePacket, uint32_t* age, PBDNSMessage* protobufMessage)
-#else
-bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string& queryPacket, time_t now, 
-  std::string* responsePacket, uint32_t* age)
-#endif
+                                            std::string* responsePacket, uint32_t* age, RecProtoBufMessage* protobufMessage)
 {
   uint32_t h = canHashPacket(queryPacket);
   auto& idx = d_packetCache.get<HashTag>();
@@ -158,16 +153,12 @@ bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string&
 }
 
 
-#ifdef HAVE_PROTOBUF
 void RecursorPacketCache::insertResponsePacket(unsigned int tag, const DNSName& qname, uint16_t qtype, const std::string& queryPacket, const std::string& responsePacket, time_t now, uint32_t ttl)
 {
   insertResponsePacket(tag, qname, qtype, queryPacket, responsePacket, now, ttl, nullptr);
 }
 
-void RecursorPacketCache::insertResponsePacket(unsigned int tag, const DNSName& qname, uint16_t qtype, const std::string& queryPacket, const std::string& responsePacket, time_t now, uint32_t ttl, const PBDNSMessage* protobufMessage)
-#else
-void RecursorPacketCache::insertResponsePacket(unsigned int tag, const DNSName& qname, uint16_t qtype, const std::string& queryPacket, const std::string& responsePacket, time_t now, uint32_t ttl)
-#endif
+void RecursorPacketCache::insertResponsePacket(unsigned int tag, const DNSName& qname, uint16_t qtype, const std::string& queryPacket, const std::string& responsePacket, time_t now, uint32_t ttl, const RecProtoBufMessage* protobufMessage)
 {
   auto qhash = canHashPacket(queryPacket);
   auto& idx = d_packetCache.get<HashTag>();

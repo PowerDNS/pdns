@@ -100,12 +100,14 @@ pdns_recursor_SOURCES = \
 	opensslsigners.cc opensslsigners.hh \
 	pdns_recursor.cc \
 	pdnsexception.hh \
+	protobuf.cc protobuf.hh \
 	pubsuffix.hh pubsuffix.cc \
 	qtype.hh qtype.cc \
 	randomhelper.cc \
 	rcpgenerator.cc rcpgenerator.hh \
 	rec-carbon.cc \
 	rec-lua-conf.hh rec-lua-conf.cc \
+	rec-protobuf.cc rec-protobuf.hh \
 	rec_channel.cc rec_channel.hh \
 	rec_channel_rec.cc \
 	recpacketcache.cc recpacketcache.hh \

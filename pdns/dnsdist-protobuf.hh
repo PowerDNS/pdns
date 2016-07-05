@@ -1,9 +1,9 @@
-
 #pragma once
-#include "config.h"
 
-#ifdef HAVE_PROTOBUF
-void protobufMessageFromQuestion(const DNSQuestion& dq, std::string& data);
-void protobufMessageFromResponse(const DNSQuestion& dr, std::string& data);
+#include "protobuf.hh"
 
-#endif /* HAVE_PROTOBUF */
+class DNSDistProtoBufMessage: public DNSProtoBufMessage
+{
+public:
+  DNSDistProtoBufMessage(DNSProtoBufMessageType type, const DNSQuestion& dq);
+};

@@ -94,6 +94,7 @@ dnsdist_SOURCES = \
 	htmlfiles.h \
 	namespaces.hh \
 	pdnsexception.hh \
+	protobuf.cc protobuf.hh \
 	qtype.cc qtype.hh \
 	remote_logger.cc remote_logger.hh \
 	sholder.hh \
