@@ -370,7 +370,7 @@ Adds key into local storage. See [`getDomainKeys`](#getdomainkeys) for more info
 
 * Mandatory: No
 * Parameters: name, key=`<flags,active,content>`
-* Reply: true for success, false for failure
+* Reply: id (>= 0) for success, -1 for failure
 
 #### Example JSON/RPC
 Query:

@@ -52,7 +52,7 @@ activate-zone-key *ZONE* *KEY-ID*
 add-zone-key *ZONE* {**KSK**,**ZSK**} [**active**,**inactive**] *KEYBITS* *ALGORITHM*
 :   Create a new key for zone *ZONE*, and make it a KSK or a ZSK, with the
     specified algorithm. The key is inactive by default, set it to **active** to
-    immediately use it to sign *ZONE*.
+    immediately use it to sign *ZONE*. Prints the id of the added key.
 
 create-bind-db *FILE*
 :    Create DNSSEC database (sqlite3) at *FILE* for the BIND backend.
@@ -80,7 +80,7 @@ generate-zone-key {**KSK**,**ZSK**} [*ALGORITHM*] [*KEYBITS*]
 import-zone-key *ZONE* *FILE* {**KSK**,**ZSK**}
 :    Import from *FILE* a full (private) key for zone called *ZONE*. The format
      used is compatible with BIND and NSD/LDNS. **KSK** or **ZSK** specifies the
-     flags this key should have on import.
+     flags this key should have on import. Prints the id of the added key.
 
 remove-zone-key *ZONE* *KEY-ID*
 :    Remove a key with id *KEY-ID* from a zone called *ZONE*.
