@@ -104,6 +104,7 @@ PipeBackend::PipeBackend(const string &suffix)
    }
    catch(const ArgException &A) {
       L<<Logger::Error<<kBackendId<<" Unable to launch, fatal argument error: "<<A.reason<<endl;
+      throw;
    }
    catch(...) {
       throw;
