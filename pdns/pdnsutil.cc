@@ -1753,7 +1753,7 @@ bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
 
     int algo = DNSSECKeeper::shorthand2algorithm(k_algo);
 
-    if(!dk.addKey(zone, true, algo, k_size, true)) {
+    if(dk.addKey(zone, true, algo, k_size, true) < 0) {
       cerr<<"No backend was able to secure '"<<zone<<"', most likely because no DNSSEC"<<endl;
       cerr<<"capable backends are loaded, or because the backends have DNSSEC disabled."<<endl;
       cerr<<"For the Generic SQL backends, set the 'gsqlite3-dnssec', 'gmysql-dnssec' or"<<endl;
@@ -1768,7 +1768,7 @@ bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
 
     int algo = DNSSECKeeper::shorthand2algorithm(z_algo);
 
-    if(!dk.addKey(zone, false, algo, z_size, true)) {
+    if(!dk.addKey(zone, false, algo, z_size, true) < 0) {
       cerr<<"No backend was able to secure '"<<zone<<"', most likely because no DNSSEC"<<endl;
       cerr<<"capable backends are loaded, or because the backends have DNSSEC disabled."<<endl;
       cerr<<"For the Generic SQL backends, set the 'gsqlite3-dnssec', 'gmysql-dnssec' or"<<endl;
@@ -2254,7 +2254,8 @@ loadMainConfig(g_vm["config-dir"].as<string>());
         exit(EXIT_FAILURE);;
       }
     }
-    if(!dk.addKey(zone, keyOrZone, algorithm, bits, active)) {
+    int id;
+    if((id = dk.addKey(zone, keyOrZone, algorithm, bits, active)) < 0) {
       cerr<<"Adding key failed, perhaps DNSSEC not enabled in configuration?"<<endl;
       exit(1);
     }
@@ -2262,6 +2263,7 @@ loadMainConfig(g_vm["config-dir"].as<string>());
       cerr<<"Added a " << (keyOrZone ? "KSK" : "ZSK")<<" with algorithm = "<<algorithm<<", active="<<active<<endl;
       if(bits)
         cerr<<"Requested specific key size of "<<bits<<" bits"<<endl;
+      cout<<std::to_string(id)<<endl;
     }
   }
   else if(cmds[0] == "remove-zone-key") {
@@ -2637,11 +2639,13 @@ loadMainConfig(g_vm["config-dir"].as<string>());
     }
     else
       dpk.d_flags = 257; // ksk
-      
-    if(!dk.addKey(DNSName(zone), dpk)) {
+
+    int id;
+    if((id = dk.addKey(DNSName(zone), dpk)) < 0) {
       cerr<<"Adding key failed, perhaps DNSSEC not enabled in configuration?"<<endl;
       exit(1);
     }
+    cout<<std::to_string(id)<<endl;
     
   }
   else if(cmds[0]=="import-zone-key") {
@@ -2677,10 +2681,12 @@ loadMainConfig(g_vm["config-dir"].as<string>());
         exit(1);
       }          
     }
-    if(!dk.addKey(DNSName(zone), dpk, active)) {
+    int id;
+    if((id = dk.addKey(DNSName(zone), dpk, active)) < 0) {
       cerr<<"Adding key failed, perhaps DNSSEC not enabled in configuration?"<<endl;
       exit(1);
     }
+    cout<<std::to_string(id)<<endl;
   }
   else if(cmds[0]=="export-zone-dnskey") {
     if(cmds.size() < 3) {

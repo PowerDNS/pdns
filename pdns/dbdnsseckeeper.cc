@@ -73,7 +73,7 @@ bool DNSSECKeeper::isPresigned(const DNSName& name)
   return meta=="1";
 }
 
-bool DNSSECKeeper::addKey(const DNSName& name, bool setSEPBit, int algorithm, int bits, bool active)
+int DNSSECKeeper::addKey(const DNSName& name, bool setSEPBit, int algorithm, int bits, bool active)
 {
   if(!bits) {
     if(algorithm <= 10)
@@ -119,7 +119,7 @@ void DNSSECKeeper::clearCaches(const DNSName& name)
 }
 
 
-bool DNSSECKeeper::addKey(const DNSName& name, const DNSSECPrivateKey& dpk, bool active)
+int DNSSECKeeper::addKey(const DNSName& name, const DNSSECPrivateKey& dpk, bool active)
 {
   clearCaches(name);
   DNSBackend::KeyData kd;
@@ -127,7 +127,7 @@ bool DNSSECKeeper::addKey(const DNSName& name, const DNSSECPrivateKey& dpk, bool
   kd.active = active;
   kd.content = dpk.getKey()->convertToISC();
  // now store it
-  return d_keymetadb->addDomainKey(name, kd) >= 0; // >= 0 == s
+  return d_keymetadb->addDomainKey(name, kd);
 }
 
 

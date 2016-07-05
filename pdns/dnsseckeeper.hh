@@ -161,8 +161,8 @@ public:
   keyset_t getEntryPoints(const DNSName& zname);
   keyset_t getKeys(const DNSName& zone, bool useCache = true);
   DNSSECPrivateKey getKeyById(const DNSName& zone, unsigned int id);
-  bool addKey(const DNSName& zname, bool setSEPBit, int algorithm, int bits=0, bool active=true);
-  bool addKey(const DNSName& zname, const DNSSECPrivateKey& dpk, bool active=true);
+  int addKey(const DNSName& zname, bool setSEPBit, int algorithm, int bits=0, bool active=true);
+  int addKey(const DNSName& zname, const DNSSECPrivateKey& dpk, bool active=true);
   bool removeKey(const DNSName& zname, unsigned int id);
   bool activateKey(const DNSName& zname, unsigned int id);
   bool deactivateKey(const DNSName& zname, unsigned int id);
