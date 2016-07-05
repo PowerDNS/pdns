@@ -88,6 +88,7 @@ public:
       d_RemoveEmptyNonTerminalsFromZoneQuery_stmt = d_db->prepare(d_RemoveEmptyNonTerminalsFromZoneQuery, 1);
       d_DeleteEmptyNonTerminalQuery_stmt = d_db->prepare(d_DeleteEmptyNonTerminalQuery, 2);
       d_AddDomainKeyQuery_stmt = d_db->prepare(d_AddDomainKeyQuery, 4);
+      d_GetLastInsertedKeyIdQuery_stmt = d_db->prepare(d_GetLastInsertedKeyIdQuery, 0);
       d_ListDomainKeysQuery_stmt = d_db->prepare(d_ListDomainKeysQuery, 1);
       d_GetAllDomainMetadataQuery_stmt = d_db->prepare(d_GetAllDomainMetadataQuery, 1);
       d_GetDomainMetadataQuery_stmt = d_db->prepare(d_GetDomainMetadataQuery, 2);
@@ -154,6 +155,7 @@ public:
     release(&d_RemoveEmptyNonTerminalsFromZoneQuery_stmt);
     release(&d_DeleteEmptyNonTerminalQuery_stmt);
     release(&d_AddDomainKeyQuery_stmt);
+    release(&d_GetLastInsertedKeyIdQuery_stmt);
     release(&d_ListDomainKeysQuery_stmt);
     release(&d_GetAllDomainMetadataQuery_stmt);
     release(&d_GetDomainMetadataQuery_stmt);
@@ -296,6 +298,7 @@ private:
   string d_DeleteEmptyNonTerminalQuery;
 
   string d_AddDomainKeyQuery;
+  string d_GetLastInsertedKeyIdQuery;
   string d_ListDomainKeysQuery;
   string d_GetAllDomainMetadataQuery;
   string d_GetDomainMetadataQuery;
@@ -361,6 +364,7 @@ private:
   SSqlStatement* d_RemoveEmptyNonTerminalsFromZoneQuery_stmt;
   SSqlStatement* d_DeleteEmptyNonTerminalQuery_stmt;
   SSqlStatement* d_AddDomainKeyQuery_stmt;
+  SSqlStatement* d_GetLastInsertedKeyIdQuery_stmt;
   SSqlStatement* d_ListDomainKeysQuery_stmt;
   SSqlStatement* d_GetAllDomainMetadataQuery_stmt;
   SSqlStatement* d_GetDomainMetadataQuery_stmt;
