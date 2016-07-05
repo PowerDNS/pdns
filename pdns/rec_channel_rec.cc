@@ -1103,6 +1103,7 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 "quit-nicely                      stop the recursor daemon nicely\n"
 "reload-acls                      reload ACLS\n"
 "reload-lua-script [filename]     (re)load Lua script\n"
+"reload-lua-config [filename]     (re)load Lua configuration file\n"
 "reload-zones                     reload all auth and forward zones\n"
 "set-minimum-ttl value            set minimum-ttl-override\n"
 "set-carbon-server                set a carbon server for telemetry\n"
@@ -1153,6 +1154,23 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 
   if(cmd=="reload-lua-script") 
     return doQueueReloadLuaScript(begin, end);
+
+  if(cmd=="reload-lua-config") {
+    if(begin != end)
+      ::arg().set("lua-config-file") = *begin;
+
+    try {
+      loadRecursorLuaConfig(::arg()["lua-config-file"]);
+      L<<Logger::Warning<<"Reloaded Lua configuration file '"<<::arg()["lua-config-file"]<<"', requested via control channel"<<endl;
+      return "Reloaded Lua configuration file '"+::arg()["lua-config-file"]+"'\n";
+    }
+    catch(std::exception& e) {
+      return "Unable to load Lua script from '"+::arg()["lua-config-file"]+"': "+e.what()+"\n";
+    }
+    catch(const PDNSException& e) {
+      return "Unable to load Lua script from '"+::arg()["lua-config-file"]+"': "+e.reason+"\n";
+    }
+  }
 
   if(cmd=="set-carbon-server") 
     return doSetCarbonServer(begin, end);
