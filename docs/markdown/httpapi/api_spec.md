@@ -674,7 +674,7 @@ CryptoKeys
 cryptokey\_resource
 -------------------
 
-    {[
+    {
       "type": "CryptoKey",
       "id": <int>,
       "active": <bool>,
@@ -684,7 +684,7 @@ cryptokey\_resource
       "ds": [ <ds>,
               <ds>,
               .... ]
-    ]}
+    }
 
 
 ##### Parameters:
@@ -711,20 +711,42 @@ Returns all public data about cryptokeys, but not `privatekey`.
 
 #### POST
 
-Creates a new, single cryptokey.
-
-**TODO**: Not yet implemented.
+This method adds a key to a zone by generate it or content parameter.
 
 ##### Parameters:
 
-`content`: if `null`, the server generates a new key. In this case, the
+* `content` : "key The format used is compatible with BIND and NSD/LDNS" `<string>`
+
+If `content` == `null`, the server generates a new key. In this case, the
 following additional fields MAY be supplied:
 
-* `bits`: `<int>`
+* `bits`: number of bits `<int>`
 * `algo`: `<algo>`
+* `keytype` : "ksk|zsk" `<string>`
+* `active`: "true|false" `<value>`
 
 Where `<algo>` is one of the supported key algorithms in lowercase OR the
 numeric id, see [`the list`](../authoritative/dnssec.md#supported-algorithms).
+
+##### Response:
+* `422 Unprocessable Entity`:
+    * keytype isn't ksk|zsk:
+        * `json` {"error" : "Invalid keytype 'keytype'"}
+    * The "algo" isn't supported:
+        * `json` {"error" : "Unknown algorithm: 'algo'"}
+    * Algo <= 10 and no bits were passed:
+        * `json` {"error" : "Creating an algorithm algo key requires the size (in bits) to be passed"}
+    * The wrong keysize was passed:
+        * `json` {"error" : "Wrong bit size!"}
+    * If the server cant guess the keysize:
+        * `json` {"error" : "Can't guess key size for algorithm"}
+    * The key-creation failed:
+        * `json` {"error" : "Adding key failed, perhaps DNSSEC not enabled in configuration?"}
+    * The key in content has the wrong format:
+        * `json` {"error" : "Wrong key format!"}
+* `201 OK`:
+    * Everything was fine:
+        * `json` all public data about the new cryptokey. Look at cryptokey\_resource.
 
 URL: /api/v1/servers/:server\_id/zones/:zone\_name/cryptokeys/:cryptokey\_id
 ----------------------------------------------------------------------------
@@ -737,11 +759,37 @@ Returns all public data about cryptokeys, including `privatekey`.
 
 #### PUT
 
-**TODO**: Not yet implemented.
+This method handles PUT (execute) de/activates a key from `zone_name` specified by `cryptokey_id`.
+
+##### Parameters:
+
+* `:zone_name`: name of the zone for which the key with `cryptokey_id` should be de/activated
+* `cryptokey_id`: id of the key which wanted to be de/activated
+* `json`: {"active": true|false}
+
+##### Responses:
+* `200 OK`: The key with `cryptokey_id` is de/activated.
+* `400 Bad Request`: The `zone_name` is not found.
+* `422 Unprocessable Entity`:
+    &nbsp;&nbsp;The backend returns false on de/activation. An error occoured.
+    &nbsp;&nbsp;json {"error": "Could not de/activate Key: :cryptokey_id in Zone: :zone_name"}
 
 #### DELETE
 
-**TODO**: Not yet implemented.
+This Method deletes a key from a zone.
+
+##### Parameters:
+
+* `:zone_name`: name of the zone which is signed with a key with `cryptokey_id`
+* `cryptokey_id`: id of the key which wanted to be gone
+
+##### Responses:
+
+* `200 No Content`: The Key is gone.
+* `400 Bad Request`: The `zone_name` is not found.
+* `422 Unknown Status`:
+    &nbsp;&nbsp;The backend failed to remove the key.
+    &nbsp;&nbsp;json {"error": Could not DELETE :cryptokey_id"}
 
 Data searching
 ==============
