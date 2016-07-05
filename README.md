@@ -69,6 +69,8 @@ Note that you will need the development headers for PostgreSQL as well in this c
 
 See https://doc.powerdns.com/md/appendix/compiling-powerdns/ for more details.
 
+If you run into C++11-related symbol trouble, please try passing `CPPFLAGS=-D_GLIBCXX_USE_CXX11_ABI=0` (or 1) to `./configure` to make sure you are compatible with the installed dependencies.
+
 COMPILING THE RECURSOR
 ----------------------
 See the README in pdns/recursordist.
