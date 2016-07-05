@@ -912,7 +912,7 @@ void startDoResolve(void *p)
             pw.getHeader()->ad=0;
           }
           else if(state == Bogus) {
-            if(sr.doLog() || g_dnssecmode == DNSSECMode::ValidateForLog) {
+            if(g_dnssecLogBogus || sr.doLog() || g_dnssecmode == DNSSECMode::ValidateForLog) {
               L<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<" for "<<dc->d_remote.toStringWithPort()<<" validates as Bogus"<<endl;
             }
             
@@ -2527,6 +2527,8 @@ int serviceMain(int argc, char*argv[])
     exit(1);
   }
 
+  g_dnssecLogBogus = ::arg().mustDo("dnssec-log-bogus");
+
   if(::arg()["trace"]=="fail") {
     SyncRes::setDefaultLogMode(SyncRes::Store);
   }
@@ -2852,6 +2854,7 @@ int main(int argc, char **argv)
     ::arg().setSwitch("non-local-bind", "Enable binding to non-local addresses by using FREEBIND / BINDANY socket options")="no";
     ::arg().set("trace","if we should output heaps of logging. set to 'fail' to only log failing domains")="off";
     ::arg().set("dnssec", "DNSSEC mode: off/process-no-validate (default)/process/log-fail/validate")="process-no-validate";
+    ::arg().set("dnssec-log-bogus", "Log DNSSEC bogus validations")="no";
     ::arg().set("daemon","Operate as a daemon")="no";
     ::arg().setSwitch("write-pid","Write a PID file")="yes";
     ::arg().set("loglevel","Amount of logging. Higher is more. Do not set below 3")="4";

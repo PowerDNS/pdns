@@ -203,6 +203,14 @@ responses.
 #### `validate`
 Full blown DNSSEC validation. Send SERVFAIL to clients on bogus responses.
 
+## `dnssec-log-bogus`
+* Boolean
+* Default: no
+* Available since: 4.0.0
+
+Log every DNSSEC validation failure.
+**Note**: This is not logged per-query but every time records are validated as Bogus.
+
 ## `dont-query`
 * Netmasks, comma separated
 * Default: 127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 192.168.0.0/16,

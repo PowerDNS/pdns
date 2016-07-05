@@ -4,6 +4,7 @@
 #include "logger.hh"
 
 DNSSECMode g_dnssecmode{DNSSECMode::ProcessNoValidate};
+bool g_dnssecLogBogus;
 
 #define LOG(x) if(g_dnssecLOG) { L <<Logger::Warning << x; }
 
