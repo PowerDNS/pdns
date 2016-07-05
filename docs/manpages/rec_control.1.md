@@ -117,7 +117,8 @@ reload-lua-config [*FILENAME*]
 :    (Re)loads Lua configuration *FILENAME*. If *FILENAME* is empty, attempt to
      reload the currently loaded file. Note that *FILENAME* will be fully executed,
      any settings changed at runtime that are not modified in this file, will
-     still be active.
+     still be active. Reloading RPZ, especially by AXFR, can take some time; during
+     which the recursor will not answer questions.
 
 reload-zones
 :    Reload authoritative and forward zones. Retains current configuration
