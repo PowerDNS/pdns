@@ -248,7 +248,7 @@ char* my_generator(const char* text, int state)
       "PoolAction(", "printDNSCryptProviderFingerprint(",
       "RegexRule(", "RemoteLogAction(", "RemoteLogResponseAction(", "rmResponseRule(",
       "rmRule(", "rmServer(", "roundrobin",
-      "QTypeRule(",
+      "QNameLabelsCountRule(", "QNameWireLengthRule(", "QTypeRule(",
       "setACL(", "setDNSSECPool(", "setECSOverride(",
       "setECSSourcePrefixV4(", "setECSSourcePrefixV6(", "setKey(", "setLocal(",
       "setMaxTCPClientThreads(", "setMaxTCPQueuedConnections(", "setMaxUDPOutstanding(", "setRules(",

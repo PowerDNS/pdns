@@ -338,6 +338,8 @@ Rules have selectors and actions. Current selectors are:
  * Number of entries in a given section (RecordsCountRule)
  * Number of entries of a specific type in a given section (RecordsTypeCountRule)
  * Presence of trailing data (TrailingDataRule)
+ * Number of labels in the qname (QNameLabelsCountRule)
+ * Wire length of the qname (QNameWireLengthRule)
 
 Special rules are:
 
@@ -392,6 +394,8 @@ A DNS rule can be:
  * an OpcodeRule
  * an OrRule
  * a QClassRule
+ * a QNameLabelsCountRule
+ * a QNameWireLengthRule
  * a QTypeRule
  * a RegexRule
  * a RE2Rule
@@ -1220,6 +1224,8 @@ instantiate a server with additional parameters
     * `OrRule()`: matches if at least one of the sub-rules matches
     * `OpcodeRule()`: matches queries with the specified opcode
     * `QClassRule(qclass)`: matches queries with the specified qclass (numeric)
+    * `QNameLabelsCountRule(min, max)`: matches if the qname has less than `min` or more than `max` labels
+    * `QNameWireLengthRule(min, max)`: matches if the qname's length on the wire is less than `min` or more than `max` bytes
     * `QTypeRule(qtype)`: matches queries with the specified qtype
     * `RegexRule(regex)`: matches the query name against the supplied regex
     * `RecordsCountRule(section, minCount, maxCount)`: matches if there is at least `minCount` and at most `maxCount` records in the `section` section
@@ -1340,9 +1346,11 @@ instantiate a server with additional parameters
         * `toStringWithPort()`: alias for `tostringWithPort()`
     * DNSName related:
         * `newDNSName(name)`: make a DNSName based on this .-terminated name
+        * member `countLabels()`: return the number of labels
         * member `isPartOf(dnsname)`: is this dnsname part of that dnsname
         * member `tostring()`: return as a human friendly . terminated string
         * member `toString()`: alias for `tostring()`
+        * member `wirelength()`: return the length on the wire
     * DNSQuestion related:
         * member `dh`: DNSHeader
         * member `len`: the question length
