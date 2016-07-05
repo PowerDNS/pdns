@@ -79,15 +79,18 @@ private:
   mutable QPSLimiter d_qps;
 };
 
-
-
-class NetmaskGroupRule : public DNSRule
+class NMGRule : public DNSRule
 {
 public:
-  NetmaskGroupRule(const NetmaskGroup& nmg) : d_nmg(nmg)
-  {
+  NMGRule(const NetmaskGroup& nmg) : d_nmg(nmg) {}
+protected:
+  NetmaskGroup d_nmg;
+};
 
-  }
+class NetmaskGroupRule : public NMGRule
+{
+public:
+  NetmaskGroupRule(const NetmaskGroup& nmg) : NMGRule(nmg) {}
   bool matches(const DNSQuestion* dq) const override
   {
     return d_nmg.match(*dq->remote);
@@ -97,8 +100,6 @@ public:
   {
     return "Src: "+d_nmg.toString();
   }
-private:
-  NetmaskGroup d_nmg;
 };
 
 class AllRule : public DNSRule
