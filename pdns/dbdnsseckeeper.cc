@@ -448,7 +448,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const DNSName& zone, bool useCache)
 
     dpk.d_flags = kd.flags;
     dpk.d_algorithm = dkrc.d_algorithm;
-    if(dpk.d_algorithm == 5 && getNSEC3PARAM(zone)) // XXX Needs to go, see #3267
+    if(dpk.d_algorithm == 5 && getNSEC3PARAM(zone))
       dpk.d_algorithm+=2;
 
     KeyMetaData kmd;
