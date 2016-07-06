@@ -137,10 +137,24 @@ public:
   }
 #endif
   //! Connect the socket to a specified endpoint
-  void connect(const ComboAddress &ep)
+  void connect(const ComboAddress &ep, int timeout=0)
   {
-    if(::connect(d_socket,(struct sockaddr *)&ep, ep.getSocklen()) < 0 && errno != EINPROGRESS)
-      throw NetworkError("While connecting to "+ep.toStringWithPort()+": "+string(strerror(errno)));
+    if(::connect(d_socket,(struct sockaddr *)&ep, ep.getSocklen()) < 0) {
+      if(errno == EINPROGRESS) {
+        if (timeout > 0) {
+          /* if a timeout is provided, we wait until the connection has been established */
+          int res = waitForRWData(d_socket, false, timeout, 0);
+          if (res == 0) {
+            throw NetworkError("timeout while connecting to "+ep.toStringWithPort());
+          } else if (res < 0) {
+            throw NetworkError("while waiting to connect to "+ep.toStringWithPort()+": "+string(strerror(errno)));
+          }
+        }
+      }
+      else {
+        throw NetworkError("While connecting to "+ep.toStringWithPort()+": "+string(strerror(errno)));
+      }
+    }
   }
 
 

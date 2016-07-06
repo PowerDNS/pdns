@@ -46,11 +46,12 @@ try
 
     for (const auto& carbonServer : carbonServers) {
       ComboAddress remote(carbonServer, 2003);
-      Socket s(remote.sin4.sin_family, SOCK_STREAM);
-      s.setNonBlocking();
-      s.connect(remote);  // we do the connect so the attempt happens while we gather stats
 
       try {
+        Socket s(remote.sin4.sin_family, SOCK_STREAM);
+        s.setNonBlocking();
+        s.connect(remote, 2);
+
         writen2WithTimeout(s.getHandle(), msg.c_str(), msg.length(), 2);
       } catch (runtime_error &e){
         L<<Logger::Warning<<"Unable to write data to carbon server at "<<remote.toStringWithPort()<<": "<<e.what()<<endl;
