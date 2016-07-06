@@ -33,6 +33,7 @@
 #include <fcntl.h>
 #include <sstream>
 #include <boost/algorithm/string.hpp>
+#include <system_error>
 
 #include "pdns/dnsseckeeper.hh"
 #include "pdns/dnssecinfra.hh"
@@ -815,8 +816,10 @@ void Bind2Backend::loadConfig(string* status)
         }
 
         BB2DomainInfo bbd;
+        bool isNew = false;
 
         if(!safeGetBBDomainInfo(i->name, &bbd)) { 
+          isNew = true;
           bbd.d_id=domain_id++;
           bbd.setCheckInterval(getArgAsNum("check-interval"));
           bbd.d_lastnotified=0;
@@ -848,9 +851,12 @@ void Bind2Backend::loadConfig(string* status)
             L<<Logger::Warning<<d_logprefix<<msg.str()<<endl;
             rejected++;
           }
-          catch(std::exception &ae) {
+          catch(std::system_error &ae) {
             ostringstream msg;
-            msg<<" error at "+nowTime()+" parsing '"<<i->name<<"' from file '"<<i->filename<<"': "<<ae.what();
+            if (ae.code().value() == ENOENT && isNew && i->type == "slave")
+              msg<<" error at "+nowTime()<<" no file found for new slave domain '"<<i->name<<"'. Has not been AXFR'd yet";
+            else
+              msg<<" error at "+nowTime()+" parsing '"<<i->name<<"' from file '"<<i->filename<<"': "<<ae.what();
 
             if(status)
               *status+=msg.str();

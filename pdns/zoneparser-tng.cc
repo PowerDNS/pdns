@@ -34,6 +34,7 @@
 #include "zoneparser-tng.hh"
 #include <deque>
 #include <boost/algorithm/string.hpp>
+#include <system_error>
 
 static string g_INstr("IN");
 
@@ -57,8 +58,10 @@ ZoneParserTNG::ZoneParserTNG(const vector<string> zonedata, const DNSName& zname
 void ZoneParserTNG::stackFile(const std::string& fname)
 {
   FILE *fp=fopen(fname.c_str(), "r");
-  if(!fp)
-    throw runtime_error("Unable to open file '"+fname+"': "+stringerror());
+  if(!fp) {
+    std::error_code ec (errno,std::generic_category());
+    throw std::system_error(ec, "Unable to open file '"+fname+"': "+stringerror());
+  }
 
   filestate fs(fp, fname);
   d_filestates.push(fs);
