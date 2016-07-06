@@ -564,7 +564,9 @@ run "sudo apt-get -qq --no-install-recommends install \
   libboost-all-dev \
   liblua5.1-dev \
   libedit-dev \
-  pandoc"
+  libprotobuf-dev \
+  pandoc\
+  protobuf-compiler"
 
 run "cd .."
 run "wget http://ppa.launchpad.net/kalon33/gamesgiroll/ubuntu/pool/main/libs/libsodium/libsodium-dev_1.0.3-1~ppa14.04+1_amd64.deb"
