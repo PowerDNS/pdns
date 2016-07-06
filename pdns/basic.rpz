@@ -9,11 +9,11 @@ $ORIGIN domain.example.com.
 ; QNAME Trigger NXDOMAIN Action
 ; kills whole domain
 nxdomain.org        CNAME .
-*.nxdomain-apex.org      CNAME .
+*.nxdomain.org      CNAME .
 
 ; QNAME Trigger PASSTHRU Action
 ; typically only used for bypass
-mail.nxdomain-apix.org        CNAME rpz-passthru.
+mail.nxdomain.org        CNAME rpz-passthru.
 
 ; QNAME Trigger DROP Action
 ; kills whole domain
@@ -23,7 +23,7 @@ example.net        CNAME rpz-drop.
 ; QNAME Trigger Truncate Action
 ; kills whole domain
 truncate.org        CNAME rpz-tcp-only.
-*.truncate-apex.org      CNAME rpz-tcp-only.
+*.truncate.org      CNAME rpz-tcp-only.
 
 ; QNAME Trigger Local-Data Action
 ; sends to a local website
@@ -32,7 +32,7 @@ local.org        CNAME explanation.example.com.
 *.local.org      CNAME explanation.example.com.
 
 local-a.org        A 192.168.2.5
-*.local-a-apex.org      A 192.168.2.5
+*.local-a.org      A 192.168.2.5
 
 ; CLIENT-IP Trigger DROP Action
 ; kills all DNS activity from this client
@@ -53,6 +53,7 @@ local-a.org        A 192.168.2.5
 ; NSDNAME Trigger NXDOMAIN Action
 ; kills specific name server
 dns-eu1.powerdns.net.rpz-nsdname CNAME .
+
 ; this will kill any name servers from example.org
 *.powerdns.net.rpz-nsdname   CNAME .
 
