@@ -408,9 +408,24 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
   DNSResourceRecord rr;
   uint64_t numrecords=0, numerrors=0, numwarnings=0;
 
-  if (haveNSEC3 && isSecure && zone.wirelength() > 222) {
-    numerrors++;
-    cout<<"[Error] zone '" << zone << "' has NSEC3 semantics but is too long to have the hash prepended. Zone name is " << zone.wirelength() << " bytes long, whereas the maximum is 222 bytes." << endl;
+  if (haveNSEC3) {
+    if(isSecure && zone.wirelength() > 222) {
+      numerrors++;
+      cout<<"[Error] zone '" << zone << "' has NSEC3 semantics but is too long to have the hash prepended. Zone name is " << zone.wirelength() << " bytes long, whereas the maximum is 222 bytes." << endl;
+    }
+
+    vector<DNSBackend::KeyData> dbkeyset;
+    B.getDomainKeys(zone, 0, dbkeyset);
+
+    for(DNSBackend::KeyData& kd : dbkeyset) {
+      DNSKEYRecordContent dkrc;
+      shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(dkrc, kd.content));
+
+      if(dkrc.d_algorithm == 5) {
+        cout<<"[Warning] zone '"<<zone<<"' has NSEC3 semantics, but the "<< (kd.active ? "" : "in" ) <<"active key with id "<<kd.id<<" has 'Algorithm: 5'. This should be corrected to 'Algorithm: 7' in the database (or NSEC3 should be disabled)."<<endl;
+        numwarnings++;
+      }
+    }
   }
 
   if (!validKeys) {
