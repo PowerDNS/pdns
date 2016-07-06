@@ -70,7 +70,7 @@ std::shared_ptr<DNSRule> makeRule(const luadnsrule_t& var)
   if(nmg.empty())
     return std::make_shared<SuffixMatchNodeRule>(smn);
   else
-    return std::make_shared<NetmaskGroupRule>(nmg);
+    return std::make_shared<NetmaskGroupRule>(nmg, true);
 }
 
 std::unordered_map<int, vector<boost::variant<string,double>>> getGenResponses(unsigned int top, boost::optional<int> labels, std::function<bool(const Rings::Response&)> pred) 
