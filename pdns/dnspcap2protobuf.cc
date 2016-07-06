@@ -52,7 +52,7 @@ try {
   if(argc==4)
     ind=atoi(argv[3]);
 
-  std::map<uint16_t,boost::uuids::uuid> ids;
+  std::map<uint16_t,std::pair<boost::uuids::uuid,struct timeval> > ids;
   boost::uuids::random_generator uuidGenerator;
   try {
     while (pr.getUDPPacket()) {
@@ -77,14 +77,20 @@ try {
       }
 
       boost::uuids::uuid uniqueId;
+      struct timeval queryTime = { 0, 0 };
+      bool hasQueryTime = false;
       if (!dh->qr) {
+        queryTime.tv_sec = pr.d_pheader.ts.tv_sec;
+        queryTime.tv_usec = pr.d_pheader.ts.tv_usec;
         uniqueId = uuidGenerator();
-        ids[dh->id] = uniqueId;
+        ids[dh->id] = std::make_pair(uniqueId, queryTime);
       }
       else {
         const auto& it = ids.find(dh->id);
         if (it != ids.end()) {
-          uniqueId = it->second;
+          uniqueId = it->second.first;
+          queryTime = it->second.second;
+          hasQueryTime = true;
         }
         else {
           uniqueId = uuidGenerator();
@@ -101,6 +107,10 @@ try {
 
       if (dh->qr) {
         message.setResponseCode(dh->rcode);
+        if (hasQueryTime) {
+          message.setQueryTime(queryTime.tv_sec, queryTime.tv_usec);
+        }
+
         try {
           message.addRRsFromPacket((const char*) dh, pr.d_len);
         }

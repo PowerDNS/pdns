@@ -985,6 +985,7 @@ void startDoResolve(void *p)
       pbMessage.setResponseCode(pw.getHeader()->rcode);
       pbMessage.setAppliedPolicy(appliedPolicy);
       pbMessage.setPolicyTags(dc->d_policyTags);
+      pbMessage.setQueryTime(dc->d_now.tv_sec, dc->d_now.tv_usec);
       protobufLogResponse(luaconfsLocal->protobufServer, pbMessage);
     }
 #endif
@@ -1383,6 +1384,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
         const ComboAddress& requestor = requestorNM.getMaskedNetwork();
         pbMessage.update(uniqueId, &requestor, &destaddr, false, dh->id);
         pbMessage.setEDNSSubnet(ednssubnet);
+        pbMessage.setQueryTime(g_now.tv_sec, g_now.tv_usec);
         protobufLogResponse(luaconfsLocal->protobufServer, pbMessage);
       }
 #endif /* HAVE_PROTOBUF */

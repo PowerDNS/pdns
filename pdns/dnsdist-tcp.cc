@@ -267,7 +267,7 @@ void* tcpClientThread(int pipefd)
 	string poolname;
 	int delayMsec=0;
 	struct timespec now;
-	gettime(&now);
+	gettime(&now, true);
 
 	if (!processQuery(localDynBlockNMG, localDynBlockSMT, localRulactions, blockFilter, dq, poolname, &delayMsec, now)) {
 	  goto drop;
@@ -431,7 +431,7 @@ void* tcpClientThread(int pipefd)
         }
 
         dh = (struct dnsheader*) response;
-        DNSQuestion dr(&qname, qtype, qclass, &ci.cs->local, &ci.remote, dh, responseSize, responseLen, true);
+        DNSResponse dr(&qname, qtype, qclass, &ci.cs->local, &ci.remote, dh, responseSize, responseLen, true, &now);
 #ifdef HAVE_PROTOBUF
         dr.uniqueId = dq.uniqueId;
 #endif
