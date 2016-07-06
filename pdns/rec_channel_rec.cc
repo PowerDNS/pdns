@@ -875,6 +875,13 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("memory-alloc-flux", boost::bind(&MallocTracer::getAllocFlux, g_mtracer, string()));
   addGetStat("memory-allocated", boost::bind(&MallocTracer::getTotAllocated, g_mtracer, string()));
 #endif
+
+  addGetStat("dnssec-validations", &g_stats.dnssecValidations);
+  addGetStat("dnssec-result-insecure", &g_stats.dnssecResults[Insecure]);
+  addGetStat("dnssec-result-secure", &g_stats.dnssecResults[Secure]);
+  addGetStat("dnssec-result-bogus", &g_stats.dnssecResults[Bogus]);
+  addGetStat("dnssec-result-indeterminate", &g_stats.dnssecResults[Indeterminate]);
+  addGetStat("dnssec-result-nta", &g_stats.dnssecResults[NTA]);
 }
 
 static void doExitGeneric(bool nicely)

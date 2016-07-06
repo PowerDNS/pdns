@@ -26,11 +26,18 @@ public:
   int d_queries{0};
 };
 
+inline vState increaseDNSSECStateCounter(const vState& state)
+{
+  g_stats.dnssecResults[state]++;
+  return state;
+}
 
 vState validateRecords(const vector<DNSRecord>& recs)
 {
   if(recs.empty())
     return Insecure; // can't secure nothing 
+
+  g_stats.dnssecValidations++;
 
   cspmap_t cspmap=harvestCSPFromRecs(recs);
   LOG("Got "<<cspmap.size()<<" RRSETs: "<<endl);
@@ -50,8 +57,10 @@ vState validateRecords(const vector<DNSRecord>& recs)
     for(const auto& csp : cspmap) {
       for(const auto& sig : csp.second.signatures) {
         state = getKeysFor(sro, sig->d_signer, keys); // XXX check validity here
-        if(state == NTA)
+        if(state == NTA) {
+          increaseDNSSECStateCounter(state);
           return Insecure;
+        }
         LOG("! state = "<<vStates[state]<<", now have "<<keys.size()<<" keys"<<endl);
         for(const auto& k : keys) {
           LOG("Key: "<<k.getZoneRepresentation()<< " {tag="<<k.getTag()<<"}"<<endl);
@@ -60,9 +69,8 @@ vState validateRecords(const vector<DNSRecord>& recs)
         // maybe not the right idea
       }
     }
-    if(state == Bogus) {
-      return state;
-    }
+    if(state == Bogus)
+      return increaseDNSSECStateCounter(state);
     validateWithKeySet(cspmap, validrrsets, keys);
   }
   else {
@@ -70,16 +78,16 @@ vState validateRecords(const vector<DNSRecord>& recs)
     state = getKeysFor(sro, recs.begin()->d_name, keys); // um WHAT DOES THIS MEAN - try first qname??
    
     LOG("! state = "<<vStates[state]<<", now have "<<keys.size()<<" keys "<<endl);
-    return state;
+    
+    return increaseDNSSECStateCounter(state);
   }
   
   LOG("Took "<<sro.d_queries<<" queries"<<endl);
-  if(validrrsets.size() == cspmap.size()) // shortcut - everything was ok
-    return Secure;
+  if(validrrsets.size() == cspmap.size())// shortcut - everything was ok
+    return increaseDNSSECStateCounter(Secure);
 
-  if(keys.empty()) {
-    return Insecure;
-  }
+  if(keys.empty())
+    return increaseDNSSECStateCounter(Insecure);
 
 #if 0
   cerr<<"! validated "<<validrrsets.size()<<" RRsets out of "<<cspmap.size()<<endl;
@@ -97,9 +105,9 @@ vState validateRecords(const vector<DNSRecord>& recs)
     LOG(csp.first.first<<"|"<<DNSRecordContent::NumberToType(csp.first.second)<<" with "<<csp.second.signatures.size()<<" signatures"<<endl);
     if(!csp.second.signatures.empty() && !validrrsets.count(csp.first)) {
       LOG("Lacks signature, must have one, signatures: "<<csp.second.signatures.size()<<", valid rrsets: "<<validrrsets.count(csp.first)<<endl);
-      return Bogus;
+      return increaseDNSSECStateCounter(Bogus);
     }
   }
   
-  return Insecure;
+  return increaseDNSSECStateCounter(Insecure);
 }

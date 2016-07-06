@@ -23,6 +23,7 @@
 #include <boost/tuple/tuple_comparison.hpp>
 #include "mtasker.hh"
 #include "iputils.hh"
+#include "validate.hh"
 
 #include "filterpo.hh"
 
@@ -606,6 +607,8 @@ struct RecursorStats
   time_t startupTime;
   std::atomic<uint64_t> dnssecQueries;
   unsigned int maxMThreadStackUsage;
+  std::atomic<uint64_t> dnssecValidations; // should be the sum of all dnssecResult* stats
+  std::map<vState, std::atomic<uint64_t> > dnssecResults;
 };
 
 //! represents a running TCP/IP client session
