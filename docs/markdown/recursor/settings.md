@@ -513,7 +513,7 @@ The optional parameters are:
 * maskV4 = network mask to apply to the client IPv4 addresses, for anonymization purpose. The default of 32 means no anonymization
 * maskV6 = same as maskV4, but for IPv6. Default to 128
 
-The protocol buffers message types can be found in the `dnsmessage.proto' file.
+The protocol buffers message types can be found in the [`dnsmessage.proto`](https://github.com/PowerDNS/pdns/blob/master/pdns/dnsmessage.proto) file.
 
 ## `lua-dns-script`
 * Path
