@@ -311,7 +311,7 @@ string reloadAuthAndForwards()
 }
 
 
-void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, const std::string& polName, const TSIGTriplet& tt, shared_ptr<SOARecordContent> oursr)
+void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, const std::string& polName, const TSIGTriplet& tt, shared_ptr<SOARecordContent> oursr, size_t maxReceivedBytes)
 {
   int refresh = oursr->d_st.refresh;
   for(;;) {
@@ -323,7 +323,7 @@ void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, const std::
     L<<Logger::Info<<"Getting IXFR deltas for "<<zone<<" from "<<master.toStringWithPort()<<", our serial: "<<getRR<SOARecordContent>(dr)->d_st.serial<<endl;
     vector<pair<vector<DNSRecord>, vector<DNSRecord> > > deltas;
     try {
-      deltas = getIXFRDeltas(master, zone, dr, tt);
+      deltas = getIXFRDeltas(master, zone, dr, tt, nullptr, maxReceivedBytes);
     } catch(std::runtime_error& e ){
       L<<Logger::Warning<<e.what()<<endl;
       continue;

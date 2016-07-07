@@ -472,6 +472,8 @@ In addition to those, `rpzMaster` accepts:
 * tsigalgo = the name of the TSIG algorithm (like 'hmac-md5') used
 * tsigsecret = base64 encoded TSIG secret
 * refresh = an integer describing the interval between checks for updates. By default, the RPZ zone's default is used
+* maxReceivedMBytes = the maximum size in megabytes of an AXFR/IXFR update, to prevent resource exhaustion.
+The default value of 0 means no restriction.
 
 If no settings are included, the RPZ is taken literally with no overrides applied.
 

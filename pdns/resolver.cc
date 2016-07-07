@@ -360,8 +360,9 @@ void Resolver::getSoaSerial(const string &ipport, const DNSName &domain, uint32_
 AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
                              const DNSName& domain,
                              const TSIGTriplet& tt, 
-                             const ComboAddress* laddr)
-  : d_tt(tt), d_tsigPos(0), d_nonSignedMessages(0)
+                             const ComboAddress* laddr,
+                             size_t maxReceivedBytes)
+  : d_tt(tt), d_receivedBytes(0), d_maxReceivedBytes(maxReceivedBytes), d_tsigPos(0), d_nonSignedMessages(0)
 {
   ComboAddress local;
   if (laddr != NULL) {
@@ -445,8 +446,14 @@ int AXFRRetriever::getChunk(Resolver::res_t &res, vector<DNSRecord>* records) //
   int len=getLength();
   if(len<0)
     throw ResolverException("EOF trying to read axfr chunk from remote TCP client");
-  
-  timeoutReadn(len); 
+
+  if (d_maxReceivedBytes > 0 && (d_maxReceivedBytes - d_receivedBytes) < (size_t) len)
+    throw ResolverException("Reached the maximum number of received bytes during AXFR");
+
+  timeoutReadn(len);
+
+  d_receivedBytes += (uint16_t) len;
+
   MOADNSParser mdp(d_buf.get(), len);
 
   int err;

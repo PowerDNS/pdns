@@ -7,7 +7,7 @@
 
 // Returns pairs of "remove & add" vectors. If you get an empty remove, it means you got an AXFR!
 vector<pair<vector<DNSRecord>, vector<DNSRecord> > > getIXFRDeltas(const ComboAddress& master, const DNSName& zone, const DNSRecord& oursr, 
-                                                                   const TSIGTriplet& tt, const ComboAddress* laddr)
+                                                                   const TSIGTriplet& tt, const ComboAddress* laddr, size_t maxReceivedBytes)
 {
   vector<pair<vector<DNSRecord>, vector<DNSRecord> > >  ret;
   vector<uint8_t> packet;
@@ -55,6 +55,7 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > > getIXFRDeltas(const ComboAd
   // CURRENT MASTER SOA 
   shared_ptr<SOARecordContent> masterSOA;
   vector<DNSRecord> records;
+  size_t receivedBytes = 0;
   for(;;) {
     if(s.read((char*)&len, 2)!=2)
       break;
@@ -62,8 +63,13 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > > getIXFRDeltas(const ComboAd
     //    cout<<"Got chunk of "<<len<<" bytes"<<endl;
     if(!len)
       break;
+
+    if (maxReceivedBytes > 0 && (maxReceivedBytes - receivedBytes) < (size_t) len)
+      throw std::runtime_error("Reached the maximum number of received bytes in an IXFR delta for zone '"+zone.toString()+"' from master '"+master.toStringWithPort());
+
     char reply[len]; 
     readn2(s.getHandle(), reply, len);
+    receivedBytes += len;
     MOADNSParser mdp(string(reply, len));
     if(mdp.d_header.rcode) 
       throw std::runtime_error("Got an error trying to IXFR zone '"+zone.toString()+"' from master '"+master.toStringWithPort()+"': "+RCode::to_s(mdp.d_header.rcode));

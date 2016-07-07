@@ -874,3 +874,10 @@ If the webserver should print arguments. See ["Performance Monitoring"](../commo
 * Default: yes
 
 If a PID file should be written. Available since 4.0.
+
+## `xfr-max-received-mbytes`
+* Integer
+* Default: 100
+
+Specifies the maximum number of received megabytes allowed on an incoming AXFR/IXFR update, to prevent
+resource exhaustion. A value of 0 means no restriction.
