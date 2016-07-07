@@ -170,6 +170,8 @@ void declareArguments()
 
   ::arg().set("include-dir","Include *.conf files from this directory");
   ::arg().set("security-poll-suffix","Domain name from which to query security update notifications")="secpoll.powerdns.com.";
+
+  ::arg().set("xfr-max-received-mbytes", "Maximum number of megabytes received from an incoming AXFR")="100";
 }
 
 static uint64_t uptimeOfProcess(const std::string& str)

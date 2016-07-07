@@ -85,7 +85,8 @@ class AXFRRetriever : public boost::noncopyable
         const string& tsigkeyname=string(),
         const string& tsigalgorithm=string(),
         const string& tsigsecret=string(),
-        const ComboAddress* laddr = NULL);
+        const ComboAddress* laddr = NULL,
+        size_t maxReceivedBytes=0);
 	~AXFRRetriever();
     int getChunk(Resolver::res_t &res);  
   
@@ -104,6 +105,8 @@ class AXFRRetriever : public boost::noncopyable
     string d_tsigsecret;
     string d_prevMac; // RFC2845 4.4
     string d_signData;
+    size_t d_receivedBytes;
+    size_t d_maxReceivedBytes;
     uint32_t d_tsigPos;
     uint d_nonSignedMessages; // RFC2845 4.4
     TSIGRecordContent d_trc;

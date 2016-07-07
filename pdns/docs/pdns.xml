@@ -17863,6 +17863,17 @@ This setting will make PowerDNS renotify the slaves after an AXFR is *received* 
 	    <listitem><para>
 	      Check for wildcard URL records.
 	      </para></listitem></varlistentry>
+	  <varlistentry>
+	    <term>xfr-max-received-mbytes=...</term>
+	  <listitem>
+	    <para>
+	      Specifies the maximum number of received megabytes allowed on an incoming AXFR update, to prevent
+              resource exhaustion. A value of 0 means no restriction.
+	      The default is 100. Available since 3.4.10.
+	    </para>
+	  </listitem>
+	</varlistentry>
+
       </variablelist>
     </para>
   </chapter>
