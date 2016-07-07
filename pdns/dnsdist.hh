@@ -107,16 +107,21 @@ extern struct DNSDistStats g_stats;
 
 struct StopWatch
 {
+  StopWatch(bool realTime=false): d_needRealTime(realTime)
+  {
+  }
   struct timespec d_start{0,0};
+  bool d_needRealTime{false};
+
   void start() {  
-    if(gettime(&d_start) < 0)
+    if(gettime(&d_start, d_needRealTime) < 0)
       unixDie("Getting timestamp");
     
   }
   
   double udiff() const {
     struct timespec now;
-    if(gettime(&now) < 0)
+    if(gettime(&now, d_needRealTime) < 0)
       unixDie("Getting timestamp");
     
     return 1000000.0*(now.tv_sec - d_start.tv_sec) + (now.tv_nsec - d_start.tv_nsec)/1000.0;
@@ -124,7 +129,7 @@ struct StopWatch
 
   double udiffAndSet() {
     struct timespec now;
-    if(gettime(&now) < 0)
+    if(gettime(&now, d_needRealTime) < 0)
       unixDie("Getting timestamp");
     
     auto ret= 1000000.0*(now.tv_sec - d_start.tv_sec) + (now.tv_nsec - d_start.tv_nsec)/1000.0;
@@ -195,7 +200,7 @@ private:
 
 struct IDState
 {
-  IDState() : origFD(-1), delayMsec(0) { origDest.sin4.sin_family = 0;}
+  IDState() : origFD(-1), sentTime(true), delayMsec(0) { origDest.sin4.sin_family = 0;}
   IDState(const IDState& orig)
   {
     origFD = orig.origFD;
@@ -396,6 +401,13 @@ struct DNSQuestion
   bool skipCache{false};
 };
 
+struct DNSResponse : DNSQuestion
+{
+  DNSResponse(const DNSName* name, uint16_t type, uint16_t class_, const ComboAddress* lc, const ComboAddress* rem, struct dnsheader* header, size_t bufferSize, uint16_t queryLen, bool isTcp, const struct timespec* queryTime_): DNSQuestion(name, type, class_, lc, rem, header, bufferSize, queryLen, isTcp), queryTime(queryTime_) { }
+
+  const struct timespec* queryTime;
+};
+
 typedef std::function<bool(const DNSQuestion*)> blockfilter_t;
 template <class T> using NumberedVector = std::vector<std::pair<unsigned int, T> >;
 
@@ -437,7 +449,7 @@ class DNSResponseAction
 {
 public:
   enum class Action { None };
-  virtual Action operator()(DNSQuestion*, string* ruleresult) const =0;
+  virtual Action operator()(DNSResponse*, string* ruleresult) const =0;
   virtual string toString() const = 0;
 };
 
@@ -638,7 +650,7 @@ void resetLuaSideEffect(); // reset to indeterminate state
 bool responseContentMatches(const char* response, const uint16_t responseLen, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const ComboAddress& remote);
 bool processQuery(LocalStateHolder<NetmaskTree<DynBlock> >& localDynBlockNMG,
                   LocalStateHolder<SuffixMatchTree<DynBlock> >& localDynBlockSMT, LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > >& localRulactions, blockfilter_t blockFilter, DNSQuestion& dq, string& poolname, int* delayMsec, const struct timespec& now);
-bool processResponse(LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSResponseAction> > > >& localRespRulactions, DNSQuestion& dq);
+bool processResponse(LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSResponseAction> > > >& localRespRulactions, DNSResponse& dr);
 bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize, const DNSName& qname, uint16_t origFlags, bool ednsAdded, bool ecsAdded, std::vector<uint8_t>& rewrittenResponse, uint16_t addRoom);
 void restoreFlags(struct dnsheader* dh, uint16_t origFlags);
 

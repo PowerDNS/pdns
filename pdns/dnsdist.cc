@@ -400,7 +400,7 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
     dh->id = ids->origID;
 
     uint16_t addRoom = 0;
-    DNSQuestion dr(&ids->qname, ids->qtype, ids->qclass, &ids->origDest, &ids->origRemote, dh, sizeof(packet), responseLen, false);
+    DNSResponse dr(&ids->qname, ids->qtype, ids->qclass, &ids->origDest, &ids->origRemote, dh, sizeof(packet), responseLen, false, &ids->sentTime.d_start);
 #ifdef HAVE_PROTOBUF
     dr.uniqueId = ids->uniqueId;
 #endif
@@ -821,7 +821,7 @@ bool processQuery(LocalStateHolder<NetmaskTree<DynBlock> >& localDynNMGBlock,
   return true;
 }
 
-bool processResponse(LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSResponseAction> > > >& localRespRulactions, DNSQuestion& dr)
+bool processResponse(LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSResponseAction> > > >& localRespRulactions, DNSResponse& dr)
 {
   std::string ruleresult;
   for(const auto& lr : *localRespRulactions) {

@@ -21,4 +21,11 @@ DNSDistProtoBufMessage::DNSDistProtoBufMessage(DNSProtoBufMessageType type, cons
   }
 };
 
+DNSDistProtoBufMessage::DNSDistProtoBufMessage(const DNSResponse& dr): DNSProtoBufMessage(Response, dr.uniqueId, dr.remote, dr.local, *dr.qname, dr.qtype, dr.qclass, dr.dh->id, dr.tcp, dr.len)
+{
+  setQueryTime(dr.queryTime->tv_sec, dr.queryTime->tv_nsec / 1000);
+  setResponseCode(dr.dh->rcode);
+  addRRsFromPacket((const char*) dr.dh, dr.len);
+};
+
 #endif /* HAVE_PROTOBUF */

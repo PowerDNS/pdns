@@ -934,10 +934,10 @@ public:
   RemoteLogResponseAction(std::shared_ptr<RemoteLogger> logger): d_logger(logger)
   {
   }
-  DNSResponseAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  DNSResponseAction::Action operator()(DNSResponse* dr, string* ruleresult) const override
   {
 #ifdef HAVE_PROTOBUF
-    DNSDistProtoBufMessage message(DNSDistProtoBufMessage::Response, *dq);
+    DNSDistProtoBufMessage message(*dr);
     std::string data;
     message.serialize(data);
     d_logger->queueData(data);

@@ -43,6 +43,8 @@ message PBDNSMessage {
     repeated DNSRR rrs = 2;
     optional string appliedPolicy = 3;
     repeated string tags = 4;
+    optional uint32 queryTimeSec = 5;
+    optional uint32 queryTimeUsec = 6;
   }
 
   optional DNSResponse response = 13;

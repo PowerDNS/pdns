@@ -47,6 +47,17 @@ void DNSProtoBufMessage::setTime(time_t sec, uint32_t usec)
 #endif /* HAVE_PROTOBUF */
 }
 
+void DNSProtoBufMessage::setQueryTime(time_t sec, uint32_t usec)
+{
+#ifdef HAVE_PROTOBUF
+  PBDNSMessage_DNSResponse* response = d_message.mutable_response();
+  if (response) {
+    response->set_querytimesec(sec);
+    response->set_querytimeusec(usec);
+  }
+#endif /* HAVE_PROTOBUF */
+}
+
 void DNSProtoBufMessage::setEDNSSubnet(const Netmask& subnet)
 {
 #ifdef HAVE_PROTOBUF

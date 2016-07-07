@@ -70,6 +70,13 @@ class PDNSPBConnHandler(object):
     def printResponse(self, message):
         if message.HasField('response'):
             response = message.response
+
+            if response.HasField('queryTimeSec'):
+                datestr = datetime.datetime.fromtimestamp(response.queryTimeSec).strftime('%Y-%m-%d %H:%M:%S')
+                if response.HasField('queryTimeUsec'):
+                    datestr = datestr + '.' + str(response.queryTimeUsec)
+                print("- Query time: %s" % (datestr))
+
             policystr = ''
             if response.HasField('appliedPolicy') and response.appliedPolicy:
                 policystr = ', Applied policy: ' + response.appliedPolicy
