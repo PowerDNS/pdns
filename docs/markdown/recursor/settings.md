@@ -484,6 +484,37 @@ The policy action are:
 * Policy.NXDOMAIN will return a response with a NXDomain rcode
 * Policy.Truncate will return a NoError, no answer, truncated response over UDP. Normal processing will continue over TCP
 
+### Protocol Buffers (protobuf)
+PowerDNS Recursor has the ability to emit a stream of protocol buffers messages over TCP,
+containing information about queries, answers and policy decisions.
+
+Messages contain the IP address of the client initiating the query,
+the one on which the message was received, whether it was received over UDP or TCP,
+a timestamp and the qname, qtype and qclass of the question.
+In addition, messages related to responses contain the name, type, class
+and rdata of A, AAAA and CNAME records present in the response, as well as the response
+code.
+
+Finally, if a RPZ or custom Lua policy has been applied, response messages
+also contain the applied policy name and some tags. This is particularly useful
+to detect and act on infected hosts.
+
+Protobuf export to a server is enabled using the `protobufServer()` directive:
+
+```
+protobufServer("192.0.2.1:4242" [[[[[, timeout], maxQueuedEntries], reconnectWaitTime], maskV4], maskV6])
+```
+
+The optional parameters are:
+
+* timeout = time in seconds to wait when sending a message, default to 2
+* maxQueuedEntries = how many entries will be kept in memory if the server becomes unreachable, default to 100
+* reconnectWaitTime = how long to wait, in seconds, between two reconnection attempts, default to 1
+* maskV4 = network mask to apply to the client IPv4 addresses, for anonymization purpose. The default of 32 means no anonymization
+* maskV6 = same as maskV4, but for IPv6. Default to 128
+
+The protocol buffers message types can be found in the [`dnsmessage.proto`](https://github.com/PowerDNS/pdns/blob/master/pdns/dnsmessage.proto) file.
+
 ## `lua-dns-script`
 * Path
 * Default: unset
