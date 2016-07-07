@@ -1123,6 +1123,7 @@ testrunner_SOURCES = \
 	qtype.cc \
 	rcpgenerator.cc \
 	recpacketcache.cc recpacketcache.hh \
+	rec-protobuf.hh \
 	responsestats.cc \
 	responsestats-auth.cc \
 	sillyrecords.cc \
