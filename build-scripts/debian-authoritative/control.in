@@ -11,7 +11,7 @@ Package: pdns-server
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, ucf (>= 0.28), adduser, lsb-base (>= 3.2-14)
 Replaces: pdns
-Suggests: pdns-backend, pdns-recursor
+Suggests: pdns-backend
 Description: extremely powerful and versatile nameserver
  PowerDNS is a versatile nameserver which supports a large number
  of different backends ranging from simple zonefiles to relational
@@ -106,8 +106,6 @@ Description: geoip backend for PowerDNS
 Package: pdns-backend-mysql
 Architecture: any
 Depends: pdns-server (>= ${source:Version}), ucf (>= 0.28), ${shlibs:Depends}, ${misc:Depends}
-Recommends: mysql-client
-Suggests: mysql-server
 Provides: pdns-backend
 Description: generic MySQL backend for PowerDNS
  PowerDNS is a versatile nameserver which supports a large number
@@ -134,8 +132,6 @@ Description: generic UnixODBC backend for PowerDNS
 Package: pdns-backend-pgsql
 Architecture: any
 Depends: pdns-server (>= ${source:Version}), ucf (>= 0.28), ${shlibs:Depends}, ${misc:Depends}
-Recommends: postgresql-client
-Suggests: postgresql
 Provides: pdns-backend
 Description: generic PostgreSQL backend for PowerDNS
  PowerDNS is a versatile nameserver which supports a large number
