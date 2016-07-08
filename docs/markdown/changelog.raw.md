@@ -1,19 +1,5 @@
 **Note**: Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
 
-# PowerDNS Authoritative Server 3.4.9
-Released 17th of May 2016
-
-This is a minor bugfix and performance release. Two contributions by Kees Monshouwer make 3.4.9 fully compatible with the new single key ECDSA default that is coming in version 4.0.0.
-
-Changes since 3.4.8:
-
-- [commit 4627ea0](https://github.com/PowerDNS/pdns/commit/4627ea0), [commit 8350828](https://github.com/PowerDNS/pdns/commit/8350828): use OpenSSL for ECDSA signing where available (Kees Monshouwer)
-- [commit 558ff84](https://github.com/PowerDNS/pdns/commit/558ff84): allow common signing key (Kees Monshouwer)
-- [commit 280d665](https://github.com/PowerDNS/pdns/commit/280d665): Add a disable-syslog setting
-- [commit 58d6ab6](https://github.com/PowerDNS/pdns/commit/58d6ab6): fix SOA caching with multiple backends (Kees Monshouwer)
-- [commit e9e413f](https://github.com/PowerDNS/pdns/commit/e9e413f), [commit 6af4652](https://github.com/PowerDNS/pdns/commit/6af4652): whitespace-related zone parsing fixes [ticket #3568](https://github.com/PowerDNS/pdns/issues/3568)
-- [commit 7473a5e](https://github.com/PowerDNS/pdns/commit/7473a5e): bindbackend: fix, set domain in list() (Kees Monshouwer)
-
 # PowerDNS Recursor 4.0.0
 UNRELEASED - trial packages on [our repositories](https://repo.powerdns.com).
 
@@ -43,6 +29,32 @@ In addition to this cleanup, which has many internal benefits and solves longsta
 - New metric: tcp-answer-bytes to measure DNS TCP/IP bandwidth, and many other new metrics
 
 Please be aware that beyond the items listed here, there have been heaps of tiny changes. As always, please carefully test a new release before deploying it.
+
+This release features the following fixes compared to rc1:
+
+ - [#3989](https://github.com/PowerDNS/pdns/pull/3989) Fix usage of std::distance() in DNSName::isPartOf() (signed/unsigned comparisons)
+ - [#4017](https://github.com/PowerDNS/pdns/pull/4017) Fix building without Lua. Add `isTcp` to `dq`.
+ - [#4023](https://github.com/PowerDNS/pdns/pull/4023) Actually log on dnssec=log-fail
+ - [#4028](https://github.com/PowerDNS/pdns/pull/4028) DNSSEC fixes (NSEC casing, send DO-bit over TCP, DNSSEC trace additions)
+ - [#4052](https://github.com/PowerDNS/pdns/pull/4052) Don't fail configure on missing fcontext.hpp
+ - [#4096](https://github.com/PowerDNS/pdns/pull/4096) Don't call `commit()` if we skipped all the records
+
+It has the following improvements:
+
+ - [#3400](https://github.com/PowerDNS/pdns/pull/3400) Enable building on OpenIndiana
+ - [#4016](https://github.com/PowerDNS/pdns/pull/4016) Log protobuf messages for cache hits. Add policy tags in gettag()
+ - [#4040](https://github.com/PowerDNS/pdns/pull/4040) Allow DNSSEC validation when chrooted
+ - [#4094](https://github.com/PowerDNS/pdns/pull/4094) Sort included html files for improved reproducibility (Christian Hofstaedtler)
+
+And these additions:
+
+ - [#3981](https://github.com/PowerDNS/pdns/pull/3981) Import Javascript sources for libs shipped with Recursor (Christian Hofstaedtler)
+ - [#4012](https://github.com/PowerDNS/pdns/pull/4012) add tags support to ProtobufLogger.py
+ - [#4032](https://github.com/PowerDNS/pdns/pull/4032) Set the existing policy tags in `dq` for `{pre,post}resolve`
+ - [#4077](https://github.com/PowerDNS/pdns/pull/4077) Add DNSSEC validation statistics
+ - [#4090](https://github.com/PowerDNS/pdns/pull/4090) Allow reloading the lua-config-file at runtime
+ - [#4097](https://github.com/PowerDNS/pdns/pull/4097) Allow logging DNSSEC bogus in any mode
+ - [#4125](https://github.com/PowerDNS/pdns/pull/4125) Add protobuf fields for the query's time in the response
 
 ## PowerDNS Recursor 4.0.0-rc1
 Released June 9th 2016
@@ -140,6 +152,21 @@ This release features many low-level performance fixes. Other notable changes si
 
 ## PowerDNS Recursor 4.0.0-alpha1
 Released December 24th 2015
+
+
+# PowerDNS Authoritative Server 3.4.9
+Released 17th of May 2016
+
+This is a minor bugfix and performance release. Two contributions by Kees Monshouwer make 3.4.9 fully compatible with the new single key ECDSA default that is coming in version 4.0.0.
+
+Changes since 3.4.8:
+
+- [commit 4627ea0](https://github.com/PowerDNS/pdns/commit/4627ea0), [commit 8350828](https://github.com/PowerDNS/pdns/commit/8350828): use OpenSSL for ECDSA signing where available (Kees Monshouwer)
+- [commit 558ff84](https://github.com/PowerDNS/pdns/commit/558ff84): allow common signing key (Kees Monshouwer)
+- [commit 280d665](https://github.com/PowerDNS/pdns/commit/280d665): Add a disable-syslog setting
+- [commit 58d6ab6](https://github.com/PowerDNS/pdns/commit/58d6ab6): fix SOA caching with multiple backends (Kees Monshouwer)
+- [commit e9e413f](https://github.com/PowerDNS/pdns/commit/e9e413f), [commit 6af4652](https://github.com/PowerDNS/pdns/commit/6af4652): whitespace-related zone parsing fixes [ticket #3568](https://github.com/PowerDNS/pdns/issues/3568)
+- [commit 7473a5e](https://github.com/PowerDNS/pdns/commit/7473a5e): bindbackend: fix, set domain in list() (Kees Monshouwer)
 
 # PowerDNS Authoritative Server 4.0.0
 UNRELEASED - trial packages in [our repositories](https://repo.powerdns.com).
