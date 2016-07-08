@@ -949,7 +949,8 @@ void startDoResolve(void *p)
       if(haveEDNS)  {
 	ret.push_back(makeOpt(edo.d_packetsize, 0, edo.d_Z));
       }
-      
+
+      bool needCommit = false;
       for(auto i=ret.cbegin(); i!=ret.cend(); ++i) {
         if(!DNSSECOK && (i->d_type == QType::RRSIG || i->d_type==QType::NSEC || i->d_type==QType::NSEC3))
           continue;
@@ -966,13 +967,14 @@ void startDoResolve(void *p)
             }
 	  goto sendit; // need to jump over pw.commit
 	}
+	needCommit = true;
 #ifdef HAVE_PROTOBUF
         if(luaconfsLocal->protobufServer && (i->d_type == QType::A || i->d_type == QType::AAAA || i->d_type == QType::CNAME)) {
           pbMessage.addRR(*i);
         }
 #endif
       }
-      if(ret.size())
+      if(needCommit)
 	pw.commit();
     }
   sendit:;
