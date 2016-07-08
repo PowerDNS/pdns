@@ -6,6 +6,7 @@ dnsupdate-answers=0
 dnsupdate-changes=0
 dnsupdate-queries=0
 dnsupdate-refused=0
+fd-usage=18
 incoming-notifications=0
 key-cache-size=0
 latency=0
