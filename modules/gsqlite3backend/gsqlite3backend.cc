@@ -50,7 +50,9 @@ gSQLite3Backend::gSQLite3Backend( const std::string & mode, const std::string & 
     if(!getArg("pragma-synchronous").empty()) {
       ptr->execute("PRAGMA synchronous="+getArg("pragma-synchronous"));
     }
-    ptr->execute("PRAGMA foreign_keys = 1");
+    if (mustDo("pragma-foreign-keys")) {
+      ptr->execute("PRAGMA foreign_keys = 1");
+    }
   }  
   catch( SSqlException & e ) 
   {
