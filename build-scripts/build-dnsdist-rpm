@@ -44,6 +44,9 @@ INIT_INSTALL='sed -i "s,/^\(ExecStart.*\)dnsdist\(.*\)\$,\1dnsdist -u dnsdist -g
 INIT_FILES='/lib/systemd/system/dnsdist.service'
 INIT_CONFIGURE='--enable-systemd --with-systemd=/lib/systemd/system \'
 
+# CentOS 6 has protobuf, but not a modern enough boost. We defaul to with protobuf
+PROTOBUF_CONFIGURE='--with-protobuf \'
+
 # These two are the same for sysv and systemd (we don't install defaults files at the moment)
 DEFAULTS_INSTALL=''
 DEFAULTS_FILES=''
@@ -66,6 +69,7 @@ if [ -f /etc/redhat-release ]; then
       INIT_INSTALL='install -d -m 755 %{buildroot}/%{_initrddir} && install -m 755 contrib/dnsdist.init.centos6 %{buildroot}/%{_initrddir}/dnsdist'
       INIT_FILES='%{_initrddir}/dnsdist'
       INIT_CONFIGURE='\'
+      PROTOBUF_CONFIGURE='--without-protobuf \'
       SETUP="%setup -n %{name}-${TARBALLVERSION}"
       RPMBUILD_COMMAND="scl enable devtoolset-3 -- ${RPMBUILD_COMMAND}"
       ;;
@@ -106,8 +110,8 @@ ${SETUP}
 %build
 %configure \
   --sysconfdir=/etc/dnsdist \
-  --without-protobuf \
   ${INIT_CONFIGURE}
+  ${PROTOBUF_CONFIGURE}
   ${SODIUM_CONFIGURE}
 
 make
