@@ -26,7 +26,7 @@ The `rec_control get` command can be used to query the following statistics, eit
 * `client-parse-errors`: counts number of client packets that could not be parsed
 * `concurrent-queries`: shows the number of MThreads currently running
 * `dlg-only-drops`: number of records dropped because of delegation only setting
-* `dnssec-queries`: number of queries received with the DO and/or AD bit set
+* `dnssec-queries`: number of queries received with the DO bit set
 * `dnssec-result-bogus`: number of DNSSEC validations that had the Bogus state
 * `dnssec-result-indeterminate`: number of DNSSEC validations that had the Indeterminate state
 * `dnssec-result-insecure`: number of DNSSEC validations that had the Insecure state
