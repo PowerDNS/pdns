@@ -153,21 +153,6 @@ This release features many low-level performance fixes. Other notable changes si
 ## PowerDNS Recursor 4.0.0-alpha1
 Released December 24th 2015
 
-
-# PowerDNS Authoritative Server 3.4.9
-Released 17th of May 2016
-
-This is a minor bugfix and performance release. Two contributions by Kees Monshouwer make 3.4.9 fully compatible with the new single key ECDSA default that is coming in version 4.0.0.
-
-Changes since 3.4.8:
-
-- [commit 4627ea0](https://github.com/PowerDNS/pdns/commit/4627ea0), [commit 8350828](https://github.com/PowerDNS/pdns/commit/8350828): use OpenSSL for ECDSA signing where available (Kees Monshouwer)
-- [commit 558ff84](https://github.com/PowerDNS/pdns/commit/558ff84): allow common signing key (Kees Monshouwer)
-- [commit 280d665](https://github.com/PowerDNS/pdns/commit/280d665): Add a disable-syslog setting
-- [commit 58d6ab6](https://github.com/PowerDNS/pdns/commit/58d6ab6): fix SOA caching with multiple backends (Kees Monshouwer)
-- [commit e9e413f](https://github.com/PowerDNS/pdns/commit/e9e413f), [commit 6af4652](https://github.com/PowerDNS/pdns/commit/6af4652): whitespace-related zone parsing fixes [ticket #3568](https://github.com/PowerDNS/pdns/issues/3568)
-- [commit 7473a5e](https://github.com/PowerDNS/pdns/commit/7473a5e): bindbackend: fix, set domain in list() (Kees Monshouwer)
-
 # PowerDNS Authoritative Server 4.0.0
 UNRELEASED - trial packages in [our repositories](https://repo.powerdns.com).
 
@@ -192,6 +177,7 @@ In addition to this cleanup, 4.0.0 brings the following new features:
 - DNSUpdate is no longer experimental.
 - Default ECDSA (algorithms 13 and 14) support without external dependencies.
 - Experimental support for ed25519 DNSSEC signatures (when compiled with libsodium support).
+- IXFR consumption support.
 - Many new `pdnsutil` commands
     - `help` command now produces the help
     - Warns if the configuration file cannot be read
@@ -218,7 +204,16 @@ Important changes:
 - Crypto++ and mbedTLS support is dropped, these are replaced by OpenSSL
 - The INCEPTION, INCEPTION-WEEK and EPOCH SOA-EDIT metadata values are marked as deprecated and will be removed in 4.1
 
-to be continued....
+The final release has the following bug fixes compared to rc2:
+
+ - [#4071](https://github.com/PowerDNS/pdns/pull/4071) Abort on backend failures at startup and retry while running (Kees Monshouwer)
+ - [#4099](https://github.com/PowerDNS/pdns/pull/4099) Don't leak TCP connection descriptor if `pthread_create()` failed
+ - [#4137](https://github.com/PowerDNS/pdns/pull/4137) gsqlite3: Check whether foreign keys should be turned on (Aki Tuomi)
+
+And the following improvements:
+
+ - [#3051](https://github.com/PowerDNS/pdns/pull/3051) Better error message for unfound new slave domains
+ - [#4123](https://github.com/PowerDNS/pdns/pull/4123) check-zone: warn on mismatch between algo and NSEC mode
 
 ## PowerDNS Authoritative Server 4.0.0-rc2
 Released June 29th 2016
@@ -343,6 +338,21 @@ Notable changes since 4.0.0-alpha1
 
 ## PowerDNS Authoritative Server 4.0.0-alpha1
 Released December 24th 2015
+
+
+# PowerDNS Authoritative Server 3.4.9
+Released 17th of May 2016
+
+This is a minor bugfix and performance release. Two contributions by Kees Monshouwer make 3.4.9 fully compatible with the new single key ECDSA default that is coming in version 4.0.0.
+
+Changes since 3.4.8:
+
+- [commit 4627ea0](https://github.com/PowerDNS/pdns/commit/4627ea0), [commit 8350828](https://github.com/PowerDNS/pdns/commit/8350828): use OpenSSL for ECDSA signing where available (Kees Monshouwer)
+- [commit 558ff84](https://github.com/PowerDNS/pdns/commit/558ff84): allow common signing key (Kees Monshouwer)
+- [commit 280d665](https://github.com/PowerDNS/pdns/commit/280d665): Add a disable-syslog setting
+- [commit 58d6ab6](https://github.com/PowerDNS/pdns/commit/58d6ab6): fix SOA caching with multiple backends (Kees Monshouwer)
+- [commit e9e413f](https://github.com/PowerDNS/pdns/commit/e9e413f), [commit 6af4652](https://github.com/PowerDNS/pdns/commit/6af4652): whitespace-related zone parsing fixes [ticket #3568](https://github.com/PowerDNS/pdns/issues/3568)
+- [commit 7473a5e](https://github.com/PowerDNS/pdns/commit/7473a5e): bindbackend: fix, set domain in list() (Kees Monshouwer)
 
 # PowerDNS Authoritative Server 3.4.8
 Released 3rd of February 2016
