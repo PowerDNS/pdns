@@ -1,4 +1,4 @@
-@       86400   IN  SOA pdns-public-ns1.powerdns.com. pieter\.lexis.powerdns.com. 2016062902 10800 3600 604800 10800
+@       86400   IN  SOA pdns-public-ns1.powerdns.com. pieter\.lexis.powerdns.com. 2016071101 10800 3600 604800 10800
 @       3600    IN  NS  pdns-public-ns1.powerdns.com.
 @       3600    IN  NS  pdns-public-ns2.powerdns.com.
 ; Auth
@@ -102,6 +102,7 @@ recursor-4.0.0-alpha2.security-status                   60 IN TXT "0 Unknown, pr
 recursor-4.0.0-alpha3.security-status                   60 IN TXT "0 Unknown, prerelease"
 recursor-4.0.0-beta1.security-status                    60 IN TXT "0 Unknown, prerelease"
 recursor-4.0.0-rc1.security-status                      60 IN TXT "0 Unknown, prerelease"
+recursor-4.0.0.security-status                          60 IN TXT "1 OK"
 
 ; Recursor Debian
 recursor-3.6.2-2.debian.security-status                 60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
