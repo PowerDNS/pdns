@@ -1,7 +1,7 @@
 **Note**: Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
 
 # PowerDNS Recursor 4.0.0
-UNRELEASED - trial packages on [our repositories](https://repo.powerdns.com).
+Released July 11th 2016
 
 PowerDNS Recursor 4.0.0 is part of [the great 4.x "Spring Cleaning"](http://blog.powerdns.com/2015/11/28/powerdns-spring-cleaning/) of PowerDNS which lasted through the end of 2015.
 
@@ -154,7 +154,7 @@ This release features many low-level performance fixes. Other notable changes si
 Released December 24th 2015
 
 # PowerDNS Authoritative Server 4.0.0
-UNRELEASED - trial packages in [our repositories](https://repo.powerdns.com).
+Released July 11th 2016
 
 PowerDNS Authoritative Server 4.0.0 is part of [the great 4.x "Spring Cleaning"](http://blog.powerdns.com/2015/11/28/powerdns-spring-cleaning/)
 of PowerDNS which lasted through the end of 2015.
