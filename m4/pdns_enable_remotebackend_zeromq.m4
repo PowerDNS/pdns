@@ -15,7 +15,7 @@ AC_DEFUN([PDNS_ENABLE_REMOTEBACKEND_ZEROMQ],[
 
   AS_IF([test "x$enable_remotebackend_zeromq" != "xno"],
     [
-      AS_IF([test "x$have_remotebackend" == "xyes"],
+      AS_IF([test "x$have_remotebackend" = "xyes"],
         [
           PKG_CHECK_MODULES([LIBZMQ], [libzmq],
             [

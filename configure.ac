@@ -349,7 +349,7 @@ AC_MSG_NOTICE([----------------])
 AC_MSG_NOTICE([Built-in modules: $modules])
 AC_MSG_NOTICE([Dynamic modules: $dynmodules])
 AC_MSG_NOTICE([])
-AS_IF([test "x$openssl_ecdsa" == "xyes"],
+AS_IF([test "x$openssl_ecdsa" = "xyes"],
   [AC_MSG_NOTICE([OpenSSL ecdsa: yes])],
   [AC_MSG_NOTICE([OpenSSL ecdsa: no])]
 )
@@ -363,7 +363,7 @@ AS_IF([test "x$LUAPC" != "x"],
     [AC_MSG_NOTICE([LuaJit: $LUAJITPC])],
     [AC_MSG_NOTICE([Lua/LuaJit: no])])
 ])
-AS_IF([test "x$enable_experimental_gss_tsig" == "xyes"],
+AS_IF([test "x$enable_experimental_gss_tsig" = "xyes"],
   [AC_MSG_NOTICE([GSS-TSIG: yes])]
 )
 AS_IF([test "x$systemd" != "xn"],
