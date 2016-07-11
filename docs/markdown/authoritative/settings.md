@@ -165,7 +165,7 @@ Operate as a daemon.
 
 ## `default-ksk-algorithms`
 * String
-* Default: rsasha256
+* Default: ecdsa256
 
 The algorithm that should be used for the KSK when running
 [`pdnsutil secure-zone`](../manpages/pdnsutil.1.md).
@@ -222,7 +222,7 @@ TTL to use when none is provided.
 
 ## `default-zsk-algorithms`
 * String
-* Default: rsasha256
+* Default: (empty)
 
 The algorithm that should be used for the ZSK when running
 [`pdnsutil secure-zone`](../manpages/pdnsutil.1.md).
@@ -319,13 +319,6 @@ section when sending a referral.
 
 Seconds to cache domain metadata from the database. A value of 0 disables caching.
 
-## `edns-subnet-option-number`
-* Integer
-* Removed in 3.4.
-
-If [`edns-subnet-processing`](#edns-subnet-processing) is enabled, this option
-allows the user to override the option number.
-
 ## `edns-subnet-processing`
 * Boolean
 * Default: no
@@ -377,13 +370,6 @@ In this case, there are 2 instances of the gmysql backend, one by the normal nam
 and the second one is called 'server2'. The backend configuration item names
 change: e.g. `gmysql-host` is available to configure the `host` setting of the
 first or main instance, and `gmysql-server2-host` for the second one.
-
-## `lazy-recursion`
-* Boolean
-* Default: yes
-* Removed in: 3.2
-
-Check local data first before recursing. See ["Recursion"](recursion.md).
 
 ## `load-modules`
 * Paths, seperated by commas
@@ -750,15 +736,6 @@ Default [SOA](../types.md#soa) refresh.
 
 Default [SOA](../types.md#soa) retry.
 
-## `soa-serial-offset`
-* Integer
-* Removed in: 3.4
-
-If your database contains single-digit SOA serials and you need to host .DE
-domains, this setting can help placate their 6-digit SOA serial requirements.
-Suggested value is to set this to 1000000 which adds 1000000 to all SOA Serials
-under that offset.
-
 ## `socket-dir`
 * Path
 
@@ -769,13 +746,6 @@ compile-time (usually `/var/run` or `/run`). See
 This path will also contain the pidfile for this instance of PowerDNS called
 `pdns.pid` by default. See [`config-name`](#config-name) and
 [Virtual Hosting](running.md#virtual-hosting) how this can differ.
-
-## `strict-rfc-axfrs`
-* Boolean
-* Default: no
-
-Perform strictly RFC-conforming AXFRs, which are slow, but may be necessary to
-placate some old client tools.
 
 ## `tcp-control-address`
 * IP Address
