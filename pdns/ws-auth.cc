@@ -628,14 +628,7 @@ static void apiZoneMetadata(HttpRequest* req, HttpResponse *resp) {
     if (!B.setDomainMetadata(zonename, kind, vecMetadata))
       throw ApiException("Could not update metadata entries for domain '" + zonename.toString() + "'");
 
-    Json::object key {
-      { "type", "Metadata" },
-      { "kind", document["kind"] },
-      { "metadata", metadata }
-    };
-
     resp->status = 201;
-    resp->setBody(key);
   } else
     throw HttpMethodNotAllowedException();
 }
