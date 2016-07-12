@@ -24,6 +24,20 @@ class testInterop(RecursorTest):
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertRRsetInAnswer(res, expected)
 
+    def testCNAMEWithLowerEntries(self):
+        """
+        #4158, When chasing down for DS/DNSKEY and we find a CNAME, skip a level
+        """
+        expected = dns.rrset.from_text('node1.insecure.sub2.secure.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.18')
+
+        query = dns.message.make_query('node1.insecure.sub2.secure.example.', 'A')
+        query.flags |= dns.flags.AD
+        res = self.sendUDPQuery(query)
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'], ['DO'])
+        self.assertRRsetInAnswer(res, expected)
+
     @classmethod
     def startResponders(cls):
         print("Launching responders..")
