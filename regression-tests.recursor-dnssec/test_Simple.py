@@ -1,10 +1,22 @@
 import dns
+import os
 from recursortests import RecursorTest
 
 class testSimple(RecursorTest):
     _confdir = 'Simple'
 
-    _config_template = """dnssec=validate"""
+    _config_template = """dnssec=validate
+auth-zones=authzone.example=configs/%s/authzone.zone""" % _confdir
+
+    @classmethod
+    def generateRecursorConfig(cls, confdir):
+        authzonepath = os.path.join(confdir, 'authzone.zone')
+        with open(authzonepath, 'w') as authzone:
+            authzone.write("""$ORIGIN authzone.example.
+@ 3600 IN SOA {soa}
+@ 3600 IN A 192.0.2.88
+""".format(soa=cls._SOA))
+        super(testSimple, cls).generateRecursorConfig(confdir)
 
     def testSOAs(self):
         for zone in ['.', 'example.', 'secure.example.']:
@@ -46,3 +58,29 @@ class testSimple(RecursorTest):
         res = self.sendUDPQuery(query)
 
         self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
+
+    def testAuthZone(self):
+        query = dns.message.make_query('authzone.example', 'A', want_dnssec=True)
+
+        expectedA = dns.rrset.from_text('authzone.example.', 0, 'IN', 'A', '192.0.2.88')
+
+        res = self.sendUDPQuery(query)
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertRRsetInAnswer(res, expectedA)
+
+    def testLocalhost(self):
+        queryA = dns.message.make_query('localhost', 'A', want_dnssec=True)
+        expectedA = dns.rrset.from_text('localhost.', 0, 'IN', 'A', '127.0.0.1')
+
+        queryPTR = dns.message.make_query('1.0.0.127.in-addr.arpa', 'PTR', want_dnssec=True)
+        expectedPTR = dns.rrset.from_text('1.0.0.127.in-addr.arpa.', 0, 'IN', 'PTR', 'localhost.')
+
+        resA = self.sendUDPQuery(queryA)
+        resPTR = self.sendUDPQuery(queryPTR)
+
+        self.assertRcodeEqual(resA, dns.rcode.NOERROR)
+        self.assertRRsetInAnswer(resA, expectedA)
+
+        self.assertRcodeEqual(resPTR, dns.rcode.NOERROR)
+        self.assertRRsetInAnswer(resPTR, expectedPTR)
