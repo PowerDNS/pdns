@@ -225,6 +225,13 @@ your network, and may even be a security risk. Therefore, since version 3.1.5,
 the PowerDNS recursor by default does not query private space IP addresses.
 This setting can be used to expand or reduce the limitations.
 
+## `edns-outgoing-bufsize`
+* Integer
+* Default: 1680
+
+This is the value set for the EDNS0 buffer size in outgoing packets.
+Lower this if you experience timeouts.
+
 ## `entropy-source`
 * Path
 * Default: /dev/urandom
