@@ -312,6 +312,11 @@ public:
     return d_wasVariable;
   }
 
+  bool wasOutOfBand() const
+  {
+    return d_wasOutOfBand;
+  }
+
   int asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res);
 
   static void doEDNSDumpAndClose(int fd);
@@ -340,6 +345,7 @@ public:
   bool d_doDNSSEC;
   
   bool d_wasVariable{false};
+  bool d_wasOutOfBand{false};
   
   typedef multi_index_container <
     NegCacheEntry,
