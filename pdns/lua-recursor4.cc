@@ -437,8 +437,7 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   
   ifstream ifs(fname);
   if(!ifs) {
-    theL()<<Logger::Error<<"Unable to read configuration file from '"<<fname<<"': "<<strerror(errno)<<endl;
-    return;
+    throw std::runtime_error("Unable to read configuration file from '"+fname+"': "+strerror(errno));
   }  	
   d_lw->executeCode(ifs);
 
