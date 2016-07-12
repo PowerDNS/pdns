@@ -194,7 +194,7 @@ outgoing queries. Don't do any validation.
 ### `process`
 Respond with DNSSEC records to clients that ask for it, set the DO bit on all
 outgoing queries. Do validation for clients that request it (by means of the AD-
-bit in the query).
+bit or DO-bit in the query).
 
 ### `log-fail`
 Similar behaviour to `process`, but validate RRSIGs on responses and log bogus

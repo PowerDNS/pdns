@@ -22,12 +22,14 @@ requested by the client.
 
 ## `process`
 When `dnssec` is set to `process` the behaviour is similar to [`process-no-validate`](#process-no-validate).
-However, when the query has the AD-bit set, the recursor will try to validate the
-data and set the AD-bit in the response when the data is validated and send a
-SERVFAIL on a bogus answer.
+However, the recursor will try to validate the data if at least one of the DO or AD bits is set in the query; in that case, it will set the AD-bit in the response when the data is validated successfully, or send SERVFAIL when the validation comes up bogus.
+
+**Note:** in 4.0.0, only the AD-bit was considered when determining whether to validate.
+This lead to interoperability issues with older client software.
+From 4.0.1-onward, the DO-bit is also taken into account when determining whether to validate.
 
 ## `log-fail`
-In this mode , the recursor will attempt to validate all data it retrieves from
+In this mode, the recursor will attempt to validate all data it retrieves from
 authoritative servers, regardless of the client's DNSSEC desires, and will log the
 validation result. This mode can be used to determine the extra load and amount
 of possibly bogus answers before turning on full-blown validation. Responses to
@@ -44,9 +46,9 @@ with regards to the `dnssec` mode.
 
 |    | `off` | `process-no-validate` | `process` | `log-fail` | `validate` |
 |:------------|:-------|:-------------|:-------------|:-------------|:-------------|
-|Perform validation| No | No | Only on +AD from client | Always (logs result) | Always |
-|SERVFAIL on bogus| No | No | Only on +AD from client | Only on +AD from client | Always |
-|AD in response on authenticated data| Never | Never | Only on +AD from client | Only on +AD from client | Only on +AD from client |
+|Perform validation| No | No | Only on +AD or +DO from client | Always (logs result) | Always |
+|SERVFAIL on bogus| No | No | Only on +AD or +DO from client | Only on +AD or +DO from client | Always |
+|AD in response on authenticated data| Never | Never | Only on +AD or +DO from client | Only on +AD or +DO from client | Only on +AD or +DO from client |
 |RRSIGs/NSECs in answer on +DO from client| No | Yes | Yes | Yes | Yes |
 
 **Note**: the `dig` tool sets the AD-bit in the query. This might lead to unexpected
