@@ -614,12 +614,17 @@ zone\_metadata\_resource
       ]
     }
 
-Valid values for `<metadata_kind>` are specified in
+##### Parameters:
+
+`kind`: valid values for `<metadata_kind>` are specified in
 [the `domainmetadata` documentation](../authoritative/domainmetadata.md).
 
-Clients MUST NOT modify `NSEC3PARAM`, `NSEC3NARROW` or `PRESIGNED`
-through this interface. The server SHOULD reject updates to these
-metadata.
+`metadata`: an array with all values for this metadata kind.
+
+Clients MUST NOT modify `NSEC3PARAM`, `NSEC3NARROW`, `PRESIGNED` and
+`LUA-AXFR-SCRIPT` through this interface. The server rejects updates to
+these metadata. Modifications to custom metadata kinds are rejected
+through this interface.
 
 
 URL: /api/v1/servers/:server\_id/zones/:zone\_name/metadata
@@ -629,14 +634,39 @@ Collection access.
 
 Allowed methods: `GET`, `POST`
 
-**TODO**: Not yet implemented.
+#### GET
+
+Returns all metadata entries for the zone.
+
+
+#### POST
+
+Creates a set of metadata entries of given kind for the zone.
+
+* existing metadata entries for the zone with the same kind are not overwritten.
+
 
 URL: /api/v1/servers/:server\_id/zones/:zone\_name/metadata/:metadata\_kind
 ---------------------------------------------------------------------------
 
 Allowed methods: `GET`, `PUT`, `DELETE`
 
-**TODO**: Not yet implemented.
+#### GET
+
+Returns all metadata entries of a given kind for the zone.
+
+
+#### DELETE
+
+Deletes all metadata entries of a given kind for the zone.
+
+
+#### PUT
+
+Modifies the metadata entries of a given kind for the zone.
+
+This returns `200 OK` on success.
+
 
 CryptoKeys
 ==========
