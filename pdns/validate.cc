@@ -381,7 +381,11 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
 
         for(const auto& v : validrrsets) {
           LOG("Do have: "<<v.first.first<<"/"<<DNSRecordContent::NumberToType(v.first.second)<<endl);
-          if(v.first.second==QType::NSEC) { // check that it covers us!
+          if(v.first.second==QType::CNAME) {
+            LOG("Found CNAME for "<< v.first.first << ", ignoring records at this level."<<endl);
+            goto skipLevel;
+          }
+          else if(v.first.second==QType::NSEC) { // check that it covers us!
             for(const auto& r : v.second.records) {
               LOG("\t"<<r->getZoneRepresentation()<<endl);
               auto nsec = std::dynamic_pointer_cast<NSECRecordContent>(r);
