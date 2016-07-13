@@ -66,7 +66,6 @@ private:
 
   vector<int>d_sockets;
   vector<struct pollfd> d_prfds;
-  static int s_timeout;
 };
 
 #endif /* PDNS_TCPRECEIVER_HH */
