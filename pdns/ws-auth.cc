@@ -615,7 +615,7 @@ static void gatherRecordsFromZone(const std::string& zonestring, vector<DNSResou
     }
   }
   catch(std::exception& ae) {
-    throw ApiException("An error occured while parsing the zonedata: "+string(ae.what()));
+    throw ApiException("An error occurred while parsing the zonedata: "+string(ae.what()));
   }
 }
 

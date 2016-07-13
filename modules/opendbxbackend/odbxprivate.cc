@@ -25,7 +25,7 @@ bool OdbxBackend::connectTo( const vector<string>& hosts, QueryType type )
 
         if( type == WRITE && getArg( "backend" ) == "sqlite" )
         {
-        	L.log( m_myname + " Using same SQLite connection for reading and writeing to '" + hosts[odbx_host_index[READ]] + "'", Logger::Notice );
+        	L.log( m_myname + " Using same SQLite connection for reading and writing to '" + hosts[odbx_host_index[READ]] + "'", Logger::Notice );
         	m_handle[WRITE] = m_handle[READ];
         	return true;
         }
