@@ -971,10 +971,6 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
   string editor="editor";
   if(auto e=getenv("EDITOR")) // <3
     editor=e;
-  int err=system(("which " + editor + " >/dev/null 2>&1").c_str());
-  if(err) {
-    editor="vi";
-  }
   string cmdline;
  editAgain:;
   di.backend->list(zone, di.id);
@@ -1005,15 +1001,19 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
  editMore:;
   struct stat statbefore, statafter;
   stat(tmpnam,&statbefore);
-  cmdline=editor+" ";
+  cmdline=" ";
   if(gotoline > 0)
     cmdline+="+"+std::to_string(gotoline)+" ";
   cmdline += tmpnam;
-  err=system(cmdline.c_str());
+  int err=system((editor + cmdline).c_str());
   if(err) {
-    unixDie("Editing file with: '"+cmdline+"', perhaps set EDITOR variable");
+    err=system(("vi" + cmdline).c_str());
+  }
+  if(err) {
+    unixDie("Editing file with: '"+editor+" "+cmdline+"', perhaps set EDITOR variable");
   }
   cmdline.clear();
+  editor.clear();
   stat(tmpnam,&statafter);
   if(first && statbefore.st_ctime == statafter.st_ctime) {
     cout<<"No change to file"<<endl;
