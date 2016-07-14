@@ -92,7 +92,7 @@ answers-slow + packetcache-hits + over-capacity-drops + policy-drops = questions
 Also note that unauthorized-tcp and unauthorized-udp packets do not end up in
 the 'questions' count.
 
-Every half our or so, the recursor outputs a line with statistics. More
+Every half hour or so, the recursor outputs a line with statistics. More
 infrastructure is planned so as to allow for Cricket or MRTG graphs. To force
 the output of statistics, send the process a SIGUSR1. A line of statistics looks
 like this:
@@ -112,4 +112,5 @@ answer a question. Initially this ratio may be well over 100% as additional
 queries may be needed to actually recurse the DNS and figure out the addresses
 of nameservers.
 
-Finally, 12% of queries were not performed because identical queries had gone out previously, saving load servers worldwide.
+Finally, 12% of queries were not performed because identical queries had gone out
+previously, saving load on servers worldwide.
