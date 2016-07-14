@@ -53,24 +53,32 @@ vState validateRecords(const vector<DNSRecord>& recs)
   SRRecordOracle sro;
 
   vState state=Insecure;
+  bool hadNTA = false;
   if(numsigs) {
+    bool first = true;
     for(const auto& csp : cspmap) {
       for(const auto& sig : csp.second.signatures) {
-        state = getKeysFor(sro, sig->d_signer, keys); // XXX check validity here
-        if(state == NTA) {
-          increaseDNSSECStateCounter(state);
-          return Insecure;
-        }
+        vState newState = getKeysFor(sro, sig->d_signer, keys); // XXX check validity here
+
+        if (newState == Bogus) // No hope
+          return increaseDNSSECStateCounter(Bogus);
+
+        if (first && newState == Secure)
+          state = Secure;
+        first = false;
+
+        if (newState == Insecure || newState == NTA) // We can never go back to Secure
+          state = Insecure;
+
+        if (newState == NTA)
+          hadNTA = true;
+
         LOG("! state = "<<vStates[state]<<", now have "<<keys.size()<<" keys"<<endl);
         for(const auto& k : keys) {
           LOG("Key: "<<k.getZoneRepresentation()<< " {tag="<<k.getTag()<<"}"<<endl);
         }
-        // this sort of charges on and 'state' ends up as the last thing to have been checked
-        // maybe not the right idea
       }
     }
-    if(state == Bogus)
-      return increaseDNSSECStateCounter(state);
     validateWithKeySet(cspmap, validrrsets, keys);
   }
   else {
@@ -86,8 +94,13 @@ vState validateRecords(const vector<DNSRecord>& recs)
   if(validrrsets.size() == cspmap.size())// shortcut - everything was ok
     return increaseDNSSECStateCounter(Secure);
 
-  if(keys.empty())
+  if(state == Insecure || keys.empty()) {
+    if (hadNTA) {
+      increaseDNSSECStateCounter(NTA);
+      return Insecure;
+    }
     return increaseDNSSECStateCounter(Insecure);
+  }
 
 #if 0
   cerr<<"! validated "<<validrrsets.size()<<" RRsets out of "<<cspmap.size()<<endl;
@@ -108,6 +121,5 @@ vState validateRecords(const vector<DNSRecord>& recs)
       return increaseDNSSECStateCounter(Bogus);
     }
   }
-  
   return increaseDNSSECStateCounter(Insecure);
 }
