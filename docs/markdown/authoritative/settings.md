@@ -356,7 +356,7 @@ exist on this server.
 
 ## `local-ipv6`
 * IPv6 Addresses, separated by commas or whitespace
-* Default: ::
+* Default: empty
 
 Local IPv6 address to which we bind. It is highly advised to bind to specific
 interfaces and not use the default 'bind to any'. This causes big problems if
