@@ -203,16 +203,13 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
   }
 
   vector<string> labels = zone.getRawLabels();
-  vState state;
-
-  state = Indeterminate;
 
   typedef std::multimap<uint16_t, DSRecordContent> dsmap_t;
   dsmap_t dsmap;
   keyset_t validkeys;
 
   DNSName qname = lowestTA;
-  state = Secure; // the lowest Trust Anchor is secure
+  vState state = Secure; // the lowest Trust Anchor is secure
 
   while(zone.isPartOf(qname))
   {
