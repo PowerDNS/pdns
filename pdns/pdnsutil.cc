@@ -965,7 +965,6 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
     string d_name;
   } dm(tmpnam);
 
-  bool first=true;
   vector<DNSResourceRecord> checkrr;
   int gotoline=0;
   string editor="editor";
@@ -999,8 +998,6 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
     tmpfd=-1;
   }
  editMore:;
-  struct stat statbefore, statafter;
-  stat(tmpnam,&statbefore);
   cmdline=editor+" ";
   if(gotoline > 0)
     cmdline+="+"+std::to_string(gotoline)+" ";
@@ -1010,12 +1007,6 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
     unixDie("Editing file with: '"+cmdline+"', perhaps set EDITOR variable");
   }
   cmdline.clear();
-  stat(tmpnam,&statafter);
-  if(first && statbefore.st_ctime == statafter.st_ctime) {
-    cout<<"No change to file"<<endl;
-    return EXIT_SUCCESS;
-  }
-  first=false;
   ZoneParserTNG zpt(tmpnam, DNSName("."));
   map<pair<DNSName,uint16_t>, vector<DNSRecord> > grouped;
   while(zpt.get(rr)) {
@@ -1056,7 +1047,6 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
       goto reAsk;
   }
 
-  cout<<"Detected the following changes:\n"<<endl;
 
   vector<DNSRecord> diff;
 
@@ -1076,16 +1066,17 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
     str<<'+'<< d.d_name <<" "<<d.d_ttl<<" IN "<<DNSRecordContent::NumberToType(d.d_type)<<" "<<d.d_content->getZoneRepresentation(true)<<endl;
     changed[{d.d_name,d.d_type}]+=str.str();
   }
+  if (changed.size() > 0)
+    cout<<"Detected the following changes:"<<endl;
   for(const auto& c : changed) {
     cout<<c.second;
   }
  reAsk2:;
-  cout<<"\n";
-  if(changed.empty())
-    cout<<"No changes to apply, ";
-  else
-    cout<<"(a)pply these changes, ";
-  cout<<"(e)dit again, (r)etry with original zone, (q)uit: ";
+  if(changed.empty()) {
+    cout<<endl<<"No changes to apply."<<endl;
+    return(EXIT_SUCCESS);
+  }
+  cout<<endl<<"(a)pply these changes, (e)dit again, (r)etry with original zone, (q)uit: ";
   int c=read1char();
   post.clear();
   cerr<<'\n';
