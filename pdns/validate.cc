@@ -390,8 +390,10 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
               LOG("\t"<<r->getZoneRepresentation()<<endl);
               auto nsec = std::dynamic_pointer_cast<NSECRecordContent>(r);
               if(nsec) {
-                if(v.first.first == qname && !nsec->d_set.count(QType::DS))
+                if(v.first.first == qname && !nsec->d_set.count(QType::DS)) {
+                  LOG("Denies existence of DS!"<<endl);
                   return Insecure;
+                }
                 else if(v.first.first.canonCompare(qname) && qname.canonCompare(nsec->d_next) ) {
                   LOG("Did not find DS for this level, trying one lower"<<endl);
                   goto skipLevel;
