@@ -971,6 +971,10 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
   string editor="editor";
   if(auto e=getenv("EDITOR")) // <3
     editor=e;
+  int err=system(("which " + editor).c_str());
+  if(err) {
+    editor="vi";
+  }
   string cmdline;
  editAgain:;
   di.backend->list(zone, di.id);
@@ -1005,7 +1009,7 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
   if(gotoline > 0)
     cmdline+="+"+std::to_string(gotoline)+" ";
   cmdline += tmpnam;
-  int err=system(cmdline.c_str());
+  err=system(cmdline.c_str());
   if(err) {
     unixDie("Editing file with: '"+cmdline+"', perhaps set EDITOR variable");
   }
