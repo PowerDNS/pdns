@@ -971,7 +971,7 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
   string editor="editor";
   if(auto e=getenv("EDITOR")) // <3
     editor=e;
-  int err=system(("which " + editor).c_str());
+  int err=system(("which " + editor + " >/dev/null 2>&1").c_str());
   if(err) {
     editor="vi";
   }
