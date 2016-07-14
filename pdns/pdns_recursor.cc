@@ -888,7 +888,7 @@ void startDoResolve(void *p)
       pw.getHeader()->rcode=res;
 
       // Does the validation mode or query demand validation?
-      if(g_dnssecmode == DNSSECMode::ValidateAll || g_dnssecmode==DNSSECMode::ValidateForLog || (dc->d_mdp.d_header.ad && g_dnssecmode==DNSSECMode::Process)) {
+      if(g_dnssecmode == DNSSECMode::ValidateAll || g_dnssecmode==DNSSECMode::ValidateForLog || ((dc->d_mdp.d_header.ad || DNSSECOK) && g_dnssecmode==DNSSECMode::Process)) {
         try {
           if(sr.doLog()) {
             L<<Logger::Warning<<"Starting validation of answer to "<<dc->d_mdp.d_qname<<" for "<<dc->d_remote.toStringWithPort()<<endl;
@@ -901,7 +901,7 @@ void startDoResolve(void *p)
             }
             
             // Is the query source interested in the value of the ad-bit?
-            if (dc->d_mdp.d_header.ad)
+            if (dc->d_mdp.d_header.ad || DNSSECOK)
               pw.getHeader()->ad=1;
           }
           else if(state == Insecure) {
@@ -917,7 +917,7 @@ void startDoResolve(void *p)
             }
             
             // Does the query or validation mode sending out a SERVFAIL on validation errors?
-            if(!pw.getHeader()->cd && (g_dnssecmode == DNSSECMode::ValidateAll || dc->d_mdp.d_header.ad)) {
+            if(!pw.getHeader()->cd && (g_dnssecmode == DNSSECMode::ValidateAll || dc->d_mdp.d_header.ad || DNSSECOK)) {
               if(sr.doLog()) {
                 L<<Logger::Warning<<"Sending out SERVFAIL for "<<dc->d_mdp.d_qname<<" because recursor or query demands it for Bogus results"<<endl;
               }

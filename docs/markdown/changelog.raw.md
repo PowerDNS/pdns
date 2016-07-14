@@ -1,5 +1,16 @@
 **Note**: Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
 
+# PowerDNS Recursor 4.0.1
+UNRELEASED
+
+This release improves interoperability with DNSSEC clients that expect an AD-bit on validated data when they query with only the DO-bit set.
+
+## Bug fixes
+
+## Improvements
+
+ - [#4160](https://github.com/PowerDNS/pdns/pull/4160) Also validate on +DO
+
 # PowerDNS Recursor 4.0.0
 Released July 11th 2016
 

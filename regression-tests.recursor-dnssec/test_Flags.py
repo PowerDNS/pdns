@@ -1,6 +1,5 @@
 import os
 import socket
-#import unittest
 
 import dns
 from recursortests import RecursorTest
@@ -241,7 +240,7 @@ class TestFlags(RecursorTest):
         expected = dns.rrset.from_text('ns1.example.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
         res = self.sendUDPQuery(msg, 'process')
 
-        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'], ['DO'])
+        self.assertMessageHasFlags(res, ['AD', 'QR', 'RA', 'RD'], ['DO'])
         self.assertMatchingRRSIGInAnswer(res, expected)
 
     def testValidate_Secure_DO(self):
@@ -249,7 +248,7 @@ class TestFlags(RecursorTest):
         expected = dns.rrset.from_text('ns1.example.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
         res = self.sendUDPQuery(msg, 'validate')
 
-        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'], ['DO'])
+        self.assertMessageHasFlags(res, ['AD', 'QR', 'RA', 'RD'], ['DO'])
         self.assertMatchingRRSIGInAnswer(res, expected)
 
     ##
@@ -275,7 +274,7 @@ class TestFlags(RecursorTest):
         expected = dns.rrset.from_text('ns1.example.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
         res = self.sendUDPQuery(msg, 'process')
 
-        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD', 'CD'], ['DO'])
+        self.assertMessageHasFlags(res, ['AD', 'QR', 'RA', 'RD', 'CD'], ['DO'])
         self.assertMatchingRRSIGInAnswer(res, expected)
 
     def testValidate_Secure_DOCD(self):
@@ -283,7 +282,7 @@ class TestFlags(RecursorTest):
         expected = dns.rrset.from_text('ns1.example.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
         res = self.sendUDPQuery(msg, 'validate')
 
-        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD', 'CD'], ['DO'])
+        self.assertMessageHasFlags(res, ['AD', 'QR', 'RA', 'RD', 'CD'], ['DO'])
         self.assertMatchingRRSIGInAnswer(res, expected)
 
     ##
@@ -482,9 +481,9 @@ class TestFlags(RecursorTest):
         expected = dns.rrset.from_text('ted.bogus.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.1')
         res = self.sendUDPQuery(msg, 'process')
 
-        self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'], ['DO'])
-        self.assertMatchingRRSIGInAnswer(res, expected)
+        self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
+        self.assertAnswerEmpty(res)
 
     def testValidate_Bogus_DO(self):
         msg = self.getQueryForBogus('', 'DO')
