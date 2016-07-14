@@ -1010,7 +1010,7 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
     err=system(("vi" + cmdline).c_str());
   }
   if(err) {
-    unixDie("Editing file with: '"+editor+" "+cmdline+"', perhaps set EDITOR variable");
+    throw runtime_error("Failed to edit with '"+editor+"' or 'vi': please set the EDITOR variable");
   }
   cmdline.clear();
   editor.clear();
