@@ -8,6 +8,10 @@ This release improves interoperability with DNSSEC clients that expect an AD-bit
 ## Bug fixes
 
  - [#4162](https://github.com/PowerDNS/pdns/pull/4162) Don't validate zones from the local auth store, go one level down while validating when there is a CNAME
+ - [#4187](https://github.com/PowerDNS/pdns/pull/4187):
+   * Don't go bogus on islands of security
+   * Check all possible chains for Insecures
+   * Don't go Bogus on a CNAME at the apex
 
 ## Improvements
 
