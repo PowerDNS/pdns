@@ -259,6 +259,55 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
         self.assertEquals(r.status_code, 422)
         self.assertIn('contains unsupported characters', r.json()['error'])
 
+    def test_create_zone_mixed_nameservers_ns_rrset_zonelevel(self):
+        name = unique_zone_name()
+        rrset = {
+            "name": name,
+            "type": "NS",
+            "ttl": 3600,
+            "records": [{
+                "content": "ns2.example.com.",
+                "disabled": False,
+            }],
+        }
+        payload = {
+            'name': name,
+            'kind': 'Native',
+            'nameservers': ['ns1.example.com.'],
+            'rrsets': [rrset],
+        }
+        print payload
+        r = self.session.post(
+            self.url("/api/v1/servers/localhost/zones"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 422)
+        self.assertIn('Nameservers list MUST NOT be mixed with zone-level NS in rrsets', r.json()['error'])
+
+    def test_create_zone_mixed_nameservers_ns_rrset_below_zonelevel(self):
+        name = unique_zone_name()
+        rrset = {
+            "name": 'subzone.'+name,
+            "type": "NS",
+            "ttl": 3600,
+            "records": [{
+                "content": "ns2.example.com.",
+                "disabled": False,
+            }],
+        }
+        payload = {
+            'name': name,
+            'kind': 'Native',
+            'nameservers': ['ns1.example.com.'],
+            'rrsets': [rrset],
+        }
+        print payload
+        r = self.session.post(
+            self.url("/api/v1/servers/localhost/zones"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assert_success_json(r)
+
     def test_create_zone_with_symbols(self):
         name, payload, data = self.create_zone(name='foo/bar.'+unique_zone_name())
         name = payload['name']
