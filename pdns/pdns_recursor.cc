@@ -709,6 +709,7 @@ void startDoResolve(void *p)
 
     bool tracedQuery=false; // we could consider letting Lua know about this too
     bool variableAnswer = false;
+    bool shouldNotValidate = false;
 
     int res;
     DNSFilterEngine::Policy dfepol;
@@ -787,10 +788,10 @@ void startDoResolve(void *p)
       break;
     }
 
-
     if(!t_pdl->get() || !(*t_pdl)->preresolve(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_tcp, ret, dc->d_ednsOpts.empty() ? 0 : &dc->d_ednsOpts, dc->d_tag, &appliedPolicy, &dc->d_policyTags, res, &variableAnswer)) {
       try {
         res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
+        shouldNotValidate = sr.wasOutOfBand();
       }
       catch(ImmediateServFailException &e) {
         if(g_logCommonErrors)
@@ -888,7 +889,7 @@ void startDoResolve(void *p)
       pw.getHeader()->rcode=res;
 
       // Does the validation mode or query demand validation?
-      if(g_dnssecmode == DNSSECMode::ValidateAll || g_dnssecmode==DNSSECMode::ValidateForLog || ((dc->d_mdp.d_header.ad || DNSSECOK) && g_dnssecmode==DNSSECMode::Process)) {
+      if(!shouldNotValidate && (g_dnssecmode == DNSSECMode::ValidateAll || g_dnssecmode==DNSSECMode::ValidateForLog || ((dc->d_mdp.d_header.ad || DNSSECOK) && g_dnssecmode==DNSSECMode::Process))) {
         try {
           if(sr.doLog()) {
             L<<Logger::Warning<<"Starting validation of answer to "<<dc->d_mdp.d_qname<<" for "<<dc->d_remote.toStringWithPort()<<endl;

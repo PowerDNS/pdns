@@ -125,6 +125,7 @@ int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qcl
 {
   s_queries++;
   d_wasVariable=false;
+  d_wasOutOfBand=false;
 
   if( (qtype.getCode() == QType::AXFR))
     return -1;
@@ -146,6 +147,7 @@ int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qcl
     else
       dr.d_content=shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(QType::A, 1, "127.0.0.1"));
     ret.push_back(dr);
+    d_wasOutOfBand=true;
     return 0;
   }
 
@@ -165,6 +167,7 @@ int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qcl
       dr.d_content=shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(QType::TXT, 3, "\""+s_serverID+"\""));
 
     ret.push_back(dr);
+    d_wasOutOfBand=true;
     return 0;
   }
 
@@ -420,7 +423,7 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
         const vector<ComboAddress>& servers = iter->second.d_servers;
         if(servers.empty()) {
           ret.clear();
-          doOOBResolve(qname, qtype, ret, depth, res);
+          d_wasOutOfBand = doOOBResolve(qname, qtype, ret, depth, res);
           return res;
         }
         else {
@@ -982,7 +985,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
       LWResult lwr;
       if(tns->empty() && nameservers[*tns].first.empty() ) {
         LOG(prefix<<qname<<": Domain is out-of-band"<<endl);
-        doOOBResolve(qname, qtype, lwr.d_records, depth, lwr.d_rcode);
+        d_wasOutOfBand = doOOBResolve(qname, qtype, lwr.d_records, depth, lwr.d_rcode);
         lwr.d_tcbit=false;
         lwr.d_aabit=true;
       }

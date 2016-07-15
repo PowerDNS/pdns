@@ -105,6 +105,10 @@ cname-to-bogus.secure.example.    3600 IN CNAME ted.bogus.example.
 
 host1.sub.secure.example. 3600 IN A    192.0.2.11
 
+;; See #4158
+sub2.secure.example. 3600 IN CNAME doesnotmatter.insecure.example.
+insecure.sub2.secure.example. 3600 IN NS ns1.insecure.example.
+
 *.wildcard.secure.example.    3600 IN A    192.0.2.10
 
 *.cnamewildcard.secure.example. 3600 IN CNAME host1.secure.example.
@@ -119,6 +123,12 @@ bogus.example.           3600 IN NS   ns1.bogus.example.
 ns1.bogus.example.       3600 IN A    {prefix}.12
 ted.bogus.example.       3600 IN A    192.0.2.1
 bill.bogus.example.      3600 IN AAAA 2001:db8:12::3
+        """,
+        'insecure.sub2.secure.example': """
+insecure.sub2.secure.example.        3600 IN SOA  {soa}
+insecure.sub2.secure.example.        3600 IN NS   ns1.insecure.example.
+
+node1.insecure.sub2.secure.example.  3600 IN A    192.0.2.18
         """,
         'insecure.example': """
 insecure.example.        3600 IN SOA  {soa}
@@ -206,7 +216,7 @@ PrivateKey: xcNUxt1Knj14A00lKQFDboluiJyM2f7FxpgsQaQ3AQ4=
         '10': ['example'],
         '11': ['example'],
         '12': ['bogus.example'],
-        '13': ['insecure.example'],
+        '13': ['insecure.example', 'insecure.sub2.secure.example'],
         '14': ['optout.example'],
         '15': ['insecure.optout.example', 'secure.optout.example']
     }
