@@ -109,7 +109,7 @@ if daemon == 'authoritative':
         pdns_conf.write(AUTH_CONF_TPL)
 
     subprocess.check_call(PDNSUTIL_CMD + ["secure-zone", "powerdnssec.org"])
-    pdnscmd = ("../pdns/pdns_server --daemon=no --local-address=127.0.0.1 --local-port=5300 --socket-dir=./ --no-shuffle --dnsupdate=yes --cache-ttl=0 --config-dir=. --api=yes --webserver-port="+WEBPORT+" --webserver-address=127.0.0.1 --api-key="+APIKEY).split()
+    pdnscmd = ("../pdns/pdns_server --daemon=no --local-address=127.0.0.1 --local-ipv6= --local-port=5300 --socket-dir=./ --no-shuffle --dnsupdate=yes --cache-ttl=0 --config-dir=. --api=yes --webserver-port="+WEBPORT+" --webserver-address=127.0.0.1 --api-key="+APIKEY).split()
 
 else:
     conf_dir = 'rec-conf.d'
