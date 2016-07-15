@@ -566,9 +566,10 @@ powerdns.com.           86400   IN      SOA     powerdnssec1.ds9a.nl. ahu.ds9a.n
 
         eq_zone_rrsets(data['rrsets'], expected)
 
-        # noDot check
+        # check content in DB is stored WITHOUT trailing dot.
         dbrecs = get_db_records(payload['name'], 'NS')
-        self.assertEqual(dbrecs[0]['content'], 'powerdnssec2.ds9a.nl')
+        dbrec = next((dbrec for dbrec in dbrecs if dbrec['content'].startswith('powerdnssec1')))
+        self.assertEqual(dbrec['content'], 'powerdnssec1.ds9a.nl')
 
     def test_import_zone_bind(self):
         payload = {}
@@ -787,6 +788,29 @@ fred   IN  A      192.168.0.4
         data = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name)).json()
         self.assertEquals(get_rrset(data, name, 'NS')['records'], rrset1['records'])
         self.assertEquals(get_rrset(data, name, 'MX')['records'], rrset2['records'])
+
+    def test_zone_rr_update_duplicate_record(self):
+        name, payload, zone = self.create_zone()
+        rrset = {
+            'changetype': 'replace',
+            'name': name,
+            'type': 'NS',
+            'ttl': 3600,
+            'records': [
+                {"content": "ns9999.example.com.", "disabled": False},
+                {"content": "ns9996.example.com.", "disabled": False},
+                {"content": "ns9987.example.com.", "disabled": False},
+                {"content": "ns9988.example.com.", "disabled": False},
+                {"content": "ns9999.example.com.", "disabled": False},
+            ]
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 422)
+        self.assertIn('Duplicate record in RRset', r.json()['error'])
 
     def test_zone_rr_delete(self):
         name, payload, zone = self.create_zone()

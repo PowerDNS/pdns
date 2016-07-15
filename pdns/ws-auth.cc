@@ -991,6 +991,26 @@ static void gatherRecordsFromZone(const std::string& zonestring, vector<DNSResou
   }
 }
 
+/** Throws ApiException if records with duplicate name/type/content are present.
+ *  NOTE: sorts records in-place.
+ */
+static void checkDuplicateRecords(vector<DNSResourceRecord>& records) {
+  sort(records.begin(), records.end(),
+    [](const DNSResourceRecord& rec_a, const DNSResourceRecord& rec_b) -> bool {
+      return rec_a.qname.toString() > rec_b.qname.toString() || \
+        rec_a.qtype.getCode() > rec_b.qtype.getCode() || \
+        rec_a.content < rec_b.content;
+    }
+  );
+  DNSResourceRecord previous;
+  for(const auto& rec : records) {
+    if (previous.qtype == rec.qtype && previous.qname == rec.qname && previous.content == rec.content) {
+      throw ApiException("Duplicate record in RRset " + rec.qname.toString() + " IN " + rec.qtype.getName() + " with content \"" + rec.content + "\"");
+    }
+    previous = rec;
+  }
+}
+
 static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
   UeberBackend B;
   DNSSECKeeper dk(&B);
@@ -999,6 +1019,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     auto document = req->json();
     DNSName zonename = apiNameToDNSName(stringFromJson(document, "name"));
     apiCheckNameAllowedCharacters(zonename.toString());
+    zonename.makeUsLowerCase();
 
     bool exists = B.getDomainInfo(zonename, di);
     if(exists)
@@ -1054,6 +1075,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     }
 
     for(auto& rr : new_records) {
+      rr.qname.makeUsLowerCase();
       if (!rr.qname.isPartOf(zonename) && rr.qname != zonename)
         throw ApiException("RRset "+rr.qname.toString()+" IN "+rr.qtype.getName()+": Name is out of zone");
       apiCheckQNameAllowedCharacters(rr.qname.toString());
@@ -1111,6 +1133,8 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
         throw ApiException("Nameservers list MUST NOT be mixed with zone-level NS in rrsets");
       }
     }
+
+    checkDuplicateRecords(new_records);
 
     // no going back after this
     if(!B.createDomain(zonename))
@@ -1419,6 +1443,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
               rr.content = makeBackendRecordContent(rr.qtype, rr.content);
             }
           }
+          checkDuplicateRecords(new_records);
         }
 
         if (replace_comments) {
