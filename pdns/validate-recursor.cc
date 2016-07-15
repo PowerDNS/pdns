@@ -32,6 +32,25 @@ inline vState increaseDNSSECStateCounter(const vState& state)
   return state;
 }
 
+/*
+ * This inline possibly sets currentState based on the new state. It will only
+ * set it to Secure iff the newState is Secure and mayUpgradeToSecure == true.
+ * This should be set by the calling function when checking more than one record
+ * and this is not the first record, this way, we can never go *back* to Secure
+ * from an Insecure vState
+ */
+inline void processNewState(vState& currentState, const vState& newState, bool& hadNTA, const bool& mayUpgradeToSecure)
+{
+  if (mayUpgradeToSecure && newState == Secure)
+    currentState = Secure;
+
+  if (newState == Insecure || newState == NTA) // We can never go back to Secure
+    currentState = Insecure;
+
+  if (newState == NTA)
+    hadNTA = true;
+}
+
 vState validateRecords(const vector<DNSRecord>& recs)
 {
   if(recs.empty())
@@ -63,15 +82,9 @@ vState validateRecords(const vector<DNSRecord>& recs)
         if (newState == Bogus) // No hope
           return increaseDNSSECStateCounter(Bogus);
 
-        if (first && newState == Secure)
-          state = Secure;
+        processNewState(state, newState, hadNTA, first);
+
         first = false;
-
-        if (newState == Insecure || newState == NTA) // We can never go back to Secure
-          state = Insecure;
-
-        if (newState == NTA)
-          hadNTA = true;
 
         LOG("! state = "<<vStates[state]<<", now have "<<keys.size()<<" keys"<<endl);
         for(const auto& k : keys) {
@@ -83,13 +96,22 @@ vState validateRecords(const vector<DNSRecord>& recs)
   }
   else {
     LOG("! no sigs, hoping for Insecure status of "<<recs.begin()->d_name<<endl);
-    state = getKeysFor(sro, recs.begin()->d_name, keys); // um WHAT DOES THIS MEAN - try first qname??
-   
-    LOG("! state = "<<vStates[state]<<", now have "<<keys.size()<<" keys "<<endl);
-    
+
+    bool first = true;
+    for(const auto& rec : recs) {
+      vState newState = getKeysFor(sro, rec.d_name, keys);
+
+      if (newState == Bogus) // We're done
+        return increaseDNSSECStateCounter(Bogus);
+
+      processNewState(state, newState, hadNTA, first);
+      first = false;
+
+      LOG("! state = "<<vStates[state]<<", now have "<<keys.size()<<" keys "<<endl);
+    }
     return increaseDNSSECStateCounter(state);
   }
-  
+
   LOG("Took "<<sro.d_queries<<" queries"<<endl);
   if(validrrsets.size() == cspmap.size())// shortcut - everything was ok
     return increaseDNSSECStateCounter(Secure);
