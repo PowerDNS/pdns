@@ -64,6 +64,10 @@ public:
   enum { Query=0, IQuery=1, Status=2, Notify=4, Update=5 };
 };
 
+inline bool isHandledOpcode(int o) {
+  return (o == Opcode::Query || o == Opcode::Notify || o == Opcode::Update);
+
+}
 // enum for policy decisions, used by both auth and recursor. Not all values supported everywhere.
 namespace PolicyDecision { enum returnTypes { PASS=-1, DROP=-2, TRUNCATE=-3 }; };
 
