@@ -194,14 +194,20 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			}
 			ComboAddress sourceAddr;
 			unsigned int sourceItf = 0;
-			if(auto address = boost::get<string>(&pvars)) {
+			if(auto addressStr = boost::get<string>(&pvars)) {
+			  ComboAddress address(*addressStr, 53);
 			  std::shared_ptr<DownstreamState> ret;
+			  if(IsAnyAddress(address)) {
+			    g_outputBuffer="Error creating new server: invalid address for a downstream server.";
+			    errlog("Error creating new server: %s is not a valid address for a downstream server", *addressStr);
+			    return ret;
+			  }
 			  try {
-			    ret=std::make_shared<DownstreamState>(ComboAddress(*address, 53));
+			    ret=std::make_shared<DownstreamState>(address);
 			  }
 			  catch(std::exception& e) {
 			    g_outputBuffer="Error creating new server: "+string(e.what());
-			    errlog("Error creating new server with address %s: %s", *address, e.what());
+			    errlog("Error creating new server with address %s: %s", addressStr, e.what());
 			    return ret;
 			  }
 
@@ -280,8 +286,14 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			}
 
 			std::shared_ptr<DownstreamState> ret;
+			ComboAddress address(boost::get<string>(vars["address"]), 53);
+			if(IsAnyAddress(address)) {
+			  g_outputBuffer="Error creating new server: invalid address for a downstream server.";
+			  errlog("Error creating new server: %s is not a valid address for a downstream server", boost::get<string>(vars["address"]));
+			  return ret;
+			}
 			try {
-			  ret=std::make_shared<DownstreamState>(ComboAddress(boost::get<string>(vars["address"]), 53), sourceAddr, sourceItf);
+			  ret=std::make_shared<DownstreamState>(address, sourceAddr, sourceItf);
 			}
 			catch(std::exception& e) {
 			  g_outputBuffer="Error creating new server: "+string(e.what());
