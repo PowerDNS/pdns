@@ -47,7 +47,8 @@ add-nta *DOMAIN* [*REASON*]
 :    Add a Negative Trust Anchor for *DOMAIN*, suffixed optionally with *REASON*.
 
 add-ta *DOMAIN* *DSRECORD*
-:    Add a Trust Anchor for *DOMAIN* with DS record data *DSRECORD*.
+:    Add a Trust Anchor for *DOMAIN* with DS record data *DSRECORD*. This adds the
+     new Trust Anchor to the existing set of Trust Anchors for *DOMAIN*.
 
 current-queries
 :    Shows the currently active queries.

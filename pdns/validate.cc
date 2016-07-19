@@ -204,7 +204,6 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
 
   vector<string> labels = zone.getRawLabels();
 
-  typedef std::multimap<uint16_t, DSRecordContent> dsmap_t;
   dsmap_t dsmap;
   keyset_t validkeys;
 
@@ -213,18 +212,17 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
 
   while(zone.isPartOf(qname))
   {
-    if(auto ds = rplookup(luaLocal->dsAnchors, qname))
-    {
-      dsmap.insert(make_pair(ds->d_tag, *ds));
-    }
-  
+    dsmap_t* tmp = (dsmap_t*) rplookup(luaLocal->dsAnchors, qname);
+    if (tmp)
+      dsmap = *tmp;
+
     vector<RRSIGRecordContent> sigs;
     vector<shared_ptr<DNSRecordContent> > toSign;
     vector<uint16_t> toSignTags;
 
     keyset_t tkeys; // tentative keys
     validkeys.clear();
-    
+
     // start of this iteration
     // we can trust that dsmap has valid DS records for qname
 

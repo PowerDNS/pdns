@@ -14,6 +14,7 @@
 #include "rpzloader.hh"
 #include "base64.hh"
 #include "remote_logger.hh"
+#include "validate.hh"
 
 GlobalStateHolder<LuaConfigItems> g_luaconfs; 
 
@@ -32,9 +33,11 @@ GlobalStateHolder<LuaConfigItems> g_luaconfs;
 
 LuaConfigItems::LuaConfigItems()
 {
-  auto ds=std::unique_ptr<DSRecordContent>(dynamic_cast<DSRecordContent*>(DSRecordContent::make("19036 8 2 49aac11d7b6f6446702e54a1607371607a1a41855200fd2ce1cdde32f24e8fb5")));
+  auto ds=unique_ptr<DSRecordContent>(dynamic_cast<DSRecordContent*>(DSRecordContent::make("19036 8 2 49aac11d7b6f6446702e54a1607371607a1a41855200fd2ce1cdde32f24e8fb5")));
+  dsmap_t dsmap;
+  dsmap.insert({ds->d_tag, *ds});
   // this hurts physically
-  dsAnchors[DNSName(".")] = *ds;
+  dsAnchors[DNSName(".")] = dsmap;
 }
 
 /* DID YOU READ THE STORY ABOVE? */
@@ -219,8 +222,13 @@ void loadRecursorLuaConfig(const std::string& fname)
 		    });
 
   Lua.writeFunction("addDS", [&lci](const std::string& who, const std::string& what) {
-      lci.dsAnchors[DNSName(who)]= *std::unique_ptr<DSRecordContent>(dynamic_cast<DSRecordContent*>(DSRecordContent::make(what)));
-    });
+      DNSName zone(who);
+      dsmap_t dsmap = lci.dsAnchors[zone];
+
+      auto ds = unique_ptr<DSRecordContent>(dynamic_cast<DSRecordContent*>(DSRecordContent::make(what)));
+      dsmap.insert({ds->d_tag, *ds});
+      lci.dsAnchors[zone] = dsmap;
+  });
 
   Lua.writeFunction("clearDS", [&lci](boost::optional<string> who) {
       if(who)
