@@ -92,6 +92,9 @@ ns1.optout.example.      3600 IN A    {prefix}.14
 
 insecure-formerr.example. 3600 IN NS   ns1.insecure-formerr.example.
 ns1.insecure-formerr.example. 3600 IN A    {prefix}.2
+
+islandofsecurity.example.          3600 IN NS   ns1.islandofsecurity.example.
+ns1.islandofsecurity.example.      3600 IN A    {prefix}.9
         """,
         'secure.example': """
 secure.example.          3600 IN SOA  {soa}
@@ -102,6 +105,7 @@ host1.secure.example.    3600 IN A    192.0.2.2
 cname.secure.example.    3600 IN CNAME host1.secure.example.
 cname-to-insecure.secure.example. 3600 IN CNAME node1.insecure.example.
 cname-to-bogus.secure.example.    3600 IN CNAME ted.bogus.example.
+cname-to-islandofsecurity.secure.example. 3600 IN CNAME node1.islandofsecurity.example.
 
 host1.sub.secure.example. 3600 IN A    192.0.2.11
 
@@ -164,6 +168,13 @@ secure.optout.example.          3600 IN NS   ns1.secure.optout.example.
 ns1.secure.optout.example.      3600 IN A    {prefix}.15
 
 node1.secure.optout.example.    3600 IN A    192.0.2.8
+        """,
+        'islandofsecurity.example': """
+islandofsecurity.example.          3600 IN SOA  {soa}
+islandofsecurity.example.          3600 IN NS   ns1.islandofsecurity.example.
+ns1.islandofsecurity.example.      3600 IN A    {prefix}.9
+
+node1.islandofsecurity.example.    3600 IN A    192.0.2.20
         """
     }
 
@@ -204,6 +215,12 @@ PrivateKey: efmq9G+J4Y2iPnIBRwJiy6Z/nIHSzpsCy/7XHhlS19A=
 Private-key-format: v1.2
 Algorithm: 13 (ECDSAP256SHA256)
 PrivateKey: xcNUxt1Knj14A00lKQFDboluiJyM2f7FxpgsQaQ3AQ4=
+        """,
+
+        'islandofsecurity.example': """
+Private-key-format: v1.2
+Algorithm: 13 (ECDSAP256SHA256)
+PrivateKey: o9F5iix8V68tnMcuOaM2Lt8XXhIIY//SgHIHEePk6cM=
         """
     }
 
@@ -212,7 +229,7 @@ PrivateKey: xcNUxt1Knj14A00lKQFDboluiJyM2f7FxpgsQaQ3AQ4=
     # go into the _zones's zonecontent
     _auth_zones = {
         '8': ['ROOT'],
-        '9': ['secure.example'],
+        '9': ['secure.example', 'islandofsecurity.example'],
         '10': ['example'],
         '11': ['example'],
         '12': ['bogus.example'],

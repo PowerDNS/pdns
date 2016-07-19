@@ -84,3 +84,15 @@ auth-zones=authzone.example=configs/%s/authzone.zone""" % _confdir
 
         self.assertRcodeEqual(resPTR, dns.rcode.NOERROR)
         self.assertRRsetInAnswer(resPTR, expectedPTR)
+
+    def testIslandOfSecurity(self):
+        query = dns.message.make_query('cname-to-islandofsecurity.secure.example.', 'A', want_dnssec=True)
+
+        expectedCNAME = dns.rrset.from_text('cname-to-islandofsecurity.secure.example.', 0, 'IN', 'CNAME', 'node1.islandofsecurity.example.')
+        expectedA = dns.rrset.from_text('node1.islandofsecurity.example.', 0, 'IN', 'A', '192.0.2.20')
+
+        res = self.sendUDPQuery(query)
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertRRsetInAnswer(res, expectedA)
+
