@@ -1253,24 +1253,24 @@ void* healthChecksThread()
 
     for(auto& dss : g_dstates.getCopy()) { // this points to the actual shared_ptrs!
       if(dss->availability==DownstreamState::Availability::Auto) {
-	bool newState=upCheck(*dss);
-	if (newState) {
-		if (dss->currentCheckFailures != 0) {
-			dss->currentCheckFailures = 0;
-		}
-	}
-	else if (!newState && dss->upStatus) {
-	  dss->currentCheckFailures++;
-	  if (dss->currentCheckFailures < dss->maxCheckFailures) {
-	    newState = true;
-	  }
-	}
+        bool newState=upCheck(*dss);
+        if (newState) {
+          if (dss->currentCheckFailures != 0) {
+            dss->currentCheckFailures = 0;
+          }
+        }
+        else if (!newState && dss->upStatus) {
+          dss->currentCheckFailures++;
+          if (dss->currentCheckFailures < dss->maxCheckFailures) {
+            newState = true;
+          }
+        }
 
-	if(newState != dss->upStatus) {
-	  warnlog("Marking downstream %s as '%s'", dss->getNameWithAddr(), newState ? "up" : "down");
-	  dss->upStatus = newState;
-	  dss->currentCheckFailures = 0;
-	}
+        if(newState != dss->upStatus) {
+          warnlog("Marking downstream %s as '%s'", dss->getNameWithAddr(), newState ? "up" : "down");
+          dss->upStatus = newState;
+          dss->currentCheckFailures = 0;
+        }
       }
 
       auto delta = dss->sw.udiffAndSet()/1000000.0;
