@@ -81,9 +81,9 @@ const string& DNSPacket::getString()
   return d_rawpacket;
 }
 
-string DNSPacket::getRemote() const
+ComboAddress DNSPacket::getRemote() const
 {
-  return d_remote.toString();
+  return d_remote;
 }
 
 uint16_t DNSPacket::getRemotePort() const

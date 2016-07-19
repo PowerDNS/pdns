@@ -124,9 +124,9 @@ int l_dnspacket (lua_State *lua) {
 	return 1;
     }
 
-    lua_pushstring(lua, lb->dnspacket->getRemote().c_str());
+    lua_pushstring(lua, lb->dnspacket->getRemote().toString().c_str());
     lua_pushinteger(lua, lb->dnspacket->getRemotePort());
-    lua_pushstring(lua, lb->dnspacket->getLocal().c_str());
+    lua_pushstring(lua, lb->dnspacket->getLocal().toString().c_str());
     lua_pushstring(lua, lb->dnspacket->getRealRemote().toString().c_str());
 
     return 4;

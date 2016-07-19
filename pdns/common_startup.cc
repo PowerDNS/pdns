@@ -389,9 +389,9 @@ void *qthread(void *number)
     if(logDNSQueries) {
       string remote;
       if(P->hasEDNSSubnet()) 
-        remote = P->getRemote() + "<-" + P->getRealRemote().toString();
+        remote = P->getRemote().toString() + "<-" + P->getRealRemote().toString();
       else
-        remote = P->getRemote();
+        remote = P->getRemote().toString();
       L << Logger::Notice<<"Remote "<< remote <<" wants '" << P->qdomain<<"|"<<P->qtype.getName() << 
             "', do = " <<P->d_dnssecOk <<", bufsize = "<< P->getMaxReplyLen()<<": ";
     }

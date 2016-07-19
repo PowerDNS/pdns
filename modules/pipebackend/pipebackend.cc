@@ -155,9 +155,9 @@ void PipeBackend::lookup(const QType& qtype,const DNSName& qname, DNSPacket *pkt
       string remoteIP="0.0.0.0";
       Netmask realRemote("0.0.0.0/0");
       if (pkt_p) {
-        localIP=pkt_p->getLocal();
+        localIP=pkt_p->getLocal().toString();
         realRemote = pkt_p->getRealRemote();
-        remoteIP = pkt_p->getRemote();
+        remoteIP = pkt_p->getRemote().toString();
       }
       // abi-version = 1
       // type    qname           qclass  qtype   id      remote-ip-address
