@@ -62,9 +62,14 @@ void RPZRecordToPolicy(const DNSRecord& dr, DNSFilterEngine& target, const std::
     }
   }
   else {
-    pol.d_kind = DNSFilterEngine::PolicyKind::Custom;
-    pol.d_custom = dr.d_content;
-    // cerr<<"Wants custom "<<dr.d_content->getZoneRepresentation()<<" for "<<dr.d_name<<": ";
+    if (defpol) {
+      pol=*defpol;
+    }
+    else {
+      pol.d_kind = DNSFilterEngine::PolicyKind::Custom;
+      pol.d_custom = dr.d_content;
+      // cerr<<"Wants custom "<<dr.d_content->getZoneRepresentation()<<" for "<<dr.d_name<<": ";
+    }
   }
 
   if(pol.d_ttl < 0)
