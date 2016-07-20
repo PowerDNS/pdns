@@ -1,4 +1,4 @@
-@       86400   IN  SOA pdns-public-ns1.powerdns.com. pieter\.lexis.powerdns.com. 2016071102 10800 3600 604800 10800
+@       86400   IN  SOA pdns-public-ns1.powerdns.com. pieter\.lexis.powerdns.com. 2016072001 10800 3600 604800 10800
 @       3600    IN  NS  pdns-public-ns1.powerdns.com.
 @       3600    IN  NS  pdns-public-ns2.powerdns.com.
 ; Auth
@@ -16,12 +16,12 @@ auth-3.4.7.security-status                              60 IN TXT "1 OK"
 auth-3.4.8.security-status                              60 IN TXT "1 OK"
 auth-3.4.9.security-status                              60 IN TXT "1 OK"
 
-auth-4.0.0-alpha1.security-status                       60 IN TXT "0 Unknown, prerelease"
-auth-4.0.0-alpha2.security-status                       60 IN TXT "0 Unknown, prerelease"
-auth-4.0.0-alpha3.security-status                       60 IN TXT "0 Unknown, prerelease"
-auth-4.0.0-beta1.security-status                        60 IN TXT "0 Unknown, prerelease"
-auth-4.0.0-rc1.security-status                          60 IN TXT "0 Unknown, prerelease"
-auth-4.0.0-rc2.security-status                          60 IN TXT "0 Unknown, prerelease"
+auth-4.0.0-alpha1.security-status                       60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-authoritative-server-4-0-0-released/"
+auth-4.0.0-alpha2.security-status                       60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-authoritative-server-4-0-0-released/"
+auth-4.0.0-alpha3.security-status                       60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-authoritative-server-4-0-0-released/"
+auth-4.0.0-beta1.security-status                        60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-authoritative-server-4-0-0-released/"
+auth-4.0.0-rc1.security-status                          60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-authoritative-server-4-0-0-released/"
+auth-4.0.0-rc2.security-status                          60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-authoritative-server-4-0-0-released/"
 auth-4.0.0.security-status                              60 IN TXT "1 OK"
 
 ; Auth Debian
@@ -52,15 +52,15 @@ auth-3.4.5-1_bpo8_1.debian.security-status              60 IN TXT "3 Upgrade now
 auth-3.4.6-1_bpo8_1.debian.security-status              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-03/"
 auth-3.4.7-1_bpo8_1.debian.security-status              60 IN TXT "1 OK"
 
-auth-4.0.0_alpha1-1.debian.security-status              60 IN TXT "0 Unknown, prerelease"
-auth-4.0.0_alpha1-2.debian.security-status              60 IN TXT "0 Unknown, prerelease"
-auth-4.0.0_alpha2-1.debian.security-status              60 IN TXT "0 Unknown, prerelease"
-auth-4.0.0_alpha2-2.debian.security-status              60 IN TXT "0 Unknown, prerelease"
-auth-4.0.0_alpha2-3.debian.security-status              60 IN TXT "0 Unknown, prerelease"
-auth-4.0.0_alpha2-4.debian.security-status              60 IN TXT "0 Unknown, prerelease"
-auth-4.0.0_alpha3-1.debian.security-status              60 IN TXT "0 Unknown, prerelease"
-auth-4.0.0_alpha3-1.debian.security-status              60 IN TXT "0 Unknown, prerelease"
-auth-4.0.0_beta1-1.debian.security-status               60 IN TXT "0 Unknown, prerelease"
+auth-4.0.0_alpha1-1.debian.security-status              60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-authoritative-server-4-0-0-released/"
+auth-4.0.0_alpha1-2.debian.security-status              60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-authoritative-server-4-0-0-released/"
+auth-4.0.0_alpha2-1.debian.security-status              60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-authoritative-server-4-0-0-released/"
+auth-4.0.0_alpha2-2.debian.security-status              60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-authoritative-server-4-0-0-released/"
+auth-4.0.0_alpha2-3.debian.security-status              60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-authoritative-server-4-0-0-released/"
+auth-4.0.0_alpha2-4.debian.security-status              60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-authoritative-server-4-0-0-released/"
+auth-4.0.0_alpha3-1.debian.security-status              60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-authoritative-server-4-0-0-released/"
+auth-4.0.0_alpha3-1.debian.security-status              60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-authoritative-server-4-0-0-released/"
+auth-4.0.0_beta1-1.debian.security-status               60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-authoritative-server-4-0-0-released/"
 
 ; Auth Ubuntu
 auth-3.4.1-3.ubuntu.security-status                     60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/ and https://doc.powerdns.com/md/security/powerdns-advisory-2015-02/"
@@ -69,9 +69,9 @@ auth-3.4.5-1.ubuntu.security-status                     60 IN TXT "3 Upgrade now
 auth-3.4.6-1.ubuntu.security-status                     60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-03/"
 auth-3.4.7-1.ubuntu.security-status                     60 IN TXT "1 OK"
 
-auth-4.0.0_alpha1-1.ubuntu.security-status              60 IN TXT "0 Unknown, prerelease"
-auth-4.0.0_alpha2-1.ubuntu.security-status              60 IN TXT "0 Unknown, prerelease"
-auth-4.0.0_alpha2-3build1.ubuntu.security-status        60 IN TXT "0 Unknown, prerelease"
+auth-4.0.0_alpha1-1.ubuntu.security-status              60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-authoritative-server-4-0-0-released/"
+auth-4.0.0_alpha2-1.ubuntu.security-status              60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-authoritative-server-4-0-0-released/"
+auth-4.0.0_alpha2-3build1.ubuntu.security-status        60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-authoritative-server-4-0-0-released/"
 
 ; Auth Raspbian
 auth-3.4.1-3.raspbian.security-status                   60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/ and https://doc.powerdns.com/md/security/powerdns-advisory-2015-02/"
@@ -98,11 +98,11 @@ recursor-3.7.1.security-status                          60 IN TXT "3 Upgrade now
 recursor-3.7.2.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
 recursor-3.7.3.security-status                          60 IN TXT "1 OK"
 
-recursor-4.0.0-alpha1.security-status                   60 IN TXT "0 Unknown, prerelease"
-recursor-4.0.0-alpha2.security-status                   60 IN TXT "0 Unknown, prerelease"
-recursor-4.0.0-alpha3.security-status                   60 IN TXT "0 Unknown, prerelease"
-recursor-4.0.0-beta1.security-status                    60 IN TXT "0 Unknown, prerelease"
-recursor-4.0.0-rc1.security-status                      60 IN TXT "0 Unknown, prerelease"
+recursor-4.0.0-alpha1.security-status                   60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-recursor-4-0-0-released/"
+recursor-4.0.0-alpha2.security-status                   60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-recursor-4-0-0-released/"
+recursor-4.0.0-alpha3.security-status                   60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-recursor-4-0-0-released/"
+recursor-4.0.0-beta1.security-status                    60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-recursor-4-0-0-released/"
+recursor-4.0.0-rc1.security-status                      60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-recursor-4-0-0-released/"
 recursor-4.0.0.security-status                          60 IN TXT "1 OK"
 
 ; Recursor Debian
@@ -121,13 +121,13 @@ recursor-3.7.3-1.debian.security-status                 60 IN TXT "1 OK"
 recursor-3.7.3-1_bpo8_1.debian.security-status          60 IN TXT "1 OK"
 recursor-3.7.3-1_bpo7_1.debian.security-status          60 IN TXT "1 OK"
 
-recursor-4.0.0_alpha1-1.debian.security-status          60 IN TXT "0 Unknown, prerelease"
-recursor-4.0.0_alpha1-3.debian.security-status          60 IN TXT "0 Unknown, prerelease"
-recursor-4.0.0_alpha2-1.debian.security-status          60 IN TXT "0 Unknown, prerelease"
-recursor-4.0.0_alpha2-2.debian.security-status          60 IN TXT "0 Unknown, prerelease"
-recursor-4.0.0_alpha3-1.debian.security-status          60 IN TXT "0 Unknown, prerelease"
-recursor-4.0.0_beta1-1.debian.security-status           60 IN TXT "0 Unknown, prerelease"
-recursor-4.0.0_beta1-2.debian.security-status           60 IN TXT "0 Unknown, prerelease"
+recursor-4.0.0_alpha1-1.debian.security-status          60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-recursor-4-0-0-released/"
+recursor-4.0.0_alpha1-3.debian.security-status          60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-recursor-4-0-0-released/"
+recursor-4.0.0_alpha2-1.debian.security-status          60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-recursor-4-0-0-released/"
+recursor-4.0.0_alpha2-2.debian.security-status          60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-recursor-4-0-0-released/"
+recursor-4.0.0_alpha3-1.debian.security-status          60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-recursor-4-0-0-released/"
+recursor-4.0.0_beta1-1.debian.security-status           60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-recursor-4-0-0-released/"
+recursor-4.0.0_beta1-2.debian.security-status           60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-recursor-4-0-0-released/"
 
 ; Recursor Raspbian
 recursor-3.6.2-2.raspbian.security-status               60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
@@ -138,8 +138,8 @@ recursor-3.6.2-2.ubuntu.security-status                 60 IN TXT "3 Upgrade now
 recursor-3.7.2-1.ubuntu.security-status                 60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
 recursor-3.7.3-1.ubuntu.security-status                 60 IN TXT "1 OK"
 
-auth-4.0.0_alpha1-1.ubuntu.security-status              60 IN TXT "0 Unknown, prerelease"
-auth-4.0.0_alpha2-2.ubuntu.security-status              60 IN TXT "0 Unknown, prerelease"
+auth-4.0.0_alpha1-1.ubuntu.security-status              60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-authoritative-server-4-0-0-released/"
+auth-4.0.0_alpha2-2.ubuntu.security-status              60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-authoritative-server-4-0-0-released/"
 
 ; Recursor Fedora, EL
 recursor-3.6.2-1.fc19.fedora.security-status            60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
@@ -154,43 +154,43 @@ recursor-3.6.2-1.el7.fedora.security-status             60 IN TXT "3 Upgrade now
 ;; Builder Generated packages (auth)
 
 ; Debian
-auth-4.0.0_alpha1-1pdns.jessie.debian.security-status   60 IN TXT "0 Unknown, prerelease"
-auth-4.0.0_alpha2-1pdns.jessie.debian.security-status   60 IN TXT "0 Unknown, prerelease"
-auth-4.0.0_alpha3-1pdns.jessie.debian.security-status   60 IN TXT "0 Unknown, prerelease"
-auth-4.0.0_beta1-1pdns.jessie.debian.security-status    60 IN TXT "0 Unknown, prerelease"
+auth-4.0.0_alpha1-1pdns.jessie.debian.security-status   60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-authoritative-server-4-0-0-released/"
+auth-4.0.0_alpha2-1pdns.jessie.debian.security-status   60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-authoritative-server-4-0-0-released/"
+auth-4.0.0_alpha3-1pdns.jessie.debian.security-status   60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-authoritative-server-4-0-0-released/"
+auth-4.0.0_beta1-1pdns.jessie.debian.security-status    60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-authoritative-server-4-0-0-released/"
 
 ; Ubuntu
-auth-4.0.0_alpha2-1pdns.wily.ubuntu.security-status     60 IN TXT "0 Unknown, prerelease"
-auth-4.0.0_alpha2-1pdns.trusty.ubuntu.security-status   60 IN TXT "0 Unknown, prerelease"
-auth-4.0.0_alpha3-1pdns.trusty.ubuntu.security-status   60 IN TXT "0 Unknown, prerelease"
-auth-4.0.0_beta1-1pdns.trusty.ubuntu.security-status   60 IN TXT "0 Unknown, prerelease"
+auth-4.0.0_alpha2-1pdns.wily.ubuntu.security-status     60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-authoritative-server-4-0-0-released/"
+auth-4.0.0_alpha2-1pdns.trusty.ubuntu.security-status   60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-authoritative-server-4-0-0-released/"
+auth-4.0.0_alpha3-1pdns.trusty.ubuntu.security-status   60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-authoritative-server-4-0-0-released/"
+auth-4.0.0_beta1-1pdns.trusty.ubuntu.security-status   60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-authoritative-server-4-0-0-released/"
 
 ; Raspbian
-auth-4.0.0_alpha2-1pdns.jessie.raspbian.security-status 60 IN TXT "0 Unknown, prerelease"
-auth-4.0.0_alpha3-1pdns.jessie.raspbian.security-status 60 IN TXT "0 Unknown, prerelease"
-auth-4.0.0_beta1-1pdns.jessie.raspbian.security-status 60 IN TXT "0 Unknown, prerelease"
+auth-4.0.0_alpha2-1pdns.jessie.raspbian.security-status 60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-authoritative-server-4-0-0-released/"
+auth-4.0.0_alpha3-1pdns.jessie.raspbian.security-status 60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-authoritative-server-4-0-0-released/"
+auth-4.0.0_beta1-1pdns.jessie.raspbian.security-status 60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-authoritative-server-4-0-0-released/"
 
 ;; Builder Generated packages (recursor)
 
 ; Debian
-recursor-4.0.0_alpha1-1pdns.jessie.debian.security-status 60 IN TXT "0 Unknown, prerelease"
-recursor-4.0.0_alpha2-1pdns.jessie.debian.security-status 60 IN TXT "0 Unknown, prerelease"
-recursor-4.0.0_alpha3-1pdns.jessie.debian.security-status 60 IN TXT "0 Unknown, prerelease"
-recursor-4.0.0_beta1-1pdns.jessie.debian.security-status 60 IN TXT "0 Unknown, prerelease"
+recursor-4.0.0_alpha1-1pdns.jessie.debian.security-status 60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-recursor-4-0-0-released/"
+recursor-4.0.0_alpha2-1pdns.jessie.debian.security-status 60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-recursor-4-0-0-released/"
+recursor-4.0.0_alpha3-1pdns.jessie.debian.security-status 60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-recursor-4-0-0-released/"
+recursor-4.0.0_beta1-1pdns.jessie.debian.security-status 60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-recursor-4-0-0-released/"
 
 ; Ubuntu
-recursor-4.0.0_alpha2-1pdns.trusty.ubuntu.security-status 60 IN TXT "0 Unknown, prerelease"
-recursor-4.0.0_alpha3-1pdns.trusty.ubuntu.security-status 60 IN TXT "0 Unknown, prerelease"
-recursor-4.0.0_beta1-1pdns.trusty.ubuntu.security-status 60 IN TXT "0 Unknown, prerelease"
+recursor-4.0.0_alpha2-1pdns.trusty.ubuntu.security-status 60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-recursor-4-0-0-released/"
+recursor-4.0.0_alpha3-1pdns.trusty.ubuntu.security-status 60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-recursor-4-0-0-released/"
+recursor-4.0.0_beta1-1pdns.trusty.ubuntu.security-status 60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-recursor-4-0-0-released/"
 
-recursor-4.0.0_alpha2-1pdns.wily.ubuntu.security-status   60 IN TXT "0 Unknown, prerelease"
-recursor-4.0.0_alpha3-1pdns.wily.ubuntu.security-status   60 IN TXT "0 Unknown, prerelease"
-recursor-4.0.0_beta1-1pdns.wily.ubuntu.security-status   60 IN TXT "0 Unknown, prerelease"
+recursor-4.0.0_alpha2-1pdns.wily.ubuntu.security-status   60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-recursor-4-0-0-released/"
+recursor-4.0.0_alpha3-1pdns.wily.ubuntu.security-status   60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-recursor-4-0-0-released/"
+recursor-4.0.0_beta1-1pdns.wily.ubuntu.security-status   60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-recursor-4-0-0-released/"
 
-recursor-4.0.0_alpha3-1pdns.xenial.ubuntu.security-status 60 IN TXT "0 Unknown, prerelease"
-recursor-4.0.0_beta1-1pdns.xenial.ubuntu.security-status 60 IN TXT "0 Unknown, prerelease"
+recursor-4.0.0_alpha3-1pdns.xenial.ubuntu.security-status 60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-recursor-4-0-0-released/"
+recursor-4.0.0_beta1-1pdns.xenial.ubuntu.security-status 60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-recursor-4-0-0-released/"
 
 ; Raspbian
-recursor-4.0.0_alpha2-1pdns.jessie.raspbian.security-status 60 IN TXT "0 Unknown, prerelease"
-recursor-4.0.0_alpha3-1pdns.jessie.raspbian.security-status 60 IN TXT "0 Unknown, prerelease"
-recursor-4.0.0_beta1-1pdns.jessie.raspbian.security-status 60 IN TXT "0 Unknown, prerelease"
+recursor-4.0.0_alpha2-1pdns.jessie.raspbian.security-status 60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-recursor-4-0-0-released/"
+recursor-4.0.0_alpha3-1pdns.jessie.raspbian.security-status 60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-recursor-4-0-0-released/"
+recursor-4.0.0_beta1-1pdns.jessie.raspbian.security-status 60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-recursor-4-0-0-released/"
