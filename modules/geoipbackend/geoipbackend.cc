@@ -871,7 +871,7 @@ bool GeoIPBackend::removeDomainKey(const DNSName& name, unsigned int id) {
   return false;
 }
 
-int GeoIPBackend::addDomainKey(const DNSName& name, const KeyData& key) {
+bool GeoIPBackend::addDomainKey(const DNSName& name, const KeyData& key, int64_t& id) {
   if (!d_dnssec) return false;
   WriteLock rl(&s_state_lock);
   unsigned int nextid=1;
@@ -899,7 +899,8 @@ int GeoIPBackend::addDomainKey(const DNSName& name, const KeyData& key) {
       ofstream ofs(pathname.str().c_str());
       ofs.write(key.content.c_str(), key.content.size());
       ofs.close();
-      return nextid;
+      id = nextid;
+      return true;
     }
   }
   return false;

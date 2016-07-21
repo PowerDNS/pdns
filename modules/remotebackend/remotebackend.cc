@@ -405,7 +405,7 @@ bool RemoteBackend::removeDomainKey(const DNSName& name, unsigned int id) {
    return true;
 }
 
-int RemoteBackend::addDomainKey(const DNSName& name, const KeyData& key) {
+bool RemoteBackend::addDomainKey(const DNSName& name, const KeyData& key, int64_t& id) {
    // no point doing dnssec if it's not supported
    if (d_dnssec == false) return false;
 
@@ -425,7 +425,8 @@ int RemoteBackend::addDomainKey(const DNSName& name, const KeyData& key) {
    if (this->send(query) == false || this->recv(answer) == false)
      return false;
 
-   return answer["result"].int_value();
+   id = answer["result"].int_value();
+   return id >= 0;
 }
 
 bool RemoteBackend::activateDomainKey(const DNSName& name, unsigned int id) {

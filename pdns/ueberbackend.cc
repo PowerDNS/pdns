@@ -99,14 +99,14 @@ bool UeberBackend::createDomain(const DNSName &domain)
   return false;
 }
 
-int UeberBackend::addDomainKey(const DNSName& name, const DNSBackend::KeyData& key)
+bool UeberBackend::addDomainKey(const DNSName& name, const DNSBackend::KeyData& key, int64_t& id)
 {
-  int ret;
+  id = -1;
   for(DNSBackend* db :  backends) {
-    if((ret = db->addDomainKey(name, key)) >= 0)
-      return ret;
+    if(db->addDomainKey(name, key, id))
+      return true;
   }
-  return -1;
+  return false;
 }
 bool UeberBackend::getDomainKeys(const DNSName& name, unsigned int kind, std::vector<DNSBackend::KeyData>& keys)
 {
