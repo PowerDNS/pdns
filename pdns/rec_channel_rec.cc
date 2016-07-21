@@ -242,8 +242,22 @@ template<typename T>
 string doWipeCache(T begin, T end)
 {
   int count=0, countNeg=0;
+
+  vector<string> toWipe;
+
   for(T i=begin; i != end; ++i) {
     string canon=toCanonic("", *i);
+
+    if (canon[0] == '.')
+      return "dot found in the first place of " + canon + ". Nothing wiped.\n";
+
+    if (canon.find("..") != string::npos)
+      return "double dot found in " + canon + ". Nothing wiped.\n";
+
+    toWipe.push_back(canon);
+  }
+
+  BOOST_FOREACH(const string& canon, toWipe) {
     count+= broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, canon));
     countNeg+=broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, canon));
   }
