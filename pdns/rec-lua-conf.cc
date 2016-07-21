@@ -130,6 +130,7 @@ void loadRecursorLuaConfig(const std::string& fname)
         TSIGTriplet tt;
         int refresh=0;
 	std::string polName;
+	size_t maxReceivedXFRMBytes = 0;
 	if(options) {
 	  auto& have = *options;
 	  if(have.count("policyName")) {
@@ -163,14 +164,17 @@ void loadRecursorLuaConfig(const std::string& fname)
           if(have.count("refresh")) {
             refresh = boost::get<int>(constGet(have,"refresh"));
           }
+          if(have.count("maxReceivedMBytes")) {
+            maxReceivedXFRMBytes = static_cast<size_t>(boost::get<int>(constGet(have,"maxReceivedMBytes")));
+          }
 	}
 	ComboAddress master(master_, 53);
 	DNSName zone(zone_);
 
-	auto sr=loadRPZFromServer(master, zone, lci.dfe, polName, defpol, 0, tt);
+	auto sr=loadRPZFromServer(master, zone, lci.dfe, polName, defpol, 0, tt, maxReceivedXFRMBytes * 1024 * 1024);
         if(refresh)
           sr->d_st.refresh=refresh;
-	std::thread t(RPZIXFRTracker, master, zone, polName, tt, sr);
+	std::thread t(RPZIXFRTracker, master, zone, polName, tt, sr, maxReceivedXFRMBytes * 1024 * 1024);
 	t.detach();
       }
       catch(std::exception& e) {

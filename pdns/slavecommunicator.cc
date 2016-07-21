@@ -103,7 +103,7 @@ void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, c
 
     DNSRecord dr;
     dr.d_content = std::make_shared<SOARecordContent>(DNSName("."), DNSName("."), st);
-    auto deltas = getIXFRDeltas(remote, domain, dr, tt, laddr.sin4.sin_family ? &laddr : 0);
+    auto deltas = getIXFRDeltas(remote, domain, dr, tt, laddr.sin4.sin_family ? &laddr : 0, ((size_t) ::arg().asNum("xfr-max-received-mbytes")) * 1024 * 1024);
     zs.numDeltas=deltas.size();
     //    cout<<"Got "<<deltas.size()<<" deltas from serial "<<di.serial<<", applying.."<<endl;
     
@@ -235,7 +235,7 @@ static bool processRecordForZS(const DNSName& domain, bool& firstNSEC3, DNSResou
 vector<DNSResourceRecord> doAxfr(const ComboAddress& raddr, const DNSName& domain, const TSIGTriplet& tt, const ComboAddress& laddr,  scoped_ptr<AuthLua>& pdl, ZoneStatus& zs)
 {
   vector<DNSResourceRecord> rrs;
-  AXFRRetriever retriever(raddr, domain, tt, (laddr.sin4.sin_family == 0) ? NULL : &laddr);
+  AXFRRetriever retriever(raddr, domain, tt, (laddr.sin4.sin_family == 0) ? NULL : &laddr, ((size_t) ::arg().asNum("xfr-max-received-mbytes")) * 1024 * 1024);
   Resolver::res_t recs;
   bool first=true;
   bool firstNSEC3{true};
