@@ -311,7 +311,7 @@ string reloadAuthAndForwards()
 }
 
 
-void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, const std::string& polName, const TSIGTriplet& tt, shared_ptr<SOARecordContent> oursr, size_t maxReceivedBytes)
+void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, std::shared_ptr<const std::string> polName, const TSIGTriplet& tt, shared_ptr<SOARecordContent> oursr, size_t maxReceivedBytes)
 {
   int refresh = oursr->d_st.refresh;
   for(;;) {

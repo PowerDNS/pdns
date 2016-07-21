@@ -15,7 +15,7 @@ static Netmask makeNetmaskFromRPZ(const DNSName& name)
   return Netmask(parts[4]+"."+parts[3]+"."+parts[2]+"."+parts[1]+"/"+parts[0]);
 }
 
-void RPZRecordToPolicy(const DNSRecord& dr, DNSFilterEngine& target, const std::string& polName, bool addOrRemove, boost::optional<DNSFilterEngine::Policy> defpol, int place)
+void RPZRecordToPolicy(const DNSRecord& dr, DNSFilterEngine& target, std::shared_ptr<const std::string> polName, bool addOrRemove, boost::optional<DNSFilterEngine::Policy> defpol, int place)
 {
   static const DNSName drop("rpz-drop."), truncate("rpz-tcp-only."), noaction("rpz-passthru.");
   static const DNSName rpzClientIP("rpz-client-ip"), rpzIP("rpz-ip"),
@@ -105,7 +105,7 @@ void RPZRecordToPolicy(const DNSRecord& dr, DNSFilterEngine& target, const std::
   }
 }
 
-shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const DNSName& zone, DNSFilterEngine& target, const std::string& polName, boost::optional<DNSFilterEngine::Policy> defpol, int place,  const TSIGTriplet& tt, size_t maxReceivedBytes)
+shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const DNSName& zone, DNSFilterEngine& target, std::shared_ptr<const std::string> polName, boost::optional<DNSFilterEngine::Policy> defpol, int place,  const TSIGTriplet& tt, size_t maxReceivedBytes)
 {
   L<<Logger::Warning<<"Loading RPZ zone '"<<zone<<"' from "<<master.toStringWithPort()<<endl;
   if(!tt.name.empty())
@@ -143,7 +143,7 @@ shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const
 }
 
 // this function is silent - you do the logging
-int loadRPZFromFile(const std::string& fname, DNSFilterEngine& target, const std::string& polName, boost::optional<DNSFilterEngine::Policy> defpol, int place)
+int loadRPZFromFile(const std::string& fname, DNSFilterEngine& target, std::shared_ptr<const std::string> polName, boost::optional<DNSFilterEngine::Policy> defpol, int place)
 {
   ZoneParserTNG zpt(fname);
   DNSResourceRecord drr;
