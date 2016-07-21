@@ -639,6 +639,16 @@ BuildRequires: sqlite-devel
 %description backend-sqlite
 This package contains the SQLite backend for %{name}
 
+%package backend-tinydns
+Summary: TinyDNS backend for %{name}
+Group: System Environment/Daemons
+Requires: %{name}%{?_isa} = %{version}-%{release}
+BuildRequires: tinycdb-devel
+%global backends %{backends} tinydns
+
+%description backend-tinydns
+This package contains the TinyDNS backend for %{name}
+
 %prep
 %setup -q -n %{name}-${TARBALLVERSION}
 
@@ -791,6 +801,9 @@ exit 0
 %doc modules/gsqlite3backend/dnssec-3.x_to_3.4.0_schema.sqlite3.sql
 %doc modules/gsqlite3backend/nodnssec-3.x_to_3.4.0_schema.sqlite3.sql
 %{_libdir}/%{name}/libgsqlite3backend.so
+
+%files backend-tinydns
+%{_libdir}/%{name}/libtinydnsbackend.so
 EOF
       ;;
   SLES\ 12*)
