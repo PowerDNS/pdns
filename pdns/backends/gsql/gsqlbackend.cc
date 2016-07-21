@@ -671,6 +671,7 @@ bool GSQLBackend::addDomainKey(const DNSName& name, const KeyData& key, int64_t&
     }
     SSqlStatement::row_t row;
     d_GetLastInsertedKeyIdQuery_stmt->nextRow(row);
+    ASSERT_ROW_COLUMNS("get-last-inserted-key-id-query", row, 1);
     id = std::stoi(row[0]);
     d_GetLastInsertedKeyIdQuery_stmt->reset();
     return true;
