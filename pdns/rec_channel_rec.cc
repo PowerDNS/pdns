@@ -489,10 +489,8 @@ string doAddTA(T begin, T end)
   try {
     L<<Logger::Warning<<"Adding Trust Anchor for "<<who<<" with data '"<<what<<"', requested via control channel";
     g_luaconfs.modify([who, what](LuaConfigItems& lci) {
-      dsmap_t dsmap = lci.dsAnchors[who];
       auto ds = unique_ptr<DSRecordContent>(dynamic_cast<DSRecordContent*>(DSRecordContent::make(what)));
-      dsmap.insert({ds->d_tag, *ds});
-      lci.dsAnchors[who] = dsmap;
+      lci.dsAnchors[who].insert(*ds);
       });
     broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, who, true));
     L<<Logger::Warning<<endl;
@@ -552,7 +550,7 @@ static string getTAs()
   for (auto anchor : luaconf->dsAnchors) {
     ret += anchor.first.toLogString() + "\n";
     for (auto e : anchor.second) {
-      ret+="\t\t"+e.second.getZoneRepresentation() + "\n";
+      ret+="\t\t"+e.getZoneRepresentation() + "\n";
     }
   }
 
