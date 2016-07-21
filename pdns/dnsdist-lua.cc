@@ -879,6 +879,14 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       return std::shared_ptr<DNSRule>(new TrailingDataRule());
     });
 
+  g_lua.writeFunction("QNameLabelsCountRule", [](unsigned int minLabelsCount, unsigned int maxLabelsCount) {
+      return std::shared_ptr<DNSRule>(new QNameLabelsCountRule(minLabelsCount, maxLabelsCount));
+    });
+
+  g_lua.writeFunction("QNameWireLengthRule", [](size_t min, size_t max) {
+      return std::shared_ptr<DNSRule>(new QNameWireLengthRule(min, max));
+    });
+
   g_lua.writeFunction("addAction", [](luadnsrule_t var, std::shared_ptr<DNSAction> ea)
 		      {
                         setLuaSideEffect();
@@ -1066,6 +1074,8 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.registerFunction("toStringWithPort", &ComboAddress::toStringWithPort);
   g_lua.registerFunction<uint16_t(ComboAddress::*)()>("getPort", [](const ComboAddress& ca) { return ntohs(ca.sin4.sin_port); } );
   g_lua.registerFunction("isPartOf", &DNSName::isPartOf);
+  g_lua.registerFunction("countLabels", &DNSName::countLabels);
+  g_lua.registerFunction("wirelength", &DNSName::wirelength);
   g_lua.registerFunction<string(DNSName::*)()>("tostring", [](const DNSName&dn ) { return dn.toString(); });
   g_lua.registerFunction<string(DNSName::*)()>("toString", [](const DNSName&dn ) { return dn.toString(); });
   g_lua.writeFunction("newDNSName", [](const std::string& name) { return DNSName(name); });

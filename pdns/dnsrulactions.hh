@@ -488,6 +488,46 @@ public:
   }
 };
 
+class QNameLabelsCountRule : public DNSRule
+{
+public:
+  QNameLabelsCountRule(unsigned int minLabelsCount, unsigned int maxLabelsCount): d_min(minLabelsCount), d_max(maxLabelsCount)
+  {
+  }
+  bool matches(const DNSQuestion* dq) const override
+  {
+    unsigned int count = dq->qname->countLabels();
+    return count < d_min || count > d_max;
+  }
+  string toString() const override
+  {
+    return "labels count < " + std::to_string(d_min) + " || labels count > " + std::to_string(d_max);
+  }
+private:
+  unsigned int d_min;
+  unsigned int d_max;
+};
+
+class QNameWireLengthRule : public DNSRule
+{
+public:
+  QNameWireLengthRule(size_t min, size_t max): d_min(min), d_max(max)
+  {
+  }
+  bool matches(const DNSQuestion* dq) const override
+  {
+    size_t const wirelength = dq->qname->wirelength();
+    return wirelength < d_min || wirelength > d_max;
+  }
+  string toString() const override
+  {
+    return "wire length < " + std::to_string(d_min) + " || wire length > " + std::to_string(d_max);
+  }
+private:
+  size_t d_min;
+  size_t d_max;
+};
+
 class DropAction : public DNSAction
 {
 public:
