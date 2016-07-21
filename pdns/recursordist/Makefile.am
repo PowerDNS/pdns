@@ -229,19 +229,20 @@ recursor.conf-dist: pdns_recursor
 MANPAGES=pdns_recursor.1 \
 	 rec_control.1
 
-dist_man_MANS=$(MANPAGES)
+if HAVE_PANDOC
+  dist_man_MANS=$(MANPAGES)
+endif
+if HAVE_MANPAGES
+  dist_man_MANS=$(MANPAGES)
+endif
 
 if HAVE_PANDOC
 $(MANPAGES): %: %.md
 	$(AM_V_GEN)$(PANDOC) -s -t man $< -o $@
 else
-if HAVE_MANPAGES
-#nothing
-else
 $(MANPAGES):
 	echo "You need pandoc to generate the manpages"
 	exit 1
-endif
 endif
 
 if HAVE_SYSTEMD

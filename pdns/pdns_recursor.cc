@@ -953,8 +953,20 @@ void startDoResolve(void *p)
 
       bool needCommit = false;
       for(auto i=ret.cbegin(); i!=ret.cend(); ++i) {
-        if(!DNSSECOK && (i->d_type == QType::RRSIG || i->d_type==QType::NSEC || i->d_type==QType::NSEC3))
+        if( ! DNSSECOK &&
+            ( i->d_type == QType::NSEC3 ||
+              (
+                ( i->d_type == QType::RRSIG || i->d_type==QType::NSEC ) &&
+                (
+                  ( dc->d_mdp.d_qtype != i->d_type &&  dc->d_mdp.d_qtype != QType::ANY ) ||
+                  i->d_place != DNSResourceRecord::ANSWER
+                )
+              )
+            )
+          ) {
           continue;
+        }
+
 	pw.startRecord(i->d_name, i->d_type, i->d_ttl, i->d_class, i->d_place);
 	if(i->d_type != QType::OPT) // their TTL ain't real
 	  minTTL = min(minTTL, i->d_ttl);
