@@ -601,7 +601,7 @@ bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote, int stam
       //      dh->rd=1; // useful to replay traffic to auths to a recursor
       uint16_t dlen = pr.d_len;
 
-      addECSOption((char*)pr.d_payload, 1500, &dlen, pr.getSource(), stamp);
+      if (stamp >= 0) addECSOption((char*)pr.d_payload, 1500, &dlen, pr.getSource(), stamp);
       pr.d_len=dlen;
       s_socket->sendTo((const char*)pr.d_payload, dlen, remote);
       sent=true;
