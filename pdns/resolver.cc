@@ -379,8 +379,9 @@ AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
         const string& tsigkeyname,
         const string& tsigalgorithm, 
         const string& tsigsecret,
-        const ComboAddress* laddr)
-: d_tsigkeyname(tsigkeyname), d_tsigsecret(tsigsecret), d_tsigPos(0), d_nonSignedMessages(0)
+        const ComboAddress* laddr,
+        size_t maxReceivedBytes)
+  : d_tsigkeyname(tsigkeyname), d_tsigsecret(tsigsecret), d_receivedBytes(0), d_maxReceivedBytes(maxReceivedBytes), d_tsigPos(0), d_nonSignedMessages(0)
 {
   ComboAddress local;
   if (laddr != NULL) {
@@ -461,8 +462,14 @@ int AXFRRetriever::getChunk(Resolver::res_t &res) // Implementation is making su
   int len=getLength();
   if(len<0)
     throw ResolverException("EOF trying to read axfr chunk from remote TCP client");
-  
-  timeoutReadn(len); 
+
+  if (d_maxReceivedBytes > 0 && (d_maxReceivedBytes - d_receivedBytes) < (size_t) len)
+    throw ResolverException("Reached the maximum number of received bytes during AXFR");
+
+  timeoutReadn(len);
+
+  d_receivedBytes += (uint16_t) len;
+
   MOADNSParser mdp(d_buf.get(), len);
 
   int err = parseResult(mdp, "", 0, 0, &res);

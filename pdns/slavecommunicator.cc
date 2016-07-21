@@ -151,7 +151,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
     vector<DNSResourceRecord> rrs;
 
     ComboAddress raddr(remote, 53);
-    AXFRRetriever retriever(raddr, domain.c_str(), tsigkeyname, tsigalgorithm, tsigsecret, (laddr.sin4.sin_family == 0) ? NULL : &laddr);
+    AXFRRetriever retriever(raddr, domain.c_str(), tsigkeyname, tsigalgorithm, tsigsecret, (laddr.sin4.sin_family == 0) ? NULL : &laddr, ((size_t) ::arg().asNum("xfr-max-received-mbytes")) * 1024 * 1024);
     Resolver::res_t recs;
     while(retriever.getChunk(recs)) {
       if(first) {

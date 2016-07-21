@@ -534,4 +534,9 @@
 #
 # webserver-print-arguments=no
 
+#################################
+# xfr-max-received-mbytes	Maximum number of megabytes received from an incoming AXFR
+#
+# xfr-max-received-mbytes=100
+
 
