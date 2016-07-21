@@ -77,14 +77,14 @@ bool DNSSECKeeper::addKey(const DNSName& name, bool setSEPBit, int algorithm, in
 {
   if(!bits) {
     if(algorithm <= 10)
-      throw runtime_error("Creating an algorithm " +std::to_string(algorithm)+" ("+algorithm2name(algorithm)+") key requires the size (in bits) to be passed");
+      throw runtime_error("Creating an algorithm " +std::to_string(algorithm)+" ("+algorithm2name(algorithm)+") key requires the size (in bits) to be passed.");
     else {
       if(algorithm == 12 || algorithm == 13 || algorithm == 250) // GOST, ECDSAP256SHA256, ED25519SHA512
         bits = 256;
       else if(algorithm == 14) // ECDSAP384SHA384
         bits = 384;
       else {
-        throw runtime_error("Can't guess key size for algorithm "+std::to_string(algorithm));
+        throw runtime_error("Can not guess key size for algorithm "+std::to_string(algorithm));
       }
     }
   }
@@ -93,7 +93,7 @@ bool DNSSECKeeper::addKey(const DNSName& name, bool setSEPBit, int algorithm, in
   try{
     dpk->create(bits);
   } catch (std::runtime_error error){
-    throw runtime_error("Wrong bit size!");
+    throw runtime_error("The algorithm does not support the given bit size.");
   }
   dspk.setKey(dpk);
   dspk.d_algorithm = algorithm;
