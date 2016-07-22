@@ -739,9 +739,6 @@ void startDoResolve(void *p)
     if(!dc->d_mdp.d_header.rd)
       sr.setCacheOnly();
 
-
-    // if there is a RecursorLua active, and it 'took' the query in preResolve, we don't launch beginResolve
-
     dfepol = luaconfsLocal->dfe.getQueryPolicy(dc->d_mdp.d_qname, dc->d_remote);
 
     switch(dfepol.d_kind) {
@@ -785,6 +782,7 @@ void startDoResolve(void *p)
       break;
     }
 
+    // if there is a RecursorLua active, and it 'took' the query in preResolve, we don't launch beginResolve
     if(!t_pdl->get() || !(*t_pdl)->preresolve(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_tcp, ret, dc->d_ednsOpts.empty() ? 0 : &dc->d_ednsOpts, dc->d_tag, &appliedPolicy, &dc->d_policyTags, res, &variableAnswer)) {
       try {
         res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
