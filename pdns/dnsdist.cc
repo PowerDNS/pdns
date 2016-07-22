@@ -1092,7 +1092,7 @@ try
       vinfolog("Got query from %s, relayed to %s", remote.toStringWithPort(), ss->getName());
     }
     catch(std::exception& e){
-      errlog("Got an error in UDP question thread while parsing a query from %s, id %d: %s", remote.toStringWithPort(), queryId, e.what());
+      vinfolog("Got an error in UDP question thread while parsing a query from %s, id %d: %s", remote.toStringWithPort(), queryId, e.what());
     }
   }
   return 0;
