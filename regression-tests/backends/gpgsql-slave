@@ -1,9 +1,9 @@
-	context=${context}-presigned-gpgql
+	context=${context}-presigned-gpgsql
 	[ -z "$GPGSQ2LDB" ] && GPGSQL2DB=pdnstest2
 	[ -z "$GPGSQL2USER" ] && GPGSQL2USER=$(whoami)
 
-	dropdb --user="$GPGSQL2USER" "$GPGSQL2DB" || echo ignoring mysqladmin drop failure
-	createdb --user="$GPGSQL2USER" "$GPGSQL2DB" || echo ignoring mysqladmin drop failure
+	dropdb --user="$GPGSQL2USER" "$GPGSQL2DB" || echo ignoring dropdb failure
+	createdb --user="$GPGSQL2USER" "$GPGSQL2DB" || echo ignoring createdb failure
 	psql --user="$GPGSQL2USER" "$GPGSQL2DB" < ../modules/gpgsqlbackend/schema.pgsql.sql
 
 	cat > pdns-gpgsql2.conf << __EOF__
@@ -29,7 +29,7 @@ __EOF__
 		fi
 		if [ "$zone" = "stest.com" ]; then
 			if [[ $skipreasons != *nolua* ]]; then
-				$PDNSUTIL --config-dir=. --config-name=gmysql2 set-meta stest.com AXFR-SOURCE 127.0.0.2
+				$PDNSUTIL --config-dir=. --config-name=gpgsql2 set-meta stest.com AXFR-SOURCE 127.0.0.2
 			fi
 		fi
 	done

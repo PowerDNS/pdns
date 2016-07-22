@@ -22,7 +22,7 @@ __EOF__
 		fi
 		if [ "$zone" = "stest.com" ]; then
 			if [[ $skipreasons != *nolua* ]]; then
-				$PDNSUTIL --config-dir=. --config-name=gmysql2 set-meta stest.com AXFR-SOURCE 127.0.0.2
+				$PDNSUTIL --config-dir=. --config-name=godbc2 set-meta stest.com AXFR-SOURCE 127.0.0.2
 			fi
 		fi
 	done
