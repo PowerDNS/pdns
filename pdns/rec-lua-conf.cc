@@ -92,7 +92,7 @@ void loadRecursorLuaConfig(const std::string& fname)
   Lua.writeFunction("rpzFile", [&lci](const string& fname, const boost::optional<std::unordered_map<string,boost::variant<int, string>>>& options) {
       try {
 	boost::optional<DNSFilterEngine::Policy> defpol;
-	std::string polName;
+	std::string polName("rpzFile");
 	if(options) {
 	  auto& have = *options;
 	  if(have.count("policyName")) {
@@ -137,9 +137,9 @@ void loadRecursorLuaConfig(const std::string& fname)
         ComboAddress localAddress;
 	if(options) {
 	  auto& have = *options;
-	  if(have.count("policyName")) {
+          polName = zone_;
+	  if(have.count("policyName"))
 	    polName = boost::get<std::string>(constGet(have, "policyName"));
-	  }
 	  if(have.count("defpol")) {
 	    //	    cout<<"Set a default policy"<<endl;
 	    defpol=DNSFilterEngine::Policy();
