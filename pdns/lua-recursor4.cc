@@ -257,8 +257,12 @@ RecursorLua4::RecursorLua4(const std::string& fname)
       return DNSName(boost::get<const DNSName>(dom));
   });
   d_lw->registerFunction("isPartOf", &DNSName::isPartOf);
-  d_lw->registerFunction<bool(DNSName::*)(const std::string&)>("equal",
-							      [](const DNSName& lhs, const std::string& rhs) { return lhs==DNSName(rhs); });
+  d_lw->registerFunction<bool(DNSName::*)(const std::string&)>(
+    "equal",
+     [](const DNSName& lhs, const std::string& rhs) {
+       return lhs==DNSName(rhs);
+    }
+  );
   d_lw->registerFunction("__eq", &DNSName::operator==);
 
   d_lw->registerFunction<string(ComboAddress::*)()>("toString", [](const ComboAddress& ca) { return ca.toString(); });
@@ -277,32 +281,35 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   d_lw->writeFunction("newCAS", []{ return cas_t(); });
 
 
-  d_lw->registerFunction<void(cas_t::*)(boost::variant<string,ComboAddress, vector<pair<unsigned int,string> > >)>("add",
-                                                                                   [](cas_t& cas, const boost::variant<string,ComboAddress,vector<pair<unsigned int,string> > >& in)
-										   {
-										     try {
-										     if(auto s = boost::get<string>(&in)) {
-										       cas.insert(ComboAddress(*s));
-										     }
-										     else if(auto v = boost::get<vector<pair<unsigned int, string> > >(&in)) {
-										       for(const auto& s : *v)
-											 cas.insert(ComboAddress(s.second));
-										     }
-										     else
-										       cas.insert(boost::get<ComboAddress>(in));
-										     }
-										     catch(std::exception& e) { theL() <<Logger::Error<<e.what()<<endl; }
-										   });
+  d_lw->registerFunction<void(cas_t::*)(boost::variant<string,ComboAddress, vector<pair<unsigned int,string> > >)>(
+    "add",
+    [](cas_t& cas, const boost::variant<string,ComboAddress,vector<pair<unsigned int,string> > >& in)
+    {
+      try {
+        if(auto s = boost::get<string>(&in)) {
+          cas.insert(ComboAddress(*s));
+        }
+        else if(auto v = boost::get<vector<pair<unsigned int, string> > >(&in)) {
+          for(const auto& s : *v)
+            cas.insert(ComboAddress(s.second));
+          }
+        else {
+          cas.insert(boost::get<ComboAddress>(in));
+        }
+      }
+      catch(std::exception& e) { theL() <<Logger::Error<<e.what()<<endl; }
+    });
 
   d_lw->registerFunction<bool(cas_t::*)(const ComboAddress&)>("check",[](const cas_t& cas, const ComboAddress&ca) {
       return (bool)cas.count(ca);
     });
 
-
-
-  d_lw->registerFunction<bool(ComboAddress::*)(const ComboAddress&)>("equal", [](const ComboAddress& lhs, const ComboAddress& rhs) {
+  d_lw->registerFunction<bool(ComboAddress::*)(const ComboAddress&)>(
+    "equal",
+    [](const ComboAddress& lhs, const ComboAddress& rhs) {
       return ComboAddress::addressOnlyEqual()(lhs, rhs);
-    });
+    }
+  );
   
 
   d_lw->registerFunction<ComboAddress(Netmask::*)()>("getNetwork", [](const Netmask& nm) { return nm.getNetwork(); } ); // const reference makes this necessary
@@ -316,16 +323,19 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   d_lw->registerFunction("__eq", &Netmask::operator==);
 
   d_lw->writeFunction("newNMG", []() { return NetmaskGroup(); });
-  d_lw->registerFunction<void(NetmaskGroup::*)(const std::string&mask)>("addMask", [](NetmaskGroup&nmg, const std::string& mask)
-			 {
-			   nmg.addMask(mask);
-			 });
+  d_lw->registerFunction<void(NetmaskGroup::*)(const std::string&mask)>(
+    "addMask", [](NetmaskGroup&nmg, const std::string& mask){
+      nmg.addMask(mask);
+    }
+  );
 
-  d_lw->registerFunction<void(NetmaskGroup::*)(const vector<pair<unsigned int, std::string>>&)>("addMasks", [](NetmaskGroup&nmg, const vector<pair<unsigned int, std::string>>& masks)
-			 {
-                           for(const auto& mask: masks) 
-                             nmg.addMask(mask.second);
-			 });
+  d_lw->registerFunction<void(NetmaskGroup::*)(const vector<pair<unsigned int, std::string>>&)>(
+    "addMasks",
+    [](NetmaskGroup&nmg, const vector<pair<unsigned int, std::string>>& masks){
+      for(const auto& mask: masks)
+        nmg.addMask(mask.second);
+    }
+  );
 
 
   d_lw->registerFunction("match", (bool (NetmaskGroup::*)(const ComboAddress&) const)&NetmaskGroup::match);
@@ -396,22 +406,27 @@ RecursorLua4::RecursorLua4(const std::string& fname)
     });
 
   d_lw->writeFunction("newDS", []() { return SuffixMatchNode(); });
-  d_lw->registerFunction<void(SuffixMatchNode::*)(boost::variant<string,DNSName, vector<pair<unsigned int,string> > >)>("add",
-										   [](SuffixMatchNode&smn, const boost::variant<string,DNSName,vector<pair<unsigned int,string> > >& in)
-										   {
-										     try {
-										     if(auto s = boost::get<string>(&in)) {
-										       smn.add(DNSName(*s));
-										     }
-										     else if(auto v = boost::get<vector<pair<unsigned int, string> > >(&in)) {
-										       for(const auto& s : *v)
-											 smn.add(DNSName(s.second));
-										     }
-										     else
-										       smn.add(boost::get<DNSName>(in));
-										     }
-										     catch(std::exception& e) { theL() <<Logger::Error<<e.what()<<endl; }
-										   });
+  d_lw->registerFunction<void(SuffixMatchNode::*)(boost::variant<string,DNSName, vector<pair<unsigned int,string> > >)>(
+    "add",
+    [](SuffixMatchNode&smn, const boost::variant<string,DNSName,vector<pair<unsigned int,string> > >& in){
+      try {
+        if(auto s = boost::get<string>(&in)) {
+          smn.add(DNSName(*s));
+        }
+        else if(auto v = boost::get<vector<pair<unsigned int, string> > >(&in)) {
+          for(const auto& s : *v)
+            smn.add(DNSName(s.second));
+        }
+        else {
+          smn.add(boost::get<DNSName>(in));
+        }
+      }
+      catch(std::exception& e) {
+        theL() <<Logger::Error<<e.what()<<endl;
+      }
+    }
+  );
+
   d_lw->registerFunction("check",(bool (SuffixMatchNode::*)(const DNSName&) const) &SuffixMatchNode::check);
   d_lw->registerFunction("toString",(string (SuffixMatchNode::*)() const) &SuffixMatchNode::toString);
 
