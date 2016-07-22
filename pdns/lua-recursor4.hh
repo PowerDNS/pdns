@@ -3,6 +3,7 @@
 #include "dnsname.hh"
 #include "namespaces.hh"
 #include "dnsrecords.hh"
+#include "filterpo.hh"
 #include <unordered_map>
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -22,10 +23,10 @@ private:
 public:
   explicit RecursorLua4(const std::string& fname);
   ~RecursorLua4(); // this is so unique_ptr works with an incomplete type
-  bool preresolve(const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, const vector<pair<uint16_t,string> >* ednsOpts, unsigned int tag, std::string* appliedPolicy, std::vector<std::string>* policyTags, int& ret, bool* variable);
+  bool preresolve(const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, const vector<pair<uint16_t,string> >* ednsOpts, unsigned int tag, DNSFilterEngine::Policy* appliedPolicy, std::vector<std::string>* policyTags, int& ret, bool* variable);
   bool nxdomain(const ComboAddress& remote, const ComboAddress& local, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, int& ret, bool* variable);
   bool nodata(const ComboAddress& remote, const ComboAddress& local, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, int& ret, bool* variable);
-  bool postresolve(const ComboAddress& remote, const ComboAddress& local, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, std::string* appliedPolicy, std::vector<std::string>* policyTags, int& ret, bool* variable);
+  bool postresolve(const ComboAddress& remote, const ComboAddress& local, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, DNSFilterEngine::Policy* appliedPolicy, std::vector<std::string>* policyTags, int& ret, bool* variable);
 
   bool preoutquery(const ComboAddress& ns, const ComboAddress& requestor, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, int& ret);
   bool ipfilter(const ComboAddress& remote, const ComboAddress& local, const struct dnsheader&);
@@ -66,14 +67,14 @@ private:
     const std::vector<pair<uint16_t, string>>* ednsOptions;
     DNSName followupName;
 
-    string appliedPolicy;
+    DNSFilterEngine::Policy* appliedPolicy;
     std::vector<std::string>* policyTags;
     bool isTcp;
   };
 
   typedef std::function<bool(std::shared_ptr<DNSQuestion>)> luacall_t;
   luacall_t d_preresolve, d_nxdomain, d_nodata, d_postresolve, d_preoutquery, d_postoutquery;
-  bool genhook(luacall_t& func, const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res,  const vector<pair<uint16_t,string> >* ednsOpts, unsigned int tag, std::string* appliedPolicy, std::vector<std::string>* policyTags, int& ret, bool* variable);
+  bool genhook(luacall_t& func, const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res,  const vector<pair<uint16_t,string> >* ednsOpts, unsigned int tag, DNSFilterEngine::Policy* appliedPolicy, std::vector<std::string>* policyTags, int& ret, bool* variable);
   typedef std::function<bool(ComboAddress,ComboAddress, struct dnsheader)> ipfilter_t;
   ipfilter_t d_ipfilter;
 };
