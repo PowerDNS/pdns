@@ -2876,7 +2876,7 @@ int main(int argc, char **argv)
     ::arg().setSwitch("write-pid","Write a PID file")="yes";
     ::arg().set("loglevel","Amount of logging. Higher is more. Do not set below 3")="4";
     ::arg().set("disable-syslog","Disable logging to syslog, useful when running inside a supervisor that logs stdout")="no";
-    ::arg().set("log-common-errors","If we should log rather common errors")="yes";
+    ::arg().set("log-common-errors","If we should log rather common errors")="no";
     ::arg().set("chroot","switch to chroot jail")="";
     ::arg().set("setgid","If set, change group id to this gid for more security")="";
     ::arg().set("setuid","If set, change user id to this uid for more security")="";
