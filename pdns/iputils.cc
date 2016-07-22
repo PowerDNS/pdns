@@ -23,16 +23,20 @@ int SSocket(int family, int type, int flags)
 int SConnect(int sockfd, const ComboAddress& remote)
 {
   int ret = connect(sockfd, (struct sockaddr*)&remote, remote.getSocklen());
-  if(ret < 0)
-    RuntimeError(boost::format("connecting socket to %s: %s") % remote.toStringWithPort() % strerror(errno));
+  if(ret < 0) {
+    int savederrno = errno;
+    RuntimeError(boost::format("connecting socket to %s: %s") % remote.toStringWithPort() % strerror(savederrno));
+  }
   return ret;
 }
 
 int SBind(int sockfd, const ComboAddress& local)
 {
   int ret = bind(sockfd, (struct sockaddr*)&local, local.getSocklen());
-  if(ret < 0)
-    RuntimeError(boost::format("binding socket to %s: %s") % local.toStringWithPort() % strerror(errno));
+  if(ret < 0) {
+    int savederrno = errno;
+    RuntimeError(boost::format("binding socket to %s: %s") % local.toStringWithPort() % strerror(savederrno));
+  }
   return ret;
 }
 
