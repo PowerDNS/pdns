@@ -11,30 +11,30 @@ bool findNamedPolicy(const map<DNSName, DNSFilterEngine::Policy>& polmap, const 
 {
   DNSName s(qname);
 
-    /* for www.powerdns.com, we need to check:
-         www.powerdns.com.
-           *.powerdns.com.
-             powerdns.com.
-	            *.com.
-                      com.
-	 	        *.
-  			 .       */
+  /* for www.powerdns.com, we need to check:
+     www.powerdns.com.
+       *.powerdns.com.
+                *.com.
+                    *.
+   */
  
   bool first=true;
+  map<DNSName, DNSFilterEngine::Policy>::const_iterator iter;
   do {
-    auto iter = polmap.find(s);
+    if(first) {
+      iter = polmap.find(s);
+      if(iter != polmap.end()) {
+        pol=iter->second;
+        return true;
+      }
+    }
+    first=false;
+
+    iter = polmap.find(DNSName("*")+s);
     if(iter != polmap.end()) {
       pol=iter->second;
       return true;
     }
-    if(!first) {
-      iter = polmap.find(DNSName("*")+s);
-      if(iter != polmap.end()) {
-	pol=iter->second;
-	return true;
-      }
-    }
-    first=false;
   } while(s.chopOff());
   return false;
 }
