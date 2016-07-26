@@ -1,0 +1,10 @@
+echo "arthur.example.net RPZ NXDOMAIN"
+$SDIG $nameserver 5301 arthur.example.net a recurse 2>&1
+echo "www.arthur.example.net RPZ NODATA"
+$SDIG $nameserver 5301 www.arthur.example.net a recurse 2>&1
+echo "srv.arthur.example.net RPZ passthru"
+$SDIG $nameserver 5301 srv.arthur.example.net srv recurse 2>&1
+echo "www.example.net RPZ local data to www2.example.net"
+$SDIG $nameserver 5301 www.example.net a recurse 2>&1
+echo "www4.example.net RPZ IP trigger action, dropped"
+$SDIG $nameserver 5301 www4.example.net a recurse 2>&1

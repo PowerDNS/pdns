@@ -1,0 +1,15 @@
+arthur.example.net RPZ NXDOMAIN
+Reply to question for qname='arthur.example.net.', qtype=A
+Rcode: 3 (Non-Existent domain), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+www.arthur.example.net RPZ NODATA
+Reply to question for qname='www.arthur.example.net.', qtype=A
+Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+srv.arthur.example.net RPZ passthru
+Reply to question for qname='srv.arthur.example.net.', qtype=SRV
+Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+0	srv.arthur.example.net.	IN	SRV	15	0 100 389 server2.example.net.
+www.example.net RPZ local data to www2.example.net
+Reply to question for qname='www.example.net.', qtype=A
+Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+0	www.example.net.	IN	CNAME	0	www2.example.net.
+www4.example.net RPZ IP trigger action, dropped
