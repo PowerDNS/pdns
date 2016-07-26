@@ -1,0 +1,1 @@
+$SDIG $nameserver 5301 www3.example.net a recurse 2>&1
