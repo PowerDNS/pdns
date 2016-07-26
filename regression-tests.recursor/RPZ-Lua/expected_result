@@ -1,0 +1,3 @@
+Reply to question for qname='www3.example.net.', qtype=A
+Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+0	www3.example.net.	IN	CNAME	0	www2.example.net.
