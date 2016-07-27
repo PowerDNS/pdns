@@ -409,7 +409,7 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
     prefix=d_prefix;
     prefix.append(depth, ' ');
   }
-  
+
   LOG(prefix<<qname<<": Wants "<< (d_doDNSSEC ? "" : "NO ") << "DNSSEC processing in query for "<<qtype.getName()<<endl);
 
   int res=0;
@@ -472,6 +472,10 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
 
   LOG(prefix<<qname<<": failed (res="<<res<<")"<<endl);
   ;
+
+  if (res == -2)
+    return res;
+
   return res<0 ? RCode::ServFail : res;
 }
 
@@ -941,7 +945,11 @@ static void addNXNSECS(vector<DNSRecord>&ret, const vector<DNSRecord>& records)
   }
 }
 
-/** returns -1 in case of no results, rcode otherwise */
+/** returns:
+ *  -1 in case of no results
+ *  -2 when a FilterEngine Policy was hit
+ *  rcode otherwise
+ */
 int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, const DNSName &qname, const QType &qtype,
                          vector<DNSRecord>&ret,
                          int depth, set<GetBestNSAnswer>&beenthere)
@@ -952,7 +960,28 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
     prefix.append(depth, ' ');
   }
 
-  LOG(prefix<<qname<<": Cache consultations done, have "<<(unsigned int)nameservers.size()<<" NS to contact"<<endl);
+  LOG(prefix<<qname<<": Cache consultations done, have "<<(unsigned int)nameservers.size()<<" NS to contact");
+
+  if(d_wantsRPZ) {
+    for (auto const &ns : nameservers) {
+      d_appliedPolicy = g_luaconfs.getLocal()->dfe.getProcessingPolicy(ns.first);
+      if (d_appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::NoAction) { // client query needs an RPZ response
+        LOG(", however nameserver "<<ns.first<<" was blocked by RPZ policy '"<<d_appliedPolicy.d_name<<"'"<<endl);
+        return -2;
+      }
+
+      // Traverse all IP addresses for this NS to see if they have an RPN NSIP policy
+      for (auto const &address : ns.second.first) {
+        d_appliedPolicy = g_luaconfs.getLocal()->dfe.getProcessingPolicy(address);
+        if (d_appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::NoAction) { // client query needs an RPZ response
+          LOG(", however nameserver "<<ns.first<<" IP address "<<address.toString()<<" was blocked by RPZ policy '"<<d_appliedPolicy.d_name<<"'"<<endl);
+          return -2;
+        }
+      }
+    }
+  }
+
+  LOG(endl);
 
   for(;;) { // we may get more specific nameservers
     vector<DNSName > rnameservers = shuffleInSpeedOrder(nameservers, doLog() ? (prefix+qname.toString()+": ") : string() );
@@ -993,12 +1022,6 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
         if(!tns->empty()) {
           LOG(prefix<<qname<<": Trying to resolve NS '"<<*tns<< "' ("<<1+tns-rnameservers.begin()<<"/"<<(unsigned int)rnameservers.size()<<")"<<endl);
         }
-        //
-	// XXX NEED TO HANDLE OTHER POLICY KINDS HERE!
-	if(g_luaconfs.getLocal()->dfe.getProcessingPolicy(*tns).d_kind != DNSFilterEngine::PolicyKind::NoAction) {
-          g_stats.policyResults[g_luaconfs.getLocal()->dfe.getProcessingPolicy(*tns).d_kind]++;
-	  throw ImmediateServFailException("Dropped because of policy");
-        }
 
         if(tns->empty()) {
           LOG(prefix<<qname<<": Domain has hardcoded nameserver");
@@ -1023,15 +1046,24 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
           continue;
         }
         else {
+          bool hitPolicy{false};
           LOG(prefix<<qname<<": Resolved '"<<auth<<"' NS "<<*tns<<" to: ");
           for(remoteIP = remoteIPs.begin(); remoteIP != remoteIPs.end(); ++remoteIP) {
             if(remoteIP != remoteIPs.begin()) {
               LOG(", ");
             }
             LOG(remoteIP->toString());
+            if (d_wantsRPZ) {
+              d_appliedPolicy = g_luaconfs.getLocal()->dfe.getProcessingPolicy(*remoteIP);
+              if (d_appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::NoAction) {
+                hitPolicy = true;
+                LOG(" (blocked by RPZ policy '"+d_appliedPolicy.d_name+"')");
+              }
+            }
           }
           LOG(endl);
-
+          if (hitPolicy) //implies d_wantsRPZ
+            return -2;
         }
 
         for(remoteIP = remoteIPs.begin(); remoteIP != remoteIPs.end(); ++remoteIP) {
@@ -1400,7 +1432,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
         return 0;
       }
       else if(realreferral) {
-        LOG(prefix<<qname<<": status=did not resolve, got "<<(unsigned int)nsset.size()<<" NS, looping to them"<<endl);
+        LOG(prefix<<qname<<": status=did not resolve, got "<<(unsigned int)nsset.size()<<" NS, ");
 	if(sawDS) {
 	  t_sstorage->dnssecmap[newauth]=true;
 	  /*	  for(const auto& e : t_sstorage->dnssecmap)
@@ -1410,8 +1442,17 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
         auth=newauth;
 
         nameservers.clear();
-        for (auto const &nameserver : nsset)
+        for (auto const &nameserver : nsset) {
+          if (d_wantsRPZ) {
+            d_appliedPolicy = g_luaconfs.getLocal()->dfe.getProcessingPolicy(nameserver);
+            if (d_appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::NoAction) { // client query needs an RPZ response
+              LOG("however "<<nameserver<<" was blocked by RPZ policy '"<<d_appliedPolicy.d_name<<"'"<<endl);
+              return -2;
+            }
+          }
           nameservers.insert({nameserver, {{}, false}});
+        }
+        LOG("looping to them"<<endl);
         break;
       }
       else if(!tns->empty()) { // means: not OOB, OOB == empty

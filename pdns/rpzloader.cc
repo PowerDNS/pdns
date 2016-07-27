@@ -10,9 +10,52 @@
 static Netmask makeNetmaskFromRPZ(const DNSName& name)
 {
   auto parts = name.getRawLabels();
-  if(parts.size() < 5) 
+  /*
+   * why 2?, the minimally valid IPv6 address that can be encoded in an RPZ is
+   * $NETMASK.zz (::/$NETMASK)
+   * Terrible right?
+   */
+  if(parts.size() < 2 || parts.size() > 9)
     throw PDNSException("Invalid IP address in RPZ: "+name.toString());
-  return Netmask(parts[4]+"."+parts[3]+"."+parts[2]+"."+parts[1]+"/"+parts[0]);
+
+  bool isV6 = (stoi(parts[0]) > 32);
+  bool hadZZ = false;
+
+  for (auto &part : parts) {
+    // Check if we have an IPv4 octet
+    for (auto c : part)
+      if (!isdigit(c))
+        isV6 = true;
+
+    if (pdns_iequals(part,"zz")) {
+      if (hadZZ)
+        throw PDNSException("more than one 'zz' label found in RPZ name"+name.toString());
+      part = "";
+      isV6 = true;
+      hadZZ = true;
+    }
+  }
+
+  if (isV6 && parts.size() < 9 && !hadZZ)
+    throw PDNSException("No 'zz' label found in an IPv6 RPZ name shorter than 9 elements: "+name.toString());
+
+  if (parts.size() == 5 && !isV6)
+    return Netmask(parts[4]+"."+parts[3]+"."+parts[2]+"."+parts[1]+"/"+parts[0]);
+
+  string v6;
+
+  for (uint8_t i = parts.size()-1 ; i > 0; i--) {
+    v6 += parts[i];
+    if (parts[i] == "" && i == 1 && i == parts.size()-1)
+        v6+= "::";
+    if (parts[i] == "" && i != parts.size()-1)
+        v6+= ":";
+    if (parts[i] != "" && i != 1)
+      v6 += ":";
+  }
+  v6 += "/" + parts[0];
+
+  return Netmask(v6);
 }
 
 void RPZRecordToPolicy(const DNSRecord& dr, DNSFilterEngine& target, const std::string& polName, bool addOrRemove, boost::optional<DNSFilterEngine::Policy> defpol, int place)
@@ -84,9 +127,8 @@ void RPZRecordToPolicy(const DNSRecord& dr, DNSFilterEngine& target, const std::
     else
       target.rmNSTrigger(filt, pol);
   } else 	if(dr.d_name.isPartOf(rpzClientIP)) {
-
-    auto nm=makeNetmaskFromRPZ(dr.d_name);
-
+    DNSName filt=dr.d_name.makeRelative(rpzClientIP);
+    auto nm=makeNetmaskFromRPZ(filt);
     if(addOrRemove)
       target.addClientTrigger(nm, pol);
     else
@@ -94,14 +136,19 @@ void RPZRecordToPolicy(const DNSRecord& dr, DNSFilterEngine& target, const std::
     
   } else 	if(dr.d_name.isPartOf(rpzIP)) {
     // cerr<<"Should apply answer content IP policy: "<<dr.d_name<<endl;
-    auto nm=makeNetmaskFromRPZ(dr.d_name);
+    DNSName filt=dr.d_name.makeRelative(rpzIP);
+    auto nm=makeNetmaskFromRPZ(filt);
     if(addOrRemove)
       target.addResponseTrigger(nm, pol);
     else
       target.rmResponseTrigger(nm, pol);
   } else if(dr.d_name.isPartOf(rpzNSIP)) {
-    cerr<<"Should apply to nameserver IP address policy HAVE NOTHING HERE"<<endl;
-
+    DNSName filt=dr.d_name.makeRelative(rpzNSIP);
+    auto nm=makeNetmaskFromRPZ(filt);
+    if(addOrRemove)
+      target.addNSIPTrigger(nm, pol);
+    else
+      target.rmNSIPTrigger(nm, pol);
   } else {
     if(addOrRemove)
       target.addQNameTrigger(dr.d_name, pol);

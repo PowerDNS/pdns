@@ -50,8 +50,19 @@ DNSFilterEngine::Policy DNSFilterEngine::getProcessingPolicy(const DNSName& qnam
     }
   }
   return pol;
-}  
+}
 
+DNSFilterEngine::Policy DNSFilterEngine::getProcessingPolicy(const ComboAddress& address) const
+{
+  //  cout<<"Got question for nameserver IP "<<address.toString()<<endl;
+  for(const auto& z : d_zones) {
+    if(auto fnd=z.propolNSAddr.lookup(address)) {
+      //      cerr<<"Had a hit on the nameserver ("<<address.toString()<<") used to process the query"<<endl;
+      return fnd->second;;
+    }
+  }
+  return Policy{PolicyKind::NoAction, nullptr, "", 0};
+}
 
 DNSFilterEngine::Policy DNSFilterEngine::getQueryPolicy(const DNSName& qname, const ComboAddress& ca) const
 {
@@ -141,6 +152,12 @@ void DNSFilterEngine::addNSTrigger(const DNSName& n, Policy pol, int zone)
   d_zones[zone].propolName[n]=pol;
 }
 
+void DNSFilterEngine::addNSIPTrigger(const Netmask& nm, Policy pol, int zone)
+{
+  assureZones(zone);
+  d_zones[zone].propolNSAddr.insert(nm).second = pol;
+}
+
 bool DNSFilterEngine::rmClientTrigger(const Netmask& nm, Policy pol, int zone)
 {
   assureZones(zone);
@@ -169,5 +186,13 @@ bool DNSFilterEngine::rmNSTrigger(const DNSName& n, Policy pol, int zone)
 {
   assureZones(zone);
   d_zones[zone].propolName.erase(n); // XXX verify policy matched? =pol;
+  return true;
+}
+
+bool DNSFilterEngine::rmNSIPTrigger(const Netmask& nm, Policy pol, int zone)
+{
+  assureZones(zone);
+  auto& pols = d_zones[zone].propolNSAddr;
+  pols.erase(nm);
   return true;
 }
