@@ -563,6 +563,7 @@ arthur.example.net     CNAME .                   ; NXDOMAIN on apex
 srv.arthur.example.net CNAME rpz-passthru.       ; Allow this name though
 www.example.net        CNAME www2.example.net.   ; Local-Data Action
 www3.example.net       CNAME www4.example.net.   ; Local-Data Action (to be changed in preresolve)
+trillian.example.net   CNAME .                   ; NXDOMAIN on apex, allows all sub-names (#4086)
 
 32.4.2.0.192.rpz-ip    CNAME rpz-drop.           ; www4.example.net resolves to 192.0.2.4, drop A responses with that IP
 EOF
