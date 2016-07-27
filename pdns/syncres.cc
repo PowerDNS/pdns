@@ -995,8 +995,10 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
         }
         //
 	// XXX NEED TO HANDLE OTHER POLICY KINDS HERE!
-	if(g_luaconfs.getLocal()->dfe.getProcessingPolicy(*tns).d_kind != DNSFilterEngine::PolicyKind::NoAction)
+	if(g_luaconfs.getLocal()->dfe.getProcessingPolicy(*tns).d_kind != DNSFilterEngine::PolicyKind::NoAction) {
+          g_stats.policyResults[g_luaconfs.getLocal()->dfe.getProcessingPolicy(*tns).d_kind]++;
 	  throw ImmediateServFailException("Dropped because of policy");
+        }
 
         if(tns->empty()) {
           LOG(prefix<<qname<<": Domain has hardcoded nameserver");

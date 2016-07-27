@@ -751,16 +751,20 @@ void startDoResolve(void *p)
           break;
         case DNSFilterEngine::PolicyKind::Drop:
           g_stats.policyDrops++;
+          g_stats.policyResults[appliedPolicy.d_kind]++;
           delete dc;
           dc=0;
           return; 
         case DNSFilterEngine::PolicyKind::NXDOMAIN:
+          g_stats.policyResults[appliedPolicy.d_kind]++;
           res=RCode::NXDomain;
           goto haveAnswer;
         case DNSFilterEngine::PolicyKind::NODATA:
+          g_stats.policyResults[appliedPolicy.d_kind]++;
           res=RCode::NoError;
           goto haveAnswer;
         case DNSFilterEngine::PolicyKind::Custom:
+          g_stats.policyResults[appliedPolicy.d_kind]++;
           res=RCode::NoError;
           spoofed.d_name=dc->d_mdp.d_qname;
           spoofed.d_type=appliedPolicy.d_custom->getType();
@@ -772,6 +776,7 @@ void startDoResolve(void *p)
           goto haveAnswer;
         case DNSFilterEngine::PolicyKind::Truncate:
           if(!dc->d_tcp) {
+            g_stats.policyResults[appliedPolicy.d_kind]++;
             res=RCode::NoError;	
             pw.getHeader()->tc=1;
             goto haveAnswer;
@@ -809,6 +814,7 @@ void startDoResolve(void *p)
 	(*t_pdl)->postresolve(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_tcp, ret, &appliedPolicy, &dc->d_policyTags, res, &variableAnswer);
       }
 
+      g_stats.policyResults[appliedPolicy.d_kind]++;
       switch(appliedPolicy.d_kind) {
       case DNSFilterEngine::PolicyKind::NoAction:
 	break;
