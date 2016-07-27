@@ -12,3 +12,7 @@ echo "==> trillian.example.net NXDOMAIN"
 $SDIG $nameserver 5301 trillian.example.net a recurse 2>&1
 echo "==> www.trillian.example.net has no RPZ policy attached, so lookup should succeed"
 $SDIG $nameserver 5301 www.trillian.example.net a recurse 2>&1
+echo "==> www.hijackme.example.net is served on ns.hijackme.example.net, which should be NXDOMAIN"
+$SDIG $nameserver 5301 www.hijackme.example.net a recurse 2>&1
+echo "==> host.lowercase-outgoing.example.net is served on ns.lowercase-outgoing.example.net, blocked by NS IP rule"
+$SDIG $nameserver 5301 host.lowercase-outgoing.example.net a recurse 2>&1
