@@ -44,9 +44,14 @@ include                 BEGIN(incl);
 	char filename[1024];
         if ( include_stack_ptr >= MAX_INCLUDE_DEPTH )
             {
-            fprintf( stderr, "Includes nested too deeply" );
+            fprintf( stderr, "Includes nested too deeply\n" );
             exit( 1 );
             }
+
+        if (strlen(yytext) <= 2) {
+            fprintf( stderr, "Empty include directive\n" );
+            exit( 1 );
+        }
 
         yytext[strlen(yytext)-2]=0;
 
@@ -54,15 +59,28 @@ include                 BEGIN(incl);
         include_stack_name[include_stack_ptr]=current_filename=strdup(yytext+1);
         include_stack_ln[include_stack_ptr++]=linenumber;
         linenumber=1;
-	if(*(yytext+1)=='/')
+
+	if(*(yytext+1)=='/') {
+                if (strlen(yytext+1) >= sizeof(filename)) {
+		  fprintf( stderr, "Filename '%s' is too long\n",yytext+1);
+		  exit( 1 );
+		}
 		strcpy(filename,yytext+1);
+	}
 	else {
+		size_t bind_directory_len = strlen(bind_directory);
+		if (bind_directory_len >= sizeof(filename) ||
+		    strlen(yytext+1) + 2 >= sizeof(filename) - bind_directory_len) {
+		  fprintf( stderr, "Filename '%s' is too long\n",yytext+1);
+		  exit( 1 );
+		}
 		strcpy(filename,bind_directory);
 		strcat(filename,"/");
 		strcat(filename,yytext+1);
 	}
+	filename[sizeof(filename)-1]='\0';
 
-        if (*yytext &&!(yyin=fopen(filename,"r"))) {
+	if (!(yyin=fopen(filename,"r"))) {
 	  fprintf( stderr, "Unable to open '%s': %s\n",filename,strerror(errno));
 	  exit( 1 );
 	}
