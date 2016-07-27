@@ -97,6 +97,7 @@ The DNSQuestion object contains at least the following fields:
   * policyAction: The action taken by the engine
   * policyCustom: The CNAME content for the `pdns.policyactions.Custom` response, a string
   * policyTTL: The TTL in seconds for the `pdns.policyactions.Custom` response
+* wantsRPZ - A boolean that indicates the use of the Policy Engine, can be set to `false` in `preresolve` to disable RPZ for this query
 
 It also supports the following methods:
 

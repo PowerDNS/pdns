@@ -368,6 +368,8 @@ public:
   
   bool d_wasVariable{false};
   bool d_wasOutOfBand{false};
+  bool d_wantsRPZ{true};
+  DNSFilterEngine::Policy d_appliedPolicy{DNSFilterEngine::PolicyKind::NoAction, nullptr, "", 0};
   
   typedef multi_index_container <
     NegCacheEntry,

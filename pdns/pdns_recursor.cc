@@ -660,6 +660,8 @@ void startDoResolve(void *p)
 
     auto luaconfsLocal = g_luaconfs.getLocal();
     DNSFilterEngine::Policy appliedPolicy;
+    // Used to tell syncres later on if we should apply NSDNAME and NSIP RPZ triggers for this query
+    bool wantsRPZ(true);
     RecProtoBufMessage pbMessage(RecProtoBufMessage::Response);
 #ifdef HAVE_PROTOBUF
     if (luaconfsLocal->protobufServer) {
@@ -744,47 +746,50 @@ void startDoResolve(void *p)
     appliedPolicy = dfepol;
 
     // if there is a RecursorLua active, and it 'took' the query in preResolve, we don't launch beginResolve
-    if(!t_pdl->get() || !(*t_pdl)->preresolve(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_tcp, ret, dc->d_ednsOpts.empty() ? 0 : &dc->d_ednsOpts, dc->d_tag, &appliedPolicy, &dc->d_policyTags, res, &variableAnswer)) {
+    if(!t_pdl->get() || !(*t_pdl)->preresolve(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_tcp, ret, dc->d_ednsOpts.empty() ? 0 : &dc->d_ednsOpts, dc->d_tag, &appliedPolicy, &dc->d_policyTags, res, &variableAnswer, &wantsRPZ)) {
 
-      switch(appliedPolicy.d_kind) {
-        case DNSFilterEngine::PolicyKind::NoAction:
-          break;
-        case DNSFilterEngine::PolicyKind::Drop:
-          g_stats.policyDrops++;
-          g_stats.policyResults[appliedPolicy.d_kind]++;
-          delete dc;
-          dc=0;
-          return; 
-        case DNSFilterEngine::PolicyKind::NXDOMAIN:
-          g_stats.policyResults[appliedPolicy.d_kind]++;
-          res=RCode::NXDomain;
-          goto haveAnswer;
-        case DNSFilterEngine::PolicyKind::NODATA:
-          g_stats.policyResults[appliedPolicy.d_kind]++;
-          res=RCode::NoError;
-          goto haveAnswer;
-        case DNSFilterEngine::PolicyKind::Custom:
-          g_stats.policyResults[appliedPolicy.d_kind]++;
-          res=RCode::NoError;
-          spoofed.d_name=dc->d_mdp.d_qname;
-          spoofed.d_type=appliedPolicy.d_custom->getType();
-          spoofed.d_ttl = appliedPolicy.d_ttl;
-          spoofed.d_class = 1;
-          spoofed.d_content = appliedPolicy.d_custom;
-          spoofed.d_place = DNSResourceRecord::ANSWER;
-          ret.push_back(spoofed);
-          goto haveAnswer;
-        case DNSFilterEngine::PolicyKind::Truncate:
-          if(!dc->d_tcp) {
+      sr.d_wantsRPZ = wantsRPZ;
+      if(wantsRPZ) {
+        switch(appliedPolicy.d_kind) {
+          case DNSFilterEngine::PolicyKind::NoAction:
+            break;
+          case DNSFilterEngine::PolicyKind::Drop:
+            g_stats.policyDrops++;
             g_stats.policyResults[appliedPolicy.d_kind]++;
-            res=RCode::NoError;	
-            pw.getHeader()->tc=1;
+            delete dc;
+            dc=0;
+            return; 
+          case DNSFilterEngine::PolicyKind::NXDOMAIN:
+            g_stats.policyResults[appliedPolicy.d_kind]++;
+            res=RCode::NXDomain;
             goto haveAnswer;
-          }
-          break;
+          case DNSFilterEngine::PolicyKind::NODATA:
+            g_stats.policyResults[appliedPolicy.d_kind]++;
+            res=RCode::NoError;
+            goto haveAnswer;
+          case DNSFilterEngine::PolicyKind::Custom:
+            g_stats.policyResults[appliedPolicy.d_kind]++;
+            res=RCode::NoError;
+            spoofed.d_name=dc->d_mdp.d_qname;
+            spoofed.d_type=appliedPolicy.d_custom->getType();
+            spoofed.d_ttl = appliedPolicy.d_ttl;
+            spoofed.d_class = 1;
+            spoofed.d_content = appliedPolicy.d_custom;
+            spoofed.d_place = DNSResourceRecord::ANSWER;
+            ret.push_back(spoofed);
+            goto haveAnswer;
+          case DNSFilterEngine::PolicyKind::Truncate:
+            if(!dc->d_tcp) {
+              g_stats.policyResults[appliedPolicy.d_kind]++;
+              res=RCode::NoError;	
+              pw.getHeader()->tc=1;
+              goto haveAnswer;
+            }
+            break;
+        }
       }
 
-      // Query got not handled for Policy reasons, now actually go out to find an answer
+      // Query got not handled for QNAME Policy reasons, now actually go out to find an answer
       try {
         res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
         shouldNotValidate = sr.wasOutOfBand();
@@ -795,8 +800,55 @@ void startDoResolve(void *p)
         res = RCode::ServFail;
       }
 
-      dfepol = luaconfsLocal->dfe.getPostPolicy(ret);
-      appliedPolicy = dfepol;
+      // During lookup, an NSDNAME or NSIP trigger was hit in RPZ
+      if (res == -2) { // XXX This block should be macro'd, it is repeated post-resolve.
+        appliedPolicy = sr.d_appliedPolicy;
+        g_stats.policyResults[appliedPolicy.d_kind]++;
+        switch(appliedPolicy.d_kind) {
+          case DNSFilterEngine::PolicyKind::NoAction: // This can never happen
+            throw PDNSException("NoAction policy returned while a NSDNAME or NSIP trigger was hit");
+          case DNSFilterEngine::PolicyKind::Drop:
+            g_stats.policyDrops++;
+            delete dc;
+            dc=0;
+            return;
+          case DNSFilterEngine::PolicyKind::NXDOMAIN:
+            ret.clear();
+            res=RCode::NXDomain;
+            goto haveAnswer;
+
+          case DNSFilterEngine::PolicyKind::NODATA:
+            ret.clear();
+            res=RCode::NoError;
+            goto haveAnswer;
+
+          case DNSFilterEngine::PolicyKind::Truncate:
+            if(!dc->d_tcp) {
+              ret.clear();
+              res=RCode::NoError;
+              pw.getHeader()->tc=1;
+              goto haveAnswer;
+            }
+            break;
+
+          case DNSFilterEngine::PolicyKind::Custom:
+            ret.clear();
+            res=RCode::NoError;
+            spoofed.d_name=dc->d_mdp.d_qname;
+            spoofed.d_type=appliedPolicy.d_custom->getType();
+            spoofed.d_ttl = appliedPolicy.d_ttl;
+            spoofed.d_class = 1;
+            spoofed.d_content = appliedPolicy.d_custom;
+            spoofed.d_place = DNSResourceRecord::ANSWER;
+            ret.push_back(spoofed);
+            goto haveAnswer;
+        }
+      }
+
+      if (wantsRPZ) {
+        dfepol = luaconfsLocal->dfe.getPostPolicy(ret);
+        appliedPolicy = dfepol;
+      }
 
       if(t_pdl->get()) {
         if(res == RCode::NoError) {
@@ -814,45 +866,47 @@ void startDoResolve(void *p)
 	(*t_pdl)->postresolve(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_tcp, ret, &appliedPolicy, &dc->d_policyTags, res, &variableAnswer);
       }
 
-      g_stats.policyResults[appliedPolicy.d_kind]++;
-      switch(appliedPolicy.d_kind) {
-      case DNSFilterEngine::PolicyKind::NoAction:
-	break;
-      case DNSFilterEngine::PolicyKind::Drop:
-	g_stats.policyDrops++;
-	delete dc;
-	dc=0;
-	return; 
-      case DNSFilterEngine::PolicyKind::NXDOMAIN:
-	ret.clear();
-	res=RCode::NXDomain;
-	goto haveAnswer;
-	
-      case DNSFilterEngine::PolicyKind::NODATA:
-	ret.clear();
-	res=RCode::NoError;
-	goto haveAnswer;
-	
-      case DNSFilterEngine::PolicyKind::Truncate:
-	if(!dc->d_tcp) {
-	  ret.clear();
-	  res=RCode::NoError;	
-	  pw.getHeader()->tc=1;
-	  goto haveAnswer;
-	}
-	break;
+      if (wantsRPZ) { //XXX This block is repeated, see above
+        g_stats.policyResults[appliedPolicy.d_kind]++;
+        switch(appliedPolicy.d_kind) {
+          case DNSFilterEngine::PolicyKind::NoAction:
+            break;
+          case DNSFilterEngine::PolicyKind::Drop:
+            g_stats.policyDrops++;
+            delete dc;
+            dc=0;
+            return; 
+          case DNSFilterEngine::PolicyKind::NXDOMAIN:
+            ret.clear();
+            res=RCode::NXDomain;
+            goto haveAnswer;
 
-      case DNSFilterEngine::PolicyKind::Custom:
-	ret.clear();
-	res=RCode::NoError;
-	spoofed.d_name=dc->d_mdp.d_qname;
-	spoofed.d_type=appliedPolicy.d_custom->getType();
-	spoofed.d_ttl = appliedPolicy.d_ttl;
-	spoofed.d_class = 1;
-	spoofed.d_content = appliedPolicy.d_custom;
-	spoofed.d_place = DNSResourceRecord::ANSWER;
-	ret.push_back(spoofed);
-	goto haveAnswer;
+          case DNSFilterEngine::PolicyKind::NODATA:
+            ret.clear();
+            res=RCode::NoError;
+            goto haveAnswer;
+
+          case DNSFilterEngine::PolicyKind::Truncate:
+            if(!dc->d_tcp) {
+              ret.clear();
+              res=RCode::NoError;
+              pw.getHeader()->tc=1;
+              goto haveAnswer;
+            }
+            break;
+
+          case DNSFilterEngine::PolicyKind::Custom:
+            ret.clear();
+            res=RCode::NoError;
+            spoofed.d_name=dc->d_mdp.d_qname;
+            spoofed.d_type=appliedPolicy.d_custom->getType();
+            spoofed.d_ttl = appliedPolicy.d_ttl;
+            spoofed.d_class = 1;
+            spoofed.d_content = appliedPolicy.d_custom;
+            spoofed.d_place = DNSResourceRecord::ANSWER;
+            ret.push_back(spoofed);
+            goto haveAnswer;
+        }
       }
     }
   haveAnswer:;
