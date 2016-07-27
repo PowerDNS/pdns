@@ -21,3 +21,9 @@ Reply to question for qname='www.trillian.example.net.', qtype=A
 Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
 0	www.trillian.example.net.	IN	CNAME	15	www2.arthur.example.net.
 0	www2.arthur.example.net.	IN	A	15	192.0.2.6
+==> www.hijackme.example.net is served on ns.hijackme.example.net, which should be NXDOMAIN
+Reply to question for qname='www.hijackme.example.net.', qtype=A
+Rcode: 3 (Non-Existent domain), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+==> host.lowercase-outgoing.example.net is served on ns.lowercase-outgoing.example.net, blocked by NS IP rule
+Reply to question for qname='host.lowercase-outgoing.example.net.', qtype=A
+Rcode: 3 (Non-Existent domain), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
