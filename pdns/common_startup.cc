@@ -287,6 +287,7 @@ void declareStats(void)
 
   S.declare("uptime", "Uptime of process in seconds", uptimeOfProcess);
   S.declare("real-memory-usage", "Actual unique use of memory in bytes (approx)", getRealMemoryUsage);
+  S.declare("fd-usage", "Number of open filedescriptors", getOpenFileDescriptors);
 #ifdef __linux__
   S.declare("udp-recvbuf-errors", "UDP 'recvbuf' errors", udpErrorStats);
   S.declare("udp-sndbuf-errors", "UDP 'sndbuf' errors", udpErrorStats);
