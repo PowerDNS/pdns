@@ -184,9 +184,12 @@ private:
   void releaseStatement() {
     d_prepared = false;
     reset();
-    string cmd = string("DEALLOCATE " + d_stmt);
-    PGresult *res = PQexec(d_db(), cmd.c_str());
-    PQclear(res);
+    if (!d_stmt.empty()) {
+      string cmd = string("DEALLOCATE " + d_stmt);
+      PGresult *res = PQexec(d_db(), cmd.c_str());
+      PQclear(res);
+      d_stmt.clear();
+    }
   }
 
   void prepareStatement() {
