@@ -47,7 +47,7 @@
 
 
 #include "dns_random.hh"
-#include <sys/poll.h>
+#include <poll.h>
 #include "gss_context.hh"
 #include "namespaces.hh"
 
