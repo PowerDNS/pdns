@@ -1,0 +1,1 @@
+Make sure we send a proper denial for nonexistent NSEC records
