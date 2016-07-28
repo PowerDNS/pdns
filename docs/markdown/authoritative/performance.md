@@ -81,7 +81,7 @@ daemon.
 * `tcp6-answers-bytes`: Total number of answer bytes sent over TCPv6 (since 4.0.0)
 * `tcp6-answers`: Number of answers sent out over TCPv6
 * `tcp6-queries`: Number of questions received over TCPv6
-* `timedout-questions`: Amount of packets that were dropped because they had to wait too long internally
+* `timedout-packets`: Amount of packets that were dropped because they had to wait too long internally
 * `udp-answers-bytes`: Total number of answer bytes sent over UDP
 * `udp-answers`: Number of answers sent out over UDP
 * `udp-do-queries`: Number of queries received with the DO (DNSSEC OK) bit set
