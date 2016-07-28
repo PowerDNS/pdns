@@ -1001,15 +1001,19 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
  editMore:;
   struct stat statbefore, statafter;
   stat(tmpnam,&statbefore);
-  cmdline=editor+" ";
+  cmdline=" ";
   if(gotoline > 0)
     cmdline+="+"+std::to_string(gotoline)+" ";
   cmdline += tmpnam;
-  int err=system(cmdline.c_str());
+  int err=system((editor + cmdline).c_str());
   if(err) {
-    unixDie("Editing file with: '"+cmdline+"', perhaps set EDITOR variable");
+    err=system(("vi" + cmdline).c_str());
+  }
+  if(err) {
+    throw runtime_error("Failed to edit with '"+editor+"' or 'vi': please set the EDITOR variable");
   }
   cmdline.clear();
+  editor.clear();
   stat(tmpnam,&statafter);
   if(first && statbefore.st_ctime == statafter.st_ctime) {
     cout<<"No change to file"<<endl;
