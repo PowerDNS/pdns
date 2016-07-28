@@ -108,6 +108,9 @@ BOOST_REQUIRE([1.35])
 AM_CONDITIONAL([HAVE_BOOST_GE_148], [test "$boost_major_version" -ge 148])
 
 BOOST_PROGRAM_OPTIONS([mt])
+AS_IF([test "$boost_cv_lib_program_options" = "no"], [
+  AC_MSG_ERROR([Boost Program Options library not found])
+])
 PDNS_ENABLE_UNIT_TESTS
 PDNS_ENABLE_REPRODUCIBLE
 
