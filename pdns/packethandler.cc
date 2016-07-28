@@ -759,15 +759,20 @@ int PacketHandler::trySuperMaster(DNSPacket *p, const DNSName& tsigkeyname)
 
 int PacketHandler::trySuperMasterSynchronous(DNSPacket *p, const DNSName& tsigkeyname)
 {
+  string remote = p->getRemote().toString();
+  if(p->hasEDNSSubnet() && ::arg().contains("trusted-notification-proxy", remote)) {
+    remote = p->getRealRemote().toStringNoMask();
+  }
+
   Resolver::res_t nsset;
   try {
     Resolver resolver;
     uint32_t theirserial;
-    resolver.getSoaSerial(p->getRemote().toString(),p->qdomain, &theirserial);
-    resolver.resolve(p->getRemote().toString(), p->qdomain, QType::NS, &nsset);
+    resolver.getSoaSerial(remote,p->qdomain, &theirserial);
+    resolver.resolve(remote, p->qdomain, QType::NS, &nsset);
   }
   catch(ResolverException &re) {
-    L<<Logger::Error<<"Error resolving SOA or NS for "<<p->qdomain<<" at: "<< p->getRemote() <<": "<<re.reason<<endl;
+    L<<Logger::Error<<"Error resolving SOA or NS for "<<p->qdomain<<" at: "<< remote <<": "<<re.reason<<endl;
     return RCode::ServFail;
   }
 
@@ -779,7 +784,7 @@ int PacketHandler::trySuperMasterSynchronous(DNSPacket *p, const DNSName& tsigke
   }
 
   if(!haveNS) {
-    L<<Logger::Error<<"While checking for supermaster, did not find NS for "<<p->qdomain<<" at: "<< p->getRemote()<<endl;
+    L<<Logger::Error<<"While checking for supermaster, did not find NS for "<<p->qdomain<<" at: "<< remote <<endl;
     return RCode::ServFail;
   }
 
@@ -787,12 +792,12 @@ int PacketHandler::trySuperMasterSynchronous(DNSPacket *p, const DNSName& tsigke
   DNSBackend *db;
 
   if (!::arg().mustDo("allow-unsigned-supermaster") && tsigkeyname.empty()) {
-    L<<Logger::Error<<"Received unsigned NOTIFY for "<<p->qdomain<<" from potential supermaster "<<p->getRemote()<<". Refusing."<<endl;
+    L<<Logger::Error<<"Received unsigned NOTIFY for "<<p->qdomain<<" from potential supermaster "<<remote<<". Refusing."<<endl;
     return RCode::Refused;
   }
 
-  if(!B.superMasterBackend(p->getRemote().toString(), p->qdomain, nsset, &nameserver, &account, &db)) {
-    L<<Logger::Error<<"Unable to find backend willing to host "<<p->qdomain<<" for potential supermaster "<<p->getRemote()<<". Remote nameservers: "<<endl;
+  if(!B.superMasterBackend(remote, p->qdomain, nsset, &nameserver, &account, &db)) {
+    L<<Logger::Error<<"Unable to find backend willing to host "<<p->qdomain<<" for potential supermaster "<<remote<<". Remote nameservers: "<<endl;
     for(const auto& rr: nsset) {
       if(rr.qtype.getCode()==QType::NS)
         L<<Logger::Error<<rr.content<<endl;
@@ -808,10 +813,10 @@ int PacketHandler::trySuperMasterSynchronous(DNSPacket *p, const DNSName& tsigke
     }
   }
   catch(PDNSException& ae) {
-    L<<Logger::Error<<"Database error trying to create "<<p->qdomain<<" for potential supermaster "<<p->getRemote()<<": "<<ae.reason<<endl;
+    L<<Logger::Error<<"Database error trying to create "<<p->qdomain<<" for potential supermaster "<<remote<<": "<<ae.reason<<endl;
     return RCode::ServFail;
   }
-  L<<Logger::Warning<<"Created new slave zone '"<<p->qdomain<<"' from supermaster "<<p->getRemote()<<endl;
+  L<<Logger::Warning<<"Created new slave zone '"<<p->qdomain<<"' from supermaster "<<remote<<endl;
   return RCode::NoError;
 }
 
