@@ -409,7 +409,7 @@ bool DNSSECKeeper::getPreRRSIGs(DNSBackend& db, const std::string& signer, const
                 // cerr<<"Considering for '"<<qtype.getName()<<"' RRSIG '"<<rr.content<<"'\n";
                 vector<string> parts;
                 stringtok(parts, rr.content);
-                if(parts[0] == qtype.getName() && pdns_iequals(parts[7], signer+".")) {
+                if(parts[0] == qtype.getName() && pdns_iequals(stripDot(parts[7]), signer)) {
                         // cerr<<"Got it"<<endl;
                         if (!wildcardname.empty())
                                 rr.qname = qname;
