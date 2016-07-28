@@ -21,5 +21,8 @@ AC_DEFUN([PDNS_ENABLE_UNIT_TESTS], [
 
   AS_IF([test "x$enable_unit_tests" != "xno" || test "x$enable_backend_unit_tests" != "xno"], [
      BOOST_TEST([mt])
+     AS_IF([test "$boost_cv_lib_unit_test_framework" = "no"], [
+       AC_MSG_ERROR([Boost Unit Test library not found])
+     ])
    ])
 ])

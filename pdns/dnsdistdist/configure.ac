@@ -30,7 +30,6 @@ AS_IF([test "x$PROTOBUF_LIBS" != "x" -a x"$PROTOC" != "x"],
 )
 
 BOOST_REQUIRE([$boost_required_version])
-BOOST_FOREACH
 
 PDNS_ENABLE_UNIT_TESTS
 PDNS_CHECK_RE2
