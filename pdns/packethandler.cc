@@ -645,7 +645,8 @@ void PacketHandler::addNSEC(DNSPacket *p, DNSPacket *r, const string& target, co
   rr.auth=false;
   if(!B.getDirectNSECx(sd.domain_id, toLower(labelReverse(makeRelative(target, auth))), QType(QType::NSEC), before, rr)) {
     sd.db->getBeforeAndAfterNames(sd.domain_id, auth, target, before, after);
-    emitNSEC(before, after, target, sd, r, mode);
+    if (mode != 5 || pdns_iequals(before, target))
+      emitNSEC(before, after, target, sd, r, mode);
   } else if(rr.auth) {
     if (mode == 5)
       rr.d_place=DNSResourceRecord::ANSWER;
@@ -1176,7 +1177,8 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     // this TRUMPS a cname!
     if(p->qtype.getCode() == QType::NSEC && d_dk.isSecuredZone(sd.qname) && !d_dk.getNSEC3PARAM(sd.qname, 0)) {
       addNSEC(p, r, target, "", sd.qname, 5);
-      goto sendit;
+      if (!r->isEmpty())
+        goto sendit;
     }
 
     // this TRUMPS a cname!
