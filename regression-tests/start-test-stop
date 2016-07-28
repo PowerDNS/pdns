@@ -252,6 +252,7 @@ done
 
 rm -f pdns*.pid
 rm -f *_tests
+rm -f pdns-*.conf
 
 presigned=no
 both=no
