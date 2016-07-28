@@ -700,7 +700,8 @@ void PacketHandler::addNSEC(DNSPacket *p, DNSPacket *r, const DNSName& target, c
 
   DNSName before,after;
   sd.db->getBeforeAndAfterNames(sd.domain_id, auth, target, before, after);
-  emitNSEC(r, sd, before, after, mode);
+  if (mode != 5 || before == target)
+    emitNSEC(r, sd, before, after, mode);
 
   if (mode == 2 || mode == 4) {
     // wildcard NO-DATA or wildcard denial
@@ -1330,7 +1331,8 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     // this TRUMPS a cname!
     if(p->qtype.getCode() == QType::NSEC && d_dk.isSecuredZone(sd.qname) && !d_dk.getNSEC3PARAM(sd.qname, 0)) {
       addNSEC(p, r, target, DNSName(), sd.qname, 5);
-      goto sendit;
+      if (!r->isEmpty())
+        goto sendit;
     }
 
     // this TRUMPS a cname!
