@@ -58,6 +58,7 @@ pages:
     - Deprecated Backends: authoritative/backend-deprecated.md
   - Recursor:
     - Introduction: recursor/index.md
+    - Upgrade Notes: recursor/upgrading.md
     - Security of the Recursor: recursor/security.md
     - DNSSEC in the Recursor: recursor/dnssec.md
     - Recursor Statistics: recursor/stats.md
