@@ -593,7 +593,7 @@ static string* pleaseGetCurrentQueries()
   for(MT_t::waiters_t::iterator mthread=MT->d_waiters.begin(); mthread!=MT->d_waiters.end() && n < 100; ++mthread, ++n) {
     const PacketID& pident = mthread->key;
     ostr << (fmt 
-             % pident.domain.toString() /* ?? */ % DNSRecordContent::NumberToType(pident.type) 
+             % pident.domain.toLogString() /* ?? */ % DNSRecordContent::NumberToType(pident.type) 
              % pident.remote.toString() % (pident.sock ? 'Y' : 'n')
              % (pident.fd == -1 ? 'Y' : 'n')
              );
