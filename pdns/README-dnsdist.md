@@ -147,6 +147,7 @@ of `newServer` is set to true, a response will only be considered valid if
 its RCODE differs from NXDomain, ServFail and Refused.
 The number of health check failures before a server is considered down is
 configurable via the`maxCheckFailures` parameter, defaulting to 1.
+The `CD` flag can be set on the query by setting `setCD` to true.
 
 ```
 newServer({address="192.0.2.1", checkType="AAAA", checkName="a.root-servers.net.", mustResolve=true})
@@ -1190,7 +1191,7 @@ Here are all functions:
     * `setVerboseHealthChecks(bool)`: set whether health check errors will be logged
  * Server related:
     * `newServer("ip:port")`: instantiate a new downstream server with default settings
-    * `newServer({address="ip:port", qps=1000, order=1, weight=10, pool="abuse", retries=5, tcpSendTimeout=30, tcpRecvTimeout=30, checkName="a.root-servers.net.", checkType="A", maxCheckFailures=1, mustResolve=false, useClientSubnet=true, source="address|interface name|address@interface"})`:
+    * `newServer({address="ip:port", qps=1000, order=1, weight=10, pool="abuse", retries=5, tcpSendTimeout=30, tcpRecvTimeout=30, checkName="a.root-servers.net.", checkType="A", setCD=false, maxCheckFailures=1, mustResolve=false, useClientSubnet=true, source="address|interface name|address@interface"})`:
 instantiate a server with additional parameters
     * `showServers()`: output all servers
     * `getServer(n)`: returns server with index n 

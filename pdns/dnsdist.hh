@@ -355,6 +355,7 @@ struct DownstreamState
   bool mustResolve{false};
   bool upStatus{false};
   bool useECS{false};
+  bool setCD{false};
   bool isUp() const
   {
     if(availability == Availability::Down)
