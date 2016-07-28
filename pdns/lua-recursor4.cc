@@ -280,8 +280,14 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   
 
   d_lw->registerFunction<ComboAddress(Netmask::*)()>("getNetwork", [](const Netmask& nm) { return nm.getNetwork(); } ); // const reference makes this necessary
+  d_lw->registerFunction<ComboAddress(Netmask::*)()>("getMaskedNetwork", [](const Netmask& nm) { return nm.getMaskedNetwork(); } );
+  d_lw->registerFunction("isIpv4", &Netmask::isIpv4);
+  d_lw->registerFunction("isIpv6", &Netmask::isIpv6);
+  d_lw->registerFunction("getBits", &Netmask::getBits);
   d_lw->registerFunction("toString", &Netmask::toString);
   d_lw->registerFunction("empty", &Netmask::empty);
+  d_lw->registerFunction("match", (bool (Netmask::*)(const string&) const)&Netmask::match);
+  d_lw->registerFunction("__eq", &Netmask::operator==);
 
   d_lw->writeFunction("newNMG", []() { return NetmaskGroup(); });
   d_lw->registerFunction<void(NetmaskGroup::*)(const std::string&mask)>("addMask", [](NetmaskGroup&nmg, const std::string& mask)
