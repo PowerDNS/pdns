@@ -151,6 +151,8 @@ std::string DNSProtoBufMessage::toDebugString() const
 {
 #ifdef HAVE_PROTOBUF
   return d_message.DebugString();
+#else
+  return std::string();
 #endif /* HAVE_PROTOBUF */
 }
 
