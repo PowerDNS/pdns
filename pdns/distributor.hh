@@ -217,7 +217,7 @@ retry:
 
           a->setRcode(RCode::ServFail);
           S.inc("servfail-packets");
-          S.ringAccount("servfail-queries",QD->Q->qdomain.toString());
+          S.ringAccount("servfail-queries",QD->Q->qdomain.toLogString());
 
           delete QD->Q;
         } else {
@@ -234,7 +234,7 @@ retry:
 
           a->setRcode(RCode::ServFail);
           S.inc("servfail-packets");
-          S.ringAccount("servfail-queries",QD->Q->qdomain.toString());
+          S.ringAccount("servfail-queries",QD->Q->qdomain.toLogString());
 
           delete QD->Q;
         } else {
@@ -281,7 +281,7 @@ retry:
 
       a->setRcode(RCode::ServFail);
       S.inc("servfail-packets");
-      S.ringAccount("servfail-queries",q->qdomain.toString());
+      S.ringAccount("servfail-queries",q->qdomain.toLogString());
     } else {
       L<<Logger::Error<<"Backend error (retry once): "<<e.reason<<endl;
       goto retry;
@@ -296,7 +296,7 @@ retry:
 
       a->setRcode(RCode::ServFail);
       S.inc("servfail-packets");
-      S.ringAccount("servfail-queries",q->qdomain.toString());
+      S.ringAccount("servfail-queries",q->qdomain.toLogString());
     } else {
       L<<Logger::Error<<"Caught unknown exception in Distributor thread "<<(unsigned long)pthread_self()<<" (retry once)"<<endl;
       goto retry;
