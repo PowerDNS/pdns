@@ -12,7 +12,8 @@ Compiling
 ---------
 `dnsdist` depends on boost, Lua or LuaJIT and a pretty recent C++
 compiler (g++ 4.8 or higher, clang 3.5 or higher). It can optionally use libsodium
-for encrypted communications with its client.
+for encrypted communications with its client, protobuf for remote logging and re2
+for regular expression matching.
 
 Should `dnsdist` be run on a system with systemd, it is highly recommended to have
 the systemd header files (`libsystemd-dev` on debian and `systemd-devel` on CentOS)
