@@ -19,6 +19,7 @@ This release has several improvements with regards to DNSSEC validation and it i
 ## Improvements
 
  - [#4056](https://github.com/PowerDNS/pdns/pull/4056) OpenSSL 1.1.0 support (Christian Hofstaedtler)
+ - [#4133](https://github.com/PowerDNS/pdns/pull/4133) Add limits to the size of received {A,I}XFR (CVE-2016-6172)
  - [#4140](https://github.com/PowerDNS/pdns/pull/4140) Fix warnings with gcc on musl-libc (James Taylor)
  - [#4160](https://github.com/PowerDNS/pdns/pull/4160) Also validate on +DO
  - [#4164](https://github.com/PowerDNS/pdns/pull/4164) Fail to start when the lua-dns-script does not exist
@@ -43,7 +44,7 @@ This release fixes two small issues and adds a setting to limit AXFR and IXFR si
 
 ## Improvements
 
- - [#4044](https://github.com/PowerDNS/pdns/pull/4044) Make DNSPacket return a ComboAddredd for local and remote (Aki Tuomi)
+ - [#4044](https://github.com/PowerDNS/pdns/pull/4044) Make DNSPacket return a ComboAddress for local and remote (Aki Tuomi)
  - [#4056](https://github.com/PowerDNS/pdns/pull/4056) OpenSSL 1.1.0 support (Christian Hofstaedtler)
  - [#4169](https://github.com/PowerDNS/pdns/pull/4169) Fix typos in a logmessage and exception (Christian Hofsteadtler)
  - [#4183](https://github.com/PowerDNS/pdns/pull/4183) pdnsutil: Remove checking of ctime and always diff the changes (Hannu Ylitalo)
@@ -52,7 +53,7 @@ This release fixes two small issues and adds a setting to limit AXFR and IXFR si
 
 ## Additions
 
- - [#4133](https://github.com/PowerDNS/pdns/pull/4133) Add limits to the size of received {A,I}XFR
+ - [#4133](https://github.com/PowerDNS/pdns/pull/4133) Add limits to the size of received {A,I}XFR (CVE-2016-6172)
  - [#4142](https://github.com/PowerDNS/pdns/pull/4142) Add used filedescriptor statistic (Kees Monshouwer)
 
 # PowerDNS Recursor 4.0.0
