@@ -6,7 +6,7 @@ AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/json11 \
 	-I$(top_srcdir)/ext/rapidjson/include \
 	$(YAHTTP_CFLAGS) \
-	$(OPENSSL_INCLUDES)
+	$(LIBCRYPTO_INCLUDES)
 
 AM_CXXFLAGS = \
 	-DSYSCONFDIR=\"$(sysconfdir)\" \
@@ -145,13 +145,13 @@ endif
 pdns_recursor_LDADD = \
 	$(YAHTTP_LIBS) \
 	$(JSON11_LIBS) \
-	$(OPENSSL_LIBS) \
+	$(LIBCRYPTO_LIBS) \
 	$(BOOST_CONTEXT_LIBS) \
 	$(SYSTEMD_LIBS) \
 	$(RT_LIBS)
 
 pdns_recursor_LDFLAGS = $(AM_LDFLAGS) \
-	$(OPENSSL_LDFLAGS)
+	$(LIBCRYPTO_LDFLAGS)
 
 if BOTAN110
 pdns_recursor_SOURCES += \

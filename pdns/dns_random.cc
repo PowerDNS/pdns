@@ -2,6 +2,12 @@
 #include "config.h"
 #endif
 #include <openssl/aes.h>
+#if OPENSSL_VERSION_NUMBER > 0x1000100fL
+// Older OpenSSL does not have CRYPTO_ctr128_encrypt. Before 1.1.0 the header
+// file did not have the necessary extern "C" wrapper. In 1.1.0, AES_ctr128_encrypt
+// was removed.
+#include <openssl/modes.h>
+#endif
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
@@ -47,7 +53,11 @@ unsigned int dns_random(unsigned int n)
   if(!g_initialized)
     abort();
   uint32_t out;
+#if OPENSSL_VERSION_NUMBER > 0x1000100fL
+  CRYPTO_ctr128_encrypt((const unsigned char*)&g_in, (unsigned char*) &out, sizeof(g_in), &aes_key, g_counter, g_stream, &g_offset, (block128_f) AES_encrypt);
+#else
   AES_ctr128_encrypt((const unsigned char*)&g_in, (unsigned char*) &out, sizeof(g_in), &aes_key, g_counter, g_stream, &g_offset);
+#endif
   return out % n;
 }
 

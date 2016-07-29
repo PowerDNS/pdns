@@ -93,11 +93,12 @@ AC_CHECK_HEADERS(
 
 PDNS_ENABLE_BOTAN
 PDNS_CHECK_LIBSODIUM
-AX_CHECK_OPENSSL([
+PDNS_CHECK_LIBCRYPTO([
 ],[
-   AC_MSG_ERROR([OpenSSL not found])
+   AC_MSG_ERROR([OpenSSL/libcrypto not found])
   ]
 )
+PDNS_CHECK_LIBCRYPTO_ECDSA
 
 PDNS_CHECK_RAGEL
 PDNS_CHECK_CLOCK_GETTIME
@@ -352,7 +353,7 @@ AC_MSG_NOTICE([----------------])
 AC_MSG_NOTICE([Built-in modules: $modules])
 AC_MSG_NOTICE([Dynamic modules: $dynmodules])
 AC_MSG_NOTICE([])
-AS_IF([test "x$openssl_ecdsa" = "xyes"],
+AS_IF([test "x$libcrypto_ecdsa" == "xyes"],
   [AC_MSG_NOTICE([OpenSSL ecdsa: yes])],
   [AC_MSG_NOTICE([OpenSSL ecdsa: no])]
 )

@@ -1,0 +1,1 @@
+../../../m4/pdns_check_libcrypto_ecdsa.m4
