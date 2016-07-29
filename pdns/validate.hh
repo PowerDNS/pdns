@@ -31,6 +31,7 @@ struct ContentSigPair
   // ponder adding a validate method that accepts a key
 };
 typedef map<pair<DNSName,uint16_t>, ContentSigPair> cspmap_t;
+typedef std::set<DSRecordContent> dsmap_t;
 void validateWithKeySet(const cspmap_t& rrsets, cspmap_t& validated, const std::set<DNSKEYRecordContent>& keys);
 cspmap_t harvestCSPFromRecs(const vector<DNSRecord>& recs);
 vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, std::set<DNSKEYRecordContent> &keyset);

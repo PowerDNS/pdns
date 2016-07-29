@@ -204,7 +204,6 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
 
   vector<string> labels = zone.getRawLabels();
 
-  typedef std::multimap<uint16_t, DSRecordContent> dsmap_t;
   dsmap_t dsmap;
   keyset_t validkeys;
 
@@ -213,18 +212,17 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
 
   while(zone.isPartOf(qname))
   {
-    if(auto ds = rplookup(luaLocal->dsAnchors, qname))
-    {
-      dsmap.insert(make_pair(ds->d_tag, *ds));
-    }
-  
+    dsmap_t* tmp = (dsmap_t*) rplookup(luaLocal->dsAnchors, qname);
+    if (tmp)
+      dsmap = *tmp;
+
     vector<RRSIGRecordContent> sigs;
     vector<shared_ptr<DNSRecordContent> > toSign;
     vector<uint16_t> toSignTags;
 
     keyset_t tkeys; // tentative keys
     validkeys.clear();
-    
+
     // start of this iteration
     // we can trust that dsmap has valid DS records for qname
 
@@ -258,13 +256,12 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
     }
     LOG("got "<<tkeys.size()<<" keys and "<<sigs.size()<<" sigs from server"<<endl);
 
-    for(dsmap_t::const_iterator i=dsmap.begin(); i!=dsmap.end(); i++)
+    for(auto const& dsrc : dsmap)
     {
-      DSRecordContent dsrc=i->second;
-      auto r = getByTag(tkeys, i->first);
+      auto r = getByTag(tkeys, dsrc.d_tag);
       //      cerr<<"looking at DS with tag "<<dsrc.d_tag<<"/"<<i->first<<", got "<<r.size()<<" DNSKEYs for tag"<<endl;
 
-      for(const auto& drc : r) 
+      for(const auto& drc : r)
       {
 	bool isValid = false;
 	DSRecordContent dsrc2;
@@ -277,7 +274,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
 	}
 
         if(isValid) {
-	  LOG("got valid DNSKEY (it matches the DS) with tag "<<dsrc.d_tag<<"/"<<i->first<<" for "<<qname<<endl);
+	  LOG("got valid DNSKEY (it matches the DS) with tag "<<dsrc.d_tag<<" for "<<qname<<endl);
 	  
           validkeys.insert(drc);
 	  dotNode("DS", qname, "" /*std::to_string(dsrc.d_tag)*/, (boost::format("tag=%d, digest algo=%d, algo=%d") % dsrc.d_tag % static_cast<int>(dsrc.d_digesttype) % static_cast<int>(dsrc.d_algorithm)).str());
@@ -436,7 +433,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
         {
           const auto dsrc=std::dynamic_pointer_cast<DSRecordContent>(*j);
           if(dsrc) {
-            dsmap.insert(make_pair(dsrc->d_tag, *dsrc));
+            dsmap.insert(*dsrc);
             // dotEdge(keyqname,
             //         "DNSKEY", keyqname, ,
             //         "DS", qname, std::to_string(dsrc.d_tag));
