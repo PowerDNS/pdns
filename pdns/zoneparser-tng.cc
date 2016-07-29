@@ -452,8 +452,12 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
     if(recparts.size() > 7)
       throw PDNSException("SOA record contents for "+rr.qname.toString()+" contains too many parts");
     if(recparts.size() > 1) {
-      recparts[0]=toCanonic(d_zonename, recparts[0]).toStringRootDot();
-      recparts[1]=toCanonic(d_zonename, recparts[1]).toStringRootDot();
+      try {
+        recparts[0]=toCanonic(d_zonename, recparts[0]).toStringRootDot();
+        recparts[1]=toCanonic(d_zonename, recparts[1]).toStringRootDot();
+      } catch (runtime_error &re) {
+        throw PDNSException(re.what());
+      }
     }
     rr.content.clear();
     for(string::size_type n = 0; n < recparts.size(); ++n) {
