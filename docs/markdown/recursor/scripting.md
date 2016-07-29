@@ -240,6 +240,11 @@ To compare the address (so not the port) of two ComboAddresses, use `:equal`.
 To convert an address to human-friendly representation, use `:toString()` or
 `:toStringWithPort()`. To get only the port number, use `:getPort()`.
 
+Other functions that can be called on a ComboAddress are:
+ * `isIpv4` - true if the address is an IPv4 address
+ * `isIpv6` - true if the address is an IPv6 address
+ * `getBits` - the number of bits in the address
+
 ### DNSName
 DNSNames are passed to various functions, and they sport the following methods:
 

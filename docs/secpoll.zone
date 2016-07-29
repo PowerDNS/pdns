@@ -1,4 +1,4 @@
-@       86400   IN  SOA pdns-public-ns1.powerdns.com. pieter\.lexis.powerdns.com. 2016072001 10800 3600 604800 10800
+@       86400   IN  SOA pdns-public-ns1.powerdns.com. pieter\.lexis.powerdns.com. 2016072801 10800 3600 604800 10800
 @       3600    IN  NS  pdns-public-ns1.powerdns.com.
 @       3600    IN  NS  pdns-public-ns2.powerdns.com.
 ; Auth
@@ -23,6 +23,7 @@ auth-4.0.0-beta1.security-status                        60 IN TXT "2 Unsupported
 auth-4.0.0-rc1.security-status                          60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-authoritative-server-4-0-0-released/"
 auth-4.0.0-rc2.security-status                          60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-authoritative-server-4-0-0-released/"
 auth-4.0.0.security-status                              60 IN TXT "1 OK"
+auth-4.0.1.security-status                              60 IN TXT "1 OK"
 
 ; Auth Debian
 auth-3.4.1-2.debian.security-status                     60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/ and https://doc.powerdns.com/md/security/powerdns-advisory-2015-02/"
@@ -104,6 +105,7 @@ recursor-4.0.0-alpha3.security-status                   60 IN TXT "2 Unsupported
 recursor-4.0.0-beta1.security-status                    60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-recursor-4-0-0-released/"
 recursor-4.0.0-rc1.security-status                      60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-recursor-4-0-0-released/"
 recursor-4.0.0.security-status                          60 IN TXT "1 OK"
+recursor-4.0.1.security-status                          60 IN TXT "1 OK"
 
 ; Recursor Debian
 recursor-3.6.2-2.debian.security-status                 60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"

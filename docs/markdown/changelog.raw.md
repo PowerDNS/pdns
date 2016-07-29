@@ -1,21 +1,58 @@
 **Note**: Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
 
 # PowerDNS Recursor 4.0.1
-UNRELEASED
+Released July 29th 2016
 
-This release improves interoperability with DNSSEC clients that expect an AD-bit on validated data when they query with only the DO-bit set.
+This release has several improvements with regards to DNSSEC validation and it improves interoperability with DNSSEC clients that expect an AD-bit on validated data when they query with only the DO-bit set.
 
 ## Bug fixes
 
+ - [#4119](https://github.com/PowerDNS/pdns/pull/4119) Improve DNSSEC record skipping for non dnssec queries (Kees Monshouwer)
  - [#4162](https://github.com/PowerDNS/pdns/pull/4162) Don't validate zones from the local auth store, go one level down while validating when there is a CNAME
  - [#4187](https://github.com/PowerDNS/pdns/pull/4187):
    * Don't go bogus on islands of security
    * Check all possible chains for Insecures
    * Don't go Bogus on a CNAME at the apex
+ - [#4215](https://github.com/PowerDNS/pdns/pull/4215) RPZ: default policy should also override local data RRs
+ - [#4243](https://github.com/PowerDNS/pdns/pull/4243) Fix a crash when the next name in a chained query is empty and `rec_control current-queries` is invoked
 
 ## Improvements
 
+ - [#4056](https://github.com/PowerDNS/pdns/pull/4056) OpenSSL 1.1.0 support (Christian Hofstaedtler)
+ - [#4140](https://github.com/PowerDNS/pdns/pull/4140) Fix warnings with gcc on musl-libc (James Taylor)
  - [#4160](https://github.com/PowerDNS/pdns/pull/4160) Also validate on +DO
+ - [#4164](https://github.com/PowerDNS/pdns/pull/4164) Fail to start when the lua-dns-script does not exist
+ - [#4168](https://github.com/PowerDNS/pdns/pull/4168) Add more Netmask methods for Lua (Aki Tuomi)
+ - [#4210](https://github.com/PowerDNS/pdns/pull/4210) Validate DNSSEC for security polling
+ - [#4217](https://github.com/PowerDNS/pdns/pull/4217) Turn on root-nx-trust by default and log-common-errors=off
+ - [#4207](https://github.com/PowerDNS/pdns/pull/4207) Allow for multiple trust anchors per zone
+ - [#4242](https://github.com/PowerDNS/pdns/pull/4242) Fix compilation warning when building without Protobuf
+
+# PowerDNS Authoritative Server 4.0.1
+Released July 29th 2016
+
+This release fixes two small issues and adds a setting to limit AXFR and IXFR sizes, in response to [CVE-2016-6172](http://www.openwall.com/lists/oss-security/2016/07/06/4).
+
+## Bug fixes
+
+ - [#4126](https://github.com/PowerDNS/pdns/pull/4126) Wait for the connection to the carbon server to be established
+ - [#4206](https://github.com/PowerDNS/pdns/pull/4206) Don't try to deallocate empty PG statements
+ - [#4245](https://github.com/PowerDNS/pdns/pull/4245) Send the correct response when queried for an NSEC directly (Kees Monshouwer)
+ - [#4255](https://github.com/PowerDNS/pdns/pull/4255) Catch runtime_error when parsing a broken MNAME
+
+## Improvements
+
+ - [#4044](https://github.com/PowerDNS/pdns/pull/4044) Make DNSPacket return a ComboAddredd for local and remote (Aki Tuomi)
+ - [#4056](https://github.com/PowerDNS/pdns/pull/4056) OpenSSL 1.1.0 support (Christian Hofstaedtler)
+ - [#4169](https://github.com/PowerDNS/pdns/pull/4169) Fix typos in a logmessage and exception (Christian Hofsteadtler)
+ - [#4183](https://github.com/PowerDNS/pdns/pull/4183) pdnsutil: Remove checking of ctime and always diff the changes (Hannu Ylitalo)
+ - [#4192](https://github.com/PowerDNS/pdns/pull/4192) dnsreplay: Only add Client Subnet stamp when asked
+ - [#4250](https://github.com/PowerDNS/pdns/pull/4250) Use toLogString() for ringAccount (Kees Monshouwer)
+
+## Additions
+
+ - [#4133](https://github.com/PowerDNS/pdns/pull/4133) Add limits to the size of received {A,I}XFR
+ - [#4142](https://github.com/PowerDNS/pdns/pull/4142) Add used filedescriptor statistic (Kees Monshouwer)
 
 # PowerDNS Recursor 4.0.0
 Released July 11th 2016
