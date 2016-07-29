@@ -515,10 +515,12 @@ string Bind2Backend::DLReloadNowHandler(const vector<string>&parts, Utility::pid
 
   for(vector<string>::const_iterator i=parts.begin()+1;i<parts.end();++i) {
     BB2DomainInfo bbd;
-    if(safeGetBBDomainInfo(DNSName(*i), &bbd)) {
+    DNSName zone(*i);
+    if(safeGetBBDomainInfo(zone, &bbd)) {
       Bind2Backend bb2;
       bb2.queueReloadAndStore(bbd.d_id);
-      ret<< *i << ": "<< (bbd.d_loaded ? "": "[rejected]") <<"\t"<<bbd.d_status<<"\n";      
+      safeGetBBDomainInfo(zone, &bbd); // Read the *new* domain status
+      ret<< *i << ": "<< (bbd.d_loaded ? "": "[rejected]") <<"\t"<<bbd.d_status<<"\n";
     }
     else
       ret<< *i << " no such domain\n";
@@ -905,12 +907,14 @@ void Bind2Backend::queueReloadAndStore(unsigned int id)
   catch(PDNSException &ae) {
     ostringstream msg;
     msg<<" error at "+nowTime()+" parsing '"<<bbold.d_name<<"' from file '"<<bbold.d_filename<<"': "<<ae.reason;
+    L<<Logger::Warning<<" error parsing '"<<bbold.d_name<<"' from file '"<<bbold.d_filename<<"': "<<ae.reason<<endl;
     bbold.d_status=msg.str();
     safePutBBDomainInfo(bbold);
   }
   catch(std::exception &ae) {
     ostringstream msg;
     msg<<" error at "+nowTime()+" parsing '"<<bbold.d_name<<"' from file '"<<bbold.d_filename<<"': "<<ae.what();
+    L<<Logger::Warning<<" error parsing '"<<bbold.d_name<<"' from file '"<<bbold.d_filename<<"': "<<ae.what()<<endl;
     bbold.d_status=msg.str();
     safePutBBDomainInfo(bbold);
   }
