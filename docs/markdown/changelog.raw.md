@@ -38,6 +38,7 @@ This release fixes two small issues and adds a setting to limit AXFR and IXFR si
  - [#4126](https://github.com/PowerDNS/pdns/pull/4126) Wait for the connection to the carbon server to be established
  - [#4206](https://github.com/PowerDNS/pdns/pull/4206) Don't try to deallocate empty PG statements
  - [#4245](https://github.com/PowerDNS/pdns/pull/4245) Send the correct response when queried for an NSEC directly (Kees Monshouwer)
+ - [#4252](https://github.com/PowerDNS/pdns/pull/4252) Don't include bind files if length <= 2 or > sizeof(filename)
  - [#4255](https://github.com/PowerDNS/pdns/pull/4255) Catch runtime_error when parsing a broken MNAME
 
 ## Improvements
