@@ -224,24 +224,25 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
 	  status = "DOWN";
 	else 
 	  status = (a->upStatus ? "up" : "down");
-	string pools;
+	Json::array pools;
 	for(const auto& p: a->pools)
-	  pools+=p+" ";
+	  pools.push_back(p);
+
 	Json::object server{ 
-	  {"id", num++}, 
+	  {"id", num++},
 	  {"name", a->name},
-	    {"address", a->remote.toStringWithPort()}, 
-	      {"state", status}, 
-		{"qps", (int)a->queryLoad}, 
-		  {"qpsLimit", (int)a->qps.getRate()}, 
-		    {"outstanding", (int)a->outstanding}, 
-		      {"reuseds", (int)a->reuseds},
-			{"weight", (int)a->weight}, 
-			  {"order", (int)a->order}, 
-			    {"pools", pools},
-                {"latency", (int)(a->latencyUsec/1000.0)},
-			      {"queries", (int)a->queries}};
-      
+          {"address", a->remote.toStringWithPort()},
+          {"state", status},
+          {"qps", (int)a->queryLoad},
+          {"qpsLimit", (int)a->qps.getRate()},
+          {"outstanding", (int)a->outstanding},
+          {"reuseds", (int)a->reuseds},
+          {"weight", (int)a->weight},
+          {"order", (int)a->order},
+          {"pools", pools},
+          {"latency", (int)(a->latencyUsec/1000.0)},
+          {"queries", (int)a->queries}};
+
 	servers.push_back(server);
       }
 
