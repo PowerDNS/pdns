@@ -439,7 +439,7 @@ void Bind2Backend::alsoNotifies(const DNSName& domain, set<string> *ips)
 }
 
 // only parses, does NOT add to s_state!
-void Bind2Backend::parseZoneFile(BB2DomainInfo *bbd) 
+void Bind2Backend::parseZoneFile(BB2DomainInfo *bbd)
 {
   NSEC3PARAMRecordContent ns3pr;
   bool nsec3zone;
@@ -899,11 +899,12 @@ void Bind2Backend::queueReloadAndStore(unsigned int id)
   try {
     if(!safeGetBBDomainInfo(id, &bbold))
       return;
-    parseZoneFile(&bbold);
-    bbold.d_checknow=false;
-    bbold.d_wasRejectedLastReload=false;
-    safePutBBDomainInfo(bbold);
-    L<<Logger::Warning<<"Zone '"<<bbold.d_name<<"' ("<<bbold.d_filename<<") reloaded"<<endl;
+    BB2DomainInfo bbnew(bbold);
+    parseZoneFile(&bbnew);
+    bbnew.d_checknow=false;
+    bbnew.d_wasRejectedLastReload=false;
+    safePutBBDomainInfo(bbnew);
+    L<<Logger::Warning<<"Zone '"<<bbnew.d_name<<"' ("<<bbnew.d_filename<<") reloaded"<<endl;
   }
   catch(PDNSException &ae) {
     ostringstream msg;
