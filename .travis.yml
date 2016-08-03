@@ -10,7 +10,7 @@ before_script:
      xmlto
  - virtualenv $HOME/.venv
  - source $HOME/.venv/bin/activate
- - pip install pandocfilters==1.2.3 mkdocs==0.14 linkchecker==9.3 click==5.1
+ - pip install pandocfilters==1.2.3 mkdocs==0.14 linkchecker==9.3 click==5.1 requests==2.9.2
  - deactivate
 script:
  - ./bootstrap
