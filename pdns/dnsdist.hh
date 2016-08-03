@@ -356,6 +356,7 @@ struct DownstreamState
   bool upStatus{false};
   bool useECS{false};
   bool setCD{false};
+  std::atomic<bool> connected{false};
   bool isUp() const
   {
     if(availability == Availability::Down)
