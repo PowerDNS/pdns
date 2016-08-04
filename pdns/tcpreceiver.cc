@@ -1041,7 +1041,15 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
       vector<string>parts;
       stringtok(parts, rr->d_content->getZoneRepresentation());
       if (parts.size() >= 3) {
-        serial=pdns_stou(parts[2]);
+        try {
+          serial=pdns_stou(parts[2]);
+        }
+        catch(const std::out_of_range& oor) {
+          L<<Logger::Error<<"Invalid serial in IXFR query"<<endl;
+          outpacket->setRcode(RCode::FormErr);
+          sendPacket(outpacket,outsock);
+          return 0;
+        }
       } else {
         L<<Logger::Error<<"No serial in IXFR query"<<endl;
         outpacket->setRcode(RCode::FormErr);
