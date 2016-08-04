@@ -34,4 +34,4 @@ There are several ways to reach us:
  * \#powerdns on [irc.oftc.net](irc://irc.oftc.net/#powerdns)
 
 If you require commercial support, please see the [PowerDNS.com website](https://powerdns.com)
-or email us at [powerdns.support@powerdns.com](mailto:powerdns.support@powerdns.com).
+or email us at [powerdns.support.sales@powerdns.com](mailto:powerdns.support.sales@powerdns.com).
