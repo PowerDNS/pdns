@@ -32,7 +32,7 @@ domain metadata is set during the zonetransfer.
 
 ### `bind-hybrid`
 Store DNSSEC keys and metadata storage in an other backend. See the
-[hybrid BIND-mode operation](dnssec.md#powerdns-hybrid-bind-mode-operation)
+[hybrid BIND-mode operation](dnssec.md#hybrid-bind-mode-operation)
 
 ### `bind-ignore-broken-records`
 Setting this option to `yes` makes PowerDNS ignore out of zone records when
