@@ -667,6 +667,18 @@ void moreLua(bool client)
     g_lua.writeFunction("setVerboseHealthChecks", [](bool verbose) { g_verboseHealthChecks=verbose; });
     g_lua.writeFunction("setStaleCacheEntriesTTL", [](uint32_t ttl) { g_staleCacheEntriesTTL = ttl; });
 
+    g_lua.writeFunction("DropResponseAction", []() {
+        return std::shared_ptr<DNSResponseAction>(new DropResponseAction);
+      });
+
+    g_lua.writeFunction("AllowResponseAction", []() {
+        return std::shared_ptr<DNSResponseAction>(new AllowResponseAction);
+      });
+
+    g_lua.writeFunction("DelayResponseAction", [](int msec) {
+        return std::shared_ptr<DNSResponseAction>(new DelayResponseAction(msec));
+      });
+
     g_lua.writeFunction("RemoteLogAction", [](std::shared_ptr<RemoteLogger> logger) {
 #ifdef HAVE_PROTOBUF
         return std::shared_ptr<DNSAction>(new RemoteLogAction(logger));

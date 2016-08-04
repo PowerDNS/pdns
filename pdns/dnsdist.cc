@@ -404,8 +404,8 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
 #ifdef HAVE_PROTOBUF
     dr.uniqueId = ids->uniqueId;
 #endif
-    if (!processResponse(localRespRulactions, dr)) {
-      break;
+    if (!processResponse(localRespRulactions, dr, &ids->delayMsec)) {
+      continue;
     }
 
 #ifdef HAVE_DNSCRYPT
@@ -821,14 +821,31 @@ bool processQuery(LocalStateHolder<NetmaskTree<DynBlock> >& localDynNMGBlock,
   return true;
 }
 
-bool processResponse(LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSResponseAction> > > >& localRespRulactions, DNSResponse& dr)
+bool processResponse(LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSResponseAction> > > >& localRespRulactions, DNSResponse& dr, int* delayMsec)
 {
+  DNSResponseAction::Action action=DNSResponseAction::Action::None;
   std::string ruleresult;
   for(const auto& lr : *localRespRulactions) {
     if(lr.first->matches(&dr)) {
       lr.first->d_matches++;
-      /* for now we only support actions returning None */
-      (*lr.second)(&dr, &ruleresult);
+      action=(*lr.second)(&dr, &ruleresult);
+      switch(action) {
+      case DNSResponseAction::Action::Allow:
+        return true;
+        break;
+      case DNSResponseAction::Action::Drop:
+        return false;
+        break;
+      case DNSResponseAction::Action::HeaderModify:
+        return true;
+        break;
+        /* non-terminal actions follow */
+      case DNSResponseAction::Action::Delay:
+        *delayMsec = static_cast<int>(pdns_stou(ruleresult)); // sorry
+        break;
+      case DNSResponseAction::Action::None:
+        break;
+      }
     }
   }
 
