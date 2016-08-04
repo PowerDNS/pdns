@@ -380,7 +380,7 @@ struct DownstreamState
     }
     return name + " (" + remote.toStringWithPort()+ ")";
   }
-
+  void reconnect();
 };
 using servers_t =vector<std::shared_ptr<DownstreamState>>;
 
