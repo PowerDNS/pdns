@@ -275,6 +275,18 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
 	rules.push_back(rule);
       }
       
+      Json::array responseRules;
+      auto localResponseRules = g_resprulactions.getCopy();
+      num=0;
+      for(const auto& a : localResponseRules) {
+        Json::object rule{
+          {"id", num++},
+          {"matches", (int)a.first->d_matches},
+          {"rule", a.first->toString()},
+          {"action", a.second->toString()},
+        };
+        responseRules.push_back(rule);
+      }
 
       string acl;
 
@@ -298,6 +310,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
 	{ "servers", servers},
 	{ "frontends", frontends },
 	{ "rules", rules},
+	{ "response-rules", responseRules},
 	{ "acl", acl},
 	{ "local", localaddresses}
       };
