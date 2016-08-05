@@ -719,12 +719,14 @@ Data searching
 URL: /api/v1/servers/localhost/search-data?q=:search\_term&max=:max\_results
 ---------------------------------------------------------------------------
 
+**Note**: Authoritative only.
+
 Allowed methods: `GET`
 
 #### GET
 
 Search the data inside PowerDNS for :search\_term and return at most
-:max\_results. This includes zones, records and comments. Responsebody is an
+:max\_results. This includes zones, records and comments. Response body is an
 array of one or more of the following objects:
 
 For a zone:
@@ -733,7 +735,7 @@ For a zone:
       "name": "<zonename>",
       "object_type": "zone",
       "zone_id": "<zoneid>"
-    },
+    }
 
 For a record:
 
@@ -746,7 +748,7 @@ For a record:
       "type": "<type>",
       "zone": "<zonename>,
       "zone_id": "<zoneid>"
-    },
+    }
 
 For a comment:
 
