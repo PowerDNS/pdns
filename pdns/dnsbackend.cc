@@ -339,7 +339,6 @@ void fillSOAData(const string &content, SOAData &data)
 
   try {
     data.serial = pleft > 2 ? pdns_stou(parts[2]) : 0;
-    if (data.serial == UINT_MAX && errno == ERANGE) throw PDNSException("serial number too large in '"+parts[2]+"'");
 
     data.refresh = pleft > 3 ? pdns_stou(parts[3])
       : ::arg().asNum("soa-refresh-default");
