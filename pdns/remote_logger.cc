@@ -15,8 +15,8 @@ bool RemoteLogger::reconnect()
   }
   try {
     d_socket = SSocket(d_remote.sin4.sin_family, SOCK_STREAM, 0);
-    SConnect(d_socket, d_remote);
     setNonBlocking(d_socket);
+    SConnectWithTimeout(d_socket, d_remote, d_timeout);
   }
   catch(const std::exception& e) {
 #ifdef WE_ARE_RECURSOR
