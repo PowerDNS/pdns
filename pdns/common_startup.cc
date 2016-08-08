@@ -77,7 +77,7 @@ void declareArguments()
   ::arg().set("max-queue-length","Maximum queuelength before considering situation lost")="5000";
 
   ::arg().set("retrieval-threads", "Number of AXFR-retrieval threads for slave operation")="2";
-  ::arg().setSwitch("api", "Enable/disable the REST API. If enabled, also enables 'webserver'")="no";
+  ::arg().setSwitch("api", "Enable/disable the REST API.")="no";
   ::arg().set("api-key", "Static pre-shared authentication key for access to the REST API")="";
   ::arg().set("api-logfile", "Location of the server logfile (used by the REST API)")="/var/log/pdns.log";
   ::arg().setSwitch("api-readonly", "Disallow data modification through the REST API when set")="no";
@@ -125,7 +125,7 @@ void declareArguments()
   ::arg().setSwitch("disable-axfr-rectify","Disable the rectify step during an outgoing AXFR. Only required for regression testing.")="no";
   ::arg().setSwitch("guardian","Run within a guardian process")="no";
   ::arg().setSwitch("prevent-self-notification","Don't send notifications to what we think is ourself")="yes";
-  ::arg().setSwitch("webserver","Start a webserver for monitoring and API")="no";
+  ::arg().setSwitch("webserver","Start a webserver for monitoring")="no";
   ::arg().setSwitch("webserver-print-arguments","If the webserver should print arguments")="no"; 
   ::arg().setSwitch("edns-subnet-processing","If we should act on EDNS Subnet options")="no"; 
   ::arg().setSwitch("any-to-tcp","Answer ANY queries with tc=1, shunting to TCP")="no"; 
