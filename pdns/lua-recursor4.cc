@@ -229,7 +229,12 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   d_lw->registerFunction<int(dnsheader::*)()>("getNSCOUNT", [](dnsheader& dh) { return ntohs(dh.nscount); });
   d_lw->registerFunction<int(dnsheader::*)()>("getARCOUNT", [](dnsheader& dh) { return ntohs(dh.arcount); });
 
-  d_lw->writeFunction("newDN", [](const std::string& dom){ return DNSName(dom); });  
+  d_lw->writeFunction("newDN", [](boost::variant<const std::string, const DNSName> dom){
+    if(dom.which() == 0)
+      return DNSName(boost::get<const std::string>(dom));
+    else
+      return DNSName(boost::get<const DNSName>(dom));
+  });
   d_lw->registerFunction("isPartOf", &DNSName::isPartOf);
   d_lw->registerFunction<bool(DNSName::*)(const std::string&)>("equal",
 							      [](const DNSName& lhs, const std::string& rhs) { return lhs==DNSName(rhs); });
