@@ -68,7 +68,6 @@ DNSPacket::DNSPacket()
   d_havetsig = false;
   d_socket = -1;
   d_maxreplylen = 0;
-  d_qlen = 0;
   d_tsigtimersonly = false;
   d_haveednssection = false;
 }
@@ -96,7 +95,6 @@ DNSPacket::DNSPacket(const DNSPacket &orig)
   DLOG(L<<"DNSPacket copy constructor called!"<<endl);
   d_socket=orig.d_socket;
   d_remote=orig.d_remote;
-  d_qlen=orig.d_qlen;
   d_dt=orig.d_dt;
   d_compress=orig.d_compress;
   d_tcp=orig.d_tcp;
