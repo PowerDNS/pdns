@@ -609,6 +609,24 @@ extern bool g_ECSOverride;
 extern bool g_verboseHealthChecks;
 extern uint32_t g_staleCacheEntriesTTL;
 
+struct ConsoleKeyword {
+  std::string name;
+  bool function;
+  std::string parameters;
+  std::string description;
+  std::string toString() const
+  {
+    std::string res(name);
+    if (function) {
+      res += "(" + parameters + ")";
+    }
+    res += ": ";
+    res += description;
+    return res;
+  }
+};
+extern const std::vector<ConsoleKeyword> g_consoleKeywords;
+
 #ifdef HAVE_EBPF
 extern shared_ptr<BPFFilter> g_defaultBPFFilter;
 #endif /* HAVE_EBPF */
