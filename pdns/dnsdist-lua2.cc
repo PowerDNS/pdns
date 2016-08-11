@@ -796,6 +796,28 @@ void moreLua(bool client)
         return fe.local.toStringWithPort();
       });
 
+    g_lua.writeFunction("help", [](boost::optional<std::string> command) {
+        setLuaNoSideEffect();
+        g_outputBuffer = "";
+        for (const auto& keyword : g_consoleKeywords) {
+          if (!command) {
+            g_outputBuffer += keyword.toString() + "\n";
+          }
+          else if (keyword.name == command) {
+            g_outputBuffer = keyword.toString() + "\n";
+            return;
+          }
+        }
+        if (command) {
+          g_outputBuffer = "Nothing found for " + *command + "\n";
+        }
+      });
+
+    g_lua.writeFunction("showVersion", []() {
+        setLuaNoSideEffect();
+        g_outputBuffer = "dnsdist " + std::string(VERSION) + "\n";
+      });
+
 #ifdef HAVE_EBPF
     g_lua.writeFunction("newBPFFilter", [](uint32_t maxV4, uint32_t maxV6, uint32_t maxQNames) {
         return std::make_shared<BPFFilter>(maxV4, maxV6, maxQNames);

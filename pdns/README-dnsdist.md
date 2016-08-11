@@ -1170,7 +1170,7 @@ Here are all functions:
     * `carbonServer(serverIP, [ourname], [interval])`: report statistics to serverIP using our hostname, or 'ourname' if provided, every 'interval' seconds
  * Control socket related:
     * `makeKey()`: generate a new server access key, emit configuration line ready for pasting
-    * `setKey(key)`: set access key to that key. 
+    * `setKey(key)`: set access key to that key.
     * `testCrypto()`: test of the crypto all works
     * `controlSocket(addr)`: open a control socket on this address / connect to this address in client mode
  * Diagnostics and statistics
@@ -1179,10 +1179,11 @@ Here are all functions:
     * `grepq({"::1", "powerdns.com", "100ms"} [, n])`: shows the last n queries and responses matching the specified client address AND range (Netmask) AND the specified DNS Name AND slower than 100ms
     * `topQueries(n[, labels])`: show top 'n' queries, as grouped when optionally cut down to 'labels' labels
     * `topResponses(n, kind[, labels])`: show top 'n' responses with RCODE=kind (0=NO Error, 2=ServFail, 3=ServFail), as grouped when optionally cut down to 'labels' labels
-    * `topSlow([top][, limit][, labels])`: show `top` queries slower than `limit` milliseconds, grouped by last `labels` labels   
+    * `topSlow([top][, limit][, labels])`: show `top` queries slower than `limit` milliseconds, grouped by last `labels` labels
     * `topBandwidth(top)`: show top-`top` clients that consume the most bandwidth over length of ringbuffer
     * `topClients(n)`: show top-`n` clients sending the most queries over length of ringbuffer
     * `showResponseLatency()`: show a plot of the response time latency distribution
+    * `showVersion()`: show the current version of dnsdist
  * Logging related
     * `infolog(string)`: log at level info
     * `warnlog(string)`: log at level warning
@@ -1245,7 +1246,8 @@ instantiate a server with additional parameters
     * `rmResponseRule(n)`: remove response rule n
     * `rmRule(n)`: remove rule n
     * `setRules(list)`: replace the current rules with the supplied list of pairs of DNS Rules and DNS Actions (see `newRuleAction()`)
-    * `showRules()`: show all defined rules (Pool, Block, QPS, addAnyTCRule)
+    * `showResponseRules()`: show all defined response rules
+    * `showRules()`: show all defined rules
     * `topResponseRule()`: move the last response rule to the first position
     * `topRule()`: move the last rule to the first position
  * Built-in Actions for Rules:
@@ -1272,7 +1274,7 @@ instantiate a server with additional parameters
     * `addDomainCNAMESpoof(domain, cname)`: generate CNAME answers for queries using the specified value
     * `addDisableValidationRule(domain)`: set the CD flags to 1 for all queries matching the specified domain
     * `addNoRecurseRule(domain)`: clear the RD flag for all queries matching the specified domain
-    * `setDNSSECPool()`: move queries requesting DNSSEC processing to this pool
+    * `setDNSSECPool(pool)`: move queries requesting DNSSEC processing to this pool
  * Policy member data:
     * `name`: the policy name
     * `policy`: the policy function
