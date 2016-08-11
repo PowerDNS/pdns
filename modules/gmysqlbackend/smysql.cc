@@ -172,6 +172,7 @@ public:
 
         for(int i = 0; i < d_fnum; i++) {
           unsigned long len = std::max(fields[i].max_length, fields[i].length)+1;
+          if (len > 128 * 1024) len = 128 * 1024; // LONGTEXT may tell us it needs 4GB!
           d_res_bind[i].is_null = new my_bool[1];
           d_res_bind[i].error = new my_bool[1];
           d_res_bind[i].length = new unsigned long[1];
