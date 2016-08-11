@@ -268,6 +268,8 @@ be `true` if dq.qname is part of any of the Suffix Match group domains.
 
 This could e.g. be used to answer questions for known malware domains.
 
+To see the set of suffixes matched by a Suffix Match Group, use `:toString()`.
+
 ### Metrics
 You can custom metrics which will be shown in the output of 'rec_control get-all'
 and sent to the metrics server over the Carbon protocol, and also appear in the

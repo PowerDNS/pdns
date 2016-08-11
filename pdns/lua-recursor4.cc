@@ -392,6 +392,7 @@ RecursorLua4::RecursorLua4(const std::string& fname)
 										     catch(std::exception& e) { theL() <<Logger::Error<<e.what()<<endl; }
 										   });
   d_lw->registerFunction("check",(bool (SuffixMatchNode::*)(const DNSName&) const) &SuffixMatchNode::check);
+  d_lw->registerFunction("toString",(string (SuffixMatchNode::*)() const) &SuffixMatchNode::toString);
 
 
   d_lw->writeFunction("pdnslog", [](const std::string& msg, boost::optional<int> loglevel) {
