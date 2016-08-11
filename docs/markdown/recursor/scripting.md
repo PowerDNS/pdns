@@ -250,8 +250,12 @@ DNSNames are passed to various functions, and they sport the following methods:
 
 * `:equal`: use this to compare two DNSNames in DNS native fashion. So 'PoWeRdNs.COM' matches 'powerdns.com'
 * `:isPartOf`: returns true if a is a part of b. So: `newDN("www.powerdns.com"):isPartOf(newDN("CoM."))` returns true
+* `:toString` and `:toStringNoDot`: return a string representation of the name, with or without trailing dot.
+* `:chopOff`: removes the leftmost label from the name, returns true if this succeeded.
 
-To make your own DNSName, use `newDN("domain.name")`.
+You can compare DNSNames using `:equal` or the `==` operator.
+
+To make your own DNSName, use `newDN("domain.name")`. To copy an existing DNSName (please remember to do this before using `chopOff`), use `newDN(mydn)`.
 
 ### DNS Suffix Match groups
 The `newDS` function creates a "Suffix Match group" that allows fast checking if
