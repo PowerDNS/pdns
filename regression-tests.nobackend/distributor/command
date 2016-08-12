@@ -18,11 +18,11 @@ $PDNS --daemon=no --local-ipv6=::1 --local-address=127.0.0.1 \
 
 sleep 2
 
-for a in {1..20} 
+for a in {1..15} 
 	do $SDIG 127.0.0.1 $port $a.example.com A >&2 >/dev/null &
 done 
 
-sleep 1
+sleep 2
 
 if [ $($PDNSCONTROL --config-name= --no-config --socket-dir=./ show overload-drops) -gt 0 ]
 then
