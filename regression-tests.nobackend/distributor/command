@@ -14,15 +14,15 @@ $PDNS --daemon=no --local-ipv6=::1 --local-address=127.0.0.1 \
   --module-dir=../regression-tests/modules --pipe-command=$(pwd)/distributor/slow.pl \
   --pipe-abi-version=5 \
   --overload-queue-length=10 --log-dns-queries --loglevel=9 \
-  --pipe-timeout=1500 &
+  --pipe-timeout=1000 &
 
 sleep 2
 
-for a in {1..15} 
+for a in {1..20} 
 	do $SDIG 127.0.0.1 $port $a.example.com A >&2 >/dev/null &
 done 
 
-sleep 10
+sleep 1
 
 if [ $($PDNSCONTROL --config-name= --no-config --socket-dir=./ show overload-drops) -gt 0 ]
 then
