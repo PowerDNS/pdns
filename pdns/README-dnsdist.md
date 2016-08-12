@@ -1183,6 +1183,7 @@ Here are all functions:
     * `topBandwidth(top)`: show top-`top` clients that consume the most bandwidth over length of ringbuffer
     * `topClients(n)`: show top-`n` clients sending the most queries over length of ringbuffer
     * `showResponseLatency()`: show a plot of the response time latency distribution
+    * `showTCPStats()`: show some statistics regarding TCP
     * `showVersion()`: show the current version of dnsdist
  * Logging related
     * `infolog(string)`: log at level info
