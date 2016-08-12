@@ -357,6 +357,8 @@ public:
   static bool s_doIPv6;
   static unsigned int s_maxqperq;
   static unsigned int s_maxtotusec;
+  std::unordered_map<std::string,bool> d_discardedPolicies;
+  DNSFilterEngine::Policy d_appliedPolicy{DNSFilterEngine::PolicyKind::NoAction, nullptr, nullptr, 0};
   unsigned int d_outqueries;
   unsigned int d_tcpoutqueries;
   unsigned int d_throttledqueries;
@@ -369,7 +371,6 @@ public:
   bool d_wasVariable{false};
   bool d_wasOutOfBand{false};
   bool d_wantsRPZ{true};
-  DNSFilterEngine::Policy d_appliedPolicy{DNSFilterEngine::PolicyKind::NoAction, nullptr, "", 0};
   
   typedef multi_index_container <
     NegCacheEntry,

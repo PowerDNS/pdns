@@ -618,8 +618,8 @@ static void protobufLogQuery(const std::shared_ptr<RemoteLogger>& logger, uint8_
   RecProtoBufMessage message(DNSProtoBufMessage::Query, uniqueId, &requestor, &local, qname, qtype, qclass, id, tcp, len);
   message.setEDNSSubnet(ednssubnet, ednssubnet.isIpv4() ? maskV4 : maskV6);
 
-  if (!appliedPolicy.d_name.empty()) {
-    message.setAppliedPolicy(appliedPolicy.d_name);
+  if (appliedPolicy.d_name && !appliedPolicy.d_name->empty()) {
+    message.setAppliedPolicy(*appliedPolicy.d_name);
   }
   if (!policyTags.empty()) {
     message.setPolicyTags(policyTags);
@@ -741,8 +741,14 @@ void startDoResolve(void *p)
     if(!dc->d_mdp.d_header.rd)
       sr.setCacheOnly();
 
+    if (t_pdl->get()) {
+      (*t_pdl)->prerpz(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_tcp, ret, dc->d_ednsOpts.empty() ? 0 : &dc->d_ednsOpts, dc->d_tag, res, &wantsRPZ, &sr.d_discardedPolicies);
+    }
+
     // Check if the query has a policy attached to it
-    dfepol = luaconfsLocal->dfe.getQueryPolicy(dc->d_mdp.d_qname, dc->d_remote);
+    if (wantsRPZ) {
+      dfepol = luaconfsLocal->dfe.getQueryPolicy(dc->d_mdp.d_qname, dc->d_remote, sr.d_discardedPolicies);
+    }
     appliedPolicy = dfepol;
 
     // if there is a RecursorLua active, and it 'took' the query in preResolve, we don't launch beginResolve
@@ -846,7 +852,7 @@ void startDoResolve(void *p)
       }
 
       if (wantsRPZ) {
-        dfepol = luaconfsLocal->dfe.getPostPolicy(ret);
+        dfepol = luaconfsLocal->dfe.getPostPolicy(ret, sr.d_discardedPolicies);
         appliedPolicy = dfepol;
       }
 
@@ -1047,7 +1053,9 @@ void startDoResolve(void *p)
     if (luaconfsLocal->protobufServer) {
       pbMessage.setBytes(packet.size());
       pbMessage.setResponseCode(pw.getHeader()->rcode);
-      pbMessage.setAppliedPolicy(appliedPolicy.d_name);
+      if (appliedPolicy.d_name) {
+        pbMessage.setAppliedPolicy(*appliedPolicy.d_name);
+      }
       pbMessage.setPolicyTags(dc->d_policyTags);
       pbMessage.setQueryTime(dc->d_now.tv_sec, dc->d_now.tv_usec);
       protobufLogResponse(luaconfsLocal->protobufServer, pbMessage);
