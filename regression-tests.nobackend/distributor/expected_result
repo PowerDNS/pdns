@@ -1,0 +1,4 @@
+had non-zero drops
+Reply to question for qname='example.com.', qtype=A
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+1	example.com.	IN	SOA	3600	ahu.example.com. ns1.example.com. 2008080300 1800 3600 604800 3600
