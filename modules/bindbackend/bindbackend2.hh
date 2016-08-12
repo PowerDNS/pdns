@@ -166,6 +166,7 @@ public:
   unsigned int d_id;  //!< internal id of the domain
   mutable bool d_checknow; //!< if this domain has been flagged for a check
   bool d_loaded;  //!< if a domain is loaded
+  bool d_wasRejectedLastReload{false}; //!< if the domain was rejected during Bind2Backend::queueReloadAndStore
 
 private:
   time_t getCtime();
