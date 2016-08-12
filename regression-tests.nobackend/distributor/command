@@ -22,7 +22,7 @@ for a in {1..15}
 	do $SDIG 127.0.0.1 $port $a.example.com A >&2 >/dev/null &
 done 
 
-sleep 2
+sleep 10
 
 if [ $($PDNSCONTROL --config-name= --no-config --socket-dir=./ show overload-drops) -gt 0 ]
 then
