@@ -316,6 +316,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "showRules", true, "", "show all defined rules" },
   { "showServerPolicy", true, "", "show name of currently operational server selection policy" },
   { "showServers", true, "", "output all servers" },
+  { "showTCPStats", true, "", "show some statistics regarding TCP" },
   { "showVersion", true, "", "show the current version" },
   { "shutdown", true, "", "shut down `dnsdist`" },
   { "SpoofAction", true, "{ip, ...} ", "forge a response with the specified IPv4 (for an A query) or IPv6 (for an AAAA). If you specify multiple addresses, all that match the query type (A, AAAA or ANY) will get spoofed in" },
