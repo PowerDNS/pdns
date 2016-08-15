@@ -89,6 +89,7 @@ www.example.net.         3600 IN A   192.0.2.1
 www2.example.net.        3600 IN A   192.0.2.2
 www3.example.net.        3600 IN A   192.0.2.3
 www4.example.net.        3600 IN A   192.0.2.4
+www5.example.net.        3600 IN A   192.0.2.5
 weirdtxt.example.net.    3600 IN IN  TXT "x\014x"
 arthur.example.net.      3600 IN NS  ns.arthur.example.net.
 arthur.example.net.      3600 IN NS  ns2.arthur.example.net.
@@ -550,6 +551,7 @@ EOF
 
 cat > recursor-service3/config.lua <<EOF
 rpzFile("$(pwd)/recursor-service3/rpz.zone", {policyName="myRPZ"})
+rpzFile("$(pwd)/recursor-service3/rpz2.zone", {policyName="mySecondRPZ"})
 EOF
 
 IFS=. read REV_PREFIX1 REV_PREFIX2 REV_PREFIX3 <<< $(echo $PREFIX) # This will bite us in the ass if we ever test on IPv6
@@ -565,6 +567,7 @@ arthur.example.net     CNAME .                   ; NXDOMAIN on apex
 srv.arthur.example.net CNAME rpz-passthru.       ; Allow this name though
 www.example.net        CNAME www2.example.net.   ; Local-Data Action
 www3.example.net       CNAME www4.example.net.   ; Local-Data Action (to be changed in preresolve)
+www5.example.net       A     192.0.2.15          ; Override www5.example.net.
 trillian.example.net   CNAME .                   ; NXDOMAIN on apex, allows all sub-names (#4086)
 
 32.4.2.0.192.rpz-ip    CNAME rpz-drop.           ; www4.example.net resolves to 192.0.2.4, drop A responses with that IP
@@ -575,7 +578,24 @@ ns.marvin.example.net.rpz-nsdname CNAME .        ; NXDOMAIN for anything hosted 
 
 EOF
 
+cat > recursor-service3/rpz2.zone <<EOF
+\$TTL 2h;
+\$ORIGIN domain.example.
+@ SOA $SOA
+@ NS ns.example.net.
+
+www5.example.net       A     192.0.2.25          ; Override www5.example.net.
+
+EOF
+
 cat > recursor-service3/script.lua <<EOF
+function prerpz(dq)
+  if dq.qname:equal('www5.example.net') then
+    dq:discardPolicy('myRPZ')
+  end
+  return true
+end
+
 function preresolve(dq)
   if dq.qname:equal("android.marvin.example.net") then
     dq.wantsRPZ = false -- disable RPZ
