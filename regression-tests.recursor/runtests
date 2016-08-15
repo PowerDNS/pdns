@@ -17,4 +17,4 @@ export testsdir
 
 nameserver=$PREFIX.9 port=53 ../regression-tests/runtests
 context=recursor ../regression-tests/toxml
-grep . */diff
+! grep . */diff
