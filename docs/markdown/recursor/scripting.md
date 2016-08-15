@@ -22,6 +22,7 @@ For extra performance, a Just In Time compiled version of Lua called
 Queries can be intercepted in many places:
 
 * before any packet parsing begins (`ipfilter`)
+* before any filtering policy have been applied (`prerpz`)
 * before the resolving logic starts to work (`preresolve`)
 * after the resolving process failed to find a correct answer for a domain (`nodata`, `nxdomain`)
 * after the whole process is done and an answer is ready for the client (`postresolve`)
@@ -103,6 +104,7 @@ It also supports the following methods:
 
 * `addAnswer(type, content, [ttl, name])`: add an answer to the record of `type` with `content`. Optionally supply TTL and the name of
   the answer too, which defaults to the name of the question
+* `discardPolicy(policyname)`: skip the filtering policy (for example RPZ) named `policyname` for this query. This is mostly useful in the `prerpz` hook.
 * `getRecords()`: get a table of DNS Records in this DNS Question (or answer by now)
 * `setRecords(records)`: after your edits, update the answers of this question
 * `getEDNSOption(num)`: get the EDNS Option with number `num`
@@ -151,6 +153,26 @@ e.g. been filtered for certain IPs (this logic should be implemented in the
 `gettag` function). This ensure that queries are answered quickly compared to
 setting dq.variable to `true`. In the latter case, repeated queries will pass
 through the entire Lua script.
+
+### `function prerpz(dq)`
+
+This hook is called before any filtering policy have been applied, making it
+possible to completely disable filtering by setting `wantsRPZ` to false.
+Using the `discardPolicy()` function, it is also possible to selectively disable
+one or more filtering policy, for example RPZ zones, based on the content of the
+`dq` object.
+
+As an example, to disable the `malware` policy for `example.com` queries:
+
+```
+function prerpz(dq)
+  -- disable the RPZ policy named 'malware' for example.com
+  if dq.qname:equal('example.com') then
+    dq:discardPolicy('malware')
+  end
+  return true
+end
+```
 
 ### `function preresolve(dq)`
 is called before any DNS resolution is attempted, and if this function
