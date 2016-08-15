@@ -250,6 +250,7 @@ void declareStats(void)
   S.declare("udp4-queries","Number of IPv4 UDP queries received");
   S.declare("udp6-answers","Number of IPv6 answers sent out over UDP");
   S.declare("udp6-queries","Number of IPv6 UDP queries received");
+  S.declare("overload-drops","Queries dropped because backends overloaded");
 
   S.declare("rd-queries", "Number of recursion desired questions");
   S.declare("recursion-unanswered", "Number of packets unanswered by configured recursor");
@@ -351,6 +352,7 @@ void *qthread(void *number)
   AtomicCounter &numreceived4=*S.getPointer("udp4-queries");
 
   AtomicCounter &numreceived6=*S.getPointer("udp6-queries");
+  AtomicCounter &overloadDrops=*S.getPointer("overload-drops");
 
   int diff;
   bool logDNSQueries = ::arg().mustDo("log-dns-queries");
@@ -437,7 +439,8 @@ void *qthread(void *number)
     
     if(distributor->isOverloaded()) {
       if(logDNSQueries) 
-        L<<"Dropped query, db is overloaded"<<endl;
+        L<<"Dropped query, backends are overloaded"<<endl;
+      overloadDrops++;
       continue;
     }
         

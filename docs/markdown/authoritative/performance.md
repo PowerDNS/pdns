@@ -57,6 +57,7 @@ daemon.
 * `key-cache-size`: Number of entries in the key cache
 * `latency`: Average number of microseconds a packet spends within PowerDNS
 * `meta-cache-size`: Number of entries in the metadata cache
+* `overload-drops`: Number of questions dropped because backends overloaded 
 * `packetcache-hit`: Number of packets which were answered out of the cache
 * `packetcache-miss`: Number of times a packet could not be answered out of the cache
 * `packetcache-size`: Amount of packets in the packetcache
