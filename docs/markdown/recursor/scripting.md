@@ -224,8 +224,8 @@ nmg:addMask("127.0.0.0/8")
 nmg:addMasks({"213.244.168.0/24", "130.161.0.0/16"})
 nmg:addMasks(dofile("bad.ips")) -- contains return {"ip1","ip2"..}
 
-if nmg:match(dq.remote) then
-	print("Intercepting query from ", dq.remote)
+if nmg:match(dq.remoteaddr) then
+	print("Intercepting query from ", dq.remoteaddr)
 end
 ```
 
@@ -370,17 +370,17 @@ The following script will add a requestor's IP address to a blocking set if they
 sent a query that caused PowerDNS to attempt to talk to a certain subnet.
 
 This specific script is, as of January 2015, useful to prevent traffic to ezdns.it related
-traffic from creating CPU load. This script requires PowerDNS Recursor 3.7 or later.
+traffic from creating CPU load. This script requires PowerDNS Recursor 4.x or later.
 
 ```
 lethalgroup=newNMG()
 lethalgroup:addMask("192.121.121.0/24") -- touch these nameservers and you die
 
 function preoutquery(dq)
---	print("pdns wants to ask "..remoteip:tostring().." about "..domain.." "..qtype.." on behalf of requestor "..getlocaladdress())
+	print("pdns wants to ask "..dq.remoteaddr:toString().." about "..dq.qname:toString().." "..dq.qtype.." on behalf of requestor "..dq.localaddr:toString())
 	if(lethalgroup:match(dq.remoteaddr))
 	then
---		print("We matched the group "..lethalgroup:tostring().."!", "killing query dead & adding requestor "..getlocaladdress().." to block list")
+		print("We matched the group "..lethalgroup:tostring().."!", "killing query dead & adding requestor "..dq.localaddr:toString().." to block list")
 		dq.rcode = -3 -- "kill"	
 		return true
 	end
