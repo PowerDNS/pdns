@@ -46,6 +46,7 @@ fi
 cd configs
 
 for dir in recursor-service recursor-service2 recursor-service3; do
+  mkdir /tmp/$dir
   mkdir $dir
   cd $dir
 
@@ -528,7 +529,7 @@ api-key=secret
 api-readonly=yes
 forward-zones-file=$(pwd)/recursor-service/forward-zones-file
 
-socket-dir=$(pwd)/recursor-service
+socket-dir=/tmp/recursor-service
 auth-zones=global.box.answer-cname-in-local.example.net=$(pwd)/recursor-service/global.box.answer-cname-in-local.example.net.zone,auth-zone.example.net=$(pwd)/recursor-service/auth-zone.example.net.zone,another-auth-zone.example.net=$(pwd)/recursor-service/another-auth-zone.example.net.zone
 loglevel=9
 
@@ -536,14 +537,14 @@ EOF
 
 cat > recursor-service2/recursor.conf <<EOF
 local-port=5300
-socket-dir=$(pwd)/recursor-service2S
+socket-dir=/tmp/recursor-service2
 lowercase-outgoing=yes
 
 EOF
 
 cat > recursor-service3/recursor.conf << EOF
 local-port=5301
-socket-dir=$(pwd)/recursor-service3S
+socket-dir=/tmp/recursor-service3
 lua-config-file=$(pwd)/recursor-service3/config.lua
 lua-dns-script=$(pwd)/recursor-service3/script.lua
 
