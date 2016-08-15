@@ -102,7 +102,14 @@ unsigned int ZoneParserTNG::makeTTLFromZone(const string& str)
   if(str.empty())
     return 0;
 
-  unsigned int val=pdns_stou(str);
+  unsigned int val;
+  try {
+    val=pdns_stou(str);
+  }
+  catch (const std::out_of_range& oor) {
+    throw PDNSException("Unable to parse time specification '"+str+"' "+getLineOfFile());
+  }
+
   char lc=dns_tolower(str[str.length()-1]);
   if(!isdigit(lc))
     switch(lc) {

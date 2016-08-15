@@ -353,8 +353,13 @@ void Resolver::getSoaSerial(const string &ipport, const DNSName &domain, uint32_
   stringtok(parts, res[0].content);
   if(parts.size()<3)
     throw ResolverException("Query to '" + ipport + "' for SOA of '" + domain.toString() + "' produced an unparseable response");
-  
-  *serial=pdns_stou(parts[2]);
+
+  try {
+    *serial=pdns_stou(parts[2]);
+  }
+  catch(const std::out_of_range& oor) {
+    throw ResolverException("Query to '" + ipport + "' for SOA of '" + domain.toString() + "' produced an unparseable serial");
+  }
 }
 
 AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
