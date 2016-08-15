@@ -1121,6 +1121,9 @@ try
   DNSPacketWriter dpw(packet, ds.checkName, ds.checkType.getCode());
   dnsheader * requestHeader = dpw.getHeader();
   requestHeader->rd=true;
+  if (ds.setCD) {
+    requestHeader->cd = true;
+  }
 
   Socket sock(ds.remote.sin4.sin_family, SOCK_DGRAM);
   sock.setNonBlocking();

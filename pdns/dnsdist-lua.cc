@@ -356,6 +356,10 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			  ret->checkType=boost::get<string>(vars["checkType"]);
 			}
 
+			if(vars.count("setCD")) {
+			  ret->setCD=boost::get<bool>(vars["setCD"]);
+			}
+
 			if(vars.count("mustResolve")) {
 			  ret->mustResolve=boost::get<bool>(vars["mustResolve"]);
 			}
