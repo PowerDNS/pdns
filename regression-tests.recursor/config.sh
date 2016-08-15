@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -e
 if [ "${PDNS_DEBUG}" = "YES" ]; then
   set -x
