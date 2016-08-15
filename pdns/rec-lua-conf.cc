@@ -120,7 +120,7 @@ void loadRecursorLuaConfig(const std::string& fname)
         const size_t zoneIdx = lci.dfe.size();
         theL()<<Logger::Warning<<"Loading RPZ from file '"<<fname<<"'"<<endl;
         lci.dfe.setPolicyName(zoneIdx, polName);
-	loadRPZFromFile(fname, lci.dfe, defpol, zoneIdx);
+        loadRPZFromFile(fname, lci.dfe, defpol, zoneIdx);
         theL()<<Logger::Warning<<"Done loading RPZ from file '"<<fname<<"'"<<endl;
       }
       catch(std::exception& e) {
