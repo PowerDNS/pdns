@@ -109,13 +109,13 @@ void StatBag::declare(const string &key, const string &descrip, StatBag::func_t 
 }
 
           
-void StatBag::set(const string &key, AtomicCounter::native_t value)
+void StatBag::set(const string &key, unsigned long value)
 {
   exists(key);
-  *d_stats[key]=AtomicCounter(value);
+  d_stats[key]->store(value);
 }
 
-AtomicCounter::native_t StatBag::read(const string &key)
+unsigned long StatBag::read(const string &key)
 {
   exists(key);
   funcstats_t::const_iterator iter = d_funcstats.find(key);
@@ -124,10 +124,10 @@ AtomicCounter::native_t StatBag::read(const string &key)
   return *d_stats[key];
 }
 
-AtomicCounter::native_t StatBag::readZero(const string &key)
+unsigned long StatBag::readZero(const string &key)
 {
   exists(key);
-  AtomicCounter::native_t tmp=*d_stats[key];
+  unsigned long tmp=*d_stats[key];
   d_stats[key]=0;
   return tmp;
 }

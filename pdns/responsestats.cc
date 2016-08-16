@@ -8,9 +8,8 @@
 
 #include "dnsparser.hh"
 
-ResponseStats::ResponseStats()
+ResponseStats::ResponseStats() : d_qtypecounters(65536)
 {
-  d_qtypecounters.resize(std::numeric_limits<uint16_t>::max()+1);
   d_sizecounters.push_back(make_pair(20,0));
   d_sizecounters.push_back(make_pair(40,0));
   d_sizecounters.push_back(make_pair(60,0));

@@ -36,6 +36,7 @@
 using namespace ::boost::multi_index;
 
 #include "dns.hh"
+#include <atomic>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -368,57 +369,10 @@ inline bool pdns_iequals_ch(const char a, const char b)
   return true;
 }
 
-// lifted from boost, with thanks
-class AtomicCounter
-{
-public:
-    typedef unsigned long native_t;
-    explicit AtomicCounter( native_t v = 0) : value_( v ) {}
 
-    native_t operator++()
-    {
-      return atomic_exchange_and_add( &value_, +1 ) + 1;
-    }
+typedef std::atomic<unsigned long> AtomicCounter ;
 
-    native_t operator++(int)
-    {
-      return atomic_exchange_and_add( &value_, +1 );
-    }
-
-    native_t operator+=(native_t val)
-    {
-      return atomic_exchange_and_add( &value_, val );
-    }
-
-    native_t operator-=(native_t val)
-    {
-      return atomic_exchange_and_add( &value_, -val );
-    }
-
-    native_t operator--()
-    {
-      return atomic_exchange_and_add( &value_, -1 ) - 1;
-    }
-
-    operator native_t() const
-    {
-      return atomic_exchange_and_add( &value_, 0);
-    }
-
-    AtomicCounter(AtomicCounter const &rhs) : value_(rhs)
-    {
-    }
-
-private:
-    mutable native_t value_;
-
-    static native_t atomic_exchange_and_add( native_t * pw, native_t dv )
-    {
-      return __sync_fetch_and_add(pw, dv);
-    }
-};
-
-// FIXME400 this should probably go?
+// FIXME400 this should probably go? 
 struct CIStringCompare: public std::binary_function<string, string, bool>
 {
   bool operator()(const string& a, const string& b) const

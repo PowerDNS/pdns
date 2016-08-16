@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002 - 2014  PowerDNS.COM BV
+    Copyright (C) 2002 - 2016  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -73,9 +73,7 @@ int PacketCache::get(DNSPacket *p, DNSPacket *cached, bool recursive)
   if(d_ttl<0) 
     getTTLS();
 
-  if(!((++d_ops) % 300000)) {
-    cleanup();
-  }
+  cleanupIfNeeded();
 
   if(d_doRecursion && p->d.rd) { // wants recursion
     if(!d_recursivettl) {
@@ -163,9 +161,7 @@ void PacketCache::insert(DNSPacket *q, DNSPacket *r, bool recursive, unsigned in
 void PacketCache::insert(const DNSName &qname, const QType& qtype, CacheEntryType cet, const string& value, unsigned int ttl, int zoneID, 
   bool meritsRecursion, unsigned int maxReplyLen, bool dnssecOk, bool EDNS)
 {
-  if(!((++d_ops) % 300000)) {
-    cleanup();
-  }
+  cleanupIfNeeded();
 
   if(!ttl)
     return;
@@ -201,9 +197,7 @@ void PacketCache::insert(const DNSName &qname, const QType& qtype, CacheEntryTyp
 
 void PacketCache::insert(const DNSName &qname, const QType& qtype, CacheEntryType cet, const vector<DNSResourceRecord>& value, unsigned int ttl, int zoneID)
 {
-  if(!((++d_ops) % 300000)) {
-    cleanup();
-  }
+  cleanupIfNeeded();
 
   if(!ttl)
     return;
@@ -247,7 +241,7 @@ int PacketCache::purge()
     delcount+=mc.d_map.size();
     mc.d_map.clear();
   }
-  *d_statnumentries=AtomicCounter(0);
+  d_statnumentries->store(0);
   return delcount;
 }
 
@@ -300,9 +294,7 @@ bool PacketCache::getEntry(const DNSName &qname, const QType& qtype, CacheEntryT
   if(d_ttl<0) 
     getTTLS();
 
-  if(!((++d_ops) % 300000)) {
-    cleanup();
-  }
+  cleanupIfNeeded();
 
   auto& mc=getMap(qname);
 
@@ -392,7 +384,7 @@ int PacketCache::size()
 /** readlock for figuring out which iterators to delete, upgrade to writelock when actually cleaning */
 void PacketCache::cleanup()
 {
-  *d_statnumentries=AtomicCounter(0);
+  d_statnumentries->store(0);
   for(auto& mc : d_maps) {
     ReadLock l(&mc.d_mut);
 
@@ -401,7 +393,7 @@ void PacketCache::cleanup()
   unsigned int maxCached=::arg().asNum("max-cache-entries");
   unsigned int toTrim=0;
   
-  AtomicCounter::native_t cacheSize=*d_statnumentries;
+  unsigned long cacheSize=*d_statnumentries;
   
   if(maxCached && cacheSize > maxCached) {
     toTrim = cacheSize - maxCached;
@@ -444,7 +436,7 @@ void PacketCache::cleanup()
   //  if(totErased)
   //  cerr<<"erased: "<<totErased<<endl;
   
-  *d_statnumentries=AtomicCounter(0);
+  d_statnumentries->store(0);
   for(auto& mc : d_maps) {
     ReadLock l(&mc.d_mut);
     *d_statnumentries+=mc.d_map.size();
