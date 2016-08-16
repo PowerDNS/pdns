@@ -24,7 +24,7 @@ public:
   bool submit(const DNSResourceRecord& rr);
   chunk_t getChunk(bool final=false);
 
-  AtomicCounter d_signed;
+  std::atomic<unsigned long> d_signed;
   int d_queued;
   int d_outstanding;
   unsigned int getReady();

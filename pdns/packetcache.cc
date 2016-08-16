@@ -34,6 +34,7 @@ extern StatBag S;
 
 PacketCache::PacketCache()
 {
+  d_ops=0;
   d_maps.resize(1024);
   for(auto& mc : d_maps) {
     pthread_rwlock_init(&mc.d_mut, 0);
