@@ -1,5 +1,5 @@
 #!/bin/sh
-elements="$($RECCONTROL --config-dir=/tmp/recursor-service help | grep -v -e '^ ' | awk '{print $1}')"
+elements="$($RECCONTROL --config-dir=./configs/recursor-service help | grep -v -e '^ ' | awk '{print $1}')"
 
 num_elems="$( echo $elements | wc -l)"
 
