@@ -411,6 +411,8 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r, c
         if (parts.size() >= 3) {
           B.lookup(QType(d_doIPv6AdditionalProcessing ? QType::ANY : QType::A), DNSName(parts[2]), p);
         }
+        else
+          continue;
       }
       else {
         B.lookup(QType(d_doIPv6AdditionalProcessing ? QType::ANY : QType::A), DNSName(content), p);
