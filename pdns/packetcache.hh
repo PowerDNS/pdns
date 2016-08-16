@@ -70,8 +70,12 @@ public:
   int size(); //!< number of entries in the cache
   void cleanupIfNeeded()
   {
-    if(!(++d_ops % 300000))
-      cleanup();
+    if(!(++d_ops % 300000)) {
+      if(d_lastclean + 30 < time(0)) {
+        d_lastclean=time(0); 
+        cleanup();
+      }
+    }
   }
   void cleanup(); //!< force the cache to preen itself from expired packets
   int purge();
@@ -143,6 +147,7 @@ private:
   }
 
   AtomicCounter d_ops;
+  time_t d_lastclean{0}; // doesn't need to be atomic
   AtomicCounter *d_statnumhit;
   AtomicCounter *d_statnummiss;
   AtomicCounter *d_statnumentries;
