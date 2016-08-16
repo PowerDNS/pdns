@@ -34,7 +34,7 @@ public:
   }
 
   void setQuestion(const DNSName& qname, uint16_t qtype, uint16_t qclass);
-  void setEDNSSubnet(const Netmask& subnet);
+  void setEDNSSubnet(const Netmask& subnet, uint8_t mask=128);
   void setBytes(size_t bytes);
   void setTime(time_t sec, uint32_t usec);
   void setQueryTime(time_t sec, uint32_t usec);

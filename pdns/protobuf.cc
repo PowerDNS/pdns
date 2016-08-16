@@ -58,11 +58,12 @@ void DNSProtoBufMessage::setQueryTime(time_t sec, uint32_t usec)
 #endif /* HAVE_PROTOBUF */
 }
 
-void DNSProtoBufMessage::setEDNSSubnet(const Netmask& subnet)
+void DNSProtoBufMessage::setEDNSSubnet(const Netmask& subnet, uint8_t mask)
 {
 #ifdef HAVE_PROTOBUF
   if (!subnet.empty()) {
-    const ComboAddress ca = subnet.getNetwork();
+    ComboAddress ca(subnet.getNetwork());
+    ca.truncate(mask);
     if (ca.sin4.sin_family == AF_INET) {
       d_message.set_originalrequestorsubnet(&ca.sin4.sin_addr.s_addr, sizeof(ca.sin4.sin_addr.s_addr));
     }
