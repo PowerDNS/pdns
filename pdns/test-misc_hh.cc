@@ -118,7 +118,7 @@ BOOST_AUTO_TEST_CASE(test_makeRelative) {
 }
 
 BOOST_AUTO_TEST_CASE(test_AtomicCounter) {
-    AtomicCounter ac;
+    AtomicCounter ac(0);
     ++ac;
     ++ac;
     BOOST_CHECK_EQUAL(ac, 2);

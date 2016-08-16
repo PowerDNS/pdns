@@ -116,9 +116,9 @@ public:
   void exists(const string &key); //!< call this function to throw an exception in case a key does not exist
   inline void deposit(const string &key, int value); //!< increment the statistics behind this key by value amount
   inline void inc(const string &key); //!< increase this key's value by one
-  void set(const string &key, AtomicCounter::native_t value); //!< set this key's value
-  AtomicCounter::native_t read(const string &key); //!< read the value behind this key
-  AtomicCounter::native_t readZero(const string &key); //!< read the value behind this key, and zero it afterwards
+  void set(const string &key, unsigned long value); //!< set this key's value
+  unsigned long read(const string &key); //!< read the value behind this key
+  unsigned long readZero(const string &key); //!< read the value behind this key, and zero it afterwards
   AtomicCounter *getPointer(const string &key); //!< get a direct pointer to the value behind a key. Use this for high performance increments
   string getValueStr(const string &key); //!< read a value behind a key, and return it as a string
   string getValueStrZero(const string &key); //!< read a value behind a key, and return it as a string, and zero afterwards

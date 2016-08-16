@@ -71,7 +71,7 @@ catch(...) {
 }
 
 ChunkedSigningPipe::ChunkedSigningPipe(const DNSName& signerName, bool mustSign, const string& servers, unsigned int workers)
-  : d_queued(0), d_outstanding(0), d_numworkers(workers), d_submitted(0), d_signer(signerName),
+  : d_signed(0), d_queued(0), d_outstanding(0), d_numworkers(workers), d_submitted(0), d_signer(signerName),
     d_maxchunkrecords(100), d_tids(d_numworkers), d_mustSign(mustSign), d_final(false)
 {
   d_rrsetToSign = new rrset_t;

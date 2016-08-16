@@ -17,7 +17,7 @@ using std::string;
 
 static void *threadMangler(void* a)
 {
-  AtomicCounter* ac = (AtomicCounter*)a;
+  AtomicCounter* ac=(AtomicCounter*)a;
   for(unsigned int n=0; n < 1000000; ++n)
     (*ac)++;
   return 0;
@@ -83,7 +83,7 @@ BOOST_AUTO_TEST_CASE(test_StatBagBasic) {
 
 #ifdef UINTPTR_MAX  
 #if UINTPTR_MAX > 0xffffffffULL
-    BOOST_CHECK_EQUAL(sizeof(AtomicCounter::native_t), 8);
+    BOOST_CHECK_EQUAL(sizeof(unsigned long), 8);
     s.set("c", 1ULL<<33);
     BOOST_CHECK_EQUAL(s.read("c"), (1ULL<<33) );
     s.inc("c");

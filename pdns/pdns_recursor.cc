@@ -2783,7 +2783,7 @@ try
 
   time_t last_carbon=0;
   time_t carbonInterval=::arg().asNum("carbon-interval");
-  counter=AtomicCounter(0); // used to periodically execute certain tasks
+  counter.store(0); // used to periodically execute certain tasks
   for(;;) {
     while(MT->schedule(&g_now)); // MTasker letting the mthreads do their thing
 

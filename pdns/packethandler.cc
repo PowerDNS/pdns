@@ -405,31 +405,30 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r, c
         trim_left(content);
       }
 
-      QType qtypes[2];
-      qtypes[0]="A"; qtypes[1]="AAAA";
-      for(int n=0 ; n < d_doIPv6AdditionalProcessing + 1; ++n) {
-        if (i->qtype.getCode()==QType::SRV) {
-          vector<string>parts;
-          stringtok(parts, content);
-          if (parts.size() >= 3) {
-            B.lookup(qtypes[n], DNSName(parts[2]), p);
-          }
-          else
-            continue;
+      if (i->qtype.getCode()==QType::SRV) {
+        vector<string>parts;
+        stringtok(parts, content);
+        if (parts.size() >= 3) {
+          B.lookup(QType(d_doIPv6AdditionalProcessing ? QType::ANY : QType::A), DNSName(parts[2]), p);
         }
-        else {
-          B.lookup(qtypes[n], DNSName(content), p);
+        else
+          continue;
+      }
+      else {
+        B.lookup(QType(d_doIPv6AdditionalProcessing ? QType::ANY : QType::A), DNSName(content), p);
+      }
+      while(B.get(rr)) {
+        if(rr.qtype.getCode() != QType::A && rr.qtype.getCode()!=QType::AAAA)
+          continue;
+        if(rr.domain_id!=i->domain_id && ::arg()["out-of-zone-additional-processing"]=="no") {
+          DLOG(L<<Logger::Warning<<"Not including out-of-zone additional processing of "<<i->qname<<" ("<<rr.qname<<")"<<endl);
+          continue; // not adding out-of-zone additional data
         }
-        while(B.get(rr)) {
-          if(rr.domain_id!=i->domain_id && ::arg()["out-of-zone-additional-processing"]=="no") {
-            DLOG(L<<Logger::Warning<<"Not including out-of-zone additional processing of "<<i->qname<<" ("<<rr.qname<<")"<<endl);
-            continue; // not adding out-of-zone additional data
-          }
-          if(rr.auth && !rr.qname.isPartOf(soadata.qname)) // don't sign out of zone data using the main key 
-            rr.auth=false;
-          rr.d_place=DNSResourceRecord::ADDITIONAL;
-          r->addRecord(rr);
-        }
+        
+        if(rr.auth && !rr.qname.isPartOf(soadata.qname)) // don't sign out of zone data using the main key 
+          rr.auth=false;
+        rr.d_place=DNSResourceRecord::ADDITIONAL;
+        r->addRecord(rr);
       }
     }
   }

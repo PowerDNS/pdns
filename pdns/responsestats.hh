@@ -14,7 +14,7 @@ public:
   string getQTypeReport();
 
 private:
-  vector<AtomicCounter> d_qtypecounters;
+  boost::scoped_array<std::atomic<unsigned long>> d_qtypecounters;
   typedef vector<pair<uint16_t, uint64_t> > sizecounters_t;
   sizecounters_t d_sizecounters;
 };

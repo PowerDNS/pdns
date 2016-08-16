@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002 - 2011  PowerDNS.COM BV
+    Copyright (C) 2002 - 2016  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -68,6 +68,15 @@ public:
   
 
   int size(); //!< number of entries in the cache
+  void cleanupIfNeeded()
+  {
+    if(!(++d_ops % 300000)) {
+      if(d_lastclean + 30 < time(0)) {
+        d_lastclean=time(0); 
+        cleanup();
+      }
+    }
+  }
   void cleanup(); //!< force the cache to preen itself from expired packets
   int purge();
   int purge(const std::string& match); // could be $ terminated. Is not a dnsname!
@@ -138,6 +147,7 @@ private:
   }
 
   AtomicCounter d_ops;
+  time_t d_lastclean{0}; // doesn't need to be atomic
   AtomicCounter *d_statnumhit;
   AtomicCounter *d_statnummiss;
   AtomicCounter *d_statnumentries;
