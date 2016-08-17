@@ -872,13 +872,18 @@ public:
   LogAction() : d_fp(0)
   {
   }
-  LogAction(const std::string& str, bool binary=true) : d_fname(str), d_binary(binary)
+  LogAction(const std::string& str, bool binary=true, bool append=false, bool buffered=true) : d_fname(str), d_binary(binary), d_append(append), d_buffered(buffered)
   {
     if(str.empty())
       return;
-    d_fp = fopen(str.c_str(), "w");
+    if(d_append)
+      d_fp = fopen(str.c_str(), "a+");
+    else
+      d_fp = fopen(str.c_str(), "w");
     if(!d_fp)
       throw std::runtime_error("Unable to open file '"+str+"' for logging: "+string(strerror(errno)));
+    if(!d_buffered)
+      setbuf(d_fp, 0);
   }
   ~LogAction()
   {
@@ -913,6 +918,8 @@ private:
   string d_fname;
   FILE* d_fp{0};
   bool d_binary{true};
+  bool d_append{false};
+  bool d_buffered{true};
 };
 
 

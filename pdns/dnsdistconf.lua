@@ -171,8 +171,8 @@ end
 -- return 'not implemented' for qtype == A OR received over UDP
 -- addAction(OrRule({QTypeRule("A"), TCPRule(false)}), RCodeAction(dnsdist.NOTIMP))
 
--- log all queries to a 'dndist.log' file, in text-mode (not binary)
--- addAction(AllRule(), LogAction("dnsdist.log", false))
+-- log all queries to a 'dndist.log' file, in text-mode (not binary) appending and unbuffered
+-- addAction(AllRule(), LogAction("dnsdist.log", false, true, false))
 
 -- drop all queries with the DO flag set
 -- addAction(DNSSECRule(), DropAction())
