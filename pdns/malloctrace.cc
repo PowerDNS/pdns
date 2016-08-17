@@ -90,7 +90,9 @@ MallocTracer::allocators_t MallocTracer::topAllocators(int num)
 	  const allocators_t::value_type& b) {
 	 return a.first.count < b.first.count;
        });
-  if(num > 0)
+  if((unsigned int)num > ret.size())
+    ret.clear();
+  else if(num > 0)
     ret.erase(ret.begin(), ret.begin() + (ret.size() - num));
   l_active=false;
   return ret;
