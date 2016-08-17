@@ -632,6 +632,16 @@ system uses by default for outgoing packets.
 
 Source IP address for sending IPv6 queries.
 
+## `query-non-local-bind`
+* Boolean
+* Default: no
+
+Enable using non-local addresses set with [`query-local-address`'s](#query-local-address)
+or [`query-local-address6`'s](#query-local-address6) for sending
+queries.
+This feature is intended to facilitate ip-failover setups, but it may also
+mask configuration issues and for this reason it is disabled by default.
+
 ## `query-logging`
 * Boolean
 * Default: no

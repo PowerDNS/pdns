@@ -51,7 +51,7 @@
 #include "gss_context.hh"
 #include "namespaces.hh"
 
-int makeQuerySocket(const ComboAddress& local, bool udpOrTCP)
+int makeQuerySocket(const ComboAddress& local, bool udpOrTCP, bool nonLocalBind)
 {
   ComboAddress ourLocal(local);
   
@@ -64,6 +64,10 @@ int makeQuerySocket(const ComboAddress& local, bool udpOrTCP)
   }
 
   setCloseOnExec(sock);
+
+  if(nonLocalBind)
+    Utility::setBindAny(local.sin4.sin_family, sock);
+
   if(udpOrTCP) {
     // udp, try hard to bind an unpredictable port
     int tries=10;
@@ -95,9 +99,9 @@ Resolver::Resolver()
   locals["default4"] = -1;
   locals["default6"] = -1;
   try {
-    locals["default4"] = makeQuerySocket(ComboAddress(::arg()["query-local-address"]), true);
+    locals["default4"] = makeQuerySocket(ComboAddress(::arg()["query-local-address"]), true, ::arg().mustDo("query-non-local-bind"));
     if(!::arg()["query-local-address6"].empty())
-      locals["default6"] = makeQuerySocket(ComboAddress(::arg()["query-local-address6"]), true);
+      locals["default6"] = makeQuerySocket(ComboAddress(::arg()["query-local-address6"]), true, ::arg().mustDo("query-non-local-bind"));
   }
   catch(...) {
     if(locals["default4"]>=0)
