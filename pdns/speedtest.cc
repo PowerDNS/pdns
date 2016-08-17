@@ -688,7 +688,7 @@ try
   doRun(TypicalRefTest());
 
 
-  packet = makeEmptyQuery();
+  auto packet = makeEmptyQuery();
   doRun(ParsePacketTest(packet, "empty-query"));
 
   packet = makeTypicalReferral();
