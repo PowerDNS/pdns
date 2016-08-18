@@ -448,6 +448,18 @@ BOOST_AUTO_TEST_CASE(test_compare_empty) {
   BOOST_CHECK(!a.canonCompare(b));
 }
 
+BOOST_AUTO_TEST_CASE(test_casing) {
+  DNSName a("WwW.PoWeRdNS.Com"), b("www.powerdns.com.");
+  BOOST_CHECK_EQUAL(a,b);
+  BOOST_CHECK_EQUAL(a.toString(), "WwW.PoWeRdNS.Com.");
+  DNSName c=a.makeLowerCase();
+  BOOST_CHECK_EQUAL(a,c);
+  BOOST_CHECK_EQUAL(b,c);
+  BOOST_CHECK_EQUAL(c.toString(), b.toString());
+  BOOST_CHECK_EQUAL(c.toString(), "www.powerdns.com.");
+}
+
+
 
 BOOST_AUTO_TEST_CASE(test_compare_canonical) {
   DNSName lower("bert.com."), higher("alpha.nl.");

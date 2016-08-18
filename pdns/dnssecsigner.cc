@@ -192,7 +192,8 @@ void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const set<DNSName>& authSet, 
   vector<shared_ptr<DNSRecordContent> > toSign;
 
   vector<DNSResourceRecord> signedRecords;
-  
+  signedRecords.reserve(rrs.size()*1.5);
+  //  cout<<rrs.size()<<", "<<sizeof(DNSResourceRecord)<<endl;
   DNSName signer;
   for(vector<DNSResourceRecord>::const_iterator pos = rrs.begin(); pos != rrs.end(); ++pos) {
     if(pos != rrs.begin() && (signQType != pos->qtype.getCode()  || signQName != pos->qname)) {
@@ -200,9 +201,9 @@ void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const set<DNSName>& authSet, 
         addSignature(dk, db, signer, signQName, wildcardQName, signQType, signTTL, signPlace, toSign, signedRecords, origTTL);
     }
     signedRecords.push_back(*pos);
-    signQName= DNSName(toLower(pos->qname.toString()));
+    signQName= pos->qname.makeLowerCase();
     if(!pos->wildcardname.empty())
-      wildcardQName = DNSName(toLower(pos->wildcardname.toString()));
+      wildcardQName = pos->wildcardname.makeLowerCase();
     else
       wildcardQName.clear();
     signQType = pos ->qtype.getCode();
