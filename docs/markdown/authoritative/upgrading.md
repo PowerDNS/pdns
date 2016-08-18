@@ -2,24 +2,14 @@ Before proceeding, it is advised to check the release notes for your PDNS versio
 
 **WARNING**: Version 3.X of the PowerDNS Authoritative Server is a major upgrade if you are coming from 2.9.x. Please follow **all** instructions.
 
+# 3.X.X to 3.4.10
+The default for [`any-to-tcp`](settings.md#any-to-tcp) has been changed to 'yes'.
+
 # 3.X.X to 3.3.2
 
 Please run "pdnssec rectify-all-zones" and trigger an AXFR for all DNSSEC
 zones to make sure you benefit from all the compliance improvements present in
 this version.
-
-# 3.4.X to HEAD
-
-## API
-Incompatible change: `SOA-EDIT-API` now follows `SOA-EDIT-DNSUPDATE` instead of `SOA-EDIT` (incl. the fact that it now has a default value of `DEFAULT`). You must update your existing `SOA-EDIT-API` metadata (set `SOA-EDIT` to your previous `SOA-EDIT-API` value, and `SOA-EDIT-API` to `SOA-EDIT` to keep the old behaviour).
-
-# 3.4.2 to 3.4.3
-No breaking changes.
-
-# 3.4.1 to 3.4.2
-
-## API
-**Warning**: `priority` is no longer part of `records` in the API. `content` now includes the backend's `priority` field (see [API Spec](../httpapi/api_spec.md#url-serversserver_idzoneszone_id) for details).
 
 # 3.4.0 to 3.4.1
 
