@@ -7,7 +7,6 @@ before_script:
  - sudo sysctl net.ipv6.conf.lo.disable_ipv6=0
  - sudo /sbin/ip addr add 10.0.3.0/24 dev lo
  - sudo /sbin/ip addr add 1.2.3.4/32 dev lo
- - sudo rm /etc/apt/sources.list.d/travis_ci_zeromq3-source.list
  - sudo apt-get update
  - sudo apt-get install --no-install-recommends libboost-all-dev libtolua-dev bc libcdb-dev libnet-dns-perl unbound-host ldnsutils dnsutils bind9utils libtool libcdb-dev xmlto links asciidoc ruby-json ruby-sqlite3 rubygems libcurl4-openssl-dev ruby1.9.1 socat time pkg-config daemontools authbind liblua5.1-posix1 libopendbx1-dev libopendbx1-sqlite3 python-virtualenv libldap2-dev softhsm libp11-kit-dev p11-kit moreutils geoip-database
  - sudo sh -c 'sed s/precise/trusty/g /etc/apt/sources.list > /etc/apt/sources.list.d/trusty.list'
