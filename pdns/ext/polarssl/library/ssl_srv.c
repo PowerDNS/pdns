@@ -1,12 +1,9 @@
 /*
  *  SSLv3/TLSv1 server-side functions
  *
- *  Copyright (C) 2006-2014, Brainspark B.V.
+ *  Copyright (C) 2006-2014, ARM Limited, All Rights Reserved
  *
- *  This file is part of PolarSSL (http://www.polarssl.org)
- *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
- *
- *  All rights reserved.
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -33,6 +30,9 @@
 
 #include "polarssl/debug.h"
 #include "polarssl/ssl.h"
+
+#include <string.h>
+
 #if defined(POLARSSL_ECP_C)
 #include "polarssl/ecp.h"
 #endif
@@ -40,12 +40,10 @@
 #if defined(POLARSSL_PLATFORM_C)
 #include "polarssl/platform.h"
 #else
+#include <stdlib.h>
 #define polarssl_malloc     malloc
 #define polarssl_free       free
 #endif
-
-#include <stdlib.h>
-#include <stdio.h>
 
 #if defined(POLARSSL_HAVE_TIME)
 #include <time.h>
@@ -431,11 +429,29 @@ static int ssl_parse_renegotiation_info( ssl_context *ssl,
 {
     int ret;
 
-    if( ssl->renegotiation == SSL_INITIAL_HANDSHAKE )
+#if defined(POLARSSL_SSL_RENEGOTIATION)
+    if( ssl->renegotiation != SSL_INITIAL_HANDSHAKE )
+    {
+        /* Check verify-data in constant-time. The length OTOH is no secret */
+        if( len    != 1 + ssl->verify_data_len ||
+            buf[0] !=     ssl->verify_data_len ||
+            safer_memcmp( buf + 1, ssl->peer_verify_data,
+                          ssl->verify_data_len ) != 0 )
+        {
+            SSL_DEBUG_MSG( 1, ( "non-matching renegotiation info" ) );
+
+            if( ( ret = ssl_send_fatal_handshake_failure( ssl ) ) != 0 )
+                return( ret );
+
+            return( POLARSSL_ERR_SSL_BAD_HS_CLIENT_HELLO );
+        }
+    }
+    else
+#endif /* POLARSSL_SSL_RENEGOTIATION */
     {
         if( len != 1 || buf[0] != 0x0 )
         {
-            SSL_DEBUG_MSG( 1, ( "non-zero length renegotiated connection field" ) );
+            SSL_DEBUG_MSG( 1, ( "non-zero length renegotiation info" ) );
 
             if( ( ret = ssl_send_fatal_handshake_failure( ssl ) ) != 0 )
                 return( ret );
@@ -445,27 +461,12 @@ static int ssl_parse_renegotiation_info( ssl_context *ssl,
 
         ssl->secure_renegotiation = SSL_SECURE_RENEGOTIATION;
     }
-    else
-    {
-        /* Check verify-data in constant-time. The length OTOH is no secret */
-        if( len    != 1 + ssl->verify_data_len ||
-            buf[0] !=     ssl->verify_data_len ||
-            safer_memcmp( buf + 1, ssl->peer_verify_data,
-                          ssl->verify_data_len ) != 0 )
-        {
-            SSL_DEBUG_MSG( 1, ( "non-matching renegotiated connection field" ) );
-
-            if( ( ret = ssl_send_fatal_handshake_failure( ssl ) ) != 0 )
-                return( ret );
-
-            return( POLARSSL_ERR_SSL_BAD_HS_CLIENT_HELLO );
-        }
-    }
 
     return( 0 );
 }
 
-#if defined(POLARSSL_SSL_PROTO_TLS1_2)
+#if defined(POLARSSL_SSL_PROTO_TLS1_2) && \
+    defined(POLARSSL_KEY_EXCHANGE__WITH_CERT__ENABLED)
 static int ssl_parse_signature_algorithms_ext( ssl_context *ssl,
                                                const unsigned char *buf,
                                                size_t len )
@@ -491,6 +492,12 @@ static int ssl_parse_signature_algorithms_ext( ssl_context *ssl,
      * So, just look at the HashAlgorithm part.
      */
     for( md_cur = md_list(); *md_cur != POLARSSL_MD_NONE; md_cur++ ) {
+#if !defined(POLARSSL_SSL_ENABLE_MD5_SIGNATURES)
+        /* Skip MD5 */
+        if( *md_cur == POLARSSL_MD_MD5 )
+            continue;
+#endif
+
         for( p = buf + 2; p < end; p += 2 ) {
             if( *md_cur == (int) ssl_md_alg_from_hash( p[0] ) ) {
                 ssl->handshake->sig_alg = p[0];
@@ -509,7 +516,8 @@ have_sig_alg:
 
     return( 0 );
 }
-#endif /* POLARSSL_SSL_PROTO_TLS1_2 */
+#endif /* POLARSSL_SSL_PROTO_TLS1_2 &&
+          POLARSSL_KEY_EXCHANGE__WITH_CERT__ENABLED */
 
 #if defined(POLARSSL_ECDH_C) || defined(POLARSSL_ECDSA_C)
 static int ssl_parse_supported_elliptic_curves( ssl_context *ssl,
@@ -580,7 +588,7 @@ static int ssl_parse_supported_point_formats( ssl_context *ssl,
         return( POLARSSL_ERR_SSL_BAD_HS_CLIENT_HELLO );
     }
 
-    p = buf + 2;
+    p = buf + 1;
     while( list_size > 0 )
     {
         if( p[0] == POLARSSL_ECP_PF_UNCOMPRESSED ||
@@ -629,11 +637,58 @@ static int ssl_parse_truncated_hmac_ext( ssl_context *ssl,
 
     ((void) buf);
 
-    ssl->session_negotiate->trunc_hmac = SSL_TRUNC_HMAC_ENABLED;
+    if( ssl->trunc_hmac == SSL_TRUNC_HMAC_ENABLED )
+        ssl->session_negotiate->trunc_hmac = SSL_TRUNC_HMAC_ENABLED;
 
     return( 0 );
 }
 #endif /* POLARSSL_SSL_TRUNCATED_HMAC */
+
+#if defined(POLARSSL_SSL_ENCRYPT_THEN_MAC)
+static int ssl_parse_encrypt_then_mac_ext( ssl_context *ssl,
+                                      const unsigned char *buf,
+                                      size_t len )
+{
+    if( len != 0 )
+    {
+        SSL_DEBUG_MSG( 1, ( "bad client hello message" ) );
+        return( POLARSSL_ERR_SSL_BAD_HS_CLIENT_HELLO );
+    }
+
+    ((void) buf);
+
+    if( ssl->encrypt_then_mac == SSL_ETM_ENABLED &&
+        ssl->minor_ver != SSL_MINOR_VERSION_0 )
+    {
+        ssl->session_negotiate->encrypt_then_mac = SSL_ETM_ENABLED;
+    }
+
+    return( 0 );
+}
+#endif /* POLARSSL_SSL_ENCRYPT_THEN_MAC */
+
+#if defined(POLARSSL_SSL_EXTENDED_MASTER_SECRET)
+static int ssl_parse_extended_ms_ext( ssl_context *ssl,
+                                      const unsigned char *buf,
+                                      size_t len )
+{
+    if( len != 0 )
+    {
+        SSL_DEBUG_MSG( 1, ( "bad client hello message" ) );
+        return( POLARSSL_ERR_SSL_BAD_HS_CLIENT_HELLO );
+    }
+
+    ((void) buf);
+
+    if( ssl->extended_ms == SSL_EXTENDED_MS_ENABLED &&
+        ssl->minor_ver != SSL_MINOR_VERSION_0 )
+    {
+        ssl->handshake->extended_ms = SSL_EXTENDED_MS_ENABLED;
+    }
+
+    return( 0 );
+}
+#endif /* POLARSSL_SSL_EXTENDED_MASTER_SECRET */
 
 #if defined(POLARSSL_SSL_SESSION_TICKETS)
 static int ssl_parse_session_ticket_ext( ssl_context *ssl,
@@ -653,11 +708,13 @@ static int ssl_parse_session_ticket_ext( ssl_context *ssl,
     if( len == 0 )
         return( 0 );
 
+#if defined(POLARSSL_SSL_RENEGOTIATION)
     if( ssl->renegotiation != SSL_INITIAL_HANDSHAKE )
     {
         SSL_DEBUG_MSG( 3, ( "ticket rejected: renegotiating" ) );
         return( 0 );
     }
+#endif /* POLARSSL_SSL_RENEGOTIATION */
 
     /*
      * Failures are ok: just ignore the ticket and proceed.
@@ -749,11 +806,11 @@ static int ssl_parse_alpn_ext( ssl_context *ssl,
 
 #if defined(POLARSSL_X509_CRT_PARSE_C)
 /*
- * Return 1 if the given EC key uses the given curve, 0 otherwise
+ * Return 0 if the given key uses one of the acceptable curves, -1 otherwise
  */
 #if defined(POLARSSL_ECDSA_C)
-static int ssl_key_matches_curves( pk_context *pk,
-                                   const ecp_curve_info **curves )
+static int ssl_check_key_curve( pk_context *pk,
+                                const ecp_curve_info **curves )
 {
     const ecp_curve_info **crv = curves;
     ecp_group_id grp_id = pk_ec( *pk )->grp.id;
@@ -761,11 +818,11 @@ static int ssl_key_matches_curves( pk_context *pk,
     while( *crv != NULL )
     {
         if( (*crv)->grp_id == grp_id )
-            return( 1 );
+            return( 0 );
         crv++;
     }
 
-    return( 0 );
+    return( -1 );
 }
 #endif /* POLARSSL_ECDSA_C */
 
@@ -776,8 +833,9 @@ static int ssl_key_matches_curves( pk_context *pk,
 static int ssl_pick_cert( ssl_context *ssl,
                           const ssl_ciphersuite_t * ciphersuite_info )
 {
-    ssl_key_cert *cur, *list;
+    ssl_key_cert *cur, *list, *fallback = NULL;
     pk_type_t pk_alg = ssl_get_ciphersuite_sig_pk_alg( ciphersuite_info );
+    int flags;
 
 #if defined(POLARSSL_SSL_SERVER_NAME_INDICATION)
     if( ssl->handshake->sni_key_cert != NULL )
@@ -789,10 +847,18 @@ static int ssl_pick_cert( ssl_context *ssl,
     if( pk_alg == POLARSSL_PK_NONE )
         return( 0 );
 
+    SSL_DEBUG_MSG( 3, ( "ciphersuite requires certificate" ) );
+
     for( cur = list; cur != NULL; cur = cur->next )
     {
+        SSL_DEBUG_CRT( 3, "candidate certificate chain, certificate",
+                          cur->cert );
+
         if( ! pk_can_do( cur->key, pk_alg ) )
+        {
+            SSL_DEBUG_MSG( 3, ( "certificate mismatch: key type" ) );
             continue;
+        }
 
         /*
          * This avoids sending the client a cert it'll reject based on
@@ -803,27 +869,57 @@ static int ssl_pick_cert( ssl_context *ssl,
          * and decrypting with the same RSA key.
          */
         if( ssl_check_cert_usage( cur->cert, ciphersuite_info,
-                                  SSL_IS_SERVER ) != 0 )
+                                  SSL_IS_SERVER, &flags ) != 0 )
         {
+            SSL_DEBUG_MSG( 3, ( "certificate mismatch: "
+                                "(extended) key usage extension" ) );
             continue;
         }
 
 #if defined(POLARSSL_ECDSA_C)
-        if( pk_alg == POLARSSL_PK_ECDSA )
+        if( pk_alg == POLARSSL_PK_ECDSA &&
+            ssl_check_key_curve( cur->key, ssl->handshake->curves ) != 0 )
         {
-            if( ssl_key_matches_curves( cur->key, ssl->handshake->curves ) )
-                break;
+            SSL_DEBUG_MSG( 3, ( "certificate mismatch: elliptic curve" ) );
+            continue;
         }
-        else
 #endif
-            break;
+
+        /*
+         * Try to select a SHA-1 certificate for pre-1.2 clients, but still
+         * present them a SHA-higher cert rather than failing if it's the only
+         * one we got that satisfies the other conditions.
+         */
+        if( ssl->minor_ver < SSL_MINOR_VERSION_3 &&
+            cur->cert->sig_md != POLARSSL_MD_SHA1 )
+        {
+            if( fallback == NULL )
+                fallback = cur;
+            {
+                SSL_DEBUG_MSG( 3, ( "certificate not preferred: "
+                                    "sha-2 with pre-TLS 1.2 client" ) );
+            continue;
+            }
+        }
+
+        /* If we get there, we got a winner */
+        break;
     }
 
     if( cur == NULL )
-        return( -1 );
+        cur = fallback;
 
-    ssl->handshake->key_cert = cur;
-    return( 0 );
+
+    /* Do not update ssl->handshake->key_cert unless the is a match */
+    if( cur != NULL )
+    {
+        ssl->handshake->key_cert = cur;
+        SSL_DEBUG_CRT( 3, "selected certificate chain, certificate",
+                          ssl->handshake->key_cert->cert );
+        return( 0 );
+    }
+
+    return( -1 );
 }
 #endif /* POLARSSL_X509_CRT_PARSE_C */
 
@@ -839,19 +935,35 @@ static int ssl_ciphersuite_match( ssl_context *ssl, int suite_id,
     suite_info = ssl_ciphersuite_from_id( suite_id );
     if( suite_info == NULL )
     {
-        SSL_DEBUG_MSG( 1, ( "ciphersuite info for %04x not found", suite_id ) );
-        return( POLARSSL_ERR_SSL_BAD_INPUT_DATA );
+        SSL_DEBUG_MSG( 1, ( "should never happen" ) );
+        return( POLARSSL_ERR_SSL_INTERNAL_ERROR );
     }
+
+    SSL_DEBUG_MSG( 3, ( "trying ciphersuite: %s", suite_info->name ) );
 
     if( suite_info->min_minor_ver > ssl->minor_ver ||
         suite_info->max_minor_ver < ssl->minor_ver )
+    {
+        SSL_DEBUG_MSG( 3, ( "ciphersuite mismatch: version" ) );
         return( 0 );
+    }
+
+    if( ssl->arc4_disabled == SSL_ARC4_DISABLED &&
+            suite_info->cipher == POLARSSL_CIPHER_ARC4_128 )
+    {
+        SSL_DEBUG_MSG( 3, ( "ciphersuite mismatch: rc4" ) );
+        return( 0 );
+    }
 
 #if defined(POLARSSL_ECDH_C) || defined(POLARSSL_ECDSA_C)
     if( ssl_ciphersuite_uses_ec( suite_info ) &&
         ( ssl->handshake->curves == NULL ||
           ssl->handshake->curves[0] == NULL ) )
+    {
+        SSL_DEBUG_MSG( 3, ( "ciphersuite mismatch: "
+                            "no common elliptic curve" ) );
         return( 0 );
+    }
 #endif
 
 #if defined(POLARSSL_KEY_EXCHANGE__SOME__PSK_ENABLED)
@@ -861,7 +973,10 @@ static int ssl_ciphersuite_match( ssl_context *ssl, int suite_id,
         ssl->f_psk == NULL &&
         ( ssl->psk == NULL || ssl->psk_identity == NULL ||
           ssl->psk_identity_len == 0 || ssl->psk_len == 0 ) )
+    {
+        SSL_DEBUG_MSG( 3, ( "ciphersuite mismatch: no pre-shared key" ) );
         return( 0 );
+    }
 #endif
 
 #if defined(POLARSSL_X509_CRT_PARSE_C)
@@ -873,7 +988,11 @@ static int ssl_ciphersuite_match( ssl_context *ssl, int suite_id,
      * This must be done last since we modify the key_cert list.
      */
     if( ssl_pick_cert( ssl, suite_info ) != 0 )
+    {
+        SSL_DEBUG_MSG( 3, ( "ciphersuite mismatch: "
+                            "no suitable certificate" ) );
         return( 0 );
+    }
 #endif
 
     *ciphersuite_info = suite_info;
@@ -883,7 +1002,7 @@ static int ssl_ciphersuite_match( ssl_context *ssl, int suite_id,
 #if defined(POLARSSL_SSL_SRV_SUPPORT_SSLV2_CLIENT_HELLO)
 static int ssl_parse_client_hello_v2( ssl_context *ssl )
 {
-    int ret;
+    int ret, got_common_suite;
     unsigned int i, j;
     size_t n;
     unsigned int ciph_len, sess_len, chal_len;
@@ -893,6 +1012,7 @@ static int ssl_parse_client_hello_v2( ssl_context *ssl )
 
     SSL_DEBUG_MSG( 2, ( "=> parse client hello v2" ) );
 
+#if defined(POLARSSL_SSL_RENEGOTIATION)
     if( ssl->renegotiation != SSL_INITIAL_HANDSHAKE )
     {
         SSL_DEBUG_MSG( 1, ( "client hello v2 illegal for renegotiation" ) );
@@ -902,6 +1022,7 @@ static int ssl_parse_client_hello_v2( ssl_context *ssl )
 
         return( POLARSSL_ERR_SSL_BAD_HS_CLIENT_HELLO );
     }
+#endif /* POLARSSL_SSL_RENEGOTIATION */
 
     buf = ssl->in_hdr;
 
@@ -1038,20 +1159,48 @@ static int ssl_parse_client_hello_v2( ssl_context *ssl )
         if( p[0] == 0 && p[1] == 0 && p[2] == SSL_EMPTY_RENEGOTIATION_INFO )
         {
             SSL_DEBUG_MSG( 3, ( "received TLS_EMPTY_RENEGOTIATION_INFO " ) );
+#if defined(POLARSSL_SSL_RENEGOTIATION)
             if( ssl->renegotiation == SSL_RENEGOTIATION )
             {
-                SSL_DEBUG_MSG( 1, ( "received RENEGOTIATION SCSV during renegotiation" ) );
+                SSL_DEBUG_MSG( 1, ( "received RENEGOTIATION SCSV "
+                                    "during renegotiation" ) );
 
                 if( ( ret = ssl_send_fatal_handshake_failure( ssl ) ) != 0 )
                     return( ret );
 
                 return( POLARSSL_ERR_SSL_BAD_HS_CLIENT_HELLO );
             }
+#endif /* POLARSSL_SSL_RENEGOTIATION */
             ssl->secure_renegotiation = SSL_SECURE_RENEGOTIATION;
             break;
         }
     }
 
+#if defined(POLARSSL_SSL_FALLBACK_SCSV)
+    for( i = 0, p = buf + 6; i < ciph_len; i += 3, p += 3 )
+    {
+        if( p[0] == 0 &&
+            p[1] == (unsigned char)( ( SSL_FALLBACK_SCSV >> 8 ) & 0xff ) &&
+            p[2] == (unsigned char)( ( SSL_FALLBACK_SCSV      ) & 0xff ) )
+        {
+            SSL_DEBUG_MSG( 3, ( "received FALLBACK_SCSV" ) );
+
+            if( ssl->minor_ver < ssl->max_minor_ver )
+            {
+                SSL_DEBUG_MSG( 1, ( "inapropriate fallback" ) );
+
+                ssl_send_alert_message( ssl, SSL_ALERT_LEVEL_FATAL,
+                                        SSL_ALERT_MSG_INAPROPRIATE_FALLBACK );
+
+                return( POLARSSL_ERR_SSL_BAD_HS_CLIENT_HELLO );
+            }
+
+            break;
+        }
+    }
+#endif /* POLARSSL_SSL_FALLBACK_SCSV */
+
+    got_common_suite = 0;
     ciphersuites = ssl->ciphersuite_list[ssl->minor_ver];
     ciphersuite_info = NULL;
 #if defined(POLARSSL_SSL_SRV_RESPECT_CLIENT_PREFERENCE)
@@ -1069,6 +1218,8 @@ static int ssl_parse_client_hello_v2( ssl_context *ssl )
                 p[2] != ( ( ciphersuites[i]      ) & 0xFF ) )
                 continue;
 
+            got_common_suite = 1;
+
             if( ( ret = ssl_ciphersuite_match( ssl, ciphersuites[i],
                                                &ciphersuite_info ) ) != 0 )
                 return( ret );
@@ -1078,11 +1229,21 @@ static int ssl_parse_client_hello_v2( ssl_context *ssl )
         }
     }
 
-    SSL_DEBUG_MSG( 1, ( "got no ciphersuites in common" ) );
-
-    return( POLARSSL_ERR_SSL_NO_CIPHER_CHOSEN );
+    if( got_common_suite )
+    {
+        SSL_DEBUG_MSG( 1, ( "got ciphersuites in common, "
+                            "but none of them usable" ) );
+        return( POLARSSL_ERR_SSL_NO_USABLE_CIPHERSUITE );
+    }
+    else
+    {
+        SSL_DEBUG_MSG( 1, ( "got no ciphersuites in common" ) );
+        return( POLARSSL_ERR_SSL_NO_CIPHER_CHOSEN );
+    }
 
 have_ciphersuite_v2:
+    SSL_DEBUG_MSG( 2, ( "selected ciphersuite: %s", ciphersuite_info->name ) );
+
     ssl->session_negotiate->ciphersuite = ciphersuites[i];
     ssl->transform_negotiate->ciphersuite_info = ciphersuite_info;
     ssl_optimize_checksum( ssl, ssl->transform_negotiate->ciphersuite_info );
@@ -1112,25 +1273,31 @@ have_ciphersuite_v2:
 
 static int ssl_parse_client_hello( ssl_context *ssl )
 {
-    int ret;
+    int ret, got_common_suite;
     unsigned int i, j;
     size_t n;
     unsigned int ciph_len, sess_len;
     unsigned int comp_len;
     unsigned int ext_len = 0;
     unsigned char *buf, *p, *ext;
+#if defined(POLARSSL_SSL_RENEGOTIATION)
     int renegotiation_info_seen = 0;
+#endif
     int handshake_failure = 0;
     const int *ciphersuites;
     const ssl_ciphersuite_t *ciphersuite_info;
 
     SSL_DEBUG_MSG( 2, ( "=> parse client hello" ) );
 
-    if( ssl->renegotiation == SSL_INITIAL_HANDSHAKE &&
-        ( ret = ssl_fetch_input( ssl, 5 ) ) != 0 )
+#if defined(POLARSSL_SSL_RENEGOTIATION)
+    if( ssl->renegotiation == SSL_INITIAL_HANDSHAKE )
+#endif
     {
-        SSL_DEBUG_RET( 1, "ssl_fetch_input", ret );
-        return( ret );
+        if( ( ret = ssl_fetch_input( ssl, 5 ) ) != 0 )
+        {
+            SSL_DEBUG_RET( 1, "ssl_fetch_input", ret );
+            return( ret );
+        }
     }
 
     buf = ssl->in_hdr;
@@ -1177,18 +1344,24 @@ static int ssl_parse_client_hello( ssl_context *ssl )
         return( POLARSSL_ERR_SSL_BAD_HS_CLIENT_HELLO );
     }
 
-    if( ssl->renegotiation == SSL_INITIAL_HANDSHAKE &&
-        ( ret = ssl_fetch_input( ssl, 5 + n ) ) != 0 )
+#if defined(POLARSSL_SSL_RENEGOTIATION)
+    if( ssl->renegotiation == SSL_INITIAL_HANDSHAKE )
+#endif
     {
-        SSL_DEBUG_RET( 1, "ssl_fetch_input", ret );
-        return( ret );
+        if( ( ret = ssl_fetch_input( ssl, 5 + n ) ) != 0 )
+        {
+            SSL_DEBUG_RET( 1, "ssl_fetch_input", ret );
+            return( ret );
+        }
     }
 
     buf = ssl->in_msg;
-    if( !ssl->renegotiation )
-        n = ssl->in_left - 5;
-    else
+#if defined(POLARSSL_SSL_RENEGOTIATION)
+    if( ssl->renegotiation != SSL_INITIAL_HANDSHAKE )
         n = ssl->in_msglen;
+    else
+#endif
+        n = ssl->in_left - 5;
 
     ssl->handshake->update_checksum( ssl, buf, n );
 
@@ -1351,6 +1524,7 @@ static int ssl_parse_client_hello( ssl_context *ssl )
         if( p[0] == 0 && p[1] == SSL_EMPTY_RENEGOTIATION_INFO )
         {
             SSL_DEBUG_MSG( 3, ( "received TLS_EMPTY_RENEGOTIATION_INFO " ) );
+#if defined(POLARSSL_SSL_RENEGOTIATION)
             if( ssl->renegotiation == SSL_RENEGOTIATION )
             {
                 SSL_DEBUG_MSG( 1, ( "received RENEGOTIATION SCSV during renegotiation" ) );
@@ -1360,143 +1534,205 @@ static int ssl_parse_client_hello( ssl_context *ssl )
 
                 return( POLARSSL_ERR_SSL_BAD_HS_CLIENT_HELLO );
             }
+            renegotiation_info_seen = 1;
+#endif /* POLARSSL_SSL_RENEGOTIATION */
             ssl->secure_renegotiation = SSL_SECURE_RENEGOTIATION;
             break;
         }
     }
 
-    ext = buf + 44 + sess_len + ciph_len + comp_len;
-
-    while( ext_len )
+#if defined(POLARSSL_SSL_FALLBACK_SCSV)
+    for( i = 0, p = buf + 41 + sess_len; i < ciph_len; i += 2, p += 2 )
     {
-        unsigned int ext_id   = ( ( ext[0] <<  8 )
-                                | ( ext[1]       ) );
-        unsigned int ext_size = ( ( ext[2] <<  8 )
-                                | ( ext[3]       ) );
-
-        if( ext_size + 4 > ext_len )
+        if( p[0] == (unsigned char)( ( SSL_FALLBACK_SCSV >> 8 ) & 0xff ) &&
+            p[1] == (unsigned char)( ( SSL_FALLBACK_SCSV      ) & 0xff ) )
         {
-            SSL_DEBUG_MSG( 1, ( "bad client hello message" ) );
-            return( POLARSSL_ERR_SSL_BAD_HS_CLIENT_HELLO );
-        }
-        switch( ext_id )
-        {
-#if defined(POLARSSL_SSL_SERVER_NAME_INDICATION)
-        case TLS_EXT_SERVERNAME:
-            SSL_DEBUG_MSG( 3, ( "found ServerName extension" ) );
-            if( ssl->f_sni == NULL )
-                break;
+            SSL_DEBUG_MSG( 0, ( "received FALLBACK_SCSV" ) );
 
-            ret = ssl_parse_servername_ext( ssl, ext + 4, ext_size );
-            if( ret != 0 )
-                return( ret );
+            if( ssl->minor_ver < ssl->max_minor_ver )
+            {
+                SSL_DEBUG_MSG( 0, ( "inapropriate fallback" ) );
+
+                ssl_send_alert_message( ssl, SSL_ALERT_LEVEL_FATAL,
+                                        SSL_ALERT_MSG_INAPROPRIATE_FALLBACK );
+
+                return( POLARSSL_ERR_SSL_BAD_HS_CLIENT_HELLO );
+            }
+
             break;
-#endif /* POLARSSL_SSL_SERVER_NAME_INDICATION */
-
-        case TLS_EXT_RENEGOTIATION_INFO:
-            SSL_DEBUG_MSG( 3, ( "found renegotiation extension" ) );
-            renegotiation_info_seen = 1;
-
-            ret = ssl_parse_renegotiation_info( ssl, ext + 4, ext_size );
-            if( ret != 0 )
-                return( ret );
-            break;
-
-#if defined(POLARSSL_SSL_PROTO_TLS1_2)
-        case TLS_EXT_SIG_ALG:
-            SSL_DEBUG_MSG( 3, ( "found signature_algorithms extension" ) );
-            if( ssl->renegotiation == SSL_RENEGOTIATION )
-                break;
-
-            ret = ssl_parse_signature_algorithms_ext( ssl, ext + 4, ext_size );
-            if( ret != 0 )
-                return( ret );
-            break;
-#endif /* POLARSSL_SSL_PROTO_TLS1_2 */
-
-#if defined(POLARSSL_ECDH_C) || defined(POLARSSL_ECDSA_C)
-        case TLS_EXT_SUPPORTED_ELLIPTIC_CURVES:
-            SSL_DEBUG_MSG( 3, ( "found supported elliptic curves extension" ) );
-
-            ret = ssl_parse_supported_elliptic_curves( ssl, ext + 4, ext_size );
-            if( ret != 0 )
-                return( ret );
-            break;
-
-        case TLS_EXT_SUPPORTED_POINT_FORMATS:
-            SSL_DEBUG_MSG( 3, ( "found supported point formats extension" ) );
-            ssl->handshake->cli_exts |= TLS_EXT_SUPPORTED_POINT_FORMATS_PRESENT;
-
-            ret = ssl_parse_supported_point_formats( ssl, ext + 4, ext_size );
-            if( ret != 0 )
-                return( ret );
-            break;
-#endif /* POLARSSL_ECDH_C || POLARSSL_ECDSA_C */
-
-#if defined(POLARSSL_SSL_MAX_FRAGMENT_LENGTH)
-        case TLS_EXT_MAX_FRAGMENT_LENGTH:
-            SSL_DEBUG_MSG( 3, ( "found max fragment length extension" ) );
-
-            ret = ssl_parse_max_fragment_length_ext( ssl, ext + 4, ext_size );
-            if( ret != 0 )
-                return( ret );
-            break;
-#endif /* POLARSSL_SSL_MAX_FRAGMENT_LENGTH */
-
-#if defined(POLARSSL_SSL_TRUNCATED_HMAC)
-        case TLS_EXT_TRUNCATED_HMAC:
-            SSL_DEBUG_MSG( 3, ( "found truncated hmac extension" ) );
-
-            ret = ssl_parse_truncated_hmac_ext( ssl, ext + 4, ext_size );
-            if( ret != 0 )
-                return( ret );
-            break;
-#endif /* POLARSSL_SSL_TRUNCATED_HMAC */
-
-#if defined(POLARSSL_SSL_SESSION_TICKETS)
-        case TLS_EXT_SESSION_TICKET:
-            SSL_DEBUG_MSG( 3, ( "found session ticket extension" ) );
-
-            ret = ssl_parse_session_ticket_ext( ssl, ext + 4, ext_size );
-            if( ret != 0 )
-                return( ret );
-            break;
-#endif /* POLARSSL_SSL_SESSION_TICKETS */
-
-#if defined(POLARSSL_SSL_ALPN)
-        case TLS_EXT_ALPN:
-            SSL_DEBUG_MSG( 3, ( "found alpn extension" ) );
-
-            ret = ssl_parse_alpn_ext( ssl, ext + 4, ext_size );
-            if( ret != 0 )
-                return( ret );
-            break;
-#endif /* POLARSSL_SSL_SESSION_TICKETS */
-
-        default:
-            SSL_DEBUG_MSG( 3, ( "unknown extension found: %d (ignoring)",
-                           ext_id ) );
-        }
-
-        ext_len -= 4 + ext_size;
-        ext += 4 + ext_size;
-
-        if( ext_len > 0 && ext_len < 4 )
-        {
-            SSL_DEBUG_MSG( 1, ( "bad client hello message" ) );
-            return( POLARSSL_ERR_SSL_BAD_HS_CLIENT_HELLO );
         }
     }
+#endif /* POLARSSL_SSL_FALLBACK_SCSV */
+
+    /* Do not parse the extensions if the protocol is SSLv3 */
+#if defined(POLARSSL_SSL_PROTO_SSL3)
+    if( ( ssl->major_ver != 3 ) || ( ssl->minor_ver != 0 ) )
+    {
+#endif
+
+        ext = buf + 44 + sess_len + ciph_len + comp_len;
+
+        while( ext_len )
+        {
+            unsigned int ext_id   = ( ( ext[0] <<  8 )
+                                    | ( ext[1]       ) );
+            unsigned int ext_size = ( ( ext[2] <<  8 )
+                                    | ( ext[3]       ) );
+
+            if( ext_size + 4 > ext_len )
+            {
+                SSL_DEBUG_MSG( 1, ( "bad client hello message" ) );
+                return( POLARSSL_ERR_SSL_BAD_HS_CLIENT_HELLO );
+            }
+            switch( ext_id )
+            {
+    #if defined(POLARSSL_SSL_SERVER_NAME_INDICATION)
+            case TLS_EXT_SERVERNAME:
+                SSL_DEBUG_MSG( 3, ( "found ServerName extension" ) );
+                if( ssl->f_sni == NULL )
+                    break;
+
+                ret = ssl_parse_servername_ext( ssl, ext + 4, ext_size );
+                if( ret != 0 )
+                    return( ret );
+                break;
+    #endif /* POLARSSL_SSL_SERVER_NAME_INDICATION */
+
+            case TLS_EXT_RENEGOTIATION_INFO:
+                SSL_DEBUG_MSG( 3, ( "found renegotiation extension" ) );
+    #if defined(POLARSSL_SSL_RENEGOTIATION)
+                renegotiation_info_seen = 1;
+    #endif
+
+                ret = ssl_parse_renegotiation_info( ssl, ext + 4, ext_size );
+                if( ret != 0 )
+                    return( ret );
+                break;
+
+    #if defined(POLARSSL_SSL_PROTO_TLS1_2) && \
+        defined(POLARSSL_KEY_EXCHANGE__WITH_CERT__ENABLED)
+            case TLS_EXT_SIG_ALG:
+                SSL_DEBUG_MSG( 3, ( "found signature_algorithms extension" ) );
+    #if defined(POLARSSL_SSL_RENEGOTIATION)
+                if( ssl->renegotiation == SSL_RENEGOTIATION )
+                    break;
+    #endif
+
+                ret = ssl_parse_signature_algorithms_ext( ssl, ext + 4, ext_size );
+                if( ret != 0 )
+                    return( ret );
+                break;
+    #endif /* POLARSSL_SSL_PROTO_TLS1_2 &&
+              POLARSSL_KEY_EXCHANGE__WITH_CERT__ENABLED */
+
+    #if defined(POLARSSL_ECDH_C) || defined(POLARSSL_ECDSA_C)
+            case TLS_EXT_SUPPORTED_ELLIPTIC_CURVES:
+                SSL_DEBUG_MSG( 3, ( "found supported elliptic curves extension" ) );
+
+                ret = ssl_parse_supported_elliptic_curves( ssl, ext + 4, ext_size );
+                if( ret != 0 )
+                    return( ret );
+                break;
+
+            case TLS_EXT_SUPPORTED_POINT_FORMATS:
+                SSL_DEBUG_MSG( 3, ( "found supported point formats extension" ) );
+                ssl->handshake->cli_exts |= TLS_EXT_SUPPORTED_POINT_FORMATS_PRESENT;
+
+                ret = ssl_parse_supported_point_formats( ssl, ext + 4, ext_size );
+                if( ret != 0 )
+                    return( ret );
+                break;
+    #endif /* POLARSSL_ECDH_C || POLARSSL_ECDSA_C */
+
+    #if defined(POLARSSL_SSL_MAX_FRAGMENT_LENGTH)
+            case TLS_EXT_MAX_FRAGMENT_LENGTH:
+                SSL_DEBUG_MSG( 3, ( "found max fragment length extension" ) );
+
+                ret = ssl_parse_max_fragment_length_ext( ssl, ext + 4, ext_size );
+                if( ret != 0 )
+                    return( ret );
+                break;
+    #endif /* POLARSSL_SSL_MAX_FRAGMENT_LENGTH */
+
+    #if defined(POLARSSL_SSL_TRUNCATED_HMAC)
+            case TLS_EXT_TRUNCATED_HMAC:
+                SSL_DEBUG_MSG( 3, ( "found truncated hmac extension" ) );
+
+                ret = ssl_parse_truncated_hmac_ext( ssl, ext + 4, ext_size );
+                if( ret != 0 )
+                    return( ret );
+                break;
+    #endif /* POLARSSL_SSL_TRUNCATED_HMAC */
+
+    #if defined(POLARSSL_SSL_ENCRYPT_THEN_MAC)
+            case TLS_EXT_ENCRYPT_THEN_MAC:
+                SSL_DEBUG_MSG( 3, ( "found encrypt then mac extension" ) );
+
+                ret = ssl_parse_encrypt_then_mac_ext( ssl, ext + 4, ext_size );
+                if( ret != 0 )
+                    return( ret );
+                break;
+    #endif /* POLARSSL_SSL_ENCRYPT_THEN_MAC */
+
+    #if defined(POLARSSL_SSL_EXTENDED_MASTER_SECRET)
+            case TLS_EXT_EXTENDED_MASTER_SECRET:
+                SSL_DEBUG_MSG( 3, ( "found extended master secret extension" ) );
+
+                ret = ssl_parse_extended_ms_ext( ssl, ext + 4, ext_size );
+                if( ret != 0 )
+                    return( ret );
+                break;
+    #endif /* POLARSSL_SSL_EXTENDED_MASTER_SECRET */
+
+    #if defined(POLARSSL_SSL_SESSION_TICKETS)
+            case TLS_EXT_SESSION_TICKET:
+                SSL_DEBUG_MSG( 3, ( "found session ticket extension" ) );
+
+                ret = ssl_parse_session_ticket_ext( ssl, ext + 4, ext_size );
+                if( ret != 0 )
+                    return( ret );
+                break;
+    #endif /* POLARSSL_SSL_SESSION_TICKETS */
+
+    #if defined(POLARSSL_SSL_ALPN)
+            case TLS_EXT_ALPN:
+                SSL_DEBUG_MSG( 3, ( "found alpn extension" ) );
+
+                ret = ssl_parse_alpn_ext( ssl, ext + 4, ext_size );
+                if( ret != 0 )
+                    return( ret );
+                break;
+    #endif /* POLARSSL_SSL_SESSION_TICKETS */
+
+            default:
+                SSL_DEBUG_MSG( 3, ( "unknown extension found: %d (ignoring)",
+                               ext_id ) );
+            }
+
+            ext_len -= 4 + ext_size;
+            ext += 4 + ext_size;
+
+            if( ext_len > 0 && ext_len < 4 )
+            {
+                SSL_DEBUG_MSG( 1, ( "bad client hello message" ) );
+                return( POLARSSL_ERR_SSL_BAD_HS_CLIENT_HELLO );
+            }
+        }
+
+#if defined(POLARSSL_SSL_PROTO_SSL3)
+    }
+#endif
 
     /*
      * Renegotiation security checks
      */
-    if( ssl->secure_renegotiation == SSL_LEGACY_RENEGOTIATION &&
+    if( ssl->secure_renegotiation != SSL_SECURE_RENEGOTIATION &&
         ssl->allow_legacy_renegotiation == SSL_LEGACY_BREAK_HANDSHAKE )
     {
         SSL_DEBUG_MSG( 1, ( "legacy renegotiation, breaking off handshake" ) );
         handshake_failure = 1;
     }
+#if defined(POLARSSL_SSL_RENEGOTIATION)
     else if( ssl->renegotiation == SSL_RENEGOTIATION &&
              ssl->secure_renegotiation == SSL_SECURE_RENEGOTIATION &&
              renegotiation_info_seen == 0 )
@@ -1518,6 +1754,7 @@ static int ssl_parse_client_hello( ssl_context *ssl )
         SSL_DEBUG_MSG( 1, ( "renegotiation_info extension present (legacy)" ) );
         handshake_failure = 1;
     }
+#endif /* POLARSSL_SSL_RENEGOTIATION */
 
     if( handshake_failure == 1 )
     {
@@ -1532,6 +1769,7 @@ static int ssl_parse_client_hello( ssl_context *ssl )
      * (At the end because we need information from the EC-based extensions
      * and certificate from the SNI callback triggered by the SNI extension.)
      */
+    got_common_suite = 0;
     ciphersuites = ssl->ciphersuite_list[ssl->minor_ver];
     ciphersuite_info = NULL;
 #if defined(POLARSSL_SSL_SRV_RESPECT_CLIENT_PREFERENCE)
@@ -1548,6 +1786,8 @@ static int ssl_parse_client_hello( ssl_context *ssl )
                 p[1] != ( ( ciphersuites[i]      ) & 0xFF ) )
                 continue;
 
+            got_common_suite = 1;
+
             if( ( ret = ssl_ciphersuite_match( ssl, ciphersuites[i],
                                                &ciphersuite_info ) ) != 0 )
                 return( ret );
@@ -1557,14 +1797,23 @@ static int ssl_parse_client_hello( ssl_context *ssl )
         }
     }
 
-    SSL_DEBUG_MSG( 1, ( "got no ciphersuites in common" ) );
-
-    if( ( ret = ssl_send_fatal_handshake_failure( ssl ) ) != 0 )
-        return( ret );
-
-    return( POLARSSL_ERR_SSL_NO_CIPHER_CHOSEN );
+    if( got_common_suite )
+    {
+        SSL_DEBUG_MSG( 1, ( "got ciphersuites in common, "
+                            "but none of them usable" ) );
+        ssl_send_fatal_handshake_failure( ssl );
+        return( POLARSSL_ERR_SSL_NO_USABLE_CIPHERSUITE );
+    }
+    else
+    {
+        SSL_DEBUG_MSG( 1, ( "got no ciphersuites in common" ) );
+        ssl_send_fatal_handshake_failure( ssl );
+        return( POLARSSL_ERR_SSL_NO_CIPHER_CHOSEN );
+    }
 
 have_ciphersuite:
+    SSL_DEBUG_MSG( 2, ( "selected ciphersuite: %s", ciphersuite_info->name ) );
+
     ssl->session_negotiate->ciphersuite = ciphersuites[i];
     ssl->transform_negotiate->ciphersuite_info = ciphersuite_info;
     ssl_optimize_checksum( ssl, ssl->transform_negotiate->ciphersuite_info );
@@ -1601,6 +1850,76 @@ static void ssl_write_truncated_hmac_ext( ssl_context *ssl,
     *olen = 4;
 }
 #endif /* POLARSSL_SSL_TRUNCATED_HMAC */
+
+#if defined(POLARSSL_SSL_ENCRYPT_THEN_MAC)
+static void ssl_write_encrypt_then_mac_ext( ssl_context *ssl,
+                                            unsigned char *buf,
+                                            size_t *olen )
+{
+    unsigned char *p = buf;
+    const ssl_ciphersuite_t *suite = NULL;
+    const cipher_info_t *cipher = NULL;
+
+    if( ssl->session_negotiate->encrypt_then_mac == SSL_EXTENDED_MS_DISABLED ||
+        ssl->minor_ver == SSL_MINOR_VERSION_0 )
+    {
+        *olen = 0;
+        return;
+    }
+
+    /*
+     * RFC 7366: "If a server receives an encrypt-then-MAC request extension
+     * from a client and then selects a stream or Authenticated Encryption
+     * with Associated Data (AEAD) ciphersuite, it MUST NOT send an
+     * encrypt-then-MAC response extension back to the client."
+     */
+    if( ( suite = ssl_ciphersuite_from_id(
+                    ssl->session_negotiate->ciphersuite ) ) == NULL ||
+        ( cipher = cipher_info_from_type( suite->cipher ) ) == NULL ||
+        cipher->mode != POLARSSL_MODE_CBC )
+    {
+        *olen = 0;
+        return;
+    }
+
+    SSL_DEBUG_MSG( 3, ( "server hello, adding encrypt then mac extension" ) );
+
+    *p++ = (unsigned char)( ( TLS_EXT_ENCRYPT_THEN_MAC >> 8 ) & 0xFF );
+    *p++ = (unsigned char)( ( TLS_EXT_ENCRYPT_THEN_MAC      ) & 0xFF );
+
+    *p++ = 0x00;
+    *p++ = 0x00;
+
+    *olen = 4;
+}
+#endif /* POLARSSL_SSL_ENCRYPT_THEN_MAC */
+
+#if defined(POLARSSL_SSL_EXTENDED_MASTER_SECRET)
+static void ssl_write_extended_ms_ext( ssl_context *ssl,
+                                       unsigned char *buf,
+                                       size_t *olen )
+{
+    unsigned char *p = buf;
+
+    if( ssl->handshake->extended_ms == SSL_EXTENDED_MS_DISABLED ||
+        ssl->minor_ver == SSL_MINOR_VERSION_0 )
+    {
+        *olen = 0;
+        return;
+    }
+
+    SSL_DEBUG_MSG( 3, ( "server hello, adding extended master secret "
+                        "extension" ) );
+
+    *p++ = (unsigned char)( ( TLS_EXT_EXTENDED_MASTER_SECRET >> 8 ) & 0xFF );
+    *p++ = (unsigned char)( ( TLS_EXT_EXTENDED_MASTER_SECRET      ) & 0xFF );
+
+    *p++ = 0x00;
+    *p++ = 0x00;
+
+    *olen = 4;
+}
+#endif /* POLARSSL_SSL_EXTENDED_MASTER_SECRET */
 
 #if defined(POLARSSL_SSL_SESSION_TICKETS)
 static void ssl_write_session_ticket_ext( ssl_context *ssl,
@@ -1644,16 +1963,29 @@ static void ssl_write_renegotiation_ext( ssl_context *ssl,
     *p++ = (unsigned char)( ( TLS_EXT_RENEGOTIATION_INFO >> 8 ) & 0xFF );
     *p++ = (unsigned char)( ( TLS_EXT_RENEGOTIATION_INFO      ) & 0xFF );
 
-    *p++ = 0x00;
-    *p++ = ( ssl->verify_data_len * 2 + 1 ) & 0xFF;
-    *p++ = ssl->verify_data_len * 2 & 0xFF;
+#if defined(POLARSSL_SSL_RENEGOTIATION)
+    if( ssl->renegotiation != SSL_INITIAL_HANDSHAKE )
+    {
+        *p++ = 0x00;
+        *p++ = ( ssl->verify_data_len * 2 + 1 ) & 0xFF;
+        *p++ = ssl->verify_data_len * 2 & 0xFF;
 
-    memcpy( p, ssl->peer_verify_data, ssl->verify_data_len );
-    p += ssl->verify_data_len;
-    memcpy( p, ssl->own_verify_data, ssl->verify_data_len );
-    p += ssl->verify_data_len;
+        memcpy( p, ssl->peer_verify_data, ssl->verify_data_len );
+        p += ssl->verify_data_len;
+        memcpy( p, ssl->own_verify_data, ssl->verify_data_len );
+        p += ssl->verify_data_len;
 
-    *olen = 5 + ssl->verify_data_len * 2;
+        *olen = 5 + ssl->verify_data_len * 2;
+    }
+    else
+#endif /* POLARSSL_SSL_RENEGOTIATION */
+    {
+        *p++ = 0x00;
+        *p++ = 0x01;
+        *p++ = 0x00;
+
+        *olen = 5;
+    }
 }
 
 #if defined(POLARSSL_SSL_MAX_FRAGMENT_LENGTH)
@@ -1812,7 +2144,9 @@ static int ssl_write_server_hello( ssl_context *ssl )
      * If not, try looking up session ID in our cache.
      */
     if( ssl->handshake->resume == 0 &&
+#if defined(POLARSSL_SSL_RENEGOTIATION)
         ssl->renegotiation == SSL_INITIAL_HANDSHAKE &&
+#endif
         ssl->session_negotiate->length != 0 &&
         ssl->f_get_cache != NULL &&
         ssl->f_get_cache( ssl->p_get_cache, ssl->session_negotiate ) == 0 )
@@ -1905,6 +2239,16 @@ static int ssl_write_server_hello( ssl_context *ssl )
     ext_len += olen;
 #endif
 
+#if defined(POLARSSL_SSL_ENCRYPT_THEN_MAC)
+    ssl_write_encrypt_then_mac_ext( ssl, p + 2 + ext_len, &olen );
+    ext_len += olen;
+#endif
+
+#if defined(POLARSSL_SSL_EXTENDED_MASTER_SECRET)
+    ssl_write_extended_ms_ext( ssl, p + 2 + ext_len, &olen );
+    ext_len += olen;
+#endif
+
 #if defined(POLARSSL_SSL_SESSION_TICKETS)
     ssl_write_session_ticket_ext( ssl, p + 2 + ext_len, &olen );
     ext_len += olen;
@@ -1972,6 +2316,7 @@ static int ssl_write_certificate_request( ssl_context *ssl )
     size_t ct_len, sa_len; /* including length bytes */
     unsigned char *buf, *p;
     const x509_crt *crt;
+    const unsigned char * const end = ssl->out_msg + SSL_MAX_CONTENT_LEN;
 
     SSL_DEBUG_MSG( 2, ( "=> write certificate request" ) );
 
@@ -2078,10 +2423,16 @@ static int ssl_write_certificate_request( ssl_context *ssl )
     total_dn_size = 0;
     while( crt != NULL && crt->version != 0 )
     {
-        if( p - buf > 4096 )
-            break;
-
         dn_size = crt->subject_raw.len;
+
+        if( end < p ||
+            (size_t)( end - p ) < dn_size ||
+            (size_t)( end - p ) < 2 + dn_size )
+        {
+            SSL_DEBUG_MSG( 1, ( "skipping CAs: buffer too short" ) );
+            break;
+        }
+
         *p++ = (unsigned char)( dn_size >> 8 );
         *p++ = (unsigned char)( dn_size      );
         memcpy( p, crt->subject_raw.p, dn_size );
@@ -2267,7 +2618,7 @@ curve_matching_done:
         curve = ssl->handshake->curves;
 #endif
 
-        if( *curve == NULL )
+        if( curve == NULL || *curve == NULL )
         {
             SSL_DEBUG_MSG( 1, ( "no matching curve for ECDHE" ) );
             return( POLARSSL_ERR_SSL_NO_CIPHER_CHOSEN );
@@ -2558,6 +2909,10 @@ static int ssl_parse_encrypted_pms( ssl_context *ssl,
     int ret;
     size_t len = pk_get_len( ssl_own_key( ssl ) );
     unsigned char *pms = ssl->handshake->premaster + pms_offset;
+    unsigned char fake_pms[48], peer_pms[48];
+    unsigned char mask;
+    size_t i, peer_pmslen;
+    unsigned int diff;
 
     if( ! pk_can_do( ssl_own_key( ssl ), POLARSSL_PK_RSA ) )
     {
@@ -2587,31 +2942,46 @@ static int ssl_parse_encrypted_pms( ssl_context *ssl,
         return( POLARSSL_ERR_SSL_BAD_HS_CLIENT_KEY_EXCHANGE );
     }
 
+    /*
+     * Protection against Bleichenbacher's attack: invalid PKCS#1 v1.5 padding
+     * must not cause the connection to end immediately; instead, send a
+     * bad_record_mac later in the handshake.
+     * Also, avoid data-dependant branches here to protect against
+     * timing-based variants.
+     */
+    ret = ssl->f_rng( ssl->p_rng, fake_pms, sizeof( fake_pms ) );
+    if( ret != 0 )
+        return( ret );
+
     ret = pk_decrypt( ssl_own_key( ssl ), p, len,
-                      pms, &ssl->handshake->pmslen,
-                      sizeof( ssl->handshake->premaster ) - pms_offset,
+                      peer_pms, &peer_pmslen,
+                      sizeof( peer_pms ),
                       ssl->f_rng, ssl->p_rng );
 
-    if( ret != 0 || ssl->handshake->pmslen != 48 ||
-        pms[0] != ssl->handshake->max_major_ver ||
-        pms[1] != ssl->handshake->max_minor_ver )
-    {
+    diff  = (unsigned int) ret;
+    diff |= peer_pmslen ^ 48;
+    diff |= peer_pms[0] ^ ssl->handshake->max_major_ver;
+    diff |= peer_pms[1] ^ ssl->handshake->max_minor_ver;
+
+#if defined(POLARSSL_SSL_DEBUG_ALL)
+    if( diff != 0 )
         SSL_DEBUG_MSG( 1, ( "bad client key exchange message" ) );
+#endif
 
-        /*
-         * Protection against Bleichenbacher's attack:
-         * invalid PKCS#1 v1.5 padding must not cause
-         * the connection to end immediately; instead,
-         * send a bad_record_mac later in the handshake.
-         */
-        ssl->handshake->pmslen = 48;
-
-        ret = ssl->f_rng( ssl->p_rng, pms, ssl->handshake->pmslen );
-        if( ret != 0 )
-            return( ret );
+    if( sizeof( ssl->handshake->premaster ) < pms_offset ||
+        sizeof( ssl->handshake->premaster ) - pms_offset < 48 )
+    {
+        SSL_DEBUG_MSG( 1, ( "should never happen" ) );
+        return( POLARSSL_ERR_SSL_INTERNAL_ERROR );
     }
+    ssl->handshake->pmslen = 48;
 
-    return( ret );
+    /* mask = diff ? 0xff : 0x00 */
+    mask = - ( diff | - diff ) >> ( sizeof( unsigned int ) * 8 - 1 );
+    for( i = 0; i < ssl->handshake->pmslen; i++ )
+        pms[i] = ( mask & fake_pms[i] ) | ( (~mask) & peer_pms[i] );
+
+    return( 0 );
 }
 #endif /* POLARSSL_KEY_EXCHANGE_RSA_ENABLED ||
           POLARSSL_KEY_EXCHANGE_RSA_PSK_ENABLED */

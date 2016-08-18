@@ -3,12 +3,9 @@
  *
  * \brief Run-time version information
  *
- *  Copyright (C) 2006-2014, Brainspark B.V.
+ *  Copyright (C) 2006-2014, ARM Limited, All Rights Reserved
  *
- *  This file is part of PolarSSL (http://www.polarssl.org)
- *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
- *
- *  All rights reserved.
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -26,7 +23,7 @@
  */
 /*
  * This set of compile-time defines and run-time variables can be used to
- * determine the version number of the PolarSSL library used.
+ * determine the version number of the mbed TLS library used.
  */
 #ifndef POLARSSL_VERSION_H
 #define POLARSSL_VERSION_H
@@ -43,16 +40,16 @@
  */
 #define POLARSSL_VERSION_MAJOR  1
 #define POLARSSL_VERSION_MINOR  3
-#define POLARSSL_VERSION_PATCH  9
+#define POLARSSL_VERSION_PATCH  17
 
 /**
  * The single version number has the following structure:
  *    MMNNPP00
  *    Major version | Minor version | Patch version
  */
-#define POLARSSL_VERSION_NUMBER         0x01030900
-#define POLARSSL_VERSION_STRING         "1.3.9"
-#define POLARSSL_VERSION_STRING_FULL    "PolarSSL 1.3.9"
+#define POLARSSL_VERSION_NUMBER         0x01031100
+#define POLARSSL_VERSION_STRING         "1.3.17"
+#define POLARSSL_VERSION_STRING_FULL    "mbed TLS 1.3.17"
 
 #if defined(POLARSSL_VERSION_C)
 
@@ -77,9 +74,9 @@ unsigned int version_get_number( void );
 void version_get_string( char *string );
 
 /**
- * Get the full version string ("PolarSSL x.y.z").
+ * Get the full version string ("mbed TLS x.y.z").
  *
- * \param string    The string that will receive the value. The PolarSSL version
+ * \param string    The string that will receive the value. The mbed TLS version
  *                  string will use 18 bytes AT MOST including a terminating
  *                  null byte.
  *                  (So the buffer should be at least 18 bytes to receive this
@@ -89,12 +86,12 @@ void version_get_string_full( char *string );
 
 /**
  * \brief           Check if support for a feature was compiled into this
- *                  PolarSSL binary. This allows you to see at runtime if the
+ *                  mbed TLS binary. This allows you to see at runtime if the
  *                  library was for instance compiled with or without
  *                  Multi-threading support.
  *
  *                  Note: only checks against defines in the sections "System
- *                        support", "PolarSSL modules" and "PolarSSL feature
+ *                        support", "mbed TLS modules" and "mbed TLS feature
  *                        support" in config.h
  *
  * \param feature   The string for the define to check (e.g. "POLARSSL_AES_C")

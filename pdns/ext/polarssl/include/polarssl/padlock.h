@@ -4,12 +4,9 @@
  * \brief VIA PadLock ACE for HW encryption/decryption supported by some
  *        processors
  *
- *  Copyright (C) 2006-2014, Brainspark B.V.
+ *  Copyright (C) 2006-2014, ARM Limited, All Rights Reserved
  *
- *  This file is part of PolarSSL (http://www.polarssl.org)
- *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
- *
- *  All rights reserved.
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -32,7 +29,15 @@
 
 #define POLARSSL_ERR_PADLOCK_DATA_MISALIGNED               -0x0030  /**< Input data should be aligned. */
 
-#if defined(POLARSSL_HAVE_ASM) && defined(__GNUC__) && defined(__i386__)
+#if defined(__has_feature)
+#if __has_feature(address_sanitizer)
+#define POLARSSL_HAVE_ASAN
+#endif
+#endif
+
+/* Some versions of ASan result in errors about not enough registers */
+#if defined(POLARSSL_HAVE_ASM) && defined(__GNUC__) && defined(__i386__) && \
+    !defined(POLARSSL_HAVE_ASAN)
 
 #ifndef POLARSSL_HAVE_X86
 #define POLARSSL_HAVE_X86
@@ -44,7 +49,6 @@ typedef INT32 int32_t;
 #else
 #include <inttypes.h>
 #endif
-
 
 #define PADLOCK_RNG 0x000C
 #define PADLOCK_ACE 0x00C0

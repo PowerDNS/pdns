@@ -3,12 +3,9 @@
  *
  * \brief Buffer-based memory allocator
  *
- *  Copyright (C) 2006-2014, Brainspark B.V.
+ *  Copyright (C) 2006-2014, ARM Limited, All Rights Reserved
  *
- *  This file is part of PolarSSL (http://www.polarssl.org)
- *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
- *
- *  All rights reserved.
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -33,7 +30,7 @@
 #include POLARSSL_CONFIG_FILE
 #endif
 
-#include <stdlib.h>
+#include <stddef.h>
 
 /**
  * \name SECTION: Module settings
@@ -100,6 +97,27 @@ void memory_buffer_set_verify( int verify );
  *          trace if POLARSSL_MEMORY_BACKTRACE is defined.
  */
 void memory_buffer_alloc_status( void );
+
+/**
+ * \brief   Get the peak heap usage so far
+ *
+ * \param max_used      Peak number of bytes reauested by the application
+ * \param max_blocks    Peak number of blocks reauested by the application
+ */
+void memory_buffer_alloc_max_get( size_t *max_used, size_t *max_blocks );
+
+/**
+ * \brief   Reset peak statistics
+ */
+void memory_buffer_alloc_max_reset( void );
+
+/**
+ * \brief   Get the current heap usage
+ *
+ * \param cur_used      Number of bytes reauested by the application
+ * \param cur_blocks    Number of blocks reauested by the application
+ */
+void memory_buffer_alloc_cur_get( size_t *cur_used, size_t *cur_blocks );
 #endif /* POLARSSL_MEMORY_DEBUG */
 
 /**
@@ -114,6 +132,15 @@ void memory_buffer_alloc_status( void );
  * \returns             0 if verified, 1 otherwise
  */
 int memory_buffer_alloc_verify( void );
+
+#if defined(POLARSSL_SELF_TEST)
+/**
+ * \brief          Checkup routine
+ *
+ * \return         0 if successful, or 1 if a test failed
+ */
+int memory_buffer_alloc_self_test( int verbose );
+#endif
 
 #ifdef __cplusplus
 }

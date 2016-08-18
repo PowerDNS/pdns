@@ -1,12 +1,9 @@
 /*
  *  Camellia implementation
  *
- *  Copyright (C) 2006-2014, Brainspark B.V.
+ *  Copyright (C) 2006-2014, ARM Limited, All Rights Reserved
  *
- *  This file is part of PolarSSL (http://www.polarssl.org)
- *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
- *
- *  All rights reserved.
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -39,11 +36,15 @@
 
 #include "polarssl/camellia.h"
 
+#if defined(POLARSSL_SELF_TEST)
+#include <string.h>
 #if defined(POLARSSL_PLATFORM_C)
 #include "polarssl/platform.h"
 #else
+#include <stdio.h>
 #define polarssl_printf printf
-#endif
+#endif /* POLARSSL_PLATFORM_C */
+#endif /* POLARSSL_SELF_TEST */
 
 #if !defined(POLARSSL_CAMELLIA_ALT)
 
@@ -304,14 +305,14 @@ static void camellia_feistel( const uint32_t x[2], const uint32_t k[2],
     I0 = x[0] ^ k[0];
     I1 = x[1] ^ k[1];
 
-    I0 = (SBOX1((I0 >> 24) & 0xFF) << 24) |
-         (SBOX2((I0 >> 16) & 0xFF) << 16) |
-         (SBOX3((I0 >>  8) & 0xFF) <<  8) |
-         (SBOX4((I0      ) & 0xFF)      );
-    I1 = (SBOX2((I1 >> 24) & 0xFF) << 24) |
-         (SBOX3((I1 >> 16) & 0xFF) << 16) |
-         (SBOX4((I1 >>  8) & 0xFF) <<  8) |
-         (SBOX1((I1      ) & 0xFF)      );
+    I0 = ((uint32_t) SBOX1((I0 >> 24) & 0xFF) << 24) |
+         ((uint32_t) SBOX2((I0 >> 16) & 0xFF) << 16) |
+         ((uint32_t) SBOX3((I0 >>  8) & 0xFF) <<  8) |
+         ((uint32_t) SBOX4((I0      ) & 0xFF)      );
+    I1 = ((uint32_t) SBOX2((I1 >> 24) & 0xFF) << 24) |
+         ((uint32_t) SBOX3((I1 >> 16) & 0xFF) << 16) |
+         ((uint32_t) SBOX4((I1 >>  8) & 0xFF) <<  8) |
+         ((uint32_t) SBOX1((I1      ) & 0xFF)      );
 
     I0 ^= (I1 << 8) | (I1 >> 24);
     I1 ^= (I0 << 16) | (I0 >> 16);
@@ -455,7 +456,7 @@ int camellia_setkey_dec( camellia_context *ctx, const unsigned char *key,
     camellia_init( &cty );
 
     /* Also checks keysize */
-    if( ( ret = camellia_setkey_enc( &cty, key, keysize ) ) )
+    if( ( ret = camellia_setkey_enc( &cty, key, keysize ) ) != 0 )
         goto exit;
 
     ctx->nr = cty.nr;
@@ -691,8 +692,6 @@ int camellia_crypt_ctr( camellia_context *ctx,
 #endif /* !POLARSSL_CAMELLIA_ALT */
 
 #if defined(POLARSSL_SELF_TEST)
-
-#include <stdio.h>
 
 /*
  * Camellia test vectors from:

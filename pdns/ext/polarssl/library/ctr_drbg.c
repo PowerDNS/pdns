@@ -1,12 +1,9 @@
 /*
  *  CTR_DRBG implementation based on AES-256 (NIST SP 800-90)
  *
- *  Copyright (C) 2006-2014, Brainspark B.V.
+ *  Copyright (C) 2006-2014, ARM Limited, All Rights Reserved
  *
- *  This file is part of PolarSSL (http://www.polarssl.org)
- *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
- *
- *  All rights reserved.
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -38,15 +35,20 @@
 
 #include "polarssl/ctr_drbg.h"
 
+#include <string.h>
+
 #if defined(POLARSSL_FS_IO)
 #include <stdio.h>
 #endif
 
+#if defined(POLARSSL_SELF_TEST)
 #if defined(POLARSSL_PLATFORM_C)
 #include "polarssl/platform.h"
 #else
+#include <stdio.h>
 #define polarssl_printf printf
-#endif
+#endif /* POLARSSL_PLATFORM_C */
+#endif /* POLARSSL_SELF_TEST */
 
 /* Implementation that should never be optimized out by the compiler */
 static void polarssl_zeroize( void *v, size_t n ) {
@@ -136,6 +138,9 @@ static int block_cipher_df( unsigned char *output,
 
     int i, j;
     size_t buf_len, use_len;
+
+    if( data_len > CTR_DRBG_MAX_SEED_INPUT )
+        return( POLARSSL_ERR_CTR_DRBG_INPUT_TOO_BIG );
 
     memset( buf, 0, CTR_DRBG_MAX_SEED_INPUT + CTR_DRBG_BLOCKSIZE + 16 );
     aes_init( &aes_ctx );
@@ -256,6 +261,11 @@ void ctr_drbg_update( ctr_drbg_context *ctx,
 
     if( add_len > 0 )
     {
+        /* MAX_INPUT would be more logical here, but we have to match
+         * block_cipher_df()'s limits since we can't propagate errors */
+        if( add_len > CTR_DRBG_MAX_SEED_INPUT )
+            add_len = CTR_DRBG_MAX_SEED_INPUT;
+
         block_cipher_df( add_input, additional, add_len );
         ctr_drbg_update_internal( ctx, add_input );
     }
@@ -438,9 +448,7 @@ int ctr_drbg_update_seed_file( ctr_drbg_context *ctx, const char *path )
 
 #if defined(POLARSSL_SELF_TEST)
 
-#include <stdio.h>
-
-static unsigned char entropy_source_pr[96] =
+static const unsigned char entropy_source_pr[96] =
     { 0xc1, 0x80, 0x81, 0xa6, 0x5d, 0x44, 0x02, 0x16,
       0x19, 0xb3, 0xf1, 0x80, 0xb1, 0xc9, 0x20, 0x02,
       0x6a, 0x54, 0x6f, 0x0c, 0x70, 0x81, 0x49, 0x8b,
@@ -454,7 +462,7 @@ static unsigned char entropy_source_pr[96] =
       0x93, 0x92, 0xcf, 0xc5, 0x23, 0x12, 0xd5, 0x56,
       0x2c, 0x4a, 0x6e, 0xff, 0xdc, 0x10, 0xd0, 0x68 };
 
-static unsigned char entropy_source_nopr[64] =
+static const unsigned char entropy_source_nopr[64] =
     { 0x5a, 0x19, 0x4d, 0x5e, 0x2b, 0x31, 0x58, 0x14,
       0x54, 0xde, 0xf6, 0x75, 0xfb, 0x79, 0x58, 0xfe,
       0xc7, 0xdb, 0x87, 0x3e, 0x56, 0x89, 0xfc, 0x9d,
@@ -513,7 +521,7 @@ int ctr_drbg_self_test( int verbose )
 
     test_offset = 0;
     CHK( ctr_drbg_init_entropy_len( &ctx, ctr_drbg_self_test_entropy,
-                                entropy_source_pr, nonce_pers_pr, 16, 32 ) );
+                                (void *) entropy_source_pr, nonce_pers_pr, 16, 32 ) );
     ctr_drbg_set_prediction_resistance( &ctx, CTR_DRBG_PR_ON );
     CHK( ctr_drbg_random( &ctx, buf, CTR_DRBG_BLOCKSIZE ) );
     CHK( ctr_drbg_random( &ctx, buf, CTR_DRBG_BLOCKSIZE ) );
@@ -530,7 +538,7 @@ int ctr_drbg_self_test( int verbose )
 
     test_offset = 0;
     CHK( ctr_drbg_init_entropy_len( &ctx, ctr_drbg_self_test_entropy,
-                            entropy_source_nopr, nonce_pers_nopr, 16, 32 ) );
+                            (void *) entropy_source_nopr, nonce_pers_nopr, 16, 32 ) );
     CHK( ctr_drbg_random( &ctx, buf, 16 ) );
     CHK( ctr_drbg_reseed( &ctx, NULL, 0 ) );
     CHK( ctr_drbg_random( &ctx, buf, 16 ) );

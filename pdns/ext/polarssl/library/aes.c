@@ -1,12 +1,9 @@
 /*
  *  FIPS-197 compliant AES implementation
  *
- *  Copyright (C) 2006-2014, Brainspark B.V.
+ *  Copyright (C) 2006-2014, ARM Limited, All Rights Reserved
  *
- *  This file is part of PolarSSL (http://www.polarssl.org)
- *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
- *
- *  All rights reserved.
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -37,6 +34,8 @@
 
 #if defined(POLARSSL_AES_C)
 
+#include <string.h>
+
 #include "polarssl/aes.h"
 #if defined(POLARSSL_PADLOCK_C)
 #include "polarssl/padlock.h"
@@ -45,11 +44,14 @@
 #include "polarssl/aesni.h"
 #endif
 
+#if defined(POLARSSL_SELF_TEST)
 #if defined(POLARSSL_PLATFORM_C)
 #include "polarssl/platform.h"
 #else
+#include <stdio.h>
 #define polarssl_printf printf
-#endif
+#endif /* POLARSSL_PLATFORM_C */
+#endif /* POLARSSL_SELF_TEST */
 
 #if !defined(POLARSSL_AES_ALT)
 
@@ -72,12 +74,12 @@ static void polarssl_zeroize( void *v, size_t n ) {
 #endif
 
 #ifndef PUT_UINT32_LE
-#define PUT_UINT32_LE(n,b,i)                            \
-{                                                       \
-    (b)[(i)    ] = (unsigned char) ( (n)       );       \
-    (b)[(i) + 1] = (unsigned char) ( (n) >>  8 );       \
-    (b)[(i) + 2] = (unsigned char) ( (n) >> 16 );       \
-    (b)[(i) + 3] = (unsigned char) ( (n) >> 24 );       \
+#define PUT_UINT32_LE(n,b,i)                                    \
+{                                                               \
+    (b)[(i)    ] = (unsigned char) ( ( (n)       ) & 0xFF );    \
+    (b)[(i) + 1] = (unsigned char) ( ( (n) >>  8 ) & 0xFF );    \
+    (b)[(i) + 2] = (unsigned char) ( ( (n) >> 16 ) & 0xFF );    \
+    (b)[(i) + 3] = (unsigned char) ( ( (n) >> 24 ) & 0xFF );    \
 }
 #endif
 
@@ -929,7 +931,6 @@ int aes_crypt_cfb128( aes_context *ctx,
 /*
  * AES-CFB8 buffer encryption/decryption
  */
-#include <stdio.h>
 int aes_crypt_cfb8( aes_context *ctx,
                        int mode,
                        size_t length,
@@ -999,9 +1000,6 @@ int aes_crypt_ctr( aes_context *ctx,
 #endif /* !POLARSSL_AES_ALT */
 
 #if defined(POLARSSL_SELF_TEST)
-
-#include <stdio.h>
-
 /*
  * AES test vectors from:
  *

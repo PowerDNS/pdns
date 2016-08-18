@@ -1,1 +1,4 @@
 Makefile
+*.sln
+*.vcxproj
+polarssl/check_config

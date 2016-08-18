@@ -1,12 +1,9 @@
 /*
  *  Entropy accumulator implementation
  *
- *  Copyright (C) 2006-2014, Brainspark B.V.
+ *  Copyright (C) 2006-2014, ARM Limited, All Rights Reserved
  *
- *  This file is part of PolarSSL (http://www.polarssl.org)
- *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
- *
- *  All rights reserved.
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -34,9 +31,20 @@
 #include "polarssl/entropy.h"
 #include "polarssl/entropy_poll.h"
 
+#include <string.h>
+
 #if defined(POLARSSL_FS_IO)
 #include <stdio.h>
 #endif
+
+#if defined(POLARSSL_SELF_TEST)
+#if defined(POLARSSL_PLATFORM_C)
+#include "polarssl/platform.h"
+#else
+#include <stdio.h>
+#define polarssl_printf     printf
+#endif /* POLARSSL_PLATFORM_C */
+#endif /* POLARSSL_SELF_TEST */
 
 #if defined(POLARSSL_HAVEGE_C)
 #include "polarssl/havege.h"
@@ -86,10 +94,10 @@ void entropy_free( entropy_context *ctx )
 #if defined(POLARSSL_HAVEGE_C)
     havege_free( &ctx->havege_data );
 #endif
-    polarssl_zeroize( ctx, sizeof( entropy_context ) );
 #if defined(POLARSSL_THREADING_C)
     polarssl_mutex_free( &ctx->mutex );
 #endif
+    polarssl_zeroize( ctx, sizeof( entropy_context ) );
 }
 
 int entropy_add_source( entropy_context *ctx,
@@ -381,14 +389,6 @@ int entropy_update_seed_file( entropy_context *ctx, const char *path )
 #endif /* POLARSSL_FS_IO */
 
 #if defined(POLARSSL_SELF_TEST)
-
-#if defined(POLARSSL_PLATFORM_C)
-#include "polarssl/platform.h"
-#else
-#include <stdio.h>
-#define polarssl_printf     printf
-#endif
-
 /*
  * Dummy source function
  */

@@ -1,12 +1,9 @@
 /*
  *  Elliptic curve DSA
  *
- *  Copyright (C) 2006-2014, Brainspark B.V.
+ *  Copyright (C) 2006-2014, ARM Limited, All Rights Reserved
  *
- *  This file is part of PolarSSL (http://www.polarssl.org)
- *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
- *
- *  All rights reserved.
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -40,6 +37,8 @@
 #include "polarssl/ecdsa.h"
 #include "polarssl/asn1write.h"
 
+#include <string.h>
+
 #if defined(POLARSSL_ECDSA_DETERMINISTIC)
 #include "polarssl/hmac_drbg.h"
 #endif
@@ -60,7 +59,7 @@ static const md_info_t *md_info_by_size( size_t min_size )
 
     for( md_alg = md_list(); *md_alg != 0; md_alg++ )
     {
-        if( ( md_cur = md_info_from_type( *md_alg ) ) == NULL ||
+        if( ( md_cur = md_info_from_type( (md_type_t) *md_alg ) ) == NULL ||
             (size_t) md_cur->size < min_size ||
             ( md_picked != NULL && md_cur->size > md_picked->size ) )
             continue;
@@ -333,7 +332,7 @@ cleanup:
 #if POLARSSL_ECP_MAX_BYTES > 124
 #error "POLARSSL_ECP_MAX_BYTES bigger than expected, please fix MAX_SIG_LEN"
 #endif
-#define MAX_SIG_LEN ( 3 + 2 * ( 2 + POLARSSL_ECP_MAX_BYTES ) )
+#define MAX_SIG_LEN ( 3 + 2 * ( 3 + POLARSSL_ECP_MAX_BYTES ) )
 
 /*
  * Convert a signature (given by context) to ASN.1

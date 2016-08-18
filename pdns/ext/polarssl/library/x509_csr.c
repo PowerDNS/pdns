@@ -1,12 +1,9 @@
 /*
  *  X.509 Certificate Signing Request (CSR) parsing
  *
- *  Copyright (C) 2006-2014, Brainspark B.V.
+ *  Copyright (C) 2006-2014, ARM Limited, All Rights Reserved
  *
- *  This file is part of PolarSSL (http://www.polarssl.org)
- *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
- *
- *  All rights reserved.
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -43,6 +40,9 @@
 
 #include "polarssl/x509_csr.h"
 #include "polarssl/oid.h"
+
+#include <string.h>
+
 #if defined(POLARSSL_PEM_PARSE_C)
 #include "polarssl/pem.h"
 #endif
@@ -50,12 +50,12 @@
 #if defined(POLARSSL_PLATFORM_C)
 #include "polarssl/platform.h"
 #else
-#define polarssl_malloc     malloc
-#define polarssl_free       free
-#endif
-
-#include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
+#define polarssl_free       free
+#define polarssl_malloc     malloc
+#define polarssl_snprintf   snprintf
+#endif
 
 #if defined(POLARSSL_FS_IO) || defined(EFIX64) || defined(EFI32)
 #include <stdio.h>
@@ -113,7 +113,7 @@ int x509_csr_parse_der( x509_csr *csr,
     /*
      * first copy the raw DER data
      */
-    p = (unsigned char *) polarssl_malloc( len = buflen );
+    p = polarssl_malloc( len = buflen );
 
     if( p == NULL )
         return( POLARSSL_ERR_X509_MALLOC_FAILED );
@@ -310,7 +310,7 @@ int x509_csr_parse_file( x509_csr *csr, const char *path )
     size_t n;
     unsigned char *buf;
 
-    if( ( ret = x509_load_file( path, &buf, &n ) ) != 0 )
+    if( ( ret = pk_load_file( path, &buf, &n ) ) != 0 )
         return( ret );
 
     ret = x509_csr_parse( csr, buf, n );
@@ -390,16 +390,16 @@ int x509_csr_info( char *buf, size_t size, const char *prefix,
     p = buf;
     n = size;
 
-    ret = snprintf( p, n, "%sCSR version   : %d",
+    ret = polarssl_snprintf( p, n, "%sCSR version   : %d",
                                prefix, csr->version );
     SAFE_SNPRINTF();
 
-    ret = snprintf( p, n, "\n%ssubject name  : ", prefix );
+    ret = polarssl_snprintf( p, n, "\n%ssubject name  : ", prefix );
     SAFE_SNPRINTF();
     ret = x509_dn_gets( p, n, &csr->subject );
     SAFE_SNPRINTF();
 
-    ret = snprintf( p, n, "\n%ssigned using  : ", prefix );
+    ret = polarssl_snprintf( p, n, "\n%ssigned using  : ", prefix );
     SAFE_SNPRINTF();
 
     ret = x509_sig_alg_gets( p, n, &csr->sig_oid, csr->sig_pk, csr->sig_md,
@@ -412,7 +412,7 @@ int x509_csr_info( char *buf, size_t size, const char *prefix,
         return( ret );
     }
 
-    ret = snprintf( p, n, "\n%s%-" BC "s: %d bits\n", prefix, key_size_str,
+    ret = polarssl_snprintf( p, n, "\n%s%-" BC "s: %d bits\n", prefix, key_size_str,
                           (int) pk_get_size( &csr->pk ) );
     SAFE_SNPRINTF();
 

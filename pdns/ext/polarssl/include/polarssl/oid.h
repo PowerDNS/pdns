@@ -3,12 +3,9 @@
  *
  * \brief Object Identifier (OID) database
  *
- *  Copyright (C) 2006-2014, Brainspark B.V.
+ *  Copyright (C) 2006-2014, ARM Limited, All Rights Reserved
  *
- *  This file is part of PolarSSL (http://www.polarssl.org)
- *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
- *
- *  All rights reserved.
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,14 +24,17 @@
 #ifndef POLARSSL_OID_H
 #define POLARSSL_OID_H
 
-#include <string.h>
 #if !defined(POLARSSL_CONFIG_FILE)
 #include "config.h"
 #else
 #include POLARSSL_CONFIG_FILE
 #endif
+
 #include "asn1.h"
 #include "pk.h"
+
+#include <stddef.h>
+
 #if defined(POLARSSL_CIPHER_C)
 #include "cipher.h"
 #endif
@@ -122,6 +122,7 @@
 #define OID_AT_GIVEN_NAME               OID_AT "\x2A" /**< id-at-givenName AttributeType:= {id-at 42} */
 #define OID_AT_INITIALS                 OID_AT "\x2B" /**< id-at-initials AttributeType:= {id-at 43} */
 #define OID_AT_GENERATION_QUALIFIER     OID_AT "\x2C" /**< id-at-generationQualifier AttributeType:= {id-at 44} */
+#define OID_AT_UNIQUE_IDENTIFIER        OID_AT "\x2D" /**< id-at-uniqueIdentifier AttributType:= {id-at 45} */
 #define OID_AT_DN_QUALIFIER             OID_AT "\x2E" /**< id-at-dnQualifier AttributeType:= {id-at 46} */
 #define OID_AT_PSEUDONYM                OID_AT "\x41" /**< id-at-pseudonym AttributeType:= {id-at 65} */
 
@@ -395,7 +396,7 @@ typedef struct {
  * \param oid       OID to translate
  *
  * \return          Length of the string written (excluding final NULL) or
- *                  POLARSSL_ERR_OID_BUF_TO_SMALL in case of error
+ *                  POLARSSL_ERR_OID_BUF_TOO_SMALL in case of error
  */
 int oid_get_numeric_string( char *buf, size_t size, const asn1_buf *oid );
 

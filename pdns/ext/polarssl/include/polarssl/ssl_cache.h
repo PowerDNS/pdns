@@ -3,12 +3,9 @@
  *
  * \brief SSL session cache implementation
  *
- *  Copyright (C) 2006-2013, Brainspark B.V.
+ *  Copyright (C) 2006-2013, ARM Limited, All Rights Reserved
  *
- *  This file is part of PolarSSL (http://www.polarssl.org)
- *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
- *
- *  All rights reserved.
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -125,7 +122,7 @@ void ssl_cache_set_timeout( ssl_cache_context *cache, int timeout );
 #endif /* POLARSSL_HAVE_TIME */
 
 /**
- * \brief          Set the cache timeout
+ * \brief          Set the maximum number of cache entries
  *                 (Default: SSL_CACHE_DEFAULT_MAX_ENTRIES (50))
  *
  * \param cache    SSL cache context

@@ -3,12 +3,9 @@
  *
  * \brief Generic ASN.1 parsing
  *
- *  Copyright (C) 2006-2013, Brainspark B.V.
+ *  Copyright (C) 2006-2013, ARM Limited, All Rights Reserved
  *
- *  This file is part of PolarSSL (http://www.polarssl.org)
- *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
- *
- *  All rights reserved.
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -33,11 +30,11 @@
 #include POLARSSL_CONFIG_FILE
 #endif
 
+#include <stddef.h>
+
 #if defined(POLARSSL_BIGNUM_C)
 #include "bignum.h"
 #endif
-
-#include <string.h>
 
 /**
  * \addtogroup asn1_module
@@ -158,6 +155,7 @@ typedef struct _asn1_named_data
     asn1_buf oid;                   /**< The object identifier. */
     asn1_buf val;                   /**< The named value. */
     struct _asn1_named_data *next;  /**< The next entry in the sequence. */
+    unsigned char next_merged;      /**< Merge next item into the current one? */
 }
 asn1_named_data;
 

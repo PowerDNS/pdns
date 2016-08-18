@@ -3,12 +3,9 @@
  *
  * \brief Error to string translation
  *
- *  Copyright (C) 2006-2013, Brainspark B.V.
+ *  Copyright (C) 2006-2013, ARM Limited, All Rights Reserved
  *
- *  This file is part of PolarSSL (http://www.polarssl.org)
- *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
- *
- *  All rights reserved.
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,7 +24,7 @@
 #ifndef POLARSSL_ERROR_H
 #define POLARSSL_ERROR_H
 
-#include <string.h>
+#include <stddef.h>
 
 /**
  * Error code layout.
@@ -91,7 +88,7 @@
  * ECP       4   8 (Started from top)
  * MD        5   4
  * CIPHER    6   6
- * SSL       6   10 (Started from top)
+ * SSL       6   11 (Started from top)
  * SSL       7   31
  *
  * Module dependent error code (5 bits 0x.00.-0x.F8.)
@@ -102,7 +99,7 @@ extern "C" {
 #endif
 
 /**
- * \brief Translate a PolarSSL error code into a string representation,
+ * \brief Translate a mbed TLS error code into a string representation,
  *        Result is truncated if necessary and always includes a terminating
  *        null byte.
  *

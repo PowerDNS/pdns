@@ -3,12 +3,9 @@
  *
  * \brief Object Identifier (OID) database
  *
- *  Copyright (C) 2006-2014, Brainspark B.V.
+ *  Copyright (C) 2006-2014, ARM Limited, All Rights Reserved
  *
- *  This file is part of PolarSSL (http://www.polarssl.org)
- *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
- *
- *  All rights reserved.
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -36,11 +33,18 @@
 #include "polarssl/oid.h"
 #include "polarssl/rsa.h"
 
+#include <stdio.h>
+#include <string.h>
+
+#if defined(POLARSSL_PLATFORM_C)
+#include "polarssl/platform.h"
+#else
+#define polarssl_snprintf snprintf
+#endif
+
 #if defined(POLARSSL_X509_USE_C) || defined(POLARSSL_X509_CREATE_C)
 #include "polarssl/x509.h"
 #endif
-
-#include <stdio.h>
 
 /*
  * Macro to automatically add the size of #define'd OIDs
@@ -232,6 +236,10 @@ static const oid_x520_attr_t oid_x520_attr_type[] =
         "DC",
     },
     {
+        { ADD_LEN( OID_AT_UNIQUE_IDENTIFIER ), "id-at-uniqueIdentifier",    "Unique Identifier" },
+        "uniqueIdentifier",
+    },
+    {
         { NULL, 0, NULL, NULL },
         NULL,
     }
@@ -260,7 +268,7 @@ static const oid_x509_ext_t oid_x509_ext[] =
         EXT_KEY_USAGE,
     },
     {
-        { ADD_LEN( OID_EXTENDED_KEY_USAGE ),   "id-ce-keyUsage",           "Extended Key Usage" },
+        { ADD_LEN( OID_EXTENDED_KEY_USAGE ),   "id-ce-extKeyUsage",        "Extended Key Usage" },
         EXT_EXTENDED_KEY_USAGE,
     },
     {
@@ -369,7 +377,7 @@ static const oid_sig_alg_t oid_sig_alg[] =
     },
     {
         { NULL, 0, NULL, NULL },
-        0, 0,
+        POLARSSL_MD_NONE, POLARSSL_PK_NONE,
     },
 };
 
@@ -403,7 +411,7 @@ static const oid_pk_alg_t oid_pk_alg[] =
     },
     {
         { NULL, 0, NULL, NULL },
-        0,
+        POLARSSL_PK_NONE,
     },
 };
 
@@ -468,7 +476,7 @@ static const oid_ecp_grp_t oid_ecp_grp[] =
     },
     {
         { NULL, 0, NULL, NULL },
-        0,
+        POLARSSL_ECP_DP_NONE,
     },
 };
 
@@ -498,7 +506,7 @@ static const oid_cipher_alg_t oid_cipher_alg[] =
     },
     {
         { NULL, 0, NULL, NULL },
-        0,
+        POLARSSL_CIPHER_NONE,
     },
 };
 
@@ -551,7 +559,7 @@ static const oid_md_alg_t oid_md_alg[] =
     },
     {
         { NULL, 0, NULL, NULL },
-        0,
+        POLARSSL_MD_NONE,
     },
 };
 
@@ -582,7 +590,7 @@ static const oid_pkcs12_pbe_alg_t oid_pkcs12_pbe_alg[] =
     },
     {
         { NULL, 0, NULL, NULL },
-        0, 0,
+        POLARSSL_MD_NONE, POLARSSL_CIPHER_NONE,
     },
 };
 
@@ -655,7 +663,7 @@ int oid_get_numeric_string( char *buf, size_t size,
     /* First byte contains first two dots */
     if( oid->len > 0 )
     {
-        ret = snprintf( p, n, "%d.%d", oid->p[0] / 40, oid->p[0] % 40 );
+        ret = polarssl_snprintf( p, n, "%d.%d", oid->p[0] / 40, oid->p[0] % 40 );
         SAFE_SNPRINTF();
     }
 
@@ -672,7 +680,7 @@ int oid_get_numeric_string( char *buf, size_t size,
         if( !( oid->p[i] & 0x80 ) )
         {
             /* Last byte */
-            ret = snprintf( p, n, ".%d", value );
+            ret = polarssl_snprintf( p, n, ".%d", value );
             SAFE_SNPRINTF();
             value = 0;
         }

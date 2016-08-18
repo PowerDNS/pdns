@@ -3,12 +3,9 @@
  *
  * \brief PKCS#12 Personal Information Exchange Syntax
  *
- *  Copyright (C) 2006-2013, Brainspark B.V.
+ *  Copyright (C) 2006-2013, ARM Limited, All Rights Reserved
  *
- *  This file is part of PolarSSL (http://www.polarssl.org)
- *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
- *
- *  All rights reserved.
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,11 +24,11 @@
 #ifndef POLARSSL_PKCS12_H
 #define POLARSSL_PKCS12_H
 
-#include <string.h>
-
 #include "md.h"
 #include "cipher.h"
 #include "asn1.h"
+
+#include <stddef.h>
 
 #define POLARSSL_ERR_PKCS12_BAD_INPUT_DATA                 -0x1F80  /**< Bad input parameters to function. */
 #define POLARSSL_ERR_PKCS12_FEATURE_UNAVAILABLE            -0x1F00  /**< Feature not available, e.g. unsupported encryption scheme. */
@@ -61,7 +58,7 @@ extern "C" {
  * \param len        data length
  * \param output     the output buffer
  *
- * \return           0 if successful, or a PolarSSL error code
+ * \return           0 if successful, or a POLARSSL_ERR_xxx code
  */
 int pkcs12_pbe_sha1_rc4_128( asn1_buf *pbe_params, int mode,
                              const unsigned char *pwd,  size_t pwdlen,
@@ -82,7 +79,7 @@ int pkcs12_pbe_sha1_rc4_128( asn1_buf *pbe_params, int mode,
  * \param len        data length
  * \param output     the output buffer
  *
- * \return           0 if successful, or a PolarSSL error code
+ * \return           0 if successful, or a POLARSSL_ERR_xxx code
  */
 int pkcs12_pbe( asn1_buf *pbe_params, int mode,
                 cipher_type_t cipher_type, md_type_t md_type,

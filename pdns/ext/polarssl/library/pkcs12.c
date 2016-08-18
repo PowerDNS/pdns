@@ -1,12 +1,9 @@
 /*
  *  PKCS#12 Personal Information Exchange Syntax
  *
- *  Copyright (C) 2006-2014, Brainspark B.V.
+ *  Copyright (C) 2006-2014, ARM Limited, All Rights Reserved
  *
- *  This file is part of PolarSSL (http://www.polarssl.org)
- *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
- *
- *  All rights reserved.
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -40,6 +37,8 @@
 #include "polarssl/pkcs12.h"
 #include "polarssl/asn1.h"
 #include "polarssl/cipher.h"
+
+#include <string.h>
 
 #if defined(POLARSSL_ARC4_C)
 #include "polarssl/arc4.h"
@@ -88,6 +87,8 @@ static int pkcs12_parse_pbe_params( asn1_buf *params,
     return( 0 );
 }
 
+#define PKCS12_MAX_PWDLEN 128
+
 static int pkcs12_pbe_derive_key_iv( asn1_buf *pbe_params, md_type_t md_type,
                                      const unsigned char *pwd,  size_t pwdlen,
                                      unsigned char *key, size_t keylen,
@@ -96,7 +97,10 @@ static int pkcs12_pbe_derive_key_iv( asn1_buf *pbe_params, md_type_t md_type,
     int ret, iterations;
     asn1_buf salt;
     size_t i;
-    unsigned char unipwd[258];
+    unsigned char unipwd[PKCS12_MAX_PWDLEN * 2 + 2];
+
+    if( pwdlen > PKCS12_MAX_PWDLEN )
+        return( POLARSSL_ERR_PKCS12_BAD_INPUT_DATA );
 
     memset( &salt, 0, sizeof(asn1_buf) );
     memset( &unipwd, 0, sizeof(unipwd) );
@@ -126,6 +130,8 @@ static int pkcs12_pbe_derive_key_iv( asn1_buf *pbe_params, md_type_t md_type,
     }
     return( 0 );
 }
+
+#undef PKCS12_MAX_PWDLEN
 
 int pkcs12_pbe_sha1_rc4_128( asn1_buf *pbe_params, int mode,
                              const unsigned char *pwd,  size_t pwdlen,
@@ -199,7 +205,7 @@ int pkcs12_pbe( asn1_buf *pbe_params, int mode,
     if( ( ret = cipher_init_ctx( &cipher_ctx, cipher_info ) ) != 0 )
         goto exit;
 
-    if( ( ret = cipher_setkey( &cipher_ctx, key, 8 * keylen, mode ) ) != 0 )
+    if( ( ret = cipher_setkey( &cipher_ctx, key, 8 * keylen, (operation_t) mode ) ) != 0 )
         goto exit;
 
     if( ( ret = cipher_set_iv( &cipher_ctx, iv, cipher_info->iv_size ) ) != 0 )

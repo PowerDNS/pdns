@@ -3,12 +3,9 @@
  *
  * \brief DES block cipher
  *
- *  Copyright (C) 2006-2014, Brainspark B.V.
+ *  Copyright (C) 2006-2014, ARM Limited, All Rights Reserved
  *
- *  This file is part of PolarSSL (http://www.polarssl.org)
- *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
- *
- *  All rights reserved.
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -33,7 +30,7 @@
 #include POLARSSL_CONFIG_FILE
 #endif
 
-#include <string.h>
+#include <stddef.h>
 
 #if defined(_MSC_VER) && !defined(EFIX64) && !defined(EFI32)
 #include <basetsd.h>
@@ -217,6 +214,14 @@ int des_crypt_ecb( des_context *ctx,
 /**
  * \brief          DES-CBC buffer encryption/decryption
  *
+ * \note           Upon exit, the content of the IV is updated so that you can
+ *                 call the function same function again on the following
+ *                 block(s) of data and get the same result as if it was
+ *                 encrypted in one call. This allows a "streaming" usage.
+ *                 If on the other hand you need to retain the contents of the
+ *                 IV, you should either save it manually or use the cipher
+ *                 module instead.
+ *
  * \param ctx      DES context
  * \param mode     DES_ENCRYPT or DES_DECRYPT
  * \param length   length of the input data
@@ -248,6 +253,14 @@ int des3_crypt_ecb( des3_context *ctx,
 #if defined(POLARSSL_CIPHER_MODE_CBC)
 /**
  * \brief          3DES-CBC buffer encryption/decryption
+ *
+ * \note           Upon exit, the content of the IV is updated so that you can
+ *                 call the function same function again on the following
+ *                 block(s) of data and get the same result as if it was
+ *                 encrypted in one call. This allows a "streaming" usage.
+ *                 If on the other hand you need to retain the contents of the
+ *                 IV, you should either save it manually or use the cipher
+ *                 module instead.
  *
  * \param ctx      3DES context
  * \param mode     DES_ENCRYPT or DES_DECRYPT

@@ -1,12 +1,9 @@
 /*
  *  RFC 1521 base64 encoding/decoding
  *
- *  Copyright (C) 2006-2014, Brainspark B.V.
+ *  Copyright (C) 2006-2014, ARM Limited, All Rights Reserved
  *
- *  This file is part of PolarSSL (http://www.polarssl.org)
- *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
- *
- *  All rights reserved.
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -40,11 +37,15 @@ typedef UINT32 uint32_t;
 #include <inttypes.h>
 #endif
 
+#if defined(POLARSSL_SELF_TEST)
+#include <string.h>
 #if defined(POLARSSL_PLATFORM_C)
 #include "polarssl/platform.h"
 #else
+#include <stdio.h>
 #define polarssl_printf printf
-#endif
+#endif /* POLARSSL_PLATFORM_C */
+#endif /* POLARSSL_SELF_TEST */
 
 static const unsigned char base64_enc_map[64] =
 {
@@ -74,6 +75,8 @@ static const unsigned char base64_dec_map[128] =
      49,  50,  51, 127, 127, 127, 127, 127
 };
 
+#define BASE64_SIZE_T_MAX   ( (size_t) -1 ) /* SIZE_T_MAX is not standard */
+
 /*
  * Encode a buffer into base64 format
  */
@@ -85,16 +88,20 @@ int base64_encode( unsigned char *dst, size_t *dlen,
     unsigned char *p;
 
     if( slen == 0 )
-        return( 0 );
-
-    n = ( slen << 3 ) / 6;
-
-    switch( ( slen << 3 ) - ( n * 6 ) )
     {
-        case  2: n += 3; break;
-        case  4: n += 2; break;
-        default: break;
+        *dlen = 0;
+        return( 0 );
     }
+
+    n = slen / 3 + ( slen % 3 != 0 );
+
+    if( n > ( BASE64_SIZE_T_MAX - 1 ) / 4 )
+    {
+        *dlen = BASE64_SIZE_T_MAX;
+        return( POLARSSL_ERR_BASE64_BUFFER_TOO_SMALL );
+    }
+
+    n *= 4;
 
     if( *dlen < n + 1 )
     {
@@ -186,7 +193,10 @@ int base64_decode( unsigned char *dst, size_t *dlen,
     }
 
     if( n == 0 )
+    {
+        *dlen = 0;
         return( 0 );
+    }
 
     n = ( ( n * 6 ) + 7 ) >> 3;
     n -= j;
@@ -220,9 +230,6 @@ int base64_decode( unsigned char *dst, size_t *dlen,
 }
 
 #if defined(POLARSSL_SELF_TEST)
-
-#include <string.h>
-#include <stdio.h>
 
 static const unsigned char base64_test_dec[64] =
 {

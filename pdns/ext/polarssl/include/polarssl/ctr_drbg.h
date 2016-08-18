@@ -3,12 +3,9 @@
  *
  * \brief CTR_DRBG based on AES-256 (NIST SP 800-90)
  *
- *  Copyright (C) 2006-2014, Brainspark B.V.
+ *  Copyright (C) 2006-2014, ARM Limited, All Rights Reserved
  *
- *  This file is part of PolarSSL (http://www.polarssl.org)
- *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
- *
- *  All rights reserved.
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -26,8 +23,6 @@
  */
 #ifndef POLARSSL_CTR_DRBG_H
 #define POLARSSL_CTR_DRBG_H
-
-#include <string.h>
 
 #include "aes.h"
 
@@ -188,6 +183,10 @@ int ctr_drbg_reseed( ctr_drbg_context *ctx,
  * \param ctx           CTR_DRBG context
  * \param additional    Additional data to update state with
  * \param add_len       Length of additional data
+ *
+ * \note                If add_len is greater than CTR_DRBG_MAX_SEED_INPUT,
+ *                      only the first CTR_DRBG_MAX_SEED_INPUT bytes are used,
+ *                      the remaining ones are silently discarded.
  */
 void ctr_drbg_update( ctr_drbg_context *ctx,
                       const unsigned char *additional, size_t add_len );
