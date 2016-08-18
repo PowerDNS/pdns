@@ -1139,7 +1139,7 @@
  *
  * Uncomment this to enable pthread mutexes.
  */
-//#define POLARSSL_THREADING_PTHREAD
+#define POLARSSL_THREADING_PTHREAD
 
 /**
  * \def POLARSSL_VERSION_FEATURES
@@ -2138,7 +2138,7 @@
  *
  * Enable this layer to allow use of mutexes within mbed TLS
  */
-//#define POLARSSL_THREADING_C
+#define POLARSSL_THREADING_C
 
 /**
  * \def POLARSSL_TIMING_C
