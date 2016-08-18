@@ -276,9 +276,9 @@ bool CommunicatorClass::justNotified(const DNSName &domain, const string &ip)
 
 void CommunicatorClass::makeNotifySockets()
 {
-  d_nsock4 = makeQuerySocket(ComboAddress(::arg()["query-local-address"]), true);
+  d_nsock4 = makeQuerySocket(ComboAddress(::arg()["query-local-address"]), true, ::arg().mustDo("non-local-bind"));
   if(!::arg()["query-local-address6"].empty())
-    d_nsock6 = makeQuerySocket(ComboAddress(::arg()["query-local-address6"]), true);
+    d_nsock6 = makeQuerySocket(ComboAddress(::arg()["query-local-address6"]), true, ::arg().mustDo("non-local-bind"));
   else
     d_nsock6 = -1;
 }
