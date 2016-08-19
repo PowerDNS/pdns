@@ -141,8 +141,11 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
     );
 
   g_lua.writeVariable("DNSResponseAction", std::unordered_map<string,int>{
-      {"None",(int)DNSResponseAction::Action::None}}
-    );
+      {"Allow",        (int)DNSResponseAction::Action::Allow        },
+      {"Delay",        (int)DNSResponseAction::Action::Delay        },
+      {"HeaderModify", (int)DNSResponseAction::Action::HeaderModify },
+      {"None",         (int)DNSResponseAction::Action::None         }
+    });
 
   g_lua.writeVariable("DNSClass", std::unordered_map<string,int>{
       {"IN",    QClass::IN    },
@@ -901,6 +904,10 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
   g_lua.writeFunction("QNameWireLengthRule", [](size_t min, size_t max) {
       return std::shared_ptr<DNSRule>(new QNameWireLengthRule(min, max));
+    });
+
+  g_lua.writeFunction("RCodeRule", [](int rcode) {
+      return std::shared_ptr<DNSRule>(new RCodeRule(rcode));
     });
 
   g_lua.writeFunction("addAction", [](luadnsrule_t var, std::shared_ptr<DNSAction> ea)

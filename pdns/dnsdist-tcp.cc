@@ -435,7 +435,7 @@ void* tcpClientThread(int pipefd)
 #ifdef HAVE_PROTOBUF
         dr.uniqueId = dq.uniqueId;
 #endif
-        if (!processResponse(localRespRulactions, dr)) {
+        if (!processResponse(localRespRulactions, dr, &delayMsec)) {
           break;
         }
 

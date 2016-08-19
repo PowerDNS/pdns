@@ -474,7 +474,7 @@ public:
 class DNSResponseAction
 {
 public:
-  enum class Action { None };
+  enum class Action { Allow, Delay, Drop, HeaderModify, None };
   virtual Action operator()(DNSResponse*, string* ruleresult) const =0;
   virtual string toString() const = 0;
 };
@@ -695,7 +695,7 @@ void resetLuaSideEffect(); // reset to indeterminate state
 bool responseContentMatches(const char* response, const uint16_t responseLen, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const ComboAddress& remote);
 bool processQuery(LocalStateHolder<NetmaskTree<DynBlock> >& localDynBlockNMG,
                   LocalStateHolder<SuffixMatchTree<DynBlock> >& localDynBlockSMT, LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > >& localRulactions, blockfilter_t blockFilter, DNSQuestion& dq, string& poolname, int* delayMsec, const struct timespec& now);
-bool processResponse(LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSResponseAction> > > >& localRespRulactions, DNSResponse& dr);
+bool processResponse(LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSResponseAction> > > >& localRespRulactions, DNSResponse& dr, int* delayMsec);
 bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize, const DNSName& qname, uint16_t origFlags, bool ednsAdded, bool ecsAdded, std::vector<uint8_t>& rewrittenResponse, uint16_t addRoom);
 void restoreFlags(struct dnsheader* dh, uint16_t origFlags);
 

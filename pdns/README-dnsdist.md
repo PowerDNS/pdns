@@ -334,6 +334,7 @@ Rules have selectors and actions. Current selectors are:
  * QType (QTypeRule)
  * RegexRule on query name
  * RE2Rule on query name (optional)
+ * Response code
  * Packet requests DNSSEC processing
  * Query received over UDP or TCP
  * Opcode (OpcodeRule)
@@ -364,6 +365,9 @@ Current actions are:
 
 Current response actions are:
 
+ * Allow (AllowResponseAction)
+ * Delay a response by n milliseconds (DelayResponseAction), over UDP only
+ * Drop (DropResponseAction)
  * Log response content to a remote server (RemoteLogResponseAction)
 
 Rules can be added via:
@@ -399,6 +403,7 @@ A DNS rule can be:
  * a QNameLabelsCountRule
  * a QNameWireLengthRule
  * a QTypeRule
+ * a RCodeRule
  * a RegexRule
  * a RE2Rule
  * a RecordsCountRule
@@ -1232,6 +1237,7 @@ instantiate a server with additional parameters
     * `QNameLabelsCountRule(min, max)`: matches if the qname has less than `min` or more than `max` labels
     * `QNameWireLengthRule(min, max)`: matches if the qname's length on the wire is less than `min` or more than `max` bytes
     * `QTypeRule(qtype)`: matches queries with the specified qtype
+    * `RCodeRule(rcode)`: matches queries or responses the specified rcode
     * `RegexRule(regex)`: matches the query name against the supplied regex
     * `RecordsCountRule(section, minCount, maxCount)`: matches if there is at least `minCount` and at most `maxCount` records in the `section` section
     * `RecordsTypeCountRule(section, type, minCount, maxCount)`: matches if there is at least `minCount` and at most `maxCount` records of type `type` in the `section` section
@@ -1256,9 +1262,12 @@ instantiate a server with additional parameters
     * `topRule()`: move the last rule to the first position
  * Built-in Actions for Rules:
     * `AllowAction()`: let these packets go through
+    * `AllowResponseAction()`: let these packets go through
     * `DelayAction(milliseconds)`: delay the response by the specified amount of milliseconds (UDP-only)
+    * `DelayResponseAction(milliseconds)`: delay the response by the specified amount of milliseconds (UDP-only)
     * `DisableValidationAction()`: set the CD bit in the question, let it go through
     * `DropAction()`: drop these packets
+    * `DropResponseAction()`: drop these packets
     * `LogAction([filename], [binary], [append], [buffered])`: Log a line for each query, to the specified file if any, to the console (require verbose) otherwise. When logging to a file, the `binary` optional parameter specifies whether we log in binary form (default) or in textual form, the `append` optional parameter specifies whether we open the file for appending or truncate each time (default), and the `buffered` optional parameter specifies whether writes to the file are buffered (default) or not.
     * `NoRecurseAction()`: strip RD bit from the question, let it go through
     * `PoolAction(poolname)`: set the packet into the specified pool

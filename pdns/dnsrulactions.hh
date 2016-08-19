@@ -540,6 +540,25 @@ private:
   size_t d_max;
 };
 
+class RCodeRule : public DNSRule
+{
+public:
+  RCodeRule(int rcode) : d_rcode(rcode)
+  {
+  }
+  bool matches(const DNSQuestion* dq) const override
+  {
+    return d_rcode == dq->dh->rcode;
+  }
+  string toString() const override
+  {
+    return "rcode=="+RCode::to_s(d_rcode);
+  }
+private:
+  int d_rcode;
+};
+
+
 class DropAction : public DNSAction
 {
 public:
@@ -1007,4 +1026,48 @@ public:
   }
 private:
   std::shared_ptr<RemoteLogger> d_logger;
+};
+
+class DropResponseAction : public DNSResponseAction
+{
+public:
+  DNSResponseAction::Action operator()(DNSResponse* dr, string* ruleresult) const override
+  {
+    return Action::Drop;
+  }
+  string toString() const override
+  {
+    return "drop";
+  }
+};
+
+class AllowResponseAction : public DNSResponseAction
+{
+public:
+  DNSResponseAction::Action operator()(DNSResponse* dr, string* ruleresult) const override
+  {
+    return Action::Allow;
+  }
+  string toString() const override
+  {
+    return "allow";
+  }
+};
+
+class DelayResponseAction : public DNSResponseAction
+{
+public:
+  DelayResponseAction(int msec) : d_msec(msec)
+  {}
+  DNSResponseAction::Action operator()(DNSResponse* dr, string* ruleresult) const override
+  {
+    *ruleresult=std::to_string(d_msec);
+    return Action::Delay;
+  }
+  string toString() const override
+  {
+    return "delay by "+std::to_string(d_msec)+ " msec";
+  }
+private:
+  int d_msec;
 };
