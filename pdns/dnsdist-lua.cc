@@ -70,7 +70,7 @@ std::shared_ptr<DNSRule> makeRule(const luadnsrule_t& var)
   if(nmg.empty())
     return std::make_shared<SuffixMatchNodeRule>(smn);
   else
-    return std::make_shared<NetmaskGroupRule>(nmg);
+    return std::make_shared<NetmaskGroupRule>(nmg, true);
 }
 
 std::unordered_map<int, vector<boost::variant<string,double>>> getGenResponses(unsigned int top, boost::optional<int> labels, std::function<bool(const Rings::Response&)> pred) 
@@ -795,8 +795,8 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       return std::shared_ptr<DNSRule>(new SuffixMatchNodeRule(smn, quiet ? *quiet : false));
     });
 
-  g_lua.writeFunction("NetmaskGroupRule", [](const NetmaskGroup& nmg) {
-      return std::shared_ptr<DNSRule>(new NetmaskGroupRule(nmg));
+  g_lua.writeFunction("NetmaskGroupRule", [](const NetmaskGroup& nmg, boost::optional<bool> src) {
+      return std::shared_ptr<DNSRule>(new NetmaskGroupRule(nmg, src ? *src : true));
     });
 
   g_lua.writeFunction("benchRule", [](std::shared_ptr<DNSRule> rule, boost::optional<int> times_, boost::optional<string> suffix_)  {
