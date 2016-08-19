@@ -6,6 +6,7 @@
 #include "namespaces.hh"
 #include "rec_channel.hh" 
 #include "ednssubnet.hh"
+#include "filterpo.hh"
 #include <unordered_set>
 
 #if !defined(HAVE_LUA)
@@ -24,12 +25,12 @@ bool RecursorLua4::nodata(const ComboAddress& remote,const ComboAddress& local, 
   return false;
 }
 
-bool RecursorLua4::postresolve(const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& ret, std::string* appliedPolicy, std::vector<std::string>* policyTags, int& res, bool* variable)
+bool RecursorLua4::postresolve(const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& ret, DNSFilterEngine::Policy* appliedPolicy, std::vector<std::string>* policyTags, int& res, bool* variable)
 {
   return false;
 }
 
-bool RecursorLua4::preresolve(const ComboAddress& remote, const ComboAddress& local, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& ret, const vector<pair<uint16_t,string> >* ednsOpts, unsigned int tag, std::string* appliedPolicy, std::vector<std::string>* policyTags, int& res, bool* variable)
+bool RecursorLua4::preresolve(const ComboAddress& remote, const ComboAddress& local, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& ret, const vector<pair<uint16_t,string> >* ednsOpts, unsigned int tag, DNSFilterEngine::Policy* appliedPolicy, std::vector<std::string>* policyTags, int& res, bool* variable, bool* wantsRPZ)
 {
   return false;
 }
@@ -236,8 +237,12 @@ RecursorLua4::RecursorLua4(const std::string& fname)
       return DNSName(boost::get<const DNSName>(dom));
   });
   d_lw->registerFunction("isPartOf", &DNSName::isPartOf);
-  d_lw->registerFunction<bool(DNSName::*)(const std::string&)>("equal",
-							      [](const DNSName& lhs, const std::string& rhs) { return lhs==DNSName(rhs); });
+  d_lw->registerFunction<bool(DNSName::*)(const std::string&)>(
+    "equal",
+     [](const DNSName& lhs, const std::string& rhs) {
+       return lhs==DNSName(rhs);
+    }
+  );
   d_lw->registerFunction("__eq", &DNSName::operator==);
 
   d_lw->registerFunction<string(ComboAddress::*)()>("toString", [](const ComboAddress& ca) { return ca.toString(); });
@@ -256,32 +261,35 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   d_lw->writeFunction("newCAS", []{ return cas_t(); });
 
 
-  d_lw->registerFunction<void(cas_t::*)(boost::variant<string,ComboAddress, vector<pair<unsigned int,string> > >)>("add",
-                                                                                   [](cas_t& cas, const boost::variant<string,ComboAddress,vector<pair<unsigned int,string> > >& in)
-										   {
-										     try {
-										     if(auto s = boost::get<string>(&in)) {
-										       cas.insert(ComboAddress(*s));
-										     }
-										     else if(auto v = boost::get<vector<pair<unsigned int, string> > >(&in)) {
-										       for(const auto& s : *v)
-											 cas.insert(ComboAddress(s.second));
-										     }
-										     else
-										       cas.insert(boost::get<ComboAddress>(in));
-										     }
-										     catch(std::exception& e) { theL() <<Logger::Error<<e.what()<<endl; }
-										   });
+  d_lw->registerFunction<void(cas_t::*)(boost::variant<string,ComboAddress, vector<pair<unsigned int,string> > >)>(
+    "add",
+    [](cas_t& cas, const boost::variant<string,ComboAddress,vector<pair<unsigned int,string> > >& in)
+    {
+      try {
+        if(auto s = boost::get<string>(&in)) {
+          cas.insert(ComboAddress(*s));
+        }
+        else if(auto v = boost::get<vector<pair<unsigned int, string> > >(&in)) {
+          for(const auto& s : *v)
+            cas.insert(ComboAddress(s.second));
+          }
+        else {
+          cas.insert(boost::get<ComboAddress>(in));
+        }
+      }
+      catch(std::exception& e) { theL() <<Logger::Error<<e.what()<<endl; }
+    });
 
   d_lw->registerFunction<bool(cas_t::*)(const ComboAddress&)>("check",[](const cas_t& cas, const ComboAddress&ca) {
       return (bool)cas.count(ca);
     });
 
-
-
-  d_lw->registerFunction<bool(ComboAddress::*)(const ComboAddress&)>("equal", [](const ComboAddress& lhs, const ComboAddress& rhs) {
+  d_lw->registerFunction<bool(ComboAddress::*)(const ComboAddress&)>(
+    "equal",
+    [](const ComboAddress& lhs, const ComboAddress& rhs) {
       return ComboAddress::addressOnlyEqual()(lhs, rhs);
-    });
+    }
+  );
   
 
   d_lw->registerFunction<ComboAddress(Netmask::*)()>("getNetwork", [](const Netmask& nm) { return nm.getNetwork(); } ); // const reference makes this necessary
@@ -295,16 +303,19 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   d_lw->registerFunction("__eq", &Netmask::operator==);
 
   d_lw->writeFunction("newNMG", []() { return NetmaskGroup(); });
-  d_lw->registerFunction<void(NetmaskGroup::*)(const std::string&mask)>("addMask", [](NetmaskGroup&nmg, const std::string& mask)
-			 {
-			   nmg.addMask(mask);
-			 });
+  d_lw->registerFunction<void(NetmaskGroup::*)(const std::string&mask)>(
+    "addMask", [](NetmaskGroup&nmg, const std::string& mask){
+      nmg.addMask(mask);
+    }
+  );
 
-  d_lw->registerFunction<void(NetmaskGroup::*)(const vector<pair<unsigned int, std::string>>&)>("addMasks", [](NetmaskGroup&nmg, const vector<pair<unsigned int, std::string>>& masks)
-			 {
-                           for(const auto& mask: masks) 
-                             nmg.addMask(mask.second);
-			 });
+  d_lw->registerFunction<void(NetmaskGroup::*)(const vector<pair<unsigned int, std::string>>&)>(
+    "addMasks",
+    [](NetmaskGroup&nmg, const vector<pair<unsigned int, std::string>>& masks){
+      for(const auto& mask: masks)
+        nmg.addMask(mask.second);
+    }
+  );
 
 
   d_lw->registerFunction("match", (bool (NetmaskGroup::*)(const ComboAddress&) const)&NetmaskGroup::match);
@@ -327,7 +338,20 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   d_lw->registerMember("udpAnswer", &DNSQuestion::udpAnswer);
   d_lw->registerMember("udpQueryDest", &DNSQuestion::udpQueryDest);
   d_lw->registerMember("udpCallback", &DNSQuestion::udpCallback);
+  d_lw->registerMember("wantsRPZ", &DNSQuestion::wantsRPZ);
   d_lw->registerMember("appliedPolicy", &DNSQuestion::appliedPolicy);
+  d_lw->registerMember("policyName", &DNSFilterEngine::Policy::d_name);
+  d_lw->registerMember("policyKind", &DNSFilterEngine::Policy::d_kind);
+  d_lw->registerMember("policyTTL", &DNSFilterEngine::Policy::d_ttl);
+  d_lw->registerMember<DNSFilterEngine::Policy, string>("policyCustom",
+    [](const DNSFilterEngine::Policy& pol) -> string {
+      return pol.d_custom->getZoneRepresentation();
+    },
+    [](DNSFilterEngine::Policy& pol, string content) {
+      // Only CNAMES for now, when we ever add a d_custom_type, there will be pain
+      pol.d_custom = shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(QType::CNAME, 1, content));
+    }
+  );
   d_lw->registerFunction("getEDNSOptions", &DNSQuestion::getEDNSOptions);
   d_lw->registerFunction("getEDNSOption", &DNSQuestion::getEDNSOption);
   d_lw->registerFunction("getEDNSSubnet", &DNSQuestion::getEDNSSubnet);
@@ -375,22 +399,27 @@ RecursorLua4::RecursorLua4(const std::string& fname)
     });
 
   d_lw->writeFunction("newDS", []() { return SuffixMatchNode(); });
-  d_lw->registerFunction<void(SuffixMatchNode::*)(boost::variant<string,DNSName, vector<pair<unsigned int,string> > >)>("add",
-										   [](SuffixMatchNode&smn, const boost::variant<string,DNSName,vector<pair<unsigned int,string> > >& in)
-										   {
-										     try {
-										     if(auto s = boost::get<string>(&in)) {
-										       smn.add(DNSName(*s));
-										     }
-										     else if(auto v = boost::get<vector<pair<unsigned int, string> > >(&in)) {
-										       for(const auto& s : *v)
-											 smn.add(DNSName(s.second));
-										     }
-										     else
-										       smn.add(boost::get<DNSName>(in));
-										     }
-										     catch(std::exception& e) { theL() <<Logger::Error<<e.what()<<endl; }
-										   });
+  d_lw->registerFunction<void(SuffixMatchNode::*)(boost::variant<string,DNSName, vector<pair<unsigned int,string> > >)>(
+    "add",
+    [](SuffixMatchNode&smn, const boost::variant<string,DNSName,vector<pair<unsigned int,string> > >& in){
+      try {
+        if(auto s = boost::get<string>(&in)) {
+          smn.add(DNSName(*s));
+        }
+        else if(auto v = boost::get<vector<pair<unsigned int, string> > >(&in)) {
+          for(const auto& s : *v)
+            smn.add(DNSName(s.second));
+        }
+        else {
+          smn.add(boost::get<DNSName>(in));
+        }
+      }
+      catch(std::exception& e) {
+        theL() <<Logger::Error<<e.what()<<endl;
+      }
+    }
+  );
+
   d_lw->registerFunction("check",(bool (SuffixMatchNode::*)(const DNSName&) const) &SuffixMatchNode::check);
   d_lw->registerFunction("toString",(string (SuffixMatchNode::*)() const) &SuffixMatchNode::toString);
 
@@ -429,6 +458,15 @@ RecursorLua4::RecursorLua4(const std::string& fname)
 	{"Error", LOG_ERR}
 	  }});
 
+  pd.push_back({"policykinds", in_t {
+    {"NoAction", (int)DNSFilterEngine::PolicyKind::NoAction},
+    {"Drop",     (int)DNSFilterEngine::PolicyKind::Drop    },
+    {"NXDOMAIN", (int)DNSFilterEngine::PolicyKind::NXDOMAIN},
+    {"NODATA",   (int)DNSFilterEngine::PolicyKind::NODATA  },
+    {"Truncate", (int)DNSFilterEngine::PolicyKind::Truncate},
+    {"Custom",   (int)DNSFilterEngine::PolicyKind::Custom  }
+    }});
+
   for(const auto& n : QType::names)
     pd.push_back({n.first, n.second});
   pd.push_back({"now", &g_now});
@@ -463,29 +501,29 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   d_gettag = d_lw->readVariable<boost::optional<gettag_t>>("gettag").get_value_or(0);
 }
 
-bool RecursorLua4::preresolve(const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, const vector<pair<uint16_t,string> >* ednsOpts, unsigned int tag, std::string* appliedPolicy, std::vector<std::string>* policyTags, int& ret, bool* variable)
+bool RecursorLua4::preresolve(const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, const vector<pair<uint16_t,string> >* ednsOpts, unsigned int tag, DNSFilterEngine::Policy* appliedPolicy, std::vector<std::string>* policyTags, int& ret, bool* variable, bool* wantsRPZ)
 {
-  return genhook(d_preresolve, remote, local, query, qtype, isTcp, res, ednsOpts, tag, appliedPolicy, policyTags, ret, variable);
+  return genhook(d_preresolve, remote, local, query, qtype, isTcp, res, ednsOpts, tag, appliedPolicy, policyTags, ret, variable, wantsRPZ);
 }
 
 bool RecursorLua4::nxdomain(const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, int& ret, bool* variable)
 {
-  return genhook(d_nxdomain, remote, local, query, qtype, isTcp, res, 0, 0, nullptr, nullptr, ret, variable);
+  return genhook(d_nxdomain, remote, local, query, qtype, isTcp, res, 0, 0, nullptr, nullptr, ret, variable, 0);
 }
 
 bool RecursorLua4::nodata(const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, int& ret, bool* variable)
 {
-  return genhook(d_nodata, remote, local, query, qtype, isTcp, res, 0, 0, nullptr, nullptr, ret, variable);
+  return genhook(d_nodata, remote, local, query, qtype, isTcp, res, 0, 0, nullptr, nullptr, ret, variable, 0);
 }
 
-bool RecursorLua4::postresolve(const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, std::string* appliedPolicy, std::vector<std::string>* policyTags, int& ret, bool* variable)
+bool RecursorLua4::postresolve(const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, DNSFilterEngine::Policy* appliedPolicy, std::vector<std::string>* policyTags, int& ret, bool* variable)
 {
-  return genhook(d_postresolve, remote, local, query, qtype, isTcp, res, 0, 0, appliedPolicy, policyTags, ret, variable);
+  return genhook(d_postresolve, remote, local, query, qtype, isTcp, res, 0, 0, appliedPolicy, policyTags, ret, variable, 0);
 }
 
 bool RecursorLua4::preoutquery(const ComboAddress& ns, const ComboAddress& requestor, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, int& ret)
 {
-  return genhook(d_preoutquery, ns, requestor, query, qtype, isTcp, res, 0, 0, nullptr, nullptr, ret, 0);
+  return genhook(d_preoutquery, ns, requestor, query, qtype, isTcp, res, 0, 0, nullptr, nullptr, ret, 0, 0);
 }
 
 bool RecursorLua4::ipfilter(const ComboAddress& remote, const ComboAddress& local, const struct dnsheader& dh)
@@ -513,7 +551,7 @@ int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, 
   return 0;
 }
 
-bool RecursorLua4::genhook(luacall_t& func, const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, const vector<pair<uint16_t,string> >* ednsOpts, unsigned int tag, std::string* appliedPolicy, std::vector<std::string>* policyTags, int& ret, bool* variable)
+bool RecursorLua4::genhook(luacall_t& func, const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, const vector<pair<uint16_t,string> >* ednsOpts, unsigned int tag, DNSFilterEngine::Policy* appliedPolicy, std::vector<std::string>* policyTags, int& ret, bool* variable, bool* wantsRPZ)
 {
   if(!func)
     return false;
@@ -529,8 +567,11 @@ bool RecursorLua4::genhook(luacall_t& func, const ComboAddress& remote,const Com
   dq->isTcp = isTcp;
   dq->rcode = ret;
   dq->policyTags = policyTags;
+  dq->appliedPolicy = appliedPolicy;
+  dq->wantsRPZ = wantsRPZ;
   bool handled=func(dq);
   if(variable) *variable |= dq->variable; // could still be set to indicate this *name* is variable, even if not 'handled'
+  *wantsRPZ = dq->wantsRPZ; // Even if we did not handle the query, RPZ could be disabled
 
   if(handled) {
 loop:;
@@ -562,9 +603,6 @@ loop:;
       }
     }
     res=dq->records;
-    if (appliedPolicy) {
-      *appliedPolicy=dq->appliedPolicy;
-    }
   }
 
 

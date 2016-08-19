@@ -61,16 +61,19 @@ public:
   void addClientTrigger(const Netmask& nm, Policy pol, int zone=0);
   void addQNameTrigger(const DNSName& nm, Policy pol, int zone=0);
   void addNSTrigger(const DNSName& dn, Policy pol, int zone=0);
+  void addNSIPTrigger(const Netmask& nm, Policy pol, int zone=0);
   void addResponseTrigger(const Netmask& nm, Policy pol, int zone=0);
 
   bool rmClientTrigger(const Netmask& nm, Policy pol, int zone=0);
   bool rmQNameTrigger(const DNSName& nm, Policy pol, int zone=0);
   bool rmNSTrigger(const DNSName& dn, Policy pol, int zone=0);
+  bool rmNSIPTrigger(const Netmask& nm, Policy pol, int zone=0);
   bool rmResponseTrigger(const Netmask& nm, Policy pol, int zone=0);
 
 
   Policy getQueryPolicy(const DNSName& qname, const ComboAddress& nm) const;
   Policy getProcessingPolicy(const DNSName& qname) const;
+  Policy getProcessingPolicy(const ComboAddress& address) const;
   Policy getPostPolicy(const vector<DNSRecord>& records) const;
 
   size_t size() {
@@ -79,10 +82,11 @@ public:
 private:
   void assureZones(int zone);
   struct Zone {
-    std::map<DNSName, Policy> qpolName;
-    NetmaskTree<Policy> qpolAddr;
-    std::map<DNSName, Policy> propolName;
-    NetmaskTree<Policy> postpolAddr;
+    std::map<DNSName, Policy> qpolName;   // QNAME trigger (RPZ)
+    NetmaskTree<Policy> qpolAddr;         // Source address
+    std::map<DNSName, Policy> propolName; // NSDNAME (RPZ)
+    NetmaskTree<Policy> propolNSAddr;     // NSIP (RPZ)
+    NetmaskTree<Policy> postpolAddr;      // IP trigger (RPZ)
   };
   vector<Zone> d_zones;
 

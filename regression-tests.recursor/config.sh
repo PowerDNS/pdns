@@ -45,7 +45,7 @@ fi
 
 cd configs
 
-for dir in recursor-service recursor-service2; do
+for dir in recursor-service recursor-service2 recursor-service3; do
   mkdir $dir
   cd $dir
 
@@ -86,6 +86,9 @@ example.net.             3600 IN NS  ns2.example.net.
 ns.example.net.          3600 IN A   $PREFIX.10
 ns2.example.net.         3600 IN A   $PREFIX.11
 www.example.net.         3600 IN A   192.0.2.1
+www2.example.net.        3600 IN A   192.0.2.2
+www3.example.net.        3600 IN A   192.0.2.3
+www4.example.net.        3600 IN A   192.0.2.4
 weirdtxt.example.net.    3600 IN IN  TXT "x\014x"
 arthur.example.net.      3600 IN NS  ns.arthur.example.net.
 arthur.example.net.      3600 IN NS  ns2.arthur.example.net.
@@ -535,4 +538,53 @@ local-port=5300
 socket-dir=$(pwd)/recursor-service2S
 lowercase-outgoing=yes
 
+EOF
+
+cat > recursor-service3/recursor.conf << EOF
+local-port=5301
+socket-dir=$(pwd)/recursor-service3S
+lua-config-file=$(pwd)/recursor-service3/config.lua
+lua-dns-script=$(pwd)/recursor-service3/script.lua
+
+EOF
+
+cat > recursor-service3/config.lua <<EOF
+rpzFile("$(pwd)/recursor-service3/rpz.zone", {policyName="myRPZ"})
+EOF
+
+IFS=. read REV_PREFIX1 REV_PREFIX2 REV_PREFIX3 <<< $(echo $PREFIX) # This will bite us in the ass if we ever test on IPv6
+
+cat > recursor-service3/rpz.zone <<EOF
+\$TTL 2h;
+\$ORIGIN domain.example.
+@ SOA $SOA
+@ NS ns.example.net.
+
+arthur.example.net     CNAME .                   ; NXDOMAIN on apex
+*.arthur.example.net   CNAME *.                  ; NODATA for everything below the apex
+srv.arthur.example.net CNAME rpz-passthru.       ; Allow this name though
+www.example.net        CNAME www2.example.net.   ; Local-Data Action
+www3.example.net       CNAME www4.example.net.   ; Local-Data Action (to be changed in preresolve)
+trillian.example.net   CNAME .                   ; NXDOMAIN on apex, allows all sub-names (#4086)
+
+32.4.2.0.192.rpz-ip    CNAME rpz-drop.           ; www4.example.net resolves to 192.0.2.4, drop A responses with that IP
+
+ns.hijackme.example.net.rpz-nsdname CNAME .      ; NXDOMAIN for anything hosted on ns.hijackme.example.net
+ns.marvin.example.net.rpz-nsdname CNAME .        ; NXDOMAIN for anything hosted on ns.marvin.example.net (we disable RPZ in preresolve though)
+32.24.$REV_PREFIX3.$REV_PREFIX2.$REV_PREFIX1.rpz-nsip CNAME . ; The IP for ns.lowercase-outgoing.example.net, should yield NXDOMAIN
+
+EOF
+
+cat > recursor-service3/script.lua <<EOF
+function preresolve(dq)
+  if dq.qname:equal("android.marvin.example.net") then
+    dq.wantsRPZ = false -- disable RPZ
+  end
+  if dq.appliedPolicy.policyKind == pdns.policykinds.Custom then
+    if dq.qname:equal("www3.example.net") then
+      dq.appliedPolicy.policyCustom = "www2.example.net"
+    end
+  end
+  return false
+end
 EOF

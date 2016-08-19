@@ -346,6 +346,8 @@ public:
   
   bool d_wasVariable{false};
   bool d_wasOutOfBand{false};
+  bool d_wantsRPZ{true};
+  DNSFilterEngine::Policy d_appliedPolicy{DNSFilterEngine::PolicyKind::NoAction, nullptr, "", 0};
   
   typedef multi_index_container <
     NegCacheEntry,
@@ -615,6 +617,7 @@ struct RecursorStats
   unsigned int maxMThreadStackUsage;
   std::atomic<uint64_t> dnssecValidations; // should be the sum of all dnssecResult* stats
   std::map<vState, std::atomic<uint64_t> > dnssecResults;
+  std::map<DNSFilterEngine::PolicyKind, std::atomic<uint64_t> > policyResults;
 };
 
 //! represents a running TCP/IP client session
