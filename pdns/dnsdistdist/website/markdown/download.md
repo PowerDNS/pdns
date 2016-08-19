@@ -12,6 +12,8 @@ GCC 4.8+ or clang 3.5+), GNU Make and the following libraries:
 * [Boost](http://boost.org)
 * [Lua](http://www.lua.org/) 5.1+ or [LuaJit](http://luajit.org/)
 * Optionally: [libsodium](https://download.libsodium.org/doc/)
+* Optionally: [protobuf](https://developers.google.com/protocol-buffers/)
+* Optionally: [re2](https://github.com/google/re2)
 
 To compile from git, these additional dependencies are required:
 
