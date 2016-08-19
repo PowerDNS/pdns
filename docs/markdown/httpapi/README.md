@@ -46,7 +46,7 @@ After restarting `pdns_server`, the following examples should start working:
        "type": "AAAA",
        "ttl": 86400,
        "changetype": "REPLACE",
-       "records": [ {"content": "2001:db8::6/32", "disabled": false} ]
+       "records": [ {"content": "2001:db8::6", "disabled": false} ]
       }
       ] }' -H 'X-API-Key: changeme' http://127.0.0.1:8081/api/v1/servers/localhost/zones/example.org. | jq .
 
