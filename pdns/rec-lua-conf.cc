@@ -246,11 +246,11 @@ void loadRecursorLuaConfig(const std::string& fname)
     });
 
 #if HAVE_PROTOBUF
-  Lua.writeFunction("protobufServer", [&lci](const string& server_, const boost::optional<uint16_t> timeout, const boost::optional<uint64_t> maxQueuedEntries, const boost::optional<uint8_t> reconnectWaitTime, const boost::optional<uint8_t> maskV4, boost::optional<uint8_t> maskV6) {
+  Lua.writeFunction("protobufServer", [&lci](const string& server_, const boost::optional<uint16_t> timeout, const boost::optional<uint64_t> maxQueuedEntries, const boost::optional<uint8_t> reconnectWaitTime, const boost::optional<uint8_t> maskV4, boost::optional<uint8_t> maskV6, boost::optional<bool> asyncConnect) {
       try {
 	ComboAddress server(server_);
         if (!lci.protobufServer) {
-          lci.protobufServer = std::make_shared<RemoteLogger>(server, timeout ? *timeout : 2, maxQueuedEntries ? *maxQueuedEntries : 100, reconnectWaitTime ? *reconnectWaitTime : 1);
+          lci.protobufServer = std::make_shared<RemoteLogger>(server, timeout ? *timeout : 2, maxQueuedEntries ? *maxQueuedEntries : 100, reconnectWaitTime ? *reconnectWaitTime : 1, asyncConnect ? *asyncConnect : false);
           if (maskV4) {
             lci.protobufMaskV4 = *maskV4;
           }

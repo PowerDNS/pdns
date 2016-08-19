@@ -11,7 +11,7 @@
 class RemoteLogger
 {
 public:
-  RemoteLogger(const ComboAddress& remote, uint16_t timeout=2, uint64_t maxQueuedEntries=100, uint8_t reconnectWaitTime=1);
+  RemoteLogger(const ComboAddress& remote, uint16_t timeout=2, uint64_t maxQueuedEntries=100, uint8_t reconnectWaitTime=1, bool asyncConnect=false);
   ~RemoteLogger();
   void queueData(const std::string& data);
   std::string toString()
@@ -31,6 +31,7 @@ private:
   int d_socket{-1};
   uint16_t d_timeout;
   uint8_t d_reconnectWaitTime;
-  std::thread d_thread;
   std::atomic<bool> d_exiting{false};
+  bool d_asyncConnect{false};
+  std::thread d_thread;
 };
