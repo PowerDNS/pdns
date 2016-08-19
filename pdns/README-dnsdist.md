@@ -1161,6 +1161,7 @@ Here are all functions:
     * function `showBinds()`: list every local bind
     * function `getBind(n)`: return the corresponding `ClientState` object
     * member `attachFilter(BPFFilter)`: attach a BPF Filter to this bind
+    * member `detachFilter()`: detach the BPF Filter attached to this bind, if any
     * member `toString()`: print the address this bind listens to
  * Network related:
     * `addLocal(netmask, [true], [false], [TCP Fast Open queue size])`: add to addresses we listen on. Second optional parameter sets TCP or not. Third optional parameter sets SO_REUSEPORT when available. Last parameter sets the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0.
@@ -1415,6 +1416,8 @@ instantiate a server with additional parameters
     * function `newDynBPFFilter(BPFFilter)`: return a new DynBPFFilter object using this BPF Filter
     * member `block(ComboAddress[, seconds]): add this address to the underlying BPF Filter for `seconds` seconds (default to 10 seconds)
     * member `purgeExpired()`: remove expired entries
+    * function `registerDynBPFFilter(DynBPFFilter)`: register this dynamic BPF filter into the web interface so that its counters are displayed
+    * function `unregisterDynBPFFilter(DynBPFFilter)`: unregister this dynamic BPF filter
  * RemoteLogger related:
     * `newRemoteLogger(address:port [, timeout=2, maxQueuedEntries=100, reconnectWaitTime=1])`: create a Remote Logger object, to use with `RemoteLogAction()` and `RemoteLogResponseAction()`
 

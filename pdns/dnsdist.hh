@@ -283,6 +283,31 @@ struct ClientState
   std::atomic<uint64_t> queries{0};
   int udpFD{-1};
   int tcpFD{-1};
+
+  int getSocket() const
+  {
+    return udpFD != -1 ? udpFD : tcpFD;
+  }
+
+#ifdef HAVE_EBPF
+  shared_ptr<BPFFilter> d_filter;
+
+  void detachFilter()
+  {
+    if (d_filter) {
+      d_filter->removeSocket(getSocket());
+      d_filter = nullptr;
+    }
+  }
+
+  void attachFilter(shared_ptr<BPFFilter> bpf)
+  {
+    detachFilter();
+
+    bpf->addSocket(getSocket());
+    d_filter = bpf;
+  }
+#endif /* HAVE_EBPF */
 };
 
 class TCPClientCollection {
@@ -630,6 +655,7 @@ extern const std::vector<ConsoleKeyword> g_consoleKeywords;
 
 #ifdef HAVE_EBPF
 extern shared_ptr<BPFFilter> g_defaultBPFFilter;
+extern std::vector<std::shared_ptr<DynBPFFilter> > g_dynBPFFilters;
 #endif /* HAVE_EBPF */
 
 struct dnsheader;

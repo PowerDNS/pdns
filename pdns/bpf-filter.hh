@@ -12,6 +12,7 @@ class BPFFilter
 public:
   BPFFilter(uint32_t maxV4Addresses, uint32_t maxV6Addresses, uint32_t maxQNames);
   void addSocket(int sock);
+  void removeSocket(int sock);
   void block(const ComboAddress& addr);
   void block(const DNSName& qname, uint16_t qtype=255);
   void unblock(const ComboAddress& addr);

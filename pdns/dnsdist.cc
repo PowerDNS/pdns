@@ -85,6 +85,7 @@ std::vector<std::tuple<ComboAddress,DnsCryptContext,bool, int>> g_dnsCryptLocals
 #endif
 #ifdef HAVE_EBPF
 shared_ptr<BPFFilter> g_defaultBPFFilter;
+std::vector<std::shared_ptr<DynBPFFilter> > g_dynBPFFilters;
 #endif /* HAVE_EBPF */
 vector<ClientState *> g_frontends;
 GlobalStateHolder<pools_t> g_pools;
@@ -1691,7 +1692,7 @@ try
 
 #ifdef HAVE_EBPF
     if (g_defaultBPFFilter) {
-      g_defaultBPFFilter->addSocket(cs->udpFD);
+      cs->attachFilter(g_defaultBPFFilter);
       vinfolog("Attaching default BPF Filter to UDP frontend %s", cs->local.toStringWithPort());
     }
 #endif /* HAVE_EBPF */
@@ -1734,7 +1735,7 @@ try
 #endif
 #ifdef HAVE_EBPF
     if (g_defaultBPFFilter) {
-      g_defaultBPFFilter->addSocket(cs->tcpFD);
+      cs->attachFilter(g_defaultBPFFilter);
       vinfolog("Attaching default BPF Filter to TCP frontend %s", cs->local.toStringWithPort());
     }
 #endif /* HAVE_EBPF */
@@ -1776,7 +1777,7 @@ try
     }
 #ifdef HAVE_EBPF
     if (g_defaultBPFFilter) {
-      g_defaultBPFFilter->addSocket(cs->udpFD);
+      cs->attachFilter(g_defaultBPFFilter);
       vinfolog("Attaching default BPF Filter to UDP DNSCrypt frontend %s", cs->local.toStringWithPort());
     }
 #endif /* HAVE_EBPF */
@@ -1811,7 +1812,7 @@ try
     }
 #ifdef HAVE_EBPF
     if (g_defaultBPFFilter) {
-      g_defaultBPFFilter->addSocket(cs->tcpFD);
+      cs->attachFilter(g_defaultBPFFilter);
       vinfolog("Attaching default BPF Filter to TCP DNSCrypt frontend %s", cs->local.toStringWithPort());
     }
 #endif /* HAVE_EBPF */

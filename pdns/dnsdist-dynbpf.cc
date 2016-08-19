@@ -37,4 +37,21 @@ void DynBPFFilter::purgeExpired(const struct timespec& now)
   }
 }
 
+std::vector<std::tuple<ComboAddress, uint64_t, struct timespec> > DynBPFFilter::getAddrStats()
+{
+  std::vector<std::tuple<ComboAddress, uint64_t, struct timespec> > result;
+  if (!d_bpf) {
+    return result;
+  }
+
+  const auto& stats = d_bpf->getAddrStats();
+  for (const auto& stat : stats) {
+    const container_t::iterator it = d_entries.find(stat.first);
+    if (it != d_entries.end()) {
+      result.push_back({stat.first, stat.second, it->d_until});
+    }
+  }
+  return result;
+}
+
 #endif /* HAVE_EBPF */
