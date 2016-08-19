@@ -34,10 +34,6 @@ else
 fi
 
 
-# libsodium is not available on all RPM platforms (like CentOS 7)
-SODIUM_BUILDREQUIRES=''
-SODIUM_CONFIGURE=''
-
 # Some RPM platforms use systemd, others sysv, we default to systemd here
 INIT_BUILDREQUIRES='BuildRequires: systemd-devel'
 INIT_INSTALL='sed -i "s,/^\(ExecStart.*\)dnsdist\(.*\)\$,\1dnsdist -u dnsdist -g dnsdist\2," %{buildroot}/lib/systemd/system/dnsdist.service'
@@ -46,6 +42,11 @@ INIT_CONFIGURE='--enable-systemd --with-systemd=/lib/systemd/system \'
 
 # CentOS 6 has protobuf, but not a modern enough boost. We defaul to with protobuf
 PROTOBUF_CONFIGURE='--with-protobuf \'
+
+# CentOS 6 has a libsodium, but we use more modern functions
+SODIUM_BUILDREQUIRES='BuildRequires: libsodium-devel'
+SODIUM_CONFIGURE='--enable-libsodium \'
+DNSCRYPT_CONFIGURE='--enable-dnscrypt \'
 
 # These two are the same for sysv and systemd (we don't install defaults files at the moment)
 DEFAULTS_INSTALL=''
@@ -60,16 +61,15 @@ RPMBUILD_COMMAND='rpmbuild -bb dnsdist.spec'
 if [ -f /etc/redhat-release ]; then
   OS="$(cat /etc/redhat-release)"
   case "$OS" in
-    Fedora\ *\ 21*)
-      SODIUM_BUILDREQUIRES='BuildRequires: libsodium-devel'
-      SODIUM_CONFIGURE='--enable-libsodium'
-      ;;
     CentOS\ *\ 6*)
       INIT_BUILDREQUIRES=''
       INIT_INSTALL='install -d -m 755 %{buildroot}/%{_initrddir} && install -m 755 contrib/dnsdist.init.centos6 %{buildroot}/%{_initrddir}/dnsdist'
       INIT_FILES='%{_initrddir}/dnsdist'
       INIT_CONFIGURE='\'
       PROTOBUF_CONFIGURE='--without-protobuf \'
+      SODIUM_BUILDREQUIRES=''
+      SODIUM_CONFIGURE='--disable-libsodium \'
+      DNSCRYPT_CONFIGURE='--disable-dnscrypt \'
       SETUP="%setup -n %{name}-${TARBALLVERSION}"
       RPMBUILD_COMMAND="scl enable devtoolset-3 -- ${RPMBUILD_COMMAND}"
       ;;
@@ -93,11 +93,12 @@ Vendor: PowerDNS.COM BV
 Group: System/DNS
 Source: dnsdist-${TARBALLVERSION}.tar.bz2
 Requires(pre): shadow-utils
-BuildRequires: readline-devel
 BuildRequires: boost-devel
 BuildRequires: lua-devel
-BuildRequires: protobuf-devel
 BuildRequires: protobuf-compiler
+BuildRequires: protobuf-devel
+BuildRequires: re2-devel
+BuildRequires: readline-devel
 ${SODIUM_BUILDREQUIRES}
 ${INIT_BUILDREQUIRES}
 
@@ -110,9 +111,11 @@ ${SETUP}
 %build
 %configure \
   --sysconfdir=/etc/dnsdist \
+  --enable-re2 \
+  ${SODIUM_CONFIGURE}
+  ${DNSCRYPT_CONFIGURE}
   ${INIT_CONFIGURE}
   ${PROTOBUF_CONFIGURE}
-  ${SODIUM_CONFIGURE}
 
 make
 
