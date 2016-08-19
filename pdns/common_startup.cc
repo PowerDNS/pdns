@@ -73,6 +73,7 @@ void declareArguments()
   ::arg().setSwitch("local-ipv6-nonexist-fail","Fail to start if one or more of the local-ipv6 addresses do not exist on this server")="yes";
   ::arg().set("query-local-address","Source IP address for sending queries")="0.0.0.0";
   ::arg().set("query-local-address6","Source IPv6 address for sending queries")="::";
+  ::arg().setSwitch("query-non-local-bind", "Enable using non-local addresses for sending queries by using FREEBIND / BINDANY socket options")="no";
   ::arg().set("overload-queue-length","Maximum queuelength moving to packetcache only")="0";
   ::arg().set("max-queue-length","Maximum queuelength before considering situation lost")="5000";
 
