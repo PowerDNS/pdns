@@ -244,6 +244,7 @@ Other functions that can be called on a ComboAddress are:
  * `isIpv4` - true if the address is an IPv4 address
  * `isIpv6` - true if the address is an IPv6 address
  * `getBits` - the number of bits in the address
+ * `getRaw` - returns the bytestring representing the address
 
 ### DNSName
 DNSNames are passed to various functions, and they sport the following methods:
