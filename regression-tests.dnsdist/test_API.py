@@ -64,10 +64,16 @@ class TestBasics(DNSDistTest):
 
         self.assertEquals(content['daemon_type'], 'dnsdist')
 
-        for key in ['version', 'acl', 'local', 'rules', 'servers', 'frontends']:
+        for key in ['version', 'acl', 'local', 'rules', 'response-rules', 'servers', 'frontends']:
             self.assertIn(key, content)
 
         for rule in content['rules']:
+            for key in ['id', 'matches', 'rule', 'action']:
+                self.assertIn(key, rule)
+            for key in ['id', 'matches']:
+                self.assertTrue(rule[key] >= 0)
+
+        for rule in content['response-rules']:
             for key in ['id', 'matches', 'rule', 'action']:
                 self.assertIn(key, rule)
             for key in ['id', 'matches']:
