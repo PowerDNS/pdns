@@ -581,12 +581,20 @@ void shuffle(vector<DNSRecord>& rrs)
   // we don't shuffle the rest
 }
 
+static uint16_t mapCnameToFirst(uint16_t type)
+{
+  if(type == QType::CNAME)
+    return 0;
+  else
+    return 1;
+}
+
 // make sure rrs is sorted in d_place order to avoid surprises later
 // then shuffle the parts that desire shuffling
 void orderAndShuffle(vector<DNSRecord>& rrs)
 {
   std::stable_sort(rrs.begin(), rrs.end(), [](const DNSRecord&a, const DNSRecord& b) { 
-      return a.d_place < b.d_place;
+      return std::make_tuple(a.d_place, mapCnameToFirst(a.d_type)) < std::make_tuple(b.d_place, mapCnameToFirst(b.d_type));
     });
   shuffle(rrs);
 }
