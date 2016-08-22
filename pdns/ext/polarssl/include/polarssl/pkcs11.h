@@ -5,12 +5,9 @@
  *
  * \author Adriaan de Jong <dejong@fox-it.com>
  *
- *  Copyright (C) 2006-2014, Brainspark B.V.
+ *  Copyright (C) 2006-2014, ARM Limited, All Rights Reserved
  *
- *  This file is part of PolarSSL (http://www.polarssl.org)
- *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
- *
- *  All rights reserved.
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -41,13 +38,10 @@
 
 #include <pkcs11-helper-1.0/pkcs11h-certificate.h>
 
-#if defined(_MSC_VER) && !defined(inline)
-#define inline _inline
-#else
-#if defined(__ARMCC_VERSION) && !defined(inline)
+#if ( defined(__ARMCC_VERSION) || defined(_MSC_VER) ) && \
+    !defined(inline) && !defined(__cplusplus)
 #define inline __inline
-#endif /* __ARMCC_VERSION */
-#endif /*_MSC_VER */
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -62,7 +56,7 @@ typedef struct {
 } pkcs11_context;
 
 /**
- * Fill in a PolarSSL certificate, based on the given PKCS11 helper certificate.
+ * Fill in a mbed TLS certificate, based on the given PKCS11 helper certificate.
  *
  * \param cert          X.509 certificate to fill
  * \param pkcs11h_cert  PKCS #11 helper certificate

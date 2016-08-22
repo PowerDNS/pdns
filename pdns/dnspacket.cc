@@ -480,7 +480,7 @@ bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, string* keyname, string* 
   if(!gotit)
     return false;
   if(message)
-    *message = makeTSIGMessageFromTSIGPacket(d_rawpacket, mdp.getTSIGPos(), *keyname, *trc, d_tsigprevious, false); // if you change rawpacket to getString it breaks!
+    *message = makeTSIGMessageFromTSIGPacket(d_rawpacket, mdp.getTSIGPos(), *keyname, *trc, "", false); // if you change rawpacket to getString it breaks!
   
   return true;
 }

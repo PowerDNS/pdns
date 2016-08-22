@@ -3,12 +3,9 @@
  *
  * \brief X.509 certificate revocation list parsing
  *
- *  Copyright (C) 2006-2013, Brainspark B.V.
+ *  Copyright (C) 2006-2013, ARM Limited, All Rights Reserved
  *
- *  This file is part of PolarSSL (http://www.polarssl.org)
- *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
- *
- *  All rights reserved.
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -100,11 +97,23 @@ typedef struct _x509_crl
 x509_crl;
 
 /**
- * \brief          Parse one or more CRLs and add them
- *                 to the chained list
+ * \brief          Parse a DER-encoded CRL and append it to the chained list
  *
  * \param chain    points to the start of the chain
- * \param buf      buffer holding the CRL data
+ * \param buf      buffer holding the CRL data in DER format
+ * \param buflen   size of the buffer
+ *
+ * \return         0 if successful, or a specific X509 or PEM error code
+ */
+int x509_crl_parse_der( x509_crl *chain,
+                        const unsigned char *buf, size_t buflen );
+/**
+ * \brief          Parse one or more CRLs and append them to the chained list
+ *
+ * \note           Mutliple CRLs are accepted only if using PEM format
+ *
+ * \param chain    points to the start of the chain
+ * \param buf      buffer holding the CRL data in PEM or DER format
  * \param buflen   size of the buffer
  *
  * \return         0 if successful, or a specific X509 or PEM error code
@@ -113,11 +122,12 @@ int x509_crl_parse( x509_crl *chain, const unsigned char *buf, size_t buflen );
 
 #if defined(POLARSSL_FS_IO)
 /**
- * \brief          Load one or more CRLs and add them
- *                 to the chained list
+ * \brief          Load one or more CRLs and append them to the chained list
+ *
+ * \note           Mutliple CRLs are accepted only if using PEM format
  *
  * \param chain    points to the start of the chain
- * \param path     filename to read the CRLs from
+ * \param path     filename to read the CRLs from (in PEM or DER encoding)
  *
  * \return         0 if successful, or a specific X509 or PEM error code
  */

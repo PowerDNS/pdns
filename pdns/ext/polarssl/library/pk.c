@@ -1,12 +1,9 @@
 /*
  *  Public Key abstraction layer
  *
- *  Copyright (C) 2006-2014, Brainspark B.V.
+ *  Copyright (C) 2006-2014, ARM Limited, All Rights Reserved
  *
- *  This file is part of PolarSSL (http://www.polarssl.org)
- *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
- *
- *  All rights reserved.
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -30,7 +27,6 @@
 #endif
 
 #if defined(POLARSSL_PK_C)
-
 #include "polarssl/pk.h"
 #include "polarssl/pk_wrap.h"
 
@@ -298,6 +294,32 @@ int pk_encrypt( pk_context *ctx,
 
     return( ctx->pk_info->encrypt_func( ctx->pk_ctx, input, ilen,
                 output, olen, osize, f_rng, p_rng ) );
+}
+
+/*
+ * Check public-private key pair
+ */
+int pk_check_pair( const pk_context *pub, const pk_context *prv )
+{
+    if( pub == NULL || pub->pk_info == NULL ||
+        prv == NULL || prv->pk_info == NULL ||
+        prv->pk_info->check_pair_func == NULL )
+    {
+        return( POLARSSL_ERR_PK_BAD_INPUT_DATA );
+    }
+
+    if( prv->pk_info->type == POLARSSL_PK_RSA_ALT )
+    {
+        if( pub->pk_info->type != POLARSSL_PK_RSA )
+            return( POLARSSL_ERR_PK_TYPE_MISMATCH );
+    }
+    else
+    {
+        if( pub->pk_info != prv->pk_info )
+            return( POLARSSL_ERR_PK_TYPE_MISMATCH );
+    }
+
+    return( prv->pk_info->check_pair_func( pub->pk_ctx, prv->pk_ctx ) );
 }
 
 /*

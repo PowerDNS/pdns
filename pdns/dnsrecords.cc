@@ -521,6 +521,7 @@ void reportOtherTypes()
    RPRecordContent::report();
    KEYRecordContent::report();
    DNSKEYRecordContent::report();
+   DHCIDRecordContent::report();
    RKEYRecordContent::report();
    RRSIGRecordContent::report();
    DSRecordContent::report();

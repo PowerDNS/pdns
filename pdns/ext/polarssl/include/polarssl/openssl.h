@@ -3,12 +3,11 @@
  *
  * \brief OpenSSL wrapper (definitions, inline functions).
  *
- *  Copyright (C) 2006-2010, Brainspark B.V.
+ * \deprecated Use native mbed TLS functions instead
  *
- *  This file is part of PolarSSL (http://www.polarssl.org)
- *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
+ *  Copyright (C) 2006-2010, ARM Limited, All Rights Reserved
  *
- *  All rights reserved.
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -24,9 +23,17 @@
  *  with this program; if not, write to the Free Software Foundation, Inc.,
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+
 /*
  * OpenSSL wrapper contributed by David Barett
  */
+
+#if ! defined(POLARSSL_DEPRECATED_REMOVED)
+
+#if defined(POLARSSL_DEPRECATED_WARNING)
+#warning "Including openssl.h is deprecated"
+#endif
+
 #ifndef POLARSSL_OPENSSL_H
 #define POLARSSL_OPENSSL_H
 
@@ -138,3 +145,4 @@ inline int RSA_private_encrypt( int size, unsigned char* input, unsigned char* o
 #endif
 
 #endif /* openssl.h */
+#endif /* POLARSSL_DEPRECATED_REMOVED */

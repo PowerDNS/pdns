@@ -3,12 +3,9 @@
  *
  * \brief RFC 1521 base64 encoding/decoding
  *
- *  Copyright (C) 2006-2013, Brainspark B.V.
+ *  Copyright (C) 2006-2013, ARM Limited, All Rights Reserved
  *
- *  This file is part of PolarSSL (http://www.polarssl.org)
- *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
- *
- *  All rights reserved.
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,7 +24,7 @@
 #ifndef POLARSSL_BASE64_H
 #define POLARSSL_BASE64_H
 
-#include <string.h>
+#include <stddef.h>
 
 #define POLARSSL_ERR_BASE64_BUFFER_TOO_SMALL               -0x002A  /**< Output buffer too small. */
 #define POLARSSL_ERR_BASE64_INVALID_CHARACTER              -0x002C  /**< Invalid character in input. */
@@ -47,6 +44,8 @@ extern "C" {
  * \return         0 if successful, or POLARSSL_ERR_BASE64_BUFFER_TOO_SMALL.
  *                 *dlen is always updated to reflect the amount
  *                 of data that has (or would have) been written.
+ *                 If that length cannot be represented, then no data is
+ *                 written to the buffer and *dlen is set to SIZE_T_MAX.
  *
  * \note           Call this function with *dlen = 0 to obtain the
  *                 required buffer size in *dlen

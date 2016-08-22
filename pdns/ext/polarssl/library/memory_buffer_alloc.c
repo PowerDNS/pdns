@@ -1,12 +1,9 @@
 /*
  *  Buffer-based memory allocator
  *
- *  Copyright (C) 2006-2014, Brainspark B.V.
+ *  Copyright (C) 2006-2014, ARM Limited, All Rights Reserved
  *
- *  This file is part of PolarSSL (http://www.polarssl.org)
- *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
- *
- *  All rights reserved.
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -30,26 +27,20 @@
 #endif
 
 #if defined(POLARSSL_MEMORY_BUFFER_ALLOC_C)
-
 #include "polarssl/memory_buffer_alloc.h"
+
+/* No need for the header guard as POLARSSL_MEMORY_BUFFER_ALLOC_C
+   is dependent upon POLARSSL_PLATFORM_C */
+#include "polarssl/platform.h"
 
 #include <string.h>
 
-#if defined(POLARSSL_MEMORY_DEBUG)
-#include <stdio.h>
-#endif
 #if defined(POLARSSL_MEMORY_BACKTRACE)
 #include <execinfo.h>
 #endif
 
 #if defined(POLARSSL_THREADING_C)
 #include "polarssl/threading.h"
-#endif
-
-#if defined(POLARSSL_PLATFORM_C)
-#include "polarssl/platform.h"
-#else
-#define polarssl_fprintf fprintf
 #endif
 
 /* Implementation that should never be optimized out by the compiler */
@@ -84,7 +75,6 @@ typedef struct
     size_t          len;
     memory_header   *first;
     memory_header   *first_free;
-    size_t          current_alloc_size;
     int             verify;
 #if defined(POLARSSL_MEMORY_DEBUG)
     size_t          malloc_count;
@@ -277,7 +267,7 @@ static void *buffer_alloc_malloc( size_t len )
         polarssl_fprintf( stderr, "FATAL: block in free_list but allocated "
                                   "data\n" );
 #endif
-        exit( 1 );
+        polarssl_exit( 1 );
     }
 
 #if defined(POLARSSL_MEMORY_DEBUG)
@@ -316,7 +306,7 @@ static void *buffer_alloc_malloc( size_t len )
 #endif
 
         if( ( heap.verify & MEMORY_VERIFY_ALLOC ) && verify_chain() != 0 )
-            exit( 1 );
+            polarssl_exit( 1 );
 
         return( ( (unsigned char *) cur ) + sizeof(memory_header) );
     }
@@ -371,7 +361,7 @@ static void *buffer_alloc_malloc( size_t len )
 #endif
 
     if( ( heap.verify & MEMORY_VERIFY_ALLOC ) && verify_chain() != 0 )
-        exit( 1 );
+        polarssl_exit( 1 );
 
     return( ( (unsigned char *) cur ) + sizeof(memory_header) );
 }
@@ -390,14 +380,14 @@ static void buffer_alloc_free( void *ptr )
         polarssl_fprintf( stderr, "FATAL: polarssl_free() outside of managed "
                                   "space\n" );
 #endif
-        exit( 1 );
+        polarssl_exit( 1 );
     }
 
     p -= sizeof(memory_header);
     hdr = (memory_header *) p;
 
     if( verify_header( hdr ) != 0 )
-        exit( 1 );
+        polarssl_exit( 1 );
 
     if( hdr->alloc != 1 )
     {
@@ -405,7 +395,7 @@ static void buffer_alloc_free( void *ptr )
         polarssl_fprintf( stderr, "FATAL: polarssl_free() on unallocated "
                                   "data\n" );
 #endif
-        exit( 1 );
+        polarssl_exit( 1 );
     }
 
     hdr->alloc = 0;
@@ -484,7 +474,8 @@ static void buffer_alloc_free( void *ptr )
     if( old == NULL )
     {
         hdr->next_free = heap.first_free;
-        heap.first_free->prev_free = hdr;
+        if( heap.first_free != NULL )
+            heap.first_free->prev_free = hdr;
         heap.first_free = hdr;
     }
 
@@ -494,7 +485,7 @@ static void buffer_alloc_free( void *ptr )
 #endif
 
     if( ( heap.verify & MEMORY_VERIFY_FREE ) && verify_chain() != 0 )
-        exit( 1 );
+        polarssl_exit( 1 );
 }
 
 void memory_buffer_set_verify( int verify )
@@ -526,6 +517,24 @@ void memory_buffer_alloc_status()
         polarssl_fprintf( stderr, "Memory currently allocated:\n" );
         debug_chain();
     }
+}
+
+void memory_buffer_alloc_max_get( size_t *max_used, size_t *max_blocks )
+{
+    *max_used   = heap.maximum_used;
+    *max_blocks = heap.maximum_header_count;
+}
+
+void memory_buffer_alloc_max_reset( void )
+{
+    heap.maximum_used = 0;
+    heap.maximum_header_count = 0;
+}
+
+void memory_buffer_alloc_cur_get( size_t *cur_used, size_t *cur_blocks )
+{
+    *cur_used   = heap.total_used;
+    *cur_blocks = heap.header_count;
 }
 #endif /* POLARSSL_MEMORY_DEBUG */
 
@@ -562,9 +571,11 @@ int memory_buffer_alloc_init( unsigned char *buf, size_t len )
 
     if( (size_t) buf % POLARSSL_MEMORY_ALIGN_MULTIPLE )
     {
+        /* Adjust len first since buf is used in the computation */
+        len -= POLARSSL_MEMORY_ALIGN_MULTIPLE
+             - (size_t) buf % POLARSSL_MEMORY_ALIGN_MULTIPLE;
         buf += POLARSSL_MEMORY_ALIGN_MULTIPLE
              - (size_t) buf % POLARSSL_MEMORY_ALIGN_MULTIPLE;
-        len -= (size_t) buf % POLARSSL_MEMORY_ALIGN_MULTIPLE;
     }
 
     heap.buf = buf;
@@ -585,5 +596,139 @@ void memory_buffer_alloc_free()
 #endif
     polarssl_zeroize( &heap, sizeof(buffer_alloc_ctx) );
 }
+
+#if defined(POLARSSL_SELF_TEST)
+static int check_pointer( void *p )
+{
+    if( p == NULL )
+        return( -1 );
+
+    if( (size_t) p % POLARSSL_MEMORY_ALIGN_MULTIPLE != 0 )
+        return( -1 );
+
+    return( 0 );
+}
+
+static int check_all_free( )
+{
+    if(
+#if defined(POLARSSL_MEMORY_DEBUG)
+        heap.total_used != 0 ||
+#endif
+        heap.first != heap.first_free ||
+        (void *) heap.first != (void *) heap.buf )
+    {
+        return( -1 );
+    }
+
+    return( 0 );
+}
+
+#define TEST_ASSERT( condition )            \
+    if( ! (condition) )                     \
+    {                                       \
+        if( verbose != 0 )                  \
+            polarssl_printf( "failed\n" );  \
+                                            \
+        ret = 1;                            \
+        goto cleanup;                       \
+    }
+
+int memory_buffer_alloc_self_test( int verbose )
+{
+    unsigned char buf[1024];
+    unsigned char *p, *q, *r, *end;
+    int ret = 0;
+
+    if( verbose != 0 )
+        polarssl_printf( "  MBA test #1 (basic alloc-free cycle): " );
+
+    memory_buffer_alloc_init( buf, sizeof( buf ) );
+
+    p = polarssl_malloc( 1 );
+    q = polarssl_malloc( 128 );
+    r = polarssl_malloc( 16 );
+
+    TEST_ASSERT( check_pointer( p ) == 0 &&
+                 check_pointer( q ) == 0 &&
+                 check_pointer( r ) == 0 );
+
+    polarssl_free( r );
+    polarssl_free( q );
+    polarssl_free( p );
+
+    TEST_ASSERT( check_all_free( ) == 0 );
+
+    /* Memorize end to compare with the next test */
+    end = heap.buf + heap.len;
+
+    memory_buffer_alloc_free( );
+
+    if( verbose != 0 )
+        polarssl_printf( "passed\n" );
+
+    if( verbose != 0 )
+        polarssl_printf( "  MBA test #2 (buf not aligned): " );
+
+    memory_buffer_alloc_init( buf + 1, sizeof( buf ) - 1 );
+
+    TEST_ASSERT( heap.buf + heap.len == end );
+
+    p = polarssl_malloc( 1 );
+    q = polarssl_malloc( 128 );
+    r = polarssl_malloc( 16 );
+
+    TEST_ASSERT( check_pointer( p ) == 0 &&
+                 check_pointer( q ) == 0 &&
+                 check_pointer( r ) == 0 );
+
+    polarssl_free( r );
+    polarssl_free( q );
+    polarssl_free( p );
+
+    TEST_ASSERT( check_all_free( ) == 0 );
+
+    memory_buffer_alloc_free( );
+
+    if( verbose != 0 )
+        polarssl_printf( "passed\n" );
+
+    if( verbose != 0 )
+        polarssl_printf( "  MBA test #3 (full): " );
+
+    memory_buffer_alloc_init( buf, sizeof( buf ) );
+
+    p = polarssl_malloc( sizeof( buf ) - sizeof( memory_header ) );
+
+    TEST_ASSERT( check_pointer( p ) == 0 );
+    TEST_ASSERT( polarssl_malloc( 1 ) == NULL );
+
+    polarssl_free( p );
+
+    p = polarssl_malloc( sizeof( buf ) - 2 * sizeof( memory_header ) - 16 );
+    q = polarssl_malloc( 16 );
+
+    TEST_ASSERT( check_pointer( p ) == 0 && check_pointer( q ) == 0 );
+    TEST_ASSERT( polarssl_malloc( 1 ) == NULL );
+
+    polarssl_free( q );
+
+    TEST_ASSERT( polarssl_malloc( 17 ) == NULL );
+
+    polarssl_free( p );
+
+    TEST_ASSERT( check_all_free( ) == 0 );
+
+    memory_buffer_alloc_free( );
+
+    if( verbose != 0 )
+        polarssl_printf( "passed\n" );
+
+cleanup:
+    memory_buffer_alloc_free( );
+
+    return( ret );
+}
+#endif /* POLARSSL_SELF_TEST */
 
 #endif /* POLARSSL_MEMORY_BUFFER_ALLOC_C */

@@ -1,12 +1,9 @@
 /*
  *  RFC 1321 compliant MD5 implementation
  *
- *  Copyright (C) 2006-2014, Brainspark B.V.
+ *  Copyright (C) 2006-2014, ARM Limited, All Rights Reserved
  *
- *  This file is part of PolarSSL (http://www.polarssl.org)
- *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
- *
- *  All rights reserved.
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -38,22 +35,27 @@
 
 #include "polarssl/md5.h"
 
-#if defined(POLARSSL_FS_IO) || defined(POLARSSL_SELF_TEST)
+#include <string.h>
+
+#if defined(POLARSSL_FS_IO)
 #include <stdio.h>
 #endif
 
+#if defined(POLARSSL_SELF_TEST)
 #if defined(POLARSSL_PLATFORM_C)
 #include "polarssl/platform.h"
 #else
+#include <stdio.h>
 #define polarssl_printf printf
-#endif
+#endif /* POLARSSL_PLATFORM_C */
+#endif /* POLARSSL_SELF_TEST */
+
+#if !defined(POLARSSL_MD5_ALT)
 
 /* Implementation that should never be optimized out by the compiler */
 static void polarssl_zeroize( void *v, size_t n ) {
     volatile unsigned char *p = v; while( n-- ) *p++ = 0;
 }
-
-#if !defined(POLARSSL_MD5_ALT)
 
 /*
  * 32-bit integer manipulation macros (little endian)
@@ -69,12 +71,12 @@ static void polarssl_zeroize( void *v, size_t n ) {
 #endif
 
 #ifndef PUT_UINT32_LE
-#define PUT_UINT32_LE(n,b,i)                            \
-{                                                       \
-    (b)[(i)    ] = (unsigned char) ( (n)       );       \
-    (b)[(i) + 1] = (unsigned char) ( (n) >>  8 );       \
-    (b)[(i) + 2] = (unsigned char) ( (n) >> 16 );       \
-    (b)[(i) + 3] = (unsigned char) ( (n) >> 24 );       \
+#define PUT_UINT32_LE(n,b,i)                                    \
+{                                                               \
+    (b)[(i)    ] = (unsigned char) ( ( (n)       ) & 0xFF );    \
+    (b)[(i) + 1] = (unsigned char) ( ( (n) >>  8 ) & 0xFF );    \
+    (b)[(i) + 2] = (unsigned char) ( ( (n) >> 16 ) & 0xFF );    \
+    (b)[(i) + 3] = (unsigned char) ( ( (n) >> 24 ) & 0xFF );    \
 }
 #endif
 
@@ -441,7 +443,7 @@ void md5_hmac( const unsigned char *key, size_t keylen,
 /*
  * RFC 1321 test vectors
  */
-static unsigned char md5_test_buf[7][81] =
+static const unsigned char md5_test_buf[7][81] =
 {
     { "" },
     { "a" },
@@ -479,7 +481,7 @@ static const unsigned char md5_test_sum[7][16] =
 /*
  * RFC 2202 test vectors
  */
-static unsigned char md5_hmac_test_key[7][26] =
+static const unsigned char md5_hmac_test_key[7][26] =
 {
     { "\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B" },
     { "Jefe" },
@@ -496,7 +498,7 @@ static const int md5_hmac_test_keylen[7] =
     16, 4, 16, 25, 16, 80, 80
 };
 
-static unsigned char md5_hmac_test_buf[7][74] =
+static const unsigned char md5_hmac_test_buf[7][74] =
 {
     { "Hi There" },
     { "what do ya want for nothing?" },
@@ -578,7 +580,7 @@ int md5_self_test( int verbose )
 
         if( i == 5 || i == 6 )
         {
-            memset( buf, '\xAA', buflen = 80 );
+            memset( buf, 0xAA, buflen = 80 );
             md5_hmac_starts( &ctx, buf, buflen );
         }
         else

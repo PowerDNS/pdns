@@ -1,16 +1,13 @@
 /**
  * \file cipher.c
  *
- * \brief Generic cipher wrapper for PolarSSL
+ * \brief Generic cipher wrapper for mbed TLS
  *
  * \author Adriaan de Jong <dejong@fox-it.com>
  *
- *  Copyright (C) 2006-2014, Brainspark B.V.
+ *  Copyright (C) 2006-2014, ARM Limited, All Rights Reserved
  *
- *  This file is part of PolarSSL (http://www.polarssl.org)
- *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
- *
- *  All rights reserved.
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -38,6 +35,9 @@
 #include "polarssl/cipher.h"
 #include "polarssl/cipher_wrap.h"
 
+#include <stdlib.h>
+#include <string.h>
+
 #if defined(POLARSSL_GCM_C)
 #include "polarssl/gcm.h"
 #endif
@@ -45,8 +45,6 @@
 #if defined(POLARSSL_CCM_C)
 #include "polarssl/ccm.h"
 #endif
-
-#include <stdlib.h>
 
 #if defined(POLARSSL_ARC4_C) || defined(POLARSSL_CIPHER_NULL_CIPHER)
 #define POLARSSL_CIPHER_MODE_STREAM
@@ -167,13 +165,14 @@ int cipher_init_ctx( cipher_context_t *ctx, const cipher_info_t *cipher_info )
     return( 0 );
 }
 
-/* Deprecated, redirects to cipher_free() */
+#if ! defined(POLARSSL_DEPRECATED_REMOVED)
 int cipher_free_ctx( cipher_context_t *ctx )
 {
     cipher_free( ctx );
 
     return( 0 );
 }
+#endif
 
 int cipher_setkey( cipher_context_t *ctx, const unsigned char *key,
         int key_length, const operation_t operation )

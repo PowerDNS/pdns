@@ -1,16 +1,13 @@
 /**
  * \file md.c
  *
- * \brief Generic message digest wrapper for PolarSSL
+ * \brief Generic message digest wrapper for mbed TLS
  *
  * \author Adriaan de Jong <dejong@fox-it.com>
  *
- *  Copyright (C) 2006-2014, Brainspark B.V.
+ *  Copyright (C) 2006-2014, ARM Limited, All Rights Reserved
  *
- *  This file is part of PolarSSL (http://www.polarssl.org)
- *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
- *
- *  All rights reserved.
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -39,6 +36,7 @@
 #include "polarssl/md_wrap.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 #if defined(_MSC_VER) && !defined strcasecmp && !defined(EFIX64) && \
     !defined(EFI32)
@@ -205,12 +203,14 @@ int md_init_ctx( md_context_t *ctx, const md_info_t *md_info )
     return( 0 );
 }
 
+#if ! defined(POLARSSL_DEPRECATED_REMOVED)
 int md_free_ctx( md_context_t *ctx )
 {
     md_free( ctx );
 
     return( 0 );
 }
+#endif
 
 int md_starts( md_context_t *ctx )
 {

@@ -3,12 +3,9 @@
  *
  * \brief SHA-384 and SHA-512 cryptographic hash function
  *
- *  Copyright (C) 2006-2014, Brainspark B.V.
+ *  Copyright (C) 2006-2014, ARM Limited, All Rights Reserved
  *
- *  This file is part of PolarSSL (http://www.polarssl.org)
- *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
- *
- *  All rights reserved.
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -33,14 +30,12 @@
 #include POLARSSL_CONFIG_FILE
 #endif
 
-#include <string.h>
+#include <stddef.h>
 
 #if defined(_MSC_VER) || defined(__WATCOMC__)
-  #define UL64(x) x##ui64
   typedef unsigned __int64 uint64_t;
 #else
   #include <inttypes.h>
-  #define UL64(x) x##ULL
 #endif
 
 #define POLARSSL_ERR_SHA512_FILE_IO_ERROR              -0x007A  /**< Read/write error in file. */

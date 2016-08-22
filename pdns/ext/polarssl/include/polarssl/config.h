@@ -3,12 +3,9 @@
  *
  * \brief Configuration options (set of defines)
  *
- *  Copyright (C) 2006-2014, Brainspark B.V.
+ *  Copyright (C) 2006-2014, ARM Limited, All Rights Reserved
  *
- *  This file is part of PolarSSL (http://www.polarssl.org)
- *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
- *
- *  All rights reserved.
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -47,6 +44,10 @@
  *
  * The system uses 8-bit wide native integers.
  *
+ * \deprecated The compiler should be able to generate code for 32-bit
+ * arithmetic (required by C89). This code is likely to be at least as
+ * efficient as ours.
+ *
  * Uncomment if native integers are 8-bit wide.
  */
 //#define POLARSSL_HAVE_INT8
@@ -55,6 +56,10 @@
  * \def POLARSSL_HAVE_INT16
  *
  * The system uses 16-bit wide native integers.
+ *
+ * \deprecated The compiler should be able to generate code for 32-bit
+ * arithmetic (required by C89). This code is likely to be at least as
+ * efficient as ours.
  *
  * Uncomment if native integers are 16-bit wide.
  */
@@ -110,6 +115,9 @@
  *
  * Note: on Windows/MingW, XP or higher is required.
  *
+ * \warning As of 1.3.11, *not* using this flag when POLARSSL_NET_C is
+ * defined, is deprecated. The alternative legacy code will be removed in 2.0.
+ *
  * Comment if your system does not support the IPv6 socket interface
  */
 #define POLARSSL_HAVE_IPV6
@@ -119,12 +127,18 @@
  *
  * Enable the memory allocation layer.
  *
- * By default PolarSSL uses the system-provided malloc() and free().
+ * By default mbed TLS uses the system-provided malloc() and free().
  * This allows different allocators (self-implemented or provided) to be
  * provided to the platform abstraction layer.
  *
- * Enabling POLARSSL_PLATFORM_MEMORY will provide "platform_set_malloc_free()"
- * to allow you to set an alternative malloc() and free() function pointer.
+ * Enabling POLARSSL_PLATFORM_MEMORY without the
+ * POLARSSL_PLATFORM_{FREE,MALLOC}_MACROs will provide
+ * "platform_set_malloc_free()" allowing you to set an alternative malloc() and
+ * free() function pointer at runtime.
+ *
+ * Enabling POLARSSL_PLATFORM_MEMORY and specifying
+ * POLARSSL_PLATFORM_{MALLOC,FREE}_MACROs will allow you to specify the
+ * alternate function at compile time.
  *
  * Requires: POLARSSL_PLATFORM_C
  *
@@ -141,7 +155,8 @@
  * This makes sure there are no linking errors on platforms that do not support
  * these functions. You will HAVE to provide alternatives, either at runtime
  * via the platform_set_xxx() functions or at compile time by setting
- * the POLARSSL_PLATFORM_STD_XXX defines.
+ * the POLARSSL_PLATFORM_STD_XXX defines, or enabling a
+ * POLARSSL_PLATFORM_XXX_MACRO.
  *
  * Requires: POLARSSL_PLATFORM_C
  *
@@ -153,24 +168,60 @@
 /**
  * \def POLARSSL_PLATFORM_XXX_ALT
  *
- * Uncomment a macro to let PolarSSL support the function in the platform
+ * Uncomment a macro to let mbed TLS support the function in the platform
  * abstraction layer.
  *
- * Example: In case you uncomment POLARSSL_PLATFORM_PRINTF_ALT, PolarSSL will
+ * Example: In case you uncomment POLARSSL_PLATFORM_PRINTF_ALT, mbed TLS will
  * provide a function "platform_set_printf()" that allows you to set an
  * alternative printf function pointer.
  *
  * All these define require POLARSSL_PLATFORM_C to be defined!
  *
+ * WARNING: POLARSSL_PLATFORM_SNPRINTF_ALT is not available on Windows
+ * for compatibility reasons.
+ *
+ * WARNING: POLARSSL_PLATFORM_XXX_ALT cannot be defined at the same time as
+ * POLARSSL_PLATFORM_XXX_MACRO!
+ *
  * Uncomment a macro to enable alternate implementation of specific base
  * platform function
  */
-//#define POLARSSL_PLATFORM_PRINTF_ALT
+//#define POLARSSL_PLATFORM_EXIT_ALT
 //#define POLARSSL_PLATFORM_FPRINTF_ALT
+//#define POLARSSL_PLATFORM_PRINTF_ALT
+//#define POLARSSL_PLATFORM_SNPRINTF_ALT
+
+/**
+ * \def POLARSSL_DEPRECATED_WARNING
+ *
+ * Mark deprecated functions so that they generate a warning if used.
+ * Functions deprecated in one version will usually be removed in the next
+ * version. You can enable this to help you prepare the transition to a new
+ * major version by making sure your code is not using these functions.
+ *
+ * This only works with GCC and Clang. With other compilers, you may want to
+ * use POLARSSL_DEPRECATED_REMOVED
+ *
+ * Uncomment to get warnings on using deprecated functions.
+ */
+//#define POLARSSL_DEPRECATED_WARNING
+
+/**
+ * \def POLARSSL_DEPRECATED_REMOVED
+ *
+ * Remove deprecated functions so that they generate an error if used.
+ * Functions deprecated in one version will usually be removed in the next
+ * version. You can enable this to help you prepare the transition to a new
+ * major version by making sure your code is not using these functions.
+ *
+ * Uncomment to get errors on using deprecated functions.
+ */
+//#define POLARSSL_DEPRECATED_REMOVED
+
 /* \} name SECTION: System support */
 
 /**
- * \name SECTION: PolarSSL feature support
+ * \name SECTION: mbed TLS feature support
  *
  * This section sets support for features that are or are not needed
  * within the modules that are enabled.
@@ -193,12 +244,12 @@
 /**
  * \def POLARSSL_XXX_ALT
  *
- * Uncomment a macro to let PolarSSL use your alternate core implementation of
+ * Uncomment a macro to let mbed TLS use your alternate core implementation of
  * a symmetric or hash algorithm (e.g. platform specific assembly optimized
  * implementations). Keep in mind that the function prototypes should remain
  * the same.
  *
- * Example: In case you uncomment POLARSSL_AES_ALT, PolarSSL will no longer
+ * Example: In case you uncomment POLARSSL_AES_ALT, mbed TLS will no longer
  * provide the "struct aes_context" definition and omit the base function
  * declarations and implementations. "aes_alt.h" will be included from
  * "aes.h" to include the new function definitions.
@@ -226,9 +277,17 @@
  * Store the AES tables in ROM.
  *
  * Uncomment this macro to store the AES tables in ROM.
- *
  */
 //#define POLARSSL_AES_ROM_TABLES
+
+/**
+ * \def POLARSSL_CAMELLIA_SMALL_MEMORY
+ *
+ * Use less ROM for the Camellia implementation (saves about 768 bytes).
+ *
+ * Uncomment this macro to use less memory for Camellia.
+ */
+//#define POLARSSL_CAMELLIA_SMALL_MEMORY
 
 /**
  * \def POLARSSL_CIPHER_MODE_CBC
@@ -638,11 +697,9 @@
  * Make available the backward compatible error_strerror() next to the
  * current polarssl_strerror().
  *
- * For new code, it is recommended to use polarssl_strerror() instead and
- * disable this.
+ * \deprecated Do not define this and use polarssl_strerror() instead
  *
- * Disable if you run into name conflicts and want to really remove the
- * error_strerror()
+ * Disable if you want to really remove the error_strerror() name
  */
 #define POLARSSL_ERROR_STRERROR_BC
 
@@ -782,10 +839,22 @@
 #define POLARSSL_SELF_TEST
 
 /**
+ * \def POLARSSL_SSL_AEAD_RANDOM_IV
+ *
+ * Generate a random IV rather than using the record sequence number as a
+ * nonce for ciphersuites using and AEAD algorithm (GCM or CCM).
+ *
+ * Using the sequence number is generally recommended.
+ *
+ * Uncomment this macro to always use random IVs with AEAD ciphersuites.
+ */
+//#define POLARSSL_SSL_AEAD_RANDOM_IV
+
+/**
  * \def POLARSSL_SSL_ALL_ALERT_MESSAGES
  *
  * Enable sending of alert messages in case of encountered errors as per RFC.
- * If you choose not to send the alert messages, PolarSSL can still communicate
+ * If you choose not to send the alert messages, mbed TLS can still communicate
  * with other servers, only debugging of failures is harder.
  *
  * The advantage of not sending alert messages, is that no information is given
@@ -811,6 +880,59 @@
  */
 //#define POLARSSL_SSL_DEBUG_ALL
 
+/** \def POLARSSL_SSL_ENCRYPT_THEN_MAC
+ *
+ * Enable support for Encrypt-then-MAC, RFC 7366.
+ *
+ * This allows peers that both support it to use a more robust protection for
+ * ciphersuites using CBC, providing deep resistance against timing attacks
+ * on the padding or underlying cipher.
+ *
+ * This only affects CBC ciphersuites, and is useless if none is defined.
+ *
+ * Requires: POLARSSL_SSL_PROTO_TLS1    or
+ *           POLARSSL_SSL_PROTO_TLS1_1  or
+ *           POLARSSL_SSL_PROTO_TLS1_2
+ *
+ * Comment this macro to disable support for Encrypt-then-MAC
+ */
+#define POLARSSL_SSL_ENCRYPT_THEN_MAC
+
+/** \def POLARSSL_SSL_EXTENDED_MASTER_SECRET
+ *
+ * Enable support for Extended Master Secret, aka Session Hash
+ * (draft-ietf-tls-session-hash-02).
+ *
+ * This was introduced as "the proper fix" to the Triple Handshake familiy of
+ * attacks, but it is recommended to always use it (even if you disable
+ * renegotiation), since it actually fixes a more fundamental issue in the
+ * original SSL/TLS design, and has implications beyond Triple Handshake.
+ *
+ * Requires: POLARSSL_SSL_PROTO_TLS1    or
+ *           POLARSSL_SSL_PROTO_TLS1_1  or
+ *           POLARSSL_SSL_PROTO_TLS1_2
+ *
+ * Comment this macro to disable support for Extended Master Secret.
+ */
+#define POLARSSL_SSL_EXTENDED_MASTER_SECRET
+
+/**
+ * \def POLARSSL_SSL_FALLBACK_SCSV
+ *
+ * Enable support for FALLBACK_SCSV (draft-ietf-tls-downgrade-scsv-00).
+ *
+ * For servers, it is recommended to always enable this, unless you support
+ * only one version of TLS, or know for sure that none of your clients
+ * implements a fallback strategy.
+ *
+ * For clients, you only need this if you're using a fallback strategy, which
+ * is not recommended in the first place, unless you absolutely need it to
+ * interoperate with buggy (version-intolerant) servers.
+ *
+ * Comment this macro to disable support for FALLBACK_SCSV
+ */
+#define POLARSSL_SSL_FALLBACK_SCSV
+
 /**
  * \def POLARSSL_SSL_HW_RECORD_ACCEL
  *
@@ -820,6 +942,36 @@
  * Uncomment this macro to enable hooking functions.
  */
 //#define POLARSSL_SSL_HW_RECORD_ACCEL
+
+/**
+ * \def POLARSSL_SSL_CBC_RECORD_SPLITTING
+ *
+ * Enable 1/n-1 record splitting for CBC mode in SSLv3 and TLS 1.0.
+ *
+ * This is a countermeasure to the BEAST attack, which also minimizes the risk
+ * of interoperability issues compared to sending 0-length records.
+ *
+ * Comment this macro to disable 1/n-1 record splitting.
+ */
+#define POLARSSL_SSL_CBC_RECORD_SPLITTING
+
+/**
+ * \def POLARSSL_SSL_DISABLE_RENEGOTIATION
+ *
+ * Disable support for TLS renegotiation.
+ *
+ * The two main uses of renegotiation are (1) refresh keys on long-lived
+ * connections and (2) client authentication after the initial handshake.
+ * If you don't need renegotiation, it's probably better to disable it, since
+ * it has been associated with security issues in the past and is easy to
+ * misuse/misunderstand.
+ *
+ * Warning: in the next stable branch, this switch will be replaced by
+ * POLARSSL_SSL_RENEGOTIATION to enable support for renegotiation.
+ *
+ * Uncomment this to disable support for renegotiation.
+ */
+//#define POLARSSL_SSL_DISABLE_RENEGOTIATION
 
 /**
  * \def POLARSSL_SSL_SRV_SUPPORT_SSLV2_CLIENT_HELLO
@@ -860,7 +1012,7 @@
  *
  * Comment this macro to disable support for SSL 3.0
  */
-#define POLARSSL_SSL_PROTO_SSL3
+//#define POLARSSL_SSL_PROTO_SSL3
 
 /**
  * \def POLARSSL_SSL_PROTO_TLS1
@@ -901,8 +1053,7 @@
 /**
  * \def POLARSSL_SSL_ALPN
  *
- * Enable support for Application Layer Protocol Negotiation.
- * draft-ietf-tls-applayerprotoneg-05
+ * Enable support for RFC 7301 Application Layer Protocol Negotiation.
  *
  * Comment this macro to disable support for ALPN.
  */
@@ -926,6 +1077,8 @@
  *
  * Enable support for RFC 6066 server name indication (SNI) in SSL.
  *
+ * Requires: POLARSSL_X509_CRT_PARSE_C
+ *
  * Comment this macro to disable support for server name indication in SSL
  */
 #define POLARSSL_SSL_SERVER_NAME_INDICATION
@@ -938,6 +1091,19 @@
  * Comment this macro to disable support for truncated HMAC in SSL
  */
 #define POLARSSL_SSL_TRUNCATED_HMAC
+
+/**
+ * \def POLARSSL_SSL_ENABLE_MD5_SIGNATURES
+ *
+ * Offer, accept and do MD5-based signatures in the TLS 1.2 handshake.
+ * Has no effect on which algorithms are accepted for certificates.
+ * Has no effect on other SSL/TLS versions.
+ *
+ * \warning Enabling this could be a security risk!
+ *
+ * Uncomment to enable MD5 signatures in TLS 1.2
+ */
+//#define POLARSSL_SSL_ENABLE_MD5_SIGNATURES
 
 /**
  * \def POLARSSL_SSL_SET_CURVES
@@ -973,7 +1139,7 @@
  *
  * Uncomment this to enable pthread mutexes.
  */
-//#define POLARSSL_THREADING_PTHREAD
+#define POLARSSL_THREADING_PTHREAD
 
 /**
  * \def POLARSSL_VERSION_FEATURES
@@ -1003,6 +1169,8 @@
  *
  * If set, the X509 parser will not break-off when parsing an X509 certificate
  * and encountering an unknown critical extension.
+ *
+ * \warning Depending on your PKI use, enabling this can be a security risk!
  *
  * Uncomment to prevent an error.
  */
@@ -1064,12 +1232,12 @@
  * Uncomment to enable use of ZLIB
  */
 //#define POLARSSL_ZLIB_SUPPORT
-/* \} name SECTION: PolarSSL feature support */
+/* \} name SECTION: mbed TLS feature support */
 
 /**
- * \name SECTION: PolarSSL modules
+ * \name SECTION: mbed TLS modules
  *
- * This section enables or disables entire modules in PolarSSL
+ * This section enables or disables entire modules in mbed TLS
  * \{
  */
 
@@ -1587,7 +1755,10 @@
 
 /**
  * \def POLARSSL_MEMORY_C
- * Deprecated since 1.3.5. Please use POLARSSL_PLATFORM_MEMORY instead.
+ *
+ * \deprecated Use POLARSSL_PLATFORM_MEMORY instead.
+ *
+ * Depends on: POLARSSL_PLATFORM_C
  */
 //#define POLARSSL_MEMORY_C
 
@@ -1601,7 +1772,7 @@
  * Module:  library/memory_buffer_alloc.c
  *
  * Requires: POLARSSL_PLATFORM_C
- *           POLARSSL_PLATFORM_MEMORY (to use it within PolarSSL)
+ *           POLARSSL_PLATFORM_MEMORY (to use it within mbed TLS)
  *
  * Enable this module to enable the buffer memory allocator.
  */
@@ -1611,6 +1782,9 @@
  * \def POLARSSL_NET_C
  *
  * Enable the TCP/IP networking routines.
+ *
+ * \warning As of 1.3.11, it is deprecated to enable this module without
+ * POLARSSL_HAVE_IPV6. The alternative legacy code will be removed in 2.0.
  *
  * Module:  library/net.c
  *
@@ -1659,7 +1833,8 @@
  * \def POLARSSL_PBKDF2_C
  *
  * Enable PKCS#5 PBKDF2 key derivation function.
- * DEPRECATED: Use POLARSSL_PKCS5_C instead
+ *
+ * \deprecated Use POLARSSL_PKCS5_C instead
  *
  * Module:  library/pbkdf2.c
  *
@@ -1796,7 +1971,11 @@
  * \def POLARSSL_PLATFORM_C
  *
  * Enable the platform abstraction layer that allows you to re-assign
- * functions like malloc(), free(), printf(), fprintf()
+ * functions like malloc(), free(), snprintf(), printf(), fprintf(), exit()
+ *
+ * Enabling POLARSSL_PLATFORM_C enables to use of POLARSSL_PLATFORM_XXX_ALT
+ * or POLARSSL_PLATFORM_XXX_MACRO directives, allowing the functions mentioned
+ * above to be specified at runtime or compile time respectively.
  *
  * Module:  library/platform.c
  * Caller:  Most other .c files
@@ -1944,7 +2123,7 @@
  * \def POLARSSL_THREADING_C
  *
  * Enable the threading abstraction layer.
- * By default PolarSSL assumes it is used in a non-threaded environment or that
+ * By default mbed TLS assumes it is used in a non-threaded environment or that
  * contexts are not shared between threads. If you do intend to use contexts
  * between threads, you will need to enable this layer to prevent race
  * conditions.
@@ -1957,9 +2136,9 @@
  * You will have to enable either POLARSSL_THREADING_ALT or
  * POLARSSL_THREADING_PTHREAD.
  *
- * Enable this layer to allow use of mutexes within PolarSSL
+ * Enable this layer to allow use of mutexes within mbed TLS
  */
-//#define POLARSSL_THREADING_C
+#define POLARSSL_THREADING_C
 
 /**
  * \def POLARSSL_TIMING_C
@@ -2094,7 +2273,7 @@
  */
 #define POLARSSL_XTEA_C
 
-/* \} name SECTION: PolarSSL modules */
+/* \} name SECTION: mbed TLS modules */
 
 /**
  * \name SECTION: Module configuration options
@@ -2141,11 +2320,22 @@
 //#define POLARSSL_MEMORY_ALIGN_MULTIPLE      4 /**< Align on multiples of this value */
 
 /* Platform options */
-//#define POLARSSL_PLATFORM_STD_MEM_HDR <stdlib.h> /**< Header to include if POLARSSL_PLATFORM_NO_STD_FUNCTIONS is defined. Don't define if no header is needed. */
-//#define POLARSSL_PLATFORM_STD_MALLOC   malloc /**< Default allocator to use, can be undefined */
-//#define POLARSSL_PLATFORM_STD_FREE       free /**< Default free to use, can be undefined */
-//#define POLARSSL_PLATFORM_STD_PRINTF   printf /**< Default printf to use, can be undefined */
-//#define POLARSSL_PLATFORM_STD_FPRINTF fprintf /**< Default fprintf to use, can be undefined */
+//#define POLARSSL_PLATFORM_STD_MEM_HDR   <stdlib.h> /**< Header to include if POLARSSL_PLATFORM_NO_STD_FUNCTIONS is defined. Don't define if no header is needed. */
+//#define POLARSSL_PLATFORM_STD_MALLOC        malloc /**< Default allocator to use, can be undefined */
+//#define POLARSSL_PLATFORM_STD_FREE            free /**< Default free to use, can be undefined */
+//#define POLARSSL_PLATFORM_STD_EXIT            exit /**< Default exit to use, can be undefined */
+//#define POLARSSL_PLATFORM_STD_FPRINTF      fprintf /**< Default fprintf to use, can be undefined */
+//#define POLARSSL_PLATFORM_STD_PRINTF        printf /**< Default printf to use, can be undefined */
+//#define POLARSSL_PLATFORM_STD_SNPRINTF    snprintf /**< Default snprintf to use, can be undefined */
+
+/* To Use Function Macros POLARSSL_PLATFORM_C must be enabled */
+/* POLARSSL_PLATFORM_XXX_MACRO and POLARSSL_PLATFORM_XXX_ALT cannot both be defined */
+//#define POLARSSL_PLATFORM_MALLOC_MACRO        malloc /**< Default allocator macro to use, can be undefined */
+//#define POLARSSL_PLATFORM_FREE_MACRO            free /**< Default free macro to use, can be undefined */
+//#define POLARSSL_PLATFORM_EXIT_MACRO            exit /**< Default exit macro to use, can be undefined */
+//#define POLARSSL_PLATFORM_FPRINTF_MACRO      fprintf /**< Default fprintf macro to use, can be undefined */
+//#define POLARSSL_PLATFORM_PRINTF_MACRO        printf /**< Default printf macro to use, can be undefined */
+//#define POLARSSL_PLATFORM_SNPRINTF_MACRO    snprintf /**< Default snprintf macro to use, can be undefined */
 
 /* SSL Cache options */
 //#define SSL_CACHE_DEFAULT_TIMEOUT       86400 /**< 1 day  */
@@ -2153,6 +2343,7 @@
 
 /* SSL options */
 //#define SSL_MAX_CONTENT_LEN             16384 /**< Size of the input / output buffer */
+//#define SSL_MIN_DHM_BYTES                 128 /**< Min size of the Diffie-Hellman prime */
 //#define SSL_DEFAULT_TICKET_LIFETIME     86400 /**< Lifetime of session tickets (if enabled) */
 //#define POLARSSL_PSK_MAX_LEN               32 /**< Max size of TLS pre-shared keys, in bytes (default 256 bits) */
 
@@ -2172,6 +2363,9 @@
 
 /* Debug options */
 //#define POLARSSL_DEBUG_DFL_MODE POLARSSL_DEBUG_LOG_FULL /**< Default log: Full or Raw */
+
+/* X509 options */
+//#define POLARSSL_X509_MAX_INTERMEDIATE_CA   8   /**< Maximum number of intermediate CAs in a verification chain. */
 
 /* \} name SECTION: Module configuration options */
 

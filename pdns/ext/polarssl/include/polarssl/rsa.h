@@ -3,12 +3,9 @@
  *
  * \brief The RSA public-key cryptosystem
  *
- *  Copyright (C) 2006-2014, Brainspark B.V.
+ *  Copyright (C) 2006-2014, ARM Limited, All Rights Reserved
  *
- *  This file is part of PolarSSL (http://www.polarssl.org)
- *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
- *
- *  All rights reserved.
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -46,7 +43,7 @@
 #define POLARSSL_ERR_RSA_BAD_INPUT_DATA                    -0x4080  /**< Bad input parameters to function. */
 #define POLARSSL_ERR_RSA_INVALID_PADDING                   -0x4100  /**< Input data contains invalid padding and is rejected. */
 #define POLARSSL_ERR_RSA_KEY_GEN_FAILED                    -0x4180  /**< Something failed during generation of a key. */
-#define POLARSSL_ERR_RSA_KEY_CHECK_FAILED                  -0x4200  /**< Key failed to pass the libraries validity check. */
+#define POLARSSL_ERR_RSA_KEY_CHECK_FAILED                  -0x4200  /**< Key failed to pass the library's validity check. */
 #define POLARSSL_ERR_RSA_PUBLIC_FAILED                     -0x4280  /**< The public key operation failed. */
 #define POLARSSL_ERR_RSA_PRIVATE_FAILED                    -0x4300  /**< The private key operation failed. */
 #define POLARSSL_ERR_RSA_VERIFY_FAILED                     -0x4380  /**< The PKCS#1 verification failed. */
@@ -99,10 +96,8 @@ typedef struct
     mpi RP;                     /*!<  cached R^2 mod P  */
     mpi RQ;                     /*!<  cached R^2 mod Q  */
 
-#if !defined(POLARSSL_RSA_NO_CRT)
     mpi Vi;                     /*!<  cached blinding value     */
     mpi Vf;                     /*!<  cached un-blinding value  */
-#endif
 
     int padding;                /*!<  RSA_PKCS_V15 for 1.5 padding and
                                       RSA_PKCS_v21 for OAEP/PSS         */
@@ -192,7 +187,19 @@ int rsa_check_pubkey( const rsa_context *ctx );
 int rsa_check_privkey( const rsa_context *ctx );
 
 /**
+ * \brief          Check a public-private RSA key pair.
+ *                 Check each of the contexts, and make sure they match.
+ *
+ * \param pub      RSA context holding the public key
+ * \param prv      RSA context holding the private key
+ *
+ * \return         0 if successful, or an POLARSSL_ERR_RSA_XXX error code
+ */
+int rsa_check_pub_priv( const rsa_context *pub, const rsa_context *prv );
+
+/**
  * \brief          Do an RSA public key operation
+ *                 (Thread-safe if POLARSSL_THREADING_C is enabled)
  *
  * \param ctx      RSA context
  * \param input    input buffer
@@ -213,6 +220,7 @@ int rsa_public( rsa_context *ctx,
 
 /**
  * \brief          Do an RSA private key operation
+ *                 (Thread-safe if POLARSSL_THREADING_C is enabled)
  *
  * \param ctx      RSA context
  * \param f_rng    RNG function (Needed for blinding)
@@ -235,6 +243,7 @@ int rsa_private( rsa_context *ctx,
  * \brief          Generic wrapper to perform a PKCS#1 encryption using the
  *                 mode from the context. Add the message padding, then do an
  *                 RSA operation.
+ *                 (Thread-safe if POLARSSL_THREADING_C is enabled)
  *
  * \param ctx      RSA context
  * \param f_rng    RNG function (Needed for padding and PKCS#1 v2.1 encoding
@@ -259,6 +268,7 @@ int rsa_pkcs1_encrypt( rsa_context *ctx,
 
 /**
  * \brief          Perform a PKCS#1 v1.5 encryption (RSAES-PKCS1-v1_5-ENCRYPT)
+ *                 (Thread-safe if POLARSSL_THREADING_C is enabled)
  *
  * \param ctx      RSA context
  * \param f_rng    RNG function (Needed for padding and RSA_PRIVATE)
@@ -282,6 +292,7 @@ int rsa_rsaes_pkcs1_v15_encrypt( rsa_context *ctx,
 
 /**
  * \brief          Perform a PKCS#1 v2.1 OAEP encryption (RSAES-OAEP-ENCRYPT)
+ *                 (Thread-safe if POLARSSL_THREADING_C is enabled)
  *
  * \param ctx      RSA context
  * \param f_rng    RNG function (Needed for padding and PKCS#1 v2.1 encoding
@@ -312,6 +323,7 @@ int rsa_rsaes_oaep_encrypt( rsa_context *ctx,
  * \brief          Generic wrapper to perform a PKCS#1 decryption using the
  *                 mode from the context. Do an RSA operation, then remove
  *                 the message padding
+ *                 (Thread-safe if POLARSSL_THREADING_C is enabled)
  *
  * \param ctx      RSA context
  * \param f_rng    RNG function (Only needed for RSA_PRIVATE)
@@ -338,6 +350,7 @@ int rsa_pkcs1_decrypt( rsa_context *ctx,
 
 /**
  * \brief          Perform a PKCS#1 v1.5 decryption (RSAES-PKCS1-v1_5-DECRYPT)
+ *                 (Thread-safe if POLARSSL_THREADING_C is enabled)
  *
  * \param ctx      RSA context
  * \param f_rng    RNG function (Only needed for RSA_PRIVATE)
@@ -364,6 +377,7 @@ int rsa_rsaes_pkcs1_v15_decrypt( rsa_context *ctx,
 
 /**
  * \brief          Perform a PKCS#1 v2.1 OAEP decryption (RSAES-OAEP-DECRYPT)
+ *                 (Thread-safe if POLARSSL_THREADING_C is enabled)
  *
  * \param ctx      RSA context
  * \param f_rng    RNG function (Only needed for RSA_PRIVATE)
@@ -396,6 +410,7 @@ int rsa_rsaes_oaep_decrypt( rsa_context *ctx,
  * \brief          Generic wrapper to perform a PKCS#1 signature using the
  *                 mode from the context. Do a private RSA operation to sign
  *                 a message digest
+ *                 (Thread-safe if POLARSSL_THREADING_C is enabled)
  *
  * \param ctx      RSA context
  * \param f_rng    RNG function (Needed for PKCS#1 v2.1 encoding and for
@@ -454,6 +469,7 @@ int rsa_rsassa_pkcs1_v15_sign( rsa_context *ctx,
 
 /**
  * \brief          Perform a PKCS#1 v2.1 PSS signature (RSASSA-PSS-SIGN)
+ *                 (Thread-safe if POLARSSL_THREADING_C is enabled)
  *
  * \param ctx      RSA context
  * \param f_rng    RNG function (Needed for PKCS#1 v2.1 encoding and for
@@ -489,6 +505,7 @@ int rsa_rsassa_pss_sign( rsa_context *ctx,
  * \brief          Generic wrapper to perform a PKCS#1 verification using the
  *                 mode from the context. Do a public RSA operation and check
  *                 the message digest
+ *                 (Thread-safe if POLARSSL_THREADING_C is enabled)
  *
  * \param ctx      points to an RSA public key
  * \param f_rng    RNG function (Only needed for RSA_PRIVATE)
@@ -519,6 +536,7 @@ int rsa_pkcs1_verify( rsa_context *ctx,
 
 /**
  * \brief          Perform a PKCS#1 v1.5 verification (RSASSA-PKCS1-v1_5-VERIFY)
+ *                 (Thread-safe if POLARSSL_THREADING_C is enabled)
  *
  * \param ctx      points to an RSA public key
  * \param f_rng    RNG function (Only needed for RSA_PRIVATE)
@@ -547,6 +565,7 @@ int rsa_rsassa_pkcs1_v15_verify( rsa_context *ctx,
 /**
  * \brief          Perform a PKCS#1 v2.1 PSS verification (RSASSA-PSS-VERIFY)
  *                 (This is the "simple" version.)
+ *                 (Thread-safe if POLARSSL_THREADING_C is enabled)
  *
  * \param ctx      points to an RSA public key
  * \param f_rng    RNG function (Only needed for RSA_PRIVATE)
@@ -581,6 +600,7 @@ int rsa_rsassa_pss_verify( rsa_context *ctx,
 /**
  * \brief          Perform a PKCS#1 v2.1 PSS verification (RSASSA-PSS-VERIFY)
  *                 (This is the version with "full" options.)
+ *                 (Thread-safe if POLARSSL_THREADING_C is enabled)
  *
  * \param ctx      points to an RSA public key
  * \param f_rng    RNG function (Only needed for RSA_PRIVATE)

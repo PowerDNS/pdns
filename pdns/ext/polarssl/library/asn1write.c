@@ -1,12 +1,9 @@
 /*
  * ASN.1 buffer writing functionality
  *
- *  Copyright (C) 2006-2014, Brainspark B.V.
+ *  Copyright (C) 2006-2014, ARM Limited, All Rights Reserved
  *
- *  This file is part of PolarSSL (http://www.polarssl.org)
- *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
- *
- *  All rights reserved.
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -32,6 +29,8 @@
 #if defined(POLARSSL_ASN1_WRITE_C)
 
 #include "polarssl/asn1write.h"
+
+#include <string.h>
 
 #if defined(POLARSSL_PLATFORM_C)
 #include "polarssl/platform.h"
@@ -89,7 +88,7 @@ int asn1_write_raw_buffer( unsigned char **p, unsigned char *start,
 {
     size_t len = 0;
 
-    if( *p - start < (int) size )
+    if( *p < start || (size_t)( *p - start ) < size )
         return( POLARSSL_ERR_ASN1_BUF_TOO_SMALL );
 
     len = size;
@@ -109,7 +108,7 @@ int asn1_write_mpi( unsigned char **p, unsigned char *start, mpi *X )
     //
     len = mpi_size( X );
 
-    if( *p - start < (int) len )
+    if( *p < start || (size_t)( *p - start ) < len )
         return( POLARSSL_ERR_ASN1_BUF_TOO_SMALL );
 
     (*p) -= len;
@@ -193,7 +192,7 @@ int asn1_write_bool( unsigned char **p, unsigned char *start, int boolean )
     if( *p - start < 1 )
         return( POLARSSL_ERR_ASN1_BUF_TOO_SMALL );
 
-    *--(*p) = (boolean) ? 1 : 0;
+    *--(*p) = (boolean) ? 255 : 0;
     len++;
 
     ASN1_CHK_ADD( len, asn1_write_len( p, start, len ) );
@@ -272,7 +271,7 @@ int asn1_write_bitstring( unsigned char **p, unsigned char *start,
 
     // Calculate byte length
     //
-    if( *p - start < (int) size + 1 )
+    if( *p < start || (size_t)( *p - start ) < size + 1 )
         return( POLARSSL_ERR_ASN1_BUF_TOO_SMALL );
 
     len = size + 1;
@@ -327,6 +326,8 @@ asn1_named_data *asn1_store_named_data( asn1_named_data **head,
             return( NULL );
         }
 
+        memcpy( cur->oid.p, oid, oid_len );
+
         cur->val.len = val_len;
         cur->val.p = polarssl_malloc( val_len );
         if( cur->val.p == NULL )
@@ -335,27 +336,24 @@ asn1_named_data *asn1_store_named_data( asn1_named_data **head,
             polarssl_free( cur );
             return( NULL );
         }
-
-        memcpy( cur->oid.p, oid, oid_len );
 
         cur->next = *head;
         *head = cur;
     }
     else if( cur->val.len < val_len )
     {
-        // Enlarge existing value buffer if needed
-        //
-        polarssl_free( cur->val.p );
-        cur->val.p = NULL;
-
-        cur->val.len = val_len;
-        cur->val.p = polarssl_malloc( val_len );
-        if( cur->val.p == NULL )
-        {
-            polarssl_free( cur->oid.p );
-            polarssl_free( cur );
+        /*
+         * Enlarge existing value buffer if needed
+         * Preserve old data until the allocation succeeded, to leave list in
+         * a consistent state in case allocation fails.
+         */
+        void *p = polarssl_malloc( val_len );
+        if( p == NULL )
             return( NULL );
-        }
+
+        polarssl_free( cur->val.p );
+        cur->val.p = p;
+        cur->val.len = val_len;
     }
 
     if( val != NULL )

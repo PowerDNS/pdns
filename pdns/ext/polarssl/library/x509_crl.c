@@ -1,12 +1,9 @@
 /*
  *  X.509 Certidicate Revocation List (CRL) parsing
  *
- *  Copyright (C) 2006-2014, Brainspark B.V.
+ *  Copyright (C) 2006-2014, ARM Limited, All Rights Reserved
  *
- *  This file is part of PolarSSL (http://www.polarssl.org)
- *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
- *
- *  All rights reserved.
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -43,6 +40,9 @@
 
 #include "polarssl/x509_crl.h"
 #include "polarssl/oid.h"
+
+#include <string.h>
+
 #if defined(POLARSSL_PEM_PARSE_C)
 #include "polarssl/pem.h"
 #endif
@@ -50,14 +50,14 @@
 #if defined(POLARSSL_PLATFORM_C)
 #include "polarssl/platform.h"
 #else
-#define polarssl_malloc     malloc
+#include <stdlib.h>
+#include <stdio.h>
 #define polarssl_free       free
+#define polarssl_malloc     malloc
+#define polarssl_snprintf   snprintf
 #endif
 
-#include <string.h>
-#include <stdlib.h>
 #if defined(_WIN32) && !defined(EFIX64) && !defined(EFI32)
-
 #include <windows.h>
 #else
 #include <time.h>
@@ -243,8 +243,8 @@ static int x509_get_entries( unsigned char **p,
             if( cur_entry->next == NULL )
                 return( POLARSSL_ERR_X509_MALLOC_FAILED );
 
+            memset( cur_entry->next, 0, sizeof( x509_crl_entry ) );
             cur_entry = cur_entry->next;
-            memset( cur_entry, 0, sizeof( x509_crl_entry ) );
         }
     }
 
@@ -252,25 +252,16 @@ static int x509_get_entries( unsigned char **p,
 }
 
 /*
- * Parse one or more CRLs and add them to the chained list
+ * Parse one  CRLs in DER format and append it to the chained list
  */
-int x509_crl_parse( x509_crl *chain, const unsigned char *buf, size_t buflen )
+int x509_crl_parse_der( x509_crl *chain,
+                        const unsigned char *buf, size_t buflen )
 {
     int ret;
     size_t len;
     unsigned char *p, *end;
-    x509_crl *crl;
     x509_buf sig_params1, sig_params2;
-
-#if defined(POLARSSL_PEM_PARSE_C)
-    size_t use_len;
-    pem_context pem;
-#endif
-
-    memset( &sig_params1, 0, sizeof( x509_buf ) );
-    memset( &sig_params2, 0, sizeof( x509_buf ) );
-
-    crl = chain;
+    x509_crl *crl = chain;
 
     /*
      * Check for valid input
@@ -278,15 +269,18 @@ int x509_crl_parse( x509_crl *chain, const unsigned char *buf, size_t buflen )
     if( crl == NULL || buf == NULL )
         return( POLARSSL_ERR_X509_BAD_INPUT_DATA );
 
-    while( crl->version != 0 && crl->next != NULL )
-        crl = crl->next;
+    memset( &sig_params1, 0, sizeof( x509_buf ) );
+    memset( &sig_params2, 0, sizeof( x509_buf ) );
 
     /*
      * Add new CRL on the end of the chain if needed.
      */
+    while( crl->version != 0 && crl->next != NULL )
+        crl = crl->next;
+
     if( crl->version != 0 && crl->next == NULL )
     {
-        crl->next = (x509_crl *) polarssl_malloc( sizeof( x509_crl ) );
+        crl->next = polarssl_malloc( sizeof( x509_crl ) );
 
         if( crl->next == NULL )
         {
@@ -294,57 +288,22 @@ int x509_crl_parse( x509_crl *chain, const unsigned char *buf, size_t buflen )
             return( POLARSSL_ERR_X509_MALLOC_FAILED );
         }
 
+        x509_crl_init( crl->next );
         crl = crl->next;
-        x509_crl_init( crl );
     }
 
-#if defined(POLARSSL_PEM_PARSE_C)
-    pem_init( &pem );
-    ret = pem_read_buffer( &pem,
-                           "-----BEGIN X509 CRL-----",
-                           "-----END X509 CRL-----",
-                           buf, NULL, 0, &use_len );
+    /*
+     * Copy raw DER-encoded CRL
+     */
+    if( ( p = polarssl_malloc( buflen ) ) == NULL )
+        return( POLARSSL_ERR_X509_MALLOC_FAILED );
 
-    if( ret == 0 )
-    {
-        /*
-         * Was PEM encoded
-         */
-        buflen -= use_len;
-        buf += use_len;
-
-        /*
-         * Steal PEM buffer
-         */
-        p = pem.buf;
-        pem.buf = NULL;
-        len = pem.buflen;
-        pem_free( &pem );
-    }
-    else if( ret != POLARSSL_ERR_PEM_NO_HEADER_FOOTER_PRESENT )
-    {
-        pem_free( &pem );
-        return( ret );
-    }
-    else
-#endif /* POLARSSL_PEM_PARSE_C */
-    {
-        /*
-         * nope, copy the raw DER data
-         */
-        p = (unsigned char *) polarssl_malloc( len = buflen );
-
-        if( p == NULL )
-            return( POLARSSL_ERR_X509_MALLOC_FAILED );
-
-        memcpy( p, buf, buflen );
-
-        buflen = 0;
-    }
+    memcpy( p, buf, buflen );
 
     crl->raw.p = p;
-    crl->raw.len = len;
-    end = p + len;
+    crl->raw.len = buflen;
+
+    end = p + buflen;
 
     /*
      * CertificateList  ::=  SEQUENCE  {
@@ -503,7 +462,8 @@ int x509_crl_parse( x509_crl *chain, const unsigned char *buf, size_t buflen )
     if( crl->sig_oid1.len != crl->sig_oid2.len ||
         memcmp( crl->sig_oid1.p, crl->sig_oid2.p, crl->sig_oid1.len ) != 0 ||
         sig_params1.len != sig_params2.len ||
-        memcmp( sig_params1.p, sig_params2.p, sig_params1.len ) != 0 )
+        ( sig_params1.len != 0 &&
+          memcmp( sig_params1.p, sig_params2.p, sig_params1.len ) != 0 ) )
     {
         x509_crl_free( crl );
         return( POLARSSL_ERR_X509_SIG_MISMATCH );
@@ -522,23 +482,62 @@ int x509_crl_parse( x509_crl *chain, const unsigned char *buf, size_t buflen )
                 POLARSSL_ERR_ASN1_LENGTH_MISMATCH );
     }
 
-    if( buflen > 0 )
-    {
-        crl->next = (x509_crl *) polarssl_malloc( sizeof( x509_crl ) );
-
-        if( crl->next == NULL )
-        {
-            x509_crl_free( crl );
-            return( POLARSSL_ERR_X509_MALLOC_FAILED );
-        }
-
-        crl = crl->next;
-        x509_crl_init( crl );
-
-        return( x509_crl_parse( crl, buf, buflen ) );
-    }
-
     return( 0 );
+}
+
+/*
+ * Parse one or more CRLs and add them to the chained list
+ */
+int x509_crl_parse( x509_crl *chain, const unsigned char *buf, size_t buflen )
+{
+#if defined(POLARSSL_PEM_PARSE_C)
+    int ret;
+    size_t use_len;
+    pem_context pem;
+    int is_pem = 0;
+
+    if( chain == NULL || buf == NULL )
+        return( POLARSSL_ERR_X509_BAD_INPUT_DATA );
+
+    do
+    {
+        pem_init( &pem );
+        ret = pem_read_buffer( &pem,
+                               "-----BEGIN X509 CRL-----",
+                               "-----END X509 CRL-----",
+                               buf, NULL, 0, &use_len );
+
+        if( ret == 0 )
+        {
+            /*
+             * Was PEM encoded
+             */
+            is_pem = 1;
+
+            buflen -= use_len;
+            buf += use_len;
+
+            if( ( ret = x509_crl_parse_der( chain,
+                                            pem.buf, pem.buflen ) ) != 0 )
+            {
+                return( ret );
+            }
+
+            pem_free( &pem );
+        }
+        else if( ret != POLARSSL_ERR_PEM_NO_HEADER_FOOTER_PRESENT )
+        {
+            pem_free( &pem );
+            return( ret );
+        }
+    }
+    while( is_pem && buflen > 0 );
+
+    if( is_pem )
+        return( 0 );
+    else
+#endif /* POLARSSL_PEM_PARSE_C */
+        return( x509_crl_parse_der( chain, buf, buflen ) );
 }
 
 #if defined(POLARSSL_FS_IO)
@@ -551,7 +550,7 @@ int x509_crl_parse_file( x509_crl *chain, const char *path )
     size_t n;
     unsigned char *buf;
 
-    if( ( ret = x509_load_file( path, &buf, &n ) ) != 0 )
+    if( ( ret = pk_load_file( path, &buf, &n ) ) != 0 )
         return( ret );
 
     ret = x509_crl_parse( chain, buf, n );
@@ -634,23 +633,23 @@ int x509_crl_info( char *buf, size_t size, const char *prefix,
     p = buf;
     n = size;
 
-    ret = snprintf( p, n, "%sCRL version   : %d",
+    ret = polarssl_snprintf( p, n, "%sCRL version   : %d",
                                prefix, crl->version );
     SAFE_SNPRINTF();
 
-    ret = snprintf( p, n, "\n%sissuer name   : ", prefix );
+    ret = polarssl_snprintf( p, n, "\n%sissuer name   : ", prefix );
     SAFE_SNPRINTF();
     ret = x509_dn_gets( p, n, &crl->issuer );
     SAFE_SNPRINTF();
 
-    ret = snprintf( p, n, "\n%sthis update   : " \
+    ret = polarssl_snprintf( p, n, "\n%sthis update   : " \
                    "%04d-%02d-%02d %02d:%02d:%02d", prefix,
                    crl->this_update.year, crl->this_update.mon,
                    crl->this_update.day,  crl->this_update.hour,
                    crl->this_update.min,  crl->this_update.sec );
     SAFE_SNPRINTF();
 
-    ret = snprintf( p, n, "\n%snext update   : " \
+    ret = polarssl_snprintf( p, n, "\n%snext update   : " \
                    "%04d-%02d-%02d %02d:%02d:%02d", prefix,
                    crl->next_update.year, crl->next_update.mon,
                    crl->next_update.day,  crl->next_update.hour,
@@ -659,20 +658,20 @@ int x509_crl_info( char *buf, size_t size, const char *prefix,
 
     entry = &crl->entry;
 
-    ret = snprintf( p, n, "\n%sRevoked certificates:",
+    ret = polarssl_snprintf( p, n, "\n%sRevoked certificates:",
                                prefix );
     SAFE_SNPRINTF();
 
     while( entry != NULL && entry->raw.len != 0 )
     {
-        ret = snprintf( p, n, "\n%sserial number: ",
+        ret = polarssl_snprintf( p, n, "\n%sserial number: ",
                                prefix );
         SAFE_SNPRINTF();
 
         ret = x509_serial_gets( p, n, &entry->serial );
         SAFE_SNPRINTF();
 
-        ret = snprintf( p, n, " revocation date: " \
+        ret = polarssl_snprintf( p, n, " revocation date: " \
                    "%04d-%02d-%02d %02d:%02d:%02d",
                    entry->revocation_date.year, entry->revocation_date.mon,
                    entry->revocation_date.day,  entry->revocation_date.hour,
@@ -682,14 +681,14 @@ int x509_crl_info( char *buf, size_t size, const char *prefix,
         entry = entry->next;
     }
 
-    ret = snprintf( p, n, "\n%ssigned using  : ", prefix );
+    ret = polarssl_snprintf( p, n, "\n%ssigned using  : ", prefix );
     SAFE_SNPRINTF();
 
     ret = x509_sig_alg_gets( p, n, &crl->sig_oid1, crl->sig_pk, crl->sig_md,
                              crl->sig_opts );
     SAFE_SNPRINTF();
 
-    ret = snprintf( p, n, "\n" );
+    ret = polarssl_snprintf( p, n, "\n" );
     SAFE_SNPRINTF();
 
     return( (int) ( size - n ) );
