@@ -69,11 +69,11 @@ always receive a notification. Even if they do not match the list in
 
 ## `any-to-tcp`
 * Boolean
-* Default: no
+* Default: yes (no, in <= 4.0.1)
 * Available since: 3.3
 
-Answer questions for the ANY and RRSIG types on UDP with a truncated packet that
-refers the remote server to TCP. Useful for mitigating reflection attacks.
+Answer questions for the ANY on UDP with a truncated packet that refers the
+remote server to TCP. Useful for mitigating reflection attacks.
 
 ## `api`
 * Boolean
