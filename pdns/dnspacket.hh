@@ -186,7 +186,6 @@ private:
   uint8_t d_ednsversion;
   // WARNING! This is really 12 bits
   uint16_t d_ednsrcode;
-  uint16_t d_qlen; // length of the question (including class & type) in this packet 2
 
   bool d_compress; // 1
   bool d_tsigtimersonly;
