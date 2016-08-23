@@ -246,7 +246,7 @@ void DNSPacket::setCompress(bool compress)
 
 bool DNSPacket::couldBeCached()
 {
-  return d_ednsping.empty() && !d_wantsnsid && qclass==QClass::IN;
+  return d_ednsping.empty() && !d_wantsnsid && qclass==QClass::IN && !d_havetsig;
 }
 
 unsigned int DNSPacket::getMinTTL()
