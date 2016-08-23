@@ -51,7 +51,7 @@ public:
     }
     PolicyKind d_kind;
     std::shared_ptr<DNSRecordContent> d_custom;
-    std::string d_name;
+    std::shared_ptr<const std::string> d_name;
     int d_ttl;
   };
 

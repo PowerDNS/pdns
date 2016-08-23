@@ -89,11 +89,11 @@ void loadRecursorLuaConfig(const std::string& fname)
   Lua.writeFunction("rpzFile", [&lci](const string& fname, const boost::optional<std::unordered_map<string,boost::variant<int, string>>>& options) {
       try {
 	boost::optional<DNSFilterEngine::Policy> defpol;
-	std::string polName;
+	std::shared_ptr<std::string> polName;
 	if(options) {
 	  auto& have = *options;
 	  if(have.count("policyName")) {
-	    polName = boost::get<std::string>(constGet(have, "policyName"));
+	    polName = std::make_shared<std::string>(boost::get<std::string>(constGet(have, "policyName")));
 	  }
 	  if(have.count("defpol")) {
 	    defpol=DNSFilterEngine::Policy();
@@ -129,12 +129,12 @@ void loadRecursorLuaConfig(const std::string& fname)
 	boost::optional<DNSFilterEngine::Policy> defpol;
         TSIGTriplet tt;
         int refresh=0;
-	std::string polName;
+	std::shared_ptr<std::string> polName;
 	size_t maxReceivedXFRMBytes = 0;
 	if(options) {
 	  auto& have = *options;
 	  if(have.count("policyName")) {
-	    polName = boost::get<std::string>(constGet(have, "policyName"));
+	    polName = std::make_shared<std::string>(boost::get<std::string>(constGet(have, "policyName")));
 	  }
 	  if(have.count("defpol")) {
 	    //	    cout<<"Set a default policy"<<endl;
