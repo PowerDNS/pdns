@@ -39,24 +39,21 @@ bool findNamedPolicy(const map<DNSName, DNSFilterEngine::Policy>& polmap, const 
                     *.
    */
 
-  bool first=true;
   map<DNSName, DNSFilterEngine::Policy>::const_iterator iter;
-  do {
-    if(first) {
-      iter = polmap.find(s);
-      if(iter != polmap.end()) {
-        pol=iter->second;
-        return true;
-      }
-    }
-    first=false;
+  iter = polmap.find(s);
 
+  if(iter != polmap.end()) {
+    pol=iter->second;
+    return true;
+  }
+
+  while(s.chopOff()){
     iter = polmap.find(DNSName("*")+s);
     if(iter != polmap.end()) {
       pol=iter->second;
       return true;
     }
-  } while(s.chopOff());
+  }
   return false;
 }
 
