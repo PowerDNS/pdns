@@ -368,11 +368,12 @@ This feature is intended to facilitate ip-failover setups, but it may also
 mask configuration issues and for this reason it is disabled by default.
 
 ## `loglevel`
-* Integer between 0 and 
+* Integer between 0 and 9
 * Default: 4
 * Available since: 3.6
 
 Amount of logging. Higher is more, more logging may destroy performance.
+It is recommended not to set this below 3.
 
 ## `log-common-errors`
 * Boolean
