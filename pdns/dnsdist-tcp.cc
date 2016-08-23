@@ -415,8 +415,11 @@ void* tcpClientThread(int pipefd)
         readn2WithTimeout(dsock, answerbuffer, rlen, ds->tcpRecvTimeout);
         char* response = answerbuffer;
         uint16_t responseLen = rlen;
-        --ds->outstanding;
-        outstanding = false;
+        if (outstanding) {
+          /* might be false for {A,I}XFR */
+          --ds->outstanding;
+          outstanding = false;
+        }
 
         if (rlen < sizeof(dnsheader)) {
           break;
