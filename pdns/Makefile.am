@@ -678,6 +678,7 @@ toysdig_SOURCES = \
 	opensslsigners.cc opensslsigners.hh \
 	qtype.cc \
 	randomhelper.cc \
+	root-dnssec.hh \
 	rcpgenerator.cc rcpgenerator.hh \
 	rec-lua-conf.hh \
 	recursor_cache.hh \
