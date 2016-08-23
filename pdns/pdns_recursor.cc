@@ -729,8 +729,11 @@ void startDoResolve(void *p)
     if(!g_quiet || tracedQuery) {
       L<<Logger::Warning<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] " << (dc->d_tcp ? "TCP " : "") << "question for '"<<dc->d_mdp.d_qname<<"|"
        <<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype)<<"' from "<<dc->getRemote();
-      if(!dc->d_ednssubnet.empty())
+#ifdef HAVE_PROTOBUF
+      if(!dc->d_ednssubnet.empty()) {
         L<<" (ecs "<<dc->d_ednssubnet.toString()<<")";
+      }
+#endif
       L<<endl;
     }
 
