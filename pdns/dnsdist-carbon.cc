@@ -104,6 +104,18 @@ try
             str<<base<<"cache-ttl-too-shorts" << " " << cache->getTTLTooShorts() << " " << now << "\r\n";
           }
         }
+
+        {
+          WriteLock wl(&g_qcount.queryLock);
+          std::string qname;
+          for(auto &record: g_qcount.records) {
+            qname = record.first;
+            boost::replace_all(qname, ".", "_");
+            str<<"dnsdist.querycount." << qname << ".queries " << record.second << " " << now << "\r\n";
+          }
+          g_qcount.records.clear();
+        }
+
         const string msg = str.str();
 
         int ret = waitForRWData(s.getHandle(), false, 1 , 0);

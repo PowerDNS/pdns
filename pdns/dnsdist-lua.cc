@@ -1246,10 +1246,41 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       return ret;
 
     });
-  
+
   g_lua.executeCode(R"(function topQueries(top, labels) top = top or 10; for k,v in ipairs(getTopQueries(top,labels)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2], v[3])) end end)");
 
+  g_lua.writeFunction("clearQueryCounters", []() {
+      unsigned int size{0};
+      {
+        WriteLock wl(&g_qcount.queryLock);
+        size = g_qcount.records.size();
+        g_qcount.records.clear();
+      }
 
+      boost::format fmt("%d records cleared from query counter buffer\n");
+      g_outputBuffer = (fmt % size).str();
+    });
+
+  g_lua.writeFunction("getQueryCounters", [](boost::optional<unsigned int> optMax) {
+      setLuaNoSideEffect();
+      ReadLock rl(&g_qcount.queryLock);
+      g_outputBuffer = "query counting is currently: ";
+      g_outputBuffer+= g_qcount.enabled ? "enabled" : "disabled";
+      g_outputBuffer+= (boost::format(" (%d records in buffer)\n") % g_qcount.records.size()).str();
+
+      boost::format fmt("%-3d %s: %d request(s)\n");
+      QueryCountRecords::iterator it;
+      unsigned int max = optMax ? *optMax : 10;
+      unsigned int index{1};
+      for(it = g_qcount.records.begin(); it != g_qcount.records.end() && index <= max; ++it, ++index) {
+        g_outputBuffer += (fmt % index % it->first % it->second).str();
+      }
+    });
+
+  g_lua.writeFunction("setQueryCount", [](bool enabled) { g_qcount.enabled=enabled; });
+  g_lua.writeFunction("setQueryCountFilter", [](QueryCountFilter func) {
+      g_qcount.filter = func;
+    });
 
   g_lua.writeFunction("getResponseRing", []() {
       setLuaNoSideEffect();

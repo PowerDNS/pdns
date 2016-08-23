@@ -126,6 +126,7 @@ GlobalStateHolder<pools_t> g_pools;
 GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > > g_rulactions;
 GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSResponseAction> > > > g_resprulactions;
 Rings g_rings;
+QueryCount g_qcount;
 
 GlobalStateHolder<servers_t> g_dstates;
 GlobalStateHolder<NetmaskTree<DynBlock>> g_dynblockNMG;
@@ -747,6 +748,23 @@ bool processQuery(LocalStateHolder<NetmaskTree<DynBlock> >& localDynNMGBlock,
   {
     WriteLock wl(&g_rings.queryLock);
     g_rings.queryRing.push_back({now,*dq.remote,*dq.qname,dq.len,dq.qtype,*dq.dh});
+  }
+
+  if(g_qcount.enabled) {
+    string qname = (*dq.qname).toString(".");
+    bool countQuery{true};
+    if(g_qcount.filter) {
+      std::lock_guard<std::mutex> lock(g_luamutex);
+      std::tie (countQuery, qname) = g_qcount.filter(dq);
+    }
+
+    if(countQuery) {
+      WriteLock wl(&g_qcount.queryLock);
+      if(!g_qcount.records.count(qname)) {
+        g_qcount.records[qname] = 0;
+      }
+      g_qcount.records[qname]++;
+    }
   }
 
   if(auto got=localDynNMGBlock->lookup(*dq.remote)) {

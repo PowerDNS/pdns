@@ -978,6 +978,48 @@ latest version of [PowerDNS
 Metronome](https://github.com/ahupowerdns/metronome) comes with attractive
 graphs for `dnsdist` by default.
 
+Query counters
+-------------
+When using `carbonServer`, it is also possible to send per-records statistics of
+the amount of queries by using `setQueryCount(true)`. With query counting enabled,
+`dnsdist` will increase a counter for every unique record or the behaviour you define
+in a custom Lua function by setting `setQueryCountFilter(func)`. This filter can decide
+whether to keep count on a query at all or rewrite for which query the counter will be
+increased.
+An example of a `QueryCountFilter` would be:
+
+```
+function filter(dq)
+  qname = dq.qname:toString()
+
+  -- don't count PTRs at all
+  if(qname:match('in%-addr.arpa$')) then
+    return false, ""
+  end
+
+  -- count these queries as if they were queried without leading www.
+  if(qname:match('^www.')) then
+    qname = qname:gsub('^www.', '')
+  end
+
+  -- count queries by default
+  return true, qname
+end
+
+setQueryCountFilter(filter)
+```
+
+Valid return values for `QueryCountFilter` functions are:
+
+* `true`: count the specified query
+* `false`: don't count the query
+
+Note that the query counters are buffered and flushed each time statistics are
+sent to the carbon server. The current content of the buffer can be inspected
+with `getQueryCounters()`.  If you decide to enable query counting without
+`carbonServer`, make sure you implement clearing the log from `maintenance()`
+by issuing `clearQueryCounters()`.
+
 DNSCrypt
 --------
 `dnsdist`, when compiled with --enable-dnscrypt, can be used as a DNSCrypt server,
@@ -1176,6 +1218,11 @@ Here are all functions:
     * `addDomainBlock(domain)`: block queries within this domain
  * Carbon/Graphite/Metronome statistics related:
     * `carbonServer(serverIP, [ourname], [interval])`: report statistics to serverIP using our hostname, or 'ourname' if provided, every 'interval' seconds
+ * Query counting related:
+    * `clearQueryCounters()`: clears the query counter buffer.
+    * `getQueryCounters([max])`: show current buffer of query counters, limited by `max` if provided.
+    * `setQueryCount(bool)`: set whether queries should be counted.
+    * `setQueryCountFilter(func)`: filter queries that would be counted, where `func` is a function with parameter `dq` which decides whether a query should and how it should be counted.
  * Control socket related:
     * `makeKey()`: generate a new server access key, emit configuration line ready for pasting
     * `setKey(key)`: set access key to that key.
