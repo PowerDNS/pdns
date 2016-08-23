@@ -232,6 +232,15 @@ This setting can be used to expand or reduce the limitations.
 This is the value set for the EDNS0 buffer size in outgoing packets.
 Lower this if you experience timeouts.
 
+## `edns-subnet-whitelist`
+* Comma separated list of domain names and netmasks
+* Default: (none)
+
+List of netmasks and domains that [EDNS Client Subnet](https://tools.ietf.org/html/rfc7871) should be enabled for in outgoing queries.
+For example, an EDNS Client Subnet option containing the address of the initial requestor will be added to an outgoing query sent to server 192.0.2.1 for domain X if 192.0.2.1 matches one of the supplied netmasks, or if X matches one of the supplied domains.
+The initial requestor address will be truncated to 24 bits for IPv4 and to 56 bits for IPv6, as recommended in the privacy section of RFC 7871.
+By default, this option is empty, meaning no EDNS Client Subnet information is sent.
+
 ## `entropy-source`
 * Path
 * Default: /dev/urandom
