@@ -110,13 +110,16 @@ void RPZRecordToPolicy(const DNSRecord& dr, DNSFilterEngine& target, const std::
   }
 }
 
-shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const DNSName& zone, DNSFilterEngine& target, const std::string& polName, boost::optional<DNSFilterEngine::Policy> defpol, int place,  const TSIGTriplet& tt, size_t maxReceivedBytes)
+shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const DNSName& zone, DNSFilterEngine& target, const std::string& polName, boost::optional<DNSFilterEngine::Policy> defpol, int place,  const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress)
 {
   L<<Logger::Warning<<"Loading RPZ zone '"<<zone<<"' from "<<master.toStringWithPort()<<endl;
   if(!tt.name.empty())
     L<<Logger::Warning<<"With TSIG key '"<<tt.name<<"' of algorithm '"<<tt.algo<<"'"<<endl;
 
-  ComboAddress local= master.sin4.sin_family == AF_INET ? ComboAddress("0.0.0.0") : ComboAddress("::"); // should be configurable
+  ComboAddress local(localAddress);
+  if (local == ComboAddress())
+    local = getQueryLocalAddress(master.sin4.sin_family, 0);
+
   AXFRRetriever axfr(master, zone, tt, &local, maxReceivedBytes);
   unsigned int nrecords=0;
   Resolver::res_t nop;
