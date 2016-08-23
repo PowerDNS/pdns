@@ -7,6 +7,7 @@
 #include "qtype.hh"
 #include <vector>
 #include <set>
+#include <unordered_set>
 #include <map>
 #include <cmath>
 #include <iostream>
@@ -662,7 +663,7 @@ string doTraceRegex(vector<string>::const_iterator begin, vector<string>::const_
 void parseACLs();
 extern RecursorStats g_stats;
 extern unsigned int g_numThreads;
-extern SuffixMatchNode g_delegationOnly;
+extern std::unordered_set<DNSName> g_delegationOnly;
 extern uint16_t g_outgoingEDNSBufsize;
 
 
