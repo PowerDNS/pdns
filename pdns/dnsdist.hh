@@ -274,6 +274,21 @@ struct Rings {
 
 extern Rings g_rings;
 
+typedef std::unordered_map<string, unsigned int> QueryCountRecords;
+typedef std::function<std::tuple<bool, string>(DNSQuestion dq)> QueryCountFilter;
+struct QueryCount {
+  QueryCount()
+  {
+    pthread_rwlock_init(&queryLock, 0);
+  }
+  QueryCountRecords records;
+  QueryCountFilter filter;
+  pthread_rwlock_t queryLock;
+  bool enabled{false};
+};
+
+extern QueryCount g_qcount;
+
 struct ClientState
 {
   ComboAddress local;
