@@ -311,6 +311,9 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
 	      std::shared_ptr<DNSCryptoKeyEngine> dke = shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromPublicKeyString(j.d_algorithm, j.d_key));
 	      isValid = dke->verify(msg, i->d_signature);
 	    }
+            else {
+              LOG("Signature on DNSKEY expired"<<endl);
+            }
 	  }
 	  catch(std::exception& e) {
 	    LOG("Could not make a validator for signature: "<<e.what()<<endl);
