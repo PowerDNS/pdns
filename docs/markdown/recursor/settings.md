@@ -512,7 +512,7 @@ to detect and act on infected hosts.
 Protobuf export to a server is enabled using the `protobufServer()` directive:
 
 ```
-protobufServer("192.0.2.1:4242" [[[[[, timeout], maxQueuedEntries], reconnectWaitTime], maskV4], maskV6])
+protobufServer("192.0.2.1:4242" [[[[[[, timeout], maxQueuedEntries], reconnectWaitTime], maskV4], maskV6], asynConnect])
 ```
 
 The optional parameters are:
@@ -522,6 +522,8 @@ The optional parameters are:
 * reconnectWaitTime = how long to wait, in seconds, between two reconnection attempts, default to 1
 * maskV4 = network mask to apply to the client IPv4 addresses, for anonymization purpose. The default of 32 means no anonymization
 * maskV6 = same as maskV4, but for IPv6. Default to 128
+* asyncConnect = if set to false (default) the first connection to the server during startup will block up to `timeout` seconds,
+otherwise the connection is done in a separate thread.
 
 The protocol buffers message types can be found in the [`dnsmessage.proto`](https://github.com/PowerDNS/pdns/blob/master/pdns/dnsmessage.proto) file.
 

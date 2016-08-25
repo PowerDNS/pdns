@@ -863,6 +863,11 @@ struct SComboAddress
 
 int SSocket(int family, int type, int flags);
 int SConnect(int sockfd, const ComboAddress& remote);
+/* tries to connect to remote for a maximum of timeout seconds.
+   sockfd should be set to non-blocking beforehand.
+   returns 0 on success (the socket is writable), throw a
+   runtime_error otherwise */
+int SConnectWithTimeout(int sockfd, const ComboAddress& remote, int timeout);
 int SBind(int sockfd, const ComboAddress& local);
 int SAccept(int sockfd, ComboAddress& remote);
 int SListen(int sockfd, int limit);

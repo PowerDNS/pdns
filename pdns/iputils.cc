@@ -30,6 +30,47 @@ int SConnect(int sockfd, const ComboAddress& remote)
   return ret;
 }
 
+int SConnectWithTimeout(int sockfd, const ComboAddress& remote, int timeout)
+{
+  int ret = connect(sockfd, (struct sockaddr*)&remote, remote.getSocklen());
+  if(ret < 0) {
+    int savederrno = errno;
+    if (savederrno == EINPROGRESS) {
+      /* we wait until the connection has been established */
+      bool error = false;
+      bool disconnected = false;
+      int res = waitForRWData(sockfd, false, timeout, 0, &error, &disconnected);
+      if (res == 1) {
+        if (error) {
+          savederrno = 0;
+          socklen_t errlen = sizeof(savederrno);
+          if (getsockopt(sockfd, SOL_SOCKET, SO_ERROR, (void *)&savederrno, &errlen) == 0) {
+            RuntimeError(boost::format("connecting to %s failed: %s") % remote.toStringWithPort() % string(strerror(savederrno)));
+          }
+          else {
+            RuntimeError(boost::format("connecting to %s failed") % remote.toStringWithPort());
+          }
+        }
+        if (disconnected) {
+          RuntimeError(boost::format("%s closed the connection") % remote.toStringWithPort());
+        }
+        return 0;
+      }
+      else if (res == 0) {
+        RuntimeError(boost::format("timeout while connecting to %s") % remote.toStringWithPort());
+      } else if (res < 0) {
+        savederrno = errno;
+        RuntimeError(boost::format("waiting to connect to %s: %s") % remote.toStringWithPort() % string(strerror(savederrno)));
+      }
+    }
+    else {
+      RuntimeError(boost::format("connecting to %s: %s") % remote.toStringWithPort() % string(strerror(savederrno)));
+    }
+  }
+
+  return ret;
+}
+
 int SBind(int sockfd, const ComboAddress& local)
 {
   int ret = bind(sockfd, (struct sockaddr*)&local, local.getSocklen());

@@ -303,7 +303,7 @@ int waitForData(int fd, int seconds, int useconds)
   return waitForRWData(fd, true, seconds, useconds);
 }
 
-int waitForRWData(int fd, bool waitForRead, int seconds, int useconds)
+int waitForRWData(int fd, bool waitForRead, int seconds, int useconds, bool* error, bool* disconnected)
 {
   int ret;
 
@@ -317,8 +317,17 @@ int waitForRWData(int fd, bool waitForRead, int seconds, int useconds)
     pfd.events=POLLOUT;
 
   ret = poll(&pfd, 1, seconds * 1000 + useconds/1000);
-  if ( ret == -1 )
+  if ( ret == -1 ) {
     errno = ETIMEDOUT; // ???
+  }
+  else if (ret > 0) {
+    if (error && (pfd.revents & POLLERR)) {
+      *error = true;
+    }
+    if (disconnected && (pfd.revents & POLLHUP)) {
+      *disconnected = true;
+    }
+  }
 
   return ret;
 }

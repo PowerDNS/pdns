@@ -15,8 +15,8 @@ bool RemoteLogger::reconnect()
   }
   try {
     d_socket = SSocket(d_remote.sin4.sin_family, SOCK_STREAM, 0);
-    SConnect(d_socket, d_remote);
     setNonBlocking(d_socket);
+    SConnectWithTimeout(d_socket, d_remote, d_timeout);
   }
   catch(const std::exception& e) {
 #ifdef WE_ARE_RECURSOR
@@ -58,6 +58,10 @@ bool RemoteLogger::sendData(const char* buffer, size_t bufferSize)
 
 void RemoteLogger::worker()
 {
+  if (d_asyncConnect) {
+    reconnect();
+  }
+
   while(true) {
     std::string data;
     {
@@ -101,9 +105,11 @@ void RemoteLogger::queueData(const std::string& data)
   d_queueCond.notify_one();
 }
 
-RemoteLogger::RemoteLogger(const ComboAddress& remote, uint16_t timeout, uint64_t maxQueuedEntries, uint8_t reconnectWaitTime): d_remote(remote), d_maxQueuedEntries(maxQueuedEntries), d_timeout(timeout), d_reconnectWaitTime(reconnectWaitTime), d_thread(&RemoteLogger::worker, this)
+RemoteLogger::RemoteLogger(const ComboAddress& remote, uint16_t timeout, uint64_t maxQueuedEntries, uint8_t reconnectWaitTime, bool asyncConnect): d_remote(remote), d_maxQueuedEntries(maxQueuedEntries), d_timeout(timeout), d_reconnectWaitTime(reconnectWaitTime), d_asyncConnect(asyncConnect), d_thread(&RemoteLogger::worker, this)
 {
-  reconnect();
+  if (!d_asyncConnect) {
+    reconnect();
+  }
 }
 
 RemoteLogger::~RemoteLogger()
@@ -114,4 +120,3 @@ RemoteLogger::~RemoteLogger()
   d_queueCond.notify_one();
   d_thread.join();
 }
-
