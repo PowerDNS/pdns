@@ -1,5 +1,29 @@
 **Note**: Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
 
+# PowerDNS Recursor 4.0.2
+Released August 26th 2016
+
+This release fixes a regression where CNAME records were not sorted before the final answers, leading to non-RFC compliant clients not being able to extract the required answer from the packet.
+
+## Bug fixes
+
+ - [#4264](https://github.com/PowerDNS/pdns/pull/4264): Set `dq.rcode` before calling postresolve
+ - [#4294](https://github.com/PowerDNS/pdns/pull/4294): Honor PIE flags.
+ - [#4310](https://github.com/PowerDNS/pdns/pull/4310): Fix build with LibreSSL, for which OPENSSL_VERSION_NUMBER is irrelevant
+ - [#4340](https://github.com/PowerDNS/pdns/pull/4340): Don't shuffle CNAME records.
+ - [#4354](https://github.com/PowerDNS/pdns/pull/4354): Fix delegation-only
+
+## Additions and enhancements
+
+ - [#4288](https://github.com/PowerDNS/pdns/pull/4288): Respect the timeout when connecting to a protobuf server
+ - [#4300](https://github.com/PowerDNS/pdns/pull/4300): allow newDN to take a DNSName in; document missing methods
+ - [#4301](https://github.com/PowerDNS/pdns/pull/4301): expose SMN toString to lua
+ - [#4318](https://github.com/PowerDNS/pdns/pull/4318): Anonymize the protobuf ECS value as well
+ - [#4324](https://github.com/PowerDNS/pdns/pull/4324): Allow Lua access to the result of the Policy Engine decision, skip RPZ, finish RPZ implementation
+ - [#4349](https://github.com/PowerDNS/pdns/pull/4349): Remove unused `DNSPacket::d_qlen`
+ - [#4351](https://github.com/PowerDNS/pdns/pull/4351): RPZ: Use query-local-address(6) by default
+ - [#4357](https://github.com/PowerDNS/pdns/pull/4357): Move the root DNSSEC data to a header file
+
 # PowerDNS Recursor 4.0.1
 Released July 29th 2016
 
