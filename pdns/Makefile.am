@@ -1065,6 +1065,7 @@ dnspcap2protobuf_SOURCES = \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
 	gettime.cc gettime.hh \
+	iputils.cc \
 	logger.cc \
 	misc.cc \
 	nsecrecords.cc \
