@@ -1197,14 +1197,14 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
         }
 
         if(rec.d_name.isPartOf(auth)) {
-          if(lwr.d_aabit && lwr.d_rcode==RCode::NoError && rec.d_place==DNSResourceRecord::ANSWER && g_delegationOnly.check(auth)) {
+          if(rec.d_type == QType::RRSIG) {
+            LOG("RRSIG - separate"<<endl);
+          }
+          else if(lwr.d_aabit && lwr.d_rcode==RCode::NoError && rec.d_place==DNSResourceRecord::ANSWER && (rec.d_type != QType::DNSKEY || rec.d_name != auth) && g_delegationOnly.count(auth)) {
             LOG("NO! Is from delegation-only zone"<<endl);
             s_nodelegated++;
             return RCode::NXDomain;
           }
-	  else if(rec.d_type == QType::RRSIG) {
-	    LOG("RRSIG - separate"<<endl);
-	  }
           else {
             bool haveLogged = false;
             if (!t_sstorage->domainmap->empty()) {

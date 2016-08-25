@@ -2468,13 +2468,13 @@ void  parseEDNSSubnetWhitelist(const std::string& wlist)
   }
 }
 
-SuffixMatchNode g_delegationOnly;
+std::unordered_set<DNSName> g_delegationOnly;
 static void setupDelegationOnly()
 {
   vector<string> parts;
   stringtok(parts, ::arg()["delegation-only"], ", \t");
   for(const auto& p : parts) {
-    g_delegationOnly.add(DNSName(p));
+    g_delegationOnly.insert(DNSName(p));
   }
 }
 
