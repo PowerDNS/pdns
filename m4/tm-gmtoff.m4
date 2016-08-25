@@ -1,5 +1,6 @@
 dnl Check for the tm_gmtoff field in struct tm
 dnl (Borrowed from the Gaim project)
+dnl The Gaim Project (now know as Pidgin) is licensed under the GPLv2
 
 AC_DEFUN([MC_TM_GMTOFF],
 [AC_REQUIRE([AC_STRUCT_TM])dnl
