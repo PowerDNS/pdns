@@ -53,6 +53,7 @@ bool RecursorLua4::postresolve(const ComboAddress& remote,const ComboAddress& lo
 
 bool RecursorLua4::prerpz(const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, const vector<pair<uint16_t,string> >* ednsOpts, unsigned int tag, int& ret, bool* wantsRPZ, std::unordered_map<std::string,bool>* discardedPolicies)
 {
+  return false;
 }
 
 bool RecursorLua4::preresolve(const ComboAddress& remote, const ComboAddress& local, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& ret, const vector<pair<uint16_t,string> >* ednsOpts, unsigned int tag, DNSFilterEngine::Policy* appliedPolicy, std::vector<std::string>* policyTags, int& res, bool* variable, bool* wantsRPZ)
