@@ -260,7 +260,7 @@ void loadRecursorLuaConfig(const std::string& fname)
     });
 
 #if HAVE_PROTOBUF
-  Lua.writeFunction("protobufServer", [&lci](const string& server_, const boost::optional<uint16_t> timeout, const boost::optional<uint64_t> maxQueuedEntries, const boost::optional<uint8_t> reconnectWaitTime, const boost::optional<uint8_t> maskV4, boost::optional<uint8_t> maskV6, boost::optional<bool> asyncConnect) {
+  Lua.writeFunction("protobufServer", [&lci](const string& server_, const boost::optional<uint16_t> timeout, const boost::optional<uint64_t> maxQueuedEntries, const boost::optional<uint8_t> reconnectWaitTime, const boost::optional<uint8_t> maskV4, boost::optional<uint8_t> maskV6, boost::optional<bool> asyncConnect, boost::optional<bool> taggedOnly) {
       try {
 	ComboAddress server(server_);
         if (!lci.protobufServer) {
@@ -270,6 +270,9 @@ void loadRecursorLuaConfig(const std::string& fname)
           }
           if (maskV6) {
             lci.protobufMaskV6 = *maskV6;
+          }
+          if (taggedOnly) {
+            lci.protobufTaggedOnly = *taggedOnly;
           }
         }
         else {

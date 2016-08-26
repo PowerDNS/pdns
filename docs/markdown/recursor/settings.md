@@ -522,7 +522,7 @@ to detect and act on infected hosts.
 Protobuf export to a server is enabled using the `protobufServer()` directive:
 
 ```
-protobufServer("192.0.2.1:4242" [[[[[[, timeout], maxQueuedEntries], reconnectWaitTime], maskV4], maskV6], asynConnect])
+protobufServer("192.0.2.1:4242" [[[[[[[, timeout], maxQueuedEntries], reconnectWaitTime], maskV4], maskV6], asynConnect], taggedOnly])
 ```
 
 The optional parameters are:
@@ -532,6 +532,7 @@ The optional parameters are:
 * reconnectWaitTime = how long to wait, in seconds, between two reconnection attempts, default to 1
 * maskV4 = network mask to apply to the client IPv4 addresses, for anonymization purpose. The default of 32 means no anonymization
 * maskV6 = same as maskV4, but for IPv6. Default to 128
+* taggedOnly = only entries with a policy or a policy tag set will be sent
 * asyncConnect = if set to false (default) the first connection to the server during startup will block up to `timeout` seconds,
 otherwise the connection is done in a separate thread.
 
