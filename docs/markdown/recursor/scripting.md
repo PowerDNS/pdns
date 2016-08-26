@@ -268,10 +268,26 @@ To convert an address to human-friendly representation, use `:toString()` or
 `:toStringWithPort()`. To get only the port number, use `:getPort()`.
 
 Other functions that can be called on a ComboAddress are:
+
+ * `isIPv4` - true if the address is an IPv4 address
+ * `isIPv6` - true if the address is an IPv6 address
+ * `getRaw` - returns the bytestring representing the address
+ * `isMappedIPv4` - true if the address is an IPv4 address mapped into an IPv6 one
+ * `mapToIPv4` - if the address is an IPv4 mapped into an IPv6 one, return the corresponding IPv4
+ * `truncate(bits)` - truncate to the supplied number of bits
+
+### Netmask
+IP addresses can be matched against a Netmask object, which can be created with
+`newNetmask("192.0.2.1/24")` and supports the following methods:
+
+ * `empty` - true if the netmask doesn't contain a valid address
+ * `getBits` - the number of bits in the address
+ * `getNetwork` - return a ComboAddress representing the network (no mask applied)
+ * `getMaskedNetwork` - return a ComboAddress representing the network (truncating according to the mask)
  * `isIpv4` - true if the address is an IPv4 address
  * `isIpv6` - true if the address is an IPv6 address
- * `getBits` - the number of bits in the address
- * `getRaw` - returns the bytestring representing the address
+ * `match(str)` - true if the address passed in str matches
+ * `toString` - human-friendly representation
 
 ### DNSName
 DNSNames are passed to various functions, and they sport the following methods:
@@ -280,6 +296,8 @@ DNSNames are passed to various functions, and they sport the following methods:
 * `:isPartOf`: returns true if a is a part of b. So: `newDN("www.powerdns.com"):isPartOf(newDN("CoM."))` returns true
 * `:toString` and `:toStringNoDot`: return a string representation of the name, with or without trailing dot.
 * `:chopOff`: removes the leftmost label from the name, returns true if this succeeded.
+* `:countLabels`: returns the number of labels
+* `:wirelength`: returns the length on the wire
 
 You can compare DNSNames using `:equal` or the `==` operator.
 

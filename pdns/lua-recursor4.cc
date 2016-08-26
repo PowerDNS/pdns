@@ -263,6 +263,8 @@ RecursorLua4::RecursorLua4(const std::string& fname)
       return DNSName(boost::get<const DNSName>(dom));
   });
   d_lw->registerFunction("isPartOf", &DNSName::isPartOf);
+  d_lw->registerFunction("countLabels", &DNSName::countLabels);
+  d_lw->registerFunction("wirelength", &DNSName::wirelength);
   d_lw->registerFunction<bool(DNSName::*)(const std::string&)>(
     "equal",
      [](const DNSName& lhs, const std::string& rhs) {
@@ -281,6 +283,11 @@ RecursorLua4::RecursorLua4(const std::string& fname)
       else 
         return string((const char*)&ca.sin6.sin6_addr.s6_addr, 16);
     } );
+  d_lw->registerFunction<bool(ComboAddress::*)()>("isIPv4", [](const ComboAddress& ca) { return ca.sin4.sin_family == AF_INET; });
+  d_lw->registerFunction<bool(ComboAddress::*)()>("isIPv6", [](const ComboAddress& ca) { return ca.sin4.sin_family == AF_INET6; });
+  d_lw->registerFunction("isMappedIPv4", &ComboAddress::isMappedIPv4);
+  d_lw->registerFunction("mapToIPv4", &ComboAddress::mapToIPv4);
+  d_lw->registerFunction("truncate", &ComboAddress::truncate);
 
   d_lw->writeFunction("newCA", [](const std::string& a) { return ComboAddress(a); });
   typedef std::unordered_set<ComboAddress,ComboAddress::addressOnlyHash,ComboAddress::addressOnlyEqual> cas_t;
@@ -317,7 +324,7 @@ RecursorLua4::RecursorLua4(const std::string& fname)
     }
   );
   
-
+  d_lw->writeFunction("newNetmask", [](const string& s) { return Netmask(s); });
   d_lw->registerFunction<ComboAddress(Netmask::*)()>("getNetwork", [](const Netmask& nm) { return nm.getNetwork(); } ); // const reference makes this necessary
   d_lw->registerFunction<ComboAddress(Netmask::*)()>("getMaskedNetwork", [](const Netmask& nm) { return nm.getMaskedNetwork(); } );
   d_lw->registerFunction("isIpv4", &Netmask::isIpv4);
