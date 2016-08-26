@@ -114,8 +114,6 @@ public:
   void xfrBlobNoSpaces(const string& blob, int len=-1);
   void xfrHexBlob(const string& blob, bool keepReading=false);
 
-  uint16_t d_pos;
-
   dnsheader* getHeader();
   void getRecords(string& records);
   const vector<uint8_t>& getRecordBeingWritten() { return d_record; }
@@ -137,7 +135,7 @@ public:
 
 private:
   uint16_t lookupName(const DNSName& name, uint16_t* matchlen);
-  vector<uint16_t> d_positions;
+  vector<uint16_t> d_namepositions;
   // We declare 1 uint_16 in the public section, these 3 align on a 8-byte boundry
   uint16_t d_stuff;
   uint16_t d_sor;

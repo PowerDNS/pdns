@@ -30,7 +30,7 @@
 #include <limits.h>
 
 DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const DNSName& qname, uint16_t  qtype, uint16_t qclass, uint8_t opcode)
-  : d_pos(0), d_content(content), d_qname(qname), d_canonic(false), d_lowerCase(false)
+  : d_content(content), d_qname(qname), d_canonic(false), d_lowerCase(false)
 {
   d_content.clear();
   dnsheader dnsheader;
@@ -47,7 +47,7 @@ DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const DNSName& qname,
 
   memcpy(dptr, ptr, sizeof(dnsheader));
   d_stuff=0;
-  d_positions.reserve(16);
+  d_namepositions.reserve(16);
   xfrName(qname, false);
 
   len=d_content.size();
@@ -236,9 +236,9 @@ uint16_t DNSPacketWriter::lookupName(const DNSName& name, uint16_t* matchLen)
   }
 
   if(l_verbose)
-    cout<<"Have "<<d_positions.size()<<" to ponder"<<endl;
+    cout<<"Have "<<d_namepositions.size()<<" to ponder"<<endl;
   int counter=1;
-  for(auto p : d_positions) {
+  for(auto p : d_namepositions) {
     vector<uint8_t>* source=0;
     if(p < d_content.size())
       source = &d_content;
@@ -250,11 +250,11 @@ uint16_t DNSPacketWriter::lookupName(const DNSName& name, uint16_t* matchLen)
     if(l_verbose) {
       if(source == &d_content) {
         DNSName pname((const char*)&(*source)[0], (*source).size(), p, true); // only for debugging
-        cout<<"Looking at '"<<pname<<"' in packet at position "<<p<<"/"<<(*source).size()<<", option "<<counter<<"/"<<d_positions.size()<<endl;
+        cout<<"Looking at '"<<pname<<"' in packet at position "<<p<<"/"<<(*source).size()<<", option "<<counter<<"/"<<d_namepositions.size()<<endl;
       }
       else
       {
-        cout<<"Looking at *record* at position "<<p<<"/"<<(*source).size()<<", option "<<counter<<"/"<<d_positions.size()<<endl;
+        cout<<"Looking at *record* at position "<<p<<"/"<<(*source).size()<<", option "<<counter<<"/"<<d_namepositions.size()<<endl;
       }
       ++counter;
     }
@@ -340,7 +340,7 @@ void DNSPacketWriter::xfrName(const DNSName& name, bool compress, bool)
     if(pos < 16384 && matchlen != dns.size()) {
       if(l_verbose)
         cout<<"Inserting pos "<<pos<<" for "<<name<<" for compressed case"<<endl;
-      d_positions.push_back(pos);
+      d_namepositions.push_back(pos);
     }
 
     if(l_verbose)
@@ -359,7 +359,7 @@ void DNSPacketWriter::xfrName(const DNSName& name, bool compress, bool)
     if(pos < 16384) {
       if(l_verbose)
         cout<<"Inserting pos "<<pos<<" for "<<name<<" for uncompressed case"<<endl;
-      d_positions.push_back(pos);
+      d_namepositions.push_back(pos);
     }
 
     std::unique_ptr<DNSName> lc;
