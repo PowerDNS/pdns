@@ -28,6 +28,8 @@
 
 #include <boost/functional/hash.hpp>
 
+const DNSName g_rootdnsname("."), g_wildcarddnsname("*");
+
 /* raw storage
    in DNS label format, with trailing 0. W/o trailing 0, we are 'empty'
    www.powerdns.com = 3www8powerdns3com0
@@ -355,19 +357,6 @@ void DNSName::trimToLabels(unsigned int to)
     ;
 }
 
-bool DNSName::operator==(const DNSName& rhs) const
-{
-  if(rhs.empty() != empty() || rhs.d_storage.size() != d_storage.size())
-    return false;
-
-  auto us = d_storage.crbegin();
-  auto p = rhs.d_storage.crbegin();
-  for(; us != d_storage.crend() && p != rhs.d_storage.crend(); ++us, ++p) {   // why does this go backward? 
-    if(dns2_tolower(*p) != dns2_tolower(*us))
-      return false;
-  }
-  return true;
-}
 
 size_t hash_value(DNSName const& d)
 {
