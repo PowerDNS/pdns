@@ -3,7 +3,9 @@
 # PowerDNS Recursor 4.0.2
 Released August 26th 2016
 
-This release fixes a regression where CNAME records were not sorted before the final answers, leading to non-RFC compliant clients not being able to extract the required answer from the packet.
+This release fixes a regression in 4.x where CNAME records for DNSSEC signed domains were not sorted before the final answers, leading to some clients (notably some versions of Chrome) not being able to extract the required answer from the packet. This happened exclusively for DNSSEC signed domains, but the problem happens even for clients not requesting DNSSEC validation.
+
+Further fixes and changes can be found below:
 
 ## Bug fixes
 
