@@ -25,7 +25,8 @@
 #include "dnswriter.hh"
 #include "misc.hh"
 #include "dnsparser.hh"
-
+#include <boost/container/static_vector.hpp>
+#include <boost/scoped_ptr.hpp>
 #include <limits.h>
 
 DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const DNSName& qname, uint16_t  qtype, uint16_t qclass, uint8_t opcode)
@@ -46,7 +47,7 @@ DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const DNSName& qname,
 
   memcpy(dptr, ptr, sizeof(dnsheader));
   d_stuff=0;
-
+  d_positions.reserve(16);
   xfrName(qname, false);
 
   len=d_content.size();
@@ -69,7 +70,6 @@ DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const DNSName& qname,
   memcpy(&*i, &qclass, 2);
 
   d_stuff=0xffff;
-  d_labelmap.reserve(16);
   d_truncatemarker=d_content.size();
   d_sor = 0;
   d_rollbackmarker = 0;
@@ -205,117 +205,172 @@ void DNSPacketWriter::xfrUnquotedText(const string& text, bool lenField)
   d_record.insert(d_record.end(), text.c_str(), text.c_str() + text.length());
 }
 
-/* FIXME400: check that this beats a map */
-DNSPacketWriter::lmap_t::iterator find(DNSPacketWriter::lmap_t& nmap, const DNSName& name)
+
+static constexpr bool l_verbose=false;
+uint16_t DNSPacketWriter::lookupName(const DNSName& name, uint16_t* matchLen)
 {
-  DNSPacketWriter::lmap_t::iterator ret;
-  for(ret=nmap.begin(); ret != nmap.end(); ++ret)
-    if(ret->first == name)
+  // iterate over the written labels, see if we find a match
+  const auto& raw = name.getStorage();
+
+  /* name might be a.root-servers.net, we need to be able to benefit from finding:
+     b.root-servers.net, or even:
+     b\xc0\x0c 
+  */
+  unsigned int bestpos=0;
+  *matchLen=0;
+  boost::container::static_vector<uint16_t, 34> nvect, pvect;
+
+  for(auto riter= raw.cbegin(); riter < raw.cend(); ) {
+    if(!*riter)
       break;
-  return ret;
+    nvect.push_back(riter - raw.cbegin());
+    riter+=*riter+1;
+  }
+  
+  if(l_verbose) {
+    cout<<"Input vector for lookup "<<name<<": ";
+    for(const auto n : nvect) 
+      cout << n<<" ";
+    cout<<endl;
+    cout<<makeHexDump(string(raw.c_str(), raw.c_str()+raw.size()))<<endl;
+  }
+
+  if(l_verbose)
+    cout<<"Have "<<d_positions.size()<<" to ponder"<<endl;
+  int counter=1;
+  for(auto p : d_positions) {
+    vector<uint8_t>* source=0;
+    if(p < d_content.size())
+      source = &d_content;
+    else {
+      source = &d_record;
+      p-= (d_content.size() + d_stuff);
+
+    }
+    if(l_verbose) {
+      if(source == &d_content) {
+        DNSName pname((const char*)&(*source)[0], (*source).size(), p, true); // only for debugging
+        cout<<"Looking at '"<<pname<<"' in packet at position "<<p<<"/"<<(*source).size()<<", option "<<counter<<"/"<<d_positions.size()<<endl;
+      }
+      else
+      {
+        cout<<"Looking at *record* at position "<<p<<"/"<<(*source).size()<<", option "<<counter<<"/"<<d_positions.size()<<endl;
+      }
+      ++counter;
+    }
+    // memcmp here makes things _slower_
+    pvect.clear();
+    for(auto iter = (*source).cbegin() + p; iter < (*source).cend();) {
+
+      uint8_t c=*iter;
+      if(l_verbose)
+        cout<<"Found label length: "<<(int)c<<endl;
+      if(c & 0xc0) {
+
+        uint16_t npos = 0x100*(c & (~0xc0)) + *++iter;
+        iter = (*source).begin() + npos;
+        if(l_verbose)
+          cout<<"Is compressed label to newpos "<<npos<<", going there"<<endl;
+        // check against going forward here
+        continue;
+      }
+      if(!c)
+        break;
+      pvect.push_back(iter - (*source).cbegin());
+      iter+=*iter+1;
+    }
+    if(l_verbose) {
+      cout<<"Packet vector: "<<endl;
+      for(const auto n : pvect) 
+        cout << n<<" ";
+      cout<<endl;
+    }
+    auto niter=nvect.crbegin(), piter=pvect.crbegin();
+    unsigned int cmatchlen=1;
+    for(; niter != nvect.crend() && piter != pvect.crend(); ++niter, ++piter) {
+      // niter is an offset in raw, pvect an offset in packet
+      uint8_t nlen = raw[*niter], plen=(*source)[*piter];
+      if(l_verbose)
+        cout<<"nlnen="<<(int)nlen<<", plen="<<(int)plen<<endl;
+      if(nlen != plen)
+        break;
+      if(strncasecmp(raw.c_str()+*niter+1, (const char*)&(*source)[*piter]+1, nlen)) {
+        if(l_verbose)
+          cout<<"Mismatch: "<<string(raw.c_str()+*niter+1, raw.c_str()+*niter+nlen+1)<< " != "<<string((const char*)&(*source)[*piter]+1, (const char*)&(*source)[*piter]+nlen+1)<<endl;
+        break;
+      }
+      cmatchlen+=nlen+1;
+      if(cmatchlen == raw.length()) { // have matched all of it, can't improve
+        if(l_verbose)
+          cout<<"Stopping search, matched whole name"<<endl;
+        *matchLen = cmatchlen;
+        return *piter;
+      }
+    }
+    if(piter != pvect.crbegin() && *matchLen < cmatchlen) {
+      *matchLen = cmatchlen;
+      bestpos=*--piter;
+    }
+  }
+  return bestpos;
 }
-
-// //! tokenize a label into parts, the parts describe a begin offset and an end offset
-// bool labeltokUnescape(labelparts_t& parts, const string& label)
-// {
-//   string::size_type epos = label.size(), lpos(0), pos;
-//   bool unescapedSomething = false;
-//   const char* ptr=label.c_str();
-
-//   parts.clear();
-
-//   for(pos = 0 ; pos < epos; ++pos) {
-//     if(ptr[pos]=='\\') {
-//       pos++;
-//       unescapedSomething = true;
-//       continue;
-//     }
-//     if(ptr[pos]=='.') {
-//       parts.push_back(make_pair(lpos, pos));
-//       lpos=pos+1;
-//     }
-//   }
-
-//   if(lpos < pos)
-//     parts.push_back(make_pair(lpos, pos));
-//   return unescapedSomething;
-// }
 
 // this is the absolute hottest function in the pdns recursor
 void DNSPacketWriter::xfrName(const DNSName& name, bool compress, bool)
 {
-  //cerr<<"xfrName: name=["<<name.toString()<<"] compress="<<compress<<endl;
-  // string label = d_lowerCase ? toLower(Label) : Label;
-  // FIXME400: we ignore d_lowerCase for now
-  // cerr<<"xfrName writing ["<<name.toString()<<"]"<<endl;
-  std::vector<std::string> parts = name.getRawLabels();
-  // labelparts_t parts;
-  // cerr<<"labelcount: "<<parts.size()<<endl;
-
-  if(d_canonic)
+  if(l_verbose)
+    cout<<"Wants to write "<<name<<", compress="<<compress<<", canonic="<<d_canonic<<", LC="<<d_lowerCase<<endl;
+  if(d_canonic || d_lowerCase)   // d_lowerCase implies canonic
     compress=false;
 
-  if(!parts.size()) { // otherwise we encode '..'
+  if(name.empty() || name.isRoot()) { // for speed
     d_record.push_back(0);
     return;
   }
 
-  // d_stuff is amount of stuff that is yet to be written out - the dnsrecordheader for example
-  unsigned int pos=d_content.size() + d_record.size() + d_stuff;
-  // bool deDot = labellen && (label[labellen-1]=='.'); // make sure we don't store trailing dots in the labelmap
+  uint16_t li=0;
+  uint16_t matchlen=0;
+  if(compress && (li=lookupName(name, &matchlen))) {
+    const auto& dns=name.getStorage(); 
+    if(l_verbose)
+      cout<<"Found a substring of "<<matchlen<<" bytes from the back, offset: "<<li<<", dnslen: "<<dns.size()<<endl;
+    // found a substring, if www.powerdns.com matched powerdns.com, we get back matchlen = 13
 
-  unsigned int startRecordSize=d_record.size();
-  unsigned int startPos;
-
-  DNSName towrite = name;
-  /* FIXME400: if we are not compressing, there is no reason to work per-label */
-  for(auto &label: parts) {
-    if(d_lowerCase) label=toLower(label);
-    //cerr<<"xfrName labelpart ["<<label<<"], left to write ["<<towrite.toString()<<"]"<<endl;
-
-    auto li=d_labelmap.end();
-    // see if we've written out this domain before
-    //cerr<<"compress="<<compress<<", searching? for compression pointer to '"<<towrite.toString()<<"', "<<d_labelmap.size()<<" cmp-records"<<endl;
-    if(compress && (li=find(d_labelmap, towrite))!=d_labelmap.end()) {
-      //cerr<<"doing compression, my label=["<<label<<"] found match ["<<li->first.toString()<<"]"<<endl;
-      //cerr<<"\tFound a compression pointer to '"<<towrite.toString()<<"': "<<li->second<<endl;
-      if (d_record.size() - startRecordSize + label.size() > 253) // chopped does not include a length octet for the first label and the root label
-        throw MOADNSException("DNSPacketWriter::xfrName() found overly large (compressed) name");
-      uint16_t offset=li->second;
-      offset|=0xc000;
-      d_record.push_back((char)(offset >> 8));
-      d_record.push_back((char)(offset & 0xff));
-      goto out;                                 // skip trailing 0 in case of compression
+    unsigned int pos=d_content.size() + d_record.size() + d_stuff;  
+    if(pos < 16384 && matchlen != dns.size()) {
+      if(l_verbose)
+        cout<<"Inserting pos "<<pos<<" for "<<name<<" for compressed case"<<endl;
+      d_positions.push_back(pos);
     }
 
-    if(li==d_labelmap.end() && pos< 16384) {
-      //      cerr<<"\tStoring a compression pointer to '"<<chopped<<"': "<<pos<<endl;
-      d_labelmap.push_back(make_pair(towrite, pos));                       //  if untrue, we need to count - also, don't store offsets > 16384, won't work
-      //cerr<<"stored ["<<towrite.toString()<<"] at pos "<<pos<<endl;
-    }
+    if(l_verbose)
+      cout<<"Going to write unique part: '"<<makeHexDump(string(dns.c_str(), dns.c_str() + dns.size() - matchlen)) <<"'"<<endl;
+    d_record.insert(d_record.end(), (const unsigned char*)dns.c_str(), (const unsigned char*)dns.c_str() + dns.size() - matchlen);
+    uint16_t offset=li;
+    offset|=0xc000;
 
-    startPos=pos;
-
-    char labelsize=label.size();
-    //cerr<<"labelsize = "<<int(labelsize)<<" for label ["<<label<<"]"<<endl;
-    d_record.push_back(labelsize);
-    unsigned int len=d_record.size();
-    d_record.resize(len + labelsize);
-    memcpy(((&*d_record.begin()) + len), label.c_str(), labelsize); // FIXME400 do not want memcpy
-    pos+=labelsize+1;
-
-    if(pos - startPos == 1)
-      throw MOADNSException("DNSPacketWriter::xfrName() found empty label in the middle of name");
-    if(pos - startPos > 64)
-      throw MOADNSException("DNSPacketWriter::xfrName() found overly large label in name");
-    towrite.chopOff();   /* FIXME400: iterating the label vector while keeping this chopoff in sync is a hack */
+    d_record.push_back((char)(offset >> 8));
+    d_record.push_back((char)(offset & 0xff));
   }
-  d_record.push_back(0); // insert root label
+  else {
+    unsigned int pos=d_content.size() + d_record.size() + d_stuff;
+    if(l_verbose)
+      cout<<"Found nothing, we are at pos "<<pos<<", inserting whole name"<<endl;
+    if(pos < 16384) {
+      if(l_verbose)
+        cout<<"Inserting pos "<<pos<<" for "<<name<<" for uncompressed case"<<endl;
+      d_positions.push_back(pos);
+    }
 
-  if (d_record.size() - startRecordSize > 255)
-    throw MOADNSException("DNSPacketWriter::xfrName() found overly large name");
+    std::unique_ptr<DNSName> lc;
+    if(d_lowerCase)
+      lc = make_unique<DNSName>(name.makeLowerCase());
 
- out:;
+    const DNSName::string_t& raw = (lc ? *lc : name).getStorage();
+    if(l_verbose)
+      cout<<"Writing out the whole thing "<<makeHexDump(string(raw.c_str(),  raw.c_str() + raw.length()))<<endl;
+    d_record.insert(d_record.end(), raw.c_str(), raw.c_str() + raw.size());
+  }
 }
 
 void DNSPacketWriter::xfrBlob(const string& blob, int  )
