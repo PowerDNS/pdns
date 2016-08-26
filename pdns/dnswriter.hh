@@ -115,8 +115,8 @@ public:
   void xfrHexBlob(const string& blob, bool keepReading=false);
 
   dnsheader* getHeader();
-  void getRecords(string& records);
-  const vector<uint8_t>& getRecordBeingWritten() { return d_record; }
+  void getRecordPayload(string& records); // call __before commit__
+  const vector<uint8_t> getRecordBeingWritten() { return vector<uint8_t>(d_content.begin()+d_sor, d_content.end()); }
 
   void setCanonic(bool val)
   {
@@ -137,17 +137,11 @@ private:
   uint16_t lookupName(const DNSName& name, uint16_t* matchlen);
   vector<uint16_t> d_namepositions;
   // We declare 1 uint_16 in the public section, these 3 align on a 8-byte boundry
-  uint16_t d_stuff;
   uint16_t d_sor;
   uint16_t d_rollbackmarker; // start of last complete packet, for rollback
 
   vector <uint8_t>& d_content;
-  vector <uint8_t> d_record;
   DNSName d_qname;
-  DNSName d_recordqname;
-
-  uint32_t d_recordttl;
-  uint16_t d_recordqtype, d_recordqclass;
 
   uint16_t d_truncatemarker; // end of header, for truncate
   DNSResourceRecord::Place d_recordplace;

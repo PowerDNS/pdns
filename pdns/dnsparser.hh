@@ -186,10 +186,9 @@ public:
 
     pw.startRecord(qname, this->getType());
     this->toPacket(pw);
-    pw.commit();
     
     string record;
-    pw.getRecords(record);
+    pw.getRecordPayload(record); // needs to be called before commit()
     return record;
   }
 
