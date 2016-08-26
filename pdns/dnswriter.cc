@@ -22,11 +22,11 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#include <boost/container/static_vector.hpp>
 #include "dnswriter.hh"
 #include "misc.hh"
 #include "dnsparser.hh"
-#include <boost/container/static_vector.hpp>
-#include <boost/scoped_ptr.hpp>
+
 #include <limits.h>
 
 DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const DNSName& qname, uint16_t  qtype, uint16_t qclass, uint8_t opcode)

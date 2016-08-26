@@ -1,17 +1,19 @@
 #include "config.h"
+#include <boost/format.hpp>
+#include <boost/container/string.hpp>
 #include "dnsparser.hh"
 #include "sstuff.hh"
 #include "misc.hh"
 #include "dnswriter.hh"
 #include "dnsrecords.hh"
 #include <fstream>
-#include <boost/format.hpp>
+
 #ifndef RECURSOR
 #include "statbag.hh"
 #include "base64.hh"
 StatBag S;
 #endif
-#include <boost/container/string.hpp>
+
 volatile bool g_ret; // make sure the optimizer does not get too smart
 uint64_t g_totalRuns;
 volatile bool g_stop;
