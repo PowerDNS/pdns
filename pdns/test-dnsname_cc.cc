@@ -249,6 +249,39 @@ BOOST_AUTO_TEST_CASE(test_Append) {
   BOOST_CHECK(dn == DNSName("www.powerdns.com."));
 }
 
+BOOST_AUTO_TEST_CASE(test_packetCompress) {
+  reportBasicTypes();
+  vector<unsigned char> packet;
+  DNSPacketWriter dpw(packet, DNSName("www.ds9a.nl."), QType::AAAA);
+  dpw.startRecord(DNSName("ds9a.nl"), QType::SOA);
+  SOARecordContent src("ns1.ds9a.nl admin.ds9a.nl 1 2 3 4 5");
+  src.toPacket(dpw);
+  AAAARecordContent aaaa("::1");
+  dpw.startRecord(DNSName("www.dS9A.nl"), QType::AAAA);
+  aaaa.toPacket(dpw);
+  dpw.startRecord(DNSName("www.ds9A.nl"), QType::AAAA);
+  aaaa.toPacket(dpw);
+  dpw.startRecord(DNSName("www.dS9a.nl"), QType::AAAA);
+  aaaa.toPacket(dpw);
+  dpw.startRecord(DNSName("www2.DS9a.nl"), QType::AAAA);
+  aaaa.toPacket(dpw);
+  dpw.startRecord(DNSName("www2.dS9a.nl"), QType::AAAA);
+  aaaa.toPacket(dpw);
+  dpw.commit();
+  string str((const char*)&packet[0], (const char*)&packet[0] + packet.size());
+
+  size_t pos = 0; 
+  int count=0;
+  while((pos = str.find("ds9a", pos)) != string::npos) {
+    ++pos;
+    ++count;
+  }
+  BOOST_CHECK_EQUAL(count, 1);
+}
+
+
+
+
 BOOST_AUTO_TEST_CASE(test_PacketParse) {
   vector<unsigned char> packet;
   reportBasicTypes();
