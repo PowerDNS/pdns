@@ -254,7 +254,7 @@ BOOST_AUTO_TEST_CASE(test_packetCompress) {
   vector<unsigned char> packet;
   DNSPacketWriter dpw(packet, DNSName("www.ds9a.nl."), QType::AAAA);
   dpw.startRecord(DNSName("ds9a.nl"), QType::SOA);
-  SOARecordContent src("ns1.ds9a.nl admin.ds9a.nl 1 2 3 4 5");
+  SOARecordContent src("ns1.powerdns.nl admin.powerdns.nl 1 2 3 4 5");
   src.toPacket(dpw);
   AAAARecordContent aaaa("::1");
   dpw.startRecord(DNSName("www.dS9A.nl"), QType::AAAA);
@@ -269,7 +269,6 @@ BOOST_AUTO_TEST_CASE(test_packetCompress) {
   aaaa.toPacket(dpw);
   dpw.commit();
   string str((const char*)&packet[0], (const char*)&packet[0] + packet.size());
-
   size_t pos = 0; 
   int count=0;
   while((pos = str.find("ds9a", pos)) != string::npos) {
@@ -277,6 +276,14 @@ BOOST_AUTO_TEST_CASE(test_packetCompress) {
     ++count;
   }
   BOOST_CHECK_EQUAL(count, 1);
+  pos = 0; 
+  count=0;
+  while((pos = str.find("powerdns", pos)) != string::npos) {
+    ++pos;
+    ++count;
+  }
+  BOOST_CHECK_EQUAL(count, 1);
+
 }
 
 
