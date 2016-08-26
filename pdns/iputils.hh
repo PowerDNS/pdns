@@ -218,6 +218,15 @@ union ComboAddress {
       sin4.sin_port=htons(port);
   }
 
+  bool isIPv6() const
+  {
+    return sin4.sin_family == AF_INET6;
+  }
+  bool isIPv4() const
+  {
+    return sin4.sin_family == AF_INET;
+  }
+
   bool isMappedIPv4()  const
   {
     if(sin4.sin_family!=AF_INET6)

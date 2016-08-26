@@ -1274,8 +1274,8 @@ instantiate a server with additional parameters
     * `QPSPoolAction(maxqps, poolname)`: set the packet into the specified pool only if it **does not** exceed the specified QPS limits, letting the subsequent rules apply otherwise
     * `QPSAction(rule, maxqps)`: drop these packets if the QPS limits are exceeded
     * `RCodeAction(rcode)`: reply immediatly by turning the query into a response with the specified rcode
-    * `RemoteLogAction(RemoteLogger)`: send the content of this query to a remote logger via Protocol Buffer
-    * `RemoteLogResponseAction(RemoteLogger)`: send the content of this response to a remote logger via Protocol Buffer
+    * `RemoteLogAction(RemoteLogger [, alterFunction])`: send the content of this query to a remote logger via Protocol Buffer. `alterFunction` is a callback, receiving a DNSQuestion and a DNSDistProtoBufMessage, that can be used to modify the Protocol Buffer content, for example for anonymization purposes
+    * `RemoteLogResponseAction(RemoteLogger [,alterFunction])`: send the content of this response to a remote logger via Protocol Buffer. `alterFunction` is the same callback than the one in `RemoteLogAction`
     * `SkipCacheAction()`: don't lookup the cache for this query, don't store the answer
     * `SpoofAction(ip[, ip])` or `SpoofAction({ip, ip, ..}): forge a response with the specified IPv4 (for an A query) or IPv6 (for an AAAA). If you specify multiple addresses, all that match the query type (A, AAAA or ANY) will get spoofed in
     * `SpoofCNAMEAction(cname)`: forge a response with the specified CNAME value
@@ -1355,10 +1355,15 @@ instantiate a server with additional parameters
     * ComboAddress related:
         * `newCA(address)`: return a new ComboAddress
         * `getPort()`: return the port number
+        * `isIPv4()`: return true if the address is an IPv4, false otherwise
+        * `isIPv6()`: return true if the address is an IPv6, false otherwise
+        * `isMappedIPv4()`: return true if the address is an IPv4 mapped into an IPv6, false otherwise
+        * `mapToIPv4()`: convert an IPv4 address mapped in a v6 one into an IPv4
         * `tostring()`: return in human-friendly format
         * `toString()`: alias for `tostring()`
         * `tostringWithPort()`: return in human-friendly format, with port number
         * `toStringWithPort()`: alias for `tostringWithPort()`
+        * `truncate(bits)`: truncate the address to the specified number of bits
     * DNSName related:
         * `newDNSName(name)`: make a DNSName based on this .-terminated name
         * member `countLabels()`: return the number of labels
@@ -1422,6 +1427,18 @@ instantiate a server with additional parameters
     * member `getStats()`: print the block tables
     * member `unblock(ComboAddress)`: unblock this address
     * member `unblockQName(DNSName [, qtype=255])`: remove this qname from the block list
+ * DNSDistProtoBufMessage related:
+    * member `setBytes(bytes)`: set the size of the query
+    * member `setEDNSSubnet(Netmask)`: set the EDNS Subnet
+    * member `setQueryTime(sec, usec)`: in a response message, set the time at which the query has been received
+    * member `setQuestion(DNSName, qtype, qclass)`: set the question
+    * member `setRequestor(ComboAddress)`: set the requestor
+    * member `setRequestorFromString(string)`: set the requestor
+    * member `setResponder(ComboAddress)`: set the responder
+    * member `setResponderFromString(string)`: set the responder
+    * member `setResponseCode(rcode)`: set the response code
+    * member `setTime(sec, usec)`: set the time at which the query or response has been received
+    * member `toDebugString()`: return an string containing the content of the message
  * DynBPFFilter related:
     * function `newDynBPFFilter(BPFFilter)`: return a new DynBPFFilter object using this BPF Filter
     * member `block(ComboAddress[, seconds]): add this address to the underlying BPF Filter for `seconds` seconds (default to 10 seconds)

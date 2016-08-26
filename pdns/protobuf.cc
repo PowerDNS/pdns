@@ -140,6 +140,44 @@ void DNSProtoBufMessage::addRRsFromPacket(const char* packet, const size_t len)
 #endif /* HAVE_PROTOBUF */
 }
 
+void DNSProtoBufMessage::setRequestor(const std::string& requestor)
+{
+#ifdef HAVE_PROTOBUF
+  d_message.set_from(requestor);
+#endif /* HAVE_PROTOBUF */
+}
+
+void DNSProtoBufMessage::setRequestor(const ComboAddress& requestor)
+{
+#ifdef HAVE_PROTOBUF
+  if (requestor.sin4.sin_family == AF_INET) {
+    d_message.set_from(&requestor.sin4.sin_addr.s_addr, sizeof(requestor.sin4.sin_addr.s_addr));
+  }
+  else if (requestor.sin4.sin_family == AF_INET6) {
+    d_message.set_from(&requestor.sin6.sin6_addr.s6_addr, sizeof(requestor.sin6.sin6_addr.s6_addr));
+  }
+#endif /* HAVE_PROTOBUF */
+}
+
+void DNSProtoBufMessage::setResponder(const std::string& responder)
+{
+#ifdef HAVE_PROTOBUF
+  d_message.set_from(responder);
+#endif /* HAVE_PROTOBUF */
+}
+
+void DNSProtoBufMessage::setResponder(const ComboAddress& responder)
+{
+#ifdef HAVE_PROTOBUF
+  if (responder.sin4.sin_family == AF_INET) {
+    d_message.set_from(&responder.sin4.sin_addr.s_addr, sizeof(responder.sin4.sin_addr.s_addr));
+  }
+  else if (responder.sin4.sin_family == AF_INET6) {
+    d_message.set_from(&responder.sin6.sin6_addr.s6_addr, sizeof(responder.sin6.sin6_addr.s6_addr));
+  }
+#endif /* HAVE_PROTOBUF */
+}
+
 void DNSProtoBufMessage::serialize(std::string& data) const
 {
 #ifdef HAVE_PROTOBUF
@@ -178,20 +216,10 @@ void DNSProtoBufMessage::update(const boost::uuids::uuid& uuid, const ComboAddre
   d_message.set_socketprotocol(isTCP ? PBDNSMessage_SocketProtocol_TCP : PBDNSMessage_SocketProtocol_UDP);
 
   if (responder) {
-    if (responder->sin4.sin_family == AF_INET) {
-      d_message.set_to(&responder->sin4.sin_addr.s_addr, sizeof(responder->sin4.sin_addr.s_addr));
-    }
-    else if (responder->sin4.sin_family == AF_INET6) {
-      d_message.set_to(&responder->sin6.sin6_addr.s6_addr, sizeof(responder->sin6.sin6_addr.s6_addr));
-    }
+    setResponder(*responder);
   }
   if (requestor) {
-    if (requestor->sin4.sin_family == AF_INET) {
-      d_message.set_from(&requestor->sin4.sin_addr.s_addr, sizeof(requestor->sin4.sin_addr.s_addr));
-    }
-    else if (requestor->sin4.sin_family == AF_INET6) {
-      d_message.set_from(&requestor->sin6.sin6_addr.s6_addr, sizeof(requestor->sin6.sin6_addr.s6_addr));
-    }
+    setRequestor(*requestor);
   }
 }
 

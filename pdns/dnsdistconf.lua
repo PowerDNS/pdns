@@ -222,3 +222,19 @@ end
     addLuaAction("luaspoof2.powerdns.com.", spoof2rule)
 
 --]]
+
+-- alter a protobuf response for anonymization purposes
+--[[
+function alterProtobuf(dq, protobuf)
+    requestor = newCA(dq.remoteaddr:toString())
+    if requestor:isIPv4() then
+        requestor:truncate(24)
+    else
+        requestor:truncate(56)
+    end
+    protobuf:setRequestor(requestor)
+end
+
+rl = newRemoteLogger("127.0.0.1:4242")
+addAction(AllRule(), RemoteLogAction(rl, alterProtobuf))
+--]]
