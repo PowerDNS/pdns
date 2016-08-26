@@ -345,14 +345,14 @@ bool PacketHandler::getBestWildcard(DNSPacket *p, SOAData& sd, const DNSName &ta
   wildcard=subdomain;
   while( subdomain.chopOff() && !haveSomething )  {
     if (subdomain.empty()) {
-      B.lookup(QType(QType::ANY), DNSName("*"), p, sd.domain_id); 
+      B.lookup(QType(QType::ANY), g_wildcarddnsname, p, sd.domain_id); 
     } else {
-      B.lookup(QType(QType::ANY), DNSName("*")+subdomain, p, sd.domain_id);
+      B.lookup(QType(QType::ANY), g_wildcarddnsname+subdomain, p, sd.domain_id);
     }
     while(B.get(rr)) {
       if(rr.qtype == p->qtype || rr.qtype.getCode() == QType::CNAME || (p->qtype.getCode() == QType::ANY && rr.qtype.getCode() != QType::RRSIG))
         ret->push_back(rr);
-      wildcard=DNSName("*")+subdomain;
+      wildcard=g_wildcarddnsname+subdomain;
       haveSomething=true;
     }
 
@@ -676,7 +676,7 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const DNSName& target, 
 
   // wildcard denial
   if (mode == 2 || mode == 4) {
-    unhashed=DNSName("*")+closest;
+    unhashed=g_wildcarddnsname+closest;
 
     hashed=hashQNameWithSalt(ns3rc, unhashed);
     DLOG(L<<"3 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl);

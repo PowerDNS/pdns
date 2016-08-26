@@ -286,7 +286,7 @@ BOOST_AUTO_TEST_CASE(test_PacketParse) {
   vector<unsigned char> packet;
   reportBasicTypes();
   DNSName root(".");
-  DNSPacketWriter dpw1(packet, DNSName("."), QType::AAAA);
+  DNSPacketWriter dpw1(packet, g_rootdnsname, QType::AAAA);
   DNSName p((char*)&packet[0], packet.size(), 12, false);
   BOOST_CHECK_EQUAL(p, root);
   unsigned char* buffer=&packet[0];
@@ -458,7 +458,7 @@ BOOST_AUTO_TEST_CASE(test_suffixmatch) {
 
   BOOST_CHECK(!smn.check(DNSName("www.news.gov.uk.")));
 
-  smn.add(DNSName(".")); // block the root
+  smn.add(g_rootdnsname); // block the root
   BOOST_CHECK(smn.check(DNSName("a.root-servers.net.")));
 }
 
@@ -503,9 +503,9 @@ BOOST_AUTO_TEST_CASE(test_compare_canonical) {
   BOOST_CHECK(!DNSName("www.BeRt.com").canonCompare(DNSName("WWW.berT.com")));
 
   CanonDNSNameCompare a;
-  BOOST_CHECK(a(DNSName("."), DNSName("www.powerdns.com")));
-  BOOST_CHECK(a(DNSName("."), DNSName("www.powerdns.net")));
-  BOOST_CHECK(!a(DNSName("www.powerdns.net"), DNSName(".")));
+  BOOST_CHECK(a(g_rootdnsname, DNSName("www.powerdns.com")));
+  BOOST_CHECK(a(g_rootdnsname, DNSName("www.powerdns.net")));
+  BOOST_CHECK(!a(DNSName("www.powerdns.net"), g_rootdnsname));
 
   vector<DNSName> vec;
   for(const std::string& a : {"bert.com.", "alpha.nl.", "articles.xxx.",

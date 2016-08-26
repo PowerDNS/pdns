@@ -222,7 +222,7 @@ try
   for(const auto &n: namestocheck)
   {
     proveOrDeny(nsec3s, n, nsec3salt, nsec3iters, proven, denied);
-    proveOrDeny(nsec3s, DNSName("*")+n, nsec3salt, nsec3iters, proven, denied);
+    proveOrDeny(nsec3s, g_wildcarddnsname+n, nsec3salt, nsec3iters, proven, denied);
   }
 
   if(names.count(qname))
@@ -262,7 +262,7 @@ try
     {
       cout<<"next closer ("<<nextcloser.toString()<<") NOT denied"<<endl;
     }
-    DNSName wcplusencloser=DNSName("*")+encloser;
+    DNSName wcplusencloser=g_wildcarddnsname+encloser;
     if(denied.count(wcplusencloser))
     {
       cout<<"wildcard at encloser ("<<wcplusencloser.toString()<<") is denied correctly"<<endl;

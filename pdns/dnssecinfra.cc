@@ -338,7 +338,7 @@ DNSCryptoKeyEngine* DNSCryptoKeyEngine::makeFromPEMString(DNSKEYRecordContent& d
 
 bool sharedDNSSECCompare(const shared_ptr<DNSRecordContent>& a, const shared_ptr<DNSRecordContent>& b)
 {
-  return a->serialize(DNSName("."), true, true) < b->serialize(DNSName("."), true, true);
+  return a->serialize(g_rootdnsname, true, true) < b->serialize(g_rootdnsname, true, true);
 }
 
 /**
@@ -359,7 +359,7 @@ string getMessageForRRSET(const DNSName& qname, const RRSIGRecordContent& rrc, v
   sort(signRecords.begin(), signRecords.end(), sharedDNSSECCompare);
 
   string toHash;
-  toHash.append(const_cast<RRSIGRecordContent&>(rrc).serialize(DNSName("."), true, true));
+  toHash.append(const_cast<RRSIGRecordContent&>(rrc).serialize(g_rootdnsname, true, true));
   toHash.resize(toHash.size() - rrc.d_signature.length()); // chop off the end, don't sign the signature!
 
   string nameToHash(qname.toDNSStringLC());
@@ -389,7 +389,7 @@ string getMessageForRRSET(const DNSName& qname, const RRSIGRecordContent& rrc, v
     uint32_t ttl=htonl(rrc.d_originalttl);
     toHash.append((char*)&ttl, 4);
     // for NSEC signatures, we should not lowercase the rdata section
-    string rdata=add->serialize(DNSName("."), true, (add->getType() == QType::NSEC) ? false : true);  // RFC 6840, 5.1
+    string rdata=add->serialize(g_rootdnsname, true, (add->getType() == QType::NSEC) ? false : true);  // RFC 6840, 5.1
     tmp=htons(rdata.length());
     toHash.append((char*)&tmp, 2);
     toHash.append(rdata);
