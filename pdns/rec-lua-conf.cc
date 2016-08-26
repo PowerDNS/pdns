@@ -92,7 +92,7 @@ void loadRecursorLuaConfig(const std::string& fname)
   Lua.writeFunction("rpzFile", [&lci](const string& fname, const boost::optional<std::unordered_map<string,boost::variant<int, string>>>& options) {
       try {
 	boost::optional<DNSFilterEngine::Policy> defpol;
-	std::string polName;
+	std::string polName("rpzFile");
 	if(options) {
 	  auto& have = *options;
 	  if(have.count("policyName")) {
@@ -101,7 +101,7 @@ void loadRecursorLuaConfig(const std::string& fname)
 	  if(have.count("defpol")) {
 	    defpol=DNSFilterEngine::Policy();
 	    defpol->d_kind = (DNSFilterEngine::PolicyKind)boost::get<int>(constGet(have, "defpol"));
-	    defpol->d_name = polName;
+	    defpol->d_name = std::make_shared<std::string>(polName);
 	    if(defpol->d_kind == DNSFilterEngine::PolicyKind::Custom) {
 	      defpol->d_custom=
 		shared_ptr<DNSRecordContent>(
@@ -117,8 +117,10 @@ void loadRecursorLuaConfig(const std::string& fname)
 	    }
 	  }
 	}
+        const size_t zoneIdx = lci.dfe.size();
         theL()<<Logger::Warning<<"Loading RPZ from file '"<<fname<<"'"<<endl;
-	loadRPZFromFile(fname, lci.dfe, polName, defpol, 0);
+        lci.dfe.setPolicyName(zoneIdx, polName);
+        loadRPZFromFile(fname, lci.dfe, defpol, zoneIdx);
         theL()<<Logger::Warning<<"Done loading RPZ from file '"<<fname<<"'"<<endl;
       }
       catch(std::exception& e) {
@@ -137,14 +139,14 @@ void loadRecursorLuaConfig(const std::string& fname)
         ComboAddress localAddress;
 	if(options) {
 	  auto& have = *options;
-	  if(have.count("policyName")) {
+          polName = zone_;
+	  if(have.count("policyName"))
 	    polName = boost::get<std::string>(constGet(have, "policyName"));
-	  }
 	  if(have.count("defpol")) {
 	    //	    cout<<"Set a default policy"<<endl;
 	    defpol=DNSFilterEngine::Policy();
 	    defpol->d_kind = (DNSFilterEngine::PolicyKind)boost::get<int>(constGet(have, "defpol"));
-	    defpol->d_name = polName;
+	    defpol->d_name = std::make_shared<std::string>(polName);
 	    if(defpol->d_kind == DNSFilterEngine::PolicyKind::Custom) {
 	      //	      cout<<"Setting a custom field even!"<<endl;
 	      defpol->d_custom=
@@ -180,11 +182,13 @@ void loadRecursorLuaConfig(const std::string& fname)
           // We were passed a localAddress, check if its AF matches the master's
           throw PDNSException("Master address("+master.toString()+") is not of the same Address Family as the local address ("+localAddress.toString()+").");
 	DNSName zone(zone_);
+        const size_t zoneIdx = lci.dfe.size();
+        lci.dfe.setPolicyName(zoneIdx, polName);
 
-	auto sr=loadRPZFromServer(master, zone, lci.dfe, polName, defpol, 0, tt, maxReceivedXFRMBytes * 1024 * 1024, localAddress);
+	auto sr=loadRPZFromServer(master, zone, lci.dfe, defpol, zoneIdx, tt, maxReceivedXFRMBytes * 1024 * 1024, localAddress);
         if(refresh)
           sr->d_st.refresh=refresh;
-	std::thread t(RPZIXFRTracker, master, zone, polName, tt, sr, maxReceivedXFRMBytes * 1024 * 1024, localAddress);
+	std::thread t(RPZIXFRTracker, master, zone, zoneIdx, tt, sr, maxReceivedXFRMBytes * 1024 * 1024, localAddress);
 	t.detach();
       }
       catch(std::exception& e) {

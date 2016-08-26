@@ -22,6 +22,7 @@ For extra performance, a Just In Time compiled version of Lua called
 Queries can be intercepted in many places:
 
 * before any packet parsing begins (`ipfilter`)
+* before any filtering policy have been applied (`prerpz`)
 * before the resolving logic starts to work (`preresolve`)
 * after the resolving process failed to find a correct answer for a domain (`nodata`, `nxdomain`)
 * after the whole process is done and an answer is ready for the client (`postresolve`)
@@ -92,11 +93,18 @@ The DNSQuestion object contains at least the following fields:
   * getFakeAAAARecords: Get a fake AAAA record, see [DNS64](#dns64)
   * getFakePTRRecords: Get a fake PTR record, see [DNS64](#dns64)
   * udpQueryResponse: Do a UDP query and call a handler, see [`udpQueryResponse`](#udpqueryresponse)
+* appliedPolicy - The decision that was made by the policy engine, see [Modifying policy decisions](#modifying-policy-decisions). It has the following fields:
+  * policyName: The name of the policy (used in e.g. protobuf logging)
+  * policyAction: The action taken by the engine
+  * policyCustom: The CNAME content for the `pdns.policyactions.Custom` response, a string
+  * policyTTL: The TTL in seconds for the `pdns.policyactions.Custom` response
+* wantsRPZ - A boolean that indicates the use of the Policy Engine, can be set to `false` in `preresolve` to disable RPZ for this query
 
 It also supports the following methods:
 
 * `addAnswer(type, content, [ttl, name])`: add an answer to the record of `type` with `content`. Optionally supply TTL and the name of
   the answer too, which defaults to the name of the question
+* `discardPolicy(policyname)`: skip the filtering policy (for example RPZ) named `policyname` for this query. This is mostly useful in the `prerpz` hook.
 * `getRecords()`: get a table of DNS Records in this DNS Question (or answer by now)
 * `setRecords(records)`: after your edits, update the answers of this question
 * `getEDNSOption(num)`: get the EDNS Option with number `num`
@@ -145,6 +153,25 @@ e.g. been filtered for certain IPs (this logic should be implemented in the
 `gettag` function). This ensure that queries are answered quickly compared to
 setting dq.variable to `true`. In the latter case, repeated queries will pass
 through the entire Lua script.
+
+### `function prerpz(dq)`
+
+This hook is called before any filtering policy have been applied, making it
+possible to completely disable filtering by setting `wantsRPZ` to false.
+Using the `discardPolicy()` function, it is also possible to selectively disable
+one or more filtering policy, for example RPZ zones, based on the content of the
+`dq` object.
+
+As an example, to disable the `malware` policy for `example.com` queries:
+
+```
+function prerpz(dq)
+  -- disable the RPZ policy named 'malware' for example.com
+  if dq.qname:equal('example.com') then
+    dq:discardPolicy('malware')
+  end
+end
+```
 
 ### `function preresolve(dq)`
 is called before any DNS resolution is attempted, and if this function
@@ -388,3 +415,63 @@ function preoutquery(dq)
 	return false
 end
 ```
+
+## Modifying Policy Decisions
+The PowerDNS Recursor has a [policy engine based on Response Policy Zones (RPZ)](settings.md#response-policy-zone-rpz).
+Starting with version 4.0.1 of the recursor, it is possible to alter this decision inside the Lua hooks.
+If the decision is modified in a Lua hook, `false` should be returned, as the query is not actually handled by Lua so the decision is picked up by the Recursor.
+The result of the policy decision is checked after `preresolve` and `postresolve`.
+
+For example, if a decision is set to `pdns.policykinds.NODATA` by the policy engine and is unchanged in `preresolve`, the query is replied to with a NODATA response immediately after `preresolve`.
+
+### Example script
+```
+-- Dont ever block my own domain and IPs
+myDomain = newDN("example.com")
+
+myNetblock = newNMG()
+myNetblock:addMasks("192.0.2.0/24")
+
+function preresolve(dq)
+  if dq.qname:isPartOf(myDomain) and dq.appliedPolicy.policyKind != pdns.policykinds.NoAction then
+    pdnslog("Not blocking our own domain!")
+    dq.appliedPolicy.policyKind = pdns.policykinds.NoAction
+  end
+end
+
+function postresolve(dq)
+  if dq.appliedPolicy.policyKind != pdns.policykinds.NoAction then
+    local records = dq:getRecords()
+    for k,v in pairs(records) do
+      if v.type == pdns.A then
+        local blockedIP = newCA(v:getContent())
+        if myNetblock:match(blockedIP) then
+          pdnslog("Not blocking our IP space")
+          dq.appliedPolicy.policyKind = pdns.policykinds.NoAction
+        end
+      end
+    end
+  end
+end
+```
+
+The decision is contained in the `dq` object under `dq.appliedPolicy` and features 4 fields:
+
+### `dq.appliedPolicy.policyName`
+A string with the name of the policy (set by `polName=` in the `rpzFile` and `rpzMaster` configuration items).
+It is advised to overwrite this when modifying the `policyKind`
+
+### `dq.appliedPolicy.policyKind`
+The kind of policy response, there are several policy kinds:
+
+ * `pdns.policykinds.Custom` will return a NoError, CNAME answer with the value specified in `dq.appliedPolicy.policyCustom`
+ * `pdns.policykinds.Drop` will simply cause the query to be dropped
+ * `pdns.policykinds.NoAction` will continue normal processing of the query
+ * `pdns.policykinds.NODATA` will return a NoError response with no value in the answer section
+ * `pdns.policykinds.NXDOMAIN` will return a response with a NXDomain rcode
+ * `pdns.policykinds.Truncate` will return a NoError, no answer, truncated response over UDP. Normal processing will continue over TCP
+
+### `dq.appliedPolicy.policyCustom` and `dq.appliedPolicy.policyTTL`
+These fields are only used when `dq.appliedPolicy.policyKind` is set to `pdns.policykinds.Custom`.
+`dq.appliedPolicy.policyCustom` contains the name for the CNAME target as a string.
+And `dq.appliedPolicy.policyTTL` is the TTL field (in seconds) for the CNAME response.

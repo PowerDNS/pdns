@@ -31,6 +31,7 @@
 #include "rec-lua-conf.hh"
 
 #include "validate-recursor.hh"
+#include "filterpo.hh"
 
 #include "secpoll-recursor.hh"
 #include "pubsuffix.hh"
@@ -888,6 +889,13 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("dnssec-result-bogus", &g_stats.dnssecResults[Bogus]);
   addGetStat("dnssec-result-indeterminate", &g_stats.dnssecResults[Indeterminate]);
   addGetStat("dnssec-result-nta", &g_stats.dnssecResults[NTA]);
+
+  addGetStat("policy-result-noaction", &g_stats.policyResults[DNSFilterEngine::PolicyKind::NoAction]);
+  addGetStat("policy-result-drop", &g_stats.policyResults[DNSFilterEngine::PolicyKind::Drop]);
+  addGetStat("policy-result-nxdomain", &g_stats.policyResults[DNSFilterEngine::PolicyKind::NXDOMAIN]);
+  addGetStat("policy-result-nodata", &g_stats.policyResults[DNSFilterEngine::PolicyKind::NODATA]);
+  addGetStat("policy-result-truncate", &g_stats.policyResults[DNSFilterEngine::PolicyKind::Truncate]);
+  addGetStat("policy-result-custom", &g_stats.policyResults[DNSFilterEngine::PolicyKind::Custom]);
 }
 
 static void doExitGeneric(bool nicely)
@@ -1130,7 +1138,7 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 "clear-nta [DOMAIN]...            Clear the Negative Trust Anchor for DOMAINs, if no DOMAIN is specified, remove all\n"
 "clear-ta [DOMAIN]...             Clear the Trust Anchor for DOMAINs\n"
 "dump-cache <filename>            dump cache contents to the named file\n"
-"dump-edns[status] <filename>     dump EDNS status to the named file\n"
+"dump-edns [status] <filename>    dump EDNS status to the named file\n"
 "dump-nsspeeds <filename>         dump nsspeeds statistics to the named file\n"
 "get [key1] [key2] ..             get specific statistics\n"
 "get-all                          get all statistics\n"

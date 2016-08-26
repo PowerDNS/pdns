@@ -125,6 +125,10 @@ reload-zones
 :    Reload authoritative and forward zones. Retains current configuration
      in case of errors.
 
+set-carbon-server *CARBON SERVER* [*CARBON OURNAME*]
+:    Set the carbon-server setting to *CARBON SERVER*. If *CARBON OURNAME* is not
+     empty, also set the carbon-ourname setting to *CARBON OURNAME*.
+
 set-dnssec-log-bogus *SETTING*
 :    Set dnssec-log-bogus setting to *SETTING*. Set to 'on' or 'yes' to log DNSSEC
      validation failures and to 'no' or 'off' to disable logging these failures.
@@ -132,9 +136,25 @@ set-dnssec-log-bogus *SETTING*
 set-minimum-ttl *NUM*
 :    Set minimum-ttl-override to *NUM*.
 
+top-queries
+:    Shows the top-20 queries. Statistics are over the last
+     'stats-ringbuffer-entries' queries.
+
+top-largeanswer-remotes
+:    Shows the top-20 remote hosts causing large answers. Statistics are over the
+     last 'stats-ringbuffer-entries' queries.
+
 top-remotes
 :    Shows the top-20 most active remote hosts. Statistics are over the
      last 'stats-ringbuffer-entries' queries.
+
+top-servfail-queries
+:    Shows the top-20 queries causing servfail responses. Statistics are
+     over the last 'stats-ringbuffer-entries' queries.
+
+top-servfail-remotes
+:    Shows the top-20 most active remote hosts causing servfail responses.
+     Statistics are over the last 'stats-ringbuffer-entries' queries.
 
 trace-regex *REGEX*
 :    Emit resolution trace for matching queries. Empty regex to disable trace.

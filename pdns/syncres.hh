@@ -357,6 +357,8 @@ public:
   static bool s_doIPv6;
   static unsigned int s_maxqperq;
   static unsigned int s_maxtotusec;
+  std::unordered_map<std::string,bool> d_discardedPolicies;
+  DNSFilterEngine::Policy d_appliedPolicy{DNSFilterEngine::PolicyKind::NoAction, nullptr, nullptr, 0};
   unsigned int d_outqueries;
   unsigned int d_tcpoutqueries;
   unsigned int d_throttledqueries;
@@ -368,6 +370,7 @@ public:
   
   bool d_wasVariable{false};
   bool d_wasOutOfBand{false};
+  bool d_wantsRPZ{true};
   
   typedef multi_index_container <
     NegCacheEntry,
@@ -637,6 +640,7 @@ struct RecursorStats
   unsigned int maxMThreadStackUsage;
   std::atomic<uint64_t> dnssecValidations; // should be the sum of all dnssecResult* stats
   std::map<vState, std::atomic<uint64_t> > dnssecResults;
+  std::map<DNSFilterEngine::PolicyKind, std::atomic<uint64_t> > policyResults;
 };
 
 //! represents a running TCP/IP client session

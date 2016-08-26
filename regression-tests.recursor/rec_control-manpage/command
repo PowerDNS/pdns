@@ -1,16 +1,16 @@
 #!/bin/sh
 elements="$($RECCONTROL --config-dir=./configs/recursor-service help | grep -v -e '^ ' | awk '{print $1}')"
 
-num_elems="$( echo $elements | wc -l)"
+num_elems="$( echo "$elements" | wc -l)"
 
 if [ $num_elems -lt 5 ]; then
-  echo "Not enough elements"
+  echo "Not enough elements ($num_elems)"
   exit 1
 fi
 
 missing_elements=""
 for element in $elements; do
-  grep -e -q "^$element" ../docs/manpages/rec_control.1.md || missing_elements="$element\n$missing_elements"
+  grep -q -e "^$element" ../docs/manpages/rec_control.1.md || missing_elements="$element\n$missing_elements"
 done
 
 if [ "x$missing_elements" != "x" ]; then

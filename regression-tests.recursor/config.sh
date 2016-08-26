@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -e
 if [ "${PDNS_DEBUG}" = "YES" ]; then
   set -x
@@ -45,7 +45,8 @@ fi
 
 cd configs
 
-for dir in recursor-service recursor-service2; do
+for dir in recursor-service recursor-service2 recursor-service3; do
+  mkdir /tmp/$dir
   mkdir $dir
   cd $dir
 
@@ -86,6 +87,10 @@ example.net.             3600 IN NS  ns2.example.net.
 ns.example.net.          3600 IN A   $PREFIX.10
 ns2.example.net.         3600 IN A   $PREFIX.11
 www.example.net.         3600 IN A   192.0.2.1
+www2.example.net.        3600 IN A   192.0.2.2
+www3.example.net.        3600 IN A   192.0.2.3
+www4.example.net.        3600 IN A   192.0.2.4
+www5.example.net.        3600 IN A   192.0.2.5
 weirdtxt.example.net.    3600 IN IN  TXT "x\014x"
 arthur.example.net.      3600 IN NS  ns.arthur.example.net.
 arthur.example.net.      3600 IN NS  ns2.arthur.example.net.
@@ -431,7 +436,7 @@ host2.auth-zone.example.net. 20 IN CNAME host1.another-auth-zone.example.net.
 host3.auth-zone.example.net. 20 IN CNAME host1.not-auth-zone.example.net.
 *.wild.auth-zone.example.net.	3600 IN	TXT "Hi there!"
 france.auth-zone.example.net.	20	IN NS 	ns1.auth-zone.example.net.
-ns1.auth-zone.example.net. 	20	IN	A	10.0.3.23
+ns1.auth-zone.example.net. 	20	IN	A	$PREFIX.23
 EOF
 
 mkdir $PREFIX.24
@@ -524,7 +529,7 @@ api-key=secret
 api-readonly=yes
 forward-zones-file=$(pwd)/recursor-service/forward-zones-file
 
-socket-dir=$(pwd)/recursor-service
+socket-dir=/tmp/recursor-service
 auth-zones=global.box.answer-cname-in-local.example.net=$(pwd)/recursor-service/global.box.answer-cname-in-local.example.net.zone,auth-zone.example.net=$(pwd)/recursor-service/auth-zone.example.net.zone,another-auth-zone.example.net=$(pwd)/recursor-service/another-auth-zone.example.net.zone
 loglevel=9
 
@@ -532,7 +537,75 @@ EOF
 
 cat > recursor-service2/recursor.conf <<EOF
 local-port=5300
-socket-dir=$(pwd)/recursor-service2S
+socket-dir=/tmp/recursor-service2
 lowercase-outgoing=yes
 
+EOF
+
+cat > recursor-service3/recursor.conf << EOF
+local-port=5301
+socket-dir=/tmp/recursor-service3
+lua-config-file=$(pwd)/recursor-service3/config.lua
+lua-dns-script=$(pwd)/recursor-service3/script.lua
+
+EOF
+
+cat > recursor-service3/config.lua <<EOF
+rpzFile("$(pwd)/recursor-service3/rpz.zone", {policyName="myRPZ"})
+rpzFile("$(pwd)/recursor-service3/rpz2.zone", {policyName="mySecondRPZ"})
+EOF
+
+IFS=. read REV_PREFIX1 REV_PREFIX2 REV_PREFIX3 <<< $(echo $PREFIX) # This will bite us in the ass if we ever test on IPv6
+
+cat > recursor-service3/rpz.zone <<EOF
+\$TTL 2h;
+\$ORIGIN domain.example.
+@ SOA $SOA
+@ NS ns.example.net.
+
+arthur.example.net     CNAME .                   ; NXDOMAIN on apex
+*.arthur.example.net   CNAME *.                  ; NODATA for everything below the apex
+srv.arthur.example.net CNAME rpz-passthru.       ; Allow this name though
+www.example.net        CNAME www2.example.net.   ; Local-Data Action
+www3.example.net       CNAME www4.example.net.   ; Local-Data Action (to be changed in preresolve)
+www5.example.net       A     192.0.2.15          ; Override www5.example.net.
+trillian.example.net   CNAME .                   ; NXDOMAIN on apex, allows all sub-names (#4086)
+
+32.4.2.0.192.rpz-ip    CNAME rpz-drop.           ; www4.example.net resolves to 192.0.2.4, drop A responses with that IP
+
+ns.hijackme.example.net.rpz-nsdname CNAME .      ; NXDOMAIN for anything hosted on ns.hijackme.example.net
+ns.marvin.example.net.rpz-nsdname CNAME .        ; NXDOMAIN for anything hosted on ns.marvin.example.net (we disable RPZ in preresolve though)
+32.24.$REV_PREFIX3.$REV_PREFIX2.$REV_PREFIX1.rpz-nsip CNAME . ; The IP for ns.lowercase-outgoing.example.net, should yield NXDOMAIN
+
+EOF
+
+cat > recursor-service3/rpz2.zone <<EOF
+\$TTL 2h;
+\$ORIGIN domain.example.
+@ SOA $SOA
+@ NS ns.example.net.
+
+www5.example.net       A     192.0.2.25          ; Override www5.example.net.
+
+EOF
+
+cat > recursor-service3/script.lua <<EOF
+function prerpz(dq)
+  if dq.qname:equal('www5.example.net') then
+    dq:discardPolicy('myRPZ')
+  end
+  return true
+end
+
+function preresolve(dq)
+  if dq.qname:equal("android.marvin.example.net") then
+    dq.wantsRPZ = false -- disable RPZ
+  end
+  if dq.appliedPolicy.policyKind == pdns.policykinds.Custom then
+    if dq.qname:equal("www3.example.net") then
+      dq.appliedPolicy.policyCustom = "www2.example.net"
+    end
+  end
+  return false
+end
 EOF

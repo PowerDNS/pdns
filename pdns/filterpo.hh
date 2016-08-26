@@ -24,6 +24,7 @@
 #include "dns.hh"
 #include "dnsparser.hh"
 #include <map>
+#include <unordered_map>
 
 /* This class implements a filtering policy that is able to fully implement RPZ, but is not bound to it.
    In other words, it is generic enough to support RPZ, but could get its data from other places.
@@ -72,38 +73,48 @@ public:
     }
     PolicyKind d_kind;
     std::shared_ptr<DNSRecordContent> d_custom;
-    std::string d_name;
+    std::shared_ptr<std::string> d_name;
     int d_ttl;
   };
 
   DNSFilterEngine();
   void clear();
-  void clear(int zone);
-  void addClientTrigger(const Netmask& nm, Policy pol, int zone=0);
-  void addQNameTrigger(const DNSName& nm, Policy pol, int zone=0);
-  void addNSTrigger(const DNSName& dn, Policy pol, int zone=0);
-  void addResponseTrigger(const Netmask& nm, Policy pol, int zone=0);
+  void clear(size_t zone);
+  void addClientTrigger(const Netmask& nm, Policy pol, size_t zone);
+  void addQNameTrigger(const DNSName& nm, Policy pol, size_t zone);
+  void addNSTrigger(const DNSName& dn, Policy pol, size_t zone);
+  void addNSIPTrigger(const Netmask& nm, Policy pol, size_t zone);
+  void addResponseTrigger(const Netmask& nm, Policy pol, size_t zone);
 
-  bool rmClientTrigger(const Netmask& nm, Policy pol, int zone=0);
-  bool rmQNameTrigger(const DNSName& nm, Policy pol, int zone=0);
-  bool rmNSTrigger(const DNSName& dn, Policy pol, int zone=0);
-  bool rmResponseTrigger(const Netmask& nm, Policy pol, int zone=0);
+  bool rmClientTrigger(const Netmask& nm, Policy pol, size_t zone);
+  bool rmQNameTrigger(const DNSName& nm, Policy pol, size_t zone);
+  bool rmNSTrigger(const DNSName& dn, Policy pol, size_t zone);
+  bool rmNSIPTrigger(const Netmask& nm, Policy pol, size_t zone);
+  bool rmResponseTrigger(const Netmask& nm, Policy pol, size_t zone);
 
 
-  Policy getQueryPolicy(const DNSName& qname, const ComboAddress& nm) const;
-  Policy getProcessingPolicy(const DNSName& qname) const;
-  Policy getPostPolicy(const vector<DNSRecord>& records) const;
+  Policy getQueryPolicy(const DNSName& qname, const ComboAddress& nm, const std::unordered_map<std::string,bool>& discardedPolicies) const;
+  Policy getProcessingPolicy(const DNSName& qname, const std::unordered_map<std::string,bool>& discardedPolicies) const;
+  Policy getProcessingPolicy(const ComboAddress& address, const std::unordered_map<std::string,bool>& discardedPolicies) const;
+  Policy getPostPolicy(const vector<DNSRecord>& records, const std::unordered_map<std::string,bool>& discardedPolicies) const;
 
   size_t size() {
     return d_zones.size();
   }
+  void setPolicyName(size_t zoneIdx, std::string name)
+  {
+    assureZones(zoneIdx);
+    d_zones[zoneIdx].name = std::make_shared<std::string>(name);
+  }
 private:
-  void assureZones(int zone);
+  void assureZones(size_t zone);
   struct Zone {
-    std::map<DNSName, Policy> qpolName;
-    NetmaskTree<Policy> qpolAddr;
-    std::map<DNSName, Policy> propolName;
-    NetmaskTree<Policy> postpolAddr;
+    std::map<DNSName, Policy> qpolName;   // QNAME trigger (RPZ)
+    NetmaskTree<Policy> qpolAddr;         // Source address
+    std::map<DNSName, Policy> propolName; // NSDNAME (RPZ)
+    NetmaskTree<Policy> propolNSAddr;     // NSIP (RPZ)
+    NetmaskTree<Policy> postpolAddr;      // IP trigger (RPZ)
+    std::shared_ptr<std::string> name;
   };
   vector<Zone> d_zones;
 

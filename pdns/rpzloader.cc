@@ -10,18 +10,61 @@
 static Netmask makeNetmaskFromRPZ(const DNSName& name)
 {
   auto parts = name.getRawLabels();
-  if(parts.size() < 5) 
+  /*
+   * why 2?, the minimally valid IPv6 address that can be encoded in an RPZ is
+   * $NETMASK.zz (::/$NETMASK)
+   * Terrible right?
+   */
+  if(parts.size() < 2 || parts.size() > 9)
     throw PDNSException("Invalid IP address in RPZ: "+name.toString());
-  return Netmask(parts[4]+"."+parts[3]+"."+parts[2]+"."+parts[1]+"/"+parts[0]);
+
+  bool isV6 = (stoi(parts[0]) > 32);
+  bool hadZZ = false;
+
+  for (auto &part : parts) {
+    // Check if we have an IPv4 octet
+    for (auto c : part)
+      if (!isdigit(c))
+        isV6 = true;
+
+    if (pdns_iequals(part,"zz")) {
+      if (hadZZ)
+        throw PDNSException("more than one 'zz' label found in RPZ name"+name.toString());
+      part = "";
+      isV6 = true;
+      hadZZ = true;
+    }
+  }
+
+  if (isV6 && parts.size() < 9 && !hadZZ)
+    throw PDNSException("No 'zz' label found in an IPv6 RPZ name shorter than 9 elements: "+name.toString());
+
+  if (parts.size() == 5 && !isV6)
+    return Netmask(parts[4]+"."+parts[3]+"."+parts[2]+"."+parts[1]+"/"+parts[0]);
+
+  string v6;
+
+  for (uint8_t i = parts.size()-1 ; i > 0; i--) {
+    v6 += parts[i];
+    if (parts[i] == "" && i == 1 && i == parts.size()-1)
+        v6+= "::";
+    if (parts[i] == "" && i != parts.size()-1)
+        v6+= ":";
+    if (parts[i] != "" && i != 1)
+      v6 += ":";
+  }
+  v6 += "/" + parts[0];
+
+  return Netmask(v6);
 }
 
-void RPZRecordToPolicy(const DNSRecord& dr, DNSFilterEngine& target, const std::string& polName, bool addOrRemove, boost::optional<DNSFilterEngine::Policy> defpol, int place)
+void RPZRecordToPolicy(const DNSRecord& dr, DNSFilterEngine& target, bool addOrRemove, boost::optional<DNSFilterEngine::Policy> defpol, size_t place)
 {
   static const DNSName drop("rpz-drop."), truncate("rpz-tcp-only."), noaction("rpz-passthru.");
   static const DNSName rpzClientIP("rpz-client-ip"), rpzIP("rpz-ip"),
     rpzNSDname("rpz-nsdname"), rpzNSIP("rpz-nsip.");
 
-  DNSFilterEngine::Policy pol{DNSFilterEngine::PolicyKind::NoAction, nullptr, polName, 0};
+  DNSFilterEngine::Policy pol{DNSFilterEngine::PolicyKind::NoAction, nullptr, nullptr, 0};
 
   if(dr.d_class != QClass::IN) {
     return;
@@ -80,37 +123,41 @@ void RPZRecordToPolicy(const DNSRecord& dr, DNSFilterEngine& target, const std::
   if(dr.d_name.isPartOf(rpzNSDname)) {
     DNSName filt=dr.d_name.makeRelative(rpzNSDname);
     if(addOrRemove)
-      target.addNSTrigger(filt, pol);
+      target.addNSTrigger(filt, pol, place);
     else
-      target.rmNSTrigger(filt, pol);
+      target.rmNSTrigger(filt, pol, place);
   } else 	if(dr.d_name.isPartOf(rpzClientIP)) {
-
-    auto nm=makeNetmaskFromRPZ(dr.d_name);
-
+    DNSName filt=dr.d_name.makeRelative(rpzClientIP);
+    auto nm=makeNetmaskFromRPZ(filt);
     if(addOrRemove)
-      target.addClientTrigger(nm, pol);
+      target.addClientTrigger(nm, pol, place);
     else
-      target.rmClientTrigger(nm, pol);
+      target.rmClientTrigger(nm, pol, place);
     
   } else 	if(dr.d_name.isPartOf(rpzIP)) {
     // cerr<<"Should apply answer content IP policy: "<<dr.d_name<<endl;
-    auto nm=makeNetmaskFromRPZ(dr.d_name);
+    DNSName filt=dr.d_name.makeRelative(rpzIP);
+    auto nm=makeNetmaskFromRPZ(filt);
     if(addOrRemove)
-      target.addResponseTrigger(nm, pol);
+      target.addResponseTrigger(nm, pol, place);
     else
-      target.rmResponseTrigger(nm, pol);
+      target.rmResponseTrigger(nm, pol, place);
   } else if(dr.d_name.isPartOf(rpzNSIP)) {
-    cerr<<"Should apply to nameserver IP address policy HAVE NOTHING HERE"<<endl;
-
+    DNSName filt=dr.d_name.makeRelative(rpzNSIP);
+    auto nm=makeNetmaskFromRPZ(filt);
+    if(addOrRemove)
+      target.addNSIPTrigger(nm, pol, place);
+    else
+      target.rmNSIPTrigger(nm, pol, place);
   } else {
     if(addOrRemove)
-      target.addQNameTrigger(dr.d_name, pol);
+      target.addQNameTrigger(dr.d_name, pol, place);
     else
-      target.rmQNameTrigger(dr.d_name, pol);
+      target.rmQNameTrigger(dr.d_name, pol, place);
   }
 }
 
-shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const DNSName& zone, DNSFilterEngine& target, const std::string& polName, boost::optional<DNSFilterEngine::Policy> defpol, int place,  const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress)
+shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const DNSName& zone, DNSFilterEngine& target, boost::optional<DNSFilterEngine::Policy> defpol, size_t place, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress)
 {
   L<<Logger::Warning<<"Loading RPZ zone '"<<zone<<"' from "<<master.toStringWithPort()<<endl;
   if(!tt.name.empty())
@@ -138,7 +185,7 @@ shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const
 	continue;
       }
 
-      RPZRecordToPolicy(dr, target, polName, true, defpol, place);
+      RPZRecordToPolicy(dr, target, true, defpol, place);
       nrecords++;
     } 
     if(last != time(0)) {
@@ -151,7 +198,7 @@ shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const
 }
 
 // this function is silent - you do the logging
-int loadRPZFromFile(const std::string& fname, DNSFilterEngine& target, const std::string& polName, boost::optional<DNSFilterEngine::Policy> defpol, int place)
+int loadRPZFromFile(const std::string& fname, DNSFilterEngine& target, boost::optional<DNSFilterEngine::Policy> defpol, size_t place)
 {
   ZoneParserTNG zpt(fname);
   DNSResourceRecord drr;
@@ -169,7 +216,7 @@ int loadRPZFromFile(const std::string& fname, DNSFilterEngine& target, const std
       }
       else {
 	dr.d_name=dr.d_name.makeRelative(domain);
-	RPZRecordToPolicy(dr, target, polName, true, defpol, place);
+	RPZRecordToPolicy(dr, target, true, defpol, place);
       }
     }
     catch(PDNSException& pe) {

@@ -32,54 +32,73 @@ bool findNamedPolicy(const map<DNSName, DNSFilterEngine::Policy>& polmap, const 
 {
   DNSName s(qname);
 
-    /* for www.powerdns.com, we need to check:
-         www.powerdns.com.
-           *.powerdns.com.
-             powerdns.com.
-	            *.com.
-                      com.
-	 	        *.
-  			 .       */
- 
-  bool first=true;
-  do {
-    auto iter = polmap.find(s);
+  /* for www.powerdns.com, we need to check:
+     www.powerdns.com.
+       *.powerdns.com.
+                *.com.
+                    *.
+   */
+
+  map<DNSName, DNSFilterEngine::Policy>::const_iterator iter;
+  iter = polmap.find(s);
+
+  if(iter != polmap.end()) {
+    pol=iter->second;
+    return true;
+  }
+
+  while(s.chopOff()){
+    iter = polmap.find(DNSName("*")+s);
     if(iter != polmap.end()) {
       pol=iter->second;
       return true;
     }
-    if(!first) {
-      iter = polmap.find(DNSName("*")+s);
-      if(iter != polmap.end()) {
-	pol=iter->second;
-	return true;
-      }
-    }
-    first=false;
-  } while(s.chopOff());
+  }
   return false;
 }
 
-DNSFilterEngine::Policy DNSFilterEngine::getProcessingPolicy(const DNSName& qname) const
+DNSFilterEngine::Policy DNSFilterEngine::getProcessingPolicy(const DNSName& qname, const std::unordered_map<std::string,bool>& discardedPolicies) const
 {
   //  cout<<"Got question for nameserver name "<<qname<<endl;
-  Policy pol{PolicyKind::NoAction, nullptr, "", 0};
+  Policy pol{PolicyKind::NoAction, nullptr, nullptr, 0};
   for(const auto& z : d_zones) {
+    if(z.name && discardedPolicies.find(*z.name) != discardedPolicies.end()) {
+      continue;
+    }
+
     if(findNamedPolicy(z.propolName, qname, pol)) {
       //      cerr<<"Had a hit on the nameserver ("<<qname<<") used to process the query"<<endl;
       return pol;
     }
   }
   return pol;
-}  
+}
 
+DNSFilterEngine::Policy DNSFilterEngine::getProcessingPolicy(const ComboAddress& address, const std::unordered_map<std::string,bool>& discardedPolicies) const
+{
+  //  cout<<"Got question for nameserver IP "<<address.toString()<<endl;
+  for(const auto& z : d_zones) {
+    if(z.name && discardedPolicies.find(*z.name) != discardedPolicies.end()) {
+      continue;
+    }
 
-DNSFilterEngine::Policy DNSFilterEngine::getQueryPolicy(const DNSName& qname, const ComboAddress& ca) const
+    if(auto fnd=z.propolNSAddr.lookup(address)) {
+      //      cerr<<"Had a hit on the nameserver ("<<address.toString()<<") used to process the query"<<endl;
+      return fnd->second;;
+    }
+  }
+  return Policy{PolicyKind::NoAction, nullptr, nullptr, 0};
+}
+
+DNSFilterEngine::Policy DNSFilterEngine::getQueryPolicy(const DNSName& qname, const ComboAddress& ca, const std::unordered_map<std::string,bool>& discardedPolicies) const
 {
   //  cout<<"Got question for "<<qname<<" from "<<ca.toString()<<endl;
-
-  Policy pol{PolicyKind::NoAction, nullptr, "", 0};
+  Policy pol{PolicyKind::NoAction, nullptr, nullptr, 0};
   for(const auto& z : d_zones) {
+    if(z.name && discardedPolicies.find(*z.name) != discardedPolicies.end()) {
+      continue;
+    }
+
     if(findNamedPolicy(z.qpolName, qname, pol)) {
       //      cerr<<"Had a hit on the name of the query"<<endl;
       return pol;
@@ -94,10 +113,9 @@ DNSFilterEngine::Policy DNSFilterEngine::getQueryPolicy(const DNSName& qname, co
   return pol;
 }
 
-DNSFilterEngine::Policy DNSFilterEngine::getPostPolicy(const vector<DNSRecord>& records) const
+DNSFilterEngine::Policy DNSFilterEngine::getPostPolicy(const vector<DNSRecord>& records, const std::unordered_map<std::string,bool>& discardedPolicies) const
 {
   ComboAddress ca;
-
   for(const auto& r : records) {
     if(r.d_place != DNSResourceRecord::ANSWER) 
       continue;
@@ -115,20 +133,24 @@ DNSFilterEngine::Policy DNSFilterEngine::getPostPolicy(const vector<DNSRecord>& 
       continue;
 
     for(const auto& z : d_zones) {
+      if(z.name && discardedPolicies.find(*z.name) != discardedPolicies.end()) {
+        continue;
+      }
+
       if(auto fnd=z.postpolAddr.lookup(ca))
 	return fnd->second;
     }
   }
-  return Policy{PolicyKind::NoAction, nullptr, "", 0};
+  return Policy{PolicyKind::NoAction, nullptr, nullptr, 0};
 }
 
-void DNSFilterEngine::assureZones(int zone)
+void DNSFilterEngine::assureZones(size_t zone)
 {
-  if((int)d_zones.size() <= zone)
+  if(d_zones.size() <= zone)
     d_zones.resize(zone+1);
 }
 
-void DNSFilterEngine::clear(int zone)
+void DNSFilterEngine::clear(size_t zone)
 {
   assureZones(zone);
   auto& z = d_zones[zone];
@@ -138,31 +160,42 @@ void DNSFilterEngine::clear(int zone)
   z.qpolName.clear();
 }
 
-void DNSFilterEngine::addClientTrigger(const Netmask& nm, Policy pol, int zone)
+void DNSFilterEngine::addClientTrigger(const Netmask& nm, Policy pol, size_t zone)
 {
   assureZones(zone);
+  pol.d_name = d_zones[zone].name;
   d_zones[zone].qpolAddr.insert(nm).second=pol;
 }
 
-void DNSFilterEngine::addResponseTrigger(const Netmask& nm, Policy pol, int zone)
+void DNSFilterEngine::addResponseTrigger(const Netmask& nm, Policy pol, size_t zone)
 {
   assureZones(zone);
+  pol.d_name = d_zones[zone].name;
   d_zones[zone].postpolAddr.insert(nm).second=pol;
 }
 
-void DNSFilterEngine::addQNameTrigger(const DNSName& n, Policy pol, int zone)
+void DNSFilterEngine::addQNameTrigger(const DNSName& n, Policy pol, size_t zone)
 {
   assureZones(zone);
+  pol.d_name = d_zones[zone].name;
   d_zones[zone].qpolName[n]=pol;
 }
 
-void DNSFilterEngine::addNSTrigger(const DNSName& n, Policy pol, int zone)
+void DNSFilterEngine::addNSTrigger(const DNSName& n, Policy pol, size_t zone)
 {
   assureZones(zone);
+  pol.d_name = d_zones[zone].name;
   d_zones[zone].propolName[n]=pol;
 }
 
-bool DNSFilterEngine::rmClientTrigger(const Netmask& nm, Policy pol, int zone)
+void DNSFilterEngine::addNSIPTrigger(const Netmask& nm, Policy pol, size_t zone)
+{
+  assureZones(zone);
+  pol.d_name = d_zones[zone].name;
+  d_zones[zone].propolNSAddr.insert(nm).second = pol;
+}
+
+bool DNSFilterEngine::rmClientTrigger(const Netmask& nm, Policy pol, size_t zone)
 {
   assureZones(zone);
 
@@ -171,7 +204,7 @@ bool DNSFilterEngine::rmClientTrigger(const Netmask& nm, Policy pol, int zone)
   return true;
 }
 
-bool DNSFilterEngine::rmResponseTrigger(const Netmask& nm, Policy pol, int zone)
+bool DNSFilterEngine::rmResponseTrigger(const Netmask& nm, Policy pol, size_t zone)
 {
   assureZones(zone);
   auto& postpols = d_zones[zone].postpolAddr;
@@ -179,16 +212,24 @@ bool DNSFilterEngine::rmResponseTrigger(const Netmask& nm, Policy pol, int zone)
   return true;
 }
 
-bool DNSFilterEngine::rmQNameTrigger(const DNSName& n, Policy pol, int zone)
+bool DNSFilterEngine::rmQNameTrigger(const DNSName& n, Policy pol, size_t zone)
 {
   assureZones(zone);
   d_zones[zone].qpolName.erase(n); // XXX verify we had identical policy?
   return true;
 }
 
-bool DNSFilterEngine::rmNSTrigger(const DNSName& n, Policy pol, int zone)
+bool DNSFilterEngine::rmNSTrigger(const DNSName& n, Policy pol, size_t zone)
 {
   assureZones(zone);
   d_zones[zone].propolName.erase(n); // XXX verify policy matched? =pol;
+  return true;
+}
+
+bool DNSFilterEngine::rmNSIPTrigger(const Netmask& nm, Policy pol, size_t zone)
+{
+  assureZones(zone);
+  auto& pols = d_zones[zone].propolNSAddr;
+  pols.erase(nm);
   return true;
 }

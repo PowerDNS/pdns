@@ -59,6 +59,12 @@ The `rec_control get` command can be used to query the following statistics, eit
 * `packetcache-hits`: packet cache hits (since 3.2)
 * `packetcache-misses`: packet cache misses (since 3.2)
 * `policy-drops`: packets dropped because of (Lua) policy decision
+* `policy-result-noaction`: packets that were not actioned upon by the RPZ/filter engine
+* `policy-result-drop`: packets that were dropped by the RPZ/filter engine
+* `policy-result-nxdomain`: packets that were replied to with NXDOMAIN by the RPZ/filter engine
+* `policy-result-nodata`: packets that were replied to with no data by the RPZ/filter engine
+* `policy-result-truncate`: packets that were forced to TCP by the RPZ/filter engine
+* `policy-result-custom`: packets that were sent a custom answer by the RPZ/filter engine
 * `qa-latency`: shows the current latency average, in microseconds, exponentially weighted over past 'latency-statistic-size' packets
 * `questions`: counts all end-user initiated queries with the RD bit set
 * `resource-limits`: counts number of queries that could not be performed because of resource limits

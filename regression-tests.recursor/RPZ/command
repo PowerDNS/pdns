@@ -1,0 +1,18 @@
+echo "==> arthur.example.net RPZ NXDOMAIN"
+$SDIG $nameserver 5301 arthur.example.net a recurse 2>&1
+echo "==> www.arthur.example.net RPZ NODATA"
+$SDIG $nameserver 5301 www.arthur.example.net a recurse 2>&1
+echo "==> srv.arthur.example.net RPZ passthru"
+$SDIG $nameserver 5301 srv.arthur.example.net srv recurse 2>&1
+echo "==> www.example.net RPZ local data to www2.example.net"
+$SDIG $nameserver 5301 www.example.net a recurse 2>&1
+echo "==> www4.example.net RPZ IP trigger action, dropped"
+$SDIG $nameserver 5301 www4.example.net a recurse 2>&1
+echo "==> trillian.example.net NXDOMAIN"
+$SDIG $nameserver 5301 trillian.example.net a recurse 2>&1
+echo "==> www.trillian.example.net has no RPZ policy attached, so lookup should succeed"
+$SDIG $nameserver 5301 www.trillian.example.net a recurse 2>&1
+echo "==> www.hijackme.example.net is served on ns.hijackme.example.net, which should be NXDOMAIN"
+$SDIG $nameserver 5301 www.hijackme.example.net a recurse 2>&1
+echo "==> host.lowercase-outgoing.example.net is served on ns.lowercase-outgoing.example.net, blocked by NS IP rule"
+$SDIG $nameserver 5301 host.lowercase-outgoing.example.net a recurse 2>&1
