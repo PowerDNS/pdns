@@ -1205,9 +1205,13 @@ int changeSlaveZoneMaster(const vector<string>& cmds) {
     cerr<<"Domain '"<<zone<<"' doesn't exist"<<endl;
     return EXIT_FAILURE;
   }
-  ComboAddress master(cmds[2], 53);
-  cerr<<"Updating slave zone '"<<zone<<"', master to "<<master.toStringWithPort()<<endl;
-  di.backend->setMaster(zone, master.toStringWithPort());
+  vector<string> masters;
+  for (unsigned i=2; i < cmds.size(); i++) {
+    ComboAddress master(cmds[i], 53);
+    masters.push_back(master.toStringWithPort());
+  }
+  cerr<<"Updating slave zone '"<<zone<<"', master(s) to '"<<boost::join(masters, ",")<<"'"<<endl;
+  di.backend->setMaster(zone, boost::join(masters, ","));
   return EXIT_SUCCESS;
 }
 
