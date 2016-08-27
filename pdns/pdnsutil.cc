@@ -1197,6 +1197,24 @@ int createSlaveZone(const vector<string>& cmds) {
   return EXIT_SUCCESS;
 }
 
+int changeSlaveZoneMaster(const vector<string>& cmds) {
+  UeberBackend B;
+  DomainInfo di;
+  DNSName zone(cmds[1]);
+  if (!B.getDomainInfo(zone, di)) {
+    cerr<<"Domain '"<<zone<<"' doesn't exist"<<endl;
+    return EXIT_FAILURE;
+  }
+  vector<string> masters;
+  for (unsigned i=2; i < cmds.size(); i++) {
+    ComboAddress master(cmds[i], 53);
+    masters.push_back(master.toStringWithPort());
+  }
+  cerr<<"Updating slave zone '"<<zone<<"', master(s) to '"<<boost::join(masters, ",")<<"'"<<endl;
+  di.backend->setMaster(zone, boost::join(masters, ","));
+  return EXIT_SUCCESS;
+}
+
 // add-record ZONE name type [ttl] "content" ["content"]
 int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
   DNSResourceRecord rr;
@@ -1920,6 +1938,8 @@ try
     cout<<"create-bind-db FNAME               Create DNSSEC db for BIND backend (bind-dnssec-db)"<<endl;
     cout<<"create-slave-zone ZONE master-ip [master-ip..]"<<endl;
     cout<<"                                   Create slave zone ZONE with master IP address master-ip"<<endl;
+    cout<<"change-slave-zone-master ZONE master-ip [master-ip..]"<<endl;
+    cout<<"                                   Change slave zone ZONE master IP address to master-ip"<<endl;
     cout<<"create-zone ZONE [nsname]          Create empty zone ZONE"<<endl;
     cout<<"deactivate-tsig-key ZONE NAME {master|slave}"<<endl;
     cout<<"                                   Disable TSIG key for a zone"<<endl;
@@ -2267,6 +2287,13 @@ loadMainConfig(g_vm["config-dir"].as<string>());
       return 0;
     }
     exit(createSlaveZone(cmds));
+  }
+  else if(cmds[0] == "change-slave-zone-master") {
+    if(cmds.size() < 3 ) {
+      cerr<<"Syntax: pdnsutil change-slave-zone-master ZONE master-ip [master-ip..]"<<endl;
+      return 0;
+    }
+    exit(changeSlaveZoneMaster(cmds));
   }
   else if(cmds[0] == "add-record") {
     if(cmds.size() < 5) {
