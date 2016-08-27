@@ -632,6 +632,7 @@ string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOff
 
   vector<uint8_t> signVect;
   DNSPacketWriter dw(signVect, DNSName(), 0);
+  auto pos=signVect.size();
   if(!timersonly) {
     dw.xfrName(keyname, false);
     dw.xfr16BitInt(QClass::ANY); // class
@@ -648,8 +649,7 @@ string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOff
     dw.xfr16BitInt(trc.d_otherData.length()); // length of 'other' data
     //    dw.xfrBlob(trc->d_otherData);
   }
-  const vector<uint8_t>& signRecord=dw.getRecordBeingWritten();
-  message.append(signRecord.begin(), signRecord.end());
+  message.append(signVect.begin()+pos, signVect.end());
   return message;
 }
 
@@ -672,6 +672,7 @@ void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const DNSName& tsigkey
   // now add something that looks a lot like a TSIG record, but isn't
   vector<uint8_t> signVect;
   DNSPacketWriter dw(signVect, DNSName(), 0);
+  auto pos=dw.size();
   if(!timersonly) {
     dw.xfrName(tsigkeyname, false);
     dw.xfr16BitInt(QClass::ANY); // class
@@ -688,8 +689,7 @@ void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const DNSName& tsigkey
     //    dw.xfrBlob(trc->d_otherData);
   }
   
-  const vector<uint8_t>& signRecord=dw.getRecordBeingWritten();
-  toSign.append(signRecord.begin(), signRecord.end());
+  toSign.append(signVect.begin() + pos, signVect.end());
 
   if (algo == TSIG_GSS) {
     if (!gss_add_signature(tsigkeyname, toSign, trc->d_mac)) {

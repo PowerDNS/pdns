@@ -116,7 +116,6 @@ public:
 
   dnsheader* getHeader();
   void getRecordPayload(string& records); // call __before commit__
-  const vector<uint8_t> getRecordBeingWritten() { return vector<uint8_t>(d_content.begin()+d_sor, d_content.end()); }
 
   void setCanonic(bool val)
   {
