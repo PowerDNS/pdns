@@ -286,6 +286,30 @@ BOOST_AUTO_TEST_CASE(test_packetCompress) {
 
 }
 
+BOOST_AUTO_TEST_CASE(test_packetCompressLong) {
+  reportBasicTypes();
+  vector<unsigned char> packet;
+  DNSName loopback("1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa");
+  DNSPacketWriter dpw(packet, loopback, QType::PTR);
+
+  dpw.startRecord(loopback, QType::PTR);
+  PTRRecordContent prc(DNSName("localhost"));
+  prc.toPacket(dpw);
+  dpw.commit();
+  DNSName roundtrip((char*)&packet[0], packet.size(), 12, false);
+  BOOST_CHECK_EQUAL(loopback,roundtrip);
+  
+  packet.clear();
+  DNSName longer("1.2.3.4.5.6.7.8.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa");
+  DNSPacketWriter dpw2(packet, longer, QType::PTR);
+
+  dpw2.startRecord(DNSName("a.b.c.d.e")+longer, QType::PTR);
+  PTRRecordContent prc2(DNSName("localhost"));
+  prc2.toPacket(dpw2);
+  dpw2.commit();
+
+}
+
 
 
 

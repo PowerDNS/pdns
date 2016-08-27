@@ -199,11 +199,18 @@ uint16_t DNSPacketWriter::lookupName(const DNSName& name, uint16_t* matchLen)
   *matchLen=0;
   boost::container::static_vector<uint16_t, 34> nvect, pvect;
 
-  for(auto riter= raw.cbegin(); riter < raw.cend(); ) {
-    if(!*riter)
-      break;
-    nvect.push_back(riter - raw.cbegin());
-    riter+=*riter+1;
+  try {
+    for(auto riter= raw.cbegin(); riter < raw.cend(); ) {
+      if(!*riter)
+        break;
+      nvect.push_back(riter - raw.cbegin());
+      riter+=*riter+1;
+    }
+  }
+  catch(std::bad_alloc& ba) {
+    if(l_verbose)
+      cout<<"Domain "<<name<<" too large to compress"<<endl;
+    return 0;
   }
   
   if(l_verbose) {
@@ -226,24 +233,29 @@ uint16_t DNSPacketWriter::lookupName(const DNSName& name, uint16_t* matchLen)
     }
     // memcmp here makes things _slower_
     pvect.clear();
-    for(auto iter = d_content.cbegin() + p; iter < d_content.cend();) {
-
-      uint8_t c=*iter;
-      if(l_verbose)
-        cout<<"Found label length: "<<(int)c<<endl;
-      if(c & 0xc0) {
-
-        uint16_t npos = 0x100*(c & (~0xc0)) + *++iter;
-        iter = d_content.begin() + npos;
+    try {
+      for(auto iter = d_content.cbegin() + p; iter < d_content.cend();) {
+        uint8_t c=*iter;
         if(l_verbose)
-          cout<<"Is compressed label to newpos "<<npos<<", going there"<<endl;
-        // check against going forward here
-        continue;
+          cout<<"Found label length: "<<(int)c<<endl;
+        if(c & 0xc0) {
+          uint16_t npos = 0x100*(c & (~0xc0)) + *++iter;
+          iter = d_content.begin() + npos;
+          if(l_verbose)
+            cout<<"Is compressed label to newpos "<<npos<<", going there"<<endl;
+          // check against going forward here
+          continue;
+        }
+        if(!c)
+          break;
+        pvect.push_back(iter - d_content.cbegin());
+        iter+=*iter+1;
       }
-      if(!c)
-        break;
-      pvect.push_back(iter - d_content.cbegin());
-      iter+=*iter+1;
+    }
+    catch(std::bad_alloc& ba) {
+      if(l_verbose)
+        cout<<"Domain "<<name<<" too large to compress"<<endl;
+      continue;
     }
     if(l_verbose) {
       cout<<"Packet vector: "<<endl;
@@ -280,7 +292,6 @@ uint16_t DNSPacketWriter::lookupName(const DNSName& name, uint16_t* matchLen)
   }
   return bestpos;
 }
-
 // this is the absolute hottest function in the pdns recursor
 void DNSPacketWriter::xfrName(const DNSName& name, bool compress, bool)
 {
