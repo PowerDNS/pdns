@@ -42,6 +42,7 @@ using namespace boost::multi_index;
 #include "packethandler.hh"
 
 #include "namespaces.hh"
+#include "dns_random.hh"
 
 struct SuckRequest
 {
@@ -75,7 +76,7 @@ public:
     nr.domain   = domain;
     nr.ip       = caIp.toStringWithPort();
     nr.attempts = 0;
-    nr.id       = Utility::random()%0xffff;
+    nr.id       = dns_random(0xffff);
     nr.next     = time(0);
 
     d_nqueue.push_back(nr);

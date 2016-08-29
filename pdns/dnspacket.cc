@@ -47,6 +47,7 @@
 #include "base64.hh"
 #include "ednssubnet.hh"
 #include "gss_context.hh"
+#include "dns_random.hh"
 
 bool DNSPacket::s_doEDNSSubnetProcessing;
 uint16_t DNSPacket::s_udpTruncationThreshold;
@@ -366,7 +367,7 @@ void DNSPacket::wrapup()
 void DNSPacket::setQuestion(int op, const DNSName &qd, int newqtype)
 {
   memset(&d,0,sizeof(d));
-  d.id=Utility::random();
+  d.id=dns_random(0xffff);
   d.rd=d.tc=d.aa=false;
   d.qr=false;
   d.qdcount=1; // is htons'ed later on
