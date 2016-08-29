@@ -60,7 +60,7 @@ bool findNamedPolicy(const map<DNSName, DNSFilterEngine::Policy>& polmap, const 
 DNSFilterEngine::Policy DNSFilterEngine::getProcessingPolicy(const DNSName& qname, const std::unordered_map<std::string,bool>& discardedPolicies) const
 {
   //  cout<<"Got question for nameserver name "<<qname<<endl;
-  Policy pol{PolicyKind::NoAction, nullptr, nullptr, 0};
+  Policy pol;
   for(const auto& z : d_zones) {
     if(z.name && discardedPolicies.find(*z.name) != discardedPolicies.end()) {
       continue;
@@ -87,13 +87,13 @@ DNSFilterEngine::Policy DNSFilterEngine::getProcessingPolicy(const ComboAddress&
       return fnd->second;;
     }
   }
-  return Policy{PolicyKind::NoAction, nullptr, nullptr, 0};
+  return Policy();
 }
 
 DNSFilterEngine::Policy DNSFilterEngine::getQueryPolicy(const DNSName& qname, const ComboAddress& ca, const std::unordered_map<std::string,bool>& discardedPolicies) const
 {
   //  cout<<"Got question for "<<qname<<" from "<<ca.toString()<<endl;
-  Policy pol{PolicyKind::NoAction, nullptr, nullptr, 0};
+  Policy pol;
   for(const auto& z : d_zones) {
     if(z.name && discardedPolicies.find(*z.name) != discardedPolicies.end()) {
       continue;
@@ -141,7 +141,7 @@ DNSFilterEngine::Policy DNSFilterEngine::getPostPolicy(const vector<DNSRecord>& 
 	return fnd->second;
     }
   }
-  return Policy{PolicyKind::NoAction, nullptr, nullptr, 0};
+  return Policy();
 }
 
 void DNSFilterEngine::assureZones(size_t zone)

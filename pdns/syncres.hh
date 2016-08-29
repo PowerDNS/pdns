@@ -358,7 +358,7 @@ public:
   static unsigned int s_maxqperq;
   static unsigned int s_maxtotusec;
   std::unordered_map<std::string,bool> d_discardedPolicies;
-  DNSFilterEngine::Policy d_appliedPolicy{DNSFilterEngine::PolicyKind::NoAction, nullptr, nullptr, 0};
+  DNSFilterEngine::Policy d_appliedPolicy;
   unsigned int d_outqueries;
   unsigned int d_tcpoutqueries;
   unsigned int d_throttledqueries;

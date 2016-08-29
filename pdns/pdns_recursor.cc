@@ -656,7 +656,6 @@ void startDoResolve(void *p)
     vector<uint8_t> packet;
 
     auto luaconfsLocal = g_luaconfs.getLocal();
-    DNSFilterEngine::Policy appliedPolicy;
     // Used to tell syncres later on if we should apply NSDNAME and NSIP RPZ triggers for this query
     bool wantsRPZ(true);
     RecProtoBufMessage pbMessage(RecProtoBufMessage::Response);
@@ -711,7 +710,7 @@ void startDoResolve(void *p)
     bool shouldNotValidate = false;
 
     int res;
-    DNSFilterEngine::Policy dfepol;
+    DNSFilterEngine::Policy appliedPolicy;
     DNSRecord spoofed;
     if(dc->d_mdp.d_qtype==QType::ANY && !dc->d_tcp && g_anyToTcp) {
       pw.getHeader()->tc = 1;
@@ -747,9 +746,8 @@ void startDoResolve(void *p)
 
     // Check if the query has a policy attached to it
     if (wantsRPZ) {
-      dfepol = luaconfsLocal->dfe.getQueryPolicy(dc->d_mdp.d_qname, dc->d_remote, sr.d_discardedPolicies);
+      appliedPolicy = luaconfsLocal->dfe.getQueryPolicy(dc->d_mdp.d_qname, dc->d_remote, sr.d_discardedPolicies);
     }
-    appliedPolicy = dfepol;
 
     // if there is a RecursorLua active, and it 'took' the query in preResolve, we don't launch beginResolve
     if(!t_pdl->get() || !(*t_pdl)->preresolve(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_tcp, ret, dc->d_ednsOpts.empty() ? 0 : &dc->d_ednsOpts, dc->d_tag, &appliedPolicy, &dc->d_policyTags, res, &variableAnswer, &wantsRPZ)) {
@@ -852,8 +850,7 @@ void startDoResolve(void *p)
       }
 
       if (wantsRPZ) {
-        dfepol = luaconfsLocal->dfe.getPostPolicy(ret, sr.d_discardedPolicies);
-        appliedPolicy = dfepol;
+        appliedPolicy = luaconfsLocal->dfe.getPostPolicy(ret, sr.d_discardedPolicies);
       }
 
       if(t_pdl->get()) {
