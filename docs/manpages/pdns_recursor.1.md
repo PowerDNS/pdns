@@ -51,8 +51,9 @@ http://doc.powerdns.com/md/recursor/settings/
 :    Timeout in seconds when talking to TCP clients.
 
 --config-dir=*DIRECTORY*
-:    Location of configuration directory (recursor.conf), /etc/powerdns by
-     default.
+:    Location of configuration directory (recursor.conf), the default depends on
+     the SYSCONFDIR option at build-time, which is usually /etc/powerdns. The
+     default can be found with `pdns_recursor --config | grep ' config-dir='`.
 
 --daemon
 :    Operate as a daemon.
