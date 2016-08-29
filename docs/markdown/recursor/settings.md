@@ -305,6 +305,11 @@ or on the command line:
 Forwarded queries have the 'recursion desired' bit set to 0, meaning that this
 setting is intended to forward queries to authoritative servers.
 
+**IMPORTANT**: When using DNSSEC validation (which is default), forwards to non-delegated (e.g. internal) zones that have a DNSSEC signed parent zone will validate as Bogus.
+To prevent this, add a Negative Trust Anchor (NTA) for this zone in the [`lua-config-file`](#lua-config-file) with `addNTA("your.zone", "A comment")`.
+If this forwarded zone is signed, instead of adding NTA, add the DS record to the [`lua-config-file`](#lua-config-file).
+See the [recursor DNSSEC](dnssec.md) documentation for more information.
+
 ## `forward-zones-file`
 * Path
 * Available since: 3.1.5
@@ -318,6 +323,8 @@ Default behaviour without '+' is as with [`forward-zones`](#forward-zones).
 
 Comments are allowed since version 4.0.0. Everything behind '#' is ignored.
 
+The DNSSEC notes from [`forward-zones`](#forward-zones) apply here as well.
+
 ## `forward-zones-recurse`
 * 'zonename=IP' pairs, comma separated
 * Available since: 3.2
@@ -325,6 +332,8 @@ Comments are allowed since version 4.0.0. Everything behind '#' is ignored.
 Like regular [`forward-zones`](#forward-zones), but forwarded queries have the
 'recursion desired' bit set to 1, meaning that this setting is intended to
 forward queries to other recursive servers.
+
+The DNSSEC notes from [`forward-zones`](#forward-zones) apply here as well.
 
 ## `hint-file`
 * Path
