@@ -19,7 +19,7 @@ export PDNSRECURSOR=${PDNSRECURSOR:-${PWD}/../pdns/recursordist/pdns_recursor}
 export RECCONTROL=${RECCONTROL:-${PWD}/../pdns/recursordist/rec_control}
 export LIBFAKETIME=${LIBFAKETIME:-/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1} # ubuntu default
 
-export PREFIX=10.0.3
+export PREFIX=127.0.0
 
 
 set -e
