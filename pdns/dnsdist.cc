@@ -1319,9 +1319,20 @@ void* healthChecksThread()
       
       for(IDState& ids  : dss->idStates) { // timeouts
         if(ids.origFD >=0 && ids.age++ > 2) {
+          /* We set origFD to -1 as soon as possible
+             to limit the risk of racing with the
+             responder thread.
+             The UDP client thread only checks origFD to
+             know whether outstanding has to be incremented,
+             so the sooner the better any way since we _will_
+             decrement it.
+          */
+          ids.origFD = -1;
           ids.age = 0;
           dss->reuseds++;
           --dss->outstanding;
+          g_stats.downstreamTimeouts++; // this is an 'actively' discovered timeout
+
           struct timespec ts;
           gettime(&ts);
 
@@ -1331,10 +1342,6 @@ void* healthChecksThread()
 
           std::lock_guard<std::mutex> lock(g_rings.respMutex);
           g_rings.respRing.push_back({ts, ids.origRemote, ids.qname, ids.qtype, std::numeric_limits<unsigned int>::max(), 0, fake, dss->remote});
-          g_stats.downstreamTimeouts++; // this is an 'actively' discovered timeout
-          // we keep track of 'reuseds' seperately
-
-          ids.origFD = -1; // don't touch 'ids' beyond this point!
         }          
       }
     }
