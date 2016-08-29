@@ -69,7 +69,7 @@ std::vector<std::tuple<ComboAddress, uint64_t, struct timespec> > DynBPFFilter::
   for (const auto& stat : stats) {
     const container_t::iterator it = d_entries.find(stat.first);
     if (it != d_entries.end()) {
-      result.push_back({stat.first, stat.second, it->d_until});
+      result.push_back(std::make_tuple(stat.first, stat.second, it->d_until));
     }
   }
   return result;
