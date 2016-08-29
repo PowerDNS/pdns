@@ -67,6 +67,9 @@ public:
   enum class PolicyKind { NoAction, Drop, NXDOMAIN, NODATA, Truncate, Custom};
   struct Policy
   {
+    Policy(): d_kind(PolicyKind::NoAction), d_custom(nullptr), d_name(nullptr), d_ttl(0)
+    {
+    }
     bool operator==(const Policy& rhs) const
     {
       return d_kind == rhs.d_kind; // XXX check d_custom too!

@@ -64,7 +64,7 @@ void RPZRecordToPolicy(const DNSRecord& dr, DNSFilterEngine& target, bool addOrR
   static const DNSName rpzClientIP("rpz-client-ip"), rpzIP("rpz-ip"),
     rpzNSDname("rpz-nsdname"), rpzNSIP("rpz-nsip.");
 
-  DNSFilterEngine::Policy pol{DNSFilterEngine::PolicyKind::NoAction, nullptr, nullptr, 0};
+  DNSFilterEngine::Policy pol;
 
   if(dr.d_class != QClass::IN) {
     return;
