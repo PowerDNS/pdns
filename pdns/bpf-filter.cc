@@ -322,7 +322,7 @@ void BPFFilter::block(const DNSName& qname, uint16_t qtype)
 
 void BPFFilter::unblock(const DNSName& qname, uint16_t qtype)
 {
-  struct QNameKey key = { 0 };
+  struct QNameKey key = { { 0 } };
   std::string keyStr = qname.toDNSStringLC();
   (void) qtype;
 
@@ -397,8 +397,8 @@ std::vector<std::tuple<DNSName, uint16_t, uint64_t> > BPFFilter::getQNameStats()
   std::vector<std::tuple<DNSName, uint16_t, uint64_t> > result;
   std::unique_lock<std::mutex> lock(d_mutex);
 
-  struct QNameKey key = {0};
-  struct QNameKey nextKey = {0};
+  struct QNameKey key = { { 0 } };
+  struct QNameKey nextKey = { { 0 } };
   struct QNameValue value;
 
   int res = bpf_get_next_key(d_qnamemap.fd, &key, &nextKey);
