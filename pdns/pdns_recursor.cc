@@ -2576,6 +2576,32 @@ int serviceMain(int argc, char*argv[])
 
   g_disthashseed=dns_random(0xffffffff);
 
+  checkLinuxIPv6Limits();
+  try {
+    vector<string> addrs;
+    if(!::arg()["query-local-address6"].empty()) {
+      SyncRes::s_doIPv6=true;
+      L<<Logger::Warning<<"Enabling IPv6 transport for outgoing queries"<<endl;
+
+      stringtok(addrs, ::arg()["query-local-address6"], ", ;");
+      for(const string& addr : addrs) {
+        g_localQueryAddresses6.push_back(ComboAddress(addr));
+      }
+    }
+    else {
+      L<<Logger::Warning<<"NOT using IPv6 for outgoing queries - set 'query-local-address6=::' to enable"<<endl;
+    }
+    addrs.clear();
+    stringtok(addrs, ::arg()["query-local-address"], ", ;");
+    for(const string& addr : addrs) {
+      g_localQueryAddresses4.push_back(ComboAddress(addr));
+    }
+  }
+  catch(std::exception& e) {
+    L<<Logger::Error<<"Assigning local query addresses: "<<e.what();
+    exit(99);
+  }
+
   loadRecursorLuaConfig(::arg()["lua-config-file"]);
 
   parseACLs();
@@ -2636,32 +2662,6 @@ int serviceMain(int argc, char*argv[])
   }
 
   SyncRes::s_minimumTTL = ::arg().asNum("minimum-ttl-override");
-
-  checkLinuxIPv6Limits();
-  try {
-    vector<string> addrs;
-    if(!::arg()["query-local-address6"].empty()) {
-      SyncRes::s_doIPv6=true;
-      L<<Logger::Warning<<"Enabling IPv6 transport for outgoing queries"<<endl;
-
-      stringtok(addrs, ::arg()["query-local-address6"], ", ;");
-      for(const string& addr : addrs) {
-        g_localQueryAddresses6.push_back(ComboAddress(addr));
-      }
-    }
-    else {
-      L<<Logger::Warning<<"NOT using IPv6 for outgoing queries - set 'query-local-address6=::' to enable"<<endl;
-    }
-    addrs.clear();
-    stringtok(addrs, ::arg()["query-local-address"], ", ;");
-    for(const string& addr : addrs) {
-      g_localQueryAddresses4.push_back(ComboAddress(addr));
-    }
-  }
-  catch(std::exception& e) {
-    L<<Logger::Error<<"Assigning local query addresses: "<<e.what();
-    exit(99);
-  }
 
   SyncRes::s_nopacketcache = ::arg().mustDo("disable-packetcache");
 
