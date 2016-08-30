@@ -1211,8 +1211,14 @@ int changeSlaveZoneMaster(const vector<string>& cmds) {
     masters.push_back(master.toStringWithPort());
   }
   cerr<<"Updating slave zone '"<<zone<<"', master(s) to '"<<boost::join(masters, ",")<<"'"<<endl;
-  di.backend->setMaster(zone, boost::join(masters, ","));
-  return EXIT_SUCCESS;
+  try {
+    di.backend->setMaster(zone, boost::join(masters, ","));
+    return EXIT_SUCCESS;
+  }
+  catch (PDNSException& e) {
+    cerr<<"Setting master for zone '"<<zone<<"' failed: "<<e.reason<<endl;
+    return EXIT_FAILURE;
+  }
 }
 
 // add-record ZONE name type [ttl] "content" ["content"]
