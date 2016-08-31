@@ -79,6 +79,38 @@ static dState getDenial(cspmap_t &validrrsets, DNSName qname, uint16_t qtype)
   return ret;
 }
 
+/*
+ * Finds all the zone-cuts between begin (longest name) and end (shortest name),
+ * returns them all zone cuts, including end, but (possibly) not begin
+ */
+vector<DNSName> getZoneCuts(const DNSName& begin, const DNSName& end, DNSRecordOracle& dro)
+{
+  vector<DNSName> ret;
+  if(!begin.isPartOf(end))
+    throw PDNSException(end.toLogString() + "is not part of " + begin.toString());
+
+  DNSName qname(end);
+  vector<string> labelsToAdd = begin.makeRelative(end).getRawLabels();
+
+  // The shortest name is assumed to a zone cut
+  ret.push_back(qname);
+  while(qname != begin) {
+    qname = DNSName(labelsToAdd.back()) + qname;
+    labelsToAdd.pop_back();
+    bool foundCut = false;
+    auto records = dro.get(qname, (uint16_t)QType::NS);
+    for (const auto record : records) {
+      if(record.d_name != qname || record.d_type != QType::NS)
+        continue;
+      foundCut = true;
+      break;
+    }
+    if (foundCut)
+      ret.push_back(qname);
+  }
+  return ret;
+}
+
 void validateWithKeySet(const cspmap_t& rrsets, cspmap_t& validated, const keyset_t& keys)
 {
   validated.clear();
