@@ -322,6 +322,21 @@ This could e.g. be used to answer questions for known malware domains.
 
 To see the set of suffixes matched by a Suffix Match Group, use `:toString()`.
 
+### DNS Record
+
+DNS record objects are returned by `dq:getRecords()`, and have the following members:
+
+* `name`: the name of the record as a DNSName
+* `place`: the place where the record is located, 1 for the answer section, 2 for the authority and 3 for the additional one
+* `ttl`: the TTL of the record
+* `type`: the type of the record, for example pdns.A
+
+and the following methods:
+
+* `changeContent(newcontent)`: replace the record content with the string representation passed as `newcontent`. The type and class cannot be changed.
+* `getCA()`: if the record type is A or AAAA, a ComboAddress representing the content is returned, nil otherwise.
+* `getContent()`: return a string representation of the record content
+
 ### Metrics
 You can custom metrics which will be shown in the output of 'rec_control get-all'
 and sent to the metrics server over the Carbon protocol, and also appear in the
