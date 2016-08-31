@@ -50,6 +50,12 @@ BOOST_AUTO_TEST_CASE(test_ComboAddress) {
   BOOST_CHECK(c != e);
   BOOST_CHECK(d != e);
   BOOST_CHECK(!(a != b));
+
+  // Verify that we don't allow invalid port numbers
+  BOOST_CHECK_THROW(ComboAddress("127.0.0.1:70000"), PDNSException); // Port no. too high
+  BOOST_CHECK_THROW(ComboAddress("127.0.0.1:-6"), PDNSException); // Port no. too low
+  BOOST_CHECK_THROW(ComboAddress("[::1]:70000"), PDNSException); // Port no. too high
+  BOOST_CHECK_THROW(ComboAddress("[::1]:-6"), PDNSException); // Port no. too low
 }
 
 BOOST_AUTO_TEST_CASE(test_ComboAddressCompare) {

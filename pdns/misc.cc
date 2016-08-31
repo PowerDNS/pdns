@@ -739,7 +739,12 @@ int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret)
     if(pos == string::npos || pos + 2 > addr.size() || addr[pos+1]!=':')
       return -1;
     ourAddr.assign(addr.c_str() + 1, pos-1);
-    port = pdns_stou(addr.substr(pos+2));
+    try {
+      port = pdns_stou(addr.substr(pos+2));
+    }
+    catch(std::out_of_range) {
+      return -1;
+    }
   }
   ret->sin6_scope_id=0;
   ret->sin6_family=AF_INET6;
@@ -760,6 +765,10 @@ int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret)
     memcpy(ret, res->ai_addr, res->ai_addrlen);
     freeaddrinfo(res);
   }
+
+  if(port > 65535)
+    // negative ports are found with the pdns_stou above
+    return -1;
 
   if(port >= 0)
     ret->sin6_port = htons(port);
@@ -787,6 +796,9 @@ int makeIPv4sockaddr(const std::string& str, struct sockaddr_in* ret)
 
   char *eptr = (char*)str.c_str() + str.size();
   int port = strtol(str.c_str() + pos + 1, &eptr, 10);
+  if (port < 0 || port > 65535)
+    return -1;
+
   if(*eptr)
     return -1;
 
