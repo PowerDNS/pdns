@@ -12,7 +12,7 @@ void dotNode(string type, DNSName name, string tag, string content);
 string dotName(string type, DNSName name, string tag);
 string dotEscape(string name);
 
-const char *dStates[]={"nodata", "nxdomain", "empty non-terminal", "insecure (no-DS proof)"};
+const char *dStates[]={"nodata", "nxdomain", "nxqtype", "empty non-terminal", "insecure"};
 const char *vStates[]={"Indeterminate", "Bogus", "Insecure", "Secure", "NTA"};
 
 typedef set<DNSKEYRecordContent> keyset_t;
@@ -25,58 +25,75 @@ vector<DNSKEYRecordContent> getByTag(const keyset_t& keys, uint16_t tag)
   return ret;
 }
 
-
-static string nsec3Hash(const DNSName &qname, const NSEC3RecordContent& nrc)
-{
-  NSEC3PARAMRecordContent ns3pr;
-  ns3pr.d_iterations = nrc.d_iterations;
-  ns3pr.d_salt = nrc.d_salt;
-  return toBase32Hex(hashQNameWithSalt(ns3pr, qname));
-}
-
-
 // FIXME: needs a zone argument, to avoid things like 6840 4.1
-static dState getDenial(cspmap_t &validrrsets, DNSName qname, uint16_t qtype)
+// FIXME: Add ENT support
+// FIXME: Make usable for non-DS records and hook up to validateRecords (or another place)
+static dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16_t& qtype)
 {
-  std::multimap<DNSName, NSEC3RecordContent> nsec3s;
+  for(const auto& v : validrrsets) {
+    LOG("Do have: "<<v.first.first<<"/"<<DNSRecordContent::NumberToType(v.first.second)<<endl);
 
-  for(auto i=validrrsets.begin(); i!=validrrsets.end(); ++i)
-  {
-    // FIXME also support NSEC
-    if(i->first.second != QType::NSEC3) continue;
-    
-    for(auto j=i->second.records.begin(); j!=i->second.records.end(); ++j) {
-      NSEC3RecordContent ns3r = dynamic_cast<NSEC3RecordContent&> (**j);
-      // nsec3.insert(new nsec3()
-      // cerr<<toBase32Hex(r.d_nexthash)<<endl;
-      nsec3s.insert(make_pair(i->first.first, ns3r));
+    if(v.first.second==QType::NSEC) {
+      for(const auto& r : v.second.records) {
+        LOG("\t"<<r->getZoneRepresentation()<<endl);
+        auto nsec = std::dynamic_pointer_cast<NSECRecordContent>(r);
+        if(!nsec)
+          continue;
+
+        /* check if the type is denied */
+        if(qname == v.first.first && !nsec->d_set.count(qtype)) {
+          LOG("Denies existence of type "<<QType(qtype).getName()<<endl);
+          return NXQTYPE;
+        }
+
+        /* check if the whole NAME is denied existing */
+        if(v.first.first.canonCompare(qname) && qname.canonCompare(nsec->d_next)) {
+          LOG("Denies existence of name "<<qname<<"/"<<QType(qtype).getName()<<endl);
+          return NXDOMAIN;
+        }
+
+        LOG("Did not deny existence of "<<QType(qtype).getName()<<", "<<v.first.first<<"?="<<qname<<", "<<nsec->d_set.count(qtype)<<", next: "<<nsec->d_next<<endl);
+      }
+    } else if(v.first.second==QType::NSEC3) {
+      for(const auto& r : v.second.records) {
+        LOG("\t"<<r->getZoneRepresentation()<<endl);
+        auto nsec3 = std::dynamic_pointer_cast<NSEC3RecordContent>(r);
+        if(!nsec3)
+          continue;
+
+        string h = hashQNameWithSalt(nsec3->d_salt, nsec3->d_iterations, qname);
+        //              cerr<<"Salt length: "<<nsec3->d_salt.length()<<", iterations: "<<nsec3->d_iterations<<", hashed: "<<*(zoneCutIter+1)<<endl;
+        LOG("\tquery hash: "<<toBase32Hex(h)<<endl);
+        string beginHash=fromBase32Hex(v.first.first.getRawLabels()[0]);
+
+        // If the name exists, check if the qtype is denied
+        if(beginHash == h && !nsec3->d_set.count(qtype)) {
+          LOG("Denies existence of type "<<QType(qtype).getName()<<" for name "<<qname<<"  (not opt-out).");
+          if (qtype == QType::DS && !nsec3->d_set.count(QType::NS)) {
+            LOG("However, no NS record exists at this level!"<<endl);
+            return INSECURE;
+          }
+          LOG(endl);
+          return NXQTYPE;
+        }
+
+        /* check if the whole NAME does not exist */
+        if( ((beginHash < h && h < nsec3->d_nexthash) ||                  // no wrap          BEGINNING --- HASH -- END
+              (nsec3->d_nexthash > h  && beginHash > nsec3->d_nexthash) || // wrap             HASH --- END --- BEGINNING
+              (nsec3->d_nexthash < beginHash  && beginHash < h) ||         // wrap other case  END --- BEGINNING --- HASH
+              beginHash == nsec3->d_nexthash))                             // "we have only 1 NSEC3 record, LOL!"
+        {
+          LOG("Denies existence of name "<<qname<<"/"<<QType(qtype).getName()<<"(could be opt-out)!"<<endl);
+          return NXDOMAIN;
+        }
+
+        LOG("Did not cover us, start="<<v.first.first<<", us="<<toBase32Hex(h)<<", end="<<toBase32Hex(nsec3->d_nexthash)<<endl);
+      }
     }
   }
-  //  cerr<<"got "<<nsec3s.size()<<" NSEC3s"<<endl;
-  for(auto i=nsec3s.begin(); i != nsec3s.end(); ++i) {
-    vector<string> parts = i->first.getRawLabels();
-
-      string base=toLower(parts[0]);
-      string next=toLower(toBase32Hex(i->second.d_nexthash));
-      string hashed = nsec3Hash(qname, i->second);
-      //      cerr<<base<<" .. ? "<<hashed<<" ("<<qname<<") ? .. "<<next<<endl;
-      if(base==hashed) {
-        // positive name proof, need to check type
-	//        cerr<<"positive name proof, checking type bitmap"<<endl;
-	//        cerr<<"d_set.count("<<qtype<<"): "<<i->second.d_set.count(qtype)<<endl;
-        if(qtype == QType::DS && i->second.d_set.count(qtype) == 0) return INSECURE; // FIXME need to require 'NS in bitmap' here, otherwise no delegation! (but first, make sure this is reliable - does not work that way for direct auth queries)
-      } else if ((hashed > base && hashed < next) ||
-                (next < base && (hashed < next || hashed > base))) {
-        bool optout=(1 & i->second.d_flags);
-	//        cerr<<"negative name proof, optout = "<<optout<<endl;
-        if(qtype == QType::DS && optout) return INSECURE;
-      }
-  }
-  /* NODATA is not really appropriate here, but we
-     just need to return something else than INSECURE.
-  */
-  dState ret = NODATA;
-  return ret;
+  // There were no valid NSEC(3) records
+  // XXX maybe this should be INSECURE... it depends on the semantics of this function
+  return NODATA;
 }
 
 /*
@@ -409,53 +426,11 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
     auto r = validrrsets.equal_range(make_pair(*(zoneCutIter+1), QType::DS));
     if(r.first == r.second) {
       LOG("No DS for "<<*(zoneCutIter+1)<<", now look for a secure denial"<<endl);
-
-      for(const auto& v : validrrsets) {
-        LOG("Do have: "<<v.first.first<<"/"<<DNSRecordContent::NumberToType(v.first.second)<<endl);
-        if(v.first.second==QType::NSEC) { // check that it covers us!
-          for(const auto& r : v.second.records) {
-            LOG("\t"<<r->getZoneRepresentation()<<endl);
-            auto nsec = std::dynamic_pointer_cast<NSECRecordContent>(r);
-            if(nsec) {
-              if(v.first.first == *(zoneCutIter+1) && !nsec->d_set.count(QType::DS)) {
-                LOG("Denies existence of DS!"<<endl);
-                return Insecure;
-              }
-              else {
-                LOG("Did not deny existence of DS, "<<v.first.first<<"?="<<*(zoneCutIter+1)<<", "<<nsec->d_set.count(QType::DS)<<", next: "<<nsec->d_next<<endl);
-              }
-            }
-          }
-
-        }
-        else if(v.first.second==QType::NSEC3) {
-          for(const auto& r : v.second.records) {
-            LOG("\t"<<r->getZoneRepresentation()<<endl);
-
-            auto nsec3 = std::dynamic_pointer_cast<NSEC3RecordContent>(r);
-            string h = hashQNameWithSalt(nsec3->d_salt, nsec3->d_iterations, *(zoneCutIter+1));
-            //              cerr<<"Salt length: "<<nsec3->d_salt.length()<<", iterations: "<<nsec3->d_iterations<<", hashed: "<<*(zoneCutIter+1)<<endl;
-            LOG("\tquery hash: "<<toBase32Hex(h)<<endl);
-            string beginHash=fromBase32Hex(v.first.first.getRawLabels()[0]);
-            if( (beginHash < h && h < nsec3->d_nexthash) ||
-                (nsec3->d_nexthash > h  && beginHash > nsec3->d_nexthash) ||  // wrap // HASH --- END --- BEGINNING
-                (nsec3->d_nexthash < beginHash  && beginHash < h) ||  // wrap other case // END -- BEGINNING -- HASH
-                beginHash == nsec3->d_nexthash)  // "we have only 1 NSEC3 record, LOL!"  
-            {
-              LOG("Denies existence of DS!"<<endl);
-              return Insecure;
-            }
-            else if(beginHash == h && !nsec3->d_set.count(QType::DS)) {
-              LOG("Denies existence of DS (not opt-out)"<<endl);
-              return Insecure;
-            }
-            else {
-              LOG("Did not cover us, start="<<v.first.first<<", us="<<toBase32Hex(h)<<", end="<<toBase32Hex(nsec3->d_nexthash)<<endl);
-            }
-          }
-        }
-      }
-      return Bogus;
+      dState res = getDenial(validrrsets, *(zoneCutIter+1), QType::DS);
+      if (res == INSECURE)
+        return Bogus;
+      if (res == NXDOMAIN || res == NXQTYPE)
+        return Insecure;
     }
 
     /*
@@ -473,11 +448,6 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
           // cout<<"    "<<dotEscape("DNSKEY "+key*(zoneCutIter+1))<<" -> "<<dotEscape("DS "+*(zoneCutIter+1))<<";"<<endl;
         }
       }
-    }
-    if(!dsmap.size()) {
-      //        cerr<<"no DS at this level, checking for denials"<<endl;
-      dState dres = getDenial(validrrsets, *(zoneCutIter+1), QType::DS);
-      if(dres == INSECURE) return Insecure;
     }
   }
   // There were no zone cuts (aka, we should never get here)
