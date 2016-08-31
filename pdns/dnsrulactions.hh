@@ -1004,13 +1004,19 @@ public:
 class RemoteLogAction : public DNSAction, public boost::noncopyable
 {
 public:
-  RemoteLogAction(std::shared_ptr<RemoteLogger> logger): d_logger(logger)
+  RemoteLogAction(std::shared_ptr<RemoteLogger> logger, boost::optional<std::function<void(const DNSQuestion&, DNSDistProtoBufMessage*)> > alterFunc): d_logger(logger), d_alterFunc(alterFunc)
   {
   }
   DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
   {
 #ifdef HAVE_PROTOBUF
     DNSDistProtoBufMessage message(DNSDistProtoBufMessage::Query, *dq);
+    {
+      if (d_alterFunc) {
+        std::lock_guard<std::mutex> lock(g_luamutex);
+        (*d_alterFunc)(*dq, &message);
+      }
+    }
     std::string data;
     message.serialize(data);
     d_logger->queueData(data);
@@ -1023,18 +1029,25 @@ public:
   }
 private:
   std::shared_ptr<RemoteLogger> d_logger;
+  boost::optional<std::function<void(const DNSQuestion&, DNSDistProtoBufMessage*)> > d_alterFunc;
 };
 
 class RemoteLogResponseAction : public DNSResponseAction, public boost::noncopyable
 {
 public:
-  RemoteLogResponseAction(std::shared_ptr<RemoteLogger> logger): d_logger(logger)
+  RemoteLogResponseAction(std::shared_ptr<RemoteLogger> logger, boost::optional<std::function<void(const DNSResponse&, DNSDistProtoBufMessage*)> > alterFunc): d_logger(logger), d_alterFunc(alterFunc)
   {
   }
   DNSResponseAction::Action operator()(DNSResponse* dr, string* ruleresult) const override
   {
 #ifdef HAVE_PROTOBUF
     DNSDistProtoBufMessage message(*dr);
+    {
+      if (d_alterFunc) {
+        std::lock_guard<std::mutex> lock(g_luamutex);
+        (*d_alterFunc)(*dr, &message);
+      }
+    }
     std::string data;
     message.serialize(data);
     d_logger->queueData(data);
@@ -1047,6 +1060,7 @@ public:
   }
 private:
   std::shared_ptr<RemoteLogger> d_logger;
+  boost::optional<std::function<void(const DNSResponse&, DNSDistProtoBufMessage*)> > d_alterFunc;
 };
 
 class DropResponseAction : public DNSResponseAction

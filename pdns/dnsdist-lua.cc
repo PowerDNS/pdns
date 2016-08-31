@@ -1117,6 +1117,12 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.registerFunction("toString", &ComboAddress::toString);
   g_lua.registerFunction("toStringWithPort", &ComboAddress::toStringWithPort);
   g_lua.registerFunction<uint16_t(ComboAddress::*)()>("getPort", [](const ComboAddress& ca) { return ntohs(ca.sin4.sin_port); } );
+  g_lua.registerFunction("truncate", &ComboAddress::truncate);
+  g_lua.registerFunction("isIPv4", &ComboAddress::isIPv4);
+  g_lua.registerFunction("isIPv6", &ComboAddress::isIPv6);
+  g_lua.registerFunction("isMappedIPv4", &ComboAddress::isMappedIPv4);
+  g_lua.registerFunction("mapToIPv4", &ComboAddress::mapToIPv4);
+
   g_lua.registerFunction("isPartOf", &DNSName::isPartOf);
   g_lua.registerFunction("countLabels", &DNSName::countLabels);
   g_lua.registerFunction("wirelength", &DNSName::wirelength);

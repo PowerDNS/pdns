@@ -184,7 +184,6 @@ void moreLua(bool client)
   typedef NetmaskTree<DynBlock> nmts_t;
   g_lua.writeFunction("newCA", [](const std::string& name) { return ComboAddress(name); });
 
-
   g_lua.writeFunction("newNMG", []() { return NetmaskGroup(); });
   g_lua.registerFunction<void(NetmaskGroup::*)(const std::string&mask)>("addMask", [](NetmaskGroup&nmg, const std::string& mask)
 			 {
@@ -700,20 +699,42 @@ void moreLua(bool client)
         return std::shared_ptr<DNSResponseAction>(new DelayResponseAction(msec));
       });
 
-    g_lua.writeFunction("RemoteLogAction", [](std::shared_ptr<RemoteLogger> logger) {
+    g_lua.writeFunction("RemoteLogAction", [](std::shared_ptr<RemoteLogger> logger, boost::optional<std::function<void(const DNSQuestion&, DNSDistProtoBufMessage*)> > alterFunc) {
 #ifdef HAVE_PROTOBUF
-        return std::shared_ptr<DNSAction>(new RemoteLogAction(logger));
+        return std::shared_ptr<DNSAction>(new RemoteLogAction(logger, alterFunc));
 #else
         throw std::runtime_error("Protobuf support is required to use RemoteLogAction");
 #endif
       });
-    g_lua.writeFunction("RemoteLogResponseAction", [](std::shared_ptr<RemoteLogger> logger) {
+    g_lua.writeFunction("RemoteLogResponseAction", [](std::shared_ptr<RemoteLogger> logger, boost::optional<std::function<void(const DNSResponse&, DNSDistProtoBufMessage*)> > alterFunc) {
 #ifdef HAVE_PROTOBUF
-        return std::shared_ptr<DNSResponseAction>(new RemoteLogResponseAction(logger));
+        return std::shared_ptr<DNSResponseAction>(new RemoteLogResponseAction(logger, alterFunc));
 #else
         throw std::runtime_error("Protobuf support is required to use RemoteLogResponseAction");
 #endif
       });
+
+    g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const Netmask&)>("setEDNSSubnet", [](DNSDistProtoBufMessage& message, const Netmask& subnet) { message.setEDNSSubnet(subnet); });
+    g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const DNSName&, uint16_t, uint16_t)>("setQuestion", [](DNSDistProtoBufMessage& message, const DNSName& qname, uint16_t qtype, uint16_t qclass) { message.setQuestion(qname, qtype, qclass); });
+    g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(size_t)>("setBytes", [](DNSDistProtoBufMessage& message, size_t bytes) { message.setBytes(bytes); });
+    g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(time_t, uint32_t)>("setTime", [](DNSDistProtoBufMessage& message, time_t sec, uint32_t usec) { message.setTime(sec, usec); });
+    g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(time_t, uint32_t)>("setQueryTime", [](DNSDistProtoBufMessage& message, time_t sec, uint32_t usec) { message.setQueryTime(sec, usec); });
+    g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(uint8_t)>("setResponseCode", [](DNSDistProtoBufMessage& message, uint8_t rcode) { message.setResponseCode(rcode); });
+    g_lua.registerFunction<std::string(DNSDistProtoBufMessage::*)()>("toDebugString", [](const DNSDistProtoBufMessage& message) { return message.toDebugString(); });
+
+    g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const ComboAddress&)>("setRequestor", [](DNSDistProtoBufMessage& message, const ComboAddress& addr) {
+        message.setRequestor(addr);
+      });
+    g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const std::string&)>("setRequestorFromString", [](DNSDistProtoBufMessage& message, const std::string& str) {
+        message.setRequestor(str);
+      });
+    g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const ComboAddress&)>("setResponder", [](DNSDistProtoBufMessage& message, const ComboAddress& addr) {
+        message.setResponder(addr);
+      });
+    g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const std::string&)>("setResponderFromString", [](DNSDistProtoBufMessage& message, const std::string& str) {
+        message.setResponder(str);
+      });
+
     g_lua.writeFunction("newRemoteLogger", [client](const std::string& remote, boost::optional<uint16_t> timeout, boost::optional<uint64_t> maxQueuedEntries, boost::optional<uint8_t> reconnectWaitTime) {
         return std::make_shared<RemoteLogger>(ComboAddress(remote), timeout ? *timeout : 2, maxQueuedEntries ? *maxQueuedEntries : 100, reconnectWaitTime ? *reconnectWaitTime : 1);
       });
