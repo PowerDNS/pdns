@@ -132,9 +132,10 @@ template<class Answer, class Question, class Backend>SingleThreadDistributor<Ans
     L<<Logger::Error<<"Distributor caught fatal exception: "<<AE.reason<<endl;
     exit(1);
   }
-  catch(...) {
-    L<<Logger::Error<<"Caught an unknown exception when creating backend, probably"<<endl;
-    exit(1);
+  catch(const std::exception& e) {
+    std::string error_string = "Caught an unknown exception when creating backend: ";
+    std::string error_e_what = e.what();
+    L<<Logger::Error<< error_string + error_e_what <<endl;
   }
 }
 
@@ -252,8 +253,10 @@ retry:
     L<<Logger::Error<<"Distributor caught fatal exception: "<<AE.reason<<endl;
     exit(1);
   }
-  catch(...) {
-    L<<Logger::Error<<"Caught an unknown exception when creating backend, probably"<<endl;
+  catch(const std::exception& e) {
+    std::string error_string = "Caught an unknown exception when creating backend: ";
+    std::string error_e_what = e.what();
+    L<<Logger::Error<< error_string + error_e_what <<  endl;
     exit(1);
   }
   return 0;
