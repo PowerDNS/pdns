@@ -37,7 +37,6 @@ extern const char *vStates[];
 enum dState { NODATA, NXDOMAIN, ENT, INSECURE };
 extern const char *dStates[];
 
-
 class DNSRecordOracle
 {
 public:
