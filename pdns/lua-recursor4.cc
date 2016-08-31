@@ -391,7 +391,7 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   d_lw->registerMember("name", &DNSRecord::d_name);
   d_lw->registerMember("type", &DNSRecord::d_type);
   d_lw->registerMember("ttl", &DNSRecord::d_ttl);
-
+  d_lw->registerMember("place", &DNSRecord::d_place);
   
   d_lw->registerFunction<string(DNSRecord::*)()>("getContent", [](const DNSRecord& dr) { return dr.d_content->getZoneRepresentation(); });
   d_lw->registerFunction<boost::optional<ComboAddress>(DNSRecord::*)()>("getCA", [](const DNSRecord& dr) { 
