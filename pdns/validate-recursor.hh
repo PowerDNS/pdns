@@ -23,6 +23,7 @@
 #include "dnsparser.hh"
 #include "namespaces.hh"
 #include "validate.hh"
+#include "logger.hh"
 
 vState validateRecords(const vector<DNSRecord>& recs);
 
@@ -36,3 +37,5 @@ vState validateRecords(const vector<DNSRecord>& recs);
 enum class DNSSECMode { Off, Process, ProcessNoValidate, ValidateForLog, ValidateAll };
 extern DNSSECMode g_dnssecmode;
 extern bool g_dnssecLogBogus;
+
+void warnIfDNSSECDisabled(const string& msg);
