@@ -152,7 +152,7 @@ pdns_recursor_LDADD = \
 	$(RT_LIBS)
 
 pdns_recursor_LDFLAGS = $(AM_LDFLAGS) \
-	$(LIBCRYPTO_LDFLAGS)
+	$(LIBCRYPTO_LDFLAGS) $(BOOST_CONTEXT_LDFLAGS)
 
 if BOTAN110
 pdns_recursor_SOURCES += \
