@@ -82,7 +82,7 @@ void RPZRecordToPolicy(const DNSRecord& dr, DNSFilterEngine& target, bool addOrR
     else if(target.isRoot()) {
       // cerr<<"Wants NXDOMAIN for "<<dr.d_name<<": ";
       pol.d_kind = DNSFilterEngine::PolicyKind::NXDOMAIN;
-    } else if(target==DNSName("*")) {
+    } else if(target==g_wildcarddnsname) {
       // cerr<<"Wants NODATA for "<<dr.d_name<<": ";
       pol.d_kind = DNSFilterEngine::PolicyKind::NODATA;
     }

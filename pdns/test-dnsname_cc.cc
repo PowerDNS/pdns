@@ -249,11 +249,75 @@ BOOST_AUTO_TEST_CASE(test_Append) {
   BOOST_CHECK(dn == DNSName("www.powerdns.com."));
 }
 
+BOOST_AUTO_TEST_CASE(test_packetCompress) {
+  reportBasicTypes();
+  vector<unsigned char> packet;
+  DNSPacketWriter dpw(packet, DNSName("www.ds9a.nl."), QType::AAAA);
+  dpw.startRecord(DNSName("ds9a.nl"), QType::SOA);
+  SOARecordContent src("ns1.powerdns.nl admin.powerdns.nl 1 2 3 4 5");
+  src.toPacket(dpw);
+  AAAARecordContent aaaa("::1");
+  dpw.startRecord(DNSName("www.dS9A.nl"), QType::AAAA);
+  aaaa.toPacket(dpw);
+  dpw.startRecord(DNSName("www.ds9A.nl"), QType::AAAA);
+  aaaa.toPacket(dpw);
+  dpw.startRecord(DNSName("www.dS9a.nl"), QType::AAAA);
+  aaaa.toPacket(dpw);
+  dpw.startRecord(DNSName("www2.DS9a.nl"), QType::AAAA);
+  aaaa.toPacket(dpw);
+  dpw.startRecord(DNSName("www2.dS9a.nl"), QType::AAAA);
+  aaaa.toPacket(dpw);
+  dpw.commit();
+  string str((const char*)&packet[0], (const char*)&packet[0] + packet.size());
+  size_t pos = 0; 
+  int count=0;
+  while((pos = str.find("ds9a", pos)) != string::npos) {
+    ++pos;
+    ++count;
+  }
+  BOOST_CHECK_EQUAL(count, 1);
+  pos = 0; 
+  count=0;
+  while((pos = str.find("powerdns", pos)) != string::npos) {
+    ++pos;
+    ++count;
+  }
+  BOOST_CHECK_EQUAL(count, 1);
+
+}
+
+BOOST_AUTO_TEST_CASE(test_packetCompressLong) {
+  reportBasicTypes();
+  vector<unsigned char> packet;
+  DNSName loopback("1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa");
+  DNSPacketWriter dpw(packet, loopback, QType::PTR);
+
+  dpw.startRecord(loopback, QType::PTR);
+  PTRRecordContent prc(DNSName("localhost"));
+  prc.toPacket(dpw);
+  dpw.commit();
+  DNSName roundtrip((char*)&packet[0], packet.size(), 12, false);
+  BOOST_CHECK_EQUAL(loopback,roundtrip);
+  
+  packet.clear();
+  DNSName longer("1.2.3.4.5.6.7.8.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa");
+  DNSPacketWriter dpw2(packet, longer, QType::PTR);
+
+  dpw2.startRecord(DNSName("a.b.c.d.e")+longer, QType::PTR);
+  PTRRecordContent prc2(DNSName("localhost"));
+  prc2.toPacket(dpw2);
+  dpw2.commit();
+
+}
+
+
+
+
 BOOST_AUTO_TEST_CASE(test_PacketParse) {
   vector<unsigned char> packet;
   reportBasicTypes();
   DNSName root(".");
-  DNSPacketWriter dpw1(packet, DNSName("."), QType::AAAA);
+  DNSPacketWriter dpw1(packet, g_rootdnsname, QType::AAAA);
   DNSName p((char*)&packet[0], packet.size(), 12, false);
   BOOST_CHECK_EQUAL(p, root);
   unsigned char* buffer=&packet[0];
@@ -425,7 +489,7 @@ BOOST_AUTO_TEST_CASE(test_suffixmatch) {
 
   BOOST_CHECK(!smn.check(DNSName("www.news.gov.uk.")));
 
-  smn.add(DNSName(".")); // block the root
+  smn.add(g_rootdnsname); // block the root
   BOOST_CHECK(smn.check(DNSName("a.root-servers.net.")));
 }
 
@@ -470,9 +534,9 @@ BOOST_AUTO_TEST_CASE(test_compare_canonical) {
   BOOST_CHECK(!DNSName("www.BeRt.com").canonCompare(DNSName("WWW.berT.com")));
 
   CanonDNSNameCompare a;
-  BOOST_CHECK(a(DNSName("."), DNSName("www.powerdns.com")));
-  BOOST_CHECK(a(DNSName("."), DNSName("www.powerdns.net")));
-  BOOST_CHECK(!a(DNSName("www.powerdns.net"), DNSName(".")));
+  BOOST_CHECK(a(g_rootdnsname, DNSName("www.powerdns.com")));
+  BOOST_CHECK(a(g_rootdnsname, DNSName("www.powerdns.net")));
+  BOOST_CHECK(!a(DNSName("www.powerdns.net"), g_rootdnsname));
 
   vector<DNSName> vec;
   for(const std::string& a : {"bert.com.", "alpha.nl.", "articles.xxx.",

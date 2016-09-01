@@ -48,7 +48,7 @@ bool findNamedPolicy(const map<DNSName, DNSFilterEngine::Policy>& polmap, const 
   }
 
   while(s.chopOff()){
-    iter = polmap.find(DNSName("*")+s);
+    iter = polmap.find(g_wildcarddnsname+s);
     if(iter != polmap.end()) {
       pol=iter->second;
       return true;

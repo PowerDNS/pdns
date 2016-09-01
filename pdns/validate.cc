@@ -283,7 +283,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
 	  LOG("DNSKEY did not match the DS, parent DS: "<<drc.getZoneRepresentation() << " ! = "<<dsrc2.getZoneRepresentation()<<endl);
 	}
         // cout<<"    subgraph "<<dotEscape("cluster "+qname)<<" { "<<dotEscape("DS "+qname)<<" -> "<<dotEscape("DNSKEY "+qname)<<" [ label = \""<<dsrc.d_tag<<"/"<<static_cast<int>(dsrc.d_digesttype)<<"\" ]; label = \"zone: "<<qname<<"\"; }"<<endl;
-	dotEdge(DNSName("."), "DS", qname, "" /*std::to_string(dsrc.d_tag)*/, "DNSKEY", qname, std::to_string(drc.getTag()), isValid ? "green" : "red");
+	dotEdge(g_rootdnsname, "DS", qname, "" /*std::to_string(dsrc.d_tag)*/, "DNSKEY", qname, std::to_string(drc.getTag()), isValid ? "green" : "red");
         // dotNode("DNSKEY", qname, (boost::format("tag=%d, algo=%d") % drc.getTag() % static_cast<int>(drc.d_algorithm)).str());
       }
     }
@@ -486,13 +486,13 @@ void dotEdge(DNSName zone, string type1, DNSName name1, string tag1, string type
 {
 #ifdef GRAPHVIZ
   cout<<"    ";
-  if(zone != DNSName(".")) cout<<"subgraph "<<dotEscape("cluster "+zone.toString())<<" { ";
+  if(zone != g_rootdnsname) cout<<"subgraph "<<dotEscape("cluster "+zone.toString())<<" { ";
   cout<<dotEscape(dotName(type1, name1, tag1))
       <<" -> "
       <<dotEscape(dotName(type2, name2, tag2));
   if(color != "") cout<<" [ color=\""<<color<<"\" ]; ";
   else cout<<"; ";
-  if(zone != DNSName(".")) cout<<"label = "<<dotEscape("zone: "+zone.toString())<<";"<<"}";
+  if(zone != g_rootdnsname) cout<<"label = "<<dotEscape("zone: "+zone.toString())<<";"<<"}";
   cout<<endl;
 #endif
 }

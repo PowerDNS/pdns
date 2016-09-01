@@ -22,14 +22,24 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#include <boost/container/static_vector.hpp>
 #include "dnswriter.hh"
 #include "misc.hh"
 #include "dnsparser.hh"
 
 #include <limits.h>
 
+/* d_content:                                      <---- d_stuff ---->
+                                      v d_truncatemarker  
+   dnsheader | qname | qtype | qclass | {recordname| dnsrecordheader | record }
+                                        ^ d_rollbackmarker           ^ d_sor 
+    
+
+*/
+
+
 DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const DNSName& qname, uint16_t  qtype, uint16_t qclass, uint8_t opcode)
-  : d_pos(0), d_content(content), d_qname(qname), d_canonic(false), d_lowerCase(false)
+  : d_content(content), d_qname(qname), d_canonic(false), d_lowerCase(false)
 {
   d_content.clear();
   dnsheader dnsheader;
@@ -45,38 +55,14 @@ DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const DNSName& qname,
   uint8_t* dptr=(&*d_content.begin()) + len;
 
   memcpy(dptr, ptr, sizeof(dnsheader));
-  d_stuff=0;
-
+  d_namepositions.reserve(16);
   xfrName(qname, false);
+  xfr16BitInt(qtype);
+  xfr16BitInt(qclass);
 
-  len=d_content.size();
-  d_content.resize(len + d_record.size() + 4);
-
-  ptr=&*d_record.begin();
-  dptr=(&*d_content.begin()) + len;
-
-  memcpy(dptr, ptr, d_record.size());
-
-  len+=d_record.size();
-  d_record.clear();
-
-  qtype=htons(qtype);
-  qclass=htons(qclass);
-
-  vector<uint8_t>::iterator i=d_content.begin()+len; // this works around a gcc 3.4 bug
-  memcpy(&*i, &qtype, 2);
-  i+=2;
-  memcpy(&*i, &qclass, 2);
-
-  d_stuff=0xffff;
-  d_labelmap.reserve(16);
   d_truncatemarker=d_content.size();
   d_sor = 0;
   d_rollbackmarker = 0;
-  d_recordttl = 0;
-  d_recordqtype = 0;
-  d_recordqclass = QClass::IN;
-  d_recordplace = DNSResourceRecord::ANSWER;
 }
 
 dnsheader* DNSPacketWriter::getHeader()
@@ -84,32 +70,25 @@ dnsheader* DNSPacketWriter::getHeader()
   return reinterpret_cast<dnsheader*>(&*d_content.begin());
 }
 
+
 void DNSPacketWriter::startRecord(const DNSName& name, uint16_t qtype, uint32_t ttl, uint16_t qclass, DNSResourceRecord::Place place, bool compress)
 {
-  if(!d_record.empty())
-    commit();
-
-  d_recordqname=name;
-  d_recordqtype=qtype;
-  d_recordqclass=qclass;
-  d_recordttl=ttl;
-  d_recordplace=place;
-
-  d_stuff = 0;
+  commit();
   d_rollbackmarker=d_content.size();
 
-  if(compress && d_recordqname.countLabels() && d_qname==d_recordqname) {  // don't do the whole label compression thing if we *know* we can get away with "see question" - except when compressing the root
+  if(compress && !name.empty() && d_qname==name) {  // don't do the whole label compression thing if we *know* we can get away with "see question" - except when compressing the root
     static unsigned char marker[2]={0xc0, 0x0c};
     d_content.insert(d_content.end(), (const char *) &marker[0], (const char *) &marker[2]);
   }
   else {
-    xfrName(d_recordqname, compress);
-    d_content.insert(d_content.end(), d_record.begin(), d_record.end());
-    d_record.clear();
+    xfrName(name, compress);
   }
-
-  d_stuff = sizeof(dnsrecordheader); // this is needed to get compressed label offsets right, the dnsrecordheader will be interspersed
-  d_sor=d_content.size() + d_stuff; // start of real record
+  xfr16BitInt(qtype);
+  xfr16BitInt(qclass);
+  xfr32BitInt(ttl);
+  xfr16BitInt(0); // this will be the record size
+  d_recordplace = place;
+  d_sor=d_content.size(); // this will remind us where to stuff the record size
 }
 
 void DNSPacketWriter::addOpt(uint16_t udpsize, int extRCode, int Z, const vector<pair<uint16_t,string> >& options)
@@ -127,7 +106,7 @@ void DNSPacketWriter::addOpt(uint16_t udpsize, int extRCode, int Z, const vector
 
   ttl=ntohl(ttl); // will be reversed later on
 
-  startRecord(DNSName("."), QType::OPT, ttl, udpsize, DNSResourceRecord::ADDITIONAL, false);
+  startRecord(g_rootdnsname, QType::OPT, ttl, udpsize, DNSResourceRecord::ADDITIONAL, false);
   for(optvect_t::const_iterator iter = options.begin(); iter != options.end(); ++iter) {
     xfr16BitInt(iter->first);
     xfr16BitInt(iter->second.length());
@@ -143,7 +122,7 @@ void DNSPacketWriter::xfr48BitInt(uint64_t val)
   memcpy(bytes, (void*)&theLeft, sizeof(theLeft));
   memcpy(bytes+2, (void*)&theRight, sizeof(theRight));
 
-  d_record.insert(d_record.end(), bytes, bytes + sizeof(bytes));
+  d_content.insert(d_content.end(), bytes, bytes + sizeof(bytes));
 }
 
 
@@ -151,19 +130,19 @@ void DNSPacketWriter::xfr32BitInt(uint32_t val)
 {
   int rval=htonl(val);
   uint8_t* ptr=reinterpret_cast<uint8_t*>(&rval);
-  d_record.insert(d_record.end(), ptr, ptr+4);
+  d_content.insert(d_content.end(), ptr, ptr+4);
 }
 
 void DNSPacketWriter::xfr16BitInt(uint16_t val)
 {
   uint16_t rval=htons(val);
   uint8_t* ptr=reinterpret_cast<uint8_t*>(&rval);
-  d_record.insert(d_record.end(), ptr, ptr+2);
+  d_content.insert(d_content.end(), ptr, ptr+2);
 }
 
 void DNSPacketWriter::xfr8BitInt(uint8_t val)
 {
-  d_record.push_back(val);
+  d_content.push_back(val);
 }
 
 
@@ -183,145 +162,198 @@ void DNSPacketWriter::xfr8BitInt(uint8_t val)
 void DNSPacketWriter::xfrText(const string& text, bool, bool lenField)
 {
   if(text.empty()) {
-    d_record.push_back(0);
+    d_content.push_back(0);
     return;
   }
   vector<string> segments = segmentDNSText(text);
   for(const string& str :  segments) {
     if(lenField)
-      d_record.push_back(str.length());
-    d_record.insert(d_record.end(), str.c_str(), str.c_str() + str.length());
+      d_content.push_back(str.length());
+    d_content.insert(d_content.end(), str.c_str(), str.c_str() + str.length());
   }
 }
 
 void DNSPacketWriter::xfrUnquotedText(const string& text, bool lenField)
 {
   if(text.empty()) {
-    d_record.push_back(0);
+    d_content.push_back(0);
     return;
   }
   if(lenField)
-    d_record.push_back(text.length());
-  d_record.insert(d_record.end(), text.c_str(), text.c_str() + text.length());
+    d_content.push_back(text.length());
+  d_content.insert(d_content.end(), text.c_str(), text.c_str() + text.length());
 }
 
-/* FIXME400: check that this beats a map */
-DNSPacketWriter::lmap_t::iterator find(DNSPacketWriter::lmap_t& nmap, const DNSName& name)
+
+static constexpr bool l_verbose=false;
+uint16_t DNSPacketWriter::lookupName(const DNSName& name, uint16_t* matchLen)
 {
-  DNSPacketWriter::lmap_t::iterator ret;
-  for(ret=nmap.begin(); ret != nmap.end(); ++ret)
-    if(ret->first == name)
-      break;
-  return ret;
+  // iterate over the written labels, see if we find a match
+  const auto& raw = name.getStorage();
+
+  /* name might be a.root-servers.net, we need to be able to benefit from finding:
+     b.root-servers.net, or even:
+     b\xc0\x0c 
+  */
+  unsigned int bestpos=0;
+  *matchLen=0;
+  boost::container::static_vector<uint16_t, 34> nvect, pvect;
+
+  try {
+    for(auto riter= raw.cbegin(); riter < raw.cend(); ) {
+      if(!*riter)
+        break;
+      nvect.push_back(riter - raw.cbegin());
+      riter+=*riter+1;
+    }
+  }
+  catch(std::bad_alloc& ba) {
+    if(l_verbose)
+      cout<<"Domain "<<name<<" too large to compress"<<endl;
+    return 0;
+  }
+  
+  if(l_verbose) {
+    cout<<"Input vector for lookup "<<name<<": ";
+    for(const auto n : nvect) 
+      cout << n<<" ";
+    cout<<endl;
+    cout<<makeHexDump(string(raw.c_str(), raw.c_str()+raw.size()))<<endl;
+  }
+
+  if(l_verbose)
+    cout<<"Have "<<d_namepositions.size()<<" to ponder"<<endl;
+  int counter=1;
+  for(auto p : d_namepositions) {
+    if(l_verbose) {
+      cout<<"Pos: "<<p<<", "<<d_content.size()<<endl;
+      DNSName pname((const char*)&d_content[0], d_content.size(), p, true); // only for debugging
+      cout<<"Looking at '"<<pname<<"' in packet at position "<<p<<"/"<<d_content.size()<<", option "<<counter<<"/"<<d_namepositions.size()<<endl;
+      ++counter;
+    }
+    // memcmp here makes things _slower_
+    pvect.clear();
+    try {
+      for(auto iter = d_content.cbegin() + p; iter < d_content.cend();) {
+        uint8_t c=*iter;
+        if(l_verbose)
+          cout<<"Found label length: "<<(int)c<<endl;
+        if(c & 0xc0) {
+          uint16_t npos = 0x100*(c & (~0xc0)) + *++iter;
+          iter = d_content.begin() + npos;
+          if(l_verbose)
+            cout<<"Is compressed label to newpos "<<npos<<", going there"<<endl;
+          // check against going forward here
+          continue;
+        }
+        if(!c)
+          break;
+        pvect.push_back(iter - d_content.cbegin());
+        iter+=*iter+1;
+      }
+    }
+    catch(std::bad_alloc& ba) {
+      if(l_verbose)
+        cout<<"Domain "<<name<<" too large to compress"<<endl;
+      continue;
+    }
+    if(l_verbose) {
+      cout<<"Packet vector: "<<endl;
+      for(const auto n : pvect) 
+        cout << n<<" ";
+      cout<<endl;
+    }
+    auto niter=nvect.crbegin(), piter=pvect.crbegin();
+    unsigned int cmatchlen=1;
+    for(; niter != nvect.crend() && piter != pvect.crend(); ++niter, ++piter) {
+      // niter is an offset in raw, pvect an offset in packet
+      uint8_t nlen = raw[*niter], plen=d_content[*piter];
+      if(l_verbose)
+        cout<<"nlnen="<<(int)nlen<<", plen="<<(int)plen<<endl;
+      if(nlen != plen)
+        break;
+      if(strncasecmp(raw.c_str()+*niter+1, (const char*)&d_content[*piter]+1, nlen)) {
+        if(l_verbose)
+          cout<<"Mismatch: "<<string(raw.c_str()+*niter+1, raw.c_str()+*niter+nlen+1)<< " != "<<string((const char*)&d_content[*piter]+1, (const char*)&d_content[*piter]+nlen+1)<<endl;
+        break;
+      }
+      cmatchlen+=nlen+1;
+      if(cmatchlen == raw.length()) { // have matched all of it, can't improve
+        if(l_verbose)
+          cout<<"Stopping search, matched whole name"<<endl;
+        *matchLen = cmatchlen;
+        return *piter;
+      }
+    }
+    if(piter != pvect.crbegin() && *matchLen < cmatchlen) {
+      *matchLen = cmatchlen;
+      bestpos=*--piter;
+    }
+  }
+  return bestpos;
 }
-
-// //! tokenize a label into parts, the parts describe a begin offset and an end offset
-// bool labeltokUnescape(labelparts_t& parts, const string& label)
-// {
-//   string::size_type epos = label.size(), lpos(0), pos;
-//   bool unescapedSomething = false;
-//   const char* ptr=label.c_str();
-
-//   parts.clear();
-
-//   for(pos = 0 ; pos < epos; ++pos) {
-//     if(ptr[pos]=='\\') {
-//       pos++;
-//       unescapedSomething = true;
-//       continue;
-//     }
-//     if(ptr[pos]=='.') {
-//       parts.push_back(make_pair(lpos, pos));
-//       lpos=pos+1;
-//     }
-//   }
-
-//   if(lpos < pos)
-//     parts.push_back(make_pair(lpos, pos));
-//   return unescapedSomething;
-// }
-
 // this is the absolute hottest function in the pdns recursor
 void DNSPacketWriter::xfrName(const DNSName& name, bool compress, bool)
 {
-  //cerr<<"xfrName: name=["<<name.toString()<<"] compress="<<compress<<endl;
-  // string label = d_lowerCase ? toLower(Label) : Label;
-  // FIXME400: we ignore d_lowerCase for now
-  // cerr<<"xfrName writing ["<<name.toString()<<"]"<<endl;
-  std::vector<std::string> parts = name.getRawLabels();
-  // labelparts_t parts;
-  // cerr<<"labelcount: "<<parts.size()<<endl;
-
-  if(d_canonic)
+  if(l_verbose)
+    cout<<"Wants to write "<<name<<", compress="<<compress<<", canonic="<<d_canonic<<", LC="<<d_lowerCase<<endl;
+  if(d_canonic || d_lowerCase)   // d_lowerCase implies canonic
     compress=false;
 
-  if(!parts.size()) { // otherwise we encode '..'
-    d_record.push_back(0);
+  if(name.empty() || name.isRoot()) { // for speed
+    d_content.push_back(0);
     return;
   }
 
-  // d_stuff is amount of stuff that is yet to be written out - the dnsrecordheader for example
-  unsigned int pos=d_content.size() + d_record.size() + d_stuff;
-  // bool deDot = labellen && (label[labellen-1]=='.'); // make sure we don't store trailing dots in the labelmap
+  uint16_t li=0;
+  uint16_t matchlen=0;
+  if(compress && (li=lookupName(name, &matchlen))) {
+    const auto& dns=name.getStorage(); 
+    if(l_verbose)
+      cout<<"Found a substring of "<<matchlen<<" bytes from the back, offset: "<<li<<", dnslen: "<<dns.size()<<endl;
+    // found a substring, if www.powerdns.com matched powerdns.com, we get back matchlen = 13
 
-  unsigned int startRecordSize=d_record.size();
-  unsigned int startPos;
-
-  DNSName towrite = name;
-  /* FIXME400: if we are not compressing, there is no reason to work per-label */
-  for(auto &label: parts) {
-    if(d_lowerCase) label=toLower(label);
-    //cerr<<"xfrName labelpart ["<<label<<"], left to write ["<<towrite.toString()<<"]"<<endl;
-
-    auto li=d_labelmap.end();
-    // see if we've written out this domain before
-    //cerr<<"compress="<<compress<<", searching? for compression pointer to '"<<towrite.toString()<<"', "<<d_labelmap.size()<<" cmp-records"<<endl;
-    if(compress && (li=find(d_labelmap, towrite))!=d_labelmap.end()) {
-      //cerr<<"doing compression, my label=["<<label<<"] found match ["<<li->first.toString()<<"]"<<endl;
-      //cerr<<"\tFound a compression pointer to '"<<towrite.toString()<<"': "<<li->second<<endl;
-      if (d_record.size() - startRecordSize + label.size() > 253) // chopped does not include a length octet for the first label and the root label
-        throw MOADNSException("DNSPacketWriter::xfrName() found overly large (compressed) name");
-      uint16_t offset=li->second;
-      offset|=0xc000;
-      d_record.push_back((char)(offset >> 8));
-      d_record.push_back((char)(offset & 0xff));
-      goto out;                                 // skip trailing 0 in case of compression
+    unsigned int pos=d_content.size();
+    if(pos < 16384 && matchlen != dns.size()) {
+      if(l_verbose)
+        cout<<"Inserting pos "<<pos<<" for "<<name<<" for compressed case"<<endl;
+      d_namepositions.push_back(pos);
     }
 
-    if(li==d_labelmap.end() && pos< 16384) {
-      //      cerr<<"\tStoring a compression pointer to '"<<chopped<<"': "<<pos<<endl;
-      d_labelmap.push_back(make_pair(towrite, pos));                       //  if untrue, we need to count - also, don't store offsets > 16384, won't work
-      //cerr<<"stored ["<<towrite.toString()<<"] at pos "<<pos<<endl;
-    }
+    if(l_verbose)
+      cout<<"Going to write unique part: '"<<makeHexDump(string(dns.c_str(), dns.c_str() + dns.size() - matchlen)) <<"'"<<endl;
+    d_content.insert(d_content.end(), (const unsigned char*)dns.c_str(), (const unsigned char*)dns.c_str() + dns.size() - matchlen);
+    uint16_t offset=li;
+    offset|=0xc000;
 
-    startPos=pos;
-
-    char labelsize=label.size();
-    //cerr<<"labelsize = "<<int(labelsize)<<" for label ["<<label<<"]"<<endl;
-    d_record.push_back(labelsize);
-    unsigned int len=d_record.size();
-    d_record.resize(len + labelsize);
-    memcpy(((&*d_record.begin()) + len), label.c_str(), labelsize); // FIXME400 do not want memcpy
-    pos+=labelsize+1;
-
-    if(pos - startPos == 1)
-      throw MOADNSException("DNSPacketWriter::xfrName() found empty label in the middle of name");
-    if(pos - startPos > 64)
-      throw MOADNSException("DNSPacketWriter::xfrName() found overly large label in name");
-    towrite.chopOff();   /* FIXME400: iterating the label vector while keeping this chopoff in sync is a hack */
+    d_content.push_back((char)(offset >> 8));
+    d_content.push_back((char)(offset & 0xff));
   }
-  d_record.push_back(0); // insert root label
+  else {
+    unsigned int pos=d_content.size();
+    if(l_verbose)
+      cout<<"Found nothing, we are at pos "<<pos<<", inserting whole name"<<endl;
+    if(pos < 16384) {
+      if(l_verbose)
+        cout<<"Inserting pos "<<pos<<" for "<<name<<" for uncompressed case"<<endl;
+      d_namepositions.push_back(pos);
+    }
 
-  if (d_record.size() - startRecordSize > 255)
-    throw MOADNSException("DNSPacketWriter::xfrName() found overly large name");
+    std::unique_ptr<DNSName> lc;
+    if(d_lowerCase)
+      lc = make_unique<DNSName>(name.makeLowerCase());
 
- out:;
+    const DNSName::string_t& raw = (lc ? *lc : name).getStorage();
+    if(l_verbose)
+      cout<<"Writing out the whole thing "<<makeHexDump(string(raw.c_str(),  raw.c_str() + raw.length()))<<endl;
+    d_content.insert(d_content.end(), raw.c_str(), raw.c_str() + raw.size());
+  }
 }
 
 void DNSPacketWriter::xfrBlob(const string& blob, int  )
 {
   const uint8_t* ptr=reinterpret_cast<const uint8_t*>(blob.c_str());
-  d_record.insert(d_record.end(), ptr, ptr+blob.size());
+  d_content.insert(d_content.end(), ptr, ptr+blob.size());
 }
 
 void DNSPacketWriter::xfrBlobNoSpaces(const string& blob, int  )
@@ -334,52 +366,37 @@ void DNSPacketWriter::xfrHexBlob(const string& blob, bool keepReading)
   xfrBlob(blob);
 }
 
-void DNSPacketWriter::getRecords(string& records)
+// call __before commit__
+void DNSPacketWriter::getRecordPayload(string& records)
 {
   records.assign(d_content.begin() + d_sor, d_content.end());
 }
 
 uint32_t DNSPacketWriter::size()
 {
-  return d_content.size() + d_stuff + d_record.size();
+  return d_content.size();
 }
 
 void DNSPacketWriter::rollback()
 {
   d_content.resize(d_rollbackmarker);
-  d_record.clear();
-  d_stuff=0;
 }
 
 void DNSPacketWriter::truncate()
 {
   d_content.resize(d_truncatemarker);
-  d_record.clear();
-  d_stuff=0;
   dnsheader* dh=reinterpret_cast<dnsheader*>( &*d_content.begin());
   dh->ancount = dh->nscount = dh->arcount = 0;
 }
 
 void DNSPacketWriter::commit()
 {
-  if(d_stuff==0xffff && (d_content.size()!=d_sor || !d_record.empty()))
-    throw MOADNSException("DNSPacketWriter::commit() called without startRecord ever having been called, but a record was added");
-  // build dnsrecordheader
-  struct dnsrecordheader drh;
-  drh.d_type=htons(d_recordqtype);
-  drh.d_class=htons(d_recordqclass);
-  drh.d_ttl=htonl(d_recordttl);
-  drh.d_clen=htons(d_record.size());
-
-  // and write out the header
-  const uint8_t* ptr=(const uint8_t*)&drh;
-  d_content.insert(d_content.end(), ptr, ptr+sizeof(drh));
-
-  d_stuff=0;
-
-  // write out pending d_record
-  d_content.insert(d_content.end(), d_record.begin(), d_record.end());
-
+  if(!d_sor)
+    return;
+  uint16_t rlen = d_content.size() - d_sor;
+  d_content[d_sor-2]=rlen >> 8;
+  d_content[d_sor-1]=rlen & 0xff;
+  d_sor=0;
   dnsheader* dh=reinterpret_cast<dnsheader*>( &*d_content.begin());
   switch(d_recordplace) {
   case DNSResourceRecord::QUESTION:
@@ -396,5 +413,4 @@ void DNSPacketWriter::commit()
     break;
   }
 
-  d_record.clear();   // clear d_record, ready for next record
 }

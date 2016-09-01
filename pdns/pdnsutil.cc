@@ -996,7 +996,7 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
     unixDie("Editing file with: '"+cmdline+"', perhaps set EDITOR variable");
   }
   cmdline.clear();
-  ZoneParserTNG zpt(tmpnam, DNSName("."));
+  ZoneParserTNG zpt(tmpnam, g_rootdnsname);
   map<pair<DNSName,uint16_t>, vector<DNSRecord> > grouped;
   while(zpt.get(rr)) {
     try {

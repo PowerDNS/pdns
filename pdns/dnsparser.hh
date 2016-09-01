@@ -177,8 +177,7 @@ public:
   virtual string serialize(const DNSName& qname, bool canonic=false, bool lowerCase=false) // it would rock if this were const, but it is too hard
   {
     vector<uint8_t> packet;
-    DNSName empty;
-    DNSPacketWriter pw(packet, empty, 1);
+    DNSPacketWriter pw(packet, g_rootdnsname, 1);
     if(canonic)
       pw.setCanonic(true);
 
@@ -187,10 +186,9 @@ public:
 
     pw.startRecord(qname, this->getType());
     this->toPacket(pw);
-    pw.commit();
     
     string record;
-    pw.getRecords(record);
+    pw.getRecordPayload(record); // needs to be called before commit()
     return record;
   }
 
