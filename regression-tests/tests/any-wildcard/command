@@ -1,4 +1,4 @@
 #!/bin/sh
 
-cleandig www.something.wtest.com ANY
+cleandig www.something.wtest.com ANY tcp
 

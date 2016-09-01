@@ -23,9 +23,11 @@ gmysql-dbname=$GMYSQLDB
 gmysql-user=$GMYSQLUSER
 gmysql-host=$GMYSQLHOST
 gmysql-password=$GMYSQLPASSWD
+
+any-to-tcp=no
 __EOF__
 
-		gsql-master gmysql
+		gsql-master gmysql dyndns
 		;;
 
 	*)
