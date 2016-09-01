@@ -1,3 +1,66 @@
+# 1.1.0-beta1
+Released September 1st 2016
+
+Changes since 1.0.0:
+
+## New features
+
+ * [#3762](https://github.com/PowerDNS/pdns/pull/3762) Teeaction: send copy of query to second nameserver, sponge responses
+ * [#3876](https://github.com/PowerDNS/pdns/pull/3876) Add `showResponseRules()`, `{mv,rm,top}ResponseRule()`
+ * [#3936](https://github.com/PowerDNS/pdns/pull/3936) Filter on opcode, records count/type, trailing data
+ * [#3975](https://github.com/PowerDNS/pdns/pull/3975) Make dnsdist {A,I}XFR aware, document possible issues
+ * [#4006](https://github.com/PowerDNS/pdns/pull/4006) Add eBPF source address and qname/qtype filtering
+ * [#4008](https://github.com/PowerDNS/pdns/pull/4008) Node infrastructure for querying recent traffic
+ * [#4042](https://github.com/PowerDNS/pdns/pull/4042) Add server-side TCP Fast Open support
+ * [#4050](https://github.com/PowerDNS/pdns/pull/4050) Add `clearRules()` and `setRules()`
+ * [#4114](https://github.com/PowerDNS/pdns/pull/4114) Add `QNameLabelsCountRule()` and `QNameWireLengthRule()`
+ * [#4116](https://github.com/PowerDNS/pdns/pull/4116) Added src boolean to NetmaskGroupRule to match destination address (Reinier Schoof)
+ * [#4175](https://github.com/PowerDNS/pdns/pull/4175) Implemented query counting (Reinier Schoof)
+ * [#4244](https://github.com/PowerDNS/pdns/pull/4244) Add a `setCD` parameter to set cd=1 on health check queries
+ * [#4284](https://github.com/PowerDNS/pdns/pull/4284) Add RCodeRule(), Allow, Delay and Drop response actions
+ * [#4305](https://github.com/PowerDNS/pdns/pull/4305) Add an optional Lua callback for altering a Protobuf message
+ * [#4309](https://github.com/PowerDNS/pdns/pull/4309) Add showTCPStats function (RobinGeuze)
+ * [#4329](https://github.com/PowerDNS/pdns/pull/4329) Add options to LogAction() so it can append (instead of truncate) (Duane Wessels)
+
+## Improvements
+
+ * [#3714](https://github.com/PowerDNS/pdns/pull/3714) Add documentation links to dnsdist.service (Ruben Kerkhof)
+ * [#3754](https://github.com/PowerDNS/pdns/pull/3754) Allow the use of custom headers in the web server
+ * [#3826](https://github.com/PowerDNS/pdns/pull/3826) Implement a 'quiet' mode for SuffixMatchNodeRule()
+ * [#3836](https://github.com/PowerDNS/pdns/pull/3836) Log the content of webserver's exceptions
+ * [#3858](https://github.com/PowerDNS/pdns/pull/3858) Only log YaHTTP's parser exceptions in verbose mode
+ * [#3877](https://github.com/PowerDNS/pdns/pull/3877) Increase max FDs in systemd unit, warn if clearly too low
+ * [#4019](https://github.com/PowerDNS/pdns/pull/4019) Add an optional `addECS` option to `TeeAction()`
+ * [#4029](https://github.com/PowerDNS/pdns/pull/4029) Add version and feature information to version output
+ * [#4079](https://github.com/PowerDNS/pdns/pull/4079) Return an error on RemoteLog{,Response}Action() w/o protobuf
+ * [#4246](https://github.com/PowerDNS/pdns/pull/4246) API now sends pools as a JSON array instead of a string
+ * [#4302](https://github.com/PowerDNS/pdns/pull/4302) Add `help()` and `showVersion()`
+ * [#4286](https://github.com/PowerDNS/pdns/pull/4286) Add response rules to the API and Web status page
+ * [#4068](https://github.com/PowerDNS/pdns/pull/4068) Display the dyn eBPF filters stats in the web interface
+
+## Bug fixes
+
+ * [#3755](https://github.com/PowerDNS/pdns/pull/3755) Fix RegexRule example in dnsdistconf.lua
+ * [#3773](https://github.com/PowerDNS/pdns/pull/3773) Stop copying the HTTP request headers to the response
+ * [#3837](https://github.com/PowerDNS/pdns/pull/3837) Remove dnsdist service file on trusty
+ * [#3840](https://github.com/PowerDNS/pdns/pull/3840) Catch WrongTypeException in client mode
+ * [#3906](https://github.com/PowerDNS/pdns/pull/3906) Keep the servers ordered inside pools
+ * [#3988](https://github.com/PowerDNS/pdns/pull/3988) Fix `grepq()` output in the README
+ * [#3992](https://github.com/PowerDNS/pdns/pull/3992) Fix some typos in the AXFR/IXFR documentation
+ * [#3995](https://github.com/PowerDNS/pdns/pull/3995) Fix comparison between signed and unsigned integer
+ * [#4049](https://github.com/PowerDNS/pdns/pull/4049) Fix dnsdist rpm building script #4048 (Daniel Stirnimann)
+ * [#4065](https://github.com/PowerDNS/pdns/pull/4065) Include editline/readline.h instead of readline.h/history.h
+ * [#4067](https://github.com/PowerDNS/pdns/pull/4067) Disable eBPF support when BPF_FUNC_tail_call is not found
+ * [#4069](https://github.com/PowerDNS/pdns/pull/4069) Fix a buffer overflow when displaying an OpcodeRule
+ * [#4101](https://github.com/PowerDNS/pdns/pull/4101) Fix $ expansion in build-dnsdist-rpm
+ * [#4198](https://github.com/PowerDNS/pdns/pull/4198) newServer setting maxCheckFailures makes no sense (stutiredboy)
+ * [#4205](https://github.com/PowerDNS/pdns/pull/4205) Prevent the use of "any" addresses for downstream server
+ * [#4220](https://github.com/PowerDNS/pdns/pull/4220) Don't log an error when parsing an invalid UDP query
+ * [#4348](https://github.com/PowerDNS/pdns/pull/4348) Fix invalid outstanding count for {A,I}XFR over TCP
+ * [#4365](https://github.com/PowerDNS/pdns/pull/4365) Reset origFD asap to keep the outstanding count correct
+ * [#4375](https://github.com/PowerDNS/pdns/pull/4375) Tuple requires make_tuple to initialize
+ * [#4380](https://github.com/PowerDNS/pdns/pull/4380) Fix compilation with clang when eBPF support is enabled
+
 # dnsdist 1.0.0
 Released April 21st 2016
 
