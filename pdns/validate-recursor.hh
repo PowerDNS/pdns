@@ -38,4 +38,5 @@ enum class DNSSECMode { Off, Process, ProcessNoValidate, ValidateForLog, Validat
 extern DNSSECMode g_dnssecmode;
 extern bool g_dnssecLogBogus;
 
-void warnIfDNSSECDisabled(const string& msg);
+bool checkDNSSECDisabled();
+bool warnIfDNSSECDisabled(const string& msg);

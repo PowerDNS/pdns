@@ -26,9 +26,17 @@ public:
   int d_queries{0};
 };
 
-void warnIfDNSSECDisabled(const string& msg) {
-  if(g_dnssecmode == DNSSECMode::Off)
-    L<<Logger::Warning<<msg<<endl;
+bool checkDNSSECDisabled() {
+  return warnIfDNSSECDisabled("");
+}
+
+bool warnIfDNSSECDisabled(const string& msg) {
+  if(g_dnssecmode == DNSSECMode::Off) {
+    if (!msg.empty())
+      L<<Logger::Warning<<msg<<endl;
+    return true;
+  }
+  return false;
 }
 
 inline vState increaseDNSSECStateCounter(const vState& state)
