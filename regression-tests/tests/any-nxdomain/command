@@ -1,4 +1,4 @@
 #!/bin/sh
 
-cleandig nxdomain.example.com ANY dnssec
+cleandig nxdomain.example.com ANY dnssec tcp
 
