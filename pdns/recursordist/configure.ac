@@ -42,6 +42,7 @@ PDNS_CHECK_NETWORK_LIBS
 
 # Boost Context was introduced in 1.51 (Aug 2012), but there was an immediate
 # API break in 1.52 (Nov 2012), so we only support that, and later.
+pdns_context_library="System V ucontexts"
 
 AC_DEFUN([PDNS_SELECT_CONTEXT_IMPL], [
   AC_MSG_CHECKING([whether Boost is new enough to use the context library...])
@@ -65,6 +66,7 @@ AC_DEFUN([PDNS_SELECT_CONTEXT_IMPL], [
     fi
     case $boost_cv_lib_context in
       (yes)
+        pdns_context_library="Boost context"
         AC_MSG_NOTICE([MTasker will use the Boost context library for context switching])
         ;;
       *)
@@ -206,4 +208,5 @@ AS_IF([test "x$systemd" != "xn"],
   [AC_MSG_NOTICE([systemd: yes])],
   [AC_MSG_NOTICE([systemd: no])]
 )
+AC_MSG_NOTICE([Context library: $pdns_context_library])
 AC_MSG_NOTICE([])
