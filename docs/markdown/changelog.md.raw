@@ -1,7 +1,7 @@
 **Note**: Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
 
 # PowerDNS Authoritative Server 3.4.10
-Unreleased
+Released 2nd of September 2016
 
 This release fixes several bugs, decreases CPU usage and allows better interoperability with PowerDNS 4.0.0 databases. It also adds a feature to limit AXFR sizes in response to [CVE-2016-6172](http://www.openwall.com/lists/oss-security/2016/07/06/4).
 
