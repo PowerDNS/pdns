@@ -23,6 +23,7 @@
 #include "config.h"
 #endif
 #include <openssl/aes.h>
+#include <openssl/opensslv.h>
 #if OPENSSL_VERSION_NUMBER > 0x1000100fL && !defined LIBRESSL_VERSION_NUMBER
 // Older OpenSSL does not have CRYPTO_ctr128_encrypt. Before 1.1.0 the header
 // file did not have the necessary extern "C" wrapper. In 1.1.0, AES_ctr128_encrypt
