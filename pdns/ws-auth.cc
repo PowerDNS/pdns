@@ -60,7 +60,8 @@ AuthWebServer::AuthWebServer()
   d_min10=d_min5=d_min1=0;
   d_ws = 0;
   d_tid = 0;
-  if(arg().mustDo("webserver")) {
+  if(arg().mustDo("webserver") || arg().mustDo("api"))
+  {
     d_ws = new WebServer(arg()["webserver-address"], arg().asNum("webserver-port"));
     d_ws->bind();
   }
@@ -72,6 +73,9 @@ void AuthWebServer::go()
   {
     S.doRings();
     pthread_create(&d_tid, 0, webThreadHelper, this);
+  }
+  if(arg().mustDo("webserver") || arg().mustDo("api"))
+  {
     pthread_create(&d_tid, 0, statThreadHelper, this);
   }
 }
@@ -1256,8 +1260,10 @@ void AuthWebServer::webThread()
       d_ws->registerApiHandler("/api/v1/servers", &apiServer);
       d_ws->registerApiHandler("/api", &apiDiscovery);
     }
-    d_ws->registerWebHandler("/style.css", boost::bind(&AuthWebServer::cssfunction, this, _1, _2));
-    d_ws->registerWebHandler("/", boost::bind(&AuthWebServer::indexfunction, this, _1, _2));
+    if (::arg().mustDo("webserver")) {
+      d_ws->registerWebHandler("/style.css", boost::bind(&AuthWebServer::cssfunction, this, _1, _2));
+      d_ws->registerWebHandler("/", boost::bind(&AuthWebServer::indexfunction, this, _1, _2));
+    }
     d_ws->go();
   }
   catch(...) {
