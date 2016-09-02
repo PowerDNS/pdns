@@ -9,13 +9,12 @@ This release fixes several bugs, decreases CPU usage and allows better interoper
 - [commit 63a6800](https://github.com/PowerDNS/pdns/commit/63a6800): Update polarssl 1.3.9 to mbedtls 1.3.17 (Kees Monshouwer)
 - [commit dc73734](https://github.com/PowerDNS/pdns/commit/dc73734): Report DHCID type (Kees Monshouwer)
 - [commit 2c6e628](https://github.com/PowerDNS/pdns/commit/2c6e628): Fix TSIG for single thread distributor (Kees Monshouwer)
-- [commit 6dbc0ca](https://github.com/PowerDNS/pdns/commit/6dbc0ca): Test response for non existent direct nsec queries (Kees Monshouwer)
 - [commit 09bdd9f](https://github.com/PowerDNS/pdns/commit/09bdd9f): Don't send covering nsec records for direct nsec queries (Kees Monshouwer)
-- [commit da231a4](https://github.com/PowerDNS/pdns/commit/da231a4): Ignore tailing dot in signer name (Kees Monshouwer)
+- [commit da231a4](https://github.com/PowerDNS/pdns/commit/da231a4): Ignore trailing dot in signer name (Kees Monshouwer)
 - [commit a014f4c](https://github.com/PowerDNS/pdns/commit/a014f4c): Add limits to the size of received AXFR, in megabytes
-- [commit 881b5b0](https://github.com/PowerDNS/pdns/commit/881b5b0): Reject qname's wirelength > 255, `chopOff()` handle dot inside labels
+- [commit 881b5b0](https://github.com/PowerDNS/pdns/commit/881b5b0): Reject qnames with wirelength > 255, `chopOff()` handle dot inside labels
 - [commit 210fb15](https://github.com/PowerDNS/pdns/commit/210fb15): Gmysql get-order-after-query was slow (Kees Monshouwer)
-- [commit 7bab770](https://github.com/PowerDNS/pdns/commit/7bab770): Sync boost.m4 with upstream the parts where we differ are filed upstream as: https://github.com/tsuna/boost.m4/pull/83 (Kees Monshouwer)
+- [commit 7bab770](https://github.com/PowerDNS/pdns/commit/7bab770): Sync boost.m4 with upstream (Kees Monshouwer)
 - [commit 9740371](https://github.com/PowerDNS/pdns/commit/9740371): Fix shorter best matching names in getAuth() (Kees Monshouwer)
 - [commit 991528c](https://github.com/PowerDNS/pdns/commit/991528c): change default for any-to-tcp to yes (Kees Monshouwer)
 
