@@ -160,11 +160,6 @@ AC_SUBST([moduleobjects])
 AC_SUBST([modulelibs])
 AC_DEFINE_UNQUOTED([PDNS_MODULES], "$modules", [Built-in modules])
 
-AC_ARG_ENABLE([gcc-skip-locking],
-  [AS_HELP_STRING([--enable-gcc-skip-locking], [if we should forcefully skip gcc locking @<:@default=no@:>@])],
-  [AC_DEFINE(GCC_SKIP_LOCKING,[], [Skip gcc locking])],
-)
-
 AC_MSG_CHECKING([whether we will be building and installing the extra tools])
 AC_ARG_ENABLE([tools],
   [AS_HELP_STRING([--enable-tools], [if we should build and install the tools @<:@default=no@:>@])],
