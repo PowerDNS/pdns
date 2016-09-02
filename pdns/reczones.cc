@@ -46,7 +46,7 @@ void primeHints(void)
 
   if(::arg()["hint-file"].empty()) {
     DNSRecord arr, aaaarr, nsrr;
-    nsrr.d_name=DNSName(".");
+    nsrr.d_name=g_rootdnsname;
     arr.d_type=QType::A;
     aaaarr.d_type=QType::AAAA;
     nsrr.d_type=QType::NS;
@@ -94,7 +94,7 @@ void primeHints(void)
       }
     }
   }
-  t_RC->replace(time(0), DNSName("."), QType(QType::NS), nsset, vector<std::shared_ptr<RRSIGRecordContent>>(), true); // and stuff in the cache (auth)
+  t_RC->replace(time(0), g_rootdnsname, QType(QType::NS), nsset, vector<std::shared_ptr<RRSIGRecordContent>>(), true); // and stuff in the cache (auth)
 }
 
 static void makeNameToIPZone(SyncRes::domainmap_t* newMap, const DNSName& hostname, const string& ip)

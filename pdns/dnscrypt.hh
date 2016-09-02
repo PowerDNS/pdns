@@ -172,7 +172,6 @@ private:
   DnsCryptPrivateKey privateKey;
   unsigned char publicKey[DNSCRYPT_PUBLIC_KEY_SIZE];
   DnsCryptPrivateKey oldPrivateKey;
-  unsigned char oldPublicKey[DNSCRYPT_PUBLIC_KEY_SIZE];
   bool hasOldCert{false};
 };
 

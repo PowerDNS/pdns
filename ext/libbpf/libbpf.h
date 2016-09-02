@@ -105,7 +105,7 @@ extern char bpf_log_buf[LOG_BUF_SIZE];
 		.dst_reg = 0,					\
 		.src_reg = 0,					\
 		.off   = 0,					\
-		.imm   = ((__u64) (IMM)) >> 32 })
+		.imm   = (__s32)(((__u64) (IMM)) >> 32) })
 
 #ifndef BPF_PSEUDO_MAP_FD
 # define BPF_PSEUDO_MAP_FD	1

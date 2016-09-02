@@ -338,7 +338,7 @@ DNSCryptoKeyEngine* DNSCryptoKeyEngine::makeFromPEMString(DNSKEYRecordContent& d
 
 bool sharedDNSSECCompare(const shared_ptr<DNSRecordContent>& a, const shared_ptr<DNSRecordContent>& b)
 {
-  return a->serialize(DNSName("."), true, true) < b->serialize(DNSName("."), true, true);
+  return a->serialize(g_rootdnsname, true, true) < b->serialize(g_rootdnsname, true, true);
 }
 
 /**
@@ -359,7 +359,7 @@ string getMessageForRRSET(const DNSName& qname, const RRSIGRecordContent& rrc, v
   sort(signRecords.begin(), signRecords.end(), sharedDNSSECCompare);
 
   string toHash;
-  toHash.append(const_cast<RRSIGRecordContent&>(rrc).serialize(DNSName("."), true, true));
+  toHash.append(const_cast<RRSIGRecordContent&>(rrc).serialize(g_rootdnsname, true, true));
   toHash.resize(toHash.size() - rrc.d_signature.length()); // chop off the end, don't sign the signature!
 
   string nameToHash(qname.toDNSStringLC());
@@ -389,7 +389,7 @@ string getMessageForRRSET(const DNSName& qname, const RRSIGRecordContent& rrc, v
     uint32_t ttl=htonl(rrc.d_originalttl);
     toHash.append((char*)&ttl, 4);
     // for NSEC signatures, we should not lowercase the rdata section
-    string rdata=add->serialize(DNSName("."), true, (add->getType() == QType::NSEC) ? false : true);  // RFC 6840, 5.1
+    string rdata=add->serialize(g_rootdnsname, true, (add->getType() == QType::NSEC) ? false : true);  // RFC 6840, 5.1
     tmp=htons(rdata.length());
     toHash.append((char*)&tmp, 2);
     toHash.append(rdata);
@@ -632,6 +632,7 @@ string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOff
 
   vector<uint8_t> signVect;
   DNSPacketWriter dw(signVect, DNSName(), 0);
+  auto pos=signVect.size();
   if(!timersonly) {
     dw.xfrName(keyname, false);
     dw.xfr16BitInt(QClass::ANY); // class
@@ -648,8 +649,7 @@ string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOff
     dw.xfr16BitInt(trc.d_otherData.length()); // length of 'other' data
     //    dw.xfrBlob(trc->d_otherData);
   }
-  const vector<uint8_t>& signRecord=dw.getRecordBeingWritten();
-  message.append(signRecord.begin(), signRecord.end());
+  message.append(signVect.begin()+pos, signVect.end());
   return message;
 }
 
@@ -672,6 +672,7 @@ void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const DNSName& tsigkey
   // now add something that looks a lot like a TSIG record, but isn't
   vector<uint8_t> signVect;
   DNSPacketWriter dw(signVect, DNSName(), 0);
+  auto pos=dw.size();
   if(!timersonly) {
     dw.xfrName(tsigkeyname, false);
     dw.xfr16BitInt(QClass::ANY); // class
@@ -688,8 +689,7 @@ void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const DNSName& tsigkey
     //    dw.xfrBlob(trc->d_otherData);
   }
   
-  const vector<uint8_t>& signRecord=dw.getRecordBeingWritten();
-  toSign.append(signRecord.begin(), signRecord.end());
+  toSign.append(signVect.begin() + pos, signVect.end());
 
   if (algo == TSIG_GSS) {
     if (!gss_add_signature(tsigkeyname, toSign, trc->d_mac)) {

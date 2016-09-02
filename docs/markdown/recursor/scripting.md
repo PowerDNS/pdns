@@ -104,8 +104,11 @@ It also supports the following methods:
 
 * `addAnswer(type, content, [ttl, name])`: add an answer to the record of `type` with `content`. Optionally supply TTL and the name of
   the answer too, which defaults to the name of the question
+* `addPolicyTag(tag)`: add a policy tag.
 * `discardPolicy(policyname)`: skip the filtering policy (for example RPZ) named `policyname` for this query. This is mostly useful in the `prerpz` hook.
+* `getPolicyTags()`: get the current policy tags as a table of strings.
 * `getRecords()`: get a table of DNS Records in this DNS Question (or answer by now)
+* `setPolicyTags(tags)`: update the policy tags, taking a table of strings.
 * `setRecords(records)`: after your edits, update the answers of this question
 * `getEDNSOption(num)`: get the EDNS Option with number `num`
 * `getEDNSOptions()`: get a map of all EDNS Options
@@ -143,10 +146,13 @@ This hook does not get the full DNSQuestion object, since filling out the fields
 would require packet parsing, which is what we are trying to prevent with `ipfilter`.
 
 ### `function gettag(remote, ednssubnet, local, qname, qtype)`
-The `gettag` function is invoked when `dq.tag` is called on a dq object or when
-the Recursor attempts to discover in which packetcache an answer is available.
+The `gettag` function is invoked when the Recursor attempts to discover in which
+packetcache an answer is available.
 This function must return an integer, which is the tag number of the packetcache.
 In addition to this integer, this function can return a table of policy tags.
+
+The resulting tag number can be accessed via `dq.tag` in the `preresolve` hook,
+and the policy tags via `dq:getPolicyTags()` in every hook.
 
 The tagged packetcache can e.g. be used to answer queries from cache that have
 e.g. been filtered for certain IPs (this logic should be implemented in the

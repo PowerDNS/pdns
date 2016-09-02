@@ -21,23 +21,52 @@ To get the best out of the PowerDNS recursor, which is important if you are doin
     Sample Linux command lines would be:
 
 ```
-# iptables -t raw -I OUTPUT -p udp --dport 53 -j NOTRACK
-# iptables -t raw -I OUTPUT -p udp --sport 53 -j NOTRACK
-# iptables -t raw -I PREROUTING -p udp --dport 53 -j NOTRACK
-# iptables -t raw -I PREROUTING -p udp --sport 53 -j NOTRACK
-# iptables -I INPUT -p udp --dport 53 -j ACCEPT
-# iptables -I INPUT -p udp --sport 53 -j ACCEPT
-# iptables -I OUTPUT -p udp --dport 53 -j ACCEPT
+## IPv4
+iptables -t raw -I OUTPUT -p udp --dport 53 -j CT --notrack
+iptables -t raw -I OUTPUT -p udp --sport 53 -j CT --notrack
+iptables -t raw -I PREROUTING -p udp --dport 53 -j CT --notrack
+iptables -t raw -I PREROUTING -p udp --sport 53 -j CT --notrack
+iptables -I INPUT -p udp --dport 53 -j ACCEPT
+iptables -I INPUT -p udp --sport 53 -j ACCEPT
+iptables -I OUTPUT -p udp --dport 53 -j ACCEPT
+iptables -I OUTPUT -p udp --sport 53 -j ACCEPT
 
-    # # optionally
-# ip6tables -t raw -I OUTPUT -p udp --dport 53 -j NOTRACK
-# ip6tables -t raw -I OUTPUT -p udp --sport 53 -j NOTRACK
-# ip6tables -t raw -I PREROUTING -p udp --sport 53 -j NOTRACK
-# ip6tables -t raw -I PREROUTING -p udp --dport 53 -j NOTRACK
-# ip6tables -I INPUT -p udp --dport 53 -j ACCEPT
-# ip6tables -I INPUT -p udp --sport 53 -j ACCEPT
-# ip6tables -I OUTPUT -p udp --dport 53 -j ACCEPT
+## IPv6
+ip6tables -t raw -I OUTPUT -p udp --dport 53 -j CT --notrack
+ip6tables -t raw -I OUTPUT -p udp --sport 53 -j CT --notrack
+ip6tables -t raw -I PREROUTING -p udp --sport 53 -j CT --notrack
+ip6tables -t raw -I PREROUTING -p udp --dport 53 -j CT --notrack
+ip6tables -I INPUT -p udp --dport 53 -j ACCEPT
+ip6tables -I INPUT -p udp --sport 53 -j ACCEPT
+ip6tables -I OUTPUT -p udp --dport 53 -j ACCEPT
+ip6tables -I OUTPUT -p udp --sport 53 -j ACCEPT
 ```
+
+
+When using FirewallD (Centos 7+ / RedHat 7+ / Fedora 21+) connection tracking can be disabled via direct rules.
+The settings can be made permanent by using the --permanent flag.
+```
+## IPv4
+firewall-cmd --direct --add-rule ipv4 raw OUTPUT 0 -p udp --dport 53 -j CT --notrack
+firewall-cmd --direct --add-rule ipv4 raw OUTPUT 0 -p udp --sport 53 -j CT --notrack
+firewall-cmd --direct --add-rule ipv4 raw PREROUTING 0 -p udp --dport 53 -j CT --notrack
+firewall-cmd --direct --add-rule ipv4 raw PREROUTING 0 -p udp --sport 53 -j CT --notrack
+firewall-cmd --direct --add-rule ipv4 filter INPUT 0 -p udp --dport 53 -j ACCEPT
+firewall-cmd --direct --add-rule ipv4 filter INPUT 0 -p udp --sport 53 -j ACCEPT
+firewall-cmd --direct --add-rule ipv4 filter OUTPUT 0 -p udp --dport 53 -j ACCEPT
+firewall-cmd --direct --add-rule ipv4 filter OUTPUT 0 -p udp --sport 53 -j ACCEPT
+
+## IPv6
+firewall-cmd --direct --add-rule ipv6 raw OUTPUT 0 -p udp --dport 53 -j CT --notrack
+firewall-cmd --direct --add-rule ipv6 raw OUTPUT 0 -p udp --sport 53 -j CT --notrack
+firewall-cmd --direct --add-rule ipv6 raw PREROUTING 0 -p udp --dport 53 -j CT --notrack
+firewall-cmd --direct --add-rule ipv6 raw PREROUTING 0 -p udp --sport 53 -j CT --notrack
+firewall-cmd --direct --add-rule ipv6 filter INPUT 0 -p udp --dport 53 -j ACCEPT
+firewall-cmd --direct --add-rule ipv6 filter INPUT 0 -p udp --sport 53 -j ACCEPT
+firewall-cmd --direct --add-rule ipv6 filter OUTPUT 0 -p udp --dport 53 -j ACCEPT
+firewall-cmd --direct --add-rule ipv6 filter OUTPUT 0 -p udp --sport 53 -j ACCEPT
+```
+
 
 Following the instructions above, you should be able to attain very high query rates.
 

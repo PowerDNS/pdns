@@ -557,7 +557,7 @@ DNSRecord makeOpt(int udpsize, int extRCode, int Z)
   static_assert(sizeof(EDNS0Record) == sizeof(dr.d_ttl), "sizeof(EDNS0Record) must match sizeof(DNSRecord.d_ttl)");
   memcpy(&dr.d_ttl, &stuff, sizeof(stuff));
   dr.d_ttl=ntohl(dr.d_ttl);
-  dr.d_name=DNSName(".");
+  dr.d_name=g_rootdnsname;
   dr.d_type = QType::OPT;
   dr.d_class=udpsize;
   dr.d_place=DNSResourceRecord::ADDITIONAL;

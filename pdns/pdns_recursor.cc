@@ -1283,23 +1283,48 @@ void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       socklen_t len = dest.getSocklen();
       getsockname(conn->getFD(), (sockaddr*)&dest, &len); // if this fails, we're ok with it
       dc->setLocal(dest);
+      Netmask ednssubnet;
+      DNSName qname;
+      uint16_t qtype=0;
+      uint16_t qclass=0;
+      bool needECS = false;
 #ifdef HAVE_PROTOBUF
       auto luaconfsLocal = g_luaconfs.getLocal();
+      if (luaconfsLocal->protobufServer) {
+        needECS = true;
+      }
+#endif
 
+      if(needECS || (t_pdl->get() && (*t_pdl)->d_gettag)) {
+
+        try {
+          getQNameAndSubnet(std::string(conn->data, conn->qlen), &qname, &qtype, &qclass, &ednssubnet);
+
+          if(t_pdl->get() && (*t_pdl)->d_gettag) {
+            try {
+              dc->d_tag = (*t_pdl)->gettag(conn->d_remote, ednssubnet, dest, qname, qtype, &dc->d_policyTags);
+            }
+            catch(std::exception& e)  {
+              if(g_logCommonErrors)
+                L<<Logger::Warning<<"Error parsing a query packet qname='"<<qname<<"' for tag determination, setting tag=0: "<<e.what()<<endl;
+            }
+          }
+        }
+        catch(std::exception& e)
+        {
+          if(g_logCommonErrors)
+            L<<Logger::Warning<<"Error parsing a query packet for tag determination, setting tag=0: "<<e.what()<<endl;
+        }
+      }
+#ifdef HAVE_PROTOBUF
       if(luaconfsLocal->protobufServer) {
         dc->d_uuid = (*t_uuidGenerator)();
 
         try {
-          DNSName qname;
-          uint16_t qtype;
-          uint16_t qclass;
-          Netmask ednssubnet;
           const struct dnsheader* dh = (const struct dnsheader*) conn->data;
-
-          getQNameAndSubnet(std::string(conn->data, conn->qlen), &qname, &qtype, &qclass, &ednssubnet);
           dc->d_ednssubnet = ednssubnet;
 
-          protobufLogQuery(luaconfsLocal->protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, dc->d_uuid, dest, conn->d_remote, ednssubnet, true, dh->id, conn->qlen, qname, qtype, qclass, std::vector<std::string>());
+          protobufLogQuery(luaconfsLocal->protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, dc->d_uuid, dest, conn->d_remote, ednssubnet, true, dh->id, conn->qlen, qname, qtype, qclass, dc->d_policyTags);
         }
         catch(std::exception& e) {
           if(g_logCommonErrors)
@@ -1889,7 +1914,7 @@ static void houseKeeping(void *)
       sr.setNoCache();
       int res=-1;
       try {
-	res=sr.beginResolve(DNSName("."), QType(QType::NS), 1, ret);
+	res=sr.beginResolve(g_rootdnsname, QType(QType::NS), 1, ret);
       }
       catch(PDNSException& e)
 	{

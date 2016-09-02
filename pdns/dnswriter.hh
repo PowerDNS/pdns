@@ -29,6 +29,8 @@
 #include "dnsname.hh"
 #include "namespaces.hh"
 #include <arpa/inet.h>
+
+
 /** this class can be used to write DNS packets. It knows about DNS in the sense that it makes
     the packet header and record headers.
 
@@ -59,8 +61,6 @@ class DNSPacketWriter : public boost::noncopyable
 {
 
 public:
-  typedef vector<pair<DNSName, uint16_t> > lmap_t;
-
   //! Start a DNS Packet in the vector passed, with question qname, qtype and qclass
   DNSPacketWriter(vector<uint8_t>& content, const DNSName& qname, uint16_t  qtype, uint16_t qclass=QClass::IN, uint8_t opcode=0);
 
@@ -114,11 +114,8 @@ public:
   void xfrBlobNoSpaces(const string& blob, int len=-1);
   void xfrHexBlob(const string& blob, bool keepReading=false);
 
-  uint16_t d_pos;
-
   dnsheader* getHeader();
-  void getRecords(string& records);
-  const vector<uint8_t>& getRecordBeingWritten() { return d_record; }
+  void getRecordPayload(string& records); // call __before commit__
 
   void setCanonic(bool val)
   {
@@ -136,19 +133,14 @@ public:
   bool eof() { return true; } // we don't know how long the record should be
 
 private:
+  uint16_t lookupName(const DNSName& name, uint16_t* matchlen);
+  vector<uint16_t> d_namepositions;
   // We declare 1 uint_16 in the public section, these 3 align on a 8-byte boundry
-  uint16_t d_stuff;
   uint16_t d_sor;
   uint16_t d_rollbackmarker; // start of last complete packet, for rollback
 
   vector <uint8_t>& d_content;
-  vector <uint8_t> d_record;
   DNSName d_qname;
-  DNSName d_recordqname;
-  lmap_t d_labelmap;
-
-  uint32_t d_recordttl;
-  uint16_t d_recordqtype, d_recordqclass;
 
   uint16_t d_truncatemarker; // end of header, for truncate
   DNSResourceRecord::Place d_recordplace;

@@ -239,7 +239,7 @@ bool SyncRes::doOOBResolve(const DNSName &qname, const QType &qtype, vector<DNSR
   DNSName wcarddomain(qname);
   while(wcarddomain != iter->first && wcarddomain.chopOff()) {
     LOG(prefix<<qname<<": trying '*."<<wcarddomain<<"' in "<<authdomain<<endl);
-    range=iter->second.d_records.equal_range(boost::make_tuple(DNSName("*")+wcarddomain));
+    range=iter->second.d_records.equal_range(boost::make_tuple(g_wildcarddnsname+wcarddomain));
     if(range.first==range.second)
       continue;
 
@@ -1133,7 +1133,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
 		t_sstorage->nsSpeeds[*tns].submit(*remoteIP, 1000000, &d_now); // 1 sec
 
 		// code below makes sure we don't filter COM or the root
-                if (s_serverdownmaxfails > 0 && (auth != DNSName(".")) && t_sstorage->fails.incr(*remoteIP) >= s_serverdownmaxfails) {
+                if (s_serverdownmaxfails > 0 && (auth != g_rootdnsname) && t_sstorage->fails.incr(*remoteIP) >= s_serverdownmaxfails) {
                   LOG(prefix<<qname<<": Max fails reached resolving on "<< remoteIP->toString() <<". Going full throttle for "<< s_serverdownthrottletime <<" seconds" <<endl);
                   t_sstorage->throttle.throttle(d_now.tv_sec, boost::make_tuple(*remoteIP, "", 0), s_serverdownthrottletime, 10000); // mark server as down
                 } else if(resolveret==-1)

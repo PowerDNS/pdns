@@ -61,6 +61,10 @@ public:
   void setResponseCode(uint8_t rcode);
   void addRRsFromPacket(const char* packet, const size_t len);
   void serialize(std::string& data) const;
+  void setRequestor(const std::string& requestor);
+  void setRequestor(const ComboAddress& requestor);
+  void setResponder(const std::string& responder);
+  void setResponder(const ComboAddress& responder);
   std::string toDebugString() const;
 
 #ifdef HAVE_PROTOBUF
