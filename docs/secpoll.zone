@@ -1,4 +1,4 @@
-@       86400   IN  SOA pdns-public-ns1.powerdns.com. pieter\.lexis.powerdns.com. 2016082601 10800 3600 604800 10800
+@       86400   IN  SOA pdns-public-ns1.powerdns.com. pieter\.lexis.powerdns.com. 2016090201 10800 3600 604800 10800
 @       3600    IN  NS  pdns-public-ns1.powerdns.com.
 @       3600    IN  NS  pdns-public-ns2.powerdns.com.
 ; Auth
@@ -15,6 +15,7 @@ auth-3.4.6.security-status                              60 IN TXT "3 Upgrade now
 auth-3.4.7.security-status                              60 IN TXT "1 OK"
 auth-3.4.8.security-status                              60 IN TXT "1 OK"
 auth-3.4.9.security-status                              60 IN TXT "1 OK"
+auth-3.4.10.security-status                             60 IN TXT "1 OK"
 
 auth-4.0.0-alpha1.security-status                       60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-authoritative-server-4-0-0-released/"
 auth-4.0.0-alpha2.security-status                       60 IN TXT "2 Unsupported pre-release (no known vulnerabilities). Please upgrade to final, see https://blog.powerdns.com/2016/07/11/powerdns-authoritative-server-4-0-0-released/"
