@@ -1,8 +1,6 @@
 SUBDIRS = ext modules codedocs docs
 
-if WITH_PDNS_SERVER
-  SUBDIRS += pdns
-endif
+SUBDIRS += pdns
 
 EXTRA_DIST = \
 	INSTALL \
