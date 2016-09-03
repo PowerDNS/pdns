@@ -60,11 +60,11 @@ void stubParseResolveConf()
 }
 
 // s_stubresolvers contains the ComboAddresses that are used to resolve the
-int stubDoResolve(const string& qname, uint16_t qtype, vector<DNSResourceRecord>& ret)
+int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& ret)
 {
   vector<uint8_t> packet;
 
-  DNSPacketWriter pw(packet, DNSName(qname), qtype);
+  DNSPacketWriter pw(packet, qname, qtype);
   pw.getHeader()->id=dns_random(0xffff);
   pw.getHeader()->rd=1;
   if (s_stubresolvers.empty()) {
@@ -78,17 +78,18 @@ int stubDoResolve(const string& qname, uint16_t qtype, vector<DNSResourceRecord>
   }
   L<<Logger::Debug<<msg.substr(0, msg.length() - 2)<<endl;
 
-  for(ComboAddress& dest :  s_stubresolvers) {
+  for(const ComboAddress& dest :  s_stubresolvers) {
     Socket sock(dest.sin4.sin_family, SOCK_DGRAM);
     sock.setNonBlocking();
-    sock.sendTo(string(packet.begin(), packet.end()), dest);
+    sock.connect(dest);
+    sock.send(string(packet.begin(), packet.end()));
 
     string reply;
 
     waitForData(sock.getHandle(), 2, 0);
     try {
     retry:
-      sock.recvFrom(reply, dest);
+      sock.read(reply); // this calls recv
       if(reply.size() > sizeof(struct dnsheader)) {
         struct dnsheader d;
         memcpy(&d, reply.c_str(), sizeof(d));
@@ -105,12 +106,10 @@ int stubDoResolve(const string& qname, uint16_t qtype, vector<DNSResourceRecord>
 
     for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
       if(i->first.d_place == 1 && i->first.d_type==qtype) {
-        DNSResourceRecord rr;
-        rr.qname = i->first.d_name;
-        rr.qtype = QType(i->first.d_type);
-        rr.content = i->first.d_content->getZoneRepresentation();
-        rr.ttl=i->first.d_ttl;
-        ret.push_back(rr);
+        DNSZoneRecord zrr;
+        zrr.dr = i->first;
+        zrr.auth=true;
+        ret.push_back(zrr);
       }
     }
     L<<Logger::Debug<<"Question got answered by "<<dest.toString()<<endl;

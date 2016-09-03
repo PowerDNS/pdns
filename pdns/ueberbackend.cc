@@ -265,9 +265,8 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const DNSName &target)
 
       if(cstat == 1 && !d_answers.empty() && d_cache_ttl) {
         DLOG(L<<Logger::Error<<"has pos cache entry: "<<choppedOff<<endl);
-        fillSOAData(d_answers[0].content, *sd);
-        sd->domain_id = d_answers[0].domain_id;
-        sd->ttl = d_answers[0].ttl;
+        fillSOAData(d_answers[0], *sd);
+
         sd->db = 0;
         sd->qname = choppedOff;
         goto found;
@@ -327,15 +326,15 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const DNSName &target)
         d_question.qname = sd->qname;
         d_question.zoneId = -1;
 
-        DNSResourceRecord rr;
-        rr.qname = sd->qname;
-        rr.qtype = QType::SOA;
-        rr.content = serializeSOAData(*sd);
-        rr.ttl = sd->ttl;
+        DNSZoneRecord rr;
+        rr.dr.d_name = sd->qname;
+        rr.dr.d_type = QType::SOA;
+        
+        rr.dr.d_content = makeSOAContent(*sd);
+        rr.dr.d_ttl = sd->ttl;
         rr.domain_id = sd->domain_id;
-        vector<DNSResourceRecord> rrs;
-        rrs.push_back(rr);
-        addCache(d_question, rrs);
+
+        addCache(d_question, {rr});
       }
     }
 
@@ -363,9 +362,9 @@ bool UeberBackend::getSOA(const DNSName &domain, SOAData &sd, DNSPacket *p)
     return false;
   }
   else if(cstat==1 && !d_answers.empty()) {
-    fillSOAData(d_answers[0].content,sd);
+    fillSOAData(d_answers[0],sd);
     sd.domain_id=d_answers[0].domain_id;
-    sd.ttl=d_answers[0].ttl;
+    sd.ttl=d_answers[0].dr.d_ttl;
     sd.db=0;
     return true;
   }
@@ -383,15 +382,16 @@ bool UeberBackend::getSOAUncached(const DNSName &domain, SOAData &sd, DNSPacket 
   for(vector<DNSBackend *>::const_iterator i=backends.begin();i!=backends.end();++i)
     if((*i)->getSOA(domain, sd, p)) {
       if( d_cache_ttl ) {
-        DNSResourceRecord rr;
-        rr.qname=domain;
-        rr.qtype=QType::SOA;
-        rr.content=serializeSOAData(sd);
-        rr.ttl=sd.ttl;
-        rr.domain_id=sd.domain_id;
-        vector<DNSResourceRecord> rrs;
-        rrs.push_back(rr);
-        addCache(d_question, rrs);
+        DNSZoneRecord rr;
+        rr.dr.d_name = sd.qname;
+        rr.dr.d_type = QType::SOA;
+        
+        rr.dr.d_content = makeSOAContent(sd);
+        rr.dr.d_ttl = sd.ttl;
+        rr.domain_id = sd.domain_id;
+
+        addCache(d_question, {rr});
+
       }
       return true;
     }
@@ -448,7 +448,7 @@ void UeberBackend::cleanup()
 #undef PC
 
 // returns -1 for miss, 0 for negative match, 1 for hit
-int UeberBackend::cacheHas(const Question &q, vector<DNSResourceRecord> &rrs)
+int UeberBackend::cacheHas(const Question &q, vector<DNSZoneRecord> &rrs)
 {
   extern PacketCache PC;
   static AtomicCounter *qcachehit=S.getPointer("query-cache-hit");
@@ -480,10 +480,10 @@ void UeberBackend::addNegCache(const Question &q)
   if(!d_negcache_ttl)
     return;
   // we should also not be storing negative answers if a pipebackend does scopeMask, but we can't pass a negative scopeMask in an empty set!
-  PC.insert(q.qname, q.qtype, PacketCache::QUERYCACHE, vector<DNSResourceRecord>(), d_negcache_ttl, q.zoneId);
+  PC.insert(q.qname, q.qtype, PacketCache::QUERYCACHE, vector<DNSZoneRecord>(), d_negcache_ttl, q.zoneId);
 }
 
-void UeberBackend::addCache(const Question &q, const vector<DNSResourceRecord> &rrs)
+void UeberBackend::addCache(const Question &q, const vector<DNSZoneRecord> &rrs)
 {
   extern PacketCache PC;
 
@@ -491,9 +491,9 @@ void UeberBackend::addCache(const Question &q, const vector<DNSResourceRecord> &
     return;
 
   unsigned int store_ttl = d_cache_ttl;
-  for(const DNSResourceRecord& rr : rrs) {
-   if (rr.ttl < d_cache_ttl)
-     store_ttl = rr.ttl;
+  for(const auto& rr : rrs) {
+   if (rr.dr.d_ttl < d_cache_ttl)
+     store_ttl = rr.dr.d_ttl;
    if (rr.scopeMask)
      return;
   }
@@ -579,6 +579,18 @@ void UeberBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disab
 
 bool UeberBackend::get(DNSResourceRecord &rr)
 {
+  DNSZoneRecord dzr;
+  if(!this->get(dzr))
+    return false;
+
+  rr=DNSResourceRecord(dzr.dr);
+  rr.auth = dzr.auth;
+  rr.domain_id = dzr.domain_id;
+  return true;
+}
+
+bool UeberBackend::get(DNSZoneRecord &rr)
+{
   if(d_negcached) {
     return false; 
   }
@@ -643,7 +655,7 @@ UeberBackend::handle::~handle()
   --instances;
 }
 
-bool UeberBackend::handle::get(DNSResourceRecord &r)
+bool UeberBackend::handle::get(DNSZoneRecord &r)
 {
   DLOG(L << "Ueber get() was called for a "<<qtype.getName()<<" record" << endl);
   bool isMore=false;

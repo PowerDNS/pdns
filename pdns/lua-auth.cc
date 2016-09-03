@@ -207,7 +207,10 @@ static int ldp_addRecords(lua_State *L) {
   vector<DNSRecord> rrs;
   popResourceRecordsTable(L, DNSName("BOGUS"), rrs);
   for(const DNSRecord& dr :  rrs) {
-    p->addRecord(DNSResourceRecord(dr));
+    DNSZoneRecord dzr;
+    dzr.dr=dr;
+    dzr.auth=true; // LET'S HOPE THIS IS TRUE XXX
+    p->addRecord(dzr);
   }
   return 0;
 }

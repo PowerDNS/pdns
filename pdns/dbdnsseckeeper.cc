@@ -503,7 +503,7 @@ bool DNSSECKeeper::checkKeys(const DNSName& zone)
 
 bool DNSSECKeeper::getPreRRSIGs(UeberBackend& db, const DNSName& signer, const DNSName& qname,
         const DNSName& wildcardname, const QType& qtype,
-        DNSResourceRecord::Place signPlace, vector<DNSResourceRecord>& rrsigs, uint32_t signTTL)
+        DNSResourceRecord::Place signPlace, vector<DNSZoneRecord>& rrsigs, uint32_t signTTL)
 {
   // cerr<<"Doing DB lookup for precomputed RRSIGs for '"<<(wildcardname.empty() ? qname : wildcardname)<<"'"<<endl;
         SOAData sd;
@@ -512,20 +512,16 @@ bool DNSSECKeeper::getPreRRSIGs(UeberBackend& db, const DNSName& signer, const D
                 return false;
         }
         db.lookup(QType(QType::RRSIG), wildcardname.countLabels() ? wildcardname : qname, NULL, sd.domain_id);
-        DNSResourceRecord rr;
-        while(db.get(rr)) { 
-                // cerr<<"Considering for '"<<qtype.getName()<<"' RRSIG '"<<rr.content<<"'\n";
-                vector<string> parts;
-                stringtok(parts, rr.content);
-                if(parts[0] == qtype.getName() && DNSName(parts[7])==signer) {
-                        // cerr<<"Got it"<<endl;
-                        if (wildcardname.countLabels())
-                                rr.qname = qname;
-                        rr.d_place = signPlace;
-                        rr.ttl = signTTL;
-                        rrsigs.push_back(rr);
-                }
-                // else cerr<<"Skipping!"<<endl;
+        DNSZoneRecord rr;
+        while(db.get(rr)) {
+          auto rrsig = getRR<RRSIGRecordContent>(rr.dr);
+          if(rrsig->d_type == qtype.getCode() && rrsig->d_signer==signer) {
+            if (wildcardname.countLabels())
+              rr.dr.d_name = qname;
+            rr.dr.d_place = signPlace;
+            rr.dr.d_ttl = signTTL;
+            rrsigs.push_back(rr);
+          }
         }
         return true;
 }

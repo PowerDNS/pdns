@@ -71,19 +71,15 @@ void PacketHandler::tkeyHandler(DNSPacket *p, DNSPacket *r) {
   tkey_out->d_keysize = tkey_out->d_key.size();
   tkey_out->d_othersize = tkey_out->d_other.size();
 
-  DNSRecord rec;
-  rec.d_name = name;
-  rec.d_ttl = 0;
-  rec.d_type = QType::TKEY;
-  rec.d_class = QClass::ANY;
-  rec.d_content = tkey_out;
-  rec.d_place = DNSResourceRecord::ANSWER;
+  DNSZoneRecord zrr;
 
-  DNSResourceRecord rr(rec);
-  rr.qclass = QClass::ANY;
-  rr.qtype = QType::TKEY;
-  rr.d_place = DNSResourceRecord::ANSWER;
-  r->addRecord(rr);
+  zrr.dr.d_name = name;
+  zrr.dr.d_ttl = 0;
+  zrr.dr.d_type = QType::TKEY;
+  zrr.dr.d_class = QClass::ANY;
+  zrr.dr.d_content = tkey_out;
+  zrr.dr.d_place = DNSResourceRecord::ANSWER;
+  r->addRecord(zrr);
 
   if (sign)
   {

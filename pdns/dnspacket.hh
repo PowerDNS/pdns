@@ -55,10 +55,9 @@
 #include "pdnsexception.hh"
 #include "dnsrecords.hh"
 
-
-
 class UeberBackend;
 class DNSSECKeeper;
+
 
 //! This class represents DNS packets, either received or to be sent.
 class DNSPacket
@@ -105,10 +104,10 @@ public:
 
   void clearRecords(); //!< when building a packet, wipe all previously added records (clears 'rrs')
 
-  /** Add a DNSResourceRecord to this packet. A DNSPacket (as does a DNS Packet) has 4 kinds of resource records. Questions, 
+  /** Add a DNSZoneRecord to this packet. A DNSPacket (as does a DNS Packet) has 4 kinds of resource records. Questions, 
       Answers, Authority and Additional. See RFC 1034 and 1035 for details. You can specify where a record needs to go in the
-      DNSResourceRecord d_place field */
-  void addRecord(const DNSResourceRecord &);  // adds to 'rrs'
+      DNSZoneRecord d_place field */
+  void addRecord(const DNSZoneRecord &);  // adds to 'rrs'
 
   void setQuestion(int op, const DNSName &qdomain, int qtype);  // wipes 'd', sets a random id, creates start of packet (domain, type, class etc)
 
@@ -118,8 +117,8 @@ public:
   unsigned int getMinTTL(); //!< returns lowest TTL of any record in the packet
   bool isEmpty(); //!< returns true if there are no rrs in the packet
 
-  vector<DNSResourceRecord*> getAPRecords(); //!< get a vector with DNSResourceRecords that need additional processing
-  vector<DNSResourceRecord*> getAnswerRecords(); //!< get a vector with DNSResourceRecords that are answers
+  vector<DNSZoneRecord*> getAPRecords(); //!< get a vector with DNSZoneRecords that need additional processing
+  vector<DNSZoneRecord*> getAnswerRecords(); //!< get a vector with DNSZoneRecords that are answers
   void setCompress(bool compress);
 
   DNSPacket *replyPacket() const; //!< convenience function that creates a virgin answer packet to this question
@@ -164,7 +163,7 @@ public:
   void setTSIGDetails(const TSIGRecordContent& tr, const DNSName& keyname, const string& secret, const string& previous, bool timersonly=false);
   bool getTKEYRecord(TKEYRecordContent* tr, DNSName* keyname) const;
 
-  vector<DNSResourceRecord>& getRRS() { return d_rrs; }
+  vector<DNSZoneRecord>& getRRS() { return d_rrs; }
   static bool s_doEDNSSubnetProcessing;
   static uint16_t s_udpTruncationThreshold; //2
 private:
@@ -177,7 +176,7 @@ private:
   DNSName d_tsigkeyname;
   string d_tsigprevious;
 
-  vector<DNSResourceRecord> d_rrs; // 8
+  vector<DNSZoneRecord> d_rrs; // 8
   string d_rawpacket; // this is where everything lives 8
   string d_ednsping;
   EDNSSubnetOpts d_eso;

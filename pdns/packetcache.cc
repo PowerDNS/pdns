@@ -196,7 +196,7 @@ void PacketCache::insert(const DNSName &qname, const QType& qtype, CacheEntryTyp
     S.inc("deferred-cache-inserts"); 
 }
 
-void PacketCache::insert(const DNSName &qname, const QType& qtype, CacheEntryType cet, const vector<DNSResourceRecord>& value, unsigned int ttl, int zoneID)
+void PacketCache::insert(const DNSName &qname, const QType& qtype, CacheEntryType cet, const vector<DNSZoneRecord>& value, unsigned int ttl, int zoneID)
 {
   cleanupIfNeeded();
 
@@ -290,7 +290,7 @@ int PacketCache::purge(const string &match)
   }
 }
 // called from ueberbackend
-bool PacketCache::getEntry(const DNSName &qname, const QType& qtype, CacheEntryType cet, vector<DNSResourceRecord>& value, int zoneID)
+bool PacketCache::getEntry(const DNSName &qname, const QType& qtype, CacheEntryType cet, vector<DNSZoneRecord>& value, int zoneID)
 {
   if(d_ttl<0) 
     getTTLS();
@@ -327,7 +327,7 @@ bool PacketCache::getEntryLocked(const DNSName &qname, const QType& qtype, Cache
   return ret;
 }
 			   
-bool PacketCache::getEntryLocked(const DNSName &qname, const QType& qtype, CacheEntryType cet, vector<DNSResourceRecord>& value, int zoneID)
+bool PacketCache::getEntryLocked(const DNSName &qname, const QType& qtype, CacheEntryType cet, vector<DNSZoneRecord>& value, int zoneID)
 {
   uint16_t qt = qtype.getCode();
   //cerr<<"Lookup for maxReplyLen: "<<maxReplyLen<<endl;

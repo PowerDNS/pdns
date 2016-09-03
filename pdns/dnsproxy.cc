@@ -249,15 +249,14 @@ void DNSProxy::mainloop(void)
 	    //	    cerr<<"comp: "<<(int)j->first.d_place-1<<" "<<j->first.d_label<<" " << DNSRecordContent::NumberToType(j->first.d_type)<<" "<<j->first.d_content->getZoneRepresentation()<<endl;
 	    if(j->first.d_place == DNSResourceRecord::ANSWER || (j->first.d_place == DNSResourceRecord::AUTHORITY && j->first.d_type == QType::SOA)) {
 	    
-	      DNSResourceRecord rr;
-
 	      if(j->first.d_type == i->second.qtype || (i->second.qtype == QType::ANY && (j->first.d_type == QType::A || j->first.d_type == QType::AAAA))) {
-		rr.qname=i->second.aname;
-		rr.qtype = j->first.d_type;
-		rr.ttl=j->first.d_ttl;
-		rr.d_place= j->first.d_place;
-		rr.content=j->first.d_content->getZoneRepresentation();
-		i->second.complete->addRecord(rr);
+                DNSZoneRecord dzr;
+		dzr.dr.d_name=i->second.aname;
+		dzr.dr.d_type = j->first.d_type;
+		dzr.dr.d_ttl=j->first.d_ttl;
+		dzr.dr.d_place= j->first.d_place;
+		dzr.dr.d_content=j->first.d_content;
+		i->second.complete->addRecord(dzr);
 	      }
 	    }
 	  }

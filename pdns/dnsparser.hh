@@ -315,20 +315,29 @@ struct DNSRecord
 
   bool operator==(const DNSRecord& rhs) const
   {
+    if(d_type != rhs.d_type || d_class != rhs.d_class || d_name != rhs.d_name)
+      return false;
+    
     string lzrp, rzrp;
     if(d_content)
       lzrp=toLower(d_content->getZoneRepresentation());
     if(rhs.d_content)
       rzrp=toLower(rhs.d_content->getZoneRepresentation());
-    
-    string llabel=toLower(d_name.toString()); 
-    string rlabel=toLower(rhs.d_name.toString()); 
-    
-    return 
-      tie(llabel,     d_type,     d_class, lzrp) ==
-      tie(rlabel, rhs.d_type, rhs.d_class, rzrp);
+
+    return lzrp == rzrp;
   }
 };
+
+struct DNSZoneRecord
+{
+  int domain_id;
+  uint8_t scopeMask;
+  int signttl;
+  DNSName wildcardname;
+  bool auth;
+  DNSRecord dr;
+};
+
 
 //! This class can be used to parse incoming packets, and is copyable
 class MOADNSParser : public boost::noncopyable

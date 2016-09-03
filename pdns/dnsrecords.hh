@@ -161,7 +161,6 @@ class TXTRecordContent : public DNSRecordContent
 public:
   includeboilerplate(TXT)
 
-private:
   string d_text;
 };
 
@@ -198,6 +197,7 @@ class CNAMERecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(CNAME)
+  CNAMERecordContent(const DNSName& content) : d_content(content){}
   DNSName getTarget() const { return d_content; }
 private:
   DNSName d_content;
@@ -208,7 +208,6 @@ class ALIASRecordContent : public DNSRecordContent
 public:
   includeboilerplate(ALIAS)
 
-private:
   DNSName d_content;
 };
 
@@ -217,8 +216,6 @@ class DNAMERecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(DNAME)
-
-private:
   DNSName d_content;
 };
 

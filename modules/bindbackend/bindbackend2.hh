@@ -194,6 +194,7 @@ public:
   void lookup(const QType &, const DNSName &qdomain, DNSPacket *p=0, int zoneId=-1);
   bool list(const DNSName &target, int id, bool include_disabled=false);
   bool get(DNSResourceRecord &);
+  bool get(DNSZoneRecord &) override;
   void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false);
 
   static DNSBackend *maker();

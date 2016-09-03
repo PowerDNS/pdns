@@ -30,19 +30,19 @@
 void writeLStringToSocket(int fd, const string& msg);
 bool readLStringFromSocket(int fd, string& msg);
 
-/** input: DNSResourceRecords ordered in qname,qtype (we emit a signature chunk on a break)
- *  output: "chunks" of those very same DNSResourceRecords, interleaved with signatures
+/** input: DNSZoneRecords ordered in qname,qtype (we emit a signature chunk on a break)
+ *  output: "chunks" of those very same DNSZoneRecords, interleaved with signatures
  */
 
 class ChunkedSigningPipe
 {
 public:
-  typedef vector<DNSResourceRecord> rrset_t; 
+  typedef vector<DNSZoneRecord> rrset_t; 
   typedef rrset_t chunk_t; // for now
   
   ChunkedSigningPipe(const DNSName& signerName, bool mustSign, /* FIXME servers is unused? */ const string& servers=string(), unsigned int numWorkers=3);
   ~ChunkedSigningPipe();
-  bool submit(const DNSResourceRecord& rr);
+  bool submit(const DNSZoneRecord& rr);
   chunk_t getChunk(bool final=false);
 
   std::atomic<unsigned long> d_signed;
@@ -64,7 +64,7 @@ private:
   int d_submitted;
 
   rrset_t* d_rrsetToSign;
-  std::deque< std::vector<DNSResourceRecord> > d_chunks;
+  std::deque< std::vector<DNSZoneRecord> > d_chunks;
   DNSName d_signer;
   
   chunk_t::size_type d_maxchunkrecords;

@@ -688,45 +688,6 @@ string stripDot(const string& dom)
 }
 
 
-string labelReverse(const std::string& qname)
-{
-  if(qname.empty())
-    return qname;
-
-  bool dotName = qname.find('.') != string::npos;
-
-  vector<string> labels;
-  stringtok(labels, qname, ". ");
-  if(labels.size()==1)
-    return qname;
-
-  string ret;  // vv const_reverse_iter http://gcc.gnu.org/bugzilla/show_bug.cgi?id=11729
-  for(vector<string>::reverse_iterator iter = labels.rbegin(); iter != labels.rend(); ++iter) {
-    if(iter != labels.rbegin())
-      ret.append(1, dotName ? ' ' : '.');
-    ret+=*iter;
-  }
-  return ret;
-}
-
-// do NOT feed trailing dots!
-// www.powerdns.com, powerdns.com -> www
-string makeRelative(const std::string& fqdn, const std::string& zone)
-{
-  if(zone.empty())
-    return fqdn;
-  if(toLower(fqdn) != toLower(zone))
-    return fqdn.substr(0, fqdn.size() - zone.length() - 1); // strip domain name
-  return "";
-}
-
-string dotConcat(const std::string& a, const std::string &b)
-{
-  if(a.empty() || b.empty())
-    return a+b;
-  else
-    return a+"."+b;
-}
 
 int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret)
 {

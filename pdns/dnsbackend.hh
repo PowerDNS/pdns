@@ -113,6 +113,7 @@ public:
   //! lookup() initiates a lookup. A lookup without results should not throw!
   virtual void lookup(const QType &qtype, const DNSName &qdomain, DNSPacket *pkt_p=0, int zoneId=-1)=0; 
   virtual bool get(DNSResourceRecord &)=0; //!< retrieves one DNSResource record, returns false if no more were available
+  virtual bool get(DNSZoneRecord &r);
 
   //! Initiates a list of the specified domain
   /** Once initiated, DNSResourceRecord objects can be retrieved using get(). Should return false
@@ -430,6 +431,9 @@ public:
 
 /** helper function for both DNSPacket and addSOARecord() - converts a line into a struct, for easier parsing */
 void fillSOAData(const string &content, SOAData &data);
-
+// same but more karmic
+void fillSOAData(const DNSZoneRecord& in, SOAData& data);
+// the reverse
+std::shared_ptr<DNSRecordContent> makeSOAContent(const SOAData& sd);
 
 #endif

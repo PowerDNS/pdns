@@ -91,12 +91,12 @@ private:
 
   void makeNXDomain(DNSPacket* p, DNSPacket* r, const DNSName& target, const DNSName& wildcard, SOAData& sd);
   void makeNOError(DNSPacket* p, DNSPacket* r, const DNSName& target, const DNSName& wildcard, SOAData& sd, int mode);
-  vector<DNSResourceRecord> getBestReferralNS(DNSPacket *p, SOAData& sd, const DNSName &target);
-  vector<DNSResourceRecord> getBestDNAMESynth(DNSPacket *p, SOAData& sd, DNSName &target);
+  vector<DNSZoneRecord> getBestReferralNS(DNSPacket *p, SOAData& sd, const DNSName &target);
+  vector<DNSZoneRecord> getBestDNAMESynth(DNSPacket *p, SOAData& sd, DNSName &target);
   bool tryDNAME(DNSPacket *p, DNSPacket*r, SOAData& sd, DNSName &target);
   bool tryReferral(DNSPacket *p, DNSPacket*r, SOAData& sd, const DNSName &target, bool retargeted);
 
-  bool getBestWildcard(DNSPacket *p, SOAData& sd, const DNSName &target, DNSName &wildcard, vector<DNSResourceRecord>* ret);
+  bool getBestWildcard(DNSPacket *p, SOAData& sd, const DNSName &target, DNSName &wildcard, vector<DNSZoneRecord>* ret);
   bool tryWildcard(DNSPacket *p, DNSPacket*r, SOAData& sd, DNSName &target, DNSName &wildcard, bool& retargeted, bool& nodata);
   bool addDSforNS(DNSPacket* p, DNSPacket* r, SOAData& sd, const DNSName& dsname);
   void completeANYRecords(DNSPacket *p, DNSPacket*r, SOAData& sd, const DNSName &target);
@@ -116,4 +116,5 @@ private:
   DNSSECKeeper d_dk; // B is shared with DNSSECKeeper
 };
 bool getNSEC3Hashes(bool narrow, DNSBackend* db, int id, const std::string& hashed, bool decrement, DNSName& unhashed, string& before, string& after, int mode=0);
+std::shared_ptr<DNSRecordContent> makeSOAContent(const SOAData& sd);
 #endif /* PACKETHANDLER */

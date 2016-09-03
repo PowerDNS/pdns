@@ -993,7 +993,7 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
     nsec3zone=getNSEC3PARAM(auth, &ns3pr);
 
   if(!nsec3zone) {
-    DNSName dqname = DNSName(labelReverse(qname));
+    DNSName dqname = DNSName(qname).labelReverse();
     //cerr<<"in bind2backend::getBeforeAndAfterAbsolute: no nsec3 for "<<auth<<endl;
     return findBeforeAndAfterUnhashed(bbd, dqname, unhashed, before, after);
   }
