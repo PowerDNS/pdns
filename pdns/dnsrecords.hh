@@ -179,7 +179,7 @@ class NSRecordContent : public DNSRecordContent
 public:
   includeboilerplate(NS)
   explicit NSRecordContent(const DNSName& content) : d_content(content){}
-  DNSName getNS() const { return d_content; } 
+  const DNSName& getNS() const { return d_content; } 
 private:
   DNSName d_content;
 };

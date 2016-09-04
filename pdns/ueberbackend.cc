@@ -551,16 +551,19 @@ void UeberBackend::lookup(const QType &qtype,const DNSName &qname, DNSPacket *pk
     d_question.zoneId=zoneId;
     int cstat=cacheHas(d_question, d_answers);
     if(cstat<0) { // nothing
+      //      cout<<"UeberBackend::lookup("<<qname<<"|"<<DNSRecordContent::NumberToType(qtype.getCode())<<"): uncached"<<endl;
       d_negcached=d_cached=false;
       d_answers.clear(); 
       (d_handle.d_hinterBackend=backends[d_handle.i++])->lookup(qtype, qname,pkt_p,zoneId);
     } 
     else if(cstat==0) {
+      //      cout<<"UeberBackend::lookup("<<qname<<"|"<<DNSRecordContent::NumberToType(qtype.getCode())<<"): NEGcached"<<endl;
       d_negcached=true;
       d_cached=false;
       d_answers.clear();
     }
     else {
+      // cout<<"UeberBackend::lookup("<<qname<<"|"<<DNSRecordContent::NumberToType(qtype.getCode())<<"): CACHED"<<endl;
       d_negcached=false;
       d_cached=true;
       d_cachehandleiter = d_answers.begin();
@@ -579,6 +582,7 @@ void UeberBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disab
 
 bool UeberBackend::get(DNSResourceRecord &rr)
 {
+  // cout<<"UeberBackend::get(DNSResourceRecord&) called, translating to a DNSZoneRecord query"<<endl;
   DNSZoneRecord dzr;
   if(!this->get(dzr))
     return false;
@@ -591,6 +595,7 @@ bool UeberBackend::get(DNSResourceRecord &rr)
 
 bool UeberBackend::get(DNSZoneRecord &rr)
 {
+  // cout<<"UeberBackend::get(DNSZoneRecord) called"<<endl;
   if(d_negcached) {
     return false; 
   }
@@ -603,10 +608,15 @@ bool UeberBackend::get(DNSZoneRecord &rr)
     return false;
   }
   if(!d_handle.get(rr)) {
-    if(!d_ancount && d_handle.qname.countLabels()) // don't cache axfr
+    // cout<<"end of ueberbackend get, seeing if we should cache"<<endl;
+    if(!d_ancount && d_handle.qname.countLabels()) {// don't cache axfr
+      // cout<<"adding negache"<<endl;
       addNegCache(d_question);
-
-    addCache(d_question, d_answers);
+    }
+    else {
+      // cout<<"adding query cache"<<endl;
+      addCache(d_question, d_answers);
+    }
     d_answers.clear();
     return false;
   }

@@ -265,6 +265,7 @@ bool DNSBackend::getSOA(const DNSName &domain, SOAData &sd, DNSPacket *p)
 
 bool DNSBackend::get(DNSZoneRecord& dzr)
 {
+  //  cout<<"DNSBackend::get(DNSZoneRecord&) called - translating into DNSResourceRecord query"<<endl;
   DNSResourceRecord rr;
   if(!this->get(rr))
     return false;

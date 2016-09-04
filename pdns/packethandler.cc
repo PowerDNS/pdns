@@ -388,19 +388,15 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r, c
   sd.db=0;
 
   if(p->qtype.getCode()!=QType::AXFR) { // this packet needs additional processing
-    vector<DNSZoneRecord *> arrs=r->getAPRecords();
-    if(arrs.empty()) 
-      return 1;
-
-    DLOG(L<<Logger::Warning<<"This packet needs additional processing!"<<endl);
-
-    vector<DNSZoneRecord> crrs;
-
-    for(vector<DNSZoneRecord *>::const_iterator i=arrs.begin(); i!=arrs.end(); ++i) 
-      crrs.push_back(**i);
-
     // we now have a copy, push_back on packet might reallocate!
-    for(auto i=crrs.cbegin(); i!=crrs.cend(); ++i) {
+    auto& records = r->getRRS();
+    vector<DNSZoneRecord> toAdd;
+
+    for(auto i = records.cbegin() ; i!= records.cend(); ++i) {
+      if(i->dr.d_place==DNSResourceRecord::ADDITIONAL ||
+         !(i->dr.d_type==QType::MX || i->dr.d_type==QType::NS || i->dr.d_type==QType::SRV))
+        continue;
+
       if(r->d.aa && i->dr.d_name.countLabels() && i->dr.d_type==QType::NS && !B.getSOA(i->dr.d_name,sd,p) && !retargeted) { // drop AA in case of non-SOA-level NS answer, except for root referral
         r->setA(false);
         //        i->d_place=DNSResourceRecord::AUTHORITY; // XXX FIXME
@@ -412,7 +408,10 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r, c
         lookup = getRR<MXRecordContent>(i->dr)->d_mxname;
       else if(i->dr.d_type == QType::SRV)
         lookup = getRR<SRVRecordContent>(i->dr)->d_target;
-
+      else if(i->dr.d_type == QType::NS) 
+        lookup = getRR<NSRecordContent>(i->dr)->getNS();
+      else
+        continue;
       B.lookup(QType(d_doIPv6AdditionalProcessing ? QType::ANY : QType::A), lookup, p);
 
       while(B.get(rr)) {
@@ -426,9 +425,11 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r, c
         if(rr.auth && !rr.dr.d_name.isPartOf(soadata.qname)) // don't sign out of zone data using the main key 
           rr.auth=false;
         rr.dr.d_place=DNSResourceRecord::ADDITIONAL;
-        r->addRecord(rr);
+        toAdd.push_back(rr);
       }
     }
+    //    records.reserve(records.size()+toAdd.size());
+    records.insert(records.end(), toAdd.cbegin(), toAdd.cend());
   }
   return 1;
 }
