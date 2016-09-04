@@ -34,6 +34,7 @@
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
 #include <boost/multi_index_container.hpp>
+#include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/identity.hpp>
 #include <boost/multi_index/member.hpp>
@@ -86,13 +87,15 @@ struct Bind2DNSCompare : std::less<Bind2DNSRecord>
     {return a.qname.canonCompare(b.qname);}
 };
 
-struct HashedTag{};
+struct NSEC3Tag{};
+struct UnorderedNameTag{};
 
 typedef multi_index_container<
   Bind2DNSRecord,
   indexed_by  <
                 ordered_non_unique<identity<Bind2DNSRecord>, Bind2DNSCompare >,
-                ordered_non_unique<tag<HashedTag>, member<Bind2DNSRecord, std::string, &Bind2DNSRecord::nsec3hash> >
+                hashed_non_unique<tag<UnorderedNameTag>, member<Bind2DNSRecord, DNSName, &Bind2DNSRecord::qname> >,
+                ordered_non_unique<tag<NSEC3Tag>, member<Bind2DNSRecord, std::string, &Bind2DNSRecord::nsec3hash> >
               >
 > recordstorage_t;
 
@@ -194,7 +197,7 @@ public:
   void lookup(const QType &, const DNSName &qdomain, DNSPacket *p=0, int zoneId=-1);
   bool list(const DNSName &target, int id, bool include_disabled=false);
   bool get(DNSResourceRecord &);
-  bool get(DNSZoneRecord &) override;
+  //  bool get(DNSZoneRecord &) override;
   void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false);
 
   static DNSBackend *maker();
@@ -264,9 +267,10 @@ private:
     handle();
 
     shared_ptr<const recordstorage_t > d_records;
-    recordstorage_t::const_iterator d_iter, d_end_iter;
-    recordstorage_t::const_iterator d_qname_iter;
-    recordstorage_t::const_iterator d_qname_end;
+    recordstorage_t::index<UnorderedNameTag>::type::const_iterator d_iter, d_end_iter;
+
+    recordstorage_t::const_iterator d_qname_iter, d_qname_end;
+
     DNSName qname;
     DNSName domain;
 
