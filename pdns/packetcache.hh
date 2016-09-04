@@ -32,6 +32,7 @@
 using namespace ::boost::multi_index;
 
 #include "namespaces.hh"
+#include <boost/multi_index/hashed_index.hpp> 
 #include "dnspacket.hh"
 #include "lock.hh"
 #include "statbag.hh"
@@ -111,6 +112,7 @@ private:
 
   void getTTLS();
 
+  struct UnorderedNameTag{};
   typedef multi_index_container<
     CacheEntry,
     indexed_by <
@@ -128,8 +130,13 @@ private:
                         >,
 		       composite_key_compare<CanonDNSNameCompare, std::less<uint16_t>, std::less<uint16_t>, std::less<int>, std::less<bool>, 
                           std::less<unsigned int>, std::less<bool>, std::less<bool> >
-                            >,
-                           sequenced<>
+                       >,
+      hashed_non_unique<tag<UnorderedNameTag>, composite_key<CacheEntry,
+                                                             member<CacheEntry,DNSName,&CacheEntry::qname>,
+                                                             member<CacheEntry,uint16_t,&CacheEntry::qtype>,
+                                                             member<CacheEntry,uint16_t, &CacheEntry::ctype>,
+                                                             member<CacheEntry,int, &CacheEntry::zoneID> > > ,
+      sequenced<>
                            >
   > cmap_t;
 

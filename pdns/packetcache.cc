@@ -315,16 +315,26 @@ bool PacketCache::getEntryLocked(const DNSName &qname, const QType& qtype, Cache
   uint16_t qt = qtype.getCode();
   //cerr<<"Lookup for maxReplyLen: "<<maxReplyLen<<endl;
   auto& mc=getMap(qname);
-  cmap_t::const_iterator i=mc.d_map.find(tie(qname, qt, cet, zoneID, meritsRecursion, maxReplyLen, dnssecOK, hasEDNS, *age));
+  //  cmap_t::const_iterator i=mc.d_map.find(tie(qname, qt, cet, zoneID, meritsRecursion, maxReplyLen, dnssecOK, hasEDNS, *age));
+
+  auto& idx = boost::multi_index::get<UnorderedNameTag>(mc.d_map);
+  auto range=idx.equal_range(tie(qname, qt, cet, zoneID));
+
+  if(range.first == range.second)
+    return false;
   time_t now=time(0);
-  bool ret=(i!=mc.d_map.end() && i->ttd > now);
-  if(ret) {
-    if (age)
-      *age = now - i->created;
-    value = i->value;
+  for(auto iter = range.first ; iter != range.second; ++iter) {
+    if(meritsRecursion == iter->meritsRecursion && maxReplyLen == iter->maxReplyLen && dnssecOK == iter->dnssecOk && hasEDNS == iter->hasEDNS ) {
+      if(iter->ttd > now) {
+        if (age)
+          *age = now - iter->created;
+        value = iter->value;
+        return true;
+      }
+    }
   }
   
-  return ret;
+  return false;
 }
 			   
 bool PacketCache::getEntryLocked(const DNSName &qname, const QType& qtype, CacheEntryType cet, vector<DNSZoneRecord>& value, int zoneID)
@@ -332,13 +342,17 @@ bool PacketCache::getEntryLocked(const DNSName &qname, const QType& qtype, Cache
   uint16_t qt = qtype.getCode();
   //cerr<<"Lookup for maxReplyLen: "<<maxReplyLen<<endl;
   auto& mc=getMap(qname);
-  cmap_t::const_iterator i=mc.d_map.find(tie(qname, qt, cet, zoneID));
+  auto& idx = boost::multi_index::get<UnorderedNameTag>(mc.d_map);
+  auto i=idx.find(tie(qname, qt, cet, zoneID));
+  if(i==idx.end())
+    return false;
+
   time_t now=time(0);
-  bool ret=(i!=mc.d_map.end() && i->ttd > now);
-  if(ret) {
+  if(i->ttd > now) {
     value = i->drs;
+    return true;
   }
-  return ret;
+  return false;
 }
 
 
