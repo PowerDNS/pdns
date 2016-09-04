@@ -109,13 +109,9 @@ BOOST_AUTO_TEST_CASE(test_stripDot) {
 }
 
 BOOST_AUTO_TEST_CASE(test_labelReverse) {
-    BOOST_CHECK_EQUAL(labelReverse("www.powerdns.com"), "com powerdns www");
+  BOOST_CHECK_EQUAL(DNSName("www.powerdns.com").labelReverse().toString(" ", false), "com powerdns www");
 }
 
-BOOST_AUTO_TEST_CASE(test_makeRelative) {
-    BOOST_CHECK_EQUAL(makeRelative("www.powerdns.com", "powerdns.com"), "www");
-    BOOST_CHECK_EQUAL(makeRelative("PoWeRdNs.CoM", "powerdns.com"), "");
-}
 
 BOOST_AUTO_TEST_CASE(test_AtomicCounter) {
     AtomicCounter ac(0);

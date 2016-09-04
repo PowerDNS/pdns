@@ -59,7 +59,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
     BOOST_CHECK_EQUAL(PC.size(), counter-delcounter);
     
     int matches=0;
-    vector<DNSResourceRecord> entry;
+    vector<DNSZoneRecord> entry;
     int expected=counter-delcounter;
     for(; delcounter < counter; ++delcounter) {
       if(PC.getEntry(DNSName("hello ")+DNSName(std::to_string(delcounter)), QType(QType::A), PacketCache::QUERYCACHE, entry, 1)) {
@@ -97,7 +97,7 @@ static void *threadReader(void* a)
 try
 {
   unsigned int offset=(unsigned int)(unsigned long)a;
-  vector<DNSResourceRecord> entry;
+  vector<DNSZoneRecord> entry;
   for(unsigned int counter=0; counter < 100000; ++counter)
     if(!g_PC->getEntry(DNSName("hello ")+DNSName(std::to_string(counter+offset)), QType(QType::A), PacketCache::QUERYCACHE, entry, 1)) {
 	g_missing++;
