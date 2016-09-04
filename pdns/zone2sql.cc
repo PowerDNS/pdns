@@ -202,7 +202,7 @@ static void emitRecord(const DNSName& zoneName, const DNSName &DNSqname, const s
   else if(g_mode==POSTGRES) {
     cout<<"insert into records (domain_id, name, ordername, auth, type,content,ttl,prio,disabled) select id ,"<<
       sqlstr(toLower(qname))<<", "<<
-      sqlstr(DNSName(qname).makeRelative(DNSName(zname)).toLower().labelReverse().toStringNoDot()<<", '"<< (auth  ? 't' : 'f') <<"', "<<
+      sqlstr(DNSName(qname).makeRelative(DNSName(zname)).makeLowerCase().labelReverse().toStringNoDot())<<", '"<< (auth  ? 't' : 'f') <<"', "<<
       sqlstr(qtype)<<", "<<
       sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", '"<<(disabled ? 't': 'f') <<
       "' from domains where name="<<toLower(sqlstr(zname))<<";\n";
