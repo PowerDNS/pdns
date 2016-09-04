@@ -330,11 +330,11 @@ struct DNSRecord
 
 struct DNSZoneRecord
 {
-  int domain_id;
-  uint8_t scopeMask;
-  int signttl;
+  int domain_id{-1};
+  uint8_t scopeMask{0};
+  int signttl{0};
   DNSName wildcardname;
-  bool auth;
+  bool auth{true};
   DNSRecord dr;
 };
 
