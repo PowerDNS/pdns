@@ -373,14 +373,24 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   d_lw->registerMember("udpCallback", &DNSQuestion::udpCallback);
   d_lw->registerMember("wantsRPZ", &DNSQuestion::wantsRPZ);
   d_lw->registerMember("appliedPolicy", &DNSQuestion::appliedPolicy);
-  d_lw->registerMember("policyName", &DNSFilterEngine::Policy::d_name);
+  d_lw->registerMember<DNSFilterEngine::Policy, std::string>("policyName",
+    [](const DNSFilterEngine::Policy& pol) -> std::string {
+      if(pol.d_name)
+        return *pol.d_name;
+      return std::string();
+    },
+    [](DNSFilterEngine::Policy& pol, const std::string& name) {
+      pol.d_name = std::make_shared<std::string>(name);
+    });
   d_lw->registerMember("policyKind", &DNSFilterEngine::Policy::d_kind);
   d_lw->registerMember("policyTTL", &DNSFilterEngine::Policy::d_ttl);
-  d_lw->registerMember<DNSFilterEngine::Policy, string>("policyCustom",
-    [](const DNSFilterEngine::Policy& pol) -> string {
-      return pol.d_custom->getZoneRepresentation();
+  d_lw->registerMember<DNSFilterEngine::Policy, std::string>("policyCustom",
+    [](const DNSFilterEngine::Policy& pol) -> std::string {
+      if(pol.d_custom)
+        return pol.d_custom->getZoneRepresentation();
+      return std::string();
     },
-    [](DNSFilterEngine::Policy& pol, string content) {
+    [](DNSFilterEngine::Policy& pol, const std::string& content) {
       // Only CNAMES for now, when we ever add a d_custom_type, there will be pain
       pol.d_custom = shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(QType::CNAME, 1, content));
     }
