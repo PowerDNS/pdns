@@ -1,5 +1,30 @@
 **Note**: Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
 
+# PowerDNS Recursor 4.0.3
+Released September 6th 2016
+
+The 4.0.3 version of the PowerDNS Recursor features many improvements to the Policy Engine (RPZ) and the Lua bindings to it. We would like to thank Wim ([42wim](https://github.com/42wim)) for testing and reporting on the RPZ module.
+
+## Bug fixes
+
+- [#4350](https://github.com/PowerDNS/pdns/pull/4350): Call `gettag()` for TCP queries
+- [#4376](https://github.com/PowerDNS/pdns/pull/4376): Fix the use of an uninitialized filtering policy
+- [#4381](https://github.com/PowerDNS/pdns/pull/4381): Parse query-local-address before lua-config-file
+- [#4383](https://github.com/PowerDNS/pdns/pull/4383): Fix accessing an empty policyCustom, policyName from Lua
+- [#4387](https://github.com/PowerDNS/pdns/pull/4387): ComboAddress: don't allow invalid ports
+- [#4388](https://github.com/PowerDNS/pdns/pull/4388): Fix RPZ default policy not being applied over IXFR
+- [#4391](https://github.com/PowerDNS/pdns/pull/4391): DNSSEC: Actually follow RFC 7646 §2.1
+- [#4396](https://github.com/PowerDNS/pdns/pull/4396): Add boost context ldflags so freebsd builds can find the libs
+- [#4402](https://github.com/PowerDNS/pdns/pull/4402): Ignore NS records in a RPZ zone received over IXFR
+- [#4403](https://github.com/PowerDNS/pdns/pull/4403): Fix build with OpenSSL 1.1.0 final
+- [#4404](https://github.com/PowerDNS/pdns/pull/4404): Don't validate when a Lua hook took the query
+- [#4425](https://github.com/PowerDNS/pdns/pull/4425): Fix a protobuf regression (requestor/responder mix-up)
+
+## Additions and Enhancements
+
+- [#4394](https://github.com/PowerDNS/pdns/pull/4394): Support Boost 1.61+ fcontext
+- [#4402](https://github.com/PowerDNS/pdns/pull/4402): Add Lua binding for DNSRecord::d_place
+
 # PowerDNS Recursor 4.0.2
 Released August 26th 2016
 
