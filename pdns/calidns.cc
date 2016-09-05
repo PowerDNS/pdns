@@ -39,7 +39,7 @@ using std::unique_ptr;
 
 StatBag S;
 
-std::atomic<unsigned int> g_recvcounter;
+std::atomic<unsigned int> g_recvcounter, g_recvbytes;
 volatile bool g_done;
 
 void* recvThread(const vector<Socket*>* sockets)
@@ -79,7 +79,9 @@ void* recvThread(const vector<Socket*>* sockets)
 	  unixDie("recvmmsg");
 	  continue;
 	}
-	g_recvcounter+=err;	
+	g_recvcounter+=err;
+	for(int n=0; n < err; ++n)
+	  g_recvbytes += buf[n].msg_len;
       }
     }
   }
@@ -215,8 +217,12 @@ try
     boost::trim(line);
     auto p = splitField(line, ' ');
     DNSPacketWriter pw(packet, DNSName(p.first), DNSRecordContent::TypeToNumber(p.second));
-    pw.getHeader()->rd=1;
+    pw.getHeader()->rd=0;
     pw.getHeader()->id=random();
+    if(pw.getHeader()->id % 2) {
+        pw.addOpt(1500, 0, EDNSOpts::DNSSECOK);
+        pw.commit();
+    }
     unknown.emplace_back(std::make_shared<vector<uint8_t>>(packet));
   }
   random_shuffle(unknown.begin(), unknown.end());
@@ -255,6 +261,7 @@ try
     }
     random_shuffle(toSend.begin(), toSend.end());
     g_recvcounter.store(0);
+    g_recvbytes=0;
     DTime dt;
     dt.set();
 
@@ -267,7 +274,8 @@ try
     usleep(50000);
     double perc=g_recvcounter.load()*100.0/toSend.size();
     cout<<"Received "<<g_recvcounter.load()<<" packets ("<<perc<<"%)"<<endl;
-    plot<<qps<<" "<<realqps<<" "<<perc<<" "<<g_recvcounter.load()/(udiff/1000000.0)<<endl;
+    plot<<qps<<" "<<realqps<<" "<<perc<<" "<<g_recvcounter.load()/(udiff/1000000.0)<<" " << 8*g_recvbytes.load()/(udiff/1000000.0)<<endl;
+    plot.flush();
   }
   plot.flush();
   // t1.detach();
