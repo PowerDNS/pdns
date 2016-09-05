@@ -347,6 +347,8 @@ void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, boost::opti
         luaconfsCopy.dfe.clear(polZone);
       }
       for(const auto& rr : remove) { // should always contain the SOA
+        if(rr.d_type == QType::NS)
+          continue;
 	totremove++;
 	if(rr.d_type == QType::SOA) {
 	  auto oldsr = getRR<SOARecordContent>(rr);
@@ -363,6 +365,8 @@ void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, boost::opti
       }
 
       for(const auto& rr : add) { // should always contain the new SOA
+        if(rr.d_type == QType::NS)
+          continue;
 	totadd++;
 	if(rr.d_type == QType::SOA) {
 	  auto newsr = getRR<SOARecordContent>(rr);
