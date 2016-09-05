@@ -164,6 +164,12 @@ public:
   string d_text;
 };
 
+class ENTRecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(ENT)
+};
+
 class SPFRecordContent : public DNSRecordContent
 {
 public:
