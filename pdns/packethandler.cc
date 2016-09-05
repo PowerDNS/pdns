@@ -428,8 +428,10 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r, c
         toAdd.push_back(rr);
       }
     }
-    //    records.reserve(records.size()+toAdd.size());
-    records.insert(records.end(), toAdd.cbegin(), toAdd.cend());
+    for(const auto& rec : toAdd)
+      r->addRecord(rec);
+    
+    //records.insert(records.end(), toAdd.cbegin(), toAdd.cend()); // would be faster, but no dedup
   }
   return 1;
 }
