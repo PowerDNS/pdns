@@ -179,9 +179,9 @@ void DNSPacket::addRecord(const DNSZoneRecord &rr)
   // this removes duplicates from the packet in case we are not compressing
   // for AXFR, no such checking is performed!
   // cerr<<"addrecord, content=["<<rr.content<<"]"<<endl;
-  if(0 && d_compress) {
+  if(d_compress) {
     for(auto i=d_rrs.begin();i!=d_rrs.end();++i) {
-      if(rr.dr == i->dr)
+      if(rr.dr == i->dr)  // XXX SUPER SLOW
           return;
     }
   }
