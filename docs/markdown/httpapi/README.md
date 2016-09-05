@@ -4,8 +4,9 @@ PowerDNS API
 PowerDNS features a built-in API. For the Authoritative Server, starting with
 version 3.4, for the Recursor starting with version 3.6.
 
-The released versions use the standard webserver password for authentication,
-while newer versions use a static API key mechanism (shown below).
+In 3.x, all of the API was considered experimental and authentication
+initially used the standard webserver password. On 4.x, a static API key
+is used (see below).
 
 Try it
 ------
@@ -17,7 +18,6 @@ Then configure as follows:
 
     api=yes
     api-key=changeme
-    webserver=yes
 
 
 After restarting `pdns_server`, the following examples should start working:
