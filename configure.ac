@@ -136,6 +136,13 @@ PDNS_ENABLE_VERBOSE_LOGGING
 PDNS_ENABLE_PKCS11
 PDNS_ENABLE_GSS_TSIG
 
+AC_SUBST([socketdir])
+socketdir="/var/run"
+AC_ARG_WITH([socketdir],
+  [AS_HELP_STRING([--with-socketdir], [where the controlsocket lives @<:@default=/var/run@:>@])],
+  [socketdir="$withval"]
+)
+
 modules="bind gmysql random"
 AC_ARG_WITH([modules],
   [AS_HELP_STRING([--with-modules], [which backends to compile with @<:@default=bind gmysql random@:>@])],
@@ -148,43 +155,13 @@ AC_ARG_WITH([dynmodules],
   [dynmodules="$withval"]
 )
 
-AC_SUBST([socketdir])
-socketdir="/var/run"
-AC_ARG_WITH([socketdir],
-  [AS_HELP_STRING([--with-socketdir], [where the controlsocket lives @<:@default=/var/run@:>@])],
-  [socketdir="$withval"]
-)
-
 AC_SUBST([moduledirs])
 AC_SUBST([moduleobjects])
 AC_SUBST([modulelibs])
 AC_DEFINE_UNQUOTED([PDNS_MODULES], "$modules", [Built-in modules])
 
-AC_MSG_CHECKING([whether we will be building the server])
-AC_ARG_ENABLE([pdns-server],
-  [AS_HELP_STRING([--enable-pdns_server], [if we should build the server @<:@default=yes@:>@])],
-  [enable_pdns_server=$enableval],
-  [enable_pdns_server=yes]
-)
-AC_MSG_RESULT([$enable_pdns_server])
-AM_CONDITIONAL([WITH_PDNS_SERVER], [test "x$enable_pdns_server" != "xno"])
-
-AC_ARG_ENABLE([gcc-skip-locking],
-  [AS_HELP_STRING([--enable-gcc-skip-locking], [if we should forcefully skip gcc locking @<:@default=no@:>@])],
-  [AC_DEFINE(GCC_SKIP_LOCKING,[], [Skip gcc locking])],
-)
-
-AC_MSG_CHECKING([whether we will be building and installing the extra tools])
-AC_ARG_ENABLE([tools],
-  [AS_HELP_STRING([--enable-tools], [if we should build and install the tools @<:@default=no@:>@])],
-  [enable_tools=$enableval],
-  [enable_tools=no]
-)
-
-AC_MSG_RESULT([$enable_tools])
-AM_CONDITIONAL([TOOLS], [test "x$enable_tools" != "xno"])
-
-PDNS_WITH_PROTOBUF
+AS_IF([test x"$modules" = "xno"], [modules=""])
+AS_IF([test x"$dynmodules" = "xno"], [dynmodules=""])
 
 for a in $modules $dynmodules; do
   case "$a" in
@@ -235,6 +212,19 @@ for a in $modules $dynmodules; do
 done
 
 PDNS_ENABLE_REMOTEBACKEND_ZEROMQ
+
+AC_MSG_CHECKING([whether we will be building and installing the extra tools])
+AC_ARG_ENABLE([tools],
+  [AS_HELP_STRING([--enable-tools], [if we should build and install the tools @<:@default=no@:>@])],
+  [enable_tools=$enableval],
+  [enable_tools=no]
+)
+
+AC_MSG_RESULT([$enable_tools])
+AM_CONDITIONAL([TOOLS], [test "x$enable_tools" != "xno"])
+
+PDNS_WITH_PROTOBUF
+
 
 AM_CONDITIONAL([ORACLE], [test "x$needoracle" = "xyes"])
 
