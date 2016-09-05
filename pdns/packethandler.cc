@@ -71,7 +71,15 @@ PacketHandler::PacketHandler():B(s_programname), d_dk(&B)
   {
     d_pdl = new AuthLua(fname);
   }
-
+  fname = ::arg()["lua-dnsupdate-policy-script"];
+  if (fname.empty())
+  {
+    d_update_policy_lua = NULL;
+  }
+  else
+  {
+    d_update_policy_lua = new AuthLua4(fname);
+  }
 }
 
 UeberBackend *PacketHandler::getBackend()

@@ -25,6 +25,11 @@ A list of IP ranges that are allowed to perform updates on any domain. The defau
 ## `forward-dnsupdate`
 Tell PowerDNS to forward to the master server if the zone is configured as slave. Masters are determined by the masters field in the domains table. The default behaviour is enabled (yes), which means that it will try to forward. In the processing of the update packet, the **allow-dnsupdate-from** and **TSIG-ALLOW-DNSUPDATE** are processed first, so those permissions apply before the **forward-dnsupdate** is used. It will try all masters that you have configured until one is successful.
 
+## `lua-dnsupdate-policy-script`
+Use this LUA script containing function `updatepolicy` to validate each update. (since 4.0.0)
+This will **TURN OFF** all other authorization methods, and you are expected to take care of everything yourself.
+See [update policy](#update-policy) for details and examples.
+
 The semantics are that first a dynamic update has to be allowed either by the global allow-dnsupdate-from setting, or by a per-zone ALLOW-DNSUPDATE-FROM metadata setting.
 
 Secondly, if a zone has a TSIG-ALLOW-DNSUPDATE metadata setting, that must match too.
@@ -234,16 +239,87 @@ Restart PowerDNS and you should be ready to go!
 This is a short description of how DNS update messages are processed by PowerDNS.
 
 1.  The DNS update message is received. If it is TSIG signed, the TSIG is validated against the tsigkeys table. If it is not valid, Refused is returned to the requestor.
-2.  A check is performed on the zone to see if it is a valid zone. ServFail is returned when not valid.
-3.  The **dnsupdate** setting is checked. Refused is returned when the setting is 'no'.
-4.  If the **ALLOW-DNSUPDATE-FROM** has a value (from both domainmetadata and the configuration file), a check on the value is performed. If the requestor (sender of the update message) does not match the values in **ALLOW-DNSUPDATE-FROM**, Refused is returned.
-5.  If the message is TSIG signed, the TSIG keyname is compared with the TSIG keyname in domainmetadata. If they do not match, a Refused is send. The TSIG-ALLOW-DNSUPDATE domainmetadata setting is used to find which key belongs to the domain.
-6.  The backends are queried to find the backend for the given domain.
-7.  If the domain is a slave domain, the **forward-dnsupdate** option and domainmetadata settings are checked. If forwarding to a master is enabled, the message is forward to the master. If that fails, the next master is tried until all masters are tried. If all masters fail, ServFail is returned. If a master succeeds, the result from that master is returned.
-8.  A check is performed to make sure all updates/prerequisites are for the given zone. NotZone is returned if this is not the case.
-9.  The transaction with the backend is started.
-10. The prerequisite checks are performed (section 3.2 of RFC2136). If a check fails, the corresponding RCode is returned. No further processing will happen.
-11. Per record in the update message, a the prescan checks are performed. If the prescan fails, the corresponding RCode is returned. If the prescan for the record is correct, the actual update/delete/modify of the record is performed. If the update fails (for whatever reason), ServFail is returned. After changes to the records have been applied, the ordername and auth flag are set to make sure DNSSEC remains working. The cache for that record is purged.
-12. If there are records updated and the SOA record was not modified, the SOA serial is updated. See [SOA Serial Updates](#soa-serial-updates). The cache for this record is purged.
-13. The transaction with the backend is committed. If this fails, ServFail is returned.
-14. NoError is returned.
+1.  A check is performed on the zone to see if it is a valid zone. ServFail is returned when not valid.
+1.  The **dnsupdate** setting is checked. Refused is returned when the setting is 'no'.
+1.  If update policy Lua script is provided then next two steps are skipped.
+1.  If the **ALLOW-DNSUPDATE-FROM** has a value (from both domainmetadata and the configuration file), a check on the value is performed. If the requestor (sender of the update message) does not match the values in **ALLOW-DNSUPDATE-FROM**, Refused is returned.
+1.  If the message is TSIG signed, the TSIG keyname is compared with the TSIG keyname in domainmetadata. If they do not match, a Refused is send. The TSIG-ALLOW-DNSUPDATE domainmetadata setting is used to find which key belongs to the domain.
+1.  The backends are queried to find the backend for the given domain.
+1.  If the domain is a slave domain, the **forward-dnsupdate** option and domainmetadata settings are checked. If forwarding to a master is enabled, the message is forward to the master. If that fails, the next master is tried until all masters are tried. If all masters fail, ServFail is returned. If a master succeeds, the result from that master is returned.
+1.  A check is performed to make sure all updates/prerequisites are for the given zone. NotZone is returned if this is not the case.
+1.  The transaction with the backend is started.
+1. The prerequisite checks are performed (section 3.2 of RFC2136). If a check fails, the corresponding RCode is returned. No further processing will happen.
+1. Per record in the update message, a the prescan checks are performed. If the prescan fails, the corresponding RCode is returned. If the prescan for the record is correct, the actual update/delete/modify of the record is performed. If the update fails (for whatever reason), ServFail is returned. After changes to the records have been applied, the ordername and auth flag are set to make sure DNSSEC remains working. The cache for that record is purged.
+1. If there are records updated and the SOA record was not modified, the SOA serial is updated. See [SOA Serial Updates](#soa-serial-updates). The cache for this record is purged.
+1. The transaction with the backend is committed. If this fails, ServFail is returned.
+1. NoError is returned.
+
+# Update policy
+
+Since 4.0.0, you can define a Lua script to handle DNS UPDATE message authorization.
+The Lua script is to contain at least function called `updatepolicy` which accepts one parameter.
+This parameter is an object, containing all the information for the request.
+To permit change, return true, otherwise return false.
+The script is called for each record at a time and you can approve or reject any or all.
+
+The object has following methods available:
+-  DNSName getQName() - name to update
+-  DNSName getZonename() - zone name
+-  int getQType() - record type, it can be 255(ANY) for delete.
+-  ComboAddress getLocal() - local socket address
+-  ComboAddress getRemote() - remote socket address
+-  Netmask getRealRemote() - real remote address (or netmask if EDNS Subnet is used)
+-  DNSName getTsigName() - TSIG **key** name (you can assume it is validated here)
+-  string getPeerPrincipal() - Return peer principal name (user@DOMAIN, service/machine.name@DOMAIN, host/MACHINE$@DOMAIN)
+
+There are many same things available as in recursor Lua scripts, but there is also resolve(qname, qtype) which returns array of records.
+Example:
+
+```
+resolve("www.google.com", pdns.A)
+```
+
+You can use this to perform DNS lookups.
+If your resolver cannot find your local records, then this will not find them either.
+In other words, resolve does not perform local lookup.
+
+Simple example script:
+```lua
+--- This script is not suitable for production use
+
+function strpos (haystack, needle, offset)
+  local pattern = string.format("(%s)", needle)
+  local i       = string.find (haystack, pattern, (offset or 0))
+  return (i ~= nil and i or false)
+end
+
+function updatepolicy(input)
+  princ = input:getPeerPrincipal()
+
+  if princ == ""
+  then
+    return false
+  end
+
+  if princ == "admin@DOMAIN" or input:getRemote():toString() == "192.168.1.1"
+  then
+    return true
+  end
+
+  if (input:getQType() == pdns.A or input:getQType() == pdns.AAAA) and princ:sub(5,5) == '/' and strpos(princ, "@", 0) ~= false
+  then
+    i = strpos(princ, "@", 0)
+    if princ:sub(i) ~= "@DOMAIN"
+    then
+      return false
+    end
+    hostname = princ:sub(6, i-1)
+    if input:getQName():toString() == hostname .. "." or input:getQName():toString() == hostname .. "." .. input:getZoneName():toString()
+    then
+      return true
+    end
+  end
+
+  return false
+end
+```

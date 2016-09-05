@@ -172,6 +172,7 @@ void declareArguments()
   ::arg().set("entropy-source", "If set, read entropy from this file")="/dev/urandom";
 
   ::arg().set("lua-prequery-script", "Lua script with prequery handler (DO NOT USE)")="";
+  ::arg().set("lua-dnsupdate-policy-script", "Lua script with DNS update policy handler")="";
   ::arg().set("experimental-lua-policy-script", "Lua script for the policy engine")="";
 
   ::arg().setSwitch("traceback-handler","Enable the traceback handler (Linux only)")="yes";

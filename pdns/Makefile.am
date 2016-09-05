@@ -170,6 +170,7 @@ pdns_server_SOURCES = \
 	lock.hh \
 	logger.cc logger.hh \
 	lua-auth.cc lua-auth.hh \
+	lua-auth4.cc lua-auth4.hh \
 	lua-pdns.cc lua-pdns.hh lua-iputils.cc \
 	mastercommunicator.cc \
 	md5.hh \
