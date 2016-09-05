@@ -1280,7 +1280,7 @@ void TCPNameserver::thread()
         continue;
 
       int sock=-1;
-      for(const struct pollfd& pfd :  d_prfds) {
+      for(const pollfd& pfd :  d_prfds) {
         if(pfd.revents == POLLIN) {
           sock = pfd.fd;
           addrlen=sizeof(remote);
