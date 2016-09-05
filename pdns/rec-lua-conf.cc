@@ -188,7 +188,7 @@ void loadRecursorLuaConfig(const std::string& fname)
 	auto sr=loadRPZFromServer(master, zone, lci.dfe, defpol, zoneIdx, tt, maxReceivedXFRMBytes * 1024 * 1024, localAddress);
         if(refresh)
           sr->d_st.refresh=refresh;
-	std::thread t(RPZIXFRTracker, master, zone, zoneIdx, tt, sr, maxReceivedXFRMBytes * 1024 * 1024, localAddress);
+	std::thread t(RPZIXFRTracker, master, zone, defpol, zoneIdx, tt, sr, maxReceivedXFRMBytes * 1024 * 1024, localAddress);
 	t.detach();
       }
       catch(std::exception& e) {
