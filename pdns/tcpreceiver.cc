@@ -877,7 +877,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
     records++;
     if(securedZone && (zrr.auth || zrr.dr.d_type == QType::NS)) {
       if (NSEC3Zone || zrr.dr.d_type) {
-        keyname = NSEC3Zone ? hashQNameWithSalt(ns3pr, zrr.dr.d_name) : zrr.dr.d_name.labelReverse().toString();
+        keyname = NSEC3Zone ? hashQNameWithSalt(ns3pr, zrr.dr.d_name) : zrr.dr.d_name.labelReverse().toString(" ", false);
         NSECXEntry& ne = nsecxrepo[keyname];
         ne.d_ttl = sd.default_ttl;
         ne.d_auth = (ne.d_auth || zrr.auth || (NSEC3Zone && (!ns3pr.d_flags || (presignedZone && ns3pr.d_flags))));
@@ -967,12 +967,12 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
       nrc.d_set.insert(QType::RRSIG);
       nrc.d_set.insert(QType::NSEC);
       if(boost::next(iter) != nsecxrepo.end()) {
-        nrc.d_next = DNSName(boost::next(iter)->first).labelReverse();
+        nrc.d_next = DNSName(boost::next(iter)->first).labelReverse();  // XXX likely we need to do the spaces thing here
       }
       else
-        nrc.d_next=DNSName(nsecxrepo.begin()->first).labelReverse();
+        nrc.d_next=DNSName(nsecxrepo.begin()->first).labelReverse();     // XXX likely we need to do the spaces thing here
   
-      zrr.dr.d_name = DNSName(iter->first).labelReverse();
+      zrr.dr.d_name = DNSName(iter->first).labelReverse();  // XXX likely we need to do the spaces thing here
   
       zrr.dr.d_ttl = sd.default_ttl;
       zrr.dr.d_content = std::make_shared<NSECRecordContent>(nrc);

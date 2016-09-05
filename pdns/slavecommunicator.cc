@@ -547,7 +547,7 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
         } else {
           // NSEC
           if (rr.auth || rr.qtype.getCode() == QType::NS) {
-            ordername=rr.qname.makeRelative(domain).makeLowerCase().labelReverse().toStringNoDot(); 
+            ordername=rr.qname.makeRelative(domain).makeLowerCase().labelReverse().toString(" ", false); 
             di.backend->feedRecord(rr, &ordername);
           } else
             di.backend->feedRecord(rr);

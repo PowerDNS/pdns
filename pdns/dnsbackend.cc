@@ -285,10 +285,12 @@ bool DNSBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonename, co
   // lcqname=labelReverse(lcqname);
   DNSName dnc;
   string relqname, sbefore, safter;
-  relqname=qname.makeRelative(zonename).toStringNoDot();
+  relqname=qname.makeRelative(zonename).labelReverse().toString(" ", false);
   //sbefore = before.toString();
   //safter = after.toString();
   bool ret = this->getBeforeAndAfterNamesAbsolute(id, relqname, dnc, sbefore, safter);
+  boost::replace_all(sbefore, " ", ".");
+  boost::replace_all(safter, " ", ".");
   before = DNSName(sbefore).labelReverse() + lczonename;
   after = DNSName(safter).labelReverse() + lczonename;
 
