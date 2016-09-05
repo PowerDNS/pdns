@@ -72,3 +72,26 @@ void RecProtoBufMessage::setPolicyTags(const std::vector<std::string>& policyTag
   }
 #endif /* HAVE_PROTOBUF */
 }
+
+std::string RecProtoBufMessage::getAppliedPolicy() const
+{
+  std::string result;
+#ifdef HAVE_PROTOBUF
+  const PBDNSMessage_DNSResponse& response = d_message.response();
+  result = response.appliedpolicy();
+#endif /* HAVE_PROTOBUF */
+  return result;
+}
+
+std::vector<std::string> RecProtoBufMessage::getPolicyTags() const
+{
+  std::vector<std::string> result;
+#ifdef HAVE_PROTOBUF
+  const PBDNSMessage_DNSResponse& response = d_message.response();
+  const int count = response.tags_size();
+  for (int idx = 0; idx < count; idx++) {
+    result.push_back(response.tags(idx));
+  }
+#endif /* HAVE_PROTOBUF */
+  return result;
+}

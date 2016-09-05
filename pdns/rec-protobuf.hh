@@ -46,5 +46,6 @@ public:
   void addRR(const DNSRecord& record);
   void setAppliedPolicy(const std::string& policy);
   void setPolicyTags(const std::vector<std::string>& policyTags);
-
+  std::string getAppliedPolicy() const;
+  std::vector<std::string> getPolicyTags() const;
 };
