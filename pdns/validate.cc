@@ -183,7 +183,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
     DNSName lowestNTA;
 
     for (auto const &negAnchor : negAnchors)
-      if (zone.isPartOf(negAnchor.first) && lowestNTA.countLabels() < negAnchor.first.countLabels())
+      if (zone.isPartOf(negAnchor.first) && lowestNTA.countLabels() <= negAnchor.first.countLabels())
         lowestNTA = negAnchor.first;
 
     if(!lowestNTA.empty()) {
@@ -194,7 +194,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
        * attempt validation for. However, section 3 tells us this positive
        * Trust Anchor MUST be *below* the name and not the name itself
        */
-      if(lowestTA.countLabels() < lowestNTA.countLabels()) {
+      if(lowestTA.countLabels() <= lowestNTA.countLabels()) {
         LOG("marking answer Insecure"<<endl);
         return NTA; // Not Insecure, this way validateRecords() can shortcut
       }
