@@ -1185,15 +1185,19 @@ int createSlaveZone(const vector<string>& cmds) {
     cerr<<"Domain '"<<zone<<"' exists already"<<endl;
     return EXIT_FAILURE;
   }
-  ComboAddress master(cmds[2], 53);
-  cerr<<"Creating slave zone '"<<zone<<"', master is "<<master.toStringWithPort()<<endl;
+  vector<string> masters;
+  for (unsigned i=2; i < cmds.size(); i++) {
+    ComboAddress master(cmds[2], 53);
+    masters.push_back(master.toStringWithPort());
+  }
+  cerr<<"Creating slave zone '"<<zone<<"', with master(s) '"<<boost::join(masters, ",")<<"'"<<endl;
   B.createDomain(zone);
   if(!B.getDomainInfo(zone, di)) {
     cerr<<"Domain '"<<zone<<"' was not created!"<<endl;
     return EXIT_FAILURE;
   }
   di.backend->setKind(zone, DomainInfo::Slave);
-  di.backend->setMaster(zone, master.toStringWithPort());
+  di.backend->setMaster(zone, boost::join(masters, ","));
   return EXIT_SUCCESS;
 }
 
