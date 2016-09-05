@@ -743,6 +743,53 @@ Returns all public data about cryptokeys, including `privatekey`.
 
 **TODO**: Not yet implemented.
 
+Data searching
+==============
+
+URL: /api/v1/servers/localhost/search-data?q=:search\_term&max=:max\_results
+---------------------------------------------------------------------------
+
+**Note**: Authoritative only.
+
+Allowed methods: `GET`
+
+#### GET
+
+Search the data inside PowerDNS for :search\_term and return at most
+:max\_results. This includes zones, records and comments. Response body is an
+array of one or more of the following objects:
+
+For a zone:
+
+    {
+      "name": "<zonename>",
+      "object_type": "zone",
+      "zone_id": "<zoneid>"
+    }
+
+For a record:
+
+    {
+      "content": "<content>",
+      "disabled": <bool>,
+      "name": "<name>",
+      "object_type": "record",
+      "ttl": <ttl>,
+      "type": "<type>",
+      "zone": "<zonename>,
+      "zone_id": "<zoneid>"
+    }
+
+For a comment:
+
+    {
+      "object_type": "comment",
+      "name": "<name>",
+      "content": "<content>"
+      "zone": "<zonename>,
+      "zone_id": "<zoneid>"
+    }
+
 Cache Access
 ============
 
