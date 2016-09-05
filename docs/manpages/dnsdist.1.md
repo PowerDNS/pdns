@@ -33,9 +33,6 @@ information on this.
 dnsdist does not 'think' about DNS, and does not perform any kind of
 caching, nor is it aware of the quality of the answers it is relaying.
 
-dnsdist assumes that each query leads to exactly one response, which is true
-for all DNS except for AXFR, which is therefore not supported.
-
 The goal for dnsdist is to remain simple. If more powerful loadbalancing is
 required, dedicated hardware or software is recommended. Linux Virtual
 Server for example is often mentioned.
@@ -98,6 +95,9 @@ Server for example is often mentioned.
 
 -V,--version
 :    Show the dnsdist version and exit.
+
+-v,--verbose
+:    Be verbose.
 
 ADDRESS
 :    Any number of downstream DNS servers, in the same syntax as used with
