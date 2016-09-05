@@ -100,7 +100,7 @@ if daemon == 'authoritative':
         named_conf.write(AUTH_CONF_TPL)
 
     subprocess.check_call(["../pdns/pdnsutil", "--config-dir=.", "secure-zone", "powerdnssec.org"])
-    pdnscmd = ("../pdns/pdns_server --daemon=no --local-address=127.0.0.1 --local-port=5300 --socket-dir=./ --no-shuffle --dnsupdate=yes --cache-ttl=0 --config-dir=. --api=yes --webserver=yes --webserver-port="+WEBPORT+" --webserver-address=127.0.0.1 --webserver-password=something --api-key="+APIKEY).split()
+    pdnscmd = ("../pdns/pdns_server --daemon=no --local-address=127.0.0.1 --local-port=5300 --socket-dir=./ --no-shuffle --dnsupdate=yes --cache-ttl=0 --config-dir=. --api=yes --webserver-port="+WEBPORT+" --webserver-address=127.0.0.1 --api-key="+APIKEY).split()
 
 else:
     conf_dir = 'rec-conf.d'

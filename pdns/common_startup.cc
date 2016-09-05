@@ -77,7 +77,7 @@ void declareArguments()
   ::arg().set("max-queue-length","Maximum queuelength before considering situation lost")="5000";
 
   ::arg().set("retrieval-threads", "Number of AXFR-retrieval threads for slave operation")="2";
-  ::arg().setSwitch("api", "Enable/disable the REST API")="no";
+  ::arg().setSwitch("api", "Enable/disable the REST API (including HTTP listener)")="no";
   ::arg().set("api-key", "Static pre-shared authentication key for access to the REST API")="";
   ::arg().set("api-logfile", "Location of the server logfile (used by the REST API)")="/var/log/pdns.log";
   ::arg().setSwitch("api-readonly", "Disallow data modification through the REST API when set")="no";
@@ -125,14 +125,15 @@ void declareArguments()
   ::arg().setSwitch("disable-axfr-rectify","Disable the rectify step during an outgoing AXFR. Only required for regression testing.")="no";
   ::arg().setSwitch("guardian","Run within a guardian process")="no";
   ::arg().setSwitch("prevent-self-notification","Don't send notifications to what we think is ourself")="yes";
-  ::arg().setSwitch("webserver","Start a webserver for monitoring")="no"; 
-  ::arg().setSwitch("webserver-print-arguments","If the webserver should print arguments")="no"; 
-  ::arg().setSwitch("edns-subnet-processing","If we should act on EDNS Subnet options")="no"; 
-  ::arg().setSwitch("any-to-tcp","Answer ANY queries with tc=1, shunting to TCP")="yes"; 
-  ::arg().set("webserver-address","IP Address of webserver to listen on")="127.0.0.1";
-  ::arg().set("webserver-port","Port of webserver to listen on")="8081";
+  ::arg().setSwitch("any-to-tcp","Answer ANY queries with tc=1, shunting to TCP")="yes";
+  ::arg().setSwitch("edns-subnet-processing","If we should act on EDNS Subnet options")="no";
+
+  ::arg().setSwitch("webserver","Start a webserver for monitoring (api=yes also enables the HTTP listener)")="no";
+  ::arg().setSwitch("webserver-print-arguments","If the webserver should print arguments")="no";
+  ::arg().set("webserver-address","IP Address of webserver/API to listen on")="127.0.0.1";
+  ::arg().set("webserver-port","Port of webserver/API to listen on")="8081";
   ::arg().set("webserver-password","Password required for accessing the webserver")="";
-  ::arg().set("webserver-allow-from","Webserver access is only allowed from these subnets")="0.0.0.0/0,::/0";
+  ::arg().set("webserver-allow-from","Webserver/API access is only allowed from these subnets")="0.0.0.0/0,::/0";
 
   ::arg().setSwitch("out-of-zone-additional-processing","Do out of zone additional processing")="yes";
   ::arg().setSwitch("do-ipv6-additional-processing", "Do AAAA additional processing")="yes";
@@ -526,7 +527,7 @@ void mainthread()
 
   pthread_t qtid;
 
-  if(::arg().mustDo("webserver"))
+  if(::arg().mustDo("webserver") || ::arg().mustDo("api"))
     webserver.go();
 
   if(::arg().mustDo("slave") || ::arg().mustDo("master"))

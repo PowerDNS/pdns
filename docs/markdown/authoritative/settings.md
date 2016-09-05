@@ -80,8 +80,7 @@ remote server to TCP. Useful for mitigating reflection attacks.
 * Default: no
 * Available since: 4.0
 
-Enable/disable the [REST API](../httpapi/README.md). Must also enable `webserver`
-to use the API.
+Enable/disable the [REST API](../httpapi/README.md).
 
 ## `api-key`
 * String
@@ -806,20 +805,23 @@ this response to a custom value as well.
 * Boolean
 * Default: no
 
-Start a webserver for monitoring (and REST API if enabled). See
+Start a webserver for monitoring. See
 ["Performance Monitoring"](../common/logging.md#performance-monitoring).
+Before 4.1.0, it was necessary to enable the webserver to use the REST API,
+this is no longer the case.
 
 ## `webserver-address`
 * IP Address
 * Default: 127.0.0.1
 
-IP Address of webserver to listen on. See
+IP Address for webserver/API to listen on. See
 ["Performance Monitoring"](../common/logging.md#performance-monitoring).
 
 ## `webserver-allow-from`
 * IP ranges, separated by commas or whitespace
+* Default: 0.0.0.0/0,::/0
 
-Webserver access is only allowed from these subnets
+Webserver/API access is only allowed from these subnets.
 
 ## `webserver-password`
 * String
@@ -831,7 +833,7 @@ The plaintext password required for accessing the webserver. See
 * Integer
 * Default: 8001
 
-The port where webserver to listen on. See ["Performance Monitoring"](../common/logging.md#performance-monitoring).
+The port where webserver/API will listen on. See ["Performance Monitoring"](../common/logging.md#performance-monitoring).
 
 ## `webserver-print-arguments`
 * Boolean

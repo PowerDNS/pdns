@@ -17,7 +17,6 @@ Then configure as follows:
 
     api=yes
     api-key=changeme
-    webserver=yes
 
 
 After restarting `pdns_server`, the following examples should start working:
