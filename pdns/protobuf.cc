@@ -163,7 +163,7 @@ void DNSProtoBufMessage::setRequestor(const ComboAddress& requestor)
 void DNSProtoBufMessage::setResponder(const std::string& responder)
 {
 #ifdef HAVE_PROTOBUF
-  d_message.set_from(responder);
+  d_message.set_to(responder);
 #endif /* HAVE_PROTOBUF */
 }
 
@@ -171,10 +171,10 @@ void DNSProtoBufMessage::setResponder(const ComboAddress& responder)
 {
 #ifdef HAVE_PROTOBUF
   if (responder.sin4.sin_family == AF_INET) {
-    d_message.set_from(&responder.sin4.sin_addr.s_addr, sizeof(responder.sin4.sin_addr.s_addr));
+    d_message.set_to(&responder.sin4.sin_addr.s_addr, sizeof(responder.sin4.sin_addr.s_addr));
   }
   else if (responder.sin4.sin_family == AF_INET6) {
-    d_message.set_from(&responder.sin6.sin6_addr.s6_addr, sizeof(responder.sin6.sin6_addr.s6_addr));
+    d_message.set_to(&responder.sin6.sin6_addr.s6_addr, sizeof(responder.sin6.sin6_addr.s6_addr));
   }
 #endif /* HAVE_PROTOBUF */
 }
