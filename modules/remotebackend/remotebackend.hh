@@ -165,7 +165,7 @@ class RemoteBackend : public DNSBackend
   virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const string& qname, DNSName& unhashed, string& before, string& after);
   virtual bool setDomainMetadata(const DNSName& name, const string& kind, const std::vector<std::basic_string<char> >& meta);
   virtual bool removeDomainKey(const DNSName& name, unsigned int id);
-  virtual int addDomainKey(const DNSName& name, const KeyData& key);
+  virtual bool addDomainKey(const DNSName& name, const KeyData& key, int64_t& id);
   virtual bool activateDomainKey(const DNSName& name, unsigned int id);
   virtual bool deactivateDomainKey(const DNSName& name, unsigned int id);
   virtual bool getDomainInfo(const DNSName& domain, DomainInfo& di);

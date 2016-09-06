@@ -64,7 +64,7 @@ public:
   virtual bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta);
   virtual bool getDomainKeys(const DNSName& name, unsigned int kind, std::vector<DNSBackend::KeyData>& keys);
   virtual bool removeDomainKey(const DNSName& name, unsigned int id);
-  virtual int addDomainKey(const DNSName& name, const KeyData& key);
+  virtual bool addDomainKey(const DNSName& name, const KeyData& key, int64_t& id);
   virtual bool activateDomainKey(const DNSName& name, unsigned int id);
   virtual bool deactivateDomainKey(const DNSName& name, unsigned int id);
 

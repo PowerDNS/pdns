@@ -73,28 +73,32 @@ bool DNSSECKeeper::isPresigned(const DNSName& name)
   return meta=="1";
 }
 
-bool DNSSECKeeper::addKey(const DNSName& name, bool setSEPBit, int algorithm, int bits, bool active)
+bool DNSSECKeeper::addKey(const DNSName& name, bool setSEPBit, int algorithm, int64_t& id, int bits, bool active)
 {
   if(!bits) {
     if(algorithm <= 10)
-      throw runtime_error("Creating an algorithm " +std::to_string(algorithm)+" ("+algorithm2name(algorithm)+") key requires the size (in bits) to be passed");
+      throw runtime_error("Creating an algorithm " +std::to_string(algorithm)+" ("+algorithm2name(algorithm)+") key requires the size (in bits) to be passed.");
     else {
       if(algorithm == 12 || algorithm == 13 || algorithm == 250) // GOST, ECDSAP256SHA256, ED25519SHA512
         bits = 256;
       else if(algorithm == 14) // ECDSAP384SHA384
         bits = 384;
       else {
-        throw runtime_error("Can't guess key size for algorithm "+std::to_string(algorithm));
+        throw runtime_error("Can not guess key size for algorithm "+std::to_string(algorithm));
       }
     }
   }
   DNSSECPrivateKey dspk;
   shared_ptr<DNSCryptoKeyEngine> dpk(DNSCryptoKeyEngine::make(algorithm));
-  dpk->create(bits);
+  try{
+    dpk->create(bits);
+  } catch (std::runtime_error error){
+    throw runtime_error("The algorithm does not support the given bit size.");
+  }
   dspk.setKey(dpk);
   dspk.d_algorithm = algorithm;
   dspk.d_flags = setSEPBit ? 257 : 256;
-  return addKey(name, dspk, active);
+  return addKey(name, dspk, id, active);
 }
 
 void DNSSECKeeper::clearAllCaches() {
@@ -119,7 +123,7 @@ void DNSSECKeeper::clearCaches(const DNSName& name)
 }
 
 
-bool DNSSECKeeper::addKey(const DNSName& name, const DNSSECPrivateKey& dpk, bool active)
+bool DNSSECKeeper::addKey(const DNSName& name, const DNSSECPrivateKey& dpk, int64_t& id, bool active)
 {
   clearCaches(name);
   DNSBackend::KeyData kd;
@@ -127,7 +131,7 @@ bool DNSSECKeeper::addKey(const DNSName& name, const DNSSECPrivateKey& dpk, bool
   kd.active = active;
   kd.content = dpk.getKey()->convertToISC();
  // now store it
-  return d_keymetadb->addDomainKey(name, kd) >= 0; // >= 0 == s
+  return d_keymetadb->addDomainKey(name, kd, id);
 }
 
 

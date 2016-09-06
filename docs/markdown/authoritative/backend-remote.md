@@ -369,7 +369,7 @@ Coefficient: 6S0vhIQITWzqfQSLj+wwRzs6qCvJckHb1+SD1XpwYjSgMTEUlZhf96m8WiaE1/fIt4Z
 Adds key into local storage. See [`getDomainKeys`](#getdomainkeys) for more information.
 
 * Mandatory: No
-* Parameters: name, key=`<flags,active,content>`
+* Parameters: name, key=`<flags,active,content>`, id
 * Reply: true for success, false for failure
 
 #### Example JSON/RPC

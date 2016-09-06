@@ -610,6 +610,7 @@ Bind2Backend::Bind2Backend(const string &suffix, bool loadZones)
   d_getDomainKeysQuery_stmt = NULL;
   d_deleteDomainKeyQuery_stmt = NULL;
   d_insertDomainKeyQuery_stmt = NULL;
+  d_GetLastInsertedKeyIdQuery_stmt = NULL;
   d_activateDomainKeyQuery_stmt = NULL;
   d_deactivateDomainKeyQuery_stmt = NULL;
   d_getTSIGKeyQuery_stmt = NULL;

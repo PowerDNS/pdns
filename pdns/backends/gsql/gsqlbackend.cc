@@ -102,6 +102,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_nullifyOrderNameAndUpdateAuthTypeQuery = getArg("nullify-ordername-and-update-auth-type-query");
 
   d_AddDomainKeyQuery = getArg("add-domain-key-query");
+  d_GetLastInsertedKeyIdQuery = getArg("get-last-inserted-key-id-query");
   d_ListDomainKeysQuery = getArg("list-domain-keys-query");
 
   d_GetAllDomainMetadataQuery = getArg("get-all-domain-metadata-query");  
@@ -160,6 +161,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_RemoveEmptyNonTerminalsFromZoneQuery_stmt = NULL;
   d_DeleteEmptyNonTerminalQuery_stmt = NULL;
   d_AddDomainKeyQuery_stmt = NULL;
+  d_GetLastInsertedKeyIdQuery_stmt = NULL;
   d_ListDomainKeysQuery_stmt = NULL;
   d_GetAllDomainMetadataQuery_stmt = NULL;
   d_GetDomainMetadataQuery_stmt = NULL;
@@ -643,10 +645,10 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const string& qnam
   return true;
 }
 
-int GSQLBackend::addDomainKey(const DNSName& name, const KeyData& key)
+bool GSQLBackend::addDomainKey(const DNSName& name, const KeyData& key, int64_t& id)
 {
   if(!d_dnssecQueries)
-    return -1;
+    return false;
 
   try {
     d_AddDomainKeyQuery_stmt->
@@ -660,7 +662,26 @@ int GSQLBackend::addDomainKey(const DNSName& name, const KeyData& key)
   catch (SSqlException &e) {
     throw PDNSException("GSQLBackend unable to store key: "+e.txtReason());
   }
-  return 1; // XXX FIXME, no idea how to get the id
+
+  try {
+    d_GetLastInsertedKeyIdQuery_stmt->execute();
+    if (!d_GetLastInsertedKeyIdQuery_stmt->hasNextRow()) {
+      id = -2;
+      return true;
+    }
+    SSqlStatement::row_t row;
+    d_GetLastInsertedKeyIdQuery_stmt->nextRow(row);
+    ASSERT_ROW_COLUMNS("get-last-inserted-key-id-query", row, 1);
+    id = std::stoi(row[0]);
+    d_GetLastInsertedKeyIdQuery_stmt->reset();
+    return true;
+  }
+  catch (SSqlException &e) {
+    id = -2;
+    return true;
+  }
+
+  return false;
 }
 
 bool GSQLBackend::activateDomainKey(const DNSName& name, unsigned int id)

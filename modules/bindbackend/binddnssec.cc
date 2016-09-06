@@ -56,7 +56,7 @@ bool Bind2Backend::getDomainKeys(const DNSName& name, unsigned int kind, std::ve
 bool Bind2Backend::removeDomainKey(const DNSName& name, unsigned int id)
 { return false; }
 
-int Bind2Backend::addDomainKey(const DNSName& name, const KeyData& key)
+bool Bind2Backend::addDomainKey(const DNSName& name, const KeyData& key, int64_t& id)
 { return -1; }
 
 bool Bind2Backend::activateDomainKey(const DNSName& name, unsigned int id)
@@ -89,6 +89,8 @@ void Bind2Backend::freeStatements()
 #include "pdns/logger.hh"
 #include "pdns/ssqlite3.hh"
 
+#define ASSERT_ROW_COLUMNS(query, row, num) { if (row.size() != num) { throw PDNSException(std::string(query) + " returned wrong number of columns, expected "  #num  ", got " + std::to_string(row.size())); } }
+
 void Bind2Backend::setupDNSSEC()
 {
   if(getArg("dnssec-db").empty() || d_hybrid)
@@ -114,6 +116,7 @@ void Bind2Backend::setupStatements()
   d_getDomainKeysQuery_stmt = d_dnssecdb->prepare("select id,flags, active, content from cryptokeys where domain=:domain",1);
   d_deleteDomainKeyQuery_stmt = d_dnssecdb->prepare("delete from cryptokeys where domain=:domain and id=:key_id",2);
   d_insertDomainKeyQuery_stmt = d_dnssecdb->prepare("insert into cryptokeys (domain, flags, active, content) values (:domain, :flags, :active, :content)", 4);
+  d_GetLastInsertedKeyIdQuery_stmt = d_dnssecdb->prepare("select last_insert_rowid()", 0);
   d_activateDomainKeyQuery_stmt = d_dnssecdb->prepare("update cryptokeys set active=1 where domain=:domain and id=:key_id", 2);
   d_deactivateDomainKeyQuery_stmt = d_dnssecdb->prepare("update cryptokeys set active=0 where domain=:domain and id=:key_id", 2);
   d_getTSIGKeyQuery_stmt = d_dnssecdb->prepare("select algorithm, secret from tsigkeys where name=:key_name", 1);
@@ -136,6 +139,7 @@ void Bind2Backend::freeStatements()
   release(&d_getDomainKeysQuery_stmt);
   release(&d_deleteDomainKeyQuery_stmt);
   release(&d_insertDomainKeyQuery_stmt);
+  release(&d_GetLastInsertedKeyIdQuery_stmt);
   release(&d_activateDomainKeyQuery_stmt);
   release(&d_deactivateDomainKeyQuery_stmt);
   release(&d_getTSIGKeyQuery_stmt);
@@ -306,10 +310,10 @@ bool Bind2Backend::removeDomainKey(const DNSName& name, unsigned int id)
   return true;
 }
 
-int Bind2Backend::addDomainKey(const DNSName& name, const KeyData& key)
+bool Bind2Backend::addDomainKey(const DNSName& name, const KeyData& key, int64_t& id)
 {
   if(!d_dnssecdb || d_hybrid)
-    return -1;
+    return false;
 
   try {
     d_insertDomainKeyQuery_stmt->
@@ -323,7 +327,26 @@ int Bind2Backend::addDomainKey(const DNSName& name, const KeyData& key)
   catch(SSqlException& se) {
     throw PDNSException("Error accessing DNSSEC database in BIND backend, addDomainKey(): "+se.txtReason());
   }
-  return true;
+
+  try {
+    d_GetLastInsertedKeyIdQuery_stmt->execute();
+    if (!d_GetLastInsertedKeyIdQuery_stmt->hasNextRow()) {
+      id = -2;
+      return true;
+    }
+    SSqlStatement::row_t row;
+    d_GetLastInsertedKeyIdQuery_stmt->nextRow(row);
+    ASSERT_ROW_COLUMNS("get-last-inserted-key-id-query", row, 1);
+    int id = std::stoi(row[0]);
+    d_GetLastInsertedKeyIdQuery_stmt->reset();
+    return true;
+  }
+  catch (SSqlException &e) {
+    id = -2;
+    return true;
+  }
+
+  return false;
 }
 
 bool Bind2Backend::activateDomainKey(const DNSName& name, unsigned int id)

@@ -19,6 +19,7 @@ NAMED_CONF_TPL = """
 options { directory "../regression-tests/zones/"; };
 zone "example.com" { type master; file "example.com"; };
 zone "powerdnssec.org" { type master; file "powerdnssec.org"; };
+zone "cryptokeys.org" { type master; file "cryptokeys.org"; };
 """
 
 AUTH_CONF_TPL = """

@@ -88,6 +88,7 @@ public:
       d_RemoveEmptyNonTerminalsFromZoneQuery_stmt = d_db->prepare(d_RemoveEmptyNonTerminalsFromZoneQuery, 1);
       d_DeleteEmptyNonTerminalQuery_stmt = d_db->prepare(d_DeleteEmptyNonTerminalQuery, 2);
       d_AddDomainKeyQuery_stmt = d_db->prepare(d_AddDomainKeyQuery, 4);
+      d_GetLastInsertedKeyIdQuery_stmt = d_db->prepare(d_GetLastInsertedKeyIdQuery, 0);
       d_ListDomainKeysQuery_stmt = d_db->prepare(d_ListDomainKeysQuery, 1);
       d_GetAllDomainMetadataQuery_stmt = d_db->prepare(d_GetAllDomainMetadataQuery, 1);
       d_GetDomainMetadataQuery_stmt = d_db->prepare(d_GetDomainMetadataQuery, 2);
@@ -154,6 +155,7 @@ public:
     release(&d_RemoveEmptyNonTerminalsFromZoneQuery_stmt);
     release(&d_DeleteEmptyNonTerminalQuery_stmt);
     release(&d_AddDomainKeyQuery_stmt);
+    release(&d_GetLastInsertedKeyIdQuery_stmt);
     release(&d_ListDomainKeysQuery_stmt);
     release(&d_GetAllDomainMetadataQuery_stmt);
     release(&d_GetDomainMetadataQuery_stmt);
@@ -215,7 +217,7 @@ public:
 
   bool replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset);
   bool listSubZone(const DNSName &zone, int domain_id);
-  int addDomainKey(const DNSName& name, const KeyData& key);
+  bool addDomainKey(const DNSName& name, const KeyData& key, int64_t& id);
   bool getDomainKeys(const DNSName& name, unsigned int kind, std::vector<KeyData>& keys);
   bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta);
   bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta);
@@ -296,6 +298,7 @@ private:
   string d_DeleteEmptyNonTerminalQuery;
 
   string d_AddDomainKeyQuery;
+  string d_GetLastInsertedKeyIdQuery;
   string d_ListDomainKeysQuery;
   string d_GetAllDomainMetadataQuery;
   string d_GetDomainMetadataQuery;
@@ -361,6 +364,7 @@ private:
   SSqlStatement* d_RemoveEmptyNonTerminalsFromZoneQuery_stmt;
   SSqlStatement* d_DeleteEmptyNonTerminalQuery_stmt;
   SSqlStatement* d_AddDomainKeyQuery_stmt;
+  SSqlStatement* d_GetLastInsertedKeyIdQuery_stmt;
   SSqlStatement* d_ListDomainKeysQuery_stmt;
   SSqlStatement* d_GetAllDomainMetadataQuery_stmt;
   SSqlStatement* d_GetDomainMetadataQuery_stmt;

@@ -130,6 +130,7 @@ public:
     declare(suffix, "delete-names-query", "", "delete from records where domain_id=:domain_id and name=:qname");
 
     declare(suffix, "add-domain-key-query","", "insert into cryptokeys (domain_id, flags, active, content) select id, :flags,:active, :content from domains where name=:domain");
+    declare(suffix, "get-last-inserted-key-id-query", "", "select last_insert_rowid()");
     declare(suffix, "list-domain-keys-query","", "select cryptokeys.id, flags, active, content from domains, cryptokeys where cryptokeys.domain_id=domains.id and name=:domain");
     declare(suffix, "get-all-domain-metadata-query","", "select kind,content from domains, domainmetadata where domainmetadata.domain_id=domains.id and name=:domain");
     declare(suffix, "get-domain-metadata-query","", "select content from domains, domainmetadata where domainmetadata.domain_id=domains.id and name=:domain and domainmetadata.kind=:kind");

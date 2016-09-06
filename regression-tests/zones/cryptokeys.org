@@ -1,0 +1,24 @@
+cryptokeys.org.		3600	IN SOA	cryptokeys.ds9a.nl. ahu.ds9a.nl. (
+					2009071301 ; serial
+					14400       ; refresh (2 hours 30 minutes)
+					3600        ; retry (7 minutes 30 seconds)
+					604800     ; expire (1 week)
+					3600       ; minimum (7 minutes 30 seconds)
+					)
+			3600	NS	cryptokeys.ds9a.nl.
+			3600	NS	cryptokeys.ds9a.nl.
+			3600	MX	10	cryptokeys.easy-server.com.
+			3600	A	212.123.148.70
+www.cryptokeys.org.	3600	CNAME	cryptokeys.org.
+webserver		3600	A	1.2.3.4
+smtp			3600	A	4.3.2.1
+localhost		3600	A	127.0.0.1
+			3600	AAAA	::1
+ipv6			3600	AAAA	2001:888:1036:0:208:a1ff:fe19:f000
+zbefore.a.cryptokeys.org.		3600	TXT	"before"
+after.cryptokeys.org.		3600	TXT	"after"
+zzz.cryptokeys.org.		3600	TXT	"this is the end.."
+delegated			3600	IN	NS ns1.delegated
+delegated			3600	IN	NS ns2.delegated
+ns1.delegated			3600	IN	A	1.2.3.4
+ns2.delegated			3600	IN	A	4.3.2.1
