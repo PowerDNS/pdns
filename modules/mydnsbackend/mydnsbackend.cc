@@ -129,7 +129,7 @@ MyDNSBackend::MyDNSBackend(const string &suffix) {
 
     d_listQuery_stmt = d_db->prepare(listQuery, 1);
   
-    anyQuery += ") UNION (SELECT 'SOA' AS type, origin AS data, '0' AS aux, ttl, id AS zone FROM `"+soatable+"` WHERE id = ? AND origin = ?";
+    anyQuery += ") UNION (SELECT 'SOA' AS type, CONCAT_WS(' ', ns, mbox,serial,refresh,retry,expire,minimum) AS data, '0' AS aux, ttl, id AS zone FROM `"+soatable+"` WHERE id = ? AND origin = ?";
 
     if (!soawhere.empty()) {
       anyQuery += " AND "+soawhere;
