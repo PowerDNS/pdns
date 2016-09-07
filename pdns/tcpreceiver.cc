@@ -863,7 +863,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   int records=0;
   for(DNSZoneRecord &zrr :  zrrs) {
     if (zrr.dr.d_type == QType::RRSIG) {
-      if(presignedZone && zrr.dr.d_type == QType::NSEC3) {
+      if(presignedZone && getRR<RRSIGRecordContent>(zrr.dr)->d_type == QType::NSEC3) {
         DNSName relative=zrr.dr.d_name.makeRelative(target);
         ns3rrs.insert(fromBase32Hex(relative.toStringNoDot()));
       }
