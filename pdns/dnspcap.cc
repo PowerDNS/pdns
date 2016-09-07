@@ -92,7 +92,7 @@ try
 
     checkedFreadSize(d_buffer, d_pheader.caplen);
 
-    if(d_pheader.caplen!=d_pheader.len) {
+    if(d_pheader.caplen < d_pheader.len) {
       d_runts++;
       continue;
     }
