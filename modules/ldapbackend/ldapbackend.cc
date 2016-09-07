@@ -26,7 +26,8 @@
 #include "ldapbackend.hh"
 
 unsigned int ldap_host_index = 0;
-
+#undef DLOG
+#define DLOG(x) x
 LdapBackend::LdapBackend( const string &suffix )
 {
         string hoststr;
@@ -167,7 +168,7 @@ inline bool LdapBackend::list_simple( const DNSName& target, int domain_id )
 
         prepare();
         filter = strbind( ":target:", "associatedDomain=*." + qesc, getArg( "filter-axfr" ) );
-        DLOG( L << Logger::Debug << m_myname << " Search = basedn: " << dn << ", filter: " << filter << endl );
+        DLOG( L << Logger::Warning << m_myname << " Search = basedn: " << dn << ", filter: " << filter << endl );
         m_msgid = m_pldap->search( dn, LDAP_SCOPE_SUBTREE, filter, (const char**) ldap_attrany );
 
         return true;
@@ -238,7 +239,7 @@ void LdapBackend::lookup_simple( const QType &qtype, const DNSName &qname, DNSPa
 
         filter = strbind( ":target:", filter, getArg( "filter-lookup" ) );
 
-        DLOG( L << Logger::Debug << m_myname << " Search = basedn: " << getArg( "basedn" ) << ", filter: " << filter << ", qtype: " << qtype.getName() << endl );
+        DLOG( L << Logger::Warning << m_myname << " Search = basedn: " << getArg( "basedn" ) << ", filter: " << filter << ", qtype: " << qtype.getName() << endl );
         m_msgid = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attributes );
 }
 
@@ -283,7 +284,7 @@ void LdapBackend::lookup_strict( const QType &qtype, const DNSName &qname, DNSPa
 
         filter = strbind( ":target:", filter, getArg( "filter-lookup" ) );
 
-        DLOG( L << Logger::Debug << m_myname << " Search = basedn: " << getArg( "basedn" ) << ", filter: " << filter << ", qtype: " << qtype.getName() << endl );
+        DLOG( L << Logger::Warning << m_myname << " Search = basedn: " << getArg( "basedn" ) << ", filter: " << filter << ", qtype: " << qtype.getName() << endl );
         m_msgid = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attributes );
 }
 
@@ -316,7 +317,7 @@ void LdapBackend::lookup_tree( const QType &qtype, const DNSName &qname, DNSPack
         	dn = "dc=" + *i + "," + dn;
         }
 
-        DLOG( L << Logger::Debug << m_myname << " Search = basedn: " << dn + getArg( "basedn" ) << ", filter: " << filter << ", qtype: " << qtype.getName() << endl );
+        DLOG( L << Logger::Warning << m_myname << " Search = basedn: " << dn + getArg( "basedn" ) << ", filter: " << filter << ", qtype: " << qtype.getName() << endl );
         m_msgid = m_pldap->search( dn + getArg( "basedn" ), LDAP_SCOPE_BASE, filter, attributes );
 }
 
@@ -445,7 +446,7 @@ bool LdapBackend::get( DNSResourceRecord &rr )
         					rr.content = *m_value;
         					m_value++;
 
-        					DLOG( L << Logger::Debug << m_myname << " Record = qname: " << rr.qname << ", qtype: " << (rr.qtype).getName() << ", ttl: " << rr.ttl << ", content: " << rr.content << endl );
+        					DLOG( L << Logger::Warning << m_myname << " Record = qname: " << rr.qname << ", qtype: " << (rr.qtype).getName() << ", ttl: " << rr.ttl << ", content: " << rr.content << endl );
         					return true;
         				}
 
