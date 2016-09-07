@@ -939,15 +939,17 @@ bool Bind2Backend::findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const DNSName&
 
     if(iter->qname.empty())
       before.clear();
-    else {
+    else { 
+
       before=iter->qname.labelReverse().toString(" ",false);
     }
   }
   else {
     if(qname.empty())
       before.clear();
-    else
+    else {
       before=qname.labelReverse().toString(" ",false);
+    }
   }
 
   //cerr<<"Now after"<<endl;
@@ -969,8 +971,9 @@ bool Bind2Backend::findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const DNSName&
         break;
       }
     }
-    if(iter != records->end())
+    if(iter != records->end()) {
       after = (iter)->qname.labelReverse().toString(" ",false);
+    }
   }
 
   // cerr<<"Before: '"<<before<<"', after: '"<<after<<"'\n";
@@ -993,8 +996,7 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
     nsec3zone=getNSEC3PARAM(auth, &ns3pr);
 
   if(!nsec3zone) {
-    DNSName dqname(DNSName(qname).labelReverse().toString(" ", false)); // the horror
-    //cerr<<"in bind2backend::getBeforeAndAfterAbsolute: no nsec3 for "<<auth<<endl;
+    DNSName dqname(DNSName(boost::replace_all_copy(qname," ",".")).labelReverse()); // the horror
     return findBeforeAndAfterUnhashed(bbd, dqname, unhashed, before, after);
   }
   else {
