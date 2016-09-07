@@ -271,6 +271,7 @@ bool DNSBackend::get(DNSZoneRecord& dzr)
     return false;
   dzr.auth = rr.auth;
   dzr.domain_id = rr.domain_id;
+  dzr.scopeMask = rr.scopeMask;
   if(rr.qtype.getCode() == QType::TXT && !rr.content.empty() && rr.content[0]!='"')
     rr.content = "\""+ rr.content + "\"";
   dzr.dr = DNSRecord(rr);
