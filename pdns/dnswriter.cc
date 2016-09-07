@@ -380,6 +380,7 @@ uint32_t DNSPacketWriter::size()
 void DNSPacketWriter::rollback()
 {
   d_content.resize(d_rollbackmarker);
+  d_sor = 0;
 }
 
 void DNSPacketWriter::truncate()
