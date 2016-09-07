@@ -431,9 +431,9 @@ test_auth() {
 
   run "cd regression-tests"
 
-  run "./timestamp ./start-test-stop 5300 ldap-tree"
-  run "./timestamp ./start-test-stop 5300 ldap-simple"
-  run "./timestamp ./start-test-stop 5300 ldap-strict"
+#  run "./timestamp ./start-test-stop 5300 ldap-tree"
+#  run "./timestamp ./start-test-stop 5300 ldap-simple"
+#  run "./timestamp ./start-test-stop 5300 ldap-strict"
 
   run "./timestamp ./start-test-stop 5300 bind-both"
   run "./timestamp ./start-test-stop 5300 bind-dnssec-both"
