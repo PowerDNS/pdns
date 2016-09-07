@@ -22,6 +22,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#include <boost/algorithm/string.hpp>
 #include "packetcache.hh"
 #include "utility.hh"
 #include "dnssecinfra.hh"
@@ -672,7 +673,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   for(const DNSSECKeeper::keyset_t::value_type& value :  keys) {
     zrr.dr.d_type = QType::DNSKEY;
     zrr.dr.d_content = std::make_shared<DNSKEYRecordContent>(value.first.getDNSKEY());
-    string keyname = NSEC3Zone ? hashQNameWithSalt(ns3pr, zrr.dr.d_name) : zrr.dr.d_name.labelReverse().toString();
+    string keyname = NSEC3Zone ? hashQNameWithSalt(ns3pr, zrr.dr.d_name) : zrr.dr.d_name.labelReverse().toString(" ", false);
     NSECXEntry& ne = nsecxrepo[keyname];
     
     ne.d_set.insert(zrr.dr.d_type);
@@ -967,12 +968,12 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
       nrc.d_set.insert(QType::RRSIG);
       nrc.d_set.insert(QType::NSEC);
       if(boost::next(iter) != nsecxrepo.end()) {
-        nrc.d_next = DNSName(boost::next(iter)->first).labelReverse();  // XXX likely we need to do the spaces thing here
+        nrc.d_next = DNSName(boost::replace_all_copy(boost::next(iter)->first, " ", ".")).labelReverse();  // XXX likely we need to do the spaces thing here
       }
       else
-        nrc.d_next=DNSName(nsecxrepo.begin()->first).labelReverse();     // XXX likely we need to do the spaces thing here
+        nrc.d_next=DNSName(boost::replace_all_copy(nsecxrepo.begin()->first," ", ".")).labelReverse();     // XXX likely we need to do the spaces thing here
   
-      zrr.dr.d_name = DNSName(iter->first).labelReverse();  // XXX likely we need to do the spaces thing here
+      zrr.dr.d_name = DNSName(boost::replace_all_copy(iter->first, " ", ".")).labelReverse();  // XXX likely we need to do the spaces thing here
   
       zrr.dr.d_ttl = sd.default_ttl;
       zrr.dr.d_content = std::make_shared<NSECRecordContent>(nrc);
