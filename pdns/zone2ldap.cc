@@ -83,8 +83,8 @@ static void callback_simple( unsigned int domain_id, const DNSName &domain, cons
                 cout << "changetype: modify" << endl;
                 cout << "add: " << qtype << "Record" << endl;
         }
-
-        cout << qtype << "Record: " << stripDot( content ) << endl << endl;
+        string stripped=stripDot(content);
+        cout << qtype << "Record: " << stripped << ((stripped.empty() || stripped[stripped.size()-1]==' ') ? "." : "") << endl << endl;
 }
 
 
