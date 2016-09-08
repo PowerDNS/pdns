@@ -3,9 +3,7 @@
 #include <fstream>
 #include "logger.hh"
 #include "dnsparser.hh"
-#include "syncres.hh"
 #include "namespaces.hh"
-#include "rec_channel.hh"
 #include "ednssubnet.hh"
 #include <unordered_set>
 
