@@ -116,7 +116,7 @@ You should now be able to import zones from a given `named.conf` with a line suc
 zone2ldap --dnsttl=yes --basedn=ou=dns,o=power --layout=$layout --named-conf=named.conf | ldapmodify -D uid=testuser,o=power -w secret -c
 ```
 
-Make sure to replace $layout with your choice of database layout, and mirror this in the `ldap-method` setting in your `pdns.conf`.
+Make sure to replace $layout with [your choice of database layout](#access-method), and mirror this in the `ldap-method` setting in your `pdns.conf`.
 
 Configuration options
 ---------------------
