@@ -1003,7 +1003,7 @@ class GeoIPLoader {
 public:
   GeoIPLoader() {
     BackendMakers().report(new GeoIPFactory);
-    L << Logger::Info << "[geobackend] This is the geo backend version " VERSION
+    L << Logger::Info << "[geoipbackend] This is the geoip backend version " VERSION
 #ifndef REPRODUCIBLE
       << " (" __DATE__ " " __TIME__ ")"
 #endif
@@ -1011,4 +1011,4 @@ public:
   }
 };
 
-static GeoIPLoader geoloader;
+static GeoIPLoader geoiploader;
