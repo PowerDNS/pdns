@@ -3,6 +3,8 @@
 # PowerDNS Authoritative Server 3.4.10
 Released 2nd of September 2016
 
+This is a security release fixing [Security Advisory
+2016-01](security/powerdns-advisory-2016-01.md).
 This release fixes several bugs, decreases CPU usage and allows better interoperability with PowerDNS 4.0.0 databases. It also adds a feature to limit AXFR sizes in response to [CVE-2016-6172](http://www.openwall.com/lists/oss-security/2016/07/06/4).
 
 - [commit 1f8078c](https://github.com/PowerDNS/pdns/commit/1f8078c): Enable mbedtls threading abstraction layer (Kees Monshouwer)
