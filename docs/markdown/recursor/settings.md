@@ -88,7 +88,7 @@ have to tick an 'RFC 2181 compliant' box.
 * Comma separated list of 'zonename=filename' pairs
 * Available since: 3.1
 
-Zones read from these files (in BIND format) are served authoritatively. Example:
+Zones read from these files (in BIND format) are served authoritatively. DNSSEC is not supported. Example:
 `auth-zones=example.org=/var/zones/example.org, powerdns.com=/var/zones/powerdns.com`.
 
 ## `carbon-interval`

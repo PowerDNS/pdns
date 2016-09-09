@@ -17,8 +17,8 @@ AD bits in queries. In this mode, the behaviour is equal to the PowerDNS Recurso
 The default mode. In this mode the Recursor acts as a "security aware, non-validating"
 nameserver, meaning it will set the DO-bit on outgoing queries and will provide
 DNSSEC related RRsets (NSEC, RRSIG) to clients that ask for them (by means of a
-DO-bit in the query). It will not do any validation in this mode, not even when
-requested by the client.
+DO-bit in the query), except for zones provided through the `auth-zones` setting. 
+It will not do any validation in this mode, not even when requested by the client.
 
 ## `process`
 When `dnssec` is set to `process` the behaviour is similar to [`process-no-validate`](#process-no-validate).
