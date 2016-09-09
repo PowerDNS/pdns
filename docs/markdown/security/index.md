@@ -4,7 +4,9 @@ If you have a security problem to report, please email us at both <a href="mailt
 
 We remind PowerDNS users that under the terms of the GNU General Public License, PowerDNS comes with ABSOLUTELY NO WARRANTY. This license is included in this documentation.
 
-As of the 2nd of September 2015, no actual security problems with PowerDNS Authoritative Server 3.4.6, Recursor 3.6.3, Recursor 3.7.2, or later are known about. This page will be updated with all bugs which are deemed to be security problems, or could conceivably lead to those. Any such notifications will also be sent to all PowerDNS mailing lists.
+As of the 9th of September 2016, no actual security problems with PowerDNS Authoritative Server 3.4.10, Recursor 3.6.3, Recursor 3.7.2, or later are known about. This page will be updated with all bugs which are deemed to be security problems, or could conceivably lead to those. Any such notifications will also be sent to all PowerDNS mailing lists.
+
+Version 3.4.9 and earlier of the PowerDNS Authoritative Server can be made to cause unexpected backend load, see [PowerDNS Security Advisory 2016-01](powerdns-advisory-2016-01.md) for more information.
 
 PowerDNS Authoritative Server 3.4.0 through 3.4.5 can have their threads crashed with a malformed packet, see [PowerDNS Security Advisory 2015-02](powerdns-advisory-2015-02.md) for more information.
 
