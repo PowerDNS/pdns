@@ -77,7 +77,8 @@ public:
       L<<Logger::Warning<<"Query: "<<d_query<<endl;
     }
     if (!d_parent->in_trx()) {
-      PQexec(d_db(),"BEGIN");
+      auto res=PQexec(d_db(),"BEGIN");
+      PQclear(res);
       d_do_commit = true;
     } else d_do_commit = false;
     d_res_set = PQexecPrepared(d_db(), d_stmt.c_str(), d_nparams, paramValues, paramLengths, NULL, 0);
