@@ -2793,7 +2793,7 @@ loadMainConfig(g_vm["config-dir"].as<string>());
      std::vector<struct TSIGKey> keys;
      UeberBackend B("default");
      if (B.getTSIGKeys(keys)) {
-        for(const struct TSIGKey &key :  keys) {
+        for(const TSIGKey &key :  keys) {
            cout << key.name.toString() << " " << key.algorithm.toString() << " " << key.key << endl;
         }
      }
