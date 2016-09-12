@@ -22,7 +22,10 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#include <boost/version.hpp>
+#if BOOST_VERSION >= 105400
 #include <boost/container/static_vector.hpp>
+#endif
 #include "dnswriter.hh"
 #include "misc.hh"
 #include "dnsparser.hh"
@@ -197,7 +200,11 @@ uint16_t DNSPacketWriter::lookupName(const DNSName& name, uint16_t* matchLen)
   */
   unsigned int bestpos=0;
   *matchLen=0;
+#if BOOST_VERSION >= 105400
   boost::container::static_vector<uint16_t, 34> nvect, pvect;
+#else
+  vector<uint16_t> nvect, pvect;
+#endif
 
   try {
     for(auto riter= raw.cbegin(); riter < raw.cend(); ) {
