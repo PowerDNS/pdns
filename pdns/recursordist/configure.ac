@@ -46,7 +46,7 @@ pdns_context_library="System V ucontexts"
 
 AC_DEFUN([PDNS_SELECT_CONTEXT_IMPL], [
   AC_MSG_CHECKING([whether Boost is new enough to use the context library...])
-  if test $boost_major_version -ge 152; then
+  if test $boost_major_version -ge 152 -a $boost_major_version -lt 161 ; then
     AC_MSG_RESULT([yes])
     if test $boost_major_version -ge 157; then
       BOOST_THREAD([$1])
