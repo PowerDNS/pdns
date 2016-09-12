@@ -192,6 +192,11 @@ public:
     return record;
   }
 
+  virtual bool operator==(const DNSRecordContent& rhs) const
+  {
+    return typeid(*this)==typeid(rhs) && this->getZoneRepresentation() == rhs.getZoneRepresentation();
+  }
+  
   static shared_ptr<DNSRecordContent> unserialize(const DNSName& qname, uint16_t qtype, const string& serialized);
 
   void doRecordCheck(const struct DNSRecord&){}
@@ -318,13 +323,7 @@ struct DNSRecord
     if(d_type != rhs.d_type || d_class != rhs.d_class || d_name != rhs.d_name)
       return false;
     
-    string lzrp, rzrp;
-    if(d_content)
-      lzrp=toLower(d_content->getZoneRepresentation());
-    if(rhs.d_content)
-      rzrp=toLower(rhs.d_content->getZoneRepresentation());
-
-    return lzrp == rzrp;
+    return *d_content == *rhs.d_content;
   }
 };
 

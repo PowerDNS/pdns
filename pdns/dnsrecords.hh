@@ -62,6 +62,12 @@ public:
   includeboilerplate(A);
   void doRecordCheck(const DNSRecord& dr);
   ComboAddress getCA(int port=0) const;
+  bool operator==(const DNSRecordContent& rhs) const override
+  {
+    if(typeid(*this) != typeid(rhs))
+      return false;
+    return d_ip == dynamic_cast<const ARecordContent&>(rhs).d_ip;
+  }
 private:
   uint32_t d_ip;
 };
@@ -73,6 +79,12 @@ public:
   explicit AAAARecordContent(const ComboAddress& ca);
   includeboilerplate(AAAA);
   ComboAddress getCA(int port=0) const;
+  bool operator==(const DNSRecordContent& rhs) const override
+  {
+    if(typeid(*this) != typeid(rhs))
+      return false;
+    return d_ip6 == dynamic_cast<const decltype(this)>(&rhs)->d_ip6;
+  }
 private:
   string d_ip6; // why??
 };
@@ -86,6 +98,15 @@ public:
 
   uint16_t d_preference;
   DNSName d_mxname;
+
+  bool operator==(const DNSRecordContent& rhs) const override
+  {
+    if(typeid(*this) != typeid(rhs))
+      return false;
+    auto rrhs =dynamic_cast<const decltype(this)>(&rhs);
+    return std::tie(d_preference, d_mxname) == std::tie(rrhs->d_preference, rrhs->d_mxname);
+  }
+
 };
 
 class KXRecordContent : public DNSRecordContent
@@ -185,7 +206,15 @@ class NSRecordContent : public DNSRecordContent
 public:
   includeboilerplate(NS)
   explicit NSRecordContent(const DNSName& content) : d_content(content){}
-  const DNSName& getNS() const { return d_content; } 
+  const DNSName& getNS() const { return d_content; }
+  bool operator==(const DNSRecordContent& rhs) const override
+  {
+    if(typeid(*this) != typeid(rhs))
+      return false;
+    auto rrhs =dynamic_cast<const decltype(this)>(&rhs);
+    return d_content == rrhs->d_content;
+  }
+
 private:
   DNSName d_content;
 };
