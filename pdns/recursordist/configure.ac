@@ -46,7 +46,7 @@ pdns_context_library="System V ucontexts"
 
 AC_DEFUN([PDNS_SELECT_CONTEXT_IMPL], [
   AC_MSG_CHECKING([whether Boost is new enough to use the context library...])
-  if test $boost_major_version -ge 152; then
+  if test $boost_major_version -ge 152 -a $boost_major_version -lt 161 ; then
     AC_MSG_RESULT([yes])
     if test $boost_major_version -ge 157; then
       BOOST_THREAD([$1])
@@ -55,15 +55,9 @@ AC_DEFUN([PDNS_SELECT_CONTEXT_IMPL], [
       LDFLAGS="$LDFLAGS $BOOST_THREAD_LDFLAGS"
     fi
     AC_MSG_NOTICE([checking whether the Boost context library actually links...])
-    if test $boost_major_version -ge 161; then
-      BOOST_FIND_HEADER([boost/context/detail/fcontext.hpp], [ : ], [
-        BOOST_FIND_LIB([context], [$1], [boost/context/detail/fcontext.hpp], [[]])
-      ])
-    else
-      BOOST_FIND_HEADER([boost/context/fcontext.hpp], [ : ], [
-        BOOST_FIND_LIB([context], [$1], [boost/context/fcontext.hpp], [[]])
-      ])
-    fi
+    BOOST_FIND_HEADER([boost/context/fcontext.hpp], [ : ], [
+      BOOST_FIND_LIB([context], [$1], [boost/context/fcontext.hpp], [[]])
+    ])
     case $boost_cv_lib_context in
       (yes)
         pdns_context_library="Boost context"
