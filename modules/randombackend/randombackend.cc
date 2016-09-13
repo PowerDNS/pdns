@@ -54,7 +54,7 @@ public:
       if(type.getCode() == QType::SOA || type.getCode() == QType::ANY) {
         d_answer="ns1." + d_ourdomain.toString() + " hostmaster." + d_ourdomain.toString() + " 1234567890 86400 7200 604800 300";
       } else {
-        d_answer="";
+        d_answer.clear();;
       }
     } else if (qdomain == d_ourname) {
       if(type.getCode() == QType::A || type.getCode() == QType::ANY) {
@@ -69,24 +69,38 @@ public:
     }
   }
 
-  bool get(DNSResourceRecord &rr)
+  bool get(DNSZoneRecord &zrr)
   {
     if(!d_answer.empty()) {
       if(d_answer.find("ns1.") == 0){
-        rr.qname=d_ourdomain;
-        rr.qtype=QType::SOA;
+        zrr.dr.d_name=d_ourdomain;
+        zrr.dr.d_type=QType::SOA;
       } else {
-        rr.qname=d_ourname;
-        rr.qtype=QType::A;
+        zrr.dr.d_name=d_ourname;
+        zrr.dr.d_type=QType::A;
       }
-      rr.ttl=5;             // 5 seconds
-      rr.auth = 1;          // it may be random.. but it is auth!
-      rr.content=d_answer;
+      zrr.dr.d_ttl=5;             // 5 seconds
+      zrr.auth = 1;          // it may be random.. but it is auth!
+      zrr.dr.d_content = std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(zrr.dr.d_type, 1, d_answer));
 
-      d_answer="";          // this was the last answer
+      d_answer.clear();          // this was the last answer
       return true;
     }
     return false;
+  }
+
+  bool get(DNSResourceRecord &rr) 
+  {
+    DNSZoneRecord dzr;
+    if(!this->get(dzr)) {
+      return false;
+    }
+
+    rr=DNSResourceRecord(dzr.dr);
+    rr.auth = dzr.auth;
+    rr.domain_id = dzr.domain_id;
+    rr.scopeMask = dzr.scopeMask;
+    return true;
   }
 
 private:
