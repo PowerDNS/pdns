@@ -533,25 +533,25 @@ string makeHexDump(const string& str)
 }
 
 // shuffle, maintaining some semblance of order
-void shuffle(vector<DNSResourceRecord>& rrs)
+void shuffle(vector<DNSZoneRecord>& rrs)
 {
-  vector<DNSResourceRecord>::iterator first, second;
+  vector<DNSZoneRecord>::iterator first, second;
   for(first=rrs.begin();first!=rrs.end();++first)
-    if(first->d_place==DNSResourceRecord::ANSWER && first->qtype.getCode() != QType::CNAME) // CNAME must come first
+    if(first->dr.d_place==DNSResourceRecord::ANSWER && first->dr.d_type != QType::CNAME) // CNAME must come first
       break;
   for(second=first;second!=rrs.end();++second)
-    if(second->d_place!=DNSResourceRecord::ANSWER)
+    if(second->dr.d_place!=DNSResourceRecord::ANSWER)
       break;
 
-  if(second-first>1)
+  if(second-first > 1)
     random_shuffle(first,second);
 
   // now shuffle the additional records
   for(first=second;first!=rrs.end();++first)
-    if(first->d_place==DNSResourceRecord::ADDITIONAL && first->qtype.getCode() != QType::CNAME) // CNAME must come first
+    if(first->dr.d_place==DNSResourceRecord::ADDITIONAL && first->dr.d_type != QType::CNAME) // CNAME must come first
       break;
   for(second=first;second!=rrs.end();++second)
-    if(second->d_place!=DNSResourceRecord::ADDITIONAL)
+    if(second->dr.d_place!=DNSResourceRecord::ADDITIONAL)
       break;
 
   if(second-first>1)

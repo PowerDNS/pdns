@@ -295,7 +295,7 @@ vector<uint8_t> makeBigDNSPacketReferral()
 
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, DNSName("www.google.com"), QType::A);
-  shuffle(records);
+  //  shuffle(records);
   for(const auto& rec : records) {
     pw.startRecord(rec.qname, rec.qtype.getCode(), rec.ttl, 1, rec.d_place);
     auto drc = DNSRecordContent::mastermake(rec.qtype.getCode(), 1, rec.content);

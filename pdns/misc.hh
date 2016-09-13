@@ -33,6 +33,7 @@
 #include <boost/tuple/tuple_comparison.hpp>
 #include <boost/multi_index/key_extractors.hpp>
 #include <boost/multi_index/sequenced_index.hpp>
+
 using namespace ::boost::multi_index;
 
 #include "dns.hh"
@@ -305,7 +306,8 @@ inline void unixDie(const string &why)
 
 string makeHexDump(const string& str);
 void shuffle(vector<DNSRecord>& rrs);
-void shuffle(vector<DNSResourceRecord>& rrs);
+class DNSZoneRecord;
+void shuffle(vector<DNSZoneRecord>& rrs);
 
 void orderAndShuffle(vector<DNSRecord>& rrs);
 
