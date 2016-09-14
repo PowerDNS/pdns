@@ -52,6 +52,7 @@ LdapBackend::LdapBackend( const string &suffix )
         	setArgPrefix( "ldap" + suffix );
 
         	m_getdn = false;
+		m_reconnect_attempts = getArgAsNum( "reconnect-attempts" );
         	m_list_fcnt = &LdapBackend::list_simple;
         	m_lookup_fcnt = &LdapBackend::lookup_simple;
         	m_prepare_fcnt = &LdapBackend::prepare_simple;
@@ -122,6 +123,26 @@ LdapBackend::~LdapBackend()
 
 
 
+bool LdapBackend::reconnect()
+{
+	int attempts = m_reconnect_attempts;
+	bool connected = false;
+	while ( !connected && attempts > 0 ) {
+		L << Logger::Debug << m_myname << " Reconnection attempts left: " << attempts << endl;
+		connected = m_pldap->connect();
+		if ( !connected )
+			Utility::usleep( 250 );
+		--attempts;
+	}
+
+	if ( connected )
+		m_pldap->bind( m_authenticator );
+
+	return connected;
+}
+
+
+
 bool LdapBackend::list( const DNSName& target, int domain_id, bool include_disabled )
 {
         try
@@ -136,6 +157,14 @@ bool LdapBackend::list( const DNSName& target, int domain_id, bool include_disab
         {
 	        L << Logger::Warning << m_myname << " Unable to get zone " << target << " from LDAP directory: " << lt.what() << endl;
         	throw( DBException( "LDAP server timeout" ) );
+        }
+        catch( LDAPNoConnection &lnc )
+        {
+		L << Logger::Warning << m_myname << " Connection to LDAP lost, trying to reconnect" << endl;
+		if ( reconnect() )
+			this->list( target, domain_id );
+		else
+			throw PDNSException( "Failed to reconnect to LDAP server" );
         }
         catch( LDAPException &le )
         {
@@ -216,6 +245,14 @@ void LdapBackend::lookup( const QType &qtype, const DNSName &qname, DNSPacket *d
         {
         	L << Logger::Warning << m_myname << " Unable to search LDAP directory: " << lt.what() << endl;
         	throw( DBException( "LDAP server timeout" ) );
+        }
+        catch( LDAPNoConnection &lnc )
+        {
+		L << Logger::Warning << m_myname << " Connection to LDAP lost, trying to reconnect" << endl;
+		if ( reconnect() )
+			this->lookup( qtype, qname, dnspkt, zoneid );
+		else
+			throw PDNSException( "Failed to reconnect to LDAP server" );
         }
         catch( LDAPException &le )
         {
@@ -556,6 +593,7 @@ public:
         	declare( suffix, "filter-axfr", "LDAP filter for limiting AXFR results", "(:target:)" );
         	declare( suffix, "filter-lookup", "LDAP filter for limiting IP or name lookups", "(:target:)" );
         	declare( suffix, "disable-ptrrecord", "Deprecated, use ldap-method=strict instead", "no" );
+		declare( suffix, "reconnect-attempts", "Number of attempts to re-establish a lost LDAP connection", "5" );
         }
 
 

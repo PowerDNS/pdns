@@ -59,6 +59,8 @@ public:
         PowerLDAP( const string& hosts = "ldap://127.0.0.1/", uint16_t port = LDAP_PORT, bool tls = false );
         ~PowerLDAP();
 
+        bool connect();
+
         void getOption( int option, int* value );
         void setOption( int option, int value );
 

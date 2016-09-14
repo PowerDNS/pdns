@@ -114,6 +114,7 @@ class LdapBackend : public DNSBackend
         vector<DNSName>::iterator m_adomain;
         vector<DNSName> m_adomains;
         QType m_qtype;
+        int m_reconnect_attempts;
 
         bool (LdapBackend::*m_list_fcnt)( const DNSName&, int );
         void (LdapBackend::*m_lookup_fcnt)( const QType&, const DNSName&, DNSPacket*, int );
@@ -131,6 +132,8 @@ class LdapBackend : public DNSBackend
         bool prepare_strict();
 
         bool getDomainInfo( const string& domain, DomainInfo& di );
+
+        bool reconnect();
 
 public:
 

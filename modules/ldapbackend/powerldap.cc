@@ -98,6 +98,20 @@ PowerLDAP::~PowerLDAP()
 }
 
 
+bool PowerLDAP::connect()
+{
+	try
+	{
+		ensureConnect();
+		return true;
+	}
+	catch( LDAPException &le )
+	{
+		return false;
+	}
+}
+
+
 void PowerLDAP::setOption( int option, int value )
 {
         ldapSetOption( d_ld, option, (void*) &value );
@@ -199,7 +213,12 @@ bool PowerLDAP::getSearchEntry( int msgid, sentry_t& entry, bool dn, int timeout
 
 	if ( i == -1 ) {
 		// Error while retrieving the message
-		throw LDAPException( "Error when retrieving LDAP result: " + getError() );
+		int err_code;
+		ldapGetOption( d_ld, LDAP_OPT_ERROR_NUMBER, &err_code );
+		if ( err_code == LDAP_SERVER_DOWN || err_code == LDAP_CONNECT_ERROR )
+			throw LDAPNoConnection();
+		else
+			throw LDAPException( "PowerLDAP::getSearchEntry(): Error when retrieving LDAP result: " + getError( err_code ) );
 	}
 
 	if ( i == 0 ) {
