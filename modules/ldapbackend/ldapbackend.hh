@@ -131,8 +131,6 @@ class LdapBackend : public DNSBackend
     bool prepare_simple();
     bool prepare_strict();
 
-    bool getDomainInfo( const string& domain, DomainInfo& di );
-
     bool reconnect();
 
   public:
@@ -140,9 +138,16 @@ class LdapBackend : public DNSBackend
     LdapBackend( const string &suffix="" );
     ~LdapBackend();
 
+    // Native backend
     bool list( const DNSName& target, int domain_id, bool include_disabled=false );
     void lookup( const QType& qtype, const DNSName& qdomain, DNSPacket* p = 0, int zoneid = -1 );
     bool get( DNSResourceRecord& rr );
+
+    bool getDomainInfo( const string& domain, DomainInfo& di );
+
+    // Master backend
+    void getUpdatedMasters( vector<DomainInfo>* domains );
+    void setNotified( uint32_t id, uint32_t serial );
 };
 
 #endif /* LDAPBACKEND_HH */

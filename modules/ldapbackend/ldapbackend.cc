@@ -535,32 +535,231 @@ bool LdapBackend::get( DNSResourceRecord &rr )
 
   return false;
 }
+ 
+ 
+ 
+void LdapBackend::getUpdatedMasters( vector<DomainInfo>* domains )
+{
+  string filter;
+  int msgid;
+  PowerLDAP::sentry_t result;
+  const char* attronly[] = {
+    "associatedDomain",
+    NULL
+  };
+
+  try
+  {
+    // First get all domains on which we are master.
+    filter = strbind( ":target:", "&(SOARecord=*)(PdnsDomainId=*)", getArg( "filter-axfr" ) );
+    msgid = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attronly );
+  }
+  catch( LDAPTimeout &lt )
+  {
+    L << Logger::Warning << m_myname << " Unable to search LDAP directory: " << lt.what() << endl;
+    throw( DBException( "LDAP server timeout" ) );
+  }
+  catch( LDAPNoConnection &lnc )
+  {
+    L << Logger::Warning << m_myname << " Connection to LDAP lost, trying to reconnect" << endl;
+    if ( reconnect() )
+      this->getUpdatedMasters( domains );
+    else
+      throw PDNSException( "Failed to reconnect to LDAP server" );
+  }
+  catch( LDAPException &le )
+  {
+    L << Logger::Error << m_myname << " Unable to search LDAP directory: " << le.what() << endl;
+    throw( PDNSException( "LDAP server unreachable" ) );   // try to reconnect to another server
+  }
+  catch( std::exception &e )
+  {
+    throw( DBException( "STL exception" ) );
+  }
+
+  while( m_pldap->getSearchEntry( msgid, result ) ) {
+    if( !result.count( "associatedDomain" ) || result["associatedDomain"].empty() )
+      continue;
+
+    DomainInfo di;
+    if ( !getDomainInfo( result["associatedDomain"][0], di ) )
+      continue;
+
+    di.backend = this;
+
+    if( di.notified_serial < di.serial )
+      domains->push_back( di );
+  }
+}
 
 
 
- bool LdapBackend::getDomainInfo( const string& domain, DomainInfo& di )
+void LdapBackend::setNotified( uint32_t id, uint32_t serial )
+{
+  string filter;
+  int msgid;
+  PowerLDAP::sresult_t results;
+  PowerLDAP::sentry_t entry;
+  const char* attronly[] = { "associatedDomain", NULL };
+
+  try
+  {
+    // Try to find the notified domain
+    filter = strbind( ":target:", "PdnsDomainId=" + std::to_string( id ), getArg( "filter-axfr" ) );
+    msgid = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attronly );
+    m_pldap->getSearchResults( msgid, results, true );
+  }
+  catch( LDAPTimeout &lt )
+  {
+    L << Logger::Warning << m_myname << " Unable to search LDAP directory: " << lt.what() << endl;
+    throw( DBException( "LDAP server timeout" ) );
+  }
+  catch( LDAPNoConnection &lnc )
+  {
+    L << Logger::Warning << m_myname << " Connection to LDAP lost, trying to reconnect" << endl;
+    if ( reconnect() )
+      this->setNotified( id, serial );
+    else
+      throw PDNSException( "Failed to reconnect to LDAP server" );
+  }
+  catch( LDAPException &le )
+  {
+    L << Logger::Error << m_myname << " Unable to search LDAP directory: " << le.what() << endl;
+    throw( PDNSException( "LDAP server unreachable" ) );   // try to reconnect to another server
+  }
+  catch( std::exception &e )
+  {
+    throw( DBException( "STL exception" ) );
+  }
+
+  if ( results.empty() )
+    throw PDNSException( "No results found when trying to update domain notified_serial for ID " + std::to_string( id ) );
+
+  entry = results.front();
+  string dn = entry["dn"][0];
+  string serialStr = std::to_string( serial );
+  LDAPMod *mods[2];
+  LDAPMod mod;
+  char *vals[2];
+
+  mod.mod_op = LDAP_MOD_REPLACE;
+  mod.mod_type = (char*)"PdnsDomainNotifiedSerial";
+  vals[0] = const_cast<char*>( serialStr.c_str() );
+  vals[1] = NULL;
+  mod.mod_values = vals;
+
+  mods[0] = &mod;
+  mods[1] = NULL;
+
+  try
+  {
+    m_pldap->modify( dn, mods );
+  }
+  catch( LDAPNoConnection &lnc )
+  {
+    L << Logger::Warning << m_myname << " Connection to LDAP lost, trying to reconnect" << endl;
+    if ( reconnect() )
+      this->setNotified( id, serial );
+    else
+      throw PDNSException( "Failed to reconnect to LDAP server" );
+  }
+  catch( LDAPException &le )
+  {
+    L << Logger::Error << m_myname << " Unable to search LDAP directory: " << le.what() << endl;
+    throw( PDNSException( "LDAP server unreachable" ) );   // try to reconnect to another server
+  }
+  catch( std::exception &e )
+  {
+    throw( DBException( "STL exception" ) );
+  }
+}
+
+
+
+bool LdapBackend::getDomainInfo( const string& domain, DomainInfo& di )
 {
   string filter;
   SOAData sd;
-  const char* attronly[] = { "sOARecord", NULL };
+  int msgid;
+  PowerLDAP::sentry_t result;
+  const char* attronly[] = {
+    "sOARecord",
+    "PdnsDomainId",
+    "PdnsDomainNotifiedSerial",
+    "PdnsDomainLastCheck",
+    "PdnsDomainMaster",
+    "PdnsDomainType",
+    NULL
+  };
 
+  try
+  {
+    // search for SOARecord of domain
+    filter = "(&(associatedDomain=" + toLower( m_pldap->escape( domain ) ) + ")(SOARecord=*))";
+    m_msgid = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attronly );
+    m_pldap->getSearchEntry( msgid, result );
+  }
+  catch( LDAPTimeout &lt )
+  {
+    L << Logger::Warning << m_myname << " Unable to search LDAP directory: " << lt.what() << endl;
+    throw( DBException( "LDAP server timeout" ) );
+  }
+  catch( LDAPNoConnection &lnc )
+  {
+    L << Logger::Warning << m_myname << " Connection to LDAP lost, trying to reconnect" << endl;
+    if ( reconnect() )
+      this->getDomainInfo( domain, di );
+    else
+      throw PDNSException( "Failed to reconnect to LDAP server" );
+  }
+  catch( LDAPException &le )
+  {
+    L << Logger::Error << m_myname << " Unable to search LDAP directory: " << le.what() << endl;
+    throw( PDNSException( "LDAP server unreachable" ) );   // try to reconnect to another server
+  }
+  catch( std::exception &e )
+  {
+    throw( DBException( "STL exception" ) );
+  }
 
-  // search for SOARecord of domain
-  filter = "(&(associatedDomain=" + toLower( m_pldap->escape( domain ) ) + ")(SOARecord=*))";
-  m_msgid = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attronly );
-  m_pldap->getSearchEntry( m_msgid, m_result );
-
-  if( m_result.count( "sOARecord" ) && !m_result["sOARecord"].empty() )
+  if( result.count( "sOARecord" ) && !result["sOARecord"].empty() )
   {
     sd.serial = 0;
-    fillSOAData( m_result["sOARecord"][0], sd );
+    fillSOAData( result["sOARecord"][0], sd );
 
-    di.id = 0;
+    if ( result.count( "PdnsDomainId" ) && !result["PdnsDomainId"].empty() )
+      di.id = std::stoi( result["PdnsDomainId"][0] );
+    else
+      di.id = 0;
+
     di.serial = sd.serial;
     di.zone = DNSName(domain);
-    di.last_check = 0;
-    di.backend = this;
-    di.kind = DomainInfo::Master;
+
+    if( result.count( "PdnsDomainLastCheck" ) && !result["PdnsDomainLastCheck"].empty() )
+      di.last_check = pdns_stou( result["PdnsDomainLastCheck"][0] );
+    else
+      di.last_check = 0;
+
+    if ( result.count( "PdnsDomainNotifiedSerial" ) && !result["PdnsDomainNotifiedSerial"].empty() )
+      di.notified_serial = pdns_stou( result["PdnsDomainNotifiedSerial"][0] );
+    else
+      di.notified_serial = 0;
+
+    if ( result.count( "PdnsDomainMaster" ) && !result["PdnsDomainMaster"].empty() )
+      di.masters = result["PdnsDomainMaster"];
+
+    if ( result.count( "PdnsDomainType" ) && !result["PdnsDomainType"].empty() ) {
+      string kind = result["PdnsDomainType"][0];
+      if ( kind == "master" )
+        di.kind = DomainInfo::Master;
+      else if ( kind == "slave" )
+        di.kind = DomainInfo::Slave;
+      else
+        di.kind = DomainInfo::Native;
+    }
+    else {
+      di.kind = DomainInfo::Native;
+    }
 
     return true;
   }

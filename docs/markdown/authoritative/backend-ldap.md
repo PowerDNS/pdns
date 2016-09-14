@@ -97,6 +97,50 @@ In case the used LDAP client library doesn't support LDAP URIs as connection par
 ## `ldap-filter-lookup`
 (default "(:target:)" ) : LDAP filter for limiting IP or name lookups, e.g. (&(:target:)(active=yes)) for returning only entries whose attribute "active" is set to "yes".
 
+# Master Mode
+
+Schema update
+-------------
+
+First off adding master support to the LDAP backend needs
+a schema update. This is required as some metadata must
+be stored by PowerDNS, such as the last successful transfer
+to slaves. The new schema is available in
+schema/pdns-domaininfo.schema.
+
+Once the schema is loaded the zones for which you want to
+be a master must be modified. The dn of the SOA record
+*must* have the object class `PdnsDomain`, and thus the
+`PdnsDomainId` attribute. This attribute is an integer
+that *must* be unique across all zones served by the
+backend. Furthermore the `PdnsDomainType` must be equal
+to 'master' (lower case).
+
+Example
+-------
+
+Here is an example LDIF of a zone that's ready for master
+operation (assuming the 'tree' style):
+
+```
+dn: dc=example,dc=com,ou=dns,dc=mycompany,dc=com
+objectClass: top
+objectClass: domainRelatedObject
+objectClass: dNSDomain2
+objectClass: PdnsDomain
+dc: example
+associatedDomain: example.com
+nSRecord: ns1.example.com
+sOARecord: ns1.example.com. hostmaster.example.com. 2013031101 1800 600 1209600 600
+mXRecord: 10 mx1.example.com
+PdnsDomainId: 1
+PdnsDomainType: master
+PdnsDomainMaster: 192.168.0.2
+```
+
+You should have one attribute `PdnsDomainMaster` per
+master serving this zone.
+
 # Example
 ## Tree design
 The DNS LDAP tree should be designed carefully to prevent mistakes, which are hard to correct afterwards.
