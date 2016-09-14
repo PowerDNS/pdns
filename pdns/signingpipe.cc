@@ -75,7 +75,7 @@ ChunkedSigningPipe::ChunkedSigningPipe(const DNSName& signerName, bool mustSign,
     d_maxchunkrecords(100), d_tids(d_numworkers), d_mustSign(mustSign), d_final(false)
 {
   d_rrsetToSign = new rrset_t;
-  d_chunks.push_back(vector<DNSResourceRecord>()); // load an empty chunk
+  d_chunks.push_back(vector<DNSZoneRecord>()); // load an empty chunk
   
   if(!d_mustSign)
     return;
@@ -111,14 +111,14 @@ ChunkedSigningPipe::~ChunkedSigningPipe()
 
 namespace {
 bool
-dedupLessThan(const DNSResourceRecord& a, const DNSResourceRecord &b)
+dedupLessThan(const DNSZoneRecord& a, const DNSZoneRecord &b)
 {
-  return (tie(a.content, a.ttl) < tie(b.content, b.ttl));
+  return make_tuple(a.dr.d_content->getZoneRepresentation(), a.dr.d_ttl) < make_tuple(b.dr.d_content->getZoneRepresentation(), b.dr.d_ttl);  // XXX SLOW SLOW SLOW
 }
 
-bool dedupEqual(const DNSResourceRecord& a, const DNSResourceRecord &b)
+bool dedupEqual(const DNSZoneRecord& a, const DNSZoneRecord &b)
 {
-  return(tie(a.content, a.ttl) == tie(b.content, b.ttl));
+  return make_tuple(a.dr.d_content->getZoneRepresentation(), a.dr.d_ttl) == make_tuple(b.dr.d_content->getZoneRepresentation(), b.dr.d_ttl);  // XXX SLOW SLOW SLOW
 }
 }
 
@@ -129,11 +129,11 @@ void ChunkedSigningPipe::dedupRRSet()
   d_rrsetToSign->erase(unique(d_rrsetToSign->begin(), d_rrsetToSign->end(), dedupEqual), d_rrsetToSign->end());
 }
 
-bool ChunkedSigningPipe::submit(const DNSResourceRecord& rr)
+bool ChunkedSigningPipe::submit(const DNSZoneRecord& rr)
 {
   ++d_submitted;
   // check if we have a full RRSET to sign
-  if(!d_rrsetToSign->empty() && (d_rrsetToSign->begin()->qtype.getCode() != rr.qtype.getCode()  ||  d_rrsetToSign->begin()->qname != rr.qname)) 
+  if(!d_rrsetToSign->empty() && (d_rrsetToSign->begin()->dr.d_type != rr.dr.d_type ||  d_rrsetToSign->begin()->dr.d_name != rr.dr.d_name)) 
   {
     dedupRRSet();
     sendRRSetToWorker();
@@ -268,7 +268,7 @@ void ChunkedSigningPipe::sendRRSetToWorker() // it sounds so socialist!
 unsigned int ChunkedSigningPipe::getReady()
 {
    unsigned int sum=0; 
-   for(const std::vector<DNSResourceRecord>& v :  d_chunks) {
+   for(const auto& v :  d_chunks) {
      sum += v.size(); 
    }
    return sum;
@@ -313,7 +313,7 @@ void ChunkedSigningPipe::flushToSign()
   d_rrsetToSign->clear();
 }
 
-vector<DNSResourceRecord> ChunkedSigningPipe::getChunk(bool final)
+vector<DNSZoneRecord> ChunkedSigningPipe::getChunk(bool final)
 {
   if(final && !d_final) {
     // this means we should keep on reading until d_outstanding == 0
@@ -327,10 +327,10 @@ vector<DNSResourceRecord> ChunkedSigningPipe::getChunk(bool final)
   }
   if(d_final)
     flushToSign(); // should help us wait
-  vector<DNSResourceRecord> front=d_chunks.front();
+  vector<DNSZoneRecord> front=d_chunks.front();
   d_chunks.pop_front();
   if(d_chunks.empty())
-    d_chunks.push_back(vector<DNSResourceRecord>());
+    d_chunks.push_back(vector<DNSZoneRecord>());
 /*  if(d_final && front.empty())
       cerr<<"getChunk returning empty in final"<<endl; */
   return front;

@@ -49,13 +49,13 @@ try
   dns_random_init("0123456789abcdef");
   stubParseResolveConf();
 
-  vector<DNSResourceRecord> ret;
+  vector<DNSZoneRecord> ret;
 
-  int res=stubDoResolve(argv[1], DNSRecordContent::TypeToNumber(argv[2]), ret);
+  int res=stubDoResolve(DNSName(argv[1]), DNSRecordContent::TypeToNumber(argv[2]), ret);
 
   cout<<"res: "<<res<<endl;
   for(const auto& r : ret) {
-    cout<<r.getZoneRepresentation()<<endl;
+    cout<<r.dr.d_content->getZoneRepresentation()<<endl;
   }
 }
 catch(std::exception &e)

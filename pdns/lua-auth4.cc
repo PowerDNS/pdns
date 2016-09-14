@@ -192,11 +192,14 @@ AuthLua4::AuthLua4(const std::string& fname) {
   d_lw->writeVariable("pdns", pd);
 
   d_lw->writeFunction("resolve", [](const std::string& qname, uint16_t qtype) {
-      std::vector<DNSResourceRecord> ret;
+      std::vector<DNSZoneRecord> ret;
       std::unordered_map<int, DNSResourceRecord> luaResult;
-      stubDoResolve(qname, qtype, ret);
+      stubDoResolve(DNSName(qname), qtype, ret);
       int i = 0;
-      for(const auto &row: ret) luaResult[++i] = row;
+      for(const auto &row: ret) {
+        luaResult[++i] = DNSResourceRecord(row.dr);
+        luaResult[i].auth = row.auth;
+      }
       return luaResult;
   });
 

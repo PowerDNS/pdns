@@ -150,6 +150,7 @@ boilerplate_conv(DNAME, QType::DNAME, conv.xfrName(d_content));
 boilerplate_conv(MR, QType::MR, conv.xfrName(d_alias, true));
 boilerplate_conv(MINFO, QType::MINFO, conv.xfrName(d_rmailbx, true); conv.xfrName(d_emailbx, true));
 boilerplate_conv(TXT, QType::TXT, conv.xfrText(d_text, true));
+boilerplate_conv(ENT, 0, );
 boilerplate_conv(SPF, 99, conv.xfrText(d_text, true));
 boilerplate_conv(HINFO, QType::HINFO,  conv.xfrText(d_cpu);   conv.xfrText(d_host));
 
@@ -592,6 +593,7 @@ void reportOtherTypes()
    SPFRecordContent::report();
    NAPTRRecordContent::report();
    LOCRecordContent::report();
+   ENTRecordContent::report();
    HINFORecordContent::report();
    RPRecordContent::report();
    KEYRecordContent::report();

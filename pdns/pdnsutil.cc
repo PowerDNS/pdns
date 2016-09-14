@@ -714,9 +714,12 @@ int increaseSerial(const DNSName& zone, DNSSECKeeper &dk)
   sd.db->lookup(QType(QType::SOA), zone);
   vector<DNSResourceRecord> rrs;
   DNSResourceRecord rr;
+  DNSZoneRecord szr;
   while (sd.db->get(rr)) {
-    if (rr.qtype.getCode() == QType::SOA)
+    if (rr.qtype.getCode() == QType::SOA) {
       rrs.push_back(rr);
+      szr.dr=DNSRecord(rr) ;
+    }
   } 
 
   if (rrs.size() > 1) {
@@ -744,7 +747,7 @@ int increaseSerial(const DNSName& zone, DNSSECKeeper &dk)
     }
   }
   else {
-    sd.serial = calculateEditSOA(sd, soaEditKind) + 1;
+    sd.serial = calculateEditSOA(szr, soaEditKind) + 1;
   }
   rrs[0].content = serializeSOAData(sd);
 
@@ -1397,7 +1400,7 @@ void testSpeed(DNSSECKeeper& dk, const DNSName& zone, const string& remote, int 
 
   ChunkedSigningPipe csp(DNSName(zone), 1, remote, cores);
   
-  vector<DNSResourceRecord> signatures;
+  vector<DNSZoneRecord> signatures;
   uint32_t rnd;
   unsigned char* octets = (unsigned char*)&rnd;
   char tmp[25];
@@ -1411,8 +1414,9 @@ void testSpeed(DNSSECKeeper& dk, const DNSName& zone, const string& remote, int 
     
     snprintf(tmp, sizeof(tmp), "r-%u", rnd);
     rr.qname=DNSName(tmp)+zone;
-    
-    if(csp.submit(rr))
+    DNSZoneRecord dzr;
+    dzr.dr=DNSRecord(rr);
+    if(csp.submit(dzr))
       while(signatures = csp.getChunk(), !signatures.empty())
         ;
   }

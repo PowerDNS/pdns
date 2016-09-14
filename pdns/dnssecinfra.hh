@@ -154,7 +154,7 @@ string hashQNameWithSalt(const NSEC3PARAMRecordContent& ns3prc, const DNSName& q
 string hashQNameWithSalt(const std::string& salt, unsigned int iterations, const DNSName& qname);
 void decodeDERIntegerSequence(const std::string& input, vector<string>& output);
 class DNSPacket;
-void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const std::set<DNSName>& authMap, vector<DNSResourceRecord>& rrs);
+void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const std::set<DNSName>& authMap, vector<DNSZoneRecord>& rrs);
 
 string calculateHMAC(const std::string& key, const std::string& text, TSIGHashEnum hash);
 

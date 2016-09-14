@@ -77,6 +77,7 @@ public:
 
   static int chartocode(const char *p); //!< convert a character string to a code
   enum typeenum : uint16_t {
+    ENT=0,
     A=1,
     NS=2,
     CNAME=5,

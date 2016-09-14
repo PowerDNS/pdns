@@ -1136,6 +1136,7 @@ testrunner_SOURCES = \
 	test-base64_cc.cc \
 	test-bindparser_cc.cc \
 	test-delaypipe_hh.cc \
+	test-dnsrecordcontent.cc \
 	test-distributor_hh.cc \
 	test-dns_random_hh.cc \
 	test-dnsname_cc.cc \

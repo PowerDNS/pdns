@@ -33,6 +33,7 @@
 #include <boost/tuple/tuple_comparison.hpp>
 #include <boost/multi_index/key_extractors.hpp>
 #include <boost/multi_index/sequenced_index.hpp>
+
 using namespace ::boost::multi_index;
 
 #include "dns.hh"
@@ -305,7 +306,9 @@ inline void unixDie(const string &why)
 
 string makeHexDump(const string& str);
 void shuffle(vector<DNSRecord>& rrs);
-void shuffle(vector<DNSResourceRecord>& rrs);
+class DNSZoneRecord;
+void shuffle(vector<DNSZoneRecord>& rrs);
+
 void orderAndShuffle(vector<DNSRecord>& rrs);
 
 void normalizeTV(struct timeval& tv);
@@ -442,9 +445,6 @@ inline DNSName toCanonic(const DNSName& zone, const string& qname)
 string stripDot(const string& dom);
 
 void seedRandom(const string& source);
-string makeRelative(const std::string& fqdn, const std::string& zone);
-string labelReverse(const std::string& qname);
-std::string dotConcat(const std::string& a, const std::string &b);
 int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret);
 int makeIPv4sockaddr(const std::string& str, struct sockaddr_in* ret);
 int makeUNsockaddr(const std::string& path, struct sockaddr_un* ret);

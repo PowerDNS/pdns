@@ -71,7 +71,7 @@ int getRRSIGsForRRSET(DNSSECKeeper& dk, const DNSName& signer, const DNSName sig
 // this is the entrypoint from DNSPacket
 void addSignature(DNSSECKeeper& dk, UeberBackend& db, const DNSName& signer, const DNSName signQName, const DNSName& wildcardname, uint16_t signQType,
   uint32_t signTTL, DNSResourceRecord::Place signPlace,
-  vector<shared_ptr<DNSRecordContent> >& toSign, vector<DNSResourceRecord>& outsigned, uint32_t origTTL)
+  vector<shared_ptr<DNSRecordContent> >& toSign, vector<DNSZoneRecord>& outsigned, uint32_t origTTL)
 {
   //cerr<<"Asked to sign '"<<signQName<<"'|"<<DNSRecordContent::NumberToType(signQType)<<", "<<toSign.size()<<" records\n";
   if(toSign.empty())
@@ -87,17 +87,17 @@ void addSignature(DNSSECKeeper& dk, UeberBackend& db, const DNSName& signer, con
       return;
     } 
   
-    DNSResourceRecord rr;
-    rr.qname=signQName;
-    rr.qtype=QType::RRSIG;
+    DNSZoneRecord rr;
+    rr.dr.d_name=signQName;
+    rr.dr.d_type=QType::RRSIG;
     if(origTTL)
-      rr.ttl=origTTL;
+      rr.dr.d_ttl=origTTL;
     else
-      rr.ttl=signTTL;
+      rr.dr.d_ttl=signTTL;
     rr.auth=false;
-    rr.d_place = signPlace;
+    rr.dr.d_place = signPlace;
     for(RRSIGRecordContent& rrc :  rrcs) {
-      rr.content = rrc.getZoneRepresentation();
+      rr.dr.d_content = std::make_shared<RRSIGRecordContent>(rrc);
       outsigned.push_back(rr);
     }
   }
@@ -159,9 +159,9 @@ void fillOutRRSIG(DNSSECPrivateKey& dpk, const DNSName& signQName, RRSIGRecordCo
   }
 }
 
-static bool rrsigncomp(const DNSResourceRecord& a, const DNSResourceRecord& b)
+static bool rrsigncomp(const DNSZoneRecord& a, const DNSZoneRecord& b)
 {
-  return tie(a.d_place, a.qtype) < tie(b.d_place, b.qtype);
+  return tie(a.dr.d_place, a.dr.d_type) < tie(b.dr.d_place, b.dr.d_type);
 }
 
 static bool getBestAuthFromSet(const set<DNSName>& authSet, const DNSName& name, DNSName& auth)
@@ -179,7 +179,7 @@ static bool getBestAuthFromSet(const set<DNSName>& authSet, const DNSName& name,
   return false;
 }
 
-void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const set<DNSName>& authSet, vector<DNSResourceRecord>& rrs)
+void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const set<DNSName>& authSet, vector<DNSZoneRecord>& rrs)
 {
   stable_sort(rrs.begin(), rrs.end(), rrsigncomp);
   
@@ -191,38 +191,30 @@ void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const set<DNSName>& authSet, 
   DNSResourceRecord::Place signPlace=DNSResourceRecord::ANSWER;
   vector<shared_ptr<DNSRecordContent> > toSign;
 
-  vector<DNSResourceRecord> signedRecords;
+  vector<DNSZoneRecord> signedRecords;
   signedRecords.reserve(rrs.size()*1.5);
-  //  cout<<rrs.size()<<", "<<sizeof(DNSResourceRecord)<<endl;
+  //  cout<<rrs.size()<<", "<<sizeof(DNSZoneRecord)<<endl;
   DNSName signer;
-  for(vector<DNSResourceRecord>::const_iterator pos = rrs.begin(); pos != rrs.end(); ++pos) {
-    if(pos != rrs.begin() && (signQType != pos->qtype.getCode()  || signQName != pos->qname)) {
+  for(auto pos = rrs.cbegin(); pos != rrs.cend(); ++pos) {
+    if(pos != rrs.cbegin() && (signQType != pos->dr.d_type  || signQName != pos->dr.d_name)) {
       if(getBestAuthFromSet(authSet, signQName, signer))
         addSignature(dk, db, signer, signQName, wildcardQName, signQType, signTTL, signPlace, toSign, signedRecords, origTTL);
     }
     signedRecords.push_back(*pos);
-    signQName= pos->qname.makeLowerCase();
+    signQName= pos->dr.d_name.makeLowerCase();
     if(!pos->wildcardname.empty())
       wildcardQName = pos->wildcardname.makeLowerCase();
     else
       wildcardQName.clear();
-    signQType = pos ->qtype.getCode();
+    signQType = pos->dr.d_type;
     if(pos->signttl)
       signTTL = pos->signttl;
     else
-      signTTL = pos->ttl;
-    origTTL = pos->ttl;
-    signPlace = pos->d_place;
-    if(pos->auth || pos->qtype.getCode() == QType::DS) {
-      string content = pos->content;
-      if(!pos->content.empty() && pos->qtype.getCode()==QType::TXT && pos->content[0]!='"') {
-        content="\""+pos->content+"\"";
-      }
-      if(pos->content.empty())  // empty contents confuse the MOADNS setup
-        content=".";
-      
-      shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(pos->qtype.getCode(), 1, content)); 
-      toSign.push_back(drc);
+      signTTL = pos->dr.d_ttl;
+    origTTL = pos->dr.d_ttl;
+    signPlace = pos->dr.d_place;
+    if(pos->auth || pos->dr.d_type == QType::DS) {
+      toSign.push_back(pos->dr.d_content); // so ponder.. should this be a deep copy perhaps?
     }
   }
   if(getBestAuthFromSet(authSet, signQName, signer))

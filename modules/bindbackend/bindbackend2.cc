@@ -939,15 +939,17 @@ bool Bind2Backend::findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const DNSName&
 
     if(iter->qname.empty())
       before.clear();
-    else {
+    else { 
+
       before=iter->qname.labelReverse().toString(" ",false);
     }
   }
   else {
     if(qname.empty())
       before.clear();
-    else
+    else {
       before=qname.labelReverse().toString(" ",false);
+    }
   }
 
   //cerr<<"Now after"<<endl;
@@ -969,8 +971,9 @@ bool Bind2Backend::findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const DNSName&
         break;
       }
     }
-    if(iter != records->end())
+    if(iter != records->end()) {
       after = (iter)->qname.labelReverse().toString(" ",false);
+    }
   }
 
   // cerr<<"Before: '"<<before<<"', after: '"<<after<<"'\n";
@@ -993,21 +996,15 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
     nsec3zone=getNSEC3PARAM(auth, &ns3pr);
 
   if(!nsec3zone) {
-    DNSName dqname = DNSName(labelReverse(qname));
-    //cerr<<"in bind2backend::getBeforeAndAfterAbsolute: no nsec3 for "<<auth<<endl;
+    DNSName dqname(DNSName(boost::replace_all_copy(qname," ",".")).labelReverse()); // the horror
     return findBeforeAndAfterUnhashed(bbd, dqname, unhashed, before, after);
   }
   else {
-    typedef recordstorage_t::index<HashedTag>::type records_by_hashindex_t;
-    records_by_hashindex_t& hashindex=boost::multi_index::get<HashedTag>(*bbd.d_records.getWRITABLE());
+    auto& hashindex=boost::multi_index::get<NSEC3Tag>(*bbd.d_records.getWRITABLE());
 
-    records_by_hashindex_t::const_iterator iter, first;
-    first = hashindex.upper_bound(""); // skip records without a hash
+    auto first = hashindex.upper_bound("");
+    auto iter = hashindex.upper_bound(toLower(qname));
 
-    // for(auto iter = first; iter != hashindex.end(); iter++)
-    //   cerr<<iter->nsec3hash<<endl;
-
-    iter = hashindex.upper_bound(toLower(qname));
     if (iter == hashindex.end()) {
       --iter;
       before = iter->nsec3hash;
@@ -1081,20 +1078,17 @@ void Bind2Backend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p
   if(d_handle.d_records->empty())
     DLOG(L<<"Query with no results"<<endl);
 
-  pair<recordstorage_t::const_iterator, recordstorage_t::const_iterator> range;
-
-  range = d_handle.d_records->equal_range(d_handle.qname);
-  //cout<<"End equal range"<<endl;
   d_handle.mustlog = mustlog;
+
+  auto& hashedidx = boost::multi_index::get<UnorderedNameTag>(*d_handle.d_records);
+  auto range = hashedidx.equal_range(d_handle.qname);
   
   if(range.first==range.second) {
-    // cerr<<"Found nothing!"<<endl;
     d_handle.d_list=false;
     d_handle.d_iter = d_handle.d_end_iter  = range.first;
     return;
   }
   else {
-    // cerr<<"Found something!"<<endl;
     d_handle.d_iter=range.first;
     d_handle.d_end_iter=range.second;
   }

@@ -263,22 +263,61 @@ bool DNSBackend::getSOA(const DNSName &domain, SOAData &sd, DNSPacket *p)
   return true;
 }
 
+bool DNSBackend::get(DNSZoneRecord& dzr)
+{
+  //  cout<<"DNSBackend::get(DNSZoneRecord&) called - translating into DNSResourceRecord query"<<endl;
+  DNSResourceRecord rr;
+  if(!this->get(rr))
+    return false;
+  dzr.auth = rr.auth;
+  dzr.domain_id = rr.domain_id;
+  dzr.scopeMask = rr.scopeMask;
+  if(rr.qtype.getCode() == QType::TXT && !rr.content.empty() && rr.content[0]!='"')
+    rr.content = "\""+ rr.content + "\"";
+  if(rr.qtype.getCode() == QType::SOA) {
+    try {
+      dzr.dr = DNSRecord(rr);
+    } catch(...) {
+      vector<string> parts;
+      stringtok(parts, rr.content, " \t");
+      if(parts.size() < 1)
+        rr.content+=arg()["default-soa-name"];
+      if(parts.size() < 2)
+        rr.content+=" "+arg()["default-soa-mail"];      
+      if(parts.size() < 3)
+        rr.content += " 0";
+      if(parts.size() < 4)
+        rr.content += " " + ::arg()["soa-refresh-default"];
+      if(parts.size() < 5)
+        rr.content += " " + ::arg()["soa-expire-default"];
+      if(parts.size() < 6)
+        rr.content += " " + ::arg()["soa-minimum-default"];
+      dzr.dr = DNSRecord(rr);        
+    }
+  }
+  else 
+    dzr.dr = DNSRecord(rr);
+  return true;
+}
+
 bool DNSBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonename, const DNSName& qname, DNSName& before, DNSName& after)
 {
   // FIXME400 FIXME400 FIXME400
   // string lcqname=toLower(qname); FIXME400 tolower?
   // string lczonename=toLower(zonename); FIXME400 tolower?
   // lcqname=makeRelative(lcqname, lczonename);
-  DNSName lczonename = DNSName(toLower(zonename.toString()));
+  DNSName lczonename = zonename.makeLowerCase(); 
   // lcqname=labelReverse(lcqname);
   DNSName dnc;
   string relqname, sbefore, safter;
-  relqname=labelReverse(makeRelative(qname.toStringNoDot(), zonename.toStringNoDot())); // FIXME400
+  relqname=qname.makeRelative(zonename).labelReverse().toString(" ", false);
   //sbefore = before.toString();
   //safter = after.toString();
   bool ret = this->getBeforeAndAfterNamesAbsolute(id, relqname, dnc, sbefore, safter);
-  before = DNSName(labelReverse(sbefore)) + lczonename;
-  after = DNSName(labelReverse(safter)) + lczonename;
+  boost::replace_all(sbefore, " ", ".");
+  boost::replace_all(safter, " ", ".");
+  before = DNSName(sbefore).labelReverse() + lczonename;
+  after = DNSName(safter).labelReverse() + lczonename;
 
   // before=dotConcat(labelReverse(before), lczonename); FIXME400
   // after=dotConcat(labelReverse(after), lczonename); FIXME400
@@ -317,6 +356,32 @@ bool DNSBackend::calculateSOASerial(const DNSName& domain, const SOAData& sd, ti
 
     return true;
 }
+void fillSOAData(const DNSZoneRecord& in, SOAData& sd)
+{
+  sd.domain_id = in.domain_id;
+  sd.ttl = in.dr.d_ttl;
+
+  auto src=getRR<SOARecordContent>(in.dr);
+  sd.nameserver = src->d_mname;
+  sd.hostmaster = src->d_rname;
+  sd.serial = src->d_st.serial;
+  sd.refresh = src->d_st.refresh;
+  sd.retry = src->d_st.retry;
+  sd.expire = src->d_st.expire;
+  sd.default_ttl = src->d_st.minimum;
+}
+
+std::shared_ptr<DNSRecordContent> makeSOAContent(const SOAData& sd)
+{
+    struct soatimes st;
+    st.serial = sd.serial;
+    st.refresh = sd.refresh;
+    st.retry = sd.retry;
+    st.expire = sd.expire;
+    st.minimum = sd.default_ttl;
+    return std::make_shared<SOARecordContent>(sd.nameserver, sd.hostmaster, st);
+}
+
 
 void fillSOAData(const string &content, SOAData &data)
 {

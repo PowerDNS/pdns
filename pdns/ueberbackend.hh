@@ -79,7 +79,7 @@ public:
   class handle
   {
   public:
-    bool get(DNSResourceRecord &r);
+    bool get(DNSZoneRecord &dr);
     handle();
     ~handle();
 
@@ -108,6 +108,7 @@ public:
   bool getSOAUncached(const DNSName &domain, SOAData &sd, DNSPacket *p=0);  // same, but ignores cache
   bool list(const DNSName &target, int domain_id, bool include_disabled=false);
   bool get(DNSResourceRecord &r);
+  bool get(DNSZoneRecord &r);
   void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false);
 
   static DNSBackend *maker(const map<string,string> &);
@@ -139,8 +140,8 @@ public:
 private:
   pthread_t tid;
   handle d_handle;
-  vector<DNSResourceRecord> d_answers;
-  vector<DNSResourceRecord>::const_iterator d_cachehandleiter;
+  vector<DNSZoneRecord> d_answers;
+  vector<DNSZoneRecord>::const_iterator d_cachehandleiter;
 
   static pthread_mutex_t d_mut;
   static pthread_cond_t d_cond;
@@ -162,9 +163,9 @@ private:
   static bool d_go;
   bool stale;
 
-  int cacheHas(const Question &q, vector<DNSResourceRecord> &rrs);
+  int cacheHas(const Question &q, vector<DNSZoneRecord> &rrs);
   void addNegCache(const Question &q);
-  void addCache(const Question &q, const vector<DNSResourceRecord> &rrs);
+  void addCache(const Question &q, const vector<DNSZoneRecord> &rrs);
   
 };
 

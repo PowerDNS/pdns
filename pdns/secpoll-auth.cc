@@ -15,6 +15,7 @@
 #include "namespaces.hh"
 #include "statbag.hh"
 #include "stubresolver.hh"
+#include "dnsrecords.hh"
 #include <stdint.h>
 #ifndef PACKAGEVERSION
 #define PACKAGEVERSION getPDNSVersion()
@@ -44,17 +45,14 @@ void doSecPoll(bool first)
   boost::replace_all(query, "+", "_");
   boost::replace_all(query, "~", "_");
 
-  vector<DNSResourceRecord> ret;
+  vector<DNSZoneRecord> ret;
 
-  int res=stubDoResolve(query, QType::TXT, ret);
+  int res=stubDoResolve(DNSName(query), QType::TXT, ret);
 
   int security_status=0;
 
   if(!res && !ret.empty()) {
-    string content=ret.begin()->content;
-    if(!content.empty() && content[0]=='"' && content[content.size()-1]=='"') {
-      content=content.substr(1, content.length()-2);
-    }
+    string content=getRR<TXTRecordContent>(ret.begin()->dr)->d_text;
 
     pair<string, string> split = splitField(content, ' ');
 

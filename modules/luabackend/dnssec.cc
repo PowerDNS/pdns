@@ -36,7 +36,7 @@ bool LUABackend::updateDNSSECOrderAndAuth(uint32_t domain_id, const DNSName& zon
 	if(logging)
 	    L << Logger::Info << backend_name << "(updateDNSSECOrderAndAuth) domain_id: '" << domain_id << "' zonename: '" << zonename << "' qname: '" << qname << "' auth: '" << auth << "'" << endl;
 	    
-	string ins=toLower(labelReverse(qname.makeRelative(zonename).toString()));
+	string ins=qname.makeRelative(zonename).makeLowerCase().labelReverse().toString(" ", false);
 	return this->updateDNSSECOrderAndAuthAbsolute(domain_id, qname, ins, auth);
     } 
 
