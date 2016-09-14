@@ -173,13 +173,7 @@ int PowerLDAP::search( const string& base, int scope, const string& filter, cons
 
 int PowerLDAP::waitResult( int msgid, int timeout, LDAPMessage** result )
 {
-        try {
-        	return ldapWaitResult( d_ld, msgid, timeout, result );
-        }
-        catch ( LDAPException &e ) {
-        	ensureConnect();
-        	throw; // Not sure why this was done, but the original behavior.
-        }
+	return ldapWaitResult( d_ld, msgid, timeout, result );
 }
 
 

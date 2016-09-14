@@ -35,13 +35,8 @@ int ldapWaitResult( LDAP *conn, int msgid, int timeout, LDAPMessage** result )
 
 	int rc = ldap_result( conn, msgid, LDAP_MSG_ONE, &tv, &res );
 
-	switch( rc )
-	{
-		case -1:
-			throw LDAPException( "Error waiting for LDAP result: " + ldapGetError( conn, rc ) );
-		case 0:
-			throw LDAPTimeout();
-	}
+	if ( rc == -1 || rc == 0 )
+		return rc;
 
 	if( result == NULL )
 	{
