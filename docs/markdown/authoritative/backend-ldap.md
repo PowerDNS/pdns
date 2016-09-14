@@ -60,6 +60,9 @@ In case the used LDAP client library doesn't support LDAP URIs as connection par
 ## `ldap-starttls`
 (default "no") : Use TLS encrypted connections to the LDAP server. This is only allowed if ldap-host is a <ldap://> URI or a host name / IP address.
 
+## `ldap-timeout`
+(default: "5") : The number of seconds to wait for LDAP operations to complete.
+
 ## `ldap-reconnect-attempts`
 (default: "5") : The number of attempts to make to re-establish a lost connection to the LDAP server.
 
