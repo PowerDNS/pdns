@@ -36,4 +36,10 @@ public:
 	explicit LDAPTimeout() : LDAPException( "Timeout" ) {}
 };
 
+class LDAPNoConnection : public LDAPException
+{
+public:
+	explicit LDAPNoConnection() : LDAPException( "No connection to LDAP server" ) {}
+};
+
 #endif // LDAPEXCEPTIONS_HH
