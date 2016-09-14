@@ -24,6 +24,7 @@
 #include "config.h"
 #endif
 #include "exceptions.hh"
+#include "ldapauthenticator.hh"
 #include "ldaputils.hh"
 #include "powerldap.hh"
 #include "pdns/misc.hh"
@@ -109,6 +110,13 @@ void PowerLDAP::getOption( int option, int *value )
 }
 
 
+void PowerLDAP::bind( LdapAuthenticator* authenticator )
+{
+        if ( !authenticator->authenticate( d_ld ) )
+        	throw LDAPException( "Failed to bind to LDAP server: " + authenticator->getError() );
+}
+
+
 void PowerLDAP::bind( const string& ldapbinddn, const string& ldapsecret, int method, int timeout )
 {
         int msgid;
@@ -167,7 +175,7 @@ int PowerLDAP::search( const string& base, int scope, const string& filter, cons
 int PowerLDAP::waitResult( int msgid, int timeout, LDAPMessage** result )
 {
         try {
-        	ldapWaitResult( d_ld, msgid, timeout, result );
+        	return ldapWaitResult( d_ld, msgid, timeout, result );
         }
         catch ( LDAPException &e ) {
         	ensureConnect();

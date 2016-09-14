@@ -1,1 +1,1 @@
-$(LDAP_LIBS)
+$(LDAP_LIBS) $(KRB5_LIBS)
