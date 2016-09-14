@@ -23,6 +23,8 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#include "exceptions.hh"
+#include "ldaputils.hh"
 #include "powerldap.hh"
 #include "pdns/misc.hh"
 #include <sys/time.h>
@@ -97,19 +99,13 @@ PowerLDAP::~PowerLDAP()
 
 void PowerLDAP::setOption( int option, int value )
 {
-        if( ldap_set_option( d_ld, option, (void*) &value ) != LDAP_OPT_SUCCESS )
-        {
-        	throw( LDAPException( "Unable to set option" ) );
-        }
+        ldapSetOption( d_ld, option, (void*) &value );
 }
 
 
 void PowerLDAP::getOption( int option, int *value )
 {
-        if( ldap_get_option( d_ld, option, (void*) value ) != LDAP_OPT_SUCCESS )
-        {
-        	throw( LDAPException( "Unable to get option" ) );
-        }
+        ldapGetOption( d_ld, option, (void*) value );
 }
 
 
@@ -170,32 +166,13 @@ int PowerLDAP::search( const string& base, int scope, const string& filter, cons
 
 int PowerLDAP::waitResult( int msgid, int timeout, LDAPMessage** result )
 {
-        struct timeval tv;
-        LDAPMessage* res;
-
-        tv.tv_sec = timeout;
-        tv.tv_usec = 0;
-        int rc;
-      
-        rc = ldap_result( d_ld, msgid, LDAP_MSG_ONE, &tv, &res );
-
-        switch( rc )
-        {
-        	case -1:
-            ensureConnect();
-        		throw LDAPException( "Error waiting for LDAP result: " + getError() );
-        	case 0:
-        		throw LDAPTimeout();
+        try {
+        	ldapWaitResult( d_ld, msgid, timeout, result );
         }
-
-        if( result == NULL )
-        {
-        	ldap_msgfree( res );
-        	return rc;
+        catch ( LDAPException &e ) {
+        	ensureConnect();
+        	throw; // Not sure why this was done, but the original behavior.
         }
-
-        *result = res;
-        return rc;
 }
 
 
@@ -279,9 +256,7 @@ void PowerLDAP::getSearchResults( int msgid, sresult_t& result, bool dn, int tim
 
 const string PowerLDAP::getError( int rc )
 {
-        if( rc == -1 ) { getOption( LDAP_OPT_ERROR_NUMBER, &rc ); }
-
-        return string( ldap_err2string( rc ) );;
+        return ldapGetError( d_ld, rc );
 }
 
 

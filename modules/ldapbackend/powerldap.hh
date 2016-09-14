@@ -23,7 +23,6 @@
 #include <map>
 #include <string>
 #include <vector>
-#include <exception>
 #include <stdexcept>
 #include <inttypes.h>
 #include <errno.h>
@@ -39,18 +38,6 @@
 using std::map;
 using std::string;
 using std::vector;
-
-class LDAPException : public std::runtime_error
-{
-public:
-        explicit LDAPException( const string &str ) : std::runtime_error( str ) {}
-};
-
-class LDAPTimeout : public LDAPException
-{
-public:
-        explicit LDAPTimeout() : LDAPException( "Timeout" ) {}
-};
 
 class PowerLDAP
 {

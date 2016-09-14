@@ -23,6 +23,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#include "exceptions.hh"
 #include "ldapbackend.hh"
 
 unsigned int ldap_host_index = 0;
