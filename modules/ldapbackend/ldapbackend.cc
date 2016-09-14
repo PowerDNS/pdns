@@ -81,8 +81,14 @@ LdapBackend::LdapBackend( const string &suffix )
 
         	m_pldap = new PowerLDAP( hoststr.c_str(), LDAP_PORT, mustDo( "starttls" ) );
         	m_pldap->setOption( LDAP_OPT_DEREF, LDAP_DEREF_ALWAYS );
-        	m_pldap->bind( getArg( "binddn" ), getArg( "secret" ), LDAP_AUTH_SIMPLE, getArgAsNum( "timeout" ) );
-        	m_authenticator = new LdapSimpleAuthenticator( getArg( "binddn" ), getArg( "secret" ), getArgAsNum( "timeout" ) );
+
+        	string bindmethod = getArg( "bindmethod" );
+        	if ( bindmethod == "gssapi" ) {
+        		m_authenticator = new LdapGssapiAuthenticator( getArg( "krb5-keytab" ), getArg( "krb5-ccache" ), getArgAsNum( "timeout" ) );
+        	}
+        	else {
+        		m_authenticator = new LdapSimpleAuthenticator( getArg( "binddn" ), getArg( "secret" ), getArgAsNum( "timeout" ) );
+        	}
         	m_pldap->bind( m_authenticator );
 
         	L << Logger::Notice << m_myname << " Ldap connection succeeded" << endl;
@@ -540,8 +546,11 @@ public:
         	declare( suffix, "starttls", "Use TLS to encrypt connection (unused for LDAP URIs)", "no" );
         	declare( suffix, "basedn", "Search root in ldap tree (must be set)","" );
         	declare( suffix, "basedn-axfr-override", "Override base dn for AXFR subtree search", "no" );
+        	declare( suffix, "bindmethod", "Bind method to use (simple or gssapi)", "simple" );
         	declare( suffix, "binddn", "User dn for non anonymous binds","" );
         	declare( suffix, "secret", "User password for non anonymous binds", "" );
+        	declare( suffix, "krb5-keytab", "The keytab to use for GSSAPI authentication", "" );
+        	declare( suffix, "krb5-ccache", "The credentials cache used for GSSAPI authentication", "" );
         	declare( suffix, "timeout", "Seconds before connecting to server fails", "5" );
         	declare( suffix, "method", "How to search entries (simple, strict or tree)", "simple" );
         	declare( suffix, "filter-axfr", "LDAP filter for limiting AXFR results", "(:target:)" );

@@ -58,20 +58,25 @@ There can be multiple LDAP URIs specified for load balancing and high availabili
 In case the used LDAP client library doesn't support LDAP URIs as connection parameter, use plain host names or IP addresses instead (both may optionally be followed by a colon and the port).
 
 ## `ldap-starttls`
-(default "no") : Use TLS encrypted connections to the LDAP server.
-This is only allowed if `ldap-host` is a `ldap://` URI or a host name / IP address.
+(default "no") : Use TLS encrypted connections to the LDAP server. This is only allowed if ldap-host is a <ldap://> URI or a host name / IP address.
 
-## `ldap-basedn`
-(default "") : The PowerDNS LDAP DNS backend searches below this path for objects containing the specified DNS information.
-The retrieval of attributes is limited to this subtree.
-This option must be set to the path according to the layout of the LDAP tree, e.g. `ou=hosts,o=example,c=net` is the DN to my objects containing the DNS information.
+## `ldap-authmethod`
+(default: "simple") : How to authenticate to the LDAP server. Actually only two methods are supported: "simple", which uses the classical DN / password, or "gssapi", which requires a Kerberos keytab.
 
 ## `ldap-binddn`
-(default "") : Path to the object to authenticate against.
-Should only be used if the LDAP server doesn't support anonymous binds.
+(default "") : Path to the object to authenticate against. Should only be used, if the LDAP server doesn't support anonymous binds and with the "simple" authmethod.
 
 ## `ldap-secret`
-(default "") : Password for authentication against the object specified by `ldap-binddn`.
+(default "") : Password for authentication against the object specified by ldap-binddn. Only used when "authmethod" is "simple".
+
+## `ldap-krb5-keytab`
+(default: "") : Full path to the keytab file to use to authenticate. This is only used when "authmethod" is set to "gssapi". The keytab must, ideally, contain only one principal (or to put it otherwise, only the first principal found in the keytab will be used).
+
+## `ldap-krb5-ccache`
+(default: "") : Full path to the Kerberos credential cache file to use. Actually only files are supported, and the "FILE:" prefix must not be set. The PowerDNS process must be able to write to this file and it *must* be the only one able to read it.
+
+## `ldap-basedn`
+(default "") : The PowerDNS LDAP DNS backend searches below this path for objects containing the specified DNS information. The retrieval of attributes is limited to this subtree. This option must be set to the path according to the layout of your LDAP tree, e.g. ou=hosts,o=linuxnetworks,c=de is the DN to my objects containing the DNS information.
 
 ## `ldap-method`
 (default "simple") :

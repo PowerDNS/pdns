@@ -155,14 +155,13 @@ void PowerLDAP::simpleBind( const string& ldapbinddn, const string& ldapsecret )
 
 int PowerLDAP::search( const string& base, int scope, const string& filter, const char** attr )
 {
-        int msgid, rc;
+	int msgid, rc;
 
-        if( ( rc = ldap_search_ext( d_ld, base.c_str(), scope, filter.c_str(), const_cast<char**> (attr), 0, NULL, NULL, NULL, LDAP_NO_LIMIT, &msgid ) ) != LDAP_SUCCESS )
-        {
-        	throw LDAPException( "Starting LDAP search: " + getError( rc ) );
-        }
+	if ( ( rc = ldap_search_ext( d_ld, base.c_str(), scope, filter.c_str(), const_cast<char**> (attr), 0, NULL, NULL, NULL, LDAP_NO_LIMIT, &msgid ) ) ) {
+		throw LDAPException( "Starting LDAP search: " + getError( rc ) );
+	}
 
-        return msgid;
+	return msgid;
 }
 
 
@@ -193,19 +192,32 @@ bool PowerLDAP::getSearchEntry( int msgid, sentry_t& entry, bool dn, int timeout
         vector<string> values;
         LDAPMessage* result;
         LDAPMessage* object;
+	bool hasResult = false;
 
+	while ( !hasResult ) {
+		i = waitResult( msgid, timeout, &result );
+		// Here we deliberately ignore LDAP_RES_SEARCH_REFERENCE as we don't follow them.
+		// Instead we get the next result.
+		// If the function returned an error (i <= 0) we'll deal with after this loop too.
+		if ( i == LDAP_RES_SEARCH_ENTRY || i == LDAP_RES_SEARCH_RESULT || i <= 0 )
+			hasResult = true;
+	}
 
-        if( ( i = waitResult( msgid, timeout, &result ) ) == LDAP_RES_SEARCH_RESULT )
-        {
-        	ldap_msgfree( result );
-        	return false;
-        }
+	if ( i == -1 ) {
+		// Error while retrieving the message
+		throw LDAPException( "Error when retrieving LDAP result: " + getError() );
+	}
 
-        if( i != LDAP_RES_SEARCH_ENTRY )
-        {
-        	ldap_msgfree( result );
-        	throw LDAPException( "Search returned an unexpected result" );
-        }
+	if ( i == 0 ) {
+		// Timeout expired before the message could be retrieved
+		throw LDAPTimeout();
+	}
+
+	if ( i == LDAP_RES_SEARCH_RESULT ) {
+		// We're done with this request
+		ldap_msgfree( result );
+		return false;
+	}
 
         if( ( object = ldap_first_entry( d_ld, result ) ) == NULL )
         {

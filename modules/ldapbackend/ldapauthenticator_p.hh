@@ -21,6 +21,10 @@
 #ifndef LDAPAUTHENTICATOR_P_HH
 #define LDAPAUTHENTICATOR_P_HH
 
+#ifndef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_DEFAULT_FLAGS
+#define krb5_get_init_creds_opt_set_default_flags( a, b, c, d ) /* This does not exist with MIT Kerberos */
+#endif
+
 class LdapSimpleAuthenticator : public LdapAuthenticator
 {
 	std::string binddn;
@@ -32,6 +36,29 @@ class LdapSimpleAuthenticator : public LdapAuthenticator
 
 public:
 	LdapSimpleAuthenticator( const std::string &dn, const std::string &pw, int timeout );
+	virtual bool authenticate( LDAP *conn );
+	virtual std::string getError() const;
+};
+
+class LdapGssapiAuthenticator : public LdapAuthenticator
+{
+	std::string keytabFile;
+	std::string cCacheFile;
+	int timeout;
+	std::string lastError;
+	
+	struct SaslDefaults {
+		std::string mech;
+		std::string realm;
+		std::string authcid;
+		std::string authzid;
+	};
+
+	int attemptAuth( LDAP *conn );
+	int updateTgt();
+
+public:
+	LdapGssapiAuthenticator( const std::string &keytab, const std::string &credsCache, int timeout );
 	virtual bool authenticate( LDAP *conn );
 	virtual std::string getError() const;
 };
