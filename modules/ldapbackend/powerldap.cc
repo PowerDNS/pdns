@@ -167,6 +167,18 @@ void PowerLDAP::simpleBind( const string& ldapbinddn, const string& ldapsecret )
 }
 
 
+void PowerLDAP::modify( const string &dn, LDAPMod *mods[], LDAPControl **scontrols, LDAPControl **ccontrols )
+{
+  int rc;
+
+  rc = ldap_modify_ext_s( d_ld, dn.c_str(), mods, scontrols, ccontrols );
+  if ( rc == LDAP_SERVER_DOWN || rc == LDAP_CONNECT_ERROR )
+    throw LDAPNoConnection();
+  else if ( rc != LDAP_SUCCESS )
+    throw LDAPException( "Error modifying LDAP entry " + dn + ": " + getError( rc ) );
+}
+
+
 int PowerLDAP::search( const string& base, int scope, const string& filter, const char** attr )
 {
   int msgid, rc;
