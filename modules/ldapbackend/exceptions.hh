@@ -26,20 +26,20 @@
 
 class LDAPException : public std::runtime_error
 {
-public:
-	explicit LDAPException( const std::string &str ) : std::runtime_error( str ) {}
+  public:
+    explicit LDAPException( const std::string &str ) : std::runtime_error( str ) {}
 };
 
 class LDAPTimeout : public LDAPException
 {
-public:
-	explicit LDAPTimeout() : LDAPException( "Timeout" ) {}
+  public:
+    explicit LDAPTimeout() : LDAPException( "Timeout" ) {}
 };
 
 class LDAPNoConnection : public LDAPException
 {
-public:
-	explicit LDAPNoConnection() : LDAPException( "No connection to LDAP server" ) {}
+  public:
+    explicit LDAPNoConnection() : LDAPException( "No connection to LDAP server" ) {}
 };
 
 #endif // LDAPEXCEPTIONS_HH

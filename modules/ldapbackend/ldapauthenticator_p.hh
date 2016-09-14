@@ -27,40 +27,40 @@
 
 class LdapSimpleAuthenticator : public LdapAuthenticator
 {
-	std::string binddn;
-	std::string bindpw;
-	int timeout;
-	std::string lastError;
-
-	void fillLastError( LDAP *conn, int code );
-
-public:
-	LdapSimpleAuthenticator( const std::string &dn, const std::string &pw, int timeout );
-	virtual bool authenticate( LDAP *conn );
-	virtual std::string getError() const;
+    std::string binddn;
+    std::string bindpw;
+    int timeout;
+    std::string lastError;
+  
+    void fillLastError( LDAP *conn, int code );
+  
+  public:
+    LdapSimpleAuthenticator( const std::string &dn, const std::string &pw, int timeout );
+    virtual bool authenticate( LDAP *conn );
+    virtual std::string getError() const;
 };
 
 class LdapGssapiAuthenticator : public LdapAuthenticator
 {
-	std::string keytabFile;
-	std::string cCacheFile;
-	int timeout;
-	std::string lastError;
-	
-	struct SaslDefaults {
-		std::string mech;
-		std::string realm;
-		std::string authcid;
-		std::string authzid;
-	};
-
-	int attemptAuth( LDAP *conn );
-	int updateTgt();
-
-public:
-	LdapGssapiAuthenticator( const std::string &keytab, const std::string &credsCache, int timeout );
-	virtual bool authenticate( LDAP *conn );
-	virtual std::string getError() const;
+    std::string keytabFile;
+    std::string cCacheFile;
+    int timeout;
+    std::string lastError;
+    
+    struct SaslDefaults {
+      std::string mech;
+      std::string realm;
+      std::string authcid;
+      std::string authzid;
+    };
+  
+    int attemptAuth( LDAP *conn );
+    int updateTgt();
+  
+  public:
+    LdapGssapiAuthenticator( const std::string &keytab, const std::string &credsCache, int timeout );
+    virtual bool authenticate( LDAP *conn );
+    virtual std::string getError() const;
 };
 
 #endif // LDAPAUTHENTICATOR_P_HH
