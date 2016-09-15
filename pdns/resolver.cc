@@ -371,7 +371,7 @@ AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
                              const TSIGTriplet& tt, 
                              const ComboAddress* laddr,
                              size_t maxReceivedBytes)
-  : d_tt(tt), d_receivedBytes(0), d_maxReceivedBytes(maxReceivedBytes), d_tsigPos(0), d_nonSignedMessages(0)
+  : d_tsigVerifier(tt, remote, d_trc), d_receivedBytes(0), d_maxReceivedBytes(maxReceivedBytes)
 {
   ComboAddress local;
   if (laddr != NULL) {
@@ -482,76 +482,13 @@ int AXFRRetriever::getChunk(Resolver::res_t &res, vector<DNSRecord>* records) //
     if (answer.first.d_type == QType::SOA)
       d_soacount++;
  
-  if(!d_tt.name.empty()) { // TSIG verify message
-    // If we have multiple messages, we need to concatenate them together. We also need to make sure we know the location of 
-    // the TSIG record so we can remove it in makeTSIGMessageFromTSIGPacket
-    d_signData.append(d_buf.get(), len);
-    if (mdp.getTSIGPos() == 0)
-      d_tsigPos += len;
-    else 
-      d_tsigPos += mdp.getTSIGPos();
-
-    string theirMac;
-    bool checkTSIG = false;
-    
-    for(const MOADNSParser::answers_t::value_type& answer :  mdp.d_answers) {
-      if (answer.first.d_type == QType::SOA)  // A SOA is either the first or the last record. We need to check TSIG if that's the case.
-        checkTSIG = true;
-      
-      if(answer.first.d_type == QType::TSIG) {
-        shared_ptr<TSIGRecordContent> trc = getRR<TSIGRecordContent>(answer.first);
-        if(trc) {
-          theirMac = trc->d_mac;
-          d_trc.d_time = trc->d_time;
-          checkTSIG = true;
-        }
-      }
-    }
-
-    if( ! checkTSIG && d_nonSignedMessages > 99) { // We're allowed to get 100 digest without a TSIG.
-      throw ResolverException("No TSIG message received in last 100 messages of AXFR transfer.");
-    }
-
-    if (checkTSIG) {
-      if (theirMac.empty())
-        throw ResolverException("No TSIG on AXFR response from "+d_remote.toStringWithPort()+" , should be signed with TSIG key '"+d_tt.name.toString()+"'");
-
-      string message;
-      if (!d_prevMac.empty()) {
-        message = makeTSIGMessageFromTSIGPacket(d_signData, d_tsigPos, d_tt.name, d_trc, d_prevMac, true, d_signData.size()-len);
-      } else {
-        message = makeTSIGMessageFromTSIGPacket(d_signData, d_tsigPos, d_tt.name, d_trc, d_trc.d_mac, false);
-      }
-
-      TSIGHashEnum algo;
-      if (!getTSIGHashEnum(d_trc.d_algoName, algo)) {
-        throw ResolverException("Unsupported TSIG HMAC algorithm " + d_trc.d_algoName.toString());
-      }
-
-      if (algo == TSIG_GSS) {
-        GssContext gssctx(d_tt.name);
-        if (!gss_verify_signature(d_tt.name, message, theirMac)) {
-          throw ResolverException("Signature failed to validate on AXFR response from "+d_remote.toStringWithPort()+" signed with TSIG key '"+d_tt.name.toString()+"'");
-        }
-      } else {
-        string ourMac=calculateHMAC(d_tt.secret, message, algo);
-
-        // ourMac[0]++; // sabotage == for testing :-)
-        if(ourMac != theirMac) {
-          throw ResolverException("Signature failed to validate on AXFR response from "+d_remote.toStringWithPort()+" signed with TSIG key '"+d_tt.name.toString()+"'");
-        }
-      }
-
-      // Reset and store some values for the next chunks. 
-      d_prevMac = theirMac;
-      d_nonSignedMessages = 0;
-      d_signData.clear();
-      d_tsigPos = 0;
-    }
-    else
-      d_nonSignedMessages++;
+  try {
+    d_tsigVerifier.check(std::string(d_buf.get(), len), mdp);
   }
-  
+  catch(const std::runtime_error& re) {
+    throw ResolverException(re.what());
+  }
+
   return true;
 }
 

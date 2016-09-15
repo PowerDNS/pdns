@@ -371,7 +371,7 @@ public:
     return pr;
   }
 
-  uint16_t getTSIGPos()
+  uint16_t getTSIGPos() const
   {
     return d_tsigPos;
   }
