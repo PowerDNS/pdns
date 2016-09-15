@@ -757,10 +757,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
         }
         for(const auto& ip: ips) {
           zrr.dr.d_type = ip.dr.d_type;
-          if(ip.dr.d_type == QType::A)
-            zrr.dr.d_content = ip.dr.d_content;
-          else
-            zrr.dr.d_content = ip.dr.d_content;
+          zrr.dr.d_content = ip.dr.d_content;
           zrrs.push_back(zrr);
         }
       }
