@@ -611,3 +611,4 @@ uid_t strToUID(const string &str);
 gid_t strToGID(const string &str);
 
 unsigned int pdns_stou(const std::string& str, size_t * idx = 0, int base = 10);
+

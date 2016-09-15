@@ -127,6 +127,7 @@ pdns_recursor_SOURCES = \
 	sortlist.cc sortlist.hh \
 	sstuff.hh \
 	syncres.cc syncres.hh \
+	tsigverifier.cc tsigverifier.hh \
 	ueberbackend.hh \
 	unix_utility.cc \
 	utility.hh \
