@@ -100,8 +100,9 @@ this implies that a slaved domain will not stay disabled.
 
 ## Autoserial
 The autoserial functionality makes PowerDNS generate the SOA serial when the SOA
-serial set to `0` in the database. The serial in SOA responses is set to the
-highest value of the `change_date` field in the "records" table.
+serial set to `0` in the database. The serial in SOA responses is set to what's
+provided by `zone-lastchange-query`. By default, this is the highest value of the
+`change_date` field in the "records" table).
 
 
 # Handling DNSSEC signed zones
