@@ -167,7 +167,7 @@ unsigned int g_numThreads, g_numWorkerThreads;
 
 //! used to send information to a newborn mthread
 struct DNSComboWriter {
-  DNSComboWriter(const char* data, uint16_t len, const struct timeval& now) : d_mdp(data, len), d_now(now),
+  DNSComboWriter(const char* data, uint16_t len, const struct timeval& now) : d_mdp(true, data, len), d_now(now),
                                                                                                         d_tcp(false), d_socket(-1)
   {}
   MOADNSParser d_mdp;

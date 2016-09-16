@@ -51,7 +51,7 @@
 bool DNSPacket::s_doEDNSSubnetProcessing;
 uint16_t DNSPacket::s_udpTruncationThreshold;
  
-DNSPacket::DNSPacket() 
+DNSPacket::DNSPacket(bool isQuery)
 {
   d_wrapped=false;
   d_compress=true;
@@ -69,6 +69,7 @@ DNSPacket::DNSPacket()
   d_maxreplylen = 0;
   d_tsigtimersonly = false;
   d_haveednssection = false;
+  d_isQuery = isQuery;
 }
 
 const string& DNSPacket::getString()
@@ -390,7 +391,7 @@ void DNSPacket::setQuestion(int op, const DNSName &qd, int newqtype)
 /** convenience function for creating a reply packet from a question packet. Do not forget to delete it after use! */
 DNSPacket *DNSPacket::replyPacket() const
 {
-  DNSPacket *r=new DNSPacket;
+  DNSPacket *r=new DNSPacket(false);
   r->setSocket(d_socket);
   r->d_anyLocal=d_anyLocal;
   r->setRemote(&d_remote);
@@ -471,7 +472,7 @@ void DNSPacket::setTSIGDetails(const TSIGRecordContent& tr, const DNSName& keyna
 
 bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, DNSName* keyname, string* message) const
 {
-  MOADNSParser mdp(d_rawpacket);
+  MOADNSParser mdp(d_isQuery, d_rawpacket);
 
   if(!mdp.getTSIGPos()) 
     return false;
@@ -500,7 +501,7 @@ bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, DNSName* keyname, string*
 
 bool DNSPacket::getTKEYRecord(TKEYRecordContent *tr, DNSName *keyname) const
 {
-  MOADNSParser mdp(d_rawpacket);
+  MOADNSParser mdp(d_isQuery, d_rawpacket);
   bool gotit=false;
 
   for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
@@ -540,7 +541,7 @@ try
     return -1;
   }
 
-  MOADNSParser mdp(d_rawpacket);
+  MOADNSParser mdp(d_isQuery, d_rawpacket);
   EDNSOpts edo;
 
   // ANY OPTION WHICH *MIGHT* BE SET DOWN BELOW SHOULD BE CLEARED FIRST!

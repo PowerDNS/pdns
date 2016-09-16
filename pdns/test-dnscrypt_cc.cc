@@ -69,7 +69,7 @@ BOOST_AUTO_TEST_CASE(DNSCryptPlaintextQuery) {
 
   ctx.getCertificateResponse(query, response);
 
-  MOADNSParser mdp((char*) response.data(), response.size());
+  MOADNSParser mdp(false, (char*) response.data(), response.size());
 
   BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1);
   BOOST_CHECK_EQUAL(mdp.d_header.ancount, 1);
@@ -177,7 +177,7 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValid) {
   BOOST_CHECK_EQUAL(query->valid, true);
   BOOST_CHECK_EQUAL(query->encrypted, true);
 
-  MOADNSParser mdp((char*) plainQuery.data(), decryptedLen);
+  MOADNSParser mdp(true, (char*) plainQuery.data(), decryptedLen);
 
   BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1);
   BOOST_CHECK_EQUAL(mdp.d_header.ancount, 0);
@@ -269,7 +269,7 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValidWithOldKey) {
   BOOST_CHECK_EQUAL(query->valid, true);
   BOOST_CHECK_EQUAL(query->encrypted, true);
 
-  MOADNSParser mdp((char*) plainQuery.data(), decryptedLen);
+  MOADNSParser mdp(true, (char*) plainQuery.data(), decryptedLen);
 
   BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1);
   BOOST_CHECK_EQUAL(mdp.d_header.ancount, 0);

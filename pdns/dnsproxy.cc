@@ -228,7 +228,7 @@ void DNSProxy::mainloop(void)
         d.id=i->second.id;
         memcpy(buffer,&d,sizeof(d));  // commit spoofed id
 
-        DNSPacket p,q;
+        DNSPacket p(false),q(false);
         p.parse(buffer,(size_t)len);
         q.parse(buffer,(size_t)len);
 
@@ -243,7 +243,7 @@ void DNSProxy::mainloop(void)
 	string reply; // needs to be alive at time of sendmsg!
 	if(i->second.complete) {
 
-	  MOADNSParser mdp(p.getString());
+	  MOADNSParser mdp(false, p.getString());
 	  //	  cerr<<"Got completion, "<<mdp.d_answers.size()<<" answers, rcode: "<<mdp.d_header.rcode<<endl;
 	  for(MOADNSParser::answers_t::const_iterator j=mdp.d_answers.begin(); j!=mdp.d_answers.end(); ++j) {        
 	    //	    cerr<<"comp: "<<(int)j->first.d_place-1<<" "<<j->first.d_label<<" " << DNSRecordContent::NumberToType(j->first.d_type)<<" "<<j->first.d_content->getZoneRepresentation()<<endl;

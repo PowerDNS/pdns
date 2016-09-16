@@ -217,7 +217,7 @@ try
 	      continue;
 	    }
 	  }
-	  MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
+	  MOADNSParser mdp(false, (const char*)pr.d_payload, pr.d_len);
 	  if(haveRDFilter && mdp.d_header.rd != rdFilter) {
 	    rdFilterMismatch++;
 	    continue;

@@ -91,7 +91,7 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > > getIXFRDeltas(const ComboAd
     char reply[len]; 
     readn2(s.getHandle(), reply, len);
     receivedBytes += len;
-    MOADNSParser mdp(string(reply, len));
+    MOADNSParser mdp(false, string(reply, len));
     if(mdp.d_header.rcode) 
       throw std::runtime_error("Got an error trying to IXFR zone '"+zone.toString()+"' from master '"+master.toStringWithPort()+"': "+RCode::to_s(mdp.d_header.rcode));
 
