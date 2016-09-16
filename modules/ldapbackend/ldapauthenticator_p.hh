@@ -42,6 +42,7 @@ class LdapSimpleAuthenticator : public LdapAuthenticator
 
 class LdapGssapiAuthenticator : public LdapAuthenticator
 {
+    std::string logPrefix;
     std::string keytabFile;
     std::string cCacheFile;
     int timeout;
