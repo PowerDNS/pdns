@@ -98,7 +98,7 @@ uint32_t getSerialFromMaster(const ComboAddress& master, const DNSName& zone, sh
 
   string reply;
   s.read(reply);
-  MOADNSParser mdp(reply);
+  MOADNSParser mdp(false, reply);
   if(mdp.d_header.rcode) {
     throw std::runtime_error("Unable to retrieve SOA serial from master '"+master.toStringWithPort()+"': "+RCode::to_s(mdp.d_header.rcode));
   }

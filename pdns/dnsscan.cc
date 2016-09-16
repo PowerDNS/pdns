@@ -87,7 +87,7 @@ try
     
     while(pr.getUDPPacket()) {
       try {
-        MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
+        MOADNSParser mdp(false, (const char*)pr.d_payload, pr.d_len);
         if(mdp.d_qtype < 256)
           counts[mdp.d_qtype]++;
 

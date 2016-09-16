@@ -19,7 +19,7 @@ struct Question
   DNSName qdomain;
   DNSPacket* replyPacket()
   {
-    return new DNSPacket();
+    return new DNSPacket(false);
   }
 };
 
@@ -27,7 +27,7 @@ struct Backend
 {
   DNSPacket* question(Question*)
   {
-    return new DNSPacket();
+    return new DNSPacket(true);
   }
 };
 
@@ -62,7 +62,7 @@ struct BackendSlow
   DNSPacket* question(Question*)
   {
     sleep(1);
-    return new DNSPacket();
+    return new DNSPacket(true);
   }
 };
 
@@ -96,7 +96,7 @@ struct BackendDies
       // cerr<<"Going.. down!"<<endl;
       throw runtime_error("kill");
     }
-    return new DNSPacket();
+    return new DNSPacket(true);
   }
   static std::atomic<int> s_count;
   int d_count{0};

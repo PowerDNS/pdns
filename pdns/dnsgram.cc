@@ -157,7 +157,7 @@ try
           ntohs(pr.d_udp->uh_dport)==53   || ntohs(pr.d_udp->uh_sport)==53) &&
          pr.d_len > 12) {
         try {
-          MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
+          MOADNSParser mdp(false, (const char*)pr.d_payload, pr.d_len);
 
           if(lastreport.tv_sec == 0) {
             lastreport = pr.d_pheader.ts;
