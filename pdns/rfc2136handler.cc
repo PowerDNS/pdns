@@ -652,7 +652,7 @@ int PacketHandler::forwardPacket(const string &msgPrefix, DNSPacket *p, DomainIn
     closesocket(sock);
 
     try {
-      MOADNSParser mdp(buf, recvRes);
+      MOADNSParser mdp(false, buf, recvRes);
       L<<Logger::Info<<msgPrefix<<"Forward update message to "<<remote.toStringWithPort()<<", result was RCode "<<mdp.d_header.rcode<<endl;
       return mdp.d_header.rcode;
     }
@@ -732,7 +732,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
   // RFC2136 uses the same DNS Header and Message as defined in RFC1035.
   // This means we can use the MOADNSParser to parse the incoming packet. The result is that we have some different
   // variable names during the use of our MOADNSParser.
-  MOADNSParser mdp(p->getString());
+  MOADNSParser mdp(false, p->getString());
   if (mdp.d_header.qdcount != 1) {
     L<<Logger::Warning<<msgPrefix<<"Zone Count is not 1, sending FormErr"<<endl;
     return RCode::FormErr;

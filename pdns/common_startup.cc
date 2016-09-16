@@ -343,8 +343,8 @@ void *qthread(void *number)
   DNSDistributor *distributor = DNSDistributor::Create(::arg().asNum("distributor-threads", 1)); // the big dispatcher!
   int num = (int)(unsigned long)number;
   g_distributors[num] = distributor;
-  DNSPacket question;
-  DNSPacket cached;
+  DNSPacket question(true);
+  DNSPacket cached(false);
 
   AtomicCounter &numreceived=*S.getPointer("udp-queries");
   AtomicCounter &numreceiveddo=*S.getPointer("udp-do-queries");
