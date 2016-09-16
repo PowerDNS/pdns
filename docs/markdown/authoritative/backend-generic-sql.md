@@ -110,7 +110,7 @@ To enable DNSSEC processing, the `backend-dnssec` option must be set to 'yes'.
 
 ## Rules for filling out DNSSEC fields
 Two additional fields in the 'records' table are important: 'auth' and 'ordername'.
-These fields are set correctly on a zone transfer, and also by running
+These fields are set correctly on an incoming zone transfer, and also by running
 `pdnsutil rectify-zone`.
 
 The 'auth' field should be set to '1' for data for which the zone itself is
@@ -137,7 +137,7 @@ encoded representation of the salted & iterated hash of the full record name.
 
 In addition, PowerDNS fully supports empty non-terminals. If you have a zone
 example.com, and a host a.b.c.example.com in it, rectify-zone (and the AXFR
-code) will insert b.c.example.com and c.example.com in the records table
+client code) will insert b.c.example.com and c.example.com in the records table
 with type NULL (SQL NULL, not 'NULL'). Having these entries provides several benefits.
 We no longer reply NXDOMAIN for these shorter names (this was an RFC violation
 but not one that caused trouble). But more importantly, to do NSEC3 correctly,

@@ -218,10 +218,16 @@ In this way, if keying material is available for an unsigned zone that is
 retrieved from a master server, this keying material will be used when serving
 data from this zone.
 
-As part of the zone transfer, the equivalent of `pdnsutil rectify-zone` is run
-to make sure that all DNSSEC-related fields are set correctly.
+As part of the zone retrieval, the equivalent of `pdnsutil rectify-zone` is run
+to make sure that all DNSSEC-related fields are set correctly in the backend.
 
-Signatures and Hashing is similar as described [above](#online-signing)
+## Signed AXFR
+An outgoing zone transfer from a signing master contains all information
+required for the receiving party to rectify the zone without knowing the keys,
+such as signed NSEC3 records for empty non-terminals. The zone is not required
+to be rectified on the master.
+
+Signatures and Hashing is similar as described [above](#online-signing).
 
 ## BIND-mode operation
 Starting with PowerDNS 3.1, the bindbackend can manage keys in an SQLite3 database
