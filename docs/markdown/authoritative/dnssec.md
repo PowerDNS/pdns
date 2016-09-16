@@ -218,7 +218,7 @@ In this way, if keying material is available for an unsigned zone that is
 retrieved from a master server, this keying material will be used when serving
 data from this zone.
 
-As part of the zone retrieval, the equivalent of `pdnsutil rectify-zone` is run
+As part of the zone transfer, the equivalent of `pdnsutil rectify-zone` is run
 to make sure that all DNSSEC-related fields are set correctly.
 
 Signatures and Hashing is similar as described [above](#online-signing)
