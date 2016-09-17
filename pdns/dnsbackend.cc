@@ -281,18 +281,20 @@ bool DNSBackend::get(DNSZoneRecord& dzr)
       vector<string> parts;
       stringtok(parts, rr.content, " \t");
       if(parts.size() < 1)
-        rr.content+=arg()["default-soa-name"];
+        rr.content = arg()["default-soa-name"];
       if(parts.size() < 2)
-        rr.content+=" "+arg()["default-soa-mail"];      
+        rr.content += " " +arg()["default-soa-mail"];
       if(parts.size() < 3)
         rr.content += " 0";
       if(parts.size() < 4)
         rr.content += " " + ::arg()["soa-refresh-default"];
       if(parts.size() < 5)
-        rr.content += " " + ::arg()["soa-expire-default"];
+        rr.content += " " + ::arg()["soa-retry-default"];
       if(parts.size() < 6)
-        rr.content += " " + ::arg()["soa-minimum-default"];
-      dzr.dr = DNSRecord(rr);        
+        rr.content += " " + ::arg()["soa-expire-default"];
+      if(parts.size() < 7)
+        rr.content += " " + ::arg()["soa-minimum-ttl"];
+      dzr.dr = DNSRecord(rr);
     }
   }
   else 
