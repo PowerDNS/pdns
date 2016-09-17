@@ -396,7 +396,8 @@ bool UeberBackend::getSOAUncached(const DNSName &domain, SOAData &sd, DNSPacket 
       return true;
     }
 
-  addNegCache(d_question);
+  if(d_negcache_ttl)
+    addNegCache(d_question);
   return false;
 }
 
