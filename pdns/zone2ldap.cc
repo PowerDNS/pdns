@@ -45,6 +45,8 @@ using std::vector;
 StatBag S;
 ArgvMap args;
 bool g_dnsttl;
+bool g_pdnsinfo;
+unsigned int g_domainid;
 string g_basedn;
 DNSName g_zonename;
 map<DNSName,bool> g_objects;
@@ -74,6 +76,10 @@ static void callback_simple( unsigned int domain_id, const DNSName &domain, cons
                 cout << "changetype: add" << endl;
                 cout << "objectclass: dnsdomain2" << endl;
                 cout << "objectclass: domainrelatedobject" << endl;
+		if( g_pdnsinfo && qtype == "SOA" ) {
+			cout << "objectclass: PdnsDomain" << endl;
+			cout << "PdnsDomainId: " << domain_id << endl;
+		}
                 cout << "dc: " << host.toStringNoDot() << endl;
                 if( g_dnsttl ) { cout << "dnsttl: " << ttl << endl; }
                 cout << "associateddomain: " << domain.toStringNoDot() << endl;
@@ -127,6 +133,10 @@ static void callback_tree( unsigned int domain_id, const DNSName &domain, const 
                 cout << "changetype: add" << endl;
                 cout << "objectclass: dnsdomain2" << endl;
                 cout << "objectclass: domainrelatedobject" << endl;
+		if( g_pdnsinfo && qtype == "SOA" ) {
+			cout << "objectclass: PdnsDomain" << endl;
+			cout << "PdnsDomainId: " << domain_id << endl;
+		}
                 cout << "dc: " << parts[0] << endl;
                 if( g_dnsttl ) { cout << "dnsttl: " << ttl << endl; }
                 cout << "associateddomain: " << domain.toStringNoDot() << endl;
@@ -159,11 +169,13 @@ int main( int argc, char* argv[] )
                 args.setSwitch( "verbose", "Verbose comments on operation" ) = "no";
                 args.setSwitch( "resume", "Continue after errors" ) = "no";
                 args.setSwitch( "dnsttl", "Add dnsttl attribute to every entry" ) = "no";
+		args.setSwitch( "pdns-info", "Add the PDNS domain info attributes" ) = "no";
                 args.set( "named-conf", "Bind 8 named.conf to parse" ) = "";
                 args.set( "zone-file", "Zone file to parse" ) = "";
                 args.set( "zone-name", "Specify a zone name if zone is set" ) = "";
                 args.set( "basedn", "Base DN to store objects below" ) = "ou=hosts,o=mycompany,c=de";
                 args.set( "layout", "How to arrange entries in the directory (simple or as tree)" ) = "simple";
+		args.set( "domainid", "Domain ID of the first domain found (incremented afterwards)" ) = "1";
 
                 args.parse( argc, argv );
 
@@ -195,6 +207,16 @@ int main( int argc, char* argv[] )
                         callback=callback_tree;
                 }
 
+		if ( args.mustDo( "pdns-info" ) )
+			g_pdnsinfo = true;
+		else
+			g_pdnsinfo = false;
+
+		if ( !args["domainid"].empty() )
+			g_domainid = pdns_stou( args["domainid"] );
+		else
+			g_domainid = 1;
+
                 if( !args["named-conf"].empty() )
                 {
                         BP.setVerbose( args.mustDo( "verbose" ) );
@@ -216,8 +238,11 @@ int main( int argc, char* argv[] )
                                                 g_zonename = i->name;
                                                 ZoneParserTNG zpt(i->filename, i->name, BP.getDirectory());
                                                 DNSResourceRecord rr;
-                                                while(zpt.get(rr))
-                                                        callback(0, rr.qname, rr.qtype.getName(), rr.content, rr.ttl);
+                                                while(zpt.get(rr)) {
+                                                        callback(g_domainid, rr.qname, rr.qtype.getName(), rr.content, rr.ttl);
+							if( rr.qtype == QType::SOA )
+								++g_domainid;
+						}
                                         }
                                 }
                                 catch( PDNSException &ae )
@@ -241,8 +266,11 @@ int main( int argc, char* argv[] )
                         g_zonename = DNSName(args["zone-name"]);
                         ZoneParserTNG zpt(args["zone-file"], g_zonename);
                         DNSResourceRecord rr;
-                        while(zpt.get(rr))
-                                callback(0, rr.qname, rr.qtype.getName(), rr.content, rr.ttl);
+                        while(zpt.get(rr)) {
+                                callback(g_domainid, rr.qname, rr.qtype.getName(), rr.content, rr.ttl);
+				if ( rr.qtype == QType::SOA )
+					++g_domainid;
+			}
                 }
         }
         catch( PDNSException &ae )
