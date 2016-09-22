@@ -265,7 +265,7 @@ int PacketHandler::doChaosRequest(DNSPacket *p, DNSPacket *r, DNSName &target)
       }
       else
         content=mode;
-      rr.dr.d_content = shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(QType::TXT, 1, content));
+      rr.dr.d_content = shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(QType::TXT, 1, "\""+content+"\""));
     }
     else if (target==idserver) {
       // modes: disabled, hostname or custom
