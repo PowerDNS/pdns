@@ -24,13 +24,13 @@
 #include <cassert>
 #include <type_traits>
 #include <boost/version.hpp>
-#if BOOST_VERSION >= 106100
-#include <boost/context/detail/fcontext.hpp>
-using boost::context::detail::make_fcontext;
-#else
+#if BOOST_VERSION < 106100
 #include <boost/context/fcontext.hpp>
 using boost::context::make_fcontext;
-#endif /* BOOST_VERSION >= 106100 */
+#else
+#include <boost/context/detail/fcontext.hpp>
+using boost::context::detail::make_fcontext;
+#endif /* BOOST_VERSION < 106100 */
 
 
 #if BOOST_VERSION < 105600
