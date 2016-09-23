@@ -295,8 +295,15 @@ bool DNSBackend::get(DNSZoneRecord& dzr)
       dzr.dr = DNSRecord(rr);        
     }
   }
-  else 
-    dzr.dr = DNSRecord(rr);
+  else {
+    try {
+      dzr.dr = DNSRecord(rr);
+    }
+    catch(...) {
+      while(this->get(rr));
+      throw;
+    }
+  }
   return true;
 }
 
