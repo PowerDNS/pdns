@@ -592,14 +592,6 @@ If this is disabled (the default), ALIAS records are sent verbatim during
 outgoing AXFR. Note that if your slaves do not support ALIAS, they will return
 NODATA for A/AAAA queries for such names.
 
-## `pipebackend-abi-version`
-* Integer
-* Default: 1
-* Removed in: 4.0.0 (is now specific to the backend)
-
-ABI version to use for the pipe backend. See
-["PipeBackend protocol"](backend-pipe.md#pipebackend-protocol).
-
 ## `prevent-self-notification`
 * Boolean
 * Default: yes
