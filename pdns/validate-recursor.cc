@@ -16,7 +16,7 @@ public:
     struct timeval tv;
     gettimeofday(&tv, 0);
     SyncRes sr(tv);
-
+    sr.setId(MT->getTid());
     vector<DNSRecord> ret;
     sr.d_doDNSSEC=true;
     sr.beginResolve(qname, QType(qtype), 1, ret);
