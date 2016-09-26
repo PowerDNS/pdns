@@ -390,25 +390,10 @@ map<char,int> PacketCache::getCounts()
   return ret;
 }
 
-int PacketCache::size()
-{
-  uint64_t ret=0;
-  for(auto& mc : d_maps) {
-    ReadLock l(&mc.d_mut);
-    ret+=mc.d_map.size();
-  }
-  return ret;
-}
 
 /** readlock for figuring out which iterators to delete, upgrade to writelock when actually cleaning */
 void PacketCache::cleanup()
 {
-  d_statnumentries->store(0);
-  for(auto& mc : d_maps) {
-    ReadLock l(&mc.d_mut);
-
-    *d_statnumentries+=mc.d_map.size();
-  }
   unsigned int maxCached=::arg().asNum("max-cache-entries");
   unsigned int toTrim=0;
   
@@ -429,7 +414,7 @@ void PacketCache::cleanup()
   //  cerr<<"cacheSize: "<<cacheSize<<", lookAt: "<<lookAt<<", toTrim: "<<toTrim<<endl;
   time_t now=time(0);
   DLOG(L<<"Starting cache clean"<<endl);
-  //unsigned int totErased=0;
+  unsigned int totErased=0;
   for(auto& mc : d_maps) {
     WriteLock wl(&mc.d_mut);
     typedef cmap_t::nth_index<1>::type sequence_t;
@@ -450,16 +435,12 @@ void PacketCache::cleanup()
       if(lookedAt > lookAt / d_maps.size())
 	break;
     }
-    //totErased += erased;
+    totErased += erased;
   }
   //  if(totErased)
   //  cerr<<"erased: "<<totErased<<endl;
   
-  d_statnumentries->store(0);
-  for(auto& mc : d_maps) {
-    ReadLock l(&mc.d_mut);
-    *d_statnumentries+=mc.d_map.size();
-  }
+  *d_statnumentries-=totErased;
   
   DLOG(L<<"Done with cache clean"<<endl);
 }

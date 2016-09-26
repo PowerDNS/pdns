@@ -68,7 +68,7 @@ public:
   bool getEntry(const DNSName &qname, const QType& qtype, CacheEntryType cet, vector<DNSZoneRecord>& entry, int zoneID=-1);
   
 
-  int size(); //!< number of entries in the cache
+  int size() { return *d_statnumentries; } //!< number of entries in the cache
   void cleanupIfNeeded()
   {
     if(!(++d_ops % 300000)) {
