@@ -261,7 +261,7 @@ int PacketCache::purgeExact(const DNSName& qname)
     delcount+=distance(range.first, range.second);
     mc.d_map.erase(range.first, range.second);
   }
-  *d_statnumentries-=delcount; // XXX FIXME NEEDS TO BE ADJUSTED (for packetcache shards)
+  *d_statnumentries-=delcount;
   return delcount;
 }
 
@@ -286,7 +286,7 @@ int PacketCache::purge(const string &match)
       }
       mc.d_map.erase(start, iter);
     }
-    *d_statnumentries-=delcount; // XXX FIXME NEEDS TO BE ADJUSTED (for packetcache shards)
+    *d_statnumentries-=delcount;
     return delcount;
   }
   else {
@@ -391,7 +391,6 @@ map<char,int> PacketCache::getCounts()
 }
 
 
-/** readlock for figuring out which iterators to delete, upgrade to writelock when actually cleaning */
 void PacketCache::cleanup()
 {
   unsigned int maxCached=::arg().asNum("max-cache-entries");
