@@ -393,52 +393,44 @@ map<char,int> PacketCache::getCounts()
 
 void PacketCache::cleanup()
 {
-  unsigned int maxCached=::arg().asNum("max-cache-entries");
-  unsigned int toTrim=0;
-  
-  unsigned long cacheSize=*d_statnumentries;
-  
-  if(maxCached && cacheSize > maxCached) {
-    toTrim = cacheSize - maxCached;
-  }
+  unsigned int maxCached = ::arg().asNum("max-cache-entries");
+  unsigned long cacheSize = *d_statnumentries;
 
-  unsigned int lookAt=0;
   // two modes - if toTrim is 0, just look through 10%  of the cache and nuke everything that is expired
   // otherwise, scan first 5*toTrim records, and stop once we've nuked enough
-  if(toTrim)
-    lookAt=5*toTrim;
-  else
-    lookAt=cacheSize/10;
+  unsigned int toTrim = 0, lookAt = 0;
+  if(maxCached && cacheSize > maxCached) {
+    toTrim = cacheSize - maxCached;
+    lookAt = 5 * toTrim;
+  } else {
+    lookAt = cacheSize / 10;
+  }
 
-  //  cerr<<"cacheSize: "<<cacheSize<<", lookAt: "<<lookAt<<", toTrim: "<<toTrim<<endl;
+  DLOG(L<<"Starting cache clean, cacheSize: "<<cacheSize<<", lookAt: "<<lookAt<<", toTrim: "<<toTrim<<endl);
+
   time_t now=time(0);
-  DLOG(L<<"Starting cache clean"<<endl);
-  unsigned int totErased=0;
+  unsigned int totErased = 0;
   for(auto& mc : d_maps) {
     WriteLock wl(&mc.d_mut);
     auto& sidx = boost::multi_index::get<SequenceTag>(mc.d_map);
-    unsigned int erased=0, lookedAt=0;
-    for(auto i=sidx.begin(); i != sidx.end(); lookedAt++) {
+    unsigned int erased = 0, lookedAt = 0;
+    for(auto i = sidx.begin(); i != sidx.end(); lookedAt++) {
       if(i->ttd < now) {
-	sidx.erase(i++);
-	erased++;
-      }
-      else {
-	++i;
+        sidx.erase(i);
+        erased++;
       }
 
       if(toTrim && erased > toTrim / d_maps.size())
-	break;
-      
+        break;
+
       if(lookedAt > lookAt / d_maps.size())
-	break;
+        break;
+
+      i++;
     }
     totErased += erased;
   }
-  //  if(totErased)
-  //  cerr<<"erased: "<<totErased<<endl;
-  
-  *d_statnumentries-=totErased;
-  
-  DLOG(L<<"Done with cache clean"<<endl);
+  *d_statnumentries -= totErased;
+
+  DLOG(L<<"Done with cache clean, cacheSize: "<<*d_statnumentries<<", totErased"<<totErased<<endl);
 }
