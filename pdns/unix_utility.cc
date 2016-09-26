@@ -305,30 +305,3 @@ time_t Utility::timegm(struct tm *const t)
   return ((day + t->tm_hour) * i + t->tm_min) * i + t->tm_sec;
 }
 
-// we have our own gmtime_r because the one in GNU libc violates POSIX/SuS
-// by supporting leap seconds when TZ=right/UTC
-void Utility::gmtime_r(const time_t *timer, struct tm *tmbuf) {
-
-  int monthdays[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-  int days = *timer / 86400;
-  int leapdays = (days + 671) / 1461;
-  int leapydays = (days + 365) / 1461;
-
-  tmbuf->tm_hour = *timer / 3600 % 24;
-  tmbuf->tm_min = *timer / 60 % 60;
-  tmbuf->tm_sec = *timer % 60;
-
-  tmbuf->tm_year = (days - leapdays) / 365 + 70;
-  tmbuf->tm_yday = days - leapydays - (tmbuf->tm_year - 70) * 365 + 1;
-
-  tmbuf->tm_mon = 0;
-  tmbuf->tm_mday = tmbuf->tm_yday;
-  monthdays[1] += isleap(tmbuf->tm_year + 1900);
-  while (monthdays[tmbuf->tm_mon] < tmbuf->tm_mday) {
-    tmbuf->tm_mday -= monthdays[tmbuf->tm_mon];
-    tmbuf->tm_mon++;
-  }
-
-  tmbuf->tm_wday = (days + 4) % 7; // Day 0 is magic thursday ;)
-  tmbuf->tm_isdst = 0;
-}
