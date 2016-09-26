@@ -113,6 +113,7 @@ private:
   void getTTLS();
 
   struct UnorderedNameTag{};
+  struct SequenceTag{};
   typedef multi_index_container<
     CacheEntry,
     indexed_by <
@@ -136,7 +137,7 @@ private:
                                                              member<CacheEntry,uint16_t,&CacheEntry::qtype>,
                                                              member<CacheEntry,uint16_t, &CacheEntry::ctype>,
                                                              member<CacheEntry,int, &CacheEntry::zoneID> > > ,
-      sequenced<>
+      sequenced<tag<SequenceTag>>
                            >
   > cmap_t;
 

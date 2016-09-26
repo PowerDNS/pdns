@@ -416,10 +416,9 @@ void PacketCache::cleanup()
   unsigned int totErased=0;
   for(auto& mc : d_maps) {
     WriteLock wl(&mc.d_mut);
-    typedef cmap_t::nth_index<1>::type sequence_t;
-    sequence_t& sidx=mc.d_map.get<1>();
+    auto& sidx = boost::multi_index::get<SequenceTag>(mc.d_map);
     unsigned int erased=0, lookedAt=0;
-    for(sequence_t::iterator i=sidx.begin(); i != sidx.end(); lookedAt++) {
+    for(auto i=sidx.begin(); i != sidx.end(); lookedAt++) {
       if(i->ttd < now) {
 	sidx.erase(i++);
 	erased++;
