@@ -14,18 +14,33 @@ where X is 224, 256, 384 or 512. The content is a Base64-encoded secret.
 Generic SQL Backend make sure to use the DNSSEC enabled schema and to turn on
 the relevant '-dnssec' flag (for example, gmysql-dnssec)!
 
-## Provisioning outbound AXFR access
-To actually provision a named secret permission to AXFR a zone, set a metadata
-item in the 'domainmetadata' table called `TSIG-ALLOW-AXFR` with the key name in
-the content field. For example:
+## Provisioning TSIG secrets
+
+TSIG secrets can be generated or imported. Both operations are done with 
+`pdnsutil`. To generate a new TSIG secret, use:
 
 ```
-insert into tsigkeys (name, algorithm, secret) values ('test', 'hmac-md5', 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=');
-select id from domains where name='powerdnssec.org';
-5
-insert into domainmetadata (domain_id, kind, content) values (5, 'TSIG-ALLOW-AXFR', 'test');
+pdnsutil generate-tsig-key test hmac-md5
+```
 
-$ dig -t axfr powerdnssec.org @127.0.0.1 -y 'test:kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
+To import an existing TSIG secret:
+
+```
+pdnsutil import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
+```
+
+Listing all TSIG secrets known by powerdns is done with 
+`pdnsutil list-tsig-keys` Before a TSIG secret is used, it must be assigned to 
+a zone for either master or slave purpose. 
+
+## Provisioning outbound AXFR access
+To actually provision a named secret permission to AXFR a zone, either 
+generate, or import a TSIG secret with `pdnsutil` and activate it for the 
+required zones. For example, to allow AXFR with the above generated TSIG 
+secret:
+
+```
+pdnsutil activate-tsig-key powerdns.org test master
 ```
 
 To ease interoperability, the equivalent configuration above in BIND would look like this:
@@ -48,22 +63,13 @@ zone even if the remote IP address is not otherwise allowed to AXFR a zone.
 
 ## Provisioning signed notification and AXFR requests
 To configure PowerDNS to send out TSIG signed AXFR requests for a zone to its
-master(s), set the `AXFR-MASTER-TSIG` metadata item for the relevant domain to
-the key that must be used.
+master(s), activate a TSIG key as slave with `pdnsutil` for the required zone.
 
-The actual TSIG key must also be provisioned, as outlined in the previous section.
-
-For the Generic SQL backends, configuring the use of TSIG for AXFR requests could
-be achieved as follows:
+Configuring the use of TSIG for AXFR requests could be achieved as follows:
 
 ```
-insert into tsigkeys (name, algorithm, secret) values ('test', 'hmac-md5', 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=');
-select id from domains where name='powerdnssec.org';
-5
-insert into domainmetadata (domain_id, kind, content) values (5, 'AXFR-MASTER-TSIG', 'test');
+pdnsutil activate-tsig-key powerdns.org test slave
 ```
-
-This setup corresponds to the `TSIG-ALLOW-AXFR` access rule defined in the previous section.
 
 In the interest of interoperability, the configuration above is (not quite)
 similar to the following BIND statements:
