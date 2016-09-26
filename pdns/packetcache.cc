@@ -191,6 +191,8 @@ void PacketCache::insert(const DNSName &qname, const QType& qtype, CacheEntryTyp
 
     if(!success)
       mc.d_map.replace(place, val);
+    else
+      (*d_statnumentries)++;
   }
   else 
     S.inc("deferred-cache-inserts"); 
@@ -227,6 +229,8 @@ void PacketCache::insert(const DNSName &qname, const QType& qtype, CacheEntryTyp
 
     if(!success)
       mc.d_map.replace(place, val);
+    else
+      (*d_statnumentries)++;
   }
   else 
     S.inc("deferred-cache-inserts"); 

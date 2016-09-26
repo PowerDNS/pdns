@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+../pdns/pdns_server --daemon=no --local-port=5300 --config-dir=. --module-dir=modules --config-name=bind --socket-dir=./ --master --webserver=yes --webserver-allow-from=0.0.0.0/0 --cache-ttl=1 --query-cache-ttl=1 --negquery-cache-ttl=1 --reuseport=yes --receiver-threads=4 --distributor-threads=3 --carbon-server=195.191.112.4 --carbon-ourname=pruts --loglevel=9 &
+#../pdns/pdns_server --daemon=no --local-port=5200 --config-dir=. --module-dir=modules --config-name=gmysql --socket-dir=./ --no-shuffle --master --send-root-referral --allow-dnsupdate-from=127.0.0.0/8 --experimental-dnsupdate=yes --cache-ttl=0 --experimental-dname-processing --lua-prequery-script=./check_stest_source --webserver=yes --webserver-allow-from=0.0.0.0/0 --loglevel=99999 --query-logging=yes &
+#	./pdns/pdns_server --daemon=no --local-port=5300 --config-dir=. --config-name=gmysql2 --socket-dir=./ --no-shuffle --send-root-referral --slave --retrieval-threads=4 --slave-cycle-interval=300 --experimental-dname-processing &
+
+sleep 2
+
+echo push enter to terminate instance
+read l
+
+killall pdns_server
+#perf top -p $(pgrep pdns_server)q
