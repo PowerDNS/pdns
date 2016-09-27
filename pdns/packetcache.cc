@@ -43,6 +43,10 @@ PacketCache::PacketCache()
   d_ttl=-1;
   d_recursivettl=-1;
 
+  d_lastclean=time(0);
+  d_cleanskipped=false;
+  d_nextclean=d_cleaninterval=4096;
+
   S.declare("packetcache-hit");
   S.declare("packetcache-miss");
   S.declare("packetcache-size");
@@ -408,7 +412,7 @@ void PacketCache::cleanup()
 
   DLOG(L<<"Starting cache clean, cacheSize: "<<cacheSize<<", lookAt: "<<lookAt<<", toTrim: "<<toTrim<<endl);
 
-  time_t now=time(0);
+  time_t now = time(0);
   unsigned int totErased = 0;
   for(auto& mc : d_maps) {
     WriteLock wl(&mc.d_mut);
@@ -433,4 +437,36 @@ void PacketCache::cleanup()
   *d_statnumentries -= totErased;
 
   DLOG(L<<"Done with cache clean, cacheSize: "<<*d_statnumentries<<", totErased"<<totErased<<endl);
+}
+
+void PacketCache::cleanupIfNeeded()
+{
+  if (d_ops++ == d_nextclean) {
+    int timediff = max((int)(time(0) - d_lastclean), 1);
+
+    DLOG(L<<"cleaninterval: "<<d_cleaninterval<<", timediff: "<<timediff<<endl);
+
+    if (d_cleaninterval == 300000 && timediff < 30) {
+      d_cleanskipped = true;
+      d_nextclean += d_cleaninterval;
+
+      DLOG(L<<"cleaning skipped, timediff: "<<timediff<<endl);
+
+      return;
+    }
+
+    if(!d_cleanskipped) {
+      d_cleaninterval=(int)(0.6*d_cleaninterval)+(0.4*d_cleaninterval*(30.0/timediff));
+      d_cleaninterval=std::max(d_cleaninterval, 1000);
+      d_cleaninterval=std::min(d_cleaninterval, 300000);
+
+      DLOG(L<<"new cleaninterval: "<<d_cleaninterval<<endl);
+    } else {
+      d_cleanskipped = false;
+    }
+
+    d_nextclean += d_cleaninterval;
+    d_lastclean=time(0);
+    cleanup();
+  }
 }

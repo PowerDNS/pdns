@@ -69,15 +69,7 @@ public:
   
 
   int size() { return *d_statnumentries; } //!< number of entries in the cache
-  void cleanupIfNeeded()
-  {
-    if(!(++d_ops % 300000)) {
-      if(d_lastclean + 30 < time(0)) {
-        d_lastclean=time(0); 
-        cleanup();
-      }
-    }
-  }
+  void cleanupIfNeeded();
   void cleanup(); //!< force the cache to preen itself from expired packets
   int purge();
   int purge(const std::string& match); // could be $ terminated. Is not a dnsname!
@@ -155,7 +147,10 @@ private:
   }
 
   AtomicCounter d_ops;
-  time_t d_lastclean{0}; // doesn't need to be atomic
+  time_t d_lastclean; // doesn't need to be atomic
+  unsigned long d_nextclean;
+  int d_cleaninterval;
+  bool d_cleanskipped;
   AtomicCounter *d_statnumhit;
   AtomicCounter *d_statnummiss;
   AtomicCounter *d_statnumentries;
