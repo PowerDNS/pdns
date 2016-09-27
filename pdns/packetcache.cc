@@ -43,6 +43,10 @@ PacketCache::PacketCache()
   d_ttl=-1;
   d_recursivettl=-1;
 
+  d_lastclean=time(0);
+  d_cleanskipped=false;
+  d_nextclean=d_cleaninterval=4096;
+
   S.declare("packetcache-hit");
   S.declare("packetcache-miss");
   S.declare("packetcache-size");
@@ -428,4 +432,29 @@ void PacketCache::cleanup()
   *d_statnumentries-=totErased;
   
   DLOG(L<<"Done with cache clean"<<endl);
+}
+
+void PacketCache::cleanupIfNeeded()
+{
+  if (d_ops++ == d_nextclean) {
+    int timediff = max((int)(time(0) - d_lastclean), 1);
+
+    DLOG(L<<"cleaninterval: "<<d_cleaninterval<<", timediff: "<<timediff<<endl);
+
+    if (d_cleaninterval == 300000 && timediff < 30) {
+      d_cleanskipped = true;
+      d_nextclean += d_cleaninterval;
+
+      DLOG(L<<"cleaning skipped, timediff: "<<timediff<<endl);
+
+      return;
+    }
+    if(d_cleanskipped) {
+      d_cleanskipped = false;
+    }
+
+    d_nextclean += d_cleaninterval;
+    d_lastclean=time(0);
+    cleanup();
+  }
 }
