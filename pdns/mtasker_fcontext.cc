@@ -23,10 +23,15 @@
 #include <exception>
 #include <cassert>
 #include <type_traits>
-#include <boost/context/fcontext.hpp>
 #include <boost/version.hpp>
-
+#if BOOST_VERSION < 106100
+#include <boost/context/fcontext.hpp>
 using boost::context::make_fcontext;
+#else
+#include <boost/context/detail/fcontext.hpp>
+using boost::context::detail::make_fcontext;
+#endif /* BOOST_VERSION < 106100 */
+
 
 #if BOOST_VERSION < 105600
 /* Note: This typedef means functions taking fcontext_t*, like jump_fcontext(),
@@ -57,8 +62,15 @@ jump_fcontext (fcontext_t* const ofc, fcontext_t const nfc,
     }
 }
 #else
+
+#if BOOST_VERSION < 106100
 using boost::context::fcontext_t;
 using boost::context::jump_fcontext;
+#else
+using boost::context::detail::fcontext_t;
+using boost::context::detail::jump_fcontext;
+using boost::context::detail::transfer_t;
+#endif /* BOOST_VERSION < 106100 */
 
 static_assert (std::is_pointer<fcontext_t>::value,
                "Boost Context has changed the fcontext_t type again :-(");
@@ -68,7 +80,9 @@ static_assert (std::is_pointer<fcontext_t>::value,
  * jump. args_t simply provides a way to pass more by reference.
  */
 struct args_t {
+#if BOOST_VERSION < 106100
     fcontext_t prev_ctx = nullptr;
+#endif
     pdns_ucontext_t* self = nullptr;
     boost::function<void(void)>* work = nullptr;
 };
@@ -76,7 +90,11 @@ struct args_t {
 extern "C" {
 static
 void
+#if BOOST_VERSION < 106100
 threadWrapper (intptr_t const xargs) {
+#else
+threadWrapper (transfer_t const t) {
+#endif
     /* Access the args passed from pdns_makecontext, and copy them directly from
      * the calling stack on to ours (we're now using the MThreads stack).
      * This saves heap allocating an args object, at the cost of an extra
@@ -86,11 +104,28 @@ threadWrapper (intptr_t const xargs) {
      * the behaviour of the System V implementation, which can inherently only
      * be passed ints and pointers.
      */
+#if BOOST_VERSION < 106100
     auto args = reinterpret_cast<args_t*>(xargs);
+#else
+    auto args = reinterpret_cast<args_t*>(t.data);
+#endif
     auto ctx = args->self;
     auto work = args->work;
+    /* we switch back to pdns_makecontext() */
+#if BOOST_VERSION < 106100
     jump_fcontext (reinterpret_cast<fcontext_t*>(&ctx->uc_mcontext),
                    static_cast<fcontext_t>(args->prev_ctx), 0);
+#else
+    transfer_t res = jump_fcontext (t.fctx, 0);
+    /* we got switched back from pdns_swapcontext() */
+    if (res.data) {
+      /* if res.data is not a nullptr, it holds a pointer to the context
+         we just switched from, and we need to fill it to be able to
+         switch back to it later. */
+      fcontext_t* ptr = static_cast<fcontext_t*>(res.data);
+      *ptr = res.fctx;
+    }
+#endif
     args = nullptr;
 
     try {
@@ -102,9 +137,14 @@ threadWrapper (intptr_t const xargs) {
 
     /* Emulate the System V uc_link feature. */
     auto const next_ctx = ctx->uc_link->uc_mcontext;
+#if BOOST_VERSION < 106100
     jump_fcontext (reinterpret_cast<fcontext_t*>(&ctx->uc_mcontext),
                    static_cast<fcontext_t>(next_ctx),
                    static_cast<bool>(ctx->exception));
+#else
+    jump_fcontext (static_cast<fcontext_t>(next_ctx), 0);
+#endif
+
 #ifdef NDEBUG
     __builtin_unreachable();
 #endif
@@ -125,10 +165,27 @@ pdns_ucontext_t::~pdns_ucontext_t
 void
 pdns_swapcontext
 (pdns_ucontext_t& __restrict octx, pdns_ucontext_t const& __restrict ctx) {
+  /* we either switch back to threadwrapper() if it's the first time,
+     or we switch back to pdns_swapcontext(),
+     in both case we will be returning from a call to jump_fcontext(). */
+#if BOOST_VERSION < 106100
     if (jump_fcontext (reinterpret_cast<fcontext_t*>(&octx.uc_mcontext),
                        static_cast<fcontext_t>(ctx.uc_mcontext), 0)) {
         std::rethrow_exception (ctx.exception);
     }
+#else
+  transfer_t res = jump_fcontext (static_cast<fcontext_t>(ctx.uc_mcontext), &octx.uc_mcontext);
+  if (res.data) {
+    /* if res.data is not a nullptr, it holds a pointer to the context
+       we just switched from, and we need to fill it to be able to
+       switch back to it later. */
+    fcontext_t* ptr = static_cast<fcontext_t*>(res.data);
+    *ptr = res.fctx;
+  }
+  if (ctx.exception) {
+    std::rethrow_exception (ctx.exception);
+  }
+#endif
 }
 
 void
@@ -142,7 +199,15 @@ pdns_makecontext
     args_t args;
     args.self = &ctx;
     args.work = &start;
+    /* jumping to threadwrapper */
+#if BOOST_VERSION < 106100
     jump_fcontext (reinterpret_cast<fcontext_t*>(&args.prev_ctx),
                    static_cast<fcontext_t>(ctx.uc_mcontext),
                    reinterpret_cast<intptr_t>(&args));
+#else
+    transfer_t res = jump_fcontext (static_cast<fcontext_t>(ctx.uc_mcontext),
+                                    &args);
+    /* back from threadwrapper, updating the context */
+    ctx.uc_mcontext = res.fctx;
+#endif
 }
