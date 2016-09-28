@@ -88,8 +88,8 @@ list all master servers separated by commas in the 'master' field of the domains
 Since version 4.0.0, PowerDNS requires that masters sign their
 notifications.  During transition and interoperation with other nameservers,
 you can use options **allow-unsigned-notify** to permit unsigned
-notifications.  For 4.0.0 this is turned off by default, but it might be
-turned on permanently in future releases.
+notifications.  For 4.0.0 this is turned on by default, but it might be
+turned off permanently in future releases.
 
 ## IXFR: incremental zone transfers
 If the 'IXFR' zone metadata item is set to 1 for a zone, PowerDNS will attempt to retrieve
