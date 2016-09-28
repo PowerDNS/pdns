@@ -69,7 +69,7 @@ PacketHandler::PacketHandler():B(s_programname), d_dk(&B)
   }
   else
   {
-    d_pdl = new AuthLua(fname);
+    d_pdl = std::unique_ptr<AuthLua>(new AuthLua(fname));
   }
   fname = ::arg()["lua-dnsupdate-policy-script"];
   if (fname.empty())
@@ -78,7 +78,7 @@ PacketHandler::PacketHandler():B(s_programname), d_dk(&B)
   }
   else
   {
-    d_update_policy_lua = new AuthLua4(fname);
+    d_update_policy_lua = std::unique_ptr<AuthLua4>(new AuthLua4(fname));
   }
 }
 
