@@ -420,8 +420,10 @@ void PacketCache::cleanup()
     unsigned int erased = 0, lookedAt = 0;
     for(auto i = sidx.begin(); i != sidx.end(); lookedAt++) {
       if(i->ttd < now) {
-        sidx.erase(i);
+        i = sidx.erase(i);
         erased++;
+      } else {
+        ++i;
       }
 
       if(toTrim && erased > toTrim / d_maps.size())
@@ -429,8 +431,6 @@ void PacketCache::cleanup()
 
       if(lookedAt > lookAt / d_maps.size())
         break;
-
-      i++;
     }
     totErased += erased;
   }
