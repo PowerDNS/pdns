@@ -340,10 +340,14 @@ bool PipeBackend::get(DNSResourceRecord &r)
         throw PDNSException("Coprocess backend sent incorrect response '"+line+"'");
     }
   }
+  catch (DBException &dbe) {
+    L<<Logger::Error<<kBackendId<<" "<<dbe.reason<<endl;
+    throw;
+  }
   catch (PDNSException &pe) {
     L<<Logger::Error<<kBackendId<<" "<<pe.reason<<endl;
     cleanup();
-    return false;
+    throw;
   }
   return true;
 }
