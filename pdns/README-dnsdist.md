@@ -167,6 +167,17 @@ be 192.0.2.0. This can be changed with:
 > setECSSourcePrefixV6(56)
 ```
 
+In addition to the global settings, rules and Lua bindings can alter this behavior per query:
+
+* calling `DisableECSAction()` or setting `dq.useECS` to false prevent the sending of the ECS option
+* calling `ECSOverrideAction(bool)` or setting `dq.ecsOverride` will override the global `setECSOverride()` value
+* calling `ECSPrefixLengthAction(v4, v6)` or setting `dq.ecsPrefixLength` will override the global
+`setECSSourcePrefixV4()` and `setECSSourcePrefixV6()` values
+
+In effect this means that for the EDNS Client Subnet option to be added to the request, `useClientSubnet`
+should be set to true for the backend used (default to false) and ECS should not have been disabled by calling
+`DisableECSAction()` or setting `dq.useECS` to false (default to true).
+
 TCP timeouts
 ------------
 
@@ -362,6 +373,7 @@ Current actions are:
  * Add the source MAC address to the query (MacAddrAction)
  * Skip the cache, if any
  * Log query content to a remote server (RemoteLogAction)
+ * Alter the EDNS Client Subnet parameters (DisableECSAction, ECSOverrideAction, ECSPrefixLengthAction)
 
 Current response actions are:
 
@@ -415,7 +427,10 @@ A DNS rule can be:
 Some specific actions do not stop the processing when they match, contrary to all other actions:
 
  * Delay
+ * DisableECS
  * Disable Validation
+ * ECSOverride
+ * ECSPrefixLength
  * Log
  * MacAddr
  * No Recurse
@@ -1312,9 +1327,12 @@ instantiate a server with additional parameters
     * `AllowResponseAction()`: let these packets go through
     * `DelayAction(milliseconds)`: delay the response by the specified amount of milliseconds (UDP-only)
     * `DelayResponseAction(milliseconds)`: delay the response by the specified amount of milliseconds (UDP-only)
+    * `DisableECSAction()`: disable the sending of ECS to the backend
     * `DisableValidationAction()`: set the CD bit in the question, let it go through
     * `DropAction()`: drop these packets
     * `DropResponseAction()`: drop these packets
+    * `ECSOverrideAction(bool)`: whether an existing ECS value should be overriden (true) or not (false)
+    * `ECSPrefixLengthAction(v4, v6)`: set the ECS prefix length
     * `LogAction([filename], [binary], [append], [buffered])`: Log a line for each query, to the specified file if any, to the console (require verbose) otherwise. When logging to a file, the `binary` optional parameter specifies whether we log in binary form (default) or in textual form, the `append` optional parameter specifies whether we open the file for appending or truncate each time (default), and the `buffered` optional parameter specifies whether writes to the file are buffered (default) or not.
     * `NoRecurseAction()`: strip RD bit from the question, let it go through
     * `PoolAction(poolname)`: set the packet into the specified pool
@@ -1420,6 +1438,8 @@ instantiate a server with additional parameters
         * member `wirelength()`: return the length on the wire
     * DNSQuestion related:
         * member `dh`: DNSHeader
+        * member `ecsOverride`: whether an existing ECS value should be overriden (settable)
+        * member `ecsPrefixLength`: the ECS prefix length to use (settable)
         * member `len`: the question length
         * member `localaddr`: ComboAddress of the local bind this question was received on
         * member `opcode`: the question opcode
@@ -1431,6 +1451,7 @@ instantiate a server with additional parameters
         * member `size`: the total size of the buffer starting at `dh`
         * member `skipCache`: whether to skip cache lookup / storing the answer for this question (settable)
         * member `tcp`: whether this question was received over a TCP socket
+        * member `useECS`: whether to send ECS to the backend (settable)
     * DNSHeader related
         * member `getRD()`: get recursion desired flag
         * member `setRD(bool)`: set recursion desired flag

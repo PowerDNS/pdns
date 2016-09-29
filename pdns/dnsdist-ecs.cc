@@ -29,7 +29,7 @@
 
 /* when we add EDNS to a query, we don't want to advertise
    a large buffer size */
-size_t q_EdnsUDPPayloadSize = 512;
+size_t g_EdnsUDPPayloadSize = 512;
 /* draft-ietf-dnsop-edns-client-subnet-04 "11.1.  Privacy" */
 uint16_t g_ECSSourcePrefixV4 = 24;
 uint16_t g_ECSSourcePrefixV6 = 56;
@@ -231,9 +231,9 @@ static int getEDNSOptionsStart(char* packet, const size_t offset, const size_t l
   return 0;
 }
 
-static void generateECSOption(const ComboAddress& source, string& res)
+static void generateECSOption(const ComboAddress& source, string& res, uint16_t ECSPrefixLength)
 {
-  Netmask sourceNetmask(source, source.sin4.sin_family == AF_INET ? g_ECSSourcePrefixV4 : g_ECSSourcePrefixV6);
+  Netmask sourceNetmask(source, ECSPrefixLength);
   EDNSSubnetOpts ecsOpts;
   ecsOpts.source = sourceNetmask;
   string payload = makeEDNSSubnetOptsString(ecsOpts);
@@ -250,7 +250,7 @@ void generateOptRR(const std::string& optRData, string& res)
   edns0.Z = 0;
   
   dh.d_type = htons(QType::OPT);
-  dh.d_class = htons(q_EdnsUDPPayloadSize);
+  dh.d_class = htons(g_EdnsUDPPayloadSize);
   static_assert(sizeof(EDNS0Record) == sizeof(dh.d_ttl), "sizeof(EDNS0Record) must match sizeof(dnsrecordheader.d_ttl)");
   memcpy(&dh.d_ttl, &edns0, sizeof edns0);
   dh.d_clen = htons((uint16_t) optRData.length());
@@ -259,14 +259,14 @@ void generateOptRR(const std::string& optRData, string& res)
   res.append(optRData.c_str(), optRData.length());
 }
 
-static void replaceEDNSClientSubnetOption(char * const packet, const size_t packetSize, uint16_t * const len, string& largerPacket, const ComboAddress& remote, char * const oldEcsOptionStart, size_t const oldEcsOptionSize, unsigned char * const optRDLen)
+static void replaceEDNSClientSubnetOption(char * const packet, const size_t packetSize, uint16_t * const len, string& largerPacket, const ComboAddress& remote, char * const oldEcsOptionStart, size_t const oldEcsOptionSize, unsigned char * const optRDLen, uint16_t ECSPrefixLength)
 {
   assert(packet != NULL);
   assert(len != NULL);
   assert(oldEcsOptionStart != NULL);
   assert(optRDLen != NULL);
   string ECSOption;
-  generateECSOption(remote, ECSOption);
+  generateECSOption(remote, ECSOption, ECSPrefixLength);
 
   if (ECSOption.size() == oldEcsOptionSize) {
     /* same size as the existing option */
@@ -309,7 +309,7 @@ static void replaceEDNSClientSubnetOption(char * const packet, const size_t pack
   }
 }
 
-void handleEDNSClientSubnet(char* const packet, const size_t packetSize, const unsigned int consumed, uint16_t* const len, string& largerPacket, bool* const ednsAdded, bool* const ecsAdded, const ComboAddress& remote)
+void handleEDNSClientSubnet(char* const packet, const size_t packetSize, const unsigned int consumed, uint16_t* const len, string& largerPacket, bool* const ednsAdded, bool* const ecsAdded, const ComboAddress& remote, bool overrideExisting, uint16_t ecsPrefixLength)
 {
   assert(packet != NULL);
   assert(len != NULL);
@@ -318,7 +318,7 @@ void handleEDNSClientSubnet(char* const packet, const size_t packetSize, const u
   assert(ecsAdded != NULL);
   unsigned char * optRDLen = NULL;
   size_t remaining = 0;
-        
+
   int res = getEDNSOptionsStart(packet, consumed, *len, (char**) &optRDLen, &remaining);
         
   if (res == 0) {
@@ -329,15 +329,15 @@ void handleEDNSClientSubnet(char* const packet, const size_t packetSize, const u
     
     if (res == 0) {
       /* there is already an ECS value */
-      if (g_ECSOverride) {
-        replaceEDNSClientSubnetOption(packet, packetSize, len, largerPacket, remote, ecsOptionStart, ecsOptionSize, optRDLen);
+      if (overrideExisting) {
+        replaceEDNSClientSubnetOption(packet, packetSize, len, largerPacket, remote, ecsOptionStart, ecsOptionSize, optRDLen, ecsPrefixLength);
       }
     } else {
       /* we need to add one EDNS0 ECS option, fixing the size of EDNS0 RDLENGTH */
       /* getEDNSOptionsStart has already checked that there is exactly one AR,
          no NS and no AN */
       string ECSOption;
-      generateECSOption(remote, ECSOption);
+      generateECSOption(remote, ECSOption, ecsPrefixLength);
       const size_t ECSOptionSize = ECSOption.size();
       
       uint16_t newRDLen = (optRDLen[0] * 256) + optRDLen[1];
@@ -366,7 +366,7 @@ void handleEDNSClientSubnet(char* const packet, const size_t packetSize, const u
     string EDNSRR;
     struct dnsheader* dh = (struct dnsheader*) packet;
     string optRData;
-    generateECSOption(remote, optRData);
+    generateECSOption(remote, optRData, ecsPrefixLength);
     generateOptRR(optRData, EDNSRR);
     uint16_t arcount = ntohs(dh->arcount);
     arcount++;

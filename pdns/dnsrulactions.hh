@@ -1001,6 +1001,60 @@ public:
   }
 };
 
+class ECSPrefixLengthAction : public DNSAction
+{
+public:
+  ECSPrefixLengthAction(uint16_t v4Length, uint16_t v6Length) : d_v4PrefixLength(v4Length), d_v6PrefixLength(v6Length)
+  {
+  }
+  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  {
+    dq->ecsPrefixLength = dq->remote->sin4.sin_family == AF_INET ? d_v4PrefixLength : d_v6PrefixLength;
+    return Action::None;
+  }
+  string toString() const override
+  {
+    return "set ECS prefix length to " + std::to_string(d_v4PrefixLength) + "/" + std::to_string(d_v6PrefixLength);
+  }
+private:
+  uint16_t d_v4PrefixLength;
+  uint16_t d_v6PrefixLength;
+};
+
+class ECSOverrideAction : public DNSAction
+{
+public:
+  ECSOverrideAction(bool ecsOverride) : d_ecsOverride(ecsOverride)
+  {
+  }
+  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  {
+    dq->ecsOverride = d_ecsOverride;
+    return Action::None;
+  }
+  string toString() const override
+  {
+    return "set ECS override to " + std::to_string(d_ecsOverride);
+  }
+private:
+  bool d_ecsOverride;
+};
+
+
+class DisableECSAction : public DNSAction
+{
+public:
+  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  {
+    dq->useECS = false;
+    return Action::None;
+  }
+  string toString() const override
+  {
+    return "disable ECS";
+  }
+};
+
 class RemoteLogAction : public DNSAction, public boost::noncopyable
 {
 public:

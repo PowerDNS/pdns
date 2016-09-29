@@ -444,9 +444,13 @@ struct DownstreamState
 };
 using servers_t =vector<std::shared_ptr<DownstreamState>>;
 
+extern uint16_t g_ECSSourcePrefixV4;
+extern uint16_t g_ECSSourcePrefixV6;
+extern bool g_ECSOverride;
+
 struct DNSQuestion
 {
-  DNSQuestion(const DNSName* name, uint16_t type, uint16_t class_, const ComboAddress* lc, const ComboAddress* rem, struct dnsheader* header, size_t bufferSize, uint16_t queryLen, bool isTcp): qname(name), qtype(type), qclass(class_), local(lc), remote(rem), dh(header), size(bufferSize), len(queryLen), tcp(isTcp) { }
+  DNSQuestion(const DNSName* name, uint16_t type, uint16_t class_, const ComboAddress* lc, const ComboAddress* rem, struct dnsheader* header, size_t bufferSize, uint16_t queryLen, bool isTcp): qname(name), qtype(type), qclass(class_), local(lc), remote(rem), dh(header), size(bufferSize), len(queryLen), ecsPrefixLength(rem->sin4.sin_family == AF_INET ? g_ECSSourcePrefixV4 : g_ECSSourcePrefixV6), tcp(isTcp), ecsOverride(g_ECSOverride) { }
 
 #ifdef HAVE_PROTOBUF
   boost::uuids::uuid uniqueId;
@@ -459,8 +463,11 @@ struct DNSQuestion
   struct dnsheader* dh;
   size_t size;
   uint16_t len;
+  uint16_t ecsPrefixLength;
   const bool tcp;
   bool skipCache{false};
+  bool ecsOverride;
+  bool useECS{true};    
 };
 
 struct DNSResponse : DNSQuestion
@@ -665,9 +672,6 @@ extern std::atomic<bool> g_configurationDone;
 extern uint64_t g_maxTCPClientThreads;
 extern uint64_t g_maxTCPQueuedConnections;
 extern std::atomic<uint16_t> g_cacheCleaningDelay;
-extern uint16_t g_ECSSourcePrefixV4;
-extern uint16_t g_ECSSourcePrefixV6;
-extern bool g_ECSOverride;
 extern bool g_verboseHealthChecks;
 extern uint32_t g_staleCacheEntriesTTL;
 
