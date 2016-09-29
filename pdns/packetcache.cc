@@ -43,6 +43,10 @@ PacketCache::PacketCache()
   d_ttl=-1;
   d_recursivettl=-1;
 
+  d_lastclean=time(0);
+  d_cleanskipped=false;
+  d_nextclean=d_cleaninterval=4096;
+
   S.declare("packetcache-hit");
   S.declare("packetcache-miss");
   S.declare("packetcache-size");
@@ -191,6 +195,8 @@ void PacketCache::insert(const DNSName &qname, const QType& qtype, CacheEntryTyp
 
     if(!success)
       mc.d_map.replace(place, val);
+    else
+      (*d_statnumentries)++;
   }
   else 
     S.inc("deferred-cache-inserts"); 
@@ -227,6 +233,8 @@ void PacketCache::insert(const DNSName &qname, const QType& qtype, CacheEntryTyp
 
     if(!success)
       mc.d_map.replace(place, val);
+    else
+      (*d_statnumentries)++;
   }
   else 
     S.inc("deferred-cache-inserts"); 
@@ -257,7 +265,7 @@ int PacketCache::purgeExact(const DNSName& qname)
     delcount+=distance(range.first, range.second);
     mc.d_map.erase(range.first, range.second);
   }
-  *d_statnumentries-=delcount; // XXX FIXME NEEDS TO BE ADJUSTED (for packetcache shards)
+  *d_statnumentries-=delcount;
   return delcount;
 }
 
@@ -282,7 +290,7 @@ int PacketCache::purge(const string &match)
       }
       mc.d_map.erase(start, iter);
     }
-    *d_statnumentries-=delcount; // XXX FIXME NEEDS TO BE ADJUSTED (for packetcache shards)
+    *d_statnumentries-=delcount;
     return delcount;
   }
   else {
@@ -386,76 +394,79 @@ map<char,int> PacketCache::getCounts()
   return ret;
 }
 
-int PacketCache::size()
-{
-  uint64_t ret=0;
-  for(auto& mc : d_maps) {
-    ReadLock l(&mc.d_mut);
-    ret+=mc.d_map.size();
-  }
-  return ret;
-}
 
-/** readlock for figuring out which iterators to delete, upgrade to writelock when actually cleaning */
 void PacketCache::cleanup()
 {
-  d_statnumentries->store(0);
-  for(auto& mc : d_maps) {
-    ReadLock l(&mc.d_mut);
+  unsigned int maxCached = ::arg().asNum("max-cache-entries");
+  unsigned long cacheSize = *d_statnumentries;
 
-    *d_statnumentries+=mc.d_map.size();
-  }
-  unsigned int maxCached=::arg().asNum("max-cache-entries");
-  unsigned int toTrim=0;
-  
-  unsigned long cacheSize=*d_statnumentries;
-  
-  if(maxCached && cacheSize > maxCached) {
-    toTrim = cacheSize - maxCached;
-  }
-
-  unsigned int lookAt=0;
   // two modes - if toTrim is 0, just look through 10%  of the cache and nuke everything that is expired
   // otherwise, scan first 5*toTrim records, and stop once we've nuked enough
-  if(toTrim)
-    lookAt=5*toTrim;
-  else
-    lookAt=cacheSize/10;
+  unsigned int toTrim = 0, lookAt = 0;
+  if(maxCached && cacheSize > maxCached) {
+    toTrim = cacheSize - maxCached;
+    lookAt = 5 * toTrim;
+  } else {
+    lookAt = cacheSize / 10;
+  }
 
-  //  cerr<<"cacheSize: "<<cacheSize<<", lookAt: "<<lookAt<<", toTrim: "<<toTrim<<endl;
-  time_t now=time(0);
-  DLOG(L<<"Starting cache clean"<<endl);
-  //unsigned int totErased=0;
+  DLOG(L<<"Starting cache clean, cacheSize: "<<cacheSize<<", lookAt: "<<lookAt<<", toTrim: "<<toTrim<<endl);
+
+  time_t now = time(0);
+  unsigned int totErased = 0;
   for(auto& mc : d_maps) {
     WriteLock wl(&mc.d_mut);
-    typedef cmap_t::nth_index<1>::type sequence_t;
-    sequence_t& sidx=mc.d_map.get<1>();
-    unsigned int erased=0, lookedAt=0;
-    for(sequence_t::iterator i=sidx.begin(); i != sidx.end(); lookedAt++) {
+    auto& sidx = boost::multi_index::get<SequenceTag>(mc.d_map);
+    unsigned int erased = 0, lookedAt = 0;
+    for(auto i = sidx.begin(); i != sidx.end(); lookedAt++) {
       if(i->ttd < now) {
-	sidx.erase(i++);
-	erased++;
-      }
-      else {
-	++i;
+        i = sidx.erase(i);
+        erased++;
+      } else {
+        ++i;
       }
 
       if(toTrim && erased > toTrim / d_maps.size())
-	break;
-      
+        break;
+
       if(lookedAt > lookAt / d_maps.size())
-	break;
+        break;
     }
-    //totErased += erased;
+    totErased += erased;
   }
-  //  if(totErased)
-  //  cerr<<"erased: "<<totErased<<endl;
-  
-  d_statnumentries->store(0);
-  for(auto& mc : d_maps) {
-    ReadLock l(&mc.d_mut);
-    *d_statnumentries+=mc.d_map.size();
+  *d_statnumentries -= totErased;
+
+  DLOG(L<<"Done with cache clean, cacheSize: "<<*d_statnumentries<<", totErased"<<totErased<<endl);
+}
+
+void PacketCache::cleanupIfNeeded()
+{
+  if (d_ops++ == d_nextclean) {
+    int timediff = max((int)(time(0) - d_lastclean), 1);
+
+    DLOG(L<<"cleaninterval: "<<d_cleaninterval<<", timediff: "<<timediff<<endl);
+
+    if (d_cleaninterval == 300000 && timediff < 30) {
+      d_cleanskipped = true;
+      d_nextclean += d_cleaninterval;
+
+      DLOG(L<<"cleaning skipped, timediff: "<<timediff<<endl);
+
+      return;
+    }
+
+    if(!d_cleanskipped) {
+      d_cleaninterval=(int)(0.6*d_cleaninterval)+(0.4*d_cleaninterval*(30.0/timediff));
+      d_cleaninterval=std::max(d_cleaninterval, 1000);
+      d_cleaninterval=std::min(d_cleaninterval, 300000);
+
+      DLOG(L<<"new cleaninterval: "<<d_cleaninterval<<endl);
+    } else {
+      d_cleanskipped = false;
+    }
+
+    d_nextclean += d_cleaninterval;
+    d_lastclean=time(0);
+    cleanup();
   }
-  
-  DLOG(L<<"Done with cache clean"<<endl);
 }
