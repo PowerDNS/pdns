@@ -30,6 +30,8 @@
 #include <map>
 #include <boost/algorithm/string.hpp>
 
+const unsigned int PacketCache::s_mincleaninterval, PacketCache::s_maxcleaninterval;
+
 extern StatBag S;
 
 PacketCache::PacketCache()

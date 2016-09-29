@@ -159,7 +159,7 @@ private:
   int d_recursivettl;
   bool d_doRecursion;
 
-  static constexpr unsigned int s_mincleaninterval=1000, s_maxcleaninterval=300000;
+  static const unsigned int s_mincleaninterval=1000, s_maxcleaninterval=300000;
 };
 
 
