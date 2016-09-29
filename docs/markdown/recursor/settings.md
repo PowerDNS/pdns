@@ -497,7 +497,7 @@ If no settings are included, the RPZ is taken literally with no overrides applie
 
 The policy action are:
 
-* Policy.Custom will return a NoError, CNAME answer with the value specified with `defcontent`
+* Policy.Custom will return a NoError, CNAME answer with the value specified with `defcontent`, when looking up the result of this CNAME, RPZ is not taken into account
 * Policy.Drop will simply cause the query to be dropped
 * Policy.NoAction will continue normal processing of the query
 * Policy.NODATA will return a NoError response with no value in the answer section

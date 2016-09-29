@@ -637,6 +637,32 @@ static void protobufLogResponse(const std::shared_ptr<RemoteLogger>& logger, con
 }
 #endif
 
+/**
+ * Chases the CNAME provided by the PolicyCustom RPZ policy.
+ *
+ * @param spoofed: The DNSRecord that was created by the policy, should already be added to ret
+ * @param qtype: The QType of the original query
+ * @param sr: A SyncRes
+ * @param res: An integer that will contain the RCODE of the lookup we do
+ * @param ret: A vector of DNSRecords where the result of the CNAME chase should be appended to
+ */
+void handleRPZCustom(const DNSRecord& spoofed, const QType& qtype, SyncRes& sr, int& res, vector<DNSRecord>& ret)
+{
+  if (spoofed.d_type == QType::CNAME) {
+    bool oldWantsRPZ = sr.d_wantsRPZ;
+    sr.d_wantsRPZ = false;
+    vector<DNSRecord> ans;
+    res = sr.beginResolve(DNSName(spoofed.d_content->getZoneRepresentation()), qtype, 1, ans);
+    for (const auto& rec : ans) {
+      if(rec.d_place == DNSResourceRecord::ANSWER) {
+        ret.push_back(rec);
+      }
+    }
+    // Reset the RPZ state of the SyncRes
+    sr.d_wantsRPZ = oldWantsRPZ;
+  }
+}
+
 void startDoResolve(void *p)
 {
   DNSComboWriter* dc=(DNSComboWriter *)p;
@@ -781,6 +807,7 @@ void startDoResolve(void *p)
             spoofed.d_content = appliedPolicy.d_custom;
             spoofed.d_place = DNSResourceRecord::ANSWER;
             ret.push_back(spoofed);
+            handleRPZCustom(spoofed, QType(dc->d_mdp.d_qtype), sr, res, ret);
             goto haveAnswer;
           case DNSFilterEngine::PolicyKind::Truncate:
             if(!dc->d_tcp) {
@@ -845,6 +872,7 @@ void startDoResolve(void *p)
             spoofed.d_content = appliedPolicy.d_custom;
             spoofed.d_place = DNSResourceRecord::ANSWER;
             ret.push_back(spoofed);
+            handleRPZCustom(spoofed, QType(dc->d_mdp.d_qtype), sr, res, ret);
             goto haveAnswer;
         }
       }
@@ -909,6 +937,7 @@ void startDoResolve(void *p)
             spoofed.d_content = appliedPolicy.d_custom;
             spoofed.d_place = DNSResourceRecord::ANSWER;
             ret.push_back(spoofed);
+            handleRPZCustom(spoofed, QType(dc->d_mdp.d_qtype), sr, res, ret);
             goto haveAnswer;
         }
       }
