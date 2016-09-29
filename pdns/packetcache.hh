@@ -141,7 +141,7 @@ private:
   AtomicCounter d_ops;
   time_t d_lastclean; // doesn't need to be atomic
   unsigned long d_nextclean;
-  int d_cleaninterval;
+  unsigned int d_cleaninterval;
   bool d_cleanskipped;
   AtomicCounter *d_statnumhit;
   AtomicCounter *d_statnummiss;
@@ -150,6 +150,8 @@ private:
   int d_ttl;
   int d_recursivettl;
   bool d_doRecursion;
+
+  static constexpr unsigned int s_mincleaninterval=1000, s_maxcleaninterval=300000;
 };
 
 

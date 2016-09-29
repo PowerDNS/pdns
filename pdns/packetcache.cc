@@ -434,6 +434,15 @@ void PacketCache::cleanup()
   DLOG(L<<"Done with cache clean"<<endl);
 }
 
+/* the logic:
+   after d_nextclean operations, we clean. We also adjust the cleaninterval
+   a bit so we slowly move it to a value where we clean roughly every 30 seconds.
+
+   If d_nextclean has reached its maximum value, we also test if we were called
+   within 30 seconds, and if so, we skip cleaning. This means that under high load,
+   we will not clean more often than every 30 seconds anyhow.
+*/
+
 void PacketCache::cleanupIfNeeded()
 {
   if (d_ops++ == d_nextclean) {
@@ -441,7 +450,7 @@ void PacketCache::cleanupIfNeeded()
 
     DLOG(L<<"cleaninterval: "<<d_cleaninterval<<", timediff: "<<timediff<<endl);
 
-    if (d_cleaninterval == 300000 && timediff < 30) {
+    if (d_cleaninterval == s_maxcleaninterval && timediff < 30) {
       d_cleanskipped = true;
       d_nextclean += d_cleaninterval;
 
@@ -449,7 +458,14 @@ void PacketCache::cleanupIfNeeded()
 
       return;
     }
-    if(d_cleanskipped) {
+
+    if(!d_cleanskipped) {
+      d_cleaninterval=(int)(0.6*d_cleaninterval)+(0.4*d_cleaninterval*(30.0/timediff));
+      d_cleaninterval=std::max(d_cleaninterval, s_mincleaninterval);
+      d_cleaninterval=std::min(d_cleaninterval, s_maxcleaninterval);
+
+      DLOG(L<<"new cleaninterval: "<<d_cleaninterval<<endl);
+    } else {
       d_cleanskipped = false;
     }
 
