@@ -41,6 +41,7 @@ ltversion.m4
 lt~obsolete.m4
 pdns-*.tar.gz
 pdns-*.tar.bz2
+regression-tests.recursor/run-auth
 .*DS_Store
 *~
 pdns.pid
