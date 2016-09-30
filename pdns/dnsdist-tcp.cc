@@ -265,8 +265,11 @@ void* tcpClientThread(int pipefd)
 
 	string poolname;
 	int delayMsec=0;
+	/* we need this one to be accurate ("real") for the protobuf message */
+	struct timespec queryRealTime;
 	struct timespec now;
-	gettime(&now, true);
+	gettime(&now);
+	gettime(&queryRealTime, true);
 
 	if (!processQuery(localDynBlockNMG, localDynBlockSMT, localRulactions, blockFilter, dq, poolname, &delayMsec, now)) {
 	  goto drop;
@@ -433,7 +436,7 @@ void* tcpClientThread(int pipefd)
         }
 
         dh = (struct dnsheader*) response;
-        DNSResponse dr(&qname, qtype, qclass, &ci.cs->local, &ci.remote, dh, responseSize, responseLen, true, &now);
+        DNSResponse dr(&qname, qtype, qclass, &ci.cs->local, &ci.remote, dh, responseSize, responseLen, true, &queryRealTime);
 #ifdef HAVE_PROTOBUF
         dr.uniqueId = dq.uniqueId;
 #endif
