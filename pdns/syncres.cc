@@ -1245,7 +1245,8 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
               // Check if we are authoritative for a zone in this answer
               DNSName tmp_qname(rec.d_name);
               auto auth_domain_iter=getBestAuthZone(&tmp_qname);
-              if(auth_domain_iter!=t_sstorage->domainmap->end()) {
+              if(auth_domain_iter!=t_sstorage->domainmap->end() &&
+                  auth.countLabels() <= auth_domain_iter->first.countLabels()) {
                 if (auth_domain_iter->first != auth) {
                   LOG("NO! - we are authoritative for the zone "<<auth_domain_iter->first<<endl);
                   continue;
