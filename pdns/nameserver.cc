@@ -321,7 +321,7 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
   int err;
   vector<struct pollfd> rfds= d_rfds;
 
-  for(struct pollfd &pfd :  rfds) {
+  for(auto &pfd :  rfds) {
     pfd.events = POLLIN;
     pfd.revents = 0;
   }
@@ -335,7 +335,7 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
     unixDie("Unable to poll for new UDP events");
   }
     
-  for(struct pollfd &pfd :  rfds) {
+  for(auto &pfd :  rfds) {
     if(pfd.revents & POLLIN) {
       sock=pfd.fd;        
       if((len=recvmsg(sock, &msgh, 0)) < 0 ) {
