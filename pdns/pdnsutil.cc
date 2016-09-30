@@ -3150,7 +3150,7 @@ loadMainConfig(g_vm["config-dir"].as<string>());
     // move tsig keys
     std::vector<struct TSIGKey> tkeys;
     if (src->getTSIGKeys(tkeys)) {
-      for(const struct TSIGKey& tk: tkeys) {
+      for(auto& tk: tkeys) {
         if (!tgt->setTSIGKey(tk.name, tk.algorithm, tk.key)) throw PDNSException("Failed to feed TSIG key");
         ntk++;
       }
