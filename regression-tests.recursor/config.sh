@@ -46,8 +46,8 @@ fi
 cd configs
 
 for dir in recursor-service recursor-service2 recursor-service3; do
-  mkdir /tmp/$dir
-  mkdir $dir
+  mkdir -p /tmp/$dir
+  mkdir -p $dir
   cd $dir
 
   cat > run <<EOF
