@@ -151,12 +151,13 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   typedef std::unordered_map<std::string, boost::variant<bool, std::string, vector<pair<int, std::string> > > > newserver_t;
 
   g_lua.writeVariable("DNSAction", std::unordered_map<string,int>{
-      {"Drop", (int)DNSAction::Action::Drop}, 
-      {"Nxdomain", (int)DNSAction::Action::Nxdomain}, 
-      {"Spoof", (int)DNSAction::Action::Spoof}, 
-      {"Allow", (int)DNSAction::Action::Allow}, 
+      {"Drop", (int)DNSAction::Action::Drop},
+      {"Nxdomain", (int)DNSAction::Action::Nxdomain},
+      {"Refused", (int)DNSAction::Action::Refused},
+      {"Spoof", (int)DNSAction::Action::Spoof},
+      {"Allow", (int)DNSAction::Action::Allow},
       {"HeaderModify", (int)DNSAction::Action::HeaderModify},
-      {"Pool", (int)DNSAction::Action::Pool}, 
+      {"Pool", (int)DNSAction::Action::Pool},
       {"None",(int)DNSAction::Action::None},
       {"Delay", (int)DNSAction::Action::Delay}}
     );

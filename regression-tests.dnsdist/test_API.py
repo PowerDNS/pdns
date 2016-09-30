@@ -149,7 +149,7 @@ class TestBasics(DNSDistTest):
             values[entry['name']] = entry['value']
 
         expected = ['responses', 'servfail-responses', 'queries', 'acl-drops', 'block-filter',
-                    'rule-drop', 'rule-nxdomain', 'self-answered', 'downstream-timeouts',
+                    'rule-drop', 'rule-nxdomain', 'rule-refused', 'self-answered', 'downstream-timeouts',
                     'downstream-send-errors', 'trunc-failures', 'no-policy', 'latency0-1',
                     'latency1-10', 'latency10-50', 'latency50-100', 'latency100-1000',
                     'latency-slow', 'latency-avg100', 'latency-avg1000', 'latency-avg10000',
@@ -161,6 +161,9 @@ class TestBasics(DNSDistTest):
         for key in expected:
             self.assertIn(key, values)
             self.assertTrue(values[key] >= 0)
+
+        for key in values:
+            self.assertIn(key, expected)
 
     def testJsonstatStats(self):
         """
@@ -174,19 +177,16 @@ class TestBasics(DNSDistTest):
         self.assertTrue(r.json())
         content = r.json()
 
-        for key in ['packetcache-hits', 'packetcache-misses', 'over-capacity-drops', 'too-old-drops']:
-            self.assertIn(key, content)
-            self.assertTrue(content[key] >= 0)
-
         expected = ['responses', 'servfail-responses', 'queries', 'acl-drops', 'block-filter',
-                    'rule-drop', 'rule-nxdomain', 'self-answered', 'downstream-timeouts',
+                    'rule-drop', 'rule-nxdomain', 'rule-refused', 'self-answered', 'downstream-timeouts',
                     'downstream-send-errors', 'trunc-failures', 'no-policy', 'latency0-1',
                     'latency1-10', 'latency10-50', 'latency50-100', 'latency100-1000',
                     'latency-slow', 'latency-avg100', 'latency-avg1000', 'latency-avg10000',
                     'latency-avg1000000', 'uptime', 'real-memory-usage', 'noncompliant-queries',
                     'noncompliant-responses', 'rdqueries', 'empty-queries', 'cache-hits',
                     'cache-misses', 'cpu-user-msec', 'cpu-sys-msec', 'fd-usage', 'dyn-blocked',
-                    'dyn-block-nmg-size']
+                    'dyn-block-nmg-size', 'packetcache-hits', 'packetcache-misses', 'over-capacity-drops',
+                    'too-old-drops']
 
         for key in expected:
             self.assertIn(key, content)

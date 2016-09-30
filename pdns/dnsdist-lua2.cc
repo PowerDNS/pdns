@@ -289,7 +289,19 @@ void moreLua(bool client)
 			   g_dynblockSMT.setState(slow);
 			 });
 
-
+  g_lua.writeFunction("setDynBlocksAction", [](DNSAction::Action action) {
+      if (!g_configurationDone) {
+        if (action == DNSAction::Action::Drop || action == DNSAction::Action::Refused) {
+          g_dynBlockAction = action;
+        }
+        else {
+          errlog("Dynamic blocks action can only be Drop or Refused!");
+          g_outputBuffer="Dynamic blocks action can only be Drop or Refused!\n";
+        }
+      } else {
+        g_outputBuffer="Dynamic blocks action cannot be altered at runtime!\n";
+      }
+    });
 
   g_lua.registerFunction<bool(nmts_t::*)(const ComboAddress&)>("match", 
 								     [](nmts_t& s, const ComboAddress& ca) { return s.match(ca); });
