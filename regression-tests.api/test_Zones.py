@@ -286,6 +286,13 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
             headers={'content-type': 'application/json'})
         self.assertEquals(r.status_code, 422)
 
+    def test_zone_absolute_url(self):
+        name, payload, data = self.create_zone()
+        r = self.session.get(self.url("/api/v1/servers/localhost/zones"))
+        rdata = r.json()
+        print(rdata[0])
+        self.assertTrue(rdata[0]['url'].startswith('/api/v'))
+
     def test_create_slave_zone(self):
         # Test that nameservers can be absent for slave zones.
         name, payload, data = self.create_zone(kind='Slave', nameservers=None, masters=['127.0.0.2'])
