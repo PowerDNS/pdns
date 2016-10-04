@@ -743,6 +743,18 @@ void moreLua(bool client)
         return std::shared_ptr<DNSAction>(new TeeAction(ComboAddress(remote, 53), addECS ? *addECS : false));
       });
 
+    g_lua.writeFunction("ECSPrefixLengthAction", [](uint16_t v4PrefixLength, uint16_t v6PrefixLength) {
+        return std::shared_ptr<DNSAction>(new ECSPrefixLengthAction(v4PrefixLength, v6PrefixLength));
+      });
+
+    g_lua.writeFunction("ECSOverrideAction", [](bool ecsOverride) {
+        return std::shared_ptr<DNSAction>(new ECSOverrideAction(ecsOverride));
+      });
+
+    g_lua.writeFunction("DisableECSAction", []() {
+        return std::shared_ptr<DNSAction>(new DisableECSAction());
+      });
+
     g_lua.registerFunction<void(DNSAction::*)()>("printStats", [](const DNSAction& ta) {
         setLuaNoSideEffect();
         auto stats = ta.getStats();

@@ -292,9 +292,9 @@ void* tcpClientThread(int pipefd)
 	  packetCache = serverPool->packetCache;
 	}
 
-        if (ds && ds->useECS) {
+        if (dq.useECS && ds && ds->useECS) {
           uint16_t newLen = dq.len;
-          handleEDNSClientSubnet(queryBuffer, dq.size, consumed, &newLen, largerQuery, &ednsAdded, &ecsAdded, ci.remote);
+          handleEDNSClientSubnet(queryBuffer, dq.size, consumed, &newLen, largerQuery, &ednsAdded, &ecsAdded, ci.remote, dq.ecsOverride, dq.ecsPrefixLength);
           if (largerQuery.empty() == false) {
             query = largerQuery.c_str();
             dq.len = (uint16_t) largerQuery.size();

@@ -1040,8 +1040,8 @@ try
 
       bool ednsAdded = false;
       bool ecsAdded = false;
-      if (ss && ss->useECS) {
-        handleEDNSClientSubnet(query, dq.size, consumed, &dq.len, largerQuery, &(ednsAdded), &(ecsAdded), remote);
+      if (dq.useECS && ss && ss->useECS) {
+        handleEDNSClientSubnet(query, dq.size, consumed, &dq.len, largerQuery, &(ednsAdded), &(ecsAdded), remote, dq.ecsOverride, dq.ecsPrefixLength);
       }
 
       uint32_t cacheKey = 0;
