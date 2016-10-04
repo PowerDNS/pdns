@@ -521,10 +521,10 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       setLuaSideEffect();
       g_policy.setState(policy);
     });
-  g_lua.writeFunction("setServerPolicyLua", [](string name, policyfunc_t policy)  {
-      setLuaSideEffect();
-      g_policy.setState(ServerPolicy{name, policy});
-    });
+  // g_lua.writeFunction("setServerPolicyLua", [](string name, policyfunc_t policy)  {
+  //     setLuaSideEffect();
+  //     g_policy.setState(ServerPolicy{name, policy});
+  //   });
 
   g_lua.writeFunction("showServerPolicy", []() {
       setLuaSideEffect();
@@ -534,9 +534,9 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.writeFunction("truncateTC", [](bool tc) { setLuaSideEffect(); g_truncateTC=tc; });
   g_lua.writeFunction("fixupCase", [](bool fu) { setLuaSideEffect(); g_fixupCase=fu; });
 
-  g_lua.registerMember("name", &ServerPolicy::name);
-  g_lua.registerMember("policy", &ServerPolicy::policy);
-  g_lua.writeFunction("newServerPolicy", [](string name, policyfunc_t policy) { return ServerPolicy{name, policy};});
+  // g_lua.registerMember("name", &ServerPolicy::name);
+  // g_lua.registerMember("policy", &ServerPolicy::policy);
+  // g_lua.writeFunction("newServerPolicy", [](string name, policyfunc_t policy) { return ServerPolicy{name, policy};});
   g_lua.writeVariable("firstAvailable", ServerPolicy{"firstAvailable", firstAvailable});
   g_lua.writeVariable("roundrobin", ServerPolicy{"roundrobin", roundrobin});
   g_lua.writeVariable("wrandom", ServerPolicy{"wrandom", wrandom});
@@ -1112,10 +1112,10 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
     });
 
 
-  g_lua.registerFunction("tostring", &ComboAddress::toString);
-  g_lua.registerFunction("tostringWithPort", &ComboAddress::toStringWithPort);
-  g_lua.registerFunction("toString", &ComboAddress::toString);
-  g_lua.registerFunction("toStringWithPort", &ComboAddress::toStringWithPort);
+  g_lua.registerFunction<string(ComboAddress::*)()>("tostring", [](const ComboAddress& ca) { return ca.toString(); });
+  g_lua.registerFunction<string(ComboAddress::*)()>("tostringWithPort", [](const ComboAddress& ca) { return ca.toStringWithPort(); });
+  g_lua.registerFunction<string(ComboAddress::*)()>("toString", [](const ComboAddress& ca) { return ca.toString(); });
+  g_lua.registerFunction<string(ComboAddress::*)()>("toStringWithPort", [](const ComboAddress& ca) { return ca.toStringWithPort(); });
   g_lua.registerFunction<uint16_t(ComboAddress::*)()>("getPort", [](const ComboAddress& ca) { return ntohs(ca.sin4.sin_port); } );
   g_lua.registerFunction("truncate", &ComboAddress::truncate);
   g_lua.registerFunction("isIPv4", &ComboAddress::isIPv4);
