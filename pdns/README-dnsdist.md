@@ -437,7 +437,7 @@ Some specific actions do not stop the processing when they match, contrary to al
  * and of course None
 
 A convenience function `makeRule()` is supplied which will make a NetmaskGroupRule for you or a SuffixMatchNodeRule
-depending on how you call it. `makeRule("0.0.0.0/0")` will for example match all IPv4 traffic, `makeRule{"be","nl","lu"}` will
+depending on how you call it. `makeRule("0.0.0.0/0")` will for example match all IPv4 traffic, `makeRule({"be","nl","lu"})` will
 match all Benelux DNS traffic.
 
 All the current rules can be removed at once with:
