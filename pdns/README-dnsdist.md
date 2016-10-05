@@ -1452,6 +1452,7 @@ instantiate a server with additional parameters
         * member `dh`: DNSHeader
         * member `ecsOverride`: whether an existing ECS value should be overriden (settable)
         * member `ecsPrefixLength`: the ECS prefix length to use (settable)
+        * member `getDO()`: return true if the DNSSEC OK (DO) bit is set
         * member `len`: the question length
         * member `localaddr`: ComboAddress of the local bind this question was received on
         * member `opcode`: the question opcode
