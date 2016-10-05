@@ -106,10 +106,10 @@ bool UeberBackend::addDomainKey(const DNSName& name, const DNSBackend::KeyData& 
   }
   return false;
 }
-bool UeberBackend::getDomainKeys(const DNSName& name, unsigned int kind, std::vector<DNSBackend::KeyData>& keys)
+bool UeberBackend::getDomainKeys(const DNSName& name, std::vector<DNSBackend::KeyData>& keys)
 {
   for(DNSBackend* db :  backends) {
-    if(db->getDomainKeys(name, kind, keys))
+    if(db->getDomainKeys(name, keys))
       return true;
   }
   return false;

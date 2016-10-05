@@ -325,7 +325,7 @@ Retrieves any keys of kind. The id, flags are unsigned integers, and active is b
 #### Example JSON/RPC
 Query:
 ```
-{"method":"getdomainkeys","parameters":{"name":"example.com.","kind":0}}
+{"method":"getdomainkeys","parameters":{"name":"example.com."}}
 ```
 
 Response:
