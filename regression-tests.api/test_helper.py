@@ -4,8 +4,10 @@ import requests
 import urlparse
 import unittest
 import sqlite3
+import subprocess
 
 DAEMON = os.environ.get('DAEMON', 'authoritative')
+PDNSUTIL_CMD = os.environ.get('PDNSUTIL_CMD', 'NOT_SET BUT_THIS MIGHT_BE_A_LIST').split(' ')
 SQLITE_DB = os.environ.get('SQLITE_DB', 'pdns.sqlite3')
 
 
@@ -70,3 +72,8 @@ def get_db_records(zonename, qtype):
         recs = [{'name': row[0], 'type': row[1], 'content': row[2], 'ttl': row[3]} for row in rows]
         print "DB Records:", recs
         return recs
+
+
+def pdnsutil_rectify(zonename):
+    """Run pdnsutil rectify-zone on the given zone."""
+    subprocess.check_call(PDNSUTIL_CMD + ['rectify-zone', zonename])
