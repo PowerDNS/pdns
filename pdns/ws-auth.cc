@@ -1255,8 +1255,6 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       if (rr.qtype.getCode() == QType::SOA && rr.qname==zonename) {
         have_soa = true;
         increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
-        // fixup dots after serializeSOAData/increaseSOARecord
-        rr.content = makeBackendRecordContent(rr.qtype, rr.content);
       }
       if (rr.qtype.getCode() == QType::NS && rr.qname==zonename) {
         have_zone_ns = true;
@@ -1271,18 +1269,16 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 
     if (!have_soa && zonekind != DomainInfo::Slave) {
       // synthesize a SOA record so the zone "really" exists
-      string soa = (boost::format("%s %s %lu")
+      string soa = (boost::format("%s %s %ul")
         % ::arg()["default-soa-name"]
         % (::arg().isEmpty("default-soa-mail") ? (DNSName("hostmaster.") + zonename).toString() : ::arg()["default-soa-mail"])
         % document["serial"].int_value()
       ).str();
       SOAData sd;
       fillSOAData(soa, sd);  // fills out default values for us
-      autorr.qtype = "SOA";
-      autorr.content = serializeSOAData(sd);
+      autorr.qtype = QType::SOA;
+      autorr.content = makeSOAContent(sd)->getZoneRepresentation(true);
       increaseSOARecord(autorr, soa_edit_api_kind, soa_edit_kind);
-      // fixup dots after serializeSOAData/increaseSOARecord
-      autorr.content = makeBackendRecordContent(autorr.qtype, autorr.content);
       new_records.push_back(autorr);
     }
 
@@ -1299,7 +1295,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       } catch (...) {
         throw ApiException("Unable to parse DNS Name for NS '" + nameserver + "'");
       }
-      autorr.qtype = "NS";
+      autorr.qtype = QType::NS;
       new_records.push_back(autorr);
       if (have_zone_ns) {
         throw ApiException("Nameservers list MUST NOT be mixed with zone-level NS in rrsets");
@@ -1557,16 +1553,7 @@ static void storeChangedPTRs(UeberBackend& B, vector<DNSResourceRecord>& new_ptr
     sd.db->getDomainMetadataOne(sd.qname, "SOA-EDIT-API", soa_edit_api_kind);
     sd.db->getDomainMetadataOne(sd.qname, "SOA-EDIT", soa_edit_kind);
     if (!soa_edit_api_kind.empty()) {
-      soarr.qname = sd.qname;
-      soarr.content = serializeSOAData(sd);
-      soarr.qtype = "SOA";
-      soarr.domain_id = sd.domain_id;
-      soarr.auth = 1;
-      soarr.ttl = sd.ttl;
-      increaseSOARecord(soarr, soa_edit_api_kind, soa_edit_kind);
-      // fixup dots after serializeSOAData/increaseSOARecord
-      soarr.content = makeBackendRecordContent(soarr.qtype, soarr.content);
-      soa_changed = true;
+      soa_changed = makeIncreasedSOARecord(sd, soa_edit_api_kind, soa_edit_kind, soarr);
     }
 
     sd.db->startTransaction(sd.qname);
@@ -1652,7 +1639,6 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
             rr.domain_id = di.id;
             if (rr.qtype.getCode() == QType::SOA && rr.qname==zonename) {
               soa_edit_done = increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
-              rr.content = makeBackendRecordContent(rr.qtype, rr.content);
             }
           }
           checkDuplicateRecords(new_records);
@@ -1694,22 +1680,14 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
     // edit SOA (if needed)
     if (!soa_edit_api_kind.empty() && !soa_edit_done) {
       SOAData sd;
-      if (!B.getSOA(zonename, sd))
+      if (!B.getSOAUncached(zonename, sd, true))
         throw ApiException("No SOA found for domain '"+zonename.toString()+"'");
 
       DNSResourceRecord rr;
-      rr.qname = zonename;
-      rr.content = serializeSOAData(sd);
-      rr.qtype = "SOA";
-      rr.domain_id = di.id;
-      rr.auth = 1;
-      rr.ttl = sd.ttl;
-      increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
-      // fixup dots after serializeSOAData/increaseSOARecord
-      rr.content = makeBackendRecordContent(rr.qtype, rr.content);
-
-      if (!di.backend->replaceRRSet(di.id, rr.qname, rr.qtype, vector<DNSResourceRecord>(1, rr))) {
-        throw ApiException("Hosting backend does not support editing records.");
+      if (makeIncreasedSOARecord(sd, soa_edit_api_kind, soa_edit_kind, rr)) {
+        if (!di.backend->replaceRRSet(di.id, rr.qname, rr.qtype, vector<DNSResourceRecord>(1, rr))) {
+          throw ApiException("Hosting backend does not support editing records.");
+        }
       }
 
       // return old and new serials in headers

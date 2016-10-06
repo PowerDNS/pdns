@@ -176,7 +176,7 @@ bool LUABackend::get(DNSResourceRecord &rr) {
     return !rr.content.empty();
 }
 
-bool LUABackend::getSOA(const DNSName &name, SOAData &soadata) {
+bool LUABackend::getSOA(const DNSName &name, SOAData &soadata, bool unmodifiedSerial) {
     if (logging)
 	L << Logger::Info << backend_name << "(getsoa) BEGIN" << endl;
 

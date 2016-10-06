@@ -586,53 +586,16 @@ int increaseSerial(const DNSName& zone, DNSSECKeeper &dk)
     cerr<<"Serial increase of presigned zone '"<<zone<<"' is not allowed."<<endl;
     return -1;
   }
-  
+
   string soaEditKind;
   dk.getSoaEdit(zone, soaEditKind);
 
-  sd.db->lookup(QType(QType::SOA), zone);
-  vector<DNSResourceRecord> rrs;
   DNSResourceRecord rr;
-  DNSZoneRecord szr;
-  while (sd.db->get(rr)) {
-    if (rr.qtype.getCode() == QType::SOA) {
-      rrs.push_back(rr);
-      szr.dr=DNSRecord(rr) ;
-    }
-  } 
-
-  if (rrs.size() > 1) {
-    cerr<<rrs.size()<<" SOA records found for "<<zone<<"!"<<endl;
-    return -1;
-  }
-  if (rrs.size() < 1) {
-     cerr<<zone<<" not found!"<<endl;
-  }
-  
-  if (soaEditKind.empty()) {
-    sd.serial++;
-  }
-  else if(pdns_iequals(soaEditKind,"INCREMENT-WEEKS")) {
-    sd.serial++;
-  }
-  else if(pdns_iequals(soaEditKind,"INCEPTION-INCREMENT")) {
-    uint32_t today_serial = localtime_format_YYYYMMDDSS(time(NULL), 1);
-
-    if (sd.serial < today_serial) {
-      sd.serial = today_serial;
-    }
-    else {
-      sd.serial++;
-    }
-  }
-  else {
-    sd.serial = calculateEditSOA(szr, soaEditKind) + 1;
-  }
-  rrs[0].content = serializeSOAData(sd);
+  makeIncreasedSOARecord(sd, "SOA-EDIT-INCREASE", soaEditKind, rr);
 
   sd.db->startTransaction(zone, -1);
 
-  if (! sd.db->replaceRRSet(sd.domain_id, zone, rr.qtype, rrs)) {
+  if (!sd.db->replaceRRSet(sd.domain_id, zone, rr.qtype, vector<DNSResourceRecord>(1, rr))) {
    sd.db->abortTransaction();
    cerr<<"Backend did not replace SOA record. Backend might not support this operation."<<endl;
    return -1;
@@ -650,8 +613,8 @@ int increaseSerial(const DNSName& zone, DNSSECKeeper &dk)
     } else
       ordername=zone;
     if(g_verbose)
-      cerr<<"'"<<rrs[0].qname<<"' -> '"<< ordername <<"'"<<endl;
-    sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, rrs[0].qname, ordername, true);
+      cerr<<"'"<<rr.qname<<"' -> '"<< ordername <<"'"<<endl;
+    sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, rr.qname, ordername, true);
   }
 
   sd.db->commitTransaction();
@@ -1045,7 +1008,7 @@ int createZone(const DNSName &zone, const DNSName& nsname) {
   ).str();
   SOAData sd;
   fillSOAData(soa, sd);  // fills out default values for us
-  rr.content = DNSRecordContent::mastermake(rr.qtype.getCode(), 1, serializeSOAData(sd))->getZoneRepresentation(true);
+  rr.content = makeSOAContent(sd)->getZoneRepresentation(true);
   rr.domain_id = di.id;
   di.backend->startTransaction(zone, di.id);
   di.backend->feedRecord(rr, DNSName());

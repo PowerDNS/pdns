@@ -1015,22 +1015,14 @@ int PacketHandler::processUpdate(DNSPacket *p) {
 }
 
 void PacketHandler::increaseSerial(const string &msgPrefix, const DomainInfo *di, bool haveNSEC3, bool narrow, const NSEC3PARAMRecordContent *ns3pr) {
-  DNSResourceRecord rec, newRec;
-  di->backend->lookup(QType(QType::SOA), di->zone);
-  bool foundSOA=false;
-  while (di->backend->get(rec)) {
-    newRec = rec;
-    foundSOA=true;
-  }
-  if (!foundSOA) {
+  SOAData sd;
+  if (!di->backend->getSOA(di->zone, sd, true)) {
     throw PDNSException("SOA-Serial update failed because there was no SOA. Wowie.");
   }
-  SOAData soa2Update;
-  fillSOAData(rec.content, soa2Update);
-  uint32_t oldSerial = soa2Update.serial;
 
+  uint32_t oldSerial = sd.serial;
   if (oldSerial == 0) { // using Autoserial, leave the serial alone.
-    L<<Logger::Notice<<msgPrefix<<"AutoSerial being used, not updating SOA serial."<<endl;
+    L<<Logger::Notice<<msgPrefix<<"AutoSerial in use in domain \""<<di->zone.toLogString()<<"\", not updating SOA serial."<<endl;
     return;
   }
 
@@ -1044,33 +1036,28 @@ void PacketHandler::increaseSerial(const string &msgPrefix, const DomainInfo *di
       string soaEditSetting;
       d_dk.getSoaEdit(di->zone, soaEditSetting);
       if (soaEditSetting.empty()) {
-        L<<Logger::Error<<msgPrefix<<"Using "<<soaEdit2136<<" for SOA-EDIT-DNSUPDATE increase on DNS update, but SOA-EDIT is not set for domain \""<< di->zone <<"\". Using DEFAULT for SOA-EDIT-DNSUPDATE"<<endl;
+        L<<Logger::Error<<msgPrefix<<"Using "<<soaEdit2136<<" for SOA-EDIT-DNSUPDATE increase on DNS update, but SOA-EDIT is not set for domain \""<< di->zone.toLogString() <<"\". Using DEFAULT for SOA-EDIT-DNSUPDATE"<<endl;
         soaEdit2136 = "DEFAULT";
       } else
         soaEdit = soaEditSetting;
     }
   }
 
-  soa2Update.serial = calculateIncreaseSOA(soa2Update, soaEdit2136, soaEdit);
+  DNSResourceRecord rr;
+  if (makeIncreasedSOARecord(sd, soaEdit2136, soaEdit, rr)) {
+    di->backend->replaceRRSet(di->id, rr.qname, rr.qtype, vector<DNSResourceRecord>(1, rr));
+    L << Logger::Notice << msgPrefix << "Increasing SOA serial (" << oldSerial << " -> " << sd.serial << ")" << endl;
 
-  newRec.content = serializeSOAData(soa2Update);
-  vector<DNSResourceRecord> rrset;
-  rrset.push_back(newRec);
-  di->backend->replaceRRSet(di->id, newRec.qname, newRec.qtype, rrset);
-  L<<Logger::Notice<<msgPrefix<<"Increasing SOA serial ("<<oldSerial<<" -> "<<soa2Update.serial<<")"<<endl;
+    //Correct ordername + auth flag
+    if (haveNSEC3) {
+      DNSName ordername;
+      if (!narrow)
+        ordername = DNSName(toBase32Hex(hashQNameWithSalt(*ns3pr, rr.qname)));
 
-  //Correct ordername + auth flag
-  if (haveNSEC3 && narrow)
-    di->backend->updateDNSSECOrderNameAndAuth(di->id, newRec.qname, DNSName(), true);
-  else if (haveNSEC3) {
-    DNSName ordername;
-    if (!narrow)
-      ordername = DNSName(toBase32Hex(hashQNameWithSalt(*ns3pr, newRec.qname)));
-
-    di->backend->updateDNSSECOrderNameAndAuth(di->id, newRec.qname, ordername, true);
-  }
-  else { // NSEC
-    DNSName ordername=newRec.qname.makeRelative(di->zone);
-    di->backend->updateDNSSECOrderNameAndAuth(di->id, newRec.qname, ordername, true);
+      di->backend->updateDNSSECOrderNameAndAuth(di->id, rr.qname, ordername, true);
+    } else { // NSEC
+      DNSName ordername = rr.qname.makeRelative(di->zone);
+      di->backend->updateDNSSECOrderNameAndAuth(di->id, rr.qname, ordername, true);
+    }
   }
 }
