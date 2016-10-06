@@ -301,13 +301,11 @@ struct SuffixMatchTree
   SuffixMatchTree(const SuffixMatchTree& rhs)
   {
     name = rhs.name;
-    d_human = rhs.d_human;
     children = rhs.children;
     endNode = rhs.endNode;
     d_value = rhs.d_value;
   }
   std::string name;
-  std::string d_human;
   mutable std::set<SuffixMatchTree> children;
   mutable bool endNode;
   mutable T d_value;
@@ -338,16 +336,19 @@ struct SuffixMatchTree
     }
     else if(labels.size()==1) {
       SuffixMatchTree newChild(*labels.begin(), true);
-      newChild.d_value=value;
-      children.insert(newChild);
+      auto res=children.insert(newChild);
+      if(!res.second) {
+        // we might already have had the node as an
+        // intermediary one, but it's now an end node
+        if(!res.first->endNode) {
+          res.first->endNode = true;
+        }
+      }
+      res.first->d_value = value;
     }
     else {
       SuffixMatchTree newnode(*labels.rbegin(), false);
       auto res=children.insert(newnode);
-      if(!res.second) {
-        children.erase(newnode);
-        res=children.insert(newnode);
-      }
       labels.pop_back();
       res.first->add(labels, value);
     }

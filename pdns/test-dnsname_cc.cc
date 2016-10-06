@@ -493,6 +493,57 @@ BOOST_AUTO_TEST_CASE(test_suffixmatch) {
   BOOST_CHECK(smn.check(DNSName("a.root-servers.net.")));
 }
 
+BOOST_AUTO_TEST_CASE(test_suffixmatch_tree) {
+  SuffixMatchTree<DNSName> smt;
+  DNSName ezdns("ezdns.it.");
+  smt.add(ezdns, ezdns);
+
+  smt.add(DNSName("org.").getRawLabels(), DNSName("org."));
+
+  DNSName wwwpowerdnscom("www.powerdns.com.");
+  DNSName wwwezdnsit("www.ezdns.it.");
+  BOOST_REQUIRE(smt.lookup(wwwezdnsit));
+  BOOST_CHECK_EQUAL(*smt.lookup(wwwezdnsit), ezdns);
+  BOOST_CHECK(smt.lookup(wwwpowerdnscom) == nullptr);
+
+  BOOST_REQUIRE(smt.lookup(DNSName("www.powerdns.org.")));
+  BOOST_CHECK_EQUAL(*smt.lookup(DNSName("www.powerdns.org.")), DNSName("org."));
+  BOOST_REQUIRE(smt.lookup(DNSName("www.powerdns.oRG.")));
+  BOOST_CHECK_EQUAL(*smt.lookup(DNSName("www.powerdns.oRG.")), DNSName("org."));
+
+  smt.add(DNSName("news.bbc.co.uk."), DNSName("news.bbc.co.uk."));
+  BOOST_REQUIRE(smt.lookup(DNSName("news.bbc.co.uk.")));
+  BOOST_CHECK_EQUAL(*smt.lookup(DNSName("news.bbc.co.uk.")), DNSName("news.bbc.co.uk."));
+  BOOST_REQUIRE(smt.lookup(DNSName("www.news.bbc.co.uk.")));
+  BOOST_CHECK_EQUAL(*smt.lookup(DNSName("www.news.bbc.co.uk.")), DNSName("news.bbc.co.uk."));
+  BOOST_REQUIRE(smt.lookup(DNSName("www.www.www.www.www.news.bbc.co.uk.")));
+  BOOST_CHECK_EQUAL(*smt.lookup(DNSName("www.www.www.www.www.news.bbc.co.uk.")), DNSName("news.bbc.co.uk."));
+  BOOST_CHECK(smt.lookup(DNSName("images.bbc.co.uk.")) == nullptr);
+  BOOST_CHECK(smt.lookup(DNSName("www.news.gov.uk.")) == nullptr);
+
+  smt.add(g_rootdnsname, g_rootdnsname); // block the root
+  BOOST_REQUIRE(smt.lookup(DNSName("a.root-servers.net.")));
+  BOOST_CHECK_EQUAL(*smt.lookup(DNSName("a.root-servers.net.")), g_rootdnsname);
+
+  DNSName apowerdnscom("a.powerdns.com.");
+  DNSName bpowerdnscom("b.powerdns.com.");
+  smt.add(apowerdnscom, apowerdnscom);
+  smt.add(bpowerdnscom, bpowerdnscom);
+  BOOST_REQUIRE(smt.lookup(apowerdnscom));
+  BOOST_CHECK_EQUAL(*smt.lookup(apowerdnscom), apowerdnscom);
+  BOOST_REQUIRE(smt.lookup(bpowerdnscom));
+  BOOST_CHECK_EQUAL(*smt.lookup(bpowerdnscom), bpowerdnscom);
+
+  DNSName examplenet("example.net.");
+  DNSName net("net.");
+  smt.add(examplenet, examplenet);
+  smt.add(net, net);
+  BOOST_REQUIRE(smt.lookup(examplenet));
+  BOOST_CHECK_EQUAL(*smt.lookup(examplenet), examplenet);
+  BOOST_REQUIRE(smt.lookup(net));
+  BOOST_CHECK_EQUAL(*smt.lookup(net), net);
+}
+
 
 BOOST_AUTO_TEST_CASE(test_concat) {
   DNSName first("www."), second("powerdns.com.");
