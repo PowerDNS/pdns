@@ -307,7 +307,7 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const DNSName &target)
           break;
         } else {
           DLOG(L<<Logger::Error<<"lookup: "<<choppedOff<<endl);
-          if((*i)->getAuth(p, sd, choppedOff)) {
+          if((*i)->getSOA(choppedOff, *sd)) {
             DLOG(L<<Logger::Error<<"got: "<<sd->qname<<endl);
             j->first = sd->qname.wirelength();
             j->second = *sd;
