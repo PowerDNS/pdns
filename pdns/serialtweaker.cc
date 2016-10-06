@@ -47,8 +47,11 @@ uint32_t calculateEditSOA(uint32_t old_serial, const string& kind, const DNSName
 
     if(old_serial < inception_serial - 1) { /* less than <inceptionday>00 */
       return inception_serial; /* return <inceptionday>01   (skipping <inceptionday>00 as possible value) */
+    } else if (old_serial < inception_serial+1) {
+      /* "<inceptionday>00" and "<inceptionday>01" are reserved for inception increasing, so jump to "<inceptionday>02" */
+      return inception_serial+1;
     } else if(old_serial <= dont_increment_after) { /* >= <inceptionday>00 but <= <inceptionday+2>99 */
-      return (old_serial + 2); /* "<inceptionday>00" and "<inceptionday>01" are reserved for inception increasing, so increment sd.serial by two */
+      return old_serial + 1;
     }
   }
   else if(pdns_iequals(kind,"INCREMENT-WEEKS")) {

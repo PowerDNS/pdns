@@ -148,6 +148,27 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
         soa_serial = get_first_rec(data, name, 'SOA')['content'].split(' ')[2]
         # These particular settings lead to the first serial set to YYYYMMDD01.
         self.assertEquals(soa_serial[-2:], '01')
+        rrset = {
+            'changetype': 'replace',
+            'name': name,
+            'type': 'A',
+            'ttl': 3600,
+            'records': [
+                {
+                    "content": "127.0.0.1",
+                    "disabled": False
+                }
+            ]
+        }
+        payload = {'rrsets': [rrset]}
+        self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + data['id']),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        r = self.session.get(self.url("/api/v1/servers/localhost/zones/" + data['id']))
+        data = r.json()
+        soa_serial = get_first_rec(data, name, 'SOA')['content'].split(' ')[2]
+        self.assertEquals(soa_serial[-2:], '02')
 
     def test_create_zone_with_records(self):
         name = unique_zone_name()
