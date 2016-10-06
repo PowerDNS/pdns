@@ -140,6 +140,15 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
         print data
         self.assertEquals(data['soa_edit_api'], 'DEFAULT')
 
+    def test_create_zone_with_soa_edit(self):
+        name, payload, data = self.create_zone(soa_edit='INCEPTION-INCREMENT', soa_edit_api='SOA-EDIT-INCREASE')
+        print data
+        self.assertEquals(data['soa_edit'], 'INCEPTION-INCREMENT')
+        self.assertEquals(data['soa_edit_api'], 'SOA-EDIT-INCREASE')
+        soa_serial = get_first_rec(data, name, 'SOA')['content'].split(' ')[2]
+        # These particular settings lead to the first serial set to YYYYMMDD01.
+        self.assertEquals(soa_serial[-2:], '01')
+
     def test_create_zone_with_records(self):
         name = unique_zone_name()
         rrset = {
