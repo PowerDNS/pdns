@@ -495,7 +495,7 @@ void RecordTextWriter::xfrTime(const uint32_t& val)
   
   struct tm tm;
   time_t time=val; // Y2038 bug!
-  Utility::gmtime_r(&time, &tm);
+  gmtime_r(&time, &tm);
 
   char tmp[16];
   snprintf(tmp,sizeof(tmp)-1, "%04d%02d%02d" "%02d%02d%02d", 
