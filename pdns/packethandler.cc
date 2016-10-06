@@ -396,7 +396,7 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r, c
          !(i->dr.d_type==QType::MX || i->dr.d_type==QType::NS || i->dr.d_type==QType::SRV))
         continue;
 
-      if(r->d.aa && i->dr.d_name.countLabels() && i->dr.d_type==QType::NS && !B.getSOA(i->dr.d_name,sd,p) && !retargeted) { // drop AA in case of non-SOA-level NS answer, except for root referral
+      if(r->d.aa && i->dr.d_name.countLabels() && i->dr.d_type==QType::NS && !B.getSOA(i->dr.d_name,sd) && !retargeted) { // drop AA in case of non-SOA-level NS answer, except for root referral
         r->setA(false);
         //        i->d_place=DNSResourceRecord::AUTHORITY; // XXX FIXME
       }

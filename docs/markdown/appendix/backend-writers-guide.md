@@ -34,7 +34,7 @@ Implementing a backend consists of inheriting from the DNSBackend class. For rea
     virtual void lookup(const QType &qtype, const string &qdomain, DNSPacket *pkt_p=0, int zoneId=-1)=0;
     virtual bool list(const string &target, int domain_id)=0;
     virtual bool get(DNSResourceRecord &r)=0;
-    virtual bool getSOA(const string &name, SOAData &soadata, DNSPacket *p=0);
+    virtual bool getSOA(const DNSName &name, SOAData &soadata);
     };
 ```
 
