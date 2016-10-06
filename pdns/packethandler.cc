@@ -1241,7 +1241,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
       return r;
     }
     
-    if(!B.getAuth(p, &sd, target)) {
+    if(!B.getAuth(target, &sd, (p->qtype == QType::DS))) {
       DLOG(L<<Logger::Error<<"We have no authority over zone '"<<target<<"'"<<endl);
       if(!retargetcount) {
         r->setA(false); // drop AA if we never had a SOA in the first place
