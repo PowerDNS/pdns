@@ -78,38 +78,36 @@ uint32_t calculateEditSOA(uint32_t old_serial, DNSSECKeeper& dk, const DNSName& 
 
 /** Used for SOA-EDIT-DNSUPDATE and SOA-EDIT-API. */
 static uint32_t calculateIncreaseSOA(uint32_t old_serial, const string& increaseKind, const string& editKind, const DNSName& zonename) {
-  // These only work when SOA-EDIT is set, otherwise fall back to default.
-  if (!editKind.empty()) {
-    if (pdns_iequals(increaseKind, "SOA-EDIT-INCREASE")) {
-      uint32_t new_serial = calculateEditSOA(old_serial, editKind, zonename);
-      if (new_serial <= old_serial) {
-        new_serial = old_serial + 1;
-      }
-      return new_serial;
+  if (pdns_iequals(increaseKind, "SOA-EDIT-INCREASE")) {
+    uint32_t new_serial = old_serial;
+    if (!editKind.empty()) {
+      new_serial = calculateEditSOA(old_serial, editKind, zonename);
     }
-    else if (pdns_iequals(increaseKind, "SOA-EDIT")) {
-      return calculateEditSOA(old_serial, editKind, zonename);
+    if (new_serial <= old_serial) {
+      new_serial = old_serial + 1;
     }
+    return new_serial;
   }
-
-  if (pdns_iequals(increaseKind, "INCREASE")) {
+  else if (pdns_iequals(increaseKind, "SOA-EDIT")) {
+    return calculateEditSOA(old_serial, editKind, zonename);
+  }
+  else if (pdns_iequals(increaseKind, "INCREASE")) {
     return old_serial + 1;
   }
   else if (pdns_iequals(increaseKind, "EPOCH")) {
     return time(0);
   }
-
-  // DEFAULT case
-  time_t now = time(0);
-  struct tm tm;
-  localtime_r(&now, &tm);
-  boost::format fmt("%04d%02d%02d%02d");
-  string newdate = (fmt % (tm.tm_year + 1900) % (tm.tm_mon + 1) % tm.tm_mday % 1).str();
-  uint32_t new_serial = pdns_stou(newdate);
-  if (new_serial <= old_serial) {
-      new_serial = old_serial + 1;
+  else if (pdns_iequals(increaseKind, "DEFAULT")) {
+    time_t now = time(0);
+    uint32_t new_serial = localtime_format_YYYYMMDDSS(now, 1);
+    if (new_serial <= old_serial) {
+        new_serial = old_serial + 1;
+    }
+    return new_serial;
+  } else if(!increaseKind.empty()) {
+    L<<Logger::Warning<<"SOA-EDIT-API/DNSUPDATE type '"<<increaseKind<<"' for zone "<<zonename<<" is unknown."<<endl;
   }
-  return new_serial;
+  return old_serial;
 }
 
 /** Used for SOA-EDIT-DNSUPDATE and SOA-EDIT-API.
