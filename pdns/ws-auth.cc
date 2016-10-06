@@ -1151,6 +1151,9 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
   {
     for(const DNSResourceRecord& rr: result_rr)
     {
+      if (!rr.qtype.getCode())
+        continue; // skip empty non-terminals
+
       auto object = Json::object {
         { "object_type", "record" },
         { "name", rr.qname.toString() },
