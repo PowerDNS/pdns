@@ -123,19 +123,3 @@ string& attodot(string &str)
    }
    return str;
 }
-
-vector<DNSResourceRecord> convertRRS(const vector<DNSRecord>& in)
-{
-  vector<DNSResourceRecord> out;
-  for(const auto& d : in) {
-    DNSResourceRecord rr;
-    rr.qname = d.d_name;
-    rr.qtype = QType(d.d_type);
-    rr.ttl = d.d_ttl;
-    rr.content = d.d_content->getZoneRepresentation();
-    rr.auth = false;
-    rr.qclass = d.d_class;
-    out.push_back(rr);
-  }
-  return out;
-}

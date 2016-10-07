@@ -69,37 +69,24 @@ public:
     }
   }
 
-  bool get(DNSZoneRecord &zrr)
+  bool get(DNSResourceRecord &rr)
   {
-    if(!d_answer.empty()) {
-      if(d_answer.find("ns1.") == 0){
-        zrr.dr.d_name=d_ourdomain;
-        zrr.dr.d_type=QType::SOA;
-      } else {
-        zrr.dr.d_name=d_ourname;
-        zrr.dr.d_type=QType::A;
-      }
-      zrr.dr.d_ttl=5;             // 5 seconds
-      zrr.auth = 1;          // it may be random.. but it is auth!
-      zrr.dr.d_content = std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(zrr.dr.d_type, 1, d_answer));
-
-      d_answer.clear();          // this was the last answer
-      return true;
-    }
-    return false;
-  }
-
-  bool get(DNSResourceRecord &rr) 
-  {
-    DNSZoneRecord dzr;
-    if(!this->get(dzr)) {
+    if(d_answer.empty())
       return false;
-    }
 
-    rr=DNSResourceRecord(dzr.dr);
-    rr.auth = dzr.auth;
-    rr.domain_id = dzr.domain_id;
-    rr.scopeMask = dzr.scopeMask;
+    if(d_answer.find("ns1.") == 0){
+      rr.qname=d_ourdomain;
+      rr.qtype=QType::SOA;
+    } else {
+      rr.qname=d_ourname;
+      rr.qtype=QType::A;
+    }
+    rr.qclass=QClass::IN;   // Internet class randomness.
+    rr.ttl=5;               // 5 seconds
+    rr.auth = 1;            // it may be random.. but it is auth!
+    rr.content = d_answer;
+
+    d_answer.clear();       // this was the last answer
     return true;
   }
 

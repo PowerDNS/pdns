@@ -155,17 +155,17 @@ void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, c
         }
 
         vector<DNSResourceRecord> replacement;
-        for(const auto& x : rrset) {
-          DNSResourceRecord dr(x);
-          dr.qname += domain;
-          dr.domain_id = di.id;
-          if(x.d_type == QType::SOA) {
+        for(const auto& dr : rrset) {
+          auto rr = DNSResourceRecord::fromWire(dr);
+          rr.qname += domain;
+          rr.domain_id = di.id;
+          if(dr.d_type == QType::SOA) {
             //            cout<<"New SOA: "<<x.d_content->getZoneRepresentation()<<endl;
-            auto sr = getRR<SOARecordContent>(x);
+            auto sr = getRR<SOARecordContent>(dr);
             zs.soa_serial=sr->d_st.serial;
           }
           
-          replacement.push_back(dr);
+          replacement.push_back(rr);
         }
 
         di.backend->replaceRRSet(di.id, g.first.first+domain, QType(g.first.second), replacement);
@@ -388,7 +388,7 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
           bool firstNSEC3=true;
           rrs.reserve(axfr.size());
           for(const auto& dr : axfr) {
-            DNSResourceRecord rr(dr);
+            auto rr = DNSResourceRecord::fromWire(dr);
             rr.qname += domain;
             rr.domain_id = zs.domain_id;
             if(!processRecordForZS(domain, firstNSEC3, rr, zs))

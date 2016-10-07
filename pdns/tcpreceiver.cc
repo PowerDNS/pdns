@@ -520,7 +520,6 @@ namespace {
     soa.ttl=sd.ttl;
     soa.domain_id=sd.domain_id;
     soa.auth = true;
-    soa.d_place=DNSResourceRecord::ANSWER;
     return soa;
   }
 

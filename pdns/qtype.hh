@@ -64,12 +64,6 @@ public:
     return code < rhs.code;
   }
 
-  template<class Archive>
-  void serialize(Archive &ar, const unsigned int version)
-  {
-    ar & code;
-  }
-
   const string getName() const; //!< Get a string representation of this type
   uint16_t getCode() const; //!< Get the integer representation of this type
   bool isSupportedType();
