@@ -242,12 +242,12 @@ struct SuffixMatchNode
     return strcasecmp(name.c_str(), rhs.name.c_str()) < 0;
   }
 
-  void add(const DNSName& name) 
+  void add(const DNSName& dnsname)
   {
     if(!d_human.empty())
       d_human.append(", ");
-    d_human += name.toString();
-    add(name.getRawLabels());
+    d_human += dnsname.toString();
+    add(dnsname.getRawLabels());
   }
 
   void add(std::vector<std::string> labels) const
@@ -265,11 +265,11 @@ struct SuffixMatchNode
     }
   }
 
-  bool check(const DNSName& name)  const
+  bool check(const DNSName& dnsname)  const
   {
     if(children.empty()) // speed up empty set
       return endNode;
-    return check(name.getRawLabels());
+    return check(dnsname.getRawLabels());
   }
 
   bool check(std::vector<std::string> labels) const
