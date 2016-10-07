@@ -55,7 +55,6 @@ AuthLua4::AuthLua4(const std::string& fname) {
   d_lw->registerFunction<int(DNSResourceRecord::*)()>("domain_id", [](DNSResourceRecord& rec) { return rec.domain_id; });
   d_lw->registerFunction<uint16_t(DNSResourceRecord::*)()>("qtype", [](DNSResourceRecord& rec) { return rec.qtype.getCode(); });
   d_lw->registerFunction<uint16_t(DNSResourceRecord::*)()>("qclass", [](DNSResourceRecord& rec) { return rec.qclass; });
-  d_lw->registerFunction<int(DNSResourceRecord::*)()>("d_place", [](DNSResourceRecord& rec) { return rec.d_place; });
   d_lw->registerFunction<uint8_t(DNSResourceRecord::*)()>("scopeMask", [](DNSResourceRecord& rec) { return rec.scopeMask; });
   d_lw->registerFunction<bool(DNSResourceRecord::*)()>("auth", [](DNSResourceRecord& rec) { return rec.auth; });
   d_lw->registerFunction<bool(DNSResourceRecord::*)()>("disabled", [](DNSResourceRecord& rec) { return rec.disabled; });
@@ -198,7 +197,7 @@ AuthLua4::AuthLua4(const std::string& fname) {
       stubDoResolve(DNSName(qname), qtype, ret);
       int i = 0;
       for(const auto &row: ret) {
-        luaResult[++i] = DNSResourceRecord(row.dr);
+        luaResult[++i] = DNSResourceRecord::fromWire(row.dr);
         luaResult[i].auth = row.auth;
       }
       return luaResult;
