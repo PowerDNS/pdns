@@ -320,12 +320,12 @@ void *TCPNameserver::doConnection(void *data)
       shared_ptr<DNSPacket> reply; 
       shared_ptr<DNSPacket> cached= shared_ptr<DNSPacket>(new DNSPacket);
       if(logDNSQueries)  {
-        string remote;
-        if(packet->hasEDNSSubnet()) 
-          remote = packet->getRemote().toString() + "<-" + packet->getRealRemote().toString();
+        string remote_text;
+        if(packet->hasEDNSSubnet())
+          remote_text = packet->getRemote().toString() + "<-" + packet->getRealRemote().toString();
         else
-          remote = packet->getRemote().toString();
-        L << Logger::Notice<<"TCP Remote "<< remote <<" wants '" << packet->qdomain<<"|"<<packet->qtype.getName() << 
+          remote_text = packet->getRemote().toString();
+        L << Logger::Notice<<"TCP Remote "<< remote_text <<" wants '" << packet->qdomain<<"|"<<packet->qtype.getName() <<
         "', do = " <<packet->d_dnssecOk <<", bufsize = "<< packet->getMaxReplyLen()<<": ";
       }
 
@@ -737,11 +737,11 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   vector<DNSZoneRecord> zrrs;
 
   // Add the CDNSKEY and CDS records we created earlier
-  for (auto const &zrr : cds)
-    zrrs.push_back(zrr);
+  for (auto const &synth_zrr : cds)
+    zrrs.push_back(synth_zrr);
 
-  for (auto const &zrr : cdnskey)
-    zrrs.push_back(zrr);
+  for (auto const &synth_zrr : cdnskey)
+    zrrs.push_back(synth_zrr);
 
   while(sd.db->get(zrr)) {
     if(zrr.dr.d_name.isPartOf(target)) {
