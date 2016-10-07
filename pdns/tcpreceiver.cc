@@ -556,7 +556,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
 
     if (!canDoAXFR(q)) {
       L<<Logger::Error<<"AXFR of domain '"<<target<<"' failed: "<<q->getRemote()<<" cannot request AXFR"<<endl;
-      outpacket->setRcode(9); // 'NOTAUTH'
+      outpacket->setRcode(RCode::NotAuth);
       sendPacket(outpacket,outsock);
       return 0;
     }
@@ -564,7 +564,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
     // canDoAXFR does all the ACL checks, and has the if(disable-axfr) shortcut, call it first.
     if(!s_P->getBackend()->getSOAUncached(target, sd)) {
       L<<Logger::Error<<"AXFR of domain '"<<target<<"' failed: not authoritative"<<endl;
-      outpacket->setRcode(9); // 'NOTAUTH'
+      outpacket->setRcode(RCode::NotAuth);
       sendPacket(outpacket,outsock);
       return 0;
     }
@@ -726,7 +726,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   // now start list zone
   if(!(sd.db->list(target, sd.domain_id))) {  
     L<<Logger::Error<<"Backend signals error condition"<<endl;
-    outpacket->setRcode(2); // 'SERVFAIL'
+    outpacket->setRcode(RCode::ServFail);
     sendPacket(outpacket,outsock);
     return 0;
   }
@@ -751,7 +751,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
         int ret2 = stubDoResolve(getRR<ALIASRecordContent>(zrr.dr)->d_content, QType::AAAA, ips);
         if(ret1 != RCode::NoError || ret2 != RCode::NoError) {
           L<<Logger::Error<<"Error resolving for ALIAS "<<zrr.dr.d_content->getZoneRepresentation()<<", aborting AXFR"<<endl;
-          outpacket->setRcode(2); // 'SERVFAIL'
+          outpacket->setRcode(RCode::ServFail);
           sendPacket(outpacket,outsock);
           return 0;
         }
@@ -1084,7 +1084,7 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
     // canDoAXFR does all the ACL checks, and has the if(disable-axfr) shortcut, call it first.
     if(!canDoAXFR(q) || !s_P->getBackend()->getSOAUncached(q->qdomain, sd)) {
       L<<Logger::Error<<"IXFR of domain '"<<q->qdomain<<"' failed: not authoritative"<<endl;
-      outpacket->setRcode(9); // 'NOTAUTH'
+      outpacket->setRcode(RCode::NotAuth);
       sendPacket(outpacket,outsock);
       return 0;
     }
