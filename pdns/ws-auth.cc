@@ -274,7 +274,7 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
     if(arg().mustDo("webserver-print-arguments"))
       printargs(ret);
   }
-  else
+  else if(S.ringExists(req->getvars["ring"]))
     printtable(ret,req->getvars["ring"],S.getRingTitle(req->getvars["ring"]),100);
 
   ret<<"</div></div>"<<endl;
