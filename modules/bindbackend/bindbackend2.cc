@@ -665,7 +665,6 @@ void Bind2Backend::reload()
 void Bind2Backend::fixupOrderAndAuth(BB2DomainInfo& bbd, bool nsec3zone, NSEC3PARAMRecordContent ns3pr)
 {
   shared_ptr<recordstorage_t> records = bbd.d_records.getWRITABLE();
-  recordstorage_t::const_iterator iter;
 
   bool skip;
   DNSName shorter;
