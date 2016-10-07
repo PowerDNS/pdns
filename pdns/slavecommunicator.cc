@@ -134,11 +134,13 @@ void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, c
 
       di.backend->startTransaction(domain, -1);
       for(const auto g : grouped) {
-        DNSResourceRecord rr;
         vector<DNSRecord> rrset;
-        B.lookup(QType(g.first.second), g.first.first, 0, di.id);
-        while(B.get(rr)) {
-          rrset.push_back(DNSRecord{rr});
+        {
+          DNSZoneRecord zrr;
+          B.lookup(QType(g.first.second), g.first.first, 0, di.id);
+          while(B.get(zrr)) {
+            rrset.push_back(zrr.dr);
+          }
         }
         // O(N^2)!
         rrset.erase(remove_if(rrset.begin(), rrset.end(), 
@@ -851,13 +853,13 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       }
       else {
         B->lookup(QType(QType::RRSIG), di.zone); // can't use DK before we are done with this lookup!
-        DNSResourceRecord rr;
+        DNSZoneRecord zr;
         uint32_t maxExpire=0, maxInception=0;
-        while(B->get(rr)) {
-          RRSIGRecordContent rrc(rr.content);
-          if(rrc.d_type == QType::SOA) {
-            maxInception = std::max(maxInception, rrc.d_siginception);
-            maxExpire = std::max(maxExpire, rrc.d_sigexpire);
+        while(B->get(zr)) {
+          auto rrsig = getRR<RRSIGRecordContent>(zr.dr);
+          if(rrsig->d_type == QType::SOA) {
+            maxInception = std::max(maxInception, rrsig->d_siginception);
+            maxExpire = std::max(maxExpire, rrsig->d_sigexpire);
           }
         }
         if(maxInception == ssr.d_freshness[di.id].theirInception && maxExpire == ssr.d_freshness[di.id].theirExpire) {
