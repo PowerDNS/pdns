@@ -216,7 +216,7 @@ DNSResourceRecord DNSResourceRecord::fromWire(const DNSRecord& d) {
   rr.qname = d.d_name;
   rr.qtype = QType(d.d_type);
   rr.ttl = d.d_ttl;
-  rr.content = d.d_content->getZoneRepresentation();
+  rr.content = d.d_content->getZoneRepresentation(true);
   rr.auth = false;
   rr.qclass = d.d_class;
   return rr;
