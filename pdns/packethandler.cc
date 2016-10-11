@@ -1473,7 +1473,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
           completeANYRecords(p, r, sd, target);
       }
       else
-        makeNOError(p, r, rr.dr.d_name, DNSName(), sd, 0);
+        makeNOError(p, r, target, DNSName(), sd, 0);
 
       goto sendit;
     }
