@@ -186,7 +186,7 @@ void DNSProxy::mainloop(void)
         d.id=i->second.id;
         memcpy(buffer,&d,sizeof(d));  // commit spoofed id
 
-        DNSPacket p,q;
+        DNSPacket p(false),q(false);
         p.parse(buffer,len);
         q.parse(buffer,len);
 

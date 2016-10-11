@@ -47,7 +47,7 @@ try
           if(dh->rd || dh->qr)
             continue;
 
-          MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
+          MOADNSParser mdp(false, (const char*)pr.d_payload, pr.d_len);
 
           memcpy(&entry.ip, &pr.d_ip->ip_src, 4);
           entry.port = pr.d_udp->uh_sport;

@@ -111,7 +111,7 @@ try
           ntohs(pr.d_udp->uh_dport)==53   || ntohs(pr.d_udp->uh_sport)==53) &&
          pr.d_len > 12) {
         try {
-          MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
+          MOADNSParser mdp(false, (const char*)pr.d_payload, pr.d_len);
           if(mdp.d_header.id==htons(4575)) {
 //            cerr << ntohl(*(uint32_t*)&pr.d_ip->ip_src)<<endl;
             g_skipped++;

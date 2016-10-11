@@ -437,7 +437,7 @@ static void gatherRecords(const Value& container, vector<DNSResourceRecord>& new
         makePtr(rr, &ptr);
 
         // verify that there's a zone for the PTR
-        DNSPacket fakePacket;
+        DNSPacket fakePacket(false);
         SOAData sd;
         fakePacket.qtype = QType::PTR;
         if (!B.getAuth(&fakePacket, &sd, ptr.qname, 0))
@@ -1088,7 +1088,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
 
   // now the PTRs
   BOOST_FOREACH(const DNSResourceRecord& rr, new_ptrs) {
-    DNSPacket fakePacket;
+    DNSPacket fakePacket(false);
     SOAData sd;
     sd.db = (DNSBackend *)-1;
     fakePacket.qtype = QType::PTR;
