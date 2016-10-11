@@ -67,7 +67,7 @@ class DNSSECKeeper;
 class DNSPacket
 {
 public:
-  DNSPacket();
+  DNSPacket(bool isQuery);
   DNSPacket(const DNSPacket &orig);
 
   int noparse(const char *mesg, int len); //!< just suck the data inward
@@ -174,6 +174,7 @@ private:
   string d_tsigkeyname;
   string d_tsigprevious;
   bool d_tsigtimersonly;
+  bool d_isQuery;
 
   vector<DNSResourceRecord> d_rrs; // 4
 };

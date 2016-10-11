@@ -71,7 +71,7 @@ try
       n+=numread;
     }
 
-    MOADNSParser mdp(string(creply, len));
+    MOADNSParser mdp(false, string(creply, len));
     for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
       if(i->first.d_type == QType::SOA)
       {
