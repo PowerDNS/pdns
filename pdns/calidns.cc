@@ -70,7 +70,7 @@ void* recvThread(const vector<Socket*>* sockets)
       unixDie("Unable to poll for new UDP events");
     }    
     
-    for(struct pollfd &pfd : fds) {
+    for(auto &pfd : fds) {
       if(pfd.revents & POLLIN) {
 	
 	if((err=recvmmsg(pfd.fd, &buf[0], buf.size(), MSG_WAITFORONE, 0)) < 0 ) {
