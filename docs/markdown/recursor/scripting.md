@@ -153,7 +153,7 @@ end
 This hook does not get the full DNSQuestion object, since filling out the fields
 would require packet parsing, which is what we are trying to prevent with `ipfilter`.
 
-### `function gettag(remote, ednssubnet, local, qname, qtype, ednsoptions)`
+### `function gettag(remote, ednssubnet, local, qname, qtype, ednsoptions, tcp)`
 The `gettag` function is invoked when the Recursor attempts to discover in which
 packetcache an answer is available.
 
@@ -174,6 +174,9 @@ through the entire Lua script.
 `EDNSOptionView` objects, with the EDNS option content size in the `size` member
 and the content accessible as a NULL-safe string object via `getContent()`.
 This table is empty unless the `gettag-needs-edns-options` parameter is set.
+
+The `tcp` value (added in 4.1) is a boolean indicating whether the query was
+received over `UDP` (false) or `TCP` (true).
 
 ### `function prerpz(dq)`
 

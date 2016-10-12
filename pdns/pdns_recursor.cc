@@ -1432,7 +1432,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 
           if(t_pdl->get() && (*t_pdl)->d_gettag) {
             try {
-              dc->d_tag = (*t_pdl)->gettag(conn->d_remote, dc->d_ednssubnet.source, dest, qname, qtype, &dc->d_policyTags, dc->d_data, ednsOptions);
+              dc->d_tag = (*t_pdl)->gettag(conn->d_remote, dc->d_ednssubnet.source, dest, qname, qtype, &dc->d_policyTags, dc->d_data, ednsOptions, true);
             }
             catch(std::exception& e)  {
               if(g_logCommonErrors)
@@ -1605,7 +1605,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 
         if(t_pdl->get() && (*t_pdl)->d_gettag) {
           try {
-            ctag=(*t_pdl)->gettag(fromaddr, ednssubnet.source, destaddr, qname, qtype, &policyTags, data, ednsOptions);
+            ctag=(*t_pdl)->gettag(fromaddr, ednssubnet.source, destaddr, qname, qtype, &policyTags, data, ednsOptions, false);
           }
           catch(std::exception& e)  {
             if(g_logCommonErrors)
