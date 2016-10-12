@@ -32,6 +32,9 @@ To dump the cache to disk, execute:
 --config-dir=*PATH*
 :    Directory where the recursor.conf lives.
 
+--config-name=*NAME*
+:    Name of the virtual configuration.
+
 --socket-dir=*PATH*
 :    Where the controlsocket will live, please use **--config-dir** instead.
 
