@@ -89,15 +89,15 @@ The DNSQuestion object contains at least the following fields:
 * localaddr - address this query was received on
 * variable - a boolean which, if set, indicates the recursor should not packet cache this answer. Honored even when returning 'false'! Important when providing answers that vary over time or based on sender details.
 * followupFunction - a string that signals the nameserver to take one of the following additional actions:
-    * followCNAMERecords: When adding a CNAME to the answer, this tells the recursor to follow that CNAME. See [CNAME chain resolution](#cname-chain-resolution)
-    * getFakeAAAARecords: Get a fake AAAA record, see [DNS64](#dns64)
-    * getFakePTRRecords: Get a fake PTR record, see [DNS64](#dns64)
-    * udpQueryResponse: Do a UDP query and call a handler, see [`udpQueryResponse`](#udpqueryresponse)
+     * followCNAMERecords: When adding a CNAME to the answer, this tells the recursor to follow that CNAME. See [CNAME chain resolution](#cname-chain-resolution)
+     * getFakeAAAARecords: Get a fake AAAA record, see [DNS64](#dns64)
+     * getFakePTRRecords: Get a fake PTR record, see [DNS64](#dns64)
+     * udpQueryResponse: Do a UDP query and call a handler, see [`udpQueryResponse`](#udpqueryresponse)
 * appliedPolicy - The decision that was made by the policy engine, see [Modifying policy decisions](#modifying-policy-decisions). It has the following fields:
-    * policyName: The name of the policy (used in e.g. protobuf logging)
-    * policyAction: The action taken by the engine
-    * policyCustom: The CNAME content for the `pdns.policyactions.Custom` response, a string
-    * policyTTL: The TTL in seconds for the `pdns.policyactions.Custom` response
+     * policyName: The name of the policy (used in e.g. protobuf logging)
+     * policyAction: The action taken by the engine
+     * policyCustom: The CNAME content for the `pdns.policyactions.Custom` response, a string
+     * policyTTL: The TTL in seconds for the `pdns.policyactions.Custom` response
 * wantsRPZ - A boolean that indicates the use of the Policy Engine, can be set to `false` in `preresolve` to disable RPZ for this query
 * data - a table that is persistent throughout the lifetime of the `dq` object and can be used to store custom data. All keys and values in the table must be of type `string`.
 
