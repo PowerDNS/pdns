@@ -143,8 +143,9 @@ class RSAContext;
 class DNSSECKeeper; 
 struct DNSSECPrivateKey;
 
-void fillOutRRSIG(DNSSECPrivateKey& dpk, const DNSName& signQName, RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& toSign);
-uint32_t getStartOfWeek();
+void fillOutRRSIG(DNSSECPrivateKey& dpk, const DNSName& signQName, RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& toSign, uint32_t startOfWeekOffset, uint32_t startOfWeek, uint32_t weekNumber);
+std::pair<uint32_t,uint32_t> getStartOfWeek(uint32_t weekStartOffset);
+uint32_t getStartOfWeekOffset(const DNSName& signer);
 void addSignature(DNSSECKeeper& dk, UeberBackend& db, const DNSName& signer, const DNSName signQName, const DNSName& wildcardname, uint16_t signQType, uint32_t signTTL, DNSResourceRecord::Place signPlace,
   vector<shared_ptr<DNSRecordContent> >& toSign, vector<DNSResourceRecord>& outsigned, uint32_t origTTL);
 int getRRSIGsForRRSET(DNSSECKeeper& dk, const DNSName& signer, const DNSName signQName, uint16_t signQType, uint32_t signTTL,

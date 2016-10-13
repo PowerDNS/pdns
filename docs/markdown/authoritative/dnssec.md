@@ -188,14 +188,20 @@ calculated on the fly, and heavily cached. All CPU cores are used for the calcul
 RRSIGs have a validity period, in PowerDNS by default this period starts at most
 a week in the past, and continues at least a week into the future.
 
-Precisely speaking, the time period used is always from the start of the previous
-Thursday until the Thursday two weeks later. This two-week interval jumps with
-one-week increments every Thursday.
+Precisely speaking, the time period used is always calculated from the start of
+the previous Thursday until the Thursday two weeks later. This is then shifted
+by a number of seconds depending on the zone, so that the start of the time
+period varies. I.e. some zones are from Friday to Friday, some are from
+Saturday to Saturday, etc. We use 128 distinct start dates.
+
+This two-week interval jumps with one-week increments every week at the same
+time (for a specific zone and all other zones mapped to the same start date).
 
 **Note**: Why Thursday? POSIX-based operating systems count the time since GMT
 midnight January 1st of 1970, which was a Thursday. PowerDNS inception/expiration
 times are generated based on an integral number of weeks having passed since the
-start of the 'epoch'.
+start of the 'epoch'. A per-zone offset between 0 and 600075 is then applied to 
+this to spread the signatures over the week in 128 chunks, each 4725 seconds long.
 
 PowerDNS also serves the DNSKEY records in live-signing mode. Their TTL is derived
 from the SOA records *minimum* field. When using NSEC3, the TTL of the NSEC3PARAM

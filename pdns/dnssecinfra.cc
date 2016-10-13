@@ -460,11 +460,22 @@ int countLabels(const std::string& signQName)
   return 0;
 }
 
-uint32_t getStartOfWeek()
+std::pair<uint32_t,uint32_t> getStartOfWeek(uint32_t weekStartOffset)
 {
   uint32_t now = time(0);
-  now -= (now % (7*86400));
-  return now;
+  uint32_t week_number;
+
+  now -= ((now - weekStartOffset) % (7*86400));
+  week_number = (now - weekStartOffset) / (7*86400);
+  return std::make_pair(now, week_number);
+}
+
+uint32_t getStartOfWeekOffset(const DNSName& signer)
+{
+  // We split the week into 128 separate 4725 second chunks by assuming
+  // that the hash is perfect and the values of the first 7 bits are
+  // evenly distributed over all served zones.
+  return (signer.hash() & 127) * (86400*7/128);
 }
 
 string hashQNameWithSalt(const NSEC3PARAMRecordContent& ns3prc, const DNSName& qname)
