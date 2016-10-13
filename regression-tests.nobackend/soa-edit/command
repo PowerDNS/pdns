@@ -29,7 +29,7 @@ rm -f pdns*.pid
 rm -f soa-edit/bind-dnssec.db
 
 now=$(date +%s)
-delta=$((now-1418860790)) # Wed Dec 17 23:59:50 2014 UTC
+delta=$((now-1418893865)) # Wed Dec 17 09:11:05 2014 UTC, wrap for this domain happens at 09:11:15
  
 $PDNSUTIL --config-dir=soa-edit create-bind-db soa-edit/bind-dnssec.db
 $PDNSUTIL --config-dir soa-edit/ set-meta minimal.com SOA-EDIT INCREMENT-WEEKS

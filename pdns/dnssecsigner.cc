@@ -118,7 +118,13 @@ AtomicCounter* g_signatureCount;
 uint64_t signatureCacheSize(const std::string& str)
 {
   ReadLock l(&g_signatures_lock);
-  return g_signatures.size();
+
+  uint64_t cacheSize = 0;
+  for(int idx = 0; idx < 128; idx++) {
+    cacheSize += g_signatures[idx].size();
+  }
+
+  return cacheSize;
 }
 
 void fillOutRRSIG(DNSSECPrivateKey& dpk, const DNSName& signQName, RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& toSign,
