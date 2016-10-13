@@ -116,6 +116,8 @@ It also supports the following methods:
 * `getRecords()`: get a table of DNS Records in this DNS Question (or answer by now)
 * `setPolicyTags(tags)`: update the policy tags, taking a table of strings.
 * `setRecords(records)`: after your edits, update the answers of this question
+* `getEDNSFlag(name)`: returns true if the EDNS flag with `name` is set in the query
+* `getEDNSFlags()`: returns a list of strings with all the EDNS flag mnemonics in the query
 * `getEDNSOption(num)`: get the EDNS Option with number `num`
 * `getEDNSOptions()`: get a map of all EDNS Options
 * `getEDNSSubnet()`: returns the netmask specified in the EDNSSubnet option, or empty if there was none
