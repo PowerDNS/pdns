@@ -752,6 +752,7 @@ void startDoResolve(void *p)
       dq->policyTags = &dc->d_policyTags;
       dq->appliedPolicy = &appliedPolicy;
       dq->currentRecords = &ret;
+      dq->dh = &dc->d_mdp.d_header;
     }
 
     if(dc->d_mdp.d_qtype==QType::ANY && !dc->d_tcp && g_anyToTcp) {

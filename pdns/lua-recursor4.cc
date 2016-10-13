@@ -159,6 +159,13 @@ static int getFakePTRRecords(const DNSName& qname, const std::string& prefix, ve
 
 }
 
+boost::optional<dnsheader> RecursorLua4::DNSQuestion::getDH() const
+{
+  if (dh)
+    return *dh;
+  return boost::optional<dnsheader>();
+}
+
 vector<pair<uint16_t, string> > RecursorLua4::DNSQuestion::getEDNSOptions() const
 {
   if(ednsOptions)
@@ -397,6 +404,7 @@ RecursorLua4::RecursorLua4(const std::string& fname)
       pol.d_custom = shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(QType::CNAME, 1, content));
     }
   );
+  d_lw->registerFunction("getDH", &DNSQuestion::getDH);
   d_lw->registerFunction("getEDNSOptions", &DNSQuestion::getEDNSOptions);
   d_lw->registerFunction("getEDNSOption", &DNSQuestion::getEDNSOption);
   d_lw->registerFunction("getEDNSSubnet", &DNSQuestion::getEDNSSubnet);

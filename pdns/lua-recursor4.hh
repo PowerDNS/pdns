@@ -55,6 +55,7 @@ public:
     const uint16_t qtype;
     const ComboAddress& local;
     const ComboAddress& remote;
+    const struct dnsheader* dh{nullptr};
     const bool isTcp;
     const std::vector<pair<uint16_t, string>>* ednsOptions{nullptr};
     vector<DNSRecord>* currentRecords{nullptr};
@@ -69,6 +70,7 @@ public:
     void addAnswer(uint16_t type, const std::string& content, boost::optional<int> ttl, boost::optional<string> name);
     void addRecord(uint16_t type, const std::string& content, DNSResourceRecord::Place place, boost::optional<int> ttl, boost::optional<string> name);
     vector<pair<int,DNSRecord> > getRecords() const;
+    boost::optional<dnsheader> getDH() const;
     vector<pair<uint16_t, string> > getEDNSOptions() const;
     boost::optional<string> getEDNSOption(uint16_t code) const;
     boost::optional<Netmask> getEDNSSubnet() const;

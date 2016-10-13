@@ -107,6 +107,11 @@ It also supports the following methods:
   the answer too, which defaults to the name of the question
 * `addPolicyTag(tag)`: add a policy tag.
 * `discardPolicy(policyname)`: skip the filtering policy (for example RPZ) named `policyname` for this query. This is mostly useful in the `prerpz` hook.
+* `getDH()` - Returns the DNS Header of the query or nil. A DNS header offers the following methods:
+     * `getRD()`, `getAA()`, `getAD()`, `getCD()`, `getTC()`: query these bits from the DNS Header
+     * `getRCODE()`: get the RCODE of the query
+     * `getOPCODE()`: get the OPCODE of the query
+     * `getID()`: get the ID of the query
 * `getPolicyTags()`: get the current policy tags as a table of strings.
 * `getRecords()`: get a table of DNS Records in this DNS Question (or answer by now)
 * `setPolicyTags(tags)`: update the policy tags, taking a table of strings.
@@ -128,12 +133,7 @@ With this hook, undesired traffic can be dropped rapidly before using precious C
 for parsing.
 
 `remoteip` is the IP(v6) address of the requestor, `localip` is the address on which the query arrived.
-`dh` is the DNS Header of the query, and it offers the following methods:
-
-* `getRD()`, `getAA()`, `getAD()`, `getCD()`, `getRD()`, `getRD()`, `getTC()`: query these bits from the DNS Header
-* `getRCODE()`: get the RCODE of the query
-* `getOPCODE()`: get the OPCODE of the query
-* `getID()`: get the ID of the query
+`dh` is the DNS Header of the query, and it offers the same functions as the `dq.getDH()` object described above.
 
 As an example, to filter all queries coming from 1.2.3.0/24, or with the AD bit set:
 
