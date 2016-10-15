@@ -146,7 +146,7 @@ this depends on `SYSCONFDIR` during compile-time.
 * Default: unset
 
 When running multiple recursors on the same server, read settings from
-"name-recursor.conf", this will also rename the binary image.
+"recursor-name.conf", this will also rename the binary image.
 
 ## `daemon`
 * Boolean
