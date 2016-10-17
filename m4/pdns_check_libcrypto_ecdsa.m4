@@ -12,6 +12,6 @@ AC_DEFUN([PDNS_CHECK_LIBCRYPTO_ECDSA], [
   ])
 
   AS_IF([test "x$libcrypto_ecdsa" = "xyes"], [
-    AC_DEFINE([HAVE_LIBCRYPTO_ECDSA], [1], [define to 1 if OpenSSL ecdsa support is avalable.])
+    AC_DEFINE([HAVE_LIBCRYPTO_ECDSA], [1], [define to 1 if OpenSSL ecdsa support is available.])
   ])
 ])
