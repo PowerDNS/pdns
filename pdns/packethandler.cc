@@ -949,7 +949,7 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
     DP->sendPacket(p);
   }
   if(LPE) {
-    int policyres=LPE->police(p, ret);
+    policyres = LPE->police(p, ret);
     if(policyres == PolicyDecision::DROP) {
       delete ret;
       return NULL;

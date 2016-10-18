@@ -51,8 +51,6 @@ extern StatBag S;
 vector<UeberBackend *>UeberBackend::instances;
 pthread_mutex_t UeberBackend::instances_lock=PTHREAD_MUTEX_INITIALIZER;
 
-sem_t UeberBackend::d_dynserialize;
-
 // initially we are blocked
 bool UeberBackend::d_go=false;
 pthread_mutex_t  UeberBackend::d_mut = PTHREAD_MUTEX_INITIALIZER;
@@ -624,13 +622,6 @@ bool UeberBackend::get(DNSZoneRecord &rr)
   d_ancount++;
   d_answers.push_back(rr);
   return true;
-}
-
-bool UeberBackend::list(const DNSName &target, int domain_id, bool include_disabled)
-{
-  L<<Logger::Error<<"UeberBackend::list called, should NEVER EVER HAPPEN"<<endl;
-  exit(1);
-  return false;
 }
 
 bool UeberBackend::searchRecords(const string& pattern, int maxResults, vector<DNSResourceRecord>& result)

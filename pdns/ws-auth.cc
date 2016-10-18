@@ -1489,7 +1489,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
 
   if (q.empty())
     throw ApiException("Query q can't be blank");
-  if (sMax.empty() == false)
+  if (!sMax.empty())
     maxEnts = std::stoi(sMax);
   if (maxEnts < 1)
     throw ApiException("Maximum entries must be larger than 0");
