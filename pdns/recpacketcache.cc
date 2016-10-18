@@ -211,7 +211,7 @@ uint64_t RecursorPacketCache::size()
 uint64_t RecursorPacketCache::bytes()
 {
   uint64_t sum=0;
-  for(const struct Entry& e :  d_packetCache) {
+  for(const auto& e :  d_packetCache) {
     sum += sizeof(e) + e.d_packet.length() + 4;
   }
   return sum;
