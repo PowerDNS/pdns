@@ -3,7 +3,7 @@ import time
 import unittest
 from copy import deepcopy
 from pprint import pprint
-from test_helper import ApiTestCase, unique_zone_name, is_auth, is_recursor, get_db_records
+from test_helper import ApiTestCase, unique_zone_name, is_auth, is_recursor, get_db_records, pdnsutil_rectify
 
 
 def get_rrset(data, qname, qtype):
@@ -1106,6 +1106,25 @@ fred   IN  A      192.168.0.4
         # should return zone, SOA, ns1, ns2
         self.assertEquals(len(r.json()), 4)
 
+    def test_search_after_rectify_with_ent(self):
+        name = 'search-rectified.name.'
+        rrset = {
+            "name": 'sub.sub.' + name,
+            "type": "A",
+            "ttl": 3600,
+            "records": [{
+                "content": "4.3.2.1",
+                "disabled": False,
+            }],
+        }
+        self.create_zone(name=name, rrsets=[rrset])
+        pdnsutil_rectify(name)
+        r = self.session.get(self.url("/api/v1/servers/localhost/search-data?q=*search-rectified*"))
+        self.assert_success_json(r)
+        print r.json()
+        # should return zone, SOA, ns1, ns2, sub.sub A (but not the ENT)
+        self.assertEquals(len(r.json()), 5)
+
 
 @unittest.skipIf(not is_auth(), "Not applicable")
 class AuthRootZone(ApiTestCase, AuthZonesHelperMixin):
@@ -1205,7 +1224,6 @@ class RecursorZones(ApiTestCase):
             self.assertEquals(data[k], payload[k])
 
     def test_create_zone_no_name(self):
-        name = unique_zone_name()
         payload = {
             'name': '',
             'kind': 'Native',
