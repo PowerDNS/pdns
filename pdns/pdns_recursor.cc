@@ -2607,6 +2607,24 @@ int serviceMain(int argc, char*argv[])
     exit(99);
   }
 
+  // keep this ABOVE loadRecursorLuaConfig!
+  if(::arg()["dnssec"]=="off")
+    g_dnssecmode=DNSSECMode::Off;
+  else if(::arg()["dnssec"]=="process-no-validate")
+    g_dnssecmode=DNSSECMode::ProcessNoValidate;
+  else if(::arg()["dnssec"]=="process")
+    g_dnssecmode=DNSSECMode::Process;
+  else if(::arg()["dnssec"]=="validate")
+    g_dnssecmode=DNSSECMode::ValidateAll;
+  else if(::arg()["dnssec"]=="log-fail")
+    g_dnssecmode=DNSSECMode::ValidateForLog;
+  else {
+    L<<Logger::Error<<"Unknown DNSSEC mode "<<::arg()["dnssec"]<<endl;
+    exit(1);
+  }
+
+  g_dnssecLogBogus = ::arg().mustDo("dnssec-log-bogus");
+
   loadRecursorLuaConfig(::arg()["lua-config-file"]);
 
   parseACLs();
@@ -2638,23 +2656,6 @@ int serviceMain(int argc, char*argv[])
 
   setupDelegationOnly();
   g_outgoingEDNSBufsize=::arg().asNum("edns-outgoing-bufsize");
-
-  if(::arg()["dnssec"]=="off")
-    g_dnssecmode=DNSSECMode::Off;
-  else if(::arg()["dnssec"]=="process-no-validate")
-    g_dnssecmode=DNSSECMode::ProcessNoValidate;
-  else if(::arg()["dnssec"]=="process")
-    g_dnssecmode=DNSSECMode::Process;
-  else if(::arg()["dnssec"]=="validate")
-    g_dnssecmode=DNSSECMode::ValidateAll;
-  else if(::arg()["dnssec"]=="log-fail")
-    g_dnssecmode=DNSSECMode::ValidateForLog;
-  else {
-    L<<Logger::Error<<"Unknown DNSSEC mode "<<::arg()["dnssec"]<<endl;
-    exit(1);
-  }
-
-  g_dnssecLogBogus = ::arg().mustDo("dnssec-log-bogus");
 
   if(::arg()["trace"]=="fail") {
     SyncRes::setDefaultLogMode(SyncRes::Store);

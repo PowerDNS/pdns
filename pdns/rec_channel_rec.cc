@@ -348,6 +348,9 @@ string doSetCarbonServer(T begin, T end)
 template<typename T>
 string doSetDnssecLogBogus(T begin, T end)
 {
+  if(checkDNSSECDisabled())
+    return "DNSSEC is disabled in the configuration, not changing the Bogus logging setting\n";
+
   if (begin == end)
     return "No DNSSEC Bogus logging setting specified\n";
 
@@ -375,6 +378,9 @@ string doSetDnssecLogBogus(T begin, T end)
 template<typename T>
 string doAddNTA(T begin, T end)
 {
+  if(checkDNSSECDisabled())
+    return "DNSSEC is disabled in the configuration, not adding a Negative Trust Anchor\n";
+
   if(begin == end)
     return "No NTA specified, doing nothing\n";
 
@@ -408,6 +414,9 @@ string doAddNTA(T begin, T end)
 template<typename T>
 string doClearNTA(T begin, T end)
 {
+  if(checkDNSSECDisabled())
+    return "DNSSEC is disabled in the configuration, not removing a Negative Trust Anchor\n";
+
   if(begin == end)
     return "No Negative Trust Anchor specified, doing nothing.\n";
 
@@ -456,6 +465,9 @@ string doClearNTA(T begin, T end)
 
 static string getNTAs()
 {
+  if(checkDNSSECDisabled())
+    return "DNSSEC is disabled in the configuration\n";
+
   string ret("Configured Negative Trust Anchors:\n");
   auto luaconf = g_luaconfs.getLocal();
   for (auto negAnchor : luaconf->negAnchors)
@@ -466,6 +478,9 @@ static string getNTAs()
 template<typename T>
 string doAddTA(T begin, T end)
 {
+  if(checkDNSSECDisabled())
+    return "DNSSEC is disabled in the configuration, not adding a Trust Anchor\n";
+
   if(begin == end)
     return "No TA specified, doing nothing\n";
 
@@ -506,6 +521,9 @@ string doAddTA(T begin, T end)
 template<typename T>
 string doClearTA(T begin, T end)
 {
+  if(checkDNSSECDisabled())
+    return "DNSSEC is disabled in the configuration, not removing a Trust Anchor\n";
+
   if(begin == end)
     return "No Trust Anchor to clear\n";
 
@@ -546,6 +564,9 @@ string doClearTA(T begin, T end)
 
 static string getTAs()
 {
+  if(checkDNSSECDisabled())
+    return "DNSSEC is disabled in the configuration\n";
+
   string ret("Configured Trust Anchors:\n");
   auto luaconf = g_luaconfs.getLocal();
   for (auto anchor : luaconf->dsAnchors) {

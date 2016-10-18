@@ -15,6 +15,7 @@
 #include "base64.hh"
 #include "remote_logger.hh"
 #include "validate.hh"
+#include "validate-recursor.hh"
 #include "root-dnssec.hh"
 
 GlobalStateHolder<LuaConfigItems> g_luaconfs; 
@@ -233,12 +234,14 @@ void loadRecursorLuaConfig(const std::string& fname)
 		    });
 
   Lua.writeFunction("addDS", [&lci](const std::string& who, const std::string& what) {
+      warnIfDNSSECDisabled("Warning: adding Trust Anchor for DNSSEC (addDS), but dnssec is set to 'off'!");
       DNSName zone(who);
       auto ds = unique_ptr<DSRecordContent>(dynamic_cast<DSRecordContent*>(DSRecordContent::make(what)));
       lci.dsAnchors[zone].insert(*ds);
   });
 
   Lua.writeFunction("clearDS", [&lci](boost::optional<string> who) {
+      warnIfDNSSECDisabled("Warning: removing Trust Anchor for DNSSEC (clearDS), but dnssec is set to 'off'!");
       if(who)
         lci.dsAnchors.erase(DNSName(*who));
       else
@@ -246,6 +249,7 @@ void loadRecursorLuaConfig(const std::string& fname)
     });
 
   Lua.writeFunction("addNTA", [&lci](const std::string& who, const boost::optional<std::string> why) {
+      warnIfDNSSECDisabled("Warning: adding Negative Trust Anchor for DNSSEC (addNTA), but dnssec is set to 'off'!");
       if(why)
         lci.negAnchors[DNSName(who)] = static_cast<string>(*why);
       else
@@ -253,6 +257,7 @@ void loadRecursorLuaConfig(const std::string& fname)
     });
 
   Lua.writeFunction("clearNTA", [&lci](boost::optional<string> who) {
+      warnIfDNSSECDisabled("Warning: removing Negative Trust Anchor for DNSSEC (clearNTA), but dnssec is set to 'off'!");
       if(who)
         lci.negAnchors.erase(DNSName(*who));
       else
