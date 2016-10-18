@@ -1504,6 +1504,23 @@ bool disableDNSSECOnZone(DNSSECKeeper& dk, const DNSName& zone)
   return true;
 }
 
+int setZoneAccount(const DNSName& zone, const string &account)
+{
+  UeberBackend B("default");
+  DomainInfo di;
+  std::vector<std::string> meta;
+
+  if (!B.getDomainInfo(zone, di)){
+    cerr << "No such zone "<<zone<<" in the database" << endl;
+    return EXIT_FAILURE;
+  }
+  if(!di.backend->setAccount(zone, account)) {
+    cerr<<"Could not find backend willing to accept new zone configuration"<<endl;
+    return EXIT_FAILURE;
+  }
+  return EXIT_SUCCESS;
+}
+
 int setZoneKind(const DNSName& zone, const DomainInfo::DomainKind kind)
 {
   UeberBackend B("default");
@@ -2034,6 +2051,7 @@ try
     cout<<"secure-all-zones [increase-serial] Secure all zones without keys"<<endl;
     cout<<"secure-zone ZONE [ZONE ..]         Add DNSSEC to zone ZONE"<<endl;
     cout<<"set-kind ZONE KIND                 Change the kind of ZONE to KIND (master, slave native)"<<endl;
+    cout<<"set-account ZONE ACCOUNT           Change the account (owner) of ZONE to ACCOUNT"<<endl;
     cout<<"set-nsec3 ZONE ['PARAMS' [narrow]] Enable NSEC3 with PARAMS. Optionally narrow"<<endl;
     cout<<"set-presigned ZONE                 Use presigned RRSIGs from storage"<<endl;
     cout<<"set-publish-cdnskey ZONE           Enable sending CDNSKEY responses for ZONE"<<endl;
@@ -2497,6 +2515,13 @@ loadMainConfig(g_vm["config-dir"].as<string>());
     DNSName zone(cmds[1]);
     auto kind=DomainInfo::stringToKind(cmds[2]);
     exit(setZoneKind(zone, kind));
+  }
+  else if(cmds[0]=="set-account") {
+    if(cmds.size() != 3) {
+      cerr<<"Syntax: pdnsutil set-account ZONE ACCOUNT"<<endl;
+    }
+    DNSName zone(cmds[1]);
+    exit(setZoneAccount(zone, cmds[2]));
   }
   else if(cmds[0]=="set-nsec3") {
     if(cmds.size() < 2) {
