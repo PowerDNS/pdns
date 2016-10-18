@@ -90,10 +90,10 @@ $ rec_control add-ta domain.example 63149 13 1 a59da3f5c1b97fcd5fa2b3b2b0ac91d38
 Added Trust Anchor for domain.example. with data 63149 13 1 a59da3f5c1b97fcd5fa2b3b2b0ac91d38a60d33a
 ```
 
-To view the currently configured trust anchors, run `show-tas`:
+To view the currently configured trust anchors, run `get-tas`:
 
 ```
-$ rec_control show-tas
+$ rec_control get-tas
 Configured Trust Anchors:
 .       63149 13 1 a59da3f5c1b97fcd5fa2b3b2b0ac91d38a60d33a
 net.    2574 13 1 a5c5acb889a7ba9b5aa5bef2b0ac9fe1565ddaab
