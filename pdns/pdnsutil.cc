@@ -1508,7 +1508,6 @@ int setZoneAccount(const DNSName& zone, const string &account)
 {
   UeberBackend B("default");
   DomainInfo di;
-  std::vector<std::string> meta;
 
   if (!B.getDomainInfo(zone, di)){
     cerr << "No such zone "<<zone<<" in the database" << endl;
@@ -1525,7 +1524,6 @@ int setZoneKind(const DNSName& zone, const DomainInfo::DomainKind kind)
 {
   UeberBackend B("default");
   DomainInfo di;
-  std::vector<std::string> meta;
 
   if (!B.getDomainInfo(zone, di)){
     cerr << "No such zone "<<zone<<" in the database" << endl;
