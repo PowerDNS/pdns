@@ -31,7 +31,7 @@
 #include "dns.hh"
 #include "logger.hh"
 #include "statbag.hh"
-
+#include "packethandler.hh"
 
 extern StatBag S;
 extern PacketCache PC;
@@ -126,7 +126,7 @@ bool DNSProxy::sendPacket(DNSPacket *p)
 }
 
 //! look up qname aname with r->qtype, plonk it in the answer section of 'r' with name target
-bool DNSProxy::completePacket(DNSPacket *r, const DNSName& target,const DNSName& aname)
+bool DNSProxy::completePacket(DNSPacket *r, const DNSName& target,const DNSName& aname, const SOAData& sd)
 {
   uint16_t id;
   {
@@ -143,6 +143,7 @@ bool DNSProxy::completePacket(DNSPacket *r, const DNSName& target,const DNSName&
     ce.anyLocal = r->d_anyLocal;
     ce.complete = r;
     ce.aname=aname;
+    ce.soaData = sd;
     d_conntrack[id]=ce;
   }
 
@@ -258,6 +259,15 @@ void DNSProxy::mainloop(void)
 		dzr.dr.d_content=j->first.d_content;
 		i->second.complete->addRecord(dzr);
 	      }
+              else if(j->first.d_place == DNSResourceRecord::AUTHORITY && j->first.d_type == QType::SOA) {
+                DNSZoneRecord dzr;
+                dzr.dr.d_name=i->second.aname;
+                dzr.dr.d_type = j->first.d_type;
+                dzr.dr.d_ttl=i->second.soaData.ttl;
+                dzr.dr.d_place= j->first.d_place;
+                dzr.dr.d_content=makeSOAContent(i->second.soaData);
+                i->second.complete->addRecord(dzr);
+              }
 	    }
 	  }
 	  i->second.complete->setRcode(mdp.d_header.rcode);
