@@ -74,7 +74,7 @@ void GSQLBackend::setFresh(uint32_t domain_id)
 
 bool GSQLBackend::isMaster(const string &domain, const string &ip)
 {
-  string query = (GSQLformat(d_MasterOfDomainsZoneQuery) % sqlEscape(domain)).str();
+  string query = (GSQLformat(d_MasterOfDomainsZoneQuery) % sqlEscape(toLower(domain))).str();
 
   try {
     d_db->doQuery(query, d_result);
@@ -146,7 +146,7 @@ bool GSQLBackend::getDomainInfo(const string &domain, DomainInfo &di)
      id,name,master IP(s),last_check,notified_serial,type,account */
   char output[1024];
   snprintf(output,sizeof(output)-1,d_InfoOfDomainsZoneQuery.c_str(),
-	   sqlEscape(domain).c_str());
+	   sqlEscape(toLower(domain)).c_str());
   try {
     d_db->doQuery(output,d_result);
   }
