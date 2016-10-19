@@ -1022,7 +1022,7 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
   }
 }
 
-void Bind2Backend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *pkt_p, int zoneId )
+void Bind2Backend::lookupEntry(const QType &qtype, const DNSName &qname, int zoneId, bool onlySOA=false)
 {
   d_handle.reset();
   DNSName domain(qname);
@@ -1035,7 +1035,7 @@ void Bind2Backend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p
 
   do {
     found = safeGetBBDomainInfo(domain, &bbd);
-  } while ((!found || (zoneId != (int)bbd.d_id && zoneId != -1)) && domain.chopOff());
+  } while (!onlySOA && (!found || (zoneId != (int)bbd.d_id && zoneId != -1)) && domain.chopOff());
 
   if(!found) {
     if(mustlog)
@@ -1093,6 +1093,61 @@ void Bind2Backend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p
   }
 
   d_handle.d_list=false;
+}
+
+void Bind2Backend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *pkt_p, int zoneId)
+{
+  lookupEntry(qtype, qname, zoneId, false);
+}
+
+bool Bind2Backend::getSOA(const DNSName &domain, SOAData& sd, DNSPacket *pkt_p)
+{
+  lookupEntry(QType(QType::SOA), domain, -1, true);
+
+  DNSResourceRecord rr;
+  rr.auth = true;
+
+  int hits=0;
+
+  while(this->get(rr)) {
+    if (rr.qtype != QType::SOA) throw PDNSException("Got non-SOA record when asking for SOA");
+    hits++;
+    fillSOAData(rr.content, sd);
+    sd.domain_id=rr.domain_id;
+    sd.ttl=rr.ttl;
+    sd.scopeMask = rr.scopeMask;
+  }
+
+  if(!hits)
+    return false;
+  sd.qname = domain;
+  if(!sd.nameserver.countLabels())
+    sd.nameserver= DNSName(arg()["default-soa-name"]);
+
+  if(!sd.hostmaster.countLabels()) {
+    if (!arg().isEmpty("default-soa-mail")) {
+      sd.hostmaster= DNSName(arg()["default-soa-mail"]);
+      // attodot(sd.hostmaster); FIXME400
+    }
+    else
+      sd.hostmaster=DNSName("hostmaster")+domain;
+  }
+
+  if(!sd.serial) { // magic time!
+    DLOG(L<<Logger::Warning<<"Doing SOA serial number autocalculation for "<<rr.qname<<endl);
+
+    time_t serial;
+    if (calculateSOASerial(domain, sd, serial)) {
+      sd.serial = serial;
+      //DLOG(L<<"autocalculated soa serialnumber for "<<rr.qname<<" is "<<newest<<endl);
+    } else {
+      DLOG(L<<"soa serialnumber calculation failed for "<<rr.qname<<endl);
+    }
+
+  }
+  sd.db=this;
+  return true;
+
 }
 
 Bind2Backend::handle::handle()
