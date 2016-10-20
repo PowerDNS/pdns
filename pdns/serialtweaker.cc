@@ -65,7 +65,11 @@ uint32_t calculateEditSOA(uint32_t old_serial, const string& kind, const DNSName
     uint32_t inception = getStartOfWeek();
     if (old_serial < inception)
       return inception;
-  } else if(!kind.empty()) {
+  }
+  else if(pdns_iequals(kind,"NONE")) {
+    // do nothing to serial. needed because a metadata of "" will use the default-soa-edit setting instead.
+  }
+  else if(!kind.empty()) {
     g_log<<Logger::Warning<<"SOA-EDIT type '"<<kind<<"' for zone "<<zonename<<" is unknown."<<endl;
   }
   return old_serial;
