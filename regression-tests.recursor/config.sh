@@ -45,9 +45,9 @@ fi
 
 cd configs
 
-for dir in recursor-service recursor-service2 recursor-service3; do
-  mkdir /tmp/$dir
-  mkdir $dir
+for dir in recursor-service recursor-service2 recursor-service3 recursor-service4; do
+  mkdir -p /tmp/$dir
+  mkdir -p $dir
   cd $dir
 
   cat > run <<EOF
@@ -608,4 +608,12 @@ function preresolve(dq)
   end
   return false
 end
+EOF
+
+cat > recursor-service4/recursor.conf <<EOF
+local-port=5302
+socket-dir=/tmp/recursor-service4
+packetcache-ttl=0
+forward-zones=net.=$PREFIX.10;$PREFIX.11
+
 EOF

@@ -1,0 +1,6 @@
+Reply to question for qname='www.arthur.example.net.', qtype=A
+Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+0	www.arthur.example.net.	IN	A	15	192.0.2.2
+Reply to question for qname='www.arthur.example.net.', qtype=A
+Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+0	www.arthur.example.net.	IN	A	12	192.0.2.2

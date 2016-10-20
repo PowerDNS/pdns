@@ -175,7 +175,19 @@ islandofsecurity.example.          3600 IN NS   ns1.islandofsecurity.example.
 ns1.islandofsecurity.example.      3600 IN A    {prefix}.9
 
 node1.islandofsecurity.example.    3600 IN A    192.0.2.20
-        """
+        """,
+        'undelegated.secure.example': """
+undelegated.secure.example.        3600 IN SOA  {soa}
+undelegated.secure.example.        3600 IN NS   ns1.undelegated.secure.example.
+
+node1.undelegated.secure.example.  3600 IN A    192.0.2.21
+        """,
+        'undelegated.insecure.example': """
+undelegated.insecure.example.        3600 IN SOA  {soa}
+undelegated.insecure.example.        3600 IN NS   ns1.undelegated.insecure.example.
+
+node1.undelegated.insecure.example.  3600 IN A    192.0.2.22
+        """,
     }
 
     # The private keys for the zones (note that DS records should go into
@@ -232,7 +244,7 @@ PrivateKey: o9F5iix8V68tnMcuOaM2Lt8XXhIIY//SgHIHEePk6cM=
         '9': ['secure.example', 'islandofsecurity.example'],
         '10': ['example'],
         '11': ['example'],
-        '12': ['bogus.example'],
+        '12': ['bogus.example', 'undelegated.secure.example', 'undelegated.insecure.example'],
         '13': ['insecure.example', 'insecure.sub2.secure.example'],
         '14': ['optout.example'],
         '15': ['insecure.optout.example', 'secure.optout.example']
