@@ -758,9 +758,13 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSR
   pair<negcache_t::const_iterator, negcache_t::const_iterator> range;
   QType qtnull(0);
 
+  DNSName authname(qname);
+  bool wasForwardedOrAuth = (getBestAuthZone(&authname) != t_sstorage->domainmap->end());
+
   if(s_rootNXTrust &&
      (range.first=t_sstorage->negcache.find(tie(getLastLabel(qname), qtnull))) != t_sstorage->negcache.end() &&
-      range.first->d_qname.isRoot() && (uint32_t)d_now.tv_sec < range.first->d_ttd ) {
+      !(wasForwardedOrAuth && !authname.isRoot()) && // when forwarding, the root may only neg-cache if it was forwarded to.
+      range.first->d_qname.isRoot() && (uint32_t)d_now.tv_sec < range.first->d_ttd) {
     sttl=range.first->d_ttd - d_now.tv_sec;
 
     LOG(prefix<<qname<<": Entire name '"<<qname<<"', is negatively cached via '"<<range.first->d_name<<"' & '"<<range.first->d_qname<<"' for another "<<sttl<<" seconds"<<endl);
@@ -776,7 +780,8 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSR
     negcache_t::iterator ni;
     for(ni=range.first; ni != range.second; ni++) {
       // we have something
-      if(ni->d_qtype.getCode() == 0 || ni->d_qtype == qtype) {
+      if(!(wasForwardedOrAuth && ni->d_qname != authname) && // Only the authname nameserver can neg cache entries
+         (ni->d_qtype.getCode() == 0 || ni->d_qtype == qtype)) {
 	res=0;
 	if((uint32_t)d_now.tv_sec < ni->d_ttd) {
 	  sttl=ni->d_ttd - d_now.tv_sec;
