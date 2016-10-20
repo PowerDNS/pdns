@@ -67,7 +67,7 @@ struct ConnectionInfo
   ClientState* cs;
 };
 
-uint64_t g_maxTCPQueuedConnections{0};
+uint64_t g_maxTCPQueuedConnections{1000};
 void* tcpClientThread(int pipefd);
 
 // Should not be called simultaneously!
