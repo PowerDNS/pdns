@@ -1250,7 +1250,8 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
               // Check if we are authoritative for a zone in this answer
               DNSName tmp_qname(rec.d_name);
               auto auth_domain_iter=getBestAuthZone(&tmp_qname);
-              if(auth_domain_iter!=t_sstorage->domainmap->end()) {
+              if(auth_domain_iter!=t_sstorage->domainmap->end() &&
+                  auth.countLabels() <= auth_domain_iter->first.countLabels()) {
                 if (auth_domain_iter->first != auth) {
                   LOG("NO! - we are authoritative for the zone "<<auth_domain_iter->first<<endl);
                   continue;
@@ -1294,8 +1295,8 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
 	    *const_cast<uint32_t*>(&record.d_ttl)=lowestTTL; // boom
         }
 
-	//	cout<<"Have "<<i->second.records.size()<<" records and "<<i->second.signatures.size()<<" signatures for "<<i->first.first;
-	//	cout<<'|'<<DNSRecordContent::NumberToType(i->first.second.getCode())<<endl;
+//		cout<<"Have "<<i->second.records.size()<<" records and "<<i->second.signatures.size()<<" signatures for "<<i->first.name;
+//		cout<<'|'<<DNSRecordContent::NumberToType(i->first.type)<<endl;
         if(i->second.records.empty()) // this happens when we did store signatures, but passed on the records themselves
           continue;
         t_RC->replace(d_now.tv_sec, i->first.name, QType(i->first.type), i->second.records, i->second.signatures, lwr.d_aabit, i->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::optional<Netmask>());
