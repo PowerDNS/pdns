@@ -30,6 +30,8 @@
 #include <map>
 #include <boost/algorithm/string.hpp>
 
+const unsigned int PacketCache::s_mincleaninterval, PacketCache::s_maxcleaninterval;
+
 extern StatBag S;
 
 PacketCache::PacketCache()
@@ -42,6 +44,10 @@ PacketCache::PacketCache()
 
   d_ttl=-1;
   d_recursivettl=-1;
+
+  d_lastclean=time(0);
+  d_cleanskipped=false;
+  d_nextclean=d_cleaninterval=4096;
 
   S.declare("packetcache-hit");
   S.declare("packetcache-miss");
@@ -191,6 +197,8 @@ void PacketCache::insert(const DNSName &qname, const QType& qtype, CacheEntryTyp
 
     if(!success)
       mc.d_map.replace(place, val);
+    else
+      (*d_statnumentries)++;
   }
   else 
     S.inc("deferred-cache-inserts"); 
@@ -227,6 +235,8 @@ void PacketCache::insert(const DNSName &qname, const QType& qtype, CacheEntryTyp
 
     if(!success)
       mc.d_map.replace(place, val);
+    else
+      (*d_statnumentries)++;
   }
   else 
     S.inc("deferred-cache-inserts"); 
@@ -257,7 +267,7 @@ int PacketCache::purgeExact(const DNSName& qname)
     delcount+=distance(range.first, range.second);
     mc.d_map.erase(range.first, range.second);
   }
-  *d_statnumentries-=delcount; // XXX FIXME NEEDS TO BE ADJUSTED (for packetcache shards)
+  *d_statnumentries-=delcount;
   return delcount;
 }
 
@@ -282,7 +292,7 @@ int PacketCache::purge(const string &match)
       }
       mc.d_map.erase(start, iter);
     }
-    *d_statnumentries-=delcount; // XXX FIXME NEEDS TO BE ADJUSTED (for packetcache shards)
+    *d_statnumentries-=delcount;
     return delcount;
   }
   else {
@@ -372,25 +382,9 @@ map<char,int> PacketCache::getCounts()
   return ret;
 }
 
-int PacketCache::size()
-{
-  uint64_t ret=0;
-  for(auto& mc : d_maps) {
-    ReadLock l(&mc.d_mut);
-    ret+=mc.d_map.size();
-  }
-  return ret;
-}
 
-/** readlock for figuring out which iterators to delete, upgrade to writelock when actually cleaning */
 void PacketCache::cleanup()
 {
-  d_statnumentries->store(0);
-  for(auto& mc : d_maps) {
-    ReadLock l(&mc.d_mut);
-
-    *d_statnumentries+=mc.d_map.size();
-  }
   unsigned int maxCached=::arg().asNum("max-cache-entries");
   unsigned int toTrim=0;
   
@@ -411,7 +405,7 @@ void PacketCache::cleanup()
   //  cerr<<"cacheSize: "<<cacheSize<<", lookAt: "<<lookAt<<", toTrim: "<<toTrim<<endl;
   time_t now=time(0);
   DLOG(L<<"Starting cache clean"<<endl);
-  //unsigned int totErased=0;
+  unsigned int totErased=0;
   for(auto& mc : d_maps) {
     WriteLock wl(&mc.d_mut);
     typedef cmap_t::nth_index<1>::type sequence_t;
@@ -432,16 +426,53 @@ void PacketCache::cleanup()
       if(lookedAt > lookAt / d_maps.size())
 	break;
     }
-    //totErased += erased;
+    totErased += erased;
   }
   //  if(totErased)
   //  cerr<<"erased: "<<totErased<<endl;
   
-  d_statnumentries->store(0);
-  for(auto& mc : d_maps) {
-    ReadLock l(&mc.d_mut);
-    *d_statnumentries+=mc.d_map.size();
-  }
+  *d_statnumentries-=totErased;
   
   DLOG(L<<"Done with cache clean"<<endl);
+}
+
+/* the logic:
+   after d_nextclean operations, we clean. We also adjust the cleaninterval
+   a bit so we slowly move it to a value where we clean roughly every 30 seconds.
+
+   If d_nextclean has reached its maximum value, we also test if we were called
+   within 30 seconds, and if so, we skip cleaning. This means that under high load,
+   we will not clean more often than every 30 seconds anyhow.
+*/
+
+void PacketCache::cleanupIfNeeded()
+{
+  if (d_ops++ == d_nextclean) {
+    int timediff = max((int)(time(0) - d_lastclean), 1);
+
+    DLOG(L<<"cleaninterval: "<<d_cleaninterval<<", timediff: "<<timediff<<endl);
+
+    if (d_cleaninterval == s_maxcleaninterval && timediff < 30) {
+      d_cleanskipped = true;
+      d_nextclean += d_cleaninterval;
+
+      DLOG(L<<"cleaning skipped, timediff: "<<timediff<<endl);
+
+      return;
+    }
+
+    if(!d_cleanskipped) {
+      d_cleaninterval=(int)(0.6*d_cleaninterval)+(0.4*d_cleaninterval*(30.0/timediff));
+      d_cleaninterval=std::max(d_cleaninterval, s_mincleaninterval);
+      d_cleaninterval=std::min(d_cleaninterval, s_maxcleaninterval);
+
+      DLOG(L<<"new cleaninterval: "<<d_cleaninterval<<endl);
+    } else {
+      d_cleanskipped = false;
+    }
+
+    d_nextclean += d_cleaninterval;
+    d_lastclean=time(0);
+    cleanup();
+  }
 }
