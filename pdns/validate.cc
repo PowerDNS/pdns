@@ -218,6 +218,9 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
 {
   auto luaLocal = g_luaconfs.getLocal();
   auto anchors = luaLocal->dsAnchors;
+  if (anchors.empty()) // Nothing to do here
+    return Insecure;
+
   // Determine the lowest (i.e. with the most labels) Trust Anchor for zone
   DNSName lowestTA(".");
   for (auto const &anchor : anchors)
