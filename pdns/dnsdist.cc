@@ -1425,6 +1425,7 @@ static void checkFileDescriptorsLimits(size_t udpBindsCount, size_t tcpBindsCoun
   /* stdin, stdout, stderr */
   size_t requiredFDsCount = 3;
   size_t backendsCount = g_dstates.getCopy().size();
+  /* listening sockets */
   requiredFDsCount += udpBindsCount;
   requiredFDsCount += tcpBindsCount;
   /* max TCP connections currently served */
@@ -1436,7 +1437,7 @@ static void checkFileDescriptorsLimits(size_t udpBindsCount, size_t tcpBindsCoun
   /* TCP sockets to backends */
   requiredFDsCount += (backendsCount * g_maxTCPClientThreads);
   /* max TCP queued connections */
-  requiredFDsCount += (tcpBindsCount * g_maxTCPQueuedConnections);
+  requiredFDsCount += g_maxTCPQueuedConnections;
   /* DelayPipe pipe */
   requiredFDsCount += 2;
   /* syslog socket */
@@ -1451,7 +1452,7 @@ static void checkFileDescriptorsLimits(size_t udpBindsCount, size_t tcpBindsCoun
   requiredFDsCount++;
   struct rlimit rl;
   getrlimit(RLIMIT_NOFILE, &rl);
-  if (((rl.rlim_cur * 3) / 4) < requiredFDsCount) {
+  if (rl.rlim_cur <= requiredFDsCount) {
     warnlog("Warning, this configuration can use more than %d file descriptors, web server and console connections not included, and the current limit is %d.", std::to_string(requiredFDsCount), std::to_string(rl.rlim_cur));
 #ifdef HAVE_SYSTEMD
     warnlog("You can increase this value by using LimitNOFILE= in the systemd unit file or ulimit.");
