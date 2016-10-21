@@ -69,6 +69,13 @@ static dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const
         // If the name exists, check if the qtype is denied
         if(beginHash == h && !nsec3->d_set.count(qtype)) {
           LOG("Denies existence of type "<<QType(qtype).getName()<<" for name "<<qname<<"  (not opt-out).");
+          /*
+           * RFC 5155 section 8.9:
+           * If there is an NSEC3 RR present in the response that matches the
+           * delegation name, then the validator MUST ensure that the NS bit is
+           * set and that the DS bit is not set in the Type Bit Maps field of the
+           * NSEC3 RR.
+           */
           if (qtype == QType::DS && !nsec3->d_set.count(QType::NS)) {
             LOG("However, no NS record exists at this level!"<<endl);
             return INSECURE;
