@@ -75,7 +75,24 @@ struct ConnectionInfo
 };
 
 uint64_t g_maxTCPQueuedConnections{1000};
+size_t g_maxTCPQueriesPerConn{0};
+size_t g_maxTCPConnectionDuration{0};
+size_t g_maxTCPConnectionsPerClient{0};
+static std::mutex tcpClientsCountMutex;
+static std::map<ComboAddress,size_t,ComboAddress::addressOnlyLessThan> tcpClientsCount;
+
 void* tcpClientThread(int pipefd);
+
+static void decrementTCPClientCount(const ComboAddress& client)
+{
+  if (g_maxTCPConnectionsPerClient) {
+    std::lock_guard<std::mutex> lock(tcpClientsCountMutex);
+    tcpClientsCount[client]--;
+    if (tcpClientsCount[client] == 0) {
+      tcpClientsCount.erase(client);
+    }
+  }
+}
 
 void TCPClientCollection::addTCPClientThread()
 {
@@ -170,6 +187,18 @@ static bool sendResponseToClient(int fd, const char* response, uint16_t response
   return true;
 }
 
+static bool maxConnectionDurationReached(unsigned int maxConnectionDuration, time_t start, unsigned int& remainingTime)
+{
+  if (maxConnectionDuration) {
+    time_t elapsed = time(NULL) - start;
+    if (elapsed >= maxConnectionDuration) {
+      return true;
+    }
+    remainingTime = maxConnectionDuration - elapsed;
+  }
+  return false;
+}
+
 std::shared_ptr<TCPClientCollection> g_tcpclientthreads;
 
 void* tcpClientThread(int pipefd)
@@ -220,6 +249,9 @@ void* tcpClientThread(int pipefd)
     memset(&dest, 0, sizeof(dest));
     dest.sin4.sin_family = ci.remote.sin4.sin_family;
     socklen_t len = dest.getSocklen();
+    size_t queriesCount = 0;
+    time_t connectionStartTime = time(NULL);
+
     if (!setNonBlocking(ci.fd))
       goto drop;
 
@@ -229,6 +261,7 @@ void* tcpClientThread(int pipefd)
 
     try {
       for(;;) {
+        unsigned int remainingTime = 0;
         ds = nullptr;
         outstanding = false;
 
@@ -237,6 +270,18 @@ void* tcpClientThread(int pipefd)
 
         ci.cs->queries++;
         g_stats.queries++;
+
+        queriesCount++;
+
+        if (g_maxTCPQueriesPerConn && queriesCount > g_maxTCPQueriesPerConn) {
+          vinfolog("Terminating TCP connection from %s because it reached the maximum number of queries per conn (%d / %d)", ci.remote.toStringWithPort(), queriesCount, g_maxTCPQueriesPerConn);
+          break;
+        }
+
+        if (maxConnectionDurationReached(g_maxTCPConnectionDuration, connectionStartTime, remainingTime)) {
+          vinfolog("Terminating TCP connection from %s because it reached the maximum TCP connection duration", ci.remote.toStringWithPort());
+          break;
+        }
 
         if (qlen < sizeof(dnsheader)) {
           g_stats.nonCompliantQueries++;
@@ -251,7 +296,7 @@ void* tcpClientThread(int pipefd)
         size_t querySize = qlen <= 4096 ? qlen + 512 : qlen;
         char queryBuffer[querySize];
         const char* query = queryBuffer;
-        readn2WithTimeout(ci.fd, queryBuffer, qlen, g_tcpRecvTimeout);
+        readn2WithTimeout(ci.fd, queryBuffer, qlen, g_tcpRecvTimeout, remainingTime);
 
 #ifdef HAVE_DNSCRYPT
         std::shared_ptr<DnsCryptQuery> dnsCryptQuery = 0;
@@ -545,10 +590,10 @@ void* tcpClientThread(int pipefd)
       outstanding = false;
       --ds->outstanding;
     }
+    decrementTCPClientCount(ci.remote);
   }
   return 0;
 }
-
 
 /* spawn as many of these as required, they call Accept on a socket on which they will accept queries, and 
    they will hand off to worker threads & spawn more of them if required
@@ -556,7 +601,7 @@ void* tcpClientThread(int pipefd)
 void* tcpAcceptorThread(void* p)
 {
   ClientState* cs = (ClientState*) p;
-
+  bool tcpClientCountIncremented = false;
   ComboAddress remote;
   remote.sin4.sin_family = cs->local.sin4.sin_family;
   
@@ -566,6 +611,7 @@ void* tcpAcceptorThread(void* p)
   for(;;) {
     bool queuedCounterIncremented = false;
     ConnectionInfo* ci = nullptr;
+    tcpClientCountIncremented = false;
     try {
       ci = new ConnectionInfo;
       ci->cs = cs;
@@ -589,8 +635,22 @@ void* tcpAcceptorThread(void* p)
         continue;
       }
 
+      if (g_maxTCPConnectionsPerClient) {
+        std::lock_guard<std::mutex> lock(tcpClientsCountMutex);
+
+        if (tcpClientsCount[remote] >= g_maxTCPConnectionsPerClient) {
+          close(ci->fd);
+          delete ci;
+          ci=nullptr;
+          vinfolog("Dropping TCP connection from %s because we have too many from this client already", remote.toStringWithPort());
+          continue;
+        }
+        tcpClientsCount[remote]++;
+        tcpClientCountIncremented = true;
+      }
+
       vinfolog("Got TCP connection from %s", remote.toStringWithPort());
-      
+
       ci->remote = remote;
       int pipe = g_tcpclientthreads->getThread();
       if (pipe >= 0) {
@@ -603,12 +663,18 @@ void* tcpAcceptorThread(void* p)
         close(ci->fd);
         delete ci;
         ci=nullptr;
+        if(tcpClientCountIncremented) {
+          decrementTCPClientCount(remote);
+        }
       }
     }
     catch(std::exception& e) {
       errlog("While reading a TCP question: %s", e.what());
       if(ci && ci->fd >= 0) 
 	close(ci->fd);
+      if(tcpClientCountIncremented) {
+        decrementTCPClientCount(remote);
+      }
       delete ci;
       ci = nullptr;
       if (queuedCounterIncremented) {

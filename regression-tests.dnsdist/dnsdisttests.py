@@ -235,42 +235,57 @@ class DNSDistTest(unittest.TestCase):
         return (receivedQuery, message)
 
     @classmethod
-    def sendTCPQuery(cls, query, response, useQueue=True, timeout=2.0, rawQuery=False):
-        if useQueue:
-            cls._toResponderQueue.put(response, True, timeout)
+    def openTCPConnection(cls, timeout=None):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         if timeout:
             sock.settimeout(timeout)
 
         sock.connect(("127.0.0.1", cls._dnsDistPort))
+        return sock
+
+    @classmethod
+    def sendTCPQueryOverConnection(cls, sock, query, rawQuery=False):
+        if not rawQuery:
+            wire = query.to_wire()
+        else:
+            wire = query
+
+        sock.send(struct.pack("!H", len(wire)))
+        sock.send(wire)
+
+    @classmethod
+    def recvTCPResponseOverConnection(cls, sock):
+        message = None
+        data = sock.recv(2)
+        if data:
+            (datalen,) = struct.unpack("!H", data)
+            data = sock.recv(datalen)
+            if data:
+                message = dns.message.from_wire(data)
+        return message
+
+    @classmethod
+    def sendTCPQuery(cls, query, response, useQueue=True, timeout=2.0, rawQuery=False):
+        message = None
+        if useQueue:
+            cls._toResponderQueue.put(response, True, timeout)
+
+        sock = cls.openTCPConnection(timeout)
 
         try:
-            if not rawQuery:
-                wire = query.to_wire()
-            else:
-                wire = query
-
-            sock.send(struct.pack("!H", len(wire)))
-            sock.send(wire)
-            data = sock.recv(2)
-            if data:
-                (datalen,) = struct.unpack("!H", data)
-                data = sock.recv(datalen)
+            cls.sendTCPQueryOverConnection(sock, query, rawQuery)
+            message = cls.recvTCPResponseOverConnection(sock)
         except socket.timeout as e:
             print("Timeout: %s" % (str(e)))
-            data = None
         except socket.error as e:
             print("Network error: %s" % (str(e)))
-            data = None
         finally:
             sock.close()
 
         receivedQuery = None
-        message = None
         if useQueue and not cls._fromResponderQueue.empty():
             receivedQuery = cls._fromResponderQueue.get(True, timeout)
-        if data:
-            message = dns.message.from_wire(data)
+
         return (receivedQuery, message)
 
     @classmethod

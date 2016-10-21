@@ -24,10 +24,6 @@ class TestAXFR(DNSDistTest):
         cls._TCPResponder.setDaemon(True)
         cls._TCPResponder.start()
 
-    _config_template = """
-    newServer{address="127.0.0.1:%s"}
-    """
-
     def testOneMessageAXFR(self):
         """
         AXFR: One message
