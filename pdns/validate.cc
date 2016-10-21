@@ -12,7 +12,7 @@ void dotNode(string type, DNSName name, string tag, string content);
 string dotName(string type, DNSName name, string tag);
 string dotEscape(string name);
 
-const char *dStates[]={"nodata", "nxdomain", "nxqtype", "empty non-terminal", "insecure"};
+const char *dStates[]={"nodata", "nxdomain", "nxqtype", "empty non-terminal", "insecure", "opt-out"};
 const char *vStates[]={"Indeterminate", "Bogus", "Insecure", "Secure", "NTA"};
 
 typedef set<DNSKEYRecordContent> keyset_t;
@@ -83,7 +83,12 @@ static dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const
               (nsec3->d_nexthash < beginHash  && beginHash < h) ||         // wrap other case  END --- BEGINNING --- HASH
               beginHash == nsec3->d_nexthash))                             // "we have only 1 NSEC3 record, LOL!"
         {
-          LOG("Denies existence of name "<<qname<<"/"<<QType(qtype).getName()<<"(could be opt-out)!"<<endl);
+          LOG("Denies existence of name "<<qname<<"/"<<QType(qtype).getName());
+          if (qtype == QType::DS && nsec3->d_flags & 1) {
+            LOG(" but is opt-out!"<<endl);
+            return OPTOUT;
+          }
+          LOG(endl);
           return NXDOMAIN;
         }
 
@@ -430,9 +435,9 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
     if(r.first == r.second) {
       LOG("No DS for "<<*(zoneCutIter+1)<<", now look for a secure denial"<<endl);
       dState res = getDenial(validrrsets, *(zoneCutIter+1), QType::DS);
-      if (res == INSECURE)
+      if (res == INSECURE || res == NXDOMAIN)
         return Bogus;
-      if (res == NXDOMAIN || res == NXQTYPE)
+      if (res == NXQTYPE || res == OPTOUT)
         return Insecure;
     }
 
