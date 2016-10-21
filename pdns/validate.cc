@@ -85,7 +85,7 @@ static dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const
         }
 
         /* check if the whole NAME does not exist */
-        if( ((beginHash < h && h < nsec3->d_nexthash) ||                  // no wrap          BEGINNING --- HASH -- END
+        if( ((beginHash < h && h < nsec3->d_nexthash) ||                   // no wrap          BEGINNING --- HASH -- END
               (nsec3->d_nexthash > h  && beginHash > nsec3->d_nexthash) || // wrap             HASH --- END --- BEGINNING
               (nsec3->d_nexthash < beginHash  && beginHash < h) ||         // wrap other case  END --- BEGINNING --- HASH
               beginHash == nsec3->d_nexthash))                             // "we have only 1 NSEC3 record, LOL!"
