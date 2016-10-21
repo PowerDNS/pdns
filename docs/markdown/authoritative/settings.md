@@ -358,7 +358,7 @@ most simple form, supply all backends that need to be launched. e.g.
 launch=bind,gmysql,remote
 ```
 
-If you find that you need to a backend multiple times with different configuration,
+If you find that you need to query a backend multiple times with different configuration,
 you can specify a name for later instantiations. e.g.:
 
 ```
