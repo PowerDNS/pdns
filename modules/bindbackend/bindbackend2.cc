@@ -924,7 +924,7 @@ void Bind2Backend::queueReloadAndStore(unsigned int id)
   }
 }
 
-bool Bind2Backend::findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const DNSName& qname, DNSName& unhashed, string& before, string& after)
+bool Bind2Backend::findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)
 {
   shared_ptr<const recordstorage_t> records = bbd.d_records.get();
 
@@ -939,7 +939,7 @@ bool Bind2Backend::findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const DNSName&
     --iterBefore;
   while((!iterBefore->auth && iterBefore->qtype != QType::NS) || !iterBefore->qtype)
     --iterBefore;
-  before=iterBefore->qname.labelReverse().toString(" ",false);
+  before=iterBefore->qname;
 
   if(iterAfter == records->end()) {
     iterAfter = records->begin();
@@ -952,12 +952,12 @@ bool Bind2Backend::findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const DNSName&
       }
     }
   }
-  after = iterAfter->qname.labelReverse().toString(" ",false);
+  after = iterAfter->qname;
 
   return true;
 }
 
-bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, DNSName& unhashed, std::string& before, std::string& after)
+bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)
 {
   BB2DomainInfo bbd;
   safeGetBBDomainInfo(id, &bbd);
@@ -972,9 +972,9 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
     nsec3zone=getNSEC3PARAM(bbd.d_name, &ns3pr);
 
   if(!nsec3zone) {
-    DNSName dqname(DNSName(boost::replace_all_copy(qname," ",".")).labelReverse()); // the horror
-    return findBeforeAndAfterUnhashed(bbd, dqname, unhashed, before, after);
-  } else {
+    return findBeforeAndAfterUnhashed(bbd, qname, unhashed, before, after);
+  }
+  else {
     auto& hashindex=boost::multi_index::get<NSEC3Tag>(*bbd.d_records.getWRITABLE());
 
     // for(auto iter = first; iter != hashindex.end(); iter++)
@@ -985,15 +985,15 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
 
     if (iter == hashindex.end()) {
       --iter;
-      before = iter->nsec3hash;
-      after = first->nsec3hash;
+      before = DNSName(iter->nsec3hash);
+      after = DNSName(first->nsec3hash);
     } else {
-      after = iter->nsec3hash;
+      after = DNSName(iter->nsec3hash);
       if (iter != first)
         --iter;
       else
         iter = --hashindex.end();
-      before = iter->nsec3hash;
+      before = DNSName(iter->nsec3hash);
     }
     unhashed = iter->qname+bbd.d_name;
 

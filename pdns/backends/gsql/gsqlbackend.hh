@@ -207,7 +207,7 @@ public:
   bool setKind(const DNSName &domain, const DomainInfo::DomainKind kind);
   bool setAccount(const DNSName &domain, const string &account);
 
-  virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const string& qname, DNSName& unhashed, std::string& before, std::string& after);
+  virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after);
   virtual bool updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& zonename, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t=QType::ANY);
 
   virtual bool updateEmptyNonTerminals(uint32_t domain_id, const DNSName& zonename, set<DNSName>& insert ,set<DNSName>& erase, bool remove);

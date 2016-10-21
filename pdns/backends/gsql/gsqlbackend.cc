@@ -548,7 +548,7 @@ bool GSQLBackend::doesDNSSEC()
     return d_dnssecQueries;
 }
 
-bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const string& qname, DNSName& unhashed, std::string& before, std::string& after)
+bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)
 {
   if(!d_dnssecQueries)
     return false;
@@ -558,13 +558,13 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const string& qnam
   SSqlStatement::row_t row;
   try {
     d_afterOrderQuery_stmt->
-      bind("ordername", qname)->
+      bind("ordername", qname.labelReverse().toString(" ", false))->
       bind("domain_id", id)->
       execute();
     while(d_afterOrderQuery_stmt->hasNextRow()) {
       d_afterOrderQuery_stmt->nextRow(row);
       ASSERT_ROW_COLUMNS("get-order-after-query", row, 1);
-      after=row[0];
+      after=DNSName(boost::replace_all_copy(row[0]," ",".")).labelReverse();
     }
     d_afterOrderQuery_stmt->reset();
   }
@@ -572,7 +572,7 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const string& qnam
     throw PDNSException("GSQLBackend unable to find before/after (after) for domain_id "+itoa(id)+": "+e.txtReason());
   }
 
-  if(after.empty() && !qname.empty()) {
+  if(after.empty()) {
     try {
       d_firstOrderQuery_stmt->
         bind("domain_id", id)->
@@ -580,7 +580,7 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const string& qnam
       while(d_firstOrderQuery_stmt->hasNextRow()) {
         d_firstOrderQuery_stmt->nextRow(row);
         ASSERT_ROW_COLUMNS("get-order-first-query", row, 1);
-        after=row[0];
+        after=DNSName(boost::replace_all_copy(row[0]," ",".")).labelReverse();
       }
       d_firstOrderQuery_stmt->reset();
     }
@@ -594,13 +594,13 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const string& qnam
 
     try {
       d_beforeOrderQuery_stmt->
-        bind("ordername", qname)->
+        bind("ordername", qname.labelReverse().toString(" ", false))->
         bind("domain_id", id)->
         execute();
       while(d_beforeOrderQuery_stmt->hasNextRow()) {
         d_beforeOrderQuery_stmt->nextRow(row);
         ASSERT_ROW_COLUMNS("get-order-before-query", row, 2);
-        before=row[0];
+        before=DNSName(boost::replace_all_copy(row[0]," ",".")).labelReverse();
         try {
           unhashed=DNSName(row[1]);
         } catch (...) {
@@ -626,7 +626,7 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const string& qnam
       while(d_lastOrderQuery_stmt->hasNextRow()) {
         d_lastOrderQuery_stmt->nextRow(row);
         ASSERT_ROW_COLUMNS("get-order-last-query", row, 2);
-        before=row[0];
+        before=DNSName(boost::replace_all_copy(row[0]," ",".")).labelReverse();
         try {
           unhashed=DNSName(row[1]);
         } catch (...) {

@@ -189,7 +189,7 @@ public:
   virtual bool deleteTSIGKey(const DNSName& name) { return false; }
   virtual bool getTSIGKeys(std::vector< struct TSIGKey > &keys) { return false; }
 
-  virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const string& qname, DNSName& unhashed, string& before, string& after)
+  virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)
   {
     std::cerr<<"Default beforeAndAfterAbsolute called!"<<std::endl;
     abort();
