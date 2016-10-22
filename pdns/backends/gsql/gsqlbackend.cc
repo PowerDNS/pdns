@@ -428,7 +428,7 @@ void GSQLBackend::getUpdatedMasters(vector<DomainInfo> *updatedDomains)
   }
 }
 
-bool GSQLBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& zonename, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype)
+bool GSQLBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype)
 {
   if(!d_dnssecQueries)
     return false;
@@ -437,7 +437,7 @@ bool GSQLBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
     if (qtype == QType::ANY) {
       try {
         d_updateOrderNameAndAuthQuery_stmt->
-          bind("ordername", ordername.makeRelative(zonename).labelReverse().toString(" ", false))->
+          bind("ordername", ordername.labelReverse().toString(" ", false))->
           bind("auth", auth)->
           bind("domain_id", domain_id)->
           bind("qname", qname)->
@@ -450,7 +450,7 @@ bool GSQLBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
     } else {
       try {
         d_updateOrderNameAndAuthTypeQuery_stmt->
-          bind("ordername", ordername.makeRelative(zonename).labelReverse().toString(" ", false))->
+          bind("ordername", ordername.labelReverse().toString(" ", false))->
           bind("auth", auth)->
           bind("domain_id", domain_id)->
           bind("qname", qname)->
@@ -493,7 +493,7 @@ bool GSQLBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
   return true;
 }
 
-bool GSQLBackend::updateEmptyNonTerminals(uint32_t domain_id, const DNSName& zonename, set<DNSName>& insert, set<DNSName>& erase, bool remove)
+bool GSQLBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& insert, set<DNSName>& erase, bool remove)
 {
   if(remove) {
     try {

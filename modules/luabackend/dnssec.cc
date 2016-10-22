@@ -72,7 +72,7 @@ bool LUABackend::updateDNSSECOrderAndAuth(uint32_t domain_id, const DNSName& zon
     return ok;
 }
 
-bool LUABackend::updateDNSSECOrderNameAndAuth(unsigned int, DNSName const&, DNSName const&, DNSName const&, bool, unsigned short)
+bool LUABackend::updateDNSSECOrderNameAndAuth(unsigned int, DNSName const&, DNSName const&, bool, unsigned short)
 {
   return false;
 }
