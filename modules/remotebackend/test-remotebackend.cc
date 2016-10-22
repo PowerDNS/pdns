@@ -157,14 +157,13 @@ BOOST_AUTO_TEST_CASE(test_method_removeDomainKey) {
 }
 
 BOOST_AUTO_TEST_CASE(test_method_getBeforeAndAfterNamesAbsolute) {
-   DNSName unhashed;
-   std::string before,after;
+   DNSName unhashed, before, after;
    BOOST_TEST_MESSAGE("Testing getBeforeAndAfterNamesAbsolute method");
    
-   be->getBeforeAndAfterNamesAbsolute(-1, "middle.unit.test.", unhashed, before, after);
+   be->getBeforeAndAfterNamesAbsolute(-1, DNSName("middle.unit.test."), unhashed, before, after);
    BOOST_CHECK_EQUAL(unhashed.toString(), "middle.");
-   BOOST_CHECK_EQUAL(before, "begin.");
-   BOOST_CHECK_EQUAL(after, "stop.");
+   BOOST_CHECK_EQUAL(before.toString(), "begin.");
+   BOOST_CHECK_EQUAL(after.toString(), "stop.");
 }
 
 BOOST_AUTO_TEST_CASE(test_method_setTSIGKey) {

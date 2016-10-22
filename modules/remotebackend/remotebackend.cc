@@ -252,7 +252,7 @@ bool RemoteBackend::get(DNSResourceRecord &rr) {
    return true;
 }
 
-bool RemoteBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, DNSName& unhashed, std::string& before, std::string& after) {
+bool RemoteBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) {
    // no point doing dnssec if it's not supported
    if (d_dnssec == false) return false;
 
@@ -260,7 +260,7 @@ bool RemoteBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::strin
      { "method", "getBeforeAndAfterNamesAbsolute" },
      { "parameters", Json::object {
        { "id", Json(static_cast<double>(id)) },
-       { "qname", qname }
+       { "qname", qname.toString() }
      }}
    };
    Json answer;
@@ -269,12 +269,12 @@ bool RemoteBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::strin
      return false;
 
    unhashed = DNSName(stringFromJson(answer["result"], "unhashed"));
-   before = "";
-   after = "";
+   before.clear();
+   after.clear();
    if (answer["result"]["before"] != Json())
-     before = stringFromJson(answer["result"], "before");
+     before = DNSName(stringFromJson(answer["result"], "before"));
    if (answer["result"]["after"] != Json())
-     after = stringFromJson(answer["result"], "after");
+     after = DNSName(stringFromJson(answer["result"], "after"));
 
    return true;
 }
