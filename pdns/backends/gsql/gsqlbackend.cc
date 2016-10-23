@@ -552,7 +552,6 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
 {
   if(!d_dnssecQueries)
     return false;
-  // cerr<<"gsql before/after called for id="<<id<<", qname='"<<qname<<"'"<<endl;
   after.clear();
 
   SSqlStatement::row_t row;
@@ -564,7 +563,9 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
     while(d_afterOrderQuery_stmt->hasNextRow()) {
       d_afterOrderQuery_stmt->nextRow(row);
       ASSERT_ROW_COLUMNS("get-order-after-query", row, 1);
-      after=DNSName(boost::replace_all_copy(row[0]," ",".")).labelReverse();
+      if(! row[0].empty()) { // Hack because NULL values are passed on as empty strings
+        after=DNSName(boost::replace_all_copy(row[0]," ",".")).labelReverse();
+      }
     }
     d_afterOrderQuery_stmt->reset();
   }
