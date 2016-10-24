@@ -396,11 +396,12 @@ void Bind2Backend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
 bool Bind2Backend::getDomainInfo(const string &domain, DomainInfo &di)
 {
   BB2DomainInfo bbd;
-  if(!safeGetBBDomainInfo(domain, &bbd))
+  string domainLC(toLower(domain));
+  if(!safeGetBBDomainInfo(domainLC, &bbd))
     return false;
 
   di.id=bbd.d_id;
-  di.zone=domain;
+  di.zone=domainLC;
   di.masters=bbd.d_masters;
   di.last_check=bbd.d_lastcheck;
   di.backend=this;
@@ -1225,7 +1226,7 @@ bool Bind2Backend::handle::get_list(DNSResourceRecord &r)
 bool Bind2Backend::isMaster(const string &name, const string &ip)
 {
   BB2DomainInfo bbd;
-  if(!safeGetBBDomainInfo(name, &bbd))
+  if(!safeGetBBDomainInfo(toLower(name), &bbd))
     return false;
 
   for(vector<string>::const_iterator iter = bbd.d_masters.begin(); iter != bbd.d_masters.end(); ++iter)
