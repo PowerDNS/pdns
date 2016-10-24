@@ -1111,21 +1111,20 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       dh.qr=v;
     });
 
-
-  g_lua.registerFunction("tostring", &ComboAddress::toString);
-  g_lua.registerFunction("tostringWithPort", &ComboAddress::toStringWithPort);
-  g_lua.registerFunction("toString", &ComboAddress::toString);
-  g_lua.registerFunction("toStringWithPort", &ComboAddress::toStringWithPort);
+  g_lua.registerFunction<string(ComboAddress::*)()>("tostring", [](const ComboAddress& ca) { return ca.toString(); });
+  g_lua.registerFunction<string(ComboAddress::*)()>("tostringWithPort", [](const ComboAddress& ca) { return ca.toStringWithPort(); });
+  g_lua.registerFunction<string(ComboAddress::*)()>("toString", [](const ComboAddress& ca) { return ca.toString(); });
+  g_lua.registerFunction<string(ComboAddress::*)()>("toStringWithPort", [](const ComboAddress& ca) { return ca.toStringWithPort(); });
   g_lua.registerFunction<uint16_t(ComboAddress::*)()>("getPort", [](const ComboAddress& ca) { return ntohs(ca.sin4.sin_port); } );
-  g_lua.registerFunction("truncate", &ComboAddress::truncate);
-  g_lua.registerFunction("isIPv4", &ComboAddress::isIPv4);
-  g_lua.registerFunction("isIPv6", &ComboAddress::isIPv6);
-  g_lua.registerFunction("isMappedIPv4", &ComboAddress::isMappedIPv4);
-  g_lua.registerFunction("mapToIPv4", &ComboAddress::mapToIPv4);
+  g_lua.registerFunction<void(ComboAddress::*)(unsigned int)>("truncate", [](ComboAddress& ca, unsigned int bits) { ca.truncate(bits); });
+  g_lua.registerFunction<bool(ComboAddress::*)()>("isIPv4", [](const ComboAddress& ca) { return ca.sin4.sin_family == AF_INET; });
+  g_lua.registerFunction<bool(ComboAddress::*)()>("isIPv6", [](const ComboAddress& ca) { return ca.sin4.sin_family == AF_INET6; });
+  g_lua.registerFunction<bool(ComboAddress::*)()>("isMappedIPv4", [](const ComboAddress& ca) { return ca.isMappedIPv4(); });
+  g_lua.registerFunction<ComboAddress(ComboAddress::*)()>("mapToIPv4", [](const ComboAddress& ca) { return ca.mapToIPv4(); });
 
   g_lua.registerFunction("isPartOf", &DNSName::isPartOf);
-  g_lua.registerFunction("countLabels", &DNSName::countLabels);
-  g_lua.registerFunction("wirelength", &DNSName::wirelength);
+  g_lua.registerFunction<unsigned int(DNSName::*)()>("countLabels", [](const DNSName& name) { return name.countLabels(); });
+  g_lua.registerFunction<size_t(DNSName::*)()>("wirelength", [](const DNSName& name) { return name.wirelength(); });
   g_lua.registerFunction<string(DNSName::*)()>("tostring", [](const DNSName&dn ) { return dn.toString(); });
   g_lua.registerFunction<string(DNSName::*)()>("toString", [](const DNSName&dn ) { return dn.toString(); });
   g_lua.writeFunction("newDNSName", [](const std::string& name) { return DNSName(name); });

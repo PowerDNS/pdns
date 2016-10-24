@@ -1760,7 +1760,7 @@ try
 #endif
     if (std::get<3>(local) > 0) {
 #ifdef TCP_FASTOPEN
-      SSetsockopt(cs->tcpFD, SOL_TCP, TCP_FASTOPEN, std::get<3>(local));
+      SSetsockopt(cs->tcpFD, IPPROTO_TCP, TCP_FASTOPEN, std::get<3>(local));
 #else
       warnlog("TCP Fast Open has been configured on local address '%s' but is not supported", std::get<0>(local).toStringWithPort());
 #endif
@@ -1837,7 +1837,7 @@ try
 #endif
     if (std::get<3>(dcLocal) > 0) {
 #ifdef TCP_FASTOPEN
-      SSetsockopt(cs->tcpFD, SOL_TCP, TCP_FASTOPEN, std::get<3>(dcLocal));
+      SSetsockopt(cs->tcpFD, IPPROTO_TCP, TCP_FASTOPEN, std::get<3>(dcLocal));
 #else
       warnlog("TCP Fast Open has been configured on local address '%s' but is not supported", std::get<0>(dcLocal).toStringWithPort());
 #endif
