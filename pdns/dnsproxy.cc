@@ -261,11 +261,15 @@ void DNSProxy::mainloop(void)
 	      }
               else if(j->first.d_place == DNSResourceRecord::AUTHORITY && j->first.d_type == QType::SOA) {
                 DNSZoneRecord dzr;
-                dzr.dr.d_name=i->second.aname;
-                dzr.dr.d_type = j->first.d_type;
-                dzr.dr.d_ttl=i->second.soaData.ttl;
-                dzr.dr.d_place= j->first.d_place;
-                dzr.dr.d_content=makeSOAContent(i->second.soaData);
+                SOAData sd = i->second.soaData;
+                dzr.dr.d_name=sd.qname;
+                dzr.dr.d_type=QType::SOA;
+                dzr.dr.d_content=makeSOAContent(sd);
+                dzr.dr.d_ttl=min(sd.ttl, sd.default_ttl);
+                dzr.signttl=sd.ttl;
+                dzr.domain_id=sd.domain_id;
+                dzr.dr.d_place=DNSResourceRecord::AUTHORITY;
+                dzr.auth = 1;
                 i->second.complete->addRecord(dzr);
               }
 	    }
