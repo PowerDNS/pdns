@@ -108,8 +108,6 @@ void loadMainConfig(const std::string& configdir)
   S.declare("query-cache-hit","Number of hits on the query cache");
   S.declare("query-cache-miss","Number of misses on the query cache");
   ::arg().set("max-cache-entries", "Maximum number of cache entries")="1000000";
-  ::arg().set("recursor","If recursion is desired, IP address of a recursing nameserver")="no"; 
-  ::arg().set("recursive-cache-ttl","Seconds to store packets for recursive queries in the PacketCache")="10";
   ::arg().set("cache-ttl","Seconds to store packets in the PacketCache")="20";              
   ::arg().set("negquery-cache-ttl","Seconds to store negative query results in the QueryCache")="60";
   ::arg().set("query-cache-ttl","Seconds to store query results in the QueryCache")="20";              

@@ -159,10 +159,8 @@ string DLCCHandler(const vector<string>&parts, Utility::pid_t ppid)
       os<<"negative queries: ";
     else if(i->first=='Q')
       os<<"queries: ";
-    else if(i->first=='n')
-      os<<"non-recursive packets: ";
-    else if(i->first=='r')
-      os<<"recursive packets: ";
+    else if(i->first=='p')
+      os<<"packets: ";
     else 
       os<<"unknown: ";
 

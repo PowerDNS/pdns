@@ -144,7 +144,6 @@ void declareArguments()
   ::arg().set("carbon-interval", "Number of seconds between carbon (graphite) updates")="30";
 
   ::arg().set("cache-ttl","Seconds to store packets in the PacketCache")="20";
-  ::arg().set("recursive-cache-ttl","Seconds to store packets for recursive queries in the PacketCache")="10";
   ::arg().set("negquery-cache-ttl","Seconds to store negative query results in the QueryCache")="60";
   ::arg().set("query-cache-ttl","Seconds to store query results in the QueryCache")="20";
   ::arg().set("soa-minimum-ttl","Default SOA minimum ttl")="3600";
@@ -410,10 +409,8 @@ void *qthread(void *number)
 
     if((P->d.opcode != Opcode::Notify && P->d.opcode != Opcode::Update) && P->couldBeCached()) {
       bool haveSomething = false;
-      if (doRecursion && P->d.rd && DP->recurseFor(P))
-        haveSomething=PC.get(P, &cached, true); // does the PacketCache recognize this ruestion (recursive)?
-      if (!haveSomething)
-        haveSomething=PC.get(P, &cached, false); // does the PacketCache recognize this question?
+      if (!P->d.rd || !DP->recurseFor(P))
+        haveSomething=PC.get(P, &cached); // does the PacketCache recognize this question?
       if (haveSomething) {
         if(logDNSQueries)
           L<<"packetcache HIT"<<endl;

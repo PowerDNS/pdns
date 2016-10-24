@@ -399,7 +399,7 @@ void *TCPNameserver::doConnection(void *data)
       }
 
 
-      if(!packet->d.rd && packet->couldBeCached() && PC.get(packet.get(), cached.get(), false)) { // short circuit - does the PacketCache recognize this question?
+      if(!packet->d.rd && packet->couldBeCached() && PC.get(packet.get(), cached.get())) { // short circuit - does the PacketCache recognize this question?
         if(logDNSQueries)
           L<<"packetcache HIT"<<endl;
         cached->setRemote(&packet->d_remote);
