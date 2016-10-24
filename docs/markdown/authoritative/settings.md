@@ -54,6 +54,7 @@ Turning this off requires all supermaster notifications to be signed by valid TS
 ## `allow-recursion`
 * IP ranges, separated by commas
 * Default: 0.0.0.0/0
+* Removed in: 4.1.0
 
 By specifying `allow-recursion`, recursion can be restricted to netmasks
 specified. The default is to allow recursion from everywhere. Example:
@@ -668,12 +669,14 @@ Number of receiver (listening) threads to start. See
 ## `recursive-cache-ttl`
 * Integer
 * Default: 10
+* Removed in: 4.1.0
 
 Seconds to store recursive packets in the PacketCache. See
 ["Packet Cache"](performance.md#packet-cache).
 
 ## `recursor`
 * IP Address
+* Only used for ALIAS since: 4.1.0
 
 If set, recursive queries will be handed to the recursor specified here. See
 ["Recursion"](recursion.md).
