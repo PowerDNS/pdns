@@ -99,7 +99,7 @@ void declareArguments()
   ::arg().set("signing-threads","Default number of signer threads to start")="3";
   ::arg().set("receiver-threads","Default number of receiver threads to start")="1";
   ::arg().set("queue-limit","Maximum number of milliseconds to queue a query")="1500"; 
-  ::arg().set("recursor","If alias expansion is desired, IP address of a recursing nameserver")="no";
+  ::arg().set("resolver","Use this resolver for ALIAS and the internal stub resolver")="no";
   ::arg().set("udp-truncation-threshold", "Maximum UDP response size before we truncate")="1680";
   ::arg().set("disable-tcp","Do not listen to TCP queries")="no";
   
@@ -509,8 +509,8 @@ void mainthread()
   Utility::dropUserPrivs(newuid);
 
   // We need to start the Recursor Proxy before doing secpoll, see issue #2453
-  if(::arg().mustDo("recursor")){
-    DP=new DNSProxy(::arg()["recursor"]);
+  if(::arg().mustDo("resolver")){
+    DP=new DNSProxy(::arg()["resolver"]);
     DP->go();
   }
 

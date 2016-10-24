@@ -1,4 +1,4 @@
-**Warning**: Recursion was remove from the Authoritative Server in version 4.1.0
+**Warning**: Recursion was removed from the Authoritative Server in version 4.1.0
 
 # Recursion with the Authoritative Server
 From 2.9.5 onwards, PowerDNS offers both authoritative nameserving capabilities

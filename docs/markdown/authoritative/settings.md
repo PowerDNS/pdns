@@ -676,10 +676,16 @@ Seconds to store recursive packets in the PacketCache. See
 
 ## `recursor`
 * IP Address
-* Only used for ALIAS since: 4.1.0
+* Removed in: 4.1.0
 
 If set, recursive queries will be handed to the recursor specified here. See
 ["Recursion"](recursion.md).
+
+## `resolver`
+* IP Address
+* Added in: 4.1.0
+
+Use this resolver for ALIAS and the internal stub resolver.
 
 ## `retrieval-threads`
 * Integer
