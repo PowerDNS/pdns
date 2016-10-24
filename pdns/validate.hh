@@ -34,7 +34,7 @@ enum vState { Indeterminate, Bogus, Insecure, Secure, NTA };
 extern const char *vStates[];
 
 // NSEC(3) results
-enum dState { NODATA, NXDOMAIN, NXQTYPE, ENT, INSECURE };
+enum dState { NODATA, NXDOMAIN, NXQTYPE, ENT, INSECURE, OPTOUT};
 extern const char *dStates[];
 
 class DNSRecordOracle
