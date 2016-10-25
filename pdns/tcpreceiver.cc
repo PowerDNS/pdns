@@ -845,8 +845,6 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
         zrrs.push_back(zrr);
       }
     }
-
-    DLOG(for(const auto &rr: rrs) cerr<<zrr.dr.d_name<<"\t"<<zrr.dr.d_type<<"\t"<<zrr.auth<<endl;);
   }
 
 

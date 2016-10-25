@@ -1028,9 +1028,7 @@ bool PacketHandler::tryReferral(DNSPacket *p, DNSPacket*r, SOAData& sd, const DN
   if(rrset.empty())
     return false;
   
-  DLOG(L<<"The best NS is: "<<rrset.begin()->qname<<endl);
   for(auto& rr: rrset) {
-    DLOG(L<<"\tadding '"<<rr.content<<"'"<<endl);
     rr.dr.d_place=DNSResourceRecord::AUTHORITY;
     r->addRecord(rr);
   }
@@ -1089,7 +1087,6 @@ bool PacketHandler::tryWildcard(DNSPacket *p, DNSPacket*r, SOAData& sd, DNSName 
     nodata=true;
   }
   else {
-    DLOG(L<<"The best wildcard match: "<<rrset.begin()->qname<<endl);
     for(auto& rr: rrset) {
       rr.wildcardname = rr.dr.d_name;
       rr.dr.d_name=bestmatch=target;
@@ -1099,7 +1096,6 @@ bool PacketHandler::tryWildcard(DNSPacket *p, DNSPacket*r, SOAData& sd, DNSName 
         target=getRR<CNAMERecordContent>(rr.dr)->getTarget();
       }
   
-      DLOG(L<<"\tadding '"<<rr.content<<"'"<<endl);
       rr.dr.d_place=DNSResourceRecord::ANSWER;
       r->addRecord(rr);
     }
