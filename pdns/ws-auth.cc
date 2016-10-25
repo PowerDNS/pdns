@@ -725,7 +725,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
         throw ApiException("Nameserver is not canonical: '" + nameserver + "'");
       try {
         // ensure the name parses
-        autorr.content = DNSName(nameserver).toStringNoDot();
+        autorr.content = DNSName(nameserver).toStringRootDot();
       } catch (...) {
         throw ApiException("Unable to parse DNS Name for NS '" + nameserver + "'");
       }
@@ -927,7 +927,7 @@ static void makePtr(const DNSResourceRecord& rr, DNSResourceRecord* ptr) {
   ptr->qtype = "PTR";
   ptr->ttl = rr.ttl;
   ptr->disabled = rr.disabled;
-  ptr->content = rr.qname.toString();
+  ptr->content = rr.qname.toStringRootDot();
 }
 
 static void storeChangedPTRs(UeberBackend& B, vector<DNSResourceRecord>& new_ptrs) {
