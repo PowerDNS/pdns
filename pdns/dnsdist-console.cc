@@ -186,7 +186,6 @@ void doConsole()
               >
             >
           >(withReturn ? ("return "+line) : line);
-        
         if(ret) {
           if (const auto strValue = boost::get<shared_ptr<DownstreamState>>(&*ret)) {
             cout<<(*strValue)->getName()<<endl;
@@ -221,9 +220,13 @@ void doConsole()
       // tried to return something we don't understand
     }
     catch(const LuaContext::ExecutionErrorException& e) {
-      std::cerr << e.what(); 
+      if(!strcmp(e.what(),"invalid key to 'next'"))
+        std::cerr<<"Error parsing parameters, did you forget parameter name?";
+      else
+        std::cerr << e.what(); 
       try {
         std::rethrow_if_nested(e);
+
         std::cerr << std::endl;
       } catch(const std::exception& e) {
         // e is the exception that was thrown from inside the lambda
@@ -488,16 +491,19 @@ try
       // tried to return something we don't understand
     }
     catch(const LuaContext::ExecutionErrorException& e) {
-      response = "Error: " + string(e.what()) + ": ";
+      if(!strcmp(e.what(),"invalid key to 'next'"))
+        response = "Error: Parsing function parameters, did you forget parameter name?";
+      else
+        response = "Error: " + string(e.what());
       try {
         std::rethrow_if_nested(e);
       } catch(const std::exception& e) {
         // e is the exception that was thrown from inside the lambda
-        response+= string(e.what());
+        response+= ": " + string(e.what());
       }
       catch(const PDNSException& e) {
         // e is the exception that was thrown from inside the lambda
-        response += string(e.reason);
+        response += ": " + string(e.reason);
       }
     }
     catch(const LuaContext::SyntaxErrorException& e) {
