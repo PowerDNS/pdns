@@ -105,6 +105,21 @@ forward-zones+=undelegated.insecure.example=%s.12
         self.assertRcodeEqual(res, dns.rcode.NXDOMAIN)
         self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'], ['DO'])
 
+    def testBothSecureCNAMEAtApex(self):
+        """
+        #4466: a CNAME at the apex of a secure domain to another secure domain made us use the wrong DNSKEY to validate
+        """
+        query = dns.message.make_query('cname-secure.example.', 'A')
+        query.flags |= dns.flags.AD
+
+        res = self.sendUDPQuery(query)
+        expectedCNAME = dns.rrset.from_text('cname-secure.example.', 0, dns.rdataclass.IN, 'CNAME', 'secure.example.')
+        expectedA = dns.rrset.from_text('secure.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.17')
+
+        self.assertRRsetInAnswer(res, expectedA)
+        self.assertRRsetInAnswer(res, expectedCNAME)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMessageHasFlags(res, ['QR', 'RD', 'RA', 'AD'], ['DO'])
 
     @classmethod
     def startResponders(cls):
