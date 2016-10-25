@@ -19,6 +19,8 @@ public:
     sr.setId(MT->getTid());
     vector<DNSRecord> ret;
     sr.d_doDNSSEC=true;
+    if (qtype == QType::DS || qtype == QType::DNSKEY || qtype == QType::NS)
+      sr.setSkipCNAMECheck(true);
     sr.beginResolve(qname, QType(qtype), 1, ret);
     d_queries += sr.d_outqueries;
     return ret;
