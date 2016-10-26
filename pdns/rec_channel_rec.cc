@@ -942,7 +942,7 @@ vector<pair<DNSName,uint16_t> >* pleaseGetServfailQueryRing()
   vector<query_t>* ret = new vector<query_t>();
   if(!t_servfailqueryring)
     return ret;
-  ret->reserve(t_queryring->size());
+  ret->reserve(t_servfailqueryring->size());
   for(const query_t& q :  *t_servfailqueryring) {
     ret->push_back(q);
   }
