@@ -1247,15 +1247,27 @@ void* maintThread()
 {
   int interval = 1;
   size_t counter = 0;
+  int32_t secondsToWaitLog = 0;
 
   for(;;) {
     sleep(interval);
 
     {
       std::lock_guard<std::mutex> lock(g_luamutex);
-      auto f =g_lua.readVariable<boost::optional<std::function<void()> > >("maintenance");
-      if(f)
-        (*f)();
+      auto f = g_lua.readVariable<boost::optional<std::function<void()> > >("maintenance");
+      if(f) {
+        try {
+          (*f)();
+          secondsToWaitLog = 0;
+        }
+        catch(std::exception &e) {
+          if (secondsToWaitLog <= 0) {
+            infolog("Error during execution of maintenance function: %s", e.what());
+            secondsToWaitLog = 61;
+          }
+          secondsToWaitLog -= interval;
+        }
+      }
     }
 
     counter++;
