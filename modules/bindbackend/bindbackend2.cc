@@ -1033,9 +1033,17 @@ void Bind2Backend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p
   bool found=false;
   BB2DomainInfo bbd;
 
-  do {
-    found = safeGetBBDomainInfo(domain, &bbd);
-  } while ((!found || (zoneId != (int)bbd.d_id && zoneId != -1)) && domain.chopOff());
+  if (zoneId != -1) {
+    found = safeGetBBDomainInfo(zoneId, &bbd);
+    if (found) {
+      domain = bbd.d_name;
+    }
+  }
+  else {
+    do {
+      found = safeGetBBDomainInfo(domain, &bbd);
+    } while (!found && domain.chopOff());
+  }
 
   if(!found) {
     if(mustlog)
