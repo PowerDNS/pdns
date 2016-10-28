@@ -443,7 +443,7 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
       }
     }
 
-    if(qtype != QType::DS && doCNAMECacheCheck(qname,qtype,ret,depth,res)) // will reroute us if needed
+    if(!d_skipCNAMECheck && doCNAMECacheCheck(qname,qtype,ret,depth,res)) // will reroute us if needed
       return res;
 
     if(doCacheCheck(qname,qtype,ret,depth,res)) // we done

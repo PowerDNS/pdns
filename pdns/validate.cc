@@ -349,7 +349,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
           dotNode("DS", *zoneCutIter, "" /*std::to_string(dsrc.d_tag)*/, (boost::format("tag=%d, digest algo=%d, algo=%d") % dsrc.d_tag % static_cast<int>(dsrc.d_digesttype) % static_cast<int>(dsrc.d_algorithm)).str());
         }
         else {
-          LOG("DNSKEY did not match the DS, parent DS: "<<drc.getZoneRepresentation() << " ! = "<<dsrc2.getZoneRepresentation()<<endl);
+          LOG("DNSKEY did not match the DS, parent DS: "<<dsrc.getZoneRepresentation() << " ! = "<<dsrc2.getZoneRepresentation()<<endl);
         }
         // cout<<"    subgraph "<<dotEscape("cluster "+*zoneCutIter)<<" { "<<dotEscape("DS "+*zoneCutIter)<<" -> "<<dotEscape("DNSKEY "+*zoneCutIter)<<" [ label = \""<<dsrc.d_tag<<"/"<<static_cast<int>(dsrc.d_digesttype)<<"\" ]; label = \"zone: "<<*zoneCutIter<<"\"; }"<<endl;
         dotEdge(g_rootdnsname, "DS", *zoneCutIter, "" /*std::to_string(dsrc.d_tag)*/, "DNSKEY", *zoneCutIter, std::to_string(drc.getTag()), isValid ? "green" : "red");
