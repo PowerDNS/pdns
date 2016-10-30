@@ -57,6 +57,7 @@ static bool compareAuthorization(YaHTTP::Request& req, const string &expected_pa
     /* if this is a request for the API,
        check if the API key is correct */
     if (req.url.path=="/jsonstat" ||
+        req.url.path=="/prometheus" ||
         req.url.path=="/api/v1/servers/localhost" ||
         req.url.path=="/api/v1/servers/localhost/config" ||
         req.url.path=="/api/v1/servers/localhost/statistics") {
@@ -183,12 +184,12 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
         };
 
         for(const auto& e : g_stats.entries) {
-          if(const auto& val = boost::get<DNSDistStats::stat_t*>(&e.second))
-            obj.insert({e.first, (double)(*val)->load()});
-          else if (const auto& val = boost::get<double*>(&e.second))
-            obj.insert({e.first, (**val)});
+          if(const auto& val = boost::get<DNSDistStats::stat_t*>(&std::get<1>(e)))
+            obj.insert({std::get<0>(e), (double)(*val)->load()});
+          else if (const auto& val = boost::get<double*>(&std::get<1>(e)))
+            obj.insert({std::get<0>(e), (**val)});
           else
-            obj.insert({e.first, (int)(*boost::get<DNSDistStats::statfunction_t>(&e.second))(e.first)});
+            obj.insert({std::get<0>(e), (int)(*boost::get<DNSDistStats::statfunction_t>(&std::get<1>(e)))(std::get<0>(e))});
         }
         Json my_json = obj;
         resp.body=my_json.dump();
@@ -362,31 +363,112 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
       resp.headers["Content-Type"] = "application/json";
       resp.body=my_json.dump();
     }
+    else if(req.url.path=="/prometheus") {
+        handleCORS(req, resp);
+        resp.status=200;
+
+        ostringstream str;
+        str<<"# a first stab at reporting prometheus metrics from inside powerdns\n";
+        string mainPool = "main";
+        for(const auto& e : g_stats.entries) {
+          string metricName = "dnsdist_" + std::get<0>(e);
+          boost::replace_all(metricName, "-", "_");
+
+          str<<"# HELP "<<metricName<<' '<< std::get<3>(e)<<"\n";
+          str<<"# TYPE "<<metricName<<' '<< std::get<2>(e)<<"\n";
+          str<<metricName<<' ';
+          if(const auto& val = boost::get<DNSDistStats::stat_t*>(&std::get<1>(e)))
+            str<<(*val)->load();
+          else if (const auto& val = boost::get<double*>(&std::get<1>(e)))
+            str<<**val;
+          else
+            str<<(*boost::get<DNSDistStats::statfunction_t>(&std::get<1>(e)))(std::get<0>(e));
+          str<<"\n";
+        }
+        const auto states = g_dstates.getCopy();
+        for(const auto& s : states) {
+          const string base = "dnsdist_backend_";
+          const string label = "{backend=\"" + s->getName() + "\"}";
+          //for(const auto& m : s.metrics) {
+              //str<<"# HELP"<<std::get<0>(m)<<std::get<3>(m)<<"\n";
+              //str<<"# TYPE"<<std::get<0>(m)<<std::get<2>(m)<<"\n";
+              //str<<"dnsdist_backend_"<<std::get<0>(m)<<"{backend="<<s->getName()<<"}";
+              //const auto& val = boost::get<std::atomic<uint64_t>*>(&std::get<1>(m));
+              //str<<(*val)->load()<<"\n";
+          //}
+	  str<<base<<"queries"<<label<<' '<< s->queries.load() <<"\n";
+          str<<base<<"drops"<<label<<' '<< s->reuseds.load() << "\n";
+          str<<base<<"latency"<<label<<' '<< s->latencyUsec/1000.0 << "\n";
+          str<<base<<"senderrors"<<label<<' '<< s->sendErrors.load() << "\n";
+          str<<base<<"outstanding"<<label<<' '<< s->outstanding.load() << "\n";
+        }
+        for(const auto& front : g_frontends) {
+          if (front->udpFD == -1 && front->tcpFD == -1)
+            continue;
+
+          string frontName = front->local.toStringWithPort();
+          string proto = (front->udpFD >= 0 ? "udp" : "tcp");
+          /* for(const auto& m : front.metrics) {
+              str<<"# HELP"<<std::get<0>(m)<<std::get<3>(m)<<"\n";
+              str<<"# TYPE"<<std::get<0>(m)<<std::get<2>(m)<<"\n";
+              str<<"dnsdist_frontend_"<<std::get<0>(m)<<"{frontend="<<frontName<<",proto="<<proto<<"}";
+              const auto& val = boost::get<std::atomic<uint64_t>*>(&std::get<1>(m));
+              str<<(*val)->load()<<"\n";
+          } */
+          str<<"dnsdist_frontend_queries{frontend=\""<<frontName<<"\",proto=\""<<proto<<"\"} "<< front->queries.load() << "\n";
+        }
+        const auto localPools = g_pools.getCopy();
+        for (const auto& entry : localPools) {
+          string poolName = entry.first;
+          if (poolName.empty()) {
+            poolName = "default";
+          }
+
+          const string label = "{pool=\"" + poolName + "\"}";
+          const std::shared_ptr<ServerPool> pool = entry.second;
+          str<<"dnsdist_pool_servers{pool=\""<<poolName<<"\"} "<< pool->servers.size() <<"\n";
+          if (pool->packetCache != nullptr) {
+            const string cachebase = "dnsdist_pool_cache_";
+            const auto& cache = pool->packetCache;
+            str<<cachebase<<"size"<<label << ' ' << cache->getMaxEntries() << "\n";
+            str<<cachebase<<"entries"<<label << ' ' << cache->getEntriesCount() << "\n";
+            str<<cachebase<<"hits"<<label << ' ' << cache->getHits() << "\n";
+            str<<cachebase<<"misses"<<label << ' ' << cache->getMisses() << "\n";
+            str<<cachebase<<"deferred_inserts"<<label << ' ' << cache->getDeferredInserts() << "\n";
+            str<<cachebase<<"deferred_lookups"<<label << ' ' << cache->getDeferredLookups() << "\n";
+            str<<cachebase<<"lookup_collisions"<<label << ' ' << cache->getLookupCollisions() << "\n";
+            str<<cachebase<<"insert_collisions"<<label << ' ' << cache->getInsertCollisions() << "\n";
+            str<<cachebase<<"ttl_too_shorts"<<label << ' ' << cache->getTTLTooShorts() << "\n";
+          }
+        }
+        resp.body=str.str();
+        resp.headers["Content-Type"] = "text/plain";
+    }
     else if(req.url.path=="/api/v1/servers/localhost/statistics") {
       handleCORS(req, resp);
       resp.status=200;
 
       Json::array doc;
       for(const auto& item : g_stats.entries) {
-        if(const auto& val = boost::get<DNSDistStats::stat_t*>(&item.second)) {
+        if(const auto& val = boost::get<DNSDistStats::stat_t*>(&std::get<1>(item))) {
           doc.push_back(Json::object {
               { "type", "StatisticItem" },
-              { "name", item.first },
+              { "name", std::get<0>(item) },
               { "value", (double)(*val)->load() }
             });
         }
-        else if (const auto& val = boost::get<double*>(&item.second)) {
+        else if (const auto& val = boost::get<double*>(&std::get<1>(item))) {
           doc.push_back(Json::object {
               { "type", "StatisticItem" },
-              { "name", item.first },
+              { "name", std::get<0>(item) },
               { "value", (**val) }
             });
         }
         else {
           doc.push_back(Json::object {
               { "type", "StatisticItem" },
-              { "name", item.first },
-              { "value", (int)(*boost::get<DNSDistStats::statfunction_t>(&item.second))(item.first) }
+              { "name", std::get<0>(item) },
+              { "value", (int)(*boost::get<DNSDistStats::statfunction_t>(&std::get<1>(item)))(std::get<0>(item)) }
             });
         }
       }

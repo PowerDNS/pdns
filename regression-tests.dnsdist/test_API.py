@@ -210,3 +210,51 @@ class TestBasics(DNSDistTest):
 
             for key in ['blocks']:
                 self.assertTrue(content[key] >= 0)
+
+    def testPrometheus(self):
+        """
+        API: /prometheus
+        """
+        headers = {'x-api-key': self._webServerAPIKey}
+        url = 'http://127.0.0.1:' + str(self._webServerPort) + '/prometheus'
+        r = requests.get(url, headers=headers, timeout=self._webTimeout)
+        self.assertTrue(r)
+        self.assertEquals(r.status_code, 200)
+        values = {}
+        for line in r.content.split("\n"):
+            # allow empty lines
+            if len(line) == 0:
+                continue
+
+            fields = line.split(" ")
+            if line.find("dnsdist_") == 0:
+                # every metric should live within the dnsdist_ prefix
+                self.assertIn('dnsdist_', fields[0])
+                # not more than 2 fields
+                self.assertTrue(len(fields) == 2)
+
+                # metric names cannot contain dash
+                self.assertTrue(fields[0].find('-') < 0)
+                # values are 0 or higher
+                self.assertTrue(fields[1] >= 0)
+                # labelvalues are quoted with ""
+                haslabels = fields[0].find("{")
+                if haslabels > 0:
+                    for label in fields[0][haslabels+1:-1].split(","):
+                        k, v = label.split("=")
+                        self.assertTrue(v[0] == '"')
+                        self.assertTrue(v[-1] == '"')
+                continue
+
+            # HELP and TYPE should say something about metrics
+            if line.find("# HELP") == 0:
+                self.assertIn('dnsdist_', fields[2])
+                self.assertTrue(len(fields) >= 4)
+                continue
+            if line.find("# TYPE") == 0:
+                self.assertIn('dnsdist_', fields[2])
+                self.assertTrue(len(fields) == 4)
+                continue
+
+            # All other lines can only be comments
+            self.assertTrue(line[0] == "#")

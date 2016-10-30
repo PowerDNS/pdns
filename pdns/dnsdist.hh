@@ -95,30 +95,42 @@ struct DNSDistStats
   double latencyAvg100{0}, latencyAvg1000{0}, latencyAvg10000{0}, latencyAvg1000000{0};
   typedef std::function<uint64_t(const std::string&)> statfunction_t;
   typedef boost::variant<stat_t*, double*, statfunction_t> entry_t;
-  std::vector<std::pair<std::string, entry_t>> entries{
-    {"responses", &responses}, {"servfail-responses", &servfailResponses},
-    {"queries", &queries}, {"acl-drops", &aclDrops},
-    {"block-filter", &blockFilter}, {"rule-drop", &ruleDrop},
-    {"rule-nxdomain", &ruleNXDomain}, {"self-answered", &selfAnswered},
-    {"downstream-timeouts", &downstreamTimeouts}, {"downstream-send-errors", &downstreamSendErrors}, 
-    {"trunc-failures", &truncFail}, {"no-policy", &noPolicy},
-    {"latency0-1", &latency0_1}, {"latency1-10", &latency1_10},
-    {"latency10-50", &latency10_50}, {"latency50-100", &latency50_100}, 
-    {"latency100-1000", &latency100_1000}, {"latency-slow", &latencySlow},
-    {"latency-avg100", &latencyAvg100}, {"latency-avg1000", &latencyAvg1000}, 
-    {"latency-avg10000", &latencyAvg10000}, {"latency-avg1000000", &latencyAvg1000000},
-    {"uptime", uptimeOfProcess},
-    {"real-memory-usage", getRealMemoryUsage},
-    {"noncompliant-queries", &nonCompliantQueries},
-    {"noncompliant-responses", &nonCompliantResponses},
-    {"rdqueries", &rdQueries},
-    {"empty-queries", &emptyQueries},
-    {"cache-hits", &cacheHits},
-    {"cache-misses", &cacheMisses},
-    {"cpu-user-msec", getCPUTimeUser},
-    {"cpu-sys-msec", getCPUTimeSystem},
-    {"fd-usage", getOpenFileDescriptors}, {"dyn-blocked", &dynBlocked}, 
-    {"dyn-block-nmg-size", [](const std::string&) { return g_dynblockNMG.getLocal()->size(); }}
+  std::vector<std::tuple<std::string, entry_t, std::string, std::string>> entries{
+    std::make_tuple("responses", &responses, "counter", "Number of responses"),
+    std::make_tuple("servfail-responses", &servfailResponses, "counter", "Number of SERVFAIL responses"),
+    std::make_tuple("queries", &queries, "counter", "Number of outgoing queries"),
+    std::make_tuple("acl-drops", &aclDrops, "counter", "Number of ACL drops"),
+    std::make_tuple("block-filter", &blockFilter, "counter", "Number of blocks due to filters"),
+    std::make_tuple("rule-drop", &ruleDrop, "counter", "Number of Drop actions"),
+    std::make_tuple("rule-nxdomain", &ruleNXDomain, "counter", "Number of NXDomain actions"),
+    std::make_tuple("self-answered", &selfAnswered, "counter", "Number of answers crafted(?)"),
+    std::make_tuple("downstream-timeouts", &downstreamTimeouts, "counter", "Number of downstream timeouts"),
+    std::make_tuple("downstream-send-errors", &downstreamSendErrors, "counter", "Number of downstream send errors"), 
+    std::make_tuple("trunc-failures", &truncFail, "counter", "Number of failed truncateTC"),
+    std::make_tuple("no-policy", &noPolicy, "counter", "Number of packets with non-matching Policy"),
+    std::make_tuple("latency0-1", &latency0_1, "counter", "Number of packets replied from packetcache"),
+    std::make_tuple("latency1-10", &latency1_10, "counter", "Number of packets answered within 10 ms"),
+    std::make_tuple("latency10-50", &latency10_50, "counter", "Number of packets answered within 50 ms"),
+    std::make_tuple("latency50-100", &latency50_100, "counter", "Number of packets answered within 100 ms"), 
+    std::make_tuple("latency100-1000", &latency100_1000, "counter", "Number of packets answered within 1 s"),
+    std::make_tuple("latency-slow", &latencySlow, "counter", "Number of answers that took longer than 1s"),
+    std::make_tuple("latency-avg100", &latencyAvg100, "gauge", "Latency average over the last 100 packets"),
+    std::make_tuple("latency-avg1000", &latencyAvg1000, "gauge", "Latency average over the last 1000 packets"), 
+    std::make_tuple("latency-avg10000", &latencyAvg10000, "gauge", "Latency average over the last 10,000 packets"),
+    std::make_tuple("latency-avg1000000", &latencyAvg1000000, "gauge", "Latency average over the last 1,000,000 packets"),
+    std::make_tuple("uptime", uptimeOfProcess, "counter", "Uptime of process in seconds"),
+    std::make_tuple("real-memory-usage", getRealMemoryUsage, "gauge", "Actual unique use of memory in bytes (approx)"),
+    std::make_tuple("noncompliant-queries", &nonCompliantQueries, "counter", "Number of queries that were responses"),
+    std::make_tuple("noncompliant-responses", &nonCompliantResponses, "counter", "Number of ansers from backends that did not parse"),
+    std::make_tuple("rdqueries", &rdQueries, "counter", "Number of queries without recursion desire"),
+    std::make_tuple("empty-queries", &emptyQueries, "counter", "Number of queries without questions"),
+    std::make_tuple("cache-hits", &cacheHits, "counter", "Number of hits on the cache"),
+    std::make_tuple("cache-misses", &cacheMisses, "counter", "Number of misses on the cache"),
+    std::make_tuple("cpu-user-msec", getCPUTimeUser, "counter", "Number of msec spent in user time"),
+    std::make_tuple("cpu-sys-msec", getCPUTimeSystem, "counter", "Number of msec spent in system tie"),
+    std::make_tuple("fd-usage", getOpenFileDescriptors, "counter", "Number of file descriptors in use"),
+    std::make_tuple("dyn-blocked", &dynBlocked, "counter", "Number of queries blocked due to a dynamic block"), 
+    std::make_tuple("dyn-block-nmg-size", [](const std::string&) { return g_dynblockNMG.getLocal()->size();}, "gauge", "Number of dynamic block rules")
   };
 };
 
@@ -440,7 +452,16 @@ struct DownstreamState
     }
     return name + " (" + remote.toStringWithPort()+ ")";
   }
-
+  /*
+  typedef boost::variant<std::atomic<uint64_t>*> entry_t;
+  std::vector<std::tuple<std::string, entry_t, std::string, std::string>> metrics{
+      std::make_tuple("queries", &queries, "counter", "Number of queries to this backend"),
+      std::make_tuple("drops", &reuseds, "counter", "Number of drops from this backend"),
+      std::make_tuple("latency", &latencyUsec, "gauge", "Average latency in usec"),
+      std::make_tuple("senderrors", &sendErrors, "counter", "Number of errors with sends to backend"),
+      std::make_tuple("outstanding", &outstanding, "gauge", "Number of outstanding queries to this backend"),
+  };
+  */
 };
 using servers_t =vector<std::shared_ptr<DownstreamState>>;
 
