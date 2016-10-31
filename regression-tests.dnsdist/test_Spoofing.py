@@ -393,3 +393,67 @@ class TestSpoofingLuaSpoof(DNSDistTest):
         (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
         self.assertTrue(receivedResponse)
         self.assertEquals(expectedResponse, receivedResponse)
+
+class TestSpoofingLuaWithStatistics(DNSDistTest):
+
+    _config_template = """
+    function spoof1rule(dq)
+        queriesCount = getStatisticsCounters()['queries']
+        if(queriesCount == 1) then
+                return DNSAction.Spoof, "192.0.2.1"
+        elseif(queriesCount == 2) then
+                return DNSAction.Spoof, "192.0.2.2"
+        else
+                return DNSAction.Spoof, "192.0.2.0"
+        end
+    end
+    addLuaAction("luaspoofwithstats.spoofing.tests.powerdns.com.", spoof1rule)
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testLuaSpoofBasedOnStatistics(self):
+        """
+        Spoofing: Spoofing an A via Lua based on statistics counters
+
+        """
+        name = 'luaspoofwithstats.spoofing.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        # dnsdist set RA = RD for spoofed responses
+        query.flags &= ~dns.flags.RD
+        expectedResponse1 = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+        expectedResponse1.answer.append(rrset)
+        expectedResponse2 = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.2')
+        expectedResponse2.answer.append(rrset)
+        expectedResponseAfterwards = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.0')
+        expectedResponseAfterwards.answer.append(rrset)
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        self.assertEquals(expectedResponse1, receivedResponse)
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        self.assertEquals(expectedResponse2, receivedResponse)
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        self.assertEquals(expectedResponseAfterwards, receivedResponse)
+
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        self.assertEquals(expectedResponseAfterwards, receivedResponse)

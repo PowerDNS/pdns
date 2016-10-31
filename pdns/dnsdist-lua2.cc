@@ -1012,4 +1012,14 @@ void moreLua(bool client)
       });
 
 #endif /* HAVE_EBPF */
+
+    g_lua.writeFunction<std::unordered_map<string,uint64_t>()>("getStatisticsCounters", []() {
+        setLuaNoSideEffect();
+        std::unordered_map<string,uint64_t> res;
+        for(const auto& entry : g_stats.entries) {
+          if(const auto& val = boost::get<DNSDistStats::stat_t*>(&entry.second))
+            res[entry.first] = (*val)->load();
+        }
+        return res;
+      });
 }
