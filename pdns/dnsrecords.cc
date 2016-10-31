@@ -141,6 +141,7 @@ boilerplate_conv(DNAME, QType::DNAME, conv.xfrName(d_content));
 boilerplate_conv(MR, QType::MR, conv.xfrName(d_alias, true));
 boilerplate_conv(MINFO, QType::MINFO, conv.xfrName(d_rmailbx, true); conv.xfrName(d_emailbx, true));
 boilerplate_conv(TXT, QType::TXT, conv.xfrText(d_text, true));
+boilerplate_conv(LUA, QType::LUA, conv.xfrText(d_code, true));
 boilerplate_conv(ENT, 0, );
 boilerplate_conv(SPF, 99, conv.xfrText(d_text, true));
 boilerplate_conv(HINFO, QType::HINFO,  conv.xfrText(d_cpu);   conv.xfrText(d_host));
@@ -581,6 +582,7 @@ void reportBasicTypes()
   PTRRecordContent::report();
   DNSRecordContent::regist(QClass::CHAOS, QType::TXT, &TXTRecordContent::make, &TXTRecordContent::make, "TXT");
   TXTRecordContent::report();
+  LUARecordContent::report();
   DNSRecordContent::regist(QClass::IN, QType::ANY, 0, 0, "ANY");
   DNSRecordContent::regist(QClass::IN, QType::AXFR, 0, 0, "AXFR");
   DNSRecordContent::regist(QClass::IN, QType::IXFR, 0, 0, "IXFR");

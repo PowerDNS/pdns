@@ -125,7 +125,8 @@ public:
     CAA=257,
     DLV=32769,
     ADDR=65400,
-    ALIAS=65401
+    ALIAS=65401,
+    LUA=65402
   };
 
   typedef pair<string,uint16_t> namenum;

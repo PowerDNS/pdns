@@ -282,4 +282,19 @@ bool AuthLua4::updatePolicy(const DNSName &qname, QType qtype, const DNSName &zo
 
 AuthLua4::~AuthLua4() { }
 
+
+
+std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, uint16_t qtype) 
+{
+  std::vector<shared_ptr<DNSRecordContent>> ret;
+  cout<<"Code: "<<code<<endl;
+  string strip=code.c_str()+1;
+  strip.resize(strip.size()-1);
+  
+  LuaContext lua;
+  ret.push_back(std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(qtype, 1, lua.executeCode<string>("return "+strip))));
+
+  return ret;
+}
+
 #endif

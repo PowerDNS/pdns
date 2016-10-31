@@ -1283,6 +1283,19 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
     weDone = weRedirected = weHaveUnauth =  false;
     
     while(B.get(rr)) {
+      if(rr.dr.d_type == QType::LUA) {
+        cerr<<"We got LUA: "<<endl;
+        auto recvec=luaSynth(getRR<LUARecordContent>(rr.dr)->d_code, p->qtype.getCode());
+        if(!recvec.empty()) {
+          cerr<<"We got answers from Lua"<<endl;
+          for(const auto& r : recvec) {
+            rr.dr.d_type = p->qtype.getCode();
+            rr.dr.d_content = r;
+            rrset.push_back(rr);
+          }
+          weDone = 1;
+        }
+      }
       //cerr<<"got content: ["<<rr.content<<"]"<<endl;
       if (p->qtype.getCode() == QType::ANY && !p->d_dnssecOk && (rr.dr.d_type == QType:: DNSKEY || rr.dr.d_type == QType::NSEC3PARAM))
         continue; // Don't send dnssec info to non validating resolvers.

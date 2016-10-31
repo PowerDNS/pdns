@@ -185,6 +185,15 @@ public:
   string d_text;
 };
 
+class LUARecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(LUA)
+
+  string d_code;
+};
+
+
 class ENTRecordContent : public DNSRecordContent
 {
 public:
