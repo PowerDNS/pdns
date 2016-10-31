@@ -190,6 +190,7 @@ class LUARecordContent : public DNSRecordContent
 public:
   includeboilerplate(LUA)
 
+  uint16_t d_type;
   string d_code;
 };
 

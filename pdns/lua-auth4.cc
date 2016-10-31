@@ -6,6 +6,8 @@
 #include "namespaces.hh"
 #include "ednssubnet.hh"
 #include <unordered_set>
+#include "sstuff.hh"
+#include <thread>
 
 #if !defined(HAVE_LUA)
 
@@ -283,8 +285,50 @@ bool AuthLua4::updatePolicy(const DNSName &qname, QType qtype, const DNSName &zo
 AuthLua4::~AuthLua4() { }
 
 
+class IsUpOracle
+{
+public:
+  bool isUp(const ComboAddress& remote);
+  
+  
+private:
+  void checkThread(const ComboAddress& rem) {
+    d_statuses[rem].second=false;
+    for(;;) {
+      try {
+        Socket s(rem.sin4.sin_family, SOCK_STREAM);
+        s.setNonBlocking();
+        s.connect(rem, 1);
+        if(!d_statuses[rem].second)
+          cout<<"Declaring "<<rem.toStringWithPort()<<" UP!"<<endl;
+        d_statuses[rem].second=true;
+      }
+      catch(NetworkError& ne) {
+        if(d_statuses[rem].second)
+          cout<<"Failed to connect to "<<rem.toStringWithPort()<<", setting DOWN"<<endl;
+        d_statuses[rem].second=false;
+      }
+      sleep(1);
+    }
+  }
+  map<ComboAddress, pair<std::thread*, bool>> d_statuses;
+};
 
-std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, uint16_t qtype) 
+bool IsUpOracle::isUp(const ComboAddress& remote)
+{
+  auto iter = d_statuses.find(remote);
+  if(iter == d_statuses.end()) {
+    cout<<"First ever query for "<<remote.toStringWithPort()<<", launching checker"<<endl;
+    std::thread* checker = new std::thread(&IsUpOracle::checkThread, this, remote);
+    d_statuses[remote]={checker, false};
+    return false;
+  }
+  return iter->second.second;
+}
+
+IsUpOracle g_up;
+
+std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, const DNSName& query, const ComboAddress& who, uint16_t qtype) 
 {
   std::vector<shared_ptr<DNSRecordContent>> ret;
   cout<<"Code: "<<code<<endl;
@@ -292,7 +336,52 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, uint
   strip.resize(strip.size()-1);
   
   LuaContext lua;
-  ret.push_back(std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(qtype, 1, lua.executeCode<string>("return "+strip))));
+  lua.writeVariable("qname", query.toString());
+  lua.writeVariable("who", who.toString());
+
+  lua.writeFunction("ifportup", [](int port, const vector<pair<int, string> >& ips) {
+      vector<ComboAddress> candidates;
+      for(const auto& i : ips) {
+        ComboAddress rem(i.second, port);
+        if(g_up.isUp(rem))
+          candidates.push_back(rem);
+      }
+      cout<<"Have "<<candidates.size()<<" candidate IP addresses: ";
+      for(const auto& c : candidates)
+        cout<<c.toString()<<" ";
+      cout<<endl;
+      if(candidates.empty()) {
+        cout<<"Picking a random one, everything is down. Should return all of them"<<endl;
+        return ips[random() % ips.size()].second;
+      }
+      return candidates[random() % candidates.size()].toString();
+    });
+  
+  lua.writeFunction("pickRandom", [](const vector<pair<int, string> >& ips) {
+      return ips[random()%ips.size()].second;
+    });
+
+  // wrandom({ {100, '1.2.3.4'}, {50, '5.4.3.2'}, {1, '192.168.1.0'}})"
+
+  lua.writeFunction("wrandom", [](std::unordered_map<int, std::unordered_map<int, string> > ips) {
+      int sum=0;
+      vector<pair<int, string> > pick;
+      for(auto& i : ips) {
+        sum += atoi(i.second[1].c_str());
+        pick.push_back({sum, i.second[2]});
+      }
+      int r = random() % sum;
+      auto p = upper_bound(pick.begin(), pick.end(),r, [](int r, const decltype(pick)::value_type& a) { return  r < a.first;});
+      return p->second;
+      
+    });
+
+  
+  string content=lua.executeCode<string>(strip);
+  if(qtype==QType::TXT)
+    content = '"'+content+'"';
+  
+  ret.push_back(std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(qtype, 1, content )));
 
   return ret;
 }

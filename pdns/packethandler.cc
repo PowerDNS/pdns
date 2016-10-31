@@ -1284,10 +1284,12 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
     
     while(B.get(rr)) {
       if(rr.dr.d_type == QType::LUA) {
-        cerr<<"We got LUA: "<<endl;
-        auto recvec=luaSynth(getRR<LUARecordContent>(rr.dr)->d_code, p->qtype.getCode());
+        auto rec=getRR<LUARecordContent>(rr.dr);
+        if(rec->d_type != p->qtype.getCode())
+          continue;
+        
+        auto recvec=luaSynth(rec->d_code, target, p->getRemote(), p->qtype.getCode());
         if(!recvec.empty()) {
-          cerr<<"We got answers from Lua"<<endl;
           for(const auto& r : recvec) {
             rr.dr.d_type = p->qtype.getCode();
             rr.dr.d_content = r;
