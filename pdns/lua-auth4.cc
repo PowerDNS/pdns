@@ -8,6 +8,8 @@
 #include <unordered_set>
 #include "sstuff.hh"
 #include <thread>
+#include <mutex>
+#include "minicurl.hh"
 
 #if !defined(HAVE_LUA)
 
@@ -287,44 +289,142 @@ AuthLua4::~AuthLua4() { }
 
 class IsUpOracle
 {
+private:
+  typedef std::unordered_map<string,string> opts_t;
+  struct CheckDesc
+  {
+    ComboAddress rem;
+    string url;
+    opts_t opts;
+    bool operator<(const CheckDesc& rhs) const
+    {
+      return std::make_tuple(rem, url) <
+        std::make_tuple(rhs.rem, rhs.url);
+    }
+  };
 public:
   bool isUp(const ComboAddress& remote);
-  
-  
+  bool isUp(const ComboAddress& remote, const std::string& url, opts_t opts=opts_t());
+    
 private:
-  void checkThread(const ComboAddress& rem) {
-    d_statuses[rem].second=false;
-    for(;;) {
+  void checkURLThread(ComboAddress rem, std::string url, opts_t opts);
+  void checkTCPThread(const ComboAddress& rem) {
+    CheckDesc cd{rem};
+    setDown(cd);
+    for(bool first=true;;first=false) {
       try {
         Socket s(rem.sin4.sin_family, SOCK_STREAM);
         s.setNonBlocking();
         s.connect(rem, 1);
-        if(!d_statuses[rem].second)
+        if(!d_statuses[{rem,string()}].second)
           cout<<"Declaring "<<rem.toStringWithPort()<<" UP!"<<endl;
-        d_statuses[rem].second=true;
+        setUp(cd);
       }
       catch(NetworkError& ne) {
-        if(d_statuses[rem].second)
+        if(d_statuses[{rem,string()}].second || first)
           cout<<"Failed to connect to "<<rem.toStringWithPort()<<", setting DOWN"<<endl;
-        d_statuses[rem].second=false;
+        setDown(cd);
       }
       sleep(1);
     }
   }
-  map<ComboAddress, pair<std::thread*, bool>> d_statuses;
+
+
+  map<CheckDesc, pair<std::thread*, bool>> d_statuses;
+
+  std::mutex d_mutex;
+
+  void setStatus(const CheckDesc& cd, bool status) 
+  {
+    std::lock_guard<std::mutex> l(d_mutex);
+    d_statuses[cd].second=status;
+  }
+
+  void setDown(const ComboAddress& rem, const std::string& url=std::string(), opts_t opts=opts_t())
+  {
+    CheckDesc cd{rem, url, opts};
+    setStatus(cd, false);
+  }
+
+  void setUp(const ComboAddress& rem, const std::string& url=std::string(), opts_t opts=opts_t())
+  {
+    CheckDesc cd{rem, url, opts};
+    setStatus(cd, true);
+  }
+
+  void setDown(const CheckDesc& cd)
+  {
+    setStatus(cd, false);
+  }
+
+  void setUp(const CheckDesc& cd)
+  {
+    setStatus(cd, true);
+  }
+
+  bool upStatus(const ComboAddress& rem, const std::string& url=std::string(), opts_t opts=opts_t())
+  {
+    CheckDesc cd{rem, url, opts};
+    std::lock_guard<std::mutex> l(d_mutex);
+    return d_statuses[cd].second;
+  }
+
 };
 
 bool IsUpOracle::isUp(const ComboAddress& remote)
 {
-  auto iter = d_statuses.find(remote);
+  std::lock_guard<std::mutex> l(d_mutex);
+  CheckDesc cd{remote};
+  auto iter = d_statuses.find(cd);
   if(iter == d_statuses.end()) {
     cout<<"First ever query for "<<remote.toStringWithPort()<<", launching checker"<<endl;
-    std::thread* checker = new std::thread(&IsUpOracle::checkThread, this, remote);
-    d_statuses[remote]={checker, false};
+    std::thread* checker = new std::thread(&IsUpOracle::checkTCPThread, this, remote);
+    d_statuses[cd]={checker, false};
     return false;
   }
   return iter->second.second;
 }
+
+bool IsUpOracle::isUp(const ComboAddress& remote, const std::string& url, std::unordered_map<string,string> opts)
+{
+  CheckDesc cd{remote, url, opts};
+  std::lock_guard<std::mutex> l(d_mutex);
+  auto iter = d_statuses.find(cd);
+  if(iter == d_statuses.end()) {
+    cout<<"First ever query for "<<remote.toString()<<" and url "<<url<<", launching checker"<<endl;
+    std::thread* checker = new std::thread(&IsUpOracle::checkURLThread, this, remote, url, opts);
+    d_statuses[cd]={checker, false};
+    return false;
+  }
+  return iter->second.second;
+}
+
+void IsUpOracle::checkURLThread(ComboAddress rem, std::string url, opts_t opts) 
+{
+  setDown(rem, url, opts);
+  for(bool first=true;;first=false) {
+    try {
+      MiniCurl mc;
+      cout<<"Checking URL "<<url<<" at "<<rem.toString()<<endl;
+      string content=mc.getURL(url, &rem);
+      if(opts.count("stringmatch") && content.find(opts["stringmatch"]) == string::npos) {
+        cout<<"URL "<<url<<" is up at "<<rem.toString()<<", but could not find stringmatch "<<opts["stringmatch"]<<" in page content, setting DOWN"<<endl;
+        setDown(rem, url, opts);
+        continue;
+      }
+      if(!upStatus(rem,url))
+        cout<<"Declaring "<<rem.toString()<<" UP for URL "<<url<<"!"<<endl;
+      setUp(rem, url);
+    }
+    catch(std::exception& ne) {
+      if(upStatus(rem,url,opts) || first)
+        cout<<"Failed to connect to "<<rem.toString()<<" for URL "<<url<<", setting DOWN, error: "<<ne.what()<<endl;
+      setDown(rem,url);
+    }
+    sleep(5);
+  }
+}
+
 
 IsUpOracle g_up;
 
@@ -350,12 +450,45 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
       for(const auto& c : candidates)
         cout<<c.toString()<<" ";
       cout<<endl;
+      vector<string> ret;
       if(candidates.empty()) {
-        cout<<"Picking a random one, everything is down. Should return all of them"<<endl;
-        return ips[random() % ips.size()].second;
+        cout<<"Everything is down. Returning all of them"<<endl;
+        for(const auto& i : ips) 
+          ret.push_back(i.second);
       }
-      return candidates[random() % candidates.size()].toString();
+      else
+        ret.push_back(candidates[random() % candidates.size()].toString());
+      return ret;
     });
+
+
+  lua.writeFunction("ifurlup", [](const std::string& url, const vector<pair<int, string> >& ips, boost::optional<std::unordered_map<string,string>> options) {
+
+      vector<ComboAddress> candidates;
+      for(const auto& i : ips) {
+        ComboAddress rem(i.second, 80);
+        std::unordered_map<string,string> opts;
+        if(options)
+          opts = *options;
+        if(g_up.isUp(rem, url, opts))
+          candidates.push_back(rem);
+      }
+      cout<<"Have "<<candidates.size()<<" candidate IP addresses: ";
+      for(const auto& c : candidates)
+        cout<<c.toString()<<" ";
+      cout<<endl;
+
+      vector<string> ret;
+      if(candidates.empty()) {
+        cout<<"Everything is down, returning all IP addresses"<<endl;
+        for(const auto& i : ips) 
+          ret.push_back(i.second);
+      }
+      else
+        ret.push_back(candidates[random() % candidates.size()].toString());
+      return ret;
+    });
+
   
   lua.writeFunction("pickRandom", [](const vector<pair<int, string> >& ips) {
       return ips[random()%ips.size()].second;
@@ -377,11 +510,21 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
     });
 
   
-  string content=lua.executeCode<string>(strip);
-  if(qtype==QType::TXT)
-    content = '"'+content+'"';
-  
-  ret.push_back(std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(qtype, 1, content )));
+  auto content=lua.executeCode<boost::variant<string, vector<pair<int, string> > > >(strip);
+
+  vector<string> contents;
+  if(auto str = boost::get<string>(&content))
+    contents.push_back(*str);
+  else
+    for(const auto& c : boost::get<vector<pair<int,string>>>(content))
+      contents.push_back(c.second);
+
+  for(const auto& content: contents) {
+    if(qtype==QType::TXT)
+      ret.push_back(std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(qtype, 1, '"'+content+'"' )));
+    else
+      ret.push_back(std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(qtype, 1, content )));
+  }
 
   return ret;
 }

@@ -156,6 +156,19 @@ boilerplate_conv(OPT, QType::OPT,
                    conv.xfrBlob(d_data)
                  );
 
+string LUARecordContent::getCode()
+{
+  // in d_code, series of "part1" "part2"
+  vector<string> parts;
+  stringtok(parts, d_code, "\"");
+  string ret;
+  for(const auto& p : parts) {
+    ret += p;
+    ret.append(1, ' ');
+  }
+  return ret;
+}
+
 void OPTRecordContent::getData(vector<pair<uint16_t, string> >& options)
 {
   string::size_type pos=0;
