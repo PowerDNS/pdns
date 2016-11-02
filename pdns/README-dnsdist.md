@@ -1245,6 +1245,7 @@ Here are all functions:
     * `controlSocket(addr)`: open a control socket on this address / connect to this address in client mode
  * Diagnostics and statistics
     * `dumpStats()`: print all statistics we gather
+    * `getStatisticsCounters()`: return the statistics counters as a Lua table
     * `grepq(Netmask|DNS Name|100ms [, n])`: shows the last n queries and responses matching the specified client address or range (Netmask), or the specified DNS Name, or slower than 100ms
     * `grepq({"::1", "powerdns.com", "100ms"} [, n])`: shows the last n queries and responses matching the specified client address AND range (Netmask) AND the specified DNS Name AND slower than 100ms
     * `topQueries(n[, labels])`: show top 'n' queries, as grouped when optionally cut down to 'labels' labels
