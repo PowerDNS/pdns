@@ -775,6 +775,13 @@ Dynamic blocks in force are displayed with `showDynBlocks()` and can be cleared
 with `clearDynBlocks()`. Full set of `exceed` functions is listed in the table of
 all functions below.
 
+Dynamic blocks drop matched queries by default, but this behavior can be changed
+with `setDynBlocksAction()`. For example, to send a REFUSED code instead of droppping
+the query:
+
+```
+setDynBlocksAction(DNSAction.Refused)
+```
 
 Running it for real
 -------------------
@@ -1399,6 +1406,7 @@ instantiate a server with additional parameters
     * `clearDynBlocks()`: clear all dynamic blocks
     * `showDynBlocks()`: show dynamic blocks in force
     * `addDynBlocks(addresses, message[, seconds])`: block the set of addresses with message `msg`, for `seconds` seconds (10 by default)
+    * `setDynBlocksAction(DNSAction)`: set which action is performed when a query is blocked. Only DNSAction.Drop (the default) and DNSAction.Refused are supported
     * `addBPFFilterDynBlocks(addresses, DynBPFFilter[, seconds])`: block the set of addresses using the supplied BPF Filter, for `seconds` seconds (10 by default)
     * `exceedServFails(rate, seconds)`: get set of addresses that exceed `rate` servails/s over `seconds` seconds
     * `exceedNXDOMAINs(rate, seconds)`: get set of addresses that exceed `rate` NXDOMAIN/s over `seconds` seconds

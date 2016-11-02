@@ -83,6 +83,7 @@ struct DNSDistStats
   stat_t dynBlocked{0};
   stat_t ruleDrop{0};
   stat_t ruleNXDomain{0};
+  stat_t ruleRefused{0};
   stat_t selfAnswered{0};
   stat_t downstreamTimeouts{0};
   stat_t downstreamSendErrors{0};
@@ -96,17 +97,29 @@ struct DNSDistStats
   typedef std::function<uint64_t(const std::string&)> statfunction_t;
   typedef boost::variant<stat_t*, double*, statfunction_t> entry_t;
   std::vector<std::pair<std::string, entry_t>> entries{
-    {"responses", &responses}, {"servfail-responses", &servfailResponses},
-    {"queries", &queries}, {"acl-drops", &aclDrops},
-    {"block-filter", &blockFilter}, {"rule-drop", &ruleDrop},
-    {"rule-nxdomain", &ruleNXDomain}, {"self-answered", &selfAnswered},
-    {"downstream-timeouts", &downstreamTimeouts}, {"downstream-send-errors", &downstreamSendErrors}, 
-    {"trunc-failures", &truncFail}, {"no-policy", &noPolicy},
-    {"latency0-1", &latency0_1}, {"latency1-10", &latency1_10},
-    {"latency10-50", &latency10_50}, {"latency50-100", &latency50_100}, 
-    {"latency100-1000", &latency100_1000}, {"latency-slow", &latencySlow},
-    {"latency-avg100", &latencyAvg100}, {"latency-avg1000", &latencyAvg1000}, 
-    {"latency-avg10000", &latencyAvg10000}, {"latency-avg1000000", &latencyAvg1000000},
+    {"responses", &responses},
+    {"servfail-responses", &servfailResponses},
+    {"queries", &queries},
+    {"acl-drops", &aclDrops},
+    {"block-filter", &blockFilter},
+    {"rule-drop", &ruleDrop},
+    {"rule-nxdomain", &ruleNXDomain},
+    {"rule-refused", &ruleRefused},
+    {"self-answered", &selfAnswered},
+    {"downstream-timeouts", &downstreamTimeouts},
+    {"downstream-send-errors", &downstreamSendErrors}, 
+    {"trunc-failures", &truncFail},
+    {"no-policy", &noPolicy},
+    {"latency0-1", &latency0_1},
+    {"latency1-10", &latency1_10},
+    {"latency10-50", &latency10_50},
+    {"latency50-100", &latency50_100},
+    {"latency100-1000", &latency100_1000},
+    {"latency-slow", &latencySlow},
+    {"latency-avg100", &latencyAvg100},
+    {"latency-avg1000", &latencyAvg1000},
+    {"latency-avg10000", &latencyAvg10000},
+    {"latency-avg1000000", &latencyAvg1000000},
     {"uptime", uptimeOfProcess},
     {"real-memory-usage", getRealMemoryUsage},
     {"noncompliant-queries", &nonCompliantQueries},
@@ -117,7 +130,8 @@ struct DNSDistStats
     {"cache-misses", &cacheMisses},
     {"cpu-user-msec", getCPUTimeUser},
     {"cpu-sys-msec", getCPUTimeSystem},
-    {"fd-usage", getOpenFileDescriptors}, {"dyn-blocked", &dynBlocked}, 
+    {"fd-usage", getOpenFileDescriptors},
+    {"dyn-blocked", &dynBlocked}, 
     {"dyn-block-nmg-size", [](const std::string&) { return g_dynblockNMG.getLocal()->size(); }}
   };
 };
@@ -505,7 +519,7 @@ public:
 class DNSAction
 {
 public:
-  enum class Action { Drop, Nxdomain, Spoof, Allow, HeaderModify, Pool, Delay, None};
+  enum class Action { Drop, Nxdomain, Refused, Spoof, Allow, HeaderModify, Pool, Delay, None};
   virtual Action operator()(DNSQuestion*, string* ruleresult) const =0;
   virtual string toString() const = 0;
   virtual std::unordered_map<string, double> getStats() const 
@@ -649,6 +663,7 @@ struct SuffixMatchTree
 };
 
 extern GlobalStateHolder<SuffixMatchTree<DynBlock>> g_dynblockSMT;
+extern DNSAction::Action g_dynBlockAction;
 
 extern GlobalStateHolder<vector<CarbonConfig> > g_carbon;
 extern GlobalStateHolder<ServerPolicy> g_policy;

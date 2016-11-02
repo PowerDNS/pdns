@@ -130,6 +130,7 @@ QueryCount g_qcount;
 GlobalStateHolder<servers_t> g_dstates;
 GlobalStateHolder<NetmaskTree<DynBlock>> g_dynblockNMG;
 GlobalStateHolder<SuffixMatchTree<DynBlock>> g_dynblockSMT;
+DNSAction::Action g_dynBlockAction = DNSAction::Action::Drop;
 int g_tcpRecvTimeout{2};
 int g_tcpSendTimeout{2};
 
@@ -768,22 +769,37 @@ bool processQuery(LocalStateHolder<NetmaskTree<DynBlock> >& localDynNMGBlock,
 
   if(auto got=localDynNMGBlock->lookup(*dq.remote)) {
     if(now < got->second.until) {
-      vinfolog("Query from %s dropped because of dynamic block", dq.remote->toStringWithPort());
       g_stats.dynBlocked++;
       got->second.blocks++;
-      return false;
+      if (g_dynBlockAction == DNSAction::Action::Refused) {
+        vinfolog("Query from %s refused because of dynamic block", dq.remote->toStringWithPort());
+        dq.dh->rcode = RCode::Refused;
+        dq.dh->qr=true;
+        return true;
+      }
+      else {
+        vinfolog("Query from %s dropped because of dynamic block", dq.remote->toStringWithPort());
+        return false;
+      }
     }
   }
 
   if(auto got=localDynSMTBlock->lookup(*dq.qname)) {
     if(now < got->until) {
-      vinfolog("Query from %s for %s dropped because of dynamic block", dq.remote->toStringWithPort(), dq.qname->toString());
       g_stats.dynBlocked++;
       got->blocks++;
-      return false;
+      if (g_dynBlockAction == DNSAction::Action::Refused) {
+        vinfolog("Query from %s for %s refused because of dynamic block", dq.remote->toStringWithPort(), dq.qname->toString());
+        dq.dh->rcode = RCode::Refused;
+        dq.dh->qr=true;
+        return true;
+      }
+      else {
+        vinfolog("Query from %s for %s dropped because of dynamic block", dq.remote->toStringWithPort(), dq.qname->toString());
+        return false;
+      }
     }
   }
-
 
   if(blockFilter) {
     std::lock_guard<std::mutex> lock(g_luamutex);
@@ -813,6 +829,12 @@ bool processQuery(LocalStateHolder<NetmaskTree<DynBlock> >& localDynNMGBlock,
         dq.dh->rcode = RCode::NXDomain;
         dq.dh->qr=true;
         g_stats.ruleNXDomain++;
+        return true;
+        break;
+      case DNSAction::Action::Refused:
+        dq.dh->rcode = RCode::Refused;
+        dq.dh->qr=true;
+        g_stats.ruleRefused++;
         return true;
         break;
       case DNSAction::Action::Spoof:
