@@ -531,7 +531,7 @@ to detect and act on infected hosts.
 Protobuf export to a server is enabled using the `protobufServer()` directive:
 
 ```
-protobufServer("192.0.2.1:4242" [[[[[[[, timeout], maxQueuedEntries], reconnectWaitTime], maskV4], maskV6], asynConnect], taggedOnly])
+protobufServer("192.0.2.1:4242" [[[[[[[, timeout], maxQueuedEntries], reconnectWaitTime], maskV4], maskV6], asyncConnect], taggedOnly])
 ```
 
 The optional parameters are:
