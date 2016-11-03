@@ -32,8 +32,13 @@
 #include <fstream>
 #include <boost/logic/tribool.hpp>
 #include "statnode.hh"
+#include <sys/types.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 boost::tribool g_noLuaSideEffect;
+static bool g_included{false};
 
 /* this is a best effort way to prevent logging calls with no side-effects in the output of delta()
    Functions can declare setLuaNoSideEffect() and if nothing else does declare a side effect, or nothing
@@ -1034,4 +1039,68 @@ void moreLua(bool client)
         }
         return res;
       });
+
+    g_lua.writeFunction("includeDirectory", [](const std::string& dirname) {
+        if (g_configurationDone) {
+          errlog("includeDirectory() cannot be used at runtime!");
+          g_outputBuffer="includeDirectory() cannot be used at runtime!\n";
+          return;
+        }
+
+        if (g_included) {
+          errlog("includeDirectory() cannot be used recursively!");
+          g_outputBuffer="includeDirectory() cannot be used recursively!\n";
+          return;
+        }
+
+        g_included = true;
+        struct stat st;
+
+        if (stat(dirname.c_str(), &st)) {
+          errlog("The included directory %s does not exist!", dirname.c_str());
+          g_outputBuffer="The included directory " + dirname + " does not exist!";
+          return;
+        }
+
+        if (!S_ISDIR(st.st_mode)) {
+          errlog("The included directory %s is not a directory!", dirname.c_str());
+          g_outputBuffer="The included directory " + dirname + " is not a directory!";
+          return;
+        }
+
+        DIR *dirp;
+        struct dirent *ent;
+        if (!(dirp = opendir(dirname.c_str()))) {
+          errlog("Error opening the included directory %s!", dirname.c_str());
+          g_outputBuffer="Error opening the included directory " + dirname + "!";
+          return;
+        }
+
+        while((ent = readdir(dirp)) != NULL) {
+          if (ent->d_name[0] == '.') {
+            continue;
+          }
+
+          if (boost::ends_with(ent->d_name, ".conf")) {
+            std::ostringstream namebuf;
+            namebuf << dirname.c_str() << "/" << ent->d_name;
+
+            if (stat(namebuf.str().c_str(), &st) || !S_ISREG(st.st_mode)) {
+              continue;
+            }
+
+            std::ifstream ifs(namebuf.str());
+            if (!ifs) {
+              warnlog("Unable to read configuration from '%s'", namebuf.str());
+            } else {
+              vinfolog("Read configuration from '%s'", namebuf.str());
+            }
+
+            g_lua.executeCode(ifs);
+          }
+        }
+        closedir(dirp);
+
+        g_included = false;
+    });
 }

@@ -1223,6 +1223,7 @@ Here are all functions:
     * `shutdown()`: shut down `dnsdist`
     * quit or ^D: exit the console
     * `webserver(address:port, password [, apiKey [, customHeaders ]])`: launch a webserver with stats on that address with that password
+    * `includeDirectory(dir)`: all files ending in `.conf` in the directory `dir` are loaded into the configuration
  * ACL related:
     * `addACL(netmask)`: add to the ACL set who can use this server
     * `setACL({netmask, netmask})`: replace the ACL set with these netmasks. Use `setACL({})` to reset the list, meaning no one can use us
