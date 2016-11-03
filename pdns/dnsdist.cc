@@ -1264,6 +1264,7 @@ catch(...)
 
 uint64_t g_maxTCPClientThreads{10};
 std::atomic<uint16_t> g_cacheCleaningDelay{60};
+std::atomic<uint16_t> g_cacheCleaningPercentage{100};
 
 void* maintThread()
 {
@@ -1290,7 +1291,8 @@ void* maintThread()
           packetCache = entry.second->packetCache;
         }
         if (packetCache) {
-          packetCache->purgeExpired();
+          size_t upTo = (packetCache->getMaxEntries()* (100 - g_cacheCleaningPercentage)) / 100;
+          packetCache->purgeExpired(upTo);
         }
       }
       counter = 0;
