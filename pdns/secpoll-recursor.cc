@@ -42,8 +42,10 @@ void doSecPoll(time_t* last_secpoll)
   DNSName query(qstring);
   int res=sr.beginResolve(query, QType(QType::TXT), 1, ret);
 
-  if (g_dnssecmode != DNSSECMode::Off && res)
-    state = validateRecords(ret);
+  if (g_dnssecmode != DNSSECMode::Off && res) {
+    ResolveContext ctx;
+    state = validateRecords(ctx, ret);
+  }
 
   if(state == Bogus) {
     L<<Logger::Error<<"Could not retrieve security status update for '" +pkgv+ "' on '"<<query<<"', DNSSEC validation result was Bogus!"<<endl;

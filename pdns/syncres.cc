@@ -356,6 +356,11 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
   SyncRes::EDNSStatus::EDNSMode& mode=ednsstatus->mode;
   SyncRes::EDNSStatus::EDNSMode oldmode = mode;
   int EDNSLevel=0;
+  auto luaconfsLocal = g_luaconfs.getLocal();
+  ResolveContext ctx;
+#ifdef HAVE_PROTOBUF
+  ctx.d_initialRequestId = d_initialRequestId;
+#endif
 
   int ret;
   for(int tries = 0; tries < 3; ++tries) {
@@ -368,7 +373,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
     else if(ednsMANDATORY || mode==EDNSStatus::UNKNOWN || mode==EDNSStatus::EDNSOK || mode==EDNSStatus::EDNSIGNORANT)
       EDNSLevel = 1;
     
-    ret=asyncresolve(ip, domain, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, res);
+    ret=asyncresolve(ip, domain, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, luaconfsLocal->outgoingProtobufServer, res);
     if(ret < 0) {
       return ret; // transport error, nothing to learn here
     }

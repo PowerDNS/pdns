@@ -40,6 +40,8 @@
 #include "pdnsexception.hh"
 #include "dns.hh"
 #include "namespaces.hh"
+#include "remote_logger.hh"
+#include "resolve-context.hh"
 
 int asendto(const char *data, size_t len, int flags, const ComboAddress& ip, uint16_t id,
             const DNSName& domain, uint16_t qtype,  int* fd);
@@ -65,5 +67,5 @@ public:
   bool d_haveEDNS{false};
 };
 
-int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res);
+int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res);
 #endif // PDNS_LWRES_HH
