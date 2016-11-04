@@ -116,6 +116,7 @@ pdns_recursor_SOURCES = \
 	reczones.cc \
 	remote_logger.cc remote_logger.hh \
 	resolver.hh resolver.cc \
+	resolve-context.hh \
 	responsestats.hh responsestats.cc \
 	root-addresses.hh \
 	root-dnssec.hh \
