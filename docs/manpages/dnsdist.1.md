@@ -1,6 +1,6 @@
 % DNSDIST(1)
 % PowerDNS.com BV
-% 2013
+% 2013 - 2016
 
 # NAME
 **dnsdist** - tool to balance DNS queries over downstream servers
@@ -30,8 +30,9 @@ coming in over IPv6 could be forwarded to IPv4 and vice versa.
 information on this.
 
 # SCOPE
-dnsdist does not 'think' about DNS, and does not perform any kind of
-caching, nor is it aware of the quality of the answers it is relaying.
+dnsdist does not 'think' about DNS queries, it restricts itself to measuring
+response times and error codes and routing questions accordingly. It comes with 
+a very high performance packet-cache.
 
 The goal for dnsdist is to remain simple. If more powerful loadbalancing is
 required, dedicated hardware or software is recommended. Linux Virtual
