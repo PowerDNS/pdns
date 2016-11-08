@@ -370,7 +370,7 @@ Current actions are:
  * Send out a crafted response (NXDOMAIN or "real" data)
  * Delay a response by n milliseconds (DelayAction), over UDP only
  * Modify query to clear the RD or CD bit
- * Add the source MAC address to the query (MacAddrAction)
+ * Add the source MAC address to the query (MacAddrAction, only supported on Linux)
  * Skip the cache, if any
  * Log query content to a remote server (RemoteLogAction)
  * Alter the EDNS Client Subnet parameters (DisableECSAction, ECSOverrideAction, ECSPrefixLengthAction)
@@ -1342,6 +1342,7 @@ instantiate a server with additional parameters
     * `ECSOverrideAction(bool)`: whether an existing ECS value should be overriden (true) or not (false)
     * `ECSPrefixLengthAction(v4, v6)`: set the ECS prefix length
     * `LogAction([filename], [binary], [append], [buffered])`: Log a line for each query, to the specified file if any, to the console (require verbose) otherwise. When logging to a file, the `binary` optional parameter specifies whether we log in binary form (default) or in textual form, the `append` optional parameter specifies whether we open the file for appending or truncate each time (default), and the `buffered` optional parameter specifies whether writes to the file are buffered (default) or not.
+    * `MacAddrAction(option code)`: add the source MAC address to the query as EDNS0 option `option code`. This action is currently only supported on Linux
     * `NoRecurseAction()`: strip RD bit from the question, let it go through
     * `PoolAction(poolname)`: set the packet into the specified pool
     * `QPSPoolAction(maxqps, poolname)`: set the packet into the specified pool only if it **does not** exceed the specified QPS limits, letting the subsequent rules apply otherwise
