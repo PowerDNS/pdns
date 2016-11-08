@@ -305,7 +305,7 @@ void MyDNSBackend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p
     }
 
     if(d_result.empty()) {
-      throw PDNSException("lookup() passed zoneId = "+itoa(zoneId)+" but no such zone!");
+      return; // just return if zone was not found instead of throwing an error
     }
 
     rrow = d_result[0];
