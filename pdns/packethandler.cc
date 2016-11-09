@@ -1401,7 +1401,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 
     if(!haveAlias.empty() && (!weDone || p->qtype.getCode() == QType::ANY)) {
       DLOG(L<<Logger::Warning<<"Found nothing that matched for '"<<target<<"', but did get alias to '"<<haveAlias<<"', referring"<<endl);
-      DP->completePacket(r, haveAlias, target);
+      DP->completePacket(r, haveAlias, target, sd);
       return 0;
     }
 
