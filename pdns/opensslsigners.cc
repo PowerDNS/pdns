@@ -128,6 +128,7 @@ static inline int RSA_set0_crt_params(RSA* rsakey, BIGNUM* dmp1, BIGNUM* dmq1, B
   return 1;
 }
 
+#ifdef HAVE_LIBCRYPTO_ECDSA
 static inline void ECDSA_SIG_get0(const ECDSA_SIG* signature, const BIGNUM** pr, const BIGNUM** ps) {
   *pr = signature->r;
   *ps = signature->s;
@@ -140,6 +141,8 @@ static inline int ECDSA_SIG_set0(ECDSA_SIG* signature, BIGNUM* pr, BIGNUM* ps) {
   signature->s = ps;
   return 1;
 }
+#endif /* HAVE_LIBCRYPTO_ECDSA */
+
 #else
 void openssl_thread_setup() {}
 void openssl_thread_cleanup() {}
