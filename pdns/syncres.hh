@@ -50,6 +50,7 @@
 #include "filterpo.hh"
 
 void primeHints(void);
+int getRootNS(void);
 class RecursorLua4;
 
 struct BothRecordsAndSignatures
