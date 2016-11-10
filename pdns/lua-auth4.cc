@@ -10,7 +10,7 @@
 #include <thread>
 #include <mutex>
 #include "minicurl.hh"
-
+#include "ueberbackend.hh"
 #if !defined(HAVE_LUA)
 
 AuthLua4::AuthLua4(const std::string& fname) { }
@@ -410,7 +410,7 @@ void IsUpOracle::checkURLThread(ComboAddress rem, std::string url, opts_t opts)
       if(opts.count("stringmatch") && content.find(opts["stringmatch"]) == string::npos) {
         cout<<"URL "<<url<<" is up at "<<rem.toString()<<", but could not find stringmatch "<<opts["stringmatch"]<<" in page content, setting DOWN"<<endl;
         setDown(rem, url, opts);
-        continue;
+        goto loop;
       }
       if(!upStatus(rem,url))
         cout<<"Declaring "<<rem.toString()<<" UP for URL "<<url<<"!"<<endl;
@@ -421,6 +421,7 @@ void IsUpOracle::checkURLThread(ComboAddress rem, std::string url, opts_t opts)
         cout<<"Failed to connect to "<<rem.toString()<<" for URL "<<url<<", setting DOWN, error: "<<ne.what()<<endl;
       setDown(rem,url);
     }
+  loop:;
     sleep(5);
   }
 }
@@ -428,12 +429,9 @@ void IsUpOracle::checkURLThread(ComboAddress rem, std::string url, opts_t opts)
 
 IsUpOracle g_up;
 
-std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, const DNSName& query, const ComboAddress& who, uint16_t qtype) 
+std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, const DNSName& query, const DNSName& zone, int zoneid, const ComboAddress& who, uint16_t qtype) 
 {
   std::vector<shared_ptr<DNSRecordContent>> ret;
-  cout<<"Code: "<<code<<endl;
-  string strip=code.c_str()+1;
-  strip.resize(strip.size()-1);
   
   LuaContext lua;
   lua.writeVariable("qname", query.toString());
@@ -462,32 +460,66 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
     });
 
 
-  lua.writeFunction("ifurlup", [](const std::string& url, const vector<pair<int, string> >& ips, boost::optional<std::unordered_map<string,string>> options) {
+  lua.writeFunction("ifurlup", [](const std::string& url,
+                                  const boost::variant<
+                                  vector<pair<int, string> >,
+                                  vector<pair<int, vector<pair<int, string> > > >
+                                  > & ips, boost::optional<std::unordered_map<string,string>> options) {
 
-      vector<ComboAddress> candidates;
-      for(const auto& i : ips) {
-        ComboAddress rem(i.second, 80);
-        std::unordered_map<string,string> opts;
-        if(options)
-          opts = *options;
-        if(g_up.isUp(rem, url, opts))
-          candidates.push_back(rem);
+      vector<vector<ComboAddress> > candidates;
+      std::unordered_map<string,string> opts;
+      if(options)
+        opts = *options;
+      if(auto simple = boost::get<vector<pair<int,string>>>(&ips)) {
+        vector<ComboAddress> unit;
+        for(const auto& i : *simple) {
+          ComboAddress rem(i.second, 80);
+          unit.push_back(rem);
+        }
+        candidates.push_back(unit);
+      } else {
+        auto units = boost::get<vector<pair<int, vector<pair<int, string> > > >>(ips);
+        for(const auto& u : units) {
+          vector<ComboAddress> unit;
+          for(const auto& c : u.second) {
+            ComboAddress rem(c.second, 80);
+            unit.push_back(rem);
+          }
+          candidates.push_back(unit);
+        }
       }
-      cout<<"Have "<<candidates.size()<<" candidate IP addresses: ";
-      for(const auto& c : candidates)
-        cout<<c.toString()<<" ";
-      cout<<endl;
 
+      //
+      cout<<"Have "<<candidates.size()<<" units of IP addresses: "<<endl;
+      int ucount=1;
+      for(const auto& unit : candidates) {
+        cout<<"Unit "<<ucount<<": ";
+        for(const auto& c : unit)
+          cout<<c.toString()<<" ";
+        cout<<endl;
+        ucount++;
+      }
       vector<string> ret;
-      if(candidates.empty()) {
-        cout<<"Everything is down, returning all IP addresses"<<endl;
-        for(const auto& i : ips) 
-          ret.push_back(i.second);
+      for(const auto& unit : candidates) {
+        vector<ComboAddress> available;
+        for(const auto& c : unit)
+          if(g_up.isUp(c, url, opts))
+            available.push_back(c);
+        if(available.empty()) {
+          cerr<<"Entire unit is down, trying next one if available"<<endl;
+          continue;
+        }
+        ret.push_back(available[random() % available.size()].toString());
+        return ret;
+      }      
+      cerr<<"ALL units are down, returning all IP addresses"<<endl;
+      for(const auto& unit : candidates) {
+        for(const auto& c : unit)
+          ret.push_back(c.toString());
       }
-      else
-        ret.push_back(candidates[random() % candidates.size()].toString());
+
       return ret;
-    });
+                    });
 
   
   lua.writeFunction("pickRandom", [](const vector<pair<int, string> >& ips) {
@@ -509,21 +541,50 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
       
     });
 
+  int counter=0;
+  lua.writeFunction("report", [&counter](string event, boost::optional<string> line){
+      cout<<"It was toooo much"<<endl;
+      throw std::runtime_error("Script took too long");
+    });
+  lua.executeCode("debug.sethook(report, '', 1000)");
+
+  lua.writeFunction("continent", [&who](const std::string& continent) {
+      return true;
+    });
+
+  lua.writeFunction("include", [&lua,zone,zoneid](string record) {
+      try {
+        cerr<<"Wants to load record '"<<record<<"'"<<endl;
+        UeberBackend ub;
+        ub.lookup(QType(QType::LUA), DNSName(record) +zone, 0, zoneid);
+        DNSZoneRecord dr;
+        while(ub.get(dr)) {
+          auto lr = getRR<LUARecordContent>(dr.dr);
+          cout<<"About to execute "<<lr->getCode()<<endl;
+          lua.executeCode(lr->getCode());
+        }
+      }catch(std::exception& e) { cerr<<"Oops: "<<e.what()<<endl; }
+    });
+
   
-  auto content=lua.executeCode<boost::variant<string, vector<pair<int, string> > > >(strip);
-
-  vector<string> contents;
-  if(auto str = boost::get<string>(&content))
-    contents.push_back(*str);
-  else
-    for(const auto& c : boost::get<vector<pair<int,string>>>(content))
-      contents.push_back(c.second);
-
-  for(const auto& content: contents) {
-    if(qtype==QType::TXT)
-      ret.push_back(std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(qtype, 1, '"'+content+'"' )));
+  try {
+    auto content=lua.executeCode<boost::variant<string, vector<pair<int, string> > > >(code);
+    //  cout<<"Counter: "<<counter<<endl;
+    vector<string> contents;
+    if(auto str = boost::get<string>(&content))
+      contents.push_back(*str);
     else
-      ret.push_back(std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(qtype, 1, content )));
+      for(const auto& c : boost::get<vector<pair<int,string>>>(content))
+        contents.push_back(c.second);
+    
+    for(const auto& content: contents) {
+      if(qtype==QType::TXT)
+        ret.push_back(std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(qtype, 1, '"'+content+'"' )));
+      else
+        ret.push_back(std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(qtype, 1, content )));
+    }
+  }catch(std::exception &e) {
+    cerr<<"Lua reported: "<<e.what()<<endl;
   }
 
   return ret;

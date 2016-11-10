@@ -59,7 +59,7 @@ void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem)
   curl_easy_setopt(d_curl, CURLOPT_URL, str.c_str());
   curl_easy_setopt(d_curl, CURLOPT_WRITEFUNCTION, write_callback);
   curl_easy_setopt(d_curl, CURLOPT_WRITEDATA, this);
-
+  curl_easy_setopt(d_curl, CURLOPT_TIMEOUT, 2L);
   
   d_data.clear();
 }

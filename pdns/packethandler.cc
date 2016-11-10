@@ -1285,18 +1285,21 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
     while(B.get(rr)) {
       if(rr.dr.d_type == QType::LUA) {
         auto rec=getRR<LUARecordContent>(rr.dr);
-        if(rec->d_type != p->qtype.getCode())
+        if(rec->d_type != QType::CNAME && rec->d_type != p->qtype.getCode())
           continue;
         
-        auto recvec=luaSynth(rec->getCode(), target, p->getRemote(), p->qtype.getCode());
+        auto recvec=luaSynth(rec->getCode(), target, sd.qname, sd.domain_id, p->getRemote(), rec->d_type);
         if(!recvec.empty()) {
           for(const auto& r : recvec) {
-            rr.dr.d_type = p->qtype.getCode();
+            rr.dr.d_type = rec->d_type; // might be CNAME
             rr.dr.d_content = r;
             rr.scopeMask = 32;
             rrset.push_back(rr);
           }
-          weDone = 1;
+          if(rec->d_type == QType::CNAME && p->qtype.getCode() != QType::CNAME)
+            weRedirected = 1;
+          else
+            weDone = 1;
         }
       }
       //cerr<<"got content: ["<<rr.content<<"]"<<endl;
