@@ -1937,35 +1937,9 @@ static void houseKeeping(void *)
     }
 
     if(now.tv_sec - last_rootupdate > 7200) {
-      SyncRes sr(now);
-      sr.setDoEDNS0(true);
-      vector<DNSRecord> ret;
-
-      sr.setNoCache();
-      int res=-1;
-      try {
-	res=sr.beginResolve(DNSName("."), QType(QType::NS), 1, ret);
-      }
-      catch(PDNSException& e)
-	{
-	  L<<Logger::Error<<"Failed to update . records, got an exception: "<<e.reason<<endl;
-	}
-
-      catch(std::exception& e)
-	{
-	  L<<Logger::Error<<"Failed to update . records, got an exception: "<<e.what()<<endl;
-	}
-
-      catch(...)
-	{
-	  L<<Logger::Error<<"Failed to update . records, got an exception"<<endl;
-	}
-      if(!res) {
-	L<<Logger::Notice<<"Refreshed . records"<<endl;
-	last_rootupdate=now.tv_sec;
-      }
-      else
-	L<<Logger::Error<<"Failed to update . records, RCODE="<<res<<endl;
+      int res = getRootNS();
+      if (!res)
+        last_rootupdate=now.tv_sec;
     }
 
     if(!t_id) {
@@ -3144,4 +3118,43 @@ int main(int argc, char **argv)
   }
 
   return ret;
+}
+
+int getRootNS(void) {
+  SyncRes sr(g_now);
+  sr.setDoEDNS0(true);
+  sr.setNoCache();
+  sr.d_doDNSSEC = (g_dnssecmode != DNSSECMode::Off);
+
+  vector<DNSRecord> ret;
+  int res=-1;
+  try {
+    res=sr.beginResolve(DNSName("."), QType(QType::NS), 1, ret);
+    if (g_dnssecmode != DNSSECMode::Off && g_dnssecmode != DNSSECMode::ProcessNoValidate) {
+      auto state = validateRecords(ret);
+      if (state == Bogus)
+        throw PDNSException("Got Bogus validation result for .|NS");
+    }
+    return res;
+  }
+  catch(PDNSException& e)
+  {
+    L<<Logger::Error<<"Failed to update . records, got an exception: "<<e.reason<<endl;
+  }
+
+  catch(std::exception& e)
+  {
+    L<<Logger::Error<<"Failed to update . records, got an exception: "<<e.what()<<endl;
+  }
+
+  catch(...)
+  {
+    L<<Logger::Error<<"Failed to update . records, got an exception"<<endl;
+  }
+  if(!res) {
+    L<<Logger::Notice<<"Refreshed . records"<<endl;
+  }
+  else
+    L<<Logger::Error<<"Failed to update . records, RCODE="<<res<<endl;
+  return res;
 }
