@@ -1354,7 +1354,7 @@ void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           const struct dnsheader* dh = (const struct dnsheader*) conn->data;
           dc->d_ednssubnet = ednssubnet;
 
-          protobufLogQuery(luaconfsLocal->protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, dc->d_uuid, dest, conn->d_remote, ednssubnet, true, dh->id, conn->qlen, qname, qtype, qclass, dc->d_policyTags);
+          protobufLogQuery(luaconfsLocal->protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, dc->d_uuid, conn->d_remote, dest, ednssubnet, true, dh->id, conn->qlen, qname, qtype, qclass, dc->d_policyTags);
         }
         catch(std::exception& e) {
           if(g_logCommonErrors)
