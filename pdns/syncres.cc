@@ -632,8 +632,10 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vecto
     LOG(prefix<<qname<<": no valid/useful NS in cache for '"<<subdomain<<"'"<<endl);
     ;
     if(subdomain.isRoot() && !brokeloop) {
+      // We lost the root NS records
       primeHints();
       LOG(prefix<<qname<<": reprimed the root"<<endl);
+      getRootNS();
     }
   }while(subdomain.chopOff());
 }
