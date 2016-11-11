@@ -246,7 +246,7 @@ private:
      std::string errorMessage;
      if (!realTestResult(result, type, handle, message, errorMessage)) {
        releaseStatement();
-       throw errorMessage;
+       throw SSqlException(errorMessage);
      }
   }
 
@@ -476,5 +476,5 @@ void SODBC::rollback() {
 
 void SODBC::testResult(SQLRETURN result, SQLSMALLINT type, SQLHANDLE handle, const std::string & message) {
   std::string errorMessage;
-  if (!realTestResult(result, type, handle, message, errorMessage)) throw errorMessage;
+  if (!realTestResult(result, type, handle, message, errorMessage)) throw SSqlException(errorMessage);
 }
