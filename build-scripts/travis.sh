@@ -236,7 +236,7 @@ install_auth() {
     jq"
 
   run "cd .."
-  run "wget http://www.verisignlabs.com/dnssec-tools/packages/jdnssec-tools-0.12.tar.gz"
+  run "wget https://www.verisignlabs.com/dnssec-tools/packages/jdnssec-tools-0.12.tar.gz"
   run "sudo tar xfz jdnssec-tools-0.12.tar.gz --strip-components=1 -C /"
   run "cd pdns"
 
@@ -335,7 +335,7 @@ install_recursor() {
     moreutils \
     jq"
   run "cd .."
-  run "wget http://s3.amazonaws.com/alexa-static/top-1m.csv.zip"
+  run "wget https://s3.amazonaws.com/alexa-static/top-1m.csv.zip"
   run "unzip top-1m.csv.zip -d ./pdns/regression-tests"
   PDNS_SERVER_VERSION="0.0.880gcb54743-1pdns"
   run "wget https://downloads.powerdns.com/autobuilt/auth/deb/$PDNS_SERVER_VERSION.trusty-amd64/pdns-server_$PDNS_SERVER_VERSION.trusty_amd64.deb"
