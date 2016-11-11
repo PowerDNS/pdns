@@ -1533,6 +1533,9 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone)
   }
 
   cout<<"This is a "<<DomainInfo::getKindString(di.kind)<<" zone"<<endl;
+  if (!di.account.empty()) {
+      cout<<"This zone is owned by "<<di.account<<endl;
+  }
   if(di.kind == DomainInfo::Master) {
     cout<<"Last SOA serial number we notified: "<<di.notified_serial<<" ";
     SOAData sd;
