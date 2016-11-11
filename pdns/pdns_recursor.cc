@@ -586,7 +586,7 @@ void updateResponseStats(int res, const ComboAddress& remote, unsigned int packe
   case RCode::ServFail:
     if(t_servfailremotes) {
       t_servfailremotes->push_back(remote);
-      if(query) // packet cache
+      if(query && t_servfailqueryring) // packet cache
 	t_servfailqueryring->push_back(make_pair(*query, qtype));
     }
     g_stats.servFails++;
@@ -667,7 +667,8 @@ void startDoResolve(void *p)
 {
   DNSComboWriter* dc=(DNSComboWriter *)p;
   try {
-    t_queryring->push_back(make_pair(dc->d_mdp.d_qname, dc->d_mdp.d_qtype));
+    if (t_queryring)
+      t_queryring->push_back(make_pair(dc->d_mdp.d_qname, dc->d_mdp.d_qtype));
 
     uint32_t maxanswersize= dc->d_tcp ? 65535 : min((uint16_t) 512, g_udpTruncationThreshold);
     EDNSOpts edo;
