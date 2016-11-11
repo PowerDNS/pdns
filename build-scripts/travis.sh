@@ -224,6 +224,10 @@ install_auth() {
   run "sudo apt-get -qq --no-install-recommends install \
     libzmq3-dev"
 
+  # godbc-backend
+  run "sudo apt-get -qq --no-install-recommends install \
+    libsqliteodbc"
+
   # authoritative test requirements / setup
   run "sudo apt-get -qq --no-install-recommends install \
     bind9utils \
@@ -271,7 +275,9 @@ install_auth() {
     mysql-server"
 
   # godbc-backend test setup
-  run echo\ -e\ "[pdns-sqlite3-1]\nDriver = SQLite3\nDatabase = ${PWD}/regression-tests/pdns.sqlite3\n\n[pdns-sqlite3-2]\nDriver = SQLite3\nDatabase = ${PWD}/regression-tests/pdns.sqlite32\n"\ >\ ${HOME}/.odbc.ini
+  run 'echo -e "[pdns-sqlite3-1]\nDriver = SQLite3\nDatabase = ${PWD}/regression-tests/pdns.sqlite3\n\n[pdns-sqlite3-2]\nDriver = SQLite3\nDatabase = ${PWD}/regression-tests/pdns.sqlite32\n" > ${HOME}/.odbc.ini'
+  run 'echo ${HOME}/.odbc.ini'
+  run 'cat ${HOME}/.odbc.ini'
 
   # ldap-backend test setup
   run "sudo apt-get -qq --no-install-recommends install \
@@ -355,7 +361,7 @@ build_auth() {
   run "./bootstrap"
   # Build without --enable-botan1.10 option, Botan/SoftHSM conflict #2496
   run "CFLAGS='-O1' CXXFLAGS='-O1' ./configure \
-    --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 ldap lua mydns opendbx pipe random remote tinydns' \
+    --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 ldap lua mydns opendbx pipe random remote tinydns godbc' \
     --with-modules='' \
     --with-sqlite3 \
     --enable-libsodium \
@@ -454,7 +460,7 @@ test_auth() {
   run "./timestamp ./start-test-stop 5300 gmysql-nsec3-narrow"
 
   run "export GODBC_SQLITE3_DSN=pdns-sqlite3-1"
-  # run "./timestamp ./start-test-stop 5300 godbc_sqlite3-nsec3"
+  run "./timestamp ./start-test-stop 5300 godbc_sqlite3-nsec3"
 
   run "./timestamp ./start-test-stop 5300 gpgsql-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 gpgsql-both"
