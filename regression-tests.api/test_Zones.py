@@ -54,9 +54,11 @@ class Zones(ApiTestCase):
         example_com = [domain for domain in domains if domain['name'] in ('example.com', 'example.com.')]
         self.assertEquals(len(example_com), 1)
         example_com = example_com[0]
+        print(example_com)
         required_fields = ['id', 'url', 'name', 'kind']
         if is_auth():
             required_fields = required_fields + ['masters', 'last_check', 'notified_serial', 'serial', 'account']
+            self.assertNotEquals(example_com['serial'], 0)
         elif is_recursor():
             required_fields = required_fields + ['recursion_desired', 'servers']
         for field in required_fields:
