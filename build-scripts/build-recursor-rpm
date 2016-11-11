@@ -120,7 +120,7 @@ Source0: ../%{name}-${TARBALLVERSION}.tar.bz2
 Source1: pdns-recursor.init
 
 Provides: powerdns-recursor = %{version}-%{release}
-BuildRequires: boost-devel
+BuildRequires: boost148-devel
 BuildRequires: lua-devel
 #BuildRequires: protobuf-devel
 #BuildRequires: protobuf-compiler
@@ -144,10 +144,11 @@ package if you need a dns cache for your network.
 	--disable-static \
 	--disable-dependency-tracking \
 	--disable-silent-rules \
-	--without-protobuf \
-	--enable-unit-tests
+	--with-protobuf \
+	--enable-unit-tests \
+	--with-boost=/usr/include/boost148 LIBRARY_PATH=/usr/lib64/boost148
 
-make %{?_smp_mflags}
+make %{?_smp_mflags} LIBRARY_PATH=/usr/lib64/boost148
 
 %install
 %{__rm} -rf %{buildroot}
