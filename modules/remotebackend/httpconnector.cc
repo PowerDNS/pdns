@@ -394,7 +394,6 @@ int HTTPConnector::recv_message(rapidjson::Document &output) {
           throw NetworkError("EOF while reading");
         if (rd<0)
           throw NetworkError(std::string(strerror(rd)));
-        buffer[rd] = 0;
         arl.feed(std::string(buffer, rd));
       }
       // timeout occured.
