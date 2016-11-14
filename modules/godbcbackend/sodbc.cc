@@ -90,6 +90,7 @@ public:
   vector<ODBCParam> d_req_bind;
 
   SSqlStatement* bind(const string& name, ODBCParam& p) {
+    prepareStatement();
     d_req_bind.push_back(p);
     SQLRETURN result = SQLBindParameter(
       d_statement,           // StatementHandle,
@@ -109,15 +110,16 @@ public:
     return this;
   }
 
-  SSqlStatement* bind(const string& name, bool value) { return bind(name, (uint32_t)value); }
+  SSqlStatement* bind(const string& name, bool value) { prepareStatement(); return bind(name, (uint32_t)value); }
 
-  SSqlStatement* bind(const string& name, long value) { return bind(name, (unsigned long)value); }
+  SSqlStatement* bind(const string& name, long value) { prepareStatement(); return bind(name, (unsigned long)value); }
 
-  SSqlStatement* bind(const string& name, int value) { return bind(name, (uint32_t)value); }
+  SSqlStatement* bind(const string& name, int value) { prepareStatement(); return bind(name, (uint32_t)value); }
 
-  SSqlStatement* bind(const string& name, long long value) { return bind(name, (unsigned long long)value); }
+  SSqlStatement* bind(const string& name, long long value) { prepareStatement(); return bind(name, (unsigned long long)value); }
 
   SSqlStatement* bind(const string& name, uint32_t value) {
+    prepareStatement();
     ODBCParam p;
     p.ParameterValuePtr = new UDWORD {value};
     p.LenPtr = new SQLLEN {sizeof(UDWORD)};
@@ -127,6 +129,7 @@ public:
   }
 
   SSqlStatement* bind(const string& name, unsigned long value) {
+    prepareStatement();
     ODBCParam p;
     p.ParameterValuePtr = new ULONG {value};
     p.LenPtr = new SQLLEN {sizeof(ULONG)};
@@ -136,6 +139,7 @@ public:
   }
 
   SSqlStatement* bind(const string& name, unsigned long long value) {
+    prepareStatement();
     ODBCParam p;
     p.ParameterValuePtr = new unsigned long long {value};
     p.LenPtr = new SQLLEN {sizeof(unsigned long long)};
@@ -149,7 +153,7 @@ public:
     // cerr<<"asked to bind string "<<value<<endl;
 
     if(d_req_bind.size() > (d_parnum+1)) throw SSqlException("Trying to bind too many parameters.");
-
+    prepareStatement();
     ODBCParam p;
 
     p.ParameterValuePtr = (char*) new char[value.size()+1];
@@ -166,6 +170,7 @@ public:
   SSqlStatement* bindNull(const string& name) {
     if(d_req_bind.size() > (d_parnum+1)) throw SSqlException("Trying to bind too many parameters.");
 
+    prepareStatement();
     ODBCParam p;
 
     p.ParameterValuePtr = NULL;
@@ -179,6 +184,7 @@ public:
 
   SSqlStatement* execute()
   {
+    prepareStatement();
     SQLRETURN result;
     // cerr<<"execute("<<d_query<<")"<<endl;
     if (d_dolog) {
@@ -246,7 +252,7 @@ private:
      std::string errorMessage;
      if (!realTestResult(result, type, handle, message, errorMessage)) {
        releaseStatement();
-       throw errorMessage;
+       throw SSqlException(errorMessage);
      }
   }
 
@@ -476,5 +482,5 @@ void SODBC::rollback() {
 
 void SODBC::testResult(SQLRETURN result, SQLSMALLINT type, SQLHANDLE handle, const std::string & message) {
   std::string errorMessage;
-  if (!realTestResult(result, type, handle, message, errorMessage)) throw errorMessage;
+  if (!realTestResult(result, type, handle, message, errorMessage)) throw SSqlException(errorMessage);
 }
