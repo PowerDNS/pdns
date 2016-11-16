@@ -132,20 +132,20 @@ void Bind2Backend::release(SSqlStatement** stmt) {
 
 void Bind2Backend::freeStatements()
 {
-  release(&d_getAllDomainMetadataQuery_stmt);
-  release(&d_getDomainMetadataQuery_stmt);
-  release(&d_deleteDomainMetadataQuery_stmt);
-  release(&d_insertDomainMetadataQuery_stmt);
-  release(&d_getDomainKeysQuery_stmt);
-  release(&d_deleteDomainKeyQuery_stmt);
-  release(&d_insertDomainKeyQuery_stmt);
-  release(&d_GetLastInsertedKeyIdQuery_stmt);
-  release(&d_activateDomainKeyQuery_stmt);
-  release(&d_deactivateDomainKeyQuery_stmt);
-  release(&d_getTSIGKeyQuery_stmt);
-  release(&d_setTSIGKeyQuery_stmt);
-  release(&d_deleteTSIGKeyQuery_stmt);
-  release(&d_getTSIGKeysQuery_stmt);
+  d_getAllDomainMetadataQuery_stmt.reset();
+  d_getDomainMetadataQuery_stmt.reset();
+  d_deleteDomainMetadataQuery_stmt.reset();
+  d_insertDomainMetadataQuery_stmt.reset();
+  d_getDomainKeysQuery_stmt.reset();
+  d_deleteDomainKeyQuery_stmt.reset();
+  d_insertDomainKeyQuery_stmt.reset();
+  d_GetLastInsertedKeyIdQuery_stmt.reset();
+  d_activateDomainKeyQuery_stmt.reset();
+  d_deactivateDomainKeyQuery_stmt.reset();
+  d_getTSIGKeyQuery_stmt.reset();
+  d_setTSIGKeyQuery_stmt.reset();
+  d_deleteTSIGKeyQuery_stmt.reset();
+  d_getTSIGKeysQuery_stmt.reset();
 }
 
 bool Bind2Backend::doesDNSSEC()

@@ -210,8 +210,8 @@ SSQLite3::~SSQLite3()
   }
 }
 
-SSqlStatement* SSQLite3::prepare(const string& query, int nparams __attribute__((unused))) {
-  return new SSQLite3Statement(this, m_dolog, query);
+std::unique_ptr<SSqlStatement> SSQLite3::prepare(const string& query, int nparams __attribute__((unused))) {
+  return std::unique_ptr<SSqlStatement>(new SSQLite3Statement(this, m_dolog, query));
 }
 
 void SSQLite3::execute(const string& query) {

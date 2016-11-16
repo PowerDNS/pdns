@@ -524,8 +524,8 @@ SSqlException SOracle::sPerrorException(const string &reason)
   return SSqlException(reason);
 }
 
-SSqlStatement* SOracle::prepare(const string& query, int nparams) {
-  return new SOracleStatement(query, s_dolog, nparams, d_environmentHandle, d_serviceContextHandle, d_release_stmt);
+std::unique_ptr<SSqlStatement> SOracle::prepare(const string& query, int nparams) {
+  return std::unique_ptr<SSqlStatement>(new SOracleStatement(query, s_dolog, nparams, d_environmentHandle, d_serviceContextHandle, d_release_stmt));
 }
 
 void SOracle::execute(const string& query) {

@@ -45,7 +45,7 @@ public:
 
   SSqlException sPerrorException(const string &reason);
   void setLog(bool state);
-  SSqlStatement* prepare(const string& query, int nparams);
+  std::unique_ptr<SSqlStatement> prepare(const string& query, int nparams);
   void execute(const string& query);
 
   void startTransaction();

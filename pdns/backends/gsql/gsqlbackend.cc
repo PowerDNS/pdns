@@ -1030,14 +1030,14 @@ void GSQLBackend::lookup(const QType &qtype,const DNSName &qname, DNSPacket *pkt
     if(qtype.getCode()!=QType::ANY) {
       if(domain_id < 0) {
         d_query_name = "basic-query";
-        d_query_stmt = d_NoIdQuery_stmt;
-        d_query_stmt->
+        d_query_stmt = &d_NoIdQuery_stmt;
+        (*d_query_stmt)->
           bind("qtype", qtype.getName())->
           bind("qname", qname);
       } else {
         d_query_name = "id-query";
-        d_query_stmt = d_IdQuery_stmt;
-        d_query_stmt->
+        d_query_stmt = &d_IdQuery_stmt;
+        (*d_query_stmt)->
           bind("qtype", qtype.getName())->
           bind("qname", qname)->
           bind("domain_id", domain_id);
@@ -1046,19 +1046,19 @@ void GSQLBackend::lookup(const QType &qtype,const DNSName &qname, DNSPacket *pkt
       // qtype==ANY
       if(domain_id < 0) {
         d_query_name = "any-query";
-        d_query_stmt = d_ANYNoIdQuery_stmt;
-        d_query_stmt->
+        d_query_stmt = &d_ANYNoIdQuery_stmt;
+        (*d_query_stmt)->
           bind("qname", qname);
       } else {
         d_query_name = "any-id-query";
-        d_query_stmt = d_ANYIdQuery_stmt;
-        d_query_stmt->
+        d_query_stmt = &d_ANYIdQuery_stmt;
+        (*d_query_stmt)->
           bind("qname", qname)->
           bind("domain_id", domain_id);
       }
     }
 
-    d_query_stmt->
+    (*d_query_stmt)->
       execute();
   }
   catch(SSqlException &e) {
@@ -1076,8 +1076,8 @@ bool GSQLBackend::list(const DNSName &target, int domain_id, bool include_disabl
     reconnectIfNeeded();
 
     d_query_name = "list-query";
-    d_query_stmt = d_listQuery_stmt;
-    d_query_stmt->
+    d_query_stmt = &d_listQuery_stmt;
+    (*d_query_stmt)->
       bind("include_disabled", (int)include_disabled)->
       bind("domain_id", domain_id)->
       execute();
@@ -1098,8 +1098,8 @@ bool GSQLBackend::listSubZone(const DNSName &zone, int domain_id) {
     reconnectIfNeeded();
 
     d_query_name = "list-subzone-query";
-    d_query_stmt = d_listSubZoneQuery_stmt;
-    d_query_stmt->
+    d_query_stmt = &d_listSubZoneQuery_stmt;
+    (*d_query_stmt)->
       bind("zone", zone)->
       bind("wildzone", wildzone)->
       bind("domain_id", domain_id)->
@@ -1118,9 +1118,9 @@ bool GSQLBackend::get(DNSResourceRecord &r)
   SSqlStatement::row_t row;
 
 skiprow:
-  if(d_query_stmt->hasNextRow()) {
+  if((*d_query_stmt)->hasNextRow()) {
     try {
-      d_query_stmt->nextRow(row);
+      (*d_query_stmt)->nextRow(row);
       ASSERT_ROW_COLUMNS(d_query_name, row, 8);
     } catch (SSqlException &e) {
       throw PDNSException("GSQLBackend get: "+e.txtReason());
@@ -1134,7 +1134,7 @@ skiprow:
   }
 
   try {
-    d_query_stmt->reset();
+    (*d_query_stmt)->reset();
   } catch (SSqlException &e) {
       throw PDNSException("GSQLBackend get: "+e.txtReason());
   }
@@ -1542,8 +1542,8 @@ bool GSQLBackend::listComments(const uint32_t domain_id)
     reconnectIfNeeded();
 
     d_query_name = "list-comments-query";
-    d_query_stmt = d_ListCommentsQuery_stmt;
-    d_query_stmt->
+    d_query_stmt = &d_ListCommentsQuery_stmt;
+    (*d_query_stmt)->
       bind("domain_id", domain_id)->
       execute();
   }
@@ -1559,9 +1559,9 @@ bool GSQLBackend::getComment(Comment& comment)
   SSqlStatement::row_t row;
 
   for(;;) {
-    if (!d_query_stmt->hasNextRow()) {
+    if (!(*d_query_stmt)->hasNextRow()) {
       try {
-        d_query_stmt->reset();
+        (*d_query_stmt)->reset();
       } catch(SSqlException &e) {
         throw PDNSException("GSQLBackend comment get: "+e.txtReason());
       }
@@ -1570,7 +1570,7 @@ bool GSQLBackend::getComment(Comment& comment)
     }
 
     try {
-      d_query_stmt->nextRow(row);
+      (*d_query_stmt)->nextRow(row);
       ASSERT_ROW_COLUMNS(d_query_name, row, 6);
     } catch(SSqlException &e) {
       throw PDNSException("GSQLBackend comment get: "+e.txtReason());
@@ -1632,7 +1632,7 @@ string GSQLBackend::directBackendCmd(const string &query)
  try {
    ostringstream out;
 
-   unique_ptr<SSqlStatement> stmt(d_db->prepare(query,0));
+   auto stmt = d_db->prepare(query,0);
 
    reconnectIfNeeded();
 
