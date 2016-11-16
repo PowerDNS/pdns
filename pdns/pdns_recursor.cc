@@ -2638,7 +2638,7 @@ int serviceMain(int argc, char*argv[])
 
   g_dnssecLogBogus = ::arg().mustDo("dnssec-log-bogus");
 
-  loadRecursorLuaConfig(::arg()["lua-config-file"]);
+  loadRecursorLuaConfig(::arg()["lua-config-file"], ::arg().mustDo("daemon"));
 
   parseACLs();
   sortPublicSuffixList();
@@ -2730,6 +2730,7 @@ int serviceMain(int argc, char*argv[])
     L<<Logger::Warning<<"Calling daemonize, going to background"<<endl;
     L.toConsole(Logger::Critical);
     daemonize();
+    loadRecursorLuaConfig(::arg()["lua-config-file"], false);
   }
   signal(SIGUSR1,usr1Handler);
   signal(SIGUSR2,usr2Handler);

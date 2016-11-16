@@ -41,5 +41,5 @@ public:
 };
 
 extern GlobalStateHolder<LuaConfigItems> g_luaconfs;
-void loadRecursorLuaConfig(const std::string& fname);
+void loadRecursorLuaConfig(const std::string& fname, bool checkOnly);
 
