@@ -53,15 +53,14 @@ typename C::value_type::second_type constGet(const C& c, const std::string& name
 }
 
 #ifndef HAVE_LUA
-void loadRecursorLuaConfig(const std::string& fname)
+void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
 {
   if(!fname.empty())
     throw PDNSException("Asked to load a Lua configuration file '"+fname+"' in binary without Lua support");
 }
 #else
 
-
-void loadRecursorLuaConfig(const std::string& fname)
+void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
 {
   LuaConfigItems lci;
 
@@ -130,7 +129,7 @@ void loadRecursorLuaConfig(const std::string& fname)
     });
 
 
-  Lua.writeFunction("rpzMaster", [&lci](const string& master_, const string& zone_, const boost::optional<std::unordered_map<string,boost::variant<int, string>>>& options) {
+  Lua.writeFunction("rpzMaster", [&lci, checkOnly](const string& master_, const string& zone_, const boost::optional<std::unordered_map<string,boost::variant<int, string>>>& options) {
       try {
 	boost::optional<DNSFilterEngine::Policy> defpol;
         TSIGTriplet tt;
@@ -186,11 +185,13 @@ void loadRecursorLuaConfig(const std::string& fname)
         const size_t zoneIdx = lci.dfe.size();
         lci.dfe.setPolicyName(zoneIdx, polName);
 
-	auto sr=loadRPZFromServer(master, zone, lci.dfe, defpol, zoneIdx, tt, maxReceivedXFRMBytes * 1024 * 1024, localAddress);
-        if(refresh)
-          sr->d_st.refresh=refresh;
-	std::thread t(RPZIXFRTracker, master, zone, defpol, zoneIdx, tt, sr, maxReceivedXFRMBytes * 1024 * 1024, localAddress);
-	t.detach();
+        if (!checkOnly) {
+          auto sr=loadRPZFromServer(master, zone, lci.dfe, defpol, zoneIdx, tt, maxReceivedXFRMBytes * 1024 * 1024, localAddress);
+          if(refresh)
+            sr->d_st.refresh=refresh;
+          std::thread t(RPZIXFRTracker, master, zone, defpol, zoneIdx, tt, sr, maxReceivedXFRMBytes * 1024 * 1024, localAddress);
+          t.detach();
+        }
       }
       catch(std::exception& e) {
 	theL()<<Logger::Error<<"Unable to load RPZ zone '"<<zone_<<"' from '"<<master_<<"': "<<e.what()<<endl;
@@ -265,11 +266,14 @@ void loadRecursorLuaConfig(const std::string& fname)
     });
 
 #if HAVE_PROTOBUF
-  Lua.writeFunction("protobufServer", [&lci](const string& server_, const boost::optional<uint16_t> timeout, const boost::optional<uint64_t> maxQueuedEntries, const boost::optional<uint8_t> reconnectWaitTime, const boost::optional<uint8_t> maskV4, boost::optional<uint8_t> maskV6, boost::optional<bool> asyncConnect, boost::optional<bool> taggedOnly) {
+  Lua.writeFunction("protobufServer", [&lci, checkOnly](const string& server_, const boost::optional<uint16_t> timeout, const boost::optional<uint64_t> maxQueuedEntries, const boost::optional<uint8_t> reconnectWaitTime, const boost::optional<uint8_t> maskV4, boost::optional<uint8_t> maskV6, boost::optional<bool> asyncConnect, boost::optional<bool> taggedOnly) {
       try {
 	ComboAddress server(server_);
         if (!lci.protobufServer) {
-          lci.protobufServer = std::make_shared<RemoteLogger>(server, timeout ? *timeout : 2, maxQueuedEntries ? *maxQueuedEntries : 100, reconnectWaitTime ? *reconnectWaitTime : 1, asyncConnect ? *asyncConnect : false);
+          if (!checkOnly) {
+            lci.protobufServer = std::make_shared<RemoteLogger>(server, timeout ? *timeout : 2, maxQueuedEntries ? *maxQueuedEntries : 100, reconnectWaitTime ? *reconnectWaitTime : 1, asyncConnect ? *asyncConnect : false);
+          }
+
           if (maskV4) {
             lci.protobufMaskV4 = *maskV4;
           }
