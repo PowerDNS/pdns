@@ -328,6 +328,21 @@ class DNSDistTest(unittest.TestCase):
         while not self._fromResponderQueue.empty():
             self._fromResponderQueue.get(False)
 
+    @classmethod
+    def clearToResponderQueue(cls):
+        while not cls._toResponderQueue.empty():
+            cls._toResponderQueue.get(False)
+
+    @classmethod
+    def clearFromResponderQueue(cls):
+        while not cls._fromResponderQueue.empty():
+            cls._fromResponderQueue.get(False)
+
+    @classmethod
+    def clearResponderQueues(cls):
+        cls.clearToResponderQueue()
+        cls.clearFromResponderQueue()
+
     @staticmethod
     def generateConsoleKey():
         return libnacl.utils.salsa_key()
