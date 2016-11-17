@@ -990,7 +990,7 @@ void moreLua(bool client)
 
     g_lua.writeFunction("unregisterDynBPFFilter", [](std::shared_ptr<DynBPFFilter> dbpf) {
         if (dbpf) {
-          for (auto it = g_dynBPFFilters.cbegin(); it != g_dynBPFFilters.cend(); it++) {
+          for (auto it = g_dynBPFFilters.begin(); it != g_dynBPFFilters.end(); it++) {
             if (*it == dbpf) {
               g_dynBPFFilters.erase(it);
               break;
