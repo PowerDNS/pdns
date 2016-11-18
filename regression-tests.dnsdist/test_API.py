@@ -1,20 +1,23 @@
 #!/usr/bin/env python
+import os.path
 
+import json
 import requests
 from dnsdisttests import DNSDistTest
 
-class TestBasics(DNSDistTest):
+class TestAPIBasics(DNSDistTest):
 
     _webTimeout = 2.0
     _webServerPort = 8083
     _webServerBasicAuthPassword = 'secret'
     _webServerAPIKey = 'apisecret'
     # paths accessible using the API key
-    _apiPaths = ['/api/v1/servers/localhost', '/api/v1/servers/localhost/config', '/api/v1/servers/localhost/statistics', '/jsonstat?command=stats', '/jsonstat?command=dynblocklist']
+    _apiPaths = ['/api/v1/servers/localhost', '/api/v1/servers/localhost/config', '/api/v1/servers/localhost/config/allow-from', '/api/v1/servers/localhost/statistics', '/jsonstat?command=stats', '/jsonstat?command=dynblocklist']
     # paths accessible using basic auth only (list not exhaustive)
     _basicOnlyPaths = ['/', '/index.html']
     _config_params = ['_testServerPort', '_webServerPort', '_webServerBasicAuthPassword', '_webServerAPIKey']
     _config_template = """
+    setACL({"127.0.0.1/32", "::1/128"})
     newServer{address="127.0.0.1:%s"}
     webserver("127.0.0.1:%s", "%s", "%s")
     """
@@ -129,6 +132,40 @@ class TestBasics(DNSDistTest):
         self.assertTrue(values['ecs-source-prefix-v4'] >= 0 and values['ecs-source-prefix-v4'] <= 32)
         self.assertTrue(values['ecs-source-prefix-v6'] >= 0 and values['ecs-source-prefix-v6'] <= 128)
 
+    def testServersLocalhostConfigAllowFrom(self):
+        """
+        API: /api/v1/servers/localhost/config/allow-from
+        """
+        headers = {'x-api-key': self._webServerAPIKey}
+        url = 'http://127.0.0.1:' + str(self._webServerPort) + '/api/v1/servers/localhost/config/allow-from'
+        r = requests.get(url, headers=headers, timeout=self._webTimeout)
+        self.assertTrue(r)
+        self.assertEquals(r.status_code, 200)
+        self.assertTrue(r.json())
+        content = r.json()
+        for key in ['type', 'name', 'value']:
+            self.assertIn(key, content)
+
+        self.assertEquals(content['name'], 'allow-from')
+        self.assertEquals(content['type'], 'ConfigSetting')
+        self.assertEquals(content['value'], ["127.0.0.1/32", "::1/128"])
+
+    def testServersLocalhostConfigAllowFromPut(self):
+        """
+        API: PUT /api/v1/servers/localhost/config/allow-from (should be refused)
+
+        The API is read-only by default, so this should be refused
+        """
+        newACL = ["192.0.2.0/24", "198.51.100.0/24", "203.0.113.0/24"]
+        payload = json.dumps({"name": "allow-from",
+                              "type": "ConfigSetting",
+                              "value": newACL})
+        headers = {'x-api-key': self._webServerAPIKey}
+        url = 'http://127.0.0.1:' + str(self._webServerPort) + '/api/v1/servers/localhost/config/allow-from'
+        r = requests.put(url, headers=headers, timeout=self._webTimeout, data=payload)
+        self.assertFalse(r)
+        self.assertEquals(r.status_code, 405)
+
     def testServersLocalhostStatistics(self):
         """
         API: /api/v1/servers/localhost/statistics
@@ -210,3 +247,59 @@ class TestBasics(DNSDistTest):
 
             for key in ['blocks']:
                 self.assertTrue(content[key] >= 0)
+
+class TestAPIWritable(DNSDistTest):
+
+    _webTimeout = 2.0
+    _webServerPort = 8083
+    _webServerBasicAuthPassword = 'secret'
+    _webServerAPIKey = 'apisecret'
+    _APIWriteDir = '/tmp'
+    _config_params = ['_testServerPort', '_webServerPort', '_webServerBasicAuthPassword', '_webServerAPIKey', '_APIWriteDir']
+    _config_template = """
+    setACL({"127.0.0.1/32", "::1/128"})
+    newServer{address="127.0.0.1:%s"}
+    webserver("127.0.0.1:%s", "%s", "%s")
+    setAPIWritable(true, "%s")
+    """
+
+    def testSetACL(self):
+        """
+        API: Set ACL
+        """
+        headers = {'x-api-key': self._webServerAPIKey}
+        url = 'http://127.0.0.1:' + str(self._webServerPort) + '/api/v1/servers/localhost/config/allow-from'
+        r = requests.get(url, headers=headers, timeout=self._webTimeout)
+        self.assertTrue(r)
+        self.assertEquals(r.status_code, 200)
+        self.assertTrue(r.json())
+        content = r.json()
+        self.assertEquals(content['value'], ["127.0.0.1/32", "::1/128"])
+
+        newACL = ["192.0.2.0/24", "198.51.100.0/24", "203.0.113.0/24"]
+        payload = json.dumps({"name": "allow-from",
+                              "type": "ConfigSetting",
+                              "value": newACL})
+        r = requests.put(url, headers=headers, timeout=self._webTimeout, data=payload)
+        self.assertTrue(r)
+        self.assertEquals(r.status_code, 200)
+        self.assertTrue(r.json())
+        content = r.json()
+        self.assertEquals(content['value'], newACL)
+
+        r = requests.get(url, headers=headers, timeout=self._webTimeout)
+        self.assertTrue(r)
+        self.assertEquals(r.status_code, 200)
+        self.assertTrue(r.json())
+        content = r.json()
+        self.assertEquals(content['value'], newACL)
+
+        configFile = self._APIWriteDir + '/' + 'acl.conf'
+        self.assertTrue(os.path.isfile(configFile))
+        fileContent = None
+        with file(configFile) as f:
+            fileContent = f.read()
+
+        self.assertEquals(fileContent, """-- Generated by the REST API, DO NOT EDIT
+setACL({"192.0.2.0/24", "198.51.100.0/24", "203.0.113.0/24"})
+""")

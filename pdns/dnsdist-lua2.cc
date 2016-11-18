@@ -1103,4 +1103,18 @@ void moreLua(bool client)
 
         g_included = false;
     });
+
+    g_lua.writeFunction("setAPIWritable", [](bool writable, boost::optional<std::string> apiConfigDir) {
+        setLuaSideEffect();
+        g_apiReadWrite = writable;
+        if (apiConfigDir) {
+          if (!(*apiConfigDir).empty()) {
+            g_apiConfigDirectory = *apiConfigDir;
+          }
+          else {
+            errlog("The API configuration directory value cannot be empty!");
+            g_outputBuffer="The API configuration directory value cannot be empty!";
+          }
+        }
+      });
 }

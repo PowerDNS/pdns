@@ -1224,6 +1224,7 @@ Here are all functions:
     * quit or ^D: exit the console
     * `webserver(address:port, password [, apiKey [, customHeaders ]])`: launch a webserver with stats on that address with that password
     * `includeDirectory(dir)`: all files ending in `.conf` in the directory `dir` are loaded into the configuration
+    * `setAPIWritable(bool, [dir])`: allow modifications via the API. If `dir` is set, it must be a valid directory where the configuration files will be written by the API. Otherwise the modifications done via the API will not be written to the configuration and will not persist after a reload
  * ACL related:
     * `addACL(netmask)`: add to the ACL set who can use this server
     * `setACL({netmask, netmask})`: replace the ACL set with these netmasks. Use `setACL({})` to reset the list, meaning no one can use us
