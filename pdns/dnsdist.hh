@@ -689,6 +689,8 @@ extern uint64_t g_maxTCPQueuedConnections;
 extern std::atomic<uint16_t> g_cacheCleaningDelay;
 extern bool g_verboseHealthChecks;
 extern uint32_t g_staleCacheEntriesTTL;
+extern bool g_apiReadWrite;
+extern std::string g_apiConfigDirectory;
 
 struct ConsoleKeyword {
   std::string name;

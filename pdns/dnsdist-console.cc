@@ -324,6 +324,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "QTypeRule", true, "qtype", "matches queries with the specified qtype" },
   { "RCodeRule", true, "rcode", "matches responses with the specified rcode" },
   { "setACL", true, "{netmask, netmask}", "replace the ACL set with these netmasks. Use `setACL({})` to reset the list, meaning no one can use us" },
+  { "setAPIWritable", true, "bool, dir", "allow modifications via the API. if `dir` is set, it must be a valid directory where the configuration files will be written by the API" },
   { "setDNSSECPool", true, "pool name", "move queries requesting DNSSEC processing to this pool" },
   { "setECSOverride", true, "bool", "whether to override an existing EDNS Client Subnet value in the query" },
   { "setECSSourcePrefixV4", true, "prefix-length", "the EDNS Client Subnet prefix-length used for IPv4 queries" },
