@@ -43,7 +43,7 @@ class TestDynBlockQPS(DNSDistTest):
             else:
                 # the query has not reached the responder,
                 # let's clear the response queue
-                cls.clearToResponderQueue()
+                self.clearToResponderQueue()
 
         # we might be already blocked, but we should have been able to send
         # at least self._dynBlockQPS queries
@@ -80,7 +80,7 @@ class TestDynBlockQPS(DNSDistTest):
             else:
                 # the query has not reached the responder,
                 # let's clear the response queue
-                cls.clearToResponderQueue()
+                self.clearToResponderQueue()
 
         # we might be already blocked, but we should have been able to send
         # at least self._dynBlockQPS queries
@@ -147,7 +147,7 @@ class TestDynBlockQPSRefused(DNSDistTest):
                 self.assertEquals(receivedResponse, refusedResponse)
                 # the query has not reached the responder,
                 # let's clear the response queue
-                cls.clearToResponderQueue()
+                self.clearToResponderQueue()
 
         # we might be already blocked, but we should have been able to send
         # at least self._dynBlockQPS queries
@@ -185,7 +185,7 @@ class TestDynBlockQPSRefused(DNSDistTest):
                 self.assertEquals(receivedResponse, refusedResponse)
                 # the query has not reached the responder,
                 # let's clear the response queue
-                cls.clearToResponderQueue()
+                self.clearToResponderQueue()
 
         # we might be already blocked, but we should have been able to send
         # at least self._dynBlockQPS queries
@@ -265,7 +265,7 @@ class TestDynBlockServFails(DNSDistTest):
             else:
                 # the query has not reached the responder,
                 # let's clear the response queue
-                cls.clearToResponderQueue()
+                self.clearToResponderQueue()
 
         # we might be already blocked, but we should have been able to send
         # at least self._dynBlockQPS queries
@@ -317,7 +317,7 @@ class TestDynBlockServFails(DNSDistTest):
             else:
                 # the query has not reached the responder,
                 # let's clear the response queue
-                cls.clearToResponderQueue()
+                self.clearToResponderQueue()
 
         # we might be already blocked, but we should have been able to send
         # at least self._dynBlockQPS queries
@@ -384,7 +384,7 @@ class TestDynBlockResponseBytes(DNSDistTest):
             else:
                 # the query has not reached the responder,
                 # let's clear the response queue
-                cls.clearToResponderQueue()
+                self.clearToResponderQueue()
 
         # we might be already blocked, but we should have been able to send
         # at least self._dynBlockBytesPerSecond bytes
@@ -421,7 +421,7 @@ class TestDynBlockResponseBytes(DNSDistTest):
             else:
                 # the query has not reached the responder,
                 # let's clear the response queue
-                cls.clearToResponderQueue()
+                self.clearToResponderQueue()
 
         # we might be already blocked, but we should have been able to send
         # at least self._dynBlockBytesPerSecond bytes
