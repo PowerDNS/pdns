@@ -269,6 +269,7 @@ struct IDState
   bool ednsAdded{false};
   bool ecsAdded{false};
   bool skipCache{false};
+  bool destHarvested{false}; // if true, origDest holds the original dest addr, otherwise the listening addr
 };
 
 struct Rings {

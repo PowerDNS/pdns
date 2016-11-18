@@ -190,8 +190,16 @@ void* tcpClientThread(int pipefd)
     string largerQuery;
     vector<uint8_t> rewrittenResponse;
     shared_ptr<DownstreamState> ds;
+    ComboAddress dest;
+    memset(&dest, 0, sizeof(dest));
+    dest.sin4.sin_family = ci.remote.sin4.sin_family;
+    socklen_t len = dest.getSocklen();
     if (!setNonBlocking(ci.fd))
       goto drop;
+
+    if (getsockname(ci.fd, (sockaddr*)&dest, &len)) {
+      dest = ci.cs->local;
+    }
 
     try {
       for(;;) {
@@ -258,7 +266,7 @@ void* tcpClientThread(int pipefd)
 	uint16_t qtype, qclass;
 	unsigned int consumed = 0;
 	DNSName qname(query, qlen, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
-	DNSQuestion dq(&qname, qtype, qclass, &ci.cs->local, &ci.remote, (dnsheader*)query, querySize, qlen, true);
+	DNSQuestion dq(&qname, qtype, qclass, &dest, &ci.remote, (dnsheader*)query, querySize, qlen, true);
 #ifdef HAVE_PROTOBUF
         dq.uniqueId = uuidGenerator();
 #endif
@@ -436,7 +444,7 @@ void* tcpClientThread(int pipefd)
         }
 
         dh = (struct dnsheader*) response;
-        DNSResponse dr(&qname, qtype, qclass, &ci.cs->local, &ci.remote, dh, responseSize, responseLen, true, &queryRealTime);
+        DNSResponse dr(&qname, qtype, qclass, &dest, &ci.remote, dh, responseSize, responseLen, true, &queryRealTime);
 #ifdef HAVE_PROTOBUF
         dr.uniqueId = dq.uniqueId;
 #endif

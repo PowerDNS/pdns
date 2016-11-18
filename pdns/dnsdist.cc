@@ -428,7 +428,11 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
       continue;
     }
 #endif
-    sendUDPResponse(origFD, response, responseLen, ids->delayMsec, ids->origDest, ids->origRemote);
+    ComboAddress empty;
+    empty.sin4.sin_family = 0;
+    /* if ids->destHarvested is false, origDest holds the listening address.
+       We don't want to use that as a source since it could be 0.0.0.0 for example. */
+    sendUDPResponse(origFD, response, responseLen, ids->delayMsec, ids->destHarvested ? ids->origDest : empty, ids->origRemote);
 
     g_stats.responses++;
 
@@ -972,6 +976,11 @@ try
       }
 
       uint16_t len = (uint16_t) ret;
+      ComboAddress dest;
+      if (!HarvestDestinationAddress(&msgh, &dest)) {
+        dest.sin4.sin_family = 0;
+      }
+
 #ifdef HAVE_DNSCRYPT
       if (cs->dnscryptCtx) {
         vector<uint8_t> response;
@@ -982,10 +991,6 @@ try
 
         if (!decrypted) {
           if (response.size() > 0) {
-            ComboAddress dest;
-            if(!HarvestDestinationAddress(&msgh, &dest)) {
-              dest.sin4.sin_family = 0;
-            }
             sendUDPResponse(cs->udpFD, reinterpret_cast<char*>(response.data()), (uint16_t) response.size(), 0, dest, remote);
           }
           continue;
@@ -1015,7 +1020,7 @@ try
       const uint16_t origFlags = *flags;
       unsigned int consumed = 0;
       DNSName qname(query, len, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
-      DNSQuestion dq(&qname, qtype, qclass, &cs->local, &remote, dh, sizeof(packet), len, false);
+      DNSQuestion dq(&qname, qtype, qclass, dest.sin4.sin_family != 0 ? &dest : &cs->local, &remote, dh, sizeof(packet), len, false);
 #ifdef HAVE_PROTOBUF
       dq.uniqueId = uuidGenerator();
 #endif
@@ -1037,10 +1042,6 @@ try
 
         restoreFlags(dh, origFlags);
 
-        ComboAddress dest;
-        if(!HarvestDestinationAddress(&msgh, &dest)) {
-          dest.sin4.sin_family = 0;
-        }
 #ifdef HAVE_DNSCRYPT
         if (!encryptResponse(response, &responseLen, dq.size, false, dnsCryptQuery)) {
           continue;
@@ -1072,10 +1073,6 @@ try
         uint16_t cachedResponseSize = sizeof cachedResponse;
         uint32_t allowExpired = ss ? 0 : g_staleCacheEntriesTTL;
         if (packetCache->get(dq, consumed, dh->id, cachedResponse, &cachedResponseSize, &cacheKey, allowExpired)) {
-          ComboAddress dest;
-          if(!HarvestDestinationAddress(&msgh, &dest)) {
-            dest.sin4.sin_family = 0;
-          }
 #ifdef HAVE_DNSCRYPT
           if (!encryptResponse(cachedResponse, &cachedResponseSize, sizeof cachedResponse, false, dnsCryptQuery)) {
             continue;
@@ -1115,7 +1112,6 @@ try
       ids->qname = qname;
       ids->qtype = dq.qtype;
       ids->qclass = dq.qclass;
-      ids->origDest.sin4.sin_family=0;
       ids->delayMsec = delayMsec;
       ids->origFlags = origFlags;
       ids->cacheKey = cacheKey;
@@ -1123,13 +1119,27 @@ try
       ids->packetCache = packetCache;
       ids->ednsAdded = ednsAdded;
       ids->ecsAdded = ecsAdded;
+
+      /* If we couldn't harvest the real dest addr, still
+         write down the listening addr since it will be useful
+         (especially if it's not an 'any' one).
+         We need to keep track of which one it is since we may
+         want to use the real but not the listening addr to reply.
+      */
+      if (dest.sin4.sin_family != 0) {
+        ids->origDest = dest;
+        ids->destHarvested = true;
+      }
+      else {
+        ids->origDest = cs->local;
+        ids->destHarvested = false;
+      }
 #ifdef HAVE_DNSCRYPT
       ids->dnsCryptQuery = dnsCryptQuery;
 #endif
 #ifdef HAVE_PROTOBUF
       ids->uniqueId = dq.uniqueId;
 #endif
-      HarvestDestinationAddress(&msgh, &ids->origDest);
 
       dh->id = idOffset;
 
