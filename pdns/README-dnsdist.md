@@ -1485,13 +1485,14 @@ instantiate a server with additional parameters
         * member `check(DNSName)`: returns true if DNSName is matched by this group
         * member `add(DNSName)`: add this DNSName to the node
  * Tuning related:
-    * `setTCPRecvTimeout(n)`: set the read timeout on TCP connections from the client, in seconds
-    * `setTCPSendTimeout(n)`: set the write timeout on TCP connections from the client, in seconds
     * `setMaxTCPClientThreads(n)`: set the maximum of TCP client threads, handling TCP connections
     * `setMaxTCPQueuedConnections(n)`: set the maximum number of TCP connections queued (waiting to be picked up by a client thread), defaults to 1000. 0 means unlimited
     * `setMaxUDPOutstanding(n)`: set the maximum number of outstanding UDP queries to a given backend server. This can only be set at configuration time and defaults to 10240
     * `setCacheCleaningDelay(n)`: set the interval in seconds between two runs of the cache cleaning algorithm, removing expired entries
     * `setStaleCacheEntriesTTL(n)`: allows using cache entries expired for at most `n` seconds when no backend available to answer for a query
+    * `setTCPRecvTimeout(n)`: set the read timeout on TCP connections from the client, in seconds
+    * `setTCPSendTimeout(n)`: set the write timeout on TCP connections from the client, in seconds
+    * `setUDPTimeout(n)`: set the maximum time dnsdist will wait for a response from a backend over UDP, in seconds. Defaults to 2
  * DNSCrypt related:
     * `addDNSCryptBind("127.0.0.1:8443", "provider name", "/path/to/resolver.cert", "/path/to/resolver.key", [false], [TCP Fast Open queue size]):` listen to incoming DNSCrypt queries on 127.0.0.1 port 8443, with a provider name of "provider name", using a resolver certificate and associated key stored respectively in the `resolver.cert` and `resolver.key` files. The fifth optional parameter sets SO_REUSEPORT when available. The last parameter sets the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0.
     * `generateDNSCryptProviderKeys("/path/to/providerPublic.key", "/path/to/providerPrivate.key"):` generate a new provider keypair

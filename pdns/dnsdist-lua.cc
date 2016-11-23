@@ -1458,6 +1458,8 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
   g_lua.writeFunction("setTCPSendTimeout", [](int timeout) { g_tcpSendTimeout=timeout; });
 
+  g_lua.writeFunction("setUDPTimeout", [](int timeout) { g_udpTimeout=timeout; });
+
   g_lua.writeFunction("setMaxUDPOutstanding", [](uint16_t max) {
       if (!g_configurationDone) {
         g_maxOutstanding = max;
