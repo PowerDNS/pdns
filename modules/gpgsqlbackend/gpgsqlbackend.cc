@@ -44,7 +44,8 @@ gPgSQLBackend::gPgSQLBackend(const string &mode, const string &suffix)  : GSQLBa
         	  getArg("host"),
         	  getArg("port"),
         	  getArg("user"),
-        	  getArg("password")));
+        	  getArg("password"),
+        	  getArg("extra-connection-parameters")));
   }
 
   catch(SSqlException &e) {
@@ -66,6 +67,7 @@ public:
     declare(suffix,"host","Pdns backend host to connect to","");
     declare(suffix,"port","Database backend port to connect to","");
     declare(suffix,"password","Pdns backend password to connect with","");
+    declare(suffix,"extra-connection-parameters", "Extra parameters to add to connection string","");
 
     declare(suffix,"dnssec","Enable DNSSEC processing","no");
 
