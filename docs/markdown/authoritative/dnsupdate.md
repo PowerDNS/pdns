@@ -259,7 +259,7 @@ This is a short description of how DNS update messages are processed by PowerDNS
 
 # Update policy
 
-Since 4.0.0, you can define a Lua script to handle DNS UPDATE message authorization.
+Since 4.1.0, you can define a Lua script to handle DNS UPDATE message authorization.
 The Lua script is to contain at least function called `updatepolicy` which accepts one parameter.
 This parameter is an object, containing all the information for the request.
 To permit change, return true, otherwise return false.
