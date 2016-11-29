@@ -209,7 +209,6 @@ void RecursorLua4::DNSQuestion::setRecords(const vector<pair<int, DNSRecord> >& 
   records.clear();
   for(const auto& p : recs) {
     records.push_back(p.second);
-    cout<<"Setting: "<<p.second.d_content->getZoneRepresentation()<<endl;
   }
 }
 
