@@ -195,6 +195,7 @@ public:
    // DNSSEC
   virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const string& qname, DNSName& unhashed, string& before, string& after);
   void lookup(const QType &, const DNSName &qdomain, DNSPacket *p=0, int zoneId=-1);
+  bool getSOA(const DNSName &qname, SOAData& data, DNSPacket *pkt_p=0) override;
   bool list(const DNSName &target, int id, bool include_disabled=false);
   bool get(DNSResourceRecord &);
   //  bool get(DNSZoneRecord &) override;
@@ -256,6 +257,7 @@ private:
   static bool safeGetBBDomainInfo(const DNSName& name, BB2DomainInfo* bbd);
   static bool safeRemoveBBDomainInfo(const DNSName& name);
   bool GetBBDomainInfo(int id, BB2DomainInfo** bbd);
+  void lookupEntry(const QType &qtype, const DNSName &qname, int zoneId, bool onlySOA);
   shared_ptr<SSQLite3> d_dnssecdb;
   bool getNSEC3PARAM(const DNSName& name, NSEC3PARAMRecordContent* ns3p);
   class handle
