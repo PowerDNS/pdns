@@ -352,7 +352,7 @@ static bool sendUDPResponse(int origFD, char* response, uint16_t responseLen, in
 
 // listens on a dedicated socket, lobs answers from downstream servers to original requestors
 void* responderThread(std::shared_ptr<DownstreamState> state)
-{
+try {
   auto localRespRulactions = g_resprulactions.getLocal();
 #ifdef HAVE_DNSCRYPT
   char packet[4096 + DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE];
@@ -363,110 +363,133 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
   vector<uint8_t> rewrittenResponse;
 
   struct dnsheader* dh = (struct dnsheader*)packet;
+  uint16_t queryId = 0;
   for(;;) {
-    ssize_t got = recv(state->fd, packet, sizeof(packet), 0);
-    char * response = packet;
-    size_t responseSize = sizeof(packet);
+    try {
+      ssize_t got = recv(state->fd, packet, sizeof(packet), 0);
+      char * response = packet;
+      size_t responseSize = sizeof(packet);
 
-    if (got < (ssize_t) sizeof(dnsheader))
-      continue;
+      if (got < (ssize_t) sizeof(dnsheader))
+        continue;
 
-    uint16_t responseLen = (uint16_t) got;
+      uint16_t responseLen = (uint16_t) got;
+      queryId = dh->id;
 
-    if(dh->id >= state->idStates.size())
-      continue;
+      if(queryId >= state->idStates.size())
+        continue;
 
-    IDState* ids = &state->idStates[dh->id];
-    int origFD = ids->origFD;
+      IDState* ids = &state->idStates[queryId];
+      int origFD = ids->origFD;
 
-    if(origFD < 0) // duplicate
-      continue;
+      if(origFD < 0) // duplicate
+        continue;
 
-    /* setting age to 0 to prevent the maintainer thread from
-       cleaning this IDS while we process the response.
-       We have already a copy of the origFD, so it would
-       mostly mess up the outstanding counter.
-    */
-    ids->age = 0;
+      /* setting age to 0 to prevent the maintainer thread from
+         cleaning this IDS while we process the response.
+         We have already a copy of the origFD, so it would
+         mostly mess up the outstanding counter.
+      */
+      ids->age = 0;
 
-    if (!responseContentMatches(response, responseLen, ids->qname, ids->qtype, ids->qclass, state->remote)) {
-      continue;
-    }
+      if (!responseContentMatches(response, responseLen, ids->qname, ids->qtype, ids->qclass, state->remote)) {
+        continue;
+      }
 
-    --state->outstanding;  // you'd think an attacker could game this, but we're using connected socket
+      --state->outstanding;  // you'd think an attacker could game this, but we're using connected socket
 
-    if(dh->tc && g_truncateTC) {
-      truncateTC(response, &responseLen);
-    }
+      if(dh->tc && g_truncateTC) {
+        truncateTC(response, &responseLen);
+      }
 
-    dh->id = ids->origID;
+      dh->id = ids->origID;
 
-    uint16_t addRoom = 0;
-    DNSResponse dr(&ids->qname, ids->qtype, ids->qclass, &ids->origDest, &ids->origRemote, dh, sizeof(packet), responseLen, false, &ids->sentTime.d_start);
+      uint16_t addRoom = 0;
+      DNSResponse dr(&ids->qname, ids->qtype, ids->qclass, &ids->origDest, &ids->origRemote, dh, sizeof(packet), responseLen, false, &ids->sentTime.d_start);
 #ifdef HAVE_PROTOBUF
-    dr.uniqueId = ids->uniqueId;
+      dr.uniqueId = ids->uniqueId;
 #endif
-    if (!processResponse(localRespRulactions, dr, &ids->delayMsec)) {
-      continue;
-    }
+      if (!processResponse(localRespRulactions, dr, &ids->delayMsec)) {
+        continue;
+      }
 
 #ifdef HAVE_DNSCRYPT
-    if (ids->dnsCryptQuery) {
-      addRoom = DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE;
-    }
+      if (ids->dnsCryptQuery) {
+        addRoom = DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE;
+      }
 #endif
-    if (!fixUpResponse(&response, &responseLen, &responseSize, ids->qname, ids->origFlags, ids->ednsAdded, ids->ecsAdded, rewrittenResponse, addRoom)) {
-      continue;
-    }
+      if (!fixUpResponse(&response, &responseLen, &responseSize, ids->qname, ids->origFlags, ids->ednsAdded, ids->ecsAdded, rewrittenResponse, addRoom)) {
+        continue;
+      }
 
-    if (ids->packetCache && !ids->skipCache) {
-      ids->packetCache->insert(ids->cacheKey, ids->qname, ids->qtype, ids->qclass, response, responseLen, false, dh->rcode == RCode::ServFail);
-    }
+      if (ids->packetCache && !ids->skipCache) {
+        ids->packetCache->insert(ids->cacheKey, ids->qname, ids->qtype, ids->qclass, response, responseLen, false, dh->rcode == RCode::ServFail);
+      }
 
 #ifdef HAVE_DNSCRYPT
-    if (!encryptResponse(response, &responseLen, responseSize, false, ids->dnsCryptQuery)) {
-      continue;
-    }
+      if (!encryptResponse(response, &responseLen, responseSize, false, ids->dnsCryptQuery)) {
+        continue;
+      }
 #endif
-    ComboAddress empty;
-    empty.sin4.sin_family = 0;
-    /* if ids->destHarvested is false, origDest holds the listening address.
-       We don't want to use that as a source since it could be 0.0.0.0 for example. */
-    sendUDPResponse(origFD, response, responseLen, ids->delayMsec, ids->destHarvested ? ids->origDest : empty, ids->origRemote);
+      ComboAddress empty;
+      empty.sin4.sin_family = 0;
+      /* if ids->destHarvested is false, origDest holds the listening address.
+         We don't want to use that as a source since it could be 0.0.0.0 for example. */
+      sendUDPResponse(origFD, response, responseLen, ids->delayMsec, ids->destHarvested ? ids->origDest : empty, ids->origRemote);
 
-    g_stats.responses++;
+      g_stats.responses++;
 
-    double udiff = ids->sentTime.udiff();
-    vinfolog("Got answer from %s, relayed to %s, took %f usec", state->remote.toStringWithPort(), ids->origRemote.toStringWithPort(), udiff);
+      double udiff = ids->sentTime.udiff();
+      vinfolog("Got answer from %s, relayed to %s, took %f usec", state->remote.toStringWithPort(), ids->origRemote.toStringWithPort(), udiff);
 
-    {
-      struct timespec ts;
-      gettime(&ts);
-      std::lock_guard<std::mutex> lock(g_rings.respMutex);
-      g_rings.respRing.push_back({ts, ids->origRemote, ids->qname, ids->qtype, (unsigned int)udiff, (unsigned int)got, *dh, state->remote});
-    }
-    if(dh->rcode == RCode::ServFail)
-      g_stats.servfailResponses++;
-    state->latencyUsec = (127.0 * state->latencyUsec / 128.0) + udiff/128.0;
+      {
+        struct timespec ts;
+        gettime(&ts);
+        std::lock_guard<std::mutex> lock(g_rings.respMutex);
+        g_rings.respRing.push_back({ts, ids->origRemote, ids->qname, ids->qtype, (unsigned int)udiff, (unsigned int)got, *dh, state->remote});
+      }
 
-    if(udiff < 1000) g_stats.latency0_1++;
-    else if(udiff < 10000) g_stats.latency1_10++;
-    else if(udiff < 50000) g_stats.latency10_50++;
-    else if(udiff < 100000) g_stats.latency50_100++;
-    else if(udiff < 1000000) g_stats.latency100_1000++;
-    else g_stats.latencySlow++;
+      if(dh->rcode == RCode::ServFail)
+        g_stats.servfailResponses++;
+      state->latencyUsec = (127.0 * state->latencyUsec / 128.0) + udiff/128.0;
+
+      if(udiff < 1000) g_stats.latency0_1++;
+      else if(udiff < 10000) g_stats.latency1_10++;
+      else if(udiff < 50000) g_stats.latency10_50++;
+      else if(udiff < 100000) g_stats.latency50_100++;
+      else if(udiff < 1000000) g_stats.latency100_1000++;
+      else g_stats.latencySlow++;
     
-    doLatencyAverages(udiff);
+      doLatencyAverages(udiff);
 
-    if (ids->origFD == origFD) {
+      if (ids->origFD == origFD) {
 #ifdef HAVE_DNSCRYPT
-      ids->dnsCryptQuery = 0;
+        ids->dnsCryptQuery = 0;
 #endif
-      ids->origFD = -1;
-    }
+        ids->origFD = -1;
+      }
 
-    rewrittenResponse.clear();
+      rewrittenResponse.clear();
+    }
+    catch(std::exception& e){
+      vinfolog("Got an error in UDP responder thread while parsing a response from %s, id %d: %s", state->remote.toStringWithPort(), queryId, e.what());
+    }
   }
+  return 0;
+}
+catch(const std::exception& e)
+{
+  errlog("UDP responder thread died because of exception: %s", e.what());
+  return 0;
+}
+catch(const PDNSException& e)
+{
+  errlog("UDP responder thread died because of PowerDNS exception: %s", e.reason);
+  return 0;
+}
+catch(...)
+{
+  errlog("UDP responder thread died because of an exception: %s", "unknown");
   return 0;
 }
 
