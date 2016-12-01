@@ -151,3 +151,50 @@ class TestResponseRuleQNameAllowed(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(receivedResponse, None)
+
+class TestResponseRuleEditTTL(DNSDistTest):
+
+    _ttl = 5
+    _config_params = ['_testServerPort', '_ttl']
+    _config_template = """
+    newServer{address="127.0.0.1:%s"}
+
+    function editTTLCallback(section, class, type, ttl)
+      return %d
+    end
+
+    function editTTLFunc(dr)
+      dr:editTTLs(editTTLCallback)
+      return DNSAction.None, ""
+    end
+
+    addLuaResponseAction(AllRule(), editTTLFunc)
+    """
+
+    def testTTLEdited(self):
+        """
+        Responses: Alter the TTLs
+        """
+        name = 'editttl.responses.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+        response.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+        self.assertNotEquals(response.answer[0].ttl, receivedResponse.answer[0].ttl)
+        self.assertEquals(receivedResponse.answer[0].ttl, self._ttl)
+
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+        self.assertNotEquals(response.answer[0].ttl, receivedResponse.answer[0].ttl)
+        self.assertEquals(receivedResponse.answer[0].ttl, self._ttl)
