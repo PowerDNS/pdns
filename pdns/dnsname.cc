@@ -143,15 +143,15 @@ void DNSName::packetParser(const char* qpos, int len, int offset, bool uncompres
   if(consumed)
     *consumed = pos - opos - offset;
   if(qtype) {
-    if (pos + labellen + 2 > end) {
-      throw std::range_error("Trying to read qtype past the end of the buffer ("+std::to_string((pos - opos) + labellen + 2)+ " > "+std::to_string(len)+")");
+    if (pos + 2 > end) {
+      throw std::range_error("Trying to read qtype past the end of the buffer ("+std::to_string((pos - opos) + 2)+ " > "+std::to_string(len)+")");
     }
     *qtype=(*(const unsigned char*)pos)*256 + *((const unsigned char*)pos+1);
   }
   pos+=2;
   if(qclass) {
-    if (pos + labellen + 2 > end) {
-      throw std::range_error("Trying to read qclass past the end of the buffer ("+std::to_string((pos - opos) + labellen + 2)+ " > "+std::to_string(len)+")");
+    if (pos + 2 > end) {
+      throw std::range_error("Trying to read qclass past the end of the buffer ("+std::to_string((pos - opos) + 2)+ " > "+std::to_string(len)+")");
     }
     *qclass=(*(const unsigned char*)pos)*256 + *((const unsigned char*)pos+1);
   }
