@@ -610,6 +610,45 @@ BOOST_AUTO_TEST_CASE(test_compression) { // Compression test
   BOOST_CHECK_EQUAL(dn.toString(), "www.example.com.");
 }
 
+BOOST_AUTO_TEST_CASE(test_compression_qtype_qclass) { // Compression test with QClass and QType extraction
+
+  uint16_t qtype = 0;
+  uint16_t qclass = 0;
+
+  {
+    string name("\x03""com\x00""\x07""example\xc0""\x00""\x03""www\xc0""\x05""\x00""\x01""\x00""\x01", 25);
+    DNSName dn(name.c_str(), name.size(), 15, true, &qtype, &qclass);
+    BOOST_CHECK_EQUAL(dn.toString(), "www.example.com.");
+    BOOST_CHECK_EQUAL(qtype, 1);
+    BOOST_CHECK_EQUAL(qclass, 1);
+  }
+
+  {
+    /* same but this time we are one byte short for the qclass */
+    string name("\x03""com\x00""\x07""example\xc0""\x00""\x03""www\xc0""\x05""\x00""\x01""\x00""", 24);
+    BOOST_CHECK_THROW(DNSName dn(name.c_str(), name.size(), 15, true, &qtype, &qclass), std::range_error);
+  }
+
+  {
+    /* this time with a compression pointer such as (labellen << 8) != 0, see #4718 */
+    string name("\x03""com\x00""\x07""example\xc1""\x00""\x03""www\xc1""\x05""\x00""\x01""\x00""\x01", 25);
+    name.insert(0, 256, '0');
+
+    DNSName dn(name.c_str(), name.size(), 271, true, &qtype, &qclass);
+    BOOST_CHECK_EQUAL(dn.toString(), "www.example.com.");
+    BOOST_CHECK_EQUAL(qtype, 1);
+    BOOST_CHECK_EQUAL(qclass, 1);
+  }
+
+  {
+    /* same but this time we are one byte short for the qclass */
+    string name("\x03""com\x00""\x07""example\xc1""\x00""\x03""www\xc1""\x05""\x00""\x01""\x00", 24);
+    name.insert(0, 256, '0');
+
+    BOOST_CHECK_THROW(DNSName dn(name.c_str(), name.size(), 271, true, &qtype, &qclass), std::range_error);;
+  }
+}
+
 BOOST_AUTO_TEST_CASE(test_pointer_pointer_root) { // Pointer to pointer to root
 
   string name("\x00""\xc0""\x00""\x03""com\xc0""\x01",9);
