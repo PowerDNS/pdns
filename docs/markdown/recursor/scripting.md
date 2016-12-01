@@ -383,6 +383,9 @@ entry.  Entries are listed in the following table:
 Public Suffix List. In general it will tell you the 'registered domain' for a given
 name.
 
+`getRecursorThreadId()` returns an unsigned integer identifying the thread
+handling the current request.
+
 ## DNS64
 The `getFakeAAAARecords` and `getFakePTRRecords` followupFunctions can be used
 to implement DNS64. See [DNS64 support in the PowerDNS Recursor](dns64.md) for
