@@ -271,8 +271,10 @@ install_auth() {
     geoip-database"
 
   # gmysql-backend test requirements
-  run "sudo apt-get -qq --no-install-recommends install \
-    mysql-server"
+  # as of 2016/12/01, mysql-5.6 is now installed in the default travis image
+  # see https://github.com/travis-ci/travis-ci/issues/6961
+  #run "sudo apt-get -qq --no-install-recommends install \
+  #  mysql-server"
 
   # godbc-backend test setup
   run 'echo -e "[pdns-sqlite3-1]\nDriver = SQLite3\nDatabase = ${PWD}/regression-tests/pdns.sqlite3\n\n[pdns-sqlite3-2]\nDriver = SQLite3\nDatabase = ${PWD}/regression-tests/pdns.sqlite32\n" > ${HOME}/.odbc.ini'
