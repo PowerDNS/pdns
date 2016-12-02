@@ -271,8 +271,10 @@ install_auth() {
     geoip-database"
 
   # gmysql-backend test requirements
-  run "sudo apt-get -qq --no-install-recommends install \
-    mysql-server"
+  # as of 2016/12/01, mysql-5.6 is now installed in the default travis image
+  # see https://github.com/travis-ci/travis-ci/issues/6961
+  #run "sudo apt-get -qq --no-install-recommends install \
+  #  mysql-server"
 
   # godbc-backend test setup
   run 'echo -e "[pdns-sqlite3-1]\nDriver = SQLite3\nDatabase = ${PWD}/regression-tests/pdns.sqlite3\n\n[pdns-sqlite3-2]\nDriver = SQLite3\nDatabase = ${PWD}/regression-tests/pdns.sqlite32\n" > ${HOME}/.odbc.ini'
@@ -347,6 +349,7 @@ install_recursor() {
   run "wget https://downloads.powerdns.com/autobuilt/auth/deb/$PDNS_SERVER_VERSION.trusty-amd64/pdns-server_$PDNS_SERVER_VERSION.trusty_amd64.deb"
   run "wget https://downloads.powerdns.com/autobuilt/auth/deb/$PDNS_SERVER_VERSION.trusty-amd64/pdns-tools_$PDNS_SERVER_VERSION.trusty_amd64.deb"
   run "sudo dpkg -i pdns-server_$PDNS_SERVER_VERSION.trusty_amd64.deb pdns-tools_$PDNS_SERVER_VERSION.trusty_amd64.deb"
+  run "sudo service pdns stop"
   run 'for suffix in {1..40}; do sudo /sbin/ip addr add 10.0.3.$suffix/32 dev lo; done'
   run "sudo touch /etc/authbind/byport/53"
   run "sudo chmod 755 /etc/authbind/byport/53"
