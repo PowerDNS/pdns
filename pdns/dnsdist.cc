@@ -134,6 +134,7 @@ DNSAction::Action g_dynBlockAction = DNSAction::Action::Drop;
 int g_tcpRecvTimeout{2};
 int g_tcpSendTimeout{2};
 
+bool g_servFailOnNoPolicy{false};
 bool g_truncateTC{1};
 bool g_fixupCase{0};
 static void truncateTC(const char* packet, uint16_t* len)
@@ -1112,7 +1113,23 @@ try
 
       if(!ss) {
 	g_stats.noPolicy++;
-	continue;
+
+        if (g_servFailOnNoPolicy) {
+          char* response = query;
+          uint16_t responseLen = dq.len;
+          restoreFlags(dh, origFlags);
+
+          dq.dh->rcode = RCode::ServFail;
+          dq.dh->qr = true;
+
+#ifdef HAVE_DNSCRYPT
+          if (!encryptResponse(response, &responseLen, dq.size, false, dnsCryptQuery)) {
+            continue;
+          }
+#endif
+          sendUDPResponse(cs->udpFD, response, responseLen, 0, dest, remote);
+        }
+        continue;
       }
 
       ss->queries++;

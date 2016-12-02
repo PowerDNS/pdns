@@ -692,6 +692,7 @@ extern bool g_verboseHealthChecks;
 extern uint32_t g_staleCacheEntriesTTL;
 extern bool g_apiReadWrite;
 extern std::string g_apiConfigDirectory;
+extern bool g_servFailOnNoPolicy;
 
 struct ConsoleKeyword {
   std::string name;
