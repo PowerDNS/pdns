@@ -340,7 +340,8 @@ void* tcpClientThread(int pipefd)
 
 	int dsock = -1;
 	if(sockets.count(ds->remote) == 0) {
-	  dsock=sockets[ds->remote]=setupTCPDownstream(ds);
+	  dsock=setupTCPDownstream(ds);
+	  sockets[ds->remote]=dsock;
 	}
 	else
 	  dsock=sockets[ds->remote];
@@ -369,7 +370,8 @@ void* tcpClientThread(int pipefd)
           close(dsock);
           dsock=-1;
           sockets.erase(ds->remote);
-          sockets[ds->remote]=dsock=setupTCPDownstream(ds);
+          dsock=setupTCPDownstream(ds);
+          sockets[ds->remote]=dsock;
           downstream_failures++;
           goto retry;
         }
@@ -387,7 +389,8 @@ void* tcpClientThread(int pipefd)
           close(dsock);
           dsock=-1;
           sockets.erase(ds->remote);
-          sockets[ds->remote]=dsock=setupTCPDownstream(ds);
+          dsock=setupTCPDownstream(ds);
+          sockets[ds->remote]=dsock;
           downstream_failures++;
           goto retry;
         }
@@ -405,7 +408,8 @@ void* tcpClientThread(int pipefd)
           close(dsock);
           dsock=-1;
           sockets.erase(ds->remote);
-          sockets[ds->remote]=dsock=setupTCPDownstream(ds);
+          dsock=setupTCPDownstream(ds);
+          sockets[ds->remote]=dsock;
           downstream_failures++;
           if(xfrStarted) {
             goto drop;
