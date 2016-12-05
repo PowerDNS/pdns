@@ -1245,4 +1245,50 @@ void moreLua(bool client)
         g_useTCPSinglePipe = flag;
       });
 
+    g_lua.writeFunction("snmpAgent", [](bool enableTraps, boost::optional<std::string> masterSocket) {
+#ifdef HAVE_NET_SNMP
+        if (g_configurationDone) {
+          errlog("snmpAgent() cannot be used at runtime!");
+          g_outputBuffer="snmpAgent() cannot be used at runtime!\n";
+          return;
+        }
+
+        if (g_snmpEnabled) {
+          errlog("snmpAgent() cannot be used twice!");
+          g_outputBuffer="snmpAgent() cannot be used twice!\n";
+          return;
+        }
+
+        g_snmpEnabled = true;
+        g_snmpTrapsEnabled = enableTraps;
+        g_snmpAgent = new DNSDistSNMPAgent("dnsdist", masterSocket ? *masterSocket : std::string());
+#else
+        errlog("NET SNMP support is required to use snmpAgent()");
+        g_outputBuffer="NET SNMP support is required to use snmpAgent()\n";
+#endif /* HAVE_NET_SNMP */
+      });
+
+    g_lua.writeFunction("SNMPTrapAction", [](boost::optional<std::string> reason) {
+#ifdef HAVE_NET_SNMP
+        return std::shared_ptr<DNSAction>(new SNMPTrapAction(reason ? *reason : ""));
+#else
+        throw std::runtime_error("NET SNMP support is required to use SNMPTrapAction()");
+#endif /* HAVE_NET_SNMP */
+      });
+
+    g_lua.writeFunction("SNMPTrapResponseAction", [](boost::optional<std::string> reason) {
+#ifdef HAVE_NET_SNMP
+        return std::shared_ptr<DNSResponseAction>(new SNMPTrapResponseAction(reason ? *reason : ""));
+#else
+        throw std::runtime_error("NET SNMP support is required to use SNMPTrapResponseAction()");
+#endif /* HAVE_NET_SNMP */
+      });
+
+    g_lua.writeFunction("sendCustomTrap", [](const std::string& str) {
+#ifdef HAVE_NET_SNMP
+        if (g_snmpAgent && g_snmpTrapsEnabled) {
+          g_snmpAgent->sendCustomTrap(str);
+        }
+#endif /* HAVE_NET_SNMP */
+      });
 }

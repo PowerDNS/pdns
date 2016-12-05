@@ -357,7 +357,15 @@ install_recursor() {
 }
 
 install_dnsdist() {
-  printf ""
+  # recursor test requirements / setup
+  run "sudo apt-get -qq --no-install-recommends install \
+    snmpd \
+    libsnmp-dev"
+  run "sudo sed -i \"s/agentxperms 0700 0755 dnsdist/agentxperms 0700 0755 ${USER}/g\" regression-tests.dnsdist/snmpd.conf"
+  run "sudo cp -f regression-tests.dnsdist/snmpd.conf /etc/snmp/snmpd.conf"
+  run "sudo service snmpd restart"
+  # fun story, the directory perms are only applied if it doesn't exist yet, and it is created by the init script, so..
+  run "sudo chmod 0755 /var/agentx"
 }
 
 build_auth() {

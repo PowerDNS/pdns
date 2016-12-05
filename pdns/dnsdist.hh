@@ -507,6 +507,17 @@ struct DownstreamState
     }
     return name + " (" + remote.toStringWithPort()+ ")";
   }
+  string getStatus() const
+  {
+    string status;
+    if(availability == DownstreamState::Availability::Up)
+      status = "UP";
+    else if(availability == DownstreamState::Availability::Down)
+      status = "DOWN";
+    else
+      status = (upStatus ? "up" : "down");
+    return status;
+  }
   void reconnect();
 };
 using servers_t =vector<std::shared_ptr<DownstreamState>>;
@@ -730,3 +741,9 @@ extern std::vector<std::tuple<ComboAddress,DnsCryptContext,bool,int>> g_dnsCrypt
 int handleDnsCryptQuery(DnsCryptContext* ctx, char* packet, uint16_t len, std::shared_ptr<DnsCryptQuery>& query, uint16_t* decryptedQueryLen, bool tcp, std::vector<uint8_t>& response);
 bool encryptResponse(char* response, uint16_t* responseLen, size_t responseSize, bool tcp, std::shared_ptr<DnsCryptQuery> dnsCryptQuery);
 #endif
+
+#include "dnsdist-snmp.hh"
+
+extern bool g_snmpEnabled;
+extern bool g_snmpTrapsEnabled;
+extern DNSDistSNMPAgent* g_snmpAgent;
