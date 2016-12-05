@@ -191,9 +191,19 @@ rectify-zone *ZONE*
      they comply with DNSSEC settings. Can be used to fix up migrated data. Can
      always safely be run, it does no harm.
 
+rectify-all-zones
+:    Calculates the 'ordername' and 'auth' fields for all zones so they comply 
+     with DNSSEC settings. Can be used to fix up migrated data. Can always safely 
+     be run, it does no harm.
+
 secure-zone *ZONE*
 :    Configures a zone called *ZONE* with reasonable DNSSEC settings. You should
      manually run 'pdnsutil rectify-zone' afterwards.
+
+secure-all-zones [**increase-serial**]
+:    Configures all zones that are not currently signed with reasonable DNSSEC
+     settings. Setting **increase-serial** will increase the serial of those 
+     zones too. You should manually run 'pdnsutil rectify-all-zones' afterwards.
 
 set-meta *ZONE* *ATTRIBUTE* [*VALUE*]
 :    Set domainmetadata *ATTRIBUTE* for *ZONE* to *VALUE*. An empty value clears it.
