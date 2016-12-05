@@ -85,6 +85,7 @@ extern SortList g_sortlist;
 #include "gettime.hh"
 
 #include "rec-protobuf.hh"
+#include "rec-snmp.hh"
 
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
@@ -2812,6 +2813,11 @@ int serviceMain(int argc, char*argv[])
   g_maxTCPPerClient=::arg().asNum("max-tcp-per-client");
   g_tcpMaxQueriesPerConn=::arg().asNum("max-tcp-queries-per-connection");
 
+  if (::arg().mustDo("snmp-agent")) {
+    g_snmpAgent = std::make_shared<RecursorSNMPAgent>("recursor", ::arg()["snmp-master-socket"]);
+    g_snmpAgent->run();
+  }
+
   if(g_numThreads == 1) {
     L<<Logger::Warning<<"Operating unthreaded"<<endl;
 #ifdef HAVE_SYSTEMD
@@ -3097,6 +3103,9 @@ int main(int argc, char **argv)
     ::arg().set("security-poll-suffix","Domain name from which to query security update notifications")="secpoll.powerdns.com.";
     
     ::arg().setSwitch("reuseport","Enable SO_REUSEPORT allowing multiple recursors processes to listen to 1 address")="no";
+
+    ::arg().setSwitch("snmp-agent", "If set, register as an SNMP agent")="no";
+    ::arg().setSwitch("snmp-master-socket", "If set and snmp-agent is set, the socket to use to register to the SNMP master")="";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");

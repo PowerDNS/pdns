@@ -525,3 +525,16 @@ The kind of policy response, there are several policy kinds:
 These fields are only used when `dq.appliedPolicy.policyKind` is set to `pdns.policykinds.Custom`.
 `dq.appliedPolicy.policyCustom` contains the name for the CNAME target as a string.
 And `dq.appliedPolicy.policyTTL` is the TTL field (in seconds) for the CNAME response.
+
+## SNMP Traps
+PowerDNS Recursor, when compiled with SNMP support, has the ability to act as a
+SNMP agent to provide SNMP statistics and to be able to send traps from Lua.
+
+For example, to send a custom SNMP trap containing the qname from the `preresolve` hook:
+
+```
+function preresolve(dq)
+  sendCustomSNMPTrap('Trap from preresolve, qname is '..dq.qname:toString())
+  return false
+end
+```

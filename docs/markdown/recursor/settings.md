@@ -796,6 +796,20 @@ used for better [security](security.md).
 
 Use only a single socket for outgoing queries.
 
+## `snmp-agent`
+* Boolean
+* Default: no
+
+If set to true and PowerDNS has been compiled with SNMP support, it will register
+as an SNMP agent to provide statistics and be able to send traps.
+
+## `snmp-master-socket`
+* String
+* Default: empty
+
+If not empty and `snmp-agent` is set to true, indicates how PowerDNS should contact
+the SNMP master to register as an SNMP agent.
+
 ## `socket-dir`
 * Path
 

@@ -113,6 +113,8 @@ PDNS_CHECK_LIBCRYPTO([
 )
 PDNS_CHECK_LIBCRYPTO_ECDSA
 
+PDNS_WITH_NET_SNMP
+
 # check for tools we might need
 PDNS_CHECK_RAGEL
 PDNS_CHECK_CURL
@@ -204,6 +206,10 @@ AC_MSG_NOTICE([OpenSSL ECDSA: $libcrypto_ecdsa])
 AS_IF([test "x$PROTOBUF_LIBS" != "x" -a x"$PROTOC" != "x"],
   [AC_MSG_NOTICE([Protobuf: yes])],
   [AC_MSG_NOTICE([Protobuf: no])]
+)
+AS_IF([test "x$NET_SNMP_LIBS" != "x"],
+  [AC_MSG_NOTICE([SNMP: yes])],
+  [AC_MSG_NOTICE([SNMP: no])]
 )
 AS_IF([test "x$systemd" != "xn"],
   [AC_MSG_NOTICE([systemd: yes])],
