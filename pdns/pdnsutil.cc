@@ -1664,7 +1664,7 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = false)
       if (shown) continue;
       shown=true;
 
-      const std::string prefix(exportDS ? "DS = " : "");
+      const std::string prefix(exportDS ? "" : "DS = ");
       cout<<prefix<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, key, 1).getZoneRepresentation() << " ; ( SHA1 digest )" << endl;
       cout<<prefix<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, key, 2).getZoneRepresentation() << " ; ( SHA256 digest )" << endl;
       try {
@@ -1713,7 +1713,7 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = false)
       }
       if (value.second.keyType == DNSSECKeeper::KSK || value.second.keyType == DNSSECKeeper::CSK) {
         const auto &key = value.first.getDNSKEY();
-        const std::string prefix(exportDS ? "DS = " : "");
+        const std::string prefix(exportDS ? "" : "DS = ");
         cout<<prefix<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, key, 1).getZoneRepresentation() << " ; ( SHA1 digest )" << endl;
         cout<<prefix<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, key, 2).getZoneRepresentation() << " ; ( SHA256 digest )" << endl;
         try {
