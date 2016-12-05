@@ -259,7 +259,12 @@ void *TCPNameserver::doConnection(void *data)
   if(getpeername(fd, (struct sockaddr *)&remote, &remotelen) < 0) {
     L<<Logger::Warning<<"Received question from socket which had no remote address, dropping ("<<stringerror()<<")"<<endl;
     d_connectionroom_sem->post();
-    closesocket(fd);
+    try {
+      closesocket(fd);
+    }
+    catch(const PDNSException& e) {
+      L<<Logger::Error<<"Error closing TCP socket: "<<e.reason<<endl;
+    }
     return 0;
   }
 
@@ -386,7 +391,13 @@ void *TCPNameserver::doConnection(void *data)
     L << Logger::Error << "TCP Connection Thread caught unknown exception." << endl;
   }
   d_connectionroom_sem->post();
-  closesocket(fd);
+
+  try {
+    closesocket(fd);
+  }
+  catch(const PDNSException& e) {
+    L<<Logger::Error<<"Error closing TCP socket: "<<e.reason<<endl;
+  }
 
   return 0;
 }
