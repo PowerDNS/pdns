@@ -2606,7 +2606,7 @@ int serviceMain(int argc, char*argv[])
     exit(99);
   }
 
-  loadRecursorLuaConfig(::arg()["lua-config-file"]);
+  loadRecursorLuaConfig(::arg()["lua-config-file"], ::arg().mustDo("daemon"));
 
   parseACLs();
   sortPublicSuffixList();
@@ -2715,6 +2715,7 @@ int serviceMain(int argc, char*argv[])
     L<<Logger::Warning<<"Calling daemonize, going to background"<<endl;
     L.toConsole(Logger::Critical);
     daemonize();
+    loadRecursorLuaConfig(::arg()["lua-config-file"], false);
   }
   signal(SIGUSR1,usr1Handler);
   signal(SIGUSR2,usr2Handler);
