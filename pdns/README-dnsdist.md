@@ -697,7 +697,7 @@ This will delay responses for questions to the mentioned domain, or coming
 from the configured subnet, by half a second.
 
 Like the QPSLimits and other rules, the delaying instructions can be
-inspected or edited using showRule(), rmRule(), topRule(), mvRule() etc.
+inspected or edited using `showRules()`, `rmRule()`, `topRule()`, `mvRule()` etc.
 
 Dynamic load balancing
 ----------------------
