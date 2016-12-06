@@ -524,9 +524,9 @@ void* tcpAcceptorThread(void* p)
 
   auto acl = g_ACL.getLocal();
   for(;;) {
-    ConnectionInfo* ci;
+    bool queuedCounterIncremented = false;
+    ConnectionInfo* ci = nullptr;
     try {
-      ci=0;
       ci = new ConnectionInfo;
       ci->cs = cs;
       ci->fd = -1;
@@ -536,7 +536,7 @@ void* tcpAcceptorThread(void* p)
 	g_stats.aclDrops++;
 	close(ci->fd);
 	delete ci;
-	ci=0;
+	ci=nullptr;
 	vinfolog("Dropped TCP connection from %s because of ACL", remote.toStringWithPort());
 	continue;
       }
@@ -554,10 +554,12 @@ void* tcpAcceptorThread(void* p)
       ci->remote = remote;
       int pipe = g_tcpclientthreads->getThread();
       if (pipe >= 0) {
+        queuedCounterIncremented = true;
         writen2WithTimeout(pipe, &ci, sizeof(ci), 0);
       }
       else {
         --g_tcpclientthreads->d_queued;
+        queuedCounterIncremented = false;
         close(ci->fd);
         delete ci;
         ci=nullptr;
@@ -568,6 +570,10 @@ void* tcpAcceptorThread(void* p)
       if(ci && ci->fd >= 0) 
 	close(ci->fd);
       delete ci;
+      ci = nullptr;
+      if (queuedCounterIncremented) {
+        --g_tcpclientthreads->d_queued;
+      }
     }
     catch(...){}
   }
