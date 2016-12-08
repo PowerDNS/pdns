@@ -31,7 +31,7 @@
 #include "dns.hh"
 #include "logger.hh"
 #include "statbag.hh"
-
+#include "dns_random.hh"
 
 extern StatBag S;
 extern PacketCache PC;
@@ -55,7 +55,7 @@ DNSProxy::DNSProxy(const string &remote)
     
   int n=0;
   for(;n<10;n++) {
-    local.sin4.sin_port = htons(10000+( Utility::random()%50000));
+    local.sin4.sin_port = htons(10000+dns_random(50000));
     
     if(::bind(d_sock, (struct sockaddr *)&local, local.getSocklen()) >= 0) 
       break;
@@ -69,7 +69,7 @@ DNSProxy::DNSProxy(const string &remote)
   if(connect(d_sock, (sockaddr *)&remaddr, remaddr.getSocklen())<0) 
     throw PDNSException("Unable to UDP connect to remote nameserver "+remaddr.toStringWithPort()+": "+stringerror());
 
-  d_xor=Utility::random()&0xffff;
+  d_xor=dns_random(0xffff);
   L<<Logger::Error<<"DNS Proxy launched, local port "<<ntohs(local.sin4.sin_port)<<", remote "<<remaddr.toStringWithPort()<<endl;
 } 
 
