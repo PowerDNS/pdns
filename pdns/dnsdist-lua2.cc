@@ -1123,4 +1123,9 @@ void moreLua(bool client)
           }
         }
       });
+
+    g_lua.writeFunction("setServFailWhenNoServer", [](bool servfail) {
+        setLuaSideEffect();
+        g_servFailOnNoPolicy = servfail;
+      });
 }

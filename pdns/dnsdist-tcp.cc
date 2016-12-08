@@ -333,10 +333,24 @@ void* tcpClientThread(int pipefd)
           g_stats.cacheMisses++;
         }
 
-	if(!ds) {
-	  g_stats.noPolicy++;
-	  break;
-	}
+        if(!ds) {
+          g_stats.noPolicy++;
+
+          if (g_servFailOnNoPolicy) {
+            restoreFlags(dh, origFlags);
+            dq.dh->rcode = RCode::ServFail;
+            dq.dh->qr = true;
+
+#ifdef HAVE_DNSCRYPT
+            if (!encryptResponse(queryBuffer, &dq.len, dq.size, true, dnsCryptQuery)) {
+              goto drop;
+            }
+#endif
+            sendResponseToClient(ci.fd, query, dq.len);
+          }
+
+          break;
+        }
 
 	int dsock = -1;
 	if(sockets.count(ds->remote) == 0) {
