@@ -902,7 +902,10 @@ void moreLua(bool client)
       });
 
 #ifdef HAVE_EBPF
-    g_lua.writeFunction("newBPFFilter", [](uint32_t maxV4, uint32_t maxV6, uint32_t maxQNames) {
+    g_lua.writeFunction("newBPFFilter", [client](uint32_t maxV4, uint32_t maxV6, uint32_t maxQNames) {
+        if (client) {
+          return std::shared_ptr<BPFFilter>(nullptr);
+        }
         return std::make_shared<BPFFilter>(maxV4, maxV6, maxQNames);
       });
 
@@ -978,7 +981,10 @@ void moreLua(bool client)
         g_defaultBPFFilter = bpf;
       });
 
-    g_lua.writeFunction("newDynBPFFilter", [](std::shared_ptr<BPFFilter> bpf) {
+    g_lua.writeFunction("newDynBPFFilter", [client](std::shared_ptr<BPFFilter> bpf) {
+        if (client) {
+          return std::shared_ptr<DynBPFFilter>(nullptr);
+        }
         return std::make_shared<DynBPFFilter>(bpf);
       });
 
