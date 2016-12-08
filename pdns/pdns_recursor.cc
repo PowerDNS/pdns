@@ -739,6 +739,17 @@ void startDoResolve(void *p)
     int res;
     DNSFilterEngine::Policy appliedPolicy;
     DNSRecord spoofed;
+    std::shared_ptr<RecursorLua4::DNSQuestion> dq = nullptr;
+    if (t_pdl->get() && (*t_pdl)->needDQ()) {
+      dq = std::make_shared<RecursorLua4::DNSQuestion>(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_tcp, variableAnswer, wantsRPZ);
+      dq->ednsOptions = &dc->d_ednsOpts;
+      dq->tag = dc->d_tag;
+      dq->discardedPolicies = &sr.d_discardedPolicies;
+      dq->policyTags = &dc->d_policyTags;
+      dq->appliedPolicy = &appliedPolicy;
+      dq->currentRecords = &ret;
+    }
+
     if(dc->d_mdp.d_qtype==QType::ANY && !dc->d_tcp && g_anyToTcp) {
       pw.getHeader()->tc = 1;
       res = 0;
@@ -768,7 +779,7 @@ void startDoResolve(void *p)
       sr.setCacheOnly();
 
     if (t_pdl->get()) {
-      (*t_pdl)->prerpz(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_tcp, ret, dc->d_ednsOpts.empty() ? 0 : &dc->d_ednsOpts, dc->d_tag, res, &wantsRPZ, &sr.d_discardedPolicies);
+      (*t_pdl)->prerpz(dq, res);
     }
 
     // Check if the query has a policy attached to it
@@ -777,7 +788,7 @@ void startDoResolve(void *p)
     }
 
     // if there is a RecursorLua active, and it 'took' the query in preResolve, we don't launch beginResolve
-    if(!t_pdl->get() || !(*t_pdl)->preresolve(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_tcp, ret, dc->d_ednsOpts.empty() ? 0 : &dc->d_ednsOpts, dc->d_tag, &appliedPolicy, &dc->d_policyTags, res, &variableAnswer, &wantsRPZ)) {
+    if(!t_pdl->get() || !(*t_pdl)->preresolve(dq, res)) {
 
       sr.d_wantsRPZ = wantsRPZ;
       if(wantsRPZ) {
@@ -888,14 +899,14 @@ void startDoResolve(void *p)
                 for(; i!= ret.cend(); ++i)
                   if(i->d_type == dc->d_mdp.d_qtype && i->d_place == DNSResourceRecord::ANSWER)
                           break;
-                if(i == ret.cend() && (*t_pdl)->nodata(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_tcp, ret, res, &variableAnswer))
+                if(i == ret.cend() && (*t_pdl)->nodata(dq, res))
                   shouldNotValidate = true;
 
 	}
-	else if(res == RCode::NXDomain && (*t_pdl)->nxdomain(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_tcp, ret, res, &variableAnswer))
+	else if(res == RCode::NXDomain && (*t_pdl)->nxdomain(dq, res))
           shouldNotValidate = true;
 
-	if((*t_pdl)->postresolve(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_tcp, ret, &appliedPolicy, &dc->d_policyTags, res, &variableAnswer))
+	if((*t_pdl)->postresolve(dq, res))
           shouldNotValidate = true;
       }
 
