@@ -683,6 +683,7 @@ extern bool g_truncateTC;
 extern bool g_fixupCase;
 extern int g_tcpRecvTimeout;
 extern int g_tcpSendTimeout;
+extern int g_udpTimeout;
 extern uint16_t g_maxOutstanding;
 extern std::atomic<bool> g_configurationDone;
 extern uint64_t g_maxTCPClientThreads;
