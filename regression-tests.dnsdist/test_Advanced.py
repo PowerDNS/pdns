@@ -1185,3 +1185,61 @@ class TestAdvancedIncludeDir(DNSDistTest):
 
         (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
         self.assertEquals(receivedResponse, expectedResponse)
+
+class TestAdvancedLuaDO(DNSDistTest):
+
+    _config_template = """
+    function nxDOLua(dq)
+        if dq:getDO() then
+            return DNSAction.Nxdomain, ""
+        end
+        return DNSAction.None, ""
+    end
+    addLuaAction(AllRule(), nxDOLua)
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testNxDOViaLua(self):
+        """
+        Advanced: Nx DO queries via Lua
+        """
+        name = 'nxdo.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '::1')
+        response.answer.append(rrset)
+        queryWithDO = dns.message.make_query(name, 'A', 'IN', want_dnssec=True)
+        doResponse = dns.message.make_response(queryWithDO)
+        doResponse.set_rcode(dns.rcode.NXDOMAIN)
+
+        # without DO
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+        # with DO
+        (_, receivedResponse) = self.sendUDPQuery(queryWithDO, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        doResponse.id = receivedResponse.id
+        print(doResponse)
+        print(receivedResponse)
+        self.assertEquals(receivedResponse, doResponse)
+
+        (_, receivedResponse) = self.sendTCPQuery(queryWithDO, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        doResponse.id = receivedResponse.id
+        self.assertEquals(receivedResponse, doResponse)
