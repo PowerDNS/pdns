@@ -1,5 +1,21 @@
 **Note**: Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
 
+# PowerDNS Authoritative Server 3.4.11
+Released January 13th 2016
+
+This release fixes PowerDNS Security Advisories [2016-02](security/powerdns-advisory-2016-02.md), [2016-03](security/powerdns-advisory-2016-03.md), [2016-04](security/powerdns-advisory-2016-04.md) and [2016-05](security/powerdns-advisory-2016-05.md).
+
+Changes since 3.4.10:
+
+- [commit ee79a63](https://github.com/PowerDNS/pdns/commit/ee79a63): Don't parse spurious RRs in queries when we don't need them (Security Advisory [2016-02](security/powerdns-advisory-2016-02.md))
+- [commit 2d37fd7](https://github.com/PowerDNS/pdns/commit/2d37fd7): Don't exit if the webserver can't accept a connection (Security Advisory [2016-03](security/powerdns-advisory-2016-03.md))
+- [commit 37d66d8](https://github.com/PowerDNS/pdns/commit/37d66d8): Fix TSIG computation (Security Advisory [2016-04](security/powerdns-advisory-2016-04.md))
+- [commit f82f0f6](https://github.com/PowerDNS/pdns/commit/f82f0f6): Correctly check unknown record content size (Security Advisory [2016-05](security/powerdns-advisory-2016-05.md))
+- [commit 0e612c1](https://github.com/PowerDNS/pdns/commit/0e612c1): Fix a possible memory leak in the webserver
+- [commit b4c5d8f](https://github.com/PowerDNS/pdns/commit/b4c5d8f): Lowercase the qname in getDomainInfo() and isMaster()
+- [commit c9713e8](https://github.com/PowerDNS/pdns/commit/c9713e8): Don't look up the packet cache for TSIG-enabled queries
+- [commit a6292e6](https://github.com/PowerDNS/pdns/commit/a6292e6): Fix a stack-based off-by-one write in the HTTP remote backend
+
 # PowerDNS Authoritative Server 3.4.10
 Released 2nd of September 2016
 
