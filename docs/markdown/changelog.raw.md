@@ -1,5 +1,36 @@
 **Note**: Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
 
+# PowerDNS Recursor 4.0.4
+Released January 13th 2016
+
+The 4.0.4 version of the PowerDNS Recursor fixes PowerDNS Security Advisories [2016-02](security/powerdns-advisory-2016-02.md) and [2016-04](security/powerdns-advisory-2016-04.md).
+
+## Bug fixes
+
+- [commit 658d9e4](https://github.com/PowerDNS/pdns/commit/658d9e4): Check TSIG signature on IXFR (Security Advisory [2016-04](security/powerdns-advisory-2016-04.md))
+- [commit 91acd82](https://github.com/PowerDNS/pdns/commit/91acd82): Don't parse spurious RRs in queries when we don't need them (Security Advisory [2016-02](security/powerdns-advisory-2016-02.md))
+- [commit 400e28d](https://github.com/PowerDNS/pdns/commit/400e28d): Fix incorrect length check in `DNSName` when extracting qtype or qclass
+- [commit 2168188](https://github.com/PowerDNS/pdns/commit/2168188): rec: Wait until after daemonizing to start the RPZ and protobuf threads
+- [commit 3beb3b2](https://github.com/PowerDNS/pdns/commit/3beb3b2): On (re-)priming, fetch the root NS records
+- [commit cfeb109](https://github.com/PowerDNS/pdns/commit/cfeb109): rec: Fix src/dest inversion in the protobuf message for TCP queries
+- [commit 46a6666](https://github.com/PowerDNS/pdns/commit/46a6666): NSEC3 optout and Bogus insecure forward fixes
+- [commit bb437d4](https://github.com/PowerDNS/pdns/commit/bb437d4): On RPZ customPolicy, follow the resulting CNAME
+- [commit 6b5a8f3](https://github.com/PowerDNS/pdns/commit/6b5a8f3): DNSSEC: don't go bogus on zero configured DSs
+- [commit 1fa6e1b](https://github.com/PowerDNS/pdns/commit/1fa6e1b): Don't crash on an empty query ring
+- [commit bfb7e5d](https://github.com/PowerDNS/pdns/commit/bfb7e5d): Set the result to NoError before calling `preresolve`
+
+## Additions and Enhancements
+
+- [commit 7c3398a](https://github.com/PowerDNS/pdns/commit/7c3398a): Add `max-recursion-depth` to limit the number of internal recursion
+- [commit 3d59c6f](https://github.com/PowerDNS/pdns/commit/3d59c6f): Fix building with ECDSA support disabled in libcrypto
+- [commit 0170a3b](https://github.com/PowerDNS/pdns/commit/0170a3b): Add requestorId and some comments to the protobuf definition file
+- [commit d8cd67b](https://github.com/PowerDNS/pdns/commit/d8cd67b): Make the negcache forwarded zones aware
+- [commit 46ccbd6](https://github.com/PowerDNS/pdns/commit/46ccbd6): Cache records for zones that were delegated to from a forwarded zone
+- [commit 5aa64e6](https://github.com/PowerDNS/pdns/commit/5aa64e6), [commit 5f4242e](https://github.com/PowerDNS/pdns/commit/5f4242e) and [commit 0f707cd](https://github.com/PowerDNS/pdns/commit/0f707cd): DNSSEC: Implement keysearch based on zone-cuts
+- [commit ddf6fa5](https://github.com/PowerDNS/pdns/commit/ddf6fa5): rec: Add support for boost::context >= 1.61
+- [commit bb6bd6e](https://github.com/PowerDNS/pdns/commit/bb6bd6e): Add `getRecursorThreadId()` to Lua, identifying the current thread
+- [commit d8baf17](https://github.com/PowerDNS/pdns/commit/d8baf17): Handle CNAMEs at the apex of secure zones to other secure zones
+
 # PowerDNS Authoritative Server 4.0.2
 Released January 32th 2016
 
