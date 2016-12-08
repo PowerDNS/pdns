@@ -1,5 +1,25 @@
 **Note**: Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
 
+# PowerDNS Recursor 3.7.4
+Released January 13th 2016
+
+This release fixes [PowerDNS Security Advisory 2016-02](security/powerdns-advisory-2016-02.md).
+
+Changes since 3.7.3:
+
+- [commit 8c82b5d](https://github.com/PowerDNS/pdns/commit/8c82b5d): Don't parse spurious RRs in queries when we don't need them (Security Advisory [2016-02](security/powerdns-advisory-2016-02.md))
+- [commit 85243e0](https://github.com/PowerDNS/pdns/commit/85243e0): Add some sanity checking to rec_control wipe-cache
+- [commit 3d11d9f](https://github.com/PowerDNS/pdns/commit/3d11d9f): recursor: Require = in forward-zones (Aki Tuomi)
+- [commit 2b94bb4](https://github.com/PowerDNS/pdns/commit/2b94bb4): recursor: when replacing an expired entry, move it to the back
+- [commit 0cca616](https://github.com/PowerDNS/pdns/commit/0cca616): add lowercase-outgoing flag
+- [commit 24ef6ea](https://github.com/PowerDNS/pdns/commit/24ef6ea): devpollmplexer is leaky (Josef 'Jeff' Sipek)
+- [commit d2d4926](https://github.com/PowerDNS/pdns/commit/d2d4926): EMFILE was (out of filedescriptors, too many open files) was reported as an error that could be blamed on the remote nameserver instead of on the OS, causing throttle actions.
+- [commit fd4871c](https://github.com/PowerDNS/pdns/commit/fd4871c): mprove filedescriptor requesting code
+- [commit 9a39e6d](https://github.com/PowerDNS/pdns/commit/9a39e6d): devpollmplexer doesn't compile due to missing sigset_t (Josef 'Jeff' Sipek)
+- [commit 3b05796](https://github.com/PowerDNS/pdns/commit/3b05796): Update root hints for h.root-servers.net
+- [commit ef49a7c](https://github.com/PowerDNS/pdns/commit/ef49a7c): Port the 0x20 hashing to 3.7.3
+- [commit 7486add](https://github.com/PowerDNS/pdns/commit/7486add) and [commit d4a96ba](https://github.com/PowerDNS/pdns/commit/d4a96ba): Update YaHTTP (Aki Tuomi)
+
 # PowerDNS Authoritative Server 3.4.11
 Released January 13th 2016
 
