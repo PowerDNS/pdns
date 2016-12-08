@@ -205,6 +205,12 @@ secure-all-zones [**increase-serial**]
      settings. Setting **increase-serial** will increase the serial of those 
      zones too. You should manually run 'pdnsutil rectify-all-zones' afterwards.
 
+set-kind *ZONE* *KIND*
+:    Change the kind of *ZONE* to *KIND* (master, slave, native).
+
+set-account *ZONE* *ACCOUNT*
+:    Change the account (owner) of *ZONE* to *ACCOUNT*.
+
 set-meta *ZONE* *ATTRIBUTE* [*VALUE*]
 :    Set domainmetadata *ATTRIBUTE* for *ZONE* to *VALUE*. An empty value clears it.
 
