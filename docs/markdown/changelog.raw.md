@@ -1,5 +1,49 @@
 **Note**: Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
 
+# PowerDNS Authoritative Server 4.0.2
+Released January 32th 2016
+
+This release fixes PowerDNS Security Advisories [2016-02](security/powerdns-advisory-2016-02.md), [2016-03](security/powerdns-advisory-2016-03.md), [2016-04](security/powerdns-advisory-2016-04.md) and [2016-05](security/powerdns-advisory-2016-05.md) and includes a fix for a memory leak in the Postgresql backend.
+
+## Bug fixes
+
+- [commit f61af48](https://github.com/PowerDNS/pdns/commit/f61af48): Don't parse spurious RRs in queries when we don't need them (Security Advisory [2016-02](security/powerdns-advisory-2016-02.md))
+- [commit 592006d](https://github.com/PowerDNS/pdns/commit/592006d): Don't exit if the webserver can't accept a connection (Security Advisory [2016-03](security/powerdns-advisory-2016-03.md))
+- [commit e85acc6](https://github.com/PowerDNS/pdns/commit/e85acc6): Check TSIG signature on IXFR (Security Advisory [2016-04](security/powerdns-advisory-2016-04.md))
+- [commit 3b1e4a2](https://github.com/PowerDNS/pdns/commit/3b1e4a2): Correctly check unknown record content size (Security Advisory [2016-05](security/powerdns-advisory-2016-05.md))
+- [commit 9ecbf02](https://github.com/PowerDNS/pdns/commit/9ecbf02): ODBC backend: actually prepare statements
+- [commit a4d607b](https://github.com/PowerDNS/pdns/commit/a4d607b): Fix incorrect length check in `DNSName` when extracting qtype or qclass
+- [commit c816fe3](https://github.com/PowerDNS/pdns/commit/c816fe3): Fix a possible memory leak in the webserver
+- [#4287](https://github.com/PowerDNS/pdns/pull/4287): Better handling of invalid serial
+- [#4306](https://github.com/PowerDNS/pdns/pull/4306): Limit size of mysql cell to 128 kilobytes
+- [#4314](https://github.com/PowerDNS/pdns/pull/4314): Overload fix: make overload-queue-length work as intended again, add test for it.
+- [#4317](https://github.com/PowerDNS/pdns/pull/4317): Improve root-zone performance
+- [#4319](https://github.com/PowerDNS/pdns/pull/4319): pipe: SERVFAIL when needed
+- [#4360](https://github.com/PowerDNS/pdns/pull/4360): Make sure mariadb (mysql on centos/rhel) is started before pdns (42wim)
+- [#4387](https://github.com/PowerDNS/pdns/pull/4387): ComboAddress: don't allow invalid ports
+- [#4459](https://github.com/PowerDNS/pdns/pull/4459): Plug memory leak in postgresql backend (Christian Hofstaedtler)
+- [#4544](https://github.com/PowerDNS/pdns/pull/4544): Fix a stack-based off-by-one write in the HTTP remote backend
+- [#4755](https://github.com/PowerDNS/pdns/pull/4755): calidns: Don't crash if we don't have enough 'unknown' queries remaining
+
+## Additions and Enhancements
+
+- [commit 1238e06](https://github.com/PowerDNS/pdns/commit/1238e06): disable negative getSOA caching if the negcache_ttl is 0 (Kees Monshouwer)
+- [commit 3a0bded](https://github.com/PowerDNS/pdns/commit/3a0bded), [commit 8c879d4](https://github.com/PowerDNS/pdns/commit/8c879d4), [commit 8c03126](https://github.com/PowerDNS/pdns/commit/8c03126), [commit 5656e12](https://github.com/PowerDNS/pdns/commit/5656e12) and [commit c1d283d](https://github.com/PowerDNS/pdns/commit/c1d283d): Improve PacketCache cleaning (Kees Monshouwer)
+- [#4261](https://github.com/PowerDNS/pdns/pull/4261): Strip trailing dot in PTR content (Kees Monshouwer)
+- [#4269](https://github.com/PowerDNS/pdns/pull/4269): contrib: simple bash completion for pdnsutil (j0ju)
+- [#4272](https://github.com/PowerDNS/pdns/pull/4272): Bind backend: update status message on reload, keep the existing zone on failure
+- [#4274](https://github.com/PowerDNS/pdns/pull/4274): report DHCID type (Kees Monshouwer)
+- [#4310](https://github.com/PowerDNS/pdns/pull/4310): Fix build with LibreSSL, for which OPENSSL_VERSION_NUMBER is irrelevant
+- [#4323](https://github.com/PowerDNS/pdns/pull/4323): Speedup DNSName creation
+- [#4335](https://github.com/PowerDNS/pdns/pull/4335): fix TSIG for single thread distributor (Kees Monshouwer)
+- [#4346](https://github.com/PowerDNS/pdns/pull/4346): change default for any-to-tcp to yes (Kees Monshouwer)
+- [#4356](https://github.com/PowerDNS/pdns/pull/4356): Don't look up the packet cache for TSIG-enabled queries
+- [#4403](https://github.com/PowerDNS/pdns/pull/4403): (auth) Fix build with OpenSSL 1.1.0 final (Christian Hofstaedtler)
+- [#4442](https://github.com/PowerDNS/pdns/pull/4442): geoipbackend: Fix minor naming issue (Aki Tuomi)
+- [#4454](https://github.com/PowerDNS/pdns/pull/4454): pdnsutil: create-slave-zone accept multiple masters (Hannu Ylitalo)
+- [#4541](https://github.com/PowerDNS/pdns/pull/4541): Backport of #4542: API: search should not return ENTs (Christian Hofstaedtler)
+- [#4754](https://github.com/PowerDNS/pdns/pull/4754): In `Bind2Backend::lookup()`, use the `zoneId` when we have it
+
 # PowerDNS Recursor 4.0.3
 Released September 6th 2016
 
