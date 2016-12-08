@@ -1626,7 +1626,7 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = false)
     B.lookup(QType(QType::DNSKEY), zone);
     while(B.get(rr)) {
       if (rr.qtype != QType::DNSKEY) continue;
-      keys.push_back(*dynamic_cast<DNSKEYRecordContent*>(DNSKEYRecordContent::make(rr.getZoneRepresentation())));
+      keys.push_back(DNSKEYRecordContent(rr.getZoneRepresentation()));
     }
 
     if(keys.empty()) {
