@@ -51,12 +51,19 @@ static int setupTCPDownstream(shared_ptr<DownstreamState> ds)
 {  
   vinfolog("TCP connecting to downstream %s", ds->remote.toStringWithPort());
   int sock = SSocket(ds->remote.sin4.sin_family, SOCK_STREAM, 0);
-  if (!IsAnyAddress(ds->sourceAddr)) {
-    SSetsockopt(sock, SOL_SOCKET, SO_REUSEADDR, 1);
-    SBind(sock, ds->sourceAddr);
+  try {
+    if (!IsAnyAddress(ds->sourceAddr)) {
+      SSetsockopt(sock, SOL_SOCKET, SO_REUSEADDR, 1);
+      SBind(sock, ds->sourceAddr);
+    }
+    SConnect(sock, ds->remote);
+    setNonBlocking(sock);
   }
-  SConnect(sock, ds->remote);
-  setNonBlocking(sock);
+  catch(const std::runtime_error& e) {
+    /* don't leak our file descriptor if SConnect() (for example) throws */
+    close(sock);
+    throw;
+  }
   return sock;
 }
 
