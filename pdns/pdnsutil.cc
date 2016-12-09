@@ -1968,7 +1968,7 @@ try
     cout<<"Usage: \npdnsutil [options] <command> [params ..]\n"<<endl;
     cout<<"Commands:"<<endl;
     cout<<"activate-tsig-key ZONE NAME {master|slave}"<<endl;
-    cout<<"                                   Enable TSIG key for a zone"<<endl;
+    cout<<"                                   Enable TSIG authenticated AXFR using the key NAME for ZONE"<<endl;
     cout<<"activate-zone-key ZONE KEY-ID      Activate the key with key id KEY-ID in ZONE"<<endl;
     cout<<"add-record ZONE NAME TYPE [ttl] content"<<endl;
     cout<<"             [content..]           Add one or more records to ZONE"<<endl;
@@ -1993,7 +1993,7 @@ try
     cout<<"                                   Change slave zone ZONE master IP address to master-ip"<<endl;
     cout<<"create-zone ZONE [nsname]          Create empty zone ZONE"<<endl;
     cout<<"deactivate-tsig-key ZONE NAME {master|slave}"<<endl;
-    cout<<"                                   Disable TSIG key for a zone"<<endl;
+    cout<<"                                   Disable TSIG authenticated AXFR using the key NAME for ZONE"<<endl;
     cout<<"deactivate-zone-key ZONE KEY-ID    Deactivate the key with key id KEY-ID in ZONE"<<endl;
     cout<<"delete-rrset ZONE NAME TYPE        Delete named RRSET from zone"<<endl;
     cout<<"delete-tsig-key NAME               Delete TSIG key (warning! will not unmap key!)"<<endl;

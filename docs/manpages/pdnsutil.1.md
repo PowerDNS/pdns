@@ -133,10 +133,12 @@ require an *ALGORITHM*, the following are available:
  * hmac-sha512
 
 activate-tsig-key *ZONE* *NAME* {**master**,**slave**}
-:    Enable TSIG key *NAME* for zone *ZONE*.
+:    Enable TSIG authenticated AXFR using the key *NAME* for zone *ZONE*.
+     This sets the `TSIG-ALLOW-AXFR` (master) or `AXFR-MASTER-TSIG` (slave)
+     zone metadata.
 
 deactivate-tsig-key *ZONE* *NAME* {**master**,**slave**}
-:    Disable TSIG key *NAME* for zone *ZONE*.
+:    Disable TSIG authenticated AXFR using the key *NAME* for zone *ZONE*.
 
 delete-tsig-key *NAME*
 :    Delete the TSIG key *NAME*. Warning, this does not deactivate said key.
