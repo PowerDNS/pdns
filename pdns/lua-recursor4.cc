@@ -159,6 +159,32 @@ static int getFakePTRRecords(const DNSName& qname, const std::string& prefix, ve
 
 }
 
+boost::optional<dnsheader> RecursorLua4::DNSQuestion::getDH() const
+{
+  if (dh)
+    return *dh;
+  return boost::optional<dnsheader>();
+}
+
+vector<string> RecursorLua4::DNSQuestion::getEDNSFlags() const
+{
+  vector<string> ret;
+  if (ednsFlags) {
+    if (*ednsFlags & EDNSOpts::DNSSECOK)
+      ret.push_back("DO");
+  }
+  return ret;
+}
+
+bool RecursorLua4::DNSQuestion::getEDNSFlag(string flag) const
+{
+  if (ednsFlags) {
+    if (flag == "DO" && (*ednsFlags & EDNSOpts::DNSSECOK))
+      return true;
+  }
+  return false;
+}
+
 vector<pair<uint16_t, string> > RecursorLua4::DNSQuestion::getEDNSOptions() const
 {
   if(ednsOptions)
@@ -397,9 +423,12 @@ RecursorLua4::RecursorLua4(const std::string& fname)
       pol.d_custom = shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(QType::CNAME, 1, content));
     }
   );
+  d_lw->registerFunction("getDH", &DNSQuestion::getDH);
   d_lw->registerFunction("getEDNSOptions", &DNSQuestion::getEDNSOptions);
   d_lw->registerFunction("getEDNSOption", &DNSQuestion::getEDNSOption);
   d_lw->registerFunction("getEDNSSubnet", &DNSQuestion::getEDNSSubnet);
+  d_lw->registerFunction("getEDNSFlags", &DNSQuestion::getEDNSFlags);
+  d_lw->registerFunction("getEDNSFlag", &DNSQuestion::getEDNSFlag);
   d_lw->registerMember("name", &DNSRecord::d_name);
   d_lw->registerMember("type", &DNSRecord::d_type);
   d_lw->registerMember("ttl", &DNSRecord::d_ttl);

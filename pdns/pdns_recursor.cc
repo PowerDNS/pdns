@@ -746,12 +746,14 @@ void startDoResolve(void *p)
     std::shared_ptr<RecursorLua4::DNSQuestion> dq = nullptr;
     if (t_pdl->get() && (*t_pdl)->needDQ()) {
       dq = std::make_shared<RecursorLua4::DNSQuestion>(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_tcp, variableAnswer, wantsRPZ);
+      dq->ednsFlags = &edo.d_Z;
       dq->ednsOptions = &dc->d_ednsOpts;
       dq->tag = dc->d_tag;
       dq->discardedPolicies = &sr.d_discardedPolicies;
       dq->policyTags = &dc->d_policyTags;
       dq->appliedPolicy = &appliedPolicy;
       dq->currentRecords = &ret;
+      dq->dh = &dc->d_mdp.d_header;
     }
 
     if(dc->d_mdp.d_qtype==QType::ANY && !dc->d_tcp && g_anyToTcp) {
