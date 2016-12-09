@@ -91,7 +91,7 @@ extern SortList g_sortlist;
 #endif
 
 __thread FDMultiplexer* t_fdm;
-__thread unsigned int t_id;
+static __thread unsigned int t_id;
 unsigned int g_maxTCPPerClient;
 unsigned int g_networkTimeoutMsec;
 uint64_t g_latencyStatSize;
@@ -214,6 +214,10 @@ ArgvMap &arg()
   return theArg;
 }
 
+unsigned int getRecursorThreadId()
+{
+  return t_id;
+}
 
 void handleTCPClientWritable(int fd, FDMultiplexer::funcparam_t& var);
 

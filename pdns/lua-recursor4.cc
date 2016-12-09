@@ -534,7 +534,11 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   d_lw->registerFunction("incBy", &DynMetric::incBy);
   d_lw->registerFunction("set", &DynMetric::set);
   d_lw->registerFunction("get", &DynMetric::get);
-  
+
+  d_lw->writeFunction("getRecursorThreadId", []() {
+      return getRecursorThreadId();
+    });
+
   
   ifstream ifs(fname);
   if(!ifs) {

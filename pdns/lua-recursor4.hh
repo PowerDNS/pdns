@@ -31,6 +31,7 @@
 #endif
 
 string GenUDPQueryResponse(const ComboAddress& dest, const string& query);
+unsigned int getRecursorThreadId();
 
 class LuaContext;
 
