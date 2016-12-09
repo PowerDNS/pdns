@@ -590,9 +590,9 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   TSIGRecordContent trc;
   string tsigkeyname, tsigsecret;
 
-  q->getTSIGDetails(&trc, &tsigkeyname, 0);
+  bool haveTSIGDetails = q->getTSIGDetails(&trc, &tsigkeyname, 0);
 
-  if(!tsigkeyname.empty()) {
+  if(haveTSIGDetails && !tsigkeyname.empty()) {
     string tsig64;
     string algorithm=toLowerCanonic(trc.d_algoName);
     if (algorithm == "hmac-md5.sig-alg.reg.int")
@@ -616,7 +616,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     addRRSigs(dk, signatureDB, authSet, outpacket->getRRS());
   }
   
-  if(!tsigkeyname.empty())
+  if(haveTSIGDetails && !tsigkeyname.empty())
     outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac); // first answer is 'normal'
   
   sendPacket(outpacket, outsock);
@@ -799,7 +799,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
       for(;;) {
         outpacket->getRRS() = csp.getChunk();
         if(!outpacket->getRRS().empty()) {
-          if(!tsigkeyname.empty()) 
+          if(haveTSIGDetails && !tsigkeyname.empty())
             outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true);
           sendPacket(outpacket, outsock);
           trc.d_mac=outpacket->d_trc.d_mac;
@@ -850,7 +850,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
             for(;;) {
               outpacket->getRRS() = csp.getChunk();
               if(!outpacket->getRRS().empty()) {
-                if(!tsigkeyname.empty())
+                if(haveTSIGDetails && !tsigkeyname.empty())
                   outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true);
                 sendPacket(outpacket, outsock);
                 trc.d_mac=outpacket->d_trc.d_mac;
@@ -885,7 +885,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
         for(;;) {
           outpacket->getRRS() = csp.getChunk();
           if(!outpacket->getRRS().empty()) {
-            if(!tsigkeyname.empty())
+            if(haveTSIGDetails && !tsigkeyname.empty())
               outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true); 
             sendPacket(outpacket, outsock);
             trc.d_mac=outpacket->d_trc.d_mac;
@@ -906,7 +906,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   for(;;) { 
     outpacket->getRRS() = csp.getChunk(true); // flush the pipe
     if(!outpacket->getRRS().empty()) {
-      if(!tsigkeyname.empty())
+      if(haveTSIGDetails && !tsigkeyname.empty())
         outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true); // first answer is 'normal'
       sendPacket(outpacket, outsock);
       trc.d_mac=outpacket->d_trc.d_mac;
@@ -925,7 +925,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   outpacket=getFreshAXFRPacket(q);
   outpacket->addRecord(soa);
   editSOA(dk, sd.qname, outpacket.get());
-  if(!tsigkeyname.empty())
+  if(haveTSIGDetails && !tsigkeyname.empty())
     outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true); 
   
   sendPacket(outpacket, outsock);
@@ -1027,9 +1027,9 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
     TSIGRecordContent trc;
     string tsigkeyname, tsigsecret;
 
-    q->getTSIGDetails(&trc, &tsigkeyname, 0);
+    bool haveTSIGDetails = q->getTSIGDetails(&trc, &tsigkeyname, 0);
 
-    if(!tsigkeyname.empty()) {
+    if(haveTSIGDetails && !tsigkeyname.empty()) {
       string tsig64;
       string algorithm=toLowerCanonic(trc.d_algoName);
       if (algorithm == "hmac-md5.sig-alg.reg.int")
@@ -1052,7 +1052,7 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
       addRRSigs(dk, signatureDB, authSet, outpacket->getRRS());
     }
 
-    if(!tsigkeyname.empty())
+    if(haveTSIGDetails && !tsigkeyname.empty())
       outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac); // first answer is 'normal'
 
     sendPacket(outpacket, outsock);

@@ -516,7 +516,7 @@ string calculateSHAHMAC(const std::string& key, const std::string& text, TSIGHas
       break;
   };
   default:
-    throw new PDNSException("Unknown hash algorithm requested for SHA");
+    throw PDNSException("Unknown hash algorithm requested for SHA");
   };
 
   return res;
@@ -528,6 +528,23 @@ string calculateHMAC(const std::string& key, const std::string& text, TSIGHashEn
   // add other algorithms here
 
   return calculateSHAHMAC(key, text, hash);
+}
+
+bool constantTimeStringEquals(const std::string& a, const std::string& b)
+{
+  if (a.size() != b.size()) {
+    return false;
+  }
+  const size_t size = a.size();
+  const volatile unsigned char *_a = (const volatile unsigned char *) a.c_str();
+  const volatile unsigned char *_b = (const volatile unsigned char *) b.c_str();
+  unsigned char res = 0;
+
+  for (size_t idx = 0; idx < size; idx++) {
+    res |= _a[idx] ^ _b[idx];
+  }
+
+  return res == 0;
 }
 
 string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOffset, const string& keyname, const TSIGRecordContent& trc, const string& previous, bool timersonly, unsigned int dnsHeaderOffset)

@@ -278,8 +278,12 @@ void MOADNSParser::init(const char *packet, unsigned int len)
       dr.d_content=boost::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(dr, pr, d_header.opcode));
       d_answers.push_back(make_pair(dr, pr.d_pos));
 
-      if(dr.d_type == QType::TSIG && dr.d_class == 0xff) 
+      if(dr.d_type == QType::TSIG && dr.d_class == QClass::ANY) {
+        if(dr.d_place != DNSRecord::Additional || n != (unsigned int)(d_header.ancount + d_header.nscount + d_header.arcount) - 1) {
+          throw MOADNSException("Packet ("+d_qname+"|#"+lexical_cast<string>(d_qtype)+") has a TSIG record in an invalid position.");
+        }
         d_tsigPos = recordStartPos + sizeof(struct dnsheader);
+      }
     }
 
 #if 0    
