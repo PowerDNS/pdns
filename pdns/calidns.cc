@@ -246,8 +246,15 @@ try
     cout<<"Aiming at "<<qps<< "qps for "<<seconds<<" seconds at cache hitrate "<<100.0*hitrate<<"%";
     unsigned int misses=(1-hitrate)*qps*seconds;
     unsigned int total=qps*seconds;
+    if (misses == 0) {
+      misses = 1;
+    }
     cout<<", need "<<misses<<" misses, "<<total<<" queries, have "<<unknown.size()<<" unknown left!"<<endl;
 
+    if (misses > unknown.size()) {
+      cerr<<"Not enough queries remaining (need at least "<<misses<<" and got "<<unknown.size()<<", please add more to the query file), exiting."<<endl;
+      exit(1);
+    }
     vector<vector<uint8_t>*> toSend;
     unsigned int n;
     for(n=0; n < misses; ++n) {
