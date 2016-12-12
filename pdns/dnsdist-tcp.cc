@@ -77,14 +77,8 @@ struct ConnectionInfo
 uint64_t g_maxTCPQueuedConnections{1000};
 void* tcpClientThread(int pipefd);
 
-// Should not be called simultaneously!
 void TCPClientCollection::addTCPClientThread()
 {
-  if (d_numthreads >= d_tcpclientthreads.capacity()) {
-    warnlog("Adding a new TCP client thread would exceed the vector capacity (%d/%d), skipping", d_numthreads.load(), d_tcpclientthreads.capacity());
-    return;
-  }
-
   vinfolog("Adding TCP Client thread");
 
   int pipefds[2] = { -1, -1};
@@ -112,7 +106,19 @@ void TCPClientCollection::addTCPClientThread()
     return;
   }
 
-  d_tcpclientthreads.push_back(pipefds[1]);
+  {
+    std::lock_guard<std::mutex> lock(d_mutex);
+
+    if (d_numthreads >= d_tcpclientthreads.capacity()) {
+      warnlog("Adding a new TCP client thread would exceed the vector capacity (%d/%d), skipping", d_numthreads.load(), d_tcpclientthreads.capacity());
+      close(pipefds[0]);
+      close(pipefds[1]);
+      return;
+    }
+
+    d_tcpclientthreads.push_back(pipefds[1]);
+  }
+
   ++d_numthreads;
 }
 
@@ -202,7 +208,7 @@ void* tcpClientThread(int pipefd)
       throw std::runtime_error("Error reading from TCP acceptor pipe (" + std::to_string(pipefd) + ") in " + std::string(isNonBlocking(pipefd) ? "non-blocking" : "blocking") + " mode: " + e.what());
     }
 
-    --g_tcpclientthreads->d_queued;
+    g_tcpclientthreads->decrementQueuedCount();
     ci=*citmp;
     delete citmp;    
 
@@ -575,7 +581,7 @@ void* tcpAcceptorThread(void* p)
 	continue;
       }
 
-      if(g_maxTCPQueuedConnections > 0 && g_tcpclientthreads->d_queued >= g_maxTCPQueuedConnections) {
+      if(g_maxTCPQueuedConnections > 0 && g_tcpclientthreads->getQueuedCount() >= g_maxTCPQueuedConnections) {
         close(ci->fd);
         delete ci;
         ci=nullptr;
@@ -592,7 +598,7 @@ void* tcpAcceptorThread(void* p)
         writen2WithTimeout(pipe, &ci, sizeof(ci), 0);
       }
       else {
-        --g_tcpclientthreads->d_queued;
+        g_tcpclientthreads->decrementQueuedCount();
         queuedCounterIncremented = false;
         close(ci->fd);
         delete ci;
@@ -606,7 +612,7 @@ void* tcpAcceptorThread(void* p)
       delete ci;
       ci = nullptr;
       if (queuedCounterIncremented) {
-        --g_tcpclientthreads->d_queued;
+        g_tcpclientthreads->decrementQueuedCount();
       }
     }
     catch(...){}

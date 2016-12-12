@@ -1371,7 +1371,7 @@ void* healthChecksThread()
   for(;;) {
     sleep(interval);
 
-    if(g_tcpclientthreads->d_queued > 1 && g_tcpclientthreads->d_numthreads < g_tcpclientthreads->d_maxthreads)
+    if(g_tcpclientthreads->getQueuedCount() > 1 && !g_tcpclientthreads->hasReachedMaxThreads())
       g_tcpclientthreads->addTCPClientThread();
 
     for(auto& dss : g_dstates.getCopy()) { // this points to the actual shared_ptrs!

@@ -1524,7 +1524,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       setLuaNoSideEffect();
       boost::format fmt("%-10d %-10d %-10d %-10d\n");
       g_outputBuffer += (fmt % "Clients" % "MaxClients" % "Queued" % "MaxQueued").str();
-      g_outputBuffer += (fmt % g_tcpclientthreads->d_numthreads % g_maxTCPClientThreads % g_tcpclientthreads->d_queued % g_maxTCPQueuedConnections).str();
+      g_outputBuffer += (fmt % g_tcpclientthreads->getThreadsCount() % g_maxTCPClientThreads % g_tcpclientthreads->getQueuedCount() % g_maxTCPQueuedConnections).str();
     });
 
   g_lua.writeFunction("setCacheCleaningDelay", [](uint32_t delay) { g_cacheCleaningDelay = delay; });
