@@ -12,6 +12,7 @@ bool RemoteLogger::reconnect()
 {
   if (d_socket >= 0) {
     close(d_socket);
+    d_socket = -1;
   }
   try {
     d_socket = SSocket(d_remote.sin4.sin_family, SOCK_STREAM, 0);
@@ -115,8 +116,10 @@ RemoteLogger::RemoteLogger(const ComboAddress& remote, uint16_t timeout, uint64_
 RemoteLogger::~RemoteLogger()
 {
   d_exiting = true;
-  if (d_socket >= 0)
+  if (d_socket >= 0) {
     close(d_socket);
+    d_socket = -1;
+  }
   d_queueCond.notify_one();
   d_thread.join();
 }
