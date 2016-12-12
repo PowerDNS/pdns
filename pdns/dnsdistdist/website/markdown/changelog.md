@@ -26,6 +26,7 @@ Changes since 1.1.0-beta1:
 ## Bug fixes
 
  * [#4425](https://github.com/PowerDNS/pdns/pull/4425): Fix a protobuf regression (requestor/responder mix-up) caused by a94673e
+ * [#4541](https://github.com/PowerDNS/pdns/pull/4541): Fix insertion issues in SuffixMatchTree, move it to dnsname.hh
  * [#4553](https://github.com/PowerDNS/pdns/pull/4553): Flush output in single command client mode
  * [#4578](https://github.com/PowerDNS/pdns/pull/4578): Fix destination address reporting
  * [#4640](https://github.com/PowerDNS/pdns/pull/4640): Don't exit dnsdist on an exception in maintenance
