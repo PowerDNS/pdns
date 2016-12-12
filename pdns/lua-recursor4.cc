@@ -36,27 +36,27 @@ RecursorLua4::RecursorLua4(const std::string &fname)
   throw std::runtime_error("Attempt to load a Lua script in a PowerDNS binary without Lua support");
 }
 
-bool RecursorLua4::nxdomain(std::shared_ptr<DNSQuestion> dq, int& res)
+bool RecursorLua4::nxdomain(DNSQuestion& dq, int& res)
 {
   return false;
 }
 
-bool RecursorLua4::nodata(std::shared_ptr<DNSQuestion> dq, int& res)
+bool RecursorLua4::nodata(DNSQuestion& dq, int& res)
 {
   return false;
 }
 
-bool RecursorLua4::postresolve(std::shared_ptr<DNSQuestion> dq, int& res)
+bool RecursorLua4::postresolve(DNSQuestion& dq, int& res)
 {
   return false;
 }
 
-bool RecursorLua4::prerpz(std::shared_ptr<DNSQuestion> dq, int& ret)
+bool RecursorLua4::prerpz(DNSQuestion& dq, int& ret)
 {
   return false;
 }
 
-bool RecursorLua4::preresolve(std::shared_ptr<DNSQuestion> dq, int& res)
+bool RecursorLua4::preresolve(DNSQuestion& dq, int& res)
 {
   return false;
 }
@@ -586,27 +586,27 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   d_gettag = d_lw->readVariable<boost::optional<gettag_t>>("gettag").get_value_or(0);
 }
 
-bool RecursorLua4::prerpz(std::shared_ptr<DNSQuestion> dq, int& ret)
+bool RecursorLua4::prerpz(DNSQuestion& dq, int& ret)
 {
   return genhook(d_prerpz, dq, ret);
 }
 
-bool RecursorLua4::preresolve(std::shared_ptr<DNSQuestion> dq, int& ret)
+bool RecursorLua4::preresolve(DNSQuestion& dq, int& ret)
 {
   return genhook(d_preresolve, dq, ret);
 }
 
-bool RecursorLua4::nxdomain(std::shared_ptr<DNSQuestion> dq, int& ret)
+bool RecursorLua4::nxdomain(DNSQuestion& dq, int& ret)
 {
   return genhook(d_nxdomain, dq, ret);
 }
 
-bool RecursorLua4::nodata(std::shared_ptr<DNSQuestion> dq, int& ret)
+bool RecursorLua4::nodata(DNSQuestion& dq, int& ret)
 {
   return genhook(d_nodata, dq, ret);
 }
 
-bool RecursorLua4::postresolve(std::shared_ptr<DNSQuestion> dq, int& ret)
+bool RecursorLua4::postresolve(DNSQuestion& dq, int& ret)
 {
   return genhook(d_postresolve, dq, ret);
 }
@@ -615,8 +615,8 @@ bool RecursorLua4::preoutquery(const ComboAddress& ns, const ComboAddress& reque
 {
   bool variableAnswer = false;
   bool wantsRPZ = false;
-  auto dq = std::make_shared<RecursorLua4::DNSQuestion>(requestor, ns, query, qtype.getCode(), isTcp, variableAnswer, wantsRPZ);
-  dq->currentRecords = &res;
+  auto dq = RecursorLua4::DNSQuestion(requestor, ns, query, qtype.getCode(), isTcp, variableAnswer, wantsRPZ);
+  dq.currentRecords = &res;
 
   return genhook(d_preoutquery, dq, ret);
 }
@@ -646,44 +646,44 @@ int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, 
   return 0;
 }
 
-bool RecursorLua4::genhook(luacall_t& func, std::shared_ptr<DNSQuestion> dq, int& ret)
+bool RecursorLua4::genhook(luacall_t& func, DNSQuestion& dq, int& ret)
 {
   if(!func)
     return false;
 
-  if (dq->currentRecords) {
-    dq->records = *dq->currentRecords;
+  if (dq.currentRecords) {
+    dq.records = *dq.currentRecords;
   } else {
-    dq->records.clear();
+    dq.records.clear();
   }
 
-  dq->followupFunction.clear();
-  dq->followupPrefix.clear();
-  dq->followupName.clear();
-  dq->udpQuery.clear();
-  dq->udpAnswer.clear();
-  dq->udpCallback.clear();
+  dq.followupFunction.clear();
+  dq.followupPrefix.clear();
+  dq.followupName.clear();
+  dq.udpQuery.clear();
+  dq.udpAnswer.clear();
+  dq.udpCallback.clear();
 
-  dq->rcode = ret;
+  dq.rcode = ret;
   bool handled=func(dq);
 
   if(handled) {
 loop:;
-    ret=dq->rcode;
+    ret=dq.rcode;
     
-    if(!dq->followupFunction.empty()) {
-      if(dq->followupFunction=="followCNAMERecords") {
-        ret = followCNAMERecords(dq->records, QType(dq->qtype));
+    if(!dq.followupFunction.empty()) {
+      if(dq.followupFunction=="followCNAMERecords") {
+        ret = followCNAMERecords(dq.records, QType(dq.qtype));
       }
-      else if(dq->followupFunction=="getFakeAAAARecords") {
-        ret=getFakeAAAARecords(dq->followupName, dq->followupPrefix, dq->records);
+      else if(dq.followupFunction=="getFakeAAAARecords") {
+        ret=getFakeAAAARecords(dq.followupName, dq.followupPrefix, dq.records);
       }
-      else if(dq->followupFunction=="getFakePTRRecords") {
-        ret=getFakePTRRecords(dq->followupName, dq->followupPrefix, dq->records);
+      else if(dq.followupFunction=="getFakePTRRecords") {
+        ret=getFakePTRRecords(dq.followupName, dq.followupPrefix, dq.records);
       }
-      else if(dq->followupFunction=="udpQueryResponse") {
-        dq->udpAnswer = GenUDPQueryResponse(dq->udpQueryDest, dq->udpQuery);
-        auto func = d_lw->readVariable<boost::optional<luacall_t>>(dq->udpCallback).get_value_or(0);
+      else if(dq.followupFunction=="udpQueryResponse") {
+        dq.udpAnswer = GenUDPQueryResponse(dq.udpQueryDest, dq.udpQuery);
+        auto func = d_lw->readVariable<boost::optional<luacall_t>>(dq.udpCallback).get_value_or(0);
         if(!func) {
           theL()<<Logger::Error<<"Attempted callback for Lua UDP Query/Response which could not be found"<<endl;
           return false;
@@ -695,8 +695,8 @@ loop:;
         goto loop;
       }
     }
-    if (dq->currentRecords) {
-      *dq->currentRecords = dq->records;
+    if (dq.currentRecords) {
+      *dq.currentRecords = dq.records;
     }
   }
 
