@@ -254,7 +254,12 @@ struct SuffixMatchNode
       endNode=true;
     }
     else if(labels.size()==1) {
-      children.insert(SuffixMatchNode(*labels.begin(), true));
+      auto res=children.insert(SuffixMatchNode(*labels.begin(), true));
+      if(!res.second) {
+        if(!res.first->endNode) {
+          res.first->endNode = true;
+        }
+      }
     }
     else {
       auto res=children.insert(SuffixMatchNode(*labels.rbegin(), false));

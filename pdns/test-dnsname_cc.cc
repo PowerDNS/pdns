@@ -427,6 +427,13 @@ BOOST_AUTO_TEST_CASE(test_suffixmatch) {
 
   smn.add(DNSName(".")); // block the root
   BOOST_CHECK(smn.check(DNSName("a.root-servers.net.")));
+
+  DNSName examplenet("example.net.");
+  DNSName net("net.");
+  smn.add(examplenet);
+  smn.add(net);
+  BOOST_CHECK(smn.check(examplenet));
+  BOOST_CHECK(smn.check(net));
 }
 
 
