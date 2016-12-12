@@ -292,6 +292,99 @@ struct SuffixMatchNode
 
 };
 
+template<typename T>
+struct SuffixMatchTree
+{
+  SuffixMatchTree(const std::string& name_="", bool endNode_=false) : name(name_), endNode(endNode_)
+  {}
+
+  SuffixMatchTree(const SuffixMatchTree& rhs)
+  {
+    name = rhs.name;
+    children = rhs.children;
+    endNode = rhs.endNode;
+    d_value = rhs.d_value;
+  }
+  std::string name;
+  mutable std::set<SuffixMatchTree> children;
+  mutable bool endNode;
+  mutable T d_value;
+  bool operator<(const SuffixMatchTree& rhs) const
+  {
+    return strcasecmp(name.c_str(), rhs.name.c_str()) < 0;
+  }
+  typedef SuffixMatchTree value_type;
+
+  template<typename V>
+  void visit(const V& v) const {
+    for(const auto& c : children)
+      c.visit(v);
+    if(endNode)
+      v(*this);
+  }
+
+  void add(const DNSName& name, const T& t)
+  {
+    add(name.getRawLabels(), t);
+  }
+
+  void add(std::vector<std::string> labels, const T& value) const
+  {
+    if(labels.empty()) { // this allows insertion of the root
+      endNode=true;
+      d_value=value;
+    }
+    else if(labels.size()==1) {
+      SuffixMatchTree newChild(*labels.begin(), true);
+      auto res=children.insert(newChild);
+      if(!res.second) {
+        // we might already have had the node as an
+        // intermediary one, but it's now an end node
+        if(!res.first->endNode) {
+          res.first->endNode = true;
+        }
+      }
+      res.first->d_value = value;
+    }
+    else {
+      SuffixMatchTree newnode(*labels.rbegin(), false);
+      auto res=children.insert(newnode);
+      labels.pop_back();
+      res.first->add(labels, value);
+    }
+  }
+
+  T* lookup(const DNSName& name)  const
+  {
+    if(children.empty()) { // speed up empty set
+      if(endNode)
+        return &d_value;
+      return 0;
+    }
+    return lookup(name.getRawLabels());
+  }
+
+  T* lookup(std::vector<std::string> labels) const
+  {
+    if(labels.empty()) { // optimization
+      if(endNode)
+        return &d_value;
+      return 0;
+    }
+
+    SuffixMatchTree smn(*labels.rbegin());
+    auto child = children.find(smn);
+    if(child == children.end()) {
+      if(endNode)
+        return &d_value;
+      return 0;
+    }
+    labels.pop_back();
+    return child->lookup(labels);
+  }
+
+};
+
 std::ostream & operator<<(std::ostream &os, const DNSName& d);
 namespace std {
     template <>
