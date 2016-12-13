@@ -94,23 +94,23 @@ void TCPClientCollection::addTCPClientThread()
     return;
   }
 
-  try {
-    thread t1(tcpClientThread, pipefds[0]);
-    t1.detach();
-  }
-  catch(const std::runtime_error& e) {
-    /* the thread creation failed, don't leak */
-    errlog("Error creating a TCP thread: %s", e.what());
-    close(pipefds[0]);
-    close(pipefds[1]);
-    return;
-  }
-
   {
     std::lock_guard<std::mutex> lock(d_mutex);
 
     if (d_numthreads >= d_tcpclientthreads.capacity()) {
       warnlog("Adding a new TCP client thread would exceed the vector capacity (%d/%d), skipping", d_numthreads.load(), d_tcpclientthreads.capacity());
+      close(pipefds[0]);
+      close(pipefds[1]);
+      return;
+    }
+
+    try {
+      thread t1(tcpClientThread, pipefds[0]);
+      t1.detach();
+    }
+    catch(const std::runtime_error& e) {
+      /* the thread creation failed, don't leak */
+      errlog("Error creating a TCP thread: %s", e.what());
       close(pipefds[0]);
       close(pipefds[1]);
       return;
