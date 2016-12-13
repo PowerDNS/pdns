@@ -740,7 +740,8 @@ void startDoResolve(void *p)
     bool variableAnswer = false;
     bool shouldNotValidate = false;
 
-    int res;
+    /* preresolve expects res (dq.rcode) to be set to RCode::NoError by default */
+    int res = RCode::NoError;
     DNSFilterEngine::Policy appliedPolicy;
     DNSRecord spoofed;
     std::shared_ptr<RecursorLua4::DNSQuestion> dq = nullptr;
