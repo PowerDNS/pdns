@@ -13,6 +13,7 @@ Changes since 1.1.0-beta1:
  * [#4658](https://github.com/PowerDNS/pdns/pull/4658): Allow editing the ACL via the API
  * [#4702](https://github.com/PowerDNS/pdns/pull/4702): Add `setUDPTimeout(n)`
  * [#4726](https://github.com/PowerDNS/pdns/pull/4726): Add an option to return ServFail when no server is available
+ * [#4748](https://github.com/PowerDNS/pdns/pull/4748): Add `setCacheCleaningPercentage()`
 
 ## Improvements
 
