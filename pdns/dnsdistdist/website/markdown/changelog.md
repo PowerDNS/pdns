@@ -1,5 +1,5 @@
 # 1.1.0-beta2
-Released December 12th 2016
+Released December 14th 2016
 
 Changes since 1.1.0-beta1:
 
@@ -22,6 +22,7 @@ Changes since 1.1.0-beta1:
  * [#4632](https://github.com/PowerDNS/pdns/pull/4632): Improve dnsdist error message on a common typo/config mistake
  * [#4694](https://github.com/PowerDNS/pdns/pull/4694): Don't use a const_iterator for erasing (fix compilation with some versions of gcc)
  * [#4715](https://github.com/PowerDNS/pdns/pull/4715): Specify that dnsmessage.proto uses protobuf version 2
+ * [#4765](https://github.com/PowerDNS/pdns/pull/4765): Some service improvements
 
 ## Bug fixes
 
@@ -35,6 +36,7 @@ Changes since 1.1.0-beta1:
  * [#4742](https://github.com/PowerDNS/pdns/pull/4742): Decrement the queued TCP conn count if writing to the pipe fails
  * [#4743](https://github.com/PowerDNS/pdns/pull/4743): Ignore newBPFFilter() and newDynBPFFilter() in client mode
  * [#4753](https://github.com/PowerDNS/pdns/pull/4753): Fix FD leak on TCP connection failure, handle TCP worker creation failure
+ * [#4764](https://github.com/PowerDNS/pdns/pull/4764): Prevent race while creating new TCP worker threads
 
 # 1.1.0-beta1
 Released September 1st 2016
