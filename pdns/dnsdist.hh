@@ -363,22 +363,39 @@ struct ClientState
 
 class TCPClientCollection {
   std::vector<int> d_tcpclientthreads;
+  std::atomic<uint64_t> d_numthreads{0};
   std::atomic<uint64_t> d_pos{0};
-public:
-  std::atomic<uint64_t> d_queued{0}, d_numthreads{0};
+  std::atomic<uint64_t> d_queued{0};
   uint64_t d_maxthreads{0};
+  std::mutex d_mutex;
+public:
 
   TCPClientCollection(size_t maxThreads)
   {
     d_maxthreads = maxThreads;
     d_tcpclientthreads.reserve(maxThreads);
   }
-
   int getThread()
   {
     uint64_t pos = d_pos++;
     ++d_queued;
     return d_tcpclientthreads[pos % d_numthreads];
+  }
+  bool hasReachedMaxThreads() const
+  {
+    return d_numthreads >= d_maxthreads;
+  }
+  uint64_t getThreadsCount() const
+  {
+    return d_numthreads;
+  }
+  uint64_t getQueuedCount() const
+  {
+    return d_queued;
+  }
+  void decrementQueuedCount()
+  {
+    --d_queued;
   }
   void addTCPClientThread();
 };
