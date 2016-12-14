@@ -1656,7 +1656,7 @@ try
       cout<<endl;
       cout<<"Syntax: dnsdist [-C,--config file] [-c,--client [IP[:PORT]]] [-d,--daemon]\n";
       cout<<"[-p,--pidfile file] [-e,--execute cmd] [-h,--help] [-l,--local addr]\n";
-      cout<<"[-v,--verbose]\n";
+      cout<<"[-v,--verbose] [--check-config]\n";
       cout<<"\n";
       cout<<"-a,--acl netmask      Add this netmask to the ACL\n";
       cout<<"-C,--config file      Load configuration from 'file'\n";
@@ -1668,6 +1668,9 @@ try
       cout<<"                      is similar to setting setKey in the configuration file.\n";
       cout<<"                      NOTE: this will leak this key in your shell's history!\n";
 #endif
+      cout<<"--check-config        Validate the configuration file and exit. The exit-code\n";
+      cout<<"                      reflects the validation, 0 is OK, 1 means an error.\n";
+      cout<<"                      Any errors are printed as well.\n";
       cout<<"-d,--daemon           Operate as a daemon\n";
       cout<<"-e,--execute cmd      Connect to dnsdist and execute 'cmd'\n";
       cout<<"-g,--gid gid          Change the process group ID after binding sockets\n";

@@ -33,3 +33,4 @@
 /dnsmessage.pb.h
 /dnsdist.service
 /lua.hpp
+/test-driver
