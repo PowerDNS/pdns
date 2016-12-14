@@ -612,6 +612,7 @@ extern std::atomic<bool> g_configurationDone;
 extern uint64_t g_maxTCPClientThreads;
 extern uint64_t g_maxTCPQueuedConnections;
 extern std::atomic<uint16_t> g_cacheCleaningDelay;
+extern std::atomic<uint16_t> g_cacheCleaningPercentage;
 extern bool g_verboseHealthChecks;
 extern uint32_t g_staleCacheEntriesTTL;
 extern bool g_apiReadWrite;

@@ -880,7 +880,7 @@ getPool("poolname"):getCache():printStats()
 ```
 
 Expired cached entries can be removed from a cache using the `purgeExpired(n)`
-method, which will remove expired entries from the cache until at least `n`
+method, which will remove expired entries from the cache until at most `n`
 entries remain in the cache. For example, to remove all expired entries:
 
 ```
@@ -1491,6 +1491,7 @@ instantiate a server with additional parameters
     * `setMaxTCPQueuedConnections(n)`: set the maximum number of TCP connections queued (waiting to be picked up by a client thread), defaults to 1000. 0 means unlimited
     * `setMaxUDPOutstanding(n)`: set the maximum number of outstanding UDP queries to a given backend server. This can only be set at configuration time and defaults to 10240
     * `setCacheCleaningDelay(n)`: set the interval in seconds between two runs of the cache cleaning algorithm, removing expired entries
+    * `setCacheCleaningPercentage(n)`: set the percentage of the cache that the cache cleaning algorithm will try to free by removing expired entries. By default (100), all expired entries are removed
     * `setStaleCacheEntriesTTL(n)`: allows using cache entries expired for at most `n` seconds when no backend available to answer for a query
     * `setTCPRecvTimeout(n)`: set the read timeout on TCP connections from the client, in seconds
     * `setTCPSendTimeout(n)`: set the write timeout on TCP connections from the client, in seconds
