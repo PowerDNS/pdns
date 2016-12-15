@@ -615,7 +615,7 @@ bool RecursorLua4::preoutquery(const ComboAddress& ns, const ComboAddress& reque
 {
   bool variableAnswer = false;
   bool wantsRPZ = false;
-  auto dq = RecursorLua4::DNSQuestion(requestor, ns, query, qtype.getCode(), isTcp, variableAnswer, wantsRPZ);
+  RecursorLua4::DNSQuestion dq(requestor, ns, query, qtype.getCode(), isTcp, variableAnswer, wantsRPZ);
   dq.currentRecords = &res;
 
   return genhook(d_preoutquery, dq, ret);
