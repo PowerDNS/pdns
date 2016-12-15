@@ -96,7 +96,7 @@ void DNSProtoBufMessage::setEDNSSubnet(const Netmask& subnet, uint8_t mask)
 #endif /* HAVE_PROTOBUF */
 }
 
-void DNSProtoBufMessage::addRRsFromPacket(const char* packet, const size_t len)
+void DNSProtoBufMessage::addRRsFromPacket(const char* packet, const size_t len, bool includeCNAME)
 {
 #ifdef HAVE_PROTOBUF
   if (len < sizeof(struct dnsheader))
@@ -147,9 +147,9 @@ void DNSProtoBufMessage::addRRsFromPacket(const char* packet, const size_t len)
     rrname = pr.getName();
     pr.getDnsrecordheader(ah);
 
-    pr.xfrBlob(blob);
-
     if (ah.d_type == QType::A || ah.d_type == QType::AAAA) {
+      pr.xfrBlob(blob);
+
       PBDNSMessage_DNSResponse_DNSRR* rr = response->add_rrs();
       if (rr) {
         rr->set_name(rrname.toString());
@@ -158,6 +158,20 @@ void DNSProtoBufMessage::addRRsFromPacket(const char* packet, const size_t len)
         rr->set_ttl(ah.d_ttl);
         rr->set_rdata(blob.c_str(), blob.length());
       }
+    } else if (ah.d_type == QType::CNAME && includeCNAME) {
+      PBDNSMessage_DNSResponse_DNSRR* rr = response->add_rrs();
+      if (rr) {
+        rr->set_name(rrname.toString());
+        rr->set_type(ah.d_type);
+        rr->set_class_(ah.d_class);
+        rr->set_ttl(ah.d_ttl);
+        DNSName target;
+        pr.xfrName(target, true);
+        rr->set_rdata(target.toString());
+      }
+    }
+    else {
+      pr.xfrBlob(blob);
     }
   }
 #endif /* HAVE_PROTOBUF */

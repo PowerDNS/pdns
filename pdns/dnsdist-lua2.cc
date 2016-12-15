@@ -723,9 +723,9 @@ void moreLua(bool client)
         throw std::runtime_error("Protobuf support is required to use RemoteLogAction");
 #endif
       });
-    g_lua.writeFunction("RemoteLogResponseAction", [](std::shared_ptr<RemoteLogger> logger, boost::optional<std::function<void(const DNSResponse&, DNSDistProtoBufMessage*)> > alterFunc) {
+    g_lua.writeFunction("RemoteLogResponseAction", [](std::shared_ptr<RemoteLogger> logger, boost::optional<std::function<void(const DNSResponse&, DNSDistProtoBufMessage*)> > alterFunc, boost::optional<bool> includeCNAME) {
 #ifdef HAVE_PROTOBUF
-        return std::shared_ptr<DNSResponseAction>(new RemoteLogResponseAction(logger, alterFunc));
+        return std::shared_ptr<DNSResponseAction>(new RemoteLogResponseAction(logger, alterFunc, includeCNAME ? *includeCNAME : false));
 #else
         throw std::runtime_error("Protobuf support is required to use RemoteLogResponseAction");
 #endif
