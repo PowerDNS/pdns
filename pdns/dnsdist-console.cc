@@ -21,6 +21,7 @@
  */
 #include "dnsdist.hh"
 #include "sodcrypto.hh"
+#include "pwd.h"
 
 #if defined (__OpenBSD__)
 #include <readline/readline.h>
@@ -43,6 +44,26 @@ void feedConfigDelta(const std::string& line)
   struct timeval now;
   gettimeofday(&now, 0);
   g_confDelta.push_back({now,line});
+}
+
+string historyFile(const bool &ignoreHOME = false)
+{
+  string ret;
+
+  struct passwd pwd;
+  struct passwd *result;
+  char buf[16384];
+  getpwuid_r(geteuid(), &pwd, buf, sizeof(buf), &result);
+
+  const char *homedir = getenv("HOME");
+  if (result)
+    ret = string(pwd.pw_dir);
+  if (homedir && !ignoreHOME) // $HOME overrides what the OS tells us
+    ret = string(homedir);
+  if (ret.empty())
+    ret = "."; // CWD if nothing works..
+  ret.append("/.dnsdist_history");
+  return ret;
 }
 
 void doClient(ComboAddress server, const std::string& command)
@@ -85,14 +106,15 @@ void doClient(ComboAddress server, const std::string& command)
     return; 
   }
 
+  string histfile = historyFile();
   set<string> dupper;
   {
-    ifstream history(".dnsdist_history");
+    ifstream history(histfile);
     string line;
     while(getline(history, line))
       add_history(line.c_str());
   }
-  ofstream history(".dnsdist_history", std::ios_base::app);
+  ofstream history(histfile, std::ios_base::app);
   string lastline;
   for(;;) {
     char* sline = readline("> ");
@@ -142,14 +164,15 @@ void doClient(ComboAddress server, const std::string& command)
 
 void doConsole()
 {
+  string histfile = historyFile(true);
   set<string> dupper;
   {
-    ifstream history(".dnsdist_history");
+    ifstream history(histfile);
     string line;
     while(getline(history, line))
       add_history(line.c_str());
   }
-  ofstream history(".dnsdist_history", std::ios_base::app);
+  ofstream history(histfile, std::ios_base::app);
   string lastline;
   for(;;) {
     char* sline = readline("> ");
