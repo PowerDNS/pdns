@@ -38,11 +38,13 @@ do_check() {
     echo "${msg}" >&2
     return 1
   fi
+  return 0
 }
 
 do_start() {
   echo -n "Starting ${PROG}..."
-  if [ do_check -ne 0 ]; then
+  do_check
+  if [ $? -ne 0 ]; then
     return 1
   fi
   daemon --pidfile=${PIDFILE} $DNSDIST -u ${DNSDIST_USER} -g ${DNSDIST_GROUP} -d -p ${PIDFILE} ${DNSDIST_OPTIONS}
@@ -76,7 +78,8 @@ case "$1" in
     ret=$?
 
     if [ ${ret} -eq 0 ]; then
-      if [ do_check -ne 0 ]; then
+      do_check
+      if [ $? -ne 0 ]; then
         exit 1 # Don't stop when there's an error
       fi
       do_stop
