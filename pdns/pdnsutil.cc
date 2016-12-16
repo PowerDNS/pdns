@@ -415,7 +415,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
     }
 
     vector<DNSBackend::KeyData> dbkeyset;
-    B.getDomainKeys(zone, 0, dbkeyset);
+    B.getDomainKeys(zone, dbkeyset);
 
     for(DNSBackend::KeyData& kd : dbkeyset) {
       DNSKEYRecordContent dkrc;
@@ -3098,7 +3098,7 @@ loadMainConfig(g_vm["config-dir"].as<string>());
       dpk.setKey(dke);
 
       // make sure this key isn't being reused.
-      B.getDomainKeys(zone, 0, keys);
+      B.getDomainKeys(zone, keys);
       id = -1;
 
       for(DNSBackend::KeyData& kd :  keys) {
@@ -3140,7 +3140,7 @@ loadMainConfig(g_vm["config-dir"].as<string>());
  
       id = pdns_stou(cmds[3]);
       std::vector<DNSBackend::KeyData> keys; 
-      if (!B.getDomainKeys(zone, 0, keys)) {
+      if (!B.getDomainKeys(zone, keys)) {
         cerr << "No keys found for zone " << zone << std::endl;
         return 1;
       } 
@@ -3254,7 +3254,7 @@ loadMainConfig(g_vm["config-dir"].as<string>());
       // temp var for KeyID
       int64_t keyID;
       std::vector<DNSBackend::KeyData> keys;
-      if (src->getDomainKeys(di.zone, 0, keys)) {
+      if (src->getDomainKeys(di.zone, keys)) {
         for(const DNSBackend::KeyData& k: keys) {
           tgt->addDomainKey(di.zone, k, keyID);
           nk++;

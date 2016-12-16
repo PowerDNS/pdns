@@ -363,23 +363,19 @@ bool LUABackend::addDomainKey(const DNSName& name, const KeyData& key, int64_t& 
     return ok >= 0;
 }
 
-bool LUABackend::getDomainKeys(const DNSName& name, unsigned int kind, std::vector<KeyData>& keys) {
-    //what is kind used for?
-
+bool LUABackend::getDomainKeys(const DNSName& name, std::vector<KeyData>& keys) {
     if(f_lua_getdomainkeys == 0) 
 	return false;
 
     if(logging)
-	L << Logger::Info << backend_name << "(getDomainKeys) BEGIN name: '" << name << "' kind: '" << kind << endl;
+	L << Logger::Info << backend_name << "(getDomainKeys) BEGIN name: '" << name << endl;
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_getdomainkeys);
 
     lua_pushstring(lua, name.toString().c_str());
-    lua_pushinteger(lua, kind);
 
-    if(lua_pcall(lua, 2, 1, f_lua_exec_error) != 0) {
+    if(lua_pcall(lua, 1, 1, f_lua_exec_error) != 0) {
         string e = backend_name + lua_tostring(lua, -1);
-        lua_pop(lua, 1);
 
         throw runtime_error(e);
         return false;

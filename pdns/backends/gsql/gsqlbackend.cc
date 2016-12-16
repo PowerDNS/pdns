@@ -829,7 +829,7 @@ bool GSQLBackend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
   return keys.empty();
 }
 
-bool GSQLBackend::getDomainKeys(const DNSName& name, unsigned int kind, std::vector<KeyData>& keys)
+bool GSQLBackend::getDomainKeys(const DNSName& name, std::vector<KeyData>& keys)
 {
   if(!d_dnssecQueries)
     return false;
@@ -840,7 +840,6 @@ bool GSQLBackend::getDomainKeys(const DNSName& name, unsigned int kind, std::vec
       execute();
   
     SSqlStatement::row_t row;
-    //  "select id, kind, active, content from domains, cryptokeys where domain_id=domains.id and name='%s'";
     KeyData kd;
     while(d_ListDomainKeysQuery_stmt->hasNextRow()) {
       d_ListDomainKeysQuery_stmt->nextRow(row);

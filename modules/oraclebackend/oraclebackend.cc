@@ -1557,7 +1557,7 @@ OracleBackend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
 }
 
 bool
-OracleBackend::getDomainKeys (const DNSName& name, unsigned int kind, vector<KeyData>& keys)
+OracleBackend::getDomainKeys (const DNSName& name, vector<KeyData>& keys)
 {
   if(!d_dnssecQueries)
     return -1;

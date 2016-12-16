@@ -50,7 +50,7 @@ bool Bind2Backend::getDomainMetadata(const DNSName& name, const std::string& kin
 bool Bind2Backend::setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta)
 { return false; }
 
-bool Bind2Backend::getDomainKeys(const DNSName& name, unsigned int kind, std::vector<KeyData>& keys)
+bool Bind2Backend::getDomainKeys(const DNSName& name, std::vector<KeyData>& keys)
 { return false; }
 
 bool Bind2Backend::removeDomainKey(const DNSName& name, unsigned int id)
@@ -263,7 +263,7 @@ bool Bind2Backend::setDomainMetadata(const DNSName& name, const std::string& kin
   return true;
 }
 
-bool Bind2Backend::getDomainKeys(const DNSName& name, unsigned int kind, std::vector<KeyData>& keys)
+bool Bind2Backend::getDomainKeys(const DNSName& name, std::vector<KeyData>& keys)
 {
   if(!d_dnssecdb || d_hybrid)
     return false;

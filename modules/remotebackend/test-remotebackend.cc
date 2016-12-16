@@ -126,7 +126,7 @@ BOOST_AUTO_TEST_CASE(test_method_getDomainKeys) {
    std::vector<DNSBackend::KeyData> keys;
    BOOST_TEST_MESSAGE("Testing getDomainKeys method");
    // we expect to get two keys
-   be->getDomainKeys(DNSName("unit.test."),0,keys);
+   be->getDomainKeys(DNSName("unit.test."),keys);
    BOOST_CHECK_EQUAL(keys.size(), 2);
    // in case we got more than 2 keys, which would be unexpected
    // but not fatal

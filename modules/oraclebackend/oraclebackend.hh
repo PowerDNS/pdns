@@ -104,7 +104,7 @@ public:
   bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content);
   bool getTSIGKeys(std::vector< struct TSIGKey > &keys);
 
-  bool getDomainKeys(const DNSName& name, unsigned int kind, vector<KeyData>& keys);
+  bool getDomainKeys(const DNSName& name, vector<KeyData>& keys);
   bool removeDomainKey(const DNSName& name, unsigned int id);
   bool addDomainKey(const DNSName& name, const KeyData& key, int64_t& id);
   bool activateDomainKey(const DNSName& name, unsigned int id);

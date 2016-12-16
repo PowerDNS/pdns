@@ -160,7 +160,7 @@ class RemoteBackend : public DNSBackend
 
   virtual bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta);
   virtual bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta);
-  virtual bool getDomainKeys(const DNSName& name, unsigned int kind, std::vector<DNSBackend::KeyData>& keys);
+  virtual bool getDomainKeys(const DNSName& name, std::vector<DNSBackend::KeyData>& keys);
   virtual bool getTSIGKey(const DNSName& name, DNSName* algorithm, std::string* content);
   virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const string& qname, DNSName& unhashed, string& before, string& after);
   virtual bool setDomainMetadata(const DNSName& name, const string& kind, const std::vector<std::basic_string<char> >& meta);

@@ -216,7 +216,7 @@ public:
   virtual bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta);
   virtual bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta);
   virtual bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta);
-  virtual bool getDomainKeys(const DNSName& name, unsigned int kind, std::vector<KeyData>& keys);
+  virtual bool getDomainKeys(const DNSName& name, std::vector<KeyData>& keys);
   virtual bool removeDomainKey(const DNSName& name, unsigned int id);
   virtual bool addDomainKey(const DNSName& name, const KeyData& key, int64_t& id);
   virtual bool activateDomainKey(const DNSName& name, unsigned int id);

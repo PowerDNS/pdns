@@ -356,15 +356,14 @@ bool RemoteBackend::setDomainMetadata(const DNSName& name, const std::string& ki
 }
 
 
-bool RemoteBackend::getDomainKeys(const DNSName& name, unsigned int kind, std::vector<DNSBackend::KeyData>& keys) {
+bool RemoteBackend::getDomainKeys(const DNSName& name, std::vector<DNSBackend::KeyData>& keys) {
    // no point doing dnssec if it's not supported
    if (d_dnssec == false) return false;
 
    Json query = Json::object{
      { "method", "getDomainKeys" },
      { "parameters", Json::object{
-       { "name", name.toString() },
-       { "kind", static_cast<int>(kind) }
+       { "name", name.toString() }
      }}
    };
 

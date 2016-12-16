@@ -178,7 +178,7 @@ public:
     bool active;
   };
 
-  virtual bool getDomainKeys(const DNSName& name, unsigned int kind, std::vector<KeyData>& keys) { return false;}
+  virtual bool getDomainKeys(const DNSName& name, std::vector<KeyData>& keys) { return false;}
   virtual bool removeDomainKey(const DNSName& name, unsigned int id) { return false; }
   virtual bool addDomainKey(const DNSName& name, const KeyData& key, int64_t& id){ return false; }
   virtual bool activateDomainKey(const DNSName& name, unsigned int id) { return false; }

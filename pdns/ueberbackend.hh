@@ -115,7 +115,7 @@ public:
   bool createDomain(const DNSName &domain);
   
   bool addDomainKey(const DNSName& name, const DNSBackend::KeyData& key, int64_t& id);
-  bool getDomainKeys(const DNSName& name, unsigned int kind, std::vector<DNSBackend::KeyData>& keys);
+  bool getDomainKeys(const DNSName& name, std::vector<DNSBackend::KeyData>& keys);
   bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta);
   bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta);
   bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta);

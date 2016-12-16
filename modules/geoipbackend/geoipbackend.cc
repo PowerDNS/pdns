@@ -796,7 +796,7 @@ bool GeoIPBackend::getDomainMetadata(const DNSName& name, const std::string& kin
   return false;
 }
 
-bool GeoIPBackend::getDomainKeys(const DNSName& name, unsigned int kind, std::vector<DNSBackend::KeyData>& keys) {
+bool GeoIPBackend::getDomainKeys(const DNSName& name, std::vector<DNSBackend::KeyData>& keys) {
   if (!d_dnssec) return false;
   ReadLock rl(&s_state_lock);
   for(GeoIPDomain dom :  s_domains) {

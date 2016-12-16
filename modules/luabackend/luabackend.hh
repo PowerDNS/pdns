@@ -93,7 +93,7 @@ public:
     bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta) override;
     bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta) override;
 
-    bool getDomainKeys(const DNSName& name, unsigned int kind, std::vector<KeyData>& keys) override ;
+    bool getDomainKeys(const DNSName& name, std::vector<KeyData>& keys) override ;
     bool removeDomainKey(const DNSName& name, unsigned int id) override ;
     bool activateDomainKey(const DNSName& name, unsigned int id) override ;
     bool deactivateDomainKey(const DNSName& name, unsigned int id) override ;
