@@ -15,3 +15,6 @@ Reply to question for qname='host3.auth-zone.example.net.', qtype=A
 0	you-are.wild.auth-zone.example.net.	IN	TXT	3600	"Hi there!"
 Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
 Reply to question for qname='you-are.wild.auth-zone.example.net.', qtype=TXT
+1	auth-zone.example.net.	IN	SOA	3600	ns.example.net. hostmaster.example.net. 1 3600 1800 1209600 300
+Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+Reply to question for qname='auth-zone.example.net.', qtype=TXT
