@@ -78,7 +78,12 @@ public:
 
   ~Socket()
   {
-    closesocket(d_socket);
+    try {
+      closesocket(d_socket);
+    }
+    catch(const PDNSException& e) {
+    }
+
     delete[] d_buffer;
   }
 
