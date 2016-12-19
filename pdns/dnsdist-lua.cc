@@ -31,6 +31,7 @@
 #include <fstream>
 #include "dnswriter.hh"
 #include "lock.hh"
+#include "dnsdist-lua.hh"
 
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
@@ -91,6 +92,7 @@ private:
 };
 
 typedef boost::variant<string,vector<pair<int, string>>, std::shared_ptr<DNSRule> > luadnsrule_t;
+
 std::shared_ptr<DNSRule> makeRule(const luadnsrule_t& var)
 {
   if(auto src = boost::get<std::shared_ptr<DNSRule>>(&var))
@@ -1609,14 +1611,6 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.writeFunction("setECSSourcePrefixV6", [](uint16_t prefix) { g_ECSSourcePrefixV6=prefix; });
 
   g_lua.writeFunction("setECSOverride", [](bool override) { g_ECSOverride=override; });
-
-  g_lua.writeFunction("addResponseAction", [](luadnsrule_t var, std::shared_ptr<DNSResponseAction> ea) {
-      setLuaSideEffect();
-      auto rule=makeRule(var);
-      g_resprulactions.modify([rule, ea](decltype(g_resprulactions)::value_type& rulactions){
-          rulactions.push_back({rule, ea});
-        });
-    });
 
   g_lua.writeFunction("dumpStats", [] {
       setLuaNoSideEffect();

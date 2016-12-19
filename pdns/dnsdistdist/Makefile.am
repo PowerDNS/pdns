@@ -73,7 +73,7 @@ dnsdist_SOURCES = \
 	dnsdist-console.cc \
 	dnsdist-dnscrypt.cc \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
-	dnsdist-lua.cc \
+	dnsdist-lua.hh dnsdist-lua.cc \
 	dnsdist-lua2.cc \
 	dnsdist-protobuf.cc dnsdist-protobuf.hh \
 	dnsdist-rings.cc \

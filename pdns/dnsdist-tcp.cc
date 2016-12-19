@@ -222,6 +222,7 @@ void* tcpClientThread(int pipefd)
   auto localPolicy = g_policy.getLocal();
   auto localRulactions = g_rulactions.getLocal();
   auto localRespRulactions = g_resprulactions.getLocal();
+  auto localCacheHitRespRulactions = g_cachehitresprulactions.getLocal();
   auto localDynBlockNMG = g_dynblockNMG.getLocal();
   auto localDynBlockSMT = g_dynblockSMT.getLocal();
   auto localPools = g_pools.getLocal();
@@ -395,6 +396,14 @@ void* tcpClientThread(int pipefd)
           uint16_t cachedResponseSize = sizeof cachedResponse;
           uint32_t allowExpired = ds ? 0 : g_staleCacheEntriesTTL;
           if (packetCache->get(dq, (uint16_t) consumed, dq.dh->id, cachedResponse, &cachedResponseSize, &cacheKey, allowExpired)) {
+            DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.local, dq.remote, (dnsheader*) cachedResponse, sizeof cachedResponse, cachedResponseSize, true, &queryRealTime);
+#ifdef HAVE_PROTOBUF
+            dr.uniqueId = dq.uniqueId;
+#endif
+            if (!processResponse(localCacheHitRespRulactions, dr, &delayMsec)) {
+              goto drop;
+            }
+
 #ifdef HAVE_DNSCRYPT
             if (!encryptResponse(cachedResponse, &cachedResponseSize, sizeof cachedResponse, true, dnsCryptQuery)) {
               goto drop;
