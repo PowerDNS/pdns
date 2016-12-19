@@ -1639,9 +1639,9 @@ private:
     /**************************************************/
     /*                   UTILITIES                    */
     /**************************************************/
-    // structure that will ensure that a certain is stored somewhere in the registry
+    // structure that will ensure that a certain value is stored somewhere in the registry
     struct ValueInRegistry {
-        // this constructor will clone and hold the value at the top of the stack in the registry
+        // this constructor will clone and hold the value at the specified index (or by default at the top of the stack) in the registry
         ValueInRegistry(lua_State* lua, int index=-1) : lua{lua}
         {
             lua_pushlightuserdata(lua, this);
