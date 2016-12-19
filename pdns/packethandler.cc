@@ -325,7 +325,7 @@ vector<DNSResourceRecord> PacketHandler::getBestDNAMESynth(DNSPacket *p, SOAData
     if(!ret.empty())
       return ret;
     if(subdomain.countLabels())
-      prefix+= DNSName(subdomain.getRawLabels()[0]); // XXX DNSName pain this feels wrong
+      prefix.appendRawLabel(subdomain.getRawLabels()[0]); // XXX DNSName pain this feels wrong
     if(subdomain == sd.qname) // stop at SOA
       break;
 
