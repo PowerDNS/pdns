@@ -30,11 +30,10 @@ class PDNSPBConnHandler(object):
                 self.printQueryMessage(msg)
             elif msg.type == dnsmessage_pb2.PBDNSMessage.DNSResponseType:
                 self.printResponseMessage(msg)
-            # PR #3869
-            # elif msg.type == dnsmessage_pb2.PBDNSMessage.DNSOutgoingQueryType:
-            #     self.printOutgoingQueryMessage(msg)
-            # elif msg.type == dnsmessage_pb2.PBDNSMessage.DNSIncomingResponseType:
-            #     self.printIncomingResponseMessage(msg)
+            elif msg.type == dnsmessage_pb2.PBDNSMessage.DNSOutgoingQueryType:
+                self.printOutgoingQueryMessage(msg)
+            elif msg.type == dnsmessage_pb2.PBDNSMessage.DNSIncomingResponseType:
+                self.printIncomingResponseMessage(msg)
             else:
                 print('Discarding unsupported message type %d' % (msg.type))
 
@@ -137,9 +136,9 @@ class PDNSPBConnHandler(object):
 
         messageidstr = binascii.hexlify(bytearray(msg.messageId))
         initialrequestidstr = ''
-        # PR #3869
-        # if msg.HasField('initialRequestId'):
-        #    initialrequestidstr = ', initial uuid: ' + binascii.hexlify(bytearray(msg.initialRequestId))
+        if msg.HasField('initialRequestId'):
+            initialrequestidstr = ', initial uuid: ' + binascii.hexlify(bytearray(msg.initialRequestId))
+
         requestorstr = ''
         requestor = self.getRequestorSubnet(msg)
         if requestor:
