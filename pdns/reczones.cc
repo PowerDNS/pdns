@@ -359,7 +359,7 @@ void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, boost::opti
 	}
 	else {
           totremove++;
-	  L<<Logger::Info<<"Had removal of "<<rr.d_name<<endl;
+	  L<<Logger::Debug<<"Had removal of "<<rr.d_name<<endl;
 	  RPZRecordToPolicy(rr, luaconfsCopy.dfe, false, defpol, polZone);
 	}
       }
@@ -376,7 +376,7 @@ void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, boost::opti
 	}
 	else {
           totadd++;
-	  L<<Logger::Info<<"Had addition of "<<rr.d_name<<endl;
+	  L<<Logger::Debug<<"Had addition of "<<rr.d_name<<endl;
 	  RPZRecordToPolicy(rr, luaconfsCopy.dfe, true, defpol, polZone);
 	}
       }
