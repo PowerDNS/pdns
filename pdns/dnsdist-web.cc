@@ -354,6 +354,11 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
           {"latency", (int)(a->latencyUsec/1000.0)},
           {"queries", (int)a->queries}};
 
+        /* sending a latency for a DOWN server doesn't make sense */
+        if (a->availability == DownstreamState::Availability::Down) {
+          server["latency"] = nullptr;
+        }
+
 	servers.push_back(server);
       }
 
