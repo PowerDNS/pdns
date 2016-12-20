@@ -39,6 +39,9 @@ AC_DEFUN([PDNS_CHECK_OS],[
   mips*)
     LDFLAGS="-latomic $LDFLAGS"
     ;;
+  powerpc*)
+    LDFLAGS="-latomic $LDFLAGS"
+    ;;
   esac
 
   AC_SUBST(THREADFLAGS)
