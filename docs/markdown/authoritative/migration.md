@@ -101,6 +101,12 @@ zone2sql --named-conf=/path/to/named.conf --gmysql | mysql -u pdns -p pdns-db
 This will generate the SQL statements for the [Generic MySQL](backend-generic-mysql.md)
 and pipe them into the pdns-db database in MySQL.
 
+### Using `pdnsutil load-zone`
+The [`pdnsutil`](../manpages/pdnsutil.1.md) tool has a `load-zone` command that ingests a zone file and imports it into the first backend that is capable of hosting it.
+
+To import, configure the backend and run `pdnsutil load-zone example.com /tmp/example.com.com.zone` to import the `example.com` domain from the `/tmp/example.com.zone` file.
+The zone is imported atomically (i.e. it is fully imported, or not) and any existing records for that zone are overwritten.
+
 # Migrating Data from one Backend to Another Backend
 NB! This is experimental feature.
 
