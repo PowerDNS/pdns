@@ -93,6 +93,7 @@ extern SortList g_sortlist;
 __thread FDMultiplexer* t_fdm;
 static __thread unsigned int t_id;
 unsigned int g_maxTCPPerClient;
+size_t g_tcpMaxQueriesPerConn;
 unsigned int g_networkTimeoutMsec;
 uint64_t g_latencyStatSize;
 bool g_logCommonErrors;
@@ -1179,10 +1180,16 @@ void startDoResolve(void *p)
         dc->d_socket = -1;
       }
       else {
-        dc->d_tcpConnection->state=TCPConnection::BYTE0;
-        Utility::gettimeofday(&g_now, 0); // needs to be updated
-        t_fdm->addReadFD(dc->d_socket, handleRunningTCPQuestion, dc->d_tcpConnection);
-        t_fdm->setReadTTD(dc->d_socket, g_now, g_tcpTimeout);
+        dc->d_tcpConnection->queriesCount++;
+        if (g_tcpMaxQueriesPerConn && dc->d_tcpConnection->queriesCount >= g_tcpMaxQueriesPerConn) {
+          dc->d_socket = -1;
+        }
+        else {
+          dc->d_tcpConnection->state=TCPConnection::BYTE0;
+          Utility::gettimeofday(&g_now, 0); // needs to be updated
+          t_fdm->addReadFD(dc->d_socket, handleRunningTCPQuestion, dc->d_tcpConnection);
+          t_fdm->setReadTTD(dc->d_socket, g_now, g_tcpTimeout);
+        }
       }
     }
 
@@ -2832,6 +2839,7 @@ int serviceMain(int argc, char*argv[])
 
   g_tcpTimeout=::arg().asNum("client-tcp-timeout");
   g_maxTCPPerClient=::arg().asNum("max-tcp-per-client");
+  g_tcpMaxQueriesPerConn=::arg().asNum("max-tcp-queries-per-connection");
 
   if(g_numThreads == 1) {
     L<<Logger::Warning<<"Operating unthreaded"<<endl;
@@ -3084,6 +3092,7 @@ int main(int argc, char **argv)
     ::arg().set("entropy-source", "If set, read entropy from this file")="/dev/urandom";
     ::arg().set("dont-query", "If set, do not query these netmasks for DNS data")=DONT_QUERY;
     ::arg().set("max-tcp-per-client", "If set, maximum number of TCP sessions per client (IP address)")="0";
+    ::arg().set("max-tcp-queries-per-connection", "If set, maximum number of TCP queries in a TCP connection")="0";
     ::arg().set("spoof-nearmiss-max", "If non-zero, assume spoofing after this many near misses")="20";
     ::arg().set("single-socket", "If set, only use a single socket for outgoing queries")="off";
     ::arg().set("auth-zones", "Zones for which we have authoritative data, comma separated domain=file pairs ")="";

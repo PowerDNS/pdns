@@ -676,6 +676,7 @@ public:
   uint16_t bytesread{0};
   const ComboAddress d_remote;
   char data[65535]; // damn
+  size_t queriesCount{0};
 
   static unsigned int getCurrentConnections() { return s_currentConnections; }
 private:

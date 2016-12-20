@@ -629,6 +629,12 @@ Maximum number of simultaneous incoming TCP connections allowed.
 Maximum number of simultaneous incoming TCP connections allowed per client
 (remote IP address).
 
+## `max-tcp-queries-per-connection`
+* Integer
+* Default: 0 (unlimited)
+
+Maximum number of DNS queries in a TCP connection.
+
 ## `max-total-msec`
 * Integer
 * Default: 7000
