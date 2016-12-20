@@ -797,8 +797,10 @@ Allowed methods: `GET`
 #### GET
 
 Search the data inside PowerDNS for :search\_term and return at most
-:max\_results. This includes zones, records and comments. Response body is an
-array of one or more of the following objects:
+:max\_results. This includes zones, records and comments.
+The `*` character can be used in :search\_term as a wildcard character and the `?` character can be used as a wildcard for a single character.
+
+Response body is an array of one or more of the following objects:
 
 For a zone:
 
