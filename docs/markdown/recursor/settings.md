@@ -584,6 +584,8 @@ for most installations.
 
 Maximum number of seconds to cache an item in the DNS cache, no matter what the
 original TTL specified.
+Since PowerDNS Recursor 4.1.0, the minimum value of this setting is 15.
+i.e. setting this to lower than 15 will make this value 15.
 
 ## `max-mthreads`
 * Integer

@@ -2750,7 +2750,7 @@ int serviceMain(int argc, char*argv[])
   SyncRes::s_nopacketcache = ::arg().mustDo("disable-packetcache");
 
   SyncRes::s_maxnegttl=::arg().asNum("max-negative-ttl");
-  SyncRes::s_maxcachettl=::arg().asNum("max-cache-ttl");
+  SyncRes::s_maxcachettl=max(::arg().asNum("max-cache-ttl"), 15);
   SyncRes::s_packetcachettl=::arg().asNum("packetcache-ttl");
   // Cap the packetcache-servfail-ttl to the packetcache-ttl
   uint32_t packetCacheServFailTTL = ::arg().asNum("packetcache-servfail-ttl");
