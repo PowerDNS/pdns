@@ -570,6 +570,7 @@ Valid return values for `LuaAction` functions are:
  * DNSAction.None: continue to the next rule
  * DNSAction.Nxdomain: return a response with a NXDomain rcode
  * DNSAction.Pool: use the specified pool to forward this query
+ * DNSAction.Refused: return a response with a Refused rcode
  * DNSAction.Spoof: spoof the response using the supplied IPv4 (A), IPv6 (AAAA) or string (CNAME) value
 
 DNSSEC
