@@ -55,30 +55,3 @@ Parse only this zone file. Conflicts with `--named-conf` parameter.
 
 ## `--zone-name`
 When parsing a single zone without $ORIGIN statement, set this as the zone name.
-
-# Migrating from backend to another
-
-NB! This is experimental feature.
-
-Syntax: `pdnssec b2b-migrate old new`
-
-This tool lets you migrate data from one backend to another, it moves all data, including zones, metadata and crypto keys (if present). Some example use cases are moving from Bind style zonefiles to SQL based, or other way around, or moving from MyDNS to gMySQL.
-
-## Prerequisites
-
- - Target backend must support same features as source from set of domains, zones, metadata, DNSSEC and TSIG. See [Backend Capabilities](index.md)
- - There must be no data in the target backend, otherwise the migration will fail. This is checked in the code for domains.
-
-You can perform live upgrade with this tool, provided you follow the procedure.
-
-## Moving from source to target.
-
-Take backups of everything.
-
-Configure both backends to pdns.conf, if you have source configured, you can just add target backend. **DO NOT RESTART AUTH SERVER BEFORE YOU HAVE FINISHED**
-
-Then run `pdnssec b2b-migrate old new`, the old and new being configuration prefixes in pdns.conf. If something goes wrong, make sure you properly clear **ALL** data from target backend before retrying.
-
-Remove (or comment out) old backend from pdns.conf, and run `pdnssec rectify-all-zones` and `pdnssec check-all-zones` to make sure everything is OK.
-
-If everything is OK, then go ahead to restart your pdns auth process. Check logs to make sure everything went ok.
