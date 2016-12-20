@@ -98,11 +98,11 @@ public:
 
   int gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags);
 
-  bool prerpz(std::shared_ptr<DNSQuestion> dq, int& ret);
-  bool preresolve(std::shared_ptr<DNSQuestion> dq, int& ret);
-  bool nxdomain(std::shared_ptr<DNSQuestion> dq, int& ret);
-  bool nodata(std::shared_ptr<DNSQuestion> dq, int& ret);
-  bool postresolve(std::shared_ptr<DNSQuestion> dq, int& ret);
+  bool prerpz(DNSQuestion& dq, int& ret);
+  bool preresolve(DNSQuestion& dq, int& ret);
+  bool nxdomain(DNSQuestion& dq, int& ret);
+  bool nodata(DNSQuestion& dq, int& ret);
+  bool postresolve(DNSQuestion& dq, int& ret);
 
   bool preoutquery(const ComboAddress& ns, const ComboAddress& requestor, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, int& ret);
   bool ipfilter(const ComboAddress& remote, const ComboAddress& local, const struct dnsheader&);
@@ -120,9 +120,9 @@ public:
   gettag_t d_gettag; // public so you can query if we have this hooked
 
 private:
-  typedef std::function<bool(std::shared_ptr<DNSQuestion>)> luacall_t;
+  typedef std::function<bool(DNSQuestion&)> luacall_t;
   luacall_t d_prerpz, d_preresolve, d_nxdomain, d_nodata, d_postresolve, d_preoutquery, d_postoutquery;
-  bool genhook(luacall_t& func, std::shared_ptr<DNSQuestion> dq, int& ret);
+  bool genhook(luacall_t& func, DNSQuestion& dq, int& ret);
   typedef std::function<bool(ComboAddress,ComboAddress, struct dnsheader)> ipfilter_t;
   ipfilter_t d_ipfilter;
 };
