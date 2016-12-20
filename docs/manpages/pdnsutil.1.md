@@ -146,6 +146,9 @@ delete-tsig-key *NAME*
 generate-tsig-key *NAME* *ALGORITHM*
 :    Generate new TSIG key with name *NAME* and the specified algorithm.
 
+import-tsig-key *NAME* *ALGORITHM* *KEY*
+:    Import *KEY* of the specified algorithm as *NAME*.
+
 ## ZONE MANIPULATION COMMANDS
 create-zone *ZONE*
 :    Create an empty zone named *ZONE*.
