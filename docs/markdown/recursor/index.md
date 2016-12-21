@@ -1,7 +1,7 @@
 # PowerDNS Recursor
 The PowerDNS recursor is part of the source tarball of the main PowerDNS distribution, but it is released separately. Starting from the version 3.0 pre-releases, there are zero known bugs or issues with the recursor. It is known to power the resolving needs of over 100 million internet connections.
 
-The documentation is only for the 3.0 series, users of older versions are urged to upgrade!
+The documentation is only for the 4.0 series, users of older versions are urged to upgrade!
 
 ## Notable features:
 -   Uses [MTasker](http://ds9a.nl/mtasker)
