@@ -89,6 +89,9 @@ extern SortList g_sortlist;
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
 #endif
+#ifdef SO_ATTACH_FILTER
+#include <linux/filter.h>
+#endif
 
 __thread FDMultiplexer* t_fdm;
 static __thread unsigned int t_id;
@@ -1862,6 +1865,39 @@ void makeUDPServerSockets()
     }
     if (!setSocketTimestamps(fd))
       L<<Logger::Warning<<"Unable to enable timestamp reporting for socket"<<endl;
+
+#ifdef SO_ATTACH_FILTER
+    // Linux Socket Filtering
+    //
+    // As we are using SOCK_DGRAM sockets we are matching on UDP datagrams; note the
+    // different offsets (eg "ether[0:2]" = UDP source port).
+
+    // Accept only UDP datagrams that pass the following rules:
+    // dgram length >24, QR=0, OpCode=0, AA=?, TC=0, RD=?, QDCount=1, ANCount=0
+    //
+    // PCAP: 'ether[4:2]>24 and (ether[10]|5=5) and ether[12:2]=1 and ether[14:2]=0'
+
+    struct sock_filter lsf_code[] = {
+      { 0x28, 0, 0, 0x00000004 }, // (000) ldh      [4]
+      { 0x25, 0, 8, 0x00000018 }, // (001) jgt      #0x18            jt 2    jf 10
+      { 0x30, 0, 0, 0x0000000a }, // (002) ldb      [10]
+      { 0x44, 0, 0, 0x00000005 }, // (003) or       #0x5
+      { 0x15, 0, 5, 0x00000005 }, // (004) jeq      #0x5             jt 5    jf 10
+      { 0x28, 0, 0, 0x0000000c }, // (005) ldh      [12]
+      { 0x15, 0, 3, 0x00000001 }, // (006) jeq      #0x1             jt 7    jf 10
+      { 0x28, 0, 0, 0x0000000e }, // (007) ldh      [14]
+      { 0x15, 0, 1, 0x00000000 }, // (008) jeq      #0x0             jt 9    jf 10
+      { 0x6, 0, 0, 0x0000ffff },  // (009) ret      #65535
+      { 0x6, 0, 0, 0x00000000 },  // (010) ret      #0
+    };
+
+    struct sock_fprog lsf;
+    lsf.len = (sizeof(lsf_code) / sizeof((lsf_code)[0]));
+    lsf.filter = lsf_code;
+
+    if(setsockopt(fd, SOL_SOCKET, SO_ATTACH_FILTER, &lsf, sizeof(lsf)) < 0)
+      L<<Logger::Warning<<"Failed to attach LSF filter to socket, continuing anyhow: "<<strerror(errno)<<endl;
+#endif
 
     if(IsAnyAddress(sin)) {
       if(sin.sin4.sin_family == AF_INET)
