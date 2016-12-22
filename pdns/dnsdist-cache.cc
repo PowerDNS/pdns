@@ -166,14 +166,22 @@ bool DNSDistPacketCache::get(const DNSQuestion& dq, uint16_t consumed, uint16_t 
       return false;
     }
 
+    memcpy(response, &queryId, sizeof(queryId));
+    memcpy(response + sizeof(queryId), value.value.c_str() + sizeof(queryId), sizeof(dnsheader) - sizeof(queryId));
+
+    if (value.len == sizeof(dnsheader)) {
+      /* DNS header only, our work here is done */
+      *responseLen = value.len;
+      d_hits++;
+      return true;
+    }
+
     string dnsQName(dq.qname->toDNSString());
     const size_t dnsQNameLen = dnsQName.length();
     if (value.len < (sizeof(dnsheader) + dnsQNameLen)) {
       return false;
     }
 
-    memcpy(response, &queryId, sizeof(queryId));
-    memcpy(response + sizeof(queryId), value.value.c_str() + sizeof(queryId), sizeof(dnsheader) - sizeof(queryId));
     memcpy(response + sizeof(dnsheader), dnsQName.c_str(), dnsQNameLen);
     if (value.len > (sizeof(dnsheader) + dnsQNameLen)) {
       memcpy(response + sizeof(dnsheader) + dnsQNameLen, value.value.c_str() + sizeof(dnsheader) + dnsQNameLen, value.len - (sizeof(dnsheader) + dnsQNameLen));

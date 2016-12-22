@@ -199,6 +199,16 @@ bool responseContentMatches(const char* response, const uint16_t responseLen, co
     return false;
   }
 
+  if (dh->qdcount == 0) {
+    if (dh->rcode != RCode::NoError && dh->rcode != RCode::NXDomain) {
+      return true;
+    }
+    else {
+      g_stats.nonCompliantResponses++;
+      return false;
+    }
+  }
+
   try {
     rqname=DNSName(response, responseLen, sizeof(dnsheader), false, &rqtype, &rqclass, &consumed);
   }
@@ -238,14 +248,18 @@ bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize,
     return false;
   }
 
+  restoreFlags(dh, origFlags);
+
+  if (*responseLen == sizeof(dnsheader)) {
+    return true;
+  }
+
   if(g_fixupCase) {
     string realname = qname.toDNSString();
     if (*responseLen >= (sizeof(dnsheader) + realname.length())) {
       memcpy(*response + sizeof(dnsheader), realname.c_str(), realname.length());
     }
   }
-
-  restoreFlags(dh, origFlags);
 
   if (ednsAdded || ecsAdded) {
     char * optStart = NULL;
