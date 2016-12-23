@@ -448,6 +448,8 @@ void seedRandom(const string& source);
 int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret);
 int makeIPv4sockaddr(const std::string& str, struct sockaddr_in* ret);
 int makeUNsockaddr(const std::string& path, struct sockaddr_un* ret);
+int testIPv6addr(const std::string& addr);
+int testIPv4addr(const string &str);
 bool stringfgets(FILE* fp, std::string& line);
 
 template<typename Index>
