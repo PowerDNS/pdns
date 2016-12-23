@@ -191,10 +191,11 @@ or if the answer can't be sent in less than 2s. This can be configured with:
 
 The same kind of timeouts is enforced on the TCP connections to the downstream servers.
 The default value of 30s can be modified by passing the `tcpRecvTimeout` and `tcpSendTimeout`
-parameters to `newServer`. If the TCP connection to a downstream server fails, `dnsdist`
+parameters to `newServer`, with an additional `tcpConnectTimeout` parameter controlling
+the connection timeout (5s by default). If the TCP connection to a downstream server fails, `dnsdist`
 will try to establish a new one up to `retries` times before giving up.
 ```
-newServer({address="192.0.2.1", tcpRecvTimeout=10, tcpSendTimeout=10, retries=5})
+newServer({address="192.0.2.1", tcpConnectTimeout=5, tcpRecvTimeout=10, tcpSendTimeout=10, retries=5})
 ```
 
 Source address
@@ -1289,7 +1290,7 @@ Here are all functions:
     * `setVerboseHealthChecks(bool)`: set whether health check errors will be logged
  * Server related:
     * `newServer("ip:port")`: instantiate a new downstream server with default settings
-    * `newServer({address="ip:port", qps=1000, order=1, weight=10, pool="abuse", retries=5, tcpSendTimeout=30, tcpRecvTimeout=30, checkName="a.root-servers.net.", checkType="A", setCD=false, maxCheckFailures=1, mustResolve=false, useClientSubnet=true, source="address|interface name|address@interface"})`:
+    * `newServer({address="ip:port", qps=1000, order=1, weight=10, pool="abuse", retries=5, tcpConnectTimeout=5, tcpSendTimeout=30, tcpRecvTimeout=30, checkName="a.root-servers.net.", checkType="A", setCD=false, maxCheckFailures=1, mustResolve=false, useClientSubnet=true, source="address|interface name|address@interface"})`:
 instantiate a server with additional parameters
     * `showServers()`: output all servers
     * `getServer(n)`: returns server with index n 
