@@ -497,7 +497,7 @@ void* tcpClientThread(int pipefd)
         }
 
 	if (packetCache && !dq.skipCache) {
-	  packetCache->insert(cacheKey, qname, qtype, qclass, response, responseLen, true, dh->rcode == RCode::ServFail);
+	  packetCache->insert(cacheKey, qname, qtype, qclass, response, responseLen, true, dh->rcode);
 	}
 
 #ifdef HAVE_DNSCRYPT

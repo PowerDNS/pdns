@@ -855,8 +855,8 @@ The first parameter is the maximum number of entries stored in the cache, and is
 only one required. All the others parameters are optional and in seconds.
 The second one is the maximum lifetime of an entry in the cache, the third one is
 the minimum TTL an entry should have to be considered for insertion in the cache,
-the fourth one is the TTL used for a Server Failure response. The last one is the
-TTL that will be used when a stale cache entry is returned.
+the fourth one is the TTL used for a Server Failure or a Refused response. The last
+one is the TTL that will be used when a stale cache entry is returned.
 
 The `setStaleCacheEntriesTTL(n)` directive can be used to allow `dnsdist` to use
 expired entries from the cache when no backend is available. Only entries that have
@@ -1428,7 +1428,7 @@ instantiate a server with additional parameters
     * `expunge(n)`: remove entries from the cache, leaving at most `n` entries
     * `expungeByName(DNSName [, qtype=ANY])`: remove entries matching the supplied DNSName and type from the cache
     * `isFull()`: return true if the cache has reached the maximum number of entries
-    * `newPacketCache(maxEntries[, maxTTL=86400, minTTL=0, servFailTTL=60, staleTTL=60])`: return a new PacketCache
+    * `newPacketCache(maxEntries[, maxTTL=86400, minTTL=0, temporaryFailureTTL=60, staleTTL=60])`: return a new PacketCache
     * `printStats()`: print the cache stats (hits, misses, deferred lookups and deferred inserts)
     * `purgeExpired(n)`: remove expired entries from the cache until there is at most `n` entries remaining in the cache
     * `toString()`: return the number of entries in the Packet Cache, and the maximum number of entries

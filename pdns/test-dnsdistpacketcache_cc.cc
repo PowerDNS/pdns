@@ -45,7 +45,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
       bool found = PC.get(dq, a.wirelength(), 0, responseBuf, &responseBufSize, &key);
       BOOST_CHECK_EQUAL(found, false);
 
-      PC.insert(key, a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false);
+      PC.insert(key, a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false, 0);
 
       found = PC.get(dq, a.wirelength(), pwR.getHeader()->id, responseBuf, &responseBufSize, &key, 0, true);
       if (found == true) {
@@ -135,7 +135,7 @@ static void *threadMangler(void* a)
       DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, (struct dnsheader*) query.data(), query.size(), query.size(), false);
       PC.get(dq, a.wirelength(), 0, responseBuf, &responseBufSize, &key);
 
-      PC.insert(key, a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false);
+      PC.insert(key, a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false, 0);
     }
   }
   catch(PDNSException& e) {
