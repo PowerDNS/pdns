@@ -56,14 +56,16 @@ void doClient(ComboAddress server, const std::string& command)
   }
   SConnect(fd, server);
   setTCPNoDelay(fd);
-  SodiumNonce theirs, ours;
+  SodiumNonce theirs, ours, readingNonce, writingNonce;
   ours.init();
 
   writen2(fd, (const char*)ours.value, sizeof(ours.value));
   readn2(fd, (char*)theirs.value, sizeof(theirs.value));
+  readingNonce.merge(ours, theirs);
+  writingNonce.merge(theirs, ours);
 
   if(!command.empty()) {
-    string msg=sodEncryptSym(command, g_key, ours);
+    string msg=sodEncryptSym(command, g_key, writingNonce);
     putMsgLen32(fd, (uint32_t) msg.length());
     if(!msg.empty())
       writen2(fd, msg);
@@ -73,7 +75,7 @@ void doClient(ComboAddress server, const std::string& command)
         boost::scoped_array<char> resp(new char[len]);
         readn2(fd, resp.get(), len);
         msg.assign(resp.get(), len);
-        msg=sodDecryptSym(msg, g_key, theirs);
+        msg=sodDecryptSym(msg, g_key, readingNonce);
         cout<<msg;
         cout.flush();
       }
@@ -116,7 +118,7 @@ void doClient(ComboAddress server, const std::string& command)
     if(line.empty())
       continue;
 
-    string msg=sodEncryptSym(line, g_key, ours);
+    string msg=sodEncryptSym(line, g_key, writingNonce);
     putMsgLen32(fd, (uint32_t) msg.length());
     writen2(fd, msg);
     uint32_t len;
@@ -129,7 +131,7 @@ void doClient(ComboAddress server, const std::string& command)
       boost::scoped_array<char> resp(new char[len]);
       readn2(fd, resp.get(), len);
       msg.assign(resp.get(), len);
-      msg=sodDecryptSym(msg, g_key, theirs);
+      msg=sodDecryptSym(msg, g_key, readingNonce);
       cout<<msg;
       cout.flush();
     }
@@ -417,11 +419,12 @@ void controlClientThread(int fd, ComboAddress client)
 try
 {
   setTCPNoDelay(fd);
-  SodiumNonce theirs;
-  readn2(fd, (char*)theirs.value, sizeof(theirs.value));
-  SodiumNonce ours;
+  SodiumNonce theirs, ours, readingNonce, writingNonce;
   ours.init();
+  readn2(fd, (char*)theirs.value, sizeof(theirs.value));
   writen2(fd, (char*)ours.value, sizeof(ours.value));
+  readingNonce.merge(ours, theirs);
+  writingNonce.merge(theirs, ours);
 
   for(;;) {
     uint32_t len;
@@ -439,7 +442,7 @@ try
     readn2(fd, msg.get(), len);
     
     string line(msg.get(), len);
-    line = sodDecryptSym(line, g_key, theirs);
+    line = sodDecryptSym(line, g_key, readingNonce);
     //    cerr<<"Have decrypted line: "<<line<<endl;
     string response;
     try {
@@ -512,7 +515,7 @@ try
     catch(const LuaContext::SyntaxErrorException& e) {
       response = "Error: " + string(e.what()) + ": ";
     }
-    response = sodEncryptSym(response, g_key, ours);
+    response = sodEncryptSym(response, g_key, writingNonce);
     putMsgLen32(fd, response.length());
     writen2(fd, response.c_str(), response.length());
   }
