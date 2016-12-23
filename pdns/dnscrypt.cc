@@ -59,15 +59,35 @@ DnsCryptPrivateKey::~DnsCryptPrivateKey()
   sodium_munlock(key, sizeof(key));
 }
 
-DnsCryptQuery::DnsCryptQuery()
-{
-  sodium_mlock(sharedKey, sizeof(sharedKey));
-}
-
 DnsCryptQuery::~DnsCryptQuery()
 {
-  sodium_munlock(sharedKey, sizeof(sharedKey));
+  if (sharedKeyComputed) {
+    sodium_munlock(sharedKey, sizeof(sharedKey));
+  }
 }
+
+int DnsCryptQuery::computeSharedKey(const DnsCryptPrivateKey& privateKey)
+{
+  int res = 0;
+
+  if (sharedKeyComputed) {
+    return res;
+  }
+
+  sodium_mlock(sharedKey, sizeof(sharedKey));
+  res = crypto_box_beforenm(sharedKey,
+                            header.clientPK,
+                            privateKey.key);
+
+  if (res != 0) {
+    sodium_munlock(sharedKey, sizeof(sharedKey));
+    return res;
+  }
+
+  sharedKeyComputed = true;
+  return res;
+}
+
 
 void DnsCryptContext::generateProviderKeys(unsigned char publicKey[DNSCRYPT_PROVIDER_PUBLIC_KEY_SIZE], unsigned char privateKey[DNSCRYPT_PROVIDER_PRIVATE_KEY_SIZE])
 {
@@ -301,17 +321,10 @@ void DnsCryptContext::getDecryptedQuery(std::shared_ptr<DnsCryptQuery> query, bo
   memcpy(nonce, &query->header.clientNonce, sizeof(query->header.clientNonce));
   memset(nonce + sizeof(query->header.clientNonce), 0, sizeof(nonce) - sizeof(query->header.clientNonce));
 
-  int res = 0;
-  if (!query->sharedKeyComputed) {
-    res = crypto_box_beforenm(query->sharedKey,
-                              query->header.clientPK,
-                              query->useOldCert ? oldPrivateKey.key : privateKey.key);
-
-    if (res != 0) {
-      vinfolog("Dropping encrypted query we can't compute the shared key for");
-      return;
-    }
-    query->sharedKeyComputed = true;
+  int res = query->computeSharedKey(query->useOldCert ? oldPrivateKey : privateKey);
+  if (res != 0) {
+    vinfolog("Dropping encrypted query we can't compute the shared key for");
+    return;
   }
 
   res = crypto_box_open_easy_afternm((unsigned char*) packet,
@@ -469,16 +482,9 @@ int DnsCryptContext::encryptResponse(char* response, uint16_t responseLen, uint1
   pos += (paddingSize - 1);
 
   /* encrypting */
-  int res = 0;
-  if (!query->sharedKeyComputed) {
-    res = crypto_box_beforenm(query->sharedKey,
-                              query->header.clientPK,
-                              query->useOldCert ? oldPrivateKey.key : privateKey.key);
-
-    if (res != 0) {
-      return res;
-    }
-    query->sharedKeyComputed = true;
+  int res = query->computeSharedKey(query->useOldCert ? oldPrivateKey : privateKey);
+  if (res != 0) {
+    return res;
   }
 
   res = crypto_box_easy_afternm((unsigned char*) (response + sizeof(header)),
