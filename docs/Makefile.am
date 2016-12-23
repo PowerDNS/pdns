@@ -31,24 +31,22 @@ MANPAGES_TARGET_TOOLS += dnspcap2protobuf.1
 endif
 endif
 
-MANPAGES_TARGET_DNSDIST = dnsdist.1
 
-MANPAGES_TARGET_RECURSOR = pdns_recursor.1 \
-	rec_control.1
+MANPAGES_TARGET_ALL=$(MANPAGES_TARGET_AUTH)
 
-MANPAGES_TARGET_ALL=$(MANPAGES_TARGET_AUTH) \
-		$(MANPAGES_TARGET_RECURSOR) \
-		$(MANPAGES_TARGET_TOOLS) \
-		$(MANPAGES_TARGET_DNSDIST)
+if TOOLS
+MANPAGES_TARGET_ALL += $(MANPAGES_TARGET_TOOLS)
+endif
+
 
 # The manpages to distribute and install are only those for the
 # auth server and tools. For the recursor and dnsdist tarballs,
 # the respective dist- scripts will take care of this
 if HAVE_PANDOC
-dist_man_MANS = $(MANPAGES_TARGET_AUTH) $(MANPAGES_TARGET_TOOLS)
+dist_man_MANS = $(MANPAGES_TARGET_ALL)
 endif
 if HAVE_MANPAGES
-dist_man_MANS = $(MANPAGES_TARGET_AUTH) $(MANPAGES_TARGET_TOOLS)
+dist_man_MANS = $(MANPAGES_TARGET_ALL)
 endif
 
 EXTRA_DIST = manpages markdown/*.md markdown/appendix markdown/authoritative markdown/common markdown/httpapi markdown/recursor markdown/security markdown/tools
@@ -87,11 +85,14 @@ all-manpages: $(MANPAGES_TARGET_ALL)
 if HAVE_PANDOC
 $(MANPAGES_TARGET_ALL): %: manpages/%.md
 	$(PANDOC) -s -t man $< -o $@
+
+clean:
+	rm -rf html html.tar.bz2 *.1
 else
 $(MANPAGES_TARGET_ALL):
 	echo "You need pandoc to generate the manpages"
 	exit 1
-endif
 
 clean:
-	rm -rf html html.tar.bz2 *.8 *.1
+	rm -rf html html.tar.bz2
+endif
