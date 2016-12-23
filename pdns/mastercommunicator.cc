@@ -49,10 +49,10 @@ void CommunicatorClass::queueNotifyDomain(const DNSName &domain, UeberBackend *B
   DNSResourceRecord rr;
   FindNS fns;
 
-  if(!::arg()["passthru-notify"].empty()) {
-    vector<string>passthrus;
-    stringtok(passthrus,::arg()["passthru-notify"]," ,");
-    for(vector<string>::const_iterator k=passthrus.begin();k!=passthrus.end();++k)
+  if(!::arg()["forward-notify"].empty()) {
+    vector<string>forwards;
+    stringtok(forwards,::arg()["forward-notify"]," ,");
+    for(vector<string>::const_iterator k=forwards.begin();k!=forwards.end();++k)
       if (!testIPv4addr(*k) || !testIPv6addr(*k)) {
         const ComboAddress caIp(*k, 53);
         ips.insert(caIp.toStringWithPort());
