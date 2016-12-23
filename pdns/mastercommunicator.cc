@@ -1,31 +1,34 @@
 /*
-    PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002-2011  PowerDNS.COM BV
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as 
-    published by the Free Software Foundation; 
-
-    Additionally, the license of this program contains a special
-    exception which allows to distribute the program in binary form when
-    it is linked against OpenSSL.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-*/
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "packetcache.hh"
 #include "utility.hh"
 #include <errno.h>
 #include "communicator.hh"
 #include <set>
 #include <boost/utility.hpp>
-#include <boost/foreach.hpp>
+
 #include "dnsbackend.hh"
 #include "ueberbackend.hh"
 #include "packethandler.hh"
@@ -35,12 +38,11 @@
 #include "dns.hh"
 #include "arguments.hh"
 #include "packetcache.hh"
-#include <boost/lexical_cast.hpp>
-
+#include "base64.hh"
 #include "namespaces.hh"
 
 
-void CommunicatorClass::queueNotifyDomain(const string &domain, DNSBackend *B)
+void CommunicatorClass::queueNotifyDomain(const DNSName &domain, UeberBackend *B)
 {
   bool hasQueuedItem=false;
   set<string> nsset, ips;
@@ -52,7 +54,7 @@ void CommunicatorClass::queueNotifyDomain(const string &domain, DNSBackend *B)
     nsset.insert(rr.content);
 
   for(set<string>::const_iterator j=nsset.begin();j!=nsset.end();++j) {
-    vector<string> nsips=fns.lookup(*j, B);
+    vector<string> nsips=fns.lookup(DNSName(*j), B);
     if(nsips.empty())
       L<<Logger::Warning<<"Unable to queue notification of domain '"<<domain<<"': nameservers do not resolve!"<<endl;
     else
@@ -60,7 +62,7 @@ void CommunicatorClass::queueNotifyDomain(const string &domain, DNSBackend *B)
         const ComboAddress caIp(*k, 53);
         if(!d_preventSelfNotification || !AddressIsUs(caIp)) {
           if(!d_onlyNotify.match(&caIp))
-            L<<Logger::Info<<"Skiped notification of domain '"<<domain<<"' to "<<*j<<" because it does not match only-notify."<<endl;
+            L<<Logger::Info<<"Skipped notification of domain '"<<domain<<"' to "<<*j<<" because it does not match only-notify."<<endl;
           else
             ips.insert(caIp.toStringWithPort());
         }
@@ -96,15 +98,15 @@ void CommunicatorClass::queueNotifyDomain(const string &domain, DNSBackend *B)
 }
 
 
-bool CommunicatorClass::notifyDomain(const string &domain)
+bool CommunicatorClass::notifyDomain(const DNSName &domain)
 {
   DomainInfo di;
-  PacketHandler P;
-  if(!P.getBackend()->getDomainInfo(domain, di)) {
+  UeberBackend B;
+  if(!B.getDomainInfo(domain, di)) {
     L<<Logger::Error<<"No such domain '"<<domain<<"' in our database"<<endl;
     return false;
   }
-  queueNotifyDomain(domain, P.getBackend());
+  queueNotifyDomain(domain, &B);
   // call backend and tell them we sent out the notification - even though that is premature    
   di.backend->setNotified(di.id, di.serial);
 
@@ -114,7 +116,7 @@ bool CommunicatorClass::notifyDomain(const string &domain)
 void NotificationQueue::dump()
 {
   cerr<<"Waiting for notification responses: "<<endl;
-  BOOST_FOREACH(NotificationRequest& nr, d_nqueue) {
+  for(NotificationRequest& nr :  d_nqueue) {
     cerr<<nr.domain<<", "<<nr.ip<<endl;
   }
 }
@@ -124,7 +126,7 @@ void CommunicatorClass::masterUpdateCheck(PacketHandler *P)
   if(!::arg().mustDo("master"))
     return; 
 
-  UeberBackend *B=dynamic_cast<UeberBackend *>(P->getBackend());
+  UeberBackend *B=P->getBackend();
   vector<DomainInfo> cmdomains;
   B->getUpdatedMasters(&cmdomains);
   
@@ -145,7 +147,7 @@ void CommunicatorClass::masterUpdateCheck(PacketHandler *P)
   
   for(vector<DomainInfo>::const_iterator i=cmdomains.begin();i!=cmdomains.end();++i) {
     extern PacketCache PC;
-    PC.purge(i->zone); // fixes cvstrac ticket #30
+    PC.purgeExact(i->zone);
     queueNotifyDomain(i->zone,P->getBackend());
     i->backend->setNotified(i->id,i->serial); 
   }
@@ -156,7 +158,8 @@ time_t CommunicatorClass::doNotifications()
   ComboAddress from;
   Utility::socklen_t fromlen;
   char buffer[1500];
-  int size, sock;
+  int sock;
+  ssize_t size;
 
   // receive incoming notifications on the nonblocking socket and take them off the list
   while(waitFor2Data(d_nsock4, d_nsock6, 0, 0, &sock) > 0) {
@@ -168,7 +171,7 @@ time_t CommunicatorClass::doNotifications()
 
     p.setRemote(&from);
 
-    if(p.parse(buffer,size)<0) {
+    if(p.parse(buffer,(size_t)size)<0) {
       L<<Logger::Warning<<"Unable to parse SOA notification answer from "<<p.getRemote()<<endl;
       continue;
     }
@@ -185,7 +188,8 @@ time_t CommunicatorClass::doNotifications()
   }
 
   // send out possible new notifications
-  string domain, ip;
+  DNSName domain;
+  string ip;
   uint16_t id;
 
   bool purged;
@@ -203,35 +207,61 @@ time_t CommunicatorClass::doNotifications()
         drillHole(domain, ip);
       }
       catch(ResolverException &re) {
-        L<<Logger::Error<<"Error trying to resolve '"+ip+"' for notifying '"+domain+"' to server: "+re.reason<<endl;
+        L<<Logger::Error<<"Error trying to resolve '"<<ip<<"' for notifying '"<<domain<<"' to server: "<<re.reason<<endl;
       }
     }
     else
-      L<<Logger::Error<<Logger::NTLog<<"Notification for "<<domain<<" to "<<ip<<" failed after retries"<<endl;
+      L<<Logger::Error<<"Notification for "<<domain<<" to "<<ip<<" failed after retries"<<endl;
   }
 
   return d_nq.earliest();
 }
 
-void CommunicatorClass::sendNotification(int sock, const string& domain, const ComboAddress& remote, uint16_t id)
+void CommunicatorClass::sendNotification(int sock, const DNSName& domain, const ComboAddress& remote, uint16_t id)
 {
+  UeberBackend B;
+  vector<string> meta;
+  DNSName tsigkeyname;
+  DNSName tsigalgorithm;
+  string tsigsecret64;
+  string tsigsecret;
+
+  if (B.getDomainMetadata(domain, "TSIG-ALLOW-AXFR", meta) && meta.size() > 0) {
+    tsigkeyname = DNSName(meta[0]);
+  }
+
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, domain, QType::SOA, 1, Opcode::Notify);
   pw.getHeader()->id = id;
   pw.getHeader()->aa = true; 
+
+  if (tsigkeyname.empty() == false) {
+    B.getTSIGKey(tsigkeyname, &tsigalgorithm, &tsigsecret64);
+    TSIGRecordContent trc;
+    if (tsigalgorithm.toStringNoDot() == "hmac-md5")
+      trc.d_algoName = DNSName(tsigalgorithm.toStringNoDot() + ".sig-alg.reg.int.");
+    else
+      trc.d_algoName = tsigalgorithm;
+    trc.d_time = time(0);
+    trc.d_fudge = 300;
+    trc.d_origID=ntohs(id);
+    trc.d_eRcode=0;
+    B64Decode(tsigsecret64, tsigsecret);
+    addTSIG(pw, &trc, tsigkeyname, tsigsecret, "", false);
+  }
 
   if(sendto(sock, &packet[0], packet.size(), 0, (struct sockaddr*)(&remote), remote.getSocklen()) < 0) {
     throw ResolverException("Unable to send notify to "+remote.toStringWithPort()+": "+stringerror());
   }
 }
 
-void CommunicatorClass::drillHole(const string &domain, const string &ip)
+void CommunicatorClass::drillHole(const DNSName &domain, const string &ip)
 {
   Lock l(&d_holelock);
   d_holes[make_pair(domain,ip)]=time(0);
 }
 
-bool CommunicatorClass::justNotified(const string &domain, const string &ip)
+bool CommunicatorClass::justNotified(const DNSName &domain, const string &ip)
 {
   Lock l(&d_holelock);
   if(d_holes.find(make_pair(domain,ip))==d_holes.end()) // no hole
@@ -246,16 +276,15 @@ bool CommunicatorClass::justNotified(const string &domain, const string &ip)
 
 void CommunicatorClass::makeNotifySockets()
 {
-  d_nsock4 = makeQuerySocket(ComboAddress(::arg()["query-local-address"]), true);
+  d_nsock4 = makeQuerySocket(ComboAddress(::arg()["query-local-address"]), true, ::arg().mustDo("non-local-bind"));
   if(!::arg()["query-local-address6"].empty())
-    d_nsock6 = makeQuerySocket(ComboAddress(::arg()["query-local-address6"]), true);
+    d_nsock6 = makeQuerySocket(ComboAddress(::arg()["query-local-address6"]), true, ::arg().mustDo("non-local-bind"));
   else
     d_nsock6 = -1;
 }
 
-void CommunicatorClass::notify(const string &domain, const string &ip)
+void CommunicatorClass::notify(const DNSName &domain, const string &ip)
 {
   d_nq.add(domain, ip);
   d_any_sem.post();
 }
-

@@ -1,3 +1,24 @@
+/*
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 #ifndef PDNS_SIGNINGPIPE
 #define PDNS_SIGNINGPIPE
 #include <vector>
@@ -5,28 +26,27 @@
 #include <stdio.h>
 #include "dnsseckeeper.hh"
 #include "dns.hh"
-using std::string;
-using std::vector;
 
-void writeLStringToSocket(int fd, const pdns::string& msg);
+void writeLStringToSocket(int fd, const string& msg);
 bool readLStringFromSocket(int fd, string& msg);
 
-/** input: DNSResourceRecords ordered in qname,qtype (we emit a signature chunk on a break)
- *  output: "chunks" of those very same DNSResourceRecords, interleaved with signatures
+/** input: DNSZoneRecords ordered in qname,qtype (we emit a signature chunk on a break)
+ *  output: "chunks" of those very same DNSZoneRecords, interleaved with signatures
  */
 
 class ChunkedSigningPipe
 {
 public:
-  typedef vector<DNSResourceRecord> rrset_t; 
+  typedef vector<DNSZoneRecord> rrset_t; 
   typedef rrset_t chunk_t; // for now
   
-  ChunkedSigningPipe(const std::string& signerName, bool mustSign, const pdns::string& servers=pdns::string(), unsigned int numWorkers=3);
+  ChunkedSigningPipe(const DNSName& signerName, bool mustSign, /* FIXME servers is unused? */ const string& servers=string(), unsigned int numWorkers=3);
   ~ChunkedSigningPipe();
-  bool submit(const DNSResourceRecord& rr);
+  bool submit(const DNSZoneRecord& rr);
   chunk_t getChunk(bool final=false);
+
+  std::atomic<unsigned long> d_signed;
   int d_queued;
-  AtomicCounter d_signed;
   int d_outstanding;
   unsigned int getReady();
 private:
@@ -39,19 +59,21 @@ private:
   void worker(int n, int fd);
   
   static void* helperWorker(void* p);
+
+  unsigned int d_numworkers;
+  int d_submitted;
+
   rrset_t* d_rrsetToSign;
-  std::deque< std::vector<DNSResourceRecord> > d_chunks;
-  string d_signer;
+  std::deque< std::vector<DNSZoneRecord> > d_chunks;
+  DNSName d_signer;
   
   chunk_t::size_type d_maxchunkrecords;
   
   std::vector<int> d_sockets;
   std::set<int> d_eof;
-  unsigned int d_numworkers;
   vector<pthread_t> d_tids;
   bool d_mustSign;
   bool d_final;
-  int d_submitted;
 };
 
 #endif

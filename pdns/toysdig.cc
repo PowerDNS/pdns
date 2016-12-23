@@ -1,80 +1,183 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "dnsparser.hh"
+#include "rec-lua-conf.hh"
 #include "sstuff.hh"
 #include "misc.hh"
 #include "dnswriter.hh"
 #include "dnsrecords.hh"
 #include "statbag.hh"
 #include "ednssubnet.hh"
+#include "dnssecinfra.hh"
+#include "recursor_cache.hh"
+#include "base32.hh"
+#include "root-dnssec.hh"
+
+#include "validate.hh"
 StatBag S;
+
+class TCPResolver : public boost::noncopyable
+{
+public:
+  TCPResolver(ComboAddress addr) : d_rsock(AF_INET, SOCK_STREAM)
+  {
+    d_rsock.connect(addr);
+  }
+
+  string query(const DNSName& qname, uint16_t qtype)
+  {
+    cerr<<"Q "<<qname<<"/"<<DNSRecordContent::NumberToType(qtype)<<endl;
+    vector<uint8_t> packet;
+    DNSPacketWriter pw(packet, qname, qtype);
+
+    // recurse
+    pw.getHeader()->rd=true;
+
+    // we'll do the validation
+    pw.getHeader()->cd=true;
+    pw.getHeader()->ad=true;
+
+    // we do require DNSSEC records to do that!
+    pw.addOpt(2800, 0, EDNSOpts::DNSSECOK);
+    pw.commit();
+
+    uint16_t len;
+    len = htons(packet.size());
+    if(d_rsock.write((char *) &len, 2) != 2)
+      throw PDNSException("tcp write failed");
+
+    d_rsock.writen(string((char*)&*packet.begin(), (char*)&*packet.end()));
+    
+    int bread=d_rsock.read((char *) &len, 2);
+    if( bread <0)
+      throw PDNSException("tcp read failed: "+std::string(strerror(errno)));
+    if(bread != 2) 
+      throw PDNSException("EOF on TCP read");
+
+    len=ntohs(len);
+    char *creply = new char[len];
+    int n=0;
+    int numread;
+    while(n<len) {
+      numread=d_rsock.read(creply+n, len-n);
+      if(numread<0) {
+        delete[] creply;
+        throw PDNSException("tcp read failed: "+std::string(strerror(errno)));
+      }
+      n+=numread;
+    }
+
+    string reply(creply, len);
+    delete[] creply;
+
+    return reply;
+  }
+
+  Socket d_rsock;
+};
+
+
+class TCPRecordOracle : public DNSRecordOracle
+{
+public:
+  TCPRecordOracle(const ComboAddress& dest) : d_dest(dest) {}
+  vector<DNSRecord> get(const DNSName& qname, uint16_t qtype) override
+  {
+    TCPResolver tr(d_dest);
+    string resp=tr.query(qname, qtype);
+    MOADNSParser mdp(resp);
+    vector<DNSRecord> ret;
+    ret.reserve(mdp.d_answers.size());
+    for(const auto& a : mdp.d_answers) {
+      ret.push_back(a.first);
+    }
+    return ret;
+  }
+private:
+  ComboAddress d_dest;
+};
+
+GlobalStateHolder<LuaConfigItems> g_luaconfs;
+LuaConfigItems::LuaConfigItems()
+{
+  for (const auto &dsRecord : rootDSs) {
+    auto ds=unique_ptr<DSRecordContent>(dynamic_cast<DSRecordContent*>(DSRecordContent::make(dsRecord)));
+    dsAnchors[g_rootdnsname].insert(*ds);
+  }
+}
+
+DNSFilterEngine::DNSFilterEngine() {}
 
 int main(int argc, char** argv)
 try
 {
   reportAllTypes();
+//  g_rootDS =  "19036 8 2 49aac11d7b6f6446702e54a1607371607a1a41855200fd2ce1cdde32f24e8fb5";
 
+//  if(argv[5])
+//    g_rootDS = argv[5];
+  
+  //  g_anchors.insert(DSRecordContent("19036 8 2 49aac11d7b6f6446702e54a1607371607a1a41855200fd2ce1cdde32f24e8fb5"));
   if(argc < 4) {
-    cerr<<"Syntax: sdig IP-address port question question-type\n";
+    cerr<<"Syntax: toysdig IP-address port question question-type [rootDS]\n";
     exit(EXIT_FAILURE);
   }
-
-  vector<uint8_t> packet;
-  
-  DNSPacketWriter pw(packet, argv[3], DNSRecordContent::TypeToNumber(argv[4]));
-
-  pw.getHeader()->rd=1;
-
-// void addOpt(int udpsize, int extRCode, int Z, const optvect_t& options=optvect_t());
-  DNSPacketWriter::optvect_t opts;
-  EDNSSubnetOpts eso;
-  eso.scope = eso.source = Netmask("2001:960:2:1e5::2");
-  
-  string subnet = makeEDNSSubnetOptsString(eso);
-  
-  opts.push_back(make_pair(0x50fa, subnet));
-  
-  pw.addOpt(1200, 0, 0, opts); // 1200 bytes answer size
-  pw.commit();
- 
-  Socket sock(AF_INET, SOCK_DGRAM);
   ComboAddress dest(argv[1] + (*argv[1]=='@'), atoi(argv[2]));
-  sock.sendTo(string((char*)&*packet.begin(), (char*)&*packet.end()), dest);
-  
-  string reply;
-  sock.recvFrom(reply, dest);
+  TCPRecordOracle tro(dest);
+  DNSName qname(argv[3]);
+  uint16_t qtype=DNSRecordContent::TypeToNumber(argv[4]);
+  cout<<"digraph oneshot {"<<endl;
 
-  MOADNSParser mdp(reply);
-  cout<<"Reply to question for qname='"<<mdp.d_qname<<"', qtype="<<DNSRecordContent::NumberToType(mdp.d_qtype)<<endl;
-  cout<<"Rcode: "<<mdp.d_header.rcode<<", RD: "<<mdp.d_header.rd<<", QR: "<<mdp.d_header.qr;
-  cout<<", TC: "<<mdp.d_header.tc<<", AA: "<<mdp.d_header.aa<<", opcode: "<<mdp.d_header.opcode<<endl;
+  auto recs=tro.get(qname, qtype);
 
-  for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
-    cout<<i->first.d_place-1<<"\t"<<i->first.d_label<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type);
-    cout<<"\t"<<i->first.d_ttl<<"\t"<< i->first.d_content->getZoneRepresentation()<<"\n";
+  cspmap_t cspmap=harvestCSPFromRecs(recs);
+  cerr<<"Got "<<cspmap.size()<<" RRSETs: ";
+  int numsigs=0;
+  for(const auto& csp : cspmap) {
+    cerr<<" "<<csp.first.first<<'/'<<DNSRecordContent::NumberToType(csp.first.second)<<": "<<csp.second.signatures.size()<<" sigs for "<<csp.second.records.size()<<" records"<<endl;
+    numsigs+= csp.second.signatures.size();
   }
-  EDNSOpts edo;
-  if(getEDNSOpts(mdp, &edo)) {
-    cerr<<"Have "<<edo.d_options.size()<<" options!"<<endl;
-    for(vector<pair<uint16_t, string> >::const_iterator iter = edo.d_options.begin();
-        iter != edo.d_options.end(); 
-        ++iter) {
-        if(iter->first == 0x50fa) {
-          EDNSSubnetOpts eso;
-          if(getEDNSSubnetOptsFromString(iter->second, &eso)) {
-            cerr<<"Subnet options in reply: source "<<eso.source.toString()<<", scope "<<eso.scope.toString()<<endl;
-          }
-          else
-            cerr<<"EDNS Subnet failed to parse"<<endl;
-        }
-        else 
-          cerr<<"Have unknown option "<<(int)iter->first<<endl;
+   
+  set<DNSKEYRecordContent> keys;
+  cspmap_t validrrsets;
+
+  if(numsigs) {
+    for(const auto& csp : cspmap) {
+      for(const auto& sig : csp.second.signatures) {
+	cerr<<"got rrsig "<<sig->d_signer<<"/"<<sig->d_tag<<endl;
+	vState state = getKeysFor(tro, sig->d_signer, keys);
+	cerr<<"! state = "<<vStates[state]<<", now have "<<keys.size()<<" keys at "<<qname<<endl;
+        // dsmap.insert(make_pair(dsrc.d_tag, dsrc));
       }
+    }
+
+    validateWithKeySet(cspmap, validrrsets, keys);
+  }
+  else {
+    cerr<<"no sigs, hoping for Insecure"<<endl;
+    vState state = getKeysFor(tro, qname, keys);
+    cerr<<"! state = "<<vStates[state]<<", now have "<<keys.size()<<" keys at "<<qname<<endl;
+  }
+  cerr<<"! validated "<<validrrsets.size()<<" RRsets out of "<<cspmap.size()<<endl;
+
+  cerr<<"% validated RRs:"<<endl;
+  for(auto i=validrrsets.begin(); i!=validrrsets.end(); i++) {
+    cerr<<"% "<<i->first.first<<"/"<<DNSRecordContent::NumberToType(i->first.second)<<endl;
+    for(auto j=i->second.records.begin(); j!=i->second.records.end(); j++) {
+      cerr<<"\t% > "<<(*j)->getZoneRepresentation()<<endl;
+    }
   }
 
-
- 
-
+  cout<<"}"<<endl;
+  exit(0);
 }
 catch(std::exception &e)
 {
   cerr<<"Fatal: "<<e.what()<<endl;
 }
+catch(PDNSException &pe)
+{
+  cerr<<"Fatal: "<<pe.reason<<endl;
+}
+

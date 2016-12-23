@@ -1,0 +1,3 @@
+$SDIG $nameserver 5301 www3.example.net a recurse hidettl 2>&1
+$SDIG $nameserver 5301 android.marvin.example.net a recurse hidettl 2>&1
+$SDIG $nameserver 5301 www5.example.net a recurse hidettl 2>&1

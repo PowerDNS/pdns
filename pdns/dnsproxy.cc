@@ -1,24 +1,27 @@
 /*
-    PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2004 - 2008 PowerDNS.COM BV
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as 
-    published by the Free Software Foundation; 
-
-    Additionally, the license of this program contains a special
-    exception which allows to distribute the program in binary form when
-    it is linked against OpenSSL.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-*/
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "packetcache.hh"
 #include "utility.hh"
 #include "dnsproxy.hh"
@@ -28,7 +31,7 @@
 #include "dns.hh"
 #include "logger.hh"
 #include "statbag.hh"
-#include <boost/foreach.hpp>
+#include "dns_random.hh"
 
 extern StatBag S;
 extern PacketCache PC;
@@ -52,13 +55,13 @@ DNSProxy::DNSProxy(const string &remote)
     
   int n=0;
   for(;n<10;n++) {
-    local.sin4.sin_port = htons(10000+( Utility::random()%50000));
+    local.sin4.sin_port = htons(10000+dns_random(50000));
     
     if(::bind(d_sock, (struct sockaddr *)&local, local.getSocklen()) >= 0) 
       break;
   }
   if(n==10) {
-    Utility::closesocket(d_sock);
+    closesocket(d_sock);
     d_sock=-1;
     throw PDNSException(string("binding dnsproxy socket: ")+strerror(errno));
   }
@@ -66,7 +69,7 @@ DNSProxy::DNSProxy(const string &remote)
   if(connect(d_sock, (sockaddr *)&remaddr, remaddr.getSocklen())<0) 
     throw PDNSException("Unable to UDP connect to remote nameserver "+remaddr.toStringWithPort()+": "+stringerror());
 
-  d_xor=Utility::random()&0xffff;
+  d_xor=dns_random(0xffff);
   L<<Logger::Error<<"DNS Proxy launched, local port "<<ntohs(local.sin4.sin_port)<<", remote "<<remaddr.toStringWithPort()<<endl;
 } 
 
@@ -123,7 +126,7 @@ bool DNSProxy::sendPacket(DNSPacket *p)
 }
 
 //! look up qname aname with r->qtype, plonk it in the answer section of 'r' with name target
-bool DNSProxy::completePacket(DNSPacket *r, const std::string& target,const std::string& aname)
+bool DNSProxy::completePacket(DNSPacket *r, const DNSName& target,const DNSName& aname)
 {
   uint16_t id;
   {
@@ -136,7 +139,7 @@ bool DNSProxy::completePacket(DNSPacket *r, const std::string& target,const std:
     ce.outsock  = r->getSocket();
     ce.created  = time( NULL );
     ce.qtype = r->qtype.getCode();
-    ce.qname = stripDot(target);
+    ce.qname = target;
     ce.anyLocal = r->d_anyLocal;
     ce.complete = r;
     ce.aname=aname;
@@ -183,7 +186,7 @@ void DNSProxy::mainloop(void)
 {
   try {
     char buffer[1500];
-    int len;
+    ssize_t len;
 
     struct msghdr msgh;
     struct iovec iov;
@@ -191,7 +194,7 @@ void DNSProxy::mainloop(void)
 
     for(;;) {
       len=recv(d_sock, buffer, sizeof(buffer),0); // answer from our backend
-      if(len<12) {
+      if(len<(ssize_t)sizeof(dnsheader)) {
         if(len<0)
           L<<Logger::Error<<"Error receiving packet from recursor backend: "<<stringerror()<<endl;
         else if(len==0)
@@ -226,8 +229,8 @@ void DNSProxy::mainloop(void)
         memcpy(buffer,&d,sizeof(d));  // commit spoofed id
 
         DNSPacket p,q;
-        p.parse(buffer,len);
-        q.parse(buffer,len);
+        p.parse(buffer,(size_t)len);
+        q.parse(buffer,(size_t)len);
 
         if(p.qtype.getCode() != i->second.qtype || p.qdomain != i->second.qname) {
           L<<Logger::Error<<"Discarding packet from recursor backend with id "<<(d.id^d_xor)<<
@@ -244,17 +247,16 @@ void DNSProxy::mainloop(void)
 	  //	  cerr<<"Got completion, "<<mdp.d_answers.size()<<" answers, rcode: "<<mdp.d_header.rcode<<endl;
 	  for(MOADNSParser::answers_t::const_iterator j=mdp.d_answers.begin(); j!=mdp.d_answers.end(); ++j) {        
 	    //	    cerr<<"comp: "<<(int)j->first.d_place-1<<" "<<j->first.d_label<<" " << DNSRecordContent::NumberToType(j->first.d_type)<<" "<<j->first.d_content->getZoneRepresentation()<<endl;
-	    if(j->first.d_place == DNSRecord::Answer || (j->first.d_place == DNSRecord::Nameserver && j->first.d_type == QType::SOA)) {
+	    if(j->first.d_place == DNSResourceRecord::ANSWER || (j->first.d_place == DNSResourceRecord::AUTHORITY && j->first.d_type == QType::SOA)) {
 	    
-	      DNSResourceRecord rr;
-
-	      if(j->first.d_type == i->second.qtype || j->first.d_type==QType::SOA) {
-		rr.qname=i->second.aname;
-		rr.qtype = j->first.d_type;
-		rr.ttl=j->first.d_ttl;
-		rr.d_place= (DNSResourceRecord::Place)j->first.d_place;
-		rr.content=j->first.d_content->getZoneRepresentation();
-		i->second.complete->addRecord(rr);
+	      if(j->first.d_type == i->second.qtype || (i->second.qtype == QType::ANY && (j->first.d_type == QType::A || j->first.d_type == QType::AAAA))) {
+                DNSZoneRecord dzr;
+		dzr.dr.d_name=i->second.aname;
+		dzr.dr.d_type = j->first.d_type;
+		dzr.dr.d_ttl=j->first.d_ttl;
+		dzr.dr.d_place= j->first.d_place;
+		dzr.dr.d_content=j->first.d_content;
+		i->second.complete->addRecord(dzr);
 	      }
 	    }
 	  }
@@ -273,9 +275,10 @@ void DNSProxy::mainloop(void)
         msgh.msg_iovlen = 1;
         msgh.msg_name = (struct sockaddr*)&i->second.remote;
         msgh.msg_namelen = i->second.remote.getSocklen();
+        msgh.msg_control=NULL;
 
         if(i->second.anyLocal) {
-          addCMsgSrcAddr(&msgh, cbuf, i->second.anyLocal.get_ptr());
+          addCMsgSrcAddr(&msgh, cbuf, i->second.anyLocal.get_ptr(), 0);
         }
         if(sendmsg(i->second.outsock, &msgh, 0) < 0)
           L<<Logger::Warning<<"dnsproxy.cc: Error sending reply with sendmsg (socket="<<i->second.outsock<<"): "<<strerror(errno)<<endl;
@@ -297,4 +300,16 @@ void DNSProxy::mainloop(void)
   }
   L<<Logger::Error<<"Exiting because DNS proxy failed"<<endl;
   exit(1);
+}
+
+DNSProxy::~DNSProxy() {
+  if (d_sock>-1) {
+    try {
+      closesocket(d_sock);
+    }
+    catch(const PDNSException& e) {
+    }
+  }
+
+  d_sock=-1;
 }

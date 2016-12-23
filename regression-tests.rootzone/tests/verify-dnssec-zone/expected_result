@@ -1,0 +1,8 @@
+--- ldns-verify-zone -V2 .
+RETVAL: 0
+
+--- named-checkzone .
+zone ./IN: loaded serial 2016021600 (DNSSEC signed)
+OK
+RETVAL: 0
+

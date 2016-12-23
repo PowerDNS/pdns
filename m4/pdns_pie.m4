@@ -19,17 +19,37 @@ dnl <http://www.gnu.org/licenses/>.
 dnl
 
 AC_DEFUN([AC_CC_PIE],[
+    AC_REQUIRE([gl_UNKNOWN_WARNINGS_ARE_ERRORS])
     PIE_CFLAGS=
     PIE_LDFLAGS=
+    OLD_CXXFLAGS=$CXXFLAGS
     case "$host" in
       *-*-mingw* | *-*-msvc* | *-*-cygwin* )
          ;; dnl All code is position independent on Win32 target
       *)
-      gl_COMPILER_OPTION_IF([-fPIE -DPIE], [
-        PIE_CFLAGS="-fPIE -DPIE"
-        PIE_LDFLAGS="-pie"
-      ])
+        CXXFLAGS="-fPIE -DPIE"
+        gl_COMPILER_OPTION_IF([-pie], [
+          PIE_CFLAGS="-fPIE -DPIE"
+          PIE_LDFLAGS="-pie"
+          ], [
+            dnl some versions of clang require -Wl,-pie instead of -pie
+            gl_COMPILER_OPTION_IF([[-Wl,-pie]], [
+              PIE_CFLAGS="-fPIE -DPIE"
+              PIE_LDFLAGS="-Wl,-pie"
+              ], [],
+              [AC_LANG_PROGRAM([[
+#include <pthread.h>
+__thread unsigned int t_id;
+                ]], [[t_id = 1;]])]
+            )
+          ],
+          [AC_LANG_PROGRAM([[
+#include <pthread.h>
+__thread unsigned int t_id;
+            ]], [[t_id = 1;]])]
+        )
     esac
+    CXXFLAGS=$OLD_CXXFLAGS
     AC_SUBST([PIE_CFLAGS])
     AC_SUBST([PIE_LDFLAGS])
 ])

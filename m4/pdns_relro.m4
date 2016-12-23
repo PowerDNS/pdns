@@ -22,7 +22,7 @@ AC_DEFUN([AC_LD_RELRO],[
     AC_MSG_CHECKING([for how to force completely read-only GOT table])
 
     RELRO_LDFLAGS=
-    ld_help=`$LD --help 2>&1`
+    ld_help=`$CXX -Wl,-help 2>&1`
     case $ld_help in
         *"-z relro"*) RELRO_LDFLAGS="-Wl,-z -Wl,relro" ;;
     esac
@@ -30,6 +30,8 @@ AC_DEFUN([AC_LD_RELRO],[
         *"-z now"*) RELRO_LDFLAGS="$RELRO_LDFLAGS -Wl,-z -Wl,now" ;;
     esac
     AC_SUBST([RELRO_LDFLAGS])
-
-    AC_MSG_RESULT([$RELRO_LDFLAGS])
+    AS_IF([test "x$RELRO_LDFLAGS" != "x"],
+      [AC_MSG_RESULT([$RELRO_LDFLAGS])],
+      [AC_MSG_RESULT([unknown])]
+    )
 ])

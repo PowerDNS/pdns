@@ -1,5 +1,5 @@
 0	secure-delegated.dnssec-parent.com.	IN	DS	3600	54319 8 2 a0b9c38cd324182af0ef66830d0a0e85a1d58979c9834e18c871779e040857b7
-0	secure-delegated.dnssec-parent.com.	IN	RRSIG	3600	DS 8 3 3600 [expiry] [inception] [keytag] dnssec-parent.com. ...
+0	secure-delegated.dnssec-parent.com.	IN	RRSIG	3600	DS 13 3 3600 [expiry] [inception] [keytag] dnssec-parent.com. ...
 2	.	IN	OPT	32768	
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='secure-delegated.dnssec-parent.com.', qtype=DS

@@ -1,3 +1,27 @@
+/*
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "dnsrecords.hh"
 
 void NSECRecordContent::report(void)
@@ -10,10 +34,10 @@ DNSRecordContent* NSECRecordContent::make(const string& content)
   return new NSECRecordContent(content);
 }
 
-NSECRecordContent::NSECRecordContent(const string& content, const string& zone) : DNSRecordContent(47)
+NSECRecordContent::NSECRecordContent(const string& content, const string& zone) 
 {
   RecordTextReader rtr(content, zone);
-  rtr.xfrLabel(d_next);
+  rtr.xfrName(d_next);
 
   while(!rtr.eof()) {
     uint16_t type;
@@ -24,7 +48,7 @@ NSECRecordContent::NSECRecordContent(const string& content, const string& zone) 
 
 void NSECRecordContent::toPacket(DNSPacketWriter& pw) 
 {
-  pw.xfrLabel(d_next);
+  pw.xfrName(d_next);
 
   uint8_t res[34];
   set<uint16_t>::const_iterator i;
@@ -60,7 +84,7 @@ void NSECRecordContent::toPacket(DNSPacketWriter& pw)
 NSECRecordContent::DNSRecordContent* NSECRecordContent::make(const DNSRecord &dr, PacketReader& pr) 
 {
   NSECRecordContent* ret=new NSECRecordContent();
-  pr.xfrLabel(ret->d_next);
+  pr.xfrName(ret->d_next);
   string bitmap;
   pr.xfrBlob(bitmap);
  
@@ -91,11 +115,11 @@ NSECRecordContent::DNSRecordContent* NSECRecordContent::make(const DNSRecord &dr
   return ret;
 }
 
-string NSECRecordContent::getZoneRepresentation() const
+string NSECRecordContent::getZoneRepresentation(bool noDot) const
 {
   string ret;
   RecordTextWriter rtw(ret);
-  rtw.xfrLabel(d_next);
+  rtw.xfrName(d_next);
   
   for(set<uint16_t>::const_iterator i=d_set.begin(); i!=d_set.end(); ++i) {
     ret+=" ";
@@ -117,7 +141,7 @@ DNSRecordContent* NSEC3RecordContent::make(const string& content)
   return new NSEC3RecordContent(content);
 }
 
-NSEC3RecordContent::NSEC3RecordContent(const string& content, const string& zone) : DNSRecordContent(50)
+NSEC3RecordContent::NSEC3RecordContent(const string& content, const string& zone)
 {
   RecordTextReader rtr(content, zone);
   rtr.xfr8BitInt(d_algorithm);
@@ -190,7 +214,6 @@ NSEC3RecordContent::DNSRecordContent* NSEC3RecordContent::make(const DNSRecord &
   pr.xfrBlob(ret->d_salt, len);
 
   pr.xfr8BitInt(len);
-  
   pr.xfrBlob(ret->d_nexthash, len);
   
   string bitmap;
@@ -206,14 +229,14 @@ NSEC3RecordContent::DNSRecordContent* NSEC3RecordContent::make(const DNSRecord &
 
   for(unsigned int n = 0; n+1 < bitmap.size();) {
     unsigned int window=static_cast<unsigned char>(bitmap[n++]);
-    unsigned int len=static_cast<unsigned char>(bitmap[n++]);
+    unsigned int innerlen=static_cast<unsigned char>(bitmap[n++]);
     
     // end if zero padding and ensure packet length
-    if(window == 0&&len == 0) break;
-    if(n+len>bitmap.size())
+    if(window == 0&&innerlen == 0) break;
+    if(n+innerlen>bitmap.size())
       throw MOADNSException("NSEC record with bitmap length > packet length");
 
-    for(unsigned int k=0; k < len; k++) {
+    for(unsigned int k=0; k < innerlen; k++) {
       uint8_t val=bitmap[n++];
       for(int bit = 0; bit < 8 ; ++bit , val>>=1)
         if(val & 1) {
@@ -224,7 +247,7 @@ NSEC3RecordContent::DNSRecordContent* NSEC3RecordContent::make(const DNSRecord &
   return ret;
 }
 
-string NSEC3RecordContent::getZoneRepresentation() const
+string NSEC3RecordContent::getZoneRepresentation(bool noDot) const
 {
   string ret;
   RecordTextWriter rtw(ret);
@@ -254,7 +277,7 @@ DNSRecordContent* NSEC3PARAMRecordContent::make(const string& content)
   return new NSEC3PARAMRecordContent(content);
 }
 
-NSEC3PARAMRecordContent::NSEC3PARAMRecordContent(const string& content, const string& zone) : DNSRecordContent(51)
+NSEC3PARAMRecordContent::NSEC3PARAMRecordContent(const string& content, const string& zone) 
 {
   RecordTextReader rtr(content, zone);
   rtr.xfr8BitInt(d_algorithm); 
@@ -279,13 +302,13 @@ NSEC3PARAMRecordContent::DNSRecordContent* NSEC3PARAMRecordContent::make(const D
   pr.xfr8BitInt(ret->d_algorithm); 
         pr.xfr8BitInt(ret->d_flags); 
         pr.xfr16BitInt(ret->d_iterations); 
-  pr.xfr8BitInt(ret->d_saltlength);
-  pr.xfrHexBlob(ret->d_salt);
- 
+  uint8_t len;
+  pr.xfr8BitInt(len);
+  pr.xfrHexBlob(ret->d_salt, len);
   return ret;
 }
 
-string NSEC3PARAMRecordContent::getZoneRepresentation() const
+string NSEC3PARAMRecordContent::getZoneRepresentation(bool noDot) const
 {
   string ret;
   RecordTextWriter rtw(ret);

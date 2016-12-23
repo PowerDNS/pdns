@@ -1,12 +1,32 @@
-/* Copyright 2005 Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE
-   for more information. */
-
+/*
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 #ifndef SORACLE_HH
 #define SORACLE_HH
 
 #include "pdns/backends/gsql/ssql.hh"
 #include "pdns/utility.hh"
 #include <oci.h>
+#include <oratypes.h>
+#include "pdns/misc.hh"
 
 #ifndef dsword
 typedef sb4 dsword;
@@ -17,36 +37,28 @@ class SOracle : public SSql
 public:
   SOracle(const string &database,
           const string &user="",
-          const string &password="");
+          const string &password="", 
+          bool releaseStatements=false,
+          OCIEnv* oraenv=NULL);
 
   ~SOracle();
 
   SSqlException sPerrorException(const string &reason);
-  int doQuery(const string &query, result_t &result);
-  int doQuery(const string &query);
-  int doCommand(const string &query);
-  bool getRow(row_t &row);
-  string escape(const string &str);
   void setLog(bool state);
+  SSqlStatement* prepare(const string& query, int nparams);
+  void execute(const string& query);
+
+  void startTransaction();
+  void commit();
+  void rollback();
 private:
   OCIEnv*    d_environmentHandle;
   OCIError*  d_errorHandle;
   OCISvcCtx* d_serviceContextHandle;
-  OCIStmt*   d_statementHandles[10];
-
-  struct oresult {
-    char content[4000];
-    sb2 indicator;
-  } d_fields[10];
-  OCIStmt* d_handle;
-
-  dsword d_queryResult;
 
   string getOracleError();
-
   static bool s_dolog;
-  int d_numfields;
-  //  int getNumFields(const string& query);
+  bool d_release_stmt;
 };
 
 #endif /* SSORACLE_HH */

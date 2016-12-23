@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -e
-set -x
+if [ "${PDNS_DEBUG}" = "YES" ]; then
+  set -x
+fi
 
 bindwait ()
 {
@@ -9,7 +11,7 @@ bindwait ()
 	loopcount=0
 	while [ $loopcount -lt 20 ]; do
 		sleep 1
-		done=$( (../pdns/pdns_control --config-name=$configname --socket-dir=. --no-config bind-domain-status || true) | grep -c 'parsed into memory' || true )
+		done=$( ($PDNSCONTROL --config-name=$configname --socket-dir=. --no-config bind-domain-status || true) | grep -c 'parsed into memory' || true )
 		if [ $done = $domcount ]
 			then
 			return
@@ -24,20 +26,20 @@ bindwait ()
 port=5501
 rm -f pdns*.pid
 
-../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./          \
+$PDNS --daemon=no --local-port=$port --socket-dir=./          \
 	--no-shuffle --launch=bind --bind-config=edns-packet-cache/named.conf   \
-	--send-root-referral --cache-ttl=60 --no-config --module-dir=../regression-tests/modules &
+	--cache-ttl=60 --no-config --module-dir=../regression-tests/modules &
 bindwait
 	
 # prime cache without EDNS
-../pdns/sdig 127.0.0.1 5501 minimal.com SOA | LC_ALL=C sort
+$SDIG 127.0.0.1 5501 minimal.com SOA | LC_ALL=C sort
 # expect EDNS in identical query with EDNS
-SDIGBUFSIZE=512 ../pdns/sdig 127.0.0.1 5501 minimal.com SOA | LC_ALL=C sort
+SDIGBUFSIZE=512 $SDIG 127.0.0.1 5501 minimal.com SOA | LC_ALL=C sort
 
 # prime cache with EDNS
-SDIGBUFSIZE=512 ../pdns/sdig 127.0.0.1 5501 minimal.com NS | LC_ALL=C sort
+SDIGBUFSIZE=512 $SDIG 127.0.0.1 5501 minimal.com NS | LC_ALL=C sort
 # expect no EDNS in identical query without EDNS
-../pdns/sdig 127.0.0.1 5501 minimal.com NS | LC_ALL=C sort
+$SDIG 127.0.0.1 5501 minimal.com NS | LC_ALL=C sort
 
 kill $(cat pdns*.pid)
 rm pdns*.pid

@@ -1,3 +1,27 @@
+/*
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "coprocess.hh"
 #include <stdlib.h>
 #include <unistd.h>
@@ -7,6 +31,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include "pdns/utility.hh"
 #include <sys/un.h>
 #include "pdns/misc.hh"
 #include "pdns/pdnsexception.hh"
@@ -47,9 +72,9 @@ void CoProcess::launch(const char **argv, int timeout, int infd, int outfd)
     throw PDNSException("Unable to fork for coprocess: "+stringerror());
   else if(d_pid>0) { // parent speaking
     close(d_fd1[0]);
-    Utility::setCloseOnExec(d_fd1[1]);
+    setCloseOnExec(d_fd1[1]);
     close(d_fd2[1]);
-    Utility::setCloseOnExec(d_fd2[0]);
+    setCloseOnExec(d_fd2[0]);
     if(!(d_fp=fdopen(d_fd2[0],"r")))
       throw PDNSException("Unable to associate a file pointer with pipe: "+stringerror());
     if( d_timeout)

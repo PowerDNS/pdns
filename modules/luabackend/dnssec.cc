@@ -1,55 +1,43 @@
 /*
-    Copyright (C) 2011 Fredrik Danerklint
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as published 
-    by the Free Software Foundation
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-*/
-
-
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ * originally authored by Fredrik Danerklint
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "luabackend.hh"
 
 #include "pdns/logger.hh"
 #include "pdns/arguments.hh"
 
-/* 
-    virtual bool updateDNSSECOrderAndAuth(uint32_t domain_id, const std::string& zonename, const std::string& qname, bool auth) 
-    virtual bool updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const std::string& qname, const std::string& ordername, bool auth) 
-    virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& unhashed, std::string& before, std::string& after)
 
-    virtual bool getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys)
-    virtual bool removeDomainKey(const string& name, unsigned int id)
-    virtual int addDomainKey(const string& name, const KeyData& key)
-    virtual bool activateDomainKey(const string& name, unsigned int id)
-    virtual bool deactivateDomainKey(const string& name, unsigned int id)
-
-    virtual bool getTSIGKey(const string& name, string* algorithm, string* content) { return false; }
-
-    virtual bool setDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta)
-    virtual bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta)
-    virtual void alsoNotifies(const string &domain, set<string> *ips)
-
-*/
-
-bool LUABackend::updateDNSSECOrderAndAuth(uint32_t domain_id, const std::string& zonename, const std::string& qname, bool auth) {
+bool LUABackend::updateDNSSECOrderAndAuth(uint32_t domain_id, const DNSName& zonename, const DNSName& qname, bool auth) {
 
     if(f_lua_updatednssecorderandauth == 0) {
 
 	if(logging)
 	    L << Logger::Info << backend_name << "(updateDNSSECOrderAndAuth) domain_id: '" << domain_id << "' zonename: '" << zonename << "' qname: '" << qname << "' auth: '" << auth << "'" << endl;
 	    
-	string ins=toLower(labelReverse(makeRelative(qname, zonename)));
+	string ins=qname.makeRelative(zonename).makeLowerCase().labelReverse().toString(" ", false);
 	return this->updateDNSSECOrderAndAuthAbsolute(domain_id, qname, ins, auth);
-	
     } 
 
     if(logging)
@@ -57,9 +45,9 @@ bool LUABackend::updateDNSSECOrderAndAuth(uint32_t domain_id, const std::string&
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_updatednssecorderandauth);
 
-    lua_pushnumber(lua, domain_id);
-    lua_pushstring(lua, zonename.c_str());
-    lua_pushstring(lua, qname.c_str());
+    lua_pushinteger(lua, domain_id);
+    lua_pushstring(lua, zonename.toString().c_str());
+    lua_pushstring(lua, qname.toString().c_str());
     lua_pushboolean(lua, auth);
 
     if(lua_pcall(lua, 4, 1, f_lua_exec_error) != 0) {
@@ -84,7 +72,12 @@ bool LUABackend::updateDNSSECOrderAndAuth(uint32_t domain_id, const std::string&
     return ok;
 }
 
-bool LUABackend::updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const std::string& qname, const std::string& ordername, bool auth) {
+bool LUABackend::updateDNSSECOrderNameAndAuth(unsigned int, DNSName const&, DNSName const&, DNSName const&, bool, unsigned short)
+{
+  return false;
+}
+
+bool LUABackend::updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const DNSName& qname, const std::string& ordername, bool auth) {
 
     if(f_lua_updatednssecorderandauthabsolute == 0)
 	return false;
@@ -94,8 +87,8 @@ bool LUABackend::updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const std:
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_updatednssecorderandauthabsolute);
 
-    lua_pushnumber(lua, domain_id);
-    lua_pushstring(lua, qname.c_str());
+    lua_pushinteger(lua, domain_id);
+    lua_pushstring(lua, qname.toString().c_str());
     lua_pushstring(lua, ordername.c_str());
     lua_pushboolean(lua, auth);
 
@@ -121,7 +114,7 @@ bool LUABackend::updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const std:
     return ok;
 }
 
-bool LUABackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& unhashed, std::string& before, std::string& after) {
+bool LUABackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, DNSName& unhashed, std::string& before, std::string& after) {
 
     if(f_lua_getbeforeandafternamesabsolute == 0)
 	return false;
@@ -135,7 +128,7 @@ bool LUABackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& 
 	
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_updatednssecorderandauthabsolute);
 
-    lua_pushnumber(lua, id);
+    lua_pushinteger(lua, id);
     lua_pushstring(lua, qname.c_str());
 
     if(lua_pcall(lua, 2, 3, f_lua_exec_error) != 0) {
@@ -157,7 +150,7 @@ bool LUABackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& 
     }
     
     //will this be correct since we are poping one at the time?
-    unhashed = lua_tostring(lua, -1);
+    unhashed = DNSName(lua_tostring(lua, -1));
     lua_pop(lua, 1);
 
     returnedwhat = lua_type(lua, -1);
@@ -178,7 +171,7 @@ bool LUABackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& 
     return ok;
 }
 
-bool LUABackend::updateDomainKey(const string& name, unsigned int &id, bool toowhat ) {
+bool LUABackend::updateDomainKey(const DNSName& name, unsigned int &id, bool toowhat ) {
 
     if(f_lua_updatedomainkey == 0) 
 	return false;
@@ -188,8 +181,8 @@ bool LUABackend::updateDomainKey(const string& name, unsigned int &id, bool toow
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_updatedomainkey);
 
-    lua_pushstring(lua, name.c_str());
-    lua_pushnumber(lua, id);
+    lua_pushstring(lua, name.toString().c_str());
+    lua_pushinteger(lua, id);
     lua_pushboolean(lua, toowhat);
 
     if(lua_pcall(lua, 3, 1, f_lua_exec_error) != 0) {
@@ -214,7 +207,7 @@ bool LUABackend::updateDomainKey(const string& name, unsigned int &id, bool toow
     return ok;
 }
 
-bool LUABackend::activateDomainKey(const string& name, unsigned int id) {
+bool LUABackend::activateDomainKey(const DNSName& name, unsigned int id) {
 
     if(f_lua_activatedomainkey == 0) 
 	return updateDomainKey(name, id, true);
@@ -224,8 +217,8 @@ bool LUABackend::activateDomainKey(const string& name, unsigned int id) {
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_activatedomainkey);
 
-    lua_pushstring(lua, name.c_str());
-    lua_pushnumber(lua, id);
+    lua_pushstring(lua, name.toString().c_str());
+    lua_pushinteger(lua, id);
 
     if(lua_pcall(lua, 2, 1, f_lua_exec_error) != 0) {
         string e = backend_name + lua_tostring(lua, -1);
@@ -249,7 +242,7 @@ bool LUABackend::activateDomainKey(const string& name, unsigned int id) {
     return ok;
 }
 
-bool LUABackend::deactivateDomainKey(const string& name, unsigned int id) {
+bool LUABackend::deactivateDomainKey(const DNSName& name, unsigned int id) {
 
     if(f_lua_deactivatedomainkey == 0) 
 	return updateDomainKey(name, id, false);
@@ -259,8 +252,8 @@ bool LUABackend::deactivateDomainKey(const string& name, unsigned int id) {
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_deactivatedomainkey);
 
-    lua_pushstring(lua, name.c_str());
-    lua_pushnumber(lua, id);
+    lua_pushstring(lua, name.toString().c_str());
+    lua_pushinteger(lua, id);
 
     if(lua_pcall(lua, 2, 1, f_lua_exec_error) != 0) {
         string e = backend_name + lua_tostring(lua, -1);
@@ -284,7 +277,7 @@ bool LUABackend::deactivateDomainKey(const string& name, unsigned int id) {
     return ok;
 }
 
-bool LUABackend::removeDomainKey(const string& name, unsigned int id) {
+bool LUABackend::removeDomainKey(const DNSName& name, unsigned int id) {
 
     if(f_lua_removedomainkey == 0) 
 	return false;
@@ -294,8 +287,8 @@ bool LUABackend::removeDomainKey(const string& name, unsigned int id) {
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_removedomainkey);
 
-    lua_pushstring(lua, name.c_str());
-    lua_pushnumber(lua, id);
+    lua_pushstring(lua, name.toString().c_str());
+    lua_pushinteger(lua, id);
 
     if(lua_pcall(lua, 2, 1, f_lua_exec_error) != 0) {
         string e = backend_name + lua_tostring(lua, -1);
@@ -319,13 +312,13 @@ bool LUABackend::removeDomainKey(const string& name, unsigned int id) {
     return ok;
 }
 
-int LUABackend::addDomainKey(const string& name, const KeyData& key) {
-// there is no logging function in pdnssec when running this routine?
+bool LUABackend::addDomainKey(const DNSName& name, const KeyData& key, int64_t& id) {
+// there is no logging function in pdnsutil when running this routine?
 
 //key = id, flags, active, content
 
     if(f_lua_adddomainkey == 0) 
-	return -1;
+	return false;
 
     if(logging)
 	//L << Logger::Info << backend_name << "(addDomainKey) BEGIN name: '" << name << "' id: '" << id << endl;
@@ -333,12 +326,12 @@ int LUABackend::addDomainKey(const string& name, const KeyData& key) {
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_adddomainkey);
 
-    lua_pushstring(lua, name.c_str());
+    lua_pushstring(lua, name.toString().c_str());
 
     lua_newtable(lua);
     
     lua_pushliteral(lua, "flags");
-    lua_pushnumber(lua, key.flags);
+    lua_pushinteger(lua, key.flags);
     lua_settable(lua, -3);
 
     lua_pushliteral(lua, "active");
@@ -354,7 +347,6 @@ int LUABackend::addDomainKey(const string& name, const KeyData& key) {
         lua_pop(lua, 1);
 
         throw runtime_error(e);
-        return -1;
     }
 
     size_t returnedwhat = lua_type(lua, -1);
@@ -366,28 +358,24 @@ int LUABackend::addDomainKey(const string& name, const KeyData& key) {
     lua_pop(lua, 1);
 
     if(logging)
-	cerr << backend_name << "(addDomainKey) END" << endl;
-	
-    return ok;
+        cerr << backend_name << "(addDomainKey) END" << endl;
+
+    return ok >= 0;
 }
 
-bool LUABackend::getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys) {
-    //what is kind used for?
-
+bool LUABackend::getDomainKeys(const DNSName& name, std::vector<KeyData>& keys) {
     if(f_lua_getdomainkeys == 0) 
 	return false;
 
     if(logging)
-	L << Logger::Info << backend_name << "(getDomainKeys) BEGIN name: '" << name << "' kind: '" << kind << endl;
+	L << Logger::Info << backend_name << "(getDomainKeys) BEGIN name: '" << name << endl;
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_getdomainkeys);
 
-    lua_pushstring(lua, name.c_str());
-    lua_pushnumber(lua, kind);
+    lua_pushstring(lua, name.toString().c_str());
 
-    if(lua_pcall(lua, 2, 1, f_lua_exec_error) != 0) {
+    if(lua_pcall(lua, 1, 1, f_lua_exec_error) != 0) {
         string e = backend_name + lua_tostring(lua, -1);
-        lua_pop(lua, 1);
 
         throw runtime_error(e);
         return false;
@@ -433,7 +421,7 @@ bool LUABackend::getDomainKeys(const string& name, unsigned int kind, std::vecto
     return j > 0;
 }
 
-bool LUABackend::getTSIGKey(const string& name, string* algorithm, string* content) { 
+bool LUABackend::getTSIGKey(const DNSName& name, DNSName* algorithm, string* content) { 
 
     if(f_lua_gettsigkey == 0) 
 	return false;
@@ -443,7 +431,7 @@ bool LUABackend::getTSIGKey(const string& name, string* algorithm, string* conte
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_gettsigkey);
 
-    lua_pushstring(lua, name.c_str());
+    lua_pushstring(lua, name.toString().c_str());
 
     if(lua_pcall(lua, 1, 2, f_lua_exec_error) != 0) {
         string e = backend_name + lua_tostring(lua, -1);
@@ -468,7 +456,7 @@ bool LUABackend::getTSIGKey(const string& name, string* algorithm, string* conte
     c  = lua_tostring(lua, -1);
     lua_pop(lua, 1);
     
-    *algorithm = a;
+    *algorithm = DNSName(a);
     *content = c;
     
     if(logging)
@@ -477,7 +465,7 @@ bool LUABackend::getTSIGKey(const string& name, string* algorithm, string* conte
     return true;
 }
 
-bool LUABackend::setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta) {
+bool LUABackend::setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta) {
 
     if(f_lua_setdomainmetadata == 0) 
 	return false;
@@ -487,7 +475,7 @@ bool LUABackend::setDomainMetadata(const string& name, const std::string& kind, 
 	
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_setdomainmetadata);
 
-    lua_pushstring(lua, name.c_str());
+    lua_pushstring(lua, name.toString().c_str());
     lua_pushstring(lua, kind.c_str());
 
     lua_newtable(lua);
@@ -498,7 +486,7 @@ bool LUABackend::setDomainMetadata(const string& name, const std::string& kind, 
     
     for(i = meta.begin(); i<meta.end(); i++ ) {
 	c++;
-	lua_pushnumber(lua, c);
+	lua_pushinteger(lua, c);
         lua_pushstring(lua, i->c_str());
         lua_settable(lua, -3);
     }
@@ -526,7 +514,7 @@ bool LUABackend::setDomainMetadata(const string& name, const std::string& kind, 
 
 }
 
-bool LUABackend::getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta) {
+bool LUABackend::getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta) {
     if(f_lua_getdomainmetadata == 0) 
 	return false;
 
@@ -535,7 +523,7 @@ bool LUABackend::getDomainMetadata(const string& name, const std::string& kind, 
 	
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_getdomainmetadata);
 
-    lua_pushstring(lua, name.c_str());
+    lua_pushstring(lua, name.toString().c_str());
     lua_pushstring(lua, kind.c_str());
 
     if(lua_pcall(lua, 2, 1, f_lua_exec_error) != 0) {
@@ -545,6 +533,9 @@ bool LUABackend::getDomainMetadata(const string& name, const std::string& kind, 
         throw runtime_error(e);
         return false;
     }
+
+    if (lua_type(lua, -1) != LUA_TTABLE)
+        return false;
 
     lua_pushnil(lua);  
 
@@ -568,7 +559,7 @@ bool LUABackend::getDomainMetadata(const string& name, const std::string& kind, 
 
 }
 
-void LUABackend::alsoNotifies(const string &domain, set<string> *ips) {
+void LUABackend::alsoNotifies(const DNSName& domain, set<string> *ips) {
 
     if(f_lua_alsonotifies == 0) 
 	return;
@@ -578,7 +569,7 @@ void LUABackend::alsoNotifies(const string &domain, set<string> *ips) {
 	
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_alsonotifies);
 
-    lua_pushstring(lua, domain.c_str());
+    lua_pushstring(lua, domain.toString().c_str());
 
     if(lua_pcall(lua, 1, 1, f_lua_exec_error) != 0) {
         string e = backend_name + lua_tostring(lua, -1);
@@ -587,6 +578,9 @@ void LUABackend::alsoNotifies(const string &domain, set<string> *ips) {
         throw runtime_error(e);
         return;
     }
+
+    if (lua_type(lua, -1) != LUA_TTABLE)
+        return;
 
     lua_pushnil(lua);  
 

@@ -6,7 +6,7 @@ AC_DEFUN([PDNS_CHECK_CDB],[
         [CDB_LIBS="-lcdb"],
         [AC_MSG_ERROR([Could not find libcdb])]
       )],
-      [AC_MSG_ERROR([Could not find cdb])]
+      [AC_MSG_ERROR([Could not find cdb.h])]
     )]
   )
   AC_SUBST(CDB_LIBS)

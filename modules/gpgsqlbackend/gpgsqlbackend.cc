@@ -1,3 +1,27 @@
+/*
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <string>
 #include <map>
 #include "pdns/namespaces.hh"
@@ -10,6 +34,7 @@
 #include "pdns/arguments.hh"
 #include "gpgsqlbackend.hh"
 #include "spgsql.hh"
+#include <sys/time.h>
 #include <sstream>
 
 gPgSQLBackend::gPgSQLBackend(const string &mode, const string &suffix)  : GSQLBackend(mode,suffix)
@@ -46,77 +71,78 @@ public:
 
     string record_query = "SELECT content,ttl,prio,type,domain_id,disabled::int,name,auth::int FROM records WHERE";
 
-    declare(suffix, "basic-query", "Basic query", record_query+" disabled=false and type='%s' and name=E'%s'");
-    declare(suffix, "id-query", "Basic with ID query", record_query+" disabled=false and type='%s' and name=E'%s' and domain_id=%d");
-    declare(suffix, "any-query", "Any query", record_query+" disabled=false and name=E'%s'");
-    declare(suffix, "any-id-query", "Any with ID query", record_query+" disabled=false and name=E'%s' and domain_id=%d");
+    declare(suffix, "basic-query", "Basic query", record_query+" disabled=false and type=$1 and name=$2");
+    declare(suffix, "id-query", "Basic with ID query", record_query+" disabled=false and type=$1 and name=$2 and domain_id=$3");
+    declare(suffix, "any-query", "Any query", record_query+" disabled=false and name=$1");
+    declare(suffix, "any-id-query", "Any with ID query", record_query+" disabled=false and name=$1 and domain_id=$2");
 
-    declare(suffix, "list-query", "AXFR query", record_query+" (disabled=false OR %d::bool) and domain_id='%d' order by name, type");
-    declare(suffix, "list-subzone-query", "Subzone listing", record_query+" disabled=false and (name=E'%s' OR name like E'%s') and domain_id='%d'");
+    declare(suffix, "list-query", "AXFR query", record_query+" (disabled=false OR $1) and domain_id=$2 order by name, type");
+    declare(suffix, "list-subzone-query", "Subzone listing", record_query+" disabled=false and (name=$1 OR name like $2) and domain_id=$3");
 
-    declare(suffix,"remove-empty-non-terminals-from-zone-query", "remove all empty non-terminals from zone", "delete from records where domain_id='%d' and type is null");
-    declare(suffix, "insert-empty-non-terminal-query", "insert empty non-terminal in zone", "insert into records (domain_id,name,type,disabled,auth) values ('%d','%s',null,false,true)");
-    declare(suffix,"delete-empty-non-terminal-query", "delete empty non-terminal from zone", "delete from records where domain_id='%d' and name='%s' and type is null");
+    declare(suffix,"remove-empty-non-terminals-from-zone-query", "remove all empty non-terminals from zone", "delete from records where domain_id=$1 and type is null");
+    declare(suffix,"delete-empty-non-terminal-query", "delete empty non-terminal from zone", "delete from records where domain_id=$1 and name=$2 and type is null");
 
-    declare(suffix,"master-zone-query","Data", "select master from domains where name=E'%s' and type='SLAVE'");
+    declare(suffix,"master-zone-query","Data", "select master from domains where name=$1 and type='SLAVE'");
 
-    declare(suffix,"info-zone-query","","select id,name,master,last_check,notified_serial,type from domains where name=E'%s'");
+    declare(suffix,"info-zone-query","","select id,name,master,last_check,notified_serial,type,account from domains where name=$1");
 
-    declare(suffix,"info-all-slaves-query","","select id,name,master,last_check,type from domains where type='SLAVE'");
-    declare(suffix,"supermaster-query","", "select account from supermasters where ip='%s' and nameserver=E'%s'");
-    declare(suffix,"supermaster-name-to-ips", "", "select ip,account from supermasters where nameserver=E'%s' and account=E'%s'");
+    declare(suffix,"info-all-slaves-query","","select id,name,master,last_check from domains where type='SLAVE'");
+    declare(suffix,"supermaster-query","", "select account from supermasters where ip=$1 and nameserver=$2");
+    declare(suffix,"supermaster-name-to-ips", "", "select ip,account from supermasters where nameserver=$1 and account=$2");
 
-    declare(suffix,"insert-zone-query","", "insert into domains (type,name) values('NATIVE',E'%s')");
-    declare(suffix,"insert-slave-query","", "insert into domains (type,name,master,account) values('SLAVE',E'%s',E'%s',E'%s')");
+    declare(suffix,"insert-zone-query","", "insert into domains (type,name,master,account,last_check, notified_serial) values($1,$2,$3,$4,null,null)");
 
-    declare(suffix, "insert-record-query", "", "insert into records (content,ttl,prio,type,domain_id,disabled,name,auth) values (E'%s',%d,%d,'%s',%d,%d::bool,E'%s','%d')");
-    declare(suffix, "insert-record-order-query", "", "insert into records (content,ttl,prio,type,domain_id,disabled,name,ordername,auth) values (E'%s',%d,%d,'%s',%d,%d::bool,E'%s',E'%s','%d')");
-    declare(suffix, "insert-ent-query", "insert empty non-terminal in zone", "insert into records (type,domain_id,disabled,name,auth) values (null,'%d',false,E'%s','%d')");
-    declare(suffix, "insert-ent-order-query", "insert empty non-terminal in zone", "insert into records (type,domain_id,disabled,name,ordername,auth) values (null,'%d',false,E'%s',E'%s','%d')");
+    declare(suffix, "insert-record-query", "", "insert into records (content,ttl,prio,type,domain_id,disabled,name,ordername,auth,change_date) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,null)");
+    declare(suffix, "insert-empty-non-terminal-order-query", "insert empty non-terminal in zone", "insert into records (type,domain_id,disabled,name,ordername,auth,ttl,prio,change_date,content) values (null,$1,false,$2,$3,$4,null,null,null,null)");
 
-    declare(suffix, "get-order-first-query", "DNSSEC Ordering Query, last", "select ordername, name from records where disabled=false and domain_id=%d and ordername is not null order by 1 using ~<~ limit 1");
-    declare(suffix, "get-order-before-query", "DNSSEC Ordering Query, before", "select ordername, name from records where disabled=false and ordername ~<=~ E'%s' and domain_id=%d and ordername is not null order by 1 using ~>~ limit 1");
-    declare(suffix, "get-order-after-query", "DNSSEC Ordering Query, after", "select ordername from records where disabled=false and ordername ~>~ E'%s' and domain_id=%d and ordername is not null order by 1 using ~<~ limit 1");
-    declare(suffix, "get-order-last-query", "DNSSEC Ordering Query, last", "select ordername, name from records where disabled=false and ordername != '' and domain_id=%d and ordername is not null order by 1 using ~>~ limit 1");
-    declare(suffix, "set-order-and-auth-query", "DNSSEC set ordering query", "update records set ordername=E'%s',auth=%d::bool where name=E'%s' and domain_id='%d' and disabled=false");
-    declare(suffix, "set-auth-on-ds-record-query", "DNSSEC set auth on a DS record", "update records set auth=true where domain_id='%d' and name='%s' and type='DS' and disabled=false");
+    declare(suffix, "get-order-first-query", "DNSSEC Ordering Query, last", "select ordername from records where disabled=false and domain_id=$1 and ordername is not null order by 1 using ~<~ limit 1");
+    declare(suffix, "get-order-before-query", "DNSSEC Ordering Query, before", "select ordername, name from records where disabled=false and ordername ~<=~ $1 and domain_id=$2 and ordername is not null order by 1 using ~>~ limit 1");
+    declare(suffix, "get-order-after-query", "DNSSEC Ordering Query, after", "select ordername from records where disabled=false and ordername ~>~ $1 and domain_id=$2 and ordername is not null order by 1 using ~<~ limit 1");
+    declare(suffix, "get-order-last-query", "DNSSEC Ordering Query, last", "select ordername, name from records where disabled=false and ordername != '' and domain_id=$1 and ordername is not null order by 1 using ~>~ limit 1");
 
-    declare(suffix, "nullify-ordername-and-update-auth-query", "DNSSEC nullify ordername and update auth query", "update records set ordername=NULL,auth=%d::bool where domain_id='%d' and name='%s' and disabled=false");
-    declare(suffix, "nullify-ordername-and-auth-query", "DNSSEC nullify ordername and auth query", "update records set ordername=NULL,auth=false where name=E'%s' and type=E'%s' and domain_id='%d' and disabled=false");
+    declare(suffix, "update-ordername-and-auth-query", "DNSSEC update ordername and auth for a qname query", "update records set ordername=$1,auth=$2 where domain_id=$3 and name=$4 and disabled=false");
+    declare(suffix, "update-ordername-and-auth-type-query", "DNSSEC update ordername and auth for a rrset query", "update records set ordername=$1,auth=$2 where domain_id=$3 and name=$4 and type=$5 and disabled=false");
+    declare(suffix, "nullify-ordername-and-update-auth-query", "DNSSEC nullify ordername and update auth for a qname query", "update records set ordername=NULL,auth=$1 where domain_id=$2 and name=$3 and disabled=false");
+    declare(suffix, "nullify-ordername-and-update-auth-type-query", "DNSSEC nullify ordername and update auth for a rrset query", "update records set ordername=NULL,auth=$1 where domain_id=$2 and name=$3 and type=$4 and disabled=false");
 
-    declare(suffix,"update-master-query","", "update domains set master='%s' where name='%s'");
-    declare(suffix,"update-kind-query","", "update domains set type='%s' where name='%s'");
-    declare(suffix,"update-serial-query","", "update domains set notified_serial=%d where id=%d");
-    declare(suffix,"update-lastcheck-query","", "update domains set last_check=%d where id=%d");
-    declare(suffix,"zone-lastchange-query", "", "select max(change_date) from records where domain_id=%d");
+    declare(suffix,"update-master-query","", "update domains set master=$1 where name=$2");
+    declare(suffix,"update-kind-query","", "update domains set type=$1 where name=$2");
+    declare(suffix,"update-account-query","", "update domains set account=$1 where name=$2");
+    declare(suffix,"update-serial-query","", "update domains set notified_serial=$1 where id=$2");
+    declare(suffix,"update-lastcheck-query","", "update domains set last_check=$1 where id=$2");
+    declare(suffix,"zone-lastchange-query", "", "select max(change_date) from records where domain_id=$1");
     declare(suffix,"info-all-master-query","", "select id,name,master,last_check,notified_serial,type from domains where type='MASTER'");
-    declare(suffix,"delete-domain-query","", "delete from domains where name=E'%s'");
-    declare(suffix,"delete-zone-query","", "delete from records where domain_id=%d");
-    declare(suffix,"delete-rrset-query","","delete from records where domain_id=%d and name=E'%s' and type=E'%s'");
-    declare(suffix,"delete-names-query","","delete from records where domain_id=%d and name=E'%s'");
+    declare(suffix,"delete-domain-query","", "delete from domains where name=$1");
+    declare(suffix,"delete-zone-query","", "delete from records where domain_id=$1");
+    declare(suffix,"delete-rrset-query","","delete from records where domain_id=$1 and name=$2 and type=$3");
+    declare(suffix,"delete-names-query","","delete from records where domain_id=$1 and name=$2");
 
-    declare(suffix,"add-domain-key-query","", "insert into cryptokeys (domain_id, flags, active, content) select id, %d, (%d = 1), '%s' from domains where name=E'%s'");
-    declare(suffix,"list-domain-keys-query","", "select cryptokeys.id, flags, case when active then 1 else 0 end as active, content from domains, cryptokeys where cryptokeys.domain_id=domains.id and name=E'%s'");
-    declare(suffix,"get-all-domain-metadata-query","", "select kind,content from domains, domainmetadata where domainmetadata.domain_id=domains.id and name=E'%s'");
-    declare(suffix,"get-domain-metadata-query","", "select content from domains, domainmetadata where domainmetadata.domain_id=domains.id and name=E'%s' and domainmetadata.kind=E'%s'");
-    declare(suffix,"clear-domain-metadata-query","", "delete from domainmetadata where domain_id=(select id from domains where name=E'%s') and domainmetadata.kind=E'%s'");
-    declare(suffix,"clear-domain-all-metadata-query","", "delete from domainmetadata where domain_id=(select id from domains where name=E'%s')");
-    declare(suffix,"set-domain-metadata-query","", "insert into domainmetadata (domain_id, kind, content) select id, '%s', '%s' from domains where name=E'%s'");
-    declare(suffix,"activate-domain-key-query","", "update cryptokeys set active=true where domain_id=(select id from domains where name=E'%s') and  cryptokeys.id=%d");
-    declare(suffix,"deactivate-domain-key-query","", "update cryptokeys set active=false where domain_id=(select id from domains where name=E'%s') and  cryptokeys.id=%d");
-    declare(suffix,"remove-domain-key-query","", "delete from cryptokeys where domain_id=(select id from domains where name=E'%s') and cryptokeys.id=%d");    
-    declare(suffix,"clear-domain-all-keys-query","", "delete from cryptokeys where domain_id=(select id from domains where name=E'%s')");
-    declare(suffix,"get-tsig-key-query","", "select algorithm, secret from tsigkeys where name=E'%s'");
-    declare(suffix,"set-tsig-key-query","", "insert into tsigkeys (name,algorithm,secret) values('%s','%s','%s')");
-    declare(suffix,"delete-tsig-key-query","", "delete from tsigkeys where name='%s'");
+    declare(suffix,"add-domain-key-query","", "insert into cryptokeys (domain_id, flags, active, content) select id, $1, $2, $3 from domains where name=$4");
+    declare(suffix,"get-last-inserted-key-id-query","", "select lastval()");
+    declare(suffix,"list-domain-keys-query","", "select cryptokeys.id, flags, case when active then 1 else 0 end as active, content from domains, cryptokeys where cryptokeys.domain_id=domains.id and name=$1");
+    declare(suffix,"get-all-domain-metadata-query","", "select kind,content from domains, domainmetadata where domainmetadata.domain_id=domains.id and name=$1");
+    declare(suffix,"get-domain-metadata-query","", "select content from domains, domainmetadata where domainmetadata.domain_id=domains.id and name=$1 and domainmetadata.kind=$2");
+    declare(suffix,"clear-domain-metadata-query","", "delete from domainmetadata where domain_id=(select id from domains where name=$1) and domainmetadata.kind=$2");
+    declare(suffix,"clear-domain-all-metadata-query","", "delete from domainmetadata where domain_id=(select id from domains where name=$1)");
+    declare(suffix,"set-domain-metadata-query","", "insert into domainmetadata (domain_id, kind, content) select id, $1, $2 from domains where name=$3");
+    declare(suffix,"activate-domain-key-query","", "update cryptokeys set active=true where domain_id=(select id from domains where name=$1) and  cryptokeys.id=$2");
+    declare(suffix,"deactivate-domain-key-query","", "update cryptokeys set active=false where domain_id=(select id from domains where name=$1) and  cryptokeys.id=$2");
+    declare(suffix,"remove-domain-key-query","", "delete from cryptokeys where domain_id=(select id from domains where name=$1) and cryptokeys.id=$2");    
+    declare(suffix,"clear-domain-all-keys-query","", "delete from cryptokeys where domain_id=(select id from domains where name=$1)");
+    declare(suffix,"get-tsig-key-query","", "select algorithm, secret from tsigkeys where name=$1");
+    declare(suffix,"set-tsig-key-query","", "insert into tsigkeys (name,algorithm,secret) values($1,$2,$3)");
+    declare(suffix,"delete-tsig-key-query","", "delete from tsigkeys where name=$1");
     declare(suffix,"get-tsig-keys-query","", "select name,algorithm, secret from tsigkeys");
 
-    declare(suffix, "get-all-domains-query", "Retrieve all domains", "select domains.id, domains.name, records.content, domains.type, domains.master, domains.notified_serial, domains.last_check from domains LEFT JOIN records ON records.domain_id=domains.id AND records.type='SOA' AND records.name=domains.name WHERE records.disabled=false OR %d::bool");
+    declare(suffix, "get-all-domains-query", "Retrieve all domains", "select domains.id, domains.name, records.content, domains.type, domains.master, domains.notified_serial, domains.last_check, domains.account from domains LEFT JOIN records ON records.domain_id=domains.id AND records.type='SOA' AND records.name=domains.name WHERE records.disabled=false OR $1");
 
-    declare(suffix, "list-comments-query", "", "SELECT domain_id,name,type,modified_at,account,comment FROM comments WHERE domain_id=%d");
-    declare(suffix, "insert-comment-query", "", "INSERT INTO comments (domain_id, name, type, modified_at, account, comment) VALUES (%d, E'%s', E'%s', %d, E'%s', E'%s')");
-    declare(suffix, "delete-comment-rrset-query", "", "DELETE FROM comments WHERE domain_id=%d AND name=E'%s' AND type=E'%s'");
-    declare(suffix, "delete-comments-query", "", "DELETE FROM comments WHERE domain_id=%d");
+    declare(suffix, "list-comments-query", "", "SELECT domain_id,name,type,modified_at,account,comment FROM comments WHERE domain_id=$1");
+    declare(suffix, "insert-comment-query", "", "INSERT INTO comments (domain_id, name, type, modified_at, account, comment) VALUES ($1, $2, $3, $4, $5, $6)");
+    declare(suffix, "delete-comment-rrset-query", "", "DELETE FROM comments WHERE domain_id=$1 AND name=$2 AND type=$3");
+    declare(suffix, "delete-comments-query", "", "DELETE FROM comments WHERE domain_id=$1");
+    declare(suffix, "search-records-query", "", record_query+" name LIKE $1 OR content LIKE $2 LIMIT $3");
+    declare(suffix, "search-comments-query", "", "SELECT domain_id,name,type,modified_at,account,comment FROM comments WHERE name LIKE $1 OR comment LIKE $2 LIMIT $3");
+
   }
 
   DNSBackend *make(const string &suffix="")
@@ -136,8 +162,11 @@ public:
   gPgSQLLoader()
   {
     BackendMakers().report(new gPgSQLFactory("gpgsql"));
-    BackendMakers().report(new gPgSQLFactory("gpgsql2"));
-    L << Logger::Info << "[gpgsqlbackend] This is the gpgsql backend version " VERSION " (" __DATE__ ", " __TIME__ ") reporting" << endl;
+    L << Logger::Info << "[gpgsqlbackend] This is the gpgsql backend version " VERSION
+#ifndef REPRODUCIBLE
+      << " (" __DATE__ " " __TIME__ ")"
+#endif
+      << " reporting" << endl;
   }
 };
 static gPgSQLLoader gpgsqlloader;

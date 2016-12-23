@@ -1,8 +1,28 @@
+/*
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "remotebackend.hh"
-#include <sys/socket.h>
-#include "pdns/lock.hh" 
-#include <unistd.h>
-#include <fcntl.h>
 #ifndef UNIX_PATH_MAX 
 #define UNIX_PATH_MAX 108
 #endif
@@ -14,7 +34,7 @@ UnixsocketConnector::UnixsocketConnector(std::map<std::string,std::string> optio
   } 
   this->timeout = 2000;
   if (options.find("timeout") != options.end()) { 
-    this->timeout = boost::lexical_cast<int>(options.find("timeout")->second);
+    this->timeout = std::stoi(options.find("timeout")->second);
   }
   this->path = options.find("path")->second;
   this->options = options;
@@ -29,21 +49,17 @@ UnixsocketConnector::~UnixsocketConnector() {
   }
 }
 
-int UnixsocketConnector::send_message(const rapidjson::Document &input) {
-  std::string data;
-  int rv;
-  data = makeStringFromDocument(input);
-  data = data + "\n";
-  rv = this->write(data);
+int UnixsocketConnector::send_message(const Json& input) {
+  auto data = input.dump() + "\n";
+  int rv = this->write(data);
   if (rv == -1)
     return -1;
   return rv;
 }
 
-int UnixsocketConnector::recv_message(rapidjson::Document &output) {
+int UnixsocketConnector::recv_message(Json& output) {
   int rv,nread;
-  std::string s_output;
-  rapidjson::GenericReader<rapidjson::UTF8<> , rapidjson::MemoryPoolAllocator<> > r;
+  std::string s_output,err;
 
   struct timeval t0,t;
 
@@ -53,6 +69,14 @@ int UnixsocketConnector::recv_message(rapidjson::Document &output) {
   s_output = "";       
 
   while((t.tv_sec - t0.tv_sec)*1000 + (t.tv_usec - t0.tv_usec)/1000 < this->timeout) { 
+    int avail = waitForData(this->fd, 0, this->timeout * 500); // use half the timeout as poll timeout
+    if (avail < 0) // poll error
+      return -1;
+    if (avail == 0) { // timeout
+      gettimeofday(&t, NULL);
+      continue;
+    }
+
     std::string temp;
     temp.clear();
 
@@ -63,10 +87,9 @@ int UnixsocketConnector::recv_message(rapidjson::Document &output) {
     if (rv>0) {
       nread += rv;
       s_output.append(temp);
-      rapidjson::StringStream ss(s_output.c_str());
-      output.ParseStream<0>(ss); 
-      if (output.HasParseError() == false)
-        return s_output.size();
+      // see if it can be parsed
+      output = Json::parse(s_output, err);
+      if (output != nullptr) return s_output.size();
     }
     gettimeofday(&t, NULL);
   }
@@ -87,7 +110,7 @@ ssize_t UnixsocketConnector::read(std::string &data) {
   // just try again later...
   if (nread==-1 && errno == EAGAIN) return 0;
 
-  if (nread==-1) {
+  if (nread==-1 || nread==0) {
     connected = false;
     close(fd);
     return -1;
@@ -110,7 +133,7 @@ ssize_t UnixsocketConnector::write(const std::string &data) {
     nbuf = data.copy(buf, sizeof buf, pos); // copy data and write
     nwrite = ::write(fd, buf, nbuf);
     pos = pos + sizeof(buf);
-    if (nwrite == -1) {
+    if (nwrite < 1) {
       connected = false;
       close(fd);
       return -1;
@@ -121,8 +144,6 @@ ssize_t UnixsocketConnector::write(const std::string &data) {
 
 void UnixsocketConnector::reconnect() {
   struct sockaddr_un sock;
-  rapidjson::Document init,res;
-  rapidjson::Value val;
   int rv;
 
   if (connected) return; // no point reconnecting if connected...
@@ -141,17 +162,7 @@ void UnixsocketConnector::reconnect() {
      return;
   }
 
-  if (fcntl(fd, F_SETFL, O_NONBLOCK, &fd)) {
-     connected = false;
-     L<<Logger::Error<<"Cannot manipulate socket: " << strerror(errno) << std::endl;;
-     close(fd);
-     return;
-  }
-
-  if((rv = connect(fd, reinterpret_cast<struct sockaddr*>(&sock), sizeof sock))==-1 && (errno == EINPROGRESS)) {
-    waitForData(fd, 0, -1);
-    rv = connect(fd, reinterpret_cast<struct sockaddr*>(&sock), sizeof sock);
-  }
+  rv = connect(fd, reinterpret_cast<struct sockaddr*>(&sock), sizeof sock);
 
   if (rv != 0 && errno != EISCONN && errno != 0) {
      L<<Logger::Error<<"Cannot connect to socket: " << strerror(errno) << std::endl;
@@ -161,19 +172,15 @@ void UnixsocketConnector::reconnect() {
   }
   // send initialize
 
-  init.SetObject();
-  val = "initialize";
-  init.AddMember("method",val, init.GetAllocator());
-  val.SetObject();
-  init.AddMember("parameters", val, init.GetAllocator());
+  Json::array parameters;
+  Json msg = Json(Json::object{
+    { "method", "initialize" },
+    { "parameters", Json(options) },
+  });
 
-  for(std::map<std::string,std::string>::iterator i = options.begin(); i != options.end(); i++) {
-    val = i->second.c_str();
-    init["parameters"].AddMember(i->first.c_str(), val, init.GetAllocator());
-  } 
-
-  this->send_message(init);
-  if (this->recv_message(res) == false) {
+  this->send(msg);
+  msg = nullptr;
+  if (this->recv(msg) == false) {
      L<<Logger::Warning << "Failed to initialize backend" << std::endl;
      close(fd);
      this->connected = false;

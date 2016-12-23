@@ -1,24 +1,27 @@
 /*
-    PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002-2011  PowerDNS.COM BV
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as 
-    published by the Free Software Foundation; 
-
-    Additionally, the license of this program contains a special
-    exception which allows to distribute the program in binary form when
-    it is linked against OpenSSL.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-*/
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "packetcache.hh"
 #include "utility.hh"
 #include <errno.h>
@@ -33,10 +36,8 @@
 #include "dns.hh"
 #include "arguments.hh"
 #include "packetcache.hh"
-#include <boost/lexical_cast.hpp>
 
-// #include "namespaces.hh"
-
+// there can be MANY OF THESE
 void CommunicatorClass::retrievalLoopThread(void)
 {
   for(;;) {
@@ -50,12 +51,20 @@ void CommunicatorClass::retrievalLoopThread(void)
       sr=d_suckdomains.front();
       d_suckdomains.pop_front();
     }
-    suck(sr.domain,sr.master);
+    suck(sr.domain, sr.master);
   }
 }
 
 void CommunicatorClass::go()
 {
+  try {
+    PacketHandler::s_allowNotifyFrom.toMasks(::arg()["allow-notify-from"] );
+  }
+  catch(PDNSException &e) {
+    L<<Logger::Error<<"Unparseable IP in allow-notify-from. Error: "<<e.reason<<endl;
+    exit(1);
+  }
+
   pthread_t tid;
   pthread_create(&tid,0,&launchhelper,this); // Starts CommunicatorClass::mainloop()
   for(int n=0; n < ::arg().asNum("retrieval-threads", 1); ++n)
@@ -68,7 +77,7 @@ void CommunicatorClass::go()
   }
   catch(PDNSException &e) {
     L<<Logger::Error<<"Unparseable IP in only-notify. Error: "<<e.reason<<endl;
-    exit(0);
+    exit(1);
   }
 
   vector<string> parts;
@@ -80,7 +89,7 @@ void CommunicatorClass::go()
     }
     catch(PDNSException &e) {
       L<<Logger::Error<<"Unparseable IP in also-notify. Error: "<<e.reason<<endl;
-      exit(0);
+      exit(1);
     }
   }
 }
@@ -122,16 +131,16 @@ void CommunicatorClass::mainloop(void)
   catch(PDNSException &ae) {
     L<<Logger::Error<<"Exiting because communicator thread died with error: "<<ae.reason<<endl;
     Utility::sleep(1);
-    exit(0);
+    exit(1);
   }
   catch(std::exception &e) {
     L<<Logger::Error<<"Exiting because communicator thread died with STL error: "<<e.what()<<endl;
-    exit(0);
+    exit(1);
   }
   catch( ... )
   {
     L << Logger::Error << "Exiting because communicator caught unknown exception." << endl;
-    exit( 0 );
+    exit(1);
   }
 }
 

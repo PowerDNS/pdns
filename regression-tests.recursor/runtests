@@ -1,6 +1,8 @@
 #!/bin/sh
 set -e
-set -x
+if [ "${PDNS_DEBUG}" = "YES" ]; then
+  set -x
+fi
 
 . ./vars
 
@@ -15,4 +17,4 @@ export testsdir
 
 nameserver=$PREFIX.9 port=53 ../regression-tests/runtests
 context=recursor ../regression-tests/toxml
-grep . */diff || true
+! grep . */diff

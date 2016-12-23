@@ -1,7 +1,27 @@
 /*
- * PowerDNS backend module for MyDNS style databases
- * Author: Jonathan Oddy (Hostway UK) <jonathan@woaf.net>
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ * originally authored by Jonathan Oddy
  *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
+/*
  * The schema used by MyDNS isn't suitable for retrieving results with a single
  * query. This means that existing PowerDNS backends are unable to make use of
  * the schema without lame hackery (or awful performance.) This module does
@@ -19,6 +39,9 @@
  * If you do not know what mydns is: http://mydns.bboy.net/
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <string>
 #include <map>
 #include <unistd.h>
@@ -41,337 +64,418 @@
 static string backendName="[MyDNSbackend]";
 
 MyDNSBackend::MyDNSBackend(const string &suffix) {
-        setArgPrefix("mydns"+suffix);
+  setArgPrefix("mydns"+suffix);
+ 
+  d_domainIdQuery_stmt = NULL;
+  d_domainNoIdQuery_stmt = NULL;
+  d_listQuery_stmt = NULL;
+  d_soaQuery_stmt = NULL;
+  d_basicQuery_stmt = NULL;
+  d_anyQuery_stmt = NULL;
+  d_query_stmt = NULL;
 
-        try {
-        	d_db = new SMySQL(getArg("dbname"),
-        			getArg("host"),
-        			getArgAsNum("port"),
-        			getArg("socket"),
-        			getArg("user"),
-        			getArg("password"));
+  try {
+    d_db = new SMySQL(getArg("dbname"),
+      getArg("host"),
+      getArgAsNum("port"),
+      getArg("socket"),
+      getArg("user"),
+      getArg("password"));
+    d_db->setLog(::arg().mustDo("query-logging"));
+  }
+  catch(SSqlException &e) {
+    L<<Logger::Error<<backendName<<" Connection failed: "<<e.txtReason()<<endl;
+    throw PDNSException(backendName+"Unable to launch connection: "+e.txtReason());
+  }
 
-        }
-        catch(SSqlException &e) {
-        	L<<Logger::Error<<backendName<<" Connection failed: "<<e.txtReason()<<endl;
-        	throw PDNSException(backendName+"Unable to launch connection: "+e.txtReason());
-        }
+  string rrtable=getArg("rr-table");
+  string soatable=getArg("soa-table");
+  string rrwhere=(mustDo("rr-active")?"(active = '1' or active = 'Y') and ":"")+getArg("rr-where");
+  string soawhere=(mustDo("soa-active")?"(active = '1' or active = 'Y') and ":"")+getArg("soa-where");
 
-        d_rrtable=getArg("rr-table");
-        d_soatable=getArg("soa-table");
-        d_rrwhere=(mustDo("rr-active")?"active = 1 and ":"")+getArg("rr-where");
-        d_soawhere=(mustDo("soa-active")?"active = 1 and ":"")+getArg("soa-where");
-        d_useminimalttl=mustDo("use-minimal-ttl");
-        d_minimum=0;
+  if (soatable.empty()) { throw PDNSException("SOA Table must not be empty"); }
+  if (rrtable.empty()) { throw PDNSException("Records table must not be empty"); }
 
-        L<<Logger::Warning<<backendName<<" Connection successful"<<endl;
+  d_useminimalttl=mustDo("use-minimal-ttl");
+  d_minimum=0;
+
+  L<<Logger::Warning<<backendName<<" Connection successful"<<endl;
+
+  try {
+
+    string domainIdQuery = "SELECT origin, minimum FROM `"+soatable+"` WHERE id = ?";
+    string domainNoIdQuery = "SELECT id, origin, minimum FROM `"+soatable+"` WHERE origin = ?";
+    string soaQuery = "SELECT id, mbox, serial, ns, refresh, retry, expire, minimum, ttl FROM `"+soatable+"` WHERE origin = ?";
+
+    if (!soawhere.empty()) {
+      domainIdQuery += " AND " + soawhere;  
+      domainNoIdQuery += " AND " + soawhere;
+      soaQuery += " AND "+soawhere;
+    }
+
+    d_domainIdQuery_stmt = d_db->prepare(domainIdQuery, 1);
+    d_domainNoIdQuery_stmt = d_db->prepare(domainNoIdQuery, 1);
+    d_soaQuery_stmt = d_db->prepare(soaQuery, 1);
+  
+    string listQuery = "SELECT type, data, aux, ttl, zone, name FROM `"+rrtable+"` WHERE zone = ?";
+    string basicQuery = "SELECT type, data, aux, ttl, zone FROM `"+rrtable+"` WHERE zone = ? AND (name = ? OR name = ?) AND type = ?";
+    string anyQuery = "(SELECT type, data, aux, ttl, zone FROM `"+rrtable+"` WHERE zone = ? AND (name = ? OR name = ?)";
+ 
+    if (!rrwhere.empty()) {
+      listQuery += " AND "+rrwhere;
+      basicQuery += " AND " + rrwhere;
+      anyQuery += " AND " + rrwhere;
+    }
+
+    d_listQuery_stmt = d_db->prepare(listQuery, 1);
+  
+    anyQuery += ") UNION (SELECT 'SOA' AS type, CONCAT_WS(' ', ns, mbox,serial,refresh,retry,expire,minimum) AS data, '0' AS aux, ttl, id AS zone FROM `"+soatable+"` WHERE id = ? AND origin = ?";
+
+    if (!soawhere.empty()) {
+      anyQuery += " AND "+soawhere;
+    }
+  
+    basicQuery += " ORDER BY type,aux,data";
+    anyQuery += ") ORDER BY type,aux,data";
+  
+    d_basicQuery_stmt = d_db->prepare(basicQuery, 4);
+    d_anyQuery_stmt = d_db->prepare(anyQuery, 5);
+  } catch (SSqlException &e) {
+    L<<Logger::Error<<"Cannot prepare statements: " << e.txtReason() <<endl;
+    throw PDNSException("Cannot prepare statements: " + e.txtReason());
+  }
 }
 
 MyDNSBackend::~MyDNSBackend() {
-        if (d_db)
-                delete(d_db);
+  delete d_domainIdQuery_stmt;
+  d_domainIdQuery_stmt = NULL;
+  delete d_domainNoIdQuery_stmt;
+  d_domainNoIdQuery_stmt = NULL;
+  delete d_listQuery_stmt;
+  d_listQuery_stmt = NULL;
+  delete d_soaQuery_stmt;
+  d_soaQuery_stmt = NULL;
+  delete d_basicQuery_stmt;
+  d_basicQuery_stmt = NULL;
+  delete d_anyQuery_stmt;
+  d_anyQuery_stmt = NULL;
+  delete(d_db);
 }
 
 
-void MyDNSBackend::Query(const string &query) {
-        try {
-        	d_db->doQuery(query);
-        } catch (SSqlException &e) {
-        	throw PDNSException("Query failed: "+e.txtReason());
-        }
+bool MyDNSBackend::list(const DNSName &target, int zoneId, bool include_disabled) {
+  string query;
+  string sname;
+  SSqlStatement::row_t rrow;
+
+  try {
+    d_domainIdQuery_stmt->
+      bind("domain_id", zoneId)->
+      execute()->
+      getResult(d_result)->
+      reset();
+  } 
+  catch (SSqlException &e) {
+    throw PDNSException("MyDNSBackend unable to list domain_id "+itoa(zoneId)+": "+e.txtReason());
+  }
+  
+  if (d_result.empty())
+    return false; // No such zone
+
+  d_origin = d_result[0][0];
+  if (d_origin[d_origin.length()-1] == '.')
+    d_origin.erase(d_origin.length()-1);
+  d_minimum = pdns_stou(d_result[0][1]);
+
+  if (d_result.size()>1) {
+    L<<Logger::Warning<<backendName<<" Found more than one matching origin for zone ID: "<<zoneId<<endl;
+  };
+
+  try {
+    d_query_stmt = d_listQuery_stmt;
+    d_query_stmt->
+      bind("domain_id", zoneId)->
+      execute();
+  }
+  catch (SSqlException &e) {
+    throw PDNSException("MyDNSBackend unable to list domain_id "+itoa(zoneId)+": "+e.txtReason());
+  }
+
+  d_qname = "";
+  return true;
 }
 
-bool MyDNSBackend::list(const string &target, int zoneId, bool include_disabled) {
-        string query;
-        string sname;
-        SSql::row_t rrow;
+bool MyDNSBackend::getSOA(const DNSName& name, SOAData& soadata, DNSPacket*) {
+  string query;
+  SSqlStatement::row_t rrow;
 
-        d_db->setLog(::arg().mustDo("query-logging"));
+  if (name.empty())
+    return false;
 
-        query = "select origin, minimum from "+d_soatable+" where id = ";
-        query+=itoa(zoneId);
-        if (!d_soawhere.empty())
-                query+= " and "+d_soawhere;
+  try {
+    d_soaQuery_stmt->
+      bind("origin", name.toString())->
+      execute()->
+      getResult(d_result)->
+      reset();
+  }
+  catch (SSqlException &e) {
+    throw PDNSException("MyDNSBackend unable to get soa for domain "+name.toString()+": "+e.txtReason());
+  }
 
-        this->Query(query);
+  if (d_result.empty()) {
+    return false;
+  }
 
-        if(!d_db->getRow(rrow))
-        	return false; // No such zone
-        
-        d_origin = rrow[0];
-        if (d_origin[d_origin.length()-1] == '.')
-        	d_origin.erase(d_origin.length()-1);
-        d_minimum = atol(rrow[1].c_str());
+  rrow = d_result[0];
 
-        while (d_db->getRow(rrow)) {
-        	L<<Logger::Warning<<backendName<<" Found more than one matching origin for zone ID: "<<zoneId<<endl;
-        };
+  soadata.qname = name;
+  soadata.domain_id = pdns_stou(rrow[0]);
+  soadata.hostmaster = DNSName(rrow[1]);
+  soadata.serial = pdns_stou(rrow[2]);
+  soadata.nameserver = DNSName(rrow[3]);
+  soadata.refresh = pdns_stou(rrow[4]);
+  soadata.retry = pdns_stou(rrow[5]);
+  soadata.expire = pdns_stou(rrow[6]);
+  soadata.default_ttl = pdns_stou(rrow[7]);
+  soadata.ttl = pdns_stou(rrow[8]);
+  if (d_useminimalttl) {
+    soadata.ttl = std::min(soadata.ttl, soadata.default_ttl);
+  }
+  soadata.db = this;
 
-        query = "select type, data, aux, ttl, zone, name from "+d_rrtable+" where zone = ";
-        query+=itoa(zoneId);
-        if (!d_rrwhere.empty())
-                query += " and "+d_rrwhere;
-        
+  if (d_result.size()>1) {
+    L<<Logger::Warning<<backendName<<" Found more than one matching zone for: "<<name<<endl;
+  };
 
-        this->Query(query);
-
-        d_qname = "";
-        return true;
-
+  return true;
 }
 
-bool MyDNSBackend::getSOA(const string& name, SOAData& soadata, DNSPacket*) {
-        string query;
-        SSql::row_t rrow;
+void MyDNSBackend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p, int zoneId) {
+  SSqlStatement::row_t rrow;
+  bool found = false;
 
-        d_db->setLog(::arg().mustDo("query-logging"));
+  DNSName sdom(qname);
+  d_origin = "";
 
-        if (name.empty())
-        	return false;
+  if (qname.empty()) {
+    return;
+  }
 
-        query = "select id, mbox, serial, ns, refresh, retry, expire, minimum, ttl from "+d_soatable+" where origin = '";
+  DLOG(L<<Logger::Debug<<"MyDNSBackend::lookup(" << qtype.getName() << "," << qname << ",p," << zoneId << ")" << endl);
 
-        if (name.find_first_of("'\\")!=string::npos)
-        	query+=d_db->escape(name);
-        else
-        	query+=name;
+  if (zoneId < 0) {
+    // First off we need to work out what zone we're working with
+    // MyDNS records aren't always fully qualified, so we need to work out the zone ID.
 
-        query+=".'";
-        if (! d_soawhere.empty())
-                query += " and "+d_soawhere;
+    
+    do {
+      try {
+        d_domainNoIdQuery_stmt->
+          bind("domain", sdom.toString())->
+          execute()->
+          getResult(d_result)->
+          reset();
+      }
+      catch (SSqlException &e) {
+        throw PDNSException("MyDNSBackend unable to lookup "+qname.toString()+": "+e.txtReason());
+      }
 
-        this->Query(query);
+      if (d_result.empty() == false) {
+        rrow = d_result[0];
+        zoneId = pdns_stou(rrow[0]);
+        d_origin = stripDot(rrow[1]);
+        d_minimum = pdns_stou(rrow[2]);
+        found = true;
+        break;
+      }
 
-        if(!(d_db->getRow(rrow))) {
-        	return false;
-        }
+    } while(sdom.chopOff());
 
-        soadata.qname = name;
-        soadata.domain_id = atol(rrow[0].c_str());
-        soadata.hostmaster = rrow[1];
-        soadata.serial = atol(rrow[2].c_str());
-        soadata.nameserver = rrow[3];
-        soadata.refresh = atol(rrow[4].c_str());
-        soadata.retry = atol(rrow[5].c_str());
-        soadata.expire = atol(rrow[6].c_str());
-        soadata.default_ttl = atol(rrow[7].c_str());
-        soadata.ttl = atol(rrow[8].c_str());
-        if (d_useminimalttl && soadata.ttl < soadata.default_ttl) {
-        	soadata.ttl = soadata.default_ttl;
-        }
-        soadata.db = this;
+  } else {
+    try {
+      d_domainIdQuery_stmt->
+        bind("domain_id", zoneId)->
+        execute()->
+        getResult(d_result)->
+        reset();
+    }
+    catch (SSqlException &e) {
+      throw PDNSException("MyDNSBackend unable to lookup "+qname.toString()+": "+e.txtReason());
+    }
 
-        while (d_db->getRow(rrow)) {
-        	L<<Logger::Warning<<backendName<<" Found more than one matching zone for: "+name<<endl;
-        };
+    if(d_result.empty()) {
+      return; // just return if zone was not found instead of throwing an error
+    }
 
-        return true;
-}
+    rrow = d_result[0];
 
-void MyDNSBackend::lookup(const QType &qtype, const string &qname, DNSPacket *p, int zoneId) {
-        string query;
-        string sname;
-        string zoneIdStr = itoa(zoneId);
-        SSql::row_t rrow;
-        bool found = false;
+    found = true;
+    d_origin = stripDot(rrow[0]);
+    d_minimum = pdns_stou(rrow[1]);
+  }
 
-        d_origin = "";
+  if (found) {
 
-        d_db->setLog(::arg().mustDo("query-logging"));
+    while (d_result.size()>1) {
+      L<<Logger::Warning<<backendName<<" Found more than one matching zone for: "+d_origin<<endl;
+    };
+    // We found the zoneId, so we can work out how to find our rr
+    string host;
 
-        if (qname.empty())
-        	return;
+    // The host part of the query is the name less the origin
+    DNSName origin(d_origin);
+    host = qname.makeRelative(origin).toStringNoDot();    
 
-        // Escape the name, after this point we only want to use it in queries
-        if (qname.find_first_of("'\\")!=string::npos)
-        	sname=d_db->escape(qname);
-        else
-        	sname = qname;
-        sname += ".";
+    try {
 
-        if (zoneId < 0) {
-        	// First off we need to work out what zone we're working with
-        	// MyDNS records aren't always fully qualified, so we need to work out the zone ID.
-        	
-        	size_t pos;
-        	string sdom;
+      if (qtype.getCode()==QType::ANY) {
+        DLOG(L<<Logger::Debug<<"Running d_anyQuery_stmt with " << zoneId << ", " << host << ", " << sdom  << ", " << zoneId <<" , "<< qname << ", " << qtype.getName() << endl);
+        d_query_stmt = d_anyQuery_stmt;
+        d_query_stmt->
+          bind("domain_id", zoneId)->
+          bind("host", host)->
+          bind("qname", qname.toString())->
+          bind("domain_id", zoneId)-> // this is because positional arguments
+          bind("qname2", sdom.toString())->
+          execute();
+      } else {
+        DLOG(L<<Logger::Debug<<"Running d_basicQuery_stmt with " << zoneId << ", " << host << ", " << qname << ", " << qtype.getName() << endl);
+        d_query_stmt = d_basicQuery_stmt;
+        d_query_stmt->
+          bind("domain_id", zoneId)->
+          bind("host", host)->
+          bind("qname", qname.toString())->
+          bind("qtype", qtype.getName())->
+          execute();
+      }
+    }
+    catch (SSqlException &e) {
+      throw PDNSException("MyDNSBackend unable to lookup "+qname.toString()+": "+e.txtReason());
+    }
 
-        	pos = 0;
-        	sdom = sname;
-        	while (!sdom.empty() && pos != string::npos) {
-        		query = "select id, origin, minimum from "+d_soatable+" where origin = '"+sdom+"'";
-                        if (!d_soawhere.empty()) 
-                                query += " and "+d_soawhere;
-
-        		this->Query(query);
-        		if(d_db->getRow(rrow)) {
-                                zoneIdStr=rrow[0];
-        			d_origin = rrow[1];
-        			if (d_origin[d_origin.length()-1] == '.')
-        				d_origin.erase(d_origin.length()-1);
-        			d_minimum = atol(rrow[2].c_str());
-        			found = true;
-        			break;
-        		}
-
-        		pos = sname.find_first_of(".",pos+1);
-        		sdom = sname.substr(pos+1);
-        	}
-
-        } else {
-        	query = "select origin, minimum from "+d_soatable+" where id = ";
-        	query+=zoneIdStr;
-                if (!d_soawhere.empty()) 
-        	       query+= " and "+d_soawhere;
-
-        	this->Query(query);
-
-        	if(!d_db->getRow(rrow)) {
-        		throw PDNSException("lookup() passed zoneId = "+zoneIdStr+" but no such zone!");
-        	}
-        	
-        	found = true;
-        	d_origin = rrow[0];
-        	if (d_origin[d_origin.length()-1] == '.')
-        		d_origin.erase(d_origin.length()-1);
-        	d_minimum = atol(rrow[1].c_str());
-        }
-
-
-        if (found) {
-
-        	while (d_db->getRow(rrow)) {
-        		L<<Logger::Warning<<backendName<<" Found more than one matching zone for: "+d_origin<<endl;
-        	};
-        	// We found the zoneId, so we can work out how to find our rr
-        	string host;
-
-        	// The host part of the query is the name less the origin
-        	if (qname.length() == d_origin.length())
-        		host = "";
-        	else
-        		host = qname.substr(0, (qname.length() - d_origin.length())-1);
-
-        	if (host.find_first_of("'\\")!=string::npos)
-        		host=d_db->escape(host);
-
-        	query = "select type, data, aux, ttl, zone from "+d_rrtable+" where zone = ";
-        	query+= zoneIdStr;
-        	query += " and (name = '"+host+"' or name = '"+sname+"')";
-
-        	if(qtype.getCode()!=255) {  // ANY
-        		query+=" and type='";
-        		query+=qtype.getName();
-        		query+="'";
-
-        	}
-                if (!d_rrwhere.empty())
-                        query += " and "+d_rrwhere;
-
-
-                if (qtype.getCode() == 255) {
-                        query += " union select 'SOA' as type, origin as data, '0' as aux, ttl, id as zone from "+d_soatable+" where id= " + zoneIdStr + " and origin = '"+qname+".'";
-                        if (!d_soawhere.empty()) 
-                                query += " and " + d_soawhere;
-                }
-        	query += " order by type,aux,data";
-
-        	this->Query(query);
-
-        	d_qname = qname;
-        }
+    d_qname = qname.toString();
+  }
 
 }
 
 bool MyDNSBackend::get(DNSResourceRecord &rr) {
-        if (d_origin.empty()) {
-        	// This happens if lookup() couldn't find the zone
-        	return false;
-        }
+  if (d_origin.empty()) {
+    if (d_query_stmt) {
+      try {
+        d_query_stmt->reset();
+      } catch (SSqlException &e) {
+        throw PDNSException("MyDNSBackend unable to lookup "+d_qname+": "+e.txtReason());
+      }
+      d_query_stmt = NULL;
+    }
+    // This happens if lookup() couldn't find the zone
+    return false;
+  }
 
-        SSql::row_t rrow;
+  SSqlStatement::row_t rrow;
 
-        if(!d_db->getRow(rrow)) {
-        	return false;
-        }
-
-        rr.qtype=rrow[0];
-        rr.content = rrow[1];
-
-        if(!d_qname.empty()) {
-        	// use this to distinguish between select with 'name' field (list()) and one without
-        	rr.qname=d_qname;
-        } else {
-        	rr.qname=rrow[5];
-        	if (rr.qname[rr.qname.length()-1] == '.') {
-        		rr.qname.erase(rr.qname.length()-1); // Fully qualified, nuke the last .
-        	} else {
-        		if (!rr.qname.empty())
-        			rr.qname += ".";
-        		rr.qname += d_origin; // Not fully qualified
-        	}
-
-        }
-
-        if (rr.qtype.getCode() == QType::NS || rr.qtype.getCode()==QType::MX || 
-                rr.qtype.getCode() == QType::CNAME || rr.qtype.getCode() == QType::PTR) {
-        	if (rr.content[rr.content.length()-1] == '.') {
-        		rr.content.erase(rr.content.length()-1); // Fully qualified, nuke the last .
-        	} else {
-        		if (!rr.content.empty())
-        			rr.content += ".";
-        		rr.content += d_origin;
-        	}
-        }
-
-        if (rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV)
-          rr.content=rrow[2]+" "+rr.content;
-        rr.ttl = atol(rrow[3].c_str());
-        if (d_useminimalttl && rr.ttl < d_minimum)
-        	rr.ttl = d_minimum;
-        rr.domain_id=atol(rrow[4].c_str());
-
+  if (d_query_stmt->hasNextRow()) {
+    try {
+      d_query_stmt->nextRow(rrow);
+    } catch (SSqlException &e) {
+      throw PDNSException("MyDNSBackend unable to lookup "+d_qname+": "+e.txtReason());
+    }
+    rr.qtype=rrow[0];
+    rr.content = rrow[1];
   
-        rr.last_modified=0;
+    if(!d_qname.empty()) {
+      // use this to distinguish between select with 'name' field (list()) and one without
+      rr.qname=DNSName(d_qname);
+    } else {
+      string tmpQname = rrow[5];
 
-        return true;
+      //TODO: Refactor
+      if (!tmpQname.empty() && tmpQname[tmpQname.length()-1] == '.') {
+        tmpQname.erase(tmpQname.length()-1); // Fully qualified, nuke the last .
+      } else {
+        if (!tmpQname.empty()) {
+          tmpQname += ".";
+        }
+        tmpQname += d_origin; // Not fully qualified
+      }
+      rr.qname = DNSName(tmpQname);
+    }
+  
+    if (rr.qtype.getCode() == QType::NS || rr.qtype.getCode()==QType::MX || 
+          rr.qtype.getCode() == QType::CNAME || rr.qtype.getCode() == QType::PTR) {
+      if (!rr.content.empty() && rr.content[rr.content.length()-1] == '.') {
+        if (rr.content.length() > 1)
+          rr.content.erase(rr.content.length()-1); // Fully qualified, nuke the last .
+      } else {
+        if (rr.content != ".")
+          rr.content += ".";
+        rr.content += d_origin;
+      }
+    }
+ 
+    if (rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV)
+      rr.content=rrow[2]+" "+rr.content;
 
+    rr.ttl = pdns_stou(rrow[3]);
+    if (d_useminimalttl)
+      rr.ttl = std::min(rr.ttl, d_minimum);
+    rr.domain_id=pdns_stou(rrow[4]);
+  
+    rr.last_modified=0;
+
+    return true;
+  }
+
+  try {
+    d_query_stmt->reset();
+  } catch (SSqlException &e) {
+    throw PDNSException("MyDNSBackend unable to lookup "+d_qname+": "+e.txtReason());
+  }
+
+  d_query_stmt = NULL;
+
+  return false;
 }
 
 class MyDNSFactory : public BackendFactory {
 
 public:
-        MyDNSFactory() : BackendFactory("mydns") {}
+  MyDNSFactory() : BackendFactory("mydns") {}
 
-        void declareArguments(const string &suffix = "") {
-        	declare(suffix,"dbname","Pdns backend database name to connect to","mydns");
-        	declare(suffix,"user","Pdns backend user to connect as","powerdns");
-        	declare(suffix,"host","Pdns backend host to connect to","");
-        	declare(suffix,"port","Pdns backend host to connect to","");
-        	declare(suffix,"password","Pdns backend password to connect with","");
-        	declare(suffix,"socket","Pdns backend socket to connect to","");
-        	declare(suffix,"rr-table","Name of RR table to use","rr");
-        	declare(suffix,"soa-table","Name of SOA table to use","soa");
-        	declare(suffix,"soa-where","Additional WHERE clause for SOA","1 = 1");
-        	declare(suffix,"rr-where","Additional WHERE clause for RR","1 = 1");
-        	declare(suffix,"soa-active","Use the active column in the SOA table","yes");
-        	declare(suffix,"rr-active","Use the active column in the RR table","yes");
-        	declare(suffix,"use-minimal-ttl","Setting this to 'yes' will make the backend behave like MyDNS on the TTL values. Setting it to 'no' will make it ignore the minimal-ttl of the zone.","yes");
-        }
+  void declareArguments(const string &suffix = "") {
+    declare(suffix,"dbname","Pdns backend database name to connect to","mydns");
+    declare(suffix,"user","Pdns backend user to connect as","powerdns");
+    declare(suffix,"host","Pdns backend host to connect to","");
+    declare(suffix,"port","Pdns backend host to connect to","");
+    declare(suffix,"password","Pdns backend password to connect with","");
+    declare(suffix,"socket","Pdns backend socket to connect to","");
+    declare(suffix,"rr-table","Name of RR table to use","rr");
+    declare(suffix,"soa-table","Name of SOA table to use","soa");
+    declare(suffix,"soa-where","Additional WHERE clause for SOA","1 = 1");
+    declare(suffix,"rr-where","Additional WHERE clause for RR","1 = 1");
+    declare(suffix,"soa-active","Use the active column in the SOA table","yes");
+    declare(suffix,"rr-active","Use the active column in the RR table","yes");
+    declare(suffix,"use-minimal-ttl","Setting this to 'yes' will make the backend behave like MyDNS on the TTL values. Setting it to 'no' will make it ignore the minimal-ttl of the zone.","yes");
+  }
 
-        MyDNSBackend *make(const string &suffix = "") {
-        	return new MyDNSBackend(suffix);
-        }
+  DNSBackend *make(const string &suffix="") {
+    return new MyDNSBackend(suffix);
+  }
 
 };
 
 class MyDNSLoader {
 
 public:
-        MyDNSLoader() {
-        	BackendMakers().report(new MyDNSFactory());
-		L << Logger::Info << "[mydnsbackend] This is the mydns backend version " VERSION " (" __DATE__ ", " __TIME__ ") reporting" << endl;
-        }
+  MyDNSLoader() {
+    BackendMakers().report(new MyDNSFactory());
+    L << Logger::Info << "[mydnsbackend] This is the mydns backend version " VERSION
+#ifndef REPRODUCIBLE
+      << " (" __DATE__ " " __TIME__ ")"
+#endif
+      << " reporting" << endl;
+  }
 };
 
 static MyDNSLoader mydnsloader;

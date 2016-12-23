@@ -1,10 +1,31 @@
+/*
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ * originally authored by Norbert Sendetzky
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "ldapbackend.hh"
 
-
-
 unsigned int ldap_host_index = 0;
-
-
 
 LdapBackend::LdapBackend( const string &suffix )
 {
@@ -16,8 +37,11 @@ LdapBackend::LdapBackend( const string &suffix )
         try
         {
         	m_msgid = 0;
-        	m_qname = "";
+        	m_qname.clear();
         	m_pldap = NULL;
+        	m_ttl = 0;
+        	m_axfrqlen = 0;
+        	m_last_modified = 0;
         	m_qlog = arg().mustDo( "query-logging" );
         	m_default_ttl = arg().asNum( "default-ttl" );
         	m_myname = "[LdapBackend]";
@@ -86,24 +110,24 @@ LdapBackend::~LdapBackend()
 
 
 
-bool LdapBackend::list( const string& target, int domain_id, bool include_disabled )
+bool LdapBackend::list( const DNSName& target, int domain_id, bool include_disabled )
 {
         try
         {
         	m_qname = target;
-        	m_axfrqlen = target.length();
+        	m_axfrqlen = target.toStringRootDot().length();
         	m_adomain = m_adomains.end();   // skip loops in get() first time
 
         	return (this->*m_list_fcnt)( target, domain_id );
         }
         catch( LDAPTimeout &lt )
         {
-        	L << Logger::Warning << m_myname << " Unable to get zone " + target + " from LDAP directory: " << lt.what() << endl;
+	        L << Logger::Warning << m_myname << " Unable to get zone " << target << " from LDAP directory: " << lt.what() << endl;
         	throw( DBException( "LDAP server timeout" ) );
         }
         catch( LDAPException &le )
         {
-        	L << Logger::Error << m_myname << " Unable to get zone " + target + " from LDAP directory: " << le.what() << endl;
+	        L << Logger::Error << m_myname << " Unable to get zone " << target << " from LDAP directory: " << le.what() << endl;
         	throw( PDNSException( "LDAP server unreachable" ) );   // try to reconnect to another server
         }
         catch( std::exception &e )
@@ -117,7 +141,7 @@ bool LdapBackend::list( const string& target, int domain_id, bool include_disabl
 
 
 
-inline bool LdapBackend::list_simple( const string& target, int domain_id )
+inline bool LdapBackend::list_simple( const DNSName& target, int domain_id )
 {
         string dn;
         string filter;
@@ -125,7 +149,7 @@ inline bool LdapBackend::list_simple( const string& target, int domain_id )
 
 
         dn = getArg( "basedn" );
-        qesc = toLower( m_pldap->escape( target ) );
+        qesc = toLower( m_pldap->escape( target.toStringRootDot() ) );
 
         // search for SOARecord of target
         filter = strbind( ":target:", "&(associatedDomain=" + qesc + ")(sOARecord=*)", getArg( "filter-axfr" ) );
@@ -151,10 +175,9 @@ inline bool LdapBackend::list_simple( const string& target, int domain_id )
 
 
 
-inline bool LdapBackend::list_strict( const string& target, int domain_id )
+inline bool LdapBackend::list_strict( const DNSName& target, int domain_id )
 {
-        if( (target.size() > 13 && target.substr( target.size() - 13, 13 ) == ".in-addr.arpa") ||
-        	(target.size() > 9 && target.substr( target.size() - 9, 9 ) == ".ip6.arpa") )
+        if( target.isPartOf(DNSName("in-addr.arpa")) || target.isPartOf(DNSName(".ip6.arpa")) )
         {
         	L << Logger::Warning << m_myname << " Request for reverse zone AXFR, but this is not supported in strict mode" << endl;
         	return false;   // AXFR isn't supported in strict mode. Use simple mode and additional PTR records
@@ -165,7 +188,7 @@ inline bool LdapBackend::list_strict( const string& target, int domain_id )
 
 
 
-void LdapBackend::lookup( const QType &qtype, const string &qname, DNSPacket *dnspkt, int zoneid )
+void LdapBackend::lookup( const QType &qtype, const DNSName &qname, DNSPacket *dnspkt, int zoneid )
 {
         try
         {
@@ -173,7 +196,7 @@ void LdapBackend::lookup( const QType &qtype, const string &qname, DNSPacket *dn
         	m_qname = qname;
         	m_adomain = m_adomains.end();   // skip loops in get() first time
 
-        	if( m_qlog ) { L.log( "Query: '" + qname + "|" + qtype.getName() + "'", Logger::Error ); }
+        	if( m_qlog ) { L.log( "Query: '" + qname.toStringRootDot() + "|" + qtype.getName() + "'", Logger::Error ); }
         	(this->*m_lookup_fcnt)( qtype, qname, dnspkt, zoneid );
         }
         catch( LDAPTimeout &lt )
@@ -195,14 +218,14 @@ void LdapBackend::lookup( const QType &qtype, const string &qname, DNSPacket *dn
 
 
 
-void LdapBackend::lookup_simple( const QType &qtype, const string &qname, DNSPacket *dnspkt, int zoneid )
+void LdapBackend::lookup_simple( const QType &qtype, const DNSName &qname, DNSPacket *dnspkt, int zoneid )
 {
         string filter, attr, qesc;
         const char** attributes = ldap_attrany + 1;   // skip associatedDomain
         const char* attronly[] = { NULL, "dNSTTL", "modifyTimestamp", NULL };
 
 
-        qesc = toLower( m_pldap->escape( qname ) );
+        qesc = toLower( m_pldap->escape( qname.toStringRootDot() ) );
         filter = "associatedDomain=" + qesc;
 
         if( qtype.getCode() != QType::ANY )
@@ -221,7 +244,7 @@ void LdapBackend::lookup_simple( const QType &qtype, const string &qname, DNSPac
 
 
 
-void LdapBackend::lookup_strict( const QType &qtype, const string &qname, DNSPacket *dnspkt, int zoneid )
+void LdapBackend::lookup_strict( const QType &qtype, const DNSName &qname, DNSPacket *dnspkt, int zoneid )
 {
         int len;
         vector<string> parts;
@@ -230,7 +253,7 @@ void LdapBackend::lookup_strict( const QType &qtype, const string &qname, DNSPac
         const char* attronly[] = { NULL, "dNSTTL", "modifyTimestamp", NULL };
 
 
-        qesc = toLower( m_pldap->escape( qname ) );
+        qesc = toLower( m_pldap->escape( qname.toStringRootDot() ) );
         stringtok( parts, qesc, "." );
         len = qesc.length();
 
@@ -266,16 +289,15 @@ void LdapBackend::lookup_strict( const QType &qtype, const string &qname, DNSPac
 
 
 
-void LdapBackend::lookup_tree( const QType &qtype, const string &qname, DNSPacket *dnspkt, int zoneid )
+void LdapBackend::lookup_tree( const QType &qtype, const DNSName &qname, DNSPacket *dnspkt, int zoneid )
 {
         string filter, attr, qesc, dn;
         const char** attributes = ldap_attrany + 1;   // skip associatedDomain
         const char* attronly[] = { NULL, "dNSTTL", "modifyTimestamp", NULL };
-        vector<string>::reverse_iterator i;
         vector<string> parts;
 
 
-        qesc = toLower( m_pldap->escape( qname ) );
+        qesc = toLower( m_pldap->escape( qname.toStringRootDot() ) );
         filter = "associatedDomain=" + qesc;
 
         if( qtype.getCode() != QType::ANY )
@@ -288,8 +310,8 @@ void LdapBackend::lookup_tree( const QType &qtype, const string &qname, DNSPacke
 
         filter = strbind( ":target:", filter, getArg( "filter-lookup" ) );
 
-        stringtok( parts, toLower( qname ), "." );
-        for( i = parts.rbegin(); i != parts.rend(); i++ )
+        stringtok( parts, toLower( qname.toString() ), "." );
+        for(auto i = parts.crbegin(); i != parts.crend(); i++ )
         {
         	dn = "dc=" + *i + "," + dn;
         }
@@ -312,7 +334,7 @@ inline bool LdapBackend::prepare()
         	m_ttl = (uint32_t) strtol( m_result["dNSTTL"][0].c_str(), &endptr, 10 );
         	if( *endptr != '\0' )
         	{
-        		L << Logger::Warning << m_myname << " Invalid time to life for " << m_qname << ": " << m_result["dNSTTL"][0] << endl;
+        		L << Logger::Warning << m_myname << " Invalid time to live for " << m_qname << ": " << m_result["dNSTTL"][0] << endl;
         		m_ttl = m_default_ttl;
         	}
         	m_result.erase( "dNSTTL" );
@@ -351,10 +373,9 @@ inline bool LdapBackend::prepare_simple()
         {
         	if( m_result.count( "associatedDomain" ) )
         	{
-        		vector<string>::iterator i;
-        		for( i = m_result["associatedDomain"].begin(); i != m_result["associatedDomain"].end(); i++ ) {
-        			if( i->size() >= m_axfrqlen && i->substr( i->size() - m_axfrqlen, m_axfrqlen ) == m_qname ) {
-        				m_adomains.push_back( *i );
+        		for(auto i = m_result["associatedDomain"].begin(); i != m_result["associatedDomain"].end(); i++ ) {
+        			if( i->size() >= m_axfrqlen && i->substr( i->size() - m_axfrqlen, m_axfrqlen ) == m_qname.toStringRootDot() /* ugh */ ) {
+				  m_adomains.push_back( DNSName(*i) );
         			}
         		}
         		m_result.erase( "associatedDomain" );
@@ -381,10 +402,9 @@ inline bool LdapBackend::prepare_strict()
         {
         	if( m_result.count( "associatedDomain" ) )
         	{
-        		vector<string>::iterator i;
-        		for( i = m_result["associatedDomain"].begin(); i != m_result["associatedDomain"].end(); i++ ) {
-        			if( i->size() >= m_axfrqlen && i->substr( i->size() - m_axfrqlen, m_axfrqlen ) == m_qname ) {
-        				m_adomains.push_back( *i );
+        		for(auto i = m_result["associatedDomain"].begin(); i != m_result["associatedDomain"].end(); i++ ) {
+        			if( i->size() >= m_axfrqlen && i->substr( i->size() - m_axfrqlen, m_axfrqlen ) == m_qname.toStringRootDot() /* ugh */ ) {
+				  m_adomains.push_back( DNSName(*i) );
         			}
         		}
         		m_result.erase( "associatedDomain" );
@@ -480,7 +500,7 @@ bool LdapBackend::get( DNSResourceRecord &rr )
 
         	di.id = 0;
         	di.serial = sd.serial;
-        	di.zone = domain;
+        	di.zone = DNSName(domain);
         	di.last_check = 0;
         	di.backend = this;
         	di.kind = DomainInfo::Master;
@@ -538,7 +558,11 @@ public:
         LdapLoader()
         {
         	BackendMakers().report( &factory );
-		L << Logger::Info << "[ldapbackend] This is the ldap backend version " VERSION " (" __DATE__ ", " __TIME__ ") reporting" << endl;
+		L << Logger::Info << "[ldapbackend] This is the ldap backend version " VERSION
+#ifndef REPRODUCIBLE
+		  << " (" __DATE__ " " __TIME__ ")"
+#endif
+		  << " reporting" << endl;
         }
 };
 

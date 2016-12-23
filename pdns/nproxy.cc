@@ -1,3 +1,27 @@
+/*
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <bitset>
 #include "dnsparser.hh"
 #include "iputils.hh"
@@ -35,7 +59,7 @@ struct NotificationInFlight
 {
   ComboAddress source;
   time_t resentTime;
-  string domain;
+  DNSName domain;
   uint16_t origID, resentID;
   int origSocket;
 };
@@ -71,7 +95,7 @@ try
   nif.origID = mdp.d_header.id;
 
 
-  if(mdp.d_header.opcode == Opcode::Query && !mdp.d_header.qr && mdp.d_answers.empty() && mdp.d_qname == "pdns.nproxy." && 
+  if(mdp.d_header.opcode == Opcode::Query && !mdp.d_header.qr && mdp.d_answers.empty() && mdp.d_qname.toString() == "pdns.nproxy." && 
      (mdp.d_qtype == QType::TXT || mdp.d_qtype ==QType::A)) {
     vector<uint8_t> packet;
     DNSPacketWriter pw(packet, mdp.d_qname, mdp.d_qtype);
@@ -97,10 +121,10 @@ try
   }
 
   if(mdp.d_header.opcode != Opcode::Notify || mdp.d_qtype != QType::SOA) {
-    syslogFmt(boost::format("Received non-notification packet for domain '%s' from external nameserver %s") % nif.domain % nif.source.toStringWithPort());
+    syslogFmt(boost::format("Received non-notification packet for domain '%s' from external nameserver %s") % nif.domain.toString() % nif.source.toStringWithPort());
     return;
   }
-  syslogFmt(boost::format("External notification received for domain '%s' from %s") % nif.domain % nif.source.toStringWithPort());  
+  syslogFmt(boost::format("External notification received for domain '%s' from %s") % nif.domain.toString() % nif.source.toStringWithPort());  
   vector<uint8_t> outpacket;
   DNSPacketWriter pw(outpacket, mdp.d_qname, mdp.d_qtype, 1, Opcode::Notify);
 
@@ -147,18 +171,14 @@ try
   
   nif=g_nifs[mdp.d_header.id];
 
-  if(!pdns_iequals(nif.domain,mdp.d_qname)) {
-    syslogFmt(boost::format("Response from inner nameserver for different domain '%s' than original notification '%s'") % mdp.d_qname % nif.domain);
+  if(nif.domain != mdp.d_qname) {
+    syslogFmt(boost::format("Response from inner nameserver for different domain '%s' than original notification '%s'") % mdp.d_qname.toString() % nif.domain.toString());
   } else {
-    struct dnsheader dh;
-    memcpy(&dh, buffer, sizeof(dh));
-    dh.id = nif.origID;
-    
     if(sendto(nif.origSocket, buffer, len, 0, (sockaddr*) &nif.source, nif.source.getSocklen()) < 0) {
       syslogFmt(boost::format("Unable to send notification response to external nameserver %s - %s") % nif.source.toStringWithPort() % stringerror());
     }
     else
-      syslogFmt(boost::format("Sent notification response to external nameserver %s for domain '%s'") % nif.source.toStringWithPort() % nif.domain);
+      syslogFmt(boost::format("Sent notification response to external nameserver %s for domain '%s'") % nif.source.toStringWithPort() % nif.domain.toString());
   }
   g_nifs.erase(mdp.d_header.id);
 
@@ -173,7 +193,7 @@ void expireOldNotifications()
   time_t limit = time(0) - 10;
   for(nifs_t::iterator iter = g_nifs.begin(); iter != g_nifs.end(); ) {
     if(iter->second.resentTime < limit) {
-      syslogFmt(boost::format("Notification for domain '%s' was sent to inner nameserver, but no response within 10 seconds") % iter->second.domain);
+      syslogFmt(boost::format("Notification for domain '%s' was sent to inner nameserver, but no response within 10 seconds") % iter->second.domain.toString());
       g_nifs.erase(iter++);
     }
     else
@@ -182,6 +202,11 @@ void expireOldNotifications()
 }
 
 void daemonize(int null_fd);
+
+void usage(po::options_description &desc) {
+  cerr<<"nproxy"<<endl;
+  cerr<<desc<<endl;
+}
 
 int main(int argc, char** argv)
 try
@@ -192,6 +217,7 @@ try
   po::options_description desc("Allowed options");
   desc.add_options()
     ("help,h", "produce help message")
+    ("version", "print the version")
     ("powerdns-address", po::value<string>(), "IP address of PowerDNS server")
     ("chroot", po::value<string>(), "chroot to this directory for additional security")
     ("setuid", po::value<int>(), "setuid to this numerical user id")
@@ -206,12 +232,18 @@ try
   po::notify(g_vm);
 
   if (g_vm.count("help")) {
-    cerr << desc << "\n";
+    usage(desc);
+    return EXIT_SUCCESS;
+  }
+
+  if (g_vm.count("version")) {
+    cerr << "nproxy " << VERSION << endl;
     return EXIT_SUCCESS;
   }
 
   if(!g_vm.count("powerdns-address")) {
-    cerr<<"Mandatory setting 'powerdns-address' unset:\n"<<desc<<endl;
+    cerr<<"Mandatory setting 'powerdns-address' unset:\n"<<endl;
+    usage(desc);
     return EXIT_FAILURE;
   }
 
@@ -272,7 +304,7 @@ try
 
   if(g_vm.count("setgid")) {
     if(setgid(g_vm["setgid"].as<int>()) < 0)
-      throw runtime_error("while changing gid to "+boost::lexical_cast<std::string>(g_vm["setgid"].as<int>()));
+      throw runtime_error("while changing gid to "+std::to_string(g_vm["setgid"].as<int>()));
     syslogFmt(boost::format("Changed gid to %d") % g_vm["setgid"].as<int>());
     if(setgroups(0, NULL) < 0)
       throw runtime_error("while dropping supplementary groups");
@@ -280,7 +312,7 @@ try
 
   if(g_vm.count("setuid")) {
     if(setuid(g_vm["setuid"].as<int>()) < 0)
-      throw runtime_error("while changing uid to "+boost::lexical_cast<std::string>(g_vm["setuid"].as<int>()));
+      throw runtime_error("while changing uid to "+std::to_string(g_vm["setuid"].as<int>()));
     syslogFmt(boost::format("Changed uid to %d") % g_vm["setuid"].as<int>());
   }
 

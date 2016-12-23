@@ -1,7 +1,7 @@
 0	multi.test.dyndns.	IN	A	3600	127.0.0.1
 0	multi.test.dyndns.	IN	A	3600	127.0.0.2
 0	multi.test.dyndns.	IN	A	3600	127.0.0.3
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='multi.test.dyndns.', qtype=ANY
 Answer:
 ;; ->>HEADER<<- opcode: UPDATE, status: NXRRSET, id: [id]

@@ -16,7 +16,9 @@ ns2.test.com.	86400	IN	NSEC	server1.test.com. A RRSIG NSEC
 server1.test.com.	86400	IN	NSEC	*.test.test.com. A RP RRSIG NSEC
 sub.test.test.com.	86400	IN	NSEC	www.test.test.com. NS RRSIG NSEC
 test.com.	86400	IN	NSEC	_underscore.test.com. NS SOA MX RRSIG NSEC DNSKEY
+toroot.test.com.	86400	IN	NSEC	urc65226.test.com. CNAME RRSIG NSEC
+urc65226.test.com.	86400	IN	NSEC	very-long-txt.test.com. RRSIG NSEC TYPE65226
 very-long-txt.test.com.	86400	IN	NSEC	within-server.test.com. TXT RRSIG NSEC
 within-server.test.com.	86400	IN	NSEC	www.test.com. CNAME RRSIG NSEC
 www.test.com.	86400	IN	NSEC	test.com. CNAME RRSIG NSEC
-www.test.test.com.	86400	IN	NSEC	very-long-txt.test.com. A RRSIG NSEC
+www.test.test.com.	86400	IN	NSEC	toroot.test.com. A RRSIG NSEC

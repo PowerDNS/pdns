@@ -1,38 +1,36 @@
 /*
-    PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2005  PowerDNS.COM BV
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as 
-    published by the Free Software Foundation
-
-    Additionally, the license of this program contains a special
-    exception which allows to distribute the program in binary form when
-    it is linked against OpenSSL.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-*/
-#ifndef LOGGER_HH
-#define LOGGER_HH
-/* (C) 2002 POWERDNS.COM BV */
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+#pragma once
 
 #include <string>
-#include <map>
 #include <ctime>
 #include <iostream>
 #include <sstream>
-#include "config.h"
 #include <syslog.h>
 #include <pthread.h>
 
 #include "namespaces.hh"
+#include "dnsname.hh"
+#include "iputils.hh"
 
 //! The Logger class can be used to log messages in various ways.
 class Logger
@@ -41,8 +39,8 @@ public:
   Logger(const string &, int facility=LOG_DAEMON); //!< pass the identification you wish to appear in the log
 
   //! The urgency of a log message
-  enum Urgency {All=99999,NTLog=12345,Alert=LOG_ALERT, Critical=LOG_CRIT, Error=LOG_ERR, Warning=LOG_WARNING,
-        	Notice=LOG_NOTICE,Info=LOG_INFO, Debug=LOG_DEBUG, None=-1};
+  enum Urgency {All=32767,Alert=LOG_ALERT, Critical=LOG_CRIT, Error=LOG_ERR, Warning=LOG_WARNING,
+                Notice=LOG_NOTICE,Info=LOG_INFO, Debug=LOG_DEBUG, None=-1};
 
   /** Log a message.
       \param msg Message you wish to log
@@ -58,6 +56,10 @@ public:
   void toConsole(Urgency);
   void setLoglevel( Urgency );
 
+  void disableSyslog(bool d) {
+    d_disableSyslog = d;
+  }
+
   //! Log to a file.
   void toFile( const string & filename );
   
@@ -69,6 +71,7 @@ public:
       L<<"This is an informational message"<<endl; // logged AGAIN at default loglevel (Info)
       \endcode
   */
+  Logger& operator<<(const char *s);
   Logger& operator<<(const string &s);   //!< log a string
   Logger& operator<<(int);   //!< log an int
   Logger& operator<<(double);   //!< log a double
@@ -76,21 +79,36 @@ public:
   Logger& operator<<(long);   //!< log an unsigned int
   Logger& operator<<(unsigned long);   //!< log an unsigned int
   Logger& operator<<(unsigned long long);   //!< log an unsigned 64 bit int
+  Logger& operator<<(const DNSName&); 
+  Logger& operator<<(const ComboAddress&); //!< log an address
   Logger& operator<<(Urgency);    //!< set the urgency, << style
 
   Logger& operator<<(std::ostream & (&)(std::ostream &)); //!< this is to recognise the endl, and to commit the log
 
 private:
-  map<pthread_t,string>d_strings;
-  map<pthread_t,Urgency> d_outputurgencies;
+  struct PerThread
+  {
+    PerThread() 
+    {
+      d_urgency=Info;
+    }
+    string d_output;
+    Urgency d_urgency;
+  };
+  static void initKey();
+  static void perThreadDestructor(void *);
+  PerThread* getPerThread();
   void open();
+
   string name;
   int flags;
   int d_facility;
-  bool opened;
   Urgency d_loglevel;
   Urgency consoleUrgency;
-  pthread_mutex_t lock;
+  bool opened;
+  bool d_disableSyslog;
+  static pthread_once_t s_once;
+  static pthread_key_t s_loggerKey;
 };
 
 extern Logger &theL(const string &pname="");
@@ -99,7 +117,4 @@ extern Logger &theL(const string &pname="");
 #define DLOG(x) x
 #else
 #define DLOG(x) ((void)0)
-#endif
-
-
 #endif

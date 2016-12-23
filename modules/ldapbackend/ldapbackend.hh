@@ -1,23 +1,25 @@
 /*
- *  PowerDNS LDAP Backend
- *  Copyright (C) 2003-2007 Norbert Sendetzky <norbert@linuxnetworks.de>
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ * originally authored by Norbert Sendetzky
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License version 2
- *  as published by the Free Software Foundation.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
  *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-
-
-
 #include <algorithm>
 #include <sstream>
 #include <utility>
@@ -36,9 +38,6 @@
 #include "powerldap.hh"
 #include "utils.hh"
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
 
 
 #ifndef LDAPBACKEND_HH
@@ -87,6 +86,10 @@ static const char* ldap_attrany[] = {
         "dNSKeyRecord",
         "dHCIDRecord",
         "sPFRecord",
+        "TYPE65534Record",
+        "EUI48Record",
+        "EUI64Record",
+        "TYPE65226Record",
         "modifyTimestamp",
         NULL
 };
@@ -103,23 +106,24 @@ class LdapBackend : public DNSBackend
         unsigned int m_axfrqlen;
         time_t m_last_modified;
         string m_myname;
-        string m_qname;
+        DNSName m_qname;
         PowerLDAP* m_pldap;
         PowerLDAP::sentry_t m_result;
         PowerLDAP::sentry_t::iterator m_attribute;
-        vector<string>::iterator m_value, m_adomain;
-        vector<string> m_adomains;
+        vector<string>::iterator m_value;
+        vector<DNSName>::iterator m_adomain;
+        vector<DNSName> m_adomains;
 
-        bool (LdapBackend::*m_list_fcnt)( const string&, int );
-        void (LdapBackend::*m_lookup_fcnt)( const QType&, const string&, DNSPacket*, int );
+        bool (LdapBackend::*m_list_fcnt)( const DNSName&, int );
+        void (LdapBackend::*m_lookup_fcnt)( const QType&, const DNSName&, DNSPacket*, int );
         bool (LdapBackend::*m_prepare_fcnt)();
 
-        bool list_simple( const string& target, int domain_id );
-        bool list_strict( const string& target, int domain_id );
+        bool list_simple( const DNSName& target, int domain_id );
+        bool list_strict( const DNSName& target, int domain_id );
 
-        void lookup_simple( const QType& qtype, const string& qdomain, DNSPacket* p, int zoneid );
-        void lookup_strict( const QType& qtype, const string& qdomain, DNSPacket* p, int zoneid );
-        void lookup_tree( const QType& qtype, const string& qdomain, DNSPacket* p, int zoneid );
+        void lookup_simple( const QType& qtype, const DNSName& qdomain, DNSPacket* p, int zoneid );
+        void lookup_strict( const QType& qtype, const DNSName& qdomain, DNSPacket* p, int zoneid );
+        void lookup_tree( const QType& qtype, const DNSName& qdomain, DNSPacket* p, int zoneid );
 
         bool prepare();
         bool prepare_simple();
@@ -132,8 +136,8 @@ public:
         LdapBackend( const string &suffix="" );
         ~LdapBackend();
 
-        bool list( const string& target, int domain_id, bool include_disabled=false );
-        void lookup( const QType& qtype, const string& qdomain, DNSPacket* p = 0, int zoneid = -1 );
+        bool list( const DNSName& target, int domain_id, bool include_disabled=false );
+        void lookup( const QType& qtype, const DNSName& qdomain, DNSPacket* p = 0, int zoneid = -1 );
         bool get( DNSResourceRecord& rr );
 };
 

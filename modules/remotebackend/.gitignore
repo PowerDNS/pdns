@@ -1,8 +1,3 @@
-test_remotebackend_http
-test_remotebackend_pipe
-test_remotebackend_unix
-test_remotebackend_json
-test_remotebackend_post
-test_remotebackend_zeromq
+*.test
 *.trs
 *.log

@@ -1,3 +1,28 @@
+/*
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ * originally authored by Norbert Sendetzky
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "powerldap.hh"
 #include "pdns/misc.hh"
 #include <sys/time.h>
@@ -264,13 +289,24 @@ const string PowerLDAP::escape( const string& str )
 {
         string a;
         string::const_iterator i;
+        char tmp[4];
 
         for( i = str.begin(); i != str.end(); i++ )
         {
-        	if( *i == '*' || *i == '\\' ) {
-        		a += '\\';
-        	}
-        	a += *i;
+            // RFC4515 3
+            if( *i == '*' ||
+                *i == '(' ||
+                *i == ')' ||
+                *i == '\\' ||
+                *i == '\0' ||
+                *i > 127)
+            {
+                sprintf(tmp,"\\%02x", (unsigned char)*i);
+
+                a += tmp;
+            }
+            else
+                a += *i;
         }
 
         return a;

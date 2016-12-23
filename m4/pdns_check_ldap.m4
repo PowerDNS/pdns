@@ -35,5 +35,5 @@ AC_DEFUN([PDNS_CHECK_LDAP],[
     [AC_DEFINE([HAVE_LDAP_SASL_BIND], 1, [Define to 1 if you have ldap_sasl_bind])]
   )
 
-  AC_SUBST([LDAP_LIBS])
+  AC_ARG_VAR([LDAP_LIBS], [linker flags for openldap])
 ])

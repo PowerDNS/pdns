@@ -1,13 +1,8 @@
 #!/bin/sh
-# two modes of operation:
-# 1) git-to-changelog auth-3.3.1.. > log.xml
-#    then edit XML and insert into pdns.xml
-# 2) git log --pretty=format:'g%h: %s' auth-3.3.1.. > log.txt
-#    then edit changelog as plain text
-#    then run git-to-changelog - < log.txt > log.xml
 
-if [ "$1" = "-" ] ; then cat ; else git log --pretty=format:'g%h: %s' "$@" ; fi | perl -pe 's/\#(\d+)/t$1/g; s/(.*)/<listitem>
-  <para>
-    $1
-  <\/para>
-<\/listitem>/;'
+if [ "$1" = "-" ]; then
+  cat
+else
+  git log --no-merges --pretty=format:'- [commit %h](https://github.com/PowerDNS/pdns/commit/%h): %s (%an)' "$@" |\
+    perl -pe 's!#([[:digit:]]+)![ticket #\1](https://github.com/PowerDNS/pdns/issues/\1)!g;'
+fi

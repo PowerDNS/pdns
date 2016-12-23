@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002  PowerDNS.COM BV
+    Copyright (C) 2002 - 2014  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -20,6 +20,9 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "utility.hh"
 #include "statbag.hh"
 #include "pdnsexception.hh"
@@ -28,23 +31,20 @@
 #include <algorithm>
 #include "arguments.hh"
 #include "lock.hh"
+#include "iputils.hh"
+
 
 #include "namespaces.hh"
 
 StatBag::StatBag()
 {
   d_doRings=false;
-  pthread_mutex_init(&d_lock,0);
 }
 
-
-
-/** this NEEDS TO HAVE THE LOCK held already! */
 void StatBag::exists(const string &key)
 {
-  if(!d_stats.count(key))
+  if(!d_keyDescrips.count(key))
     {
-      unlock(); // it's the details that count
       throw PDNSException("Trying to deposit into unknown StatBag key '"+key+"'");
     }
 }
@@ -53,14 +53,18 @@ string StatBag::directory()
 {
   string dir;
   ostringstream o;
-  lock();
-  for(map<string, unsigned int *>::const_iterator i=d_stats.begin();
+
+  for(map<string, AtomicCounter *>::const_iterator i=d_stats.begin();
       i!=d_stats.end();
       i++)
     {
       o<<i->first<<"="<<*(i->second)<<",";
     }
-  unlock();
+
+
+  for(const funcstats_t::value_type& val :  d_funcstats) {
+    o << val.first<<"="<<val.second(val.first)<<",";
+  }
   dir=o.str();
   return dir;
 }
@@ -69,75 +73,62 @@ string StatBag::directory()
 vector<string>StatBag::getEntries()
 {
   vector<string> ret;
-  lock();
-  for(map<string, unsigned int *>::const_iterator i=d_stats.begin();
+
+  for(map<string, AtomicCounter *>::const_iterator i=d_stats.begin();
       i!=d_stats.end();
       i++)
       ret.push_back(i->first);
 
-  unlock();
+  for(const funcstats_t::value_type& val :  d_funcstats) {
+    ret.push_back(val.first);
+  }
+
+
   return ret;
 
 }
 
 string StatBag::getDescrip(const string &item)
 {
-  lock();
-  string tmp=d_keyDescrips[item];
-  unlock();
-  return tmp;
+  exists(item);
+  return d_keyDescrips[item];
 }
 
 void StatBag::declare(const string &key, const string &descrip)
 {
-  lock();
-  unsigned int *i=new unsigned int(0);
+  AtomicCounter *i=new AtomicCounter(0);
   d_stats[key]=i;
   d_keyDescrips[key]=descrip;
-  unlock();
 }
 
+void StatBag::declare(const string &key, const string &descrip, StatBag::func_t func)
+{
+
+  d_funcstats[key]=func;
+  d_keyDescrips[key]=descrip;
+}
 
           
-void StatBag::set(const string &key, unsigned int value)
+void StatBag::set(const string &key, unsigned long value)
 {
-  lock();
   exists(key);
-  *d_stats[key]=value;
-
-  unlock();
+  d_stats[key]->store(value);
 }
 
-unsigned int StatBag::read(const string &key)
+unsigned long StatBag::read(const string &key)
 {
-  lock();
-
-  if(!d_stats.count(key))
-    {
-      unlock();
-      return 0;
-    }
-
-  unsigned int tmp=*d_stats[key];
-
-  unlock();
-  return tmp;
+  exists(key);
+  funcstats_t::const_iterator iter = d_funcstats.find(key);
+  if(iter != d_funcstats.end())
+    return iter->second(iter->first);
+  return *d_stats[key];
 }
 
-unsigned int StatBag::readZero(const string &key)
+unsigned long StatBag::readZero(const string &key)
 {
-  lock();
-
-  if(!d_stats.count(key))
-    {
-      unlock();
-      return 0;
-    }
-  
-  unsigned int tmp=*d_stats[key];
+  exists(key);
+  unsigned long tmp=*d_stats[key];
   d_stats[key]=0;
-
-  unlock();
   return tmp;
 }
 
@@ -156,7 +147,7 @@ string StatBag::getValueStrZero(const string &key)
   return o.str();
 }
 
-unsigned int *StatBag::getPointer(const string &key)
+AtomicCounter *StatBag::getPointer(const string &key)
 {
   exists(key);
   return d_stats[key];
@@ -164,7 +155,7 @@ unsigned int *StatBag::getPointer(const string &key)
 
 StatBag::~StatBag()
 {
-  for(map<string,unsigned int *>::const_iterator i=d_stats.begin();
+  for(map<string, AtomicCounter *>::const_iterator i=d_stats.begin();
       i!=d_stats.end();
       i++)
     {
@@ -173,75 +164,59 @@ StatBag::~StatBag()
   
 }
 
-StatRing::StatRing(unsigned int size)
+template<typename T, typename Comp>
+StatRing<T,Comp>::StatRing(unsigned int size)
 {
-  d_size=size;
-  d_items.resize(d_size);
-  d_lock=0;
-  d_pos=0;
-  d_lock=new pthread_mutex_t;
-  pthread_mutex_init(d_lock, 0);
+  d_items.set_capacity(size);
+  pthread_mutex_init(&d_lock, 0);
 }
 
-void StatRing::resize(unsigned int newsize)
+template<typename T, typename Comp>
+void StatRing<T,Comp>::account(const T& t)
 {
-  if(d_size==newsize)
-    return;
-  Lock l(d_lock);
-
-  // this is the hard part, shrink
-  if(newsize<d_size) {
-    unsigned int startpos=0;
-    if (d_pos>newsize)
-      startpos=d_pos-newsize;
-
-    vector<string>newring;
-    for(unsigned int i=startpos;i<d_pos;++i) {
-      newring.push_back(d_items[i%d_size]);
-    }
-
-    d_items=newring;
-    d_size=newring.size();
-    d_pos=min(d_pos,newsize);
-  }
-
-  if(newsize>d_size) {
-    d_size=newsize;
-    d_items.resize(d_size);
-  }
+  Lock l(&d_lock);
+  d_items.push_back(t);
 }
 
-StatRing::~StatRing()
+template<typename T, typename Comp>
+unsigned int StatRing<T,Comp>::getSize()
 {
-  // do not clean up d_lock, it is shared
+  Lock l(&d_lock);
+  return d_items.capacity();
 }
 
-void StatRing::setHelp(const string &str)
+template<typename T, typename Comp>
+void StatRing<T,Comp>::resize(unsigned int newsize)
+{
+  Lock l(&d_lock);
+  d_items.set_capacity(newsize);
+}
+
+
+template<typename T, typename Comp>
+void StatRing<T,Comp>::setHelp(const string &str)
 {
   d_help=str;
 }
 
-string StatRing::getHelp()
+template<typename T, typename Comp>
+string StatRing<T,Comp>::getHelp()
 {
   return d_help;
 }
 
-static bool popisort(const pair<string,int> &a, const pair<string,int> &b)
-{
-  return (a.second > b.second);
-}
 
-vector<pair<string,unsigned int> >StatRing::get() const
+template<typename T, typename Comp>
+vector<pair<T, unsigned int> >StatRing<T,Comp>::get() const
 {
-  Lock l(d_lock);
-  map<string,unsigned int> res;
-  for(vector<string>::const_iterator i=d_items.begin();i!=d_items.end();++i) {
-    if(!i->empty())
-      res[*i]++;
+  Lock l(&d_lock);
+  map<T,unsigned int, Comp> res;
+  for(typename boost::circular_buffer<T>::const_iterator i=d_items.begin();i!=d_items.end();++i) {
+    res[*i]++;
   }
   
-  vector<pair<string,unsigned int> > tmp;
-  for(map<string,unsigned int>::const_iterator i=res.begin();i!=res.end();++i) 
+  vector<pair<T ,unsigned int> > tmp;
+  for(typename map<T, unsigned int>::const_iterator i=res.begin();i!=res.end();++i) 
     tmp.push_back(*i);
 
   sort(tmp.begin(),tmp.end(),popisort);
@@ -251,55 +226,88 @@ vector<pair<string,unsigned int> >StatRing::get() const
 
 void StatBag::declareRing(const string &name, const string &help, unsigned int size)
 {
-  d_rings[name]=StatRing(size);
+  d_rings[name]=StatRing<string>(size);
   d_rings[name].setHelp(help);
 }
 
-vector<pair<string, unsigned int> > StatBag::getRing(const string &name)
+void StatBag::declareComboRing(const string &name, const string &help, unsigned int size)
 {
-  return d_rings[name].get();
+  d_comborings[name]=StatRing<SComboAddress>(size);
+  d_comborings[name].setHelp(help);
 }
 
-void StatRing::reset()
+
+vector<pair<string, unsigned int> > StatBag::getRing(const string &name)
 {
-  Lock l(d_lock);
-  for(vector<string>::iterator i=d_items.begin();i!=d_items.end();++i) {
-    if(!i->empty())
-      *i="";
+  if(d_rings.count(name))
+    return d_rings[name].get();
+  else {
+    typedef pair<SComboAddress, unsigned int> stor_t;
+    vector<stor_t> raw =d_comborings[name].get();
+    vector<pair<string, unsigned int> > ret;
+    for(const stor_t& stor :  raw) {
+      ret.push_back(make_pair(stor.first.ca.toString(), stor.second));
+    }
+    return ret;
   }
+    
+}
+
+template<typename T, typename Comp>
+void StatRing<T,Comp>::reset()
+{
+  Lock l(&d_lock);
+  d_items.clear();
 }
 
 void StatBag::resetRing(const string &name)
 {
-  d_rings[name].reset();
+  if(d_rings.count(name))
+    d_rings[name].reset();
+  else
+    d_comborings[name].reset();
 }
 
 void StatBag::resizeRing(const string &name, unsigned int newsize)
 {
-  d_rings[name].resize(newsize);
+  if(d_rings.count(name))
+    d_rings[name].resize(newsize);
+  else
+    d_comborings[name].resize(newsize);
 }
 
 
 unsigned int StatBag::getRingSize(const string &name)
 {
-  return d_rings[name].getSize();
+  if(d_rings.count(name))
+    return d_rings[name].getSize();
+  else
+    return d_comborings[name].getSize();
 }
-
 
 string StatBag::getRingTitle(const string &name)
 {
-  return d_rings[name].getHelp();
+  if(d_rings.count(name))
+    return d_rings[name].getHelp();
+  else 
+    return d_comborings[name].getHelp();
 }
 
 vector<string>StatBag::listRings()
 {
   vector<string> ret;
-  for(map<string,StatRing>::const_iterator i=d_rings.begin();i!=d_rings.end();++i)
+  for(map<string,StatRing<string> >::const_iterator i=d_rings.begin();i!=d_rings.end();++i)
     ret.push_back(i->first);
+  for(map<string,StatRing<SComboAddress> >::const_iterator i=d_comborings.begin();i!=d_comborings.end();++i)
+    ret.push_back(i->first);
+
   return ret;
 }
 
 bool StatBag::ringExists(const string &name)
 {
-  return d_rings.count(name);
+  return d_rings.count(name) || d_comborings.count(name);
 }
+
+template class StatRing<std::string>;
+template class StatRing<SComboAddress>;

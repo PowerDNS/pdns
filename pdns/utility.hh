@@ -1,24 +1,24 @@
 /*
-    PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002  PowerDNS.COM BV
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2
-    as published by the Free Software Foundation
-    
-    Additionally, the license of this program contains a special
-    exception which allows to distribute the program in binary form when
-    it is linked against OpenSSL.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-*/
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 // Utility class specification.
 
 #ifndef UTILITY_HH
@@ -52,7 +52,7 @@ class Semaphore
 private:
   typedef int sem_value_t;
 
-#if DARWIN || _AIX || __APPLE__
+#if defined(_AIX) || defined(__APPLE__)
   uint32_t       m_magic;
   pthread_mutex_t m_lock;
   pthread_cond_t  m_gtzero;
@@ -91,9 +91,6 @@ public:
   typedef ::pid_t pid_t;
   typedef int sock_t;
   typedef ::socklen_t socklen_t;
-
-  //! Closes a socket.
-  static int closesocket( sock_t socket );
 
   //! Connect with timeout
   // Returns:
@@ -141,14 +138,8 @@ public:
   //! Drops the program's user privileges.
   static void dropUserPrivs( int uid );
   
-  //! Sets the socket into blocking mode.
-  static bool setBlocking( Utility::sock_t socket );
-
-  //! Sets the socket into non-blocking mode.
-  static bool setNonBlocking( Utility::sock_t socket );
-  
-  //! Marks the socket to be closed on exec().
-  static bool setCloseOnExec ( Utility::sock_t socket );
+  //! Sets the socket into Bind-any mode
+  static void setBindAny ( int af, Utility::sock_t socket );
   
   //! Sleeps for a number of seconds.
   static unsigned int sleep( unsigned int seconds );
@@ -157,8 +148,7 @@ public:
   static void usleep( unsigned long usec );
 
   static time_t timegm(struct tm *tm);
-
-  static void gmtime_r(const time_t *timer, struct tm *tmbuf);
+  
 };
 
 

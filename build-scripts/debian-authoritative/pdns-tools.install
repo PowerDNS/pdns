@@ -1,0 +1,16 @@
+usr/bin/calidns
+usr/bin/dnsbulktest
+usr/bin/dnsgram
+usr/bin/dnspcap2protobuf
+usr/bin/dnsreplay
+usr/bin/dnsscan
+usr/bin/dnsscope
+usr/bin/dnstcpbench
+usr/bin/dnswasher
+usr/bin/dumresp
+usr/bin/ixplore
+usr/bin/nproxy
+usr/bin/nsec3dig
+usr/bin/pdns_notify
+usr/bin/saxfr
+usr/bin/sdig

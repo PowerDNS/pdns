@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-
-diff -u ../pdns/pdns.conf-dist <(../pdns/pdns_server --config)

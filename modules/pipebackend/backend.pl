@@ -29,11 +29,12 @@ while(<>)
 		next;
 	}
 
+	# note! the qname is what PowerDNS asks the backend. It need not be what the internet asked PowerDNS!
 	my ($type,$qname,$qclass,$qtype,$id,$ip)=split(/\t/);
 
 	if(($qtype eq "SOA" || $qtype eq "ANY") && $qname eq "example.com") {
 		print STDERR "$$ Sent SOA records\n";
-		print "DATA	$qname	$qclass	SOA	3600	-1	ahu.example.com ns1.example.com 2008080300 1800 3600 604800 3600\n";
+		print "DATA	$qname	$qclass	SOA	3600	-1	ns1.example.com ahu.example.com 2008080300 1800 3600 604800 3600\n";
 	}
 	if(($qtype eq "NS" || $qtype eq "ANY") && $qname eq "example.com") {
 		print STDERR "$$ Sent NS records\n";
@@ -53,10 +54,6 @@ while(<>)
 	elsif(($qtype eq "CNAME" || $qtype eq "ANY") && $qname eq "www.example.com") {
 		print STDERR "$$ Sent CNAME records\n";
 		print "DATA	$qname	$qclass	CNAME	3600	-1	webserver.example.com\n";
-	}
-	elsif($qtype eq "MBOXFW") {
-		print STDERR "$$ Sent MBOXFW records\n";
-		print "DATA	$qname	$qclass	MBOXFW	3600	-1	powerdns\@example.com\n";
 	}
 
 

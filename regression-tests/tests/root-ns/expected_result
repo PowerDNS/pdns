@@ -1,0 +1,5 @@
+0	wtest.com.	IN	NS	3600	.
+0	wtest.com.	IN	NS	3600	ns1.wtest.com.
+2	ns1.wtest.com.	IN	A	3600	2.3.4.5
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='wtest.com.', qtype=NS

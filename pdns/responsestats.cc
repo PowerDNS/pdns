@@ -1,13 +1,15 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "responsestats.hh"
 #include <limits>
 #include "namespaces.hh"
 #include "logger.hh"
-#include "boost/foreach.hpp"
+
 #include "dnsparser.hh"
 
-ResponseStats::ResponseStats()
+ResponseStats::ResponseStats() :   d_qtypecounters(new std::atomic<unsigned long>[65536])
 {
-  d_qtypecounters.resize(std::numeric_limits<uint16_t>::max()+1);
   d_sizecounters.push_back(make_pair(20,0));
   d_sizecounters.push_back(make_pair(40,0));
   d_sizecounters.push_back(make_pair(60,0));
@@ -18,6 +20,8 @@ ResponseStats::ResponseStats()
     d_sizecounters.push_back(make_pair(n,0));
   d_sizecounters.push_back(make_pair(std::numeric_limits<uint16_t>::max(),0));
 }
+
+ResponseStats g_rs;
 
 static bool pcomp(const pair<uint16_t, uint64_t>&a , const pair<uint16_t, uint64_t>&b)
 {
@@ -38,7 +42,7 @@ map<uint16_t, uint64_t> ResponseStats::getQTypeResponseCounts()
 {
   map<uint16_t, uint64_t> ret;
   uint64_t count;
-  for(unsigned int i = 0 ; i < d_qtypecounters.size() ; ++i) {
+  for(unsigned int i = 0 ; i < 65535 ; ++i) {
     count= d_qtypecounters[i];
     if(count)
       ret[i]=count;
@@ -63,7 +67,7 @@ string ResponseStats::getQTypeReport()
   qtypenums_t qtypenums = getQTypeResponseCounts();
   ostringstream os;
   boost::format fmt("%s\t%d\n");
-  BOOST_FOREACH(const qtypenums_t::value_type& val, qtypenums) {
+  for(const qtypenums_t::value_type& val :  qtypenums) {
     os << (fmt %DNSRecordContent::NumberToType( val.first) % val.second).str();
   }
   return os.str();

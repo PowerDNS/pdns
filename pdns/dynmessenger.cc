@@ -1,26 +1,30 @@
 /*
-    PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002 - 2008  PowerDNS.COM BV
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2
-    as published by the Free Software Foundation
-
-    Additionally, the license of this program contains a special
-    exception which allows to distribute the program in binary form when
-    it is linked against OpenSSL.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-*/
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "dynmessenger.hh"
 #include <cstdio>
+#include "utility.hh"
 #include <cstdlib>
 #include <cstring>
 #include <cerrno>
@@ -28,37 +32,18 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-DynMessenger::DynMessenger(const string &localdir,
-    const string &fname,
+DynMessenger::DynMessenger(const string &fname,
     int timeout_sec,
     int timeout_usec)
 {
   d_s=socket(AF_UNIX,SOCK_STREAM,0);
-  Utility::setCloseOnExec(d_s);
+  setCloseOnExec(d_s);
   
   if(d_s<0) {
     throw PDNSException(string("socket")+strerror(errno));
   }
 
-  string localname=localdir;
-
-  localname+="/lsockXXXXXX";
-  if (makeUNsockaddr(localname, &d_local))
-    throw PDNSException("Unable to bind to local temporary file, path '"+localname+"' is not a valid UNIX socket path.");
-
-  if(mkstemp(d_local.sun_path)<0)
-    throw PDNSException("Unable to generate local temporary file: "+stringerror());
-  
-  unlink(d_local.sun_path);
-
   try {
-    if(bind(d_s, (sockaddr*)&d_local,sizeof(d_local))<0)
-      throw PDNSException("Unable to bind to local temporary file: "+stringerror());
-
-    // make sure that pdns can reply!
-    if(chmod(d_local.sun_path,0666)<0)
-      throw PDNSException("Unable to chmod local temporary file: "+stringerror());
-
     if(makeUNsockaddr(fname, &d_remote))
       throw PDNSException("Unable to connect to remote '"+fname+"': Path is not a valid UNIX socket path.");
 
@@ -82,7 +67,6 @@ DynMessenger::DynMessenger(const string &localdir,
   } catch(...) {
     close(d_s);
     d_s=-1;
-    unlink(d_local.sun_path);
     throw;
   }
 }
@@ -92,9 +76,8 @@ DynMessenger::DynMessenger(const ComboAddress& remote,
     int timeout_sec,
     int timeout_usec)
 {
-  *d_local.sun_path=0;
   d_s=socket(AF_INET, SOCK_STREAM,0);
-  Utility::setCloseOnExec(d_s);
+  setCloseOnExec(d_s);
  
   if(d_s<0) {
     throw PDNSException(string("socket")+strerror(errno));
@@ -131,17 +114,12 @@ DynMessenger::~DynMessenger()
 {
   if (d_s > 0)
     close(d_s);
-  if(*d_local.sun_path && unlink(d_local.sun_path)<0)
-    cerr<<"Warning: unable to unlink local unix domain endpoint: "<<strerror(errno)<<endl;
 }   
 
 int DynMessenger::send(const string &msg) const
 {
   try {
-    if(writen2(d_s, msg+"\n") < 0) { // sue me
-      perror("sendto");
-      return -1;
-    }
+    writen2(d_s, msg+"\n");
     return 0;
   } catch(std::runtime_error& e) {
     if (errno == EAGAIN)

@@ -20,10 +20,13 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "rcpgenerator.hh"
 #include "dnsparser.hh"
 #include "misc.hh"
-#include <boost/lexical_cast.hpp>
+#include "utility.hh"
 #include <boost/algorithm/string.hpp>
 #include <iostream>
 #include "base32.hh"
@@ -37,6 +40,8 @@ RecordTextReader::RecordTextReader(const string& str, const string& zone) : d_st
 void RecordTextReader::xfr48BitInt(uint64_t &val)
 {
   xfr64BitInt(val);
+  if (val > 281474976710655LL)
+    throw RecordTextException("Overflow reading 48 bit integer from record content"); // fixme improve
 }
 
 void RecordTextReader::xfr64BitInt(uint64_t &val)
@@ -44,13 +49,12 @@ void RecordTextReader::xfr64BitInt(uint64_t &val)
   skipSpaces();
 
   if(!isdigit(d_string.at(d_pos)))
-    throw RecordTextException("expected digits at position "+lexical_cast<string>(d_pos)+" in '"+d_string+"'");
+    throw RecordTextException("expected digits at position "+std::to_string(d_pos)+" in '"+d_string+"'");
 
-  char *endptr;
-  unsigned long ret=strtoull(d_string.c_str() + d_pos, &endptr, 10);
-  val=ret;
+  size_t pos;
+  val=std::stoull(d_string.substr(d_pos), &pos);
   
-  d_pos = endptr - d_string.c_str();
+  d_pos += pos;
 }
 
 
@@ -59,14 +63,12 @@ void RecordTextReader::xfr32BitInt(uint32_t &val)
   skipSpaces();
 
   if(!isdigit(d_string.at(d_pos)))
-    throw RecordTextException("expected digits at position "+lexical_cast<string>(d_pos)+" in '"+d_string+"'");
+    throw RecordTextException("expected digits at position "+std::to_string(d_pos)+" in '"+d_string+"'");
 
-  char *endptr;
-  unsigned long ret=pdns_strtoui(d_string.c_str() + d_pos, &endptr, 10);
-  if (ret == UINT_MAX && errno == ERANGE) throw RecordTextException("serial number too large in '"+d_string+"'");
-  val=ret;
-  
-  d_pos = endptr - d_string.c_str();
+  size_t pos;
+  val=pdns_stou(d_string.c_str()+d_pos, &pos);
+ 
+  d_pos += pos;
 }
 
 void RecordTextReader::xfrTime(uint32_t &val)
@@ -74,10 +76,14 @@ void RecordTextReader::xfrTime(uint32_t &val)
   struct tm tm;
   memset(&tm, 0, sizeof(tm));
   
-  string tmp;
-  xfrLabel(tmp); // ends on number, so this works 
+  uint64_t itmp;
+  xfr64BitInt(itmp);
 
-  sscanf(tmp.c_str(), "%04d%02d%02d" "%02d%02d%02d", 
+  ostringstream tmp;
+
+  tmp<<itmp;
+
+  sscanf(tmp.str().c_str(), "%04d%02d%02d" "%02d%02d%02d", 
          &tm.tm_year, &tm.tm_mon, &tm.tm_mday, 
          &tm.tm_hour, &tm.tm_min, &tm.tm_sec);
 
@@ -91,7 +97,7 @@ void RecordTextReader::xfrIP(uint32_t &val)
   skipSpaces();
 
   if(!isdigit(d_string.at(d_pos)))
-    throw RecordTextException("while parsing IP address, expected digits at position "+lexical_cast<string>(d_pos)+" in '"+d_string+"'");
+    throw RecordTextException("while parsing IP address, expected digits at position "+std::to_string(d_pos)+" in '"+d_string+"'");
 
   uint32_t octet=0;
   val=0;
@@ -142,7 +148,7 @@ void RecordTextReader::xfrIP6(std::string &val)
     len++);
 
   if(!len)
-    throw RecordTextException("while parsing IPv6 address, expected xdigits at position "+lexical_cast<string>(d_pos)+" in '"+d_string+"'");
+    throw RecordTextException("while parsing IPv6 address, expected xdigits at position "+std::to_string(d_pos)+" in '"+d_string+"'");
 
   // end of value is here, try parse as IPv6
   string address=d_string.substr(d_pos, len);
@@ -180,11 +186,11 @@ void RecordTextReader::xfr8BitInt(uint8_t &val)
 }
 
 // this code should leave all the escapes around 
-void RecordTextReader::xfrLabel(string& val, bool) 
+void RecordTextReader::xfrName(DNSName& val, bool, bool)
 {
   skipSpaces();
-  val.clear();
-  val.reserve(d_end - d_pos);
+  string sval;
+  sval.reserve(d_end - d_pos);
 
   const char* strptr=d_string.c_str();
   string::size_type begin_pos = d_pos;
@@ -194,24 +200,25 @@ void RecordTextReader::xfrLabel(string& val, bool)
       
     d_pos++;
   }
-  val.append(strptr+begin_pos, strptr+d_pos);      
+  sval.append(strptr+begin_pos, strptr+d_pos);      
 
-  if(val.empty())
-    val=d_zone;
+  if(sval.empty())
+    sval=d_zone;
   else if(!d_zone.empty()) {
-    char last=val[val.size()-1];
+    char last=sval[sval.size()-1];
    
     if(last =='.')
-      val.resize(val.size()-1);
+      sval.resize(sval.size()-1);
     else if(last != '.' && !isdigit(last)) // don't add zone to IP address
-      val+="."+d_zone;
+      sval+="."+d_zone;
   }
+  val = DNSName(sval);
 }
 
-static bool isbase64(char c)
+static bool isbase64(char c, bool acceptspace)
 {
   if(dns_isspace(c))
-    return true;
+    return acceptspace;
   if(c >= '0' && c <= '9')
     return true;
   if(c >= 'a' && c <= 'z') 
@@ -223,12 +230,29 @@ static bool isbase64(char c)
   return false;
 }
 
+void RecordTextReader::xfrBlobNoSpaces(string& val, int len) {
+  skipSpaces();
+  int pos=(int)d_pos;
+  const char* strptr=d_string.c_str();
+  while(d_pos < d_end && isbase64(strptr[d_pos], false)) 
+    d_pos++;
+
+  string tmp;
+  tmp.assign(d_string.c_str()+pos, d_string.c_str() + d_pos);
+  boost::erase_all(tmp," ");
+  val.clear();
+  B64Decode(tmp, val);
+  
+  if (len>-1 && val.size() != static_cast<size_t>(len))
+    throw RecordTextException("Record length "+std::to_string(val.size()) + " does not match expected length '"+std::to_string(len));
+}
+
 void RecordTextReader::xfrBlob(string& val, int)
 {
   skipSpaces();
   int pos=(int)d_pos;
   const char* strptr=d_string.c_str();
-  while(d_pos < d_end && isbase64(strptr[d_pos]))
+  while(d_pos < d_end && isbase64(strptr[d_pos], true))
     d_pos++;
   
   string tmp;
@@ -248,7 +272,7 @@ static inline uint8_t hextodec(uint8_t val)
   else if(val >= 'a' && val<='f')
     return 10+(val-'a');
   else
-    throw RecordTextException("Unknown hexadecimal character '"+lexical_cast<string>(val)+"'");
+    throw RecordTextException("Unknown hexadecimal character '"+std::to_string(val)+"'");
 }
 
 
@@ -309,7 +333,7 @@ void RecordTextWriter::xfrBase32HexBlob(const string& val)
 }
 
 
-void RecordTextReader::xfrText(string& val, bool multi)
+void RecordTextReader::xfrText(string& val, bool multi, bool lenField)
 {
   val.clear();
   val.reserve(d_end - d_pos);
@@ -330,7 +354,7 @@ void RecordTextReader::xfrText(string& val, bool multi)
         d_pos = d_end;
         break;
       }
-      throw RecordTextException("Data field in DNS should start with quote (\") at position "+lexical_cast<string>(d_pos)+" of '"+d_string+"'");
+      throw RecordTextException("Data field in DNS should start with quote (\") at position "+std::to_string(d_pos)+" of '"+d_string+"'");
     }
     val.append(1, '"');
     while(++d_pos < d_end && d_string[d_pos]!='"') {
@@ -345,6 +369,21 @@ void RecordTextReader::xfrText(string& val, bool multi)
     d_pos++;
     if(!multi)
       break;
+  }
+}
+
+void RecordTextReader::xfrUnquotedText(string& val, bool lenField)
+{
+  val.clear();
+  val.reserve(d_end - d_pos);
+
+  if(!val.empty())
+    val.append(1, ' ');
+
+  skipSpaces();
+  val.append(1, d_string[d_pos]);
+  while(++d_pos < d_end && d_string[d_pos] != ' '){
+    val.append(1, d_string[d_pos]);
   }
 }
 
@@ -372,16 +411,17 @@ void RecordTextReader::skipSpaces()
 }
 
 
-RecordTextWriter::RecordTextWriter(string& str) : d_string(str)
+RecordTextWriter::RecordTextWriter(string& str, bool noDot) : d_string(str)
 {
   d_string.clear();
+  d_nodot=noDot;
 }
 
 void RecordTextWriter::xfr48BitInt(const uint64_t& val)
 {
   if(!d_string.empty())
     d_string.append(1,' ');
-  d_string+=lexical_cast<string>(val);
+  d_string+=std::to_string(val);
 }
 
 
@@ -389,7 +429,7 @@ void RecordTextWriter::xfr32BitInt(const uint32_t& val)
 {
   if(!d_string.empty())
     d_string.append(1,' ');
-  d_string+=lexical_cast<string>(val);
+  d_string+=std::to_string(val);
 }
 
 void RecordTextWriter::xfrType(const uint16_t& val)
@@ -455,7 +495,7 @@ void RecordTextWriter::xfrTime(const uint32_t& val)
   
   struct tm tm;
   time_t time=val; // Y2038 bug!
-  Utility::gmtime_r(&time, &tm);
+  gmtime_r(&time, &tm);
 
   char tmp[16];
   snprintf(tmp,sizeof(tmp)-1, "%04d%02d%02d" "%02d%02d%02d", 
@@ -477,12 +517,23 @@ void RecordTextWriter::xfr8BitInt(const uint8_t& val)
 }
 
 // should not mess with the escapes
-void RecordTextWriter::xfrLabel(const string& val, bool)
+void RecordTextWriter::xfrName(const DNSName& val, bool, bool noDot)
 {
   if(!d_string.empty())
     d_string.append(1,' ');
   
-  d_string+=val;
+  if(d_nodot) {
+    d_string+=val.toStringRootDot();
+  }
+  else
+  {
+    d_string+=val.toString();
+  }
+}
+
+void RecordTextWriter::xfrBlobNoSpaces(const string& val, int size)
+{
+  xfrBlob(val, size);
 }
 
 void RecordTextWriter::xfrBlob(const string& val, int)
@@ -511,7 +562,7 @@ void RecordTextWriter::xfrHexBlob(const string& val, bool)
   }
 }
 
-void RecordTextWriter::xfrText(const string& val, bool multi)
+void RecordTextWriter::xfrText(const string& val, bool multi, bool lenField)
 {
   if(!d_string.empty())
     d_string.append(1,' ');
@@ -519,6 +570,12 @@ void RecordTextWriter::xfrText(const string& val, bool multi)
   d_string.append(val);
 }
 
+void RecordTextWriter::xfrUnquotedText(const string& val, bool lenField)
+{
+  if(!d_string.empty())
+    d_string.append(1,' ');
+  d_string.append(val);
+}
 
 #ifdef TESTING
 
@@ -536,7 +593,7 @@ try
   rtr.xfrText(flags);
   rtr.xfrText(services);
   rtr.xfrText(regexp);
-  rtr.xfrLabel(replacement);
+  rtr.xfrName(replacement);
 
   cout<<"order: "<<order<<", pref: "<<pref<<"\n";
   cout<<"flags: \""<<flags<<"\", services: \""<<services<<"\", regexp: \""<<regexp<<"\", replacement: "<<replacement<<"\n";
@@ -549,7 +606,7 @@ try
   rtw.xfrText(flags);
   rtw.xfrText(services);
   rtw.xfrText(regexp);
-  rtw.xfrLabel(replacement);
+  rtw.xfrName(replacement);
 
   cout<<"Regenerated: '"<<out<<"'\n";
   

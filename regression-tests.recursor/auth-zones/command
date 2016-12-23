@@ -1,0 +1,7 @@
+cleandig host1.auth-zone.example.net. A | sed 's/\(.*\tIN\t[A-Z0-9]\+\t\)\([0-9]\+\)/\13600/'
+cleandig host1.auth-zone.example.net. AAAA | sed 's/\(.*\tIN\t[A-Z0-9]\+\t\)\([0-9]\+\)/\13600/'
+cleandig host2.auth-zone.example.net. A | sed 's/\(.*\tIN\t[A-Z0-9]\+\t\)\([0-9]\+\)/\13600/'
+cleandig host3.auth-zone.example.net. A | sed 's/\(.*\tIN\t[A-Z0-9]\+\t\)\([0-9]\+\)/\13600/'
+cleandig you-are.wild.auth-zone.example.net. TXT | sed 's/\(.*\tIN\t[A-Z0-9]\+\t\)\([0-9]\+\)/\13600/'
+# Non-existing QTYPE at the apex
+cleandig auth-zone.example.net. TXT | sed 's/\(.*\tIN\t[A-Z0-9]\+\t\)\([0-9]\+\)/\13600/'

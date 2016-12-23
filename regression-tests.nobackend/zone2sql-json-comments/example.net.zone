@@ -1,0 +1,9 @@
+$ORIGIN example.net
+$TTL 3600
+
+@ IN SOA ns1.example.net. hostmaster.example.net. 1 1 1 1 1 ; This comment is ignored
+
+@ IN NS ns1.example.net ; json={"comment": "Some NS record"}
+@ IN NS ns2.example.net ; json={"comment": "This one is disabled", "disabled": true}
+
+ns1 IN A 127.0.0.1 ; json={"disabled": true}

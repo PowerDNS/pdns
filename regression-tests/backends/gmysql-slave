@@ -25,25 +25,27 @@ __EOF__
 		echo "gmysql-dnssec" >> pdns-gmysql2.conf
 	fi
 
-	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | tac)
+	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | perl -e 'print reverse <STDIN>')
 	do
 		mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" \
 			"$GMYSQL2DB" -e "INSERT INTO domains (name, type, master) VALUES('$zone','SLAVE','127.0.0.1:$port')"
+		if [ "$zone" = "tsig.com" ]; then
+			$PDNSUTIL --config-dir=. --config-name=gmysql2 import-tsig-key test $ALGORITHM $KEY
+			$PDNSUTIL --config-dir=. --config-name=gmysql2 activate-tsig-key tsig.com test slave
+		fi
+		if [ "$zone" = "stest.com" ]; then
+			if [[ $skipreasons != *nolua* ]]; then
+				$PDNSUTIL --config-dir=. --config-name=gmysql2 set-meta stest.com AXFR-SOURCE 127.0.0.2
+			fi
+		fi
 	done
-
-	../pdns/pdnssec --config-dir=. --config-name=gmysql2 import-tsig-key test $ALGORITHM $KEY
-	../pdns/pdnssec --config-dir=. --config-name=gmysql2 activate-tsig-key tsig.com test slave
-	if [[ $skipreasons != *nolua* ]]
-	then
-		../pdns/pdnssec --config-dir=. --config-name=gmysql2 set-meta stest.com AXFR-SOURCE 127.0.0.2
-	fi
 
 	port=$((port+100))
 
 	$RUNWRAPPER $PDNS2 --daemon=no --local-port=$port --config-dir=. \
 		--config-name=gmysql2 --socket-dir=./ --no-shuffle \
-		--send-root-referral --slave --retrieval-threads=4 \
-		--slave-cycle-interval=300 --experimental-dname-processing &
+		--slave --retrieval-threads=4 \
+		--slave-cycle-interval=300 --dname-processing &
 
 	echo 'waiting for zones to be slaved'
 	loopcount=0

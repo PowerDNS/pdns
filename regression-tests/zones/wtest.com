@@ -7,13 +7,12 @@ $ORIGIN wtest.com.
 			1D ; default_ttl
 			)
 
+@			IN	NS	.
 @			IN	NS	ns1
-@			IN	NS	ns2
 @			IN	MX	10	smtp-servers.example.com.
 @			IN	MX	15	smtp-servers
 @			IN	A	9.9.9.9
 ns1			IN	A	2.3.4.5
-ns2			IN	A	5.6.7.8
 *			IN	CNAME	server1
 secure			IN	MX	10 server1
 server1			IN	A	1.2.3.4

@@ -1,7 +1,7 @@
 $TTL 120
 $ORIGIN example.com.
 @	100000	IN	SOA	ns1.example.com.	ahu.example.com. (
-			2000081501
+			2847484148
 			8H ; refresh
 			2H ; retry
 			1W ; expire
@@ -86,7 +86,9 @@ smtp1			IN	CNAME	outpost
 ;
 external-mail		IN	MX	25	server1.test.com.
 ;
-text			IN	TXT	"Hi, this is some text"
+text			IN	TXT	(  
+ "Hi, this is some text"   
+ )
 multitext			IN	TXT	"text part one" "text part two" "text part three"
 escapedtext			IN	TXT	"begin" "the \"middle\" p\\art" "the end"
 text0			IN	TXT	"k=rsa; p=one"
@@ -20185,3 +20187,7 @@ double			IN	A	192.168.5.1
 
 host-0          IN   EUI48      00-50-56-9b-00-e7
 host-1          IN   EUI64      00-50-56-9b-00-e7-7e-57
+;
+rhs-at-expansion	IN   CNAME      @
+;
+google-alias		IN 	ALIAS 	google-public-dns-a.google.com.

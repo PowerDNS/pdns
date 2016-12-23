@@ -1,25 +1,29 @@
 AC_PREREQ([2.61])
 
-dnl The following lines may be patched by set-version-auth.
-AC_INIT([pdns], [git])
-dnl AC_SUBST([DIST_HOST], [TO_BE_PATCHED])
-dnl End patch area.
+AC_INIT([pdns], m4_esyscmd([build-aux/gen-version]))
 
 AC_CONFIG_SRCDIR([pdns/receiver.cc])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_AUX_DIR([build-aux])
 
-AM_INIT_AUTOMAKE([foreign dist-bzip2 no-dist-gzip tar-ustar -Wno-portability subdir-objects 1.11])
+AC_SUBST([pdns_configure_args], ["$ac_configure_args"])
+AC_DEFINE_UNQUOTED([PDNS_CONFIG_ARGS],
+  ["$pdns_configure_args"],
+  [pdns configure arguments]
+)
+
+AM_INIT_AUTOMAKE([foreign dist-bzip2 no-dist-gzip tar-ustar -Wno-portability subdir-objects parallel-tests 1.11])
 AM_SILENT_RULES([yes])
 
 AC_CANONICAL_HOST
+: ${CFLAGS="-Wall -g -O2"}
 : ${CXXFLAGS="-Wall -g -O2"}
 
 AC_PROG_CC
 AM_PROG_CC_C_O
-AC_PROG_YACC
-AM_PROG_LEX
+PDNS_CHECK_BISON
+PDNS_CHECK_FLEX
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 
@@ -30,30 +34,44 @@ AS_IF([test "x$CXX" = "xno" || test "x$CXX:x$GXX" = "xg++:x"],
 
 AC_LANG([C++])
 
-AC_CC_PIE
-AC_CC_STACK_PROTECTOR
-AC_CC_PARAM_SSP_BUFFER_SIZE([4])
-AC_CC_D_FORTIFY_SOURCE
+AC_DEFINE([_GNU_SOURCE], [1],
+  [Define _GNU_SOURCE so that we get all necessary prototypes]
+)
 
-AC_CHECK_FUNC([socket], [], [
- AC_CHECK_LIB([socket], [socket], [LIBS="-lsocket $LIBS"])
+# Warn when pkg.m4 is missing
+m4_pattern_forbid([^_?PKG_[A-Z_]+$], [*** pkg.m4 missing, please install pkg-config])
+
+PDNS_WITH_LUAJIT
+AS_IF([test "x$with_luajit" = "xno"], [
+  PDNS_WITH_LUA
+])
+PDNS_CHECK_LUA_HPP
+
+AX_CXX_COMPILE_STDCXX_11
+
+AC_MSG_CHECKING([whether we will enable compiler security checks])
+AC_ARG_ENABLE([hardening],
+  [AS_HELP_STRING([--disable-hardening], [disable compiler security checks @<:@default=no@:>@])],
+  [enable_hardening=$enableval],
+  [enable_hardening=yes]
+)
+AC_MSG_RESULT([$enable_hardening])
+
+AS_IF([test "x$enable_hardening" != "xno"], [
+  AC_CC_PIE
+  AC_CC_STACK_PROTECTOR
+  AC_CC_PARAM_SSP_BUFFER_SIZE([4])
+  AC_CC_D_FORTIFY_SOURCE
+  AC_LD_RELRO
 ])
 
-AC_CHECK_FUNC([gethostent], [], [
- AC_CHECK_LIB([nsl], [gethostent], [LIBS="-lnsl $LIBS"])
-])
+PDNS_CHECK_NETWORK_LIBS
 
-m4_ifndef([LT_INIT],[
-AC_PROG_LIBTOOL([disable-static])
-],[
-LT_INIT([disable-static])
-])
+LT_PREREQ([2.2.2])
+LT_INIT([disable-static dlopen])
 
-AC_LD_RELRO
 
 MC_TM_GMTOFF
-
-AM_CONDITIONAL([RELEASE_BUILD], [test "$PACKAGE_VERSION" != "git"])
 
 # Define full_libdir to be the fully expanded (${exec_prefix}, etc.)
 # "system" library path.
@@ -73,185 +91,77 @@ AC_CHECK_HEADERS(
 	[have_mmap=no]
 )
 
-PDNS_CHECK_RAGEL
-AC_CHECK_PROG([ASCIIDOC], [asciidoc], [asciidoc])
+PDNS_ENABLE_BOTAN
+PDNS_CHECK_LIBSODIUM
+PDNS_CHECK_LIBCRYPTO([
+],[
+   AC_MSG_ERROR([OpenSSL/libcrypto not found])
+  ]
+)
+PDNS_CHECK_LIBCRYPTO_ECDSA
 
-PDNS_WITH_LUA
+PDNS_CHECK_RAGEL
+PDNS_CHECK_CLOCK_GETTIME
 
 BOOST_REQUIRE([1.35])
-BOOST_FOREACH
+# Boost accumulators, as used by dnsbulktest and dnstcpbench, need 1.48+
+# to be compatible with C++11
+AM_CONDITIONAL([HAVE_BOOST_GE_148], [test "$boost_major_version" -ge 148])
+
 BOOST_PROGRAM_OPTIONS([mt])
-BOOST_SERIALIZATION([mt])
-
+AS_IF([test "$boost_cv_lib_program_options" = "no"], [
+  AC_MSG_ERROR([Boost Program Options library not found])
+])
 PDNS_ENABLE_UNIT_TESTS
+PDNS_ENABLE_REPRODUCIBLE
 
-dnl Allow user to require SQLite3
-AC_MSG_CHECKING([whether user requires sqlite3])
-AC_ARG_WITH([sqlite3],
-  [AS_HELP_STRING([--with-sqlite3],[include sqlite3 driver @<:@default=no@:>@])],
-  [WITH_SQLITE3=$withval],
-  [WITH_SQLITE3=no]
-)
-AC_MSG_RESULT([$WITH_SQLITE3])
-SQLITE3PC=sqlite3
-if test "$WITH_SQLITE3" != "no"; then
-  needsqlite3=yes
-  if test "$WITH_SQLITE3" != "yes"; then
-    SQLITE3PC=$WITH_SQLITE3
-  fi
-fi
+PDNS_WITH_SQLITE3
 
-dnl Checks for typedefs, structures, and compiler characteristics.
-AC_TYPE_SIZE_T
+PDNS_CHECK_PANDOC
+PDNS_FROM_GIT
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS([strcasestr])
+AC_CHECK_FUNCS_ONCE([strcasestr localtime_r recvmmsg])
 
-# Check for libdl
-my_save_LIBS="$LIBS"
-LIBS=""
-AC_CHECK_LIB(dl,dlopen)
-LIBDL=$LIBS
-LIBS="$my_save_LIBS"
-AC_SUBST(LIBDL)
+AM_CONDITIONAL([HAVE_RECVMMSG], [test "x$ac_cv_func_recvmmsg" = "xyes"])
 
-AC_MSG_CHECKING([for RTLD_NOW]);
-ac_save_LIBS="$LIBS"
-LIBS="$LIBS $LIBDL"
-AC_LINK_IFELSE(
-  [AC_LANG_PROGRAM([[#include <dlfcn.h>]],
-    [[(void) dlopen("",RTLD_NOW);]])],
-  [has_RTLD_NOW=yes],
-  [has_RTLD_NOW=no])
-AC_MSG_RESULT([$has_RTLD_NOW])
-if test "$has_RTLD_NOW" = "no"; then
-  AC_DEFINE(NEED_RTLD_NOW,,[If host OS misses RTLD_NOW])
-fi
-LIBS=$ac_save_LIBS
+AS_IF([test "x$lt_cv_dlopen" = "xno"],
+  [AC_MSG_ERROR([Your system does not support dlopen])]
+)
 
-# Check for libcrypt
+AC_SUBST([LIBDL], [$lt_cv_dlopen_libs])
 
-my_save_LIBS="$LIBS"
-LIBS=""
-AC_CHECK_LIB(crypt, crypt)
-LIBCRYPT=$LIBS
-LIBS="$my_save_LIBS"
-AC_SUBST(LIBCRYPT)
-
-DYNLINKFLAGS=""
-THREADFLAGS=""
-
-AM_CONDITIONAL([OS_MACOSX], false)
-case "$host_os" in
-solaris2.10)
-  AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
-  LIBS="-lposix4 -lresolv -lnsl -lsocket -lpthread -lrt $LIBS"
-  CXXFLAGS="-D_REENTRANT $CXXFLAGS"
-  ;;
-
-solaris2.8 | solaris2.9 )
-  AC_DEFINE(NEED_POSIX_TYPEDEF,,[If POSIX typedefs need to be defined])
-  AC_DEFINE(NEED_INET_NTOP_PROTO,,[If your OS is so broken that it needs an additional prototype])
-  AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
-  LIBS="-lposix4 -lresolv -lnsl -lsocket -lpthread $LIBS"
-  CXXFLAGS="-D_REENTRANT $CXXFLAGS"
-  ;;
-solaris2.6 | solaris2.7)
-  AC_DEFINE(NEED_POSIX_TYPEDEF,,[If POSIX typedefs need to be defined])
-  AC_DEFINE(NEED_INET_NTOP_PROTO,,[If your OS is so broken that it needs an additional prototype])
-  LIBS="-lposix4 -lresolv -lnsl -lsocket -lpthread $LIBS"
-  CXXFLAGS="-D_REENTRANT $CXXFLAGS"
-  ;;
-linux*)
-  AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
-  DYNLINKFLAGS="-rdynamic"
-  THREADFLAGS="-pthread"
-  CXXFLAGS="-D_GNU_SOURCE $CXXFLAGS"
-  ;;
-darwin*)
-  AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
-  DYNLINKFLAGS="-rdynamic"
-  CXXFLAGS="-D__APPLE_USE_RFC_3542 $CXXFLAGS"
-  AM_CONDITIONAL([OS_MACOSX], true)
-  ;;
-*)
-  AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
-  DYNLINKFLAGS="-rdynamic"
-  LDFLAGS="-pthread $LDFLAGS"
-  CXXFLAGS="-pthread $CXXFLAGS"
-  ;;
-esac
-
-AC_SUBST(THREADFLAGS)
-AC_SUBST(DYNLINKFLAGS)
-
+PDNS_CHECK_OS
 PDNS_ENABLE_VERBOSE_LOGGING
-PDNS_WITH_SYSTEM_POLARSSL
-PDNS_ENABLE_BOTAN
 PDNS_ENABLE_PKCS11
-PDNS_WITH_CRYPTOPP
-PDNS_ENABLE_REMOTEBACKEND_ZEROMQ
+PDNS_ENABLE_GSS_TSIG
 
-AC_MSG_CHECKING([whether we will be building static binaries])
-
-AC_ARG_ENABLE([static-binaries],
-  [AS_HELP_STRING([--enable-static-binaries],[build static binaries @<:@default=no@:>@])],
-  [static=$enableval],
-  [static=no],
-)
-AC_MSG_RESULT([$static])
-AM_CONDITIONAL([ALLSTATIC], [test "x$static" != "xno"])
-AS_IF([test "x$static" != "xno"],
-  [LDFLAGS="-all-static $LDFLAGS"]
+AC_SUBST([socketdir])
+socketdir="/var/run"
+AC_ARG_WITH([socketdir],
+  [AS_HELP_STRING([--with-socketdir], [where the controlsocket lives @<:@default=/var/run@:>@])],
+  [socketdir="$withval"]
 )
 
-modules="bind gmysql geo random"
+modules="bind gmysql random"
 AC_ARG_WITH([modules],
-  [AS_HELP_STRING([--with-modules],[which backends to compile with @<:@default=bind gmysql geo random@:>@])],
+  [AS_HELP_STRING([--with-modules], [which backends to compile with @<:@default=bind gmysql random@:>@])],
   [modules="$withval"]
 )
 
 dynmodules="pipe"
 AC_ARG_WITH([dynmodules],
-  [AS_HELP_STRING([--with-dynmodules],[which backends to build for dynamic loading @<:@default=pipe@:>@])],
+  [AS_HELP_STRING([--with-dynmodules], [which backends to build for dynamic loading @<:@default=pipe@:>@])],
   [dynmodules="$withval"]
 )
 
-AC_SUBST(socketdir)
-socketdir="/var/run"
-AC_ARG_WITH([socketdir],
-  [AS_HELP_STRING([--with-socketdir],[where the controlsocket lives @<:@default=/var/run@:>@])],
-  [socketdir="$withval"]
-)
+AC_SUBST([moduledirs])
+AC_SUBST([moduleobjects])
+AC_SUBST([modulelibs])
+AC_DEFINE_UNQUOTED([PDNS_MODULES], "$modules", [Built-in modules])
 
-AC_SUBST(moduledirs)
-AC_SUBST(moduleobjects)
-AC_SUBST(modulelibs)
-AC_DEFINE_UNQUOTED([PDNS_MODULES],"$modules", [Built-in modules])
-
-AC_MSG_CHECKING([whether we will be building the server])
-AC_ARG_ENABLE([pdns-server],
-  [AS_HELP_STRING([--enable-pdns_server],[if we should build the server @<:@default=yes@:>@])],
-  [enable_pdns_server=$enableval],
-  [enable_pdns_server=yes]
-)
-AC_MSG_RESULT([$enable_pdns_server])
-AM_CONDITIONAL([WITH_PDNS_SERVER],[test "x$enable_pdns_server" != "xno"])
-
-AC_ARG_ENABLE([gcc-skip-locking],
-  [AS_HELP_STRING([--enable-gcc-skip-locking],[if we should forcefully skip gcc locking @<:@default=no@:>@])],
-  [AC_DEFINE(GCC_SKIP_LOCKING,[],[Skip gcc locking])],
-)
-
-AC_MSG_CHECKING([whether we will be building and installing the extra tools])
-AC_ARG_ENABLE([tools],
-  [AS_HELP_STRING([--enable-tools],[if we should build and install the tools @<:@default=no@:>@])],
-  [enable_tools=$enableval],
-  [enable_tools=no]
-)
-
-AC_MSG_RESULT([$enable_tools])
-AM_CONDITIONAL([TOOLS],[test "x$enable_tools" != "xno"])
+AS_IF([test x"$modules" = "xno"], [modules=""])
+AS_IF([test x"$dynmodules" = "xno"], [dynmodules=""])
 
 for a in $modules $dynmodules; do
   case "$a" in
@@ -259,9 +169,8 @@ for a in $modules $dynmodules; do
       PDNS_WITH_ORACLE
       needoracle=yes
       ;;
-    lmdb)
-      PDNS_WITH_LMDB
-      needlmdb=yes
+    godbc)
+      PDNS_WITH_UNIXODBC
       ;;
     mydns|gmysql|pdns)
       PDNS_WITH_MYSQL
@@ -274,9 +183,16 @@ for a in $modules $dynmodules; do
       ;;
     ldap)
       PDNS_CHECK_LDAP
+      needldap=yes
       ;;
     opendbx)
       PDNS_CHECK_OPENDBX
+      ;;
+    remote)
+      AS_IF([test "x$enable_unit_tests" = "xyes"],
+        [PDNS_CHECK_CURL_PROGRAM]
+      )
+      have_remotebackend=yes
       ;;
     tinydns)
       PDNS_CHECK_CDB
@@ -295,54 +211,68 @@ for a in $modules $dynmodules; do
   esac
 done
 
-AM_CONDITIONAL([ORACLE],[test "x$needoracle" = "xyes"])
+PDNS_ENABLE_REMOTEBACKEND_ZEROMQ
 
-AM_CONDITIONAL([LMDB],[test "x$needlmdb" = "xyes"])
+AC_MSG_CHECKING([whether we will be building and installing the extra tools])
+AC_ARG_ENABLE([tools],
+  [AS_HELP_STRING([--enable-tools], [if we should build and install the tools @<:@default=no@:>@])],
+  [enable_tools=$enableval],
+  [enable_tools=no]
+)
 
+AC_MSG_RESULT([$enable_tools])
+AM_CONDITIONAL([TOOLS], [test "x$enable_tools" != "xno"])
+
+PDNS_WITH_PROTOBUF
+
+
+AM_CONDITIONAL([ORACLE], [test "x$needoracle" = "xyes"])
+
+AM_CONDITIONAL([LDAP], [test "x$needldap" = "xyes"])
+
+PDNS_CHECK_SQLITE3
 AM_CONDITIONAL([SQLITE3], [test "x$needsqlite3" = "xyes"])
-if test "$needsqlite3"; then
-  PKG_CHECK_MODULES([SQLITE3], $SQLITE3PC,
-    [HAVE_SQLITE3=yes],
-    [AC_MSG_ERROR([Could not find sqlite3])]
-  )
-  AC_SUBST(SQLITE3_LIBS)
-  AC_SUBST(SQLITE3_CFLAGS)
-  AC_DEFINE([HAVE_SQLITE3],[1],[If we have sqlite3])
-fi
-
-AC_CHECK_FUNCS([localtime_r])
 
 for a in $modules; do
-  moduledirs="$moduledirs ${a}backend"
+  AC_MSG_CHECKING([whether we can build module "${a}"])
+  if [[ -d "$srcdir/modules/${a}backend" ]]; then
+    AC_MSG_RESULT([yes])
+    moduledirs="$moduledirs ${a}backend"
 
-  for b in `cat $srcdir/modules/${a}backend/OBJECTFILES`; do
-    moduleobjects="$moduleobjects ../modules/${a}backend/$b"
-  done
-  modulelibs="$modulelibs `cat $srcdir/modules/${a}backend/OBJECTLIBS`"
-
-  if test ${a} = "gpgsql"; then
-    LIBS="$LIBS $LIBCRYPT"
-
-    case "$host_os" in
-      freebsd*)
-        ;;
-      darwin*)
-        modulelibs="$modulelibs -lresolv"
-        ;;
-      *)
-        modulelibs="$modulelibs -lresolv -lnsl"
-        ;;
-    esac
+    for b in `cat $srcdir/modules/${a}backend/OBJECTFILES`; do
+      moduleobjects="$moduleobjects ../modules/${a}backend/$b"
+    done
+    modulelibs="$modulelibs `cat $srcdir/modules/${a}backend/OBJECTLIBS`"
+  else
+    AC_MSG_RESULT([no])
+    AC_MSG_ERROR([Do not know how to build module "$a", "$srcdir/modules/${a}backend" does not exist! Please review --with-modules parameter for supported values.])
   fi
 done
 
 for a in $dynmodules; do
-  moduledirs="$moduledirs ${a}backend"
+  AC_MSG_CHECKING([whether we can build dynamic module "${a}"])
+  if [[ -d "$srcdir/modules/${a}backend" ]]; then
+    AC_MSG_RESULT([yes])
+    moduledirs="$moduledirs ${a}backend"
+  else
+    AC_MSG_RESULT([no])
+    AC_MSG_ERROR([Do not know how to build module "$a", "$srcdir/modules/${a}backend" does not exist! Please review --with-dynmodules parameter for supported values.])
+  fi
 done
+
+AX_AVAILABLE_SYSTEMD
+AM_CONDITIONAL([HAVE_SYSTEMD], [ test x"$systemd" = "xy" ])
+
+LDFLAGS="$RELRO_LDFLAGS $LDFLAGS"
 
 CFLAGS="$PIE_CFLAGS $CFLAGS"
 CXXFLAGS="$PIE_CFLAGS $CXXFLAGS"
-LDFLAGS="$RELRO_LDFLAGS $LDFLAGS"
+PROGRAM_LDFLAGS="$PIE_LDFLAGS $PROGRAM_LDFLAGS"
+AC_SUBST([PROGRAM_LDFLAGS])
+
+PDNS_ENABLE_COVERAGE
+PDNS_ENABLE_SANITIZERS
+PDNS_ENABLE_MALLOC_TRACE
 
 AC_SUBST(LIBS)
 
@@ -350,8 +280,15 @@ AC_SUBST([AM_CPPFLAGS],
   ["AS_ESCAPE([-I$(top_builddir) -I$(top_srcdir)]) $THREADFLAGS $BOOST_CPPFLAGS"]
 )
 
-AC_SUBST([YAHTTP_CFLAGS], ['-I$(top_srcdir)/pdns/ext/yahttp'])
-AC_SUBST([YAHTTP_LIBS], ['-L$(top_builddir)/pdns/ext/yahttp/yahttp -lyahttp'])
+AC_SUBST([YAHTTP_CFLAGS], ['-I$(top_srcdir)/ext/yahttp'])
+AC_SUBST([YAHTTP_LIBS], ['$(top_builddir)/ext/yahttp/yahttp/libyahttp.la'])
+
+CXXFLAGS="$SANITIZER_FLAGS $CXXFLAGS"
+
+AC_ARG_VAR(PACKAGEVERSION, [The version used in secpoll queries])
+AS_IF([test "x$PACKAGEVERSION" != "x"],
+  [AC_DEFINE_UNQUOTED([PACKAGEVERSION], "$PACKAGEVERSION", [Set to the package version used for secpoll])]
+)
 
 export moduledirs moduleobjects modulelibs
 
@@ -360,18 +297,16 @@ AC_CONFIG_FILES([
   modules/Makefile
   pdns/Makefile
   codedocs/Makefile
+  docs/Makefile
   pdns/pdns.init
-  pdns/ext/Makefile
-  pdns/ext/yahttp/Makefile
-  pdns/ext/yahttp/yahttp/Makefile
-  pdns/ext/polarssl/Makefile
-  pdns/ext/polarssl/library/Makefile
-  pdns/ext/rapidjson/Makefile
+  ext/Makefile
+  ext/yahttp/Makefile
+  ext/yahttp/yahttp/Makefile
+  ext/json11/Makefile
   modules/bindbackend/Makefile
-  modules/db2backend/Makefile
-  modules/geobackend/Makefile
   modules/geoipbackend/Makefile
   modules/gmysqlbackend/Makefile
+  modules/godbcbackend/Makefile
   modules/goraclebackend/Makefile
   modules/gpgsqlbackend/Makefile
   modules/gsqlite3backend/Makefile
@@ -384,7 +319,52 @@ AC_CONFIG_FILES([
   modules/randombackend/Makefile
   modules/remotebackend/Makefile
   modules/tinydnsbackend/Makefile
-  modules/lmdbbackend/Makefile
 ])
 AC_OUTPUT
 
+AC_MSG_NOTICE([])
+AC_MSG_NOTICE([Configuration summary])
+AC_MSG_NOTICE([=====================])
+AC_MSG_NOTICE([])
+AC_MSG_NOTICE([Configured with: $pdns_configure_args])
+AC_MSG_NOTICE([])
+AC_MSG_NOTICE([CC: $CC])
+AC_MSG_NOTICE([CXX: $CXX])
+AC_MSG_NOTICE([LD: $LD])
+AC_MSG_NOTICE([CFLAGS: $CFLAGS])
+AC_MSG_NOTICE([CPPFLAGS: $CPPFLAGS])
+AC_MSG_NOTICE([CXXFLAGS: $CXXFLAGS])
+AC_MSG_NOTICE([LDFLAGS: $LDFLAGS])
+AC_MSG_NOTICE([LIBS: $LIBS])
+AC_MSG_NOTICE([BOOST_CPPFLAGS: $BOOST_CPPFLAGS])
+AC_MSG_NOTICE([])
+AC_MSG_NOTICE([Features enabled])
+AC_MSG_NOTICE([----------------])
+AC_MSG_NOTICE([Built-in modules: $modules])
+AC_MSG_NOTICE([Dynamic modules: $dynmodules])
+AC_MSG_NOTICE([])
+AS_IF([test "x$libcrypto_ecdsa" == "xyes"],
+  [AC_MSG_NOTICE([OpenSSL ecdsa: yes])],
+  [AC_MSG_NOTICE([OpenSSL ecdsa: no])]
+)
+AS_IF([test "x$needsqlite3" != "x"],
+  [AC_MSG_NOTICE([SQLite3: yes])],
+  [AC_MSG_NOTICE([SQLite3: no])]
+)
+AS_IF([test "x$LUAPC" != "x"],
+  [AC_MSG_NOTICE([Lua: $LUAPC])],
+  [AS_IF([test "x$LUAJITPC" != "x"],
+    [AC_MSG_NOTICE([LuaJit: $LUAJITPC])],
+    [AC_MSG_NOTICE([Lua/LuaJit: no])])
+])
+AS_IF([test "x$enable_experimental_gss_tsig" = "xyes"],
+  [AC_MSG_NOTICE([GSS-TSIG: yes])]
+)
+AS_IF([test "x$systemd" != "xn"],
+  [AC_MSG_NOTICE([systemd: yes])],
+  [AC_MSG_NOTICE([systemd: no])]
+)
+AS_IF([test "x$enable_remotebackend_zeromq" != "xno"],
+  [AC_MSG_NOTICE([ZeroMQ connector for remotebackend: yes])]
+)
+AC_MSG_NOTICE([])

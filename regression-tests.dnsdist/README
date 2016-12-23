@@ -1,0 +1,18 @@
+There are two ways to run these tests. The automated way is ./runtests which
+tries to pick up a dnsdist binary built from a distributed tarball in
+../pdns/dnsdistdist/dnsdist-*/dnsdist
+
+If this is not the binary you want to test, use something like:
+
+DNSDISTBIN=../pdns/dnsdistdist/dnsdist ./runtests
+
+The tests are self-contained and require no further nameservers to be
+installed.
+
+However, do make sure to build a dnsdist with libsodium and dnscrypt support
+as otherwise some tests will fail.
+
+To run a specific test, use something like:
+
+./runtests test_Advanced.py:TestAdvancedSpoof.testSpoofActionMultiA
+

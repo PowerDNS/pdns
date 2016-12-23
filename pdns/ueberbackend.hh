@@ -1,24 +1,24 @@
 /*
-    PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002 - 2011  PowerDNS.COM BV
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2
-    as published by the Free Software Foundation
-
-    Additionally, the license of this program contains a special
-    exception which allows to distribute the program in binary form when
-    it is linked against OpenSSL.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-*/
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 #ifndef UEBERBACKEND_HH
 #define UEBERBACKEND_HH
 
@@ -43,8 +43,6 @@
 
 #include "namespaces.hh"
 
-class BackendReporter;
-
 /** This is a very magic backend that allows us to load modules dynamically,
     and query them in order. This is persistent over all UeberBackend instantiations
     across multiple threads. 
@@ -52,19 +50,13 @@ class BackendReporter;
     The UeberBackend is transparent for exceptions, which should fall straight through.
 */
 
-class UeberBackend : public DNSBackend, public boost::noncopyable
+class UeberBackend : public boost::noncopyable
 {
 public:
   UeberBackend(const string &pname="default");
   ~UeberBackend();
-  typedef DNSBackend *BackendMaker(); //!< typedef for functions returning pointers to new backends
 
-  bool superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db);
-
-  /** contains BackendReporter objects, which contain maker functions and information about
-      weather a module has already been reported to existing instances of the UeberBackend
-  */
-//  static vector<BackendReporter>backendmakers;
+  bool superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db);
 
   /** Tracks all created UeberBackend instances for us. We use this vector to notify
       existing threads of new modules 
@@ -74,23 +66,19 @@ public:
 
   static bool loadmodule(const string &name);
 
-  /** Thread function that listens on our unix domain socket for commands, for example
-      instructions to load new modules */
-  static void *DynListener(void *);
   static void go(void);
 
   /** This contains all registered backends. The DynListener modifies this list for us when
       new modules are loaded */
   vector<DNSBackend*> backends; 
 
-  void die();
   void cleanup();
 
   //! the very magic handle for UeberBackend questions
   class handle
   {
   public:
-    bool get(DNSResourceRecord &r);
+    bool get(DNSZoneRecord &dr);
     handle();
     ~handle();
 
@@ -99,108 +87,82 @@ public:
     //! The current real backend, which is answering questions
     DNSBackend *d_hinterBackend;
 
-    //! Index of the current backend within the backends vector
-    unsigned int i;
-
     //! DNSPacket who asked this question
     DNSPacket *pkt_p;
-    string qname;
+    DNSName qname;
+
+    //! Index of the current backend within the backends vector
+    unsigned int i;
     QType qtype;
+
   private:
 
     static AtomicCounter instances;
   };
 
-  void lookup(const QType &, const string &qdomain, DNSPacket *pkt_p=0,  int zoneId=-1);
+  void lookup(const QType &, const DNSName &qdomain, DNSPacket *pkt_p=0,  int zoneId=-1);
 
-  /* 5-arg version is only valid for backends and should never be called directly */
-  virtual bool getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId, const int best_match_len) {
-    throw PDNSException("5-arg version of getAuth should not be called in UeberBackend");
-  }
-
-  bool getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId);
-  bool getSOA(const string &domain, SOAData &sd, DNSPacket *p=0);
-  bool list(const string &target, int domain_id, bool include_disabled=false);
+  bool getAuth(DNSPacket *p, SOAData *sd, const DNSName &target);
+  bool getSOA(const DNSName &domain, SOAData &sd, DNSPacket *p=0);
+  bool getSOAUncached(const DNSName &domain, SOAData &sd, DNSPacket *p=0);  // same, but ignores cache
   bool get(DNSResourceRecord &r);
+  bool get(DNSZoneRecord &r);
   void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false);
 
-  static DNSBackend *maker(const map<string,string> &);
-  static void closeDynListener();
-  static void setStatus(const string &st);
   void getUnfreshSlaveInfos(vector<DomainInfo>* domains);
   void getUpdatedMasters(vector<DomainInfo>* domains);
-  bool getDomainInfo(const string &domain, DomainInfo &di);
-  bool createDomain(const string &domain);
+  bool getDomainInfo(const DNSName &domain, DomainInfo &di);
+  bool createDomain(const DNSName &domain);
   
-  int addDomainKey(const string& name, const KeyData& key);
-  bool getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys);
-  bool getAllDomainMetadata(const string& name, std::map<std::string, std::vector<std::string> >& meta);
-  bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta);
-  bool setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta);
+  bool addDomainKey(const DNSName& name, const DNSBackend::KeyData& key, int64_t& id);
+  bool getDomainKeys(const DNSName& name, std::vector<DNSBackend::KeyData>& keys);
+  bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta);
+  bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta);
+  bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta);
 
-  bool removeDomainKey(const string& name, unsigned int id);
-  bool activateDomainKey(const string& name, unsigned int id);
-  bool deactivateDomainKey(const string& name, unsigned int id);
+  bool removeDomainKey(const DNSName& name, unsigned int id);
+  bool activateDomainKey(const DNSName& name, unsigned int id);
+  bool deactivateDomainKey(const DNSName& name, unsigned int id);
 
-  bool getDirectNSECx(uint32_t id, const string &hashed, const QType &qtype, string &before, DNSResourceRecord &rr);
-  bool getDirectRRSIGs(const string &signer, const string &qname, const QType &qtype, vector<DNSResourceRecord> &rrsigs);
-
-  bool getTSIGKey(const string& name, string* algorithm, string* content);
-  bool setTSIGKey(const string& name, const string& algorithm, const string& content);
-  bool deleteTSIGKey(const string& name);
+  bool getTSIGKey(const DNSName& name, DNSName* algorithm, string* content);
+  bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content);
+  bool deleteTSIGKey(const DNSName& name);
   bool getTSIGKeys(std::vector< struct TSIGKey > &keys);
 
-  void alsoNotifies(const string &domain, set<string> *ips); 
+  void alsoNotifies(const DNSName &domain, set<string> *ips); 
   void rediscover(string* status=0);
   void reload();
+  bool searchRecords(const string &pattern, int maxResults, vector<DNSResourceRecord>& result);
+  bool searchComments(const string &pattern, int maxResults, vector<Comment>& result);
 private:
-  unsigned int d_cache_ttl, d_negcache_ttl;
-
-  DNSResourceRecord lastrr;
   pthread_t tid;
   handle d_handle;
-  bool d_negcached;
-  bool d_cached;
-  struct Question
-  {
-    QType qtype;
-    string qname;
-    int zoneId;
-  }d_question;
-  vector<DNSResourceRecord> d_answers;
-  vector<DNSResourceRecord>::const_iterator d_cachehandleiter;
+  vector<DNSZoneRecord> d_answers;
+  vector<DNSZoneRecord>::const_iterator d_cachehandleiter;
 
-  int cacheHas(const Question &q, vector<DNSResourceRecord> &rrs);
-  void addNegCache(const Question &q);
-  void addCache(const Question &q, const vector<DNSResourceRecord> &rrs);
-  
   static pthread_mutex_t d_mut;
   static pthread_cond_t d_cond;
-  static sem_t d_dynserialize;
-  static bool d_go;
-  static int s_s;
-  static string s_status; 
-  int d_ancount;
-  
-  bool stale;
-  int domain_id;
-};
 
-
-/** Class used to report new backends. It stores a maker function, and a flag that indicates that 
-    this module has been reported */
-class BackendReporter
-{
-public:
-  BackendReporter(UeberBackend::BackendMaker *p)
+  struct Question
   {
-    maker=p;
-    reported=false;
-  };
-  map<string,string>d_parameters;
-  UeberBackend::BackendMaker *maker; //!< function to make this backend
-  bool reported; //!< if this backend has been reported to running UeberBackend threads 
-private:
+    DNSName qname;
+    int zoneId;
+    QType qtype;
+  }d_question;
+
+  unsigned int d_cache_ttl, d_negcache_ttl;
+  int domain_id;
+  int d_ancount;
+
+  bool d_negcached;
+  bool d_cached;
+  static bool d_go;
+  bool stale;
+
+  int cacheHas(const Question &q, vector<DNSZoneRecord> &rrs);
+  void addNegCache(const Question &q);
+  void addCache(const Question &q, const vector<DNSZoneRecord> &rrs);
+  
 };
 
 #endif

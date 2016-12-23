@@ -1,4 +1,7 @@
 #if defined(__sun__) && defined(__svr4__)
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <port.h>
 #include <sys/port_impl.h>
 #endif
@@ -8,7 +11,6 @@
 #include <iostream>
 
 #include "misc.hh"
-#include <boost/lexical_cast.hpp>
 #include "syncres.hh"
 
 #include "namespaces.hh"
@@ -72,7 +74,7 @@ void PortsFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo
 void PortsFDMultiplexer::removeFD(callbackmap_t& cbmap, int fd)
 {
   if(!cbmap.erase(fd))
-    throw FDMultiplexerException("Tried to remove unlisted fd "+lexical_cast<string>(fd)+ " from multiplexer");
+    throw FDMultiplexerException("Tried to remove unlisted fd "+std::to_string(fd)+ " from multiplexer");
 
   if(port_dissociate(d_portfd, PORT_SOURCE_FD, fd) < 0 && errno != ENOENT) // it appears under some circumstances, ENOENT will be returned, without this being an error. Apache has this same "fix"
     throw FDMultiplexerException("Removing fd from port set: "+stringerror());

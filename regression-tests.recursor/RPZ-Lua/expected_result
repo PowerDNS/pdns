@@ -1,0 +1,10 @@
+Reply to question for qname='www3.example.net.', qtype=A
+Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+0	www3.example.net.	IN	CNAME	[ttl]	www2.example.net.
+0	www2.example.net.	IN	A	[ttl]	192.0.2.2
+Reply to question for qname='android.marvin.example.net.', qtype=A
+Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+0	android.marvin.example.net.	IN	A	[ttl]	192.0.2.5
+Reply to question for qname='www5.example.net.', qtype=A
+Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+0	www5.example.net.	IN	A	[ttl]	192.0.2.25

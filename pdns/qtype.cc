@@ -19,7 +19,6 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-#include "utility.hh"
 #include "dns.hh"
 #include <iostream>
 #include <string>
@@ -28,7 +27,8 @@
 #include <sstream>
 #include "qtype.hh"
 #include "misc.hh"
-#include "lock.hh"
+
+static_assert(sizeof(QType) == 2, "QType is not 2 bytes in size, something is wrong!");
 
 vector<QType::namenum> QType::names;
 // XXX FIXME we need to do something with initializer order here!
@@ -36,6 +36,7 @@ QType::init QType::initializer;
 
 QType::QType()
 {
+  code = 0;
 }
 
 bool QType::isSupportedType() {
@@ -79,19 +80,20 @@ QType &QType::operator=(uint16_t n)
 
 int QType::chartocode(const char *p)
 {
-  static QType qt;
+  string P = toUpper(p);
   vector<namenum>::iterator pos;
+
   for(pos=names.begin(); pos < names.end(); ++pos)
-    if(pos->first == p)
+    if(pos->first == P)
       return pos->second;
-  
+
   if(*p=='#') {
     return atoi(p+1);
   }
 
-  if(boost::starts_with(p, "TYPE"))
+  if(boost::starts_with(P, "TYPE"))
     return atoi(p+4);
-    
+
   return 0;
 }
 

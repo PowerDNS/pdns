@@ -1,25 +1,29 @@
-#!/bin/sh
+#!/bin/bash
 set -e
-set -x
+if [ "${PDNS_DEBUG}" = "YES" ]; then
+  set -x
+fi
+
+export PDNS=${PDNS:-${PWD}/../pdns/pdns_server}
+export PDNSRECURSOR=${PDNSRECURSOR:-${PWD}/../pdns/recursordist/pdns_recursor}
+export RECCONTROL=${RECCONTROL:-${PWD}/../pdns/recursordist/rec_control}
 
 . ./vars
 
-if [ -z "$PREFIX" ] 
+if [ -z "$PREFIX" ]
 then
     echo "config not found or PREFIX not set"
     exit 1
 fi
 
-if [ -z "$AUTHRUN" ] 
+if [ -z "$AUTHRUN" ]
 then
     echo "config not found or AUTHRUN not set"
     exit 1
 fi
 
-
 rm -rf configs/
 mkdir configs
-cd configs
 
 cat > run-auth <<EOF
 #!/bin/sh
@@ -27,17 +31,38 @@ $AUTHRUN
 EOF
 chmod +x run-auth
 
-mkdir recursor-service
-cat > recursor-service/run <<EOF
+if [ \! -x "$PDNSRECURSOR" ]
+then
+  echo "Could not find an executable pdns_recursor at \"$PDNSRECURSOR\", check PDNSRECURSOR"
+  echo "Continuing with configuration anyhow"
+fi
+
+if [ \! -x "$PDNS" ]
+then
+  echo "Could not find an executable pdns_server at \"$PDNS\", check PDNS"
+  echo "Continuing with configuration anyhow"
+fi
+
+cd configs
+
+for dir in recursor-service recursor-service2 recursor-service3 recursor-service4; do
+  mkdir -p /tmp/$dir
+  mkdir -p $dir
+  cd $dir
+
+  cat > run <<EOF
 #!/bin/sh
 $RECRUN
 EOF
-chmod +x recursor-service/run
+  chmod +x run
 
-cat > recursor-service/hintfile << EOF
+  cat > hintfile << EOF
 .                        3600 IN NS  ns.root.
 ns.root.                 3600 IN A   $PREFIX.8
 EOF
+
+  cd ..
+done
 
 SOA="ns.example.net. hostmaster.example.net. 1 3600 1800 1209600 300"
 
@@ -62,6 +87,10 @@ example.net.             3600 IN NS  ns2.example.net.
 ns.example.net.          3600 IN A   $PREFIX.10
 ns2.example.net.         3600 IN A   $PREFIX.11
 www.example.net.         3600 IN A   192.0.2.1
+www2.example.net.        3600 IN A   192.0.2.2
+www3.example.net.        3600 IN A   192.0.2.3
+www4.example.net.        3600 IN A   192.0.2.4
+www5.example.net.        3600 IN A   192.0.2.5
 weirdtxt.example.net.    3600 IN IN  TXT "x\014x"
 arthur.example.net.      3600 IN NS  ns.arthur.example.net.
 arthur.example.net.      3600 IN NS  ns2.arthur.example.net.
@@ -81,6 +110,14 @@ hijackme.example.net.    3600 IN NS  ns.hijackme.example.net.
 ns.hijackme.example.net. 3600 IN A   $PREFIX.20
 hijacker.example.net.    3600 IN NS  ns.hijacker.example.net.
 ns.hijacker.example.net. 3600 IN A   $PREFIX.21
+answer-cname-in-local.example.net. 3600 IN NS ns.answer-cname-in-local.example.net.
+pfsbox.answer-cname-in-local.example.net. 3600 IN NS ns.answer-cname-in-local.example.net.
+box.answer-cname-in-local.example.net. 3600 IN NS ns.answer-cname-in-local.example.net.
+ns.answer-cname-in-local.example.net. 3600 IN A  $PREFIX.22
+not-auth-zone.example.net. 3600 IN NS ns.not-auth-zone.example.net.
+ns.not-auth-zone.example.net. 3600 IN A $PREFIX.23
+lowercase-outgoing.example.net. 3600 IN NS ns.lowercase-outgoing.example.net.
+ns.lowercase-outgoing.example.net. 3600 IN A $PREFIX.24
 EOF
 
 mkdir $PREFIX.11
@@ -143,6 +180,9 @@ big.arthur.example.net.  3600 IN TXT "THE QUICK BROWN FOX JUMPS OVER THE LAZY do
 big.arthur.example.net.  3600 IN TXT "THE QUICK BROWN FOX JUMPS OVER THE LAZY Dog"
 big.arthur.example.net.  3600 IN TXT "THE QUICK BROWN FOX JUMPS OVER THE LAZY DOg"
 big.arthur.example.net.  3600 IN TXT "THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG"
+srv.arthur.example.net.  3600 IN SRV 0 100 389 server2.example.net.
+rp.arthur.example.net.   3600 IN RP  ahu.ds9a.nl. counter
+type1234.arthur.example.net. 3600 IN TYPE1234 \# 2 4142
 EOF
 
 mkdir $PREFIX.13
@@ -177,7 +217,7 @@ EOF
 cat > $PREFIX.15/prequery.lua <<EOF
 function prequery ( dnspacket )
     qname, qtype = dnspacket:getQuestion()
-    if qtype == pdns.A and qname == "www.marvin.example.net"
+    if qtype == pdns.A and qname == "www.marvin.example.net."
     then
         dnspacket:setRcode(pdns.NXDOMAIN)
         ret = {}
@@ -202,7 +242,7 @@ EOF
 cat > $PREFIX.16/prequery.lua <<EOF
 function prequery ( dnspacket )
     qname, qtype = dnspacket:getQuestion()
-    if qtype == pdns.A and qname == "www.trillian.example.net"
+    if qtype == pdns.A and qname == "www.trillian.example.net."
     then
         dnspacket:setRcode(pdns.NXDOMAIN)
         ret = {}
@@ -228,12 +268,12 @@ ns.2.ghost.example.net.   10 IN A   $PREFIX.19
 EOF
 
 cat > $PREFIX.17/prequery.lua <<EOF
-require 'posix'
+posix = require 'posix'
 
 function prequery ( dnspacket )
     qname, qtype = dnspacket:getQuestion()
-    if (string.sub(qname, -20) == ".1.ghost.example.net" and posix.stat('drop-1')) or
-       (string.sub(qname, -20) == ".2.ghost.example.net" and posix.stat('drop-2'))
+    if (string.sub(qname, -21) == ".1.ghost.example.net." and posix.stat('drop-1')) or
+       (string.sub(qname, -21) == ".2.ghost.example.net." and posix.stat('drop-2'))
     then
         dnspacket:setRcode(pdns.NXDOMAIN)
         ret = {}
@@ -260,7 +300,7 @@ i=0
 function prequery ( dnspacket )
     i = i + 1
     qname, qtype = dnspacket:getQuestion()
-    if qtype == pdns.A and string.sub(qname, -24) == ".www.1.ghost.example.net"
+    if qtype == pdns.A and string.sub(qname, -25) == ".www.1.ghost.example.net."
     then
         dnspacket:setRcode(pdns.NOERROR)
         ret = {}
@@ -288,7 +328,7 @@ EOF
 cat > $PREFIX.19/prequery.lua <<EOF
 function prequery ( dnspacket )
     qname, qtype = dnspacket:getQuestion()
-    if qtype == pdns.A and string.sub(qname, -24) == ".www.2.ghost.example.net"
+    if qtype == pdns.A and string.sub(qname, -25) == ".www.2.ghost.example.net."
     then
         dnspacket:setRcode(pdns.NOERROR)
         ret = {}
@@ -328,6 +368,110 @@ www.hijackme.example.net.  20 IN A   192.0.2.21
 
 EOF
 
+## Several domains where one gets overwritten as a local auth zone
+mkdir $PREFIX.22
+cat > $PREFIX.22/box.answer-cname-in-local.example.net.zone <<EOF
+box.answer-cname-in-local.example.net. 3600 IN SOA $SOA
+box.answer-cname-in-local.example.net. 20 IN NS ns.answer-cname-in-local.example.net.
+
+global.box.answer-cname-in-local.example.net. 20 IN NS ns.answer-cname-in-local.example.net.
+service.box.answer-cname-in-local.example.net. 20 IN CNAME pfs.global.box.answer-cname-in-local.example.net.
+
+EOF
+
+cat > $PREFIX.22/global.box.answer-cname-in-local.example.net.zone <<EOF
+global.box.answer-cname-in-local.example.net. 3600 IN SOA $SOA
+global.box.answer-cname-in-local.example.net. 20 IN NS ns.answer-cname-in-local.example.net.
+
+pfs.global.box.answer-cname-in-local.example.net. 20 IN  CNAME vip-metropole.pfsbox.answer-cname-in-local.example.net.
+
+EOF
+
+cat > $PREFIX.22/pfsbox.answer-cname-in-local.example.net.zone <<EOF
+pfsbox.answer-cname-in-local.example.net. 3600 IN SOA $SOA
+pfsbox.answer-cname-in-local.example.net. 20 IN NS ns.answer-cname-in-local.example.net.
+
+vip-metropole.pfsbox.answer-cname-in-local.example.net. 20 IN  A 10.0.0.1
+vip-reunion.pfsbox.answer-cname-in-local.example.net. 20 IN  A 10.1.1.1
+
+EOF
+
+# Used for the auth-zones test, to test a CNAME inside an auth-zone to a name
+# outside of and auth-zone
+mkdir $PREFIX.23
+cat > $PREFIX.23/not-auth-zone.example.net.zone <<EOF
+not-auth-zone.example.net. 3600 IN SOA $SOA
+not-auth-zone.example.net. 20 IN NS ns.not-auth-zone.example.net.
+
+ns.not-auth-zone.example.net. 20 IN  A $PREFIX.23
+host1.not-auth-zone.example.net. 20 IN  A 127.0.0.57
+EOF
+
+cat > $PREFIX.23/france.auth-zone.example.net.zone <<EOF
+france.auth-zone.example.net. 3600 IN SOA $SOA
+france.auth-zone.example.net. 3600 IN NS ns1.auth-zone.example.net
+www.france.auth-zone.example.net. 3600 IN A 192.0.2.23
+france.auth-zone.example.net. 3600 IN A 192.0.2.223
+EOF
+
+# And for the recursor
+cat > recursor-service/global.box.answer-cname-in-local.example.net.zone <<EOF
+global.box.answer-cname-in-local.example.net. 3600 IN SOA $SOA
+global.box.answer-cname-in-local.example.net. 20 IN NS ns.answer-cname-in-local.example.net.
+
+pfs.global.box.answer-cname-in-local.example.net. 20 IN  CNAME vip-reunion.pfsbox.answer-cname-in-local.example.net.
+
+EOF
+
+# For the auth-zones test
+cat > recursor-service/auth-zone.example.net.zone <<EOF
+auth-zone.example.net. 3600 IN SOA $SOA
+auth-zone.example.net. 20 IN NS localhost.example.net.
+
+host1.auth-zone.example.net. 20 IN A 127.0.0.55
+host1.auth-zone.example.net. 20 IN AAAA 2001:DB8::1:45BA
+
+host2.auth-zone.example.net. 20 IN CNAME host1.another-auth-zone.example.net.
+
+host3.auth-zone.example.net. 20 IN CNAME host1.not-auth-zone.example.net.
+*.wild.auth-zone.example.net.	3600 IN	TXT "Hi there!"
+france.auth-zone.example.net.	20	IN NS 	ns1.auth-zone.example.net.
+ns1.auth-zone.example.net. 	20	IN	A	$PREFIX.23
+EOF
+
+mkdir $PREFIX.24
+cat > $PREFIX.24/lowercase-outgoing.example.net.zone <<EOF
+lowercase-outgoing.example.net. 3600 IN SOA $SOA
+lowercase-outgoing.example.net. 20 IN NS ns.lowercase-outgoing.example.net.
+
+ns.lowercase-outgoing.example.net. 20 IN  A $PREFIX.24
+host.lowercase-outgoing.example.net. 20 IN  A 127.0.0.57
+EOF
+
+cat > $PREFIX.24/prequery.lua <<EOF
+filename = "questions.txt"
+
+--- Truncate file
+file = io.open(filename, "w")
+file:close()
+
+function prequery ( dnspacket )
+    qname, qtype = dnspacket:getQuestion()
+    file = io.open('questions.txt', "a")
+    file:write(qname .. "\n")
+    file:close()
+
+    return false
+end
+EOF
+
+cat > recursor-service/another-auth-zone.example.net.zone <<EOF
+another-auth-zone.example.net. 3600 IN SOA $SOA
+another-auth-zone.example.net. 20 IN NS localhost.example.net.
+
+host1.another-auth-zone.example.net. 20 IN A 127.0.0.56
+EOF
+
 for dir in $PREFIX.*
 do
     cat > $dir/pdns.conf <<EOF
@@ -335,6 +479,7 @@ module-dir=../../../regression-tests/modules
 launch=bind
 daemon=no
 local-address=$dir
+local-ipv6=
 bind-config=named.conf
 no-shuffle
 socket-dir=.
@@ -349,13 +494,13 @@ EOF
     then
         echo 'lua-prequery-script=prequery.lua' >> $dir/pdns.conf
     fi
-    
+
     cat > $dir/named.conf <<EOF
 options {
     directory "./";
 };
 EOF
-    for zone in $(ls $dir | grep '\.zone$' | sed 's/\.zone$//') 
+    for zone in $(ls $dir | grep '\.zone$' | sed 's/\.zone$//')
     do
         realzone=$zone
         if [ $realzone = ROOT ]
@@ -369,9 +514,106 @@ zone "$realzone"{
 };
 EOF
     done
-    ln -s ../run-auth $dir/run
+    ln -s ../../run-auth $dir/run
 done
 
-cat > recursor-service/recursor.conf << EOF
-socket-dir=$(pwd)/recursor-service
+cat > recursor-service/forward-zones-file << EOF
+# Some comment that should be ignored
+forward-zones-test.non-existing.powerdns.com=8.8.8.8
+forward-zones-test2.non-existing.powerdns.com=8.8.8.8# This comment should be ignored as well
+EOF
+
+cat > recursor-service/recursor.conf <<EOF
+webserver=yes
+api-key=secret
+api-readonly=yes
+forward-zones-file=$(pwd)/recursor-service/forward-zones-file
+
+socket-dir=/tmp/recursor-service
+auth-zones=global.box.answer-cname-in-local.example.net=$(pwd)/recursor-service/global.box.answer-cname-in-local.example.net.zone,auth-zone.example.net=$(pwd)/recursor-service/auth-zone.example.net.zone,another-auth-zone.example.net=$(pwd)/recursor-service/another-auth-zone.example.net.zone
+loglevel=9
+
+EOF
+
+cat > recursor-service2/recursor.conf <<EOF
+local-port=5300
+socket-dir=/tmp/recursor-service2
+lowercase-outgoing=yes
+
+EOF
+
+cat > recursor-service3/recursor.conf << EOF
+local-port=5301
+socket-dir=/tmp/recursor-service3
+lua-config-file=$(pwd)/recursor-service3/config.lua
+lua-dns-script=$(pwd)/recursor-service3/script.lua
+
+EOF
+
+cat > recursor-service3/config.lua <<EOF
+rpzFile("$(pwd)/recursor-service3/rpz.zone", {policyName="myRPZ"})
+rpzFile("$(pwd)/recursor-service3/rpz2.zone", {policyName="mySecondRPZ"})
+EOF
+
+IFS=. read REV_PREFIX1 REV_PREFIX2 REV_PREFIX3 <<< $(echo $PREFIX) # This will bite us in the ass if we ever test on IPv6
+
+cat > recursor-service3/rpz.zone <<EOF
+\$TTL 2h;
+\$ORIGIN domain.example.
+@ SOA $SOA
+@ NS ns.example.net.
+
+arthur.example.net     CNAME .                   ; NXDOMAIN on apex
+*.arthur.example.net   CNAME *.                  ; NODATA for everything below the apex
+srv.arthur.example.net CNAME rpz-passthru.       ; Allow this name though
+www.example.net        CNAME www2.example.net.   ; Local-Data Action
+www3.example.net       CNAME www4.example.net.   ; Local-Data Action (to be changed in preresolve)
+www5.example.net       A     192.0.2.15          ; Override www5.example.net.
+trillian.example.net   CNAME .                   ; NXDOMAIN on apex, allows all sub-names (#4086)
+
+32.4.2.0.192.rpz-ip    CNAME rpz-drop.           ; www4.example.net resolves to 192.0.2.4, drop A responses with that IP
+
+ns.hijackme.example.net.rpz-nsdname CNAME .      ; NXDOMAIN for anything hosted on ns.hijackme.example.net
+ns.marvin.example.net.rpz-nsdname CNAME .        ; NXDOMAIN for anything hosted on ns.marvin.example.net (we disable RPZ in preresolve though)
+32.24.$REV_PREFIX3.$REV_PREFIX2.$REV_PREFIX1.rpz-nsip CNAME . ; The IP for ns.lowercase-outgoing.example.net, should yield NXDOMAIN
+
+EOF
+
+cat > recursor-service3/rpz2.zone <<EOF
+\$TTL 2h;
+\$ORIGIN domain.example.
+@ SOA $SOA
+@ NS ns.example.net.
+
+www5.example.net       A     192.0.2.25          ; Override www5.example.net.
+
+EOF
+
+cat > recursor-service3/script.lua <<EOF
+function prerpz(dq)
+  if dq.qname:equal('www5.example.net') then
+    dq:discardPolicy('myRPZ')
+  end
+  return true
+end
+
+function preresolve(dq)
+  if dq.qname:equal("android.marvin.example.net") then
+    dq.wantsRPZ = false -- disable RPZ
+  end
+  if dq.appliedPolicy.policyKind == pdns.policykinds.Custom then
+    if dq.qname:equal("www3.example.net") then
+      dq.appliedPolicy.policyCustom = "www2.example.net"
+    end
+  end
+  return false
+end
+EOF
+
+cat > recursor-service4/recursor.conf <<EOF
+local-port=5302
+socket-dir=/tmp/recursor-service4
+packetcache-ttl=0
+forward-zones=net.=$PREFIX.10;$PREFIX.11
+
 EOF

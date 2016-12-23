@@ -1,2 +1,2 @@
 #!/bin/sh
-cleandig c.test.com ANY dnssec showflags
+cleandig c.test.com ANY dnssec tcp showflags

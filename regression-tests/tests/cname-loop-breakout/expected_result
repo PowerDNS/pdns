@@ -1,2 +1,2 @@
-Rcode: 2, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 2 (Server Failure), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='loop1.example.com.', qtype=A

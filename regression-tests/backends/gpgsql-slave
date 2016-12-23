@@ -1,9 +1,9 @@
-	context=${context}-presigned-gpgql
+	context=${context}-presigned-gpgsql
 	[ -z "$GPGSQ2LDB" ] && GPGSQL2DB=pdnstest2
 	[ -z "$GPGSQL2USER" ] && GPGSQL2USER=$(whoami)
 
-	dropdb --user="$GPGSQL2USER" "$GPGSQL2DB" || echo ignoring mysqladmin drop failure
-	createdb --user="$GPGSQL2USER" "$GPGSQL2DB" || echo ignoring mysqladmin drop failure
+	dropdb --user="$GPGSQL2USER" "$GPGSQL2DB" || echo ignoring dropdb failure
+	createdb --user="$GPGSQL2USER" "$GPGSQL2DB" || echo ignoring createdb failure
 	psql --user="$GPGSQL2USER" "$GPGSQL2DB" < ../modules/gpgsqlbackend/schema.pgsql.sql
 
 	cat > pdns-gpgsql2.conf << __EOF__
@@ -18,33 +18,37 @@ __EOF__
 		echo "gpgsql-dnssec" >> pdns-gpgsql2.conf
 	fi
 
-	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | tac)
+	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | perl -e 'print reverse <STDIN>')
 	do
-		psql --user="$GPGSQL2USER" "$GPGSQL2DB" \
-		-c "INSERT INTO domains (name, type, master) VALUES('$zone','SLAVE','127.0.0.1:$port')"
+		psql --user="$GPGSQL2USER" \
+		-c "INSERT INTO domains (name, type, master) VALUES('$zone','SLAVE','127.0.0.1:$port')" \
+		"$GPGSQL2DB"
+		if [ "$zone" = "tsig.com" ]; then
+			$PDNSUTIL --config-dir=. --config-name=gpgsql2 import-tsig-key test $ALGORITHM $KEY
+			$PDNSUTIL --config-dir=. --config-name=gpgsql2 activate-tsig-key tsig.com test slave
+		fi
+		if [ "$zone" = "stest.com" ]; then
+			if [[ $skipreasons != *nolua* ]]; then
+				$PDNSUTIL --config-dir=. --config-name=gpgsql2 set-meta stest.com AXFR-SOURCE 127.0.0.2
+			fi
+		fi
 	done
-
-	../pdns/pdnssec --config-dir=. --config-name=gpgsql2 import-tsig-key test $ALGORITHM $KEY
-	../pdns/pdnssec --config-dir=. --config-name=gpgsql2 activate-tsig-key tsig.com test slave
-	if [[ $skipreasons != *nolua* ]]
-	then
-		../pdns/pdnssec --config-dir=. --config-name=gpgsql2 set-meta stest.com AXFR-SOURCE 127.0.0.2
-	fi
 
 	port=$((port+100))
 
 	$RUNWRAPPER $PDNS2 --daemon=no --local-port=$port --config-dir=. \
 		--config-name=gpgsql2 --socket-dir=./ --no-shuffle \
-		--send-root-referral --slave --retrieval-threads=4 \
-		--slave-cycle-interval=300 --experimental-dname-processing &
+		--slave --retrieval-threads=4 \
+		--slave-cycle-interval=300 --dname-processing &
 
 	echo 'waiting for zones to be slaved'
 	loopcount=0
 	while [ $loopcount -lt 30 ]
 	do
 		sleep 5
-		todo=$(psql --user="$GPGSQL2USER" "$GPGSQL2DB" \
-		  -t -c 'SELECT COUNT(id) FROM domains WHERE last_check IS NULL')
+		todo=$(psql --user="$GPGSQL2USER" \
+		  -t -c 'SELECT COUNT(id) FROM domains WHERE last_check IS NULL' \
+		   "$GPGSQL2DB")
 		if [ $todo = 0 ]
 		then
 			break

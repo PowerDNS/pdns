@@ -27,7 +27,7 @@ AC_DEFUN([PDNS_WITH_POSTGRESQL],[
       [location of pg_config]
     ),
     [PGSQL_pg_config="$withval"
-     if test "x$PGSQL_pg_config" == "xyes" || test ! -x "$PGSQL_pg_config"; then 
+     if test "x$PGSQL_pg_config" = "xyes" || test ! -x "$PGSQL_pg_config"; then
        AC_MSG_ERROR([--with-pgsql-config must provide a valid path to pg_config executable])
      fi
     ], 
@@ -35,15 +35,20 @@ AC_DEFUN([PDNS_WITH_POSTGRESQL],[
   )
 
   if test "x$PGSQL_pg_config" != "x"; then
-    if test "x$PGSQL_lib_check" == "x"; then 
+    if test "x$PGSQL_lib_check" = "x"; then
       PGSQL_lib_check=$($PGSQL_pg_config --libdir)
     fi
-    if test "x$PGSQL_inc_check" == "x"; then
+    if test "x$PGSQL_inc_check" = "x"; then
       PGSQL_inc_check=$($PGSQL_pg_config --includedir)
     fi
     PGSQL_CFLAGS=
-  else
+  fi
+
+  if test "x$PGSQL_lib_check" = "x"; then
     PGSQL_lib_check="/usr/local/pgsql/lib/pgsql /usr/local/lib/pgsql /opt/pgsql/lib/pgsql /usr/lib/pgsql /usr/local/pgsql/lib /usr/local/lib /opt/pgsql/lib /usr/lib /usr/lib64 $full_libdir"
+  fi
+
+  if test "x$PGSQL_inc_check" = "x"; then
     PGSQL_inc_check="/usr/local/pgsql/include/pgsql /usr/include /usr/local/include/postgresql/ /usr/local/include /opt/pgsql/include/pgsql /opt/pgsql/include /usr/include/pgsql/ /usr/include/postgresql"
   fi
 
@@ -71,7 +76,6 @@ AC_DEFUN([PDNS_WITH_POSTGRESQL],[
       ;;
     /*)
       PGSQL_lib="-L$PGSQL_libdir -Wl,-rpath,$PGSQL_libdir -lpq"
-      LDFLAGS="$PGSQL_lib $LDFLAGS"
       ;;
     *)
       AC_MSG_ERROR([The PgSQL library directory ($PGSQL_libdir) must be an absolute path.])

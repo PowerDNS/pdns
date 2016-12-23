@@ -9,10 +9,9 @@ __EOF__
 
 		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --config-dir=. \
 			--config-name=bind --socket-dir=./ --no-shuffle \
-			--send-root-referral \
-			--cache-ttl=$cachettl --experimental-dname-processing \
+			--cache-ttl=$cachettl --dname-processing \
 			--disable-axfr-rectify=yes &
-		skipreasons="nodnssec nodyndns nometa"
+		skipreasons="nodnssec nodyndns nometa noalias"
 		bindwait bind
 		;;
 
@@ -48,7 +47,7 @@ gmysql-dnssec
 __EOF__
 		else
 			echo "bind-dnssec-db=./dnssec.sqlite3" >> pdns-bind.conf
-			../pdns/pdnssec --config-dir=. --config-name=bind create-bind-db dnssec.sqlite3
+			$PDNSUTIL --config-dir=. --config-name=bind create-bind-db dnssec.sqlite3
 		fi
 
 		for zone in $(grep 'zone ' named.conf  | cut -f2 -d\")
@@ -61,37 +60,37 @@ __EOF__
 			securezone $zone bind
 			if [ $context = bind-dnssec-nsec3 ] || [ $context = bind-dnssec-nsec3-optout ] || [ $context = bind-hybrid-nsec3 ]
 			then
-				../pdns/pdnssec --config-dir=. --config-name=bind set-nsec3 $zone "1 $optout 1 abcd" 2>&1
+				$PDNSUTIL --config-dir=. --config-name=bind set-nsec3 $zone "1 $optout 1 abcd" 2>&1
 			elif [ $context = bind-dnssec-nsec3-narrow ]
 			then
-				../pdns/pdnssec --config-dir=. --config-name=bind set-nsec3 $zone '1 1 1 abcd' narrow 2>&1
+				$PDNSUTIL --config-dir=. --config-name=bind set-nsec3 $zone '1 1 1 abcd' narrow 2>&1
+			fi
+			if [ "$zone" = "tsig.com" ]; then
+				$PDNSUTIL --config-dir=. --config-name=bind import-tsig-key test $ALGORITHM $KEY
+				$PDNSUTIL --config-dir=. --config-name=bind activate-tsig-key tsig.com test master
 			fi
 		done
 
 		if [ $context = bind-dnssec-nsec3 ] || [ $context = bind-hybrid-nsec3 ]
 		then
 			extracontexts="bind dnssec nsec3"
-			skipreasons="nsec3 nodyndns"
+			skipreasons="nsec3 nodyndns noalias"
 		elif [ $context = bind-dnssec-nsec3-optout ]
 		then
 			extracontexts="bind dnssec nsec3 nsec3-optout"
-			skipreasons="optout nodyndns"
+			skipreasons="optout nodyndns noalias"
 		elif [ $context = bind-dnssec-nsec3-narrow ]
 		then
 			extracontexts="bind dnssec narrow"
-			skipreasons="narrow nodyndns"
+			skipreasons="narrow nodyndns noalias"
 		else
 			extracontexts="bind dnssec"
-			skipreasons="nodyndns"
+			skipreasons="nodyndns noalias"
 		fi
-
-		../pdns/pdnssec --config-dir=. --config-name=bind import-tsig-key test $ALGORITHM $KEY
-		../pdns/pdnssec --config-dir=. --config-name=bind activate-tsig-key tsig.com test master
 
 		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --config-dir=. \
 			--config-name=bind --socket-dir=./ --no-shuffle \
-			--send-root-referral \
-			--cache-ttl=$cachettl --experimental-dname-processing \
+			--cache-ttl=$cachettl --dname-processing \
 			--disable-axfr-rectify=yes $lua_prequery &
 
 		bindwait bind

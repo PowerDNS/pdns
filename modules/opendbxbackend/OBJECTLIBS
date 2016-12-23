@@ -1,1 +1,1 @@
--lopendbx
+$(OPENDBX_LIBS)

@@ -39,11 +39,11 @@ case $context in
 			connstr="zeromq:endpoint=ipc:///tmp/pdns.0"
 			$testsdir/zeromq-backend.rb &
 			echo $! > pdns-remotebackend.pid
-			sleep 20 # just a test
 			;;
 		unix)
-			connstr="unix:path=/tmp/remote.socket"
-			socat unix-listen:/tmp/remote.socket,fork exec:$testsdir/unix-backend.rb &
+			connstr="unix:path=$testsdir/remote.socket"
+                        rm -f $testsdir/remote.socket
+			socat unix-listen:$testsdir/remote.socket,fork exec:$testsdir/unix-backend.rb &
 			echo $! > pdns-remotebackend.pid
 			;;
 		pipe)
@@ -79,7 +79,7 @@ case $context in
 		fi
 
 
-		# generate pdns.conf for pdnssec
+		# generate pdns.conf for pdnsutil
 		cat > pdns-remote.conf <<EOF
 module-dir=./modules
 launch=remote
@@ -89,28 +89,31 @@ EOF
 		if [ "$remotedosec" = "yes" ]
 		then
 			echo "remote-dnssec=yes" >> pdns-remote.conf
-			../pdns/pdnssec --config-dir=. --config-name=remote secure-zone example.com
-			../pdns/pdnssec --config-dir=. --config-name=remote secure-zone up.example.com
+			$PDNSUTIL --config-dir=. --config-name=remote secure-zone example.com
+			$PDNSUTIL --config-dir=. --config-name=remote secure-zone up.example.com
 
-			./gsql_feed_ds.pl up.example.com example.com "../pdns/pdnssec --config-dir=. --config-name=remote" "sqlite3 $testsdir/remote.sqlite3"
+			./gsql_feed_ds.pl up.example.com. example.com. "$PDNSUTIL --config-dir=. --config-name=remote" "sqlite3 $testsdir/remote.sqlite3"
+
+			# fix dot
+			sqlite3 $testsdir/remote.sqlite3 "UPDATE records SET name = 'up.example.com.' WHERE name = 'up.example.com'"
 
 			if [ "$remotesec" = "nsec3" ]
 			then
-				../pdns/pdnssec --config-dir=. --config-name=remote set-nsec3 example.com
-				../pdns/pdnssec --config-dir=. --config-name=remote set-nsec3 up.example.com
+				$PDNSUTIL --config-dir=. --config-name=remote set-nsec3 example.com
+				$PDNSUTIL --config-dir=. --config-name=remote set-nsec3 up.example.com
 			fi
 
 			# add DS records into list-all-records
-                        ../pdns/pdnssec --config-dir=. --config-name=remote show-zone up.example.com | gawk '{ if ($1=="DS") { printf "up.example.com.		120	IN	DS	" $6 " " $7 " " $8 " " substr(toupper($9),0,56); if (length($9)>56) { print " " substr(toupper($9),57) } else { print "" } } }' > $testsdir/list-all-records/expected_dnssec_part2
+                        $PDNSUTIL --config-dir=. --config-name=remote show-zone -v up.example.com | gawk '{ if ($1=="DS") { printf "up.example.com.		120	IN	DS	" $6 " " $7 " " $8 " " substr(toupper($9),0,56); if (length($9)>56) { print " " substr(toupper($9),57) } else { print "" } } }' > $testsdir/list-all-records/expected_dnssec_part2
 			cat $testsdir/list-all-records/expected_dnssec_part1 $testsdir/list-all-records/expected_dnssec_part2 $testsdir/list-all-records/expected_dnssec_part3 > $testsdir/list-all-records/expected_result.dnssec 
 			cp -f $testsdir/list-all-records/expected_result.dnssec $testsdir/list-all-records/expected_result.nsec3
 		fi
 
 		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
 			--no-shuffle --launch=remote \
-			--cache-ttl=$cachettl --experimental-dname-processing --no-config \
-			--send-root-referral --distributor-threads=1 \
-			--experimental-dnsupdate=yes \
+			--cache-ttl=$cachettl --dname-processing --no-config \
+			--distributor-threads=1 \
+			--dnsupdate=yes \
 			--remote-connection-string="$connstr" $remote_add_param --module-dir=./modules &
 		;;
 

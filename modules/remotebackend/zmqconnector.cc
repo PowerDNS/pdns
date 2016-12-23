@@ -1,17 +1,31 @@
+/*
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "remotebackend.hh"
 #ifdef REMOTEBACKEND_ZEROMQ
 
-#include <sys/socket.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <boost/foreach.hpp>
-#include <sstream>
-#include "rapidjson/stringbuffer.h"
-#include "rapidjson/writer.h"
-
 ZeroMQConnector::ZeroMQConnector(std::map<std::string,std::string> options) {
-  rapidjson::Value val;
-  rapidjson::Document init,res;
   int opt=0;
 
   // lookup timeout, target and stuff
@@ -24,7 +38,7 @@ ZeroMQConnector::ZeroMQConnector(std::map<std::string,std::string> options) {
   this->d_timeout=2000;
 
   if (options.find("timeout") != options.end()) {
-     this->d_timeout = boost::lexical_cast<int>(options.find("timeout")->second);
+     this->d_timeout = std::stoi(options.find("timeout")->second);
   }
 
   d_ctx = zmq_init(2);
@@ -37,20 +51,15 @@ ZeroMQConnector::ZeroMQConnector(std::map<std::string,std::string> options) {
     throw PDNSException("Cannot find 'endpoint' option in connection string");
   }
 
-  init.SetObject();
-  val = "initialize";
+  Json::array parameters;
+  Json msg = Json(Json::object{
+    { "method", "initialize" },
+    { "parameters", Json(options) },
+  });
 
-  init.AddMember("method",val, init.GetAllocator());
-  val.SetObject();
-  init.AddMember("parameters", val, init.GetAllocator());
-
-  for(std::map<std::string,std::string>::iterator i = options.begin(); i != options.end(); i++) {
-    val = i->second.c_str();
-    init["parameters"].AddMember(i->first.c_str(), val, init.GetAllocator());
-  }
-
-  this->send(init);
-  if (this->recv(res)==false) {
+  this->send(msg);
+  msg = nullptr;
+  if (this->recv(msg)==false) {
     L<<Logger::Error<<"Failed to initialize zeromq"<<std::endl;
     throw PDNSException("Failed to initialize zeromq");
   } 
@@ -61,9 +70,8 @@ ZeroMQConnector::~ZeroMQConnector() {
   zmq_term(this->d_ctx);
 };
 
-int ZeroMQConnector::send_message(const rapidjson::Document &input) {
-   std::string line;
-   line = makeStringFromDocument(input);
+int ZeroMQConnector::send_message(const Json& input) {
+   auto line = input.dump();
    zmq_msg_t message;
 
    zmq_msg_init_size(&message, line.size()+1);
@@ -93,11 +101,10 @@ int ZeroMQConnector::send_message(const rapidjson::Document &input) {
    return 0;
 }
 
-int ZeroMQConnector::recv_message(rapidjson::Document &output) {
+int ZeroMQConnector::recv_message(Json& output) {
    int rv = 0;
    // try to receive message
    zmq_pollitem_t item;
-   rapidjson::GenericReader<rapidjson::UTF8<> , rapidjson::MemoryPoolAllocator<> > r;
    zmq_msg_t message;
 
    item.socket = d_sock;
@@ -111,25 +118,20 @@ int ZeroMQConnector::recv_message(rapidjson::Document &output) {
        if (zmq_poll(&item, 1, 1)>0) {
          // we have an event
          if ((item.revents & ZMQ_POLLIN) == ZMQ_POLLIN) {
-           char *data;
+           string data;
            size_t msg_size;
            zmq_msg_init(&message);
            // read something
            if(zmq_msg_recv(&message, this->d_sock, ZMQ_NOBLOCK)>0) {
+               string err;
                msg_size = zmq_msg_size(&message);
-               data = new char[msg_size+1];
-               memcpy(data, zmq_msg_data(&message), msg_size);
-               data[msg_size] = '\0';
+               data.assign(reinterpret_cast<const char*>(zmq_msg_data(&message)), msg_size);
                zmq_msg_close(&message);
-
-               rapidjson::StringStream ss(data);
-               output.ParseStream<0>(ss);
-               delete[] data;
-
-               if (output.HasParseError() == false)
+               output = Json::parse(data, err);
+               if (output != nullptr)
                  rv = msg_size;
                else 
-                 L<<Logger::Error<<"Cannot parse JSON reply from " << this->d_endpoint<<std::endl;
+                 L<<Logger::Error<<"Cannot parse JSON reply from " << this->d_endpoint << ": " << err << endl;
                break;
              } else if (errno == EAGAIN) { continue; // try again }
              } else {

@@ -1,23 +1,25 @@
 /*
- *  PowerDNS OpenDBX Backend
- *  Copyright (C) 2005-2007 Norbert Sendetzky <norbert@linuxnetworks.de>
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ * originally authored by Norbert Sendetzky
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License version 2
- *  as published by the Free Software Foundation
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
  *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-
-
-
 #include <string>
 #include <cstdlib>
 #include <sstream>
@@ -54,7 +56,7 @@ class OdbxBackend : public DNSBackend
         enum QueryType { READ, WRITE };
 
         string m_myname;
-        string m_qname;
+        DNSName m_qname;
         int m_default_ttl;
         bool m_qlog;
         odbx_t* m_handle[2];
@@ -75,9 +77,9 @@ public:
         OdbxBackend( const string& suffix="" );
         ~OdbxBackend();
 
-        void lookup( const QType& qtype, const string& qdomain, DNSPacket* p = 0, int zoneid = -1 );
-        bool getSOA( const string& domain, SOAData& sd, DNSPacket* p );
-        bool list( const string& target, int domain_id, bool include_disabled=false );
+        void lookup( const QType& qtype, const DNSName& qdomain, DNSPacket* p = 0, int zoneid = -1 );
+        bool getSOA( const DNSName& domain, SOAData& sd, DNSPacket* p );
+        bool list( const DNSName& target, int domain_id, bool include_disabled=false );
         bool get( DNSResourceRecord& rr );
 
         bool startTransaction( const string& domain, int domain_id );
@@ -164,7 +166,11 @@ public:
         OdbxLoader()
         {
         	BackendMakers().report( &factory );
-		L.log( "[opendbxbackend] This is the opendbx backend version " VERSION " (" __DATE__ ", " __TIME__ ") reporting", Logger::Info );
+		L<< Logger::Info << "[opendbxbackend] This is the opendbx backend version " VERSION
+#ifndef REPRODUCIBLE
+		  << " (" __DATE__ " " __TIME__ ")"
+#endif
+		  << " reporting" << endl;
         }
 };
 

@@ -1,40 +1,44 @@
-gsql-master()
+gsql_master()
 {
 	backend=$1
 	skipreasons=$2
 
+	real_backend=$backend
+	if `echo $backend | grep -q '_'`; then
+		real_backend=$(echo $backend | awk -F '_' '{print $1}')
+	fi
+
 	if [ $context != ${backend}-nodnssec ]
 	then
-		echo "${backend}-dnssec" >> pdns-${backend}.conf
+		echo "${real_backend}-dnssec" >> pdns-${backend}.conf
 	fi
 
 	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\")
 	do
 		if [ $context != ${backend}-nodnssec ]
 		then
-			securezone $zone ${backend}
 			if [ $context = ${backend}-nsec3 ] || [ $context = ${backend}-nsec3-optout ]
 			then
-				../pdns/pdnssec --config-dir=. --config-name=$backend set-nsec3 $zone "1 $optout 1 abcd" 2>&1
-				../pdns/pdnssec --config-dir=. --config-name=$backend rectify-zone $zone 2>&1
+				$PDNSUTIL --config-dir=. --config-name=$backend set-nsec3 $zone "1 $optout 1 abcd" 2>&1
 			elif [ $context = ${backend}-nsec3-narrow ]
 			then
-				../pdns/pdnssec --config-dir=. --config-name=$backend set-nsec3 $zone '1 1 1 abcd' narrow 2>&1
-				../pdns/pdnssec --config-dir=. --config-name=$backend rectify-zone $zone 2>&1
+				$PDNSUTIL --config-dir=. --config-name=$backend set-nsec3 $zone '1 1 1 abcd' narrow 2>&1
 			fi
+			securezone $zone ${backend}
 		else
-			../pdns/pdnssec --config-dir=. --config-name=$backend rectify-zone $zone 2>&1
+			$PDNSUTIL --config-dir=. --config-name=$backend rectify-zone $zone 2>&1
+		fi
+		if [ "$zone" = "tsig.com" ]; then
+			$PDNSUTIL --config-dir=. --config-name=$backend import-tsig-key test $ALGORITHM $KEY
+			$PDNSUTIL --config-dir=. --config-name=$backend activate-tsig-key tsig.com test master
 		fi
 	done
 
-	../pdns/pdnssec --config-dir=. --config-name=$backend import-tsig-key test $ALGORITHM $KEY
-	../pdns/pdnssec --config-dir=. --config-name=$backend activate-tsig-key tsig.com test master
 
 	$RUNWRAPPER $PDNS --daemon=no --local-port=$port --config-dir=. \
 		--config-name=$backend --socket-dir=./ --no-shuffle \
-		--send-root-referral \
-		--experimental-dnsupdate=yes \
-		--cache-ttl=$cachettl --experimental-dname-processing \
+		--dnsupdate=yes --recursor=8.8.8.8 --outgoing-axfr-expand-alias=yes \
+		--cache-ttl=$cachettl --dname-processing \
 		--disable-axfr-rectify=yes $lua_prequery &
 
 	if [ $context = ${backend}-nsec3 ]

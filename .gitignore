@@ -2,7 +2,8 @@
 /Makefile.in
 /aclocal.m4
 /autom4te.cache
-/build-aux/
+/build-aux/*
+!/build-aux/gen-version
 /config.cache
 /config.guess
 /config.h
@@ -25,8 +26,7 @@
 .deps
 .libs
 .dirstamp
-modules/*/Makefile
-modules/*/Makefile.in
+.version
 codedocs/Makefile
 codedocs/Makefile.in
 /config.log
@@ -41,6 +41,11 @@ ltversion.m4
 lt~obsolete.m4
 pdns-*.tar.gz
 pdns-*.tar.bz2
+regression-tests.recursor/run-auth
 .*DS_Store
 *~
 pdns.pid
+pdns_recursor.pid
+*.gcda
+*.gcno
+*.gcov

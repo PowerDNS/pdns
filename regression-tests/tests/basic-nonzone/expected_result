@@ -1,5 +1,5 @@
 0	nztest.com.	IN	A	3600	127.0.0.1
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='nztest.com.', qtype=A
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 0, opcode: 0
+Rcode: 5 (Query Refused), RD: 0, QR: 1, TC: 0, AA: 0, opcode: 0
 Reply to question for qname='testnz.com.', qtype=A

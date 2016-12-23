@@ -1,3 +1,27 @@
+/*
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "odbxbackend.hh"
 
 
@@ -22,7 +46,7 @@ bool OdbxBackend::connectTo( const vector<string>& hosts, QueryType type )
 
         if( type == WRITE && getArg( "backend" ) == "sqlite" )
         {
-        	L.log( m_myname + " Using same SQLite connection for reading and writeing to '" + hosts[odbx_host_index[READ]] + "'", Logger::Notice );
+        	L.log( m_myname + " Using same SQLite connection for reading and writing to '" + hosts[odbx_host_index[READ]] + "'", Logger::Notice );
         	m_handle[WRITE] = m_handle[READ];
         	return true;
         }
@@ -212,7 +236,7 @@ bool OdbxBackend::getDomainList( const string& stmt, vector<DomainInfo>* list, b
 
         		if( ( tmp = odbx_field_value( m_result, 1 ) ) != NULL )
         		{
-        			di.zone = string( tmp, odbx_field_length( m_result, 1 ) );
+			        di.zone = DNSName( string(tmp, odbx_field_length( m_result, 1 )) );
         		}
 
         		if( ( tmp = odbx_field_value( m_result, 0 ) ) != NULL )

@@ -9,10 +9,11 @@ $ORIGIN test.com.
 
 @			IN	NS	ns1
 @			IN	NS	ns2
-@			IN	MX	10	smtp-servers.example.com.
+@			IN	MX	10	.
 @			IN	MX	15	smtp-servers
 ns1			IN	A	1.1.1.1
 ns2			IN	A	2.2.2.2
+toroot			IN	CNAME	.
 www			IN	CNAME	server1
 server1			IN	A	1.2.3.4
 			IN	RP	ahu.ds9a.nl. counter
@@ -27,8 +28,6 @@ _double._tcp.dc		IN	SRV 	1 100 389 server1
 _root._tcp.dc		IN	SRV	0 0 0 .
 blah			IN	NS	blah
 blah			IN	A	192.168.6.1
-;images			IN	URL	"http://www.ds9a.nl"
-;bert@auto.test.com.			IN	MBOXFW	"bert@ds9a.nl"
 very-long-txt		IN	TXT	"A very long TXT record! boy you won't believe how long. A very long TXT record! boy you won't believe how long. A very long TXT record! boy you won't believe how long. A very long TXT record! boy you won't believe how long. A very long TXT record! boy you won't believe how long!"
 within-server		IN	CNAME	outpost.example.com.
 _underscore		IN	TXT	"underscores are terrible"
@@ -38,3 +37,4 @@ aland		IN TXT "\195\133LAND ISLANDS"
 hightxt		IN	TXT	"v=spf1 mx ip4:78.46.192.210 –all"
 hightxt		IN	SPF	"v=spf1 mx ip4:78.46.192.210 –all"
 d		IN	DNAME	d2.test2.com.
+urc65226	IN	TYPE65226 \# 3 414243

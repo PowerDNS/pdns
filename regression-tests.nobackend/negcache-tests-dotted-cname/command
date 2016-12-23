@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -e
+if [ "${PDNS_DEBUG}" = "YES" ]; then
+  set -x
+fi
+
+port=5501
+rm -f pdns*.pid
+
+$PDNS --daemon=no --local-port=$port --socket-dir=./          \
+	--no-shuffle --launch=bind,pipe --bind-config=negcache-tests-dotted-cname/named.conf   \
+	--pipe-command=negcache-tests-dotted-cname/pipe.py \
+	--cache-ttl=60 --no-config --module-dir=../regression-tests/modules &
+
+sleep 3
+
+$SDIG 127.0.0.1 5501 cname.example2.com A | LC_ALL=C sort
+
+# check if we didn't neg-cache .com
+$SDIG 127.0.0.1 5501 www.example.com A | LC_ALL=C sort
+
+kill $(cat pdns*.pid)
+rm pdns*.pid

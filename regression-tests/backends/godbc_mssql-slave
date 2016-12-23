@@ -1,0 +1,58 @@
+	context=${context}-presigned-godbc
+	ISQL="isql $GODBC_MSSQL2_DSN $GODBC_MSSQL2_USERNAME $GODBC_MSSQL2_PASSWORD"
+	# Drop _ALL_ the tables!
+	for table in `echo "SELECT name FROM sysobjects WHERE OBJECTPROPERTY(id, N'IsUserTable') = 1" | $ISQL -b -d.`; do
+		echo "drop table $table" | $ISQL -b
+	done
+	$ISQL < ../modules/godbcbackend/schema.mssql.sql
+	cat > pdns-godbc2.conf << __EOF__
+module-dir=./modules
+launch=godbc
+godbc-datasource=$GODBC_MSSQL2_DSN
+godbc-username=$GODBC_MSSQL2_USERNAME
+godbc-password=$GODBC_MSSQL2_PASSWORD
+__EOF__
+
+	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | tac)
+	do
+		echo "INSERT INTO domains (name, type, master) VALUES('$zone','SLAVE','127.0.0.1:$port');" | $ISQL -b
+		if [ "$zone" = "tsig.com" ]; then
+			../pdns/pdnssec --config-dir=. --config-name=godbc2 import-tsig-key test $ALGORITHM $KEY
+			../pdns/pdnssec --config-dir=. --config-name=godbc2 activate-tsig-key tsig.com test slave
+		fi
+		if [ "$zone" = "stest.com" ]; then
+			if [[ $skipreasons != *nolua* ]]; then
+				$PDNSUTIL --config-dir=. --config-name=godbc2 set-meta stest.com AXFR-SOURCE 127.0.0.2
+			fi
+		fi
+	done
+
+	port=$((port+100))
+
+	$RUNWRAPPER $PDNS2 --daemon=no --local-port=$port --config-dir=. \
+		--config-name=godbc2 --socket-dir=./ --no-shuffle \
+		--slave --retrieval-threads=4 \
+		--slave-cycle-interval=300 --dname-processing &
+
+	echo 'waiting for zones to be slaved'
+	set +e
+	loopcount=0
+	while [ $loopcount -lt 30 ]
+	do
+		sleep 5
+		todo=$(echo "SELECT COUNT(id) FROM domains WHERE last_check IS NULL" | $ISQL)
+		if [ $? -eq 0 ]
+		then
+			if [ $todo = 0 ]
+			then
+				break
+			fi
+		fi
+		let loopcount=loopcount+1
+	done
+	if [ $todo -ne 0 ]
+	then
+		echo "AXFR FAILED" >> failed_tests
+		exit
+	fi
+	set -e

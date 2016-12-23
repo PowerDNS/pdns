@@ -1,0 +1,2 @@
+If we create a zone, add a comment and remove the zone, the comment should be
+gone too.

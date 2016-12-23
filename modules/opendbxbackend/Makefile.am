@@ -7,4 +7,4 @@ libopendbxbackend_la_SOURCES = \
 	odbxprivate.cc
 
 libopendbxbackend_la_LDFLAGS = -module -avoid-version
-libopendbxbackend_la_LIBADD = -l$(LIBOPENDBX)
+libopendbxbackend_la_LIBADD = $(OPENDBX_LIBS)

@@ -1,0 +1,3 @@
+1	.	IN	SOA	86400	a.root-servers.net. nstld.verisign-grs.com. 2016021600 1800 900 604800 86400
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='com.', qtype=NS

@@ -18,13 +18,15 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-#include <boost/foreach.hpp>
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <boost/tokenizer.hpp>
 #include <boost/circular_buffer.hpp>
 #include "namespaces.hh"
 #include "ws-api.hh"
 #include "json.hh"
-#include "config.h"
 #include "version.hh"
 #include "arguments.hh"
 #include <stdio.h>
@@ -34,6 +36,7 @@
 #include <iomanip>
 
 extern string s_programname;
+using json11::Json;
 
 #ifndef HAVE_STRCASESTR
 
@@ -76,30 +79,39 @@ strcasestr(const char *s1, const char *s2)
 
 #endif // HAVE_STRCASESTR
 
-using namespace rapidjson;
+static Json getServerDetail() {
+  return Json::object {
+    { "type", "Server" },
+    { "id", "localhost" },
+    { "url", "/api/v1/servers/localhost" },
+    { "daemon_type", productTypeApiType() },
+    { "version", getPDNSVersion() },
+    { "config_url", "/api/v1/servers/localhost/config{/config_setting}" },
+    { "zones_url", "/api/v1/servers/localhost/zones{/zone}" }
+  };
+}
 
-static void fillServerDetail(Value& out, Value::AllocatorType& allocator)
-{
-  Value jdaemonType(productTypeApiType().c_str(), allocator);
-  out.SetObject();
-  out.AddMember("type", "Server", allocator);
-  out.AddMember("id", "localhost", allocator);
-  out.AddMember("url", "/servers/localhost", allocator);
-  out.AddMember("daemon_type", jdaemonType, allocator);
-  out.AddMember("version", VERSION, allocator);
-  out.AddMember("config_url", "/servers/localhost/config{/config_setting}", allocator);
-  out.AddMember("zones_url", "/servers/localhost/zones{/zone}", allocator);
+/* Return information about the supported API versions.
+ * The format of this MUST NEVER CHANGE at it's not versioned.
+ */
+void apiDiscovery(HttpRequest* req, HttpResponse* resp) {
+  if(req->method != "GET")
+    throw HttpMethodNotAllowedException();
+
+  Json version1 = Json::object {
+    { "version", 1 },
+    { "url", "/api/v1" }
+  };
+  Json doc = Json::array { version1 };
+
+  resp->setBody(doc);
 }
 
 void apiServer(HttpRequest* req, HttpResponse* resp) {
   if(req->method != "GET")
     throw HttpMethodNotAllowedException();
 
-  Document doc;
-  doc.SetArray();
-  Value server;
-  fillServerDetail(server, doc.GetAllocator());
-  doc.PushBack(server, doc.GetAllocator());
+  Json doc = Json::array {getServerDetail()};
   resp->setBody(doc);
 }
 
@@ -107,9 +119,7 @@ void apiServerDetail(HttpRequest* req, HttpResponse* resp) {
   if(req->method != "GET")
     throw HttpMethodNotAllowedException();
 
-  Document doc;
-  fillServerDetail(doc, doc.GetAllocator());
-  resp->setBody(doc);
+  resp->setBody(getServerDetail());
 }
 
 void apiServerConfig(HttpRequest* req, HttpResponse* resp) {
@@ -118,36 +128,29 @@ void apiServerConfig(HttpRequest* req, HttpResponse* resp) {
 
   vector<string> items = ::arg().list();
   string value;
-  Document doc;
-  doc.SetArray();
-  BOOST_FOREACH(const string& item, items) {
-    Value jitem;
-    jitem.SetObject();
-    jitem.AddMember("type", "ConfigSetting", doc.GetAllocator());
-
-    Value jname(item.c_str(), doc.GetAllocator());
-    jitem.AddMember("name", jname, doc.GetAllocator());
-
-    if(item.find("password") != string::npos)
+  Json::array doc;
+  for(const string& item : items) {
+    if(item.find("password") != string::npos || item.find("api-key") != string::npos)
       value = "***";
     else
       value = ::arg()[item];
 
-    Value jvalue(value.c_str(), doc.GetAllocator());
-    jitem.AddMember("value", jvalue, doc.GetAllocator());
-
-    doc.PushBack(jitem, doc.GetAllocator());
+    doc.push_back(Json::object {
+      { "type", "ConfigSetting" },
+      { "name", item },
+      { "value", value },
+    });
   }
   resp->setBody(doc);
 }
 
-static string logGrep(const string& q, const string& fname, const string& prefix)
+static Json logGrep(const string& q, const string& fname, const string& prefix)
 {
   FILE* ptr = fopen(fname.c_str(), "r");
   if(!ptr) {
     throw ApiException("Opening \"" + fname + "\" failed: " + stringerror());
   }
-  boost::shared_ptr<FILE> fp(ptr, fclose);
+  std::shared_ptr<FILE> fp(ptr, fclose);
 
   string line;
   string needle = q;
@@ -173,14 +176,11 @@ static string logGrep(const string& q, const string& fname, const string& prefix
     }
   }
 
-  Document doc;
-  doc.SetArray();
-  if(!lines.empty()) {
-    BOOST_FOREACH(const string& line, lines) {
-      doc.PushBack(line.c_str(), doc.GetAllocator());
-    }
+  Json::array items;
+  for(const string& line : lines) {
+    items.push_back(line);
   }
-  return makeStringFromDocument(doc);
+  return items;
 }
 
 void apiServerSearchLog(HttpRequest* req, HttpResponse* resp) {
@@ -188,7 +188,7 @@ void apiServerSearchLog(HttpRequest* req, HttpResponse* resp) {
     throw HttpMethodNotAllowedException();
 
   string prefix = " " + s_programname + "[";
-  resp->body = logGrep(req->getvars["q"], ::arg()["experimental-logfile"], prefix);
+  resp->setBody(logGrep(req->getvars["q"], ::arg()["api-logfile"], prefix));
 }
 
 void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
@@ -198,27 +198,31 @@ void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
   map<string,string> items;
   productServerStatisticsFetch(items);
 
-  Document doc;
-  doc.SetArray();
+  Json::array doc;
   typedef map<string, string> items_t;
-  BOOST_FOREACH(const items_t::value_type& item, items) {
-    Value jitem;
-    jitem.SetObject();
-    jitem.AddMember("type", "StatisticItem", doc.GetAllocator());
-
-    Value jname(item.first.c_str(), doc.GetAllocator());
-    jitem.AddMember("name", jname, doc.GetAllocator());
-
-    Value jvalue(item.second.c_str(), doc.GetAllocator());
-    jitem.AddMember("value", jvalue, doc.GetAllocator());
-
-    doc.PushBack(jitem, doc.GetAllocator());
+  for(const items_t::value_type& item : items) {
+    doc.push_back(Json::object {
+      { "type", "StatisticItem" },
+      { "name", item.first },
+      { "value", item.second },
+    });
   }
 
   resp->setBody(doc);
 }
 
-string apiZoneIdToName(const string& id) {
+DNSName apiNameToDNSName(const string& name) {
+  if (!isCanonical(name)) {
+    throw ApiException("DNS Name '" + name + "' is not canonical");
+  }
+  try {
+    return DNSName(name);
+  } catch (...) {
+    throw ApiException("Unable to parse DNS Name '" + name + "'");
+  }
+}
+
+DNSName apiZoneIdToName(const string& id) {
   string zonename;
   ostringstream ss;
 
@@ -258,14 +262,15 @@ string apiZoneIdToName(const string& id) {
 
   zonename = ss.str();
 
-  // strip trailing dot
-  if (zonename.substr(zonename.size()-1) == ".") {
-    zonename.resize(zonename.size()-1);
+  try {
+    return DNSName(zonename);
+  } catch (...) {
+    throw ApiException("Unable to parse DNS Name '" + zonename + "'");
   }
-  return zonename;
 }
 
-string apiZoneNameToId(const string& name) {
+string apiZoneNameToId(const DNSName& dname) {
+  string name=dname.toString();
   ostringstream ss;
 
   for(string::const_iterator iter = name.begin(); iter != name.end(); ++iter) {
@@ -282,14 +287,24 @@ string apiZoneNameToId(const string& name) {
   string id = ss.str();
 
   // add trailing dot
-  if (id.substr(id.size()-1) != ".") {
+  if (id.size() == 0 || id.substr(id.size()-1) != ".") {
     id += ".";
   }
 
   // special handling for the root zone, as a dot on it's own doesn't work
   // everywhere.
   if (id == ".") {
-    id = (boost::format("=%02x") % (int)('.')).str();
+    id = (boost::format("=%02X") % (int)('.')).str();
   }
   return id;
+}
+
+void apiCheckNameAllowedCharacters(const string& name) {
+  if (name.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890_/.-") != std::string::npos)
+    throw ApiException("Name '"+name+"' contains unsupported characters");
+}
+
+void apiCheckQNameAllowedCharacters(const string& qname) {
+  if (qname.compare(0, 2, "*.") == 0) apiCheckNameAllowedCharacters(qname.substr(2));
+  else apiCheckNameAllowedCharacters(qname);
 }

@@ -1,0 +1,6 @@
+0	www.france.auth-zone.example.net.	IN	A	3600	192.0.2.23
+Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+Reply to question for qname='www.france.auth-zone.example.net.', qtype=A
+0	france.auth-zone.example.net.	IN	A	3600	192.0.2.223
+Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+Reply to question for qname='france.auth-zone.example.net.', qtype=A

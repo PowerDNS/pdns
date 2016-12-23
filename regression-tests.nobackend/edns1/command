@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+# run PowerDNS using random backend
+
+port=5501
+rm -f pdns*.pid
+
+bindwait ()
+{
+        configname=$1
+        domcount=1
+        loopcount=0
+        while [ $loopcount -lt 20 ]; do
+                sleep 1
+                done=$( ($PDNSCONTROL --config-name=$configname --socket-dir=. --no-config bind-domain-status || true) | grep -c 'parsed into memory' || true )
+                if [ $done = $domcount ]
+                        then
+                        return
+                fi
+                let loopcount=loopcount+1
+        done
+        if [ $done != $domcount ]; then
+                echo "Domain parsing failed" >> failed_tests
+        fi
+}
+
+$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./          \
+        --no-shuffle --launch=bind --bind-config=edns-packet-cache/named.conf   \
+        --cache-ttl=60 --no-config --module-dir=../regression-tests/modules &
+bindwait
+
+timeout 5 ./edns1/test-edns.py
+
+kill $(cat pdns*.pid)
+rm pdns*.pid

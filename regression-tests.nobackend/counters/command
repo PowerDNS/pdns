@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+set -e
+if [ "${PDNS_DEBUG}" = "YES" ]; then
+  set -x
+fi
+
+port=5600
+
+rm -f pdns*.pid
+
+$PDNS --daemon=no --local-ipv6=::1 --local-address=127.0.0.1 \
+  --local-port=$port --socket-dir=./ --no-shuffle --launch=random --no-config \
+  --module-dir=../regression-tests/modules &
+
+sleep 2
+
+$SDIG 127.0.0.1 $port random.example.com A >&2 >/dev/null
+$SDIG 127.0.0.1 $port example.com SOA >&2 >/dev/null
+
+$SDIG 127.0.0.1 $port random.example.com A tcp >&2 >/dev/null
+$SDIG 127.0.0.1 $port example.com SOA tcp >&2 >/dev/null
+
+$SDIG ::1 $port random.example.com A >&2 >/dev/null
+$SDIG ::1 $port random.example.com A tcp >&2 >/dev/null
+
+$SDIG ::1 $port example.com SOA >&2 >/dev/null
+$SDIG ::1 $port example.com SOA tcp >&2 >/dev/null
+
+$PDNSCONTROL --config-name= --no-config --socket-dir=./ 'show *' | \
+  tr ',' '\n'| grep -v -E '(user-msec|sys-msec|uptime|udp-noport-errors|udp-in-errors|real-memory-usage|udp-recvbuf-errors|udp-sndbuf-errors|-hit|-miss|fd-usage|latency)' | LC_ALL=C sort
+
+kill $(cat pdns*.pid)
+rm pdns*.pid

@@ -1,27 +1,41 @@
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_NO_MAIN
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <boost/test/unit_test.hpp>
-#include "bindparserclasses.hh"
 #include "misc.hh"
 #include "pdnsexception.hh"
 #include <utility>
-#include <boost/foreach.hpp>
+
+#include <sstream>
+#include <cstdlib>
+#include "dnsname.hh"
+#include "bindparserclasses.hh"
 
 using std::string;
 
 BOOST_AUTO_TEST_SUITE(bindparser_cc)
 
 BOOST_AUTO_TEST_CASE(test_parser) {
+        const char *srcdir;
+        std::ostringstream pathbuf;
         BindParser BP;
         BOOST_CHECK_THROW( BP.parse("../regression-tests/named.confx"), PDNSException);
-        BP.parse("../pdns/named.conf.parsertest"); // indirect path because Jenkins runs us from ../regression-tests/
+        BP.setVerbose(true);
+        srcdir = std::getenv("SRCDIR");
+        if(!srcdir)
+                srcdir="."; // assume no shenanigans
+
+        pathbuf << srcdir << "/../pdns/named.conf.parsertest";
+        BP.parse(pathbuf.str());
 
         vector<BindDomainInfo> domains=BP.getDomains();
         BOOST_CHECK_EQUAL(domains.size(), 11);
 
 #define checkzone(i, dname, fname, ztype, nmasters) { \
-                BOOST_CHECK_EQUAL(domains[i].name, #dname); \
+	        BOOST_CHECK(domains[i].name == DNSName(#dname));     \
                 BOOST_CHECK_EQUAL(domains[i].filename, fname); \
                 BOOST_CHECK_EQUAL(domains[i].type, #ztype); \
                 BOOST_CHECK_EQUAL(domains[i].masters.size(), nmasters); \

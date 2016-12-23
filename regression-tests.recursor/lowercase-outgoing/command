@@ -1,0 +1,6 @@
+#!/bin/sh
+. vars
+truncate -s 0 "configs/$PREFIX.24/questions.txt"
+cleandig hOsT.lOwErcAsE-outgoing.example.net a >/dev/null 2>&1
+$SDIG $nameserver 5300 hOsT.lOwErcAsE-outgoing.example.net a recurse >/dev/null 2>&1
+cat "configs/$PREFIX.24/questions.txt"

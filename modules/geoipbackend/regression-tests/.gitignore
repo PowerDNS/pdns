@@ -2,3 +2,7 @@ diff
 real_result
 *.out
 geosec
+region-a-resolution/expected_result
+region-cname-resolution/expected_result
+text-interpolation/expected_result
+geo.yaml

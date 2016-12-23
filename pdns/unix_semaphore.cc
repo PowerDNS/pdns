@@ -21,6 +21,9 @@
 */
 
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "utility.hh"
 #include <cstring>
 #include <fcntl.h>
@@ -34,7 +37,7 @@
 #include <sys/types.h>
 
 
-#if DARWIN || _AIX || __APPLE__ 
+#if defined(_AIX) || defined(__APPLE__)
 
 // Darwin 6.0 Compatible implementation, uses pthreads so it portable across more platforms.
 
@@ -179,6 +182,7 @@ int Semaphore::getValue(Semaphore::sem_value_t *sval)
 
 Semaphore::~Semaphore()
 {
+  delete m_pSemaphore;
 }
 
 #endif

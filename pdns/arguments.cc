@@ -1,29 +1,32 @@
 /*
-    PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002 - 2008  PowerDNS.COM BV
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as published 
-    by the Free Software Foundation
-
-    Additionally, the license of this program contains a special
-    exception which allows to distribute the program in binary form when
-    it is linked against OpenSSL.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-*/
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "arguments.hh"
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/compare.hpp>
 #include <boost/algorithm/string/predicate.hpp>
-#include <boost/foreach.hpp>
+
 #include "namespaces.hh"
 #include "logger.hh"
 #include <sys/types.h>
@@ -252,7 +255,7 @@ int ArgvMap::asNum(const string &arg, int def)
   cptr_orig = params[arg].c_str();
   retval = static_cast<int>(strtol(cptr_orig, &cptr_ret, 0));
   if (!retval && cptr_ret == cptr_orig)
-   throw ArgException("'"+arg+string("' is not valid number"));
+   throw ArgException("'"+arg+"' value '"+string(cptr_orig) + string( "' is not a valid number"));
 
   return retval;
 }
@@ -378,22 +381,19 @@ void ArgvMap::preParse(int &argc, char **argv, const string &arg)
   }
 }
 
-bool ArgvMap::preParseFile(const char *fname, const string &arg, const string& theDefault)
-{
-  params[arg]=theDefault;
+bool ArgvMap::parseFile(const char *fname, const string& arg, bool lax) {
+  string line;
+  string pline;
+  string::size_type pos;
 
   ifstream f(fname);
   if(!f)
     return false;
 
-  string line;
-  string pline;
-  string::size_type pos;
-
   while(getline(f,pline)) {
     trim_right(pline);
     
-    if(pline[pline.size()-1]=='\\') {
+    if(!pline.empty() && pline[pline.size()-1]=='\\') {
       line+=pline.substr(0,pline.length()-1);
       continue;
     }
@@ -401,8 +401,12 @@ bool ArgvMap::preParseFile(const char *fname, const string &arg, const string& t
       line+=pline;
 
     // strip everything after a #
-    if((pos=line.find("#"))!=string::npos)
-      line=line.substr(0,pos);
+    if((pos=line.find("#"))!=string::npos) {
+      // make sure it's either first char or has whitespace before
+      // fixes issue #354
+      if (pos == 0 || std::isspace(line[pos-1]))
+        line=line.substr(0,pos);
+    }
 
     // strip trailing spaces
     trim_right(line);
@@ -413,11 +417,19 @@ bool ArgvMap::preParseFile(const char *fname, const string &arg, const string& t
 
     // gpgsql-basic-query=sdfsdfs dfsdfsdf sdfsdfsfd
 
-    parseOne( string("--") + line, arg );
+    parseOne( string("--") + line, arg, lax );
     line="";
   }
 
   return true;
+}
+
+
+bool ArgvMap::preParseFile(const char *fname, const string &arg, const string& theDefault)
+{
+  params[arg]=theDefault;
+
+  return parseFile(fname, arg, false);
 }
 
 bool ArgvMap::file(const char *fname, bool lax)
@@ -427,47 +439,19 @@ bool ArgvMap::file(const char *fname, bool lax)
 
 bool ArgvMap::file(const char *fname, bool lax, bool included)
 {
-  ifstream f(fname);
-  if(!f) {
-    return false;
-  }
-
   if (!parmIsset("include-dir"))  // inject include-dir
     set("include-dir","Directory to include configuration files from");
 
-  string line;
-  string pline;
-  string::size_type pos;
-
-  while(getline(f,pline)) {
-    trim_right(pline);
-    if(pline.empty())
-      continue;
-
-    if(pline[pline.size()-1]=='\\') {
-      line+=pline.substr(0,pline.length()-1);
-
-      continue;
-    }
-    else
-      line+=pline;
-
-    // strip everything after a #
-    if((pos=line.find("#"))!=string::npos)
-      line=line.substr(0,pos);
-
-    // strip trailing spaces
-    trim(line);
-
-    parseOne(string("--")+line,"",lax);
-    line="";
+  if(!parseFile(fname, "", lax)) {
+    L << Logger::Warning << "Unable to open " << fname << std::endl;
+    return false;
   }
 
   // handle include here (avoid re-include)
   if (!included && !params["include-dir"].empty()) {
     std::vector<std::string> extraConfigs;
     gatherIncludes(extraConfigs); 
-    BOOST_FOREACH(const std::string& fn, extraConfigs) {
+    for(const std::string& fn :  extraConfigs) {
       if (!file(fn.c_str(), lax, true)) {
         L << Logger::Error << fn << " could not be parsed" << std::endl;
         throw ArgException(fn + " could not be parsed");

@@ -1,24 +1,27 @@
 /*
-    PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002 - 2011  PowerDNS.COM BV
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as 
-    published by the Free Software Foundation
-
-    Additionally, the license of this program contains a special
-    exception which allows to distribute the program in binary form when
-    it is linked against OpenSSL.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-*/
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "utility.hh"
 #include "packetcache.hh"
 #include "logger.hh"
@@ -27,15 +30,24 @@
 #include <map>
 #include <boost/algorithm/string.hpp>
 
+const unsigned int PacketCache::s_mincleaninterval, PacketCache::s_maxcleaninterval;
+
 extern StatBag S;
 
 PacketCache::PacketCache()
 {
-  pthread_rwlock_init(&d_mut, 0);
-  // d_ops = 0;
+  d_ops=0;
+  d_maps.resize(1024);
+  for(auto& mc : d_maps) {
+    pthread_rwlock_init(&mc.d_mut, 0);
+  }
 
   d_ttl=-1;
   d_recursivettl=-1;
+
+  d_lastclean=time(0);
+  d_cleanskipped=false;
+  d_nextclean=d_cleaninterval=4096;
 
   S.declare("packetcache-hit");
   S.declare("packetcache-miss");
@@ -44,12 +56,22 @@ PacketCache::PacketCache()
   d_statnumhit=S.getPointer("packetcache-hit");
   d_statnummiss=S.getPointer("packetcache-miss");
   d_statnumentries=S.getPointer("packetcache-size");
+  d_doRecursion=false;
 }
 
 PacketCache::~PacketCache()
 {
-  WriteLock l(&d_mut);
+  //  WriteLock l(&d_mut);
+  vector<WriteLock*> locks;
+  for(auto& mc : d_maps) {
+    locks.push_back(new WriteLock(&mc.d_mut));
+  }
+  for(auto wl : locks) {
+    delete wl;
+  }
 }
+
+
 
 int PacketCache::get(DNSPacket *p, DNSPacket *cached, bool recursive)
 {
@@ -58,9 +80,7 @@ int PacketCache::get(DNSPacket *p, DNSPacket *cached, bool recursive)
   if(d_ttl<0) 
     getTTLS();
 
-  if(!((++d_ops) % 300000)) {
-    cleanup();
-  }
+  cleanupIfNeeded();
 
   if(d_doRecursion && p->d.rd) { // wants recursion
     if(!d_recursivettl) {
@@ -82,7 +102,8 @@ int PacketCache::get(DNSPacket *p, DNSPacket *cached, bool recursive)
   string value;
   bool haveSomething;
   {
-    TryReadLock l(&d_mut); // take a readlock here
+    auto& mc=getMap(p->qdomain);
+    TryReadLock l(&mc.d_mut); // take a readlock here
     if(!l.gotIt()) {
       S.inc("deferred-cache-lookup");
       return 0;
@@ -144,12 +165,10 @@ void PacketCache::insert(DNSPacket *q, DNSPacket *r, bool recursive, unsigned in
 }
 
 // universal key appears to be: qname, qtype, kind (packet, query cache), optionally zoneid, meritsRecursion
-void PacketCache::insert(const string &qname, const QType& qtype, CacheEntryType cet, const string& value, unsigned int ttl, int zoneID, 
+void PacketCache::insert(const DNSName &qname, const QType& qtype, CacheEntryType cet, const string& value, unsigned int ttl, int zoneID, 
   bool meritsRecursion, unsigned int maxReplyLen, bool dnssecOk, bool EDNS)
 {
-  if(!((++d_ops) % 300000)) {
-    cleanup();
-  }
+  cleanupIfNeeded();
 
   if(!ttl)
     return;
@@ -158,7 +177,7 @@ void PacketCache::insert(const string &qname, const QType& qtype, CacheEntryType
   CacheEntry val;
   val.created=time(0);
   val.ttd=val.created+ttl;
-  val.qname=pcReverse(qname);
+  val.qname=qname;
   val.qtype=qtype.getCode();
   val.value=value;
   val.ctype=cet;
@@ -168,130 +187,208 @@ void PacketCache::insert(const string &qname, const QType& qtype, CacheEntryType
   val.zoneID = zoneID;
   val.hasEDNS = EDNS;
   
-  TryWriteLock l(&d_mut);
+  auto& mc = getMap(val.qname);
+
+  TryWriteLock l(&mc.d_mut);
   if(l.gotIt()) { 
     bool success;
     cmap_t::iterator place;
-    tie(place, success)=d_map.insert(val);
-    //    cerr<<"Insert succeeded: "<<success<<endl;
+    tie(place, success)=mc.d_map.insert(val);
+
     if(!success)
-      d_map.replace(place, val);
-    
+      mc.d_map.replace(place, val);
+    else
+      (*d_statnumentries)++;
   }
   else 
     S.inc("deferred-cache-inserts"); 
 }
 
+void PacketCache::insert(const DNSName &qname, const QType& qtype, CacheEntryType cet, const vector<DNSZoneRecord>& value, unsigned int ttl, int zoneID)
+{
+  cleanupIfNeeded();
+
+  if(!ttl)
+    return;
+  
+  //cerr<<"Inserting qname '"<<qname<<"', cet: "<<(int)cet<<", qtype: "<<qtype.getName()<<", ttl: "<<ttl<<", maxreplylen: "<<maxReplyLen<<", hasEDNS: "<<EDNS<<endl;
+  CacheEntry val;
+  val.created=time(0);
+  val.ttd=val.created+ttl;
+  val.qname=qname;
+  val.qtype=qtype.getCode();
+  val.drs=value;
+  val.ctype=cet;
+  val.meritsRecursion=false;
+  val.maxReplyLen = 0;
+  val.dnssecOk = false;
+  val.zoneID = zoneID;
+  val.hasEDNS = false;
+  
+  auto& mc = getMap(val.qname);
+
+  TryWriteLock l(&mc.d_mut);
+  if(l.gotIt()) { 
+    bool success;
+    cmap_t::iterator place;
+    tie(place, success)=mc.d_map.insert(val);
+
+    if(!success)
+      mc.d_map.replace(place, val);
+    else
+      (*d_statnumentries)++;
+  }
+  else 
+    S.inc("deferred-cache-inserts"); 
+}
+
+
 /* clears the entire packetcache. */
 int PacketCache::purge()
 {
-  WriteLock l(&d_mut);
-  int delcount=d_map.size();
-  d_map.clear();
-  *d_statnumentries=0;
+  int delcount=0;
+  for(auto& mc : d_maps) {
+    WriteLock l(&mc.d_mut);
+    delcount+=mc.d_map.size();
+    mc.d_map.clear();
+  }
+  d_statnumentries->store(0);
+  return delcount;
+}
+
+int PacketCache::purgeExact(const DNSName& qname)
+{
+  int delcount=0;
+  auto& mc = getMap(qname);
+
+  WriteLock l(&mc.d_mut);
+  auto range = mc.d_map.equal_range(tie(qname));
+  if(range.first != range.second) {
+    delcount+=distance(range.first, range.second);
+    mc.d_map.erase(range.first, range.second);
+  }
+  *d_statnumentries-=delcount;
   return delcount;
 }
 
 /* purges entries from the packetcache. If match ends on a $, it is treated as a suffix */
 int PacketCache::purge(const string &match)
 {
-  WriteLock l(&d_mut);
-  int delcount=0;
-
   if(ends_with(match, "$")) {
+    int delcount=0;
     string prefix(match);
     prefix.resize(prefix.size()-1);
+    DNSName dprefix(prefix);
+    for(auto& mc : d_maps) {
+      WriteLock l(&mc.d_mut);
+      cmap_t::const_iterator iter = mc.d_map.lower_bound(tie(dprefix));
+      auto start=iter;
 
-    string zone = pcReverse(prefix);
-
-    cmap_t::const_iterator iter = d_map.lower_bound(tie(zone));
-    cmap_t::const_iterator start=iter;
-
-    for(; iter != d_map.end(); ++iter) {
-      if(iter->qname.compare(0, zone.size(), zone) != 0) {
-        break;
+      for(; iter != mc.d_map.end(); ++iter) {
+	if(!iter->qname.isPartOf(dprefix)) {
+	  break;
+	}
+	delcount++;
       }
-      delcount++;
+      mc.d_map.erase(start, iter);
     }
-    d_map.erase(start, iter);
+    *d_statnumentries-=delcount;
+    return delcount;
   }
   else {
-    string qname = pcReverse(match);
-
-    delcount=d_map.count(tie(qname));
-    pair<cmap_t::iterator, cmap_t::iterator> range = d_map.equal_range(tie(qname));
-    d_map.erase(range.first, range.second);
+    return purgeExact(DNSName(match));
   }
-  *d_statnumentries=d_map.size();
-  return delcount;
 }
 // called from ueberbackend
-bool PacketCache::getEntry(const string &qname, const QType& qtype, CacheEntryType cet, string& value, int zoneID, bool meritsRecursion, 
-  unsigned int maxReplyLen, bool dnssecOk, bool hasEDNS, unsigned int *age)
+bool PacketCache::getEntry(const DNSName &qname, const QType& qtype, CacheEntryType cet, vector<DNSZoneRecord>& value, int zoneID)
 {
   if(d_ttl<0) 
     getTTLS();
 
-  if(!((++d_ops) % 300000)) {
-    cleanup();
-  }
+  cleanupIfNeeded();
 
-  TryReadLock l(&d_mut); // take a readlock here
+  auto& mc=getMap(qname);
+
+  TryReadLock l(&mc.d_mut); // take a readlock here
   if(!l.gotIt()) {
     S.inc( "deferred-cache-lookup");
     return false;
   }
 
-  return getEntryLocked(qname, qtype, cet, value, zoneID, meritsRecursion, maxReplyLen, dnssecOk, hasEDNS, age);
+  return getEntryLocked(qname, qtype, cet, value, zoneID);
 }
 
 
-bool PacketCache::getEntryLocked(const string &qname, const QType& qtype, CacheEntryType cet, string& value, int zoneID, bool meritsRecursion,
+bool PacketCache::getEntryLocked(const DNSName &qname, const QType& qtype, CacheEntryType cet, string& value, int zoneID, bool meritsRecursion,
   unsigned int maxReplyLen, bool dnssecOK, bool hasEDNS, unsigned int *age)
 {
   uint16_t qt = qtype.getCode();
   //cerr<<"Lookup for maxReplyLen: "<<maxReplyLen<<endl;
-  string pcqname = pcReverse(qname);
-  cmap_t::const_iterator i=d_map.find(tie(pcqname, qt, cet, zoneID, meritsRecursion, maxReplyLen, dnssecOK, hasEDNS, *age));
+  auto& mc=getMap(qname);
+  //  cmap_t::const_iterator i=mc.d_map.find(tie(qname, qt, cet, zoneID, meritsRecursion, maxReplyLen, dnssecOK, hasEDNS, *age));
+
+  auto& idx = boost::multi_index::get<UnorderedNameTag>(mc.d_map);
+  auto range=idx.equal_range(tie(qname, qt, cet, zoneID));
+
+  if(range.first == range.second)
+    return false;
   time_t now=time(0);
-  bool ret=(i!=d_map.end() && i->ttd > now);
-  if(ret) {
-    if (age)
-      *age = now - i->created;
-    value = i->value;
+  for(auto iter = range.first ; iter != range.second; ++iter) {
+    if(meritsRecursion == iter->meritsRecursion && maxReplyLen == iter->maxReplyLen && dnssecOK == iter->dnssecOk && hasEDNS == iter->hasEDNS ) {
+      if(iter->ttd > now) {
+        if (age)
+          *age = now - iter->created;
+        value = iter->value;
+        return true;
+      }
+    }
   }
-
-  return ret;
+  
+  return false;
 }
-
-
-string PacketCache::pcReverse(const string &content)
+			   
+bool PacketCache::getEntryLocked(const DNSName &qname, const QType& qtype, CacheEntryType cet, vector<DNSZoneRecord>& value, int zoneID)
 {
-  string tmp = string(content.rbegin(), content.rend());
-  return toLower(boost::replace_all_copy(tmp, ".", "\t"))+"\t";
+  uint16_t qt = qtype.getCode();
+  //cerr<<"Lookup for maxReplyLen: "<<maxReplyLen<<endl;
+  auto& mc=getMap(qname);
+  auto& idx = boost::multi_index::get<UnorderedNameTag>(mc.d_map);
+  auto i=idx.find(tie(qname, qt, cet, zoneID));
+  if(i==idx.end())
+    return false;
+
+  time_t now=time(0);
+  if(i->ttd > now) {
+    value = i->drs;
+    return true;
+  }
+  return false;
 }
 
 
 map<char,int> PacketCache::getCounts()
 {
-  ReadLock l(&d_mut);
-
-  map<char,int>ret;
   int recursivePackets=0, nonRecursivePackets=0, queryCacheEntries=0, negQueryCacheEntries=0;
 
-  for(cmap_t::const_iterator iter = d_map.begin() ; iter != d_map.end(); ++iter) {
-    if(iter->ctype == PACKETCACHE)
-      if(iter->meritsRecursion)
-        recursivePackets++;
-      else
-        nonRecursivePackets++;
-    else if(iter->ctype == QUERYCACHE) {
-      if(iter->value.empty())
-        negQueryCacheEntries++;
-      else
-        queryCacheEntries++;
+  for(auto& mc : d_maps) {
+    ReadLock l(&mc.d_mut);
+    
+    for(cmap_t::const_iterator iter = mc.d_map.begin() ; iter != mc.d_map.end(); ++iter) {
+      if(iter->ctype == PACKETCACHE)
+	if(iter->meritsRecursion)
+	  recursivePackets++;
+	else
+	  nonRecursivePackets++;
+      else if(iter->ctype == QUERYCACHE) {
+	if(iter->value.empty())
+	  negQueryCacheEntries++;
+	else
+	  queryCacheEntries++;
+      }
     }
   }
+  map<char,int> ret;
+
   ret['!']=negQueryCacheEntries;
   ret['Q']=queryCacheEntries;
   ret['n']=nonRecursivePackets;
@@ -299,61 +396,88 @@ map<char,int> PacketCache::getCounts()
   return ret;
 }
 
-int PacketCache::size()
-{
-  ReadLock l(&d_mut);
-  return d_map.size();
-}
 
-/** readlock for figuring out which iterators to delete, upgrade to writelock when actually cleaning */
 void PacketCache::cleanup()
 {
-  WriteLock l(&d_mut);
+  unsigned int maxCached = ::arg().asNum("max-cache-entries");
+  unsigned long cacheSize = *d_statnumentries;
 
-  *d_statnumentries=d_map.size();
-
-  unsigned int maxCached=::arg().asNum("max-cache-entries");
-  unsigned int toTrim=0;
-  
-  unsigned int cacheSize=*d_statnumentries;
-
-  if(maxCached && cacheSize > maxCached) {
-    toTrim = cacheSize - maxCached;
-  }
-
-  unsigned int lookAt=0;
   // two modes - if toTrim is 0, just look through 10%  of the cache and nuke everything that is expired
   // otherwise, scan first 5*toTrim records, and stop once we've nuked enough
-  if(toTrim)
-    lookAt=5*toTrim;
-  else
-    lookAt=cacheSize/10;
-
-  //  cerr<<"cacheSize: "<<cacheSize<<", lookAt: "<<lookAt<<", toTrim: "<<toTrim<<endl;
-  time_t now=time(0);
-
-  DLOG(L<<"Starting cache clean"<<endl);
-  if(d_map.empty())
-    return; // clean
-
-  typedef cmap_t::nth_index<1>::type sequence_t;
-  sequence_t& sidx=d_map.get<1>();
-  unsigned int erased=0, lookedAt=0;
-  for(sequence_t::iterator i=sidx.begin(); i != sidx.end(); lookedAt++) {
-    if(i->ttd < now) {
-      sidx.erase(i++);
-      erased++;
-    }
-    else
-      ++i;
-
-    if(toTrim && erased > toTrim)
-      break;
-
-    if(lookedAt > lookAt)
-      break;
+  unsigned int toTrim = 0, lookAt = 0;
+  if(maxCached && cacheSize > maxCached) {
+    toTrim = cacheSize - maxCached;
+    lookAt = 5 * toTrim;
+  } else {
+    lookAt = cacheSize / 10;
   }
-  //  cerr<<"erased: "<<erased<<endl;
-  *d_statnumentries=d_map.size();
-  DLOG(L<<"Done with cache clean"<<endl);
+
+  DLOG(L<<"Starting cache clean, cacheSize: "<<cacheSize<<", lookAt: "<<lookAt<<", toTrim: "<<toTrim<<endl);
+
+  time_t now = time(0);
+  unsigned int totErased = 0;
+  for(auto& mc : d_maps) {
+    WriteLock wl(&mc.d_mut);
+    auto& sidx = boost::multi_index::get<SequenceTag>(mc.d_map);
+    unsigned int erased = 0, lookedAt = 0;
+    for(auto i = sidx.begin(); i != sidx.end(); lookedAt++) {
+      if(i->ttd < now) {
+        i = sidx.erase(i);
+        erased++;
+      } else {
+        ++i;
+      }
+
+      if(toTrim && erased > toTrim / d_maps.size())
+        break;
+
+      if(lookedAt > lookAt / d_maps.size())
+        break;
+    }
+    totErased += erased;
+  }
+  *d_statnumentries -= totErased;
+
+  DLOG(L<<"Done with cache clean, cacheSize: "<<*d_statnumentries<<", totErased"<<totErased<<endl);
+}
+
+/* the logic:
+   after d_nextclean operations, we clean. We also adjust the cleaninterval
+   a bit so we slowly move it to a value where we clean roughly every 30 seconds.
+
+   If d_nextclean has reached its maximum value, we also test if we were called
+   within 30 seconds, and if so, we skip cleaning. This means that under high load,
+   we will not clean more often than every 30 seconds anyhow.
+*/
+
+void PacketCache::cleanupIfNeeded()
+{
+  if (d_ops++ == d_nextclean) {
+    int timediff = max((int)(time(0) - d_lastclean), 1);
+
+    DLOG(L<<"cleaninterval: "<<d_cleaninterval<<", timediff: "<<timediff<<endl);
+
+    if (d_cleaninterval == s_maxcleaninterval && timediff < 30) {
+      d_cleanskipped = true;
+      d_nextclean += d_cleaninterval;
+
+      DLOG(L<<"cleaning skipped, timediff: "<<timediff<<endl);
+
+      return;
+    }
+
+    if(!d_cleanskipped) {
+      d_cleaninterval=(int)(0.6*d_cleaninterval)+(0.4*d_cleaninterval*(30.0/timediff));
+      d_cleaninterval=std::max(d_cleaninterval, s_mincleaninterval);
+      d_cleaninterval=std::min(d_cleaninterval, s_maxcleaninterval);
+
+      DLOG(L<<"new cleaninterval: "<<d_cleaninterval<<endl);
+    } else {
+      d_cleanskipped = false;
+    }
+
+    d_nextclean += d_cleaninterval;
+    d_lastclean=time(0);
+    cleanup();
+  }
 }

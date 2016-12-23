@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 
+MD5SUM=$(which md5sum)
+[ -z "$MD5SUM" ] && MD5SUM=$(which gmd5sum)
+[ -z "$MD5SUM" ] && exit 1
+
 for zone in `cat ../regression-tests/named.conf | grep 'zone ' | cut -f 2 -d \"`
 do
-	md5sum ../regression-tests/zones/$zone
+	${MD5SUM} ../regression-tests/zones/$zone
 done
-md5sum ../modules/tinydnsbackend/data.cdb
+${MD5SUM} ../modules/tinydnsbackend/data.cdb

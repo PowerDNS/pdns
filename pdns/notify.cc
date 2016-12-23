@@ -1,3 +1,27 @@
+/*
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <bitset>
 #include "dnsparser.hh"
 #include "iputils.hh"
@@ -28,11 +52,28 @@ ArgvMap &arg()
   return arg;
 }
 
+void usage() {
+  cerr<<"Syntax: pdns_notify IP_ADDRESS[:PORT] DOMAIN"<<endl;
+}
+
 int main(int argc, char** argv)
 try
 {
+
+  for(int n=1 ; n < argc; ++n) {
+    if ((string) argv[n] == "--help") {
+      usage();
+      return EXIT_SUCCESS;
+    }
+
+    if ((string) argv[n] == "--version") {
+      cerr<<"notify "<<VERSION<<endl;
+      return EXIT_SUCCESS;
+    }
+  }
+
   if(argc!=3) {
-    cerr<<"Syntax: notify ip:port domain"<<endl;
+    usage();
     exit(1);
   }
 
@@ -50,7 +91,7 @@ try
     throw runtime_error("Failed to connect PowerDNS socket to address "+pdns.toString()+": "+stringerror());
   
   vector<uint8_t> outpacket;
-  DNSPacketWriter pw(outpacket, argv[2], QType::SOA, 1, Opcode::Notify);
+  DNSPacketWriter pw(outpacket, DNSName(argv[2]), QType::SOA, 1, Opcode::Notify);
   pw.getHeader()->id = random();
 
 

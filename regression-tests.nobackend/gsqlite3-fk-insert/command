@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+
+echo "PRAGMA foreign_keys = 1; INSERT INTO comments (domain_id, name, type, modified_at, account, comment) VALUES (9999, 'test', 'test', 0, 'test', 'Test 123');" | sqlite3 ../regression-tests/pdns.sqlite3 2>&1 | grep -o 'constraint failed'
+
+exit 0

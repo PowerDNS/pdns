@@ -1,3 +1,24 @@
+/*
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 #ifndef SSTUFF_HH
 #define SSTUFF_HH
 
@@ -14,7 +35,7 @@
 #include <sys/select.h>
 #include <fcntl.h>
 #include <stdexcept>
-#include <boost/shared_ptr.hpp>
+
 #include <boost/utility.hpp>
 #include <csignal>
 #include "namespaces.hh"
@@ -47,9 +68,9 @@ public:
   //! Construct a socket of specified address family and socket type.
   Socket(int af, int st, ProtocolType pt=0)
   {
-    if((d_socket=(int)socket(af,st, pt))<0)
+    if((d_socket=socket(af,st, pt))<0)
       throw NetworkError(strerror(errno));
-    Utility::setCloseOnExec(d_socket);
+    setCloseOnExec(d_socket);
 
     d_buflen=4096;
     d_buffer=new char[d_buflen];
@@ -57,7 +78,12 @@ public:
 
   ~Socket()
   {
-    Utility::closesocket(d_socket);
+    try {
+      closesocket(d_socket);
+    }
+    catch(const PDNSException& e) {
+    }
+
     delete[] d_buffer;
   }
 
@@ -67,7 +93,7 @@ public:
     struct sockaddr_in remote;
     socklen_t remlen=sizeof(remote);
     memset(&remote, 0, sizeof(remote));
-    int s=(int)::accept(d_socket,(sockaddr *)&remote, &remlen);
+    int s=::accept(d_socket,(sockaddr *)&remote, &remlen);
     if(s<0) {
       if(errno==EAGAIN)
         return 0;
@@ -97,12 +123,12 @@ public:
   //! Set the socket to non-blocking
   void setNonBlocking()
   {
-    Utility::setNonBlocking(d_socket);
+    ::setNonBlocking(d_socket);
   }
   //! Set the socket to blocking
   void setBlocking()
   {
-    Utility::setBlocking(d_socket);
+    ::setBlocking(d_socket);
   }
 
   void setReuseAddr()
@@ -120,7 +146,7 @@ public:
       throw NetworkError(string("Setsockopt failed: ")+strerror(errno));
 
     if(::bind(d_socket,(struct sockaddr *)&local, local.getSocklen())<0)
-      throw NetworkError(strerror(errno));
+      throw NetworkError("While binding: "+string(strerror(errno)));
   }
 
 #if 0
@@ -137,10 +163,24 @@ public:
   }
 #endif
   //! Connect the socket to a specified endpoint
-  void connect(const ComboAddress &ep)
+  void connect(const ComboAddress &ep, int timeout=0)
   {
-    if(::connect(d_socket,(struct sockaddr *)&ep, ep.getSocklen()) < 0 && errno != EINPROGRESS)
-      throw NetworkError(strerror(errno));
+    if(::connect(d_socket,(struct sockaddr *)&ep, ep.getSocklen()) < 0) {
+      if(errno == EINPROGRESS) {
+        if (timeout > 0) {
+          /* if a timeout is provided, we wait until the connection has been established */
+          int res = waitForRWData(d_socket, false, timeout, 0);
+          if (res == 0) {
+            throw NetworkError("timeout while connecting to "+ep.toStringWithPort());
+          } else if (res < 0) {
+            throw NetworkError("while waiting to connect to "+ep.toStringWithPort()+": "+string(strerror(errno)));
+          }
+        }
+      }
+      else {
+        throw NetworkError("While connecting to "+ep.toStringWithPort()+": "+string(strerror(errno)));
+      }
+    }
   }
 
 
@@ -151,9 +191,9 @@ public:
   void recvFrom(string &dgram, ComboAddress &ep)
   {
     socklen_t remlen=sizeof(ep);
-    int bytes;
+    ssize_t bytes;
     if((bytes=recvfrom(d_socket, d_buffer, d_buflen, 0, (sockaddr *)&ep , &remlen)) <0)
-      throw NetworkError(strerror(errno));
+      throw NetworkError("After recvfrom: "+string(strerror(errno)));
     
     dgram.assign(d_buffer,bytes);
   }
@@ -162,10 +202,10 @@ public:
   {
     struct sockaddr_in remote;
     socklen_t remlen=sizeof(remote);
-    int bytes;
+    ssize_t bytes;
     if((bytes=recvfrom(d_socket, d_buffer, d_buflen, 0, (sockaddr *)&remote, &remlen))<0) {
       if(errno!=EAGAIN) {
-        throw NetworkError(strerror(errno));
+        throw NetworkError("After async recvfrom: "+string(strerror(errno)));
       }
       else {
         return false;
@@ -177,12 +217,20 @@ public:
 
 
   //! For datagram sockets, send a datagram to a destination
-  void sendTo(const char* msg, unsigned int len, const ComboAddress &ep)
+  void sendTo(const char* msg, size_t len, const ComboAddress &ep)
   {
     if(sendto(d_socket, msg, len, 0, (sockaddr *)&ep, ep.getSocklen())<0)
-      throw NetworkError(strerror(errno));
+      throw NetworkError("After sendto: "+string(strerror(errno)));
   }
 
+  //! For connected datagram sockets, send a datagram
+  void send(const std::string& msg)
+  {
+    if(::send(d_socket, msg.c_str(), msg.size(), 0)<0)
+      throw NetworkError("After send: "+string(strerror(errno)));
+  }
+
+  
   /** For datagram sockets, send a datagram to a destination
       \param dgram The datagram
       \param ep The intended destination of the datagram */
@@ -198,8 +246,8 @@ public:
     if(data.empty())
       return;
 
-    int toWrite=(int)data.length();
-    int res;
+    size_t toWrite=data.length();
+    ssize_t res;
     const char *ptr=data.c_str();
 
     do {
@@ -208,8 +256,8 @@ public:
         throw NetworkError("Writing to a socket: "+string(strerror(errno)));
       if(!res)
         throw NetworkError("EOF on socket");
-      toWrite-=res;
-      ptr+=res;
+      toWrite-=(size_t)res;
+      ptr+=(size_t)res;
     }while(toWrite);
 
   }
@@ -219,9 +267,9 @@ public:
       \param ptr Location to write from
       \param toWrite number of bytes to try
   */
-  unsigned int tryWrite(const char *ptr, int toWrite)
+  size_t tryWrite(const char *ptr, size_t toWrite)
   {
-    int res;
+    ssize_t res;
     res=::send(d_socket,ptr,toWrite,0);
     if(res==0)
       throw NetworkError("EOF on writing to a socket");
@@ -237,9 +285,9 @@ public:
 
   //! Writes toWrite bytes from ptr to the socket
   /** Writes toWrite bytes from ptr to the socket. Returns how many bytes were written */
-  unsigned int write(const char *ptr, int toWrite)
+  size_t write(const char *ptr, size_t toWrite)
   {
-    int res;
+    ssize_t res;
     res=::send(d_socket,ptr,toWrite,0);
     if(res<0) {
       throw NetworkError("Writing to a socket: "+string(strerror(errno)));
@@ -247,11 +295,11 @@ public:
     return res;
   }
 
-  void writenWithTimeout(const void *buffer, unsigned int n, int timeout)
+  void writenWithTimeout(const void *buffer, size_t n, int timeout)
   {
-    unsigned int bytes=n;
+    size_t bytes=n;
     const char *ptr = (char*)buffer;
-    int ret;
+    ssize_t ret;
     while(bytes) {
       ret=::write(d_socket, ptr, bytes);
       if(ret < 0) {
@@ -270,8 +318,8 @@ public:
         throw NetworkError("Did not fulfill TCP write due to EOF");
       }
 
-      ptr += ret;
-      bytes -= ret;
+      ptr += (size_t) ret;
+      bytes -= (size_t) ret;
     }
   }
 
@@ -280,7 +328,7 @@ public:
   {
     char c;
 
-    int res=::recv(d_socket,&c,1,0);
+    ssize_t res=::recv(d_socket,&c,1,0);
     if(res)
       return c;
     return -1;
@@ -300,22 +348,22 @@ public:
   //! Reads a block of data from the socket to a string
   void read(string &data)
   {
-    int res=::recv(d_socket,d_buffer,d_buflen,0);
+    ssize_t res=::recv(d_socket,d_buffer,d_buflen,0);
     if(res<0) 
       throw NetworkError("Reading from a socket: "+string(strerror(errno)));
     data.assign(d_buffer,res);
   }
 
   //! Reads a block of data from the socket to a block of memory
-  int read(char *buffer, int bytes)
+  size_t read(char *buffer, size_t bytes)
   {
-    int res=::recv(d_socket,buffer,bytes,0);
+    ssize_t res=::recv(d_socket,buffer,bytes,0);
     if(res<0) 
       throw NetworkError("Reading from a socket: "+string(strerror(errno)));
-    return res;
+    return (size_t) res;
   }
 
-  int readWithTimeout(char* buffer, int n, int timeout)
+  ssize_t readWithTimeout(char* buffer, size_t n, int timeout)
   {
     int err = waitForRWData(d_socket, true, timeout, 0);
 
@@ -341,9 +389,9 @@ public:
   }
   
 private:
-  int d_socket;
   char *d_buffer;
-  int d_buflen;
+  int d_socket;
+  size_t d_buflen;
 };
 
 

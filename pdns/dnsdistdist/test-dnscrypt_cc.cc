@@ -1,0 +1,1 @@
+../test-dnscrypt_cc.cc

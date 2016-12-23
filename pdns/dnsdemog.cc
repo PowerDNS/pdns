@@ -1,4 +1,28 @@
+/*
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 #define __FAVOR_BSD
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "statbag.hh"
 #include "dnspcap.hh"
 #include "dnsparser.hh"
@@ -11,13 +35,12 @@
 #include "anadns.hh"
 
 #include "namespaces.hh"
-#include "namespaces.hh"
 
 StatBag S;
 
 struct Entry
 {
-  uint32_t ip;
+  ComboAddress ip;
   uint16_t port;
   uint16_t id;
 
@@ -49,22 +72,13 @@ try
 
           MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
 
-          memcpy(&entry.ip, &pr.d_ip->ip_src, 4);
+          entry.ip = pr.getSource();
           entry.port = pr.d_udp->uh_sport;
           entry.id=dh->id;
 
-          //          ecount[entry]++;
-          string::size_type pos = 0;
-          for(pos = 0; pos < mdp.d_qname.size() ; ++pos ) {
-            char c=mdp.d_qname[pos] ;
-            if(!isalnum(c) && c!='-' && c!='.')
-              break;
-          }
-          if(pos ==mdp.d_qname.size()) {
-            cout << "insert into dnsstats (source, port, id, query, qtype, tstampSec, tstampUsec, arcount) values ('" << U32ToIP(ntohl(entry.ip)) <<"', "<< ntohs(entry.port) <<", "<< ntohs(dh->id);
-            cout <<", '"<<mdp.d_qname<<"', "<<mdp.d_qtype<<", " << pr.d_pheader.ts.tv_sec <<", " << pr.d_pheader.ts.tv_usec;
-            cout <<", "<< ntohs(dh->arcount) <<");\n";
-          }
+          cout << "insert into dnsstats (source, port, id, query, qtype, tstampSec, tstampUsec, arcount) values ('" << entry.ip.toString() <<"', "<< ntohs(entry.port) <<", "<< ntohs(dh->id);
+          cout <<", '"<<mdp.d_qname<<"', "<<mdp.d_qtype<<", " << pr.d_pheader.ts.tv_sec <<", " << pr.d_pheader.ts.tv_usec;
+          cout <<", "<< ntohs(dh->arcount) <<");\n";
 
         }
         catch(MOADNSException& mde) {

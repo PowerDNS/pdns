@@ -1,29 +1,32 @@
 /*
-    PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002 - 2009  PowerDNS.COM BV
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as 
-    published by the Free Software Foundation
-
-    Additionally, the license of this program contains a special
-    exception which allows to distribute the program in binary form when
-    it is linked against OpenSSL.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-*/
-
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "mtasker.hh"
 #include "misc.hh"
 #include <stdio.h>
 #include <iostream>
+
 
 /** \page MTasker
     Simple system for implementing cooperative multitasking of functions, with 
@@ -171,7 +174,7 @@ template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::waitEven
   }
 
   Waiter w;
-  w.context=new ucontext_t;
+  w.context=std::make_shared<pdns_ucontext_t>();
   w.ttd.tv_sec = 0; w.ttd.tv_usec = 0;
   if(timeoutMsec) {
     struct timeval increment;
@@ -190,11 +193,14 @@ template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::waitEven
   w.key=key;
 
   d_waiters.insert(w);
-  
-  if(swapcontext(d_waiters.find(key)->context,&d_kernel)) { // 'A' will return here when 'key' has arrived, hands over control to kernel first
-    perror("swapcontext");
-    exit(EXIT_FAILURE); // no way we can deal with this 
-  }
+#ifdef MTASKERTIMING
+  unsigned int diff=d_threads[d_tid].dt.ndiff()/1000;
+  d_threads[d_tid].totTime+=diff;
+#endif
+  pdns_swapcontext(*d_waiters.find(key)->context,d_kernel); // 'A' will return here when 'key' has arrived, hands over control to kernel first
+#ifdef MTASKERTIMING
+  d_threads[d_tid].dt.start();
+#endif
   if(val && d_waitstatus==Answer) 
     *val=d_waitval;
   d_tid=w.tid;
@@ -211,10 +217,7 @@ template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::waitEven
 template<class Key, class Val>void MTasker<Key,Val>::yield()
 {
   d_runQueue.push(d_tid);
-  if(swapcontext(d_threads[d_tid].context ,&d_kernel) < 0) { // give control to the kernel
-    perror("swapcontext in  yield");
-    exit(EXIT_FAILURE);
-  }
+  pdns_swapcontext(*d_threads[d_tid].context ,d_kernel); // give control to the kernel
 }
 
 //! reports that an event took place for which threads may be waiting
@@ -238,27 +241,12 @@ template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::sendEven
   if(val)
     d_waitval=*val;
   
-  ucontext_t *userspace=waiter->context;
   d_tid=waiter->tid;         // set tid 
   d_eventkey=waiter->key;        // pass waitEvent the exact key it was woken for
+  auto userspace=std::move(waiter->context);
   d_waiters.erase(waiter);             // removes the waitpoint 
-  if(swapcontext(&d_kernel,userspace)) { // swaps back to the above point 'A'
-    perror("swapcontext in sendEvent");
-    exit(EXIT_FAILURE);
-  }
-  delete userspace;
+  pdns_swapcontext(d_kernel,*userspace); // swaps back to the above point 'A'
   return 1;
-}
-
-inline pair<uint32_t, uint32_t> splitPointer(void *ptr)
-{
-  uint64_t ll = (uint64_t) ptr;
-  return make_pair(ll >> 32, ll & 0xffffffff);
-}
-
-inline void* joinPtr(uint32_t val1, uint32_t val2)
-{
-  return (void*)(((uint64_t)val1 << 32) | (uint64_t)val2);
 }
 
 //! launches a new thread
@@ -268,19 +256,23 @@ inline void* joinPtr(uint32_t val1, uint32_t val2)
 */
 template<class Key, class Val>void MTasker<Key,Val>::makeThread(tfunc_t *start, void* val)
 {
-  ucontext_t *uc=new ucontext_t;
-  getcontext(uc);
+  auto uc=std::make_shared<pdns_ucontext_t>();
   
   uc->uc_link = &d_kernel; // come back to kernel after dying
-  uc->uc_stack.ss_sp = new char[d_stacksize];
-  
-  uc->uc_stack.ss_size = d_stacksize;
-  pair<uint32_t, uint32_t> valpair = splitPointer(val);
-  pair<uint32_t, uint32_t> thispair = splitPointer(this);
+  uc->uc_stack.resize (d_stacksize);
 
-  makecontext (uc, (void (*)(void))threadWrapper, 6, thispair.first, thispair.second, start, d_maxtid, valpair.first, valpair.second);
+  auto& thread = d_threads[d_maxtid];
+  auto mt = this;
+  thread.start = [start, val, mt]() {
+      char dummy;
+      mt->d_threads[mt->d_tid].startOfStack = mt->d_threads[mt->d_tid].highestStackSeen = &dummy;
+      auto const tid = mt->d_tid;
+      start (val);
+      mt->d_zombiesQueue.push(tid);
+  };
+  pdns_makecontext (*uc, thread.start);
 
-  d_threads[d_maxtid].context = uc;
+  thread.context = std::move(uc);
   d_runQueue.push(d_maxtid++); // will run at next schedule invocation
 }
 
@@ -299,17 +291,15 @@ template<class Key, class Val>bool MTasker<Key,Val>::schedule(struct timeval*  n
 {
   if(!d_runQueue.empty()) {
     d_tid=d_runQueue.front();
-    if(swapcontext(&d_kernel, d_threads[d_tid].context)) {
-      perror("swapcontext in schedule");
-      exit(EXIT_FAILURE);
-    }
+#ifdef MTASKERTIMING
+    d_threads[d_tid].dt.start();
+#endif
+    pdns_swapcontext(d_kernel, *d_threads[d_tid].context);
       
     d_runQueue.pop();
     return true;
   }
   if(!d_zombiesQueue.empty()) {
-    delete[] (char *)d_threads[d_zombiesQueue.front()].context->uc_stack.ss_sp;
-    delete d_threads[d_zombiesQueue.front()].context;
     d_threads.erase(d_zombiesQueue.front());
     d_zombiesQueue.pop();
     return true;
@@ -329,14 +319,11 @@ template<class Key, class Val>bool MTasker<Key,Val>::schedule(struct timeval*  n
       if(i->ttd.tv_sec && i->ttd < rnow) {
         d_waitstatus=TimeOut;
         d_eventkey=i->key;        // pass waitEvent the exact key it was woken for
-        ucontext_t* uc = i->context;
+        auto uc = i->context;
+        d_tid = i->tid;
         ttdindex.erase(i++);                  // removes the waitpoint 
 
-        if(swapcontext(&d_kernel, uc)) { // swaps back to the above point 'A'
-          perror("swapcontext in schedule2");
-          exit(EXIT_FAILURE);
-        }
-        delete uc;
+        pdns_swapcontext(d_kernel, *uc); // swaps back to the above point 'A'
       }
       else if(i->ttd.tv_sec)
         break;
@@ -378,17 +365,6 @@ template<class Key, class Val>void MTasker<Key,Val>::getEvents(std::vector<Key>&
   }
 }
 
-template<class Key, class Val>void MTasker<Key,Val>::threadWrapper(uint32_t self1, uint32_t self2, tfunc_t *tf, int tid, uint32_t val1, uint32_t val2)
-{
-  void* val = joinPtr(val1, val2); 
-  MTasker* self = (MTasker*) joinPtr(self1, self2);
-  self->d_threads[self->d_tid].startOfStack = self->d_threads[self->d_tid].highestStackSeen = (char*)&val;
-  (*tf)(val);
-  self->d_zombiesQueue.push(tid);
-  
-  // we now jump to &kernel, automatically
-}
-
 //! Returns the current Thread ID (tid)
 /** Processes can call this to get a numerical representation of their current thread ID.
     This can be useful for logging purposes.
@@ -398,9 +374,18 @@ template<class Key, class Val>int MTasker<Key,Val>::getTid()
   return d_tid;
 }
 
-
 //! Returns the maximum stack usage so far of this MThread
 template<class Key, class Val>unsigned int MTasker<Key,Val>::getMaxStackUsage()
 {
   return d_threads[d_tid].startOfStack - d_threads[d_tid].highestStackSeen;
+}
+
+//! Returns the maximum stack usage so far of this MThread
+template<class Key, class Val>unsigned int MTasker<Key,Val>::getUsec()
+{
+#ifdef MTASKERTIMING
+  return d_threads[d_tid].totTime + d_threads[d_tid].dt.ndiff()/1000;
+#else 
+  return 0;
+#endif
 }

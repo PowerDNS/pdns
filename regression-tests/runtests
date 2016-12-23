@@ -2,10 +2,32 @@
 PATH=.:$PATH:/usr/sbin
 MAKE=${MAKE:-make}
 
+export PDNS=${PDNS:-${PWD}/../pdns/pdns_server}
+export PDNS2=${PDNS2:-${PWD}/../pdns/pdns_server}
+export PDNSRECURSOR=${PDNSRECURSOR:-${PWD}/../pdns/recursordist/pdns_recursor}
+export RECCONTROL=${RECCONTROL:-${PWD}/../pdns/recursordist/rec_control}
+export SDIG=${SDIG:-${PWD}/../pdns/sdig}
+export NOTIFY=${NOTIFY:-${PWD}/../pdns/pdns_notify}
+export NSEC3DIG=${NSEC3DIG:-${PWD}/../pdns/nsec3dig}
+export SAXFR=${SAXFR:-${PWD}/../pdns/saxfr}
+export ZONE2SQL=${ZONE2SQL:-${PWD}/../pdns/zone2sql}
+export ZONE2LDAP=${ZONE2LDAP:-${PWD}/../pdns/zone2ldap}
+export PDNSUTIL=${PDNSUTIL:-${PWD}/../pdns/pdnsutil}
+export PDNSCONTROL=${PDNSCONTROL:-${PWD}/../pdns/pdns_control}
+
 spectest=$1
 [ -z $spectest ] && spectest=""
 
-${MAKE} -C ../pdns sdig nsec3dig saxfr || exit 1
+for prog in $SDIG $SAXFR $NOTIFY $NSEC3DIG; do
+  if `echo $prog | grep -q '../pdns'`; then
+    ${MAKE} -C ../pdns ${prog##*../pdns/} || exit
+  fi
+done
+
+export SDIG="timeout 5 $SDIG"
+export NSEC3DIG="timeout 5 $NSEC3DIG"
+export SAXFR="timeout 30 $SAXFR"
+export PDNSCONTROL="timeout 5 $PDNSCONTROL"
 
 rm -f test-results failed_tests passed_tests skipped_tests ${testsdir}/*/real_result ${testsdir}/*/diff ${testsdir}/*/*.out ${testsdir}/*/start ${testsdir}/*/step.*
 
@@ -46,6 +68,16 @@ do
 		done
 	fi
 
+	FAIL=0
+	for reason in $skipreasons $context
+	do
+		if [ -e $a/fail.$reason ]
+		then
+			FAIL=1
+			break
+		fi
+	done
+
 	if [ "$spectest" != "" ] && [ "$spectest" != "$testname" ] && [ "$testname" != "00dnssec-grabkeys" ]
 	then
 		SKIPIT=1
@@ -60,21 +92,42 @@ do
 	else
 		$a/command > $a/real_result
 		expected=$a/expected_result
+
+		diffopts="-u"
+		if [ -e $a/expected_result.i ]; then
+			expected=$a/expected_result.i
+			diffopts="${diffopts} -i"
+		fi
+
 		for extracontext in $extracontexts
 		do
 			[ -e "$a/expected_result.$extracontext" ] && expected=$a/expected_result.$extracontext
 		done
 		[ -n "$context" ] && [ -e "$a/expected_result.$context" ] && expected=$a/expected_result.$context
-		diff -u $expected $a/real_result > $a/diff 2>&1
+		diff ${diffopts} $expected $a/real_result > $a/diff 2>&1
 		if [ -s $a/diff ] 
 		then
-			result="	Failed test $a"
-			echo $testname >> failed_tests
-			failed=$[$failed+1]
+			if [ $FAIL = 0 ]
+			then
+				result="	Failed test $a"
+				echo $testname >> failed_tests
+				failed=$[$failed+1]
+			else
+				result="	Expected failure for reason $reason, test passed $a"
+				echo $testname >> passed_tests
+				passed=$[$passed+1]
+			fi
 		else
-			result="	Passed test $a"
-			echo $testname >> passed_tests
-			passed=$[$passed+1]
+			if [ $FAIL = 0 ]
+			then
+				result="	Passed test $a"
+				echo $testname >> passed_tests
+				passed=$[$passed+1]
+			else
+				result="	Unexpected pass for reason $reason, test failed $a"
+				echo $testname >> failed_tests
+				failed=$[$failed+1]
+			fi
 		fi
 	fi	
 	echo "$result"

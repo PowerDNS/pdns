@@ -5,11 +5,11 @@ case $context in
 		[ -z "$GPGSQLDB" ] && GPGSQLDB=pdnstest
 		[ -z "$GPGSQLUSER" ] && GPGSQLUSER=$(whoami)
 
-		dropdb --user="$GPGSQLUSER" "$GPGSQLDB"	|| echo ignoring mysqladmin drop failure
-		createdb --user="$GPGSQLUSER" "$GPGSQLDB"	|| echo ignoring mysqladmin drop failure
+		dropdb --user="$GPGSQLUSER" "$GPGSQLDB"	|| echo ignoring dropdb failure
+		createdb --user="$GPGSQLUSER" "$GPGSQLDB"	|| echo ignoring createdb failure
 		psql --user="$GPGSQLUSER" "$GPGSQLDB" < ../modules/gpgsqlbackend/schema.pgsql.sql
-
 		tosql gpgsql | psql --user="$GPGSQLUSER" "$GPGSQLDB" 2>&1 | uniq -c
+                psql --user="$GPGSQLUSER" -c "ANALYZE" "$GPGSQLDB"
 
 		cat > pdns-gpgsql.conf << __EOF__
 module-dir=./modules
@@ -18,7 +18,7 @@ gpgsql-dbname=$GPGSQLDB
 gpgsql-user=$GPGSQLUSER
 __EOF__
 
-		gsql-master gpgsql nodyndns
+		gsql_master gpgsql nodyndns
 		;;
 
 	*)

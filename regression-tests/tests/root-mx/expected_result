@@ -1,0 +1,4 @@
+0	test.com.	IN	MX	3600	10 .
+0	test.com.	IN	MX	3600	15 smtp-servers.test.com.
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='test.com.', qtype=MX

@@ -1,113 +1,34 @@
+sudo: required
+dist: trusty
 language: cpp
 compiler:
   - gcc
   - clang
+env:
+  - PDNS_BUILD_PRODUCT=auth
+  - PDNS_BUILD_PRODUCT=recursor
+  - PDNS_BUILD_PRODUCT=dnsdist
+  - PDNS_BUILD_PRODUCT=docs
+
+matrix:
+  exclude:
+    - compiler: clang
+      env: PDNS_BUILD_PRODUCT=docs
+
 before_script:
- - git describe --always --dirty=+
- - sudo /sbin/ip addr add 10.0.3.0/24 dev lo
- - sudo /sbin/ip addr add 1.2.3.4/32 dev lo
- - sudo rm -f /etc/apt/sources.list.d/travis_ci_zeromq3-source.list
- - sudo apt-get update --quiet --quiet
- - sudo apt-get install --quiet --quiet --no-install-recommends libboost-all-dev libtolua-dev bc libcdb-dev libnet-dns-perl unbound-host ldnsutils dnsutils bind9utils libtool libcdb-dev xmlto links asciidoc ruby-json ruby-sqlite3 rubygems libcurl4-openssl-dev ruby1.9.1 socat time pkg-config daemontools authbind liblua5.1-posix1 libopendbx1-dev libopendbx1-sqlite3 python-virtualenv libldap2-dev softhsm libp11-kit-dev p11-kit moreutils libgeoip-dev geoip-database
- - sudo sh -c 'sed s/precise/trusty/g /etc/apt/sources.list > /etc/apt/sources.list.d/trusty.list'
- - sudo apt-get update --quiet --quiet
- - sudo apt-get install --quiet --quiet liblmdb0 liblmdb-dev lmdb-utils libyaml-cpp-dev libzmq3-dev
- - sudo update-alternatives --set ruby /usr/bin/ruby1.9.1
- - sudo touch /etc/authbind/byport/53
- - sudo chmod 755 /etc/authbind/byport/53
- - travis_retry gem install bundler --no-rdoc --no-ri
- - cd regression-tests
- - wget http://s3.amazonaws.com/alexa-static/top-1m.csv.zip
- - unzip top-1m.csv.zip
- - cd ..
- - cd modules/remotebackend
- - travis_retry ruby -S bundle install
- - cd ../..
- - sudo mkdir -p /etc/pkcs11/modules/
- - sudo cp -f regression-tests/softhsm.mod /etc/pkcs11/modules/softhsm
- - sudo cp -f regression-tests/softhsm.conf /etc/softhsm/softhsm.conf
- - sudo chmod 0755 /etc/softhsm/
- - sudo chmod 0644 /etc/softhsm/softhsm.conf
- - sudo chmod 0777 /var/lib/softhsm
- - p11-kit -l # ensure it's ok
+  - git describe --always --dirty=+
+
+  ### setup travis environment ###
+  - sudo sysctl net.ipv6.conf.lo.disable_ipv6=0
+  - export POSIXLY_CORRECT=1
+  - export CFLAGS=-O0
+  - export CXXFLAGS=-O0
+  - export OPTFLAGS=-O0
+  - sudo apt-get -qq update
+
 script:
- - ./bootstrap
- - ./configure --with-dynmodules='bind geo geoip gmysql gpgsql gsqlite3 mydns tinydns remote random opendbx ldap lmdb lua' --with-modules='' --enable-unit-tests --enable-tools --enable-remotebackend-zeromq --enable-experimental-pkcs11 --disable-silent-rules --disable-dependency-tracking
- - make -k dist
- - make -k -j 4
- - make -k install DESTDIR=/tmp/pdns-install-dir
- - find /tmp/pdns-install-dir -ls
- - travis_retry timeout 240s make -j 4 check # Workaround for remotebackend failures on travis-ci
- - make -k -C pdns $(grep '(EXEEXT):' pdns/Makefile | cut -f1 -d\$)
- - cd pdns
- - make -k -j 4 pdns_recursor
- - rm -f pdns_recursor
- - ./dist-recursor
- - cd pdns-recursor-*/
- - ./configure
- - make -k -j 4
- - cd ..
- - ln -s pdns-recursor*/pdns_recursor .
- - make -k -C docs html/index.html manpages
- - cd ../regression-tests.recursor
- - cp vars.sample vars
- - ./config.sh
- - ./start.sh
- - sleep 3
- - svstat configs/*
- - ./runtests
- - test ! -s ./failed_tests
- - ./stop.sh
- - sleep 3
- - ./clean.sh
- - cd ../regression-tests.api
- - ./runtests authoritative
- - ./runtests recursor
- - cd ../regression-tests
- - touch tests/verify-dnssec-zone/allow-missing
- - touch tests/verify-dnssec-zone/skip.nsec3 # some (travis) tools in this test are unable to handle nsec3 zones
- - touch tests/verify-dnssec-zone/skip.optout
- - export geoipregion=oc geoipregionip=1.2.3.4
- - ./timestamp ./start-test-stop 5300 bind-both
- - ./timestamp ./start-test-stop 5300 bind-dnssec-both
- - ./timestamp ./start-test-stop 5300 bind-dnssec-pkcs11
- - ./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-both
- - ./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-optout-both
- - ./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-narrow
- - ./timestamp ./start-test-stop 5300 bind-hybrid-nsec3
- - ./timestamp ./start-test-stop 5300 geoipbackend
- - ./timestamp ./start-test-stop 5300 geoipbackend-nsec3-narrow
- - ./timestamp ./start-test-stop 5300 gmysql-nodnssec-both
- - ./timestamp ./start-test-stop 5300 gmysql-both
- - ./timestamp ./start-test-stop 5300 gmysql-nsec3-both
- - ./timestamp ./start-test-stop 5300 gmysql-nsec3-optout-both
- - ./timestamp ./start-test-stop 5300 gmysql-nsec3-narrow
- - ./timestamp ./start-test-stop 5300 gpgsql-nodnssec-both
- - ./timestamp ./start-test-stop 5300 gpgsql-both
- - ./timestamp ./start-test-stop 5300 gpgsql-nsec3-both
- - ./timestamp ./start-test-stop 5300 gpgsql-nsec3-optout-both
- - ./timestamp ./start-test-stop 5300 gpgsql-nsec3-narrow
- - ./timestamp ./start-test-stop 5300 gsqlite3-nodnssec-both
- - ./timestamp ./start-test-stop 5300 gsqlite3-both
- - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-both
- - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both
- - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-narrow
- - ./timestamp ./start-test-stop 5300 lmdb-nodnssec
- - ./timestamp ./start-test-stop 5300 mydns
- - ./timestamp ./start-test-stop 5300 opendbx-sqlite3
- - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-pipe # Workaround for remotebackend failures on travis-ci
- - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-pipe-dnssec
- - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-unix
- - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-unix-dnssec
- - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-http
- - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-http-dnssec
- - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq
- - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq-dnssec
- - ./timestamp ./start-test-stop 5300 tinydns
- - THRESHOLD=90 TRACE=no ./timestamp ./recursor-test 5300
- - cd ../regression-tests.nobackend/
- - ./runtests
- - test ! -s ./failed_tests
+  - ./build-scripts/travis.sh
+
 notifications:
   irc:
     channels:

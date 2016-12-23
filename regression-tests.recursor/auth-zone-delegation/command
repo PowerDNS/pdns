@@ -1,0 +1,2 @@
+cleandig www.france.auth-zone.example.net. A | sed 's/\(.*\tIN\t[A-Z0-9]\+\t\)\([0-9]\+\)/\13600/'
+cleandig france.auth-zone.example.net. A | sed 's/\(.*\tIN\t[A-Z0-9]\+\t\)\([0-9]\+\)/\13600/'

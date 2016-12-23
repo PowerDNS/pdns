@@ -20,6 +20,9 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "utility.hh"
 #include <cstring>
 #include <fcntl.h>
@@ -42,16 +45,6 @@ const char *inet_ntop(int af, const void *src, char *dst, size_t cnt);
 
 #include "namespaces.hh"
 
-// Closes a socket.
-int Utility::closesocket( Utility::sock_t socket )
-{
-  int ret=::close(socket);
-  if(ret < 0 && errno == ECONNRESET) // see ticket 192, odd BSD behaviour
-    return 0;
-  if(ret < 0) 
-    throw PDNSException("Error closing socket: "+stringerror());
-  return ret;
-}
 
 // Connects to socket with timeout
 int Utility::timed_connect( Utility::sock_t sock,
@@ -83,28 +76,32 @@ int Utility::timed_connect( Utility::sock_t sock,
   return ret;
 }
 
-bool Utility::setNonBlocking(sock_t sock)
-{
-  int flags=fcntl(sock,F_GETFL,0);    
-  if(flags<0 || fcntl(sock, F_SETFL,flags|O_NONBLOCK) <0)
-    return false;
-  return true;
-}
 
-bool Utility::setBlocking(sock_t sock)
-{
-  int flags=fcntl(sock,F_GETFL,0);    
-  if(flags<0 || fcntl(sock, F_SETFL,flags&(~O_NONBLOCK)) <0)
-    return false;
-  return true;
-}
 
-bool Utility::setCloseOnExec(sock_t sock)
+void Utility::setBindAny(int af, sock_t sock)
 {
-  int flags=fcntl(sock,F_GETFD,0);    
-  if(flags<0 || fcntl(sock, F_SETFD,flags|FD_CLOEXEC) <0)
-    return false;
-  return true;
+  const int one = 1;
+
+  (void) one; // avoids 'unused var' warning on systems that have none of the defines checked below
+#ifdef IP_FREEBIND
+  if (setsockopt(sock, IPPROTO_IP, IP_FREEBIND, &one, sizeof(one)) < 0)
+      theL()<<Logger::Warning<<"Warning: IP_FREEBIND setsockopt failed: "<<strerror(errno)<<endl;
+#endif
+
+#ifdef IP_BINDANY
+  if (af == AF_INET)
+    if (setsockopt(sock, IPPROTO_IP, IP_BINDANY, &one, sizeof(one)) < 0)
+      theL()<<Logger::Warning<<"Warning: IP_BINDANY setsockopt failed: "<<strerror(errno)<<endl;
+#endif
+#ifdef IPV6_BINDANY
+  if (af == AF_INET6)
+    if (setsockopt(sock, IPPROTO_IPV6, IPV6_BINDANY, &one, sizeof(one)) < 0)
+      theL()<<Logger::Warning<<"Warning: IPV6_BINDANY setsockopt failed: "<<strerror(errno)<<endl;
+#endif
+#ifdef SO_BINDANY
+  if (setsockopt(sock, SOL_SOCKET, SO_BINDANY, &one, sizeof(one)) < 0)
+      theL()<<Logger::Warning<<"Warning: SO_BINDANY setsockopt failed: "<<strerror(errno)<<endl;
+#endif
 }
 
 const char *Utility::inet_ntop(int af, const char *src, char *dst, size_t size)
@@ -183,19 +180,6 @@ int Utility::gettimeofday( struct timeval *tv, void *tz )
 }
 
 
-// Converts an address from dot and numbers format to binary data.
-int Utility::inet_aton( const char *cp, struct in_addr *inp )
-{
-  return ::inet_aton(cp,inp);
-
-}
-
-
-// Converts an address from presentation format to network format.
-int Utility::inet_pton( int af, const char *src, void *dst )
-{
-  return ::inet_pton(af, src, dst);
-}
 
 // Retrieves a gid using a groupname.
 int Utility::makeGidNumeric(const string &group)
@@ -321,30 +305,3 @@ time_t Utility::timegm(struct tm *const t)
   return ((day + t->tm_hour) * i + t->tm_min) * i + t->tm_sec;
 }
 
-// we have our own gmtime_r because the one in GNU libc violates POSIX/SuS
-// by supporting leap seconds when TZ=right/UTC
-void Utility::gmtime_r(const time_t *timer, struct tm *tmbuf) {
-
-  int monthdays[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-  int days = *timer / 86400;
-  int leapdays = (days + 671) / 1461;
-  int leapydays = (days + 365) / 1461;
-
-  tmbuf->tm_hour = *timer / 3600 % 24;
-  tmbuf->tm_min = *timer / 60 % 60;
-  tmbuf->tm_sec = *timer % 60;
-
-  tmbuf->tm_year = (days - leapdays) / 365 + 70;
-  tmbuf->tm_yday = days - leapydays - (tmbuf->tm_year - 70) * 365 + 1;
-
-  tmbuf->tm_mon = 0;
-  tmbuf->tm_mday = tmbuf->tm_yday;
-  monthdays[1] += isleap(tmbuf->tm_year + 1900);
-  while (monthdays[tmbuf->tm_mon] < tmbuf->tm_mday) {
-    tmbuf->tm_mday -= monthdays[tmbuf->tm_mon];
-    tmbuf->tm_mon++;
-  }
-
-  tmbuf->tm_wday = (days + 4) % 7; // Day 0 is magic thursday ;)
-  tmbuf->tm_isdst = 0;
-}

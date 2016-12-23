@@ -18,4 +18,4 @@ libgpgsqlbackend_la_SOURCES = \
 	spgsql.cc spgsql.hh
 
 libgpgsqlbackend_la_LDFLAGS = -module -avoid-version
-libgpgsqlbackend_la_LIBADD = $(PGSQL_lib) -lssl $(LIBCRYPT) -lcrypto
+libgpgsqlbackend_la_LIBADD = $(PGSQL_lib)

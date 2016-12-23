@@ -1,0 +1,5 @@
+Test 3 direct queries for data in an auth-zone. 2 records that are in-zone,
+one that is a CNAME to a name inside another auth-zone and a final one that is a
+CNAME to a record in a zone where the recursor is not authoritative for.
+
+Additionally, test auth-zone wildcards.

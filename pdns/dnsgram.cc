@@ -1,11 +1,34 @@
+/*
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 #define __FAVOR_BSD
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "statbag.hh"
 #include "dnspcap.hh"
 #include "dnsrecords.hh"
 #include "dnsparser.hh"
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
-#include <boost/algorithm/string.hpp>
 #include <map>
 #include <set>
 #include <fstream>
@@ -31,7 +54,7 @@ void makeReport(const struct pdns_timeval& tv)
   int64_t clientdiff = g_clientQuestions - g_clientResponses;
   int64_t serverdiff = g_serverQuestions - g_serverResponses;
 
-  if(clientdiff > 5 && clientdiff > 0.02*g_clientQuestions) {
+  if(clientdiff > 1 && clientdiff > 0.02*g_clientQuestions) {
     char tmp[80];
     struct tm tm=*pdns_localtime_r(&tv.tv_sec, &tm);
     strftime(tmp, sizeof(tmp) - 1, "%F %H:%M:%S", &tm);
@@ -50,7 +73,7 @@ void makeReport(const struct pdns_timeval& tv)
     cout<<"Last question: "<<tmp<<"."<<g_lastquestionTime.tv_usec/1000000.0<<endl;
   }
 
-  if(serverdiff > 5 && serverdiff > 0.02*g_serverQuestions) {
+  if(serverdiff > 1 && serverdiff > 0.02*g_serverQuestions) {
     char tmp[80];
     struct tm tm=*pdns_localtime_r(&tv.tv_sec, &tm);
     strftime(tmp, sizeof(tmp) - 1, "%F %H:%M:%S", &tm);
@@ -77,10 +100,31 @@ void makeReport(const struct pdns_timeval& tv)
   g_skipped=0;
 }
 
+void usage() {
+  cerr<<"syntax: dnsgram INFILE..."<<endl;
+}
 
 int main(int argc, char** argv)
 try
 {
+  // Parse possible options
+  if (argc == 1) {
+    usage();
+    return EXIT_SUCCESS;
+  }
+
+  for(int n=1 ; n < argc; ++n) {
+    if ((string) argv[n] == "--help") {
+      usage();
+      return EXIT_SUCCESS;
+    }
+
+    if ((string) argv[n] == "--version") {
+      cerr<<"dnsgram "<<VERSION<<endl;
+      return EXIT_SUCCESS;
+    }
+  }
+
   reportAllTypes();
   for(int n=1 ; n < argc; ++n) {
     cout<<argv[n]<<endl;
@@ -97,14 +141,16 @@ try
     /* we measure every 60 seconds, each interval with 10% less answers than questions is interesting */
     /* report chunked */
     
-    struct pdns_timeval lastreport={0, 0};
+    struct pdns_timeval lastreport;
     
-    typedef set<pair<string, uint16_t> > queries_t;
+    typedef set<pair<DNSName, uint16_t> > queries_t;
     queries_t questions, answers;
 
     //    unsigned int count = 50000;
     
-    map<pair<string, uint16_t>, int> counts;
+    map<pair<DNSName, uint16_t>, int> counts;
+
+    map<double, int> rdqcounts, rdacounts;
 
     while(pr.getUDPPacket()) {
       if((ntohs(pr.d_udp->uh_dport)==5300 || ntohs(pr.d_udp->uh_sport)==5300 ||
@@ -112,22 +158,13 @@ try
          pr.d_len > 12) {
         try {
           MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
-          if(mdp.d_header.id==htons(4575)) {
-//            cerr << ntohl(*(uint32_t*)&pr.d_ip->ip_src)<<endl;
-            g_skipped++;
-            continue;
-          }
-          if(pdns_iequals(mdp.d_qname,"ycjnakisys1m.post.yamaha.co.jp."))
-            cerr<<"hit: "<<mdp.d_qtype<<", rd="<<mdp.d_header.rd<< ", id="<<mdp.d_header.id<<", qr="<<mdp.d_header.qr<<"\n";
 
           if(lastreport.tv_sec == 0) {
             lastreport = pr.d_pheader.ts;
           }
-          
-          //          if(pr.d_pheader.ts.tv_sec > 1176897290 && pr.d_pheader.ts.tv_sec < 1176897310 ) 
-          //            pw.write();
 
           if(mdp.d_header.rd && !mdp.d_header.qr) {
+	    rdqcounts[pr.d_pheader.ts.tv_sec + 0.01*(pr.d_pheader.ts.tv_usec/10000)]++;
             g_lastquestionTime=pr.d_pheader.ts;
             g_clientQuestions++;
             totalQueries++;
@@ -135,6 +172,7 @@ try
             questions.insert(make_pair(mdp.d_qname, mdp.d_qtype));
           }
           else if(mdp.d_header.rd && mdp.d_header.qr) {
+	    rdacounts[pr.d_pheader.ts.tv_sec + 0.01*(pr.d_pheader.ts.tv_usec/10000)]++;
             g_lastanswerTime=pr.d_pheader.ts;
             g_clientResponses++;
             answers.insert(make_pair(mdp.d_qname, mdp.d_qtype));
@@ -151,11 +189,10 @@ try
             g_serverResponses++;
           }
           
-          if(pr.d_pheader.ts.tv_sec - lastreport.tv_sec > 5) {
+          if(pr.d_pheader.ts.tv_sec - lastreport.tv_sec >= 1) {
             makeReport(pr.d_pheader.ts);
             lastreport = pr.d_pheader.ts;
-          }
-          
+          }          
         }
         catch(MOADNSException& mde) {
           //        cerr<<"error parsing packet: "<<mde.what()<<endl;
@@ -167,7 +204,22 @@ try
           continue;
         }
       }
+    }
 
+    map<double, pair<int, int>> splot;
+
+    for(auto& a : rdqcounts) {
+      splot[a.first].first = a.second;
+    }
+    for(auto& a : rdacounts) {
+      splot[a.first].second = a.second;
+    }
+
+    cerr<<"Writing out sub-second rd query/response stats to ./rdqaplot"<<endl;
+    ofstream plot("rdqaplot");
+    plot<<std::fixed;
+    for(auto& a : splot) {
+      plot << a.first<<"\t"<<a.second.first<<"\t"<<a.second.second<<endl;
     }
     cerr<<"Parse errors: "<<parseErrors<<", total queries: "<<totalQueries<<endl;
     typedef vector<queries_t::value_type> diff_t;
@@ -176,9 +228,9 @@ try
     cerr<<questions.size()<<" different rd questions, "<< answers.size()<<" different rd answers, diff: "<<diff.size()<<endl;
     cerr<<skipped<<" skipped\n";
 
-
     cerr<<"Generating 'failed' file with failed queries and counts\n";
     ofstream failed("failed");
+    failed<<"name\ttype\tnumber\n";
     for(diff_t::const_iterator i = diff.begin(); i != diff.end() ; ++i) {
       failed << i->first << "\t" << DNSRecordContent::NumberToType(i->second) << "\t"<< counts[make_pair(i->first, i->second)]<<"\n";
     }
@@ -188,8 +240,9 @@ try
     set_difference(answers.begin(), answers.end(), questions.begin(), questions.end(), back_inserter(diff));
     cerr<<diff.size()<<" answers w/o questions\n";
 
-    cerr<<"Generating 'succeeded' file with failed queries and counts\n";
+    cerr<<"Generating 'succeeded' file with all unique answers and counts\n";
     ofstream succeeded("succeeded");
+    succeeded<<"name\ttype\tnumber\n";
     for(queries_t::const_iterator i = answers.begin(); i != answers.end() ; ++i) {
       succeeded << i->first << "\t" <<DNSRecordContent::NumberToType(i->second) << "\t" << counts[make_pair(i->first, i->second)]<<"\n";
     }

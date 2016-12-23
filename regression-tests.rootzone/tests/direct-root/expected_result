@@ -1,0 +1,5 @@
+0	.	IN	NS	518400	a.root-servers.net.
+2	a.root-servers.net.	IN	A	518400	198.41.0.4
+2	a.root-servers.net.	IN	AAAA	518400	2001:503:ba3e::2:30
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='.', qtype=NS

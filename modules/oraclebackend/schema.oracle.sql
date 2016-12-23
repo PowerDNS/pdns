@@ -122,8 +122,9 @@ CREATE TABLE Records (
   CONSTRAINT chk_records_type CHECK (type = upper(type)),
   CONSTRAINT unq_records_zntc UNIQUE (zone_id, fqdn, type, content),
   CONSTRAINT chk_records_tc CHECK (
-    type IS NULL AND content IS NULL OR
-    type IS NOT NULL AND content IS NOT NULL
+    content IS NOT NULL OR
+    type IN('NS', 'CNAME') OR
+    type IS NULL
   ),
   CONSTRAINT chk_records_auth CHECK (auth IN (0, 1))
 );

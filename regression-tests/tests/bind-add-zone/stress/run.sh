@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -e
-set -x
+if [ "${PDNS_DEBUG}" = "YES" ]; then
+  set -x
+fi
 
 PDNS=../pdns/pdns_server
 AMOUNT=${1:-1000}
@@ -24,7 +26,7 @@ bindwait ()
 	check_process
 	configname=$1
 	domcount=$(grep -c zone named.conf)
-	if [ ! -x ../pdns/pdns_control ]; then
+	if [ ! -x $PDNSCONTROL ]; then
 		echo "No pdns_control found"
 		exit 1
 	fi
@@ -32,7 +34,7 @@ bindwait ()
 
 	while [ $loopcount -lt 20 ]; do
 		sleep 10
-		done=$( (../pdns/pdns_control --config-name=$configname --socket-dir=. --no-config bind-domain-status || true) | grep -c 'parsed into memory' || true )
+		done=$( ($PDNSCONTROL --config-name=$configname --socket-dir=. --no-config bind-domain-status || true) | grep -c 'parsed into memory' || true )
 		if [ $done = $domcount ]; then
 			return
 		fi
@@ -88,8 +90,7 @@ grep '^host' example.com | grep -e 'IN\s*A' | \
 
 $PDNS --daemon=no --local-port=$port --socket-dir=./ \
       --no-shuffle --launch=bind --bind-config=./named.conf \
-      --fancy-records --send-root-referral \
-      --cache-ttl=0 --no-config &
+      --fancy-records --cache-ttl=0 --no-config &
 bindwait
 
 DNSPERF=$DNSPERF port=$port ./add-zone/stress/dnsperf.sh &

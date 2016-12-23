@@ -1,6 +1,8 @@
 #!/bin/sh
 set -e
-set -x
+if [ "${PDNS_DEBUG}" = "YES" ]; then
+  set -x
+fi
 
 . ./vars
 
@@ -12,7 +14,7 @@ fi
 
 cd configs
 
-for dir in $PREFIX.* recursor-service
+for dir in $PREFIX.* recursor-service*
 do
 	supervise $dir &
 done

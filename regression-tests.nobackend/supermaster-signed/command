@@ -1,0 +1,230 @@
+#!/usr/bin/env bash
+set -e
+set -x
+
+ALGORITHM=${ALGORITHM:="hmac-md5"}
+KEY=${KEY:="kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys="}
+if [ "$RUNWRAPPER" = "" ]; then
+  RUNWRAPPER="authbind"
+fi
+
+export ALGORITHM
+export KEY
+
+port=$1
+[ -z "$port" ] && port=53
+
+trap "kill_process 2" EXIT INT TERM
+
+tosql ()
+{
+        ${ZONE2SQL} --transactions --$1 --named-conf=./named.conf
+}
+
+prepare()
+{
+        rm -f named.conf
+        cat > named.conf<<EOF
+options {
+        directory "zones/";
+        recursion no;
+        listen-on port 5300 {
+                127.0.0.1;
+        };
+        version "Meow!Meow!";
+        minimal-responses yes;
+};
+zone "example.com"{
+        type master;
+        file "example.com";
+};
+
+zone "test.com"{
+        type master;
+        file "test.com";
+};
+EOF
+        cat > pdns-gsqlite3-master.conf<<EOF
+module-dir=../regression-tests/modules
+launch=gsqlite3
+gsqlite3-dnssec=yes
+gsqlite3-database=master.db
+EOF
+        cat > pdns-gsqlite3-slave.conf<<EOF
+module-dir=../regression-tests/modules
+launch=gsqlite3
+gsqlite3-dnssec=yes
+gsqlite3-database=slave.db
+EOF
+	rm -f master.db slave.db
+	sqlite3 master.db < ../modules/gsqlite3backend/schema.sqlite3.sql
+	sqlite3 slave.db < ../modules/gsqlite3backend/schema.sqlite3.sql
+	# import zones
+	tosql gsqlite | sqlite3 master.db
+	# change them to master
+	sqlite3 master.db <<EOF
+UPDATE domains SET type = 'MASTER', notified_serial = NULL;
+EOF
+	# setup tsig keys
+        $PDNSUTIL --config-name=gsqlite3-master --config-dir=. import-tsig-key tsig.com $ALGORITHM "$KEY"
+	$PDNSUTIL --config-name=gsqlite3-slave --config-dir=. import-tsig-key tsig.com $ALGORITHM "$KEY"
+	$ZONE2SQL --transactions --gsqlite --zone=zones/example.com --zone-name=example.com | sqlite3 slave.db
+	# setup supermaster
+	sqlite3 slave.db <<EOF
+UPDATE domains SET type = 'SLAVE', master = '127.0.0.1' WHERE name = 'example.com';
+EOF
+	# setup metadata on master
+        $PDNSUTIL --config-name=gsqlite3-master --config-dir=. set-meta example.com TSIG-ALLOW-AXFR tsig.com
+	$PDNSUTIL --config-name=gsqlite3-master --config-dir=. set-meta test.com TSIG-ALLOW-AXFR tsig.com
+        $PDNSUTIL --config-name=gsqlite3-slave --config-dir=. set-meta example.com AXFR-MASTER-TSIG tsig.com
+	# i suppose we are done here...
+}
+
+start_master()
+{
+        $RUNWRAPPER $PDNS --daemon=no --local-port=$port --config-dir=. --module-dir=../regression-tests/modules \
+                --config-name=gsqlite3-master --socket-dir=./ --no-shuffle \
+                --master=yes --local-address=127.0.0.1 --local-ipv6='' \
+                --query-local-address=127.0.0.1 --cache-ttl=$cachettl --dname-processing --allow-axfr-ips= &
+}
+
+start_slave()
+{
+        slaveport=53
+
+        $RUNWRAPPER $PDNS2 --daemon=no --local-port=$slaveport --config-dir=. --module-dir=../regression-tests/modules \
+                --config-name=gsqlite3-slave --socket-dir=./ --no-shuffle --local-address=127.0.0.2 --local-ipv6='' \
+                --slave --retrieval-threads=4 --slave=yes --query-local-address=127.0.0.2 \
+                --slave-cycle-interval=300 --allow-unsigned-notify=no --allow-unsigned-supermaster=no &
+}
+
+check_process ()
+{
+        set +e
+        loopcount=0
+        while [ $loopcount -lt 5 ]; do
+                sleep 1
+                pids=$(cat pdns*.pid 2>/dev/null)
+                if [ ! -z "$pids" ]
+                then
+                        kill -0 $pids >/dev/null 2>&1
+                        if [ $? -eq 0 ]
+                        then
+                                set -e
+                                return
+                        fi
+                fi
+        let loopcount=loopcount+1
+        done
+        echo "PowerDNS did not start"
+        exit
+}
+
+kill_process ()
+{
+        set +e
+        trap - EXIT INT TERM
+
+        if [ $1 -gt 1 ]
+        then
+                echo "exitvalue$1" >> failed_tests
+        fi
+
+        pids=$(cat pdns*.pid)
+
+        if [ -n "$pids" ]
+        then
+                kill $pids
+                # make sure they die.
+                loopcount=0
+                done=0
+                while [ $loopcount -lt 10 ] && [ $done -eq 0 ]
+                do
+                        done=1
+                        for pid in $pids
+                        do
+                                kill -0 $pid > /dev/null 2>&1
+                                if [ $? -eq 0 ];
+                                then
+                                        done=0
+                                fi
+                        done
+                        let loopcount=loopcount+1
+                        sleep 1
+                done
+
+                kill -9 $pids
+        fi
+
+        rm pdns*.pid
+        exit $1
+}
+
+sqlite3wait()
+{
+   # make sure domains are transferred and created
+   domcount=0
+   retries=15
+   delay=1
+   domains=2
+
+   while [ $retries -ge 0 ]; do
+     domcount=`sqlite3 slave.db "select count(*) from domains"`
+     # at the moment we want three domains
+     if [ $domcount -eq $domains ]; then
+       break
+     fi
+     sleep $delay
+     let retries=retries-1
+   done
+
+   if [ $domcount -ne $domains ]; then 
+     echo "Supermaster provisioning failed"
+     exit
+   fi
+}
+
+prepare
+start_slave
+check_process
+sleep 1
+start_master
+# to avoid locking issues later on
+sleep 2
+
+# then we check that test.com has not been transferred yet.
+for domain in test.com; do
+  reccount=`sqlite3 slave.db "select count(*) from records join domains on records.domain_id = domains.id where domains.name='$domain'"`
+  if [ $reccount -ne 0 ]; then
+    echo "Transfer of '$domain' has unexpectedly succeeded"
+  fi
+done
+
+# create supermaster
+sqlite3 slave.db <<EOF
+INSERT INTO supermasters (ip,nameserver,account) VALUES('127.0.0.1','ns1.example.com','');
+EOF
+
+# send notifications
+$PDNSCONTROL --config-dir=. --config-name=gsqlite3-master --socket-dir=. notify test.com
+sleep 2
+
+# hopefully notifications have gone thru
+sqlite3wait
+
+# then we check that we got records in database for both domains
+for domain in test.com; do
+  reccount=`sqlite3 slave.db "select count(*) from records join domains on records.domain_id = domains.id where domains.name='$domain'"`
+  if [ $reccount -lt 3 ]; then
+    echo "Transfer of '$domain' did not succeed"
+  fi
+  result=`sqlite3 slave.db "select kind,content from domainmetadata join domains on domainmetadata.domain_id = domains.id where domains.name='$domain'"`
+  if [ "$result" != "AXFR-MASTER-TSIG|tsig.com" ]; then
+    echo "Domain '$domain' did not provision correctly"
+  fi
+done
+
+# ensure unsigned notifications are refused
+$NOTIFY 127.0.0.2:53 test.com 2>&1
+
+kill_process 0

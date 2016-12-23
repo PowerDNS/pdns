@@ -1,0 +1,15 @@
+#!/bin/sh
+set -e
+
+if [ "$0" != "./build-scripts/dist-dnsdist" ]; then
+  echo "Please run me from the root checkout dir"
+  exit 1
+fi
+
+set -x
+
+cd pdns/dnsdistdist
+
+autoreconf -i
+./configure
+make dist

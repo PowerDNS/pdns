@@ -64,23 +64,23 @@ create table tsigkeys (
 
 create unique index namealgoindex on tsigkeys(name, algorithm);
 
-insert into domains (name,type) VALUES('example.com','NATIVE');
-insert into domains (name,type) VALUES('up.example.com','NATIVE');
+insert into domains (name,type) VALUES('example.com.','NATIVE');
+insert into domains (name,type) VALUES('up.example.com.','NATIVE');
 
-insert into records (domain_id, name, type, ttl, content, ordername, auth) select id as domain_id, "example.com", "SOA", "120", "ns1.example.com hostmaster.example.com 2000010101 28800 7200 1209600 120", "", 1 FROM domains WHERE name = "example.com"; 
-insert into records (domain_id, name, type, ttl, content, ordername, auth) select id as domain_id, "example.com", "NS", "120", "ns1.example.com", "", 1 FROM domains WHERE name = "example.com";
-insert into records (domain_id, name, type, ttl, content, ordername, auth) select id as domain_id, "example.com", "NS", "120", "ns2.example.com", "", 1 FROM domains WHERE name = "example.com";
-insert into records (domain_id, name, type, ttl, content, ordername, auth) select id as domain_id, "outpost.example.com", "A", "120", "192.168.2.1", "outpost", 1 FROM domains WHERE name = "example.com";
-insert into records (domain_id, name, type, ttl, content, ordername, auth) select id as domain_id, "outpost.example.com", "AAAA", "120", "fe80::1", "outpost", 1 FROM domains WHERE name = "example.com";
-insert into records (domain_id, name, type, ttl, content, ordername, auth) select id as domain_id, "www.example.com", "A", "120", "192.168.2.255", "www", 1 FROM domains WHERE name = "example.com";
-insert into records (domain_id, name, type, ttl, content, ordername, auth) select id as domain_id, "up.example.com", "NS", "120", "ns1.example.com", "up", 0 FROM domains WHERE name = "example.com";
-insert into records (domain_id, name, type, ttl, content, ordername, auth) select id as domain_id, "up.example.com", "NS", "120", "ns2.example.com", "up", 0 FROM domains WHERE name = "example.com";
-insert into records (domain_id, name, type, ttl, content, ordername, auth) select id as domain_id, "ns1.example.com", "A", "120", "192.168.2.2", "ns1", 1 FROM domains WHERE name = "example.com";
-insert into records (domain_id, name, type, ttl, content, ordername, auth) select id as domain_id, "ns2.example.com", "A", "120", "192.168.2.3", "ns2", 1 FROM domains WHERE name = "example.com";
-insert into records (domain_id, name, type, ttl, content, ordername, auth) select id as domain_id, "up.example.com", "SOA", "120", "ns1.example.com hostmaster.example.com 2000010101 28800 7200 1209600 120", "", 1 FROM domains WHERE name = "up.example.com";
-insert into records (domain_id, name, type, ttl, content, ordername, auth) select id as domain_id, "up.example.com", "NS", "120", "ns1.example.com", "", 1 FROM domains WHERE name = "up.example.com";
-insert into records (domain_id, name, type, ttl, content, ordername, auth) select id as domain_id, "up.example.com", "NS", "120", "ns2.example.com", "", 1 FROM domains WHERE name = "up.example.com";
-insert into records (domain_id, name, type, ttl, content, ordername, auth) select id as domain_id, "jump.up.example.com", "A", "120", "192.168.3.1", "jump", 1 FROM domains WHERE name = "up.example.com";
-insert into records (domain_id, name, type, ttl, content, ordername, auth) select id as domain_id, "jump.up.example.com", "TXT", "120", "a very very long indeed text string that should pass out clean and proper thru the entire chain of powerdns processing", "jump", 1 FROM domains WHERE name = "up.example.com";
+insert into records (domain_id, name, type, ttl, content, ordername, auth) select id as domain_id, "example.com.", "SOA", "120", "ns1.example.com. hostmaster.example.com. 2000010101 28800 7200 1209600 120", "", 1 FROM domains WHERE name = "example.com."; 
+insert into records (domain_id, name, type, ttl, content, ordername, auth) select id as domain_id, "example.com.", "NS", "120", "ns1.example.com.", "", 1 FROM domains WHERE name = "example.com.";
+insert into records (domain_id, name, type, ttl, content, ordername, auth) select id as domain_id, "example.com.", "NS", "120", "ns2.example.com.", "", 1 FROM domains WHERE name = "example.com.";
+insert into records (domain_id, name, type, ttl, content, ordername, auth) select id as domain_id, "outpost.example.com.", "A", "120", "192.168.2.1", "outpost", 1 FROM domains WHERE name = "example.com.";
+insert into records (domain_id, name, type, ttl, content, ordername, auth) select id as domain_id, "outpost.example.com.", "AAAA", "120", "fe80::1", "outpost", 1 FROM domains WHERE name = "example.com.";
+insert into records (domain_id, name, type, ttl, content, ordername, auth) select id as domain_id, "www.example.com.", "A", "120", "192.168.2.255", "www", 1 FROM domains WHERE name = "example.com.";
+insert into records (domain_id, name, type, ttl, content, ordername, auth) select id as domain_id, "up.example.com.", "NS", "120", "ns1.example.com.", "up", 0 FROM domains WHERE name = "example.com.";
+insert into records (domain_id, name, type, ttl, content, ordername, auth) select id as domain_id, "up.example.com.", "NS", "120", "ns2.example.com.", "up", 0 FROM domains WHERE name = "example.com.";
+insert into records (domain_id, name, type, ttl, content, ordername, auth) select id as domain_id, "ns1.example.com.", "A", "120", "192.168.2.2", "ns1", 1 FROM domains WHERE name = "example.com.";
+insert into records (domain_id, name, type, ttl, content, ordername, auth) select id as domain_id, "ns2.example.com.", "A", "120", "192.168.2.3", "ns2", 1 FROM domains WHERE name = "example.com.";
+insert into records (domain_id, name, type, ttl, content, ordername, auth) select id as domain_id, "up.example.com.", "SOA", "120", "ns1.example.com. hostmaster.example.com. 2000010101 28800 7200 1209600 120", "", 1 FROM domains WHERE name = "up.example.com.";
+insert into records (domain_id, name, type, ttl, content, ordername, auth) select id as domain_id, "up.example.com.", "NS", "120", "ns1.example.com.", "", 1 FROM domains WHERE name = "up.example.com.";
+insert into records (domain_id, name, type, ttl, content, ordername, auth) select id as domain_id, "up.example.com.", "NS", "120", "ns2.example.com.", "", 1 FROM domains WHERE name = "up.example.com.";
+insert into records (domain_id, name, type, ttl, content, ordername, auth) select id as domain_id, "jump.up.example.com.", "A", "120", "192.168.3.1", "jump", 1 FROM domains WHERE name = "up.example.com.";
+insert into records (domain_id, name, type, ttl, content, ordername, auth) select id as domain_id, "jump.up.example.com.", "TXT", "120", "a very very long indeed text string that should pass out clean and proper thru the entire chain of powerdns processing", "jump", 1 FROM domains WHERE name = "up.example.com.";
 
 commit;

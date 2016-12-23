@@ -1,1 +1,1 @@
--lcdb
+$(CDB_LIBS)

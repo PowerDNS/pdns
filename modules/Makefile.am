@@ -2,15 +2,13 @@ SUBDIRS= @moduledirs@
 
 DIST_SUBDIRS = \
 	bindbackend \
-	db2backend \
-	geobackend \
 	geoipbackend \
 	gmysqlbackend \
+	godbcbackend \
 	goraclebackend \
 	gpgsqlbackend \
 	gsqlite3backend \
 	ldapbackend \
-	lmdbbackend \
 	luabackend \
 	mydnsbackend \
 	opendbxbackend \

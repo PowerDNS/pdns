@@ -1,0 +1,20 @@
+0	host1.auth-zone.example.net.	IN	A	3600	127.0.0.55
+Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+Reply to question for qname='host1.auth-zone.example.net.', qtype=A
+0	host1.auth-zone.example.net.	IN	AAAA	3600	2001:db8::1:45ba
+Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+Reply to question for qname='host1.auth-zone.example.net.', qtype=AAAA
+0	host1.another-auth-zone.example.net.	IN	A	3600	127.0.0.56
+0	host2.auth-zone.example.net.	IN	CNAME	3600	host1.another-auth-zone.example.net.
+Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+Reply to question for qname='host2.auth-zone.example.net.', qtype=A
+0	host1.not-auth-zone.example.net.	IN	A	3600	127.0.0.57
+0	host3.auth-zone.example.net.	IN	CNAME	3600	host1.not-auth-zone.example.net.
+Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+Reply to question for qname='host3.auth-zone.example.net.', qtype=A
+0	you-are.wild.auth-zone.example.net.	IN	TXT	3600	"Hi there!"
+Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+Reply to question for qname='you-are.wild.auth-zone.example.net.', qtype=TXT
+1	auth-zone.example.net.	IN	SOA	3600	ns.example.net. hostmaster.example.net. 1 3600 1800 1209600 300
+Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+Reply to question for qname='auth-zone.example.net.', qtype=TXT

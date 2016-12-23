@@ -35,7 +35,7 @@ __EOF__
 				securezone $zone oracle
 				if [ $context = oracle-nsec3 ]
 				then
-					../pdns/pdnssec --config-dir=. --config-name=oracle set-nsec3 $zone "1 0 1 abcd" 2>&1
+					$PDNSUTIL --config-dir=. --config-name=oracle set-nsec3 $zone "1 0 1 abcd" 2>&1
 				fi
 			done
 		fi
@@ -43,23 +43,23 @@ __EOF__
 		echo "TRUNCATE TABLE records;" | sqlplus -S $ORACLEUSER/$ORACLEPASSWD@xe >> oracle.log
 		../pdns/zone2sql --oracle | grep -v 'INSERT INTO Zones' | sqlplus -S $ORACLEUSER/$ORACLEPASSWD@xe >> oracle.log
 
-		../pdns/pdnssec --config-dir=. --config-name=oracle import-tsig-key test $ALGORITHM $KEY
-		../pdns/pdnssec --config-dir=. --config-name=oracle activate-tsig-key tsig.com test master
+		$PDNSUTIL --config-dir=. --config-name=oracle import-tsig-key test $ALGORITHM $KEY
+		$PDNSUTIL --config-dir=. --config-name=oracle activate-tsig-key tsig.com test master
 
 		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --config-dir=. \
 			--config-name=oracle --socket-dir=./ --no-shuffle \
-			--send-root-referral --query-logging \
-			--cache-ttl=$cachettl --experimental-dname-processing $lua_prequery &
+			--query-logging \
+			--cache-ttl=$cachettl --dname-processing $lua_prequery &
 
 		if [ $context = oracle-nsec3 ]
 		then
-			skipreasons="nodyndns oracle-nsec3"
+			skipreasons="nodyndns oracle-nsec3 oracle-master-nsec3"
 			extracontexts="dnssec nsec3"
 		elif [ $context = oracle-nodnssec ]
 		then
 			skipreasons="nodyndns nodnssec"
 		else
-			skipreasons="nodyndns oracle-nsec"
+			skipreasons="nodyndns oracle-nsec oracle-master-nsec"
 			extracontexts="dnssec"
 		fi
 		skipreasons="$skipreasons noent noaxfr" # TODO add ent support to oracle backend

@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+set -e
+
+if [ "${PDNS_DEBUG}" = "YES" ]; then
+  set -x
+fi
+
+port=5600
+
+rm -f pdns*.pid
+
+$PDNS --daemon=no --local-ipv6=::1 --local-address=127.0.0.1 \
+  --local-port=$port --socket-dir=./ --no-shuffle --launch=pipe --no-config \
+  --module-dir=../regression-tests/modules --pipe-command=$(pwd)/distributor/slow.pl \
+  --pipe-abi-version=5 \
+  --overload-queue-length=10 --log-dns-queries --loglevel=9 \
+  --pipe-timeout=1500 &
+
+sleep 2
+
+for a in {1..15} 
+	do $SDIG 127.0.0.1 $port $a.example.com A >&2 >/dev/null &
+done 
+
+sleep 10
+
+if [ $($PDNSCONTROL --config-name= --no-config --socket-dir=./ show overload-drops) -gt 0 ]
+then
+	echo had non-zero drops
+fi
+
+sleep 5
+
+$SDIG 127.0.0.1 $port example.com A
+
+kill $(cat pdns*.pid)
+rm pdns*.pid

@@ -1,0 +1,56 @@
+#!/bin/sh
+
+export PDNSRECURSOR=${PDNSRECURSOR:-"/usr/sbin/pdns_recursor"}
+export RECCONTROL=${RECCONTROL:-"/usr/bin/rec_control"}
+export PDNS=${PDNS:-"/usr/sbin/pdns_server"}
+export PDNSUTIL=${PDNSUTIL:-"/usr/bin/pdnsutil"}
+export SDIG=${SDIG:-"/usr/bin/sdig"}
+export NSEC3DIG=${NSEC3DIG:-"/usr/bin/nsec3dig"}
+export NOTIFY=${NOTIFY:-"/usr/bin/notify"}
+export SAXFR=${SAXFR:-"/usr/bin/saxfr"}
+
+if [ "$0" != "./build-scripts/test-recursor" ]; then
+  echo "Please run me from the root checkout dir"
+  exit 1
+fi
+
+set -x
+
+cd regression-tests/modules
+
+MODULES=""
+
+for dir in /usr/lib/x86_64-linux-gnu/pdns /usr/lib64/pdns; do
+  if [ -d $dir ]; then
+    MODULES=$dir
+    break
+  fi
+done
+[ -z $MODULES ] && echo "No module directory found" >&2 && exit 1
+
+# Symlink the modules on the system
+cd regression-tests/modules
+for backend in *.so; do
+  ln -sf $MODULES/$backend $backend
+done
+
+cd ../../regression-tests.recursor
+cp vars.sample vars
+sed -i 's!PREFIX=.*!PREFIX=127.0.0!' vars
+
+EXIT=0
+
+./config.sh
+./start.sh
+sleep 3
+svstat configs/*
+./runtests || EXIT=1
+./stop.sh
+sleep 3
+./clean.sh
+
+cd ../regression-tests.recursor-dnssec
+./runtests || EXIT=1
+./printlogs.py || true
+
+exit $EXIT

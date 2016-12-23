@@ -3,12 +3,12 @@ if [ ! -e ${testsdir}/${testname}/use.drill ]
 then
 	if [ "$2" != "AXFR" ]
 	then
-		../pdns/sdig $nameserver $port "$1" $2 $3 $4 $5 | LC_ALL=C sort
+		$SDIG $nameserver $port "$1" $2 $3 $4 $5 $6 $7 $8 $9 | LC_ALL=C sort
 	else
-		../pdns/saxfr $nameserver $port "$1" $3 $4 | LC_ALL=C sort
+		$SAXFR $nameserver $port "$1" $3 $4 | LC_ALL=C sort
 	fi
 fi
-../pdns/nsec3dig $nameserver $port "$1" $2 > ${testsdir}/${testname}/nsec3dig.out 2>&1
+$NSEC3DIG $nameserver $port "$1" $2 > ${testsdir}/${testname}/nsec3dig.out 2>&1
 if [ ! -e ${testsdir}/${testname}/skip-drill ]
 then
 	if [ ! -s trustedkeys ]

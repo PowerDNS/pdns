@@ -1,3 +1,24 @@
+/*
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 /**
 Replay all recursion-desired DNS questions to a specified IP address.
 
@@ -38,6 +59,9 @@ What to do with timeouts. We keep around at most 65536 outstanding answers.
 
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <bitset>
 #include "statbag.hh"
 #include "dnspcap.hh"
@@ -45,7 +69,8 @@ What to do with timeouts. We keep around at most 65536 outstanding answers.
 #include "anadns.hh"
 #include <boost/program_options.hpp>
 #include "dnsrecords.hh"
-
+#include "ednssubnet.hh"
+#include "ednsoptions.hh"
 // this is needed because boost multi_index also uses 'L', as do we (which is sad enough)
 #undef L
 
@@ -200,17 +225,6 @@ unsigned int s_webetter, s_origbetter, s_norecursionavailable;
 unsigned int s_weunmatched, s_origunmatched;
 unsigned int s_wednserrors, s_origdnserrors, s_duplicates;
 
-double DiffTime(const struct timeval& first, const struct timeval& second)
-{
-  int seconds=second.tv_sec - first.tv_sec;
-  int useconds=second.tv_usec - first.tv_usec;
-  
-  if(useconds < 0) {
-    seconds-=1;
-    useconds+=1000000;
-  }
-  return seconds + useconds/1000000.0;
-}
 
 
 void WeOrigSlowQueriesDelta(int& weOutstanding, int& origOutstanding, int& weSlow, int& origSlow)
@@ -256,7 +270,7 @@ void WeOrigSlowQueriesDelta(int& weOutstanding, int& origOutstanding, int& weSlo
 void compactAnswerSet(MOADNSParser::answers_t orig, set<DNSRecord>& compacted)
 {
   for(MOADNSParser::answers_t::const_iterator i=orig.begin(); i != orig.end(); ++i)
-    if(i->first.d_place==DNSRecord::Answer)
+    if(i->first.d_place==DNSResourceRecord::ANSWER)
       compacted.insert(i->first);
 }
 
@@ -265,7 +279,7 @@ bool isRcodeOk(int rcode)
   return rcode==0 || rcode==3;
 }
 
-set<pair<string,uint16_t> > s_origbetterset;
+set<pair<DNSName,uint16_t> > s_origbetterset;
 
 bool isRootReferral(const MOADNSParser::answers_t& answers)
 {
@@ -274,10 +288,10 @@ bool isRootReferral(const MOADNSParser::answers_t& answers)
 
   bool ok=true;
   for(MOADNSParser::answers_t::const_iterator iter = answers.begin(); iter != answers.end(); ++iter) {
-    //    cerr<<(int)iter->first.d_place<<", "<<iter->first.d_label<<" "<<iter->first.d_type<<", # "<<answers.size()<<endl;
+    //    cerr<<(int)iter->first.d_place<<", "<<iter->first.d_name<<" "<<iter->first.d_type<<", # "<<answers.size()<<endl;
     if(iter->first.d_place!=2)
       ok=false;
-    if(iter->first.d_label!="." || iter->first.d_type!=QType::NS)
+    if(!iter->first.d_name.isRoot() || iter->first.d_type!=QType::NS)
       ok=false;
   }
   return ok;
@@ -376,10 +390,10 @@ void measureResultAndClean(qids_t::const_iterator iter)
     if(!g_quiet) {
       cout<<"orig: rcode="<<qd.d_origRcode<<"\n";
       for(set<DNSRecord>::const_iterator i=canonicOrig.begin(); i!=canonicOrig.end(); ++i)
-        cout<<"\t"<<i->d_label<<"\t"<<DNSRecordContent::NumberToType(i->d_type)<<"\t'"  << (i->d_content ? i->d_content->getZoneRepresentation() : "") <<"'\n";
+        cout<<"\t"<<i->d_name<<"\t"<<DNSRecordContent::NumberToType(i->d_type)<<"\t'"  << (i->d_content ? i->d_content->getZoneRepresentation() : "") <<"'\n";
       cout<<"new: rcode="<<qd.d_newRcode<<"\n";
       for(set<DNSRecord>::const_iterator i=canonicNew.begin(); i!=canonicNew.end(); ++i)
-        cout<<"\t"<<i->d_label<<"\t"<<DNSRecordContent::NumberToType(i->d_type)<<"\t'"  << (i->d_content ? i->d_content->getZoneRepresentation() : "") <<"'\n";
+        cout<<"\t"<<i->d_name<<"\t"<<DNSRecordContent::NumberToType(i->d_type)<<"\t'"  << (i->d_content ? i->d_content->getZoneRepresentation() : "") <<"'\n";
       cout<<"\n";
       cout<<"-\n";
 
@@ -437,6 +451,10 @@ try
       s_wednserrors++;
     }
     catch(std::out_of_range &e)
+    {
+      s_wednserrors++;
+    }
+    catch(std::exception& e) 
     {
       s_wednserrors++;
     }
@@ -538,7 +556,55 @@ Orig    9           21      29     36         47        57       66    72
 
 bool g_rdSelector;
 
-bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote)
+static void generateOptRR(const std::string& optRData, string& res)
+{
+  const uint8_t name = 0;
+  dnsrecordheader dh;
+  EDNS0Record edns0;
+  edns0.extRCode = 0;
+  edns0.version = 0;
+  edns0.Z = 0;
+  
+  dh.d_type = htons(QType::OPT);
+  dh.d_class = htons(1280);
+  memcpy(&dh.d_ttl, &edns0, sizeof edns0);
+  dh.d_clen = htons((uint16_t) optRData.length());
+  res.assign((const char *) &name, sizeof name);
+  res.append((const char *) &dh, sizeof dh);
+  res.append(optRData.c_str(), optRData.length());
+}
+
+static void addECSOption(char* packet, const size_t& packetSize, uint16_t* len, const ComboAddress& remote, int stamp)
+{
+  string EDNSRR;
+  struct dnsheader* dh = (struct dnsheader*) packet;
+
+  EDNSSubnetOpts eso;
+  if(stamp < 0)
+    eso.source = Netmask(remote);
+  else {
+    ComboAddress stamped(remote);
+    *((char*)&stamped.sin4.sin_addr.s_addr)=stamp;
+    eso.source = Netmask(stamped);
+  }
+  string optRData=makeEDNSSubnetOptsString(eso);
+  string record;
+  generateEDNSOption(EDNSOptionCode::ECS, optRData, record);
+  generateOptRR(record, EDNSRR);
+
+
+  uint16_t arcount = ntohs(dh->arcount);
+  /* does it fit in the existing buffer? */
+  if (packetSize - *len > EDNSRR.size()) {
+    arcount++;
+    dh->arcount = htons(arcount);
+    memcpy(packet + *len, EDNSRR.c_str(), EDNSRR.size());
+    *len += EDNSRR.size();
+  }
+}
+
+
+bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote, int stamp)
 {
   dnsheader* dh=(dnsheader*)pr.d_payload;
   bool sent=false;
@@ -553,7 +619,12 @@ bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote)
       qd.d_assignedID = s_idmanager.getID();
       uint16_t tmp=dh->id;
       dh->id=htons(qd.d_assignedID);
-      s_socket->sendTo((const char*)pr.d_payload, pr.d_len, remote);
+      //      dh->rd=1; // useful to replay traffic to auths to a recursor
+      uint16_t dlen = pr.d_len;
+
+      if (stamp >= 0) addECSOption((char*)pr.d_payload, 1500, &dlen, pr.getSource(), stamp);
+      pr.d_len=dlen;
+      s_socket->sendTo((const char*)pr.d_payload, dlen, remote);
       sent=true;
       dh->id=tmp;
     }
@@ -603,16 +674,26 @@ bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote)
   }
   catch(MOADNSException &e)
   {
+    if(!g_quiet)
+      cerr<<"Error parsing packet: "<<e.what()<<endl;
     s_idmanager.releaseID(qd.d_assignedID);  // not added to qids for cleanup
     s_origdnserrors++;
   }
-  catch(std::out_of_range &e)
+  catch(std::exception &e)
   {
+    if(!g_quiet)
+      cerr<<"Error parsing packet: "<<e.what()<<endl;
+
     s_idmanager.releaseID(qd.d_assignedID);  // not added to qids for cleanup
     s_origdnserrors++;    
   }
 
   return sent;
+}
+
+void usage(po::options_description &desc) {
+  cerr << "Usage: dnsreplay [OPTIONS] FILENAME [IP-ADDRESS] [PORT]"<<endl;
+  cerr << desc << "\n";
 }
 
 int main(int argc, char** argv)
@@ -621,11 +702,14 @@ try
   po::options_description desc("Allowed options");
   desc.add_options()
     ("help,h", "produce help message")
+    ("version", "show version number")
     ("packet-limit", po::value<uint32_t>()->default_value(0), "stop after this many packets")
     ("quiet", po::value<bool>()->default_value(true), "don't be too noisy")
     ("recursive", po::value<bool>()->default_value(true), "look at recursion desired packets, or not (defaults true)")
     ("speedup", po::value<float>()->default_value(1), "replay at this speedup")
-    ("timeout-msec", po::value<uint32_t>()->default_value(500), "wait at least this many milliseconds for a reply");
+    ("timeout-msec", po::value<uint32_t>()->default_value(500), "wait at least this many milliseconds for a reply")
+    ("ecs-stamp", "Add original IP address to ECS in replay")
+    ("ecs-mask", po::value<uint16_t>(), "Replace first octet of src IP address with this value in ECS");
 
   po::options_description alloptions;
   po::options_description hidden("hidden options");
@@ -646,15 +730,18 @@ try
   reportAllTypes();
 
   if (g_vm.count("help")) {
-    cerr << "Usage: dnsreplay [--options] filename [ip-address] [port]"<<endl;
-    cerr << desc << "\n";
+    usage(desc);
     return EXIT_SUCCESS;
   }
-  
+
+  if (g_vm.count("version")) {
+    cerr<<"dnsreplay "<<VERSION<<endl;
+    return EXIT_SUCCESS;
+  }
+
   if(!g_vm.count("pcap-source")) {
     cerr<<"Fatal, need to specify at least a PCAP source file"<<endl;
-    cerr << "Usage: dnsreplay [--options] filename [ip-address] [port]"<<endl;
-    cerr << desc << "\n";
+    usage(desc);
     return EXIT_FAILURE;
   }
 
@@ -677,6 +764,10 @@ try
 
   ComboAddress remote(g_vm["target-ip"].as<string>(), 
                     g_vm["target-port"].as<uint16_t>());
+
+ int stamp = -1;
+ if(g_vm.count("ecs-stamp") && g_vm.count("ecs-mask"))
+   stamp=g_vm["ecs-mask"].as<uint16_t>();
 
   cerr<<"Replaying packets to: '"<<g_vm["target-ip"].as<string>()<<"', port "<<g_vm["target-port"].as<uint16_t>()<<endl;
 
@@ -704,10 +795,11 @@ try
       if(!first && !pr.getUDPPacket()) // otherwise we miss the first packet
         goto out;
       first=false;
+
       packet_ts.tv_sec = pr.d_pheader.ts.tv_sec;
       packet_ts.tv_usec = pr.d_pheader.ts.tv_usec;
 
-      if(sendPacketFromPR(pr, remote))
+      if(sendPacketFromPR(pr, remote, stamp))
         count++;
     } 
     if(packetLimit && count > packetLimit) 

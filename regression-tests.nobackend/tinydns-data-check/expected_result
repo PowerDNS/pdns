@@ -1,7 +1,7 @@
-4bc48a8d9b8d04b553be67639e5656e8  ../regression-tests/zones/example.com
-38f421f6dd6c842f6f4f8a5a996cdb7d  ../regression-tests/zones/test.com
+3c2f2cbef7b196a68d39a77dd7a5eaf7  ../regression-tests/zones/example.com
+b4feb02bd50f7b78cd5c40c7a560019c  ../regression-tests/zones/test.com
 005b3381db2a7dc70b690484f6ab7770  ../regression-tests/zones/test.dyndns
-21213b4e8cd56e4184696a1bafd987d7  ../regression-tests/zones/wtest.com
+0861783f9f83acd9044278cda2528ee2  ../regression-tests/zones/wtest.com
 42b442de632686e94bde75acf66cf524  ../regression-tests/zones/nztest.com
 aeff58ea1eb6e63096e6da18337be312  ../regression-tests/zones/dnssec-parent.com
 6510bf48aa3ca3501b73a1f510852a34  ../regression-tests/zones/delegated.dnssec-parent.com
@@ -9,4 +9,5 @@ a63dc120391d9df0003f2ec4f461a6af  ../regression-tests/zones/secure-delegated.dns
 24514dc104b22206daeb973ff9303545  ../regression-tests/zones/minimal.com
 0b20d7a0250576451135483b863750bf  ../regression-tests/zones/tsig.com
 b1f775045fa2cf0a3b91aa834af06e49  ../regression-tests/zones/stest.com
-11085cc884e2db8bbd5a4710aad23604  ../modules/tinydnsbackend/data.cdb
+a98864b315f16bcf49ce577426063c42  ../regression-tests/zones/cdnskey-cds-test.com
+ce8464687f59b932745eb8adbf810c9f  ../modules/tinydnsbackend/data.cdb

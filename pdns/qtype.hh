@@ -1,31 +1,29 @@
 /*
-    PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002  PowerDNS.COM BV
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2
-    as published by the Free Software Foundation
-
-    Additionally, the license of this program contains a special
-    exception which allows to distribute the program in binary form when
-    it is linked against OpenSSL.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-*/
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 #ifndef QTYPE_HH
 #define QTYPE_HH
-/* (C) 2002 POWERDNS.COM BV */
 // $Id$
 #include <string>
 #include <vector>
-#include <utility>
 #include "namespaces.hh"
 
 /** The QType class is meant to deal easily with the different kind of resource types, like 'A', 'NS',
@@ -78,11 +76,63 @@ public:
   bool isMetadataType();
 
   static int chartocode(const char *p); //!< convert a character string to a code
-// more solaris fun
-#undef DS
-  enum typeenum {A=1, NS=2, CNAME=5, SOA=6, MR=9, WKS=11, PTR=12, HINFO=13, MINFO=14, MX=15, TXT=16, RP=17, AFSDB=18, SIG=24, KEY=25, AAAA=28, LOC=29, SRV=33, NAPTR=35, KX=36,
-		 CERT=37, A6=38, DNAME=39, OPT=41, DS=43, SSHFP=44, IPSECKEY=45, RRSIG=46, NSEC=47, DNSKEY=48, DHCID=49, NSEC3=50, NSEC3PARAM=51,
-		 TLSA=52, SPF=99, EUI48=108, EUI64=109, TSIG=250, IXFR=251, AXFR=252, MAILB=253, MAILA=254, ANY=255, URL=256, MBOXFW=257, CURL=258, ADDR=259, ALIAS=260, DLV=32769} types;
+  enum typeenum : uint16_t {
+    ENT=0,
+    A=1,
+    NS=2,
+    CNAME=5,
+    SOA=6,
+    MR=9,
+    WKS=11,
+    PTR=12,
+    HINFO=13,
+    MINFO=14,
+    MX=15,
+    TXT=16,
+    RP=17,
+    AFSDB=18,
+    SIG=24,
+    KEY=25,
+    AAAA=28,
+    LOC=29,
+    SRV=33,
+    NAPTR=35,
+    KX=36,
+    CERT=37,
+    A6=38,
+    DNAME=39,
+    OPT=41,
+    DS=43,
+    SSHFP=44,
+    IPSECKEY=45,
+    RRSIG=46,
+    NSEC=47,
+    DNSKEY=48,
+    DHCID=49,
+    NSEC3=50,
+    NSEC3PARAM=51,
+    TLSA=52,
+    RKEY=57,
+    CDS=59,
+    CDNSKEY=60,
+    OPENPGPKEY=61,
+    SPF=99,
+    EUI48=108,
+    EUI64=109,
+    TKEY=249,
+    TSIG=250,
+    IXFR=251,
+    AXFR=252,
+    MAILB=253,
+    MAILA=254,
+    ANY=255,
+    URI=256,
+    CAA=257,
+    DLV=32769,
+    ADDR=65400,
+    ALIAS=65401
+  };
+
   typedef pair<string,uint16_t> namenum;
   static vector<namenum> names;
 
@@ -153,21 +203,25 @@ private:
       qtype_insert("NSEC3", 50);
       qtype_insert("NSEC3PARAM", 51);
       qtype_insert("TLSA", 52);
+      qtype_insert("RKEY", 57);
+      qtype_insert("CDS", 59);
+      qtype_insert("CDNSKEY", 60);
+      qtype_insert("OPENPGPKEY", 61);
       qtype_insert("SPF", 99);
       qtype_insert("EUI48", 108);
       qtype_insert("EUI64", 109);
+      qtype_insert("TKEY", 249);
 //      qtype_insert("TSIG", 250);
       qtype_insert("IXFR", 251);
       qtype_insert("AXFR", 252);
       qtype_insert("MAILB", 253);
       qtype_insert("MAILA", 254);
       qtype_insert("ANY", 255);
-      qtype_insert("URL", 256);
-      qtype_insert("MBOXFW", 257);
-      qtype_insert("CURL", 258);
-      qtype_insert("ADDR", 259);
-      qtype_insert("ALIAS", 260);
+      qtype_insert("URI", 256);
+      qtype_insert("CAA", 257);
       qtype_insert("DLV", 32769);
+      qtype_insert("ADDR", 65400);
+      qtype_insert("ALIAS", 65401);
     }
   } initializer;
 

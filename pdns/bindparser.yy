@@ -93,7 +93,7 @@ void BindParser::commit(BindDomainInfo DI)
     DI.filename=d_dir+"/"+DI.filename;
 
   if(d_verbose)
-    cerr<<"Domain "<<DI.name<<" lives in file '"<<DI.filename<<"'"<<endl;
+    cerr<<"Domain "<<DI.name.toStringNoDot()<<" lives in file '"<<DI.filename<<"'"<<endl;
 
   d_zonedomains.push_back(DI);
 }
@@ -125,7 +125,7 @@ command:
 global_zone_command:
 	ZONETOK quotedname zone_block
 	{
-		s_di.name=stripDot($2);
+		s_di.name=DNSName($2);
 		free($2);
 		parent->commit(s_di);
 		s_di.clear();
@@ -133,7 +133,7 @@ global_zone_command:
 	|	
 	ZONETOK quotedname AWORD zone_block
 	{
-	        s_di.name=stripDot($2);
+	        s_di.name=DNSName($2);
 		free($2);
 		parent->commit(s_di);
 		s_di.clear();

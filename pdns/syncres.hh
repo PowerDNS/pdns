@@ -1,16 +1,42 @@
+/*
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 #ifndef PDNS_SYNCRES_HH
 #define PDNS_SYNCRES_HH
 #include <string>
+#include <atomic>
+#include "utility.hh"
 #include "dns.hh"
 #include "qtype.hh"
 #include <vector>
 #include <set>
+#include <unordered_set>
 #include <map>
 #include <cmath>
 #include <iostream>
 #include <utility>
 #include "misc.hh"
 #include "lwres.hh"
+#include <boost/optional.hpp>
+#include <boost/circular_buffer.hpp>
 #include <boost/utility.hpp>
 #include "sstuff.hh"
 #include "recursor_cache.hh"
@@ -20,21 +46,50 @@
 #include <boost/tuple/tuple_comparison.hpp>
 #include "mtasker.hh"
 #include "iputils.hh"
+#include "validate.hh"
+
+#include "filterpo.hh"
+
+#include "config.h"
+#ifdef HAVE_PROTOBUF
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#endif
 
 void primeHints(void);
+int getRootNS(void);
+class RecursorLua4;
+
+struct BothRecordsAndSignatures
+{
+  vector<DNSRecord> records;
+  vector<DNSRecord> signatures;
+};
+typedef map<pair<DNSName,uint16_t>, BothRecordsAndSignatures> recsig_t;
+
+recsig_t harvestRecords(const std::vector<DNSRecord>& records, const std::set<uint16_t>& types);
+
 
 struct NegCacheEntry
 {
-  string d_name;
+  DNSName d_name;
   QType d_qtype;
-  string d_qname;
+  DNSName d_qname;
   uint32_t d_ttd;
   uint32_t getTTD() const
   {
     return d_ttd;
   }
+  recsig_t d_dnssecProof;
 };
 
+typedef map<
+  DNSName,
+  pair<
+    vector<ComboAddress>,
+    bool
+  >
+> NsSet;
 
 template<class Thing> class Throttle : public boost::noncopyable
 {
@@ -69,18 +124,18 @@ public:
 
     return true; // still listed, still blocked
   }
-  void throttle(time_t now, const Thing& t, time_t ttl=0, unsigned int tries=0) 
+  void throttle(time_t now, const Thing& t, time_t ttl=0, unsigned int tries=0)
   {
     typename cont_t::iterator i=d_cont.find(t);
     entry e={ now+(ttl ? ttl : d_ttl), tries ? tries : d_limit};
 
     if(i==d_cont.end()) {
       d_cont[t]=e;
-    } 
-    else if(i->second.ttd > e.ttd || (i->second.count) < e.count) 
+    }
+    else if(i->second.ttd > e.ttd || (i->second.count) < e.count)
       d_cont[t]=e;
   }
-  
+
   unsigned int size()
   {
     return (unsigned int)d_cont.size();
@@ -89,7 +144,7 @@ private:
   unsigned int d_limit;
   time_t d_ttl;
   time_t d_last_clean;
-  struct entry 
+  struct entry
   {
     time_t ttd;
     unsigned int count;
@@ -106,7 +161,7 @@ private:
 class DecayingEwma
 {
 public:
-  DecayingEwma() :  d_val(0.0) 
+  DecayingEwma() :  d_val(0.0)
   {
     d_needinit=true;
     d_last.tv_sec = d_last.tv_usec = 0;
@@ -143,7 +198,7 @@ public:
 
       d_last=now;
       double factor=exp(diff)/2.0; // might be '0.5', or 0.0001
-      d_val=(float)((1-factor)*val+ (float)factor*d_val); 
+      d_val=(float)((1-factor)*val+ (float)factor*d_val);
     }
   }
 
@@ -233,11 +288,11 @@ private:
 class SyncRes : public boost::noncopyable
 {
 public:
-  enum LogMode { LogNone, Log, Store}; 
+  enum LogMode { LogNone, Log, Store};
 
   explicit SyncRes(const struct timeval& now);
 
-  int beginResolve(const string &qname, const QType &qtype, uint16_t qclass, vector<DNSResourceRecord>&ret);
+  int beginResolve(const DNSName &qname, const QType &qtype, uint16_t qclass, vector<DNSRecord>&ret);
   void setId(int id)
   {
     if(doLog())
@@ -247,15 +302,15 @@ public:
   {
     s_lm = lm;
   }
- 
-  void setLogMode(LogMode lm) 
+
+  void setLogMode(LogMode lm)
   {
     d_lm = lm;
   }
 
   bool doLog()
   {
-    return d_lm != LogNone; 
+    return d_lm != LogNone;
   }
 
   void setCacheOnly(bool state=true)
@@ -277,49 +332,84 @@ public:
     return d_trace.str();
   }
 
-  int asyncresolveWrapper(const ComboAddress& ip, const string& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, LWResult* res);
-  
+  void setLuaEngine(shared_ptr<RecursorLua4> pdl)
+  {
+    d_pdl = pdl;
+  }
+
+  bool wasVariable() const
+  {
+    return d_wasVariable;
+  }
+
+  bool wasOutOfBand() const
+  {
+    return d_wasOutOfBand;
+  }
+
+  void setSkipCNAMECheck(bool skip = false)
+  {
+    d_skipCNAMECheck = skip;
+  }
+
+  int asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res);
+
   static void doEDNSDumpAndClose(int fd);
 
-  static uint64_t s_queries;
-  static uint64_t s_outgoingtimeouts;
-  static uint64_t s_throttledqueries;
-  static uint64_t s_dontqueries;
-  static uint64_t s_outqueries;
-  static uint64_t s_tcpoutqueries;
-  static uint64_t s_nodelegated;
-  static uint64_t s_unreachables;
+  static std::atomic<uint64_t> s_queries;
+  static std::atomic<uint64_t> s_outgoingtimeouts;
+  static std::atomic<uint64_t> s_outgoing4timeouts;
+  static std::atomic<uint64_t> s_outgoing6timeouts;
+  static std::atomic<uint64_t> s_throttledqueries;
+  static std::atomic<uint64_t> s_dontqueries;
+  static std::atomic<uint64_t> s_outqueries;
+  static std::atomic<uint64_t> s_tcpoutqueries;
+  static std::atomic<uint64_t> s_nodelegated;
+  static std::atomic<uint64_t> s_unreachables;
   static unsigned int s_minimumTTL;
   static bool s_doIPv6;
+  static unsigned int s_maxqperq;
+  static unsigned int s_maxtotusec;
+  std::unordered_map<std::string,bool> d_discardedPolicies;
+  DNSFilterEngine::Policy d_appliedPolicy;
+#ifdef HAVE_PROTOBUF
+  boost::optional<const boost::uuids::uuid&> d_initialRequestId;
+#endif
   unsigned int d_outqueries;
   unsigned int d_tcpoutqueries;
   unsigned int d_throttledqueries;
   unsigned int d_timeouts;
   unsigned int d_unreachables;
-
-  //  typedef map<string,NegCacheEntry> negcache_t;
-
+  unsigned int d_totUsec;
+  ComboAddress d_requestor;
+  bool d_doDNSSEC;
+  
+  bool d_wasVariable{false};
+  bool d_wasOutOfBand{false};
+  bool d_wantsRPZ{true};
+  bool d_skipCNAMECheck{false};
+  
   typedef multi_index_container <
     NegCacheEntry,
     indexed_by <
        ordered_unique<
            composite_key<
                  NegCacheEntry,
-                    member<NegCacheEntry, string, &NegCacheEntry::d_name>,
+                    member<NegCacheEntry, DNSName, &NegCacheEntry::d_name>,
                     member<NegCacheEntry, QType, &NegCacheEntry::d_qtype>
            >,
-           composite_key_compare<CIStringCompare, std::less<QType> >
+           composite_key_compare<CanonDNSNameCompare, std::less<QType> >
        >,
-       sequenced<> 
+       sequenced<>
     >
   > negcache_t;
-  
-  //! This represents a number of decaying Ewmas, used to store performance per nameserver-name. 
+
+  //! This represents a number of decaying Ewmas, used to store performance per nameserver-name.
   /** Modelled to work mostly like the underlying DecayingEwma. After you've called get,
       d_best is filled out with the best address for this collection */
   struct DecayingEwmaCollection
   {
-    void submit(const ComboAddress& remote, int usecs, struct timeval* now) 
+    void submit(const ComboAddress& remote, int usecs, struct timeval* now)
     {
       collection_t::iterator pos;
       for(pos=d_collection.begin(); pos != d_collection.end(); ++pos)
@@ -347,13 +437,13 @@ public:
           d_best=pos->first;
         }
       }
-      
+
       return ret;
     }
-    
+
     bool stale(time_t limit) const
     {
-      for(collection_t::const_iterator pos=d_collection.begin(); pos != d_collection.end(); ++pos) 
+      for(collection_t::const_iterator pos=d_collection.begin(); pos != d_collection.end(); ++pos)
         if(!pos->second.stale(limit))
           return false;
       return true;
@@ -364,48 +454,47 @@ public:
     ComboAddress d_best;
   };
 
-  typedef map<string, DecayingEwmaCollection, CIStringCompare> nsspeeds_t;  
+  typedef map<DNSName, DecayingEwmaCollection> nsspeeds_t;  
 
   struct EDNSStatus
   {
-    EDNSStatus() : mode(UNKNOWN), modeSetAt(0), EDNSPingHitCount(0) {}
-    enum EDNSMode { CONFIRMEDPINGER=-1, UNKNOWN=0, EDNSNOPING=1, EDNSPINGOK=2, EDNSIGNORANT=3, NOEDNS=4 } mode;
+    EDNSStatus() : mode(UNKNOWN), modeSetAt(0) {}
+    enum EDNSMode { UNKNOWN=0, EDNSOK=1, EDNSIGNORANT=2, NOEDNS=3 } mode;
     time_t modeSetAt;
-    int EDNSPingHitCount;
   };
 
   typedef map<ComboAddress, EDNSStatus> ednsstatus_t;
 
   static bool s_noEDNSPing;
   static bool s_noEDNS;
-
+  static bool s_rootNXTrust;
   struct AuthDomain
   {
     vector<ComboAddress> d_servers;
     bool d_rdForward;
     typedef multi_index_container <
-      DNSResourceRecord,
-      indexed_by < 
-        ordered_non_unique< 
-          composite_key< DNSResourceRecord,
-        	         member<DNSResourceRecord, string, &DNSResourceRecord::qname>,
-        	         member<DNSResourceRecord, QType, &DNSResourceRecord::qtype>
+      DNSRecord,
+      indexed_by <
+        ordered_non_unique<
+          composite_key< DNSRecord,
+        	         member<DNSRecord, DNSName, &DNSRecord::d_name>,
+        	         member<DNSRecord, uint16_t, &DNSRecord::d_type>
                        >,
-          composite_key_compare<CIStringCompare, std::less<QType> >
+          composite_key_compare<std::less<DNSName>, std::less<uint16_t> >
         >
       >
     > records_t;
-    records_t d_records;       
+    records_t d_records;
   };
-  
 
-  typedef map<string, AuthDomain, CIStringCompare> domainmap_t;
-  
 
-  typedef Throttle<boost::tuple<ComboAddress,string,uint16_t> > throttle_t;
+  typedef map<DNSName, AuthDomain> domainmap_t;
+
+
+  typedef Throttle<boost::tuple<ComboAddress,DNSName,uint16_t> > throttle_t;
 
   typedef Counters<ComboAddress> fails_t;
-  
+
   struct timeval d_now;
   static unsigned int s_maxnegttl;
   static unsigned int s_maxcachettl;
@@ -415,54 +504,52 @@ public:
   static unsigned int s_serverdownthrottletime;
   static bool s_nopacketcache;
   static string s_serverID;
-  
-  
+
   struct StaticStorage {
-    negcache_t negcache;    
+    negcache_t negcache;
     nsspeeds_t nsSpeeds;
     ednsstatus_t ednsstatus;
     throttle_t throttle;
     fails_t fails;
     domainmap_t* domainmap;
+    map<DNSName, bool> dnssecmap;
   };
 
 private:
   struct GetBestNSAnswer;
-  int doResolveAt(set<string, CIStringCompare> nameservers, string auth, bool flawedNSSet, const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret,
-        	  int depth, set<GetBestNSAnswer>&beenthere);
-  int doResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, set<GetBestNSAnswer>& beenthere);
-  bool doOOBResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res);
-  domainmap_t::const_iterator getBestAuthZone(string* qname);
-  bool doCNAMECacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res);
-  bool doCacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res);
-  void getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bestns, bool* flawedNSSet, int depth, set<GetBestNSAnswer>& beenthere);
-  string getBestNSNamesFromCache(const string &qname,set<string, CIStringCompare>& nsset, bool* flawedNSSet, int depth, set<GetBestNSAnswer>&beenthere);
-  void addAuthorityRecords(const string& qname, vector<DNSResourceRecord>& ret, int depth);
+  int doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret,
+                  int depth, set<GetBestNSAnswer>&beenthere);
+  int doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, int depth, set<GetBestNSAnswer>& beenthere);
+  bool doOOBResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, int depth, int &res);
+  domainmap_t::const_iterator getBestAuthZone(DNSName* qname);
+  bool doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, int depth, int &res);
+  bool doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, int depth, int &res);
+  void getBestNSFromCache(const DNSName &qname, const QType &qtype, vector<DNSRecord>&bestns, bool* flawedNSSet, int depth, set<GetBestNSAnswer>& beenthere);
+  DNSName getBestNSNamesFromCache(const DNSName &qname, const QType &qtype, NsSet& nsset, bool* flawedNSSet, int depth, set<GetBestNSAnswer>&beenthere);
 
-  inline vector<string> shuffleInSpeedOrder(set<string, CIStringCompare> &nameservers, const string &prefix);
-  bool moreSpecificThan(const string& a, const string &b);
-  vector<ComboAddress> getAddrs(const string &qname, int depth, set<GetBestNSAnswer>& beenthere);
-
+  inline vector<DNSName> shuffleInSpeedOrder(NsSet &nameservers, const string &prefix);
+  bool moreSpecificThan(const DNSName& a, const DNSName &b);
+  vector<ComboAddress> getAddrs(const DNSName &qname, int depth, set<GetBestNSAnswer>& beenthere);
 private:
   ostringstream d_trace;
+  shared_ptr<RecursorLua4> d_pdl;
   string d_prefix;
   bool d_cacheonly;
   bool d_nocache;
   bool d_doEDNS0;
+
   static LogMode s_lm;
   LogMode d_lm;
 
   struct GetBestNSAnswer
   {
-    string qname;
-    set<DNSResourceRecord> bestns;
+    DNSName qname;
+    set<pair<DNSName,DNSName> > bestns; 
+    uint8_t qtype; // only A and AAAA anyhow
     bool operator<(const GetBestNSAnswer &b) const
     {
-      if(qname<b.qname)
-        return true;
-      if(qname==b.qname)
-        return bestns<b.bestns;
-      return false;
+      return boost::tie(qname, qtype, bestns) <
+	boost::tie(b.qname, b.qtype, b.bestns);
     }
   };
 
@@ -472,7 +559,7 @@ extern __thread SyncRes::StaticStorage* t_sstorage;
 class Socket;
 /* external functions, opaque to us */
 int asendtcp(const string& data, Socket* sock);
-int arecvtcp(string& data, int len, Socket* sock, bool incompleteOkay);
+int arecvtcp(string& data, size_t len, Socket* sock, bool incompleteOkay);
 
 
 struct PacketID
@@ -483,21 +570,21 @@ struct PacketID
   }
 
   uint16_t id;  // wait for a specific id/remote pair
-  ComboAddress remote;  // this is the remote
-  string domain;             // this is the question 
   uint16_t type;             // and this is its type
+  ComboAddress remote;  // this is the remote
+  DNSName domain;             // this is the question
 
   Socket* sock;  // or wait for an event on a TCP fd
-  int inNeeded; // if this is set, we'll read until inNeeded bytes are read
   string inMSG; // they'll go here
+  size_t inNeeded; // if this is set, we'll read until inNeeded bytes are read
   bool inIncompleteOkay;
 
   string outMSG; // the outgoing message that needs to be sent
   string::size_type outPos;    // how far we are along in the outMSG
 
-  mutable uint32_t nearMisses; // number of near misses - host correct, id wrong
   typedef set<uint16_t > chain_t;
   mutable chain_t chain;
+  mutable uint32_t nearMisses; // number of near misses - host correct, id wrong
   int fd;
 
   bool operator<(const PacketID& b) const
@@ -509,16 +596,11 @@ struct PacketID
     if( tie(remote, ourSock, type) > tie(b.remote, bSock, b.type))
       return false;
 
-    if(pdns_ilexicographical_compare(domain, b.domain))
-      return true;
-    if(pdns_ilexicographical_compare(b.domain, domain))
-      return false;
-
-    return tie(fd, id) < tie(b.fd, b.id);
+    return tie(domain, fd, id) < tie(b.domain, b.fd, b.id);
   }
 };
 
-struct PacketIDBirthdayCompare: public std::binary_function<PacketID, PacketID, bool>  
+struct PacketIDBirthdayCompare: public std::binary_function<PacketID, PacketID, bool>
 {
   bool operator()(const PacketID& a, const PacketID& b) const
   {
@@ -529,7 +611,7 @@ struct PacketIDBirthdayCompare: public std::binary_function<PacketID, PacketID, 
     if( tie(a.remote, ourSock, a.type) > tie(b.remote, bSock, b.type))
       return false;
 
-    return pdns_ilexicographical_compare(a.domain, b.domain);
+    return a.domain < b.domain;
   }
 };
 extern __thread MemRecursorCache* t_RC;
@@ -539,35 +621,43 @@ extern __thread MT_t* MT;
 
 struct RecursorStats
 {
-  uint64_t servFails;
-  uint64_t nxDomains;
-  uint64_t noErrors;
-  uint64_t answers0_1, answers1_10, answers10_100, answers100_1000, answersSlow;
+  std::atomic<uint64_t> servFails;
+  std::atomic<uint64_t> nxDomains;
+  std::atomic<uint64_t> noErrors;
+  std::atomic<uint64_t> answers0_1, answers1_10, answers10_100, answers100_1000, answersSlow;
+  std::atomic<uint64_t> auth4Answers0_1, auth4Answers1_10, auth4Answers10_100, auth4Answers100_1000, auth4AnswersSlow;
+  std::atomic<uint64_t> auth6Answers0_1, auth6Answers1_10, auth6Answers10_100, auth6Answers100_1000, auth6AnswersSlow;
   double avgLatencyUsec;
-  uint64_t qcounter;     // not increased for unauth packets
-  uint64_t ipv6qcounter;
-  uint64_t tcpqcounter;
-  uint64_t unauthorizedUDP;  // when this is increased, qcounter isn't
-  uint64_t unauthorizedTCP;  // when this is increased, qcounter isn't
-  uint64_t policyDrops;
-  uint64_t tcpClientOverflow;
-  uint64_t clientParseError;
-  uint64_t serverParseError;
-  uint64_t unexpectedCount;
-  uint64_t caseMismatchCount;
-  uint64_t spoofCount;
-  uint64_t resourceLimits;
-  uint64_t overCapacityDrops;
-  uint64_t ipv6queries;
-  uint64_t chainResends;
-  uint64_t nsSetInvalidations;
-  uint64_t ednsPingMatches;
-  uint64_t ednsPingMismatches;
-  uint64_t noPingOutQueries, noEdnsOutQueries;
-  uint64_t packetCacheHits;
-  uint64_t noPacketError;
+  std::atomic<uint64_t> qcounter;     // not increased for unauth packets
+  std::atomic<uint64_t> ipv6qcounter;
+  std::atomic<uint64_t> tcpqcounter;
+  std::atomic<uint64_t> unauthorizedUDP;  // when this is increased, qcounter isn't
+  std::atomic<uint64_t> unauthorizedTCP;  // when this is increased, qcounter isn't
+  std::atomic<uint64_t> policyDrops;
+  std::atomic<uint64_t> tcpClientOverflow;
+  std::atomic<uint64_t> clientParseError;
+  std::atomic<uint64_t> serverParseError;
+  std::atomic<uint64_t> tooOldDrops;
+  std::atomic<uint64_t> unexpectedCount;
+  std::atomic<uint64_t> caseMismatchCount;
+  std::atomic<uint64_t> spoofCount;
+  std::atomic<uint64_t> resourceLimits;
+  std::atomic<uint64_t> overCapacityDrops;
+  std::atomic<uint64_t> ipv6queries;
+  std::atomic<uint64_t> chainResends;
+  std::atomic<uint64_t> nsSetInvalidations;
+  std::atomic<uint64_t> ednsPingMatches;
+  std::atomic<uint64_t> ednsPingMismatches;
+  std::atomic<uint64_t> noPingOutQueries, noEdnsOutQueries;
+  std::atomic<uint64_t> packetCacheHits;
+  std::atomic<uint64_t> noPacketError;
+  std::atomic<uint64_t> ignoredCount;
   time_t startupTime;
+  std::atomic<uint64_t> dnssecQueries;
   unsigned int maxMThreadStackUsage;
+  std::atomic<uint64_t> dnssecValidations; // should be the sum of all dnssecResult* stats
+  std::map<vState, std::atomic<uint64_t> > dnssecResults;
+  std::map<DNSFilterEngine::PolicyKind, std::atomic<uint64_t> > policyResults;
 };
 
 //! represents a running TCP/IP client session
@@ -576,16 +666,17 @@ class TCPConnection : public boost::noncopyable
 public:
   TCPConnection(int fd, const ComboAddress& addr);
   ~TCPConnection();
-  
+
   int getFD()
   {
     return d_fd;
   }
-  enum stateenum {BYTE0, BYTE1, GETQUESTION, DONE} state;
-  int qlen;
-  int bytesread;
+  enum stateenum {BYTE0, BYTE1, GETQUESTION, DONE} state{BYTE0};
+  uint16_t qlen{0};
+  uint16_t bytesread{0};
   const ComboAddress d_remote;
   char data[65535]; // damn
+  size_t queriesCount{0};
 
   static unsigned int getCurrentConnections() { return s_currentConnections; }
 private:
@@ -601,26 +692,23 @@ public:
   string reason; //! Print this to tell the user what went wrong
 };
 
-struct RemoteKeeper
-{
-  typedef vector<ComboAddress> remotes_t;
-  remotes_t remotes;
-  int d_remotepos;
-  void addRemote(const ComboAddress& remote)
-  {
-    if(!remotes.size())
-      return;
+#if (__GNUC__ == 4 && __GNUC_MINOR__ == 2)
+typedef boost::circular_buffer<SComboAddress> addrringbuf_t;
+#else
+typedef boost::circular_buffer<ComboAddress> addrringbuf_t;
+#endif
+extern __thread addrringbuf_t* t_servfailremotes, *t_largeanswerremotes, *t_remotes;
 
-    remotes[(d_remotepos++) % remotes.size()]=remote;
-  }
-};
-extern __thread RemoteKeeper* t_remotes;
+extern __thread boost::circular_buffer<pair<DNSName,uint16_t> >* t_queryring, *t_servfailqueryring;
 extern __thread NetmaskGroup* t_allowFrom;
 string doQueueReloadLuaScript(vector<string>::const_iterator begin, vector<string>::const_iterator end);
 string doTraceRegex(vector<string>::const_iterator begin, vector<string>::const_iterator end);
 void parseACLs();
 extern RecursorStats g_stats;
 extern unsigned int g_numThreads;
+extern std::unordered_set<DNSName> g_delegationOnly;
+extern uint16_t g_outgoingEDNSBufsize;
+
 
 std::string reloadAuthAndForwards();
 ComboAddress parseIPAndPort(const std::string& input, uint16_t port);
@@ -629,12 +717,11 @@ typedef boost::function<void*(void)> pipefunc_t;
 void broadcastFunction(const pipefunc_t& func, bool skipSelf = false);
 void distributeAsyncFunction(const std::string& question, const pipefunc_t& func);
 
-int directResolve(const std::string& qname, const QType& qtype, int qclass, vector<DNSResourceRecord>& ret);
+int directResolve(const DNSName& qname, const QType& qtype, int qclass, vector<DNSRecord>& ret);
 
 template<class T> T broadcastAccFunction(const boost::function<T*()>& func, bool skipSelf=false);
 
 SyncRes::domainmap_t* parseAuthAndForwards();
-
 uint64_t* pleaseGetNsSpeedsSize();
 uint64_t* pleaseGetCacheSize();
 uint64_t* pleaseGetNegCacheSize();
@@ -644,7 +731,17 @@ uint64_t* pleaseGetConcurrentQueries();
 uint64_t* pleaseGetThrottleSize();
 uint64_t* pleaseGetPacketCacheHits();
 uint64_t* pleaseGetPacketCacheSize();
-uint64_t* pleaseWipeCache(const std::string& canon);
-uint64_t* pleaseWipeAndCountNegCache(const std::string& canon);
+uint64_t* pleaseWipeCache(const DNSName& canon, bool subtree=false);
+uint64_t* pleaseWipePacketCache(const DNSName& canon, bool subtree);
+uint64_t* pleaseWipeAndCountNegCache(const DNSName& canon, bool subtree=false);
 void doCarbonDump(void*);
+boost::optional<Netmask> getEDNSSubnetMask(const ComboAddress& local, const DNSName&dn, const ComboAddress& rem);
+void  parseEDNSSubnetWhitelist(const std::string& wlist);
+
+extern __thread struct timeval g_now;
+
+#ifdef HAVE_PROTOBUF
+extern __thread boost::uuids::random_generator* t_uuidGenerator;
+#endif
+
 #endif

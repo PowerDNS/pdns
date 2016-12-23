@@ -1,0 +1,64 @@
+<?xml version='1.0'?>
+<!DOCTYPE service_bundle SYSTEM "/usr/share/lib/xml/dtd/service_bundle.dtd.1">
+<!--
+        NOTE:  This service manifest is not editable; its  contents  will
+        be  overwritten by package or patch operations, including operat-
+        ing system upgrade.
+-->
+
+<service_bundle type='manifest' name='powerdns:server'>
+  <service name='site/powerdns' type='service' version='1'>
+    <!--
+      We historically ran only in run-level 3, so depend on the
+      equivalent milestone to level 2.  We restart on refresh in
+      order to handle any changes to nameservice or filesystem
+      or other service configuration which may affect this service.
+    -->
+    <instance name='server' enabled='true'>
+      <dependency name='multi-user' grouping='require_all' restart_on='refresh' type='service'>
+        <service_fmri value='svc:/milestone/multi-user' />
+      </dependency>
+
+      <dependency name='database' grouping='require_all' restart_on='restart' type='service'>
+        <service_fmri value='svc:/site/oracle:POWERDNS' />
+      </dependency>
+
+      <dependency name='config_data' grouping='require_all' restart_on='refresh' type='path'>
+        <service_fmri value='file:///etc/opt/powerdns/pdns.conf' />
+      </dependency>
+
+      <exec_method type='method' name='start' exec='/opt/powerdns/sbin/pdns_server' timeout_seconds='60'>
+        <method_context>
+          <method_credential user='root' group='root' privileges=':default' />
+        </method_context>
+      </exec_method>
+
+      <exec_method type='method' name='stop' exec='/opt/powerdns/sbin/pdns_control quit' timeout_seconds='60'>
+        <method_context>
+          <method_credential user='root' group='root' privileges=':default' />
+        </method_context>
+      </exec_method>
+
+      <exec_method type='method' name='refresh' exec='/opt/powerdns/sbin/pdns_control reload' timeout_seconds='60' />
+
+      <template>
+        <common_name>
+          <loctext xml:lang='C'>
+            PowerDNS authoritative name server
+          </loctext>
+        </common_name>
+        <description>
+          <loctext xml:lang='C'>
+            PowerDNS server performs resolution of name queries.
+          </loctext>
+        </description>
+        <documentation>
+          <manpage title='pdns_server' section='1M' manpath='/opt/powerdns/share/man' />
+        </documentation>
+      </template>
+    </instance>
+
+    <stability value='Unstable' />
+  </service>
+</service_bundle>
+

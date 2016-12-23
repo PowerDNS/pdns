@@ -1,14 +1,17 @@
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_NO_MAIN
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <boost/test/unit_test.hpp>
 #include <boost/assign/list_of.hpp>
-#include <boost/foreach.hpp>
+
 #include <boost/tuple/tuple.hpp>
 #include "base32.hh"
 
 BOOST_AUTO_TEST_SUITE(test_base32_cc)
 
-BOOST_AUTO_TEST_CASE(test_record_types) {
+BOOST_AUTO_TEST_CASE(test_base32_basic) {
   typedef boost::tuple<const std::string, const std::string> case_t;
   typedef std::list<case_t> cases_t;
 
@@ -23,7 +26,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
     (case_t(std::string("foobar"), std::string("cpnmuoj1e8======")))
   ;
 
-  BOOST_FOREACH(const case_t& val, cases) {
+  for(const case_t& val :  cases) {
      std::string res;
      res = toBase32Hex(val.get<0>());
      BOOST_CHECK_EQUAL(res, val.get<1>());

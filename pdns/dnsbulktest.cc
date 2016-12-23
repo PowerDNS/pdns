@@ -1,3 +1,27 @@
+/*
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <boost/accumulators/accumulators.hpp>
 #include <boost/array.hpp>
 #include <boost/accumulators/statistics.hpp>
@@ -31,7 +55,7 @@ struct DNSResult
 struct TypedQuery
 {
   TypedQuery(const string& name_, uint16_t type_) : name(name_), type(type_){}
-  string name;
+  DNSName name;
   uint16_t type;
 };
 
@@ -98,6 +122,8 @@ struct SendReceive
     if(::send(d_socket, &*packet.begin(), packet.size(), 0) < 0)
       d_senderrors++;
     
+    if(!g_quiet)
+      cout<<"Sent out query for '"<<domain.name<<"' with id "<<pw.getHeader()->id<<endl;
     return pw.getHeader()->id;
   }
   
@@ -131,7 +157,7 @@ struct SendReceive
         }
         if(!g_quiet)
         {
-          cout<<i->first.d_place-1<<"\t"<<i->first.d_label<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type);
+          cout<<i->first.d_place-1<<"\t"<<i->first.d_name<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type);
           cout<<"\t"<<i->first.d_ttl<<"\t"<< i->first.d_content->getZoneRepresentation()<<"\n";
         }
       }
@@ -146,6 +172,9 @@ struct SendReceive
   
   void deliverTimeout(const Identifier& id)
   {
+    if(!g_quiet) {
+      cout<<"Timeout for id "<<id<<endl;
+    }
     d_idqueue.push_back(id);
   }
   
@@ -156,7 +185,7 @@ struct SendReceive
   //    cerr<<"Slow: "<<domain<<" ("<<usec/1000.0<<" msec)\n";
     if(!g_quiet) {
       cout<<domain.name<<"|"<<DNSRecordContent::NumberToType(domain.type)<<": ("<<usec/1000.0<<"msec) rcode: "<<dr.rcode;
-      BOOST_FOREACH(const ComboAddress& ca, dr.ips) {
+      for(const ComboAddress& ca :  dr.ips) {
         cout<<", "<<ca.toString();
       }
       cout<<endl;
@@ -180,7 +209,13 @@ struct SendReceive
   unsigned int d_receiveds, d_receiveerrors, d_senderrors;
 };
 
+void usage(po::options_description &desc) {
+  cerr << "Usage: dnsbulktest [OPTION].. IPADDRESS PORTNUMBER [LIMIT]"<<endl;
+  cerr << desc << "\n";
+}
+
 int main(int argc, char** argv)
+try
 {
   po::options_description desc("Allowed options");
   desc.add_options()
@@ -188,6 +223,7 @@ int main(int argc, char** argv)
     ("quiet,q", "be quiet about individual queries")
     ("type,t",  po::value<string>()->default_value("A"), "What type to query for")
     ("envoutput,e", "write report in shell environment format")
+    ("version", "show the version number")
   ;
 
   po::options_description alloptions;
@@ -207,15 +243,18 @@ int main(int argc, char** argv)
   po::notify(g_vm);
 
   if (g_vm.count("help")) {
-    cerr << "Usage: dnsbulktest [--options] ip-address portnumber [limit]"<<endl;
-    cerr << desc << "\n";
+    usage(desc);
     return EXIT_SUCCESS;
   }
-  
+
+  if (g_vm.count("version")) {
+    cerr<<"dnsbulktest "<<VERSION<<endl;
+    return EXIT_SUCCESS;
+  }
+
   if(!g_vm.count("portnumber")) {
     cerr<<"Fatal, need to specify ip-address and portnumber"<<endl;
-    cerr << "Usage: dnsbulktest [--options] ip-address portnumber [limit]"<<endl;
-    cerr << desc << "\n";
+    usage(desc);
     return EXIT_FAILURE;
   }
 
@@ -317,4 +356,9 @@ int main(int argc, char** argv)
     cout<<"DBT_OKPERCENTAGE="<<((float)sr.d_oks/domains.size()*100)<<endl;
     cout<<"DBT_OKPERCENTAGEINT="<<(int)((float)sr.d_oks/domains.size()*100)<<endl;
   }
+}
+catch(PDNSException& pe)
+{
+  cerr<<"Fatal error: "<<pe.reason<<endl;
+  exit(EXIT_FAILURE);
 }

@@ -1,7 +1,32 @@
+/*
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 #define __FAVOR_BSD
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "statbag.hh"
 #include "dnspcap.hh"
 #include "dnsparser.hh"
+#include "dnsname.hh"
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
 #include <map>
@@ -10,11 +35,13 @@
 #include <algorithm>
 #include "anadns.hh"
 #include <boost/program_options.hpp>
-#include <boost/foreach.hpp>
+
 #include <boost/logic/tribool.hpp>
 #include "arguments.hh"
 #include "namespaces.hh"
 #include <deque>
+#include "dnsrecords.hh"
+#include "statnode.hh"
 
 namespace po = boost::program_options;
 po::variables_map g_vm;
@@ -26,171 +53,7 @@ ArgvMap& arg()
 }
 StatBag S;
 
-struct comboCompare
-{
-  bool operator()(const ComboAddress& a, const ComboAddress& b) const
-  {
-    return ntohl(a.sin4.sin_addr.s_addr) < ntohl(b.sin4.sin_addr.s_addr);
-  }
-};
 
-
-class StatNode
-{
-public:
-  void submit(const std::string& domain, int rcode, const ComboAddress& remote);
-  void submit(deque<string>& labels, const std::string& domain, int rcode, const ComboAddress& remote);
-
-  string name;
-  string fullname;
-  struct Stat 
-  {
-    Stat() : queries(0), noerrors(0), nxdomains(0), servfails(0), drops(0){}
-    int queries, noerrors, nxdomains, servfails, drops;
-
-    Stat& operator+=(const Stat& rhs) {
-      queries+=rhs.queries;
-      noerrors+=rhs.noerrors;
-      nxdomains+=rhs.nxdomains;
-      servfails+=rhs.servfails;
-      drops+=rhs.drops;
-
-      BOOST_FOREACH(const remotes_t::value_type& rem, rhs.remotes) {
-	remotes[rem.first]+=rem.second;
-      }
-      return *this;
-    }
-    typedef map<ComboAddress,int,comboCompare> remotes_t;
-    remotes_t remotes;
-  };
-
-  Stat s;
-  Stat print(int depth=0, Stat newstat=Stat(), bool silent=false) const;
-  typedef boost::function<void(const StatNode*, const Stat& selfstat, const Stat& childstat)> visitor_t;
-  void visit(visitor_t visitor, Stat& newstat, int depth=0) const;
-  typedef map<string,StatNode, CIStringCompare> children_t;
-  children_t children;
-  
-};
-
-StatNode::Stat StatNode::print(int depth, Stat newstat, bool silent) const
-{
-  if(!silent) {
-    cout<<string(depth, ' ');
-    cout<<name<<": "<<endl;
-  }
-  Stat childstat;
-  childstat.queries += s.queries;
-  childstat.noerrors += s.noerrors;
-  childstat.nxdomains += s.nxdomains;
-  childstat.servfails += s.servfails;
-  childstat.drops += s.drops;
-  if(children.size()>1024 && !silent) {
-    cout<<string(depth, ' ')<<name<<": too many to print"<<endl;
-  }
-  BOOST_FOREACH(const children_t::value_type& child, children) {
-    childstat=child.second.print(depth+8, childstat, silent || children.size()>1024);
-  }
-  if(!silent || children.size()>1)
-    cout<<string(depth, ' ')<<childstat.queries<<" queries, " << 
-      childstat.noerrors<<" noerrors, "<< 
-      childstat.nxdomains<<" nxdomains, "<< 
-      childstat.servfails<<" servfails, "<< 
-      childstat.drops<<" drops"<<endl;
-
-  newstat+=childstat;
-
-  return newstat;
-}
-
-
-void  StatNode::visit(visitor_t visitor, Stat &newstat, int depth) const
-{
-  Stat childstat;
-  childstat.queries += s.queries;
-  childstat.noerrors += s.noerrors;
-  childstat.nxdomains += s.nxdomains;
-  childstat.servfails += s.servfails;
-  childstat.drops += s.drops;
-  childstat.remotes = s.remotes;
-  
-  Stat selfstat(childstat);
-
-
-  BOOST_FOREACH(const children_t::value_type& child, children) {
-    child.second.visit(visitor, childstat, depth+8);
-  }
-
-  visitor(this, selfstat, childstat);
-
-  newstat+=childstat;
-}
-
-
-void StatNode::submit(const std::string& domain, int rcode, const ComboAddress& remote)
-{
-  //  cerr<<"FIRST submit called on '"<<domain<<"'"<<endl;
-  deque<string> parts;
-  stringtok(parts, domain, ".");
-  if(parts.empty())
-    return;
-  children[parts.back()].submit(parts, "", rcode, remote);
-}
-
-/* www.powerdns.com. -> 
-   .                 <- fullnames
-   com.
-   powerdns.com
-   www.powerdns.com. 
-*/
-
-void StatNode::submit(deque<string>& labels, const std::string& domain, int rcode, const ComboAddress& remote)
-{
-  if(labels.empty())
-    return;
-  //  cerr<<"Submit called for domain='"<<domain<<"': ";
-  //  BOOST_FOREACH(const std::string& n, labels) 
-  //    cerr<<n<<".";
-  //  cerr<<endl;
-  if(name.empty()) {
-
-    name=labels.back();
-    //    cerr<<"Set short name to '"<<name<<"'"<<endl;
-  }
-  else 
-    ; //    cerr<<"Short name was already set to '"<<name<<"'"<<endl;
-
-  if(labels.size()==1) {
-    fullname=name+"."+domain;
-    //    cerr<<"Hit the end, set our fullname to '"<<fullname<<"'"<<endl<<endl;
-    s.queries++;
-    if(rcode<0)
-      s.drops++;
-    else if(rcode==0)
-      s.noerrors++;
-    else if(rcode==2)
-      s.servfails++;
-    else if(rcode==3)
-      s.nxdomains++;
-    s.remotes[remote]++;
-  }
-  else {
-    fullname=name+"."+domain;
-    //    cerr<<"Not yet end, set our fullname to '"<<fullname<<"', recursing"<<endl;
-    labels.pop_back();
-    children[labels.back()].submit(labels, fullname, rcode, remote);
-  }
-}
-
-void visitor(const StatNode* node, const StatNode::Stat& selfstat, const StatNode::Stat& childstat)
-{
-  if(1.0*childstat.servfails / (childstat.servfails+childstat.noerrors) > 0.8 && node->children.size()>100) {
-    cout<<node->fullname<<", servfails: "<<childstat.servfails<<", remotes: "<<childstat.remotes.size()<<", children: "<<node->children.size()<<endl;
-    BOOST_FOREACH(const StatNode::Stat::remotes_t::value_type& rem, childstat.remotes) {
-      cout<<"source: "<<node->fullname<<"\t"<<rem.first.toString()<<"\t"<<rem.second<<endl;
-    }
-  }
-}
 
 struct QuestionData
 {
@@ -211,7 +74,7 @@ statmap_t statmap;
 unsigned int liveQuestions()
 {
   unsigned int ret=0;
-  BOOST_FOREACH(statmap_t::value_type& val, statmap) {
+  for(statmap_t::value_type& val :  statmap) {
     if(!val.second.d_answercount)
       ret++;
     //    if(val.second.d_qcount > val.second.d_answercount)
@@ -241,6 +104,21 @@ struct LiveCounts
   }
 };
 
+void visitor(const StatNode* node, const StatNode::Stat& selfstat, const StatNode::Stat& childstat)
+{
+  // 20% servfails, >100 children, on average less than 2 copies of a query
+  // >100 different subqueries
+  double dups=1.0*childstat.queries/node->children.size();
+  if(dups > 2.0)
+    return;
+  if(1.0*childstat.servfails / childstat.queries > 0.2 && node->children.size()>100) {
+    cout<<node->fullname<<", servfails: "<<childstat.servfails<<", nxdomains: "<<childstat.nxdomains<<", remotes: "<<childstat.remotes.size()<<", children: "<<node->children.size()<<", childstat.queries: "<<childstat.queries;
+    cout<<", dups2: "<<dups<<endl;
+    for(const StatNode::Stat::remotes_t::value_type& rem :  childstat.remotes) {
+      cout<<"source: "<<node->fullname<<"\t"<<rem.first.toString()<<"\t"<<rem.second<<endl;
+    }
+  }
+}
 
 int main(int argc, char** argv)
 try
@@ -248,6 +126,7 @@ try
   po::options_description desc("Allowed options"), hidden, alloptions;
   desc.add_options()
     ("help,h", "produce help message")
+    ("version", "print version number")
     ("rd", po::value<bool>(), "If set to true, only process RD packets, to false only non-RD, unset: both")
     ("ipv4", po::value<bool>()->default_value(true), "Process IPv4 packets")
     ("ipv6", po::value<bool>()->default_value(true), "Process IPv6 packets")
@@ -270,10 +149,16 @@ try
   vector<string> files;
   if(g_vm.count("files")) 
     files = g_vm["files"].as<vector<string> >(); 
-  if(files.size() != 1 || g_vm.count("help")) {
+
+  if(g_vm.count("version")) {
+    cerr<<"dnsscope "<<VERSION<<endl;
+    exit(0);
+  }
+
+  if(files.empty() || g_vm.count("help")) {
     cerr<<"Syntax: dnsscope filename.pcap"<<endl;
     cout << desc << endl;
-    exit(1);
+    exit(0);
   }
 
   StatNode root;
@@ -292,162 +177,177 @@ try
   bool doIPv4 = g_vm["ipv4"].as<bool>();
   bool doIPv6 = g_vm["ipv6"].as<bool>();
   bool doServFailTree = g_vm.count("servfail-tree");
-
-  PcapPacketReader pr(files[0]);
-  PcapPacketWriter* pw=0;
-  if(!g_vm["write-failures"].as<string>().empty())
-    pw=new PcapPacketWriter(g_vm["write-failures"].as<string>(), pr);
- 
-
   int dnserrors=0, bogus=0;
   typedef map<uint32_t,uint32_t> cumul_t;
   cumul_t cumul;
   unsigned int untracked=0, errorresult=0, reallylate=0, nonRDQueries=0, queries=0;
   unsigned int ipv4DNSPackets=0, ipv6DNSPackets=0, fragmented=0, rdNonRAAnswers=0;
   unsigned int answers=0, nonDNSIP=0, rdFilterMismatch=0;
-
+  unsigned int dnssecOK=0, edns=0;
+  unsigned int dnssecCD=0, dnssecAD=0;
   typedef map<uint16_t,uint32_t> rcodes_t;
   rcodes_t rcodes;
-
+  
   time_t lowestTime=2000000000, highestTime=0;
   time_t lastsec=0;
   LiveCounts lastcounts;
-  set<ComboAddress, comboCompare> requestors, recipients, rdnonra;
+  set<ComboAddress, ComboAddress::addressOnlyLessThan> requestors, recipients, rdnonra;
   typedef vector<pair<time_t, LiveCounts> > pcounts_t;
   pcounts_t pcounts;
-  while(pr.getUDPPacket()) {
-    if((ntohs(pr.d_udp->uh_dport)==5300 || ntohs(pr.d_udp->uh_sport)==5300 ||
-        ntohs(pr.d_udp->uh_dport)==53   || ntohs(pr.d_udp->uh_sport)==53) &&
-        pr.d_len > 12) {
-      try {
-        if((pr.d_ip->ip_v == 4 && !doIPv4) || (pr.d_ip->ip_v == 6 && !doIPv6))
-          continue;
-	if(pr.d_ip->ip_v == 4) {
-	  uint16_t frag = ntohs(pr.d_ip->ip_off);
-	  if((frag & IP_MF) || (frag & IP_OFFMASK)) { // more fragments or IS a fragment
-	    fragmented++;
+  OPTRecordContent::report();
+  for(unsigned int fno=0; fno < files.size(); ++fno) {
+    PcapPacketReader pr(files[fno]);
+    PcapPacketWriter* pw=0;
+    if(!g_vm["write-failures"].as<string>().empty())
+      pw=new PcapPacketWriter(g_vm["write-failures"].as<string>(), pr);
+ 
+    EDNSOpts edo;
+    while(pr.getUDPPacket()) {
+
+      if((ntohs(pr.d_udp->uh_dport)==5300 || ntohs(pr.d_udp->uh_sport)==5300 ||
+	  ntohs(pr.d_udp->uh_dport)==53   || ntohs(pr.d_udp->uh_sport)==53) &&
+	 pr.d_len > 12) {
+	try {
+	  if((pr.d_ip->ip_v == 4 && !doIPv4) || (pr.d_ip->ip_v == 6 && !doIPv6))
+	    continue;
+	  if(pr.d_ip->ip_v == 4) {
+	    uint16_t frag = ntohs(pr.d_ip->ip_off);
+	    if((frag & IP_MF) || (frag & IP_OFFMASK)) { // more fragments or IS a fragment
+	      fragmented++;
+	      continue;
+	    }
+	  }
+	  MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
+	  if(haveRDFilter && mdp.d_header.rd != rdFilter) {
+	    rdFilterMismatch++;
 	    continue;
 	  }
-	}
-        MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
-        if(haveRDFilter && mdp.d_header.rd != rdFilter) {
-          rdFilterMismatch++;
-          continue;
-        }
 
-        if(pr.d_ip->ip_v == 4) 
-          ++ipv4DNSPackets;
-        else
-          ++ipv6DNSPackets;
-        
-	if(pr.d_pheader.ts.tv_sec != lastsec) {
-	  LiveCounts lc;
-	  if(lastsec) {
-	    lc.questions = queries;
-	    lc.answers = answers;
-	    lc.outstanding = liveQuestions(); 
-
-	    LiveCounts diff = lc - lastcounts;
-	    pcounts.push_back(make_pair(pr.d_pheader.ts.tv_sec, diff));
-
-	  }
-	  lastsec = pr.d_pheader.ts.tv_sec;
-	  lastcounts = lc;
-	}
-
-        lowestTime=min((time_t)lowestTime,  (time_t)pr.d_pheader.ts.tv_sec);
-        highestTime=max((time_t)highestTime, (time_t)pr.d_pheader.ts.tv_sec);
-
-        string name=mdp.d_qname+"|"+DNSRecordContent::NumberToType(mdp.d_qtype);
-        
-        QuestionIdentifier qi=QuestionIdentifier::create(pr.getSource(), pr.getDest(), mdp);
-
-        if(!mdp.d_header.qr) { // question
-          if(!mdp.d_header.rd)
-            nonRDQueries++;
-          queries++;
-
-	  ComboAddress rem = pr.getSource();
-	  rem.sin4.sin_port=0;
-	  requestors.insert(rem);	  
-
-          QuestionData& qd=statmap[qi];
-          
-          if(!qd.d_firstquestiontime.tv_sec)
-            qd.d_firstquestiontime=pr.d_pheader.ts;
-          qd.d_qcount++;
-        }
-        else  {  // answer
-          rcodes[mdp.d_header.rcode]++;
-          answers++;
-	  if(mdp.d_header.rd && !mdp.d_header.ra) {
-	    rdNonRAAnswers++;
-            rdnonra.insert(pr.getDest());
+	  if(!mdp.d_header.qr && getEDNSOpts(mdp, &edo)) {
+	    edns++;
+	    if(edo.d_Z & EDNSOpts::DNSSECOK)
+	      dnssecOK++;
+	    if(mdp.d_header.cd)
+	      dnssecCD++;
+	    if(mdp.d_header.ad)
+	      dnssecAD++;
 	  }
 	  
-	  if(mdp.d_header.ra) {
-	    ComboAddress rem = pr.getDest();
-	    rem.sin4.sin_port=0;
-	    recipients.insert(rem);	  
+
+	  if(pr.d_ip->ip_v == 4) 
+	    ++ipv4DNSPackets;
+	  else
+	    ++ipv6DNSPackets;
+        
+	  if(pr.d_pheader.ts.tv_sec != lastsec) {
+	    LiveCounts lc;
+	    if(lastsec) {
+	      lc.questions = queries;
+	      lc.answers = answers;
+	      lc.outstanding = liveQuestions(); 
+
+	      LiveCounts diff = lc - lastcounts;
+	      pcounts.push_back(make_pair(pr.d_pheader.ts.tv_sec, diff));
+
+	    }
+	    lastsec = pr.d_pheader.ts.tv_sec;
+	    lastcounts = lc;
 	  }
 
-          QuestionData& qd=statmap[qi];
+	  lowestTime=min((time_t)lowestTime,  (time_t)pr.d_pheader.ts.tv_sec);
+	  highestTime=max((time_t)highestTime, (time_t)pr.d_pheader.ts.tv_sec);
 
-          if(!qd.d_qcount)
-            untracked++;
+	  string name=mdp.d_qname.toString()+"|"+DNSRecordContent::NumberToType(mdp.d_qtype);
+        
+	  QuestionIdentifier qi=QuestionIdentifier::create(pr.getSource(), pr.getDest(), mdp);
 
-          qd.d_answercount++;
+	  if(!mdp.d_header.qr) { // question
+	    if(!mdp.d_header.rd)
+	      nonRDQueries++;
+	    queries++;
 
-          if(qd.d_qcount) {
-            uint32_t usecs= (pr.d_pheader.ts.tv_sec - qd.d_firstquestiontime.tv_sec) * 1000000 +  
-                            (pr.d_pheader.ts.tv_usec - qd.d_firstquestiontime.tv_usec) ;
-            //            cout<<"Took: "<<usecs<<"usec\n";
-            if(usecs<2049000)
-              cumul[usecs]++;
-            else
-              reallylate++;
-            
-            if(mdp.d_header.rcode != 0 && mdp.d_header.rcode!=3) 
-              errorresult++;
-	    ComboAddress rem = pr.getDest();
+	    ComboAddress rem = pr.getSource();
 	    rem.sin4.sin_port=0;
+	    requestors.insert(rem);	  
 
-	    if(doServFailTree)
-	      root.submit(mdp.d_qname, mdp.d_header.rcode, rem);
-          }
+	    QuestionData& qd=statmap[qi];
+          
+	    if(!qd.d_firstquestiontime.tv_sec)
+	      qd.d_firstquestiontime=pr.d_pheader.ts;
+	    qd.d_qcount++;
+	  }
+	  else  {  // answer
+	    rcodes[mdp.d_header.rcode]++;
+	    answers++;
+	    if(mdp.d_header.rd && !mdp.d_header.ra) {
+	      rdNonRAAnswers++;
+	      rdnonra.insert(pr.getDest());
+	    }
+	  
+	    if(mdp.d_header.ra) {
+	      ComboAddress rem = pr.getDest();
+	      rem.sin4.sin_port=0;
+	      recipients.insert(rem);	  
+	    }
 
-          if(!qd.d_qcount || qd.d_qcount == qd.d_answercount)
-            statmap.erase(qi);
-         }
+	    QuestionData& qd=statmap[qi];
+
+	    if(!qd.d_qcount)
+	      untracked++;
+
+	    qd.d_answercount++;
+
+	    if(qd.d_qcount) {
+	      uint32_t usecs= (pr.d_pheader.ts.tv_sec - qd.d_firstquestiontime.tv_sec) * 1000000 +  
+		(pr.d_pheader.ts.tv_usec - qd.d_firstquestiontime.tv_usec) ;
+	      //            cout<<"Took: "<<usecs<<"usec\n";
+	      if(usecs<2049000)
+		cumul[usecs]++;
+	      else
+		reallylate++;
+            
+	      if(mdp.d_header.rcode != 0 && mdp.d_header.rcode!=3) 
+		errorresult++;
+	      ComboAddress rem = pr.getDest();
+	      rem.sin4.sin_port=0;
+
+	      if(doServFailTree)
+		root.submit(mdp.d_qname, mdp.d_header.rcode, rem);
+	    }
+
+	    if(!qd.d_qcount || qd.d_qcount == qd.d_answercount)
+	      statmap.erase(qi);
+	  }
 
         
-      }
-      catch(MOADNSException& mde) {
-        if(verbose)
-	  cout<<"error parsing packet: "<<mde.what()<<endl;
-        if(pw)
-          pw->write();
-        dnserrors++;
-        continue;
-      }
-      catch(std::exception& e) {
-        if(verbose)
-	  cout<<"error parsing packet: "<<e.what()<<endl;
+	}
+	catch(MOADNSException& mde) {
+	  if(verbose)
+	    cout<<"error parsing packet: "<<mde.what()<<endl;
+	  if(pw)
+	    pw->write();
+	  dnserrors++;
+	  continue;
+	}
+	catch(std::exception& e) {
+	  if(verbose)
+	    cout<<"error parsing packet: "<<e.what()<<endl;
 
-        if(pw)
-          pw->write();
-        bogus++;
-        continue;
+	  if(pw)
+	    pw->write();
+	  bogus++;
+	  continue;
+	}
+      }
+      else { // non-DNS ip
+	nonDNSIP++;
       }
     }
-    else { // non-DNS ip
-      nonDNSIP++;
-    }
-   
+    cout<<"PCAP contained "<<pr.d_correctpackets<<" correct packets, "<<pr.d_runts<<" runts, "<< pr.d_oversized<<" oversize, "<<pr.d_nonetheripudp<<" non-UDP.\n";
+
   }
   cout<<"Timespan: "<<(highestTime-lowestTime)/3600.0<<" hours"<<endl;
 
-  cout<<"PCAP contained "<<pr.d_correctpackets<<" correct packets, "<<pr.d_runts<<" runts, "<< pr.d_oversized<<" oversize, "<<pr.d_nonetheripudp<<" non-UDP,\n";
   cout<<nonDNSIP<<" non-DNS UDP, "<<dnserrors<<" dns decoding errors, "<<bogus<<" bogus packets"<<endl;
   cout<<"Ignored fragment packets: "<<fragmented<<endl;
   cout<<"Dropped DNS packets based on recursion-desired filter: "<<rdFilterMismatch<<endl;
@@ -468,7 +368,7 @@ try
   cout<< rdNonRAAnswers << " answers had recursion desired bit set, but recursion available=0 (for "<<rdnonra.size()<<" remotes)"<<endl;
   cout<<statmap.size()<<" queries went unanswered, of which "<< statmap.size()-unanswered<<" were answered on exact retransmit"<<endl;
   cout<<untracked<<" responses could not be matched to questions"<<endl;
-
+  cout<<edns <<" questions requested EDNS processing, do=1: "<<dnssecOK<<", ad=1: "<<dnssecAD<<", cd=1: "<<dnssecCD<<endl;
 
   if(answers) {
     cout<<(boost::format("%1% %|25t|%2%") % "Rcode" % "Count\n");
@@ -534,7 +434,7 @@ try
     ofstream load(g_vm["load-stats"].as<string>().c_str());
     if(!load) 
       throw runtime_error("Error writing load statistics to "+g_vm["load-stats"].as<string>());
-    BOOST_FOREACH(pcounts_t::value_type& val, pcounts) {
+    for(pcounts_t::value_type& val :  pcounts) {
       load<<val.first<<'\t'<<val.second.questions<<'\t'<<val.second.answers<<'\t'<<val.second.outstanding<<'\n';  
     }
   }
@@ -542,20 +442,20 @@ try
 
   cout<<"Saw questions from "<<requestors.size()<<" distinct remotes, answers to "<<recipients.size()<<endl;
   ofstream remotes("remotes");
-  BOOST_FOREACH(const ComboAddress& rem, requestors) {
+  for(const ComboAddress& rem :  requestors) {
     remotes<<rem.toString()<<'\n';
   }
 
   vector<ComboAddress> diff;
-  set_difference(requestors.begin(), requestors.end(), recipients.begin(), recipients.end(), back_inserter(diff), comboCompare());
+  set_difference(requestors.begin(), requestors.end(), recipients.begin(), recipients.end(), back_inserter(diff), ComboAddress::addressOnlyLessThan());
   cout<<"Saw "<<diff.size()<<" unique remotes asking questions, but not getting RA answers"<<endl;
   
   ofstream ignored("ignored");
-  BOOST_FOREACH(const ComboAddress& rem, diff) {
+  for(const ComboAddress& rem :  diff) {
     ignored<<rem.toString()<<'\n';
   }
   ofstream rdnonrafs("rdnonra");
-  BOOST_FOREACH(const ComboAddress& rem, rdnonra) {
+  for(const ComboAddress& rem :  rdnonra) {
     rdnonrafs<<rem.toString()<<'\n';
   }
 

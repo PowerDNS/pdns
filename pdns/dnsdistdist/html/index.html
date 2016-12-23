@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8" />
+  <script src="js/jquery.min.js"></script>
+  <script src="js/d3.min.js"></script>
+  <script src="js/rickshaw.min.js"></script>
+  <script src="js/moment.min.js"></script>
+  <style>
+    #qpschart {
+    position: relative;
+    left: 40px;
+    }
+    #qpsy_axis {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 40px;
+    }
+
+    #cpuchart {
+    position: relative;
+    left: 40px;
+    }
+    #cpuy_axis {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 40px;
+    }
+
+    table.border, table.border>tbody>tr>td {
+    border: 1px solid black;
+    border-collapse: collapse;
+    }
+  </style>
+  <link type="text/css" rel="stylesheet" href="graph.css">
+  <link type="text/css" rel="stylesheet" href="detail.css">
+  <link type="text/css" rel="stylesheet" href="legend.css">
+  <link type="text/css" rel="stylesheet" href="lines.css">
+
+  <script src="local.js"></script>
+  </head>
+  <body>
+
+    <table width="100%" border="0"><tr><td><img src="powerdns-logo-220px.png"/></td>
+        <td style="padding: 0px 90px 0px 20px">
+            <span id="version"></span><br/>
+            dnsdist comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it according to the terms of the GPL version 2.<br/>
+        </td>
+    </tr></table>
+    <p>
+      Uptime: <span id="uptime"></span>, Number of queries: <span id="questions"></span> (<span id="qps"></span> qps), ACL drops: <span id="acl-drops"></span>, Dynamic drops: <span id="dyn-drops"></span>, Rule drops: <span id="rule-drops"></span>, Blockfilter drops: <span id="blockfilter-drops"></span><br/>
+      Average response time: <span id="latency"></span> ms, CPU Usage: <span id="cpu"></span>%, Cache hitrate: <span id="phitrate"></span>%, Server selection policy: <span id="server-policy"></span><br/>
+      Listening on: <span id="local"></span>, ACL: <span id="acl"></span>
+    </p>
+    <table width="100%" cellpadding="20">
+      <tr valign="top">
+        <td>
+          <table cellpadding="12">
+            <tr><td align="center">QPS / SERVFAILPS</td></tr>
+            <tr><td>
+                <div class="chart_container">
+                  <div id="qpsy_axis"></div>
+                  <div id="qpschart"></div>
+                </div>
+            </td></tr>
+            <tr><td align="center">CACHE HITRATE / CPU %</td></tr>
+            <tr><td>
+                <div class="chart_container">
+                  <div id="cpuy_axis"></div>
+                  <div id="cpuchart"></div>
+                </div>
+              </td>
+            </tr>
+          </table>
+        </td>
+
+        <td>
+          <table cellpadding="15" width="100%" class="border">
+            <tr>
+              <td><div id="downstreams"></div> </td>
+            </tr>
+            <tr>
+              <td><div id="rules"></div></td>
+            </tr>
+            <tr>
+              <td><div id="response-rules"></div></td>
+            </tr>
+            <tr>
+              <td><div id="dynblock"></div></td>
+            </tr>
+            <tr>
+              <td><div id="ebpfblock"></div></td>
+            </tr>
+
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    <div>
+      <br/><br/>
+      <p></p><p></p>
+    </div>
+  </body>
+</html>

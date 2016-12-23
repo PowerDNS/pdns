@@ -1,0 +1,30 @@
+% DNSBULKTEST(1)
+% PowerDNS.com BV
+% April 2015
+
+# NAME
+**dnsbulktest** - A debugging tool for intermittent resolver failures
+
+# SYNOPSIS
+**dnsbulktest** [*OPTION*]... *IPADDRESS* *PORT* [*LIMIT*]
+
+# DESCRIPTION
+**dnsbulktest** sends a large amount of different queries (for up to *LIMIT*
+different domains) to the nameserver at *IPADDRESS* on port *PORT*. It reads the
+domain names from STDIN in the alexa topX format and outputs statistics on STDOUT.
+
+# OPTIONS
+--help, -h
+:    Show a summary of options.
+
+--quiet, -q
+:    Don't show information on individual queries.
+
+--type, -t *TYPE*
+:    Query the nameserver for *TYPE*, A by default.
+
+--envoutput, -e
+:    Write results on STDOUT as shell environment variables
+
+--version
+:    Display the version of dnsbulktest

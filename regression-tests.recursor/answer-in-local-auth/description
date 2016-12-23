@@ -1,0 +1,17 @@
+This test will test the fix made for issue #2600. When we receive a CNAME chain
+in the ANSWER-section from an authoritative server, we should discard any record
+in a zone that we (as a recursor) are authoritative for (by e.g. using auth-zones)
+
+The issue here was that an auth returns the following CNAME chain (where the
+auth server is indeed authoritative for all these zones):
+service.box.answer-cname-in-local.example.net -->
+  pfs.global.box.answer-cname-in-local.example.net -->
+    vip-metropole.pfsbox.answer-cname-in-local.example.net
+
+However, the resolver has the zone 'global.box.answer-cname-in-local.example.net'
+loaded whereby the CNAME chain becomes:
+service.box.answer-cname-in-local.example.net -->
+  pfs.global.box.answer-cname-in-local.example.net -->
+    vip-reunion.pfsbox.answer-cname-in-local.example.net
+
+Hence, it should reject the last CNAME sent from the authoritative server.

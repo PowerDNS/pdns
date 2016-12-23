@@ -1,0 +1,2 @@
+Test querying of a few types that the recursor is expected to pass
+along without internal interpretation.

@@ -1,21 +1,28 @@
 /*
-    Copyright (C) 2011 Fredrik Danerklint
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as published 
-    by the Free Software Foundation
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-*/
-
-
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ * originally authored by Fredrik Danerklint
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "luabackend.hh"
 
 #include "pdns/logger.hh"
@@ -34,7 +41,7 @@
    virtual void setFresh(uint32_t id);
 */
 
-bool LUABackend::startTransaction(const string &qname, int id) {
+bool LUABackend::startTransaction(const DNSName& qname, int id) {
 
     if (f_lua_starttransaction == 0)
         return false;
@@ -44,8 +51,8 @@ bool LUABackend::startTransaction(const string &qname, int id) {
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_starttransaction);
 
-    lua_pushstring(lua, qname.c_str());
-    lua_pushnumber(lua, id);
+    lua_pushstring(lua, qname.toString().c_str());
+    lua_pushinteger(lua, id);
 
     if(lua_pcall(lua, 2, 1, f_lua_exec_error) != 0) {
         string e = backend_name + lua_tostring(lua, -1);
@@ -171,7 +178,7 @@ void LUABackend::setFresh(uint32_t id) {
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_setfresh);
 
-    lua_pushnumber(lua, id);
+    lua_pushinteger(lua, id);
 
     if(lua_pcall(lua, 1, 0, f_lua_exec_error) != 0) {
         string e = backend_name + lua_tostring(lua, -1);
@@ -217,7 +224,7 @@ void LUABackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains) {
 
 }
 
-bool LUABackend::isMaster(const string &domain, const string &ip) {
+bool LUABackend::isMaster(const DNSName& domain, const string &ip) {
 	
     if (f_lua_ismaster == 0)
         return false;
@@ -227,7 +234,7 @@ bool LUABackend::isMaster(const string &domain, const string &ip) {
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_ismaster);
 
-    lua_pushstring(lua, domain.c_str());
+    lua_pushstring(lua, domain.toString().c_str());
     lua_pushstring(lua, ip.c_str());
     
     if(lua_pcall(lua, 2, 1, f_lua_exec_error) != 0) {
@@ -251,7 +258,7 @@ bool LUABackend::isMaster(const string &domain, const string &ip) {
     return ok;
 }
 
-bool LUABackend::getDomainInfo(const string &domain, DomainInfo &di) {
+bool LUABackend::getDomainInfo(const DNSName&domain, DomainInfo &di) {
     if (f_lua_getdomaininfo == 0)
         return false;
 
@@ -260,7 +267,7 @@ bool LUABackend::getDomainInfo(const string &domain, DomainInfo &di) {
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_getdomaininfo);
 
-    lua_pushstring(lua, domain.c_str());
+    lua_pushstring(lua, domain.toString().c_str());
     
     if(lua_pcall(lua, 1, 1, f_lua_exec_error) != 0) {
         string e = backend_name + lua_tostring(lua, -1);
