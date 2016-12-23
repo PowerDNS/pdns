@@ -161,6 +161,7 @@ public:
 
   bool getTSIGDetails(TSIGRecordContent* tr, DNSName* keyname, string* message) const;
   void setTSIGDetails(const TSIGRecordContent& tr, const DNSName& keyname, const string& secret, const string& previous, bool timersonly=false);
+  void resetTSIGPrevious();
   bool getTKEYRecord(TKEYRecordContent* tr, DNSName* keyname) const;
 
   vector<DNSZoneRecord>& getRRS() { return d_rrs; }

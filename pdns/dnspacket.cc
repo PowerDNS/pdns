@@ -459,6 +459,11 @@ void DNSPacket::setTSIGDetails(const TSIGRecordContent& tr, const DNSName& keyna
   d_tsigtimersonly=timersonly;
 }
 
+void DNSPacket::resetTSIGPrevious()
+{
+  d_tsigprevious.clear();
+}
+
 bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, DNSName* keyname, string* message) const
 {
   MOADNSParser mdp(d_rawpacket);

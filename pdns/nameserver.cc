@@ -357,10 +357,13 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
     return 0;
   
   DNSPacket *packet;
-  if(prefilled)  // they gave us a preallocated packet
+  if(prefilled) { // they gave us a preallocated packet
     packet=prefilled;
-  else
+    packet->resetTSIGPrevious();
+  }
+  else {
     packet=new DNSPacket; // don't forget to free it!
+  }
 
   packet->setSocket(sock);
   packet->setRemote(&remote);
