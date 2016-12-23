@@ -56,7 +56,6 @@ void DnsCryptPrivateKey::saveToFile(const std::string& keyFile) const
 
 DnsCryptPrivateKey::~DnsCryptPrivateKey()
 {
-  sodium_memzero(key, sizeof(key));
   sodium_munlock(key, sizeof(key));
 }
 
@@ -67,7 +66,6 @@ DnsCryptQuery::DnsCryptQuery()
 
 DnsCryptQuery::~DnsCryptQuery()
 {
-  sodium_memzero(sharedKey, sizeof(sharedKey));
   sodium_munlock(sharedKey, sizeof(sharedKey));
 }
 
