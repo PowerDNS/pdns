@@ -90,6 +90,7 @@ size_t g_maxTCPConnectionDuration{0};
 size_t g_maxTCPConnectionsPerClient{0};
 static std::mutex tcpClientsCountMutex;
 static std::map<ComboAddress,size_t,ComboAddress::addressOnlyLessThan> tcpClientsCount;
+bool g_useTCPSinglePipe{false};
 
 void* tcpClientThread(int pipefd);
 
@@ -106,19 +107,26 @@ static void decrementTCPClientCount(const ComboAddress& client)
 
 void TCPClientCollection::addTCPClientThread()
 {
+  int pipefds[2] = { -1, -1};
+
   vinfolog("Adding TCP Client thread");
 
-  int pipefds[2] = { -1, -1};
-  if (pipe(pipefds) < 0) {
-    errlog("Error creating the TCP thread communication pipe: %s", strerror(errno));
-    return;
+  if (d_useSinglePipe) {
+    pipefds[0] = d_singlePipe[0];
+    pipefds[1] = d_singlePipe[1];
   }
+  else {
+    if (pipe(pipefds) < 0) {
+      errlog("Error creating the TCP thread communication pipe: %s", strerror(errno));
+      return;
+    }
 
-  if (!setNonBlocking(pipefds[1])) {
-    close(pipefds[0]);
-    close(pipefds[1]);
-    errlog("Error setting the TCP thread communication pipe non-blocking: %s", strerror(errno));
-    return;
+    if (!setNonBlocking(pipefds[1])) {
+      close(pipefds[0]);
+      close(pipefds[1]);
+      errlog("Error setting the TCP thread communication pipe non-blocking: %s", strerror(errno));
+      return;
+    }
   }
 
   {
@@ -126,8 +134,10 @@ void TCPClientCollection::addTCPClientThread()
 
     if (d_numthreads >= d_tcpclientthreads.capacity()) {
       warnlog("Adding a new TCP client thread would exceed the vector capacity (%d/%d), skipping", d_numthreads.load(), d_tcpclientthreads.capacity());
-      close(pipefds[0]);
-      close(pipefds[1]);
+      if (!d_useSinglePipe) {
+        close(pipefds[0]);
+        close(pipefds[1]);
+      }
       return;
     }
 
@@ -138,8 +148,10 @@ void TCPClientCollection::addTCPClientThread()
     catch(const std::runtime_error& e) {
       /* the thread creation failed, don't leak */
       errlog("Error creating a TCP thread: %s", e.what());
-      close(pipefds[0]);
-      close(pipefds[1]);
+      if (!d_useSinglePipe) {
+        close(pipefds[0]);
+        close(pipefds[1]);
+      }
       return;
     }
 

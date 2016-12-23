@@ -947,6 +947,14 @@ they wait to be picked up. The maximum number of queued connections
 can be configured with `setMaxTCPQueuedConnections()` and defaults to 1000.
 Any value larger than 0 will cause new connections to be dropped if there are
 already too many queued.
+By default, every TCP worker thread has its own queue, and the incoming TCP
+connections are dispatched to TCP workers on a round-robin basis. This might
+cause issues if some connections are taking a very long time, since incoming
+ones will be waiting until the TCP worker they have been assigned to has finished
+handling its current query, while other TCP workers might be available.
+The experimental `setTCPUseSinglePipe(true)` directive can be used so that all the
+incoming TCP connections are put into a single queue and handled by the
+first TCP worker available.
 
 When dispatching UDP queries to backend servers, `dnsdist` keeps track of at
 most `n` outstanding queries for each backend. This number `n` can be tuned by
@@ -1528,6 +1536,7 @@ instantiate a server with additional parameters
     * `setCacheCleaningDelay(n)`: set the interval in seconds between two runs of the cache cleaning algorithm, removing expired entries
     * `setCacheCleaningPercentage(n)`: set the percentage of the cache that the cache cleaning algorithm will try to free by removing expired entries. By default (100), all expired entries are removed
     * `setStaleCacheEntriesTTL(n)`: allows using cache entries expired for at most `n` seconds when no backend available to answer for a query
+    * `setTCPUseSinglePipe(bool)`: whether the incoming TCP connections should be put into a single queue instead of using per-thread queues. Defaults to false
     * `setTCPRecvTimeout(n)`: set the read timeout on TCP connections from the client, in seconds
     * `setTCPSendTimeout(n)`: set the write timeout on TCP connections from the client, in seconds
     * `setUDPTimeout(n)`: set the maximum time dnsdist will wait for a response from a backend over UDP, in seconds. Defaults to 2

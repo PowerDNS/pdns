@@ -383,12 +383,30 @@ class TCPClientCollection {
   std::atomic<uint64_t> d_queued{0};
   uint64_t d_maxthreads{0};
   std::mutex d_mutex;
+  int d_singlePipe[2];
+  bool d_useSinglePipe;
 public:
 
-  TCPClientCollection(size_t maxThreads)
+  TCPClientCollection(size_t maxThreads, bool useSinglePipe=false): d_maxthreads(maxThreads), d_useSinglePipe(useSinglePipe)
   {
     d_maxthreads = maxThreads;
     d_tcpclientthreads.reserve(maxThreads);
+
+    if (d_useSinglePipe) {
+      if (pipe(d_singlePipe) < 0) {
+        throw std::runtime_error("Error creating the TCP single communication pipe: " + string(strerror(errno)));
+      }
+      if (!setNonBlocking(d_singlePipe[1])) {
+        int err = errno;
+        close(d_singlePipe[0]);
+        close(d_singlePipe[1]);
+        throw std::runtime_error("Error setting the TCP single communication pipe non-blocking: " + string(strerror(err)));
+      }
+    }
+    else {
+      d_singlePipe[0] = -1;
+      d_singlePipe[1] = -1;
+    }
   }
   int getThread()
   {
@@ -639,6 +657,7 @@ extern bool g_apiReadWrite;
 extern std::string g_apiConfigDirectory;
 extern bool g_servFailOnNoPolicy;
 extern uint32_t g_hashperturb;
+extern bool g_useTCPSinglePipe;
 
 struct ConsoleKeyword {
   std::string name;
