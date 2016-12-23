@@ -91,9 +91,12 @@ static_assert(sizeof(DnsCryptQueryHeader) == 52, "Dnscrypt query header size sho
 class DnsCryptQuery
 {
 public:
+  DnsCryptQuery();
+  ~DnsCryptQuery();
   static const size_t minUDPLength = 256;
 
   DnsCryptQueryHeader header;
+  unsigned char sharedKey[crypto_box_BEFORENMBYTES];
   DNSName qname;
   DnsCryptContext* ctx;
   uint16_t id{0};
@@ -102,6 +105,7 @@ public:
   bool useOldCert{false};
   bool encrypted{false};
   bool valid{false};
+  bool sharedKeyComputed{false};
 };
 
 struct DnsCryptResponseHeader
