@@ -52,11 +52,15 @@ void CommunicatorClass::queueNotifyDomain(const DNSName &domain, UeberBackend *B
   if(!::arg()["forward-notify"].empty()) {
     vector<string>forwards;
     stringtok(forwards,::arg()["forward-notify"]," ,");
-    for(vector<string>::const_iterator k=forwards.begin();k!=forwards.end();++k)
-      if (!testIPv4addr(*k) || !testIPv6addr(*k)) {
+    for(vector<string>::const_iterator k=forwards.begin();k!=forwards.end();++k) {
+      try {
         const ComboAddress caIp(*k, 53);
         ips.insert(caIp.toStringWithPort());
       }
+      catch(PDNSException &e) {
+        L<<Logger::Warning<<"Unparseable IP in FORWARD-NOTIFY for domain '"<<domain<<"'. Warning: "<<e.reason<<endl;
+      }
+    }
   } else {
     B->lookup(QType(QType::NS),domain);
     while(B->get(rr))

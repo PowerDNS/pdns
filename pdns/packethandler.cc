@@ -894,16 +894,14 @@ int PacketHandler::processNotify(DNSPacket *p)
     vector<string>forwards;
     stringtok(forwards,::arg()["forward-notify"]," ,");
     for(vector<string>::const_iterator k=forwards.begin();k!=forwards.end();++k) {
-      if (!testIPv4addr(*k) || !testIPv6addr(*k)) {
-        L<<Logger::Warning<<"Relaying notification of domain '"<<p->qdomain<<"' from "<<p->getRemote()<<" to "<<*k<<endl;
-        try {
-          static Resolver forwardResolver;
-          ComboAddress remote(*k, 53);
-          forwardResolver.relayNotification(p->qdomain, remote, p->d.id);
-        }
-        catch(ResolverException &re) {
-          L<<Logger::Error<<"Error trying to renotify '"<<p->qdomain<<"' to '"<<*k<<"' reason: "<<re.reason<<endl;
-        }
+      L<<Logger::Warning<<"Relaying notification of domain '"<<p->qdomain<<"' from "<<p->getRemote()<<" to "<<*k<<endl;
+      try {
+        static Resolver forwardResolver;
+        ComboAddress remote(*k, 53);
+        forwardResolver.relayNotification(p->qdomain, remote, p->d.id);
+      }
+      catch(ResolverException &re) {
+        L<<Logger::Error<<"Error trying to renotify '"<<p->qdomain<<"' to '"<<*k<<"' reason: "<<re.reason<<endl;
       }
     }
   }
