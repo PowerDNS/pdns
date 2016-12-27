@@ -1291,3 +1291,4 @@ unsigned int pdns_stou(const std::string& str, size_t * idx, int base)
   }
   return static_cast<unsigned int>(result);
 }
+
