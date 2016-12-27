@@ -15,8 +15,10 @@
 #include "resolver.hh"
 #include "dns_random.hh"
 #include "backends/gsql/ssql.hh"
+#include "communicator.hh"
 
 extern StatBag S;
+extern CommunicatorClass Communicator;
 
 pthread_mutex_t PacketHandler::s_rfc2136lock=PTHREAD_MUTEX_INITIALIZER;
 
@@ -967,6 +969,15 @@ int PacketHandler::processUpdate(DNSPacket *p) {
       string zone(di.zone.toString());
       zone.append("$");
       purgeAuthCaches(zone);
+
+      // Notify slaves
+      if (di.kind == DomainInfo::Master) {
+        vector<string> notify;
+        B.getDomainMetadata(p->qdomain, "NOTIFY-DNSUPDATE", notify);
+        if (!notify.empty() && notify.front() == "1") {
+          Communicator.notifyDomain(di.zone);
+        }
+      }
 
       L<<Logger::Info<<msgPrefix<<"Update completed, "<<changedRecords<<" changed records committed."<<endl;
     } else {
