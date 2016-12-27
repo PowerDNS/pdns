@@ -883,6 +883,7 @@ int listZone(const DNSName &zone) {
   }
   di.backend->list(zone, di.id);
   DNSResourceRecord rr;
+  cout<<"$ORIGIN ."<<endl;
   while(di.backend->get(rr)) {
     if(rr.qtype.getCode()) {
       if ( (rr.qtype.getCode() == QType::NS || rr.qtype.getCode() == QType::SRV || rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::CNAME) && !rr.content.empty() && rr.content[rr.content.size()-1] != '.') 
