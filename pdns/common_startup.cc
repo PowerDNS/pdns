@@ -159,7 +159,7 @@ void declareArguments()
 
   ::arg().set("trusted-notification-proxy", "IP address of incoming notification proxy")="";
   ::arg().set("slave-renotify", "If we should send out notifications for slaved updates")="no";
-  ::arg().set("forward-notify", "IP address we send notifications to")="";
+  ::arg().set("forward-notify", "IP addresses to send all originated and received notifications to")="";
 
   ::arg().set("default-ttl","Seconds a result is valid if not set otherwise")="3600";
   ::arg().set("max-tcp-connections","Maximum number of TCP connections")="20";
