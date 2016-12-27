@@ -162,6 +162,11 @@ void declareArguments()
 
   ::arg().set("default-ttl","Seconds a result is valid if not set otherwise")="3600";
   ::arg().set("max-tcp-connections","Maximum number of TCP connections")="20";
+  ::arg().set("max-tcp-connections-per-client","Maximum number of simultaneous TCP connections per client")="0";
+  ::arg().set("max-tcp-transactions-per-conn")="0";
+  ::arg().set("max-tcp-connection-duration")="0";
+  ::arg().set("tcp-idle-timeout")="5";
+
   ::arg().setSwitch("no-shuffle","Set this to prevent random shuffling of answers - for regression testing")="off";
 
   ::arg().set("setuid","If set, change user id to this uid for more security")="";

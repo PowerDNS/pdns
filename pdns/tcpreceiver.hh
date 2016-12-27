@@ -27,7 +27,7 @@
 #include "dnsbackend.hh"
 #include "packethandler.hh"
 #include <vector>
-
+#include <mutex>
 #include <poll.h>
 #include <sys/select.h>
 #include <sys/socket.h>
@@ -51,18 +51,25 @@ private:
 
   static void sendPacket(std::shared_ptr<DNSPacket> p, int outsock);
   static int readLength(int fd, ComboAddress *remote);
-  static void getQuestion(int fd, char *mesg, int pktlen, const ComboAddress& remote);
+  static void getQuestion(int fd, char *mesg, int pktlen, const ComboAddress& remote, unsigned int totalTime);
   static int doAXFR(const DNSName &target, std::shared_ptr<DNSPacket> q, int outsock);
   static int doIXFR(std::shared_ptr<DNSPacket> q, int outsock);
   static bool canDoAXFR(std::shared_ptr<DNSPacket> q);
   static void *doConnection(void *data);
   static void *launcher(void *data);
+  static void decrementClientCount(const ComboAddress& remote);
   void thread(void);
   static pthread_mutex_t s_plock;
+  static std::mutex s_clientsCountMutex;
+  static std::map<ComboAddress,size_t,ComboAddress::addressOnlyLessThan> s_clientsCount;
   static PacketHandler *s_P;
   pthread_t d_tid;
   static Semaphore *d_connectionroom_sem;
   static NetmaskGroup d_ng;
+  static size_t d_maxTransactionsPerConn;
+  static size_t d_maxConnectionsPerClient;
+  static unsigned int d_idleTimeout;
+  static unsigned int d_maxConnectionDuration;
 
   vector<int>d_sockets;
   vector<struct pollfd> d_prfds;
