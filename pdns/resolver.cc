@@ -224,9 +224,6 @@ void Resolver::relayNotification(const DNSName& domain, const ComboAddress& remo
 
   int sock;
 
-  ComboAddress local;
-  local.sin4.sin_family = 0;
-
   sock = remote.sin4.sin_family == AF_INET ? locals["default4"] : locals["default6"];
 
   if(sendto(sock, &packet[0], packet.size(), 0, (struct sockaddr*)(&remote), remote.getSocklen()) < 0) {
