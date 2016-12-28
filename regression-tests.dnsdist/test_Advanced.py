@@ -1330,3 +1330,44 @@ advanced.tests.powerdns.com.
 tests.powerdns.com.
 powerdns.com.
 com.""")
+
+class TestAdvancedRD(DNSDistTest):
+
+    _config_template = """
+    addAction(RDRule(), RCodeAction(dnsdist.REFUSED))
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testAdvancedRDRefused(self):
+        """
+        Advanced: RD query is refused
+        """
+        name = 'rd.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.set_rcode(dns.rcode.REFUSED)
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, expectedResponse)
+
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, expectedResponse)
+
+    def testAdvancedNoRDAllowed(self):
+        """
+        Advanced: No-RD query is allowed
+        """
+        name = 'no-rd.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        query.flags &= ~dns.flags.RD
+        response = dns.message.make_response(query)
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        receivedQuery.id = query.id
+        self.assertEquals(receivedQuery, query)
+        self.assertEquals(receivedResponse, response)
+
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+        receivedQuery.id = query.id
+        self.assertEquals(receivedQuery, query)
+        self.assertEquals(receivedResponse, response)

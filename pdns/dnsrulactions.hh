@@ -579,6 +579,22 @@ private:
   int d_rcode;
 };
 
+class RDRule : public DNSRule
+{
+public:
+  RDRule()
+  {
+  }
+  bool matches(const DNSQuestion* dq) const override
+  {
+    return dq->dh->rd == 1;
+  }
+  string toString() const override
+  {
+    return "rd==1";
+  }
+};
+
 
 class DropAction : public DNSAction
 {
