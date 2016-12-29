@@ -156,7 +156,7 @@ bool DNSDistPacketCache::get(const DNSQuestion& dq, uint16_t consumed, uint16_t 
       }
     }
 
-    if (*responseLen < value.len) {
+    if (*responseLen < value.len || value.len < sizeof(dnsheader)) {
       return false;
     }
 
