@@ -24,7 +24,7 @@
 #include "dnsparser.hh"
 #include "dnsdist-cache.hh"
 
-DNSDistPacketCache::DNSDistPacketCache(size_t maxEntries, uint32_t maxTTL, uint32_t minTTL, uint32_t servFailTTL, uint32_t staleTTL): d_maxEntries(maxEntries), d_maxTTL(maxTTL), d_servFailTTL(servFailTTL), d_minTTL(minTTL), d_staleTTL(staleTTL)
+DNSDistPacketCache::DNSDistPacketCache(size_t maxEntries, uint32_t maxTTL, uint32_t minTTL, uint32_t tempFailureTTL, uint32_t staleTTL): d_maxEntries(maxEntries), d_maxTTL(maxTTL), d_tempFailureTTL(tempFailureTTL), d_minTTL(minTTL), d_staleTTL(staleTTL)
 {
   pthread_rwlock_init(&d_lock, 0);
   /* we reserve maxEntries + 1 to avoid rehashing from occuring
@@ -44,15 +44,15 @@ bool DNSDistPacketCache::cachedValueMatches(const CacheValue& cachedValue, const
   return true;
 }
 
-void DNSDistPacketCache::insert(uint32_t key, const DNSName& qname, uint16_t qtype, uint16_t qclass, const char* response, uint16_t responseLen, bool tcp, bool servFail)
+void DNSDistPacketCache::insert(uint32_t key, const DNSName& qname, uint16_t qtype, uint16_t qclass, const char* response, uint16_t responseLen, bool tcp, uint8_t rcode)
 {
   if (responseLen < sizeof(dnsheader))
     return;
 
   uint32_t minTTL;
 
-  if (servFail) {
-    minTTL = d_servFailTTL;
+  if (rcode == RCode::ServFail || rcode == RCode::Refused) {
+    minTTL = d_tempFailureTTL;
   }
   else {
     minTTL = getMinTTL(response, responseLen);
@@ -156,7 +156,7 @@ bool DNSDistPacketCache::get(const DNSQuestion& dq, uint16_t consumed, uint16_t 
       }
     }
 
-    if (*responseLen < value.len) {
+    if (*responseLen < value.len || value.len < sizeof(dnsheader)) {
       return false;
     }
 
@@ -166,14 +166,22 @@ bool DNSDistPacketCache::get(const DNSQuestion& dq, uint16_t consumed, uint16_t 
       return false;
     }
 
+    memcpy(response, &queryId, sizeof(queryId));
+    memcpy(response + sizeof(queryId), value.value.c_str() + sizeof(queryId), sizeof(dnsheader) - sizeof(queryId));
+
+    if (value.len == sizeof(dnsheader)) {
+      /* DNS header only, our work here is done */
+      *responseLen = value.len;
+      d_hits++;
+      return true;
+    }
+
     string dnsQName(dq.qname->toDNSString());
     const size_t dnsQNameLen = dnsQName.length();
     if (value.len < (sizeof(dnsheader) + dnsQNameLen)) {
       return false;
     }
 
-    memcpy(response, &queryId, sizeof(queryId));
-    memcpy(response + sizeof(queryId), value.value.c_str() + sizeof(queryId), sizeof(dnsheader) - sizeof(queryId));
     memcpy(response + sizeof(dnsheader), dnsQName.c_str(), dnsQNameLen);
     if (value.len > (sizeof(dnsheader) + dnsQNameLen)) {
       memcpy(response + sizeof(dnsheader) + dnsQNameLen, value.value.c_str() + sizeof(dnsheader) + dnsQNameLen, value.len - (sizeof(dnsheader) + dnsQNameLen));
