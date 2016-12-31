@@ -7,4 +7,3 @@
 2	.	IN	OPT	32768	
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='sub.host.sub.example.com.', qtype=A
-./tests/ent-asterisk/unbound-host.out:sub.host.sub.example.com has no address (BOGUS (security failure))
