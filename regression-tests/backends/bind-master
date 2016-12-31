@@ -85,7 +85,7 @@ __EOF__
 			skipreasons="narrow nodyndns noalias"
 		else
 			extracontexts="bind dnssec"
-			skipreasons="nodyndns noalias"
+			skipreasons="nodyndns noalias nsec"
 		fi
 
 		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --config-dir=. \

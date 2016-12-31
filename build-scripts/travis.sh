@@ -439,6 +439,9 @@ test_auth() {
 
   run "cd regression-tests"
 
+  #travis unbound is too old for this test (unbound 1.6.0 required)
+  run "touch tests/ent-asterisk/fail.nsec"
+
   run "./timestamp ./start-test-stop 5300 ldap-tree"
   run "./timestamp ./start-test-stop 5300 ldap-simple"
   run "./timestamp ./start-test-stop 5300 ldap-strict"
@@ -490,6 +493,9 @@ test_auth() {
   run "./timestamp ./start-test-stop 5300 remotebackend-zeromq-dnssec"
 
   run "./timestamp ./start-test-stop 5300 tinydns"
+
+  run "rm tests/ent-asterisk/fail.nsec"
+
   run "cd .."
 
   run "cd regression-tests.rootzone"
