@@ -3,6 +3,7 @@ repo_url: https://github.com/PowerDNS/pdns
 docs_dir: markdown
 site_dir: html
 theme: bootstrap
+extra_css: [extra.css]
 pages:
   - dnsdist:
     - Homepage: index.md
