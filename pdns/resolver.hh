@@ -76,8 +76,6 @@ public:
   //! convenience function that calls resolve above
   void getSoaSerial(const string &, const DNSName &, uint32_t *);
 
-  void relayNotification(const DNSName &, const ComboAddress &, uint16_t);
-
 private:
   std::map<std::string, int> locals;
 };

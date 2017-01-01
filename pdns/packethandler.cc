@@ -892,17 +892,20 @@ int PacketHandler::processNotify(DNSPacket *p)
 
   if(!::arg()["forward-notify"].empty()) {
     vector<string>forwards;
+    set<string> ips;
     stringtok(forwards,::arg()["forward-notify"]," ,");
     for(vector<string>::const_iterator k=forwards.begin();k!=forwards.end();++k) {
-      L<<Logger::Warning<<"Relaying notification of domain '"<<p->qdomain<<"' from "<<p->getRemote()<<" to "<<*k<<endl;
       try {
-        static Resolver forwardResolver;
         ComboAddress remote(*k, 53);
-        forwardResolver.relayNotification(p->qdomain, remote, p->d.id);
+        ips.insert(remote.toStringWithPort());
       }
       catch(ResolverException &re) {
-        L<<Logger::Error<<"Error trying to renotify '"<<p->qdomain<<"' to '"<<*k<<"' reason: "<<re.reason<<endl;
+        L<<Logger::Warning<<"Error trying to renotify "<<p->qdomain<<" from "<<p->getRemote()<<" to "<<*k<<" reason: "<<re.reason<<endl;
       }
+    }
+    for(set<string>::const_iterator j=ips.begin();j!=ips.end();++j) {
+      L<<Logger::Warning<<"Relaying notification of domain "<<p->qdomain<<" from "<<p->getRemote()<<" to "<<*j<<endl;
+      Communicator.notify(p->qdomain,*j);
     }
   }
 
