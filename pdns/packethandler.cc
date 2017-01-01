@@ -900,7 +900,7 @@ int PacketHandler::processNotify(DNSPacket *p)
         ips.insert(remote.toStringWithPort());
       }
       catch(ResolverException &re) {
-        L<<Logger::Warning<<"Error trying to renotify "<<p->qdomain<<" from "<<p->getRemote()<<" to "<<*k<<" reason: "<<re.reason<<endl;
+        L<<Logger::Error<<"Error trying to renotify "<<p->qdomain<<" from "<<p->getRemote()<<" to "<<*k<<" reason: "<<re.reason<<endl;
       }
     }
     for(set<string>::const_iterator j=ips.begin();j!=ips.end();++j) {
