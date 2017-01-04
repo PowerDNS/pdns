@@ -768,8 +768,26 @@ BOOST_AUTO_TEST_CASE(test_compression_qtype_qclass) { // Compression test with Q
     string name("\x03""com\x00""\x07""example\xc1""\x00""\x03""www\xc1""\x05""\x00""\x01""\x00", 24);
     name.insert(0, 256, '0');
 
-    BOOST_CHECK_THROW(DNSName dn(name.c_str(), name.size(), 271, true, &qtype, &qclass), std::range_error);;
+    BOOST_CHECK_THROW(DNSName dn(name.c_str(), name.size(), 271, true, &qtype, &qclass), std::range_error);
   }
+}
+
+BOOST_AUTO_TEST_CASE(test_compression_single_bit_set) { // first 2 bits as 10 or 01, not 11
+
+  // first 2 bits: 10
+  {
+    string name("\x03""com\x00""\x07""example\x80""\x00""\x03""www\x80""\x05", 21);
+
+    BOOST_CHECK_THROW(DNSName dn(name.c_str(), name.size(), 15, true), std::range_error);
+  }
+
+  // first 2 bits: 01
+  {
+    string name("\x03""com\x00""\x07""example\x40""\x00""\x03""www\x40""\x05", 21);
+
+    BOOST_CHECK_THROW(DNSName dn(name.c_str(), name.size(), 15, true), std::range_error);
+  }
+
 }
 
 BOOST_AUTO_TEST_CASE(test_pointer_pointer_root) { // Pointer to pointer to root
