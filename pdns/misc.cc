@@ -719,7 +719,8 @@ int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret)
     hints.ai_flags = AI_NUMERICHOST;
 
     int error;
-    if((error=getaddrinfo(ourAddr.c_str(), 0, &hints, &res))) { // this is correct
+    // getaddrinfo has anomalous return codes, anything nonzero is an error, positive or negative
+    if((error=getaddrinfo(ourAddr.c_str(), 0, &hints, &res))) {
       return -1;
     }
 
