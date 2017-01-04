@@ -564,6 +564,12 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
           // cerr<<"hit!"<<endl;
           return true;
         }
+        // EDNS Client Subnet matching
+        if(nm.match( q->getRealRemote().toStringNoMask() ) )
+        {
+          L<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' allowed: EDNS client IP "<<q->getRealRemote().toStringNoMask()<<" is in per-domain ACL"<<endl;
+          return true;
+        }
       }
     }
   }  
