@@ -498,7 +498,9 @@ void mainthread()
    stubParseResolveConf();
 
    if(!::arg()["chroot"].empty()) {
+#ifdef __GLIBC__
      triggerLoadOfLibraries();
+#endif
      if(::arg().mustDo("master") || ::arg().mustDo("slave"))
         gethostbyname("a.root-servers.net"); // this forces all lookup libraries to be loaded
      Utility::dropGroupPrivs(newuid, newgid);
