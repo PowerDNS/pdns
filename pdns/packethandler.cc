@@ -899,8 +899,8 @@ int PacketHandler::processNotify(DNSPacket *p)
         ComboAddress remote(*k, 53);
         ips.insert(remote.toStringWithPort());
       }
-      catch(ResolverException &re) {
-        L<<Logger::Error<<"Error trying to renotify "<<p->qdomain<<" from "<<p->getRemote()<<" to "<<*k<<" reason: "<<re.reason<<endl;
+      catch(PDNSException &e) {
+        L<<Logger::Error<<"Error trying to renotify "<<p->qdomain<<" from "<<p->getRemote()<<" to "<<*k<<" reason: "<<e.reason<<endl;
       }
     }
     for(set<string>::const_iterator j=ips.begin();j!=ips.end();++j) {
