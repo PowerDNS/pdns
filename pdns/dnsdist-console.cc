@@ -366,7 +366,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "topResponseRule", true, "", "move the last response rule to the first position" },
   { "topRule", true, "", "move the last rule to the first position" },
   { "topSlow", true, "[top][, limit][, labels]", "show `top` queries slower than `limit` milliseconds, grouped by last `labels` labels" },
-  { "truncateTC", true, "bool", "if set (default) truncate TC=1 answers so they are actually empty. Fixes an issue for PowerDNS Authoritative Server 2.9.22" },
+  { "truncateTC", true, "bool", "if set (default to no) truncate TC=1 answers so they are actually empty. Fixes an issue for PowerDNS Authoritative Server 2.9.22. Note: turning this one breaks compatibility with RFC 6891." },
   { "unregisterDynBPFFilter", true, "DynBPFFilter", "unregister this dynamic BPF filter" },
   { "webserver", true, "address:port, password [, apiKey [, customHeaders ]])", "launch a webserver with stats on that address with that password" },
   { "whashed", false, "", "Weighted hashed ('sticky') distribution over available servers, based on the server 'weight' parameter" },

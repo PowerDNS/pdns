@@ -136,7 +136,7 @@ int g_tcpSendTimeout{2};
 int g_udpTimeout{2};
 
 bool g_servFailOnNoPolicy{false};
-bool g_truncateTC{1};
+bool g_truncateTC{0};
 bool g_fixupCase{0};
 static void truncateTC(const char* packet, uint16_t* len)
 try
