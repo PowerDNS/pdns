@@ -362,7 +362,6 @@ void *qthread(void *number)
 
   int diff;
   bool logDNSQueries = ::arg().mustDo("log-dns-queries");
-  bool doRecursion = ::arg().mustDo("recursor");
   UDPNameserver *NS = N;
 
   // If we have SO_REUSEPORT then create a new port for all receiver threads
@@ -408,9 +407,7 @@ void *qthread(void *number)
     }
 
     if((P->d.opcode != Opcode::Notify && P->d.opcode != Opcode::Update) && P->couldBeCached()) {
-      bool haveSomething = false;
-      if (!P->d.rd || !DP->recurseFor(P))
-        haveSomething=PC.get(P, &cached); // does the PacketCache recognize this question?
+      bool haveSomething=PC.get(P, &cached); // does the PacketCache recognize this question?
       if (haveSomething) {
         if(logDNSQueries)
           L<<"packetcache HIT"<<endl;
