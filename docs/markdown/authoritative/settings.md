@@ -116,7 +116,8 @@ If sending carbon updates, if set, this will override our hostname. Be careful n
 * Available since: 3.3.1
 
 Send all available metrics to this server via the carbon protocol, which is used
-by graphite and metronome. You may specify an alternate port by appending :port, 
+by graphite and metronome. It has to be an address (no hostnames). 
+You may specify an alternate port by appending :port, 
 ex: 127.0.0.1:2004. See 
 ["PowerDNS Metrics"](../common/logging.md#sending-to-carbongraphitemetronome).
 
@@ -496,11 +497,32 @@ hopeless and respawn.
 
 Maximum number of signatures cache entries
 
+## `max-tcp-connection-duration`
+* Integer
+* Default: 0
+
+Maximum time in seconds that a TCP DNS connection is allowed to stay open.
+0 means unlimited.
+Note that exchanges related to an AXFR or IXFR are not affected by this setting.
+
 ## `max-tcp-connections`
 * Integer
 * Default: 20
 
 Allow this many incoming TCP DNS connections simultaneously.
+
+## `max-tcp-connections-per-client`
+* Integer
+* Default: 0
+
+Maximum number of simultaneous TCP connections per client. 0 means unlimited.
+
+## `max-tcp-transactions-per-conn`
+* Integer
+* Default: 0
+
+Allow this many DNS queries in a single TCP transaction. 0 means unlimited.
+Note that exchanges related to an AXFR or IXFR are not affected by this setting.
 
 ## `module-dir`
 * Path
@@ -758,6 +780,13 @@ Limit TCP control to a specific client range.
 * String
 
 Password for TCP control.
+
+## `tcp-idle-timeout`
+* Integer
+* Default: 5
+
+Maximum time in seconds that a TCP DNS connection is allowed to stay open
+while being idle, meaning without PowerDNS receiving or sending even a single byte.
 
 ## `traceback-handler`
 * Boolean

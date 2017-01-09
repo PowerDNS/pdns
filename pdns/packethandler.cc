@@ -578,7 +578,7 @@ static void decrementHash(std::string& raw) // I wonder if this is correct, cmou
 }
 
 
-bool getNSEC3Hashes(bool narrow, DNSBackend* db, int id, const std::string& hashed, bool decrement, DNSName& unhashed, string& before, string& after, int mode)
+bool getNSEC3Hashes(bool narrow, DNSBackend* db, int id, const std::string& hashed, bool decrement, DNSName& unhashed, std::string& before, std::string& after, int mode)
 {
   bool ret;
   if(narrow) { // nsec3-narrow
@@ -592,15 +592,14 @@ bool getNSEC3Hashes(bool narrow, DNSBackend* db, int id, const std::string& hash
     incrementHash(after);
   }
   else {
-    if (decrement || mode <= 1)
-      before.clear();
-    else
-      before=' ';
-    ret=db->getBeforeAndAfterNamesAbsolute(id, toBase32Hex(hashed), unhashed, before, after);
-    before=fromBase32Hex(before);
-    after=fromBase32Hex(after);
+    DNSName hashedName = DNSName(toBase32Hex(hashed));
+    DNSName beforeName, afterName;
+    if (!decrement && mode >= 2)
+      beforeName = hashedName;
+    ret=db->getBeforeAndAfterNamesAbsolute(id, hashedName, unhashed, beforeName, afterName);
+    before=fromBase32Hex(beforeName.toString());
+    after=fromBase32Hex(afterName.toString());
   }
-  // cerr<<"rgetNSEC3Hashes: "<<hashed<<", "<<unhashed<<", "<<before<<", "<<after<<endl;
   return ret;
 }
 

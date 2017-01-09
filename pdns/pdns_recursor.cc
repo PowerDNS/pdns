@@ -168,7 +168,7 @@ unsigned int g_numThreads, g_numWorkerThreads;
 
 //! used to send information to a newborn mthread
 struct DNSComboWriter {
-  DNSComboWriter(const char* data, uint16_t len, const struct timeval& now) : d_mdp(data, len), d_now(now),
+  DNSComboWriter(const char* data, uint16_t len, const struct timeval& now) : d_mdp(true, data, len), d_now(now),
                                                                                                         d_tcp(false), d_socket(-1)
   {}
   MOADNSParser d_mdp;
@@ -2760,6 +2760,7 @@ int serviceMain(int argc, char*argv[])
   SyncRes::s_serverID=::arg()["server-id"];
   SyncRes::s_maxqperq=::arg().asNum("max-qperq");
   SyncRes::s_maxtotusec=1000*::arg().asNum("max-total-msec");
+  SyncRes::s_maxdepth=::arg().asNum("max-recursion-depth");
   SyncRes::s_rootNXTrust = ::arg().mustDo( "root-nx-trust");
   if(SyncRes::s_serverID.empty()) {
     char tmp[128];
@@ -3059,7 +3060,7 @@ int main(int argc, char **argv)
     ::arg().set("webserver-password", "Password required for accessing the webserver") = "";
     ::arg().set("webserver-allow-from","Webserver access is only allowed from these subnets")="0.0.0.0/0,::/0";
     ::arg().set("carbon-ourname", "If set, overrides our reported hostname for carbon stats")="";
-    ::arg().set("carbon-server", "If set, send metrics in carbon (graphite) format to this server")="";
+    ::arg().set("carbon-server", "If set, send metrics in carbon (graphite) format to this server IP address")="";
     ::arg().set("carbon-interval", "Number of seconds between carbon (graphite) updates")="30";
     ::arg().set("quiet","Suppress logging of questions and answers")="";
     ::arg().set("logging-facility","Facility to log messages as. 0 corresponds to local0")="";
@@ -3118,6 +3119,7 @@ int main(int argc, char **argv)
     ::arg().set("minimum-ttl-override", "Set under adverse conditions, a minimum TTL")="0";
     ::arg().set("max-qperq", "Maximum outgoing queries per query")="50";
     ::arg().set("max-total-msec", "Maximum total wall-clock time per query in milliseconds, 0 for unlimited")="7000";
+    ::arg().set("max-recursion-depth", "Maximum number of internal recursion calls per query, 0 for unlimited")="40";
 
     ::arg().set("include-dir","Include *.conf files from this directory")="";
     ::arg().set("security-poll-suffix","Domain name from which to query security update notifications")="secpoll.powerdns.com.";

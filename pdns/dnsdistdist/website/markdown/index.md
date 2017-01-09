@@ -17,9 +17,9 @@ Finally, the DNS-OARC presentation is [here](https://indico.dns-oarc.net/event/2
 ([VIDEO!](https://www.youtube.com/watch?feature=player_embedded&v=PX3YYmBER7E#t=6403)).
 
 # Getting dnsdist
-Grab the master, 1.0 or pre-release packages from [our
-repositories](https://repo.powerdns.com).  The announcement of 1.0.0 is
-[here](https://blog.powerdns.com/2016/04/21/dnsdist-1-0-0-released/).
+Grab the latest 1.1 release or development packages from [our
+repositories](https://repo.powerdns.com).  The announcement of 1.1.0 is
+[here](https://blog.powerdns.com/2016/12/29/dnsdist-1-1-0-released/).
 
 ## Compiling dnsdist
 Prefer to compile yourself? Checkout the instructions on [the download page](download.md).

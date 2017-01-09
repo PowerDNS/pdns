@@ -140,7 +140,7 @@ void declareArguments()
   ::arg().setSwitch("query-logging","Hint backends that queries should be logged")="no";
 
   ::arg().set("carbon-ourname", "If set, overrides our reported hostname for carbon stats")="";
-  ::arg().set("carbon-server", "If set, send metrics in carbon (graphite) format to this server")="";
+  ::arg().set("carbon-server", "If set, send metrics in carbon (graphite) format to this server IP address")="";
   ::arg().set("carbon-interval", "Number of seconds between carbon (graphite) updates")="30";
 
   ::arg().set("cache-ttl","Seconds to store packets in the PacketCache")="20";
@@ -163,6 +163,11 @@ void declareArguments()
 
   ::arg().set("default-ttl","Seconds a result is valid if not set otherwise")="3600";
   ::arg().set("max-tcp-connections","Maximum number of TCP connections")="20";
+  ::arg().set("max-tcp-connections-per-client","Maximum number of simultaneous TCP connections per client")="0";
+  ::arg().set("max-tcp-transactions-per-conn")="0";
+  ::arg().set("max-tcp-connection-duration")="0";
+  ::arg().set("tcp-idle-timeout")="5";
+
   ::arg().setSwitch("no-shuffle","Set this to prevent random shuffling of answers - for regression testing")="off";
 
   ::arg().set("setuid","If set, change user id to this uid for more security")="";
@@ -346,8 +351,8 @@ void *qthread(void *number)
   DNSDistributor *distributor = DNSDistributor::Create(::arg().asNum("distributor-threads", 1)); // the big dispatcher!
   int num = (int)(unsigned long)number;
   g_distributors[num] = distributor;
-  DNSPacket question;
-  DNSPacket cached;
+  DNSPacket question(true);
+  DNSPacket cached(false);
 
   AtomicCounter &numreceived=*S.getPointer("udp-queries");
   AtomicCounter &numreceiveddo=*S.getPointer("udp-do-queries");

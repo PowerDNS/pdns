@@ -762,6 +762,8 @@ Dynamic Rule Generation
 -----------------------
 To set dynamic rules, based on recent traffic, define a function called `maintenance()` in Lua. It will
 get called every second, and from this function you can set rules to block traffic based on statistics.
+More exactly, the thread handling the `maintenance()` function will sleep for one second between each
+invocation, so if the function takes several seconds to complete it will not be invoked exactly every second.
 
 As an example:
 
@@ -776,7 +778,10 @@ over the past 10 seconds, and the dynamic block will last for 60 seconds.
 
 Dynamic blocks in force are displayed with `showDynBlocks()` and can be cleared
 with `clearDynBlocks()`. Full set of `exceed` functions is listed in the table of
-all functions below.
+all functions below. They return a table whose key is a `ComboAddress` object,
+representing the client's source address, and whose value is an integer representing
+the number of queries matching the corresponding condition (for example the
+`qtype` for `exceedQTypeRate()`, `rcode` for `exceedServFails()`).
 
 Dynamic blocks drop matched queries by default, but this behavior can be changed
 with `setDynBlocksAction()`. For example, to send a REFUSED code instead of droppping
@@ -855,8 +860,15 @@ The first parameter is the maximum number of entries stored in the cache, and is
 only one required. All the others parameters are optional and in seconds.
 The second one is the maximum lifetime of an entry in the cache, the third one is
 the minimum TTL an entry should have to be considered for insertion in the cache,
-the fourth one is the TTL used for a Server Failure response. The last one is the
-TTL that will be used when a stale cache entry is returned.
+the fourth one is the TTL used for a Server Failure or a Refused response. The last
+one is the TTL that will be used when a stale cache entry is returned.
+For performance reasons the cache will pre-allocate buckets based on the maximum number
+of entries, so be careful to set the first parameter to a reasonable value. Something
+along the lines of a dozen bytes per pre-allocated entry can be expected on 64-bit.
+That does not mean that the memory is completely allocated up-front, the final memory
+usage depending mostly on the size of cached responses and therefore varying during the
+cache's lifetime. Assuming an average response size of 512 bytes, a cache size of
+10000000 entries on a 64-bit host with 8GB of dedicated RAM would be a safe choice.
 
 The `setStaleCacheEntriesTTL(n)` directive can be used to allow `dnsdist` to use
 expired entries from the cache when no backend is available. Only entries that have
@@ -1428,7 +1440,7 @@ instantiate a server with additional parameters
     * `expunge(n)`: remove entries from the cache, leaving at most `n` entries
     * `expungeByName(DNSName [, qtype=ANY])`: remove entries matching the supplied DNSName and type from the cache
     * `isFull()`: return true if the cache has reached the maximum number of entries
-    * `newPacketCache(maxEntries[, maxTTL=86400, minTTL=0, servFailTTL=60, staleTTL=60])`: return a new PacketCache
+    * `newPacketCache(maxEntries[, maxTTL=86400, minTTL=0, temporaryFailureTTL=60, staleTTL=60])`: return a new PacketCache
     * `printStats()`: print the cache stats (hits, misses, deferred lookups and deferred inserts)
     * `purgeExpired(n)`: remove expired entries from the cache until there is at most `n` entries remaining in the cache
     * `toString()`: return the number of entries in the Packet Cache, and the maximum number of entries

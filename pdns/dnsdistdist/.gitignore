@@ -23,6 +23,7 @@
 /ext/yahttp/yahttp/Makefile
 /ext/yahttp/yahttp/Makefile.in
 /htmlfiles.h
+/htmlfiles.h.tmp
 /install-sh
 /libtool
 /ltmain.sh

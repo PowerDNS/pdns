@@ -106,7 +106,7 @@ try
     throw runtime_error("Unable to receive notification response from PowerDNS: "+stringerror());
 
   string packet(buffer, len);
-  MOADNSParser mdp(packet);
+  MOADNSParser mdp(false, packet);
 
   cerr<<"Received notification response with error: "<<RCode::to_s(mdp.d_header.rcode)<<endl;
   cerr<<"For: '"<<mdp.d_qname<<"'"<<endl;

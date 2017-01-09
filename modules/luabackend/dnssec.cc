@@ -72,7 +72,7 @@ bool LUABackend::updateDNSSECOrderAndAuth(uint32_t domain_id, const DNSName& zon
     return ok;
 }
 
-bool LUABackend::updateDNSSECOrderNameAndAuth(unsigned int, DNSName const&, DNSName const&, DNSName const&, bool, unsigned short)
+bool LUABackend::updateDNSSECOrderNameAndAuth(unsigned int, DNSName const&, DNSName const&, bool, unsigned short)
 {
   return false;
 }
@@ -114,7 +114,7 @@ bool LUABackend::updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const DNSN
     return ok;
 }
 
-bool LUABackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, DNSName& unhashed, std::string& before, std::string& after) {
+bool LUABackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) {
 
     if(f_lua_getbeforeandafternamesabsolute == 0)
 	return false;
@@ -129,7 +129,7 @@ bool LUABackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_updatednssecorderandauthabsolute);
 
     lua_pushinteger(lua, id);
-    lua_pushstring(lua, qname.c_str());
+    lua_pushstring(lua, qname.toString().c_str());
 
     if(lua_pcall(lua, 2, 3, f_lua_exec_error) != 0) {
         string e = backend_name + lua_tostring(lua, -1);
@@ -156,13 +156,13 @@ bool LUABackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& 
     returnedwhat = lua_type(lua, -1);
     ok = (returnedwhat == LUA_TSTRING) && ok;
     
-    before = lua_tostring(lua, -1);
+    before = DNSName(lua_tostring(lua, -1));
     lua_pop(lua, 1);
 
     returnedwhat = lua_type(lua, -1);
     ok = (returnedwhat == LUA_TSTRING) && ok;
     
-    after = lua_tostring(lua, -1);
+    after = DNSName(lua_tostring(lua, -1));
     lua_pop(lua, 1);
 
     if(logging)

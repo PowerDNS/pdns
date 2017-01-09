@@ -90,7 +90,7 @@ try
     throw runtime_error("reading packet from remote: "+stringerror());
     
   string packet(buffer, res);
-  MOADNSParser mdp(packet);
+  MOADNSParser mdp(true, packet);
   nif.domain = mdp.d_qname;
   nif.origID = mdp.d_header.id;
 
@@ -160,7 +160,7 @@ try
     throw runtime_error("reading packet from remote: "+stringerror());
     
   string packet(buffer, len);
-  MOADNSParser mdp(packet);
+  MOADNSParser mdp(false, packet);
 
   //  cerr<<"Inside notification response for: "<<mdp.d_qname<<endl;
 

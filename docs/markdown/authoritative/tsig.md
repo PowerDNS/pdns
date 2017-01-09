@@ -12,7 +12,7 @@ where X is 224, 256, 384 or 512. The content is a Base64-encoded secret.
 
 **Note**: Most backends require DNSSEC support enabled to support TSIG. For the
 Generic SQL Backend make sure to use the DNSSEC enabled schema and to turn on
-the relevant '-dnssec' flag (for example, gmysql-dnssec)!
+the relevant '-dnssec' flag (for example, `gmysql-dnssec`)!
 
 ## Provisioning outbound AXFR access
 To actually provision a named secret permission to AXFR a zone, set a metadata
@@ -26,6 +26,13 @@ select id from domains where name='powerdnssec.org';
 insert into domainmetadata (domain_id, kind, content) values (5, 'TSIG-ALLOW-AXFR', 'test');
 
 $ dig -t axfr powerdnssec.org @127.0.0.1 -y 'test:kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
+```
+
+Another of importing and activating TSIG keys into the database is using [`pdnsutil`](../manpages/pdnsutil.1.md):
+
+```
+pdnsutil import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
+pdnsutil activate-tsig-key powerdnssec.org test master
 ```
 
 To ease interoperability, the equivalent configuration above in BIND would look like this:
@@ -61,6 +68,13 @@ insert into tsigkeys (name, algorithm, secret) values ('test', 'hmac-md5', 'kp4/
 select id from domains where name='powerdnssec.org';
 5
 insert into domainmetadata (domain_id, kind, content) values (5, 'AXFR-MASTER-TSIG', 'test');
+```
+
+This can also be done using [`pdnsutil`](../manpages/pdnsutil.1.md):
+
+```
+pdnsutil import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
+pdnsutil activate-tsig-key powerdnssec.org test slave
 ```
 
 This setup corresponds to the `TSIG-ALLOW-AXFR` access rule defined in the previous section.

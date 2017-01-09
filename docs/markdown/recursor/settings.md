@@ -616,6 +616,14 @@ In practice, caches can become saturated with hundreds of thousands of hosts
 which are tried only once. This setting, which defaults to 3600 seconds, puts a
 maximum on the amount of time negative entries are cached.
 
+## `max-recursion-depth`
+* Integer
+* Default: 40 (since 4.1.0), unlimited (before 4.1.0)
+
+Total maximum number of internal recursion calls the server may use to answer
+a single query. 0 means unlimited. The value of `stack-size` should be increased
+together with this one to prevent the stack from overflowing.
+
 ## `max-tcp-clients`
 * Integer
 * Default: 128
@@ -639,7 +647,7 @@ Maximum number of DNS queries in a TCP connection.
 * Integer
 * Default: 7000
 
-Total maximum number of miliseconds of wallclock time the servermay use to answer
+Total maximum number of miliseconds of wallclock time the server may use to answer
 a single query.
 
 ## `minimum-ttl-override`

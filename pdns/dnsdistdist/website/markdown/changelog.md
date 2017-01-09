@@ -1,3 +1,18 @@
+# 1.1.0
+Released December 29th 2016
+
+Changes since 1.1.0-beta2:
+
+## Improvements
+
+ * [#4783](https://github.com/PowerDNS/pdns/pull/4783): Add -latomic on powerpc 
+ * [#4812](https://github.com/PowerDNS/pdns/pull/4812): Handle header-only responses, handle Refused as Servfail in the cache
+
+## Bug fixes
+
+ * [#4762](https://github.com/PowerDNS/pdns/pull/4762): SuffixMatchNode: Fix an insertion issue for an existing node 
+ * [#4772](https://github.com/PowerDNS/pdns/pull/4772): Fix dnsdist initscript config check 
+
 # 1.1.0-beta2
 Released December 14th 2016
 

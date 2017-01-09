@@ -250,29 +250,29 @@ bool rectifyZone(DNSSECKeeper& dk, const DNSName& zone)
     if(haveNSEC3) // NSEC3
     {
       if(!narrow && nsec3set.count(qname)) {
-        ordername=DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, qname))) + zone;
+        ordername=DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, qname)));
         if(!realrr)
           auth=true;
       } else if(!realrr)
         auth=false;
     }
     else if (realrr) // NSEC
-      ordername=qname;
+      ordername=qname.makeRelative(zone);
 
     if(g_verbose)
       cerr<<"'"<<qname<<"' -> '"<< ordername <<"'"<<endl;
-    sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, zone, qname, ordername, auth);
+    sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, auth);
 
     if(realrr)
     {
       if (dsnames.count(qname))
-        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, zone, qname, ordername, true, QType::DS);
+        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, true, QType::DS);
       if (!auth || nsset.count(qname)) {
         ordername.clear();
         if(isOptOut && !dsnames.count(qname))
-          sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, zone, qname, ordername, false, QType::NS);
-        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, zone, qname, ordername, false, QType::A);
-        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, zone, qname, ordername, false, QType::AAAA);
+          sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, false, QType::NS);
+        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, false, QType::A);
+        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, false, QType::AAAA);
       }
 
       if(doent)
@@ -312,7 +312,7 @@ bool rectifyZone(DNSSECKeeper& dk, const DNSName& zone)
     //cerr<<"Total: "<<nonterm.size()<<" Insert: "<<insnonterm.size()<<" Delete: "<<delnonterm.size()<<endl;
     if(!insnonterm.empty() || !delnonterm.empty() || !doent)
     {
-      sd.db->updateEmptyNonTerminals(sd.domain_id, zone, insnonterm, delnonterm, !doent);
+      sd.db->updateEmptyNonTerminals(sd.domain_id, insnonterm, delnonterm, !doent);
     }
     if(doent)
     {
@@ -772,7 +772,7 @@ int increaseSerial(const DNSName& zone, DNSSECKeeper &dk)
       ordername=zone;
     if(g_verbose)
       cerr<<"'"<<rrs[0].qname<<"' -> '"<< ordername <<"'"<<endl;
-    sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, zone, rrs[0].qname, ordername, true);
+    sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, rrs[0].qname, ordername, true);
   }
 
   sd.db->commitTransaction();
@@ -883,6 +883,7 @@ int listZone(const DNSName &zone) {
   }
   di.backend->list(zone, di.id);
   DNSResourceRecord rr;
+  cout<<"$ORIGIN ."<<endl;
   while(di.backend->get(rr)) {
     if(rr.qtype.getCode()) {
       if ( (rr.qtype.getCode() == QType::NS || rr.qtype.getCode() == QType::SRV || rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::CNAME) && !rr.content.empty() && rr.content[rr.content.size()-1] != '.') 

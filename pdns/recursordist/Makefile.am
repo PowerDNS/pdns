@@ -48,6 +48,7 @@ EXTRA_DIST = \
 	kqueuemplexer.cc \
 	lua_hpp.mk \
 	malloctrace.cc malloctrace.hh \
+	mkpubsuffixcc \
 	mtasker.cc \
 	mtasker_fcontext.cc mtasker_ucontext.cc \
 	opensslsigners.hh opensslsigners.cc \

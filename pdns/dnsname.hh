@@ -53,7 +53,7 @@ uint32_t burtleCI(const unsigned char* k, uint32_t lengh, uint32_t init);
    NOTE: For now, everything MUST be . terminated, otherwise it is an error
 */
 
-inline char dns2_tolower(char c)
+inline unsigned char dns2_tolower(unsigned char c)
 {
   if(c>='A' && c<='Z')
     return c+('a'-'A');
@@ -125,7 +125,7 @@ public:
   {
     return std::lexicographical_compare(d_storage.rbegin(), d_storage.rend(), 
 				 rhs.d_storage.rbegin(), rhs.d_storage.rend(),
-				 [](const char& a, const char& b) {
+				 [](const unsigned char& a, const unsigned char& b) {
 					  return dns2_tolower(a) < dns2_tolower(b); 
 					}); // note that this is case insensitive, including on the label lengths
   }
@@ -189,7 +189,7 @@ inline bool DNSName::canonCompare(const DNSName& rhs) const
 					  d_storage.c_str() + ourpos[ourcount] + 1 + *(d_storage.c_str() + ourpos[ourcount]),
 					  rhs.d_storage.c_str() + rhspos[rhscount] + 1, 
 					  rhs.d_storage.c_str() + rhspos[rhscount] + 1 + *(rhs.d_storage.c_str() + rhspos[rhscount]),
-					  [](const char& a, const char& b) {
+					  [](const unsigned char& a, const unsigned char& b) {
 					    return dns2_tolower(a) < dns2_tolower(b); 
 					  });
     
@@ -201,7 +201,7 @@ inline bool DNSName::canonCompare(const DNSName& rhs) const
 					  rhs.d_storage.c_str() + rhspos[rhscount] + 1 + *(rhs.d_storage.c_str() + rhspos[rhscount]),
 					  d_storage.c_str() + ourpos[ourcount] + 1, 
 					  d_storage.c_str() + ourpos[ourcount] + 1 + *(d_storage.c_str() + ourpos[ourcount]),
-					  [](const char& a, const char& b) {
+					  [](const unsigned char& a, const unsigned char& b) {
 					    return dns2_tolower(a) < dns2_tolower(b); 
 					  });
     //    cout<<"Reverse: "<<res<<endl;
@@ -256,7 +256,12 @@ struct SuffixMatchNode
       endNode=true;
     }
     else if(labels.size()==1) {
-      children.insert(SuffixMatchNode(*labels.begin(), true));
+      auto res=children.insert(SuffixMatchNode(*labels.begin(), true));
+      if(!res.second) {
+        if(!res.first->endNode) {
+          res.first->endNode = true;
+        }
+      }
     }
     else {
       auto res=children.insert(SuffixMatchNode(*labels.rbegin(), false));

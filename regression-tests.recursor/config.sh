@@ -118,6 +118,7 @@ not-auth-zone.example.net. 3600 IN NS ns.not-auth-zone.example.net.
 ns.not-auth-zone.example.net. 3600 IN A $PREFIX.23
 lowercase-outgoing.example.net. 3600 IN NS ns.lowercase-outgoing.example.net.
 ns.lowercase-outgoing.example.net. 3600 IN A $PREFIX.24
+nxdomainme.example.net.            3600 IN A $PREFIX.25
 EOF
 
 mkdir $PREFIX.11
@@ -598,6 +599,10 @@ function prerpz(dq)
 end
 
 function preresolve(dq)
+  if dq.qname:equal("nxdomainme.example.net") then
+    dq.rcode = pdns.NXDOMAIN
+    return true
+  end
   if dq.qname:equal("android.marvin.example.net") then
     dq.wantsRPZ = false -- disable RPZ
   end

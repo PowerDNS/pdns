@@ -235,14 +235,14 @@ inline bool dns_isspace(char c)
   return c==' ' || c=='\t' || c=='\r' || c=='\n';
 }
 
-inline char dns_tolower(char c)
+inline unsigned char dns_tolower(unsigned char c)
 {
   if(c>='A' && c<='Z')
     c+='a'-'A';
   return c;
 }
 
-inline char dns_toupper(char c)
+inline unsigned char dns_toupper(unsigned char c)
 {
   if(c>='a' && c<='z')
     c+='A'-'a';
@@ -266,7 +266,7 @@ inline const string toLowerCanonic(const string &upper)
   string reply(upper);
   if(!upper.empty()) {
     unsigned int i, limit= ( unsigned int ) reply.length();
-    char c;
+    unsigned char c;
     for(i = 0; i < limit ; i++) {
       c = dns_tolower(upper[i]);
       if(c != upper[i])
