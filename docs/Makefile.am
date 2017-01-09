@@ -24,41 +24,36 @@ MANPAGES_TARGET_TOOLS += dnsbulktest.1 \
 	dnstcpbench.1
 endif
 
+
 if HAVE_PROTOBUF
 if HAVE_PROTOC
 MANPAGES_TARGET_TOOLS += dnspcap2protobuf.1
 endif
 endif
 
-EXTRA_DIST = manpages markdown/*.md markdown/appendix markdown/authoritative markdown/common markdown/httpapi markdown/recursor markdown/security markdown/tools $(MANPAGES_TARGET_AUTH) $(MANPAGES_TARGET_TOOLS)
 
-# Figure out the manpages to build/install
 MANPAGES_TARGET_ALL=$(MANPAGES_TARGET_AUTH)
-man_MANS = $(MANPAGES_TARGET_AUTH)
 
 if TOOLS
 MANPAGES_TARGET_ALL += $(MANPAGES_TARGET_TOOLS)
-man_MANS += $(MANPAGES_TARGET_TOOLS)
 endif
 
-all-manpages: $(MANPAGES_TARGET_ALL)
 
-# If we can't rebuild the manpages, don't allow creation or deletion
+# The manpages to distribute and install are only those for the
+# auth server and tools. For the recursor and dnsdist tarballs,
+# the respective dist- scripts will take care of this
 if HAVE_PANDOC
-$(MANPAGES_TARGET_ALL): %: manpages/%.md
-	$(PANDOC) -s -t man $< -o $@
-
-clean:
-	rm -rf html html.tar.bz2 *.8 *.1
-else
-if !HAVE_MANPAGES
-$(MANPAGES_TARGET_ALL):
-	echo "You need pandoc to generate the manpages"
-	exit 1
+dist_man_MANS = $(MANPAGES_TARGET_ALL)
 endif
+if HAVE_MANPAGES
+dist_man_MANS = $(MANPAGES_TARGET_ALL)
 endif
 
-# HTML documentation
+EXTRA_DIST = manpages markdown/*.md markdown/appendix markdown/authoritative markdown/common markdown/httpapi markdown/recursor markdown/security markdown/tools
+
+
+.PHONY: html all-manpages
+
 html: html/index.html
 
 if FROM_GIT
@@ -85,4 +80,19 @@ html/index.html:
 	@echo "supported from a git checkout"
 endif
 
-.PHONY: html all-manpages
+all-manpages: $(MANPAGES_TARGET_ALL)
+
+if HAVE_PANDOC
+$(MANPAGES_TARGET_ALL): %: manpages/%.md
+	$(PANDOC) -s -t man $< -o $@
+
+clean:
+	rm -rf html html.tar.bz2 *.1
+else
+$(MANPAGES_TARGET_ALL):
+	echo "You need pandoc to generate the manpages"
+	exit 1
+
+clean:
+	rm -rf html html.tar.bz2
+endif
