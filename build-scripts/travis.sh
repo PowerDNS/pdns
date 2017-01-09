@@ -240,8 +240,8 @@ install_auth() {
     jq"
 
   run "cd .."
-  run "wget https://www.verisignlabs.com/dnssec-tools/packages/jdnssec-tools-0.12.tar.gz"
-  run "sudo tar xfz jdnssec-tools-0.12.tar.gz --strip-components=1 -C /"
+  run "wget https://www.verisignlabs.com/dnssec-tools/packages/jdnssec-tools-0.13.tar.gz"
+  run "sudo tar xfz jdnssec-tools-0.13.tar.gz --strip-components=1 -C /"
   run "cd pdns"
 
   # pkcs11 test requirements / setup
