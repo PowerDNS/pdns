@@ -531,7 +531,7 @@ void mainthread()
   if(::arg().mustDo("webserver") || ::arg().mustDo("api"))
     webserver.go();
 
-  if(::arg().mustDo("slave") || ::arg().mustDo("master"))
+  if(::arg().mustDo("slave") || ::arg().mustDo("master") || !::arg()["forward-notify"].empty())
     Communicator.go(); 
 
   if(!::arg()["experimental-lua-policy-script"].empty()){

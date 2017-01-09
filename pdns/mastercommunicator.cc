@@ -49,38 +49,24 @@ void CommunicatorClass::queueNotifyDomain(const DNSName &domain, UeberBackend *B
   DNSResourceRecord rr;
   FindNS fns;
 
-  if(!::arg()["forward-notify"].empty()) {
-    vector<string>forwards;
-    stringtok(forwards,::arg()["forward-notify"]," ,");
-    for(vector<string>::const_iterator k=forwards.begin();k!=forwards.end();++k) {
-      try {
-        const ComboAddress caIp(*k, 53);
-        ips.insert(caIp.toStringWithPort());
-      }
-      catch(PDNSException &e) {
-        L<<Logger::Warning<<"Unparseable IP in FORWARD-NOTIFY for domain '"<<domain<<"'. Warning: "<<e.reason<<endl;
-      }
-    }
-  } else {
-    B->lookup(QType(QType::NS),domain);
-    while(B->get(rr))
-      nsset.insert(rr.content);
+  B->lookup(QType(QType::NS),domain);
+  while(B->get(rr))
+    nsset.insert(rr.content);
 
-    for(set<string>::const_iterator j=nsset.begin();j!=nsset.end();++j) {
-      vector<string> nsips=fns.lookup(DNSName(*j), B);
-      if(nsips.empty())
-        L<<Logger::Warning<<"Unable to queue notification of domain '"<<domain<<"': nameservers do not resolve!"<<endl;
-      else
-        for(vector<string>::const_iterator k=nsips.begin();k!=nsips.end();++k) {
-          const ComboAddress caIp(*k, 53);
-          if(!d_preventSelfNotification || !AddressIsUs(caIp)) {
-            if(!d_onlyNotify.match(&caIp))
-              L<<Logger::Info<<"Skipped notification of domain '"<<domain<<"' to "<<*j<<" because it does not match only-notify."<<endl;
-            else
-              ips.insert(caIp.toStringWithPort());
-          }
+  for(set<string>::const_iterator j=nsset.begin();j!=nsset.end();++j) {
+    vector<string> nsips=fns.lookup(DNSName(*j), B);
+    if(nsips.empty())
+      L<<Logger::Warning<<"Unable to queue notification of domain '"<<domain<<"': nameservers do not resolve!"<<endl;
+    else
+      for(vector<string>::const_iterator k=nsips.begin();k!=nsips.end();++k) {
+        const ComboAddress caIp(*k, 53);
+        if(!d_preventSelfNotification || !AddressIsUs(caIp)) {
+          if(!d_onlyNotify.match(&caIp))
+            L<<Logger::Info<<"Skipped notification of domain '"<<domain<<"' to "<<*j<<" because it does not match only-notify."<<endl;
+          else
+            ips.insert(caIp.toStringWithPort());
         }
-    }
+      }
   }
 
   for(set<string>::const_iterator j=ips.begin();j!=ips.end();++j) {

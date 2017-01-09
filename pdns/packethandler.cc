@@ -53,6 +53,8 @@
  
 AtomicCounter PacketHandler::s_count;
 NetmaskGroup PacketHandler::s_allowNotifyFrom;
+set<string> PacketHandler::s_forwardNotify;
+
 extern string s_programname;
 
 PacketHandler::PacketHandler():B(s_programname), d_dk(&B)
@@ -891,19 +893,8 @@ int PacketHandler::processNotify(DNSPacket *p)
   di.backend = 0;
 
   if(!::arg()["forward-notify"].empty()) {
-    vector<string>forwards;
-    set<string> ips;
-    stringtok(forwards,::arg()["forward-notify"]," ,");
-    for(vector<string>::const_iterator k=forwards.begin();k!=forwards.end();++k) {
-      try {
-        ComboAddress remote(*k, 53);
-        ips.insert(remote.toStringWithPort());
-      }
-      catch(PDNSException &e) {
-        L<<Logger::Error<<"Error trying to renotify "<<p->qdomain<<" from "<<p->getRemote()<<" to "<<*k<<" reason: "<<e.reason<<endl;
-      }
-    }
-    for(set<string>::const_iterator j=ips.begin();j!=ips.end();++j) {
+    set<string> forwardNotify(s_forwardNotify);
+    for(set<string>::const_iterator j=forwardNotify.begin();j!=forwardNotify.end();++j) {
       L<<Logger::Warning<<"Relaying notification of domain "<<p->qdomain<<" from "<<p->getRemote()<<" to "<<*j<<endl;
       Communicator.notify(p->qdomain,*j);
     }
