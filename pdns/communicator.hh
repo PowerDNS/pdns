@@ -275,7 +275,7 @@ private:
     struct addrinfo* res;
     struct addrinfo hints;
     memset(&hints, 0, sizeof(hints));
-
+    hints.ai_socktype = SOCK_DGRAM; // otherwise we get everything in triplicate (!)
     for(int n = 0; n < 2; ++n) {
       hints.ai_family = n ? AF_INET : AF_INET6;
       ComboAddress remote;
