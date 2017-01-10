@@ -92,7 +92,7 @@ void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, c
   try {
     DNSSECKeeper dk (&B); // reuse our UeberBackend copy for DNSSECKeeper
 
-    if(!B.getDomainInfo(domain, di) || !di.backend) { // di.backend and B are mostly identical
+    if(!B.getDomainInfo(domain, di) || !di.backend || di.kind != DomainInfo::Slave) { // di.backend and B are mostly identical
       L<<Logger::Error<<"Can't determine backend for domain '"<<domain<<"'"<<endl;
       return;
     }
@@ -301,7 +301,7 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
   try {
     DNSSECKeeper dk (&B); // reuse our UeberBackend copy for DNSSECKeeper
 
-    if(!B.getDomainInfo(domain, di) || !di.backend) { // di.backend and B are mostly identical
+    if(!B.getDomainInfo(domain, di) || !di.backend || di.kind != DomainInfo::Slave) { // di.backend and B are mostly identical
       L<<Logger::Error<<"Can't determine backend for domain '"<<domain<<"'"<<endl;
       return;
     }
