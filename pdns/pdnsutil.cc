@@ -638,7 +638,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
 
   for(const auto &i: tlsas) {
     DNSName name = DNSName(i);
-    name.trimToLabels(name.getRawLabels().size()-2);
+    name.trimToLabels(name.countLabels()-2);
     if (cnames.find(name) == cnames.end() && noncnames.find(name) == noncnames.end()) {
       // No specific record for the name in the TLSA record exists, this
       // is already worth emitting a warning. Let's see if a wildcard exist.
