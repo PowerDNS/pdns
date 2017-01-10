@@ -173,9 +173,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
 
       s.bind(local);
         
-      ComboAddress remote = ip;
-      remote.sin4.sin_port = htons(53);      
-      s.connect(remote);
+      s.connect(ip);
       
       uint16_t tlen=htons(vpacket.size());
       char *lenP=(char*)&tlen;
