@@ -51,7 +51,7 @@ public:
     ECCGOST=12,
     ECDSA256=13,
     ECDSA384=14,
-    EXPERIMENTALED25519=250
+    ED25519=15
   };
 
   struct KeyMetaData
@@ -91,7 +91,7 @@ public:
     if (!algorithm.compare("gost")) return ECCGOST;
     if (!algorithm.compare("ecdsa256")) return ECDSA256;
     if (!algorithm.compare("ecdsa384")) return ECDSA384;
-    if (!algorithm.compare("experimental-ed25519")) return EXPERIMENTALED25519;
+    if (!algorithm.compare("ed25519")) return ED25519;
     return -1;
   }
 
@@ -124,8 +124,8 @@ public:
         return "ECDSAP256SHA256";
       case ECDSA384:
         return "ECDSAP384SHA384";
-      case EXPERIMENTALED25519:
-        return "ED25519SHA512";
+      case ED25519:
+        return "ED25519";
       case 252:
         return "INDIRECT";
       case 253:
