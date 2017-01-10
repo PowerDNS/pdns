@@ -53,8 +53,7 @@ clean:
 else
 if !HAVE_MANPAGES
 $(MANPAGES_TARGET_ALL):
-	echo "You need pandoc to generate the manpages"
-	exit 1
+	@echo "Pandoc is required to build $@"
 endif
 endif
 
