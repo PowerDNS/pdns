@@ -252,7 +252,7 @@ This release features many low-level performance fixes. Other notable changes si
 ### Improvements
 
 - [#3435](https://github.com/PowerDNS/pdns/pull/3435) Add `toStringNoDot` and `chopOff` functions to Lua
-- [#3437](https://github.com/PowerDNS/pdns/pull/3352) Add `pdns.now` timeval struct to recursor Lua
+- [#3437](https://github.com/PowerDNS/pdns/pull/3437) Add `pdns.now` timeval struct to recursor Lua
 - [#3352](https://github.com/PowerDNS/pdns/pull/3352) Cache improvements
 - [#3502](https://github.com/PowerDNS/pdns/pull/3502) Make second argument to pdnslog optional (Thiago Farina)
 - [#3520](https://github.com/PowerDNS/pdns/pull/3520) Reduce log level of periodic statistics to notice (Jan Broers)
@@ -375,9 +375,9 @@ Released May 11th 2016
 Notable changes since 4.0.0-alpha2
 
 - [#3415](https://github.com/PowerDNS/pdns/pull/3415) pdnsutil: add clear-zone command
-- [#3586](https://github.com/PowerDNS/pdns/pull/3415) Remove send-root-referral option
-- [#3578](https://github.com/PowerDNS/pdns/pull/3415) Add disable-syslog option
-- [#3733](https://github.com/PowerDNS/pdns/pull/3415) ALIAS improvements: DNSSEC and optional on-AXFR expansion of records
+- [#3586](https://github.com/PowerDNS/pdns/pull/3586) Remove send-root-referral option
+- [#3578](https://github.com/PowerDNS/pdns/pull/3578) Add disable-syslog option
+- [#3733](https://github.com/PowerDNS/pdns/pull/3733) ALIAS improvements: DNSSEC and optional on-AXFR expansion of records
 - [#3764](https://github.com/PowerDNS/pdns/pull/3764) Notify support for systemd
 - [#3807](https://github.com/PowerDNS/pdns/pull/3807) Add TTL settings for DNSSECKeeper's caches
 
@@ -399,7 +399,7 @@ Notable changes since 4.0.0-alpha2
 - [#3637](https://github.com/PowerDNS/pdns/pull/3637), [#3678](https://github.com/PowerDNS/pdns/pull/3678), [#3740](https://github.com/PowerDNS/pdns/pull/3740) Correct root-zone slaving and serving (Kees Monshouwer and others)
 - [#3495](https://github.com/PowerDNS/pdns/pull/3495) API: Add discovery endpoint (Christian Hofstaedtler)
 - [#3389](https://github.com/PowerDNS/pdns/pull/3389) pdnsutil: support chroot
-- [#3596](https://github.com/PowerDNS/pdns/pull/3396) Remove botan-based ecdsa and rsa signers (Kees Monshouwer)
+- [#3596](https://github.com/PowerDNS/pdns/pull/3596) Remove botan-based ecdsa and rsa signers (Kees Monshouwer)
 - [#3478](https://github.com/PowerDNS/pdns/pull/3478), [#3603](https://github.com/PowerDNS/pdns/pull/3603), [#3628](https://github.com/PowerDNS/pdns/pull/3628) Various build system improvements (Ruben Kerkhof)
 - [#3621](https://github.com/PowerDNS/pdns/pull/3621) Always lowercase when inserting into the database
 - [#3651](https://github.com/PowerDNS/pdns/pull/3651) Rename PUBLISH\_\* to PUBLISH-\* domainmetadata
@@ -409,7 +409,7 @@ Notable changes since 4.0.0-alpha2
 - [#3720](https://github.com/PowerDNS/pdns/pull/3720) Many fixes for dnswasher (Robert Edmonds)
 - [#3707](https://github.com/PowerDNS/pdns/pull/3707), [#3788](https://github.com/PowerDNS/pdns/pull/3788) Make MySQL timeout configurable (Kees Monshouwer and Brynjar Eide)
 - [#3806](https://github.com/PowerDNS/pdns/pull/3806) Move key validity check out of `fromISCMap()`, improves DNSSEC performance
-- [#3820](https://github.com/PowerDNS/pdns/pull/3806) pdnsutil load-zone: ignore double SOA
+- [#3820](https://github.com/PowerDNS/pdns/pull/3820) pdnsutil load-zone: ignore double SOA
 
 ## PowerDNS Authoritative Server 4.0.0-alpha2
 Released February 25th 2016
