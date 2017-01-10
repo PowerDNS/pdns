@@ -236,7 +236,7 @@ pair<unsigned int, unsigned int> DNSCryptoKeyEngine::testMakers(unsigned int alg
   unsigned int bits;
   if(algo <= 10)
     bits=1024;
-  else if(algo == 12 || algo == 13 || algo == 250) // ECC-GOST or ECDSAP256SHA256 or ED25519SHA512
+  else if(algo == 12 || algo == 13 || algo == 15) // ECC-GOST or ECDSAP256SHA256 or ED25519
     bits=256;
   else if(algo == 14) // ECDSAP384SHA384
     bits = 384;

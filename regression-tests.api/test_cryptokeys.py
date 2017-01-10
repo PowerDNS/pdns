@@ -177,7 +177,7 @@ class Cryptokeys(ApiTestCase):
         self.assertIn("The algorithm does not support the given bit size.", r.json()['error'])
 
     def test_post_can_not_guess_key_size(self):
-        r = self.add_key(algo=15)
+        r = self.add_key(algo=17)
         self.assert_error_json(r)
         self.assertEquals(r.status_code,422)
         self.assertIn("Can not guess key size for algorithm", r.json()['error'])

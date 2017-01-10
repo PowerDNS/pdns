@@ -1991,7 +1991,7 @@ try
     cout<<"add-zone-key ZONE {zsk|ksk} [BITS] [active|inactive]"<<endl;
     cout<<"             [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384";
 #ifdef HAVE_LIBSODIUM
-    cout<<"|experimental-ed25519";
+    cout<<"|ed25519";
 #endif
     cout<<"]"<<endl;
     cout<<"                                   Add a ZSK or KSK to zone and specify algo&bits"<<endl;
@@ -2827,7 +2827,7 @@ loadMainConfig(g_vm["config-dir"].as<string>());
       if(algorithm <= 10)
         bits = keyOrZone ? 2048 : 1024;
       else {
-        if(algorithm == 12 || algorithm == 13 || algorithm == 250) // ECDSA, GOST, ED25519
+        if(algorithm == 12 || algorithm == 13 || algorithm == 15) // ECDSA, GOST, ED25519
           bits = 256;
         else if(algorithm == 14)
           bits = 384;
