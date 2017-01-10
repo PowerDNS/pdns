@@ -116,7 +116,8 @@ If sending carbon updates, if set, this will override our hostname. Be careful n
 * Available since: 3.3.1
 
 Send all available metrics to this server via the carbon protocol, which is used
-by graphite and metronome. You may specify an alternate port by appending :port, 
+by graphite and metronome. It has to be an address (no hostnames). 
+You may specify an alternate port by appending :port, 
 ex: 127.0.0.1:2004. See 
 ["PowerDNS Metrics"](../common/logging.md#sending-to-carbongraphitemetronome).
 
