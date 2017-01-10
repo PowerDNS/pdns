@@ -665,7 +665,7 @@ bool RecursorLua4::genhook(luacall_t& func, DNSQuestion& dq, int& ret)
   dq.udpCallback.clear();
 
   dq.rcode = ret;
-  bool handled=func(dq);
+  bool handled=func(&dq);
 
   if(handled) {
 loop:;
@@ -688,7 +688,7 @@ loop:;
           theL()<<Logger::Error<<"Attempted callback for Lua UDP Query/Response which could not be found"<<endl;
           return false;
         }
-        bool result=func(dq);
+        bool result=func(&dq);
         if(!result) {
           return false;
         }
