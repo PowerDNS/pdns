@@ -140,7 +140,7 @@ void declareArguments()
   ::arg().setSwitch("query-logging","Hint backends that queries should be logged")="no";
 
   ::arg().set("carbon-ourname", "If set, overrides our reported hostname for carbon stats")="";
-  ::arg().set("carbon-server", "If set, send metrics in carbon (graphite) format to this server")="";
+  ::arg().set("carbon-server", "If set, send metrics in carbon (graphite) format to this server IP address")="";
   ::arg().set("carbon-interval", "Number of seconds between carbon (graphite) updates")="30";
 
   ::arg().set("cache-ttl","Seconds to store packets in the PacketCache")="20";
