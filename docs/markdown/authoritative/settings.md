@@ -588,15 +588,18 @@ This is the server ID that will be returned on an EDNS NSID query.
 For type=MASTER zones (or SLAVE zones with slave-renotify enabled) PowerDNS
 automatically sends NOTIFYs to the name servers specified in the NS records.
 By specifying networks/mask as whitelist, the targets can be limited. The default
-is to notify the world. To completely disable these NOTIFYs set only-notify to an
-empty value. Independent of this setting, the IP addresses or netmasks in
-[`also-notify`](#also-notify) or ALSO-NOTIFY metadata always receive AXFR NOTIFY.
+is to notify the world. To completely disable these NOTIFYs set `only-notify` to an
+empty value. Independent of this setting, the IP addresses or netmasks configured
+with [`also-notify`](#also-notify) and `ALSO-NOTIFY` domain metadata always receive
+AXFR NOTIFYs.
 
 Note: Even if NOTIFYs are limited by a netmask, PowerDNS first has to resolve all the
-hostnames to get IP addresses. Thus, PowerDNS relies on DNS. If the respective
-authoritative name servers are slow, PowerDNS becomes slow too. To avoid this, set
-only-notify to an empty value and specify the notification targets with ALSO-NOTIFY
-and also-notify.
+hostnames to check their IP addresses against the specfied whitelist. The resolving
+may take considerable time, especially if those hostnames are slow to resolve. If you
+do not need to NOTIFY the slaves defined in the NS records (e.g. you are using another
+method to distribute the zone data to the slaves), then set `only-notify` to an empty
+value and specify the notification targets explicitely using [`also-notify`](#also-notify)
+and/or `ALSO-NOTIFY` domain metadata to avoid this potential bottleneck.
 
 ## `out-of-zone-additional-processing`
 * Boolean
