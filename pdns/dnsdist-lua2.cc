@@ -1160,4 +1160,9 @@ void moreLua(bool client)
       return std::shared_ptr<DNSRule>(new RDRule());
     });
 
+    g_lua.writeFunction("setWHashedPertubation", [](uint32_t pertub) {
+        setLuaSideEffect();
+        g_hashperturb = pertub;
+      });
+
 }

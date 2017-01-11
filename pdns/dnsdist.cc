@@ -610,7 +610,7 @@ shared_ptr<DownstreamState> wrandom(const NumberedServerVector& servers, const D
   return valrandom(random(), servers, dq);
 }
 
-static uint32_t g_hashperturb;
+uint32_t g_hashperturb;
 shared_ptr<DownstreamState> whashed(const NumberedServerVector& servers, const DNSQuestion* dq)
 {
   return valrandom(dq->qname->hash(g_hashperturb), servers, dq);
