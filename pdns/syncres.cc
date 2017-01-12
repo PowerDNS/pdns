@@ -74,6 +74,7 @@ bool SyncRes::s_nopacketcache;
 bool SyncRes::s_rootNXTrust;
 unsigned int SyncRes::s_maxqperq;
 unsigned int SyncRes::s_maxtotusec;
+unsigned int SyncRes::s_maxdepth;
 string SyncRes::s_serverID;
 SyncRes::LogMode SyncRes::s_lm;
 
@@ -182,7 +183,7 @@ int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qcl
 }
 
 //! This is the 'out of band resolver', in other words, the authoritative server
-bool SyncRes::doOOBResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, int depth, int& res)
+bool SyncRes::doOOBResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int& res)
 {
   string prefix;
   if(doLog()) {
@@ -402,7 +403,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
   return ret;
 }
 
-int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, int depth, set<GetBestNSAnswer>& beenthere)
+int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere)
 {
   string prefix;
   if(doLog()) {
@@ -411,6 +412,9 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
   }
 
   LOG(prefix<<qname<<": Wants "<< (d_doDNSSEC ? "" : "NO ") << "DNSSEC processing in query for "<<qtype.getName()<<endl);
+
+  if(s_maxdepth && depth > s_maxdepth)
+    throw ImmediateServFailException("More than "+std::to_string(s_maxdepth)+" (max-recursion-depth) levels of recursion needed while resolving "+qname.toLogString());
 
   int res=0;
   if(!(d_nocache && qtype.getCode()==QType::NS && qname.isRoot())) {
@@ -489,7 +493,7 @@ static bool ipv6First(const ComboAddress& a, const ComboAddress& b)
 
 /** This function explicitly goes out for A or AAAA addresses
 */
-vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, int depth, set<GetBestNSAnswer>& beenthere)
+vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth, set<GetBestNSAnswer>& beenthere)
 {
   typedef vector<DNSRecord> res_t;
   res_t res;
@@ -564,7 +568,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, int depth, set<GetB
   return ret;
 }
 
-void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vector<DNSRecord>& bestns, bool* flawedNSSet, int depth, set<GetBestNSAnswer>& beenthere)
+void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vector<DNSRecord>& bestns, bool* flawedNSSet, unsigned int depth, set<GetBestNSAnswer>& beenthere)
 {
   string prefix;
   DNSName subdomain(qname);
@@ -652,7 +656,7 @@ SyncRes::domainmap_t::const_iterator SyncRes::getBestAuthZone(DNSName* qname)
 }
 
 /** doesn't actually do the work, leaves that to getBestNSFromCache */
-DNSName SyncRes::getBestNSNamesFromCache(const DNSName &qname, const QType& qtype, NsSet& nsset, bool* flawedNSSet, int depth, set<GetBestNSAnswer>&beenthere)
+DNSName SyncRes::getBestNSNamesFromCache(const DNSName &qname, const QType& qtype, NsSet& nsset, bool* flawedNSSet, unsigned int depth, set<GetBestNSAnswer>&beenthere)
 {
   DNSName subdomain(qname);
   DNSName authdomain(qname);
@@ -683,7 +687,7 @@ DNSName SyncRes::getBestNSNamesFromCache(const DNSName &qname, const QType& qtyp
   return subdomain;
 }
 
-bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>& ret, int depth, int &res)
+bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>& ret, unsigned int depth, int &res)
 {
   string prefix;
   if(doLog()) {
@@ -742,7 +746,7 @@ static const DNSName getLastLabel(const DNSName& qname)
 }
 
 
-bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, int depth, int &res)
+bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int &res)
 {
   bool giveNegative=false;
 
@@ -959,7 +963,7 @@ static void addNXNSECS(vector<DNSRecord>&ret, const vector<DNSRecord>& records)
  */
 int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, const DNSName &qname, const QType &qtype,
                          vector<DNSRecord>&ret,
-                         int depth, set<GetBestNSAnswer>&beenthere)
+                         unsigned int depth, set<GetBestNSAnswer>&beenthere)
 {
   string prefix;
   if(doLog()) {
