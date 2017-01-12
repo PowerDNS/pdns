@@ -306,15 +306,15 @@ class MOADNSParser : public boost::noncopyable
 {
 public:
   //! Parse from a string
-  MOADNSParser(const string& buffer)  : d_tsigPos(0)
+  MOADNSParser(bool query, const string& buffer)  : d_tsigPos(0)
   {
-    init(buffer.c_str(), (unsigned int)buffer.size());
+    init(query, buffer.c_str(), (unsigned int)buffer.size());
   }
 
   //! Parse from a pointer and length
-  MOADNSParser(const char *packet, unsigned int len) : d_tsigPos(0)
+  MOADNSParser(bool query, const char *packet, unsigned int len) : d_tsigPos(0)
   {
-    init(packet, len);
+    init(query, packet, len);
   }
 
   dnsheader d_header;
@@ -340,7 +340,7 @@ public:
   }
 private:
   void getDnsrecordheader(struct dnsrecordheader &ah);
-  void init(const char *packet, unsigned int len);
+  void init(bool query, const char *packet, unsigned int len);
   vector<uint8_t> d_content;
   uint16_t d_tsigPos;
 };

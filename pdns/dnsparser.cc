@@ -142,7 +142,7 @@ shared_ptr<DNSRecordContent> DNSRecordContent::unserialize(const string& qname, 
   memcpy(&packet[pos], &drh, sizeof(drh)); pos+=sizeof(drh);
   memcpy(&packet[pos], serialized.c_str(), serialized.size()); pos+=(uint16_t)serialized.size();
 
-  MOADNSParser mdp((char*)&*packet.begin(), (unsigned int)packet.size());
+  MOADNSParser mdp(false, (char*)&*packet.begin(), (unsigned int)packet.size());
   shared_ptr<DNSRecordContent> ret= mdp.d_answers.begin()->first.d_content;
   ret->header.d_type=ret->d_qtype;
   ret->label=mdp.d_answers.begin()->first.d_label;
@@ -217,7 +217,7 @@ DNSRecordContent::zmakermap_t& DNSRecordContent::getZmakermap()
   return zmakermap;
 }
 
-void MOADNSParser::init(const char *packet, unsigned int len)
+void MOADNSParser::init(bool query, const char *packet, unsigned int len)
 {
   if(len < sizeof(dnsheader))
     throw MOADNSException("Packet shorter than minimal header");
@@ -232,6 +232,9 @@ void MOADNSParser::init(const char *packet, unsigned int len)
   d_header.nscount=ntohs(d_header.nscount);
   d_header.arcount=ntohs(d_header.arcount);
   
+  if (query && (d_header.qdcount > 1))
+    throw MOADNSException("Query with QD > 1 ("+lexical_cast<string>(d_header.qdcount)+")");
+
   uint16_t contentlen=len-sizeof(dnsheader);
 
   d_content.resize(contentlen);
@@ -275,7 +278,13 @@ void MOADNSParser::init(const char *packet, unsigned int len)
       dr.d_label=label;
       dr.d_clen=ah.d_clen;
 
-      dr.d_content=boost::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(dr, pr, d_header.opcode));
+      if (query && (dr.d_place == DNSRecord::Answer || dr.d_place == DNSRecord::Nameserver || (dr.d_type != QType::OPT && dr.d_type != QType::TSIG && dr.d_type != QType::SIG) || ((dr.d_type == QType::TSIG || dr.d_type == QType::SIG) && dr.d_class != QClass::ANY))) {
+        dr.d_content=boost::shared_ptr<DNSRecordContent>(new UnknownRecordContent(dr, pr));
+      }
+      else {
+        dr.d_content=boost::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(dr, pr, d_header.opcode));
+      }
+
       d_answers.push_back(make_pair(dr, pr.d_pos));
 
       if(dr.d_type == QType::TSIG && dr.d_class == 0xff) 
