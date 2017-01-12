@@ -45,7 +45,7 @@ bool g_verbose{true};
 
 static void validateQuery(const char * packet, size_t packetSize)
 {
-  MOADNSParser mdp(packet, packetSize);
+  MOADNSParser mdp(true, packet, packetSize);
 
   BOOST_CHECK_EQUAL(mdp.d_qname.toString(), "www.powerdns.com.");
 
@@ -57,7 +57,7 @@ static void validateQuery(const char * packet, size_t packetSize)
 
 static void validateResponse(const char * packet, size_t packetSize, bool hasEdns, uint8_t additionalCount=0)
 {
-  MOADNSParser mdp(packet, packetSize);
+  MOADNSParser mdp(false, packet, packetSize);
 
   BOOST_CHECK_EQUAL(mdp.d_qname.toString(), "www.powerdns.com.");
 
