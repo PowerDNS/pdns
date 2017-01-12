@@ -273,10 +273,10 @@ struct IDState
 };
 
 struct Rings {
-  Rings()
+  Rings(size_t capacity=10000)
   {
-    queryRing.set_capacity(10000);
-    respRing.set_capacity(10000);
+    queryRing.set_capacity(capacity);
+    respRing.set_capacity(capacity);
     pthread_rwlock_init(&queryLock, 0);
   }
   struct Query
@@ -306,6 +306,17 @@ struct Rings {
 
   std::unordered_map<int, vector<boost::variant<string,double> > > getTopBandwidth(unsigned int numentries);
   size_t numDistinctRequestors();
+  void setCapacity(size_t newCapacity) 
+  {
+    {
+      WriteLock wl(&queryLock);
+      queryRing.set_capacity(newCapacity);
+    }
+    {
+      std::lock_guard<std::mutex> lock(respMutex);
+      respRing.set_capacity(newCapacity);
+    }
+  }
 };
 
 extern Rings g_rings;

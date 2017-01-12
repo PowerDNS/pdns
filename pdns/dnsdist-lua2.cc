@@ -1128,4 +1128,14 @@ void moreLua(bool client)
         setLuaSideEffect();
         g_servFailOnNoPolicy = servfail;
       });
+
+    g_lua.writeFunction("setRingBuffersSize", [](size_t capacity) {
+        setLuaSideEffect();
+        if (g_configurationDone) {
+          errlog("setRingBuffersSize() cannot be used at runtime!");
+          g_outputBuffer="setRingBuffersSize() cannot be used at runtime!\n";
+          return;
+        }
+        g_rings.setCapacity(capacity);
+      });    
 }
