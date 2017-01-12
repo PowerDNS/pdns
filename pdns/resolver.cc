@@ -257,7 +257,7 @@ bool Resolver::tryGetSOASerial(DNSName *domain, uint32_t *theirSerial, uint32_t 
     throw ResolverException("recvfrom error waiting for answer: "+stringerror());
   }
 
-  MOADNSParser mdp((char*)buf, err);
+  MOADNSParser mdp(false, (char*)buf, err);
   *id=mdp.d_header.id;
   *domain = mdp.d_qname;
   
@@ -327,7 +327,7 @@ int Resolver::resolve(const string &ipport, const DNSName &domain, int type, Res
     if((len=recvfrom(sock, buffer, sizeof(buffer), 0,(struct sockaddr*)(&from), &addrlen)) < 0) 
       throw ResolverException("recvfrom error waiting for answer: "+stringerror());
   
-    MOADNSParser mdp(buffer, len);
+    MOADNSParser mdp(false, buffer, len);
     return parseResult(mdp, domain, type, id, res);
   }
   catch(ResolverException &re) {
@@ -463,7 +463,7 @@ int AXFRRetriever::getChunk(Resolver::res_t &res, vector<DNSRecord>* records) //
 
   d_receivedBytes += (uint16_t) len;
 
-  MOADNSParser mdp(d_buf.get(), len);
+  MOADNSParser mdp(false, d_buf.get(), len);
 
   int err;
   if(!records)

@@ -70,7 +70,7 @@ try
           if(dh->rd || dh->qr)
             continue;
 
-          MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
+          MOADNSParser mdp(false, (const char*)pr.d_payload, pr.d_len);
 
           entry.ip = pr.getSource();
           entry.port = pr.d_udp->uh_sport;
