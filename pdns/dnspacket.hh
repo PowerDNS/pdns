@@ -64,7 +64,7 @@ class DNSSECKeeper;
 class DNSPacket
 {
 public:
-  DNSPacket();
+  DNSPacket(bool isQuery);
   DNSPacket(const DNSPacket &orig);
 
   int noparse(const char *mesg, size_t len); //!< just suck the data inward
@@ -192,6 +192,7 @@ private:
   bool d_wantsnsid;
   bool d_haveednssubnet;
   bool d_haveednssection;
+  bool d_isQuery;
 };
 
 

@@ -360,7 +360,7 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
   if(prefilled)  // they gave us a preallocated packet
     packet=prefilled;
   else
-    packet=new DNSPacket; // don't forget to free it!
+    packet=new DNSPacket(true); // don't forget to free it!
 
   packet->setSocket(sock);
   packet->setRemote(&remote);
