@@ -35,7 +35,7 @@ bool validateTSIG(const string& message, const TSIGHashEnum& algo, const DNSName
     }
     return true;
   }
-  return calculateHMAC(secret, message, algo) == trc->d_mac;
+  return constantTimeStringEquals(calculateHMAC(secret, message, algo), trc->d_mac);
 }
 
 
