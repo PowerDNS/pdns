@@ -248,8 +248,8 @@ string DLNotifyHostHandler(const vector<string>&parts, Utility::pid_t ppid)
   ostringstream os;
   if(parts.size()!=3)
     return "syntax: notify-host domain ip";
-  if(!::arg().mustDo("master"))
-      return "PowerDNS not configured as master";
+  if( !::arg().mustDo("master") && !(::arg().mustDo("slave") && ::arg().mustDo("slave-renotify")) )
+      return "PowerDNS not configured as master or slave with re-notifications";
 
   try {
     ComboAddress ca(parts[2]);
@@ -269,27 +269,32 @@ string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid)
   UeberBackend B;
   if(parts.size()!=2)
     return "syntax: notify domain";
-  if(!::arg().mustDo("master"))
-      return "PowerDNS not configured as master";
+  if( !::arg().mustDo("master") && !(::arg().mustDo("slave") && ::arg().mustDo("slave-renotify")) )
+      return "PowerDNS not configured as master or slave with re-notifications";
   L<<Logger::Warning<<"Notification request for domain '"<<parts[1]<<"' received from operator"<<endl;
 
   if (parts[1] == "*") {
     vector<DomainInfo> domains;
     B.getAllDomains(&domains);
 
-    int total = 0;
+    int master = 0, slave = 0;
     int notified = 0;
     for (vector<DomainInfo>::const_iterator di=domains.begin(); di != domains.end(); di++) {
       if (di->kind == 0) { // MASTER
-        total++;
+        master++;
+        if(Communicator.notifyDomain(di->zone))
+          notified++;
+      }
+      if (di->kind == 1) { // SLAVE
+        slave++;
         if(Communicator.notifyDomain(di->zone))
           notified++;
       }
     }
 
-    if (total != notified)
-      return itoa(notified)+" out of "+itoa(total)+" zones added to queue - see log";
-    return "Added "+itoa(total)+" MASTER zones to queue";
+    if (master + slave != notified)
+      return itoa(notified)+" out of "+itoa(master + slave)+" zones added to queue - see log";
+    return "Added "+itoa(master)+" MASTER and "+itoa(slave)+" SLAVE zones to queue";
   } else {
     if(!Communicator.notifyDomain(parts[1]))
       return "Failed to add to the queue - see log";
