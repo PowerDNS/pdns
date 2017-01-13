@@ -1534,6 +1534,30 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       }
     });
 
+  g_lua.writeFunction("setMaxTCPQueriesPerConnection", [](size_t max) {
+      if (!g_configurationDone) {
+        g_maxTCPQueriesPerConn = max;
+      } else {
+        g_outputBuffer="The maximum number of queries per TCP connection cannot be altered at runtime!\n";
+      }
+    });
+
+  g_lua.writeFunction("setMaxTCPConnectionsPerClient", [](size_t max) {
+      if (!g_configurationDone) {
+        g_maxTCPConnectionsPerClient = max;
+      } else {
+        g_outputBuffer="The maximum number of TCP connection per client cannot be altered at runtime!\n";
+      }
+    });
+
+  g_lua.writeFunction("setMaxTCPConnectionDuration", [](size_t max) {
+      if (!g_configurationDone) {
+        g_maxTCPConnectionDuration = max;
+      } else {
+        g_outputBuffer="The maximum duration of a TCP connection cannot be altered at runtime!\n";
+      }
+    });
+
   g_lua.writeFunction("showTCPStats", [] {
       setLuaNoSideEffect();
       boost::format fmt("%-10d %-10d %-10d %-10d\n");
