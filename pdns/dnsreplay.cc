@@ -407,7 +407,7 @@ try
   while(s_socket->recvFromAsync(packet, remote)) {
     try {
       s_weanswers++;
-      MOADNSParser mdp(packet.c_str(), packet.length());
+      MOADNSParser mdp(false, packet.c_str(), packet.length());
       if(!mdp.d_header.qr) {
         cout<<"Received a question from our reference nameserver!"<<endl;
         continue;
@@ -557,7 +557,7 @@ bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote)
       sent=true;
       dh->id=tmp;
     }
-    MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
+    MOADNSParser mdp(false, (const char*)pr.d_payload, pr.d_len);
     QuestionIdentifier qi=QuestionIdentifier::create(pr.getSource(), pr.getDest(), mdp);
 
     if(!mdp.d_header.qr) {

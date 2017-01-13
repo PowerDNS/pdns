@@ -93,7 +93,7 @@ int doResolve(const string& qname, uint16_t qtype, vector<DNSResourceRecord>& re
     catch(...) {
       continue;
     }
-    MOADNSParser mdp(reply);
+    MOADNSParser mdp(false, reply);
     if(mdp.d_header.rcode == RCode::ServFail)
       continue;    
     
