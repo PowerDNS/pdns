@@ -287,7 +287,6 @@ BuildRequires: boost-devel
 BuildRequires: lua-devel
 BuildRequires: bison
 Provides: powerdns = %{version}-%{release}
-%global backends %{backends} bind
 
 %description
 The PowerDNS Nameserver is a modern, advanced and high performance
@@ -393,7 +392,7 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
 	--disable-silent-rules \
 	--with-modules='' \
 	--with-lua \
-	--with-dynmodules='%{backends} random' \
+	--with-dynmodules='bind %{backends} random' \
 	--enable-tools \
 	--without-protobuf \
 	--enable-remotebackend-http \
