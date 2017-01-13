@@ -2563,7 +2563,7 @@ loadMainConfig(g_vm["config-dir"].as<string>());
       return 0; 
     }
     if (! dk.setPresigned(DNSName(cmds[1]))) {
-      cerr << "Could not set presigned on for " << cmds[1] << endl;
+      cerr << "Could not set presigned for " << cmds[1] << " (is DNSSEC enabled in your backend?)" << endl;
       return 1;
     }
     return 0;

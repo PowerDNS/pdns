@@ -384,7 +384,10 @@ Where `Comment` is defined as:
 * `soa_edit_api` MAY be set. If it is set, on changes to the contents of
   a zone made through the API, the SOA record will be edited according to
   the SOA-EDIT-API rules. (Which are the same as the SOA-EDIT-DNSUPDATE rules.)
-  If not set at all during zone creation, defaults to [`DEFAULT`](../authoritative/dnsupdate/#soa-edit-dnsupdate-settings).
+  If not set during zone creation, a SOA-EDIT-API metadata record is created
+  and set to `DEFAULT`. (If this record is removed from the backend, the
+  default behaviour is to not do any SOA editing based on this setting. This
+  is different from setting `DEFAULT`.)
   **Note**: Authoritative only.
 
 * `account` MAY be set. Its value is defined by local policy.
