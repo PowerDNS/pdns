@@ -82,7 +82,7 @@ __EOF__
 			skipreasons="narrow nodyndns"
 		else
 			extracontexts="bind dnssec"
-			skipreasons="nodyndns"
+			skipreasons="nodyndns nsec"
 		fi
 
 		../pdns/pdnssec --config-dir=. --config-name=bind import-tsig-key test $ALGORITHM $KEY

@@ -52,6 +52,6 @@ gsql-master()
 		skipreasons="$skipreasons nodnssec"
 	else
 		extracontexts="dnssec"
-		skipreasons="$skipreasons"
+		skipreasons="$skipreasons nsec"
 	fi
 }

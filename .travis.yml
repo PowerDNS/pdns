@@ -45,6 +45,7 @@ script:
  - touch tests/verify-dnssec-zone/allow-missing
  - touch tests/verify-dnssec-zone/skip.nsec3 # some (travis) tools in this test are unable to handle nsec3 zones
  - touch tests/verify-dnssec-zone/skip.optout
+ - touch tests/ent-asterisk/skip.nsec # travis unbound is too old for this test (unbound 1.6.0 required)
  - export geoipregion=oc geoipregionip=1.2.3.4
  - ./timestamp ./start-test-stop 5300 bind-both
  - ./timestamp ./start-test-stop 5300 bind-dnssec-both
