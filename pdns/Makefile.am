@@ -197,6 +197,7 @@ pdns_server_SOURCES = \
 	statbag.cc statbag.hh \
 	stubresolver.cc stubresolver.hh \
 	tcpreceiver.cc tcpreceiver.hh \
+	tsigverifier.cc tsigverifier.hh \
 	tkey.cc \
 	ueberbackend.cc ueberbackend.hh \
 	unix_semaphore.cc \
@@ -583,6 +584,7 @@ ixplore_SOURCES = \
 	sillyrecords.cc \
 	sstuff.hh \
 	statbag.cc \
+	tsigverifier.cc tsigverifier.hh \
 	unix_utility.cc zoneparser-tng.cc
 
 ixplore_LDADD = $(LIBCRYPTO_LIBS)
@@ -734,6 +736,7 @@ tsig_tests_SOURCES = \
 	sstuff.hh \
 	statbag.cc \
 	tsig-tests.cc \
+	tsigverifier.cc tsigverifier.hh \
 	unix_utility.cc
 
 tsig_tests_LDADD = $(LIBCRYPTO_LIBS)
