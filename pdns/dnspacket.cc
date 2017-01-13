@@ -479,7 +479,7 @@ bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, DNSName* keyname, string*
   
   bool gotit=false;
   for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
-    if(i->first.d_type == QType::TSIG) {
+    if(i->first.d_type == QType::TSIG && i->first.d_class == QType::ANY) {
       // cast can fail, f.e. if d_content is an UnknownRecordContent.
       shared_ptr<TSIGRecordContent> content = std::dynamic_pointer_cast<TSIGRecordContent>(i->first.d_content);
       if (!content) {
@@ -654,7 +654,10 @@ bool checkForCorrectTSIG(const DNSPacket* q, UeberBackend* B, DNSName* keyname, 
 {
   string message;
 
-  q->getTSIGDetails(trc, keyname, &message);
+  if (!q->getTSIGDetails(trc, keyname, &message)) {
+    return false;
+  }
+
   uint64_t delta = std::abs((int64_t)trc->d_time - (int64_t)time(0));
   if(delta > trc->d_fudge) {
     L<<Logger::Error<<"Packet for '"<<q->qdomain<<"' denied: TSIG (key '"<<*keyname<<"') time delta "<< delta <<" > 'fudge' "<<trc->d_fudge<<endl;

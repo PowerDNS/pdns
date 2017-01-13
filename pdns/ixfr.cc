@@ -24,7 +24,7 @@
 #include "dns_random.hh"
 #include "dnsrecords.hh"
 #include "dnssecinfra.hh"
-
+#include "tsigverifier.hh"
 
 // Returns pairs of "remove & add" vectors. If you get an empty remove, it means you got an AXFR!
 vector<pair<vector<DNSRecord>, vector<DNSRecord> > > getIXFRDeltas(const ComboAddress& master, const DNSName& zone, const DNSRecord& oursr, 
@@ -40,10 +40,11 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > > getIXFRDeltas(const ComboAd
   oursr.d_content->toPacket(pw);
 
   pw.commit();
+  TSIGRecordContent trc;
+  TSIGTCPVerifier tsigVerifier(tt, master, trc);
   if(!tt.algo.empty()) {
     TSIGHashEnum the;
     getTSIGHashEnum(tt.algo, the);
-    TSIGRecordContent trc;
     try {
       trc.d_algoName = getTSIGAlgoName(the);
     } catch(PDNSException& pe) {
@@ -77,6 +78,7 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > > getIXFRDeltas(const ComboAd
   shared_ptr<SOARecordContent> masterSOA;
   vector<DNSRecord> records;
   size_t receivedBytes = 0;
+
   for(;;) {
     if(s.read((char*)&len, 2)!=2)
       break;
@@ -96,6 +98,11 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > > getIXFRDeltas(const ComboAd
       throw std::runtime_error("Got an error trying to IXFR zone '"+zone.toString()+"' from master '"+master.toStringWithPort()+"': "+RCode::to_s(mdp.d_header.rcode));
 
     //    cout<<"Got a response, rcode: "<<mdp.d_header.rcode<<", got "<<mdp.d_answers.size()<<" answers"<<endl;
+
+    if(!tt.algo.empty()) { // TSIG verify message
+      tsigVerifier.check(std::string(reply, len), mdp);
+    }
+
     for(auto& r: mdp.d_answers) {
       if(r.first.d_type == QType::TSIG) 
         continue;
