@@ -370,7 +370,8 @@ inline bool pdns_iequals_ch(const char a, const char b)
 }
 
 
-typedef std::atomic<unsigned long> AtomicCounter ;
+typedef unsigned long AtomicCounterInner;
+typedef std::atomic<AtomicCounterInner> AtomicCounter ;
 
 // FIXME400 this should probably go? 
 struct CIStringCompare: public std::binary_function<string, string, bool>
