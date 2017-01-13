@@ -51,8 +51,6 @@ extern StatBag S;
 vector<UeberBackend *>UeberBackend::instances;
 pthread_mutex_t UeberBackend::instances_lock=PTHREAD_MUTEX_INITIALIZER;
 
-sem_t UeberBackend::d_dynserialize;
-
 // initially we are blocked
 bool UeberBackend::d_go=false;
 pthread_mutex_t  UeberBackend::d_mut = PTHREAD_MUTEX_INITIALIZER;
@@ -108,10 +106,10 @@ bool UeberBackend::addDomainKey(const DNSName& name, const DNSBackend::KeyData& 
   }
   return false;
 }
-bool UeberBackend::getDomainKeys(const DNSName& name, unsigned int kind, std::vector<DNSBackend::KeyData>& keys)
+bool UeberBackend::getDomainKeys(const DNSName& name, std::vector<DNSBackend::KeyData>& keys)
 {
   for(DNSBackend* db :  backends) {
-    if(db->getDomainKeys(name, kind, keys))
+    if(db->getDomainKeys(name, keys))
       return true;
   }
   return false;
@@ -396,7 +394,8 @@ bool UeberBackend::getSOAUncached(const DNSName &domain, SOAData &sd, DNSPacket 
       return true;
     }
 
-  addNegCache(d_question);
+  if(d_negcache_ttl)
+    addNegCache(d_question);
   return false;
 }
 
@@ -623,13 +622,6 @@ bool UeberBackend::get(DNSZoneRecord &rr)
   d_ancount++;
   d_answers.push_back(rr);
   return true;
-}
-
-bool UeberBackend::list(const DNSName &target, int domain_id, bool include_disabled)
-{
-  L<<Logger::Error<<"UeberBackend::list called, should NEVER EVER HAPPEN"<<endl;
-  exit(1);
-  return false;
 }
 
 bool UeberBackend::searchRecords(const string& pattern, int maxResults, vector<DNSResourceRecord>& result)

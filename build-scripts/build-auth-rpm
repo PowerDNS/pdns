@@ -370,6 +370,15 @@ BuildRequires: sqlite-devel
 %description backend-sqlite
 This package contains the SQLite backend for %{name}
 
+%package backend-mydns
+Summary: MyDNS backend for %{name}
+Group: System Environment/Daemons
+Requires: %{name}%{?_isa} = %{version}-%{release}
+%global backends %{backends} mydns
+
+%description backend-mydns
+This package contains the MyDNS backend for %{name}
+
 %prep
 %setup -q -n %{name}-${TARBALLVERSION}
 
@@ -505,6 +514,10 @@ fi
 %doc %{_defaultdocdir}/%{name}/nodnssec-3.x_to_3.4.0_schema.sqlite3.sql
 %doc %{_defaultdocdir}/%{name}/dnssec-3.x_to_3.4.0_schema.sqlite3.sql
 %{_libdir}/%{name}/libgsqlite3backend.so
+
+%files backend-mydns
+%doc %{_defaultdocdir}/%{name}/schema.mydns.sql
+%{_libdir}/%{name}/libmydnsbackend.so
 EOF
     ;;
   CentOS\ Linux\ *\ 7*)
@@ -650,6 +663,15 @@ BuildRequires: tinycdb-devel
 
 %description backend-tinydns
 This package contains the TinyDNS backend for %{name}
+
+%package backend-mydns
+Summary: MyDNS backend for %{name}
+Group: System Environment/Daemons
+Requires: %{name}%{?_isa} = %{version}-%{release}
+%global backends %{backends} mydns
+
+%description backend-mydns
+This package contains the MyDNS backend for %{name}
 
 %prep
 %setup -q -n %{name}-${TARBALLVERSION}
@@ -806,6 +828,10 @@ exit 0
 
 %files backend-tinydns
 %{_libdir}/%{name}/libtinydnsbackend.so
+
+%files backend-mydns
+%doc modules/mydnsbackend/schema.mydns.sql
+%{_libdir}/%{name}/libmydnsbackend.so
 EOF
       ;;
   SLES\ 12*)
@@ -912,6 +938,15 @@ BuildRequires: sqlite-devel
 
 %description backend-sqlite
 This package contains the SQLite backend for %{name}
+
+%package backend-mydns
+Summary: MyDNS backend for %{name}
+Group: System Environment/Daemons
+Requires: %{name}%{?_isa} = %{version}-%{release}
+%global backends %{backends} mydns
+
+%description backend-mydns
+This package contains the MyDNS backend for %{name}
 
 %prep
 %setup -q -n %{name}-${TARBALLVERSION}
@@ -1057,6 +1092,10 @@ exit 0
 %doc modules/gsqlite3backend/dnssec-3.x_to_3.4.0_schema.sqlite3.sql
 %doc modules/gsqlite3backend/nodnssec-3.x_to_3.4.0_schema.sqlite3.sql
 %{_libdir}/%{name}/libgsqlite3backend.so
+
+%files backend-mydns
+%doc modules/mydnsbackend/schema.mydns.sql
+%{_libdir}/%{name}/libmydnsbackend.so
 EOF
       ;;
     *)

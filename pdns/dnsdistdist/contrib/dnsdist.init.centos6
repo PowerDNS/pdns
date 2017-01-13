@@ -31,8 +31,22 @@ fi
 
 RETVAL=0
 
+do_check() {
+  msg=$(${DNSDIST} ${DNSDIST_OPTIONS} --check-config 2>&1)
+  if [ $? -ne 0 ]; then
+    echo "Error in configuration file:" >&2
+    echo "${msg}" >&2
+    return 1
+  fi
+  return 0
+}
+
 do_start() {
   echo -n "Starting ${PROG}..."
+  do_check
+  if [ $? -ne 0 ]; then
+    return 1
+  fi
   daemon --pidfile=${PIDFILE} $DNSDIST -u ${DNSDIST_USER} -g ${DNSDIST_GROUP} -d -p ${PIDFILE} ${DNSDIST_OPTIONS}
   ret=$?
   echo
@@ -63,12 +77,16 @@ case "$1" in
     do_status >/dev/null 2>&1
     ret=$?
 
-    if [ $? -eq 0 ]; then
+    if [ ${ret} -eq 0 ]; then
+      do_check
+      if [ $? -ne 0 ]; then
+        exit 1 # Don't stop when there's an error
+      fi
       do_stop
-      ret=$?
     fi
 
     do_start
+    RETVAL=$?
     ;;
   status)
     do_status

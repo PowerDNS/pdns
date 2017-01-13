@@ -3,7 +3,7 @@ import time
 import unittest
 from copy import deepcopy
 from pprint import pprint
-from test_helper import ApiTestCase, unique_zone_name, is_auth, is_recursor, get_db_records
+from test_helper import ApiTestCase, unique_zone_name, is_auth, is_recursor, get_db_records, pdnsutil_rectify
 
 
 def get_rrset(data, qname, qtype):
@@ -54,9 +54,11 @@ class Zones(ApiTestCase):
         example_com = [domain for domain in domains if domain['name'] in ('example.com', 'example.com.')]
         self.assertEquals(len(example_com), 1)
         example_com = example_com[0]
+        print(example_com)
         required_fields = ['id', 'url', 'name', 'kind']
         if is_auth():
             required_fields = required_fields + ['masters', 'last_check', 'notified_serial', 'serial', 'account']
+            self.assertNotEquals(example_com['serial'], 0)
         elif is_recursor():
             required_fields = required_fields + ['recursion_desired', 'servers']
         for field in required_fields:
@@ -259,6 +261,55 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
         self.assertEquals(r.status_code, 422)
         self.assertIn('contains unsupported characters', r.json()['error'])
 
+    def test_create_zone_mixed_nameservers_ns_rrset_zonelevel(self):
+        name = unique_zone_name()
+        rrset = {
+            "name": name,
+            "type": "NS",
+            "ttl": 3600,
+            "records": [{
+                "content": "ns2.example.com.",
+                "disabled": False,
+            }],
+        }
+        payload = {
+            'name': name,
+            'kind': 'Native',
+            'nameservers': ['ns1.example.com.'],
+            'rrsets': [rrset],
+        }
+        print payload
+        r = self.session.post(
+            self.url("/api/v1/servers/localhost/zones"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 422)
+        self.assertIn('Nameservers list MUST NOT be mixed with zone-level NS in rrsets', r.json()['error'])
+
+    def test_create_zone_mixed_nameservers_ns_rrset_below_zonelevel(self):
+        name = unique_zone_name()
+        rrset = {
+            "name": 'subzone.'+name,
+            "type": "NS",
+            "ttl": 3600,
+            "records": [{
+                "content": "ns2.example.com.",
+                "disabled": False,
+            }],
+        }
+        payload = {
+            'name': name,
+            'kind': 'Native',
+            'nameservers': ['ns1.example.com.'],
+            'rrsets': [rrset],
+        }
+        print payload
+        r = self.session.post(
+            self.url("/api/v1/servers/localhost/zones"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assert_success_json(r)
+
     def test_create_zone_with_symbols(self):
         name, payload, data = self.create_zone(name='foo/bar.'+unique_zone_name())
         name = payload['name']
@@ -285,6 +336,13 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertEquals(r.status_code, 422)
+
+    def test_zone_absolute_url(self):
+        name, payload, data = self.create_zone()
+        r = self.session.get(self.url("/api/v1/servers/localhost/zones"))
+        rdata = r.json()
+        print(rdata[0])
+        self.assertTrue(rdata[0]['url'].startswith('/api/v'))
 
     def test_create_zone_metadata(self):
         payload_metadata = {"type": "Metadata", "kind": "AXFR-SOURCE", "metadata": ["127.0.0.2"]}
@@ -927,6 +985,8 @@ fred   IN  A      192.168.0.4
         self.assertNotEquals(serverset['comments'], [])
         # verify that modified_at has been set by pdns
         self.assertNotEquals([c for c in serverset['comments']][0]['modified_at'], 0)
+        # verify that TTL is correct (regression test)
+        self.assertEquals(serverset['ttl'], 3600)
 
     def test_zone_comment_delete(self):
         # Test: Delete ONLY comments.
@@ -1147,6 +1207,25 @@ fred   IN  A      192.168.0.4
         # should return zone, SOA, ns1, ns2
         self.assertEquals(len(r.json()), 4)
 
+    def test_search_after_rectify_with_ent(self):
+        name = 'search-rectified.name.'
+        rrset = {
+            "name": 'sub.sub.' + name,
+            "type": "A",
+            "ttl": 3600,
+            "records": [{
+                "content": "4.3.2.1",
+                "disabled": False,
+            }],
+        }
+        self.create_zone(name=name, rrsets=[rrset])
+        pdnsutil_rectify(name)
+        r = self.session.get(self.url("/api/v1/servers/localhost/search-data?q=*search-rectified*"))
+        self.assert_success_json(r)
+        print r.json()
+        # should return zone, SOA, ns1, ns2, sub.sub A (but not the ENT)
+        self.assertEquals(len(r.json()), 5)
+
 
 @unittest.skipIf(not is_auth(), "Not applicable")
 class AuthRootZone(ApiTestCase, AuthZonesHelperMixin):
@@ -1246,7 +1325,6 @@ class RecursorZones(ApiTestCase):
             self.assertEquals(data[k], payload[k])
 
     def test_create_zone_no_name(self):
-        name = unique_zone_name()
         payload = {
             'name': '',
             'kind': 'Native',

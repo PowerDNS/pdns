@@ -15,7 +15,7 @@ AC_DEFUN([PDNS_ENABLE_REPRODUCIBLE], [
     build_user=$(id -u -n)
 
     case "$host_os" in
-    solaris2.1* | SunOS)
+    solaris2.1* | SunOS | openbsd*)
       build_host_host=$(hostname)
       build_host_domain=$(domainname)
       build_host="$build_host_host.$build_host_domain"

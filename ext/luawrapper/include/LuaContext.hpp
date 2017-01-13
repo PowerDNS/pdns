@@ -1310,7 +1310,7 @@ private:
             RealReturnType;
         
         // we push the parameters on the stack
-        auto inArguments = Pusher<std::tuple<TParameters...>>::push(state, std::make_tuple(std::forward<TParameters>(input)...));
+        auto inArguments = Pusher<std::tuple<TParameters...>>::push(state, std::forward_as_tuple((input)...));
 
         // 
         const int outArgumentsCount = std::tuple_size<RealReturnType>::value;
@@ -1639,13 +1639,13 @@ private:
     /**************************************************/
     /*                   UTILITIES                    */
     /**************************************************/
-    // structure that will ensure that a certain is stored somewhere in the registry
+    // structure that will ensure that a certain value is stored somewhere in the registry
     struct ValueInRegistry {
-        // this constructor will clone and hold the value at the top of the stack in the registry
-        ValueInRegistry(lua_State* lua) : lua{lua}
+        // this constructor will clone and hold the value at the specified index (or by default at the top of the stack) in the registry
+        ValueInRegistry(lua_State* lua, int index=-1) : lua{lua}
         {
             lua_pushlightuserdata(lua, this);
-            lua_pushvalue(lua, -2);
+            lua_pushvalue(lua, -1 + index);
             lua_settable(lua, LUA_REGISTRYINDEX);
         }
         
@@ -1821,8 +1821,8 @@ private:
 
 private:
     friend LuaContext;
-    explicit LuaFunctionCaller(lua_State* state) :
-        valueHolder(std::make_shared<ValueInRegistry>(state)),
+    explicit LuaFunctionCaller(lua_State* state, int index) :
+        valueHolder(std::make_shared<ValueInRegistry>(state, index)),
         state(state)
     {}
 };
@@ -2521,7 +2521,7 @@ struct LuaContext::Reader<LuaContext::LuaFunctionCaller<TRetValue (TParameters..
     {
         if (lua_isfunction(state, index) == 0 && lua_isuserdata(state, index) == 0)
             return boost::none;
-        return ReturnType(state);
+        return ReturnType(state, index);
     }
 };
 

@@ -40,9 +40,9 @@ static const char*rootIps6[]={"2001:503:ba3e::2:30",    // a.root-servers.net.
                               "2001:500:84::b",         // b.root-servers.net.
                               "2001:500:2::c",          // c.root-servers.net.
                               "2001:500:2d::d",         // d.root-servers.net.
-                              NULL,                     // e.root-servers.net.
+                              "2001:500:a8::e",         // e.root-servers.net.
                               "2001:500:2f::f",         // f.root-servers.net.
-                              NULL,                     // g.root-servers.net.
+                              "2001:500:12::d0d",       // g.root-servers.net.
                               "2001:500:1::53",         // h.root-servers.net.
                               "2001:7fe::53",           // i.root-servers.net.
                               "2001:503:c27::2:30",     // j.root-servers.net.

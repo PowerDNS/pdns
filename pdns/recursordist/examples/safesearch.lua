@@ -18,8 +18,8 @@ googledomains={}
 for k,v in pairs(dofile("googledomains.lua"))
 do
     googledomains["www"..v]=1
-    googledomains["encrypted"..v]=2  -- this will allow you to search unfiltered
-    googledomains["ipv6"..v]=2       -- this too
+    googledomains["encrypted"..v]=1  -- plug a loophole
+    googledomains["ipv6"..v]=2       -- this too - change to 1 to get v4 instead of NXDOMAIN
 end
 
     

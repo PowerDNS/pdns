@@ -73,7 +73,7 @@ Now we need to add some records to our database (in a separate shell):
 # mysql pdnstest
 mysql> INSERT INTO domains (name, type) values ('example.com', 'NATIVE');
 INSERT INTO records (domain_id, name, content, type,ttl,prio)
-VALUES (1,'example.com','localhost ahu@ds9a.nl 1','SOA',86400,NULL);
+VALUES (1,'example.com','localhost admin.example.com 1','SOA',86400,NULL);
 INSERT INTO records (domain_id, name, content, type,ttl,prio)
 VALUES (1,'example.com','dns-us1.powerdns.net','NS',86400,NULL);
 INSERT INTO records (domain_id, name, content, type,ttl,prio)

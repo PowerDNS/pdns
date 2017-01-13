@@ -119,7 +119,7 @@ This method is used to do the basic query. You can omit auth, but if you are usi
 #### Example JSON/RPC
 Query:
 ```
-{"method":"lookup", "parameters":{"qtype":"ANY", "qname":"www.example.com", "remote":"192.0.2.24", "local":"192.0.2.1", "real-remote":"192.0.2.24", "zone-id":-1}}
+{"method":"lookup", "parameters":{"qtype":"ANY", "qname":"www.example.com.", "remote":"192.0.2.24", "local":"192.0.2.1", "real-remote":"192.0.2.24", "zone-id":-1}}
 ```
 
 Response:
@@ -130,7 +130,7 @@ Response:
 #### Example HTTP/RPC
 Query:
 ```
-GET /dnsapi/lookup/www.example.com/ANY HTTP/1.1
+GET /dnsapi/lookup/www.example.com./ANY HTTP/1.1
 X-RemoteBackend-remote: 192.0.2.24
 X-RemoteBackend-local: 192.0.2.1
 X-RemoteBackend-real-remote: 192.0.2.24
@@ -157,7 +157,7 @@ Lists all records for the zonename. If you are running dnssec, you should take c
 #### Example JSON/RPC
 Query:
 ```
-{"method":"list", "parameters":{"zonename":"example.com","domain_id":-1}}
+{"method":"list", "parameters":{"zonename":"example.com.","domain_id":-1}}
 ```
 
 Response (split into lines for ease of reading)
@@ -257,7 +257,7 @@ Returns the value(s) for variable kind for zone name. Most commonly it's one of 
 #### Example JSON/RPC
 Query:
 ```
-{"method":"getdomainmetadata", "parameters":{"name":"example.com","kind":"PRESIGNED"}}
+{"method":"getdomainmetadata", "parameters":{"name":"example.com.","kind":"PRESIGNED"}}
 ```
 
 Response:
@@ -268,7 +268,7 @@ Response:
 #### Example HTTP/RPC
 Query:
 ```
-GET /dnsapi/getdomainmetadata/example.com/PRESIGNED HTTP/1.1
+GET /dnsapi/getdomainmetadata/example.com./PRESIGNED HTTP/1.1
 ```
 
 Response:
@@ -325,7 +325,7 @@ Retrieves any keys of kind. The id, flags are unsigned integers, and active is b
 #### Example JSON/RPC
 Query:
 ```
-{"method":"getdomainkeys","parameters":{"name":"example.com","kind":0}}
+{"method":"getdomainkeys","parameters":{"name":"example.com."}}
 ```
 
 Response:
@@ -525,7 +525,7 @@ Retrieves the key needed to sign AXFR.
 #### Example JSON/RPC
 Query:
 ```
-{"method":"gettsigkey","parameters":{"name":"example.com"}}
+{"method":"gettsigkey","parameters":{"name":"example.com."}}
 ```
 
 Response:
@@ -536,7 +536,7 @@ Response:
 #### Example HTTP/RPC
 Query:
 ```
-GET /dnsapi/gettsigkey/example.com
+GET /dnsapi/gettsigkey/example.com.
 ```
 
 Response:

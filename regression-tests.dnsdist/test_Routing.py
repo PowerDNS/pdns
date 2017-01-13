@@ -357,7 +357,31 @@ class TestRoutingOrder(DNSDistTest):
             self.assertEquals(response, receivedResponse)
 
         total = 0
-        self.assertEquals(self._responsesCounter['UDP Responder'], 0)
+        if 'UDP Responder' in self._responsesCounter:
+            self.assertEquals(self._responsesCounter['UDP Responder'], 0)
         self.assertEquals(self._responsesCounter['UDP Responder 2'], numberOfQueries)
-        self.assertEquals(self._responsesCounter['TCP Responder'], 0)
+        if 'TCP Responder' in self._responsesCounter:
+            self.assertEquals(self._responsesCounter['TCP Responder'], 0)
         self.assertEquals(self._responsesCounter['TCP Responder 2'], numberOfQueries)
+
+class TestRoutingNoServer(DNSDistTest):
+
+    _config_template = """
+    newServer{address="127.0.0.1:%s", pool="real"}
+    setServFailWhenNoServer(true)
+    """
+
+    def testPolicyPoolNoServer(self):
+        """
+        Routing: No server should return ServFail
+        """
+        name = 'noserver.routing.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.set_rcode(dns.rcode.SERVFAIL)
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, expectedResponse)
+
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, expectedResponse)

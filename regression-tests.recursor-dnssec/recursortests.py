@@ -79,6 +79,10 @@ secure.example.          3600 IN NS   ns.secure.example.
 secure.example.          3600 IN DS   64723 13 1 53eb985040d3a89bacf29dbddb55a65834706f33
 ns.secure.example.       3600 IN A    {prefix}.9
 
+cname-secure.example.    3600 IN NS   ns.cname-secure.example.
+cname-secure.example.    3600 IN DS   49148 13 1 a10314452d5ec4d97fcc6d7e275d217261fe790f
+ns.cname-secure.example. 3600 IN A    {prefix}.15
+
 bogus.example.           3600 IN NS   ns.bogus.example.
 bogus.example.           3600 IN DS   65034 13 1 6df3bb50ea538e90eacdd7ae5419730783abb0ee
 ns.bogus.example.        3600 IN A    {prefix}.12
@@ -101,6 +105,8 @@ secure.example.          3600 IN SOA  {soa}
 secure.example.          3600 IN NS   ns.secure.example.
 ns.secure.example.       3600 IN A    {prefix}.9
 
+secure.example.          3600 IN A    192.0.2.17
+
 host1.secure.example.    3600 IN A    192.0.2.2
 cname.secure.example.    3600 IN CNAME host1.secure.example.
 cname-to-insecure.secure.example. 3600 IN CNAME node1.insecure.example.
@@ -120,6 +126,12 @@ insecure.sub2.secure.example. 3600 IN NS ns1.insecure.example.
 *.cnamewildcardnxdomain.secure.example. 3600 IN CNAME doesntexist.secure.example.
 
 cname-to-formerr.secure.example. 3600 IN CNAME host1.insecure-formerr.example.
+        """,
+        'cname-secure.example': """
+cname-secure.example.          3600 IN SOA   {soa}
+cname-secure.example.          3600 IN NS    ns.cname-secure.example.
+ns.cname-secure.example.       3600 IN A     {prefix}.15
+cname-secure.example.          3600 IN CNAME secure.example.
         """,
         'bogus.example': """
 bogus.example.           3600 IN SOA  {soa}
@@ -175,7 +187,19 @@ islandofsecurity.example.          3600 IN NS   ns1.islandofsecurity.example.
 ns1.islandofsecurity.example.      3600 IN A    {prefix}.9
 
 node1.islandofsecurity.example.    3600 IN A    192.0.2.20
-        """
+        """,
+        'undelegated.secure.example': """
+undelegated.secure.example.        3600 IN SOA  {soa}
+undelegated.secure.example.        3600 IN NS   ns1.undelegated.secure.example.
+
+node1.undelegated.secure.example.  3600 IN A    192.0.2.21
+        """,
+        'undelegated.insecure.example': """
+undelegated.insecure.example.        3600 IN SOA  {soa}
+undelegated.insecure.example.        3600 IN NS   ns1.undelegated.insecure.example.
+
+node1.undelegated.insecure.example.  3600 IN A    192.0.2.22
+        """,
     }
 
     # The private keys for the zones (note that DS records should go into
@@ -221,7 +245,13 @@ PrivateKey: xcNUxt1Knj14A00lKQFDboluiJyM2f7FxpgsQaQ3AQ4=
 Private-key-format: v1.2
 Algorithm: 13 (ECDSAP256SHA256)
 PrivateKey: o9F5iix8V68tnMcuOaM2Lt8XXhIIY//SgHIHEePk6cM=
-        """
+        """,
+
+        'cname-secure.example': """
+Private-key-format: v1.2
+Algorithm: 13 (ECDSAP256SHA256)
+PrivateKey: kvoV/g4IO/tefSro+FLJ5UC7H3BUf0IUtZQSUOfQGyA=
+"""
     }
 
     # This dict is keyed with the suffix of the IP address and its value
@@ -232,10 +262,10 @@ PrivateKey: o9F5iix8V68tnMcuOaM2Lt8XXhIIY//SgHIHEePk6cM=
         '9': ['secure.example', 'islandofsecurity.example'],
         '10': ['example'],
         '11': ['example'],
-        '12': ['bogus.example'],
+        '12': ['bogus.example', 'undelegated.secure.example', 'undelegated.insecure.example'],
         '13': ['insecure.example', 'insecure.sub2.secure.example'],
         '14': ['optout.example'],
-        '15': ['insecure.optout.example', 'secure.optout.example']
+        '15': ['insecure.optout.example', 'secure.optout.example', 'cname-secure.example']
     }
 
     _auth_cmd = ['authbind',

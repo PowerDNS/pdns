@@ -109,8 +109,8 @@ private:
   bool d_logDNSDetails;
   bool d_doIPv6AdditionalProcessing;
   bool d_doDNAME;
-  AuthLua* d_pdl;
-  AuthLua4* d_update_policy_lua;
+  std::unique_ptr<AuthLua> d_pdl;
+  std::unique_ptr<AuthLua4> d_update_policy_lua;
 
   UeberBackend B; // every thread an own instance
   DNSSECKeeper d_dk; // B is shared with DNSSECKeeper

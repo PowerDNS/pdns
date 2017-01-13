@@ -1,0 +1,1 @@
+$SDIG $nameserver 5301 nxdomainme.example.net a recurse hidettl 2>&1

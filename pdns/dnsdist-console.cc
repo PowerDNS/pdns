@@ -21,6 +21,7 @@
  */
 #include "dnsdist.hh"
 #include "sodcrypto.hh"
+#include "pwd.h"
 
 #if defined (__OpenBSD__)
 #include <readline/readline.h>
@@ -43,6 +44,26 @@ void feedConfigDelta(const std::string& line)
   struct timeval now;
   gettimeofday(&now, 0);
   g_confDelta.push_back({now,line});
+}
+
+string historyFile(const bool &ignoreHOME = false)
+{
+  string ret;
+
+  struct passwd pwd;
+  struct passwd *result;
+  char buf[16384];
+  getpwuid_r(geteuid(), &pwd, buf, sizeof(buf), &result);
+
+  const char *homedir = getenv("HOME");
+  if (result)
+    ret = string(pwd.pw_dir);
+  if (homedir && !ignoreHOME) // $HOME overrides what the OS tells us
+    ret = string(homedir);
+  if (ret.empty())
+    ret = "."; // CWD if nothing works..
+  ret.append("/.dnsdist_history");
+  return ret;
 }
 
 void doClient(ComboAddress server, const std::string& command)
@@ -75,6 +96,7 @@ void doClient(ComboAddress server, const std::string& command)
         msg.assign(resp.get(), len);
         msg=sodDecryptSym(msg, g_key, theirs);
         cout<<msg;
+        cout.flush();
       }
     }
     else {
@@ -84,14 +106,15 @@ void doClient(ComboAddress server, const std::string& command)
     return; 
   }
 
+  string histfile = historyFile();
   set<string> dupper;
   {
-    ifstream history(".dnsdist_history");
+    ifstream history(histfile);
     string line;
     while(getline(history, line))
       add_history(line.c_str());
   }
-  ofstream history(".dnsdist_history", std::ios_base::app);
+  ofstream history(histfile, std::ios_base::app);
   string lastline;
   for(;;) {
     char* sline = readline("> ");
@@ -141,14 +164,15 @@ void doClient(ComboAddress server, const std::string& command)
 
 void doConsole()
 {
+  string histfile = historyFile(true);
   set<string> dupper;
   {
-    ifstream history(".dnsdist_history");
+    ifstream history(histfile);
     string line;
     while(getline(history, line))
       add_history(line.c_str());
   }
-  ofstream history(".dnsdist_history", std::ios_base::app);
+  ofstream history(histfile, std::ios_base::app);
   string lastline;
   for(;;) {
     char* sline = readline("> ");
@@ -185,7 +209,6 @@ void doConsole()
               >
             >
           >(withReturn ? ("return "+line) : line);
-        
         if(ret) {
           if (const auto strValue = boost::get<shared_ptr<DownstreamState>>(&*ret)) {
             cout<<(*strValue)->getName()<<endl;
@@ -220,9 +243,13 @@ void doConsole()
       // tried to return something we don't understand
     }
     catch(const LuaContext::ExecutionErrorException& e) {
-      std::cerr << e.what(); 
+      if(!strcmp(e.what(),"invalid key to 'next'"))
+        std::cerr<<"Error parsing parameters, did you forget parameter name?";
+      else
+        std::cerr << e.what(); 
       try {
         std::rethrow_if_nested(e);
+
         std::cerr << std::endl;
       } catch(const std::exception& e) {
         // e is the exception that was thrown from inside the lambda
@@ -320,6 +347,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "QTypeRule", true, "qtype", "matches queries with the specified qtype" },
   { "RCodeRule", true, "rcode", "matches responses with the specified rcode" },
   { "setACL", true, "{netmask, netmask}", "replace the ACL set with these netmasks. Use `setACL({})` to reset the list, meaning no one can use us" },
+  { "setAPIWritable", true, "bool, dir", "allow modifications via the API. if `dir` is set, it must be a valid directory where the configuration files will be written by the API" },
   { "setDNSSECPool", true, "pool name", "move queries requesting DNSSEC processing to this pool" },
   { "setECSOverride", true, "bool", "whether to override an existing EDNS Client Subnet value in the query" },
   { "setECSSourcePrefixV4", true, "prefix-length", "the EDNS Client Subnet prefix-length used for IPv4 queries" },
@@ -327,6 +355,9 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "setKey", true, "key", "set access key to that key" },
   { "setLocal", true, "netmask, [true], [false], [TCP Fast Open queue size]", "reset list of addresses we listen on to this address. Second optional parameter sets TCP or not. Third optional parameter sets SO_REUSEPORT when available. Last parameter sets the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0." },
   { "setMaxTCPClientThreads", true, "n", "set the maximum of TCP client threads, handling TCP connections" },
+  { "setMaxTCPConnectionDuration", true, "n", "set the maximum duration of an incoming TCP connection, in seconds. 0 means unlimited" },
+  { "setMaxTCPConnectionsPerClient", true, "n", "set the maximum number of TCP connections per client. 0 means unlimited" },
+  { "setMaxTCPQueriesPerConnection", true, "n", "set the maximum number of queries in an incoming TCP connection. 0 means unlimited" },
   { "setMaxTCPQueuedConnections", true, "n", "set the maximum number of TCP connections queued (waiting to be picked up by a client thread)" },
   { "setMaxUDPOutstanding", true, "n", "set the maximum number of outstanding UDP queries to a given backend server. This can only be set at configuration time and defaults to 10240" },
   { "setQueryCount", true, "bool", "set whether queries should be counted" },
@@ -334,8 +365,10 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "setRules", true, "list of rules", "replace the current rules with the supplied list of pairs of DNS Rules and DNS Actions (see `newRuleAction()`)" },
   { "setServerPolicy", true, "policy", "set server selection policy to that policy" },
   { "setServerPolicyLua", true, "name, function", "set server selection policy to one named 'name' and provided by 'function'" },
+  { "setServFailWhenNoServer", true, "bool", "if set, return a ServFail when no servers are available, instead of the default behaviour of dropping the query" },
   { "setTCPRecvTimeout", true, "n", "set the read timeout on TCP connections from the client, in seconds" },
   { "setTCPSendTimeout", true, "n", "set the write timeout on TCP connections from the client, in seconds" },
+  { "setUDPTimeout", true, "n", "set the maximum time dnsdist will wait for a response from a backend over UDP, in seconds" },
   { "setVerboseHealthChecks", true, "bool", "set whether health check errors will be logged" },
   { "show", true, "string", "outputs `string`" },
   { "showACL", true, "", "show our ACL set" },
@@ -487,16 +520,19 @@ try
       // tried to return something we don't understand
     }
     catch(const LuaContext::ExecutionErrorException& e) {
-      response = "Error: " + string(e.what()) + ": ";
+      if(!strcmp(e.what(),"invalid key to 'next'"))
+        response = "Error: Parsing function parameters, did you forget parameter name?";
+      else
+        response = "Error: " + string(e.what());
       try {
         std::rethrow_if_nested(e);
       } catch(const std::exception& e) {
         // e is the exception that was thrown from inside the lambda
-        response+= string(e.what());
+        response+= ": " + string(e.what());
       }
       catch(const PDNSException& e) {
         // e is the exception that was thrown from inside the lambda
-        response += string(e.reason);
+        response += ": " + string(e.reason);
       }
     }
     catch(const LuaContext::SyntaxErrorException& e) {

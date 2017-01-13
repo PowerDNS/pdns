@@ -31,7 +31,7 @@
 #include "dns.hh"
 #include "logger.hh"
 #include "statbag.hh"
-
+#include "dns_random.hh"
 
 extern StatBag S;
 extern PacketCache PC;
@@ -55,7 +55,7 @@ DNSProxy::DNSProxy(const string &remote)
     
   int n=0;
   for(;n<10;n++) {
-    local.sin4.sin_port = htons(10000+( Utility::random()%50000));
+    local.sin4.sin_port = htons(10000+dns_random(50000));
     
     if(::bind(d_sock, (struct sockaddr *)&local, local.getSocklen()) >= 0) 
       break;
@@ -69,7 +69,7 @@ DNSProxy::DNSProxy(const string &remote)
   if(connect(d_sock, (sockaddr *)&remaddr, remaddr.getSocklen())<0) 
     throw PDNSException("Unable to UDP connect to remote nameserver "+remaddr.toStringWithPort()+": "+stringerror());
 
-  d_xor=Utility::random()&0xffff;
+  d_xor=dns_random(0xffff);
   L<<Logger::Error<<"DNS Proxy launched, local port "<<ntohs(local.sin4.sin_port)<<", remote "<<remaddr.toStringWithPort()<<endl;
 } 
 
@@ -228,7 +228,7 @@ void DNSProxy::mainloop(void)
         d.id=i->second.id;
         memcpy(buffer,&d,sizeof(d));  // commit spoofed id
 
-        DNSPacket p,q;
+        DNSPacket p(false),q(false);
         p.parse(buffer,(size_t)len);
         q.parse(buffer,(size_t)len);
 
@@ -243,7 +243,7 @@ void DNSProxy::mainloop(void)
 	string reply; // needs to be alive at time of sendmsg!
 	if(i->second.complete) {
 
-	  MOADNSParser mdp(p.getString());
+	  MOADNSParser mdp(false, p.getString());
 	  //	  cerr<<"Got completion, "<<mdp.d_answers.size()<<" answers, rcode: "<<mdp.d_header.rcode<<endl;
 	  for(MOADNSParser::answers_t::const_iterator j=mdp.d_answers.begin(); j!=mdp.d_answers.end(); ++j) {        
 	    //	    cerr<<"comp: "<<(int)j->first.d_place-1<<" "<<j->first.d_label<<" " << DNSRecordContent::NumberToType(j->first.d_type)<<" "<<j->first.d_content->getZoneRepresentation()<<endl;
@@ -303,6 +303,13 @@ void DNSProxy::mainloop(void)
 }
 
 DNSProxy::~DNSProxy() {
-  if (d_sock>-1) closesocket(d_sock);
+  if (d_sock>-1) {
+    try {
+      closesocket(d_sock);
+    }
+    catch(const PDNSException& e) {
+    }
+  }
+
   d_sock=-1;
 }

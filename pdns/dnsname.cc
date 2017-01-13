@@ -113,7 +113,7 @@ void DNSName::packetParser(const char* qpos, int len, int offset, bool uncompres
   const unsigned char* end = pos + len;
   pos += offset;
   while((labellen=*pos++) && pos < end) { // "scan and copy"
-    if(labellen & 0xc0) {
+    if(labellen >= 0xc0) {
       if(!uncompress)
         throw std::range_error("Found compressed label, instructed not to follow");
 
@@ -130,6 +130,8 @@ void DNSName::packetParser(const char* qpos, int len, int offset, bool uncompres
         throw std::range_error("Found a forward reference during label decompression");
       pos++;
       break;
+    } else if(labellen & 0xc0) {
+      throw std::range_error("Found an invalid label length in qname (only one of the first two bits is set)");
     }
     if (pos + labellen < end) {
       appendRawLabel((const char*)pos, labellen);
@@ -143,15 +145,15 @@ void DNSName::packetParser(const char* qpos, int len, int offset, bool uncompres
   if(consumed)
     *consumed = pos - opos - offset;
   if(qtype) {
-    if (pos + labellen + 2 > end) {
-      throw std::range_error("Trying to read qtype past the end of the buffer ("+std::to_string((pos - opos) + labellen + 2)+ " > "+std::to_string(len)+")");
+    if (pos + 2 > end) {
+      throw std::range_error("Trying to read qtype past the end of the buffer ("+std::to_string((pos - opos) + 2)+ " > "+std::to_string(len)+")");
     }
     *qtype=(*(const unsigned char*)pos)*256 + *((const unsigned char*)pos+1);
   }
   pos+=2;
   if(qclass) {
-    if (pos + labellen + 2 > end) {
-      throw std::range_error("Trying to read qclass past the end of the buffer ("+std::to_string((pos - opos) + labellen + 2)+ " > "+std::to_string(len)+")");
+    if (pos + 2 > end) {
+      throw std::range_error("Trying to read qclass past the end of the buffer ("+std::to_string((pos - opos) + 2)+ " > "+std::to_string(len)+")");
     }
     *qclass=(*(const unsigned char*)pos)*256 + *((const unsigned char*)pos+1);
   }

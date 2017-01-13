@@ -1,13 +1,35 @@
 
+#include "gettime.hh"
+#include "dnsparser.hh"
 #include "protobuf.hh"
 #include "dnsparser.hh"
 #include "gettime.hh"
 
-DNSProtoBufMessage::DNSProtoBufMessage(DNSProtoBufMessageType type)
+void DNSProtoBufMessage::setType(DNSProtoBufMessageType type)
 {
 #ifdef HAVE_PROTOBUF
-  d_message.set_type(type == DNSProtoBufMessage::DNSProtoBufMessageType::Query ? PBDNSMessage_Type_DNSQueryType : PBDNSMessage_Type_DNSResponseType);
+  switch(type) {
+  case DNSProtoBufMessage::DNSProtoBufMessageType::Query:
+    d_message.set_type(PBDNSMessage_Type_DNSQueryType);
+    break;
+  case DNSProtoBufMessage::DNSProtoBufMessageType::Response:
+    d_message.set_type(PBDNSMessage_Type_DNSResponseType);
+    break;
+  case DNSProtoBufMessage::DNSProtoBufMessageType::OutgoingQuery:
+    d_message.set_type(PBDNSMessage_Type_DNSOutgoingQueryType);
+    break;
+  case DNSProtoBufMessage::DNSProtoBufMessageType::IncomingResponse:
+    d_message.set_type(PBDNSMessage_Type_DNSIncomingResponseType);
+    break;
+  default:
+    throw std::runtime_error("Unsupported protobuf type: "+std::to_string(type));
+  }
 #endif /* HAVE_PROTOBUF */
+}
+
+DNSProtoBufMessage::DNSProtoBufMessage(DNSProtoBufMessageType type)
+{
+  setType(type);
 }
 
 void DNSProtoBufMessage::setQuestion(const DNSName& qname, uint16_t qtype, uint16_t qclass)
@@ -204,6 +226,13 @@ void DNSProtoBufMessage::setUUID(const boost::uuids::uuid& uuid)
   std::copy(uuid.begin(), uuid.end(), messageId->begin());
 }
 
+void DNSProtoBufMessage::setInitialRequestID(const boost::uuids::uuid& uuid)
+{
+  std::string* messageId = d_message.mutable_initialrequestid();
+  messageId->resize(uuid.size());
+  std::copy(uuid.begin(), uuid.end(), messageId->begin());
+}
+
 void DNSProtoBufMessage::update(const boost::uuids::uuid& uuid, const ComboAddress* requestor, const ComboAddress* responder, bool isTCP, uint16_t id)
 {
   struct timespec ts;
@@ -213,7 +242,13 @@ void DNSProtoBufMessage::update(const boost::uuids::uuid& uuid, const ComboAddre
   setUUID(uuid);
   d_message.set_id(ntohs(id));
 
-  d_message.set_socketfamily((requestor && requestor->sin4.sin_family == AF_INET) ? PBDNSMessage_SocketFamily_INET : PBDNSMessage_SocketFamily_INET6);
+  if (requestor) {
+    d_message.set_socketfamily(requestor->sin4.sin_family == AF_INET ? PBDNSMessage_SocketFamily_INET : PBDNSMessage_SocketFamily_INET6);
+  }
+  else if (responder) {
+    d_message.set_socketfamily(responder->sin4.sin_family == AF_INET ? PBDNSMessage_SocketFamily_INET : PBDNSMessage_SocketFamily_INET6);
+  }
+
   d_message.set_socketprotocol(isTCP ? PBDNSMessage_SocketProtocol_TCP : PBDNSMessage_SocketProtocol_UDP);
 
   if (responder) {
@@ -225,11 +260,11 @@ void DNSProtoBufMessage::update(const boost::uuids::uuid& uuid, const ComboAddre
 }
 
 
-DNSProtoBufMessage::DNSProtoBufMessage(DNSProtoBufMessageType type, const boost::uuids::uuid& uuid, const ComboAddress* requestor, const ComboAddress* to, const DNSName& domain, int qtype, uint16_t qclass, uint16_t qid, bool isTCP, size_t bytes)
+DNSProtoBufMessage::DNSProtoBufMessage(DNSProtoBufMessageType type, const boost::uuids::uuid& uuid, const ComboAddress* requestor, const ComboAddress* responder, const DNSName& domain, int qtype, uint16_t qclass, uint16_t qid, bool isTCP, size_t bytes)
 {
-  update(uuid, requestor, to, isTCP, qid);
+  update(uuid, requestor, responder, isTCP, qid);
 
-  d_message.set_type(type == DNSProtoBufMessage::DNSProtoBufMessageType::Query ? PBDNSMessage_Type_DNSQueryType : PBDNSMessage_Type_DNSResponseType);
+  setType(type);
 
   setBytes(bytes);
   setQuestion(domain, qtype, qclass);

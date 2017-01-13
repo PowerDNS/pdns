@@ -144,7 +144,7 @@ static bool keyCompareByKindAndID(const DNSSECKeeper::keyset_t::value_type& a, c
 DNSSECPrivateKey DNSSECKeeper::getKeyById(const DNSName& zname, unsigned int id)
 {  
   vector<DNSBackend::KeyData> keys;
-  d_keymetadb->getDomainKeys(zname, 0, keys);
+  d_keymetadb->getDomainKeys(zname, keys);
   for(const DNSBackend::KeyData& kd :  keys) {
     if(kd.id != id) 
       continue;
@@ -422,7 +422,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const DNSName& zone, bool useCache)
   keyset_t retkeyset;
   vector<DNSBackend::KeyData> dbkeyset;
 
-  d_keymetadb->getDomainKeys(zone, 0, dbkeyset);
+  d_keymetadb->getDomainKeys(zone, dbkeyset);
 
   // Determine the algorithms that have a KSK/ZSK split
   set<uint8_t> algoSEP, algoNoSEP;
@@ -488,7 +488,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const DNSName& zone, bool useCache)
 bool DNSSECKeeper::checkKeys(const DNSName& zone)
 {
   vector<DNSBackend::KeyData> dbkeyset;
-  d_keymetadb->getDomainKeys(zone, 0, dbkeyset);
+  d_keymetadb->getDomainKeys(zone, dbkeyset);
 
   for(const DNSBackend::KeyData &keydata : dbkeyset) {
     DNSKEYRecordContent dkrc;

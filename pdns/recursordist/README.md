@@ -7,7 +7,7 @@ Here follow some brief notes that may be useful to get you going.
 Compiling
 ---------
 Starting with version 4.0.0, the PowerDNS recursor uses autotools and compiling
-from the tarball can be as simple as
+[from the tarball](https://downloads.powerdns.com/releases/) can be as simple as
 
 ```
 $ ./configure

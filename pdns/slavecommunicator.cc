@@ -92,7 +92,7 @@ void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, c
   try {
     DNSSECKeeper dk (&B); // reuse our UeberBackend copy for DNSSECKeeper
 
-    if(!B.getDomainInfo(domain, di) || !di.backend) { // di.backend and B are mostly identical
+    if(!B.getDomainInfo(domain, di) || !di.backend || di.kind != DomainInfo::Slave) { // di.backend and B are mostly identical
       L<<Logger::Error<<"Can't determine backend for domain '"<<domain<<"'"<<endl;
       return;
     }
@@ -101,9 +101,9 @@ void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, c
     memset(&st, 0, sizeof(st));
     st.serial=di.serial;
 
-    DNSRecord dr;
-    dr.d_content = std::make_shared<SOARecordContent>(g_rootdnsname, g_rootdnsname, st);
-    auto deltas = getIXFRDeltas(remote, domain, dr, tt, laddr.sin4.sin_family ? &laddr : 0, ((size_t) ::arg().asNum("xfr-max-received-mbytes")) * 1024 * 1024);
+    DNSRecord drsoa;
+    drsoa.d_content = std::make_shared<SOARecordContent>(g_rootdnsname, g_rootdnsname, st);
+    auto deltas = getIXFRDeltas(remote, domain, drsoa, tt, laddr.sin4.sin_family ? &laddr : 0, ((size_t) ::arg().asNum("xfr-max-received-mbytes")) * 1024 * 1024);
     zs.numDeltas=deltas.size();
     //    cout<<"Got "<<deltas.size()<<" deltas from serial "<<di.serial<<", applying.."<<endl;
     
@@ -301,7 +301,7 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
   try {
     DNSSECKeeper dk (&B); // reuse our UeberBackend copy for DNSSECKeeper
 
-    if(!B.getDomainInfo(domain, di) || !di.backend) { // di.backend and B are mostly identical
+    if(!B.getDomainInfo(domain, di) || !di.backend || di.kind != DomainInfo::Slave) { // di.backend and B are mostly identical
       L<<Logger::Error<<"Can't determine backend for domain '"<<domain<<"'"<<endl;
       return;
     }

@@ -50,7 +50,7 @@ bool Bind2Backend::getDomainMetadata(const DNSName& name, const std::string& kin
 bool Bind2Backend::setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta)
 { return false; }
 
-bool Bind2Backend::getDomainKeys(const DNSName& name, unsigned int kind, std::vector<KeyData>& keys)
+bool Bind2Backend::getDomainKeys(const DNSName& name, std::vector<KeyData>& keys)
 { return false; }
 
 bool Bind2Backend::removeDomainKey(const DNSName& name, unsigned int id)
@@ -263,7 +263,7 @@ bool Bind2Backend::setDomainMetadata(const DNSName& name, const std::string& kin
   return true;
 }
 
-bool Bind2Backend::getDomainKeys(const DNSName& name, unsigned int kind, std::vector<KeyData>& keys)
+bool Bind2Backend::getDomainKeys(const DNSName& name, std::vector<KeyData>& keys)
 {
   if(!d_dnssecdb || d_hybrid)
     return false;
@@ -337,7 +337,7 @@ bool Bind2Backend::addDomainKey(const DNSName& name, const KeyData& key, int64_t
     SSqlStatement::row_t row;
     d_GetLastInsertedKeyIdQuery_stmt->nextRow(row);
     ASSERT_ROW_COLUMNS("get-last-inserted-key-id-query", row, 1);
-    int id = std::stoi(row[0]);
+    id = std::stoi(row[0]);
     d_GetLastInsertedKeyIdQuery_stmt->reset();
     return true;
   }

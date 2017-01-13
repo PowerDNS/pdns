@@ -116,7 +116,8 @@ If sending carbon updates, if set, this will override our hostname. Be careful n
 * Available since: 3.3.1
 
 Send all available metrics to this server via the carbon protocol, which is used
-by graphite and metronome. You may specify an alternate port by appending :port, 
+by graphite and metronome. It has to be an address (no hostnames). 
+You may specify an alternate port by appending :port, 
 ex: 127.0.0.1:2004. See 
 ["PowerDNS Metrics"](../common/logging.md#sending-to-carbongraphitemetronome).
 
@@ -358,7 +359,7 @@ most simple form, supply all backends that need to be launched. e.g.
 launch=bind,gmysql,remote
 ```
 
-If you find that you need to a backend multiple times with different configuration,
+If you find that you need to query a backend multiple times with different configuration,
 you can specify a name for later instantiations. e.g.:
 
 ```
@@ -496,11 +497,32 @@ hopeless and respawn.
 
 Maximum number of signatures cache entries
 
+## `max-tcp-connection-duration`
+* Integer
+* Default: 0
+
+Maximum time in seconds that a TCP DNS connection is allowed to stay open.
+0 means unlimited.
+Note that exchanges related to an AXFR or IXFR are not affected by this setting.
+
 ## `max-tcp-connections`
 * Integer
 * Default: 20
 
 Allow this many incoming TCP DNS connections simultaneously.
+
+## `max-tcp-connections-per-client`
+* Integer
+* Default: 0
+
+Maximum number of simultaneous TCP connections per client. 0 means unlimited.
+
+## `max-tcp-transactions-per-conn`
+* Integer
+* Default: 0
+
+Allow this many DNS queries in a single TCP transaction. 0 means unlimited.
+Note that exchanges related to an AXFR or IXFR are not affected by this setting.
 
 ## `module-dir`
 * Path
@@ -591,14 +613,6 @@ in those A/AAAA records unless you AXFR regularly!
 If this is disabled (the default), ALIAS records are sent verbatim during
 outgoing AXFR. Note that if your slaves do not support ALIAS, they will return
 NODATA for A/AAAA queries for such names.
-
-## `pipebackend-abi-version`
-* Integer
-* Default: 1
-* Removed in: 4.0.0 (is now specific to the backend)
-
-ABI version to use for the pipe backend. See
-["PipeBackend protocol"](backend-pipe.md#pipebackend-protocol).
 
 ## `prevent-self-notification`
 * Boolean
@@ -766,6 +780,13 @@ Limit TCP control to a specific client range.
 * String
 
 Password for TCP control.
+
+## `tcp-idle-timeout`
+* Integer
+* Default: 5
+
+Maximum time in seconds that a TCP DNS connection is allowed to stay open
+while being idle, meaning without PowerDNS receiving or sending even a single byte.
 
 ## `traceback-handler`
 * Boolean

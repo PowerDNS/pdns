@@ -70,10 +70,10 @@ public:
                               const DNSName& name,
                               DNSName& before, DNSName& after);
   bool getBeforeAndAfterNamesAbsolute(uint32_t zoneId,
-                                      const string& name,
+                                      const DNSName& name,
                                       DNSName& unhashed,
-                                      string& before,
-                                      string& after);
+                                      DNSName& before,
+                                      DNSName& after);
   bool get(DNSResourceRecord &rr);
   vector<string> getDomainMasters(const DNSName& domain, int zoneId);
   bool isMaster(const DNSName& domain, const string &master);
@@ -104,7 +104,7 @@ public:
   bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content);
   bool getTSIGKeys(std::vector< struct TSIGKey > &keys);
 
-  bool getDomainKeys(const DNSName& name, unsigned int kind, vector<KeyData>& keys);
+  bool getDomainKeys(const DNSName& name, vector<KeyData>& keys);
   bool removeDomainKey(const DNSName& name, unsigned int id);
   bool addDomainKey(const DNSName& name, const KeyData& key, int64_t& id);
   bool activateDomainKey(const DNSName& name, unsigned int id);

@@ -68,16 +68,8 @@ public:
   bool getEntry(const DNSName &qname, const QType& qtype, CacheEntryType cet, vector<DNSZoneRecord>& entry, int zoneID=-1);
   
 
-  int size(); //!< number of entries in the cache
-  void cleanupIfNeeded()
-  {
-    if(!(++d_ops % 300000)) {
-      if(d_lastclean + 30 < time(0)) {
-        d_lastclean=time(0); 
-        cleanup();
-      }
-    }
-  }
+  int size() { return *d_statnumentries; } //!< number of entries in the cache
+  void cleanupIfNeeded();
   void cleanup(); //!< force the cache to preen itself from expired packets
   int purge();
   int purge(const std::string& match); // could be $ terminated. Is not a dnsname!
@@ -113,6 +105,7 @@ private:
   void getTTLS();
 
   struct UnorderedNameTag{};
+  struct SequenceTag{};
   typedef multi_index_container<
     CacheEntry,
     indexed_by <
@@ -136,7 +129,7 @@ private:
                                                              member<CacheEntry,uint16_t,&CacheEntry::qtype>,
                                                              member<CacheEntry,uint16_t, &CacheEntry::ctype>,
                                                              member<CacheEntry,int, &CacheEntry::zoneID> > > ,
-      sequenced<>
+      sequenced<tag<SequenceTag>>
                            >
   > cmap_t;
 
@@ -154,7 +147,10 @@ private:
   }
 
   AtomicCounter d_ops;
-  time_t d_lastclean{0}; // doesn't need to be atomic
+  time_t d_lastclean; // doesn't need to be atomic
+  unsigned long d_nextclean;
+  unsigned int d_cleaninterval;
+  bool d_cleanskipped;
   AtomicCounter *d_statnumhit;
   AtomicCounter *d_statnummiss;
   AtomicCounter *d_statnumentries;
@@ -162,6 +158,8 @@ private:
   int d_ttl;
   int d_recursivettl;
   bool d_doRecursion;
+
+  static const unsigned int s_mincleaninterval=1000, s_maxcleaninterval=300000;
 };
 
 

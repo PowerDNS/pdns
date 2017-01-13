@@ -146,7 +146,7 @@ this depends on `SYSCONFDIR` during compile-time.
 * Default: unset
 
 When running multiple recursors on the same server, read settings from
-"name-recursor.conf", this will also rename the binary image.
+"recursor-name.conf", this will also rename the binary image.
 
 ## `daemon`
 * Boolean
@@ -305,6 +305,11 @@ or on the command line:
 Forwarded queries have the 'recursion desired' bit set to 0, meaning that this
 setting is intended to forward queries to authoritative servers.
 
+**IMPORTANT**: When using DNSSEC validation (which is default), forwards to non-delegated (e.g. internal) zones that have a DNSSEC signed parent zone will validate as Bogus.
+To prevent this, add a Negative Trust Anchor (NTA) for this zone in the [`lua-config-file`](#lua-config-file) with `addNTA("your.zone", "A comment")`.
+If this forwarded zone is signed, instead of adding NTA, add the DS record to the [`lua-config-file`](#lua-config-file).
+See the [recursor DNSSEC](dnssec.md) documentation for more information.
+
 ## `forward-zones-file`
 * Path
 * Available since: 3.1.5
@@ -318,6 +323,8 @@ Default behaviour without '+' is as with [`forward-zones`](#forward-zones).
 
 Comments are allowed since version 4.0.0. Everything behind '#' is ignored.
 
+The DNSSEC notes from [`forward-zones`](#forward-zones) apply here as well.
+
 ## `forward-zones-recurse`
 * 'zonename=IP' pairs, comma separated
 * Available since: 3.2
@@ -325,6 +332,8 @@ Comments are allowed since version 4.0.0. Everything behind '#' is ignored.
 Like regular [`forward-zones`](#forward-zones), but forwarded queries have the
 'recursion desired' bit set to 1, meaning that this setting is intended to
 forward queries to other recursive servers.
+
+The DNSSEC notes from [`forward-zones`](#forward-zones) apply here as well.
 
 ## `hint-file`
 * Path
@@ -497,7 +506,7 @@ If no settings are included, the RPZ is taken literally with no overrides applie
 
 The policy action are:
 
-* Policy.Custom will return a NoError, CNAME answer with the value specified with `defcontent`
+* Policy.Custom will return a NoError, CNAME answer with the value specified with `defcontent`, when looking up the result of this CNAME, RPZ is not taken into account
 * Policy.Drop will simply cause the query to be dropped
 * Policy.NoAction will continue normal processing of the query
 * Policy.NODATA will return a NoError response with no value in the answer section
@@ -522,7 +531,7 @@ to detect and act on infected hosts.
 Protobuf export to a server is enabled using the `protobufServer()` directive:
 
 ```
-protobufServer("192.0.2.1:4242" [[[[[[[, timeout], maxQueuedEntries], reconnectWaitTime], maskV4], maskV6], asynConnect], taggedOnly])
+protobufServer("192.0.2.1:4242" [[[[[[[, timeout], maxQueuedEntries], reconnectWaitTime], maskV4], maskV6], asyncConnect], taggedOnly])
 ```
 
 The optional parameters are:
@@ -533,6 +542,22 @@ The optional parameters are:
 * maskV4 = network mask to apply to the client IPv4 addresses, for anonymization purpose. The default of 32 means no anonymization
 * maskV6 = same as maskV4, but for IPv6. Default to 128
 * taggedOnly = only entries with a policy or a policy tag set will be sent
+* asyncConnect = if set to false (default) the first connection to the server during startup will block up to `timeout` seconds,
+otherwise the connection is done in a separate thread.
+
+While `protobufServer()` only exports the queries sent to the recursor from clients, with the corresponding responses,
+`outgoingProtobufServer()` can be used to export outgoing queries sent by the recursor to authoritative servers,
+along with the corresponding responses.
+
+```
+outgoingProtobufServer("192.0.2.1:4242" [[[[, timeout], maxQueuedEntries], reconnectWaitTime], asynConnect])
+```
+
+The optional parameters for `outgoingProtobufServer()` are:
+
+* timeout = time in seconds to wait when sending a message, default to 2
+* maxQueuedEntries = how many entries will be kept in memory if the server becomes unreachable, default to 100
+* reconnectWaitTime = how long to wait, in seconds, between two reconnection attempts, default to 1
 * asyncConnect = if set to false (default) the first connection to the server during startup will block up to `timeout` seconds,
 otherwise the connection is done in a separate thread.
 
@@ -591,6 +616,14 @@ In practice, caches can become saturated with hundreds of thousands of hosts
 which are tried only once. This setting, which defaults to 3600 seconds, puts a
 maximum on the amount of time negative entries are cached.
 
+## `max-recursion-depth`
+* Integer
+* Default: 40 (since 4.1.0), unlimited (before 4.1.0)
+
+Total maximum number of internal recursion calls the server may use to answer
+a single query. 0 means unlimited. The value of `stack-size` should be increased
+together with this one to prevent the stack from overflowing.
+
 ## `max-tcp-clients`
 * Integer
 * Default: 128
@@ -604,11 +637,17 @@ Maximum number of simultaneous incoming TCP connections allowed.
 Maximum number of simultaneous incoming TCP connections allowed per client
 (remote IP address).
 
+## `max-tcp-queries-per-connection`
+* Integer
+* Default: 0 (unlimited)
+
+Maximum number of DNS queries in a TCP connection.
+
 ## `max-total-msec`
 * Integer
 * Default: 7000
 
-Total maximum number of miliseconds of wallclock time the servermay use to answer
+Total maximum number of miliseconds of wallclock time the server may use to answer
 a single query.
 
 ## `minimum-ttl-override`

@@ -92,6 +92,8 @@ Available after 3.6.1, report currently running version.
 ### `wipe-cache domain1. [domain2. ..]`
 Wipe entries from the cache. This is useful if, for example, an important server has a new IP address, but the TTL has not yet expired. Multiple domain names can be passed. For versions before 3.1, you must terminate a domain with a `.`! So to wipe powerdns.org, issue `rec_control wipe-cache powerdns.org.`. For later versions, the dot is optional.
 
+To wipe all subdomain entries, append a $ at the end for example `powerdns.com$` would wipe that domain as well as `doc.powerdns.com` etc.
+
 Note that deletion is exact, wiping `com.` will leave `www.powerdns.com.` untouched!
 
 **Warning**: As of 3.1.7, this command also wipes the negative query cache for the specified domain.

@@ -12,7 +12,7 @@ set -x
 
 cd regression-tests
 
-wget -c -N http://s3.amazonaws.com/alexa-static/top-1m.csv.zip
+wget -c -N https://s3.amazonaws.com/alexa-static/top-1m.csv.zip
 
 unzip top-1m.csv.zip
 

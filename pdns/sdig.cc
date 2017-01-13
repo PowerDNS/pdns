@@ -145,7 +145,7 @@ try
       throw std::runtime_error("Timeout waiting for data");
     sock.recvFrom(reply, dest);
   }
-  MOADNSParser mdp(reply);
+  MOADNSParser mdp(false, reply);
   cout<<"Reply to question for qname='"<<mdp.d_qname.toString()<<"', qtype="<<DNSRecordContent::NumberToType(mdp.d_qtype)<<endl;
   cout<<"Rcode: "<<mdp.d_header.rcode<<" ("<<RCode::to_s(mdp.d_header.rcode)<<"), RD: "<<mdp.d_header.rd<<", QR: "<<mdp.d_header.qr;
   cout<<", TC: "<<mdp.d_header.tc<<", AA: "<<mdp.d_header.aa<<", opcode: "<<mdp.d_header.opcode<<endl;

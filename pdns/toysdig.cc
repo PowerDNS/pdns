@@ -86,7 +86,7 @@ public:
   {
     TCPResolver tr(d_dest);
     string resp=tr.query(qname, qtype);
-    MOADNSParser mdp(resp);
+    MOADNSParser mdp(false, resp);
     vector<DNSRecord> ret;
     ret.reserve(mdp.d_answers.size());
     for(const auto& a : mdp.d_answers) {

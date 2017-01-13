@@ -321,7 +321,7 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
   int err;
   vector<struct pollfd> rfds= d_rfds;
 
-  for(struct pollfd &pfd :  rfds) {
+  for(auto &pfd :  rfds) {
     pfd.events = POLLIN;
     pfd.revents = 0;
   }
@@ -335,7 +335,7 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
     unixDie("Unable to poll for new UDP events");
   }
     
-  for(struct pollfd &pfd :  rfds) {
+  for(auto &pfd :  rfds) {
     if(pfd.revents & POLLIN) {
       sock=pfd.fd;        
       if((len=recvmsg(sock, &msgh, 0)) < 0 ) {
@@ -360,7 +360,7 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
   if(prefilled)  // they gave us a preallocated packet
     packet=prefilled;
   else
-    packet=new DNSPacket; // don't forget to free it!
+    packet=new DNSPacket(true); // don't forget to free it!
 
   packet->setSocket(sock);
   packet->setRemote(&remote);

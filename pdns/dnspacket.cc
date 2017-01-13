@@ -47,11 +47,12 @@
 #include "base64.hh"
 #include "ednssubnet.hh"
 #include "gss_context.hh"
+#include "dns_random.hh"
 
 bool DNSPacket::s_doEDNSSubnetProcessing;
 uint16_t DNSPacket::s_udpTruncationThreshold;
  
-DNSPacket::DNSPacket() 
+DNSPacket::DNSPacket(bool isQuery)
 {
   d_wrapped=false;
   d_compress=true;
@@ -69,6 +70,7 @@ DNSPacket::DNSPacket()
   d_maxreplylen = 0;
   d_tsigtimersonly = false;
   d_haveednssection = false;
+  d_isQuery = isQuery;
 }
 
 const string& DNSPacket::getString()
@@ -366,7 +368,7 @@ void DNSPacket::wrapup()
 void DNSPacket::setQuestion(int op, const DNSName &qd, int newqtype)
 {
   memset(&d,0,sizeof(d));
-  d.id=Utility::random();
+  d.id=dns_random(0xffff);
   d.rd=d.tc=d.aa=false;
   d.qr=false;
   d.qdcount=1; // is htons'ed later on
@@ -379,7 +381,7 @@ void DNSPacket::setQuestion(int op, const DNSName &qd, int newqtype)
 /** convenience function for creating a reply packet from a question packet. Do not forget to delete it after use! */
 DNSPacket *DNSPacket::replyPacket() const
 {
-  DNSPacket *r=new DNSPacket;
+  DNSPacket *r=new DNSPacket(false);
   r->setSocket(d_socket);
   r->d_anyLocal=d_anyLocal;
   r->setRemote(&d_remote);
@@ -460,14 +462,14 @@ void DNSPacket::setTSIGDetails(const TSIGRecordContent& tr, const DNSName& keyna
 
 bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, DNSName* keyname, string* message) const
 {
-  MOADNSParser mdp(d_rawpacket);
+  MOADNSParser mdp(d_isQuery, d_rawpacket);
 
   if(!mdp.getTSIGPos()) 
     return false;
   
   bool gotit=false;
   for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
-    if(i->first.d_type == QType::TSIG) {
+    if(i->first.d_type == QType::TSIG && i->first.d_class == QType::ANY) {
       // cast can fail, f.e. if d_content is an UnknownRecordContent.
       shared_ptr<TSIGRecordContent> content = std::dynamic_pointer_cast<TSIGRecordContent>(i->first.d_content);
       if (!content) {
@@ -489,7 +491,7 @@ bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, DNSName* keyname, string*
 
 bool DNSPacket::getTKEYRecord(TKEYRecordContent *tr, DNSName *keyname) const
 {
-  MOADNSParser mdp(d_rawpacket);
+  MOADNSParser mdp(d_isQuery, d_rawpacket);
   bool gotit=false;
 
   for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
@@ -529,7 +531,7 @@ try
     return -1;
   }
 
-  MOADNSParser mdp(d_rawpacket);
+  MOADNSParser mdp(d_isQuery, d_rawpacket);
   EDNSOpts edo;
 
   // ANY OPTION WHICH *MIGHT* BE SET DOWN BELOW SHOULD BE CLEARED FIRST!
@@ -642,7 +644,10 @@ bool checkForCorrectTSIG(const DNSPacket* q, UeberBackend* B, DNSName* keyname, 
 {
   string message;
 
-  q->getTSIGDetails(trc, keyname, &message);
+  if (!q->getTSIGDetails(trc, keyname, &message)) {
+    return false;
+  }
+
   uint64_t delta = std::abs((int64_t)trc->d_time - (int64_t)time(0));
   if(delta > trc->d_fudge) {
     L<<Logger::Error<<"Packet for '"<<q->qdomain<<"' denied: TSIG (key '"<<*keyname<<"') time delta "<< delta <<" > 'fudge' "<<trc->d_fudge<<endl;

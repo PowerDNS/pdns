@@ -42,6 +42,7 @@ using namespace boost::multi_index;
 #include "packethandler.hh"
 
 #include "namespaces.hh"
+#include "dns_random.hh"
 
 struct SuckRequest
 {
@@ -75,7 +76,7 @@ public:
     nr.domain   = domain;
     nr.ip       = caIp.toStringWithPort();
     nr.attempts = 0;
-    nr.id       = Utility::random()%0xffff;
+    nr.id       = dns_random(0xffff);
     nr.next     = time(0);
 
     d_nqueue.push_back(nr);
@@ -274,7 +275,7 @@ private:
     struct addrinfo* res;
     struct addrinfo hints;
     memset(&hints, 0, sizeof(hints));
-
+    hints.ai_socktype = SOCK_DGRAM; // otherwise we get everything in triplicate (!)
     for(int n = 0; n < 2; ++n) {
       hints.ai_family = n ? AF_INET : AF_INET6;
       ComboAddress remote;

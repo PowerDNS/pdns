@@ -27,6 +27,7 @@
 
 #include "iputils.hh"
 #include "misc.hh"
+#include "protobuf.hh"
 #include "dns.hh"
 #include "dnspcap.hh"
 #include "dnsparser.hh"

@@ -100,7 +100,7 @@ int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& r
     catch(...) {
       continue;
     }
-    MOADNSParser mdp(reply);
+    MOADNSParser mdp(false, reply);
     if(mdp.d_header.rcode == RCode::ServFail)
       continue;
 

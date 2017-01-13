@@ -19,30 +19,34 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+syntax = "proto2";
+
 message PBDNSMessage {
   enum Type {
     DNSQueryType = 1;
     DNSResponseType = 2;
+    DNSOutgoingQueryType = 3;
+    DNSIncomingResponseType = 4;
   }
   enum SocketFamily {
-    INET = 1;   // IPv4 (RFC 791)
-    INET6 = 2;  // IPv6 (RFC 2460)
+    INET = 1;                                   // IPv4 (RFC 791)
+    INET6 = 2;                                  // IPv6 (RFC 2460)
   }
   enum SocketProtocol {
-    UDP = 1;    // User Datagram Protocol (RFC 768)
-    TCP = 2;    // Transmission Control Protocol (RFC 793)
+    UDP = 1;                                    // User Datagram Protocol (RFC 768)
+    TCP = 2;                                    // Transmission Control Protocol (RFC 793)
   }
   required Type type = 1;
-  optional bytes messageId = 2;
-  optional bytes serverIdentity = 3;
+  optional bytes messageId = 2;                 // UUID, shared by the query and the response
+  optional bytes serverIdentity = 3;            // UUID of the server emitting the protobuf message
   optional SocketFamily socketFamily = 4;
   optional SocketProtocol socketProtocol = 5;
-  optional bytes from = 6;
-  optional bytes to = 7;
-  optional uint64 inBytes = 8;
-  optional uint32 timeSec = 9;
-  optional uint32 timeUsec = 10;
-  optional uint32 id = 11;
+  optional bytes from = 6;                      // DNS requestor (client)
+  optional bytes to = 7;                        // DNS responder (server)
+  optional uint64 inBytes = 8;                  // Size of the query or response on the wire
+  optional uint32 timeSec = 9;                  // Time of message reception (seconds since epoch)
+  optional uint32 timeUsec = 10;                // Time of message reception (additional micro-seconds)
+  optional uint32 id = 11;                      // ID of the query/response as found in the DNS header
 
   message DNSQuestion {
     optional string qName = 1;
@@ -61,12 +65,14 @@ message PBDNSMessage {
     }
     optional uint32 rcode = 1;
     repeated DNSRR rrs = 2;
-    optional string appliedPolicy = 3;
-    repeated string tags = 4;
-    optional uint32 queryTimeSec = 5;
-    optional uint32 queryTimeUsec = 6;
+    optional string appliedPolicy = 3;          // Filtering policy (RPZ or Lua) applied
+    repeated string tags = 4;                   // Additional tags
+    optional uint32 queryTimeSec = 5;           // Time of the corresponding query reception (seconds since epoch)
+    optional uint32 queryTimeUsec = 6;          // Time of the corresponding query reception (additional micro-seconds)
   }
 
   optional DNSResponse response = 13;
-  optional bytes originalRequestorSubnet = 14;
+  optional bytes originalRequestorSubnet = 14;  // EDNS Client Subnet value
+  optional string requestorId = 15;             // Username of the requestor
+  optional bytes initialRequestId = 16;         // UUID of the incoming query that initiated this outgoing query or incoming response
 }

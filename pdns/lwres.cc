@@ -48,21 +48,60 @@
 #include "validate-recursor.hh"
 #include "ednssubnet.hh"
 
+#ifdef HAVE_PROTOBUF
+
+static void logOutgoingQuery(std::shared_ptr<RemoteLogger> outgoingLogger, boost::optional<const boost::uuids::uuid&> initialRequestId, const boost::uuids::uuid& uuid, const ComboAddress& ip, const DNSName& domain, int type, uint16_t qid, bool doTCP, size_t bytes)
+{
+  if(!outgoingLogger)
+    return;
+
+  RecProtoBufMessage message(DNSProtoBufMessage::OutgoingQuery, uuid, nullptr, &ip, domain, type, QClass::IN, qid, doTCP, bytes);
+  if (initialRequestId) {
+    message.setInitialRequestID(*initialRequestId);
+  }
+
+//  cerr <<message.toDebugString()<<endl;
+  std::string str;
+  message.serialize(str);
+  outgoingLogger->queueData(str);
+}
+
+static void logIncomingResponse(std::shared_ptr<RemoteLogger> outgoingLogger, boost::optional<const boost::uuids::uuid&> initialRequestId, const boost::uuids::uuid& uuid, const ComboAddress& ip, const DNSName& domain, int type, uint16_t qid, bool doTCP, size_t bytes, int rcode, const std::vector<DNSRecord>& records, const struct timeval& queryTime)
+{
+  if(!outgoingLogger)
+    return;
+
+  RecProtoBufMessage message(DNSProtoBufMessage::IncomingResponse, uuid, nullptr, &ip, domain, type, QClass::IN, qid, doTCP, bytes);
+  if (initialRequestId) {
+    message.setInitialRequestID(*initialRequestId);
+  }
+  message.setQueryTime(queryTime.tv_sec, queryTime.tv_usec);
+  message.setResponseCode(rcode);
+  message.addRRs(records);
+
+//  cerr <<message.toDebugString()<<endl;
+  std::string str;
+  message.serialize(str);
+  outgoingLogger->queueData(str);
+}
+#endif /* HAVE_PROTOBUF */
+
 //! returns -2 for OS limits error, -1 for permanent error that has to do with remote **transport**, 0 for timeout, 1 for success
 /** lwr is only filled out in case 1 was returned, and even when returning 1 for 'success', lwr might contain DNS errors
     Never throws! 
  */
-int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult *lwr)
+int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult *lwr)
 {
   size_t len;
   size_t bufsize=g_outgoingEDNSBufsize;
   scoped_array<unsigned char> buf(new unsigned char[bufsize]);
   vector<uint8_t> vpacket;
   //  string mapped0x20=dns0x20(domain);
+  uint16_t qid = dns_random(0xffff);
   DNSPacketWriter pw(vpacket, domain, type);
 
   pw.getHeader()->rd=sendRDQuery;
-  pw.getHeader()->id=dns_random(0xffff);
+  pw.getHeader()->id=qid;
   /* RFC 6840 section 5.9:
    *  This document further specifies that validating resolvers SHOULD set
    *  the CD bit on every upstream query.  This is regardless of whether
@@ -98,20 +137,31 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
   DTime dt;
   dt.set();
   *now=dt.getTimeval();
+
+#ifdef HAVE_PROTOBUF
+  boost::uuids::uuid uuid;
+  const struct timeval queryTime = *now;
+
+  if (outgoingLogger) {
+    uuid = (*t_uuidGenerator)();
+    logOutgoingQuery(outgoingLogger, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, vpacket.size());
+  }
+#endif
+
   errno=0;
   if(!doTCP) {
     int queryfd;
     if(ip.sin4.sin_family==AF_INET6)
       g_stats.ipv6queries++;
 
-    if((ret=asendto((const char*)&*vpacket.begin(), vpacket.size(), 0, ip, pw.getHeader()->id,
+    if((ret=asendto((const char*)&*vpacket.begin(), vpacket.size(), 0, ip, qid,
                     domain, type, &queryfd)) < 0) {
       return ret; // passes back the -2 EMFILE
     }
   
     // sleep until we see an answer to this, interface to mtasker
     
-    ret=arecvfrom(reinterpret_cast<char *>(buf.get()), bufsize-1,0, ip, &len, pw.getHeader()->id, 
+    ret=arecvfrom(reinterpret_cast<char *>(buf.get()), bufsize-1,0, ip, &len, qid,
                   domain, type, queryfd, now);
   }
   else {
@@ -123,9 +173,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
 
       s.bind(local);
         
-      ComboAddress remote = ip;
-      remote.sin4.sin_port = htons(53);      
-      s.connect(remote);
+      s.connect(ip);
       
       uint16_t tlen=htons(vpacket.size());
       char *lenP=(char*)&tlen;
@@ -172,12 +220,17 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
   lwr->d_records.clear();
   try {
     lwr->d_tcbit=0;
-    MOADNSParser mdp((const char*)buf.get(), len);
+    MOADNSParser mdp(false, (const char*)buf.get(), len);
     lwr->d_aabit=mdp.d_header.aa;
     lwr->d_tcbit=mdp.d_header.tc;
     lwr->d_rcode=mdp.d_header.rcode;
     
     if(mdp.d_header.rcode == RCode::FormErr && mdp.d_qname.empty() && mdp.d_qtype == 0 && mdp.d_qclass == 0) {
+#ifdef HAVE_PROTOBUF
+      if(outgoingLogger) {
+        logIncomingResponse(outgoingLogger, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, len, lwr->d_rcode, lwr->d_records, queryTime);
+      }
+#endif
       return 1; // this is "success", the error is set in lwr->d_rcode
     }
 
@@ -210,13 +263,23 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
       }
     }
         
+#ifdef HAVE_PROTOBUF
+    if(outgoingLogger) {
+      logIncomingResponse(outgoingLogger, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, len, lwr->d_rcode, lwr->d_records, queryTime);
+    }
+#endif
     return 1;
   }
   catch(std::exception &mde) {
     if(::arg().mustDo("log-common-errors"))
       L<<Logger::Notice<<"Unable to parse packet from remote server "<<ip.toString()<<": "<<mde.what()<<endl;
     lwr->d_rcode = RCode::FormErr;
-    g_stats.serverParseError++; 
+    g_stats.serverParseError++;
+#ifdef HAVE_PROTOBUF
+    if(outgoingLogger) {
+      logIncomingResponse(outgoingLogger, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, len, lwr->d_rcode, lwr->d_records, queryTime);
+    }
+#endif
     return 1; // success - oddly enough
   }
   catch(...) {

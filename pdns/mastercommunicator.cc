@@ -167,7 +167,7 @@ time_t CommunicatorClass::doNotifications()
     size=recvfrom(sock,buffer,sizeof(buffer),0,(struct sockaddr *)&from,&fromlen);
     if(size < 0)
       break;
-    DNSPacket p;
+    DNSPacket p(true);
 
     p.setRemote(&from);
 

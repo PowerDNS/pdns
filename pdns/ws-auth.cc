@@ -274,7 +274,7 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
     if(arg().mustDo("webserver-print-arguments"))
       printargs(ret);
   }
-  else
+  else if(S.ringExists(req->getvars["ring"]))
     printtable(ret,req->getvars["ring"],S.getRingTitle(req->getvars["ring"]),100);
 
   ret<<"</div></div>"<<endl;
@@ -308,7 +308,7 @@ static Json::object getZoneInfo(const DomainInfo& di) {
   return Json::object {
     // id is the canonical lookup key, which doesn't actually match the name (in some cases)
     { "id", zoneId },
-    { "url", "api/v1/servers/localhost/zones/" + zoneId },
+    { "url", "/api/v1/servers/localhost/zones/" + zoneId },
     { "name", di.zone.toString() },
     { "kind", di.getKindString() },
     { "dnssec", dk.isSecuredZone(di.zone) },
@@ -381,7 +381,7 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp) {
   auto cit = comments.begin();
 
   while (rit != records.end() || cit != comments.end()) {
-    if (cit == comments.end() || (rit != records.end() && (cit->qname.toString() < rit->qname.toString() || cit->qtype < rit->qtype))) {
+    if (cit == comments.end() || (rit != records.end() && (cit->qname.toString() <= rit->qname.toString() || cit->qtype < rit->qtype || cit->qtype == rit->qtype))) {
       current_qname = rit->qname;
       current_qtype = rit->qtype;
       ttl = rit->ttl;
@@ -472,7 +472,7 @@ static void gatherRecords(const Json container, const DNSName& qname, const QTyp
       makePtr(rr, &ptr);
 
       // verify that there's a zone for the PTR
-      DNSPacket fakePacket;
+      DNSPacket fakePacket(false);
       SOAData sd;
       fakePacket.qtype = QType::PTR;
       if (!B.getAuth(&fakePacket, &sd, ptr.qname))
@@ -1026,6 +1026,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 
     // if records/comments are given, load and check them
     bool have_soa = false;
+    bool have_zone_ns = false;
     vector<DNSResourceRecord> new_records;
     vector<Comment> new_comments;
     vector<DNSResourceRecord> new_ptrs;
@@ -1062,6 +1063,9 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
         // fixup dots after serializeSOAData/increaseSOARecord
         rr.content = makeBackendRecordContent(rr.qtype, rr.content);
       }
+      if (rr.qtype.getCode() == QType::NS && rr.qname==zonename) {
+        have_zone_ns = true;
+      }
     }
 
     // synthesize RRs as needed
@@ -1096,12 +1100,15 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
         throw ApiException("Nameserver is not canonical: '" + nameserver + "'");
       try {
         // ensure the name parses
-        autorr.content = DNSName(nameserver).toStringNoDot();
+        autorr.content = DNSName(nameserver).toStringRootDot();
       } catch (...) {
         throw ApiException("Unable to parse DNS Name for NS '" + nameserver + "'");
       }
       autorr.qtype = "NS";
       new_records.push_back(autorr);
+      if (have_zone_ns) {
+        throw ApiException("Nameservers list MUST NOT be mixed with zone-level NS in rrsets");
+      }
     }
 
     // no going back after this
@@ -1298,12 +1305,12 @@ static void makePtr(const DNSResourceRecord& rr, DNSResourceRecord* ptr) {
   ptr->qtype = "PTR";
   ptr->ttl = rr.ttl;
   ptr->disabled = rr.disabled;
-  ptr->content = rr.qname.toString();
+  ptr->content = rr.qname.toStringRootDot();
 }
 
 static void storeChangedPTRs(UeberBackend& B, vector<DNSResourceRecord>& new_ptrs) {
   for(const DNSResourceRecord& rr :  new_ptrs) {
-    DNSPacket fakePacket;
+    DNSPacket fakePacket(false);
     SOAData sd;
     sd.db = (DNSBackend *)-1;  // getAuth() cache bypass
     fakePacket.qtype = QType::PTR;
@@ -1489,7 +1496,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
 
   if (q.empty())
     throw ApiException("Query q can't be blank");
-  if (sMax.empty() == false)
+  if (!sMax.empty())
     maxEnts = std::stoi(sMax);
   if (maxEnts < 1)
     throw ApiException("Maximum entries must be larger than 0");
@@ -1522,6 +1529,9 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
   {
     for(const DNSResourceRecord& rr: result_rr)
     {
+      if (!rr.qtype.getCode())
+        continue; // skip empty non-terminals
+
       auto object = Json::object {
         { "object_type", "record" },
         { "name", rr.qname.toString() },

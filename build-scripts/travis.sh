@@ -224,6 +224,10 @@ install_auth() {
   run "sudo apt-get -qq --no-install-recommends install \
     libzmq3-dev"
 
+  # godbc-backend
+  run "sudo apt-get -qq --no-install-recommends install \
+    libsqliteodbc"
+
   # authoritative test requirements / setup
   run "sudo apt-get -qq --no-install-recommends install \
     bind9utils \
@@ -236,8 +240,8 @@ install_auth() {
     jq"
 
   run "cd .."
-  run "wget http://www.verisignlabs.com/dnssec-tools/packages/jdnssec-tools-0.12.tar.gz"
-  run "sudo tar xfz jdnssec-tools-0.12.tar.gz --strip-components=1 -C /"
+  run "wget https://www.verisignlabs.com/dnssec-tools/packages/jdnssec-tools-0.13.tar.gz"
+  run "sudo tar xfz jdnssec-tools-0.13.tar.gz --strip-components=1 -C /"
   run "cd pdns"
 
   # pkcs11 test requirements / setup
@@ -267,11 +271,15 @@ install_auth() {
     geoip-database"
 
   # gmysql-backend test requirements
-  run "sudo apt-get -qq --no-install-recommends install \
-    mysql-server"
+  # as of 2016/12/01, mysql-5.6 is now installed in the default travis image
+  # see https://github.com/travis-ci/travis-ci/issues/6961
+  #run "sudo apt-get -qq --no-install-recommends install \
+  #  mysql-server"
 
   # godbc-backend test setup
-  run echo\ -e\ "[pdns-sqlite3-1]\nDriver = SQLite3\nDatabase = ${PWD}/regression-tests/pdns.sqlite3\n\n[pdns-sqlite3-2]\nDriver = SQLite3\nDatabase = ${PWD}/regression-tests/pdns.sqlite32\n"\ >\ ${HOME}/.odbc.ini
+  run 'echo -e "[pdns-sqlite3-1]\nDriver = SQLite3\nDatabase = ${PWD}/regression-tests/pdns.sqlite3\n\n[pdns-sqlite3-2]\nDriver = SQLite3\nDatabase = ${PWD}/regression-tests/pdns.sqlite32\n" > ${HOME}/.odbc.ini'
+  run 'echo ${HOME}/.odbc.ini'
+  run 'cat ${HOME}/.odbc.ini'
 
   # ldap-backend test setup
   run "sudo apt-get -qq --no-install-recommends install \
@@ -335,12 +343,13 @@ install_recursor() {
     moreutils \
     jq"
   run "cd .."
-  run "wget http://s3.amazonaws.com/alexa-static/top-1m.csv.zip"
+  run "wget https://s3.amazonaws.com/alexa-static/top-1m.csv.zip"
   run "unzip top-1m.csv.zip -d ./pdns/regression-tests"
   PDNS_SERVER_VERSION="0.0.880gcb54743-1pdns"
   run "wget https://downloads.powerdns.com/autobuilt/auth/deb/$PDNS_SERVER_VERSION.trusty-amd64/pdns-server_$PDNS_SERVER_VERSION.trusty_amd64.deb"
   run "wget https://downloads.powerdns.com/autobuilt/auth/deb/$PDNS_SERVER_VERSION.trusty-amd64/pdns-tools_$PDNS_SERVER_VERSION.trusty_amd64.deb"
   run "sudo dpkg -i pdns-server_$PDNS_SERVER_VERSION.trusty_amd64.deb pdns-tools_$PDNS_SERVER_VERSION.trusty_amd64.deb"
+  run "sudo service pdns stop"
   run 'for suffix in {1..40}; do sudo /sbin/ip addr add 10.0.3.$suffix/32 dev lo; done'
   run "sudo touch /etc/authbind/byport/53"
   run "sudo chmod 755 /etc/authbind/byport/53"
@@ -355,7 +364,7 @@ build_auth() {
   run "./bootstrap"
   # Build without --enable-botan1.10 option, Botan/SoftHSM conflict #2496
   run "CFLAGS='-O1' CXXFLAGS='-O1' ./configure \
-    --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 ldap lua mydns opendbx pipe random remote tinydns' \
+    --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 ldap lua mydns opendbx pipe random remote tinydns godbc' \
     --with-modules='' \
     --with-sqlite3 \
     --enable-libsodium \
@@ -431,6 +440,9 @@ test_auth() {
 
   run "cd regression-tests"
 
+  #travis unbound is too old for this test (unbound 1.6.0 required)
+  run "touch tests/ent-asterisk/fail.nsec"
+
   run "./timestamp ./start-test-stop 5300 ldap-tree"
   run "./timestamp ./start-test-stop 5300 ldap-simple"
   run "./timestamp ./start-test-stop 5300 ldap-strict"
@@ -454,7 +466,7 @@ test_auth() {
   run "./timestamp ./start-test-stop 5300 gmysql-nsec3-narrow"
 
   run "export GODBC_SQLITE3_DSN=pdns-sqlite3-1"
-  # run "./timestamp ./start-test-stop 5300 godbc_sqlite3-nsec3"
+  run "./timestamp ./start-test-stop 5300 godbc_sqlite3-nsec3"
 
   run "./timestamp ./start-test-stop 5300 gpgsql-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 gpgsql-both"
@@ -482,6 +494,9 @@ test_auth() {
   run "./timestamp ./start-test-stop 5300 remotebackend-zeromq-dnssec"
 
   run "./timestamp ./start-test-stop 5300 tinydns"
+
+  run "rm tests/ent-asterisk/fail.nsec"
+
   run "cd .."
 
   run "cd regression-tests.rootzone"

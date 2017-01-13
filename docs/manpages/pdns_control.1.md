@@ -75,7 +75,9 @@ list-zones [master,slave,native]
 notify *DOMAIN*
 :    Adds *DOMAIN* to the notification list, causing PowerDNS to send out
      notifications to the nameservers of a domain. Can be used if a slave missed
-     previous notifications or is generally hard of hearing.
+     previous notifications or is generally hard of hearing. Use \* to notify
+     for all domains. (Note that you may need to escape the \* sign in your
+     shell.)
 
 notify-host *DOMAIN* *ADDRESS*
 :    Same as above but with operator specified IP *ADDRESS* as destination, to be

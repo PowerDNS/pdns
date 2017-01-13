@@ -281,46 +281,41 @@ bool DNSBackend::get(DNSZoneRecord& dzr)
       vector<string> parts;
       stringtok(parts, rr.content, " \t");
       if(parts.size() < 1)
-        rr.content+=arg()["default-soa-name"];
+        rr.content = arg()["default-soa-name"];
       if(parts.size() < 2)
-        rr.content+=" "+arg()["default-soa-mail"];      
+        rr.content += " " +arg()["default-soa-mail"];
       if(parts.size() < 3)
         rr.content += " 0";
       if(parts.size() < 4)
         rr.content += " " + ::arg()["soa-refresh-default"];
       if(parts.size() < 5)
-        rr.content += " " + ::arg()["soa-expire-default"];
+        rr.content += " " + ::arg()["soa-retry-default"];
       if(parts.size() < 6)
-        rr.content += " " + ::arg()["soa-minimum-default"];
-      dzr.dr = DNSRecord(rr);        
+        rr.content += " " + ::arg()["soa-expire-default"];
+      if(parts.size() < 7)
+        rr.content += " " + ::arg()["soa-minimum-ttl"];
+      dzr.dr = DNSRecord(rr);
     }
   }
-  else 
-    dzr.dr = DNSRecord(rr);
+  else {
+    try {
+      dzr.dr = DNSRecord(rr);
+    }
+    catch(...) {
+      while(this->get(rr));
+      throw;
+    }
+  }
   return true;
 }
 
 bool DNSBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonename, const DNSName& qname, DNSName& before, DNSName& after)
 {
-  // FIXME400 FIXME400 FIXME400
-  // string lcqname=toLower(qname); FIXME400 tolower?
-  // string lczonename=toLower(zonename); FIXME400 tolower?
-  // lcqname=makeRelative(lcqname, lczonename);
-  DNSName lczonename = zonename.makeLowerCase(); 
-  // lcqname=labelReverse(lcqname);
-  DNSName dnc;
-  string relqname, sbefore, safter;
-  relqname=qname.makeRelative(zonename).labelReverse().toString(" ", false);
-  //sbefore = before.toString();
-  //safter = after.toString();
-  bool ret = this->getBeforeAndAfterNamesAbsolute(id, relqname, dnc, sbefore, safter);
-  boost::replace_all(sbefore, " ", ".");
-  boost::replace_all(safter, " ", ".");
-  before = DNSName(sbefore).labelReverse() + lczonename;
-  after = DNSName(safter).labelReverse() + lczonename;
-
-  // before=dotConcat(labelReverse(before), lczonename); FIXME400
-  // after=dotConcat(labelReverse(after), lczonename); FIXME400
+  DNSName unhashed;
+  bool ret = this->getBeforeAndAfterNamesAbsolute(id, qname.makeRelative(zonename).makeLowerCase(), unhashed, before, after);
+  DNSName lczonename = zonename.makeLowerCase();
+  before += lczonename;
+  after += lczonename;
   return ret;
 }
 

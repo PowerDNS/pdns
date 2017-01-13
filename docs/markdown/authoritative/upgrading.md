@@ -2,6 +2,14 @@ Before proceeding, it is advised to check the release notes for your PowerDNS ve
 
 Please upgrade to the PowerDNS Authoritative Server 4.0.0 from 3.4.2+. See the [3.X](https://doc.powerdns.com/3/authoritative/upgrading/) upgrade notes if your version is older than 3.4.2.
 
+# 4.0.X to 4.0.2
+
+## Changed options
+
+### Changed defaults
+
+ * [`any-to-tcp`](settings.md#any-to-tcp) changed from `no` to `yes`
+
 # 3.4.X to 4.0.0
 
 ## Database changes

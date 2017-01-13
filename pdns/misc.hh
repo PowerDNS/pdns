@@ -147,7 +147,7 @@ vstringtok (Container &container, string const &in,
 size_t writen2(int fd, const void *buf, size_t count);
 inline size_t writen2(int fd, const std::string &s) { return writen2(fd, s.data(), s.size()); }
 size_t readn2(int fd, void* buffer, size_t len);
-size_t readn2WithTimeout(int fd, void* buffer, size_t len, int timeout);
+size_t readn2WithTimeout(int fd, void* buffer, size_t len, int idleTimeout, int totalTimeout=0);
 size_t writen2WithTimeout(int fd, const void * buffer, size_t len, int timeout);
 
 const string toLower(const string &upper);
@@ -235,14 +235,14 @@ inline bool dns_isspace(char c)
   return c==' ' || c=='\t' || c=='\r' || c=='\n';
 }
 
-inline char dns_tolower(char c)
+inline unsigned char dns_tolower(unsigned char c)
 {
   if(c>='A' && c<='Z')
     c+='a'-'A';
   return c;
 }
 
-inline char dns_toupper(char c)
+inline unsigned char dns_toupper(unsigned char c)
 {
   if(c>='a' && c<='z')
     c+='A'-'a';
@@ -266,7 +266,7 @@ inline const string toLowerCanonic(const string &upper)
   string reply(upper);
   if(!upper.empty()) {
     unsigned int i, limit= ( unsigned int ) reply.length();
-    char c;
+    unsigned char c;
     for(i = 0; i < limit ; i++) {
       c = dns_tolower(upper[i]);
       if(c != upper[i])
@@ -306,7 +306,7 @@ inline void unixDie(const string &why)
 
 string makeHexDump(const string& str);
 void shuffle(vector<DNSRecord>& rrs);
-class DNSZoneRecord;
+struct DNSZoneRecord;
 void shuffle(vector<DNSZoneRecord>& rrs);
 
 void orderAndShuffle(vector<DNSRecord>& rrs);
@@ -611,3 +611,4 @@ uid_t strToUID(const string &str);
 gid_t strToGID(const string &str);
 
 unsigned int pdns_stou(const std::string& str, size_t * idx = 0, int base = 10);
+

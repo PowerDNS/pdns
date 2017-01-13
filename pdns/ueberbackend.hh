@@ -55,7 +55,6 @@ class UeberBackend : public boost::noncopyable
 public:
   UeberBackend(const string &pname="default");
   ~UeberBackend();
-  typedef DNSBackend *BackendMaker(); //!< typedef for functions returning pointers to new backends
 
   bool superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db);
 
@@ -106,19 +105,17 @@ public:
   bool getAuth(DNSPacket *p, SOAData *sd, const DNSName &target);
   bool getSOA(const DNSName &domain, SOAData &sd, DNSPacket *p=0);
   bool getSOAUncached(const DNSName &domain, SOAData &sd, DNSPacket *p=0);  // same, but ignores cache
-  bool list(const DNSName &target, int domain_id, bool include_disabled=false);
   bool get(DNSResourceRecord &r);
   bool get(DNSZoneRecord &r);
   void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false);
 
-  static DNSBackend *maker(const map<string,string> &);
   void getUnfreshSlaveInfos(vector<DomainInfo>* domains);
   void getUpdatedMasters(vector<DomainInfo>* domains);
   bool getDomainInfo(const DNSName &domain, DomainInfo &di);
   bool createDomain(const DNSName &domain);
   
   bool addDomainKey(const DNSName& name, const DNSBackend::KeyData& key, int64_t& id);
-  bool getDomainKeys(const DNSName& name, unsigned int kind, std::vector<DNSBackend::KeyData>& keys);
+  bool getDomainKeys(const DNSName& name, std::vector<DNSBackend::KeyData>& keys);
   bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta);
   bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta);
   bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta);
@@ -145,7 +142,6 @@ private:
 
   static pthread_mutex_t d_mut;
   static pthread_cond_t d_cond;
-  static sem_t d_dynserialize;
 
   struct Question
   {

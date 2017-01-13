@@ -43,9 +43,12 @@ bool g_console{true};
 bool g_syslog{true};
 bool g_verbose{true};
 
+static const uint16_t ECSSourcePrefixV4 = 24;
+static const uint16_t ECSSourcePrefixV6 = 56;
+
 static void validateQuery(const char * packet, size_t packetSize)
 {
-  MOADNSParser mdp(packet, packetSize);
+  MOADNSParser mdp(true, packet, packetSize);
 
   BOOST_CHECK_EQUAL(mdp.d_qname.toString(), "www.powerdns.com.");
 
@@ -57,7 +60,7 @@ static void validateQuery(const char * packet, size_t packetSize)
 
 static void validateResponse(const char * packet, size_t packetSize, bool hasEdns, uint8_t additionalCount=0)
 {
-  MOADNSParser mdp(packet, packetSize);
+  MOADNSParser mdp(false, packet, packetSize);
 
   BOOST_CHECK_EQUAL(mdp.d_qname.toString(), "www.powerdns.com.");
 
@@ -91,7 +94,7 @@ BOOST_AUTO_TEST_CASE(addECSWithoutEDNS)
   BOOST_CHECK_EQUAL(qname, name);
   BOOST_CHECK(qtype == QType::A);
 
-  handleEDNSClientSubnet(packet, sizeof packet, consumed, &len, largerPacket, &ednsAdded, &ecsAdded, remote);
+  handleEDNSClientSubnet(packet, sizeof packet, consumed, &len, largerPacket, &ednsAdded, &ecsAdded, remote, false, remote.sin4.sin_family == AF_INET ? ECSSourcePrefixV4 : ECSSourcePrefixV6);
   BOOST_CHECK((size_t) len > query.size());
   BOOST_CHECK_EQUAL(largerPacket.size(), 0);
   BOOST_CHECK_EQUAL(ednsAdded, true);
@@ -105,7 +108,7 @@ BOOST_AUTO_TEST_CASE(addECSWithoutEDNS)
   BOOST_CHECK_EQUAL(qname, name);
   BOOST_CHECK(qtype == QType::A);
 
-  handleEDNSClientSubnet((char*) query.data(), query.size(), consumed, &len, largerPacket, &ednsAdded, &ecsAdded, remote);
+  handleEDNSClientSubnet((char*) query.data(), query.size(), consumed, &len, largerPacket, &ednsAdded, &ecsAdded, remote, false, remote.sin4.sin_family == AF_INET ? ECSSourcePrefixV4 : ECSSourcePrefixV6);
   BOOST_CHECK_EQUAL((size_t) len, query.size());
   BOOST_CHECK(largerPacket.size() > query.size());
   BOOST_CHECK_EQUAL(ednsAdded, true);
@@ -137,7 +140,7 @@ BOOST_AUTO_TEST_CASE(addECSWithEDNSNoECS) {
   BOOST_CHECK_EQUAL(qname, name);
   BOOST_CHECK(qtype == QType::A);
 
-  handleEDNSClientSubnet(packet, sizeof packet, consumed, &len, largerPacket, &ednsAdded, &ecsAdded, remote);
+  handleEDNSClientSubnet(packet, sizeof packet, consumed, &len, largerPacket, &ednsAdded, &ecsAdded, remote, false, remote.sin4.sin_family == AF_INET ? ECSSourcePrefixV4 : ECSSourcePrefixV6);
   BOOST_CHECK((size_t) len > query.size());
   BOOST_CHECK_EQUAL(largerPacket.size(), 0);
   BOOST_CHECK_EQUAL(ednsAdded, false);
@@ -151,7 +154,7 @@ BOOST_AUTO_TEST_CASE(addECSWithEDNSNoECS) {
   BOOST_CHECK_EQUAL(qname, name);
   BOOST_CHECK(qtype == QType::A);
 
-  handleEDNSClientSubnet((char*) query.data(), query.size(), consumed, &len, largerPacket, &ednsAdded, &ecsAdded, remote);
+  handleEDNSClientSubnet((char*) query.data(), query.size(), consumed, &len, largerPacket, &ednsAdded, &ecsAdded, remote, false, remote.sin4.sin_family == AF_INET ? ECSSourcePrefixV4 : ECSSourcePrefixV6);
   BOOST_CHECK_EQUAL((size_t) len, query.size());
   BOOST_CHECK(largerPacket.size() > query.size());
   BOOST_CHECK_EQUAL(ednsAdded, false);
@@ -171,7 +174,7 @@ BOOST_AUTO_TEST_CASE(replaceECSWithSameSize) {
   DNSPacketWriter pw(query, name, QType::A, QClass::IN, 0);
   pw.getHeader()->rd = 1;
   EDNSSubnetOpts ecsOpts;
-  ecsOpts.source = Netmask(origRemote, g_ECSSourcePrefixV4);
+  ecsOpts.source = Netmask(origRemote, ECSSourcePrefixV4);
   string origECSOption = makeEDNSSubnetOptsString(ecsOpts);
   DNSPacketWriter::optvect_t opts;
   opts.push_back(make_pair(EDNSOptionCode::ECS, origECSOption));
@@ -189,8 +192,7 @@ BOOST_AUTO_TEST_CASE(replaceECSWithSameSize) {
   BOOST_CHECK_EQUAL(qname, name);
   BOOST_CHECK(qtype == QType::A);
 
-  g_ECSOverride = true;
-  handleEDNSClientSubnet(packet, sizeof packet, consumed, &len, largerPacket, &ednsAdded, &ecsAdded, remote);
+  handleEDNSClientSubnet(packet, sizeof packet, consumed, &len, largerPacket, &ednsAdded, &ecsAdded, remote, true, remote.sin4.sin_family == AF_INET ? ECSSourcePrefixV4 : ECSSourcePrefixV6);
   BOOST_CHECK_EQUAL((size_t) len, query.size());
   BOOST_CHECK_EQUAL(largerPacket.size(), 0);
   BOOST_CHECK_EQUAL(ednsAdded, false);
@@ -228,8 +230,7 @@ BOOST_AUTO_TEST_CASE(replaceECSWithSmaller) {
   BOOST_CHECK_EQUAL(qname, name);
   BOOST_CHECK(qtype == QType::A);
 
-  g_ECSOverride = true;
-  handleEDNSClientSubnet(packet, sizeof packet, consumed, &len, largerPacket, &ednsAdded, &ecsAdded, remote);
+  handleEDNSClientSubnet(packet, sizeof packet, consumed, &len, largerPacket, &ednsAdded, &ecsAdded, remote, true, remote.sin4.sin_family == AF_INET ? ECSSourcePrefixV4 : ECSSourcePrefixV6);
   BOOST_CHECK((size_t) len < query.size());
   BOOST_CHECK_EQUAL(largerPacket.size(), 0);
   BOOST_CHECK_EQUAL(ednsAdded, false);
@@ -267,8 +268,7 @@ BOOST_AUTO_TEST_CASE(replaceECSWithLarger) {
   BOOST_CHECK_EQUAL(qname, name);
   BOOST_CHECK(qtype == QType::A);
 
-  g_ECSOverride = true;
-  handleEDNSClientSubnet(packet, sizeof packet, consumed, &len, largerPacket, &ednsAdded, &ecsAdded, remote);
+  handleEDNSClientSubnet(packet, sizeof packet, consumed, &len, largerPacket, &ednsAdded, &ecsAdded, remote, true, remote.sin4.sin_family == AF_INET ? ECSSourcePrefixV4 : ECSSourcePrefixV6);
   BOOST_CHECK((size_t) len > query.size());
   BOOST_CHECK_EQUAL(largerPacket.size(), 0);
   BOOST_CHECK_EQUAL(ednsAdded, false);
@@ -282,8 +282,7 @@ BOOST_AUTO_TEST_CASE(replaceECSWithLarger) {
   BOOST_CHECK_EQUAL(qname, name);
   BOOST_CHECK(qtype == QType::A);
 
-  g_ECSOverride = true;
-  handleEDNSClientSubnet((char*) query.data(), query.size(), consumed, &len, largerPacket, &ednsAdded, &ecsAdded, remote);
+  handleEDNSClientSubnet((char*) query.data(), query.size(), consumed, &len, largerPacket, &ednsAdded, &ecsAdded, remote, true, remote.sin4.sin_family == AF_INET ? ECSSourcePrefixV4 : ECSSourcePrefixV6);
   BOOST_CHECK_EQUAL((size_t) len, query.size());
   BOOST_CHECK(largerPacket.size() > query.size());
   BOOST_CHECK_EQUAL(ednsAdded, false);
@@ -398,7 +397,7 @@ BOOST_AUTO_TEST_CASE(removeECSWhenOnlyOption) {
   pw.commit();
 
   EDNSSubnetOpts ecsOpts;
-  ecsOpts.source = Netmask(origRemote, g_ECSSourcePrefixV4);
+  ecsOpts.source = Netmask(origRemote, ECSSourcePrefixV4);
   string origECSOptionStr = makeEDNSSubnetOptsString(ecsOpts);
   DNSPacketWriter::optvect_t opts;
   opts.push_back(make_pair(EDNSOptionCode::ECS, origECSOptionStr));
@@ -445,7 +444,7 @@ BOOST_AUTO_TEST_CASE(removeECSWhenFirstOption) {
   pw.commit();
 
   EDNSSubnetOpts ecsOpts;
-  ecsOpts.source = Netmask(origRemote, g_ECSSourcePrefixV4);
+  ecsOpts.source = Netmask(origRemote, ECSSourcePrefixV6);
   string origECSOptionStr = makeEDNSSubnetOptsString(ecsOpts);
   EDNSCookiesOpt cookiesOpt;
   cookiesOpt.client = string("deadbeef");
@@ -497,7 +496,7 @@ BOOST_AUTO_TEST_CASE(removeECSWhenIntermediaryOption) {
   pw.commit();
 
   EDNSSubnetOpts ecsOpts;
-  ecsOpts.source = Netmask(origRemote, g_ECSSourcePrefixV4);
+  ecsOpts.source = Netmask(origRemote, ECSSourcePrefixV4);
   string origECSOptionStr = makeEDNSSubnetOptsString(ecsOpts);
 
   EDNSCookiesOpt cookiesOpt;
@@ -557,7 +556,7 @@ BOOST_AUTO_TEST_CASE(removeECSWhenLastOption) {
   cookiesOpt.server = string("deadbeef");
   string cookiesOptionStr = makeEDNSCookiesOptString(cookiesOpt);
   EDNSSubnetOpts ecsOpts;
-  ecsOpts.source = Netmask(origRemote, g_ECSSourcePrefixV4);
+  ecsOpts.source = Netmask(origRemote, ECSSourcePrefixV4);
   string origECSOptionStr = makeEDNSSubnetOptsString(ecsOpts);
   DNSPacketWriter::optvect_t opts;
   opts.push_back(make_pair(EDNSOptionCode::COOKIE, cookiesOptionStr));
@@ -601,7 +600,7 @@ BOOST_AUTO_TEST_CASE(rewritingWithoutECSWhenOnlyOption) {
   pw.xfr32BitInt(0x01020304);
 
   EDNSSubnetOpts ecsOpts;
-  ecsOpts.source = Netmask(origRemote, g_ECSSourcePrefixV4);
+  ecsOpts.source = Netmask(origRemote, ECSSourcePrefixV4);
   string origECSOptionStr = makeEDNSSubnetOptsString(ecsOpts);
   DNSPacketWriter::optvect_t opts;
   opts.push_back(make_pair(EDNSOptionCode::ECS, origECSOptionStr));
@@ -638,7 +637,7 @@ BOOST_AUTO_TEST_CASE(rewritingWithoutECSWhenFirstOption) {
   pw.xfr32BitInt(0x01020304);
 
   EDNSSubnetOpts ecsOpts;
-  ecsOpts.source = Netmask(origRemote, g_ECSSourcePrefixV4);
+  ecsOpts.source = Netmask(origRemote, ECSSourcePrefixV4);
   string origECSOptionStr = makeEDNSSubnetOptsString(ecsOpts);
   EDNSCookiesOpt cookiesOpt;
   cookiesOpt.client = string("deadbeef");
@@ -680,7 +679,7 @@ BOOST_AUTO_TEST_CASE(rewritingWithoutECSWhenIntermediaryOption) {
   pw.xfr32BitInt(0x01020304);
 
   EDNSSubnetOpts ecsOpts;
-  ecsOpts.source = Netmask(origRemote, g_ECSSourcePrefixV4);
+  ecsOpts.source = Netmask(origRemote, ECSSourcePrefixV4);
   string origECSOptionStr = makeEDNSSubnetOptsString(ecsOpts);
   EDNSCookiesOpt cookiesOpt;
   cookiesOpt.client = string("deadbeef");
@@ -724,7 +723,7 @@ BOOST_AUTO_TEST_CASE(rewritingWithoutECSWhenLastOption) {
   pw.xfr32BitInt(0x01020304);
 
   EDNSSubnetOpts ecsOpts;
-  ecsOpts.source = Netmask(origRemote, g_ECSSourcePrefixV4);
+  ecsOpts.source = Netmask(origRemote, ECSSourcePrefixV4);
   string origECSOptionStr = makeEDNSSubnetOptsString(ecsOpts);
   EDNSCookiesOpt cookiesOpt;
   cookiesOpt.client = string("deadbeef");

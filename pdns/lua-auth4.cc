@@ -11,6 +11,7 @@
 
 AuthLua4::AuthLua4(const std::string& fname) { }
 bool AuthLua4::updatePolicy(const DNSName &qname, QType qtype, const DNSName &zonename, DNSPacket *packet) { return false; }
+AuthLua4::~AuthLua4() { }
 
 #else
 
@@ -237,5 +238,7 @@ bool AuthLua4::updatePolicy(const DNSName &qname, QType qtype, const DNSName &zo
 
   return d_update_policy(upq);
 }
+
+AuthLua4::~AuthLua4() { }
 
 #endif

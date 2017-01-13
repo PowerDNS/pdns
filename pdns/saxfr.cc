@@ -35,7 +35,7 @@ bool validateTSIG(const string& message, const TSIGHashEnum& algo, const DNSName
     }
     return true;
   }
-  return calculateHMAC(secret, message, algo) == trc->d_mac;
+  return constantTimeStringEquals(calculateHMAC(secret, message, algo), trc->d_mac);
 }
 
 
@@ -162,7 +162,7 @@ try
         n+=numread;
       }
 
-       MOADNSParser mdp(string(creply, len));
+      MOADNSParser mdp(false, string(creply, len));
        if (mdp.d_header.rcode != 0) {
          throw PDNSException(string("Remote server refused: ") + std::to_string(mdp.d_header.rcode));
        }
@@ -229,7 +229,7 @@ try
 
     string packet = string(creply, len);
 
-    MOADNSParser mdp(packet);
+    MOADNSParser mdp(false, packet);
     if (mdp.d_header.rcode != 0) {
       throw PDNSException(string("Remote server refused: ") + std::to_string(mdp.d_header.rcode));
     }

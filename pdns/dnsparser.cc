@@ -44,8 +44,8 @@ public:
       throw MOADNSException("Unknown record was stored incorrectly, need 3 fields, got "+std::to_string(parts.size())+": "+zone );
     const string& relevant=(parts.size() > 2) ? parts[2] : "";
     unsigned int total=pdns_stou(parts[1]);
-    if(relevant.size()!=2*total)
-      throw MOADNSException((boost::format("invalid unknown record length for label %s: size not equal to length field (%d != %d)") % d_dr.d_name.toString() % relevant.size() % (2*total)).str());
+    if(relevant.size() % 2 || relevant.size() / 2 != total)
+      throw MOADNSException((boost::format("invalid unknown record length: size not equal to length field (%d != 2 * %d)") % relevant.size() % total).str());
     string out;
     out.reserve(total+1);
     for(unsigned int n=0; n < total; ++n) {
@@ -116,7 +116,7 @@ shared_ptr<DNSRecordContent> DNSRecordContent::unserialize(const DNSName& qname,
   memcpy(&packet[pos], &drh, sizeof(drh)); pos+=sizeof(drh);
   memcpy(&packet[pos], serialized.c_str(), serialized.size()); pos+=(uint16_t)serialized.size();
 
-  MOADNSParser mdp((char*)&*packet.begin(), (unsigned int)packet.size());
+  MOADNSParser mdp(false, (char*)&*packet.begin(), (unsigned int)packet.size());
   shared_ptr<DNSRecordContent> ret= mdp.d_answers.begin()->first.d_content;
   return ret;
 }
@@ -211,7 +211,7 @@ DNSRecord::DNSRecord(const DNSResourceRecord& rr)
   d_content = std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(d_type, rr.qclass, rr.content));
 }
 
-void MOADNSParser::init(const char *packet, unsigned int len)
+void MOADNSParser::init(bool query, const char *packet, unsigned int len)
 {
   if(len < sizeof(dnsheader))
     throw MOADNSException("Packet shorter than minimal header");
@@ -225,7 +225,10 @@ void MOADNSParser::init(const char *packet, unsigned int len)
   d_header.ancount=ntohs(d_header.ancount);
   d_header.nscount=ntohs(d_header.nscount);
   d_header.arcount=ntohs(d_header.arcount);
-  
+
+  if (query && (d_header.qdcount > 1))
+    throw MOADNSException("Query with QD > 1 ("+std::to_string(d_header.qdcount)+")");
+
   uint16_t contentlen=len-sizeof(dnsheader);
 
   d_content.resize(contentlen);
@@ -270,11 +273,23 @@ void MOADNSParser::init(const char *packet, unsigned int len)
       dr.d_name=name;
       dr.d_clen=ah.d_clen;
 
-      dr.d_content=std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(dr, pr, d_header.opcode));
+      if (query && (dr.d_place == DNSResourceRecord::ANSWER || dr.d_place == DNSResourceRecord::AUTHORITY || (dr.d_type != QType::OPT && dr.d_type != QType::TSIG && dr.d_type != QType::SIG && dr.d_type != QType::TKEY) || ((dr.d_type == QType::TSIG || dr.d_type == QType::SIG || dr.d_type == QType::TKEY) && dr.d_class != QClass::ANY))) {
+//        cerr<<"discarding RR, query is "<<query<<", place is "<<dr.d_place<<", type is "<<dr.d_type<<", class is "<<dr.d_class<<endl;
+        dr.d_content=std::shared_ptr<DNSRecordContent>(new UnknownRecordContent(dr, pr));
+      }
+      else {
+//        cerr<<"parsing RR, query is "<<query<<", place is "<<dr.d_place<<", type is "<<dr.d_type<<", class is "<<dr.d_class<<endl;
+        dr.d_content=std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(dr, pr, d_header.opcode));
+      }
+
       d_answers.push_back(make_pair(dr, pr.d_pos));
 
-      if(dr.d_type == QType::TSIG && dr.d_class == 0xff) 
+      if(dr.d_type == QType::TSIG && dr.d_class == QClass::ANY) {
+        if(dr.d_place != DNSResourceRecord::ADDITIONAL || n != (unsigned int)(d_header.ancount + d_header.nscount + d_header.arcount) - 1) {
+          throw MOADNSException("Packet ("+d_qname.toString()+"|#"+std::to_string(d_qtype)+") has a TSIG record in an invalid position.");
+        }
         d_tsigPos = recordStartPos + sizeof(struct dnsheader);
+      }
     }
 
 #if 0    

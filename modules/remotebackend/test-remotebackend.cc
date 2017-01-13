@@ -126,7 +126,7 @@ BOOST_AUTO_TEST_CASE(test_method_getDomainKeys) {
    std::vector<DNSBackend::KeyData> keys;
    BOOST_TEST_MESSAGE("Testing getDomainKeys method");
    // we expect to get two keys
-   be->getDomainKeys(DNSName("unit.test."),0,keys);
+   be->getDomainKeys(DNSName("unit.test."),keys);
    BOOST_CHECK_EQUAL(keys.size(), 2);
    // in case we got more than 2 keys, which would be unexpected
    // but not fatal
@@ -157,14 +157,13 @@ BOOST_AUTO_TEST_CASE(test_method_removeDomainKey) {
 }
 
 BOOST_AUTO_TEST_CASE(test_method_getBeforeAndAfterNamesAbsolute) {
-   DNSName unhashed;
-   std::string before,after;
+   DNSName unhashed, before, after;
    BOOST_TEST_MESSAGE("Testing getBeforeAndAfterNamesAbsolute method");
    
-   be->getBeforeAndAfterNamesAbsolute(-1, "middle.unit.test.", unhashed, before, after);
+   be->getBeforeAndAfterNamesAbsolute(-1, DNSName("middle.unit.test."), unhashed, before, after);
    BOOST_CHECK_EQUAL(unhashed.toString(), "middle.");
-   BOOST_CHECK_EQUAL(before, "begin.");
-   BOOST_CHECK_EQUAL(after, "stop.");
+   BOOST_CHECK_EQUAL(before.toString(), "begin.");
+   BOOST_CHECK_EQUAL(after.toString(), "stop.");
 }
 
 BOOST_AUTO_TEST_CASE(test_method_setTSIGKey) {

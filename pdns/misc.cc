@@ -106,9 +106,15 @@ size_t readn2(int fd, void* buffer, size_t len)
   return len;
 }
 
-size_t readn2WithTimeout(int fd, void* buffer, size_t len, int timeout)
+size_t readn2WithTimeout(int fd, void* buffer, size_t len, int idleTimeout, int totalTimeout)
 {
   size_t pos = 0;
+  time_t start = 0;
+  int remainingTime = totalTimeout;
+  if (totalTimeout) {
+    start = time(NULL);
+  }
+
   do {
     ssize_t got = read(fd, (char *)buffer + pos, len - pos);
     if (got > 0) {
@@ -119,7 +125,7 @@ size_t readn2WithTimeout(int fd, void* buffer, size_t len, int timeout)
     }
     else {
       if (errno == EAGAIN) {
-        int res = waitForData(fd, timeout);
+        int res = waitForData(fd, (totalTimeout == 0 || idleTimeout <= remainingTime) ? idleTimeout : remainingTime);
         if (res > 0) {
           /* there is data available */
         }
@@ -132,6 +138,16 @@ size_t readn2WithTimeout(int fd, void* buffer, size_t len, int timeout)
       else {
         unixDie("failed in readn2WithTimeout");
       }
+    }
+
+    if (totalTimeout) {
+      time_t now = time(NULL);
+      int elapsed = now - start;
+      if (elapsed >= remainingTime) {
+        throw runtime_error("Timeout while reading data");
+      }
+      start = now;
+      remainingTime -= elapsed;
     }
   }
   while (pos < len);
@@ -719,7 +735,8 @@ int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret)
     hints.ai_flags = AI_NUMERICHOST;
 
     int error;
-    if((error=getaddrinfo(ourAddr.c_str(), 0, &hints, &res))) { // this is correct
+    // getaddrinfo has anomalous return codes, anything nonzero is an error, positive or negative
+    if((error=getaddrinfo(ourAddr.c_str(), 0, &hints, &res))) {
       return -1;
     }
 

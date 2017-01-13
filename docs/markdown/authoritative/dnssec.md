@@ -89,7 +89,7 @@ Supported Algorithms (See the [IANA website](http://www.iana.org/assignments/dns
 - ECC-GOST (algorithm 12)
 - ECDSA (algorithm 13 and 14)
 
-For the DS records, these [digest algorithms](http://www.iana.org/assignments/ds-rr-types/ds-rr-types.xhtml#ds-rr-types-1)
+For the DS records, these [digest types](http://www.iana.org/assignments/ds-rr-types/ds-rr-types.xhtml#ds-rr-types-1)
 are supported:
 
 - SHA-1 (algorithm 1)

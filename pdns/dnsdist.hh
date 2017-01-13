@@ -83,6 +83,7 @@ struct DNSDistStats
   stat_t dynBlocked{0};
   stat_t ruleDrop{0};
   stat_t ruleNXDomain{0};
+  stat_t ruleRefused{0};
   stat_t selfAnswered{0};
   stat_t downstreamTimeouts{0};
   stat_t downstreamSendErrors{0};
@@ -96,17 +97,29 @@ struct DNSDistStats
   typedef std::function<uint64_t(const std::string&)> statfunction_t;
   typedef boost::variant<stat_t*, double*, statfunction_t> entry_t;
   std::vector<std::pair<std::string, entry_t>> entries{
-    {"responses", &responses}, {"servfail-responses", &servfailResponses},
-    {"queries", &queries}, {"acl-drops", &aclDrops},
-    {"block-filter", &blockFilter}, {"rule-drop", &ruleDrop},
-    {"rule-nxdomain", &ruleNXDomain}, {"self-answered", &selfAnswered},
-    {"downstream-timeouts", &downstreamTimeouts}, {"downstream-send-errors", &downstreamSendErrors}, 
-    {"trunc-failures", &truncFail}, {"no-policy", &noPolicy},
-    {"latency0-1", &latency0_1}, {"latency1-10", &latency1_10},
-    {"latency10-50", &latency10_50}, {"latency50-100", &latency50_100}, 
-    {"latency100-1000", &latency100_1000}, {"latency-slow", &latencySlow},
-    {"latency-avg100", &latencyAvg100}, {"latency-avg1000", &latencyAvg1000}, 
-    {"latency-avg10000", &latencyAvg10000}, {"latency-avg1000000", &latencyAvg1000000},
+    {"responses", &responses},
+    {"servfail-responses", &servfailResponses},
+    {"queries", &queries},
+    {"acl-drops", &aclDrops},
+    {"block-filter", &blockFilter},
+    {"rule-drop", &ruleDrop},
+    {"rule-nxdomain", &ruleNXDomain},
+    {"rule-refused", &ruleRefused},
+    {"self-answered", &selfAnswered},
+    {"downstream-timeouts", &downstreamTimeouts},
+    {"downstream-send-errors", &downstreamSendErrors}, 
+    {"trunc-failures", &truncFail},
+    {"no-policy", &noPolicy},
+    {"latency0-1", &latency0_1},
+    {"latency1-10", &latency1_10},
+    {"latency10-50", &latency10_50},
+    {"latency50-100", &latency50_100},
+    {"latency100-1000", &latency100_1000},
+    {"latency-slow", &latencySlow},
+    {"latency-avg100", &latencyAvg100},
+    {"latency-avg1000", &latencyAvg1000},
+    {"latency-avg10000", &latencyAvg10000},
+    {"latency-avg1000000", &latencyAvg1000000},
     {"uptime", uptimeOfProcess},
     {"real-memory-usage", getRealMemoryUsage},
     {"noncompliant-queries", &nonCompliantQueries},
@@ -117,7 +130,8 @@ struct DNSDistStats
     {"cache-misses", &cacheMisses},
     {"cpu-user-msec", getCPUTimeUser},
     {"cpu-sys-msec", getCPUTimeSystem},
-    {"fd-usage", getOpenFileDescriptors}, {"dyn-blocked", &dynBlocked}, 
+    {"fd-usage", getOpenFileDescriptors},
+    {"dyn-blocked", &dynBlocked}, 
     {"dyn-block-nmg-size", [](const std::string&) { return g_dynblockNMG.getLocal()->size(); }}
   };
 };
@@ -219,6 +233,8 @@ private:
   mutable unsigned int d_blocked{0};
 };
 
+struct ClientState;
+
 struct IDState
 {
   IDState() : origFD(-1), sentTime(true), delayMsec(0) { origDest.sin4.sin_family = 0;}
@@ -245,6 +261,7 @@ struct IDState
   boost::uuids::uuid uniqueId;
 #endif
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};
+  const ClientState* cs{nullptr};
   uint32_t cacheKey;                                          // 8
   std::atomic<uint16_t> age;                                  // 4
   uint16_t qtype;                                             // 2
@@ -255,6 +272,7 @@ struct IDState
   bool ednsAdded{false};
   bool ecsAdded{false};
   bool skipCache{false};
+  bool destHarvested{false}; // if true, origDest holds the original dest addr, otherwise the listening addr
 };
 
 struct Rings {
@@ -319,6 +337,7 @@ struct ClientState
   std::atomic<uint64_t> queries{0};
   int udpFD{-1};
   int tcpFD{-1};
+  bool muted{false};
 
   int getSocket() const
   {
@@ -348,22 +367,39 @@ struct ClientState
 
 class TCPClientCollection {
   std::vector<int> d_tcpclientthreads;
+  std::atomic<uint64_t> d_numthreads{0};
   std::atomic<uint64_t> d_pos{0};
-public:
-  std::atomic<uint64_t> d_queued{0}, d_numthreads{0};
+  std::atomic<uint64_t> d_queued{0};
   uint64_t d_maxthreads{0};
+  std::mutex d_mutex;
+public:
 
   TCPClientCollection(size_t maxThreads)
   {
     d_maxthreads = maxThreads;
     d_tcpclientthreads.reserve(maxThreads);
   }
-
   int getThread()
   {
     uint64_t pos = d_pos++;
     ++d_queued;
     return d_tcpclientthreads[pos % d_numthreads];
+  }
+  bool hasReachedMaxThreads() const
+  {
+    return d_numthreads >= d_maxthreads;
+  }
+  uint64_t getThreadsCount() const
+  {
+    return d_numthreads;
+  }
+  uint64_t getQueuedCount() const
+  {
+    return d_queued;
+  }
+  void decrementQueuedCount()
+  {
+    --d_queued;
   }
   void addTCPClientThread();
 };
@@ -417,6 +453,7 @@ struct DownstreamState
   bool upStatus{false};
   bool useECS{false};
   bool setCD{false};
+  std::atomic<bool> connected{false};
   bool isUp() const
   {
     if(availability == Availability::Down)
@@ -440,13 +477,17 @@ struct DownstreamState
     }
     return name + " (" + remote.toStringWithPort()+ ")";
   }
-
+  void reconnect();
 };
 using servers_t =vector<std::shared_ptr<DownstreamState>>;
 
+extern uint16_t g_ECSSourcePrefixV4;
+extern uint16_t g_ECSSourcePrefixV6;
+extern bool g_ECSOverride;
+
 struct DNSQuestion
 {
-  DNSQuestion(const DNSName* name, uint16_t type, uint16_t class_, const ComboAddress* lc, const ComboAddress* rem, struct dnsheader* header, size_t bufferSize, uint16_t queryLen, bool isTcp): qname(name), qtype(type), qclass(class_), local(lc), remote(rem), dh(header), size(bufferSize), len(queryLen), tcp(isTcp) { }
+  DNSQuestion(const DNSName* name, uint16_t type, uint16_t class_, const ComboAddress* lc, const ComboAddress* rem, struct dnsheader* header, size_t bufferSize, uint16_t queryLen, bool isTcp): qname(name), qtype(type), qclass(class_), local(lc), remote(rem), dh(header), size(bufferSize), len(queryLen), ecsPrefixLength(rem->sin4.sin_family == AF_INET ? g_ECSSourcePrefixV4 : g_ECSSourcePrefixV6), tcp(isTcp), ecsOverride(g_ECSOverride) { }
 
 #ifdef HAVE_PROTOBUF
   boost::uuids::uuid uniqueId;
@@ -459,8 +500,11 @@ struct DNSQuestion
   struct dnsheader* dh;
   size_t size;
   uint16_t len;
+  uint16_t ecsPrefixLength;
   const bool tcp;
   bool skipCache{false};
+  bool ecsOverride;
+  bool useECS{true};    
 };
 
 struct DNSResponse : DNSQuestion
@@ -498,7 +542,7 @@ public:
 class DNSAction
 {
 public:
-  enum class Action { Drop, Nxdomain, Spoof, Allow, HeaderModify, Pool, Delay, None};
+  enum class Action { Drop, Nxdomain, Refused, Spoof, Allow, HeaderModify, Pool, Delay, None};
   virtual Action operator()(DNSQuestion*, string* ruleresult) const =0;
   virtual string toString() const = 0;
   virtual std::unordered_map<string, double> getStats() const 
@@ -547,101 +591,8 @@ enum ednsHeaderFlags {
   EDNS_HEADER_FLAG_DO = 32768
 };
 
-/* Quest in life: serve as a rapid block list. If you add a DNSName to a root SuffixMatchNode, 
-   anything part of that domain will return 'true' in check */
-template<typename T>
-struct SuffixMatchTree
-{
-  SuffixMatchTree(const std::string& name_="", bool endNode_=false) : name(name_), endNode(endNode_)
-  {}
-
-  SuffixMatchTree(const SuffixMatchTree& rhs)
-  {
-    name = rhs.name;
-    d_human = rhs.d_human;
-    children = rhs.children;
-    endNode = rhs.endNode;
-    d_value = rhs.d_value;
-  }
-  std::string name;
-  std::string d_human;
-  mutable std::set<SuffixMatchTree> children;
-  mutable bool endNode;
-  mutable T d_value;
-  bool operator<(const SuffixMatchTree& rhs) const
-  {
-    return strcasecmp(name.c_str(), rhs.name.c_str()) < 0;
-  }
-  typedef SuffixMatchTree value_type;
-
-  template<typename V>
-  void visit(const V& v) const {
-    for(const auto& c : children) 
-      c.visit(v);
-    if(endNode)
-      v(*this);
-  }
-
-  void add(const DNSName& name, const T& t) 
-  {
-    add(name.getRawLabels(), t);
-  }
-
-  void add(std::vector<std::string> labels, const T& value) const
-  {
-    if(labels.empty()) { // this allows insertion of the root
-      endNode=true;
-      d_value=value;
-    }
-    else if(labels.size()==1) {
-      SuffixMatchTree newChild(*labels.begin(), true);
-      newChild.d_value=value;
-      children.insert(newChild);
-    }
-    else {
-      SuffixMatchTree newnode(*labels.rbegin(), false);
-      auto res=children.insert(newnode);
-      if(!res.second) {
-        children.erase(newnode);
-        res=children.insert(newnode);
-      }
-      labels.pop_back();
-      res.first->add(labels, value);
-    }
-  }
-
-  T* lookup(const DNSName& name)  const
-  {
-    if(children.empty()) { // speed up empty set
-      if(endNode)
-        return &d_value;
-      return 0;
-    }
-    return lookup(name.getRawLabels());
-  }
-
-  T* lookup(std::vector<std::string> labels) const
-  {
-    if(labels.empty()) { // optimization
-      if(endNode)
-        return &d_value;
-      return 0;
-    }
-
-    SuffixMatchTree smn(*labels.rbegin());
-    auto child = children.find(smn);
-    if(child == children.end()) {
-      if(endNode)
-        return &d_value;
-      return 0;
-    }
-    labels.pop_back();
-    return child->lookup(labels);
-  }
-  
-};
-
 extern GlobalStateHolder<SuffixMatchTree<DynBlock>> g_dynblockSMT;
+extern DNSAction::Action g_dynBlockAction;
 
 extern GlobalStateHolder<vector<CarbonConfig> > g_carbon;
 extern GlobalStateHolder<ServerPolicy> g_policy;
@@ -660,16 +611,21 @@ extern bool g_truncateTC;
 extern bool g_fixupCase;
 extern int g_tcpRecvTimeout;
 extern int g_tcpSendTimeout;
+extern int g_udpTimeout;
 extern uint16_t g_maxOutstanding;
 extern std::atomic<bool> g_configurationDone;
 extern uint64_t g_maxTCPClientThreads;
 extern uint64_t g_maxTCPQueuedConnections;
+extern size_t g_maxTCPQueriesPerConn;
+extern size_t g_maxTCPConnectionDuration;
+extern size_t g_maxTCPConnectionsPerClient;
 extern std::atomic<uint16_t> g_cacheCleaningDelay;
-extern uint16_t g_ECSSourcePrefixV4;
-extern uint16_t g_ECSSourcePrefixV6;
-extern bool g_ECSOverride;
+extern std::atomic<uint16_t> g_cacheCleaningPercentage;
 extern bool g_verboseHealthChecks;
 extern uint32_t g_staleCacheEntriesTTL;
+extern bool g_apiReadWrite;
+extern std::string g_apiConfigDirectory;
+extern bool g_servFailOnNoPolicy;
 
 struct ConsoleKeyword {
   std::string name;

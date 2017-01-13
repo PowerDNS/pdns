@@ -92,9 +92,6 @@ public:
   typedef int sock_t;
   typedef ::socklen_t socklen_t;
 
-  //! Closes a socket.
-  static int closesocket( sock_t socket );
-
   //! Connect with timeout
   // Returns:
   //    > 0 on success
@@ -151,8 +148,7 @@ public:
   static void usleep( unsigned long usec );
 
   static time_t timegm(struct tm *tm);
-
-  static void gmtime_r(const time_t *timer, struct tm *tmbuf);
+  
 };
 
 

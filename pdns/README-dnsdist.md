@@ -167,6 +167,17 @@ be 192.0.2.0. This can be changed with:
 > setECSSourcePrefixV6(56)
 ```
 
+In addition to the global settings, rules and Lua bindings can alter this behavior per query:
+
+* calling `DisableECSAction()` or setting `dq.useECS` to false prevent the sending of the ECS option
+* calling `ECSOverrideAction(bool)` or setting `dq.ecsOverride` will override the global `setECSOverride()` value
+* calling `ECSPrefixLengthAction(v4, v6)` or setting `dq.ecsPrefixLength` will override the global
+`setECSSourcePrefixV4()` and `setECSSourcePrefixV6()` values
+
+In effect this means that for the EDNS Client Subnet option to be added to the request, `useClientSubnet`
+should be set to true for the backend used (default to false) and ECS should not have been disabled by calling
+`DisableECSAction()` or setting `dq.useECS` to false (default to true).
+
 TCP timeouts
 ------------
 
@@ -359,9 +370,10 @@ Current actions are:
  * Send out a crafted response (NXDOMAIN or "real" data)
  * Delay a response by n milliseconds (DelayAction), over UDP only
  * Modify query to clear the RD or CD bit
- * Add the source MAC address to the query (MacAddrAction)
+ * Add the source MAC address to the query (MacAddrAction, only supported on Linux)
  * Skip the cache, if any
  * Log query content to a remote server (RemoteLogAction)
+ * Alter the EDNS Client Subnet parameters (DisableECSAction, ECSOverrideAction, ECSPrefixLengthAction)
 
 Current response actions are:
 
@@ -415,14 +427,17 @@ A DNS rule can be:
 Some specific actions do not stop the processing when they match, contrary to all other actions:
 
  * Delay
+ * DisableECS
  * Disable Validation
+ * ECSOverride
+ * ECSPrefixLength
  * Log
  * MacAddr
  * No Recurse
  * and of course None
 
 A convenience function `makeRule()` is supplied which will make a NetmaskGroupRule for you or a SuffixMatchNodeRule
-depending on how you call it. `makeRule("0.0.0.0/0")` will for example match all IPv4 traffic, `makeRule{"be","nl","lu"}` will
+depending on how you call it. `makeRule("0.0.0.0/0")` will for example match all IPv4 traffic, `makeRule({"be","nl","lu"})` will
 match all Benelux DNS traffic.
 
 All the current rules can be removed at once with:
@@ -555,6 +570,7 @@ Valid return values for `LuaAction` functions are:
  * DNSAction.None: continue to the next rule
  * DNSAction.Nxdomain: return a response with a NXDomain rcode
  * DNSAction.Pool: use the specified pool to forward this query
+ * DNSAction.Refused: return a response with a Refused rcode
  * DNSAction.Spoof: spoof the response using the supplied IPv4 (A), IPv6 (AAAA) or string (CNAME) value
 
 DNSSEC
@@ -682,7 +698,7 @@ This will delay responses for questions to the mentioned domain, or coming
 from the configured subnet, by half a second.
 
 Like the QPSLimits and other rules, the delaying instructions can be
-inspected or edited using showRule(), rmRule(), topRule(), mvRule() etc.
+inspected or edited using `showRules()`, `rmRule()`, `topRule()`, `mvRule()` etc.
 
 Dynamic load balancing
 ----------------------
@@ -690,8 +706,10 @@ The default load balancing policy is called `leastOutstanding`, which means
 we pick the server with the least queries 'in the air' (and within those,
 the one with the lowest `order`, and within those, the one with the lowest latency).
 
-Another policy, `firstAvailable`, picks the server with the lowest `order` that has not
-exceeded its QPS limit. For now this is the only policy using the QPS limit.
+Another policy, `firstAvailable`, picks the first server that has not
+exceeded its QPS limit. If all servers are above their QPS limit, a
+server is selected based on the `leastOutstanding` policy. For now this
+is the only policy using the QPS limit.
 
 A further policy, `wrandom` assigns queries randomly, but based on the
 `weight` parameter passed to `newServer`. `whashed` is a similar weighted policy,
@@ -744,6 +762,8 @@ Dynamic Rule Generation
 -----------------------
 To set dynamic rules, based on recent traffic, define a function called `maintenance()` in Lua. It will
 get called every second, and from this function you can set rules to block traffic based on statistics.
+More exactly, the thread handling the `maintenance()` function will sleep for one second between each
+invocation, so if the function takes several seconds to complete it will not be invoked exactly every second.
 
 As an example:
 
@@ -758,8 +778,18 @@ over the past 10 seconds, and the dynamic block will last for 60 seconds.
 
 Dynamic blocks in force are displayed with `showDynBlocks()` and can be cleared
 with `clearDynBlocks()`. Full set of `exceed` functions is listed in the table of
-all functions below.
+all functions below. They return a table whose key is a `ComboAddress` object,
+representing the client's source address, and whose value is an integer representing
+the number of queries matching the corresponding condition (for example the
+`qtype` for `exceedQTypeRate()`, `rcode` for `exceedServFails()`).
 
+Dynamic blocks drop matched queries by default, but this behavior can be changed
+with `setDynBlocksAction()`. For example, to send a REFUSED code instead of droppping
+the query:
+
+```
+setDynBlocksAction(DNSAction.Refused)
+```
 
 Running it for real
 -------------------
@@ -771,7 +801,7 @@ First run on the command line, and generate a key:
 setKey("sepuCcHcQnSAZgNbNPCCpDWbujZ5esZJmrt/wh6ldkQ=")
 ```
 
-Now add this setKey line to `dnsdistconf.lua`, and also add:
+Now add this setKey line to `dnsdist.conf`, and also add:
 
 ```
 controlSocket("0.0.0.0") -- or add portnumber too
@@ -830,8 +860,15 @@ The first parameter is the maximum number of entries stored in the cache, and is
 only one required. All the others parameters are optional and in seconds.
 The second one is the maximum lifetime of an entry in the cache, the third one is
 the minimum TTL an entry should have to be considered for insertion in the cache,
-the fourth one is the TTL used for a Server Failure response. The last one is the
-TTL that will be used when a stale cache entry is returned.
+the fourth one is the TTL used for a Server Failure or a Refused response. The last
+one is the TTL that will be used when a stale cache entry is returned.
+For performance reasons the cache will pre-allocate buckets based on the maximum number
+of entries, so be careful to set the first parameter to a reasonable value. Something
+along the lines of a dozen bytes per pre-allocated entry can be expected on 64-bit.
+That does not mean that the memory is completely allocated up-front, the final memory
+usage depending mostly on the size of cached responses and therefore varying during the
+cache's lifetime. Assuming an average response size of 512 bytes, a cache size of
+10000000 entries on a 64-bit host with 8GB of dedicated RAM would be a safe choice.
 
 The `setStaleCacheEntriesTTL(n)` directive can be used to allow `dnsdist` to use
 expired entries from the cache when no backend is available. Only entries that have
@@ -858,7 +895,7 @@ getPool("poolname"):getCache():printStats()
 ```
 
 Expired cached entries can be removed from a cache using the `purgeExpired(n)`
-method, which will remove expired entries from the cache until at least `n`
+method, which will remove expired entries from the cache until at most `n`
 entries remain in the cache. For example, to remove all expired entries:
 
 ```
@@ -900,9 +937,9 @@ The maximum number of threads in the TCP pool is controlled by the
 increased to handle a large number of simultaneous TCP connections.
 If all the TCP threads are busy, new TCP connections are queued while
 they wait to be picked up. The maximum number of queued connections
-can be configured with `setMaxTCPQueuedConnections()`, and any value other
-than 0 (the default) will cause new connections to be dropped if there
-are already too many queued.
+can be configured with `setMaxTCPQueuedConnections()` and defaults to 1000.
+Any value larger than 0 will cause new connections to be dropped if there are
+already too many queued.
 
 When dispatching UDP queries to backend servers, `dnsdist` keeps track of at
 most `n` outstanding queries for each backend. This number `n` can be tuned by
@@ -1201,6 +1238,8 @@ Here are all functions:
     * `shutdown()`: shut down `dnsdist`
     * quit or ^D: exit the console
     * `webserver(address:port, password [, apiKey [, customHeaders ]])`: launch a webserver with stats on that address with that password
+    * `includeDirectory(dir)`: all files ending in `.conf` in the directory `dir` are loaded into the configuration
+    * `setAPIWritable(bool, [dir])`: allow modifications via the API. If `dir` is set, it must be a valid directory where the configuration files will be written by the API. Otherwise the modifications done via the API will not be written to the configuration and will not persist after a reload
  * ACL related:
     * `addACL(netmask)`: add to the ACL set who can use this server
     * `setACL({netmask, netmask})`: replace the ACL set with these netmasks. Use `setACL({})` to reset the list, meaning no one can use us
@@ -1210,6 +1249,7 @@ Here are all functions:
     * function `getBind(n)`: return the corresponding `ClientState` object
     * member `attachFilter(BPFFilter)`: attach a BPF Filter to this bind
     * member `detachFilter()`: detach the BPF Filter attached to this bind, if any
+    * member `muted`: if set to true, UDP responses will not be sent for queries received on this bind. Default to false
     * member `toString()`: print the address this bind listens to
  * Network related:
     * `addLocal(netmask, [true], [false], [TCP Fast Open queue size])`: add to addresses we listen on. Second optional parameter sets TCP or not. Third optional parameter sets SO_REUSEPORT when available. Last parameter sets the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0.
@@ -1230,6 +1270,7 @@ Here are all functions:
     * `controlSocket(addr)`: open a control socket on this address / connect to this address in client mode
  * Diagnostics and statistics
     * `dumpStats()`: print all statistics we gather
+    * `getStatisticsCounters()`: return the statistics counters as a Lua table
     * `grepq(Netmask|DNS Name|100ms [, n])`: shows the last n queries and responses matching the specified client address or range (Netmask), or the specified DNS Name, or slower than 100ms
     * `grepq({"::1", "powerdns.com", "100ms"} [, n])`: shows the last n queries and responses matching the specified client address AND range (Netmask) AND the specified DNS Name AND slower than 100ms
     * `topQueries(n[, labels])`: show top 'n' queries, as grouped when optionally cut down to 'labels' labels
@@ -1312,10 +1353,14 @@ instantiate a server with additional parameters
     * `AllowResponseAction()`: let these packets go through
     * `DelayAction(milliseconds)`: delay the response by the specified amount of milliseconds (UDP-only)
     * `DelayResponseAction(milliseconds)`: delay the response by the specified amount of milliseconds (UDP-only)
+    * `DisableECSAction()`: disable the sending of ECS to the backend
     * `DisableValidationAction()`: set the CD bit in the question, let it go through
     * `DropAction()`: drop these packets
     * `DropResponseAction()`: drop these packets
+    * `ECSOverrideAction(bool)`: whether an existing ECS value should be overriden (true) or not (false)
+    * `ECSPrefixLengthAction(v4, v6)`: set the ECS prefix length
     * `LogAction([filename], [binary], [append], [buffered])`: Log a line for each query, to the specified file if any, to the console (require verbose) otherwise. When logging to a file, the `binary` optional parameter specifies whether we log in binary form (default) or in textual form, the `append` optional parameter specifies whether we open the file for appending or truncate each time (default), and the `buffered` optional parameter specifies whether writes to the file are buffered (default) or not.
+    * `MacAddrAction(option code)`: add the source MAC address to the query as EDNS0 option `option code`. This action is currently only supported on Linux
     * `NoRecurseAction()`: strip RD bit from the question, let it go through
     * `PoolAction(poolname)`: set the packet into the specified pool
     * `QPSPoolAction(maxqps, poolname)`: set the packet into the specified pool only if it **does not** exceed the specified QPS limits, letting the subsequent rules apply otherwise
@@ -1356,6 +1401,7 @@ instantiate a server with additional parameters
     * `setServerPolicyLua(name, function)`: set server selection policy to one named 'name' and provided by 'function'
     * `showServerPolicy()`: show name of currently operational server selection policy
     * `newServerPolicy(name, function)`: create a policy object from a Lua function
+    * `setServFailWhenNoServer(bool)`: if set, return a ServFail when no servers are available, instead of the default behaviour of dropping the query
  * Available policies:
     * `firstAvailable`: Pick first server that has not exceeded its QPS limit, ordered by the server 'order' parameter
     * `whashed`: Weighted hashed ('sticky') distribution over available servers, based on the server 'weight' parameter
@@ -1380,6 +1426,7 @@ instantiate a server with additional parameters
     * `clearDynBlocks()`: clear all dynamic blocks
     * `showDynBlocks()`: show dynamic blocks in force
     * `addDynBlocks(addresses, message[, seconds])`: block the set of addresses with message `msg`, for `seconds` seconds (10 by default)
+    * `setDynBlocksAction(DNSAction)`: set which action is performed when a query is blocked. Only DNSAction.Drop (the default) and DNSAction.Refused are supported
     * `addBPFFilterDynBlocks(addresses, DynBPFFilter[, seconds])`: block the set of addresses using the supplied BPF Filter, for `seconds` seconds (10 by default)
     * `exceedServFails(rate, seconds)`: get set of addresses that exceed `rate` servails/s over `seconds` seconds
     * `exceedNXDOMAINs(rate, seconds)`: get set of addresses that exceed `rate` NXDOMAIN/s over `seconds` seconds
@@ -1394,7 +1441,7 @@ instantiate a server with additional parameters
     * `expunge(n)`: remove entries from the cache, leaving at most `n` entries
     * `expungeByName(DNSName [, qtype=ANY])`: remove entries matching the supplied DNSName and type from the cache
     * `isFull()`: return true if the cache has reached the maximum number of entries
-    * `newPacketCache(maxEntries[, maxTTL=86400, minTTL=0, servFailTTL=60, stateTTL=60])`: return a new PacketCache
+    * `newPacketCache(maxEntries[, maxTTL=86400, minTTL=0, temporaryFailureTTL=60, staleTTL=60])`: return a new PacketCache
     * `printStats()`: print the cache stats (hits, misses, deferred lookups and deferred inserts)
     * `purgeExpired(n)`: remove expired entries from the cache until there is at most `n` entries remaining in the cache
     * `toString()`: return the number of entries in the Packet Cache, and the maximum number of entries
@@ -1420,6 +1467,9 @@ instantiate a server with additional parameters
         * member `wirelength()`: return the length on the wire
     * DNSQuestion related:
         * member `dh`: DNSHeader
+        * member `ecsOverride`: whether an existing ECS value should be overriden (settable)
+        * member `ecsPrefixLength`: the ECS prefix length to use (settable)
+        * member `getDO()`: return true if the DNSSEC OK (DO) bit is set
         * member `len`: the question length
         * member `localaddr`: ComboAddress of the local bind this question was received on
         * member `opcode`: the question opcode
@@ -1431,6 +1481,7 @@ instantiate a server with additional parameters
         * member `size`: the total size of the buffer starting at `dh`
         * member `skipCache`: whether to skip cache lookup / storing the answer for this question (settable)
         * member `tcp`: whether this question was received over a TCP socket
+        * member `useECS`: whether to send ECS to the backend (settable)
     * DNSHeader related
         * member `getRD()`: get recursion desired flag
         * member `setRD(bool)`: set recursion desired flag
@@ -1452,13 +1503,18 @@ instantiate a server with additional parameters
         * member `check(DNSName)`: returns true if DNSName is matched by this group
         * member `add(DNSName)`: add this DNSName to the node
  * Tuning related:
-    * `setTCPRecvTimeout(n)`: set the read timeout on TCP connections from the client, in seconds
-    * `setTCPSendTimeout(n)`: set the write timeout on TCP connections from the client, in seconds
     * `setMaxTCPClientThreads(n)`: set the maximum of TCP client threads, handling TCP connections
-    * `setMaxTCPQueuedConnections(n)`: set the maximum number of TCP connections queued (waiting to be picked up by a client thread)
+    * `setMaxTCPConnectionDuration(n)`: set the maximum duration of an incoming TCP connection, in seconds. 0 (the default) means unlimited
+    * `setMaxTCPConnectionsPerClient(n)`: set the maximum number of TCP connections per client. 0 (the default) means unlimited
+    * `setMaxTCPQueriesPerConnection(n)`: set the maximum number of queries in an incoming TCP connection. 0 (the default) means unlimited
+    * `setMaxTCPQueuedConnections(n)`: set the maximum number of TCP connections queued (waiting to be picked up by a client thread), defaults to 1000. 0 means unlimited
     * `setMaxUDPOutstanding(n)`: set the maximum number of outstanding UDP queries to a given backend server. This can only be set at configuration time and defaults to 10240
     * `setCacheCleaningDelay(n)`: set the interval in seconds between two runs of the cache cleaning algorithm, removing expired entries
+    * `setCacheCleaningPercentage(n)`: set the percentage of the cache that the cache cleaning algorithm will try to free by removing expired entries. By default (100), all expired entries are removed
     * `setStaleCacheEntriesTTL(n)`: allows using cache entries expired for at most `n` seconds when no backend available to answer for a query
+    * `setTCPRecvTimeout(n)`: set the read timeout on TCP connections from the client, in seconds
+    * `setTCPSendTimeout(n)`: set the write timeout on TCP connections from the client, in seconds
+    * `setUDPTimeout(n)`: set the maximum time dnsdist will wait for a response from a backend over UDP, in seconds. Defaults to 2
  * DNSCrypt related:
     * `addDNSCryptBind("127.0.0.1:8443", "provider name", "/path/to/resolver.cert", "/path/to/resolver.key", [false], [TCP Fast Open queue size]):` listen to incoming DNSCrypt queries on 127.0.0.1 port 8443, with a provider name of "provider name", using a resolver certificate and associated key stored respectively in the `resolver.cert` and `resolver.key` files. The fifth optional parameter sets SO_REUSEPORT when available. The last parameter sets the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0.
     * `generateDNSCryptProviderKeys("/path/to/providerPublic.key", "/path/to/providerPrivate.key"):` generate a new provider keypair

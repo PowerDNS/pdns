@@ -151,12 +151,13 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   typedef std::unordered_map<std::string, boost::variant<bool, std::string, vector<pair<int, std::string> > > > newserver_t;
 
   g_lua.writeVariable("DNSAction", std::unordered_map<string,int>{
-      {"Drop", (int)DNSAction::Action::Drop}, 
-      {"Nxdomain", (int)DNSAction::Action::Nxdomain}, 
-      {"Spoof", (int)DNSAction::Action::Spoof}, 
-      {"Allow", (int)DNSAction::Action::Allow}, 
+      {"Drop", (int)DNSAction::Action::Drop},
+      {"Nxdomain", (int)DNSAction::Action::Nxdomain},
+      {"Refused", (int)DNSAction::Action::Refused},
+      {"Spoof", (int)DNSAction::Action::Spoof},
+      {"Allow", (int)DNSAction::Action::Allow},
       {"HeaderModify", (int)DNSAction::Action::HeaderModify},
-      {"Pool", (int)DNSAction::Action::Pool}, 
+      {"Pool", (int)DNSAction::Action::Pool},
       {"None",(int)DNSAction::Action::None},
       {"Delay", (int)DNSAction::Action::Delay}}
     );
@@ -219,15 +220,20 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			ComboAddress sourceAddr;
 			unsigned int sourceItf = 0;
 			if(auto addressStr = boost::get<string>(&pvars)) {
-			  ComboAddress address(*addressStr, 53);
 			  std::shared_ptr<DownstreamState> ret;
-			  if(IsAnyAddress(address)) {
-			    g_outputBuffer="Error creating new server: invalid address for a downstream server.";
-			    errlog("Error creating new server: %s is not a valid address for a downstream server", *addressStr);
-			    return ret;
-			  }
 			  try {
+			    ComboAddress address(*addressStr, 53);
+			    if(IsAnyAddress(address)) {
+			      g_outputBuffer="Error creating new server: invalid address for a downstream server.";
+			      errlog("Error creating new server: %s is not a valid address for a downstream server", *addressStr);
+			      return ret;
+			    }
 			    ret=std::make_shared<DownstreamState>(address);
+			  }
+			  catch(const PDNSException& e) {
+			    g_outputBuffer="Error creating new server: "+string(e.reason);
+			    errlog("Error creating new server with address %s: %s", addressStr, e.reason);
+			    return ret;
 			  }
 			  catch(std::exception& e) {
 			    g_outputBuffer="Error creating new server: "+string(e.what());
@@ -250,13 +256,15 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			  addServerToPool(localPools, "", ret);
 			  g_pools.setState(localPools);
 
-			  if(g_launchWork) {
-			    g_launchWork->push_back([ret]() {
-				ret->tid = move(thread(responderThread, ret));
+			  if (ret->connected) {
+			    if(g_launchWork) {
+			      g_launchWork->push_back([ret]() {
+			        ret->tid = move(thread(responderThread, ret));
 			      });
-			  }
-			  else {
-			    ret->tid = move(thread(responderThread, ret));
+			    }
+			    else {
+			      ret->tid = move(thread(responderThread, ret));
+			    }
 			  }
 
 			  return ret;
@@ -310,14 +318,19 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			}
 
 			std::shared_ptr<DownstreamState> ret;
-			ComboAddress address(boost::get<string>(vars["address"]), 53);
-			if(IsAnyAddress(address)) {
-			  g_outputBuffer="Error creating new server: invalid address for a downstream server.";
-			  errlog("Error creating new server: %s is not a valid address for a downstream server", boost::get<string>(vars["address"]));
-			  return ret;
-			}
 			try {
+			  ComboAddress address(boost::get<string>(vars["address"]), 53);
+			  if(IsAnyAddress(address)) {
+			    g_outputBuffer="Error creating new server: invalid address for a downstream server.";
+			    errlog("Error creating new server: %s is not a valid address for a downstream server", boost::get<string>(vars["address"]));
+			    return ret;
+			  }
 			  ret=std::make_shared<DownstreamState>(address, sourceAddr, sourceItf);
+			}
+			catch(const PDNSException& e) {
+			  g_outputBuffer="Error creating new server: "+string(e.reason);
+			  errlog("Error creating new server with address %s: %s", boost::get<string>(vars["address"]), e.reason);
+			  return ret;
 			}
 			catch(std::exception& e) {
 			  g_outputBuffer="Error creating new server: "+string(e.what());
@@ -396,13 +409,15 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			  ret->maxCheckFailures=std::stoi(boost::get<string>(vars["maxCheckFailures"]));
 			}
 
-			if(g_launchWork) {
-			  g_launchWork->push_back([ret]() {
+			if (ret->connected) {
+			  if(g_launchWork) {
+			    g_launchWork->push_back([ret]() {
 			      ret->tid = move(thread(responderThread, ret));
 			    });
-			}
-			else {
-			  ret->tid = move(thread(responderThread, ret));
+			  }
+			  else {
+			    ret->tid = move(thread(responderThread, ret));
+			  }
 			}
 
 			auto states = g_dstates.getCopy();
@@ -1111,21 +1126,20 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       dh.qr=v;
     });
 
-
-  g_lua.registerFunction("tostring", &ComboAddress::toString);
-  g_lua.registerFunction("tostringWithPort", &ComboAddress::toStringWithPort);
-  g_lua.registerFunction("toString", &ComboAddress::toString);
-  g_lua.registerFunction("toStringWithPort", &ComboAddress::toStringWithPort);
+  g_lua.registerFunction<string(ComboAddress::*)()>("tostring", [](const ComboAddress& ca) { return ca.toString(); });
+  g_lua.registerFunction<string(ComboAddress::*)()>("tostringWithPort", [](const ComboAddress& ca) { return ca.toStringWithPort(); });
+  g_lua.registerFunction<string(ComboAddress::*)()>("toString", [](const ComboAddress& ca) { return ca.toString(); });
+  g_lua.registerFunction<string(ComboAddress::*)()>("toStringWithPort", [](const ComboAddress& ca) { return ca.toStringWithPort(); });
   g_lua.registerFunction<uint16_t(ComboAddress::*)()>("getPort", [](const ComboAddress& ca) { return ntohs(ca.sin4.sin_port); } );
-  g_lua.registerFunction("truncate", &ComboAddress::truncate);
-  g_lua.registerFunction("isIPv4", &ComboAddress::isIPv4);
-  g_lua.registerFunction("isIPv6", &ComboAddress::isIPv6);
-  g_lua.registerFunction("isMappedIPv4", &ComboAddress::isMappedIPv4);
-  g_lua.registerFunction("mapToIPv4", &ComboAddress::mapToIPv4);
+  g_lua.registerFunction<void(ComboAddress::*)(unsigned int)>("truncate", [](ComboAddress& ca, unsigned int bits) { ca.truncate(bits); });
+  g_lua.registerFunction<bool(ComboAddress::*)()>("isIPv4", [](const ComboAddress& ca) { return ca.sin4.sin_family == AF_INET; });
+  g_lua.registerFunction<bool(ComboAddress::*)()>("isIPv6", [](const ComboAddress& ca) { return ca.sin4.sin_family == AF_INET6; });
+  g_lua.registerFunction<bool(ComboAddress::*)()>("isMappedIPv4", [](const ComboAddress& ca) { return ca.isMappedIPv4(); });
+  g_lua.registerFunction<ComboAddress(ComboAddress::*)()>("mapToIPv4", [](const ComboAddress& ca) { return ca.mapToIPv4(); });
 
   g_lua.registerFunction("isPartOf", &DNSName::isPartOf);
-  g_lua.registerFunction("countLabels", &DNSName::countLabels);
-  g_lua.registerFunction("wirelength", &DNSName::wirelength);
+  g_lua.registerFunction<unsigned int(DNSName::*)()>("countLabels", [](const DNSName& name) { return name.countLabels(); });
+  g_lua.registerFunction<size_t(DNSName::*)()>("wirelength", [](const DNSName& name) { return name.wirelength(); });
   g_lua.registerFunction<string(DNSName::*)()>("tostring", [](const DNSName&dn ) { return dn.toString(); });
   g_lua.registerFunction<string(DNSName::*)()>("toString", [](const DNSName&dn ) { return dn.toString(); });
   g_lua.writeFunction("newDNSName", [](const std::string& name) { return DNSName(name); });
@@ -1458,6 +1472,8 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
   g_lua.writeFunction("setTCPSendTimeout", [](int timeout) { g_tcpSendTimeout=timeout; });
 
+  g_lua.writeFunction("setUDPTimeout", [](int timeout) { g_udpTimeout=timeout; });
+
   g_lua.writeFunction("setMaxUDPOutstanding", [](uint16_t max) {
       if (!g_configurationDone) {
         g_maxOutstanding = max;
@@ -1481,6 +1497,26 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.registerMember<size_t (DNSQuestion::*)>("size", [](const DNSQuestion& dq) -> size_t { return dq.size; }, [](DNSQuestion& dq, size_t newSize) { (void) newSize; });
   g_lua.registerMember<bool (DNSQuestion::*)>("tcp", [](const DNSQuestion& dq) -> bool { return dq.tcp; }, [](DNSQuestion& dq, bool newTcp) { (void) newTcp; });
   g_lua.registerMember<bool (DNSQuestion::*)>("skipCache", [](const DNSQuestion& dq) -> bool { return dq.skipCache; }, [](DNSQuestion& dq, bool newSkipCache) { dq.skipCache = newSkipCache; });
+  g_lua.registerMember<bool (DNSQuestion::*)>("useECS", [](const DNSQuestion& dq) -> bool { return dq.useECS; }, [](DNSQuestion& dq, bool useECS) { dq.useECS = useECS; });
+  g_lua.registerMember<bool (DNSQuestion::*)>("ecsOverride", [](const DNSQuestion& dq) -> bool { return dq.ecsOverride; }, [](DNSQuestion& dq, bool ecsOverride) { dq.ecsOverride = ecsOverride; });
+  g_lua.registerMember<uint16_t (DNSQuestion::*)>("ecsPrefixLength", [](const DNSQuestion& dq) -> uint16_t { return dq.ecsPrefixLength; }, [](DNSQuestion& dq, uint16_t newPrefixLength) { dq.ecsPrefixLength = newPrefixLength; });
+  g_lua.registerFunction<bool(DNSQuestion::*)()>("getDO", [](const DNSQuestion& dq) {
+      return getEDNSZ((const char*)dq.dh, dq.len) & EDNS_HEADER_FLAG_DO;
+    });
+
+  /* LuaWrapper doesn't support inheritance */
+  g_lua.registerMember<const ComboAddress (DNSResponse::*)>("localaddr", [](const DNSResponse& dq) -> const ComboAddress { return *dq.local; }, [](DNSResponse& dq, const ComboAddress newLocal) { (void) newLocal; });
+  g_lua.registerMember<const DNSName (DNSResponse::*)>("qname", [](const DNSResponse& dq) -> const DNSName { return *dq.qname; }, [](DNSResponse& dq, const DNSName newName) { (void) newName; });
+  g_lua.registerMember<uint16_t (DNSResponse::*)>("qtype", [](const DNSResponse& dq) -> uint16_t { return dq.qtype; }, [](DNSResponse& dq, uint16_t newType) { (void) newType; });
+  g_lua.registerMember<uint16_t (DNSResponse::*)>("qclass", [](const DNSResponse& dq) -> uint16_t { return dq.qclass; }, [](DNSResponse& dq, uint16_t newClass) { (void) newClass; });
+  g_lua.registerMember<int (DNSResponse::*)>("rcode", [](const DNSResponse& dq) -> int { return dq.dh->rcode; }, [](DNSResponse& dq, int newRCode) { dq.dh->rcode = newRCode; });
+  g_lua.registerMember<const ComboAddress (DNSResponse::*)>("remoteaddr", [](const DNSResponse& dq) -> const ComboAddress { return *dq.remote; }, [](DNSResponse& dq, const ComboAddress newRemote) { (void) newRemote; });
+  g_lua.registerMember("dh", &DNSResponse::dh);
+  g_lua.registerMember<uint16_t (DNSResponse::*)>("len", [](const DNSResponse& dq) -> uint16_t { return dq.len; }, [](DNSResponse& dq, uint16_t newlen) { dq.len = newlen; });
+  g_lua.registerMember<uint8_t (DNSResponse::*)>("opcode", [](const DNSResponse& dq) -> uint8_t { return dq.dh->opcode; }, [](DNSResponse& dq, uint8_t newOpcode) { (void) newOpcode; });
+  g_lua.registerMember<size_t (DNSResponse::*)>("size", [](const DNSResponse& dq) -> size_t { return dq.size; }, [](DNSResponse& dq, size_t newSize) { (void) newSize; });
+  g_lua.registerMember<bool (DNSResponse::*)>("tcp", [](const DNSResponse& dq) -> bool { return dq.tcp; }, [](DNSResponse& dq, bool newTcp) { (void) newTcp; });
+  g_lua.registerMember<bool (DNSResponse::*)>("skipCache", [](const DNSResponse& dq) -> bool { return dq.skipCache; }, [](DNSResponse& dq, bool newSkipCache) { dq.skipCache = newSkipCache; });
 
   g_lua.writeFunction("setMaxTCPClientThreads", [](uint64_t max) {
       if (!g_configurationDone) {
@@ -1498,14 +1534,39 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       }
     });
 
+  g_lua.writeFunction("setMaxTCPQueriesPerConnection", [](size_t max) {
+      if (!g_configurationDone) {
+        g_maxTCPQueriesPerConn = max;
+      } else {
+        g_outputBuffer="The maximum number of queries per TCP connection cannot be altered at runtime!\n";
+      }
+    });
+
+  g_lua.writeFunction("setMaxTCPConnectionsPerClient", [](size_t max) {
+      if (!g_configurationDone) {
+        g_maxTCPConnectionsPerClient = max;
+      } else {
+        g_outputBuffer="The maximum number of TCP connection per client cannot be altered at runtime!\n";
+      }
+    });
+
+  g_lua.writeFunction("setMaxTCPConnectionDuration", [](size_t max) {
+      if (!g_configurationDone) {
+        g_maxTCPConnectionDuration = max;
+      } else {
+        g_outputBuffer="The maximum duration of a TCP connection cannot be altered at runtime!\n";
+      }
+    });
+
   g_lua.writeFunction("showTCPStats", [] {
       setLuaNoSideEffect();
       boost::format fmt("%-10d %-10d %-10d %-10d\n");
       g_outputBuffer += (fmt % "Clients" % "MaxClients" % "Queued" % "MaxQueued").str();
-      g_outputBuffer += (fmt % g_tcpclientthreads->d_numthreads % g_maxTCPClientThreads % g_tcpclientthreads->d_queued % g_maxTCPQueuedConnections).str();
+      g_outputBuffer += (fmt % g_tcpclientthreads->getThreadsCount() % g_maxTCPClientThreads % g_tcpclientthreads->getQueuedCount() % g_maxTCPQueuedConnections).str();
     });
 
   g_lua.writeFunction("setCacheCleaningDelay", [](uint32_t delay) { g_cacheCleaningDelay = delay; });
+  g_lua.writeFunction("setCacheCleaningPercentage", [](uint16_t percentage) { if (percentage < 100) g_cacheCleaningPercentage = percentage; else g_cacheCleaningPercentage = 100; });
 
   g_lua.writeFunction("setECSSourcePrefixV4", [](uint16_t prefix) { g_ECSSourcePrefixV4=prefix; });
 
