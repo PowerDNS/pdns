@@ -500,6 +500,7 @@ int AXFRRetriever::getChunk(Resolver::res_t &res) // Implementation is making su
         shared_ptr<TSIGRecordContent> trc = boost::dynamic_pointer_cast<TSIGRecordContent>(answer.first.d_content);
         theirMac = trc->d_mac;
         d_trc.d_time = trc->d_time;
+        d_trc.d_fudge = trc->d_fudge;
         checkTSIG = true;
       }
     }
@@ -511,6 +512,11 @@ int AXFRRetriever::getChunk(Resolver::res_t &res) // Implementation is making su
     if (checkTSIG) {
       if (theirMac.empty())
         throw ResolverException("No TSIG on AXFR response from "+d_remote.toStringWithPort()+" , should be signed with TSIG key '"+d_tsigkeyname+"'");
+
+      uint64_t delta = std::abs((int64_t)d_trc.d_time - (int64_t)time(0));
+      if(delta > d_trc.d_fudge) {
+        throw ResolverException("Invalid TSIG time delta " + lexical_cast<string>(delta) + " >  fudge " + lexical_cast<string>(d_trc.d_fudge));
+      }
 
       string message;
       if (!d_prevMac.empty()) {
@@ -527,7 +533,7 @@ int AXFRRetriever::getChunk(Resolver::res_t &res) // Implementation is making su
       string ourMac=calculateHMAC(d_tsigsecret, message, algo);
 
       // ourMac[0]++; // sabotage == for testing :-)
-      if(ourMac != theirMac) {
+      if(!constantTimeStringEquals(ourMac, theirMac)) {
         throw ResolverException("Signature failed to validate on AXFR response from "+d_remote.toStringWithPort()+" signed with TSIG key '"+d_tsigkeyname+"'");
       }
 

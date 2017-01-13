@@ -463,7 +463,7 @@ bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, string* keyname, string* 
   
   bool gotit=false;
   for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
-    if(i->first.d_type == QType::TSIG) {
+    if(i->first.d_type == QType::TSIG && i->first.d_class == QType::ANY) {
       // cast can fail, f.e. if d_content is an UnknownRecordContent.
       shared_ptr<TSIGRecordContent> content = boost::dynamic_pointer_cast<TSIGRecordContent>(i->first.d_content);
       if (!content) {
@@ -640,7 +640,10 @@ bool checkForCorrectTSIG(const DNSPacket* q, DNSBackend* B, string* keyname, str
 {
   string message;
 
-  q->getTSIGDetails(trc, keyname, &message);
+  if (!q->getTSIGDetails(trc, keyname, &message)) {
+    return false;
+  }
+
   uint64_t now = time(0);
   if(abs(trc->d_time - now) > trc->d_fudge) {
     L<<Logger::Error<<"Packet for '"<<q->qdomain<<"' denied: TSIG (key '"<<*keyname<<"') time delta "<< abs(trc->d_time - now)<<" > 'fudge' "<<trc->d_fudge<<endl;
@@ -666,7 +669,7 @@ bool checkForCorrectTSIG(const DNSPacket* q, DNSBackend* B, string* keyname, str
   }
 
   B64Decode(secret64, *secret);
-  bool result=calculateHMAC(*secret, message, algo) == trc->d_mac;
+  bool result=constantTimeStringEquals(calculateHMAC(*secret, message, algo), trc->d_mac);
   if(!result) {
     L<<Logger::Error<<"Packet for domain '"<<q->qdomain<<"' denied: TSIG signature mismatch using '"<<*keyname<<"' and algorithm '"<<trc->d_algoName<<"'"<<endl;
   }
