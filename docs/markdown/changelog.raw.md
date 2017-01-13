@@ -32,7 +32,7 @@ The 4.0.4 version of the PowerDNS Recursor fixes PowerDNS Security Advisories [2
 - [commit d8baf17](https://github.com/PowerDNS/pdns/commit/d8baf17): Handle CNAMEs at the apex of secure zones to other secure zones
 
 # PowerDNS Authoritative Server 4.0.2
-Released January 32th 2016
+Released January 13th 2016
 
 This release fixes PowerDNS Security Advisories [2016-02](security/powerdns-advisory-2016-02.md), [2016-03](security/powerdns-advisory-2016-03.md), [2016-04](security/powerdns-advisory-2016-04.md) and [2016-05](security/powerdns-advisory-2016-05.md) and includes a fix for a memory leak in the Postgresql backend.
 
