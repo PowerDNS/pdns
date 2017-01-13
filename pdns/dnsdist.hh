@@ -449,6 +449,7 @@ struct DownstreamState
   bool upStatus{false};
   bool useECS{false};
   bool setCD{false};
+  std::atomic<bool> connected{false};
   bool isUp() const
   {
     if(availability == Availability::Down)
@@ -472,7 +473,7 @@ struct DownstreamState
     }
     return name + " (" + remote.toStringWithPort()+ ")";
   }
-
+  void reconnect();
 };
 using servers_t =vector<std::shared_ptr<DownstreamState>>;
 

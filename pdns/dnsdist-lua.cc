@@ -251,13 +251,15 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			  addServerToPool(localPools, "", ret);
 			  g_pools.setState(localPools);
 
-			  if(g_launchWork) {
-			    g_launchWork->push_back([ret]() {
-				ret->tid = move(thread(responderThread, ret));
+			  if (ret->connected) {
+			    if(g_launchWork) {
+			      g_launchWork->push_back([ret]() {
+			        ret->tid = move(thread(responderThread, ret));
 			      });
-			  }
-			  else {
-			    ret->tid = move(thread(responderThread, ret));
+			    }
+			    else {
+			      ret->tid = move(thread(responderThread, ret));
+			    }
 			  }
 
 			  return ret;
@@ -397,13 +399,15 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			  ret->maxCheckFailures=std::stoi(boost::get<string>(vars["maxCheckFailures"]));
 			}
 
-			if(g_launchWork) {
-			  g_launchWork->push_back([ret]() {
+			if (ret->connected) {
+			  if(g_launchWork) {
+			    g_launchWork->push_back([ret]() {
 			      ret->tid = move(thread(responderThread, ret));
 			    });
-			}
-			else {
-			  ret->tid = move(thread(responderThread, ret));
+			  }
+			  else {
+			    ret->tid = move(thread(responderThread, ret));
+			  }
 			}
 
 			auto states = g_dstates.getCopy();
