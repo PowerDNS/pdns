@@ -442,16 +442,19 @@ try {
         ids->packetCache->insert(ids->cacheKey, ids->qname, ids->qtype, ids->qclass, response, responseLen, false, dh->rcode);
       }
 
+      if (ids->cs && !ids->cs->muted) {
 #ifdef HAVE_DNSCRYPT
-      if (!encryptResponse(response, &responseLen, responseSize, false, ids->dnsCryptQuery)) {
-        continue;
-      }
+        if (!encryptResponse(response, &responseLen, responseSize, false, ids->dnsCryptQuery)) {
+          continue;
+        }
 #endif
-      ComboAddress empty;
-      empty.sin4.sin_family = 0;
-      /* if ids->destHarvested is false, origDest holds the listening address.
-         We don't want to use that as a source since it could be 0.0.0.0 for example. */
-      sendUDPResponse(origFD, response, responseLen, ids->delayMsec, ids->destHarvested ? ids->origDest : empty, ids->origRemote);
+
+        ComboAddress empty;
+        empty.sin4.sin_family = 0;
+        /* if ids->destHarvested is false, origDest holds the listening address.
+           We don't want to use that as a source since it could be 0.0.0.0 for example. */
+        sendUDPResponse(origFD, response, responseLen, ids->delayMsec, ids->destHarvested ? ids->origDest : empty, ids->origRemote);
+      }
 
       g_stats.responses++;
 
@@ -1117,12 +1120,15 @@ try
 
         restoreFlags(dh, origFlags);
 
+        if (!cs->muted) {
 #ifdef HAVE_DNSCRYPT
-        if (!encryptResponse(response, &responseLen, dq.size, false, dnsCryptQuery)) {
-          continue;
-        }
+          if (!encryptResponse(response, &responseLen, dq.size, false, dnsCryptQuery)) {
+            continue;
+          }
 #endif
-        sendUDPResponse(cs->udpFD, response, responseLen, 0, dest, remote);
+          sendUDPResponse(cs->udpFD, response, responseLen, 0, dest, remote);
+        }
+
         continue;
       }
 
@@ -1148,12 +1154,15 @@ try
         uint16_t cachedResponseSize = sizeof cachedResponse;
         uint32_t allowExpired = ss ? 0 : g_staleCacheEntriesTTL;
         if (packetCache->get(dq, consumed, dh->id, cachedResponse, &cachedResponseSize, &cacheKey, allowExpired)) {
+          if (!cs->muted) {
 #ifdef HAVE_DNSCRYPT
-          if (!encryptResponse(cachedResponse, &cachedResponseSize, sizeof cachedResponse, false, dnsCryptQuery)) {
-            continue;
-          }
+            if (!encryptResponse(cachedResponse, &cachedResponseSize, sizeof cachedResponse, false, dnsCryptQuery)) {
+              continue;
+            }
 #endif
-          sendUDPResponse(cs->udpFD, cachedResponse, cachedResponseSize, 0, dest, remote);
+            sendUDPResponse(cs->udpFD, cachedResponse, cachedResponseSize, 0, dest, remote);
+          }
+
           g_stats.cacheHits++;
           g_stats.latency0_1++;  // we're not going to measure this
           doLatencyAverages(0);  // same
@@ -1196,6 +1205,7 @@ try
         g_stats.downstreamTimeouts++;
       }
 
+      ids->cs = cs;
       ids->origFD = cs->udpFD;
       ids->origID = dh->id;
       ids->origRemote = remote;

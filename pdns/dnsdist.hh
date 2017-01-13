@@ -233,6 +233,8 @@ private:
   mutable unsigned int d_blocked{0};
 };
 
+struct ClientState;
+
 struct IDState
 {
   IDState() : origFD(-1), sentTime(true), delayMsec(0) { origDest.sin4.sin_family = 0;}
@@ -259,6 +261,7 @@ struct IDState
   boost::uuids::uuid uniqueId;
 #endif
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};
+  const ClientState* cs{nullptr};
   uint32_t cacheKey;                                          // 8
   std::atomic<uint16_t> age;                                  // 4
   uint16_t qtype;                                             // 2
@@ -334,6 +337,7 @@ struct ClientState
   std::atomic<uint64_t> queries{0};
   int udpFD{-1};
   int tcpFD{-1};
+  bool muted{false};
 
   int getSocket() const
   {

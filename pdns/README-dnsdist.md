@@ -1249,6 +1249,7 @@ Here are all functions:
     * function `getBind(n)`: return the corresponding `ClientState` object
     * member `attachFilter(BPFFilter)`: attach a BPF Filter to this bind
     * member `detachFilter()`: detach the BPF Filter attached to this bind, if any
+    * member `muted`: if set to true, UDP responses will not be sent for queries received on this bind. Default to false
     * member `toString()`: print the address this bind listens to
  * Network related:
     * `addLocal(netmask, [true], [false], [TCP Fast Open queue size])`: add to addresses we listen on. Second optional parameter sets TCP or not. Third optional parameter sets SO_REUSEPORT when available. Last parameter sets the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0.

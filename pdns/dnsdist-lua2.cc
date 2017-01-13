@@ -879,6 +879,8 @@ void moreLua(bool client)
         return fe.local.toStringWithPort();
       });
 
+    g_lua.registerMember("muted", &ClientState::muted);
+
     g_lua.writeFunction("help", [](boost::optional<std::string> command) {
         setLuaNoSideEffect();
         g_outputBuffer = "";
