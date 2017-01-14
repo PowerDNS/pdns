@@ -29,6 +29,7 @@
 #include "utility.hh"
 
 
+#include <dlfcn.h>
 #include <string>
 #include <map>
 #include <sys/types.h>

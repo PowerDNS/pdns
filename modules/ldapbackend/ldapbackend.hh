@@ -31,7 +31,6 @@
 #include "pdns/utility.hh"
 #include "pdns/dnspacket.hh"
 #include "pdns/dnsbackend.hh"
-#include "pdns/ueberbackend.hh"
 #include "pdns/pdnsexception.hh"
 #include "pdns/arguments.hh"
 #include "pdns/logger.hh"

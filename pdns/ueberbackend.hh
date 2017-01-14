@@ -29,11 +29,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 
-#include <sys/un.h>
-#include <dlfcn.h>
 #include <unistd.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
