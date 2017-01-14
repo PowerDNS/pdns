@@ -135,7 +135,7 @@ public:
   bool searchRecords(const string &pattern, int maxResults, vector<DNSResourceRecord>& result);
   bool searchComments(const string &pattern, int maxResults, vector<Comment>& result);
 private:
-  pthread_t tid;
+  pthread_t d_tid;
   handle d_handle;
   vector<DNSZoneRecord> d_answers;
   vector<DNSZoneRecord>::const_iterator d_cachehandleiter;
@@ -151,13 +151,13 @@ private:
   }d_question;
 
   unsigned int d_cache_ttl, d_negcache_ttl;
-  int domain_id;
+  int d_domain_id;
   int d_ancount;
 
   bool d_negcached;
   bool d_cached;
   static bool d_go;
-  bool stale;
+  bool d_stale;
 
   int cacheHas(const Question &q, vector<DNSZoneRecord> &rrs);
   void addNegCache(const Question &q);
