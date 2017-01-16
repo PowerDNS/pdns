@@ -204,8 +204,6 @@ void validateWithKeySet(const cspmap_t& rrsets, cspmap_t& validated, const keyse
 //      www.powerdnssec.org -> secure/powerdnssec.org/[keys]
 //      www.dnssec-failed.org -> bogus/dnssec-failed.org/[]
 
-const char *g_rootDS;
-
 cspmap_t harvestCSPFromRecs(const vector<DNSRecord>& recs)
 {
   cspmap_t cspmap;
