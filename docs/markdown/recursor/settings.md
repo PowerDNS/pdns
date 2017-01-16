@@ -129,6 +129,9 @@ in the configuration are relative to the new root.
 When using `chroot` and the API ([`webserver`](#webserver)), [`api-readonly`](#api-readonly)
 must be set and [`api-config-dir`](#api-config-dir) unset.
 
+When running on a system where systemd manages services, `chroot` does not work out of the box, as PowerDNS cannot use the `NOTIFY_SOCKET`.
+Either do not `chroot` on these systems or set the 'Type' of this service to 'simple' instead of 'notify' (refer to the systemd documentation on how to modify unit-files)
+
 ## `client-tcp-timeout`
 * Integer
 * Default: 2

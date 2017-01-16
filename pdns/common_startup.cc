@@ -498,6 +498,14 @@ void mainthread()
    stubParseResolveConf();
 
    if(!::arg()["chroot"].empty()) {
+#ifdef HAVE_SYSTEMD
+     char *ns;
+     ns = getenv("NOTIFY_SOCKET");
+     if (ns != nullptr) {
+       L<<Logger::Error<<"Unable to chroot when running from systemd. Please disable chroot= or set the 'Type' for this service to 'simple'"<<endl;
+       exit(1);
+     }
+#endif
      triggerLoadOfLibraries();
      if(::arg().mustDo("master") || ::arg().mustDo("slave"))
         gethostbyname("a.root-servers.net"); // this forces all lookup libraries to be loaded
