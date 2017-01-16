@@ -44,9 +44,9 @@ extern __thread FDMultiplexer* t_fdm;
 
 using json11::Json;
 
-void productServerStatisticsFetch(map<string,int>& out)
+void productServerStatisticsFetch(map<string,uint64_t>& out)
 {
-  //map<string,string> stats = getAllStatsMap();
+  map<string,uint64_t> stats = getAllStatsMap();
   out.swap(stats);
 }
 

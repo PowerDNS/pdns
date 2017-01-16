@@ -424,11 +424,11 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp) {
   resp->setBody(doc);
 }
 
-void productServerStatisticsFetch(map<string,int>& out)
+void productServerStatisticsFetch(map<string,uint64_t>& out)
 {
   vector<string> items = S.getEntries();
   for(const string& item :  items) {
-    out[item] = std::stoi(std::to_string(S.read(item)));
+    out[item] = S.read(item);
   }
 
   // add uptime

@@ -98,34 +98,34 @@ optional<uint64_t> get(const string& name)
   return ret;
 }
 
-map<string,string> getAllStatsMap()
+map<string,uint64_t> getAllStatsMap()
 {
-  map<string,string> ret;
+  map<string,uint64_t> ret;
   
   for(const auto& the32bits :  d_get32bitpointers) {
-    ret.insert(make_pair(the32bits.first, std::to_string(*the32bits.second)));
+    ret.insert(make_pair(the32bits.first, *the32bits.second));
   }
   for(const auto& the64bits :  d_get64bitpointers) {
-    ret.insert(make_pair(the64bits.first, std::to_string(*the64bits.second)));
+    ret.insert(make_pair(the64bits.first, *the64bits.second));
   }
   for(const auto& atomic :  d_getatomics) {
-    ret.insert(make_pair(atomic.first, std::to_string(atomic.second->load())));
+    ret.insert(make_pair(atomic.first, atomic.second->load()));
   }
 
   for(const auto& the64bitmembers :  d_get64bitmembers) { 
     if(the64bitmembers.first == "cache-bytes" || the64bitmembers.first=="packetcache-bytes")
       continue; // too slow for 'get-all'
-    ret.insert(make_pair(the64bitmembers.first, std::to_string(the64bitmembers.second())));
+    ret.insert(make_pair(the64bitmembers.first, the64bitmembers.second()));
   }
   Lock l(&d_dynmetricslock);
   for(const auto& a : d_dynmetrics)
-    ret.insert({a.first, std::to_string(*a.second)});
+    ret.insert({a.first, *a.second});
   return ret;
 }
 
 string getAllStats()
 {
-  typedef map<string, string> varmap_t;
+  typedef map<string, uint64_t> varmap_t;
   varmap_t varmap = getAllStatsMap();
   string ret;
   for(varmap_t::value_type& tup :  varmap) {
