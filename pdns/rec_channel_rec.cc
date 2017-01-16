@@ -439,17 +439,17 @@ string doClearNTA(T begin, T end)
 
   string removed("");
   bool first(true);
-  for (auto const &who : toRemove) {
-    L<<Logger::Warning<<"Clearing Negative Trust Anchor for "<<who<<", requested via control channel"<<endl;
-    g_luaconfs.modify([who](LuaConfigItems& lci) {
-        lci.negAnchors.erase(who);
+  for (auto const &entry : toRemove) {
+    L<<Logger::Warning<<"Clearing Negative Trust Anchor for "<<entry<<", requested via control channel"<<endl;
+    g_luaconfs.modify([entry](LuaConfigItems& lci) {
+        lci.negAnchors.erase(entry);
       });
-    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, who, true));
+    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, entry, true));
     if (!first) {
       first = false;
       removed += ",";
     }
-    removed += " " + who.toStringRootDot();
+    removed += " " + entry.toStringRootDot();
   }
   return "Removed Negative Trust Anchors for " + removed + "\n";
 }
@@ -529,17 +529,17 @@ string doClearTA(T begin, T end)
 
   string removed("");
   bool first(true);
-  for (auto const &who : toRemove) {
-    L<<Logger::Warning<<"Removing Trust Anchor for "<<who<<", requested via control channel"<<endl;
-    g_luaconfs.modify([who](LuaConfigItems& lci) {
-        lci.dsAnchors.erase(who);
+  for (auto const &entry : toRemove) {
+    L<<Logger::Warning<<"Removing Trust Anchor for "<<entry<<", requested via control channel"<<endl;
+    g_luaconfs.modify([entry](LuaConfigItems& lci) {
+        lci.dsAnchors.erase(entry);
       });
-    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, who, true));
+    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, entry, true));
     if (!first) {
       first = false;
       removed += ",";
     }
-    removed += " " + who.toStringRootDot();
+    removed += " " + entry.toStringRootDot();
   }
   return "Removed Trust Anchor(s) for" + removed + "\n";
 }

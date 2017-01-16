@@ -302,8 +302,8 @@ RecursorLua4::RecursorLua4(const std::string& fname)
           cas.insert(ComboAddress(*s));
         }
         else if(auto v = boost::get<vector<pair<unsigned int, string> > >(&in)) {
-          for(const auto& s : *v)
-            cas.insert(ComboAddress(s.second));
+          for(const auto&entry : *v)
+            cas.insert(ComboAddress(entry.second));
           }
         else {
           cas.insert(boost::get<ComboAddress>(in));
@@ -408,8 +408,8 @@ RecursorLua4::RecursorLua4(const std::string& fname)
 
       if(auto rec = std::dynamic_pointer_cast<ARecordContent>(dr.d_content))
         ret=rec->getCA(53);
-      else if(auto rec = std::dynamic_pointer_cast<AAAARecordContent>(dr.d_content))
-        ret=rec->getCA(53);
+      else if(auto aaaarec = std::dynamic_pointer_cast<AAAARecordContent>(dr.d_content))
+        ret=aaaarec->getCA(53);
       return ret;
     });
 
@@ -455,8 +455,8 @@ RecursorLua4::RecursorLua4(const std::string& fname)
           smn.add(DNSName(*s));
         }
         else if(auto v = boost::get<vector<pair<unsigned int, string> > >(&in)) {
-          for(const auto& s : *v)
-            smn.add(DNSName(s.second));
+          for(const auto& entry : *v)
+            smn.add(DNSName(entry.second));
         }
         else {
           smn.add(boost::get<DNSName>(in));
@@ -648,14 +648,14 @@ loop:;
       }
       else if(dq->followupFunction=="udpQueryResponse") {
         dq->udpAnswer = GenUDPQueryResponse(dq->udpQueryDest, dq->udpQuery);
-        auto func = d_lw->readVariable<boost::optional<luacall_t>>(dq->udpCallback).get_value_or(0);
-        if(!func) {
+        auto cbFunc = d_lw->readVariable<boost::optional<luacall_t>>(dq->udpCallback).get_value_or(0);
+        if(!cbFunc) {
           theL()<<Logger::Error<<"Attempted callback for Lua UDP Query/Response which could not be found"<<endl;
           return false;
         }
-        bool res=func(dq);
+        bool result=cbFunc(dq);
         if(variable) *variable |= dq->variable; // could still be set to indicate this *name* is variable
-        if(!res) {
+        if(!result) {
           return false;
         }
         goto loop;

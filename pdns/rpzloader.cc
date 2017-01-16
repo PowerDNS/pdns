@@ -75,33 +75,33 @@ void RPZRecordToPolicy(const DNSRecord& dr, DNSFilterEngine& target, bool addOrR
     if (!crc) {
       return;
     }
-    auto target=crc->getTarget();
+    auto crcTarget=crc->getTarget();
     if(defpol) {
       pol=*defpol;
     }
-    else if(target.isRoot()) {
+    else if(crcTarget.isRoot()) {
       // cerr<<"Wants NXDOMAIN for "<<dr.d_name<<": ";
       pol.d_kind = DNSFilterEngine::PolicyKind::NXDOMAIN;
-    } else if(target==DNSName("*")) {
+    } else if(crcTarget==DNSName("*")) {
       // cerr<<"Wants NODATA for "<<dr.d_name<<": ";
       pol.d_kind = DNSFilterEngine::PolicyKind::NODATA;
     }
-    else if(target==drop) {
+    else if(crcTarget==drop) {
       // cerr<<"Wants DROP for "<<dr.d_name<<": ";
       pol.d_kind = DNSFilterEngine::PolicyKind::Drop;
     }
-    else if(target==truncate) {
+    else if(crcTarget==truncate) {
       // cerr<<"Wants TRUNCATE for "<<dr.d_name<<": ";
       pol.d_kind = DNSFilterEngine::PolicyKind::Truncate;
     }
-    else if(target==noaction) {
+    else if(crcTarget==noaction) {
       // cerr<<"Wants NOACTION for "<<dr.d_name<<": ";
       pol.d_kind = DNSFilterEngine::PolicyKind::NoAction;
     }
     else {
       pol.d_kind = DNSFilterEngine::PolicyKind::Custom;
       pol.d_custom = dr.d_content;
-      // cerr<<"Wants custom "<<target<<" for "<<dr.d_name<<": ";
+      // cerr<<"Wants custom "<<crcTarget<<" for "<<dr.d_name<<": ";
     }
   }
   else {

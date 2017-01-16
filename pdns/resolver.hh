@@ -46,7 +46,7 @@
 class ResolverException : public PDNSException
 {
 public:
-  ResolverException(const string &reason) : PDNSException(reason){}
+  ResolverException(const string &reason_) : PDNSException(reason_){}
 };
 
 // make an IPv4 or IPv6 query socket 
