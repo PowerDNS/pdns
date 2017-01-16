@@ -41,7 +41,6 @@ public:
   }
 private:
   bool reconnect();
-  bool sendData(const char* buffer, size_t bufferSize);
   void worker();
 
   std::queue<std::string> d_writeQueue;
