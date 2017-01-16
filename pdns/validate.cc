@@ -124,9 +124,12 @@ vector<DNSName> getZoneCuts(const DNSName& begin, const DNSName& end, DNSRecordO
   // The shortest name is assumed to a zone cut
   ret.push_back(qname);
   while(qname != begin) {
+    bool foundCut = false;
+    if (labelsToAdd.empty())
+      break;
+
     qname.prependRawLabel(labelsToAdd.back());
     labelsToAdd.pop_back();
-    bool foundCut = false;
     auto records = dro.get(qname, (uint16_t)QType::NS);
     for (const auto record : records) {
       if(record.d_name != qname || record.d_type != QType::NS)
