@@ -426,7 +426,7 @@ extern BackendMakerClass &BackendMakers();
 class DBException : public PDNSException
 {
 public:
-  DBException(const string &reason) : PDNSException(reason){}
+  DBException(const string &reason_) : PDNSException(reason_){}
 };
 
 /** helper function for both DNSPacket and addSOARecord() - converts a line into a struct, for easier parsing */

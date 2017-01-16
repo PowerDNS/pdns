@@ -528,8 +528,8 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
         if(i->d_type == QType::A || i->d_type == QType::AAAA) {
 	  if(auto rec = std::dynamic_pointer_cast<ARecordContent>(i->d_content))
 	    ret.push_back(rec->getCA(53));
-	  else if(auto rec = std::dynamic_pointer_cast<AAAARecordContent>(i->d_content))
-	    ret.push_back(rec->getCA(53));
+	  else if(auto aaaarec = std::dynamic_pointer_cast<AAAARecordContent>(i->d_content))
+	    ret.push_back(aaaarec->getCA(53));
           done=true;
         }
       }
@@ -719,14 +719,14 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
         ret.push_back(dr);
 
 	for(const auto& signature : signatures) {
-	  DNSRecord dr;
-	  dr.d_type=QType::RRSIG;
-	  dr.d_name=qname;
-	  dr.d_ttl=j->d_ttl - d_now.tv_sec;
-	  dr.d_content=signature;
-	  dr.d_place=DNSResourceRecord::ANSWER;
-	  dr.d_class=1;
-	  ret.push_back(dr);
+	  DNSRecord sigdr;
+	  sigdr.d_type=QType::RRSIG;
+	  sigdr.d_name=qname;
+	  sigdr.d_ttl=j->d_ttl - d_now.tv_sec;
+	  sigdr.d_content=signature;
+	  sigdr.d_place=DNSResourceRecord::ANSWER;
+	  sigdr.d_class=1;
+	  ret.push_back(sigdr);
 	}
 
         if(!(qtype==QType(QType::CNAME))) { // perhaps they really wanted a CNAME!

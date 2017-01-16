@@ -177,8 +177,8 @@ static Json logGrep(const string& q, const string& fname, const string& prefix)
   }
 
   Json::array items;
-  for(const string& line : lines) {
-    items.push_back(line);
+  for(const string& iline : lines) {
+    items.push_back(iline);
   }
   return items;
 }
