@@ -27,6 +27,10 @@
 #include <signal.h>
 #include <ucontext.h>
 
+#ifdef PDNS_USE_VALGRIND
+#include <valgrind/valgrind.h>
+#endif /* PDNS_USE_VALGRIND */
+
 template <typename Message> static __attribute__((noinline, cold, noreturn))
 void
 throw_errno (Message&& msg) {
@@ -84,10 +88,18 @@ threadWrapper (int const ctx0, int const ctx1, int const fun0, int const fun1) {
 pdns_ucontext_t::pdns_ucontext_t() {
     uc_mcontext = new ::ucontext_t();
     uc_link = nullptr;
+#ifdef PDNS_USE_VALGRIND
+    valgrind_id = 0;
+#endif /* PDNS_USE_VALGRIND */
 }
 
 pdns_ucontext_t::~pdns_ucontext_t() {
     delete static_cast<ucontext_t*>(uc_mcontext);
+#ifdef PDNS_USE_VALGRIND
+    if (valgrind_id != 0) {
+      VALGRIND_STACK_DEREGISTER(valgrind_id);
+    }
+#endif /* PDNS_USE_VALGRIND */
 }
 
 void

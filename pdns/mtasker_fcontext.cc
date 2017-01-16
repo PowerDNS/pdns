@@ -32,6 +32,9 @@ using boost::context::make_fcontext;
 using boost::context::detail::make_fcontext;
 #endif /* BOOST_VERSION < 106100 */
 
+#ifdef PDNS_USE_VALGRIND
+#include <valgrind/valgrind.h>
+#endif /* PDNS_USE_VALGRIND */
 
 #if BOOST_VERSION < 105600
 /* Note: This typedef means functions taking fcontext_t*, like jump_fcontext(),
@@ -153,6 +156,9 @@ threadWrapper (transfer_t const t) {
 
 pdns_ucontext_t::pdns_ucontext_t
 (): uc_mcontext(nullptr), uc_link(nullptr) {
+#ifdef PDNS_USE_VALGRIND
+  valgrind_id = 0;
+#endif /* PDNS_USE_VALGRIND */
 }
 
 pdns_ucontext_t::~pdns_ucontext_t
@@ -160,6 +166,11 @@ pdns_ucontext_t::~pdns_ucontext_t
     /* There's nothing to delete here since fcontext doesn't require anything
      * to be heap allocated.
      */
+#ifdef PDNS_USE_VALGRIND
+  if (valgrind_id != 0) {
+    VALGRIND_STACK_DEREGISTER(valgrind_id);
+  }
+#endif /* PDNS_USE_VALGRIND */
 }
 
 void
