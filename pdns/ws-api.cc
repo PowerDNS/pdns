@@ -195,11 +195,11 @@ void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
   if(req->method != "GET")
     throw HttpMethodNotAllowedException();
 
-  map<string,string> items;
+  map<string,int> items;
   productServerStatisticsFetch(items);
 
   Json::array doc;
-  typedef map<string, string> items_t;
+  typedef map<string, int> items_t;
   for(const items_t::value_type& item : items) {
     doc.push_back(Json::object {
       { "type", "StatisticItem" },

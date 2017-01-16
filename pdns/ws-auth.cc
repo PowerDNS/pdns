@@ -424,15 +424,15 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp) {
   resp->setBody(doc);
 }
 
-void productServerStatisticsFetch(map<string,string>& out)
+void productServerStatisticsFetch(map<string,int>& out)
 {
   vector<string> items = S.getEntries();
   for(const string& item :  items) {
-    out[item] = std::to_string(S.read(item));
+    out[item] = std::stoi(std::to_string(S.read(item)));
   }
 
   // add uptime
-  out["uptime"] = std::to_string(time(0) - s_starttime);
+  out["uptime"] = time(0) - s_starttime;
 }
 
 static void gatherRecords(const Json container, const DNSName& qname, const QType qtype, const int ttl, vector<DNSResourceRecord>& new_records, vector<DNSResourceRecord>& new_ptrs) {

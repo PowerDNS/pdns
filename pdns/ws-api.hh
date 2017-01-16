@@ -41,6 +41,6 @@ void apiCheckQNameAllowedCharacters(const string& name);
 DNSName apiNameToDNSName(const string& name);
 
 // To be provided by product code.
-void productServerStatisticsFetch(std::map<string,string>& out);
+void productServerStatisticsFetch(std::map<string,int>& out);
 
 #endif /* PDNS_WSAPI_HH */
