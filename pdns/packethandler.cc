@@ -833,11 +833,9 @@ int PacketHandler::processNotify(DNSPacket *p)
   */
   vector<string> meta;
 
-  if(!::arg().mustDo("slave")) {
-    if(::arg()["forward-notify"].empty()) {
-      L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" but slave support is disabled in the configuration"<<endl;
-      return RCode::NotImp;
-    }
+  if(!::arg().mustDo("slave") && ::arg()["forward-notify"].empty()) {
+    L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" but slave support is disabled in the configuration"<<endl;
+    return RCode::NotImp;
   }
 
   if(!s_allowNotifyFrom.match((ComboAddress *) &p->d_remote ) || p->d_havetsig) {
