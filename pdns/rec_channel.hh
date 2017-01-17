@@ -63,7 +63,7 @@ private:
   static bool s_init;
 };
 
-std::map<std::string, int> getAllStatsMap();
+std::map<std::string, uint64_t> getAllStatsMap();
 extern pthread_mutex_t g_carbon_config_lock;
 void sortPublicSuffixList();
 std::vector<std::pair<DNSName, uint16_t> >* pleaseGetQueryRing();
