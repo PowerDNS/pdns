@@ -1,5 +1,15 @@
 **Note**: Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
 
+# PowerDNS Authoritative Server 4.0.3
+Released January 17th 2016
+
+This release fixes an issue when using multiple backends, where one of the backends is the BIND backend.
+This regression was introduced in 4.0.2.
+
+## Bug fix
+
+- [#4905](https://github.com/PowerDNS/pdns/pull/4905): Revert "auth: In `Bind2Backend::lookup()`, use the `zoneId` when we have it"
+
 # PowerDNS Recursor 4.0.4
 Released January 13th 2016
 
