@@ -885,7 +885,7 @@ int PacketHandler::processNotify(DNSPacket *p)
     L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" which is not a master"<<endl;
     return RCode::Refused;
   }
-
+    
   // ok, we've done our checks
   di.backend = 0;
 
@@ -897,7 +897,8 @@ int PacketHandler::processNotify(DNSPacket *p)
     }
   }
 
-  if(::arg().mustDo("slave")) Communicator.addSlaveCheckRequest(di, p->d_remote);
+  if(::arg().mustDo("slave"))
+    Communicator.addSlaveCheckRequest(di, p->d_remote);
   return 0;
 }
 
