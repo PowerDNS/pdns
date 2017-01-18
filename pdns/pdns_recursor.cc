@@ -111,8 +111,6 @@ __thread shared_ptr<Regex>* t_traceRegex;
 __thread boost::uuids::random_generator* t_uuidGenerator;
 #endif
 
-NetmaskGroup g_ednssubnets;
-SuffixMatchNode g_ednsdomains;
 
 RecursorControlChannel s_rcc; // only active in thread 0
 
@@ -2602,33 +2600,6 @@ void parseACLs()
   l_initialized = true;
 }
 
-boost::optional<Netmask> getEDNSSubnetMask(const ComboAddress& local, const DNSName&dn, const ComboAddress& rem)
-{
-  if(local.sin4.sin_family != AF_INET || local.sin4.sin_addr.s_addr) { // detect unset 'requestor'
-    if(g_ednsdomains.check(dn) || g_ednssubnets.match(rem)) {
-      int bits =local.sin4.sin_family == AF_INET ? 24 : 56;
-      ComboAddress trunc(local);
-      trunc.truncate(bits);
-      return boost::optional<Netmask>(Netmask(trunc, bits));
-    }
-  }
-  return boost::optional<Netmask>();
-}
-
-void  parseEDNSSubnetWhitelist(const std::string& wlist)
-{
-  vector<string> parts;
-  stringtok(parts, wlist, ",; ");
-  for(const auto& a : parts) {
-    try {
-      Netmask nm(a);
-      g_ednssubnets.addMask(nm);
-    }
-    catch(...) {
-      g_ednsdomains.add(DNSName(a));
-    }
-  }
-}
 
 std::unordered_set<DNSName> g_delegationOnly;
 static void setupDelegationOnly()
@@ -3109,6 +3080,8 @@ int main(int argc, char **argv)
     ::arg().set("lua-dns-script", "Filename containing an optional 'lua' script that will be used to modify dns answers")="";
     ::arg().set("latency-statistic-size","Number of latency values to calculate the qa-latency average")="10000";
     ::arg().setSwitch( "disable-packetcache", "Disable packetcache" )= "no";
+    ::arg().set("ecs-ipv4-bits", "Number of bits of IPv4 address to pass for EDNS Client Subnet")="24";
+    ::arg().set("ecs-ipv6-bits", "Number of bits of IPv6 address to pass for EDNS Client Subnet")="56";
     ::arg().set("edns-subnet-whitelist", "List of netmasks and domains that we should enable EDNS subnet for")="";
     ::arg().setSwitch( "pdns-distributes-queries", "If PowerDNS itself should distribute queries over threads")="";
     ::arg().setSwitch( "root-nx-trust", "If set, believe that an NXDOMAIN from the root means the TLD does not exist")="yes";
