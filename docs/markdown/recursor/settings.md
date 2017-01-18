@@ -228,6 +228,20 @@ your network, and may even be a security risk. Therefore, since version 3.1.5,
 the PowerDNS recursor by default does not query private space IP addresses.
 This setting can be used to expand or reduce the limitations.
 
+## `ecs-ipv4-bits`
+* Integer
+* Default: 24
+* Available since 4.1
+
+Number of bits of client IPv4 address to pass when sending EDNS Client Subnet address information.
+
+## `ecs-ipv6-bits`
+* Integer
+* Default: 56
+* Available since 4.1
+
+Number of bits of client IPv6 address to pass when sending EDNS Client Subnet address information.
+
 ## `edns-outgoing-bufsize`
 * Integer
 * Default: 1680

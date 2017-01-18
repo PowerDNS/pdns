@@ -740,6 +740,10 @@ void  parseEDNSSubnetWhitelist(const std::string& wlist);
 
 extern __thread struct timeval g_now;
 
+extern NetmaskGroup g_ednssubnets;
+extern SuffixMatchNode g_ednsdomains;
+
+
 #ifdef HAVE_PROTOBUF
 extern __thread boost::uuids::random_generator* t_uuidGenerator;
 #endif
