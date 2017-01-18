@@ -227,7 +227,8 @@ void fillMSGHdr(struct msghdr* msgh, struct iovec* iov, char* cbuf, size_t cbufs
   msgh->msg_flags = 0;
 }
 
-void ComboAddress::truncate(unsigned int bits)
+// warning: various parts of PowerDNS assume 'truncate' will never throw
+void ComboAddress::truncate(unsigned int bits) noexcept
 {
   uint8_t* start;
   int len=4;
