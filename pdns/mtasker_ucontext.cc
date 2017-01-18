@@ -31,6 +31,11 @@
 #include <valgrind/valgrind.h>
 #endif /* PDNS_USE_VALGRIND */
 
+#ifdef HAVE_FIBER_SANITIZER
+__thread void* t_mainStack{nullptr};
+__thread size_t t_mainStackSize{0};
+#endif /* HAVE_FIBER_SANITIZER */
+
 template <typename Message> static __attribute__((noinline, cold, noreturn))
 void
 throw_errno (Message&& msg) {
@@ -75,6 +80,7 @@ extern "C" {
 static
 void
 threadWrapper (int const ctx0, int const ctx1, int const fun0, int const fun1) {
+    notifyStackSwitchDone();
     auto ctx = joinPtr<pdns_ucontext_t>(ctx0, ctx1);
     try {
         auto start = std::move(*joinPtr<boost::function<void()>>(fun0, fun1));
@@ -82,6 +88,7 @@ threadWrapper (int const ctx0, int const ctx1, int const fun0, int const fun1) {
     } catch (...) {
         ctx->exception = std::current_exception();
     }
+    notifyStackSwitchToKernel();
 }
 } // extern "C"
 
