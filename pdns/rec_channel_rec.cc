@@ -129,7 +129,7 @@ string getAllStats()
   varmap_t varmap = getAllStatsMap();
   string ret;
   for(varmap_t::value_type& tup :  varmap) {
-    ret += tup.first + "\t" + tup.second +"\n";
+    ret += tup.first + "\t" + std::to_string(tup.second) +"\n";
   }
   return ret;
 }
