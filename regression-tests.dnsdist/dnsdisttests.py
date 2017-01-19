@@ -386,11 +386,15 @@ class DNSDistTest(unittest.TestCase):
         sock.send(ourNonce)
         theirNonce = sock.recv(len(ourNonce))
 
-        msg = cls._encryptConsole(command, ourNonce)
+        halfNonceSize = len(ourNonce) / 2
+        readingNonce = ourNonce[0:halfNonceSize] + theirNonce[halfNonceSize:]
+        writingNonce = theirNonce[0:halfNonceSize] + ourNonce[halfNonceSize:]
+
+        msg = cls._encryptConsole(command, writingNonce)
         sock.send(struct.pack("!I", len(msg)))
         sock.send(msg)
         data = sock.recv(4)
         (responseLen,) = struct.unpack("!I", data)
         data = sock.recv(responseLen)
-        response = cls._decryptConsole(data, theirNonce)
+        response = cls._decryptConsole(data, readingNonce)
         return response
