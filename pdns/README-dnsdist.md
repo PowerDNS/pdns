@@ -1278,6 +1278,7 @@ Here are all functions:
     * `topSlow([top][, limit][, labels])`: show `top` queries slower than `limit` milliseconds, grouped by last `labels` labels
     * `topBandwidth(top)`: show top-`top` clients that consume the most bandwidth over length of ringbuffer
     * `topClients(n)`: show top-`n` clients sending the most queries over length of ringbuffer
+    * `setRingBuffersSize(n)`: set the capacity of the ringbuffers used for live traffic inspection to `n` (default to 10000)
     * `showResponseLatency()`: show a plot of the response time latency distribution
     * `showTCPStats()`: show some statistics regarding TCP
     * `showVersion()`: show the current version of dnsdist
