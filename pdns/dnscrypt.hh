@@ -88,22 +88,6 @@ struct DnsCryptQueryHeader
 
 static_assert(sizeof(DnsCryptQueryHeader) == 52, "Dnscrypt query header size should be 52!");
 
-class DnsCryptQuery
-{
-public:
-  static const size_t minUDPLength = 256;
-
-  DnsCryptQueryHeader header;
-  DNSName qname;
-  DnsCryptContext* ctx;
-  uint16_t id{0};
-  uint16_t len{0};
-  uint16_t paddedLen;
-  bool useOldCert{false};
-  bool encrypted{false};
-  bool valid{false};
-};
-
 struct DnsCryptResponseHeader
 {
   const unsigned char resolverMagic[DNSCRYPT_RESOLVER_MAGIC_SIZE] = DNSCRYPT_RESOLVER_MAGIC;
@@ -119,6 +103,30 @@ public:
   void saveToFile(const std::string& keyFile) const;
 
   unsigned char key[DNSCRYPT_PRIVATE_KEY_SIZE];
+};
+
+class DnsCryptQuery
+{
+public:
+  DnsCryptQuery()
+  {
+  }
+  ~DnsCryptQuery();
+  int computeSharedKey(const DnsCryptPrivateKey& privateKey);
+
+  static const size_t minUDPLength = 256;
+
+  DnsCryptQueryHeader header;
+  unsigned char sharedKey[crypto_box_BEFORENMBYTES];
+  DNSName qname;
+  DnsCryptContext* ctx;
+  uint16_t id{0};
+  uint16_t len{0};
+  uint16_t paddedLen;
+  bool useOldCert{false};
+  bool encrypted{false};
+  bool valid{false};
+  bool sharedKeyComputed{false};
 };
 
 class DnsCryptContext
