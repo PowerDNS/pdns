@@ -134,7 +134,7 @@ try {
         }
 
         try {
-          message.addRRsFromPacket((const char*) dh, pr.d_len);
+          message.addRRsFromPacket((const char*) dh, pr.d_len, true);
         }
         catch(std::exception& e)
         {

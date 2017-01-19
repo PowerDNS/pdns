@@ -62,7 +62,7 @@ public:
   void setTime(time_t sec, uint32_t usec);
   void setQueryTime(time_t sec, uint32_t usec);
   void setResponseCode(uint8_t rcode);
-  void addRRsFromPacket(const char* packet, const size_t len);
+  void addRRsFromPacket(const char* packet, const size_t len, bool includeCNAME=false);
   void serialize(std::string& data) const;
   void setRequestor(const std::string& requestor);
   void setRequestor(const ComboAddress& requestor);

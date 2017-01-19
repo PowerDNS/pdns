@@ -1368,7 +1368,7 @@ instantiate a server with additional parameters
     * `QPSAction(rule, maxqps)`: drop these packets if the QPS limits are exceeded
     * `RCodeAction(rcode)`: reply immediatly by turning the query into a response with the specified rcode
     * `RemoteLogAction(RemoteLogger [, alterFunction])`: send the content of this query to a remote logger via Protocol Buffer. `alterFunction` is a callback, receiving a DNSQuestion and a DNSDistProtoBufMessage, that can be used to modify the Protocol Buffer content, for example for anonymization purposes
-    * `RemoteLogResponseAction(RemoteLogger [,alterFunction])`: send the content of this response to a remote logger via Protocol Buffer. `alterFunction` is the same callback than the one in `RemoteLogAction`
+    * `RemoteLogResponseAction(RemoteLogger [,alterFunction [,includeCNAME]])`: send the content of this response to a remote logger via Protocol Buffer. `alterFunction` is the same callback than the one in `RemoteLogAction` and `includeCNAME` indicates whether CNAME records inside the response should be parsed and exported. The default is to only exports A and AAAA records
     * `SkipCacheAction()`: don't lookup the cache for this query, don't store the answer
     * `SpoofAction(ip[, ip])` or `SpoofAction({ip, ip, ..}): forge a response with the specified IPv4 (for an A query) or IPv6 (for an AAAA). If you specify multiple addresses, all that match the query type (A, AAAA or ANY) will get spoofed in
     * `SpoofCNAMEAction(cname)`: forge a response with the specified CNAME value
