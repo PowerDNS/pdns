@@ -400,6 +400,7 @@ Rules can be added via:
 Response rules can be added via:
 
  * addResponseAction(DNS rule, DNS Response Action)
+ * AddLuaResponseAction(DNS rule, Lua function)
 
 A DNS rule can be:
 
@@ -572,6 +573,8 @@ Valid return values for `LuaAction` functions are:
  * DNSAction.Pool: use the specified pool to forward this query
  * DNSAction.Refused: return a response with a Refused rcode
  * DNSAction.Spoof: spoof the response using the supplied IPv4 (A), IPv6 (AAAA) or string (CNAME) value
+
+The same feature exists to hand off some responses for Lua inspection, using `addLuaResponseAction(x, func)`.
 
 DNSSEC
 ------
@@ -1396,6 +1399,8 @@ instantiate a server with additional parameters
  * Lua Action related:
     * `addLuaAction(x, func)`: where 'x' is all the combinations from `addPoolRule`, and func is a 
       function with the parameter `dq`, which returns an action to be taken on this packet.
+    * `addLuaResponseAction(x, func)`: where 'x' is all the combinations from `addPoolRule`, and func is a
+      function with the parameter `dr`, which returns an action to be taken on this response packet.
       Good for rare packets but where you want to do a lot of processing.
  * Server selection policy related:
     * `setServerPolicy(policy)`: set server selection policy to that policy
@@ -1483,6 +1488,10 @@ instantiate a server with additional parameters
         * member `skipCache`: whether to skip cache lookup / storing the answer for this question (settable)
         * member `tcp`: whether this question was received over a TCP socket
         * member `useECS`: whether to send ECS to the backend (settable)
+    * DNSResponse gets the same member than DNSQuestion, plus some:
+        * member `editTTLs(func)`: the function `func` is invoked for every entries in the answer, authority
+        and additional section taking the section number (1 for answer, 2 for authority, 3 for additional),
+        the qclass and qtype values and the current TTL, and returning the new TTL or 0 to leave it unchanged
     * DNSHeader related
         * member `getRD()`: get recursion desired flag
         * member `setRD(bool)`: set recursion desired flag

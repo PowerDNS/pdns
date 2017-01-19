@@ -282,6 +282,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "addDynBlocks", true, "addresses, message[, seconds]", "block the set of addresses with message `msg`, for `seconds` seconds (10 by default)" },
   { "addLocal", true, "netmask, [true], [false], [TCP Fast Open queue size]", "add to addresses we listen on. Second optional parameter sets TCP or not. Third optional parameter sets SO_REUSEPORT when available. Last parameter sets the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0" },
   { "addLuaAction", true, "x, func", "where 'x' is all the combinations from `addPoolRule`, and func is a function with the parameter `dq`, which returns an action to be taken on this packet. Good for rare packets but where you want to do a lot of processing" },
+  { "addLuaResponseAction", true, "x, func", "where 'x' is all the combinations from `addPoolRule`, and func is a function with the parameter `dr`, which returns an action to be taken on this response packet. Good for rare packets but where you want to do a lot of processing" },
   { "addNoRecurseRule", true, "domain", "clear the RD flag for all queries matching the specified domain" },
   { "addPoolRule", true, "domain, pool", "send queries to this domain to that pool" },
   { "addQPSLimit", true, "domain, n", "limit queries within that domain to n per second" },

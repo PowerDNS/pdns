@@ -65,6 +65,31 @@ private:
   func_t d_func;
 };
 
+class LuaResponseAction : public DNSResponseAction
+{
+public:
+  typedef std::function<std::tuple<int, string>(DNSResponse* dr)> func_t;
+  LuaResponseAction(LuaResponseAction::func_t func) : d_func(func)
+  {}
+
+  Action operator()(DNSResponse* dr, string* ruleresult) const override
+  {
+    std::lock_guard<std::mutex> lock(g_luamutex);
+    auto ret = d_func(dr);
+    if(ruleresult)
+      *ruleresult=std::get<1>(ret);
+    return (Action)std::get<0>(ret);
+  }
+
+  string toString() const override
+  {
+    return "Lua response script";
+  }
+
+private:
+  func_t d_func;
+};
+
 typedef boost::variant<string,vector<pair<int, string>>, std::shared_ptr<DNSRule> > luadnsrule_t;
 std::shared_ptr<DNSRule> makeRule(const luadnsrule_t& var)
 {
@@ -690,6 +715,14 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			  });
 		      });
 
+  g_lua.writeFunction("addLuaResponseAction", [](luadnsrule_t var, LuaResponseAction::func_t func) {
+      setLuaSideEffect();
+      auto rule=makeRule(var);
+      g_resprulactions.modify([rule,func](decltype(g_resprulactions)::value_type& rulactions){
+          rulactions.push_back({rule,
+                std::make_shared<LuaResponseAction>(func)});
+        });
+    });
 
   g_lua.writeFunction("NoRecurseAction", []() {
       return std::shared_ptr<DNSAction>(new NoRecurseAction);
@@ -1517,6 +1550,9 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.registerMember<size_t (DNSResponse::*)>("size", [](const DNSResponse& dq) -> size_t { return dq.size; }, [](DNSResponse& dq, size_t newSize) { (void) newSize; });
   g_lua.registerMember<bool (DNSResponse::*)>("tcp", [](const DNSResponse& dq) -> bool { return dq.tcp; }, [](DNSResponse& dq, bool newTcp) { (void) newTcp; });
   g_lua.registerMember<bool (DNSResponse::*)>("skipCache", [](const DNSResponse& dq) -> bool { return dq.skipCache; }, [](DNSResponse& dq, bool newSkipCache) { dq.skipCache = newSkipCache; });
+  g_lua.registerFunction<void(DNSResponse::*)(std::function<uint32_t(uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl)> editFunc)>("editTTLs", [](const DNSResponse& dr, std::function<uint32_t(uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl)> editFunc) {
+        editDNSPacketTTL((char*) dr.dh, dr.len, editFunc);
+      });
 
   g_lua.writeFunction("setMaxTCPClientThreads", [](uint64_t max) {
       if (!g_configurationDone) {
