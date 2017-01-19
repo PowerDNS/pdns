@@ -1790,7 +1790,11 @@ try
       g_verbose=true;
       break;
     case 'V':
-      cout<<"dnsdist "<<VERSION<<" ("<<LUA_VERSION<<")"<<endl;
+#ifdef LUAJIT_VERSION
+      cout<<"dnsdist "<<VERSION<<" ("<<LUA_RELEASE<<" ["<<LUAJIT_VERSION<<"])"<<endl;
+#else
+      cout<<"dnsdist "<<VERSION<<" ("<<LUA_RELEASE<<")"<<endl;
+#endif
       cout<<"Enabled features: ";
 #ifdef HAVE_DNSCRYPT
       cout<<"dnscrypt ";
