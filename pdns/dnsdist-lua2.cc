@@ -84,12 +84,25 @@ map<ComboAddress,int> filterScore(const map<ComboAddress, unsigned int,ComboAddr
 
 typedef std::function<void(const StatNode&, const StatNode::Stat&, const StatNode::Stat&)> statvisitor_t;
 
-void statNodeRespRing(statvisitor_t visitor)
+static void statNodeRespRing(statvisitor_t visitor, unsigned int seconds)
 {
+  struct timespec cutoff, now;
+  gettime(&now);
+  if (seconds) {
+    cutoff = now;
+    cutoff.tv_sec -= seconds;
+  }
+
   std::lock_guard<std::mutex> lock(g_rings.respMutex);
   
   StatNode root;
   for(const auto& c : g_rings.respRing) {
+    if (now < c.when)
+      continue;
+
+    if (seconds && c.when < cutoff)
+      continue;
+
     root.submit(c.name, c.dh.rcode, c.requestor);
   }
   StatNode::Stat node;
@@ -355,7 +368,9 @@ void moreLua(bool client)
   g_lua.registerMember("nxdomains", &StatNode::Stat::nxdomains);
   g_lua.registerMember("queries", &StatNode::Stat::queries);
 
-  g_lua.writeFunction("statNodeRespRing", statNodeRespRing);
+  g_lua.writeFunction("statNodeRespRing", [](statvisitor_t visitor, boost::optional<unsigned int> seconds) {
+      statNodeRespRing(visitor, seconds ? *seconds : 0);
+    });
 
   g_lua.writeFunction("getTopBandwidth", [](unsigned int top) {
       setLuaNoSideEffect();
