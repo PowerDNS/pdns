@@ -1154,5 +1154,10 @@ void moreLua(bool client)
           return;
         }
         g_rings.setCapacity(capacity);
-      });    
+      });
+
+    g_lua.writeFunction("RDRule", []() {
+      return std::shared_ptr<DNSRule>(new RDRule());
+    });
+
 }

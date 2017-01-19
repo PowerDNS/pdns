@@ -347,6 +347,7 @@ Rules have selectors and actions. Current selectors are:
  * RE2Rule on query name (optional)
  * Response code
  * Packet requests DNSSEC processing
+ * Packet requests recursion
  * Query received over UDP or TCP
  * Opcode (OpcodeRule)
  * Number of entries in a given section (RecordsCountRule)
@@ -406,6 +407,7 @@ A DNS rule can be:
 
  * an AllRule
  * an AndRule
+ * a DNSSECRule
  * a MaxQPSIPRule
  * a MaxQPSRule
  * a NetmaskGroupRule
@@ -417,6 +419,7 @@ A DNS rule can be:
  * a QNameWireLengthRule
  * a QTypeRule
  * a RCodeRule
+ * a RDRule
  * a RegexRule
  * a RE2Rule
  * a RecordsCountRule
@@ -1330,6 +1333,7 @@ instantiate a server with additional parameters
     * `QNameWireLengthRule(min, max)`: matches if the qname's length on the wire is less than `min` or more than `max` bytes
     * `QTypeRule(qtype)`: matches queries with the specified qtype
     * `RCodeRule(rcode)`: matches queries or responses the specified rcode
+    * `RDRule()`: matches queries with the `RD` flag set
     * `RegexRule(regex)`: matches the query name against the supplied regex
     * `RecordsCountRule(section, minCount, maxCount)`: matches if there is at least `minCount` and at most `maxCount` records in the `section` section
     * `RecordsTypeCountRule(section, type, minCount, maxCount)`: matches if there is at least `minCount` and at most `maxCount` records of type `type` in the `section` section
