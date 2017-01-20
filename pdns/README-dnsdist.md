@@ -1407,6 +1407,7 @@ instantiate a server with additional parameters
       function with the parameter `dr`, which returns an action to be taken on this response packet.
       Good for rare packets but where you want to do a lot of processing.
  * Server selection policy related:
+    * `setWHashedPertubation(value)`: set the hash perturbation value to be used in the `whashed` policy instead of a random one, allowing to have consistent `whashed` results on different instances
     * `setServerPolicy(policy)`: set server selection policy to that policy
     * `setServerPolicyLua(name, function)`: set server selection policy to one named 'name' and provided by 'function'
     * `showServerPolicy()`: show name of currently operational server selection policy
