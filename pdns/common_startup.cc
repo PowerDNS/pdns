@@ -110,7 +110,8 @@ void declareArguments()
   ::arg().set("launch","Which backends to launch and order to query them in")="";
   ::arg().setSwitch("disable-axfr","Disable zonetransfers but do allow TCP queries")="no";
   ::arg().set("allow-axfr-ips","Allow zonetransfers only to these subnets")="127.0.0.0/8,::1";
-  ::arg().set("only-notify", "Only send AXFR NOTIFY to these IP addresses or netmasks")="0.0.0.0/0,::/0";
+  ::arg().set("notify-type", "Defines NOTIFY generation - either 'default' (implicit und explicit) or 'explicit' (also-notify)")="default";
+  ::arg().set("only-notify", "Send implicit (triggered by NS records) NOTIFYs only to these IP addresses or netmasks")="0.0.0.0/0,::/0";
   ::arg().set("also-notify", "When notifying a domain, also notify these nameservers")="";
   ::arg().set("allow-notify-from","Allow AXFR NOTIFY from these IP ranges. If empty, drop all incoming notifies.")="0.0.0.0/0,::/0";
   ::arg().set("slave-cycle-interval","Schedule slave freshness checks once every .. seconds")="60";
