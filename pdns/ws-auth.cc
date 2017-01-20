@@ -509,6 +509,177 @@ static void updateDomainSettingsFromDocument(const DomainInfo& di, const string&
   }
 }
 
+static bool isValidMetadataKind(const string& kind, bool readonly) {
+  static string validOptions[] = {
+    "ALLOW-AXFR-FROM",
+    "AXFR-SOURCE",
+    "ALLOW-DNSUPDATE-FROM",
+    "TSIG-ALLOW-DNSUPDATE",
+    "FORWARD-DNSUPDATE",
+    "SOA-EDIT-DNSUPDATE",
+    "ALSO-NOTIFY",
+    "AXFR-MASTER-TSIG",
+    "GSS-ALLOW-AXFR-PRINCIPAL",
+    "GSS-ACCEPTOR-PRINCIPAL",
+    "IXFR",
+    "LUA-AXFR-SCRIPT",
+    "NSEC3NARROW",
+    "NSEC3PARAM",
+    "PRESIGNED",
+    "PUBLISH-CDNSKEY",
+    "PUBLISH-CDS",
+    "SOA-EDIT",
+    "TSIG-ALLOW-AXFR",
+    "TSIG-ALLOW-DNSUPDATE",
+  };
+
+  BOOST_FOREACH(string s, validOptions) {
+    if (kind == s) {
+      if (!readonly && (kind == "NSEC3NARROW" || kind == "NSEC3PARAM" || kind == "PRESIGNED"))
+        continue;
+      return true;
+    }
+  }
+  return false;
+}
+
+static void apiZoneMetadata(HttpRequest* req, HttpResponse *resp) {
+  string zonename = apiZoneIdToName(req->parameters["id"]);
+  UeberBackend B;
+  Document doc;
+
+  if (req->method == "GET") {
+    map<string, vector<string> > md;
+    doc.SetArray();
+
+    if (!B.getAllDomainMetadata(zonename, md))
+      throw ApiException("Could not find domain '" + zonename + "'");
+
+    for (map<string, vector<string> >::const_iterator i = md.begin(); i != md.end(); ++i) {
+      Value key;
+      Value kind(i->first.c_str(), doc.GetAllocator());
+      Value entries;
+      key.SetObject();
+      entries.SetArray();
+
+      for (vector<string>::const_iterator j = i->second.begin(); j != i->second.end(); ++j) {
+        Value content((*j).c_str(), doc.GetAllocator());
+        entries.PushBack(content, doc.GetAllocator());
+      }
+
+      key.AddMember("type", "Metadata", doc.GetAllocator());
+      key.AddMember("kind", kind, doc.GetAllocator());
+      key.AddMember("metadata", entries, doc.GetAllocator());
+      doc.PushBack(key, doc.GetAllocator());
+    }
+
+    resp->setBody(doc);
+  } else if (req->method == "POST" && !::arg().mustDo("experimental-api-readonly")) {
+    req->json(doc);
+    string kind;
+    vector<string> entries;
+
+    try {
+      kind = stringFromJson(doc, "kind");
+    } catch (JsonException) {
+      throw ApiException("kind is not specified or not a string");
+    }
+
+    if (!isValidMetadataKind(kind, false))
+      throw ApiException("Unsupported metadata kind '" + kind + "'");
+
+    vector<string> vecMetadata;
+    const Value& metadata = doc["metadata"];
+    if (!metadata.IsArray())
+      throw ApiException("metadata is not specified or not an array");
+
+    for (SizeType i = 0; i < metadata.Size(); ++i) {
+      if (!metadata[i].IsString())
+        throw ApiException("metadata must be strings");
+      vecMetadata.push_back(metadata[i].GetString());
+    }
+
+    if (!B.setDomainMetadata(zonename, kind, vecMetadata))
+      throw ApiException("Could not update metadata entries for domain '" + zonename + "'");
+
+    Document rdoc;
+    rdoc.SetObject();
+    rdoc.AddMember("type", "Metadata", doc.GetAllocator());
+    rdoc.AddMember("kind", doc["kind"], doc.GetAllocator());
+    rdoc.AddMember("metadata", doc["metadata"], doc.GetAllocator());
+    resp->status = 201;
+    resp->setBody(rdoc);
+  } else
+    throw HttpMethodNotAllowedException();
+}
+
+static void apiZoneMetadataKind(HttpRequest* req, HttpResponse* resp) {
+  string zonename = apiZoneIdToName(req->parameters["id"]);
+  string kind = req->parameters["kind"];
+  UeberBackend B;
+  Document doc;
+
+  if (req->method == "GET") {
+    vector<string> metadata;
+
+    doc.SetObject();
+
+    if (!B.getDomainMetadata(zonename, kind, metadata))
+      throw ApiException("Could not find domain '" + zonename + "'");
+    else if (!isValidMetadataKind(kind, true))
+      throw ApiException("Unsupported metadata kind '" + kind + "'");
+
+    Value kindVal(kind.c_str(), doc.GetAllocator());
+    Value md;
+    doc.AddMember("type", "Metadata", doc.GetAllocator());
+    doc.AddMember("kind", kindVal, doc.GetAllocator());
+    md.SetArray();
+
+    for (vector<string>::const_iterator i = metadata.begin(); i != metadata.end(); ++i) {
+      Value content((*i).c_str(), doc.GetAllocator());
+      md.PushBack(content, doc.GetAllocator());
+    }
+
+    doc.AddMember("metadata", md, doc.GetAllocator());
+    resp->setBody(doc);
+  } else if (req->method == "PUT" && !::arg().mustDo("experimental-api-readonly")) {
+    req->json(doc);
+
+    if (!isValidMetadataKind(kind, false))
+      throw ApiException("Unsupported metadata kind '" + kind + "'");
+
+    vector<string> vecMetadata;
+    const Value& metadata = doc["metadata"];
+    if (!metadata.IsArray())
+      throw ApiException("metadata is not specified or not an array");
+
+    for (SizeType i = 0; i < metadata.Size(); ++i) {
+      if (!metadata[i].IsString())
+        throw ApiException("metadata must be strings");
+      vecMetadata.push_back(metadata[i].GetString());
+    }
+
+    if (!B.setDomainMetadata(zonename, kind, vecMetadata))
+      throw ApiException("Could not update metadata entries for domain '" + zonename + "'");
+
+    Value kindVal(kind.c_str(), doc.GetAllocator());
+    Document rdoc;
+    rdoc.SetObject();
+    rdoc.AddMember("type", "Metadata", doc.GetAllocator());
+    rdoc.AddMember("kind", kindVal, doc.GetAllocator());
+    rdoc.AddMember("metadata", doc["metadata"], doc.GetAllocator());
+    resp->setBody(rdoc);
+  } else if (req->method == "DELETE" && !::arg().mustDo("experimental-api-readonly")) {
+    if (!isValidMetadataKind(kind, false))
+      throw ApiException("Unsupported metadata kind '" + kind + "'");
+
+    vector<string> md;  // an empty vector will do it
+    if (!B.setDomainMetadata(zonename, kind, md))
+      throw ApiException("Could not delete metadata for domain '" + zonename + "' (" + kind + ")");
+  } else
+    throw HttpMethodNotAllowedException();
+}
+
 static void apiZoneCryptokeys(HttpRequest* req, HttpResponse* resp) {
   if(req->method != "GET")
     throw ApiException("Only GET is implemented");
@@ -1260,6 +1431,8 @@ void AuthWebServer::webThread()
       d_ws->registerApiHandler("/servers/localhost/zones/<id>/cryptokeys/<key_id>", &apiZoneCryptokeys);
       d_ws->registerApiHandler("/servers/localhost/zones/<id>/cryptokeys", &apiZoneCryptokeys);
       d_ws->registerApiHandler("/servers/localhost/zones/<id>/export", &apiServerZoneExport);
+      d_ws->registerApiHandler("/servers/localhost/zones/<id>/metadata/<kind>", &apiZoneMetadataKind);
+      d_ws->registerApiHandler("/servers/localhost/zones/<id>/metadata", &apiZoneMetadata);
       d_ws->registerApiHandler("/servers/localhost/zones/<id>/notify", &apiServerZoneNotify);
       d_ws->registerApiHandler("/servers/localhost/zones/<id>", &apiServerZoneDetail);
       d_ws->registerApiHandler("/servers/localhost/zones", &apiServerZones);
