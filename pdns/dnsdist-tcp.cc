@@ -47,27 +47,34 @@ using std::atomic;
    Let's start naively.
 */
 
-static int setupTCPDownstream(shared_ptr<DownstreamState> ds)
-{  
-  vinfolog("TCP connecting to downstream %s", ds->remote.toStringWithPort());
-  int sock = SSocket(ds->remote.sin4.sin_family, SOCK_STREAM, 0);
-  try {
-    if (!IsAnyAddress(ds->sourceAddr)) {
-      SSetsockopt(sock, SOL_SOCKET, SO_REUSEADDR, 1);
+static int setupTCPDownstream(shared_ptr<DownstreamState> ds, uint16_t& downstreamFailures)
+{
+  do {
+    vinfolog("TCP connecting to downstream %s (%d)", ds->remote.toStringWithPort(), downstreamFailures);
+    int sock = SSocket(ds->remote.sin4.sin_family, SOCK_STREAM, 0);
+    try {
+      if (!IsAnyAddress(ds->sourceAddr)) {
+        SSetsockopt(sock, SOL_SOCKET, SO_REUSEADDR, 1);
 #ifdef IP_BIND_ADDRESS_NO_PORT
-      SSetsockopt(sock, SOL_IP, IP_BIND_ADDRESS_NO_PORT, 1);
+        SSetsockopt(sock, SOL_IP, IP_BIND_ADDRESS_NO_PORT, 1);
 #endif
-      SBind(sock, ds->sourceAddr);
+        SBind(sock, ds->sourceAddr);
+      }
+      setNonBlocking(sock);
+      SConnectWithTimeout(sock, ds->remote, ds->tcpConnectTimeout);
+      return sock;
     }
-    SConnect(sock, ds->remote);
-    setNonBlocking(sock);
-  }
-  catch(const std::runtime_error& e) {
-    /* don't leak our file descriptor if SConnect() (for example) throws */
-    close(sock);
-    throw;
-  }
-  return sock;
+    catch(const std::runtime_error& e) {
+      /* don't leak our file descriptor if SConnect() (for example) throws */
+      downstreamFailures++;
+      close(sock);
+      if (downstreamFailures > ds->retries) {
+        throw;
+      }
+    }
+  } while(downstreamFailures <= ds->retries);
+
+  return -1;
 }
 
 struct ConnectionInfo
@@ -427,8 +434,9 @@ void* tcpClientThread(int pipefd)
         }
 
 	int dsock = -1;
+	uint16_t downstreamFailures=0;
 	if(sockets.count(ds->remote) == 0) {
-	  dsock=setupTCPDownstream(ds);
+	  dsock=setupTCPDownstream(ds, downstreamFailures);
 	  sockets[ds->remote]=dsock;
 	}
 	else
@@ -438,15 +446,14 @@ void* tcpClientThread(int pipefd)
         ds->outstanding++;
         outstanding = true;
 
-        uint16_t downstream_failures=0;
       retry:; 
         if (dsock < 0) {
           sockets.erase(ds->remote);
           break;
         }
 
-        if (ds->retries > 0 && downstream_failures > ds->retries) {
-          vinfolog("Downstream connection to %s failed %d times in a row, giving up.", ds->getName(), downstream_failures);
+        if (ds->retries > 0 && downstreamFailures > ds->retries) {
+          vinfolog("Downstream connection to %s failed %d times in a row, giving up.", ds->getName(), downstreamFailures);
           close(dsock);
           dsock=-1;
           sockets.erase(ds->remote);
@@ -458,9 +465,9 @@ void* tcpClientThread(int pipefd)
           close(dsock);
           dsock=-1;
           sockets.erase(ds->remote);
-          dsock=setupTCPDownstream(ds);
+          downstreamFailures++;
+          dsock=setupTCPDownstream(ds, downstreamFailures);
           sockets[ds->remote]=dsock;
-          downstream_failures++;
           goto retry;
         }
 
@@ -477,9 +484,9 @@ void* tcpClientThread(int pipefd)
           close(dsock);
           dsock=-1;
           sockets.erase(ds->remote);
-          dsock=setupTCPDownstream(ds);
+          downstreamFailures++;
+          dsock=setupTCPDownstream(ds, downstreamFailures);
           sockets[ds->remote]=dsock;
-          downstream_failures++;
           goto retry;
         }
 
@@ -496,9 +503,9 @@ void* tcpClientThread(int pipefd)
           close(dsock);
           dsock=-1;
           sockets.erase(ds->remote);
-          dsock=setupTCPDownstream(ds);
+          downstreamFailures++;
+          dsock=setupTCPDownstream(ds, downstreamFailures);
           sockets[ds->remote]=dsock;
-          downstream_failures++;
           if(xfrStarted) {
             goto drop;
           }

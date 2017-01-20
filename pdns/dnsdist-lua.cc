@@ -398,6 +398,10 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			  ret->retries=std::stoi(boost::get<string>(vars["retries"]));
 			}
 
+			if(vars.count("tcpConnectTimeout")) {
+			  ret->tcpConnectTimeout=std::stoi(boost::get<string>(vars["tcpConnectTimeout"]));
+			}
+
 			if(vars.count("tcpSendTimeout")) {
 			  ret->tcpSendTimeout=std::stoi(boost::get<string>(vars["tcpSendTimeout"]));
 			}

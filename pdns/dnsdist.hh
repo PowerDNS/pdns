@@ -451,6 +451,7 @@ struct DownstreamState
   double latencyUsec{0.0};
   int order{1};
   int weight{1};
+  int tcpConnectTimeout{5};
   int tcpRecvTimeout{30};
   int tcpSendTimeout{30};
   unsigned int sourceItf{0};
