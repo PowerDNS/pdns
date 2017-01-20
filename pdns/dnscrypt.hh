@@ -112,12 +112,16 @@ public:
   {
   }
   ~DnsCryptQuery();
+#ifdef HAVE_CRYPTO_BOX_EASY_AFTERNM
   int computeSharedKey(const DnsCryptPrivateKey& privateKey);
+#endif /* HAVE_CRYPTO_BOX_EASY_AFTERNM */
 
   static const size_t minUDPLength = 256;
 
   DnsCryptQueryHeader header;
+#ifdef HAVE_CRYPTO_BOX_EASY_AFTERNM
   unsigned char sharedKey[crypto_box_BEFORENMBYTES];
+#endif /* HAVE_CRYPTO_BOX_EASY_AFTERNM */
   DNSName qname;
   DnsCryptContext* ctx;
   uint16_t id{0};
@@ -126,7 +130,9 @@ public:
   bool useOldCert{false};
   bool encrypted{false};
   bool valid{false};
+#ifdef HAVE_CRYPTO_BOX_EASY_AFTERNM
   bool sharedKeyComputed{false};
+#endif /* HAVE_CRYPTO_BOX_EASY_AFTERNM */
 };
 
 class DnsCryptContext
