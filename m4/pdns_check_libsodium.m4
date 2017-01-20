@@ -12,6 +12,13 @@ AC_DEFUN([PDNS_CHECK_LIBSODIUM], [
   AM_COND_IF([LIBSODIUM], [
     PKG_CHECK_MODULES([LIBSODIUM], [libsodium], [
       AC_DEFINE([HAVE_LIBSODIUM], [1], [Define to 1 if you have libsodium])
+      save_CFLAGS=$CFLAGS
+      save_LIBS=$LIBS
+      CFLAGS="$LIBSODIUM_CFLAGS $CFLAGS"
+      LIBS="$LIBSODIUM_LIBS $LIBS"
+      AC_CHECK_FUNCS([crypto_box_easy_afternm])
+      CFLAGS=$save_CFLAGS
+      LIBS=$save_LIBS
     ],[
       AC_MSG_ERROR([libsodium requested but not available])
     ])
