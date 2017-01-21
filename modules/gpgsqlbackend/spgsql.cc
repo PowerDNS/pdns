@@ -214,11 +214,9 @@ private:
   }
 
   void prepareStatement() {
-    struct timeval tv;
     if (d_prepared) return;
-    // prepare a statement
-    gettimeofday(&tv,NULL);
-    this->d_stmt = string("stmt") + std::to_string(tv.tv_sec) + std::to_string(tv.tv_usec);
+    // prepare a statement; name must be unique per session.
+    this->d_stmt = string("stmt") + std::to_string((uintptr_t)this);
     PGresult* res = PQprepare(d_db(), d_stmt.c_str(), d_query.c_str(), d_nparams, NULL);
     ExecStatusType status = PQresultStatus(res);
     string errmsg(PQresultErrorMessage(res));
