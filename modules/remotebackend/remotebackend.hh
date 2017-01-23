@@ -33,7 +33,6 @@
 #include "pdns/namespaces.hh"
 #include "pdns/pdnsexception.hh"
 #include "pdns/sstuff.hh"
-#include "pdns/ueberbackend.hh"
 #include "pdns/json.hh"
 #include "pdns/lock.hh"
 #include "yahttp/yahttp.hpp"
