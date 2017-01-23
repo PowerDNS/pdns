@@ -1,5 +1,5 @@
 # End of life statements
-The currently supported release train of PowerDNS is 3.x. The development train is 4.x.  
+The currently supported release trains of PowerDNS are 4.x (preferred) and 3.x (legacy).  
 2.x is end of life.
 
 ## PowerDNS Authoritative Server 2.x
