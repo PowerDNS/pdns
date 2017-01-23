@@ -2,7 +2,7 @@
 
 As of PowerDNS Authoritative Server 4.0.0, the LDAP backend is fully supported.
 
-**Warning**: Grégory Oestreicher has forked the LDAP backend shortly before our 3.2 release, after which a lot of development happened in a short time. We are working to upstream this work.
+**Warning**: Grégory Oestreicher has forked the LDAP backend shortly before our 3.2 release, after which a lot of development happened in a short time. We are [working to upstream this work](https://github.com/PowerDNS/pdns/issues/3358).
 
 The original author for this module is Norbert Sendetzky. This page is based on the content from his [LDAPbackend wiki section](http://wiki.linuxnetworks.de/index.php/PowerDNS_ldapbackend) as copied in February 2016, and edited from there.
 
@@ -46,8 +46,77 @@ which are required by the LDAP server to check the validity of entries
 when they are added. Please consult the documentation of your LDAP
 server to find out how to add this schema to the server.
 
+Additionally, for master support, you need `pdns-domaininfo.schema`:
+
+```
+!!include=../modules/ldapbackend/pdns-domaininfo.schema
+```
+
+Our Debian packages ship `/etc/ldap/schema/dnsdomain2.schema` for your convenience.
 
 # Installation
+
+OpenLDAP setup
+--------------
+
+Note: other LDAP servers are supported as well.
+
+After installing OpenLDAP, make sure the relevant schemas are included from `slapd.conf`:
+
+If you are using plain .conf:
+
+```
+include /etc/ldap/schema/cosine.schema
+include /etc/ldap/schema/dnsdomain2.schema
+include /etc/ldap/schema/pdns-domaininfo.schema
+```
+
+If your setup uses LDIF configuration storage (default for modern Ubuntu and
+Debian), please do something like:
+
+```sh
+mkdir /tmp/ldap-dns
+cd /tmp/ldap-dns
+for schema in /etc/ldap/schema/{core,cosine,dnsdomain2,pdns-domaininfo}.schema ; do echo include $schema ; done > ldap.conf
+mkdir slapd.d
+slaptest -f ldap.conf -F slapd.d
+sudo cp slapd.d/cn=config/cn=schema/cn={*dns*.ldif /etc/ldap/slapd.d/cn=config/cn=schema/
+sudo chown -R openldap:openldap /etc/ldap/slapd.d/
+sudo service slapd restart
+```
+
+Then set up a database for your DNS storage:
+```
+sudo -u openldap mkdir -p /var/lib/ldap/powerdns
+sudo ldapadd -Y EXTERNAL -H ldapi:/// -f add.ldif
+```
+
+Where `add.ldif` looks something like (example uses hdb storage)
+
+```
+!!include=../modules/ldapbackend/testfiles/add.ldif
+```
+
+Or, again, if not using LDIF, add equivalent lines to your `slapd.conf`: (example uses mdb storage)
+
+```
+database        mdb
+suffix          "o=power"
+rootdn          "uid=testuser,o=power"
+maxsize         500000000
+rootpw          secret
+directory       /var/lib/ldap/powerdns
+index   objectClass     eq
+index   associatedDomain  eq
+```
+
+You should now be able to import zones from a given `named.conf` with a line such as:
+
+```
+zone2ldap --dnsttl=yes --basedn=ou=dns,o=power --layout=$layout --named-conf=named.conf | ldapmodify -D uid=testuser,o=power -w secret -c
+```
+
+Make sure to replace $layout with [your choice of database layout](#access-method), and mirror this in the `ldap-method` setting in your `pdns.conf`.
 
 Configuration options
 ---------------------
