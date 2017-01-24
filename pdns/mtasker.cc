@@ -27,6 +27,9 @@
 #include <stdio.h>
 #include <iostream>
 
+#ifdef PDNS_USE_VALGRIND
+#include <valgrind/valgrind.h>
+#endif /* PDNS_USE_VALGRIND */
 
 /** \page MTasker
     Simple system for implementing cooperative multitasking of functions, with 
@@ -260,6 +263,10 @@ template<class Key, class Val>void MTasker<Key,Val>::makeThread(tfunc_t *start, 
   
   uc->uc_link = &d_kernel; // come back to kernel after dying
   uc->uc_stack.resize (d_stacksize);
+#ifdef PDNS_USE_VALGRIND
+  uc->valgrind_id = VALGRIND_STACK_REGISTER(&uc->uc_stack[0],
+                                            &uc->uc_stack[uc->uc_stack.size()]);
+#endif /* PDNS_USE_VALGRIND */
 
   auto& thread = d_threads[d_maxtid];
   auto mt = this;

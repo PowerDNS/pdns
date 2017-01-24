@@ -37,6 +37,9 @@ struct pdns_ucontext_t {
     pdns_ucontext_t* uc_link;
     std::vector<char, lazy_allocator<char>> uc_stack;
     std::exception_ptr exception;
+#ifdef PDNS_USE_VALGRIND
+    int valgrind_id;
+#endif /* PDNS_USE_VALGRIND */
 };
 
 void
