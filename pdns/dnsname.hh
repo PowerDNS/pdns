@@ -231,15 +231,15 @@ inline DNSName operator+(const DNSName& lhs, const DNSName& rhs)
    anything part of that domain will return 'true' in check */
 struct SuffixMatchNode
 {
-  SuffixMatchNode(const std::string& name_="", bool endNode_=false) : name(name_), endNode(endNode_)
+  SuffixMatchNode(const std::string& name_="", bool endNode_=false) : d_name(name_), endNode(endNode_)
   {}
-  std::string name;
+  std::string d_name;
   std::string d_human;
   mutable std::set<SuffixMatchNode> children;
   mutable bool endNode;
   bool operator<(const SuffixMatchNode& rhs) const
   {
-    return strcasecmp(name.c_str(), rhs.name.c_str()) < 0;
+    return strcasecmp(d_name.c_str(), rhs.d_name.c_str()) < 0;
   }
 
   void add(const DNSName& dnsname)
