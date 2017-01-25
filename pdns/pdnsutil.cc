@@ -579,6 +579,17 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
       }
     }
 
+    if(rr.qtype.getCode() == QType::A || rr.qtype.getCode() == QType::AAAA)
+    {
+      Regex hostnameRegex=Regex("^(([A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)\\.)+$");
+      if (!hostnameRegex.match(rr.qname.toString()))
+      {
+        cout<<"[Error] A or AAAA record found at '"<<rr.qname.toString()<<"'. This name is not a valid hostname."<<endl;
+        numerrors++;
+        continue;
+      }
+    }
+
     if (rr.qtype.getCode() == QType::CNAME) {
       if (!cnames.count(rr.qname))
         cnames.insert(rr.qname);
