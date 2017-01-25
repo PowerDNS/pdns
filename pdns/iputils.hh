@@ -275,7 +275,7 @@ union ComboAddress {
       return "["+toString() + "]:" + std::to_string(ntohs(sin4.sin_port));
   }
 
-  void truncate(unsigned int bits);
+  void truncate(unsigned int bits) noexcept;
 };
 
 /** This exception is thrown by the Netmask class and by extension by the NetmaskGroup class */
