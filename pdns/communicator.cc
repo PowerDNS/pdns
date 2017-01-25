@@ -79,6 +79,9 @@ void CommunicatorClass::go()
     L<<Logger::Error<<"Unparseable IP in only-notify. Error: "<<e.reason<<endl;
     exit(1);
   }
+  if ( !d_onlyNotify.size() ) {
+    L<<Logger::Warning<<"WARNING: only-notify is empty. Thus, automatic NOTIFYs to slave name servers will be disabled!"<<endl;
+  }
 
   vector<string> parts;
   stringtok(parts, ::arg()["also-notify"], ", \t");

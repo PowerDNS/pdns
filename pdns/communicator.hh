@@ -189,7 +189,7 @@ public:
   bool notifyDomain(const DNSName &domain);
 private:
   void makeNotifySockets();
-  void queueNotifyDomain(const DNSName &domain, UeberBackend *B);
+  void queueNotifyDomain(const DNSName &domain, UeberBackend *B, DomainInfo::DomainKind);
   int d_nsock4, d_nsock6;
   map<pair<DNSName,string>,time_t>d_holes;
   pthread_mutex_t d_holelock;

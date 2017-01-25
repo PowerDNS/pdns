@@ -41,38 +41,39 @@
 #include "base64.hh"
 #include "namespaces.hh"
 
-
-void CommunicatorClass::queueNotifyDomain(const DNSName &domain, UeberBackend *B)
+void CommunicatorClass::queueNotifyDomain(const DNSName &domain, UeberBackend *B, DomainInfo::DomainKind kind)
 {
   bool hasQueuedItem=false;
   set<string> nsset, ips;
   DNSResourceRecord rr;
   FindNS fns;
 
-  B->lookup(QType(QType::NS),domain);
-  while(B->get(rr))
-    nsset.insert(rr.content);
+  if (d_onlyNotify.size()) {
+    B->lookup(QType(QType::NS),domain);
+    while(B->get(rr))
+      nsset.insert(rr.content);
 
-  for(set<string>::const_iterator j=nsset.begin();j!=nsset.end();++j) {
-    vector<string> nsips=fns.lookup(DNSName(*j), B);
-    if(nsips.empty())
-      L<<Logger::Warning<<"Unable to queue notification of domain '"<<domain<<"': nameservers do not resolve!"<<endl;
-    else
-      for(vector<string>::const_iterator k=nsips.begin();k!=nsips.end();++k) {
-        const ComboAddress caIp(*k, 53);
-        if(!d_preventSelfNotification || !AddressIsUs(caIp)) {
-          if(!d_onlyNotify.match(&caIp))
-            L<<Logger::Info<<"Skipped notification of domain '"<<domain<<"' to "<<*j<<" because it does not match only-notify."<<endl;
-          else
-            ips.insert(caIp.toStringWithPort());
+    for(set<string>::const_iterator j=nsset.begin();j!=nsset.end();++j) {
+      vector<string> nsips=fns.lookup(DNSName(*j), B);
+      if(nsips.empty())
+        L<<Logger::Warning<<"Unable to queue notification of domain '"<<domain<<"': nameservers do not resolve!"<<endl;
+      else
+        for(vector<string>::const_iterator k=nsips.begin();k!=nsips.end();++k) {
+          const ComboAddress caIp(*k, 53);
+          if(!d_preventSelfNotification || !AddressIsUs(caIp)) {
+            if(!d_onlyNotify.match(&caIp))
+              L<<Logger::Info<<"Skipped notification of domain '"<<domain<<"' to "<<*j<<" because it does not match only-notify."<<endl;
+            else
+              ips.insert(caIp.toStringWithPort());
+          }
         }
-      }
-  }
+    }
 
-  for(set<string>::const_iterator j=ips.begin();j!=ips.end();++j) {
-    L<<Logger::Warning<<"Queued notification of domain '"<<domain<<"' to "<<*j<<endl;
-    d_nq.add(domain,*j);
-    hasQueuedItem=true;
+    for(set<string>::const_iterator j=ips.begin();j!=ips.end();++j) {
+      L<<Logger::Warning<<"Queued notification of domain '"<<domain<<"' to "<<*j<<endl;
+      d_nq.add(domain,*j);
+      hasQueuedItem=true;
+    }
   }
 
   set<string> alsoNotify(d_alsoNotify);
@@ -93,8 +94,9 @@ void CommunicatorClass::queueNotifyDomain(const DNSName &domain, UeberBackend *B
     }
   }
 
-  if (!hasQueuedItem)
-    L<<Logger::Warning<<"Request to queue notification for domain '"<<domain<<"' was processed, but no valid nameservers or ALSO-NOTIFYs found. Not notifying!"<<endl;
+  // Log Warning only for master zones as slave-renotifications are a special use case
+  if (!hasQueuedItem && kind == DomainInfo::Master)
+    L<<Logger::Warning<<"Request to queue notification for master-domain '"<<domain<<"' was processed, but no valid nameservers or ALSO-NOTIFYs found. Not notifying!"<<endl;
 }
 
 
@@ -106,7 +108,7 @@ bool CommunicatorClass::notifyDomain(const DNSName &domain)
     L<<Logger::Error<<"No such domain '"<<domain<<"' in our database"<<endl;
     return false;
   }
-  queueNotifyDomain(domain, &B);
+  queueNotifyDomain(domain, &B, di.kind);
   // call backend and tell them we sent out the notification - even though that is premature    
   di.backend->setNotified(di.id, di.serial);
 
@@ -148,7 +150,7 @@ void CommunicatorClass::masterUpdateCheck(PacketHandler *P)
   for(vector<DomainInfo>::const_iterator i=cmdomains.begin();i!=cmdomains.end();++i) {
     extern PacketCache PC;
     PC.purgeExact(i->zone);
-    queueNotifyDomain(i->zone,P->getBackend());
+    queueNotifyDomain(i->zone,P->getBackend(),DomainInfo::Master);
     i->backend->setNotified(i->id,i->serial); 
   }
 }
