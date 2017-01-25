@@ -36,6 +36,11 @@ using boost::context::detail::make_fcontext;
 #include <valgrind/valgrind.h>
 #endif /* PDNS_USE_VALGRIND */
 
+#ifdef HAVE_FIBER_SANITIZER
+__thread void* t_mainStack{nullptr};
+__thread size_t t_mainStackSize{0};
+#endif /* HAVE_FIBER_SANITIZER */
+
 #if BOOST_VERSION < 105600
 /* Note: This typedef means functions taking fcontext_t*, like jump_fcontext(),
  * now require a reinterpret_cast rather than a static_cast, since we're
@@ -107,6 +112,7 @@ threadWrapper (transfer_t const t) {
      * the behaviour of the System V implementation, which can inherently only
      * be passed ints and pointers.
      */
+    notifyStackSwitchDone();
 #if BOOST_VERSION < 106100
     auto args = reinterpret_cast<args_t*>(xargs);
 #else
@@ -115,6 +121,7 @@ threadWrapper (transfer_t const t) {
     auto ctx = args->self;
     auto work = args->work;
     /* we switch back to pdns_makecontext() */
+    notifyStackSwitchToKernel();
 #if BOOST_VERSION < 106100
     jump_fcontext (reinterpret_cast<fcontext_t*>(&ctx->uc_mcontext),
                    static_cast<fcontext_t>(args->prev_ctx), 0);
@@ -129,6 +136,7 @@ threadWrapper (transfer_t const t) {
       *ptr = res.fctx;
     }
 #endif
+    notifyStackSwitchDone();
     args = nullptr;
 
     try {
@@ -138,6 +146,7 @@ threadWrapper (transfer_t const t) {
         ctx->exception = std::current_exception();
     }
 
+    notifyStackSwitchToKernel();
     /* Emulate the System V uc_link feature. */
     auto const next_ctx = ctx->uc_link->uc_mcontext;
 #if BOOST_VERSION < 106100
@@ -211,6 +220,7 @@ pdns_makecontext
     args.self = &ctx;
     args.work = &start;
     /* jumping to threadwrapper */
+    notifyStackSwitch(&ctx.uc_stack[ctx.uc_stack.size()], ctx.uc_stack.size());
 #if BOOST_VERSION < 106100
     jump_fcontext (reinterpret_cast<fcontext_t*>(&args.prev_ctx),
                    static_cast<fcontext_t>(ctx.uc_mcontext),
@@ -221,4 +231,6 @@ pdns_makecontext
     /* back from threadwrapper, updating the context */
     ctx.uc_mcontext = res.fctx;
 #endif
+    notifyStackSwitchDone();
+
 }
