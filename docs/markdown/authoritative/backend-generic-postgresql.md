@@ -48,6 +48,11 @@ The password to for [`gpgsql-user`](#gpgsql-user).
 ## `gpgsql-dnssec`
 Enable DNSSEC processing for this backend. Default=no.
 
+## `gpsql-extra-connection-parameters`
+Extra connection parameters to forward to postgres. If you want to pin a specific certificate for
+the connection you should set this to `sslmode=verify-full sslrootcert=<path-to-CA-cert>`. Accepted
+parameters are documented [in the PostgreSQL documentation](https://www.postgresql.org/docs/current/static/libpq-connect.html#LIBPQ-PARAMKEYWORDS).
+
 # Default schema
 ```
 !!include=../modules/gpgsqlbackend/schema.pgsql.sql
