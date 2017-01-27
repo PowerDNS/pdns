@@ -65,6 +65,10 @@ is higher, the domain is retrieved and inserted into the database. In any case,
 after the check the domain is declared 'fresh', and will only be checked again
 after '**refresh**' seconds have passed.
 
+When the freshness of a domain cannot be checked, e.g. because the master is offline, PowerDNS will retry the domain after [`slave-cycle-interval`](settings.md#slave-cycle-interval) seconds.
+Every time the domain fails it's freshness check, PowerDNS will hold back on checking the domain for `amount of failures * slave-cycle-interval` seconds, with a maximum of [`soa-retry-default`](settings.md#soa-retry-default) seconds between checks.
+With default settings, this means that PowerDNS will back off for 1, then 2, then 3 etc. minutes, to a maximum of 60 minutes between checks.
+
 **Warning**: Slave support is OFF by default, turn it on by adding [`slave`](settings.md#slave) to the configuration.
 **Note**: When running PowerDNS via the provided systemd service file, [`ProtectSystem`](http://www.freedesktop.org/software/systemd/man/systemd.exec.html#ProtectSystem=) is set to `full`, this means PowerDNS is unable to write to e.g. `/etc` and `/home`, possibly being unable to write AXFR's zones.
 

@@ -748,8 +748,13 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
   {
     Lock l(&d_lock);
     domains_by_name_t& nameindex=boost::multi_index::get<IDTag>(d_suckdomains);
+    time_t now = time(0);
 
     for(DomainInfo& di :  rdomains) {
+      const auto failed = d_failedSlaveRefresh.find(di.zone);
+      if (failed != d_failedSlaveRefresh.end() && now < failed->second.second )
+        // If the domain has failed before and the time before the next check has not expired, skip this domain
+        continue;
       std::vector<std::string> localaddr;
       SuckRequest sr;
       sr.domain=di.zone;
@@ -828,6 +833,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
   L<<Logger::Warning<<"Received serial number updates for "<<ssr.d_freshness.size()<<" zone"<<addS(ssr.d_freshness.size())<<", had "<<ifl.getTimeouts()<<" timeout"<<addS(ifl.getTimeouts())<<endl;
 
   typedef DomainNotificationInfo val_t;
+  time_t now = time(0);
   for(val_t& val :  sdomains) {
     DomainInfo& di(val.di);
     // might've come from the packethandler
@@ -836,8 +842,22 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
         continue;
     }
 
-    if(!ssr.d_freshness.count(di.id)) // what does this mean? XXX
+    if(!ssr.d_freshness.count(di.id)) { // If we don't have an answer for the domain
+      uint64_t newCount = 1;
+      const auto failedEntry = d_failedSlaveRefresh.find(di.zone);
+      if (failedEntry != d_failedSlaveRefresh.end())
+        newCount = d_failedSlaveRefresh[di.zone].first + 1;
+      time_t nextCheck = now + std::min(newCount * d_tickinterval, (uint64_t)::arg().asNum("soa-retry-default"));
+      d_failedSlaveRefresh[di.zone] = {newCount, nextCheck};
+      if (newCount == 1 || newCount % 10 == 0)
+        L<<Logger::Warning<<"Unable to retrieve SOA for "<<di.zone<<", this was the "<<(newCount == 1 ? "first" : std::to_string(newCount) + "th")<<" time."<<endl;
       continue;
+    }
+
+    const auto wasFailedDomain = d_failedSlaveRefresh.find(di.zone);
+    if (wasFailedDomain != d_failedSlaveRefresh.end())
+      d_failedSlaveRefresh.erase(di.zone);
+
     uint32_t theirserial = ssr.d_freshness[di.id].theirSerial, ourserial = di.serial;
 
     if(rfc1982LessThan(theirserial, ourserial) && ourserial != 0) {
