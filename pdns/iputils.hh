@@ -788,7 +788,9 @@ public:
 
   bool match(const ComboAddress *ip) const
   {
-    return tree.match(*ip);
+    const auto &ret = tree.lookup(*ip);
+    if(ret) return ret->second;
+    return false;
   }
 
   bool match(const ComboAddress& ip) const
@@ -797,15 +799,19 @@ public:
   }
 
   //! Add this string to the list of possible matches
-  void addMask(const string &ip)
+  void addMask(const string &ip, bool positive=true)
   {
-    addMask(Netmask(ip));
+    if(!ip.empty() && ip[0] == '!') {
+      addMask(Netmask(ip.substr(1)), false);
+    } else {
+      addMask(Netmask(ip), positive);
+    }
   }
 
   //! Add this Netmask to the list of possible matches
-  void addMask(const Netmask& nm)
+  void addMask(const Netmask& nm, bool positive=true)
   {
-    tree.insert(nm);
+    tree.insert(nm).second=positive;
   }
 
   void clear()
@@ -829,6 +835,8 @@ public:
     for(auto iter = tree.begin(); iter != tree.end(); ++iter) {
       if(iter != tree.begin())
         str <<", ";
+      if(!((*iter)->second))
+        str<<"!";
       str<<(*iter)->first.toString();
     }
     return str.str();
@@ -836,8 +844,9 @@ public:
 
   void toStringVector(vector<string>* vec) const
   {
-    for(auto iter = tree.begin(); iter != tree.end(); ++iter)
-      vec->push_back((*iter)->first.toString());
+    for(auto iter = tree.begin(); iter != tree.end(); ++iter) {
+      vec->push_back(((*iter)->second ? "" : "!") + (*iter)->first.toString());
+    }
   }
 
   void toMasks(const string &ips)
