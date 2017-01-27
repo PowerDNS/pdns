@@ -1507,7 +1507,7 @@ instantiate a server with additional parameters
         * member `setCD(bool)`: set checking disabled flag
     * NetmaskGroup related
         * function `newNMG()`: returns a NetmaskGroup
-        * member `addMask(mask)`: adds `mask` to the NetmaskGroup
+        * member `addMask(mask)`: adds `mask` to the NetmaskGroup. Prefix with `!` to exclude this mask from matching.
         * member `match(ComboAddress)`: checks if ComboAddress is matched by this NetmaskGroup
         * member `clear()`: clears the NetmaskGroup
         * member `size()`: returns number of netmasks in this NetmaskGroup
