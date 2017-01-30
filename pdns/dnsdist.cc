@@ -124,6 +124,7 @@ GlobalStateHolder<pools_t> g_pools;
 
 GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > > g_rulactions;
 GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSResponseAction> > > > g_resprulactions;
+GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSResponseAction> > > > g_cachehitresprulactions;
 Rings g_rings;
 QueryCount g_qcount;
 
@@ -1011,6 +1012,7 @@ try
   auto acl = g_ACL.getLocal();
   auto localPolicy = g_policy.getLocal();
   auto localRulactions = g_rulactions.getLocal();
+  auto localCacheHitRespRulactions = g_cachehitresprulactions.getLocal();
   auto localServers = g_dstates.getLocal();
   auto localDynNMGBlock = g_dynblockNMG.getLocal();
   auto localDynSMTBlock = g_dynblockSMT.getLocal();
@@ -1105,8 +1107,13 @@ try
 
       string poolname;
       int delayMsec=0;
+      /* we need an accurate ("real") value for the response and
+         to store into the IDS, but not for insertion into the
+         rings for example */
+      struct timespec realTime;
       struct timespec now;
       gettime(&now);
+      gettime(&realTime, true);
 
       if (!processQuery(localDynNMGBlock, localDynSMTBlock, localRulactions, blockFilter, dq, poolname, &delayMsec, now))
       {
@@ -1154,6 +1161,14 @@ try
         uint16_t cachedResponseSize = sizeof cachedResponse;
         uint32_t allowExpired = ss ? 0 : g_staleCacheEntriesTTL;
         if (packetCache->get(dq, consumed, dh->id, cachedResponse, &cachedResponseSize, &cacheKey, allowExpired)) {
+          DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.local, dq.remote, (dnsheader*) cachedResponse, sizeof cachedResponse, cachedResponseSize, false, &realTime);
+#ifdef HAVE_PROTOBUF
+          dr.uniqueId = dq.uniqueId;
+#endif
+          if (!processResponse(localCacheHitRespRulactions, dr, &delayMsec)) {
+            continue;
+          }
+
           if (!cs->muted) {
 #ifdef HAVE_DNSCRYPT
             if (!encryptResponse(cachedResponse, &cachedResponseSize, sizeof cachedResponse, false, dnsCryptQuery)) {
@@ -1209,7 +1224,7 @@ try
       ids->origFD = cs->udpFD;
       ids->origID = dh->id;
       ids->origRemote = remote;
-      ids->sentTime.start();
+      ids->sentTime.set(realTime);
       ids->qname = qname;
       ids->qtype = dq.qtype;
       ids->qclass = dq.qclass;

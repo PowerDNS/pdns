@@ -37,6 +37,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "dnsdist-lua.hh"
+
 boost::tribool g_noLuaSideEffect;
 static bool g_included{false};
 
@@ -810,6 +812,14 @@ void moreLua(bool client)
 
     g_lua.registerFunction("getStats", &DNSAction::getStats);
 
+  g_lua.writeFunction("addResponseAction", [](luadnsrule_t var, std::shared_ptr<DNSResponseAction> ea) {
+      setLuaSideEffect();
+      auto rule=makeRule(var);
+      g_resprulactions.modify([rule, ea](decltype(g_resprulactions)::value_type& rulactions){
+          rulactions.push_back({rule, ea});
+        });
+    });
+
     g_lua.writeFunction("showResponseRules", []() {
         setLuaNoSideEffect();
         boost::format fmt("%-3d %9d %-50s %s\n");
@@ -861,6 +871,67 @@ void moreLua(bool client)
           rules.insert(rules.begin()+to, subject);
         }
         g_resprulactions.setState(rules);
+      });
+
+    g_lua.writeFunction("addCacheHitResponseAction", [](luadnsrule_t var, std::shared_ptr<DNSResponseAction> ea) {
+        setLuaSideEffect();
+        auto rule=makeRule(var);
+        g_cachehitresprulactions.modify([rule, ea](decltype(g_cachehitresprulactions)::value_type& rulactions){
+            rulactions.push_back({rule, ea});
+          });
+      });
+
+    g_lua.writeFunction("showCacheHitResponseRules", []() {
+        setLuaNoSideEffect();
+        boost::format fmt("%-3d %9d %-50s %s\n");
+        g_outputBuffer += (fmt % "#" % "Matches" % "Rule" % "Action").str();
+        int num=0;
+        for(const auto& lim : g_cachehitresprulactions.getCopy()) {
+          string name = lim.first->toString();
+          g_outputBuffer += (fmt % num % lim.first->d_matches % name % lim.second->toString()).str();
+          ++num;
+        }
+      });
+
+    g_lua.writeFunction("rmCacheHitResponseRule", [](unsigned int num) {
+        setLuaSideEffect();
+        auto rules = g_cachehitresprulactions.getCopy();
+        if(num >= rules.size()) {
+          g_outputBuffer = "Error: attempt to delete non-existing rule\n";
+          return;
+        }
+        rules.erase(rules.begin()+num);
+        g_cachehitresprulactions.setState(rules);
+      });
+
+    g_lua.writeFunction("topCacheHitResponseRule", []() {
+        setLuaSideEffect();
+        auto rules = g_cachehitresprulactions.getCopy();
+        if(rules.empty())
+          return;
+        auto subject = *rules.rbegin();
+        rules.erase(std::prev(rules.end()));
+        rules.insert(rules.begin(), subject);
+        g_cachehitresprulactions.setState(rules);
+      });
+
+    g_lua.writeFunction("mvCacheHitResponseRule", [](unsigned int from, unsigned int to) {
+        setLuaSideEffect();
+        auto rules = g_cachehitresprulactions.getCopy();
+        if(from >= rules.size() || to > rules.size()) {
+          g_outputBuffer = "Error: attempt to move rules from/to invalid index\n";
+          return;
+        }
+        auto subject = rules[from];
+        rules.erase(rules.begin()+from);
+        if(to == rules.size())
+          rules.push_back(subject);
+        else {
+          if(from < to)
+            --to;
+          rules.insert(rules.begin()+to, subject);
+        }
+        g_cachehitresprulactions.setState(rules);
       });
 
     g_lua.writeFunction("showBinds", []() {

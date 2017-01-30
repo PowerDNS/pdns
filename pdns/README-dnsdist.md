@@ -404,6 +404,10 @@ Response rules can be added via:
  * addResponseAction(DNS rule, DNS Response Action)
  * AddLuaResponseAction(DNS rule, Lua function)
 
+Cache Hit Response rules, triggered on a cache hit, can be added via:
+
+ * addCacheHitResponseAction(DNS rule, DNS Response Action)
+
 A DNS rule can be:
 
  * an AllRule
@@ -1345,16 +1349,21 @@ instantiate a server with additional parameters
  * Rule management related:
     * `clearRules()`: remove all current rules
     * `getAction(num)`: returns the Action associate with rule 'num'.
+    * `mvCacheHitResponseRule(from, to)`: move cache hit response rule 'from' to a position where it is in front of 'to'. 'to' can be one larger than the largest rule,
+     in which case the rule will be moved to the last position.
     * `mvResponseRule(from, to)`: move response rule 'from' to a position where it is in front of 'to'. 'to' can be one larger than the largest rule,
      in which case the rule will be moved to the last position.
     * `mvRule(from, to)`: move rule 'from' to a position where it is in front of 'to'. 'to' can be one larger than the largest rule,
      in which case the rule will be moved to the last position.
     * `newRuleAction(DNS Rule, DNS Action)`: return a pair of DNS Rule and DNS Action, to be used with `setRules()`
+    * `rmCacheHitResponseRule(n)`: remove cache hit response rule n
     * `rmResponseRule(n)`: remove response rule n
     * `rmRule(n)`: remove rule n
     * `setRules(list)`: replace the current rules with the supplied list of pairs of DNS Rules and DNS Actions (see `newRuleAction()`)
+    * `showCacheHitResponseRules()`: show all defined cache hit response rules
     * `showResponseRules()`: show all defined response rules
     * `showRules()`: show all defined rules
+    * `topCacheHitResponseRule()`: move the last cache hit response rule to the first position
     * `topResponseRule()`: move the last response rule to the first position
     * `topRule()`: move the last rule to the first position
  * Built-in Actions for Rules:
