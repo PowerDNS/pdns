@@ -373,6 +373,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "setServerPolicy", true, "policy", "set server selection policy to that policy" },
   { "setServerPolicyLua", true, "name, function", "set server selection policy to one named 'name' and provided by 'function'" },
   { "setServFailWhenNoServer", true, "bool", "if set, return a ServFail when no servers are available, instead of the default behaviour of dropping the query" },
+  { "setTCPUseSinglePipe", true, "bool", "whether the incoming TCP connections should be put into a single queue instead of using per-thread queues. Defaults to false" },
   { "setTCPRecvTimeout", true, "n", "set the read timeout on TCP connections from the client, in seconds" },
   { "setTCPSendTimeout", true, "n", "set the write timeout on TCP connections from the client, in seconds" },
   { "setUDPTimeout", true, "n", "set the maximum time dnsdist will wait for a response from a backend over UDP, in seconds" },

@@ -1236,4 +1236,13 @@ void moreLua(bool client)
         g_hashperturb = pertub;
       });
 
+    g_lua.writeFunction("setTCPUseSinglePipe", [](bool flag) {
+        if (g_configurationDone) {
+          g_outputBuffer="setTCPUseSinglePipe() cannot be used at runtime!\n";
+          return;
+        }
+        setLuaSideEffect();
+        g_useTCPSinglePipe = flag;
+      });
+
 }

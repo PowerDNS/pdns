@@ -2085,7 +2085,7 @@ try
   /* this need to be done _after_ dropping privileges */
   g_delay = new DelayPipe<DelayedPacket>();
 
-  g_tcpclientthreads = std::make_shared<TCPClientCollection>(g_maxTCPClientThreads);
+  g_tcpclientthreads = std::make_shared<TCPClientCollection>(g_maxTCPClientThreads, g_useTCPSinglePipe);
 
   for(auto& t : todo)
     t();
