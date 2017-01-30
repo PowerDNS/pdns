@@ -1448,7 +1448,7 @@ instantiate a server with additional parameters
     * `addDelay(netmask, n)`: delay answers within that netmask by n milliseconds
     * `addDelay({netmask, netmask}, n)`: delay answers within those netmasks (together) by n milliseconds
  * Answer changing functions:
-    * `truncateTC(bool)`: if set (default) truncate TC=1 answers so they are actually empty. Fixes an issue for PowerDNS Authoritative Server 2.9.22.
+    * `truncateTC(bool)`: if set (defaults to no starting with dnsdist 1.2.0) truncate TC=1 answers so they are actually empty. Fixes an issue for PowerDNS Authoritative Server 2.9.22. Note: turning this on breaks compatibility with RFC 6891.
     * `fixupCase(bool)`: if set (default to no), rewrite the first qname of the question part of the answer to match the one from the query. It is only useful when you have a downstream server that messes up the case of the question qname in the answer
  * Dynamic Block related:
     * `maintenance()`: called every second by dnsdist if defined, call functions below from it
