@@ -867,12 +867,12 @@ pc = newPacketCache(10000, 86400, 0, 60, 60)
 getPool(""):setCache(pc)
 ```
 
-The first parameter is the maximum number of entries stored in the cache, and is the
-only one required. All the others parameters are optional and in seconds.
-The second one is the maximum lifetime of an entry in the cache, the third one is
+The first parameter (10000) is the maximum number of entries stored in the cache, and is the
+only one required. All the other parameter are optional and in seconds.
+The second one (86400) is the maximum lifetime of an entry in the cache, the third one (0) is
 the minimum TTL an entry should have to be considered for insertion in the cache,
-the fourth one is the TTL used for a Server Failure or a Refused response. The last
-one is the TTL that will be used when a stale cache entry is returned.
+the fourth one (60) is the TTL used for a Server Failure or a Refused response. The last
+one (60) is the TTL that will be used when a stale cache entry is returned.
 For performance reasons the cache will pre-allocate buckets based on the maximum number
 of entries, so be careful to set the first parameter to a reasonable value. Something
 along the lines of a dozen bytes per pre-allocated entry can be expected on 64-bit.
