@@ -203,6 +203,19 @@ BOOST_AUTO_TEST_CASE(test_NetmaskGroup) {
   ng.addMask("fe80::/16");
   BOOST_CHECK(ng.match(ComboAddress("fe80::1")));
   BOOST_CHECK(!ng.match(ComboAddress("fe81::1")));
+  BOOST_CHECK_EQUAL(ng.toString(), "10.0.1.0/32, 127.0.0.0/8, 10.0.0.0/24, ::1/128, fe80::/16");
+
+  ng.addMask("172.16.0.0/16");
+  BOOST_CHECK(ng.match(ComboAddress("172.16.1.1")));
+  BOOST_CHECK(ng.match(ComboAddress("172.16.4.50")));
+  ng.addMask("172.16.4.0/24", false);
+  BOOST_CHECK(ng.match(ComboAddress("172.16.1.1")));
+  BOOST_CHECK(!ng.match(ComboAddress("172.16.4.50")));
+
+  BOOST_CHECK(ng.match(ComboAddress("172.16.10.80")));
+  ng.addMask("!172.16.10.0/24");
+  BOOST_CHECK(!ng.match(ComboAddress("172.16.10.80")));
+  BOOST_CHECK_EQUAL(ng.toString(), "10.0.1.0/32, 127.0.0.0/8, 10.0.0.0/24, ::1/128, fe80::/16, 172.16.0.0/16, !172.16.4.0/24, !172.16.10.0/24");
 }
 
 

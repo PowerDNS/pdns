@@ -268,6 +268,8 @@ if nmg:match(dq.remoteaddr) then
 end
 ```
 
+Prefixing a mask with `!` excludes that mask from matching.
+
 ### IP Addresses
 We move IP addresses around in native format, called ComboAddress within PowerDNS.
 ComboAddresses can be IPv4 or IPv6, and unless you want to know, you don't need
