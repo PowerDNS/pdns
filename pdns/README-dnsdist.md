@@ -1249,7 +1249,7 @@ expressions like:
 > getServer(0).order=12         -- set order of server 0 to 12
 > getServer(0):addPool("abuse") -- add this server to the abuse pool
 ```
-The '.' means 'order' is a data member, while the ':' meand addPool is a member function.
+The '.' means 'order' is a data member, while the ':' means addPool is a member function.
 
 Here are all functions:
 
