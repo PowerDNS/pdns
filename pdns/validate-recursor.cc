@@ -11,11 +11,18 @@ bool g_dnssecLogBogus;
 class SRRecordOracle : public DNSRecordOracle
 {
 public:
+  SRRecordOracle(const ResolveContext& ctx): d_ctx(ctx)
+  {
+  }
   vector<DNSRecord> get(const DNSName& qname, uint16_t qtype) override
   {
     struct timeval tv;
     gettimeofday(&tv, 0);
     SyncRes sr(tv);
+    sr.setId(MT->getTid());
+#ifdef HAVE_PROTOBUF
+    sr.d_initialRequestId = d_ctx.d_initialRequestId;
+#endif
 
     vector<DNSRecord> ret;
     sr.d_doDNSSEC=true;
@@ -25,6 +32,7 @@ public:
     d_queries += sr.d_outqueries;
     return ret;
   }
+  const ResolveContext& d_ctx;
   int d_queries{0};
 };
 
@@ -53,7 +61,7 @@ inline void processNewState(vState& currentState, const vState& newState, bool& 
     hadNTA = true;
 }
 
-vState validateRecords(const vector<DNSRecord>& recs)
+vState validateRecords(const ResolveContext& ctx, const vector<DNSRecord>& recs)
 {
   if(recs.empty())
     return Insecure; // can't secure nothing 
@@ -71,7 +79,7 @@ vState validateRecords(const vector<DNSRecord>& recs)
   set<DNSKEYRecordContent> keys;
   cspmap_t validrrsets;
 
-  SRRecordOracle sro;
+  SRRecordOracle sro(ctx);
 
   vState state=Insecure;
   bool hadNTA = false;

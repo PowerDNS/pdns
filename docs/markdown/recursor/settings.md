@@ -544,6 +544,22 @@ The optional parameters are:
 * asyncConnect = if set to false (default) the first connection to the server during startup will block up to `timeout` seconds,
 otherwise the connection is done in a separate thread.
 
+While `protobufServer()` only exports the queries sent to the recursor from clients, with the corresponding responses,
+`outgoingProtobufServer()` can be used to export outgoing queries sent by the recursor to authoritative servers,
+along with the corresponding responses.
+
+```
+outgoingProtobufServer("192.0.2.1:4242" [[[[, timeout], maxQueuedEntries], reconnectWaitTime], asynConnect])
+```
+
+The optional parameters for `outgoingProtobufServer()` are:
+
+* timeout = time in seconds to wait when sending a message, default to 2
+* maxQueuedEntries = how many entries will be kept in memory if the server becomes unreachable, default to 100
+* reconnectWaitTime = how long to wait, in seconds, between two reconnection attempts, default to 1
+* asyncConnect = if set to false (default) the first connection to the server during startup will block up to `timeout` seconds,
+otherwise the connection is done in a separate thread.
+
 The protocol buffers message types can be found in the [`dnsmessage.proto`](https://github.com/PowerDNS/pdns/blob/master/pdns/dnsmessage.proto) file.
 
 ## `lua-dns-script`

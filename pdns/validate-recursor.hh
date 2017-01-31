@@ -23,8 +23,9 @@
 #include "dnsparser.hh"
 #include "namespaces.hh"
 #include "validate.hh"
+#include "resolve-context.hh"
 
-vState validateRecords(const vector<DNSRecord>& recs);
+vState validateRecords(const ResolveContext& ctx, const vector<DNSRecord>& recs);
 
 /* Off: 3.x behaviour, we do no DNSSEC, no EDNS
    ProcessNoValidate: we gather DNSSEC records on all queries, but we will never validate

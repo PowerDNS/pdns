@@ -35,6 +35,7 @@
 #include <utility>
 #include "misc.hh"
 #include "lwres.hh"
+#include <boost/optional.hpp>
 #include <boost/circular_buffer.hpp>
 #include <boost/utility.hpp>
 #include "sstuff.hh"
@@ -48,6 +49,12 @@
 #include "validate.hh"
 
 #include "filterpo.hh"
+
+#include "config.h"
+#ifdef HAVE_PROTOBUF
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#endif
 
 void primeHints(void);
 int getRootNS(void);
@@ -366,6 +373,9 @@ public:
   static unsigned int s_maxdepth;
   std::unordered_map<std::string,bool> d_discardedPolicies;
   DNSFilterEngine::Policy d_appliedPolicy;
+#ifdef HAVE_PROTOBUF
+  boost::optional<const boost::uuids::uuid&> d_initialRequestId;
+#endif
   unsigned int d_outqueries;
   unsigned int d_tcpoutqueries;
   unsigned int d_throttledqueries;
@@ -729,5 +739,9 @@ boost::optional<Netmask> getEDNSSubnetMask(const ComboAddress& local, const DNSN
 void  parseEDNSSubnetWhitelist(const std::string& wlist);
 
 extern __thread struct timeval g_now;
+
+#ifdef HAVE_PROTOBUF
+extern __thread boost::uuids::random_generator* t_uuidGenerator;
+#endif
 
 #endif
