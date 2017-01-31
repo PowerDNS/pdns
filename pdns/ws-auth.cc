@@ -325,7 +325,7 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp) {
   if(!B.getDomainInfo(zonename, di))
     throw ApiException("Could not find domain '"+zonename.toString()+"'");
 
-  DNSSECKeeper dk;
+  DNSSECKeeper dk(&B);
   Json::object doc = getZoneInfo(di, &dk);
   // extra stuff getZoneInfo doesn't do for us (more expensive)
   string soa_edit_api;
