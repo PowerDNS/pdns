@@ -658,8 +658,7 @@ string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOff
     dw.xfrName(keyname, false);
     dw.xfr16BitInt(QClass::ANY); // class
     dw.xfr32BitInt(0);    // TTL
-    // dw.xfrName(toLower(trc.d_algoName), false); //FIXME400 
-    dw.xfrName(trc.d_algoName, false);
+    dw.xfrName(trc.d_algoName.makeLowerCase(), false);
   }
   
   uint32_t now = trc.d_time; 
