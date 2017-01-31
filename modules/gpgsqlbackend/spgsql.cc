@@ -36,7 +36,7 @@
 class SPgSQLStatement: public SSqlStatement
 {
 public:
-  SPgSQLStatement(const string& query, bool dolog, int nparams, SPgSQL* db) {
+  SPgSQLStatement(const string& query, bool dolog, int nparams, SPgSQL* db, unsigned int nstatement) {
     d_query = query;
     d_dolog = dolog;
     d_parent = db;
@@ -47,6 +47,7 @@ public:
     paramValues = NULL;
     paramLengths = NULL;
     d_do_commit = false;
+    d_nstatement = nstatement;
   }
 
   SSqlStatement* bind(const string& name, bool value) { return bind(name, string(value ? "t" : "f")); }
@@ -215,8 +216,8 @@ private:
 
   void prepareStatement() {
     if (d_prepared) return;
-    // prepare a statement; name must be unique per session.
-    this->d_stmt = string("stmt") + std::to_string((uintptr_t)this);
+    // prepare a statement; name must be unique per session (using d_nstatement to ensure this).
+    this->d_stmt = string("stmt") + std::to_string(d_nstatement);
     PGresult* res = PQprepare(d_db(), d_stmt.c_str(), d_query.c_str(), d_nparams, NULL);
     ExecStatusType status = PQresultStatus(res);
     string errmsg(PQresultErrorMessage(res));
@@ -258,6 +259,7 @@ private:
   int d_fnum;
   int d_cur_set;
   bool d_do_commit;
+  unsigned int d_nstatement;
 };
 
 bool SPgSQL::s_dolog;
@@ -268,6 +270,7 @@ SPgSQL::SPgSQL(const string &database, const string &host, const string& port, c
   d_db=0;
   d_in_trx = false;
   d_connectstr="";
+  d_nstatement = 0;
 
   if (!database.empty())
     d_connectstr+="dbname="+database;
@@ -331,7 +334,8 @@ void SPgSQL::execute(const string& query)
 
 SSqlStatement* SPgSQL::prepare(const string& query, int nparams)
 {
-  return new SPgSQLStatement(query, s_dolog, nparams, this);
+  d_nstatement++;
+  return new SPgSQLStatement(query, s_dolog, nparams, this, d_nstatement);
 }
 
 void SPgSQL::startTransaction() {
