@@ -833,7 +833,7 @@ int PacketHandler::processNotify(DNSPacket *p)
   */
   vector<string> meta;
 
-  if(!::arg().mustDo("slave") && ::arg()["forward-notify"].empty()) {
+  if(!::arg().mustDo("slave") && s_forwardNotify.empty()) {
     L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" but slave support is disabled in the configuration"<<endl;
     return RCode::NotImp;
   }
@@ -889,7 +889,7 @@ int PacketHandler::processNotify(DNSPacket *p)
   // ok, we've done our checks
   di.backend = 0;
 
-  if(!::arg()["forward-notify"].empty()) {
+  if(!s_forwardNotify.empty()) {
     set<string> forwardNotify(s_forwardNotify);
     for(set<string>::const_iterator j=forwardNotify.begin();j!=forwardNotify.end();++j) {
       L<<Logger::Warning<<"Relaying notification of domain "<<p->qdomain<<" from "<<p->getRemote()<<" to "<<*j<<endl;
