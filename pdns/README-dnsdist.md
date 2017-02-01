@@ -16,8 +16,8 @@ for encrypted communications with its client, protobuf for remote logging and re
 for regular expression matching.
 
 Should `dnsdist` be run on a system with systemd, it is highly recommended to have
-the systemd header files (`libsystemd-dev` on debian and `systemd-devel` on CentOS)
-installed to have `dnsdist` support systemd-notify.
+the systemd header files (`libsystemd-dev` on Debian and `systemd-devel` on CentOS)
+installed to have `dnsdist` support `systemd-notify`.
 
 To compile on CentOS 6 / RHEL6, use this script to install a working compiler:
 
@@ -35,15 +35,15 @@ To build on OpenBSD, `./configure CXX=eg++ CPP=ecpp LIBEDIT_LIBS='-ledit -lcurse
 
 On other recent platforms, installing a Lua and the system C++ compiler should be enough. 
 
-`dnsdist` can drop privileges using the `--uid` and `--gid` commandline-switches
-to ensure it does not run with root privileges after binding its listen-sockets.
+`dnsdist` can drop privileges using the `--uid` and `--gid` command line switches
+to ensure it does not run with root privileges after binding its listening sockets.
 It is highly recommended to create a system user and group for `dnsdist`. Note that
 most packaged versions of `dnsdist` already create this user.
 
 Packaged
 --------
 We build packages for `dnsdist` on our [repositories](https://repo.powerdns.com). In addition
-`dnsdist` has been packaged for FreeBSD and can be found on https://freshports.org/dns/dnsdist
+`dnsdist` [has been packaged for FreeBSD](https://freshports.org/dns/dnsdist).
 
 Examples
 --------
@@ -100,7 +100,7 @@ All                                     0.0                         1       0
 ```
 
 Here we also see our configuration. 5 downstream servers have been configured, of
-which the first 4 have a QPS limit (of 1, 1, 10 and 10 queries per second,
+which the first 4 have a QPS limit (of 1, 1, 10, 10 and 0 -which means unlimited- queries per second,
 respectively). The final server has no limit, which we can easily test:
 
 ```
@@ -130,9 +130,9 @@ To force a server down, try:
 ```
 
 The 'DOWN' in all caps means it was forced down. A lower case 'down'
-would've meant that `dnsdist` itself had concluded the server was down.
+would have meant that `dnsdist` itself had concluded the server was down.
 Similarly, setUp() forces a server to be up, and setAuto() returns it to the
-default availability-probing.
+default availability probing.
 
 To change the QPS for a server:
 ```
@@ -140,14 +140,14 @@ To change the QPS for a server:
 ```
 
 By default, the availability of a downstream server is checked by regularly
-sending an A query for "a.root-servers.net.". A different query type and target
+sending an A query for `a.root-servers.net.`. A different query type and target
 can be specified by passing, respectively, the `checkType` and `checkName`
 parameters to `newServer`. The default behavior is to consider any valid response
-with a RCODE different from ServFail as valid. If the `mustResolve` parameter
+with an RCODE different from ServFail as valid. If the `mustResolve` parameter
 of `newServer` is set to true, a response will only be considered valid if
 its RCODE differs from NXDomain, ServFail and Refused.
 The number of health check failures before a server is considered down is
-configurable via the`maxCheckFailures` parameter, defaulting to 1.
+configurable via the `maxCheckFailures` parameter, defaulting to 1.
 The `CD` flag can be set on the query by setting `setCD` to true.
 
 ```
@@ -161,7 +161,7 @@ should be added to the request. If the incoming request already contains an EDNS
 it will not be overridden unless `setECSOverride()` is set to true.
 The default source prefix-length is 24 for IPv4 and 56 for IPv6, meaning that for a query
 received from 192.0.2.42, the EDNS Client Subnet value sent to the backend will
-be 192.0.2.0. This can be changed with:
+be 192.0.2.0/24. This can be changed with:
 ```
 > setECSSourcePrefixV4(24)
 > setECSSourcePrefixV6(56)
@@ -169,7 +169,7 @@ be 192.0.2.0. This can be changed with:
 
 In addition to the global settings, rules and Lua bindings can alter this behavior per query:
 
-* calling `DisableECSAction()` or setting `dq.useECS` to false prevent the sending of the ECS option
+* calling `DisableECSAction()` or setting `dq.useECS` to false prevents the sending of the ECS option
 * calling `ECSOverrideAction(bool)` or setting `dq.ecsOverride` will override the global `setECSOverride()` value
 * calling `ECSPrefixLengthAction(v4, v6)` or setting `dq.ecsPrefixLength` will override the global
 `setECSSourcePrefixV4()` and `setECSSourcePrefixV6()` values
@@ -181,16 +181,16 @@ should be set to true for the backend used (default to false) and ECS should not
 TCP timeouts
 ------------
 
-By default, a 2 seconds timeout is enforced on the TCP connection from the client,
-meaning that a connection will be closed if the query can't be read in less than 2s
-or if the answer can't be sent in less than 2s. This can be configured with:
+By default, a 2 second timeout is enforced on the TCP connection from the client,
+meaning that a connection will be closed if the query cannot be read in less than 2 seconds
+or if the answer cannot be sent in less than 2s. This can be configured with:
 ```
 > setTCPRecvTimeout(5)
 > setTCPSendTimeout(5)
 ```
 
-The same kind of timeouts is enforced on the TCP connections to the downstream servers.
-The default value of 30s can be modified by passing the `tcpRecvTimeout` and `tcpSendTimeout`
+The same kind of timeouts are enforced on the TCP connections to the downstream servers.
+The default value of 30 seconds can be modified by passing the `tcpRecvTimeout` and `tcpSendTimeout`
 parameters to `newServer`, with an additional `tcpConnectTimeout` parameter controlling
 the connection timeout (5s by default). If the TCP connection to a downstream server fails, `dnsdist`
 will try to establish a new one up to `retries` times before giving up.
@@ -216,14 +216,14 @@ The supported values for `source` are:
  * an interface name
  * an IPv4 or IPv6 address followed by '@' then an interface name
 
-Specifying the interface name is only supported on system having IP_PKTINFO.
+Specifying the interface name is only supported on system having `IP_PKTINFO`.
 
 
 Configuration management
 ------------------------
 At startup, configuration is read from the command line and the
-configuration file.  The config can also be inspected and changed from the
-console.  Sadly, our architecture does not allow us to serialize the running
+configuration file. The config can also be inspected and changed from the
+console. Sadly, our architecture does not allow us to serialize the running
 configuration for you. However, we do try to offer the next best thing:
 `delta()`.
 
@@ -300,7 +300,7 @@ Or we configure a server pool dedicated to receiving the nasty stuff:
 
 The wonderful thing about this last solution is that it can also be used for
 things where a domain might possibly be legit, but it is still causing load
-on the system and slowing down the internet for everyone. With such an abuse
+on the system and slowing down the Internet for everyone. With such an abuse
 server, 'bad traffic' still gets a chance of an answer, but without
 impacting the rest of the world (too much).
 
@@ -322,7 +322,7 @@ rules will apply normally.
 Both `addDomainBlock` and `addPoolRule` end up the list of Rules 
 and Actions (for which see below).
 
-Servers can be added or removed to pools with:
+Servers can be added to or removed from pools with:
 ```
 > getServer(7):addPool("abuse")
 > getServer(4):rmPool("abuse")
@@ -367,7 +367,7 @@ Current actions are:
 
  * Drop (DropAction)
  * Route to a pool (PoolAction)
- * Return with TC=1 (truncated, ie, instruction to retry with TCP)
+ * Return with TC=1 (truncated, i.e., instruction to retry with TCP)
  * Force a ServFail, NotImp or Refused answer
  * Send out a crafted response (NXDOMAIN or "real" data)
  * Delay a response by n milliseconds (DelayAction), over UDP only
@@ -393,7 +393,7 @@ Rules can be added via:
  * addDomainBlock(domain)
  * addDomainSpoof(domain, IPv4[, IPv6]) or addDomainSpoof(domain, {IP, IP, IP..})
  * addDomainCNAMESpoof(domain, CNAME)
- * addLuaAction(DNS rule, lua function)
+ * addLuaAction(DNS rule, Lua function)
  * addNoRecurseRule(DNS rule)
  * addPoolRule(DNS rule, destination pool)
  * addQPSLimit(DNS rule, qps limit)
