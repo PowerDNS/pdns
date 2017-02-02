@@ -16,7 +16,7 @@
  * A note on numbers - JSON specifies the syntax of number formatting but not its semantics,
  * so some JSON implementations distinguish between integers and floating-point numbers, while
  * some don't. In json11, we choose the latter. Because some JSON implementations (namely
- * Javascript itself) treat all numbers as the same type, distinguishing the two leads
+ * JavaScript itself) treat all numbers as the same type, distinguishing the two leads
  * to JSON that will be *silently* changed by a round-trip through those implementations.
  * Dangerous! To avoid that risk, json11 stores all numbers as double internally, but also
  * provides integer helpers.

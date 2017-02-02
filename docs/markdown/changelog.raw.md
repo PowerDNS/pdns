@@ -240,7 +240,7 @@ It has the following improvements:
 
 And these additions:
 
- - [#3981](https://github.com/PowerDNS/pdns/pull/3981) Import Javascript sources for libs shipped with Recursor (Christian Hofstaedtler)
+ - [#3981](https://github.com/PowerDNS/pdns/pull/3981) Import JavaScript sources for libs shipped with Recursor (Christian Hofstaedtler)
  - [#4012](https://github.com/PowerDNS/pdns/pull/4012) add tags support to ProtobufLogger.py
  - [#4032](https://github.com/PowerDNS/pdns/pull/4032) Set the existing policy tags in `dq` for `{pre,post}resolve`
  - [#4077](https://github.com/PowerDNS/pdns/pull/4077) Add DNSSEC validation statistics
