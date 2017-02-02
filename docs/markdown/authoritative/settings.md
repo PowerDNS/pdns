@@ -251,7 +251,7 @@ The default keysize for the ZSK generated with
 * Default: no
 
 Read additional ZSKs from the records table/your BIND zonefile. If not set,
-DNSKEY recornds in the zonefiles are ignored.
+DNSKEY records in the zonefiles are ignored.
 
 ## `disable-axfr`
 * Boolean
