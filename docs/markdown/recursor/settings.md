@@ -445,7 +445,7 @@ Sortlist is a complicated feature which allows for the ordering of A and
 AAAA records in answers to be modified, optionally dependently on who is
 asking. Since clients frequently connect to the 'first' IP address they see,
 this can effectively allow you to make sure that user from, say 10.0.0.0/8
-also preferrably connect to servers in 10.0.0.0/8.
+also preferably connect to servers in 10.0.0.0/8.
 
 The syntax consists of a netmask for which this ordering instruction
 applies, followed by a set of netmask (groups) which describe the desired
