@@ -60,10 +60,10 @@ specified. The default is to allow recursion from everywhere. Example:
 `allow-recursion=198.51.100.0/24, 10.0.0.0/8, 192.0.2.4`.
 
 ## `also-notify`
-* IP adresses, separated by commas
+* IP addresses, separated by commas
 
 When notifying a domain, also notify these nameservers. Example:
-`also-notify=192.0.2.1, 203.0.113.167`. The IP adresses listed in `also-notify`
+`also-notify=192.0.2.1, 203.0.113.167`. The IP addresses listed in `also-notify`
 always receive a notification. Even if they do not match the list in
 [`only-notify`](#also-notify).
 
