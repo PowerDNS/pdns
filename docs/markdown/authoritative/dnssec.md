@@ -548,7 +548,7 @@ incremental updates (or use the same database server on the slaves)
 
 #### NONE
 Ignore [`default-soa-edit`](settings.md#default-soa-edit) and/or
-[`default-soa-edit-signed`](settings.md#default-soa-edit-signed) setings.
+[`default-soa-edit-signed`](settings.md#default-soa-edit-signed) settings.
 
 # PKCS\#11 support
 **Note**: This feature is experimental, and not ready for production. Use at your own risk!
