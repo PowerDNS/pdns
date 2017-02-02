@@ -1271,7 +1271,7 @@ Changes between 3.3.1 and 3.4.0-RC1 follow.
 -   Bundled PolarSSL has been upgraded to 1.3.2
 -   PolarSSL replaced previously bundled implementations of AES ([commit e22d9b4](https://github.com/PowerDNS/pdns/commit/e22d9b4)) and SHA ([commit 9101035](https://github.com/PowerDNS/pdns/commit/9101035))
 -   bindbackend is now a module
--   [commit 14a2e52](https://github.com/PowerDNS/pdns/commit/14a2e52): Use the inet data type for supermasters.ip on postgrsql.
+-   [commit 14a2e52](https://github.com/PowerDNS/pdns/commit/14a2e52): Use the inet data type for supermasters.ip on postgresql.
 -   We now send an empty SERVFAIL when a CNAME chain is too long, instead of including the partial chain.
 -   [commit 3613a51](https://github.com/PowerDNS/pdns/commit/3613a51): Show built-in features in --version output
 -   [commit 4bd7d35](https://github.com/PowerDNS/pdns/commit/4bd7d35): make domainmetadata queries case insensitive

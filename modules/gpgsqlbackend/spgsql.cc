@@ -106,7 +106,7 @@ public:
     // if you return SETOF refcursor.
     if (PQftype(d_res_set, 0) == 1790) { // REFCURSOR
 #if PG_VERSION_NUM > 90000
-      // PQescapeIdentifier was added to libpq in postggresql 9.0
+      // PQescapeIdentifier was added to libpq in postgresql 9.0
       char *val = PQgetvalue(d_res_set, d_cur_set++, 0);
       char *portal =  PQescapeIdentifier(d_db(), val, strlen(val));
       string cmd = string("FETCH ALL FROM \"") + string(portal) + string("\"");
