@@ -120,7 +120,7 @@ available by querying the TXT record of peter.people.powerdns.com.
 
 ## RRSIG
 The RRSIG DNSSEC record type is fully supported, as described in [RFC 4034](http://tools.ietf.org/html/rfc4034).
-To enable DNSSEC prcessing, use [pdnsutil](authoritative/dnssec.md#pdnsutil).
+To enable DNSSEC processing, use [pdnsutil](authoritative/dnssec.md#pdnsutil).
 
 ## SOA
 The Start of Authority record is one of the most complex available. It specifies
