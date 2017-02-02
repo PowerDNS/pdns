@@ -37,7 +37,7 @@ information:
 * Operating System and version
 * Steps to reproduce: How can we reproduce the issue
 * Expected behavior: what did you expect what would happen?
-* Observed behavior: what actually happend when following the steps?
+* Observed behavior: what actually happened when following the steps?
 * Relevant logs: Please use code blocks (\`\`\`) to format console output, logs, and code as it's very hard to read otherwise.
 
 If you have already looked deeper into the problem, provide what you found as
