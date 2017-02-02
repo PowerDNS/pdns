@@ -110,7 +110,7 @@ public:
     return (getpeername(d_socket, (struct sockaddr *)&remote, &remotelen) >= 0);
   }
 
-  //! Check remote address aganst netmaskgroup ng
+  //! Check remote address against netmaskgroup ng
   bool acl(NetmaskGroup &ng)
   {
     ComboAddress remote;
