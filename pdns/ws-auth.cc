@@ -1389,7 +1389,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
       }
 
       if (changetype == "DELETE") {
-        // delete all matching qname/qtype RRs (and, implictly comments).
+        // delete all matching qname/qtype RRs (and, implicitly comments).
         if (!di.backend->replaceRRSet(di.id, qname, qtype, vector<DNSResourceRecord>())) {
           throw ApiException("Hosting backend does not support editing records.");
         }
