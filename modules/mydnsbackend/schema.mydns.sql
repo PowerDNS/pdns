@@ -6,7 +6,7 @@
 --
 --    $ mydns --create-tables | mysql -hHOST -p -uUSER DATABASE
 --
--- Originally licensed under the GNU GPLv2 or higer
+-- Originally licensed under the GNU GPLv2 or higher
 
 --
 --  Table structure for table 'soa' (zones of authority)
