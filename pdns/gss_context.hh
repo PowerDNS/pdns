@@ -146,7 +146,7 @@ public:
   void setLocalPrincipal(const std::string& name); //<! Set our gss name
   bool getLocalPrincipal(std::string& name); //<! Get our name
   void setPeerPrincipal(const std::string& name); //<! Set remote name (do not use after negotiation)
-  bool getPeerPrincipal(std::string &name); //<! Return remote name, returns actual name after negotatioan
+  bool getPeerPrincipal(std::string &name); //<! Return remote name, returns actual name after negotiation
 
   void generateLabel(const std::string& suffix); //<! Generate random context name using suffix (such as mydomain.com)
   void setLabel(const DNSName& label); //<! Set context name to this label
