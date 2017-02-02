@@ -1708,7 +1708,7 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 	struct timeval tv={0,0};
 	HarvestTimestamp(&msgh, &tv);
 	ComboAddress dest;
-	memset(&dest, 0, sizeof(dest)); // this makes sure we igore this address if not returned by recvmsg above
+	memset(&dest, 0, sizeof(dest)); // this makes sure we ignore this address if not returned by recvmsg above
         auto loc = rplookup(g_listenSocketsAddresses, fd);
 	if(HarvestDestinationAddress(&msgh, &dest)) {
           // but.. need to get port too
