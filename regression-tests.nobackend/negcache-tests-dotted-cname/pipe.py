@@ -11,7 +11,7 @@ while True:
     items = line.split('\t')
     sys.stderr.write(line)
     if len(items) < 6:
-        print 'LOG\tGot an unparsable line'
+        print 'LOG\tGot an unparseable line'
         print 'LOG\t%s' % line
         print 'END'
         continue
