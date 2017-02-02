@@ -15,7 +15,7 @@ issue.
 
 ## Filing a Feature Request
 When filing a feature request, please start your issue title with "Feature request:",
-this allows for quick distinguisihing between issues and these requests.
+this allows for quick distinguishing between issues and these requests.
 
 Please be as elaborate as possible when describing the feature you need. Provide
 at least the following information (if they are relevant):
