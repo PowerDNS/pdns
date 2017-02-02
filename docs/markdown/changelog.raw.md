@@ -182,7 +182,7 @@ This release fixes two small issues and adds a setting to limit AXFR and IXFR si
 
  - [#4044](https://github.com/PowerDNS/pdns/pull/4044) Make DNSPacket return a ComboAddress for local and remote (Aki Tuomi)
  - [#4056](https://github.com/PowerDNS/pdns/pull/4056) OpenSSL 1.1.0 support (Christian Hofstaedtler)
- - [#4169](https://github.com/PowerDNS/pdns/pull/4169) Fix typos in a logmessage and exception (Christian Hofsteadtler)
+ - [#4169](https://github.com/PowerDNS/pdns/pull/4169) Fix typos in a logmessage and exception (Christian Hofstaedtler)
  - [#4183](https://github.com/PowerDNS/pdns/pull/4183) pdnsutil: Remove checking of ctime and always diff the changes (Hannu Ylitalo)
  - [#4192](https://github.com/PowerDNS/pdns/pull/4192) dnsreplay: Only add Client Subnet stamp when asked
  - [#4250](https://github.com/PowerDNS/pdns/pull/4250) Use toLogString() for ringAccount (Kees Monshouwer)
