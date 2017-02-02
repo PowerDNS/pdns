@@ -75,7 +75,7 @@ A query for 'www.powerdns.com' would be presented to the regex as 'www.powerdns.
 Questions come in over a file descriptor, by default standard input.
 Answers are sent out over another file descriptor, standard output by default.
 Questions and answers are terminated by single newline (`\n`) characters.
-Fields in lines must be seperated by tab ('\t') characters.
+Fields in lines must be separated by tab ('\t') characters.
 
 ## Handshake
 PowerDNS sends out `HELO\t1`, indicating that it wants to speak the protocol as defined in this document, version 1.

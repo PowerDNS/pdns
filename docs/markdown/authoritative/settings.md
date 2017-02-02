@@ -372,7 +372,7 @@ change: e.g. `gmysql-host` is available to configure the `host` setting of the
 first or main instance, and `gmysql-server2-host` for the second one.
 
 ## `load-modules`
-* Paths, seperated by commas
+* Paths, separated by commas
 
 If backends are available in nonstandard directories, specify their location here.
 Multiple files can be loaded if separated by commas. Only available in non-static
