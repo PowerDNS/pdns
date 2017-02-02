@@ -210,7 +210,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
           L<<Logger::Notice<<msgPrefix<<"Replace for record "<<rr->d_name<<"|"<<rrType.getName()<<" requested, but no changes made."<<endl;
         }
 
-      // In any other case, we must check if the TYPE and RDATA match to provide an update (which effectily means a update of TTL)
+      // In any other case, we must check if the TYPE and RDATA match to provide an update (which effectively means a update of TTL)
       } else {
         int updateTTL=0;
         foundRecord = false;
