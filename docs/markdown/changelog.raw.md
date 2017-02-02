@@ -1232,7 +1232,7 @@ Changes between 3.3.1 and 3.4.0-RC1 follow.
 -   [commit 9245fd9](https://github.com/PowerDNS/pdns/commit/9245fd9): don't addSuckRequest after supermaster zone creation to avoid one cause of simultaneous AXFR for the same zone
 -   [commit 719f902](https://github.com/PowerDNS/pdns/commit/719f902): fix dual-stack superslave when multiple namservers share a ip
 -   [commit 33966bf](https://github.com/PowerDNS/pdns/commit/33966bf): avoid address truncation in doNotifications
--   [commit eac85b1](https://github.com/PowerDNS/pdns/commit/eac85b1): prevent duplicate slave notications caused by different ipv6 address formatting
+-   [commit eac85b1](https://github.com/PowerDNS/pdns/commit/eac85b1): prevent duplicate slave notifications caused by different ipv6 address formatting
 -   [commit 3c8a711](https://github.com/PowerDNS/pdns/commit/3c8a711): make notification queue ipv6 compatible
 -   [commit 0c13e45](https://github.com/PowerDNS/pdns/commit/0c13e45): make isMaster ip check more tolerant for different ipv6 notations
 -   Various fixes for possible issues reported by Coverity Scan ([commit f17c93b](https://github.com/PowerDNS/pdns/commit/f17c93b), )
