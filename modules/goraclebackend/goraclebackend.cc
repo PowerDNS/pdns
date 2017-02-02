@@ -50,7 +50,7 @@ gOracleBackend::gOracleBackend(const string &mode, const string &suffix)  : GSQL
     int err = OCIEnvCreate(&d_environmentHandle, OCI_THREADED, NULL, NULL, NULL, NULL, 0, NULL); 
 
     if (err) {
-      throw PDNSException("OCIEnvCraete failed");
+      throw PDNSException("OCIEnvCreate failed");
     }
   }
 
