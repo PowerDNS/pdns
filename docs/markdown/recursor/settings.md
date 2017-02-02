@@ -618,7 +618,7 @@ suffice for most installations.
 * Default: 50
 
 The maximum number of outgoing queries that will be sent out during the resolution
-of a single client query. This is used to limit endlessy chasing CNAME redirections.
+of a single client query. This is used to limit endlessly chasing CNAME redirections.
 
 ## `max-negative-ttl`
 * Integer
