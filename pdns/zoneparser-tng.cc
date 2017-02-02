@@ -150,7 +150,7 @@ bool ZoneParserTNG::getTemplateLine()
     string part=makeString(d_templateline, *iter);
     
     /* a part can contain a 'naked' $, an escaped $ (\$), or ${offset,width,radix}, with width defaulting to 0, 
-       and radix beging 'd', 'o', 'x' or 'X', defaulting to 'd'. 
+       and radix being 'd', 'o', 'x' or 'X', defaulting to 'd'. 
 
        The width is zero-padded, so if the counter is at 1, the offset is 15, with is 3, and the radix is 'x',
        output will be '010', from the input of ${15,3,x}

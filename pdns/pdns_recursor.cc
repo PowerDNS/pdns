@@ -1708,7 +1708,7 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 	struct timeval tv={0,0};
 	HarvestTimestamp(&msgh, &tv);
 	ComboAddress dest;
-	memset(&dest, 0, sizeof(dest)); // this makes sure we igore this address if not returned by recvmsg above
+	memset(&dest, 0, sizeof(dest)); // this makes sure we ignore this address if not returned by recvmsg above
         auto loc = rplookup(g_listenSocketsAddresses, fd);
 	if(HarvestDestinationAddress(&msgh, &dest)) {
           // but.. need to get port too
@@ -3016,7 +3016,7 @@ int main(int argc, char **argv)
     ::arg().set("chroot","switch to chroot jail")="";
     ::arg().set("setgid","If set, change group id to this gid for more security")="";
     ::arg().set("setuid","If set, change user id to this uid for more security")="";
-    ::arg().set("network-timeout", "Wait this nummer of milliseconds for network i/o")="1500";
+    ::arg().set("network-timeout", "Wait this number of milliseconds for network i/o")="1500";
     ::arg().set("threads", "Launch this number of threads")="2";
     ::arg().set("processes", "Launch this number of processes (EXPERIMENTAL, DO NOT CHANGE)")="1"; // if we un-experimental this, need to fix openssl rand seeding for multiple PIDs!
     ::arg().set("config-name","Name of this virtual configuration - will rename the binary image")="";

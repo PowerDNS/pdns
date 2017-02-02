@@ -496,7 +496,7 @@ Client body for PATCH:
               {
                 "account": <string>,
                 "content": <string>,
-                "modfied_at": <int>
+                "modified_at": <int>
               }, ...
             ]
         },

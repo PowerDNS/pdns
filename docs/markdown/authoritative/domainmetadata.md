@@ -28,7 +28,7 @@ insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR-FROM
 insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR-FROM','2001:db8::/48');
 ```
 
-To dissallow all IP's, except those explicitly allowed by domainmetadata records, add `allow-axfr-ips=` to `pdns.conf`.
+To disallow all IP's, except those explicitly allowed by domainmetadata records, add `allow-axfr-ips=` to `pdns.conf`.
 
 ## AXFR-SOURCE
 The IP address to use as a source address for sending AXFR and IXFR requests.
@@ -81,7 +81,7 @@ PowerDNS will not be able to correctly serve the zone if the imported data is
 bogus or incomplete. Also see `set-presigned` in [`pdnsutil`](dnssec.md#pdnsutil).
 
 If a zone is presigned, the content of the metadata must be "1" (without the
-quotes). Any other value will not signal prisignedness.
+quotes). Any other value will not signal presignedness.
 
 ## PUBLISH-CDNSKEY, PUBLISH-CDS
 Whether to publish CDNSKEY and/or CDS recording defined in [RFC 7344](https://tools.ietf.org/html/rfc7344).

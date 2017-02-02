@@ -158,7 +158,7 @@ In order to provide the downstream server with the address of the real client,
 or at least the one talking to `dnsdist`, the `useClientSubnet` parameter can be used
 when declaring a new server. This parameter indicates whether an EDNS Client Subnet option
 should be added to the request. If the incoming request already contains an EDNS Client Subnet value,
-it will not be overriden unless `setECSOverride()` is set to true.
+it will not be overridden unless `setECSOverride()` is set to true.
 The default source prefix-length is 24 for IPv4 and 56 for IPv6, meaning that for a query
 received from 192.0.2.42, the EDNS Client Subnet value sent to the backend will
 be 192.0.2.0. This can be changed with:
@@ -1127,7 +1127,7 @@ that can arise in this kind of setup:
    it might be confused by the fact that the source address will be the one from
    the `dnsdist` server.
 
-The first issue can be solved by routing SOA, AXFR and IXFR requests explicitely
+The first issue can be solved by routing SOA, AXFR and IXFR requests explicitly
 to the master:
 
 ```
@@ -1383,7 +1383,7 @@ instantiate a server with additional parameters
     * `DisableValidationAction()`: set the CD bit in the question, let it go through
     * `DropAction()`: drop these packets
     * `DropResponseAction()`: drop these packets
-    * `ECSOverrideAction(bool)`: whether an existing ECS value should be overriden (true) or not (false)
+    * `ECSOverrideAction(bool)`: whether an existing ECS value should be overridden (true) or not (false)
     * `ECSPrefixLengthAction(v4, v6)`: set the ECS prefix length
     * `LogAction([filename], [binary], [append], [buffered])`: Log a line for each query, to the specified file if any, to the console (require verbose) otherwise. When logging to a file, the `binary` optional parameter specifies whether we log in binary form (default) or in textual form, the `append` optional parameter specifies whether we open the file for appending or truncate each time (default), and the `buffered` optional parameter specifies whether writes to the file are buffered (default) or not.
     * `MacAddrAction(option code)`: add the source MAC address to the query as EDNS0 option `option code`. This action is currently only supported on Linux
@@ -1457,9 +1457,9 @@ instantiate a server with additional parameters
     * `addDynBlocks(addresses, message[, seconds])`: block the set of addresses with message `msg`, for `seconds` seconds (10 by default)
     * `setDynBlocksAction(DNSAction)`: set which action is performed when a query is blocked. Only DNSAction.Drop (the default) and DNSAction.Refused are supported
     * `addBPFFilterDynBlocks(addresses, DynBPFFilter[, seconds])`: block the set of addresses using the supplied BPF Filter, for `seconds` seconds (10 by default)
-    * `exceedServFails(rate, seconds)`: get set of addresses that exceed `rate` servails/s over `seconds` seconds
+    * `exceedServFails(rate, seconds)`: get set of addresses that exceed `rate` servfails/s over `seconds` seconds
     * `exceedNXDOMAINs(rate, seconds)`: get set of addresses that exceed `rate` NXDOMAIN/s over `seconds` seconds
-    * `exceedRespByterate(rate, seconds)`: get set of addresses that exeeded `rate` bytes/s answers over `seconds` seconds
+    * `exceedRespByterate(rate, seconds)`: get set of addresses that exceeded `rate` bytes/s answers over `seconds` seconds
     * `exceedQRate(rate, seconds)`: get set of address that exceed `rate` queries/s over `seconds` seconds
     * `exceedQTypeRate(type, rate, seconds)`: get set of address that exceed `rate` queries/s for queries of type `type` over `seconds` seconds
  * ServerPool related:
@@ -1496,7 +1496,7 @@ instantiate a server with additional parameters
         * member `wirelength()`: return the length on the wire
     * DNSQuestion related:
         * member `dh`: DNSHeader
-        * member `ecsOverride`: whether an existing ECS value should be overriden (settable)
+        * member `ecsOverride`: whether an existing ECS value should be overridden (settable)
         * member `ecsPrefixLength`: the ECS prefix length to use (settable)
         * member `getDO()`: return true if the DNSSEC OK (DO) bit is set
         * member `len`: the question length

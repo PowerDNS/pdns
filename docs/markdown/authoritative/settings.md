@@ -60,10 +60,10 @@ specified. The default is to allow recursion from everywhere. Example:
 `allow-recursion=198.51.100.0/24, 10.0.0.0/8, 192.0.2.4`.
 
 ## `also-notify`
-* IP adresses, separated by commas
+* IP addresses, separated by commas
 
 When notifying a domain, also notify these nameservers. Example:
-`also-notify=192.0.2.1, 203.0.113.167`. The IP adresses listed in `also-notify`
+`also-notify=192.0.2.1, 203.0.113.167`. The IP addresses listed in `also-notify`
 always receive a notification. Even if they do not match the list in
 [`only-notify`](#also-notify).
 
@@ -251,7 +251,7 @@ The default keysize for the ZSK generated with
 * Default: no
 
 Read additional ZSKs from the records table/your BIND zonefile. If not set,
-DNSKEY recornds in the zonefiles are ignored.
+DNSKEY records in the zonefiles are ignored.
 
 ## `disable-axfr`
 * Boolean
@@ -372,7 +372,7 @@ change: e.g. `gmysql-host` is available to configure the `host` setting of the
 first or main instance, and `gmysql-server2-host` for the second one.
 
 ## `load-modules`
-* Paths, seperated by commas
+* Paths, separated by commas
 
 If backends are available in nonstandard directories, specify their location here.
 Multiple files can be loaded if separated by commas. Only available in non-static
@@ -595,11 +595,11 @@ with [`also-notify`](#also-notify) and `ALSO-NOTIFY` domain metadata always rece
 AXFR NOTIFYs.
 
 Note: Even if NOTIFYs are limited by a netmask, PowerDNS first has to resolve all the
-hostnames to check their IP addresses against the specfied whitelist. The resolving
+hostnames to check their IP addresses against the specified whitelist. The resolving
 may take considerable time, especially if those hostnames are slow to resolve. If you
 do not need to NOTIFY the slaves defined in the NS records (e.g. you are using another
 method to distribute the zone data to the slaves), then set `only-notify` to an empty
-value and specify the notification targets explicitely using [`also-notify`](#also-notify)
+value and specify the notification targets explicitly using [`also-notify`](#also-notify)
 and/or `ALSO-NOTIFY` domain metadata to avoid this potential bottleneck.
 
 ## `out-of-zone-additional-processing`

@@ -356,7 +356,7 @@ string doSetDnssecLogBogus(T begin, T end)
 
   if (pdns_iequals(*begin, "on") || pdns_iequals(*begin, "yes")) {
     if (!g_dnssecLogBogus) {
-      L<<Logger::Warning<<"Enabeling DNSSEC Bogus logging, requested via control channel"<<endl;
+      L<<Logger::Warning<<"Enabling DNSSEC Bogus logging, requested via control channel"<<endl;
       g_dnssecLogBogus = true;
       return "DNSSEC Bogus logging enabled\n";
     }
@@ -365,7 +365,7 @@ string doSetDnssecLogBogus(T begin, T end)
 
   if (pdns_iequals(*begin, "off") || pdns_iequals(*begin, "no")) {
     if (g_dnssecLogBogus) {
-      L<<Logger::Warning<<"Disabeling DNSSEC Bogus logging, requested via control channel"<<endl;
+      L<<Logger::Warning<<"Disabling DNSSEC Bogus logging, requested via control channel"<<endl;
       g_dnssecLogBogus = false;
       return "DNSSEC Bogus logging disabled\n";
     }

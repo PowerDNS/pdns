@@ -287,7 +287,7 @@ bool Bind2Backend::feedRecord(const DNSResourceRecord &rr, string *ordername)
   case QType::DNAME:
   case QType::NS:
     stripDomainSuffix(&content, name);
-    // falltrough
+    // fallthrough
   default:
     *d_of<<qname<<"\t"<<rr.ttl<<"\t"<<rr.qtype.getName()<<"\t"<<content<<endl;
   }

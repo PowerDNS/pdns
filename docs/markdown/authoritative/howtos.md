@@ -191,7 +191,7 @@ automatically follow changes in those A/AAAA records unless you AXFR regularly.
 
 ## ALIAS and DNSSEC
 Starting with the PowerDNS Authoritative Server 4.0.0, DNSSEC 'washing' of ALIAS
-records is supported on AXFR (**not** on live-siging). Set `outgoing-axfr-expand-alias`
+records is supported on AXFR (**not** on live-signing). Set `outgoing-axfr-expand-alias`
 to 'yes' and enable DNSSEC for the zone on the master. PowerDNS will sign the
 A/AAAA records during the AXFR.
 
@@ -211,7 +211,7 @@ case):
 pdnsutil add-zone-key example.net ksk active
 ```
 
-Note that a key with same algorith as the KSK to be replaced should be created,
+Note that a key with same algorithm as the KSK to be replaced should be created,
 as this is not an algorithm roll over.
 
 If this zone is of the type 'MASTER', increase the SOA serial. The rollover is

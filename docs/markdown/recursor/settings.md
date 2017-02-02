@@ -445,7 +445,7 @@ Sortlist is a complicated feature which allows for the ordering of A and
 AAAA records in answers to be modified, optionally dependently on who is
 asking. Since clients frequently connect to the 'first' IP address they see,
 this can effectively allow you to make sure that user from, say 10.0.0.0/8
-also preferrably connect to servers in 10.0.0.0/8.
+also preferably connect to servers in 10.0.0.0/8.
 
 The syntax consists of a netmask for which this ordering instruction
 applies, followed by a set of netmask (groups) which describe the desired
@@ -564,7 +564,7 @@ While `protobufServer()` only exports the queries sent to the recursor from clie
 along with the corresponding responses.
 
 ```
-outgoingProtobufServer("192.0.2.1:4242" [[[[, timeout], maxQueuedEntries], reconnectWaitTime], asynConnect])
+outgoingProtobufServer("192.0.2.1:4242" [[[[, timeout], maxQueuedEntries], reconnectWaitTime], asyncConnect])
 ```
 
 The optional parameters for `outgoingProtobufServer()` are:
@@ -618,7 +618,7 @@ suffice for most installations.
 * Default: 50
 
 The maximum number of outgoing queries that will be sent out during the resolution
-of a single client query. This is used to limit endlessy chasing CNAME redirections.
+of a single client query. This is used to limit endlessly chasing CNAME redirections.
 
 ## `max-negative-ttl`
 * Integer
@@ -661,7 +661,7 @@ Maximum number of DNS queries in a TCP connection.
 * Integer
 * Default: 7000
 
-Total maximum number of miliseconds of wallclock time the server may use to answer
+Total maximum number of milliseconds of wallclock time the server may use to answer
 a single query.
 
 ## `minimum-ttl-override`

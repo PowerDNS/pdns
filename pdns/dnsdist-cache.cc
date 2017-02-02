@@ -27,7 +27,7 @@
 DNSDistPacketCache::DNSDistPacketCache(size_t maxEntries, uint32_t maxTTL, uint32_t minTTL, uint32_t tempFailureTTL, uint32_t staleTTL): d_maxEntries(maxEntries), d_maxTTL(maxTTL), d_tempFailureTTL(tempFailureTTL), d_minTTL(minTTL), d_staleTTL(staleTTL)
 {
   pthread_rwlock_init(&d_lock, 0);
-  /* we reserve maxEntries + 1 to avoid rehashing from occuring
+  /* we reserve maxEntries + 1 to avoid rehashing from occurring
      when we get to maxEntries, as it means a load factor of 1 */
   d_map.reserve(maxEntries + 1);
 }

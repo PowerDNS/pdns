@@ -182,7 +182,7 @@ This release fixes two small issues and adds a setting to limit AXFR and IXFR si
 
  - [#4044](https://github.com/PowerDNS/pdns/pull/4044) Make DNSPacket return a ComboAddress for local and remote (Aki Tuomi)
  - [#4056](https://github.com/PowerDNS/pdns/pull/4056) OpenSSL 1.1.0 support (Christian Hofstaedtler)
- - [#4169](https://github.com/PowerDNS/pdns/pull/4169) Fix typos in a logmessage and exception (Christian Hofsteadtler)
+ - [#4169](https://github.com/PowerDNS/pdns/pull/4169) Fix typos in a logmessage and exception (Christian Hofstaedtler)
  - [#4183](https://github.com/PowerDNS/pdns/pull/4183) pdnsutil: Remove checking of ctime and always diff the changes (Hannu Ylitalo)
  - [#4192](https://github.com/PowerDNS/pdns/pull/4192) dnsreplay: Only add Client Subnet stamp when asked
  - [#4250](https://github.com/PowerDNS/pdns/pull/4250) Use toLogString() for ringAccount (Kees Monshouwer)
@@ -240,7 +240,7 @@ It has the following improvements:
 
 And these additions:
 
- - [#3981](https://github.com/PowerDNS/pdns/pull/3981) Import Javascript sources for libs shipped with Recursor (Christian Hofstaedtler)
+ - [#3981](https://github.com/PowerDNS/pdns/pull/3981) Import JavaScript sources for libs shipped with Recursor (Christian Hofstaedtler)
  - [#4012](https://github.com/PowerDNS/pdns/pull/4012) add tags support to ProtobufLogger.py
  - [#4032](https://github.com/PowerDNS/pdns/pull/4032) Set the existing policy tags in `dq` for `{pre,post}resolve`
  - [#4077](https://github.com/PowerDNS/pdns/pull/4077) Add DNSSEC validation statistics
@@ -558,7 +558,7 @@ Changes since 3.4.7:
 - [commit 9322aee](https://github.com/PowerDNS/pdns/commit/9322aee): Remove hardcoded -lresolv, -lnsl and -lsocket (Ruben Kerkhof)
 - [commit 23d26d8](https://github.com/PowerDNS/pdns/commit/23d26d8): pdnssec: don't check disabled records (Pieter Lexis)
 - [commit ce92ff1](https://github.com/PowerDNS/pdns/commit/ce92ff1): pdnssec: check all records (including disabled ones) only in verbose mode (Kees Monshouwer)
-- [commit f745312](https://github.com/PowerDNS/pdns/commit/f745312): traling dot in DNAME content (Kees Monshouwer)
+- [commit f745312](https://github.com/PowerDNS/pdns/commit/f745312): trailing dot in DNAME content (Kees Monshouwer)
 - [commit ed02761](https://github.com/PowerDNS/pdns/commit/ed02761): Fix luabackend compilation on FreeBSD i386 (RvdE)
 - [commit 07ea6ac](https://github.com/PowerDNS/pdns/commit/07ea6ac): silence g++ 6.0 warnings and error (Kees Monshouwer)
 - [commit c6077b1](https://github.com/PowerDNS/pdns/commit/c6077b1): add gcc 5.3 and 6.0 support to boost.m4 (Kees Monshouwer)
@@ -1011,7 +1011,7 @@ Minor changes:
 New features:
 
 - [commit 1b97ba0](https://github.com/PowerDNS/pdns/commit/1b97ba0): add signatures metric to auth, so we can plot signatures/second
-- [commit 92cef2d](https://github.com/PowerDNS/pdns/commit/92cef2d): pdns_control: make it posible to notify all zones at once
+- [commit 92cef2d](https://github.com/PowerDNS/pdns/commit/92cef2d): pdns_control: make it possible to notify all zones at once
 - [commit f648752](https://github.com/PowerDNS/pdns/commit/f648752): JSON API: provide flush-cache, notify, axfr-retrieve
 - [commit 02653a7](https://github.com/PowerDNS/pdns/commit/02653a7): add 'bench-db' to do very simple database backend performance benchmark
 - [commit a83257a](https://github.com/PowerDNS/pdns/commit/a83257a): enable callback based metrics to statbas, and add 5 such metrics: uptime, sys-msec, user-msec, key-cache-size, meta-cache-size, signature-cache-size
@@ -1105,7 +1105,7 @@ Bugs fixed:
 - Cache sizes had an off-by-one scaling problem, with the wrong number of entries allocated per thread f8f243b01215d6adcb59389f09ef494f1309041f
 - Our automatic file descriptor limit raising was attempted *after* setuid, which made it a lot less effective. Found and fixed by Aki Tuomi
   a6414fdce9b0ec32c340d1f2eea2254f3fedc1c1
-- Timestamps used for dropping packets were occasionaly wrong 183eb8774e4bc2569f06d5894fec65740f4b70b6 and 4c4765c104bacc146533217bcc843efb244a8086 
+- Timestamps used for dropping packets were occasionally wrong 183eb8774e4bc2569f06d5894fec65740f4b70b6 and 4c4765c104bacc146533217bcc843efb244a8086 
   (RC2) with thanks to Winfried for debugging.
 - In RC1, our new DoS protection measures would crash the Recursor if too many root servers were unreachable.
   6a6fb05ad81c519b4002ed1db00f3ed9b7bce6b4. Debugging and testing by Fusl.
@@ -1232,7 +1232,7 @@ Changes between 3.3.1 and 3.4.0-RC1 follow.
 -   [commit 9245fd9](https://github.com/PowerDNS/pdns/commit/9245fd9): don't addSuckRequest after supermaster zone creation to avoid one cause of simultaneous AXFR for the same zone
 -   [commit 719f902](https://github.com/PowerDNS/pdns/commit/719f902): fix dual-stack superslave when multiple namservers share a ip
 -   [commit 33966bf](https://github.com/PowerDNS/pdns/commit/33966bf): avoid address truncation in doNotifications
--   [commit eac85b1](https://github.com/PowerDNS/pdns/commit/eac85b1): prevent duplicate slave notications caused by different ipv6 address formatting
+-   [commit eac85b1](https://github.com/PowerDNS/pdns/commit/eac85b1): prevent duplicate slave notifications caused by different ipv6 address formatting
 -   [commit 3c8a711](https://github.com/PowerDNS/pdns/commit/3c8a711): make notification queue ipv6 compatible
 -   [commit 0c13e45](https://github.com/PowerDNS/pdns/commit/0c13e45): make isMaster ip check more tolerant for different ipv6 notations
 -   Various fixes for possible issues reported by Coverity Scan ([commit f17c93b](https://github.com/PowerDNS/pdns/commit/f17c93b), )
@@ -1271,7 +1271,7 @@ Changes between 3.3.1 and 3.4.0-RC1 follow.
 -   Bundled PolarSSL has been upgraded to 1.3.2
 -   PolarSSL replaced previously bundled implementations of AES ([commit e22d9b4](https://github.com/PowerDNS/pdns/commit/e22d9b4)) and SHA ([commit 9101035](https://github.com/PowerDNS/pdns/commit/9101035))
 -   bindbackend is now a module
--   [commit 14a2e52](https://github.com/PowerDNS/pdns/commit/14a2e52): Use the inet data type for supermasters.ip on postgrsql.
+-   [commit 14a2e52](https://github.com/PowerDNS/pdns/commit/14a2e52): Use the inet data type for supermasters.ip on postgresql.
 -   We now send an empty SERVFAIL when a CNAME chain is too long, instead of including the partial chain.
 -   [commit 3613a51](https://github.com/PowerDNS/pdns/commit/3613a51): Show built-in features in --version output
 -   [commit 4bd7d35](https://github.com/PowerDNS/pdns/commit/4bd7d35): make domainmetadata queries case insensitive
@@ -1586,7 +1586,7 @@ Changes between RC2 and RC3 (unreleased)
 -   NSD mistakenly compresses labels for RP and other types, violating a MUST in RFC 3597. Recursor does not decompress these labels, violating a SHOULD in RFC3597. We now decompress these labels, and reportedly NSD will stop compressing them. Reported by Jan-Piet Mens, fixed in [commit 3109](http://wiki.powerdns.com/projects/trac/changeset/3109).
 -   When forwarding to another recursor, we would handle responses to ANY queries incorrectly. Spotted by Jan-Piet Mens, fixed in [commit 3116](http://wiki.powerdns.com/projects/trac/changeset/3116), closes [ticket 704](https://github.com/PowerDNS/pdns/issues/704).
 -   Our local-nets definition (used as a default for some settings) now includes the networks from RFC 3927 and RFC 6598. Reported by Maik Zumstrull, fixed in [commit 3122](http://wiki.powerdns.com/projects/trac/changeset/3122).
--   The RC1 change to stop using ANY queries to get A+AAAA for name servers in one go had a 5% performance impact. This impact is corrected in [commit 3132](http://wiki.powerdns.com/projects/trac/changeset/3132). Thanks to Winfried Angele for measuring and reporting this. Closees [ticket 710](https://github.com/PowerDNS/pdns/issues/710).
+-   The RC1 change to stop using ANY queries to get A+AAAA for name servers in one go had a 5% performance impact. This impact is corrected in [commit 3132](http://wiki.powerdns.com/projects/trac/changeset/3132). Thanks to Winfried Angele for measuring and reporting this. Closes [ticket 710](https://github.com/PowerDNS/pdns/issues/710).
 -   New command 'rec\_control dump-nsspeeds' will dump our NS speeds (latency) cache. Code in [commit 3131](http://wiki.powerdns.com/projects/trac/changeset/3131).
 
 ## Changes between RC1 and RC2
@@ -2358,7 +2358,7 @@ This version contains powerful scripting abilities, allowing operators to modify
 
 It is hoped that the addition of Lua scripting will enable responsible DNS modification for those that need it.
 
-For more details about the Lua scripting, which can be modified, loaded and unloaded at runtime, see [Scripting](recursor/scripting.md "Scripting"). Many thanks are due to the \#lua irc channel, for excellent near-realtime Lua support. In addition, a number of PowerDNS users have been enthousiastically testing prereleases of the scripting support, and have found and solved many issues.
+For more details about the Lua scripting, which can be modified, loaded and unloaded at runtime, see [Scripting](recursor/scripting.md "Scripting"). Many thanks are due to the \#lua irc channel, for excellent near-realtime Lua support. In addition, a number of PowerDNS users have been enthusiastically testing prereleases of the scripting support, and have found and solved many issues.
 
 In addition, 3.1.7 fixes a number of bugs
 

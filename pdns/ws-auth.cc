@@ -770,7 +770,7 @@ static void apiZoneCryptokeysGET(DNSName zonename, int inquireKeyId, HttpRespons
  * Server Answers:
  * Case 1: the backend returns true on removal. This means the key is gone.
  *      The server returns 200 OK, no body.
- * Case 2: the backend returns false on removal. An error occoured.
+ * Case 2: the backend returns false on removal. An error occurred.
  *      The sever returns 422 Unprocessable Entity with message "Could not DELETE :cryptokey_id".
  * */
 static void apiZoneCryptokeysDELETE(DNSName zonename, int inquireKeyId, HttpRequest *req, HttpResponse *resp, DNSSECKeeper *dk) {
@@ -789,7 +789,7 @@ static void apiZoneCryptokeysDELETE(DNSName zonename, int inquireKeyId, HttpRequ
  *  "content" : "key The format used is compatible with BIND and NSD/LDNS" <string>
  *  "keytype" : "ksk|zsk" <string>
  *  "active"  : "true|false" <value>
- *  "algo" : "key generation algorithim "name|number" as default"<string> https://doc.powerdns.com/md/authoritative/dnssec/#supported-algorithms
+ *  "algo" : "key generation algorithm "name|number" as default"<string> https://doc.powerdns.com/md/authoritative/dnssec/#supported-algorithms
  *  "bits" : number of bits <int>
  *  }
  *
@@ -904,7 +904,7 @@ static void apiZoneCryptokeysPOST(DNSName zonename, HttpRequest *req, HttpRespon
  *      The server returns 400 Bad Request
  * Case 2: the backend returns true on de/activation. This means the key is de/active.
  *      The server returns 204 No Content
- * Case 3: the backend returns false on de/activation. An error occoured.
+ * Case 3: the backend returns false on de/activation. An error occurred.
  *      The sever returns 422 Unprocessable Entity with message "Could not de/activate Key: :cryptokey_id in Zone: :zone_name"
  * */
 static void apiZoneCryptokeysPUT(DNSName zonename, int inquireKeyId, HttpRequest *req, HttpResponse *resp, DNSSECKeeper *dk) {
@@ -1389,7 +1389,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
       }
 
       if (changetype == "DELETE") {
-        // delete all matching qname/qtype RRs (and, implictly comments).
+        // delete all matching qname/qtype RRs (and, implicitly comments).
         if (!di.backend->replaceRRSet(di.id, qname, qtype, vector<DNSResourceRecord>())) {
           throw ApiException("Hosting backend does not support editing records.");
         }

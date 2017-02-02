@@ -127,7 +127,7 @@ LegendI[recursing]: recursing-answers
 ```
 
 ## Sending to Carbon/Graphite/Metronome
-For carbon/graphite/metronome, we use the following namespace. Everything starts with 'pdns.', which is then followed by the local hostname. Thirdly, we add either 'auth' or 'recursor' to siginify the daemon generating the metrics. This is then rounded off with the actual name of the metric. As an example: 'pdns.ns1.recursor.questions'.
+For carbon/graphite/metronome, we use the following namespace. Everything starts with 'pdns.', which is then followed by the local hostname. Thirdly, we add either 'auth' or 'recursor' to signify the daemon generating the metrics. This is then rounded off with the actual name of the metric. As an example: 'pdns.ns1.recursor.questions'.
 
 **Warning**: If your hostname includes dots, beyond 3.6.2 they will be
 replaced by underscores so as not to confuse the namespace. In 3.6.2 and earlier,

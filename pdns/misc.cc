@@ -1303,7 +1303,7 @@ gid_t strToGID(const string &str)
 
 unsigned int pdns_stou(const std::string& str, size_t * idx, int base)
 {
-  if (str.empty()) return 0; // compability
+  if (str.empty()) return 0; // compatibility
   unsigned long result = std::stoul(str, idx, base);
   if (result > std::numeric_limits<unsigned int>::max()) {
     throw std::out_of_range("stou");

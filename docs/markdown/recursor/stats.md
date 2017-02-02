@@ -43,7 +43,7 @@ The `rec_control get` command can be used to query the following statistics, eit
 * `malloc-bytes`: returns the number of bytes allocated by the process (broken, always returns 0)
 * `max-mthread-stack`: maximum amount of thread stack ever used
 * `negcache-entries`: shows the number of entries in the negative answer cache
-* `no-packet-error`: number of errorneous received packets
+* `no-packet-error`: number of erroneous received packets
 * `noedns-outqueries`: number of queries sent out without EDNS
 * `noerror-answers`: counts the number of times it answered NOERROR since starting
 * `noping-outqueries`: number of queries sent out without ENDS PING
