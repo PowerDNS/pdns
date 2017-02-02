@@ -58,7 +58,7 @@ class ClientSubnetOption(dns.edns.Option):
     """Implementation of draft-vandergaast-edns-client-subnet-01.
 
     Attributes:
-        family: An integer inidicating which address family is being sent
+        family: An integer indicating which address family is being sent
         ip: IP address in integer notation
         mask: An integer representing the number of relevant bits being sent
         scope: An integer representing the number of significant bits used by
