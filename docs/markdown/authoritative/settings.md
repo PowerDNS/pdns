@@ -595,7 +595,7 @@ with [`also-notify`](#also-notify) and `ALSO-NOTIFY` domain metadata always rece
 AXFR NOTIFYs.
 
 Note: Even if NOTIFYs are limited by a netmask, PowerDNS first has to resolve all the
-hostnames to check their IP addresses against the specfied whitelist. The resolving
+hostnames to check their IP addresses against the specified whitelist. The resolving
 may take considerable time, especially if those hostnames are slow to resolve. If you
 do not need to NOTIFY the slaves defined in the NS records (e.g. you are using another
 method to distribute the zone data to the slaves), then set `only-notify` to an empty
