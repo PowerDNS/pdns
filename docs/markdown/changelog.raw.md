@@ -1105,7 +1105,7 @@ Bugs fixed:
 - Cache sizes had an off-by-one scaling problem, with the wrong number of entries allocated per thread f8f243b01215d6adcb59389f09ef494f1309041f
 - Our automatic file descriptor limit raising was attempted *after* setuid, which made it a lot less effective. Found and fixed by Aki Tuomi
   a6414fdce9b0ec32c340d1f2eea2254f3fedc1c1
-- Timestamps used for dropping packets were occasionaly wrong 183eb8774e4bc2569f06d5894fec65740f4b70b6 and 4c4765c104bacc146533217bcc843efb244a8086 
+- Timestamps used for dropping packets were occasionally wrong 183eb8774e4bc2569f06d5894fec65740f4b70b6 and 4c4765c104bacc146533217bcc843efb244a8086 
   (RC2) with thanks to Winfried for debugging.
 - In RC1, our new DoS protection measures would crash the Recursor if too many root servers were unreachable.
   6a6fb05ad81c519b4002ed1db00f3ed9b7bce6b4. Debugging and testing by Fusl.
