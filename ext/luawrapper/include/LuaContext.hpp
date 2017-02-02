@@ -741,7 +741,7 @@ private:
     // equivalent of lua_settable with t[k]=n, where t is the value at the index in the template parameter, k is the second parameter, n is the last parameter, and n is pushed by the function in the first parameter
     // if there are more than 3 parameters, parameters 3 to n-1 are considered as sub-indices into the array
     // the dataPusher MUST push only one thing on the stack
-    // TTableIndex must be either LUA_REGISTERYINDEX, LUA_GLOBALSINDEX, LUA_ENVINDEX, or the position of the element on the stack
+    // TTableIndex must be either LUA_REGISTRYINDEX, LUA_GLOBALSINDEX, LUA_ENVINDEX, or the position of the element on the stack
     template<typename TDataType, typename TIndex, typename TData>
     static void setTable(lua_State* state, const PushedObject&, TIndex&& index, TData&& data) noexcept
     {
