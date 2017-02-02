@@ -610,7 +610,7 @@ bool UeberBackend::get(DNSZoneRecord &rr)
   if(!d_handle.get(rr)) {
     // cout<<"end of ueberbackend get, seeing if we should cache"<<endl;
     if(!d_ancount && d_handle.qname.countLabels()) {// don't cache axfr
-      // cout<<"adding negache"<<endl;
+      // cout<<"adding negcache"<<endl;
       addNegCache(d_question);
     }
     else {
