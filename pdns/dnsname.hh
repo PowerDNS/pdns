@@ -34,7 +34,7 @@
 #include <boost/container/string.hpp>
 #endif
 
-uint32_t burtleCI(const unsigned char* k, uint32_t lengh, uint32_t init);
+uint32_t burtleCI(const unsigned char* k, uint32_t length, uint32_t init);
 
 // #include "dns.hh"
 // #include "logger.hh"
