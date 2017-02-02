@@ -89,7 +89,7 @@ public:
   };
 
   //! Compare two Gss Names, if no gss support is compiled in, returns false always
-  //! This is not necessarely same as string comparison between two non-parsed names
+  //! This is not necessarily same as string comparison between two non-parsed names
   bool operator==(const GssName& rhs) {
 #ifdef ENABLE_GSS_TSIG
     OM_uint32 maj,min;
@@ -101,7 +101,7 @@ public:
   }
 
   //! Compare two Gss Names, if no gss support is compiled in, returns false always
-  //! This is not necessarely same as string comparison between two non-parsed names
+  //! This is not necessarily same as string comparison between two non-parsed names
   bool match(const std::string& name) {
 #ifdef ENABLE_GSS_TSIG
     OM_uint32 maj,min;

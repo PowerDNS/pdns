@@ -588,7 +588,7 @@ on ubuntu/debian (tested with Ubuntu 12 and 14).
     sudo pkcs11-tool --module=/home/cmouse/softhsm/lib/softhsm/libsofthsm.so -l -p some-pin -k --key-type RSA:2048 -a zone-ksk|zone-zsk --slot-index slot-number
     ```
 
--   Assign the keys using (note that token label is not necessarely same as object label, see p11-kit -l)
+-   Assign the keys using (note that token label is not necessarily same as object label, see p11-kit -l)
 
     ```
     pdnsutil hsm assign zone rsasha256 ksk|zsk softhsm token-label pin zone-ksk|zsk
