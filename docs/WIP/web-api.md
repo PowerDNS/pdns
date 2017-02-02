@@ -8,7 +8,7 @@ To make use of this API, there is a Python, flask, based web application called 
 
 Finally, there is a program called 'pdnsmgrd' that also provides an API for stopping PowerDNS, starting it, installing new versions etc. 
 
-The JSON API suports JSON and JSONp.
+The JSON API supports JSON and JSONp.
 
 To get you started, try on the Authoritative Server:
 
