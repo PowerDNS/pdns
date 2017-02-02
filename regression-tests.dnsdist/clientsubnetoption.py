@@ -126,7 +126,7 @@ class ClientSubnetOption(dns.edns.Option):
         return self.option == DRAFT_OPTION_CODE
 
     def to_wire(self, file):
-        """Create EDNS packet as definied in draft-vandergaast-edns-client-subnet-01."""
+        """Create EDNS packet as defined in draft-vandergaast-edns-client-subnet-01."""
 
         ip = self.calculate_ip()
 

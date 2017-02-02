@@ -23,7 +23,7 @@ class CookiesOption(dns.edns.Option):
         self.server = server
 
     def to_wire(self, file):
-        """Create EDNS packet as definied in draft-ietf-dnsop-cookies-09."""
+        """Create EDNS packet as defined in draft-ietf-dnsop-cookies-09."""
 
         file.write(self.client)
         if self.server and len(self.server) > 0:
