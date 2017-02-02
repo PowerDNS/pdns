@@ -101,7 +101,7 @@ BOOST_AUTO_TEST_CASE(addECSWithoutEDNS)
   BOOST_CHECK_EQUAL(ecsAdded, false);
   validateQuery(packet, len);
 
-  /* not large enought packet */
+  /* not large enough packet */
   consumed = 0;
   len = query.size();
   qname = DNSName((char*) query.data(), len, sizeof(dnsheader), false, &qtype, NULL, &consumed);
@@ -147,7 +147,7 @@ BOOST_AUTO_TEST_CASE(addECSWithEDNSNoECS) {
   BOOST_CHECK_EQUAL(ecsAdded, true);
   validateQuery(packet, len);
 
-  /* not large enought packet */
+  /* not large enough packet */
   consumed = 0;
   len = query.size();
   qname = DNSName((char*) query.data(), len, sizeof(dnsheader), false, &qtype, NULL, &consumed);
@@ -275,7 +275,7 @@ BOOST_AUTO_TEST_CASE(replaceECSWithLarger) {
   BOOST_CHECK_EQUAL(ecsAdded, false);
   validateQuery(packet, len);
 
-  /* not large enought packet */
+  /* not large enough packet */
   consumed = 0;
   len = query.size();
   qname = DNSName((char*) query.data(), len, sizeof(dnsheader), false, &qtype, NULL, &consumed);
