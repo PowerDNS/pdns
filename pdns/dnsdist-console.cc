@@ -309,7 +309,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "exceedNXDOMAINs", true, "rate, seconds", "get set of addresses that exceed `rate` NXDOMAIN/s over `seconds` seconds" },
   { "exceedQRate", true, "rate, seconds", "get set of address that exceed `rate` queries/s over `seconds` seconds" },
   { "exceedQTypeRate", true, "type, rate, seconds", "get set of address that exceed `rate` queries/s for queries of type `type` over `seconds` seconds" },
-  { "exceedRespByterate", true, "rate, seconds", "get set of addresses that exeeded `rate` bytes/s answers over `seconds` seconds" },
+  { "exceedRespByterate", true, "rate, seconds", "get set of addresses that exceeded `rate` bytes/s answers over `seconds` seconds" },
   { "exceedServFails", true, "rate, seconds", "get set of addresses that exceed `rate` servails/s over `seconds` seconds" },
   { "firstAvailable", false, "", "picks the server with the lowest `order` that has not exceeded its QPS limit" },
   { "fixupCase", true, "bool", "if set (default to no), rewrite the first qname of the question part of the answer to match the one from the query. It is only useful when you have a downstream server that messes up the case of the question qname in the answer" },

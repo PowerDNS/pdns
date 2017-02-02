@@ -1459,7 +1459,7 @@ instantiate a server with additional parameters
     * `addBPFFilterDynBlocks(addresses, DynBPFFilter[, seconds])`: block the set of addresses using the supplied BPF Filter, for `seconds` seconds (10 by default)
     * `exceedServFails(rate, seconds)`: get set of addresses that exceed `rate` servails/s over `seconds` seconds
     * `exceedNXDOMAINs(rate, seconds)`: get set of addresses that exceed `rate` NXDOMAIN/s over `seconds` seconds
-    * `exceedRespByterate(rate, seconds)`: get set of addresses that exeeded `rate` bytes/s answers over `seconds` seconds
+    * `exceedRespByterate(rate, seconds)`: get set of addresses that exceeded `rate` bytes/s answers over `seconds` seconds
     * `exceedQRate(rate, seconds)`: get set of address that exceed `rate` queries/s over `seconds` seconds
     * `exceedQTypeRate(type, rate, seconds)`: get set of address that exceed `rate` queries/s for queries of type `type` over `seconds` seconds
  * ServerPool related:
