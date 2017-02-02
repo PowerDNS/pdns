@@ -61,7 +61,7 @@ PowerDNS passed the test.
 Caveats
 -------
 
-Optional features of the DNS standard can cause a difference to arrise. For
+Optional features of the DNS standard can cause a difference to arise. For
 example, "Bind 8" appears to fail on nearly all our tests, whereas it is in
 compliance (except for one case).
 
