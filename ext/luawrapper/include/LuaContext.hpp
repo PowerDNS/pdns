@@ -566,7 +566,7 @@ public:
      * @sa writeVariable
      *
      * Readable types are all types accepted by writeVariable except nullptr, std::unique_ptr and function pointers
-     * Additionaly supported:
+     * Additionally supported:
      *  - LuaFunctionCaller<FunctionType>, which is an alternative to std::function
      *  - references to custom objects, in which case it will return the object in-place
      *
