@@ -287,7 +287,7 @@ class TestBasics(DNSDistTest):
 
         The backend send an unrelated answer over UDP, it should
         be discarded by dnsdist. It could happen if we wrap around
-        maxOutstanding queries too quickly or have more than maxOustanding
+        maxOutstanding queries too quickly or have more than maxOutstanding
         queries to a specific backend in the air over UDP,
         but does not really make sense over TCP.
         """
