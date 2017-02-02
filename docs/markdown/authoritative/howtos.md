@@ -211,7 +211,7 @@ case):
 pdnsutil add-zone-key example.net ksk active
 ```
 
-Note that a key with same algorith as the KSK to be replaced should be created,
+Note that a key with same algorithm as the KSK to be replaced should be created,
 as this is not an algorithm roll over.
 
 If this zone is of the type 'MASTER', increase the SOA serial. The rollover is

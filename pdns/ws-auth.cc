@@ -789,7 +789,7 @@ static void apiZoneCryptokeysDELETE(DNSName zonename, int inquireKeyId, HttpRequ
  *  "content" : "key The format used is compatible with BIND and NSD/LDNS" <string>
  *  "keytype" : "ksk|zsk" <string>
  *  "active"  : "true|false" <value>
- *  "algo" : "key generation algorithim "name|number" as default"<string> https://doc.powerdns.com/md/authoritative/dnssec/#supported-algorithms
+ *  "algo" : "key generation algorithm "name|number" as default"<string> https://doc.powerdns.com/md/authoritative/dnssec/#supported-algorithms
  *  "bits" : number of bits <int>
  *  }
  *
