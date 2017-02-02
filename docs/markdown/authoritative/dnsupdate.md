@@ -5,7 +5,7 @@ Starting with the PowerDNS Authoritative Server 3.4.0, DNS update support is ava
 * WKS records are specifically mentioned in the RFC, we don't specifically care about WKS records;
 * Anything we forgot....
 
-The implementation requires the backend to support a number of new oparations. Currently, the following backends have been modified to support DNS update:
+The implementation requires the backend to support a number of new operations. Currently, the following backends have been modified to support DNS update:
 
 * [gmysql](backend-generic-mysql.md)
 * [gpgsql](backend-generic-postgresql.md)
