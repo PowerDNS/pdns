@@ -72,7 +72,7 @@ daemon.
 * `servfail-packets`: Amount of packets that could not be answered due to database problems
 * `signature-cache-size`: Number of entries in the signature cache
 * `signatures`: Number of DNSSEC signatures created
-* `sys-msec`: Number of CPU miliseconds sent in system time
+* `sys-msec`: Number of CPU milliseconds sent in system time
 * `tcp-answers-bytes`: Total number of answer bytes sent over TCP (since 4.0.0)
 * `tcp-answers`: Number of answers sent out over TCP
 * `tcp-queries`: Number of questions received over TCP

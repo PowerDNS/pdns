@@ -661,7 +661,7 @@ Maximum number of DNS queries in a TCP connection.
 * Integer
 * Default: 7000
 
-Total maximum number of miliseconds of wallclock time the server may use to answer
+Total maximum number of milliseconds of wallclock time the server may use to answer
 a single query.
 
 ## `minimum-ttl-override`
