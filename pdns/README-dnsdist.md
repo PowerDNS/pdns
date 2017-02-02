@@ -1127,7 +1127,7 @@ that can arise in this kind of setup:
    it might be confused by the fact that the source address will be the one from
    the `dnsdist` server.
 
-The first issue can be solved by routing SOA, AXFR and IXFR requests explicitely
+The first issue can be solved by routing SOA, AXFR and IXFR requests explicitly
 to the master:
 
 ```

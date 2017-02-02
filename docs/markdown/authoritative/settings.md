@@ -599,7 +599,7 @@ hostnames to check their IP addresses against the specfied whitelist. The resolv
 may take considerable time, especially if those hostnames are slow to resolve. If you
 do not need to NOTIFY the slaves defined in the NS records (e.g. you are using another
 method to distribute the zone data to the slaves), then set `only-notify` to an empty
-value and specify the notification targets explicitely using [`also-notify`](#also-notify)
+value and specify the notification targets explicitly using [`also-notify`](#also-notify)
 and/or `ALSO-NOTIFY` domain metadata to avoid this potential bottleneck.
 
 ## `out-of-zone-additional-processing`
