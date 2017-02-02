@@ -477,7 +477,7 @@ private:
  * To erase something copy values to new tree sans the value you want to erase.
  *
  * Use swap if you need to move the tree to another NetmaskTree instance, it is WAY faster
- * than using copy ctor or assigment operator, since it moves the nodes and tree root to
+ * than using copy ctor or assignment operator, since it moves the nodes and tree root to
  * new home instead of actually recreating the tree.
  *
  * Please see NetmaskGroup for example of simple use case. Other usecases can be found
