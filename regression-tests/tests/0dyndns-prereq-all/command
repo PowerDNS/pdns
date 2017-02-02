@@ -46,7 +46,7 @@ answer
 # if the check worked, this record is still there.
 cleandig host-2.test.dyndns A
 
-# check if the specific record type styll exists, if not the case, delete it.
+# check if the specific record type still exists, if not the case, delete it.
 cleannsupdate <<!
 server $nameserver $port
 zone test.dyndns
