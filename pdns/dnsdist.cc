@@ -1606,7 +1606,7 @@ static void checkFileDescriptorsLimits(size_t udpBindsCount, size_t tcpBindsCoun
   requiredFDsCount += tcpBindsCount;
   /* max TCP connections currently served */
   requiredFDsCount += g_maxTCPClientThreads;
-  /* max pipes for communicatin between TCP acceptors and client threads */
+  /* max pipes for communicating between TCP acceptors and client threads */
   requiredFDsCount += (g_maxTCPClientThreads * 2);
   /* UDP sockets to backends */
   requiredFDsCount += backendsCount;
