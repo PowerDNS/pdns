@@ -58,7 +58,7 @@ public:
     setName("");
   };
 
-  //! Initilize using specific name
+  //! Initialize using specific name
   GssName(const std::string& name) {
     setName(name);
   };
