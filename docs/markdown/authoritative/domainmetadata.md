@@ -81,7 +81,7 @@ PowerDNS will not be able to correctly serve the zone if the imported data is
 bogus or incomplete. Also see `set-presigned` in [`pdnsutil`](dnssec.md#pdnsutil).
 
 If a zone is presigned, the content of the metadata must be "1" (without the
-quotes). Any other value will not signal prisignedness.
+quotes). Any other value will not signal presignedness.
 
 ## PUBLISH-CDNSKEY, PUBLISH-CDS
 Whether to publish CDNSKEY and/or CDS recording defined in [RFC 7344](https://tools.ietf.org/html/rfc7344).
