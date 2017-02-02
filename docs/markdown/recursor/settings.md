@@ -564,7 +564,7 @@ While `protobufServer()` only exports the queries sent to the recursor from clie
 along with the corresponding responses.
 
 ```
-outgoingProtobufServer("192.0.2.1:4242" [[[[, timeout], maxQueuedEntries], reconnectWaitTime], asynConnect])
+outgoingProtobufServer("192.0.2.1:4242" [[[[, timeout], maxQueuedEntries], reconnectWaitTime], asyncConnect])
 ```
 
 The optional parameters for `outgoingProtobufServer()` are:
