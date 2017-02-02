@@ -558,7 +558,7 @@ Changes since 3.4.7:
 - [commit 9322aee](https://github.com/PowerDNS/pdns/commit/9322aee): Remove hardcoded -lresolv, -lnsl and -lsocket (Ruben Kerkhof)
 - [commit 23d26d8](https://github.com/PowerDNS/pdns/commit/23d26d8): pdnssec: don't check disabled records (Pieter Lexis)
 - [commit ce92ff1](https://github.com/PowerDNS/pdns/commit/ce92ff1): pdnssec: check all records (including disabled ones) only in verbose mode (Kees Monshouwer)
-- [commit f745312](https://github.com/PowerDNS/pdns/commit/f745312): traling dot in DNAME content (Kees Monshouwer)
+- [commit f745312](https://github.com/PowerDNS/pdns/commit/f745312): trailing dot in DNAME content (Kees Monshouwer)
 - [commit ed02761](https://github.com/PowerDNS/pdns/commit/ed02761): Fix luabackend compilation on FreeBSD i386 (RvdE)
 - [commit 07ea6ac](https://github.com/PowerDNS/pdns/commit/07ea6ac): silence g++ 6.0 warnings and error (Kees Monshouwer)
 - [commit c6077b1](https://github.com/PowerDNS/pdns/commit/c6077b1): add gcc 5.3 and 6.0 support to boost.m4 (Kees Monshouwer)
