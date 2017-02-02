@@ -1457,7 +1457,7 @@ instantiate a server with additional parameters
     * `addDynBlocks(addresses, message[, seconds])`: block the set of addresses with message `msg`, for `seconds` seconds (10 by default)
     * `setDynBlocksAction(DNSAction)`: set which action is performed when a query is blocked. Only DNSAction.Drop (the default) and DNSAction.Refused are supported
     * `addBPFFilterDynBlocks(addresses, DynBPFFilter[, seconds])`: block the set of addresses using the supplied BPF Filter, for `seconds` seconds (10 by default)
-    * `exceedServFails(rate, seconds)`: get set of addresses that exceed `rate` servails/s over `seconds` seconds
+    * `exceedServFails(rate, seconds)`: get set of addresses that exceed `rate` servfails/s over `seconds` seconds
     * `exceedNXDOMAINs(rate, seconds)`: get set of addresses that exceed `rate` NXDOMAIN/s over `seconds` seconds
     * `exceedRespByterate(rate, seconds)`: get set of addresses that exceeded `rate` bytes/s answers over `seconds` seconds
     * `exceedQRate(rate, seconds)`: get set of address that exceed `rate` queries/s over `seconds` seconds
