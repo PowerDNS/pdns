@@ -1586,7 +1586,7 @@ Changes between RC2 and RC3 (unreleased)
 -   NSD mistakenly compresses labels for RP and other types, violating a MUST in RFC 3597. Recursor does not decompress these labels, violating a SHOULD in RFC3597. We now decompress these labels, and reportedly NSD will stop compressing them. Reported by Jan-Piet Mens, fixed in [commit 3109](http://wiki.powerdns.com/projects/trac/changeset/3109).
 -   When forwarding to another recursor, we would handle responses to ANY queries incorrectly. Spotted by Jan-Piet Mens, fixed in [commit 3116](http://wiki.powerdns.com/projects/trac/changeset/3116), closes [ticket 704](https://github.com/PowerDNS/pdns/issues/704).
 -   Our local-nets definition (used as a default for some settings) now includes the networks from RFC 3927 and RFC 6598. Reported by Maik Zumstrull, fixed in [commit 3122](http://wiki.powerdns.com/projects/trac/changeset/3122).
--   The RC1 change to stop using ANY queries to get A+AAAA for name servers in one go had a 5% performance impact. This impact is corrected in [commit 3132](http://wiki.powerdns.com/projects/trac/changeset/3132). Thanks to Winfried Angele for measuring and reporting this. Closees [ticket 710](https://github.com/PowerDNS/pdns/issues/710).
+-   The RC1 change to stop using ANY queries to get A+AAAA for name servers in one go had a 5% performance impact. This impact is corrected in [commit 3132](http://wiki.powerdns.com/projects/trac/changeset/3132). Thanks to Winfried Angele for measuring and reporting this. Closes [ticket 710](https://github.com/PowerDNS/pdns/issues/710).
 -   New command 'rec\_control dump-nsspeeds' will dump our NS speeds (latency) cache. Code in [commit 3131](http://wiki.powerdns.com/projects/trac/changeset/3131).
 
 ## Changes between RC1 and RC2
