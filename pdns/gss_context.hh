@@ -153,7 +153,7 @@ public:
   const DNSName& getLabel() { return d_label; } //<! Return context name
 
   bool init(const std::string &input, std::string& output); //<! Perform GSS Initiate Security Context handshake
-  bool accept(const std::string &input, std::string& output); //<! Perform GSS Acccept Security Context handshake
+  bool accept(const std::string &input, std::string& output); //<! Perform GSS Accept Security Context handshake
   bool destroy(); //<! Release the cached context
   bool expired(); //<! Check if context is expired
   bool valid(); //<! Check if context is valid
