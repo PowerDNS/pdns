@@ -2358,7 +2358,7 @@ This version contains powerful scripting abilities, allowing operators to modify
 
 It is hoped that the addition of Lua scripting will enable responsible DNS modification for those that need it.
 
-For more details about the Lua scripting, which can be modified, loaded and unloaded at runtime, see [Scripting](recursor/scripting.md "Scripting"). Many thanks are due to the \#lua irc channel, for excellent near-realtime Lua support. In addition, a number of PowerDNS users have been enthousiastically testing prereleases of the scripting support, and have found and solved many issues.
+For more details about the Lua scripting, which can be modified, loaded and unloaded at runtime, see [Scripting](recursor/scripting.md "Scripting"). Many thanks are due to the \#lua irc channel, for excellent near-realtime Lua support. In addition, a number of PowerDNS users have been enthusiastically testing prereleases of the scripting support, and have found and solved many issues.
 
 In addition, 3.1.7 fixes a number of bugs
 
