@@ -55,7 +55,7 @@ gOracleBackend::gOracleBackend(const string &mode, const string &suffix)  : GSQL
   }
 
   try {
-    // set Oracle envionment variables
+    // set Oracle environment variables
     setDB(new SOracle(getArg("tnsname"),
                       getArg("user"),
                       getArg("password"), 
