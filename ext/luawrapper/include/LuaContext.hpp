@@ -643,7 +643,7 @@ public:
     
     /**
      * Equivalent to writeVariable(varName, ..., std::function<TFunctionType>(data));
-     * This version is more effecient than writeVariable if you want to write functions
+     * This version is more efficient than writeVariable if you want to write functions
      */
     template<typename TFunctionType, typename... TData>
     void writeFunction(TData&&... data) noexcept {
