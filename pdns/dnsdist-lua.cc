@@ -412,6 +412,10 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			  ret->tcpRecvTimeout=std::stoi(boost::get<string>(vars["tcpRecvTimeout"]));
 			}
 
+			if(vars.count("tcpFastOpen")) {
+			  ret->tcpFastOpen=boost::get<bool>(vars["tcpFastOpen"]);
+			}
+
 			if(vars.count("name")) {
 			  ret->name=boost::get<string>(vars["name"]);
 			}
