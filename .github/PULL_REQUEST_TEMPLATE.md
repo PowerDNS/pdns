@@ -10,4 +10,4 @@ I have:
 - [ ] documented the code
 - [ ] added regression tests
 - [ ] added unit tests
-- [ ] <!-- when not filing this Pull Request against the master branch --> checked that this code was merged to master
+- [ ] <!-- remove this line if your PR is against master --> checked that this code was merged to master
