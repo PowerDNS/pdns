@@ -31,7 +31,15 @@
 
 #include "iputils.hh"
 
-class RemoteLogger
+class IfaceRemoteLogger
+{
+public:
+  virtual ~IfaceRemoteLogger() {}
+  virtual void queueData(const std::string& data) = 0;
+  virtual std::string toString() = 0;
+};
+
+class RemoteLogger : public IfaceRemoteLogger
 {
 public:
   RemoteLogger(const ComboAddress& remote, uint16_t timeout=2, uint64_t maxQueuedEntries=100, uint8_t reconnectWaitTime=1, bool asyncConnect=false);

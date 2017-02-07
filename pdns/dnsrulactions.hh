@@ -26,13 +26,14 @@
 #include "ednsoptions.hh"
 #include "lock.hh"
 #include "remote_logger.hh"
+#include "fstrm_logger.hh"
 #include "dnsdist-protobuf.hh"
 #include "dnsparser.hh"
 
 class MaxQPSIPRule : public DNSRule
 {
 public:
-  MaxQPSIPRule(unsigned int qps, unsigned int ipv4trunc=32, unsigned int ipv6trunc=64) : 
+  MaxQPSIPRule(unsigned int qps, unsigned int ipv4trunc=32, unsigned int ipv6trunc=64) :
     d_qps(qps), d_ipv4trunc(ipv4trunc), d_ipv6trunc(ipv6trunc)
   {
     pthread_rwlock_init(&d_lock, 0);
@@ -317,11 +318,11 @@ public:
 class AndRule : public DNSRule
 {
 public:
-  AndRule(const vector<pair<int, shared_ptr<DNSRule> > >& rules) 
+  AndRule(const vector<pair<int, shared_ptr<DNSRule> > >& rules)
   {
     for(const auto& r : rules)
       d_rules.push_back(r.second);
-  } 
+  }
 
   bool matches(const DNSQuestion* dq) const override
   {
@@ -343,7 +344,7 @@ public:
     return ret;
   }
 private:
-  
+
   vector<std::shared_ptr<DNSRule> > d_rules;
 
 };
@@ -389,7 +390,7 @@ class RegexRule : public DNSRule
 public:
   RegexRule(const std::string& regex) : d_regex(regex), d_visual(regex)
   {
-    
+
   }
   bool matches(const DNSQuestion* dq) const override
   {
@@ -412,7 +413,7 @@ class RE2Rule : public DNSRule
 public:
   RE2Rule(const std::string& re2) : d_re2(re2, RE2::Latin1), d_visual(re2)
   {
-    
+
   }
   bool matches(const DNSQuestion* dq) const override
   {
@@ -790,7 +791,7 @@ public:
 class QPSAction : public DNSAction
 {
 public:
-  QPSAction(int limit) : d_qps(limit, limit) 
+  QPSAction(int limit) : d_qps(limit, limit)
   {}
   DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
   {
@@ -801,7 +802,7 @@ public:
   }
   string toString() const override
   {
-    return "qps limit to "+std::to_string(d_qps.getRate()); 
+    return "qps limit to "+std::to_string(d_qps.getRate());
   }
 private:
   QPSLimiter d_qps;
@@ -887,7 +888,7 @@ public:
       *ruleresult=d_pool;
       return Action::Pool;
     }
-    else 
+    else
       return Action::None;
   }
   string toString() const override
@@ -944,14 +945,14 @@ public:
   DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
   {
     uint16_t qtype = dq->qtype;
-    // do we even have a response? 
+    // do we even have a response?
     if(d_cname.empty() && !std::count_if(d_addrs.begin(), d_addrs.end(), [qtype](const ComboAddress& a)
                                     {
                                       return (qtype == QType::ANY || ((a.sin4.sin_family == AF_INET && qtype == QType::A) ||
                                                                       (a.sin4.sin_family == AF_INET6 && qtype == QType::AAAA)));
-                                    })) 
+                                    }))
       return Action::None;
-    
+
     vector<ComboAddress> addrs;
     unsigned int totrdatalen=0;
     if (!d_cname.empty()) {
@@ -979,7 +980,7 @@ public:
 
     dq->len = sizeof(dnsheader) + consumed + 4; // there goes your EDNS
     char* dest = ((char*)dq->dh) + dq->len;
-    
+
     dq->dh->qr = true; // for good measure
     dq->dh->ra = dq->dh->rd; // for good measure
     dq->dh->ad = false;
@@ -1024,7 +1025,7 @@ public:
     }
 
     dq->dh->ancount = htons(dq->dh->ancount);
-    
+
     return Action::HeaderModify;
   }
 
@@ -1073,7 +1074,7 @@ public:
     dq->len += res.length();
 
     return Action::None;
-  }  
+  }
   string toString() const override
   {
     return "add EDNS MAC (code="+std::to_string(d_code)+")";
@@ -1242,7 +1243,8 @@ public:
   DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
   {
 #ifdef HAVE_PROTOBUF
-    DNSDistProtoBufMessage message(*dq);
+    bool useDnstap = true;
+    DNSDistProtoBufMessage message(*dq, useDnstap);
     {
       if (d_alterFunc) {
         std::lock_guard<std::mutex> lock(g_luamutex);
@@ -1295,7 +1297,8 @@ public:
   DNSResponseAction::Action operator()(DNSResponse* dr, string* ruleresult) const override
   {
 #ifdef HAVE_PROTOBUF
-    DNSDistProtoBufMessage message(*dr, d_includeCNAME);
+    bool useDnstap = true;
+    DNSDistProtoBufMessage message(*dr, d_includeCNAME, useDnstap);
     {
       if (d_alterFunc) {
         std::lock_guard<std::mutex> lock(g_luamutex);
@@ -1314,6 +1317,69 @@ public:
   }
 private:
   std::shared_ptr<RemoteLogger> d_logger;
+  boost::optional<std::function<void(const DNSResponse&, DNSDistProtoBufMessage*)> > d_alterFunc;
+  bool d_includeCNAME;
+};
+
+class FrameStreamLogAction : public DNSAction, public boost::noncopyable
+{
+public:
+  FrameStreamLogAction(std::shared_ptr<IfaceRemoteLogger> logger, boost::optional<std::function<void(const DNSQuestion&, DNSDistProtoBufMessage*)> > alterFunc): d_logger(logger), d_alterFunc(alterFunc)
+  {
+  }
+  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  {
+#ifdef HAVE_PROTOBUF
+    DNSDistProtoBufMessage message(*dq);
+    {
+      if (d_alterFunc) {
+        std::lock_guard<std::mutex> lock(g_luamutex);
+        (*d_alterFunc)(*dq, &message);
+      }
+    }
+    std::string data;
+    message.serialize(data);
+    d_logger->queueData(data);
+#endif /* HAVE_PROTOBUF */
+    return Action::None;
+  }
+  string toString() const override
+  {
+    return "remote log to " + d_logger->toString();
+  }
+private:
+  std::shared_ptr<IfaceRemoteLogger> d_logger;
+  boost::optional<std::function<void(const DNSQuestion&, DNSDistProtoBufMessage*)> > d_alterFunc;
+};
+
+class FrameStreamLogResponseAction : public DNSResponseAction, public boost::noncopyable
+{
+public:
+  FrameStreamLogResponseAction(std::shared_ptr<IfaceRemoteLogger> logger, boost::optional<std::function<void(const DNSResponse&, DNSDistProtoBufMessage*)> > alterFunc, bool includeCNAME): d_logger(logger), d_alterFunc(alterFunc), d_includeCNAME(includeCNAME)
+  {
+  }
+  DNSResponseAction::Action operator()(DNSResponse* dr, string* ruleresult) const override
+  {
+#ifdef HAVE_PROTOBUF
+    DNSDistProtoBufMessage message(*dr, d_includeCNAME);
+    {
+      if (d_alterFunc) {
+        std::lock_guard<std::mutex> lock(g_luamutex);
+        (*d_alterFunc)(*dr, &message);
+      }
+    }
+    std::string data;
+    message.serialize(data);
+    d_logger->queueData(data);
+#endif /* HAVE_PROTOBUF */
+    return Action::None;
+  }
+  string toString() const override
+  {
+    return "remote log response to " + d_logger->toString();
+  }
+private:
+  std::shared_ptr<IfaceRemoteLogger> d_logger;
   boost::optional<std::function<void(const DNSResponse&, DNSDistProtoBufMessage*)> > d_alterFunc;
   bool d_includeCNAME;
 };

@@ -61,8 +61,8 @@
 
 /* the Rulaction plan
    Set of Rules, if one matches, it leads to an Action
-   Both rules and actions could conceivably be Lua based. 
-   On the C++ side, both could be inherited from a class Rule and a class Action, 
+   Both rules and actions could conceivably be Lua based.
+   On the C++ side, both could be inherited from a class Rule and a class Action,
    on the Lua side we can't do that. */
 
 using std::atomic;
@@ -94,7 +94,7 @@ bool g_snmpTrapsEnabled{false};
 DNSDistSNMPAgent* g_snmpAgent{nullptr};
 
 /* UDP: the grand design. Per socket we listen on for incoming queries there is one thread.
-   Then we have a bunch of connected sockets for talking to downstream servers. 
+   Then we have a bunch of connected sockets for talking to downstream servers.
    We send directly to those sockets.
 
    For the return path, per downstream server we have a thread that listens to responses.
@@ -102,7 +102,7 @@ DNSDistSNMPAgent* g_snmpAgent{nullptr};
    Per socket there is an array of 2^16 states, when we send out a packet downstream, we note
    there the original requestor and the original id. The new ID is the offset in the array.
 
-   When an answer comes in on a socket, we look up the offset by the id, and lob it to the 
+   When an answer comes in on a socket, we look up the offset by the id, and lob it to the
    original requestor.
 
    IDs are assigned by atomic increments of the socket offset.
@@ -118,7 +118,7 @@ DNSDistSNMPAgent* g_snmpAgent{nullptr};
 
 /* Idea:
    Multiple server groups, by default we load balance to the group with no name.
-   Each instance is either 'up', 'down' or 'auto', where 'auto' means that dnsdist 
+   Each instance is either 'up', 'down' or 'auto', where 'auto' means that dnsdist
    determines if the instance is up or not. Auto should be the default and very very good.
 
    In addition, to each instance you can attach a QPS object with rate & burst, which will optionally
@@ -483,7 +483,7 @@ try {
       else if(udiff < 100000) g_stats.latency50_100++;
       else if(udiff < 1000000) g_stats.latency100_1000++;
       else g_stats.latencySlow++;
-    
+
       doLatencyAverages(udiff);
 
       if (ids->origFD == origFD) {
@@ -640,7 +640,7 @@ shared_ptr<DownstreamState> roundrobin(const NumberedServerVector& servers, cons
     return shared_ptr<DownstreamState>();
 
   static unsigned int counter;
- 
+
   return (*res)[(counter++) % res->size()].second;
 }
 
@@ -666,10 +666,10 @@ static void daemonize(void)
     _exit(0); // bye bye
   /* We are child */
 
-  setsid(); 
+  setsid();
 
   int i=open("/dev/null",O_RDWR); /* open stdin */
-  if(i < 0) 
+  if(i < 0)
     ; // L<<Logger::Critical<<"Unable to open /dev/null: "<<stringerror()<<endl;
   else {
     dup2(i,0); /* stdin */
@@ -840,7 +840,7 @@ static void spoofResponseFromString(DNSQuestion& dq, const string& spoofContent)
   }
 }
 
-bool processQuery(LocalStateHolder<NetmaskTree<DynBlock> >& localDynNMGBlock, 
+bool processQuery(LocalStateHolder<NetmaskTree<DynBlock> >& localDynNMGBlock,
                   LocalStateHolder<SuffixMatchTree<DynBlock> >& localDynSMTBlock,
                   LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > >& localRulactions, blockfilter_t blockFilter, DNSQuestion& dq, string& poolname, int* delayMsec, const struct timespec& now)
 {
@@ -1046,7 +1046,7 @@ static ssize_t udpClientSendRequestToBackend(DownstreamState* ss, const int sd, 
   return result;
 }
 
-// listens to incoming queries, sends out to downstream servers, noting the intended return path 
+// listens to incoming queries, sends out to downstream servers, noting the intended return path
 static void* udpClientThread(ClientState* cs)
 try
 {
@@ -1438,7 +1438,7 @@ try
     return false;
   }
 
-  // XXX fixme do bunch of checking here etc 
+  // XXX fixme do bunch of checking here etc
   return true;
 }
 catch(const std::exception& e)
@@ -1561,7 +1561,7 @@ void* healthChecksThread()
       dss->dropRate = 1.0*(dss->reuseds.load() - dss->prev.reuseds.load())/delta;
       dss->prev.queries.store(dss->queries.load());
       dss->prev.reuseds.store(dss->reuseds.load());
-      
+
       for(IDState& ids  : dss->idStates) { // timeouts
         if(ids.origFD >=0 && ids.age++ > g_udpTimeout) {
           /* We set origFD to -1 as soon as possible
@@ -1590,7 +1590,7 @@ void* healthChecksThread()
 
           std::lock_guard<std::mutex> lock(g_rings.respMutex);
           g_rings.respRing.push_back({ts, ids.origRemote, ids.qname, ids.qtype, std::numeric_limits<unsigned int>::max(), 0, fake, dss->remote});
-        }          
+        }
       }
     }
   }
@@ -1612,7 +1612,7 @@ try
     t.detach();
   }
 }
-catch(std::exception& e) 
+catch(std::exception& e)
 {
   close(fd);
   errlog("Control connection died: %s", e.what());
@@ -1710,7 +1710,7 @@ static void checkFileDescriptorsLimits(size_t udpBindsCount, size_t tcpBindsCoun
   }
 }
 
-struct 
+struct
 {
   vector<string> locals;
   vector<string> remotes;
@@ -1754,11 +1754,11 @@ try
     srandom(tv.tv_sec ^ tv.tv_usec ^ getpid());
     g_hashperturb=random();
   }
-  
+
 #endif
   ComboAddress clientAddress = ComboAddress();
   g_cmdLine.config=SYSCONFDIR "/dnsdist.conf";
-  struct option longopts[]={ 
+  struct option longopts[]={
     {"acl", required_argument, 0, 'a'},
     {"config", required_argument, 0, 'C'},
     {"check-config", 0, 0, 1},
@@ -1777,7 +1777,7 @@ try
     {"verbose", 0, 0, 'v'},
     {"version", 0, 0, 'V'},
     {"help", 0, 0, 'h'},
-    {0,0,0,0} 
+    {0,0,0,0}
   };
   int longindex=0;
   string optstring;
@@ -1943,8 +1943,9 @@ try
     for(auto loc : g_cmdLine.locals)
       g_locals.push_back(std::make_tuple(ComboAddress(loc, 53), true, false, 0, ""));
   }
-  
+
   if(g_locals.empty())
+
     g_locals.push_back(std::make_tuple(ComboAddress("127.0.0.1", 53), true, false, 0, ""));
 
   g_configurationDone = true;
@@ -2080,7 +2081,7 @@ try
       int one=1;
       setsockopt(cs->udpFD, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));     // linux supports this, so why not - might fail on other systems
 #ifdef IPV6_RECVPKTINFO
-      setsockopt(cs->udpFD, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one)); 
+      setsockopt(cs->udpFD, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one));
 #endif
     }
     if (std::get<2>(dcLocal)) {
@@ -2109,7 +2110,7 @@ try
       vinfolog("Attaching default BPF Filter to UDP DNSCrypt frontend %s", cs->local.toStringWithPort());
     }
 #endif /* HAVE_EBPF */
-    SBind(cs->udpFD, cs->local);    
+    SBind(cs->udpFD, cs->local);
     toLaunch.push_back(cs);
     g_frontends.push_back(cs);
     udpBindsCount++;
@@ -2256,7 +2257,7 @@ try
 
   thread stattid(maintThread);
   stattid.detach();
-  
+
   thread healththread(healthChecksThread);
 
   if(g_cmdLine.beDaemon || g_cmdLine.beSupervised) {

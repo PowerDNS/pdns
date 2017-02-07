@@ -20,12 +20,36 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
+#include "config.h"
 
-#include "protobuf.hh"
+#include <atomic>
+#include <condition_variable>
+#include <queue>
+#include <thread>
 
-class DNSDistProtoBufMessage: public DNSProtoBufMessage
+#include "iputils.hh"
+#include "remote_logger.hh"
+
+#include <fstrm.h>
+#include <fstrm/iothr.h>
+#include <fstrm/unix_writer.h>
+
+
+class FrameStreamLogger : public IfaceRemoteLogger
 {
 public:
-  DNSDistProtoBufMessage(const DNSQuestion& dq, bool useDnstap=false);
-  DNSDistProtoBufMessage(const DNSResponse& dr, bool includeCNAME, bool useDnstap=false);
+  FrameStreamLogger(const std::string socket_path);
+  ~FrameStreamLogger();
+  void queueData(const std::string& data);
+  std::string toString()
+  {
+    return socket_path;
+  }
+private:
+  std::string socket_path;
+  struct fstrm_writer *writer;
+  struct fstrm_writer_options *fwopt;
+  struct fstrm_unix_writer_options *uwopt;
+  struct fstrm_iothr *iothr;
+  struct fstrm_iothr_queue *ioqueue;
 };

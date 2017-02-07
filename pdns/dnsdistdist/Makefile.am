@@ -4,7 +4,7 @@ ACLOCAL_AMFLAGS = -I m4
 
 SUBDIRS=ext/yahttp
 
-CLEANFILES = dnsmessage.pb.cc dnsmessage.pb.h htmlfiles.h.tmp htmlfiles.h
+CLEANFILES = dnsmessage.pb.cc dnsmessage.pb.h htmlfiles.h.tmp htmlfiles.h dnstap.pb.cc dnstap.pb.h
 
 dnslabeltext.cc: dnslabeltext.rl
 	$(AM_V_GEN)$(RAGEL) $< -o dnslabeltext.cc
@@ -32,6 +32,7 @@ endif
 EXTRA_DIST=dnslabeltext.rl \
 	   dnsdistconf.lua \
 	   dnsmessage.proto \
+	   dnstap.proto
 	   README.md \
 	   delaypipe.cc delaypipe.hh \
 	   html \
@@ -100,8 +101,11 @@ dnsdist_SOURCES = \
 	namespaces.hh \
 	pdnsexception.hh \
 	protobuf.cc protobuf.hh \
+	protobuf-default.cc protobuf-default.hh \
+	protobuf-dnstap.cc protobuf-dnstap.hh \
 	qtype.cc qtype.hh \
 	remote_logger.cc remote_logger.hh \
+	fstrm_logger.cc fstrm_logger.hh \
 	sholder.hh \
 	snmp-agent.cc snmp-agent.hh \
 	sodcrypto.cc sodcrypto.hh \
@@ -116,7 +120,7 @@ dnsdist_SOURCES = \
 dnsdist_LDFLAGS = \
 	$(AM_LDFLAGS) \
 	$(PROGRAM_LDFLAGS) \
-	-pthread 
+	-pthread
 
 dnsdist_LDADD = \
 	$(LUA_LIBS) \
@@ -143,12 +147,15 @@ if HAVE_PROTOC
 dnsmessage.pb.cc: dnsmessage.proto
 	$(AM_V_GEN)$(PROTOC) -I$(srcdir) --cpp_out=./ $<
 
-BUILT_SOURCES += dnsmessage.pb.cc
+dnstap.pb.cc: dnstap.proto
+	$(AM_V_GEN)$(PROTOC) -I$(srcdir) --cpp_out=./ $<
 
-nodist_dnsdist_SOURCES = dnsmessage.pb.cc dnsmessage.pb.h
+BUILT_SOURCES += dnsmessage.pb.cc dnstap.pb.cc
+
+nodist_dnsdist_SOURCES = dnsmessage.pb.cc dnsmessage.pb.h dnstap.pb.cc dnstap.pb.h
 dnsdist_LDADD += $(PROTOBUF_LIBS)
 
-dnsdist.$(OBJEXT): dnsmessage.pb.cc
+dnsdist.$(OBJEXT): dnsmessage.pb.cc dnstap.pb.cc
 endif
 endif
 
