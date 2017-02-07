@@ -154,11 +154,13 @@ would require packet parsing, which is what we are trying to prevent with `ipfil
 ### `function gettag(remote, ednssubnet, local, qname, qtype)`
 The `gettag` function is invoked when the Recursor attempts to discover in which
 packetcache an answer is available.
+
 This function must return an integer, which is the tag number of the packetcache.
 In addition to this integer, this function can return a table of policy tags.
-
 The resulting tag number can be accessed via `dq.tag` in the `preresolve` hook,
 and the policy tags via `dq:getPolicyTags()` in every hook.
+Starting with 4.1.0, it can also return a table whose keys and values are strings
+to fill the upcoming `DNSQuestion`'s `data` table.
 
 The tagged packetcache can e.g. be used to answer queries from cache that have
 e.g. been filtered for certain IPs (this logic should be implemented in the
