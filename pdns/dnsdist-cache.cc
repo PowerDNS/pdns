@@ -56,8 +56,15 @@ void DNSDistPacketCache::insert(uint32_t key, const DNSName& qname, uint16_t qty
   }
   else {
     minTTL = getMinTTL(response, responseLen);
-    if (minTTL > d_maxTTL)
+
+    /* no TTL found, we don't want to cache this */
+    if (minTTL == std::numeric_limits<uint32_t>::max()) {
+      return;
+    }
+
+    if (minTTL > d_maxTTL) {
       minTTL = d_maxTTL;
+    }
 
     if (minTTL < d_minTTL) {
       d_ttlTooShorts++;
