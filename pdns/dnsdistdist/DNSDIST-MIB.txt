@@ -1,1 +1,703 @@
-../../docs/MIBS/DNSDIST-MIB.txt
+-- -*- snmpv2 -*-
+-- ----------------------------------------------------------------------
+-- MIB file for dnsdist
+-- ----------------------------------------------------------------------
+
+DNSDIST-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    OBJECT-TYPE, MODULE-IDENTITY, enterprises,
+    Counter64, Unsigned32, NOTIFICATION-TYPE
+        FROM SNMPv2-SMI
+    CounterBasedGauge64
+        FROM HCNUM-TC
+    Float64TC
+        FROM FLOAT-TC-MIB
+    OBJECT-GROUP, MODULE-COMPLIANCE, NOTIFICATION-GROUP
+        FROM SNMPv2-CONF
+    InetAddressType
+        FROM INET-ADDRESS-MIB
+    TEXTUAL-CONVENTION, DisplayString
+        FROM SNMPv2-TC;
+
+dnsdist MODULE-IDENTITY
+    LAST-UPDATED "201611080000Z"
+    ORGANIZATION "PowerDNS BV"
+    CONTACT-INFO "support@powerdns.com"
+    DESCRIPTION
+       "This MIB module describes information gathered through dnsdist."
+
+    REVISION "201611080000Z"
+    DESCRIPTION "Initial revision."
+
+    ::= { powerdns 3 }
+
+powerdns		OBJECT IDENTIFIER ::= { enterprises 43315 }
+
+stats OBJECT IDENTIFIER ::= { dnsdist 1 }
+
+queries OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Number of queries received"
+    ::= { stats 1 }
+
+responses OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Number of responses received"
+    ::= { stats 2 }
+
+servfailResponses OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Number of servfail responses received"
+    ::= { stats 3 }
+
+aclDrops OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Number of queries dropped because of the ACL"
+    ::= { stats 4 }
+
+-- stats 5 was a BlockFilter Counter, removed in 1.2.0
+
+ruleDrop OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Number of queries dropped because of a rule"
+    ::= { stats 6 }
+
+ruleNXDomain OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Number of NXDomain responses returned because of a rule"
+    ::= { stats 7 }
+
+ruleRefused OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Number of Refused responses returned because of a rule"
+    ::= { stats 8 }
+
+selfAnswered OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Number of self-answered responses"
+    ::= { stats 9 }
+
+downstreamTimeouts OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Number of downstream timeouts"
+    ::= { stats 10 }
+
+downstreamSendErrors OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Number of downstream send errors"
+    ::= { stats 11 }
+
+truncFailures OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Number of errors while truncating a response"
+    ::= { stats 12 }
+
+noPolicy OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Number of queries dropped because no server was available"
+    ::= { stats 13 }
+
+latency01 OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Number of queries answered in less than 1 ms"
+    ::= { stats 14 }
+
+latency110 OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Number of queries answered in 1-10 ms"
+    ::= { stats 15 }
+
+latency1050 OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Number of queries answered in 10-50 ms"
+    ::= { stats 16 }
+
+latency50100 OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Number of queries answered in 50-100 ms"
+    ::= { stats 17 }
+
+latency1001000 OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Number of queries answered in 100-1000 ms"
+    ::= { stats 18 }
+
+latencySlow OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Number of queries answered in more than 1s"
+    ::= { stats 19 }
+
+latencyAVG100 OBJECT-TYPE
+    SYNTAX Float64TC
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Average latency over the last 100 queries"
+    ::= { stats 20 }
+
+latencyAVG1000 OBJECT-TYPE
+    SYNTAX Float64TC
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Average latency over the last 1000 queries"
+    ::= { stats 21 }
+
+latencyAVG10000 OBJECT-TYPE
+    SYNTAX Float64TC
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Average latency over the last 10000 queries"
+    ::= { stats 22 }
+
+latencyAVG1000000 OBJECT-TYPE
+    SYNTAX Float64TC
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Average latency over the last 1000000 queries"
+    ::= { stats 23 }
+
+uptime OBJECT-TYPE
+    SYNTAX CounterBasedGauge64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Uptime of the dnsdist process, in seconds"
+    ::= { stats 24 }
+
+realMemoryUsage OBJECT-TYPE
+    SYNTAX CounterBasedGauge64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Memory usage"
+    ::= { stats 25 }
+
+nonCompliantQueries OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Number of queries dropped as non-compliant"
+    ::= { stats 26 }
+
+nonCompliantResponses OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Number of responses dropped as non-compliant"
+    ::= { stats 27 }
+
+rdQueries OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Number of queries with the RD flag set"
+    ::= { stats 28 }
+
+emptyQueries OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Number of empty queries received"
+    ::= { stats 29 }
+
+cacheHits OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Number of cache hits"
+    ::= { stats 30 }
+
+cacheMisses OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Number of cache misses"
+    ::= { stats 31 }
+
+cpuUserMSec OBJECT-TYPE
+    SYNTAX CounterBasedGauge64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"CPU Usage (user)"
+    ::= { stats 32 }
+
+cpuSysMSec OBJECT-TYPE
+    SYNTAX CounterBasedGauge64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"CPU Usage (sys)"
+    ::= { stats 33 }
+
+fdUsage OBJECT-TYPE
+    SYNTAX CounterBasedGauge64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Number of file descriptors"
+    ::= { stats 34 }
+
+dynBlocked OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Number of queries dropped because of a dynamic block"
+    ::= { stats 35 }
+
+dynBlockNMGSize OBJECT-TYPE
+    SYNTAX CounterBasedGauge64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Dynamic blocks (NMG) size"
+    ::= { stats 36 }
+
+backendStatTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF BackendStatEntry
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION "Statistics for backends"
+    ::= { dnsdist 2 }
+
+backendStatEntry OBJECT-TYPE
+    SYNTAX BackendStatEntry
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION "Statistics for one backend"
+    INDEX { backendId }
+    ::= { backendStatTable 1 }
+
+BackendStatEntry ::= SEQUENCE {
+    backendId           Unsigned32,
+    backendName         DisplayString,
+    backendLatency      CounterBasedGauge64,
+    backendWeight       CounterBasedGauge64,
+    backendOutstanding  CounterBasedGauge64,
+    backendQPSLimit     CounterBasedGauge64,
+    backendReused       Counter64,
+    backendState        DisplayString,
+    backendAddress      OCTET STRING,
+    backendPools        DisplayString,
+    backendQPS          CounterBasedGauge64,
+    backendQueries      Counter64,
+    backendOrder        CounterBasedGauge64
+}
+
+backendId OBJECT-TYPE
+    SYNTAX Unsigned32
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+	"Backend ID"
+    ::= { backendStatEntry 1 }
+
+backendName OBJECT-TYPE
+    SYNTAX DisplayString
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Backend name"
+    ::= { backendStatEntry 2 }
+
+backendLatency OBJECT-TYPE
+    SYNTAX CounterBasedGauge64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Backend latency"
+    ::= { backendStatEntry 3 }
+
+backendWeight OBJECT-TYPE
+    SYNTAX CounterBasedGauge64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Backend weight"
+    ::= { backendStatEntry 4 }
+
+backendOutstanding OBJECT-TYPE
+    SYNTAX CounterBasedGauge64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Backend outstanding queries"
+    ::= { backendStatEntry 5 }
+
+backendQPSLimit OBJECT-TYPE
+    SYNTAX CounterBasedGauge64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Backend QPS limit"
+    ::= { backendStatEntry 6 }
+
+backendReused OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Backend reused slots"
+    ::= { backendStatEntry 7 }
+
+backendState OBJECT-TYPE
+    SYNTAX DisplayString
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Backend state"
+    ::= { backendStatEntry 8 }
+
+backendAddress OBJECT-TYPE
+    SYNTAX OCTET STRING (SIZE (2..24))
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Backend address"
+    ::= { backendStatEntry 9 }
+
+backendPools OBJECT-TYPE
+    SYNTAX DisplayString
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"List of pools this backend belongs to"
+    ::= { backendStatEntry 10 }
+
+backendQPS OBJECT-TYPE
+    SYNTAX CounterBasedGauge64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Backend QPS"
+    ::= { backendStatEntry 11 }
+
+backendQueries OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Number of queries sent to this backend"
+    ::= { backendStatEntry 12 }
+
+backendOrder OBJECT-TYPE
+    SYNTAX CounterBasedGauge64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Backend order"
+    ::= { backendStatEntry 13 }
+
+---
+--- Textual Conventions
+---
+
+SocketProtocolType ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION
+        "A value that represents a type of socket protocol."
+    SYNTAX       INTEGER {
+                     unknown(0),
+                     udp(1),
+                     tcp(2)
+                 }
+
+DNSQueryType ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION
+        "A value that represents a type of DNS query (question or response)."
+    SYNTAX       INTEGER {
+                     unknown(0),
+                     question(1),
+                     response(2)
+                 }
+
+---
+--- Traps / Notifications
+---
+
+trap OBJECT IDENTIFIER ::= { dnsdist 10 }
+traps OBJECT IDENTIFIER ::= { trap 0 } --- reverse-mappable
+trapObjects OBJECT IDENTIFIER ::= { dnsdist 11 }
+
+socketFamily OBJECT-TYPE
+    SYNTAX InetAddressType
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Socket family type"
+    ::= { trapObjects 1 }
+
+socketProtocol OBJECT-TYPE
+    SYNTAX SocketProtocolType
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Socket protocol type"
+    ::= { trapObjects 2 }
+
+fromAddress OBJECT-TYPE
+    SYNTAX OCTET STRING (SIZE (2..24))
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Requestor address"
+    ::= { trapObjects 3 }
+
+toAddress OBJECT-TYPE
+    SYNTAX OCTET STRING (SIZE (2..24))
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Responder address"
+    ::= { trapObjects 4 }
+
+queryType OBJECT-TYPE
+    SYNTAX DNSQueryType
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Query / Response"
+    ::= { trapObjects 5 }
+
+querySize OBJECT-TYPE
+    SYNTAX Unsigned32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Size in bytes"
+    ::= { trapObjects 6 }
+
+queryID OBJECT-TYPE
+    SYNTAX Unsigned32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "DNS query ID"
+    ::= { trapObjects 7 }
+
+qName OBJECT-TYPE
+    SYNTAX OCTET STRING (SIZE (0..255))
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "DNS qname"
+    ::= { trapObjects 8 }
+
+qClass OBJECT-TYPE
+    SYNTAX Unsigned32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "DNS query class"
+    ::= { trapObjects 9 }
+
+qType OBJECT-TYPE
+    SYNTAX Unsigned32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "DNS query type"
+    ::= { trapObjects 10 }
+
+trapReason OBJECT-TYPE
+    SYNTAX OCTET STRING
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Reason for this trap"
+    ::= { trapObjects 11 }
+
+backendStatusChangeTrap NOTIFICATION-TYPE
+    OBJECTS {
+        backendName,
+        backendAddress,
+        backendState
+    }
+    STATUS current
+    DESCRIPTION "Backend status changed"
+    ::= { traps 1 }
+
+actionTrap NOTIFICATION-TYPE
+    OBJECTS {
+        socketFamily,
+        socketProtocol,
+        fromAddress,
+        toAddress,
+        queryType,
+        querySize,
+        queryID,
+        qName,
+        qClass,
+        qType,
+        trapReason
+    }
+    STATUS current
+    DESCRIPTION "Trap sent by SNMPTrapAction"
+    ::= { traps 2 }
+
+customTrap NOTIFICATION-TYPE
+    OBJECTS {
+        trapReason
+    }
+    STATUS current
+    DESCRIPTION "Trap sent by sendCustomTrap"
+    ::= { traps 3 }
+
+---
+--- Conformance
+---
+
+dnsdistConformance OBJECT IDENTIFIER ::= { dnsdist 100 }
+
+dnsdistCompliances MODULE-COMPLIANCE
+    STATUS current
+    DESCRIPTION "dnsdist compliance statement"
+    MODULE
+    MANDATORY-GROUPS {
+        dnsdistGroup,
+        dnsdistTrapsGroup
+    }
+    ::= { dnsdistConformance 1 }
+
+dnsdistGroup OBJECT-GROUP
+    OBJECTS {
+        queries,
+        responses,
+        servfailResponses,
+        aclDrops,
+        ruleDrop,
+        ruleNXDomain,
+        ruleRefused,
+        selfAnswered,
+        downstreamTimeouts,
+        downstreamSendErrors,
+        truncFailures,
+        noPolicy,
+        latency01,
+        latency110,
+        latency1050,
+        latency50100,
+        latency1001000,
+        latencySlow,
+        latencyAVG100,
+        latencyAVG1000,
+        latencyAVG10000,
+        latencyAVG1000000,
+        uptime,
+        realMemoryUsage,
+        nonCompliantQueries,
+        nonCompliantResponses,
+        rdQueries,
+        emptyQueries,
+        cacheHits,
+        cacheMisses,
+        cpuUserMSec,
+        cpuSysMSec,
+        fdUsage,
+        dynBlocked,
+        dynBlockNMGSize,
+        backendName,
+        backendLatency,
+        backendWeight,
+        backendOutstanding,
+        backendQPSLimit,
+        backendReused,
+        backendState,
+        backendAddress,
+        backendPools,
+        backendQPS,
+        backendQueries,
+        backendOrder,
+        socketFamily,
+        socketProtocol,
+        fromAddress,
+        toAddress,
+        queryType,
+        querySize,
+        queryID,
+        qName,
+        qClass,
+        qType,
+        trapReason
+    }
+    STATUS current
+    DESCRIPTION "Objects conformance group for dnsdist"
+    ::= { dnsdistConformance 2 }
+
+dnsdistTrapsGroup NOTIFICATION-GROUP
+    NOTIFICATIONS {
+        actionTrap,
+        customTrap,
+        backendStatusChangeTrap
+    }
+    STATUS current
+    DESCRIPTION "Traps conformance group for dnsdist"
+    ::= { dnsdistConformance 3 }
+
+END

@@ -35,3 +35,9 @@
 /dnsdist.service
 /lua.hpp
 /test-driver
+dnsdist.pdf
+html-docs
+html-docs.tar.bz2
+doctrees/
+latex/
+.doctrees/
