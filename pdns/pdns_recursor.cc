@@ -728,7 +728,7 @@ void startDoResolve(void *p)
 
     // DO NOT MOVE THIS CODE UP - DNSPacketWriter needs to get the original-cased version
     if (g_lowercaseOutgoing)
-      dc->d_mdp.d_qname = DNSName(toLower(dc->d_mdp.d_qname.toString()));
+      dc->d_mdp.d_qname = dc->d_mdp.d_qname.makeLowerCase();
 
     uint32_t minTTL=std::numeric_limits<uint32_t>::max();
 
