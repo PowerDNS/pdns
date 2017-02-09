@@ -874,6 +874,41 @@ class TestCachingTTL(DNSDistTest):
 
         self.assertEquals(total, misses)
 
+    def testCacheNXWithNoRR(self):
+        """
+        Cache: NX with no RR
+
+        """
+        misses = 0
+        name = 'nxwithnorr.cache.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        response.set_rcode(dns.rcode.NXDOMAIN)
+
+        # Miss
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+        misses += 1
+
+        # We should not have been cached
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+        misses += 1
+
+        total = 0
+        for key in self._responsesCounter:
+            total += self._responsesCounter[key]
+
+        self.assertEquals(total, misses)
+
 class TestCachingLongTTL(DNSDistTest):
 
     _maxCacheTTL = 2
