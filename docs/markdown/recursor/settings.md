@@ -847,6 +847,15 @@ performance. Large responses however also have downsides in terms of reflection
 attacks. This setting limits the accepted size. Maximum value is 65535, but
 values above 4096 should probably not be attempted.
 
+## `use-incoming-edns-subnet`
+* Boolean
+* Default: no
+
+Whether to process and pass along a received EDNS Client Subnet to authoritative
+servers. The ECS information will only be sent for netmasks and domains listed
+in `edns-subnet-whitelist`, and will be truncated if the received scope exceeds
+`ecs-ipv4-bits` for IPv4 or `ecs-ipv6-bits` for IPv6.
+
 ## `version`
 Print version of this binary. Useful for checking which version of the PowerDNS
 recursor is installed on a system. Available since version 3.1.5.

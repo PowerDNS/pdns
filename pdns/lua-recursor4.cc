@@ -25,7 +25,8 @@
 #include "dnsparser.hh"
 #include "syncres.hh"
 #include "namespaces.hh"
-#include "rec_channel.hh" 
+#include "rec_channel.hh"
+#include "ednsoptions.hh"
 #include "ednssubnet.hh"
 #include "filterpo.hh"
 #include <unordered_set>
@@ -182,7 +183,7 @@ boost::optional<Netmask>  RecursorLua4::DNSQuestion::getEDNSSubnet()
 
   if(ednsOptions) {
     for(const auto& o : *ednsOptions) {
-      if(o.first==8) {
+      if(o.first==EDNSOptionCode::ECS) {
         EDNSSubnetOpts eso;
         if(getEDNSSubnetOptsFromString(o.second, &eso))
           return eso.source;
