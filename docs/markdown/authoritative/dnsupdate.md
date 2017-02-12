@@ -26,7 +26,7 @@ A list of IP ranges that are allowed to perform updates on any domain. The defau
 Tell PowerDNS to forward to the master server if the zone is configured as slave. Masters are determined by the masters field in the domains table. The default behaviour is enabled (yes), which means that it will try to forward. In the processing of the update packet, the **allow-dnsupdate-from** and **TSIG-ALLOW-DNSUPDATE** are processed first, so those permissions apply before the **forward-dnsupdate** is used. It will try all masters that you have configured until one is successful.
 
 ## `lua-dnsupdate-policy-script`
-Use this LUA script containing function `updatepolicy` to validate each update. (since 4.0.0)
+Use this Lua script containing function `updatepolicy` to validate each update. (since 4.0.0)
 This will **TURN OFF** all other authorization methods, and you are expected to take care of everything yourself.
 See [update policy](#update-policy) for details and examples.
 
