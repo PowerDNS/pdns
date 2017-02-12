@@ -47,6 +47,7 @@ class DNSBackendHandler < WEBrick::HTTPServlet::AbstractServlet
          }
      when "list"
         {
+          "id" => url.shift,
           "zonename" => url.shift
         }
      when "getbeforeandafternamesabsolute", "getbeforeandafternames"
