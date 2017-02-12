@@ -80,10 +80,11 @@ std::string HTTPConnector::buildMemberListArgs(std::string prefix, const Json& a
     for(const auto& pair: args.object_items()) {
         if (pair.second.is_bool()) {
           stream << (pair.second.bool_value()?"1":"0");
+        } else if (pair.second.is_null()) {
+          stream << prefix << "[" << pair.first << "]=";
         } else {
           stream << prefix << "[" << pair.first << "]=" << this->asString(pair.second);
         }
-
         stream << "&";
     }
 
