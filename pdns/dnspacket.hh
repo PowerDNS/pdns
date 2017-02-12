@@ -159,11 +159,13 @@ public:
   bool d_dnssecOk;
   bool d_havetsig;
 
-  bool getTSIGDetails(TSIGRecordContent* tr, DNSName* keyname, string* message) const;
+  bool getTSIGDetails(TSIGRecordContent* tr, DNSName* keyname, uint16_t* tsigPos=nullptr) const;
   void setTSIGDetails(const TSIGRecordContent& tr, const DNSName& keyname, const string& secret, const string& previous, bool timersonly=false);
   bool getTKEYRecord(TKEYRecordContent* tr, DNSName* keyname) const;
 
   vector<DNSZoneRecord>& getRRS() { return d_rrs; }
+  bool checkForCorrectTSIG(UeberBackend* B, DNSName* keyname, string* secret, TSIGRecordContent* trc) const;
+
   static bool s_doEDNSSubnetProcessing;
   static uint16_t s_udpTruncationThreshold; //2
 private:
@@ -193,8 +195,5 @@ private:
   bool d_haveednssection;
   bool d_isQuery;
 };
-
-
-bool checkForCorrectTSIG(const DNSPacket* q, UeberBackend* B, DNSName* keyname, string* secret, TSIGRecordContent* trc);
 
 #endif

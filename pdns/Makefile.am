@@ -1157,6 +1157,7 @@ testrunner_SOURCES = \
 	test-recpacketcache_cc.cc \
 	test-sha_hh.cc \
 	test-statbag_cc.cc \
+	test-tsig.cc \
 	test-zoneparser_tng_cc.cc \
 	testrunner.cc \
 	ueberbackend.cc \

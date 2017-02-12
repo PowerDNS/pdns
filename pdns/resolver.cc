@@ -144,7 +144,7 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const ComboAddress& l
     trc.d_fudge = 300;
     trc.d_origID=ntohs(randomid);
     trc.d_eRcode=0;
-    addTSIG(pw, &trc, tsigkeyname, tsigsecret, "", false);
+    addTSIG(pw, trc, tsigkeyname, tsigsecret, "", false);
   }
 
   int sock;
@@ -407,7 +407,7 @@ AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
       d_trc.d_fudge = 300;
       d_trc.d_origID=ntohs(pw.getHeader()->id);
       d_trc.d_eRcode=0;
-      addTSIG(pw, &d_trc, tt.name, tt.secret, "", false);
+      addTSIG(pw, d_trc, tt.name, tt.secret, "", false);
     }
   
     uint16_t replen=htons(packet.size());

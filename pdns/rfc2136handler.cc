@@ -742,7 +742,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
       TSIGRecordContent trc;
       DNSName inputkey;
       string message;
-      if (! p->getTSIGDetails(&trc,  &inputkey, 0)) {
+      if (! p->getTSIGDetails(&trc,  &inputkey)) {
         L<<Logger::Error<<msgPrefix<<"TSIG key required, but packet does not contain key. Sending REFUSED"<<endl;
         return RCode::Refused;
       }
