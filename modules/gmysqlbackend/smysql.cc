@@ -169,7 +169,7 @@ retry:
 
     if ((err = mysql_stmt_execute(d_stmt))) {
       string error(mysql_stmt_error(d_stmt));
-      if(allowRetry && mysql_stmt_errno(d_stmt) == CR_SERVER_LOST) {
+      if(allowRetry && mysql_stmt_errno(d_stmt) == CR_SERVER_LOST && !d_db->in_trx()) {
         allowRetry = false;
         rePrepareStatement();
         goto retry;
