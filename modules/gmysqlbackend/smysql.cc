@@ -38,7 +38,7 @@ pthread_mutex_t SMySQL::s_myinitlock = PTHREAD_MUTEX_INITIALIZER;
 class SMySQLStatement: public SSqlStatement
 {
 public:
-  SMySQLStatement(const string& query, bool dolog, int nparams, MYSQL* db) : d_prepared(false)
+  SMySQLStatement(const string& query, bool dolog, int nparams, SMySQL* db) : d_prepared(false)
   {
     d_db = db;
     d_dolog = dolog;
@@ -336,7 +336,7 @@ private:
       return;
     }
 
-    if ((d_stmt = mysql_stmt_init(d_db))==NULL)
+    if ((d_stmt = mysql_stmt_init(d_db->db()))==NULL)
       throw SSqlException("Could not initialize mysql statement, out of memory: " + d_query);
 
     if ((err = mysql_stmt_prepare(d_stmt, d_query.c_str(), d_query.size()))) {
@@ -390,7 +390,7 @@ private:
     releaseStatement(true);
     prepareStatement(true);
   }
-  MYSQL* d_db;
+  SMySQL* d_db;
 
   MYSQL_STMT* d_stmt;
   MYSQL_BIND* d_req_bind;
@@ -477,7 +477,7 @@ SSqlException SMySQL::sPerrorException(const string &reason)
 
 SSqlStatement* SMySQL::prepare(const string& query, int nparams)
 {
-  return new SMySQLStatement(query, s_dolog, nparams, &d_db);
+  return new SMySQLStatement(query, s_dolog, nparams, this);
 }
 
 void SMySQL::execute(const string& query)
@@ -492,12 +492,15 @@ void SMySQL::execute(const string& query)
 
 void SMySQL::startTransaction() {
   execute("begin");
+  d_in_trx = true;
 }
 
 void SMySQL::commit() {
   execute("commit");
+  d_in_trx = false;
 }
 
 void SMySQL::rollback() {
   execute("rollback");
+  d_in_trx = false;
 }
