@@ -23,6 +23,7 @@
 #define SMYSQL_HH
 
 #include <mysql.h>
+#include <errmsg.h>
 #include "pdns/backends/gsql/ssql.hh"
 #include "pdns/utility.hh"
 

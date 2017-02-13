@@ -151,6 +151,7 @@ public:
   SSqlStatement* execute() {
     int err;
 
+    bool allowRetry = true;
     prepareStatement();
 
     if (!d_stmt) return this;
@@ -159,6 +160,7 @@ public:
       L<<Logger::Warning<<"Query: " << d_query <<endl;
     }
 
+retry:
     if ((err = mysql_stmt_bind_param(d_stmt, d_req_bind))) {
       string error(mysql_stmt_error(d_stmt));
       releaseStatement();
@@ -167,6 +169,11 @@ public:
 
     if ((err = mysql_stmt_execute(d_stmt))) {
       string error(mysql_stmt_error(d_stmt));
+      if(allowRetry && mysql_stmt_errno(d_stmt) == CR_SERVER_LOST) {
+        allowRetry = false;
+        rePrepareStatement();
+        goto retry;
+      }
       releaseStatement();
       throw SSqlException("Could not execute mysql statement: " + d_query + string(": ") + error);
     }
@@ -220,7 +227,7 @@ public:
   SSqlStatement* nextRow(row_t& row) {
     int err;
     row.clear();
-    if (!hasNextRow()) return this;
+    if (!hasNextRow()) { releaseStatement(); return this; }
 
     if ((err =mysql_stmt_fetch(d_stmt))) {
       if (err != MYSQL_DATA_TRUNCATED) {
@@ -320,7 +327,7 @@ public:
   }
 private:
 
-  void prepareStatement() {
+  void prepareStatement(bool keepbinds=false) {
     int err;
 
     if (d_prepared) return;
@@ -343,7 +350,7 @@ private:
       throw SSqlException("Provided parameter count does not match statement: " + d_query);
     }
 
-    if (d_parnum>0) {
+    if (d_parnum>0 && !keepbinds) {
       d_req_bind = new MYSQL_BIND[d_parnum];
       memset(d_req_bind, 0, sizeof(MYSQL_BIND)*d_parnum);
     }
@@ -351,29 +358,37 @@ private:
     d_prepared = true;
   }
 
-  void releaseStatement() {
+  void releaseStatement(bool keepbinds=false) {
     d_prepared = false;
     if (d_stmt)
       mysql_stmt_close(d_stmt);
     d_stmt = NULL;
-    if (d_req_bind) {
-      for(int i=0;i<d_parnum;i++) {
-        if (d_req_bind[i].buffer) delete [] (char*)d_req_bind[i].buffer;
-        if (d_req_bind[i].length) delete [] d_req_bind[i].length;
+    if(!keepbinds) {
+      if (d_req_bind) {
+        for(int i=0;i<d_parnum;i++) {
+          if (d_req_bind[i].buffer) delete [] (char*)d_req_bind[i].buffer;
+          if (d_req_bind[i].length) delete [] d_req_bind[i].length;
+        }
+        delete [] d_req_bind;
+        d_req_bind = NULL;
       }
-      delete [] d_req_bind;
-      d_req_bind = NULL;
-    }
-    if (d_res_bind) {
-      for(int i=0;i<d_fnum;i++) {
-        if (d_res_bind[i].buffer) delete [] (char*)d_res_bind[i].buffer;
-        if (d_res_bind[i].length) delete [] d_res_bind[i].length;
-        if (d_res_bind[i].is_null) delete [] d_res_bind[i].is_null;
+      if (d_res_bind) {
+        for(int i=0;i<d_fnum;i++) {
+          if (d_res_bind[i].buffer) delete [] (char*)d_res_bind[i].buffer;
+          if (d_res_bind[i].length) delete [] d_res_bind[i].length;
+          if (d_res_bind[i].is_null) delete [] d_res_bind[i].is_null;
+        }
+        delete [] d_res_bind;
+        d_res_bind = NULL;
       }
-      delete [] d_res_bind;
-      d_res_bind = NULL;
     }
     d_paridx = d_fnum = d_resnum = d_residx = 0;
+  }
+
+  void rePrepareStatement()
+  {
+    releaseStatement(true);
+    prepareStatement(true);
   }
   MYSQL* d_db;
 
@@ -404,7 +419,7 @@ SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const 
   do {
 
 #if MYSQL_VERSION_ID >= 50013
-    my_bool reconnect = 0;
+    my_bool reconnect = 1;
     mysql_options(&d_db, MYSQL_OPT_RECONNECT, &reconnect);
 #endif
 
