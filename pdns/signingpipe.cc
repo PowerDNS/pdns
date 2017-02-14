@@ -279,7 +279,7 @@ try
   DNSSECKeeper dk;
   UeberBackend db("key-only");
   
-  chunk_t* chunk;
+  chunk_t* chunk = nullptr;
   int res;
   for(;;) {
     res = readn(fd, &chunk, sizeof(chunk));
@@ -287,21 +287,32 @@ try
       break;
     if(res < 0)
       unixDie("reading object pointer to sign from pdns");
-    set<DNSName> authSet;
-    authSet.insert(d_signer);
-    addRRSigs(dk, db, authSet, *chunk);
-    ++d_signed;
-    
-    writen2(fd, &chunk, sizeof(chunk));
+    try {
+      set<DNSName> authSet;
+      authSet.insert(d_signer);
+      addRRSigs(dk, db, authSet, *chunk);
+      ++d_signed;
+
+      writen2(fd, &chunk, sizeof(chunk));
+      chunk = nullptr;
+    }
+    catch(const PDNSException& pe) {
+      delete chunk;
+      throw;
+    }
+    catch(const std::exception& e) {
+      delete chunk;
+      throw;
+    }
   }
   close(fd);
 }
-catch(PDNSException& pe)
+catch(const PDNSException& pe)
 {
   L<<Logger::Error<<"Signing thread died because of PDNSException: "<<pe.reason<<endl;
   close(fd);
 }
-catch(std::exception& e)
+catch(const std::exception& e)
 {
   L<<Logger::Error<<"Signing thread died because of std::exception: "<<e.what()<<endl;
   close(fd);
