@@ -199,7 +199,7 @@ static bool processRecordForZS(const DNSName& domain, bool& firstNSEC3, DNSResou
       throw PDNSException("Zones with a mixture of Opt-Out NSEC3 RRs and non-Opt-Out NSEC3 RRs are not supported.");
     zs.optOutFlag = ns3rc.d_flags & 1;
     if (ns3rc.d_set.count(QType::NS) && !(rr.qname==domain)) {
-      DNSName hashPart = DNSName(toLower(rr.qname.makeRelative(domain).toString()));
+      DNSName hashPart = rr.qname.makeRelative(domain).makeLowerCase();
       zs.secured.insert(hashPart);
     }
     return false;
