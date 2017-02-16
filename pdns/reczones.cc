@@ -349,7 +349,6 @@ void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, boost::opti
       for(const auto& rr : remove) { // should always contain the SOA
         if(rr.d_type == QType::NS)
           continue;
-	totremove++;
 	if(rr.d_type == QType::SOA) {
 	  auto oldsr = getRR<SOARecordContent>(rr);
 	  if(oldsr && oldsr->d_st.serial == oursr->d_st.serial) {
@@ -359,7 +358,8 @@ void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, boost::opti
 	    L<<Logger::Error<<"GOT WRONG SOA SERIAL REMOVAL, SHOULD TRIGGER WHOLE RELOAD"<<endl;
 	}
 	else {
-	  L<<Logger::Info<<"Had removal of "<<rr.d_name<<endl;
+          totremove++;
+	  L<<Logger::Debug<<"Had removal of "<<rr.d_name<<endl;
 	  RPZRecordToPolicy(rr, luaconfsCopy.dfe, false, defpol, polZone);
 	}
       }
@@ -367,7 +367,6 @@ void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, boost::opti
       for(const auto& rr : add) { // should always contain the new SOA
         if(rr.d_type == QType::NS)
           continue;
-	totadd++;
 	if(rr.d_type == QType::SOA) {
 	  auto newsr = getRR<SOARecordContent>(rr);
 	  //	  L<<Logger::Info<<"New SOA serial for "<<zone<<": "<<newsr->d_st.serial<<endl;
@@ -376,7 +375,8 @@ void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, boost::opti
 	  }
 	}
 	else {
-	  L<<Logger::Info<<"Had addition of "<<rr.d_name<<endl;
+          totadd++;
+	  L<<Logger::Debug<<"Had addition of "<<rr.d_name<<endl;
 	  RPZRecordToPolicy(rr, luaconfsCopy.dfe, true, defpol, polZone);
 	}
       }
