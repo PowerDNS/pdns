@@ -41,6 +41,8 @@ AC_DEFINE([_GNU_SOURCE], [1],
 # Warn when pkg.m4 is missing
 m4_pattern_forbid([^_?PKG_[A-Z_]+$], [*** pkg.m4 missing, please install pkg-config])
 
+PDNS_CHECK_OS
+
 PDNS_WITH_LUAJIT
 AS_IF([test "x$with_luajit" = "xno"], [
   PDNS_WITH_LUA
@@ -131,7 +133,6 @@ AS_IF([test "x$lt_cv_dlopen" = "xno"],
 
 AC_SUBST([LIBDL], [$lt_cv_dlopen_libs])
 
-PDNS_CHECK_OS
 PDNS_ENABLE_VERBOSE_LOGGING
 PDNS_ENABLE_PKCS11
 PDNS_ENABLE_GSS_TSIG
