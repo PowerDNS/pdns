@@ -211,7 +211,7 @@ bool SyncRes::doOOBResolve(const DNSName &qname, const QType &qtype, vector<DNSR
     somedata=true;
     if(qtype.getCode()==QType::ANY || ziter->d_type==qtype.getCode() || ziter->d_type==QType::CNAME)  // let rest of nameserver do the legwork on this one
       ret.push_back(*ziter);
-    else if(ziter->d_type == QType::NS) { // we hit a delegation point!
+    else if(ziter->d_type == QType::NS && ziter->d_name.countLabels() > authdomain.countLabels()) { // we hit a delegation point!
       DNSRecord dr=*ziter;
       dr.d_place=DNSResourceRecord::AUTHORITY;
       ret.push_back(dr);
