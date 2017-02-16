@@ -651,10 +651,10 @@ int PacketHandler::forwardPacket(const string &msgPrefix, DNSPacket *p, DomainIn
       continue;
     }
 
-    char lenBuf[2];
-    int recvRes;
+    unsigned char lenBuf[2];
+    ssize_t recvRes;
     recvRes = recv(sock, &lenBuf, sizeof(lenBuf), 0);
-    if (recvRes < 0) {
+    if (recvRes < 0 || static_cast<size_t>(recvRes) < sizeof(lenBuf)) {
       L<<Logger::Error<<msgPrefix<<"Could not receive data (length) from master at "<<remote.toStringWithPort()<<", error:"<<stringerror()<<endl;
       try {
         closesocket(sock);
@@ -664,8 +664,7 @@ int PacketHandler::forwardPacket(const string &msgPrefix, DNSPacket *p, DomainIn
       }
       continue;
     }
-    int packetLen = lenBuf[0]*256+lenBuf[1];
-
+    size_t packetLen = lenBuf[0]*256+lenBuf[1];
 
     char buf[packetLen];
     recvRes = recv(sock, &buf, packetLen, 0);
@@ -687,7 +686,7 @@ int PacketHandler::forwardPacket(const string &msgPrefix, DNSPacket *p, DomainIn
     }
 
     try {
-      MOADNSParser mdp(false, buf, recvRes);
+      MOADNSParser mdp(false, buf, static_cast<unsigned int>(recvRes));
       L<<Logger::Info<<msgPrefix<<"Forward update message to "<<remote.toStringWithPort()<<", result was RCode "<<mdp.d_header.rcode<<endl;
       return mdp.d_header.rcode;
     }
