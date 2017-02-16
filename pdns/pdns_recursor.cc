@@ -33,6 +33,9 @@
 #include "recpacketcache.hh"
 #include "utility.hh"
 #include "dns_random.hh"
+#ifdef HAVE_LIBSODIUM
+#include <sodium.h>
+#endif
 #include "opensslsigners.hh"
 #include <iostream>
 #include <errno.h>
@@ -2775,6 +2778,13 @@ int serviceMain(int argc, char*argv[])
   g_numWorkerThreads = ::arg().asNum("threads");
   g_maxMThreads = ::arg().asNum("max-mthreads");
   checkOrFixFDS();
+
+#ifdef HAVE_LIBSODIUM
+  if (sodium_init() == -1) {
+    L<<Logger::Error<<"Unable to initialize sodium crypto library"<<endl;
+    exit(99);
+  }
+#endif
 
   openssl_thread_setup();
   openssl_seed();
