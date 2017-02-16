@@ -44,8 +44,12 @@ UnixsocketConnector::UnixsocketConnector(std::map<std::string,std::string> optio
 
 UnixsocketConnector::~UnixsocketConnector() {
   if (this->connected) {
-     L<<Logger::Info<<"closing socket connection"<<endl;
-     close(fd);
+    try {
+      L<<Logger::Info<<"closing socket connection"<<endl;
+    }
+    catch (...) {
+    }
+    close(fd);
   }
 }
 

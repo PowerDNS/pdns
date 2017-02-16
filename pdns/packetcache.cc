@@ -61,13 +61,17 @@ PacketCache::PacketCache()
 
 PacketCache::~PacketCache()
 {
-  //  WriteLock l(&d_mut);
-  vector<WriteLock*> locks;
-  for(auto& mc : d_maps) {
-    locks.push_back(new WriteLock(&mc.d_mut));
+  try {
+    //  WriteLock l(&d_mut);
+    vector<WriteLock*> locks;
+    for(auto& mc : d_maps) {
+      locks.push_back(new WriteLock(&mc.d_mut));
+    }
+    for(auto wl : locks) {
+      delete wl;
+    }
   }
-  for(auto wl : locks) {
-    delete wl;
+  catch(...) {
   }
 }
 

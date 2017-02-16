@@ -61,7 +61,11 @@ LUABackend::LUABackend(const string &suffix) {
 }
 
 LUABackend::~LUABackend() {
-    L<<Logger::Info<<backend_name<<"Closeing..." << endl;
+    try {
+        L<<Logger::Info<<backend_name<<"Closing..." << endl;
+    }
+    catch (...) {
+    }
 
     lua_close(lua);
 }

@@ -105,7 +105,11 @@ LdapBackend::LdapBackend( const string &suffix )
 LdapBackend::~LdapBackend()
 {
         if( m_pldap != NULL ) { delete( m_pldap ); }
-        L << Logger::Notice << m_myname << " Ldap connection closed" << endl;
+        try {
+                L << Logger::Notice << m_myname << " Ldap connection closed" << endl;
+        }
+        catch (...) {
+        }
 }
 
 
