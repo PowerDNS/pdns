@@ -566,9 +566,18 @@ This is the server ID that will be returned on an EDNS NSID query.
 * IP Ranges, separated by commas or whitespace
 * Default: 0.0.0.0/0, ::/0
 
-Only send AXFR NOTIFY to these IP addresses or netmasks. The default is to
-notify the world. The IP addresses or netmasks in [`also-notify`](#also-notify)
-or ALSO-NOTIFY metadata always receive AXFR NOTIFY.
+For type=MASTER zones (or SLAVE zones with slave-renotify enabled) PowerDNS
+automatically sends NOTIFYs to the name servers specified in the NS records.
+By specifying networks/mask as whitelist, the targets can be limited. The default
+is to notify the world. To completely disable these NOTIFYs set only-notify to an
+empty value. Independent of this setting, the IP addresses or netmasks in
+[`also-notify`](#also-notify) or ALSO-NOTIFY metadata always receive AXFR NOTIFY.
+
+Note: Even if NOTIFYs are limited by a netmask, PowerDNS first has to resolve all the
+hostnames to get IP addresses. Thus, PowerDNS relies on DNS. If the respective
+authoritative name servers are slow, PowerDNS becomes slow too. To avoid this, set
+only-notify to an empty value and specify the notification targets with ALSO-NOTIFY
+and also-notify.
 
 ## `out-of-zone-additional-processing`
 * Boolean
