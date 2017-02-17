@@ -384,7 +384,7 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp) {
   auto cit = comments.begin();
 
   while (rit != records.end() || cit != comments.end()) {
-    if (cit == comments.end() || (rit != records.end() && (cit->qname.toString() < rit->qname.toString() || cit->qtype < rit->qtype))) {
+    if (cit == comments.end() || (rit != records.end() && (cit->qname.toString() <= rit->qname.toString() || cit->qtype < rit->qtype || cit->qtype == rit->qtype))) {
       current_qname = rit->qname;
       current_qtype = rit->qtype;
       ttl = rit->ttl;

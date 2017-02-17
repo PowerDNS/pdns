@@ -886,6 +886,8 @@ fred   IN  A      192.168.0.4
         self.assertNotEquals(serverset['comments'], [])
         # verify that modified_at has been set by pdns
         self.assertNotEquals([c for c in serverset['comments']][0]['modified_at'], 0)
+        # verify that TTL is correct (regression test)
+        self.assertEquals(serverset['ttl'], 3600)
 
     def test_zone_comment_delete(self):
         # Test: Delete ONLY comments.
