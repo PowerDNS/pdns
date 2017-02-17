@@ -388,7 +388,13 @@ public:
     if(connect(*fd, (struct sockaddr*)(&toaddr), toaddr.getSocklen()) < 0) {
       int err = errno;
       //      returnSocket(*fd);
-      closesocket(*fd);
+      try {
+        closesocket(*fd);
+      }
+      catch(const PDNSException& e) {
+        L<<Logger::Error<<"Error closing UDP socket after connect() failed: "<<e.reason<<endl;
+      }
+
       if(err==ENETUNREACH) // Seth "My Interfaces Are Like A Yo Yo" Arnold special
         return -2;
       return -1;
@@ -420,7 +426,12 @@ public:
     catch(FDMultiplexerException& e) {
       // we sometimes return a socket that has not yet been assigned to t_fdm
     }
-    closesocket(*i);
+    try {
+      closesocket(*i);
+    }
+    catch(const PDNSException& e) {
+      L<<Logger::Error<<"Error closing returned UDP socket: "<<e.reason<<endl;
+    }
 
     d_socks.erase(i++);
     --d_numsocks;
@@ -571,8 +582,14 @@ TCPConnection::TCPConnection(int fd, const ComboAddress& addr) : d_remote(addr),
 
 TCPConnection::~TCPConnection()
 {
-  if(closesocket(d_fd) < 0)
-    unixDie("closing socket for TCPConnection");
+  try {
+    if(closesocket(d_fd) < 0)
+      L<<Logger::Error<<"Error closing socket for TCPConnection"<<endl;
+  }
+  catch(const PDNSException& e) {
+    L<<Logger::Error<<"Error closing TCPConnection socket: "<<e.reason<<endl;
+  }
+
   if(t_tcpClientCounts->count(d_remote) && !(*t_tcpClientCounts)[d_remote]--)
     t_tcpClientCounts->erase(d_remote);
   --s_currentConnections;
@@ -1408,7 +1425,12 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
   if(newsock>=0) {
     if(MT->numProcesses() > g_maxMThreads) {
       g_stats.overCapacityDrops++;
-      closesocket(newsock);
+      try {
+        closesocket(newsock);
+      }
+      catch(const PDNSException& e) {
+        L<<Logger::Error<<"Error closing TCP socket after an over capacity drop: "<<e.reason<<endl;
+      }
       return;
     }
 
@@ -1419,12 +1441,22 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
         L<<Logger::Error<<"["<<MT->getTid()<<"] dropping TCP query from "<<addr.toString()<<", address not matched by allow-from"<<endl;
 
       g_stats.unauthorizedTCP++;
-      closesocket(newsock);
+      try {
+        closesocket(newsock);
+      }
+      catch(const PDNSException& e) {
+        L<<Logger::Error<<"Error closing TCP socket after an ACL drop: "<<e.reason<<endl;
+      }
       return;
     }
     if(g_maxTCPPerClient && t_tcpClientCounts->count(addr) && (*t_tcpClientCounts)[addr] >= g_maxTCPPerClient) {
       g_stats.tcpClientOverflow++;
-      closesocket(newsock); // don't call TCPConnection::closeAndCleanup here - did not enter it in the counts yet!
+      try {
+        closesocket(newsock); // don't call TCPConnection::closeAndCleanup here - did not enter it in the counts yet!
+      }
+      catch(const PDNSException& e) {
+        L<<Logger::Error<<"Error closing TCP socket after an overflow drop: "<<e.reason<<endl;
+      }
       return;
     }
 
