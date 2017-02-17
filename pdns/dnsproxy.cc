@@ -304,6 +304,13 @@ void DNSProxy::mainloop(void)
 }
 
 DNSProxy::~DNSProxy() {
-  if (d_sock>-1) closesocket(d_sock);
+  if (d_sock>-1) {
+    try {
+      closesocket(d_sock);
+    }
+    catch(const PDNSException& e) {
+    }
+  }
+
   d_sock=-1;
 }

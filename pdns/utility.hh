@@ -92,9 +92,6 @@ public:
   typedef int sock_t;
   typedef ::socklen_t socklen_t;
 
-  //! Closes a socket.
-  static int closesocket( sock_t socket );
-
   //! Connect with timeout
   // Returns:
   //    > 0 on success

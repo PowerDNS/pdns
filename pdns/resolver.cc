@@ -516,8 +516,14 @@ void AXFRRetriever::connect()
   int err;
 
   if((err=::connect(d_sock,(struct sockaddr*)&d_remote, d_remote.getSocklen()))<0 && errno!=EINPROGRESS) {
-    closesocket(d_sock);
-    d_sock=-1;
+    try {
+      closesocket(d_sock);
+    }
+    catch(const PDNSException& e) {
+      d_sock=-1;
+      throw ResolverException("Error closing AXFR socket after connect() failed: "+e.reason);
+    }
+
     throw ResolverException("connect: "+stringerror());
   }
 
@@ -527,7 +533,14 @@ void AXFRRetriever::connect()
   err=waitForRWData(d_sock, false, 10, 0); // wait for writeability
   
   if(!err) {
-    closesocket(d_sock); // timeout
+    try {
+      closesocket(d_sock); // timeout
+    }
+    catch(const PDNSException& e) {
+      d_sock=-1;
+      throw ResolverException("Error closing AXFR socket after timeout: "+e.reason);
+    }
+
     d_sock=-1;
     errno=ETIMEDOUT;
     
