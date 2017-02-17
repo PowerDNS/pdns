@@ -30,7 +30,7 @@
 
 /* 
     virtual void getAllMasters(vector<DomainInfo>* domains);
-    virtual void setNotifed(int id, uint32_t serial);
+    virtual void setNotified(int id, uint32_t serial);
 */
 
 void LUABackend::getAllMasters(vector<DomainInfo>* domains) {

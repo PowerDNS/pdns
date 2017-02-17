@@ -573,7 +573,7 @@ void OdbxBackend::getAllMasters( vector<DomainInfo>* domains )
         {
         	DLOG( L.log( m_myname + " getAllMasters()", Logger::Debug ) );
 
-        	if( updated == NULL )
+        	if( domains == NULL )
         	{
         		L.log( m_myname + " getAllMasters: invalid parameter - NULL pointer",  Logger::Error );
         		return;
