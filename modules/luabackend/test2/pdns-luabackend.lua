@@ -167,8 +167,8 @@ function getdomainmetadata(name, kind)
 end
 
 
-function getdomainkeys(name, kind)
-	logger(log_debug, "(l_getdomainkeys) name:", name, 'kind', kind)
+function getdomainkeys(name)
+	logger(log_debug, "(l_getdomainkeys) name:", name)
 	return keys[name]
 end
 

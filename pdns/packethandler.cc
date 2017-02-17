@@ -334,7 +334,7 @@ vector<DNSZoneRecord> PacketHandler::getBestDNAMESynth(DNSPacket *p, SOAData& sd
     if(!ret.empty())
       return ret;
     if(subdomain.countLabels())
-      prefix+= DNSName(subdomain.getRawLabels()[0]); // XXX DNSName pain this feels wrong
+      prefix.appendRawLabel(subdomain.getRawLabels()[0]); // XXX DNSName pain this feels wrong
     if(subdomain == sd.qname) // stop at SOA
       break;
 
@@ -576,7 +576,7 @@ static void decrementHash(std::string& raw) // I wonder if this is correct, cmou
 }
 
 
-bool getNSEC3Hashes(bool narrow, DNSBackend* db, int id, const std::string& hashed, bool decrement, DNSName& unhashed, string& before, string& after, int mode)
+bool getNSEC3Hashes(bool narrow, DNSBackend* db, int id, const std::string& hashed, bool decrement, DNSName& unhashed, std::string& before, std::string& after, int mode)
 {
   bool ret;
   if(narrow) { // nsec3-narrow
@@ -590,15 +590,14 @@ bool getNSEC3Hashes(bool narrow, DNSBackend* db, int id, const std::string& hash
     incrementHash(after);
   }
   else {
-    if (decrement || mode <= 1)
-      before.clear();
-    else
-      before=' ';
-    ret=db->getBeforeAndAfterNamesAbsolute(id, toBase32Hex(hashed), unhashed, before, after);
-    before=fromBase32Hex(before);
-    after=fromBase32Hex(after);
+    DNSName hashedName = DNSName(toBase32Hex(hashed));
+    DNSName beforeName, afterName;
+    if (!decrement && mode >= 2)
+      beforeName = hashedName;
+    ret=db->getBeforeAndAfterNamesAbsolute(id, hashedName, unhashed, beforeName, afterName);
+    before=fromBase32Hex(beforeName.toString());
+    after=fromBase32Hex(afterName.toString());
   }
-  // cerr<<"rgetNSEC3Hashes: "<<hashed<<", "<<unhashed<<", "<<before<<", "<<after<<endl;
   return ret;
 }
 
@@ -949,7 +948,7 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
     DP->sendPacket(p);
   }
   if(LPE) {
-    int policyres=LPE->police(p, ret);
+    policyres = LPE->police(p, ret);
     if(policyres == PolicyDecision::DROP) {
       delete ret;
       return NULL;
@@ -1028,9 +1027,7 @@ bool PacketHandler::tryReferral(DNSPacket *p, DNSPacket*r, SOAData& sd, const DN
   if(rrset.empty())
     return false;
   
-  DLOG(L<<"The best NS is: "<<rrset.begin()->qname<<endl);
   for(auto& rr: rrset) {
-    DLOG(L<<"\tadding '"<<rr.content<<"'"<<endl);
     rr.dr.d_place=DNSResourceRecord::AUTHORITY;
     r->addRecord(rr);
   }
@@ -1089,7 +1086,6 @@ bool PacketHandler::tryWildcard(DNSPacket *p, DNSPacket*r, SOAData& sd, DNSName 
     nodata=true;
   }
   else {
-    DLOG(L<<"The best wildcard match: "<<rrset.begin()->qname<<endl);
     for(auto& rr: rrset) {
       rr.wildcardname = rr.dr.d_name;
       rr.dr.d_name=bestmatch=target;
@@ -1099,7 +1095,6 @@ bool PacketHandler::tryWildcard(DNSPacket *p, DNSPacket*r, SOAData& sd, DNSName 
         target=getRR<CNAMERecordContent>(rr.dr)->getTarget();
       }
   
-      DLOG(L<<"\tadding '"<<rr.content<<"'"<<endl);
       rr.dr.d_place=DNSResourceRecord::ANSWER;
       r->addRecord(rr);
     }
@@ -1473,7 +1468,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
           completeANYRecords(p, r, sd, target);
       }
       else
-        makeNOError(p, r, rr.dr.d_name, DNSName(), sd, 0);
+        makeNOError(p, r, target, DNSName(), sd, 0);
 
       goto sendit;
     }

@@ -89,7 +89,7 @@ Supported Algorithms (See the [IANA website](http://www.iana.org/assignments/dns
 - ECC-GOST (algorithm 12)
 - ECDSA (algorithm 13 and 14)
 
-For the DS records, these [digest algorithms](http://www.iana.org/assignments/ds-rr-types/ds-rr-types.xhtml#ds-rr-types-1)
+For the DS records, these [digest types](http://www.iana.org/assignments/ds-rr-types/ds-rr-types.xhtml#ds-rr-types-1)
 are supported:
 
 - SHA-1 (algorithm 1)
@@ -225,9 +225,15 @@ retrieved from a master server, this keying material will be used when serving
 data from this zone.
 
 As part of the zone retrieval, the equivalent of `pdnsutil rectify-zone` is run
-to make sure that all DNSSEC-related fields are set correctly.
+to make sure that all DNSSEC-related fields are set correctly in the backend.
 
-Signatures and Hashing is similar as described [above](#online-signing)
+## Signed AXFR
+An outgoing zone transfer from a signing master contains all information
+required for the receiving party to rectify the zone without knowing the keys,
+such as signed NSEC3 records for empty non-terminals. The zone is not required
+to be rectified on the master.
+
+Signatures and Hashing is similar as described [above](#online-signing).
 
 ## BIND-mode operation
 Starting with PowerDNS 3.1, the bindbackend can manage keys in an SQLite3 database
@@ -548,7 +554,7 @@ incremental updates (or use the same database server on the slaves)
 
 #### NONE
 Ignore [`default-soa-edit`](settings.md#default-soa-edit) and/or
-[`default-soa-edit-signed`](settings.md#default-soa-edit-signed) setings.
+[`default-soa-edit-signed`](settings.md#default-soa-edit-signed) settings.
 
 # PKCS\#11 support
 **Note**: This feature is experimental, and not ready for production. Use at your own risk!
@@ -588,7 +594,7 @@ on ubuntu/debian (tested with Ubuntu 12 and 14).
     sudo pkcs11-tool --module=/home/cmouse/softhsm/lib/softhsm/libsofthsm.so -l -p some-pin -k --key-type RSA:2048 -a zone-ksk|zone-zsk --slot-index slot-number
     ```
 
--   Assign the keys using (note that token label is not necessarely same as object label, see p11-kit -l)
+-   Assign the keys using (note that token label is not necessarily same as object label, see p11-kit -l)
 
     ```
     pdnsutil hsm assign zone rsasha256 ksk|zsk softhsm token-label pin zone-ksk|zsk

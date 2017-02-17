@@ -1,0 +1,2 @@
+#4483 -- Check if we properly cache answers that lie below a forwarded zone, where
+we've gotten a referral from said forwarded zone to a lower zone.

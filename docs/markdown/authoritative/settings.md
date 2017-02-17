@@ -60,10 +60,10 @@ specified. The default is to allow recursion from everywhere. Example:
 `allow-recursion=198.51.100.0/24, 10.0.0.0/8, 192.0.2.4`.
 
 ## `also-notify`
-* IP adresses, separated by commas
+* IP addresses, separated by commas
 
 When notifying a domain, also notify these nameservers. Example:
-`also-notify=192.0.2.1, 203.0.113.167`. The IP adresses listed in `also-notify`
+`also-notify=192.0.2.1, 203.0.113.167`. The IP addresses listed in `also-notify`
 always receive a notification. Even if they do not match the list in
 [`only-notify`](#also-notify).
 
@@ -116,7 +116,8 @@ If sending carbon updates, if set, this will override our hostname. Be careful n
 * Available since: 3.3.1
 
 Send all available metrics to this server via the carbon protocol, which is used
-by graphite and metronome. You may specify an alternate port by appending :port, 
+by graphite and metronome. It has to be an address (no hostnames). 
+You may specify an alternate port by appending :port, 
 ex: 127.0.0.1:2004. See 
 ["PowerDNS Metrics"](../common/logging.md#sending-to-carbongraphitemetronome).
 
@@ -250,7 +251,7 @@ The default keysize for the ZSK generated with
 * Default: no
 
 Read additional ZSKs from the records table/your BIND zonefile. If not set,
-DNSKEY recornds in the zonefiles are ignored.
+DNSKEY records in the zonefiles are ignored.
 
 ## `disable-axfr`
 * Boolean
@@ -358,7 +359,7 @@ most simple form, supply all backends that need to be launched. e.g.
 launch=bind,gmysql,remote
 ```
 
-If you find that you need to a backend multiple times with different configuration,
+If you find that you need to query a backend multiple times with different configuration,
 you can specify a name for later instantiations. e.g.:
 
 ```
@@ -371,7 +372,7 @@ change: e.g. `gmysql-host` is available to configure the `host` setting of the
 first or main instance, and `gmysql-server2-host` for the second one.
 
 ## `load-modules`
-* Paths, seperated by commas
+* Paths, separated by commas
 
 If backends are available in nonstandard directories, specify their location here.
 Multiple files can be loaded if separated by commas. Only available in non-static
@@ -496,11 +497,32 @@ hopeless and respawn.
 
 Maximum number of signatures cache entries
 
+## `max-tcp-connection-duration`
+* Integer
+* Default: 0
+
+Maximum time in seconds that a TCP DNS connection is allowed to stay open.
+0 means unlimited.
+Note that exchanges related to an AXFR or IXFR are not affected by this setting.
+
 ## `max-tcp-connections`
 * Integer
 * Default: 20
 
 Allow this many incoming TCP DNS connections simultaneously.
+
+## `max-tcp-connections-per-client`
+* Integer
+* Default: 0
+
+Maximum number of simultaneous TCP connections per client. 0 means unlimited.
+
+## `max-tcp-transactions-per-conn`
+* Integer
+* Default: 0
+
+Allow this many DNS queries in a single TCP transaction. 0 means unlimited.
+Note that exchanges related to an AXFR or IXFR are not affected by this setting.
 
 ## `module-dir`
 * Path
@@ -564,9 +586,21 @@ This is the server ID that will be returned on an EDNS NSID query.
 * IP Ranges, separated by commas or whitespace
 * Default: 0.0.0.0/0, ::/0
 
-Only send AXFR NOTIFY to these IP addresses or netmasks. The default is to
-notify the world. The IP addresses or netmasks in [`also-notify`](#also-notify)
-or ALSO-NOTIFY metadata always receive AXFR NOTIFY.
+For type=MASTER zones (or SLAVE zones with slave-renotify enabled) PowerDNS
+automatically sends NOTIFYs to the name servers specified in the NS records.
+By specifying networks/mask as whitelist, the targets can be limited. The default
+is to notify the world. To completely disable these NOTIFYs set `only-notify` to an
+empty value. Independent of this setting, the IP addresses or netmasks configured
+with [`also-notify`](#also-notify) and `ALSO-NOTIFY` domain metadata always receive
+AXFR NOTIFYs.
+
+Note: Even if NOTIFYs are limited by a netmask, PowerDNS first has to resolve all the
+hostnames to check their IP addresses against the specified whitelist. The resolving
+may take considerable time, especially if those hostnames are slow to resolve. If you
+do not need to NOTIFY the slaves defined in the NS records (e.g. you are using another
+method to distribute the zone data to the slaves), then set `only-notify` to an empty
+value and specify the notification targets explicitly using [`also-notify`](#also-notify)
+and/or `ALSO-NOTIFY` domain metadata to avoid this potential bottleneck.
 
 ## `out-of-zone-additional-processing`
 * Boolean
@@ -758,6 +792,13 @@ Limit TCP control to a specific client range.
 * String
 
 Password for TCP control.
+
+## `tcp-idle-timeout`
+* Integer
+* Default: 5
+
+Maximum time in seconds that a TCP DNS connection is allowed to stay open
+while being idle, meaning without PowerDNS receiving or sending even a single byte.
 
 ## `traceback-handler`
 * Boolean

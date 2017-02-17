@@ -94,6 +94,17 @@ public:
 
   waiters_t d_waiters;
 
+  void initMainStackBounds()
+  {
+#ifdef HAVE_FIBER_SANITIZER
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_getattr_np(pthread_self(), &attr);
+    pthread_attr_getstack(&attr, &t_mainStack, &t_mainStackSize);
+    pthread_attr_destroy(&attr);
+#endif /* HAVE_FIBER_SANITIZER */
+  }
+
   //! Constructor
   /** Constructor with a small default stacksize. If any of your threads exceeds this stack, your application will crash. 
       This limit applies solely to the stack, the heap is not limited in any way. If threads need to allocate a lot of data,
@@ -101,6 +112,7 @@ public:
    */
   MTasker(size_t stacksize=8192) : d_tid(0), d_maxtid(0), d_stacksize(stacksize), d_waitstatus(Error)
   {
+    initMainStackBounds();
   }
 
   typedef void tfunc_t(void *); //!< type of the pointer that starts a thread 

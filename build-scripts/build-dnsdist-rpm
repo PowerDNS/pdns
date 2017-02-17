@@ -40,7 +40,7 @@ INIT_INSTALL='sed -i "s,/^\(ExecStart.*\)dnsdist\(.*\)\$,\1dnsdist -u dnsdist -g
 INIT_FILES='/lib/systemd/system/dnsdist.service'
 INIT_CONFIGURE='--enable-systemd --with-systemd=/lib/systemd/system \'
 
-# CentOS 6 has protobuf, but not a modern enough boost. We defaul to with protobuf
+# CentOS 6 has protobuf, but not a modern enough boost. We default to with protobuf
 PROTOBUF_CONFIGURE='--with-protobuf \'
 
 # CentOS 6 has a libsodium, but we use more modern functions

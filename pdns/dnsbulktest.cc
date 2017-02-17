@@ -142,7 +142,7 @@ struct SendReceive
       }
       // parse packet, set 'id', fill out 'ip' 
       
-      MOADNSParser mdp(string(buf, len));
+      MOADNSParser mdp(false, string(buf, len));
       if(!g_quiet) {
         cout<<"Reply to question for qname='"<<mdp.d_qname<<"', qtype="<<DNSRecordContent::NumberToType(mdp.d_qtype)<<endl;
         cout<<"Rcode: "<<mdp.d_header.rcode<<", RD: "<<mdp.d_header.rd<<", QR: "<<mdp.d_header.qr;

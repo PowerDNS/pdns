@@ -133,16 +133,21 @@ require an *ALGORITHM*, the following are available:
  * hmac-sha512
 
 activate-tsig-key *ZONE* *NAME* {**master**,**slave**}
-:    Enable TSIG key *NAME* for zone *ZONE*.
+:    Enable TSIG authenticated AXFR using the key *NAME* for zone *ZONE*.
+     This sets the `TSIG-ALLOW-AXFR` (master) or `AXFR-MASTER-TSIG` (slave)
+     zone metadata.
 
 deactivate-tsig-key *ZONE* *NAME* {**master**,**slave**}
-:    Disable TSIG key *NAME* for zone *ZONE*.
+:    Disable TSIG authenticated AXFR using the key *NAME* for zone *ZONE*.
 
 delete-tsig-key *NAME*
 :    Delete the TSIG key *NAME*. Warning, this does not deactivate said key.
 
 generate-tsig-key *NAME* *ALGORITHM*
 :    Generate new TSIG key with name *NAME* and the specified algorithm.
+
+import-tsig-key *NAME* *ALGORITHM* *KEY*
+:    Import *KEY* of the specified algorithm as *NAME*.
 
 ## ZONE MANIPULATION COMMANDS
 create-zone *ZONE*
@@ -191,9 +196,25 @@ rectify-zone *ZONE*
      they comply with DNSSEC settings. Can be used to fix up migrated data. Can
      always safely be run, it does no harm.
 
+rectify-all-zones
+:    Calculates the 'ordername' and 'auth' fields for all zones so they comply 
+     with DNSSEC settings. Can be used to fix up migrated data. Can always safely 
+     be run, it does no harm.
+
 secure-zone *ZONE*
 :    Configures a zone called *ZONE* with reasonable DNSSEC settings. You should
      manually run 'pdnsutil rectify-zone' afterwards.
+
+secure-all-zones [**increase-serial**]
+:    Configures all zones that are not currently signed with reasonable DNSSEC
+     settings. Setting **increase-serial** will increase the serial of those 
+     zones too. You should manually run 'pdnsutil rectify-all-zones' afterwards.
+
+set-kind *ZONE* *KIND*
+:    Change the kind of *ZONE* to *KIND* (master, slave, native).
+
+set-account *ZONE* *ACCOUNT*
+:    Change the account (owner) of *ZONE* to *ACCOUNT*.
 
 set-meta *ZONE* *ATTRIBUTE* [*VALUE*]
 :    Set domainmetadata *ATTRIBUTE* for *ZONE* to *VALUE*. An empty value clears it.

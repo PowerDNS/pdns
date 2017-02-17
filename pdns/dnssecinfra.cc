@@ -236,7 +236,7 @@ pair<unsigned int, unsigned int> DNSCryptoKeyEngine::testMakers(unsigned int alg
   unsigned int bits;
   if(algo <= 10)
     bits=1024;
-  else if(algo == 12 || algo == 13 || algo == 250) // ECC-GOST or ECDSAP256SHA256 or ED25519SHA512
+  else if(algo == 12 || algo == 13 || algo == 15) // ECC-GOST or ECDSAP256SHA256 or ED25519
     bits=256;
   else if(algo == 14) // ECDSAP384SHA384
     bits = 384;
@@ -606,15 +606,36 @@ string calculateHMAC(const std::string& key, const std::string& text, TSIGHashEn
       md_type = EVP_sha512();
       break;
     default:
-      throw new PDNSException("Unknown hash algorithm requested from calculateHMAC()");
+      throw PDNSException("Unknown hash algorithm requested from calculateHMAC()");
   }
 
   unsigned char* out = HMAC(md_type, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash, &outlen);
-  if (out != NULL && outlen > 0) {
-    return string((char*) hash, outlen);
+  if (out == NULL || outlen == 0) {
+    throw PDNSException("HMAC computation failed");
   }
 
-  return "";
+  return string((char*) hash, outlen);
+}
+
+bool constantTimeStringEquals(const std::string& a, const std::string& b)
+{
+  if (a.size() != b.size()) {
+    return false;
+  }
+  const size_t size = a.size();
+#if OPENSSL_VERSION_NUMBER >= 0x0090819fL
+  return CRYPTO_memcmp(a.c_str(), b.c_str(), size) == 0;
+#else
+  const volatile unsigned char *_a = (const volatile unsigned char *) a.c_str();
+  const volatile unsigned char *_b = (const volatile unsigned char *) b.c_str();
+  unsigned char res = 0;
+
+  for (size_t idx = 0; idx < size; idx++) {
+    res |= _a[idx] ^ _b[idx];
+  }
+
+  return res == 0;
+#endif
 }
 
 string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOffset, const DNSName& keyname, const TSIGRecordContent& trc, const string& previous, bool timersonly, unsigned int dnsHeaderOffset)
@@ -648,8 +669,7 @@ string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOff
     dw.xfrName(keyname, false);
     dw.xfr16BitInt(QClass::ANY); // class
     dw.xfr32BitInt(0);    // TTL
-    // dw.xfrName(toLower(trc.d_algoName), false); //FIXME400 
-    dw.xfrName(trc.d_algoName, false);
+    dw.xfrName(trc.d_algoName.makeLowerCase(), false);
   }
   
   uint32_t now = trc.d_time; 

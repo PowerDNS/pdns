@@ -32,8 +32,15 @@
 #include <fstream>
 #include <boost/logic/tribool.hpp>
 #include "statnode.hh"
+#include <sys/types.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+#include "dnsdist-lua.hh"
 
 boost::tribool g_noLuaSideEffect;
+static bool g_included{false};
 
 /* this is a best effort way to prevent logging calls with no side-effects in the output of delta()
    Functions can declare setLuaNoSideEffect() and if nothing else does declare a side effect, or nothing
@@ -79,12 +86,25 @@ map<ComboAddress,int> filterScore(const map<ComboAddress, unsigned int,ComboAddr
 
 typedef std::function<void(const StatNode&, const StatNode::Stat&, const StatNode::Stat&)> statvisitor_t;
 
-void statNodeRespRing(statvisitor_t visitor)
+static void statNodeRespRing(statvisitor_t visitor, unsigned int seconds)
 {
+  struct timespec cutoff, now;
+  gettime(&now);
+  if (seconds) {
+    cutoff = now;
+    cutoff.tv_sec -= seconds;
+  }
+
   std::lock_guard<std::mutex> lock(g_rings.respMutex);
   
   StatNode root;
   for(const auto& c : g_rings.respRing) {
+    if (now < c.when)
+      continue;
+
+    if (seconds && c.when < cutoff)
+      continue;
+
     root.submit(c.name, c.dh.rcode, c.requestor);
   }
   StatNode::Stat node;
@@ -289,7 +309,19 @@ void moreLua(bool client)
 			   g_dynblockSMT.setState(slow);
 			 });
 
-
+  g_lua.writeFunction("setDynBlocksAction", [](DNSAction::Action action) {
+      if (!g_configurationDone) {
+        if (action == DNSAction::Action::Drop || action == DNSAction::Action::Refused) {
+          g_dynBlockAction = action;
+        }
+        else {
+          errlog("Dynamic blocks action can only be Drop or Refused!");
+          g_outputBuffer="Dynamic blocks action can only be Drop or Refused!\n";
+        }
+      } else {
+        g_outputBuffer="Dynamic blocks action cannot be altered at runtime!\n";
+      }
+    });
 
   g_lua.registerFunction<bool(nmts_t::*)(const ComboAddress&)>("match", 
 								     [](nmts_t& s, const ComboAddress& ca) { return s.match(ca); });
@@ -338,7 +370,9 @@ void moreLua(bool client)
   g_lua.registerMember("nxdomains", &StatNode::Stat::nxdomains);
   g_lua.registerMember("queries", &StatNode::Stat::queries);
 
-  g_lua.writeFunction("statNodeRespRing", statNodeRespRing);
+  g_lua.writeFunction("statNodeRespRing", [](statvisitor_t visitor, boost::optional<unsigned int> seconds) {
+      statNodeRespRing(visitor, seconds ? *seconds : 0);
+    });
 
   g_lua.writeFunction("getTopBandwidth", [](unsigned int top) {
       setLuaNoSideEffect();
@@ -649,8 +683,8 @@ void moreLua(bool client)
         }
     });
 
-    g_lua.writeFunction("newPacketCache", [client](size_t maxEntries, boost::optional<uint32_t> maxTTL, boost::optional<uint32_t> minTTL, boost::optional<uint32_t> servFailTTL, boost::optional<uint32_t> staleTTL) {
-        return std::make_shared<DNSDistPacketCache>(maxEntries, maxTTL ? *maxTTL : 86400, minTTL ? *minTTL : 0, servFailTTL ? *servFailTTL : 60, staleTTL ? *staleTTL : 60);
+    g_lua.writeFunction("newPacketCache", [client](size_t maxEntries, boost::optional<uint32_t> maxTTL, boost::optional<uint32_t> minTTL, boost::optional<uint32_t> tempFailTTL, boost::optional<uint32_t> staleTTL) {
+        return std::make_shared<DNSDistPacketCache>(maxEntries, maxTTL ? *maxTTL : 86400, minTTL ? *minTTL : 0, tempFailTTL ? *tempFailTTL : 60, staleTTL ? *staleTTL : 60);
       });
     g_lua.registerFunction("toString", &DNSDistPacketCache::toString);
     g_lua.registerFunction("isFull", &DNSDistPacketCache::isFull);
@@ -706,9 +740,9 @@ void moreLua(bool client)
         throw std::runtime_error("Protobuf support is required to use RemoteLogAction");
 #endif
       });
-    g_lua.writeFunction("RemoteLogResponseAction", [](std::shared_ptr<RemoteLogger> logger, boost::optional<std::function<void(const DNSResponse&, DNSDistProtoBufMessage*)> > alterFunc) {
+    g_lua.writeFunction("RemoteLogResponseAction", [](std::shared_ptr<RemoteLogger> logger, boost::optional<std::function<void(const DNSResponse&, DNSDistProtoBufMessage*)> > alterFunc, boost::optional<bool> includeCNAME) {
 #ifdef HAVE_PROTOBUF
-        return std::shared_ptr<DNSResponseAction>(new RemoteLogResponseAction(logger, alterFunc));
+        return std::shared_ptr<DNSResponseAction>(new RemoteLogResponseAction(logger, alterFunc, includeCNAME ? *includeCNAME : false));
 #else
         throw std::runtime_error("Protobuf support is required to use RemoteLogResponseAction");
 #endif
@@ -778,6 +812,14 @@ void moreLua(bool client)
 
     g_lua.registerFunction("getStats", &DNSAction::getStats);
 
+  g_lua.writeFunction("addResponseAction", [](luadnsrule_t var, std::shared_ptr<DNSResponseAction> ea) {
+      setLuaSideEffect();
+      auto rule=makeRule(var);
+      g_resprulactions.modify([rule, ea](decltype(g_resprulactions)::value_type& rulactions){
+          rulactions.push_back({rule, ea});
+        });
+    });
+
     g_lua.writeFunction("showResponseRules", []() {
         setLuaNoSideEffect();
         boost::format fmt("%-3d %9d %-50s %s\n");
@@ -831,6 +873,67 @@ void moreLua(bool client)
         g_resprulactions.setState(rules);
       });
 
+    g_lua.writeFunction("addCacheHitResponseAction", [](luadnsrule_t var, std::shared_ptr<DNSResponseAction> ea) {
+        setLuaSideEffect();
+        auto rule=makeRule(var);
+        g_cachehitresprulactions.modify([rule, ea](decltype(g_cachehitresprulactions)::value_type& rulactions){
+            rulactions.push_back({rule, ea});
+          });
+      });
+
+    g_lua.writeFunction("showCacheHitResponseRules", []() {
+        setLuaNoSideEffect();
+        boost::format fmt("%-3d %9d %-50s %s\n");
+        g_outputBuffer += (fmt % "#" % "Matches" % "Rule" % "Action").str();
+        int num=0;
+        for(const auto& lim : g_cachehitresprulactions.getCopy()) {
+          string name = lim.first->toString();
+          g_outputBuffer += (fmt % num % lim.first->d_matches % name % lim.second->toString()).str();
+          ++num;
+        }
+      });
+
+    g_lua.writeFunction("rmCacheHitResponseRule", [](unsigned int num) {
+        setLuaSideEffect();
+        auto rules = g_cachehitresprulactions.getCopy();
+        if(num >= rules.size()) {
+          g_outputBuffer = "Error: attempt to delete non-existing rule\n";
+          return;
+        }
+        rules.erase(rules.begin()+num);
+        g_cachehitresprulactions.setState(rules);
+      });
+
+    g_lua.writeFunction("topCacheHitResponseRule", []() {
+        setLuaSideEffect();
+        auto rules = g_cachehitresprulactions.getCopy();
+        if(rules.empty())
+          return;
+        auto subject = *rules.rbegin();
+        rules.erase(std::prev(rules.end()));
+        rules.insert(rules.begin(), subject);
+        g_cachehitresprulactions.setState(rules);
+      });
+
+    g_lua.writeFunction("mvCacheHitResponseRule", [](unsigned int from, unsigned int to) {
+        setLuaSideEffect();
+        auto rules = g_cachehitresprulactions.getCopy();
+        if(from >= rules.size() || to > rules.size()) {
+          g_outputBuffer = "Error: attempt to move rules from/to invalid index\n";
+          return;
+        }
+        auto subject = rules[from];
+        rules.erase(rules.begin()+from);
+        if(to == rules.size())
+          rules.push_back(subject);
+        else {
+          if(from < to)
+            --to;
+          rules.insert(rules.begin()+to, subject);
+        }
+        g_cachehitresprulactions.setState(rules);
+      });
+
     g_lua.writeFunction("showBinds", []() {
       setLuaNoSideEffect();
       try {
@@ -862,6 +965,8 @@ void moreLua(bool client)
         return fe.local.toStringWithPort();
       });
 
+    g_lua.registerMember("muted", &ClientState::muted);
+
     g_lua.writeFunction("help", [](boost::optional<std::string> command) {
         setLuaNoSideEffect();
         g_outputBuffer = "";
@@ -885,7 +990,10 @@ void moreLua(bool client)
       });
 
 #ifdef HAVE_EBPF
-    g_lua.writeFunction("newBPFFilter", [](uint32_t maxV4, uint32_t maxV6, uint32_t maxQNames) {
+    g_lua.writeFunction("newBPFFilter", [client](uint32_t maxV4, uint32_t maxV6, uint32_t maxQNames) {
+        if (client) {
+          return std::shared_ptr<BPFFilter>(nullptr);
+        }
         return std::make_shared<BPFFilter>(maxV4, maxV6, maxQNames);
       });
 
@@ -961,7 +1069,10 @@ void moreLua(bool client)
         g_defaultBPFFilter = bpf;
       });
 
-    g_lua.writeFunction("newDynBPFFilter", [](std::shared_ptr<BPFFilter> bpf) {
+    g_lua.writeFunction("newDynBPFFilter", [client](std::shared_ptr<BPFFilter> bpf) {
+        if (client) {
+          return std::shared_ptr<DynBPFFilter>(nullptr);
+        }
         return std::make_shared<DynBPFFilter>(bpf);
       });
 
@@ -973,7 +1084,7 @@ void moreLua(bool client)
 
     g_lua.writeFunction("unregisterDynBPFFilter", [](std::shared_ptr<DynBPFFilter> dbpf) {
         if (dbpf) {
-          for (auto it = g_dynBPFFilters.cbegin(); it != g_dynBPFFilters.cend(); it++) {
+          for (auto it = g_dynBPFFilters.begin(); it != g_dynBPFFilters.end(); it++) {
             if (*it == dbpf) {
               g_dynBPFFilters.erase(it);
               break;
@@ -1012,4 +1123,126 @@ void moreLua(bool client)
       });
 
 #endif /* HAVE_EBPF */
+
+    g_lua.writeFunction<std::unordered_map<string,uint64_t>()>("getStatisticsCounters", []() {
+        setLuaNoSideEffect();
+        std::unordered_map<string,uint64_t> res;
+        for(const auto& entry : g_stats.entries) {
+          if(const auto& val = boost::get<DNSDistStats::stat_t*>(&entry.second))
+            res[entry.first] = (*val)->load();
+        }
+        return res;
+      });
+
+    g_lua.writeFunction("includeDirectory", [](const std::string& dirname) {
+        if (g_configurationDone) {
+          errlog("includeDirectory() cannot be used at runtime!");
+          g_outputBuffer="includeDirectory() cannot be used at runtime!\n";
+          return;
+        }
+
+        if (g_included) {
+          errlog("includeDirectory() cannot be used recursively!");
+          g_outputBuffer="includeDirectory() cannot be used recursively!\n";
+          return;
+        }
+
+        g_included = true;
+        struct stat st;
+
+        if (stat(dirname.c_str(), &st)) {
+          errlog("The included directory %s does not exist!", dirname.c_str());
+          g_outputBuffer="The included directory " + dirname + " does not exist!";
+          return;
+        }
+
+        if (!S_ISDIR(st.st_mode)) {
+          errlog("The included directory %s is not a directory!", dirname.c_str());
+          g_outputBuffer="The included directory " + dirname + " is not a directory!";
+          return;
+        }
+
+        DIR *dirp;
+        struct dirent *ent;
+        if (!(dirp = opendir(dirname.c_str()))) {
+          errlog("Error opening the included directory %s!", dirname.c_str());
+          g_outputBuffer="Error opening the included directory " + dirname + "!";
+          return;
+        }
+
+        while((ent = readdir(dirp)) != NULL) {
+          if (ent->d_name[0] == '.') {
+            continue;
+          }
+
+          if (boost::ends_with(ent->d_name, ".conf")) {
+            std::ostringstream namebuf;
+            namebuf << dirname.c_str() << "/" << ent->d_name;
+
+            if (stat(namebuf.str().c_str(), &st) || !S_ISREG(st.st_mode)) {
+              continue;
+            }
+
+            std::ifstream ifs(namebuf.str());
+            if (!ifs) {
+              warnlog("Unable to read configuration from '%s'", namebuf.str());
+            } else {
+              vinfolog("Read configuration from '%s'", namebuf.str());
+            }
+
+            g_lua.executeCode(ifs);
+          }
+        }
+        closedir(dirp);
+
+        g_included = false;
+    });
+
+    g_lua.writeFunction("setAPIWritable", [](bool writable, boost::optional<std::string> apiConfigDir) {
+        setLuaSideEffect();
+        g_apiReadWrite = writable;
+        if (apiConfigDir) {
+          if (!(*apiConfigDir).empty()) {
+            g_apiConfigDirectory = *apiConfigDir;
+          }
+          else {
+            errlog("The API configuration directory value cannot be empty!");
+            g_outputBuffer="The API configuration directory value cannot be empty!";
+          }
+        }
+      });
+
+    g_lua.writeFunction("setServFailWhenNoServer", [](bool servfail) {
+        setLuaSideEffect();
+        g_servFailOnNoPolicy = servfail;
+      });
+
+    g_lua.writeFunction("setRingBuffersSize", [](size_t capacity) {
+        setLuaSideEffect();
+        if (g_configurationDone) {
+          errlog("setRingBuffersSize() cannot be used at runtime!");
+          g_outputBuffer="setRingBuffersSize() cannot be used at runtime!\n";
+          return;
+        }
+        g_rings.setCapacity(capacity);
+      });
+
+    g_lua.writeFunction("RDRule", []() {
+      return std::shared_ptr<DNSRule>(new RDRule());
+    });
+
+    g_lua.writeFunction("setWHashedPertubation", [](uint32_t pertub) {
+        setLuaSideEffect();
+        g_hashperturb = pertub;
+      });
+
+    g_lua.writeFunction("setTCPUseSinglePipe", [](bool flag) {
+        if (g_configurationDone) {
+          g_outputBuffer="setTCPUseSinglePipe() cannot be used at runtime!\n";
+          return;
+        }
+        setLuaSideEffect();
+        g_useTCPSinglePipe = flag;
+      });
+
 }

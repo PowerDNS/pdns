@@ -98,7 +98,7 @@ try
     q->udpUsec = makeUsec(now - tv);
     tv=now;
 
-    MOADNSParser mdp(reply);
+    MOADNSParser mdp(false, reply);
     if(!mdp.d_header.tc)
       return;
     g_truncates++;
@@ -148,7 +148,7 @@ try
   q->tcpUsec = makeUsec(now - tv);
   q->answerSecond = now.tv_sec;
 
-  MOADNSParser mdp(reply);
+  MOADNSParser mdp(false, reply);
   //  cout<<"Had correct TCP/IP response, "<<mdp.d_answers.size()<<" answers, aabit="<<mdp.d_header.aa<<endl;
   if(mdp.d_header.aa)
     g_authAnswers++;

@@ -193,7 +193,7 @@ public:
   bool getDomainInfo(const DNSName &domain, DomainInfo &di);
   time_t getCtime(const string &fname);
    // DNSSEC
-  virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const string& qname, DNSName& unhashed, string& before, string& after);
+  virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after);
   void lookup(const QType &, const DNSName &qdomain, DNSPacket *p=0, int zoneId=-1);
   bool list(const DNSName &target, int id, bool include_disabled=false);
   bool get(DNSResourceRecord &);
@@ -216,7 +216,7 @@ public:
   virtual bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta);
   virtual bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta);
   virtual bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta);
-  virtual bool getDomainKeys(const DNSName& name, unsigned int kind, std::vector<KeyData>& keys);
+  virtual bool getDomainKeys(const DNSName& name, std::vector<KeyData>& keys);
   virtual bool removeDomainKey(const DNSName& name, unsigned int id);
   virtual bool addDomainKey(const DNSName& name, const KeyData& key, int64_t& id);
   virtual bool activateDomainKey(const DNSName& name, unsigned int id);
@@ -316,7 +316,7 @@ private:
   BB2DomainInfo createDomainEntry(const DNSName& domain, const string &filename); //!< does not insert in s_state
 
   void queueReloadAndStore(unsigned int id);
-  bool findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const DNSName& qname, DNSName& unhashed, string& before, string& after);
+  bool findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after);
   void reload();
   static string DLDomStatusHandler(const vector<string>&parts, Utility::pid_t ppid);
   static string DLListRejectsHandler(const vector<string>&parts, Utility::pid_t ppid);

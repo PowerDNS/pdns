@@ -29,6 +29,7 @@
 #include "utility.hh"
 
 
+#include <dlfcn.h>
 #include <string>
 #include <map>
 #include <sys/types.h>
@@ -50,8 +51,6 @@ extern StatBag S;
 
 vector<UeberBackend *>UeberBackend::instances;
 pthread_mutex_t UeberBackend::instances_lock=PTHREAD_MUTEX_INITIALIZER;
-
-sem_t UeberBackend::d_dynserialize;
 
 // initially we are blocked
 bool UeberBackend::d_go=false;
@@ -108,10 +107,10 @@ bool UeberBackend::addDomainKey(const DNSName& name, const DNSBackend::KeyData& 
   }
   return false;
 }
-bool UeberBackend::getDomainKeys(const DNSName& name, unsigned int kind, std::vector<DNSBackend::KeyData>& keys)
+bool UeberBackend::getDomainKeys(const DNSName& name, std::vector<DNSBackend::KeyData>& keys)
 {
   for(DNSBackend* db :  backends) {
-    if(db->getDomainKeys(name, kind, keys))
+    if(db->getDomainKeys(name, keys))
       return true;
   }
   return false;
@@ -417,13 +416,13 @@ UeberBackend::UeberBackend(const string &pname)
 
   d_negcached=0;
   d_ancount=0;
-  domain_id=-1;
+  d_domain_id=-1;
   d_cached=0;
   d_cache_ttl = ::arg().asNum("query-cache-ttl");
   d_negcache_ttl = ::arg().asNum("negquery-cache-ttl");
 
-  tid=pthread_self(); 
-  stale=false;
+  d_tid=pthread_self();
+  d_stale=false;
 
   backends=BackendMakers().all(pname=="key-only");
 }
@@ -517,7 +516,7 @@ UeberBackend::~UeberBackend()
 // this handle is more magic than most
 void UeberBackend::lookup(const QType &qtype,const DNSName &qname, DNSPacket *pkt_p, int zoneId)
 {
-  if(stale) {
+  if(d_stale) {
     L<<Logger::Error<<"Stale ueberbackend received question, signalling that we want to be recycled"<<endl;
     throw PDNSException("We are stale, please recycle");
   }
@@ -533,7 +532,7 @@ void UeberBackend::lookup(const QType &qtype,const DNSName &qname, DNSPacket *pk
     pthread_mutex_unlock(&d_mut);
   }
 
-  domain_id=zoneId;
+  d_domain_id=zoneId;
 
   d_handle.i=0;
   d_handle.qtype=qtype;
@@ -543,7 +542,7 @@ void UeberBackend::lookup(const QType &qtype,const DNSName &qname, DNSPacket *pk
 
   if(!backends.size()) {
     L<<Logger::Error<<"No database backends available - unable to answer questions."<<endl;
-    stale=true; // please recycle us!
+    d_stale=true; // please recycle us!
     throw PDNSException("We are stale, please recycle");
   }
   else {
@@ -611,7 +610,7 @@ bool UeberBackend::get(DNSZoneRecord &rr)
   if(!d_handle.get(rr)) {
     // cout<<"end of ueberbackend get, seeing if we should cache"<<endl;
     if(!d_ancount && d_handle.qname.countLabels()) {// don't cache axfr
-      // cout<<"adding negache"<<endl;
+      // cout<<"adding negcache"<<endl;
       addNegCache(d_question);
     }
     else {
@@ -624,13 +623,6 @@ bool UeberBackend::get(DNSZoneRecord &rr)
   d_ancount++;
   d_answers.push_back(rr);
   return true;
-}
-
-bool UeberBackend::list(const DNSName &target, int domain_id, bool include_disabled)
-{
-  L<<Logger::Error<<"UeberBackend::list called, should NEVER EVER HAPPEN"<<endl;
-  exit(1);
-  return false;
 }
 
 bool UeberBackend::searchRecords(const string& pattern, int maxResults, vector<DNSResourceRecord>& result)
@@ -676,7 +668,7 @@ bool UeberBackend::handle::get(DNSZoneRecord &r)
            <<" out of answers, taking next"<<endl);
       
       d_hinterBackend=parent->backends[i++];
-      d_hinterBackend->lookup(qtype,qname,pkt_p,parent->domain_id);
+      d_hinterBackend->lookup(qtype,qname,pkt_p,parent->d_domain_id);
     }
     else 
       break;

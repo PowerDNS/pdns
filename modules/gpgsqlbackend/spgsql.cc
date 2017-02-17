@@ -106,7 +106,7 @@ public:
     // if you return SETOF refcursor.
     if (PQftype(d_res_set, 0) == 1790) { // REFCURSOR
 #if PG_VERSION_NUM > 90000
-      // PQescapeIdentifier was added to libpq in postggresql 9.0
+      // PQescapeIdentifier was added to libpq in postgresql 9.0
       char *val = PQgetvalue(d_res_set, d_cur_set++, 0);
       char *portal =  PQescapeIdentifier(d_db(), val, strlen(val));
       string cmd = string("FETCH ALL FROM \"") + string(portal) + string("\"");
@@ -265,7 +265,7 @@ private:
 bool SPgSQL::s_dolog;
 
 SPgSQL::SPgSQL(const string &database, const string &host, const string& port, const string &user,
-               const string &password)
+               const string &password, const string &extra_connection_parameters)
 {
   d_db=0;
   d_in_trx = false;
@@ -282,6 +282,9 @@ SPgSQL::SPgSQL(const string &database, const string &host, const string& port, c
 
   if(!port.empty())
     d_connectstr+=" port="+port;
+
+  if(!extra_connection_parameters.empty())
+    d_connectstr+=" " + extra_connection_parameters;
 
   d_connectlogstr=d_connectstr;
 

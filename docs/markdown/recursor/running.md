@@ -19,7 +19,7 @@ Show currently outstanding queries.
 
 ### `dump-cache <filename>`
 Dump cache contents to the named file `filename`. Note that the file MUST NOT exist beforehand. \\
-Typical PowerDNS Recursors run multiple threads, therefore you'll see duplicate, different entries for the same domains. The negative cache is also dumped to the same file. The per-thread positive and negative cache dumps are separated with an appropiate comment.
+Typical PowerDNS Recursors run multiple threads, therefore you'll see duplicate, different entries for the same domains. The negative cache is also dumped to the same file. The per-thread positive and negative cache dumps are separated with an appropriate comment.
 
 ### `dump-edns[status] <filename>`
 Dump EDNS Status for remotes to the named file `filename`. Note that the file MUST NOT exist beforehand.

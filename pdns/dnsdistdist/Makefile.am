@@ -4,15 +4,16 @@ ACLOCAL_AMFLAGS = -I m4
 
 SUBDIRS=ext/yahttp
 
-CLEANFILES = dnsmessage.pb.cc dnsmessage.pb.h
+CLEANFILES = dnsmessage.pb.cc dnsmessage.pb.h htmlfiles.h.tmp htmlfiles.h
 
 dnslabeltext.cc: dnslabeltext.rl
 	$(AM_V_GEN)$(RAGEL) $< -o dnslabeltext.cc
 
 BUILT_SOURCES=htmlfiles.h
 
-htmlfiles.h: html/*
-	./incfiles > $@
+htmlfiles.h: $(srcdir)/html/*
+	$(AM_V_GEN)$(srcdir)/incfiles $(srcdir) > $@.tmp
+	@mv $@.tmp $@
 
 SRC_JS_FILES := $(wildcard src_js/*.js)
 MIN_JS_FILES := $(patsubst src_js/%.js,html/js/%.min.js,$(SRC_JS_FILES))
@@ -72,7 +73,7 @@ dnsdist_SOURCES = \
 	dnsdist-console.cc \
 	dnsdist-dnscrypt.cc \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
-	dnsdist-lua.cc \
+	dnsdist-lua.hh dnsdist-lua.cc \
 	dnsdist-lua2.cc \
 	dnsdist-protobuf.cc dnsdist-protobuf.hh \
 	dnsdist-rings.cc \
@@ -134,7 +135,7 @@ endif
 if HAVE_PROTOBUF
 if HAVE_PROTOC
 dnsmessage.pb.cc: dnsmessage.proto
-	$(AM_V_GEN)$(PROTOC) --cpp_out=./ $<
+	$(AM_V_GEN)$(PROTOC) -I$(srcdir) --cpp_out=./ $<
 
 BUILT_SOURCES += dnsmessage.pb.cc
 

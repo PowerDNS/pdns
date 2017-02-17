@@ -284,14 +284,15 @@ BOOST_AUTO_TEST_CASE(test_opt_record_in) {
   std::string packet("\xf0\x01\x01\x00\x00\x01\x00\x01\x00\x00\x00\x01\x03www\x08powerdns\x03""com\x00\x00\x01\x00\x01\x03www\x08powerdns\x03""com\x00\x00\x01\x00\x01\x00\x00\x00\x10\x00\x04\x7f\x00\x00\x01\x00\x00\x29\x05\x00\x00\x00\x00\x00\x00\x0c\x00\x03\x00\x08powerdns",89);
   OPTRecordContent::report();
 
-  MOADNSParser mdp((char*)&*packet.begin(), (unsigned int)packet.size());
+  MOADNSParser mdp(true, (char*)&*packet.begin(), (unsigned int)packet.size());
 
-  getEDNSOpts(mdp, &eo);
+  BOOST_CHECK_EQUAL(getEDNSOpts(mdp, &eo), true);
 
   // this should contain NSID now
   BOOST_CHECK_EQUAL(eo.d_packetsize, 1280);
    
   // it should contain NSID option with value 'powerdns', and nothing else
+  BOOST_CHECK_EQUAL(eo.d_options.size(), 1);
   BOOST_CHECK_EQUAL(eo.d_options[0].first, 3); // nsid
   BOOST_CHECK_EQUAL(eo.d_options[0].second, "powerdns");
 }

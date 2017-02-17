@@ -287,7 +287,7 @@ bool Bind2Backend::feedRecord(const DNSResourceRecord &rr, string *ordername)
   case QType::DNAME:
   case QType::NS:
     stripDomainSuffix(&content, name);
-    // falltrough
+    // fallthrough
   default:
     *d_of<<qname<<"\t"<<rr.ttl<<"\t"<<rr.qtype.getName()<<"\t"<<content<<endl;
   }
@@ -348,8 +348,11 @@ void Bind2Backend::getAllDomains(vector<DomainInfo> *domains, bool include_disab
       domains->push_back(di);
     };
   }
- 
+
   for(DomainInfo &di :  *domains) {
+    // do not corrupt di if domain supplied by another backend.
+    if (di.backend != this)
+      continue;
     this->getSOA(di.zone, soadata);
     di.serial=soadata.serial;
   }
@@ -657,7 +660,6 @@ void Bind2Backend::reload()
 void Bind2Backend::fixupOrderAndAuth(BB2DomainInfo& bbd, bool nsec3zone, NSEC3PARAMRecordContent ns3pr)
 {
   shared_ptr<recordstorage_t> records = bbd.d_records.getWRITABLE();
-  recordstorage_t::const_iterator iter;
 
   bool skip;
   DNSName shorter;
@@ -917,97 +919,76 @@ void Bind2Backend::queueReloadAndStore(unsigned int id)
   }
 }
 
-bool Bind2Backend::findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const DNSName& qname, DNSName& unhashed, string& before, string& after)
+bool Bind2Backend::findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)
 {
   shared_ptr<const recordstorage_t> records = bbd.d_records.get();
-  recordstorage_t::const_iterator iter = records->upper_bound(qname);
 
-  if (before.empty()){
-    //cout<<"starting before for: '"<<domain<<"'"<<endl;
-    iter = records->upper_bound(qname);
+  // for(const auto& record: *records)
+  //   cerr<<record.qname<<"\t"<<makeHexDump(record.qname.toDNSString())<<endl;
 
-    while(iter == records->end() || (qname.canonCompare(iter->qname)) || (!(iter->auth) && (!(iter->qtype == QType::NS))) || (!(iter->qtype)))
-      iter--;
+  recordstorage_t::const_iterator iterBefore, iterAfter;
 
-    if(iter->qname.empty())
-      before.clear();
-    else { 
+  iterBefore = iterAfter = records->upper_bound(qname.makeLowerCase());
 
-      before=iter->qname.labelReverse().toString(" ",false);
-    }
-  }
-  else {
-    if(qname.empty())
-      before.clear();
-    else {
-      before=qname.labelReverse().toString(" ",false);
-    }
-  }
+  if(iterBefore != records->begin())
+    --iterBefore;
+  while((!iterBefore->auth && iterBefore->qtype != QType::NS) || !iterBefore->qtype)
+    --iterBefore;
+  before=iterBefore->qname;
 
-  //cerr<<"Now after"<<endl;
-  iter = records->upper_bound(qname);
-
-  if(iter == records->end()) {
-    //cerr<<"\tFound the end, begin storage: '"<<bbd.d_records->begin()->qname<<"', '"<<bbd.d_name<<"'"<<endl;
-    after.clear(); // this does the right thing (i.e. point to apex, which is sure to have auth records)
+  if(iterAfter == records->end()) {
+    iterAfter = records->begin();
   } else {
-    //cerr<<"\tFound: '"<<(iter->qname)<<"' (nsec3hash='"<<(iter->nsec3hash)<<"')"<<endl;
-    // this iteration is theoretically unnecessary - glue always sorts right behind a delegation
-    // so we will never get here. But let's do it anyway.
-    while((!(iter->auth) && (!(iter->qtype == QType::NS))) || (!(iter->qtype)))
-    {
-      iter++;
-      if(iter == records->end())
-      {
-        after.clear();
+    while((!iterAfter->auth && iterAfter->qtype != QType::NS) || !iterAfter->qtype) {
+      ++iterAfter;
+      if(iterAfter == records->end()) {
+        iterAfter = records->begin();
         break;
       }
     }
-    if(iter != records->end()) {
-      after = (iter)->qname.labelReverse().toString(" ",false);
-    }
   }
+  after = iterAfter->qname;
 
-  // cerr<<"Before: '"<<before<<"', after: '"<<after<<"'\n";
   return true;
 }
 
-bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, DNSName& unhashed, std::string& before, std::string& after)
+bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)
 {
   BB2DomainInfo bbd;
   safeGetBBDomainInfo(id, &bbd);
 
   NSEC3PARAMRecordContent ns3pr;
-  DNSName auth=bbd.d_name;
-    
+
   bool nsec3zone;
   if (d_hybrid) {
     DNSSECKeeper dk;
-    nsec3zone=dk.getNSEC3PARAM(auth, &ns3pr);
+    nsec3zone=dk.getNSEC3PARAM(bbd.d_name, &ns3pr);
   } else
-    nsec3zone=getNSEC3PARAM(auth, &ns3pr);
+    nsec3zone=getNSEC3PARAM(bbd.d_name, &ns3pr);
 
   if(!nsec3zone) {
-    DNSName dqname(DNSName(boost::replace_all_copy(qname," ",".")).labelReverse()); // the horror
-    return findBeforeAndAfterUnhashed(bbd, dqname, unhashed, before, after);
+    return findBeforeAndAfterUnhashed(bbd, qname, unhashed, before, after);
   }
   else {
     auto& hashindex=boost::multi_index::get<NSEC3Tag>(*bbd.d_records.getWRITABLE());
 
+    // for(auto iter = first; iter != hashindex.end(); iter++)
+    //  cerr<<iter->nsec3hash<<endl;
+
     auto first = hashindex.upper_bound("");
-    auto iter = hashindex.upper_bound(toLower(qname));
+    auto iter = hashindex.upper_bound(qname.toStringNoDot());
 
     if (iter == hashindex.end()) {
       --iter;
-      before = iter->nsec3hash;
-      after = first->nsec3hash;
+      before = DNSName(iter->nsec3hash);
+      after = DNSName(first->nsec3hash);
     } else {
-      after = iter->nsec3hash;
+      after = DNSName(iter->nsec3hash);
       if (iter != first)
         --iter;
       else
         iter = --hashindex.end();
-      before = iter->nsec3hash;
+      before = DNSName(iter->nsec3hash);
     }
     unhashed = iter->qname+bbd.d_name;
 

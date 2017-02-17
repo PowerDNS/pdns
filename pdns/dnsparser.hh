@@ -157,7 +157,7 @@ public:
 private:
   uint16_t d_startrecordpos; // needed for getBlob later on
   uint16_t d_recordlen;      // ditto
-  uint16_t not_used; // Alighns the whole class on 8-byte boundries
+  uint16_t not_used; // Aligns the whole class on 8-byte boundries
   const vector<uint8_t>& d_content;
 };
 
@@ -343,15 +343,15 @@ class MOADNSParser : public boost::noncopyable
 {
 public:
   //! Parse from a string
-  MOADNSParser(const string& buffer)  : d_tsigPos(0)
+  MOADNSParser(bool query, const string& buffer)  : d_tsigPos(0)
   {
-    init(buffer.c_str(), (unsigned int)buffer.size());
+    init(query, buffer.c_str(), (unsigned int)buffer.size());
   }
 
   //! Parse from a pointer and length
-  MOADNSParser(const char *packet, unsigned int len) : d_tsigPos(0)
+  MOADNSParser(bool query, const char *packet, unsigned int len) : d_tsigPos(0)
   {
-    init(packet, len);
+    init(query, packet, len);
   }
 
   DNSName d_qname;
@@ -371,13 +371,13 @@ public:
     return pr;
   }
 
-  uint16_t getTSIGPos()
+  uint16_t getTSIGPos() const
   {
     return d_tsigPos;
   }
 private:
   void getDnsrecordheader(struct dnsrecordheader &ah);
-  void init(const char *packet, unsigned int len);
+  void init(bool query, const char *packet, unsigned int len);
   vector<uint8_t> d_content;
   uint16_t d_tsigPos;
 };
@@ -385,6 +385,7 @@ private:
 string simpleCompress(const string& label, const string& root="");
 void ageDNSPacket(char* packet, size_t length, uint32_t seconds);
 void ageDNSPacket(std::string& packet, uint32_t seconds);
+void editDNSPacketTTL(char* packet, size_t length, std::function<uint32_t(uint8_t, uint16_t, uint16_t, uint32_t)> visitor);
 uint32_t getDNSPacketMinTTL(const char* packet, size_t length);
 uint32_t getDNSPacketLength(const char* packet, size_t length);
 uint16_t getRecordsOfTypeCount(const char* packet, size_t length, uint8_t section, uint16_t type);

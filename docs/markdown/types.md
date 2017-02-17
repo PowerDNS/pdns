@@ -55,7 +55,7 @@ Like all other records, it is not terminated by a dot. A sample might be
 
 ## DNSKEY
 The DNSKEY DNSSEC record type is fully supported, as described in [RFC 4034](https://tools.ietf.org/html/rfc4034).
-Enabeling DNSSEC for domains can be done with [`pdnsutil`](authoritative/dnssec.md#pdnsutil "'pdnsutil' for PowerDNS command & control").
+Enabling DNSSEC for domains can be done with [`pdnsutil`](authoritative/dnssec.md#pdnsutil "'pdnsutil' for PowerDNS command & control").
 
 ## DNAME
 The DNAME record, as specified in [RFC 6672](http://tools.ietf.org/html/rfc6672)
@@ -64,7 +64,7 @@ to be set to `yes` for PowerDNS to process these records.
 
 ## DS
 The DS DNSSEC record type is fully supported, as described in [RFC 4034](https://tools.ietf.org/html/rfc4034).
-Enabeling DNSSEC for domains can be done with [`pdnsutil`](authoritative/dnssec.md#pdnsutil "'pdnsutil' for PowerDNS command & control").
+Enabling DNSSEC for domains can be done with [`pdnsutil`](authoritative/dnssec.md#pdnsutil "'pdnsutil' for PowerDNS command & control").
 
 ## HINFO
 Hardware Info record, used to specify CPU and operating system. Stored with a
@@ -120,7 +120,7 @@ available by querying the TXT record of peter.people.powerdns.com.
 
 ## RRSIG
 The RRSIG DNSSEC record type is fully supported, as described in [RFC 4034](http://tools.ietf.org/html/rfc4034).
-To enable DNSSEC prcessing, use [pdnsutil](authoritative/dnssec.md#pdnsutil).
+To enable DNSSEC processing, use [pdnsutil](authoritative/dnssec.md#pdnsutil).
 
 ## SOA
 The Start of Authority record is one of the most complex available. It specifies

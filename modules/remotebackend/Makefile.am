@@ -105,6 +105,7 @@ libtestremotebackend_la_SOURCES = \
 	../../pdns/dnsrecords.cc \
 	../../pdns/dnssecinfra.cc \
 	../../pdns/ednssubnet.cc \
+	../../pdns/iputils.cc \
 	../../pdns/logger.cc \
 	../../pdns/misc.cc \
 	../../pdns/nsecrecords.cc \

@@ -207,10 +207,10 @@ public:
   bool setKind(const DNSName &domain, const DomainInfo::DomainKind kind);
   bool setAccount(const DNSName &domain, const string &account);
 
-  virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const string& qname, DNSName& unhashed, std::string& before, std::string& after);
-  virtual bool updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& zonename, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t=QType::ANY);
+  virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after);
+  virtual bool updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t=QType::ANY);
 
-  virtual bool updateEmptyNonTerminals(uint32_t domain_id, const DNSName& zonename, set<DNSName>& insert ,set<DNSName>& erase, bool remove);
+  virtual bool updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& insert ,set<DNSName>& erase, bool remove);
   virtual bool doesDNSSEC();
 
   virtual bool calculateSOASerial(const DNSName& domain, const SOAData& sd, time_t& serial);
@@ -218,7 +218,7 @@ public:
   bool replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset);
   bool listSubZone(const DNSName &zone, int domain_id);
   bool addDomainKey(const DNSName& name, const KeyData& key, int64_t& id);
-  bool getDomainKeys(const DNSName& name, unsigned int kind, std::vector<KeyData>& keys);
+  bool getDomainKeys(const DNSName& name, std::vector<KeyData>& keys);
   bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta);
   bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta);
   bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta);

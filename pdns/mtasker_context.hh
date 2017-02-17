@@ -37,6 +37,9 @@ struct pdns_ucontext_t {
     pdns_ucontext_t* uc_link;
     std::vector<char, lazy_allocator<char>> uc_stack;
     std::exception_ptr exception;
+#ifdef PDNS_USE_VALGRIND
+    int valgrind_id;
+#endif /* PDNS_USE_VALGRIND */
 };
 
 void
@@ -46,5 +49,36 @@ pdns_swapcontext
 void
 pdns_makecontext
 (pdns_ucontext_t& ctx, boost::function<void(void)>& start);
+
+#ifdef HAVE_FIBER_SANITIZER
+#include <sanitizer/common_interface_defs.h>
+#endif /* HAVE_FIBER_SANITIZER */
+
+#ifdef HAVE_FIBER_SANITIZER
+extern __thread void* t_mainStack;
+extern __thread size_t t_mainStackSize;
+#endif /* HAVE_FIBER_SANITIZER */
+
+static inline void notifyStackSwitch(void* startOfStack, size_t stackSize)
+{
+#ifdef HAVE_FIBER_SANITIZER
+  __sanitizer_start_switch_fiber(nullptr, startOfStack, stackSize);
+#endif /* HAVE_FIBER_SANITIZER */
+}
+
+static inline void notifyStackSwitchToKernel()
+{
+#ifdef HAVE_FIBER_SANITIZER
+  notifyStackSwitch(t_mainStack, t_mainStackSize);
+#endif /* HAVE_FIBER_SANITIZER */
+}
+
+static inline void notifyStackSwitchDone()
+{
+#ifdef HAVE_FIBER_SANITIZER
+  __sanitizer_finish_switch_fiber(nullptr);
+#endif /* HAVE_FIBER_SANITIZER */
+}
+
 
 #endif // MTASKER_CONTEXT_HH

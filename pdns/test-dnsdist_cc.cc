@@ -48,7 +48,7 @@ static const uint16_t ECSSourcePrefixV6 = 56;
 
 static void validateQuery(const char * packet, size_t packetSize)
 {
-  MOADNSParser mdp(packet, packetSize);
+  MOADNSParser mdp(true, packet, packetSize);
 
   BOOST_CHECK_EQUAL(mdp.d_qname.toString(), "www.powerdns.com.");
 
@@ -60,7 +60,7 @@ static void validateQuery(const char * packet, size_t packetSize)
 
 static void validateResponse(const char * packet, size_t packetSize, bool hasEdns, uint8_t additionalCount=0)
 {
-  MOADNSParser mdp(packet, packetSize);
+  MOADNSParser mdp(false, packet, packetSize);
 
   BOOST_CHECK_EQUAL(mdp.d_qname.toString(), "www.powerdns.com.");
 
@@ -101,7 +101,7 @@ BOOST_AUTO_TEST_CASE(addECSWithoutEDNS)
   BOOST_CHECK_EQUAL(ecsAdded, false);
   validateQuery(packet, len);
 
-  /* not large enought packet */
+  /* not large enough packet */
   consumed = 0;
   len = query.size();
   qname = DNSName((char*) query.data(), len, sizeof(dnsheader), false, &qtype, NULL, &consumed);
@@ -147,7 +147,7 @@ BOOST_AUTO_TEST_CASE(addECSWithEDNSNoECS) {
   BOOST_CHECK_EQUAL(ecsAdded, true);
   validateQuery(packet, len);
 
-  /* not large enought packet */
+  /* not large enough packet */
   consumed = 0;
   len = query.size();
   qname = DNSName((char*) query.data(), len, sizeof(dnsheader), false, &qtype, NULL, &consumed);
@@ -275,7 +275,7 @@ BOOST_AUTO_TEST_CASE(replaceECSWithLarger) {
   BOOST_CHECK_EQUAL(ecsAdded, false);
   validateQuery(packet, len);
 
-  /* not large enought packet */
+  /* not large enough packet */
   consumed = 0;
   len = query.size();
   qname = DNSName((char*) query.data(), len, sizeof(dnsheader), false, &qtype, NULL, &consumed);

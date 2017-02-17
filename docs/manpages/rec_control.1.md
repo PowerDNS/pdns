@@ -32,6 +32,9 @@ To dump the cache to disk, execute:
 --config-dir=*PATH*
 :    Directory where the recursor.conf lives.
 
+--config-name=*NAME*
+:    Name of the virtual configuration.
+
 --socket-dir=*PATH*
 :    Where the controlsocket will live, please use **--config-dir** instead.
 
@@ -140,6 +143,10 @@ top-queries
 :    Shows the top-20 queries. Statistics are over the last
      'stats-ringbuffer-entries' queries.
 
+top-pub-queries
+:    Shows the top-20 queries grouped by public suffix list. Statistics are over the last
+     'stats-ringbuffer-entries' queries.
+
 top-largeanswer-remotes
 :    Shows the top-20 remote hosts causing large answers. Statistics are over the
      last 'stats-ringbuffer-entries' queries.
@@ -151,6 +158,10 @@ top-remotes
 top-servfail-queries
 :    Shows the top-20 queries causing servfail responses. Statistics are
      over the last 'stats-ringbuffer-entries' queries.
+
+top-pub-servfail-queries
+:   Shows the top-20 queries causing servfail responses grouped by public suffix list.
+    Statistics are over the last 'stats-ringbuffer-entries' queries.
 
 top-servfail-remotes
 :    Shows the top-20 most active remote hosts causing servfail responses.

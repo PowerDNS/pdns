@@ -26,7 +26,6 @@
 #include "pdns/dnsbackend.hh"
 #include "gsqlbackend.hh"
 #include "pdns/dnspacket.hh"
-#include "pdns/ueberbackend.hh"
 #include "pdns/pdnsexception.hh"
 #include "pdns/logger.hh"
 #include "pdns/arguments.hh"
@@ -416,7 +415,7 @@ void GSQLBackend::getAllMasters(vector<DomainInfo> *allMasters)
   }
 }
 
-bool GSQLBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& zonename, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype)
+bool GSQLBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype)
 {
   if(!d_dnssecQueries)
     return false;
@@ -425,7 +424,7 @@ bool GSQLBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
     if (qtype == QType::ANY) {
       try {
         d_updateOrderNameAndAuthQuery_stmt->
-          bind("ordername", ordername.makeRelative(zonename).labelReverse().toString(" ", false))->
+          bind("ordername", ordername.labelReverse().toString(" ", false))->
           bind("auth", auth)->
           bind("domain_id", domain_id)->
           bind("qname", qname)->
@@ -438,7 +437,7 @@ bool GSQLBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
     } else {
       try {
         d_updateOrderNameAndAuthTypeQuery_stmt->
-          bind("ordername", ordername.makeRelative(zonename).labelReverse().toString(" ", false))->
+          bind("ordername", ordername.labelReverse().toString(" ", false))->
           bind("auth", auth)->
           bind("domain_id", domain_id)->
           bind("qname", qname)->
@@ -481,7 +480,7 @@ bool GSQLBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
   return true;
 }
 
-bool GSQLBackend::updateEmptyNonTerminals(uint32_t domain_id, const DNSName& zonename, set<DNSName>& insert, set<DNSName>& erase, bool remove)
+bool GSQLBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& insert, set<DNSName>& erase, bool remove)
 {
   if(remove) {
     try {
@@ -536,23 +535,24 @@ bool GSQLBackend::doesDNSSEC()
     return d_dnssecQueries;
 }
 
-bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const string& qname, DNSName& unhashed, std::string& before, std::string& after)
+bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)
 {
   if(!d_dnssecQueries)
     return false;
-  // cerr<<"gsql before/after called for id="<<id<<", qname='"<<qname<<"'"<<endl;
   after.clear();
 
   SSqlStatement::row_t row;
   try {
     d_afterOrderQuery_stmt->
-      bind("ordername", qname)->
+      bind("ordername", qname.labelReverse().toString(" ", false))->
       bind("domain_id", id)->
       execute();
     while(d_afterOrderQuery_stmt->hasNextRow()) {
       d_afterOrderQuery_stmt->nextRow(row);
       ASSERT_ROW_COLUMNS("get-order-after-query", row, 1);
-      after=row[0];
+      if(! row[0].empty()) { // Hack because NULL values are passed on as empty strings
+        after=DNSName(boost::replace_all_copy(row[0]," ",".")).labelReverse();
+      }
     }
     d_afterOrderQuery_stmt->reset();
   }
@@ -560,7 +560,7 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const string& qnam
     throw PDNSException("GSQLBackend unable to find before/after (after) for domain_id "+itoa(id)+": "+e.txtReason());
   }
 
-  if(after.empty() && !qname.empty()) {
+  if(after.empty()) {
     try {
       d_firstOrderQuery_stmt->
         bind("domain_id", id)->
@@ -568,7 +568,7 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const string& qnam
       while(d_firstOrderQuery_stmt->hasNextRow()) {
         d_firstOrderQuery_stmt->nextRow(row);
         ASSERT_ROW_COLUMNS("get-order-first-query", row, 1);
-        after=row[0];
+        after=DNSName(boost::replace_all_copy(row[0]," ",".")).labelReverse();
       }
       d_firstOrderQuery_stmt->reset();
     }
@@ -582,13 +582,13 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const string& qnam
 
     try {
       d_beforeOrderQuery_stmt->
-        bind("ordername", qname)->
+        bind("ordername", qname.labelReverse().toString(" ", false))->
         bind("domain_id", id)->
         execute();
       while(d_beforeOrderQuery_stmt->hasNextRow()) {
         d_beforeOrderQuery_stmt->nextRow(row);
         ASSERT_ROW_COLUMNS("get-order-before-query", row, 2);
-        before=row[0];
+        before=DNSName(boost::replace_all_copy(row[0]," ",".")).labelReverse();
         try {
           unhashed=DNSName(row[1]);
         } catch (...) {
@@ -614,7 +614,7 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const string& qnam
       while(d_lastOrderQuery_stmt->hasNextRow()) {
         d_lastOrderQuery_stmt->nextRow(row);
         ASSERT_ROW_COLUMNS("get-order-last-query", row, 2);
-        before=row[0];
+        before=DNSName(boost::replace_all_copy(row[0]," ",".")).labelReverse();
         try {
           unhashed=DNSName(row[1]);
         } catch (...) {
@@ -817,7 +817,7 @@ bool GSQLBackend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
   return keys.empty();
 }
 
-bool GSQLBackend::getDomainKeys(const DNSName& name, unsigned int kind, std::vector<KeyData>& keys)
+bool GSQLBackend::getDomainKeys(const DNSName& name, std::vector<KeyData>& keys)
 {
   if(!d_dnssecQueries)
     return false;
@@ -828,7 +828,6 @@ bool GSQLBackend::getDomainKeys(const DNSName& name, unsigned int kind, std::vec
       execute();
   
     SSqlStatement::row_t row;
-    //  "select id, kind, active, content from domains, cryptokeys where domain_id=domains.id and name='%s'";
     KeyData kd;
     while(d_ListDomainKeysQuery_stmt->hasNextRow()) {
       d_ListDomainKeysQuery_stmt->nextRow(row);

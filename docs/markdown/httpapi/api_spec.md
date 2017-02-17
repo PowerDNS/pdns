@@ -384,7 +384,10 @@ Where `Comment` is defined as:
 * `soa_edit_api` MAY be set. If it is set, on changes to the contents of
   a zone made through the API, the SOA record will be edited according to
   the SOA-EDIT-API rules. (Which are the same as the SOA-EDIT-DNSUPDATE rules.)
-  If not set at all during zone creation, defaults to `DEFAULT`.
+  If not set during zone creation, a SOA-EDIT-API metadata record is created
+  and set to `DEFAULT`. (If this record is removed from the backend, the
+  default behaviour is to not do any SOA editing based on this setting. This
+  is different from setting `DEFAULT`.)
   **Note**: Authoritative only.
 
 * `account` MAY be set. Its value is defined by local policy.
@@ -493,7 +496,7 @@ Client body for PATCH:
               {
                 "account": <string>,
                 "content": <string>,
-                "modfied_at": <int>
+                "modified_at": <int>
               }, ...
             ]
         },
@@ -797,8 +800,10 @@ Allowed methods: `GET`
 #### GET
 
 Search the data inside PowerDNS for :search\_term and return at most
-:max\_results. This includes zones, records and comments. Response body is an
-array of one or more of the following objects:
+:max\_results. This includes zones, records and comments.
+The `*` character can be used in :search\_term as a wildcard character and the `?` character can be used as a wildcard for a single character.
+
+Response body is an array of one or more of the following objects:
 
 For a zone:
 

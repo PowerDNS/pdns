@@ -33,6 +33,9 @@
 #include "recpacketcache.hh"
 #include "utility.hh"
 #include "dns_random.hh"
+#ifdef HAVE_LIBSODIUM
+#include <sodium.h>
+#endif
 #include "opensslsigners.hh"
 #include <iostream>
 #include <errno.h>
@@ -91,8 +94,9 @@ extern SortList g_sortlist;
 #endif
 
 __thread FDMultiplexer* t_fdm;
-__thread unsigned int t_id;
+static __thread unsigned int t_id;
 unsigned int g_maxTCPPerClient;
+size_t g_tcpMaxQueriesPerConn;
 unsigned int g_networkTimeoutMsec;
 uint64_t g_latencyStatSize;
 bool g_logCommonErrors;
@@ -110,8 +114,6 @@ __thread shared_ptr<Regex>* t_traceRegex;
 __thread boost::uuids::random_generator* t_uuidGenerator;
 #endif
 
-NetmaskGroup g_ednssubnets;
-SuffixMatchNode g_ednsdomains;
 
 RecursorControlChannel s_rcc; // only active in thread 0
 
@@ -167,7 +169,7 @@ unsigned int g_numThreads, g_numWorkerThreads;
 
 //! used to send information to a newborn mthread
 struct DNSComboWriter {
-  DNSComboWriter(const char* data, uint16_t len, const struct timeval& now) : d_mdp(data, len), d_now(now),
+  DNSComboWriter(const char* data, uint16_t len, const struct timeval& now) : d_mdp(true, data, len), d_now(now),
                                                                                                         d_tcp(false), d_socket(-1)
   {}
   MOADNSParser d_mdp;
@@ -214,6 +216,10 @@ ArgvMap &arg()
   return theArg;
 }
 
+unsigned int getRecursorThreadId()
+{
+  return t_id;
+}
 
 void handleTCPClientWritable(int fd, FDMultiplexer::funcparam_t& var);
 
@@ -384,7 +390,13 @@ public:
     if(connect(*fd, (struct sockaddr*)(&toaddr), toaddr.getSocklen()) < 0) {
       int err = errno;
       //      returnSocket(*fd);
-      closesocket(*fd);
+      try {
+        closesocket(*fd);
+      }
+      catch(const PDNSException& e) {
+        L<<Logger::Error<<"Error closing UDP socket after connect() failed: "<<e.reason<<endl;
+      }
+
       if(err==ENETUNREACH) // Seth "My Interfaces Are Like A Yo Yo" Arnold special
         return -2;
       return -1;
@@ -416,7 +428,12 @@ public:
     catch(FDMultiplexerException& e) {
       // we sometimes return a socket that has not yet been assigned to t_fdm
     }
-    closesocket(*i);
+    try {
+      closesocket(*i);
+    }
+    catch(const PDNSException& e) {
+      L<<Logger::Error<<"Error closing returned UDP socket: "<<e.reason<<endl;
+    }
 
     d_socks.erase(i++);
     --d_numsocks;
@@ -567,8 +584,14 @@ TCPConnection::TCPConnection(int fd, const ComboAddress& addr) : d_remote(addr),
 
 TCPConnection::~TCPConnection()
 {
-  if(closesocket(d_fd) < 0)
-    unixDie("closing socket for TCPConnection");
+  try {
+    if(closesocket(d_fd) < 0)
+      L<<Logger::Error<<"Error closing socket for TCPConnection"<<endl;
+  }
+  catch(const PDNSException& e) {
+    L<<Logger::Error<<"Error closing TCPConnection socket: "<<e.reason<<endl;
+  }
+
   if(t_tcpClientCounts->count(d_remote) && !(*t_tcpClientCounts)[d_remote]--)
     t_tcpClientCounts->erase(d_remote);
   --s_currentConnections;
@@ -586,7 +609,7 @@ void updateResponseStats(int res, const ComboAddress& remote, unsigned int packe
   case RCode::ServFail:
     if(t_servfailremotes) {
       t_servfailremotes->push_back(remote);
-      if(query) // packet cache
+      if(query && t_servfailqueryring) // packet cache
 	t_servfailqueryring->push_back(make_pair(*query, qtype));
     }
     g_stats.servFails++;
@@ -637,11 +660,38 @@ static void protobufLogResponse(const std::shared_ptr<RemoteLogger>& logger, con
 }
 #endif
 
+/**
+ * Chases the CNAME provided by the PolicyCustom RPZ policy.
+ *
+ * @param spoofed: The DNSRecord that was created by the policy, should already be added to ret
+ * @param qtype: The QType of the original query
+ * @param sr: A SyncRes
+ * @param res: An integer that will contain the RCODE of the lookup we do
+ * @param ret: A vector of DNSRecords where the result of the CNAME chase should be appended to
+ */
+void handleRPZCustom(const DNSRecord& spoofed, const QType& qtype, SyncRes& sr, int& res, vector<DNSRecord>& ret)
+{
+  if (spoofed.d_type == QType::CNAME) {
+    bool oldWantsRPZ = sr.d_wantsRPZ;
+    sr.d_wantsRPZ = false;
+    vector<DNSRecord> ans;
+    res = sr.beginResolve(DNSName(spoofed.d_content->getZoneRepresentation()), qtype, 1, ans);
+    for (const auto& rec : ans) {
+      if(rec.d_place == DNSResourceRecord::ANSWER) {
+        ret.push_back(rec);
+      }
+    }
+    // Reset the RPZ state of the SyncRes
+    sr.d_wantsRPZ = oldWantsRPZ;
+  }
+}
+
 void startDoResolve(void *p)
 {
   DNSComboWriter* dc=(DNSComboWriter *)p;
   try {
-    t_queryring->push_back(make_pair(dc->d_mdp.d_qname, dc->d_mdp.d_qtype));
+    if (t_queryring)
+      t_queryring->push_back(make_pair(dc->d_mdp.d_qname, dc->d_mdp.d_qtype));
 
     uint32_t maxanswersize= dc->d_tcp ? 65535 : min((uint16_t) 512, g_udpTruncationThreshold);
     EDNSOpts edo;
@@ -681,7 +731,7 @@ void startDoResolve(void *p)
 
     // DO NOT MOVE THIS CODE UP - DNSPacketWriter needs to get the original-cased version
     if (g_lowercaseOutgoing)
-      dc->d_mdp.d_qname = DNSName(toLower(dc->d_mdp.d_qname.toString()));
+      dc->d_mdp.d_qname = dc->d_mdp.d_qname.makeLowerCase();
 
     uint32_t minTTL=std::numeric_limits<uint32_t>::max();
 
@@ -704,14 +754,28 @@ void startDoResolve(void *p)
       // Ignore the client-set CD flag
       pw.getHeader()->cd=0;
     }
+#ifdef HAVE_PROTOBUF
+    sr.d_initialRequestId = dc->d_uuid;
+#endif
 
     bool tracedQuery=false; // we could consider letting Lua know about this too
     bool variableAnswer = false;
     bool shouldNotValidate = false;
 
-    int res;
+    /* preresolve expects res (dq.rcode) to be set to RCode::NoError by default */
+    int res = RCode::NoError;
     DNSFilterEngine::Policy appliedPolicy;
     DNSRecord spoofed;
+    RecursorLua4::DNSQuestion dq(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_tcp, variableAnswer, wantsRPZ);
+    dq.ednsFlags = &edo.d_Z;
+    dq.ednsOptions = &dc->d_ednsOpts;
+    dq.tag = dc->d_tag;
+    dq.discardedPolicies = &sr.d_discardedPolicies;
+    dq.policyTags = &dc->d_policyTags;
+    dq.appliedPolicy = &appliedPolicy;
+    dq.currentRecords = &ret;
+    dq.dh = &dc->d_mdp.d_header;
+
     if(dc->d_mdp.d_qtype==QType::ANY && !dc->d_tcp && g_anyToTcp) {
       pw.getHeader()->tc = 1;
       res = 0;
@@ -741,7 +805,7 @@ void startDoResolve(void *p)
       sr.setCacheOnly();
 
     if (t_pdl->get()) {
-      (*t_pdl)->prerpz(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_tcp, ret, dc->d_ednsOpts.empty() ? 0 : &dc->d_ednsOpts, dc->d_tag, res, &wantsRPZ, &sr.d_discardedPolicies);
+      (*t_pdl)->prerpz(dq, res);
     }
 
     // Check if the query has a policy attached to it
@@ -750,7 +814,7 @@ void startDoResolve(void *p)
     }
 
     // if there is a RecursorLua active, and it 'took' the query in preResolve, we don't launch beginResolve
-    if(!t_pdl->get() || !(*t_pdl)->preresolve(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_tcp, ret, dc->d_ednsOpts.empty() ? 0 : &dc->d_ednsOpts, dc->d_tag, &appliedPolicy, &dc->d_policyTags, res, &variableAnswer, &wantsRPZ)) {
+    if(!t_pdl->get() || !(*t_pdl)->preresolve(dq, res)) {
 
       sr.d_wantsRPZ = wantsRPZ;
       if(wantsRPZ) {
@@ -781,6 +845,7 @@ void startDoResolve(void *p)
             spoofed.d_content = appliedPolicy.d_custom;
             spoofed.d_place = DNSResourceRecord::ANSWER;
             ret.push_back(spoofed);
+            handleRPZCustom(spoofed, QType(dc->d_mdp.d_qtype), sr, res, ret);
             goto haveAnswer;
           case DNSFilterEngine::PolicyKind::Truncate:
             if(!dc->d_tcp) {
@@ -845,6 +910,7 @@ void startDoResolve(void *p)
             spoofed.d_content = appliedPolicy.d_custom;
             spoofed.d_place = DNSResourceRecord::ANSWER;
             ret.push_back(spoofed);
+            handleRPZCustom(spoofed, QType(dc->d_mdp.d_qtype), sr, res, ret);
             goto haveAnswer;
         }
       }
@@ -859,14 +925,14 @@ void startDoResolve(void *p)
                 for(; i!= ret.cend(); ++i)
                   if(i->d_type == dc->d_mdp.d_qtype && i->d_place == DNSResourceRecord::ANSWER)
                           break;
-                if(i == ret.cend() && (*t_pdl)->nodata(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_tcp, ret, res, &variableAnswer))
+                if(i == ret.cend() && (*t_pdl)->nodata(dq, res))
                   shouldNotValidate = true;
 
 	}
-	else if(res == RCode::NXDomain && (*t_pdl)->nxdomain(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_tcp, ret, res, &variableAnswer))
+	else if(res == RCode::NXDomain && (*t_pdl)->nxdomain(dq, res))
           shouldNotValidate = true;
 
-	if((*t_pdl)->postresolve(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_tcp, ret, &appliedPolicy, &dc->d_policyTags, res, &variableAnswer))
+	if((*t_pdl)->postresolve(dq, res))
           shouldNotValidate = true;
       }
 
@@ -909,6 +975,7 @@ void startDoResolve(void *p)
             spoofed.d_content = appliedPolicy.d_custom;
             spoofed.d_place = DNSResourceRecord::ANSWER;
             ret.push_back(spoofed);
+            handleRPZCustom(spoofed, QType(dc->d_mdp.d_qtype), sr, res, ret);
             goto haveAnswer;
         }
       }
@@ -948,7 +1015,11 @@ void startDoResolve(void *p)
             L<<Logger::Warning<<"Starting validation of answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<" for "<<dc->d_remote.toStringWithPort()<<endl;
           }
           
-          auto state=validateRecords(ret);
+          ResolveContext ctx;
+#ifdef HAVE_PROTOBUF
+          ctx.d_initialRequestId = dc->d_uuid;
+#endif
+          auto state=validateRecords(ctx, ret);
           if(state == Secure) {
             if(sr.doLog()) {
               L<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<" for "<<dc->d_remote.toStringWithPort()<<" validates correctly"<<endl;
@@ -1091,15 +1162,15 @@ void startDoResolve(void *p)
       iov[0].iov_base=(void*)buf;              iov[0].iov_len=2;
       iov[1].iov_base=(void*)&*packet.begin(); iov[1].iov_len = packet.size();
 
-      int ret=Utility::writev(dc->d_socket, iov, 2);
+      int wret=Utility::writev(dc->d_socket, iov, 2);
       bool hadError=true;
 
-      if(ret == 0)
+      if(wret == 0)
         L<<Logger::Error<<"EOF writing TCP answer to "<<dc->getRemote()<<endl;
-      else if(ret < 0 )
+      else if(wret < 0 )
         L<<Logger::Error<<"Error writing TCP answer to "<<dc->getRemote()<<": "<< strerror(errno) <<endl;
-      else if((unsigned int)ret != 2 + packet.size())
-        L<<Logger::Error<<"Oops, partial answer sent to "<<dc->getRemote()<<" for "<<dc->d_mdp.d_qname<<" (size="<< (2 + packet.size()) <<", sent "<<ret<<")"<<endl;
+      else if((unsigned int)wret != 2 + packet.size())
+        L<<Logger::Error<<"Oops, partial answer sent to "<<dc->getRemote()<<" for "<<dc->d_mdp.d_qname<<" (size="<< (2 + packet.size()) <<", sent "<<wret<<")"<<endl;
       else
         hadError=false;
 
@@ -1110,10 +1181,16 @@ void startDoResolve(void *p)
         dc->d_socket = -1;
       }
       else {
-        dc->d_tcpConnection->state=TCPConnection::BYTE0;
-        Utility::gettimeofday(&g_now, 0); // needs to be updated
-        t_fdm->addReadFD(dc->d_socket, handleRunningTCPQuestion, dc->d_tcpConnection);
-        t_fdm->setReadTTD(dc->d_socket, g_now, g_tcpTimeout);
+        dc->d_tcpConnection->queriesCount++;
+        if (g_tcpMaxQueriesPerConn && dc->d_tcpConnection->queriesCount >= g_tcpMaxQueriesPerConn) {
+          dc->d_socket = -1;
+        }
+        else {
+          dc->d_tcpConnection->state=TCPConnection::BYTE0;
+          Utility::gettimeofday(&g_now, 0); // needs to be updated
+          t_fdm->addReadFD(dc->d_socket, handleRunningTCPQuestion, dc->d_tcpConnection);
+          t_fdm->setReadTTD(dc->d_socket, g_now, g_tcpTimeout);
+        }
       }
     }
 
@@ -1154,7 +1231,16 @@ void startDoResolve(void *p)
     delete dc;
   }
   catch(std::exception& e) {
-    L<<Logger::Error<<"STL error "<< makeLoginfo(dc)<<": "<<e.what()<<endl;
+    L<<Logger::Error<<"STL error "<< makeLoginfo(dc)<<": "<<e.what();
+
+    // Luawrapper nests the exception from Lua, so we unnest it here
+    try {
+        std::rethrow_if_nested(e);
+    } catch(const std::exception& e) {
+        L<<". Extra info: "<<e.what();
+    } catch(...) {}
+
+    L<<endl;
     delete dc;
   }
   catch(...) {
@@ -1318,15 +1404,17 @@ void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         }
       }
 #ifdef HAVE_PROTOBUF
-      if(luaconfsLocal->protobufServer) {
+      if(luaconfsLocal->protobufServer || luaconfsLocal->outgoingProtobufServer) {
         dc->d_uuid = (*t_uuidGenerator)();
+      }
 
+      if(luaconfsLocal->protobufServer) {
         try {
           const struct dnsheader* dh = (const struct dnsheader*) conn->data;
           dc->d_ednssubnet = ednssubnet;
 
           if (!luaconfsLocal->protobufTaggedOnly) {
-            protobufLogQuery(luaconfsLocal->protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, dc->d_uuid, dest, conn->d_remote, ednssubnet, true, dh->id, conn->qlen, qname, qtype, qclass, dc->d_policyTags);
+            protobufLogQuery(luaconfsLocal->protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, dc->d_uuid, conn->d_remote, dest, ednssubnet, true, dh->id, conn->qlen, qname, qtype, qclass, dc->d_policyTags);
           }
         }
         catch(std::exception& e) {
@@ -1366,7 +1454,12 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
   if(newsock>=0) {
     if(MT->numProcesses() > g_maxMThreads) {
       g_stats.overCapacityDrops++;
-      closesocket(newsock);
+      try {
+        closesocket(newsock);
+      }
+      catch(const PDNSException& e) {
+        L<<Logger::Error<<"Error closing TCP socket after an over capacity drop: "<<e.reason<<endl;
+      }
       return;
     }
 
@@ -1377,12 +1470,22 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
         L<<Logger::Error<<"["<<MT->getTid()<<"] dropping TCP query from "<<addr.toString()<<", address not matched by allow-from"<<endl;
 
       g_stats.unauthorizedTCP++;
-      closesocket(newsock);
+      try {
+        closesocket(newsock);
+      }
+      catch(const PDNSException& e) {
+        L<<Logger::Error<<"Error closing TCP socket after an ACL drop: "<<e.reason<<endl;
+      }
       return;
     }
     if(g_maxTCPPerClient && t_tcpClientCounts->count(addr) && (*t_tcpClientCounts)[addr] >= g_maxTCPPerClient) {
       g_stats.tcpClientOverflow++;
-      closesocket(newsock); // don't call TCPConnection::closeAndCleanup here - did not enter it in the counts yet!
+      try {
+        closesocket(newsock); // don't call TCPConnection::closeAndCleanup here - did not enter it in the counts yet!
+      }
+      catch(const PDNSException& e) {
+        L<<Logger::Error<<"Error closing TCP socket after an overflow drop: "<<e.reason<<endl;
+      }
       return;
     }
 
@@ -1422,7 +1525,9 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
   boost::uuids::uuid uniqueId;
   auto luaconfsLocal = g_luaconfs.getLocal();
   if (luaconfsLocal->protobufServer) {
+    uniqueId = (*t_uuidGenerator)();
     needECS = true;
+  } else if (luaconfsLocal->outgoingProtobufServer) {
     uniqueId = (*t_uuidGenerator)();
   }
 #endif
@@ -1506,9 +1611,9 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
         L<<Logger::Warning<<"Sending UDP reply to client "<<fromaddr.toStringWithPort()<<" failed with: "<<strerror(errno)<<endl;
 
       if(response.length() >= sizeof(struct dnsheader)) {
-        struct dnsheader dh;
-        memcpy(&dh, response.c_str(), sizeof(dh));
-        updateResponseStats(dh.rcode, fromaddr, response.length(), 0, 0);
+        struct dnsheader tmpdh;
+        memcpy(&tmpdh, response.c_str(), sizeof(tmpdh));
+        updateResponseStats(tmpdh.rcode, fromaddr, response.length(), 0, 0);
       }
       g_stats.avgLatencyUsec=(1-1.0/g_latencyStatSize)*g_stats.avgLatencyUsec + 0.0; // we assume 0 usec
       return 0;
@@ -1545,7 +1650,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
   dc->d_tcp=false;
   dc->d_policyTags = policyTags;
 #ifdef HAVE_PROTOBUF
-  if (luaconfsLocal->protobufServer) {
+  if (luaconfsLocal->protobufServer || luaconfsLocal->outgoingProtobufServer) {
     dc->d_uuid = uniqueId;
   }
   dc->d_ednssubnet = ednssubnet;
@@ -1606,7 +1711,7 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 	struct timeval tv={0,0};
 	HarvestTimestamp(&msgh, &tv);
 	ComboAddress dest;
-	memset(&dest, 0, sizeof(dest)); // this makes sure we igore this address if not returned by recvmsg above
+	memset(&dest, 0, sizeof(dest)); // this makes sure we ignore this address if not returned by recvmsg above
         auto loc = rplookup(g_listenSocketsAddresses, fd);
 	if(HarvestDestinationAddress(&msgh, &dest)) {
           // but.. need to get port too
@@ -1783,7 +1888,6 @@ void makeUDPServerSockets()
   
 #ifdef SO_REUSEPORT  
     if(::arg().mustDo("reuseport")) {
-      int one=1;
       if(setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &one, sizeof(one)) < 0)
         throw PDNSException("SO_REUSEPORT: "+stringerror());
     }
@@ -1912,35 +2016,9 @@ static void houseKeeping(void *)
     }
 
     if(now.tv_sec - last_rootupdate > 7200) {
-      SyncRes sr(now);
-      sr.setDoEDNS0(true);
-      vector<DNSRecord> ret;
-
-      sr.setNoCache();
-      int res=-1;
-      try {
-	res=sr.beginResolve(g_rootdnsname, QType(QType::NS), 1, ret);
-      }
-      catch(PDNSException& e)
-	{
-	  L<<Logger::Error<<"Failed to update . records, got an exception: "<<e.reason<<endl;
-	}
-
-      catch(std::exception& e)
-	{
-	  L<<Logger::Error<<"Failed to update . records, got an exception: "<<e.what()<<endl;
-	}
-
-      catch(...)
-	{
-	  L<<Logger::Error<<"Failed to update . records, got an exception"<<endl;
-	}
-      if(!res) {
-	L<<Logger::Notice<<"Refreshed . records"<<endl;
-	last_rootupdate=now.tv_sec;
-      }
-      else
-	L<<Logger::Error<<"Failed to update . records, RCODE="<<res<<endl;
+      int res = getRootNS();
+      if (!res)
+        last_rootupdate=now.tv_sec;
     }
 
     if(!t_id) {
@@ -2524,33 +2602,6 @@ void parseACLs()
   l_initialized = true;
 }
 
-boost::optional<Netmask> getEDNSSubnetMask(const ComboAddress& local, const DNSName&dn, const ComboAddress& rem)
-{
-  if(local.sin4.sin_family != AF_INET || local.sin4.sin_addr.s_addr) { // detect unset 'requestor'
-    if(g_ednsdomains.check(dn) || g_ednssubnets.match(rem)) {
-      int bits =local.sin4.sin_family == AF_INET ? 24 : 56;
-      ComboAddress trunc(local);
-      trunc.truncate(bits);
-      return boost::optional<Netmask>(Netmask(trunc, bits));
-    }
-  }
-  return boost::optional<Netmask>();
-}
-
-void  parseEDNSSubnetWhitelist(const std::string& wlist)
-{
-  vector<string> parts;
-  stringtok(parts, wlist, ",; ");
-  for(const auto& a : parts) {
-    try {
-      Netmask nm(a);
-      g_ednssubnets.addMask(nm);
-    }
-    catch(...) {
-      g_ednsdomains.add(DNSName(a));
-    }
-  }
-}
 
 std::unordered_set<DNSName> g_delegationOnly;
 static void setupDelegationOnly()
@@ -2607,7 +2658,25 @@ int serviceMain(int argc, char*argv[])
     exit(99);
   }
 
-  loadRecursorLuaConfig(::arg()["lua-config-file"]);
+  // keep this ABOVE loadRecursorLuaConfig!
+  if(::arg()["dnssec"]=="off")
+    g_dnssecmode=DNSSECMode::Off;
+  else if(::arg()["dnssec"]=="process-no-validate")
+    g_dnssecmode=DNSSECMode::ProcessNoValidate;
+  else if(::arg()["dnssec"]=="process")
+    g_dnssecmode=DNSSECMode::Process;
+  else if(::arg()["dnssec"]=="validate")
+    g_dnssecmode=DNSSECMode::ValidateAll;
+  else if(::arg()["dnssec"]=="log-fail")
+    g_dnssecmode=DNSSECMode::ValidateForLog;
+  else {
+    L<<Logger::Error<<"Unknown DNSSEC mode "<<::arg()["dnssec"]<<endl;
+    exit(1);
+  }
+
+  g_dnssecLogBogus = ::arg().mustDo("dnssec-log-bogus");
+
+  loadRecursorLuaConfig(::arg()["lua-config-file"], ::arg().mustDo("daemon"));
 
   parseACLs();
   sortPublicSuffixList();
@@ -2639,23 +2708,6 @@ int serviceMain(int argc, char*argv[])
   setupDelegationOnly();
   g_outgoingEDNSBufsize=::arg().asNum("edns-outgoing-bufsize");
 
-  if(::arg()["dnssec"]=="off")
-    g_dnssecmode=DNSSECMode::Off;
-  else if(::arg()["dnssec"]=="process-no-validate")
-    g_dnssecmode=DNSSECMode::ProcessNoValidate;
-  else if(::arg()["dnssec"]=="process")
-    g_dnssecmode=DNSSECMode::Process;
-  else if(::arg()["dnssec"]=="validate")
-    g_dnssecmode=DNSSECMode::ValidateAll;
-  else if(::arg()["dnssec"]=="log-fail")
-    g_dnssecmode=DNSSECMode::ValidateForLog;
-  else {
-    L<<Logger::Error<<"Unknown DNSSEC mode "<<::arg()["dnssec"]<<endl;
-    exit(1);
-  }
-
-  g_dnssecLogBogus = ::arg().mustDo("dnssec-log-bogus");
-
   if(::arg()["trace"]=="fail") {
     SyncRes::setDefaultLogMode(SyncRes::Store);
   }
@@ -2681,6 +2733,7 @@ int serviceMain(int argc, char*argv[])
   SyncRes::s_serverID=::arg()["server-id"];
   SyncRes::s_maxqperq=::arg().asNum("max-qperq");
   SyncRes::s_maxtotusec=1000*::arg().asNum("max-total-msec");
+  SyncRes::s_maxdepth=::arg().asNum("max-recursion-depth");
   SyncRes::s_rootNXTrust = ::arg().mustDo( "root-nx-trust");
   if(SyncRes::s_serverID.empty()) {
     char tmp[128];
@@ -2716,6 +2769,7 @@ int serviceMain(int argc, char*argv[])
     L<<Logger::Warning<<"Calling daemonize, going to background"<<endl;
     L.toConsole(Logger::Critical);
     daemonize();
+    loadRecursorLuaConfig(::arg()["lua-config-file"], false);
   }
   signal(SIGUSR1,usr1Handler);
   signal(SIGUSR2,usr2Handler);
@@ -2724,6 +2778,13 @@ int serviceMain(int argc, char*argv[])
   g_numWorkerThreads = ::arg().asNum("threads");
   g_maxMThreads = ::arg().asNum("max-mthreads");
   checkOrFixFDS();
+
+#ifdef HAVE_LIBSODIUM
+  if (sodium_init() == -1) {
+    L<<Logger::Error<<"Unable to initialize sodium crypto library"<<endl;
+    exit(99);
+  }
+#endif
 
   openssl_thread_setup();
   openssl_seed();
@@ -2759,6 +2820,7 @@ int serviceMain(int argc, char*argv[])
 
   g_tcpTimeout=::arg().asNum("client-tcp-timeout");
   g_maxTCPPerClient=::arg().asNum("max-tcp-per-client");
+  g_tcpMaxQueriesPerConn=::arg().asNum("max-tcp-queries-per-connection");
 
   if(g_numThreads == 1) {
     L<<Logger::Warning<<"Operating unthreaded"<<endl;
@@ -2964,7 +3026,7 @@ int main(int argc, char **argv)
     ::arg().set("chroot","switch to chroot jail")="";
     ::arg().set("setgid","If set, change group id to this gid for more security")="";
     ::arg().set("setuid","If set, change user id to this uid for more security")="";
-    ::arg().set("network-timeout", "Wait this nummer of milliseconds for network i/o")="1500";
+    ::arg().set("network-timeout", "Wait this number of milliseconds for network i/o")="1500";
     ::arg().set("threads", "Launch this number of threads")="2";
     ::arg().set("processes", "Launch this number of processes (EXPERIMENTAL, DO NOT CHANGE)")="1"; // if we un-experimental this, need to fix openssl rand seeding for multiple PIDs!
     ::arg().set("config-name","Name of this virtual configuration - will rename the binary image")="";
@@ -2978,7 +3040,7 @@ int main(int argc, char **argv)
     ::arg().set("webserver-password", "Password required for accessing the webserver") = "";
     ::arg().set("webserver-allow-from","Webserver access is only allowed from these subnets")="0.0.0.0/0,::/0";
     ::arg().set("carbon-ourname", "If set, overrides our reported hostname for carbon stats")="";
-    ::arg().set("carbon-server", "If set, send metrics in carbon (graphite) format to this server")="";
+    ::arg().set("carbon-server", "If set, send metrics in carbon (graphite) format to this server IP address")="";
     ::arg().set("carbon-interval", "Number of seconds between carbon (graphite) updates")="30";
     ::arg().set("quiet","Suppress logging of questions and answers")="";
     ::arg().set("logging-facility","Facility to log messages as. 0 corresponds to local0")="";
@@ -3011,6 +3073,7 @@ int main(int argc, char **argv)
     ::arg().set("entropy-source", "If set, read entropy from this file")="/dev/urandom";
     ::arg().set("dont-query", "If set, do not query these netmasks for DNS data")=DONT_QUERY;
     ::arg().set("max-tcp-per-client", "If set, maximum number of TCP sessions per client (IP address)")="0";
+    ::arg().set("max-tcp-queries-per-connection", "If set, maximum number of TCP queries in a TCP connection")="0";
     ::arg().set("spoof-nearmiss-max", "If non-zero, assume spoofing after this many near misses")="20";
     ::arg().set("single-socket", "If set, only use a single socket for outgoing queries")="off";
     ::arg().set("auth-zones", "Zones for which we have authoritative data, comma separated domain=file pairs ")="";
@@ -3026,6 +3089,8 @@ int main(int argc, char **argv)
     ::arg().set("lua-dns-script", "Filename containing an optional 'lua' script that will be used to modify dns answers")="";
     ::arg().set("latency-statistic-size","Number of latency values to calculate the qa-latency average")="10000";
     ::arg().setSwitch( "disable-packetcache", "Disable packetcache" )= "no";
+    ::arg().set("ecs-ipv4-bits", "Number of bits of IPv4 address to pass for EDNS Client Subnet")="24";
+    ::arg().set("ecs-ipv6-bits", "Number of bits of IPv6 address to pass for EDNS Client Subnet")="56";
     ::arg().set("edns-subnet-whitelist", "List of netmasks and domains that we should enable EDNS subnet for")="";
     ::arg().setSwitch( "pdns-distributes-queries", "If PowerDNS itself should distribute queries over threads")="";
     ::arg().setSwitch( "root-nx-trust", "If set, believe that an NXDOMAIN from the root means the TLD does not exist")="yes";
@@ -3036,6 +3101,7 @@ int main(int argc, char **argv)
     ::arg().set("minimum-ttl-override", "Set under adverse conditions, a minimum TTL")="0";
     ::arg().set("max-qperq", "Maximum outgoing queries per query")="50";
     ::arg().set("max-total-msec", "Maximum total wall-clock time per query in milliseconds, 0 for unlimited")="7000";
+    ::arg().set("max-recursion-depth", "Maximum number of internal recursion calls per query, 0 for unlimited")="40";
 
     ::arg().set("include-dir","Include *.conf files from this directory")="";
     ::arg().set("security-poll-suffix","Domain name from which to query security update notifications")="secpoll.powerdns.com.";
@@ -3119,4 +3185,44 @@ int main(int argc, char **argv)
   }
 
   return ret;
+}
+
+int getRootNS(void) {
+  SyncRes sr(g_now);
+  sr.setDoEDNS0(true);
+  sr.setNoCache();
+  sr.d_doDNSSEC = (g_dnssecmode != DNSSECMode::Off);
+
+  vector<DNSRecord> ret;
+  int res=-1;
+  try {
+    res=sr.beginResolve(g_rootdnsname, QType(QType::NS), 1, ret);
+    if (g_dnssecmode != DNSSECMode::Off && g_dnssecmode != DNSSECMode::ProcessNoValidate) {
+      ResolveContext ctx;
+      auto state = validateRecords(ctx, ret);
+      if (state == Bogus)
+        throw PDNSException("Got Bogus validation result for .|NS");
+    }
+    return res;
+  }
+  catch(PDNSException& e)
+  {
+    L<<Logger::Error<<"Failed to update . records, got an exception: "<<e.reason<<endl;
+  }
+
+  catch(std::exception& e)
+  {
+    L<<Logger::Error<<"Failed to update . records, got an exception: "<<e.what()<<endl;
+  }
+
+  catch(...)
+  {
+    L<<Logger::Error<<"Failed to update . records, got an exception"<<endl;
+  }
+  if(!res) {
+    L<<Logger::Notice<<"Refreshed . records"<<endl;
+  }
+  else
+    L<<Logger::Error<<"Failed to update . records, RCODE="<<res<<endl;
+  return res;
 }

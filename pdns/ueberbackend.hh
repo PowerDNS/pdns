@@ -29,11 +29,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 
-#include <sys/un.h>
-#include <dlfcn.h>
 #include <unistd.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -55,7 +51,6 @@ class UeberBackend : public boost::noncopyable
 public:
   UeberBackend(const string &pname="default");
   ~UeberBackend();
-  typedef DNSBackend *BackendMaker(); //!< typedef for functions returning pointers to new backends
 
   bool superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db);
 
@@ -106,19 +101,17 @@ public:
   bool getAuth(DNSPacket *p, SOAData *sd, const DNSName &target);
   bool getSOA(const DNSName &domain, SOAData &sd, DNSPacket *p=0);
   bool getSOAUncached(const DNSName &domain, SOAData &sd, DNSPacket *p=0);  // same, but ignores cache
-  bool list(const DNSName &target, int domain_id, bool include_disabled=false);
   bool get(DNSResourceRecord &r);
   bool get(DNSZoneRecord &r);
   void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false);
 
-  static DNSBackend *maker(const map<string,string> &);
   void getUnfreshSlaveInfos(vector<DomainInfo>* domains);
   void getAllMasters(vector<DomainInfo>* domains);
   bool getDomainInfo(const DNSName &domain, DomainInfo &di);
   bool createDomain(const DNSName &domain);
   
   bool addDomainKey(const DNSName& name, const DNSBackend::KeyData& key, int64_t& id);
-  bool getDomainKeys(const DNSName& name, unsigned int kind, std::vector<DNSBackend::KeyData>& keys);
+  bool getDomainKeys(const DNSName& name, std::vector<DNSBackend::KeyData>& keys);
   bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta);
   bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta);
   bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta);
@@ -138,14 +131,13 @@ public:
   bool searchRecords(const string &pattern, int maxResults, vector<DNSResourceRecord>& result);
   bool searchComments(const string &pattern, int maxResults, vector<Comment>& result);
 private:
-  pthread_t tid;
+  pthread_t d_tid;
   handle d_handle;
   vector<DNSZoneRecord> d_answers;
   vector<DNSZoneRecord>::const_iterator d_cachehandleiter;
 
   static pthread_mutex_t d_mut;
   static pthread_cond_t d_cond;
-  static sem_t d_dynserialize;
 
   struct Question
   {
@@ -155,13 +147,13 @@ private:
   }d_question;
 
   unsigned int d_cache_ttl, d_negcache_ttl;
-  int domain_id;
+  int d_domain_id;
   int d_ancount;
 
   bool d_negcached;
   bool d_cached;
   static bool d_go;
-  bool stale;
+  bool d_stale;
 
   int cacheHas(const Question &q, vector<DNSZoneRecord> &rrs);
   void addNegCache(const Question &q);

@@ -54,7 +54,6 @@
 #include "pdns/dnsbackend.hh"
 #include "mydnsbackend.hh"
 #include "pdns/dnspacket.hh"
-#include "pdns/ueberbackend.hh"
 #include "pdns/pdnsexception.hh"
 #include "pdns/logger.hh"
 #include "pdns/arguments.hh"
@@ -305,7 +304,7 @@ void MyDNSBackend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p
     }
 
     if(d_result.empty()) {
-      throw PDNSException("lookup() passed zoneId = "+itoa(zoneId)+" but no such zone!");
+      return; // just return if zone was not found instead of throwing an error
     }
 
     rrow = d_result[0];

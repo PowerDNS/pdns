@@ -26,9 +26,9 @@ m4_define([_BOOST_SERIAL], [m4_translit([
 ], [#
 ], [])])
 
-# Original sources can be found at http://github.com/tsuna/boost.m4
+# Original sources can be found at https://github.com/tsuna/boost.m4
 # You can fetch the latest version of the script by doing:
-#   wget http://github.com/tsuna/boost.m4/raw/master/build-aux/boost.m4
+#   wget https://github.com/tsuna/boost.m4/raw/master/build-aux/boost.m4
 
 # ------ #
 # README #

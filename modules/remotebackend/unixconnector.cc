@@ -22,6 +22,9 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 #include "remotebackend.hh"
 #ifndef UNIX_PATH_MAX 
 #define UNIX_PATH_MAX 108

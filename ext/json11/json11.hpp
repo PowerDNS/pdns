@@ -16,7 +16,7 @@
  * A note on numbers - JSON specifies the syntax of number formatting but not its semantics,
  * so some JSON implementations distinguish between integers and floating-point numbers, while
  * some don't. In json11, we choose the latter. Because some JSON implementations (namely
- * Javascript itself) treat all numbers as the same type, distinguishing the two leads
+ * JavaScript itself) treat all numbers as the same type, distinguishing the two leads
  * to JSON that will be *silently* changed by a round-trip through those implementations.
  * Dangerous! To avoid that risk, json11 stores all numbers as double internally, but also
  * provides integer helpers.
@@ -56,7 +56,23 @@
 #include <memory>
 #include <initializer_list>
 
+#ifdef _MSC_VER
+    #if _MSC_VER <= 1800 // VS 2013
+        #ifndef noexcept
+            #define noexcept throw()
+        #endif
+
+        #ifndef snprintf
+            #define snprintf _snprintf_s
+        #endif
+    #endif
+#endif
+
 namespace json11 {
+
+enum JsonParse {
+    STANDARD, COMMENTS
+};
 
 class JsonValue;
 
@@ -145,17 +161,33 @@ public:
     }
 
     // Parse. If parse fails, return Json() and assign an error message to err.
-    static Json parse(const std::string & in, std::string & err);
-    static Json parse(const char * in, std::string & err) {
+    static Json parse(const std::string & in,
+                      std::string & err,
+                      JsonParse strategy = JsonParse::STANDARD);
+    static Json parse(const char * in,
+                      std::string & err,
+                      JsonParse strategy = JsonParse::STANDARD) {
         if (in) {
-            return parse(std::string(in), err);
+            return parse(std::string(in), err, strategy);
         } else {
             err = "null input";
             return nullptr;
         }
     }
     // Parse multiple objects, concatenated or separated by whitespace
-    static std::vector<Json> parse_multi(const std::string & in, std::string & err);
+    static std::vector<Json> parse_multi(
+        const std::string & in,
+        std::string::size_type & parser_stop_pos,
+        std::string & err,
+        JsonParse strategy = JsonParse::STANDARD);
+
+    static inline std::vector<Json> parse_multi(
+        const std::string & in,
+        std::string & err,
+        JsonParse strategy = JsonParse::STANDARD) {
+        std::string::size_type parser_stop_pos;
+        return parse_multi(in, parser_stop_pos, err, strategy);
+    }
 
     bool operator== (const Json &rhs) const;
     bool operator<  (const Json &rhs) const;

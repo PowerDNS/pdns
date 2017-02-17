@@ -4,6 +4,8 @@ dnsdist is distributed in several forms, pick the method best suited for your en
 ## Packages
 dnsdist is not (yet) widely available as a package for your operating system
 distribution. However, several packages are available in [our repository](https://repo.powerdns.com/).
+dnsdist is known to be available on FreeBSD ports (dns/dnsdist).
+Freshports link: http://www.freshports.org/dns/dnsdist/ 
 
 ## From Source
 To build dnsdist, you'll need a modern C++ compiler with C++ 2011 support (like

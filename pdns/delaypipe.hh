@@ -26,7 +26,7 @@
 
 /**
    General idea: many threads submit work to this class, but only one executes it. The work should therefore be entirely trivial.
-   The implementatin is that submitter threads create an object that represents the work, and it gets sent over a pipe 
+   The implementation is that submitter threads create an object that represents the work, and it gets sent over a pipe 
    to the worker thread.
 
    The worker thread meanwhile listens on this pipe (non-blocking), with a delay set to the next object that needs to be executed.

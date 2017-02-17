@@ -26,7 +26,7 @@ var shiftWindow = function() {
     if (window.disableShift) {
         window.disableShift = false;
     } else {
-        /* If we're at the bottom of the page, don't erronously scroll up */
+        /* If we're at the bottom of the page, don't erroneously scroll up */
         var scrolledToBottomOfPage = (
             (window.innerHeight + window.scrollY) >= document.body.offsetHeight
         );

@@ -25,7 +25,7 @@ Replay all recursion-desired DNS questions to a specified IP address.
 Track all outgoing questions, remap id to one of ours.
 Also track all recorded answers, and map them to that same id, the 'expectation'.
 
-When we see a question, parse it, give it a QuestionIdentifyer, and and an id from the free-id list.
+When we see a question, parse it, give it a QuestionIdentifier, and and an id from the free-id list.
 
 When we see an answer in the tcpdump, parse it, make QI, and add it to the original QI
    and check
@@ -421,7 +421,7 @@ try
   while(s_socket->recvFromAsync(packet, remote)) {
     try {
       s_weanswers++;
-      MOADNSParser mdp(packet.c_str(), packet.length());
+      MOADNSParser mdp(false, packet.c_str(), packet.length());
       if(!mdp.d_header.qr) {
         cout<<"Received a question from our reference nameserver!"<<endl;
         continue;
@@ -628,7 +628,7 @@ bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote, int stam
       sent=true;
       dh->id=tmp;
     }
-    MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
+    MOADNSParser mdp(false, (const char*)pr.d_payload, pr.d_len);
     QuestionIdentifier qi=QuestionIdentifier::create(pr.getSource(), pr.getDest(), mdp);
 
     if(!mdp.d_header.qr) {

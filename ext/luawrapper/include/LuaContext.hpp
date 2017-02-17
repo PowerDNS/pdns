@@ -566,7 +566,7 @@ public:
      * @sa writeVariable
      *
      * Readable types are all types accepted by writeVariable except nullptr, std::unique_ptr and function pointers
-     * Additionaly supported:
+     * Additionally supported:
      *  - LuaFunctionCaller<FunctionType>, which is an alternative to std::function
      *  - references to custom objects, in which case it will return the object in-place
      *
@@ -643,7 +643,7 @@ public:
     
     /**
      * Equivalent to writeVariable(varName, ..., std::function<TFunctionType>(data));
-     * This version is more effecient than writeVariable if you want to write functions
+     * This version is more efficient than writeVariable if you want to write functions
      */
     template<typename TFunctionType, typename... TData>
     void writeFunction(TData&&... data) noexcept {
@@ -741,7 +741,7 @@ private:
     // equivalent of lua_settable with t[k]=n, where t is the value at the index in the template parameter, k is the second parameter, n is the last parameter, and n is pushed by the function in the first parameter
     // if there are more than 3 parameters, parameters 3 to n-1 are considered as sub-indices into the array
     // the dataPusher MUST push only one thing on the stack
-    // TTableIndex must be either LUA_REGISTERYINDEX, LUA_GLOBALSINDEX, LUA_ENVINDEX, or the position of the element on the stack
+    // TTableIndex must be either LUA_REGISTRYINDEX, LUA_GLOBALSINDEX, LUA_ENVINDEX, or the position of the element on the stack
     template<typename TDataType, typename TIndex, typename TData>
     static void setTable(lua_State* state, const PushedObject&, TIndex&& index, TData&& data) noexcept
     {
@@ -1310,7 +1310,7 @@ private:
             RealReturnType;
         
         // we push the parameters on the stack
-        auto inArguments = Pusher<std::tuple<TParameters...>>::push(state, std::make_tuple(std::forward<TParameters>(input)...));
+        auto inArguments = Pusher<std::tuple<TParameters...>>::push(state, std::forward_as_tuple((input)...));
 
         // 
         const int outArgumentsCount = std::tuple_size<RealReturnType>::value;
@@ -1639,13 +1639,13 @@ private:
     /**************************************************/
     /*                   UTILITIES                    */
     /**************************************************/
-    // structure that will ensure that a certain is stored somewhere in the registry
+    // structure that will ensure that a certain value is stored somewhere in the registry
     struct ValueInRegistry {
-        // this constructor will clone and hold the value at the top of the stack in the registry
-        ValueInRegistry(lua_State* lua) : lua{lua}
+        // this constructor will clone and hold the value at the specified index (or by default at the top of the stack) in the registry
+        ValueInRegistry(lua_State* lua, int index=-1) : lua{lua}
         {
             lua_pushlightuserdata(lua, this);
-            lua_pushvalue(lua, -2);
+            lua_pushvalue(lua, -1 + index);
             lua_settable(lua, LUA_REGISTRYINDEX);
         }
         
@@ -1821,8 +1821,8 @@ private:
 
 private:
     friend LuaContext;
-    explicit LuaFunctionCaller(lua_State* state) :
-        valueHolder(std::make_shared<ValueInRegistry>(state)),
+    explicit LuaFunctionCaller(lua_State* state, int index) :
+        valueHolder(std::make_shared<ValueInRegistry>(state, index)),
         state(state)
     {}
 };
@@ -2521,7 +2521,7 @@ struct LuaContext::Reader<LuaContext::LuaFunctionCaller<TRetValue (TParameters..
     {
         if (lua_isfunction(state, index) == 0 && lua_isuserdata(state, index) == 0)
             return boost::none;
-        return ReturnType(state);
+        return ReturnType(state, index);
     }
 };
 

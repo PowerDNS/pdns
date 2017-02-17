@@ -1,0 +1,2 @@
+Test if we can correctly fake a NXDOMAIN answer from Lua preresolve
+

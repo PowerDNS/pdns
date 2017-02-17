@@ -34,7 +34,6 @@
 #include "pdns/dns.hh"
 #include "pdns/dnsbackend.hh"
 #include "pdns/dnspacket.hh"
-#include "pdns/ueberbackend.hh"
 #include "pdns/pdnsexception.hh"
 #include "pdns/logger.hh"
 #include "pdns/arguments.hh"
@@ -223,9 +222,7 @@ bool PipeBackend::list(const DNSName& target, int inZoneId, bool include_disable
 
 string PipeBackend::directBackendCmd(const string &query) {
   if (d_abiVersion < 5)
-    return "not supported on ABI version " + std::to_string(d_abiVersion) + "(use ABI version 5 or later)\n";
-
-  ostringstream oss;
+    return "not supported on ABI version " + std::to_string(d_abiVersion) + " (use ABI version 5 or later)\n";
 
   try {
     launch();
@@ -237,8 +234,8 @@ string PipeBackend::directBackendCmd(const string &query) {
     L<<Logger::Error<<kBackendId<<" Error from coprocess: "<<ae.reason<<endl;
     cleanup();
   }
-  oss.str("");
 
+  ostringstream oss;
   while(true) {
     string line;
     d_coproc->receive(line);

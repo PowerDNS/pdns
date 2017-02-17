@@ -796,7 +796,7 @@ bool GeoIPBackend::getDomainMetadata(const DNSName& name, const std::string& kin
   return false;
 }
 
-bool GeoIPBackend::getDomainKeys(const DNSName& name, unsigned int kind, std::vector<DNSBackend::KeyData>& keys) {
+bool GeoIPBackend::getDomainKeys(const DNSName& name, std::vector<DNSBackend::KeyData>& keys) {
   if (!d_dnssec) return false;
   ReadLock rl(&s_state_lock);
   for(GeoIPDomain dom :  s_domains) {
@@ -959,7 +959,7 @@ bool GeoIPBackend::deactivateDomainKey(const DNSName& name, unsigned int id) {
               ostringstream newpath;
               newpath << getArg("dnssec-keydir") << "/" << dom.domain.toStringNoDot() << "." << pdns_stou(glob_result.gl_pathv[i]+regm[2].rm_so) << "." << kid << ".0.key";
               if (rename(glob_result.gl_pathv[i], newpath.str().c_str())) {
-                cerr << "Cannot deactive key: " << strerror(errno) << endl;
+                cerr << "Cannot deactivate key: " << strerror(errno) << endl;
               }
             }
           }

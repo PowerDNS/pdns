@@ -1,6 +1,8 @@
 #!/usr/bin/env python
+import base64
 from datetime import datetime, timedelta
 import os
+import string
 import time
 import dns
 from dnsdisttests import DNSDistTest
@@ -1136,3 +1138,236 @@ class TestAdvancedWireLengthRule(DNSDistTest):
 
         (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
         self.assertEquals(receivedResponse, expectedResponse)
+
+class TestAdvancedIncludeDir(DNSDistTest):
+
+    _config_template = """
+    -- this directory contains a file allowing includedir.advanced.tests.powerdns.com.
+    includeDirectory('test-include-dir')
+    addAction(AllRule(), RCodeAction(dnsdist.REFUSED))
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testAdvancedIncludeDirAllowed(self):
+        """
+        Advanced: includeDirectory()
+        """
+        name = 'includedir.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+        response.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+
+        # this one should be refused
+        name = 'notincludedir.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.set_rcode(dns.rcode.REFUSED)
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, expectedResponse)
+
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, expectedResponse)
+
+class TestAdvancedLuaDO(DNSDistTest):
+
+    _config_template = """
+    function nxDOLua(dq)
+        if dq:getDO() then
+            return DNSAction.Nxdomain, ""
+        end
+        return DNSAction.None, ""
+    end
+    addLuaAction(AllRule(), nxDOLua)
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testNxDOViaLua(self):
+        """
+        Advanced: Nx DO queries via Lua
+        """
+        name = 'nxdo.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '::1')
+        response.answer.append(rrset)
+        queryWithDO = dns.message.make_query(name, 'A', 'IN', want_dnssec=True)
+        doResponse = dns.message.make_response(queryWithDO)
+        doResponse.set_rcode(dns.rcode.NXDOMAIN)
+
+        # without DO
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+        # with DO
+        (_, receivedResponse) = self.sendUDPQuery(queryWithDO, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        doResponse.id = receivedResponse.id
+        print(doResponse)
+        print(receivedResponse)
+        self.assertEquals(receivedResponse, doResponse)
+
+        (_, receivedResponse) = self.sendTCPQuery(queryWithDO, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        doResponse.id = receivedResponse.id
+        self.assertEquals(receivedResponse, doResponse)
+
+class TestStatNodeRespRingSince(DNSDistTest):
+
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey)
+    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort']
+    _config_template = """
+    setKey("%s")
+    controlSocket("127.0.0.1:%s")
+    s1 = newServer{address="127.0.0.1:%s"}
+    s1:setUp()
+    function visitor(node, self, childstat)
+        table.insert(nodesSeen, node.fullname)
+    end
+    """
+
+    def testStatNodeRespRingSince(self):
+        """
+        Advanced: StatNodeRespRing with optional since parameter
+
+        """
+        name = 'statnodesince.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    1,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+
+        self.sendConsoleCommand("nodesSeen = {}")
+        self.sendConsoleCommand("statNodeRespRing(visitor)")
+        nodes = self.sendConsoleCommand("str = '' for key,value in pairs(nodesSeen) do str = str..value..\"\\n\" end return str")
+        nodes = string.strip(nodes, "\n")
+        self.assertEquals(nodes, """statnodesince.advanced.tests.powerdns.com.
+advanced.tests.powerdns.com.
+tests.powerdns.com.
+powerdns.com.
+com.""")
+
+        self.sendConsoleCommand("nodesSeen = {}")
+        self.sendConsoleCommand("statNodeRespRing(visitor, 0)")
+        nodes = self.sendConsoleCommand("str = '' for key,value in pairs(nodesSeen) do str = str..value..\"\\n\" end return str")
+        nodes = string.strip(nodes, "\n")
+        self.assertEquals(nodes, """statnodesince.advanced.tests.powerdns.com.
+advanced.tests.powerdns.com.
+tests.powerdns.com.
+powerdns.com.
+com.""")
+
+        time.sleep(5)
+
+        self.sendConsoleCommand("nodesSeen = {}")
+        self.sendConsoleCommand("statNodeRespRing(visitor)")
+        nodes = self.sendConsoleCommand("str = '' for key,value in pairs(nodesSeen) do str = str..value..\"\\n\" end return str")
+        nodes = string.strip(nodes, "\n")
+        self.assertEquals(nodes, """statnodesince.advanced.tests.powerdns.com.
+advanced.tests.powerdns.com.
+tests.powerdns.com.
+powerdns.com.
+com.""")
+
+        self.sendConsoleCommand("nodesSeen = {}")
+        self.sendConsoleCommand("statNodeRespRing(visitor, 5)")
+        nodes = self.sendConsoleCommand("str = '' for key,value in pairs(nodesSeen) do str = str..value..\"\\n\" end return str")
+        nodes = string.strip(nodes, "\n")
+        self.assertEquals(nodes, """""")
+
+        self.sendConsoleCommand("nodesSeen = {}")
+        self.sendConsoleCommand("statNodeRespRing(visitor, 10)")
+        nodes = self.sendConsoleCommand("str = '' for key,value in pairs(nodesSeen) do str = str..value..\"\\n\" end return str")
+        nodes = string.strip(nodes, "\n")
+        self.assertEquals(nodes, """statnodesince.advanced.tests.powerdns.com.
+advanced.tests.powerdns.com.
+tests.powerdns.com.
+powerdns.com.
+com.""")
+
+class TestAdvancedRD(DNSDistTest):
+
+    _config_template = """
+    addAction(RDRule(), RCodeAction(dnsdist.REFUSED))
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testAdvancedRDRefused(self):
+        """
+        Advanced: RD query is refused
+        """
+        name = 'rd.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.set_rcode(dns.rcode.REFUSED)
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, expectedResponse)
+
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, expectedResponse)
+
+    def testAdvancedNoRDAllowed(self):
+        """
+        Advanced: No-RD query is allowed
+        """
+        name = 'no-rd.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        query.flags &= ~dns.flags.RD
+        response = dns.message.make_response(query)
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        receivedQuery.id = query.id
+        self.assertEquals(receivedQuery, query)
+        self.assertEquals(receivedResponse, response)
+
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+        receivedQuery.id = query.id
+        self.assertEquals(receivedQuery, query)
+        self.assertEquals(receivedResponse, response)

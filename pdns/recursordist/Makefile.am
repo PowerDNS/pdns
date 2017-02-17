@@ -48,6 +48,7 @@ EXTRA_DIST = \
 	kqueuemplexer.cc \
 	lua_hpp.mk \
 	malloctrace.cc malloctrace.hh \
+	mkpubsuffixcc \
 	mtasker.cc \
 	mtasker_fcontext.cc mtasker_ucontext.cc \
 	opensslsigners.hh opensslsigners.cc \
@@ -78,6 +79,7 @@ pdns_recursor_SOURCES = \
 	dnssecinfra.hh dnssecinfra.cc \
 	dnsseckeeper.hh \
 	dnswriter.cc dnswriter.hh \
+	ecs.cc \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
 	filterpo.cc filterpo.hh \
@@ -115,6 +117,7 @@ pdns_recursor_SOURCES = \
 	reczones.cc \
 	remote_logger.cc remote_logger.hh \
 	resolver.hh resolver.cc \
+	resolve-context.hh \
 	responsestats.hh responsestats.cc \
 	root-addresses.hh \
 	root-dnssec.hh \
@@ -127,6 +130,7 @@ pdns_recursor_SOURCES = \
 	sortlist.cc sortlist.hh \
 	sstuff.hh \
 	syncres.cc syncres.hh \
+	tsigverifier.cc tsigverifier.hh \
 	ueberbackend.hh \
 	unix_utility.cc \
 	utility.hh \
@@ -158,6 +162,12 @@ if BOTAN110
 pdns_recursor_SOURCES += \
 	botan110signers.cc
 pdns_recursor_LDADD += $(BOTAN110_LIBS)
+endif
+
+if LIBSODIUM
+pdns_recursor_SOURCES += \
+	sodiumsigners.cc
+pdns_recursor_LDADD += $(LIBSODIUM_LIBS)
 endif
 
 if MALLOC_TRACE

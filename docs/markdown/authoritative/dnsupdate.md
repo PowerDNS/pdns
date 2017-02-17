@@ -5,7 +5,7 @@ Starting with the PowerDNS Authoritative Server 3.4.0, DNS update support is ava
 * WKS records are specifically mentioned in the RFC, we don't specifically care about WKS records;
 * Anything we forgot....
 
-The implementation requires the backend to support a number of new oparations. Currently, the following backends have been modified to support DNS update:
+The implementation requires the backend to support a number of new operations. Currently, the following backends have been modified to support DNS update:
 
 * [gmysql](backend-generic-mysql.md)
 * [gpgsql](backend-generic-postgresql.md)
@@ -206,12 +206,15 @@ This tells PowerDNS to:
 1.  Enable DNS update support([`dnsupdate`](settings.md#dnsupdate))
 2.  Allow updates from NO ip-address ([`allow-dnsupdate-from=`](settings.md#allow-dnsupdate-from))
 
-We just told powerdns (via the configuration file) that we accept updates from nobody via the [`allow-dnsupdate-from`](settings.md#allow-dnsupdate-from) parameter. That's not very useful, so we're going to give permissions per zone, via the domainmetadata table.
+We just told powerdns (via the configuration file) that we accept updates from nobody via the [`allow-dnsupdate-from`](settings.md#allow-dnsupdate-from) parameter. That's not very useful, so we're going to give permissions per zone (including the appropriate reverse zone), via the domainmetadata table.
 
 ```
 sql> select id from domains where name='example.org';
 5
-sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘ALLOW-DNSUPDATE-FROM’,’127.0.0.1’);
+sql> insert into domainmetadata(domain_id, kind, content) values(5, 'ALLOW-DNSUPDATE-FROM','127.0.0.1');
+sql> select id from domains where name='1.168.192.in-addr.arpa';
+6
+sql> insert into domainmetadata(domain_id, kind, content) values(6, 'ALLOW-DNSUPDATE-FROM','127.0.0.1');
 ```
 
 This gives the ip '127.0.0.1' access to send update messages. Make sure you use the ip address of the machine that runs **dhcpd**.

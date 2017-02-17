@@ -1,1 +1,2 @@
-Check if asterisk empty non-terminal is interpreted as wildcard wihout type
+Check if asterisk empty non-terminal is interpreted as wildcard without type
+Unbound version 1.6.0 or higher is required for the NSEC version of this test

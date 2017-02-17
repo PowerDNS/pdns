@@ -56,9 +56,43 @@ void DnsCryptPrivateKey::saveToFile(const std::string& keyFile) const
 
 DnsCryptPrivateKey::~DnsCryptPrivateKey()
 {
-  sodium_memzero(key, sizeof(key));
   sodium_munlock(key, sizeof(key));
 }
+
+#ifdef HAVE_CRYPTO_BOX_EASY_AFTERNM
+DnsCryptQuery::~DnsCryptQuery()
+{
+  if (sharedKeyComputed) {
+    sodium_munlock(sharedKey, sizeof(sharedKey));
+  }
+}
+
+int DnsCryptQuery::computeSharedKey(const DnsCryptPrivateKey& privateKey)
+{
+  int res = 0;
+
+  if (sharedKeyComputed) {
+    return res;
+  }
+
+  sodium_mlock(sharedKey, sizeof(sharedKey));
+  res = crypto_box_beforenm(sharedKey,
+                            header.clientPK,
+                            privateKey.key);
+
+  if (res != 0) {
+    sodium_munlock(sharedKey, sizeof(sharedKey));
+    return res;
+  }
+
+  sharedKeyComputed = true;
+  return res;
+}
+#else
+DnsCryptQuery::~DnsCryptQuery()
+{
+}
+#endif /* HAVE_CRYPTO_BOX_EASY_AFTERNM */
 
 void DnsCryptContext::generateProviderKeys(unsigned char publicKey[DNSCRYPT_PROVIDER_PUBLIC_KEY_SIZE], unsigned char privateKey[DNSCRYPT_PROVIDER_PRIVATE_KEY_SIZE])
 {
@@ -292,18 +326,26 @@ void DnsCryptContext::getDecryptedQuery(std::shared_ptr<DnsCryptQuery> query, bo
   memcpy(nonce, &query->header.clientNonce, sizeof(query->header.clientNonce));
   memset(nonce + sizeof(query->header.clientNonce), 0, sizeof(nonce) - sizeof(query->header.clientNonce));
 
-  /* we could compute and store the intermediary shared key, in order to not having to compute it a second
-     time for the response:
-     - crypto_box_beforenm() into an unsigned char[crypto_box_BEFORENMBYTES]
-     - crypto_box_open_easy_afternm()
-     - crypto_box_easy_afternm()
-  */
+#ifdef HAVE_CRYPTO_BOX_EASY_AFTERNM
+  int res = query->computeSharedKey(query->useOldCert ? oldPrivateKey : privateKey);
+  if (res != 0) {
+    vinfolog("Dropping encrypted query we can't compute the shared key for");
+    return;
+  }
+
+  res = crypto_box_open_easy_afternm((unsigned char*) packet,
+                                     (unsigned char*) packet + sizeof(DnsCryptQueryHeader),
+                                     packetSize - sizeof(DnsCryptQueryHeader),
+                                     nonce,
+                                     query->sharedKey);
+#else
   int res = crypto_box_open_easy((unsigned char*) packet,
                                  (unsigned char*) packet + sizeof(DnsCryptQueryHeader),
                                  packetSize - sizeof(DnsCryptQueryHeader),
                                  nonce,
                                  query->header.clientPK,
                                  query->useOldCert ? oldPrivateKey.key : privateKey.key);
+#endif /* HAVE_CRYPTO_BOX_EASY_AFTERNM */
 
   if (res != 0) {
     vinfolog("Dropping encrypted query we can't decrypt");
@@ -452,13 +494,27 @@ int DnsCryptContext::encryptResponse(char* response, uint16_t responseLen, uint1
   pos++;
   memset(response + pos, 0, paddingSize - 1);
   pos += (paddingSize - 1);
+
   /* encrypting */
+#ifdef HAVE_CRYPTO_BOX_EASY_AFTERNM
+  int res = query->computeSharedKey(query->useOldCert ? oldPrivateKey : privateKey);
+  if (res != 0) {
+    return res;
+  }
+
+  res = crypto_box_easy_afternm((unsigned char*) (response + sizeof(header)),
+                                (unsigned char*) (response + toEncryptPos),
+                                responseLen + paddingSize,
+                                header.nonce,
+                                query->sharedKey);
+#else
   int res = crypto_box_easy((unsigned char*) (response + sizeof(header)),
                             (unsigned char*) (response + toEncryptPos),
                             responseLen + paddingSize,
                             header.nonce,
                             query->header.clientPK,
                             query->useOldCert ? oldPrivateKey.key : privateKey.key);
+#endif /* HAVE_CRYPTO_BOX_EASY_AFTERNM */
 
   if (res == 0) {
     assert(pos == requiredSize);

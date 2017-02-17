@@ -63,15 +63,15 @@ void LUABackend::getAllMasters(vector<DomainInfo>* domains) {
 	L << Logger::Info << backend_name << "(getAllMasters) END" << endl;
 }
 
-void LUABackend::setNotifed(int id, uint32_t serial) {
+void LUABackend::setNotified(int id, uint32_t serial) {
 	
-    if (f_lua_setnotifed == 0)
+    if (f_lua_setnotified == 0)
 	return;
 
     if (logging)
-	L << Logger::Info << backend_name << "(setNotifed) BEGIN" << endl;
+	L << Logger::Info << backend_name << "(setNotified) BEGIN" << endl;
 
-    lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_setnotifed);
+    lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_setnotified);
 
     lua_pushinteger(lua, id);
     lua_pushinteger(lua, serial);
@@ -85,6 +85,6 @@ void LUABackend::setNotifed(int id, uint32_t serial) {
     }
 
     if (logging)
-	L << Logger::Info << backend_name << "(setNotifed) END" << endl;
+	L << Logger::Info << backend_name << "(setNotified) END" << endl;
 }
 

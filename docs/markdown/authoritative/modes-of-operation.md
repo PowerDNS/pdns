@@ -91,6 +91,12 @@ you can use options **allow-unsigned-notify** to permit unsigned
 notifications.  For 4.0.0 this is turned on by default, but it might be
 turned off permanently in future releases.
 
+# Master/Slave Setup Requirements
+Generally to enable a Master/Slave setup you have to take care of following properties.
+* The [master](settings.md#master)/[slave](settings.md#slave) state has to be enabled in the respective `/etc/powerdns/pdns.conf` config files.
+* The nameservers have to be set up correctly as NS domain records i.e. defining a NS and A record for each slave.
+* Master/Slave state has to be configured on a per domain basis in the `<+pdns_database_name+>.domains` table. Namely the `type` column has to be either `MASTER` or `SLAVE` respectively and the slave needs a comma separated list of master node IP addresses in the `master` column in the `pdns_db.domains` table. [more to this topic](backend-generic-sql)
+
 ## IXFR: incremental zone transfers
 If the 'IXFR' zone metadata item is set to 1 for a zone, PowerDNS will attempt to retrieve
 zone updates via IXFR. 

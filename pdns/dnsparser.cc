@@ -44,8 +44,8 @@ public:
       throw MOADNSException("Unknown record was stored incorrectly, need 3 fields, got "+std::to_string(parts.size())+": "+zone );
     const string& relevant=(parts.size() > 2) ? parts[2] : "";
     unsigned int total=pdns_stou(parts[1]);
-    if(relevant.size()!=2*total)
-      throw MOADNSException((boost::format("invalid unknown record length for label %s: size not equal to length field (%d != %d)") % d_dr.d_name.toString() % relevant.size() % (2*total)).str());
+    if(relevant.size() % 2 || relevant.size() / 2 != total)
+      throw MOADNSException((boost::format("invalid unknown record length: size not equal to length field (%d != 2 * %d)") % relevant.size() % total).str());
     string out;
     out.reserve(total+1);
     for(unsigned int n=0; n < total; ++n) {
@@ -116,7 +116,7 @@ shared_ptr<DNSRecordContent> DNSRecordContent::unserialize(const DNSName& qname,
   memcpy(&packet[pos], &drh, sizeof(drh)); pos+=sizeof(drh);
   memcpy(&packet[pos], serialized.c_str(), serialized.size()); pos+=(uint16_t)serialized.size();
 
-  MOADNSParser mdp((char*)&*packet.begin(), (unsigned int)packet.size());
+  MOADNSParser mdp(false, (char*)&*packet.begin(), (unsigned int)packet.size());
   shared_ptr<DNSRecordContent> ret= mdp.d_answers.begin()->first.d_content;
   return ret;
 }
@@ -160,7 +160,7 @@ std::unique_ptr<DNSRecordContent> DNSRecordContent::makeunique(uint16_t qtype, u
 DNSRecordContent* DNSRecordContent::mastermake(const DNSRecord &dr, PacketReader& pr, uint16_t oc) {
   // For opcode UPDATE and where the DNSRecord is an answer record, we don't care about content, because this is
   // not used within the prerequisite section of RFC2136, so - we can simply use unknownrecordcontent.
-  // For section 3.2.3, we do need content so we need to get it properly. But only for the correct Qclasses.
+  // For section 3.2.3, we do need content so we need to get it properly. But only for the correct QClasses.
   if (oc == Opcode::Update && dr.d_place == DNSResourceRecord::ANSWER && dr.d_class != 1)
     return new UnknownRecordContent(dr, pr);
 
@@ -211,7 +211,7 @@ DNSRecord::DNSRecord(const DNSResourceRecord& rr)
   d_content = std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(d_type, rr.qclass, rr.content));
 }
 
-void MOADNSParser::init(const char *packet, unsigned int len)
+void MOADNSParser::init(bool query, const char *packet, unsigned int len)
 {
   if(len < sizeof(dnsheader))
     throw MOADNSException("Packet shorter than minimal header");
@@ -225,7 +225,10 @@ void MOADNSParser::init(const char *packet, unsigned int len)
   d_header.ancount=ntohs(d_header.ancount);
   d_header.nscount=ntohs(d_header.nscount);
   d_header.arcount=ntohs(d_header.arcount);
-  
+
+  if (query && (d_header.qdcount > 1))
+    throw MOADNSException("Query with QD > 1 ("+std::to_string(d_header.qdcount)+")");
+
   uint16_t contentlen=len-sizeof(dnsheader);
 
   d_content.resize(contentlen);
@@ -270,11 +273,23 @@ void MOADNSParser::init(const char *packet, unsigned int len)
       dr.d_name=name;
       dr.d_clen=ah.d_clen;
 
-      dr.d_content=std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(dr, pr, d_header.opcode));
+      if (query && (dr.d_place == DNSResourceRecord::ANSWER || dr.d_place == DNSResourceRecord::AUTHORITY || (dr.d_type != QType::OPT && dr.d_type != QType::TSIG && dr.d_type != QType::SIG && dr.d_type != QType::TKEY) || ((dr.d_type == QType::TSIG || dr.d_type == QType::SIG || dr.d_type == QType::TKEY) && dr.d_class != QClass::ANY))) {
+//        cerr<<"discarding RR, query is "<<query<<", place is "<<dr.d_place<<", type is "<<dr.d_type<<", class is "<<dr.d_class<<endl;
+        dr.d_content=std::shared_ptr<DNSRecordContent>(new UnknownRecordContent(dr, pr));
+      }
+      else {
+//        cerr<<"parsing RR, query is "<<query<<", place is "<<dr.d_place<<", type is "<<dr.d_type<<", class is "<<dr.d_class<<endl;
+        dr.d_content=std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(dr, pr, d_header.opcode));
+      }
+
       d_answers.push_back(make_pair(dr, pr.d_pos));
 
-      if(dr.d_type == QType::TSIG && dr.d_class == 0xff) 
+      if(dr.d_type == QType::TSIG && dr.d_class == QClass::ANY) {
+        if(dr.d_place != DNSResourceRecord::ADDITIONAL || n != (unsigned int)(d_header.ancount + d_header.nscount + d_header.arcount) - 1) {
+          throw MOADNSException("Packet ("+d_qname.toString()+"|#"+std::to_string(d_qtype)+") has a TSIG record in an invalid position.");
+        }
         d_tsigPos = recordStartPos + sizeof(struct dnsheader);
+      }
     }
 
 #if 0    
@@ -573,7 +588,11 @@ public:
   }
   void skipBytes(uint16_t bytes)
   {
-      moveOffset(bytes);
+    moveOffset(bytes);
+  }
+  void rewindBytes(uint16_t by)
+  {
+    rewindOffset(by);
   }
   uint32_t get32BitInt()
   {
@@ -604,17 +623,25 @@ public:
     int toskip = get16BitInt();
     moveOffset(toskip);
   }
+
   void decreaseAndSkip32BitInt(uint32_t decrease)
   {
     const char *p = d_packet + d_offset;
     moveOffset(4);
-    
+
     uint32_t tmp;
     memcpy(&tmp, (void*) p, sizeof(tmp));
     tmp = ntohl(tmp);
     tmp-=decrease;
     tmp = htonl(tmp);
     memcpy(d_packet + d_offset-4, (const char*)&tmp, sizeof(tmp));
+  }
+  void setAndSkip32BitInt(uint32_t value)
+  {
+    moveOffset(4);
+
+    value = htonl(value);
+    memcpy(d_packet + d_offset-4, (const char*)&value, sizeof(value));
   }
   uint32_t getOffset() const
   {
@@ -628,6 +655,16 @@ private:
       throw std::out_of_range("dns packet out of range: "+std::to_string(d_notyouroffset) +" > " 
       + std::to_string(d_length) );
   }
+  void rewindOffset(uint16_t by)
+  {
+    if(d_notyouroffset < by)
+      throw std::out_of_range("Rewinding dns packet out of range: "+std::to_string(d_notyouroffset) +" < "
+                              + std::to_string(by));
+    d_notyouroffset -= by;
+    if(d_notyouroffset < 12)
+      throw std::out_of_range("Rewinding dns packet out of range: "+std::to_string(d_notyouroffset) +" < "
+                              + std::to_string(12));
+  }
   char* d_packet;
   size_t d_length;
   
@@ -635,6 +672,50 @@ private:
   const uint32_t&  d_offset; // look.. but don't touch
   
 };
+
+// method of operation: silently fail if it doesn't work - we're only trying to be nice, don't fall over on it
+void editDNSPacketTTL(char* packet, size_t length, std::function<uint32_t(uint8_t, uint16_t, uint16_t, uint32_t)> visitor)
+{
+  if(length < sizeof(dnsheader))
+    return;
+  try
+  {
+    dnsheader dh;
+    memcpy((void*)&dh, (const dnsheader*)packet, sizeof(dh));
+    uint64_t numrecords = ntohs(dh.ancount) + ntohs(dh.nscount) + ntohs(dh.arcount);
+    DNSPacketMangler dpm(packet, length);
+
+    uint64_t n;
+    for(n=0; n < ntohs(dh.qdcount) ; ++n) {
+      dpm.skipLabel();
+      /* type and class */
+      dpm.skipBytes(4);
+    }
+
+    for(n=0; n < numrecords; ++n) {
+      dpm.skipLabel();
+
+      uint8_t section = n < dh.ancount ? 1 : (n < (dh.ancount + dh.nscount) ? 2 : 3);
+      uint16_t dnstype = dpm.get16BitInt();
+      uint16_t dnsclass = dpm.get16BitInt();
+
+      if(dnstype == QType::OPT) // not getting near that one with a stick
+        break;
+
+      uint32_t dnsttl = dpm.get32BitInt();
+      uint32_t newttl = visitor(section, dnsclass, dnstype, dnsttl);
+      if (newttl) {
+        dpm.rewindBytes(sizeof(newttl));
+        dpm.setAndSkip32BitInt(newttl);
+      }
+      dpm.skipRData();
+    }
+  }
+  catch(...)
+  {
+    return;
+  }
+}
 
 // method of operation: silently fail if it doesn't work - we're only trying to be nice, don't fall over on it
 void ageDNSPacket(char* packet, size_t length, uint32_t seconds)

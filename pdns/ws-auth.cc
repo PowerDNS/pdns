@@ -302,16 +302,15 @@ static inline string makeBackendRecordContent(const QType& qtype, const string& 
   return makeRecordContent(qtype, content, true);
 }
 
-static Json::object getZoneInfo(const DomainInfo& di) {
-  DNSSECKeeper dk;
+static Json::object getZoneInfo(const DomainInfo& di, DNSSECKeeper *dk) {
   string zoneId = apiZoneNameToId(di.zone);
   return Json::object {
     // id is the canonical lookup key, which doesn't actually match the name (in some cases)
     { "id", zoneId },
-    { "url", "api/v1/servers/localhost/zones/" + zoneId },
+    { "url", "/api/v1/servers/localhost/zones/" + zoneId },
     { "name", di.zone.toString() },
     { "kind", di.getKindString() },
-    { "dnssec", dk.isSecuredZone(di.zone) },
+    { "dnssec", dk->isSecuredZone(di.zone) },
     { "account", di.account },
     { "masters", di.masters },
     { "serial", (double)di.serial },
@@ -326,7 +325,8 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp) {
   if(!B.getDomainInfo(zonename, di))
     throw ApiException("Could not find domain '"+zonename.toString()+"'");
 
-  Json::object doc = getZoneInfo(di);
+  DNSSECKeeper dk(&B);
+  Json::object doc = getZoneInfo(di, &dk);
   // extra stuff getZoneInfo doesn't do for us (more expensive)
   string soa_edit_api;
   di.backend->getDomainMetadataOne(zonename, "SOA-EDIT-API", soa_edit_api);
@@ -381,7 +381,7 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp) {
   auto cit = comments.begin();
 
   while (rit != records.end() || cit != comments.end()) {
-    if (cit == comments.end() || (rit != records.end() && (cit->qname.toString() < rit->qname.toString() || cit->qtype < rit->qtype))) {
+    if (cit == comments.end() || (rit != records.end() && (cit->qname.toString() <= rit->qname.toString() || cit->qtype < rit->qtype || cit->qtype == rit->qtype))) {
       current_qname = rit->qname;
       current_qtype = rit->qtype;
       ttl = rit->ttl;
@@ -472,7 +472,7 @@ static void gatherRecords(const Json container, const DNSName& qname, const QTyp
       makePtr(rr, &ptr);
 
       // verify that there's a zone for the PTR
-      DNSPacket fakePacket;
+      DNSPacket fakePacket(false);
       SOAData sd;
       fakePacket.qtype = QType::PTR;
       if (!B.getAuth(&fakePacket, &sd, ptr.qname))
@@ -770,7 +770,7 @@ static void apiZoneCryptokeysGET(DNSName zonename, int inquireKeyId, HttpRespons
  * Server Answers:
  * Case 1: the backend returns true on removal. This means the key is gone.
  *      The server returns 200 OK, no body.
- * Case 2: the backend returns false on removal. An error occoured.
+ * Case 2: the backend returns false on removal. An error occurred.
  *      The sever returns 422 Unprocessable Entity with message "Could not DELETE :cryptokey_id".
  * */
 static void apiZoneCryptokeysDELETE(DNSName zonename, int inquireKeyId, HttpRequest *req, HttpResponse *resp, DNSSECKeeper *dk) {
@@ -789,7 +789,7 @@ static void apiZoneCryptokeysDELETE(DNSName zonename, int inquireKeyId, HttpRequ
  *  "content" : "key The format used is compatible with BIND and NSD/LDNS" <string>
  *  "keytype" : "ksk|zsk" <string>
  *  "active"  : "true|false" <value>
- *  "algo" : "key generation algorithim "name|number" as default"<string> https://doc.powerdns.com/md/authoritative/dnssec/#supported-algorithms
+ *  "algo" : "key generation algorithm "name|number" as default"<string> https://doc.powerdns.com/md/authoritative/dnssec/#supported-algorithms
  *  "bits" : number of bits <int>
  *  }
  *
@@ -904,7 +904,7 @@ static void apiZoneCryptokeysPOST(DNSName zonename, HttpRequest *req, HttpRespon
  *      The server returns 400 Bad Request
  * Case 2: the backend returns true on de/activation. This means the key is de/active.
  *      The server returns 204 No Content
- * Case 3: the backend returns false on de/activation. An error occoured.
+ * Case 3: the backend returns false on de/activation. An error occurred.
  *      The sever returns 422 Unprocessable Entity with message "Could not de/activate Key: :cryptokey_id in Zone: :zone_name"
  * */
 static void apiZoneCryptokeysPUT(DNSName zonename, int inquireKeyId, HttpRequest *req, HttpResponse *resp, DNSSECKeeper *dk) {
@@ -1026,6 +1026,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 
     // if records/comments are given, load and check them
     bool have_soa = false;
+    bool have_zone_ns = false;
     vector<DNSResourceRecord> new_records;
     vector<Comment> new_comments;
     vector<DNSResourceRecord> new_ptrs;
@@ -1062,6 +1063,9 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
         // fixup dots after serializeSOAData/increaseSOARecord
         rr.content = makeBackendRecordContent(rr.qtype, rr.content);
       }
+      if (rr.qtype.getCode() == QType::NS && rr.qname==zonename) {
+        have_zone_ns = true;
+      }
     }
 
     // synthesize RRs as needed
@@ -1096,12 +1100,15 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
         throw ApiException("Nameserver is not canonical: '" + nameserver + "'");
       try {
         // ensure the name parses
-        autorr.content = DNSName(nameserver).toStringNoDot();
+        autorr.content = DNSName(nameserver).toStringRootDot();
       } catch (...) {
         throw ApiException("Unable to parse DNS Name for NS '" + nameserver + "'");
       }
       autorr.qtype = "NS";
       new_records.push_back(autorr);
+      if (have_zone_ns) {
+        throw ApiException("Nameservers list MUST NOT be mixed with zone-level NS in rrsets");
+      }
     }
 
     // no going back after this
@@ -1146,7 +1153,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 
   Json::array doc;
   for(const DomainInfo& di : domains) {
-    doc.push_back(getZoneInfo(di));
+    doc.push_back(getZoneInfo(di, &dk));
   }
   resp->setBody(doc);
 }
@@ -1298,12 +1305,12 @@ static void makePtr(const DNSResourceRecord& rr, DNSResourceRecord* ptr) {
   ptr->qtype = "PTR";
   ptr->ttl = rr.ttl;
   ptr->disabled = rr.disabled;
-  ptr->content = rr.qname.toString();
+  ptr->content = rr.qname.toStringRootDot();
 }
 
 static void storeChangedPTRs(UeberBackend& B, vector<DNSResourceRecord>& new_ptrs) {
   for(const DNSResourceRecord& rr :  new_ptrs) {
-    DNSPacket fakePacket;
+    DNSPacket fakePacket(false);
     SOAData sd;
     sd.db = (DNSBackend *)-1;  // getAuth() cache bypass
     fakePacket.qtype = QType::PTR;
@@ -1382,7 +1389,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
       }
 
       if (changetype == "DELETE") {
-        // delete all matching qname/qtype RRs (and, implictly comments).
+        // delete all matching qname/qtype RRs (and, implicitly comments).
         if (!di.backend->replaceRRSet(di.id, qname, qtype, vector<DNSResourceRecord>())) {
           throw ApiException("Hosting backend does not support editing records.");
         }
@@ -1489,7 +1496,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
 
   if (q.empty())
     throw ApiException("Query q can't be blank");
-  if (sMax.empty() == false)
+  if (!sMax.empty())
     maxEnts = std::stoi(sMax);
   if (maxEnts < 1)
     throw ApiException("Maximum entries must be larger than 0");

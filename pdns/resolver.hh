@@ -41,11 +41,12 @@
 #include "namespaces.hh"
 #include "dnsrecords.hh"
 #include "dnssecinfra.hh"
+#include "tsigverifier.hh"
 
 class ResolverException : public PDNSException
 {
 public:
-  ResolverException(const string &reason) : PDNSException(reason){}
+  ResolverException(const string &reason_) : PDNSException(reason_){}
 };
 
 // make an IPv4 or IPv6 query socket 
@@ -101,14 +102,10 @@ class AXFRRetriever : public boost::noncopyable
     int d_sock;
     int d_soacount;
     ComboAddress d_remote;
-    
-    TSIGTriplet d_tt;
-    string d_prevMac; // RFC2845 4.4
-    string d_signData;
+    TSIGTCPVerifier d_tsigVerifier;
+
     size_t d_receivedBytes;
     size_t d_maxReceivedBytes;
-    uint32_t d_tsigPos;
-    uint d_nonSignedMessages; // RFC2845 4.4
     TSIGRecordContent d_trc;
 };
 

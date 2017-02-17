@@ -10,3 +10,4 @@
 /acl.list
 /recursor.conf
 /rec-conf.d
+/bindbackend.conf

@@ -274,7 +274,7 @@ bool TinyDNSBackend::get(DNSResourceRecord &rr)
       rr.qname=DNSName(key.c_str(), key.size(), 0, false);
       rr.domain_id=-1;
       // 11:13.21 <@ahu> IT IS ALWAYS AUTH --- well not really because we are just a backend :-)
-      // We could actually do NSEC3-NARROW DNSSEC according to Habbie, if we do, we need to change something ehre.
+      // We could actually do NSEC3-NARROW DNSSEC according to Habbie, if we do, we need to change something here.
       rr.auth = true;
 
       rr.ttl = pr.get32BitInt();

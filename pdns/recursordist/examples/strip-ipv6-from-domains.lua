@@ -34,6 +34,6 @@ netflix=newDS()
 netflix:add{"netflix.com"}
 
 function preresolve(dq)
-	return preventIPv6ForDomains(dq, "netflix.com")
+	return preventIPv6ForDomains(dq, netflix)
 end
 ]]--
