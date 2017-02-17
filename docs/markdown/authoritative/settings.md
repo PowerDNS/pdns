@@ -142,6 +142,9 @@ When setting `chroot`, all other paths in the config (except for
 [`config-dir`](#config-dir) and [`module-dir`](#module-dir)) set in the configuration
 are relative to the new root.
 
+When running on a system where systemd manages services, `chroot` does not work out of the box, as PowerDNS cannot use the `NOTIFY_SOCKET`.
+Either don't `chroot` on these systems or set the 'Type' of the this service to 'simple' instead of 'notify' (refer to the systemd documentation on how to modify unit-files)
+
 ## `config-dir`
 * Path
 

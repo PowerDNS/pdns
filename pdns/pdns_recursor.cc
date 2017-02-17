@@ -2799,6 +2799,14 @@ int serviceMain(int argc, char*argv[])
   Utility::dropGroupPrivs(newuid, newgid);
 
   if (!::arg()["chroot"].empty()) {
+#ifdef HAVE_SYSTEMD
+     char *ns;
+     ns = getenv("NOTIFY_SOCKET");
+     if (ns != nullptr) {
+       L<<Logger::Error<<"Unable to chroot when running from systemd. Please disable chroot= or set the 'Type' for this service to 'simple'"<<endl;
+       exit(1);
+     }
+#endif
     if (chroot(::arg()["chroot"].c_str())<0 || chdir("/") < 0) {
       L<<Logger::Error<<"Unable to chroot to '"+::arg()["chroot"]+"': "<<strerror (errno)<<", exiting"<<endl;
       exit(1);
