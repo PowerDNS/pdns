@@ -124,9 +124,12 @@ vector<DNSName> getZoneCuts(const DNSName& begin, const DNSName& end, DNSRecordO
   // The shortest name is assumed to a zone cut
   ret.push_back(qname);
   while(qname != begin) {
+    bool foundCut = false;
+    if (labelsToAdd.empty())
+      break;
+
     qname.prependRawLabel(labelsToAdd.back());
     labelsToAdd.pop_back();
-    bool foundCut = false;
     auto records = dro.get(qname, (uint16_t)QType::NS);
     for (const auto record : records) {
       if(record.d_name != qname || record.d_type != QType::NS)
@@ -148,7 +151,7 @@ void validateWithKeySet(const cspmap_t& rrsets, cspmap_t& validated, const keyse
     cerr<<"\tTag: "<<key.getTag()<<" -> "<<key.getZoneRepresentation()<<endl;
   }
   */
-  for(auto i=rrsets.begin(); i!=rrsets.end(); i++) {
+  for(auto i=rrsets.cbegin(); i!=rrsets.cend(); i++) {
     LOG("validating "<<(i->first.first)<<"/"<<DNSRecordContent::NumberToType(i->first.second)<<" with "<<i->second.signatures.size()<<" sigs"<<endl);
     for(const auto& signature : i->second.signatures) {
       vector<shared_ptr<DNSRecordContent> > toSign = i->second.records;
@@ -203,8 +206,6 @@ void validateWithKeySet(const cspmap_t& rrsets, cspmap_t& validated, const keyse
 // i.e. www.7bits.nl -> insecure/7bits.nl/[]
 //      www.powerdnssec.org -> secure/powerdnssec.org/[keys]
 //      www.dnssec-failed.org -> bogus/dnssec-failed.org/[]
-
-const char *g_rootDS;
 
 cspmap_t harvestCSPFromRecs(const vector<DNSRecord>& recs)
 {
@@ -280,7 +281,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
     LOG(" => "<<zonecut);
   LOG(endl);
 
-  for(auto zoneCutIter = zoneCuts.begin(); zoneCutIter != zoneCuts.end(); ++zoneCutIter)
+  for(auto zoneCutIter = zoneCuts.cbegin(); zoneCutIter != zoneCuts.cend(); ++zoneCutIter)
   {
     vector<RRSIGRecordContent> sigs;
     vector<shared_ptr<DNSRecordContent> > toSign;
@@ -366,7 +367,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
       // but not a fully validated DNSKEY set, yet
       // one of these valid DNSKEYs should be able to validate the
       // whole set
-      for(auto i=sigs.begin(); i!=sigs.end(); i++)
+      for(auto i=sigs.cbegin(); i!=sigs.cend(); i++)
       {
         //        cerr<<"got sig for keytag "<<i->d_tag<<" matching "<<getByTag(tkeys, i->d_tag).size()<<" keys of which "<<getByTag(validkeys, i->d_tag).size()<<" valid"<<endl;
         string msg=getMessageForRRSET(*zoneCutIter, *i, toSign);
@@ -415,9 +416,9 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
     }
     LOG("situation: we have one or more valid DNSKEYs for ["<<*zoneCutIter<<"] (want ["<<zone<<"])"<<endl);
 
-    if(zoneCutIter == zoneCuts.end()-1) {
+    if(zoneCutIter == zoneCuts.cend()-1) {
       LOG("requested keyset found! returning Secure for the keyset"<<endl);
-      keyset.insert(validkeys.begin(), validkeys.end());
+      keyset.insert(validkeys.cbegin(), validkeys.cend());
       return Secure;
     }
 

@@ -88,7 +88,7 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
   };
   Lua.writeVariable("Policy", pmap);
 
-  Lua.writeFunction("rpzFile", [&lci](const string& fname, const boost::optional<std::unordered_map<string,boost::variant<int, string>>>& options) {
+  Lua.writeFunction("rpzFile", [&lci](const string& filename, const boost::optional<std::unordered_map<string,boost::variant<int, string>>>& options) {
       try {
 	boost::optional<DNSFilterEngine::Policy> defpol;
 	std::string polName("rpzFile");
@@ -117,13 +117,13 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
 	  }
 	}
         const size_t zoneIdx = lci.dfe.size();
-        theL()<<Logger::Warning<<"Loading RPZ from file '"<<fname<<"'"<<endl;
+        theL()<<Logger::Warning<<"Loading RPZ from file '"<<filename<<"'"<<endl;
         lci.dfe.setPolicyName(zoneIdx, polName);
-        loadRPZFromFile(fname, lci.dfe, defpol, zoneIdx);
-        theL()<<Logger::Warning<<"Done loading RPZ from file '"<<fname<<"'"<<endl;
+        loadRPZFromFile(filename, lci.dfe, defpol, zoneIdx);
+        theL()<<Logger::Warning<<"Done loading RPZ from file '"<<filename<<"'"<<endl;
       }
       catch(std::exception& e) {
-	theL()<<Logger::Error<<"Unable to load RPZ zone from '"<<fname<<"': "<<e.what()<<endl;
+	theL()<<Logger::Error<<"Unable to load RPZ zone from '"<<filename<<"': "<<e.what()<<endl;
       }
     });
 
@@ -221,8 +221,8 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
 			    }
 			    else {
 			      const auto& v =boost::get<vector<pair<int, string> > >(e.second);
-			      for(const auto& e : v)
-				lci.sortlist.addEntry(formask, Netmask(e.second), order);
+			      for(const auto& entry : v)
+				lci.sortlist.addEntry(formask, Netmask(entry.second), order);
 			    }
 			    ++order;
 			  }
@@ -317,13 +317,13 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
     theL()<<Logger::Error<<"Unable to load Lua script from '"+fname+"': ";
     try {
       std::rethrow_if_nested(e);
-    } catch(const std::exception& e) {
-      // e is the exception that was thrown from inside the lambda
-      theL() << e.what() << std::endl;      
+    } catch(const std::exception& exp) {
+      // exp is the exception that was thrown from inside the lambda
+      theL() << exp.what() << std::endl;
     }
-    catch(const PDNSException& e) {
-      // e is the exception that was thrown from inside the lambda
-      theL() << e.reason << std::endl;      
+    catch(const PDNSException& exp) {
+      // exp is the exception that was thrown from inside the lambda
+      theL() << exp.reason << std::endl;
     }
     throw;
 

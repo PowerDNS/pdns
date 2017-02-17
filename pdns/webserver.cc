@@ -90,16 +90,16 @@ void HttpResponse::setBody(const json11::Json& document)
   document.dump(this->body);
 }
 
-void HttpResponse::setErrorResult(const std::string& message, const int status)
+void HttpResponse::setErrorResult(const std::string& message, const int status_)
 {
   setBody(json11::Json::object { { "error", message } });
-  this->status = status;
+  this->status = status_;
 }
 
-void HttpResponse::setSuccessResult(const std::string& message, const int status)
+void HttpResponse::setSuccessResult(const std::string& message, const int status_)
 {
   setBody(json11::Json::object { { "result", message } });
-  this->status = status;
+  this->status = status_;
 }
 
 static void bareHandlerWrapper(WebServer::HandlerFunction handler, YaHTTP::Request* req, YaHTTP::Response* resp)

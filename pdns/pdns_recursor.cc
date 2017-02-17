@@ -1133,15 +1133,15 @@ void startDoResolve(void *p)
       iov[0].iov_base=(void*)buf;              iov[0].iov_len=2;
       iov[1].iov_base=(void*)&*packet.begin(); iov[1].iov_len = packet.size();
 
-      int ret=Utility::writev(dc->d_socket, iov, 2);
+      int wret=Utility::writev(dc->d_socket, iov, 2);
       bool hadError=true;
 
-      if(ret == 0)
+      if(wret == 0)
         L<<Logger::Error<<"EOF writing TCP answer to "<<dc->getRemote()<<endl;
-      else if(ret < 0 )
+      else if(wret < 0 )
         L<<Logger::Error<<"Error writing TCP answer to "<<dc->getRemote()<<": "<< strerror(errno) <<endl;
-      else if((unsigned int)ret != 2 + packet.size())
-        L<<Logger::Error<<"Oops, partial answer sent to "<<dc->getRemote()<<" for "<<dc->d_mdp.d_qname<<" (size="<< (2 + packet.size()) <<", sent "<<ret<<")"<<endl;
+      else if((unsigned int)wret != 2 + packet.size())
+        L<<Logger::Error<<"Oops, partial answer sent to "<<dc->getRemote()<<" for "<<dc->d_mdp.d_qname<<" (size="<< (2 + packet.size()) <<", sent "<<wret<<")"<<endl;
       else
         hadError=false;
 
@@ -1548,9 +1548,9 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
         L<<Logger::Warning<<"Sending UDP reply to client "<<fromaddr.toStringWithPort()<<" failed with: "<<strerror(errno)<<endl;
 
       if(response.length() >= sizeof(struct dnsheader)) {
-        struct dnsheader dh;
-        memcpy(&dh, response.c_str(), sizeof(dh));
-        updateResponseStats(dh.rcode, fromaddr, response.length(), 0, 0);
+        struct dnsheader tmpdh;
+        memcpy(&tmpdh, response.c_str(), sizeof(tmpdh));
+        updateResponseStats(tmpdh.rcode, fromaddr, response.length(), 0, 0);
       }
       g_stats.avgLatencyUsec=(1-1.0/g_latencyStatSize)*g_stats.avgLatencyUsec + 0.0; // we assume 0 usec
       return 0;
@@ -1825,7 +1825,6 @@ void makeUDPServerSockets()
   
 #ifdef SO_REUSEPORT  
     if(::arg().mustDo("reuseport")) {
-      int one=1;
       if(setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &one, sizeof(one)) < 0)
         throw PDNSException("SO_REUSEPORT: "+stringerror());
     }
