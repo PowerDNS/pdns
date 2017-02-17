@@ -19,6 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include "pdns/logger.hh"
 #include "pdns/utility.hh"
 #include <sstream>
 #include "sodbc.hh"
@@ -188,7 +189,7 @@ public:
     SQLRETURN result;
     // cerr<<"execute("<<d_query<<")"<<endl;
     if (d_dolog) {
-      // L<<Logger::Warning<<"Query: "<<d_query<<endl;
+      L<<Logger::Warning<<"Query: "<<d_query<<endl;
     }
 
     result = SQLExecute(d_statement);
@@ -428,7 +429,7 @@ SODBC::~SODBC( void )
 // Executes a command.
 void SODBC::execute( const std::string & command )
 {
-  SODBCStatement stmt(command, false, 0, m_connection);
+  SODBCStatement stmt(command, m_log, 0, m_connection);
 
   stmt.execute()->reset();
 }
@@ -447,7 +448,7 @@ SSqlException SODBC::sPerrorException( const std::string & reason )
 
 SSqlStatement* SODBC::prepare(const string& query, int nparams)
 {
-  return new SODBCStatement(query, true, nparams, m_connection);
+  return new SODBCStatement(query, m_log, nparams, m_connection);
 }
 
 
