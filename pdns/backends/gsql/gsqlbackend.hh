@@ -200,7 +200,7 @@ public:
   bool superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db);
   void setFresh(uint32_t domain_id);
   void getUnfreshSlaveInfos(vector<DomainInfo> *domains);
-  void getUpdatedMasters(vector<DomainInfo> *updatedDomains);
+  void getAllMasters(vector<DomainInfo> *allMasters);
   bool getDomainInfo(const DNSName &domain, DomainInfo &di);
   void setNotified(uint32_t domain_id, uint32_t serial);
   bool setMaster(const DNSName &domain, const string &ip);

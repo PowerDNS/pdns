@@ -389,7 +389,7 @@ Supermaster/superslave is a complicated concept, if this is all unclear see the 
 ## Read/write master-capable backends
 In order to be a useful master for a domain, notifies must be sent out whenever a domain is changed. Periodically, PowerDNS queries backends for domains that may have changed, and sends out notifications for slave nameservers.
 
-In order to do so, PowerDNS calls the `getUpdatedMasters()` method. Like the `getUnfreshSlaveInfos()` function mentioned above, this should add changed domain names to the vector passed.
+In order to do so, PowerDNS calls the `getAllMasters()` method. This should add all domain names where we are considered master to the vector passed.
 
 The following excerpt from the DNSBackend shows the relevant functions:
 
@@ -397,7 +397,7 @@ The following excerpt from the DNSBackend shows the relevant functions:
       class DNSBackend {
       public:
            /* ... */
-       virtual void getUpdatedMasters(vector<DomainInfo>* domains);
+       virtual void getAllMasters(vector<DomainInfo>* domains);
        virtual void setNotified(uint32_t id, uint32_t serial);
            /* ... */
      }
@@ -405,8 +405,8 @@ The following excerpt from the DNSBackend shows the relevant functions:
 
 These functions all have a default implementation that returns false - which explains that these methods can be omitted in simple backends. Furthermore, unlike with simple backends, a slave capable backend must make sure that the 'DNSBackend *db' field of the SOAData record is filled out correctly - it is used to determine which backend will house this zone.
 
-### `void getUpdatedMasters(vector<DomainInfo>* domains)`
-When called, the backend should examine its list of master domains and add any changed ones to the DomainInfo vector
+### `void getAllMasters(vector<DomainInfo>* domains)`
+When called, the backend should return a copy of its list of master domains in the DomainInfo vector
 
 ### `bool setNotified(uint32_t domain_id, uint32_t serial)`
 Indicate that notifications have been queued for this domain and that it need not be considered 'updated' anymore

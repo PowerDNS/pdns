@@ -80,7 +80,7 @@ public:
   bool getDomainInfo(const DNSName& domain, DomainInfo &di);
   void alsoNotifies(const DNSName& domain, set<string> *addrs);
   void getUnfreshSlaveInfos(vector<DomainInfo>* domains);
-  void getUpdatedMasters(vector<DomainInfo>* domains);
+  void getAllMasters(vector<DomainInfo>* domains);
   void setFresh(uint32_t zoneId);
   void setNotified(uint32_t zoneId, uint32_t serial);
   bool list(const DNSName& domain, int zoneId, bool include_disabled=false);

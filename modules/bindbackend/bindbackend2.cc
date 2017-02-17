@@ -294,7 +294,7 @@ bool Bind2Backend::feedRecord(const DNSResourceRecord &rr, string *ordername)
   return true;
 }
 
-void Bind2Backend::getUpdatedMasters(vector<DomainInfo> *changedDomains)
+void Bind2Backend::getAllMasters(vector<DomainInfo> *masterDomains)
 {
   vector<DomainInfo> consider;
   {
@@ -324,17 +324,9 @@ void Bind2Backend::getUpdatedMasters(vector<DomainInfo> *changedDomains)
     catch(...) {
       continue;
     }
-    if(di.notified_serial != soadata.serial) {
-      BB2DomainInfo bbd;
-      if(safeGetBBDomainInfo(di.id, &bbd)) {
-        bbd.d_lastnotified=soadata.serial;
-        safePutBBDomainInfo(bbd);
-      }
-      if(di.notified_serial)  { // don't do notification storm on startup
-        di.serial=soadata.serial;
-        changedDomains->push_back(di);
-      }
-    }
+
+    di.serial=soadata.serial;
+    masterDomains->push_back(di);
   }
 }
 

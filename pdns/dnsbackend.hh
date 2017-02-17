@@ -296,8 +296,8 @@ public:
   {
   }
 
-  //! get list of domains that have been changed since their last notification to slaves
-  virtual void getUpdatedMasters(vector<DomainInfo>* domains)
+  //! get list of all master domains so that we can calculate which have been changed since their last notification to slaves
+  virtual void getAllMasters(vector<DomainInfo>* domains)
   {
   }
   

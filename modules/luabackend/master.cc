@@ -29,17 +29,17 @@
 #include "pdns/arguments.hh"
 
 /* 
-    virtual void getUpdatedMasters(vector<DomainInfo>* domains);
+    virtual void getAllMasters(vector<DomainInfo>* domains);
     virtual void setNotifed(int id, uint32_t serial);
 */
 
-void LUABackend::getUpdatedMasters(vector<DomainInfo>* domains) {
+void LUABackend::getAllMasters(vector<DomainInfo>* domains) {
 	
     if (f_lua_getupdatedmasters == 0)
 	return;
 
     if (logging)
-	L << Logger::Info << backend_name << "(getUpdatedMasters) BEGIN" << endl;
+	L << Logger::Info << backend_name << "(getAllMasters) BEGIN" << endl;
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_getupdatedmasters);
 
@@ -57,10 +57,10 @@ void LUABackend::getUpdatedMasters(vector<DomainInfo>* domains) {
         return;
     }
     
-    domains_from_table(domains, "getUpdatedMasters");
+    domains_from_table(domains, "getAllMasters");
     
     if (logging)
-	L << Logger::Info << backend_name << "(getUpdatedMasters) END" << endl;
+	L << Logger::Info << backend_name << "(getAllMasters) END" << endl;
 }
 
 void LUABackend::setNotifed(int id, uint32_t serial) {

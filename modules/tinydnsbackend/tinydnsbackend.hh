@@ -74,7 +74,7 @@ public:
   void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false);
 
   //Master mode operation
-  void getUpdatedMasters(vector<DomainInfo>* domains);
+  void getAllMasters(vector<DomainInfo>* domains);
   void setNotified(uint32_t id, uint32_t serial);
 private:
   vector<string> getLocations();

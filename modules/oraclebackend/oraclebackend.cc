@@ -164,12 +164,11 @@ static const char *unfreshZonesQueryDefaultSQL =
   "  AND (z.last_check IS NULL OR z.last_check + z.refresh < :ts)"
   "ORDER BY z.id";
 
-static const char *updatedMastersQueryKey = "PDNS_Updated_Masters_Query";
-static const char *updatedMastersQueryDefaultSQL =
+static const char *allMastersQueryKey = "PDNS_All_Masters_Query";
+static const char *allMastersQueryDefaultSQL =
   "SELECT id, name, serial, notified_serial "
   "FROM Zones "
-  "WHERE type = 'MASTER' "
-  "AND (notified_serial IS NULL OR notified_serial < serial)";
+  "WHERE type = 'MASTER'";
 
 static const char *acceptSupernotificationQueryKey = "PDNS_Accept_Supernotification_Query";
 static const char *acceptSupernotificationQueryDefaultSQL =
@@ -344,7 +343,7 @@ OracleBackend::OracleBackend (const string &suffix, OCIEnv *envh,
   insertRecordQuerySQL = getArg("insert-record-query");
   finalizeAXFRQuerySQL = getArg("finalize-axfr-query");
   unfreshZonesQuerySQL = getArg("unfresh-zones-query");
-  updatedMastersQuerySQL = getArg("updated-masters-query");
+  allMastersQuerySQL = getArg("all-masters-query");
   acceptSupernotificationQuerySQL = getArg("accept-supernotification-query");
   insertSlaveQuerySQL = getArg("insert-slave-query");
   insertMasterQuerySQL = getArg("insert-master-query");
@@ -833,7 +832,7 @@ OracleBackend::getUnfreshSlaveInfos (vector<DomainInfo>* domains)
 }
 
 void
-OracleBackend::getUpdatedMasters (vector<DomainInfo>* domains)
+OracleBackend::getAllMasters (vector<DomainInfo>* domains)
 {
   sword rc;
   OCIStmt *stmt;
@@ -845,7 +844,7 @@ OracleBackend::getUpdatedMasters (vector<DomainInfo>* domains)
 
   openMasterConnection();
 
-  stmt = prepare_query(masterSvcCtx, updatedMastersQuerySQL, updatedMastersQueryKey);
+  stmt = prepare_query(masterSvcCtx, allMastersQuerySQL, allMastersQueryKey);
   bind_str_failokay(stmt, ":nsname", myServerName, sizeof(myServerName));
   define_output_int(stmt, 1, &mResultZoneIdInd, &mResultZoneId);
   define_output_str(stmt, 2, &mResultNameInd, mResultName, sizeof(mResultName));
@@ -855,7 +854,7 @@ OracleBackend::getUpdatedMasters (vector<DomainInfo>* domains)
   rc = OCIStmtExecute(masterSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
 
   if (rc == OCI_ERROR) {
-    throw OracleException("Oracle getUpdatedMasters", oraerr);
+    throw OracleException("Oracle getAllMasters", oraerr);
   }
 
   while (rc != OCI_NO_DATA) {
@@ -880,12 +879,12 @@ OracleBackend::getUpdatedMasters (vector<DomainInfo>* domains)
 
     if (rc == OCI_ERROR) {
       throw OracleException(
-        "OracleBackend, fetching next updated master", oraerr
+        "OracleBackend, fetching next master", oraerr
       );
     }
   }
 
-  release_query(stmt, updatedMastersQueryKey);
+  release_query(stmt, allMastersQueryKey);
 }
 
 void
@@ -2245,7 +2244,7 @@ OracleFactory () : BackendFactory("oracle") {
     declare(suffix, "insert-record-query", "", insertRecordQueryDefaultSQL);
     declare(suffix, "finalize-axfr-query", "", finalizeAXFRQueryDefaultSQL);
     declare(suffix, "unfresh-zones-query", "", unfreshZonesQueryDefaultSQL);
-    declare(suffix, "updated-masters-query", "", updatedMastersQueryDefaultSQL);
+    declare(suffix, "all-masters-query", "", allMastersQueryDefaultSQL);
     declare(suffix, "accept-supernotification-query", "", acceptSupernotificationQueryDefaultSQL);
     declare(suffix, "insert-slave-query", "", insertSlaveQueryDefaultSQL);
     declare(suffix, "insert-master-query", "", insertMasterQueryDefaultSQL);

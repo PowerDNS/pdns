@@ -92,7 +92,7 @@ public:
         bool createSlaveDomain( const string& ip, const string& domain, const string &nameserver, const string& account );
         bool superMasterBackend( const string& ip, const string& domain, const vector<DNSResourceRecord>& nsset, string *nameserver, string* account, DNSBackend** ddb );
 
-        void getUpdatedMasters( vector<DomainInfo>* updated );
+        void getAllMasters( vector<DomainInfo>* domains );
         void getUnfreshSlaveInfos( vector<DomainInfo>* unfresh );
 
         void setFresh( uint32_t domain_id );

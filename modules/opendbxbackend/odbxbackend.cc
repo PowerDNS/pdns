@@ -567,23 +567,23 @@ void OdbxBackend::getUnfreshSlaveInfos( vector<DomainInfo>* unfresh )
 
 
 
-void OdbxBackend::getUpdatedMasters( vector<DomainInfo>* updated )
+void OdbxBackend::getAllMasters( vector<DomainInfo>* domains )
 {
         try
         {
-        	DLOG( L.log( m_myname + " getUpdatedMasters()", Logger::Debug ) );
+        	DLOG( L.log( m_myname + " getAllMasters()", Logger::Debug ) );
 
         	if( updated == NULL )
         	{
-        		L.log( m_myname + " getUpdatedMasters: invalid parameter - NULL pointer",  Logger::Error );
+        		L.log( m_myname + " getAllMasters: invalid parameter - NULL pointer",  Logger::Error );
         		return;
         	}
 
-        	getDomainList( getArg( "sql-infomasters" ), updated, &checkMaster );
+        	getDomainList( getArg( "sql-infomasters" ), domains, &checkMaster );
         }
         catch ( std::exception& e )
         {
-        	L.log( m_myname + " getUpdatedMasters: Caught STL exception - " + e.what(),  Logger::Error );
+        	L.log( m_myname + " getAllMasters: Caught STL exception - " + e.what(),  Logger::Error );
         }
 }
 

@@ -60,6 +60,16 @@ bool editSOARecord(DNSZoneRecord& rr, const string& kind, const DNSName& qname) 
   return true;
 }
 
+bool editSOAData(DNSSECKeeper& dk, SOAData& sdata) {
+  string kind;
+  dk.getSoaEdit(sdata.qname, kind);
+  if(kind.empty())
+    return false;
+
+  sdata.serial = calculateEditSOA(sdata, kind);
+  return true;
+}
+
 uint32_t calculateEditSOA(const DNSZoneRecord& rr, const string& kind)
 {
   auto src = getRR<SOARecordContent>(rr.dr);

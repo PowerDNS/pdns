@@ -89,7 +89,7 @@ TinyDNSBackend::TinyDNSBackend(const string &suffix)
   d_isWildcardQuery = false;
 }
 
-void TinyDNSBackend::getUpdatedMasters(vector<DomainInfo>* retDomains) {
+void TinyDNSBackend::getAllMasters(vector<DomainInfo>* retDomains) {
   Lock l(&s_domainInfoLock); //TODO: We could actually lock less if we do it per suffix.
 
   if (! s_domainInfo.count(d_suffix)) {
@@ -124,10 +124,8 @@ void TinyDNSBackend::getUpdatedMasters(vector<DomainInfo>* retDomains) {
         retDomains->push_back(*di);
       }
     } else {
-      if (itByZone->notified_serial < di->serial) {
-        di->id = itByZone->id;
-        retDomains->push_back(*di);
-      }
+      di->id = itByZone->id;
+      retDomains->push_back(*di);
     }
   }
 }

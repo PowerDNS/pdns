@@ -239,11 +239,11 @@ void UeberBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
 
 
 
-void UeberBackend::getUpdatedMasters(vector<DomainInfo>* domains)
+void UeberBackend::getAllMasters(vector<DomainInfo>* domains)
 {
   for ( vector< DNSBackend * >::iterator i = backends.begin(); i != backends.end(); ++i )
   {
-    ( *i )->getUpdatedMasters( domains );
+    ( *i )->getAllMasters( domains );
   }
 }
 

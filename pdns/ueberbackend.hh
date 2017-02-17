@@ -113,7 +113,7 @@ public:
 
   static DNSBackend *maker(const map<string,string> &);
   void getUnfreshSlaveInfos(vector<DomainInfo>* domains);
-  void getUpdatedMasters(vector<DomainInfo>* domains);
+  void getAllMasters(vector<DomainInfo>* domains);
   bool getDomainInfo(const DNSName &domain, DomainInfo &di);
   bool createDomain(const DNSName &domain);
   
