@@ -96,7 +96,7 @@ public:
 #endif
   };
 
-  int gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags);
+  int gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, std::unordered_map<string,string>& data);
 
   bool prerpz(DNSQuestion& dq, int& ret);
   bool preresolve(DNSQuestion& dq, int& ret);
@@ -116,7 +116,7 @@ public:
             d_postresolve);
   }
 
-  typedef std::function<std::tuple<int,boost::optional<std::unordered_map<int,string> > >(ComboAddress, Netmask, ComboAddress, DNSName, uint16_t)> gettag_t;
+  typedef std::function<std::tuple<int,boost::optional<std::unordered_map<int,string> >,boost::optional<std::unordered_map<string,string> > >(ComboAddress, Netmask, ComboAddress, DNSName, uint16_t)> gettag_t;
   gettag_t d_gettag; // public so you can query if we have this hooked
 
 private:

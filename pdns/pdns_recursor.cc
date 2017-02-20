@@ -206,6 +206,7 @@ struct DNSComboWriter {
   shared_ptr<TCPConnection> d_tcpConnection;
   vector<pair<uint16_t, string> > d_ednsOpts;
   std::vector<std::string> d_policyTags;
+  std::unordered_map<string,string> d_data;
 };
 
 
@@ -774,6 +775,7 @@ void startDoResolve(void *p)
     dq.appliedPolicy = &appliedPolicy;
     dq.currentRecords = &ret;
     dq.dh = &dc->d_mdp.d_header;
+    dq.data = dc->d_data;
 
     if(dc->d_mdp.d_qtype==QType::ANY && !dc->d_tcp && g_anyToTcp) {
       pw.getHeader()->tc = 1;
@@ -1388,7 +1390,7 @@ void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 
           if(t_pdl->get() && (*t_pdl)->d_gettag) {
             try {
-              dc->d_tag = (*t_pdl)->gettag(conn->d_remote, ednssubnet, dest, qname, qtype, &dc->d_policyTags);
+              dc->d_tag = (*t_pdl)->gettag(conn->d_remote, ednssubnet, dest, qname, qtype, &dc->d_policyTags, dc->d_data);
             }
             catch(std::exception& e)  {
               if(g_logCommonErrors)
@@ -1520,6 +1522,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
   unsigned int ctag=0;
   bool needECS = false;
   std::vector<std::string> policyTags;
+  std::unordered_map<string,string> data;
 #ifdef HAVE_PROTOBUF
   boost::uuids::uuid uniqueId;
   auto luaconfsLocal = g_luaconfs.getLocal();
@@ -1554,7 +1557,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
 
         if(t_pdl->get() && (*t_pdl)->d_gettag) {
           try {
-            ctag=(*t_pdl)->gettag(fromaddr, ednssubnet, destaddr, qname, qtype, &policyTags);
+            ctag=(*t_pdl)->gettag(fromaddr, ednssubnet, destaddr, qname, qtype, &policyTags, data);
           }
           catch(std::exception& e)  {
             if(g_logCommonErrors)
@@ -1648,6 +1651,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
   dc->setLocal(destaddr);
   dc->d_tcp=false;
   dc->d_policyTags = policyTags;
+  dc->d_data = data;
 #ifdef HAVE_PROTOBUF
   if (luaconfsLocal->protobufServer || luaconfsLocal->outgoingProtobufServer) {
     dc->d_uuid = uniqueId;
