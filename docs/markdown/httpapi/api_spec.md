@@ -626,8 +626,7 @@ zone\_metadata\_resource
 
 Clients MUST NOT modify `NSEC3PARAM`, `NSEC3NARROW`, `PRESIGNED` and
 `LUA-AXFR-SCRIPT` through this interface. The server rejects updates to
-these metadata. Modifications to custom metadata kinds are rejected
-through this interface.
+these metadata. Modifications to custom metadata kinds starting with `X-` is allowed as well.
 
 
 URL: /api/v1/servers/:server\_id/zones/:zone\_name/metadata

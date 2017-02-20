@@ -107,3 +107,7 @@ Allow these named TSIG keys to AXFR this zone, see [Provisioning outbound AXFR a
 ## TSIG-ALLOW-DNSUPDATE
 This setting allows you to set the TSIG key required to do an [DNS update](dnsupdate.md). If
 [GSS-TSIG](tsig.md#gss-tsig) is enabled, you can put kerberos principals here as well.
+
+## Extra metadata
+Through the API and on the [`pdnsutil set-meta`](dnssec.md#pdnsutil) commandline, metadata unused by PowerDNS can be added.
+It is mandatory to prefix this extra metadata with "X-" and the name of the external application; the API will only allow this metadata if it starts with "X-".

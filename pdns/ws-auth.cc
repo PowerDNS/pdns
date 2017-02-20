@@ -556,6 +556,9 @@ static bool isValidMetadataKind(const string& kind, bool readonly) {
     "LUA-AXFR-SCRIPT"
   };
 
+  if (kind.find("X-") == 0)
+    return true;
+
   bool found = false;
 
   for (const string& s : builtinOptions) {

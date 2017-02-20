@@ -385,6 +385,14 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
         self.assertEquals(r.status_code, 200)
         self.assertEquals(rdata["metadata"], [])
 
+    def test_create_external_zone_metadata(self):
+        payload_metadata = {"metadata": ["My very important message"]}
+        r = self.session.put(self.url("/api/v1/servers/localhost/zones/example.com/metadata/X-MYMETA"),
+                             data=json.dumps(payload_metadata))
+        self.assertEquals(r.status_code, 200)
+        rdata = r.json()
+        self.assertEquals(rdata["metadata"], payload_metadata["metadata"])
+
     def test_create_slave_zone(self):
         # Test that nameservers can be absent for slave zones.
         name, payload, data = self.create_zone(kind='Slave', nameservers=None, masters=['127.0.0.2'])
