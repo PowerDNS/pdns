@@ -77,7 +77,7 @@ public:
     PolicyKind d_kind;
     std::shared_ptr<DNSRecordContent> d_custom;
     std::shared_ptr<std::string> d_name;
-    int d_ttl;
+    int32_t d_ttl;
   };
 
   DNSFilterEngine();

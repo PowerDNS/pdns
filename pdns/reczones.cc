@@ -310,9 +310,9 @@ string reloadAuthAndForwards()
 }
 
 
-void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, boost::optional<DNSFilterEngine::Policy> defpol, size_t polZone, const TSIGTriplet& tt, shared_ptr<SOARecordContent> oursr, size_t maxReceivedBytes, const ComboAddress& localAddress)
+void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, boost::optional<DNSFilterEngine::Policy> defpol, uint32_t maxTTL, size_t polZone, const TSIGTriplet& tt, shared_ptr<SOARecordContent> oursr, size_t maxReceivedBytes, const ComboAddress& localAddress)
 {
-  int refresh = oursr->d_st.refresh;
+  uint32_t refresh = oursr->d_st.refresh;
   for(;;) {
     DNSRecord dr;
     dr.d_content=oursr;
@@ -359,7 +359,7 @@ void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, boost::opti
 	else {
           totremove++;
 	  L<<Logger::Debug<<"Had removal of "<<rr.d_name<<endl;
-	  RPZRecordToPolicy(rr, luaconfsCopy.dfe, false, defpol, polZone);
+	  RPZRecordToPolicy(rr, luaconfsCopy.dfe, false, defpol, maxTTL, polZone);
 	}
       }
 
@@ -376,7 +376,7 @@ void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, boost::opti
 	else {
           totadd++;
 	  L<<Logger::Debug<<"Had addition of "<<rr.d_name<<endl;
-	  RPZRecordToPolicy(rr, luaconfsCopy.dfe, true, defpol, polZone);
+	  RPZRecordToPolicy(rr, luaconfsCopy.dfe, true, defpol, maxTTL, polZone);
 	}
       }
     }
