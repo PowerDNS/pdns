@@ -109,8 +109,8 @@ static void statNodeRespRing(statvisitor_t visitor, unsigned int seconds)
   }
   StatNode::Stat node;
 
-  root.visit([&visitor](const StatNode* node, const StatNode::Stat& self, const StatNode::Stat& children) {
-      visitor(*node, self, children);},  node);  
+  root.visit([&visitor](const StatNode* node_, const StatNode::Stat& self, const StatNode::Stat& children) {
+      visitor(*node_, self, children);},  node);
 
 }
 

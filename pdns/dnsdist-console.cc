@@ -212,8 +212,8 @@ void doConsole()
             >
           >(withReturn ? ("return "+line) : line);
         if(ret) {
-          if (const auto strValue = boost::get<shared_ptr<DownstreamState>>(&*ret)) {
-            cout<<(*strValue)->getName()<<endl;
+          if (const auto dsValue = boost::get<shared_ptr<DownstreamState>>(&*ret)) {
+            cout<<(*dsValue)->getName()<<endl;
           }
           else if (const auto strValue = boost::get<string>(&*ret)) {
             cout<<*strValue<<endl;
@@ -253,17 +253,16 @@ void doConsole()
         std::rethrow_if_nested(e);
 
         std::cerr << std::endl;
-      } catch(const std::exception& e) {
-        // e is the exception that was thrown from inside the lambda
-        std::cerr << ": " << e.what() << std::endl;      
+      } catch(const std::exception& ne) {
+        // ne is the exception that was thrown from inside the lambda
+        std::cerr << ": " << ne.what() << std::endl;
       }
-      catch(const PDNSException& e) {
-        // e is the exception that was thrown from inside the lambda
-        std::cerr << ": " << e.reason << std::endl;      
+      catch(const PDNSException& ne) {
+        // ne is the exception that was thrown from inside the lambda
+        std::cerr << ": " << ne.reason << std::endl;
       }
     }
     catch(const std::exception& e) {
-      // e is the exception that was thrown from inside the lambda
       std::cerr << e.what() << std::endl;      
     }
   }
@@ -498,8 +497,8 @@ try
           >(withReturn ? ("return "+line) : line);
 
       if(ret) {
-	if (const auto strValue = boost::get<shared_ptr<DownstreamState>>(&*ret)) {
-	  response=(*strValue)->getName()+"\n";
+	if (const auto dsValue = boost::get<shared_ptr<DownstreamState>>(&*ret)) {
+	  response=(*dsValue)->getName()+"\n";
 	}
 	else if (const auto strValue = boost::get<string>(&*ret)) {
 	  response=*strValue+"\n";
@@ -537,13 +536,13 @@ try
         response = "Error: " + string(e.what());
       try {
         std::rethrow_if_nested(e);
-      } catch(const std::exception& e) {
-        // e is the exception that was thrown from inside the lambda
-        response+= ": " + string(e.what());
+      } catch(const std::exception& ne) {
+        // ne is the exception that was thrown from inside the lambda
+        response+= ": " + string(ne.what());
       }
-      catch(const PDNSException& e) {
-        // e is the exception that was thrown from inside the lambda
-        response += ": " + string(e.reason);
+      catch(const PDNSException& ne) {
+        // ne is the exception that was thrown from inside the lambda
+        response += ": " + string(ne.reason);
       }
     }
     catch(const LuaContext::SyntaxErrorException& e) {
