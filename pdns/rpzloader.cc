@@ -63,6 +63,7 @@ void RPZRecordToPolicy(const DNSRecord& dr, DNSFilterEngine& target, bool addOrR
   static const DNSName drop("rpz-drop."), truncate("rpz-tcp-only."), noaction("rpz-passthru.");
   static const DNSName rpzClientIP("rpz-client-ip"), rpzIP("rpz-ip"),
     rpzNSDname("rpz-nsdname"), rpzNSIP("rpz-nsip.");
+  static const std::string rpzPrefix("rpz-");
 
   DNSFilterEngine::Policy pol;
 
@@ -98,6 +99,19 @@ void RPZRecordToPolicy(const DNSRecord& dr, DNSFilterEngine& target, bool addOrR
       // cerr<<"Wants NOACTION for "<<dr.d_name<<": ";
       pol.d_kind = DNSFilterEngine::PolicyKind::NoAction;
     }
+    /* "The special RPZ encodings which are not to be taken as Local Data are
+       CNAMEs with targets that are:
+       +  "."  (NXDOMAIN action),
+       +  "*." (NODATA action),
+       +  a top level domain starting with "rpz-",
+       +  a child of a top level domain starting with "rpz-".
+    */
+    else if(!crcTarget.empty() && !crcTarget.isRoot() && crcTarget.getRawLabel(crcTarget.countLabels() - 1).compare(0, rpzPrefix.length(), rpzPrefix) == 0) {
+      /* this is very likely an higher format number or a configuration error,
+         let's just ignore it. */
+      L<<Logger::Info<<"Discarding unsupported RPZ entry "<<crcTarget.toString()<<" for "<<dr.d_name<<endl;
+      return;
+    }
     else {
       pol.d_kind = DNSFilterEngine::PolicyKind::Custom;
       pol.d_custom = dr.d_content;
@@ -122,7 +136,7 @@ void RPZRecordToPolicy(const DNSRecord& dr, DNSFilterEngine& target, bool addOrR
   }
 
   // now to DO something with that
-  
+
   if(dr.d_name.isPartOf(rpzNSDname)) {
     DNSName filt=dr.d_name.makeRelative(rpzNSDname);
     if(addOrRemove)

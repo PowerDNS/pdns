@@ -849,5 +849,13 @@ BOOST_AUTO_TEST_CASE(test_wirelength) { // Testing if we get the correct value f
   BOOST_CHECK_EQUAL(sname.wirelength(), 19);
 }
 
+BOOST_AUTO_TEST_CASE(test_getrawlabel) {
+  DNSName name("a.bb.ccc.dddd.");
+  BOOST_CHECK_EQUAL(name.getRawLabel(0), "a");
+  BOOST_CHECK_EQUAL(name.getRawLabel(1), "bb");
+  BOOST_CHECK_EQUAL(name.getRawLabel(2), "ccc");
+  BOOST_CHECK_EQUAL(name.getRawLabel(3), "dddd");
+  BOOST_CHECK_THROW(name.getRawLabel(name.countLabels()), std::out_of_range);
+}
 
 BOOST_AUTO_TEST_SUITE_END()

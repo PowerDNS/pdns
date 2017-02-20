@@ -328,6 +328,17 @@ vector<string> DNSName::getRawLabels() const
   return ret;
 }
 
+std::string DNSName::getRawLabel(unsigned int pos) const
+{
+  unsigned int currentPos = 0;
+  for(const unsigned char* p = (const unsigned char*) d_storage.c_str(); p < ((const unsigned char*) d_storage.c_str()) + d_storage.size() && *p; p+=*p+1, currentPos++) {
+    if (currentPos == pos) {
+      return std::string((const char*)p+1, (size_t)*p);
+    }
+  }
+
+  throw std::out_of_range("trying to get label at position "+std::to_string(pos)+" of a DNSName that only has "+std::to_string(currentPos)+" labels");
+}
 
 bool DNSName::chopOff()
 {
