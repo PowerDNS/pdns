@@ -11,7 +11,7 @@ Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
 ==> www.example.net RPZ local data to www2.example.net
 Reply to question for qname='www.example.net.', qtype=A
 Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
-0	www.example.net.	IN	CNAME	0	www2.example.net.
+0	www.example.net.	IN	CNAME	7200	www2.example.net.
 0	www2.example.net.	IN	A	15	192.0.2.2
 ==> www4.example.net RPZ IP trigger action, dropped
 ==> trillian.example.net NXDOMAIN
@@ -28,3 +28,39 @@ Rcode: 3 (Non-Existent domain), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
 ==> host.lowercase-outgoing.example.net is served on ns.lowercase-outgoing.example.net, blocked by NS IP rule
 Reply to question for qname='host.lowercase-outgoing.example.net.', qtype=A
 Rcode: 3 (Non-Existent domain), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+==> capped-ttl.example.net TTL exceeds the maximum TTL for the zone
+Reply to question for qname='capped-ttl.example.net.', qtype=A
+Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+0	capped-ttl.example.net.	IN	A	5	192.0.2.35
+==> defpol-with-ttl.example.net should use the default policy's TTL and not the zone one
+Reply to question for qname='defpol-with-ttl.example.net.', qtype=A
+Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+0	defpol-with-ttl.example.net.	IN	CNAME	10	default.example.net.
+0	default.example.net.	IN	A	15	192.0.2.42
+==> defpol-with-ttl-capped.example.net should use the default policy's TTL, but capped to maxTTL
+Reply to question for qname='defpol-with-ttl-capped.example.net.', qtype=A
+Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+0	defpol-with-ttl-capped.example.net.	IN	CNAME	20	default.example.net.
+0	default.example.net.	IN	A	15	192.0.2.42
+==> defpol-without-ttl.example.net should use the zone's TTL
+Reply to question for qname='defpol-without-ttl.example.net.', qtype=A
+Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+0	defpol-without-ttl.example.net.	IN	CNAME	7200	default.example.net.
+0	default.example.net.	IN	A	15	192.0.2.42
+==> defpol-without-ttl-capped.example.net should use the zone's TTL but capped to maxTTL
+Reply to question for qname='defpol-without-ttl-capped.example.net.', qtype=A
+Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+0	defpol-without-ttl-capped.example.net.	IN	CNAME	50	default.example.net.
+0	default.example.net.	IN	A	15	192.0.2.42
+==> unsupported.example.net has an unsupported target, should be ignored from the RPZ zone
+Reply to question for qname='unsupported.example.net.', qtype=A
+Rcode: 3 (Non-Existent domain), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+1	example.net.	IN	SOA	15	ns.example.net. hostmaster.example.net. 1 3600 1800 1209600 300
+==> unsupported2.example.net has an unsupported target, should be ignored from the RPZ zone
+Reply to question for qname='unsupported2.example.net.', qtype=A
+Rcode: 3 (Non-Existent domain), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+1	example.net.	IN	SOA	15	ns.example.net. hostmaster.example.net. 1 3600 1800 1209600 300
+==> not-rpz.example.net is _not_ an RPZ target and should be processed
+Reply to question for qname='not-rpz.example.net.', qtype=A
+Rcode: 3 (Non-Existent domain), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+0	not-rpz.example.net.	IN	CNAME	5	rpz-not.com.
