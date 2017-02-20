@@ -92,6 +92,7 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
       try {
 	boost::optional<DNSFilterEngine::Policy> defpol;
 	std::string polName("rpzFile");
+	const size_t zoneIdx = lci.dfe.size();
 	if(options) {
 	  auto& have = *options;
 	  if(have.count("policyName")) {
@@ -115,8 +116,10 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
 		defpol->d_ttl = -1; // get it from the zone
 	    }
 	  }
+          if(have.count("zoneSizeHint")) {
+            lci.dfe.reserve(zoneIdx, static_cast<size_t>(boost::get<int>(constGet(have, "zoneSizeHint"))));
+          }
 	}
-        const size_t zoneIdx = lci.dfe.size();
         theL()<<Logger::Warning<<"Loading RPZ from file '"<<filename<<"'"<<endl;
         lci.dfe.setPolicyName(zoneIdx, polName);
         loadRPZFromFile(filename, lci.dfe, defpol, zoneIdx);
@@ -135,7 +138,8 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
         int refresh=0;
 	std::string polName;
 	size_t maxReceivedXFRMBytes = 0;
-        ComboAddress localAddress;
+	ComboAddress localAddress;
+	const size_t zoneIdx = lci.dfe.size();
 	if(options) {
 	  auto& have = *options;
           polName = zone_;
@@ -160,6 +164,9 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
 		defpol->d_ttl = -1; // get it from the zone
 	    }
 	  }
+          if(have.count("zoneSizeHint")) {
+            lci.dfe.reserve(zoneIdx, static_cast<size_t>(boost::get<int>(constGet(have, "zoneSizeHint"))));
+          }
 	  if(have.count("tsigname")) {
             tt.name=DNSName(toLower(boost::get<string>(constGet(have, "tsigname"))));
             tt.algo=DNSName(toLower(boost::get<string>(constGet(have, "tsigalgo"))));
@@ -181,7 +188,6 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
           // We were passed a localAddress, check if its AF matches the master's
           throw PDNSException("Master address("+master.toString()+") is not of the same Address Family as the local address ("+localAddress.toString()+").");
 	DNSName zone(zone_);
-        const size_t zoneIdx = lci.dfe.size();
         lci.dfe.setPolicyName(zoneIdx, polName);
 
         if (!checkOnly) {
