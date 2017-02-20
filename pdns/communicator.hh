@@ -224,8 +224,12 @@ private:
     
     ~RemoveSentinel()
     {
-      Lock l(&d_cc->d_lock);
-      d_cc->d_inprogress.erase(d_dn);
+      try {
+        Lock l(&d_cc->d_lock);
+        d_cc->d_inprogress.erase(d_dn);
+      }
+      catch(...) {
+      }
     }
     DNSName d_dn;
     CommunicatorClass* d_cc;

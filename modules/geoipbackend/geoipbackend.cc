@@ -293,11 +293,15 @@ void GeoIPBackend::initialize() {
 }
 
 GeoIPBackend::~GeoIPBackend() {
-  WriteLock wl(&s_state_lock);
-  s_rc--;
-  if (s_rc == 0) { // last instance gets to cleanup
-    s_geoip_files.clear();
-    s_domains.clear();
+  try {
+    WriteLock wl(&s_state_lock);
+    s_rc--;
+    if (s_rc == 0) { // last instance gets to cleanup
+      s_geoip_files.clear();
+      s_domains.clear();
+    }
+  }
+  catch(...) {
   }
 }
 
