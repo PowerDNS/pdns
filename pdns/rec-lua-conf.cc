@@ -122,47 +122,46 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
 
   Lua.writeFunction("rpzFile", [&lci](const string& filename, const boost::optional<std::unordered_map<string,boost::variant<uint32_t, string>>>& options) {
       try {
-	boost::optional<DNSFilterEngine::Policy> defpol;
-	std::string polName("rpzFile");
-	const size_t zoneIdx = lci.dfe.size();
-	uint32_t maxTTL = std::numeric_limits<uint32_t>::max();
-	if(options) {
-	  auto& have = *options;
+        boost::optional<DNSFilterEngine::Policy> defpol;
+        std::string polName("rpzFile");
+        const size_t zoneIdx = lci.dfe.size();
+        uint32_t maxTTL = std::numeric_limits<uint32_t>::max();
+        if(options) {
+          auto& have = *options;
           size_t zoneSizeHint = 0;
           parseRPZParameters(have, polName, defpol, maxTTL, zoneSizeHint);
           if (zoneSizeHint > 0) {
             lci.dfe.reserve(zoneIdx, zoneSizeHint);
           }
-	}
+        }
         theL()<<Logger::Warning<<"Loading RPZ from file '"<<filename<<"'"<<endl;
         lci.dfe.setPolicyName(zoneIdx, polName);
         loadRPZFromFile(filename, lci.dfe, defpol, maxTTL, zoneIdx);
         theL()<<Logger::Warning<<"Done loading RPZ from file '"<<filename<<"'"<<endl;
       }
       catch(std::exception& e) {
-	theL()<<Logger::Error<<"Unable to load RPZ zone from '"<<filename<<"': "<<e.what()<<endl;
+        theL()<<Logger::Error<<"Unable to load RPZ zone from '"<<filename<<"': "<<e.what()<<endl;
       }
     });
 
-
   Lua.writeFunction("rpzMaster", [&lci, checkOnly](const string& master_, const string& zone_, const boost::optional<std::unordered_map<string,boost::variant<uint32_t, string>>>& options) {
       try {
-	boost::optional<DNSFilterEngine::Policy> defpol;
+        boost::optional<DNSFilterEngine::Policy> defpol;
         TSIGTriplet tt;
         uint32_t refresh=0;
-	std::string polName(zone_);
-	size_t maxReceivedXFRMBytes = 0;
-	uint32_t maxTTL = std::numeric_limits<uint32_t>::max();
-	ComboAddress localAddress;
-	const size_t zoneIdx = lci.dfe.size();
-	if(options) {
-	  auto& have = *options;
+        std::string polName(zone_);
+        size_t maxReceivedXFRMBytes = 0;
+        uint32_t maxTTL = std::numeric_limits<uint32_t>::max();
+        ComboAddress localAddress;
+        const size_t zoneIdx = lci.dfe.size();
+        if(options) {
+          auto& have = *options;
           size_t zoneSizeHint = 0;
           parseRPZParameters(have, polName, defpol, maxTTL, zoneSizeHint);
           if (zoneSizeHint > 0) {
             lci.dfe.reserve(zoneIdx, zoneSizeHint);
           }
-	  if(have.count("tsigname")) {
+          if(have.count("tsigname")) {
             tt.name=DNSName(toLower(boost::get<string>(constGet(have, "tsigname"))));
             tt.algo=DNSName(toLower(boost::get<string>(constGet(have, "tsigalgo"))));
             if(B64Decode(boost::get<string>(constGet(have, "tsigsecret")), tt.secret))
@@ -177,12 +176,12 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
           if(have.count("localAddress")) {
             localAddress = ComboAddress(boost::get<string>(constGet(have,"localAddress")));
           }
-	}
-	ComboAddress master(master_, 53);
+        }
+        ComboAddress master(master_, 53);
         if (localAddress != ComboAddress() && localAddress.sin4.sin_family != master.sin4.sin_family)
           // We were passed a localAddress, check if its AF matches the master's
           throw PDNSException("Master address("+master.toString()+") is not of the same Address Family as the local address ("+localAddress.toString()+").");
-	DNSName zone(zone_);
+        DNSName zone(zone_);
         lci.dfe.setPolicyName(zoneIdx, polName);
 
         if (!checkOnly) {
@@ -194,10 +193,10 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
         }
       }
       catch(std::exception& e) {
-	theL()<<Logger::Error<<"Unable to load RPZ zone '"<<zone_<<"' from '"<<master_<<"': "<<e.what()<<endl;
+        theL()<<Logger::Error<<"Unable to load RPZ zone '"<<zone_<<"' from '"<<master_<<"': "<<e.what()<<endl;
       }
       catch(PDNSException& e) {
-	theL()<<Logger::Error<<"Unable to load RPZ zone '"<<zone_<<"' from '"<<master_<<"': "<<e.reason<<endl;
+        theL()<<Logger::Error<<"Unable to load RPZ zone '"<<zone_<<"' from '"<<master_<<"': "<<e.reason<<endl;
       }
 
     });
