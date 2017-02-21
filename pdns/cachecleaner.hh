@@ -27,7 +27,7 @@
 // on a miss, move it to the beginning
 template <typename T> void pruneCollection(T& collection, unsigned int maxCached, unsigned int scanFraction=1000)
 {
-  uint32_t now=(uint32_t)time(0);
+  time_t now=time(0);
   unsigned int toTrim=0;
   
   unsigned int cacheSize=collection.size();

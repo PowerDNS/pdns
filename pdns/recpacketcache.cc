@@ -2,6 +2,7 @@
 #include "config.h"
 #endif
 #include <iostream>
+#include <cinttypes>
 
 #include "recpacketcache.hh"
 #include "cachecleaner.hh"
@@ -59,8 +60,8 @@ uint32_t RecursorPacketCache::canHashPacket(const std::string& origPacket)
   const char* p = origPacket.c_str() + 12;
 
   for(; p < end && *p; ++p) { // XXX if you embed a 0 in your qname we'll stop lowercasing there
-    const char l = dns_tolower(*p); // label lengths can safely be lower cased
-    ret=burtle((const unsigned char*)&l, 1, ret);
+    const unsigned char l = dns_tolower(*p); // label lengths can safely be lower cased
+    ret=burtle(&l, 1, ret);
   }                           // XXX the embedded 0 in the qname will break the subnet stripping
 
   struct dnsheader* dh = (struct dnsheader*)origPacket.c_str();
@@ -115,8 +116,8 @@ bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string&
     // the possibility is VERY real that we get hits that are not right - birthday paradox
     if(!qrMatch(queryPacket, iter->d_name, iter->d_type, iter->d_class))
       continue;
-    if((uint32_t)now < iter->d_ttd) { // it is right, it is fresh!
-      *age = now - iter->d_creation;
+    if(now < iter->d_ttd) { // it is right, it is fresh!
+      *age = static_cast<uint32_t>(now - iter->d_creation);
       *responsePacket = iter->d_packet;
       responsePacket->replace(0, 2, queryPacket.c_str(), 2);
     
@@ -234,7 +235,7 @@ uint64_t RecursorPacketCache::doDump(int fd)
   for(auto i=sidx.cbegin(); i != sidx.cend(); ++i) {
     count++;
     try {
-      fprintf(fp, "%s %d %s  ; tag %d\n", i->d_name.toString().c_str(), (int32_t)(i->d_ttd - now), DNSRecordContent::NumberToType(i->d_type).c_str(), i->d_tag);
+      fprintf(fp, "%s %" PRId64 " %s  ; tag %d\n", i->d_name.toString().c_str(), static_cast<int64_t>(i->d_ttd - now), DNSRecordContent::NumberToType(i->d_type).c_str(), i->d_tag);
     }
     catch(...) {
       fprintf(fp, "; error printing '%s'\n", i->d_name.empty() ? "EMPTY" : i->d_name.toString().c_str());

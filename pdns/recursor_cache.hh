@@ -53,7 +53,7 @@ public:
   }
   unsigned int size();
   unsigned int bytes();
-  int get(time_t, const DNSName &qname, const QType& qt, vector<DNSRecord>* res, const ComboAddress& who, vector<std::shared_ptr<RRSIGRecordContent>>* signatures=0);
+  int32_t get(time_t, const DNSName &qname, const QType& qt, vector<DNSRecord>* res, const ComboAddress& who, vector<std::shared_ptr<RRSIGRecordContent>>* signatures=0);
 
   void replace(time_t, const DNSName &qname, const QType& qt,  const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, bool auth, boost::optional<Netmask> ednsmask=boost::optional<Netmask>());
   void doPrune(void);
@@ -62,7 +62,7 @@ public:
   uint64_t doDumpNSSpeeds(int fd);
 
   int doWipeCache(const DNSName& name, bool sub, uint16_t qtype=0xffff);
-  bool doAgeCache(time_t now, const DNSName& name, uint16_t qtype, int32_t newTTL);
+  bool doAgeCache(time_t now, const DNSName& name, uint16_t qtype, uint32_t newTTL);
   uint64_t cacheHits, cacheMisses;
 
 private:
@@ -75,7 +75,7 @@ private:
 
     typedef vector<std::shared_ptr<DNSRecordContent>> records_t;
     vector<std::shared_ptr<RRSIGRecordContent>> d_signatures;
-    uint32_t getTTD() const
+    time_t getTTD() const
     {
       return d_ttd;
     }
@@ -83,7 +83,7 @@ private:
     DNSName d_qname; 
     uint16_t d_qtype;
     bool d_auth;
-    uint32_t d_ttd;
+    time_t d_ttd;
     records_t d_records;
     Netmask d_netmask;
   };
