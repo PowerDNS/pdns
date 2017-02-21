@@ -245,7 +245,8 @@ bool SyncRes::doOOBResolve(const DNSName &qname, const QType &qtype, vector<DNSR
 
     for(ziter=range.first; ziter!=range.second; ++ziter) {
       DNSRecord dr=*ziter;
-      if(dr.d_type == qtype.getCode() || qtype.getCode() == QType::ANY) {
+      // if we hit a CNAME, just answer that - rest of recursor will do the needful & follow
+      if(dr.d_type == qtype.getCode() || qtype.getCode() == QType::ANY || dr.d_type == QType::CNAME) {
         dr.d_name = qname;
         dr.d_place=DNSResourceRecord::ANSWER;
         ret.push_back(dr);
