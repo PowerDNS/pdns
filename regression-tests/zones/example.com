@@ -20191,3 +20191,5 @@ host-1          IN   EUI64      00-50-56-9b-00-e7-7e-57
 rhs-at-expansion	IN   CNAME      @
 ;
 google-alias		IN 	ALIAS 	google-public-dns-a.google.com.
+;
+host-for-auto-ptr	IN	A 192.0.2.1
