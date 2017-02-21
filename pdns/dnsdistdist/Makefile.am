@@ -9,7 +9,8 @@ CLEANFILES = dnsmessage.pb.cc dnsmessage.pb.h htmlfiles.h.tmp htmlfiles.h
 dnslabeltext.cc: dnslabeltext.rl
 	$(AM_V_GEN)$(RAGEL) $< -o dnslabeltext.cc
 
-BUILT_SOURCES=htmlfiles.h
+BUILT_SOURCES=htmlfiles.h \
+	dnslabeltext.cc
 
 htmlfiles.h: $(srcdir)/html/*
 	$(AM_V_GEN)$(srcdir)/incfiles $(srcdir) > $@.tmp
