@@ -54,7 +54,7 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > > getIXFRDeltas(const ComboAd
     trc.d_fudge = 300;
     trc.d_origID=ntohs(pw.getHeader()->id);
     trc.d_eRcode=0;
-    addTSIG(pw, &trc, tt.name, tt.secret, "", false);
+    addTSIG(pw, trc, tt.name, tt.secret, "", false);
   }
   uint16_t len=htons(packet.size());
   string msg((const char*)&len, 2);

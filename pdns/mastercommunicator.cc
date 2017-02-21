@@ -249,7 +249,7 @@ void CommunicatorClass::sendNotification(int sock, const DNSName& domain, const 
     trc.d_origID=ntohs(id);
     trc.d_eRcode=0;
     B64Decode(tsigsecret64, tsigsecret);
-    addTSIG(pw, &trc, tsigkeyname, tsigsecret, "", false);
+    addTSIG(pw, trc, tsigkeyname, tsigsecret, "", false);
   }
 
   if(sendto(sock, &packet[0], packet.size(), 0, (struct sockaddr*)(&remote), remote.getSocklen()) < 0) {

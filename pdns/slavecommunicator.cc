@@ -232,7 +232,7 @@ static bool processRecordForZS(const DNSName& domain, bool& firstNSEC3, DNSResou
    5) It updates the Empty Non Terminals
 */
 
-vector<DNSResourceRecord> doAxfr(const ComboAddress& raddr, const DNSName& domain, const TSIGTriplet& tt, const ComboAddress& laddr,  scoped_ptr<AuthLua>& pdl, ZoneStatus& zs)
+static vector<DNSResourceRecord> doAxfr(const ComboAddress& raddr, const DNSName& domain, const TSIGTriplet& tt, const ComboAddress& laddr,  scoped_ptr<AuthLua>& pdl, ZoneStatus& zs)
 {
   vector<DNSResourceRecord> rrs;
   AXFRRetriever retriever(raddr, domain, tt, (laddr.sin4.sin_family == 0) ? NULL : &laddr, ((size_t) ::arg().asNum("xfr-max-received-mbytes")) * 1024 * 1024);
@@ -729,8 +729,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     // get the TSIG key name
     TSIGRecordContent trc;
     DNSName tsigkeyname;
-    string message;
-    dp.getTSIGDetails(&trc, &tsigkeyname, &message);
+    dp.getTSIGDetails(&trc, &tsigkeyname);
     int res;
     res=P->trySuperMasterSynchronous(&dp, tsigkeyname);
     if(res>=0) {

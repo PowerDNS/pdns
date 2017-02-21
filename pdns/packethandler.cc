@@ -1151,7 +1151,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     DNSName keyname;
     string secret;
     TSIGRecordContent trc;
-    if(!checkForCorrectTSIG(p, &B, &keyname, &secret, &trc)) {
+    if(!p->checkForCorrectTSIG(&B, &keyname, &secret, &trc)) {
       r=p->replyPacket();  // generate an empty reply packet
       if(d_logDNSDetails)
         L<<Logger::Error<<"Received a TSIG signed message with a non-validating key"<<endl;

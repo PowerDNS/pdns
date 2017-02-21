@@ -88,7 +88,7 @@ uint32_t getSerialFromMaster(const ComboAddress& master, const DNSName& zone, sh
     trc.d_fudge = 300;
     trc.d_origID=ntohs(pw.getHeader()->id);
     trc.d_eRcode=0;
-    addTSIG(pw, &trc, tt.name, tt.secret, "", false);
+    addTSIG(pw, trc, tt.name, tt.secret, "", false);
   }
   
   Socket s(master.sin4.sin_family, SOCK_DGRAM);

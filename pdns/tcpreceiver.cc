@@ -479,7 +479,7 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
     TSIGRecordContent trc;
     DNSName keyname;
     string secret;
-    if(!checkForCorrectTSIG(q.get(), s_P->getBackend(), &keyname, &secret, &trc)) {
+    if(!q->checkForCorrectTSIG(s_P->getBackend(), &keyname, &secret, &trc)) {
       return false;
     } else {
       getTSIGHashEnum(trc.d_algoName, q->d_tsig_algo);
@@ -683,7 +683,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   DNSName tsigkeyname;
   string tsigsecret;
 
-  bool haveTSIGDetails = q->getTSIGDetails(&trc, &tsigkeyname, 0);
+  bool haveTSIGDetails = q->getTSIGDetails(&trc, &tsigkeyname);
 
   if(haveTSIGDetails && !tsigkeyname.empty()) {
     string tsig64;
@@ -1197,7 +1197,7 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
     DNSName tsigkeyname;
     string tsigsecret;
 
-    bool haveTSIGDetails = q->getTSIGDetails(&trc, &tsigkeyname, 0);
+    bool haveTSIGDetails = q->getTSIGDetails(&trc, &tsigkeyname);
 
     if(haveTSIGDetails && !tsigkeyname.empty()) {
       string tsig64;
