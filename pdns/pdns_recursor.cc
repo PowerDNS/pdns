@@ -204,7 +204,7 @@ struct DNSComboWriter {
   bool d_ecsParsed{false};
   bool d_tcp;
   int d_socket;
-  int d_tag{0};
+  unsigned int d_tag{0};
   uint32_t d_qhash{0};
   string d_query;
   shared_ptr<TCPConnection> d_tcpConnection;
