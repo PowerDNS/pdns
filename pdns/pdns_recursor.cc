@@ -205,6 +205,7 @@ struct DNSComboWriter {
   bool d_tcp;
   int d_socket;
   int d_tag{0};
+  uint32_t d_qhash{0};
   string d_query;
   shared_ptr<TCPConnection> d_tcpConnection;
   vector<pair<uint16_t, string> > d_ednsOpts;
@@ -1162,7 +1163,7 @@ void startDoResolve(void *p)
       if(sendmsg(dc->d_socket, &msgh, 0) < 0 && g_logCommonErrors) 
         L<<Logger::Warning<<"Sending UDP reply to client "<<dc->d_remote.toStringWithPort()<<" failed with: "<<strerror(errno)<<endl;
       if(!SyncRes::s_nopacketcache && !variableAnswer && !sr.wasVariable() ) {
-        t_packetCache->insertResponsePacket(dc->d_tag, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_query,
+        t_packetCache->insertResponsePacket(dc->d_tag, dc->d_qhash, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass,
                                             string((const char*)&*packet.begin(), packet.size()),
                                             g_now.tv_sec,
                                             pw.getHeader()->rcode == RCode::ServFail ? SyncRes::s_packetcacheservfailttl :
@@ -1540,6 +1541,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
   string response;
   const struct dnsheader* dh = (struct dnsheader*)question.c_str();
   unsigned int ctag=0;
+  uint32_t qhash;
   bool needECS = false;
   std::vector<std::string> policyTags;
   std::unordered_map<string,string> data;
@@ -1605,7 +1607,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
     }
 #endif /* HAVE_PROTOBUF */
 
-    cacheHit = (!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, question, g_now.tv_sec, &response, &age, &pbMessage));
+    cacheHit = (!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, question, g_now.tv_sec, &response, &age, &qhash, &pbMessage));
     if (cacheHit) {
 #ifdef HAVE_PROTOBUF
       if(luaconfsLocal->protobufServer && (!luaconfsLocal->protobufTaggedOnly || !pbMessage.getAppliedPolicy().empty() || !pbMessage.getPolicyTags().empty())) {
@@ -1669,6 +1671,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
   DNSComboWriter* dc = new DNSComboWriter(question.c_str(), question.size(), g_now);
   dc->setSocket(fd);
   dc->d_tag=ctag;
+  dc->d_qhash=qhash;
   dc->d_query = question;
   dc->setRemote(&fromaddr);
   dc->setLocal(destaddr);
