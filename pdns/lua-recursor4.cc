@@ -28,6 +28,7 @@
 #include "rec_channel.hh" 
 #include "ednssubnet.hh"
 #include "filterpo.hh"
+#include "rec-snmp.hh"
 #include <unordered_set>
 
 #if !defined(HAVE_LUA)
@@ -568,6 +569,11 @@ RecursorLua4::RecursorLua4(const std::string& fname)
       return getRecursorThreadId();
     });
 
+  d_lw->writeFunction("sendCustomSNMPTrap", [](const std::string& str) {
+      if (g_snmpAgent) {
+        g_snmpAgent->sendCustomTrap(str);
+      }
+    });
   
   ifstream ifs(fname);
   if(!ifs) {
