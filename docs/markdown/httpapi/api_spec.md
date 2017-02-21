@@ -605,6 +605,8 @@ Return format:
 Zone Metadata
 =============
 
+**Note:** Available since PowerDNS Authoritative Server 4.1.0.
+
 zone\_metadata\_resource
 ------------------------
 
