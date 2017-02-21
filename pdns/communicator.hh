@@ -217,6 +217,11 @@ private:
   bool d_masterschanged, d_slaveschanged;
   bool d_preventSelfNotification;
 
+  // Used to keep some state on domains that failed their freshness checks.
+  // uint64_t == counter of the number of failures (increased by 1 every consecutive slave-cycle-interval that the domain fails)
+  // time_t == wait at least until this time before attempting a new check
+  map<DNSName, pair<uint64_t, time_t> > d_failedSlaveRefresh;
+
   struct RemoveSentinel
   {
     explicit RemoveSentinel(const DNSName& dn, CommunicatorClass* cc) : d_dn(dn), d_cc(cc)
