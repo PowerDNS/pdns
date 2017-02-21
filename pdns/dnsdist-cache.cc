@@ -57,6 +57,9 @@ void DNSDistPacketCache::insert(uint32_t key, const DNSName& qname, uint16_t qty
 
   if (rcode == RCode::ServFail || rcode == RCode::Refused) {
     minTTL = d_tempFailureTTL;
+    if (minTTL == 0) {
+      return;
+    }
   }
   else {
     minTTL = getMinTTL(response, responseLen);
