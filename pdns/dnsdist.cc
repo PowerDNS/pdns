@@ -1133,7 +1133,7 @@ try
             continue;
           }
 #endif
-          sendUDPResponse(cs->udpFD, response, responseLen, 0, dest, remote);
+          sendUDPResponse(cs->udpFD, response, responseLen, delayMsec, dest, remote);
         }
 
         continue;
@@ -1175,7 +1175,7 @@ try
               continue;
             }
 #endif
-            sendUDPResponse(cs->udpFD, cachedResponse, cachedResponseSize, 0, dest, remote);
+            sendUDPResponse(cs->udpFD, cachedResponse, cachedResponseSize, delayMsec, dest, remote);
           }
 
           g_stats.cacheHits++;
