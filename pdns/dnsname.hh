@@ -300,23 +300,23 @@ struct SuffixMatchNode
 template<typename T>
 struct SuffixMatchTree
 {
-  SuffixMatchTree(const std::string& name_="", bool endNode_=false) : name(name_), endNode(endNode_)
+  SuffixMatchTree(const std::string& name="", bool endNode_=false) : d_name(name), endNode(endNode_)
   {}
 
   SuffixMatchTree(const SuffixMatchTree& rhs)
   {
-    name = rhs.name;
+    d_name = rhs.d_name;
     children = rhs.children;
     endNode = rhs.endNode;
     d_value = rhs.d_value;
   }
-  std::string name;
+  std::string d_name;
   mutable std::set<SuffixMatchTree> children;
   mutable bool endNode;
   mutable T d_value;
   bool operator<(const SuffixMatchTree& rhs) const
   {
-    return strcasecmp(name.c_str(), rhs.name.c_str()) < 0;
+    return strcasecmp(d_name.c_str(), rhs.d_name.c_str()) < 0;
   }
   typedef SuffixMatchTree value_type;
 

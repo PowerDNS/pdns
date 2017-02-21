@@ -600,7 +600,7 @@ shared_ptr<DownstreamState> valrandom(unsigned int val, const NumberedServerVect
     return shared_ptr<DownstreamState>();
 
   int r = val % sum;
-  auto p = upper_bound(poss.begin(), poss.end(),r, [](int r, const decltype(poss)::value_type& a) { return  r < a.first;});
+  auto p = upper_bound(poss.begin(), poss.end(),r, [](int r_, const decltype(poss)::value_type& a) { return  r_ < a.first;});
   if(p==poss.end())
     return shared_ptr<DownstreamState>();
   return p->second;
@@ -709,8 +709,8 @@ void addServerToPool(pools_t& pools, const string& poolName, std::shared_ptr<Dow
     });
   /* and now we need to renumber for Lua (custom policies) */
   size_t idx = 1;
-  for (auto& server : pool->servers) {
-    server.first = idx++;
+  for (auto& serv : pool->servers) {
+    serv.first = idx++;
   }
 }
 

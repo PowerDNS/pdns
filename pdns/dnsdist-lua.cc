@@ -366,8 +366,8 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			}
 
 			if(vars.count("qps")) {
-			  int qps=std::stoi(boost::get<string>(vars["qps"]));
-			  ret->qps=QPSLimiter(qps, qps);
+			  int qpsVal=std::stoi(boost::get<string>(vars["qps"]));
+			  ret->qps=QPSLimiter(qpsVal, qpsVal);
 			}
 
 			auto localPools = g_pools.getCopy();
@@ -1637,8 +1637,8 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 	string second;
 	if(const auto& val = boost::get<DNSDistStats::stat_t*>(&e.second))
 	  second=std::to_string((*val)->load());
-	else if (const auto& val = boost::get<double*>(&e.second))
-	  second=(flt % (**val)).str();
+	else if (const auto& dval = boost::get<double*>(&e.second))
+	  second=(flt % (**dval)).str();
 	else
 	  second=std::to_string((*boost::get<DNSDistStats::statfunction_t>(&e.second))(e.first));
 

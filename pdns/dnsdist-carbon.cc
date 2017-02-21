@@ -76,22 +76,22 @@ try
           str<<"dnsdist."<<hostname<<".main."<<e.first<<' ';
           if(const auto& val = boost::get<DNSDistStats::stat_t*>(&e.second))
             str<<(*val)->load();
-          else if (const auto& val = boost::get<double*>(&e.second))
-            str<<**val;
+          else if (const auto& dval = boost::get<double*>(&e.second))
+            str<<**dval;
           else
             str<<(*boost::get<DNSDistStats::statfunction_t>(&e.second))(e.first);
           str<<' '<<now<<"\r\n";
         }
         const auto states = g_dstates.getCopy();
-        for(const auto& s : states) {
-          string serverName = s->getName();
+        for(const auto& state : states) {
+          string serverName = state->getName();
           boost::replace_all(serverName, ".", "_");
           const string base = "dnsdist." + hostname + ".main.servers." + serverName + ".";
-          str<<base<<"queries" << ' ' << s->queries.load() << " " << now << "\r\n";
-          str<<base<<"drops" << ' ' << s->reuseds.load() << " " << now << "\r\n";
-          str<<base<<"latency" << ' ' << (s->availability != DownstreamState::Availability::Down ? s->latencyUsec/1000.0 : 0) << " " << now << "\r\n";
-          str<<base<<"senderrors" << ' ' << s->sendErrors.load() << " " << now << "\r\n";
-          str<<base<<"outstanding" << ' ' << s->outstanding.load() << " " << now << "\r\n";
+          str<<base<<"queries" << ' ' << state->queries.load() << " " << now << "\r\n";
+          str<<base<<"drops" << ' ' << state->reuseds.load() << " " << now << "\r\n";
+          str<<base<<"latency" << ' ' << (state->availability != DownstreamState::Availability::Down ? state->latencyUsec/1000.0 : 0) << " " << now << "\r\n";
+          str<<base<<"senderrors" << ' ' << state->sendErrors.load() << " " << now << "\r\n";
+          str<<base<<"outstanding" << ' ' << state->outstanding.load() << " " << now << "\r\n";
         }
         for(const auto& front : g_frontends) {
           if (front->udpFD == -1 && front->tcpFD == -1)
