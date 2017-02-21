@@ -35,6 +35,7 @@ PDNS_ENABLE_UNIT_TESTS
 PDNS_CHECK_RE2
 DNSDIST_ENABLE_DNSCRYPT
 PDNS_WITH_EBPF
+PDNS_WITH_NET_SNMP
 
 AX_AVAILABLE_SYSTEMD
 AM_CONDITIONAL([HAVE_SYSTEMD], [ test x"$systemd" = "xy" ])
@@ -137,5 +138,9 @@ AS_IF([test "x$enable_dnscrypt" != "xno"],
 AS_IF([test "x$RE2_LIBS" != "x"],
   [AC_MSG_NOTICE([re2: yes])],
   [AC_MSG_NOTICE([re2: no])]
+)
+AS_IF([test "x$NET_SNMP_LIBS" != "x"],
+  [AC_MSG_NOTICE([SNMP: yes])],
+  [AC_MSG_NOTICE([SNMP: no])]
 )
 AC_MSG_NOTICE([])

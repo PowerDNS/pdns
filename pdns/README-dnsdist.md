@@ -376,6 +376,7 @@ Current actions are:
  * Skip the cache, if any
  * Log query content to a remote server (RemoteLogAction)
  * Alter the EDNS Client Subnet parameters (DisableECSAction, ECSOverrideAction, ECSPrefixLengthAction)
+ * Send an SNMP trap (SNMPTrapAction)
 
 Current response actions are:
 
@@ -383,6 +384,7 @@ Current response actions are:
  * Delay a response by n milliseconds (DelayResponseAction), over UDP only
  * Drop (DropResponseAction)
  * Log response content to a remote server (RemoteLogResponseAction)
+ * Send an SNMP trap (SNMPTrapResponseAction)
 
 Rules can be added via:
 
@@ -443,6 +445,7 @@ Some specific actions do not stop the processing when they match, contrary to al
  * Log
  * MacAddr
  * No Recurse
+ * SNMP Trap
  * and of course None
 
 A convenience function `makeRule()` is supplied which will make a NetmaskGroupRule for you or a SuffixMatchNodeRule
@@ -1229,6 +1232,61 @@ over the past 10 seconds, and the dynamic block will last for 60 seconds.
 This feature has been successfully tested on Arch Linux, Arch Linux ARM,
 Fedora Core 23 and Ubuntu Xenial.
 
+SNMP support
+------------
+`dnsdist` supports exporting statistics and sending traps over SNMP when compiled
+with `Net SNMP` support, acting as an `AgentX` subagent.
+`SNMP` support is enabled via the `snmpAgent(enableTraps [, masterSocket])` directive,
+where `enableTraps` is a boolean indicating whether traps should be sent and `masterSocket`
+is an optional string specifying how to connect to the master agent. The default for this
+last parameter is to use an Unix socket, but others options are available, such as TCP: `tcp:localhost:705`
+
+By default, the only traps sent when `enableTraps` is set to `true` are backend status change notifications, but traps can also be sent:
+
+ * from Lua, with `sendCustomTrap(string)` and `dq:sendTrap(string)`
+ * for selected queries and responses, using `SNMPTrapAction([string])` and `SNMPTrapResponseAction([string])`
+
+`Net SNMP snmpd` doesn't accept subagent connections by default, so to use the `SNMP`
+features of `dnsdist` the following line should be added to the `snmpd.conf` configuration
+file:
+
+```
+master agentx
+```
+
+In addition to that, the permissions on the resulting socket might need to be adjusted
+so that the `dnsdist` user can write to it. This can be done with the following lines in
+`snmpd.conf` (assuming `dnsdist` is running as `dnsdist:dnsdist`):
+
+```
+agentxperms 0700 0700 dnsdist dnsdist
+```
+
+In order to allow the retrieval of statistics via `SNMP`, `snmpd`'s access control
+has to configured. A very simple `SNMPv2c` setup only needs the configuration of
+a read-only community in `snmpd.conf`:
+
+```
+rocommunity dnsdist42
+```
+
+`snmpd` also supports more secure `SNMPv3` setup, using for example the `createUser` and
+`rouser` directives:
+
+```
+createUser myuser SHA "my auth key" AES "my enc key"
+rouser myuser
+```
+
+`snmpd` can be instructed to send `SNMPv2` traps to a remote `SNMP` trap receiver by adding the
+following directive to the `snmpd.conf` configuration file:
+
+```
+trap2sink 192.0.2.1
+```
+
+The description of `dnsdist`'s `SNMP MIB` is available in `DNSDIST-MIB.txt`.
+
 All functions and types
 -----------------------
 Within `dnsdist` several core object types exist:
@@ -1395,6 +1453,8 @@ instantiate a server with additional parameters
     * `RemoteLogAction(RemoteLogger [, alterFunction])`: send the content of this query to a remote logger via Protocol Buffer. `alterFunction` is a callback, receiving a DNSQuestion and a DNSDistProtoBufMessage, that can be used to modify the Protocol Buffer content, for example for anonymization purposes
     * `RemoteLogResponseAction(RemoteLogger [,alterFunction [,includeCNAME]])`: send the content of this response to a remote logger via Protocol Buffer. `alterFunction` is the same callback than the one in `RemoteLogAction` and `includeCNAME` indicates whether CNAME records inside the response should be parsed and exported. The default is to only exports A and AAAA records
     * `SkipCacheAction()`: don't lookup the cache for this query, don't store the answer
+    * `SNMPTrapAction([reason])`: send an SNMP trap, adding the optional `reason` string as the query description
+    * `SNMPTrapResponseAction([reason])`: send an SNMP trap, adding the optional `reason` string as the response description
     * `SpoofAction(ip[, ip])` or `SpoofAction({ip, ip, ..}): forge a response with the specified IPv4 (for an A query) or IPv6 (for an AAAA). If you specify multiple addresses, all that match the query type (A, AAAA or ANY) will get spoofed in
     * `SpoofCNAMEAction(cname)`: forge a response with the specified CNAME value
     * `TCAction()`: create answer to query with TC and RD bits set, to move to TCP
@@ -1507,6 +1567,7 @@ instantiate a server with additional parameters
         * member `qtype`: QType (as an unsigned integer) of this question
         * member `remoteaddr`: ComboAddress of the remote client
         * member `rcode`: RCode of this question
+        * member `sendTrap([reason])`: send a trap containing the description of the query, and the optional `reason` string
         * member `size`: the total size of the buffer starting at `dh`
         * member `skipCache`: whether to skip cache lookup / storing the answer for this question (settable)
         * member `tcp`: whether this question was received over a TCP socket
@@ -1584,6 +1645,9 @@ instantiate a server with additional parameters
     * function `unregisterDynBPFFilter(DynBPFFilter)`: unregister this dynamic BPF filter
  * RemoteLogger related:
     * `newRemoteLogger(address:port [, timeout=2, maxQueuedEntries=100, reconnectWaitTime=1])`: create a Remote Logger object, to use with `RemoteLogAction()` and `RemoteLogResponseAction()`
+ * SNMP related:
+    * `snmpAgent(enableTraps [, masterSocket])`: enable `SNMP` support. `enableTraps` is a boolean indicating whether traps should be sent and `masterSocket` an optional string specifying how to connect to the master agent
+    * `sendCustomTrap(str)`: send a custom `SNMP` trap from Lua, containing the `str` string
 
 All hooks
 ---------

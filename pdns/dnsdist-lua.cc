@@ -683,14 +683,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       int counter=0;
       auto states = g_dstates.getCopy();
       for(const auto& s : states) {
-	string status;
-	if(s->availability == DownstreamState::Availability::Up) 
-	  status = "UP";
-	else if(s->availability == DownstreamState::Availability::Down) 
-	  status = "DOWN";
-	else 
-	  status = (s->upStatus ? "up" : "down");
-
+	string status = s->getStatus();
 	string pools;
 	for(auto& p : s->pools) {
 	  if(!pools.empty())
@@ -1546,6 +1539,13 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.registerFunction<bool(DNSQuestion::*)()>("getDO", [](const DNSQuestion& dq) {
       return getEDNSZ((const char*)dq.dh, dq.len) & EDNS_HEADER_FLAG_DO;
     });
+  g_lua.registerFunction<void(DNSQuestion::*)(std::string)>("sendTrap", [](const DNSQuestion& dq, boost::optional<std::string> reason) {
+#ifdef HAVE_NET_SNMP
+      if (g_snmpAgent && g_snmpTrapsEnabled) {
+        g_snmpAgent->sendDNSTrap(dq, reason ? *reason : "");
+      }
+#endif /* HAVE_NET_SNMP */
+    });
 
   /* LuaWrapper doesn't support inheritance */
   g_lua.registerMember<const ComboAddress (DNSResponse::*)>("localaddr", [](const DNSResponse& dq) -> const ComboAddress { return *dq.local; }, [](DNSResponse& dq, const ComboAddress newLocal) { (void) newLocal; });
@@ -1563,6 +1563,13 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.registerFunction<void(DNSResponse::*)(std::function<uint32_t(uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl)> editFunc)>("editTTLs", [](const DNSResponse& dr, std::function<uint32_t(uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl)> editFunc) {
         editDNSPacketTTL((char*) dr.dh, dr.len, editFunc);
       });
+  g_lua.registerFunction<void(DNSResponse::*)(std::string)>("sendTrap", [](const DNSResponse& dr, boost::optional<std::string> reason) {
+#ifdef HAVE_NET_SNMP
+      if (g_snmpAgent && g_snmpTrapsEnabled) {
+        g_snmpAgent->sendDNSTrap(dr, reason ? *reason : "");
+      }
+#endif /* HAVE_NET_SNMP */
+    });
 
   g_lua.writeFunction("setMaxTCPClientThreads", [](uint64_t max) {
       if (!g_configurationDone) {
