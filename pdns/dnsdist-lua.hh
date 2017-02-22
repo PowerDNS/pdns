@@ -21,5 +21,5 @@
  */
 #pragma once
 
-typedef boost::variant<string,vector<pair<int, string>>, std::shared_ptr<DNSRule> > luadnsrule_t;
+typedef boost::variant<string, vector<pair<int, string>>, std::shared_ptr<DNSRule>, DNSName, vector<pair<int, DNSName> > > luadnsrule_t;
 std::shared_ptr<DNSRule> makeRule(const luadnsrule_t& var);
