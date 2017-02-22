@@ -27,6 +27,7 @@
 #include <regex.h>
 #include <glob.h>
 #include <boost/algorithm/string/replace.hpp>
+#include <string> 
 
 pthread_rwlock_t GeoIPBackend::s_state_lock=PTHREAD_RWLOCK_INITIALIZER;
 
@@ -124,172 +125,240 @@ void GeoIPBackend::initialize() {
   if (s_geoip_files.empty())
     L<<Logger::Warning<<"No GeoIP database files loaded!"<<endl;
 
-  config = YAML::LoadFile(getArg("zones-file"));
-
-  for(YAML::Node domain :  config["domains"]) {
-    GeoIPDomain dom;
-    dom.id = tmp_domains.size();
-    dom.domain = DNSName(domain["domain"].as<string>());
-    dom.ttl = domain["ttl"].as<int>();
-
-    for(YAML::const_iterator recs = domain["records"].begin(); recs != domain["records"].end(); recs++) {
-      DNSName qname = DNSName(recs->first.as<string>());
-      vector<GeoIPDNSResourceRecord> rrs;
-
-      for(YAML::Node item :  recs->second) {
-        YAML::const_iterator rec = item.begin();
-        GeoIPDNSResourceRecord rr;
-        rr.domain_id = dom.id;
-        rr.ttl = dom.ttl;
-        rr.qname = qname;
-        if (rec->first.IsNull()) { 
-          rr.qtype = QType(0);
-        } else {
-          string qtype = boost::to_upper_copy(rec->first.as<string>());
-          rr.qtype = qtype;
+  if ( !getArg("zones-dir").empty() ) {
+    std::vector<std::string> extraZones;
+    gatherZones(extraZones); 
+    L << Logger::Info << "[GEOIPBACKEND][Parsing Zone Directory]: "<< getArg("zones-dir") << std::endl;
+    for(std::string& ZoneFile :  extraZones) {
+        if (!ZoneFile.c_str()) {
+          L << Logger::Error << ZoneFile << " could not be parsed" << std::endl;
+          throw PDNSException(ZoneFile + " could not be parsed");
         }
-        rr.has_weight = false;
-        rr.weight = 100;
-        if (rec->second.IsNull()) {
-          rr.content = "";
-        } else if (rec->second.IsMap()) {
-           for(YAML::const_iterator iter = rec->second.begin(); iter != rec->second.end(); iter++) {
-             string attr = iter->first.as<string>();
-             if (attr == "content") {
-	       string content = iter->second.as<string>();
-               rr.content = content;
-             } else if (attr == "weight") {
-               rr.weight = iter->second.as<int>();
-               if (rr.weight < 0) {
-                 L<<Logger::Error<<"Weight cannot be negative for " << rr.qname << endl;
-                 throw PDNSException(string("Weight cannot be negative for ") + rr.qname.toLogString());
-               }
-               rr.has_weight = true;
-             } else if (attr == "ttl") {
-               rr.ttl = iter->second.as<int>();
-             } else {
-               L<<Logger::Error<<"Unsupported record attribute " << attr << " for " << rr.qname << endl;
-               throw PDNSException(string("Unsupported record attribute ") + attr + string(" for ") + rr.qname.toLogString());
-             }
-           }
-	} else {
-          string content=rec->second.as<string>();
-          rr.content = content;
-          rr.weight = 100;
-        } 
-        rr.auth = 1;
-        rr.d_place = DNSResourceRecord::ANSWER;
-        rrs.push_back(rr);
-      }
-      std::swap(dom.records[qname], rrs);
+        else {
+          L << Logger::Info << "[GEOIPBACKEND][Parsing Zone File]: "<< ZoneFile << std::endl;
+          loadGeoFile(ZoneFile, tmp_domains);
+          
+       }
     }
-
-    for(YAML::const_iterator service = domain["services"].begin(); service != domain["services"].end(); service++) {
-      NetmaskTree<vector<string> > nmt;
-
-      // if it's an another map, we need to iterate it again, otherwise we just add two root entries.
-      if (service->second.IsMap()) {
-        for(YAML::const_iterator net = service->second.begin(); net != service->second.end(); net++) {
-          vector<string> value;
-          if (net->second.IsSequence()) {
-            value = net->second.as<vector<string> >();
-          } else {
-            value.push_back(net->second.as<string>());
-          }
-          if (net->first.as<string>() == "default") {
-            nmt.insert(Netmask("0.0.0.0/0")).second.assign(value.begin(),value.end());
-            nmt.insert(Netmask("::/0")).second.swap(value);
-          } else {
-            nmt.insert(Netmask(net->first.as<string>())).second.swap(value);
-          }
-        }
-      } else {
-        vector<string> value;
-        if (service->second.IsSequence()) {
-          value = service->second.as<vector<string> >();
-        } else {
-          value.push_back(service->second.as<string>());
-        }
-        nmt.insert(Netmask("0.0.0.0/0")).second.assign(value.begin(),value.end());
-        nmt.insert(Netmask("::/0")).second.swap(value);
-      }
-      dom.services[DNSName(service->first.as<string>())].swap(nmt);
-    }
-
-    // rectify the zone, first static records
-    for(auto &item : dom.records) {
-      // ensure we have parent in records
-      DNSName name = item.first;
-      while(name.chopOff() && name.isPartOf(dom.domain)) {
-        if (dom.records.find(name) == dom.records.end() && !dom.services.count(name)) { // don't ENT out a service!
-          GeoIPDNSResourceRecord rr;
-          vector<GeoIPDNSResourceRecord> rrs;
-          rr.domain_id = dom.id;
-          rr.ttl = dom.ttl;
-          rr.qname = name;
-          rr.qtype = QType(0); // empty non terminal
-          rr.content = "";
-          rr.auth = 1;
-          rr.weight = 100;
-          rr.has_weight = false;
-          rr.d_place = DNSResourceRecord::ANSWER;
-          rrs.push_back(rr);
-          std::swap(dom.records[name], rrs);
-        }
-      }
-    }
-
-    // then services
-    for(auto &item : dom.services) {
-      // ensure we have parent in records
-      DNSName name = item.first;
-      while(name.chopOff() && name.isPartOf(dom.domain)) {
-        if (dom.records.find(name) == dom.records.end()) {
-          GeoIPDNSResourceRecord rr;
-          vector<GeoIPDNSResourceRecord> rrs;
-          rr.domain_id = dom.id;
-          rr.ttl = dom.ttl;
-          rr.qname = name;
-          rr.qtype = QType(0);
-          rr.content = "";
-          rr.auth = 1;
-          rr.weight = 100;
-          rr.has_weight = false;
-          rr.d_place = DNSResourceRecord::ANSWER;
-          rrs.push_back(rr);
-          std::swap(dom.records[name], rrs);
-        }
-      }
-    }
-
-    // finally fix weights
-    for(auto &item: dom.records) {
-      float weight=0;
-      float sum=0;
-      bool has_weight=false;
-      // first we look for used weight
-      for(const auto &rr: item.second) {
-        weight+=rr.weight;
-        if (rr.has_weight) has_weight = true;
-      }
-      if (has_weight) {
-        // put them back as probabilities and values..
-        for(auto &rr: item.second) {
-          rr.weight=static_cast<int>((static_cast<float>(rr.weight) / weight)*1000.0);
-          sum += rr.weight;
-          rr.has_weight = has_weight;
-        }
-        // remove rounding gap
-        if (sum < 1000)
-          item.second.back().weight += (1000-sum);
-      }
-    }
-
-    tmp_domains.push_back(dom);
+  }
+  else {
+    L << Logger::Info << "[GEOIPBACKEND][Parsing Zone File]: "<< getArg("zones-file") << std::endl;
+    std::string zones_file = std::string(getArg("zones-file"));
+    loadGeoFile(zones_file, tmp_domains);
   }
 
   s_domains.clear();
   std::swap(s_domains, tmp_domains);
+}
+
+void GeoIPBackend::gatherZones(std::vector<std::string> &extraZones) {
+  extraZones.clear();
+  if (getArg("zones-dir").empty()) return; // nothing to do
+    struct stat st;
+    DIR *dir;
+    struct dirent *ent;
+
+    // stat
+    if (stat(getArg("zones-dir").c_str(), &st)) {
+       L << Logger::Error << getArg("zones-dir") << " does not exist!" << std::endl;
+       throw PDNSException(getArg("zones-dir") + " does not exist!");
+    }
+
+    // wonder if it's accessible directory
+    if (!S_ISDIR(st.st_mode)) {
+       L << Logger::Error << getArg("zones-dir") << " is not a directory" << std::endl;
+       throw PDNSException(getArg("zones-dir") + " is not a directory");
+    }
+
+    if (!(dir = opendir(getArg("zones-dir").c_str()))) {
+       L << Logger::Error << getArg("zones-dir") << " is not accessible" << std::endl;
+       throw PDNSException(getArg("zones-dir") + " is not accessible");
+    }
+
+    while((ent = readdir(dir)) != NULL) {
+      if (ent->d_name[0] == '.') continue; // skip any dots
+      if (boost::ends_with(ent->d_name, ".yml")) {
+        // build name
+        std::ostringstream namebuf;
+        namebuf << getArg("zones-dir").c_str() << "/" << ent->d_name; // FIXME: Use some path separator
+        // ensure it's readable file
+        if (stat(namebuf.str().c_str(), &st) || !S_ISREG(st.st_mode)) {
+          L << Logger::Error << namebuf.str() << " is not a file" << std::endl;
+          throw PDNSException(namebuf.str() + " does not exist!");
+        }
+        extraZones.push_back(namebuf.str());
+      }
+    }
+    std::sort(extraZones.begin(), extraZones.end(), CIStringComparePOSIX()); 
+    closedir(dir);
+}
+
+void GeoIPBackend::loadGeoFile(std::string &FilePath, vector<GeoIPDomain> &tmp_domains){
+    YAML::Node config;
+    config = YAML::LoadFile(FilePath);
+
+    for(YAML::Node domain :  config["domains"]) {
+      GeoIPDomain dom;
+      dom.id = tmp_domains.size();
+      dom.domain = DNSName(domain["domain"].as<string>());
+      dom.ttl = domain["ttl"].as<int>();
+      for(YAML::const_iterator recs = domain["records"].begin(); recs != domain["records"].end(); recs++) {
+        DNSName qname = DNSName(recs->first.as<string>());
+        vector<GeoIPDNSResourceRecord> rrs;
+
+        for(YAML::Node item :  recs->second) {
+          YAML::const_iterator rec = item.begin();
+          GeoIPDNSResourceRecord rr;
+          rr.domain_id = dom.id;
+          rr.ttl = dom.ttl;
+          rr.qname = qname;
+          if (rec->first.IsNull()) { 
+            rr.qtype = QType(0);
+          } else {
+            string qtype = boost::to_upper_copy(rec->first.as<string>());
+            rr.qtype = qtype;
+          }
+          rr.has_weight = false;
+          rr.weight = 100;
+          if (rec->second.IsNull()) {
+            rr.content = "";
+          } else if (rec->second.IsMap()) {
+             for(YAML::const_iterator iter = rec->second.begin(); iter != rec->second.end(); iter++) {
+               string attr = iter->first.as<string>();
+               if (attr == "content") {
+             string content = iter->second.as<string>();
+                 rr.content = content;
+               } else if (attr == "weight") {
+                 rr.weight = iter->second.as<int>();
+                 if (rr.weight < 0) {
+                   L<<Logger::Error<<"Weight cannot be negative for " << rr.qname << endl;
+                   throw PDNSException(string("Weight cannot be negative for ") + rr.qname.toLogString());
+                 }
+                 rr.has_weight = true;
+               } else if (attr == "ttl") {
+                 rr.ttl = iter->second.as<int>();
+               } else {
+                 L<<Logger::Error<<"Unsupported record attribute " << attr << " for " << rr.qname << endl;
+                 throw PDNSException(string("Unsupported record attribute ") + attr + string(" for ") + rr.qname.toLogString());
+               }
+             }
+      } else {
+            string content=rec->second.as<string>();
+            rr.content = content;
+            rr.weight = 100;
+          } 
+          rr.auth = 1;
+          rr.d_place = DNSResourceRecord::ANSWER;
+          rrs.push_back(rr);
+        }
+        std::swap(dom.records[qname], rrs);
+      }
+
+      for(YAML::const_iterator service = domain["services"].begin(); service != domain["services"].end(); service++) {
+        NetmaskTree<vector<string> > nmt;
+
+        // if it's an another map, we need to iterate it again, otherwise we just add two root entries.
+        if (service->second.IsMap()) {
+          for(YAML::const_iterator net = service->second.begin(); net != service->second.end(); net++) {
+            vector<string> value;
+            if (net->second.IsSequence()) {
+              value = net->second.as<vector<string> >();
+            } else {
+              value.push_back(net->second.as<string>());
+            }
+            if (net->first.as<string>() == "default") {
+              nmt.insert(Netmask("0.0.0.0/0")).second.assign(value.begin(),value.end());
+              nmt.insert(Netmask("::/0")).second.swap(value);
+            } else {
+              nmt.insert(Netmask(net->first.as<string>())).second.swap(value);
+            }
+          }
+        } else {
+          vector<string> value;
+          if (service->second.IsSequence()) {
+            value = service->second.as<vector<string> >();
+          } else {
+            value.push_back(service->second.as<string>());
+          }
+          nmt.insert(Netmask("0.0.0.0/0")).second.assign(value.begin(),value.end());
+          nmt.insert(Netmask("::/0")).second.swap(value);
+        }
+        dom.services[DNSName(service->first.as<string>())].swap(nmt);
+      }
+
+      // rectify the zone, first static records
+      for(auto &item : dom.records) {
+        // ensure we have parent in records
+        DNSName name = item.first;
+        while(name.chopOff() && name.isPartOf(dom.domain)) {
+          if (dom.records.find(name) == dom.records.end() && !dom.services.count(name)) { // don't ENT out a service!
+            GeoIPDNSResourceRecord rr;
+            vector<GeoIPDNSResourceRecord> rrs;
+            rr.domain_id = dom.id;
+            rr.ttl = dom.ttl;
+            rr.qname = name;
+            rr.qtype = QType(0); // empty non terminal
+            rr.content = "";
+            rr.auth = 1;
+            rr.weight = 100;
+            rr.has_weight = false;
+            rr.d_place = DNSResourceRecord::ANSWER;
+            rrs.push_back(rr);
+            std::swap(dom.records[name], rrs);
+          }
+        }
+      }
+
+      // then services
+      for(auto &item : dom.services) {
+        // ensure we have parent in records
+        DNSName name = item.first;
+        while(name.chopOff() && name.isPartOf(dom.domain)) {
+          if (dom.records.find(name) == dom.records.end()) {
+            GeoIPDNSResourceRecord rr;
+            vector<GeoIPDNSResourceRecord> rrs;
+            rr.domain_id = dom.id;
+            rr.ttl = dom.ttl;
+            rr.qname = name;
+            rr.qtype = QType(0);
+            rr.content = "";
+            rr.auth = 1;
+            rr.weight = 100;
+            rr.has_weight = false;
+            rr.d_place = DNSResourceRecord::ANSWER;
+            rrs.push_back(rr);
+            std::swap(dom.records[name], rrs);
+          }
+        }
+      }
+
+      // finally fix weights
+      for(auto &item: dom.records) {
+        float weight=0;
+        float sum=0;
+        bool has_weight=false;
+        // first we look for used weight
+        for(const auto &rr: item.second) {
+          weight+=rr.weight;
+          if (rr.has_weight) has_weight = true;
+        }
+        if (has_weight) {
+          // put them back as probabilities and values..
+          for(auto &rr: item.second) {
+            rr.weight=static_cast<int>((static_cast<float>(rr.weight) / weight)*1000.0);
+            sum += rr.weight;
+            rr.has_weight = has_weight;
+          }
+          // remove rounding gap
+          if (sum < 1000)
+            item.second.back().weight += (1000-sum);
+        }
+      }
+
+      L << Logger::Info << "[GEOIPBACKEND][Parsing Zone File]: " << dom.domain << std::endl;
+      tmp_domains.push_back(dom);
+      
+    }
 }
 
 GeoIPBackend::~GeoIPBackend() {
@@ -994,6 +1063,7 @@ public:
 
   void declareArguments(const string &suffix = "") {
     declare(suffix, "zones-file", "YAML file to load zone(s) configuration", "");
+    declare(suffix, "zones-dir", "Directory of YAML file(s) to load zone(s) configuration", "");
     declare(suffix, "database-files", "File(s) to load geoip data from", "");
     declare(suffix, "database-cache", "Cache mode (standard, memory, index, mmap)", "standard");
     declare(suffix, "dnssec-keydir", "Directory to hold dnssec keys (also turns DNSSEC on)", "");

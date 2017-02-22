@@ -67,7 +67,7 @@ public:
   virtual bool addDomainKey(const DNSName& name, const KeyData& key, int64_t& id);
   virtual bool activateDomainKey(const DNSName& name, unsigned int id);
   virtual bool deactivateDomainKey(const DNSName& name, unsigned int id);
-
+  
   enum GeoIPQueryAttribute {
     ASn,
     City,
@@ -81,6 +81,8 @@ private:
   static pthread_rwlock_t s_state_lock;
 
   void initialize();
+  void gatherZones(std::vector<std::string> &extraZones);
+  void loadGeoFile(std::string &FilePath, vector<GeoIPDomain> &tmp_domains);
   void ip2geo(const GeoIPDomain& dom, const string& qname, const string& ip);
   string queryGeoIP(const string &ip, bool v6, GeoIPQueryAttribute attribute, GeoIPLookup* gl);
   bool queryCountry(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi);
@@ -98,7 +100,6 @@ private:
   string format2str(string format, const string& ip, bool v6, GeoIPLookup* gl);
   bool d_dnssec; 
   bool hasDNSSECkey(const DNSName& name);
-
   vector<DNSResourceRecord> d_result;
 };
 
