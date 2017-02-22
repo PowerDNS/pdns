@@ -1563,6 +1563,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
     uint16_t qtype=0;
     uint16_t qclass=0;
     uint32_t age;
+    bool qnameParsed=false;
 #ifdef MALLOC_TRACE
     /*
     static uint64_t last=0;
@@ -1577,8 +1578,9 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
 
     if(needECS || (t_pdl->get() && (*t_pdl)->d_gettag)) {
       try {
-        ecsParsed = true;
         ecsFound = getQNameAndSubnet(question, &qname, &qtype, &qclass, &ednssubnet);
+        qnameParsed = true;
+        ecsParsed = true;
 
         if(t_pdl->get() && (*t_pdl)->d_gettag) {
           try {
@@ -1607,7 +1609,13 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
     }
 #endif /* HAVE_PROTOBUF */
 
-    cacheHit = (!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, question, g_now.tv_sec, &response, &age, &qhash, &pbMessage));
+    if (qnameParsed) {
+      cacheHit = (!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, question, qname, qtype, qclass, g_now.tv_sec, &response, &age, &qhash, &pbMessage));
+    }
+    else {
+      cacheHit = (!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, question, g_now.tv_sec, &response, &age, &qhash, &pbMessage));
+    }
+
     if (cacheHit) {
 #ifdef HAVE_PROTOBUF
       if(luaconfsLocal->protobufServer && (!luaconfsLocal->protobufTaggedOnly || !pbMessage.getAppliedPolicy().empty() || !pbMessage.getPolicyTags().empty())) {

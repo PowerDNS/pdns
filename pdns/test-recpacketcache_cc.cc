@@ -34,6 +34,7 @@ BOOST_AUTO_TEST_CASE(test_recPacketCacheSimple) {
   pw.startRecord(qname, QType::A, ttd);
 
   BOOST_CHECK_EQUAL(rpc.getResponsePacket(tag, qpacket, time(nullptr), &fpacket, &age, &qhash), false);
+  BOOST_CHECK_EQUAL(rpc.getResponsePacket(tag, qpacket, qname, QType::A, QClass::IN, time(nullptr), &fpacket, &age, &qhash), false);
 
   ARecordContent ar("127.0.0.1");
   ar.toPacket(pw);
@@ -55,6 +56,10 @@ BOOST_AUTO_TEST_CASE(test_recPacketCacheSimple) {
   BOOST_CHECK_EQUAL(found, true);
   BOOST_CHECK_EQUAL(qhash, qhash2);
   BOOST_CHECK_EQUAL(fpacket, rpacket);
+  found = rpc.getResponsePacket(tag, qpacket, qname, QType::A, QClass::IN, time(nullptr), &fpacket, &age, &qhash2);
+  BOOST_CHECK_EQUAL(found, true);
+  BOOST_CHECK_EQUAL(qhash, qhash2);
+  BOOST_CHECK_EQUAL(fpacket, rpacket);
 
   packet.clear();
   qname+=DNSName("co.uk");
@@ -66,6 +71,8 @@ BOOST_AUTO_TEST_CASE(test_recPacketCacheSimple) {
   qpacket.assign((const char*)&packet[0], packet.size());
 
   found = rpc.getResponsePacket(tag, qpacket, time(nullptr), &fpacket, &age, &qhash);
+  BOOST_CHECK_EQUAL(found, false);
+  found = rpc.getResponsePacket(tag, qpacket, qname, QType::A, QClass::IN, time(nullptr), &fpacket, &age, &qhash);
   BOOST_CHECK_EQUAL(found, false);
 
   rpc.doWipePacketCache(DNSName("com"), 0xffff, true);
