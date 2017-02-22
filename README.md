@@ -89,6 +89,10 @@ FREEBSD NOTES
 -------------
 You need to compile using gmake - regular make only appears to work, but doesn't in fact. Use gmake, not make.
 
+The clang compiler installed through FreeBSD's package manager does not expose all of the C++11 features needed under `std=gnuc++11`. Force the compiler to use `std=c++11` mode instead.
+
+    export CXXFLAGS=-std=c++11
+
 MAC OS X NOTES
 --------------
 PowerDNS Authoritative Server is available through Homebrew:
