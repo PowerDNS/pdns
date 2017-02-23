@@ -30,6 +30,7 @@
 #include <time.h>
 #include <sys/types.h>
 class DNSBackend;
+struct DNSRecord;
 
 struct SOAData
 {
@@ -70,11 +71,11 @@ namespace PolicyDecision { enum returnTypes { PASS=-1, DROP=-2, TRUNCATE=-3 }; }
 class DNSResourceRecord
 {
 public:
-  DNSResourceRecord() : last_modified(0), ttl(0), signttl(0), domain_id(-1), qclass(1), d_place(ANSWER), scopeMask(0), auth(1), disabled(0) {};
-  explicit DNSResourceRecord(const struct DNSRecord&);
+  DNSResourceRecord() : last_modified(0), ttl(0), signttl(0), domain_id(-1), qclass(1), scopeMask(0), auth(1), disabled(0) {};
   ~DNSResourceRecord(){};
+  static DNSResourceRecord fromWire(const DNSRecord& d);
 
-  enum Place : uint8_t {QUESTION=0, ANSWER=1, AUTHORITY=2, ADDITIONAL=3}; //!< Type describing the positioning of a DNSResourceRecord within, say, a DNSPacket
+  enum Place : uint8_t {QUESTION=0, ANSWER=1, AUTHORITY=2, ADDITIONAL=3}; //!< Type describing the positioning within, say, a DNSPacket
 
   void setContent(const string& content);
   string getZoneRepresentation(bool noDot=false) const;
@@ -95,26 +96,9 @@ public:
   QType qtype; //!< qtype of this record, ie A, CNAME, MX etc
   uint16_t qclass; //!< class of this record
 
-  Place d_place; //!< This specifies where a record goes within the packet
   uint8_t scopeMask;
   bool auth;
   bool disabled;
-
-  template<class Archive>
-  void serialize(Archive & ar, const unsigned int version)
-  {
-    ar & qtype;
-    ar & qclass;
-    ar & qname;
-    ar & wildcardname;
-    ar & content;
-    ar & ttl;
-    ar & domain_id;
-    ar & last_modified;
-    ar & d_place;
-    ar & auth;
-    ar & disabled;
-  }
 
   bool operator==(const DNSResourceRecord& rhs);
 
@@ -255,5 +239,3 @@ struct TSIGTriplet
 /** for use by DNSPacket, converts a SOAData class to a ascii line again */
 string serializeSOAData(const SOAData &data);
 string &attodot(string &str);  //!< for when you need to insert an email address in the SOA
-
-vector<DNSResourceRecord> convertRRS(const vector<DNSRecord>& in);

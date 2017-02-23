@@ -398,8 +398,8 @@ void GSQLBackend::getUpdatedMasters(vector<DomainInfo> *updatedDomains)
   }
 
   vector<DomainInfo> allMasters;
-  int numanswers=d_result.size();
-  for(int n=0;n<numanswers;++n) { // id,name,master,last_check,notified_serial
+  size_t numanswers=d_result.size();
+  for(size_t n=0;n<numanswers;++n) { // id,name,master,last_check,notified_serial
     DomainInfo sd;
     ASSERT_ROW_COLUMNS("info-all-master-query", d_result[n], 6);
     sd.id=pdns_stou(d_result[n][0]);

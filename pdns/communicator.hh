@@ -159,7 +159,6 @@ public:
     d_masterschanged=d_slaveschanged=true;
     d_nsock4 = -1;
     d_nsock6 = -1;
-    d_havepriosuckrequest = false;
     d_preventSelfNotification = false;
   }
   time_t doNotifications();    
@@ -189,11 +188,10 @@ public:
   bool notifyDomain(const DNSName &domain);
 private:
   void makeNotifySockets();
-  void queueNotifyDomain(const DNSName &domain, UeberBackend *B);
+  void queueNotifyDomain(const DomainInfo& di, UeberBackend* B);
   int d_nsock4, d_nsock6;
   map<pair<DNSName,string>,time_t>d_holes;
   pthread_mutex_t d_holelock;
-  void launchRetrievalThreads();
   void suck(const DNSName &domain, const string &remote);
   void ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, const ComboAddress& laddr, const ComboAddress& remote, boost::scoped_ptr<AuthLua>& pdl,
                 ZoneStatus& zs, vector<DNSRecord>* axfr);
@@ -213,7 +211,6 @@ private:
   set<string> d_alsoNotify;
   NotificationQueue d_nq;
   NetmaskGroup d_onlyNotify;
-  bool d_havepriosuckrequest;
   bool d_masterschanged, d_slaveschanged;
   bool d_preventSelfNotification;
 
@@ -246,7 +243,7 @@ private:
 class FindNS
 {
 public:
-  vector<string> lookup(const DNSName &name, DNSBackend *b)
+  vector<string> lookup(const DNSName &name, UeberBackend *b)
   {
     vector<string> addresses;
 
@@ -254,26 +251,10 @@ public:
     
     if(b) {
         b->lookup(QType(QType::ANY),name);
-        DNSResourceRecord rr;
+        DNSZoneRecord rr;
         while(b->get(rr))
-          if(rr.qtype.getCode() == QType::A || rr.qtype.getCode()==QType::AAAA)
-            addresses.push_back(rr.content);   // SOL if you have a CNAME for an NS
-    }
-    return addresses;
-  }
-
-  vector<string> lookup(const DNSName &name, UeberBackend *b)
-  {
-    vector<string> addresses;
-
-    this->resolve_name(&addresses, name);
-
-    if(b) {
-        b->lookup(QType(QType::ANY),name);
-        DNSResourceRecord rr;
-        while(b->get(rr))
-          if(rr.qtype.getCode() == QType::A || rr.qtype.getCode()==QType::AAAA)
-             addresses.push_back(rr.content);   // SOL if you have a CNAME for an NS
+          if(rr.dr.d_type == QType::A || rr.dr.d_type==QType::AAAA)
+            addresses.push_back(rr.dr.d_content->getZoneRepresentation());   // SOL if you have a CNAME for an NS
     }
     return addresses;
   }

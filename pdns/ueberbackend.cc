@@ -580,19 +580,6 @@ void UeberBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disab
   }
 }
 
-bool UeberBackend::get(DNSResourceRecord &rr)
-{
-  // cout<<"UeberBackend::get(DNSResourceRecord&) called, translating to a DNSZoneRecord query"<<endl;
-  DNSZoneRecord dzr;
-  if(!this->get(dzr))
-    return false;
-
-  rr=DNSResourceRecord(dzr.dr);
-  rr.auth = dzr.auth;
-  rr.domain_id = dzr.domain_id;
-  return true;
-}
-
 bool UeberBackend::get(DNSZoneRecord &rr)
 {
   // cout<<"UeberBackend::get(DNSZoneRecord) called"<<endl;

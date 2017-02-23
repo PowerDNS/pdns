@@ -193,7 +193,6 @@ DNSRecordContent::t2namemap_t& DNSRecordContent::getT2Namemap()
   return t2namemap;
 }
 
-
 DNSRecordContent::zmakermap_t& DNSRecordContent::getZmakermap()
 {
   static DNSRecordContent::zmakermap_t zmakermap;
@@ -206,9 +205,21 @@ DNSRecord::DNSRecord(const DNSResourceRecord& rr)
   d_type = rr.qtype.getCode();
   d_ttl = rr.ttl;
   d_class = rr.qclass;
-  d_place = rr.d_place;
+  d_place = DNSResourceRecord::ANSWER;
   d_clen = 0;
   d_content = std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(d_type, rr.qclass, rr.content));
+}
+
+// If you call this and you are not parsing a packet coming from a socket, you are doing it wrong.
+DNSResourceRecord DNSResourceRecord::fromWire(const DNSRecord& d) {
+  DNSResourceRecord rr;
+  rr.qname = d.d_name;
+  rr.qtype = QType(d.d_type);
+  rr.ttl = d.d_ttl;
+  rr.content = d.d_content->getZoneRepresentation(true);
+  rr.auth = false;
+  rr.qclass = d.d_class;
+  return rr;
 }
 
 void MOADNSParser::init(bool query, const char *packet, unsigned int len)
