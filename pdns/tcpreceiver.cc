@@ -804,7 +804,6 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
     } else {
       if (zrr.dr.d_type)
         L<<Logger::Warning<<"Zone '"<<target<<"' contains out-of-zone data '"<<zrr.dr.d_name<<"|"<<DNSRecordContent::NumberToType(zrr.dr.d_type)<<"', ignoring"<<endl;
-      continue;
     }
   }
 
@@ -822,11 +821,12 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
         do {
           if (shorter==target) // apex is always auth
             continue;
-          if(nsset.count(shorter) && !(zrr.dr.d_name==shorter && zrr.dr.d_type == QType::DS))
+          if(nsset.count(shorter) && !(zrr.dr.d_name==shorter && zrr.dr.d_type == QType::DS)) {
             zrr.auth=false;
+            continue;
+          }
         } while(shorter.chopOff());
-      } else
-        continue;
+      }
     }
 
     if(NSEC3Zone) {
