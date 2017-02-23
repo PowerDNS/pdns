@@ -2704,7 +2704,13 @@ int serviceMain(int argc, char*argv[])
 
   g_dnssecLogBogus = ::arg().mustDo("dnssec-log-bogus");
 
-  loadRecursorLuaConfig(::arg()["lua-config-file"], ::arg().mustDo("daemon"));
+  try {
+    loadRecursorLuaConfig(::arg()["lua-config-file"], ::arg().mustDo("daemon"));
+  }
+  catch (PDNSException &e) {
+    L<<Logger::Error<<"Cannot load Lua configuration: "<<e.reason<<endl;
+    exit(1);
+  }
 
   parseACLs();
   sortPublicSuffixList();
