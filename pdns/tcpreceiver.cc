@@ -767,9 +767,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
           rr.content = ip.content;
           rrs.push_back(rr);
         }
-      }
-      else {
-        rrs.push_back(rr);
+        continue;
       }
 
       if (rectify) {
@@ -782,6 +780,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
           continue;
         }
       }
+      rrs.push_back(rr);
     } else {
       if (rr.qtype.getCode())
         L<<Logger::Warning<<"Zone '"<<target<<"' contains out-of-zone data '"<<rr.qname<<"|"<<rr.qtype.getName()<<"', ignoring"<<endl;
@@ -790,8 +789,8 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   }
 
   // Group records by name and type, signpipe stumbles over interrupted rrsets
-  sort(zrrs.begin(), zrrs.end(), [](const DNSZoneRecord& a, const DNSZoneRecord& b) {
-    return tie(a.dr.d_name, a.dr.d_type) < tie(b.dr.d_name, b.dr.d_type);
+  sort(rrs.begin(), rrs.end(), [](const DNSResourceRecord& a, const DNSResourceRecord& b) {
+    return tie(a.qname, a.qtype) < tie(b.qname, b.qtype);
   });
 
   if(rectify) {
