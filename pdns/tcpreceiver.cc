@@ -787,9 +787,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
           zrr.dr.d_content = ip.dr.d_content;
           zrrs.push_back(zrr);
         }
-      }
-      else {
-        zrrs.push_back(zrr);
+        continue;
       }
 
       if (rectify) {
@@ -802,6 +800,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
           continue;
         }
       }
+      zrrs.push_back(zrr);
     } else {
       if (zrr.dr.d_type)
         L<<Logger::Warning<<"Zone '"<<target<<"' contains out-of-zone data '"<<zrr.dr.d_name<<"|"<<DNSRecordContent::NumberToType(zrr.dr.d_type)<<"', ignoring"<<endl;
