@@ -63,7 +63,7 @@ __EOF__
 				$PDNSUTIL --config-dir=. --config-name=bind set-nsec3 $zone "1 $optout 1 abcd" 2>&1
 			elif [ $context = bind-dnssec-nsec3-narrow ]
 			then
-				$PDNSUTIL --config-dir=. --config-name=bind set-nsec3 $zone '1 1 1 abcd' narrow 2>&1
+				$PDNSUTIL --config-dir=. --config-name=bind set-nsec3 $zone '1 1 1 abcd' narrow axfr 2>&1
 			fi
 			if [ "$zone" = "tsig.com" ]; then
 				$PDNSUTIL --config-dir=. --config-name=bind import-tsig-key test $ALGORITHM $KEY

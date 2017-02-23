@@ -5,30 +5,39 @@ do
 	drill -p $port axfr $zone @$nameserver | ldns-read-zone -z -u CDS -u CDNSKEY > $TFILE
 	for validator in "ldns-verify-zone -V2" jdnssec-verifyzone named-checkzone
 	do
-		echo --- $validator $zone
-		if [ "$validator" = "named-checkzone" ]
+		if [[ $skipreasons = *narrow* ]] &&\
+		   [ "$validator" = "ldns-verify-zone -V2" ]
 		then
-			named-checkzone -i local $zone $TFILE 2>&1 | grep -v 'addnode: NSEC node already exists'
+			# ldns has bugs on travis / need 1.7.0 for nsec3 on ENT (df647670ecc632d842d9ed5746964714b75a6fc3)
+			# Ubuntu only provides 1.6.7
+			echo --- $validator $zone
+			echo --- skipped
 		else
-			if [ ! -e ${testsdir}/${testname}/allow-missing ] || [[ $(type -P "$validator") ]]
+			echo --- $validator $zone
+			if [ "$validator" = "named-checkzone" ]
 			then
-				$validator $TFILE 2>&1
+				named-checkzone -i local $zone $TFILE 2>&1 | grep -v 'addnode: NSEC node already exists'
 			else
-				#fake output for missing validators
-				if [ "$validator" = "jdnssec-verifyzone" ]
+				if [ ! -e ${testsdir}/${testname}/allow-missing ] || [[ $(type -P "$validator") ]]
 				then
-					echo zone verified.
+					$validator $TFILE 2>&1
+				else
+					#fake output for missing validators
+					if [ "$validator" = "jdnssec-verifyzone" ]
+					then
+						echo zone verified.
+					fi
 				fi
 			fi
-		fi
-		RETVAL=$?
-		echo RETVAL: $RETVAL
-		if [ $RETVAL -gt 0 ] && { [[ $validator != ldns-verify-zone* ]] || { [[ $skipreasons != *nsec3* ]] && [[ $skipreasons != *optout* ]]; }; }
-		then
-			echo $validator reported error, full zone content:
-			echo ---
-			cat $TFILE
-			echo --- end of zone content
+			RETVAL=$?
+			echo RETVAL: $RETVAL
+			if [ $RETVAL -gt 0 ] && { [[ $validator != ldns-verify-zone* ]] || { [[ $skipreasons != *nsec3* ]] && [[ $skipreasons != *optout* ]]; }; }
+			then
+				echo $validator reported error, full zone content:
+				echo ---
+				cat $TFILE
+				echo --- end of zone content
+			fi
 		fi
 		echo
 	done

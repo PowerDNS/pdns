@@ -1,0 +1,135 @@
+--- ldns-verify-zone -V2 test.com
+--- skipped
+
+--- jdnssec-verifyzone test.com
+zone verified.
+RETVAL: 0
+
+--- named-checkzone test.com
+zone test.com/IN: test.com/MX 'smtp-servers.test.com' has no address records (A or AAAA)
+zone test.com/IN: sub.test.test.com/NS 'ns-test.example.net.test.com' has no address records (A or AAAA)
+zone test.com/IN: loaded serial 2005092501 (DNSSEC signed)
+OK
+RETVAL: 0
+
+--- ldns-verify-zone -V2 test.dyndns
+--- skipped
+
+--- jdnssec-verifyzone test.dyndns
+zone verified.
+RETVAL: 0
+
+--- named-checkzone test.dyndns
+zone test.dyndns/IN: loaded serial 2012060701 (DNSSEC signed)
+OK
+RETVAL: 0
+
+--- ldns-verify-zone -V2 wtest.com
+--- skipped
+
+--- jdnssec-verifyzone wtest.com
+zone verified.
+RETVAL: 0
+
+--- named-checkzone wtest.com
+zone wtest.com/IN: wtest.com/MX 'smtp-servers.wtest.com' is a CNAME (illegal)
+zone wtest.com/IN: loaded serial 2005092501 (DNSSEC signed)
+OK
+RETVAL: 0
+
+--- ldns-verify-zone -V2 dnssec-parent.com
+--- skipped
+
+--- jdnssec-verifyzone dnssec-parent.com
+zone verified.
+RETVAL: 0
+
+--- named-checkzone dnssec-parent.com
+zone dnssec-parent.com/IN: loaded serial 2005092501 (DNSSEC signed)
+OK
+RETVAL: 0
+
+--- ldns-verify-zone -V2 delegated.dnssec-parent.com
+--- skipped
+
+--- jdnssec-verifyzone delegated.dnssec-parent.com
+zone verified.
+RETVAL: 0
+
+--- named-checkzone delegated.dnssec-parent.com
+zone delegated.dnssec-parent.com/IN: loaded serial 2005092501 (DNSSEC signed)
+OK
+RETVAL: 0
+
+--- ldns-verify-zone -V2 secure-delegated.dnssec-parent.com
+--- skipped
+
+--- jdnssec-verifyzone secure-delegated.dnssec-parent.com
+zone verified.
+RETVAL: 0
+
+--- named-checkzone secure-delegated.dnssec-parent.com
+zone secure-delegated.dnssec-parent.com/IN: loaded serial 2005092501 (DNSSEC signed)
+OK
+RETVAL: 0
+
+--- ldns-verify-zone -V2 minimal.com
+--- skipped
+
+--- jdnssec-verifyzone minimal.com
+zone verified.
+RETVAL: 0
+
+--- named-checkzone minimal.com
+zone minimal.com/IN: loaded serial 2000081501 (DNSSEC signed)
+OK
+RETVAL: 0
+
+--- ldns-verify-zone -V2 tsig.com
+--- skipped
+
+--- jdnssec-verifyzone tsig.com
+zone verified.
+RETVAL: 0
+
+--- named-checkzone tsig.com
+zone tsig.com/IN: loaded serial 2000081501 (DNSSEC signed)
+OK
+RETVAL: 0
+
+--- ldns-verify-zone -V2 stest.com
+--- skipped
+
+--- jdnssec-verifyzone stest.com
+zone verified.
+RETVAL: 0
+
+--- named-checkzone stest.com
+zone stest.com/IN: loaded serial 2000081501 (DNSSEC signed)
+OK
+RETVAL: 0
+
+--- ldns-verify-zone -V2 cdnskey-cds-test.com
+--- skipped
+
+--- jdnssec-verifyzone cdnskey-cds-test.com
+zone verified.
+RETVAL: 0
+
+--- named-checkzone cdnskey-cds-test.com
+zone cdnskey-cds-test.com/IN: loaded serial 2005092501 (DNSSEC signed)
+OK
+RETVAL: 0
+
+--- ldns-verify-zone -V2 2.0.192.in-addr.arpa
+--- skipped
+
+--- jdnssec-verifyzone 2.0.192.in-addr.arpa
+zone verified.
+RETVAL: 0
+
+--- named-checkzone 2.0.192.in-addr.arpa
+zone 2.0.192.in-addr.arpa/IN: loaded serial 2000081501 (DNSSEC signed)
+OK
+RETVAL: 0
+

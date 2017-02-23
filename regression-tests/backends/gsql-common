@@ -22,7 +22,7 @@ gsql_master()
 				$PDNSUTIL --config-dir=. --config-name=$backend set-nsec3 $zone "1 $optout 1 abcd" 2>&1
 			elif [ $context = ${backend}-nsec3-narrow ]
 			then
-				$PDNSUTIL --config-dir=. --config-name=$backend set-nsec3 $zone '1 1 1 abcd' narrow 2>&1
+				$PDNSUTIL --config-dir=. --config-name=$backend set-nsec3 $zone '1 1 1 abcd' narrow axfr 2>&1
 			fi
 			securezone $zone ${backend}
 		else
@@ -40,7 +40,7 @@ gsql_master()
 		--dnsupdate=yes --resolver=8.8.8.8 --outgoing-axfr-expand-alias=yes \
 		--expand-alias=yes \
 		--cache-ttl=$cachettl --dname-processing \
-		--disable-axfr-rectify=yes $lua_prequery &
+		$lua_prequery &
 
 	if [ $context = ${backend}-nsec3 ]
 	then
