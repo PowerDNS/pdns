@@ -3,7 +3,7 @@ import json, sys
 
 runs = json.load(sys.stdin)
 
-selecters = dict(s.split('=',1) for s in sys.argv[1:])
+selectors = dict(s.split('=',1) for s in sys.argv[1:])
 
 selected=list()
 
@@ -11,7 +11,7 @@ names=set()
 
 for run in runs:
 	match = True
-	for k,v in selecters.iteritems():
+	for k,v in selectors.iteritems():
 		# print k, v, run[k]
 		if run[k] != v:
 			match = False

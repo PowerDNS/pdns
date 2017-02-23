@@ -1,25 +1,24 @@
 /*
-    PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2003 - 2016  PowerDNS.COM BV
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 
-    as published by the Free Software Foundation
-
-    Additionally, the license of this program contains a special
-    exception which allows to distribute the program in binary form when
-    it is linked against OpenSSL.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-*/
-
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -349,7 +348,6 @@ void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, boost::opti
       for(const auto& rr : remove) { // should always contain the SOA
         if(rr.d_type == QType::NS)
           continue;
-	totremove++;
 	if(rr.d_type == QType::SOA) {
 	  auto oldsr = getRR<SOARecordContent>(rr);
 	  if(oldsr && oldsr->d_st.serial == oursr->d_st.serial) {
@@ -359,7 +357,8 @@ void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, boost::opti
 	    L<<Logger::Error<<"GOT WRONG SOA SERIAL REMOVAL, SHOULD TRIGGER WHOLE RELOAD"<<endl;
 	}
 	else {
-	  L<<Logger::Info<<"Had removal of "<<rr.d_name<<endl;
+          totremove++;
+	  L<<Logger::Debug<<"Had removal of "<<rr.d_name<<endl;
 	  RPZRecordToPolicy(rr, luaconfsCopy.dfe, false, defpol, polZone);
 	}
       }
@@ -367,7 +366,6 @@ void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, boost::opti
       for(const auto& rr : add) { // should always contain the new SOA
         if(rr.d_type == QType::NS)
           continue;
-	totadd++;
 	if(rr.d_type == QType::SOA) {
 	  auto newsr = getRR<SOARecordContent>(rr);
 	  //	  L<<Logger::Info<<"New SOA serial for "<<zone<<": "<<newsr->d_st.serial<<endl;
@@ -376,7 +374,8 @@ void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, boost::opti
 	  }
 	}
 	else {
-	  L<<Logger::Info<<"Had addition of "<<rr.d_name<<endl;
+          totadd++;
+	  L<<Logger::Debug<<"Had addition of "<<rr.d_name<<endl;
 	  RPZRecordToPolicy(rr, luaconfsCopy.dfe, true, defpol, polZone);
 	}
       }

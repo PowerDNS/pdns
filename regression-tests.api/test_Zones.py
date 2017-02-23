@@ -261,6 +261,55 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
         self.assertEquals(r.status_code, 422)
         self.assertIn('contains unsupported characters', r.json()['error'])
 
+    def test_create_zone_mixed_nameservers_ns_rrset_zonelevel(self):
+        name = unique_zone_name()
+        rrset = {
+            "name": name,
+            "type": "NS",
+            "ttl": 3600,
+            "records": [{
+                "content": "ns2.example.com.",
+                "disabled": False,
+            }],
+        }
+        payload = {
+            'name': name,
+            'kind': 'Native',
+            'nameservers': ['ns1.example.com.'],
+            'rrsets': [rrset],
+        }
+        print payload
+        r = self.session.post(
+            self.url("/api/v1/servers/localhost/zones"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 422)
+        self.assertIn('Nameservers list MUST NOT be mixed with zone-level NS in rrsets', r.json()['error'])
+
+    def test_create_zone_mixed_nameservers_ns_rrset_below_zonelevel(self):
+        name = unique_zone_name()
+        rrset = {
+            "name": 'subzone.'+name,
+            "type": "NS",
+            "ttl": 3600,
+            "records": [{
+                "content": "ns2.example.com.",
+                "disabled": False,
+            }],
+        }
+        payload = {
+            'name': name,
+            'kind': 'Native',
+            'nameservers': ['ns1.example.com.'],
+            'rrsets': [rrset],
+        }
+        print payload
+        r = self.session.post(
+            self.url("/api/v1/servers/localhost/zones"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assert_success_json(r)
+
     def test_create_zone_with_symbols(self):
         name, payload, data = self.create_zone(name='foo/bar.'+unique_zone_name())
         name = payload['name']
@@ -335,6 +384,14 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
         rdata = r.json()
         self.assertEquals(r.status_code, 200)
         self.assertEquals(rdata["metadata"], [])
+
+    def test_create_external_zone_metadata(self):
+        payload_metadata = {"metadata": ["My very important message"]}
+        r = self.session.put(self.url("/api/v1/servers/localhost/zones/example.com/metadata/X-MYMETA"),
+                             data=json.dumps(payload_metadata))
+        self.assertEquals(r.status_code, 200)
+        rdata = r.json()
+        self.assertEquals(rdata["metadata"], payload_metadata["metadata"])
 
     def test_create_slave_zone(self):
         # Test that nameservers can be absent for slave zones.
@@ -936,6 +993,8 @@ fred   IN  A      192.168.0.4
         self.assertNotEquals(serverset['comments'], [])
         # verify that modified_at has been set by pdns
         self.assertNotEquals([c for c in serverset['comments']][0]['modified_at'], 0)
+        # verify that TTL is correct (regression test)
+        self.assertEquals(serverset['ttl'], 3600)
 
     def test_zone_comment_delete(self):
         # Test: Delete ONLY comments.

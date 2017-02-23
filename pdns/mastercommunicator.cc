@@ -49,30 +49,33 @@ void CommunicatorClass::queueNotifyDomain(const DomainInfo& di, UeberBackend* B)
   DNSResourceRecord rr;
   FindNS fns;
 
-  di.backend->lookup(QType(QType::NS), di.zone);
-  while(di.backend->get(rr))
-    nsset.insert(rr.content);
 
-  for(set<string>::const_iterator j=nsset.begin();j!=nsset.end();++j) {
-    vector<string> nsips=fns.lookup(DNSName(*j), di.backend);
-    if(nsips.empty())
-      L<<Logger::Warning<<"Unable to queue notification of domain '"<<di.zone<<"': nameservers do not resolve!"<<endl;
-    else
-      for(vector<string>::const_iterator k=nsips.begin();k!=nsips.end();++k) {
-        const ComboAddress caIp(*k, 53);
-        if(!d_preventSelfNotification || !AddressIsUs(caIp)) {
-          if(!d_onlyNotify.match(&caIp))
-            L<<Logger::Info<<"Skipped notification of domain '"<<di.zone<<"' to "<<*j<<" because it does not match only-notify."<<endl;
-          else
-            ips.insert(caIp.toStringWithPort());
+  if (d_onlyNotify.size()) {
+    B->lookup(QType(QType::NS),domain);
+    while(B->get(rr))
+      nsset.insert(rr.content);
+
+    for(set<string>::const_iterator j=nsset.begin();j!=nsset.end();++j) {
+      vector<string> nsips=fns.lookup(DNSName(*j), B);
+      if(nsips.empty())
+        L<<Logger::Warning<<"Unable to queue notification of domain '"<<domain<<"': nameservers do not resolve!"<<endl;
+      else
+        for(vector<string>::const_iterator k=nsips.begin();k!=nsips.end();++k) {
+          const ComboAddress caIp(*k, 53);
+          if(!d_preventSelfNotification || !AddressIsUs(caIp)) {
+            if(!d_onlyNotify.match(&caIp))
+              L<<Logger::Info<<"Skipped notification of domain '"<<domain<<"' to "<<*j<<" because it does not match only-notify."<<endl;
+            else
+              ips.insert(caIp.toStringWithPort());
+          }
         }
-      }
-  }
+    }
 
-  for(set<string>::const_iterator j=ips.begin();j!=ips.end();++j) {
-    L<<Logger::Warning<<"Queued notification of domain '"<<di.zone<<"' to "<<*j<<endl;
-    d_nq.add(di.zone,*j);
-    hasQueuedItem=true;
+    for(set<string>::const_iterator j=ips.begin();j!=ips.end();++j) {
+      L<<Logger::Warning<<"Queued notification of domain '"<<domain<<"' to "<<*j<<endl;
+      d_nq.add(domain,*j);
+      hasQueuedItem=true;
+    }
   }
 
   set<string> alsoNotify(d_alsoNotify);
@@ -167,7 +170,7 @@ time_t CommunicatorClass::doNotifications()
     size=recvfrom(sock,buffer,sizeof(buffer),0,(struct sockaddr *)&from,&fromlen);
     if(size < 0)
       break;
-    DNSPacket p;
+    DNSPacket p(true);
 
     p.setRemote(&from);
 
@@ -247,7 +250,7 @@ void CommunicatorClass::sendNotification(int sock, const DNSName& domain, const 
     trc.d_origID=ntohs(id);
     trc.d_eRcode=0;
     B64Decode(tsigsecret64, tsigsecret);
-    addTSIG(pw, &trc, tsigkeyname, tsigsecret, "", false);
+    addTSIG(pw, trc, tsigkeyname, tsigsecret, "", false);
   }
 
   if(sendto(sock, &packet[0], packet.size(), 0, (struct sockaddr*)(&remote), remote.getSocklen()) < 0) {

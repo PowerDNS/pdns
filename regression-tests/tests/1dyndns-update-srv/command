@@ -11,7 +11,7 @@ answer
 !
 cleandig srv.test.dyndns SRV
 
-# Insert anthoer with different prio, and update the other.
+# Insert another with different prio, and update the other.
 cleannsupdate <<!
 server $nameserver $port
 zone test.dyndns

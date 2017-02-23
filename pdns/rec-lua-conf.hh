@@ -35,6 +35,7 @@ public:
   map<DNSName,dsmap_t> dsAnchors;
   map<DNSName,std::string> negAnchors;
   std::shared_ptr<RemoteLogger> protobufServer{nullptr};
+  std::shared_ptr<RemoteLogger> outgoingProtobufServer{nullptr};
   uint8_t protobufMaskV4{32};
   uint8_t protobufMaskV6{128};
   bool protobufTaggedOnly{false};

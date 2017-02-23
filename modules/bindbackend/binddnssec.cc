@@ -50,7 +50,7 @@ bool Bind2Backend::getDomainMetadata(const DNSName& name, const std::string& kin
 bool Bind2Backend::setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta)
 { return false; }
 
-bool Bind2Backend::getDomainKeys(const DNSName& name, unsigned int kind, std::vector<KeyData>& keys)
+bool Bind2Backend::getDomainKeys(const DNSName& name, std::vector<KeyData>& keys)
 { return false; }
 
 bool Bind2Backend::removeDomainKey(const DNSName& name, unsigned int id)
@@ -174,7 +174,7 @@ bool Bind2Backend::getNSEC3PARAM(const DNSName& name, NSEC3PARAMRecordContent* n
 
     if (ns3p->d_iterations > maxNSEC3Iterations) {
       ns3p->d_iterations = maxNSEC3Iterations;
-      L<<Logger::Error<<"Number of NSEC3 iterations for zone '"<<name<<"' is above 'max-nsec3-iterations'. Value adjsted to: "<<maxNSEC3Iterations<<endl;
+      L<<Logger::Error<<"Number of NSEC3 iterations for zone '"<<name<<"' is above 'max-nsec3-iterations'. Value adjusted to: "<<maxNSEC3Iterations<<endl;
     }
 
     if (ns3p->d_algorithm != 1) {
@@ -263,7 +263,7 @@ bool Bind2Backend::setDomainMetadata(const DNSName& name, const std::string& kin
   return true;
 }
 
-bool Bind2Backend::getDomainKeys(const DNSName& name, unsigned int kind, std::vector<KeyData>& keys)
+bool Bind2Backend::getDomainKeys(const DNSName& name, std::vector<KeyData>& keys)
 {
   if(!d_dnssecdb || d_hybrid)
     return false;

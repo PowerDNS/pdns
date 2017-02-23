@@ -214,6 +214,11 @@ private:
   bool d_masterschanged, d_slaveschanged;
   bool d_preventSelfNotification;
 
+  // Used to keep some state on domains that failed their freshness checks.
+  // uint64_t == counter of the number of failures (increased by 1 every consecutive slave-cycle-interval that the domain fails)
+  // time_t == wait at least until this time before attempting a new check
+  map<DNSName, pair<uint64_t, time_t> > d_failedSlaveRefresh;
+
   struct RemoveSentinel
   {
     explicit RemoveSentinel(const DNSName& dn, CommunicatorClass* cc) : d_dn(dn), d_cc(cc)
@@ -221,8 +226,12 @@ private:
     
     ~RemoveSentinel()
     {
-      Lock l(&d_cc->d_lock);
-      d_cc->d_inprogress.erase(d_dn);
+      try {
+        Lock l(&d_cc->d_lock);
+        d_cc->d_inprogress.erase(d_dn);
+      }
+      catch(...) {
+      }
     }
     DNSName d_dn;
     CommunicatorClass* d_cc;
@@ -256,7 +265,7 @@ private:
     struct addrinfo* res;
     struct addrinfo hints;
     memset(&hints, 0, sizeof(hints));
-
+    hints.ai_socktype = SOCK_DGRAM; // otherwise we get everything in triplicate (!)
     for(int n = 0; n < 2; ++n) {
       hints.ai_family = n ? AF_INET : AF_INET6;
       ComboAddress remote;

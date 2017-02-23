@@ -15,7 +15,7 @@ issue.
 
 ## Filing a Feature Request
 When filing a feature request, please start your issue title with "Feature request:",
-this allows for quick distinguisihing between issues and these requests.
+this allows for quick distinguishing between issues and these requests.
 
 Please be as elaborate as possible when describing the feature you need. Provide
 at least the following information (if they are relevant):
@@ -37,7 +37,7 @@ information:
 * Operating System and version
 * Steps to reproduce: How can we reproduce the issue
 * Expected behavior: what did you expect what would happen?
-* Observed behavior: what actually happend when following the steps?
+* Observed behavior: what actually happened when following the steps?
 * Relevant logs: Please use code blocks (\`\`\`) to format console output, logs, and code as it's very hard to read otherwise.
 
 If you have already looked deeper into the problem, provide what you found as
@@ -66,7 +66,7 @@ and
 
 ## Commit Guidelines
 * Tell why the change does what it does, not how it does it.
-* The first line should be short (preferebly less than 50 characters)
+* The first line should be short (preferably less than 50 characters)
 * The rest of the commit body should be wrapped at 72 characters (see [this](http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html) for more info)
 * If this commit fixes an issue, put "Closes #XXXX" in the message
 * Do not put whitespace fixes/cleanup and functionality changes in the same commit

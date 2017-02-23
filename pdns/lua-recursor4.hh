@@ -31,6 +31,7 @@
 #endif
 
 string GenUDPQueryResponse(const ComboAddress& dest, const string& query);
+unsigned int getRecursorThreadId();
 
 class LuaContext;
 
@@ -54,8 +55,10 @@ public:
     const uint16_t qtype;
     const ComboAddress& local;
     const ComboAddress& remote;
+    const struct dnsheader* dh{nullptr};
     const bool isTcp;
     const std::vector<pair<uint16_t, string>>* ednsOptions{nullptr};
+    const uint16_t* ednsFlags{nullptr};
     vector<DNSRecord>* currentRecords{nullptr};
     DNSFilterEngine::Policy* appliedPolicy{nullptr};
     std::vector<std::string>* policyTags{nullptr};
@@ -68,9 +71,12 @@ public:
     void addAnswer(uint16_t type, const std::string& content, boost::optional<int> ttl, boost::optional<string> name);
     void addRecord(uint16_t type, const std::string& content, DNSResourceRecord::Place place, boost::optional<int> ttl, boost::optional<string> name);
     vector<pair<int,DNSRecord> > getRecords() const;
+    boost::optional<dnsheader> getDH() const;
     vector<pair<uint16_t, string> > getEDNSOptions() const;
     boost::optional<string> getEDNSOption(uint16_t code) const;
     boost::optional<Netmask> getEDNSSubnet() const;
+    vector<string> getEDNSFlags() const;
+    bool getEDNSFlag(string flag) const;
     void setRecords(const vector<pair<int,DNSRecord> >& records);
 
     int rcode{0};
@@ -90,13 +96,13 @@ public:
 #endif
   };
 
-  int gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags);
+  int gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, std::unordered_map<string,string>& data);
 
-  bool prerpz(std::shared_ptr<DNSQuestion> dq, int& ret);
-  bool preresolve(std::shared_ptr<DNSQuestion> dq, int& ret);
-  bool nxdomain(std::shared_ptr<DNSQuestion> dq, int& ret);
-  bool nodata(std::shared_ptr<DNSQuestion> dq, int& ret);
-  bool postresolve(std::shared_ptr<DNSQuestion> dq, int& ret);
+  bool prerpz(DNSQuestion& dq, int& ret);
+  bool preresolve(DNSQuestion& dq, int& ret);
+  bool nxdomain(DNSQuestion& dq, int& ret);
+  bool nodata(DNSQuestion& dq, int& ret);
+  bool postresolve(DNSQuestion& dq, int& ret);
 
   bool preoutquery(const ComboAddress& ns, const ComboAddress& requestor, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, int& ret);
   bool ipfilter(const ComboAddress& remote, const ComboAddress& local, const struct dnsheader&);
@@ -110,13 +116,13 @@ public:
             d_postresolve);
   }
 
-  typedef std::function<std::tuple<int,boost::optional<std::unordered_map<int,string> > >(ComboAddress, Netmask, ComboAddress, DNSName, uint16_t)> gettag_t;
+  typedef std::function<std::tuple<int,boost::optional<std::unordered_map<int,string> >,boost::optional<std::unordered_map<string,string> > >(ComboAddress, Netmask, ComboAddress, DNSName, uint16_t)> gettag_t;
   gettag_t d_gettag; // public so you can query if we have this hooked
 
 private:
-  typedef std::function<bool(std::shared_ptr<DNSQuestion>)> luacall_t;
+  typedef std::function<bool(DNSQuestion*)> luacall_t;
   luacall_t d_prerpz, d_preresolve, d_nxdomain, d_nodata, d_postresolve, d_preoutquery, d_postoutquery;
-  bool genhook(luacall_t& func, std::shared_ptr<DNSQuestion> dq, int& ret);
+  bool genhook(luacall_t& func, DNSQuestion& dq, int& ret);
   typedef std::function<bool(ComboAddress,ComboAddress, struct dnsheader)> ipfilter_t;
   ipfilter_t d_ipfilter;
 };

@@ -129,6 +129,9 @@ in the configuration are relative to the new root.
 When using `chroot` and the API ([`webserver`](#webserver)), [`api-readonly`](#api-readonly)
 must be set and [`api-config-dir`](#api-config-dir) unset.
 
+When running on a system where systemd manages services, `chroot` does not work out of the box, as PowerDNS cannot use the `NOTIFY_SOCKET`.
+Either do not `chroot` on these systems or set the 'Type' of this service to 'simple' instead of 'notify' (refer to the systemd documentation on how to modify unit-files)
+
 ## `client-tcp-timeout`
 * Integer
 * Default: 2
@@ -224,6 +227,20 @@ addresses, like for example 127.0.0.1. This can have odd effects, depending on
 your network, and may even be a security risk. Therefore, since version 3.1.5,
 the PowerDNS recursor by default does not query private space IP addresses.
 This setting can be used to expand or reduce the limitations.
+
+## `ecs-ipv4-bits`
+* Integer
+* Default: 24
+* Available since 4.1
+
+Number of bits of client IPv4 address to pass when sending EDNS Client Subnet address information.
+
+## `ecs-ipv6-bits`
+* Integer
+* Default: 56
+* Available since 4.1
+
+Number of bits of client IPv6 address to pass when sending EDNS Client Subnet address information.
 
 ## `edns-outgoing-bufsize`
 * Integer
@@ -431,7 +448,7 @@ Sortlist is a complicated feature which allows for the ordering of A and
 AAAA records in answers to be modified, optionally dependently on who is
 asking. Since clients frequently connect to the 'first' IP address they see,
 this can effectively allow you to make sure that user from, say 10.0.0.0/8
-also preferrably connect to servers in 10.0.0.0/8.
+also preferably connect to servers in 10.0.0.0/8.
 
 The syntax consists of a netmask for which this ordering instruction
 applies, followed by a set of netmask (groups) which describe the desired
@@ -491,6 +508,7 @@ Settings for `rpzFile` and `rpzMaster` can contain:
 * defcontent = CNAME field to return in case of defpol=Policy.Custom
 * defttl = the TTL of the CNAME field to be synthesized. The default is to use the zone's TTL
 * policyName = the name logged as 'appliedPolicy' in protobuf messages when this policy is applied
+* zoneSizeHint = an indication of the number of expected entries in the zone, speeding up the loading of huge zones by reserving space in advance
 
 In addition to those, `rpzMaster` accepts:
 
@@ -545,6 +563,22 @@ The optional parameters are:
 * asyncConnect = if set to false (default) the first connection to the server during startup will block up to `timeout` seconds,
 otherwise the connection is done in a separate thread.
 
+While `protobufServer()` only exports the queries sent to the recursor from clients, with the corresponding responses,
+`outgoingProtobufServer()` can be used to export outgoing queries sent by the recursor to authoritative servers,
+along with the corresponding responses.
+
+```
+outgoingProtobufServer("192.0.2.1:4242" [[[[, timeout], maxQueuedEntries], reconnectWaitTime], asyncConnect])
+```
+
+The optional parameters for `outgoingProtobufServer()` are:
+
+* timeout = time in seconds to wait when sending a message, default to 2
+* maxQueuedEntries = how many entries will be kept in memory if the server becomes unreachable, default to 100
+* reconnectWaitTime = how long to wait, in seconds, between two reconnection attempts, default to 1
+* asyncConnect = if set to false (default) the first connection to the server during startup will block up to `timeout` seconds,
+otherwise the connection is done in a separate thread.
+
 The protocol buffers message types can be found in the [`dnsmessage.proto`](https://github.com/PowerDNS/pdns/blob/master/pdns/dnsmessage.proto) file.
 
 ## `lua-dns-script`
@@ -568,6 +602,8 @@ for most installations.
 
 Maximum number of seconds to cache an item in the DNS cache, no matter what the
 original TTL specified.
+Since PowerDNS Recursor 4.1.0, the minimum value of this setting is 15.
+i.e. setting this to lower than 15 will make this value 15.
 
 ## `max-mthreads`
 * Integer
@@ -588,7 +624,7 @@ suffice for most installations.
 * Default: 50
 
 The maximum number of outgoing queries that will be sent out during the resolution
-of a single client query. This is used to limit endlessy chasing CNAME redirections.
+of a single client query. This is used to limit endlessly chasing CNAME redirections.
 
 ## `max-negative-ttl`
 * Integer
@@ -599,6 +635,14 @@ record's existence later on, without putting a heavy load on the remote server.
 In practice, caches can become saturated with hundreds of thousands of hosts
 which are tried only once. This setting, which defaults to 3600 seconds, puts a
 maximum on the amount of time negative entries are cached.
+
+## `max-recursion-depth`
+* Integer
+* Default: 40 (since 4.1.0), unlimited (before 4.1.0)
+
+Total maximum number of internal recursion calls the server may use to answer
+a single query. 0 means unlimited. The value of `stack-size` should be increased
+together with this one to prevent the stack from overflowing.
 
 ## `max-tcp-clients`
 * Integer
@@ -613,11 +657,17 @@ Maximum number of simultaneous incoming TCP connections allowed.
 Maximum number of simultaneous incoming TCP connections allowed per client
 (remote IP address).
 
+## `max-tcp-queries-per-connection`
+* Integer
+* Default: 0 (unlimited)
+
+Maximum number of DNS queries in a TCP connection.
+
 ## `max-total-msec`
 * Integer
 * Default: 7000
 
-Total maximum number of miliseconds of wallclock time the servermay use to answer
+Total maximum number of milliseconds of wallclock time the server may use to answer
 a single query.
 
 ## `minimum-ttl-override`
@@ -752,6 +802,20 @@ used for better [security](security.md).
 
 Use only a single socket for outgoing queries.
 
+## `snmp-agent`
+* Boolean
+* Default: no
+
+If set to true and PowerDNS has been compiled with SNMP support, it will register
+as an SNMP agent to provide statistics and be able to send traps.
+
+## `snmp-master-socket`
+* String
+* Default: empty
+
+If not empty and `snmp-agent` is set to true, indicates how PowerDNS should contact
+the SNMP master to register as an SNMP agent.
+
 ## `socket-dir`
 * Path
 
@@ -805,6 +869,15 @@ EDNS0 allows for large UDP response datagrams, which can potentially raise
 performance. Large responses however also have downsides in terms of reflection
 attacks. This setting limits the accepted size. Maximum value is 65535, but
 values above 4096 should probably not be attempted.
+
+## `use-incoming-edns-subnet`
+* Boolean
+* Default: no
+
+Whether to process and pass along a received EDNS Client Subnet to authoritative
+servers. The ECS information will only be sent for netmasks and domains listed
+in `edns-subnet-whitelist`, and will be truncated if the received scope exceeds
+`ecs-ipv4-bits` for IPv4 or `ecs-ipv6-bits` for IPv6.
 
 ## `version`
 Print version of this binary. Useful for checking which version of the PowerDNS

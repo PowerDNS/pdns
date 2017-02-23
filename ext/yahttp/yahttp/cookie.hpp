@@ -66,7 +66,7 @@ namespace YaHTTP {
     } //<! key value pair parser
   
     void parseCookieHeader(const std::string &cookiestr) {
-      std::list<Cookie> cookies;
+      std::list<Cookie> lcookies;
       int cstate = 0; //cookiestate
       size_t pos,npos;
       pos = 0;
@@ -91,22 +91,22 @@ namespace YaHTTP {
           if (s == "expires") {
             DateTime dt;
             dt.parseCookie(value);
-            for(std::list<Cookie>::iterator i = cookies.begin(); i != cookies.end(); i++)
+            for(std::list<Cookie>::iterator i = lcookies.begin(); i != lcookies.end(); i++)
               i->expires = dt;
           } else if (s == "domain") {
-            for(std::list<Cookie>::iterator i = cookies.begin(); i != cookies.end(); i++)
+            for(std::list<Cookie>::iterator i = lcookies.begin(); i != lcookies.end(); i++)
               i->domain = value;
           } else if (s == "path") {
-            for(std::list<Cookie>::iterator i = cookies.begin(); i != cookies.end(); i++)
+            for(std::list<Cookie>::iterator i = lcookies.begin(); i != lcookies.end(); i++)
               i->path = value;
           }
         } else if (cookiestr.compare(pos, 8, "httpOnly")==0) {
           cstate = 1;
-          for(std::list<Cookie>::iterator i = cookies.begin(); i != cookies.end(); i++)
+          for(std::list<Cookie>::iterator i = lcookies.begin(); i != lcookies.end(); i++)
             i->httponly = true;
         } else if (cookiestr.compare(pos, 6, "secure")  ==0) {
           cstate = 1;
-          for(std::list<Cookie>::iterator i = cookies.begin(); i != cookies.end(); i++)
+          for(std::list<Cookie>::iterator i = lcookies.begin(); i != lcookies.end(); i++)
             i->secure = true;
         } else if (cstate == 0) { // expect cookie
           Cookie c;
@@ -123,7 +123,7 @@ namespace YaHTTP {
           keyValuePair(s, c.name, c.value);
           c.name = YaHTTP::Utility::decodeURL(c.name);
           c.value = YaHTTP::Utility::decodeURL(c.value);
-          cookies.push_back(c);
+          lcookies.push_back(c);
         } else if (cstate == 1) {
           // ignore crap
           break;
@@ -131,7 +131,7 @@ namespace YaHTTP {
       }
   
       // store cookies
-      for(std::list<Cookie>::iterator i = cookies.begin(); i != cookies.end(); i++) {
+      for(std::list<Cookie>::iterator i = lcookies.begin(); i != lcookies.end(); i++) {
         this->cookies[i->name] = *i;
       }
     }; //<! Parse multiple cookies from header 

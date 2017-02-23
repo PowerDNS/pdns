@@ -1,6 +1,13 @@
 #!/bin/sh -e
 
 pre() {
+  # Test if there are wrong PR links in the changelog
+  CL_PR_LINKS="$(grep -E '\[#([0-9]+)\]\(.*[0-9]+\)' markdown/changelog.raw.md | grep -v -E '\[#([0-9]+)\]\(.*\1\)' || true)"
+  if [ -n "${CL_PR_LINKS}" ]; then
+    echo "Broken PR links in the changelog:" >&2
+    echo "${CL_PR_LINKS}" >&2
+    exit 1
+  fi
   for file in `find doc-build -name '*.md' -type f -print`; do
     # Remove lines starting with '%' from manpages
     if echo "$file" | grep -q -e '\.1\.md$'; then

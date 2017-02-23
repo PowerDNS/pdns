@@ -250,29 +250,29 @@ bool rectifyZone(DNSSECKeeper& dk, const DNSName& zone)
     if(haveNSEC3) // NSEC3
     {
       if(!narrow && nsec3set.count(qname)) {
-        ordername=DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, qname))) + zone;
+        ordername=DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, qname)));
         if(!realrr)
           auth=true;
       } else if(!realrr)
         auth=false;
     }
     else if (realrr) // NSEC
-      ordername=qname;
+      ordername=qname.makeRelative(zone);
 
     if(g_verbose)
       cerr<<"'"<<qname<<"' -> '"<< ordername <<"'"<<endl;
-    sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, zone, qname, ordername, auth);
+    sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, auth);
 
     if(realrr)
     {
       if (dsnames.count(qname))
-        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, zone, qname, ordername, true, QType::DS);
+        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, true, QType::DS);
       if (!auth || nsset.count(qname)) {
         ordername.clear();
         if(isOptOut && !dsnames.count(qname))
-          sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, zone, qname, ordername, false, QType::NS);
-        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, zone, qname, ordername, false, QType::A);
-        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, zone, qname, ordername, false, QType::AAAA);
+          sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, false, QType::NS);
+        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, false, QType::A);
+        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, false, QType::AAAA);
       }
 
       if(doent)
@@ -312,7 +312,7 @@ bool rectifyZone(DNSSECKeeper& dk, const DNSName& zone)
     //cerr<<"Total: "<<nonterm.size()<<" Insert: "<<insnonterm.size()<<" Delete: "<<delnonterm.size()<<endl;
     if(!insnonterm.empty() || !delnonterm.empty() || !doent)
     {
-      sd.db->updateEmptyNonTerminals(sd.domain_id, zone, insnonterm, delnonterm, !doent);
+      sd.db->updateEmptyNonTerminals(sd.domain_id, insnonterm, delnonterm, !doent);
     }
     if(doent)
     {
@@ -415,7 +415,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
     }
 
     vector<DNSBackend::KeyData> dbkeyset;
-    B.getDomainKeys(zone, 0, dbkeyset);
+    B.getDomainKeys(zone, dbkeyset);
 
     for(DNSBackend::KeyData& kd : dbkeyset) {
       DNSKEYRecordContent dkrc;
@@ -579,6 +579,16 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
       }
     }
 
+    if(rr.qtype.getCode() == QType::A || rr.qtype.getCode() == QType::AAAA)
+    {
+      Regex hostnameRegex=Regex("^(([A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)\\.)+$");
+      if (!hostnameRegex.match(rr.qname.toString()))
+      {
+        cout<<"[Info] A or AAAA record found at '"<<rr.qname.toString()<<"'. This name is not a valid hostname."<<endl;
+        continue;
+      }
+    }
+
     if (rr.qtype.getCode() == QType::CNAME) {
       if (!cnames.count(rr.qname))
         cnames.insert(rr.qname);
@@ -638,7 +648,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
 
   for(const auto &i: tlsas) {
     DNSName name = DNSName(i);
-    name.trimToLabels(name.getRawLabels().size()-2);
+    name.trimToLabels(name.countLabels()-2);
     if (cnames.find(name) == cnames.end() && noncnames.find(name) == noncnames.end()) {
       // No specific record for the name in the TLSA record exists, this
       // is already worth emitting a warning. Let's see if a wildcard exist.
@@ -772,7 +782,7 @@ int increaseSerial(const DNSName& zone, DNSSECKeeper &dk)
       ordername=zone;
     if(g_verbose)
       cerr<<"'"<<rrs[0].qname<<"' -> '"<< ordername <<"'"<<endl;
-    sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, zone, rrs[0].qname, ordername, true);
+    sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, rrs[0].qname, ordername, true);
   }
 
   sd.db->commitTransaction();
@@ -883,6 +893,7 @@ int listZone(const DNSName &zone) {
   }
   di.backend->list(zone, di.id);
   DNSResourceRecord rr;
+  cout<<"$ORIGIN ."<<endl;
   while(di.backend->get(rr)) {
     if(rr.qtype.getCode()) {
       if ( (rr.qtype.getCode() == QType::NS || rr.qtype.getCode() == QType::SRV || rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::CNAME) && !rr.content.empty() && rr.content[rr.content.size()-1] != '.') 
@@ -1504,11 +1515,26 @@ bool disableDNSSECOnZone(DNSSECKeeper& dk, const DNSName& zone)
   return true;
 }
 
+int setZoneAccount(const DNSName& zone, const string &account)
+{
+  UeberBackend B("default");
+  DomainInfo di;
+
+  if (!B.getDomainInfo(zone, di)){
+    cerr << "No such zone "<<zone<<" in the database" << endl;
+    return EXIT_FAILURE;
+  }
+  if(!di.backend->setAccount(zone, account)) {
+    cerr<<"Could not find backend willing to accept new zone configuration"<<endl;
+    return EXIT_FAILURE;
+  }
+  return EXIT_SUCCESS;
+}
+
 int setZoneKind(const DNSName& zone, const DomainInfo::DomainKind kind)
 {
   UeberBackend B("default");
   DomainInfo di;
-  std::vector<std::string> meta;
 
   if (!B.getDomainInfo(zone, di)){
     cerr << "No such zone "<<zone<<" in the database" << endl;
@@ -1968,14 +1994,14 @@ try
     cout<<"Usage: \npdnsutil [options] <command> [params ..]\n"<<endl;
     cout<<"Commands:"<<endl;
     cout<<"activate-tsig-key ZONE NAME {master|slave}"<<endl;
-    cout<<"                                   Enable TSIG key for a zone"<<endl;
+    cout<<"                                   Enable TSIG authenticated AXFR using the key NAME for ZONE"<<endl;
     cout<<"activate-zone-key ZONE KEY-ID      Activate the key with key id KEY-ID in ZONE"<<endl;
     cout<<"add-record ZONE NAME TYPE [ttl] content"<<endl;
     cout<<"             [content..]           Add one or more records to ZONE"<<endl;
     cout<<"add-zone-key ZONE {zsk|ksk} [BITS] [active|inactive]"<<endl;
     cout<<"             [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384";
 #ifdef HAVE_LIBSODIUM
-    cout<<"|experimental-ed25519";
+    cout<<"|ed25519";
 #endif
     cout<<"]"<<endl;
     cout<<"                                   Add a ZSK or KSK to zone and specify algo&bits"<<endl;
@@ -1993,7 +2019,7 @@ try
     cout<<"                                   Change slave zone ZONE master IP address to master-ip"<<endl;
     cout<<"create-zone ZONE [nsname]          Create empty zone ZONE"<<endl;
     cout<<"deactivate-tsig-key ZONE NAME {master|slave}"<<endl;
-    cout<<"                                   Disable TSIG key for a zone"<<endl;
+    cout<<"                                   Disable TSIG authenticated AXFR using the key NAME for ZONE"<<endl;
     cout<<"deactivate-zone-key ZONE KEY-ID    Deactivate the key with key id KEY-ID in ZONE"<<endl;
     cout<<"delete-rrset ZONE NAME TYPE        Delete named RRSET from zone"<<endl;
     cout<<"delete-tsig-key NAME               Delete TSIG key (warning! will not unmap key!)"<<endl;
@@ -2034,10 +2060,11 @@ try
     cout<<"secure-all-zones [increase-serial] Secure all zones without keys"<<endl;
     cout<<"secure-zone ZONE [ZONE ..]         Add DNSSEC to zone ZONE"<<endl;
     cout<<"set-kind ZONE KIND                 Change the kind of ZONE to KIND (master, slave native)"<<endl;
+    cout<<"set-account ZONE ACCOUNT           Change the account (owner) of ZONE to ACCOUNT"<<endl;
     cout<<"set-nsec3 ZONE ['PARAMS' [narrow]] Enable NSEC3 with PARAMS. Optionally narrow"<<endl;
     cout<<"set-presigned ZONE                 Use presigned RRSIGs from storage"<<endl;
     cout<<"set-publish-cdnskey ZONE           Enable sending CDNSKEY responses for ZONE"<<endl;
-    cout<<"set-publish-cds ZONE [DIGESTALGOS] Enable sending CDS responses for ZONE, using DIGESTALGOS as signature algirithms"<<endl;
+    cout<<"set-publish-cds ZONE [DIGESTALGOS] Enable sending CDS responses for ZONE, using DIGESTALGOS as signature algorithms"<<endl;
     cout<<"                                   DIGESTALGOS should be a comma separated list of numbers, is is '1,2' by default"<<endl;
     cout<<"set-meta ZONE KIND [VALUE] [VALUE] Set zone metadata, optionally providing a value. *No* value clears meta"<<endl;
     cout<<"                                   Note - this will replace all metadata records of KIND!"<<endl;
@@ -2498,6 +2525,13 @@ loadMainConfig(g_vm["config-dir"].as<string>());
     auto kind=DomainInfo::stringToKind(cmds[2]);
     exit(setZoneKind(zone, kind));
   }
+  else if(cmds[0]=="set-account") {
+    if(cmds.size() != 3) {
+      cerr<<"Syntax: pdnsutil set-account ZONE ACCOUNT"<<endl;
+    }
+    DNSName zone(cmds[1]);
+    exit(setZoneAccount(zone, cmds[2]));
+  }
   else if(cmds[0]=="set-nsec3") {
     if(cmds.size() < 2) {
       cerr<<"Syntax: pdnsutil set-nsec3 ZONE 'params' [narrow]"<<endl;
@@ -2539,7 +2573,7 @@ loadMainConfig(g_vm["config-dir"].as<string>());
       return 0; 
     }
     if (! dk.setPresigned(DNSName(cmds[1]))) {
-      cerr << "Could not set presigned on for " << cmds[1] << endl;
+      cerr << "Could not set presigned for " << cmds[1] << " (is DNSSEC enabled in your backend?)" << endl;
       return 1;
     }
     return 0;
@@ -2803,7 +2837,7 @@ loadMainConfig(g_vm["config-dir"].as<string>());
       if(algorithm <= 10)
         bits = keyOrZone ? 2048 : 1024;
       else {
-        if(algorithm == 12 || algorithm == 13 || algorithm == 250) // ECDSA, GOST, ED25519
+        if(algorithm == 12 || algorithm == 13 || algorithm == 15) // ECDSA, GOST, ED25519
           bits = 256;
         else if(algorithm == 14)
           bits = 384;
@@ -3075,7 +3109,7 @@ loadMainConfig(g_vm["config-dir"].as<string>());
       dpk.setKey(dke);
 
       // make sure this key isn't being reused.
-      B.getDomainKeys(zone, 0, keys);
+      B.getDomainKeys(zone, keys);
       id = -1;
 
       for(DNSBackend::KeyData& kd :  keys) {
@@ -3117,7 +3151,7 @@ loadMainConfig(g_vm["config-dir"].as<string>());
  
       id = pdns_stou(cmds[3]);
       std::vector<DNSBackend::KeyData> keys; 
-      if (!B.getDomainKeys(zone, 0, keys)) {
+      if (!B.getDomainKeys(zone, keys)) {
         cerr << "No keys found for zone " << zone << std::endl;
         return 1;
       } 
@@ -3231,7 +3265,7 @@ loadMainConfig(g_vm["config-dir"].as<string>());
       // temp var for KeyID
       int64_t keyID;
       std::vector<DNSBackend::KeyData> keys;
-      if (src->getDomainKeys(di.zone, 0, keys)) {
+      if (src->getDomainKeys(di.zone, keys)) {
         for(const DNSBackend::KeyData& k: keys) {
           tgt->addDomainKey(di.zone, k, keyID);
           nk++;

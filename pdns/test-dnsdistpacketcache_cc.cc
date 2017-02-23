@@ -45,7 +45,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
       bool found = PC.get(dq, a.wirelength(), 0, responseBuf, &responseBufSize, &key);
       BOOST_CHECK_EQUAL(found, false);
 
-      PC.insert(key, a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false);
+      PC.insert(key, a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false, 0);
 
       found = PC.get(dq, a.wirelength(), pwR.getHeader()->id, responseBuf, &responseBufSize, &key, 0, true);
       if (found == true) {
@@ -107,11 +107,11 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
 
 static DNSDistPacketCache PC(500000);
 
-static void *threadMangler(void* a)
+static void *threadMangler(void* off)
 {
   try {
     ComboAddress remote;
-    unsigned int offset=(unsigned int)(unsigned long)a;
+    unsigned int offset=(unsigned int)(unsigned long)off;
     for(unsigned int counter=0; counter < 100000; ++counter) {
       DNSName a=DNSName("hello ")+DNSName(std::to_string(counter+offset));
       vector<uint8_t> query;
@@ -135,7 +135,7 @@ static void *threadMangler(void* a)
       DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, (struct dnsheader*) query.data(), query.size(), query.size(), false);
       PC.get(dq, a.wirelength(), 0, responseBuf, &responseBufSize, &key);
 
-      PC.insert(key, a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false);
+      PC.insert(key, a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false, 0);
     }
   }
   catch(PDNSException& e) {
@@ -147,11 +147,11 @@ static void *threadMangler(void* a)
 
 AtomicCounter g_missing;
 
-static void *threadReader(void* a)
+static void *threadReader(void* off)
 {
   try
   {
-    unsigned int offset=(unsigned int)(unsigned long)a;
+    unsigned int offset=(unsigned int)(unsigned long)off;
     vector<DNSResourceRecord> entry;
     ComboAddress remote;
     for(unsigned int counter=0; counter < 100000; ++counter) {

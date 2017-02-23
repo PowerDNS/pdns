@@ -79,7 +79,7 @@ bool DNSSECKeeper::addKey(const DNSName& name, bool setSEPBit, int algorithm, in
     if(algorithm <= 10)
       throw runtime_error("Creating an algorithm " +std::to_string(algorithm)+" ("+algorithm2name(algorithm)+") key requires the size (in bits) to be passed.");
     else {
-      if(algorithm == 12 || algorithm == 13 || algorithm == 250) // GOST, ECDSAP256SHA256, ED25519SHA512
+      if(algorithm == 12 || algorithm == 13 || algorithm == 15) // GOST, ECDSAP256SHA256, ED25519
         bits = 256;
       else if(algorithm == 14) // ECDSAP384SHA384
         bits = 384;
@@ -144,7 +144,7 @@ static bool keyCompareByKindAndID(const DNSSECKeeper::keyset_t::value_type& a, c
 DNSSECPrivateKey DNSSECKeeper::getKeyById(const DNSName& zname, unsigned int id)
 {  
   vector<DNSBackend::KeyData> keys;
-  d_keymetadb->getDomainKeys(zname, 0, keys);
+  d_keymetadb->getDomainKeys(zname, keys);
   for(const DNSBackend::KeyData& kd :  keys) {
     if(kd.id != id) 
       continue;
@@ -261,9 +261,7 @@ bool DNSSECKeeper::getNSEC3PARAM(const DNSName& zname, NSEC3PARAMRecordContent* 
 
   static int maxNSEC3Iterations=::arg().asNum("max-nsec3-iterations");
   if(ns3p) {
-    NSEC3PARAMRecordContent* tmp=dynamic_cast<NSEC3PARAMRecordContent*>(DNSRecordContent::mastermake(QType::NSEC3PARAM, 1, value));
-    *ns3p = *tmp;
-    delete tmp;
+    *ns3p = NSEC3PARAMRecordContent(value);
     if (ns3p->d_iterations > maxNSEC3Iterations) {
       ns3p->d_iterations = maxNSEC3Iterations;
       L<<Logger::Error<<"Number of NSEC3 iterations for zone '"<<zname<<"' is above 'max-nsec3-iterations'. Value adjusted to: "<<maxNSEC3Iterations<<endl;
@@ -422,7 +420,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const DNSName& zone, bool useCache)
   keyset_t retkeyset;
   vector<DNSBackend::KeyData> dbkeyset;
 
-  d_keymetadb->getDomainKeys(zone, 0, dbkeyset);
+  d_keymetadb->getDomainKeys(zone, dbkeyset);
 
   // Determine the algorithms that have a KSK/ZSK split
   set<uint8_t> algoSEP, algoNoSEP;
@@ -488,7 +486,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const DNSName& zone, bool useCache)
 bool DNSSECKeeper::checkKeys(const DNSName& zone)
 {
   vector<DNSBackend::KeyData> dbkeyset;
-  d_keymetadb->getDomainKeys(zone, 0, dbkeyset);
+  d_keymetadb->getDomainKeys(zone, dbkeyset);
 
   for(const DNSBackend::KeyData &keydata : dbkeyset) {
     DNSKEYRecordContent dkrc;

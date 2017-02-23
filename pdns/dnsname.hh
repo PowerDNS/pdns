@@ -34,7 +34,7 @@
 #include <boost/container/string.hpp>
 #endif
 
-uint32_t burtleCI(const unsigned char* k, uint32_t lengh, uint32_t init);
+uint32_t burtleCI(const unsigned char* k, uint32_t length, uint32_t init);
 
 // #include "dns.hh"
 // #include "logger.hh"
@@ -53,7 +53,7 @@ uint32_t burtleCI(const unsigned char* k, uint32_t lengh, uint32_t init);
    NOTE: For now, everything MUST be . terminated, otherwise it is an error
 */
 
-inline char dns2_tolower(char c)
+inline unsigned char dns2_tolower(unsigned char c)
 {
   if(c>='A' && c<='Z')
     return c+('a'-'A');
@@ -125,7 +125,7 @@ public:
   {
     return std::lexicographical_compare(d_storage.rbegin(), d_storage.rend(), 
 				 rhs.d_storage.rbegin(), rhs.d_storage.rend(),
-				 [](const char& a, const char& b) {
+				 [](const unsigned char& a, const unsigned char& b) {
 					  return dns2_tolower(a) < dns2_tolower(b); 
 					}); // note that this is case insensitive, including on the label lengths
   }
@@ -189,7 +189,7 @@ inline bool DNSName::canonCompare(const DNSName& rhs) const
 					  d_storage.c_str() + ourpos[ourcount] + 1 + *(d_storage.c_str() + ourpos[ourcount]),
 					  rhs.d_storage.c_str() + rhspos[rhscount] + 1, 
 					  rhs.d_storage.c_str() + rhspos[rhscount] + 1 + *(rhs.d_storage.c_str() + rhspos[rhscount]),
-					  [](const char& a, const char& b) {
+					  [](const unsigned char& a, const unsigned char& b) {
 					    return dns2_tolower(a) < dns2_tolower(b); 
 					  });
     
@@ -201,7 +201,7 @@ inline bool DNSName::canonCompare(const DNSName& rhs) const
 					  rhs.d_storage.c_str() + rhspos[rhscount] + 1 + *(rhs.d_storage.c_str() + rhspos[rhscount]),
 					  d_storage.c_str() + ourpos[ourcount] + 1, 
 					  d_storage.c_str() + ourpos[ourcount] + 1 + *(d_storage.c_str() + ourpos[ourcount]),
-					  [](const char& a, const char& b) {
+					  [](const unsigned char& a, const unsigned char& b) {
 					    return dns2_tolower(a) < dns2_tolower(b); 
 					  });
     //    cout<<"Reverse: "<<res<<endl;
@@ -227,64 +227,127 @@ inline DNSName operator+(const DNSName& lhs, const DNSName& rhs)
   return ret;
 }
 
-/* Quest in life: serve as a rapid block list. If you add a DNSName to a root SuffixMatchNode, 
+template<typename T>
+struct SuffixMatchTree
+{
+  SuffixMatchTree(const std::string& name="", bool endNode_=false) : d_name(name), endNode(endNode_)
+  {}
+
+  SuffixMatchTree(const SuffixMatchTree& rhs)
+  {
+    d_name = rhs.d_name;
+    children = rhs.children;
+    endNode = rhs.endNode;
+    d_value = rhs.d_value;
+  }
+  std::string d_name;
+  mutable std::set<SuffixMatchTree> children;
+  mutable bool endNode;
+  mutable T d_value;
+  bool operator<(const SuffixMatchTree& rhs) const
+  {
+    return strcasecmp(d_name.c_str(), rhs.d_name.c_str()) < 0;
+  }
+  typedef SuffixMatchTree value_type;
+
+  template<typename V>
+  void visit(const V& v) const {
+    for(const auto& c : children)
+      c.visit(v);
+    if(endNode)
+      v(*this);
+  }
+
+  void add(const DNSName& name, const T& t)
+  {
+    add(name.getRawLabels(), t);
+  }
+
+  void add(std::vector<std::string> labels, const T& value) const
+  {
+    if(labels.empty()) { // this allows insertion of the root
+      endNode=true;
+      d_value=value;
+    }
+    else if(labels.size()==1) {
+      SuffixMatchTree newChild(*labels.begin(), true);
+      auto res=children.insert(newChild);
+      if(!res.second) {
+        // we might already have had the node as an
+        // intermediary one, but it's now an end node
+        if(!res.first->endNode) {
+          res.first->endNode = true;
+        }
+      }
+      res.first->d_value = value;
+    }
+    else {
+      SuffixMatchTree newnode(*labels.rbegin(), false);
+      auto res=children.insert(newnode);
+      labels.pop_back();
+      res.first->add(labels, value);
+    }
+  }
+
+  T* lookup(const DNSName& name)  const
+  {
+    if(children.empty()) { // speed up empty set
+      if(endNode)
+        return &d_value;
+      return 0;
+    }
+    return lookup(name.getRawLabels());
+  }
+
+  T* lookup(std::vector<std::string> labels) const
+  {
+    if(labels.empty()) { // optimization
+      if(endNode)
+        return &d_value;
+      return 0;
+    }
+
+    SuffixMatchTree smn(*labels.rbegin());
+    auto child = children.find(smn);
+    if(child == children.end()) {
+      if(endNode)
+        return &d_value;
+      return 0;
+    }
+    labels.pop_back();
+    return child->lookup(labels);
+  }
+
+};
+
+/* Quest in life: serve as a rapid block list. If you add a DNSName to a root SuffixMatchNode,
    anything part of that domain will return 'true' in check */
 struct SuffixMatchNode
 {
-  SuffixMatchNode(const std::string& name_="", bool endNode_=false) : name(name_), endNode(endNode_)
+  SuffixMatchNode()
   {}
-  std::string name;
   std::string d_human;
-  mutable std::set<SuffixMatchNode> children;
-  mutable bool endNode;
-  bool operator<(const SuffixMatchNode& rhs) const
-  {
-    return strcasecmp(name.c_str(), rhs.name.c_str()) < 0;
-  }
+  SuffixMatchTree<bool> d_tree;
 
   void add(const DNSName& dnsname)
   {
     if(!d_human.empty())
       d_human.append(", ");
     d_human += dnsname.toString();
-    add(dnsname.getRawLabels());
+
+    d_tree.add(dnsname, true);
   }
 
-  void add(std::vector<std::string> labels) const
+  void add(std::vector<std::string> labels)
   {
-    if(labels.empty()) { // this allows insertion of the root
-      endNode=true;
-    }
-    else if(labels.size()==1) {
-      children.insert(SuffixMatchNode(*labels.begin(), true));
-    }
-    else {
-      auto res=children.insert(SuffixMatchNode(*labels.rbegin(), false));
-      labels.pop_back();
-      res.first->add(labels);
-    }
+    d_tree.add(labels, true);
   }
 
-  bool check(const DNSName& dnsname)  const
+  bool check(const DNSName& dnsname) const
   {
-    if(children.empty()) // speed up empty set
-      return endNode;
-    return check(dnsname.getRawLabels());
+    return d_tree.lookup(dnsname) != nullptr;
   }
 
-  bool check(std::vector<std::string> labels) const
-  {
-    if(labels.empty()) // optimization
-      return endNode; 
-
-    SuffixMatchNode smn(*labels.rbegin());
-    auto child = children.find(smn);
-    if(child == children.end())
-      return endNode;
-    labels.pop_back();
-    return child->check(labels);
-  }
-  
   std::string toString() const
   {
     return d_human;

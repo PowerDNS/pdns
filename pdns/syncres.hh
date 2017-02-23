@@ -35,6 +35,7 @@
 #include <utility>
 #include "misc.hh"
 #include "lwres.hh"
+#include <boost/optional.hpp>
 #include <boost/circular_buffer.hpp>
 #include <boost/utility.hpp>
 #include "sstuff.hh"
@@ -46,8 +47,14 @@
 #include "mtasker.hh"
 #include "iputils.hh"
 #include "validate.hh"
-
+#include "ednssubnet.hh"
 #include "filterpo.hh"
+
+#include "config.h"
+#ifdef HAVE_PROTOBUF
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#endif
 
 void primeHints(void);
 int getRootNS(void);
@@ -363,8 +370,13 @@ public:
   static bool s_doIPv6;
   static unsigned int s_maxqperq;
   static unsigned int s_maxtotusec;
+  static unsigned int s_maxdepth;
   std::unordered_map<std::string,bool> d_discardedPolicies;
   DNSFilterEngine::Policy d_appliedPolicy;
+  boost::optional<const EDNSSubnetOpts&> d_incomingECS;
+#ifdef HAVE_PROTOBUF
+  boost::optional<const boost::uuids::uuid&> d_initialRequestId;
+#endif
   unsigned int d_outqueries;
   unsigned int d_tcpoutqueries;
   unsigned int d_throttledqueries;
@@ -378,6 +390,7 @@ public:
   bool d_wasOutOfBand{false};
   bool d_wantsRPZ{true};
   bool d_skipCNAMECheck{false};
+  bool d_incomingECSFound{false};
   
   typedef multi_index_container <
     NegCacheEntry,
@@ -508,18 +521,18 @@ public:
 private:
   struct GetBestNSAnswer;
   int doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret,
-        	  int depth, set<GetBestNSAnswer>&beenthere);
-  int doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, int depth, set<GetBestNSAnswer>& beenthere);
-  bool doOOBResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, int depth, int &res);
+                  unsigned int depth, set<GetBestNSAnswer>&beenthere);
+  int doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere);
+  bool doOOBResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int &res);
   domainmap_t::const_iterator getBestAuthZone(DNSName* qname);
-  bool doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, int depth, int &res);
-  bool doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, int depth, int &res);
-  void getBestNSFromCache(const DNSName &qname, const QType &qtype, vector<DNSRecord>&bestns, bool* flawedNSSet, int depth, set<GetBestNSAnswer>& beenthere);
-  DNSName getBestNSNamesFromCache(const DNSName &qname, const QType &qtype, NsSet& nsset, bool* flawedNSSet, int depth, set<GetBestNSAnswer>&beenthere);
+  bool doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int &res);
+  bool doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int &res);
+  void getBestNSFromCache(const DNSName &qname, const QType &qtype, vector<DNSRecord>&bestns, bool* flawedNSSet, unsigned int depth, set<GetBestNSAnswer>& beenthere);
+  DNSName getBestNSNamesFromCache(const DNSName &qname, const QType &qtype, NsSet& nsset, bool* flawedNSSet, unsigned int depth, set<GetBestNSAnswer>&beenthere);
 
   inline vector<DNSName> shuffleInSpeedOrder(NsSet &nameservers, const string &prefix);
   bool moreSpecificThan(const DNSName& a, const DNSName &b);
-  vector<ComboAddress> getAddrs(const DNSName &qname, int depth, set<GetBestNSAnswer>& beenthere);
+  vector<ComboAddress> getAddrs(const DNSName &qname, unsigned int depth, set<GetBestNSAnswer>& beenthere);
 private:
   ostringstream d_trace;
   shared_ptr<RecursorLua4> d_pdl;
@@ -666,6 +679,7 @@ public:
   uint16_t bytesread{0};
   const ComboAddress d_remote;
   char data[65535]; // damn
+  size_t queriesCount{0};
 
   static unsigned int getCurrentConnections() { return s_currentConnections; }
 private:
@@ -724,9 +738,16 @@ uint64_t* pleaseWipeCache(const DNSName& canon, bool subtree=false);
 uint64_t* pleaseWipePacketCache(const DNSName& canon, bool subtree);
 uint64_t* pleaseWipeAndCountNegCache(const DNSName& canon, bool subtree=false);
 void doCarbonDump(void*);
-boost::optional<Netmask> getEDNSSubnetMask(const ComboAddress& local, const DNSName&dn, const ComboAddress& rem);
+boost::optional<Netmask> getEDNSSubnetMask(const ComboAddress& local, const DNSName&dn, const ComboAddress& rem, boost::optional<const EDNSSubnetOpts&> incomingECS);
 void  parseEDNSSubnetWhitelist(const std::string& wlist);
 
 extern __thread struct timeval g_now;
+
+extern NetmaskGroup g_ednssubnets;
+extern SuffixMatchNode g_ednsdomains;
+
+#ifdef HAVE_PROTOBUF
+extern __thread boost::uuids::random_generator* t_uuidGenerator;
+#endif
 
 #endif

@@ -35,7 +35,7 @@ class TestProtobuf(DNSDistTest):
     newServer{address="127.0.0.1:%s", useClientSubnet=true}
     rl = newRemoteLogger('127.0.0.1:%s')
     addAction(AllRule(), RemoteLogAction(rl, alterProtobuf))
-    addResponseAction(AllRule(), RemoteLogResponseAction(rl, alterProtobuf))
+    addResponseAction(AllRule(), RemoteLogResponseAction(rl, alterProtobuf, true))
     """
 
     @classmethod
@@ -145,9 +145,16 @@ class TestProtobuf(DNSDistTest):
         Protobuf: Send data to a protobuf server
         """
         name = 'query.protobuf.tests.powerdns.com.'
+        target = 'target.protobuf.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
         rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.CNAME,
+                                    target)
+        response.answer.append(rrset)
+        rrset = dns.rrset.from_text(target,
                                     3600,
                                     dns.rdataclass.IN,
                                     dns.rdatatype.A,
@@ -171,10 +178,13 @@ class TestProtobuf(DNSDistTest):
         # check the protobuf message corresponding to the UDP response
         msg = self.getFirstProtobufMessage()
         self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, response)
-        self.assertEquals(len(msg.response.rrs), 1)
-        for rr in msg.response.rrs:
-            self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 3600)
-            self.assertEquals(socket.inet_ntop(socket.AF_INET, rr.rdata), '127.0.0.1')
+        self.assertEquals(len(msg.response.rrs), 2)
+        rr = msg.response.rrs[0]
+        self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.CNAME, name, 3600)
+        self.assertEquals(rr.rdata, target)
+        rr = msg.response.rrs[1]
+        self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, target, 3600)
+        self.assertEquals(socket.inet_ntop(socket.AF_INET, rr.rdata), '127.0.0.1')
 
         (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
         self.assertTrue(receivedQuery)
@@ -193,10 +203,13 @@ class TestProtobuf(DNSDistTest):
         # check the protobuf message corresponding to the TCP response
         msg = self.getFirstProtobufMessage()
         self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.TCP, response)
-        self.assertEquals(len(msg.response.rrs), 1)
-        for rr in msg.response.rrs:
-            self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 3600)
-            self.assertEquals(socket.inet_ntop(socket.AF_INET, rr.rdata), '127.0.0.1')
+        self.assertEquals(len(msg.response.rrs), 2)
+        rr = msg.response.rrs[0]
+        self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.CNAME, name, 3600)
+        self.assertEquals(rr.rdata, target)
+        rr = msg.response.rrs[1]
+        self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, target, 3600)
+        self.assertEquals(socket.inet_ntop(socket.AF_INET, rr.rdata), '127.0.0.1')
 
     def testLuaProtobuf(self):
         """

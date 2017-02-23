@@ -491,6 +491,64 @@ BOOST_AUTO_TEST_CASE(test_suffixmatch) {
 
   smn.add(g_rootdnsname); // block the root
   BOOST_CHECK(smn.check(DNSName("a.root-servers.net.")));
+
+  DNSName examplenet("example.net.");
+  DNSName net("net.");
+  smn.add(examplenet);
+  smn.add(net);
+  BOOST_CHECK(smn.check(examplenet));
+  BOOST_CHECK(smn.check(net));
+}
+
+BOOST_AUTO_TEST_CASE(test_suffixmatch_tree) {
+  SuffixMatchTree<DNSName> smt;
+  DNSName ezdns("ezdns.it.");
+  smt.add(ezdns, ezdns);
+
+  smt.add(DNSName("org.").getRawLabels(), DNSName("org."));
+
+  DNSName wwwpowerdnscom("www.powerdns.com.");
+  DNSName wwwezdnsit("www.ezdns.it.");
+  BOOST_REQUIRE(smt.lookup(wwwezdnsit));
+  BOOST_CHECK_EQUAL(*smt.lookup(wwwezdnsit), ezdns);
+  BOOST_CHECK(smt.lookup(wwwpowerdnscom) == nullptr);
+
+  BOOST_REQUIRE(smt.lookup(DNSName("www.powerdns.org.")));
+  BOOST_CHECK_EQUAL(*smt.lookup(DNSName("www.powerdns.org.")), DNSName("org."));
+  BOOST_REQUIRE(smt.lookup(DNSName("www.powerdns.oRG.")));
+  BOOST_CHECK_EQUAL(*smt.lookup(DNSName("www.powerdns.oRG.")), DNSName("org."));
+
+  smt.add(DNSName("news.bbc.co.uk."), DNSName("news.bbc.co.uk."));
+  BOOST_REQUIRE(smt.lookup(DNSName("news.bbc.co.uk.")));
+  BOOST_CHECK_EQUAL(*smt.lookup(DNSName("news.bbc.co.uk.")), DNSName("news.bbc.co.uk."));
+  BOOST_REQUIRE(smt.lookup(DNSName("www.news.bbc.co.uk.")));
+  BOOST_CHECK_EQUAL(*smt.lookup(DNSName("www.news.bbc.co.uk.")), DNSName("news.bbc.co.uk."));
+  BOOST_REQUIRE(smt.lookup(DNSName("www.www.www.www.www.news.bbc.co.uk.")));
+  BOOST_CHECK_EQUAL(*smt.lookup(DNSName("www.www.www.www.www.news.bbc.co.uk.")), DNSName("news.bbc.co.uk."));
+  BOOST_CHECK(smt.lookup(DNSName("images.bbc.co.uk.")) == nullptr);
+  BOOST_CHECK(smt.lookup(DNSName("www.news.gov.uk.")) == nullptr);
+
+  smt.add(g_rootdnsname, g_rootdnsname); // block the root
+  BOOST_REQUIRE(smt.lookup(DNSName("a.root-servers.net.")));
+  BOOST_CHECK_EQUAL(*smt.lookup(DNSName("a.root-servers.net.")), g_rootdnsname);
+
+  DNSName apowerdnscom("a.powerdns.com.");
+  DNSName bpowerdnscom("b.powerdns.com.");
+  smt.add(apowerdnscom, apowerdnscom);
+  smt.add(bpowerdnscom, bpowerdnscom);
+  BOOST_REQUIRE(smt.lookup(apowerdnscom));
+  BOOST_CHECK_EQUAL(*smt.lookup(apowerdnscom), apowerdnscom);
+  BOOST_REQUIRE(smt.lookup(bpowerdnscom));
+  BOOST_CHECK_EQUAL(*smt.lookup(bpowerdnscom), bpowerdnscom);
+
+  DNSName examplenet("example.net.");
+  DNSName net("net.");
+  smt.add(examplenet, examplenet);
+  smt.add(net, net);
+  BOOST_REQUIRE(smt.lookup(examplenet));
+  BOOST_CHECK_EQUAL(*smt.lookup(examplenet), examplenet);
+  BOOST_REQUIRE(smt.lookup(net));
+  BOOST_CHECK_EQUAL(*smt.lookup(net), net);
 }
 
 
@@ -541,7 +599,7 @@ BOOST_AUTO_TEST_CASE(test_compare_canonical) {
   vector<DNSName> vec;
   for(const std::string& a : {"bert.com.", "alpha.nl.", "articles.xxx.",
 	"Aleph1.powerdns.com.", "ZOMG.powerdns.com.", "aaa.XXX.", "yyy.XXX.", 
-	"test.powerdns.com."}) {
+	"test.powerdns.com.", "\\128.com"}) {
     vec.push_back(DNSName(a));
   }
   sort(vec.begin(), vec.end(), CanonDNSNameCompare());
@@ -552,6 +610,7 @@ BOOST_AUTO_TEST_CASE(test_compare_canonical) {
   for(const auto& a: {"bert.com.",  "Aleph1.powerdns.com.",
 	"test.powerdns.com.",
 	"ZOMG.powerdns.com.",
+	"\\128.com.",
 	"alpha.nl.",
 	"aaa.XXX.",
 	"articles.xxx.",
@@ -709,8 +768,26 @@ BOOST_AUTO_TEST_CASE(test_compression_qtype_qclass) { // Compression test with Q
     string name("\x03""com\x00""\x07""example\xc1""\x00""\x03""www\xc1""\x05""\x00""\x01""\x00", 24);
     name.insert(0, 256, '0');
 
-    BOOST_CHECK_THROW(DNSName dn(name.c_str(), name.size(), 271, true, &qtype, &qclass), std::range_error);;
+    BOOST_CHECK_THROW(DNSName dn(name.c_str(), name.size(), 271, true, &qtype, &qclass), std::range_error);
   }
+}
+
+BOOST_AUTO_TEST_CASE(test_compression_single_bit_set) { // first 2 bits as 10 or 01, not 11
+
+  // first 2 bits: 10
+  {
+    string name("\x03""com\x00""\x07""example\x80""\x00""\x03""www\x80""\x05", 21);
+
+    BOOST_CHECK_THROW(DNSName dn(name.c_str(), name.size(), 15, true), std::range_error);
+  }
+
+  // first 2 bits: 01
+  {
+    string name("\x03""com\x00""\x07""example\x40""\x00""\x03""www\x40""\x05", 21);
+
+    BOOST_CHECK_THROW(DNSName dn(name.c_str(), name.size(), 15, true), std::range_error);
+  }
+
 }
 
 BOOST_AUTO_TEST_CASE(test_pointer_pointer_root) { // Pointer to pointer to root

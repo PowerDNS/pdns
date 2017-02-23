@@ -521,7 +521,7 @@ OracleBackend::getBeforeAndAfterNames (
 
 bool
 OracleBackend::getBeforeAndAfterNamesAbsolute(uint32_t zoneId,
-  const string& name, DNSName& unhashed, string& before, string& after)
+  const DNSName& name, DNSName& unhashed, DNSName& before, DNSName& after)
 {
   if(!d_dnssecQueries)
     return -1; 
@@ -536,7 +536,7 @@ OracleBackend::getBeforeAndAfterNamesAbsolute(uint32_t zoneId,
   bind_str_ind(stmt, ":prev", mResultPrevName, sizeof(mResultPrevName), &mResultPrevNameInd);
   bind_str_ind(stmt, ":next", mResultNextName, sizeof(mResultNextName), &mResultNextNameInd);
   bind_uint32(stmt, ":zoneid", &zoneId);
-  string_to_cbuf(mQueryName, name, sizeof(mQueryName));
+  string_to_cbuf(mQueryName, name.labelReverse().toString(" ", false)), sizeof(mQueryName));
   mResultNameInd = -1;
   mResultPrevNameInd = -1;
   mResultNextNameInd = -1;
@@ -554,8 +554,8 @@ OracleBackend::getBeforeAndAfterNamesAbsolute(uint32_t zoneId,
   check_indicator(mResultNextNameInd, false);
 
   unhashed = DNSName(mResultName);
-  before = mResultPrevName;
-  after = mResultNextName;
+  before = DNSName(boost::replace_all_copy(mResultPrevName," ",".")).labelReverse();
+  after = DNSName(boost::replace_all_copy(mResultNextName," ",".")).labelReverse();
 
   release_query(stmt, prevNextHashQueryKey);
   return true;
@@ -1557,7 +1557,7 @@ OracleBackend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
 }
 
 bool
-OracleBackend::getDomainKeys (const DNSName& name, unsigned int kind, vector<KeyData>& keys)
+OracleBackend::getDomainKeys (const DNSName& name, vector<KeyData>& keys)
 {
   if(!d_dnssecQueries)
     return -1;
@@ -2103,7 +2103,7 @@ private:
     sword err;
 
     try {
-      // set some envionment variables
+      // set some environment variables
       setenv("ORACLE_HOME", arg()["oracle-home"].c_str(), 1);
       setenv("ORACLE_SID", arg()["oracle-sid"].c_str(), 1);
       setenv("NLS_LANG", arg()["oracle-nls-lang"].c_str(), 1);

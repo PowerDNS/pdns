@@ -73,4 +73,5 @@ std::vector<ComboAddress>* pleaseGetServfailRemotes();
 std::vector<ComboAddress>* pleaseGetLargeAnswerRemotes();
 DNSName getRegisteredName(const DNSName& dom);
 std::atomic<unsigned long>* getDynMetric(const std::string& str);
+optional<uint64_t> getStatByName(const std::string& name);
 #endif 

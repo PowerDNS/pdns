@@ -37,6 +37,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "dnsdist-lua.hh"
+
 boost::tribool g_noLuaSideEffect;
 static bool g_included{false};
 
@@ -84,18 +86,31 @@ map<ComboAddress,int> filterScore(const map<ComboAddress, unsigned int,ComboAddr
 
 typedef std::function<void(const StatNode&, const StatNode::Stat&, const StatNode::Stat&)> statvisitor_t;
 
-void statNodeRespRing(statvisitor_t visitor)
+static void statNodeRespRing(statvisitor_t visitor, unsigned int seconds)
 {
+  struct timespec cutoff, now;
+  gettime(&now);
+  if (seconds) {
+    cutoff = now;
+    cutoff.tv_sec -= seconds;
+  }
+
   std::lock_guard<std::mutex> lock(g_rings.respMutex);
   
   StatNode root;
   for(const auto& c : g_rings.respRing) {
+    if (now < c.when)
+      continue;
+
+    if (seconds && c.when < cutoff)
+      continue;
+
     root.submit(c.name, c.dh.rcode, c.requestor);
   }
   StatNode::Stat node;
 
-  root.visit([&visitor](const StatNode* node, const StatNode::Stat& self, const StatNode::Stat& children) {
-      visitor(*node, self, children);},  node);  
+  root.visit([&visitor](const StatNode* node_, const StatNode::Stat& self, const StatNode::Stat& children) {
+      visitor(*node_, self, children);},  node);
 
 }
 
@@ -355,7 +370,9 @@ void moreLua(bool client)
   g_lua.registerMember("nxdomains", &StatNode::Stat::nxdomains);
   g_lua.registerMember("queries", &StatNode::Stat::queries);
 
-  g_lua.writeFunction("statNodeRespRing", statNodeRespRing);
+  g_lua.writeFunction("statNodeRespRing", [](statvisitor_t visitor, boost::optional<unsigned int> seconds) {
+      statNodeRespRing(visitor, seconds ? *seconds : 0);
+    });
 
   g_lua.writeFunction("getTopBandwidth", [](unsigned int top) {
       setLuaNoSideEffect();
@@ -666,8 +683,8 @@ void moreLua(bool client)
         }
     });
 
-    g_lua.writeFunction("newPacketCache", [client](size_t maxEntries, boost::optional<uint32_t> maxTTL, boost::optional<uint32_t> minTTL, boost::optional<uint32_t> servFailTTL, boost::optional<uint32_t> staleTTL) {
-        return std::make_shared<DNSDistPacketCache>(maxEntries, maxTTL ? *maxTTL : 86400, minTTL ? *minTTL : 0, servFailTTL ? *servFailTTL : 60, staleTTL ? *staleTTL : 60);
+    g_lua.writeFunction("newPacketCache", [client](size_t maxEntries, boost::optional<uint32_t> maxTTL, boost::optional<uint32_t> minTTL, boost::optional<uint32_t> tempFailTTL, boost::optional<uint32_t> staleTTL) {
+        return std::make_shared<DNSDistPacketCache>(maxEntries, maxTTL ? *maxTTL : 86400, minTTL ? *minTTL : 0, tempFailTTL ? *tempFailTTL : 60, staleTTL ? *staleTTL : 60);
       });
     g_lua.registerFunction("toString", &DNSDistPacketCache::toString);
     g_lua.registerFunction("isFull", &DNSDistPacketCache::isFull);
@@ -723,9 +740,9 @@ void moreLua(bool client)
         throw std::runtime_error("Protobuf support is required to use RemoteLogAction");
 #endif
       });
-    g_lua.writeFunction("RemoteLogResponseAction", [](std::shared_ptr<RemoteLogger> logger, boost::optional<std::function<void(const DNSResponse&, DNSDistProtoBufMessage*)> > alterFunc) {
+    g_lua.writeFunction("RemoteLogResponseAction", [](std::shared_ptr<RemoteLogger> logger, boost::optional<std::function<void(const DNSResponse&, DNSDistProtoBufMessage*)> > alterFunc, boost::optional<bool> includeCNAME) {
 #ifdef HAVE_PROTOBUF
-        return std::shared_ptr<DNSResponseAction>(new RemoteLogResponseAction(logger, alterFunc));
+        return std::shared_ptr<DNSResponseAction>(new RemoteLogResponseAction(logger, alterFunc, includeCNAME ? *includeCNAME : false));
 #else
         throw std::runtime_error("Protobuf support is required to use RemoteLogResponseAction");
 #endif
@@ -795,6 +812,14 @@ void moreLua(bool client)
 
     g_lua.registerFunction("getStats", &DNSAction::getStats);
 
+  g_lua.writeFunction("addResponseAction", [](luadnsrule_t var, std::shared_ptr<DNSResponseAction> ea) {
+      setLuaSideEffect();
+      auto rule=makeRule(var);
+      g_resprulactions.modify([rule, ea](decltype(g_resprulactions)::value_type& rulactions){
+          rulactions.push_back({rule, ea});
+        });
+    });
+
     g_lua.writeFunction("showResponseRules", []() {
         setLuaNoSideEffect();
         boost::format fmt("%-3d %9d %-50s %s\n");
@@ -848,6 +873,67 @@ void moreLua(bool client)
         g_resprulactions.setState(rules);
       });
 
+    g_lua.writeFunction("addCacheHitResponseAction", [](luadnsrule_t var, std::shared_ptr<DNSResponseAction> ea) {
+        setLuaSideEffect();
+        auto rule=makeRule(var);
+        g_cachehitresprulactions.modify([rule, ea](decltype(g_cachehitresprulactions)::value_type& rulactions){
+            rulactions.push_back({rule, ea});
+          });
+      });
+
+    g_lua.writeFunction("showCacheHitResponseRules", []() {
+        setLuaNoSideEffect();
+        boost::format fmt("%-3d %9d %-50s %s\n");
+        g_outputBuffer += (fmt % "#" % "Matches" % "Rule" % "Action").str();
+        int num=0;
+        for(const auto& lim : g_cachehitresprulactions.getCopy()) {
+          string name = lim.first->toString();
+          g_outputBuffer += (fmt % num % lim.first->d_matches % name % lim.second->toString()).str();
+          ++num;
+        }
+      });
+
+    g_lua.writeFunction("rmCacheHitResponseRule", [](unsigned int num) {
+        setLuaSideEffect();
+        auto rules = g_cachehitresprulactions.getCopy();
+        if(num >= rules.size()) {
+          g_outputBuffer = "Error: attempt to delete non-existing rule\n";
+          return;
+        }
+        rules.erase(rules.begin()+num);
+        g_cachehitresprulactions.setState(rules);
+      });
+
+    g_lua.writeFunction("topCacheHitResponseRule", []() {
+        setLuaSideEffect();
+        auto rules = g_cachehitresprulactions.getCopy();
+        if(rules.empty())
+          return;
+        auto subject = *rules.rbegin();
+        rules.erase(std::prev(rules.end()));
+        rules.insert(rules.begin(), subject);
+        g_cachehitresprulactions.setState(rules);
+      });
+
+    g_lua.writeFunction("mvCacheHitResponseRule", [](unsigned int from, unsigned int to) {
+        setLuaSideEffect();
+        auto rules = g_cachehitresprulactions.getCopy();
+        if(from >= rules.size() || to > rules.size()) {
+          g_outputBuffer = "Error: attempt to move rules from/to invalid index\n";
+          return;
+        }
+        auto subject = rules[from];
+        rules.erase(rules.begin()+from);
+        if(to == rules.size())
+          rules.push_back(subject);
+        else {
+          if(from < to)
+            --to;
+          rules.insert(rules.begin()+to, subject);
+        }
+        g_cachehitresprulactions.setState(rules);
+      });
+
     g_lua.writeFunction("showBinds", []() {
       setLuaNoSideEffect();
       try {
@@ -878,6 +964,8 @@ void moreLua(bool client)
         setLuaNoSideEffect();
         return fe.local.toStringWithPort();
       });
+
+    g_lua.registerMember("muted", &ClientState::muted);
 
     g_lua.writeFunction("help", [](boost::optional<std::string> command) {
         setLuaNoSideEffect();
@@ -1127,5 +1215,80 @@ void moreLua(bool client)
     g_lua.writeFunction("setServFailWhenNoServer", [](bool servfail) {
         setLuaSideEffect();
         g_servFailOnNoPolicy = servfail;
+      });
+
+    g_lua.writeFunction("setRingBuffersSize", [](size_t capacity) {
+        setLuaSideEffect();
+        if (g_configurationDone) {
+          errlog("setRingBuffersSize() cannot be used at runtime!");
+          g_outputBuffer="setRingBuffersSize() cannot be used at runtime!\n";
+          return;
+        }
+        g_rings.setCapacity(capacity);
+      });
+
+    g_lua.writeFunction("RDRule", []() {
+      return std::shared_ptr<DNSRule>(new RDRule());
+    });
+
+    g_lua.writeFunction("setWHashedPertubation", [](uint32_t pertub) {
+        setLuaSideEffect();
+        g_hashperturb = pertub;
+      });
+
+    g_lua.writeFunction("setTCPUseSinglePipe", [](bool flag) {
+        if (g_configurationDone) {
+          g_outputBuffer="setTCPUseSinglePipe() cannot be used at runtime!\n";
+          return;
+        }
+        setLuaSideEffect();
+        g_useTCPSinglePipe = flag;
+      });
+
+    g_lua.writeFunction("snmpAgent", [](bool enableTraps, boost::optional<std::string> masterSocket) {
+#ifdef HAVE_NET_SNMP
+        if (g_configurationDone) {
+          errlog("snmpAgent() cannot be used at runtime!");
+          g_outputBuffer="snmpAgent() cannot be used at runtime!\n";
+          return;
+        }
+
+        if (g_snmpEnabled) {
+          errlog("snmpAgent() cannot be used twice!");
+          g_outputBuffer="snmpAgent() cannot be used twice!\n";
+          return;
+        }
+
+        g_snmpEnabled = true;
+        g_snmpTrapsEnabled = enableTraps;
+        g_snmpAgent = new DNSDistSNMPAgent("dnsdist", masterSocket ? *masterSocket : std::string());
+#else
+        errlog("NET SNMP support is required to use snmpAgent()");
+        g_outputBuffer="NET SNMP support is required to use snmpAgent()\n";
+#endif /* HAVE_NET_SNMP */
+      });
+
+    g_lua.writeFunction("SNMPTrapAction", [](boost::optional<std::string> reason) {
+#ifdef HAVE_NET_SNMP
+        return std::shared_ptr<DNSAction>(new SNMPTrapAction(reason ? *reason : ""));
+#else
+        throw std::runtime_error("NET SNMP support is required to use SNMPTrapAction()");
+#endif /* HAVE_NET_SNMP */
+      });
+
+    g_lua.writeFunction("SNMPTrapResponseAction", [](boost::optional<std::string> reason) {
+#ifdef HAVE_NET_SNMP
+        return std::shared_ptr<DNSResponseAction>(new SNMPTrapResponseAction(reason ? *reason : ""));
+#else
+        throw std::runtime_error("NET SNMP support is required to use SNMPTrapResponseAction()");
+#endif /* HAVE_NET_SNMP */
+      });
+
+    g_lua.writeFunction("sendCustomTrap", [](const std::string& str) {
+#ifdef HAVE_NET_SNMP
+        if (g_snmpAgent && g_snmpTrapsEnabled) {
+          g_snmpAgent->sendCustomTrap(str);
+        }
+#endif /* HAVE_NET_SNMP */
       });
 }

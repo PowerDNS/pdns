@@ -248,6 +248,35 @@ class TestAPIBasics(DNSDistTest):
             for key in ['blocks']:
                 self.assertTrue(content[key] >= 0)
 
+class TestAPIServerDown(DNSDistTest):
+
+    _webTimeout = 2.0
+    _webServerPort = 8083
+    _webServerBasicAuthPassword = 'secret'
+    _webServerAPIKey = 'apisecret'
+    # paths accessible using the API key
+    _config_params = ['_testServerPort', '_webServerPort', '_webServerBasicAuthPassword', '_webServerAPIKey']
+    _config_template = """
+    setACL({"127.0.0.1/32", "::1/128"})
+    newServer{address="127.0.0.1:%s"}
+    getServer(0):setDown()
+    webserver("127.0.0.1:%s", "%s", "%s")
+    """
+
+    def testServerDownNoLatencyLocalhost(self):
+        """
+        API: /api/v1/servers/localhost, no latency for a down server
+        """
+        headers = {'x-api-key': self._webServerAPIKey}
+        url = 'http://127.0.0.1:' + str(self._webServerPort) + '/api/v1/servers/localhost'
+        r = requests.get(url, headers=headers, timeout=self._webTimeout)
+        self.assertTrue(r)
+        self.assertEquals(r.status_code, 200)
+        self.assertTrue(r.json())
+        content = r.json()
+
+        self.assertEquals(content['servers'][0]['latency'], None)
+
 class TestAPIWritable(DNSDistTest):
 
     _webTimeout = 2.0

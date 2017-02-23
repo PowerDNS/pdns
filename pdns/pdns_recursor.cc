@@ -1,25 +1,24 @@
 /*
-    PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2003 - 2016  PowerDNS.COM BV
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2
-    as published by the Free Software Foundation
-
-    Additionally, the license of this program contains a special
-    exception which allows to distribute the program in binary form when
-    it is linked against OpenSSL.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-*/
-
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -33,6 +32,9 @@
 #include "recpacketcache.hh"
 #include "utility.hh"
 #include "dns_random.hh"
+#ifdef HAVE_LIBSODIUM
+#include <sodium.h>
+#endif
 #include "opensslsigners.hh"
 #include <iostream>
 #include <errno.h>
@@ -85,14 +87,16 @@ extern SortList g_sortlist;
 #include "gettime.hh"
 
 #include "rec-protobuf.hh"
+#include "rec-snmp.hh"
 
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
 #endif
 
 __thread FDMultiplexer* t_fdm;
-__thread unsigned int t_id;
+static __thread unsigned int t_id;
 unsigned int g_maxTCPPerClient;
+size_t g_tcpMaxQueriesPerConn;
 unsigned int g_networkTimeoutMsec;
 uint64_t g_latencyStatSize;
 bool g_logCommonErrors;
@@ -110,8 +114,6 @@ __thread shared_ptr<Regex>* t_traceRegex;
 __thread boost::uuids::random_generator* t_uuidGenerator;
 #endif
 
-NetmaskGroup g_ednssubnets;
-SuffixMatchNode g_ednsdomains;
 
 RecursorControlChannel s_rcc; // only active in thread 0
 
@@ -167,7 +169,7 @@ unsigned int g_numThreads, g_numWorkerThreads;
 
 //! used to send information to a newborn mthread
 struct DNSComboWriter {
-  DNSComboWriter(const char* data, uint16_t len, const struct timeval& now) : d_mdp(data, len), d_now(now),
+  DNSComboWriter(const char* data, uint16_t len, const struct timeval& now) : d_mdp(true, data, len), d_now(now),
                                                                                                         d_tcp(false), d_socket(-1)
   {}
   MOADNSParser d_mdp;
@@ -196,8 +198,10 @@ struct DNSComboWriter {
   ComboAddress d_remote, d_local;
 #ifdef HAVE_PROTOBUF
   boost::uuids::uuid d_uuid;
-  Netmask d_ednssubnet;
 #endif
+  EDNSSubnetOpts d_ednssubnet;
+  bool d_ecsFound{false};
+  bool d_ecsParsed{false};
   bool d_tcp;
   int d_socket;
   int d_tag{0};
@@ -205,6 +209,7 @@ struct DNSComboWriter {
   shared_ptr<TCPConnection> d_tcpConnection;
   vector<pair<uint16_t, string> > d_ednsOpts;
   std::vector<std::string> d_policyTags;
+  std::unordered_map<string,string> d_data;
 };
 
 
@@ -214,6 +219,10 @@ ArgvMap &arg()
   return theArg;
 }
 
+unsigned int getRecursorThreadId()
+{
+  return t_id;
+}
 
 void handleTCPClientWritable(int fd, FDMultiplexer::funcparam_t& var);
 
@@ -384,7 +393,13 @@ public:
     if(connect(*fd, (struct sockaddr*)(&toaddr), toaddr.getSocklen()) < 0) {
       int err = errno;
       //      returnSocket(*fd);
-      closesocket(*fd);
+      try {
+        closesocket(*fd);
+      }
+      catch(const PDNSException& e) {
+        L<<Logger::Error<<"Error closing UDP socket after connect() failed: "<<e.reason<<endl;
+      }
+
       if(err==ENETUNREACH) // Seth "My Interfaces Are Like A Yo Yo" Arnold special
         return -2;
       return -1;
@@ -416,7 +431,12 @@ public:
     catch(FDMultiplexerException& e) {
       // we sometimes return a socket that has not yet been assigned to t_fdm
     }
-    closesocket(*i);
+    try {
+      closesocket(*i);
+    }
+    catch(const PDNSException& e) {
+      L<<Logger::Error<<"Error closing returned UDP socket: "<<e.reason<<endl;
+    }
 
     d_socks.erase(i++);
     --d_numsocks;
@@ -567,8 +587,14 @@ TCPConnection::TCPConnection(int fd, const ComboAddress& addr) : d_remote(addr),
 
 TCPConnection::~TCPConnection()
 {
-  if(closesocket(d_fd) < 0)
-    unixDie("closing socket for TCPConnection");
+  try {
+    if(closesocket(d_fd) < 0)
+      L<<Logger::Error<<"Error closing socket for TCPConnection"<<endl;
+  }
+  catch(const PDNSException& e) {
+    L<<Logger::Error<<"Error closing TCPConnection socket: "<<e.reason<<endl;
+  }
+
   if(t_tcpClientCounts->count(d_remote) && !(*t_tcpClientCounts)[d_remote]--)
     t_tcpClientCounts->erase(d_remote);
   --s_currentConnections;
@@ -678,7 +704,18 @@ void startDoResolve(void *p)
 	maxanswersize = min(edo.d_packetsize, g_udpTruncationThreshold);
       dc->d_ednsOpts = edo.d_options;
       haveEDNS=true;
+
+      if (g_useIncomingECS && !dc->d_ecsParsed) {
+        for (const auto& o : edo.d_options) {
+          if (o.first == EDNSOptionCode::ECS) {
+            dc->d_ecsFound = getEDNSSubnetOptsFromString(o.second, &dc->d_ednssubnet);
+            break;
+          }
+        }
+      }
     }
+    /* perhaps there was no EDNS or no ECS but by now we looked */
+    dc->d_ecsParsed = true;
     vector<DNSRecord> ret;
     vector<uint8_t> packet;
 
@@ -691,7 +728,7 @@ void startDoResolve(void *p)
       Netmask requestorNM(dc->d_remote, dc->d_remote.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
       const ComboAddress& requestor = requestorNM.getMaskedNetwork();
       pbMessage.update(dc->d_uuid, &requestor, &dc->d_local, dc->d_tcp, dc->d_mdp.d_header.id);
-      pbMessage.setEDNSSubnet(dc->d_ednssubnet, dc->d_ednssubnet.isIpv4() ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
+      pbMessage.setEDNSSubnet(dc->d_ednssubnet.source, dc->d_ednssubnet.source.isIpv4() ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
       pbMessage.setQuestion(dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass);
     }
 #endif /* HAVE_PROTOBUF */
@@ -708,7 +745,7 @@ void startDoResolve(void *p)
 
     // DO NOT MOVE THIS CODE UP - DNSPacketWriter needs to get the original-cased version
     if (g_lowercaseOutgoing)
-      dc->d_mdp.d_qname = DNSName(toLower(dc->d_mdp.d_qname.toString()));
+      dc->d_mdp.d_qname = dc->d_mdp.d_qname.makeLowerCase();
 
     uint32_t minTTL=std::numeric_limits<uint32_t>::max();
 
@@ -731,24 +768,34 @@ void startDoResolve(void *p)
       // Ignore the client-set CD flag
       pw.getHeader()->cd=0;
     }
+#ifdef HAVE_PROTOBUF
+    sr.d_initialRequestId = dc->d_uuid;
+#endif
+    if (g_useIncomingECS) {
+      sr.d_incomingECSFound = dc->d_ecsFound;
+      if (dc->d_ecsFound) {
+        sr.d_incomingECS = dc->d_ednssubnet;
+      }
+    }
 
     bool tracedQuery=false; // we could consider letting Lua know about this too
     bool variableAnswer = false;
     bool shouldNotValidate = false;
 
-    int res;
+    /* preresolve expects res (dq.rcode) to be set to RCode::NoError by default */
+    int res = RCode::NoError;
     DNSFilterEngine::Policy appliedPolicy;
     DNSRecord spoofed;
-    std::shared_ptr<RecursorLua4::DNSQuestion> dq = nullptr;
-    if (t_pdl->get() && (*t_pdl)->needDQ()) {
-      dq = std::make_shared<RecursorLua4::DNSQuestion>(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_tcp, variableAnswer, wantsRPZ);
-      dq->ednsOptions = &dc->d_ednsOpts;
-      dq->tag = dc->d_tag;
-      dq->discardedPolicies = &sr.d_discardedPolicies;
-      dq->policyTags = &dc->d_policyTags;
-      dq->appliedPolicy = &appliedPolicy;
-      dq->currentRecords = &ret;
-    }
+    RecursorLua4::DNSQuestion dq(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_tcp, variableAnswer, wantsRPZ);
+    dq.ednsFlags = &edo.d_Z;
+    dq.ednsOptions = &dc->d_ednsOpts;
+    dq.tag = dc->d_tag;
+    dq.discardedPolicies = &sr.d_discardedPolicies;
+    dq.policyTags = &dc->d_policyTags;
+    dq.appliedPolicy = &appliedPolicy;
+    dq.currentRecords = &ret;
+    dq.dh = &dc->d_mdp.d_header;
+    dq.data = dc->d_data;
 
     if(dc->d_mdp.d_qtype==QType::ANY && !dc->d_tcp && g_anyToTcp) {
       pw.getHeader()->tc = 1;
@@ -766,11 +813,9 @@ void startDoResolve(void *p)
     if(!g_quiet || tracedQuery) {
       L<<Logger::Warning<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] " << (dc->d_tcp ? "TCP " : "") << "question for '"<<dc->d_mdp.d_qname<<"|"
        <<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype)<<"' from "<<dc->getRemote();
-#ifdef HAVE_PROTOBUF
-      if(!dc->d_ednssubnet.empty()) {
-        L<<" (ecs "<<dc->d_ednssubnet.toString()<<")";
+      if(!dc->d_ednssubnet.source.empty()) {
+        L<<" (ecs "<<dc->d_ednssubnet.source.toString()<<")";
       }
-#endif
       L<<endl;
     }
 
@@ -989,7 +1034,11 @@ void startDoResolve(void *p)
             L<<Logger::Warning<<"Starting validation of answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<" for "<<dc->d_remote.toStringWithPort()<<endl;
           }
           
-          auto state=validateRecords(ret);
+          ResolveContext ctx;
+#ifdef HAVE_PROTOBUF
+          ctx.d_initialRequestId = dc->d_uuid;
+#endif
+          auto state=validateRecords(ctx, ret);
           if(state == Secure) {
             if(sr.doLog()) {
               L<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<" for "<<dc->d_remote.toStringWithPort()<<" validates correctly"<<endl;
@@ -1132,15 +1181,15 @@ void startDoResolve(void *p)
       iov[0].iov_base=(void*)buf;              iov[0].iov_len=2;
       iov[1].iov_base=(void*)&*packet.begin(); iov[1].iov_len = packet.size();
 
-      int ret=Utility::writev(dc->d_socket, iov, 2);
+      int wret=Utility::writev(dc->d_socket, iov, 2);
       bool hadError=true;
 
-      if(ret == 0)
+      if(wret == 0)
         L<<Logger::Error<<"EOF writing TCP answer to "<<dc->getRemote()<<endl;
-      else if(ret < 0 )
+      else if(wret < 0 )
         L<<Logger::Error<<"Error writing TCP answer to "<<dc->getRemote()<<": "<< strerror(errno) <<endl;
-      else if((unsigned int)ret != 2 + packet.size())
-        L<<Logger::Error<<"Oops, partial answer sent to "<<dc->getRemote()<<" for "<<dc->d_mdp.d_qname<<" (size="<< (2 + packet.size()) <<", sent "<<ret<<")"<<endl;
+      else if((unsigned int)wret != 2 + packet.size())
+        L<<Logger::Error<<"Oops, partial answer sent to "<<dc->getRemote()<<" for "<<dc->d_mdp.d_qname<<" (size="<< (2 + packet.size()) <<", sent "<<wret<<")"<<endl;
       else
         hadError=false;
 
@@ -1151,10 +1200,16 @@ void startDoResolve(void *p)
         dc->d_socket = -1;
       }
       else {
-        dc->d_tcpConnection->state=TCPConnection::BYTE0;
-        Utility::gettimeofday(&g_now, 0); // needs to be updated
-        t_fdm->addReadFD(dc->d_socket, handleRunningTCPQuestion, dc->d_tcpConnection);
-        t_fdm->setReadTTD(dc->d_socket, g_now, g_tcpTimeout);
+        dc->d_tcpConnection->queriesCount++;
+        if (g_tcpMaxQueriesPerConn && dc->d_tcpConnection->queriesCount >= g_tcpMaxQueriesPerConn) {
+          dc->d_socket = -1;
+        }
+        else {
+          dc->d_tcpConnection->state=TCPConnection::BYTE0;
+          Utility::gettimeofday(&g_now, 0); // needs to be updated
+          t_fdm->addReadFD(dc->d_socket, handleRunningTCPQuestion, dc->d_tcpConnection);
+          t_fdm->setReadTTD(dc->d_socket, g_now, g_tcpTimeout);
+        }
       }
     }
 
@@ -1245,8 +1300,9 @@ void makeControlChannelSocket(int processNum=-1)
   }
 }
 
-static void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* qtype, uint16_t* qclass, Netmask* ednssubnet)
+static bool getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* qtype, uint16_t* qclass, EDNSSubnetOpts* ednssubnet)
 {
+  bool found = false;
   const struct dnsheader* dh = (struct dnsheader*)question.c_str();
   size_t questionLen = question.length();
   unsigned int consumed=0;
@@ -1264,11 +1320,13 @@ static void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uin
       if (res == 0 && ecsLen > 4) {
         EDNSSubnetOpts eso;
         if(getEDNSSubnetOptsFromString(ecsStart + 4, ecsLen - 4, &eso)) {
-          *ednssubnet=eso.source;
+          *ednssubnet=eso;
+          found = true;
         }
       }
     }
   }
+  return found;
 }
 
 void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
@@ -1334,7 +1392,6 @@ void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       socklen_t len = dest.getSocklen();
       getsockname(conn->getFD(), (sockaddr*)&dest, &len); // if this fails, we're ok with it
       dc->setLocal(dest);
-      Netmask ednssubnet;
       DNSName qname;
       uint16_t qtype=0;
       uint16_t qclass=0;
@@ -1349,11 +1406,12 @@ void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       if(needECS || (t_pdl->get() && (*t_pdl)->d_gettag)) {
 
         try {
-          getQNameAndSubnet(std::string(conn->data, conn->qlen), &qname, &qtype, &qclass, &ednssubnet);
+          dc->d_ecsParsed = true;
+          dc->d_ecsFound = getQNameAndSubnet(std::string(conn->data, conn->qlen), &qname, &qtype, &qclass, &dc->d_ednssubnet);
 
           if(t_pdl->get() && (*t_pdl)->d_gettag) {
             try {
-              dc->d_tag = (*t_pdl)->gettag(conn->d_remote, ednssubnet, dest, qname, qtype, &dc->d_policyTags);
+              dc->d_tag = (*t_pdl)->gettag(conn->d_remote, dc->d_ednssubnet.source, dest, qname, qtype, &dc->d_policyTags, dc->d_data);
             }
             catch(std::exception& e)  {
               if(g_logCommonErrors)
@@ -1368,15 +1426,16 @@ void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         }
       }
 #ifdef HAVE_PROTOBUF
-      if(luaconfsLocal->protobufServer) {
+      if(luaconfsLocal->protobufServer || luaconfsLocal->outgoingProtobufServer) {
         dc->d_uuid = (*t_uuidGenerator)();
+      }
 
+      if(luaconfsLocal->protobufServer) {
         try {
           const struct dnsheader* dh = (const struct dnsheader*) conn->data;
-          dc->d_ednssubnet = ednssubnet;
 
           if (!luaconfsLocal->protobufTaggedOnly) {
-            protobufLogQuery(luaconfsLocal->protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, dc->d_uuid, conn->d_remote, dest, ednssubnet, true, dh->id, conn->qlen, qname, qtype, qclass, dc->d_policyTags);
+            protobufLogQuery(luaconfsLocal->protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, dc->d_uuid, conn->d_remote, dest, dc->d_ednssubnet.source, true, dh->id, conn->qlen, qname, qtype, qclass, dc->d_policyTags);
           }
         }
         catch(std::exception& e) {
@@ -1416,7 +1475,12 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
   if(newsock>=0) {
     if(MT->numProcesses() > g_maxMThreads) {
       g_stats.overCapacityDrops++;
-      closesocket(newsock);
+      try {
+        closesocket(newsock);
+      }
+      catch(const PDNSException& e) {
+        L<<Logger::Error<<"Error closing TCP socket after an over capacity drop: "<<e.reason<<endl;
+      }
       return;
     }
 
@@ -1427,12 +1491,22 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
         L<<Logger::Error<<"["<<MT->getTid()<<"] dropping TCP query from "<<addr.toString()<<", address not matched by allow-from"<<endl;
 
       g_stats.unauthorizedTCP++;
-      closesocket(newsock);
+      try {
+        closesocket(newsock);
+      }
+      catch(const PDNSException& e) {
+        L<<Logger::Error<<"Error closing TCP socket after an ACL drop: "<<e.reason<<endl;
+      }
       return;
     }
     if(g_maxTCPPerClient && t_tcpClientCounts->count(addr) && (*t_tcpClientCounts)[addr] >= g_maxTCPPerClient) {
       g_stats.tcpClientOverflow++;
-      closesocket(newsock); // don't call TCPConnection::closeAndCleanup here - did not enter it in the counts yet!
+      try {
+        closesocket(newsock); // don't call TCPConnection::closeAndCleanup here - did not enter it in the counts yet!
+      }
+      catch(const PDNSException& e) {
+        L<<Logger::Error<<"Error closing TCP socket after an overflow drop: "<<e.reason<<endl;
+      }
       return;
     }
 
@@ -1468,15 +1542,20 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
   unsigned int ctag=0;
   bool needECS = false;
   std::vector<std::string> policyTags;
+  std::unordered_map<string,string> data;
 #ifdef HAVE_PROTOBUF
   boost::uuids::uuid uniqueId;
   auto luaconfsLocal = g_luaconfs.getLocal();
   if (luaconfsLocal->protobufServer) {
+    uniqueId = (*t_uuidGenerator)();
     needECS = true;
+  } else if (luaconfsLocal->outgoingProtobufServer) {
     uniqueId = (*t_uuidGenerator)();
   }
 #endif
-  Netmask ednssubnet;
+  EDNSSubnetOpts ednssubnet;
+  bool ecsFound = false;
+  bool ecsParsed = false;
   try {
     DNSName qname;
     uint16_t qtype=0;
@@ -1496,11 +1575,12 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
 
     if(needECS || (t_pdl->get() && (*t_pdl)->d_gettag)) {
       try {
-        getQNameAndSubnet(question, &qname, &qtype, &qclass, &ednssubnet);
+        ecsParsed = true;
+        ecsFound = getQNameAndSubnet(question, &qname, &qtype, &qclass, &ednssubnet);
 
         if(t_pdl->get() && (*t_pdl)->d_gettag) {
           try {
-            ctag=(*t_pdl)->gettag(fromaddr, ednssubnet, destaddr, qname, qtype, &policyTags);
+            ctag=(*t_pdl)->gettag(fromaddr, ednssubnet.source, destaddr, qname, qtype, &policyTags, data);
           }
           catch(std::exception& e)  {
             if(g_logCommonErrors)
@@ -1520,7 +1600,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
 #ifdef HAVE_PROTOBUF
     if(luaconfsLocal->protobufServer) {
       if (!luaconfsLocal->protobufTaggedOnly || !policyTags.empty()) {
-        protobufLogQuery(luaconfsLocal->protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, uniqueId, fromaddr, destaddr, ednssubnet, false, dh->id, question.size(), qname, qtype, qclass, policyTags);
+        protobufLogQuery(luaconfsLocal->protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, uniqueId, fromaddr, destaddr, ednssubnet.source, false, dh->id, question.size(), qname, qtype, qclass, policyTags);
       }
     }
 #endif /* HAVE_PROTOBUF */
@@ -1532,7 +1612,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
         Netmask requestorNM(fromaddr, fromaddr.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
         const ComboAddress& requestor = requestorNM.getMaskedNetwork();
         pbMessage.update(uniqueId, &requestor, &destaddr, false, dh->id);
-        pbMessage.setEDNSSubnet(ednssubnet, ednssubnet.isIpv4() ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
+        pbMessage.setEDNSSubnet(ednssubnet.source, ednssubnet.source.isIpv4() ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
         pbMessage.setQueryTime(g_now.tv_sec, g_now.tv_usec);
         protobufLogResponse(luaconfsLocal->protobufServer, pbMessage);
       }
@@ -1556,9 +1636,9 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
         L<<Logger::Warning<<"Sending UDP reply to client "<<fromaddr.toStringWithPort()<<" failed with: "<<strerror(errno)<<endl;
 
       if(response.length() >= sizeof(struct dnsheader)) {
-        struct dnsheader dh;
-        memcpy(&dh, response.c_str(), sizeof(dh));
-        updateResponseStats(dh.rcode, fromaddr, response.length(), 0, 0);
+        struct dnsheader tmpdh;
+        memcpy(&tmpdh, response.c_str(), sizeof(tmpdh));
+        updateResponseStats(tmpdh.rcode, fromaddr, response.length(), 0, 0);
       }
       g_stats.avgLatencyUsec=(1-1.0/g_latencyStatSize)*g_stats.avgLatencyUsec + 0.0; // we assume 0 usec
       return 0;
@@ -1594,11 +1674,14 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
   dc->setLocal(destaddr);
   dc->d_tcp=false;
   dc->d_policyTags = policyTags;
+  dc->d_data = data;
+  dc->d_ecsFound = ecsFound;
+  dc->d_ecsParsed = ecsParsed;
+  dc->d_ednssubnet = ednssubnet;
 #ifdef HAVE_PROTOBUF
-  if (luaconfsLocal->protobufServer) {
+  if (luaconfsLocal->protobufServer || luaconfsLocal->outgoingProtobufServer) {
     dc->d_uuid = uniqueId;
   }
-  dc->d_ednssubnet = ednssubnet;
 #endif
 
   MT->makeThread(startDoResolve, (void*) dc); // deletes dc
@@ -1656,7 +1739,7 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 	struct timeval tv={0,0};
 	HarvestTimestamp(&msgh, &tv);
 	ComboAddress dest;
-	memset(&dest, 0, sizeof(dest)); // this makes sure we igore this address if not returned by recvmsg above
+	memset(&dest, 0, sizeof(dest)); // this makes sure we ignore this address if not returned by recvmsg above
         auto loc = rplookup(g_listenSocketsAddresses, fd);
 	if(HarvestDestinationAddress(&msgh, &dest)) {
           // but.. need to get port too
@@ -1833,7 +1916,6 @@ void makeUDPServerSockets()
   
 #ifdef SO_REUSEPORT  
     if(::arg().mustDo("reuseport")) {
-      int one=1;
       if(setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &one, sizeof(one)) < 0)
         throw PDNSException("SO_REUSEPORT: "+stringerror());
     }
@@ -2548,33 +2630,6 @@ void parseACLs()
   l_initialized = true;
 }
 
-boost::optional<Netmask> getEDNSSubnetMask(const ComboAddress& local, const DNSName&dn, const ComboAddress& rem)
-{
-  if(local.sin4.sin_family != AF_INET || local.sin4.sin_addr.s_addr) { // detect unset 'requestor'
-    if(g_ednsdomains.check(dn) || g_ednssubnets.match(rem)) {
-      int bits =local.sin4.sin_family == AF_INET ? 24 : 56;
-      ComboAddress trunc(local);
-      trunc.truncate(bits);
-      return boost::optional<Netmask>(Netmask(trunc, bits));
-    }
-  }
-  return boost::optional<Netmask>();
-}
-
-void  parseEDNSSubnetWhitelist(const std::string& wlist)
-{
-  vector<string> parts;
-  stringtok(parts, wlist, ",; ");
-  for(const auto& a : parts) {
-    try {
-      Netmask nm(a);
-      g_ednssubnets.addMask(nm);
-    }
-    catch(...) {
-      g_ednsdomains.add(DNSName(a));
-    }
-  }
-}
 
 std::unordered_set<DNSName> g_delegationOnly;
 static void setupDelegationOnly()
@@ -2696,7 +2751,7 @@ int serviceMain(int argc, char*argv[])
   SyncRes::s_nopacketcache = ::arg().mustDo("disable-packetcache");
 
   SyncRes::s_maxnegttl=::arg().asNum("max-negative-ttl");
-  SyncRes::s_maxcachettl=::arg().asNum("max-cache-ttl");
+  SyncRes::s_maxcachettl=max(::arg().asNum("max-cache-ttl"), 15);
   SyncRes::s_packetcachettl=::arg().asNum("packetcache-ttl");
   // Cap the packetcache-servfail-ttl to the packetcache-ttl
   uint32_t packetCacheServFailTTL = ::arg().asNum("packetcache-servfail-ttl");
@@ -2706,6 +2761,7 @@ int serviceMain(int argc, char*argv[])
   SyncRes::s_serverID=::arg()["server-id"];
   SyncRes::s_maxqperq=::arg().asNum("max-qperq");
   SyncRes::s_maxtotusec=1000*::arg().asNum("max-total-msec");
+  SyncRes::s_maxdepth=::arg().asNum("max-recursion-depth");
   SyncRes::s_rootNXTrust = ::arg().mustDo( "root-nx-trust");
   if(SyncRes::s_serverID.empty()) {
     char tmp[128];
@@ -2730,6 +2786,7 @@ int serviceMain(int argc, char*argv[])
   makeTCPServerSockets();
 
   parseEDNSSubnetWhitelist(::arg()["edns-subnet-whitelist"]);
+  g_useIncomingECS = ::arg().mustDo("use-incoming-edns-subnet");
 
   int forks;
   for(forks = 0; forks < ::arg().asNum("processes") - 1; ++forks) {
@@ -2751,6 +2808,13 @@ int serviceMain(int argc, char*argv[])
   g_maxMThreads = ::arg().asNum("max-mthreads");
   checkOrFixFDS();
 
+#ifdef HAVE_LIBSODIUM
+  if (sodium_init() == -1) {
+    L<<Logger::Error<<"Unable to initialize sodium crypto library"<<endl;
+    exit(99);
+  }
+#endif
+
   openssl_thread_setup();
   openssl_seed();
 
@@ -2764,6 +2828,14 @@ int serviceMain(int argc, char*argv[])
   Utility::dropGroupPrivs(newuid, newgid);
 
   if (!::arg()["chroot"].empty()) {
+#ifdef HAVE_SYSTEMD
+     char *ns;
+     ns = getenv("NOTIFY_SOCKET");
+     if (ns != nullptr) {
+       L<<Logger::Error<<"Unable to chroot when running from systemd. Please disable chroot= or set the 'Type' for this service to 'simple'"<<endl;
+       exit(1);
+     }
+#endif
     if (chroot(::arg()["chroot"].c_str())<0 || chdir("/") < 0) {
       L<<Logger::Error<<"Unable to chroot to '"+::arg()["chroot"]+"': "<<strerror (errno)<<", exiting"<<endl;
       exit(1);
@@ -2785,6 +2857,12 @@ int serviceMain(int argc, char*argv[])
 
   g_tcpTimeout=::arg().asNum("client-tcp-timeout");
   g_maxTCPPerClient=::arg().asNum("max-tcp-per-client");
+  g_tcpMaxQueriesPerConn=::arg().asNum("max-tcp-queries-per-connection");
+
+  if (::arg().mustDo("snmp-agent")) {
+    g_snmpAgent = std::make_shared<RecursorSNMPAgent>("recursor", ::arg()["snmp-master-socket"]);
+    g_snmpAgent->run();
+  }
 
   if(g_numThreads == 1) {
     L<<Logger::Warning<<"Operating unthreaded"<<endl;
@@ -2990,7 +3068,7 @@ int main(int argc, char **argv)
     ::arg().set("chroot","switch to chroot jail")="";
     ::arg().set("setgid","If set, change group id to this gid for more security")="";
     ::arg().set("setuid","If set, change user id to this uid for more security")="";
-    ::arg().set("network-timeout", "Wait this nummer of milliseconds for network i/o")="1500";
+    ::arg().set("network-timeout", "Wait this number of milliseconds for network i/o")="1500";
     ::arg().set("threads", "Launch this number of threads")="2";
     ::arg().set("processes", "Launch this number of processes (EXPERIMENTAL, DO NOT CHANGE)")="1"; // if we un-experimental this, need to fix openssl rand seeding for multiple PIDs!
     ::arg().set("config-name","Name of this virtual configuration - will rename the binary image")="";
@@ -3004,7 +3082,7 @@ int main(int argc, char **argv)
     ::arg().set("webserver-password", "Password required for accessing the webserver") = "";
     ::arg().set("webserver-allow-from","Webserver access is only allowed from these subnets")="0.0.0.0/0,::/0";
     ::arg().set("carbon-ourname", "If set, overrides our reported hostname for carbon stats")="";
-    ::arg().set("carbon-server", "If set, send metrics in carbon (graphite) format to this server")="";
+    ::arg().set("carbon-server", "If set, send metrics in carbon (graphite) format to this server IP address")="";
     ::arg().set("carbon-interval", "Number of seconds between carbon (graphite) updates")="30";
     ::arg().set("quiet","Suppress logging of questions and answers")="";
     ::arg().set("logging-facility","Facility to log messages as. 0 corresponds to local0")="";
@@ -3037,6 +3115,7 @@ int main(int argc, char **argv)
     ::arg().set("entropy-source", "If set, read entropy from this file")="/dev/urandom";
     ::arg().set("dont-query", "If set, do not query these netmasks for DNS data")=DONT_QUERY;
     ::arg().set("max-tcp-per-client", "If set, maximum number of TCP sessions per client (IP address)")="0";
+    ::arg().set("max-tcp-queries-per-connection", "If set, maximum number of TCP queries in a TCP connection")="0";
     ::arg().set("spoof-nearmiss-max", "If non-zero, assume spoofing after this many near misses")="20";
     ::arg().set("single-socket", "If set, only use a single socket for outgoing queries")="off";
     ::arg().set("auth-zones", "Zones for which we have authoritative data, comma separated domain=file pairs ")="";
@@ -3048,12 +3127,15 @@ int main(int argc, char **argv)
     ::arg().set("export-etc-hosts", "If we should serve up contents from /etc/hosts")="off";
     ::arg().set("export-etc-hosts-search-suffix", "Also serve up the contents of /etc/hosts with this suffix")="";
     ::arg().set("etc-hosts-file", "Path to 'hosts' file")="/etc/hosts";
-    ::arg().set("serve-rfc1918", "If we should be authoritative for RFC 1918 private IP space")="";
+    ::arg().set("serve-rfc1918", "If we should be authoritative for RFC 1918 private IP space")="yes";
     ::arg().set("lua-dns-script", "Filename containing an optional 'lua' script that will be used to modify dns answers")="";
     ::arg().set("latency-statistic-size","Number of latency values to calculate the qa-latency average")="10000";
     ::arg().setSwitch( "disable-packetcache", "Disable packetcache" )= "no";
+    ::arg().set("ecs-ipv4-bits", "Number of bits of IPv4 address to pass for EDNS Client Subnet")="24";
+    ::arg().set("ecs-ipv6-bits", "Number of bits of IPv6 address to pass for EDNS Client Subnet")="56";
     ::arg().set("edns-subnet-whitelist", "List of netmasks and domains that we should enable EDNS subnet for")="";
-    ::arg().setSwitch( "pdns-distributes-queries", "If PowerDNS itself should distribute queries over threads")="";
+    ::arg().setSwitch( "use-incoming-edns-subnet", "Pass along received EDNS Client Subnet information")="";
+    ::arg().setSwitch( "pdns-distributes-queries", "If PowerDNS itself should distribute queries over threads")="yes";
     ::arg().setSwitch( "root-nx-trust", "If set, believe that an NXDOMAIN from the root means the TLD does not exist")="yes";
     ::arg().setSwitch( "any-to-tcp","Answer ANY queries with tc=1, shunting to TCP" )="no";
     ::arg().setSwitch( "lowercase-outgoing","Force outgoing questions to lowercase")="no";
@@ -3062,11 +3144,15 @@ int main(int argc, char **argv)
     ::arg().set("minimum-ttl-override", "Set under adverse conditions, a minimum TTL")="0";
     ::arg().set("max-qperq", "Maximum outgoing queries per query")="50";
     ::arg().set("max-total-msec", "Maximum total wall-clock time per query in milliseconds, 0 for unlimited")="7000";
+    ::arg().set("max-recursion-depth", "Maximum number of internal recursion calls per query, 0 for unlimited")="40";
 
     ::arg().set("include-dir","Include *.conf files from this directory")="";
     ::arg().set("security-poll-suffix","Domain name from which to query security update notifications")="secpoll.powerdns.com.";
     
     ::arg().setSwitch("reuseport","Enable SO_REUSEPORT allowing multiple recursors processes to listen to 1 address")="no";
+
+    ::arg().setSwitch("snmp-agent", "If set, register as an SNMP agent")="no";
+    ::arg().setSwitch("snmp-master-socket", "If set and snmp-agent is set, the socket to use to register to the SNMP master")="";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");
@@ -3158,7 +3244,8 @@ int getRootNS(void) {
   try {
     res=sr.beginResolve(g_rootdnsname, QType(QType::NS), 1, ret);
     if (g_dnssecmode != DNSSECMode::Off && g_dnssecmode != DNSSECMode::ProcessNoValidate) {
-      auto state = validateRecords(ret);
+      ResolveContext ctx;
+      auto state = validateRecords(ctx, ret);
       if (state == Bogus)
         throw PDNSException("Got Bogus validation result for .|NS");
     }

@@ -88,22 +88,6 @@ struct DnsCryptQueryHeader
 
 static_assert(sizeof(DnsCryptQueryHeader) == 52, "Dnscrypt query header size should be 52!");
 
-class DnsCryptQuery
-{
-public:
-  static const size_t minUDPLength = 256;
-
-  DnsCryptQueryHeader header;
-  DNSName qname;
-  DnsCryptContext* ctx;
-  uint16_t id{0};
-  uint16_t len{0};
-  uint16_t paddedLen;
-  bool useOldCert{false};
-  bool encrypted{false};
-  bool valid{false};
-};
-
 struct DnsCryptResponseHeader
 {
   const unsigned char resolverMagic[DNSCRYPT_RESOLVER_MAGIC_SIZE] = DNSCRYPT_RESOLVER_MAGIC;
@@ -119,6 +103,36 @@ public:
   void saveToFile(const std::string& keyFile) const;
 
   unsigned char key[DNSCRYPT_PRIVATE_KEY_SIZE];
+};
+
+class DnsCryptQuery
+{
+public:
+  DnsCryptQuery()
+  {
+  }
+  ~DnsCryptQuery();
+#ifdef HAVE_CRYPTO_BOX_EASY_AFTERNM
+  int computeSharedKey(const DnsCryptPrivateKey& privateKey);
+#endif /* HAVE_CRYPTO_BOX_EASY_AFTERNM */
+
+  static const size_t minUDPLength = 256;
+
+  DnsCryptQueryHeader header;
+#ifdef HAVE_CRYPTO_BOX_EASY_AFTERNM
+  unsigned char sharedKey[crypto_box_BEFORENMBYTES];
+#endif /* HAVE_CRYPTO_BOX_EASY_AFTERNM */
+  DNSName qname;
+  DnsCryptContext* ctx;
+  uint16_t id{0};
+  uint16_t len{0};
+  uint16_t paddedLen;
+  bool useOldCert{false};
+  bool encrypted{false};
+  bool valid{false};
+#ifdef HAVE_CRYPTO_BOX_EASY_AFTERNM
+  bool sharedKeyComputed{false};
+#endif /* HAVE_CRYPTO_BOX_EASY_AFTERNM */
 };
 
 class DnsCryptContext

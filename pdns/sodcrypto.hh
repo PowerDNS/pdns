@@ -29,9 +29,10 @@
 #ifndef HAVE_LIBSODIUM
 struct SodiumNonce
 {
-	void init(){};
-	void increment(){};
-	unsigned char value[1];
+  void init(){};
+  void merge(const SodiumNonce& lower, const SodiumNonce& higher) {};
+  void increment(){};
+  unsigned char value[1];
 };
 #else
 #include <sodium.h>
@@ -42,7 +43,14 @@ struct SodiumNonce
   {
     randombytes_buf(value, sizeof value);
   }
-  
+
+  void merge(const SodiumNonce& lower, const SodiumNonce& higher)
+  {
+    static const size_t halfSize = (sizeof value) / 2;
+    memcpy(value, lower.value, halfSize);
+    memcpy(value + halfSize, higher.value + halfSize, halfSize);
+  }
+
   void increment()
   {
     uint32_t* p = (uint32_t*)value;

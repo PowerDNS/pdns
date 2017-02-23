@@ -251,8 +251,8 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
         for(const auto& e : g_stats.entries) {
           if(const auto& val = boost::get<DNSDistStats::stat_t*>(&e.second))
             obj.insert({e.first, (double)(*val)->load()});
-          else if (const auto& val = boost::get<double*>(&e.second))
-            obj.insert({e.first, (**val)});
+          else if (const auto& dval = boost::get<double*>(&e.second))
+            obj.insert({e.first, (**dval)});
           else
             obj.insert({e.first, (int)(*boost::get<DNSDistStats::statfunction_t>(&e.second))(e.first)});
         }
@@ -354,6 +354,11 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
           {"latency", (int)(a->latencyUsec/1000.0)},
           {"queries", (int)a->queries}};
 
+        /* sending a latency for a DOWN server doesn't make sense */
+        if (a->availability == DownstreamState::Availability::Down) {
+          server["latency"] = nullptr;
+        }
+
 	servers.push_back(server);
       }
 
@@ -440,11 +445,11 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
               { "value", (double)(*val)->load() }
             });
         }
-        else if (const auto& val = boost::get<double*>(&item.second)) {
+        else if (const auto& dval = boost::get<double*>(&item.second)) {
           doc.push_back(Json::object {
               { "type", "StatisticItem" },
               { "name", item.first },
-              { "value", (**val) }
+              { "value", (**dval) }
             });
         }
         else {
@@ -482,25 +487,25 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
         { "verbose-health-checks", g_verboseHealthChecks }
       };
       for(const auto& item : configEntries) {
-        if (const auto& val = boost::get<bool>(&item.second)) {
+        if (const auto& bval = boost::get<bool>(&item.second)) {
           doc.push_back(Json::object {
               { "type", "ConfigSetting" },
               { "name", item.first },
-              { "value", *val }
+              { "value", *bval }
           });
         }
-        else if (const auto& val = boost::get<string>(&item.second)) {
+        else if (const auto& sval = boost::get<string>(&item.second)) {
           doc.push_back(Json::object {
               { "type", "ConfigSetting" },
               { "name", item.first },
-              { "value", *val }
+              { "value", *sval }
           });
         }
-        else if (const auto& val = boost::get<double>(&item.second)) {
+        else if (const auto& dval = boost::get<double>(&item.second)) {
           doc.push_back(Json::object {
               { "type", "ConfigSetting" },
               { "name", item.first },
-              { "value", *val }
+              { "value", *dval }
           });
         }
       }

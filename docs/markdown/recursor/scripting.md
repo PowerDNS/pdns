@@ -89,15 +89,15 @@ The DNSQuestion object contains at least the following fields:
 * localaddr - address this query was received on
 * variable - a boolean which, if set, indicates the recursor should not packet cache this answer. Honored even when returning 'false'! Important when providing answers that vary over time or based on sender details.
 * followupFunction - a string that signals the nameserver to take one of the following additional actions:
-    * followCNAMERecords: When adding a CNAME to the answer, this tells the recursor to follow that CNAME. See [CNAME chain resolution](#cname-chain-resolution)
-    * getFakeAAAARecords: Get a fake AAAA record, see [DNS64](#dns64)
-    * getFakePTRRecords: Get a fake PTR record, see [DNS64](#dns64)
-    * udpQueryResponse: Do a UDP query and call a handler, see [`udpQueryResponse`](#udpqueryresponse)
+     * followCNAMERecords: When adding a CNAME to the answer, this tells the recursor to follow that CNAME. See [CNAME chain resolution](#cname-chain-resolution)
+     * getFakeAAAARecords: Get a fake AAAA record, see [DNS64](#dns64)
+     * getFakePTRRecords: Get a fake PTR record, see [DNS64](#dns64)
+     * udpQueryResponse: Do a UDP query and call a handler, see [`udpQueryResponse`](#udpqueryresponse)
 * appliedPolicy - The decision that was made by the policy engine, see [Modifying policy decisions](#modifying-policy-decisions). It has the following fields:
-    * policyName: The name of the policy (used in e.g. protobuf logging)
-    * policyAction: The action taken by the engine
-    * policyCustom: The CNAME content for the `pdns.policyactions.Custom` response, a string
-    * policyTTL: The TTL in seconds for the `pdns.policyactions.Custom` response
+     * policyName: The name of the policy (used in e.g. protobuf logging)
+     * policyAction: The action taken by the engine
+     * policyCustom: The CNAME content for the `pdns.policyactions.Custom` response, a string
+     * policyTTL: The TTL in seconds for the `pdns.policyactions.Custom` response
 * wantsRPZ - A boolean that indicates the use of the Policy Engine, can be set to `false` in `preresolve` to disable RPZ for this query
 * data - a table that is persistent throughout the lifetime of the `dq` object and can be used to store custom data. All keys and values in the table must be of type `string`.
 
@@ -107,10 +107,17 @@ It also supports the following methods:
   the answer too, which defaults to the name of the question
 * `addPolicyTag(tag)`: add a policy tag.
 * `discardPolicy(policyname)`: skip the filtering policy (for example RPZ) named `policyname` for this query. This is mostly useful in the `prerpz` hook.
+* `getDH()` - Returns the DNS Header of the query or nil. A DNS header offers the following methods:
+     * `getRD()`, `getAA()`, `getAD()`, `getCD()`, `getTC()`: query these bits from the DNS Header
+     * `getRCODE()`: get the RCODE of the query
+     * `getOPCODE()`: get the OPCODE of the query
+     * `getID()`: get the ID of the query
 * `getPolicyTags()`: get the current policy tags as a table of strings.
 * `getRecords()`: get a table of DNS Records in this DNS Question (or answer by now)
 * `setPolicyTags(tags)`: update the policy tags, taking a table of strings.
 * `setRecords(records)`: after your edits, update the answers of this question
+* `getEDNSFlag(name)`: returns true if the EDNS flag with `name` is set in the query
+* `getEDNSFlags()`: returns a list of strings with all the EDNS flag mnemonics in the query
 * `getEDNSOption(num)`: get the EDNS Option with number `num`
 * `getEDNSOptions()`: get a map of all EDNS Options
 * `getEDNSSubnet()`: returns the netmask specified in the EDNSSubnet option, or empty if there was none
@@ -128,12 +135,7 @@ With this hook, undesired traffic can be dropped rapidly before using precious C
 for parsing.
 
 `remoteip` is the IP(v6) address of the requestor, `localip` is the address on which the query arrived.
-`dh` is the DNS Header of the query, and it offers the following methods:
-
-* `getRD()`, `getAA()`, `getAD()`, `getCD()`, `getRD()`, `getRD()`, `getTC()`: query these bits from the DNS Header
-* `getRCODE()`: get the RCODE of the query
-* `getOPCODE()`: get the OPCODE of the query
-* `getID()`: get the ID of the query
+`dh` is the DNS Header of the query, and it offers the same functions as the `dq.getDH()` object described above.
 
 As an example, to filter all queries coming from 1.2.3.0/24, or with the AD bit set:
 
@@ -152,11 +154,13 @@ would require packet parsing, which is what we are trying to prevent with `ipfil
 ### `function gettag(remote, ednssubnet, local, qname, qtype)`
 The `gettag` function is invoked when the Recursor attempts to discover in which
 packetcache an answer is available.
+
 This function must return an integer, which is the tag number of the packetcache.
 In addition to this integer, this function can return a table of policy tags.
-
 The resulting tag number can be accessed via `dq.tag` in the `preresolve` hook,
 and the policy tags via `dq:getPolicyTags()` in every hook.
+Starting with 4.1.0, it can also return a table whose keys and values are strings
+to fill the upcoming `DNSQuestion`'s `data` table.
 
 The tagged packetcache can e.g. be used to answer queries from cache that have
 e.g. been filtered for certain IPs (this logic should be implemented in the
@@ -265,6 +269,8 @@ if nmg:match(dq.remoteaddr) then
 	print("Intercepting query from ", dq.remoteaddr)
 end
 ```
+
+Prefixing a mask with `!` excludes that mask from matching.
 
 ### IP Addresses
 We move IP addresses around in native format, called ComboAddress within PowerDNS.
@@ -382,6 +388,9 @@ entry.  Entries are listed in the following table:
 `getregisteredname('www.powerdns.com')` returns `powerdns.com.`, based on Mozilla's
 Public Suffix List. In general it will tell you the 'registered domain' for a given
 name.
+
+`getRecursorThreadId()` returns an unsigned integer identifying the thread
+handling the current request.
 
 ## DNS64
 The `getFakeAAAARecords` and `getFakePTRRecords` followupFunctions can be used
@@ -518,3 +527,16 @@ The kind of policy response, there are several policy kinds:
 These fields are only used when `dq.appliedPolicy.policyKind` is set to `pdns.policykinds.Custom`.
 `dq.appliedPolicy.policyCustom` contains the name for the CNAME target as a string.
 And `dq.appliedPolicy.policyTTL` is the TTL field (in seconds) for the CNAME response.
+
+## SNMP Traps
+PowerDNS Recursor, when compiled with SNMP support, has the ability to act as a
+SNMP agent to provide SNMP statistics and to be able to send traps from Lua.
+
+For example, to send a custom SNMP trap containing the qname from the `preresolve` hook:
+
+```
+function preresolve(dq)
+  sendCustomSNMPTrap('Trap from preresolve, qname is '..dq.qname:toString())
+  return false
+end
+```

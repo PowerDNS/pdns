@@ -236,7 +236,7 @@ pair<unsigned int, unsigned int> DNSCryptoKeyEngine::testMakers(unsigned int alg
   unsigned int bits;
   if(algo <= 10)
     bits=1024;
-  else if(algo == 12 || algo == 13 || algo == 250) // ECC-GOST or ECDSAP256SHA256 or ED25519SHA512
+  else if(algo == 12 || algo == 13 || algo == 15) // ECC-GOST or ECDSAP256SHA256 or ED25519
     bits=256;
   else if(algo == 14) // ECDSAP384SHA384
     bits = 384;
@@ -570,7 +570,7 @@ void decodeDERIntegerSequence(const std::string& input, vector<string>& output)
   }  
 }
 
-string calculateHMAC(const std::string& key, const std::string& text, TSIGHashEnum hasher) {
+static string calculateHMAC(const std::string& key, const std::string& text, TSIGHashEnum hasher) {
 
   const EVP_MD* md_type;
   unsigned int outlen;
@@ -595,18 +595,73 @@ string calculateHMAC(const std::string& key, const std::string& text, TSIGHashEn
       md_type = EVP_sha512();
       break;
     default:
-      throw new PDNSException("Unknown hash algorithm requested from calculateHMAC()");
+      throw PDNSException("Unknown hash algorithm requested from calculateHMAC()");
   }
 
   unsigned char* out = HMAC(md_type, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash, &outlen);
-  if (out != NULL && outlen > 0) {
-    return string((char*) hash, outlen);
+  if (out == NULL || outlen == 0) {
+    throw PDNSException("HMAC computation failed");
   }
 
-  return "";
+  return string((char*) hash, outlen);
 }
 
-string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOffset, const DNSName& keyname, const TSIGRecordContent& trc, const string& previous, bool timersonly, unsigned int dnsHeaderOffset)
+static bool constantTimeStringEquals(const std::string& a, const std::string& b)
+{
+  if (a.size() != b.size()) {
+    return false;
+  }
+  const size_t size = a.size();
+#if OPENSSL_VERSION_NUMBER >= 0x0090819fL
+  return CRYPTO_memcmp(a.c_str(), b.c_str(), size) == 0;
+#else
+  const volatile unsigned char *_a = (const volatile unsigned char *) a.c_str();
+  const volatile unsigned char *_b = (const volatile unsigned char *) b.c_str();
+  unsigned char res = 0;
+
+  for (size_t idx = 0; idx < size; idx++) {
+    res |= _a[idx] ^ _b[idx];
+  }
+
+  return res == 0;
+#endif
+}
+
+static string makeTSIGPayload(const string& previous, const char* packetBegin, size_t packetSize, const DNSName& tsigKeyName, const TSIGRecordContent& trc, bool timersonly)
+{
+  string message;
+
+  if(!previous.empty()) {
+    uint16_t len = htons(previous.length());
+    message.append(reinterpret_cast<const char*>(&len), sizeof(len));
+    message.append(previous);
+  }
+
+  message.append(packetBegin, packetSize);
+
+  vector<uint8_t> signVect;
+  DNSPacketWriter dw(signVect, DNSName(), 0);
+  auto pos=signVect.size();
+  if(!timersonly) {
+    dw.xfrName(tsigKeyName, false);
+    dw.xfr16BitInt(QClass::ANY); // class
+    dw.xfr32BitInt(0);    // TTL
+    dw.xfrName(trc.d_algoName.makeLowerCase(), false);
+  }
+  
+  uint32_t now = trc.d_time; 
+  dw.xfr48BitInt(now);
+  dw.xfr16BitInt(trc.d_fudge); // fudge
+  if(!timersonly) {
+    dw.xfr16BitInt(trc.d_eRcode); // extended rcode
+    dw.xfr16BitInt(trc.d_otherData.length()); // length of 'other' data
+    //    dw.xfrBlob(trc->d_otherData);
+  }
+  message.append(signVect.begin()+pos, signVect.end());
+  return message;
+}
+
+static string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOffset, const DNSName& keyname, const TSIGRecordContent& trc, const string& previous, bool timersonly, unsigned int dnsHeaderOffset=0)
 {
   string message;
   string packet(opacket);
@@ -622,85 +677,67 @@ string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOff
   uint16_t origID = htons(trc.d_origID);
   packet.replace(0, 2, (char*)&origID, 2);
 
-  if(!previous.empty()) {
-    uint16_t len = htons(previous.length());
-    message.append((char*)&len, 2);
-    message.append(previous);
-  }
-  
-  message.append(packet);
-
-  vector<uint8_t> signVect;
-  DNSPacketWriter dw(signVect, DNSName(), 0);
-  auto pos=signVect.size();
-  if(!timersonly) {
-    dw.xfrName(keyname, false);
-    dw.xfr16BitInt(QClass::ANY); // class
-    dw.xfr32BitInt(0);    // TTL
-    // dw.xfrName(toLower(trc.d_algoName), false); //FIXME400 
-    dw.xfrName(trc.d_algoName, false);
-  }
-  
-  uint32_t now = trc.d_time; 
-  dw.xfr48BitInt(now);
-  dw.xfr16BitInt(trc.d_fudge); // fudge
-  if(!timersonly) {
-    dw.xfr16BitInt(trc.d_eRcode); // extended rcode
-    dw.xfr16BitInt(trc.d_otherData.length()); // length of 'other' data
-    //    dw.xfrBlob(trc->d_otherData);
-  }
-  message.append(signVect.begin()+pos, signVect.end());
-  return message;
+  return makeTSIGPayload(previous, packet.data(), packet.size(), keyname, trc, timersonly);
 }
 
-void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const DNSName& tsigkeyname, const string& tsigsecret, const string& tsigprevious, bool timersonly)
+void addTSIG(DNSPacketWriter& pw, TSIGRecordContent& trc, const DNSName& tsigkeyname, const string& tsigsecret, const string& tsigprevious, bool timersonly)
 {
   TSIGHashEnum algo;
-  if (!getTSIGHashEnum(trc->d_algoName, algo)) {
-    throw PDNSException(string("Unsupported TSIG HMAC algorithm ") + trc->d_algoName.toString());
+  if (!getTSIGHashEnum(trc.d_algoName, algo)) {
+    throw PDNSException(string("Unsupported TSIG HMAC algorithm ") + trc.d_algoName.toString());
   }
 
-  string toSign;
-  if(!tsigprevious.empty()) {
-    uint16_t len = htons(tsigprevious.length());
-    toSign.append((char*)&len, 2);
-    
-    toSign.append(tsigprevious);
-  }
-  toSign.append(pw.getContent().begin(), pw.getContent().end());
-  
-  // now add something that looks a lot like a TSIG record, but isn't
-  vector<uint8_t> signVect;
-  DNSPacketWriter dw(signVect, DNSName(), 0);
-  auto pos=dw.size();
-  if(!timersonly) {
-    dw.xfrName(tsigkeyname, false);
-    dw.xfr16BitInt(QClass::ANY); // class
-    dw.xfr32BitInt(0);    // TTL
-    dw.xfrName(trc->d_algoName, false);
-  }  
-  uint32_t now = trc->d_time; 
-  dw.xfr48BitInt(now);
-  dw.xfr16BitInt(trc->d_fudge); // fudge
-  
-  if(!timersonly) {
-    dw.xfr16BitInt(trc->d_eRcode); // extended rcode
-    dw.xfr16BitInt(trc->d_otherData.length()); // length of 'other' data
-    //    dw.xfrBlob(trc->d_otherData);
-  }
-  
-  toSign.append(signVect.begin() + pos, signVect.end());
+  string toSign = makeTSIGPayload(tsigprevious, reinterpret_cast<const char*>(pw.getContent().data()), pw.getContent().size(), tsigkeyname, trc, timersonly);
 
   if (algo == TSIG_GSS) {
-    if (!gss_add_signature(tsigkeyname, toSign, trc->d_mac)) {
+    if (!gss_add_signature(tsigkeyname, toSign, trc.d_mac)) {
       throw PDNSException(string("Could not add TSIG signature with algorithm 'gss-tsig' and key name '")+tsigkeyname.toString()+string("'"));
     }
   } else {
-    trc->d_mac = calculateHMAC(tsigsecret, toSign, algo);
-    //  d_trc->d_mac[0]++; // sabotage
+    trc.d_mac = calculateHMAC(tsigsecret, toSign, algo);
+    //  trc.d_mac[0]++; // sabotage
   }
   pw.startRecord(tsigkeyname, QType::TSIG, 0, QClass::ANY, DNSResourceRecord::ADDITIONAL, false);
-  trc->toPacket(pw);
+  trc.toPacket(pw);
   pw.commit();
 }
 
+bool validateTSIG(const std::string& packet, size_t sigPos, const TSIGTriplet& tt, const TSIGRecordContent& trc, const std::string& previousMAC, const std::string& theirMAC, bool timersOnly, unsigned int dnsHeaderOffset)
+{
+  uint64_t delta = std::abs((int64_t)trc.d_time - (int64_t)time(nullptr));
+  if(delta > trc.d_fudge) {
+    throw std::runtime_error("Invalid TSIG time delta " + std::to_string(delta) + " >  fudge " + std::to_string(trc.d_fudge));
+  }
+
+  TSIGHashEnum algo;
+  if (!getTSIGHashEnum(trc.d_algoName, algo)) {
+    throw std::runtime_error("Unsupported TSIG HMAC algorithm " + trc.d_algoName.toString());
+  }
+
+  TSIGHashEnum expectedAlgo;
+  if (!getTSIGHashEnum(tt.algo, expectedAlgo)) {
+    throw std::runtime_error("Unsupported TSIG HMAC algorithm expected " + tt.algo.toString());
+  }
+
+  if (algo != expectedAlgo) {
+    throw std::runtime_error("Signature with TSIG key '"+tt.name.toString()+"' does not match the expected algorithm (" + tt.algo.toString() + " / " + trc.d_algoName.toString() + ")");
+  }
+
+  string tsigMsg;
+  tsigMsg = makeTSIGMessageFromTSIGPacket(packet, sigPos, tt.name, trc, previousMAC, timersOnly, dnsHeaderOffset);
+
+  if (algo == TSIG_GSS) {
+    GssContext gssctx(tt.name);
+    if (!gss_verify_signature(tt.name, tsigMsg, theirMAC)) {
+      throw std::runtime_error("Signature with TSIG key '"+tt.name.toString()+"' failed to validate");
+    }
+  } else {
+    string ourMac = calculateHMAC(tt.secret, tsigMsg, algo);
+
+    if(!constantTimeStringEquals(ourMac, theirMAC)) {
+      throw std::runtime_error("Signature with TSIG key '"+tt.name.toString()+"' failed to validate");
+    }
+  }
+
+  return true;
+}

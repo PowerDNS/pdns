@@ -178,7 +178,7 @@ public:
     bool active;
   };
 
-  virtual bool getDomainKeys(const DNSName& name, unsigned int kind, std::vector<KeyData>& keys) { return false;}
+  virtual bool getDomainKeys(const DNSName& name, std::vector<KeyData>& keys) { return false;}
   virtual bool removeDomainKey(const DNSName& name, unsigned int id) { return false; }
   virtual bool addDomainKey(const DNSName& name, const KeyData& key, int64_t& id){ return false; }
   virtual bool activateDomainKey(const DNSName& name, unsigned int id) { return false; }
@@ -189,7 +189,7 @@ public:
   virtual bool deleteTSIGKey(const DNSName& name) { return false; }
   virtual bool getTSIGKeys(std::vector< struct TSIGKey > &keys) { return false; }
 
-  virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const string& qname, DNSName& unhashed, string& before, string& after)
+  virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)
   {
     std::cerr<<"Default beforeAndAfterAbsolute called!"<<std::endl;
     abort();
@@ -198,12 +198,12 @@ public:
 
   virtual bool getBeforeAndAfterNames(uint32_t id, const DNSName& zonename, const DNSName& qname, DNSName& before, DNSName& after);
 
-  virtual bool updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& zonename, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype=QType::ANY)
+  virtual bool updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype=QType::ANY)
   {
     return false;
   }
 
-  virtual bool updateEmptyNonTerminals(uint32_t domain_id, const DNSName& zonename, set<DNSName>& insert, set<DNSName>& erase, bool remove)
+  virtual bool updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& insert, set<DNSName>& erase, bool remove)
   {
     return false;
   }
@@ -426,7 +426,7 @@ extern BackendMakerClass &BackendMakers();
 class DBException : public PDNSException
 {
 public:
-  DBException(const string &reason) : PDNSException(reason){}
+  DBException(const string &reason_) : PDNSException(reason_){}
 };
 
 /** helper function for both DNSPacket and addSOARecord() - converts a line into a struct, for easier parsing */

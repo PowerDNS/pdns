@@ -280,7 +280,7 @@ Content-Type: text/javascript; charset=utf-8
 ```
 
 ### `setDomainMetadata`
-Replaces the value(s) on domain name for variable kind to string(s) on array value. The old value is discarded. Value can be an empty array, which can be interprepted as deletion request.
+Replaces the value(s) on domain name for variable kind to string(s) on array value. The old value is discarded. Value can be an empty array, which can be interpreted as deletion request.
 
 * Mandatory: No
 * Parameters: name, kind, value
@@ -325,7 +325,7 @@ Retrieves any keys of kind. The id, flags are unsigned integers, and active is b
 #### Example JSON/RPC
 Query:
 ```
-{"method":"getdomainkeys","parameters":{"name":"example.com.","kind":0}}
+{"method":"getdomainkeys","parameters":{"name":"example.com."}}
 ```
 
 Response:

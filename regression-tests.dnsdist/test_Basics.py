@@ -287,7 +287,7 @@ class TestBasics(DNSDistTest):
 
         The backend send an unrelated answer over UDP, it should
         be discarded by dnsdist. It could happen if we wrap around
-        maxOutstanding queries too quickly or have more than maxOustanding
+        maxOutstanding queries too quickly or have more than maxOutstanding
         queries to a specific backend in the air over UDP,
         but does not really make sense over TCP.
         """
@@ -314,6 +314,71 @@ class TestBasics(DNSDistTest):
         self.assertEquals(receivedResponse, None)
         receivedQuery.id = query.id
         self.assertEquals(query, receivedQuery)
+
+    def testHeaderOnlyRefused(self):
+        """
+        Basics: Header-only refused response
+        """
+        name = 'header-only-refused-response.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        response.set_rcode(dns.rcode.REFUSED)
+        response.question = []
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+    def testHeaderOnlyNoErrorResponse(self):
+        """
+        Basics: Header-only NoError response should be dropped
+        """
+        name = 'header-only-noerror-response.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        response.question = []
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, None)
+
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, None)
+
+    def testHeaderOnlyNXDResponse(self):
+        """
+        Basics: Header-only NXD response should be dropped
+        """
+        name = 'header-only-nxd-response.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        response.set_rcode(dns.rcode.NXDOMAIN)
+        response.question = []
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, None)
+
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, None)
 
 
 if __name__ == '__main__':

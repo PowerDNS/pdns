@@ -62,7 +62,7 @@ typedef PDNSException ArgException;
     
     R.parse(argc, argv); // read the arguments from main()
     
-    cout<<"Will we be a deamon?: "<<R.isset("daemon")<<endl;
+    cout<<"Will we be a daemon?: "<<R.isset("daemon")<<endl;
     cout<<"Our port will be "<<R["port"]<<endl;
     
     map<string,string>::const_iterator i;

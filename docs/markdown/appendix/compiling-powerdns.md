@@ -8,7 +8,7 @@ systems. Otherwise, see [the Boost website](http://www.boost.org).
 
 To compile in modules, specify them as `--with-modules='mod1 mod2 mod3'`,
 substituting the desired module names. Each backend has a module name that you
-look up in this [table](../authoritative/index.md#backend-capibilities).
+look up in this [table](../authoritative/index.md#backend-capabilities).
 
 To compile a module for inclusion at runtime, which is great if you are a unix
 vendor, use `--with-dynmodules='mod1 mod2 mod3'`. These modules then end up as

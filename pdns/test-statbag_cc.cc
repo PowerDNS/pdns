@@ -83,7 +83,7 @@ BOOST_AUTO_TEST_CASE(test_StatBagBasic) {
 
 #ifdef UINTPTR_MAX  
 #if UINTPTR_MAX > 0xffffffffULL
-    BOOST_CHECK_EQUAL(sizeof(unsigned long), 8);
+    BOOST_CHECK_EQUAL(sizeof(AtomicCounterInner), 8);
     s.set("c", 1ULL<<33);
     BOOST_CHECK_EQUAL(s.read("c"), (1ULL<<33) );
     s.inc("c");
@@ -94,7 +94,7 @@ BOOST_AUTO_TEST_CASE(test_StatBagBasic) {
     s.inc("c");
     BOOST_CHECK_EQUAL(s.read("c"), 0 );
 #else
-    BOOST_CHECK_EQUAL(sizeof(AtomicCounter::native_t), 4);
+    BOOST_CHECK_EQUAL(sizeof(AtomicCounterInner), 4);
     BOOST_CHECK_EQUAL(~0UL, 0xffffffffUL);
     s.set("c", ~0UL);
     BOOST_CHECK_EQUAL(s.read("c"), 0xffffffffUL );

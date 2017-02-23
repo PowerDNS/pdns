@@ -33,7 +33,6 @@
 #include "pdns/namespaces.hh"
 #include "pdns/pdnsexception.hh"
 #include "pdns/sstuff.hh"
-#include "pdns/ueberbackend.hh"
 #include "pdns/json.hh"
 #include "pdns/lock.hh"
 #include "yahttp/yahttp.hpp"
@@ -160,9 +159,9 @@ class RemoteBackend : public DNSBackend
 
   virtual bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta);
   virtual bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta);
-  virtual bool getDomainKeys(const DNSName& name, unsigned int kind, std::vector<DNSBackend::KeyData>& keys);
+  virtual bool getDomainKeys(const DNSName& name, std::vector<DNSBackend::KeyData>& keys);
   virtual bool getTSIGKey(const DNSName& name, DNSName* algorithm, std::string* content);
-  virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const string& qname, DNSName& unhashed, string& before, string& after);
+  virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after);
   virtual bool setDomainMetadata(const DNSName& name, const string& kind, const std::vector<std::basic_string<char> >& meta);
   virtual bool removeDomainKey(const DNSName& name, unsigned int id);
   virtual bool addDomainKey(const DNSName& name, const KeyData& key, int64_t& id);

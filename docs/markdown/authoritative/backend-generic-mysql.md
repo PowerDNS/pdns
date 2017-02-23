@@ -24,22 +24,13 @@ with the `--gmysql` flag also assumes this layout is in place. For full migratio
 notes, please see [Migration](migration.md). This schema contains all elements
 needed for master, slave and superslave operation.
 
-When using the InnoDB storage engine, we suggest adding the following lines to
-the 'create table records' command above:
-
+When using the InnoDB storage engine, we suggest adding foreign key contraints 
+to the tables in order to automate deletion of records, key material, and other 
+information upon deletion of a domain from the domains table. The following SQL 
+does the job:
 ```
-CONSTRAINT `records_ibfk_1` FOREIGN KEY (`domain_id`) REFERENCES `domains`
-(`id`) ON DELETE CASCADE
+!!include=../modules/gmysqlbackend/enable-foreign-keys.mysql.sql
 ```
-
-Or, if you have already created the tables, execute:
-
-```
-ALTER TABLE `records` ADD CONSTRAINT `records_ibfk_1` FOREIGN KEY (`domain_id`)
-REFERENCES `domains` (`id`) ON DELETE CASCADE;
-```
-
-This automates deletion of records on deletion of a domain from the domains table.
 
 # Using MySQL replication
 To support `NATIVE` domains, the `binlog_format` for the MySQL replication **must**

@@ -6,6 +6,7 @@ Wants=network-online.target
 After=network-online.target
 
 [Service]
+ExecStartPre=@bindir@/dnsdist --check-config
 # Note: when editing the ExecStart command, keep --supervised and --disable-syslog
 ExecStart=@bindir@/dnsdist --supervised --disable-syslog
 

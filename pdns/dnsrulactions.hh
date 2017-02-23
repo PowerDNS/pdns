@@ -579,6 +579,22 @@ private:
   int d_rcode;
 };
 
+class RDRule : public DNSRule
+{
+public:
+  RDRule()
+  {
+  }
+  bool matches(const DNSQuestion* dq) const override
+  {
+    return dq->dh->rd == 1;
+  }
+  string toString() const override
+  {
+    return "rd==1";
+  }
+};
+
 
 class DropAction : public DNSAction
 {
@@ -1064,7 +1080,7 @@ public:
   DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
   {
 #ifdef HAVE_PROTOBUF
-    DNSDistProtoBufMessage message(DNSDistProtoBufMessage::Query, *dq);
+    DNSDistProtoBufMessage message(*dq);
     {
       if (d_alterFunc) {
         std::lock_guard<std::mutex> lock(g_luamutex);
@@ -1086,16 +1102,38 @@ private:
   boost::optional<std::function<void(const DNSQuestion&, DNSDistProtoBufMessage*)> > d_alterFunc;
 };
 
+class SNMPTrapAction : public DNSAction
+{
+public:
+  SNMPTrapAction(const std::string& reason): d_reason(reason)
+  {
+  }
+  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  {
+    if (g_snmpAgent && g_snmpTrapsEnabled) {
+      g_snmpAgent->sendDNSTrap(*dq, d_reason);
+    }
+
+    return Action::None;
+  }
+  string toString() const override
+  {
+    return "send SNMP trap";
+  }
+private:
+  std::string d_reason;
+};
+
 class RemoteLogResponseAction : public DNSResponseAction, public boost::noncopyable
 {
 public:
-  RemoteLogResponseAction(std::shared_ptr<RemoteLogger> logger, boost::optional<std::function<void(const DNSResponse&, DNSDistProtoBufMessage*)> > alterFunc): d_logger(logger), d_alterFunc(alterFunc)
+  RemoteLogResponseAction(std::shared_ptr<RemoteLogger> logger, boost::optional<std::function<void(const DNSResponse&, DNSDistProtoBufMessage*)> > alterFunc, bool includeCNAME): d_logger(logger), d_alterFunc(alterFunc), d_includeCNAME(includeCNAME)
   {
   }
   DNSResponseAction::Action operator()(DNSResponse* dr, string* ruleresult) const override
   {
 #ifdef HAVE_PROTOBUF
-    DNSDistProtoBufMessage message(*dr);
+    DNSDistProtoBufMessage message(*dr, d_includeCNAME);
     {
       if (d_alterFunc) {
         std::lock_guard<std::mutex> lock(g_luamutex);
@@ -1115,6 +1153,7 @@ public:
 private:
   std::shared_ptr<RemoteLogger> d_logger;
   boost::optional<std::function<void(const DNSResponse&, DNSDistProtoBufMessage*)> > d_alterFunc;
+  bool d_includeCNAME;
 };
 
 class DropResponseAction : public DNSResponseAction
@@ -1159,4 +1198,26 @@ public:
   }
 private:
   int d_msec;
+};
+
+class SNMPTrapResponseAction : public DNSResponseAction
+{
+public:
+  SNMPTrapResponseAction(const std::string& reason): d_reason(reason)
+  {
+  }
+  DNSResponseAction::Action operator()(DNSResponse* dr, string* ruleresult) const override
+  {
+    if (g_snmpAgent && g_snmpTrapsEnabled) {
+      g_snmpAgent->sendDNSTrap(*dr, d_reason);
+    }
+
+    return Action::None;
+  }
+  string toString() const override
+  {
+    return "send SNMP trap";
+  }
+private:
+  std::string d_reason;
 };

@@ -29,11 +29,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 
-#include <sys/un.h>
-#include <dlfcn.h>
 #include <unistd.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -114,7 +110,7 @@ public:
   bool createDomain(const DNSName &domain);
   
   bool addDomainKey(const DNSName& name, const DNSBackend::KeyData& key, int64_t& id);
-  bool getDomainKeys(const DNSName& name, unsigned int kind, std::vector<DNSBackend::KeyData>& keys);
+  bool getDomainKeys(const DNSName& name, std::vector<DNSBackend::KeyData>& keys);
   bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta);
   bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta);
   bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta);
@@ -134,7 +130,7 @@ public:
   bool searchRecords(const string &pattern, int maxResults, vector<DNSResourceRecord>& result);
   bool searchComments(const string &pattern, int maxResults, vector<Comment>& result);
 private:
-  pthread_t tid;
+  pthread_t d_tid;
   handle d_handle;
   vector<DNSZoneRecord> d_answers;
   vector<DNSZoneRecord>::const_iterator d_cachehandleiter;
@@ -150,13 +146,13 @@ private:
   }d_question;
 
   unsigned int d_cache_ttl, d_negcache_ttl;
-  int domain_id;
+  int d_domain_id;
   int d_ancount;
 
   bool d_negcached;
   bool d_cached;
   static bool d_go;
-  bool stale;
+  bool d_stale;
 
   int cacheHas(const Question &q, vector<DNSZoneRecord> &rrs);
   void addNegCache(const Question &q);

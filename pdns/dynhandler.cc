@@ -247,7 +247,7 @@ string DLNotifyRetrieveHandler(const vector<string>&parts, Utility::pid_t ppid)
   if(!B.getDomainInfo(domain, di))
     return "Domain '"+domain.toString()+"' unknown";
   
-  if(di.masters.empty())
+  if(di.kind != DomainInfo::Slave || di.masters.empty())
     return "Domain '"+domain.toString()+"' is not a slave domain (or has no master defined)";
 
   random_shuffle(di.masters.begin(), di.masters.end());

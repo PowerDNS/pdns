@@ -197,7 +197,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCachePacket) {
     vector<pair<uint16_t,string > > opts;
 
     DNSPacketWriter pw(pak, DNSName("www.powerdns.com"), QType::A);
-    DNSPacket q, r, r2;
+    DNSPacket q(true), r(false), r2(false);
     q.parse((char*)&pak[0], pak.size());
 
     pak.clear();

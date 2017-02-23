@@ -198,6 +198,7 @@ pdns_server_SOURCES = \
 	statbag.cc statbag.hh \
 	stubresolver.cc stubresolver.hh \
 	tcpreceiver.cc tcpreceiver.hh \
+	tsigverifier.cc tsigverifier.hh \
 	tkey.cc \
 	ueberbackend.cc ueberbackend.hh \
 	unix_semaphore.cc \
@@ -444,7 +445,7 @@ sdig_SOURCES = \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
-	ednssubnet.cc \
+	ednssubnet.cc iputils.cc \
 	logger.cc \
 	misc.cc misc.hh \
 	nsecrecords.cc \
@@ -584,6 +585,7 @@ ixplore_SOURCES = \
 	sillyrecords.cc \
 	sstuff.hh \
 	statbag.cc \
+	tsigverifier.cc tsigverifier.hh \
 	unix_utility.cc zoneparser-tng.cc
 
 ixplore_LDADD = $(LIBCRYPTO_LIBS)
@@ -673,6 +675,7 @@ toysdig_SOURCES = \
 	ednssubnet.cc ednssubnet.hh \
 	filterpo.hh \
 	gss_context.cc gss_context.hh \
+	iputils.cc \
 	logger.cc \
 	misc.cc misc.hh \
 	nsecrecords.cc \
@@ -735,6 +738,7 @@ tsig_tests_SOURCES = \
 	sstuff.hh \
 	statbag.cc \
 	tsig-tests.cc \
+	tsigverifier.cc tsigverifier.hh \
 	unix_utility.cc
 
 tsig_tests_LDADD = $(LIBCRYPTO_LIBS)
@@ -882,6 +886,7 @@ dnsreplay_SOURCES = \
 	dnswriter.cc dnswriter.hh \
 	ednssubnet.cc ednssubnet.hh \
 	ednsoptions.cc ednsoptions.hh \
+	iputils.cc \
 	logger.cc \
 	misc.cc \
 	nsecrecords.cc \
@@ -1152,6 +1157,7 @@ testrunner_SOURCES = \
 	test-recpacketcache_cc.cc \
 	test-sha_hh.cc \
 	test-statbag_cc.cc \
+	test-tsig.cc \
 	test-zoneparser_tng_cc.cc \
 	testrunner.cc \
 	ueberbackend.cc \

@@ -1,26 +1,24 @@
-
 /*
-    PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2013 - 2015  PowerDNS.COM BV
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2
-    as published by the Free Software Foundation
-
-    Additionally, the license of this program contains a special
-    exception which allows to distribute the program in binary form when
-    it is linked against OpenSSL.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-*/
-
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_NO_MAIN
 
@@ -69,7 +67,7 @@ BOOST_AUTO_TEST_CASE(DNSCryptPlaintextQuery) {
 
   ctx.getCertificateResponse(query, response);
 
-  MOADNSParser mdp((char*) response.data(), response.size());
+  MOADNSParser mdp(false, (char*) response.data(), response.size());
 
   BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1);
   BOOST_CHECK_EQUAL(mdp.d_header.ancount, 1);
@@ -177,7 +175,7 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValid) {
   BOOST_CHECK_EQUAL(query->valid, true);
   BOOST_CHECK_EQUAL(query->encrypted, true);
 
-  MOADNSParser mdp((char*) plainQuery.data(), decryptedLen);
+  MOADNSParser mdp(true, (char*) plainQuery.data(), decryptedLen);
 
   BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1);
   BOOST_CHECK_EQUAL(mdp.d_header.ancount, 0);
@@ -269,7 +267,7 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValidWithOldKey) {
   BOOST_CHECK_EQUAL(query->valid, true);
   BOOST_CHECK_EQUAL(query->encrypted, true);
 
-  MOADNSParser mdp((char*) plainQuery.data(), decryptedLen);
+  MOADNSParser mdp(true, (char*) plainQuery.data(), decryptedLen);
 
   BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1);
   BOOST_CHECK_EQUAL(mdp.d_header.ancount, 0);

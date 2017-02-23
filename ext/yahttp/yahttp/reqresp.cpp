@@ -61,17 +61,17 @@ namespace YaHTTP {
         }
       } else if (state == 1) {
         std::string key,value;
-        size_t pos;
+        size_t pos1;
         if (line.empty()) {
           chunked = (target->headers.find("transfer-encoding") != target->headers.end() && target->headers["transfer-encoding"] == "chunked");
           state = 2;
           break;
         }
         // split headers
-        if ((pos = line.find(": ")) == std::string::npos)
+        if ((pos1 = line.find(": ")) == std::string::npos)
           throw ParseError("Malformed header line");
-        key = line.substr(0, pos);
-        value = line.substr(pos+2);
+        key = line.substr(0, pos1);
+        value = line.substr(pos1+2);
         for(std::string::iterator it=key.begin(); it != key.end(); it++)
           if (std::isspace(*it))
             throw ParseError("Header key contains whitespace which is not allowed by RFC");
@@ -86,11 +86,11 @@ namespace YaHTTP {
         } else {
           if (key == "host" && target->kind == YAHTTP_TYPE_REQUEST) {
             // maybe it contains port?
-            if ((pos = value.find(":")) == std::string::npos) {
+            if ((pos1 = value.find(":")) == std::string::npos) {
               target->url.host = value;
             } else {
-              target->url.host = value.substr(0, pos);
-              target->url.port = ::atoi(value.substr(pos).c_str());
+              target->url.host = value.substr(0, pos1);
+              target->url.port = ::atoi(value.substr(pos1).c_str());
             }
           }
           if (target->headers.find(key) != target->headers.end()) {

@@ -1,24 +1,24 @@
 /*
-    PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002-2016  PowerDNS.COM BV
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2
-    as published by the Free Software Foundation
-
-    Additionally, the license of this program contains a special
-    exception which allows to distribute the program in binary form when
-    it is linked against OpenSSL.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-*/
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -35,8 +35,8 @@
 #include <yahttp/router.hpp>
 
 struct connectionThreadData {
-  WebServer* webServer;
-  Socket* client;
+  WebServer* webServer{nullptr};
+  Socket* client{nullptr};
 };
 
 json11::Json HttpRequest::json()
@@ -90,16 +90,16 @@ void HttpResponse::setBody(const json11::Json& document)
   document.dump(this->body);
 }
 
-void HttpResponse::setErrorResult(const std::string& message, const int status)
+void HttpResponse::setErrorResult(const std::string& message, const int status_)
 {
   setBody(json11::Json::object { { "error", message } });
-  this->status = status;
+  this->status = status_;
 }
 
-void HttpResponse::setSuccessResult(const std::string& message, const int status)
+void HttpResponse::setSuccessResult(const std::string& message, const int status_)
 {
   setBody(json11::Json::object { { "result", message } });
-  this->status = status;
+  this->status = status_;
 }
 
 static void bareHandlerWrapper(WebServer::HandlerFunction handler, YaHTTP::Request* req, YaHTTP::Response* resp)
@@ -363,14 +363,31 @@ void WebServer::go()
       // data and data->client will be freed by thread
       connectionThreadData *data = new connectionThreadData;
       data->webServer = this;
-      data->client = d_server->accept();
-      if (data->client->acl(acl)) {
-        pthread_create(&tid, 0, &WebServerConnectionThreadStart, (void *)data);
-      } else {
-        ComboAddress remote;
-        if (data->client->getRemote(remote))
-          L<<Logger::Error<<"Webserver closing socket: remote ("<< remote.toString() <<") does not match 'webserver-allow-from'"<<endl;
-        delete data->client; // close socket
+      try {
+        data->client = d_server->accept();
+        if (data->client->acl(acl)) {
+          pthread_create(&tid, 0, &WebServerConnectionThreadStart, (void *)data);
+        } else {
+          ComboAddress remote;
+          if (data->client->getRemote(remote))
+            L<<Logger::Error<<"Webserver closing socket: remote ("<< remote.toString() <<") does not match 'webserver-allow-from'"<<endl;
+          delete data->client; // close socket
+          delete data;
+        }
+      }
+      catch(PDNSException &e) {
+        L<<Logger::Error<<"PDNSException while accepting a connection in main webserver thread: "<<e.reason<<endl;
+        delete data->client;
+        delete data;
+      }
+      catch(std::exception &e) {
+        L<<Logger::Error<<"STL Exception while accepting a connection in main webserver thread: "<<e.what()<<endl;
+        delete data->client;
+        delete data;
+      }
+      catch(...) {
+        L<<Logger::Error<<"Unknown exception while accepting a connection in main webserver thread"<<endl;
+        delete data->client;
         delete data;
       }
     }

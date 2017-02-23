@@ -31,6 +31,7 @@
 #include <fstream>
 #include "dnswriter.hh"
 #include "lock.hh"
+#include "dnsdist-lua.hh"
 
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
@@ -65,7 +66,33 @@ private:
   func_t d_func;
 };
 
+class LuaResponseAction : public DNSResponseAction
+{
+public:
+  typedef std::function<std::tuple<int, string>(DNSResponse* dr)> func_t;
+  LuaResponseAction(LuaResponseAction::func_t func) : d_func(func)
+  {}
+
+  Action operator()(DNSResponse* dr, string* ruleresult) const override
+  {
+    std::lock_guard<std::mutex> lock(g_luamutex);
+    auto ret = d_func(dr);
+    if(ruleresult)
+      *ruleresult=std::get<1>(ret);
+    return (Action)std::get<0>(ret);
+  }
+
+  string toString() const override
+  {
+    return "Lua response script";
+  }
+
+private:
+  func_t d_func;
+};
+
 typedef boost::variant<string,vector<pair<int, string>>, std::shared_ptr<DNSRule> > luadnsrule_t;
+
 std::shared_ptr<DNSRule> makeRule(const luadnsrule_t& var)
 {
   if(auto src = boost::get<std::shared_ptr<DNSRule>>(&var))
@@ -220,15 +247,20 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			ComboAddress sourceAddr;
 			unsigned int sourceItf = 0;
 			if(auto addressStr = boost::get<string>(&pvars)) {
-			  ComboAddress address(*addressStr, 53);
 			  std::shared_ptr<DownstreamState> ret;
-			  if(IsAnyAddress(address)) {
-			    g_outputBuffer="Error creating new server: invalid address for a downstream server.";
-			    errlog("Error creating new server: %s is not a valid address for a downstream server", *addressStr);
-			    return ret;
-			  }
 			  try {
+			    ComboAddress address(*addressStr, 53);
+			    if(IsAnyAddress(address)) {
+			      g_outputBuffer="Error creating new server: invalid address for a downstream server.";
+			      errlog("Error creating new server: %s is not a valid address for a downstream server", *addressStr);
+			      return ret;
+			    }
 			    ret=std::make_shared<DownstreamState>(address);
+			  }
+			  catch(const PDNSException& e) {
+			    g_outputBuffer="Error creating new server: "+string(e.reason);
+			    errlog("Error creating new server with address %s: %s", addressStr, e.reason);
+			    return ret;
 			  }
 			  catch(std::exception& e) {
 			    g_outputBuffer="Error creating new server: "+string(e.what());
@@ -251,13 +283,15 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			  addServerToPool(localPools, "", ret);
 			  g_pools.setState(localPools);
 
-			  if(g_launchWork) {
-			    g_launchWork->push_back([ret]() {
-				ret->tid = move(thread(responderThread, ret));
+			  if (ret->connected) {
+			    if(g_launchWork) {
+			      g_launchWork->push_back([ret]() {
+			        ret->tid = move(thread(responderThread, ret));
 			      });
-			  }
-			  else {
-			    ret->tid = move(thread(responderThread, ret));
+			    }
+			    else {
+			      ret->tid = move(thread(responderThread, ret));
+			    }
 			  }
 
 			  return ret;
@@ -311,14 +345,19 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			}
 
 			std::shared_ptr<DownstreamState> ret;
-			ComboAddress address(boost::get<string>(vars["address"]), 53);
-			if(IsAnyAddress(address)) {
-			  g_outputBuffer="Error creating new server: invalid address for a downstream server.";
-			  errlog("Error creating new server: %s is not a valid address for a downstream server", boost::get<string>(vars["address"]));
-			  return ret;
-			}
 			try {
+			  ComboAddress address(boost::get<string>(vars["address"]), 53);
+			  if(IsAnyAddress(address)) {
+			    g_outputBuffer="Error creating new server: invalid address for a downstream server.";
+			    errlog("Error creating new server: %s is not a valid address for a downstream server", boost::get<string>(vars["address"]));
+			    return ret;
+			  }
 			  ret=std::make_shared<DownstreamState>(address, sourceAddr, sourceItf);
+			}
+			catch(const PDNSException& e) {
+			  g_outputBuffer="Error creating new server: "+string(e.reason);
+			  errlog("Error creating new server with address %s: %s", boost::get<string>(vars["address"]), e.reason);
+			  return ret;
 			}
 			catch(std::exception& e) {
 			  g_outputBuffer="Error creating new server: "+string(e.what());
@@ -327,8 +366,8 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			}
 
 			if(vars.count("qps")) {
-			  int qps=std::stoi(boost::get<string>(vars["qps"]));
-			  ret->qps=QPSLimiter(qps, qps);
+			  int qpsVal=std::stoi(boost::get<string>(vars["qps"]));
+			  ret->qps=QPSLimiter(qpsVal, qpsVal);
 			}
 
 			auto localPools = g_pools.getCopy();
@@ -361,12 +400,20 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			  ret->retries=std::stoi(boost::get<string>(vars["retries"]));
 			}
 
+			if(vars.count("tcpConnectTimeout")) {
+			  ret->tcpConnectTimeout=std::stoi(boost::get<string>(vars["tcpConnectTimeout"]));
+			}
+
 			if(vars.count("tcpSendTimeout")) {
 			  ret->tcpSendTimeout=std::stoi(boost::get<string>(vars["tcpSendTimeout"]));
 			}
 
 			if(vars.count("tcpRecvTimeout")) {
 			  ret->tcpRecvTimeout=std::stoi(boost::get<string>(vars["tcpRecvTimeout"]));
+			}
+
+			if(vars.count("tcpFastOpen")) {
+			  ret->tcpFastOpen=boost::get<bool>(vars["tcpFastOpen"]);
 			}
 
 			if(vars.count("name")) {
@@ -397,13 +444,15 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			  ret->maxCheckFailures=std::stoi(boost::get<string>(vars["maxCheckFailures"]));
 			}
 
-			if(g_launchWork) {
-			  g_launchWork->push_back([ret]() {
+			if (ret->connected) {
+			  if(g_launchWork) {
+			    g_launchWork->push_back([ret]() {
 			      ret->tid = move(thread(responderThread, ret));
 			    });
-			}
-			else {
-			  ret->tid = move(thread(responderThread, ret));
+			  }
+			  else {
+			    ret->tid = move(thread(responderThread, ret));
+			  }
 			}
 
 			auto states = g_dstates.getCopy();
@@ -634,14 +683,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       int counter=0;
       auto states = g_dstates.getCopy();
       for(const auto& s : states) {
-	string status;
-	if(s->availability == DownstreamState::Availability::Up) 
-	  status = "UP";
-	else if(s->availability == DownstreamState::Availability::Down) 
-	  status = "DOWN";
-	else 
-	  status = (s->upStatus ? "up" : "down");
-
+	string status = s->getStatus();
 	string pools;
 	for(auto& p : s->pools) {
 	  if(!pools.empty())
@@ -676,6 +718,14 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			  });
 		      });
 
+  g_lua.writeFunction("addLuaResponseAction", [](luadnsrule_t var, LuaResponseAction::func_t func) {
+      setLuaSideEffect();
+      auto rule=makeRule(var);
+      g_resprulactions.modify([rule,func](decltype(g_resprulactions)::value_type& rulactions){
+          rulactions.push_back({rule,
+                std::make_shared<LuaResponseAction>(func)});
+        });
+    });
 
   g_lua.writeFunction("NoRecurseAction", []() {
       return std::shared_ptr<DNSAction>(new NoRecurseAction);
@@ -1489,6 +1539,13 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.registerFunction<bool(DNSQuestion::*)()>("getDO", [](const DNSQuestion& dq) {
       return getEDNSZ((const char*)dq.dh, dq.len) & EDNS_HEADER_FLAG_DO;
     });
+  g_lua.registerFunction<void(DNSQuestion::*)(std::string)>("sendTrap", [](const DNSQuestion& dq, boost::optional<std::string> reason) {
+#ifdef HAVE_NET_SNMP
+      if (g_snmpAgent && g_snmpTrapsEnabled) {
+        g_snmpAgent->sendDNSTrap(dq, reason ? *reason : "");
+      }
+#endif /* HAVE_NET_SNMP */
+    });
 
   /* LuaWrapper doesn't support inheritance */
   g_lua.registerMember<const ComboAddress (DNSResponse::*)>("localaddr", [](const DNSResponse& dq) -> const ComboAddress { return *dq.local; }, [](DNSResponse& dq, const ComboAddress newLocal) { (void) newLocal; });
@@ -1503,6 +1560,16 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.registerMember<size_t (DNSResponse::*)>("size", [](const DNSResponse& dq) -> size_t { return dq.size; }, [](DNSResponse& dq, size_t newSize) { (void) newSize; });
   g_lua.registerMember<bool (DNSResponse::*)>("tcp", [](const DNSResponse& dq) -> bool { return dq.tcp; }, [](DNSResponse& dq, bool newTcp) { (void) newTcp; });
   g_lua.registerMember<bool (DNSResponse::*)>("skipCache", [](const DNSResponse& dq) -> bool { return dq.skipCache; }, [](DNSResponse& dq, bool newSkipCache) { dq.skipCache = newSkipCache; });
+  g_lua.registerFunction<void(DNSResponse::*)(std::function<uint32_t(uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl)> editFunc)>("editTTLs", [](const DNSResponse& dr, std::function<uint32_t(uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl)> editFunc) {
+        editDNSPacketTTL((char*) dr.dh, dr.len, editFunc);
+      });
+  g_lua.registerFunction<void(DNSResponse::*)(std::string)>("sendTrap", [](const DNSResponse& dr, boost::optional<std::string> reason) {
+#ifdef HAVE_NET_SNMP
+      if (g_snmpAgent && g_snmpTrapsEnabled) {
+        g_snmpAgent->sendDNSTrap(dr, reason ? *reason : "");
+      }
+#endif /* HAVE_NET_SNMP */
+    });
 
   g_lua.writeFunction("setMaxTCPClientThreads", [](uint64_t max) {
       if (!g_configurationDone) {
@@ -1520,28 +1587,46 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       }
     });
 
+  g_lua.writeFunction("setMaxTCPQueriesPerConnection", [](size_t max) {
+      if (!g_configurationDone) {
+        g_maxTCPQueriesPerConn = max;
+      } else {
+        g_outputBuffer="The maximum number of queries per TCP connection cannot be altered at runtime!\n";
+      }
+    });
+
+  g_lua.writeFunction("setMaxTCPConnectionsPerClient", [](size_t max) {
+      if (!g_configurationDone) {
+        g_maxTCPConnectionsPerClient = max;
+      } else {
+        g_outputBuffer="The maximum number of TCP connection per client cannot be altered at runtime!\n";
+      }
+    });
+
+  g_lua.writeFunction("setMaxTCPConnectionDuration", [](size_t max) {
+      if (!g_configurationDone) {
+        g_maxTCPConnectionDuration = max;
+      } else {
+        g_outputBuffer="The maximum duration of a TCP connection cannot be altered at runtime!\n";
+      }
+    });
+
   g_lua.writeFunction("showTCPStats", [] {
       setLuaNoSideEffect();
       boost::format fmt("%-10d %-10d %-10d %-10d\n");
       g_outputBuffer += (fmt % "Clients" % "MaxClients" % "Queued" % "MaxQueued").str();
-      g_outputBuffer += (fmt % g_tcpclientthreads->d_numthreads % g_maxTCPClientThreads % g_tcpclientthreads->d_queued % g_maxTCPQueuedConnections).str();
+      g_outputBuffer += (fmt % g_tcpclientthreads->getThreadsCount() % g_maxTCPClientThreads % g_tcpclientthreads->getQueuedCount() % g_maxTCPQueuedConnections).str();
+      g_outputBuffer += "Query distribution mode is: " + std::string(g_useTCPSinglePipe ? "single queue" : "per-thread queues") + "\n";
     });
 
   g_lua.writeFunction("setCacheCleaningDelay", [](uint32_t delay) { g_cacheCleaningDelay = delay; });
+  g_lua.writeFunction("setCacheCleaningPercentage", [](uint16_t percentage) { if (percentage < 100) g_cacheCleaningPercentage = percentage; else g_cacheCleaningPercentage = 100; });
 
   g_lua.writeFunction("setECSSourcePrefixV4", [](uint16_t prefix) { g_ECSSourcePrefixV4=prefix; });
 
   g_lua.writeFunction("setECSSourcePrefixV6", [](uint16_t prefix) { g_ECSSourcePrefixV6=prefix; });
 
   g_lua.writeFunction("setECSOverride", [](bool override) { g_ECSOverride=override; });
-
-  g_lua.writeFunction("addResponseAction", [](luadnsrule_t var, std::shared_ptr<DNSResponseAction> ea) {
-      setLuaSideEffect();
-      auto rule=makeRule(var);
-      g_resprulactions.modify([rule, ea](decltype(g_resprulactions)::value_type& rulactions){
-          rulactions.push_back({rule, ea});
-        });
-    });
 
   g_lua.writeFunction("dumpStats", [] {
       setLuaNoSideEffect();
@@ -1559,8 +1644,8 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 	string second;
 	if(const auto& val = boost::get<DNSDistStats::stat_t*>(&e.second))
 	  second=std::to_string((*val)->load());
-	else if (const auto& val = boost::get<double*>(&e.second))
-	  second=(flt % (**val)).str();
+	else if (const auto& dval = boost::get<double*>(&e.second))
+	  second=(flt % (**dval)).str();
 	else
 	  second=std::to_string((*boost::get<DNSDistStats::statfunction_t>(&e.second))(e.first));
 

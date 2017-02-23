@@ -1,3 +1,59 @@
+# 1.1.0
+Released December 29th 2016
+
+Changes since 1.1.0-beta2:
+
+## Improvements
+
+ * [#4783](https://github.com/PowerDNS/pdns/pull/4783): Add -latomic on powerpc 
+ * [#4812](https://github.com/PowerDNS/pdns/pull/4812): Handle header-only responses, handle Refused as Servfail in the cache
+
+## Bug fixes
+
+ * [#4762](https://github.com/PowerDNS/pdns/pull/4762): SuffixMatchNode: Fix an insertion issue for an existing node 
+ * [#4772](https://github.com/PowerDNS/pdns/pull/4772): Fix dnsdist initscript config check 
+
+# 1.1.0-beta2
+Released December 14th 2016
+
+Changes since 1.1.0-beta1:
+
+## New features
+
+ * [#4518](https://github.com/PowerDNS/pdns/pull/4518): Fix dynblocks over TCP, allow refusing dyn blocked queries
+ * [#4519](https://github.com/PowerDNS/pdns/pull/4519): Allow altering the ECS behavior via rules and Lua
+ * [#4535](https://github.com/PowerDNS/pdns/pull/4535): Add `DNSQuestion:getDO()`
+ * [#4653](https://github.com/PowerDNS/pdns/pull/4653): `getStatisticsCounters()` to access counters from Lua
+ * [#4657](https://github.com/PowerDNS/pdns/pull/4657): Add `includeDirectory(dir)`
+ * [#4658](https://github.com/PowerDNS/pdns/pull/4658): Allow editing the ACL via the API
+ * [#4702](https://github.com/PowerDNS/pdns/pull/4702): Add `setUDPTimeout(n)`
+ * [#4726](https://github.com/PowerDNS/pdns/pull/4726): Add an option to return ServFail when no server is available
+ * [#4748](https://github.com/PowerDNS/pdns/pull/4748): Add `setCacheCleaningPercentage()`
+
+## Improvements
+
+ * [#4533](https://github.com/PowerDNS/pdns/pull/4533): Fix building with clang on OS X and FreeBSD
+ * [#4537](https://github.com/PowerDNS/pdns/pull/4537): Replace luawrapper's std::forward/std::make_tuple combo with std::forward_as_tuple (Sangwhan "fish" Moon)
+ * [#4596](https://github.com/PowerDNS/pdns/pull/4596): Change the default max number of queued TCP conns to 1000
+ * [#4632](https://github.com/PowerDNS/pdns/pull/4632): Improve dnsdist error message on a common typo/config mistake
+ * [#4694](https://github.com/PowerDNS/pdns/pull/4694): Don't use a const_iterator for erasing (fix compilation with some versions of gcc)
+ * [#4715](https://github.com/PowerDNS/pdns/pull/4715): Specify that dnsmessage.proto uses protobuf version 2
+ * [#4765](https://github.com/PowerDNS/pdns/pull/4765): Some service improvements
+
+## Bug fixes
+
+ * [#4425](https://github.com/PowerDNS/pdns/pull/4425): Fix a protobuf regression (requestor/responder mix-up) caused by a94673e
+ * [#4541](https://github.com/PowerDNS/pdns/pull/4541): Fix insertion issues in SuffixMatchTree, move it to dnsname.hh
+ * [#4553](https://github.com/PowerDNS/pdns/pull/4553): Flush output in single command client mode
+ * [#4578](https://github.com/PowerDNS/pdns/pull/4578): Fix destination address reporting
+ * [#4640](https://github.com/PowerDNS/pdns/pull/4640): Don't exit dnsdist on an exception in maintenance
+ * [#4721](https://github.com/PowerDNS/pdns/pull/4721): Handle exceptions in the UDP responder thread
+ * [#4734](https://github.com/PowerDNS/pdns/pull/4734): Add the TCP socket to the map only if the connection succeeds. Closes #4733
+ * [#4742](https://github.com/PowerDNS/pdns/pull/4742): Decrement the queued TCP conn count if writing to the pipe fails
+ * [#4743](https://github.com/PowerDNS/pdns/pull/4743): Ignore newBPFFilter() and newDynBPFFilter() in client mode
+ * [#4753](https://github.com/PowerDNS/pdns/pull/4753): Fix FD leak on TCP connection failure, handle TCP worker creation failure
+ * [#4764](https://github.com/PowerDNS/pdns/pull/4764): Prevent race while creating new TCP worker threads
+
 # 1.1.0-beta1
 Released September 1st 2016
 

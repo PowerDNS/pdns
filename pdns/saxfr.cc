@@ -16,29 +16,6 @@
 
 StatBag S;
 
-bool validateTSIG(const string& message, const TSIGHashEnum& algo, const DNSName& key, const string& secret, const TSIGRecordContent *trc) {
-  int64_t now = time(0);
-  if(abs(static_cast<int64_t>(trc->d_time) - now) > trc->d_fudge) {
-    cerr<<"TSIG (key '"<<key<<"') time delta "<< abs(static_cast<int64_t>(trc->d_time) - now)<<" > 'fudge' "<<trc->d_fudge<<endl;
-    return false;
-  }
-  if (algo == TSIG_GSS) {
-    // authorization is done later
-    GssContext gssctx(key);
-    if (!gssctx.valid()) {
-      cerr<<"no context"<<endl;
-      return false;
-    }
-    if (!gssctx.verify(message, trc->d_mac)) {
-      cerr<<"invalid mac"<<endl;
-      return false;
-    }
-    return true;
-  }
-  return calculateHMAC(secret, message, algo) == trc->d_mac;
-}
-
-
 int main(int argc, char** argv)
 try
 {
@@ -162,7 +139,7 @@ try
         n+=numread;
       }
 
-       MOADNSParser mdp(string(creply, len));
+      MOADNSParser mdp(false, string(creply, len));
        if (mdp.d_header.rcode != 0) {
          throw PDNSException(string("Remote server refused: ") + std::to_string(mdp.d_header.rcode));
        }
@@ -194,7 +171,7 @@ try
     trc.d_fudge = 300;
     trc.d_origID=ntohs(pw.getHeader()->id);
     trc.d_eRcode=0;
-    addTSIG(pw, &trc, tsig_key, tsig_secret, "", false);
+    addTSIG(pw, trc, tsig_key, tsig_secret, "", false);
   }
 
   len = htons(packet.size());
@@ -229,7 +206,7 @@ try
 
     string packet = string(creply, len);
 
-    MOADNSParser mdp(packet);
+    MOADNSParser mdp(false, packet);
     if (mdp.d_header.rcode != 0) {
       throw PDNSException(string("Remote server refused: ") + std::to_string(mdp.d_header.rcode));
     }

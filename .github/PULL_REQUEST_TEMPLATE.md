@@ -8,6 +8,6 @@ I have:
 - [ ] compiled and tested this code
 - [ ] included documentation (including possible behaviour changes)
 - [ ] documented the code
-- [ ] added regression tests
-- [ ] added unit tests
-- [ ] <!-- when not filing this Pull Request against the master branch --> checked that this code was merged to master
+- [ ] added or modified regression test(s)
+- [ ] added or modified unit test(s)
+- [ ] <!-- remove this line if your PR is against master --> checked that this code was merged to master
