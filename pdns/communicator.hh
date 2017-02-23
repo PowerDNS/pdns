@@ -243,7 +243,7 @@ private:
 class FindNS
 {
 public:
-  vector<string> lookup(const DNSName &name, DNSBackend *b)
+  vector<string> lookup(const DNSName &name, UeberBackend *b)
   {
     vector<string> addresses;
 
@@ -251,10 +251,10 @@ public:
     
     if(b) {
         b->lookup(QType(QType::ANY),name);
-        DNSResourceRecord rr;
+        DNSZoneRecord rr;
         while(b->get(rr))
-          if(rr.qtype.getCode() == QType::A || rr.qtype.getCode()==QType::AAAA)
-            addresses.push_back(rr.content);   // SOL if you have a CNAME for an NS
+          if(rr.dr.d_type == QType::A || rr.dr.d_type==QType::AAAA)
+            addresses.push_back(rr.dr.d_content->getZoneRepresentation());   // SOL if you have a CNAME for an NS
     }
     return addresses;
   }
