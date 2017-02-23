@@ -101,7 +101,6 @@ public:
   bool getAuth(DNSPacket *p, SOAData *sd, const DNSName &target);
   bool getSOA(const DNSName &domain, SOAData &sd, DNSPacket *p=0);
   bool getSOAUncached(const DNSName &domain, SOAData &sd, DNSPacket *p=0);  // same, but ignores cache
-  bool get(DNSResourceRecord &r);
   bool get(DNSZoneRecord &r);
   void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false);
 

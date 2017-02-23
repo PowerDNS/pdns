@@ -42,28 +42,29 @@
 #include "namespaces.hh"
 
 
-void CommunicatorClass::queueNotifyDomain(const DNSName &domain, UeberBackend *B)
+void CommunicatorClass::queueNotifyDomain(const DomainInfo& di, UeberBackend* B)
 {
   bool hasQueuedItem=false;
   set<string> nsset, ips;
-  DNSResourceRecord rr;
+  DNSZoneRecord rr;
   FindNS fns;
 
+
   if (d_onlyNotify.size()) {
-    B->lookup(QType(QType::NS),domain);
+    B->lookup(QType(QType::NS), di.zone);
     while(B->get(rr))
-      nsset.insert(rr.content);
+      nsset.insert(getRR<NSRecordContent>(rr.dr)->getNS().toString());
 
     for(set<string>::const_iterator j=nsset.begin();j!=nsset.end();++j) {
       vector<string> nsips=fns.lookup(DNSName(*j), B);
       if(nsips.empty())
-        L<<Logger::Warning<<"Unable to queue notification of domain '"<<domain<<"': nameservers do not resolve!"<<endl;
+        L<<Logger::Warning<<"Unable to queue notification of domain '"<<di.zone<<"': nameservers do not resolve!"<<endl;
       else
         for(vector<string>::const_iterator k=nsips.begin();k!=nsips.end();++k) {
           const ComboAddress caIp(*k, 53);
           if(!d_preventSelfNotification || !AddressIsUs(caIp)) {
             if(!d_onlyNotify.match(&caIp))
-              L<<Logger::Info<<"Skipped notification of domain '"<<domain<<"' to "<<*j<<" because it does not match only-notify."<<endl;
+              L<<Logger::Info<<"Skipped notification of domain '"<<di.zone<<"' to "<<*j<<" because it does not match only-notify."<<endl;
             else
               ips.insert(caIp.toStringWithPort());
           }
@@ -71,32 +72,32 @@ void CommunicatorClass::queueNotifyDomain(const DNSName &domain, UeberBackend *B
     }
 
     for(set<string>::const_iterator j=ips.begin();j!=ips.end();++j) {
-      L<<Logger::Warning<<"Queued notification of domain '"<<domain<<"' to "<<*j<<endl;
-      d_nq.add(domain,*j);
+      L<<Logger::Warning<<"Queued notification of domain '"<<di.zone<<"' to "<<*j<<endl;
+      d_nq.add(di.zone,*j);
       hasQueuedItem=true;
     }
   }
 
   set<string> alsoNotify(d_alsoNotify);
-  B->alsoNotifies(domain, &alsoNotify);
+  B->alsoNotifies(di.zone, &alsoNotify);
 
   for(set<string>::const_iterator j=alsoNotify.begin();j!=alsoNotify.end();++j) {
     try {
       const ComboAddress caIp(*j, 53);
-      L<<Logger::Warning<<"Queued also-notification of domain '"<<domain<<"' to "<<caIp.toStringWithPort()<<endl;
+      L<<Logger::Warning<<"Queued also-notification of domain '"<<di.zone<<"' to "<<caIp.toStringWithPort()<<endl;
       if (!ips.count(caIp.toStringWithPort())) {
         ips.insert(caIp.toStringWithPort());
-        d_nq.add(domain, caIp.toStringWithPort());
+        d_nq.add(di.zone, caIp.toStringWithPort());
       }
       hasQueuedItem=true;
     }
     catch(PDNSException &e) {
-      L<<Logger::Warning<<"Unparseable IP in ALSO-NOTIFY metadata of domain '"<<domain<<"'. Warning: "<<e.reason<<endl;
+      L<<Logger::Warning<<"Unparseable IP in ALSO-NOTIFY metadata of domain '"<<di.zone<<"'. Warning: "<<e.reason<<endl;
     }
   }
 
   if (!hasQueuedItem)
-    L<<Logger::Warning<<"Request to queue notification for domain '"<<domain<<"' was processed, but no valid nameservers or ALSO-NOTIFYs found. Not notifying!"<<endl;
+    L<<Logger::Warning<<"Request to queue notification for domain '"<<di.zone<<"' was processed, but no valid nameservers or ALSO-NOTIFYs found. Not notifying!"<<endl;
 }
 
 
@@ -108,7 +109,7 @@ bool CommunicatorClass::notifyDomain(const DNSName &domain)
     L<<Logger::Error<<"No such domain '"<<domain<<"' in our database"<<endl;
     return false;
   }
-  queueNotifyDomain(domain, &B);
+  queueNotifyDomain(di, &B);
   // call backend and tell them we sent out the notification - even though that is premature    
   di.backend->setNotified(di.id, di.serial);
 
@@ -147,11 +148,11 @@ void CommunicatorClass::masterUpdateCheck(PacketHandler *P)
   // figure out A records of everybody needing notification
   // do this via the FindNS class, d_fns
   
-  for(vector<DomainInfo>::const_iterator i=cmdomains.begin();i!=cmdomains.end();++i) {
+  for(auto& di : cmdomains) {
     extern PacketCache PC;
-    PC.purgeExact(i->zone);
-    queueNotifyDomain(i->zone,P->getBackend());
-    i->backend->setNotified(i->id,i->serial); 
+    PC.purgeExact(di.zone);
+    queueNotifyDomain(di, B);
+    di.backend->setNotified(di.id, di.serial);
   }
 }
 

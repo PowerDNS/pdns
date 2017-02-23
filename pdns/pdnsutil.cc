@@ -353,7 +353,7 @@ void dbBench(const std::string& fname)
     domains.push_back("powerdns.com");
 
   int n=0;
-  DNSResourceRecord rr;
+  DNSZoneRecord rr;
   DTime dt;
   dt.set();
   unsigned int hits=0, misses=0;
@@ -439,10 +439,10 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
     SOAData sd_p;
     if(B.getSOAUncached(parent, sd_p)) {
       bool ns=false;
-      DNSResourceRecord rr;
+      DNSZoneRecord zr;
       B.lookup(QType(QType::ANY), zone, NULL, sd_p.domain_id);
-      while(B.get(rr))
-        ns |= (rr.qtype == QType::NS);
+      while(B.get(zr))
+        ns |= (zr.dr.d_type == QType::NS);
       if (!ns) {
         cout<<"[Error] No delegation for zone '"<<zone<<"' in parent '"<<parent<<"'"<<endl;
         numerrors++;
@@ -977,13 +977,13 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
  editAgain:;
   di.backend->list(zone, di.id);
   pre.clear(); post.clear();
-  DNSResourceRecord rr;
   {
     if(tmpfd < 0 && (tmpfd=open(tmpnam, O_WRONLY | O_TRUNC, 0600)) < 0)
       unixDie("Error reopening temporary file "+string(tmpnam));
     string header("; Warning - every name in this file is ABSOLUTE!\n$ORIGIN .\n");
     if(write(tmpfd, header.c_str(), header.length()) < 0)
       unixDie("Writing zone to temporary file");
+    DNSResourceRecord rr;
     while(di.backend->get(rr)) {
       if(!rr.qtype.getCode())
         continue;
@@ -1011,6 +1011,7 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
   }
   cmdline.clear();
   ZoneParserTNG zpt(tmpnam, g_rootdnsname);
+  DNSResourceRecord rr;
   map<pair<DNSName,uint16_t>, vector<DNSRecord> > grouped;
   while(zpt.get(rr)) {
     try {
@@ -1029,7 +1030,7 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
   checkrr.clear();
 
   for(const DNSRecord& rr : post) {
-    DNSResourceRecord drr(rr);
+    DNSResourceRecord drr = DNSResourceRecord::fromWire(rr);
     drr.domain_id = di.id;
     checkrr.push_back(drr);
   }
@@ -1095,7 +1096,7 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
   for(const auto& c : changed) {
     vector<DNSResourceRecord> vrr;
     for(const DNSRecord& rr : grouped[c.first]) {
-      DNSResourceRecord drr(rr);
+      DNSResourceRecord drr = DNSResourceRecord::fromWire(rr);
       drr.domain_id = di.id;
       vrr.push_back(drr);
     }
@@ -1265,9 +1266,9 @@ int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
   rr.qname = name;
   DNSResourceRecord oldrr;
   if(addOrReplace) { // the 'add' case
-    B.lookup(rr.qtype, rr.qname, 0, di.id);
+    di.backend->lookup(rr.qtype, rr.qname, 0, di.id);
 
-    while(B.get(oldrr)) 
+    while(di.backend->get(oldrr))
       newrrs.push_back(oldrr);
   }
 
@@ -1280,11 +1281,11 @@ int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
     else rr.ttl = ::arg().asNum("default-ttl");
   }
 
-  B.lookup(QType(QType::ANY), rr.qname, 0, di.id);
+  di.backend->lookup(QType(QType::ANY), rr.qname, 0, di.id);
   bool found=false;
   if(rr.qtype.getCode() == QType::CNAME) { // this will save us SO many questions
 
-    while(B.get(oldrr)) {
+    while(di.backend->get(oldrr)) {
       if(addOrReplace || oldrr.qtype.getCode() != QType::CNAME) // the replace case is ok if we replace one CNAME by the other
         found=true;
     }
@@ -1294,7 +1295,7 @@ int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
     }
   }
   else {
-    while(B.get(oldrr)) {
+    while(di.backend->get(oldrr)) {
       if(oldrr.qtype.getCode() == QType::CNAME)
         found=true;
     }
@@ -1400,7 +1401,6 @@ void testSpeed(DNSSECKeeper& dk, const DNSName& zone, const string& remote, int 
   rr.ttl=3600;
   rr.auth=1;
   rr.qclass = QClass::IN;
-  rr.d_place=DNSResourceRecord::ANSWER;
   
   UeberBackend db("key-only");
   
@@ -1647,12 +1647,12 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = false)
 
     // get us some keys
     vector<DNSKEYRecordContent> keys;
-    DNSResourceRecord rr;
+    DNSZoneRecord zr;
 
     B.lookup(QType(QType::DNSKEY), zone);
-    while(B.get(rr)) {
-      if (rr.qtype != QType::DNSKEY) continue;
-      keys.push_back(DNSKEYRecordContent(rr.getZoneRepresentation()));
+    while(B.get(zr)) {
+      if (zr.dr.d_type != QType::DNSKEY) continue;
+      keys.push_back(*getRR<DNSKEYRecordContent>(zr.dr));
     }
 
     if(keys.empty()) {

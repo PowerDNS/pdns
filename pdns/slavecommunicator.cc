@@ -134,11 +134,13 @@ void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, c
 
       di.backend->startTransaction(domain, -1);
       for(const auto g : grouped) {
-        DNSResourceRecord rr;
         vector<DNSRecord> rrset;
-        B.lookup(QType(g.first.second), g.first.first, 0, di.id);
-        while(B.get(rr)) {
-          rrset.push_back(DNSRecord{rr});
+        {
+          DNSZoneRecord zrr;
+          B.lookup(QType(g.first.second), g.first.first, 0, di.id);
+          while(B.get(zrr)) {
+            rrset.push_back(zrr.dr);
+          }
         }
         // O(N^2)!
         rrset.erase(remove_if(rrset.begin(), rrset.end(), 
@@ -153,17 +155,17 @@ void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, c
         }
 
         vector<DNSResourceRecord> replacement;
-        for(const auto& x : rrset) {
-          DNSResourceRecord dr(x);
-          dr.qname += domain;
-          dr.domain_id = di.id;
-          if(x.d_type == QType::SOA) {
+        for(const auto& dr : rrset) {
+          auto rr = DNSResourceRecord::fromWire(dr);
+          rr.qname += domain;
+          rr.domain_id = di.id;
+          if(dr.d_type == QType::SOA) {
             //            cout<<"New SOA: "<<x.d_content->getZoneRepresentation()<<endl;
-            auto sr = getRR<SOARecordContent>(x);
+            auto sr = getRR<SOARecordContent>(dr);
             zs.soa_serial=sr->d_st.serial;
           }
           
-          replacement.push_back(dr);
+          replacement.push_back(rr);
         }
 
         di.backend->replaceRRSet(di.id, g.first.first+domain, QType(g.first.second), replacement);
@@ -386,7 +388,7 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
           bool firstNSEC3=true;
           rrs.reserve(axfr.size());
           for(const auto& dr : axfr) {
-            DNSResourceRecord rr(dr);
+            auto rr = DNSResourceRecord::fromWire(dr);
             rr.qname += domain;
             rr.domain_id = zs.domain_id;
             if(!processRecordForZS(domain, firstNSEC3, rr, zs))
@@ -870,13 +872,13 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       }
       else {
         B->lookup(QType(QType::RRSIG), di.zone); // can't use DK before we are done with this lookup!
-        DNSResourceRecord rr;
+        DNSZoneRecord zr;
         uint32_t maxExpire=0, maxInception=0;
-        while(B->get(rr)) {
-          RRSIGRecordContent rrc(rr.content);
-          if(rrc.d_type == QType::SOA) {
-            maxInception = std::max(maxInception, rrc.d_siginception);
-            maxExpire = std::max(maxExpire, rrc.d_sigexpire);
+        while(B->get(zr)) {
+          auto rrsig = getRR<RRSIGRecordContent>(zr.dr);
+          if(rrsig->d_type == QType::SOA) {
+            maxInception = std::max(maxInception, rrsig->d_siginception);
+            maxExpire = std::max(maxExpire, rrsig->d_sigexpire);
           }
         }
         if(maxInception == ssr.d_freshness[di.id].theirInception && maxExpire == ssr.d_freshness[di.id].theirExpire) {

@@ -268,7 +268,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
     if (! foundRecord) {
       L<<Logger::Notice<<msgPrefix<<"Adding record "<<rr->d_name<<"|"<<rrType.getName()<<endl;
       delnonterm.insert(rr->d_name); // always remove any ENT's in the place where we're going to add a record.
-      DNSResourceRecord newRec(*rr);
+      auto newRec = DNSResourceRecord::fromWire(*rr);
       newRec.domain_id = di->id;
       newRec.auth = (rr->d_name == di->zone || rrType.getCode() != QType::NS);
       di->backend->feedRecord(newRec);
@@ -843,8 +843,8 @@ int PacketHandler::processUpdate(DNSPacket *p) {
   typedef vector<DNSResourceRecord> rrVector_t;
   typedef std::map<rrSetKey_t, rrVector_t> RRsetMap_t;
   RRsetMap_t preReqRRsets;
-  for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i != mdp.d_answers.end(); ++i) {
-    const DNSRecord *rr = &i->first;
+  for(const auto& i : mdp.d_answers) {
+    const DNSRecord* rr = &i.first;
     if (rr->d_place == DNSResourceRecord::ANSWER) {
       // Last line of 3.2.3
       if (rr->d_class != QClass::IN && rr->d_class != QClass::NONE && rr->d_class != QClass::ANY)
@@ -853,7 +853,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
       if (rr->d_class == QClass::IN) {
         rrSetKey_t key = make_pair(rr->d_name, QType(rr->d_type));
         rrVector_t *vec = &preReqRRsets[key];
-        vec->push_back(DNSResourceRecord(*rr));
+        vec->push_back(DNSResourceRecord::fromWire(*rr));
       }
     }
   }

@@ -178,7 +178,6 @@ void GeoIPBackend::initialize() {
           rr.weight = 100;
         } 
         rr.auth = 1;
-        rr.d_place = DNSResourceRecord::ANSWER;
         rrs.push_back(rr);
       }
       std::swap(dom.records[qname], rrs);
@@ -232,7 +231,6 @@ void GeoIPBackend::initialize() {
           rr.auth = 1;
           rr.weight = 100;
           rr.has_weight = false;
-          rr.d_place = DNSResourceRecord::ANSWER;
           rrs.push_back(rr);
           std::swap(dom.records[name], rrs);
         }
@@ -255,7 +253,6 @@ void GeoIPBackend::initialize() {
           rr.auth = 1;
           rr.weight = 100;
           rr.has_weight = false;
-          rr.d_place = DNSResourceRecord::ANSWER;
           rrs.push_back(rr);
           std::swap(dom.records[name], rrs);
         }

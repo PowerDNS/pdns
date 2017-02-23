@@ -543,7 +543,7 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
         while(B->get(rr)) 
           nsset.insert(DNSName(rr.content));
         for(const auto & j: nsset) {
-          vector<string> nsips=fns.lookup(j, B);
+          vector<string> nsips=fns.lookup(j, s_P->getBackend());
           for(vector<string>::const_iterator k=nsips.begin();k!=nsips.end();++k) {
             // cerr<<"got "<<*k<<" from AUTO-NS"<<endl;
             if(*k == q->getRemote().toString())
@@ -596,7 +596,6 @@ namespace {
     soa.ttl=sd.ttl;
     soa.domain_id=sd.domain_id;
     soa.auth = true;
-    soa.d_place=DNSResourceRecord::ANSWER;
     return soa;
   }
 
