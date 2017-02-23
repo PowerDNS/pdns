@@ -610,24 +610,11 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   bool securedZone = dk.isSecuredZone(target);
   bool presignedZone = dk.isPresigned(target);
 
-  bool noAXFRBecauseOfNSEC3Narrow=false;
   NSEC3PARAMRecordContent ns3pr;
   bool narrow;
   bool NSEC3Zone=false;
   if(dk.getNSEC3PARAM(target, &ns3pr, &narrow)) {
     NSEC3Zone=true;
-    if(narrow) {
-      L<<Logger::Error<<"Not doing AXFR of an NSEC3 narrow zone '"<<target<<"' for "<<q->getRemote()<<endl;
-      noAXFRBecauseOfNSEC3Narrow=true;
-    }
-  }
-
-  if(noAXFRBecauseOfNSEC3Narrow) {
-    L<<Logger::Error<<"AXFR of domain '"<<target<<"' denied to "<<q->getRemote()<<endl;
-    outpacket->setRcode(RCode::Refused);
-    // FIXME: should actually figure out if we are auth over a zone, and send out 9 if we aren't
-    sendPacket(outpacket,outsock);
-    return 0;
   }
 
   TSIGRecordContent trc;
