@@ -85,7 +85,7 @@ import-zone-key *ZONE* *FILE* {**KSK**,**ZSK**}
 remove-zone-key *ZONE* *KEY-ID*
 :    Remove a key with id *KEY-ID* from a zone called *ZONE*.
 
-set-nsec3 *ZONE* '*HASH-ALGORITHM* *FLAGS* *ITERATIONS* *SALT*' [**narrow**]
+set-nsec3 *ZONE* '*HASH-ALGORITHM* *FLAGS* *ITERATIONS* *SALT*' [**narrow** [**axfr**]]
 :    Sets NSEC3 parameters for this zone. The quoted parameters are 4 values
      that are used for the the NSEC3PARAM record and decide how NSEC3 records
      are created. The NSEC3 parameters must be quoted on the command line.<br><br>
@@ -99,6 +99,9 @@ set-nsec3 *ZONE* '*HASH-ALGORITHM* *FLAGS* *ITERATIONS* *SALT*' [**narrow**]
      secure record. Instead of looking it up in the database, it will send out
      the hash + 1 as the next secure record. <br><br>
      A sample commandline is: "pdnsutil set-nsec3 powerdnssec.org '1 1 1 ab' narrow".<br><br>
+     Setting **axfr** will make PowerDNS reply to AXFR on the zone with full-width
+     nsec3 records while replying with narrow records itself.
+     A sample commandline is: "pdnsutil set-nsec3 powerdnssec.org '1 1 1 ab' narrow axfr".<br><br>
      **WARNING**: If running in RSASHA1 mode (algorithm 5 or 7), switching from
      NSEC to NSEC3 will require a DS update in the parent zone.
 

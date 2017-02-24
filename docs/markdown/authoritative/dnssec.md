@@ -434,7 +434,7 @@ As stated earlier, PowerDNS uses NSEC by default. If you want to use NSEC3 inste
 issue:
 
 ```
-pdnsutil set-nsec3 ZONE [PARAMETERS]
+pdnsutil set-nsec3 ZONE [PARAMETERS] [narrow [axfr]]
 ```
 
 e.g.
@@ -450,6 +450,18 @@ The quoted part is the content of the NSEC3PARAM records, as defined in [RFC 515
 * Flags, set to `1` for [NSEC3 Opt-out](https://tools.ietf.org/html/rfc5155#section-6), this best set as `0`
 * Number of iterations of the hash function, read [RFC 5155, Section 10.3](https://tools.ietf.org/html/rfc5155#section-10.3) for recommendations
 * Salt (in hexadecimal) to apply during hashing
+
+
+To enable NSEC3 narrow mode on a zone:
+```
+pdnsutil set-nsec3 example.net '1 0 1 ab' narrow
+```
+
+To allow AXFR on a zone running in NSEC3 narrow mode:
+```
+pdnsutil set-nsec3 example.net '1 0 1 ab' narrow axfr
+```
+**Note**: The AXFR zone will be full-width.
 
 To convert a zone from NSEC3 to NSEC operations, run:
 
