@@ -225,7 +225,7 @@ try
   vector<Socket*> sockets;
   ComboAddress dest(argv[2], 53);  
   for(int i=0; i < 24; ++i) {
-    Socket *sock = new Socket(AF_INET, SOCK_DGRAM);
+    Socket *sock = new Socket(dest.sin4.sin_family, SOCK_DGRAM);
     //    sock->connect(dest);
     setSocketSendBuffer(sock->getHandle(), 2000000);
     setSocketReceiveBuffer(sock->getHandle(), 2000000);
