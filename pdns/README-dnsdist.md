@@ -1549,6 +1549,7 @@ instantiate a server with additional parameters
         * `truncate(bits)`: truncate the address to the specified number of bits
     * DNSName related:
         * `newDNSName(name)`: make a DNSName based on this .-terminated name
+        * member `chopOff()`: remove left-most label and return true, or false if there are no labels
         * member `countLabels()`: return the number of labels
         * member `isPartOf(dnsname)`: is this dnsname part of that dnsname
         * member `tostring()`: return as a human friendly . terminated string
