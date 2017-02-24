@@ -2073,7 +2073,8 @@ try
     cout<<"secure-zone ZONE [ZONE ..]         Add DNSSEC to zone ZONE"<<endl;
     cout<<"set-kind ZONE KIND                 Change the kind of ZONE to KIND (master, slave native)"<<endl;
     cout<<"set-account ZONE ACCOUNT           Change the account (owner) of ZONE to ACCOUNT"<<endl;
-    cout<<"set-nsec3 ZONE ['PARAMS' [narrow]] Enable NSEC3 with PARAMS. Optionally narrow"<<endl;
+    cout<<"set-nsec3 ZONE ['PARAMS' [narrow [axfr]]]" <<endl;
+    cout<<"                                   Enable NSEC3 with PARAMS. Optionally narrow. Optionally axfr"<<endl;
     cout<<"set-presigned ZONE                 Use presigned RRSIGs from storage"<<endl;
     cout<<"set-publish-cdnskey ZONE           Enable sending CDNSKEY responses for ZONE"<<endl;
     cout<<"set-publish-cds ZONE [DIGESTALGOS] Enable sending CDS responses for ZONE, using DIGESTALGOS as signature algorithms"<<endl;
@@ -2546,11 +2547,12 @@ try
   }
   else if(cmds[0]=="set-nsec3") {
     if(cmds.size() < 2) {
-      cerr<<"Syntax: pdnsutil set-nsec3 ZONE 'params' [narrow]"<<endl;
+      cerr<<"Syntax: pdnsutil set-nsec3 ZONE 'params' [narrow [axfr]]"<<endl;
       return 0;
     }
     string nsec3params =  cmds.size() > 2 ? cmds[2] : "1 0 1 ab";
     bool narrow = cmds.size() > 3 && cmds[3]=="narrow";
+    bool axfr = cmds.size() > 4 && cmds[3]=="narrow" && cmds[4]=="axfr";
     NSEC3PARAMRecordContent ns3pr(nsec3params);
 
     DNSName zone(cmds[1]);
@@ -2562,7 +2564,7 @@ try
       cerr<<"NSEC3PARAM algorithm set to '"<<std::to_string(ns3pr.d_algorithm)<<"', but '1' is the only valid value"<<endl;
       return EXIT_FAILURE;
     }
-    if (! dk.setNSEC3PARAM(zone, ns3pr, narrow)) {
+    if (! dk.setNSEC3PARAM(zone, ns3pr, narrow, axfr)) {
       cerr<<"Cannot set NSEC3 param for " << zone << endl;
       return 1;
     }
