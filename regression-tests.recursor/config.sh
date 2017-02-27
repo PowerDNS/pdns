@@ -438,6 +438,7 @@ host3.auth-zone.example.net. 20 IN CNAME host1.not-auth-zone.example.net.
 *.wild.auth-zone.example.net.	3600 IN	TXT "Hi there!"
 france.auth-zone.example.net.	20	IN NS 	ns1.auth-zone.example.net.
 ns1.auth-zone.example.net. 	20	IN	A	$PREFIX.23
+*.something.auth-zone.example.net.      20      IN      CNAME   host1.auth-zone.example.net.
 EOF
 
 mkdir $PREFIX.24

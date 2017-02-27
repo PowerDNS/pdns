@@ -1,0 +1,2 @@
+cleandig host1.something.auth-zone.example.net. A | sed 's/\(.*\tIN\t[A-Z0-9]\+\t\)\([0-9]\+\)/\13600/'
+cleandig host1.something.auth-zone.example.net. AAAA | sed 's/\(.*\tIN\t[A-Z0-9]\+\t\)\([0-9]\+\)/\13600/'

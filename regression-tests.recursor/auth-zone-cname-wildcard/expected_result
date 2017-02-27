@@ -1,0 +1,8 @@
+0	host1.auth-zone.example.net.	IN	A	3600	127.0.0.55
+0	host1.something.auth-zone.example.net.	IN	CNAME	3600	host1.auth-zone.example.net.
+Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+Reply to question for qname='host1.something.auth-zone.example.net.', qtype=A
+0	host1.auth-zone.example.net.	IN	AAAA	3600	2001:db8::1:45ba
+0	host1.something.auth-zone.example.net.	IN	CNAME	3600	host1.auth-zone.example.net.
+Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+Reply to question for qname='host1.something.auth-zone.example.net.', qtype=AAAA
