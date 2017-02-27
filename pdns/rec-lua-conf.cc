@@ -68,10 +68,9 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
   if(fname.empty())
     return;
   ifstream ifs(fname);
-  if(!ifs) {
-    theL()<<"Unable to read configuration file from '"<<fname<<"': "<<strerror(errno)<<endl;
-    return;
-  }
+  if(!ifs)
+    throw PDNSException("Cannot open file '"+fname+"': "+strerror(errno));
+
   Lua.writeFunction("clearSortlist", [&lci]() { lci.sortlist.clear(); });
   
   /* we can get: "1.2.3.4"
