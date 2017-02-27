@@ -100,10 +100,7 @@ static bool compareAuthorization(YaHTTP::Request& req, const string &expected_pa
     /* if this is a request for the API,
        check if the API key is correct */
     if (req.url.path=="/jsonstat" ||
-        req.url.path=="/api/v1/servers/localhost" ||
-        req.url.path=="/api/v1/servers/localhost/config" ||
-        req.url.path=="/api/v1/servers/localhost/config/allow-from" ||
-        req.url.path=="/api/v1/servers/localhost/statistics") {
+        req.url.path.find("/api/") == 0) {
       header = req.headers.find("x-api-key");
       if (header != req.headers.end()) {
         auth_ok = (0==strcmp(header->second.c_str(), expectedApiKey.c_str()));
