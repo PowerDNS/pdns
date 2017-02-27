@@ -19,7 +19,9 @@ AM_LDFLAGS = \
 
 ACLOCAL_AMFLAGS = -I m4
 
-BUILT_SOURCES=htmlfiles.h
+BUILT_SOURCES=htmlfiles.h \
+	dnslabeltext.cc
+
 CLEANFILES = htmlfiles.h \
 	dnsmessage.pb.cc \
 	dnsmessage.pb.h

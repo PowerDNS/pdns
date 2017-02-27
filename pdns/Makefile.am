@@ -54,7 +54,8 @@ EXTRA_DIST = \
 
 BUILT_SOURCES = \
 	bind-dnssec.schema.sqlite3.sql.h \
-	bindparser.h
+	bindparser.h \
+	dnslabeltext.cc
 
 CLEANFILES = \
 	*.gcda \
