@@ -481,8 +481,9 @@ In other words: each IP address is put within quotes, and are separated by
 commas instead of semicolons. For the rest everything is identical.
 
 ### Response Policy Zone (RPZ)
-Response Policy Zone is an open standard developed by ISC, the authors of the BIND nameserver, to modify
-DNS responses based on a policy loaded via a zonefile.
+Response Policy Zone is an open standard developed by Paul Vixie (ISC and
+Farsight) and Vernon Schryver (Rhyolite), to modify DNS responses based on a
+policy loaded via a zonefile.
 
 Frequently, Response Policy Zones get to be very large and change quickly,
 so it is customary to update them over IXFR.
