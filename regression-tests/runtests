@@ -11,6 +11,7 @@ export NOTIFY=${NOTIFY:-${PWD}/../pdns/pdns_notify}
 export NSEC3DIG=${NSEC3DIG:-${PWD}/../pdns/nsec3dig}
 export SAXFR=${SAXFR:-${PWD}/../pdns/saxfr}
 export ZONE2SQL=${ZONE2SQL:-${PWD}/../pdns/zone2sql}
+export ZONE2JSON=${ZONE2JSON:-${PWD}/../pdns/zone2json}
 export ZONE2LDAP=${ZONE2LDAP:-${PWD}/../pdns/zone2ldap}
 export PDNSUTIL=${PDNSUTIL:-${PWD}/../pdns/pdnsutil}
 export PDNSCONTROL=${PDNSCONTROL:-${PWD}/../pdns/pdns_control}
