@@ -17,10 +17,10 @@ statements for backends.
 
 **Warning**: Make sure that you can actually resolve the hostname of your database without accessing the database! It is advised to supply an IP address here to prevent chicken/egg problems!
 
-Now start PowerDNS using the monitor command:
+Now start PowerDNS in the foreground:
 
 ```
-# service pdns monitor
+# /usr/sbin/pdns_server --daemon=no --guardian=no --loglevel=9
 (...)
 Dec 30 13:40:09 About to create 3 backend threads for UDP
 Dec 30 13:40:09 gmysql Connection failed: Unable to connect to database: Access denied for user 'hubert'@'localhost' to database 'pdns-non-existant'
@@ -43,7 +43,7 @@ Connect to MySQL as a user with sufficient privileges and issue the following co
 Now we have a database and an empty table. PowerDNS should now be able to launch in monitor mode and display no errors:
 
 ```
-# /etc/init.d/pdns monitor
+# /usr/sbin/pdns_server --daemon=no --guardian=no --loglevel=9
 (...)
 15:31:30 PowerDNS 1.99.0 (Mar 12 2002, 15:00:28) starting up
 15:31:30 About to create 3 backend threads
@@ -59,12 +59,12 @@ $ dig +short www.example.com @127.0.0.1
 $
 ```
 
-**Warning**: When debugging DNS problems, don't use `host`. Please use `dig`  or `drill`.
+**Warning**: When debugging DNS problems, don't use `host`. Please use `dig` or `drill`.
 
-And indeed, the control console now shows:
+And indeed, the output in the first terminal now shows:
 
 ```
-Mar 12 15:41:12 We're not authoritative for 'www.example.com', sending unauth normal response
+Mar 01 16:04:42 Remote 127.0.0.1 wants 'www.example.com|A', do = 0, bufsize = 1680: packetcache MISS
 ```
 
 Now we need to add some records to our database (in a separate shell):
@@ -100,17 +100,19 @@ $ dig +short example.com MX @127.0.0.1
 25 mail.example.com
 ```
 
-To confirm what happened, issue the command `SHOW *` to the control console:
+To confirm what happened, check the statistics:
 
 ```
-% show *
+$ /usr/sbin/pdns_control SHOW \*
 corrupt-packets=0,latency=0,packetcache-hit=2,packetcache-miss=5,packetcache-size=0,
 qsize-a=0,qsize-q=0,servfail-packets=0,tcp-answers=0,tcp-queries=0,
 timedout-packets=0,udp-answers=7,udp-queries=7,
 %
 ```
 
-The actual numbers will vary somewhat. Now enter `QUIT` and start PowerDNS as a regular daemon, and check launch status:
+The actual numbers will vary somewhat. Now hit CTRL+C in the shell where PowerDNS runs, start PowerDNS as a regular daemon, and check launch status:
+
+On SysV systems:
 
 ```
 # /etc/init.d/pdns start
@@ -121,6 +123,28 @@ pdns: 8239: Child running
 pdns: corrupt-packets=0,latency=0,packetcache-hit=0,packetcache-miss=0,
 packetcache-size=0,qsize-a=0,qsize-q=0,servfail-packets=0,tcp-answers=0,
 tcp-queries=0,timedout-packets=0,udp-answers=0,udp-queries=0,
+```
+
+On systemd systems:
+
+```
+# systemctl start pdns.service
+# systemctl status pdns.service
+* pdns.service - PowerDNS Authoritative Server
+   Loaded: loaded (/lib/systemd/system/pdns.service; enabled)
+   Active: active (running) since Tue 2017-01-17 15:59:28 UTC; 1 months 12 days ago
+     Docs: man:pdns_server(1)
+           man:pdns_control(1)
+           https://doc.powerdns.com
+ Main PID: 24636 (pdns_server)
+   CGroup: /system.slice/pdns.service
+           `-24636 /usr/sbin/pdns_server --guardian=no --daemon=no --disable-syslog --write-pid=no
+
+(...)
+# /usr/sbin/pdns_control SHOW \*
+corrupt-packets=0,latency=0,packetcache-hit=2,packetcache-miss=5,packetcache-size=0,
+qsize-a=0,qsize-q=0,servfail-packets=0,tcp-answers=0,tcp-queries=0,
+timedout-packets=0,udp-answers=7,udp-queries=7,
 ```
 
 You now have a working database driven nameserver! To convert other zones already present, use the [`zone2sql`](migration.md#zone2sql) tool.
