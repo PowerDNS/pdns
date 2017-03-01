@@ -748,6 +748,16 @@ which also disables outgoing IPv6 support.
 
 Don't log queries.
 
+## `reuseport`
+* Boolean
+* Default: no
+
+If `SO_REUSEPORT` support is available, allows multiple processes to open a
+listening socket on the same port. Since 4.1.0, when `pdns-distributes-queries` is set to
+false and `reuseport` is enabled, every thread will open a separate listening socket to let
+the kernel distribute the incoming queries, avoiding any thundering herd issue as well as
+the distributor thread being a bottleneck, thus leading to much higher performance on multi-core boxes.
+
 ## `root-nx-trust`
 * Boolean
 * Default: no (<= 4.0.0), yes
