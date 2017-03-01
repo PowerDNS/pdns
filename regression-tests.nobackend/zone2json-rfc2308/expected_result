@@ -1,1 +1,6 @@
-{"name": "example.com", "records": [{"content": "ns1.example.com marka.isc.org 0 0 0 0 1", "name": "example.com.", "prio": 0, "ttl": 7200, "type": "SOA"}, {"content": "127.0.0.1", "name": "www.example.com.", "prio": 0, "ttl": 7200, "type": "A"}, {"content": "ns1.example.com", "name": "example.com.", "prio": 0, "ttl": 7200, "type": "NS"}, {"content": "127.0.0.1", "name": "ns1.example.com.", "prio": 0, "ttl": 7200, "type": "A"}, {"content": "127.0.0.2", "name": "ns2.example.com.", "prio": 0, "ttl": 3600, "type": "A"}, {"content": "127.0.0.3", "name": "ns3.example.com.", "prio": 0, "ttl": 86400, "type": "A"}]}
+7200
+7200
+7200
+7200
+3600
+86400
