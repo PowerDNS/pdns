@@ -78,9 +78,11 @@ try
 {
   char buffer[1500];
   struct NotificationInFlight nif;
+  /* make sure we report enough room for IPv6 */
+  nif.source.sin4.sin_family = AF_INET6;
   nif.origSocket = fd;
 
-  socklen_t socklen=sizeof(nif.source);
+  socklen_t socklen=nif.source.getSocklen();
 
   int res=recvfrom(fd, buffer, sizeof(buffer), 0, (struct sockaddr*)&nif.source, &socklen);
   if(!res)
@@ -149,8 +151,10 @@ try
 {
   char buffer[1500];
   struct NotificationInFlight nif;
+  /* make sure we report enough room for IPv6 */
+  nif.source.sin4.sin_family = AF_INET6;
 
-  socklen_t socklen=sizeof(nif.source);
+  socklen_t socklen=nif.source.getSocklen();
 
   int len=recvfrom(fd, buffer, sizeof(buffer), 0, (struct sockaddr*)&nif.source, &socklen);
   if(!len)
