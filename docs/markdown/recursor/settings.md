@@ -32,6 +32,7 @@ are ignored and do not get an answer.
 
 ## `allow-from-file`
 * Path
+* Available since: 3.1.5
 
 Like [`allow-from`](#allow-from), except reading from file. Overrides the
 [`allow-from`](#allow-from) setting. To use this feature, supply one netmask per
@@ -40,6 +41,7 @@ line, with optional comments preceded by a \#. Available since version 3.1.5.
 ## `any-to-tcp`
 * Boolean
 * Default: no
+* Available since: 3.6.0
 
 Answer questions for the ANY type on UDP with a truncated packet that refers the
 remote server to TCP. Useful for mitigating ANY reflection attacks.
@@ -61,14 +63,14 @@ Static pre-shared authentication key for access to the REST API.
 ## `api-readonly`
 * Boolean
 * Default: no
-* Available since: 4.0
+* Available since: 4.0.0
 
 Disallow data modification through the REST API when set.
 
 ## `api-logfile`
 * Path
 * Default: unset
-* Available since: 4.0
+* Available since: 4.0.0
 
 Location of the server logfile (used by the REST API).
 
@@ -94,14 +96,14 @@ Zones read from these files (in BIND format) are served authoritatively. DNSSEC 
 ## `carbon-interval`
 * Integer
 * Default: 30
-* Available since: 3.5.3
+* Available since: 3.6.0
 
 If sending carbon updates, this is the interval between them in seconds. See
 ["PowerDNS Metrics"](../common/logging.md#sending-to-carbongraphitemetronome).
 
 ## `carbon-ourname`
 * String
-* Available since: 3.5.3
+* Available since: 3.6.0
 
 If sending carbon updates, if set, this will override our hostname. Be
 careful not to include any dots in this setting, unless you know what you
@@ -109,7 +111,7 @@ are doing. See ["PowerDNS Metrics"](../common/logging.md#sending-to-carbongraphi
 
 ## `carbon-server`
 * IP address
-* Available since: 3.5.3
+* Available since: 3.6.0
 
 If set to an IP or IPv6 address, will send all available metrics to this server
 via the carbon protocol, which is used by graphite and metronome. You may specify
@@ -118,6 +120,7 @@ an alternate port by appending :port, ex: 127.0.0.1:2004. See
 
 ## `chroot`
 * Path to a Directory
+
 If set, chroot to this directory for more security. See [Security](../common/security.md).
 
 Make sure that `/dev/log` is available from within the chroot. Logging will
@@ -147,6 +150,7 @@ this depends on `SYSCONFDIR` during compile-time.
 ## `config-name`
 * String
 * Default: unset
+* Available since: 3.6.0
 
 When running multiple recursors on the same server, read settings from
 "recursor-name.conf", this will also rename the binary image.
@@ -173,6 +177,7 @@ cached.
 ## `disable-syslog`
 * Boolean
 * Default: no
+* Available since: 4.0.0
 
 Do not log to syslog, only to stdout. Use this setting when running inside a
 supervisor that handles logging (like systemd). **Note**: do not use this setting
@@ -231,20 +236,21 @@ This setting can be used to expand or reduce the limitations.
 ## `ecs-ipv4-bits`
 * Integer
 * Default: 24
-* Available since 4.1
+* Available since: 4.1.0
 
 Number of bits of client IPv4 address to pass when sending EDNS Client Subnet address information.
 
 ## `ecs-ipv6-bits`
 * Integer
 * Default: 56
-* Available since 4.1
+* Available since: 4.1.0
 
 Number of bits of client IPv6 address to pass when sending EDNS Client Subnet address information.
 
 ## `edns-outgoing-bufsize`
 * Integer
 * Default: 1680
+* Available since: 4.0.0
 
 This is the value set for the EDNS0 buffer size in outgoing packets.
 Lower this if you experience timeouts.
@@ -252,6 +258,7 @@ Lower this if you experience timeouts.
 ## `edns-subnet-whitelist`
 * Comma separated list of domain names and netmasks
 * Default: (none)
+* Available since: 4.0.0
 
 List of netmasks and domains that [EDNS Client Subnet](https://tools.ietf.org/html/rfc7871) should be enabled for in outgoing queries.
 For example, an EDNS Client Subnet option containing the address of the initial requestor will be added to an outgoing query sent to server 192.0.2.1 for domain X if 192.0.2.1 matches one of the supplied netmasks, or if X matches one of the supplied domains.
@@ -272,6 +279,7 @@ waiting for enough entropy to arrive.
 ## `etc-hosts-file`
 * Path
 * Default: /etc/hosts
+* Available since: 3.2
 
 The path to the /etc/hosts file, or equivalent. This file can be used to serve
 data authoritatively using [`export-etc-hosts`](#export-etc-hosts).
@@ -354,7 +362,6 @@ The DNSSEC notes from [`forward-zones`](#forward-zones) apply here as well.
 
 ## `hint-file`
 * Path
-* Available since: 2.9.19
 
 If set, the root-hints are read from this file. If unset, default root hints are
 used.
@@ -438,7 +445,7 @@ servers, but still return the proper case to the client requesting.
 
 ## `lua-config-file`
 * Filename
-* Available since 4.0.0
+* Available since: 4.0.0
 
 If set, and Lua support is compiled in, this will load an additional configuration file
 for newer features and more complicated setups. 
@@ -585,6 +592,7 @@ The protocol buffers message types can be found in the [`dnsmessage.proto`](http
 ## `lua-dns-script`
 * Path
 * Default: unset
+* Available since: 3.1.7
 
 Path to a lua file to manipulate the recursor's answers. See [Scripting the
 recursor](scripting.md).
@@ -640,6 +648,7 @@ maximum on the amount of time negative entries are cached.
 ## `max-recursion-depth`
 * Integer
 * Default: 40 (since 4.1.0), unlimited (before 4.1.0)
+* Available since: 4.0.4
 
 Total maximum number of internal recursion calls the server may use to answer
 a single query. 0 means unlimited. The value of `stack-size` should be increased
@@ -661,12 +670,14 @@ Maximum number of simultaneous incoming TCP connections allowed per client
 ## `max-tcp-queries-per-connection`
 * Integer
 * Default: 0 (unlimited)
+* Available since: 4.1.0
 
 Maximum number of DNS queries in a TCP connection.
 
 ## `max-total-msec`
 * Integer
 * Default: 7000
+* Available since: 3.7.1
 
 Total maximum number of milliseconds of wallclock time the server may use to answer
 a single query.
@@ -674,6 +685,7 @@ a single query.
 ## `minimum-ttl-override`
 * Integer
 * Default: 0 (disabled)
+* Available since: 3.6.0
 
 This setting artificially raises all TTLs to be at least this long. While this
 is a gross hack, and violates RFCs, under conditions of DoS, it may enable you
@@ -708,7 +720,7 @@ default will lower `packetcache-servfail-ttl` to `15`.
 ## `pdns-distributes-queries`
 * Boolean
 * Default: yes (since 3.7.0), no (before 3.7.0)
-* Available since: 3.6
+* Available since: 3.3
 
 If set, PowerDNS will have only 1 thread listening on client sockets, and
 distribute work by itself over threads. Improves performance on Linux. Do not
@@ -718,7 +730,6 @@ and not that stable.
 ## `query-local-address`
 * IPv4 Address, comma separated
 * Default: 0.0.0.0
-* Available since: 3.2
 
 Send out local queries from this address, or addresses, by adding multiple
 addresses, increased spoofing resilience is achieved.
@@ -726,7 +737,7 @@ addresses, increased spoofing resilience is achieved.
 ## `query-local-address6`
 * IPv6 addresses, comma separated
 * Default: unset
-* Available since: 3.2
+* Available since: 3.1
 
 Send out local IPv6 queries from this address or addresses. Disabled by default,
 which also disables outgoing IPv6 support.
@@ -740,6 +751,7 @@ Don't log queries.
 ## `root-nx-trust`
 * Boolean
 * Default: no (<= 4.0.0), yes
+* Available since: 3.7.1
 
 If set, an NXDOMAIN from the root-servers will serve as a blanket NXDOMAIN for the entire TLD
 the query belonged to. The effect of this is far fewer queries to the root-servers.
@@ -754,6 +766,7 @@ an empty string disables secpoll.
 ## `serve-rfc1918`
 * Boolean
 * Default: yes
+* Available since: 3.6.2
 
 This makes the server authoritatively aware of: `10.in-addr.arpa`,
 `168.192.in-addr.arpa`, `16-31.172.in-addr.arpa`, which saves load on the AS112
@@ -762,7 +775,7 @@ servers. Individual parts of these zones can still be loaded or forwarded.
 ## `server-down-max-fails`
 * Integer
 * Default: 64
-* Available since: 3.6
+* Available since: 3.6.0
 
 If a server has not responded in any way this many times in a row, no longer
 send it any queries for [`server-down-throttle-time`](#server-down-throttle-time)
@@ -773,7 +786,7 @@ Even a single response packet will drop the block.
 ## `server-down-throttle-time`
 * Integer
 * Default: 60
-* Available since: 3.6
+* Available since: 3.6.0
 
 Throttle a server that has failed to respond [`server-down-max-fails`](#server-down-max-fails)
 times for this many seconds.
@@ -826,6 +839,8 @@ Where to store the control socket and pidfile. The default depends on
 When using [`chroot`](#chroot) the default becomes to `/`.
 
 ## `socket-owner`, `socket-group`, `socket-mode`
+* Available since: 3.2
+
 Owner, group and mode of the controlsocket. Owner and group can be specified by
 name, mode is in octal.
 
@@ -839,12 +854,14 @@ many answers with the wrong id.
 ## `stack-size`
 * Integer
 * Default: 200000
+* Available since: 3.1.3
 
 Size of the stack per thread.
 
 ## `stats-ringbuffer-entries`
 * Integer
 * Default: 10000
+* Available since: 3.7.1
 
 Number of entries in the remotes ringbuffer, which keeps statistics on who is
 querying your server. Can be read out using `rec_control top-remotes`.
@@ -852,6 +869,7 @@ querying your server. Can be read out using `rec_control top-remotes`.
 ## `threads`
 * Integer
 * Default: 2
+* Available since: 3.2
 
 Spawn this number of threads on startup.
 
@@ -865,6 +883,7 @@ load.
 ## `udp-truncation-threshold`
 * Integer
 * Default: 1680
+* Available since: 3.6.0
 
 EDNS0 allows for large UDP response datagrams, which can potentially raise
 performance. Large responses however also have downsides in terms of reflection
@@ -881,6 +900,8 @@ in `edns-subnet-whitelist`, and will be truncated if the received scope exceeds
 `ecs-ipv4-bits` for IPv4 or `ecs-ipv6-bits` for IPv6.
 
 ## `version`
+* Available since: 3.1.5
+
 Print version of this binary. Useful for checking which version of the PowerDNS
 recursor is installed on a system. Available since version 3.1.5.
 
@@ -894,35 +915,41 @@ Security conscious users may wish to override the reply PowerDNS issues.
 ## `webserver`
 * Boolean
 * Default: no
+* Available since: 4.0.0
 
 Start the webserver (for REST API).
 
 ## `webserver-address`
 * IP Addresses, separated by spaces
 * Default: 127.0.0.1
+* Available since: 4.0.0
 
 IP address for the webserver to listen on.
 
 ## `webserver-allow-from`
 * IP addresses, comma separated
 * Default: 0.0.0.0, ::/0
+* Available since: 3.7.1
 
 These subnets are allowed to access the webserver.
 
 ## `webserver-password`
 * String
 * Default: unset
+* Available since: 4.0.0
 
 Password required to access the webserver.
 
 ## `webserver-port`
 * Integer
 * Default: 8082
+* Available since: 4.0.0
 
 TCP port where the webserver should listen on.
 
 ## `write-pid`
 * Boolean
 * Default: yes
+* Available since: 4.0.0
 
 If a PID file should be written. Available since 4.0.
