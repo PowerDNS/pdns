@@ -711,8 +711,12 @@ public:
         bits++;
       }
       if (node) {
-        for(auto it = _nodes.begin(); it != _nodes.end(); it++)
-           if (node->node4.get() == *it) _nodes.erase(it);
+        for(auto it = _nodes.begin(); it != _nodes.end(); ) {
+          if (node->node4.get() == *it)
+            it = _nodes.erase(it);
+          else
+            it++;
+        }
         node->node4.reset();
       }
     } else {
@@ -732,8 +736,13 @@ public:
         bits++;
       }
       if (node) {
-        for(auto it = _nodes.begin(); it != _nodes.end(); it++)
-           if (node->node6.get() == *it) _nodes.erase(it);
+        for(auto it = _nodes.begin(); it != _nodes.end(); ) {
+          if (node->node6.get() == *it)
+            it = _nodes.erase(it);
+          else
+            it++;
+        }
+
         node->node6.reset();
       }
     }
