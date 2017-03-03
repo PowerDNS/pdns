@@ -58,6 +58,9 @@ RE2_CONFIGURE='--enable-re2 \'
 DEFAULTS_INSTALL=''
 DEFAULTS_FILES=''
 
+# The package containing groupadd is different on different OSs
+SHADOW_REQUIRES='shadow-utils'
+
 # On some older distro's *cough* centos 6 *cough* autosetup fails
 SETUP="%autosetup -n %{name}-${TARBALLVERSION}"
 
@@ -74,6 +77,7 @@ if [ -f /etc/os-release ]; then
       RE2_CONFIGURE='--disable-re2 \'
       PROTOBUF_BUILDREQUIRES=''
       PROTOBUF_CONFIGURE='--without-protobuf \'
+      SHADOW_REQUIRES='shadow'
       ;;
   esac
 fi
@@ -113,7 +117,7 @@ License: GPLv2
 Vendor: PowerDNS.COM BV
 Group: System/DNS
 Source: dnsdist-${TARBALLVERSION}.tar.bz2
-Requires(pre): shadow-utils
+Requires(pre): ${SHADOW_REQUIRES}
 BuildRequires: boost-devel
 BuildRequires: lua-devel
 BuildRequires: readline-devel
@@ -157,6 +161,8 @@ exit 0
 %post
 %if 0%{?el6}
 /sbin/chkconfig --add %{name}
+%elif 0%{?suse_version}
+%service_add_post %{name}.service
 %else
 %systemd_post %{name}.service
 %endif
@@ -168,6 +174,8 @@ if [ "\$1" -eq "0" ]; then
   /sbin/service %{name} stop > /dev/null 2>&1 || :
   /sbin/chkconfig --del %{name}
 fi
+%elif 0%{?suse_version}
+%service_del_preun %{name}.service
 %else
 %systemd_preun %{name}.service
 %endif
@@ -177,6 +185,8 @@ fi
 if [ "\$1" -ge "1" ] ; then
   /sbin/service %{name} condrestart >/dev/null 2>&1 || :
 fi
+%elif 0%{?suse_version}
+%service_del_postun %{name}.service
 %else
 %systemd_postun_with_restart %{name}.service
 %endif
