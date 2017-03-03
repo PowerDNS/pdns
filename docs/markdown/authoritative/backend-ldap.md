@@ -101,7 +101,7 @@ DN of a tree style example record (e.g. myhost.test.example.com):
 `dn:dc=myhost,dc=test,dc=example,dc=com,ou=hosts,...`
 
 ## Basic objects
-Each domain (or zone for BIND users) must include one object containing a SOA (Start Of Authority) record.
+Each domain (or zone for BIND users) must include one object containing a SOA (Start Of Authority) record. This requirement applies to both forward and reverse zones.
 This object can also contain the attribute for a MX (Mail eXchange) and one or more NS (Name Server) records.
 These attributes allow one or more values, e.g. for a backup mail or name server:
 
@@ -120,7 +120,6 @@ associateddomain:example.com
 ```
 
 A simple mapping between name and IP address can be specified by an object containing an `arecord` and an `associateddomain`.
-There is no need to add reverse records to the (PTR records from the IP to the name), as this can be done automagically by the LDAP backend if `ldap-method=strict` is set in `pdns.conf`.
 
 ```
 dn:dc=server,dc=example,ou=hosts,o=example,c=de
@@ -197,9 +196,9 @@ associateddomain:ns.example.com
 ```
 
 ## Reverse lookups
-Currently there are two options: Either reverse lookups handled by the code automatically or PTR records need to be added to the LDAP directory.
-To derive PTR records from A and AAAA records, set `ldap-method` to `strict`.
-Otherwise add objects like below to the directory:
+Currently there are two options: Set `ldap-method` to `strict` to have the code automatically derive PTR records from A and AAAA records in the tree. Or, in `simple` and `tree` modes, create additional objects explictly mapping each address to a PTR record.  
+
+For `strict` or `simple` modes, first create an object with an SOA record for the reverse-lookup zone(s) corresponding to the A and AAAA records that will be served:
 
 ```
 dn:dc=1.10.in-addr.arpa,ou=hosts,o=example,c=de
@@ -212,6 +211,9 @@ nsrecord:ns.example.com
 associateddomain:1.10.in-addr.arpa
 ```
 
+In `strict` mode, no other objects are required -- reverse queries that correspond to an arecord or aaaarecord of an existing object will be automagically serviced using the associateddomain entry of that object.
+
+In `simple` mode, you must then create objects for each reverse mapping:
 ```
 dn:dc=1.0,dc=1.10.in-addr.arpa,ou=hosts,o=example,c=de
 objectclass:top
