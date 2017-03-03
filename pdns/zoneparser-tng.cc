@@ -368,6 +368,8 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
     }
     if(!haveTTL && !haveQTYPE && isTimeSpec(nextpart)) {
       rr.ttl=makeTTLFromZone(nextpart);
+      if(!d_havedollarttl)
+        d_defaultttl = rr.ttl;
       haveTTL=true;
       // cout<<"ttl is probably: "<<rr.ttl<<endl;
       continue;
@@ -473,9 +475,6 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
         rr.content+=std::to_string(makeTTLFromZone(recparts[n]));
       else
         rr.content+=recparts[n];
-
-      if(n==6 && !d_havedollarttl)
-        d_defaultttl=makeTTLFromZone(recparts[n]);
     }
     break;
   default:;

@@ -1,0 +1,2 @@
+#!/bin/sh
+${ZONE2JSON} --zone=zone2json-rfc2308/rfc2308.com --zone-name=example.com | jq '.records[].ttl'
