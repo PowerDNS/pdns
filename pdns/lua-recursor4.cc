@@ -639,8 +639,10 @@ bool RecursorLua4::ipfilter(const ComboAddress& remote, const ComboAddress& loca
 
 unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, std::unordered_map<string,string>& data)
 {
-  if(d_gettag) {
-    auto ret = d_gettag(remote, ednssubnet, local, qname, qtype);
+  auto luathread = d_lw->createThread();
+  auto gettag = d_lw->readVariable<boost::optional<gettag_t>>(luathread, "gettag").get_value_or(0);
+  if(gettag) {
+    auto ret = gettag(remote, ednssubnet, local, qname, qtype);
 
     if (policyTags) {
       const auto& tags = std::get<1>(ret);
