@@ -42,11 +42,17 @@ INIT_CONFIGURE='--enable-systemd --with-systemd=/lib/systemd/system \'
 
 # CentOS 6 has protobuf, but not a modern enough boost. We default to with protobuf
 PROTOBUF_CONFIGURE='--with-protobuf \'
+PROTOBUF_BUILDREQUIRES='BuildRequires: protobuf-compiler
+BuildRequires: protobuf-devel'
 
 # CentOS 6 has a libsodium, but we use more modern functions
 SODIUM_BUILDREQUIRES='BuildRequires: libsodium-devel'
 SODIUM_CONFIGURE='--enable-libsodium \'
 DNSCRYPT_CONFIGURE='--enable-dnscrypt \'
+
+# SLES 12 SP1 does not have re2
+RE2_BUILDREQUIRES='BuildRequires: re2-devel'
+RE2_CONFIGURE='--enable-re2 \'
 
 # These two are the same for sysv and systemd (we don't install defaults files at the moment)
 DEFAULTS_INSTALL=''
@@ -58,6 +64,20 @@ SETUP="%autosetup -n %{name}-${TARBALLVERSION}"
 # Some setups need rpmbuild in a 'special' env
 RPMBUILD_COMMAND='rpmbuild -bb dnsdist.spec'
 
+if [ -f /etc/os-release ]; then
+  TMP="$(cat /etc/os-release | grep PRETTY_NAME)"
+  # evillllll
+  eval $TMP
+  case "$PRETTY_NAME" in
+    SUSE\ Linux\ Enterprise\ Server\ 12\ SP1)
+      RE2_BUILDREQUIRES=''
+      RE2_CONFIGURE='--disable-re2 \'
+      PROTOBUF_BUILDREQUIRES=''
+      PROTOBUF_CONFIGURE='--without-protobuf \'
+      ;;
+  esac
+fi
+
 if [ -f /etc/redhat-release ]; then
   OS="$(cat /etc/redhat-release)"
   case "$OS" in
@@ -67,6 +87,7 @@ if [ -f /etc/redhat-release ]; then
       INIT_FILES='%{_initrddir}/dnsdist'
       INIT_CONFIGURE='\'
       PROTOBUF_CONFIGURE='--without-protobuf \'
+      PROTOBUF_BUILDREQUIRES=''
       SODIUM_BUILDREQUIRES=''
       SODIUM_CONFIGURE='--disable-libsodium \'
       DNSCRYPT_CONFIGURE='--disable-dnscrypt \'
@@ -95,10 +116,9 @@ Source: dnsdist-${TARBALLVERSION}.tar.bz2
 Requires(pre): shadow-utils
 BuildRequires: boost-devel
 BuildRequires: lua-devel
-BuildRequires: protobuf-compiler
-BuildRequires: protobuf-devel
-BuildRequires: re2-devel
 BuildRequires: readline-devel
+${PROTOBUF_BUILDREQUIRES}
+${RE2_BUILDREQUIRES}
 ${SODIUM_BUILDREQUIRES}
 ${INIT_BUILDREQUIRES}
 
@@ -111,7 +131,8 @@ ${SETUP}
 %build
 %configure \
   --sysconfdir=/etc/dnsdist \
-  --enable-re2 \
+  --without-net-snmp \
+  ${RE2_CONFIGURE}
   ${SODIUM_CONFIGURE}
   ${DNSCRYPT_CONFIGURE}
   ${INIT_CONFIGURE}
