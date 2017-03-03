@@ -67,9 +67,6 @@ struct BothRecordsAndSignatures
 };
 typedef map<pair<DNSName,uint16_t>, BothRecordsAndSignatures> recsig_t;
 
-recsig_t harvestRecords(const std::vector<DNSRecord>& records, const std::set<uint16_t>& types);
-
-
 struct NegCacheEntry
 {
   DNSName d_name;
@@ -308,7 +305,7 @@ public:
     d_lm = lm;
   }
 
-  bool doLog()
+  bool doLog() const
   {
     return d_lm != LogNone;
   }
@@ -352,7 +349,7 @@ public:
     d_skipCNAMECheck = skip;
   }
 
-  int asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res);
+  int asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res) const;
 
   static void doEDNSDumpAndClose(int fd);
 
@@ -524,18 +521,18 @@ private:
                   unsigned int depth, set<GetBestNSAnswer>&beenthere);
   int doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere);
   bool doOOBResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int &res);
-  domainmap_t::const_iterator getBestAuthZone(DNSName* qname);
+  domainmap_t::const_iterator getBestAuthZone(DNSName* qname) const;
   bool doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int &res);
   bool doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int &res);
   void getBestNSFromCache(const DNSName &qname, const QType &qtype, vector<DNSRecord>&bestns, bool* flawedNSSet, unsigned int depth, set<GetBestNSAnswer>& beenthere);
   DNSName getBestNSNamesFromCache(const DNSName &qname, const QType &qtype, NsSet& nsset, bool* flawedNSSet, unsigned int depth, set<GetBestNSAnswer>&beenthere);
 
   inline vector<DNSName> shuffleInSpeedOrder(NsSet &nameservers, const string &prefix);
-  bool moreSpecificThan(const DNSName& a, const DNSName &b);
+  bool moreSpecificThan(const DNSName& a, const DNSName &b) const;
   vector<ComboAddress> getAddrs(const DNSName &qname, unsigned int depth, set<GetBestNSAnswer>& beenthere);
 
-  bool nameserversBlockedByRPZ(const NsSet& nameservers);
-  bool nameserverIPBlockedByRPZ(const ComboAddress&);
+  bool nameserversBlockedByRPZ(const DNSFilterEngine& dfe, const NsSet& nameservers);
+  bool nameserverIPBlockedByRPZ(const DNSFilterEngine& dfe, const ComboAddress&);
   bool throttledOrBlocked(const std::string& prefix, const ComboAddress& remoteIP, const DNSName& qname, const QType& qtype, bool pierceDontQuery);
 
   vector<ComboAddress> retrieveAddressesForNS(const std::string& prefix, const DNSName& qname, vector<DNSName >::const_iterator& tns, const unsigned int depth, set<GetBestNSAnswer>& beenthere, const vector<DNSName >& rnameservers, NsSet& nameservers, bool& sendRDQuery, bool& pierceDontQuery, bool& flawedNSSet);

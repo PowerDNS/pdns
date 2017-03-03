@@ -81,7 +81,7 @@ SyncRes::LogMode SyncRes::s_lm;
 
 bool SyncRes::s_noEDNS;
 
-void accountAuthLatency(int usec, int family)
+static void accountAuthLatency(int usec, int family)
 {
   if(family == AF_INET) {
     if(usec < 1000)
@@ -324,7 +324,7 @@ void SyncRes::doEDNSDumpAndClose(int fd)
    For now this means we can't be clever, but will turn off DNSSEC if you reply with FormError or gibberish.
 */
 
-int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res)
+int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res) const
 {
   /* what is your QUEST?
      the goal is to get as many remotes as possible on the highest level of EDNS support
@@ -649,7 +649,7 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vecto
   }while(subdomain.chopOff());
 }
 
-SyncRes::domainmap_t::const_iterator SyncRes::getBestAuthZone(DNSName* qname)
+SyncRes::domainmap_t::const_iterator SyncRes::getBestAuthZone(DNSName* qname) const
 {
   SyncRes::domainmap_t::const_iterator ret;
   do {
@@ -874,7 +874,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSR
   return false;
 }
 
-bool SyncRes::moreSpecificThan(const DNSName& a, const DNSName &b)
+bool SyncRes::moreSpecificThan(const DNSName& a, const DNSName &b) const
 {
   return (a.isPartOf(b) && a.countLabels() > b.countLabels());
 }
@@ -931,7 +931,7 @@ static bool magicAddrMatch(const QType& query, const QType& answer)
 }
 
 
-recsig_t harvestRecords(const vector<DNSRecord>& records, const set<uint16_t>& types)
+static recsig_t harvestRecords(const vector<DNSRecord>& records, const set<uint16_t>& types)
 {
   recsig_t ret;
   for(const auto& rec : records) {
@@ -961,11 +961,11 @@ static void addNXNSECS(vector<DNSRecord>&ret, const vector<DNSRecord>& records)
   }
 }
 
-bool SyncRes::nameserversBlockedByRPZ(const NsSet& nameservers)
+bool SyncRes::nameserversBlockedByRPZ(const DNSFilterEngine& dfe, const NsSet& nameservers)
 {
   if(d_wantsRPZ) {
     for (auto const &ns : nameservers) {
-      d_appliedPolicy = g_luaconfs.getLocal()->dfe.getProcessingPolicy(ns.first, d_discardedPolicies);
+      d_appliedPolicy = dfe.getProcessingPolicy(ns.first, d_discardedPolicies);
       if (d_appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::NoAction) { // client query needs an RPZ response
         LOG(", however nameserver "<<ns.first<<" was blocked by RPZ policy '"<<(d_appliedPolicy.d_name ? *d_appliedPolicy.d_name : "")<<"'"<<endl);
         return true;
@@ -973,7 +973,7 @@ bool SyncRes::nameserversBlockedByRPZ(const NsSet& nameservers)
 
       // Traverse all IP addresses for this NS to see if they have an RPN NSIP policy
       for (auto const &address : ns.second.first) {
-        d_appliedPolicy = g_luaconfs.getLocal()->dfe.getProcessingPolicy(address, d_discardedPolicies);
+        d_appliedPolicy = dfe.getProcessingPolicy(address, d_discardedPolicies);
         if (d_appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::NoAction) { // client query needs an RPZ response
           LOG(", however nameserver "<<ns.first<<" IP address "<<address.toString()<<" was blocked by RPZ policy '"<<(d_appliedPolicy.d_name ? *d_appliedPolicy.d_name : "")<<"'"<<endl);
           return true;
@@ -984,10 +984,10 @@ bool SyncRes::nameserversBlockedByRPZ(const NsSet& nameservers)
   return false;
 }
 
-bool SyncRes::nameserverIPBlockedByRPZ(const ComboAddress& remoteIP)
+bool SyncRes::nameserverIPBlockedByRPZ(const DNSFilterEngine& dfe, const ComboAddress& remoteIP)
 {
   if (d_wantsRPZ) {
-    d_appliedPolicy = g_luaconfs.getLocal()->dfe.getProcessingPolicy(remoteIP, d_discardedPolicies);
+    d_appliedPolicy = dfe.getProcessingPolicy(remoteIP, d_discardedPolicies);
     if (d_appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::NoAction) {
       LOG(" (blocked by RPZ policy '"+(d_appliedPolicy.d_name ? *d_appliedPolicy.d_name : "")+"')");
       return true;
@@ -1264,6 +1264,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
                          vector<DNSRecord>&ret,
                          unsigned int depth, set<GetBestNSAnswer>&beenthere)
 {
+  auto luaconfsLocal = g_luaconfs.getLocal();
   string prefix;
   if(doLog()) {
     prefix=d_prefix;
@@ -1272,7 +1273,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
 
   LOG(prefix<<qname<<": Cache consultations done, have "<<(unsigned int)nameservers.size()<<" NS to contact");
 
-  if (nameserversBlockedByRPZ(nameservers)) {
+  if (nameserversBlockedByRPZ(luaconfsLocal->dfe, nameservers)) {
     return -2;
   }
 
@@ -1328,7 +1329,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
               LOG(", ");
             }
             LOG(remoteIP->toString());
-            if(nameserverIPBlockedByRPZ(*remoteIP)) {
+            if(nameserverIPBlockedByRPZ(luaconfsLocal->dfe, *remoteIP)) {
               hitPolicy = true;
             }
           }
@@ -1517,7 +1518,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
         nameservers.clear();
         for (auto const &nameserver : nsset) {
           if (d_wantsRPZ) {
-            d_appliedPolicy = g_luaconfs.getLocal()->dfe.getProcessingPolicy(nameserver, d_discardedPolicies);
+            d_appliedPolicy = luaconfsLocal->dfe.getProcessingPolicy(nameserver, d_discardedPolicies);
             if (d_appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::NoAction) { // client query needs an RPZ response
               LOG("however "<<nameserver<<" was blocked by RPZ policy '"<<(d_appliedPolicy.d_name ? *d_appliedPolicy.d_name : "")<<"'"<<endl);
               return -2;
