@@ -961,6 +961,300 @@ static void addNXNSECS(vector<DNSRecord>&ret, const vector<DNSRecord>& records)
   }
 }
 
+bool SyncRes::nameserversBlockedByRPZ(const NsSet& nameservers)
+{
+  if(d_wantsRPZ) {
+    for (auto const &ns : nameservers) {
+      d_appliedPolicy = g_luaconfs.getLocal()->dfe.getProcessingPolicy(ns.first, d_discardedPolicies);
+      if (d_appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::NoAction) { // client query needs an RPZ response
+        LOG(", however nameserver "<<ns.first<<" was blocked by RPZ policy '"<<(d_appliedPolicy.d_name ? *d_appliedPolicy.d_name : "")<<"'"<<endl);
+        return true;
+      }
+
+      // Traverse all IP addresses for this NS to see if they have an RPN NSIP policy
+      for (auto const &address : ns.second.first) {
+        d_appliedPolicy = g_luaconfs.getLocal()->dfe.getProcessingPolicy(address, d_discardedPolicies);
+        if (d_appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::NoAction) { // client query needs an RPZ response
+          LOG(", however nameserver "<<ns.first<<" IP address "<<address.toString()<<" was blocked by RPZ policy '"<<(d_appliedPolicy.d_name ? *d_appliedPolicy.d_name : "")<<"'"<<endl);
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+bool SyncRes::nameserverIPBlockedByRPZ(const ComboAddress& remoteIP)
+{
+  if (d_wantsRPZ) {
+    d_appliedPolicy = g_luaconfs.getLocal()->dfe.getProcessingPolicy(remoteIP, d_discardedPolicies);
+    if (d_appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::NoAction) {
+      LOG(" (blocked by RPZ policy '"+(d_appliedPolicy.d_name ? *d_appliedPolicy.d_name : "")+"')");
+      return true;
+    }
+  }
+  return false;
+}
+
+vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, const DNSName& qname, vector<DNSName >::const_iterator& tns, const unsigned int depth, set<GetBestNSAnswer>& beenthere, const vector<DNSName >& rnameservers, NsSet& nameservers, bool& sendRDQuery, bool& pierceDontQuery, bool& flawedNSSet)
+{
+  vector<ComboAddress> result;
+
+  if(!tns->empty()) {
+    LOG(prefix<<qname<<": Trying to resolve NS '"<<*tns<< "' ("<<1+tns-rnameservers.begin()<<"/"<<(unsigned int)rnameservers.size()<<")"<<endl);
+    result = getAddrs(*tns, depth+2, beenthere);
+    pierceDontQuery=false;
+  }
+  else {
+    LOG(prefix<<qname<<": Domain has hardcoded nameserver");
+
+    result = nameservers[*tns].first;
+    if(result.size() > 1) {
+      LOG("s");
+    }
+    LOG(endl);
+
+    sendRDQuery = nameservers[*tns].second;
+    pierceDontQuery=true;
+  }
+  return result;
+}
+
+bool SyncRes::throttledOrBlocked(const std::string& prefix, const ComboAddress& remoteIP, const DNSName& qname, const QType& qtype, bool pierceDontQuery)
+{
+  extern NetmaskGroup* g_dontQuery;
+
+  if(t_sstorage->throttle.shouldThrottle(d_now.tv_sec, boost::make_tuple(remoteIP, "", 0))) {
+    LOG(prefix<<qname<<": server throttled "<<endl);
+    s_throttledqueries++; d_throttledqueries++;
+    return true;
+  }
+  else if(t_sstorage->throttle.shouldThrottle(d_now.tv_sec, boost::make_tuple(remoteIP, qname, qtype.getCode()))) {
+    LOG(prefix<<qname<<": query throttled "<<endl);
+    s_throttledqueries++; d_throttledqueries++;
+    return true;
+  }
+  else if(!pierceDontQuery && g_dontQuery && g_dontQuery->match(&remoteIP)) {
+    LOG(prefix<<qname<<": not sending query to " << remoteIP.toString() << ", blocked by 'dont-query' setting" << endl);
+    s_dontqueries++;
+    return true;
+  }
+  return false;
+}
+
+RCode::rcodes_ SyncRes::updateCacheFromRecords(const std::string& prefix, LWResult& lwr, const DNSName& qname, const DNSName& auth, NsSet& nameservers, const DNSName& tns, const boost::optional<Netmask> ednsmask)
+{
+  struct CachePair
+  {
+    vector<DNSRecord> records;
+    vector<shared_ptr<RRSIGRecordContent>> signatures;
+  };
+  struct CacheKey
+  {
+    DNSName name;
+    uint16_t type;
+    DNSResourceRecord::Place place;
+    bool operator<(const CacheKey& rhs) const {
+      return tie(name, type) < tie(rhs.name, rhs.type);
+    }
+  };
+  typedef map<CacheKey, CachePair> tcache_t;
+  tcache_t tcache;
+
+  for(const auto& rec : lwr.d_records) {
+    if(rec.d_type == QType::RRSIG) {
+      auto rrsig = getRR<RRSIGRecordContent>(rec);
+      if (rrsig) {
+        //	    cerr<<"Got an RRSIG for "<<DNSRecordContent::NumberToType(rrsig->d_type)<<" with name '"<<rec.d_name<<"'"<<endl;
+        tcache[{rec.d_name, rrsig->d_type, rec.d_place}].signatures.push_back(rrsig);
+      }
+    }
+  }
+
+  // reap all answers from this packet that are acceptable
+  for(auto& rec : lwr.d_records) {
+    if(rec.d_type == QType::OPT) {
+      LOG(prefix<<qname<<": OPT answer '"<<rec.d_name<<"' from '"<<auth<<"' nameservers" <<endl);
+      continue;
+    }
+    LOG(prefix<<qname<<": accept answer '"<<rec.d_name<<"|"<<DNSRecordContent::NumberToType(rec.d_type)<<"|"<<rec.d_content->getZoneRepresentation()<<"' from '"<<auth<<"' nameservers? "<<(int)rec.d_place<<" ");
+    if(rec.d_type == QType::ANY) {
+      LOG("NO! - we don't accept 'ANY' data"<<endl);
+      continue;
+    }
+
+    if(rec.d_name.isPartOf(auth)) {
+      if(rec.d_type == QType::RRSIG) {
+        LOG("RRSIG - separate"<<endl);
+      }
+      else if(lwr.d_aabit && lwr.d_rcode==RCode::NoError && rec.d_place==DNSResourceRecord::ANSWER && (rec.d_type != QType::DNSKEY || rec.d_name != auth) && g_delegationOnly.count(auth)) {
+        LOG("NO! Is from delegation-only zone"<<endl);
+        s_nodelegated++;
+        return RCode::NXDomain;
+      }
+      else {
+        bool haveLogged = false;
+        if (!t_sstorage->domainmap->empty()) {
+          // Check if we are authoritative for a zone in this answer
+          DNSName tmp_qname(rec.d_name);
+          auto auth_domain_iter=getBestAuthZone(&tmp_qname);
+          if(auth_domain_iter!=t_sstorage->domainmap->end() &&
+             auth.countLabels() <= auth_domain_iter->first.countLabels()) {
+            if (auth_domain_iter->first != auth) {
+              LOG("NO! - we are authoritative for the zone "<<auth_domain_iter->first<<endl);
+              continue;
+            } else {
+              LOG("YES! - This answer was ");
+              if (nameservers[tns].first.empty()) {
+                LOG("retrieved from the local auth store.");
+              } else {
+                LOG("received from a server we forward to.");
+              }
+              haveLogged = true;
+              LOG(endl);
+            }
+          }
+        }
+        if (!haveLogged) {
+          LOG("YES!"<<endl);
+        }
+
+        rec.d_ttl=min(s_maxcachettl, rec.d_ttl);
+
+        DNSRecord dr(rec);
+        dr.d_place=DNSResourceRecord::ANSWER;
+
+        dr.d_ttl += d_now.tv_sec;
+        tcache[{rec.d_name,rec.d_type,rec.d_place}].records.push_back(dr);
+      }
+    }
+    else
+      LOG("NO!"<<endl);
+  }
+
+  // supplant
+  for(tcache_t::iterator i=tcache.begin();i!=tcache.end();++i) {
+    if(i->second.records.size() > 1) {  // need to group the ttl to be the minimum of the RRSET (RFC 2181, 5.2)
+      uint32_t lowestTTL=std::numeric_limits<uint32_t>::max();
+      for(const auto& record : i->second.records)
+        lowestTTL=min(lowestTTL, record.d_ttl);
+
+      for(auto& record : i->second.records)
+        *const_cast<uint32_t*>(&record.d_ttl)=lowestTTL; // boom
+    }
+
+//		cout<<"Have "<<i->second.records.size()<<" records and "<<i->second.signatures.size()<<" signatures for "<<i->first.name;
+//		cout<<'|'<<DNSRecordContent::NumberToType(i->first.type)<<endl;
+    if(i->second.records.empty()) // this happens when we did store signatures, but passed on the records themselves
+      continue;
+    t_RC->replace(d_now.tv_sec, i->first.name, QType(i->first.type), i->second.records, i->second.signatures, lwr.d_aabit, i->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::optional<Netmask>());
+    if(i->first.place == DNSResourceRecord::ANSWER && ednsmask)
+      d_wasVariable=true;
+  }
+
+  return RCode::NoError;
+}
+
+bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, const QType& qtype, const DNSName& auth, LWResult& lwr, const bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, bool& sawDS)
+{
+  bool done = false;
+
+  for(auto& rec : lwr.d_records) {
+    if (rec.d_type!=QType::OPT && rec.d_class!=QClass::IN)
+      continue;
+
+    if(rec.d_place==DNSResourceRecord::AUTHORITY && rec.d_type==QType::SOA &&
+       lwr.d_rcode==RCode::NXDomain && qname.isPartOf(rec.d_name) && rec.d_name.isPartOf(auth)) {
+      LOG(prefix<<qname<<": got negative caching indication for name '"<<qname<<"' (accept="<<rec.d_name.isPartOf(auth)<<"), newtarget='"<<newtarget<<"'"<<endl);
+
+      rec.d_ttl = min(rec.d_ttl, s_maxnegttl);
+      if(newtarget.empty()) // only add a SOA if we're not going anywhere after this
+        ret.push_back(rec);
+      if(!wasVariable()) {
+        NegCacheEntry ne;
+
+        ne.d_qname=rec.d_name;
+        ne.d_ttd=d_now.tv_sec + rec.d_ttl;
+        ne.d_name=qname;
+        ne.d_qtype=QType(0); // this encodes 'whole record'
+        ne.d_dnssecProof = harvestRecords(lwr.d_records, {QType::NSEC, QType::NSEC3});
+        replacing_insert(t_sstorage->negcache, ne);
+        if(s_rootNXTrust && auth.isRoot()) {
+          ne.d_name = getLastLabel(ne.d_name);
+          replacing_insert(t_sstorage->negcache, ne);
+        }
+      }
+
+      negindic=true;
+    }
+    else if(rec.d_place==DNSResourceRecord::ANSWER && rec.d_name == qname && rec.d_type==QType::CNAME && (!(qtype==QType(QType::CNAME)))) {
+      ret.push_back(rec);
+      if (auto content = getRR<CNAMERecordContent>(rec)) {
+        newtarget=content->getTarget();
+      }
+    }
+    else if((rec.d_type==QType::RRSIG || rec.d_type==QType::NSEC || rec.d_type==QType::NSEC3) && rec.d_place==DNSResourceRecord::ANSWER){
+      if(rec.d_type != QType::RRSIG || rec.d_name == qname)
+        ret.push_back(rec); // enjoy your DNSSEC
+    }
+    // for ANY answers we *must* have an authoritative answer, unless we are forwarding recursively
+    else if(rec.d_place==DNSResourceRecord::ANSWER && rec.d_name == qname &&
+            (
+              rec.d_type==qtype.getCode() || (lwr.d_aabit && (qtype==QType(QType::ANY) || magicAddrMatch(qtype, QType(rec.d_type)) ) ) || sendRDQuery
+              )
+      )
+    {
+      LOG(prefix<<qname<<": answer is in: resolved to '"<< rec.d_content->getZoneRepresentation()<<"|"<<DNSRecordContent::NumberToType(rec.d_type)<<"'"<<endl);
+
+      done=true;
+      ret.push_back(rec);
+    }
+    else if(rec.d_place==DNSResourceRecord::AUTHORITY && qname.isPartOf(rec.d_name) && rec.d_type==QType::NS) {
+      if(moreSpecificThan(rec.d_name,auth)) {
+        newauth=rec.d_name;
+        LOG(prefix<<qname<<": got NS record '"<<rec.d_name<<"' -> '"<<rec.d_content->getZoneRepresentation()<<"'"<<endl);
+        realreferral=true;
+      }
+      else {
+        LOG(prefix<<qname<<": got upwards/level NS record '"<<rec.d_name<<"' -> '"<<rec.d_content->getZoneRepresentation()<<"', had '"<<auth<<"'"<<endl);
+      }
+      if (auto content = getRR<NSRecordContent>(rec)) {
+        nsset.insert(content->getNS());
+      }
+    }
+    else if(rec.d_place==DNSResourceRecord::AUTHORITY && qname.isPartOf(rec.d_name) && rec.d_type==QType::DS) {
+      LOG(prefix<<qname<<": got DS record '"<<rec.d_name<<"' -> '"<<rec.d_content->getZoneRepresentation()<<"'"<<endl);
+      sawDS=true;
+    }
+    else if(!done && rec.d_place==DNSResourceRecord::AUTHORITY && qname.isPartOf(rec.d_name) && rec.d_type==QType::SOA &&
+            lwr.d_rcode==RCode::NoError) {
+      LOG(prefix<<qname<<": got negative caching indication for '"<< qname<<"|"<<qtype.getName()<<"'"<<endl);
+
+      if(!newtarget.empty()) {
+        LOG(prefix<<qname<<": Hang on! Got a redirect to '"<<newtarget<<"' already"<<endl);
+      }
+      else {
+        rec.d_ttl = min(s_maxnegttl, rec.d_ttl);
+        ret.push_back(rec);
+        if(!wasVariable()) {
+          NegCacheEntry ne;
+          ne.d_qname=rec.d_name;
+          ne.d_ttd=d_now.tv_sec + rec.d_ttl;
+          ne.d_name=qname;
+          ne.d_qtype=qtype;
+          ne.d_dnssecProof = harvestRecords(lwr.d_records, {QType::NSEC, QType::NSEC3});
+          if(qtype.getCode()) {  // prevents us from blacking out a whole domain
+            replacing_insert(t_sstorage->negcache, ne);
+          }
+        }
+        negindic=true;
+      }
+    }
+  }
+
+  return done;
+}
+
 /** returns:
  *  -1 in case of no results
  *  -2 when a FilterEngine Policy was hit
@@ -978,23 +1272,8 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
 
   LOG(prefix<<qname<<": Cache consultations done, have "<<(unsigned int)nameservers.size()<<" NS to contact");
 
-  if(d_wantsRPZ) {
-    for (auto const &ns : nameservers) {
-      d_appliedPolicy = g_luaconfs.getLocal()->dfe.getProcessingPolicy(ns.first, d_discardedPolicies);
-      if (d_appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::NoAction) { // client query needs an RPZ response
-        LOG(", however nameserver "<<ns.first<<" was blocked by RPZ policy '"<<(d_appliedPolicy.d_name ? *d_appliedPolicy.d_name : "")<<"'"<<endl);
-        return -2;
-      }
-
-      // Traverse all IP addresses for this NS to see if they have an RPN NSIP policy
-      for (auto const &address : ns.second.first) {
-        d_appliedPolicy = g_luaconfs.getLocal()->dfe.getProcessingPolicy(address, d_discardedPolicies);
-        if (d_appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::NoAction) { // client query needs an RPZ response
-          LOG(", however nameserver "<<ns.first<<" IP address "<<address.toString()<<" was blocked by RPZ policy '"<<(d_appliedPolicy.d_name ? *d_appliedPolicy.d_name : "")<<"'"<<endl);
-          return -2;
-        }
-      }
-    }
+  if (nameserversBlockedByRPZ(nameservers)) {
+    return -2;
   }
 
   LOG(endl);
@@ -1002,10 +1281,10 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
   for(;;) { // we may get more specific nameservers
     vector<DNSName > rnameservers = shuffleInSpeedOrder(nameservers, doLog() ? (prefix+qname.toString()+": ") : string() );
 
-    for(vector<DNSName >::const_iterator tns=rnameservers.begin();;++tns) {
-      if(tns==rnameservers.end()) {
+    for(auto tns=rnameservers.cbegin();;++tns) {
+      if(tns==rnameservers.cend()) {
         LOG(prefix<<qname<<": Failed to resolve via any of the "<<(unsigned int)rnameservers.size()<<" offered NS at level '"<<auth<<"'"<<endl);
-        if(auth!=DNSName() && flawedNSSet) {
+        if(!auth.empty() && flawedNSSet) {
           LOG(prefix<<qname<<": Ageing nameservers for level '"<<auth<<"', next query might succeed"<<endl);
 
           if(t_RC->doAgeCache(d_now.tv_sec, auth, QType::NS, 10))
@@ -1014,8 +1293,8 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
         return -1;
       }
       // this line needs to identify the 'self-resolving' behaviour, but we get it wrong now
-      if(qname == *tns && qtype.getCode()==QType::A && rnameservers.size() > (unsigned)(1+1*s_doIPv6)) {
-        LOG(prefix<<qname<<": Not using NS to resolve itself! ("<<(1+tns-rnameservers.begin())<<"/"<<rnameservers.size()<<")"<<endl);
+      if(qname == *tns && qtype.getCode()==QType::A && rnameservers.size() > (size_t)(1+1*s_doIPv6)) {
+        LOG(prefix<<qname<<": Not using NS to resolve itself! ("<<(1+tns-rnameservers.cbegin())<<"/"<<rnameservers.size()<<")"<<endl);
         continue;
       }
 
@@ -1023,7 +1302,6 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
       remoteIPs_t remoteIPs;
       remoteIPs_t::const_iterator remoteIP;
       bool doTCP=false;
-      int resolveret;
       bool pierceDontQuery=false;
       bool sendRDQuery=false;
       boost::optional<Netmask> ednsmask;
@@ -1035,26 +1313,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
         lwr.d_aabit=true;
       }
       else {
-        if(!tns->empty()) {
-          LOG(prefix<<qname<<": Trying to resolve NS '"<<*tns<< "' ("<<1+tns-rnameservers.begin()<<"/"<<(unsigned int)rnameservers.size()<<")"<<endl);
-        }
-
-        if(tns->empty()) {
-          LOG(prefix<<qname<<": Domain has hardcoded nameserver");
-
-          remoteIPs = nameservers[*tns].first;
-          if(remoteIPs.size() > 1) {
-            LOG("s");
-          }
-          LOG(endl);
-
-          sendRDQuery = nameservers[*tns].second;
-          pierceDontQuery=true;
-        }
-        else {
-          remoteIPs=getAddrs(*tns, depth+2, beenthere);
-          pierceDontQuery=false;
-        }
+        remoteIPs = retrieveAddressesForNS(prefix, qname, tns, depth, beenthere, rnameservers, nameservers, sendRDQuery, pierceDontQuery, flawedNSSet);
 
         if(remoteIPs.empty()) {
           LOG(prefix<<qname<<": Failed to get IP for NS "<<*tns<<", trying next if available"<<endl);
@@ -1064,17 +1323,13 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
         else {
           bool hitPolicy{false};
           LOG(prefix<<qname<<": Resolved '"<<auth<<"' NS "<<*tns<<" to: ");
-          for(remoteIP = remoteIPs.begin(); remoteIP != remoteIPs.end(); ++remoteIP) {
-            if(remoteIP != remoteIPs.begin()) {
+          for(remoteIP = remoteIPs.cbegin(); remoteIP != remoteIPs.cend(); ++remoteIP) {
+            if(remoteIP != remoteIPs.cbegin()) {
               LOG(", ");
             }
             LOG(remoteIP->toString());
-            if (d_wantsRPZ) {
-              d_appliedPolicy = g_luaconfs.getLocal()->dfe.getProcessingPolicy(*remoteIP, d_discardedPolicies);
-              if (d_appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::NoAction) {
-                hitPolicy = true;
-                LOG(" (blocked by RPZ policy '"+(d_appliedPolicy.d_name ? *d_appliedPolicy.d_name : "")+"')");
-              }
+            if(nameserverIPBlockedByRPZ(*remoteIP)) {
+              hitPolicy = true;
             }
           }
           LOG(endl);
@@ -1082,26 +1337,13 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
             return -2;
         }
 
-        for(remoteIP = remoteIPs.begin(); remoteIP != remoteIPs.end(); ++remoteIP) {
+        for(remoteIP = remoteIPs.cbegin(); remoteIP != remoteIPs.cend(); ++remoteIP) {
           LOG(prefix<<qname<<": Trying IP "<< remoteIP->toStringWithPort() <<", asking '"<<qname<<"|"<<qtype.getName()<<"'"<<endl);
-          extern NetmaskGroup* g_dontQuery;
-
-          if(t_sstorage->throttle.shouldThrottle(d_now.tv_sec, boost::make_tuple(*remoteIP, "", 0))) {
-            LOG(prefix<<qname<<": server throttled "<<endl);
-            s_throttledqueries++; d_throttledqueries++;
-            continue;
-          }
-          else if(t_sstorage->throttle.shouldThrottle(d_now.tv_sec, boost::make_tuple(*remoteIP, qname, qtype.getCode()))) {
-            LOG(prefix<<qname<<": query throttled "<<endl);
-            s_throttledqueries++; d_throttledqueries++;
-            continue;
-          }
-          else if(!pierceDontQuery && g_dontQuery && g_dontQuery->match(&*remoteIP)) {
-            LOG(prefix<<qname<<": not sending query to " << remoteIP->toString() << ", blocked by 'dont-query' setting" << endl);
-            s_dontqueries++;
+          if (throttledOrBlocked(prefix, *remoteIP, qname, qtype, pierceDontQuery)) {
             continue;
           }
           else {
+            int resolveret;
             s_outqueries++; d_outqueries++;
             if(d_outqueries + d_throttledqueries > s_maxqperq) throw ImmediateServFailException("more than "+std::to_string(s_maxqperq)+" (max-qperq) queries sent while resolving "+qname.toLogString());
           TryTCP:
@@ -1186,7 +1428,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
           }
         }
 
-        if(remoteIP == remoteIPs.end())  // we tried all IP addresses, none worked
+        if(remoteIP == remoteIPs.cend())  // we tried all IP addresses, none worked
           continue;
 
         if(lwr.d_tcbit) {
@@ -1215,213 +1457,19 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
 	}
       }
 
-      struct CachePair
-      {
-	vector<DNSRecord> records;
-	vector<shared_ptr<RRSIGRecordContent>> signatures;
-      };
-      struct CacheKey
-      {
-	DNSName name;
-	uint16_t type;
-	DNSResourceRecord::Place place;
-	bool operator<(const CacheKey& rhs) const {
-	  return tie(name, type) < tie(rhs.name, rhs.type);
-	}
-      };
-      typedef map<CacheKey, CachePair> tcache_t;
-      tcache_t tcache;
-
-      for(const auto& rec : lwr.d_records) {
-        if(rec.d_type == QType::RRSIG) {
-          auto rrsig = getRR<RRSIGRecordContent>(rec);
-          if (rrsig) {
-            //	    cerr<<"Got an RRSIG for "<<DNSRecordContent::NumberToType(rrsig->d_type)<<" with name '"<<rec.d_name<<"'"<<endl;
-            tcache[{rec.d_name, rrsig->d_type, rec.d_place}].signatures.push_back(rrsig);
-          }
-        }
+      RCode::rcodes_ rcode = updateCacheFromRecords(prefix, lwr, qname, auth, nameservers, *tns, ednsmask);
+      if (rcode != RCode::NoError) {
+        return rcode;
       }
 
-      // reap all answers from this packet that are acceptable
-      for(auto& rec : lwr.d_records) {
-        if(rec.d_type == QType::OPT) {
-          LOG(prefix<<qname<<": OPT answer '"<<rec.d_name<<"' from '"<<auth<<"' nameservers" <<endl);
-          continue;
-        }
-        LOG(prefix<<qname<<": accept answer '"<<rec.d_name<<"|"<<DNSRecordContent::NumberToType(rec.d_type)<<"|"<<rec.d_content->getZoneRepresentation()<<"' from '"<<auth<<"' nameservers? "<<(int)rec.d_place<<" ");
-        if(rec.d_type == QType::ANY) {
-          LOG("NO! - we don't accept 'ANY' data"<<endl);
-          continue;
-        }
-
-        if(rec.d_name.isPartOf(auth)) {
-          if(rec.d_type == QType::RRSIG) {
-            LOG("RRSIG - separate"<<endl);
-          }
-          else if(lwr.d_aabit && lwr.d_rcode==RCode::NoError && rec.d_place==DNSResourceRecord::ANSWER && (rec.d_type != QType::DNSKEY || rec.d_name != auth) && g_delegationOnly.count(auth)) {
-            LOG("NO! Is from delegation-only zone"<<endl);
-            s_nodelegated++;
-            return RCode::NXDomain;
-          }
-          else {
-            bool haveLogged = false;
-            if (!t_sstorage->domainmap->empty()) {
-              // Check if we are authoritative for a zone in this answer
-              DNSName tmp_qname(rec.d_name);
-              auto auth_domain_iter=getBestAuthZone(&tmp_qname);
-              if(auth_domain_iter!=t_sstorage->domainmap->end() &&
-                  auth.countLabels() <= auth_domain_iter->first.countLabels()) {
-                if (auth_domain_iter->first != auth) {
-                  LOG("NO! - we are authoritative for the zone "<<auth_domain_iter->first<<endl);
-                  continue;
-                } else {
-                  LOG("YES! - This answer was ");
-                  if (nameservers[*tns].first.empty()) {
-                    LOG("retrieved from the local auth store.");
-                  } else {
-                    LOG("received from a server we forward to.");
-                  }
-                  haveLogged = true;
-                  LOG(endl);
-                }
-              }
-            }
-            if (!haveLogged) {
-              LOG("YES!"<<endl);
-            }
-
-            rec.d_ttl=min(s_maxcachettl, rec.d_ttl);
-
-            DNSRecord dr(rec);
-            dr.d_place=DNSResourceRecord::ANSWER;
-
-            dr.d_ttl += d_now.tv_sec;
-            tcache[{rec.d_name,rec.d_type,rec.d_place}].records.push_back(dr);
-          }
-        }
-        else
-          LOG("NO!"<<endl);
-      }
-
-      // supplant
-      for(tcache_t::iterator i=tcache.begin();i!=tcache.end();++i) {
-        if(i->second.records.size() > 1) {  // need to group the ttl to be the minimum of the RRSET (RFC 2181, 5.2)
-          uint32_t lowestTTL=std::numeric_limits<uint32_t>::max();
-	  for(auto& record : i->second.records) 
-            lowestTTL=min(lowestTTL, record.d_ttl);
-          
-	  for(auto& record : i->second.records) 
-	    *const_cast<uint32_t*>(&record.d_ttl)=lowestTTL; // boom
-        }
-
-//		cout<<"Have "<<i->second.records.size()<<" records and "<<i->second.signatures.size()<<" signatures for "<<i->first.name;
-//		cout<<'|'<<DNSRecordContent::NumberToType(i->first.type)<<endl;
-        if(i->second.records.empty()) // this happens when we did store signatures, but passed on the records themselves
-          continue;
-        t_RC->replace(d_now.tv_sec, i->first.name, QType(i->first.type), i->second.records, i->second.signatures, lwr.d_aabit, i->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::optional<Netmask>());
-	if(i->first.place == DNSResourceRecord::ANSWER && ednsmask)
-	  d_wasVariable=true;
-      }
-      set<DNSName> nsset;
       LOG(prefix<<qname<<": determining status after receiving this packet"<<endl);
 
-      bool done=false, realreferral=false, negindic=false, sawDS=false;
-      DNSName newauth, soaname;
+      set<DNSName> nsset;
+      bool realreferral=false, negindic=false, sawDS=false;
+      DNSName newauth;
       DNSName newtarget;
 
-      for(auto& rec : lwr.d_records) {
-        if (rec.d_type!=QType::OPT && rec.d_class!=QClass::IN)
-          continue;
-
-        if(rec.d_place==DNSResourceRecord::AUTHORITY && rec.d_type==QType::SOA &&
-           lwr.d_rcode==RCode::NXDomain && qname.isPartOf(rec.d_name) && rec.d_name.isPartOf(auth)) {
-          LOG(prefix<<qname<<": got negative caching indication for name '"<<qname<<"' (accept="<<rec.d_name.isPartOf(auth)<<"), newtarget='"<<newtarget<<"'"<<endl);
-
-          rec.d_ttl = min(rec.d_ttl, s_maxnegttl);
-          if(newtarget.empty()) // only add a SOA if we're not going anywhere after this
-            ret.push_back(rec);
-	  if(!wasVariable()) {
-	    NegCacheEntry ne;
-	    
-	    ne.d_qname=rec.d_name;
-	    ne.d_ttd=d_now.tv_sec + rec.d_ttl;
-	    ne.d_name=qname;
-	    ne.d_qtype=QType(0); // this encodes 'whole record'
-	    ne.d_dnssecProof = harvestRecords(lwr.d_records, {QType::NSEC, QType::NSEC3});
-	    replacing_insert(t_sstorage->negcache, ne);
-	    if(s_rootNXTrust && auth.isRoot()) {
-	      ne.d_name = getLastLabel(ne.d_name);
-	      replacing_insert(t_sstorage->negcache, ne);
-	    }
-	  }
-
-          negindic=true;
-        }
-        else if(rec.d_place==DNSResourceRecord::ANSWER && rec.d_name == qname && rec.d_type==QType::CNAME && (!(qtype==QType(QType::CNAME)))) {
-          ret.push_back(rec);
-          if (auto content = getRR<CNAMERecordContent>(rec)) {
-            newtarget=content->getTarget();
-          }
-        }
-	else if((rec.d_type==QType::RRSIG || rec.d_type==QType::NSEC || rec.d_type==QType::NSEC3) && rec.d_place==DNSResourceRecord::ANSWER){
-	  if(rec.d_type != QType::RRSIG || rec.d_name == qname)
-	    ret.push_back(rec); // enjoy your DNSSEC
-	}
-        // for ANY answers we *must* have an authoritative answer, unless we are forwarding recursively
-        else if(rec.d_place==DNSResourceRecord::ANSWER && rec.d_name == qname &&
-                (
-                 rec.d_type==qtype.getCode() || (lwr.d_aabit && (qtype==QType(QType::ANY) || magicAddrMatch(qtype, QType(rec.d_type)) ) ) || sendRDQuery
-                )
-               )
-          {
-
-	    LOG(prefix<<qname<<": answer is in: resolved to '"<< rec.d_content->getZoneRepresentation()<<"|"<<DNSRecordContent::NumberToType(rec.d_type)<<"'"<<endl);
-
-          done=true;
-          ret.push_back(rec);
-        }
-        else if(rec.d_place==DNSResourceRecord::AUTHORITY && qname.isPartOf(rec.d_name) && rec.d_type==QType::NS) {
-          if(moreSpecificThan(rec.d_name,auth)) {
-            newauth=rec.d_name;
-            LOG(prefix<<qname<<": got NS record '"<<rec.d_name<<"' -> '"<<rec.d_content->getZoneRepresentation()<<"'"<<endl);
-            realreferral=true;
-          }
-          else {
-            LOG(prefix<<qname<<": got upwards/level NS record '"<<rec.d_name<<"' -> '"<<rec.d_content->getZoneRepresentation()<<"', had '"<<auth<<"'"<<endl);
-	  }
-          if (auto content = getRR<NSRecordContent>(rec)) {
-            nsset.insert(content->getNS());
-          }
-        }
-        else if(rec.d_place==DNSResourceRecord::AUTHORITY && qname.isPartOf(rec.d_name) && rec.d_type==QType::DS) {
-	  LOG(prefix<<qname<<": got DS record '"<<rec.d_name<<"' -> '"<<rec.d_content->getZoneRepresentation()<<"'"<<endl);
-	  sawDS=true;
-	}
-        else if(!done && rec.d_place==DNSResourceRecord::AUTHORITY && qname.isPartOf(rec.d_name) && rec.d_type==QType::SOA &&
-           lwr.d_rcode==RCode::NoError) {
-          LOG(prefix<<qname<<": got negative caching indication for '"<< qname<<"|"<<qtype.getName()<<"'"<<endl);
-
-          if(!newtarget.empty()) {
-            LOG(prefix<<qname<<": Hang on! Got a redirect to '"<<newtarget<<"' already"<<endl);
-          }
-          else {
-            rec.d_ttl = min(s_maxnegttl, rec.d_ttl);
-            ret.push_back(rec);
-	    if(!wasVariable()) {
-	      NegCacheEntry ne;
-	      ne.d_qname=rec.d_name;
-	      ne.d_ttd=d_now.tv_sec + rec.d_ttl;
-	      ne.d_name=qname;
-	      ne.d_qtype=qtype;
-	      ne.d_dnssecProof = harvestRecords(lwr.d_records, {QType::NSEC, QType::NSEC3});
-	      if(qtype.getCode()) {  // prevents us from blacking out a whole domain
-		replacing_insert(t_sstorage->negcache, ne);
-	      }
-	    }
-            negindic=true;
-          }
-        }
-      }
+      bool done = processRecords(prefix, qname, qtype, auth, lwr, sendRDQuery, ret, nsset, newtarget, newauth, realreferral, negindic, sawDS);
 
       if(done){
         LOG(prefix<<qname<<": status=got results, this level of recursion done"<<endl);

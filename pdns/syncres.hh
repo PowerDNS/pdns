@@ -533,6 +533,15 @@ private:
   inline vector<DNSName> shuffleInSpeedOrder(NsSet &nameservers, const string &prefix);
   bool moreSpecificThan(const DNSName& a, const DNSName &b);
   vector<ComboAddress> getAddrs(const DNSName &qname, unsigned int depth, set<GetBestNSAnswer>& beenthere);
+
+  bool nameserversBlockedByRPZ(const NsSet& nameservers);
+  bool nameserverIPBlockedByRPZ(const ComboAddress&);
+  bool throttledOrBlocked(const std::string& prefix, const ComboAddress& remoteIP, const DNSName& qname, const QType& qtype, bool pierceDontQuery);
+
+  vector<ComboAddress> retrieveAddressesForNS(const std::string& prefix, const DNSName& qname, vector<DNSName >::const_iterator& tns, const unsigned int depth, set<GetBestNSAnswer>& beenthere, const vector<DNSName >& rnameservers, NsSet& nameservers, bool& sendRDQuery, bool& pierceDontQuery, bool& flawedNSSet);
+  RCode::rcodes_ updateCacheFromRecords(const std::string& prefix, LWResult& lwr, const DNSName& qname, const DNSName& auth, NsSet& nameservers, const DNSName& tns, const boost::optional<Netmask>);
+  bool processRecords(const std::string& prefix, const DNSName& qname, const QType& qtype, const DNSName& auth, LWResult& lwr, const bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, bool& sawDS);
+
 private:
   ostringstream d_trace;
   shared_ptr<RecursorLua4> d_pdl;
