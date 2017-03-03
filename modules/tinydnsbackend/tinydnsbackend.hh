@@ -96,7 +96,7 @@ private:
   //data member variables
   uint64_t d_taiepoch;
   QType d_qtype;
-  CDB *d_cdbReader;
+  std::unique_ptr<CDB> d_cdbReader;
   DNSPacket *d_dnspacket; // used for location and edns-client support.
   bool d_isWildcardQuery; // Indicate if the query received was a wildcard query.
   bool d_isAxfr; // Indicate if we received a list() and not a lookup().
