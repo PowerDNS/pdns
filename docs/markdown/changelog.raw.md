@@ -1,5 +1,21 @@
 **Note**: Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
 
+<!--
+# PowerDNS Authoritative Server 4.1.0
+Unreleased
+
+Note: this released includes a change in the BIND zonefile parser which
+affects TTLs for records that did not have an explicit TTL.  With this
+change, we are compliant with RFC2308, but your existing zone files may now
+be interpreted differently.
+
+Specifically, where we previously used the SOA minimum field for the default
+TTL if none was set explictly, or no $TTL was set, we now use the TTL from
+the previous line.
+
+- [#5094](https://github.com/PowerDNS/pdns/pull/5094): make our zone parser adhere to RFC2308 wrt implicit TTLs and add test
+-->
+
 # PowerDNS Authoritative Server 4.0.3
 Released January 17th 2016
 
