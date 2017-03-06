@@ -93,29 +93,26 @@ extern SortList g_sortlist;
 #include <systemd/sd-daemon.h>
 #endif
 
-__thread FDMultiplexer* t_fdm;
+#include "namespaces.hh"
+
+typedef map<ComboAddress, uint32_t, ComboAddress::addressOnlyLessThan> tcpClientCounts_t;
+
+static __thread shared_ptr<RecursorLua4>* t_pdl;
 static __thread unsigned int t_id;
-unsigned int g_maxTCPPerClient;
-size_t g_tcpMaxQueriesPerConn;
-unsigned int g_networkTimeoutMsec;
-uint64_t g_latencyStatSize;
-bool g_logCommonErrors;
-bool g_anyToTcp;
-uint16_t g_udpTruncationThreshold, g_outgoingEDNSBufsize;
-__thread shared_ptr<RecursorLua4>* t_pdl;
-bool g_lowercaseOutgoing;
+static __thread shared_ptr<Regex>* t_traceRegex;
+static __thread tcpClientCounts_t* t_tcpClientCounts;
 
+__thread MT_t* MT; // the big MTasker
+__thread MemRecursorCache* t_RC;
+__thread RecursorPacketCache* t_packetCache;
+__thread FDMultiplexer* t_fdm;
 __thread addrringbuf_t* t_remotes, *t_servfailremotes, *t_largeanswerremotes;
-
 __thread boost::circular_buffer<pair<DNSName, uint16_t> >* t_queryring, *t_servfailqueryring;
-__thread shared_ptr<Regex>* t_traceRegex;
-
+__thread NetmaskGroup* t_allowFrom;
 #ifdef HAVE_PROTOBUF
 __thread boost::uuids::random_generator* t_uuidGenerator;
 #endif
-
-
-RecursorControlChannel s_rcc; // only active in thread 0
+__thread struct timeval g_now; // timestamp, updated (too) frequently
 
 // for communicating with our threads
 struct ThreadPipeSet
@@ -125,38 +122,44 @@ struct ThreadPipeSet
   int writeFromThread;
   int readFromThread;
 };
+typedef vector<int> tcpListenSockets_t;
+typedef map<int, ComboAddress> listenSocketsAddresses_t; // is shared across all threads right now
+typedef vector<pair<int, function< void(int, any&) > > > deferredAdd_t;
 
-vector<ThreadPipeSet> g_pipes; // effectively readonly after startup
-
-SyncRes::domainmap_t* g_initialDomainMap; // new threads needs this to be setup
-
-#include "namespaces.hh"
-
-__thread MemRecursorCache* t_RC;
-__thread RecursorPacketCache* t_packetCache;
-RecursorStats g_stats;
-bool g_quiet;
-
-bool g_weDistributeQueries; // if true, only 1 thread listens on the incoming query sockets
-
-__thread NetmaskGroup* t_allowFrom;
+static const ComboAddress g_local4("0.0.0.0"), g_local6("::");
+static vector<ThreadPipeSet> g_pipes; // effectively readonly after startup
+static tcpListenSockets_t g_tcpListenSockets;   // shared across threads, but this is fine, never written to from a thread. All threads listen on all sockets
+static listenSocketsAddresses_t g_listenSocketsAddresses; // is shared across all threads right now
+static deferredAdd_t deferredAdd;
+static set<int> g_fromtosockets; // listen sockets that use 'sendfromto()' mechanism
+static vector<ComboAddress> g_localQueryAddresses4, g_localQueryAddresses6;
+static AtomicCounter counter;
+static SyncRes::domainmap_t* g_initialDomainMap; // new threads needs this to be setup
 static NetmaskGroup* g_initialAllowFrom; // new thread needs to be setup with this
+static size_t g_tcpMaxQueriesPerConn;
+static uint64_t g_latencyStatSize;
+static uint32_t g_disthashseed;
+static unsigned int g_maxTCPPerClient;
+static unsigned int g_networkTimeoutMsec;
+static unsigned int g_maxMThreads;
+static unsigned int g_numWorkerThreads;
+static int g_tcpTimeout;
+static uint16_t g_udpTruncationThreshold;
+static std::atomic<bool> statsWanted;
+static std::atomic<bool> g_quiet;
+static bool g_logCommonErrors;
+static bool g_anyToTcp;
+static bool g_lowercaseOutgoing;
+static bool g_weDistributeQueries; // if true, only 1 thread listens on the incoming query sockets
 
+std::unordered_set<DNSName> g_delegationOnly;
+RecursorControlChannel s_rcc; // only active in thread 0
+RecursorStats g_stats;
 NetmaskGroup* g_dontQuery;
 string s_programname="pdns_recursor";
-
-typedef vector<int> tcpListenSockets_t;
-tcpListenSockets_t g_tcpListenSockets;   // shared across threads, but this is fine, never written to from a thread. All threads listen on all sockets
-int g_tcpTimeout;
-unsigned int g_maxMThreads;
-__thread struct timeval g_now; // timestamp, updated (too) frequently
-typedef map<int, ComboAddress> listenSocketsAddresses_t; // is shared across all threads right now
-listenSocketsAddresses_t g_listenSocketsAddresses; // is shared across all threads right now
-set<int> g_fromtosockets; // listen sockets that use 'sendfromto()' mechanism
-
-__thread MT_t* MT; // the big MTasker
-
-unsigned int g_numThreads, g_numWorkerThreads;
+string s_pidfname;
+unsigned int g_numThreads;
+uint16_t g_outgoingEDNSBufsize;
 
 #define LOCAL_NETS "127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fc00::/7, fe80::/10"
 // Bad Nets taken from both:
@@ -224,7 +227,7 @@ unsigned int getRecursorThreadId()
   return t_id;
 }
 
-void handleTCPClientWritable(int fd, FDMultiplexer::funcparam_t& var);
+static void handleTCPClientWritable(int fd, FDMultiplexer::funcparam_t& var);
 
 // -1 is error, 0 is timeout, 1 is success
 int asendtcp(const string& data, Socket* sock)
@@ -247,7 +250,7 @@ int asendtcp(const string& data, Socket* sock)
   return ret;
 }
 
-void handleTCPClientReadable(int fd, FDMultiplexer::funcparam_t& var);
+static void handleTCPClientReadable(int fd, FDMultiplexer::funcparam_t& var);
 
 // -1 is error, 0 is timeout, 1 is success
 int arecvtcp(string& data, size_t len, Socket* sock, bool incompleteOkay)
@@ -270,7 +273,7 @@ int arecvtcp(string& data, size_t len, Socket* sock, bool incompleteOkay)
   return ret;
 }
 
-void handleGenUDPQueryResponse(int fd, FDMultiplexer::funcparam_t& var)
+static void handleGenUDPQueryResponse(int fd, FDMultiplexer::funcparam_t& var)
 {
   PacketID pident=*any_cast<PacketID>(&var);
   char resp[512];
@@ -315,10 +318,6 @@ string GenUDPQueryResponse(const ComboAddress& dest, const string& query)
   return data;
 }
 
-
-vector<ComboAddress> g_localQueryAddresses4, g_localQueryAddresses6;
-const ComboAddress g_local4("0.0.0.0"), g_local6("::");
-
 //! pick a random query local address
 ComboAddress getQueryLocalAddress(int family, uint16_t port)
 {
@@ -341,9 +340,9 @@ ComboAddress getQueryLocalAddress(int family, uint16_t port)
   return ret;
 }
 
-void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t&);
+static void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t&);
 
-void setSocketBuffer(int fd, int optname, uint32_t size)
+static void setSocketBuffer(int fd, int optname, uint32_t size)
 {
   uint32_t psize=0;
   socklen_t len=sizeof(psize);
@@ -563,8 +562,6 @@ int arecvfrom(char *data, size_t len, int flags, const ComboAddress& fromaddr, s
   return ret;
 }
 
-
-string s_pidfname;
 static void writePid(void)
 {
   if(!::arg().mustDo("write-pid"))
@@ -575,9 +572,6 @@ static void writePid(void)
   else
     L<<Logger::Error<<"Writing pid for "<<Utility::getpid()<<" to "<<s_pidfname<<" failed: "<<strerror(errno)<<endl;
 }
-
-typedef map<ComboAddress, uint32_t, ComboAddress::addressOnlyLessThan> tcpClientCounts_t;
-tcpClientCounts_t __thread* t_tcpClientCounts;
 
 TCPConnection::TCPConnection(int fd, const ComboAddress& addr) : d_remote(addr), d_fd(fd)
 {
@@ -601,10 +595,11 @@ TCPConnection::~TCPConnection()
 }
 
 AtomicCounter TCPConnection::s_currentConnections;
-void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var);
+
+static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var);
 
 // the idea is, only do things that depend on the *response* here. Incoming accounting is on incoming.
-void updateResponseStats(int res, const ComboAddress& remote, unsigned int packetsize, const DNSName* query, uint16_t qtype)
+static void updateResponseStats(int res, const ComboAddress& remote, unsigned int packetsize, const DNSName* query, uint16_t qtype)
 {
   if(packetsize > 1000 && t_largeanswerremotes)
     t_largeanswerremotes->push_back(remote);
@@ -672,7 +667,7 @@ static void protobufLogResponse(const std::shared_ptr<RemoteLogger>& logger, con
  * @param res: An integer that will contain the RCODE of the lookup we do
  * @param ret: A vector of DNSRecords where the result of the CNAME chase should be appended to
  */
-void handleRPZCustom(const DNSRecord& spoofed, const QType& qtype, SyncRes& sr, int& res, vector<DNSRecord>& ret)
+static void handleRPZCustom(const DNSRecord& spoofed, const QType& qtype, SyncRes& sr, int& res, vector<DNSRecord>& ret)
 {
   if (spoofed.d_type == QType::CNAME) {
     bool oldWantsRPZ = sr.d_wantsRPZ;
@@ -689,7 +684,7 @@ void handleRPZCustom(const DNSRecord& spoofed, const QType& qtype, SyncRes& sr, 
   }
 }
 
-void startDoResolve(void *p)
+static void startDoResolve(void *p)
 {
   DNSComboWriter* dc=(DNSComboWriter *)p;
   try {
@@ -1269,7 +1264,7 @@ void startDoResolve(void *p)
   g_stats.maxMThreadStackUsage = max(MT->getMaxStackUsage(), g_stats.maxMThreadStackUsage);
 }
 
-void makeControlChannelSocket(int processNum=-1)
+static void makeControlChannelSocket(int processNum=-1)
 {
   string sockname=::arg()["socket-dir"]+"/"+s_programname;
   if(processNum >= 0)
@@ -1329,7 +1324,7 @@ static bool getQNameAndSubnet(const std::string& question, DNSName* dnsname, uin
   return found;
 }
 
-void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
+static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 {
   shared_ptr<TCPConnection> conn=any_cast<shared_ptr<TCPConnection> >(var);
 
@@ -1467,7 +1462,7 @@ void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 }
 
 //! Handle new incoming TCP connection
-void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
+static void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
 {
   ComboAddress addr;
   socklen_t addrlen=sizeof(addr);
@@ -1522,7 +1517,7 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
   }
 }
 
-string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fromaddr, const ComboAddress& destaddr, struct timeval tv, int fd)
+static string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fromaddr, const ComboAddress& destaddr, struct timeval tv, int fd)
 {
   gettimeofday(&g_now, 0);
   struct timeval diff = g_now - tv;
@@ -1689,7 +1684,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
 }
 
 
-void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
+static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 {
   ssize_t len;
   char data[1500];
@@ -1781,11 +1776,7 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   }
 }
 
-
-typedef vector<pair<int, function< void(int, any&) > > > deferredAdd_t;
-deferredAdd_t deferredAdd;
-
-void makeTCPServerSockets()
+static void makeTCPServerSockets()
 {
   int fd;
   vector<string>locals;
@@ -1861,7 +1852,7 @@ void makeTCPServerSockets()
   }
 }
 
-void makeUDPServerSockets()
+static void makeUDPServerSockets()
 {
   int one=1;
   vector<string>locals;
@@ -1935,8 +1926,7 @@ void makeUDPServerSockets()
   }
 }
 
-
-void daemonize(void)
+static void daemonize(void)
 {
   if(fork())
     exit(0); // bye bye
@@ -1954,22 +1944,19 @@ void daemonize(void)
   }
 }
 
-AtomicCounter counter;
-bool statsWanted;
-
-void usr1Handler(int)
+static void usr1Handler(int)
 {
   statsWanted=true;
 }
 
-void usr2Handler(int)
+static void usr2Handler(int)
 {
   g_quiet= !g_quiet;
   SyncRes::setDefaultLogMode(g_quiet ? SyncRes::LogNone : SyncRes::Log);
   ::arg().set("quiet")=g_quiet ? "" : "no";
 }
 
-void doStats(void)
+static void doStats(void)
 {
   static time_t lastOutputTime;
   static uint64_t lastQueryCount;
@@ -2072,7 +2059,7 @@ static void houseKeeping(void *)
     }
 }
 
-void makeThreadPipes()
+static void makeThreadPipes()
 {
   for(unsigned int n=0; n < g_numThreads; ++n) {
     struct ThreadPipeSet tps;
@@ -2128,7 +2115,6 @@ void broadcastFunction(const pipefunc_t& func, bool skipSelf)
   }
 }
 
-static uint32_t g_disthashseed;
 void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
 {
   unsigned int hash = hashQuestion(packet.c_str(), packet.length(), g_disthashseed);
@@ -2149,7 +2135,7 @@ void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
   }
 }
 
-void handlePipeRequest(int fd, FDMultiplexer::funcparam_t& var)
+static void handlePipeRequest(int fd, FDMultiplexer::funcparam_t& var)
 {
   ThreadMSG* tmsg;
 
@@ -2245,7 +2231,7 @@ template uint64_t broadcastAccFunction(const boost::function<uint64_t*()>& fun, 
 template vector<ComboAddress> broadcastAccFunction(const boost::function<vector<ComboAddress> *()>& fun, bool skipSelf); // explicit instantiation
 template vector<pair<DNSName,uint16_t> > broadcastAccFunction(const boost::function<vector<pair<DNSName, uint16_t> > *()>& fun, bool skipSelf); // explicit instantiation
 
-void handleRCC(int fd, FDMultiplexer::funcparam_t& var)
+static void handleRCC(int fd, FDMultiplexer::funcparam_t& var)
 {
   string remote;
   string msg=s_rcc.recv(&remote);
@@ -2272,7 +2258,7 @@ void handleRCC(int fd, FDMultiplexer::funcparam_t& var)
   }
 }
 
-void handleTCPClientReadable(int fd, FDMultiplexer::funcparam_t& var)
+static void handleTCPClientReadable(int fd, FDMultiplexer::funcparam_t& var)
 {
   PacketID* pident=any_cast<PacketID>(&var);
   //  cerr<<"handleTCPClientReadable called for fd "<<fd<<", pident->inNeeded: "<<pident->inNeeded<<", "<<pident->sock->getHandle()<<endl;
@@ -2303,7 +2289,7 @@ void handleTCPClientReadable(int fd, FDMultiplexer::funcparam_t& var)
   }
 }
 
-void handleTCPClientWritable(int fd, FDMultiplexer::funcparam_t& var)
+static void handleTCPClientWritable(int fd, FDMultiplexer::funcparam_t& var)
 {
   PacketID* pid=any_cast<PacketID>(&var);
   ssize_t ret=send(fd, pid->outMSG.c_str() + pid->outPos, pid->outMSG.size() - pid->outPos,0);
@@ -2324,7 +2310,7 @@ void handleTCPClientWritable(int fd, FDMultiplexer::funcparam_t& var)
 }
 
 // resend event to everybody chained onto it
-void doResends(MT_t::waiters_t::iterator& iter, PacketID resend, const string& content)
+static void doResends(MT_t::waiters_t::iterator& iter, PacketID resend, const string& content)
 {
   if(iter->key.chain.empty())
     return;
@@ -2339,7 +2325,7 @@ void doResends(MT_t::waiters_t::iterator& iter, PacketID resend, const string& c
   }
 }
 
-void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
+static void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
 {
   PacketID pid=any_cast<PacketID>(var);
   ssize_t len;
@@ -2456,7 +2442,7 @@ FDMultiplexer* getMultiplexer()
 }
 
 
-string* doReloadLuaScript()
+static string* doReloadLuaScript()
 {
   string fname= ::arg()["lua-dns-script"];
   try {
@@ -2486,7 +2472,7 @@ string doQueueReloadLuaScript(vector<string>::const_iterator begin, vector<strin
   return broadcastAccFunction<string>(doReloadLuaScript);
 }
 
-string* pleaseUseNewTraceRegex(const std::string& newRegex)
+static string* pleaseUseNewTraceRegex(const std::string& newRegex)
 try
 {
   if(newRegex.empty()) {
@@ -2540,9 +2526,9 @@ static void checkOrFixFDS()
   }
 }
 
-void* recursorThread(void*);
+static void* recursorThread(void*);
 
-void* pleaseSupplantACLs(NetmaskGroup *ng)
+static void* pleaseSupplantACLs(NetmaskGroup *ng)
 {
   t_allowFrom = ng;
   return 0;
@@ -2631,7 +2617,6 @@ void parseACLs()
 }
 
 
-std::unordered_set<DNSName> g_delegationOnly;
 static void setupDelegationOnly()
 {
   vector<string> parts;
@@ -2641,7 +2626,7 @@ static void setupDelegationOnly()
   }
 }
 
-int serviceMain(int argc, char*argv[])
+static int serviceMain(int argc, char*argv[])
 {
   L.setName(s_programname);
   L.setLoglevel((Logger::Urgency)(6)); // info and up
@@ -2892,7 +2877,7 @@ int serviceMain(int argc, char*argv[])
   return 0;
 }
 
-void* recursorThread(void* ptr)
+static void* recursorThread(void* ptr)
 try
 {
   t_id=(int) (long) ptr;
