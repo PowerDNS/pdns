@@ -42,7 +42,10 @@ DNSProxy::DNSProxy(const string &remote)
   d_resanswers=S.getPointer("recursing-answers");
   d_resquestions=S.getPointer("recursing-questions");
   d_udpanswers=S.getPointer("udp-answers");
-  ComboAddress remaddr(remote, 53);
+
+  vector<string> addresses;
+  stringtok(addresses, remote, " ,\t");
+  ComboAddress remaddr(addresses[0], 53);
   
   if((d_sock=socket(remaddr.sin4.sin_family, SOCK_DGRAM,0))<0)
     throw PDNSException(string("socket: ")+strerror(errno));

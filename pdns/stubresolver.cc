@@ -14,71 +14,85 @@
 #include "statbag.hh"
 #include "stubresolver.hh"
 
-// s_stubresolvers contains the ComboAddresses that are used by
+// s_resolversForStub contains the ComboAddresses that are used by
 // stubDoResolve
-static vector<ComboAddress> s_stubresolvers;
+static vector<ComboAddress> s_resolversForStub;
 
-/** Parse /etc/resolv.conf and add the nameservers to the vector
- * s_stubresolvers.
+/*
+ * Returns false if no resolvers are configured, while emitting a warning about this
+ */
+bool resolversDefined()
+{
+  if (s_resolversForStub.empty()) {
+    L<<Logger::Warning<<"No upstream resolvers configured, stub resolving (including secpoll and ALIAS) impossible."<<endl;
+    return false;
+  }
+  return true;
+}
+
+/*
+ * Fill the s_resolversForStub vector with addresses for the upstream resolvers.
+ * First, parse the `resolver` configuration option for IP addresses to use.
+ * If that doesn't work, parse /etc/resolv.conf and add those nameservers to
+ * s_resolversForStub.
  */
 void stubParseResolveConf()
 {
-  ifstream ifs("/etc/resolv.conf");
-  if(!ifs)
-    return;
+  if(::arg().mustDo("recursor")) {
+    vector<string> parts;
+    stringtok(parts, ::arg()["recursor"], " ,\t");
+    for (const auto& addr : parts)
+      s_resolversForStub.push_back(ComboAddress(addr, 53));
+  }
 
-  string line;
-  while(std::getline(ifs, line)) {
-    boost::trim_right_if(line, is_any_of(" \r\n\x1a"));
-    boost::trim_left(line); // leading spaces, let's be nice
+  if (s_resolversForStub.empty()) {
+    ifstream ifs("/etc/resolv.conf");
+    if(!ifs)
+      return;
 
-    string::size_type tpos = line.find_first_of(";#");
-    if(tpos != string::npos)
-      line.resize(tpos);
+    string line;
+    while(std::getline(ifs, line)) {
+      boost::trim_right_if(line, is_any_of(" \r\n\x1a"));
+      boost::trim_left(line); // leading spaces, let's be nice
 
-    if(boost::starts_with(line, "nameserver ") || boost::starts_with(line, "nameserver\t")) {
-      vector<string> parts;
-      stringtok(parts, line, " \t,"); // be REALLY nice
-      for(vector<string>::const_iterator iter = parts.begin()+1; iter != parts.end(); ++iter) {
-        try {
-          s_stubresolvers.push_back(ComboAddress(*iter, 53));
-        }
-        catch(...)
-        {
+      string::size_type tpos = line.find_first_of(";#");
+      if(tpos != string::npos)
+        line.resize(tpos);
+
+      if(boost::starts_with(line, "nameserver ") || boost::starts_with(line, "nameserver\t")) {
+        vector<string> parts;
+        stringtok(parts, line, " \t,"); // be REALLY nice
+        for(vector<string>::const_iterator iter = parts.begin()+1; iter != parts.end(); ++iter) {
+          try {
+            s_resolversForStub.push_back(ComboAddress(*iter, 53));
+          }
+          catch(...)
+          {
+          }
         }
       }
     }
   }
-
-  if(::arg().mustDo("recursor"))
-    s_stubresolvers.push_back(ComboAddress(::arg()["recursor"], 53));
-
-  // Last resort, add 127.0.0.1
-  if(s_stubresolvers.empty()) {
-    s_stubresolvers.push_back(ComboAddress("127.0.0.1", 53));
-  }
 }
 
 // s_stubresolvers contains the ComboAddresses that are used to resolve the
-int stubDoResolve(const string& qname, uint16_t qtype, vector<DNSResourceRecord>& ret)
-{
+int stubDoResolve(const string& qname, uint16_t qtype, vector<DNSResourceRecord>& ret) {
+  // Emit a warning if there are no stubs.
+  resolversDefined();
+
   vector<uint8_t> packet;
 
   DNSPacketWriter pw(packet, DNSName(qname), qtype);
   pw.getHeader()->id=dns_random(0xffff);
   pw.getHeader()->rd=1;
-  if (s_stubresolvers.empty()) {
-    L<<Logger::Warning<<"No recursors set, stub resolving (including secpoll and ALIAS) impossible."<<endl;
-    return RCode::ServFail;
-  }
 
   string msg ="Doing stub resolving, using resolvers: ";
-  for (const auto& server : s_stubresolvers) {
+  for (const auto& server : s_resolversForStub) {
     msg += server.toString() + ", ";
   }
   L<<Logger::Debug<<msg.substr(0, msg.length() - 2)<<endl;
 
-  for(ComboAddress& dest :  s_stubresolvers) {
+  for(ComboAddress& dest :  s_resolversForStub) {
     Socket sock(dest.sin4.sin_family, SOCK_DGRAM);
     sock.setNonBlocking();
     sock.sendTo(string(packet.begin(), packet.end()), dest);
