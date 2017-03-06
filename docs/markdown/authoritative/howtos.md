@@ -185,6 +185,8 @@ resolver=[::1]:5300
 expand-alias=yes
 ```
 
+**note**: If `resolver` is unset, ALIAS expension is disabled!
+
 and add the ALIAS record to your zone apex. e.g.:
 
 ```

@@ -718,10 +718,11 @@ If set, recursive queries will be handed to the recursor specified here. See
 ["Recursion"](recursion.md).
 
 ## `resolver`
-* IP Address
+* IP Addresses with optional port, separated by commas
 * Added in: 4.1.0
 
-Use this resolver for ALIAS and the internal stub resolver.
+Use these resolver addresses for ALIAS and the internal stub resolver.
+If this is not set, `/etc/resolv.conf` is parsed for upstream resolvers.
 
 ## `retrieval-threads`
 * Integer

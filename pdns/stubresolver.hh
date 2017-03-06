@@ -24,4 +24,5 @@
 #include "dnsparser.hh"
 
 void stubParseResolveConf();
+bool resolversDefined();
 int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& ret);
