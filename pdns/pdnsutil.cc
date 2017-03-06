@@ -2291,7 +2291,7 @@ loadMainConfig(g_vm["config-dir"].as<string>());
   }
   else if(cmds[0] == "add-zone-key") {
     if(cmds.size() < 3 ) {
-      cerr << "Syntax: pdnsutil add-zone-key ZONE zsk|ksk [bits] [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384]"<<endl;
+      cerr << "Syntax: pdnsutil add-zone-key ZONE zsk|ksk [BITS] [active|inactive] [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384]"<<endl;
       return 0;
     }
     DNSName zone(cmds[1]);
