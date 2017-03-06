@@ -100,6 +100,15 @@ class TestAPIBasics(DNSDistTest):
             for key in ['id', 'queries']:
                 self.assertTrue(frontend[key] >= 0)
 
+    def testServersIDontExist(self):
+        """
+        API: /api/v1/servers/idontexist (should be 404)
+        """
+        headers = {'x-api-key': self._webServerAPIKey}
+        url = 'http://127.0.0.1:' + str(self._webServerPort) + '/api/v1/servers/idontexist'
+        r = requests.get(url, headers=headers, timeout=self._webTimeout)
+        self.assertEquals(r.status_code, 404)
+
     def testServersLocalhostConfig(self):
         """
         API: /api/v1/servers/localhost/config
