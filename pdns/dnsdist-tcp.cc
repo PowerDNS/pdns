@@ -365,7 +365,7 @@ void* tcpClientThread(int pipefd)
         std::shared_ptr<ServerPool> serverPool = getPool(*localPools, poolname);
         std::shared_ptr<DNSDistPacketCache> packetCache = nullptr;
         auto policy = localPolicy->policy;
-        if (serverPool->policy != NULL) {
+        if (serverPool->policy != nullptr) {
           policy = serverPool->policy->policy;
         }
         {

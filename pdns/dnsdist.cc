@@ -692,7 +692,6 @@ std::shared_ptr<ServerPool> createPoolIfNotExists(pools_t& pools, const string& 
     if (!poolName.empty())
       vinfolog("Creating pool %s", poolName);
     pool = std::make_shared<ServerPool>();
-    pool->policy = NULL;
     pools.insert(std::pair<std::string,std::shared_ptr<ServerPool> >(poolName, pool));
   }
   return pool;
@@ -1159,7 +1158,7 @@ try
       std::shared_ptr<ServerPool> serverPool = getPool(*localPools, poolname);
       std::shared_ptr<DNSDistPacketCache> packetCache = nullptr;
       auto policy = localPolicy->policy;
-      if (serverPool->policy != NULL) {
+      if (serverPool->policy != nullptr) {
         policy = serverPool->policy->policy;
       }
       {

@@ -653,7 +653,7 @@ void moreLua(bool client)
           const std::shared_ptr<ServerPool> pool = entry.second;
           string cache = pool->packetCache != nullptr ? pool->packetCache->toString() : "";
           string policy = g_policy.getLocal()->name;
-          if (pool->policy != NULL) {
+          if (pool->policy != nullptr) {
             policy = pool->policy->name;
           }
           string servers;
@@ -1300,19 +1300,21 @@ void moreLua(bool client)
         setLuaSideEffect();
         auto localPools = g_pools.getCopy();
         setPoolPolicy(localPools, pool, std::make_shared<ServerPolicy>(policy));
+        g_pools.setState(localPools);
       });
 
     g_lua.writeFunction("setPoolServerPolicyLua", [](string name, policyfunc_t policy, string pool) {
         setLuaSideEffect();
         auto localPools = g_pools.getCopy();
         setPoolPolicy(localPools, pool, std::make_shared<ServerPolicy>(ServerPolicy{name, policy}));
+        g_pools.setState(localPools);
       });
 
     g_lua.writeFunction("showPoolServerPolicy", [](string pool) {
         setLuaSideEffect();
         auto localPools = g_pools.getCopy();
         auto poolObj = getPool(localPools, pool);
-        if (poolObj->policy == NULL) {
+        if (poolObj->policy == nullptr) {
           g_outputBuffer=g_policy.getLocal()->name+"\n";
         } else {
           g_outputBuffer=poolObj->policy->name+"\n";
