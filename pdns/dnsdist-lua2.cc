@@ -1291,4 +1291,27 @@ void moreLua(bool client)
         }
 #endif /* HAVE_NET_SNMP */
       });
+
+    g_lua.writeFunction("setPoolServerPolicy", [](ServerPolicy policy, string pool) {
+        setLuaSideEffect();
+        auto localPools = g_pools.getCopy();
+        setPoolPolicy(localPools, pool, std::make_shared<ServerPolicy>(policy));
+      });
+
+    g_lua.writeFunction("setPoolServerPolicyLua", [](string name, policyfunc_t policy, string pool) {
+        setLuaSideEffect();
+        auto localPools = g_pools.getCopy();
+        setPoolPolicy(localPools, pool, std::make_shared<ServerPolicy>(ServerPolicy{name, policy}));
+      });
+
+    g_lua.writeFunction("showPoolServerPolicy", [](string pool) {
+        setLuaSideEffect();
+        auto localPools = g_pools.getCopy();
+        auto poolObj = getPool(localPools, pool);
+        if (poolObj->policy == NULL) {
+          g_outputBuffer=g_policy.getLocal()->name+"\n";
+        } else {
+          g_outputBuffer=poolObj->policy->name+"\n";
+        }
+      });
 }

@@ -692,9 +692,21 @@ std::shared_ptr<ServerPool> createPoolIfNotExists(pools_t& pools, const string& 
     if (!poolName.empty())
       vinfolog("Creating pool %s", poolName);
     pool = std::make_shared<ServerPool>();
+    pool->policy = NULL;
     pools.insert(std::pair<std::string,std::shared_ptr<ServerPool> >(poolName, pool));
   }
   return pool;
+}
+
+void setPoolPolicy(pools_t& pools, const string& poolName, std::shared_ptr<ServerPolicy> policy)
+{
+  std::shared_ptr<ServerPool> pool = createPoolIfNotExists(pools, poolName);
+  if (!poolName.empty()) {
+    vinfolog("Setting pool %s server selection policy to %s", poolName, policy->name);
+  } else {
+    vinfolog("Setting default pool server selection policy to %s", policy->name);
+  }
+  pool->policy = policy;
 }
 
 void addServerToPool(pools_t& pools, const string& poolName, std::shared_ptr<DownstreamState> server)
@@ -1146,11 +1158,14 @@ try
       DownstreamState* ss = nullptr;
       std::shared_ptr<ServerPool> serverPool = getPool(*localPools, poolname);
       std::shared_ptr<DNSDistPacketCache> packetCache = nullptr;
-      auto policy=localPolicy->policy;
+      auto policy = localPolicy->policy;
+      if (serverPool->policy != NULL) {
+        policy = serverPool->policy->policy;
+      }
       {
-	std::lock_guard<std::mutex> lock(g_luamutex);
-	ss = policy(serverPool->servers, &dq).get();
-	packetCache = serverPool->packetCache;
+        std::lock_guard<std::mutex> lock(g_luamutex);
+        ss = policy(serverPool->servers, &dq).get();
+        packetCache = serverPool->packetCache;
       }
 
       bool ednsAdded = false;
