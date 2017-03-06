@@ -643,15 +643,19 @@ void moreLua(bool client)
       setLuaNoSideEffect();
       try {
         ostringstream ret;
-        boost::format fmt("%1$-20.20s %|25t|%2$20s %|50t|%3%" );
-        //             1        3         4
-        ret << (fmt % "Name" % "Cache" % "Servers" ) << endl;
+        boost::format fmt("%1$-20.20s %|25t|%2$20s %|25t|%3$20s %|50t|%4%" );
+        //             1        2         3                4
+        ret << (fmt % "Name" % "Cache" % "ServerPolicy" % "Servers" ) << endl;
 
         const auto localPools = g_pools.getCopy();
         for (const auto& entry : localPools) {
           const string& name = entry.first;
           const std::shared_ptr<ServerPool> pool = entry.second;
           string cache = pool->packetCache != nullptr ? pool->packetCache->toString() : "";
+          string policy = g_policy.getLocal()->name;
+          if (pool->policy != NULL) {
+            policy = pool->policy->name;
+          }
           string servers;
 
           for (const auto& server: pool->servers) {
@@ -665,7 +669,7 @@ void moreLua(bool client)
             servers += server.second->remote.toStringWithPort();
           }
 
-          ret << (fmt % name % cache % servers) << endl;
+          ret << (fmt % name % cache % policy % servers) << endl;
         }
         g_outputBuffer=ret.str();
       }catch(std::exception& e) { g_outputBuffer=e.what(); throw; }
