@@ -91,16 +91,13 @@ private:
   func_t d_func;
 };
 
-typedef boost::variant<string,vector<pair<int, string>>, std::shared_ptr<DNSRule> > luadnsrule_t;
-
 std::shared_ptr<DNSRule> makeRule(const luadnsrule_t& var)
 {
-  if(auto src = boost::get<std::shared_ptr<DNSRule>>(&var))
-    return *src;
-  
+  if (var.type() == typeid(std::shared_ptr<DNSRule>))
+    return *boost::get<std::shared_ptr<DNSRule>>(&var);
+
   SuffixMatchNode smn;
   NetmaskGroup nmg;
-
   auto add=[&](string src) {
     try {
       nmg.addMask(src); // need to try mask first, all masks are domain names!
@@ -108,13 +105,21 @@ std::shared_ptr<DNSRule> makeRule(const luadnsrule_t& var)
       smn.add(DNSName(src));
     }
   };
-  if(auto src = boost::get<string>(&var))
-    add(*src);
-  else {
-    for(auto& a : boost::get<vector<pair<int, string>>>(var)) {
+
+  if (var.type() == typeid(string))
+    add(*boost::get<string>(&var));
+
+  else if (var.type() == typeid(vector<pair<int, string>>))
+    for(const auto& a : *boost::get<vector<pair<int, string>>>(&var))
       add(a.second);
-    }
-  }
+
+  else if (var.type() == typeid(DNSName))
+    smn.add(*boost::get<DNSName>(&var));
+
+  else if (var.type() == typeid(vector<pair<int, DNSName>>))
+    for(const auto& a : *boost::get<vector<pair<int, DNSName>>>(&var))
+      smn.add(a.second);
+
   if(nmg.empty())
     return std::make_shared<SuffixMatchNodeRule>(smn);
   else

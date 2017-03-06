@@ -412,6 +412,10 @@ Cache Hit Response rules, triggered on a cache hit, can be added via:
 
 A DNS rule can be:
 
+ * A string that is either a domain name or netmask
+ * A list of strings that are either domain names or netmasks
+ * A DNSName
+ * A list of DNSNames
  * an AllRule
  * an AndRule
  * a DNSSECRule
