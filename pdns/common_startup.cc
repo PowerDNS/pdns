@@ -43,10 +43,11 @@ PacketCache PC; //!< This is the main PacketCache, shared across all threads
 DNSProxy *DP;
 DynListener *dl;
 CommunicatorClass Communicator;
-UDPNameserver *N;
+shared_ptr<UDPNameserver> N;
 int avg_latency;
 TCPNameserver *TN;
-vector<DNSDistributor*> g_distributors;
+static vector<DNSDistributor*> g_distributors;
+vector<std::shared_ptr<UDPNameserver> > g_udpReceivers;
 AuthLua *LPE;
 
 ArgvMap &arg()
@@ -358,18 +359,17 @@ void *qthread(void *number)
   int diff;
   bool logDNSQueries = ::arg().mustDo("log-dns-queries");
   bool doRecursion = ::arg().mustDo("recursor");
-  UDPNameserver *NS = N;
+  shared_ptr<UDPNameserver> NS;
 
   // If we have SO_REUSEPORT then create a new port for all receiver threads
   // other than the first one.
-  if( number != NULL && NS->canReusePort() ) {
-    L<<Logger::Notice<<"Starting new listen thread on the same IPs/ports using SO_REUSEPORT"<<endl;
-    try {
-      NS = new UDPNameserver( true );
-    } catch(PDNSException &e) {
-      L<<Logger::Error<<"Unable to reuse port, falling back to original bind"<<endl;
+  if( number != NULL && N->canReusePort() ) {
+    NS = g_udpReceivers[num];
+    if (NS == nullptr) {
       NS = N;
     }
+  } else {
+    NS = N;
   }
 
   for(;;) {

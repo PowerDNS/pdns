@@ -605,8 +605,24 @@ int main(int argc, char **argv)
     }
 
     UeberBackend::go();
-    N=new UDPNameserver; // this fails when we are not root, throws exception
-    
+    N=std::make_shared<UDPNameserver>(); // this fails when we are not root, throws exception
+    g_udpReceivers.push_back(N);
+
+    size_t rthreads = ::arg().asNum("receiver-threads", 1);
+    if (rthreads > 1 && N->canReusePort()) {
+      g_udpReceivers.resize(rthreads);
+
+      for (size_t idx = 1; idx < rthreads; idx++) {
+        try {
+          g_udpReceivers[idx] = std::make_shared<UDPNameserver>(true);
+        }
+        catch(const PDNSException& e) {
+          L<<Logger::Error<<"Unable to reuse port, falling back to original bind"<<endl;
+          break;
+        }
+      }
+    }
+
     if(!::arg().mustDo("disable-tcp"))
       TN=new TCPNameserver; 
   }
