@@ -343,6 +343,7 @@ void sendout(DNSPacket* a)
 
 //! The qthread receives questions over the internet via the Nameserver class, and hands them to the Distributor for further processing
 void *qthread(void *number)
+try
 {
   DNSPacket *P;
   DNSDistributor *distributor = DNSDistributor::Create(::arg().asNum("distributor-threads", 1)); // the big dispatcher!
@@ -455,6 +456,11 @@ void *qthread(void *number)
     }
   }
   return 0;
+}
+catch(PDNSException& pe)
+{
+  L<<Logger::Error<<"Fatal error in question thread: "<<pe.reason<<endl;
+  _exit(1);
 }
 
 static void* dummyThread(void *)
