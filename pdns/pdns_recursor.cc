@@ -207,7 +207,8 @@ struct DNSComboWriter {
   bool d_ecsParsed{false};
   bool d_tcp;
   int d_socket;
-  int d_tag{0};
+  unsigned int d_tag{0};
+  uint32_t d_qhash{0};
   string d_query;
   shared_ptr<TCPConnection> d_tcpConnection;
   vector<pair<uint16_t, string> > d_ednsOpts;
@@ -1157,7 +1158,7 @@ static void startDoResolve(void *p)
       if(sendmsg(dc->d_socket, &msgh, 0) < 0 && g_logCommonErrors) 
         L<<Logger::Warning<<"Sending UDP reply to client "<<dc->d_remote.toStringWithPort()<<" failed with: "<<strerror(errno)<<endl;
       if(!SyncRes::s_nopacketcache && !variableAnswer && !sr.wasVariable() ) {
-        t_packetCache->insertResponsePacket(dc->d_tag, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_query,
+        t_packetCache->insertResponsePacket(dc->d_tag, dc->d_qhash, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass,
                                             string((const char*)&*packet.begin(), packet.size()),
                                             g_now.tv_sec,
                                             pw.getHeader()->rcode == RCode::ServFail ? SyncRes::s_packetcacheservfailttl :
@@ -1535,6 +1536,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   string response;
   const struct dnsheader* dh = (struct dnsheader*)question.c_str();
   unsigned int ctag=0;
+  uint32_t qhash;
   bool needECS = false;
   std::vector<std::string> policyTags;
   std::unordered_map<string,string> data;
@@ -1556,6 +1558,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     uint16_t qtype=0;
     uint16_t qclass=0;
     uint32_t age;
+    bool qnameParsed=false;
 #ifdef MALLOC_TRACE
     /*
     static uint64_t last=0;
@@ -1570,8 +1573,9 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 
     if(needECS || (t_pdl->get() && (*t_pdl)->d_gettag)) {
       try {
-        ecsParsed = true;
         ecsFound = getQNameAndSubnet(question, &qname, &qtype, &qclass, &ednssubnet);
+        qnameParsed = true;
+        ecsParsed = true;
 
         if(t_pdl->get() && (*t_pdl)->d_gettag) {
           try {
@@ -1600,7 +1604,13 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     }
 #endif /* HAVE_PROTOBUF */
 
-    cacheHit = (!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, question, g_now.tv_sec, &response, &age, &pbMessage));
+    if (qnameParsed) {
+      cacheHit = (!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, question, qname, qtype, qclass, g_now.tv_sec, &response, &age, &qhash, &pbMessage));
+    }
+    else {
+      cacheHit = (!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, question, g_now.tv_sec, &response, &age, &qhash, &pbMessage));
+    }
+
     if (cacheHit) {
 #ifdef HAVE_PROTOBUF
       if(luaconfsLocal->protobufServer && (!luaconfsLocal->protobufTaggedOnly || !pbMessage.getAppliedPolicy().empty() || !pbMessage.getPolicyTags().empty())) {
@@ -1664,6 +1674,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   DNSComboWriter* dc = new DNSComboWriter(question.c_str(), question.size(), g_now);
   dc->setSocket(fd);
   dc->d_tag=ctag;
+  dc->d_qhash=qhash;
   dc->d_query = question;
   dc->setRemote(&fromaddr);
   dc->setLocal(destaddr);

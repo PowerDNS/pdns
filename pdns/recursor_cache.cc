@@ -1,6 +1,9 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
+#include <cinttypes>
+
 #include "recursor_cache.hh"
 #include "misc.hh"
 #include <iostream>
@@ -31,9 +34,9 @@ unsigned int MemRecursorCache::bytes()
 }
 
 // returns -1 for no hits
-int MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt, vector<DNSRecord>* res, const ComboAddress& who, vector<std::shared_ptr<RRSIGRecordContent>>* signatures)
+int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt, vector<DNSRecord>* res, const ComboAddress& who, vector<std::shared_ptr<RRSIGRecordContent>>* signatures)
 {
-  unsigned int ttd=0;
+  time_t ttd=0;
   //  cerr<<"looking up "<< qname<<"|"+qt.getName()<<"\n";
 
   if(!d_cachecachevalid || d_cachedqname!= qname) {
@@ -70,7 +73,7 @@ int MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt, vec
 	    dr.d_type = i->d_qtype;
 	    dr.d_class = 1;
 	    dr.d_content = *k; 
-	    dr.d_ttl = i->d_ttd;
+	    dr.d_ttl = static_cast<uint32_t>(i->d_ttd);
 	    dr.d_place = DNSResourceRecord::ANSWER;
 	    res->push_back(dr);
 	  }
@@ -89,7 +92,7 @@ int MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt, vec
       }
 
     //    cerr<<"time left : "<<ttd - now<<", "<< (res ? res->size() : 0) <<"\n";
-    return (int)ttd-now;
+    return static_cast<int32_t>(ttd-now);
   }
   return -1;
 }
@@ -136,7 +139,7 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
     isNew = true;
   }
 
-  uint32_t maxTTD=UINT_MAX;
+  time_t maxTTD=std::numeric_limits<time_t>::max();
   CacheEntry ce=*stored; // this is a COPY
   ce.d_qtype=qt.getCode();
   ce.d_signatures=signatures;
@@ -173,7 +176,9 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
 
   for(auto i=content.cbegin(); i != content.cend(); ++i) {
 
-    ce.d_ttd=min(maxTTD, i->d_ttl);   // XXX this does weird things if TTLs differ in the set
+    /* Yes, we have altered the d_ttl value by adding time(nullptr) to it
+       prior to calling this function, so the TTL actually holds a TTD. */
+    ce.d_ttd=min(maxTTD, static_cast<time_t>(i->d_ttl));   // XXX this does weird things if TTLs differ in the set
     //    cerr<<"To store: "<<i->d_content->getZoneRepresentation()<<" with ttl/ttd "<<i->d_ttl<<", capped at: "<<maxTTD<<endl;
     ce.d_records.push_back(i->d_content);
     // there was code here that did things with TTL and auth. Unsure if it was good. XXX
@@ -216,27 +221,22 @@ int MemRecursorCache::doWipeCache(const DNSName& name, bool sub, uint16_t qtype)
   return count;
 }
 
-bool MemRecursorCache::doAgeCache(time_t now, const DNSName& name, uint16_t qtype, int32_t newTTL)
+bool MemRecursorCache::doAgeCache(time_t now, const DNSName& name, uint16_t qtype, uint32_t newTTL)
 {
   cache_t::iterator iter = d_cache.find(tie(name, qtype));
-  uint32_t maxTTD=std::numeric_limits<uint32_t>::min();
   if(iter == d_cache.end()) {
     return false;
   }
 
   CacheEntry ce = *iter;
-
-
-  maxTTD=ce.d_ttd;
-  int32_t maxTTL = maxTTD - now;
-
-  if(maxTTL < 0)
+  if(ce.d_ttd < now)
     return false;  // would be dead anyhow
 
+  uint32_t maxTTL = static_cast<uint32_t>(ce.d_ttd - now);
   if(maxTTL > newTTL) {
     d_cachecachevalid=false;
 
-    uint32_t newTTD = now + newTTL;
+    time_t newTTD = now + newTTL;
 
 
     if(ce.d_ttd > newTTD) // do never renew expired or older TTLs
@@ -287,7 +287,7 @@ uint64_t MemRecursorCache::doDump(int fd)
     for(auto j=i->d_records.cbegin(); j != i->d_records.cend(); ++j) {
       count++;
       try {
-        fprintf(fp, "%s %d IN %s %s ; %s\n", i->d_qname.toString().c_str(), (int32_t)(i->d_ttd - now), DNSRecordContent::NumberToType(i->d_qtype).c_str(), (*j)->getZoneRepresentation().c_str(), i->d_netmask.empty() ? "" : i->d_netmask.toString().c_str());
+        fprintf(fp, "%s %" PRId64 " IN %s %s ; %s\n", i->d_qname.toString().c_str(), static_cast<int64_t>(i->d_ttd - now), DNSRecordContent::NumberToType(i->d_qtype).c_str(), (*j)->getZoneRepresentation().c_str(), i->d_netmask.empty() ? "" : i->d_netmask.toString().c_str());
       }
       catch(...) {
         fprintf(fp, "; error printing '%s'\n", i->d_qname.empty() ? "EMPTY" : i->d_qname.toString().c_str());

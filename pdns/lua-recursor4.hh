@@ -65,7 +65,7 @@ public:
     std::unordered_map<std::string,bool>* discardedPolicies{nullptr};
     bool& variable;
     bool& wantsRPZ;
-    int tag{0};
+    unsigned int tag{0};
 
 #ifdef HAVE_LUA
     void addAnswer(uint16_t type, const std::string& content, boost::optional<int> ttl, boost::optional<string> name);
@@ -96,7 +96,7 @@ public:
 #endif
   };
 
-  int gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, std::unordered_map<string,string>& data);
+  unsigned int gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, std::unordered_map<string,string>& data);
 
   bool prerpz(DNSQuestion& dq, int& ret);
   bool preresolve(DNSQuestion& dq, int& ret);
@@ -116,7 +116,8 @@ public:
             d_postresolve);
   }
 
-  typedef std::function<std::tuple<int,boost::optional<std::unordered_map<int,string> >,boost::optional<std::unordered_map<string,string> > >(ComboAddress, Netmask, ComboAddress, DNSName, uint16_t)> gettag_t;
+  typedef std::function<std::tuple<unsigned int,boost::optional<std::unordered_map<int,string> >,boost::optional<std::unordered_map<string,string> > >(ComboAddress, Netmask, ComboAddress, DNSName, 
+uint16_t)> gettag_t;
   gettag_t d_gettag; // public so you can query if we have this hooked
 
 private:
