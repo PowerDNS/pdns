@@ -40,7 +40,8 @@ extern PacketCache PC; //!< This is the main PacketCache, shared across all thre
 extern DNSProxy *DP;
 extern DynListener *dl;
 extern CommunicatorClass Communicator;
-extern UDPNameserver *N;
+extern std::shared_ptr<UDPNameserver> N;
+extern vector<std::shared_ptr<UDPNameserver> > g_udpReceivers;
 extern int avg_latency;
 extern TCPNameserver *TN;
 extern AuthLua *LPE;
