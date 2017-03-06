@@ -178,11 +178,11 @@ If you have multiple IP addresses on the internet on one machine, UNIX often sen
 # Using ALIAS records
 The ALIAS record provides a way to have CNAME-like behaviour on the zone apex.
 
-In order to correctly serve ALIAS records, set the [`recursor`](settings.md#recursor)
+In order to correctly serve ALIAS records, set the [`resolver`](settings.md#resolver)
 setting to an existing resolver: 
 
 ```
-recursor=[::1]:5300
+resolver=[::1]:5300
 ```
 
 and add the ALIAS record to your zone apex. e.g.:

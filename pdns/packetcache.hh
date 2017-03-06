@@ -55,16 +55,16 @@ public:
   ~PacketCache();
   enum CacheEntryType { PACKETCACHE, QUERYCACHE};
 
-  void insert(DNSPacket *q, DNSPacket *r, bool recursive, unsigned int maxttl=UINT_MAX);  //!< We copy the contents of *p into our cache. Do not needlessly call this to insert questions already in the cache as it wastes resources
+  void insert(DNSPacket *q, DNSPacket *r, unsigned int maxttl=UINT_MAX);  //!< We copy the contents of *p into our cache. Do not needlessly call this to insert questions already in the cache as it wastes resources
 
-  void insert(const DNSName &qname, const QType& qtype, CacheEntryType cet, const string& value, unsigned int ttl, int zoneID=-1, bool meritsRecursion=false,
+  void insert(const DNSName &qname, const QType& qtype, CacheEntryType cet, const string& value, unsigned int ttl, int zoneID=-1,
     unsigned int maxReplyLen=512, bool dnssecOk=false, bool EDNS=false);
 
   void insert(const DNSName &qname, const QType& qtype, CacheEntryType cet, const vector<DNSZoneRecord>& content, unsigned int ttl, int zoneID=-1);
 
-  int get(DNSPacket *p, DNSPacket *q, bool recursive); //!< We return a dynamically allocated copy out of our cache. You need to delete it. You also need to spoof in the right ID with the DNSPacket.spoofID() method.
+  int get(DNSPacket *p, DNSPacket *q); //!< We return a dynamically allocated copy out of our cache. You need to delete it. You also need to spoof in the right ID with the DNSPacket.spoofID() method.
   bool getEntry(const DNSName &qname, const QType& qtype, CacheEntryType cet, string& entry, int zoneID=-1,
-    bool meritsRecursion=false, unsigned int maxReplyLen=512, bool dnssecOk=false, bool hasEDNS=false, unsigned int *age=0);
+    unsigned int maxReplyLen=512, bool dnssecOk=false, bool hasEDNS=false);
   bool getEntry(const DNSName &qname, const QType& qtype, CacheEntryType cet, vector<DNSZoneRecord>& entry, int zoneID=-1);
   
 
@@ -78,13 +78,13 @@ public:
   map<char,int> getCounts();
 private:
   bool getEntryLocked(const DNSName &content, const QType& qtype, CacheEntryType cet, string& entry, int zoneID=-1,
-    bool meritsRecursion=false, unsigned int maxReplyLen=512, bool dnssecOk=false, bool hasEDNS=false, unsigned int *age=0);
+    unsigned int maxReplyLen=512, bool dnssecOk=false, bool hasEDNS=false);
   bool getEntryLocked(const DNSName &content, const QType& qtype, CacheEntryType cet, vector<DNSZoneRecord>& entry, int zoneID=-1);
 
 
   struct CacheEntry
   {
-    CacheEntry() { qtype = ctype = 0; zoneID = -1; meritsRecursion=false; dnssecOk=false; hasEDNS=false; created=0; ttd=0; maxReplyLen=512;}
+    CacheEntry() { qtype = ctype = 0; zoneID = -1; dnssecOk=false; hasEDNS=false; created=0; ttd=0; maxReplyLen=512;}
 
     DNSName qname;
     string value;
@@ -97,7 +97,6 @@ private:
     int zoneID;
     unsigned int maxReplyLen;
 
-    bool meritsRecursion;
     bool dnssecOk;
     bool hasEDNS;
   };
@@ -116,12 +115,11 @@ private:
                         member<CacheEntry,uint16_t,&CacheEntry::qtype>,
                         member<CacheEntry,uint16_t, &CacheEntry::ctype>,
                         member<CacheEntry,int, &CacheEntry::zoneID>,
-                        member<CacheEntry,bool, &CacheEntry::meritsRecursion>,
                         member<CacheEntry,unsigned int, &CacheEntry::maxReplyLen>,
                         member<CacheEntry,bool, &CacheEntry::dnssecOk>,
                         member<CacheEntry,bool, &CacheEntry::hasEDNS>
                         >,
-		       composite_key_compare<CanonDNSNameCompare, std::less<uint16_t>, std::less<uint16_t>, std::less<int>, std::less<bool>, 
+		       composite_key_compare<CanonDNSNameCompare, std::less<uint16_t>, std::less<uint16_t>, std::less<int>,
                           std::less<unsigned int>, std::less<bool>, std::less<bool> >
                        >,
       hashed_non_unique<tag<UnorderedNameTag>, composite_key<CacheEntry,
@@ -156,8 +154,6 @@ private:
   AtomicCounter *d_statnumentries;
 
   int d_ttl;
-  int d_recursivettl;
-  bool d_doRecursion;
 
   static const unsigned int s_mincleaninterval=1000, s_maxcleaninterval=300000;
 };

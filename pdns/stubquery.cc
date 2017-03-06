@@ -43,7 +43,7 @@ try
     exit(EXIT_FAILURE);
   }
 
-  ::arg().set("recursor","If recursion is desired, IP address of a recursing nameserver")="no"; 
+  ::arg().set("resolver","Use this resolver for ALIAS and the internal stub resolver")="no"; 
 
   reportAllTypes();
   dns_random_init("0123456789abcdef");

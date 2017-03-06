@@ -217,49 +217,6 @@ catch(NetworkError& ae) {
   throw NetworkError("Error reading DNS data from TCP client "+remote.toString()+": "+ae.what());
 }
 
-static void proxyQuestion(shared_ptr<DNSPacket> packet, unsigned int idleTimeout)
-{
-  int sock=socket(AF_INET, SOCK_STREAM, 0);
-  
-  setCloseOnExec(sock);
-  if(sock < 0)
-    throw NetworkError("Error making TCP connection socket to recursor: "+stringerror());
-
-  setNonBlocking(sock);
-  ServiceTuple st;
-  st.port=53;
-  parseService(::arg()["recursor"],st);
-
-  try {
-    ComboAddress recursor(st.host, st.port);
-    connectWithTimeout(sock, (struct sockaddr*)&recursor, recursor.getSocklen());
-    const string &buffer=packet->getString();
-    
-    uint16_t len=htons(buffer.length()), slen;
-    
-    writenWithTimeout(sock, &len, 2, idleTimeout);
-    writenWithTimeout(sock, buffer.c_str(), buffer.length(), idleTimeout);
-    
-    readnWithTimeout(sock, &len, 2, idleTimeout);
-    len=ntohs(len);
-
-    char answer[len];
-    readnWithTimeout(sock, answer, len, idleTimeout);
-
-    slen=htons(len);
-    writenWithTimeout(packet->getSocket(), &slen, 2, idleTimeout);
-    
-    writenWithTimeout(packet->getSocket(), answer, len, idleTimeout);
-  }
-  catch(NetworkError& ae) {
-    close(sock);
-    throw NetworkError("While proxying a question to recursor "+st.host+": " +ae.what());
-  }
-  close(sock);
-  return;
-}
-
-
 static void incTCPAnswerCount(const ComboAddress& remote)
 {
   S.inc("tcp-answers");
@@ -399,7 +356,7 @@ void *TCPNameserver::doConnection(void *data)
       }
 
 
-      if(!packet->d.rd && packet->couldBeCached() && PC.get(packet.get(), cached.get(), false)) { // short circuit - does the PacketCache recognize this question?
+      if(packet->couldBeCached() && PC.get(packet.get(), cached.get())) { // short circuit - does the PacketCache recognize this question?
         if(logDNSQueries)
           L<<"packetcache HIT"<<endl;
         cached->setRemote(&packet->d_remote);
@@ -420,16 +377,10 @@ void *TCPNameserver::doConnection(void *data)
           L<<Logger::Error<<"TCP server is without backend connections, launching"<<endl;
           s_P=new PacketHandler;
         }
-        bool shouldRecurse;
 
-        reply=shared_ptr<DNSPacket>(s_P->questionOrRecurse(packet.get(), &shouldRecurse)); // we really need to ask the backend :-)
+        reply=shared_ptr<DNSPacket>(s_P->doQuestion(packet.get())); // we really need to ask the backend :-)
 
         if(LPE) LPE->police(&(*packet), &(*reply), true);
-
-        if(shouldRecurse) {
-          proxyQuestion(packet, d_idleTimeout);
-          continue;
-        }
       }
 
       if(!reply)  // unable to write an answer?

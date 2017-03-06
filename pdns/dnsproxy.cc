@@ -79,23 +79,9 @@ void DNSProxy::go()
   pthread_create(&tid,0,&launchhelper,this);
 }
 
-
-void DNSProxy::onlyFrom(const string &ips)
-{
-  d_ng.toMasks(ips);
-}
-
-bool DNSProxy::recurseFor(DNSPacket* p)
-{
-  return d_ng.match((ComboAddress *)&p->d_remote);
-}
-
 /** returns false if p->remote is not allowed to recurse via us */
 bool DNSProxy::sendPacket(DNSPacket *p)
 {
-  if(!recurseFor(p))
-    return false;
-
   uint16_t id;
   {
     Lock l(&d_lock);
