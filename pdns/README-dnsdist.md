@@ -1495,6 +1495,9 @@ instantiate a server with additional parameters
     * `showServerPolicy()`: show name of currently operational server selection policy
     * `newServerPolicy(name, function)`: create a policy object from a Lua function
     * `setServFailWhenNoServer(bool)`: if set, return a ServFail when no servers are available, instead of the default behaviour of dropping the query
+    * `setPoolServerPolicy(policy, pool)`: set the server selection policy for this pool to that policy
+    * `setPoolServerPolicyLua(name, function, poool)`: set the server selection policy for this pool to one named 'name' and provided by 'function'
+    * `showPoolServerPolicy()`: show server selection policy for this pool
  * Available policies:
     * `firstAvailable`: Pick first server that has not exceeded its QPS limit, ordered by the server 'order' parameter
     * `whashed`: Weighted hashed ('sticky') distribution over available servers, based on the server 'weight' parameter

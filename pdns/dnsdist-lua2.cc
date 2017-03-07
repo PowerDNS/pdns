@@ -643,15 +643,19 @@ void moreLua(bool client)
       setLuaNoSideEffect();
       try {
         ostringstream ret;
-        boost::format fmt("%1$-20.20s %|25t|%2$20s %|50t|%3%" );
-        //             1        3         4
-        ret << (fmt % "Name" % "Cache" % "Servers" ) << endl;
+        boost::format fmt("%1$-20.20s %|25t|%2$20s %|25t|%3$20s %|50t|%4%" );
+        //             1        2         3                4
+        ret << (fmt % "Name" % "Cache" % "ServerPolicy" % "Servers" ) << endl;
 
         const auto localPools = g_pools.getCopy();
         for (const auto& entry : localPools) {
           const string& name = entry.first;
           const std::shared_ptr<ServerPool> pool = entry.second;
           string cache = pool->packetCache != nullptr ? pool->packetCache->toString() : "";
+          string policy = g_policy.getLocal()->name;
+          if (pool->policy != nullptr) {
+            policy = pool->policy->name;
+          }
           string servers;
 
           for (const auto& server: pool->servers) {
@@ -665,7 +669,7 @@ void moreLua(bool client)
             servers += server.second->remote.toStringWithPort();
           }
 
-          ret << (fmt % name % cache % servers) << endl;
+          ret << (fmt % name % cache % policy % servers) << endl;
         }
         g_outputBuffer=ret.str();
       }catch(std::exception& e) { g_outputBuffer=e.what(); throw; }
@@ -1290,5 +1294,30 @@ void moreLua(bool client)
           g_snmpAgent->sendCustomTrap(str);
         }
 #endif /* HAVE_NET_SNMP */
+      });
+
+    g_lua.writeFunction("setPoolServerPolicy", [](ServerPolicy policy, string pool) {
+        setLuaSideEffect();
+        auto localPools = g_pools.getCopy();
+        setPoolPolicy(localPools, pool, std::make_shared<ServerPolicy>(policy));
+        g_pools.setState(localPools);
+      });
+
+    g_lua.writeFunction("setPoolServerPolicyLua", [](string name, policyfunc_t policy, string pool) {
+        setLuaSideEffect();
+        auto localPools = g_pools.getCopy();
+        setPoolPolicy(localPools, pool, std::make_shared<ServerPolicy>(ServerPolicy{name, policy}));
+        g_pools.setState(localPools);
+      });
+
+    g_lua.writeFunction("showPoolServerPolicy", [](string pool) {
+        setLuaSideEffect();
+        auto localPools = g_pools.getCopy();
+        auto poolObj = getPool(localPools, pool);
+        if (poolObj->policy == nullptr) {
+          g_outputBuffer=g_policy.getLocal()->name+"\n";
+        } else {
+          g_outputBuffer=poolObj->policy->name+"\n";
+        }
       });
 }
