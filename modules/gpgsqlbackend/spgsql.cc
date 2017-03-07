@@ -45,7 +45,6 @@ public:
     d_res_set = NULL;
     paramValues = NULL;
     paramLengths = NULL;
-    d_do_commit = false;
     d_nstatement = nstatement;
     d_paridx = 0;
     d_residx = 0;
@@ -81,11 +80,6 @@ public:
     if (d_dolog) {
       L<<Logger::Warning<<"Query: "<<d_query<<endl;
     }
-    if (!d_parent->in_trx()) {
-      auto res=PQexec(d_db(),"BEGIN");
-      PQclear(res);
-      d_do_commit = true;
-    } else d_do_commit = false;
     d_res_set = PQexecPrepared(d_db(), d_stmt.c_str(), d_nparams, paramValues, paramLengths, NULL, 0);
     ExecStatusType status = PQresultStatus(d_res_set);
     string errmsg(PQresultErrorMessage(d_res_set));
@@ -175,11 +169,6 @@ public:
 
   SSqlStatement* reset() {
      int i;
-     if (!d_parent->in_trx() && d_do_commit) {
-       PGresult *res = PQexec(d_db(),"COMMIT");
-       PQclear(res);
-     }
-     d_do_commit = false;
      if (d_res)
        PQclear(d_res);
      if (d_res_set)
@@ -235,7 +224,6 @@ private:
     paramLengths=NULL;
     d_res=NULL;
     d_res_set=NULL;
-    d_do_commit=false;
     d_prepared = true;
   }
 
@@ -262,7 +250,6 @@ private:
   int d_resnum;
   int d_fnum;
   int d_cur_set;
-  bool d_do_commit;
   unsigned int d_nstatement;
 };
 
