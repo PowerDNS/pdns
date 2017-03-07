@@ -2,6 +2,18 @@ Before proceeding, it is advised to check the release notes for your PowerDNS ve
 
 Please upgrade to the PowerDNS Authoritative Server 4.0.0 from 3.4.2+. See the [3.X](https://doc.powerdns.com/3/authoritative/upgrading/) upgrade notes if your version is older than 3.4.2.
 
+# 4.0.X to 4.1.0
+
+## Changed options
+
+### Changed defaults
+
+## Other changes
+
+The `--with-pgsql`, `--with-pgsql-libs`, `--with-pgsql-includes` and `--with-pgsql-config` `configure` options have been deprecated.
+`configure` now attempts to find the Postgresql client libraries via `pkg-config`, falling back to detecting `pg_config`.
+Use `--with-pg-config` to specify a path to a non-default `pg_config` if you have Postgresql installed in a non-default location.
+
 # 4.0.X to 4.0.2
 
 ## Changed options
