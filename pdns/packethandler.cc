@@ -59,6 +59,7 @@ PacketHandler::PacketHandler():B(s_programname), d_dk(&B)
 {
   ++s_count;
   d_doDNAME=::arg().mustDo("dname-processing");
+  d_doExpandALIAS = ::arg().mustDo("expand-alias");
   d_logDNSDetails= ::arg().mustDo("log-dns-details");
   d_doIPv6AdditionalProcessing = ::arg().mustDo("do-ipv6-additional-processing");
   string fname= ::arg()["lua-prequery-script"];
@@ -1355,6 +1356,10 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
         weRedirected=1;
 
       if(DP && rr.dr.d_type == QType::ALIAS && (p->qtype.getCode() == QType::A || p->qtype.getCode() == QType::AAAA || p->qtype.getCode() == QType::ANY)) {
+        if (!d_doExpandALIAS) {
+          L<<Logger::Info<<"ALIAS record found for "<<target<<", but ALIAS expansion is disabled."<<endl;
+          continue;
+        }
         haveAlias=getRR<ALIASRecordContent>(rr.dr)->d_content;
       }
 
