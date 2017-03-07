@@ -1536,7 +1536,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   string response;
   const struct dnsheader* dh = (struct dnsheader*)question.c_str();
   unsigned int ctag=0;
-  uint32_t qhash;
+  uint32_t qhash = 0;
   bool needECS = false;
   std::vector<std::string> policyTags;
   std::unordered_map<string,string> data;
