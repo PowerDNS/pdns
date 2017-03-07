@@ -2166,9 +2166,12 @@ static void handlePipeRequest(int fd, FDMultiplexer::funcparam_t& var)
     if(g_logCommonErrors)
       L<<Logger::Error<<"PIPE function we executed created PDNS exception: "<<e.reason<<endl; // but what if they wanted an answer.. we send 0
   }
-  if(tmsg->wantAnswer)
-    if(write(g_pipes[t_id].writeFromThread, &resp, sizeof(resp)) != sizeof(resp))
+  if(tmsg->wantAnswer) {
+    if(write(g_pipes[t_id].writeFromThread, &resp, sizeof(resp)) != sizeof(resp)) {
+      delete tmsg;
       unixDie("write to thread pipe returned wrong size or error");
+    }
+  }
 
   delete tmsg;
 }
