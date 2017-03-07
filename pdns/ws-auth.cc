@@ -240,9 +240,9 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
     "<br>"<<endl;
 
   ret<<"Queries/second, 1, 5, 10 minute averages:  "<<std::setprecision(3)<<
-    d_queries.get1()<<", "<<
-    d_queries.get5()<<", "<<
-    d_queries.get10()<<". Max queries/second: "<<d_queries.getMax()<<
+    (int)d_queries.get1()<<", "<<
+    (int)d_queries.get5()<<", "<<
+    (int)d_queries.get10()<<". Max queries/second: "<<(int)d_queries.getMax()<<
     "<br>"<<endl;
 
   if(d_cachemisses.get10()+d_cachehits.get10()>0)
@@ -260,9 +260,9 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
       "<br>"<<endl;
 
   ret<<"Backend query load, 1, 5, 10 minute averages: "<<std::setprecision(3)<<
-    d_qcachemisses.get1()<<", "<<
-    d_qcachemisses.get5()<<", "<<
-    d_qcachemisses.get10()<<". Max queries/second: "<<d_qcachemisses.getMax()<<
+    (int)d_qcachemisses.get1()<<", "<<
+    (int)d_qcachemisses.get5()<<", "<<
+    (int)d_qcachemisses.get10()<<". Max queries/second: "<<(int)d_qcachemisses.getMax()<<
     "<br>"<<endl;
 
   ret<<"Total queries: "<<S.read("udp-queries")<<". Question/answer latency: "<<S.read("latency")/1000.0<<"ms</p><br>"<<endl;
