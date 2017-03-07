@@ -56,7 +56,7 @@ try
     if(len < 0)
       unixDie("recvfrom");
     string query(buffer, len);
-    cout<<"Had packet: "<<query<<endl;
+    cout<<"Had packet: "<<query<<" with length "<<len<<endl;
     vector<string> parts;
     stringtok(parts, query);
     string response;
