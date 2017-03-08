@@ -9,7 +9,10 @@
 
 #ifdef HAVE_NET_SNMP
 #include <net-snmp/net-snmp-config.h>
-#include <net-snmp/net-snmp-includes.h>
+#include <net-snmp/definitions.h>
+#include <net-snmp/types.h>
+#include <net-snmp/utilities.h>
+#include <net-snmp/config_api.h>
 #include <net-snmp/agent/net-snmp-agent-includes.h>
 #undef INET6 /* SRSLY? */
 #endif /* HAVE_NET_SNMP */
