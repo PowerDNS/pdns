@@ -408,6 +408,15 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
   return ret;
 }
 
+/*! This function will check the cache and go out to the internet if the answer is not in cache
+ *
+ * \param qname The name we need an answer for
+ * \param qtype
+ * \param ret The vector of DNSRecords we need to fill with the answers
+ * \param depth The recursion depth we are in
+ * \param beenthere
+ * \return DNS RCODE or -1 (Error) or -2 (RPZ hit)
+ */
 int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere)
 {
   string prefix;
@@ -422,6 +431,8 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
     throw ImmediateServFailException("More than "+std::to_string(s_maxdepth)+" (max-recursion-depth) levels of recursion needed while resolving "+qname.toLogString());
 
   int res=0;
+
+  // This is a difficult way of expressing "this is a normal query", i.e. not getRootNS.
   if(!(d_nocache && qtype.getCode()==QType::NS && qname.isRoot())) {
     if(d_cacheonly) { // very limited OOB support
       LWResult lwr;
@@ -1179,7 +1190,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         ne.d_qtype=QType(0); // this encodes 'whole record'
         ne.d_dnssecProof = harvestRecords(lwr.d_records, {QType::NSEC, QType::NSEC3});
         replacing_insert(t_sstorage->negcache, ne);
-        if(s_rootNXTrust && auth.isRoot()) {
+        if(s_rootNXTrust && auth.isRoot()) { // We should check if it was forwarded here, see issue #5107
           ne.d_name = getLastLabel(ne.d_name);
           replacing_insert(t_sstorage->negcache, ne);
         }

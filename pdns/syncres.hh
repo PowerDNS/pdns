@@ -543,7 +543,14 @@ private:
   ostringstream d_trace;
   shared_ptr<RecursorLua4> d_pdl;
   string d_prefix;
+
+  /* When d_cacheonly is set to true, we will only check the cache.
+   * This is set when the RD bit is unset in the incoming query
+   */
   bool d_cacheonly;
+  /* d_nocache is *only* set in getRootNS() (in pdns_recursor.cc).
+   * It forces us to not look in the cache or local auth.
+   */
   bool d_nocache;
   bool d_doEDNS0;
 

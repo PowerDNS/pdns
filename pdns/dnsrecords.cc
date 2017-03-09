@@ -500,6 +500,9 @@ uint16_t DNSKEYRecordContent::getTag()
 }
 
 
+/*
+ * Fills `eo` by parsing the EDNS(0) OPT RR (RFC 6891)
+ */
 bool getEDNSOpts(const MOADNSParser& mdp, EDNSOpts* eo)
 {
   eo->d_Z=0;

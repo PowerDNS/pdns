@@ -361,7 +361,7 @@ public:
 
   typedef vector<pair<DNSRecord, uint16_t > > answers_t;
   
-  //! All answers contained in this packet
+  //! All answers contained in this packet (everything *but* the question section)
   answers_t d_answers;
 
   shared_ptr<PacketReader> getPacketReader(uint16_t offset)
