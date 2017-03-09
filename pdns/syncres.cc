@@ -740,7 +740,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
 	  ret.push_back(sigdr);
 	}
 
-        if(!(qtype==QType(QType::CNAME))) { // perhaps they really wanted a CNAME!
+        if(qtype != QType::CNAME) { // perhaps they really wanted a CNAME!
           set<GetBestNSAnswer>beenthere;
           res=doResolve(std::dynamic_pointer_cast<CNAMERecordContent>(j->d_content)->getTarget(), qtype, ret, depth+1, beenthere);
         }
