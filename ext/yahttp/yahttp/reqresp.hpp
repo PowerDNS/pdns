@@ -65,8 +65,8 @@ namespace YaHTTP {
     /* Simple sendfile renderer which streams file to ostream */
     class SendFileRender {
     public:
-      SendFileRender(const std::string& path) {
-        this->path = path;
+      SendFileRender(const std::string& path_) {
+        this->path = path_;
       };
   
       size_t operator()(const HTTPBase *doc __attribute__((unused)), std::ostream& os, bool chunked) const {
@@ -174,8 +174,8 @@ public:
     strstr_map_t& POST() { return postvars; }; //<! accessor for postvars
     strcookie_map_t& COOKIES() { return jar.cookies; }; //<! accessor for cookies
 
-    std::string versionStr(int version) const {
-      switch(version) {
+    std::string versionStr(int version_) const {
+      switch(version_) {
       case  9: return "0.9";
       case 10: return "1.0";
       case 11: return "1.1";
@@ -244,10 +244,10 @@ public:
       this->jar = rhs.jar;
       this->version = rhs.version;
     }
-    void setup(const std::string& method, const std::string& url) {
-      this->url.parse(url);
+    void setup(const std::string& method_, const std::string& url_) {
+      this->url.parse(url_);
       this->headers["host"] = this->url.host;
-      this->method = method;
+      this->method = method_;
       std::transform(this->method.begin(), this->method.end(), this->method.begin(), ::toupper);
       this->headers["user-agent"] = "YaHTTP v1.0";
     }; //<! Set some initial things for a request
@@ -301,10 +301,10 @@ public:
 
     void keyValuePair(const std::string &keyvalue, std::string &key, std::string &value); //<! key value pair parser helper
 
-    void initialize(T* target) {
+    void initialize(T* target_) {
       chunked = false; chunk_size = 0;
       bodybuf.str(""); minbody = 0; maxbody = 0;
-      pos = 0; state = 0; this->target = target; 
+      pos = 0; state = 0; this->target = target_;
       hasBody = false;
       buffer = "";
       this->target->initialize();
@@ -322,8 +322,8 @@ public:
     void finalize() {
       bodybuf.flush();
       if (ready()) {
-        strstr_map_t::iterator pos = target->headers.find("content-type");
-        if (pos != target->headers.end() && Utility::iequals(pos->second, "application/x-www-form-urlencoded", 32)) {
+        strstr_map_t::iterator cpos = target->headers.find("content-type");
+        if (cpos != target->headers.end() && Utility::iequals(cpos->second, "application/x-www-form-urlencoded", 32)) {
           target->postvars = Utility::parseUrlParameters(bodybuf.str());
         }
         target->body = bodybuf.str();

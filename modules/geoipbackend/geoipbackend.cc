@@ -178,7 +178,6 @@ void GeoIPBackend::initialize() {
           rr.weight = 100;
         } 
         rr.auth = 1;
-        rr.d_place = DNSResourceRecord::ANSWER;
         rrs.push_back(rr);
       }
       std::swap(dom.records[qname], rrs);
@@ -232,7 +231,6 @@ void GeoIPBackend::initialize() {
           rr.auth = 1;
           rr.weight = 100;
           rr.has_weight = false;
-          rr.d_place = DNSResourceRecord::ANSWER;
           rrs.push_back(rr);
           std::swap(dom.records[name], rrs);
         }
@@ -255,7 +253,6 @@ void GeoIPBackend::initialize() {
           rr.auth = 1;
           rr.weight = 100;
           rr.has_weight = false;
-          rr.d_place = DNSResourceRecord::ANSWER;
           rrs.push_back(rr);
           std::swap(dom.records[name], rrs);
         }
@@ -293,11 +290,15 @@ void GeoIPBackend::initialize() {
 }
 
 GeoIPBackend::~GeoIPBackend() {
-  WriteLock wl(&s_state_lock);
-  s_rc--;
-  if (s_rc == 0) { // last instance gets to cleanup
-    s_geoip_files.clear();
-    s_domains.clear();
+  try {
+    WriteLock wl(&s_state_lock);
+    s_rc--;
+    if (s_rc == 0) { // last instance gets to cleanup
+      s_geoip_files.clear();
+      s_domains.clear();
+    }
+  }
+  catch(...) {
   }
 }
 
@@ -959,7 +960,7 @@ bool GeoIPBackend::deactivateDomainKey(const DNSName& name, unsigned int id) {
               ostringstream newpath;
               newpath << getArg("dnssec-keydir") << "/" << dom.domain.toStringNoDot() << "." << pdns_stou(glob_result.gl_pathv[i]+regm[2].rm_so) << "." << kid << ".0.key";
               if (rename(glob_result.gl_pathv[i], newpath.str().c_str())) {
-                cerr << "Cannot deactive key: " << strerror(errno) << endl;
+                cerr << "Cannot deactivate key: " << strerror(errno) << endl;
               }
             }
           }

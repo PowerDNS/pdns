@@ -710,7 +710,8 @@ int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret)
   if(addr.empty())
     return -1;
   string ourAddr(addr);
-  int port = -1;
+  bool portSet = false;
+  unsigned int port;
   if(addr[0]=='[') { // [::]:53 style address
     string::size_type pos = addr.find(']');
     if(pos == string::npos || pos + 2 > addr.size() || addr[pos+1]!=':')
@@ -718,6 +719,7 @@ int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret)
     ourAddr.assign(addr.c_str() + 1, pos-1);
     try {
       port = pdns_stou(addr.substr(pos+2));
+      portSet = true;
     }
     catch(std::out_of_range) {
       return -1;
@@ -744,12 +746,12 @@ int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret)
     freeaddrinfo(res);
   }
 
-  if(port > 65535)
-    // negative ports are found with the pdns_stou above
-    return -1;
+  if(portSet) {
+    if(port > 65535)
+      return -1;
 
-  if(port >= 0)
     ret->sin6_port = htons(port);
+  }
 
   return 0;
 }
@@ -1301,7 +1303,7 @@ gid_t strToGID(const string &str)
 
 unsigned int pdns_stou(const std::string& str, size_t * idx, int base)
 {
-  if (str.empty()) return 0; // compability
+  if (str.empty()) return 0; // compatibility
   unsigned long result = std::stoul(str, idx, base);
   if (result > std::numeric_limits<unsigned int>::max()) {
     throw std::out_of_range("stou");

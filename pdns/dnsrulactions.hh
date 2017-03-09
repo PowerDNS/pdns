@@ -1102,6 +1102,28 @@ private:
   boost::optional<std::function<void(const DNSQuestion&, DNSDistProtoBufMessage*)> > d_alterFunc;
 };
 
+class SNMPTrapAction : public DNSAction
+{
+public:
+  SNMPTrapAction(const std::string& reason): d_reason(reason)
+  {
+  }
+  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  {
+    if (g_snmpAgent && g_snmpTrapsEnabled) {
+      g_snmpAgent->sendDNSTrap(*dq, d_reason);
+    }
+
+    return Action::None;
+  }
+  string toString() const override
+  {
+    return "send SNMP trap";
+  }
+private:
+  std::string d_reason;
+};
+
 class RemoteLogResponseAction : public DNSResponseAction, public boost::noncopyable
 {
 public:
@@ -1176,4 +1198,26 @@ public:
   }
 private:
   int d_msec;
+};
+
+class SNMPTrapResponseAction : public DNSResponseAction
+{
+public:
+  SNMPTrapResponseAction(const std::string& reason): d_reason(reason)
+  {
+  }
+  DNSResponseAction::Action operator()(DNSResponse* dr, string* ruleresult) const override
+  {
+    if (g_snmpAgent && g_snmpTrapsEnabled) {
+      g_snmpAgent->sendDNSTrap(*dr, d_reason);
+    }
+
+    return Action::None;
+  }
+  string toString() const override
+  {
+    return "send SNMP trap";
+  }
+private:
+  std::string d_reason;
 };

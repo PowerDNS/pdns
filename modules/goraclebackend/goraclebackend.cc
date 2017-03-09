@@ -28,7 +28,6 @@
 #include "pdns/dns.hh"
 #include "pdns/dnsbackend.hh"
 #include "pdns/dnspacket.hh"
-#include "pdns/ueberbackend.hh"
 #include "pdns/pdnsexception.hh"
 #include "pdns/logger.hh"
 #include "pdns/arguments.hh"
@@ -51,12 +50,12 @@ gOracleBackend::gOracleBackend(const string &mode, const string &suffix)  : GSQL
     int err = OCIEnvCreate(&d_environmentHandle, OCI_THREADED, NULL, NULL, NULL, NULL, 0, NULL); 
 
     if (err) {
-      throw PDNSException("OCIEnvCraete failed");
+      throw PDNSException("OCIEnvCreate failed");
     }
   }
 
   try {
-    // set Oracle envionment variables
+    // set Oracle environment variables
     setDB(new SOracle(getArg("tnsname"),
                       getArg("user"),
                       getArg("password"), 

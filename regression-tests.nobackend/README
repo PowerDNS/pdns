@@ -1,0 +1,4 @@
+To run these tests, you need a PowerDNS Authoritative Server with bind,
+gsqlite3 and random backends.
+
+You also will need to have 'faketime' installed.

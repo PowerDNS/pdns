@@ -25,9 +25,11 @@
 #include "dnsparser.hh"
 #include "syncres.hh"
 #include "namespaces.hh"
-#include "rec_channel.hh" 
+#include "rec_channel.hh"
+#include "ednsoptions.hh"
 #include "ednssubnet.hh"
 #include "filterpo.hh"
+#include "rec-snmp.hh"
 #include <unordered_set>
 
 #if !defined(HAVE_LUA)
@@ -71,7 +73,7 @@ bool RecursorLua4::ipfilter(const ComboAddress& remote, const ComboAddress& loca
   return false;
 }
 
-int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags)
+unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, std::unordered_map<string,string>& data)
 {
   return 0;
 }
@@ -208,7 +210,7 @@ boost::optional<Netmask>  RecursorLua4::DNSQuestion::getEDNSSubnet() const
 
   if(ednsOptions) {
     for(const auto& o : *ednsOptions) {
-      if(o.first==8) {
+      if(o.first==EDNSOptionCode::ECS) {
         EDNSSubnetOpts eso;
         if(getEDNSSubnetOptsFromString(o.second, &eso))
           return eso.source;
@@ -328,8 +330,8 @@ RecursorLua4::RecursorLua4(const std::string& fname)
           cas.insert(ComboAddress(*s));
         }
         else if(auto v = boost::get<vector<pair<unsigned int, string> > >(&in)) {
-          for(const auto& s : *v)
-            cas.insert(ComboAddress(s.second));
+          for(const auto&entry : *v)
+            cas.insert(ComboAddress(entry.second));
           }
         else {
           cas.insert(boost::get<ComboAddress>(in));
@@ -440,8 +442,8 @@ RecursorLua4::RecursorLua4(const std::string& fname)
 
       if(auto rec = std::dynamic_pointer_cast<ARecordContent>(dr.d_content))
         ret=rec->getCA(53);
-      else if(auto rec = std::dynamic_pointer_cast<AAAARecordContent>(dr.d_content))
-        ret=rec->getCA(53);
+      else if(auto aaaarec = std::dynamic_pointer_cast<AAAARecordContent>(dr.d_content))
+        ret=aaaarec->getCA(53);
       return ret;
     });
 
@@ -487,8 +489,8 @@ RecursorLua4::RecursorLua4(const std::string& fname)
           smn.add(DNSName(*s));
         }
         else if(auto v = boost::get<vector<pair<unsigned int, string> > >(&in)) {
-          for(const auto& s : *v)
-            smn.add(DNSName(s.second));
+          for(const auto& entry : *v)
+            smn.add(DNSName(entry.second));
         }
         else {
           smn.add(boost::get<DNSName>(in));
@@ -568,6 +570,11 @@ RecursorLua4::RecursorLua4(const std::string& fname)
       return getRecursorThreadId();
     });
 
+  d_lw->writeFunction("sendCustomSNMPTrap", [](const std::string& str) {
+      if (g_snmpAgent) {
+        g_snmpAgent->sendCustomTrap(str);
+      }
+    });
   
   ifstream ifs(fname);
   if(!ifs) {
@@ -615,7 +622,7 @@ bool RecursorLua4::preoutquery(const ComboAddress& ns, const ComboAddress& reque
 {
   bool variableAnswer = false;
   bool wantsRPZ = false;
-  RecursorLua4::DNSQuestion dq(requestor, ns, query, qtype.getCode(), isTcp, variableAnswer, wantsRPZ);
+  RecursorLua4::DNSQuestion dq(ns, requestor, query, qtype.getCode(), isTcp, variableAnswer, wantsRPZ);
   dq.currentRecords = &res;
 
   return genhook(d_preoutquery, dq, ret);
@@ -628,7 +635,7 @@ bool RecursorLua4::ipfilter(const ComboAddress& remote, const ComboAddress& loca
   return false; // don't block
 }
 
-int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags)
+unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, std::unordered_map<string,string>& data)
 {
   if(d_gettag) {
     auto ret = d_gettag(remote, ednssubnet, local, qname, qtype);
@@ -640,6 +647,10 @@ int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, 
           policyTags->push_back(tag.second);
         }
       }
+    }
+    const auto& dataret = std::get<2>(ret);
+    if (dataret) {
+      data = *dataret;
     }
     return std::get<0>(ret);
   }
@@ -683,12 +694,12 @@ loop:;
       }
       else if(dq.followupFunction=="udpQueryResponse") {
         dq.udpAnswer = GenUDPQueryResponse(dq.udpQueryDest, dq.udpQuery);
-        auto func = d_lw->readVariable<boost::optional<luacall_t>>(dq.udpCallback).get_value_or(0);
-        if(!func) {
+        auto cbFunc = d_lw->readVariable<boost::optional<luacall_t>>(dq.udpCallback).get_value_or(0);
+        if(!cbFunc) {
           theL()<<Logger::Error<<"Attempted callback for Lua UDP Query/Response which could not be found"<<endl;
           return false;
         }
-        bool result=func(&dq);
+        bool result=cbFunc(&dq);
         if(!result) {
           return false;
         }

@@ -31,7 +31,7 @@ AC_DEFUN([PDNS_WITH_ORACLE],[
   AC_SUBST([ORACLE_LIBS])
 
   if test x"$with_oracle_libs" = "x"; then
-     # check possible locationse
+     # check possible locations
      for p1 in /usr/lib/oracle /usr/local/lib/oracle; do
        for p2 in $p1/*/client*/lib; do
          if test -d "$p2"; then

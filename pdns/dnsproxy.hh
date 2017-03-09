@@ -54,7 +54,6 @@ public:
   DNSProxy(const string &ip); //!< creates socket
   ~DNSProxy(); //<! dtor for DNSProxy
   void go(); //!< launches the actual thread
-  void onlyFrom(const string &ips); //!< Only these netmasks are allowed to recurse via us
   bool sendPacket(DNSPacket *p);    //!< send out a packet and make a conntrack entry to we can send back the answer
   bool completePacket(DNSPacket *r, const DNSName& target,const DNSName& aname);
 
@@ -82,7 +81,6 @@ private:
   typedef map<int,ConntrackEntry> map_t;
 
   // Data
-  NetmaskGroup d_ng;
   AtomicCounter* d_resanswers;
   AtomicCounter* d_udpanswers;
   AtomicCounter* d_resquestions;

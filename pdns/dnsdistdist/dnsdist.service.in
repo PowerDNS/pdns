@@ -22,7 +22,8 @@ NoNewPrivileges=true
 ProtectSystem=full
 ProtectHome=true
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
-LimitNOFILE=4096
+LimitNOFILE=16384
+TasksMax=8192
 
 [Install]
 WantedBy=multi-user.target

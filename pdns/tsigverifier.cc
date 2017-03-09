@@ -33,6 +33,8 @@ bool TSIGTCPVerifier::check(const string& data, const MOADNSParser& mdp)
         theirMac = trc->d_mac;
         d_trc.d_time = trc->d_time;
         d_trc.d_fudge = trc->d_fudge;
+        d_trc.d_eRcode = trc->d_eRcode;
+        d_trc.d_origID = trc->d_origID;
         checkTSIG = true;
       }
     }
@@ -47,33 +49,16 @@ bool TSIGTCPVerifier::check(const string& data, const MOADNSParser& mdp)
       throw std::runtime_error("No TSIG on AXFR response from "+d_remote.toStringWithPort()+" , should be signed with TSIG key '"+d_tt.name.toString()+"'");
     }
 
-    uint64_t delta = std::abs((int64_t)d_trc.d_time - (int64_t)time(nullptr));
-    if(delta > d_trc.d_fudge) {
-      throw std::runtime_error("Invalid TSIG time delta " + std::to_string(delta) + " >  fudge " + std::to_string(d_trc.d_fudge));
-    }
-    string message;
-    if (!d_prevMac.empty()) {
-      message = makeTSIGMessageFromTSIGPacket(d_signData, d_tsigPos, d_tt.name, d_trc, d_prevMac, true, d_signData.size()-data.size());
-    } else {
-      message = makeTSIGMessageFromTSIGPacket(d_signData, d_tsigPos, d_tt.name, d_trc, d_trc.d_mac, false);
-    }
-
-    TSIGHashEnum algo;
-    if (!getTSIGHashEnum(d_trc.d_algoName, algo)) {
-      throw std::runtime_error("Unsupported TSIG HMAC algorithm " + d_trc.d_algoName.toString());
-    }
-
-    if (algo == TSIG_GSS) {
-      GssContext gssctx(d_tt.name);
-      if (!gss_verify_signature(d_tt.name, message, theirMac)) {
-        throw std::runtime_error("Signature failed to validate on AXFR response from "+d_remote.toStringWithPort()+" signed with TSIG key '"+d_tt.name.toString()+"'");
+    try {
+      if (!d_prevMac.empty()) {
+        validateTSIG(d_signData, d_tsigPos, d_tt, d_trc, d_prevMac, theirMac, true, d_signData.size()-data.size());
       }
-    } else {
-      string ourMac=calculateHMAC(d_tt.secret, message, algo);
-
-      if(!constantTimeStringEquals(ourMac, theirMac)) {
-        throw std::runtime_error("Signature failed to validate on AXFR response from "+d_remote.toStringWithPort()+" signed with TSIG key '"+d_tt.name.toString()+"'");
+      else {
+        validateTSIG(d_signData, d_tsigPos, d_tt, d_trc, d_trc.d_mac, theirMac, false);
       }
+    }
+    catch(const std::runtime_error& err) {
+      throw std::runtime_error("Error while validating TSIG signature on AXFR response from "+d_remote.toStringWithPort()+":"+err.what());
     }
 
     // Reset and store some values for the next chunks.

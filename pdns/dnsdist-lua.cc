@@ -31,6 +31,7 @@
 #include <fstream>
 #include "dnswriter.hh"
 #include "lock.hh"
+#include "dnsdist-lua.hh"
 
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
@@ -90,15 +91,13 @@ private:
   func_t d_func;
 };
 
-typedef boost::variant<string,vector<pair<int, string>>, std::shared_ptr<DNSRule> > luadnsrule_t;
 std::shared_ptr<DNSRule> makeRule(const luadnsrule_t& var)
 {
-  if(auto src = boost::get<std::shared_ptr<DNSRule>>(&var))
-    return *src;
-  
+  if (var.type() == typeid(std::shared_ptr<DNSRule>))
+    return *boost::get<std::shared_ptr<DNSRule>>(&var);
+
   SuffixMatchNode smn;
   NetmaskGroup nmg;
-
   auto add=[&](string src) {
     try {
       nmg.addMask(src); // need to try mask first, all masks are domain names!
@@ -106,13 +105,21 @@ std::shared_ptr<DNSRule> makeRule(const luadnsrule_t& var)
       smn.add(DNSName(src));
     }
   };
-  if(auto src = boost::get<string>(&var))
-    add(*src);
-  else {
-    for(auto& a : boost::get<vector<pair<int, string>>>(var)) {
+
+  if (var.type() == typeid(string))
+    add(*boost::get<string>(&var));
+
+  else if (var.type() == typeid(vector<pair<int, string>>))
+    for(const auto& a : *boost::get<vector<pair<int, string>>>(&var))
       add(a.second);
-    }
-  }
+
+  else if (var.type() == typeid(DNSName))
+    smn.add(*boost::get<DNSName>(&var));
+
+  else if (var.type() == typeid(vector<pair<int, DNSName>>))
+    for(const auto& a : *boost::get<vector<pair<int, DNSName>>>(&var))
+      smn.add(a.second);
+
   if(nmg.empty())
     return std::make_shared<SuffixMatchNodeRule>(smn);
   else
@@ -364,8 +371,8 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			}
 
 			if(vars.count("qps")) {
-			  int qps=std::stoi(boost::get<string>(vars["qps"]));
-			  ret->qps=QPSLimiter(qps, qps);
+			  int qpsVal=std::stoi(boost::get<string>(vars["qps"]));
+			  ret->qps=QPSLimiter(qpsVal, qpsVal);
 			}
 
 			auto localPools = g_pools.getCopy();
@@ -408,6 +415,10 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
 			if(vars.count("tcpRecvTimeout")) {
 			  ret->tcpRecvTimeout=std::stoi(boost::get<string>(vars["tcpRecvTimeout"]));
+			}
+
+			if(vars.count("tcpFastOpen")) {
+			  ret->tcpFastOpen=boost::get<bool>(vars["tcpFastOpen"]);
 			}
 
 			if(vars.count("name")) {
@@ -677,14 +688,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       int counter=0;
       auto states = g_dstates.getCopy();
       for(const auto& s : states) {
-	string status;
-	if(s->availability == DownstreamState::Availability::Up) 
-	  status = "UP";
-	else if(s->availability == DownstreamState::Availability::Down) 
-	  status = "DOWN";
-	else 
-	  status = (s->upStatus ? "up" : "down");
-
+	string status = s->getStatus();
 	string pools;
 	for(auto& p : s->pools) {
 	  if(!pools.empty())
@@ -1175,6 +1179,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.registerFunction<ComboAddress(ComboAddress::*)()>("mapToIPv4", [](const ComboAddress& ca) { return ca.mapToIPv4(); });
 
   g_lua.registerFunction("isPartOf", &DNSName::isPartOf);
+  g_lua.registerFunction<bool(DNSName::*)()>("chopOff", [](DNSName&dn ) { return dn.chopOff(); });
   g_lua.registerFunction<unsigned int(DNSName::*)()>("countLabels", [](const DNSName& name) { return name.countLabels(); });
   g_lua.registerFunction<size_t(DNSName::*)()>("wirelength", [](const DNSName& name) { return name.wirelength(); });
   g_lua.registerFunction<string(DNSName::*)()>("tostring", [](const DNSName&dn ) { return dn.toString(); });
@@ -1540,6 +1545,13 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.registerFunction<bool(DNSQuestion::*)()>("getDO", [](const DNSQuestion& dq) {
       return getEDNSZ((const char*)dq.dh, dq.len) & EDNS_HEADER_FLAG_DO;
     });
+  g_lua.registerFunction<void(DNSQuestion::*)(std::string)>("sendTrap", [](const DNSQuestion& dq, boost::optional<std::string> reason) {
+#ifdef HAVE_NET_SNMP
+      if (g_snmpAgent && g_snmpTrapsEnabled) {
+        g_snmpAgent->sendDNSTrap(dq, reason ? *reason : "");
+      }
+#endif /* HAVE_NET_SNMP */
+    });
 
   /* LuaWrapper doesn't support inheritance */
   g_lua.registerMember<const ComboAddress (DNSResponse::*)>("localaddr", [](const DNSResponse& dq) -> const ComboAddress { return *dq.local; }, [](DNSResponse& dq, const ComboAddress newLocal) { (void) newLocal; });
@@ -1557,6 +1569,13 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.registerFunction<void(DNSResponse::*)(std::function<uint32_t(uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl)> editFunc)>("editTTLs", [](const DNSResponse& dr, std::function<uint32_t(uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl)> editFunc) {
         editDNSPacketTTL((char*) dr.dh, dr.len, editFunc);
       });
+  g_lua.registerFunction<void(DNSResponse::*)(std::string)>("sendTrap", [](const DNSResponse& dr, boost::optional<std::string> reason) {
+#ifdef HAVE_NET_SNMP
+      if (g_snmpAgent && g_snmpTrapsEnabled) {
+        g_snmpAgent->sendDNSTrap(dr, reason ? *reason : "");
+      }
+#endif /* HAVE_NET_SNMP */
+    });
 
   g_lua.writeFunction("setMaxTCPClientThreads", [](uint64_t max) {
       if (!g_configurationDone) {
@@ -1603,6 +1622,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       boost::format fmt("%-10d %-10d %-10d %-10d\n");
       g_outputBuffer += (fmt % "Clients" % "MaxClients" % "Queued" % "MaxQueued").str();
       g_outputBuffer += (fmt % g_tcpclientthreads->getThreadsCount() % g_maxTCPClientThreads % g_tcpclientthreads->getQueuedCount() % g_maxTCPQueuedConnections).str();
+      g_outputBuffer += "Query distribution mode is: " + std::string(g_useTCPSinglePipe ? "single queue" : "per-thread queues") + "\n";
     });
 
   g_lua.writeFunction("setCacheCleaningDelay", [](uint32_t delay) { g_cacheCleaningDelay = delay; });
@@ -1613,14 +1633,6 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.writeFunction("setECSSourcePrefixV6", [](uint16_t prefix) { g_ECSSourcePrefixV6=prefix; });
 
   g_lua.writeFunction("setECSOverride", [](bool override) { g_ECSOverride=override; });
-
-  g_lua.writeFunction("addResponseAction", [](luadnsrule_t var, std::shared_ptr<DNSResponseAction> ea) {
-      setLuaSideEffect();
-      auto rule=makeRule(var);
-      g_resprulactions.modify([rule, ea](decltype(g_resprulactions)::value_type& rulactions){
-          rulactions.push_back({rule, ea});
-        });
-    });
 
   g_lua.writeFunction("dumpStats", [] {
       setLuaNoSideEffect();
@@ -1638,8 +1650,8 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 	string second;
 	if(const auto& val = boost::get<DNSDistStats::stat_t*>(&e.second))
 	  second=std::to_string((*val)->load());
-	else if (const auto& val = boost::get<double*>(&e.second))
-	  second=(flt % (**val)).str();
+	else if (const auto& dval = boost::get<double*>(&e.second))
+	  second=(flt % (**dval)).str();
 	else
 	  second=std::to_string((*boost::get<DNSDistStats::statfunction_t>(&e.second))(e.first));
 

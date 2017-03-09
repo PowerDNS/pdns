@@ -55,42 +55,10 @@ try
   trc.d_origID=ntohs(pw.getHeader()->id);
   trc.d_eRcode=0;
 
-  addTSIG(pw, &trc, keyname, key, "", false);
+  addTSIG(pw, trc, keyname, key, "", false);
 
   Socket sock(AF_INET, SOCK_DGRAM);
   ComboAddress dest(argv[1] + (*argv[1]=='@'), atoi(argv[2]));
-#if 0
-  sock.sendTo(string((char*)&*packet.begin(), (char*)&*packet.end()), dest);
-  
-  string reply;
-  sock.recvFrom(reply, dest);
-
-  MOADNSParser mdp(false, reply);
-  cout<<"Reply to question for qname='"<<mdp.d_qname<<"', qtype="<<DNSRecordContent::NumberToType(mdp.d_qtype)<<endl;
-  cout<<"Rcode: "<<mdp.d_header.rcode<<", RD: "<<mdp.d_header.rd<<", QR: "<<mdp.d_header.qr;
-  cout<<", TC: "<<mdp.d_header.tc<<", AA: "<<mdp.d_header.aa<<", opcode: "<<mdp.d_header.opcode<<endl;
-
-  shared_ptr<TSIGRecordContent> trc2;
-  
-  for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
-    cout<<i->first.d_place-1<<"\t"<<i->first.d_label<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type, i->first.d_class);
-    cout<<"\t"<<i->first.d_ttl<<"\t"<< i->first.d_content->getZoneRepresentation()<<"\n";
-    
-    if(i->first.d_type == QType::TSIG)
-      trc2 = std::dynamic_pointer_cast<TSIGRecordContent>(i->first.d_content);
-  }
-
-  if(mdp.getTSIGPos()) {    
-    string message = makeTSIGMessageFromTSIGPacket(reply, mdp.getTSIGPos(), keyname, trc, trc.d_mac, false); // insert our question MAC
-    
-    string hmac2=calculateMD5HMAC(key, message);
-    cerr<<"Calculated mac: "<<Base64Encode(hmac2)<<endl;
-    if(hmac2 == trc2->d_mac)
-      cerr<<"MATCH!"<<endl;
-    else 
-      cerr<<"Mismatch!"<<endl;
-  }
-#endif
   seedRandom("/dev/urandom");
   cerr<<"Keyname: '"<<keyname.toString()<<"', algo: '"<<trc.d_algoName.toString()<<"', key: '"<<Base64Encode(key)<<"'\n";
   TSIGTriplet tt;

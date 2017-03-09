@@ -85,7 +85,7 @@ its own. Furthermore, on most systems, there will be no benefit in using multipl
 CPUs for the packetcache, so a noticeable speedup can be attained by specifying
 [`distributor-threads`](settings.md#distributor-threads)`=1` in `pdns.conf`.
 
-## Master/slave configuration
+## Master/slave/native configuration
 
 ### Master
 Works as expected. At startup, no notification storm is performed as this is
@@ -103,3 +103,11 @@ parsed only then.
 
 In the future, this may be improved so the old zone remains available should
 parsing fail.
+
+### Native
+PowerDNS has the concept of "native" zones that have the `type native;` in the BIND configuration file.
+These zones are neither a master (no notifies are sent) nor a slave zone (it will never be AXFR'd in).
+This means that the replication mechanism for these zone is not AXFR but out of band, e.g. using `rsync`.
+Changes to native zones are picked up in the same way as master and slave zones, see [Operation](#operation).
+
+**note**: Any zone with no `type` set (an error in BIND) is assumed to be native.

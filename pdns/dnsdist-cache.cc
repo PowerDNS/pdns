@@ -27,14 +27,18 @@
 DNSDistPacketCache::DNSDistPacketCache(size_t maxEntries, uint32_t maxTTL, uint32_t minTTL, uint32_t tempFailureTTL, uint32_t staleTTL): d_maxEntries(maxEntries), d_maxTTL(maxTTL), d_tempFailureTTL(tempFailureTTL), d_minTTL(minTTL), d_staleTTL(staleTTL)
 {
   pthread_rwlock_init(&d_lock, 0);
-  /* we reserve maxEntries + 1 to avoid rehashing from occuring
+  /* we reserve maxEntries + 1 to avoid rehashing from occurring
      when we get to maxEntries, as it means a load factor of 1 */
   d_map.reserve(maxEntries + 1);
 }
 
 DNSDistPacketCache::~DNSDistPacketCache()
 {
-  WriteLock l(&d_lock);
+  try {
+    WriteLock l(&d_lock);
+  }
+  catch(const PDNSException& pe) {
+  }
 }
 
 bool DNSDistPacketCache::cachedValueMatches(const CacheValue& cachedValue, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool tcp)
@@ -53,11 +57,21 @@ void DNSDistPacketCache::insert(uint32_t key, const DNSName& qname, uint16_t qty
 
   if (rcode == RCode::ServFail || rcode == RCode::Refused) {
     minTTL = d_tempFailureTTL;
+    if (minTTL == 0) {
+      return;
+    }
   }
   else {
     minTTL = getMinTTL(response, responseLen);
-    if (minTTL > d_maxTTL)
+
+    /* no TTL found, we don't want to cache this */
+    if (minTTL == std::numeric_limits<uint32_t>::max()) {
+      return;
+    }
+
+    if (minTTL > d_maxTTL) {
       minTTL = d_maxTTL;
+    }
 
     if (minTTL < d_minTTL) {
       d_ttlTooShorts++;

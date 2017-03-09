@@ -128,6 +128,8 @@ DNSPacket::DNSPacket(const DNSPacket &orig)
   d_rawpacket=orig.d_rawpacket;
   d_tsig_algo=orig.d_tsig_algo;
   d=orig.d;
+
+  d_isQuery = orig.d_isQuery;
 }
 
 void DNSPacket::setRcode(int v)
@@ -354,7 +356,7 @@ void DNSPacket::wrapup()
   }
   
   if(d_trc.d_algoName.countLabels())
-    addTSIG(pw, &d_trc, d_tsigkeyname, d_tsigsecret, d_tsigprevious, d_tsigtimersonly);
+    addTSIG(pw, d_trc, d_tsigkeyname, d_tsigsecret, d_tsigprevious, d_tsigtimersonly);
   
   d_rawpacket.assign((char*)&packet[0], packet.size()); // XXX we could do this natively on a vector..
 
@@ -460,11 +462,11 @@ void DNSPacket::setTSIGDetails(const TSIGRecordContent& tr, const DNSName& keyna
   d_tsigtimersonly=timersonly;
 }
 
-bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, DNSName* keyname, string* message) const
+bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, DNSName* keyname, uint16_t* tsigPosOut) const
 {
   MOADNSParser mdp(d_isQuery, d_rawpacket);
-
-  if(!mdp.getTSIGPos()) 
+  uint16_t tsigPos = mdp.getTSIGPos();
+  if(!tsigPos)
     return false;
   
   bool gotit=false;
@@ -483,8 +485,10 @@ bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, DNSName* keyname, string*
   }
   if(!gotit)
     return false;
-  if(message)
-    *message = makeTSIGMessageFromTSIGPacket(d_rawpacket, mdp.getTSIGPos(), *keyname, *trc, "", false); // if you change rawpacket to getString it breaks!
+
+  if (tsigPosOut) {
+    *tsigPosOut = tsigPos;
+  }
   
   return true;
 }
@@ -640,50 +644,38 @@ void DNSPacket::commitD()
   d_rawpacket.replace(0,12,(char *)&d,12); // copy in d
 }
 
-bool checkForCorrectTSIG(const DNSPacket* q, UeberBackend* B, DNSName* keyname, string* secret, TSIGRecordContent* trc)
+bool DNSPacket::checkForCorrectTSIG(UeberBackend* B, DNSName* keyname, string* secret, TSIGRecordContent* trc) const
 {
-  string message;
+  uint16_t tsigPos;
 
-  if (!q->getTSIGDetails(trc, keyname, &message)) {
+  if (!this->getTSIGDetails(trc, keyname, &tsigPos)) {
     return false;
   }
 
-  uint64_t delta = std::abs((int64_t)trc->d_time - (int64_t)time(0));
-  if(delta > trc->d_fudge) {
-    L<<Logger::Error<<"Packet for '"<<q->qdomain<<"' denied: TSIG (key '"<<*keyname<<"') time delta "<< delta <<" > 'fudge' "<<trc->d_fudge<<endl;
-    return false;
-  }
-
-  DNSName algoName = trc->d_algoName; // FIXME400
-  if (algoName == DNSName("hmac-md5.sig-alg.reg.int"))
-    algoName = DNSName("hmac-md5");
-
-  if (algoName == DNSName("gss-tsig")) {
-    if (!gss_verify_signature(*keyname, message, trc->d_mac)) {
-      L<<Logger::Error<<"Packet for domain '"<<q->qdomain<<"' denied: TSIG signature mismatch using '"<<*keyname<<"' and algorithm '"<<trc->d_algoName<<"'"<<endl;
-      return false;
-    }
-    return true;
-  }
+  TSIGTriplet tt;
+  tt.name = *keyname;
+  tt.algo = trc->d_algoName;
+  if (tt.algo == DNSName("hmac-md5.sig-alg.reg.int"))
+    tt.algo = DNSName("hmac-md5");
 
   string secret64;
-  if(!B->getTSIGKey(*keyname, &algoName, &secret64)) {
-    L<<Logger::Error<<"Packet for domain '"<<q->qdomain<<"' denied: can't find TSIG key with name '"<<*keyname<<"' and algorithm '"<<algoName<<"'"<<endl;
+  if (tt.algo != DNSName("gss-tsig")) {
+    if(!B->getTSIGKey(*keyname, &tt.algo, &secret64)) {
+      L<<Logger::Error<<"Packet for domain '"<<this->qdomain<<"' denied: can't find TSIG key with name '"<<*keyname<<"' and algorithm '"<<tt.algo<<"'"<<endl;
+      return false;
+    }
+    B64Decode(secret64, *secret);
+    tt.secret = *secret;
+  }
+
+  bool result;
+
+  try {
+    result = validateTSIG(d_rawpacket, tsigPos, tt, *trc, "", trc->d_mac, false);
+  }
+  catch(const std::runtime_error& err) {
+    L<<Logger::Error<<"Packet for '"<<this->qdomain<<"' denied: "<<err.what()<<endl;
     return false;
-  }
-  if (trc->d_algoName == DNSName("hmac-md5"))
-    trc->d_algoName += DNSName("sig-alg.reg.int");
-
-  TSIGHashEnum algo;
-  if(!getTSIGHashEnum(trc->d_algoName, algo)) {
-     L<<Logger::Error<<"Unsupported TSIG HMAC algorithm " << trc->d_algoName.toString() << endl;
-     return false;
-  }
-
-  B64Decode(secret64, *secret);
-  bool result=calculateHMAC(*secret, message, algo) == trc->d_mac;
-  if(!result) {
-    L<<Logger::Error<<"Packet for domain '"<<q->qdomain<<"' denied: TSIG signature mismatch using '"<<*keyname<<"' and algorithm '"<<trc->d_algoName<<"'"<<endl;
   }
 
   return result;

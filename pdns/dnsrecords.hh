@@ -340,10 +340,13 @@ class DSRecordContent : public DNSRecordContent
 {
 public:
   DSRecordContent();
-  bool operator==(const DSRecordContent& rhs) const
+  bool operator==(const DNSRecordContent& rhs) const override
   {
+    if(typeid(*this) != typeid(rhs))
+      return false;
+    auto rrhs =dynamic_cast<const decltype(this)>(&rhs);
     return tie(d_tag, d_algorithm, d_digesttype, d_digest) ==
-      tie(rhs.d_tag, rhs.d_algorithm, rhs.d_digesttype, rhs.d_digest);
+      tie(rrhs->d_tag, rrhs->d_algorithm, rrhs->d_digesttype, rrhs->d_digest);
   }
   bool operator<(const DSRecordContent& rhs) const
   {

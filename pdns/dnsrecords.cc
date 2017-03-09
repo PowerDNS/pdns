@@ -75,26 +75,6 @@ bool DNSResourceRecord::operator==(const DNSResourceRecord& rhs)
     tie(rhs.qname, rhs.qtype, rcontent, rhs.ttl);
 }
 
-DNSResourceRecord::DNSResourceRecord(const DNSRecord &p) {
-  auth=true;
-  qclass = p.d_class;
-  disabled=false;
-  qname = p.d_name;
-  d_place = p.d_place;
-  // if(!qname.empty())
-  //   boost::erase_tail(qname, 1); // strip .
-
-  qtype = p.d_type;
-  ttl = p.d_ttl;
-  setContent(p.d_content->getZoneRepresentation());
-  last_modified = 0;
-  signttl = 0;
-  domain_id = -1;
-  qclass = p.d_class;
-  d_place = p.d_place;
-  scopeMask = 0;
-}
-
 boilerplate_conv(A, QType::A, conv.xfrIP(d_ip));
 
 ARecordContent::ARecordContent(uint32_t ip) 

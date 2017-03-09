@@ -25,7 +25,7 @@ On RedHat based system there are 2 options to install PowerDNS, from
 Monshouwer](https://www.monshouwer.eu/download/3rd_party/pdns/) or from
 [the PowerDNS repositories](https://repo.powerdns.com):
 
-Add either to your list of reposities and install PowerDNS by issueing:
+Add either to your list of repositories and install PowerDNS by issuing:
 
 ```
 # yum install pdns

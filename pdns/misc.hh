@@ -305,8 +305,9 @@ inline void unixDie(const string &why)
 }
 
 string makeHexDump(const string& str);
-void shuffle(vector<DNSRecord>& rrs);
+struct DNSRecord;
 struct DNSZoneRecord;
+void shuffle(vector<DNSRecord>& rrs);
 void shuffle(vector<DNSZoneRecord>& rrs);
 
 void orderAndShuffle(vector<DNSRecord>& rrs);
@@ -373,7 +374,8 @@ inline bool pdns_iequals_ch(const char a, const char b)
 }
 
 
-typedef std::atomic<unsigned long> AtomicCounter ;
+typedef unsigned long AtomicCounterInner;
+typedef std::atomic<AtomicCounterInner> AtomicCounter ;
 
 // FIXME400 this should probably go? 
 struct CIStringCompare: public std::binary_function<string, string, bool>
@@ -542,7 +544,7 @@ void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, const ComboAddress* sour
 unsigned int getFilenumLimit(bool hardOrSoft=0);
 void setFilenumLimit(unsigned int lim);
 bool readFileIfThere(const char* fname, std::string* line);
-uint32_t burtle(const unsigned char* k, uint32_t lengh, uint32_t init);
+uint32_t burtle(const unsigned char* k, uint32_t length, uint32_t init);
 bool setSocketTimestamps(int fd);
 
 //! Sets the socket into blocking mode.

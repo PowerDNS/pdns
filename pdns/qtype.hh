@@ -51,9 +51,9 @@ public:
   {
   }
   QType &operator=(uint16_t);  //!< Assigns integers to us
-  QType &operator=(const char *); //!< Assings strings to us
-  QType &operator=(const string &); //!< Assings strings to us
-  QType &operator=(const QType&rhs)  //!< Assings strings to us
+  QType &operator=(const char *); //!< Assigns strings to us
+  QType &operator=(const string &); //!< Assigns strings to us
+  QType &operator=(const QType&rhs)  //!< Assigns strings to us
   {
     code=rhs.code;
     return *this;
@@ -62,12 +62,6 @@ public:
   bool operator<(const QType& rhs) const 
   {
     return code < rhs.code;
-  }
-
-  template<class Archive>
-  void serialize(Archive &ar, const unsigned int version)
-  {
-    ar & code;
   }
 
   const string getName() const; //!< Get a string representation of this type

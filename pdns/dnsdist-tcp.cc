@@ -61,7 +61,9 @@ static int setupTCPDownstream(shared_ptr<DownstreamState> ds, uint16_t& downstre
         SBind(sock, ds->sourceAddr);
       }
       setNonBlocking(sock);
-      SConnectWithTimeout(sock, ds->remote, ds->tcpConnectTimeout);
+      if (!ds->tcpFastOpen) {
+        SConnectWithTimeout(sock, ds->remote, ds->tcpConnectTimeout);
+      }
       return sock;
     }
     catch(const std::runtime_error& e) {
@@ -90,6 +92,7 @@ size_t g_maxTCPConnectionDuration{0};
 size_t g_maxTCPConnectionsPerClient{0};
 static std::mutex tcpClientsCountMutex;
 static std::map<ComboAddress,size_t,ComboAddress::addressOnlyLessThan> tcpClientsCount;
+bool g_useTCPSinglePipe{false};
 
 void* tcpClientThread(int pipefd);
 
@@ -106,19 +109,26 @@ static void decrementTCPClientCount(const ComboAddress& client)
 
 void TCPClientCollection::addTCPClientThread()
 {
+  int pipefds[2] = { -1, -1};
+
   vinfolog("Adding TCP Client thread");
 
-  int pipefds[2] = { -1, -1};
-  if (pipe(pipefds) < 0) {
-    errlog("Error creating the TCP thread communication pipe: %s", strerror(errno));
-    return;
+  if (d_useSinglePipe) {
+    pipefds[0] = d_singlePipe[0];
+    pipefds[1] = d_singlePipe[1];
   }
+  else {
+    if (pipe(pipefds) < 0) {
+      errlog("Error creating the TCP thread communication pipe: %s", strerror(errno));
+      return;
+    }
 
-  if (!setNonBlocking(pipefds[1])) {
-    close(pipefds[0]);
-    close(pipefds[1]);
-    errlog("Error setting the TCP thread communication pipe non-blocking: %s", strerror(errno));
-    return;
+    if (!setNonBlocking(pipefds[1])) {
+      close(pipefds[0]);
+      close(pipefds[1]);
+      errlog("Error setting the TCP thread communication pipe non-blocking: %s", strerror(errno));
+      return;
+    }
   }
 
   {
@@ -126,8 +136,10 @@ void TCPClientCollection::addTCPClientThread()
 
     if (d_numthreads >= d_tcpclientthreads.capacity()) {
       warnlog("Adding a new TCP client thread would exceed the vector capacity (%d/%d), skipping", d_numthreads.load(), d_tcpclientthreads.capacity());
-      close(pipefds[0]);
-      close(pipefds[1]);
+      if (!d_useSinglePipe) {
+        close(pipefds[0]);
+        close(pipefds[1]);
+      }
       return;
     }
 
@@ -138,8 +150,10 @@ void TCPClientCollection::addTCPClientThread()
     catch(const std::runtime_error& e) {
       /* the thread creation failed, don't leak */
       errlog("Error creating a TCP thread: %s", e.what());
-      close(pipefds[0]);
-      close(pipefds[1]);
+      if (!d_useSinglePipe) {
+        close(pipefds[0]);
+        close(pipefds[1]);
+      }
       return;
     }
 
@@ -163,38 +177,9 @@ catch(...) {
   return false;
 }
 
-static bool putNonBlockingMsgLen(int fd, uint16_t len, int timeout)
-try
-{
-  uint16_t raw = htons(len);
-  size_t ret = writen2WithTimeout(fd, &raw, sizeof raw, timeout);
-  return ret == sizeof raw;
-}
-catch(...) {
-  return false;
-}
-
-static bool sendNonBlockingMsgLen(int fd, uint16_t len, int timeout, ComboAddress& dest, ComboAddress& local, unsigned int localItf)
-try
-{
-  if (localItf == 0)
-    return putNonBlockingMsgLen(fd, len, timeout);
-
-  uint16_t raw = htons(len);
-  ssize_t ret = sendMsgWithTimeout(fd, (char*) &raw, sizeof raw, timeout, dest, local, localItf);
-  return ret == sizeof raw;
-}
-catch(...) {
-  return false;
-}
-
 static bool sendResponseToClient(int fd, const char* response, uint16_t responseLen)
 {
-  if (!putNonBlockingMsgLen(fd, responseLen, g_tcpSendTimeout))
-    return false;
-
-  writen2WithTimeout(fd, response, responseLen, g_tcpSendTimeout);
-  return true;
+  return sendSizeAndMsgWithTimeout(fd, responseLen, response, g_tcpSendTimeout, nullptr, nullptr, 0, 0, 0);
 }
 
 static bool maxConnectionDurationReached(unsigned int maxConnectionDuration, time_t start, unsigned int& remainingTime)
@@ -229,6 +214,7 @@ void* tcpClientThread(int pipefd)
   auto localPolicy = g_policy.getLocal();
   auto localRulactions = g_rulactions.getLocal();
   auto localRespRulactions = g_resprulactions.getLocal();
+  auto localCacheHitRespRulactions = g_cachehitresprulactions.getLocal();
   auto localDynBlockNMG = g_dynblockNMG.getLocal();
   auto localDynBlockSMT = g_dynblockSMT.getLocal();
   auto localPools = g_pools.getLocal();
@@ -378,11 +364,15 @@ void* tcpClientThread(int pipefd)
 
         std::shared_ptr<ServerPool> serverPool = getPool(*localPools, poolname);
         std::shared_ptr<DNSDistPacketCache> packetCache = nullptr;
-	{
-	  std::lock_guard<std::mutex> lock(g_luamutex);
-	  ds = localPolicy->policy(serverPool->servers, &dq);
-	  packetCache = serverPool->packetCache;
-	}
+        auto policy = localPolicy->policy;
+        if (serverPool->policy != nullptr) {
+          policy = serverPool->policy->policy;
+        }
+        {
+          std::lock_guard<std::mutex> lock(g_luamutex);
+          ds = policy(serverPool->servers, &dq);
+          packetCache = serverPool->packetCache;
+        }
 
         if (dq.useECS && ds && ds->useECS) {
           uint16_t newLen = dq.len;
@@ -402,6 +392,14 @@ void* tcpClientThread(int pipefd)
           uint16_t cachedResponseSize = sizeof cachedResponse;
           uint32_t allowExpired = ds ? 0 : g_staleCacheEntriesTTL;
           if (packetCache->get(dq, (uint16_t) consumed, dq.dh->id, cachedResponse, &cachedResponseSize, &cacheKey, allowExpired)) {
+            DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.local, dq.remote, (dnsheader*) cachedResponse, sizeof cachedResponse, cachedResponseSize, true, &queryRealTime);
+#ifdef HAVE_PROTOBUF
+            dr.uniqueId = dq.uniqueId;
+#endif
+            if (!processResponse(localCacheHitRespRulactions, dr, &delayMsec)) {
+              goto drop;
+            }
+
 #ifdef HAVE_DNSCRYPT
             if (!encryptResponse(cachedResponse, &cachedResponseSize, sizeof cachedResponse, true, dnsCryptQuery)) {
               goto drop;
@@ -435,12 +433,15 @@ void* tcpClientThread(int pipefd)
 
 	int dsock = -1;
 	uint16_t downstreamFailures=0;
+	bool freshConn = true;
 	if(sockets.count(ds->remote) == 0) {
 	  dsock=setupTCPDownstream(ds, downstreamFailures);
 	  sockets[ds->remote]=dsock;
 	}
-	else
+	else {
 	  dsock=sockets[ds->remote];
+	  freshConn = false;
+        }
 
         ds->queries++;
         ds->outstanding++;
@@ -460,24 +461,14 @@ void* tcpClientThread(int pipefd)
           break;
         }
 
-        if(!sendNonBlockingMsgLen(dsock, dq.len, ds->tcpSendTimeout, ds->remote, ds->sourceAddr, ds->sourceItf)) {
-	  vinfolog("Downstream connection to %s died on us, getting a new one!", ds->getName());
-          close(dsock);
-          dsock=-1;
-          sockets.erase(ds->remote);
-          downstreamFailures++;
-          dsock=setupTCPDownstream(ds, downstreamFailures);
-          sockets[ds->remote]=dsock;
-          goto retry;
-        }
-
         try {
-          if (ds->sourceItf == 0) {
-            writen2WithTimeout(dsock, query, dq.len, ds->tcpSendTimeout);
+          int socketFlags = 0;
+#ifdef MSG_FASTOPEN
+          if (ds->tcpFastOpen && freshConn) {
+            socketFlags |= MSG_FASTOPEN;
           }
-          else {
-            sendMsgWithTimeout(dsock, query, dq.len, ds->tcpSendTimeout, ds->remote, ds->sourceAddr, ds->sourceItf);
-          }
+#endif /* MSG_FASTOPEN */
+          sendSizeAndMsgWithTimeout(dsock, dq.len, query, ds->tcpSendTimeout, &ds->remote, &ds->sourceAddr, ds->sourceItf, 0, socketFlags);
         }
         catch(const runtime_error& e) {
           vinfolog("Downstream connection to %s died on us, getting a new one!", ds->getName());
@@ -487,6 +478,7 @@ void* tcpClientThread(int pipefd)
           downstreamFailures++;
           dsock=setupTCPDownstream(ds, downstreamFailures);
           sockets[ds->remote]=dsock;
+          freshConn=true;
           goto retry;
         }
 
@@ -506,6 +498,7 @@ void* tcpClientThread(int pipefd)
           downstreamFailures++;
           dsock=setupTCPDownstream(ds, downstreamFailures);
           sockets[ds->remote]=dsock;
+          freshConn=true;
           if(xfrStarted) {
             goto drop;
           }
@@ -564,16 +557,22 @@ void* tcpClientThread(int pipefd)
           break;
         }
 
-        if (isXFR && dh->rcode == 0 && dh->ancount != 0) {
-          if (xfrStarted == false) {
-            xfrStarted = true;
-            if (getRecordsOfTypeCount(response, responseLen, 1, QType::SOA) == 1) {
+        if (isXFR) {
+          if (dh->rcode == 0 && dh->ancount != 0) {
+            if (xfrStarted == false) {
+              xfrStarted = true;
+              if (getRecordsOfTypeCount(response, responseLen, 1, QType::SOA) == 1) {
+                goto getpacket;
+              }
+            }
+            else if (getRecordsOfTypeCount(response, responseLen, 1, QType::SOA) == 0) {
               goto getpacket;
             }
           }
-          else if (getRecordsOfTypeCount(response, responseLen, 1, QType::SOA) == 0) {
-            goto getpacket;
-          }
+          /* Don't reuse the TCP connection after an {A,I}XFR */
+          close(dsock);
+          dsock=-1;
+          sockets.erase(ds->remote);
         }
 
         g_stats.responses++;
@@ -594,8 +593,10 @@ void* tcpClientThread(int pipefd)
   drop:;
     
     vinfolog("Closing TCP client connection with %s", ci.remote.toStringWithPort());
-    close(ci.fd); 
-    ci.fd=-1;
+    if (ci.fd >= 0) {
+      close(ci.fd);
+    }
+    ci.fd = -1;
     if (ds && outstanding) {
       outstanding = false;
       --ds->outstanding;

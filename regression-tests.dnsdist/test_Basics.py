@@ -15,6 +15,8 @@ class TestBasics(DNSDistTest):
     mySMN:add(newDNSName("nameAndQtype.tests.powerdns.com."))
     addAction(AndRule{SuffixMatchNodeRule(mySMN), QTypeRule("TXT")}, RCodeAction(dnsdist.NOTIMP))
     addAction(makeRule("drop.test.powerdns.com."), DropAction())
+    addAction(newDNSName("dnsname.addaction.powerdns.com."), RCodeAction(dnsdist.REFUSED))
+    addAction({newDNSName("dnsname-table1.addaction.powerdns.com."), newDNSName("dnsname-table2.addaction.powerdns.com.")}, RCodeAction(dnsdist.REFUSED))
     block=newDNSName("powerdns.org.")
     function blockFilter(dq)
         if(dq.qname:isPartOf(block))
@@ -287,7 +289,7 @@ class TestBasics(DNSDistTest):
 
         The backend send an unrelated answer over UDP, it should
         be discarded by dnsdist. It could happen if we wrap around
-        maxOutstanding queries too quickly or have more than maxOustanding
+        maxOutstanding queries too quickly or have more than maxOutstanding
         queries to a specific backend in the air over UDP,
         but does not really make sense over TCP.
         """
@@ -380,6 +382,29 @@ class TestBasics(DNSDistTest):
         self.assertEquals(query, receivedQuery)
         self.assertEquals(receivedResponse, None)
 
+    def testAddActionDNSName(self):
+        """
+        Basics: test if addAction accepts a DNSName
+        """
+        name = 'dnsname.addaction.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.set_rcode(dns.rcode.REFUSED)
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, expectedResponse)
+
+    def testAddActionDNSNames(self):
+        """
+        Basics: test if addAction accepts a table of DNSNames
+        """
+        for name in ['dnsname-table{}.addaction.powerdns.com.'.format(i) for i in range(1,2)]:
+            query = dns.message.make_query(name, 'A', 'IN')
+            expectedResponse = dns.message.make_response(query)
+            expectedResponse.set_rcode(dns.rcode.REFUSED)
+
+            (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+            self.assertEquals(receivedResponse, expectedResponse)
 
 if __name__ == '__main__':
     unittest.main()

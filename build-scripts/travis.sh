@@ -242,7 +242,7 @@ install_auth() {
   run "cd .."
   run "wget https://www.verisignlabs.com/dnssec-tools/packages/jdnssec-tools-0.13.tar.gz"
   run "sudo tar xfz jdnssec-tools-0.13.tar.gz --strip-components=1 -C /"
-  run "cd pdns"
+  run "cd ${TRAVIS_BUILD_DIR}"
 
   # pkcs11 test requirements / setup
   run "sudo apt-get -qq --no-install-recommends install \
@@ -264,7 +264,7 @@ install_auth() {
   run "tar xzvf dnsperf-2.0.0.0-1-rhel-6-x86_64.tar.gz"
   run "fakeroot alien --to-deb dnsperf-2.0.0.0-1/dnsperf-2.0.0.0-1.el6.x86_64.rpm"
   run "sudo dpkg -i dnsperf_2.0.0.0-2_amd64.deb"
-  run "cd pdns"
+  run "cd ${TRAVIS_BUILD_DIR}"
 
   # geoip-backend test requirements / setup
   run "sudo apt-get -qq --no-install-recommends install \
@@ -344,7 +344,7 @@ install_recursor() {
     jq"
   run "cd .."
   run "wget https://s3.amazonaws.com/alexa-static/top-1m.csv.zip"
-  run "unzip top-1m.csv.zip -d ./pdns/regression-tests"
+  run "unzip top-1m.csv.zip -d ${TRAVIS_BUILD_DIR}/regression-tests"
   PDNS_SERVER_VERSION="0.0.880gcb54743-1pdns"
   run "wget https://downloads.powerdns.com/autobuilt/auth/deb/$PDNS_SERVER_VERSION.trusty-amd64/pdns-server_$PDNS_SERVER_VERSION.trusty_amd64.deb"
   run "wget https://downloads.powerdns.com/autobuilt/auth/deb/$PDNS_SERVER_VERSION.trusty-amd64/pdns-tools_$PDNS_SERVER_VERSION.trusty_amd64.deb"
@@ -353,11 +353,19 @@ install_recursor() {
   run 'for suffix in {1..40}; do sudo /sbin/ip addr add 10.0.3.$suffix/32 dev lo; done'
   run "sudo touch /etc/authbind/byport/53"
   run "sudo chmod 755 /etc/authbind/byport/53"
-  run "cd pdns"
+  run "cd ${TRAVIS_BUILD_DIR}"
 }
 
 install_dnsdist() {
-  printf ""
+  # recursor test requirements / setup
+  run "sudo apt-get -qq --no-install-recommends install \
+    snmpd \
+    libsnmp-dev"
+  run "sudo sed -i \"s/agentxperms 0700 0755 dnsdist/agentxperms 0700 0755 ${USER}/g\" regression-tests.dnsdist/snmpd.conf"
+  run "sudo cp -f regression-tests.dnsdist/snmpd.conf /etc/snmp/snmpd.conf"
+  run "sudo service snmpd restart"
+  # fun story, the directory perms are only applied if it doesn't exist yet, and it is created by the init script, so..
+  run "sudo chmod 0755 /var/agentx"
 }
 
 build_auth() {
@@ -587,7 +595,7 @@ run "cd .."
 run "wget http://ppa.launchpad.net/kalon33/gamesgiroll/ubuntu/pool/main/libs/libsodium/libsodium-dev_1.0.3-1~ppa14.04+1_amd64.deb"
 run "wget http://ppa.launchpad.net/kalon33/gamesgiroll/ubuntu/pool/main/libs/libsodium/libsodium13_1.0.3-1~ppa14.04+1_amd64.deb"
 run "sudo dpkg -i libsodium-dev_1.0.3-1~ppa14.04+1_amd64.deb libsodium13_1.0.3-1~ppa14.04+1_amd64.deb"
-run "cd pdns"
+run "cd ${TRAVIS_BUILD_DIR}"
 
 install_$PDNS_BUILD_PRODUCT
 

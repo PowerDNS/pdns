@@ -98,6 +98,11 @@ optional<uint64_t> get(const string& name)
   return ret;
 }
 
+optional<uint64_t> getStatByName(const std::string& name)
+{
+  return get(name);
+}
+
 map<string,string> getAllStatsMap()
 {
   map<string,string> ret;
@@ -356,7 +361,7 @@ string doSetDnssecLogBogus(T begin, T end)
 
   if (pdns_iequals(*begin, "on") || pdns_iequals(*begin, "yes")) {
     if (!g_dnssecLogBogus) {
-      L<<Logger::Warning<<"Enabeling DNSSEC Bogus logging, requested via control channel"<<endl;
+      L<<Logger::Warning<<"Enabling DNSSEC Bogus logging, requested via control channel"<<endl;
       g_dnssecLogBogus = true;
       return "DNSSEC Bogus logging enabled\n";
     }
@@ -365,7 +370,7 @@ string doSetDnssecLogBogus(T begin, T end)
 
   if (pdns_iequals(*begin, "off") || pdns_iequals(*begin, "no")) {
     if (g_dnssecLogBogus) {
-      L<<Logger::Warning<<"Disabeling DNSSEC Bogus logging, requested via control channel"<<endl;
+      L<<Logger::Warning<<"Disabling DNSSEC Bogus logging, requested via control channel"<<endl;
       g_dnssecLogBogus = false;
       return "DNSSEC Bogus logging disabled\n";
     }
@@ -448,17 +453,17 @@ string doClearNTA(T begin, T end)
 
   string removed("");
   bool first(true);
-  for (auto const &who : toRemove) {
-    L<<Logger::Warning<<"Clearing Negative Trust Anchor for "<<who<<", requested via control channel"<<endl;
-    g_luaconfs.modify([who](LuaConfigItems& lci) {
-        lci.negAnchors.erase(who);
+  for (auto const &entry : toRemove) {
+    L<<Logger::Warning<<"Clearing Negative Trust Anchor for "<<entry<<", requested via control channel"<<endl;
+    g_luaconfs.modify([entry](LuaConfigItems& lci) {
+        lci.negAnchors.erase(entry);
       });
-    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, who, true));
+    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, entry, true));
     if (!first) {
       first = false;
       removed += ",";
     }
-    removed += " " + who.toStringRootDot();
+    removed += " " + entry.toStringRootDot();
   }
   return "Removed Negative Trust Anchors for " + removed + "\n";
 }
@@ -547,17 +552,17 @@ string doClearTA(T begin, T end)
 
   string removed("");
   bool first(true);
-  for (auto const &who : toRemove) {
-    L<<Logger::Warning<<"Removing Trust Anchor for "<<who<<", requested via control channel"<<endl;
-    g_luaconfs.modify([who](LuaConfigItems& lci) {
-        lci.dsAnchors.erase(who);
+  for (auto const &entry : toRemove) {
+    L<<Logger::Warning<<"Removing Trust Anchor for "<<entry<<", requested via control channel"<<endl;
+    g_luaconfs.modify([entry](LuaConfigItems& lci) {
+        lci.dsAnchors.erase(entry);
       });
-    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, who, true));
+    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, entry, true));
     if (!first) {
       first = false;
       removed += ",";
     }
-    removed += " " + who.toStringRootDot();
+    removed += " " + entry.toStringRootDot();
   }
   return "Removed Trust Anchor(s) for" + removed + "\n";
 }
@@ -637,7 +642,7 @@ static string doCurrentQueries()
 
 uint64_t* pleaseGetThrottleSize()
 {
-  return new uint64_t(t_sstorage->throttle.size());
+  return new uint64_t(t_sstorage ? t_sstorage->throttle.size() : 0);
 }
 
 static uint64_t getThrottleSize()
@@ -647,7 +652,7 @@ static uint64_t getThrottleSize()
 
 uint64_t* pleaseGetNegCacheSize()
 {
-  uint64_t tmp=t_sstorage->negcache.size();
+  uint64_t tmp=(t_sstorage ? t_sstorage->negcache.size() : 0);
   return new uint64_t(tmp);
 }
 
@@ -658,7 +663,7 @@ uint64_t getNegCacheSize()
 
 uint64_t* pleaseGetFailedHostsSize()
 {
-  uint64_t tmp=t_sstorage->fails.size();
+  uint64_t tmp=(t_sstorage ? t_sstorage->fails.size() : 0);
   return new uint64_t(tmp);
 }
 uint64_t getFailedHostsSize()
@@ -668,7 +673,7 @@ uint64_t getFailedHostsSize()
 
 uint64_t* pleaseGetNsSpeedsSize()
 {
-  return new uint64_t(t_sstorage->nsSpeeds.size());
+  return new uint64_t(t_sstorage ? t_sstorage->nsSpeeds.size() : 0);
 }
 
 uint64_t getNsSpeedsSize()
@@ -678,7 +683,7 @@ uint64_t getNsSpeedsSize()
 
 uint64_t* pleaseGetConcurrentQueries()
 {
-  return new uint64_t(MT->numProcesses()); 
+  return new uint64_t(MT ? MT->numProcesses() : 0);
 }
 
 static uint64_t getConcurrentQueries()
@@ -688,12 +693,12 @@ static uint64_t getConcurrentQueries()
 
 uint64_t* pleaseGetCacheSize()
 {
-  return new uint64_t(t_RC->size());
+  return new uint64_t(t_RC ? t_RC->size() : 0);
 }
 
 uint64_t* pleaseGetCacheBytes()
 {
-  return new uint64_t(t_RC->bytes());
+  return new uint64_t(t_RC ? t_RC->bytes() : 0);
 }
 
 
@@ -715,7 +720,7 @@ uint64_t doGetCacheBytes()
 
 uint64_t* pleaseGetCacheHits()
 {
-  return new uint64_t(t_RC->cacheHits);
+  return new uint64_t(t_RC ? t_RC->cacheHits : 0);
 }
 
 uint64_t doGetCacheHits()
@@ -725,7 +730,7 @@ uint64_t doGetCacheHits()
 
 uint64_t* pleaseGetCacheMisses()
 {
-  return new uint64_t(t_RC->cacheMisses);
+  return new uint64_t(t_RC ? t_RC->cacheMisses : 0);
 }
 
 uint64_t doGetCacheMisses()
@@ -736,12 +741,12 @@ uint64_t doGetCacheMisses()
 
 uint64_t* pleaseGetPacketCacheSize()
 {
-  return new uint64_t(t_packetCache->size());
+  return new uint64_t(t_packetCache ? t_packetCache->size() : 0);
 }
 
 uint64_t* pleaseGetPacketCacheBytes()
 {
-  return new uint64_t(t_packetCache->bytes());
+  return new uint64_t(t_packetCache ? t_packetCache->bytes() : 0);
 }
 
 
@@ -758,7 +763,7 @@ uint64_t doGetPacketCacheBytes()
 
 uint64_t* pleaseGetPacketCacheHits()
 {
-  return new uint64_t(t_packetCache->d_hits);
+  return new uint64_t(t_packetCache ? t_packetCache->d_hits : 0);
 }
 
 uint64_t doGetPacketCacheHits()
@@ -768,7 +773,7 @@ uint64_t doGetPacketCacheHits()
 
 uint64_t* pleaseGetPacketCacheMisses()
 {
-  return new uint64_t(t_packetCache->d_misses);
+  return new uint64_t(t_packetCache ? t_packetCache->d_misses : 0);
 }
 
 uint64_t doGetPacketCacheMisses()

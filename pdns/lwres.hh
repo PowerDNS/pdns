@@ -51,7 +51,7 @@ int arecvfrom(char *data, size_t len, int flags, const ComboAddress& ip, size_t 
 class LWResException : public PDNSException
 {
 public:
-  LWResException(const string &reason) : PDNSException(reason){}
+  LWResException(const string &reason_) : PDNSException(reason_){}
 };
 
 //! LWRes class 

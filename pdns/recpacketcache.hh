@@ -50,10 +50,12 @@ class RecursorPacketCache
 {
 public:
   RecursorPacketCache();
-  bool getResponsePacket(unsigned int tag, const std::string& queryPacket, time_t now, std::string* responsePacket, uint32_t* age);
-  void insertResponsePacket(unsigned int tag, const DNSName& qname, uint16_t qtype, const std::string& queryPacket, const std::string& responsePacket, time_t now, uint32_t ttd);
-  bool getResponsePacket(unsigned int tag, const std::string& queryPacket, time_t now, std::string* responsePacket, uint32_t* age, RecProtoBufMessage* protobufMessage);
-  void insertResponsePacket(unsigned int tag, const DNSName& qname, uint16_t qtype, const std::string& queryPacket, const std::string& responsePacket, time_t now, uint32_t ttd, const RecProtoBufMessage* protobufMessage);
+  bool getResponsePacket(unsigned int tag, const std::string& queryPacket, time_t now, std::string* responsePacket, uint32_t* age, uint32_t* qhash);
+  bool getResponsePacket(unsigned int tag, const std::string& queryPacket, time_t now, std::string* responsePacket, uint32_t* age, uint32_t* qhash, RecProtoBufMessage* protobufMessage);
+  bool getResponsePacket(unsigned int tag, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, uint32_t* qhash);
+  bool getResponsePacket(unsigned int tag, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, uint32_t* qhash, RecProtoBufMessage* protobufMessage);
+  void insertResponsePacket(unsigned int tag, uint32_t qhash, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::string& responsePacket, time_t now, uint32_t ttl);
+  void insertResponsePacket(unsigned int tag, uint32_t qhash, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::string& responsePacket, time_t now, uint32_t ttl, const RecProtoBufMessage* protobufMessage);
   void doPruneTo(unsigned int maxSize=250000);
   uint64_t doDump(int fd);
   int doWipePacketCache(const DNSName& name, uint16_t qtype=0xffff, bool subtree=false);
@@ -68,10 +70,11 @@ private:
   struct NameTag {};
   struct Entry 
   {
-    mutable uint32_t d_ttd;
-    mutable uint32_t d_creation; // so we can 'age' our packets
+    mutable time_t d_ttd;
+    mutable time_t d_creation; // so we can 'age' our packets
     DNSName d_name;
     uint16_t d_type;
+    uint16_t d_class;
     mutable std::string d_packet; // "I know what I am doing"
 #ifdef HAVE_PROTOBUF
     mutable RecProtoBufMessage d_protobufMessage;
@@ -80,7 +83,7 @@ private:
     uint32_t d_tag;
     inline bool operator<(const struct Entry& rhs) const;
     
-    uint32_t getTTD() const
+    time_t getTTD() const
     {
       return d_ttd;
     }
@@ -96,6 +99,8 @@ private:
   > packetCache_t;
   
   packetCache_t d_packetCache;
+
+  bool checkResponseMatches(std::pair<packetCache_t::index<HashTag>::type::iterator, packetCache_t::index<HashTag>::type::iterator> range, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, RecProtoBufMessage* protobufMessage);
 };
 
 #endif

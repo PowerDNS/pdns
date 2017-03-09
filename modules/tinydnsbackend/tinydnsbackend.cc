@@ -153,7 +153,7 @@ void TinyDNSBackend::getAllDomains(vector<DomainInfo> *domains, bool include_dis
   d_isAxfr=true;
   d_dnspacket = NULL;
 
-  d_cdbReader=new CDB(getArg("dbfile"));
+  d_cdbReader=std::unique_ptr<CDB>(new CDB(getArg("dbfile")));
   d_cdbReader->searchAll();
   DNSResourceRecord rr;
 
@@ -178,7 +178,7 @@ void TinyDNSBackend::getAllDomains(vector<DomainInfo> *domains, bool include_dis
 bool TinyDNSBackend::list(const DNSName &target, int domain_id, bool include_disabled) {
   d_isAxfr=true;
   string key = target.toDNSString(); // FIXME400 bug: no lowercase here? or promise that from core?
-  d_cdbReader=new CDB(getArg("dbfile"));
+  d_cdbReader=std::unique_ptr<CDB>(new CDB(getArg("dbfile")));
   return d_cdbReader->searchSuffix(key);
 }
 
@@ -199,7 +199,7 @@ void TinyDNSBackend::lookup(const QType &qtype, const DNSName &qdomain, DNSPacke
 
   d_qtype=qtype;
 
-  d_cdbReader=new CDB(getArg("dbfile"));
+  d_cdbReader=std::unique_ptr<CDB>(new CDB(getArg("dbfile")));
   d_cdbReader->searchKey(key);
   d_dnspacket = pkt_p;
 }
@@ -276,7 +276,7 @@ bool TinyDNSBackend::get(DNSResourceRecord &rr)
       rr.qname=DNSName(key.c_str(), key.size(), 0, false);
       rr.domain_id=-1;
       // 11:13.21 <@ahu> IT IS ALWAYS AUTH --- well not really because we are just a backend :-)
-      // We could actually do NSEC3-NARROW DNSSEC according to Habbie, if we do, we need to change something ehre.
+      // We could actually do NSEC3-NARROW DNSSEC according to Habbie, if we do, we need to change something here.
       rr.auth = true;
 
       rr.ttl = pr.get32BitInt();
@@ -318,7 +318,7 @@ bool TinyDNSBackend::get(DNSResourceRecord &rr)
   } // end of while
   DLOG(L<<Logger::Debug<<backendname<<"No more records to return."<<endl);
 
-  delete d_cdbReader;
+  d_cdbReader = nullptr;
   return false;
 }
 

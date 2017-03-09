@@ -215,7 +215,7 @@ remotebackend-pipe-dnssec remotebackend-unix-dnssec remotebackend-http-dnssec re
 #remotebackend-pipe-nsec3 remotebackend-unix-nsec3 remotebackend-http-nsec3
 #remotebackend-pipe-nsec3-narrow remotebackend-unix-nsec3-narrow remotebackend-http-nsec3-narrow
 tinydns
-ldap-tree ldap-simple
+ldap-tree ldap-simple ldap-strict
 #ext-nsd ext-nsd-nsec ext-nsd-nsec3 ext-bind ext-bind-nsec ext-bind-nsec3
 
 * Add -presigned to any ext-nsd, ext-bind, bind, gmysql or gsqlite3 test (except narrow)

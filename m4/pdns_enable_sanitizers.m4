@@ -39,7 +39,17 @@ AC_DEFUN([PDNS_ENABLE_ASAN], [
 
   AS_IF([test "x$enable_asan" != "xno"], [
     gl_COMPILER_OPTION_IF([-fsanitize=address],
-      [SANITIZER_FLAGS="-fsanitize=address $SANITIZER_FLAGS"],
+      [
+        [SANITIZER_FLAGS="-fsanitize=address $SANITIZER_FLAGS"]
+        AC_CHECK_HEADERS([sanitizer/common_interface_defs.h], asan_headers=yes, asan_headers=no)
+        AS_IF([test x"$asan_headers" = "xyes" ],
+          [AC_CHECK_DECL(__sanitizer_start_switch_fiber,
+            [ AC_DEFINE([HAVE_FIBER_SANITIZER], [1], [Define if ASAN fiber annotation interface is available.]) ],
+            [ ],
+            [#include <sanitizer/common_interface_defs.h>]
+          )]
+        )
+      ],
       [AC_MSG_ERROR([Cannot enable AddressSanitizer])]
     )
   ])

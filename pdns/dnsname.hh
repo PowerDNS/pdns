@@ -34,7 +34,7 @@
 #include <boost/container/string.hpp>
 #endif
 
-uint32_t burtleCI(const unsigned char* k, uint32_t lengh, uint32_t init);
+uint32_t burtleCI(const unsigned char* k, uint32_t length, uint32_t init);
 
 // #include "dns.hh"
 // #include "logger.hh"
@@ -227,96 +227,26 @@ inline DNSName operator+(const DNSName& lhs, const DNSName& rhs)
   return ret;
 }
 
-/* Quest in life: serve as a rapid block list. If you add a DNSName to a root SuffixMatchNode, 
-   anything part of that domain will return 'true' in check */
-struct SuffixMatchNode
-{
-  SuffixMatchNode(const std::string& name_="", bool endNode_=false) : name(name_), endNode(endNode_)
-  {}
-  std::string name;
-  std::string d_human;
-  mutable std::set<SuffixMatchNode> children;
-  mutable bool endNode;
-  bool operator<(const SuffixMatchNode& rhs) const
-  {
-    return strcasecmp(name.c_str(), rhs.name.c_str()) < 0;
-  }
-
-  void add(const DNSName& dnsname)
-  {
-    if(!d_human.empty())
-      d_human.append(", ");
-    d_human += dnsname.toString();
-    add(dnsname.getRawLabels());
-  }
-
-  void add(std::vector<std::string> labels) const
-  {
-    if(labels.empty()) { // this allows insertion of the root
-      endNode=true;
-    }
-    else if(labels.size()==1) {
-      auto res=children.insert(SuffixMatchNode(*labels.begin(), true));
-      if(!res.second) {
-        if(!res.first->endNode) {
-          res.first->endNode = true;
-        }
-      }
-    }
-    else {
-      auto res=children.insert(SuffixMatchNode(*labels.rbegin(), false));
-      labels.pop_back();
-      res.first->add(labels);
-    }
-  }
-
-  bool check(const DNSName& dnsname)  const
-  {
-    if(children.empty()) // speed up empty set
-      return endNode;
-    return check(dnsname.getRawLabels());
-  }
-
-  bool check(std::vector<std::string> labels) const
-  {
-    if(labels.empty()) // optimization
-      return endNode; 
-
-    SuffixMatchNode smn(*labels.rbegin());
-    auto child = children.find(smn);
-    if(child == children.end())
-      return endNode;
-    labels.pop_back();
-    return child->check(labels);
-  }
-  
-  std::string toString() const
-  {
-    return d_human;
-  }
-
-};
-
 template<typename T>
 struct SuffixMatchTree
 {
-  SuffixMatchTree(const std::string& name_="", bool endNode_=false) : name(name_), endNode(endNode_)
+  SuffixMatchTree(const std::string& name="", bool endNode_=false) : d_name(name), endNode(endNode_)
   {}
 
   SuffixMatchTree(const SuffixMatchTree& rhs)
   {
-    name = rhs.name;
+    d_name = rhs.d_name;
     children = rhs.children;
     endNode = rhs.endNode;
     d_value = rhs.d_value;
   }
-  std::string name;
+  std::string d_name;
   mutable std::set<SuffixMatchTree> children;
   mutable bool endNode;
   mutable T d_value;
   bool operator<(const SuffixMatchTree& rhs) const
   {
-    return strcasecmp(name.c_str(), rhs.name.c_str()) < 0;
+    return strcasecmp(d_name.c_str(), rhs.d_name.c_str()) < 0;
   }
   typedef SuffixMatchTree value_type;
 
@@ -386,6 +316,41 @@ struct SuffixMatchTree
     }
     labels.pop_back();
     return child->lookup(labels);
+  }
+
+};
+
+/* Quest in life: serve as a rapid block list. If you add a DNSName to a root SuffixMatchNode,
+   anything part of that domain will return 'true' in check */
+struct SuffixMatchNode
+{
+  SuffixMatchNode()
+  {}
+  std::string d_human;
+  SuffixMatchTree<bool> d_tree;
+
+  void add(const DNSName& dnsname)
+  {
+    if(!d_human.empty())
+      d_human.append(", ");
+    d_human += dnsname.toString();
+
+    d_tree.add(dnsname, true);
+  }
+
+  void add(std::vector<std::string> labels)
+  {
+    d_tree.add(labels, true);
+  }
+
+  bool check(const DNSName& dnsname) const
+  {
+    return d_tree.lookup(dnsname) != nullptr;
+  }
+
+  std::string toString() const
+  {
+    return d_human;
   }
 
 };

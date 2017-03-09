@@ -12,6 +12,7 @@ Cexternal.example.com:somewhere.else.net.:120
 @external-mail.example.com::server1.test.com.:25:120
 &france.example.com::ns1.otherprovider.net.:120
 &france.example.com::ns2.otherprovider.net.:120
+:google-alias.example.com:65401:\023google-public-dns-a\006google\300\024:120
 +hightype.example.com:192.168.1.5:120
 :hightype.example.com:65534:\007\355\046\000\001:120
 +host-0.example.com:192.168.1.0:120
@@ -20016,6 +20017,7 @@ Cexternal.example.com:somewhere.else.net.:120
 +host-9997.example.com:192.168.1.13:120
 +host-9998.example.com:192.168.1.14:120
 +host-9999.example.com:192.168.1.15:120
++host-for-auto-ptr.example.com:192.0.2.1:120
 :hwinfo.example.com:13:\003abc\003def:120
 :ipv6.example.com:28:\040\001\006\250\000\000\000\001\002\020K\377\376KLa:120
 &italy.example.com::italy-ns1.example.com.:120
@@ -20280,3 +20282,7 @@ Zcdnskey-cds-test.com:ns1.cdnskey-cds-test.:ahu.example.com.:2005092501:28800:72
 +cdnskey-cds-test.com:127.0.0.1:3600
 +ns1.cdnskey-cds-test.com:1.1.1.1:3600
 +ns2.cdnskey-cds-test.com:2.2.2.2:3600
+#2000081501 auto axfr-get
+Z2.0.192.in-addr.arpa:ns1.example.com.:ahu.example.com.:2000081501:28800:7200:604800:86400:120
+&2.0.192.in-addr.arpa::ns1.example.com.:120
+&2.0.192.in-addr.arpa::ns2.example.com.:120

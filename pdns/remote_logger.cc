@@ -30,33 +30,6 @@ bool RemoteLogger::reconnect()
   return true;
 }
 
-bool RemoteLogger::sendData(const char* buffer, size_t bufferSize)
-{
-  size_t pos = 0;
-  while(pos < bufferSize) {
-    ssize_t written = write(d_socket, buffer + pos, bufferSize - pos);
-    if (written == -1) {
-      int res = errno;
-      if (res == EWOULDBLOCK || res == EAGAIN) {
-        return false;
-      }
-      else if (res != EINTR) {
-        reconnect();
-        return false;
-      }
-    }
-    else if (written == 0) {
-      reconnect();
-      return false;
-    }
-    else {
-      pos += (size_t) written;
-    }
-  }
-
-  return true;
-}
-
 void RemoteLogger::worker()
 {
   if (d_asyncConnect) {
@@ -76,10 +49,8 @@ void RemoteLogger::worker()
     }
 
     try {
-      uint16_t len = data.length();
-      len = htons(len);
-      writen2WithTimeout(d_socket, &len, sizeof(len), (int) d_timeout);
-      writen2WithTimeout(d_socket, data.c_str(), data.length(), (int) d_timeout);
+      uint16_t len = static_cast<uint16_t>(data.length());
+      sendSizeAndMsgWithTimeout(d_socket, len, data.c_str(), static_cast<int>(d_timeout), nullptr, nullptr, 0, 0, 0);
     }
     catch(const std::runtime_error& e) {
 #ifdef WE_ARE_RECURSOR

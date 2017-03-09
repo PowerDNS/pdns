@@ -17,10 +17,10 @@ statements for backends.
 
 **Warning**: Make sure that you can actually resolve the hostname of your database without accessing the database! It is advised to supply an IP address here to prevent chicken/egg problems!
 
-Now start PowerDNS using the monitor command:
+Now start PowerDNS in the foreground:
 
 ```
-# service pdns monitor
+# /usr/sbin/pdns_server --daemon=no --guardian=no --loglevel=9
 (...)
 Dec 30 13:40:09 About to create 3 backend threads for UDP
 Dec 30 13:40:09 gmysql Connection failed: Unable to connect to database: Access denied for user 'hubert'@'localhost' to database 'pdns-non-existant'
@@ -43,7 +43,7 @@ Connect to MySQL as a user with sufficient privileges and issue the following co
 Now we have a database and an empty table. PowerDNS should now be able to launch in monitor mode and display no errors:
 
 ```
-# /etc/init.d/pdns monitor
+# /usr/sbin/pdns_server --daemon=no --guardian=no --loglevel=9
 (...)
 15:31:30 PowerDNS 1.99.0 (Mar 12 2002, 15:00:28) starting up
 15:31:30 About to create 3 backend threads
@@ -59,12 +59,12 @@ $ dig +short www.example.com @127.0.0.1
 $
 ```
 
-**Warning**: When debugging DNS problems, don't use `host`. Please use `dig`  or `drill`.
+**Warning**: When debugging DNS problems, don't use `host`. Please use `dig` or `drill`.
 
-And indeed, the control console now shows:
+And indeed, the output in the first terminal now shows:
 
 ```
-Mar 12 15:41:12 We're not authoritative for 'www.example.com', sending unauth normal response
+Mar 01 16:04:42 Remote 127.0.0.1 wants 'www.example.com|A', do = 0, bufsize = 1680: packetcache MISS
 ```
 
 Now we need to add some records to our database (in a separate shell):
@@ -100,17 +100,19 @@ $ dig +short example.com MX @127.0.0.1
 25 mail.example.com
 ```
 
-To confirm what happened, issue the command `SHOW *` to the control console:
+To confirm what happened, check the statistics:
 
 ```
-% show *
+$ /usr/sbin/pdns_control SHOW \*
 corrupt-packets=0,latency=0,packetcache-hit=2,packetcache-miss=5,packetcache-size=0,
 qsize-a=0,qsize-q=0,servfail-packets=0,tcp-answers=0,tcp-queries=0,
 timedout-packets=0,udp-answers=7,udp-queries=7,
 %
 ```
 
-The actual numbers will vary somewhat. Now enter `QUIT` and start PowerDNS as a regular daemon, and check launch status:
+The actual numbers will vary somewhat. Now hit CTRL+C in the shell where PowerDNS runs, start PowerDNS as a regular daemon, and check launch status:
+
+On SysV systems:
 
 ```
 # /etc/init.d/pdns start
@@ -121,6 +123,28 @@ pdns: 8239: Child running
 pdns: corrupt-packets=0,latency=0,packetcache-hit=0,packetcache-miss=0,
 packetcache-size=0,qsize-a=0,qsize-q=0,servfail-packets=0,tcp-answers=0,
 tcp-queries=0,timedout-packets=0,udp-answers=0,udp-queries=0,
+```
+
+On systemd systems:
+
+```
+# systemctl start pdns.service
+# systemctl status pdns.service
+* pdns.service - PowerDNS Authoritative Server
+   Loaded: loaded (/lib/systemd/system/pdns.service; enabled)
+   Active: active (running) since Tue 2017-01-17 15:59:28 UTC; 1 months 12 days ago
+     Docs: man:pdns_server(1)
+           man:pdns_control(1)
+           https://doc.powerdns.com
+ Main PID: 24636 (pdns_server)
+   CGroup: /system.slice/pdns.service
+           `-24636 /usr/sbin/pdns_server --guardian=no --daemon=no --disable-syslog --write-pid=no
+
+(...)
+# /usr/sbin/pdns_control SHOW \*
+corrupt-packets=0,latency=0,packetcache-hit=2,packetcache-miss=5,packetcache-size=0,
+qsize-a=0,qsize-q=0,servfail-packets=0,tcp-answers=0,tcp-queries=0,
+timedout-packets=0,udp-answers=7,udp-queries=7,
 ```
 
 You now have a working database driven nameserver! To convert other zones already present, use the [`zone2sql`](migration.md#zone2sql) tool.
@@ -154,11 +178,11 @@ If you have multiple IP addresses on the internet on one machine, UNIX often sen
 # Using ALIAS records
 The ALIAS record provides a way to have CNAME-like behaviour on the zone apex.
 
-In order to correctly serve ALIAS records, set the [`recursor`](settings.md#recursor)
+In order to correctly serve ALIAS records, set the [`resolver`](settings.md#resolver)
 setting to an existing resolver: 
 
 ```
-recursor=[::1]:5300
+resolver=[::1]:5300
 ```
 
 and add the ALIAS record to your zone apex. e.g.:
@@ -191,7 +215,7 @@ automatically follow changes in those A/AAAA records unless you AXFR regularly.
 
 ## ALIAS and DNSSEC
 Starting with the PowerDNS Authoritative Server 4.0.0, DNSSEC 'washing' of ALIAS
-records is supported on AXFR (**not** on live-siging). Set `outgoing-axfr-expand-alias`
+records is supported on AXFR (**not** on live-signing). Set `outgoing-axfr-expand-alias`
 to 'yes' and enable DNSSEC for the zone on the master. PowerDNS will sign the
 A/AAAA records during the AXFR.
 
@@ -211,7 +235,7 @@ case):
 pdnsutil add-zone-key example.net ksk active
 ```
 
-Note that a key with same algorith as the KSK to be replaced should be created,
+Note that a key with same algorithm as the KSK to be replaced should be created,
 as this is not an algorithm roll over.
 
 If this zone is of the type 'MASTER', increase the SOA serial. The rollover is

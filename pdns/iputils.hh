@@ -59,23 +59,22 @@
 #define le64toh(x) OSSwapLittleToHostInt64(x)
 #endif
 
-// for illumos
-#ifdef BE_64
+#ifdef __sun
 
 #define htobe16(x) BE_16(x)
 #define htole16(x) LE_16(x)
-#define be16toh(x) BE_IN16(x)
-#define le16toh(x) LE_IN16(x)
+#define be16toh(x) BE_IN16(&(x))
+#define le16toh(x) LE_IN16(&(x))
 
 #define htobe32(x) BE_32(x)
 #define htole32(x) LE_32(x)
-#define be32toh(x) BE_IN32(x)
-#define le32toh(x) LE_IN32(x)
+#define be32toh(x) BE_IN32(&(x))
+#define le32toh(x) LE_IN32(&(x))
 
 #define htobe64(x) BE_64(x)
 #define htole64(x) LE_64(x)
-#define be64toh(x) BE_IN64(x)
-#define le64toh(x) LE_IN64(x)
+#define be64toh(x) BE_IN64(&(x))
+#define le64toh(x) LE_IN64(&(x))
 
 #endif
 
@@ -276,7 +275,7 @@ union ComboAddress {
       return "["+toString() + "]:" + std::to_string(ntohs(sin4.sin_port));
   }
 
-  void truncate(unsigned int bits);
+  void truncate(unsigned int bits) noexcept;
 };
 
 /** This exception is thrown by the Netmask class and by extension by the NetmaskGroup class */
@@ -478,7 +477,7 @@ private:
  * To erase something copy values to new tree sans the value you want to erase.
  *
  * Use swap if you need to move the tree to another NetmaskTree instance, it is WAY faster
- * than using copy ctor or assigment operator, since it moves the nodes and tree root to
+ * than using copy ctor or assignment operator, since it moves the nodes and tree root to
  * new home instead of actually recreating the tree.
  *
  * Please see NetmaskGroup for example of simple use case. Other usecases can be found
@@ -711,8 +710,12 @@ public:
         bits++;
       }
       if (node) {
-        for(auto it = _nodes.begin(); it != _nodes.end(); it++)
-           if (node->node4.get() == *it) _nodes.erase(it);
+        for(auto it = _nodes.begin(); it != _nodes.end(); ) {
+          if (node->node4.get() == *it)
+            it = _nodes.erase(it);
+          else
+            it++;
+        }
         node->node4.reset();
       }
     } else {
@@ -732,8 +735,13 @@ public:
         bits++;
       }
       if (node) {
-        for(auto it = _nodes.begin(); it != _nodes.end(); it++)
-           if (node->node6.get() == *it) _nodes.erase(it);
+        for(auto it = _nodes.begin(); it != _nodes.end(); ) {
+          if (node->node6.get() == *it)
+            it = _nodes.erase(it);
+          else
+            it++;
+        }
+
         node->node6.reset();
       }
     }
@@ -789,7 +797,9 @@ public:
 
   bool match(const ComboAddress *ip) const
   {
-    return tree.match(*ip);
+    const auto &ret = tree.lookup(*ip);
+    if(ret) return ret->second;
+    return false;
   }
 
   bool match(const ComboAddress& ip) const
@@ -798,15 +808,19 @@ public:
   }
 
   //! Add this string to the list of possible matches
-  void addMask(const string &ip)
+  void addMask(const string &ip, bool positive=true)
   {
-    addMask(Netmask(ip));
+    if(!ip.empty() && ip[0] == '!') {
+      addMask(Netmask(ip.substr(1)), false);
+    } else {
+      addMask(Netmask(ip), positive);
+    }
   }
 
   //! Add this Netmask to the list of possible matches
-  void addMask(const Netmask& nm)
+  void addMask(const Netmask& nm, bool positive=true)
   {
-    tree.insert(nm);
+    tree.insert(nm).second=positive;
   }
 
   void clear()
@@ -830,6 +844,8 @@ public:
     for(auto iter = tree.begin(); iter != tree.end(); ++iter) {
       if(iter != tree.begin())
         str <<", ";
+      if(!((*iter)->second))
+        str<<"!";
       str<<(*iter)->first.toString();
     }
     return str.str();
@@ -837,8 +853,9 @@ public:
 
   void toStringVector(vector<string>* vec) const
   {
-    for(auto iter = tree.begin(); iter != tree.end(); ++iter)
-      vec->push_back((*iter)->first.toString());
+    for(auto iter = tree.begin(); iter != tree.end(); ++iter) {
+      vec->push_back(((*iter)->second ? "" : "!") + (*iter)->first.toString());
+    }
   }
 
   void toMasks(const string &ips)
@@ -893,7 +910,8 @@ bool HarvestTimestamp(struct msghdr* msgh, struct timeval* tv);
 void fillMSGHdr(struct msghdr* msgh, struct iovec* iov, char* cbuf, size_t cbufsize, char* data, size_t datalen, ComboAddress* addr);
 ssize_t sendfromto(int sock, const char* data, size_t len, int flags, const ComboAddress& from, const ComboAddress& to);
 ssize_t sendMsgWithTimeout(int fd, const char* buffer, size_t len, int timeout, ComboAddress& dest, const ComboAddress& local, unsigned int localItf);
-
-#endif
+bool sendSizeAndMsgWithTimeout(int sock, uint16_t bufferLen, const char* buffer, int idleTimeout, const ComboAddress* dest, const ComboAddress* local, unsigned int localItf, int totalTimeout, int flags);
 
 extern template class NetmaskTree<bool>;
+
+#endif

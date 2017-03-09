@@ -47,7 +47,7 @@
 #include "mtasker.hh"
 #include "iputils.hh"
 #include "validate.hh"
-
+#include "ednssubnet.hh"
 #include "filterpo.hh"
 
 #include "config.h"
@@ -66,9 +66,6 @@ struct BothRecordsAndSignatures
   vector<DNSRecord> signatures;
 };
 typedef map<pair<DNSName,uint16_t>, BothRecordsAndSignatures> recsig_t;
-
-recsig_t harvestRecords(const std::vector<DNSRecord>& records, const std::set<uint16_t>& types);
-
 
 struct NegCacheEntry
 {
@@ -308,7 +305,7 @@ public:
     d_lm = lm;
   }
 
-  bool doLog()
+  bool doLog() const
   {
     return d_lm != LogNone;
   }
@@ -352,7 +349,7 @@ public:
     d_skipCNAMECheck = skip;
   }
 
-  int asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res);
+  int asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res) const;
 
   static void doEDNSDumpAndClose(int fd);
 
@@ -373,6 +370,7 @@ public:
   static unsigned int s_maxdepth;
   std::unordered_map<std::string,bool> d_discardedPolicies;
   DNSFilterEngine::Policy d_appliedPolicy;
+  boost::optional<const EDNSSubnetOpts&> d_incomingECS;
 #ifdef HAVE_PROTOBUF
   boost::optional<const boost::uuids::uuid&> d_initialRequestId;
 #endif
@@ -389,6 +387,7 @@ public:
   bool d_wasOutOfBand{false};
   bool d_wantsRPZ{true};
   bool d_skipCNAMECheck{false};
+  bool d_incomingECSFound{false};
   
   typedef multi_index_container <
     NegCacheEntry,
@@ -522,15 +521,24 @@ private:
                   unsigned int depth, set<GetBestNSAnswer>&beenthere);
   int doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere);
   bool doOOBResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int &res);
-  domainmap_t::const_iterator getBestAuthZone(DNSName* qname);
+  domainmap_t::const_iterator getBestAuthZone(DNSName* qname) const;
   bool doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int &res);
   bool doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int &res);
   void getBestNSFromCache(const DNSName &qname, const QType &qtype, vector<DNSRecord>&bestns, bool* flawedNSSet, unsigned int depth, set<GetBestNSAnswer>& beenthere);
   DNSName getBestNSNamesFromCache(const DNSName &qname, const QType &qtype, NsSet& nsset, bool* flawedNSSet, unsigned int depth, set<GetBestNSAnswer>&beenthere);
 
   inline vector<DNSName> shuffleInSpeedOrder(NsSet &nameservers, const string &prefix);
-  bool moreSpecificThan(const DNSName& a, const DNSName &b);
+  bool moreSpecificThan(const DNSName& a, const DNSName &b) const;
   vector<ComboAddress> getAddrs(const DNSName &qname, unsigned int depth, set<GetBestNSAnswer>& beenthere);
+
+  bool nameserversBlockedByRPZ(const DNSFilterEngine& dfe, const NsSet& nameservers);
+  bool nameserverIPBlockedByRPZ(const DNSFilterEngine& dfe, const ComboAddress&);
+  bool throttledOrBlocked(const std::string& prefix, const ComboAddress& remoteIP, const DNSName& qname, const QType& qtype, bool pierceDontQuery);
+
+  vector<ComboAddress> retrieveAddressesForNS(const std::string& prefix, const DNSName& qname, vector<DNSName >::const_iterator& tns, const unsigned int depth, set<GetBestNSAnswer>& beenthere, const vector<DNSName >& rnameservers, NsSet& nameservers, bool& sendRDQuery, bool& pierceDontQuery, bool& flawedNSSet);
+  RCode::rcodes_ updateCacheFromRecords(const std::string& prefix, LWResult& lwr, const DNSName& qname, const DNSName& auth, NsSet& nameservers, const DNSName& tns, const boost::optional<Netmask>);
+  bool processRecords(const std::string& prefix, const DNSName& qname, const QType& qtype, const DNSName& auth, LWResult& lwr, const bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, bool& sawDS);
+
 private:
   ostringstream d_trace;
   shared_ptr<RecursorLua4> d_pdl;
@@ -736,10 +744,13 @@ uint64_t* pleaseWipeCache(const DNSName& canon, bool subtree=false);
 uint64_t* pleaseWipePacketCache(const DNSName& canon, bool subtree);
 uint64_t* pleaseWipeAndCountNegCache(const DNSName& canon, bool subtree=false);
 void doCarbonDump(void*);
-boost::optional<Netmask> getEDNSSubnetMask(const ComboAddress& local, const DNSName&dn, const ComboAddress& rem);
+boost::optional<Netmask> getEDNSSubnetMask(const ComboAddress& local, const DNSName&dn, const ComboAddress& rem, boost::optional<const EDNSSubnetOpts&> incomingECS);
 void  parseEDNSSubnetWhitelist(const std::string& wlist);
 
 extern __thread struct timeval g_now;
+
+extern NetmaskGroup g_ednssubnets;
+extern SuffixMatchNode g_ednsdomains;
 
 #ifdef HAVE_PROTOBUF
 extern __thread boost::uuids::random_generator* t_uuidGenerator;

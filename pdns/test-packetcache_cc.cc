@@ -21,10 +21,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
 
   ::arg().set("max-cache-entries", "Maximum number of cache entries")="1000000";
   ::arg().set("cache-ttl","Seconds to store packets in the PacketCache")="20";
-  ::arg().set("recursive-cache-ttl","Seconds to store packets for recursive queries in the PacketCache")="10";
   ::arg().set("negquery-cache-ttl","Seconds to store negative query results in the QueryCache")="60";
   ::arg().set("query-cache-ttl","Seconds to store query results in the QueryCache")="20";
-  ::arg().set("recursor","If recursion is desired, IP address of a recursing nameserver")="no"; 
 
   S.declare("deferred-cache-inserts","Amount of cache inserts that were deferred because of maintenance");
   S.declare("deferred-cache-lookup","Amount of cache lookups that were deferred because of maintenance");
@@ -208,46 +206,38 @@ BOOST_AUTO_TEST_CASE(test_PacketCachePacket) {
 
     r.parse((char*)&pak[0], pak.size());
 
-    PC.insert(&q, &r, false, 3600);
+    PC.insert(&q, &r, 3600);
 
-    BOOST_CHECK_EQUAL(PC.get(&q, &r2, false), 1);
+    BOOST_CHECK_EQUAL(PC.get(&q, &r2), 1);
     BOOST_CHECK_EQUAL(r2.qdomain, r.qdomain);
 
     PC.purge("www.powerdns.com");
-    BOOST_CHECK_EQUAL(PC.get(&q, &r2, false), 0);
+    BOOST_CHECK_EQUAL(PC.get(&q, &r2), 0);
 
-    PC.insert(&q, &r, false, 3600);
-    BOOST_CHECK_EQUAL(PC.get(&q, &r2, false), 1);
+    PC.insert(&q, &r, 3600);
+    BOOST_CHECK_EQUAL(PC.get(&q, &r2), 1);
     BOOST_CHECK_EQUAL(r2.qdomain, r.qdomain);
     PC.purge("com$");
-    BOOST_CHECK_EQUAL(PC.get(&q, &r2, false), 0);
+    BOOST_CHECK_EQUAL(PC.get(&q, &r2), 0);
 
-    PC.insert(&q, &r, false, 3600);
-    BOOST_CHECK_EQUAL(PC.get(&q, &r2, false), 1);
+    PC.insert(&q, &r, 3600);
+    BOOST_CHECK_EQUAL(PC.get(&q, &r2), 1);
     BOOST_CHECK_EQUAL(r2.qdomain, r.qdomain);
     PC.purge("powerdns.com$");
-    BOOST_CHECK_EQUAL(PC.get(&q, &r2, false), 0);
+    BOOST_CHECK_EQUAL(PC.get(&q, &r2), 0);
 
-    PC.insert(&q, &r, false, 3600);
-    BOOST_CHECK_EQUAL(PC.get(&q, &r2, false), 1);
+    PC.insert(&q, &r, 3600);
+    BOOST_CHECK_EQUAL(PC.get(&q, &r2), 1);
     BOOST_CHECK_EQUAL(r2.qdomain, r.qdomain);
     PC.purge("www.powerdns.com$");
-    BOOST_CHECK_EQUAL(PC.get(&q, &r2, false), 0);
+    BOOST_CHECK_EQUAL(PC.get(&q, &r2), 0);
 
-    PC.insert(&q, &r, false, 3600);
-    BOOST_CHECK_EQUAL(PC.get(&q, &r2, true), 0);
-    PC.purge("www.powerdns.com$");
-
-    PC.insert(&q, &r, true, 3600);
-    BOOST_CHECK_EQUAL(PC.get(&q, &r2, false), 0);
-    PC.purge("www.powerdns.com$");
-
-    PC.insert(&q, &r, true, 3600);
+    PC.insert(&q, &r, 3600);
     PC.purge("www.powerdns.net");
-    BOOST_CHECK_EQUAL(PC.get(&q, &r2, true), 1);
+    BOOST_CHECK_EQUAL(PC.get(&q, &r2), 1);
     BOOST_CHECK_EQUAL(r2.qdomain, r.qdomain);
     PC.purge("net$");
-    BOOST_CHECK_EQUAL(PC.get(&q, &r2, true), 1);
+    BOOST_CHECK_EQUAL(PC.get(&q, &r2), 1);
     BOOST_CHECK_EQUAL(r2.qdomain, r.qdomain);
     PC.purge("www.powerdns.com$");
     BOOST_CHECK_EQUAL(PC.size(), 0);

@@ -214,8 +214,8 @@ bool RemoteBackend::list(const DNSName& target, int domain_id, bool include_disa
      { "method", "list" },
      { "parameters", Json::object{
        { "zonename", target.toString() },
-       { "domain-id", domain_id },
-       { "include-disabled", include_disabled }
+       { "domain_id", domain_id },
+       { "include_disabled", include_disabled }
      }}
    };
 

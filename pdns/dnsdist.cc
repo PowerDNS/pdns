@@ -89,6 +89,10 @@ std::vector<std::shared_ptr<DynBPFFilter> > g_dynBPFFilters;
 vector<ClientState *> g_frontends;
 GlobalStateHolder<pools_t> g_pools;
 
+bool g_snmpEnabled{false};
+bool g_snmpTrapsEnabled{false};
+DNSDistSNMPAgent* g_snmpAgent{nullptr};
+
 /* UDP: the grand design. Per socket we listen on for incoming queries there is one thread.
    Then we have a bunch of connected sockets for talking to downstream servers. 
    We send directly to those sockets.
@@ -124,6 +128,7 @@ GlobalStateHolder<pools_t> g_pools;
 
 GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > > g_rulactions;
 GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSResponseAction> > > > g_resprulactions;
+GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSResponseAction> > > > g_cachehitresprulactions;
 Rings g_rings;
 QueryCount g_qcount;
 
@@ -136,7 +141,7 @@ int g_tcpSendTimeout{2};
 int g_udpTimeout{2};
 
 bool g_servFailOnNoPolicy{false};
-bool g_truncateTC{1};
+bool g_truncateTC{false};
 bool g_fixupCase{0};
 static void truncateTC(const char* packet, uint16_t* len)
 try
@@ -599,7 +604,7 @@ shared_ptr<DownstreamState> valrandom(unsigned int val, const NumberedServerVect
     return shared_ptr<DownstreamState>();
 
   int r = val % sum;
-  auto p = upper_bound(poss.begin(), poss.end(),r, [](int r, const decltype(poss)::value_type& a) { return  r < a.first;});
+  auto p = upper_bound(poss.begin(), poss.end(),r, [](int r_, const decltype(poss)::value_type& a) { return  r_ < a.first;});
   if(p==poss.end())
     return shared_ptr<DownstreamState>();
   return p->second;
@@ -692,6 +697,17 @@ std::shared_ptr<ServerPool> createPoolIfNotExists(pools_t& pools, const string& 
   return pool;
 }
 
+void setPoolPolicy(pools_t& pools, const string& poolName, std::shared_ptr<ServerPolicy> policy)
+{
+  std::shared_ptr<ServerPool> pool = createPoolIfNotExists(pools, poolName);
+  if (!poolName.empty()) {
+    vinfolog("Setting pool %s server selection policy to %s", poolName, policy->name);
+  } else {
+    vinfolog("Setting default pool server selection policy to %s", policy->name);
+  }
+  pool->policy = policy;
+}
+
 void addServerToPool(pools_t& pools, const string& poolName, std::shared_ptr<DownstreamState> server)
 {
   std::shared_ptr<ServerPool> pool = createPoolIfNotExists(pools, poolName);
@@ -708,8 +724,8 @@ void addServerToPool(pools_t& pools, const string& poolName, std::shared_ptr<Dow
     });
   /* and now we need to renumber for Lua (custom policies) */
   size_t idx = 1;
-  for (auto& server : pool->servers) {
-    server.first = idx++;
+  for (auto& serv : pool->servers) {
+    serv.first = idx++;
   }
 }
 
@@ -1011,6 +1027,7 @@ try
   auto acl = g_ACL.getLocal();
   auto localPolicy = g_policy.getLocal();
   auto localRulactions = g_rulactions.getLocal();
+  auto localCacheHitRespRulactions = g_cachehitresprulactions.getLocal();
   auto localServers = g_dstates.getLocal();
   auto localDynNMGBlock = g_dynblockNMG.getLocal();
   auto localDynSMTBlock = g_dynblockSMT.getLocal();
@@ -1105,8 +1122,13 @@ try
 
       string poolname;
       int delayMsec=0;
+      /* we need an accurate ("real") value for the response and
+         to store into the IDS, but not for insertion into the
+         rings for example */
+      struct timespec realTime;
       struct timespec now;
       gettime(&now);
+      gettime(&realTime, true);
 
       if (!processQuery(localDynNMGBlock, localDynSMTBlock, localRulactions, blockFilter, dq, poolname, &delayMsec, now))
       {
@@ -1126,7 +1148,7 @@ try
             continue;
           }
 #endif
-          sendUDPResponse(cs->udpFD, response, responseLen, 0, dest, remote);
+          sendUDPResponse(cs->udpFD, response, responseLen, delayMsec, dest, remote);
         }
 
         continue;
@@ -1135,11 +1157,14 @@ try
       DownstreamState* ss = nullptr;
       std::shared_ptr<ServerPool> serverPool = getPool(*localPools, poolname);
       std::shared_ptr<DNSDistPacketCache> packetCache = nullptr;
-      auto policy=localPolicy->policy;
+      auto policy = localPolicy->policy;
+      if (serverPool->policy != nullptr) {
+        policy = serverPool->policy->policy;
+      }
       {
-	std::lock_guard<std::mutex> lock(g_luamutex);
-	ss = policy(serverPool->servers, &dq).get();
-	packetCache = serverPool->packetCache;
+        std::lock_guard<std::mutex> lock(g_luamutex);
+        ss = policy(serverPool->servers, &dq).get();
+        packetCache = serverPool->packetCache;
       }
 
       bool ednsAdded = false;
@@ -1154,13 +1179,21 @@ try
         uint16_t cachedResponseSize = sizeof cachedResponse;
         uint32_t allowExpired = ss ? 0 : g_staleCacheEntriesTTL;
         if (packetCache->get(dq, consumed, dh->id, cachedResponse, &cachedResponseSize, &cacheKey, allowExpired)) {
+          DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.local, dq.remote, (dnsheader*) cachedResponse, sizeof cachedResponse, cachedResponseSize, false, &realTime);
+#ifdef HAVE_PROTOBUF
+          dr.uniqueId = dq.uniqueId;
+#endif
+          if (!processResponse(localCacheHitRespRulactions, dr, &delayMsec)) {
+            continue;
+          }
+
           if (!cs->muted) {
 #ifdef HAVE_DNSCRYPT
             if (!encryptResponse(cachedResponse, &cachedResponseSize, sizeof cachedResponse, false, dnsCryptQuery)) {
               continue;
             }
 #endif
-            sendUDPResponse(cs->udpFD, cachedResponse, cachedResponseSize, 0, dest, remote);
+            sendUDPResponse(cs->udpFD, cachedResponse, cachedResponseSize, delayMsec, dest, remote);
           }
 
           g_stats.cacheHits++;
@@ -1209,7 +1242,7 @@ try
       ids->origFD = cs->udpFD;
       ids->origID = dh->id;
       ids->origRemote = remote;
-      ids->sentTime.start();
+      ids->sentTime.set(realTime);
       ids->qname = qname;
       ids->qtype = dq.qtype;
       ids->qclass = dq.qclass;
@@ -1469,6 +1502,9 @@ void* healthChecksThread()
 
           dss->upStatus = newState;
           dss->currentCheckFailures = 0;
+          if (g_snmpAgent && g_snmpTrapsEnabled) {
+            g_snmpAgent->sendBackendStatusChangeTrap(dss);
+          }
         }
       }
 
@@ -1591,7 +1627,7 @@ static void checkFileDescriptorsLimits(size_t udpBindsCount, size_t tcpBindsCoun
   requiredFDsCount += tcpBindsCount;
   /* max TCP connections currently served */
   requiredFDsCount += g_maxTCPClientThreads;
-  /* max pipes for communicatin between TCP acceptors and client threads */
+  /* max pipes for communicating between TCP acceptors and client threads */
   requiredFDsCount += (g_maxTCPClientThreads * 2);
   /* UDP sockets to backends */
   requiredFDsCount += backendsCount;
@@ -1866,7 +1902,6 @@ try
   
   if(g_locals.empty())
     g_locals.push_back(std::make_tuple(ComboAddress("127.0.0.1", 53), true, false, 0));
-  
 
   g_configurationDone = true;
 
@@ -2070,7 +2105,11 @@ try
   /* this need to be done _after_ dropping privileges */
   g_delay = new DelayPipe<DelayedPacket>();
 
-  g_tcpclientthreads = std::make_shared<TCPClientCollection>(g_maxTCPClientThreads);
+  if (g_snmpAgent) {
+    g_snmpAgent->run();
+  }
+
+  g_tcpclientthreads = std::make_shared<TCPClientCollection>(g_maxTCPClientThreads, g_useTCPSinglePipe);
 
   for(auto& t : todo)
     t();

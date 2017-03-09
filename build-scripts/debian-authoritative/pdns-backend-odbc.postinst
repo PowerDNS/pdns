@@ -32,7 +32,7 @@ renameconffile() {
 #   to hack it a bit.
 #   We only need to do this if the target does not already exist. If the
 #   target already exists, we can later call ucf straight as there
-#   is already a version of the file available, althought never
+#   is already a version of the file available, although never
 #   provided by this package, but we can just propose the new file anyway.
     ucf --debconf-ok $sourcefile $newname
     ucfr $PKGNAME $newname

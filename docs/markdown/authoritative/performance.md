@@ -12,7 +12,7 @@ Different backends will have different characteristics - some will want to have 
 
 This is done with the [`distributor-threads`](settings.md#distributor-threads) setting which says how many distributors will be opened for each receiver thread. Of special importance is the choice between 1 or more backends. In case of only 1 thread, PowerDNS reverts to unthreaded operation which may be a lot faster, depending on your operating system and architecture.
 
-Another very important setting is [`cache-ttl`](settings.md#cache-ttl). PowerDNS caches entire packets it sends out so as to save the time to query backends to assemble all data. The default setting of 20 seconds may be low for high traffic sites, a value of 60 seconds rarely leads to problems.
+Another very important setting is [`cache-ttl`](settings.md#cache-ttl). PowerDNS caches entire packets it sends out so as to save the time to query backends to assemble all data. The default setting of 20 seconds may be low for high traffic sites, a value of 60 seconds rarely leads to problems. Please be aware that if any TTL in the answer is shorter than this setting, the packet cache will respect the answer's shortest TTL.
 
 Some PowerDNS operators set cache-ttl to many hours or even days, and use [`pdns_control`](running.md#pdns_control)` purge` to selectively or globally notify PowerDNS of changes made in the backend. Also look at the [Query Cache](#query-cache) described in this chapter. It may materially improve your performance.
 
@@ -72,7 +72,7 @@ daemon.
 * `servfail-packets`: Amount of packets that could not be answered due to database problems
 * `signature-cache-size`: Number of entries in the signature cache
 * `signatures`: Number of DNSSEC signatures created
-* `sys-msec`: Number of CPU miliseconds sent in system time
+* `sys-msec`: Number of CPU milliseconds sent in system time
 * `tcp-answers-bytes`: Total number of answer bytes sent over TCP (since 4.0.0)
 * `tcp-answers`: Number of answers sent out over TCP
 * `tcp-queries`: Number of questions received over TCP

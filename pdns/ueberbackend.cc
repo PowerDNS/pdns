@@ -1,24 +1,24 @@
 /*
-    PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2005 - 2011  PowerDNS.COM BV
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as 
-    published by the Free Software Foundation
-
-    Additionally, the license of this program contains a special
-    exception which allows to distribute the program in binary form when
-    it is linked against OpenSSL.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-*/
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -29,6 +29,7 @@
 #include "utility.hh"
 
 
+#include <dlfcn.h>
 #include <string>
 #include <map>
 #include <sys/types.h>
@@ -415,13 +416,13 @@ UeberBackend::UeberBackend(const string &pname)
 
   d_negcached=0;
   d_ancount=0;
-  domain_id=-1;
+  d_domain_id=-1;
   d_cached=0;
   d_cache_ttl = ::arg().asNum("query-cache-ttl");
   d_negcache_ttl = ::arg().asNum("negquery-cache-ttl");
 
-  tid=pthread_self(); 
-  stale=false;
+  d_tid=pthread_self();
+  d_stale=false;
 
   backends=BackendMakers().all(pname=="key-only");
 }
@@ -515,7 +516,7 @@ UeberBackend::~UeberBackend()
 // this handle is more magic than most
 void UeberBackend::lookup(const QType &qtype,const DNSName &qname, DNSPacket *pkt_p, int zoneId)
 {
-  if(stale) {
+  if(d_stale) {
     L<<Logger::Error<<"Stale ueberbackend received question, signalling that we want to be recycled"<<endl;
     throw PDNSException("We are stale, please recycle");
   }
@@ -531,7 +532,7 @@ void UeberBackend::lookup(const QType &qtype,const DNSName &qname, DNSPacket *pk
     pthread_mutex_unlock(&d_mut);
   }
 
-  domain_id=zoneId;
+  d_domain_id=zoneId;
 
   d_handle.i=0;
   d_handle.qtype=qtype;
@@ -541,7 +542,7 @@ void UeberBackend::lookup(const QType &qtype,const DNSName &qname, DNSPacket *pk
 
   if(!backends.size()) {
     L<<Logger::Error<<"No database backends available - unable to answer questions."<<endl;
-    stale=true; // please recycle us!
+    d_stale=true; // please recycle us!
     throw PDNSException("We are stale, please recycle");
   }
   else {
@@ -579,19 +580,6 @@ void UeberBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disab
   }
 }
 
-bool UeberBackend::get(DNSResourceRecord &rr)
-{
-  // cout<<"UeberBackend::get(DNSResourceRecord&) called, translating to a DNSZoneRecord query"<<endl;
-  DNSZoneRecord dzr;
-  if(!this->get(dzr))
-    return false;
-
-  rr=DNSResourceRecord(dzr.dr);
-  rr.auth = dzr.auth;
-  rr.domain_id = dzr.domain_id;
-  return true;
-}
-
 bool UeberBackend::get(DNSZoneRecord &rr)
 {
   // cout<<"UeberBackend::get(DNSZoneRecord) called"<<endl;
@@ -609,7 +597,7 @@ bool UeberBackend::get(DNSZoneRecord &rr)
   if(!d_handle.get(rr)) {
     // cout<<"end of ueberbackend get, seeing if we should cache"<<endl;
     if(!d_ancount && d_handle.qname.countLabels()) {// don't cache axfr
-      // cout<<"adding negache"<<endl;
+      // cout<<"adding negcache"<<endl;
       addNegCache(d_question);
     }
     else {
@@ -667,7 +655,7 @@ bool UeberBackend::handle::get(DNSZoneRecord &r)
            <<" out of answers, taking next"<<endl);
       
       d_hinterBackend=parent->backends[i++];
-      d_hinterBackend->lookup(qtype,qname,pkt_p,parent->domain_id);
+      d_hinterBackend->lookup(qtype,qname,pkt_p,parent->d_domain_id);
     }
     else 
       break;

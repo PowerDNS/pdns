@@ -115,7 +115,7 @@ void LUABackend::reload() {
     		
     		//master functions....
         	get_lua_function(lua, "getupdatedmasters", &f_lua_getupdatedmasters);
-		get_lua_function(lua, "setnotifed", &f_lua_setnotifed);
+		get_lua_function(lua, "setnotified", &f_lua_setnotified);
     		
     		//slave functions....
 		get_lua_function(lua, "getdomaininfo", &f_lua_getdomaininfo);

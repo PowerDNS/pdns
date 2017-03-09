@@ -1,4 +1,4 @@
-AM_CPPFLAGS += $(SYSTEMD_CFLAGS) $(LUA_CFLAGS) $(LIBEDIT_CFLAGS) $(YAHTTP_CFLAGS) $(SANITIZER_FLAGS) -DSYSCONFDIR=\"${sysconfdir}\"
+AM_CPPFLAGS += $(SYSTEMD_CFLAGS) $(LUA_CFLAGS) $(LIBEDIT_CFLAGS) $(YAHTTP_CFLAGS) $(SANITIZER_FLAGS) $(NET_SNMP_CFLAGS) -DSYSCONFDIR=\"${sysconfdir}\"
 
 ACLOCAL_AMFLAGS = -I m4
 
@@ -9,7 +9,8 @@ CLEANFILES = dnsmessage.pb.cc dnsmessage.pb.h htmlfiles.h.tmp htmlfiles.h
 dnslabeltext.cc: dnslabeltext.rl
 	$(AM_V_GEN)$(RAGEL) $< -o dnslabeltext.cc
 
-BUILT_SOURCES=htmlfiles.h
+BUILT_SOURCES=htmlfiles.h \
+	dnslabeltext.cc
 
 htmlfiles.h: $(srcdir)/html/*
 	$(AM_V_GEN)$(srcdir)/incfiles $(srcdir) > $@.tmp
@@ -45,7 +46,8 @@ EXTRA_DIST=dnslabeltext.rl \
 	   lua_hpp.mk \
 	   bpf-filter.main.ebpf \
 	   bpf-filter.qname.ebpf \
-	   bpf-filter.ebpf.src
+	   bpf-filter.ebpf.src \
+	   DNSDIST-MIB.txt
 
 bin_PROGRAMS = dnsdist
 
@@ -73,10 +75,11 @@ dnsdist_SOURCES = \
 	dnsdist-console.cc \
 	dnsdist-dnscrypt.cc \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
-	dnsdist-lua.cc \
+	dnsdist-lua.hh dnsdist-lua.cc \
 	dnsdist-lua2.cc \
 	dnsdist-protobuf.cc dnsdist-protobuf.hh \
 	dnsdist-rings.cc \
+	dnsdist-snmp.cc dnsdist-snmp.hh \
 	dnsdist-tcp.cc \
 	dnsdist-web.cc \
 	dnslabeltext.cc \
@@ -99,6 +102,7 @@ dnsdist_SOURCES = \
 	qtype.cc qtype.hh \
 	remote_logger.cc remote_logger.hh \
 	sholder.hh \
+	snmp-agent.cc snmp-agent.hh \
 	sodcrypto.cc sodcrypto.hh \
 	sstuff.hh \
 	statnode.cc statnode.hh \
@@ -120,7 +124,8 @@ dnsdist_LDADD = \
 	$(YAHTTP_LIBS) \
 	$(LIBSODIUM_LIBS) \
 	$(SANITIZER_FLAGS) \
-	$(SYSTEMD_LIBS)
+	$(SYSTEMD_LIBS) \
+	$(NET_SNMP_LIBS)
 
 if HAVE_RE2
 dnsdist_LDADD += $(RE2_LIBS)

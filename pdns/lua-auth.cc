@@ -110,7 +110,6 @@ bool AuthLua::axfrfilter(const ComboAddress& remote, const DNSName& zone, const 
 
   /* get the result */
   DNSResourceRecord rr;
-  rr.d_place = DNSResourceRecord::ANSWER;
   rr.ttl = 3600;
   rr.domain_id = in.domain_id;
 
@@ -140,15 +139,10 @@ bool AuthLua::axfrfilter(const ComboAddress& remote, const DNSName& zone, const 
     else
       rr.qname=DNSName(qname);
 
-    if(!getFromTable("place", tmpnum))
-      rr.d_place = DNSResourceRecord::ANSWER;
-    else
-      rr.d_place = static_cast<DNSResourceRecord::Place>(tmpnum);
-
     /* removes 'value'; keeps 'key' for next iteration */
     lua_pop(d_lua, 1); // table
 
-    //    cerr<<"Adding content '"<<rr.content<<"' with place "<<(int)rr.d_place<<" \n";
+    //    cerr<<"Adding content '"<<rr.content<<"'\n";
     out.push_back(rr);
   }
   lua_pop(d_lua, 2); // c

@@ -27,6 +27,9 @@
 #include <stdio.h>
 #include <iostream>
 
+#ifdef PDNS_USE_VALGRIND
+#include <valgrind/valgrind.h>
+#endif /* PDNS_USE_VALGRIND */
 
 /** \page MTasker
     Simple system for implementing cooperative multitasking of functions, with 
@@ -59,7 +62,7 @@
     which is passed to MTasker::makeThread(), together with a possible argument.
 
     This function is now free to do whatever it wants, but realise that MTasker implements cooperative
-    multitasking, which means that the coder has the responsiblilty of not taking the CPU overly long.
+    multitasking, which means that the coder has the responsibility of not taking the CPU overly long.
     Other threads can only get the CPU if MTasker::yield() is called or if a thread sleeps to wait for an event, 
     using the MTasker::waitEvent() method.
 
@@ -197,7 +200,9 @@ template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::waitEven
   unsigned int diff=d_threads[d_tid].dt.ndiff()/1000;
   d_threads[d_tid].totTime+=diff;
 #endif
+  notifyStackSwitchToKernel();
   pdns_swapcontext(*d_waiters.find(key)->context,d_kernel); // 'A' will return here when 'key' has arrived, hands over control to kernel first
+  notifyStackSwitchDone();
 #ifdef MTASKERTIMING
   d_threads[d_tid].dt.start();
 #endif
@@ -217,7 +222,9 @@ template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::waitEven
 template<class Key, class Val>void MTasker<Key,Val>::yield()
 {
   d_runQueue.push(d_tid);
+  notifyStackSwitchToKernel();
   pdns_swapcontext(*d_threads[d_tid].context ,d_kernel); // give control to the kernel
+  notifyStackSwitchDone();
 }
 
 //! reports that an event took place for which threads may be waiting
@@ -244,8 +251,10 @@ template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::sendEven
   d_tid=waiter->tid;         // set tid 
   d_eventkey=waiter->key;        // pass waitEvent the exact key it was woken for
   auto userspace=std::move(waiter->context);
-  d_waiters.erase(waiter);             // removes the waitpoint 
+  d_waiters.erase(waiter);             // removes the waitpoint
+  notifyStackSwitch(d_threads[d_tid].startOfStack, d_stacksize);
   pdns_swapcontext(d_kernel,*userspace); // swaps back to the above point 'A'
+  notifyStackSwitchDone();
   return 1;
 }
 
@@ -260,6 +269,10 @@ template<class Key, class Val>void MTasker<Key,Val>::makeThread(tfunc_t *start, 
   
   uc->uc_link = &d_kernel; // come back to kernel after dying
   uc->uc_stack.resize (d_stacksize);
+#ifdef PDNS_USE_VALGRIND
+  uc->valgrind_id = VALGRIND_STACK_REGISTER(&uc->uc_stack[0],
+                                            &uc->uc_stack[uc->uc_stack.size()]);
+#endif /* PDNS_USE_VALGRIND */
 
   auto& thread = d_threads[d_maxtid];
   auto mt = this;
@@ -294,8 +307,10 @@ template<class Key, class Val>bool MTasker<Key,Val>::schedule(struct timeval*  n
 #ifdef MTASKERTIMING
     d_threads[d_tid].dt.start();
 #endif
+    notifyStackSwitch(d_threads[d_tid].startOfStack, d_stacksize);
     pdns_swapcontext(d_kernel, *d_threads[d_tid].context);
-      
+    notifyStackSwitchDone();
+
     d_runQueue.pop();
     return true;
   }
@@ -321,9 +336,11 @@ template<class Key, class Val>bool MTasker<Key,Val>::schedule(struct timeval*  n
         d_eventkey=i->key;        // pass waitEvent the exact key it was woken for
         auto uc = i->context;
         d_tid = i->tid;
-        ttdindex.erase(i++);                  // removes the waitpoint 
+        ttdindex.erase(i++);                  // removes the waitpoint
 
+        notifyStackSwitch(d_threads[d_tid].startOfStack, d_stacksize);
         pdns_swapcontext(d_kernel, *uc); // swaps back to the above point 'A'
+        notifyStackSwitchDone();
       }
       else if(i->ttd.tv_sec)
         break;

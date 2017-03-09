@@ -43,10 +43,11 @@ PacketCache PC; //!< This is the main PacketCache, shared across all threads
 DNSProxy *DP;
 DynListener *dl;
 CommunicatorClass Communicator;
-UDPNameserver *N;
+shared_ptr<UDPNameserver> N;
 int avg_latency;
 TCPNameserver *TN;
-vector<DNSDistributor*> g_distributors;
+static vector<DNSDistributor*> g_distributors;
+vector<std::shared_ptr<UDPNameserver> > g_udpReceivers;
 AuthLua *LPE;
 
 ArgvMap &arg()
@@ -99,8 +100,7 @@ void declareArguments()
   ::arg().set("signing-threads","Default number of signer threads to start")="3";
   ::arg().set("receiver-threads","Default number of receiver threads to start")="1";
   ::arg().set("queue-limit","Maximum number of milliseconds to queue a query")="1500"; 
-  ::arg().set("recursor","If recursion is desired, IP address of a recursing nameserver")="no"; 
-  ::arg().set("allow-recursion","List of subnets that are allowed to recurse")="0.0.0.0/0";
+  ::arg().set("resolver","Use this resolver for ALIAS and the internal stub resolver")="no";
   ::arg().set("udp-truncation-threshold", "Maximum UDP response size before we truncate")="1680";
   ::arg().set("disable-tcp","Do not listen to TCP queries")="no";
   
@@ -144,7 +144,6 @@ void declareArguments()
   ::arg().set("carbon-interval", "Number of seconds between carbon (graphite) updates")="30";
 
   ::arg().set("cache-ttl","Seconds to store packets in the PacketCache")="20";
-  ::arg().set("recursive-cache-ttl","Seconds to store packets for recursive queries in the PacketCache")="10";
   ::arg().set("negquery-cache-ttl","Seconds to store negative query results in the QueryCache")="60";
   ::arg().set("query-cache-ttl","Seconds to store query results in the QueryCache")="20";
   ::arg().set("soa-minimum-ttl","Default SOA minimum ttl")="3600";
@@ -345,6 +344,7 @@ void sendout(DNSPacket* a)
 
 //! The qthread receives questions over the internet via the Nameserver class, and hands them to the Distributor for further processing
 void *qthread(void *number)
+try
 {
   DNSPacket *P;
   DNSDistributor *distributor = DNSDistributor::Create(::arg().asNum("distributor-threads", 1)); // the big dispatcher!
@@ -363,19 +363,17 @@ void *qthread(void *number)
 
   int diff;
   bool logDNSQueries = ::arg().mustDo("log-dns-queries");
-  bool doRecursion = ::arg().mustDo("recursor");
-  UDPNameserver *NS = N;
+  shared_ptr<UDPNameserver> NS;
 
   // If we have SO_REUSEPORT then create a new port for all receiver threads
   // other than the first one.
-  if( number != NULL && NS->canReusePort() ) {
-    L<<Logger::Notice<<"Starting new listen thread on the same IPs/ports using SO_REUSEPORT"<<endl;
-    try {
-      NS = new UDPNameserver( true );
-    } catch(PDNSException &e) {
-      L<<Logger::Error<<"Unable to reuse port, falling back to original bind"<<endl;
+  if( number != NULL && N->canReusePort() ) {
+    NS = g_udpReceivers[num];
+    if (NS == nullptr) {
       NS = N;
     }
+  } else {
+    NS = N;
   }
 
   for(;;) {
@@ -409,11 +407,7 @@ void *qthread(void *number)
     }
 
     if((P->d.opcode != Opcode::Notify && P->d.opcode != Opcode::Update) && P->couldBeCached()) {
-      bool haveSomething = false;
-      if (doRecursion && P->d.rd && DP->recurseFor(P))
-        haveSomething=PC.get(P, &cached, true); // does the PacketCache recognize this ruestion (recursive)?
-      if (!haveSomething)
-        haveSomething=PC.get(P, &cached, false); // does the PacketCache recognize this question?
+      bool haveSomething=PC.get(P, &cached); // does the PacketCache recognize this question?
       if (haveSomething) {
         if(logDNSQueries)
           L<<"packetcache HIT"<<endl;
@@ -463,6 +457,11 @@ void *qthread(void *number)
   }
   return 0;
 }
+catch(PDNSException& pe)
+{
+  L<<Logger::Error<<"Fatal error in question thread: "<<pe.reason<<endl;
+  _exit(1);
+}
 
 static void* dummyThread(void *)
 {
@@ -498,6 +497,14 @@ void mainthread()
    stubParseResolveConf();
 
    if(!::arg()["chroot"].empty()) {
+#ifdef HAVE_SYSTEMD
+     char *ns;
+     ns = getenv("NOTIFY_SOCKET");
+     if (ns != nullptr) {
+       L<<Logger::Error<<"Unable to chroot when running from systemd. Please disable chroot= or set the 'Type' for this service to 'simple'"<<endl;
+       exit(1);
+     }
+#endif
      triggerLoadOfLibraries();
      if(::arg().mustDo("master") || ::arg().mustDo("slave"))
         gethostbyname("a.root-servers.net"); // this forces all lookup libraries to be loaded
@@ -516,9 +523,8 @@ void mainthread()
   Utility::dropUserPrivs(newuid);
 
   // We need to start the Recursor Proxy before doing secpoll, see issue #2453
-  if(::arg().mustDo("recursor")){
-    DP=new DNSProxy(::arg()["recursor"]);
-    DP->onlyFrom(::arg()["allow-recursion"]);
+  if(::arg().mustDo("resolver")){
+    DP=new DNSProxy(::arg()["resolver"]);
     DP->go();
   }
 

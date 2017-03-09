@@ -64,7 +64,7 @@ public:
 //  MASTER BACKEND
 
     void getUpdatedMasters(vector<DomainInfo>* domains);
-    void setNotifed(int id, uint32_t serial);
+    void setNotified(int id, uint32_t serial);
 
 
 //  SLAVE BACKEND
@@ -131,7 +131,7 @@ private:
 
     //master functions....
     int f_lua_getupdatedmasters;
-    int f_lua_setnotifed;
+    int f_lua_setnotified;
 
     //slave functions....
     int f_lua_getdomaininfo;

@@ -68,10 +68,9 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
   if(fname.empty())
     return;
   ifstream ifs(fname);
-  if(!ifs) {
-    theL()<<"Unable to read configuration file from '"<<fname<<"': "<<strerror(errno)<<endl;
-    return;
-  }
+  if(!ifs)
+    throw PDNSException("Cannot open file '"+fname+"': "+strerror(errno));
+
   Lua.writeFunction("clearSortlist", [&lci]() { lci.sortlist.clear(); });
   
   /* we can get: "1.2.3.4"
@@ -89,10 +88,11 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
   };
   Lua.writeVariable("Policy", pmap);
 
-  Lua.writeFunction("rpzFile", [&lci](const string& fname, const boost::optional<std::unordered_map<string,boost::variant<int, string>>>& options) {
+  Lua.writeFunction("rpzFile", [&lci](const string& filename, const boost::optional<std::unordered_map<string,boost::variant<int, string>>>& options) {
       try {
 	boost::optional<DNSFilterEngine::Policy> defpol;
 	std::string polName("rpzFile");
+	const size_t zoneIdx = lci.dfe.size();
 	if(options) {
 	  auto& have = *options;
 	  if(have.count("policyName")) {
@@ -116,15 +116,17 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
 		defpol->d_ttl = -1; // get it from the zone
 	    }
 	  }
+          if(have.count("zoneSizeHint")) {
+            lci.dfe.reserve(zoneIdx, static_cast<size_t>(boost::get<int>(constGet(have, "zoneSizeHint"))));
+          }
 	}
-        const size_t zoneIdx = lci.dfe.size();
-        theL()<<Logger::Warning<<"Loading RPZ from file '"<<fname<<"'"<<endl;
+        theL()<<Logger::Warning<<"Loading RPZ from file '"<<filename<<"'"<<endl;
         lci.dfe.setPolicyName(zoneIdx, polName);
-        loadRPZFromFile(fname, lci.dfe, defpol, zoneIdx);
-        theL()<<Logger::Warning<<"Done loading RPZ from file '"<<fname<<"'"<<endl;
+        loadRPZFromFile(filename, lci.dfe, defpol, zoneIdx);
+        theL()<<Logger::Warning<<"Done loading RPZ from file '"<<filename<<"'"<<endl;
       }
       catch(std::exception& e) {
-	theL()<<Logger::Error<<"Unable to load RPZ zone from '"<<fname<<"': "<<e.what()<<endl;
+	theL()<<Logger::Error<<"Unable to load RPZ zone from '"<<filename<<"': "<<e.what()<<endl;
       }
     });
 
@@ -136,7 +138,8 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
         int refresh=0;
 	std::string polName;
 	size_t maxReceivedXFRMBytes = 0;
-        ComboAddress localAddress;
+	ComboAddress localAddress;
+	const size_t zoneIdx = lci.dfe.size();
 	if(options) {
 	  auto& have = *options;
           polName = zone_;
@@ -161,6 +164,9 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
 		defpol->d_ttl = -1; // get it from the zone
 	    }
 	  }
+          if(have.count("zoneSizeHint")) {
+            lci.dfe.reserve(zoneIdx, static_cast<size_t>(boost::get<int>(constGet(have, "zoneSizeHint"))));
+          }
 	  if(have.count("tsigname")) {
             tt.name=DNSName(toLower(boost::get<string>(constGet(have, "tsigname"))));
             tt.algo=DNSName(toLower(boost::get<string>(constGet(have, "tsigalgo"))));
@@ -182,7 +188,6 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
           // We were passed a localAddress, check if its AF matches the master's
           throw PDNSException("Master address("+master.toString()+") is not of the same Address Family as the local address ("+localAddress.toString()+").");
 	DNSName zone(zone_);
-        const size_t zoneIdx = lci.dfe.size();
         lci.dfe.setPolicyName(zoneIdx, polName);
 
         if (!checkOnly) {
@@ -222,8 +227,8 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
 			    }
 			    else {
 			      const auto& v =boost::get<vector<pair<int, string> > >(e.second);
-			      for(const auto& e : v)
-				lci.sortlist.addEntry(formask, Netmask(e.second), order);
+			      for(const auto& entry : v)
+				lci.sortlist.addEntry(formask, Netmask(entry.second), order);
 			    }
 			    ++order;
 			  }
@@ -325,13 +330,13 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
     theL()<<Logger::Error<<"Unable to load Lua script from '"+fname+"': ";
     try {
       std::rethrow_if_nested(e);
-    } catch(const std::exception& e) {
-      // e is the exception that was thrown from inside the lambda
-      theL() << e.what() << std::endl;      
+    } catch(const std::exception& exp) {
+      // exp is the exception that was thrown from inside the lambda
+      theL() << exp.what() << std::endl;
     }
-    catch(const PDNSException& e) {
-      // e is the exception that was thrown from inside the lambda
-      theL() << e.reason << std::endl;      
+    catch(const PDNSException& exp) {
+      // exp is the exception that was thrown from inside the lambda
+      theL() << exp.reason << std::endl;
     }
     throw;
 

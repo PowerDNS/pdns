@@ -212,8 +212,8 @@ void doConsole()
             >
           >(withReturn ? ("return "+line) : line);
         if(ret) {
-          if (const auto strValue = boost::get<shared_ptr<DownstreamState>>(&*ret)) {
-            cout<<(*strValue)->getName()<<endl;
+          if (const auto dsValue = boost::get<shared_ptr<DownstreamState>>(&*ret)) {
+            cout<<(*dsValue)->getName()<<endl;
           }
           else if (const auto strValue = boost::get<string>(&*ret)) {
             cout<<*strValue<<endl;
@@ -253,17 +253,16 @@ void doConsole()
         std::rethrow_if_nested(e);
 
         std::cerr << std::endl;
-      } catch(const std::exception& e) {
-        // e is the exception that was thrown from inside the lambda
-        std::cerr << ": " << e.what() << std::endl;      
+      } catch(const std::exception& ne) {
+        // ne is the exception that was thrown from inside the lambda
+        std::cerr << ": " << ne.what() << std::endl;
       }
-      catch(const PDNSException& e) {
-        // e is the exception that was thrown from inside the lambda
-        std::cerr << ": " << e.reason << std::endl;      
+      catch(const PDNSException& ne) {
+        // ne is the exception that was thrown from inside the lambda
+        std::cerr << ": " << ne.reason << std::endl;
       }
     }
     catch(const std::exception& e) {
-      // e is the exception that was thrown from inside the lambda
       std::cerr << e.what() << std::endl;      
     }
   }
@@ -287,6 +286,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "addPoolRule", true, "domain, pool", "send queries to this domain to that pool" },
   { "addQPSLimit", true, "domain, n", "limit queries within that domain to n per second" },
   { "addQPSPoolRule", true, "x, limit, pool", "like `addPoolRule`, but only select at most 'limit' queries/s for this pool, letting the subsequent rules apply otherwise" },
+  { "addCacheHitResponseAction", true, "DNS rule, DNS response action", "add a cache hit response rule" },
   { "addResponseAction", true, "DNS rule, DNS response action", "add a response rule" },
   { "AllowAction", true, "", "let these packets go through" },
   { "AllowResponseAction", true, "", "let these packets go through" },
@@ -308,8 +308,8 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "exceedNXDOMAINs", true, "rate, seconds", "get set of addresses that exceed `rate` NXDOMAIN/s over `seconds` seconds" },
   { "exceedQRate", true, "rate, seconds", "get set of address that exceed `rate` queries/s over `seconds` seconds" },
   { "exceedQTypeRate", true, "type, rate, seconds", "get set of address that exceed `rate` queries/s for queries of type `type` over `seconds` seconds" },
-  { "exceedRespByterate", true, "rate, seconds", "get set of addresses that exeeded `rate` bytes/s answers over `seconds` seconds" },
-  { "exceedServFails", true, "rate, seconds", "get set of addresses that exceed `rate` servails/s over `seconds` seconds" },
+  { "exceedRespByterate", true, "rate, seconds", "get set of addresses that exceeded `rate` bytes/s answers over `seconds` seconds" },
+  { "exceedServFails", true, "rate, seconds", "get set of addresses that exceed `rate` servfails/s over `seconds` seconds" },
   { "firstAvailable", false, "", "picks the server with the lowest `order` that has not exceeded its QPS limit" },
   { "fixupCase", true, "bool", "if set (default to no), rewrite the first qname of the question part of the answer to match the one from the query. It is only useful when you have a downstream server that messes up the case of the question qname in the answer" },
   { "generateDNSCryptCertificate", true, "\"/path/to/providerPrivate.key\", \"/path/to/resolver.cert\", \"/path/to/resolver.key\", serial, validFrom, validUntil", "generate a new resolver private key and related certificate, valid from the `validFrom` timestamp until the `validUntil` one, signed with the provider private key" },
@@ -325,6 +325,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "makeKey", true, "", "generate a new server access key, emit configuration line ready for pasting" },
   { "MaxQPSIPRule", true, "qps, v4Mask=32, v6Mask=64", "matches traffic exceeding the qps limit per subnet" },
   { "MaxQPSRule", true, "qps", "matches traffic **not** exceeding this qps limit" },
+  { "mvCacheHitResponseRule", true, "from, to", "move cache hit response rule 'from' to a position where it is in front of 'to'. 'to' can be one larger than the largest rule" },
   { "mvResponseRule", true, "from, to", "move response rule 'from' to a position where it is in front of 'to'. 'to' can be one larger than the largest rule" },
   { "mvRule", true, "from, to", "move rule 'from' to a position where it is in front of 'to'. 'to' can be one larger than the largest rule, in which case the rule will be moved to the last position" },
   { "newDNSName", true, "name", "make a DNSName based on this .-terminated name" },
@@ -341,6 +342,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "registerDynBPFFilter", true, "DynBPFFilter", "register this dynamic BPF filter into the web interface so that its counters are displayed" },
   { "RemoteLogAction", true, "RemoteLogger [, alterFunction]", "send the content of this query to a remote logger via Protocol Buffer. `alterFunction` is a callback, receiving a DNSQuestion and a DNSDistProtoBufMessage, that can be used to modify the Protocol Buffer content, for example for anonymization purposes" },
   { "RemoteLogResponseAction", true, "RemoteLogger [,alterFunction [,includeCNAME]]", "send the content of this response to a remote logger via Protocol Buffer. `alterFunction` is the same callback than the one in `RemoteLogAction` and `includeCNAME` indicates whether CNAME records inside the response should be parsed and exported. The default is to only exports A and AAAA records" },
+  { "rmCacheHitResponseRule", true, "n", "remove cache hit response rule n" },
   { "rmResponseRule", true, "n", "remove response rule n" },
   { "rmRule", true, "n", "remove rule n" },
   { "rmServer", true, "n", "remove server with index n" },
@@ -349,6 +351,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "QNameWireLengthRule", true, "min, max", "matches if the qname's length on the wire is less than `min` or more than `max` bytes" },
   { "QTypeRule", true, "qtype", "matches queries with the specified qtype" },
   { "RCodeRule", true, "rcode", "matches responses with the specified rcode" },
+  { "sendCustomTrap", true, "str", "send a custom `SNMP` trap from Lua, containing the `str` string"},
   { "setACL", true, "{netmask, netmask}", "replace the ACL set with these netmasks. Use `setACL({})` to reset the list, meaning no one can use us" },
   { "setAPIWritable", true, "bool, dir", "allow modifications via the API. if `dir` is set, it must be a valid directory where the configuration files will be written by the API" },
   { "setDNSSECPool", true, "pool name", "move queries requesting DNSSEC processing to this pool" },
@@ -363,6 +366,8 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "setMaxTCPQueriesPerConnection", true, "n", "set the maximum number of queries in an incoming TCP connection. 0 means unlimited" },
   { "setMaxTCPQueuedConnections", true, "n", "set the maximum number of TCP connections queued (waiting to be picked up by a client thread)" },
   { "setMaxUDPOutstanding", true, "n", "set the maximum number of outstanding UDP queries to a given backend server. This can only be set at configuration time and defaults to 10240" },
+  { "setPoolServerPolicy", true, "policy, pool", "set the server selection policy for this pool to that policy" },
+  { "setPoolServerPolicy", true, "name, func, pool", "set the server selection policy for this pool to one named 'name' and provided by 'function'" },
   { "setQueryCount", true, "bool", "set whether queries should be counted" },
   { "setQueryCountFilter", true, "func", "filter queries that would be counted, where `func` is a function with parameter `dq` which decides whether a query should and how it should be counted" },
   { "setRingBuffersSize", true, "n", "set the capacity of the ringbuffers used for live traffic inspection to `n`" },
@@ -370,14 +375,17 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "setServerPolicy", true, "policy", "set server selection policy to that policy" },
   { "setServerPolicyLua", true, "name, function", "set server selection policy to one named 'name' and provided by 'function'" },
   { "setServFailWhenNoServer", true, "bool", "if set, return a ServFail when no servers are available, instead of the default behaviour of dropping the query" },
+  { "setTCPUseSinglePipe", true, "bool", "whether the incoming TCP connections should be put into a single queue instead of using per-thread queues. Defaults to false" },
   { "setTCPRecvTimeout", true, "n", "set the read timeout on TCP connections from the client, in seconds" },
   { "setTCPSendTimeout", true, "n", "set the write timeout on TCP connections from the client, in seconds" },
   { "setUDPTimeout", true, "n", "set the maximum time dnsdist will wait for a response from a backend over UDP, in seconds" },
   { "setVerboseHealthChecks", true, "bool", "set whether health check errors will be logged" },
   { "show", true, "string", "outputs `string`" },
   { "showACL", true, "", "show our ACL set" },
+  { "showCacheHitResponseRules", true, "", "show all defined cache hit response rules" },
   { "showDNSCryptBinds", true, "", "display the currently configured DNSCrypt binds" },
   { "showDynBlocks", true, "", "show dynamic blocks in force" },
+  { "showPoolServerPolicy", true, "pool", "show server selection policy for this pool" },
   { "showResponseLatency", true, "", "show a plot of the response time latency distribution" },
   { "showResponseRules", true, "", "show all defined response rules" },
   { "showRules", true, "", "show all defined rules" },
@@ -386,17 +394,21 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "showTCPStats", true, "", "show some statistics regarding TCP" },
   { "showVersion", true, "", "show the current version" },
   { "shutdown", true, "", "shut down `dnsdist`" },
+  { "snmpAgent", true, "enableTraps [, masterSocket]", "enable `SNMP` support. `enableTraps` is a boolean indicating whether traps should be sent and `masterSocket` an optional string specifying how to connect to the master agent"},
+  { "SNMPTrapAction", true, "[reason]", "send an SNMP trap, adding the optional `reason` string as the query description"},
+  { "SNMPTrapResponseAction", true, "[reason]", "send an SNMP trap, adding the optional `reason` string as the response description"},
   { "SpoofAction", true, "{ip, ...} ", "forge a response with the specified IPv4 (for an A query) or IPv6 (for an AAAA). If you specify multiple addresses, all that match the query type (A, AAAA or ANY) will get spoofed in" },
   { "TCAction", true, "", "create answer to query with TC and RD bits set, to move to TCP" },
   { "testCrypto", true, "", "test of the crypto all works" },
   { "topBandwidth", true, "top", "show top-`top` clients that consume the most bandwidth over length of ringbuffer" },
+  { "topCacheHitResponseRule", true, "", "move the last cache hit response rule to the first position" },
   { "topClients", true, "n", "show top-`n` clients sending the most queries over length of ringbuffer" },
   { "topQueries", true, "n[, labels]", "show top 'n' queries, as grouped when optionally cut down to 'labels' labels" },
   { "topResponses", true, "n, kind[, labels]", "show top 'n' responses with RCODE=kind (0=NO Error, 2=ServFail, 3=ServFail), as grouped when optionally cut down to 'labels' labels" },
   { "topResponseRule", true, "", "move the last response rule to the first position" },
   { "topRule", true, "", "move the last rule to the first position" },
   { "topSlow", true, "[top][, limit][, labels]", "show `top` queries slower than `limit` milliseconds, grouped by last `labels` labels" },
-  { "truncateTC", true, "bool", "if set (default) truncate TC=1 answers so they are actually empty. Fixes an issue for PowerDNS Authoritative Server 2.9.22" },
+  { "truncateTC", true, "bool", "if set (defaults to no starting with dnsdist 1.2.0) truncate TC=1 answers so they are actually empty. Fixes an issue for PowerDNS Authoritative Server 2.9.22. Note: turning this on breaks compatibility with RFC 6891." },
   { "unregisterDynBPFFilter", true, "DynBPFFilter", "unregister this dynamic BPF filter" },
   { "webserver", true, "address:port, password [, apiKey [, customHeaders ]])", "launch a webserver with stats on that address with that password" },
   { "whashed", false, "", "Weighted hashed ('sticky') distribution over available servers, based on the server 'weight' parameter" },
@@ -492,8 +504,8 @@ try
           >(withReturn ? ("return "+line) : line);
 
       if(ret) {
-	if (const auto strValue = boost::get<shared_ptr<DownstreamState>>(&*ret)) {
-	  response=(*strValue)->getName()+"\n";
+	if (const auto dsValue = boost::get<shared_ptr<DownstreamState>>(&*ret)) {
+	  response=(*dsValue)->getName()+"\n";
 	}
 	else if (const auto strValue = boost::get<string>(&*ret)) {
 	  response=*strValue+"\n";
@@ -531,13 +543,13 @@ try
         response = "Error: " + string(e.what());
       try {
         std::rethrow_if_nested(e);
-      } catch(const std::exception& e) {
-        // e is the exception that was thrown from inside the lambda
-        response+= ": " + string(e.what());
+      } catch(const std::exception& ne) {
+        // ne is the exception that was thrown from inside the lambda
+        response+= ": " + string(ne.what());
       }
-      catch(const PDNSException& e) {
-        // e is the exception that was thrown from inside the lambda
-        response += ": " + string(e.reason);
+      catch(const PDNSException& ne) {
+        // ne is the exception that was thrown from inside the lambda
+        response += ": " + string(ne.reason);
       }
     }
     catch(const LuaContext::SyntaxErrorException& e) {

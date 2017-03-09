@@ -1,24 +1,24 @@
 /*
-    PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002-2016  PowerDNS.COM BV
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as
-    published by the Free Software Foundation;
-
-    Additionally, the license of this program contains a special
-    exception which allows to distribute the program in binary form when
-    it is linked against OpenSSL.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-*/
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -134,11 +134,13 @@ void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, c
 
       di.backend->startTransaction(domain, -1);
       for(const auto g : grouped) {
-        DNSResourceRecord rr;
         vector<DNSRecord> rrset;
-        B.lookup(QType(g.first.second), g.first.first, 0, di.id);
-        while(B.get(rr)) {
-          rrset.push_back(DNSRecord{rr});
+        {
+          DNSZoneRecord zrr;
+          B.lookup(QType(g.first.second), g.first.first, 0, di.id);
+          while(B.get(zrr)) {
+            rrset.push_back(zrr.dr);
+          }
         }
         // O(N^2)!
         rrset.erase(remove_if(rrset.begin(), rrset.end(), 
@@ -153,17 +155,17 @@ void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, c
         }
 
         vector<DNSResourceRecord> replacement;
-        for(const auto& x : rrset) {
-          DNSResourceRecord dr(x);
-          dr.qname += domain;
-          dr.domain_id = di.id;
-          if(x.d_type == QType::SOA) {
+        for(const auto& dr : rrset) {
+          auto rr = DNSResourceRecord::fromWire(dr);
+          rr.qname += domain;
+          rr.domain_id = di.id;
+          if(dr.d_type == QType::SOA) {
             //            cout<<"New SOA: "<<x.d_content->getZoneRepresentation()<<endl;
-            auto sr = getRR<SOARecordContent>(x);
+            auto sr = getRR<SOARecordContent>(dr);
             zs.soa_serial=sr->d_st.serial;
           }
           
-          replacement.push_back(dr);
+          replacement.push_back(rr);
         }
 
         di.backend->replaceRRSet(di.id, g.first.first+domain, QType(g.first.second), replacement);
@@ -199,7 +201,7 @@ static bool processRecordForZS(const DNSName& domain, bool& firstNSEC3, DNSResou
       throw PDNSException("Zones with a mixture of Opt-Out NSEC3 RRs and non-Opt-Out NSEC3 RRs are not supported.");
     zs.optOutFlag = ns3rc.d_flags & 1;
     if (ns3rc.d_set.count(QType::NS) && !(rr.qname==domain)) {
-      DNSName hashPart = DNSName(toLower(rr.qname.makeRelative(domain).toString()));
+      DNSName hashPart = rr.qname.makeRelative(domain).makeLowerCase();
       zs.secured.insert(hashPart);
     }
     return false;
@@ -232,7 +234,7 @@ static bool processRecordForZS(const DNSName& domain, bool& firstNSEC3, DNSResou
    5) It updates the Empty Non Terminals
 */
 
-vector<DNSResourceRecord> doAxfr(const ComboAddress& raddr, const DNSName& domain, const TSIGTriplet& tt, const ComboAddress& laddr,  scoped_ptr<AuthLua>& pdl, ZoneStatus& zs)
+static vector<DNSResourceRecord> doAxfr(const ComboAddress& raddr, const DNSName& domain, const TSIGTriplet& tt, const ComboAddress& laddr,  scoped_ptr<AuthLua>& pdl, ZoneStatus& zs)
 {
   vector<DNSResourceRecord> rrs;
   AXFRRetriever retriever(raddr, domain, tt, (laddr.sin4.sin_family == 0) ? NULL : &laddr, ((size_t) ::arg().asNum("xfr-max-received-mbytes")) * 1024 * 1024);
@@ -386,7 +388,7 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
           bool firstNSEC3=true;
           rrs.reserve(axfr.size());
           for(const auto& dr : axfr) {
-            DNSResourceRecord rr(dr);
+            auto rr = DNSResourceRecord::fromWire(dr);
             rr.qname += domain;
             rr.domain_id = zs.domain_id;
             if(!processRecordForZS(domain, firstNSEC3, rr, zs))
@@ -729,8 +731,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     // get the TSIG key name
     TSIGRecordContent trc;
     DNSName tsigkeyname;
-    string message;
-    dp.getTSIGDetails(&trc, &tsigkeyname, &message);
+    dp.getTSIGDetails(&trc, &tsigkeyname);
     int res;
     res=P->trySuperMasterSynchronous(&dp, tsigkeyname);
     if(res>=0) {
@@ -748,8 +749,13 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
   {
     Lock l(&d_lock);
     domains_by_name_t& nameindex=boost::multi_index::get<IDTag>(d_suckdomains);
+    time_t now = time(0);
 
     for(DomainInfo& di :  rdomains) {
+      const auto failed = d_failedSlaveRefresh.find(di.zone);
+      if (failed != d_failedSlaveRefresh.end() && now < failed->second.second )
+        // If the domain has failed before and the time before the next check has not expired, skip this domain
+        continue;
       std::vector<std::string> localaddr;
       SuckRequest sr;
       sr.domain=di.zone;
@@ -828,6 +834,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
   L<<Logger::Warning<<"Received serial number updates for "<<ssr.d_freshness.size()<<" zone"<<addS(ssr.d_freshness.size())<<", had "<<ifl.getTimeouts()<<" timeout"<<addS(ifl.getTimeouts())<<endl;
 
   typedef DomainNotificationInfo val_t;
+  time_t now = time(0);
   for(val_t& val :  sdomains) {
     DomainInfo& di(val.di);
     // might've come from the packethandler
@@ -836,8 +843,22 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
         continue;
     }
 
-    if(!ssr.d_freshness.count(di.id)) // what does this mean? XXX
+    if(!ssr.d_freshness.count(di.id)) { // If we don't have an answer for the domain
+      uint64_t newCount = 1;
+      const auto failedEntry = d_failedSlaveRefresh.find(di.zone);
+      if (failedEntry != d_failedSlaveRefresh.end())
+        newCount = d_failedSlaveRefresh[di.zone].first + 1;
+      time_t nextCheck = now + std::min(newCount * d_tickinterval, (uint64_t)::arg().asNum("soa-retry-default"));
+      d_failedSlaveRefresh[di.zone] = {newCount, nextCheck};
+      if (newCount == 1 || newCount % 10 == 0)
+        L<<Logger::Warning<<"Unable to retrieve SOA for "<<di.zone<<", this was the "<<(newCount == 1 ? "first" : std::to_string(newCount) + "th")<<" time."<<endl;
       continue;
+    }
+
+    const auto wasFailedDomain = d_failedSlaveRefresh.find(di.zone);
+    if (wasFailedDomain != d_failedSlaveRefresh.end())
+      d_failedSlaveRefresh.erase(di.zone);
+
     uint32_t theirserial = ssr.d_freshness[di.id].theirSerial, ourserial = di.serial;
 
     if(rfc1982LessThan(theirserial, ourserial) && ourserial != 0) {
@@ -851,13 +872,13 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       }
       else {
         B->lookup(QType(QType::RRSIG), di.zone); // can't use DK before we are done with this lookup!
-        DNSResourceRecord rr;
+        DNSZoneRecord zr;
         uint32_t maxExpire=0, maxInception=0;
-        while(B->get(rr)) {
-          RRSIGRecordContent rrc(rr.content);
-          if(rrc.d_type == QType::SOA) {
-            maxInception = std::max(maxInception, rrc.d_siginception);
-            maxExpire = std::max(maxExpire, rrc.d_sigexpire);
+        while(B->get(zr)) {
+          auto rrsig = getRR<RRSIGRecordContent>(zr.dr);
+          if(rrsig->d_type == QType::SOA) {
+            maxInception = std::max(maxInception, rrsig->d_siginception);
+            maxExpire = std::max(maxExpire, rrsig->d_sigexpire);
           }
         }
         if(maxInception == ssr.d_freshness[di.id].theirInception && maxExpire == ssr.d_freshness[di.id].theirExpire) {

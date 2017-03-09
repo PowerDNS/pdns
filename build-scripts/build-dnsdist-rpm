@@ -40,23 +40,47 @@ INIT_INSTALL='sed -i "s,/^\(ExecStart.*\)dnsdist\(.*\)\$,\1dnsdist -u dnsdist -g
 INIT_FILES='/lib/systemd/system/dnsdist.service'
 INIT_CONFIGURE='--enable-systemd --with-systemd=/lib/systemd/system \'
 
-# CentOS 6 has protobuf, but not a modern enough boost. We defaul to with protobuf
+# CentOS 6 has protobuf, but not a modern enough boost. We default to with protobuf
 PROTOBUF_CONFIGURE='--with-protobuf \'
+PROTOBUF_BUILDREQUIRES='BuildRequires: protobuf-compiler
+BuildRequires: protobuf-devel'
 
 # CentOS 6 has a libsodium, but we use more modern functions
 SODIUM_BUILDREQUIRES='BuildRequires: libsodium-devel'
 SODIUM_CONFIGURE='--enable-libsodium \'
 DNSCRYPT_CONFIGURE='--enable-dnscrypt \'
 
+# SLES 12 SP1 does not have re2
+RE2_BUILDREQUIRES='BuildRequires: re2-devel'
+RE2_CONFIGURE='--enable-re2 \'
+
 # These two are the same for sysv and systemd (we don't install defaults files at the moment)
 DEFAULTS_INSTALL=''
 DEFAULTS_FILES=''
+
+# The package containing groupadd is different on different OSs
+SHADOW_REQUIRES='shadow-utils'
 
 # On some older distro's *cough* centos 6 *cough* autosetup fails
 SETUP="%autosetup -n %{name}-${TARBALLVERSION}"
 
 # Some setups need rpmbuild in a 'special' env
 RPMBUILD_COMMAND='rpmbuild -bb dnsdist.spec'
+
+if [ -f /etc/os-release ]; then
+  TMP="$(cat /etc/os-release | grep PRETTY_NAME)"
+  # evillllll
+  eval $TMP
+  case "$PRETTY_NAME" in
+    SUSE\ Linux\ Enterprise\ Server\ 12\ SP1)
+      RE2_BUILDREQUIRES=''
+      RE2_CONFIGURE='--disable-re2 \'
+      PROTOBUF_BUILDREQUIRES=''
+      PROTOBUF_CONFIGURE='--without-protobuf \'
+      SHADOW_REQUIRES='shadow'
+      ;;
+  esac
+fi
 
 if [ -f /etc/redhat-release ]; then
   OS="$(cat /etc/redhat-release)"
@@ -67,6 +91,7 @@ if [ -f /etc/redhat-release ]; then
       INIT_FILES='%{_initrddir}/dnsdist'
       INIT_CONFIGURE='\'
       PROTOBUF_CONFIGURE='--without-protobuf \'
+      PROTOBUF_BUILDREQUIRES=''
       SODIUM_BUILDREQUIRES=''
       SODIUM_CONFIGURE='--disable-libsodium \'
       DNSCRYPT_CONFIGURE='--disable-dnscrypt \'
@@ -92,13 +117,12 @@ License: GPLv2
 Vendor: PowerDNS.COM BV
 Group: System/DNS
 Source: dnsdist-${TARBALLVERSION}.tar.bz2
-Requires(pre): shadow-utils
+Requires(pre): ${SHADOW_REQUIRES}
 BuildRequires: boost-devel
 BuildRequires: lua-devel
-BuildRequires: protobuf-compiler
-BuildRequires: protobuf-devel
-BuildRequires: re2-devel
 BuildRequires: readline-devel
+${PROTOBUF_BUILDREQUIRES}
+${RE2_BUILDREQUIRES}
 ${SODIUM_BUILDREQUIRES}
 ${INIT_BUILDREQUIRES}
 
@@ -111,7 +135,8 @@ ${SETUP}
 %build
 %configure \
   --sysconfdir=/etc/dnsdist \
-  --enable-re2 \
+  --without-net-snmp \
+  ${RE2_CONFIGURE}
   ${SODIUM_CONFIGURE}
   ${DNSCRYPT_CONFIGURE}
   ${INIT_CONFIGURE}
@@ -136,6 +161,8 @@ exit 0
 %post
 %if 0%{?el6}
 /sbin/chkconfig --add %{name}
+%elif 0%{?suse_version}
+%service_add_post %{name}.service
 %else
 %systemd_post %{name}.service
 %endif
@@ -147,6 +174,8 @@ if [ "\$1" -eq "0" ]; then
   /sbin/service %{name} stop > /dev/null 2>&1 || :
   /sbin/chkconfig --del %{name}
 fi
+%elif 0%{?suse_version}
+%service_del_preun %{name}.service
 %else
 %systemd_preun %{name}.service
 %endif
@@ -156,6 +185,8 @@ fi
 if [ "\$1" -ge "1" ] ; then
   /sbin/service %{name} condrestart >/dev/null 2>&1 || :
 fi
+%elif 0%{?suse_version}
+%service_del_postun %{name}.service
 %else
 %systemd_postun_with_restart %{name}.service
 %endif

@@ -210,7 +210,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
           L<<Logger::Notice<<msgPrefix<<"Replace for record "<<rr->d_name<<"|"<<rrType.getName()<<" requested, but no changes made."<<endl;
         }
 
-      // In any other case, we must check if the TYPE and RDATA match to provide an update (which effectily means a update of TTL)
+      // In any other case, we must check if the TYPE and RDATA match to provide an update (which effectively means a update of TTL)
       } else {
         int updateTTL=0;
         foundRecord = false;
@@ -268,7 +268,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
     if (! foundRecord) {
       L<<Logger::Notice<<msgPrefix<<"Adding record "<<rr->d_name<<"|"<<rrType.getName()<<endl;
       delnonterm.insert(rr->d_name); // always remove any ENT's in the place where we're going to add a record.
-      DNSResourceRecord newRec(*rr);
+      auto newRec = DNSResourceRecord::fromWire(*rr);
       newRec.domain_id = di->id;
       newRec.auth = (rr->d_name == di->zone || rrType.getCode() != QType::NS);
       di->backend->feedRecord(newRec);
@@ -381,7 +381,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
   // Delete records - section 3.4.2.3 and 3.4.2.4 with the exception of the 'always leave 1 NS rule' as that's handled by
   // the code that calls this performUpdate().
   if ((rr->d_class == QClass::ANY || rr->d_class == QClass::NONE) && rrType != QType::SOA) { // never delete a SOA.
-    DLOG(L<<msgPrefix<<"Deleting records: "<<rr->d_name<<"; QClasse:"<<rr->d_class<<"; rrType: "<<rrType.getName()<<endl);
+    DLOG(L<<msgPrefix<<"Deleting records: "<<rr->d_name<<"; QClass:"<<rr->d_class<<"; rrType: "<<rrType.getName()<<endl);
 
     if (rrType == QType::NSEC3PARAM) {
       L<<Logger::Notice<<msgPrefix<<"Deleting NSEC3PARAM from zone, resetting ordernames."<<endl;
@@ -657,10 +657,10 @@ int PacketHandler::forwardPacket(const string &msgPrefix, DNSPacket *p, DomainIn
       continue;
     }
 
-    char lenBuf[2];
-    int recvRes;
+    unsigned char lenBuf[2];
+    ssize_t recvRes;
     recvRes = recv(sock, &lenBuf, sizeof(lenBuf), 0);
-    if (recvRes < 0) {
+    if (recvRes < 0 || static_cast<size_t>(recvRes) < sizeof(lenBuf)) {
       L<<Logger::Error<<msgPrefix<<"Could not receive data (length) from master at "<<remote.toStringWithPort()<<", error:"<<stringerror()<<endl;
       try {
         closesocket(sock);
@@ -670,8 +670,7 @@ int PacketHandler::forwardPacket(const string &msgPrefix, DNSPacket *p, DomainIn
       }
       continue;
     }
-    int packetLen = lenBuf[0]*256+lenBuf[1];
-
+    size_t packetLen = lenBuf[0]*256+lenBuf[1];
 
     char buf[packetLen];
     recvRes = recv(sock, &buf, packetLen, 0);
@@ -693,7 +692,7 @@ int PacketHandler::forwardPacket(const string &msgPrefix, DNSPacket *p, DomainIn
     }
 
     try {
-      MOADNSParser mdp(false, buf, recvRes);
+      MOADNSParser mdp(false, buf, static_cast<unsigned int>(recvRes));
       L<<Logger::Info<<msgPrefix<<"Forward update message to "<<remote.toStringWithPort()<<", result was RCode "<<mdp.d_header.rcode<<endl;
       return mdp.d_header.rcode;
     }
@@ -742,7 +741,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
       TSIGRecordContent trc;
       DNSName inputkey;
       string message;
-      if (! p->getTSIGDetails(&trc,  &inputkey, 0)) {
+      if (! p->getTSIGDetails(&trc,  &inputkey)) {
         L<<Logger::Error<<msgPrefix<<"TSIG key required, but packet does not contain key. Sending REFUSED"<<endl;
         return RCode::Refused;
       }
@@ -839,13 +838,13 @@ int PacketHandler::processUpdate(DNSPacket *p) {
     }
   }
 
-  // 3.2.3 - Prerequisite check - this is outside of updatePrequisitesCheck because we check an RRSet and not the RR.
+  // 3.2.3 - Prerequisite check - this is outside of updatePrerequisitesCheck because we check an RRSet and not the RR.
   typedef pair<DNSName, QType> rrSetKey_t;
   typedef vector<DNSResourceRecord> rrVector_t;
   typedef std::map<rrSetKey_t, rrVector_t> RRsetMap_t;
   RRsetMap_t preReqRRsets;
-  for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i != mdp.d_answers.end(); ++i) {
-    const DNSRecord *rr = &i->first;
+  for(const auto& i : mdp.d_answers) {
+    const DNSRecord* rr = &i.first;
     if (rr->d_place == DNSResourceRecord::ANSWER) {
       // Last line of 3.2.3
       if (rr->d_class != QClass::IN && rr->d_class != QClass::NONE && rr->d_class != QClass::ANY)
@@ -854,7 +853,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
       if (rr->d_class == QClass::IN) {
         rrSetKey_t key = make_pair(rr->d_name, QType(rr->d_type));
         rrVector_t *vec = &preReqRRsets[key];
-        vec->push_back(DNSResourceRecord(*rr));
+        vec->push_back(DNSResourceRecord::fromWire(*rr));
       }
     }
   }

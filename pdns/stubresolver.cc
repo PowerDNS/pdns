@@ -50,8 +50,8 @@ void stubParseResolveConf()
     }
   }
 
-  if(::arg().mustDo("recursor"))
-    s_stubresolvers.push_back(ComboAddress(::arg()["recursor"], 53));
+  if(::arg().mustDo("resolver"))
+    s_stubresolvers.push_back(ComboAddress(::arg()["resolver"], 53));
 
   // Last resort, add 127.0.0.1
   if(s_stubresolvers.empty()) {

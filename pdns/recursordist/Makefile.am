@@ -1,6 +1,6 @@
 JSON11_LIBS = $(top_srcdir)/ext/json11/libjson11.la
 
-AM_CPPFLAGS = $(LUA_CFLAGS) $(YAHTTP_CFLAGS) $(BOOST_CPPFLAGS) $(BOTAN110_CFLAGS) $(SANITIZER_FLAGS) -O3 -Wall -pthread -DSYSCONFDIR=\"${sysconfdir}\" $(SYSTEMD_CFLAGS)
+AM_CPPFLAGS = $(LUA_CFLAGS) $(YAHTTP_CFLAGS) $(BOOST_CPPFLAGS) $(BOTAN110_CFLAGS) $(NET_SNMP_CFLAGS) $(SANITIZER_FLAGS) -O3 -Wall -pthread -DSYSCONFDIR=\"${sysconfdir}\" $(SYSTEMD_CFLAGS)
 
 AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/json11 \
@@ -19,7 +19,9 @@ AM_LDFLAGS = \
 
 ACLOCAL_AMFLAGS = -I m4
 
-BUILT_SOURCES=htmlfiles.h
+BUILT_SOURCES=htmlfiles.h \
+	dnslabeltext.cc
+
 CLEANFILES = htmlfiles.h \
 	dnsmessage.pb.cc \
 	dnsmessage.pb.h
@@ -79,6 +81,7 @@ pdns_recursor_SOURCES = \
 	dnssecinfra.hh dnssecinfra.cc \
 	dnsseckeeper.hh \
 	dnswriter.cc dnswriter.hh \
+	ecs.cc \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
 	filterpo.cc filterpo.hh \
@@ -109,6 +112,7 @@ pdns_recursor_SOURCES = \
 	rec-carbon.cc \
 	rec-lua-conf.hh rec-lua-conf.cc \
 	rec-protobuf.cc rec-protobuf.hh \
+	rec-snmp.hh rec-snmp.cc \
 	rec_channel.cc rec_channel.hh \
 	rec_channel_rec.cc \
 	recpacketcache.cc recpacketcache.hh \
@@ -126,6 +130,7 @@ pdns_recursor_SOURCES = \
 	selectmplexer.cc \
 	sholder.hh \
 	sillyrecords.cc \
+	snmp-agent.hh snmp-agent.cc \
 	sortlist.cc sortlist.hh \
 	sstuff.hh \
 	syncres.cc syncres.hh \
@@ -151,6 +156,7 @@ pdns_recursor_LDADD = \
 	$(JSON11_LIBS) \
 	$(LIBCRYPTO_LIBS) \
 	$(BOOST_CONTEXT_LIBS) \
+	$(NET_SNMP_LIBS) \
 	$(SYSTEMD_LIBS) \
 	$(RT_LIBS)
 
@@ -161,6 +167,12 @@ if BOTAN110
 pdns_recursor_SOURCES += \
 	botan110signers.cc
 pdns_recursor_LDADD += $(BOTAN110_LIBS)
+endif
+
+if LIBSODIUM
+pdns_recursor_SOURCES += \
+	sodiumsigners.cc
+pdns_recursor_LDADD += $(LIBSODIUM_LIBS)
 endif
 
 if MALLOC_TRACE

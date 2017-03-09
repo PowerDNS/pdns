@@ -154,11 +154,13 @@ would require packet parsing, which is what we are trying to prevent with `ipfil
 ### `function gettag(remote, ednssubnet, local, qname, qtype)`
 The `gettag` function is invoked when the Recursor attempts to discover in which
 packetcache an answer is available.
+
 This function must return an integer, which is the tag number of the packetcache.
 In addition to this integer, this function can return a table of policy tags.
-
 The resulting tag number can be accessed via `dq.tag` in the `preresolve` hook,
 and the policy tags via `dq:getPolicyTags()` in every hook.
+Starting with 4.1.0, it can also return a table whose keys and values are strings
+to fill the upcoming `DNSQuestion`'s `data` table.
 
 The tagged packetcache can e.g. be used to answer queries from cache that have
 e.g. been filtered for certain IPs (this logic should be implemented in the
@@ -267,6 +269,8 @@ if nmg:match(dq.remoteaddr) then
 	print("Intercepting query from ", dq.remoteaddr)
 end
 ```
+
+Prefixing a mask with `!` excludes that mask from matching.
 
 ### IP Addresses
 We move IP addresses around in native format, called ComboAddress within PowerDNS.
@@ -523,3 +527,16 @@ The kind of policy response, there are several policy kinds:
 These fields are only used when `dq.appliedPolicy.policyKind` is set to `pdns.policykinds.Custom`.
 `dq.appliedPolicy.policyCustom` contains the name for the CNAME target as a string.
 And `dq.appliedPolicy.policyTTL` is the TTL field (in seconds) for the CNAME response.
+
+## SNMP Traps
+PowerDNS Recursor, when compiled with SNMP support, has the ability to act as a
+SNMP agent to provide SNMP statistics and to be able to send traps from Lua.
+
+For example, to send a custom SNMP trap containing the qname from the `preresolve` hook:
+
+```
+function preresolve(dq)
+  sendCustomSNMPTrap('Trap from preresolve, qname is '..dq.qname:toString())
+  return false
+end
+```

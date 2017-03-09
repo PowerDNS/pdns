@@ -29,7 +29,8 @@ class SPgSQL : public SSql
 {
 public:
   SPgSQL(const string &database, const string &host="", const string& port="",
-         const string &user="", const string &password="");
+         const string &user="", const string &password="",
+         const string &extra_connection_parameters="");
 
   ~SPgSQL();
   

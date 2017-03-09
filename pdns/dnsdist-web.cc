@@ -100,10 +100,7 @@ static bool compareAuthorization(YaHTTP::Request& req, const string &expected_pa
     /* if this is a request for the API,
        check if the API key is correct */
     if (req.url.path=="/jsonstat" ||
-        req.url.path=="/api/v1/servers/localhost" ||
-        req.url.path=="/api/v1/servers/localhost/config" ||
-        req.url.path=="/api/v1/servers/localhost/config/allow-from" ||
-        req.url.path=="/api/v1/servers/localhost/statistics") {
+        req.url.path.find("/api/") == 0) {
       header = req.headers.find("x-api-key");
       if (header != req.headers.end()) {
         auth_ok = (0==strcmp(header->second.c_str(), expectedApiKey.c_str()));
@@ -251,8 +248,8 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
         for(const auto& e : g_stats.entries) {
           if(const auto& val = boost::get<DNSDistStats::stat_t*>(&e.second))
             obj.insert({e.first, (double)(*val)->load()});
-          else if (const auto& val = boost::get<double*>(&e.second))
-            obj.insert({e.first, (**val)});
+          else if (const auto& dval = boost::get<double*>(&e.second))
+            obj.insert({e.first, (**dval)});
           else
             obj.insert({e.first, (int)(*boost::get<DNSDistStats::statfunction_t>(&e.second))(e.first)});
         }
@@ -445,11 +442,11 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
               { "value", (double)(*val)->load() }
             });
         }
-        else if (const auto& val = boost::get<double*>(&item.second)) {
+        else if (const auto& dval = boost::get<double*>(&item.second)) {
           doc.push_back(Json::object {
               { "type", "StatisticItem" },
               { "name", item.first },
-              { "value", (**val) }
+              { "value", (**dval) }
             });
         }
         else {
@@ -487,25 +484,25 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
         { "verbose-health-checks", g_verboseHealthChecks }
       };
       for(const auto& item : configEntries) {
-        if (const auto& val = boost::get<bool>(&item.second)) {
+        if (const auto& bval = boost::get<bool>(&item.second)) {
           doc.push_back(Json::object {
               { "type", "ConfigSetting" },
               { "name", item.first },
-              { "value", *val }
+              { "value", *bval }
           });
         }
-        else if (const auto& val = boost::get<string>(&item.second)) {
+        else if (const auto& sval = boost::get<string>(&item.second)) {
           doc.push_back(Json::object {
               { "type", "ConfigSetting" },
               { "name", item.first },
-              { "value", *val }
+              { "value", *sval }
           });
         }
-        else if (const auto& val = boost::get<double>(&item.second)) {
+        else if (const auto& dval = boost::get<double>(&item.second)) {
           doc.push_back(Json::object {
               { "type", "ConfigSetting" },
               { "name", item.first },
-              { "value", *val }
+              { "value", *dval }
           });
         }
       }

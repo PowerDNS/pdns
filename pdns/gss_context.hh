@@ -58,7 +58,7 @@ public:
     setName("");
   };
 
-  //! Initilize using specific name
+  //! Initialize using specific name
   GssName(const std::string& name) {
     setName(name);
   };
@@ -89,7 +89,7 @@ public:
   };
 
   //! Compare two Gss Names, if no gss support is compiled in, returns false always
-  //! This is not necessarely same as string comparison between two non-parsed names
+  //! This is not necessarily same as string comparison between two non-parsed names
   bool operator==(const GssName& rhs) {
 #ifdef ENABLE_GSS_TSIG
     OM_uint32 maj,min;
@@ -101,7 +101,7 @@ public:
   }
 
   //! Compare two Gss Names, if no gss support is compiled in, returns false always
-  //! This is not necessarely same as string comparison between two non-parsed names
+  //! This is not necessarily same as string comparison between two non-parsed names
   bool match(const std::string& name) {
 #ifdef ENABLE_GSS_TSIG
     OM_uint32 maj,min;
@@ -146,14 +146,14 @@ public:
   void setLocalPrincipal(const std::string& name); //<! Set our gss name
   bool getLocalPrincipal(std::string& name); //<! Get our name
   void setPeerPrincipal(const std::string& name); //<! Set remote name (do not use after negotiation)
-  bool getPeerPrincipal(std::string &name); //<! Return remote name, returns actual name after negotatioan
+  bool getPeerPrincipal(std::string &name); //<! Return remote name, returns actual name after negotiation
 
   void generateLabel(const std::string& suffix); //<! Generate random context name using suffix (such as mydomain.com)
   void setLabel(const DNSName& label); //<! Set context name to this label
   const DNSName& getLabel() { return d_label; } //<! Return context name
 
   bool init(const std::string &input, std::string& output); //<! Perform GSS Initiate Security Context handshake
-  bool accept(const std::string &input, std::string& output); //<! Perform GSS Acccept Security Context handshake
+  bool accept(const std::string &input, std::string& output); //<! Perform GSS Accept Security Context handshake
   bool destroy(); //<! Release the cached context
   bool expired(); //<! Check if context is expired
   bool valid(); //<! Check if context is valid

@@ -7,7 +7,7 @@
 #   put it into /etc/bash_completion.d/
 #
 # pdnsutil <TAB>           - expands to known operations given as $1
-# pdnsutil YOUNAMEIT <TAB> - completees to available zones, might be expensive with many (>10000) zones
+# pdnsutil YOUNAMEIT <TAB> - completes to available zones, might be expensive with many (>10000) zones
 #
 
 have pdnsutil && {

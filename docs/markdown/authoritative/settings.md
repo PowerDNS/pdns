@@ -54,16 +54,17 @@ Turning this off requires all supermaster notifications to be signed by valid TS
 ## `allow-recursion`
 * IP ranges, separated by commas
 * Default: 0.0.0.0/0
+* Removed in: 4.1.0
 
 By specifying `allow-recursion`, recursion can be restricted to netmasks
 specified. The default is to allow recursion from everywhere. Example:
 `allow-recursion=198.51.100.0/24, 10.0.0.0/8, 192.0.2.4`.
 
 ## `also-notify`
-* IP adresses, separated by commas
+* IP addresses, separated by commas
 
 When notifying a domain, also notify these nameservers. Example:
-`also-notify=192.0.2.1, 203.0.113.167`. The IP adresses listed in `also-notify`
+`also-notify=192.0.2.1, 203.0.113.167`. The IP addresses listed in `also-notify`
 always receive a notification. Even if they do not match the list in
 [`only-notify`](#also-notify).
 
@@ -141,6 +142,9 @@ silently fail over time otherwise (on logrotate).
 When setting `chroot`, all other paths in the config (except for
 [`config-dir`](#config-dir) and [`module-dir`](#module-dir)) set in the configuration
 are relative to the new root.
+
+When running on a system where systemd manages services, `chroot` does not work out of the box, as PowerDNS cannot use the `NOTIFY_SOCKET`.
+Either don't `chroot` on these systems or set the 'Type' of the this service to 'simple' instead of 'notify' (refer to the systemd documentation on how to modify unit-files)
 
 ## `config-dir`
 * Path
@@ -251,7 +255,7 @@ The default keysize for the ZSK generated with
 * Default: no
 
 Read additional ZSKs from the records table/your BIND zonefile. If not set,
-DNSKEY recornds in the zonefiles are ignored.
+DNSKEY records in the zonefiles are ignored.
 
 ## `disable-axfr`
 * Boolean
@@ -372,7 +376,7 @@ change: e.g. `gmysql-host` is available to configure the `host` setting of the
 first or main instance, and `gmysql-server2-host` for the second one.
 
 ## `load-modules`
-* Paths, seperated by commas
+* Paths, separated by commas
 
 If backends are available in nonstandard directories, specify their location here.
 Multiple files can be loaded if separated by commas. Only available in non-static
@@ -586,9 +590,21 @@ This is the server ID that will be returned on an EDNS NSID query.
 * IP Ranges, separated by commas or whitespace
 * Default: 0.0.0.0/0, ::/0
 
-Only send AXFR NOTIFY to these IP addresses or netmasks. The default is to
-notify the world. The IP addresses or netmasks in [`also-notify`](#also-notify)
-or ALSO-NOTIFY metadata always receive AXFR NOTIFY.
+For type=MASTER zones (or SLAVE zones with slave-renotify enabled) PowerDNS
+automatically sends NOTIFYs to the name servers specified in the NS records.
+By specifying networks/mask as whitelist, the targets can be limited. The default
+is to notify the world. To completely disable these NOTIFYs set `only-notify` to an
+empty value. Independent of this setting, the IP addresses or netmasks configured
+with [`also-notify`](#also-notify) and `ALSO-NOTIFY` domain metadata always receive
+AXFR NOTIFYs.
+
+Note: Even if NOTIFYs are limited by a netmask, PowerDNS first has to resolve all the
+hostnames to check their IP addresses against the specified whitelist. The resolving
+may take considerable time, especially if those hostnames are slow to resolve. If you
+do not need to NOTIFY the slaves defined in the NS records (e.g. you are using another
+method to distribute the zone data to the slaves), then set `only-notify` to an empty
+value and specify the notification targets explicitly using [`also-notify`](#also-notify)
+and/or `ALSO-NOTIFY` domain metadata to avoid this potential bottleneck.
 
 ## `out-of-zone-additional-processing`
 * Boolean
@@ -669,15 +685,23 @@ Number of receiver (listening) threads to start. See
 ## `recursive-cache-ttl`
 * Integer
 * Default: 10
+* Removed in: 4.1.0
 
 Seconds to store recursive packets in the PacketCache. See
 ["Packet Cache"](performance.md#packet-cache).
 
 ## `recursor`
 * IP Address
+* Removed in: 4.1.0
 
 If set, recursive queries will be handed to the recursor specified here. See
 ["Recursion"](recursion.md).
+
+## `resolver`
+* IP Address
+* Added in: 4.1.0
+
+Use this resolver for ALIAS and the internal stub resolver.
 
 ## `retrieval-threads`
 * Integer

@@ -153,6 +153,10 @@ struct StopWatch
       unixDie("Getting timestamp");
     
   }
+
+  void set(const struct timespec& from) {
+    d_start = from;
+  }
   
   double udiff() const {
     struct timespec now;
@@ -383,12 +387,26 @@ class TCPClientCollection {
   std::atomic<uint64_t> d_queued{0};
   uint64_t d_maxthreads{0};
   std::mutex d_mutex;
+  int d_singlePipe[2];
+  bool d_useSinglePipe;
 public:
 
-  TCPClientCollection(size_t maxThreads)
+  TCPClientCollection(size_t maxThreads, bool useSinglePipe=false): d_maxthreads(maxThreads), d_singlePipe{-1,-1}, d_useSinglePipe(useSinglePipe)
+
   {
-    d_maxthreads = maxThreads;
     d_tcpclientthreads.reserve(maxThreads);
+
+    if (d_useSinglePipe) {
+      if (pipe(d_singlePipe) < 0) {
+        throw std::runtime_error("Error creating the TCP single communication pipe: " + string(strerror(errno)));
+      }
+      if (!setNonBlocking(d_singlePipe[1])) {
+        int err = errno;
+        close(d_singlePipe[0]);
+        close(d_singlePipe[1]);
+        throw std::runtime_error("Error setting the TCP single communication pipe non-blocking: " + string(strerror(err)));
+      }
+    }
   }
   int getThread()
   {
@@ -466,6 +484,7 @@ struct DownstreamState
   bool useECS{false};
   bool setCD{false};
   std::atomic<bool> connected{false};
+  bool tcpFastOpen{false};
   bool isUp() const
   {
     if(availability == Availability::Down)
@@ -488,6 +507,17 @@ struct DownstreamState
       return remote.toStringWithPort();
     }
     return name + " (" + remote.toStringWithPort()+ ")";
+  }
+  string getStatus() const
+  {
+    string status;
+    if(availability == DownstreamState::Availability::Up)
+      status = "UP";
+    else if(availability == DownstreamState::Availability::Down)
+      status = "DOWN";
+    else
+      status = (upStatus ? "up" : "down");
+    return status;
   }
   void reconnect();
 };
@@ -586,8 +616,10 @@ struct ServerPool
 
   NumberedVector<shared_ptr<DownstreamState>> servers;
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};
+  std::shared_ptr<ServerPolicy> policy{nullptr};
 };
 using pools_t=map<std::string,std::shared_ptr<ServerPool>>;
+void setPoolPolicy(pools_t& pools, const string& poolName, std::shared_ptr<ServerPolicy> policy);
 void addServerToPool(pools_t& pools, const string& poolName, std::shared_ptr<DownstreamState> server);
 void removeServerFromPool(pools_t& pools, const string& poolName, std::shared_ptr<DownstreamState> server);
 
@@ -612,6 +644,7 @@ extern GlobalStateHolder<servers_t> g_dstates;
 extern GlobalStateHolder<pools_t> g_pools;
 extern GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > > g_rulactions;
 extern GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSResponseAction> > > > g_resprulactions;
+extern GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSResponseAction> > > > g_cachehitresprulactions;
 extern GlobalStateHolder<NetmaskGroup> g_ACL;
 
 extern ComboAddress g_serverControl; // not changed during runtime
@@ -639,6 +672,7 @@ extern bool g_apiReadWrite;
 extern std::string g_apiConfigDirectory;
 extern bool g_servFailOnNoPolicy;
 extern uint32_t g_hashperturb;
+extern bool g_useTCPSinglePipe;
 
 struct ConsoleKeyword {
   std::string name;
@@ -707,6 +741,12 @@ void restoreFlags(struct dnsheader* dh, uint16_t origFlags);
 #ifdef HAVE_DNSCRYPT
 extern std::vector<std::tuple<ComboAddress,DnsCryptContext,bool,int>> g_dnsCryptLocals;
 
-int handleDnsCryptQuery(DnsCryptContext* ctx, char* packet, uint16_t len, std::shared_ptr<DnsCryptQuery>& query, uint16_t* decryptedQueryLen, bool tcp, std::vector<uint8_t>& reponse);
+int handleDnsCryptQuery(DnsCryptContext* ctx, char* packet, uint16_t len, std::shared_ptr<DnsCryptQuery>& query, uint16_t* decryptedQueryLen, bool tcp, std::vector<uint8_t>& response);
 bool encryptResponse(char* response, uint16_t* responseLen, size_t responseSize, bool tcp, std::shared_ptr<DnsCryptQuery> dnsCryptQuery);
 #endif
+
+#include "dnsdist-snmp.hh"
+
+extern bool g_snmpEnabled;
+extern bool g_snmpTrapsEnabled;
+extern DNSDistSNMPAgent* g_snmpAgent;

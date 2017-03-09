@@ -97,17 +97,17 @@ NSECRecordContent::DNSRecordContent* NSECRecordContent::make(const DNSRecord &dr
   
   for(unsigned int n = 0; n+1 < bitmap.size();) {
     unsigned int window=static_cast<unsigned char>(bitmap[n++]);
-    unsigned int len=static_cast<unsigned char>(bitmap[n++]);
+    unsigned int blen=static_cast<unsigned char>(bitmap[n++]);
 
     // end if zero padding and ensure packet length
-    if(window == 0&&len == 0) break;
-    if(n+len>bitmap.size()) 
+    if(window == 0 && blen == 0) break;
+    if(n + blen > bitmap.size())
       throw MOADNSException("NSEC record with bitmap length > packet length");
 
-    for(unsigned int k=0; k < len; k++) {
+    for(unsigned int k=0; k < blen; k++) {
       uint8_t val=bitmap[n++];
-      for(int bit = 0; bit < 8 ; ++bit , val>>=1) 
-        if(val & 1) { 
+      for(int bit = 0; bit < 8 ; ++bit , val>>=1)
+        if(val & 1) {
           ret->d_set.insert((7-bit) + 8*(k) + 256*window);
         }
       }

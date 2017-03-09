@@ -108,8 +108,6 @@ void loadMainConfig(const std::string& configdir)
   S.declare("query-cache-hit","Number of hits on the query cache");
   S.declare("query-cache-miss","Number of misses on the query cache");
   ::arg().set("max-cache-entries", "Maximum number of cache entries")="1000000";
-  ::arg().set("recursor","If recursion is desired, IP address of a recursing nameserver")="no"; 
-  ::arg().set("recursive-cache-ttl","Seconds to store packets for recursive queries in the PacketCache")="10";
   ::arg().set("cache-ttl","Seconds to store packets in the PacketCache")="20";              
   ::arg().set("negquery-cache-ttl","Seconds to store negative query results in the QueryCache")="60";
   ::arg().set("query-cache-ttl","Seconds to store query results in the QueryCache")="20";              
@@ -353,7 +351,7 @@ void dbBench(const std::string& fname)
     domains.push_back("powerdns.com");
 
   int n=0;
-  DNSResourceRecord rr;
+  DNSZoneRecord rr;
   DTime dt;
   dt.set();
   unsigned int hits=0, misses=0;
@@ -439,10 +437,10 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
     SOAData sd_p;
     if(B.getSOAUncached(parent, sd_p)) {
       bool ns=false;
-      DNSResourceRecord rr;
+      DNSZoneRecord zr;
       B.lookup(QType(QType::ANY), zone, NULL, sd_p.domain_id);
-      while(B.get(rr))
-        ns |= (rr.qtype == QType::NS);
+      while(B.get(zr))
+        ns |= (zr.dr.d_type == QType::NS);
       if (!ns) {
         cout<<"[Error] No delegation for zone '"<<zone<<"' in parent '"<<parent<<"'"<<endl;
         numerrors++;
@@ -576,6 +574,16 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
         checkglue.insert(DNSName(toLower(rr.content)));
       } else if (rr.qtype.getCode() == QType::A || rr.qtype.getCode() == QType::AAAA) {
         glue.insert(rr.qname);
+      }
+    }
+
+    if(rr.qtype.getCode() == QType::A || rr.qtype.getCode() == QType::AAAA)
+    {
+      Regex hostnameRegex=Regex("^(([A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)\\.)+$");
+      if (!hostnameRegex.match(rr.qname.toString()))
+      {
+        cout<<"[Info] A or AAAA record found at '"<<rr.qname.toString()<<"'. This name is not a valid hostname."<<endl;
+        continue;
       }
     }
 
@@ -967,13 +975,13 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
  editAgain:;
   di.backend->list(zone, di.id);
   pre.clear(); post.clear();
-  DNSResourceRecord rr;
   {
     if(tmpfd < 0 && (tmpfd=open(tmpnam, O_WRONLY | O_TRUNC, 0600)) < 0)
       unixDie("Error reopening temporary file "+string(tmpnam));
     string header("; Warning - every name in this file is ABSOLUTE!\n$ORIGIN .\n");
     if(write(tmpfd, header.c_str(), header.length()) < 0)
       unixDie("Writing zone to temporary file");
+    DNSResourceRecord rr;
     while(di.backend->get(rr)) {
       if(!rr.qtype.getCode())
         continue;
@@ -1001,6 +1009,7 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
   }
   cmdline.clear();
   ZoneParserTNG zpt(tmpnam, g_rootdnsname);
+  DNSResourceRecord rr;
   map<pair<DNSName,uint16_t>, vector<DNSRecord> > grouped;
   while(zpt.get(rr)) {
     try {
@@ -1019,7 +1028,7 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
   checkrr.clear();
 
   for(const DNSRecord& rr : post) {
-    DNSResourceRecord drr(rr);
+    DNSResourceRecord drr = DNSResourceRecord::fromWire(rr);
     drr.domain_id = di.id;
     checkrr.push_back(drr);
   }
@@ -1085,7 +1094,7 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
   for(const auto& c : changed) {
     vector<DNSResourceRecord> vrr;
     for(const DNSRecord& rr : grouped[c.first]) {
-      DNSResourceRecord drr(rr);
+      DNSResourceRecord drr = DNSResourceRecord::fromWire(rr);
       drr.domain_id = di.id;
       vrr.push_back(drr);
     }
@@ -1191,7 +1200,7 @@ int createSlaveZone(const vector<string>& cmds) {
   }
   vector<string> masters;
   for (unsigned i=2; i < cmds.size(); i++) {
-    ComboAddress master(cmds[2], 53);
+    ComboAddress master(cmds[i], 53);
     masters.push_back(master.toStringWithPort());
   }
   cerr<<"Creating slave zone '"<<zone<<"', with master(s) '"<<boost::join(masters, ",")<<"'"<<endl;
@@ -1255,9 +1264,9 @@ int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
   rr.qname = name;
   DNSResourceRecord oldrr;
   if(addOrReplace) { // the 'add' case
-    B.lookup(rr.qtype, rr.qname, 0, di.id);
+    di.backend->lookup(rr.qtype, rr.qname, 0, di.id);
 
-    while(B.get(oldrr)) 
+    while(di.backend->get(oldrr))
       newrrs.push_back(oldrr);
   }
 
@@ -1270,11 +1279,11 @@ int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
     else rr.ttl = ::arg().asNum("default-ttl");
   }
 
-  B.lookup(QType(QType::ANY), rr.qname, 0, di.id);
+  di.backend->lookup(QType(QType::ANY), rr.qname, 0, di.id);
   bool found=false;
   if(rr.qtype.getCode() == QType::CNAME) { // this will save us SO many questions
 
-    while(B.get(oldrr)) {
+    while(di.backend->get(oldrr)) {
       if(addOrReplace || oldrr.qtype.getCode() != QType::CNAME) // the replace case is ok if we replace one CNAME by the other
         found=true;
     }
@@ -1284,7 +1293,7 @@ int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
     }
   }
   else {
-    while(B.get(oldrr)) {
+    while(di.backend->get(oldrr)) {
       if(oldrr.qtype.getCode() == QType::CNAME)
         found=true;
     }
@@ -1390,7 +1399,6 @@ void testSpeed(DNSSECKeeper& dk, const DNSName& zone, const string& remote, int 
   rr.ttl=3600;
   rr.auth=1;
   rr.qclass = QClass::IN;
-  rr.d_place=DNSResourceRecord::ANSWER;
   
   UeberBackend db("key-only");
   
@@ -1637,12 +1645,12 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = false)
 
     // get us some keys
     vector<DNSKEYRecordContent> keys;
-    DNSResourceRecord rr;
+    DNSZoneRecord zr;
 
     B.lookup(QType(QType::DNSKEY), zone);
-    while(B.get(rr)) {
-      if (rr.qtype != QType::DNSKEY) continue;
-      keys.push_back(DNSKEYRecordContent(rr.getZoneRepresentation()));
+    while(B.get(zr)) {
+      if (zr.dr.d_type != QType::DNSKEY) continue;
+      keys.push_back(*getRR<DNSKEYRecordContent>(zr.dr));
     }
 
     if(keys.empty()) {
@@ -1991,7 +1999,7 @@ try
     cout<<"add-zone-key ZONE {zsk|ksk} [BITS] [active|inactive]"<<endl;
     cout<<"             [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384";
 #ifdef HAVE_LIBSODIUM
-    cout<<"|experimental-ed25519";
+    cout<<"|ed25519";
 #endif
     cout<<"]"<<endl;
     cout<<"                                   Add a ZSK or KSK to zone and specify algo&bits"<<endl;
@@ -2054,7 +2062,7 @@ try
     cout<<"set-nsec3 ZONE ['PARAMS' [narrow]] Enable NSEC3 with PARAMS. Optionally narrow"<<endl;
     cout<<"set-presigned ZONE                 Use presigned RRSIGs from storage"<<endl;
     cout<<"set-publish-cdnskey ZONE           Enable sending CDNSKEY responses for ZONE"<<endl;
-    cout<<"set-publish-cds ZONE [DIGESTALGOS] Enable sending CDS responses for ZONE, using DIGESTALGOS as signature algirithms"<<endl;
+    cout<<"set-publish-cds ZONE [DIGESTALGOS] Enable sending CDS responses for ZONE, using DIGESTALGOS as signature algorithms"<<endl;
     cout<<"                                   DIGESTALGOS should be a comma separated list of numbers, is is '1,2' by default"<<endl;
     cout<<"set-meta ZONE KIND [VALUE] [VALUE] Set zone metadata, optionally providing a value. *No* value clears meta"<<endl;
     cout<<"                                   Note - this will replace all metadata records of KIND!"<<endl;
@@ -2827,7 +2835,7 @@ loadMainConfig(g_vm["config-dir"].as<string>());
       if(algorithm <= 10)
         bits = keyOrZone ? 2048 : 1024;
       else {
-        if(algorithm == 12 || algorithm == 13 || algorithm == 250) // ECDSA, GOST, ED25519
+        if(algorithm == 12 || algorithm == 13 || algorithm == 15) // ECDSA, GOST, ED25519
           bits = 256;
         else if(algorithm == 14)
           bits = 384;

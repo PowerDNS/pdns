@@ -31,7 +31,6 @@
 #include "pdns/utility.hh"
 #include "pdns/dnspacket.hh"
 #include "pdns/dnsbackend.hh"
-#include "pdns/ueberbackend.hh"
 #include "pdns/pdnsexception.hh"
 #include "pdns/arguments.hh"
 #include "pdns/logger.hh"
@@ -113,6 +112,7 @@ class LdapBackend : public DNSBackend
         vector<string>::iterator m_value;
         vector<DNSName>::iterator m_adomain;
         vector<DNSName> m_adomains;
+        QType m_qtype;
 
         bool (LdapBackend::*m_list_fcnt)( const DNSName&, int );
         void (LdapBackend::*m_lookup_fcnt)( const QType&, const DNSName&, DNSPacket*, int );
