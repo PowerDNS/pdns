@@ -809,12 +809,9 @@ void Bind2Backend::loadConfig(string* status)
         i!=domains.end();
         ++i) 
       {
-        if(i->type == "") {
-          L<<Logger::Warning<<d_logprefix<<" Warning! Skipping zone '"<<i->name<<"' because it has no type specified"<<endl;
-          rejected++;
-          continue;
-        }
-        if(i->type!="master" && i->type!="slave") {
+        if(i->type == "")
+          L<<Logger::Notice<<d_logprefix<<" Zone '"<<i->name<<"' has no type specified, assuming 'native'"<<endl;
+        if(i->type!="master" && i->type!="slave" && i->type != "native" && i->type != "") {
           L<<Logger::Warning<<d_logprefix<<" Warning! Skipping zone '"<<i->name<<"' because type '"<<i->type<<"' is invalid"<<endl;
           rejected++;
           continue;
