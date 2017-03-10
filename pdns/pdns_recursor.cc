@@ -1671,14 +1671,6 @@ static void realDoProcessUDPQuestion(const std::string& question, const ComboAdd
     }
   }
 
-  if(MT->numProcesses() > g_maxMThreads) {
-    if(!g_quiet)
-      L<<Logger::Notice<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED question from "<<fromaddr.toStringWithPort()<<", over capacity"<<endl;
-
-    g_stats.overCapacityDrops++;
-    return;
-  }
-
   DNSComboWriter* dc = new DNSComboWriter(question.c_str(), question.size(), g_now);
   dc->setSocket(fd);
   dc->d_tag=ctag;
@@ -1720,6 +1712,14 @@ void indirectDoProcessUDPQuestion(void *p)
 
 string *doProcessUDPQuestion(const std::string& question, const ComboAddress& fromaddr, const ComboAddress& destaddr, struct timeval tv, int fd)
 {
+  if(MT->numProcesses() > g_maxMThreads) {
+    if(!g_quiet)
+      L<<Logger::Notice<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED question from "<<fromaddr.toStringWithPort()<<", over capacity"<<endl;
+
+    g_stats.overCapacityDrops++;
+    return 0;
+  }
+
   if (::arg().mustDo("start-mthread-early")) {
       doProcessUDPQuestionArguments *args = new doProcessUDPQuestionArguments;
       args->question = question;
