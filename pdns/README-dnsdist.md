@@ -1333,8 +1333,8 @@ Here are all functions:
     * member `muted`: if set to true, UDP responses will not be sent for queries received on this bind. Default to false
     * member `toString()`: print the address this bind listens to
  * Network related:
-    * `addLocal(netmask, [true], [false], [TCP Fast Open queue size])`: add to addresses we listen on. Second optional parameter sets TCP or not. Third optional parameter sets SO_REUSEPORT when available. Last parameter sets the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0.
-    * `setLocal(netmask, [true], [false], [TCP Fast Open queue size])`: reset list of addresses we listen on to this address. Second optional parameter sets TCP or not. Third optional parameter sets SO_REUSEPORT when available. Last parameter sets the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0.
+    * `addLocal(netmask, [true], [false], [TCP Fast Open queue size])`: add to addresses we listen on. Second optional parameter sets TCP or not (UDP is always enabled). Third optional parameter sets SO_REUSEPORT when available. Last parameter sets the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0.
+    * `setLocal(netmask, [true], [false], [TCP Fast Open queue size])`: reset list of addresses we listen on to this address. Second optional parameter sets TCP or not (UDP is always enabled). Third optional parameter sets SO_REUSEPORT when available. Last parameter sets the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0.
  * Blocking related:
     * `addDomainBlock(domain)`: block queries within this domain
  * Carbon/Graphite/Metronome statistics related:
