@@ -38,7 +38,6 @@
 #include "pdns/arguments.hh"
 #include "pdns/json.hh"
 #include "pdns/statbag.hh"
-#include "pdns/packetcache.hh"
 
 #include "test-remotebackend-keys.hh"
 

@@ -137,6 +137,9 @@ public:
     d_ednsrcode=extRCode;
   };
   uint8_t getEDNSRCode() const { return d_ednsrcode; };
+  uint32_t getHash() const { return d_hash; };
+  void setHash(uint32_t hash) { d_hash = hash; };
+
   //////// DATA !
 
   DNSName qdomain;  //!< qname of the question 4 - unsure how this is used
@@ -188,6 +191,8 @@ private:
   // WARNING! This is really 12 bits
   uint16_t d_ednsrcode;
 
+  uint32_t d_hash{0};
+  
   bool d_compress; // 1
   bool d_tsigtimersonly;
   bool d_wantsnsid;

@@ -102,6 +102,7 @@ pdns_recursor_SOURCES = \
 	namespaces.hh \
 	nsecrecords.cc \
 	opensslsigners.cc opensslsigners.hh \
+	packetcache.hh \
 	pdns_recursor.cc \
 	pdnsexception.hh \
 	protobuf.cc protobuf.hh \

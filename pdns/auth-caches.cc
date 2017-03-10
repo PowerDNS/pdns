@@ -19,40 +19,39 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef COMMON_STARTUP_HH
-#define COMMON_STARTUP_HH
 
-#include "auth-packetcache.hh"
 #include "auth-querycache.hh"
-#include "utility.hh"
-#include "arguments.hh"
-#include "communicator.hh"
-#include "distributor.hh"
-#include "dnspacket.hh"
-#include "dnsproxy.hh"
-#include "dynlistener.hh"
-#include "nameserver.hh"
-#include "statbag.hh"
-#include "tcpreceiver.hh"
+#include "auth-packetcache.hh"
 
-extern ArgvMap theArg;
-extern StatBag S;  //!< Statistics are gathered across PDNS via the StatBag class S
-extern AuthPacketCache PC; //!< This is the main PacketCache, shared across all threads
+extern AuthPacketCache PC;
 extern AuthQueryCache QC;
-extern DNSProxy *DP;
-extern DynListener *dl;
-extern CommunicatorClass Communicator;
-extern UDPNameserver *N;
-extern int avg_latency;
-extern TCPNameserver *TN;
-extern AuthLua *LPE;
-extern ArgvMap & arg( void );
-extern void declareArguments();
-extern void declareStats();
-extern void mainthread();
-extern int isGuarded( char ** );
-void* carbonDumpThread(void*);
-extern bool g_anyToTcp;
-extern bool g_8bitDNS;
 
-#endif // COMMON_STARTUP_HH
+/* empty all caches */
+uint64_t purgeAuthCaches()
+{
+  uint64_t ret = 0;
+  ret += PC.purge();
+  ret += QC.purge();
+  return ret;
+}
+
+ /* remove specific entries from all caches, can be $ terminated */
+uint64_t purgeAuthCaches(const std::string& match)
+{
+  uint64_t ret = 0;
+  ret += PC.purge(match);
+  ret += QC.purge(match);
+  return ret;
+}
+
+/* remove specific entries from all caches, no wildcard matching */
+uint64_t purgeAuthCachesExact(const DNSName& qname)
+{
+  uint64_t ret = 0;
+  ret += PC.purgeExact(qname);
+  ret += QC.purgeExact(qname);
+  return ret;
+}
+
+
+

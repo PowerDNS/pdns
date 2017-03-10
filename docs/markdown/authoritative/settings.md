@@ -472,8 +472,9 @@ Turn on master support. See ["Modes of operation"](modes-of-operation.md#master-
 * Integer
 * Default: 1000000
 
-Maximum number of cache entries. 1 million (the default) will generally suffice
-for most installations.
+Maximum number of entries in the query cache. 1 million (the default) will generally suffice
+for most installations. Starting with 4.1, the packet and query caches are distinct so you might
+also want to see `max-packet-cache-entries`.
 
 ## `max-ent-entries`
 * Integer
@@ -487,6 +488,14 @@ measure to avoid database explosion due to long names.
 * Default: 500
 
 Limit the number of NSEC3 hash iterations
+
+## `max-packet-cache-entries`
+* Integer
+* Default: 1000000
+
+Maximum number of entries in the packet cache. 1 million (the default) will generally suffice
+for most installations. This setting has been introduced in 4.1, previous used the `max-cache-entries`
+setting for both the packet and query caches.
 
 ## `max-queue-length`
 * Integer

@@ -40,10 +40,12 @@
 #include "pdns/dnsrecords.hh"
 #include "pdns/json.hh"
 #include "pdns/statbag.hh"
-#include "pdns/packetcache.hh"
+#include "pdns/auth-packetcache.hh"
+#include "pdns/auth-querycache.hh"
 
 StatBag S;
-PacketCache PC;
+AuthPacketCache PC;
+AuthQueryCache QC;
 ArgvMap &arg()
 {
   static ArgvMap arg;

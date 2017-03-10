@@ -39,7 +39,8 @@ typedef Distributor<DNSPacket,DNSPacket,PacketHandler> DNSDistributor;
 
 ArgvMap theArg;
 StatBag S;  //!< Statistics are gathered across PDNS via the StatBag class S
-PacketCache PC; //!< This is the main PacketCache, shared across all threads
+AuthPacketCache PC; //!< This is the main PacketCache, shared across all threads
+AuthQueryCache QC;
 DNSProxy *DP;
 DynListener *dl;
 CommunicatorClass Communicator;
@@ -170,7 +171,8 @@ void declareArguments()
   ::arg().set("setuid","If set, change user id to this uid for more security")="";
   ::arg().set("setgid","If set, change group id to this gid for more security")="";
 
-  ::arg().set("max-cache-entries", "Maximum number of cache entries")="1000000";
+  ::arg().set("max-cache-entries", "Maximum number of entries in the query cache")="1000000";
+  ::arg().set("max-packet-cache-entries", "Maximum number of entries in the packet cache")="1000000";
   ::arg().set("max-signature-cache-entries", "Maximum number of signatures cache entries")="";
   ::arg().set("max-ent-entries", "Maximum number of empty non-terminals in a zone")="100000";
   ::arg().set("entropy-source", "If set, read entropy from this file")="/dev/urandom";
@@ -277,12 +279,6 @@ void declareStats(void)
     
 
   S.declare("qsize-q","Number of questions waiting for database attention", getQCount);
-
-  S.declare("deferred-cache-inserts","Amount of cache inserts that were deferred because of maintenance");
-  S.declare("deferred-cache-lookup","Amount of cache lookups that were deferred because of maintenance");
-
-  S.declare("query-cache-hit","Number of hits on the query cache");
-  S.declare("query-cache-miss","Number of misses on the query cache");
 
   S.declare("dnsupdate-queries", "DNS update packets received.");
   S.declare("dnsupdate-answers", "DNS update packets successfully answered.");
@@ -436,7 +432,7 @@ void *qthread(void *number)
         continue;
       }
     }
-    
+
     if(distributor->isOverloaded()) {
       if(logDNSQueries) 
         L<<"Dropped query, backends are overloaded"<<endl;
@@ -487,6 +483,10 @@ void mainthread()
 
    DNSPacket::s_udpTruncationThreshold = std::max(512, ::arg().asNum("udp-truncation-threshold"));
    DNSPacket::s_doEDNSSubnetProcessing = ::arg().mustDo("edns-subnet-processing");
+
+   PC.setTTL(::arg().asNum("cache-ttl"));
+   PC.setMaxEntries(::arg().asNum("max-packet-cache-entries"));
+   QC.setMaxEntries(::arg().asNum("max-cache-entries"));
 
    stubParseResolveConf();
 

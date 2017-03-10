@@ -23,7 +23,7 @@
 #include "config.h"
 #endif
 #include <boost/algorithm/string.hpp>
-#include "packetcache.hh"
+#include "auth-packetcache.hh"
 #include "utility.hh"
 #include "dnssecinfra.hh"
 #include "dnsseckeeper.hh"
@@ -56,7 +56,7 @@
 #include "namespaces.hh"
 #include "signingpipe.hh"
 #include "stubresolver.hh"
-extern PacketCache PC;
+extern AuthPacketCache PC;
 extern StatBag S;
 
 /**

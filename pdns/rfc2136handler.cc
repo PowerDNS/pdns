@@ -4,7 +4,8 @@
 #include "packethandler.hh"
 #include "qtype.hh"
 #include "dnspacket.hh"
-#include "packetcache.hh"
+#include "auth-caches.hh"
+#include "statbag.hh"
 #include "dnsseckeeper.hh"
 #include "base64.hh"
 #include "base32.hh"
@@ -15,7 +16,6 @@
 #include "dns_random.hh"
 #include "backends/gsql/ssql.hh"
 
-extern PacketCache PC;
 extern StatBag S;
 
 pthread_mutex_t PacketHandler::s_rfc2136lock=PTHREAD_MUTEX_INITIALIZER;
@@ -966,7 +966,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
       // Purge the records!
       string zone(di.zone.toString());
       zone.append("$");
-      PC.purge(zone);
+      purgeAuthCaches(zone);
 
       L<<Logger::Info<<msgPrefix<<"Update completed, "<<changedRecords<<" changed records committed."<<endl;
     } else {

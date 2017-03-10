@@ -130,6 +130,7 @@ DNSPacket::DNSPacket(const DNSPacket &orig)
   d=orig.d;
 
   d_isQuery = orig.d_isQuery;
+  d_hash = orig.d_hash;
 }
 
 void DNSPacket::setRcode(int v)

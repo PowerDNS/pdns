@@ -13,7 +13,8 @@
 #include "dnsbackend.hh"
 #include "ueberbackend.hh"
 #include "arguments.hh"
-#include "packetcache.hh"
+#include "auth-packetcache.hh"
+#include "auth-querycache.hh"
 #include "zoneparser-tng.hh"
 #include "signingpipe.hh"
 #include "dns_random.hh"
@@ -29,7 +30,8 @@
 #endif
 
 StatBag S;
-PacketCache PC;
+AuthPacketCache PC;
+AuthQueryCache QC;
 
 namespace po = boost::program_options;
 po::variables_map g_vm;
@@ -101,12 +103,7 @@ void loadMainConfig(const std::string& configdir)
   //cerr<<"Backend: "<<::arg()["launch"]<<", '" << ::arg()["gmysql-dbname"] <<"'" <<endl;
 
   S.declare("qsize-q","Number of questions waiting for database attention");
-    
-  S.declare("deferred-cache-inserts","Amount of cache inserts that were deferred because of maintenance");
-  S.declare("deferred-cache-lookup","Amount of cache lookups that were deferred because of maintenance");
           
-  S.declare("query-cache-hit","Number of hits on the query cache");
-  S.declare("query-cache-miss","Number of misses on the query cache");
   ::arg().set("max-cache-entries", "Maximum number of cache entries")="1000000";
   ::arg().set("cache-ttl","Seconds to store packets in the PacketCache")="20";              
   ::arg().set("negquery-cache-ttl","Seconds to store negative query results in the QueryCache")="60";
@@ -2076,7 +2073,7 @@ try
     return 0;
   }
 
-loadMainConfig(g_vm["config-dir"].as<string>());
+  loadMainConfig(g_vm["config-dir"].as<string>());
 
 #ifdef HAVE_LIBSODIUM
   if (sodium_init() == -1) {

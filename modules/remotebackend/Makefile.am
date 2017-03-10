@@ -95,6 +95,8 @@ BUILT_SOURCES = ../../pdns/dnslabeltext.cc
 
 libtestremotebackend_la_SOURCES = \
 	../../pdns/arguments.hh ../../pdns/arguments.cc \
+	../../pdns/auth-packetcache.cc ../../pdns/auth-packetcache.hh \
+	../../pdns/auth-querycache.cc ../../pdns/auth-querycache.hh \
 	../../pdns/base32.cc \
 	../../pdns/base64.cc \
 	../../pdns/dnsbackend.hh ../../pdns/dnsbackend.cc \
@@ -105,11 +107,12 @@ libtestremotebackend_la_SOURCES = \
 	../../pdns/dnsrecords.cc \
 	../../pdns/dnssecinfra.cc \
 	../../pdns/ednssubnet.cc \
+	../../pdns/ednsoptions.cc ../../pdns/ednsoptions.hh \
 	../../pdns/iputils.cc \
 	../../pdns/logger.cc \
 	../../pdns/misc.cc \
 	../../pdns/nsecrecords.cc \
-	../../pdns/packetcache.hh ../../pdns/packetcache.cc \
+	../../pdns/packetcache.hh \
 	../../pdns/qtype.cc \
 	../../pdns/sillyrecords.cc \
 	../../pdns/statbag.cc \

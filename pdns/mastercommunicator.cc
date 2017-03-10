@@ -22,7 +22,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include "packetcache.hh"
+#include "auth-caches.hh"
 #include "utility.hh"
 #include <errno.h>
 #include "communicator.hh"
@@ -149,8 +149,7 @@ void CommunicatorClass::masterUpdateCheck(PacketHandler *P)
   // do this via the FindNS class, d_fns
   
   for(auto& di : cmdomains) {
-    extern PacketCache PC;
-    PC.purgeExact(di.zone);
+    purgeAuthCachesExact(di.zone);
     queueNotifyDomain(di, B);
     di.backend->setNotified(di.id, di.serial);
   }
