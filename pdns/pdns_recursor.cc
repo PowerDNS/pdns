@@ -1526,7 +1526,7 @@ struct doProcessUDPQuestionArguments {
         int fd;
 };
 
-bool overCapacity(const ComboAddress& fromaddr)
+static bool overCapacity(const ComboAddress& fromaddr)
 {
   if(MT->numProcesses() > g_maxMThreads) {
     if(!g_quiet)
@@ -1710,7 +1710,7 @@ static void realDoProcessUDPQuestion(const std::string& question, const ComboAdd
   return;
 }
 
-void indirectDoProcessUDPQuestion(void *p)
+static void indirectDoProcessUDPQuestion(void *p)
 {
   doProcessUDPQuestionArguments* args=(doProcessUDPQuestionArguments *)p;
 
@@ -1725,7 +1725,7 @@ void indirectDoProcessUDPQuestion(void *p)
   realDoProcessUDPQuestion(question, fromaddr, destaddr, tv, fd, true);
 }
 
-string *doProcessUDPQuestion(const std::string& question, const ComboAddress& fromaddr, const ComboAddress& destaddr, struct timeval tv, int fd)
+static string *doProcessUDPQuestion(const std::string& question, const ComboAddress& fromaddr, const ComboAddress& destaddr, struct timeval tv, int fd)
 {
 
   if (::arg().mustDo("start-mthread-early")) {
