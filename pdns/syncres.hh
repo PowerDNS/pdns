@@ -539,7 +539,8 @@ private:
   RCode::rcodes_ updateCacheFromRecords(const std::string& prefix, LWResult& lwr, const DNSName& qname, const DNSName& auth, NsSet& nameservers, const DNSName& tns, const boost::optional<Netmask>);
   bool processRecords(const std::string& prefix, const DNSName& qname, const QType& qtype, const DNSName& auth, LWResult& lwr, const bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, bool& sawDS);
 
-private:
+  bool doSpecialNamesResolve(const DNSName &qname, const QType &qtype, const uint16_t &qclass, vector<DNSRecord> &ret);
+
   ostringstream d_trace;
   shared_ptr<RecursorLua4> d_pdl;
   string d_prefix;

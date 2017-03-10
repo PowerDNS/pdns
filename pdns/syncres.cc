@@ -127,49 +127,11 @@ int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qcl
   d_wasVariable=false;
   d_wasOutOfBand=false;
 
+  if (doSpecialNamesResolve(qname, qtype, qclass, ret))
+    return 0;
+
   if( (qtype.getCode() == QType::AXFR))
     return -1;
-
-  static const DNSName arpa("1.0.0.127.in-addr.arpa."), localhost("localhost."), 
-    versionbind("version.bind."), idserver("id.server."), versionpdns("version.pdns.");
-
-  if( (qtype.getCode()==QType::PTR && qname==arpa) ||
-      (qtype.getCode()==QType::A && qname==localhost)) {
-    ret.clear();
-    DNSRecord dr;
-    dr.d_name=qname;
-    dr.d_place = DNSResourceRecord::ANSWER;
-    dr.d_type=qtype.getCode();
-    dr.d_class=QClass::IN;
-    dr.d_ttl=86400;
-    if(qtype.getCode()==QType::PTR)
-      dr.d_content=shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(QType::PTR, 1, "localhost."));
-    else
-      dr.d_content=shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(QType::A, 1, "127.0.0.1"));
-    ret.push_back(dr);
-    d_wasOutOfBand=true;
-    return 0;
-  }
-
-  if(qclass==QClass::CHAOS && qtype.getCode()==QType::TXT &&
-        (qname==versionbind || qname==idserver || qname==versionpdns )
-     ) {
-    ret.clear();
-    DNSRecord dr;
-    dr.d_name=qname;
-    dr.d_type=qtype.getCode();
-    dr.d_class=qclass;
-    dr.d_ttl=86400;
-    dr.d_place = DNSResourceRecord::ANSWER;
-    if(qname==versionbind  || qname==versionpdns)
-      dr.d_content=shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(QType::TXT, 3, "\""+::arg()["version-string"]+"\""));
-    else
-      dr.d_content=shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(QType::TXT, 3, "\""+s_serverID+"\""));
-
-    ret.push_back(dr);
-    d_wasOutOfBand=true;
-    return 0;
-  }
 
   if(qclass==QClass::ANY)
     qclass=QClass::IN;
@@ -180,6 +142,68 @@ int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qcl
   int res=doResolve(qname, qtype, ret, 0, beenthere);
   return res;
 }
+
+/*! Handles all special, built-in names
+ * Fills ret with an answer and returns true if it handled the query.
+ *
+ * Handles the following queries:
+ *
+ * - localhost. IN A
+ * - localhost. IN AAAA
+ * - 1.0.0.127.in-addr.arpa. IN PTR
+ * - 1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa. IN PTR
+ * - version.bind. CH TXT
+ * - version.pdns. CH TXT
+ * - id.server. CH TXT
+ *
+ * TODO handle ANY
+ */
+bool SyncRes::doSpecialNamesResolve(const DNSName &qname, const QType &qtype, const uint16_t &qclass, vector<DNSRecord> &ret)
+{
+  static const DNSName arpa("1.0.0.127.in-addr.arpa."), ip6_arpa("1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa."),
+    localhost("localhost."), versionbind("version.bind."), idserver("id.server."), versionpdns("version.pdns.");
+
+  bool handled = false;
+  string content;
+
+  if (qtype.getCode()==QType::PTR && (qname==arpa || qname==ip6_arpa)) {
+    handled = true;
+    content = "localhost.";
+  }
+
+  if (qname == localhost) {
+    handled = true;
+    if (qtype==QType::A)
+      content = "127.0.0.1";
+    if (qtype==QType::AAAA)
+      content = "::1";
+  }
+
+  if (qclass==QClass::CHAOS && qtype==QType::TXT && (qname==versionbind || qname==idserver || qname==versionpdns)) {
+    handled = true;
+    if(qname==versionbind || qname==versionpdns)
+      content = "\""+::arg()["version-string"]+"\"";
+    else
+      content = "\""+s_serverID+"\"";
+  }
+
+  if (handled && !content.empty()) {
+    ret.clear();
+    d_wasOutOfBand=true;
+
+    DNSRecord dr;
+    dr.d_name = qname;
+    dr.d_place = DNSResourceRecord::ANSWER;
+    dr.d_type = qtype.getCode();
+    dr.d_class = qclass;
+    dr.d_ttl = 86400;
+    dr.d_content=shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(qtype.getCode(), qclass, content));
+    ret.push_back(dr);
+  }
+
+  return handled;
+}
+
 
 //! This is the 'out of band resolver', in other words, the authoritative server
 bool SyncRes::doOOBResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int& res)
