@@ -28,7 +28,7 @@ digraph {
 
     doResolve_doOOBResolve [label="SyncRes::doOOBResolve()", color=red];
     doResolve_doCNAMECacheCheck [label="SyncRes::doCNAMECacheCheck()", color=red];
-    doResolve_asyncResolveWrapper [label="SyncRes::asyncResolveWrapper()", color=red];
+    doResolve_asyncresolveWrapper [label="SyncRes::asyncresolveWrapper()", color=red];
     doResolve_doCacheCheck [label="SyncRes::doCacheCheck()", color=red];
     doResolve_getBestNSNamesFromCache [label="SyncRes::getBestNSNamesFromCache()", color=red];
     doResolve_doResolveAt [label="SyncRes::doResolveAt()", color=red];
@@ -43,12 +43,12 @@ digraph {
     "Check if RD-bit was not set (d_cacheonly)" -> "Check if there is a forward or auth-zone" [label=yes];
     "Check if there is a forward or auth-zone" -> doResolve_doCNAMECacheCheck [label=no];
     "Check if there is a forward or auth-zone" -> "Check if we are auth" [label=yes];
-    "Check if we are auth" -> doResolve_asyncResolveWrapper [label="no, so forward"];
+    "Check if we are auth" -> doResolve_asyncresolveWrapper [label="no, so forward"];
     "Check if we are auth" -> doResolve_doOOBResolve [label=yes];
     doResolve_doOOBResolve -> "return res from doOOBResolve()";
     "return res from doOOBResolve()" [color=green];
-    doResolve_asyncResolveWrapper -> "return result from asyncResolveWrapper()";
-    "return result from asyncResolveWrapper()" [color=green];
+    doResolve_asyncresolveWrapper -> "return result from asyncresolveWrapper()";
+    "return result from asyncresolveWrapper()" [color=green];
     doResolve_doCNAMECacheCheck -> "Did doCNAMECacheCheck() return a true-ish value?";
     "Did doCNAMECacheCheck() return a true-ish value?" -> doResolve_return_res [label=yes];
     "Did doCNAMECacheCheck() return a true-ish value?" -> doResolve_doCacheCheck [label=no];
@@ -60,6 +60,40 @@ digraph {
     doResolve_doResolveAt -> doResolve_return_res [label="res == -2"];
     doResolve_doResolveAt -> doResolve_return_servfail [label="res < 0 &&\nres != -2"];
     doResolve_doResolveAt -> doResolve_return_res [label="res >= 0"];
+  }
+
+  subgraph cluster_getBestNSFromCache {
+    label="SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vector<DNSRecord>& bestns, bool* flawedNSSet, unsigned int depth, set<GetBestNSAnswer>& beenthere)\nFills the bestns vector with the 'closest' nameservers for qname\nflawedNSSet will be true if the NSSet has no glue.\nbeenthere contains the list of nameservers already visited during this recursion.";
+
+    getBestNSFromCache_return [label="return", color=green];
+
+    getBestNSFromCache_chopoff_continue -> "Get NS-records for domain from cache" -> "Get one record from the records" -> "Has the TTL expired?";
+    "Get one record from the records" -> "Are there records in bestns?" [label="Checked all records"];
+
+    "Has the TTL expired?" -> "Get one record from the records" [label=yes];
+    "Has the TTL expired?" -> "Is the NS RDATA part of the domain &&\nDo we have A and/or AAAA records for it?" [label=no];
+    "Is the NS RDATA part of the domain &&\nDo we have A and/or AAAA records for it?" -> "Set flawednsset=true" [label=no];
+
+    "Is the NS RDATA part of the domain &&\nDo we have A and/or AAAA records for it?" -> "Add the NS-record to bestns" [label=yes];
+    "Add the NS-record to bestns" -> "Get one record from the records";
+
+    "Set flawednsset=true" -> "Get one record from the records";
+
+    "Are there records in bestns?" -> getBestNSFromCache_chopoff_continue [label=no];
+    "Are there records in bestns?" -> "Is any of the NS records in bestns in beenthere?" [label=yes];
+
+
+    "Is any of the NS records in bestns in beenthere?" -> "Add these records to beenthere" [label=no];
+    "Add these records to beenthere" -> getBestNSFromCache_return;
+
+    "Is any of the NS records in bestns in beenthere?" -> "Clear bestns" [label=yes];
+    "Clear bestns" -> "Was this the root domain?";
+    "Was this the root domain?" -> getBestNSFromCache_chopoff_continue [label=no];
+    "Was this the root domain?" -> "Re-prime the root" [label=yes];
+    "Re-prime the root" -> getBestNSFromCache_return;
+    getBestNSFromCache_chopoff_continue [label="chopoff left-most label"];
+
+    {rank=sink; getBestNSFromCache_chopoff_continue; getBestNSFromCache_return}
   }
 
   subgraph cluster_doOOBResolve {
@@ -89,8 +123,52 @@ digraph {
     "Try to add SOA" -> "Set res to NXDOMAIN" -> doOOBResolve_return_true;
   }
 
-  subgraph cluster_asyncResolveWrapper {
-    label="SyncRes::asyncResolveWrapper()";
+  subgraph cluster_asyncresolveWrapper {
+    label="SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res\nWraps asyncresolve() from lwres.cc to do EDNS probing.";
+
+    {rank=min; "Get current EDNSStatus for ip"}
+
+    asyncresolveWrapper_asyncresolve [label="asyncresolve()", color=red];
+    asyncresolveWrapper_return_minus_1 [label="return -1 (transport error)", color=green];
+    asyncresolveWrapper_return_minus_2 [label="return -2 (OS limits error)", color=green];
+    asyncresolveWrapper_return_0 [label="return 0 (timeout)", color=green];
+    asyncresolveWrapper_return_1 [label="return 1 (success)", color=green];
+    asyncresolveWrapper_setEDNSLevel_0 [label="Set EDNSLevel=0"]
+    asyncresolveWrapper_setEDNSLevel_0 -> "Is EDNSStatus NOEDNS?";
+
+    "Get current EDNSStatus for ip" -> "Is the current EDNSStatus older than an hour?";
+    "Is the current EDNSStatus older than an hour?" -> "Set EDNSStatus to Unknown" [label=yes];
+    "Set EDNSStatus to Unknown" -> asyncresolveWrapper_setEDNSLevel_0;
+    "Is the current EDNSStatus older than an hour?" -> asyncresolveWrapper_setEDNSLevel_0 [label=no];
+
+    "Is EDNSStatus NOEDNS?" -> "Set EDNSLevel=0" [label=yes]
+    "Set EDNSLevel=0" -> asyncresolveWrapper_asyncresolve;
+
+    "Is EDNSStatus NOEDNS?" -> "Is EDNSStatus UNKNOWN, EDNSOK, EDSIGNORANT or is EDNS mandatory?" [label=no]
+    "Is EDNSStatus UNKNOWN, EDNSOK, EDSIGNORANT or is EDNS mandatory?" -> "Set EDNSLevel=1" [label=yes]
+    "Set EDNSLevel=1" -> asyncresolveWrapper_asyncresolve;
+    "Is EDNSStatus UNKNOWN, EDNSOK, EDSIGNORANT or is EDNS mandatory?" ->  asyncresolveWrapper_asyncresolve [label=no];
+
+    asyncresolveWrapper_asyncresolve -> asyncresolveWrapper_return_minus_1 [label="transport error"];
+    asyncresolveWrapper_asyncresolve -> asyncresolveWrapper_return_minus_2 [label="OS limits error"];
+    asyncresolveWrapper_asyncresolve -> asyncresolveWrapper_return_0 [label="timeout error"];
+    asyncresolveWrapper_asyncresolve -> "Is the EDNSStatus UNKNOWN||EDNSOK||EDNSIGNORANT?" [label="resolve OK!"];
+
+    "Is the EDNSStatus UNKNOWN||EDNSOK||EDNSIGNORANT?" -> "Was the RCODE FORMERR||NOTIMP?" [label=yes];
+    "Was the RCODE FORMERR||NOTIMP?" -> "set EDNSStatus to NOEDNS" [label=yes];
+    "set EDNSStatus to NOEDNS" -> "Is EDNSStatus NOEDNS?";
+
+    "Was the RCODE FORMERR||NOTIMP?" -> "Did the remote server respond with EDNS?" [label=no];
+    "Did the remote server respond with EDNS?" -> "Set EDNSStatus to EDNSOK" [label=yes];
+    "Set EDNSStatus to EDNSOK" -> "Is the original EDNSStatus different from the new?";
+
+    "Did the remote server respond with EDNS?" -> "Set EDNSStatus to EDNSIGNORANT" [label=no];
+    "Set EDNSStatus to EDNSIGNORANT" -> "Is the original EDNSStatus different from the new?";
+
+    "Is the EDNSStatus UNKNOWN||EDNSOK||EDNSIGNORANT?" -> "Is the original EDNSStatus different from the new?" [label=no];
+    "Is the original EDNSStatus different from the new?" -> "Save new EDNSStatus" [label=yes];
+    "Is the original EDNSStatus different from the new?" -> asyncresolveWrapper_return_1 [label=no];
+    "Save new EDNSStatus" -> asyncresolveWrapper_return_1;
   }
 
   subgraph cluster_doResolveAt {
