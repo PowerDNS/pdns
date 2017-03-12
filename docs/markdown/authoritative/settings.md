@@ -805,6 +805,14 @@ Limit TCP control to a specific client range.
 
 Password for TCP control.
 
+## `tcp-fast-open`
+* Integer
+* Default: 0 (Disabled)
+* Available since: 4.1
+
+Enable TCP Fast Open support, if available, on the listening sockets. The numerical
+value supplied is used as the queue size, 0 meaning disabled.
+
 ## `tcp-idle-timeout`
 * Integer
 * Default: 5

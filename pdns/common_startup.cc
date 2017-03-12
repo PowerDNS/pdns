@@ -195,6 +195,8 @@ void declareArguments()
   ::arg().setSwitch("8bit-dns", "Allow 8bit dns queries")="no";
 
   ::arg().set("xfr-max-received-mbytes", "Maximum number of megabytes received from an incoming XFR")="100";
+
+  ::arg().set("tcp-fast-open", "Enable TCP Fast Open support on the listening sockets, using the supplied numerical value as the queue size")="0";
 }
 
 static time_t s_start=time(0);
