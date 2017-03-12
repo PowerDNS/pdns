@@ -1107,3 +1107,60 @@ class TestCachingFailureTTL(DNSDistTest):
             total += self._responsesCounter[key]
 
         self.assertEquals(total, misses)
+
+class TestCachingDontAge(DNSDistTest):
+
+    _config_template = """
+    pc = newPacketCache(100, 86400, 0, 60, 60, true)
+    getPool(""):setCache(pc)
+    newServer{address="127.0.0.1:%s"}
+    """
+    def testCacheDoesntDecreaseTTL(self):
+        """
+        Cache: Cache doesn't decrease TTL with 'don't age' set
+
+        dnsdist is configured to cache entries but without aging the TTL,
+        we are sending one request (cache miss) and verify that the cache
+        hits don't have a decreasing TTL.
+        """
+        ttl = 600
+        misses = 0
+        name = 'cachedoesntdecreasettl.cache-dont-age.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'AAAA', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    ttl,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '::1')
+        response.answer.append(rrset)
+
+        # first query to fill the cache
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+        misses += 1
+
+        # next queries should hit the cache
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, response)
+        for an in receivedResponse.answer:
+            self.assertTrue(an.ttl == ttl)
+
+        # now we wait a bit for the TTL to decrease
+        time.sleep(1)
+
+        # next queries should hit the cache
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, response)
+        for an in receivedResponse.answer:
+            self.assertTrue(an.ttl == ttl)
+
+        total = 0
+        for key in self._responsesCounter:
+            total += self._responsesCounter[key]
+
+        self.assertEquals(total, misses)

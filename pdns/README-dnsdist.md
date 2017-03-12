@@ -870,16 +870,18 @@ The first step is to define a cache, then to assign that cache to the chosen poo
 the default one being represented by the empty string:
 
 ```
-pc = newPacketCache(10000, 86400, 0, 60, 60)
+pc = newPacketCache(10000, 86400, 0, 60, 60, false)
 getPool(""):setCache(pc)
 ```
 
 The first parameter (10000) is the maximum number of entries stored in the cache, and is the
-only one required. All the other parameter are optional and in seconds.
+only one required. The second, third, fourth and fifth parameters are optional and in seconds.
 The second one (86400) is the maximum lifetime of an entry in the cache, the third one (0) is
 the minimum TTL an entry should have to be considered for insertion in the cache,
-the fourth one (60) is the TTL used for a Server Failure or a Refused response. The last
-one (60) is the TTL that will be used when a stale cache entry is returned.
+the fourth one (60) is the TTL used for a Server Failure or a Refused response. The fifth
+one (60) is the TTL that will be used when a stale cache entry is returned. The last one
+is a boolean that indicates whether the TTL of reponses should be reduced by the number of
+seconds the response has been in the cache.
 For performance reasons the cache will pre-allocate buckets based on the maximum number
 of entries, so be careful to set the first parameter to a reasonable value. Something
 along the lines of a dozen bytes per pre-allocated entry can be expected on 64-bit.
@@ -1537,7 +1539,7 @@ instantiate a server with additional parameters
     * `expunge(n)`: remove entries from the cache, leaving at most `n` entries
     * `expungeByName(DNSName [, qtype=ANY])`: remove entries matching the supplied DNSName and type from the cache
     * `isFull()`: return true if the cache has reached the maximum number of entries
-    * `newPacketCache(maxEntries[, maxTTL=86400, minTTL=0, temporaryFailureTTL=60, staleTTL=60])`: return a new PacketCache
+    * `newPacketCache(maxEntries[, maxTTL=86400, minTTL=0, temporaryFailureTTL=60, staleTTL=60, dontAge=false])`: return a new PacketCache
     * `printStats()`: print the cache stats (hits, misses, deferred lookups and deferred inserts)
     * `purgeExpired(n)`: remove expired entries from the cache until there is at most `n` entries remaining in the cache
     * `toString()`: return the number of entries in the Packet Cache, and the maximum number of entries
