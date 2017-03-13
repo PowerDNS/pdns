@@ -64,6 +64,16 @@ EXTRA_DIST = \
 sbin_PROGRAMS = pdns_recursor
 bin_PROGRAMS = rec_control
 
+if UNIT_TESTS
+noinst_PROGRAMS = testrunner
+TESTS_ENVIRONMENT = env BOOST_TEST_LOG_LEVEL=message SRCDIR='$(srcdir)'
+TESTS=testrunner
+else
+check-local:
+	@echo "Unit tests are not enabled"
+	@echo "Run ./configure --enable-unit-tests"
+endif
+
 pdns_recursor_SOURCES = \
 	arguments.cc \
 	base32.cc base32.hh \
@@ -163,6 +173,64 @@ pdns_recursor_LDADD = \
 pdns_recursor_LDFLAGS = $(AM_LDFLAGS) \
 	$(LIBCRYPTO_LDFLAGS) $(BOOST_CONTEXT_LDFLAGS)
 
+testrunner_SOURCES = \
+	arguments.cc \
+	base32.cc \
+	base64.cc base64.hh \
+	dns.cc dns.hh \
+	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
+	dnsparser.hh dnsparser.cc \
+	dnsrecords.cc \
+	dnssecinfra.cc \
+	dnswriter.cc dnswriter.hh \
+	ednsoptions.cc ednsoptions.hh \
+	ednssubnet.cc ednssubnet.hh \
+	gettime.cc gettime.hh \
+	gss_context.cc gss_context.hh \
+	iputils.cc iputils.hh \
+	logger.cc logger.hh \
+	misc.cc misc.hh \
+	namespaces.hh \
+	nsecrecords.cc \
+	pdnsexception.hh \
+	protobuf.cc protobuf.hh \
+	qtype.cc qtype.hh \
+	rcpgenerator.cc \
+	recpacketcache.cc recpacketcache.hh \
+	rec-protobuf.cc rec-protobuf.hh \
+	responsestats.cc \
+	sillyrecords.cc \
+	sholder.hh \
+	sstuff.hh \
+	test-arguments_cc.cc \
+	test-base32_cc.cc \
+	test-base64_cc.cc \
+	test-dnsrecordcontent.cc \
+	test-dns_random_hh.cc \
+	test-dnsname_cc.cc \
+	test-dnsparser_hh.cc \
+	test-dnsrecords_cc.cc \
+	test-iputils_hh.cc \
+	test-misc_hh.cc \
+	test-nmtree.cc \
+	test-rcpgenerator_cc.cc \
+	test-recpacketcache_cc.cc \
+	test-tsig.cc \
+	testrunner.cc \
+	unix_utility.cc \
+	zoneparser-tng.cc zoneparser-tng.hh
+
+testrunner_LDFLAGS = \
+	$(AM_LDFLAGS) \
+	$(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) \
+	$(LIBCRYPTO_LDFLAGS)
+
+testrunner_LDADD = \
+	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
+	$(LIBCRYPTO_LIBS) \
+	$(RT_LIBS)
+
 if BOTAN110
 pdns_recursor_SOURCES += \
 	botan110signers.cc
@@ -209,6 +277,11 @@ BUILT_SOURCES += dnsmessage.pb.cc
 pdns_recursor_LDADD += $(PROTOBUF_LIBS)
 nodist_pdns_recursor_SOURCES = dnsmessage.pb.cc dnsmessage.pb.h
 pdns_recursor.$(OBJEXT): dnsmessage.pb.cc
+
+nodist_testrunner_SOURCES = dnsmessage.pb.cc dnsmessage.pb.h
+testrunner_LDADD += $(PROTOBUF_LIBS)
+testrunner$(OBJEXT): dnsmessage.pb.cc
+
 endif
 endif
 
