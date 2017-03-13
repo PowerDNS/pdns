@@ -1127,8 +1127,6 @@ testrunner_SOURCES = \
 	packetcache.cc \
 	qtype.cc \
 	rcpgenerator.cc \
-	recpacketcache.cc recpacketcache.hh \
-	rec-protobuf.hh \
 	responsestats.cc \
 	responsestats-auth.cc \
 	sillyrecords.cc \
@@ -1150,7 +1148,6 @@ testrunner_SOURCES = \
 	test-nmtree.cc \
 	test-packetcache_cc.cc \
 	test-rcpgenerator_cc.cc \
-	test-recpacketcache_cc.cc \
 	test-sha_hh.cc \
 	test-statbag_cc.cc \
 	test-zoneparser_tng_cc.cc \
@@ -1169,18 +1166,6 @@ testrunner_LDADD = \
 	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
 	$(RT_LIBS) \
 	$(LIBDL)
-
-if HAVE_PROTOBUF
-if HAVE_PROTOC
-nodist_testrunner_SOURCES = \
-	dnsmessage.pb.cc dnsmessage.pb.h
-
-testrunner_LDADD += \
-	$(PROTOBUF_LIBS)
-
-recpacketcache.$(OBJEXT): dnsmessage.pb.cc
-endif
-endif
 
 if PKCS11
 testrunner_SOURCES += pkcs11signers.cc pkcs11signers.hh

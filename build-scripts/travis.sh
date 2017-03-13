@@ -383,6 +383,7 @@ build_recursor() {
   run "cd pdns-recursor-*"
   run "CFLAGS='-O1' CXXFLAGS='-O1' ./configure \
     --prefix=$PDNS_RECURSOR_DIR \
+    --enable-unit-tests \
     --disable-silent-rules"
   run "make -k -j3"
   run "make install"
@@ -531,6 +532,9 @@ test_recursor() {
   export PDNSRECURSOR="${PDNS_RECURSOR_DIR}/sbin/pdns_recursor"
   export DNSBULKTEST="/usr/bin/dnsbulktest"
   export RECCONTROL="${PDNS_RECURSOR_DIR}/bin/rec_control"
+  run "cd pdns/recursordist/pdns-recursor-*"
+  run "make -j 3 check"
+  run "cd ${TRAVIS_BUILD_DIR}"
   run "./build-scripts/test-recursor"
   export RECURSOR="${PDNSRECURSOR}"
   run "cd regression-tests"
