@@ -35,6 +35,12 @@ unsigned int getRecursorThreadId();
 
 class LuaContext;
 
+#if defined(HAVE_LUA)
+#undef L
+#include "ext/luawrapper/include/LuaContext.hpp"
+#define L theL()
+#endif
+
 class RecursorLua4 : public boost::noncopyable
 {
 private:
@@ -88,11 +94,11 @@ public:
     string udpAnswer;
     string udpCallback;
     
-    std::unordered_map<string,string> data;
+    LuaContext::LuaObject data;
     DNSName followupName;
   };
 
-  unsigned int gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, std::unordered_map<string,string>& data);
+  unsigned int gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data);
 
   bool prerpz(DNSQuestion& dq, int& ret);
   bool preresolve(DNSQuestion& dq, int& ret);
@@ -112,7 +118,7 @@ public:
             d_postresolve);
   }
 
-  typedef std::function<std::tuple<unsigned int,boost::optional<std::unordered_map<int,string> >,boost::optional<std::unordered_map<string,string> > >(ComboAddress, Netmask, ComboAddress, DNSName, 
+  typedef std::function<std::tuple<unsigned int,boost::optional<std::unordered_map<int,string> >,boost::optional<LuaContext::LuaObject> >(ComboAddress, Netmask, ComboAddress, DNSName, 
 uint16_t)> gettag_t;
   gettag_t d_gettag; // public so you can query if we have this hooked
 

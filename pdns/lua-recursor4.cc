@@ -32,9 +32,6 @@
 #include "rec-snmp.hh"
 #include <unordered_set>
 
-#undef L
-#include "ext/luawrapper/include/LuaContext.hpp"
-
 static int followCNAMERecords(vector<DNSRecord>& ret, const QType& qtype)
 {
   vector<DNSRecord> resolved;
@@ -587,7 +584,7 @@ bool RecursorLua4::ipfilter(const ComboAddress& remote, const ComboAddress& loca
   return false; // don't block
 }
 
-unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, std::unordered_map<string,string>& data)
+unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data)
 {
   if(d_gettag) {
     auto ret = d_gettag(remote, ednssubnet, local, qname, qtype);
@@ -600,7 +597,7 @@ unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& edn
         }
       }
     }
-    const auto& dataret = std::get<2>(ret);
+    const auto dataret = std::get<2>(ret);
     if (dataret) {
       data = *dataret;
     }

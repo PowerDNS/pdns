@@ -216,7 +216,7 @@ struct DNSComboWriter {
   shared_ptr<TCPConnection> d_tcpConnection;
   vector<pair<uint16_t, string> > d_ednsOpts;
   std::vector<std::string> d_policyTags;
-  std::unordered_map<string,string> d_data;
+  LuaContext::LuaObject d_data;
 };
 
 
@@ -1542,7 +1542,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   uint32_t qhash = 0;
   bool needECS = false;
   std::vector<std::string> policyTags;
-  std::unordered_map<string,string> data;
+  LuaContext::LuaObject data;
 #ifdef HAVE_PROTOBUF
   boost::uuids::uuid uniqueId;
   auto luaconfsLocal = g_luaconfs.getLocal();
