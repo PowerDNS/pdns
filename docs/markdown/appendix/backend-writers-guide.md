@@ -495,3 +495,9 @@ The method is not only used when adding records, but also to correct ENT-records
 ## virtual bool replaceRRSet(uint32\_t domain\_id, const string& qname, const QType& qt, const vector\<DNSResourceRecord\>& rrset);
 
 This method should remove all the records with `qname` of type `qt`. `qt` might also be ANY, which means all the records with that `qname` need to be removed. After removal, the records in `rrset` must be added to the zone. `rrset` can be empty in which case the method is used to remove a RRset.
+
+# Miscellaneous
+
+## ENT (Empty Non-Terminal)
+
+You are expected to reply with a DNSResourceRecord having `qtype = 0`, `ttl = 0` and `content` should be empty string (string length 0)
