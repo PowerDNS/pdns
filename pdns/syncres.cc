@@ -146,7 +146,7 @@ int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qcl
 /*! Handles all special, built-in names
  * Fills ret with an answer and returns true if it handled the query.
  *
- * Handles the following queries:
+ * Handles the following queries (and their ANY variants):
  *
  * - localhost. IN A
  * - localhost. IN AAAA
@@ -155,8 +155,6 @@ int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qcl
  * - version.bind. CH TXT
  * - version.pdns. CH TXT
  * - id.server. CH TXT
- *
- * TODO handle ANY
  */
 bool SyncRes::doSpecialNamesResolve(const DNSName &qname, const QType &qtype, const uint16_t &qclass, vector<DNSRecord> &ret)
 {
@@ -164,41 +162,49 @@ bool SyncRes::doSpecialNamesResolve(const DNSName &qname, const QType &qtype, co
     localhost("localhost."), versionbind("version.bind."), idserver("id.server."), versionpdns("version.pdns.");
 
   bool handled = false;
-  string content;
+  vector<pair<QType::typeenum, string> > answers;
 
-  if (qtype.getCode()==QType::PTR && (qname==arpa || qname==ip6_arpa)) {
+  if ((qname == arpa || qname == ip6_arpa) &&
+      qclass == QClass::IN) {
     handled = true;
-    content = "localhost.";
+    if (qtype == QType::PTR || qtype == QType::ANY)
+      answers.push_back({QType::PTR, "localhost."});
   }
 
-  if (qname == localhost) {
+  if (qname == localhost &&
+      qclass == QClass::IN) {
     handled = true;
-    if (qtype==QType::A)
-      content = "127.0.0.1";
-    if (qtype==QType::AAAA)
-      content = "::1";
+    if (qtype == QType::A || qtype == QType::ANY)
+      answers.push_back({QType::A, "127.0.0.1"});
+    if (qtype == QType::AAAA || qtype == QType::ANY)
+      answers.push_back({QType::AAAA, "::1"});
   }
 
-  if (qclass==QClass::CHAOS && qtype==QType::TXT && (qname==versionbind || qname==idserver || qname==versionpdns)) {
+  if ((qname == versionbind || qname == idserver || qname == versionpdns) &&
+      qclass == QClass::CHAOS) {
     handled = true;
-    if(qname==versionbind || qname==versionpdns)
-      content = "\""+::arg()["version-string"]+"\"";
-    else
-      content = "\""+s_serverID+"\"";
+    if (qtype == QType::TXT || qtype == QType::ANY) {
+      if(qname == versionbind || qname == versionpdns)
+        answers.push_back({QType::TXT, "\""+::arg()["version-string"]+"\""});
+      else
+        answers.push_back({QType::TXT, "\""+s_serverID+"\""});
+    }
   }
 
-  if (handled && !content.empty()) {
+  if (handled && !answers.empty()) {
     ret.clear();
     d_wasOutOfBand=true;
 
     DNSRecord dr;
     dr.d_name = qname;
     dr.d_place = DNSResourceRecord::ANSWER;
-    dr.d_type = qtype.getCode();
     dr.d_class = qclass;
     dr.d_ttl = 86400;
-    dr.d_content=shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(qtype.getCode(), qclass, content));
-    ret.push_back(dr);
+    for (const auto& ans : answers) {
+      dr.d_type = ans.first;
+      dr.d_content = shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(ans.first, qclass, ans.second));
+      ret.push_back(dr);
+    }
   }
 
   return handled;
