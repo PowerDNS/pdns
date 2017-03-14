@@ -1,7 +1,5 @@
 #include "config.h"
-#ifdef HAVE_LUA
 #include "ext/luawrapper/include/LuaContext.hpp"
-#endif
 
 #include <fstream>
 #include <thread>
@@ -52,13 +50,6 @@ typename C::value_type::second_type constGet(const C& c, const std::string& name
   return iter->second;
 }
 
-#ifndef HAVE_LUA
-void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
-{
-  if(!fname.empty())
-    throw PDNSException("Asked to load a Lua configuration file '"+fname+"' in binary without Lua support");
-}
-#else
 
 void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
 {
@@ -348,4 +339,3 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
 
 }
 
-#endif

@@ -38,9 +38,7 @@ class LuaContext;
 class RecursorLua4 : public boost::noncopyable
 {
 private:
-#ifdef HAVE_LUA
   std::unique_ptr<LuaContext> d_lw; // this is way on top because it must get destroyed _last_
-#endif
 
 public:
   explicit RecursorLua4(const std::string& fname);
@@ -67,7 +65,6 @@ public:
     bool& wantsRPZ;
     unsigned int tag{0};
 
-#ifdef HAVE_LUA
     void addAnswer(uint16_t type, const std::string& content, boost::optional<int> ttl, boost::optional<string> name);
     void addRecord(uint16_t type, const std::string& content, DNSResourceRecord::Place place, boost::optional<int> ttl, boost::optional<string> name);
     vector<pair<int,DNSRecord> > getRecords() const;
@@ -93,7 +90,6 @@ public:
     
     std::unordered_map<string,string> data;
     DNSName followupName;
-#endif
   };
 
   unsigned int gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, std::unordered_map<string,string>& data);

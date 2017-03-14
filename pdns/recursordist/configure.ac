@@ -100,6 +100,9 @@ PDNS_WITH_LUAJIT
 AS_IF([test "x$with_luajit" = "xno"], [
   PDNS_WITH_LUA
 ])
+AS_IF([test "x$LUAPC" = "x" -a "x$LUAJITPC" = "x"], [
+  AC_MSG_ERROR([Neither Lua nor LuaJIT found, Lua support is not optional])
+])
 PDNS_CHECK_LUA_HPP
 
 PDNS_ENABLE_VERBOSE_LOGGING
