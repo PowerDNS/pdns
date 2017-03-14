@@ -1144,7 +1144,6 @@ class TestAdvancedIncludeDir(DNSDistTest):
     _config_template = """
     -- this directory contains a file allowing includedir.advanced.tests.powerdns.com.
     includeDirectory('test-include-dir')
-    addAction(AllRule(), RCodeAction(dnsdist.REFUSED))
     newServer{address="127.0.0.1:%s"}
     """
 

@@ -1168,6 +1168,7 @@ void moreLua(bool client)
 
         DIR *dirp;
         struct dirent *ent;
+        std::list<std::string> files;
         if (!(dirp = opendir(dirname.c_str()))) {
           errlog("Error opening the included directory %s!", dirname.c_str());
           g_outputBuffer="Error opening the included directory " + dirname + "!";
@@ -1187,17 +1188,23 @@ void moreLua(bool client)
               continue;
             }
 
-            std::ifstream ifs(namebuf.str());
-            if (!ifs) {
-              warnlog("Unable to read configuration from '%s'", namebuf.str());
-            } else {
-              vinfolog("Read configuration from '%s'", namebuf.str());
-            }
-
-            g_lua.executeCode(ifs);
+            files.push_back(namebuf.str());
           }
         }
+
         closedir(dirp);
+        files.sort();
+
+        for (auto file = files.begin(); file != files.end(); ++file) {
+          std::ifstream ifs(*file);
+          if (!ifs) {
+            warnlog("Unable to read configuration from '%s'", *file);
+          } else {
+            vinfolog("Read configuration from '%s'", *file);
+          }
+
+          g_lua.executeCode(ifs);
+        }
 
         g_included = false;
     });
