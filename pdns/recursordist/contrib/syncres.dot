@@ -50,12 +50,12 @@ digraph {
     "return res from doOOBResolve()" [color=green];
     doResolve_asyncresolveWrapper -> "return result from asyncresolveWrapper()";
     "return result from asyncresolveWrapper()" [color=green];
-    doResolve_doCNAMECacheCheck -> "Did doCNAMECacheCheck() return a true-ish value?";
-    "Did doCNAMECacheCheck() return a true-ish value?" -> doResolve_return_res [label=yes];
-    "Did doCNAMECacheCheck() return a true-ish value?" -> doResolve_doCacheCheck [label=no];
-    doResolve_doCacheCheck -> "did doCacheCheck() return a true-ish value?";
-    "did doCacheCheck() return a true-ish value?" -> doResolve_return_res [label=yes];
-    "did doCacheCheck() return a true-ish value?" -> doResolve_getBestNSNamesFromCache [label=no];
+
+    doResolve_doCNAMECacheCheck -> doResolve_doCacheCheck [label="returned false"];
+    doResolve_doCNAMECacheCheck -> doResolve_return_res [label="returned true"];
+
+    doResolve_doCacheCheck -> doResolve_getBestNSNamesFromCache [label="returned false"];
+    doResolve_doCacheCheck -> doResolve_return_res [label="returned true"];
 
     doResolve_getBestNSNamesFromCache -> doResolve_doResolveAt;
     doResolve_doResolveAt -> doResolve_return_res [label="res == -2"];
