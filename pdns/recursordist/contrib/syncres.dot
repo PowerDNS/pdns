@@ -62,6 +62,32 @@ digraph {
     doResolve_doResolveAt -> doResolve_return_res [label="res >= 0"];
   }
 
+  subgraph cluster_doCacheCheck {
+    label="SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int &res)";
+
+    doCacheCheck_return_false [label="return false", color=green];
+    "Did we have a positive or negative answer?" -> doCacheCheck_return_true [label=yes];
+    "Did we have a positive or negative answer?" -> doCacheCheck_return_false [label=no];
+    doCacheCheck_return_true [label="return true", color=green];
+
+    "Allocate return qname, qtype and qttl vars (RVARS) as qname, qtype" -> "Is the last label of qname negatively cached by root and is root-nx-trust enabled?";
+
+    "Is the last label of qname negatively cached by root and is root-nx-trust enabled?" -> "Set res to NXDOMAIN, set RVARS to to this label|SOA" [label=yes];
+    "Is the last label of qname negatively cached by root and is root-nx-trust enabled?" -> "Do we have a negative entry from an auth?" [label=no];
+    "Do we have a negative entry from an auth?" -> "Set RCODE (NOERROR or NXDOMAIN), set RVARS to (smaller) qname|SOA" [label=yes];
+    "Set RCODE (NOERROR or NXDOMAIN), set RVARS to (smaller) qname|SOA" -> "Add DNSSEC proof from cache";
+    "Set res to NXDOMAIN, set RVARS to to this label|SOA" -> "Do we have a positive for RVARS from an auth?";
+
+    "Do we have a negative entry from an auth?" -> "Do we have a positive for RVARS from an auth?" [label=no];
+
+    "Do we have a positive for RVARS from an auth?" -> "Did we have a positive or negative answer?" [label=no];
+    "Add DNSSEC proof from cache" -> "Do we have a positive for RVARS from an auth?";
+
+    "Do we have a positive for RVARS from an auth?" -> "Add positive answers to ret if not expired" [label=yes];
+    "Add positive answers to ret if not expired" -> "Add DNSSEC data to ret";
+    "Add DNSSEC data to ret" -> "Did we have a positive or negative answer?";
+  }
+
   subgraph cluster_getBestNSFromCache {
     label="SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vector<DNSRecord>& bestns, bool* flawedNSSet, unsigned int depth, set<GetBestNSAnswer>& beenthere)\nFills the bestns vector with the 'closest' nameservers for qname\nflawedNSSet will be true if the NSSet has no glue.\nbeenthere contains the list of nameservers already visited during this recursion.";
 
