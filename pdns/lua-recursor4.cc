@@ -32,54 +32,6 @@
 #include "rec-snmp.hh"
 #include <unordered_set>
 
-#if !defined(HAVE_LUA)
-RecursorLua4::RecursorLua4(const std::string &fname)
-{
-  throw std::runtime_error("Attempt to load a Lua script in a PowerDNS binary without Lua support");
-}
-
-bool RecursorLua4::nxdomain(DNSQuestion& dq, int& res)
-{
-  return false;
-}
-
-bool RecursorLua4::nodata(DNSQuestion& dq, int& res)
-{
-  return false;
-}
-
-bool RecursorLua4::postresolve(DNSQuestion& dq, int& res)
-{
-  return false;
-}
-
-bool RecursorLua4::prerpz(DNSQuestion& dq, int& ret)
-{
-  return false;
-}
-
-bool RecursorLua4::preresolve(DNSQuestion& dq, int& res)
-{
-  return false;
-}
-
-bool RecursorLua4::preoutquery(const ComboAddress& ns, const ComboAddress& requestor, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, int& ret)
-{
-  return false;
-}
-
-bool RecursorLua4::ipfilter(const ComboAddress& remote, const ComboAddress& local, const struct dnsheader& dh)
-{
-  return false;
-}
-
-unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, std::unordered_map<string,string>& data)
-{
-  return 0;
-}
-
-
-#else
 #undef L
 #include "ext/luawrapper/include/LuaContext.hpp"
 
@@ -715,5 +667,4 @@ loop:;
   return handled;
 }
 
-#endif
 RecursorLua4::~RecursorLua4(){}
