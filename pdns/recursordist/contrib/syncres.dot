@@ -7,14 +7,15 @@ digraph {
     label="SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qclass, vector<DNSRecord>&ret)\nreturns the RCODE\nret is filled with all relevant records";
 
     beginResolve_doResolve [label="SyncRes::doResolve()", color=red];
+    beginResolve_doSpecialNamesResolve [label="SyncRes::doSpecialNamesResolve()", color=red]
 
     "Is this an AXFR request?";
     "Is this an AXFR request?" -> beginResolve_return_minus_1 [label=yes];
-    "Is this an AXFR request?" -> "Is qname+qclass+qtype 'special'?" [label=no];
-    "Is qname+qclass+qtype 'special'?" -> "Handle special names (version.bind, localhost)" [label=yes];
-    "Handle special names (version.bind, localhost)" -> beginResolve_return_0;
+    "Is this an AXFR request?" -> beginResolve_doSpecialNamesResolve [label=no];
 
-    "Is qname+qclass+qtype 'special'?" -> "Is the qlass IN?" [label=no];
+    beginResolve_doSpecialNamesResolve -> "Is the qlass IN?" [label="Was not a special name"];
+    beginResolve_doSpecialNamesResolve -> beginResolve_return_0 [label="Was handled!"];
+
     "Is the qlass IN?" -> beginResolve_return_minus_1 [label=no];
     "Is the qlass IN?" -> beginResolve_doResolve [label=yes];
     beginResolve_doResolve -> beginResolve_return_doResolve;
