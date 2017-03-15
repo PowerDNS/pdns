@@ -348,6 +348,10 @@ AS_IF([test "x$libcrypto_ecdsa" == "xyes"],
   [AC_MSG_NOTICE([OpenSSL ecdsa: yes])],
   [AC_MSG_NOTICE([OpenSSL ecdsa: no])]
 )
+AS_IF([test "x$LIBSODIUM_LIBS" != "x"],
+  [AC_MSG_NOTICE([libsodium ed25519: yes])],
+  [AC_MSG_NOTICE([libsodium ed25519: no])]
+)
 AS_IF([test "x$needsqlite3" != "x"],
   [AC_MSG_NOTICE([SQLite3: yes])],
   [AC_MSG_NOTICE([SQLite3: no])]
