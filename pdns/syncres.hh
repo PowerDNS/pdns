@@ -19,8 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PDNS_SYNCRES_HH
-#define PDNS_SYNCRES_HH
+#pragma once
 #include <string>
 #include <atomic>
 #include "utility.hh"
@@ -762,6 +761,4 @@ extern SuffixMatchNode g_ednsdomains;
 
 #ifdef HAVE_PROTOBUF
 extern __thread boost::uuids::random_generator* t_uuidGenerator;
-#endif
-
 #endif
