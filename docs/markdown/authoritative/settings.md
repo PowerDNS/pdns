@@ -96,6 +96,13 @@ Static pre-shared authentication key for access to the REST API.
 
 Disallow data modification through the REST API when set.
 
+## `axfr-lower-serial`
+* Boolean
+* Default: no
+* Available since: 4.0.4
+
+Also AXFR a zone from a master with a lower serial.
+
 ## `cache-ttl`
 * Integer
 * Default: 20
