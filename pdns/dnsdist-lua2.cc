@@ -1327,4 +1327,9 @@ void moreLua(bool client)
           g_outputBuffer=poolObj->policy->name+"\n";
         }
       });
+
+    g_lua.writeFunction("setTCPDownstreamCleanupInterval", [](uint16_t interval) {
+        setLuaSideEffect();
+        g_downstreamTCPCleanupInterval = interval;
+      });
 }

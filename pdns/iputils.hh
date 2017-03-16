@@ -911,6 +911,8 @@ void fillMSGHdr(struct msghdr* msgh, struct iovec* iov, char* cbuf, size_t cbufs
 ssize_t sendfromto(int sock, const char* data, size_t len, int flags, const ComboAddress& from, const ComboAddress& to);
 ssize_t sendMsgWithTimeout(int fd, const char* buffer, size_t len, int timeout, ComboAddress& dest, const ComboAddress& local, unsigned int localItf);
 bool sendSizeAndMsgWithTimeout(int sock, uint16_t bufferLen, const char* buffer, int idleTimeout, const ComboAddress* dest, const ComboAddress* local, unsigned int localItf, int totalTimeout, int flags);
+/* requires a non-blocking, connected TCP socket */
+bool isTCPSocketUsable(int sock);
 
 extern template class NetmaskTree<bool>;
 
