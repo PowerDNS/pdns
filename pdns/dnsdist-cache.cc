@@ -258,18 +258,15 @@ void DNSDistPacketCache::expunge(size_t upTo)
   d_map.erase(beginIt, endIt);
 }
 
-void DNSDistPacketCache::expungeByName(const DNSName& name, uint16_t qtype)
+void DNSDistPacketCache::expungeByName(const DNSName& name, uint16_t qtype, bool suffixMatch)
 {
   WriteLock w(&d_lock);
 
   for(auto it = d_map.begin(); it != d_map.end(); ) {
     const CacheValue& value = it->second;
-    uint16_t cqtype = 0;
-    uint16_t cqclass = 0;
-    DNSName cqname(value.value.c_str(), value.len, sizeof(dnsheader), false, &cqtype, &cqclass, nullptr);
 
-    if (cqname == name && (qtype == QType::ANY || qtype == cqtype)) {
-        it = d_map.erase(it);
+    if ((value.qname == name || (suffixMatch && value.qname.isPartOf(name))) && (qtype == QType::ANY || qtype == value.qtype)) {
+      it = d_map.erase(it);
     } else {
       ++it;
     }

@@ -37,7 +37,7 @@ public:
   bool get(const DNSQuestion& dq, uint16_t consumed, uint16_t queryId, char* response, uint16_t* responseLen, uint32_t* keyOut, uint32_t allowExpired=0, bool skipAging=false);
   void purgeExpired(size_t upTo=0);
   void expunge(size_t upTo=0);
-  void expungeByName(const DNSName& name, uint16_t qtype=QType::ANY);
+  void expungeByName(const DNSName& name, uint16_t qtype=QType::ANY, bool suffixMatch=false);
   bool isFull();
   string toString();
   uint64_t getSize() const { return d_map.size(); }

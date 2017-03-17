@@ -20,7 +20,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
   ComboAddress remote;
   try {
     for(counter = 0; counter < 100000; ++counter) {
-      DNSName a=DNSName("hello ")+DNSName(std::to_string(counter));
+      DNSName a=DNSName(std::to_string(counter))+DNSName(" hello");
       BOOST_CHECK_EQUAL(DNSName(a.toString()), a);
 
       vector<uint8_t> query;
@@ -64,7 +64,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
     size_t deleted=0;
     size_t delcounter=0;
     for(delcounter=0; delcounter < counter/1000; ++delcounter) {
-      DNSName a=DNSName("hello ")+DNSName(std::to_string(delcounter));
+      DNSName a=DNSName(std::to_string(delcounter))+DNSName(" hello");
       vector<uint8_t> query;
       DNSPacketWriter pwQ(query, a, QType::A, QClass::IN, 0);
       pwQ.getHeader()->rd = 1;
@@ -80,11 +80,12 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
     }
     BOOST_CHECK_EQUAL(PC.getSize(), counter - skipped - deleted);
 
+
     size_t matches=0;
     vector<DNSResourceRecord> entry;
     size_t expected=counter-skipped-deleted;
     for(; delcounter < counter; ++delcounter) {
-      DNSName a(DNSName("hello ")+DNSName(std::to_string(delcounter)));
+      DNSName a(DNSName(std::to_string(delcounter))+DNSName(" hello"));
       vector<uint8_t> query;
       DNSPacketWriter pwQ(query, a, QType::A, QClass::IN, 0);
       pwQ.getHeader()->rd = 1;
@@ -94,10 +95,13 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
       uint16_t responseSize = sizeof(response);
       DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, (struct dnsheader*) query.data(), len, query.size(), false);
       if(PC.get(dq, a.wirelength(), pwQ.getHeader()->id, response, &responseSize, &key)) {
-	matches++;
+        matches++;
       }
     }
     BOOST_CHECK_EQUAL(matches, expected);
+
+    PC.expungeByName(DNSName(" hello"), QType::ANY, true);
+    BOOST_CHECK_EQUAL(PC.getSize(), 0);
   }
   catch(PDNSException& e) {
     cerr<<"Had error: "<<e.reason<<endl;

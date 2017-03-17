@@ -694,9 +694,13 @@ void moreLua(bool client)
     g_lua.registerFunction("isFull", &DNSDistPacketCache::isFull);
     g_lua.registerFunction("purgeExpired", &DNSDistPacketCache::purgeExpired);
     g_lua.registerFunction("expunge", &DNSDistPacketCache::expunge);
-    g_lua.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)(const DNSName& dname, boost::optional<uint16_t> qtype)>("expungeByName", [](std::shared_ptr<DNSDistPacketCache> cache, const DNSName& dname, boost::optional<uint16_t> qtype) {
+    g_lua.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)(const DNSName& dname, boost::optional<uint16_t> qtype, boost::optional<bool> suffixMatch)>("expungeByName", [](
+                std::shared_ptr<DNSDistPacketCache> cache,
+                const DNSName& dname,
+                boost::optional<uint16_t> qtype,
+                boost::optional<bool> suffixMatch) {
         if (cache) {
-          cache->expungeByName(dname, qtype ? *qtype : QType::ANY);
+          cache->expungeByName(dname, qtype ? *qtype : QType::ANY, suffixMatch ? *suffixMatch : false);
         }
       });
     g_lua.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)()>("printStats", [](const std::shared_ptr<DNSDistPacketCache> cache) {
