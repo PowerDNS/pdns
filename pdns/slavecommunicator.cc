@@ -840,7 +840,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       continue;
     uint32_t theirserial = ssr.d_freshness[di.id].theirSerial, ourserial = di.serial;
 
-    if(rfc1982LessThan(theirserial, ourserial) && ourserial != 0) {
+    if(rfc1982LessThan(theirserial, ourserial) && ourserial != 0 && !::arg().mustDo("axfr-lower-serial"))  {
       L<<Logger::Error<<"Domain '"<<di.zone<<"' more recent than master, our serial " << ourserial << " > their serial "<< theirserial << endl;
       di.backend->setFresh(di.id);
     }
