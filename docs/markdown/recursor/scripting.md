@@ -184,6 +184,7 @@ function prerpz(dq)
   if dq.qname:equal('example.com') then
     dq:discardPolicy('malware')
   end
+  return false
 end
 ```
 
