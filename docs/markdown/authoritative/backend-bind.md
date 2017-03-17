@@ -110,4 +110,6 @@ These zones are neither a master (no notifies are sent) nor a slave zone (it wil
 This means that the replication mechanism for these zone is not AXFR but out of band, e.g. using `rsync`.
 Changes to native zones are picked up in the same way as master and slave zones, see [Operation](#operation).
 
+Native zones in the BIND backend are supported since version 4.1.0 of the PowerDNS Authoritative Server.
+
 **note**: Any zone with no `type` set (an error in BIND) is assumed to be native.
