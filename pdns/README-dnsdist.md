@@ -920,11 +920,11 @@ entries remain in the cache. For example, to remove all expired entries:
 getPool("poolname"):getCache():purgeExpired(0)
 ```
 
-Specific entries can also be removed using the `expungeByName(DNSName [, qtype=ANY])`
-method.
+Specific entries can also be removed using the `expungeByName(DNSName [, qtype=ANY, suffixMatch=false])`
+method. If suffixMatch is set to true it will remove any entries below DNSName.
 
 ```
-getPool("poolname"):getCache():expungeByName(newDNSName("powerdns.com"), dnsdist.A)
+getPool("poolname"):getCache():expungeByName(newDNSName("powerdns.com"), dnsdist.A, true)
 ```
 
 Finally, the `expunge(n)` method will remove all entries until at most `n`
@@ -1535,7 +1535,7 @@ instantiate a server with additional parameters
     * `unsetCache()`: remove the packet cache from this pool
  * PacketCache related:
     * `expunge(n)`: remove entries from the cache, leaving at most `n` entries
-    * `expungeByName(DNSName [, qtype=ANY])`: remove entries matching the supplied DNSName and type from the cache
+    * `expungeByName(DNSName [, qtype=ANY, suffixMatch=false])`: remove entries matching the supplied DNSName and type from the cache. If suffixMatch is specified also removes names below DNSName
     * `isFull()`: return true if the cache has reached the maximum number of entries
     * `newPacketCache(maxEntries[, maxTTL=86400, minTTL=0, temporaryFailureTTL=60, staleTTL=60])`: return a new PacketCache
     * `printStats()`: print the cache stats (hits, misses, deferred lookups and deferred inserts)
