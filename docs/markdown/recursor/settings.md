@@ -512,9 +512,10 @@ In this example, 'policy.rpz' denotes the name of the zone to query for.
 
 Settings for `rpzFile` and `rpzMaster` can contain:
 
-* defpol = Policy.Custom, Policy.Drop, Policy.NXDOMAIN, Policy.NODATA, Policy.Truncate, Policy.NoAction
+* defpol = Default policy: Policy.Custom, Policy.Drop, Policy.NXDOMAIN, Policy.NODATA, Policy.Truncate, Policy.NoAction
 * defcontent = CNAME field to return in case of defpol=Policy.Custom
-* defttl = the TTL of the CNAME field to be synthesized. The default is to use the zone's TTL
+* defttl = the TTL of the CNAME field to be synthesized for the default policy. The default is to use the zone's TTL
+* maxTTL = the maximum TTL value of the synthesized records, overriding a higher value from `defttl` or the zone. Default is unlimited
 * policyName = the name logged as 'appliedPolicy' in protobuf messages when this policy is applied
 * zoneSizeHint = an indication of the number of expected entries in the zone, speeding up the loading of huge zones by reserving space in advance
 

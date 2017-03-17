@@ -91,6 +91,7 @@ www2.example.net.        3600 IN A   192.0.2.2
 www3.example.net.        3600 IN A   192.0.2.3
 www4.example.net.        3600 IN A   192.0.2.4
 www5.example.net.        3600 IN A   192.0.2.5
+default.example.net.     3600 IN A   192.0.2.42
 weirdtxt.example.net.    3600 IN IN  TXT "x\014x"
 arthur.example.net.      3600 IN NS  ns.arthur.example.net.
 arthur.example.net.      3600 IN NS  ns2.arthur.example.net.
@@ -555,6 +556,11 @@ EOF
 cat > recursor-service3/config.lua <<EOF
 rpzFile("$(pwd)/recursor-service3/rpz.zone", {policyName="myRPZ"})
 rpzFile("$(pwd)/recursor-service3/rpz2.zone", {policyName="mySecondRPZ"})
+rpzFile("$(pwd)/recursor-service3/rpz3.zone", {policyName="cappedTTLRPZ", maxTTL=5})
+rpzFile("$(pwd)/recursor-service3/rpz4.zone", {policyName="defPolicyTTL", defpol=Policy.Custom, defcontent="default.example.net", defttl=10, maxTTL=20})
+rpzFile("$(pwd)/recursor-service3/rpz5.zone", {policyName="defPolicyCappedTTL", defpol=Policy.Custom, defcontent="default.example.net", defttl=50, maxTTL=20})
+rpzFile("$(pwd)/recursor-service3/rpz6.zone", {policyName="defPolicyWithoutTTL", defpol=Policy.Custom, defcontent="default.example.net"})
+rpzFile("$(pwd)/recursor-service3/rpz7.zone", {policyName="defPolicyWithoutTTLCapped", defpol=Policy.Custom, defcontent="default.example.net", maxTTL=50})
 EOF
 
 IFS=. read REV_PREFIX1 REV_PREFIX2 REV_PREFIX3 <<< $(echo $PREFIX) # This will bite us in the ass if we ever test on IPv6
@@ -588,6 +594,59 @@ cat > recursor-service3/rpz2.zone <<EOF
 @ NS ns.example.net.
 
 www5.example.net       A     192.0.2.25          ; Override www5.example.net.
+
+EOF
+
+cat > recursor-service3/rpz3.zone <<EOF
+\$TTL 2h;
+\$ORIGIN domain.example.
+@ SOA $SOA
+@ NS ns.example.net.
+
+capped-ttl.example.net       50       IN      A     192.0.2.35          ; exceeds the maxTTL setting
+unsupported.example.net      50       IN      CNAME rpz-unsupported.    ; unsupported target
+unsupported2.example.net      50       IN      CNAME 32.3.2.0.192.rpz-unsupported.    ; also unsupported target
+not-rpz.example.net           50       IN      CNAME rpz-not.com.                     ; this one is not a special RPZ target
+
+EOF
+
+cat > recursor-service3/rpz4.zone <<EOF
+\$TTL 2h;
+\$ORIGIN domain.example.
+@ SOA $SOA
+@ NS ns.example.net.
+
+defpol-with-ttl.example.net       50       IN      A     192.0.2.35          ; will be overriden by the default policy and the default TTL
+
+EOF
+
+cat > recursor-service3/rpz5.zone <<EOF
+\$TTL 2h;
+\$ORIGIN domain.example.
+@ SOA $SOA
+@ NS ns.example.net.
+
+defpol-with-ttl-capped.example.net       100       IN      A     192.0.2.35          ; will be overriden by the default policy and the default TTL (but capped by maxTTL)
+
+EOF
+
+cat > recursor-service3/rpz6.zone <<EOF
+\$TTL 2h;
+\$ORIGIN domain.example.
+@ SOA $SOA
+@ NS ns.example.net.
+
+defpol-without-ttl.example.net       A     192.0.2.35          ; will be overriden by the default policy, but with the zone's TTL
+
+EOF
+
+cat > recursor-service3/rpz7.zone <<EOF
+\$TTL 2h;
+\$ORIGIN domain.example.
+@ SOA $SOA
+@ NS ns.example.net.
+
+defpol-without-ttl-capped.example.net       A     192.0.2.35          ; will be overriden by the default policy, but with the zone's TTL capped by maxTTL
 
 EOF
 
