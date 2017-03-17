@@ -97,6 +97,7 @@ public:
   void makeUsRelative(const DNSName& zone);
   DNSName labelReverse() const;
   bool isWildcard() const;
+  bool isHostname() const;
   unsigned int countLabels() const;
   size_t wirelength() const; //!< Number of total bytes in the name
   bool empty() const { return d_storage.empty(); }

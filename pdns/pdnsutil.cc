@@ -577,13 +577,27 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
       }
     }
 
-    if(rr.qtype.getCode() == QType::A || rr.qtype.getCode() == QType::AAAA)
-    {
-      Regex hostnameRegex=Regex("^(([A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)\\.)+$");
-      if (!hostnameRegex.match(rr.qname.toString()))
-      {
-        cout<<"[Info] A or AAAA record found at '"<<rr.qname.toString()<<"'. This name is not a valid hostname."<<endl;
-        continue;
+    if((rr.qtype.getCode() == QType::A || rr.qtype.getCode() == QType::AAAA) && !rr.qname.isWildcard() && !rr.qname.isHostname())
+      cout<<"[Info] "<<rr.qname.toString()<<" record for '"<<rr.qtype.getName()<<"' is not a valid hostname."<<endl;
+
+    // Check if the DNSNames that should be hostnames, are hostnames
+    if (rr.qtype.getCode() == QType::NS || rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV) {
+      DNSName toCheck;
+      if (rr.qtype.getCode() == QType::SRV) {
+        vector<string> parts;
+        stringtok(parts, rr.getZoneRepresentation());
+        toCheck = DNSName(parts[3]);
+      } else if (rr.qtype.getCode() == QType::MX) {
+        vector<string> parts;
+        stringtok(parts, rr.getZoneRepresentation());
+        toCheck = DNSName(parts[1]);
+      } else {
+        toCheck = DNSName(rr.content);
+      }
+
+      if (!toCheck.isHostname()) {
+        cout<<"[Warning] "<<rr.qtype.getName()<<" record in zone '"<<zone<<"' has non-hostname content '"<<toCheck<<"'."<<endl;
+        numwarnings++;
       }
     }
 

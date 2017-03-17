@@ -356,6 +356,16 @@ bool DNSName::isWildcard() const
   return (*p == 0x01 && *++p == '*');
 }
 
+/*
+ * Returns true if the DNSName is a valid RFC 1123 hostname, this function uses
+ * a regex on the string, so it is probably best not used when speed is essential.
+ */
+bool DNSName::isHostname() const
+{
+  static Regex hostNameRegex = Regex("^(([A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)\\.)+$");
+  return hostNameRegex.match(this->toString());
+}
+
 unsigned int DNSName::countLabels() const
 {
   unsigned int count=0;
