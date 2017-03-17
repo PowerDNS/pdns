@@ -24,7 +24,7 @@ To setup DNS64, with both forward and reverse records, create the following Lua
 script and save it to a file called `dns64.lua`
 
 ```
-!!include ../pdns/dns64.lua
+!!include=../pdns/recursordist/contrib/dns64.lua
 ```
 
 Where fe80::21b::77ff:0:0 is your "Pref64" translation prefix and the "ip6.arpa"
