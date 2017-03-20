@@ -93,9 +93,12 @@ public:
 
   void setState(T state) //!< Safely & slowly change the global state
   {
-    std::lock_guard<std::mutex> l(d_lock);
-    d_state = std::make_shared<T>(T(state));
-    d_generation++;
+    std::shared_ptr<T> newState = std::make_shared<T>(state);
+    {
+      std::lock_guard<std::mutex> l(d_lock);
+      d_state = newState;
+      d_generation++;
+    }
   }
 
   T getCopy() const  //!< Safely & slowly get a copy of the global state
@@ -110,7 +113,7 @@ public:
     std::lock_guard<std::mutex> l(d_lock); 
     auto state=*d_state; // and yes, these three steps are necessary, can't ever modify state in place, even when locked!
     act(state);
-    d_state = std::make_shared<T>(T(state));
+    d_state = std::make_shared<T>(state);
     ++d_generation;
   }
 
