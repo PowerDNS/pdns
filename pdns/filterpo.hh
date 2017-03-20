@@ -83,6 +83,10 @@ public:
   DNSFilterEngine();
   void clear();
   void clear(size_t zone);
+  void reserve(size_t zone, size_t entriesCount) {
+    assureZones(zone);
+    d_zones[zone].qpolName.reserve(entriesCount);
+  }
   void addClientTrigger(const Netmask& nm, Policy pol, size_t zone);
   void addQNameTrigger(const DNSName& nm, Policy pol, size_t zone);
   void addNSTrigger(const DNSName& dn, Policy pol, size_t zone);
@@ -112,13 +116,12 @@ public:
 private:
   void assureZones(size_t zone);
   struct Zone {
-    std::map<DNSName, Policy> qpolName;   // QNAME trigger (RPZ)
+    std::unordered_map<DNSName, Policy> qpolName;   // QNAME trigger (RPZ)
     NetmaskTree<Policy> qpolAddr;         // Source address
-    std::map<DNSName, Policy> propolName; // NSDNAME (RPZ)
+    std::unordered_map<DNSName, Policy> propolName; // NSDNAME (RPZ)
     NetmaskTree<Policy> propolNSAddr;     // NSIP (RPZ)
     NetmaskTree<Policy> postpolAddr;      // IP trigger (RPZ)
     std::shared_ptr<std::string> name;
   };
   vector<Zone> d_zones;
-
 };

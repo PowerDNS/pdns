@@ -28,10 +28,8 @@ DNSFilterEngine::DNSFilterEngine()
 {
 }
 
-bool findNamedPolicy(const map<DNSName, DNSFilterEngine::Policy>& polmap, const DNSName& qname, DNSFilterEngine::Policy& pol)
+static bool findNamedPolicy(const std::unordered_map<DNSName, DNSFilterEngine::Policy>& polmap, const DNSName& qname, DNSFilterEngine::Policy& pol)
 {
-  DNSName s(qname);
-
   /* for www.powerdns.com, we need to check:
      www.powerdns.com.
        *.powerdns.com.
@@ -39,14 +37,15 @@ bool findNamedPolicy(const map<DNSName, DNSFilterEngine::Policy>& polmap, const 
                     *.
    */
 
-  map<DNSName, DNSFilterEngine::Policy>::const_iterator iter;
-  iter = polmap.find(s);
+  std::unordered_map<DNSName, DNSFilterEngine::Policy>::const_iterator iter;
+  iter = polmap.find(qname);
 
   if(iter != polmap.end()) {
     pol=iter->second;
     return true;
   }
 
+  DNSName s(qname);
   while(s.chopOff()){
     iter = polmap.find(DNSName("*")+s);
     if(iter != polmap.end()) {

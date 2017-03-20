@@ -491,6 +491,7 @@ Settings for `rpzFile` and `rpzMaster` can contain:
 * defcontent = CNAME field to return in case of defpol=Policy.Custom
 * defttl = the TTL of the CNAME field to be synthesized. The default is to use the zone's TTL
 * policyName = the name logged as 'appliedPolicy' in protobuf messages when this policy is applied
+* zoneSizeHint = an indication of the number of expected entries in the zone, speeding up the loading of huge zones by reserving space in advance
 
 In addition to those, `rpzMaster` accepts:
 
