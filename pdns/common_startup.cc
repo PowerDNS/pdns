@@ -196,6 +196,8 @@ void declareArguments()
   ::arg().setSwitch("axfr-lower-serial", "Also AXFR a zone from a master with a lower serial")="no";
 
   ::arg().set("xfr-max-received-mbytes", "Maximum number of megabytes received from an incoming XFR")="100";
+
+  ::arg().set("tcp-fast-open", "Enable TCP Fast Open support on the listening sockets, using the supplied numerical value as the queue size")="0";
 }
 
 static time_t s_start=time(0);
