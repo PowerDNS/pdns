@@ -484,8 +484,10 @@ void* tcpClientThread(int pipefd)
   drop:;
     
     vinfolog("Closing TCP client connection with %s", ci.remote.toStringWithPort());
-    close(ci.fd); 
-    ci.fd=-1;
+    if (ci.fd >= 0) {
+      close(ci.fd);
+    }
+    ci.fd = -1;
     if (ds && outstanding) {
       outstanding = false;
       --ds->outstanding;

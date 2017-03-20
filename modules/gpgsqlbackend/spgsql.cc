@@ -32,7 +32,6 @@
 #include "pdns/namespaces.hh"
 #include <algorithm>
 
-
 class SPgSQLStatement: public SSqlStatement
 {
 public:
@@ -47,6 +46,11 @@ public:
     paramValues = NULL;
     paramLengths = NULL;
     d_do_commit = false;
+    d_paridx = 0;
+    d_residx = 0;
+    d_resnum = 0;
+    d_fnum = 0;
+    d_cur_set = 0;
   }
 
   SSqlStatement* bind(const string& name, bool value) { return bind(name, string(value ? "t" : "f")); }

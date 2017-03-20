@@ -34,7 +34,11 @@ DNSDistPacketCache::DNSDistPacketCache(size_t maxEntries, uint32_t maxTTL, uint3
 
 DNSDistPacketCache::~DNSDistPacketCache()
 {
-  WriteLock l(&d_lock);
+  try {
+    WriteLock l(&d_lock);
+  }
+  catch(const PDNSException& pe) {
+  }
 }
 
 bool DNSDistPacketCache::cachedValueMatches(const CacheValue& cachedValue, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool tcp)

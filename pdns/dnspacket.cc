@@ -128,6 +128,8 @@ DNSPacket::DNSPacket(const DNSPacket &orig)
   d_rawpacket=orig.d_rawpacket;
   d_tsig_algo=orig.d_tsig_algo;
   d=orig.d;
+
+  d_isQuery = orig.d_isQuery;
 }
 
 void DNSPacket::setRcode(int v)
