@@ -99,7 +99,7 @@ The DNSQuestion object contains at least the following fields:
      * policyCustom: The CNAME content for the `pdns.policyactions.Custom` response, a string
      * policyTTL: The TTL in seconds for the `pdns.policyactions.Custom` response
 * wantsRPZ - A boolean that indicates the use of the Policy Engine, can be set to `false` in `prerpz` to disable RPZ for this query
-* data - a table that is persistent throughout the lifetime of the `dq` object and can be used to store custom data. All keys and values in the table must be of type `string`.
+* data - a Lua object reference that is persistent throughout the lifetime of the `dq` object for a single query. It can be used to store custom data. Most scripts initialise this to an empty table early on so they can store multiple items.
 
 It also supports the following methods:
 
