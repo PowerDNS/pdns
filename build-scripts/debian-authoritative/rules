@@ -9,6 +9,9 @@ ENABLE_SYSTEMD := --enable-systemd --with-systemd=/lib/systemd/system
 LIBSYSTEMD_DEV := , libsystemd-dev
 DEBHELPER_WITH_SYSTEMD := --with systemd
 
+ENABLE_LIBSODIUM := --enable-libsodium
+LIBSODIUM_DEV := , libsodium-dev
+
 # $(ID) and $(VERSION_ID) come from the environment, source this from /etc/os-release
 ifeq ($(ID), ubuntu)
   ifeq ($(VERSION_ID), 14.04)
@@ -16,11 +19,16 @@ ifeq ($(ID), ubuntu)
     ENABLE_SYSTEMD=
     LIBSYSTEMD_DEV=
     DEBHELPER_WITH_SYSTEMD=
+
+    # Also disable libsodium
+    ENABLE_LIBSODIUM=
+    LIBSODIUM_DEV=
   endif
 endif
 
 debian/control: debian/control.in
-	sed -e "s!@LIBSYSTEMDDEV@!$(LIBSYSTEMD_DEV)!" $< > $@
+	sed -e "s!@LIBSYSTEMDDEV@!$(LIBSYSTEMD_DEV)!" \
+	    -e "s!@LIBSODIUMDEV@!$(LIBSODIUM_DEV)!" $< > $@
 
 # Use new build system
 %:
@@ -46,7 +54,8 @@ override_dh_auto_configure:
 		--enable-botan1.10 \
 		--enable-tools \
 		--enable-unit-tests \
-		$(ENABLE_SYSTEMD)
+		$(ENABLE_SYSTEMD) \
+		$(ENABLE_LIBSODIUM)
 
 # pdns-server has a debug package
 override_dh_strip:

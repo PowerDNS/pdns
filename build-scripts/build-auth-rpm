@@ -285,6 +285,7 @@ Requires(postun): /sbin/service
 
 BuildRequires: boost-devel
 BuildRequires: lua-devel
+BuildRequires: libsodium-devel
 BuildRequires: bison
 Provides: powerdns = %{version}-%{release}
 
@@ -394,6 +395,7 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
 	--with-lua \
 	--with-dynmodules='bind %{backends} random' \
 	--enable-tools \
+	--enable-libsodium \
 	--without-protobuf \
 	--enable-remotebackend-http \
 	--enable-unit-tests
@@ -543,6 +545,7 @@ BuildRequires: systemd-units
 BuildRequires: systemd-devel
 BuildRequires: boost-devel
 BuildRequires: lua-devel
+BuildRequires: libsodium-devel
 BuildRequires: bison
 BuildRequires: openssl-devel
 BuildRequires: protobuf-devel
@@ -687,6 +690,7 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
 	--with-lua \
 	--with-dynmodules='%{backends} random' \
 	--enable-tools \
+	--enable-libsodium \
 	--enable-unit-tests \
 	--enable-systemd
 

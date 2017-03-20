@@ -122,6 +122,7 @@ Source1: pdns-recursor.init
 Provides: powerdns-recursor = %{version}-%{release}
 BuildRequires: boost148-devel
 BuildRequires: lua-devel
+BuildRequires: libsodium-devel
 #BuildRequires: protobuf-devel
 #BuildRequires: protobuf-compiler
 
@@ -146,6 +147,7 @@ package if you need a dns cache for your network.
 	--disable-silent-rules \
 	--with-protobuf \
 	--enable-unit-tests \
+	--enable-libsodium \
 	--with-boost=/usr/include/boost148 LIBRARY_PATH=/usr/lib64/boost148
 
 make %{?_smp_mflags} LIBRARY_PATH=/usr/lib64/boost148
@@ -214,6 +216,7 @@ BuildRequires: boost-devel
 BuildRequires: lua-devel
 BuildRequires: systemd-units
 BuildRequires: systemd-devel
+BuildRequires: libsodium-devel
 BuildRequires: hostname
 BuildRequires: protobuf-devel
 BuildRequires: protobuf-compiler
@@ -240,6 +243,7 @@ package if you need a dns cache for your network.
 	--disable-silent-rules \
 	--enable-unit-tests \
 	--with-protobuf \
+	--enable-libsodium \
 	--enable-systemd
 
 make %{?_smp_mflags}
