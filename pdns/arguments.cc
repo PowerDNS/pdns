@@ -495,6 +495,7 @@ void ArgvMap::gatherIncludes(std::vector<std::string> &extraConfigs) {
         // ensure it's readable file
         if (stat(namebuf.str().c_str(), &st) || !S_ISREG(st.st_mode)) {
           L << Logger::Error << namebuf.str() << " is not a file" << std::endl;
+          closedir(dir);
           throw ArgException(namebuf.str() + " does not exist!");
         }
         extraConfigs.push_back(namebuf.str());

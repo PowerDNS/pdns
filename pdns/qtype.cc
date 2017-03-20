@@ -110,8 +110,7 @@ QType &QType::operator=(const string &s)
 }
 
 
-QType::QType(uint16_t n)
+QType::QType(uint16_t n): QType()
 {
-  QType();
   code=n;
 }
