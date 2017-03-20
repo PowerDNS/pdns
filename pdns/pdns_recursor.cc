@@ -1846,6 +1846,17 @@ static void makeTCPServerSockets(unsigned int threadId)
     }
 #endif
 
+    if (::arg().asNum("tcp-fast-open") > 0) {
+#ifdef TCP_FASTOPEN
+      int fastOpenQueueSize = ::arg().asNum("tcp-fast-open");
+      if (setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &fastOpenQueueSize, sizeof fastOpenQueueSize) < 0) {
+        L<<Logger::Error<<"Failed to enable TCP Fast Open for listening socket: "<<strerror(errno)<<endl;
+      }
+#else
+      L<<Logger::Warning<<"TCP Fast Open configured but not supported for listening socket"<<endl;
+#endif
+    }
+
     sin.sin4.sin_port = htons(st.port);
     socklen_t socklen=sin.sin4.sin_family==AF_INET ? sizeof(sin.sin4) : sizeof(sin.sin6);
     if (::bind(fd, (struct sockaddr *)&sin, socklen )<0)
@@ -3187,6 +3198,8 @@ int main(int argc, char **argv)
 
     ::arg().setSwitch("snmp-agent", "If set, register as an SNMP agent")="no";
     ::arg().setSwitch("snmp-master-socket", "If set and snmp-agent is set, the socket to use to register to the SNMP master")="";
+
+    ::arg().set("tcp-fast-open", "Enable TCP Fast Open support on the listening sockets, using the supplied numerical value as the queue size")="0";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");

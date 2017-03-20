@@ -877,6 +877,14 @@ Size of the stack per thread.
 Number of entries in the remotes ringbuffer, which keeps statistics on who is
 querying your server. Can be read out using `rec_control top-remotes`.
 
+## `tcp-fast-open`
+* Integer
+* Default: 0 (Disabled)
+* Available since: 4.1
+
+Enable TCP Fast Open support, if available, on the listening sockets. The numerical
+value supplied is used as the queue size, 0 meaning disabled.
+
 ## `threads`
 * Integer
 * Default: 2
