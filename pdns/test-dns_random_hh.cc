@@ -2,7 +2,7 @@
 #define BOOST_TEST_NO_MAIN
 
 // Disable this code for gcc 4.8 and lower
-#if (__GNUC__ == 4 && __GNUC_MINOR__ > 8) || !__GNUC__
+#if (__GNUC__ > 4) || (__GNUC__ == 4 && __GNUC_MINOR__ > 8) || !__GNUC__
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
