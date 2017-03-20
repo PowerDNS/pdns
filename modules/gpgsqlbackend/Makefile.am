@@ -1,4 +1,4 @@
-AM_CPPFLAGS += $(PGSQL_inc)
+AM_CPPFLAGS += $(PGSQL_CFLAGS)
 pkglib_LTLIBRARIES = libgpgsqlbackend.la
 
 EXTRA_DIST = \
@@ -18,4 +18,4 @@ libgpgsqlbackend_la_SOURCES = \
 	spgsql.cc spgsql.hh
 
 libgpgsqlbackend_la_LDFLAGS = -module -avoid-version
-libgpgsqlbackend_la_LIBADD = $(PGSQL_lib)
+libgpgsqlbackend_la_LIBADD = $(PGSQL_LIBS)
