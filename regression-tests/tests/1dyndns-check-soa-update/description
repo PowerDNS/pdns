@@ -1,3 +1,2 @@
 RFC2136 describes that every update message should result in the SOA-serial to be changed.
 This test checks if that happens.
-
