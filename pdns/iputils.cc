@@ -401,3 +401,45 @@ bool sendSizeAndMsgWithTimeout(int sock, uint16_t bufferLen, const char* buffer,
 
   return false;
 }
+
+/* requires a non-blocking socket.
+   On Linux, we could use MSG_DONTWAIT on a blocking socket
+   but this is not portable.
+*/
+bool isTCPSocketUsable(int sock)
+{
+  int err = 0;
+  char buf = '\0';
+  size_t buf_size = sizeof(buf);
+
+  do {
+    ssize_t got = recv(sock, &buf, buf_size, MSG_PEEK);
+
+    if (got > 0) {
+      /* socket is usable, some data is even waiting to be read */
+      return true;
+    }
+    else if (got == 0) {
+      /* other end has closed the socket */
+      return false;
+    }
+    else {
+      int err = errno;
+
+      if (err == EAGAIN || err == EWOULDBLOCK) {
+        /* socket is usable, no data waiting */
+        return true;
+      }
+      else {
+        if (err != EINTR) {
+          /* something is wrong, could be ECONNRESET,
+             ENOTCONN, EPIPE, but anyway this socket is
+             not usable. */
+          return false;
+        }
+      }
+    }
+  } while (err == EINTR);
+
+  return false;
+}

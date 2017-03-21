@@ -673,6 +673,7 @@ extern std::string g_apiConfigDirectory;
 extern bool g_servFailOnNoPolicy;
 extern uint32_t g_hashperturb;
 extern bool g_useTCPSinglePipe;
+extern std::atomic<uint16_t> g_downstreamTCPCleanupInterval;
 
 struct ConsoleKeyword {
   std::string name;

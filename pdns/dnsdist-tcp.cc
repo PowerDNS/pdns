@@ -93,6 +93,7 @@ size_t g_maxTCPConnectionsPerClient{0};
 static std::mutex tcpClientsCountMutex;
 static std::map<ComboAddress,size_t,ComboAddress::addressOnlyLessThan> tcpClientsCount;
 bool g_useTCPSinglePipe{false};
+std::atomic<uint16_t> g_downstreamTCPCleanupInterval{60};
 
 void* tcpClientThread(int pipefd);
 
@@ -194,6 +195,19 @@ static bool maxConnectionDurationReached(unsigned int maxConnectionDuration, tim
   return false;
 }
 
+void cleanupClosedTCPConnections(std::map<ComboAddress,int>& sockets)
+{
+  for(auto it = sockets.begin(); it != sockets.end(); ) {
+    if (isTCPSocketUsable(it->second)) {
+      ++it;
+    }
+    else {
+      close(it->second);
+      it = sockets.erase(it);
+    }
+  }
+}
+
 std::shared_ptr<TCPClientCollection> g_tcpclientthreads;
 
 void* tcpClientThread(int pipefd)
@@ -203,6 +217,7 @@ void* tcpClientThread(int pipefd)
      
   bool outstanding = false;
   blockfilter_t blockFilter = 0;
+  time_t lastTCPCleanup = time(nullptr);
   
   {
     std::lock_guard<std::mutex> lock(g_luamutex);
@@ -602,6 +617,11 @@ void* tcpClientThread(int pipefd)
       --ds->outstanding;
     }
     decrementTCPClientCount(ci.remote);
+
+    if (g_downstreamTCPCleanupInterval > 0 && (connectionStartTime > (lastTCPCleanup + g_downstreamTCPCleanupInterval))) {
+      cleanupClosedTCPConnections(sockets);
+      lastTCPCleanup = time(nullptr);
+    }
   }
   return 0;
 }
