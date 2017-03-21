@@ -189,6 +189,17 @@ public:
     class LuaFunctionCaller;
 
     /**
+     * Opaque type that identifies a Lua object
+     */
+    struct LuaObject {
+        LuaObject() = default;
+        LuaObject(lua_State* state, int index=-1) {
+            this->objectInRegistry = std::make_shared<LuaContext::ValueInRegistry>(state, index);
+        }
+        std::shared_ptr<LuaContext::ValueInRegistry> objectInRegistry;
+    };
+
+    /**
      * Opaque type that identifies a Lua thread
      */
     struct ThreadID {
@@ -1833,6 +1844,23 @@ private:
 /**************************************************/
 // specializations of the Pusher structure
 
+// opaque Lua references
+template<>
+struct LuaContext::Pusher<LuaContext::LuaObject> {
+    static const int minSize = 1;
+    static const int maxSize = 1;
+
+    static PushedObject push(lua_State* state, const LuaContext::LuaObject& value) noexcept {
+        if (value.objectInRegistry.get()) {
+            PushedObject obj = value.objectInRegistry->pop();
+            return obj;
+        } else {
+            lua_pushnil(state);
+            return PushedObject{state, 1};
+        }
+    }
+};
+
 // boolean
 template<>
 struct LuaContext::Pusher<bool> {
@@ -2394,6 +2422,18 @@ private:
 /*                READ FUNCTIONS                  */
 /**************************************************/
 // specializations of the Reader structures
+
+// opaque Lua references
+template<>
+struct LuaContext::Reader<LuaContext::LuaObject>
+{
+    static auto read(lua_State* state, int index)
+        -> boost::optional<LuaContext::LuaObject>
+    {
+        LuaContext::LuaObject obj(state, index);
+        return obj;
+    }
+};
 
 // reading null
 template<>
