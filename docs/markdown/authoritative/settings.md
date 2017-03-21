@@ -342,6 +342,19 @@ Enables EDNS subnet processing, for backends that support it.
 
 Entropy source file to use.
 
+## `expand-alias`
+* Boolean
+* Default: no
+* Since: 4.1.0
+
+If this is enabled, ALIAS records are expanded (synthesised to their A/AAAA).
+
+If this is disabled (the default), ALIAS records will not expanded and the server will will return NODATA for A/AAAA queries for such names.
+
+**note**: [`resolver`](#resolver) must also be set for ALIAS expansion to work!
+
+**note**: In PowerDNS Authoritative Server 4.0.x, this setting did not exist and ALIAS was always expanded.
+
 ## `forward-dnsupdate`
 * Boolean
 * Default: no

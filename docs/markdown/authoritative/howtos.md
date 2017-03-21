@@ -178,11 +178,11 @@ If you have multiple IP addresses on the internet on one machine, UNIX often sen
 # Using ALIAS records
 The ALIAS record provides a way to have CNAME-like behaviour on the zone apex.
 
-In order to correctly serve ALIAS records, set the [`resolver`](settings.md#resolver)
-setting to an existing resolver: 
+In order to correctly serve ALIAS records, set the [`resolver`](settings.md#resolver) setting to an existing resolver and enable [`expand-alias`](settings.md#expand-alias):
 
 ```
 resolver=[::1]:5300
+expand-alias=yes
 ```
 
 and add the ALIAS record to your zone apex. e.g.:
@@ -212,6 +212,9 @@ ALIAS-record and send the results in the AXFR.
 Set `outgoing-axfr-expand-alias` to 'yes' if your slaves don't understand ALIAS
 or should not look up the addresses themselves. Note that slaves will not
 automatically follow changes in those A/AAAA records unless you AXFR regularly.
+
+**note:** The `expand-alias` setting does not exist in PowerDNS Authoritative Server 4.0.x.
+Hence, ALIAS records are always expanded on a direct A or AAAA query.
 
 ## ALIAS and DNSSEC
 Starting with the PowerDNS Authoritative Server 4.0.0, DNSSEC 'washing' of ALIAS

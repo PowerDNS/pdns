@@ -191,6 +191,7 @@ void declareArguments()
   ::arg().set("include-dir","Include *.conf files from this directory");
   ::arg().set("security-poll-suffix","Domain name from which to query security update notifications")="secpoll.powerdns.com.";
 
+  ::arg().setSwitch("expand-alias", "Expand ALIAS records")="no";
   ::arg().setSwitch("outgoing-axfr-expand-alias", "Expand ALIAS records during outgoing AXFR")="no";
   ::arg().setSwitch("8bit-dns", "Allow 8bit dns queries")="no";
   ::arg().setSwitch("axfr-lower-serial", "Also AXFR a zone from a master with a lower serial")="no";
