@@ -1338,6 +1338,28 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
             return -2;
         }
 
+        if(remoteIPs.size() > 1) {
+          bool swap = true;
+          while(swap) {
+            swap = false;
+            for(unsigned int i = 0; i < remoteIPs.size() - 1; i++) {
+              if(t_sstorage->nsSpeeds[DNSName(remoteIPs[i+1].toString())].get(&d_now) < t_sstorage->nsSpeeds[DNSName(remoteIPs[i].toString())].get(&d_now)) {
+                std::swap(remoteIPs[i+1], remoteIPs[i]);
+                swap = true;
+              }
+            }
+          }
+
+          LOG(prefix<<qname<<": Adjusted '"<<auth<<"' NS "<<*tns<<" based on speed: ");
+          for(remoteIP = remoteIPs.begin(); remoteIP != remoteIPs.end(); ++remoteIP) {
+            if(remoteIP != remoteIPs.begin()) {
+              LOG(", ");
+            }
+            LOG(remoteIP->toStringWithPort() <<" ("<< std::to_string(t_sstorage->nsSpeeds[DNSName(remoteIP->toString())].get(&d_now)/1000)<< "msec)");
+          }
+          LOG(endl);
+        }
+
         for(remoteIP = remoteIPs.cbegin(); remoteIP != remoteIPs.cend(); ++remoteIP) {
           LOG(prefix<<qname<<": Trying IP "<< remoteIP->toStringWithPort() <<", asking '"<<qname<<"|"<<qtype.getName()<<"'"<<endl);
           if (throttledOrBlocked(prefix, *remoteIP, qname, qtype, pierceDontQuery)) {
@@ -1397,7 +1419,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
               }
 
               if(resolveret!=-2) { // don't account for resource limits, they are our own fault
-		t_sstorage->nsSpeeds[*tns].submit(*remoteIP, 1000000, &d_now); // 1 sec
+		t_sstorage->nsSpeeds[tns->empty()? DNSName(remoteIP->toString()) : *tns].submit(*remoteIP, 1000000, &d_now); // 1 sec
 
 		// code below makes sure we don't filter COM or the root
                 if (s_serverdownmaxfails > 0 && (auth != g_rootdnsname) && t_sstorage->fails.incr(*remoteIP) >= s_serverdownmaxfails) {
@@ -1449,7 +1471,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
         */
         //        cout<<"msec: "<<lwr.d_usec/1000.0<<", "<<g_avgLatency/1000.0<<'\n';
 
-        t_sstorage->nsSpeeds[*tns].submit(*remoteIP, lwr.d_usec, &d_now);
+        t_sstorage->nsSpeeds[tns->empty()? DNSName(remoteIP->toString()) : *tns].submit(*remoteIP, lwr.d_usec, &d_now);
       }
 
       if(s_minimumTTL) {
