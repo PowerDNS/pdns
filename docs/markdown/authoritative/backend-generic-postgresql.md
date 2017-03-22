@@ -10,8 +10,8 @@
 |DNSSEC|Yes (set `gpgsql-dnssec`)|
 |Disabled data|Yes (v3.4.0 and up)|
 |Comments|Yes (v3.4.0 and up)|
-|Module name | pgsql|
-|Launch name| pgsql|
+|Module name | gpgsql|
+|Launch name| gpgsql|
 
 This PostgreSQL backend is based on the [generic SQL backend](backend-generic-sql.md).
 The default setup conforms to the schema at the bottom of this page, note that
