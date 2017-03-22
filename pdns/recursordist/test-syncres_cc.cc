@@ -129,9 +129,12 @@ static void init(bool debug=false)
   SyncRes::s_serverdownmaxfails = 64;
   SyncRes::s_serverdownthrottletime = 60;
   SyncRes::s_doIPv6 = true;
+  SyncRes::s_ecsipv4limit = 24;
+  SyncRes::s_ecsipv6limit = 56;
 
-  ::arg().set("ecs-ipv4-bits", "24");
-  ::arg().set("ecs-ipv6-bits", "56");
+  g_ednssubnets = NetmaskGroup();
+  g_ednsdomains = SuffixMatchNode();
+  g_useIncomingECS = false;
 }
 
 static void initSR(std::unique_ptr<SyncRes>& sr, bool edns0, bool dnssec)
@@ -476,7 +479,7 @@ BOOST_AUTO_TEST_CASE(test_glued_referral) {
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, 0);
   BOOST_REQUIRE_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(ret[0].d_type, QType::A);
+  BOOST_CHECK(ret[0].d_type == QType::A);
   BOOST_CHECK_EQUAL(ret[0].d_name, target);
 }
 
@@ -545,8 +548,79 @@ BOOST_AUTO_TEST_CASE(test_glueless_referral) {
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, 0);
   BOOST_REQUIRE_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(ret[0].d_type, QType::A);
+  BOOST_CHECK(ret[0].d_type == QType::A);
   BOOST_CHECK_EQUAL(ret[0].d_name, target);
+}
+
+BOOST_AUTO_TEST_CASE(test_edns_submask_by_domain) {
+  std::unique_ptr<SyncRes> sr;
+  init();
+  initSR(sr, true, false);
+
+  primeHints();
+
+  const DNSName target("powerdns.com.");
+  g_useIncomingECS = true;
+  g_ednsdomains.add(target);
+
+  EDNSSubnetOpts incomingECS;
+  incomingECS.source = Netmask("192.0.2.128/32");
+  sr->setIncomingECSFound(true);
+  sr->setIncomingECS(incomingECS);
+
+  sr->setAsyncCallback([target](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
+
+      BOOST_REQUIRE(srcmask);
+      BOOST_CHECK_EQUAL(srcmask->toString(), "192.0.2.0/24");
+      return 0;
+    });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, 2);
+}
+
+BOOST_AUTO_TEST_CASE(test_edns_submask_by_addr) {
+  std::unique_ptr<SyncRes> sr;
+  init();
+  initSR(sr, true, false);
+
+  primeHints();
+
+  const DNSName target("powerdns.com.");
+  g_useIncomingECS = true;
+  g_ednssubnets.addMask("192.0.2.1/32");
+
+  EDNSSubnetOpts incomingECS;
+  incomingECS.source = Netmask("2001:DB8::FF/128");
+  sr->setIncomingECSFound(true);
+  sr->setIncomingECS(incomingECS);
+
+  sr->setAsyncCallback([target](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
+
+      if (isRootServer(ip)) {
+        BOOST_REQUIRE(!srcmask);
+
+        setLWResult(res, 0, true, false, true);
+        addRecordToLW(res, domain, QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+        addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+        return 1;
+      } else if (ip == ComboAddress("192.0.2.1:53")) {
+
+        BOOST_REQUIRE(srcmask);
+        BOOST_CHECK_EQUAL(srcmask->toString(), "2001:db8::/56");
+
+        setLWResult(res, 0, true, false, false);
+        addRecordToLW(res, domain, QType::A, "192.0.2.2");
+        return 1;
+      }
+
+      return 0;
+    });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, 0);
 }
 
 /*
@@ -570,8 +644,6 @@ check blocked
 check we query the fastest auth available first?
 
 check we correctly store slow servers
-
-check EDNS subnetmask
 
 if possible, check preoutquery
 

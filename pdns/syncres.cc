@@ -67,6 +67,8 @@ std::atomic<uint64_t> SyncRes::s_throttledqueries;
 std::atomic<uint64_t> SyncRes::s_dontqueries;
 std::atomic<uint64_t> SyncRes::s_nodelegated;
 std::atomic<uint64_t> SyncRes::s_unreachables;
+uint8_t SyncRes::s_ecsipv4limit;
+uint8_t SyncRes::s_ecsipv6limit;
 unsigned int SyncRes::s_minimumTTL;
 bool SyncRes::s_doIPv6;
 bool SyncRes::s_nopacketcache;
@@ -1407,7 +1409,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
 	      LOG(prefix<<qname<<": query handled by Lua"<<endl);
 	    }
 	    else {
-	      ednsmask=getEDNSSubnetMask(d_requestor, qname, *remoteIP, d_incomingECSFound ? d_incomingECS : boost::none);
+	      ednsmask=getEDNSSubnetMask(d_requestor, qname, *remoteIP);
               if(ednsmask) {
                 LOG(prefix<<qname<<": Adding EDNS Client Subnet Mask "<<ednsmask->toString()<<" to query"<<endl);
               }
@@ -1584,6 +1586,36 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
   return -1;
 }
 
+boost::optional<Netmask> SyncRes::getEDNSSubnetMask(const ComboAddress& local, const DNSName&dn, const ComboAddress& rem)
+{
+  boost::optional<Netmask> result;
+  ComboAddress trunc;
+  uint8_t bits;
+  if(d_incomingECSFound) {
+    if (d_incomingECS->source.getBits() == 0) {
+      /* RFC7871 says we MUST NOT send any ECS if the source scope is 0 */
+      return result;
+    }
+    trunc = d_incomingECS->source.getMaskedNetwork();
+    bits = d_incomingECS->source.getBits();
+  }
+  else if(!local.isIPv4() || local.sin4.sin_addr.s_addr) { // detect unset 'requestor'
+    trunc = local;
+    bits = local.isIPv4() ? 32 : 128;
+  }
+  else {
+    /* nothing usable */
+    return result;
+  }
+
+  if(g_ednsdomains.check(dn) || g_ednssubnets.match(rem)) {
+    bits = std::min(bits, (trunc.isIPv4() ? s_ecsipv4limit : s_ecsipv6limit));
+    trunc.truncate(bits);
+    return boost::optional<Netmask>(Netmask(trunc, bits));
+  }
+
+  return result;
+}
 
 // used by PowerDNSLua - note that this neglects to add the packet count & statistics back to pdns_ercursor.cc
 int directResolve(const DNSName& qname, const QType& qtype, int qclass, vector<DNSRecord>& ret)

@@ -544,6 +544,8 @@ public:
   static unsigned int s_packetcacheservfailttl;
   static unsigned int s_serverdownmaxfails;
   static unsigned int s_serverdownthrottletime;
+  static uint8_t s_ecsipv4limit;
+  static uint8_t s_ecsipv6limit;
   static bool s_nopacketcache;
   static string s_serverID;
 
@@ -584,6 +586,8 @@ private:
   bool doSpecialNamesResolve(const DNSName &qname, const QType &qtype, const uint16_t &qclass, vector<DNSRecord> &ret);
 
   int asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res) const;
+
+  boost::optional<Netmask> getEDNSSubnetMask(const ComboAddress& local, const DNSName&dn, const ComboAddress& rem);
 
   ostringstream d_trace;
   shared_ptr<RecursorLua4> d_pdl;
@@ -808,7 +812,6 @@ uint64_t* pleaseWipeCache(const DNSName& canon, bool subtree=false);
 uint64_t* pleaseWipePacketCache(const DNSName& canon, bool subtree);
 uint64_t* pleaseWipeAndCountNegCache(const DNSName& canon, bool subtree=false);
 void doCarbonDump(void*);
-boost::optional<Netmask> getEDNSSubnetMask(const ComboAddress& local, const DNSName&dn, const ComboAddress& rem, boost::optional<const EDNSSubnetOpts&> incomingECS);
 void  parseEDNSSubnetWhitelist(const std::string& wlist);
 
 extern __thread struct timeval g_now;

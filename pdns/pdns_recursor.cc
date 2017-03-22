@@ -2810,6 +2810,9 @@ static int serviceMain(int argc, char*argv[])
     SyncRes::s_serverID=tmp;
   }
 
+  SyncRes::s_ecsipv4limit = ::arg().asNum("ecs-ipv4-bits");
+  SyncRes::s_ecsipv6limit = ::arg().asNum("ecs-ipv6-bits");
+
   g_networkTimeoutMsec = ::arg().asNum("network-timeout");
 
   g_initialDomainMap = parseAuthAndForwards();
