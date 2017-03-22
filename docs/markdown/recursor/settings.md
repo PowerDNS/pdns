@@ -93,6 +93,13 @@ have to tick an 'RFC 2181 compliant' box.
 Zones read from these files (in BIND format) are served authoritatively. DNSSEC is not supported. Example:
 `auth-zones=example.org=/var/zones/example.org, powerdns.com=/var/zones/powerdns.com`.
 
+## `statistics-interval`
+* Integer
+* Default: 1800
+* Available since: 4.1.0
+
+Interval between logging statistical summary on recursor performance.
+
 ## `carbon-interval`
 * Integer
 * Default: 30
