@@ -1072,7 +1072,11 @@ try
 
       uint16_t len = (uint16_t) ret;
       ComboAddress dest;
-      if (!HarvestDestinationAddress(&msgh, &dest)) {
+      if (HarvestDestinationAddress(&msgh, &dest)) {
+        /* we don't get the port, only the address */
+        dest.sin4.sin_port = cs->local.sin4.sin_port;
+      }
+      else {
         dest.sin4.sin_family = 0;
       }
 
