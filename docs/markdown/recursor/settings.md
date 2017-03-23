@@ -360,6 +360,14 @@ forward queries to other recursive servers.
 
 The DNSSEC notes from [`forward-zones`](#forward-zones) apply here as well.
 
+## `gettag-needs-edns-options`
+* Boolean
+* Default: no
+* Available since: 4.1.0
+
+If set, EDNS options in incoming queries are extracted and passed to the `gettag()`
+hook in the `ednsoptions` table.
+
 ## `hint-file`
 * Path
 

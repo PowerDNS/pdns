@@ -154,6 +154,7 @@ static bool g_lowercaseOutgoing;
 static bool g_weDistributeQueries; // if true, only 1 thread listens on the incoming query sockets
 static bool g_reusePort{false};
 static bool g_useOneSocketPerThread;
+static bool g_gettagNeedsEDNSOptions{false};
 
 std::unordered_set<DNSName> g_delegationOnly;
 RecursorControlChannel s_rcc; // only active in thread 0
@@ -1299,7 +1300,7 @@ static void makeControlChannelSocket(int processNum=-1)
   }
 }
 
-static bool getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* qtype, uint16_t* qclass, EDNSSubnetOpts* ednssubnet)
+static bool getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* qtype, uint16_t* qclass, EDNSSubnetOpts* ednssubnet, std::map<uint16_t, EDNSOptionView>* options)
 {
   bool found = false;
   const struct dnsheader* dh = (struct dnsheader*)question.c_str();
@@ -1313,14 +1314,29 @@ static bool getQNameAndSubnet(const std::string& question, DNSName* dnsname, uin
   if(ntohs(dh->arcount) == 1 && questionLen > pos + 11) { // this code can extract one (1) EDNS Subnet option
     /* OPT root label (1) followed by type (2) */
     if(question.at(pos)==0 && question.at(pos+1)==0 && question.at(pos+2)==QType::OPT) {
-      char* ecsStart = nullptr;
-      size_t ecsLen = 0;
-      int res = getEDNSOption((char*)question.c_str()+pos+9, questionLen - pos - 9, EDNSOptionCode::ECS, &ecsStart, &ecsLen);
-      if (res == 0 && ecsLen > 4) {
-        EDNSSubnetOpts eso;
-        if(getEDNSSubnetOptsFromString(ecsStart + 4, ecsLen - 4, &eso)) {
-          *ednssubnet=eso;
-          found = true;
+      if (!options) {
+        char* ecsStart = nullptr;
+        size_t ecsLen = 0;
+        int res = getEDNSOption((char*)question.c_str()+pos+9, questionLen - pos - 9, EDNSOptionCode::ECS, &ecsStart, &ecsLen);
+        if (res == 0 && ecsLen > 4) {
+          EDNSSubnetOpts eso;
+          if(getEDNSSubnetOptsFromString(ecsStart + 4, ecsLen - 4, &eso)) {
+            *ednssubnet=eso;
+            found = true;
+          }
+        }
+      }
+      else {
+        int res = getEDNSOptions((char*)question.c_str()+pos+9, questionLen - pos - 9, *options);
+        if (res == 0) {
+          const auto& it = options->find(EDNSOptionCode::ECS);
+          if (it != options->end() && it->second.content != nullptr && it->second.size > 0) {
+            EDNSSubnetOpts eso;
+            if(getEDNSSubnetOptsFromString(it->second.content, it->second.size, &eso)) {
+              *ednssubnet=eso;
+              found = true;
+            }
+          }
         }
       }
     }
@@ -1405,12 +1421,13 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       if(needECS || (t_pdl->get() && (*t_pdl)->d_gettag)) {
 
         try {
+          std::map<uint16_t, EDNSOptionView> ednsOptions;
           dc->d_ecsParsed = true;
-          dc->d_ecsFound = getQNameAndSubnet(std::string(conn->data, conn->qlen), &qname, &qtype, &qclass, &dc->d_ednssubnet);
+          dc->d_ecsFound = getQNameAndSubnet(std::string(conn->data, conn->qlen), &qname, &qtype, &qclass, &dc->d_ednssubnet, g_gettagNeedsEDNSOptions ? &ednsOptions : nullptr);
 
           if(t_pdl->get() && (*t_pdl)->d_gettag) {
             try {
-              dc->d_tag = (*t_pdl)->gettag(conn->d_remote, dc->d_ednssubnet.source, dest, qname, qtype, &dc->d_policyTags, dc->d_data);
+              dc->d_tag = (*t_pdl)->gettag(conn->d_remote, dc->d_ednssubnet.source, dest, qname, qtype, &dc->d_policyTags, dc->d_data, ednsOptions);
             }
             catch(std::exception& e)  {
               if(g_logCommonErrors)
@@ -1576,13 +1593,14 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 
     if(needECS || (t_pdl->get() && (*t_pdl)->d_gettag)) {
       try {
-        ecsFound = getQNameAndSubnet(question, &qname, &qtype, &qclass, &ednssubnet);
+        std::map<uint16_t, EDNSOptionView> ednsOptions;
+        ecsFound = getQNameAndSubnet(question, &qname, &qtype, &qclass, &ednssubnet, g_gettagNeedsEDNSOptions ? &ednsOptions : nullptr);
         qnameParsed = true;
         ecsParsed = true;
 
         if(t_pdl->get() && (*t_pdl)->d_gettag) {
           try {
-            ctag=(*t_pdl)->gettag(fromaddr, ednssubnet.source, destaddr, qname, qtype, &policyTags, data);
+            ctag=(*t_pdl)->gettag(fromaddr, ednssubnet.source, destaddr, qname, qtype, &policyTags, data, ednsOptions);
           }
           catch(std::exception& e)  {
             if(g_logCommonErrors)
@@ -2804,6 +2822,8 @@ static int serviceMain(int argc, char*argv[])
   g_numThreads = g_numWorkerThreads + g_weDistributeQueries;
   g_maxMThreads = ::arg().asNum("max-mthreads");
 
+  g_gettagNeedsEDNSOptions = ::arg().mustDo("gettag-needs-edns-options");
+
 #ifdef SO_REUSEPORT
   g_reusePort = ::arg().mustDo("reuseport");
 #endif
@@ -3184,6 +3204,7 @@ int main(int argc, char **argv)
     ::arg().setSwitch( "root-nx-trust", "If set, believe that an NXDOMAIN from the root means the TLD does not exist")="yes";
     ::arg().setSwitch( "any-to-tcp","Answer ANY queries with tc=1, shunting to TCP" )="no";
     ::arg().setSwitch( "lowercase-outgoing","Force outgoing questions to lowercase")="no";
+    ::arg().setSwitch("gettag-needs-edns-options", "If EDNS Options should be extracted before calling the gettag() hook")="no";
     ::arg().set("udp-truncation-threshold", "Maximum UDP response size before we truncate")="1680";
     ::arg().set("edns-outgoing-bufsize", "Outgoing EDNS buffer size")="1680";
     ::arg().set("minimum-ttl-override", "Set under adverse conditions, a minimum TTL")="0";

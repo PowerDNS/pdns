@@ -31,6 +31,16 @@ struct EDNSOptionCode
 
 /* extract a specific EDNS0 option from a pointer on the beginning rdLen of the OPT RR */
 int getEDNSOption(char* optRR, size_t len, uint16_t wantedOption, char ** optionValue, size_t * optionValueSize);
+
+struct EDNSOptionView
+{
+  const char* content{nullptr};
+  uint16_t size{0};
+};
+
+/* extract all EDNS0 options from a pointer on the beginning rdLen of the OPT RR */
+int getEDNSOptions(const char* optRR, size_t len, std::map<uint16_t, EDNSOptionView>& options);
+
 void generateEDNSOption(uint16_t optionCode, const std::string& payload, std::string& res);
 
 #endif
