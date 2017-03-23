@@ -137,13 +137,14 @@ static void init(bool debug=false)
   g_useIncomingECS = false;
 }
 
-static void initSR(std::unique_ptr<SyncRes>& sr, bool edns0, bool dnssec)
+static void initSR(std::unique_ptr<SyncRes>& sr, bool edns0, bool dnssec, SyncRes::LogMode lm=SyncRes::LogNone)
 {
   struct timeval now;
   Utility::gettimeofday(&now, 0);
   sr = std::unique_ptr<SyncRes>(new SyncRes(now));
   sr->setDoEDNS0(edns0);
   sr->setDoDNSSEC(dnssec);
+  sr->setLogMode(lm);
   t_sstorage->domainmap = g_initialDomainMap;
   t_sstorage->negcache.clear();
   t_sstorage->nsSpeeds.clear();
@@ -641,8 +642,6 @@ BOOST_AUTO_TEST_CASE(test_following_cname) {
   sr->setAsyncCallback([target, cnameTarget](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
 
       if (isRootServer(ip)) {
-        BOOST_REQUIRE(!srcmask);
-
         setLWResult(res, 0, true, false, true);
         addRecordToLW(res, domain, QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
         addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
@@ -673,6 +672,60 @@ BOOST_AUTO_TEST_CASE(test_following_cname) {
   BOOST_CHECK_EQUAL(ret[0].d_name, target);
   BOOST_CHECK(ret[1].d_type == QType::A);
   BOOST_CHECK_EQUAL(ret[1].d_name, cnameTarget);
+}
+
+BOOST_AUTO_TEST_CASE(test_included_poisonous_cname) {
+  std::unique_ptr<SyncRes> sr;
+  init();
+  initSR(sr, true, false);
+
+  primeHints();
+
+  /* In this test we directly get the NS server for cname.powerdns.com.,
+     and we don't know whether it's also authoritative for
+     cname-target.powerdns.com or powerdns.com, so we shouldn't accept
+     the additional A record for cname-target.powerdns.com. */
+  const DNSName target("cname.powerdns.com.");
+  const DNSName cnameTarget("cname-target.powerdns.com");
+
+  sr->setAsyncCallback([target, cnameTarget](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
+
+      if (isRootServer(ip)) {
+
+        setLWResult(res, 0, true, false, true);
+
+        addRecordToLW(res, domain, QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+        addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+        return 1;
+      } else if (ip == ComboAddress("192.0.2.1:53")) {
+
+        if (domain == target) {
+          setLWResult(res, 0, true, false, false);
+          addRecordToLW(res, domain, QType::CNAME, cnameTarget.toString());
+          addRecordToLW(res, cnameTarget, QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL);
+          return 1;
+        } else if (domain == cnameTarget) {
+          setLWResult(res, 0, true, false, false);
+          addRecordToLW(res, cnameTarget, QType::A, "192.0.2.3");
+          return 1;
+        }
+
+        return 1;
+      }
+
+      return 0;
+    });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, 0);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2);
+  BOOST_REQUIRE(ret[0].d_type == QType::CNAME);
+  BOOST_CHECK_EQUAL(ret[0].d_name, target);
+  BOOST_CHECK_EQUAL(getRR<CNAMERecordContent>(ret[0])->getTarget(), cnameTarget);
+  BOOST_REQUIRE(ret[1].d_type == QType::A);
+  BOOST_CHECK_EQUAL(ret[1].d_name, cnameTarget);
+  BOOST_CHECK(getRR<ARecordContent>(ret[1])->getCA() == ComboAddress("192.0.2.3"));
 }
 
 BOOST_AUTO_TEST_CASE(test_cname_loop) {
@@ -716,6 +769,43 @@ BOOST_AUTO_TEST_CASE(test_cname_loop) {
   BOOST_CHECK_EQUAL(count, 2);
 }
 
+BOOST_AUTO_TEST_CASE(test_cname_depth) {
+  std::unique_ptr<SyncRes> sr;
+  init();
+  initSR(sr, true, false);
+
+  primeHints();
+
+  size_t depth = 0;
+  const DNSName target("cname.powerdns.com.");
+
+  sr->setAsyncCallback([target,&depth](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
+
+      if (isRootServer(ip)) {
+        BOOST_REQUIRE(!srcmask);
+
+        setLWResult(res, 0, true, false, true);
+        addRecordToLW(res, domain, QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+        addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+        return 1;
+      } else if (ip == ComboAddress("192.0.2.1:53")) {
+
+        setLWResult(res, 0, true, false, false);
+        addRecordToLW(res, domain, QType::CNAME, std::to_string(depth) + "-cname.powerdns.com");
+        depth++;
+        return 1;
+      }
+
+      return 0;
+    });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, 2);
+  /* we have an arbitrary limit at 10 when following a CNAME chain */
+  BOOST_CHECK_EQUAL(depth, 10 + 2);
+}
+
 /*
   TODO:
 
@@ -740,7 +830,7 @@ check we correctly store slow servers
 
 if possible, check preoutquery
 
-check depth limit
+check depth limit (CNAME and referral)
 
 check time limit
 
@@ -750,13 +840,9 @@ check we correctly populate the negcache
 
 check we honor s_minimumTTL and s_maxcachettl
 
-check we follow referral
-
 check delegation only
 
 check root NX trust
-
-check direct answer (done I think?)
 
 nxdomain answer
 nodata answer
