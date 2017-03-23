@@ -1388,10 +1388,13 @@ int listAllZones(const string &type="") {
     }
   }
 
-  if (kindFilter != -1)
-    cout<<type<<" zonecount: "<<count<<endl;
-  else
-    cout<<"All zonecount: "<<count<<endl;
+  if (g_verbose) {
+    if (kindFilter != -1)
+      cout<<type<<" zonecount: "<<count<<endl;
+    else
+      cout<<"All zonecount: "<<count<<endl;
+  }
+
   return 0;
 }
 
