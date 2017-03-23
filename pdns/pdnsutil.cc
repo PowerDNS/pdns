@@ -1380,18 +1380,15 @@ int listAllZones(const string &type="") {
   vector<DomainInfo> domains;
   B.getAllDomains(&domains, true);
 
-  int count = 0;
   for (vector<DomainInfo>::const_iterator di=domains.begin(); di != domains.end(); di++) {
     if (di->kind == kindFilter || kindFilter == -1) {
       cout<<di->zone<<endl;
-      count++;
     }
   }
 
   if (kindFilter != -1)
     cout<<type<<" zonecount: "<<count<<endl;
-  else
-    cout<<"All zonecount: "<<count<<endl;
+
   return 0;
 }
 
