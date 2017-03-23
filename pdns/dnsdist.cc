@@ -1670,9 +1670,6 @@ struct
   string pidfile;
   string command;
   string config;
-#ifdef HAVE_LIBSODIUM
-  string setKey;
-#endif
   string uid;
   string gid;
 } g_cmdLine;
@@ -1804,7 +1801,7 @@ try
       break;
 #ifdef HAVE_LIBSODIUM
     case 'k':
-      if (B64Decode(string(optarg), g_cmdLine.setKey) < 0) {
+      if (B64Decode(string(optarg), g_key) < 0) {
         cerr<<"Unable to decode key '"<<optarg<<"'."<<endl;
         exit(EXIT_FAILURE);
       }
@@ -1870,10 +1867,6 @@ try
     setupLua(true, g_cmdLine.config);
     if (clientAddress != ComboAddress())
       g_serverControl = clientAddress;
-#ifdef HAVE_LIBSODIUM
-    if (!g_cmdLine.setKey.empty())
-      g_key = g_cmdLine.setKey;
-#endif
     doClient(g_serverControl, g_cmdLine.command);
     _exit(EXIT_SUCCESS);
   }
