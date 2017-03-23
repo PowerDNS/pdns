@@ -107,11 +107,7 @@ It also supports the following methods:
   the answer too, which defaults to the name of the question
 * `addPolicyTag(tag)`: add a policy tag.
 * `discardPolicy(policyname)`: skip the filtering policy (for example RPZ) named `policyname` for this query. This is mostly useful in the `prerpz` hook.
-* `getDH()` - Returns the DNS Header of the query or nil. A DNS header offers the following methods:
-     * `getRD()`, `getAA()`, `getAD()`, `getCD()`, `getTC()`: query these bits from the DNS Header
-     * `getRCODE()`: get the RCODE of the query
-     * `getOPCODE()`: get the OPCODE of the query
-     * `getID()`: get the ID of the query
+* `getDH()` - Returns the DNS Header of the query or nil.
 * `getPolicyTags()`: get the current policy tags as a table of strings.
 * `getRecords()`: get a table of DNS Records in this DNS Question (or answer by now)
 * `setPolicyTags(tags)`: update the policy tags, taking a table of strings.
@@ -124,6 +120,12 @@ It also supports the following methods:
 * `addPolicyTag(tag)`: Add policyTag `tag` to the list of policyTags
 * `getPolicyTags()`: Get a list the policyTags for this message
 * `setPolicyTags(tags)`: Set the policyTags for this message to `tags` (a list)
+
+A DNS header as returned by `getDH()` offers the following methods:
+* `getRD()`, `getAA()`, `getAD()`, `getCD()`, `getTC()`: query these bits from the DNS Header
+* `getRCODE()`: get the RCODE of the query
+* `getOPCODE()`: get the OPCODE of the query
+* `getID()`: get the ID of the query
 
 ## `function ipfilter ( remoteip, localip, dh )`
 This hook gets queried immediately after consulting the packet cache, but before
