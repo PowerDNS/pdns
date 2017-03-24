@@ -1521,7 +1521,28 @@ static void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
   }
 }
 
-static string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fromaddr, const ComboAddress& destaddr, struct timeval tv, int fd)
+struct doProcessUDPQuestionArguments {
+        std::string question;
+        ComboAddress fromaddr;
+        ComboAddress destaddr;
+        struct timeval tv;
+        int fd;
+};
+
+static bool overCapacity(const ComboAddress& fromaddr)
+{
+  if(MT->numProcesses() > g_maxMThreads) {
+    if(!g_quiet)
+      L<<Logger::Notice<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED question from "<<fromaddr.toStringWithPort()<<", over capacity"<<endl;
+
+    g_stats.overCapacityDrops++;
+    return true;
+  }
+
+  return false;
+}
+
+static void realDoProcessUDPQuestion(const std::string& question, const ComboAddress& fromaddr, const ComboAddress& destaddr, struct timeval tv, int fd, bool inmthread=false)
 {
   gettimeofday(&g_now, 0);
   struct timeval diff = g_now - tv;
@@ -1529,7 +1550,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 
   if(tv.tv_sec && delta > 1000.0) {
     g_stats.tooOldDrops++;
-    return 0;
+    return;
   }
 
   ++g_stats.qcounter;
@@ -1649,12 +1670,12 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         updateResponseStats(tmpdh.rcode, fromaddr, response.length(), 0, 0);
       }
       g_stats.avgLatencyUsec=(1-1.0/g_latencyStatSize)*g_stats.avgLatencyUsec + 0.0; // we assume 0 usec
-      return 0;
+      return;
     }
   }
   catch(std::exception& e) {
     L<<Logger::Error<<"Error processing or aging answer packet: "<<e.what()<<endl;
-    return 0;
+    return;
   }
 
   if(t_pdl->get()) {
@@ -1662,17 +1683,11 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
       if(!g_quiet)
 	L<<Logger::Notice<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED question from "<<fromaddr.toStringWithPort()<<" based on policy"<<endl;
       g_stats.policyDrops++;
-      return 0;
+      return;
     }
   }
 
-  if(MT->numProcesses() > g_maxMThreads) {
-    if(!g_quiet)
-      L<<Logger::Notice<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED question from "<<fromaddr.toStringWithPort()<<", over capacity"<<endl;
-
-    g_stats.overCapacityDrops++;
-    return 0;
-  }
+  if (!inmthread && overCapacity(fromaddr)) return;
 
   DNSComboWriter* dc = new DNSComboWriter(question.c_str(), question.size(), g_now);
   dc->setSocket(fd);
@@ -1693,10 +1708,46 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   }
 #endif
 
-  MT->makeThread(startDoResolve, (void*) dc); // deletes dc
-  return 0;
+  if(inmthread) startDoResolve(dc); // deletes dc
+  else MT->makeThread(startDoResolve, (void*) dc); // deletes dc
+  return;
 }
 
+static void indirectDoProcessUDPQuestion(void *p)
+{
+  doProcessUDPQuestionArguments* args=(doProcessUDPQuestionArguments *)p;
+
+  std::string question = args->question;
+  ComboAddress fromaddr = args->fromaddr;
+  ComboAddress destaddr = args->destaddr;
+  struct timeval tv = args->tv;
+  int fd = args->fd;
+
+  delete args;
+
+  realDoProcessUDPQuestion(question, fromaddr, destaddr, tv, fd, true);
+}
+
+static string *doProcessUDPQuestion(const std::string& question, const ComboAddress& fromaddr, const ComboAddress& destaddr, struct timeval tv, int fd)
+{
+
+  if (::arg().mustDo("start-mthread-early")) {
+      if(overCapacity(fromaddr)) return 0;
+
+      doProcessUDPQuestionArguments *args = new doProcessUDPQuestionArguments;
+      args->question = question;
+      args->fromaddr = fromaddr;
+      args->destaddr = destaddr;
+      args->tv = tv;
+      args->fd = fd;
+      MT->makeThread(indirectDoProcessUDPQuestion, (void*) args);
+      return 0;
+  }
+  else {
+    realDoProcessUDPQuestion(question, fromaddr, destaddr, tv, fd);
+    return 0;
+  }
+}
 
 static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 {
@@ -3142,6 +3193,7 @@ int main(int argc, char **argv)
     ::arg().set("query-local-address6","Source IPv6 address for sending queries. IF UNSET, IPv6 WILL NOT BE USED FOR OUTGOING QUERIES")="";
     ::arg().set("client-tcp-timeout","Timeout in seconds when talking to TCP clients")="2";
     ::arg().set("max-mthreads", "Maximum number of simultaneous Mtasker threads")="2048";
+    ::arg().setSwitch("start-mthread-early", "Assign an mthread to a query even before checking the cache")="no";
     ::arg().set("max-tcp-clients","Maximum number of simultaneous TCP clients")="128";
     ::arg().set("server-down-max-fails","Maximum number of consecutive timeouts (and unreachables) to mark a server as down ( 0 => disabled )")="64";
     ::arg().set("server-down-throttle-time","Number of seconds to throttle all queries to a server after being marked as down")="60";

@@ -125,7 +125,7 @@ uint16_t)> gettag_t;
 private:
   typedef std::function<bool(DNSQuestion*)> luacall_t;
   luacall_t d_prerpz, d_preresolve, d_nxdomain, d_nodata, d_postresolve, d_preoutquery, d_postoutquery;
-  bool genhook(luacall_t& func, DNSQuestion& dq, int& ret);
+  bool genhook(const string& funcname, DNSQuestion& dq, int& ret);
   typedef std::function<bool(ComboAddress,ComboAddress, struct dnsheader)> ipfilter_t;
   ipfilter_t d_ipfilter;
 };

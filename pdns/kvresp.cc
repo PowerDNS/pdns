@@ -56,18 +56,18 @@ try
     if(len < 0)
       unixDie("recvfrom");
     string query(buffer, len);
-    cout<<"Had packet: "<<query<<endl;
+    cout<<"Had packet: "<<query<<" with length "<<len<<endl;
     vector<string> parts;
     stringtok(parts, query);
-    if(parts.size()<2)
-      continue;
     string response;
-    if(parts[0]=="DOMAIN") 
-      response=  (parts[1].find("xxx") != string::npos) ? "1" : "0";
-    else if(parts[0]=="IP")
-      response=  (parts[1]=="127.0.0.1") ? "1" : "0";
-    else
+    if(parts.size()<2)
       response= "???";
+    else {
+      if(parts[0]=="DOMAIN")
+        response=  (parts[1].find("xxx") != string::npos) ? "1" : "0";
+      else if(parts[0]=="IP")
+        response=  (parts[1]=="127.0.0.1") ? "1" : "0";
+    }
 
     cout<<"Our reply: "<<response<<endl; 
     if(sendto(s.getHandle(), response.c_str(), response.length(), 0,  (struct sockaddr*)&rem, socklen) < 0)

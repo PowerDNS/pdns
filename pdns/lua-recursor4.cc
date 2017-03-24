@@ -515,6 +515,8 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   d_lw->registerFunction("set", &DynMetric::set);
   d_lw->registerFunction("get", &DynMetric::get);
 
+  d_lw->writeFunction("kvquery", &GenUDPQueryResponse);
+
   d_lw->writeFunction("getRecursorThreadId", []() {
       return getRecursorThreadId();
     });
@@ -544,27 +546,27 @@ RecursorLua4::RecursorLua4(const std::string& fname)
 
 bool RecursorLua4::prerpz(DNSQuestion& dq, int& ret)
 {
-  return genhook(d_prerpz, dq, ret);
+  return genhook("prerpz", dq, ret);
 }
 
 bool RecursorLua4::preresolve(DNSQuestion& dq, int& ret)
 {
-  return genhook(d_preresolve, dq, ret);
+  return genhook("preresolve", dq, ret);
 }
 
 bool RecursorLua4::nxdomain(DNSQuestion& dq, int& ret)
 {
-  return genhook(d_nxdomain, dq, ret);
+  return genhook("nxdomain", dq, ret);
 }
 
 bool RecursorLua4::nodata(DNSQuestion& dq, int& ret)
 {
-  return genhook(d_nodata, dq, ret);
+  return genhook("nodata", dq, ret);
 }
 
 bool RecursorLua4::postresolve(DNSQuestion& dq, int& ret)
 {
-  return genhook(d_postresolve, dq, ret);
+  return genhook("postresolve", dq, ret);
 }
 
 bool RecursorLua4::preoutquery(const ComboAddress& ns, const ComboAddress& requestor, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, int& ret)
@@ -574,7 +576,7 @@ bool RecursorLua4::preoutquery(const ComboAddress& ns, const ComboAddress& reque
   RecursorLua4::DNSQuestion dq(ns, requestor, query, qtype.getCode(), isTcp, variableAnswer, wantsRPZ);
   dq.currentRecords = &res;
 
-  return genhook(d_preoutquery, dq, ret);
+  return genhook("preoutquery", dq, ret);
 }
 
 bool RecursorLua4::ipfilter(const ComboAddress& remote, const ComboAddress& local, const struct dnsheader& dh)
@@ -586,8 +588,10 @@ bool RecursorLua4::ipfilter(const ComboAddress& remote, const ComboAddress& loca
 
 unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data)
 {
-  if(d_gettag) {
-    auto ret = d_gettag(remote, ednssubnet, local, qname, qtype);
+  auto luathread = d_lw->createThread();
+  auto gettag = d_lw->readVariable<boost::optional<gettag_t>>(luathread, "gettag").get_value_or(0);
+  if(gettag) {
+    auto ret = gettag(remote, ednssubnet, local, qname, qtype);
 
     if (policyTags) {
       const auto& tags = std::get<1>(ret);
@@ -606,8 +610,10 @@ unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& edn
   return 0;
 }
 
-bool RecursorLua4::genhook(luacall_t& func, DNSQuestion& dq, int& ret)
+bool RecursorLua4::genhook(const string& funcname, DNSQuestion& dq, int& ret)
 {
+  auto luathread = d_lw->createThread();
+  auto func = d_lw->readVariable<boost::optional<luacall_t>>(luathread, funcname).get_value_or(0);
   if(!func)
     return false;
 
