@@ -1321,7 +1321,7 @@ private:
             RealReturnType;
         
         // we push the parameters on the stack
-        auto inArguments = Pusher<std::tuple<TParameters...>>::push(state, std::make_tuple(std::forward<TParameters>(input)...));
+        auto inArguments = Pusher<std::tuple<TParameters&&...>>::push(state, std::forward_as_tuple(std::forward<TParameters>(input)...));
 
         // 
         const int outArgumentsCount = std::tuple_size<RealReturnType>::value;
