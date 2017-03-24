@@ -384,7 +384,10 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   d_lw->registerMember("type", &DNSRecord::d_type);
   d_lw->registerMember("ttl", &DNSRecord::d_ttl);
   d_lw->registerMember("place", &DNSRecord::d_place);
-  
+
+  d_lw->registerMember("size", &EDNSOptionView::size);
+  d_lw->registerFunction<std::string(EDNSOptionView::*)()>("getContent", [](const EDNSOptionView& option) { return std::string(option.content, option.size); });
+
   d_lw->registerFunction<string(DNSRecord::*)()>("getContent", [](const DNSRecord& dr) { return dr.d_content->getZoneRepresentation(); });
   d_lw->registerFunction<boost::optional<ComboAddress>(DNSRecord::*)()>("getCA", [](const DNSRecord& dr) { 
       boost::optional<ComboAddress> ret;
@@ -584,10 +587,10 @@ bool RecursorLua4::ipfilter(const ComboAddress& remote, const ComboAddress& loca
   return false; // don't block
 }
 
-unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data)
+unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const std::map<uint16_t, EDNSOptionView>& ednsOptions)
 {
   if(d_gettag) {
-    auto ret = d_gettag(remote, ednssubnet, local, qname, qtype);
+    auto ret = d_gettag(remote, ednssubnet, local, qname, qtype, ednsOptions);
 
     if (policyTags) {
       const auto& tags = std::get<1>(ret);

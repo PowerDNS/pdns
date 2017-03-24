@@ -66,6 +66,45 @@ int getEDNSOption(char* optRR, const size_t len, uint16_t wantedOption, char ** 
   return ENOENT;
 }
 
+/* extract all EDNS0 options from a pointer on the beginning rdLen of the OPT RR */
+int getEDNSOptions(const char* optRR, const size_t len, std::map<uint16_t, EDNSOptionView>& options)
+{
+  assert(optRR != NULL);
+  size_t pos = 0;
+  if (len < DNS_RDLENGTH_SIZE)
+    return EINVAL;
+
+  const uint16_t rdLen = (((unsigned char) optRR[pos]) * 256) + ((unsigned char) optRR[pos+1]);
+  size_t rdPos = 0;
+  pos += DNS_RDLENGTH_SIZE;
+  if ((pos + rdLen) > len) {
+    return EINVAL;
+  }
+
+  while(len >= (pos + EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE) &&
+        rdLen >= (rdPos + EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE)) {
+    const uint16_t optionCode = (((unsigned char) optRR[pos]) * 256) + ((unsigned char) optRR[pos+1]);
+    pos += EDNS_OPTION_CODE_SIZE;
+    rdPos += EDNS_OPTION_CODE_SIZE;
+    const uint16_t optionLen = (((unsigned char) optRR[pos]) * 256) + ((unsigned char) optRR[pos+1]);
+    pos += EDNS_OPTION_LENGTH_SIZE;
+    rdPos += EDNS_OPTION_LENGTH_SIZE;
+    if (optionLen > (rdLen - rdPos) || optionLen > (len - pos))
+      return EINVAL;
+
+    EDNSOptionView view;
+    view.content = optRR + pos;
+    view.size = optionLen;
+    options[optionCode] = view;
+
+    /* skip this option */
+    pos += optionLen;
+    rdPos += optionLen;
+  }
+
+  return 0;
+}
+
 void generateEDNSOption(uint16_t optionCode, const std::string& payload, std::string& res)
 {
   const uint16_t ednsOptionCode = htons(optionCode);

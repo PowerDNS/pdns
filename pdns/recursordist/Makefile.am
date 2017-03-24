@@ -185,6 +185,7 @@ testrunner_SOURCES = \
 	dnsrecords.cc \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
+	ednscookies.cc ednscookies.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
 	gettime.cc gettime.hh \
@@ -212,6 +213,7 @@ testrunner_SOURCES = \
 	test-dnsname_cc.cc \
 	test-dnsparser_hh.cc \
 	test-dnsrecords_cc.cc \
+	test-ednsoptions_cc.cc \
 	test-iputils_hh.cc \
 	test-misc_hh.cc \
 	test-nmtree.cc \
