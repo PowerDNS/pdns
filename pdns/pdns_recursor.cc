@@ -3013,14 +3013,14 @@ try
 
   if(g_useOneSocketPerThread) {
     for (unsigned int threadId = 0; threadId < g_numWorkerThreads; threadId++) {
-      for(deferredAdd_t::const_iterator i = deferredAdds[threadId].begin(); i != deferredAdds[threadId].end(); ++i) {
+      for(deferredAdd_t::const_iterator i = deferredAdds[threadId].cbegin(); i != deferredAdds[threadId].cend(); ++i) {
         t_fdm->addReadFD(i->first, i->second);
       }
     }
   }
   else {
     if(!g_weDistributeQueries || !t_id) { // if we distribute queries, only t_id = 0 listens
-      for(deferredAdd_t::const_iterator i = deferredAdds[0].begin(); i != deferredAdds[0].end(); ++i) {
+      for(deferredAdd_t::const_iterator i = deferredAdds[0].cbegin(); i != deferredAdds[0].cend(); ++i) {
         t_fdm->addReadFD(i->first, i->second);
       }
     }
