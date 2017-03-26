@@ -25,6 +25,7 @@ class DNSDistTest(unittest.TestCase):
     that the queries sent from dnsdist were as expected.
     """
     _dnsDistPort = 5340
+    _dnsDistListeningAddr = "127.0.0.1"
     _testServerPort = 5350
     _toResponderQueue = Queue.Queue()
     _fromResponderQueue = Queue.Queue()
@@ -62,7 +63,7 @@ class DNSDistTest(unittest.TestCase):
             conf.write(cls._config_template % params)
 
         dnsdistcmd = [os.environ['DNSDISTBIN'], '-C', conffile,
-                      '-l', '127.0.0.1:%d' % cls._dnsDistPort]
+                      '-l', '%s:%d' % (cls._dnsDistListeningAddr, cls._dnsDistPort) ]
         for acl in cls._acl:
             dnsdistcmd.extend(['--acl', acl])
         print(' '.join(dnsdistcmd))

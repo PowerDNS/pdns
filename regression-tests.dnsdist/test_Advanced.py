@@ -1370,3 +1370,72 @@ class TestAdvancedRD(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEquals(receivedQuery, query)
         self.assertEquals(receivedResponse, response)
+
+class TestAdvancedGetLocalPort(DNSDistTest):
+
+    _config_template = """
+    function answerBasedOnLocalPort(dq)
+      local port = dq.localaddr:getPort()
+      return DNSAction.Spoof, "port-was-"..port..".local-port.advanced.tests.powerdns.com."
+    end
+    addLuaAction("local-port.advanced.tests.powerdns.com.", answerBasedOnLocalPort)
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testAdvancedGetLocalPort(self):
+        """
+        Advanced: Return CNAME containing the local port
+        """
+        name = 'local-port.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        # dnsdist set RA = RD for spoofed responses
+        query.flags &= ~dns.flags.RD
+
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.CNAME,
+                                    'port-was-{}.local-port.advanced.tests.powerdns.com.'.format(self._dnsDistPort))
+        response.answer.append(rrset)
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, response)
+
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, response)
+
+class TestAdvancedGetLocalPortOnAnyBind(DNSDistTest):
+
+    _config_template = """
+    function answerBasedOnLocalPort(dq)
+      local port = dq.localaddr:getPort()
+      return DNSAction.Spoof, "port-was-"..port..".local-port-any.advanced.tests.powerdns.com."
+    end
+    addLuaAction("local-port-any.advanced.tests.powerdns.com.", answerBasedOnLocalPort)
+    newServer{address="127.0.0.1:%s"}
+    """
+    _dnsDistListeningAddr = "0.0.0.0"
+
+    def testAdvancedGetLocalPortOnAnyBind(self):
+        """
+        Advanced: Return CNAME containing the local port for an ANY bind
+        """
+        name = 'local-port-any.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        # dnsdist set RA = RD for spoofed responses
+        query.flags &= ~dns.flags.RD
+
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.CNAME,
+                                    'port-was-{}.local-port-any.advanced.tests.powerdns.com.'.format(self._dnsDistPort))
+        response.answer.append(rrset)
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, response)
+
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, response)
