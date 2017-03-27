@@ -921,7 +921,7 @@ inline vector<ComboAddress> SyncRes::shuffleForwardSpeed(vector<ComboAddress> &n
           LOG(endl<<prefix<<"             ");
         }
       }
-      LOG((wasRd ? string("+") : string("")) << i->toStringNoDot() <<"(" << (boost::format("%0.2f") % (speeds[*i]/1000.0)).str() <<"ms)");
+      LOG((wasRd ? string("+") : string()) << i->toStringNoDot() <<"(" << (boost::format("%0.2f") % (speeds[*i]/1000.0)).str() <<"ms)");
     }
     LOG(endl);
   }
