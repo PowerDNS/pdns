@@ -1051,7 +1051,6 @@ vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, 
     }
     LOG(endl);
 
-
     sendRDQuery = nameservers[*tns].second;
     result = shuffleForwardSpeed(nameservers[*tns].first, doLog() ? (prefix+qname.toString()+": ") : string(), sendRDQuery);
     pierceDontQuery=true;
