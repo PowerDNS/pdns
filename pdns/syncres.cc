@@ -889,7 +889,7 @@ struct speedOrder
   map<DNSName, double>& d_speeds;
 };
 
-inline vector<ComboAddress> SyncRes::shuffleForwardSpeed(vector<ComboAddress> &nameservers, const string &prefix)
+inline vector<ComboAddress> SyncRes::shuffleForwardSpeed(vector<ComboAddress> &nameservers, const string &prefix, const bool wasRd)
 {
   vector<ComboAddress> out_nameservers;
   vector<DNSName> rnameservers;
@@ -908,20 +908,20 @@ inline vector<ComboAddress> SyncRes::shuffleForwardSpeed(vector<ComboAddress> &n
   speedOrder so(speeds);
   stable_sort(rnameservers.begin(),rnameservers.end(), so);
 
-  for(vector<DNSName>::const_iterator i=rnameservers.begin();i!=rnameservers.end();++i) {
+  for(vector<DNSName>::const_iterator i=rnameservers.cbegin();i!=rnameservers.cend();++i) {
     out_nameservers.push_back(ComboAddress(i->toStringNoDot()));
   }
 
   if(doLog()) {
     LOG(prefix<<"Nameservers: ");
-    for(vector<DNSName>::const_iterator i=rnameservers.begin();i!=rnameservers.end();++i) {
-      if(i!=rnameservers.begin()) {
+    for(vector<DNSName>::const_iterator i=rnameservers.cbegin();i!=rnameservers.cend();++i) {
+      if(i!=rnameservers.cbegin()) {
         LOG(", ");
-        if(!((i-rnameservers.begin())%3)) {
+        if(!((i-rnameservers.cbegin())%3)) {
           LOG(endl<<prefix<<"             ");
         }
       }
-      LOG((i->empty() ? string("<empty>") : i->toStringNoDot())<<"(" << (boost::format("%0.2f") % (speeds[*i]/1000.0)).str() <<"ms)");
+      LOG((wasRd ? string("+") : string("")) << i->toStringNoDot() <<"(" << (boost::format("%0.2f") % (speeds[*i]/1000.0)).str() <<"ms)");
     }
     LOG(endl);
   }
@@ -1380,7 +1380,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
 
         remoteIPs_tmp = remoteIPs;
         remoteIPs.clear();
-        remoteIPs = shuffleForwardSpeed(remoteIPs_tmp, doLog() ? (prefix+qname.toString()+": ") : string() );
+        remoteIPs = shuffleForwardSpeed(remoteIPs_tmp, doLog() ? (prefix+qname.toString()+": ") : string(), sendRDQuery);
 	
         for(remoteIP = remoteIPs.cbegin(); remoteIP != remoteIPs.cend(); ++remoteIP) {
           LOG(prefix<<qname<<": Trying IP "<< remoteIP->toStringWithPort() <<", asking '"<<qname<<"|"<<qtype.getName()<<"'"<<endl);
