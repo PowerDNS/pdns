@@ -1046,14 +1046,14 @@ vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, 
   }
   else {
     LOG(prefix<<qname<<": Domain has hardcoded nameserver");
-
-    result = nameservers[*tns].first;
-    if(result.size() > 1) {
+    if(nameservers[*tns].first.size() > 1) {
       LOG("s");
     }
     LOG(endl);
 
+
     sendRDQuery = nameservers[*tns].second;
+    result = shuffleForwardSpeed(nameservers[*tns].first, doLog() ? (prefix+qname.toString()+": ") : string(), sendRDQuery);
     pierceDontQuery=true;
   }
   return result;
@@ -1340,7 +1340,6 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
 
       typedef vector<ComboAddress> remoteIPs_t;
       remoteIPs_t remoteIPs;
-      remoteIPs_t remoteIPs_tmp;
       remoteIPs_t::const_iterator remoteIP;
       bool doTCP=false;
       bool pierceDontQuery=false;
@@ -1378,10 +1377,6 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
             return -2;
         }
 
-        remoteIPs_tmp = remoteIPs;
-        remoteIPs.clear();
-        remoteIPs = shuffleForwardSpeed(remoteIPs_tmp, doLog() ? (prefix+qname.toString()+": ") : string(), sendRDQuery);
-	
         for(remoteIP = remoteIPs.cbegin(); remoteIP != remoteIPs.cend(); ++remoteIP) {
           LOG(prefix<<qname<<": Trying IP "<< remoteIP->toStringWithPort() <<", asking '"<<qname<<"|"<<qtype.getName()<<"'"<<endl);
           if (throttledOrBlocked(prefix, *remoteIP, qname, qtype, pierceDontQuery)) {
