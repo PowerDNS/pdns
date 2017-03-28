@@ -33,6 +33,8 @@ class Lock
 {
   pthread_mutex_t *d_lock;
 public:
+  Lock(const Lock& rhs) = delete;
+  Lock& operator=(const Lock& rhs) = delete;
 
   Lock(pthread_mutex_t *lock) : d_lock(lock)
   {
@@ -68,9 +70,19 @@ public:
   {
     if(g_singleThreaded)
       return;
-
-    pthread_rwlock_unlock(d_lock);
+    if(d_lock) // might have been moved
+      pthread_rwlock_unlock(d_lock);
   }
+
+  WriteLock(WriteLock&& rhs)
+  {
+    d_lock = rhs.d_lock;
+    rhs.d_lock=0;
+  }
+  WriteLock(const WriteLock& rhs) = delete;
+  WriteLock& operator=(const WriteLock& rhs) = delete;
+
+
 };
 
 class TryWriteLock
@@ -78,6 +90,8 @@ class TryWriteLock
   pthread_rwlock_t *d_lock;
   bool d_havelock;
 public:
+  TryWriteLock(const TryWriteLock& rhs) = delete;
+  TryWriteLock& operator=(const TryWriteLock& rhs) = delete;
 
   TryWriteLock(pthread_rwlock_t *lock) : d_lock(lock)
   {
@@ -113,6 +127,8 @@ class TryReadLock
   pthread_rwlock_t *d_lock;
   bool d_havelock;
 public:
+  TryReadLock(const TryReadLock& rhs) = delete;
+  TryReadLock& operator=(const TryReadLock& rhs) = delete;
 
   TryReadLock(pthread_rwlock_t *lock) : d_lock(lock)
   {
@@ -154,15 +170,23 @@ public:
       return;
 
     if((errno=pthread_rwlock_rdlock(d_lock)))
-      throw PDNSException("error acquiring rwlock tryrwlock: "+stringerror());
+      throw PDNSException("error acquiring rwlock readlock: "+stringerror());
   }
   ~ReadLock()
   {
     if(g_singleThreaded)
       return;
-
-    pthread_rwlock_unlock(d_lock);
+    if(d_lock) // may have been moved
+      pthread_rwlock_unlock(d_lock);
   }
+
+  ReadLock(ReadLock&& rhs)
+  {
+    d_lock = rhs.d_lock;
+    rhs.d_lock=0;
+  }
+  ReadLock(const ReadLock& rhs) = delete;
+  ReadLock& operator=(const ReadLock& rhs) = delete;
   
   void upgrade()
   {
