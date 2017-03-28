@@ -830,7 +830,7 @@ class TeeAction : public DNSAction
 {
 public:
   TeeAction(const ComboAddress& ca, bool addECS=false);
-  ~TeeAction();
+  ~TeeAction() override;
   DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override;
   string toString() const override;
   std::unordered_map<string, double> getStats() const override;
@@ -1115,7 +1115,7 @@ public:
     if(!buffered)
       setbuf(d_fp, 0);
   }
-  ~LogAction()
+  ~LogAction() override
   {
     if(d_fp)
       fclose(d_fp);
