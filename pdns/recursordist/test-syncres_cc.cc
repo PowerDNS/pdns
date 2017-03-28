@@ -425,14 +425,17 @@ BOOST_AUTO_TEST_CASE(test_all_nss_down) {
       }
     });
 
+  DNSName target("powerdns.com.");
+
   vector<DNSRecord> ret;
-  int res = sr->beginResolve(DNSName("powerdns.com."), QType(QType::A), QClass::IN, ret);
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, 2);
   BOOST_CHECK_EQUAL(ret.size(), 0);
   BOOST_CHECK_EQUAL(downServers.size(), 4);
 
   for (const auto& server : downServers) {
     BOOST_CHECK_EQUAL(t_sstorage->fails.value(server), 1);
+    BOOST_CHECK(t_sstorage->throttle.shouldThrottle(time(nullptr), boost::make_tuple(server, target, QType::A)));
   }
 }
 
@@ -804,6 +807,90 @@ BOOST_AUTO_TEST_CASE(test_cname_depth) {
   BOOST_CHECK_EQUAL(res, 2);
   /* we have an arbitrary limit at 10 when following a CNAME chain */
   BOOST_CHECK_EQUAL(depth, 10 + 2);
+}
+
+BOOST_AUTO_TEST_CASE(test_throttled_server) {
+  std::unique_ptr<SyncRes> sr;
+  init();
+  initSR(sr, true, false);
+
+  primeHints();
+
+  const DNSName target("throttled.powerdns.com.");
+  const ComboAddress ns("192.0.2.1:53");
+  size_t queriesToNS = 0;
+
+  sr->setAsyncCallback([target,ns,&queriesToNS](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
+
+      if (isRootServer(ip)) {
+        BOOST_REQUIRE(!srcmask);
+
+        setLWResult(res, 0, true, false, true);
+        addRecordToLW(res, domain, QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+        addRecordToLW(res, "a.gtld-servers.net.", QType::A, ns.toString(), DNSResourceRecord::ADDITIONAL, 3600);
+        return 1;
+      } else if (ip == ns) {
+
+        queriesToNS++;
+
+        setLWResult(res, 0, true, false, false);
+        addRecordToLW(res, domain, QType::A, "192.0.2.2");
+
+        return 1;
+      }
+
+      return 0;
+    });
+
+  /* mark ns as down */
+  t_sstorage->throttle.throttle(time(nullptr), boost::make_tuple(ns, "", 0), SyncRes::s_serverdownthrottletime, 10000);
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, 2);
+  /* we should not have queries ns */
+  BOOST_CHECK_EQUAL(queriesToNS, 0);
+}
+
+BOOST_AUTO_TEST_CASE(test_throttled_server_count) {
+  std::unique_ptr<SyncRes> sr;
+  init();
+  initSR(sr, true, false);
+
+  primeHints();
+
+  const ComboAddress ns("192.0.2.1:53");
+
+  const size_t blocks = 10;
+  /* mark ns as down for 'blocks' queries */
+  t_sstorage->throttle.throttle(time(nullptr), boost::make_tuple(ns, "", 0), SyncRes::s_serverdownthrottletime, blocks);
+
+  for (size_t idx = 0; idx < blocks; idx++) {
+    BOOST_CHECK(t_sstorage->throttle.shouldThrottle(time(nullptr), boost::make_tuple(ns, "", 0)));
+  }
+
+  /* we have been throttled 'blocks' times, we should not be throttled anymore */
+  BOOST_CHECK(!t_sstorage->throttle.shouldThrottle(time(nullptr), boost::make_tuple(ns, "", 0)));
+}
+
+BOOST_AUTO_TEST_CASE(test_throttled_server_time) {
+  std::unique_ptr<SyncRes> sr;
+  init();
+  initSR(sr, true, false);
+
+  primeHints();
+
+  const ComboAddress ns("192.0.2.1:53");
+
+  const size_t seconds = 1;
+  /* mark ns as down for 'seconds' seconds */
+  t_sstorage->throttle.throttle(time(nullptr), boost::make_tuple(ns, "", 0), seconds, 10000);
+  BOOST_CHECK(t_sstorage->throttle.shouldThrottle(time(nullptr), boost::make_tuple(ns, "", 0)));
+
+  sleep(seconds + 1);
+
+  /* we should not be throttled anymore */
+  BOOST_CHECK(!t_sstorage->throttle.shouldThrottle(time(nullptr), boost::make_tuple(ns, "", 0)));
 }
 
 /*

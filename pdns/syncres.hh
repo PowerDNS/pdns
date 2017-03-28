@@ -116,10 +116,11 @@ public:
     typename cont_t::iterator i=d_cont.find(t);
     if(i==d_cont.end())
       return false;
-    if(now > i->second.ttd || i->second.count-- < 0) {
+    if(now > i->second.ttd || i->second.count == 0) {
       d_cont.erase(i);
       return false;
     }
+    i->second.count--;
 
     return true; // still listed, still blocked
   }
