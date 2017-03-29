@@ -2,8 +2,7 @@
 #
 # example usage:
 # docs/$ docker build -t pdns-mkdocs .
-# docs/$ cd ../.. # to pdns checkout root
-# pdns/$ docker run  -t -i -v $(pwd):/pdns pdns-mkdocs bash
+# docs/$ docker run  -t -i -v $(pwd)/..:/pdns pdns-mkdocs bash
 # root@07d38c7f88a5:/# useradd -u 1000 peter
 # root@07d38c7f88a5:/# su - peter
 # No directory, logging in with HOME=/
