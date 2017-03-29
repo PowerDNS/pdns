@@ -34,6 +34,8 @@
 #include <boost/container/string.hpp>
 #endif
 
+#include "ascii.hh"
+
 uint32_t burtleCI(const unsigned char* k, uint32_t length, uint32_t init);
 
 // #include "dns.hh"
@@ -52,13 +54,6 @@ uint32_t burtleCI(const unsigned char* k, uint32_t length, uint32_t init);
 
    NOTE: For now, everything MUST be . terminated, otherwise it is an error
 */
-
-inline unsigned char dns2_tolower(unsigned char c)
-{
-  if(c>='A' && c<='Z')
-    return c+('a'-'A');
-  return c;
-}
 
 class DNSName
 {
@@ -90,7 +85,7 @@ public:
     DNSName ret;
     ret.d_storage = d_storage;
     for(auto & c : ret.d_storage) {
-      c=dns2_tolower(c);
+      c=dns_tolower(c);
     }
     return ret;
   }
@@ -128,7 +123,7 @@ public:
     return std::lexicographical_compare(d_storage.rbegin(), d_storage.rend(), 
 				 rhs.d_storage.rbegin(), rhs.d_storage.rend(),
 				 [](const unsigned char& a, const unsigned char& b) {
-					  return dns2_tolower(a) < dns2_tolower(b); 
+					  return dns_tolower(a) < dns_tolower(b);
 					}); // note that this is case insensitive, including on the label lengths
   }
 
@@ -192,7 +187,7 @@ inline bool DNSName::canonCompare(const DNSName& rhs) const
 					  rhs.d_storage.c_str() + rhspos[rhscount] + 1, 
 					  rhs.d_storage.c_str() + rhspos[rhscount] + 1 + *(rhs.d_storage.c_str() + rhspos[rhscount]),
 					  [](const unsigned char& a, const unsigned char& b) {
-					    return dns2_tolower(a) < dns2_tolower(b); 
+					    return dns_tolower(a) < dns_tolower(b);
 					  });
     
     //    cout<<"Forward: "<<res<<endl;
@@ -204,7 +199,7 @@ inline bool DNSName::canonCompare(const DNSName& rhs) const
 					  d_storage.c_str() + ourpos[ourcount] + 1, 
 					  d_storage.c_str() + ourpos[ourcount] + 1 + *(d_storage.c_str() + ourpos[ourcount]),
 					  [](const unsigned char& a, const unsigned char& b) {
-					    return dns2_tolower(a) < dns2_tolower(b); 
+					    return dns_tolower(a) < dns_tolower(b);
 					  });
     //    cout<<"Reverse: "<<res<<endl;
     if(res)
@@ -374,7 +369,7 @@ bool DNSName::operator==(const DNSName& rhs) const
   auto us = d_storage.cbegin();
   auto p = rhs.d_storage.cbegin();
   for(; us != d_storage.cend() && p != rhs.d_storage.cend(); ++us, ++p) { 
-    if(dns2_tolower(*p) != dns2_tolower(*us))
+    if(dns_tolower(*p) != dns_tolower(*us))
       return false;
   }
   return true;

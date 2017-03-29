@@ -225,7 +225,7 @@ bool DNSName::isPartOf(const DNSName& parent) const
     if (static_cast<size_t>(distance) == parent.d_storage.size()) {
       auto p = parent.d_storage.cbegin();
       for(; us != d_storage.cend(); ++us, ++p) {
-        if(dns2_tolower(*p) != dns2_tolower(*us))
+        if(dns_tolower(*p) != dns_tolower(*us))
           return false;
       }
       return true;

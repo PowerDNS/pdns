@@ -235,13 +235,6 @@ inline bool dns_isspace(char c)
   return c==' ' || c=='\t' || c=='\r' || c=='\n';
 }
 
-inline unsigned char dns_tolower(unsigned char c)
-{
-  if(c>='A' && c<='Z')
-    c+='a'-'A';
-  return c;
-}
-
 inline unsigned char dns_toupper(unsigned char c)
 {
   if(c>='a' && c<='z')
