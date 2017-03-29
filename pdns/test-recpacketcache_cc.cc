@@ -18,7 +18,7 @@ BOOST_AUTO_TEST_SUITE(recpacketcache_cc)
 BOOST_AUTO_TEST_CASE(test_recPacketCacheSimple) {
   RecursorPacketCache rpc;
   string fpacket;
-  int tag=0;
+  unsigned int tag=0;
   uint32_t age=0;
   uint32_t qhash=0;
   uint32_t ttd=3600;
@@ -77,6 +77,123 @@ BOOST_AUTO_TEST_CASE(test_recPacketCacheSimple) {
 
   rpc.doWipePacketCache(DNSName("com"), 0xffff, true);
   BOOST_CHECK_EQUAL(rpc.size(), 0);
-} 
+}
+
+BOOST_AUTO_TEST_CASE(test_recPacketCache_Tags) {
+  /* Insert a response with tag1, the exact same query with a different tag
+     should lead to a miss. Inserting a different response with the second tag
+     should not override the first one, and we should get a hit for the
+     query with either tags, with the response matching the tag.
+  */
+  RecursorPacketCache rpc;
+  string fpacket;
+  const unsigned int tag1=0;
+  const unsigned int tag2=42;
+  uint32_t age=0;
+  uint32_t qhash=0;
+  uint32_t temphash=0;
+  uint32_t ttd=3600;
+  BOOST_CHECK_EQUAL(rpc.size(), 0);
+
+  DNSName qname("www.powerdns.com");
+  vector<uint8_t> packet;
+  DNSPacketWriter pw(packet, qname, QType::A);
+  pw.getHeader()->rd=true;
+  pw.getHeader()->qr=false;
+  pw.getHeader()->id=random();
+  string qpacket(reinterpret_cast<const char*>(&packet[0]), packet.size());
+  pw.startRecord(qname, QType::A, ttd);
+
+  /* Both interfaces (with and without the qname/qtype/qclass) should get the same hash */
+  BOOST_CHECK_EQUAL(rpc.getResponsePacket(tag1, qpacket, time(nullptr), &fpacket, &age, &qhash), false);
+  BOOST_CHECK_EQUAL(rpc.getResponsePacket(tag1, qpacket, qname, QType::A, QClass::IN, time(nullptr), &fpacket, &age, &temphash), false);
+  BOOST_CHECK_EQUAL(qhash, temphash);
+
+  /* Different tag, should still get get the same hash, for both interfaces */
+  BOOST_CHECK_EQUAL(rpc.getResponsePacket(tag2, qpacket, time(nullptr), &fpacket, &age, &temphash), false);
+  BOOST_CHECK_EQUAL(qhash, temphash);
+  BOOST_CHECK_EQUAL(rpc.getResponsePacket(tag2, qpacket, qname, QType::A, QClass::IN, time(nullptr), &fpacket, &age, &temphash), false);
+  BOOST_CHECK_EQUAL(qhash, temphash);
+
+  {
+    ARecordContent ar("127.0.0.1");
+    ar.toPacket(pw);
+    pw.commit();
+  }
+  string r1packet(reinterpret_cast<const char*>(&packet[0]), packet.size());
+
+  {
+    ARecordContent ar("127.0.0.2");
+    ar.toPacket(pw);
+    pw.commit();
+  }
+  string r2packet(reinterpret_cast<const char*>(&packet[0]), packet.size());
+
+  BOOST_CHECK(r1packet != r2packet);
+
+  /* inserting a response for tag1 */
+  rpc.insertResponsePacket(tag1, qhash, qname, QType::A, QClass::IN, r1packet, time(0), ttd);
+  BOOST_CHECK_EQUAL(rpc.size(), 1);
+
+  /* inserting a different response for tag2, should not override the first one */
+  rpc.insertResponsePacket(tag2, qhash, qname, QType::A, QClass::IN, r2packet, time(0), ttd);
+  BOOST_CHECK_EQUAL(rpc.size(), 2);
+
+  /* remove all responses from the cache */
+  rpc.doPruneTo(0);
+  BOOST_CHECK_EQUAL(rpc.size(), 0);
+
+  /* reinsert both */
+  rpc.insertResponsePacket(tag1, qhash, qname, QType::A, QClass::IN, r1packet, time(0), ttd);
+  BOOST_CHECK_EQUAL(rpc.size(), 1);
+
+  rpc.insertResponsePacket(tag2, qhash, qname, QType::A, QClass::IN, r2packet, time(0), ttd);
+  BOOST_CHECK_EQUAL(rpc.size(), 2);
+
+  /* remove the responses by qname, should remove both */
+  rpc.doWipePacketCache(qname);
+  BOOST_CHECK_EQUAL(rpc.size(), 0);
+
+  /* insert the response for tag1 */
+  rpc.insertResponsePacket(tag1, qhash, qname, QType::A, QClass::IN, r1packet, time(0), ttd);
+  BOOST_CHECK_EQUAL(rpc.size(), 1);
+
+  /* we can retrieve it */
+  BOOST_CHECK_EQUAL(rpc.getResponsePacket(tag1, qpacket, qname, QType::A, QClass::IN, time(nullptr), &fpacket, &age, &temphash), true);
+  BOOST_CHECK_EQUAL(qhash, temphash);
+  BOOST_CHECK_EQUAL(fpacket, r1packet);
+
+  /* with both interfaces */
+  BOOST_CHECK_EQUAL(rpc.getResponsePacket(tag1, qpacket, time(nullptr), &fpacket, &age, &temphash), true);
+  BOOST_CHECK_EQUAL(qhash, temphash);
+  BOOST_CHECK_EQUAL(fpacket, r1packet);
+
+  /* but not with the second tag */
+  BOOST_CHECK_EQUAL(rpc.getResponsePacket(tag2, qpacket, qname, QType::A, QClass::IN, time(nullptr), &fpacket, &age, &temphash), false);
+  /* we should still get the same hash */
+  BOOST_CHECK_EQUAL(temphash, qhash);
+
+  /* adding a response for the second tag */
+  rpc.insertResponsePacket(tag2, qhash, qname, QType::A, QClass::IN, r2packet, time(0), ttd);
+  BOOST_CHECK_EQUAL(rpc.size(), 2);
+
+  /* We still get the correct response for the first tag */
+  BOOST_CHECK_EQUAL(rpc.getResponsePacket(tag1, qpacket, time(nullptr), &fpacket, &age, &temphash), true);
+  BOOST_CHECK_EQUAL(qhash, temphash);
+  BOOST_CHECK_EQUAL(fpacket, r1packet);
+
+  BOOST_CHECK_EQUAL(rpc.getResponsePacket(tag1, qpacket, qname, QType::A, QClass::IN, time(nullptr), &fpacket, &age, &temphash), true);
+  BOOST_CHECK_EQUAL(qhash, temphash);
+  BOOST_CHECK_EQUAL(fpacket, r1packet);
+
+  /* and the correct response for the second tag */
+  BOOST_CHECK_EQUAL(rpc.getResponsePacket(tag2, qpacket, time(nullptr), &fpacket, &age, &temphash), true);
+  BOOST_CHECK_EQUAL(qhash, temphash);
+  BOOST_CHECK_EQUAL(fpacket, r2packet);
+
+  BOOST_CHECK_EQUAL(rpc.getResponsePacket(tag2, qpacket, qname, QType::A, QClass::IN, time(nullptr), &fpacket, &age, &temphash), true);
+  BOOST_CHECK_EQUAL(qhash, temphash);
+  BOOST_CHECK_EQUAL(fpacket, r2packet);
+}
 
 BOOST_AUTO_TEST_SUITE_END()
