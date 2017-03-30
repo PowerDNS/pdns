@@ -155,6 +155,7 @@ static bool g_weDistributeQueries; // if true, only 1 thread listens on the inco
 static bool g_reusePort{false};
 static bool g_useOneSocketPerThread;
 static bool g_gettagNeedsEDNSOptions{false};
+static time_t g_statisticsInterval;
 
 std::unordered_set<DNSName> g_delegationOnly;
 RecursorControlChannel s_rcc; // only active in thread 0
@@ -2084,7 +2085,7 @@ static void houseKeeping(void *)
     }
 
     if(!t_id) {
-      if(now.tv_sec - last_stat >= ::arg().asNum("statistics-interval") && ::arg().asNum("statistics-interval") != 0) {
+      if(g_statisticsInterval > 0 && now.tv_sec - last_stat >= g_statisticsInterval) {
 	doStats();
 	last_stat=time(0);
       }
@@ -2830,7 +2831,11 @@ static int serviceMain(int argc, char*argv[])
   g_numThreads = g_numWorkerThreads + g_weDistributeQueries;
   g_maxMThreads = ::arg().asNum("max-mthreads");
 
+<<<<<<< HEAD
   g_gettagNeedsEDNSOptions = ::arg().mustDo("gettag-needs-edns-options");
+=======
+  g_statisticsInterval = ::arg().asNum("statistics-interval");
+>>>>>>> Extract statistics-interval out
 
 #ifdef SO_REUSEPORT
   g_reusePort = ::arg().mustDo("reuseport");
