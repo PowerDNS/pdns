@@ -132,7 +132,7 @@ int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qcl
   if (doSpecialNamesResolve(qname, qtype, qclass, ret))
     return 0;
 
-  if( (qtype.getCode() == QType::AXFR))
+  if( (qtype.getCode() == QType::AXFR) || (qtype.getCode() == QType::IXFR))
     return -1;
 
   if(qclass==QClass::ANY)
