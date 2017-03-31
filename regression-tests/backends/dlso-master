@@ -1,0 +1,35 @@
+# In tests, dlso-backend will wrap gsqlite3 from C
+# to avoid burden of duplicating all methods
+
+source ./backends/gsql-common
+
+case $context in
+	dlso-nodnssec | dlso | dlso-nsec3 | dlso-nsec3-optout | dlso-nsec3-narrow)
+		${MAKE} -C modules/dlso-gsql
+		rm -f pdns.sqlite3
+		sqlite3 pdns.sqlite3 < ../modules/gsqlite3backend/schema.sqlite3.sql
+		tosql gsqlite | sqlite3 pdns.sqlite3
+		echo ANALYZE\; | sqlite3 pdns.sqlite3
+
+		cat > pdns-dlso.conf << __EOF__
+module-dir=./modules
+launch=dlso
+dlso-path=modules/dlso-gsql/.libs/dlsogsql.so
+dlso-args=
+__EOF__
+		cat > pdns-dlso-sqlite3.conf << __EOF__
+gsqlite3-database=pdns.sqlite3
+__EOF__
+		if [ $context != dlso-nodnssec ]
+		then
+			echo "dlso-dnssec" >> pdns-dlso.conf
+			echo "gsqlite3-dnssec" >> pdns-dlso-sqlite3.conf
+		fi
+
+
+		gsql_master dlso nodyndns
+		;;
+
+	*)
+		nocontext=yes
+esac

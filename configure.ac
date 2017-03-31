@@ -328,6 +328,8 @@ AC_CONFIG_FILES([
   modules/remotebackend/Makefile
   modules/tinydnsbackend/Makefile
   modules/dlsobackend/Makefile
+  regression-tests/modules/dlso-gsql/Makefile
+
 ])
 AC_OUTPUT
 

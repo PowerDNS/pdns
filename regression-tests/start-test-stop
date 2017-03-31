@@ -187,6 +187,7 @@ remotebackend-pipe remotebackend-unix remotebackend-http remotebackend-zeromq
 remotebackend-pipe-dnssec remotebackend-unix-dnssec remotebackend-http-dnssec remotebackend-zeromq-dnssec
 #remotebackend-pipe-nsec3 remotebackend-unix-nsec3 remotebackend-http-nsec3
 #remotebackend-pipe-nsec3-narrow remotebackend-unix-nsec3-narrow remotebackend-http-nsec3-narrow
+dlso dlso-dnssec dlso-dnssec-nsec3 dlso-dnssec-nsec3-optout dlso-dnssec-nsec3-narrow
 tinydns
 ldap-tree ldap-simple ldap-strict
 lua2 lua2-dnssec lua2-nsec3 lua2-nsec3-narrow
