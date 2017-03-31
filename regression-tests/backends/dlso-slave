@@ -1,0 +1,67 @@
+	context=${context}-presigned-gsqlite3
+	rm -f pdns.sqlite32
+	sqlite3 pdns.sqlite32 < ../modules/gsqlite3backend/schema.sqlite3.sql
+
+	cat > pdns-dlso2.conf << __EOF__
+module-dir=./modules
+launch=dlso
+dlso-path=modules/dlso-gsql/.libs/dlsogsql.so
+dlso-args=
+__EOF__
+
+	cat > pdns-dlso2-sqlite3.conf << __EOF__
+gsqlite3-database=pdns.sqlite32
+gsqlite3-pragma-synchronous=0
+__EOF__
+
+	if [[ $context != *nodnssec* ]]
+	then
+		echo "dlso-dnssec" >> pdns-dlso2.conf
+		echo "gsqlite3-dnssec" >> pdns-dlso2-sqlite3.conf
+	fi
+
+	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | perl -e 'print reverse <STDIN>')
+	do
+		sqlite3 pdns.sqlite32 "INSERT INTO domains (name, type, master) VALUES('$zone','SLAVE','127.0.0.1:$port');"
+		if [ "$zone" = "tsig.com" ]; then
+			$PDNSUTIL --config-dir=. --config-name=dlso2 import-tsig-key test $ALGORITHM $KEY
+			$PDNSUTIL --config-dir=. --config-name=dlso2 activate-tsig-key tsig.com test slave
+		fi
+		if [ "$zone" = "stest.com" ]; then
+			if [[ $skipreasons != *nolua* ]]; then
+				$PDNSUTIL --config-dir=. --config-name=dlso2 set-meta stest.com AXFR-SOURCE 127.0.0.2
+			fi
+		fi
+	done
+
+	port=$((port+100))
+
+	$RUNWRAPPER $PDNS2 --daemon=no --local-port=$port --config-dir=. \
+		--config-name=dlso2 --socket-dir=./ --no-shuffle \
+		--slave --retrieval-threads=4 \
+		--slave-cycle-interval=300 --dname-processing &
+
+	echo 'waiting for zones to be slaved'
+	set +e
+	loopcount=0
+	while [ $loopcount -lt 30 ]
+	do
+		sleep 5
+		todo=$(sqlite3 pdns.sqlite32 'SELECT COUNT(id) FROM domains WHERE last_check IS NULL')
+		if [ $? -eq 0 ]
+		then
+			if [ $todo = 0 ]
+			then
+				break
+			fi
+		fi
+		let loopcount=loopcount+1
+	done
+	if [ $todo -ne 0 ]
+	then
+		echo "AXFR FAILED" >> failed_tests
+		exit
+	fi
+	set -e
+	sqlite3 pdns.sqlite32 ANALYZE;
+
