@@ -340,6 +340,13 @@ std::string DNSName::getRawLabel(unsigned int pos) const
   throw std::out_of_range("trying to get label at position "+std::to_string(pos)+" of a DNSName that only has "+std::to_string(currentPos)+" labels");
 }
 
+DNSName DNSName::getLastLabel() const
+{
+  DNSName ret(*this);
+  ret.trimToLabels(1);
+  return ret;
+}
+
 bool DNSName::chopOff()
 {
   if(d_storage.empty() || d_storage[0]==0)
