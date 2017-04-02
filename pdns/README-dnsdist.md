@@ -1104,7 +1104,7 @@ Provider fingerprint is: E1D7:2108:9A59:BF8D:F101:16FA:ED5E:EA6A:9F6C:C78F:7F91:
 > generateDNSCryptCertificate("/path/to/providerPrivate.key", "/path/to/resolver.cert", "/path/to/resolver.key", serial, validFrom, validUntil)
 ```
 
-Note that 'validFrom' and 'validTo' are UNIX epoch timestamps. These can
+Note that 'validFrom' and 'validUntil' are UNIX epoch timestamps. These can
 easily be calculated as 'os.time(), os.time()+2*365*86400' for example to
 get a certificate that is valid for two years from now.
 
