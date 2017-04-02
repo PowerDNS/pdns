@@ -1104,6 +1104,10 @@ Provider fingerprint is: E1D7:2108:9A59:BF8D:F101:16FA:ED5E:EA6A:9F6C:C78F:7F91:
 > generateDNSCryptCertificate("/path/to/providerPrivate.key", "/path/to/resolver.cert", "/path/to/resolver.key", serial, validFrom, validUntil)
 ```
 
+Note that 'validFrom' and 'validUntil' are UNIX epoch timestamps. These can
+easily be calculated as 'os.time(), os.time()+2*365*86400' for example to
+get a certificate that is valid for two years from now.
+
 Ideally, the certificates and keys should be generated on an offline dedicated hardware and not on the resolver.
 The resolver key should be regularly rotated and should never touch persistent storage, being stored in a tmpfs
 with no swap configured.
@@ -1622,7 +1626,7 @@ instantiate a server with additional parameters
  * DNSCrypt related:
     * `addDNSCryptBind("127.0.0.1:8443", "provider name", "/path/to/resolver.cert", "/path/to/resolver.key", [false], [TCP Fast Open queue size]):` listen to incoming DNSCrypt queries on 127.0.0.1 port 8443, with a provider name of "provider name", using a resolver certificate and associated key stored respectively in the `resolver.cert` and `resolver.key` files. The fifth optional parameter sets SO_REUSEPORT when available. The last parameter sets the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0.
     * `generateDNSCryptProviderKeys("/path/to/providerPublic.key", "/path/to/providerPrivate.key"):` generate a new provider keypair
-    * `generateDNSCryptCertificate("/path/to/providerPrivate.key", "/path/to/resolver.cert", "/path/to/resolver.key", serial, validFrom, validUntil):` generate a new resolver private key and related certificate, valid from the `validFrom` timestamp until the `validUntil` one, signed with the provider private key
+    * `generateDNSCryptCertificate("/path/to/providerPrivate.key", "/path/to/resolver.cert", "/path/to/resolver.key", serial, validFrom, validUntil):` generate a new resolver private key and related certificate, valid from the `validFrom` UNIX timestamp until the `validUntil` one, signed with the provider private key
     * `printDNSCryptProviderFingerprint("/path/to/providerPublic.key")`: display the fingerprint of the provided resolver public key
     * `showDNSCryptBinds():`: display the currently configured DNSCrypt binds
  * BPFFilter related:
