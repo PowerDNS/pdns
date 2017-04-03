@@ -49,7 +49,7 @@
 #include "ednssubnet.hh"
 #include "cachecleaner.hh"
 #include "rec-lua-conf.hh"
-__thread SyncRes::StaticStorage* t_sstorage;
+thread_local std::unique_ptr<SyncRes::StaticStorage> t_sstorage;
 
 unsigned int SyncRes::s_maxnegttl;
 unsigned int SyncRes::s_maxcachettl;
@@ -122,7 +122,7 @@ SyncRes::SyncRes(const struct timeval& now) :  d_outqueries(0), d_tcpoutqueries(
                                                  
 { 
   if(!t_sstorage) {
-    t_sstorage = new StaticStorage();
+    t_sstorage = std::unique_ptr<StaticStorage>(new StaticStorage());
   }
 }
 

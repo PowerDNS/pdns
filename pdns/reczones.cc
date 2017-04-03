@@ -41,7 +41,7 @@ void primeHints(void)
   // prime root cache
   vector<DNSRecord> nsset;
   if(!t_RC)
-    t_RC = new MemRecursorCache();
+    t_RC = std::unique_ptr<MemRecursorCache>(new MemRecursorCache());
 
   if(::arg()["hint-file"].empty()) {
     DNSRecord arr, aaaarr, nsrr;

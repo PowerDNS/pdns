@@ -642,7 +642,7 @@ private:
 
   LogMode d_lm;
 };
-extern __thread SyncRes::StaticStorage* t_sstorage;
+extern thread_local std::unique_ptr<SyncRes::StaticStorage> t_sstorage;
 
 class Socket;
 /* external functions, opaque to us */
@@ -702,10 +702,10 @@ struct PacketIDBirthdayCompare: public std::binary_function<PacketID, PacketID, 
     return a.domain < b.domain;
   }
 };
-extern __thread MemRecursorCache* t_RC;
-extern __thread RecursorPacketCache* t_packetCache;
+extern thread_local std::unique_ptr<MemRecursorCache> t_RC;
+extern thread_local std::unique_ptr<RecursorPacketCache> t_packetCache;
 typedef MTasker<PacketID,string> MT_t;
-extern __thread MT_t* MT;
+extern thread_local std::unique_ptr<MT_t> MT;
 
 struct RecursorStats
 {
@@ -785,10 +785,10 @@ typedef boost::circular_buffer<SComboAddress> addrringbuf_t;
 #else
 typedef boost::circular_buffer<ComboAddress> addrringbuf_t;
 #endif
-extern __thread addrringbuf_t* t_servfailremotes, *t_largeanswerremotes, *t_remotes;
+extern thread_local std::unique_ptr<addrringbuf_t> t_servfailremotes, t_largeanswerremotes, t_remotes;
 
-extern __thread boost::circular_buffer<pair<DNSName,uint16_t> >* t_queryring, *t_servfailqueryring;
-extern __thread NetmaskGroup* t_allowFrom;
+extern thread_local std::unique_ptr<boost::circular_buffer<pair<DNSName,uint16_t> > > t_queryring, t_servfailqueryring;
+extern thread_local std::shared_ptr<NetmaskGroup> t_allowFrom;
 string doQueueReloadLuaScript(vector<string>::const_iterator begin, vector<string>::const_iterator end);
 string doTraceRegex(vector<string>::const_iterator begin, vector<string>::const_iterator end);
 void parseACLs();
@@ -827,5 +827,5 @@ void primeHints(void);
 extern __thread struct timeval g_now;
 
 #ifdef HAVE_PROTOBUF
-extern __thread boost::uuids::random_generator* t_uuidGenerator;
+extern thread_local std::unique_ptr<boost::uuids::random_generator> t_uuidGenerator;
 #endif

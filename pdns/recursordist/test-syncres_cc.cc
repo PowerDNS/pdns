@@ -12,7 +12,7 @@
 
 RecursorStats g_stats;
 GlobalStateHolder<LuaConfigItems> g_luaconfs;
-__thread MemRecursorCache* t_RC{nullptr};
+thread_local std::unique_ptr<MemRecursorCache> t_RC{nullptr};
 unsigned int g_numThreads = 1;
 
 /* Fake some required functions we didn't want the trouble to
@@ -50,7 +50,7 @@ void primeHints(void)
 {
   vector<DNSRecord> nsset;
   if(!t_RC)
-    t_RC = new MemRecursorCache();
+    t_RC = std::unique_ptr<MemRecursorCache>(new MemRecursorCache());
 
   DNSRecord arr, aaaarr, nsrr;
   nsrr.d_name=g_rootdnsname;
@@ -105,9 +105,7 @@ static void init(bool debug=false)
   seedRandom("/dev/urandom");
   reportAllTypes();
 
-  if (t_RC)
-    delete t_RC;
-  t_RC = new MemRecursorCache();
+  t_RC = std::unique_ptr<MemRecursorCache>(new MemRecursorCache());
 
   SyncRes::s_maxqperq = 50;
   SyncRes::s_maxtotusec = 1000*7000;

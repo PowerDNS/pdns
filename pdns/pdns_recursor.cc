@@ -97,20 +97,20 @@ extern SortList g_sortlist;
 
 typedef map<ComboAddress, uint32_t, ComboAddress::addressOnlyLessThan> tcpClientCounts_t;
 
-static __thread shared_ptr<RecursorLua4>* t_pdl;
-static __thread unsigned int t_id;
-static __thread std::shared_ptr<Regex>* t_traceRegex;
-static __thread tcpClientCounts_t* t_tcpClientCounts;
+static thread_local std::shared_ptr<RecursorLua4> t_pdl;
+static thread_local unsigned int t_id;
+static thread_local std::shared_ptr<Regex> t_traceRegex;
+static thread_local std::unique_ptr<tcpClientCounts_t> t_tcpClientCounts;
 
-__thread MT_t* MT; // the big MTasker
-__thread MemRecursorCache* t_RC;
-__thread RecursorPacketCache* t_packetCache;
-__thread FDMultiplexer* t_fdm;
-__thread addrringbuf_t* t_remotes, *t_servfailremotes, *t_largeanswerremotes;
-__thread boost::circular_buffer<pair<DNSName, uint16_t> >* t_queryring, *t_servfailqueryring;
-__thread NetmaskGroup* t_allowFrom;
+thread_local std::unique_ptr<MT_t> MT; // the big MTasker
+thread_local std::unique_ptr<MemRecursorCache> t_RC;
+thread_local std::unique_ptr<RecursorPacketCache> t_packetCache;
+thread_local FDMultiplexer* t_fdm;
+thread_local std::unique_ptr<addrringbuf_t> t_remotes, t_servfailremotes, t_largeanswerremotes;
+thread_local std::unique_ptr<boost::circular_buffer<pair<DNSName, uint16_t> > > t_queryring, t_servfailqueryring;
+thread_local std::shared_ptr<NetmaskGroup> t_allowFrom;
 #ifdef HAVE_PROTOBUF
-__thread boost::uuids::random_generator* t_uuidGenerator;
+thread_local std::unique_ptr<boost::uuids::random_generator> t_uuidGenerator;
 #endif
 __thread struct timeval g_now; // timestamp, updated (too) frequently
 
@@ -136,7 +136,7 @@ static set<int> g_fromtosockets; // listen sockets that use 'sendfromto()' mecha
 static vector<ComboAddress> g_localQueryAddresses4, g_localQueryAddresses6;
 static AtomicCounter counter;
 static std::shared_ptr<SyncRes::domainmap_t> g_initialDomainMap; // new threads needs this to be setup
-static NetmaskGroup* g_initialAllowFrom; // new thread needs to be setup with this
+static std::shared_ptr<NetmaskGroup> g_initialAllowFrom; // new thread needs to be setup with this
 static size_t g_tcpMaxQueriesPerConn;
 static uint64_t g_latencyStatSize;
 static uint32_t g_disthashseed;
@@ -488,7 +488,7 @@ public:
   }
 };
 
-static __thread UDPClientSocks* t_udpclientsocks;
+static thread_local std::unique_ptr<UDPClientSocks> t_udpclientsocks;
 
 /* these two functions are used by LWRes */
 // -2 is OS error, -1 is error that depends on the remote, > 0 is success
@@ -759,7 +759,7 @@ static void startDoResolve(void *p)
     SyncRes sr(dc->d_now);
     bool DNSSECOK=false;
     if(t_pdl) {
-      sr.setLuaEngine(*t_pdl);
+      sr.setLuaEngine(t_pdl);
       sr.d_requestor=dc->d_remote;
     }
 
@@ -814,7 +814,7 @@ static void startDoResolve(void *p)
       goto sendit;
     }
 
-    if(t_traceRegex->get() && (*t_traceRegex)->match(dc->d_mdp.d_qname.toString())) {
+    if(t_traceRegex && t_traceRegex->match(dc->d_mdp.d_qname.toString())) {
       sr.setLogMode(SyncRes::Store);
       tracedQuery=true;
     }
@@ -833,8 +833,8 @@ static void startDoResolve(void *p)
     if(!dc->d_mdp.d_header.rd)
       sr.setCacheOnly();
 
-    if (t_pdl->get()) {
-      (*t_pdl)->prerpz(dq, res);
+    if (t_pdl) {
+      t_pdl->prerpz(dq, res);
     }
 
     // Check if the query has a policy attached to it
@@ -843,7 +843,7 @@ static void startDoResolve(void *p)
     }
 
     // if there is a RecursorLua active, and it 'took' the query in preResolve, we don't launch beginResolve
-    if(!t_pdl->get() || !(*t_pdl)->preresolve(dq, res)) {
+    if(!t_pdl || !t_pdl->preresolve(dq, res)) {
 
       sr.setWantsRPZ(wantsRPZ);
       if(wantsRPZ) {
@@ -938,20 +938,20 @@ static void startDoResolve(void *p)
         appliedPolicy = luaconfsLocal->dfe.getPostPolicy(ret, sr.d_discardedPolicies);
       }
 
-      if(t_pdl->get()) {
+      if(t_pdl) {
         if(res == RCode::NoError) {
 	        auto i=ret.cbegin();
                 for(; i!= ret.cend(); ++i)
                   if(i->d_type == dc->d_mdp.d_qtype && i->d_place == DNSResourceRecord::ANSWER)
                           break;
-                if(i == ret.cend() && (*t_pdl)->nodata(dq, res))
+                if(i == ret.cend() && t_pdl->nodata(dq, res))
                   shouldNotValidate = true;
 
 	}
-	else if(res == RCode::NXDomain && (*t_pdl)->nxdomain(dq, res))
+	else if(res == RCode::NXDomain && t_pdl->nxdomain(dq, res))
           shouldNotValidate = true;
 
-	if((*t_pdl)->postresolve(dq, res))
+	if(t_pdl->postresolve(dq, res))
           shouldNotValidate = true;
       }
 
@@ -1383,7 +1383,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
     if(conn->bytesread==conn->qlen) {
       t_fdm->removeReadFD(fd); // should no longer awake ourselves when there is data to read
 
-      DNSComboWriter* dc=0;
+      DNSComboWriter* dc=nullptr;
       try {
         dc=new DNSComboWriter(conn->data, conn->qlen, g_now);
       }
@@ -1415,16 +1415,16 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       }
 #endif
 
-      if(needECS || (t_pdl->get() && (*t_pdl)->d_gettag)) {
+      if(needECS || (t_pdl && t_pdl->d_gettag)) {
 
         try {
           std::map<uint16_t, EDNSOptionView> ednsOptions;
           dc->d_ecsParsed = true;
           dc->d_ecsFound = getQNameAndSubnet(std::string(conn->data, conn->qlen), &qname, &qtype, &qclass, &dc->d_ednssubnet, g_gettagNeedsEDNSOptions ? &ednsOptions : nullptr);
 
-          if(t_pdl->get() && (*t_pdl)->d_gettag) {
+          if(t_pdl && t_pdl->d_gettag) {
             try {
-              dc->d_tag = (*t_pdl)->gettag(conn->d_remote, dc->d_ednssubnet.source, dest, qname, qtype, &dc->d_policyTags, dc->d_data, ednsOptions, true, requestorId);
+              dc->d_tag = t_pdl->gettag(conn->d_remote, dc->d_ednssubnet.source, dest, qname, qtype, &dc->d_policyTags, dc->d_data, ednsOptionsn true, requestorId);
             }
             catch(std::exception& e)  {
               if(g_logCommonErrors)
@@ -1525,7 +1525,7 @@ static void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
     }
 
     setNonBlocking(newsock);
-    shared_ptr<TCPConnection> tc(new TCPConnection(newsock, addr));
+    std::shared_ptr<TCPConnection> tc = std::make_shared<TCPConnection>(newsock, addr);
     tc->state=TCPConnection::BYTE0;
 
     t_fdm->addReadFD(tc->getFD(), handleRunningTCPQuestion, tc);
@@ -1590,16 +1590,16 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     */
 #endif
 
-    if(needECS || (t_pdl->get() && (*t_pdl)->d_gettag)) {
+    if(needECS || (t_pdl && t_pdl->d_gettag)) {
       try {
         std::map<uint16_t, EDNSOptionView> ednsOptions;
         ecsFound = getQNameAndSubnet(question, &qname, &qtype, &qclass, &ednssubnet, g_gettagNeedsEDNSOptions ? &ednsOptions : nullptr);
         qnameParsed = true;
         ecsParsed = true;
 
-        if(t_pdl->get() && (*t_pdl)->d_gettag) {
+        if(t_pdl && t_pdl->d_gettag) {
           try {
-            ctag=(*t_pdl)->gettag(fromaddr, ednssubnet.source, destaddr, qname, qtype, &policyTags, data, ednsOptions, false, requestorId);
+            ctag=t_pdl->gettag(fromaddr, ednssubnet.source, destaddr, qname, qtype, &policyTags, data, ednsOptions, false, requestorId);
           }
           catch(std::exception& e)  {
             if(g_logCommonErrors)
@@ -1675,8 +1675,8 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     return 0;
   }
 
-  if(t_pdl->get()) {
-    if((*t_pdl)->ipfilter(fromaddr, destaddr, *dh)) {
+  if(t_pdl) {
+    if(t_pdl->ipfilter(fromaddr, destaddr, *dh)) {
       if(!g_quiet)
 	L<<Logger::Notice<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED question from "<<fromaddr.toStringWithPort()<<" based on policy"<<endl;
       g_stats.policyDrops++;
@@ -2180,7 +2180,7 @@ void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
 
 static void handlePipeRequest(int fd, FDMultiplexer::funcparam_t& var)
 {
-  ThreadMSG* tmsg;
+  ThreadMSG* tmsg = nullptr;
 
   if(read(fd, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) { // fd == readToThread
     unixDie("read from thread pipe returned wrong size or error");
@@ -2470,10 +2470,9 @@ retryWithName:
 FDMultiplexer* getMultiplexer()
 {
   FDMultiplexer* ret;
-  for(FDMultiplexer::FDMultiplexermap_t::const_iterator i = FDMultiplexer::getMultiplexerMap().begin();
-      i != FDMultiplexer::getMultiplexerMap().end(); ++i) {
+  for(const auto& i : FDMultiplexer::getMultiplexerMap()) {
     try {
-      ret=i->second();
+      ret=i.second();
       return ret;
     }
     catch(FDMultiplexerException &fe) {
@@ -2493,12 +2492,12 @@ static string* doReloadLuaScript()
   string fname= ::arg()["lua-dns-script"];
   try {
     if(fname.empty()) {
-      t_pdl->reset();
+      t_pdl.reset();
       L<<Logger::Error<<t_id<<" Unloaded current lua script"<<endl;
       return new string("unloaded\n");
     }
     else {
-      *t_pdl = shared_ptr<RecursorLua4>(new RecursorLua4(fname));
+      t_pdl = std::make_shared<RecursorLua4>(fname);
     }
   }
   catch(std::exception& e) {
@@ -2522,11 +2521,11 @@ static string* pleaseUseNewTraceRegex(const std::string& newRegex)
 try
 {
   if(newRegex.empty()) {
-    t_traceRegex->reset();
+    t_traceRegex.reset();
     return new string("unset\n");
   }
   else {
-    (*t_traceRegex) = std::make_shared<Regex>(newRegex);
+    t_traceRegex = std::make_shared<Regex>(newRegex);
     return new string("ok\n");
   }
 }
@@ -2574,10 +2573,10 @@ static void checkOrFixFDS()
 
 static void* recursorThread(void*);
 
-static void* pleaseSupplantACLs(NetmaskGroup *ng)
+static void* pleaseSupplantACLs(std::shared_ptr<NetmaskGroup> ng)
 {
   t_allowFrom = ng;
-  return 0;
+  return nullptr;
 }
 
 int g_argc;
@@ -2612,13 +2611,13 @@ void parseACLs()
     ::arg().preParse(g_argc, g_argv, "allow-from");
   }
 
-  NetmaskGroup* oldAllowFrom = t_allowFrom, *allowFrom=new NetmaskGroup;
+  std::shared_ptr<NetmaskGroup> oldAllowFrom = t_allowFrom;
+  std::shared_ptr<NetmaskGroup> allowFrom = std::make_shared<NetmaskGroup>();
 
   if(!::arg()["allow-from-file"].empty()) {
     string line;
     ifstream ifs(::arg()["allow-from-file"].c_str());
     if(!ifs) {
-      delete allowFrom;
       throw runtime_error("Could not open '"+::arg()["allow-from-file"]+"': "+stringerror());
     }
 
@@ -2651,13 +2650,12 @@ void parseACLs()
   else {
     if(::arg()["local-address"]!="127.0.0.1" && ::arg().asNum("local-port")==53)
       L<<Logger::Error<<"WARNING: Allowing queries from all IP addresses - this can be a security risk!"<<endl;
-    delete allowFrom;
-    allowFrom = 0;
+    allowFrom = nullptr;
   }
 
   g_initialAllowFrom = allowFrom;
   broadcastFunction(boost::bind(pleaseSupplantACLs, allowFrom));
-  delete oldAllowFrom;
+  oldAllowFrom = nullptr;
 
   l_initialized = true;
 }
@@ -2952,22 +2950,20 @@ try
   SyncRes tmp(g_now); // make sure it allocates tsstorage before we do anything, like primeHints or so..
   t_sstorage->domainmap = g_initialDomainMap;
   t_allowFrom = g_initialAllowFrom;
-  t_udpclientsocks = new UDPClientSocks();
-  t_tcpClientCounts = new tcpClientCounts_t();
+  t_udpclientsocks = std::unique_ptr<UDPClientSocks>(new UDPClientSocks());
+  t_tcpClientCounts = std::unique_ptr<tcpClientCounts_t>(new tcpClientCounts_t());
   primeHints();
 
-  t_packetCache = new RecursorPacketCache();
+  t_packetCache = std::unique_ptr<RecursorPacketCache>(new RecursorPacketCache());
 
 #ifdef HAVE_PROTOBUF
-  t_uuidGenerator = new boost::uuids::random_generator();
+  t_uuidGenerator = std::unique_ptr<boost::uuids::random_generator>(new boost::uuids::random_generator());
 #endif
   L<<Logger::Warning<<"Done priming cache with root hints"<<endl;
 
-  t_pdl = new shared_ptr<RecursorLua4>();
-
   try {
     if(!::arg()["lua-dns-script"].empty()) {
-      *t_pdl = shared_ptr<RecursorLua4>(new RecursorLua4(::arg()["lua-dns-script"]));
+      t_pdl = std::make_shared<RecursorLua4>(::arg()["lua-dns-script"]);
       L<<Logger::Warning<<"Loaded 'lua' script from '"<<::arg()["lua-dns-script"]<<"'"<<endl;
     }
   }
@@ -2976,26 +2972,25 @@ try
     _exit(99);
   }
 
-  t_traceRegex = new std::shared_ptr<Regex>();
   unsigned int ringsize=::arg().asNum("stats-ringbuffer-entries") / g_numWorkerThreads;
   if(ringsize) {
-    t_remotes = new addrringbuf_t();
+    t_remotes = std::unique_ptr<addrringbuf_t>(new addrringbuf_t());
     if(g_weDistributeQueries)  // if so, only 1 thread does recvfrom
       t_remotes->set_capacity(::arg().asNum("stats-ringbuffer-entries"));
     else
       t_remotes->set_capacity(ringsize);
-    t_servfailremotes = new addrringbuf_t();
+    t_servfailremotes = std::unique_ptr<addrringbuf_t>(new addrringbuf_t());
     t_servfailremotes->set_capacity(ringsize);
-    t_largeanswerremotes = new addrringbuf_t();
+    t_largeanswerremotes = std::unique_ptr<addrringbuf_t>(new addrringbuf_t());
     t_largeanswerremotes->set_capacity(ringsize);
 
-    t_queryring = new boost::circular_buffer<pair<DNSName, uint16_t> >();
+    t_queryring = std::unique_ptr<boost::circular_buffer<pair<DNSName, uint16_t> > >(new boost::circular_buffer<pair<DNSName, uint16_t> >());
     t_queryring->set_capacity(ringsize);
-    t_servfailqueryring = new boost::circular_buffer<pair<DNSName, uint16_t> >();
+    t_servfailqueryring = std::unique_ptr<boost::circular_buffer<pair<DNSName, uint16_t> > >(new boost::circular_buffer<pair<DNSName, uint16_t> >());
     t_servfailqueryring->set_capacity(ringsize);
   }
 
-  MT=new MTasker<PacketID,string>(::arg().asNum("stack-size"));
+  MT=std::unique_ptr<MTasker<PacketID,string> >(new MTasker<PacketID,string>(::arg().asNum("stack-size")));
 
   PacketID pident;
 
