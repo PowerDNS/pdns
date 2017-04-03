@@ -1,1 +1,1 @@
--lssl -lcrypto $(PGSQL_lib)
+-lssl -lcrypto $(PGSQL_LIBS)
