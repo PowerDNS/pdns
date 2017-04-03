@@ -59,7 +59,6 @@ public:
   void doPrune(void);
   void doSlash(int perc);
   uint64_t doDump(int fd);
-  uint64_t doDumpNSSpeeds(int fd);
 
   int doWipeCache(const DNSName& name, bool sub, uint16_t qtype=0xffff);
   bool doAgeCache(time_t now, const DNSName& name, uint16_t qtype, uint32_t newTTL);

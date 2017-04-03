@@ -59,8 +59,6 @@
 #include <boost/uuid/uuid_generators.hpp>
 #endif
 
-void primeHints(void);
-
 class RecursorLua4;
 
 typedef map<
@@ -279,20 +277,66 @@ class SyncRes : public boost::noncopyable
 {
 public:
   enum LogMode { LogNone, Log, Store};
+  typedef std::function<int(const ComboAddress& ip, const DNSName& qdomain, int qtype, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult *lwr)> asyncresolve_t;
+
+  static void setDefaultLogMode(LogMode lm)
+  {
+    s_lm = lm;
+  }
+  static void doEDNSDumpAndClose(int fd);
+  static uint64_t doDumpNSSpeeds(int fd);
+  static int getRootNS(struct timeval now, asyncresolve_t asyncCallback);
+  static void clearDelegationOnly()
+  {
+    s_delegationOnly.clear();
+  }
+  static void addDelegationOnly(const DNSName& name)
+  {
+    s_delegationOnly.insert(name);
+  }
+  static void addDontQuery(const std::string& mask)
+  {
+    if (!s_dontQuery)
+      s_dontQuery = std::unique_ptr<NetmaskGroup>(new NetmaskGroup());
+
+    s_dontQuery->addMask(mask);
+  }
+  static void addDontQuery(const Netmask& mask)
+  {
+    if (!s_dontQuery)
+      s_dontQuery = std::unique_ptr<NetmaskGroup>(new NetmaskGroup());
+
+    s_dontQuery->addMask(mask);
+  }
+  static void clearDontQuery()
+  {
+    s_dontQuery = nullptr;
+  }
+  static void parseEDNSSubnetWhitelist(const std::string& wlist);
+  static void addEDNSSubnet(const Netmask& subnet)
+  {
+    s_ednssubnets.addMask(subnet);
+  }
+  static void addEDNSDomain(const DNSName& domain)
+  {
+    s_ednsdomains.add(domain);
+  }
+  static void clearEDNSSubnets()
+  {
+    s_ednssubnets.clear();
+  }
+  static void clearEDNSDomains()
+  {
+    s_ednsdomains = SuffixMatchNode();
+  }
 
   explicit SyncRes(const struct timeval& now);
-
-  typedef std::function<int(const ComboAddress& ip, const DNSName& qdomain, int qtype, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult *lwr)> asyncresolve_t;
 
   int beginResolve(const DNSName &qname, const QType &qtype, uint16_t qclass, vector<DNSRecord>&ret);
   void setId(int id)
   {
     if(doLog())
       d_prefix="["+itoa(id)+"] ";
-  }
-  static void setDefaultLogMode(LogMode lm)
-  {
-    s_lm = lm;
   }
 
   void setLogMode(LogMode lm)
@@ -386,9 +430,6 @@ public:
     d_asyncResolve = func;
   }
 
-  static void doEDNSDumpAndClose(int fd);
-  static int getRootNS(struct timeval now, asyncresolve_t asyncCallback);
-
   static std::atomic<uint64_t> s_queries;
   static std::atomic<uint64_t> s_outgoingtimeouts;
   static std::atomic<uint64_t> s_outgoing4timeouts;
@@ -399,11 +440,7 @@ public:
   static std::atomic<uint64_t> s_tcpoutqueries;
   static std::atomic<uint64_t> s_nodelegated;
   static std::atomic<uint64_t> s_unreachables;
-  static unsigned int s_minimumTTL;
-  static bool s_doIPv6;
-  static unsigned int s_maxqperq;
-  static unsigned int s_maxtotusec;
-  static unsigned int s_maxdepth;
+
   std::unordered_map<std::string,bool> d_discardedPolicies;
   DNSFilterEngine::Policy d_appliedPolicy;
   unsigned int d_outqueries;
@@ -475,9 +512,6 @@ public:
 
   typedef map<ComboAddress, EDNSStatus> ednsstatus_t;
 
-  static bool s_noEDNSPing;
-  static bool s_noEDNS;
-  static bool s_rootNXTrust;
   struct AuthDomain
   {
     vector<ComboAddress> d_servers;
@@ -500,11 +534,15 @@ public:
 
   typedef map<DNSName, AuthDomain> domainmap_t;
 
-
   typedef Throttle<boost::tuple<ComboAddress,DNSName,uint16_t> > throttle_t;
 
   typedef Counters<ComboAddress> fails_t;
 
+  static string s_serverID;
+  static unsigned int s_minimumTTL;
+  static unsigned int s_maxqperq;
+  static unsigned int s_maxtotusec;
+  static unsigned int s_maxdepth;
   static unsigned int s_maxnegttl;
   static unsigned int s_maxcachettl;
   static unsigned int s_packetcachettl;
@@ -513,21 +551,41 @@ public:
   static unsigned int s_serverdownthrottletime;
   static uint8_t s_ecsipv4limit;
   static uint8_t s_ecsipv6limit;
+  static bool s_doIPv6;
+  static bool s_noEDNSPing;
+  static bool s_noEDNS;
+  static bool s_rootNXTrust;
   static bool s_nopacketcache;
-  static string s_serverID;
 
   struct StaticStorage {
     nsspeeds_t nsSpeeds;
     ednsstatus_t ednsstatus;
     throttle_t throttle;
     fails_t fails;
-    domainmap_t* domainmap;
+    std::shared_ptr<domainmap_t> domainmap;
     map<DNSName, bool> dnssecmap;
     NegCache negcache;
   };
 
 private:
-  struct GetBestNSAnswer;
+  static std::unordered_set<DNSName> s_delegationOnly;
+  static NetmaskGroup s_ednssubnets;
+  static SuffixMatchNode s_ednsdomains;
+  static LogMode s_lm;
+  static std::unique_ptr<NetmaskGroup> s_dontQuery;
+
+  struct GetBestNSAnswer
+  {
+    DNSName qname;
+    set<pair<DNSName,DNSName> > bestns;
+    uint8_t qtype; // only A and AAAA anyhow
+    bool operator<(const GetBestNSAnswer &b) const
+    {
+      return boost::tie(qname, qtype, bestns) <
+	boost::tie(b.qname, b.qtype, b.bestns);
+    }
+  };
+
   int doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret,
                   unsigned int depth, set<GetBestNSAnswer>&beenthere);
   int doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere);
@@ -582,21 +640,7 @@ private:
   bool d_wasOutOfBand{false};
   bool d_wasVariable{false};
 
-  static LogMode s_lm;
   LogMode d_lm;
-
-  struct GetBestNSAnswer
-  {
-    DNSName qname;
-    set<pair<DNSName,DNSName> > bestns; 
-    uint8_t qtype; // only A and AAAA anyhow
-    bool operator<(const GetBestNSAnswer &b) const
-    {
-      return boost::tie(qname, qtype, bestns) <
-	boost::tie(b.qname, b.qtype, b.bestns);
-    }
-  };
-
 };
 extern __thread SyncRes::StaticStorage* t_sstorage;
 
@@ -750,7 +794,6 @@ string doTraceRegex(vector<string>::const_iterator begin, vector<string>::const_
 void parseACLs();
 extern RecursorStats g_stats;
 extern unsigned int g_numThreads;
-extern std::unordered_set<DNSName> g_delegationOnly;
 extern uint16_t g_outgoingEDNSBufsize;
 
 
@@ -765,7 +808,7 @@ int directResolve(const DNSName& qname, const QType& qtype, int qclass, vector<D
 
 template<class T> T broadcastAccFunction(const boost::function<T*()>& func, bool skipSelf=false);
 
-SyncRes::domainmap_t* parseAuthAndForwards();
+std::shared_ptr<SyncRes::domainmap_t> parseAuthAndForwards();
 uint64_t* pleaseGetNsSpeedsSize();
 uint64_t* pleaseGetCacheSize();
 uint64_t* pleaseGetNegCacheSize();
@@ -779,12 +822,9 @@ uint64_t* pleaseWipeCache(const DNSName& canon, bool subtree=false);
 uint64_t* pleaseWipePacketCache(const DNSName& canon, bool subtree);
 uint64_t* pleaseWipeAndCountNegCache(const DNSName& canon, bool subtree=false);
 void doCarbonDump(void*);
-void  parseEDNSSubnetWhitelist(const std::string& wlist);
+void primeHints(void);
 
 extern __thread struct timeval g_now;
-
-extern NetmaskGroup g_ednssubnets;
-extern SuffixMatchNode g_ednsdomains;
 
 #ifdef HAVE_PROTOBUF
 extern __thread boost::uuids::random_generator* t_uuidGenerator;

@@ -78,6 +78,10 @@ unsigned int SyncRes::s_maxtotusec;
 unsigned int SyncRes::s_maxdepth;
 string SyncRes::s_serverID;
 SyncRes::LogMode SyncRes::s_lm;
+std::unordered_set<DNSName> SyncRes::s_delegationOnly;
+std::unique_ptr<NetmaskGroup> SyncRes::s_dontQuery{nullptr};
+NetmaskGroup SyncRes::s_ednssubnets;
+SuffixMatchNode SyncRes::s_ednsdomains;
 
 #define LOG(x) if(d_lm == Log) { L <<Logger::Warning << x; } else if(d_lm == Store) { d_trace << x; }
 
@@ -333,6 +337,29 @@ void SyncRes::doEDNSDumpAndClose(int fd)
   }
 
   fclose(fp);
+}
+
+uint64_t SyncRes::doDumpNSSpeeds(int fd)
+{
+  FILE* fp=fdopen(dup(fd), "w");
+  if(!fp)
+    return 0;
+  fprintf(fp, "; nsspeed dump from thread follows\n;\n");
+  uint64_t count=0;
+
+  for(const auto& i : t_sstorage->nsSpeeds)
+  {
+    count++;
+    fprintf(fp, "%s -> ", i.first.toString().c_str());
+    for(const auto& j : i.second.d_collection)
+    {
+      // typedef vector<pair<ComboAddress, DecayingEwma> > collection_t;
+      fprintf(fp, "%s/%f ", j.first.toString().c_str(), j.second.peek());
+    }
+    fprintf(fp, "\n");
+  }
+  fclose(fp);
+  return count;
 }
 
 /* so here is the story. First we complete the full resolution process for a domain name. And only THEN do we decide
@@ -1088,8 +1115,6 @@ vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, 
 
 bool SyncRes::throttledOrBlocked(const std::string& prefix, const ComboAddress& remoteIP, const DNSName& qname, const QType& qtype, bool pierceDontQuery)
 {
-  extern NetmaskGroup* g_dontQuery;
-
   if(t_sstorage->throttle.shouldThrottle(d_now.tv_sec, boost::make_tuple(remoteIP, "", 0))) {
     LOG(prefix<<qname<<": server throttled "<<endl);
     s_throttledqueries++; d_throttledqueries++;
@@ -1100,7 +1125,7 @@ bool SyncRes::throttledOrBlocked(const std::string& prefix, const ComboAddress& 
     s_throttledqueries++; d_throttledqueries++;
     return true;
   }
-  else if(!pierceDontQuery && g_dontQuery && g_dontQuery->match(&remoteIP)) {
+  else if(!pierceDontQuery && s_dontQuery && s_dontQuery->match(&remoteIP)) {
     LOG(prefix<<qname<<": not sending query to " << remoteIP.toString() << ", blocked by 'dont-query' setting" << endl);
     s_dontqueries++;
     return true;
@@ -1153,7 +1178,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(const std::string& prefix, LWResu
       if(rec.d_type == QType::RRSIG) {
         LOG("RRSIG - separate"<<endl);
       }
-      else if(lwr.d_aabit && lwr.d_rcode==RCode::NoError && rec.d_place==DNSResourceRecord::ANSWER && (rec.d_type != QType::DNSKEY || rec.d_name != auth) && g_delegationOnly.count(auth)) {
+      else if(lwr.d_aabit && lwr.d_rcode==RCode::NoError && rec.d_place==DNSResourceRecord::ANSWER && (rec.d_type != QType::DNSKEY || rec.d_name != auth) && s_delegationOnly.count(auth)) {
         LOG("NO! Is from delegation-only zone"<<endl);
         s_nodelegated++;
         return RCode::NXDomain;
@@ -1625,13 +1650,27 @@ boost::optional<Netmask> SyncRes::getEDNSSubnetMask(const ComboAddress& local, c
     return result;
   }
 
-  if(g_ednsdomains.check(dn) || g_ednssubnets.match(rem)) {
+  if(s_ednsdomains.check(dn) || s_ednssubnets.match(rem)) {
     bits = std::min(bits, (trunc.isIPv4() ? s_ecsipv4limit : s_ecsipv6limit));
     trunc.truncate(bits);
     return boost::optional<Netmask>(Netmask(trunc, bits));
   }
 
   return result;
+}
+
+void SyncRes::parseEDNSSubnetWhitelist(const std::string& wlist)
+{
+  vector<string> parts;
+  stringtok(parts, wlist, ",; ");
+  for(const auto& a : parts) {
+    try {
+      s_ednssubnets.addMask(Netmask(a));
+    }
+    catch(...) {
+      s_ednsdomains.add(DNSName(a));
+    }
+  }
 }
 
 // used by PowerDNSLua - note that this neglects to add the packet count & statistics back to pdns_ercursor.cc

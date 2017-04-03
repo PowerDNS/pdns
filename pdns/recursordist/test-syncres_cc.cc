@@ -10,12 +10,9 @@
 #include "syncres.hh"
 #include "validate-recursor.hh"
 
-std::unordered_set<DNSName> g_delegationOnly;
 RecursorStats g_stats;
 GlobalStateHolder<LuaConfigItems> g_luaconfs;
-NetmaskGroup* g_dontQuery{nullptr};
 __thread MemRecursorCache* t_RC{nullptr};
-SyncRes::domainmap_t* g_initialDomainMap{nullptr};
 unsigned int g_numThreads = 1;
 
 /* Fake some required functions we didn't want the trouble to
@@ -108,17 +105,9 @@ static void init(bool debug=false)
   seedRandom("/dev/urandom");
   reportAllTypes();
 
-  if (g_dontQuery)
-    delete g_dontQuery;
-  g_dontQuery = new NetmaskGroup();
-
   if (t_RC)
     delete t_RC;
   t_RC = new MemRecursorCache();
-
-  if (g_initialDomainMap)
-    delete g_initialDomainMap;
-  g_initialDomainMap = new SyncRes::domainmap_t(); // new threads needs this to be setup
 
   SyncRes::s_maxqperq = 50;
   SyncRes::s_maxtotusec = 1000*7000;
@@ -135,11 +124,10 @@ static void init(bool debug=false)
   SyncRes::s_rootNXTrust = true;
   SyncRes::s_minimumTTL = 0;
   SyncRes::s_serverID = "PowerDNS Unit Tests Server ID";
-
-  g_ednssubnets = NetmaskGroup();
-  g_ednsdomains = SuffixMatchNode();
-  g_useIncomingECS = false;
-  g_delegationOnly.clear();
+  SyncRes::clearEDNSSubnets();
+  SyncRes::clearEDNSDomains();
+  SyncRes::clearDelegationOnly();
+  SyncRes::clearDontQuery();
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dfe.clear();
@@ -163,7 +151,7 @@ static void initSR(std::unique_ptr<SyncRes>& sr, bool edns0, bool dnssec, SyncRe
   sr->setDoEDNS0(edns0);
   sr->setDoDNSSEC(dnssec);
   sr->setLogMode(lm);
-  t_sstorage->domainmap = g_initialDomainMap;
+  t_sstorage->domainmap = std::make_shared<SyncRes::domainmap_t>();
   t_sstorage->negcache.clear();
   t_sstorage->nsSpeeds.clear();
   t_sstorage->ednsstatus.clear();
@@ -701,8 +689,7 @@ BOOST_AUTO_TEST_CASE(test_edns_submask_by_domain) {
   primeHints();
 
   const DNSName target("powerdns.com.");
-  g_useIncomingECS = true;
-  g_ednsdomains.add(target);
+  SyncRes::addEDNSDomain(target);
 
   EDNSSubnetOpts incomingECS;
   incomingECS.source = Netmask("192.0.2.128/32");
@@ -729,8 +716,7 @@ BOOST_AUTO_TEST_CASE(test_edns_submask_by_addr) {
   primeHints();
 
   const DNSName target("powerdns.com.");
-  g_useIncomingECS = true;
-  g_ednssubnets.addMask("192.0.2.1/32");
+  SyncRes::addEDNSSubnet(Netmask("192.0.2.1/32"));
 
   EDNSSubnetOpts incomingECS;
   incomingECS.source = Netmask("2001:DB8::FF/128");
@@ -1209,7 +1195,7 @@ BOOST_AUTO_TEST_CASE(test_dont_query_server) {
     });
 
   /* prevent querying this NS */
-  g_dontQuery->addMask(Netmask(ns));
+  SyncRes::addDontQuery(Netmask(ns));
 
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
@@ -1412,8 +1398,7 @@ BOOST_AUTO_TEST_CASE(test_skip_negcache_for_variable_response) {
   const DNSName target("www.powerdns.com.");
   const DNSName cnameTarget("cname.powerdns.com.");
 
-  g_useIncomingECS = true;
-  g_ednsdomains.add(DNSName("powerdns.com."));
+  SyncRes::addEDNSDomain(DNSName("powerdns.com."));
 
   EDNSSubnetOpts incomingECS;
   incomingECS.source = Netmask("192.0.2.128/32");
@@ -1729,8 +1714,8 @@ BOOST_AUTO_TEST_CASE(test_delegation_only) {
   primeHints();
 
   /* Thanks, Verisign */
-  g_delegationOnly.insert(DNSName("com."));
-  g_delegationOnly.insert(DNSName("net."));
+  SyncRes::addDelegationOnly(DNSName("com."));
+  SyncRes::addDelegationOnly(DNSName("net."));
 
   const DNSName target("nx-powerdns.com.");
 
