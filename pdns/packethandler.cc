@@ -1489,7 +1489,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
     
     for(const auto& rr: r->getRRS()) {
       if(rr.scopeMask) {
-        noCache=1;
+        noCache=true;
         break;
       }
     }
@@ -1497,7 +1497,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
       addRRSigs(d_dk, B, authSet, r->getRRS());
       
     r->wrapup(); // needed for inserting in cache
-    if(!noCache)
+    if(!noCache && p->couldBeCached())
       PC.insert(p, r, r->getMinTTL()); // in the packet cache
   }
   catch(DBException &e) {

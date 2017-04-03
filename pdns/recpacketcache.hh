@@ -33,6 +33,8 @@
 #include <boost/tuple/tuple_comparison.hpp>
 #include <boost/multi_index/sequenced_index.hpp>
 
+#include "packetcache.hh"
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -46,7 +48,7 @@ using namespace ::boost::multi_index;
    you can use a query as a key too. But query and answer must compare as identical! 
    
    This precludes doing anything smart with EDNS directly from the packet */
-class RecursorPacketCache
+class RecursorPacketCache: public PacketCache
 {
 public:
   RecursorPacketCache();
@@ -88,7 +90,7 @@ private:
       return d_ttd;
     }
   };
-  uint32_t canHashPacket(const std::string& origPacket);
+
   typedef multi_index_container<
     Entry,
     indexed_by  <

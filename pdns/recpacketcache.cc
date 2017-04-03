@@ -49,49 +49,6 @@ static bool qrMatch(const DNSName& qname, uint16_t qtype, uint16_t qclass, const
   return qname==rname && rtype == qtype && rclass == qclass;
 }
 
-uint32_t RecursorPacketCache::canHashPacket(const std::string& origPacket)
-{
-  //  return 42; // should still work if you do this!
-  uint32_t ret=0;
-  ret=burtle((const unsigned char*)origPacket.c_str() + 2, 10, ret); // rest of dnsheader, skip id
-  const char* end = origPacket.c_str() + origPacket.size();
-  const char* p = origPacket.c_str() + 12;
-
-  for(; p < end && *p; ++p) { // XXX if you embed a 0 in your qname we'll stop lowercasing there
-    const unsigned char l = dns_tolower(*p); // label lengths can safely be lower cased
-    ret=burtle(&l, 1, ret);
-  }                           // XXX the embedded 0 in the qname will break the subnet stripping
-
-  struct dnsheader* dh = (struct dnsheader*)origPacket.c_str();
-  const char* skipBegin = p;
-  const char* skipEnd = p;
-  /* we need at least 1 (final empty label) + 2 (QTYPE) + 2 (QCLASS)
-     + OPT root label (1), type (2), class (2) and ttl (4)
-     + the OPT RR rdlen (2)
-     = 16
-  */
-  if(ntohs(dh->arcount)==1 && (p+16) < end) {
-    char* optionBegin = nullptr;
-    size_t optionLen = 0;
-    /* skip the final empty label (1), the qtype (2), qclass (2) */
-    /* root label (1), type (2), class (2) and ttl (4) */
-    int res = getEDNSOption((char*) p + 14, end - (p + 14), EDNSOptionCode::ECS, &optionBegin, &optionLen);
-    if (res == 0) {
-      skipBegin = optionBegin;
-      skipEnd = optionBegin + optionLen;
-    }
-  }
-  if (skipBegin > p) {
-    //cout << "Hashing from " << (p-origPacket.c_str()) << " for " << skipBegin-p << "bytes, end is at "<< end-origPacket.c_str() << endl;
-    ret = burtle((const unsigned char*)p, skipBegin-p, ret);
-  }
-  if (skipEnd < end) {
-    //cout << "Hashing from " << (skipEnd-origPacket.c_str()) << " for " << end-skipEnd << "bytes, end is at " << end-origPacket.c_str() << endl;
-    ret = burtle((const unsigned char*) skipEnd, end-skipEnd, ret);
-  }
-  return ret;
-}
-
 bool RecursorPacketCache::checkResponseMatches(std::pair<packetCache_t::index<HashTag>::type::iterator, packetCache_t::index<HashTag>::type::iterator> range, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, RecProtoBufMessage* protobufMessage)
 {
   for(auto iter = range.first ; iter != range.second ; ++ iter) {
@@ -148,7 +105,7 @@ bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string&
 bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now,
                                             std::string* responsePacket, uint32_t* age, uint32_t* qhash, RecProtoBufMessage* protobufMessage)
 {
-  *qhash = canHashPacket(queryPacket);
+  *qhash = canHashPacket(queryPacket, true);
   const auto& idx = d_packetCache.get<HashTag>();
   auto range = idx.equal_range(tie(tag,*qhash));
 
@@ -163,7 +120,7 @@ bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string&
 bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string& queryPacket, time_t now,
                                             std::string* responsePacket, uint32_t* age, uint32_t* qhash, RecProtoBufMessage* protobufMessage)
 {
-  *qhash = canHashPacket(queryPacket);
+  *qhash = canHashPacket(queryPacket, true);
   const auto& idx = d_packetCache.get<HashTag>();
   auto range = idx.equal_range(tie(tag,*qhash));
 
@@ -191,12 +148,9 @@ void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash,
   auto iter = range.first;
 
   for( ; iter != range.second ; ++iter)  {
-    if(iter->d_type != qtype || iter->d_class != qclass)
+    if(iter->d_type != qtype || iter->d_class != qclass || iter->d_name != qname)
       continue;
-    // this only happens on insert which is relatively rare and does not need to be super fast
-    DNSName respname(iter->d_packet.c_str(), iter->d_packet.length(), sizeof(dnsheader), false, 0, 0, 0);
-    if(qname != respname)
-      continue;
+
     moveCacheItemToBack(d_packetCache, iter);
     iter->d_packet = responsePacket;
     iter->d_ttd = now + ttl;

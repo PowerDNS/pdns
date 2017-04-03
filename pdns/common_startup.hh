@@ -22,7 +22,8 @@
 #ifndef COMMON_STARTUP_HH
 #define COMMON_STARTUP_HH
 
-#include "packetcache.hh"
+#include "auth-packetcache.hh"
+#include "auth-querycache.hh"
 #include "utility.hh"
 #include "arguments.hh"
 #include "communicator.hh"
@@ -36,7 +37,8 @@
 
 extern ArgvMap theArg;
 extern StatBag S;  //!< Statistics are gathered across PDNS via the StatBag class S
-extern PacketCache PC; //!< This is the main PacketCache, shared across all threads
+extern AuthPacketCache PC; //!< This is the main PacketCache, shared across all threads
+extern AuthQueryCache QC;
 extern DNSProxy *DP;
 extern DynListener *dl;
 extern CommunicatorClass Communicator;

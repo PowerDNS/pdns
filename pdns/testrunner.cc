@@ -6,8 +6,10 @@
 #include "config.h"
 #endif
 #include <boost/test/unit_test.hpp>
-#include "packetcache.hh"
+#include "auth-packetcache.hh"
+#include "auth-querycache.hh"
+#include "statbag.hh"
 StatBag S;
-PacketCache PC;
-
+AuthPacketCache PC;
+AuthQueryCache QC;
 

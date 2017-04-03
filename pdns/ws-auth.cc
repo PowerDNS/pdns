@@ -28,7 +28,6 @@
 #include "json.hh"
 #include "webserver.hh"
 #include "logger.hh"
-#include "packetcache.hh"
 #include "statbag.hh"
 #include "misc.hh"
 #include "arguments.hh"
@@ -44,12 +43,11 @@
 #include <iomanip>
 #include "zoneparser-tng.hh"
 #include "common_startup.hh"
-
+#include "auth-caches.hh"
 
 using json11::Json;
 
 extern StatBag S;
-extern PacketCache PC;
 
 static void patchZone(HttpRequest* req, HttpResponse* resp);
 static void storeChangedPTRs(UeberBackend& B, vector<DNSResourceRecord>& new_ptrs);
@@ -1352,7 +1350,7 @@ static void storeChangedPTRs(UeberBackend& B, vector<DNSResourceRecord>& new_ptr
     }
 
     sd.db->commitTransaction();
-    PC.purgeExact(rr.qname);
+    purgeAuthCachesExact(rr.qname);
   }
 }
 
@@ -1479,7 +1477,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
   }
   di.backend->commitTransaction();
 
-  PC.purgeExact(zonename);
+  purgeAuthCachesExact(zonename);
 
   // now the PTRs
   storeChangedPTRs(B, new_ptrs);
@@ -1578,10 +1576,10 @@ void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
 
   DNSName canon = apiNameToDNSName(req->getvars["domain"]);
 
-  int count = PC.purgeExact(canon);
+  uint64_t count = purgeAuthCachesExact(canon);
   resp->setBody(Json::object {
-    { "count", count },
-    { "result", "Flushed cache." }
+      { "count", (int) count },
+      { "result", "Flushed cache." }
   });
 }
 

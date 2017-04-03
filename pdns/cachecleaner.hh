@@ -22,6 +22,8 @@
 #ifndef PDNS_CACHECLEANER_HH
 #define PDNS_CACHECLEANER_HH
 
+#include "lock.hh"
+
 // this function can clean any cache that has a getTTD() method on its entries, and a 'sequence' index as its second index
 // the ritual is that the oldest entries are in *front* of the sequence collection, so on a hit, move an item to the end
 // on a miss, move it to the beginning
@@ -99,6 +101,97 @@ template <typename T> void moveCacheItemToFront(T& collection, typename T::itera
 template <typename T> void moveCacheItemToBack(T& collection, typename T::iterator& iter)
 {
   moveCacheItemToFrontOrBack(collection, iter, false);
+}
+
+template <typename T> uint64_t pruneLockedCollectionsVector(vector<T>& maps, uint64_t maxCached, uint64_t cacheSize)
+{
+  time_t now = time(nullptr);
+  uint64_t totErased = 0;
+  uint64_t toTrim = 0;
+  uint64_t lookAt = 0;
+
+  // two modes - if toTrim is 0, just look through 10%  of the cache and nuke everything that is expired
+  // otherwise, scan first 5*toTrim records, and stop once we've nuked enough
+  if (maxCached && cacheSize > maxCached) {
+    toTrim = cacheSize - maxCached;
+    lookAt = 5 * toTrim;
+  } else {
+    lookAt = cacheSize / 10;
+  }
+
+  for(auto& mc : maps) {
+    WriteLock wl(&mc.d_mut);
+    auto& sidx = boost::multi_index::get<2>(mc.d_map);
+    uint64_t erased = 0, lookedAt = 0;
+    for(auto i = sidx.begin(); i != sidx.end(); lookedAt++) {
+      if(i->ttd < now) {
+        i = sidx.erase(i);
+        erased++;
+      } else {
+        ++i;
+      }
+
+      if(toTrim && erased > toTrim / maps.size())
+        break;
+
+      if(lookedAt > lookAt / maps.size())
+        break;
+    }
+    totErased += erased;
+  }
+
+  return totErased;
+}
+
+template <typename T> uint64_t purgeLockedCollectionsVector(vector<T>& maps)
+{
+  uint64_t delcount=0;
+
+  for(auto& mc : maps) {
+    WriteLock wl(&mc.d_mut);
+    delcount += mc.d_map.size();
+    mc.d_map.clear();
+  }
+
+  return delcount;
+}
+
+template <typename T> uint64_t purgeLockedCollectionsVector(vector<T>& maps, const std::string& match)
+{
+  uint64_t delcount=0;
+  string prefix(match);
+  prefix.resize(prefix.size()-1);
+  DNSName dprefix(prefix);
+  for(auto& mc : maps) {
+    WriteLock wl(&mc.d_mut);
+    auto& idx = boost::multi_index::get<1>(mc.d_map);
+    auto iter = idx.lower_bound(dprefix);
+    auto start = iter;
+
+    for(; iter != idx.end(); ++iter) {
+      if(!iter->qname.isPartOf(dprefix)) {
+        break;
+      }
+      delcount++;
+    }
+    idx.erase(start, iter);
+  }
+
+  return delcount;
+}
+
+template <typename T> uint64_t purgeExactLockedCollection(T& mc, const DNSName& qname)
+{
+  uint64_t delcount=0;
+  WriteLock wl(&mc.d_mut);
+  auto& idx = boost::multi_index::get<1>(mc.d_map);
+  auto range = idx.equal_range(qname);
+  if(range.first != range.second) {
+    delcount += distance(range.first, range.second);
+    idx.erase(range.first, range.second);
+  }
+
+  return delcount;
 }
 
 #endif

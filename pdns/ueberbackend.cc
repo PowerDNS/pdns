@@ -25,7 +25,7 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 
-#include "packetcache.hh"
+#include "auth-querycache.hh"
 #include "utility.hh"
 
 
@@ -444,30 +444,22 @@ void UeberBackend::cleanup()
   for_each(backends.begin(),backends.end(),del);
 }
 
-// silly Solaris fix
-#undef PC
-
 // returns -1 for miss, 0 for negative match, 1 for hit
 int UeberBackend::cacheHas(const Question &q, vector<DNSZoneRecord> &rrs)
 {
-  extern PacketCache PC;
-  static AtomicCounter *qcachehit=S.getPointer("query-cache-hit");
-  static AtomicCounter *qcachemiss=S.getPointer("query-cache-miss");
+  extern AuthQueryCache QC;
 
   if(!d_cache_ttl && ! d_negcache_ttl) {
-    (*qcachemiss)++;
     return -1;
   }
 
   rrs.clear();
   //  L<<Logger::Warning<<"looking up: '"<<q.qname+"'|N|"+q.qtype.getName()+"|"+itoa(q.zoneId)<<endl;
 
-  bool ret=PC.getEntry(q.qname, q.qtype, PacketCache::QUERYCACHE, rrs, q.zoneId);   // think about lowercasing here
+  bool ret=QC.getEntry(q.qname, q.qtype, rrs, q.zoneId);   // think about lowercasing here
   if(!ret) {
-    (*qcachemiss)++;
     return -1;
   }
-  (*qcachehit)++;
   if(rrs.empty()) // negatively cached
     return 0;
   
@@ -476,16 +468,16 @@ int UeberBackend::cacheHas(const Question &q, vector<DNSZoneRecord> &rrs)
 
 void UeberBackend::addNegCache(const Question &q)
 {
-  extern PacketCache PC;
+  extern AuthQueryCache QC;
   if(!d_negcache_ttl)
     return;
   // we should also not be storing negative answers if a pipebackend does scopeMask, but we can't pass a negative scopeMask in an empty set!
-  PC.insert(q.qname, q.qtype, PacketCache::QUERYCACHE, vector<DNSZoneRecord>(), d_negcache_ttl, q.zoneId);
+  QC.insert(q.qname, q.qtype, vector<DNSZoneRecord>(), d_negcache_ttl, q.zoneId);
 }
 
 void UeberBackend::addCache(const Question &q, const vector<DNSZoneRecord> &rrs)
 {
-  extern PacketCache PC;
+  extern AuthQueryCache QC;
 
   if(!d_cache_ttl)
     return;
@@ -498,7 +490,7 @@ void UeberBackend::addCache(const Question &q, const vector<DNSZoneRecord> &rrs)
      return;
   }
 
-  PC.insert(q.qname, q.qtype, PacketCache::QUERYCACHE, rrs, store_ttl, q.zoneId);
+  QC.insert(q.qname, q.qtype, rrs, store_ttl, q.zoneId);
 }
 
 void UeberBackend::alsoNotifies(const DNSName &domain, set<string> *ips)

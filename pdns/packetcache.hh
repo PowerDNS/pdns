@@ -22,142 +22,57 @@
 #ifndef PACKETCACHE_HH
 #define PACKETCACHE_HH
 
-#include <string>
-#include <utility>
-#include <map>
-#include <map>
-#include "dns.hh"
-#include <boost/version.hpp>
-#include "namespaces.hh"
-using namespace ::boost::multi_index;
-
-#include "namespaces.hh"
-#include <boost/multi_index/hashed_index.hpp> 
-#include "dnspacket.hh"
-#include "lock.hh"
-#include "statbag.hh"
-
-/** This class performs 'whole packet caching'. Feed it a question packet and it will
-    try to find an answer. If you have an answer, insert it to have it cached for later use. 
-    Take care not to replace existing cache entries. While this works, it is wasteful. Only
-    insert packets that where not found by get()
-
-    Locking! 
-
-    The cache itself is protected by a read/write lock. Because deleting is a two step process, which 
-    first marks and then sweeps, a second lock is present to prevent simultaneous inserts and deletes.
-*/
+#include "ednsoptions.hh"
+#include "misc.hh"
+#include "iputils.hh"
 
 class PacketCache : public boost::noncopyable
 {
-public:
-  PacketCache();
-  ~PacketCache();
-  enum CacheEntryType { PACKETCACHE, QUERYCACHE};
-
-  void insert(DNSPacket *q, DNSPacket *r, unsigned int maxttl=UINT_MAX);  //!< We copy the contents of *p into our cache. Do not needlessly call this to insert questions already in the cache as it wastes resources
-
-  void insert(const DNSName &qname, const QType& qtype, CacheEntryType cet, const string& value, unsigned int ttl, int zoneID=-1,
-    unsigned int maxReplyLen=512, bool dnssecOk=false, bool EDNS=false);
-
-  void insert(const DNSName &qname, const QType& qtype, CacheEntryType cet, const vector<DNSZoneRecord>& content, unsigned int ttl, int zoneID=-1);
-
-  int get(DNSPacket *p, DNSPacket *q); //!< We return a dynamically allocated copy out of our cache. You need to delete it. You also need to spoof in the right ID with the DNSPacket.spoofID() method.
-  bool getEntry(const DNSName &qname, const QType& qtype, CacheEntryType cet, string& entry, int zoneID=-1,
-    unsigned int maxReplyLen=512, bool dnssecOk=false, bool hasEDNS=false);
-  bool getEntry(const DNSName &qname, const QType& qtype, CacheEntryType cet, vector<DNSZoneRecord>& entry, int zoneID=-1);
-  
-
-  int size() { return *d_statnumentries; } //!< number of entries in the cache
-  void cleanupIfNeeded();
-  void cleanup(); //!< force the cache to preen itself from expired packets
-  int purge();
-  int purge(const std::string& match); // could be $ terminated. Is not a dnsname!
-  int purgeExact(const DNSName& qname); // no wildcard matching here
-
-  map<char,int> getCounts();
-private:
-  bool getEntryLocked(const DNSName &content, const QType& qtype, CacheEntryType cet, string& entry, int zoneID=-1,
-    unsigned int maxReplyLen=512, bool dnssecOk=false, bool hasEDNS=false);
-  bool getEntryLocked(const DNSName &content, const QType& qtype, CacheEntryType cet, vector<DNSZoneRecord>& entry, int zoneID=-1);
-
-
-  struct CacheEntry
+protected:
+  static uint32_t canHashPacket(const std::string& packet, bool skipECS=true)
   {
-    CacheEntry() { qtype = ctype = 0; zoneID = -1; dnssecOk=false; hasEDNS=false; created=0; ttd=0; maxReplyLen=512;}
+    uint32_t ret = 0;
+    ret=burtle((const unsigned char*)packet.c_str() + 2, 10, ret); // rest of dnsheader, skip id
+    size_t packetSize = packet.size();
+    size_t pos = 12;
+    const char* end = packet.c_str() + packetSize;
+    const char* p = packet.c_str() + pos;
 
-    DNSName qname;
-    string value;
-    vector<DNSZoneRecord> drs;
-    time_t created;
-    time_t ttd;
+    for(; p < end && *p; ++p) { // XXX if you embed a 0 in your qname we'll stop lowercasing there
+      const unsigned char l = dns_tolower(*p); // label lengths can safely be lower cased
+      ret=burtle(&l, 1, ret);
+    }                           // XXX the embedded 0 in the qname will break the subnet stripping
 
-    uint16_t qtype;
-    uint16_t ctype;
-    int zoneID;
-    unsigned int maxReplyLen;
+    struct dnsheader* dh = (struct dnsheader*)packet.c_str();
+    const char* skipBegin = p;
+    const char* skipEnd = p;
+    /* we need at least 1 (final empty label) + 2 (QTYPE) + 2 (QCLASS)
+       + OPT root label (1), type (2), class (2) and ttl (4)
+       + the OPT RR rdlen (2)
+       = 16
+    */
+    if(skipECS && ntohs(dh->arcount)==1 && (pos+16) < packetSize) {
+      char* optionBegin = nullptr;
+      size_t optionLen = 0;
+      /* skip the final empty label (1), the qtype (2), qclass (2) */
+      /* root label (1), type (2), class (2) and ttl (4) */
+      int res = getEDNSOption((char*) p + 14, end - (p + 14), EDNSOptionCode::ECS, &optionBegin, &optionLen);
+      if (res == 0) {
+        skipBegin = optionBegin;
+        skipEnd = optionBegin + optionLen;
+      }
+    }
+    if (skipBegin > p) {
+      // cerr << "Hashing from " << (p-packet.c_str()) << " for " << skipBegin-p << "bytes, end is at "<< end-packet.c_str() << endl;
+      ret = burtle((const unsigned char*)p, skipBegin-p, ret);
+    }
+    if (skipEnd < end) {
+      // cerr << "Hashing from " << (skipEnd-packet.c_str()) << " for " << end-skipEnd << "bytes, end is at " << end-packet.c_str() << endl;
+      ret = burtle((const unsigned char*) skipEnd, end-skipEnd, ret);
+    }
 
-    bool dnssecOk;
-    bool hasEDNS;
-  };
-
-  void getTTLS();
-
-  struct UnorderedNameTag{};
-  struct SequenceTag{};
-  typedef multi_index_container<
-    CacheEntry,
-    indexed_by <
-                ordered_unique<
-                      composite_key< 
-                        CacheEntry,
-                        member<CacheEntry,DNSName,&CacheEntry::qname>,
-                        member<CacheEntry,uint16_t,&CacheEntry::qtype>,
-                        member<CacheEntry,uint16_t, &CacheEntry::ctype>,
-                        member<CacheEntry,int, &CacheEntry::zoneID>,
-                        member<CacheEntry,unsigned int, &CacheEntry::maxReplyLen>,
-                        member<CacheEntry,bool, &CacheEntry::dnssecOk>,
-                        member<CacheEntry,bool, &CacheEntry::hasEDNS>
-                        >,
-		       composite_key_compare<CanonDNSNameCompare, std::less<uint16_t>, std::less<uint16_t>, std::less<int>,
-                          std::less<unsigned int>, std::less<bool>, std::less<bool> >
-                       >,
-      hashed_non_unique<tag<UnorderedNameTag>, composite_key<CacheEntry,
-                                                             member<CacheEntry,DNSName,&CacheEntry::qname>,
-                                                             member<CacheEntry,uint16_t,&CacheEntry::qtype>,
-                                                             member<CacheEntry,uint16_t, &CacheEntry::ctype>,
-                                                             member<CacheEntry,int, &CacheEntry::zoneID> > > ,
-      sequenced<tag<SequenceTag>>
-                           >
-  > cmap_t;
-
-
-  struct MapCombo
-  {
-    pthread_rwlock_t d_mut;    
-    cmap_t d_map;
-  };
-
-  vector<MapCombo> d_maps;
-  MapCombo& getMap(const DNSName& qname) 
-  {
-    return d_maps[qname.hash() % d_maps.size()];
+    return ret;
   }
-
-  AtomicCounter d_ops;
-  time_t d_lastclean; // doesn't need to be atomic
-  unsigned long d_nextclean;
-  unsigned int d_cleaninterval;
-  bool d_cleanskipped;
-  AtomicCounter *d_statnumhit;
-  AtomicCounter *d_statnummiss;
-  AtomicCounter *d_statnumentries;
-
-  int d_ttl;
-
-  static const unsigned int s_mincleaninterval=1000, s_maxcleaninterval=300000;
 };
-
-
 
 #endif /* PACKETCACHE_HH */

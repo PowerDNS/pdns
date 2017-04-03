@@ -12,7 +12,7 @@ Different backends will have different characteristics - some will want to have 
 
 This is done with the [`distributor-threads`](settings.md#distributor-threads) setting which says how many distributors will be opened for each receiver thread. Of special importance is the choice between 1 or more backends. In case of only 1 thread, PowerDNS reverts to unthreaded operation which may be a lot faster, depending on your operating system and architecture.
 
-Another very important setting is [`cache-ttl`](settings.md#cache-ttl). PowerDNS caches entire packets it sends out so as to save the time to query backends to assemble all data. The default setting of 20 seconds may be low for high traffic sites, a value of 60 seconds rarely leads to problems. Please be aware that if any TTL in the answer is shorter than this setting, the packet cache will respect the answer's shortest TTL.
+Other very important settings are [`cache-ttl`](settings.md#cache-ttl). PowerDNS caches entire packets it sends out so as to save the time to query backends to assemble all data. The default setting of 20 seconds may be low for high traffic sites, a value of 60 seconds rarely leads to problems. Please be aware that if any TTL in the answer is shorter than this setting, the packet cache will respect the answer's shortest TTL.
 
 Some PowerDNS operators set cache-ttl to many hours or even days, and use [`pdns_control`](running.md#pdns_control)` purge` to selectively or globally notify PowerDNS of changes made in the backend. Also look at the [Query Cache](#query-cache) described in this chapter. It may materially improve your performance.
 
@@ -21,16 +21,16 @@ To determine if PowerDNS is unable to keep up with packets, determine the value 
 Logging truly kills performance as answering a question from the cache is an order of magnitude less work than logging a line about it. Busy sites will prefer to turn [`log-dns-details`](settings.md#log-dns-details) off.
 
 # Packet Cache
-PowerDNS by default uses the 'Packet Cache' to recognise identical questions and supply them with identical answers, without any further processing. The default time to live is 10 seconds. It has been observed that the utility of the packet cache increases with the load on your nameserver.
+PowerDNS by default uses the 'Packet Cache' to recognise identical questions and supply them with identical answers, without any further processing. The default time to live is 20 seconds and can be changed by setting `cache-ttl`. It has been observed that the utility of the packet cache increases with the load on your nameserver.
 
-Not all backends may benefit from the packetcache. If your backend is memory based and does not lead to context switches, the packetcache may actually hurt performance.
+Not all backends may benefit from the packet cache. If your backend is memory based and does not lead to context switches, the packet cache may actually hurt performance.
 
-The size of the packetcache can be observed with `/etc/init.d/pdns show packetcache-size`
+The maximum size of the packet cache is controlled by the `max-packet-cache-entries` entries since 4.1. Before that both the query cache and the packet cache used the `max-cache-entries` setting.
 
 # Query Cache
 Besides entire packets, PowerDNS can also cache individual backend queries. Each DNS query leads to a number of backend queries, the most obvious additional backend query is the check for a possible CNAME. So, when a query comes in for the 'A' record for 'www.powerdns.com', PowerDNS must first check for a CNAME for 'www.powerdns.com'.
 
-The Query Cache caches these backend queries, many of which are quite repetitive. PowerDNS only caches queries with no answer, or with exactly one. In the future this may be expanded but this lightweight solution is very simple and therefore fast.
+The Query Cache caches these backend queries, many of which are quite repetitive. The maximum number of entries in the cache is controlled by the `max-cache-entries` setting. Before 4.1 this setting also controls the maximum number of entries in the packet cache.
 
 Most gain is made from caching negative entries, ie, queries that have no answer. As these take little memory to store and are typically not a real problem in terms of speed-of-propagation, the default TTL for negative queries is a rather high 60 seconds.
 
@@ -49,6 +49,8 @@ daemon.
 * `corrupt-packets`: Number of corrupt packets received
 * `deferred-cache-inserts`: Number of cache inserts that were deferred because of maintenance
 * `deferred-cache-lookup`: Number of cache lookups that were deferred because of maintenance
+* `deferred-packetcache-inserts`: Number of packet cache inserts that were deferred because of maintenance
+* `deferred-packetcache-lookup`: Number of packet cache lookups that were deferred because of maintenance
 * `dnsupdate-answers`: Number of DNS update packets successfully answered
 * `dnsupdate-changes`: Total number of changes to records from DNS update
 * `dnsupdate-queries`: Number of DNS update packets received
@@ -64,6 +66,7 @@ daemon.
 * `qsize-q`: Number of packets waiting for database attention
 * `query-cache-hit`: Number of hits on the [query cache](performance.md#query-cache)
 * `query-cache-miss`: Number of misses on the [query cache](performance.md#query-cache)
+* `query-cache-size`: Number of entries in the query cache
 * `rd-queries`: Number of packets sent by clients requesting recursion (regardless of if we'll be providing them with recursion). Since 3.4.0.
 * `recursing-answers`: Number of packets we supplied an answer to after recursive processing
 * `recursing-questions`: Number of packets we performed recursive processing for

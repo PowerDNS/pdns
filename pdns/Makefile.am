@@ -134,6 +134,9 @@ EXTRA_PROGRAMS = \
 pdns_server_SOURCES = \
 	arguments.cc arguments.hh \
 	auth-carbon.cc \
+	auth-caches.cc auth-caches.hh \
+	auth-packetcache.cc auth-packetcache.hh \
+	auth-querycache.cc auth-querycache.hh \
 	backends/gsql/gsqlbackend.cc backends/gsql/gsqlbackend.hh \
 	backends/gsql/ssql.hh \
 	base32.cc base32.hh \
@@ -163,6 +166,7 @@ pdns_server_SOURCES = \
 	dynhandler.cc dynhandler.hh \
 	dynlistener.cc dynlistener.hh \
 	dynmessenger.hh \
+	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
 	gss_context.cc gss_context.hh \
 	iputils.cc iputils.hh \
@@ -180,7 +184,7 @@ pdns_server_SOURCES = \
 	namespaces.hh \
 	nsecrecords.cc \
 	opensslsigners.cc opensslsigners.hh \
-	packetcache.cc packetcache.hh \
+	packetcache.hh \
 	packethandler.cc packethandler.hh \
 	pdnsexception.hh \
 	qtype.cc qtype.hh \
@@ -259,6 +263,9 @@ endif
 
 pdnsutil_SOURCES = \
 	arguments.cc \
+	auth-caches.cc auth-caches.hh \
+	auth-packetcache.cc auth-packetcache.hh \
+	auth-querycache.cc auth-querycache.hh \
 	backends/gsql/gsqlbackend.cc backends/gsql/gsqlbackend.hh \
 	backends/gsql/ssql.hh \
 	base32.cc \
@@ -279,6 +286,7 @@ pdnsutil_SOURCES = \
 	dnssecsigner.cc \
 	dnswriter.cc dnswriter.hh \
 	dynlistener.cc \
+	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc \
 	gss_context.cc gss_context.hh \
 	iputils.cc iputils.hh \
@@ -287,7 +295,6 @@ pdnsutil_SOURCES = \
 	misc.cc misc.hh \
 	nsecrecords.cc \
 	opensslsigners.cc opensslsigners.hh \
-	packetcache.cc \
 	pdnsutil.cc \
 	qtype.cc \
 	randomhelper.cc \
@@ -885,8 +892,8 @@ dnsreplay_SOURCES = \
 	dnsrecords.cc \
 	dnsreplay.cc \
 	dnswriter.cc dnswriter.hh \
-	ednssubnet.cc ednssubnet.hh \
 	ednsoptions.cc ednsoptions.hh \
+	ednssubnet.cc ednssubnet.hh \
 	iputils.cc \
 	logger.cc \
 	misc.cc \
@@ -1104,6 +1111,9 @@ pdns.conf-dist: pdns_server
 
 testrunner_SOURCES = \
 	arguments.cc \
+	auth-caches.cc auth-caches.hh \
+	auth-packetcache.cc auth-packetcache.hh \
+	auth-querycache.cc auth-querycache.hh \
 	base32.cc \
 	base64.cc \
 	bindlexer.l \
@@ -1128,7 +1138,6 @@ testrunner_SOURCES = \
 	misc.cc \
 	nameserver.cc \
 	nsecrecords.cc \
-	packetcache.cc \
 	qtype.cc \
 	rcpgenerator.cc \
 	responsestats.cc \
