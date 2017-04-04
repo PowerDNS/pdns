@@ -397,7 +397,7 @@ build_recursor() {
   run "tar xf pdns-recursor-*.tar.bz2"
   run "rm -f pdns-recursor-*.tar.bz2"
   run "cd pdns-recursor-*"
-  run "CFLAGS='-O1' CXXFLAGS='-O1' ./configure \
+  run "CFLAGS='-O1' CXXFLAGS='-O1' CXX=${COMPILER} ./configure \
     --prefix=$PDNS_RECURSOR_DIR \
     --enable-unit-tests \
     --disable-silent-rules"

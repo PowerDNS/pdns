@@ -14,6 +14,14 @@ matrix:
   exclude:
     - compiler: clang
       env: PDNS_BUILD_PRODUCT=docs
+    - compiler: clang
+      env: PDNS_BUILD_PRODUCT=recursor
+  include:
+    - compiler: clang
+      env: PDNS_BUILD_PRODUCT=recursor COMPILER=clang++-3.6
+      addons:
+        apt:
+          packages: ['clang-3.6']
 
 before_script:
   - git describe --always --dirty=+
