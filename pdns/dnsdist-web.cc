@@ -380,7 +380,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
       for(const auto& a : localRules) {
 	Json::object rule{
 	  {"id", num++},
-	  {"matches", (int)a.first->d_matches},
+	  {"matches", (double)a.first->d_matches},
 	  {"rule", a.first->toString()},
           {"action", a.second->toString()}, 
           {"action-stats", a.second->getStats()} 
@@ -394,7 +394,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
       for(const auto& a : localResponseRules) {
         Json::object rule{
           {"id", num++},
-          {"matches", (int)a.first->d_matches},
+          {"matches", (double)a.first->d_matches},
           {"rule", a.first->toString()},
           {"action", a.second->toString()},
         };
