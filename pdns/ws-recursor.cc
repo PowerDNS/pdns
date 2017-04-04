@@ -116,8 +116,8 @@ static void apiServerConfigAllowFrom(HttpRequest* req, HttpResponse* resp)
 
 static void fillZone(const DNSName& zonename, HttpResponse* resp)
 {
-  auto iter = t_sstorage->domainmap->find(zonename);
-  if (iter == t_sstorage->domainmap->end())
+  auto iter = SyncRes::t_sstorage.domainmap->find(zonename);
+  if (iter == SyncRes::t_sstorage.domainmap->end())
     throw ApiException("Could not find domain '"+zonename.toString()+"'");
 
   const SyncRes::AuthDomain& zone = iter->second;
@@ -251,8 +251,8 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp)
 
     DNSName zonename = apiNameToDNSName(stringFromJson(document, "name"));
 
-    auto iter = t_sstorage->domainmap->find(zonename);
-    if (iter != t_sstorage->domainmap->end())
+    auto iter = SyncRes::t_sstorage.domainmap->find(zonename);
+    if (iter != SyncRes::t_sstorage.domainmap->end())
       throw ApiException("Zone already exists");
 
     doCreateZone(document);
@@ -266,7 +266,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp)
     throw HttpMethodNotAllowedException();
 
   Json::array doc;
-  for(const SyncRes::domainmap_t::value_type& val :  *t_sstorage->domainmap) {
+  for(const SyncRes::domainmap_t::value_type& val :  *SyncRes::t_sstorage.domainmap) {
     const SyncRes::AuthDomain& zone = val.second;
     Json::array servers;
     for(const ComboAddress& server : zone.d_servers) {
@@ -290,8 +290,8 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp)
 {
   DNSName zonename = apiZoneIdToName(req->parameters["id"]);
 
-  SyncRes::domainmap_t::const_iterator iter = t_sstorage->domainmap->find(zonename);
-  if (iter == t_sstorage->domainmap->end())
+  SyncRes::domainmap_t::const_iterator iter = SyncRes::t_sstorage.domainmap->find(zonename);
+  if (iter == SyncRes::t_sstorage.domainmap->end())
     throw ApiException("Could not find domain '"+zonename.toString()+"'");
 
   if(req->method == "PUT" && !::arg().mustDo("api-readonly")) {
@@ -328,7 +328,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
     throw ApiException("Query q can't be blank");
 
   Json::array doc;
-  for(const SyncRes::domainmap_t::value_type& val : *t_sstorage->domainmap) {
+  for(const SyncRes::domainmap_t::value_type& val : *SyncRes::t_sstorage.domainmap) {
     string zoneId = apiZoneNameToId(val.first);
     string zoneName = val.first.toString();
     if (pdns_ci_find(zoneName, q) != string::npos) {

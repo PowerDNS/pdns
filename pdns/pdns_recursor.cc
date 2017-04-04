@@ -1424,7 +1424,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 
           if(t_pdl && t_pdl->d_gettag) {
             try {
-              dc->d_tag = t_pdl->gettag(conn->d_remote, dc->d_ednssubnet.source, dest, qname, qtype, &dc->d_policyTags, dc->d_data, ednsOptionsn true, requestorId);
+              dc->d_tag = t_pdl->gettag(conn->d_remote, dc->d_ednssubnet.source, dest, qname, qtype, &dc->d_policyTags, dc->d_data, ednsOptions, true, requestorId);
             }
             catch(std::exception& e)  {
               if(g_logCommonErrors)
@@ -2060,15 +2060,11 @@ static void houseKeeping(void *)
       t_RC->doPrune(); // this function is local to a thread, so fine anyhow
       t_packetCache->doPruneTo(::arg().asNum("max-packetcache-entries") / g_numWorkerThreads);
 
-      t_sstorage->negcache.prune(::arg().asNum("max-cache-entries") / (g_numWorkerThreads * 10));
+      SyncRes::pruneNegCache(::arg().asNum("max-cache-entries") / (g_numWorkerThreads * 10));
 
       if(!((cleanCounter++)%40)) {  // this is a full scan!
 	time_t limit=now.tv_sec-300;
-	for(SyncRes::nsspeeds_t::iterator i = t_sstorage->nsSpeeds.begin() ; i!= t_sstorage->nsSpeeds.end(); )
-	  if(i->second.stale(limit))
-	    i = t_sstorage->nsSpeeds.erase(i);
-	  else
-	    ++i;
+        SyncRes::pruneNSSpeeds(limit);
       }
       last_prune=time(0);
     }
@@ -2948,7 +2944,7 @@ try
 {
   t_id=(int) (long) ptr;
   SyncRes tmp(g_now); // make sure it allocates tsstorage before we do anything, like primeHints or so..
-  t_sstorage->domainmap = g_initialDomainMap;
+  SyncRes::setDomainMap(g_initialDomainMap);
   t_allowFrom = g_initialAllowFrom;
   t_udpclientsocks = std::unique_ptr<UDPClientSocks>(new UDPClientSocks());
   t_tcpClientCounts = std::unique_ptr<tcpClientCounts_t>(new tcpClientCounts_t());

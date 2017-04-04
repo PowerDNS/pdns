@@ -229,26 +229,28 @@ void convertServersForAD(const std::string& input, SyncRes::AuthDomain& ad, cons
 
 void* pleaseWipeNegCache()
 {
-  t_sstorage->negcache.clear();   
+  SyncRes::clearNegCache();
   return 0;
 }
 
 void* pleaseUseNewSDomainsMap(std::shared_ptr<SyncRes::domainmap_t> newmap)
 {
-  t_sstorage->domainmap = newmap;
+  SyncRes::setDomainMap(newmap);
   return 0;
 }
 
 string reloadAuthAndForwards()
 {
-  std::shared_ptr<SyncRes::domainmap_t> original=t_sstorage->domainmap;
+  std::shared_ptr<SyncRes::domainmap_t> original=SyncRes::getDomainMap();
   
   try {
     L<<Logger::Warning<<"Reloading zones, purging data from cache"<<endl;
-  
-    for(const auto& i : *t_sstorage->domainmap) {
-      for(const auto& j : i.second.d_records)
-        broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, j.d_name, false));
+
+    if (original) {
+      for(const auto& i : *original) {
+        for(const auto& j : i.second.d_records)
+          broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, j.d_name, false));
+      }
     }
 
     string configname=::arg()["config-dir"]+"/recursor.conf";

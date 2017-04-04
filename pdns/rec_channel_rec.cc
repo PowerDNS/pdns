@@ -191,7 +191,7 @@ static uint64_t dumpNegCache(NegCache& negcache, int fd)
 
 static uint64_t* pleaseDump(int fd)
 {
-  return new uint64_t(t_RC->doDump(fd) + dumpNegCache(t_sstorage->negcache, fd) + t_packetCache->doDump(fd));
+  return new uint64_t(t_RC->doDump(fd) + dumpNegCache(SyncRes::t_sstorage.negcache, fd) + t_packetCache->doDump(fd));
 }
 
 static uint64_t* pleaseDumpNSSpeeds(int fd)
@@ -274,7 +274,7 @@ uint64_t* pleaseWipePacketCache(const DNSName& canon, bool subtree)
 
 uint64_t* pleaseWipeAndCountNegCache(const DNSName& canon, bool subtree)
 {
-  uint64_t ret = t_sstorage->negcache.wipe(canon, subtree);
+  uint64_t ret = SyncRes::wipeNegCache(canon, subtree);
   return new uint64_t(ret);
 }
 
@@ -621,7 +621,7 @@ static string doCurrentQueries()
 
 uint64_t* pleaseGetThrottleSize()
 {
-  return new uint64_t(t_sstorage ? t_sstorage->throttle.size() : 0);
+  return new uint64_t(SyncRes::getThrottledServersSize());
 }
 
 static uint64_t getThrottleSize()
@@ -631,7 +631,7 @@ static uint64_t getThrottleSize()
 
 uint64_t* pleaseGetNegCacheSize()
 {
-  uint64_t tmp=(t_sstorage ? t_sstorage->negcache.size() : 0);
+  uint64_t tmp=(SyncRes::getNegCacheSize());
   return new uint64_t(tmp);
 }
 
@@ -642,7 +642,7 @@ uint64_t getNegCacheSize()
 
 uint64_t* pleaseGetFailedHostsSize()
 {
-  uint64_t tmp=(t_sstorage ? t_sstorage->fails.size() : 0);
+  uint64_t tmp=(SyncRes::getThrottledServersSize());
   return new uint64_t(tmp);
 }
 uint64_t getFailedHostsSize()
@@ -652,7 +652,7 @@ uint64_t getFailedHostsSize()
 
 uint64_t* pleaseGetNsSpeedsSize()
 {
-  return new uint64_t(t_sstorage ? t_sstorage->nsSpeeds.size() : 0);
+  return new uint64_t(SyncRes::getNSSpeedsSize());
 }
 
 uint64_t getNsSpeedsSize()

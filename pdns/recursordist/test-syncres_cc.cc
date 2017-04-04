@@ -127,6 +127,11 @@ static void init(bool debug=false)
   SyncRes::clearDelegationOnly();
   SyncRes::clearDontQuery();
 
+  SyncRes::clearNSSpeeds();
+  SyncRes::clearEDNSStatuses();
+  SyncRes::clearThrottle();
+  SyncRes::clearFailedServers();
+
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dfe.clear();
   g_luaconfs.setState(luaconfsCopy);
@@ -149,13 +154,8 @@ static void initSR(std::unique_ptr<SyncRes>& sr, bool edns0, bool dnssec, SyncRe
   sr->setDoEDNS0(edns0);
   sr->setDoDNSSEC(dnssec);
   sr->setLogMode(lm);
-  t_sstorage->domainmap = std::make_shared<SyncRes::domainmap_t>();
-  t_sstorage->negcache.clear();
-  t_sstorage->nsSpeeds.clear();
-  t_sstorage->ednsstatus.clear();
-  t_sstorage->throttle.clear();
-  t_sstorage->fails.clear();
-  t_sstorage->dnssecmap.clear();
+  SyncRes::setDomainMap(std::make_shared<SyncRes::domainmap_t>());
+  SyncRes::clearNegCache();
 }
 
 static void setLWResult(LWResult* res, int rcode, bool aa=false, bool tc=false, bool edns=false)
@@ -299,7 +299,7 @@ BOOST_AUTO_TEST_CASE(test_root_not_primed_and_no_response) {
   BOOST_CHECK(downServers.size() > 0);
   /* we explicitly refuse to mark the root servers down */
   for (const auto& server : downServers) {
-    BOOST_CHECK_EQUAL(t_sstorage->fails.value(server), 0);
+    BOOST_CHECK_EQUAL(SyncRes::getServerFailsCount(server), 0);
   }
 }
 
@@ -341,8 +341,8 @@ BOOST_AUTO_TEST_CASE(test_edns_formerr_fallback) {
   BOOST_CHECK_EQUAL(ret.size(), 1);
   BOOST_CHECK_EQUAL(queriesWithEDNS, 1);
   BOOST_CHECK_EQUAL(queriesWithoutEDNS, 1);
-  BOOST_CHECK_EQUAL(t_sstorage->ednsstatus.size(), 1);
-  BOOST_CHECK_EQUAL(t_sstorage->ednsstatus[noEDNSServer].mode, SyncRes::EDNSStatus::NOEDNS);
+  BOOST_CHECK_EQUAL(SyncRes::getEDNSStatusesSize(), 1);
+  BOOST_CHECK_EQUAL(SyncRes::getEDNSStatus(noEDNSServer), SyncRes::EDNSStatus::NOEDNS);
 }
 
 BOOST_AUTO_TEST_CASE(test_edns_notimp_fallback) {
@@ -451,8 +451,8 @@ BOOST_AUTO_TEST_CASE(test_all_nss_down) {
   BOOST_CHECK_EQUAL(downServers.size(), 4);
 
   for (const auto& server : downServers) {
-    BOOST_CHECK_EQUAL(t_sstorage->fails.value(server), 1);
-    BOOST_CHECK(t_sstorage->throttle.shouldThrottle(time(nullptr), boost::make_tuple(server, target, QType::A)));
+    BOOST_CHECK_EQUAL(SyncRes::getServerFailsCount(server), 1);
+    BOOST_CHECK(SyncRes::isThrottled(time(nullptr), server, target, QType::A));
   }
 }
 
@@ -499,8 +499,9 @@ BOOST_AUTO_TEST_CASE(test_all_nss_network_error) {
   BOOST_CHECK_EQUAL(downServers.size(), 4);
 
   for (const auto& server : downServers) {
-    BOOST_CHECK_EQUAL(t_sstorage->fails.value(server), 1);
-    BOOST_CHECK(t_sstorage->throttle.shouldThrottle(time(nullptr), boost::make_tuple(server, target, QType::A)));
+    BOOST_CHECK_EQUAL(SyncRes::getServerFailsCount(server), 1);
+    BOOST_CHECK(SyncRes::isThrottled(time(nullptr), server, target, QType::A));
+;
   }
 }
 
@@ -555,8 +556,8 @@ BOOST_AUTO_TEST_CASE(test_os_limit_errors) {
 
   /* Error is reported as "OS limit error" (-2) so the servers should _NOT_ be marked down */
   for (const auto& server : downServers) {
-    BOOST_CHECK_EQUAL(t_sstorage->fails.value(server), 0);
-    BOOST_CHECK(!t_sstorage->throttle.shouldThrottle(time(nullptr), boost::make_tuple(server, target, QType::A)));
+    BOOST_CHECK_EQUAL(SyncRes::getServerFailsCount(server), 0);
+    BOOST_CHECK(!SyncRes::isThrottled(time(nullptr), server, target, QType::A));
   }
 }
 
@@ -1109,7 +1110,7 @@ BOOST_AUTO_TEST_CASE(test_throttled_server) {
     });
 
   /* mark ns as down */
-  t_sstorage->throttle.throttle(time(nullptr), boost::make_tuple(ns, "", 0), SyncRes::s_serverdownthrottletime, 10000);
+  SyncRes::doThrottle(time(nullptr), ns, SyncRes::s_serverdownthrottletime, 10000);
 
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
@@ -1130,14 +1131,14 @@ BOOST_AUTO_TEST_CASE(test_throttled_server_count) {
 
   const size_t blocks = 10;
   /* mark ns as down for 'blocks' queries */
-  t_sstorage->throttle.throttle(time(nullptr), boost::make_tuple(ns, "", 0), SyncRes::s_serverdownthrottletime, blocks);
+  SyncRes::doThrottle(time(nullptr), ns, SyncRes::s_serverdownthrottletime, blocks);
 
   for (size_t idx = 0; idx < blocks; idx++) {
-    BOOST_CHECK(t_sstorage->throttle.shouldThrottle(time(nullptr), boost::make_tuple(ns, "", 0)));
+    BOOST_CHECK(SyncRes::isThrottled(time(nullptr), ns));
   }
 
   /* we have been throttled 'blocks' times, we should not be throttled anymore */
-  BOOST_CHECK(!t_sstorage->throttle.shouldThrottle(time(nullptr), boost::make_tuple(ns, "", 0)));
+  BOOST_CHECK(!SyncRes::isThrottled(time(nullptr), ns));
 }
 
 BOOST_AUTO_TEST_CASE(test_throttled_server_time) {
@@ -1151,13 +1152,14 @@ BOOST_AUTO_TEST_CASE(test_throttled_server_time) {
 
   const size_t seconds = 1;
   /* mark ns as down for 'seconds' seconds */
-  t_sstorage->throttle.throttle(time(nullptr), boost::make_tuple(ns, "", 0), seconds, 10000);
-  BOOST_CHECK(t_sstorage->throttle.shouldThrottle(time(nullptr), boost::make_tuple(ns, "", 0)));
+  SyncRes::doThrottle(time(nullptr), ns, seconds, 10000);
+
+  BOOST_CHECK(SyncRes::isThrottled(time(nullptr), ns));
 
   sleep(seconds + 1);
 
   /* we should not be throttled anymore */
-  BOOST_CHECK(!t_sstorage->throttle.shouldThrottle(time(nullptr), boost::make_tuple(ns, "", 0)));
+  BOOST_CHECK(!SyncRes::isThrottled(time(nullptr), ns));
 }
 
 BOOST_AUTO_TEST_CASE(test_dont_query_server) {
@@ -1248,14 +1250,14 @@ BOOST_AUTO_TEST_CASE(test_root_nx_trust) {
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(ret.size(), 1);
   /* one for target1 and one for the entire TLD */
-  BOOST_CHECK_EQUAL(t_sstorage->negcache.size(), 2);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2);
 
   ret.clear();
   res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(ret.size(), 1);
   /* one for target1 and one for the entire TLD */
-  BOOST_CHECK_EQUAL(t_sstorage->negcache.size(), 2);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2);
 
   /* we should have sent only one query */
   BOOST_CHECK_EQUAL(queriesCount, 1);
@@ -1311,7 +1313,7 @@ BOOST_AUTO_TEST_CASE(test_root_nx_trust_specific) {
 
   /* even with root-nx-trust on and a NX answer from the root,
      we should not have cached the entire TLD this time. */
-  BOOST_CHECK_EQUAL(t_sstorage->negcache.size(), 1);
+  BOOST_CHECK_EQUAL(SyncRes::t_sstorage.negcache.size(), 1);
 
   ret.clear();
   res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
@@ -1321,7 +1323,7 @@ BOOST_AUTO_TEST_CASE(test_root_nx_trust_specific) {
   BOOST_CHECK_EQUAL(ret[0].d_name, target2);
   BOOST_CHECK(getRR<ARecordContent>(ret[0])->getCA() == ComboAddress("192.0.2.2"));
 
-  BOOST_CHECK_EQUAL(t_sstorage->negcache.size(), 1);
+  BOOST_CHECK_EQUAL(SyncRes::t_sstorage.negcache.size(), 1);
 
   BOOST_CHECK_EQUAL(queriesCount, 3);
 }
@@ -1373,14 +1375,14 @@ BOOST_AUTO_TEST_CASE(test_root_nx_dont_trust) {
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(ret.size(), 1);
   /* one for target1 */
-  BOOST_CHECK_EQUAL(t_sstorage->negcache.size(), 1);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1);
 
   ret.clear();
   res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, 0);
   BOOST_CHECK_EQUAL(ret.size(), 1);
   /* one for target1 */
-  BOOST_CHECK_EQUAL(t_sstorage->negcache.size(), 1);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1);
 
   /* we should have sent three queries */
   BOOST_CHECK_EQUAL(queriesCount, 3);
@@ -1439,7 +1441,7 @@ BOOST_AUTO_TEST_CASE(test_skip_negcache_for_variable_response) {
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(ret.size(), 2);
   /* no negative cache entry because the response was variable */
-  BOOST_CHECK_EQUAL(t_sstorage->negcache.size(), 0);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 0);
 }
 
 BOOST_AUTO_TEST_CASE(test_ns_speed) {
@@ -1497,12 +1499,12 @@ BOOST_AUTO_TEST_CASE(test_ns_speed) {
 
   /* make pdns-public-ns2.powerdns.com. the fastest NS, with its IPv6 address faster than the IPV4 one,
      then pdns-public-ns1.powerdns.com. on IPv4 */
-  t_sstorage->nsSpeeds[DNSName("pdns-public-ns1.powerdns.com.")].submit(ComboAddress("192.0.2.1:53"), 100, &now);
-  t_sstorage->nsSpeeds[DNSName("pdns-public-ns1.powerdns.com.")].submit(ComboAddress("[2001:DB8::1]:53"), 10000, &now);
-  t_sstorage->nsSpeeds[DNSName("pdns-public-ns2.powerdns.com.")].submit(ComboAddress("192.0.2.2:53"), 10, &now);
-  t_sstorage->nsSpeeds[DNSName("pdns-public-ns2.powerdns.com.")].submit(ComboAddress("[2001:DB8::2]:53"), 1, &now);
-  t_sstorage->nsSpeeds[DNSName("pdns-public-ns3.powerdns.com.")].submit(ComboAddress("192.0.2.3:53"), 10000, &now);
-  t_sstorage->nsSpeeds[DNSName("pdns-public-ns3.powerdns.com.")].submit(ComboAddress("[2001:DB8::3]:53"), 10000, &now);
+  SyncRes::submitNSSpeed(DNSName("pdns-public-ns1.powerdns.com."), ComboAddress("192.0.2.1:53"), 100, &now);
+  SyncRes::submitNSSpeed(DNSName("pdns-public-ns1.powerdns.com."), ComboAddress("[2001:DB8::1]:53"), 10000, &now);
+  SyncRes::submitNSSpeed(DNSName("pdns-public-ns2.powerdns.com."), ComboAddress("192.0.2.2:53"), 10, &now);
+  SyncRes::submitNSSpeed(DNSName("pdns-public-ns2.powerdns.com."), ComboAddress("[2001:DB8::2]:53"), 1, &now);
+  SyncRes::submitNSSpeed(DNSName("pdns-public-ns3.powerdns.com."), ComboAddress("192.0.2.3:53"), 10000, &now);
+  SyncRes::submitNSSpeed(DNSName("pdns-public-ns3.powerdns.com."), ComboAddress("[2001:DB8::3]:53"), 10000, &now);
 
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
@@ -2288,7 +2290,7 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_nord) {
   SyncRes::AuthDomain ad;
   ad.d_rdForward = false;
   ad.d_servers.push_back(forwardedNS);
-  (*t_sstorage->domainmap)[target] = ad;
+  (*SyncRes::t_sstorage.domainmap)[target] = ad;
 
   sr->setAsyncCallback([forwardedNS](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
 
@@ -2324,7 +2326,7 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_rd) {
   SyncRes::AuthDomain ad;
   ad.d_rdForward = false;
   ad.d_servers.push_back(forwardedNS);
-  (*t_sstorage->domainmap)[target] = ad;
+  (*SyncRes::t_sstorage.domainmap)[target] = ad;
 
   sr->setAsyncCallback([forwardedNS](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
 
@@ -2357,7 +2359,7 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_nord) {
   SyncRes::AuthDomain ad;
   ad.d_rdForward = true;
   ad.d_servers.push_back(forwardedNS);
-  (*t_sstorage->domainmap)[target] = ad;
+  (*SyncRes::t_sstorage.domainmap)[target] = ad;
 
   sr->setAsyncCallback([forwardedNS](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
 
@@ -2393,7 +2395,7 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd) {
   SyncRes::AuthDomain ad;
   ad.d_rdForward = true;
   ad.d_servers.push_back(forwardedNS);
-  (*t_sstorage->domainmap)[target] = ad;
+  (*SyncRes::t_sstorage.domainmap)[target] = ad;
 
   sr->setAsyncCallback([forwardedNS](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
 
@@ -2442,7 +2444,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_delegation_oob) {
   dr.d_content = std::make_shared<ARecordContent>(nsAddr);
   ad.d_records.insert(dr);
 
-  (*t_sstorage->domainmap)[authZone] = ad;
+  (*SyncRes::t_sstorage.domainmap)[authZone] = ad;
 
   sr->setAsyncCallback([&queriesCount,nsAddr,target,targetAddr](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
         queriesCount++;
