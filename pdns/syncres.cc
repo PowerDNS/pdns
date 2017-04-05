@@ -802,6 +802,14 @@ static const DNSName getLastLabel(const DNSName& qname)
   return ret;
 }
 
+static inline void addTTLModifiedRecords(const vector<DNSRecord>& records, const uint32_t ttl, vector<DNSRecord>& ret) {
+  for (const auto& rec : records) {
+    DNSRecord r(rec);
+    r.d_ttl = ttl;
+    ret.push_back(r);
+  }
+}
+
 
 bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int &res)
 {
@@ -819,65 +827,46 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSR
   uint32_t sttl=0;
   //  cout<<"Lookup for '"<<qname<<"|"<<qtype.getName()<<"' -> "<<getLastLabel(qname)<<endl;
 
-  pair<negcache_t::const_iterator, negcache_t::const_iterator> range;
-  QType qtnull(0);
-
   DNSName authname(qname);
   bool wasForwardedOrAuth = (getBestAuthZone(&authname) != t_sstorage->domainmap->end());
+  NegCache::NegCacheEntry ne;
 
   if(s_rootNXTrust &&
-     (range.first=t_sstorage->negcache.find(tie(getLastLabel(qname), qtnull))) != t_sstorage->negcache.end() &&
-      !(wasForwardedOrAuth && !authname.isRoot()) && // when forwarding, the root may only neg-cache if it was forwarded to.
-      range.first->d_qname.isRoot() && (uint32_t)d_now.tv_sec < range.first->d_ttd) {
-    sttl=range.first->d_ttd - d_now.tv_sec;
-
-    LOG(prefix<<qname<<": Entire name '"<<qname<<"', is negatively cached via '"<<range.first->d_name<<"' & '"<<range.first->d_qname<<"' for another "<<sttl<<" seconds"<<endl);
+     t_sstorage->negcache.getRootNXTrust(qname, d_now, ne) &&
+      ne.d_auth.isRoot() &&
+      !(wasForwardedOrAuth && !authname.isRoot())) { // when forwarding, the root may only neg-cache if it was forwarded to.
+    sttl = ne.d_ttd - d_now.tv_sec;
+    LOG(prefix<<qname<<": Entire name '"<<qname<<"', is negatively cached via '"<<ne.d_auth<<"' & '"<<ne.d_name<<"' for another "<<sttl<<" seconds"<<endl);
     res = RCode::NXDomain;
-    sqname=range.first->d_qname;
-    sqt=QType::SOA;
-    moveCacheItemToBack(t_sstorage->negcache, range.first);
-
-    giveNegative=true;
+    giveNegative = true;
   }
-  else {
-    range=t_sstorage->negcache.equal_range(tie(qname));
-    negcache_t::iterator ni;
-    for(ni=range.first; ni != range.second; ni++) {
-      // we have something
-      if(!(wasForwardedOrAuth && ni->d_qname != authname) && // Only the authname nameserver can neg cache entries
-         (ni->d_qtype.getCode() == 0 || ni->d_qtype == qtype)) {
-	res=0;
-	if((uint32_t)d_now.tv_sec < ni->d_ttd) {
-	  sttl=ni->d_ttd - d_now.tv_sec;
-	  if(ni->d_qtype.getCode()) {
-	    LOG(prefix<<qname<<": "<<qtype.getName()<<" is negatively cached via '"<<ni->d_qname<<"' for another "<<sttl<<" seconds"<<endl);
-	    res = RCode::NoError;
-	  }
-	  else {
-	    LOG(prefix<<qname<<": Entire name '"<<qname<<"', is negatively cached via '"<<ni->d_qname<<"' for another "<<sttl<<" seconds"<<endl);
-	    res= RCode::NXDomain;
-	  }
-	  giveNegative=true;
-	  sqname=ni->d_qname;
-	  sqt=QType::SOA;
-          if(d_doDNSSEC) {
-            for(const auto& p : ni->d_dnssecProof) {
-              for(const auto& rec: p.second.records) 
-                ret.push_back(rec);
-              for(const auto& rec: p.second.signatures) 
-                ret.push_back(rec);
-            }
-          }
-	  moveCacheItemToBack(t_sstorage->negcache, ni);
-	  break;
-	}
-	else {
-	  LOG(prefix<<qname<<": Entire name '"<<qname<<"' or type was negatively cached, but entry expired"<<endl);
-	  moveCacheItemToFront(t_sstorage->negcache, ni);
-	}
-      }
+  else if (t_sstorage->negcache.get(qname, qtype, d_now, ne) &&
+           !(wasForwardedOrAuth && ne.d_auth != authname)) { // Only the authname nameserver can neg cache entries
+    res = 0;
+    sttl = ne.d_ttd - d_now.tv_sec;
+    giveNegative = true;
+    if(ne.d_qtype.getCode()) {
+      LOG(prefix<<qname<<": "<<qtype.getName()<<" is negatively cached via '"<<ne.d_auth<<"' for another "<<sttl<<" seconds"<<endl);
+      res = RCode::NoError;
+    }
+    else {
+      LOG(prefix<<qname<<": Entire name '"<<qname<<"', is negatively cached via '"<<ne.d_auth<<"' for another "<<sttl<<" seconds"<<endl);
+      res = RCode::NXDomain;
+    }
+    if(d_doDNSSEC) {
+      addTTLModifiedRecords(ne.DNSSECRecords.records, sttl, ret);
+      addTTLModifiedRecords(ne.DNSSECRecords.signatures, sttl, ret);
     }
   }
+
+  if (giveNegative) {
+    // Transplant SOA to the returned packet
+    addTTLModifiedRecords(ne.authoritySOA.records, sttl, ret);
+    if(d_doDNSSEC)
+      addTTLModifiedRecords(ne.authoritySOA.signatures, sttl, ret);
+    return true;
+  }
+
   vector<DNSRecord> cset;
   bool found=false, expired=false;
   vector<std::shared_ptr<RRSIGRecordContent>> signatures;
@@ -889,10 +878,6 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSR
       if(j->d_ttl>(unsigned int) d_now.tv_sec) {
         DNSRecord dr=*j;
         ttl = (dr.d_ttl-=d_now.tv_sec);
-        if(giveNegative) {
-          dr.d_place=DNSResourceRecord::AUTHORITY;
-          dr.d_ttl=sttl;
-        }
         ret.push_back(dr);
         LOG("[ttl="<<dr.d_ttl<<"] ");
         found=true;
@@ -909,7 +894,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSR
       dr.d_name=sqname;
       dr.d_ttl=ttl; 
       dr.d_content=signature;
-      dr.d_place= giveNegative ? DNSResourceRecord::AUTHORITY : DNSResourceRecord::ANSWER;
+      dr.d_place = DNSResourceRecord::ANSWER;
       dr.d_class=1;
       ret.push_back(dr);
     }
@@ -983,35 +968,53 @@ static bool magicAddrMatch(const QType& query, const QType& answer)
   return answer.getCode() == QType::A || answer.getCode() == QType::AAAA;
 }
 
-
-static recsig_t harvestRecords(const vector<DNSRecord>& records, const set<uint16_t>& types)
-{
-  recsig_t ret;
+/* Fills the authoritySOA and DNSSECRecords fields from ne with those found in the records
+ *
+ * \param records The records to parse for the authority SOA and NSEC(3) records
+ * \param ne      The NegCacheEntry to be filled out (will not be cleared, only appended to
+ */
+static void harvestNXRecords(const vector<DNSRecord>& records, NegCache::NegCacheEntry& ne) {
+  static const set<uint16_t> nsecTypes = {QType::NSEC, QType::NSEC3};
   for(const auto& rec : records) {
+    if(rec.d_place != DNSResourceRecord::AUTHORITY)
+      // RFC 4035 section 3.1.3. indicates that NSEC records MUST be placed in
+      // the AUTHORITY section. Section 3.1.1 indicates that that RRSIGs for
+      // records MUST be in the same section as the records they cover.
+      // Hence, we ignore all records outside of the AUTHORITY section.
+      continue;
+
     if(rec.d_type == QType::RRSIG) {
-      auto rrs=getRR<RRSIGRecordContent>(rec);
-      if(rrs && types.count(rrs->d_type))
-	ret[make_pair(rec.d_name, rrs->d_type)].signatures.push_back(rec);
+      auto rrsig = getRR<RRSIGRecordContent>(rec);
+      if(rrsig) {
+        if(rrsig->d_type == QType::SOA) {
+          ne.authoritySOA.signatures.push_back(rec);
+        }
+        if(nsecTypes.count(rrsig->d_type)) {
+          ne.DNSSECRecords.signatures.push_back(rec);
+        }
+      }
+      continue;
     }
-    else if(types.count(rec.d_type))
-      ret[make_pair(rec.d_name, rec.d_type)].records.push_back(rec);
+    if(rec.d_type == QType::SOA) {
+      ne.authoritySOA.records.push_back(rec);
+      continue;
+    }
+    if(nsecTypes.count(rec.d_type)) {
+      ne.DNSSECRecords.records.push_back(rec);
+      continue;
+    }
   }
-  return ret;
 }
 
+// TODO remove after processRecords is fixed!
+// Adds the RRSIG for the SOA and the NSEC(3) + RRSIGs to ret
 static void addNXNSECS(vector<DNSRecord>&ret, const vector<DNSRecord>& records)
 {
-  auto csp = harvestRecords(records, {QType::NSEC, QType::NSEC3, QType::SOA});
-  for(const auto& c : csp) {
-    if(c.first.second == QType::NSEC || c.first.second == QType::NSEC3 || c.first.second == QType::SOA) {
-      if(c.first.second !=QType::SOA) {
-	for(const auto& rec : c.second.records)
-	  ret.push_back(rec);
-      }
-      for(const auto& rec : c.second.signatures)
-	ret.push_back(rec);
-    }
-  }
+  NegCache::NegCacheEntry ne;
+  harvestNXRecords(records, ne);
+  ret.insert(ret.end(), ne.authoritySOA.signatures.begin(), ne.authoritySOA.signatures.end());
+  ret.insert(ret.end(), ne.DNSSECRecords.records.begin(), ne.DNSSECRecords.records.end());
+  ret.insert(ret.end(), ne.DNSSECRecords.signatures.begin(), ne.DNSSECRecords.signatures.end());
 }
 
 bool SyncRes::nameserversBlockedByRPZ(const DNSFilterEngine& dfe, const NsSet& nameservers)
@@ -1224,17 +1227,18 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
       if(newtarget.empty()) // only add a SOA if we're not going anywhere after this
         ret.push_back(rec);
       if(!wasVariable()) {
-        NegCacheEntry ne;
+        NegCache::NegCacheEntry ne;
 
-        ne.d_qname=rec.d_name;
-        ne.d_ttd=d_now.tv_sec + rec.d_ttl;
-        ne.d_name=qname;
-        ne.d_qtype=QType(0); // this encodes 'whole record'
-        ne.d_dnssecProof = harvestRecords(lwr.d_records, {QType::NSEC, QType::NSEC3});
-        replacing_insert(t_sstorage->negcache, ne);
+        ne.d_name = rec.d_name;
+        ne.d_ttd = d_now.tv_sec + rec.d_ttl;
+        ne.d_name = qname;
+        ne.d_qtype = QType(0); // this encodes 'whole record'
+        ne.d_auth = auth;
+        harvestNXRecords(lwr.d_records, ne);
+        t_sstorage->negcache.add(ne);
         if(s_rootNXTrust && auth.isRoot()) { // We should check if it was forwarded here, see issue #5107
           ne.d_name = getLastLabel(ne.d_name);
-          replacing_insert(t_sstorage->negcache, ne);
+          t_sstorage->negcache.add(ne);
         }
       }
 
@@ -1290,14 +1294,14 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         rec.d_ttl = min(s_maxnegttl, rec.d_ttl);
         ret.push_back(rec);
         if(!wasVariable()) {
-          NegCacheEntry ne;
-          ne.d_qname=rec.d_name;
-          ne.d_ttd=d_now.tv_sec + rec.d_ttl;
-          ne.d_name=qname;
-          ne.d_qtype=qtype;
-          ne.d_dnssecProof = harvestRecords(lwr.d_records, {QType::NSEC, QType::NSEC3});
+          NegCache::NegCacheEntry ne;
+          ne.d_auth = rec.d_name;
+          ne.d_ttd = d_now.tv_sec + rec.d_ttl;
+          ne.d_name = qname;
+          ne.d_qtype = qtype;
+          harvestNXRecords(lwr.d_records, ne);
           if(qtype.getCode()) {  // prevents us from blacking out a whole domain
-            replacing_insert(t_sstorage->negcache, ne);
+            t_sstorage->negcache.add(ne);
           }
         }
         negindic=true;

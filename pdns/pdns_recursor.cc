@@ -2064,7 +2064,7 @@ static void houseKeeping(void *)
       t_RC->doPrune(); // this function is local to a thread, so fine anyhow
       t_packetCache->doPruneTo(::arg().asNum("max-packetcache-entries") / g_numWorkerThreads);
 
-      pruneCollection(t_sstorage->negcache, ::arg().asNum("max-cache-entries") / (g_numWorkerThreads * 10), 200);
+      t_sstorage->negcache.prune(::arg().asNum("max-cache-entries") / (g_numWorkerThreads * 10));
 
       if(!((cleanCounter++)%40)) {  // this is a full scan!
 	time_t limit=now.tv_sec-300;
