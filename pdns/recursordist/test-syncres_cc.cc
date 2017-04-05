@@ -8,6 +8,7 @@
 #include "rec-lua-conf.hh"
 #include "root-dnssec.hh"
 #include "syncres.hh"
+#include "utility.hh"
 #include "validate-recursor.hh"
 
 RecursorStats g_stats;
@@ -128,9 +129,13 @@ static void init(bool debug=false)
   SyncRes::clearDontQuery();
 
   SyncRes::clearNSSpeeds();
+  BOOST_CHECK_EQUAL(SyncRes::getNSSpeedsSize(), 0);
   SyncRes::clearEDNSStatuses();
+  BOOST_CHECK_EQUAL(SyncRes::getEDNSStatusesSize(), 0);
   SyncRes::clearThrottle();
+  BOOST_CHECK_EQUAL(SyncRes::getThrottledServersSize(), 0);
   SyncRes::clearFailedServers();
+  BOOST_CHECK_EQUAL(SyncRes::getFailedServersSize(), 0);
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dfe.clear();
@@ -2295,6 +2300,8 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_nord) {
   sr->setAsyncCallback([forwardedNS](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
 
       if (ip == forwardedNS) {
+        BOOST_CHECK_EQUAL(sendRDQuery, false);
+
         setLWResult(res, 0, true, false, true);
         addRecordToLW(res, domain, QType::A, "192.0.2.42");
         return 1;
@@ -2331,6 +2338,8 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_rd) {
   sr->setAsyncCallback([forwardedNS](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
 
       if (ip == forwardedNS) {
+        BOOST_CHECK_EQUAL(sendRDQuery, false);
+
         setLWResult(res, 0, true, false, true);
         addRecordToLW(res, domain, QType::A, "192.0.2.42");
         return 1;
@@ -2364,6 +2373,8 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_nord) {
   sr->setAsyncCallback([forwardedNS](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
 
       if (ip == forwardedNS) {
+        BOOST_CHECK_EQUAL(sendRDQuery, false);
+
         setLWResult(res, 0, true, false, true);
         addRecordToLW(res, domain, QType::A, "192.0.2.42");
         return 1;
@@ -2400,6 +2411,8 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd) {
   sr->setAsyncCallback([forwardedNS](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
 
       if (ip == forwardedNS) {
+        BOOST_CHECK_EQUAL(sendRDQuery, true);
+
         setLWResult(res, 0, true, false, true);
         addRecordToLW(res, domain, QType::A, "192.0.2.42");
         return 1;

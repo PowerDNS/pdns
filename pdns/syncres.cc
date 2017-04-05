@@ -22,33 +22,18 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include <boost/algorithm/string.hpp>
 
-#include "lua-recursor4.hh"
-#include "utility.hh"
-#include "syncres.hh"
-#include <iostream>
-#include <map>
-#include "dnsrecords.hh"
-#include <algorithm>
-#include <set>
-#include <cerrno>
-#include <cstdio>
-#include <cstdlib>
-#include <utility>
-#include <deque>
-#include "logger.hh"
-#include "validate.hh"
-#include "misc.hh"
 #include "arguments.hh"
-#include "lwres.hh"
-#include "recursor_cache.hh"
-#include "dnsparser.hh"
-#include "dns_random.hh"
-#include "lock.hh"
-#include "ednssubnet.hh"
 #include "cachecleaner.hh"
+#include "dns_random.hh"
+#include "dnsparser.hh"
+#include "dnsrecords.hh"
+#include "ednssubnet.hh"
+#include "logger.hh"
+#include "lua-recursor4.hh"
 #include "rec-lua-conf.hh"
+#include "syncres.hh"
+
 thread_local SyncRes::ThreadLocalStorage SyncRes::t_sstorage;
 
 unsigned int SyncRes::s_maxnegttl;
@@ -159,7 +144,7 @@ int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qcl
  * - version.pdns. CH TXT
  * - id.server. CH TXT
  */
-bool SyncRes::doSpecialNamesResolve(const DNSName &qname, const QType &qtype, const uint16_t &qclass, vector<DNSRecord> &ret)
+bool SyncRes::doSpecialNamesResolve(const DNSName &qname, const QType &qtype, const uint16_t qclass, vector<DNSRecord> &ret)
 {
   static const DNSName arpa("1.0.0.127.in-addr.arpa."), ip6_arpa("1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa."),
     localhost("localhost."), versionbind("version.bind."), idserver("id.server."), versionpdns("version.pdns.");
@@ -751,6 +736,7 @@ DNSName SyncRes::getBestNSNamesFromCache(const DNSName &qname, const QType& qtyp
     else {
       // Again, picked up in doResolveAt. An empty DNSName, combined with a
       // non-empty vector of ComboAddresses means 'this is a forwarded domain'
+      // This is actually picked up in retrieveAddressesForNS called from doResolveAt.
       nsset.insert({DNSName(), {iter->second.d_servers, iter->second.d_rdForward}});
     }
     return authdomain;
@@ -1118,7 +1104,7 @@ bool SyncRes::throttledOrBlocked(const std::string& prefix, const ComboAddress& 
     return true;
   }
   else if(t_sstorage.throttle.shouldThrottle(d_now.tv_sec, boost::make_tuple(remoteIP, qname, qtype.getCode()))) {
-    LOG(prefix<<qname<<": query throttled "<<endl);
+    LOG(prefix<<qname<<": query throttled "<<remoteIP.toString()<<", "<<qname<<"; "<<qtype.getName()<<endl);
     s_throttledqueries++; d_throttledqueries++;
     return true;
   }
@@ -1130,7 +1116,7 @@ bool SyncRes::throttledOrBlocked(const std::string& prefix, const ComboAddress& 
   return false;
 }
 
-RCode::rcodes_ SyncRes::updateCacheFromRecords(const std::string& prefix, LWResult& lwr, const DNSName& qname, const DNSName& auth, NsSet& nameservers, const DNSName& tns, const boost::optional<Netmask> ednsmask)
+RCode::rcodes_ SyncRes::updateCacheFromRecords(const std::string& prefix, LWResult& lwr, const DNSName& qname, const DNSName& auth, bool wasForwarded, const boost::optional<Netmask> ednsmask)
 {
   struct CachePair
   {
@@ -1193,7 +1179,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(const std::string& prefix, LWResu
               continue;
             } else {
               LOG("YES! - This answer was ");
-              if (nameservers[tns].first.empty()) {
+              if (!wasForwarded) {
                 LOG("retrieved from the local auth store.");
               } else {
                 LOG("received from a server we forward to.");
@@ -1235,7 +1221,9 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(const std::string& prefix, LWResu
 //		cout<<'|'<<DNSRecordContent::NumberToType(i->first.type)<<endl;
     if(i->second.records.empty()) // this happens when we did store signatures, but passed on the records themselves
       continue;
+
     t_RC->replace(d_now.tv_sec, i->first.name, QType(i->first.type), i->second.records, i->second.signatures, lwr.d_aabit, i->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::optional<Netmask>());
+
     if(i->first.place == DNSResourceRecord::ANSWER && ednsmask)
       d_wasVariable=true;
   }
@@ -1243,7 +1231,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(const std::string& prefix, LWResu
   return RCode::NoError;
 }
 
-bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, const QType& qtype, const DNSName& auth, LWResult& lwr, const bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, bool& sawDS)
+bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, const QType& qtype, const DNSName& auth, LWResult& lwr, const bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic)
 {
   bool done = false;
 
@@ -1312,7 +1300,6 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
     }
     else if(rec.d_place==DNSResourceRecord::AUTHORITY && qname.isPartOf(rec.d_name) && rec.d_type==QType::DS) {
       LOG(prefix<<qname<<": got DS record '"<<rec.d_name<<"' -> '"<<rec.d_content->getZoneRepresentation()<<"'"<<endl);
-      sawDS=true;
     }
     else if(!done && rec.d_place==DNSResourceRecord::AUTHORITY && qname.isPartOf(rec.d_name) && rec.d_type==QType::SOA &&
             lwr.d_rcode==RCode::NoError) {
@@ -1341,6 +1328,223 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
   }
 
   return done;
+}
+
+bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType& qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool* truncated)
+{
+  int resolveret;
+  s_outqueries++;
+  d_outqueries++;
+
+  if(d_outqueries + d_throttledqueries > s_maxqperq) {
+    throw ImmediateServFailException("more than "+std::to_string(s_maxqperq)+" (max-qperq) queries sent while resolving "+qname.toLogString());
+  }
+
+  if(s_maxtotusec && d_totUsec > s_maxtotusec) {
+    throw ImmediateServFailException("Too much time waiting for "+qname.toLogString()+"|"+qtype.getName()+", timeouts: "+std::to_string(d_timeouts) +", throttles: "+std::to_string(d_throttledqueries) + ", queries: "+std::to_string(d_outqueries)+", "+std::to_string(d_totUsec/1000)+"msec");
+  }
+
+  if(doTCP) {
+    LOG(prefix<<qname<<": using TCP with "<< remoteIP.toStringWithPort() <<endl);
+    s_tcpoutqueries++;
+    d_tcpoutqueries++;
+  }
+
+  if(d_pdl && d_pdl->preoutquery(remoteIP, d_requestor, qname, qtype, doTCP, lwr.d_records, resolveret)) {
+    LOG(prefix<<qname<<": query handled by Lua"<<endl);
+  }
+  else {
+    ednsmask=getEDNSSubnetMask(d_requestor, qname, remoteIP);
+    if(ednsmask) {
+      LOG(prefix<<qname<<": Adding EDNS Client Subnet Mask "<<ednsmask->toString()<<" to query"<<endl);
+    }
+    resolveret = asyncresolveWrapper(remoteIP, d_doDNSSEC, qname,  qtype.getCode(),
+                                     doTCP, sendRDQuery, &d_now, ednsmask, &lwr);    // <- we go out on the wire!
+    if(ednsmask) {
+      LOG(prefix<<qname<<": Received EDNS Client Subnet Mask "<<ednsmask->toString()<<" on response"<<endl);
+    }
+  }
+
+  /* preoutquery killed the query by setting dq.rcode to -3 */
+  if(resolveret==-3) {
+    throw ImmediateServFailException("Query killed by policy");
+  }
+
+  d_totUsec += lwr.d_usec;
+  accountAuthLatency(lwr.d_usec, remoteIP.sin4.sin_family);
+
+  if(resolveret != 1) {
+    /* Error while resolving */
+    if(resolveret == 0) {
+      /* Time out */
+
+      LOG(prefix<<qname<<": timeout resolving after "<<lwr.d_usec/1000.0<<"msec "<< (doTCP ? "over TCP" : "")<<endl);
+      d_timeouts++;
+      s_outgoingtimeouts++;
+
+      if(remoteIP.sin4.sin_family == AF_INET)
+        s_outgoing4timeouts++;
+      else
+        s_outgoing6timeouts++;
+    }
+    else if(resolveret == -2) {
+      /* OS resource limit reached */
+      LOG(prefix<<qname<<": hit a local resource limit resolving"<< (doTCP ? " over TCP" : "")<<", probable error: "<<stringerror()<<endl);
+      g_stats.resourceLimits++;
+    }
+    else {
+      /* -1 means server unreachable */
+      s_unreachables++;
+      d_unreachables++;
+      LOG(prefix<<qname<<": error resolving from "<<remoteIP.toString()<< (doTCP ? " over TCP" : "") <<", possible error: "<<strerror(errno)<< endl);
+    }
+
+    if(resolveret != -2) { // don't account for resource limits, they are our own fault
+      t_sstorage.nsSpeeds[nsName].submit(remoteIP, 1000000, &d_now); // 1 sec
+
+      // code below makes sure we don't filter COM or the root
+      if (s_serverdownmaxfails > 0 && (auth != g_rootdnsname) && t_sstorage.fails.incr(remoteIP) >= s_serverdownmaxfails) {
+        LOG(prefix<<qname<<": Max fails reached resolving on "<< remoteIP.toString() <<". Going full throttle for "<< s_serverdownthrottletime <<" seconds" <<endl);
+        // mark server as down
+        t_sstorage.throttle.throttle(d_now.tv_sec, boost::make_tuple(remoteIP, "", 0), s_serverdownthrottletime, 10000);
+      }
+      else if (resolveret == -1) {
+        // unreachable, 1 minute or 100 queries
+        t_sstorage.throttle.throttle(d_now.tv_sec, boost::make_tuple(remoteIP, qname, qtype.getCode()), 60, 100);
+      }
+      else {
+        // timeout
+        t_sstorage.throttle.throttle(d_now.tv_sec, boost::make_tuple(remoteIP, qname, qtype.getCode()), 10, 5);
+      }
+    }
+
+    return false;
+  }
+
+  /* we got an answer */
+  if(lwr.d_rcode==RCode::ServFail || lwr.d_rcode==RCode::Refused) {
+    LOG(prefix<<qname<<": "<<nsName<<" ("<<remoteIP.toString()<<") returned a "<< (lwr.d_rcode==RCode::ServFail ? "ServFail" : "Refused") << ", trying sibling IP or NS"<<endl);
+    t_sstorage.throttle.throttle(d_now.tv_sec, boost::make_tuple(remoteIP, qname, qtype.getCode()), 60, 3);
+    return false;
+  }
+
+  /* this server sent a valid answer, mark it backup up if it was down */
+  if(s_serverdownmaxfails > 0) {
+    t_sstorage.fails.clear(remoteIP);
+  }
+
+  if(lwr.d_tcbit) {
+    *truncated = true;
+
+    if (doTCP) {
+      LOG(prefix<<qname<<": truncated bit set, over TCP?"<<endl);
+      /* let's treat that as a ServFail answer from this server */
+      t_sstorage.throttle.throttle(d_now.tv_sec, boost::make_tuple(remoteIP, qname, qtype.getCode()), 60, 3);
+      return false;
+    }
+
+    return true;
+  }
+
+  return true;
+}
+
+bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType& qtype, DNSName& auth, bool wasForwarded, const boost::optional<Netmask> ednsmask, bool sendRDQuery, NsSet &nameservers, std::vector<DNSRecord>& ret, const DNSFilterEngine& dfe, bool* gotNewServers, int* rcode)
+{
+  string prefix;
+  if(doLog()) {
+    prefix=d_prefix;
+    prefix.append(depth, ' ');
+  }
+
+  if(s_minimumTTL) {
+    for(auto& rec : lwr.d_records) {
+      rec.d_ttl = max(rec.d_ttl, s_minimumTTL);
+    }
+  }
+
+  *rcode = updateCacheFromRecords(prefix, lwr, qname, auth, wasForwarded, ednsmask);
+  if (*rcode != RCode::NoError) {
+    return true;
+  }
+
+  LOG(prefix<<qname<<": determining status after receiving this packet"<<endl);
+
+  set<DNSName> nsset;
+  bool realreferral=false, negindic=false;
+  DNSName newauth;
+  DNSName newtarget;
+
+  bool done = processRecords(prefix, qname, qtype, auth, lwr, sendRDQuery, ret, nsset, newtarget, newauth, realreferral, negindic);
+
+  if(done){
+    LOG(prefix<<qname<<": status=got results, this level of recursion done"<<endl);
+    *rcode = RCode::NoError;
+    return true;
+  }
+
+  if(!newtarget.empty()) {
+    if(newtarget == qname) {
+      LOG(prefix<<qname<<": status=got a CNAME referral to self, returning SERVFAIL"<<endl);
+      *rcode = RCode::ServFail;
+      return true;
+    }
+
+    if(depth > 10) {
+      LOG(prefix<<qname<<": status=got a CNAME referral, but recursing too deep, returning SERVFAIL"<<endl);
+      *rcode = RCode::ServFail;
+      return true;
+    }
+
+    LOG(prefix<<qname<<": status=got a CNAME referral, starting over with "<<newtarget<<endl);
+
+    set<GetBestNSAnswer> beenthere2;
+    *rcode = doResolve(newtarget, qtype, ret, depth + 1, beenthere2);
+    return true;
+  }
+
+  if(lwr.d_rcode == RCode::NXDomain) {
+    LOG(prefix<<qname<<": status=NXDOMAIN, we are done "<<(negindic ? "(have negative SOA)" : "")<<endl);
+
+    if(d_doDNSSEC)
+      addNXNSECS(ret, lwr.d_records);
+
+    *rcode = RCode::NXDomain;
+    return true;
+  }
+
+  if(nsset.empty() && !lwr.d_rcode && (negindic || lwr.d_aabit || sendRDQuery)) {
+    LOG(prefix<<qname<<": status=noerror, other types may exist, but we are done "<<(negindic ? "(have negative SOA) " : "")<<(lwr.d_aabit ? "(have aa bit) " : "")<<endl);
+
+    if(d_doDNSSEC)
+      addNXNSECS(ret, lwr.d_records);
+
+    *rcode = RCode::NoError;
+    return true;
+  }
+
+  if(realreferral) {
+    LOG(prefix<<qname<<": status=did not resolve, got "<<(unsigned int)nsset.size()<<" NS, ");
+    auth=newauth;
+
+    nameservers.clear();
+    for (auto const &nameserver : nsset) {
+      if (d_wantsRPZ) {
+        d_appliedPolicy = dfe.getProcessingPolicy(nameserver, d_discardedPolicies);
+        if (d_appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::NoAction) { // client query needs an RPZ response
+          LOG("however "<<nameserver<<" was blocked by RPZ policy '"<<(d_appliedPolicy.d_name ? *d_appliedPolicy.d_name : "")<<"'"<<endl);
+          *rcode = -2;
+          return true;
+        }
+      }
+      nameservers.insert({nameserver, {{}, false}});
+    }
+    LOG("looping to them"<<endl);
+    *gotNewServers = true;
+    return false;
+  }
+
+  return false;
 }
 
 /** returns:
@@ -1381,6 +1585,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
         }
         return -1;
       }
+
       // this line needs to identify the 'self-resolving' behaviour, but we get it wrong now
       if(qname == *tns && qtype.getCode()==QType::A && rnameservers.size() > (size_t)(1+1*s_doIPv6)) {
         LOG(prefix<<qname<<": Not using NS to resolve itself! ("<<(1+tns-rnameservers.cbegin())<<"/"<<rnameservers.size()<<")"<<endl);
@@ -1390,18 +1595,31 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
       typedef vector<ComboAddress> remoteIPs_t;
       remoteIPs_t remoteIPs;
       remoteIPs_t::const_iterator remoteIP;
-      bool doTCP=false;
       bool pierceDontQuery=false;
       bool sendRDQuery=false;
       boost::optional<Netmask> ednsmask;
       LWResult lwr;
-      if(tns->empty() && nameservers[*tns].first.empty() ) {
+      const bool wasForwarded = tns->empty() && (!nameservers[*tns].first.empty());
+      int rcode = RCode::NoError;
+      bool gotNewServers = false;
+
+      if(tns->empty() && !wasForwarded) {
         LOG(prefix<<qname<<": Domain is out-of-band"<<endl);
         d_wasOutOfBand = doOOBResolve(qname, qtype, lwr.d_records, depth, lwr.d_rcode);
         lwr.d_tcbit=false;
         lwr.d_aabit=true;
+
+        /* we have received an answer, are we done ? */
+        bool done = processAnswer(depth, lwr, qname, qtype, auth, false, ednsmask, sendRDQuery, nameservers, ret, luaconfsLocal->dfe, &gotNewServers, &rcode);
+        if (done) {
+          return rcode;
+        }
+        if (gotNewServers) {
+          break;
+        }
       }
       else {
+        /* if tns is empty, retrieveAddressesForNS() knows we have hardcoded servers (i.e. "forwards") */
         remoteIPs = retrieveAddressesForNS(prefix, qname, tns, depth, beenthere, rnameservers, nameservers, sendRDQuery, pierceDontQuery, flawedNSSet);
 
         if(remoteIPs.empty()) {
@@ -1428,197 +1646,53 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
 
         for(remoteIP = remoteIPs.cbegin(); remoteIP != remoteIPs.cend(); ++remoteIP) {
           LOG(prefix<<qname<<": Trying IP "<< remoteIP->toStringWithPort() <<", asking '"<<qname<<"|"<<qtype.getName()<<"'"<<endl);
+
           if (throttledOrBlocked(prefix, *remoteIP, qname, qtype, pierceDontQuery)) {
             continue;
           }
-          else {
-            int resolveret;
-            s_outqueries++; d_outqueries++;
-            if(d_outqueries + d_throttledqueries > s_maxqperq) throw ImmediateServFailException("more than "+std::to_string(s_maxqperq)+" (max-qperq) queries sent while resolving "+qname.toLogString());
-          TryTCP:
-            if(doTCP) {
-              LOG(prefix<<qname<<": using TCP with "<< remoteIP->toStringWithPort() <<endl);
-              s_tcpoutqueries++; d_tcpoutqueries++;
-            }
 
-	    if(s_maxtotusec && d_totUsec > s_maxtotusec)
-	      throw ImmediateServFailException("Too much time waiting for "+qname.toLogString()+"|"+qtype.getName()+", timeouts: "+std::to_string(d_timeouts) +", throttles: "+std::to_string(d_throttledqueries) + ", queries: "+std::to_string(d_outqueries)+", "+std::to_string(d_totUsec/1000)+"msec");
-
-	    if(d_pdl && d_pdl->preoutquery(*remoteIP, d_requestor, qname, qtype, doTCP, lwr.d_records, resolveret)) {
-	      LOG(prefix<<qname<<": query handled by Lua"<<endl);
-	    }
-	    else {
-	      ednsmask=getEDNSSubnetMask(d_requestor, qname, *remoteIP);
-              if(ednsmask) {
-                LOG(prefix<<qname<<": Adding EDNS Client Subnet Mask "<<ednsmask->toString()<<" to query"<<endl);
-              }
-	      resolveret=asyncresolveWrapper(*remoteIP, d_doDNSSEC, qname,  qtype.getCode(),
-					     doTCP, sendRDQuery, &d_now, ednsmask, &lwr);    // <- we go out on the wire!
-              if(ednsmask) {
-                LOG(prefix<<qname<<": Received EDNS Client Subnet Mask "<<ednsmask->toString()<<" on response"<<endl);
-              }
-
-
-	    }
-            if(resolveret==-3)
-	      throw ImmediateServFailException("Query killed by policy");
-
-	    d_totUsec += lwr.d_usec;
-	    accountAuthLatency(lwr.d_usec, remoteIP->sin4.sin_family);
-	    if(resolveret != 1) {
-              if(resolveret==0) {
-                LOG(prefix<<qname<<": timeout resolving after "<<lwr.d_usec/1000.0<<"msec "<< (doTCP ? "over TCP" : "")<<endl);
-                d_timeouts++;
-                s_outgoingtimeouts++;
-		if(remoteIP->sin4.sin_family == AF_INET)
-		  s_outgoing4timeouts++;
-		else
-		  s_outgoing6timeouts++;
-              }
-              else if(resolveret==-2) {
-                LOG(prefix<<qname<<": hit a local resource limit resolving"<< (doTCP ? " over TCP" : "")<<", probable error: "<<stringerror()<<endl);
-                g_stats.resourceLimits++;
-              }
-              else {
-                s_unreachables++; d_unreachables++;
-                LOG(prefix<<qname<<": error resolving from "<<remoteIP->toString()<< (doTCP ? " over TCP" : "") <<", possible error: "<<strerror(errno)<< endl);
-              }
-
-              if(resolveret!=-2) { // don't account for resource limits, they are our own fault
-		t_sstorage.nsSpeeds[*tns].submit(*remoteIP, 1000000, &d_now); // 1 sec
-
-		// code below makes sure we don't filter COM or the root
-                if (s_serverdownmaxfails > 0 && (auth != g_rootdnsname) && t_sstorage.fails.incr(*remoteIP) >= s_serverdownmaxfails) {
-                  LOG(prefix<<qname<<": Max fails reached resolving on "<< remoteIP->toString() <<". Going full throttle for "<< s_serverdownthrottletime <<" seconds" <<endl);
-                  t_sstorage.throttle.throttle(d_now.tv_sec, boost::make_tuple(*remoteIP, "", 0), s_serverdownthrottletime, 10000); // mark server as down
-                } else if(resolveret==-1)
-                  t_sstorage.throttle.throttle(d_now.tv_sec, boost::make_tuple(*remoteIP, qname, qtype.getCode()), 60, 100); // unreachable, 1 minute or 100 queries
-                else
-                  t_sstorage.throttle.throttle(d_now.tv_sec, boost::make_tuple(*remoteIP, qname, qtype.getCode()), 10, 5);  // timeout
-              }
-              continue;
-            }
-
-//	    if(d_timeouts + 0.5*d_throttledqueries > 6.0 && d_timeouts > 2) throw ImmediateServFailException("Too much work resolving "+qname+"|"+qtype.getName()+", timeouts: "+std::to_string(d_timeouts) +", throttles: "+std::to_string(d_throttledqueries));
-
-            if(lwr.d_rcode==RCode::ServFail || lwr.d_rcode==RCode::Refused) {
-              LOG(prefix<<qname<<": "<<*tns<<" ("<<remoteIP->toString()<<") returned a "<< (lwr.d_rcode==RCode::ServFail ? "ServFail" : "Refused") << ", trying sibling IP or NS"<<endl);
-              t_sstorage.throttle.throttle(d_now.tv_sec,boost::make_tuple(*remoteIP, qname, qtype.getCode()),60,3); // servfail or refused
-              continue;
-            }
-
-            if(s_serverdownmaxfails > 0)
-              t_sstorage.fails.clear(*remoteIP);
-
-            break;  // this IP address worked!
-          wasLame:; // well, it didn't
-            LOG(prefix<<qname<<": status=NS "<<*tns<<" ("<< remoteIP->toString() <<") is lame for '"<<auth<<"', trying sibling IP or NS"<<endl);
-            t_sstorage.throttle.throttle(d_now.tv_sec, boost::make_tuple(*remoteIP, qname, qtype.getCode()), 60, 100); // lame
+          bool truncated = false;
+          bool gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery,
+                                             *tns, *remoteIP, false, &truncated);
+          if (gotAnswer && truncated ) {
+            /* retry, over TCP this time */
+            gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery,
+                                          *tns, *remoteIP, true, &truncated);
           }
+
+          if (!gotAnswer) {
+            continue;
+          }
+
+          LOG(prefix<<qname<<": Got "<<(unsigned int)lwr.d_records.size()<<" answers from "<<*tns<<" ("<< remoteIP->toString() <<"), rcode="<<lwr.d_rcode<<" ("<<RCode::to_s(lwr.d_rcode)<<"), aa="<<lwr.d_aabit<<", in "<<lwr.d_usec/1000<<"ms"<<endl);
+
+          /*  // for you IPv6 fanatics :-)
+              if(remoteIP->sin4.sin_family==AF_INET6)
+              lwr.d_usec/=3;
+          */
+          //        cout<<"msec: "<<lwr.d_usec/1000.0<<", "<<g_avgLatency/1000.0<<'\n';
+
+          t_sstorage.nsSpeeds[*tns].submit(*remoteIP, lwr.d_usec, &d_now);
+
+          /* we have received an answer, are we done ? */
+          bool done = processAnswer(depth, lwr, qname, qtype, auth, wasForwarded, ednsmask, sendRDQuery, nameservers, ret, luaconfsLocal->dfe, &gotNewServers, &rcode);
+          if (done) {
+            return rcode;
+          }
+          if (gotNewServers) {
+            break;
+          }
+          /* was lame */
+          t_sstorage.throttle.throttle(d_now.tv_sec, boost::make_tuple(*remoteIP, qname, qtype.getCode()), 60, 100);
+        }
+
+        if (gotNewServers) {
+          break;
         }
 
         if(remoteIP == remoteIPs.cend())  // we tried all IP addresses, none worked
           continue;
 
-        if(lwr.d_tcbit) {
-          if(!doTCP) {
-            doTCP=true;
-            LOG(prefix<<qname<<": truncated bit set, retrying via TCP"<<endl);
-            goto TryTCP;
-          }
-          LOG(prefix<<qname<<": truncated bit set, over TCP?"<<endl);
-          return RCode::ServFail;
-        }
-        LOG(prefix<<qname<<": Got "<<(unsigned int)lwr.d_records.size()<<" answers from "<<*tns<<" ("<< remoteIP->toString() <<"), rcode="<<lwr.d_rcode<<" ("<<RCode::to_s(lwr.d_rcode)<<"), aa="<<lwr.d_aabit<<", in "<<lwr.d_usec/1000<<"ms"<<endl);
-
-        /*  // for you IPv6 fanatics :-)
-        if(remoteIP->sin4.sin_family==AF_INET6)
-          lwr.d_usec/=3;
-        */
-        //        cout<<"msec: "<<lwr.d_usec/1000.0<<", "<<g_avgLatency/1000.0<<'\n';
-
-        t_sstorage.nsSpeeds[*tns].submit(*remoteIP, lwr.d_usec, &d_now);
-      }
-
-      if(s_minimumTTL) {
-	for(auto& rec : lwr.d_records) {
-	  rec.d_ttl = max(rec.d_ttl, s_minimumTTL);
-	}
-      }
-
-      RCode::rcodes_ rcode = updateCacheFromRecords(prefix, lwr, qname, auth, nameservers, *tns, ednsmask);
-      if (rcode != RCode::NoError) {
-        return rcode;
-      }
-
-      LOG(prefix<<qname<<": determining status after receiving this packet"<<endl);
-
-      set<DNSName> nsset;
-      bool realreferral=false, negindic=false, sawDS=false;
-      DNSName newauth;
-      DNSName newtarget;
-
-      bool done = processRecords(prefix, qname, qtype, auth, lwr, sendRDQuery, ret, nsset, newtarget, newauth, realreferral, negindic, sawDS);
-
-      if(done){
-        LOG(prefix<<qname<<": status=got results, this level of recursion done"<<endl);
-        return 0;
-      }
-      if(!newtarget.empty()) {
-        if(newtarget == qname) {
-          LOG(prefix<<qname<<": status=got a CNAME referral to self, returning SERVFAIL"<<endl);
-          return RCode::ServFail;
-        }
-        if(depth > 10) {
-          LOG(prefix<<qname<<": status=got a CNAME referral, but recursing too deep, returning SERVFAIL"<<endl);
-          return RCode::ServFail;
-        }
-        LOG(prefix<<qname<<": status=got a CNAME referral, starting over with "<<newtarget<<endl);
-
-        set<GetBestNSAnswer> beenthere2;
-        return doResolve(newtarget, qtype, ret, depth + 1, beenthere2);
-      }
-      if(lwr.d_rcode==RCode::NXDomain) {
-        LOG(prefix<<qname<<": status=NXDOMAIN, we are done "<<(negindic ? "(have negative SOA)" : "")<<endl);
-
-        if(d_doDNSSEC)
-          addNXNSECS(ret, lwr.d_records);
-
-        return RCode::NXDomain;
-      }
-      if(nsset.empty() && !lwr.d_rcode && (negindic || lwr.d_aabit || sendRDQuery)) {
-        LOG(prefix<<qname<<": status=noerror, other types may exist, but we are done "<<(negindic ? "(have negative SOA) " : "")<<(lwr.d_aabit ? "(have aa bit) " : "")<<endl);
-        
-        if(d_doDNSSEC)
-          addNXNSECS(ret, lwr.d_records);
-        return 0;
-      }
-      else if(realreferral) {
-        LOG(prefix<<qname<<": status=did not resolve, got "<<(unsigned int)nsset.size()<<" NS, ");
-	if(sawDS) {
-	  //s_dnssecmap[newauth]=true;
-	  /*	  for(const auto& e : s_dnssecmap)
-	    cout<<e.first<<' ';
-	    cout<<endl;*/
-	}
-        auth=newauth;
-
-        nameservers.clear();
-        for (auto const &nameserver : nsset) {
-          if (d_wantsRPZ) {
-            d_appliedPolicy = luaconfsLocal->dfe.getProcessingPolicy(nameserver, d_discardedPolicies);
-            if (d_appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::NoAction) { // client query needs an RPZ response
-              LOG("however "<<nameserver<<" was blocked by RPZ policy '"<<(d_appliedPolicy.d_name ? *d_appliedPolicy.d_name : "")<<"'"<<endl);
-              return -2;
-            }
-          }
-          nameservers.insert({nameserver, {{}, false}});
-        }
-        LOG("looping to them"<<endl);
-        break;
-      }
-      else if(!tns->empty()) { // means: not OOB, OOB == empty
-        goto wasLame;
       }
     }
   }

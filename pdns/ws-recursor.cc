@@ -40,7 +40,7 @@
 #include "logger.hh"
 #include "ext/incbin/incbin.h"
 
-extern __thread FDMultiplexer* t_fdm;
+extern thread_local FDMultiplexer* t_fdm;
 
 using json11::Json;
 
