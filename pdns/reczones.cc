@@ -310,7 +310,7 @@ string reloadAuthAndForwards()
 }
 
 
-void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, boost::optional<DNSFilterEngine::Policy> defpol, uint32_t maxTTL, size_t polZone, const TSIGTriplet& tt, shared_ptr<SOARecordContent> oursr, size_t maxReceivedBytes, const ComboAddress& localAddress)
+void RPZIXFRTracker(const ComboAddress& master, const DNSName& zoneName, boost::optional<DNSFilterEngine::Policy> defpol, uint32_t maxTTL, size_t zoneIdx, const TSIGTriplet& tt, shared_ptr<SOARecordContent> oursr, size_t maxReceivedBytes, const ComboAddress& localAddress)
 {
   uint32_t refresh = oursr->d_st.refresh;
   for(;;) {
@@ -319,7 +319,7 @@ void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, boost::opti
 
     sleep(refresh);
     
-    L<<Logger::Info<<"Getting IXFR deltas for "<<zone<<" from "<<master.toStringWithPort()<<", our serial: "<<getRR<SOARecordContent>(dr)->d_st.serial<<endl;
+    L<<Logger::Info<<"Getting IXFR deltas for "<<zoneName<<" from "<<master.toStringWithPort()<<", our serial: "<<getRR<SOARecordContent>(dr)->d_st.serial<<endl;
     vector<pair<vector<DNSRecord>, vector<DNSRecord> > > deltas;
 
     ComboAddress local(localAddress);
@@ -327,23 +327,27 @@ void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, boost::opti
       local = getQueryLocalAddress(master.sin4.sin_family, 0);
 
     try {
-      deltas = getIXFRDeltas(master, zone, dr, tt, &local, maxReceivedBytes);
+      deltas = getIXFRDeltas(master, zoneName, dr, tt, &local, maxReceivedBytes);
     } catch(std::runtime_error& e ){
       L<<Logger::Warning<<e.what()<<endl;
       continue;
     }
     if(deltas.empty())
       continue;
-    L<<Logger::Info<<"Processing "<<deltas.size()<<" delta"<<addS(deltas)<<" for RPZ "<<zone<<endl;
+    L<<Logger::Info<<"Processing "<<deltas.size()<<" delta"<<addS(deltas)<<" for RPZ "<<zoneName<<endl;
 
-    auto luaconfsCopy = g_luaconfs.getCopy();
+    auto luaconfsLocal = g_luaconfs.getLocal();
+    const std::shared_ptr<DNSFilterEngine::Zone> oldZone = luaconfsLocal->dfe.getZone(zoneIdx);
+    /* we need to make a _full copy_ of the zone we are going to work on */
+    std::shared_ptr<DNSFilterEngine::Zone> newZone = std::make_shared<DNSFilterEngine::Zone>(*oldZone);
+
     int totremove=0, totadd=0;
     for(const auto& delta : deltas) {
       const auto& remove = delta.first;
       const auto& add = delta.second;
       if(remove.empty()) {
         L<<Logger::Warning<<"IXFR update is a whole new zone"<<endl;
-        luaconfsCopy.dfe.clear(polZone);
+        newZone->clear();
       }
       for(const auto& rr : remove) { // should always contain the SOA
         if(rr.d_type == QType::NS)
@@ -359,7 +363,7 @@ void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, boost::opti
 	else {
           totremove++;
 	  L<<Logger::Debug<<"Had removal of "<<rr.d_name<<endl;
-	  RPZRecordToPolicy(rr, luaconfsCopy.dfe, false, defpol, maxTTL, polZone);
+	  RPZRecordToPolicy(rr, newZone, false, defpol, maxTTL);
 	}
       }
 
@@ -368,7 +372,7 @@ void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, boost::opti
           continue;
 	if(rr.d_type == QType::SOA) {
 	  auto newsr = getRR<SOARecordContent>(rr);
-	  //	  L<<Logger::Info<<"New SOA serial for "<<zone<<": "<<newsr->d_st.serial<<endl;
+	  //	  L<<Logger::Info<<"New SOA serial for "<<zoneName<<": "<<newsr->d_st.serial<<endl;
 	  if (newsr) {
 	    oursr = newsr;
 	  }
@@ -376,12 +380,19 @@ void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, boost::opti
 	else {
           totadd++;
 	  L<<Logger::Debug<<"Had addition of "<<rr.d_name<<endl;
-	  RPZRecordToPolicy(rr, luaconfsCopy.dfe, true, defpol, maxTTL, polZone);
+	  RPZRecordToPolicy(rr, newZone, true, defpol, maxTTL);
 	}
       }
     }
-    L<<Logger::Info<<"Had "<<totremove<<" RPZ removal"<<addS(totremove)<<", "<<totadd<<" addition"<<addS(totadd)<<" for "<<zone<<" New serial: "<<oursr->d_st.serial<<endl;
-    g_luaconfs.setState(luaconfsCopy);
+    L<<Logger::Info<<"Had "<<totremove<<" RPZ removal"<<addS(totremove)<<", "<<totadd<<" addition"<<addS(totadd)<<" for "<<zoneName<<" New serial: "<<oursr->d_st.serial<<endl;
+
+    /* we need to replace the existing zone with the new one,
+       but we don't want to touch anything else, especially other zones,
+       since they might have been updated by another RPZ IXFR tracker thread.
+    */
+    g_luaconfs.modify([zoneIdx, &newZone](LuaConfigItems& lci) {
+                        lci.dfe.setZone(zoneIdx, newZone);
+                      });
   }
 }
 

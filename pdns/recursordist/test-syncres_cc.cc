@@ -2081,9 +2081,11 @@ BOOST_AUTO_TEST_CASE(test_nameserver_ipv4_rpz) {
 
   DNSFilterEngine::Policy pol;
   pol.d_kind = DNSFilterEngine::PolicyKind::Drop;
+  std::shared_ptr<DNSFilterEngine::Zone> zone = std::make_shared<DNSFilterEngine::Zone>();
+  zone->setName("Unit test policy 0");
+  zone->addNSIPTrigger(Netmask(ns, 32), pol);
   auto luaconfsCopy = g_luaconfs.getCopy();
-  luaconfsCopy.dfe.setPolicyName(0, "Unit test policy 0");
-  luaconfsCopy.dfe.addNSIPTrigger(Netmask(ns, 32), pol, 0);
+  luaconfsCopy.dfe.addZone(zone);
   g_luaconfs.setState(luaconfsCopy);
 
   vector<DNSRecord> ret;
@@ -2121,9 +2123,11 @@ BOOST_AUTO_TEST_CASE(test_nameserver_ipv6_rpz) {
 
   DNSFilterEngine::Policy pol;
   pol.d_kind = DNSFilterEngine::PolicyKind::Drop;
+  std::shared_ptr<DNSFilterEngine::Zone> zone = std::make_shared<DNSFilterEngine::Zone>();
+  zone->setName("Unit test policy 0");
+  zone->addNSIPTrigger(Netmask(ns, 128), pol);
   auto luaconfsCopy = g_luaconfs.getCopy();
-  luaconfsCopy.dfe.setPolicyName(0, "Unit test policy 0");
-  luaconfsCopy.dfe.addNSIPTrigger(Netmask(ns, 128), pol, 0);
+  luaconfsCopy.dfe.addZone(zone);
   g_luaconfs.setState(luaconfsCopy);
 
   vector<DNSRecord> ret;
@@ -2162,9 +2166,11 @@ BOOST_AUTO_TEST_CASE(test_nameserver_name_rpz) {
 
   DNSFilterEngine::Policy pol;
   pol.d_kind = DNSFilterEngine::PolicyKind::Drop;
+  std::shared_ptr<DNSFilterEngine::Zone> zone = std::make_shared<DNSFilterEngine::Zone>();
+  zone->setName("Unit test policy 0");
+  zone->addNSTrigger(nsName, pol);
   auto luaconfsCopy = g_luaconfs.getCopy();
-  luaconfsCopy.dfe.setPolicyName(0, "Unit test policy 0");
-  luaconfsCopy.dfe.addNSTrigger(nsName, pol, 0);
+  luaconfsCopy.dfe.addZone(zone);
   g_luaconfs.setState(luaconfsCopy);
 
   vector<DNSRecord> ret;
@@ -2203,10 +2209,12 @@ BOOST_AUTO_TEST_CASE(test_nameserver_name_rpz_disabled) {
 
   DNSFilterEngine::Policy pol;
   pol.d_kind = DNSFilterEngine::PolicyKind::Drop;
+  std::shared_ptr<DNSFilterEngine::Zone> zone = std::make_shared<DNSFilterEngine::Zone>();
+  zone->setName("Unit test policy 0");
+  zone->addNSIPTrigger(Netmask(ns, 128), pol);
+  zone->addNSTrigger(nsName, pol);
   auto luaconfsCopy = g_luaconfs.getCopy();
-  luaconfsCopy.dfe.setPolicyName(0, "Unit test policy 0");
-  luaconfsCopy.dfe.addNSIPTrigger(Netmask(ns, 128), pol, 0);
-  luaconfsCopy.dfe.addNSTrigger(nsName, pol, 0);
+  luaconfsCopy.dfe.addZone(zone);
   g_luaconfs.setState(luaconfsCopy);
 
   /* RPZ is disabled for this query, we should not be blocked */
