@@ -226,6 +226,7 @@ testrunner_SOURCES = \
 	test-iputils_hh.cc \
 	test-misc_hh.cc \
 	test-nmtree.cc \
+	test-negcache_cc.cc \
 	test-rcpgenerator_cc.cc \
 	test-recpacketcache_cc.cc \
 	test-syncres_cc.cc \
