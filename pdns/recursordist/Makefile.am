@@ -76,7 +76,7 @@ endif
 
 pdns_recursor_SOURCES = \
 	arguments.cc \
-        ascii.hh \
+	ascii.hh \
 	base32.cc base32.hh \
 	base64.cc base64.hh \
 	cachecleaner.hh \
