@@ -38,3 +38,6 @@ hightxt		IN	TXT	"v=spf1 mx ip4:78.46.192.210 –all"
 hightxt		IN	SPF	"v=spf1 mx ip4:78.46.192.210 –all"
 d		IN	DNAME	d2.test2.com.
 urc65226	IN	TYPE65226 \# 3 414243
+interrupted-rrset	IN	A	1.1.1.1
+interrupted-rrset	IN	TXT	"check AXFR signpipe"
+interrupted-rrset	IN	A	2.2.2.2

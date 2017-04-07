@@ -789,6 +789,11 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
     }
   }
 
+  // Group records by name and type, signpipe stumbles over interrupted rrsets
+  sort(zrrs.begin(), zrrs.end(), [](const DNSZoneRecord& a, const DNSZoneRecord& b) {
+    return tie(a.dr.d_name, a.dr.d_type) < tie(b.dr.d_name, b.dr.d_type);
+  });
+
   if(rectify) {
     // set auth
     for(DNSResourceRecord &rr :  rrs) {
