@@ -67,6 +67,8 @@ std::atomic<uint64_t> SyncRes::s_throttledqueries;
 std::atomic<uint64_t> SyncRes::s_dontqueries;
 std::atomic<uint64_t> SyncRes::s_nodelegated;
 std::atomic<uint64_t> SyncRes::s_unreachables;
+uint8_t SyncRes::s_ecsipv4limit;
+uint8_t SyncRes::s_ecsipv6limit;
 unsigned int SyncRes::s_minimumTTL;
 bool SyncRes::s_doIPv6;
 bool SyncRes::s_nopacketcache;
@@ -111,8 +113,8 @@ static void accountAuthLatency(int usec, int family)
 
 
 SyncRes::SyncRes(const struct timeval& now) :  d_outqueries(0), d_tcpoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_unreachables(0),
-					       d_totUsec(0), d_doDNSSEC(false), d_now(now),
-					       d_cacheonly(false), d_nocache(false), d_doEDNS0(false), d_lm(s_lm)
+					       d_totUsec(0), d_now(now),
+					       d_cacheonly(false), d_nocache(false), d_doDNSSEC(false), d_doEDNS0(false), d_lm(s_lm)
                                                  
 { 
   if(!t_sstorage) {
@@ -127,49 +129,11 @@ int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qcl
   d_wasVariable=false;
   d_wasOutOfBand=false;
 
-  if( (qtype.getCode() == QType::AXFR))
+  if (doSpecialNamesResolve(qname, qtype, qclass, ret))
+    return 0;
+
+  if( (qtype.getCode() == QType::AXFR) || (qtype.getCode() == QType::IXFR))
     return -1;
-
-  static const DNSName arpa("1.0.0.127.in-addr.arpa."), localhost("localhost."), 
-    versionbind("version.bind."), idserver("id.server."), versionpdns("version.pdns.");
-
-  if( (qtype.getCode()==QType::PTR && qname==arpa) ||
-      (qtype.getCode()==QType::A && qname==localhost)) {
-    ret.clear();
-    DNSRecord dr;
-    dr.d_name=qname;
-    dr.d_place = DNSResourceRecord::ANSWER;
-    dr.d_type=qtype.getCode();
-    dr.d_class=QClass::IN;
-    dr.d_ttl=86400;
-    if(qtype.getCode()==QType::PTR)
-      dr.d_content=shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(QType::PTR, 1, "localhost."));
-    else
-      dr.d_content=shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(QType::A, 1, "127.0.0.1"));
-    ret.push_back(dr);
-    d_wasOutOfBand=true;
-    return 0;
-  }
-
-  if(qclass==QClass::CHAOS && qtype.getCode()==QType::TXT &&
-        (qname==versionbind || qname==idserver || qname==versionpdns )
-     ) {
-    ret.clear();
-    DNSRecord dr;
-    dr.d_name=qname;
-    dr.d_type=qtype.getCode();
-    dr.d_class=qclass;
-    dr.d_ttl=86400;
-    dr.d_place = DNSResourceRecord::ANSWER;
-    if(qname==versionbind  || qname==versionpdns)
-      dr.d_content=shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(QType::TXT, 3, "\""+::arg()["version-string"]+"\""));
-    else
-      dr.d_content=shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(QType::TXT, 3, "\""+s_serverID+"\""));
-
-    ret.push_back(dr);
-    d_wasOutOfBand=true;
-    return 0;
-  }
 
   if(qclass==QClass::ANY)
     qclass=QClass::IN;
@@ -180,6 +144,74 @@ int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qcl
   int res=doResolve(qname, qtype, ret, 0, beenthere);
   return res;
 }
+
+/*! Handles all special, built-in names
+ * Fills ret with an answer and returns true if it handled the query.
+ *
+ * Handles the following queries (and their ANY variants):
+ *
+ * - localhost. IN A
+ * - localhost. IN AAAA
+ * - 1.0.0.127.in-addr.arpa. IN PTR
+ * - 1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa. IN PTR
+ * - version.bind. CH TXT
+ * - version.pdns. CH TXT
+ * - id.server. CH TXT
+ */
+bool SyncRes::doSpecialNamesResolve(const DNSName &qname, const QType &qtype, const uint16_t &qclass, vector<DNSRecord> &ret)
+{
+  static const DNSName arpa("1.0.0.127.in-addr.arpa."), ip6_arpa("1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa."),
+    localhost("localhost."), versionbind("version.bind."), idserver("id.server."), versionpdns("version.pdns.");
+
+  bool handled = false;
+  vector<pair<QType::typeenum, string> > answers;
+
+  if ((qname == arpa || qname == ip6_arpa) &&
+      qclass == QClass::IN) {
+    handled = true;
+    if (qtype == QType::PTR || qtype == QType::ANY)
+      answers.push_back({QType::PTR, "localhost."});
+  }
+
+  if (qname == localhost &&
+      qclass == QClass::IN) {
+    handled = true;
+    if (qtype == QType::A || qtype == QType::ANY)
+      answers.push_back({QType::A, "127.0.0.1"});
+    if (qtype == QType::AAAA || qtype == QType::ANY)
+      answers.push_back({QType::AAAA, "::1"});
+  }
+
+  if ((qname == versionbind || qname == idserver || qname == versionpdns) &&
+      qclass == QClass::CHAOS) {
+    handled = true;
+    if (qtype == QType::TXT || qtype == QType::ANY) {
+      if(qname == versionbind || qname == versionpdns)
+        answers.push_back({QType::TXT, "\""+::arg()["version-string"]+"\""});
+      else
+        answers.push_back({QType::TXT, "\""+s_serverID+"\""});
+    }
+  }
+
+  if (handled && !answers.empty()) {
+    ret.clear();
+    d_wasOutOfBand=true;
+
+    DNSRecord dr;
+    dr.d_name = qname;
+    dr.d_place = DNSResourceRecord::ANSWER;
+    dr.d_class = qclass;
+    dr.d_ttl = 86400;
+    for (const auto& ans : answers) {
+      dr.d_type = ans.first;
+      dr.d_content = shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(ans.first, qclass, ans.second));
+      ret.push_back(dr);
+    }
+  }
+
+  return handled;
+}
+
 
 //! This is the 'out of band resolver', in other words, the authoritative server
 bool SyncRes::doOOBResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int& res)
@@ -347,7 +379,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
   */
 
   SyncRes::EDNSStatus* ednsstatus;
-  ednsstatus = &t_sstorage->ednsstatus[ip]; // does this include port? 
+  ednsstatus = &t_sstorage->ednsstatus[ip]; // does this include port? YES
 
   if(ednsstatus->modeSetAt && ednsstatus->modeSetAt + 3600 < d_now.tv_sec) {
     *ednsstatus=SyncRes::EDNSStatus();
@@ -373,8 +405,13 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
     }
     else if(ednsMANDATORY || mode==EDNSStatus::UNKNOWN || mode==EDNSStatus::EDNSOK || mode==EDNSStatus::EDNSIGNORANT)
       EDNSLevel = 1;
-    
-    ret=asyncresolve(ip, domain, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, luaconfsLocal->outgoingProtobufServer, res);
+
+    if (d_asyncResolve) {
+      ret = d_asyncResolve(ip, domain, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, luaconfsLocal->outgoingProtobufServer, res);
+    }
+    else {
+      ret=asyncresolve(ip, domain, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, luaconfsLocal->outgoingProtobufServer, res);
+    }
     if(ret < 0) {
       return ret; // transport error, nothing to learn here
     }
@@ -408,6 +445,15 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
   return ret;
 }
 
+/*! This function will check the cache and go out to the internet if the answer is not in cache
+ *
+ * \param qname The name we need an answer for
+ * \param qtype
+ * \param ret The vector of DNSRecords we need to fill with the answers
+ * \param depth The recursion depth we are in
+ * \param beenthere
+ * \return DNS RCODE or -1 (Error) or -2 (RPZ hit)
+ */
 int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere)
 {
   string prefix;
@@ -422,6 +468,8 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
     throw ImmediateServFailException("More than "+std::to_string(s_maxdepth)+" (max-recursion-depth) levels of recursion needed while resolving "+qname.toLogString());
 
   int res=0;
+
+  // This is a difficult way of expressing "this is a normal query", i.e. not getRootNS.
   if(!(d_nocache && qtype.getCode()==QType::NS && qname.isRoot())) {
     if(d_cacheonly) { // very limited OOB support
       LWResult lwr;
@@ -442,12 +490,16 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
 	  boost::optional<Netmask> nm;
           res=asyncresolveWrapper(remoteIP, d_doDNSSEC, qname, qtype.getCode(), false, false, &d_now, nm, &lwr);
           // filter out the good stuff from lwr.result()
-
-	  for(const auto& rec : lwr.d_records) {
-            if(rec.d_place == DNSResourceRecord::ANSWER)
-              ret.push_back(rec);
+          if (res == 1) {
+            for(const auto& rec : lwr.d_records) {
+              if(rec.d_place == DNSResourceRecord::ANSWER)
+                ret.push_back(rec);
+            }
+            return 0;
           }
-          return res;
+          else {
+            return RCode::ServFail;
+          }
         }
       }
     }
@@ -644,7 +696,7 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vecto
       // We lost the root NS records
       primeHints();
       LOG(prefix<<qname<<": reprimed the root"<<endl);
-      getRootNS();
+      getRootNS(d_now, d_asyncResolve);
     }
   }while(subdomain.chopOff());
 }
@@ -729,7 +781,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
 	  ret.push_back(sigdr);
 	}
 
-        if(!(qtype==QType(QType::CNAME))) { // perhaps they really wanted a CNAME!
+        if(qtype != QType::CNAME) { // perhaps they really wanted a CNAME!
           set<GetBestNSAnswer>beenthere;
           res=doResolve(std::dynamic_pointer_cast<CNAMERecordContent>(j->d_content)->getTarget(), qtype, ret, depth+1, beenthere);
         }
@@ -761,6 +813,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSR
     prefix.append(depth, ' ');
   }
 
+  // sqname and sqtype are used contain 'higher' names if we have them (e.g. powerdns.com|SOA when we find a negative entry for doesnotexists.powerdns.com|A)
   DNSName sqname(qname);
   QType sqt(qtype);
   uint32_t sttl=0;
@@ -1179,7 +1232,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         ne.d_qtype=QType(0); // this encodes 'whole record'
         ne.d_dnssecProof = harvestRecords(lwr.d_records, {QType::NSEC, QType::NSEC3});
         replacing_insert(t_sstorage->negcache, ne);
-        if(s_rootNXTrust && auth.isRoot()) {
+        if(s_rootNXTrust && auth.isRoot()) { // We should check if it was forwarded here, see issue #5107
           ne.d_name = getLastLabel(ne.d_name);
           replacing_insert(t_sstorage->negcache, ne);
         }
@@ -1360,7 +1413,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
 	      LOG(prefix<<qname<<": query handled by Lua"<<endl);
 	    }
 	    else {
-	      ednsmask=getEDNSSubnetMask(d_requestor, qname, *remoteIP, d_incomingECSFound ? d_incomingECS : boost::none);
+	      ednsmask=getEDNSSubnetMask(d_requestor, qname, *remoteIP);
               if(ednsmask) {
                 LOG(prefix<<qname<<": Adding EDNS Client Subnet Mask "<<ednsmask->toString()<<" to query"<<endl);
               }
@@ -1537,6 +1590,36 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
   return -1;
 }
 
+boost::optional<Netmask> SyncRes::getEDNSSubnetMask(const ComboAddress& local, const DNSName&dn, const ComboAddress& rem)
+{
+  boost::optional<Netmask> result;
+  ComboAddress trunc;
+  uint8_t bits;
+  if(d_incomingECSFound) {
+    if (d_incomingECS->source.getBits() == 0) {
+      /* RFC7871 says we MUST NOT send any ECS if the source scope is 0 */
+      return result;
+    }
+    trunc = d_incomingECS->source.getMaskedNetwork();
+    bits = d_incomingECS->source.getBits();
+  }
+  else if(!local.isIPv4() || local.sin4.sin_addr.s_addr) { // detect unset 'requestor'
+    trunc = local;
+    bits = local.isIPv4() ? 32 : 128;
+  }
+  else {
+    /* nothing usable */
+    return result;
+  }
+
+  if(g_ednsdomains.check(dn) || g_ednssubnets.match(rem)) {
+    bits = std::min(bits, (trunc.isIPv4() ? s_ecsipv4limit : s_ecsipv6limit));
+    trunc.truncate(bits);
+    return boost::optional<Netmask>(Netmask(trunc, bits));
+  }
+
+  return result;
+}
 
 // used by PowerDNSLua - note that this neglects to add the packet count & statistics back to pdns_ercursor.cc
 int directResolve(const DNSName& qname, const QType& qtype, int qclass, vector<DNSRecord>& ret)
@@ -1547,5 +1630,48 @@ int directResolve(const DNSName& qname, const QType& qtype, int qclass, vector<D
   SyncRes sr(now);
   int res = sr.beginResolve(qname, QType(qtype), qclass, ret); 
   
+  return res;
+}
+
+#include "validate-recursor.hh"
+
+int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback) {
+  SyncRes sr(now);
+  sr.setDoEDNS0(true);
+  sr.setNoCache();
+  sr.setDoDNSSEC(g_dnssecmode != DNSSECMode::Off);
+  sr.setAsyncCallback(asyncCallback);
+
+  vector<DNSRecord> ret;
+  int res=-1;
+  try {
+    res=sr.beginResolve(g_rootdnsname, QType(QType::NS), 1, ret);
+    if (g_dnssecmode != DNSSECMode::Off && g_dnssecmode != DNSSECMode::ProcessNoValidate) {
+      ResolveContext ctx;
+      auto state = validateRecords(ctx, ret);
+      if (state == Bogus)
+        throw PDNSException("Got Bogus validation result for .|NS");
+    }
+    return res;
+  }
+  catch(PDNSException& e)
+  {
+    L<<Logger::Error<<"Failed to update . records, got an exception: "<<e.reason<<endl;
+  }
+
+  catch(std::exception& e)
+  {
+    L<<Logger::Error<<"Failed to update . records, got an exception: "<<e.what()<<endl;
+  }
+
+  catch(...)
+  {
+    L<<Logger::Error<<"Failed to update . records, got an exception"<<endl;
+  }
+  if(!res) {
+    L<<Logger::Notice<<"Refreshed . records"<<endl;
+  }
+  else
+    L<<Logger::Error<<"Failed to update . records, RCODE="<<res<<endl;
   return res;
 }

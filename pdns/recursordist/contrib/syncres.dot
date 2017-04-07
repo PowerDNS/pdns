@@ -1,0 +1,368 @@
+digraph {
+  graph [fontname = "monospace"];
+  node [fontname = "monospace"];
+  edge [fontname = "monospace"];
+
+  subgraph cluster_beginResolve {
+    label="SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qclass, vector<DNSRecord>&ret)\nreturns the RCODE\nret is filled with all relevant records";
+
+    beginResolve_doResolve [label="SyncRes::doResolve()", color=red];
+    beginResolve_doSpecialNamesResolve [label="SyncRes::doSpecialNamesResolve()", color=red]
+
+    "Is this an AXFR request?";
+    "Is this an AXFR request?" -> beginResolve_return_minus_1 [label=yes];
+    "Is this an AXFR request?" -> beginResolve_doSpecialNamesResolve [label=no];
+
+    beginResolve_doSpecialNamesResolve -> "Is the qlass IN?" [label="Was not a special name"];
+    beginResolve_doSpecialNamesResolve -> beginResolve_return_0 [label="Was handled!"];
+
+    "Is the qlass IN?" -> beginResolve_return_minus_1 [label=no];
+    "Is the qlass IN?" -> beginResolve_doResolve [label=yes];
+    beginResolve_doResolve -> beginResolve_return_doResolve;
+    beginResolve_return_doResolve [label="return result from doResolve", color=green];
+    beginResolve_return_0 [label="return 0", color=green];
+    beginResolve_return_minus_1 [label="return -1", color=green];
+  }
+
+  subgraph cluster_doResolve {
+    label="SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere)";
+
+    doResolve_doOOBResolve [label="SyncRes::doOOBResolve()", color=red];
+    doResolve_doCNAMECacheCheck [label="SyncRes::doCNAMECacheCheck()", color=red];
+    doResolve_asyncresolveWrapper [label="SyncRes::asyncresolveWrapper()", color=red];
+    doResolve_doCacheCheck [label="SyncRes::doCacheCheck()", color=red];
+    doResolve_getBestNSNamesFromCache [label="SyncRes::getBestNSNamesFromCache()", color=red];
+    doResolve_doResolveAt [label="SyncRes::doResolveAt()", color=red];
+
+    doResolve_return_res [label="return res", color=green];
+    doResolve_return_servfail [label="return SERVFAIL", color=green];
+
+    "SERVFAIL if too deep" -> "Check if called from getRootNS()";
+    "Check if called from getRootNS()" -> "Check if RD-bit was not set (d_cacheonly)" [label=yes];
+    "Check if called from getRootNS()" -> doResolve_getBestNSNamesFromCache [label=no];
+    "Check if RD-bit was not set (d_cacheonly)" -> doResolve_doCNAMECacheCheck [label=no];
+    "Check if RD-bit was not set (d_cacheonly)" -> "Check if there is a forward or auth-zone" [label=yes];
+    "Check if there is a forward or auth-zone" -> doResolve_doCNAMECacheCheck [label=no];
+    "Check if there is a forward or auth-zone" -> "Check if we are auth" [label=yes];
+    "Check if we are auth" -> doResolve_asyncresolveWrapper [label="no, so forward"];
+    "Check if we are auth" -> doResolve_doOOBResolve [label=yes];
+    doResolve_doOOBResolve -> "return res from doOOBResolve()";
+    "return res from doOOBResolve()" [color=green];
+    doResolve_asyncresolveWrapper -> "return result from asyncresolveWrapper()";
+    "return result from asyncresolveWrapper()" [color=green];
+
+    doResolve_doCNAMECacheCheck -> doResolve_doCacheCheck [label="returned false"];
+    doResolve_doCNAMECacheCheck -> doResolve_return_res [label="returned true"];
+
+    doResolve_doCacheCheck -> doResolve_getBestNSNamesFromCache [label="returned false"];
+    doResolve_doCacheCheck -> doResolve_return_res [label="returned true"];
+
+    doResolve_getBestNSNamesFromCache -> doResolve_doResolveAt;
+    doResolve_doResolveAt -> doResolve_return_res [label="res == -2"];
+    doResolve_doResolveAt -> doResolve_return_servfail [label="res < 0 &&\nres != -2"];
+    doResolve_doResolveAt -> doResolve_return_res [label="res >= 0"];
+  }
+
+  subgraph cluster_doCacheCheck {
+    label="SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int &res)";
+
+    doCacheCheck_return_false [label="return false", color=green];
+    "Did we have a positive or negative answer?" -> doCacheCheck_return_true [label=yes];
+    "Did we have a positive or negative answer?" -> doCacheCheck_return_false [label=no];
+    doCacheCheck_return_true [label="return true", color=green];
+
+    "Allocate return qname, qtype and qttl vars (RVARS) as qname, qtype" -> "Is the last label of qname negatively cached by root and is root-nx-trust enabled?";
+
+    "Is the last label of qname negatively cached by root and is root-nx-trust enabled?" -> "Set res to NXDOMAIN, set RVARS to to this label|SOA" [label=yes];
+    "Is the last label of qname negatively cached by root and is root-nx-trust enabled?" -> "Do we have a negative entry from an auth?" [label=no];
+    "Do we have a negative entry from an auth?" -> "Set RCODE (NOERROR or NXDOMAIN), set RVARS to (smaller) qname|SOA" [label=yes];
+    "Set RCODE (NOERROR or NXDOMAIN), set RVARS to (smaller) qname|SOA" -> "Add DNSSEC proof from cache";
+    "Set res to NXDOMAIN, set RVARS to to this label|SOA" -> "Do we have a positive for RVARS from an auth?";
+
+    "Do we have a negative entry from an auth?" -> "Do we have a positive for RVARS from an auth?" [label=no];
+
+    "Do we have a positive for RVARS from an auth?" -> "Did we have a positive or negative answer?" [label=no];
+    "Add DNSSEC proof from cache" -> "Do we have a positive for RVARS from an auth?";
+
+    "Do we have a positive for RVARS from an auth?" -> "Add positive answers to ret if not expired" [label=yes];
+    "Add positive answers to ret if not expired" -> "Add DNSSEC data to ret";
+    "Add DNSSEC data to ret" -> "Did we have a positive or negative answer?";
+  }
+
+  subgraph cluster_getBestNSFromCache {
+    label="SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vector<DNSRecord>& bestns, bool* flawedNSSet, unsigned int depth, set<GetBestNSAnswer>& beenthere)\nFills the bestns vector with the 'closest' nameservers for qname\nflawedNSSet will be true if the NSSet has no glue.\nbeenthere contains the list of nameservers already visited during this recursion.";
+
+    getBestNSFromCache_return [label="return", color=green];
+
+    getBestNSFromCache_chopoff_continue -> "Get NS-records for domain from cache" -> "Get one record from the records" -> "Has the TTL expired?";
+    "Get one record from the records" -> "Are there records in bestns?" [label="Checked all records"];
+
+    "Has the TTL expired?" -> "Get one record from the records" [label=yes];
+    "Has the TTL expired?" -> "Is the NS RDATA part of the domain &&\nDo we have A and/or AAAA records for it?" [label=no];
+    "Is the NS RDATA part of the domain &&\nDo we have A and/or AAAA records for it?" -> "Set flawednsset=true" [label=no];
+
+    "Is the NS RDATA part of the domain &&\nDo we have A and/or AAAA records for it?" -> "Add the NS-record to bestns" [label=yes];
+    "Add the NS-record to bestns" -> "Get one record from the records";
+
+    "Set flawednsset=true" -> "Get one record from the records";
+
+    "Are there records in bestns?" -> getBestNSFromCache_chopoff_continue [label=no];
+    "Are there records in bestns?" -> "Is any of the NS records in bestns in beenthere?" [label=yes];
+
+
+    "Is any of the NS records in bestns in beenthere?" -> "Add these records to beenthere" [label=no];
+    "Add these records to beenthere" -> getBestNSFromCache_return;
+
+    "Is any of the NS records in bestns in beenthere?" -> "Clear bestns" [label=yes];
+    "Clear bestns" -> "Was this the root domain?";
+    "Was this the root domain?" -> getBestNSFromCache_chopoff_continue [label=no];
+    "Was this the root domain?" -> "Re-prime the root" [label=yes];
+    "Re-prime the root" -> getBestNSFromCache_return;
+    getBestNSFromCache_chopoff_continue [label="chopoff left-most label"];
+
+    {rank=sink; getBestNSFromCache_chopoff_continue; getBestNSFromCache_return}
+  }
+
+  subgraph cluster_doOOBResolve {
+    label="SyncRes::doOOBResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int& res)\nReturns true if data came from local auth-store.\nvector<DNSRecord> ret is filled with answers";
+
+    doOOBResolve_getBestAuthZone [label="SyncRes::getBestAuthZone()", color=red];
+    doOOBResolve_return_false [label="return false", color=green];
+    doOOBResolve_return_true [label="return true", color=green];
+
+    doOOBResolve_getBestAuthZone -> doOOBResolve_return_false [label="returned iterator to end of authstorage"];
+    doOOBResolve_getBestAuthZone -> "Add auth-records matching qname+qtype || CNAME || NS to ret" [label="returned iterator in the authstorage"];
+    "Add auth-records matching qname+qtype || CNAME || NS to ret" -> doOOBResolve_return_true [label="records were added to ret"]
+    "Add auth-records matching qname+qtype || CNAME || NS to ret" -> "Did we have any data for the qname?" [label="no records were added to ret"];
+
+    "Did we have any data for the qname?" -> "Add SOA to AUTHORITY in ret" [label="yes (empty NOERROR)"];
+    "Add SOA to AUTHORITY in ret" -> "Set res to NOERROR" -> doOOBResolve_return_true;
+
+    "Did we have any data for the qname?" -> "Is there a wildcard match?" [label=no];
+    "Is there a wildcard match?" -> "Add auth-records from wildcard to ret" [label=yes];
+    "Add auth-records from wildcard to ret" -> "Set res to NOERROR";
+
+    "Is there a wildcard match?" -> "Add NS-records from auth-zone" [label=no];
+
+    "Add NS-records from auth-zone" -> "Set res to NOERROR" [label="NS record were added"];
+    "Add NS-records from auth-zone" -> "Try to add SOA" [label="No NS record were added"];
+
+    "Try to add SOA" -> "Set res to NXDOMAIN" -> doOOBResolve_return_true;
+  }
+
+  subgraph cluster_asyncresolveWrapper {
+    label="SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res\nWraps asyncresolve() from lwres.cc to do EDNS probing.";
+
+    {rank=min; "Get current EDNSStatus for ip"}
+
+    asyncresolveWrapper_asyncresolve [label="asyncresolve()", color=red];
+    asyncresolveWrapper_return_minus_1 [label="return -1 (transport error)", color=green];
+    asyncresolveWrapper_return_minus_2 [label="return -2 (OS limits error)", color=green];
+    asyncresolveWrapper_return_0 [label="return 0 (timeout)", color=green];
+    asyncresolveWrapper_return_1 [label="return 1 (success)", color=green];
+    asyncresolveWrapper_setEDNSLevel_0 [label="Set EDNSLevel=0"]
+    asyncresolveWrapper_setEDNSLevel_0 -> "Is EDNSStatus NOEDNS?";
+
+    "Get current EDNSStatus for ip" -> "Is the current EDNSStatus older than an hour?";
+    "Is the current EDNSStatus older than an hour?" -> "Set EDNSStatus to Unknown" [label=yes];
+    "Set EDNSStatus to Unknown" -> asyncresolveWrapper_setEDNSLevel_0;
+    "Is the current EDNSStatus older than an hour?" -> asyncresolveWrapper_setEDNSLevel_0 [label=no];
+
+    "Is EDNSStatus NOEDNS?" -> "Set EDNSLevel=0" [label=yes]
+    "Set EDNSLevel=0" -> asyncresolveWrapper_asyncresolve;
+
+    "Is EDNSStatus NOEDNS?" -> "Is EDNSStatus UNKNOWN, EDNSOK, EDSIGNORANT or is EDNS mandatory?" [label=no]
+    "Is EDNSStatus UNKNOWN, EDNSOK, EDSIGNORANT or is EDNS mandatory?" -> "Set EDNSLevel=1" [label=yes]
+    "Set EDNSLevel=1" -> asyncresolveWrapper_asyncresolve;
+    "Is EDNSStatus UNKNOWN, EDNSOK, EDSIGNORANT or is EDNS mandatory?" ->  asyncresolveWrapper_asyncresolve [label=no];
+
+    asyncresolveWrapper_asyncresolve -> asyncresolveWrapper_return_minus_1 [label="transport error"];
+    asyncresolveWrapper_asyncresolve -> asyncresolveWrapper_return_minus_2 [label="OS limits error"];
+    asyncresolveWrapper_asyncresolve -> asyncresolveWrapper_return_0 [label="timeout error"];
+    asyncresolveWrapper_asyncresolve -> "Is the EDNSStatus UNKNOWN||EDNSOK||EDNSIGNORANT?" [label="resolve OK!"];
+
+    "Is the EDNSStatus UNKNOWN||EDNSOK||EDNSIGNORANT?" -> "Was the RCODE FORMERR||NOTIMP?" [label=yes];
+    "Was the RCODE FORMERR||NOTIMP?" -> "set EDNSStatus to NOEDNS" [label=yes];
+    "set EDNSStatus to NOEDNS" -> "Is EDNSStatus NOEDNS?";
+
+    "Was the RCODE FORMERR||NOTIMP?" -> "Did the remote server respond with EDNS?" [label=no];
+    "Did the remote server respond with EDNS?" -> "Set EDNSStatus to EDNSOK" [label=yes];
+    "Set EDNSStatus to EDNSOK" -> "Is the original EDNSStatus different from the new?";
+
+    "Did the remote server respond with EDNS?" -> "Set EDNSStatus to EDNSIGNORANT" [label=no];
+    "Set EDNSStatus to EDNSIGNORANT" -> "Is the original EDNSStatus different from the new?";
+
+    "Is the EDNSStatus UNKNOWN||EDNSOK||EDNSIGNORANT?" -> "Is the original EDNSStatus different from the new?" [label=no];
+    "Is the original EDNSStatus different from the new?" -> "Save new EDNSStatus" [label=yes];
+    "Is the original EDNSStatus different from the new?" -> asyncresolveWrapper_return_1 [label=no];
+    "Save new EDNSStatus" -> asyncresolveWrapper_return_1;
+  }
+
+  subgraph cluster_doResolveAt {
+    label="SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>&beenthere)\nreturns -1 in case of no results, -2 when a FilterEngine Policy was hit, rcode otherwise";
+
+    doResolveAt_nameServersBlockedByRPZ [label="SyncRes::nameserversBlockedByRPZ()", color=red];
+    doResolveAt_doOOBResolve_for_NS [label="SyncRes::doOOBResolve()", color=red];
+    doResolveAt_retrieveAddressesForNS [label="SyncRes::retrieveAddressesForNS()", color=red];
+    doResolveAt_nameserverIPBlockedByRPZ [label="SyncRes::nameserverIPBlockedByRPZ()", color=red];
+    doResolveAt_Lua_preoutquery [label="Lua preoutquery", color=red];
+    doResolveAt_asyncresolveWrapper [label="SyncRes::asyncresolveWrapper()", color=red];
+    doResolveAt_processRecords [label="SyncRes::processRecords()", color=red];
+    doResolveAt_doResolve [label="SyncRes::doResolve()", color=red];
+
+    doResolveAt_return_minus_2 [label="return -2", color=green];
+    doResolveAt_return_minus_1 [label="return -1", color=green];
+    doResolveAt_return_0 [label="return 0", color=green];
+    doResolveAt_return_rcode [label="return rcode", color=green];
+    doResolveAt_return_servfail [label="return SERVFAIL", color=green];
+    doResolveAt_return_nxdomain [label="return NXDOMAIN", color=green];
+
+    doResolveAt_mainloop_continue [label="continue"];
+    doResolveAt_mainloop_continue -> "Get nameserver from nameservers";
+
+    doResolveAt_nsiploop_continue [label="continue"];
+    doResolveAt_nsiploop_continue -> "Get IP from IPs";
+
+    doResolveAt_nameServersBlockedByRPZ -> doResolveAt_return_minus_2 [label="RPZ NSDNAME hit"];
+    doResolveAt_nameServersBlockedByRPZ ->  "Get nameserver from nameservers" [lhead=cluster_doResolveAt_mainloop, label="RPZ NSDNAME not hit"];
+
+    doResolveAt_ImmediateServFailException [label="throw ImmediateServFailException", color=green];
+
+    "Get nameserver from nameservers" -> doResolveAt_mainloop_continue [label="qname == nsname"];
+    "Get nameserver from nameservers" -> doResolveAt_return_minus_1 [label="All nameservers tried"];
+    "Get nameserver from nameservers" -> "Is the nameserver out of band?";
+    "Is the nameserver out of band?" -> doResolveAt_doOOBResolve_for_NS [label=yes];
+    doResolveAt_doOOBResolve_for_NS -> "updateCacheFromRecords()";
+    "Is the nameserver out of band?" -> doResolveAt_retrieveAddressesForNS [label=no];
+    doResolveAt_retrieveAddressesForNS -> doResolveAt_mainloop_continue [label="No IPs returned"];
+    doResolveAt_retrieveAddressesForNS -> doResolveAt_nameserverIPBlockedByRPZ [label="IPs returned"];
+    doResolveAt_nameserverIPBlockedByRPZ -> doResolveAt_return_minus_2 [label="RPZ NSIP hit"];
+    doResolveAt_nameserverIPBlockedByRPZ -> "Get IP from IPs" [label="RPZ NSIP not hit"];
+
+    "Get IP from IPs" -> doResolveAt_nsiploop_continue [label="IP is throttled"];
+    "Get IP from IPs" -> doResolveAt_ImmediateServFailException [label="Too many queries sent while resolving"];
+    "Get IP from IPs" -> doResolveAt_ImmediateServFailException [label="Resolving took too long"];
+    "Get IP from IPs" -> doResolveAt_mainloop_continue [label="No IP address worked"];
+    "Get IP from IPs" -> doResolveAt_Lua_preoutquery;
+
+    doResolveAt_Lua_preoutquery -> "Check resolveret" [label="true"];
+    doResolveAt_Lua_preoutquery -> doResolveAt_getEDNSSubnetMask [label="false"];
+    doResolveAt_getEDNSSubnetMask -> doResolveAt_asyncresolveWrapper;
+    doResolveAt_asyncresolveWrapper ->  "Check resolveret";
+    "Check resolveret" -> doResolveAt_ImmediateServFailException [label="resolveret == -3\n(kill query)"];
+    "Check resolveret" -> "resolveret == 1";
+    "resolveret == 1" -> doResolveAt_nsiploop_continue [label="nameserver returned\nSERVFAIL || REFUSED"];
+    "resolveret == 1" -> "updateCacheFromRecords()";
+    "updateCacheFromRecords()" -> doResolveAt_return_rcode [label="rcode != NOERROR"]; // line 1473
+    "updateCacheFromRecords()" -> doResolveAt_processRecords; // line 1484
+    doResolveAt_processRecords -> doResolveAt_return_0 [label="done == true"];
+    doResolveAt_processRecords -> "Have newtarget?";
+
+    "Have newtarget?" -> "qname == newtarget || depth > 10?" [label=yes];
+    "qname == newtarget || depth > 10?" -> doResolveAt_return_servfail [label=yes];
+    "qname == newtarget || depth > 10?" -> doResolveAt_doResolve [label=no];
+    doResolveAt_doResolve -> doResolveAt_return_rcode;
+
+    "Have newtarget?" -> "Have NXDOMAIN from upstream?" [label=no];
+    "Have NXDOMAIN from upstream?" -> "Add NSECs if needed" [label=yes];
+    "Add NSECs if needed" -> doResolveAt_return_nxdomain;
+
+    "Have NXDOMAIN from upstream?" -> "Have empty NOERROR?" [label=no];
+    "Have empty NOERROR?" -> "Add NSEC records if needed" [label=yes];
+    "Add NSEC records if needed" -> doResolveAt_return_0;
+
+    "Have empty NOERROR?" -> "Have realreferral?" [label=no];
+    "Have realreferral?" -> "Was a server in nsset blocker by RPZNSDNAME?" [label=yes];
+    "Was a server in nsset blocker by RPZNSDNAME?" -> doResolveAt_return_minus_2 [label=yes];
+    "Was a server in nsset blocker by RPZNSDNAME?" -> "Get nameserver from nameservers" [label=no];
+
+    "Have realreferral?" -> "Was this an OOB nameserver?" [label=no];
+    "Was this an OOB nameserver?" -> "Get nameserver from nameservers" [label="no, nameserver was lame"];
+    "Was this an OOB nameserver?" -> "Get nameserver from nameservers" [label=yes];
+  }
+
+  subgraph cluster_processRecords {
+    label="SyncRes::processRecords(const std::string& prefix, const DNSName& qname, const QType& qtype, const DNSName& auth, LWResult& lwr, const bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, bool& sawDS)\nreturns true is this level of recursion is done";
+
+//    { rank=same; "Get record from lwr.d_records" processRecords_return_done}
+
+//    { rank=same; "Is this a proper CNAME referral?" "Is this a DNSSEC record in the ANSWER section?" "Is this the actual answer?" "Is this an NS record in the AUTHORITY?" "Is this a DS in the AUTHORITY?" "Is this a proper NXDOMAIN?" "Are we not done && is this a NOERROR && is this a SOA in the AUTHORITY?"}
+
+    "Get record from lwr.d_records";
+    "Get record from lwr.d_records" -> "Is this a proper NXDOMAIN?"; // line 1177
+    "Get record from lwr.d_records" -> processRecords_return_done [label="All records checked"];
+    "Get record from lwr.d_records" -> "Get record from lwr.d_records" [label="type != OPT &&\nclass != IN"];
+
+    "Is this a proper NXDOMAIN?" -> "is newtarget empty?" [label=yes]; // note, we have a CNAME chasing bug here issue #679
+    "is newtarget empty?" -> processRecords_wasVariable [label=no];
+    "is newtarget empty?" -> "Add this SOA to ret" [label=yes];
+    processRecords_wasVariable [label="SyncRes::wasVariable", color=red]
+    "Add this SOA to ret" -> processRecords_wasVariable;
+    processRecords_wasVariable -> "Set negindic to true" [label="was indeed variable"];
+    processRecords_wasVariable -> "Add to negative cache" [label="was not variable"];
+    "Add to negative cache" -> "If s_rootNXTrust && auth.isRoot()";
+    "If s_rootNXTrust && auth.isRoot()" -> "Set negindic to true" [label=no];
+    "If s_rootNXTrust && auth.isRoot()" -> "Add tld label to negative cache" [label=yes];
+    "Add tld label to negative cache" -> "Set negindic to true";
+    "Set negindic to true" -> "Get record from lwr.d_records";
+
+    "Is this a proper NXDOMAIN?" -> "Is this a proper CNAME referral?" [label=no];
+    "Is this a proper CNAME referral?" -> "Add CNAME record to ret" [label=yes];
+    "Add CNAME record to ret" -> "Set newtarget to this CNAME" -> "Get record from lwr.d_records";
+
+    "Is this a proper CNAME referral?" -> "Is this a DNSSEC record in the ANSWER section?" [label=no];
+    "Is this a DNSSEC record in the ANSWER section?" -> "Is the record.qtype not RRSIG and is the record's qname the qname we want?"[label=yes];
+    "Is the record.qtype not RRSIG and is the record's qname the qname we want?" -> "Add this record to ret" [label=yes];
+    "Add this record to ret" -> "Get record from lwr.d_records";
+    "Is the record.qtype not RRSIG and is the record's qname the qname we want?" -> "Get record from lwr.d_records" [label=no];
+
+    "Is this a DNSSEC record in the ANSWER section?" -> "Is this the actual answer?" [label=no];
+    "Is this the actual answer?" -> "Set done=true" [label=yes];
+    "Set done=true" -> "Add answer record to ret" -> "Get record from lwr.d_records";
+
+    "Is this the actual answer?" -> "Is this an NS record in the AUTHORITY?" [label=no];
+    "Is this an NS record in the AUTHORITY?" -> "Is record.d_name more specific than the our current auth?" [label=yes];
+    "Is record.d_name more specific than the our current auth?" -> "set newauth to record.d_name" [label=yes];
+    "set newauth to record.d_name" -> "set realreferral=true" -> "add NS record to ret";
+    "Is record.d_name more specific than the our current auth?" -> "add NS record to ret" [label=no];
+    "add NS record to ret" -> "Get record from lwr.d_records";
+
+    "Is this an NS record in the AUTHORITY?" -> "Is this a DS in the AUTHORITY?" [label=no];
+    "Is this a DS in the AUTHORITY?" -> "set sawDS=true" [label=yes];
+    "set sawDS=true" -> "Get record from lwr.d_records";
+
+    "Is this a DS in the AUTHORITY?" -> "Are we not done && is this a NOERROR && is this a SOA in the AUTHORITY?" [label=no];
+    "Are we not done && is this a NOERROR && is this a SOA in the AUTHORITY?" -> "is newtarget empty?" [label=yes];
+    "is newtarget empty?" -> "Harvest DNSSEC data and add to negative cache" [label=yes];
+    "is newtarget empty?" -> "Get record from lwr.d_records";
+    "Harvest DNSSEC data and add to negative cache" -> "Set negindic to true" -> "Get record from lwr.d_records";
+
+    "Are we not done && is this a NOERROR && is this a SOA in the AUTHORITY?" -> "Get record from lwr.d_records" [label=no];
+
+    processRecords_return_done [label="return done", color=green];
+  }
+
+  subgraph cluster_doCNAMECacheCheck {
+    label="SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>& ret, unsigned int depth, int &res)\nreturns true if this function handled the query";
+
+    doCNAMECacheCheck_return_true [label="return true", color=green];
+    doCNAMECacheCheck_return_false [label="return false", color=green];
+
+    doCNAMECacheCheck_servfail [label="Set res to SERVFAIL"];
+    doCNAMECacheCheck_servfail -> doCNAMECacheCheck_return_true;
+
+    doCNAMECacheCheck_doResolve [label="SyncRes::doResolve", color=red];
+
+    "Too deep recursion or CNAMEs?" -> doCNAMECacheCheck_servfail [label=yes];
+    "Too deep recursion or CNAMEs?" -> "Get cache entries for qname|CNAME" [label=no];
+    "Get cache entries for qname|CNAME" -> "get a record from the cache entries" -> "Is the TTL not expired?";
+    "Is the TTL not expired?" -> "get a record from the cache entries" [label=yes];
+    "Is the TTL not expired?" -> "Add record and RRSIGS to ret" [label=no];
+    "Add record and RRSIGS to ret" -> "is qtype CNAME?";
+    "is qtype CNAME?" -> doCNAMECacheCheck_doResolve [label=no];
+    doCNAMECacheCheck_doResolve -> "Set res to the result of doResolve" -> doCNAMECacheCheck_return_true;
+    "is qtype CNAME?" -> "Set res=0" [label=yes];
+    "Set res=0" -> doCNAMECacheCheck_return_true;
+    "Get cache entries for qname|CNAME" -> doCNAMECacheCheck_return_false [label="No cache entries"];
+  }
+}

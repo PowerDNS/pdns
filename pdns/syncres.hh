@@ -19,8 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PDNS_SYNCRES_HH
-#define PDNS_SYNCRES_HH
+#pragma once
 #include <string>
 #include <atomic>
 #include "utility.hh"
@@ -50,14 +49,17 @@
 #include "ednssubnet.hh"
 #include "filterpo.hh"
 
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
+
 #ifdef HAVE_PROTOBUF
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #endif
 
 void primeHints(void);
-int getRootNS(void);
+
 class RecursorLua4;
 
 struct BothRecordsAndSignatures
@@ -114,10 +116,11 @@ public:
     typename cont_t::iterator i=d_cont.find(t);
     if(i==d_cont.end())
       return false;
-    if(now > i->second.ttd || i->second.count-- < 0) {
+    if(now > i->second.ttd || i->second.count == 0) {
       d_cont.erase(i);
       return false;
     }
+    i->second.count--;
 
     return true; // still listed, still blocked
   }
@@ -133,9 +136,14 @@ public:
       d_cont[t]=e;
   }
 
-  unsigned int size()
+  unsigned int size() const
   {
     return (unsigned int)d_cont.size();
+  }
+
+  void clear()
+  {
+    d_cont.clear();
   }
 private:
   unsigned int d_limit;
@@ -208,7 +216,7 @@ public:
     return d_val*=factor;
   }
 
-  double peek(void)
+  double peek(void) const
   {
     return d_val;
   }
@@ -231,9 +239,9 @@ public:
   Counters()
   {
   }
-  unsigned long value(const Thing& t)
+  unsigned long value(const Thing& t) const
   {
-    typename cont_t::iterator i=d_cont.find(t);
+    typename cont_t::const_iterator i=d_cont.find(t);
 
     if(i==d_cont.end()) {
       return 0;
@@ -272,7 +280,11 @@ public:
       d_cont.erase(i);
     }
   }
-  size_t size()
+  void clear()
+  {
+    d_cont.clear();
+  }
+  size_t size() const
   {
     return d_cont.size();
   }
@@ -288,6 +300,8 @@ public:
   enum LogMode { LogNone, Log, Store};
 
   explicit SyncRes(const struct timeval& now);
+
+  typedef std::function<int(const ComboAddress& ip, const DNSName& qdomain, int qtype, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult *lwr)> asyncresolve_t;
 
   int beginResolve(const DNSName &qname, const QType &qtype, uint16_t qclass, vector<DNSRecord>&ret);
   void setId(int id)
@@ -324,6 +338,26 @@ public:
     d_doEDNS0=state;
   }
 
+  void setDoDNSSEC(bool state=true)
+  {
+    d_doDNSSEC=state;
+  }
+
+  void setWantsRPZ(bool state=true)
+  {
+    d_wantsRPZ=state;
+  }
+
+  bool getWantsRPZ() const
+  {
+    return d_wantsRPZ;
+  }
+
+  void setIncomingECSFound(bool state=true)
+  {
+    d_incomingECSFound=state;
+  }
+
   string getTrace() const
   {
     return d_trace.str();
@@ -344,14 +378,35 @@ public:
     return d_wasOutOfBand;
   }
 
+  struct timeval getNow() const
+  {
+    return d_now;
+  }
+
   void setSkipCNAMECheck(bool skip = false)
   {
     d_skipCNAMECheck = skip;
   }
 
-  int asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res) const;
+  void setIncomingECS(boost::optional<const EDNSSubnetOpts&> incomingECS)
+  {
+    d_incomingECS = incomingECS;
+  }
+
+#ifdef HAVE_PROTOBUF
+  void setInitialRequestId(boost::optional<const boost::uuids::uuid&> initialRequestId)
+  {
+    d_initialRequestId = initialRequestId;
+  }
+#endif
+
+  void setAsyncCallback(asyncresolve_t func)
+  {
+    d_asyncResolve = func;
+  }
 
   static void doEDNSDumpAndClose(int fd);
+  static int getRootNS(struct timeval now, asyncresolve_t asyncCallback);
 
   static std::atomic<uint64_t> s_queries;
   static std::atomic<uint64_t> s_outgoingtimeouts;
@@ -370,10 +425,6 @@ public:
   static unsigned int s_maxdepth;
   std::unordered_map<std::string,bool> d_discardedPolicies;
   DNSFilterEngine::Policy d_appliedPolicy;
-  boost::optional<const EDNSSubnetOpts&> d_incomingECS;
-#ifdef HAVE_PROTOBUF
-  boost::optional<const boost::uuids::uuid&> d_initialRequestId;
-#endif
   unsigned int d_outqueries;
   unsigned int d_tcpoutqueries;
   unsigned int d_throttledqueries;
@@ -381,14 +432,7 @@ public:
   unsigned int d_unreachables;
   unsigned int d_totUsec;
   ComboAddress d_requestor;
-  bool d_doDNSSEC;
-  
-  bool d_wasVariable{false};
-  bool d_wasOutOfBand{false};
-  bool d_wantsRPZ{true};
-  bool d_skipCNAMECheck{false};
-  bool d_incomingECSFound{false};
-  
+
   typedef multi_index_container <
     NegCacheEntry,
     indexed_by <
@@ -495,13 +539,14 @@ public:
 
   typedef Counters<ComboAddress> fails_t;
 
-  struct timeval d_now;
   static unsigned int s_maxnegttl;
   static unsigned int s_maxcachettl;
   static unsigned int s_packetcachettl;
   static unsigned int s_packetcacheservfailttl;
   static unsigned int s_serverdownmaxfails;
   static unsigned int s_serverdownthrottletime;
+  static uint8_t s_ecsipv4limit;
+  static uint8_t s_ecsipv6limit;
   static bool s_nopacketcache;
   static string s_serverID;
 
@@ -539,13 +584,37 @@ private:
   RCode::rcodes_ updateCacheFromRecords(const std::string& prefix, LWResult& lwr, const DNSName& qname, const DNSName& auth, NsSet& nameservers, const DNSName& tns, const boost::optional<Netmask>);
   bool processRecords(const std::string& prefix, const DNSName& qname, const QType& qtype, const DNSName& auth, LWResult& lwr, const bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, bool& sawDS);
 
-private:
+  bool doSpecialNamesResolve(const DNSName &qname, const QType &qtype, const uint16_t &qclass, vector<DNSRecord> &ret);
+
+  int asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res) const;
+
+  boost::optional<Netmask> getEDNSSubnetMask(const ComboAddress& local, const DNSName&dn, const ComboAddress& rem);
+
   ostringstream d_trace;
   shared_ptr<RecursorLua4> d_pdl;
+  boost::optional<const EDNSSubnetOpts&> d_incomingECS;
+#ifdef HAVE_PROTOBUF
+  boost::optional<const boost::uuids::uuid&> d_initialRequestId;
+#endif
+  asyncresolve_t d_asyncResolve{nullptr};
+  struct timeval d_now;
   string d_prefix;
+
+  /* When d_cacheonly is set to true, we will only check the cache.
+   * This is set when the RD bit is unset in the incoming query
+   */
   bool d_cacheonly;
+  /* d_nocache is *only* set in getRootNS() (in pdns_recursor.cc).
+   * It forces us to not look in the cache or local auth.
+   */
   bool d_nocache;
-  bool d_doEDNS0;
+  bool d_doDNSSEC;
+  bool d_doEDNS0{true};
+  bool d_incomingECSFound{false};
+  bool d_skipCNAMECheck{false};
+  bool d_wantsRPZ{true};
+  bool d_wasOutOfBand{false};
+  bool d_wasVariable{false};
 
   static LogMode s_lm;
   LogMode d_lm;
@@ -676,7 +745,7 @@ public:
   TCPConnection(int fd, const ComboAddress& addr);
   ~TCPConnection();
 
-  int getFD()
+  int getFD() const
   {
     return d_fd;
   }
@@ -744,7 +813,6 @@ uint64_t* pleaseWipeCache(const DNSName& canon, bool subtree=false);
 uint64_t* pleaseWipePacketCache(const DNSName& canon, bool subtree);
 uint64_t* pleaseWipeAndCountNegCache(const DNSName& canon, bool subtree=false);
 void doCarbonDump(void*);
-boost::optional<Netmask> getEDNSSubnetMask(const ComboAddress& local, const DNSName&dn, const ComboAddress& rem, boost::optional<const EDNSSubnetOpts&> incomingECS);
 void  parseEDNSSubnetWhitelist(const std::string& wlist);
 
 extern __thread struct timeval g_now;
@@ -754,6 +822,4 @@ extern SuffixMatchNode g_ednsdomains;
 
 #ifdef HAVE_PROTOBUF
 extern __thread boost::uuids::random_generator* t_uuidGenerator;
-#endif
-
 #endif

@@ -6,6 +6,8 @@
 DNSSECMode g_dnssecmode{DNSSECMode::ProcessNoValidate};
 bool g_dnssecLogBogus;
 
+extern int getMTaskerTID();
+
 #define LOG(x) if(g_dnssecLOG) { L <<Logger::Warning << x; }
 
 class SRRecordOracle : public DNSRecordOracle
@@ -19,13 +21,13 @@ public:
     struct timeval tv;
     gettimeofday(&tv, 0);
     SyncRes sr(tv);
-    sr.setId(MT->getTid());
+    sr.setId(getMTaskerTID());
 #ifdef HAVE_PROTOBUF
-    sr.d_initialRequestId = d_ctx.d_initialRequestId;
+    sr.setInitialRequestId(d_ctx.d_initialRequestId);
 #endif
 
     vector<DNSRecord> ret;
-    sr.d_doDNSSEC=true;
+    sr.setDoDNSSEC(true);
     if (qtype == QType::DS || qtype == QType::DNSKEY || qtype == QType::NS)
       sr.setSkipCNAMECheck(true);
     sr.beginResolve(qname, QType(qtype), 1, ret);

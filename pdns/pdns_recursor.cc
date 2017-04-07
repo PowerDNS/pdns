@@ -232,6 +232,11 @@ unsigned int getRecursorThreadId()
   return t_id;
 }
 
+int getMTaskerTID()
+{
+  return MT->getTid();
+}
+
 static void handleTCPClientWritable(int fd, FDMultiplexer::funcparam_t& var);
 
 // -1 is error, 0 is timeout, 1 is success
@@ -675,8 +680,8 @@ static void protobufLogResponse(const std::shared_ptr<RemoteLogger>& logger, con
 static void handleRPZCustom(const DNSRecord& spoofed, const QType& qtype, SyncRes& sr, int& res, vector<DNSRecord>& ret)
 {
   if (spoofed.d_type == QType::CNAME) {
-    bool oldWantsRPZ = sr.d_wantsRPZ;
-    sr.d_wantsRPZ = false;
+    bool oldWantsRPZ = sr.getWantsRPZ();
+    sr.setWantsRPZ(false);
     vector<DNSRecord> ans;
     res = sr.beginResolve(DNSName(spoofed.d_content->getZoneRepresentation()), qtype, 1, ans);
     for (const auto& rec : ans) {
@@ -685,7 +690,7 @@ static void handleRPZCustom(const DNSRecord& spoofed, const QType& qtype, SyncRe
       }
     }
     // Reset the RPZ state of the SyncRes
-    sr.d_wantsRPZ = oldWantsRPZ;
+    sr.setWantsRPZ(oldWantsRPZ);
   }
 }
 
@@ -757,7 +762,7 @@ static void startDoResolve(void *p)
     }
 
     if(g_dnssecmode != DNSSECMode::Off) {
-      sr.d_doDNSSEC=true;
+      sr.setDoDNSSEC(true);
 
       // Does the requestor want DNSSEC records?
       if(edo.d_Z & EDNSOpts::DNSSECOK) {
@@ -769,12 +774,12 @@ static void startDoResolve(void *p)
       pw.getHeader()->cd=0;
     }
 #ifdef HAVE_PROTOBUF
-    sr.d_initialRequestId = dc->d_uuid;
+    sr.setInitialRequestId(dc->d_uuid);
 #endif
     if (g_useIncomingECS) {
-      sr.d_incomingECSFound = dc->d_ecsFound;
+      sr.setIncomingECSFound(dc->d_ecsFound);
       if (dc->d_ecsFound) {
-        sr.d_incomingECS = dc->d_ednssubnet;
+        sr.setIncomingECS(dc->d_ednssubnet);
       }
     }
 
@@ -835,7 +840,7 @@ static void startDoResolve(void *p)
     // if there is a RecursorLua active, and it 'took' the query in preResolve, we don't launch beginResolve
     if(!t_pdl->get() || !(*t_pdl)->preresolve(dq, res)) {
 
-      sr.d_wantsRPZ = wantsRPZ;
+      sr.setWantsRPZ(wantsRPZ);
       if(wantsRPZ) {
         switch(appliedPolicy.d_kind) {
           case DNSFilterEngine::PolicyKind::NoAction:
@@ -1221,7 +1226,7 @@ static void startDoResolve(void *p)
     }
 
     sr.d_outqueries ? t_RC->cacheMisses++ : t_RC->cacheHits++;
-    float spent=makeFloat(sr.d_now-dc->d_now);
+    float spent=makeFloat(sr.getNow()-dc->d_now);
     if(spent < 0.001)
       g_stats.answers0_1++;
     else if(spent < 0.010)
@@ -2073,7 +2078,7 @@ static void houseKeeping(void *)
     }
 
     if(now.tv_sec - last_rootupdate > 7200) {
-      int res = getRootNS();
+      int res = SyncRes::getRootNS(g_now, nullptr);
       if (!res)
         last_rootupdate=now.tv_sec;
     }
@@ -2805,6 +2810,9 @@ static int serviceMain(int argc, char*argv[])
     SyncRes::s_serverID=tmp;
   }
 
+  SyncRes::s_ecsipv4limit = ::arg().asNum("ecs-ipv4-bits");
+  SyncRes::s_ecsipv6limit = ::arg().asNum("ecs-ipv6-bits");
+
   g_networkTimeoutMsec = ::arg().asNum("network-timeout");
 
   g_initialDomainMap = parseAuthAndForwards();
@@ -3299,44 +3307,4 @@ int main(int argc, char **argv)
   }
 
   return ret;
-}
-
-int getRootNS(void) {
-  SyncRes sr(g_now);
-  sr.setDoEDNS0(true);
-  sr.setNoCache();
-  sr.d_doDNSSEC = (g_dnssecmode != DNSSECMode::Off);
-
-  vector<DNSRecord> ret;
-  int res=-1;
-  try {
-    res=sr.beginResolve(g_rootdnsname, QType(QType::NS), 1, ret);
-    if (g_dnssecmode != DNSSECMode::Off && g_dnssecmode != DNSSECMode::ProcessNoValidate) {
-      ResolveContext ctx;
-      auto state = validateRecords(ctx, ret);
-      if (state == Bogus)
-        throw PDNSException("Got Bogus validation result for .|NS");
-    }
-    return res;
-  }
-  catch(PDNSException& e)
-  {
-    L<<Logger::Error<<"Failed to update . records, got an exception: "<<e.reason<<endl;
-  }
-
-  catch(std::exception& e)
-  {
-    L<<Logger::Error<<"Failed to update . records, got an exception: "<<e.what()<<endl;
-  }
-
-  catch(...)
-  {
-    L<<Logger::Error<<"Failed to update . records, got an exception"<<endl;
-  }
-  if(!res) {
-    L<<Logger::Notice<<"Refreshed . records"<<endl;
-  }
-  else
-    L<<Logger::Error<<"Failed to update . records, RCODE="<<res<<endl;
-  return res;
 }
