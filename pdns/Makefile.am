@@ -133,7 +133,7 @@ EXTRA_PROGRAMS = \
 
 pdns_server_SOURCES = \
 	arguments.cc arguments.hh \
-        ascii.hh \
+	ascii.hh \
 	auth-carbon.cc \
 	auth-caches.cc auth-caches.hh \
 	auth-packetcache.cc auth-packetcache.hh \
