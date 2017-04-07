@@ -858,4 +858,14 @@ BOOST_AUTO_TEST_CASE(test_getrawlabel) {
   BOOST_CHECK_THROW(name.getRawLabel(name.countLabels()), std::out_of_range);
 }
 
+BOOST_AUTO_TEST_CASE(test_getlastlabel) {
+  DNSName name("www.powerdns.com");
+  DNSName ans = name.getLastLabel();
+
+  // Check the const-ness
+  BOOST_CHECK_EQUAL(name, DNSName("www.powerdns.com"));
+
+  // Check if the last label is indeed returned
+  BOOST_CHECK_EQUAL(ans, DNSName("com"));
+}
 BOOST_AUTO_TEST_SUITE_END()
