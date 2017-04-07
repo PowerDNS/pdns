@@ -487,7 +487,7 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
           const ComboAddress remoteIP = servers.front();
           LOG(prefix<<qname<<": forwarding query to hardcoded nameserver '"<< remoteIP.toStringWithPort()<<"' for zone '"<<authname<<"'"<<endl);
 
-	  boost::optional<Netmask> nm;
+          boost::optional<Netmask> nm;
           res=asyncresolveWrapper(remoteIP, d_doDNSSEC, qname, qtype.getCode(), false, false, &d_now, nm, &lwr);
           // filter out the good stuff from lwr.result()
           if (res == 1) {
