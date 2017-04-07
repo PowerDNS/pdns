@@ -795,13 +795,6 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
   return false;
 }
 
-static const DNSName getLastLabel(const DNSName& qname)
-{
-  DNSName ret(qname);
-  ret.trimToLabels(1);
-  return ret;
-}
-
 static inline void addTTLModifiedRecords(const vector<DNSRecord>& records, const uint32_t ttl, vector<DNSRecord>& ret) {
   for (const auto& rec : records) {
     DNSRecord r(rec);
@@ -1237,7 +1230,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         harvestNXRecords(lwr.d_records, ne);
         t_sstorage->negcache.add(ne);
         if(s_rootNXTrust && auth.isRoot()) { // We should check if it was forwarded here, see issue #5107
-          ne.d_name = getLastLabel(ne.d_name);
+          ne.d_name = ne.d_name.getLastLabel();
           t_sstorage->negcache.add(ne);
         }
       }
