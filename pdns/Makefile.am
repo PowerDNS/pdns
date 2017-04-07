@@ -1156,6 +1156,7 @@ testrunner_SOURCES = \
 	test-dnsparser_hh.cc \
 	test-dnsrecords_cc.cc \
 	test-iputils_hh.cc \
+	test-lock_hh.cc \
 	test-md5_hh.cc \
 	test-misc_hh.cc \
 	test-nameserver_cc.cc \
