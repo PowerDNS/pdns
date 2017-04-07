@@ -105,12 +105,20 @@ public:
       throw PDNSException("error acquiring rwlock tryrwlock: "+stringerror());
     d_havelock=(errno==0);
   }
+
+  TryWriteLock(TryWriteLock&& rhs)
+  {
+    d_lock = rhs.d_lock;
+    rhs.d_lock=0;
+  }
+
+  
   ~TryWriteLock()
   {
     if(g_singleThreaded)
       return;
 
-    if(d_havelock)
+    if(d_havelock && d_lock) // we might be moved
       pthread_rwlock_unlock(d_lock);
   }
   bool gotIt()
@@ -141,12 +149,18 @@ public:
       throw PDNSException("error acquiring rwlock tryrdlock: "+stringerror());
     d_havelock=(errno==0);
   }
+  TryReadLock(TryReadLock&& rhs)
+  {
+    d_lock = rhs.d_lock;
+    rhs.d_lock=0;
+  }
+
   ~TryReadLock()
   {
     if(g_singleThreaded)
       return;
 
-    if(d_havelock)
+    if(d_havelock && d_lock)
       pthread_rwlock_unlock(d_lock);
   }
   bool gotIt()
@@ -187,14 +201,5 @@ public:
   }
   ReadLock(const ReadLock& rhs) = delete;
   ReadLock& operator=(const ReadLock& rhs) = delete;
-  
-  void upgrade()
-  {
-    if(g_singleThreaded)
-      return;
-
-    pthread_rwlock_unlock(d_lock);
-    pthread_rwlock_wrlock(d_lock);
-  }
 };
 #endif
