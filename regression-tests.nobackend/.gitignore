@@ -13,3 +13,8 @@ real_result
 /pdns-gsqlite3-slave.conf
 /slave.db
 /named.conf
+dnssec.sqlite3
+pdns-bind.conf
+pdns-gsqlite3.conf
+pdns-gsqlite3.pid
+pdns.sqlite3
