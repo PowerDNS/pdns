@@ -152,8 +152,9 @@ BOOST_AUTO_TEST_CASE(test_add_updated_entry) {
   BOOST_CHECK_EQUAL(cache.size(), 1);
 
   NegCache::NegCacheEntry ne;
-  cache.get(qname, QType(1), now, ne);
+  bool ret = cache.get(qname, QType(1), now, ne);
 
+  BOOST_CHECK(ret);
   BOOST_CHECK_EQUAL(ne.d_name, qname);
   BOOST_CHECK_EQUAL(ne.d_auth, auth2);
 }
