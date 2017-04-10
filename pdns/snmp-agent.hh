@@ -32,7 +32,7 @@ public:
   void run()
   {
 #ifdef HAVE_NET_SNMP
-  d_thread = std::move(std::thread(&SNMPAgent::worker, this));
+  d_thread = std::thread(&SNMPAgent::worker, this);
 #endif /* HAVE_NET_SNMP */
   }
 
