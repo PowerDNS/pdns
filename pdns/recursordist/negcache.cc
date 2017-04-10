@@ -100,9 +100,21 @@ void NegCache::add(const NegCacheEntry& ne) {
 
 /*!
  * Returns the amount of entries in the cache
+ *
+ * \param qname The name of the entries to be counted
  */
 uint64_t NegCache::count(const DNSName& qname) const {
   return d_negcache.count(tie(qname));
+}
+
+/*!
+ * Returns the amount of entries in the cache for qname+qtype
+ *
+ * \param qname The name of the entries to be counted
+ * \param qtype The type of the entries to be counted
+ */
+uint64_t NegCache::count(const DNSName& qname, const QType qtype) const {
+  return d_negcache.count(tie(qname, qtype));
 }
 
 /*!

@@ -341,4 +341,31 @@ BOOST_AUTO_TEST_CASE(test_dumpToFile) {
   fclose(fp);
 }
 
+BOOST_AUTO_TEST_CASE(test_count) {
+  string qname(".powerdns.com");
+  string qname2("powerdns.org");
+  DNSName auth("powerdns.com");
+
+  struct timeval now;
+  Utility::gettimeofday(&now, 0);
+
+  NegCache cache;
+  NegCache::NegCacheEntry ne;
+  ne = genNegCacheEntry(auth, auth, now);
+  cache.add(ne);
+
+  for(int i = 0; i < 400; i++) {
+    ne = genNegCacheEntry(DNSName(std::to_string(i) + qname), auth, now);
+    cache.add(ne);
+    ne = genNegCacheEntry(DNSName(std::to_string(i) + qname2), auth, now);
+    cache.add(ne);
+  }
+
+  uint64_t count;
+  count = cache.count(auth);
+  BOOST_CHECK_EQUAL(count, 1);
+  count = cache.count(auth, QType(1));
+  BOOST_CHECK_EQUAL(count, 0);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
