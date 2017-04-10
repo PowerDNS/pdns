@@ -136,6 +136,30 @@ BOOST_AUTO_TEST_CASE(test_add_and_get_expired_entry) {
   BOOST_CHECK(ne.authoritySOA.records.empty());
 }
 
+BOOST_AUTO_TEST_CASE(test_getRootNXTrust_expired_entry) {
+  DNSName qname("com");
+  DNSName auth(".");
+
+  struct timeval now;
+  Utility::gettimeofday(&now, 0);
+  now.tv_sec -= 1000;
+
+  NegCache cache;
+  cache.add(genNegCacheEntry(qname, auth, now));
+
+  BOOST_CHECK_EQUAL(cache.size(), 1);
+
+  NegCache::NegCacheEntry ne;
+
+  now.tv_sec += 1000;
+  bool ret = cache.getRootNXTrust(qname, now, ne);
+
+  BOOST_CHECK_EQUAL(ret, false);
+  BOOST_CHECK_EQUAL(ne.d_name, DNSName());
+  BOOST_CHECK_EQUAL(ne.d_auth, DNSName());
+  BOOST_CHECK(ne.authoritySOA.records.empty());
+}
+
 BOOST_AUTO_TEST_CASE(test_add_updated_entry) {
   DNSName qname("www2.powerdns.com");
   DNSName auth("powerdns.com");
