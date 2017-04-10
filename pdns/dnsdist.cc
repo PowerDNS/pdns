@@ -2180,6 +2180,19 @@ try
   _exit(EXIT_SUCCESS);
 
 }
+catch(const LuaContext::ExecutionErrorException& e) {
+  try {
+    errlog("Fatal Lua error: %s", e.what());
+    std::rethrow_if_nested(e);
+  } catch(const std::exception& e) {
+    errlog("Details: %s", e.what());
+  }
+  catch(PDNSException &ae)
+  {
+    errlog("Fatal pdns error: %s", ae.reason);
+  }
+  _exit(EXIT_FAILURE);
+}
 catch(std::exception &e)
 {
   errlog("Fatal error: %s", e.what());
