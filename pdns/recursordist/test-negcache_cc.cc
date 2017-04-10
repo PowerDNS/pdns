@@ -159,6 +159,46 @@ BOOST_AUTO_TEST_CASE(test_add_updated_entry) {
   BOOST_CHECK_EQUAL(ne.d_auth, auth2);
 }
 
+BOOST_AUTO_TEST_CASE(test_getRootNXTrust) {
+  DNSName qname("www2.powerdns.com");
+  DNSName auth("powerdns.com");
+  DNSName qname2("com");
+  DNSName auth2(".");
+
+  struct timeval now;
+  Utility::gettimeofday(&now, 0);
+
+  NegCache cache;
+  cache.add(genNegCacheEntry(qname, auth, now));
+  cache.add(genNegCacheEntry(qname2, auth2, now));
+
+  NegCache::NegCacheEntry ne;
+  bool ret = cache.getRootNXTrust(qname, now, ne);
+
+  BOOST_CHECK(ret);
+  BOOST_CHECK_EQUAL(ne.d_name, qname2);
+  BOOST_CHECK_EQUAL(ne.d_auth, auth2);
+}
+
+BOOST_AUTO_TEST_CASE(test_getRootNXTrust_full_domain_only) {
+  DNSName qname("www2.powerdns.com");
+  DNSName auth("powerdns.com");
+  DNSName qname2("com");
+  DNSName auth2(".");
+
+  struct timeval now;
+  Utility::gettimeofday(&now, 0);
+
+  NegCache cache;
+  cache.add(genNegCacheEntry(qname, auth, now));
+  cache.add(genNegCacheEntry(qname2, auth2, now, 1)); // Add the denial for COM|A
+
+  NegCache::NegCacheEntry ne;
+  bool ret = cache.getRootNXTrust(qname, now, ne);
+
+  BOOST_CHECK_EQUAL(ret, false);
+}
+
 BOOST_AUTO_TEST_CASE(test_prune) {
   string qname(".powerdns.com");
   DNSName auth("powerdns.com");
