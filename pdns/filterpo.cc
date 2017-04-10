@@ -156,7 +156,19 @@ void DNSFilterEngine::clear(size_t zone)
   z.qpolAddr.clear();
   z.postpolAddr.clear();
   z.propolName.clear();
+  z.propolNSAddr.clear();
   z.qpolName.clear();
+}
+
+void DNSFilterEngine::clear()
+{
+  for(auto& z : d_zones) {
+    z.qpolAddr.clear();
+    z.postpolAddr.clear();
+    z.propolName.clear();
+    z.propolNSAddr.clear();
+    z.qpolName.clear();
+  }
 }
 
 void DNSFilterEngine::addClientTrigger(const Netmask& nm, Policy pol, size_t zone)
