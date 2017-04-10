@@ -343,6 +343,7 @@ Rules have selectors and actions. Current selectors are:
  * QPS Limit total
  * QPS Limit per IP address or subnet
  * QClass (QClassRule)
+ * QName (QNameRule)
  * QType (QTypeRule)
  * RegexRule on query name
  * RE2Rule on query name (optional)
@@ -427,6 +428,7 @@ A DNS rule can be:
  * an OrRule
  * a QClassRule
  * a QNameLabelsCountRule
+ * a QNameRule
  * a QNameWireLengthRule
  * a QTypeRule
  * a RCodeRule
@@ -1411,6 +1413,7 @@ instantiate a server with additional parameters
     * `OpcodeRule()`: matches queries with the specified opcode
     * `QClassRule(qclass)`: matches queries with the specified qclass (numeric)
     * `QNameLabelsCountRule(min, max)`: matches if the qname has less than `min` or more than `max` labels
+    * `QNameRule(qname)`: matches queries with the specified qname
     * `QNameWireLengthRule(min, max)`: matches if the qname's length on the wire is less than `min` or more than `max` bytes
     * `QTypeRule(qtype)`: matches queries with the specified qtype
     * `RCodeRule(rcode)`: matches queries or responses the specified rcode

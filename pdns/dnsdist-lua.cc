@@ -922,6 +922,10 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       return std::shared_ptr<DNSRule>(new AllRule());
     });
 
+  g_lua.writeFunction("QNameRule", [](const std::string& qname) {
+      return std::shared_ptr<DNSRule>(new QNameRule(DNSName(qname)));
+    });
+  
   g_lua.writeFunction("QTypeRule", [](boost::variant<int, std::string> str) {
       uint16_t qtype;
       if(auto dir = boost::get<int>(&str)) {

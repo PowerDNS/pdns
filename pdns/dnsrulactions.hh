@@ -300,12 +300,31 @@ public:
     if(d_quiet)
       return "qname==in-set";
     else
-      return "qname=="+d_smn.toString();
+      return "qname in "+d_smn.toString();
   }
 private:
   SuffixMatchNode d_smn;
   bool d_quiet;
 };
+
+class QNameRule : public DNSRule
+{
+public:
+  QNameRule(const DNSName& qname) : d_qname(qname)
+  {
+  }
+  bool matches(const DNSQuestion* dq) const override
+  {
+    return d_qname==*dq->qname;
+  }
+  string toString() const override
+  {
+    return "qname=="+d_qname.toString();
+  }
+private:
+  DNSName d_qname;
+};
+
 
 class QTypeRule : public DNSRule
 {
