@@ -34,7 +34,7 @@ cd $startdir
 for zone in $(grep 'zone ' ../../regression-tests/named.conf | cut -f2 -d\")
 do
   $TCPCLIENT 127.0.0.1 5300 $AXFRGET $zone $zone.out $zone.out.tmp
-  cat $zone.out >> data
+  LC_ALL=C sort $zone.out >> data
   rm $zone.out
 done
 
