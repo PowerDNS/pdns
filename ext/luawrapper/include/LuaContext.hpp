@@ -54,7 +54,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/type_traits.hpp>
 #include <lua.hpp>
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) && _MSC_VER < 1900
 #   include "misc/exception.hpp"
 #endif
 
@@ -399,7 +399,7 @@ public:
      * @tparam TType Type whose function belongs to
      */
     template<typename TType>
-    void unregisterFunction(const std::string& functionName)
+    void unregisterFunction(const std::string& /*functionName*/)
     {
         lua_pushlightuserdata(mState, const_cast<std::type_info*>(&typeid(TType)));
         lua_pushnil(mState);
@@ -557,7 +557,7 @@ public:
         result.threadInRegistry = std::unique_ptr<ValueInRegistry>(new ValueInRegistry(mState));
         lua_pop(mState, 1);
 
-        return std::move(result);
+        return result;
     }
 
     /**
@@ -699,7 +699,7 @@ private:
         PushedObject& operator=(PushedObject&& other) { std::swap(state, other.state); std::swap(num, other.num); return *this; }
         PushedObject(PushedObject&& other) : state(other.state), num(other.num) { other.num = 0; }
 
-        PushedObject operator+(PushedObject&& other) && { PushedObject obj(state, num + other.num); num = 0; other.num = 0; return std::move(obj); }
+        PushedObject operator+(PushedObject&& other) && { PushedObject obj(state, num + other.num); num = 0; other.num = 0; return obj; }
         void operator+=(PushedObject&& other) { assert(state == other.state); num += other.num; other.num = 0; }
         
         auto getState() const -> lua_State* { return state; }
@@ -1256,7 +1256,7 @@ private:
             std::array<char,512>    buffer;
 
             // read function ; "data" must be an instance of Reader
-            static const char* read(lua_State* l, void* data, size_t* size) {
+            static const char* read(lua_State* /*l*/, void* data, size_t* size) {
                 assert(size != nullptr);
                 assert(data != nullptr);
                 Reader& me = *static_cast<Reader*>(data);
@@ -1321,7 +1321,7 @@ private:
             RealReturnType;
         
         // we push the parameters on the stack
-        auto inArguments = Pusher<std::tuple<TParameters...>>::push(state, std::forward_as_tuple((input)...));
+        auto inArguments = Pusher<std::tuple<TParameters&&...>>::push(state, std::forward_as_tuple(std::forward<TParameters>(input)...));
 
         // 
         const int outArgumentsCount = std::tuple_size<RealReturnType>::value;
@@ -1541,7 +1541,7 @@ private:
             lua_setmetatable(state, -2);
             pushedTable.release();
             
-            return std::move(obj);
+            return obj;
         }
     };
     
@@ -1610,7 +1610,7 @@ private:
      * This functions reads multiple values starting at "index" and passes them to the callback
      */
     template<typename TRetValue, typename TCallback>
-    static auto readIntoFunction(lua_State* state, tag<TRetValue>, TCallback&& callback, int index)
+    static auto readIntoFunction(lua_State* /*state*/, tag<TRetValue>, TCallback&& callback, int /*index*/)
         -> TRetValue
     {
         return callback();
@@ -1626,7 +1626,7 @@ private:
 
         const auto& firstElem = Reader<typename std::decay<TFirstType>::type>::read(state, index);
         if (!firstElem)
-            throw WrongTypeException(lua_typename(state, index), typeid(TFirstType));
+            throw WrongTypeException(lua_typename(state, lua_type(state, index)), typeid(TFirstType));
 
         Binder<TCallback, const TFirstType&> binder{ callback, *firstElem };
         return readIntoFunction(state, retValueTag, binder, index + 1, othersTags...);
@@ -1640,7 +1640,7 @@ private:
 
         const auto& firstElem = Reader<typename std::decay<TFirstType>::type>::read(state, index);
         if (!firstElem)
-            throw WrongTypeException(lua_typename(state, index), typeid(TFirstType));
+            throw WrongTypeException(lua_typename(state, lua_type(state, index)), typeid(TFirstType));
 
         Binder<TCallback, const TFirstType&> binder{ callback, *firstElem };
         return readIntoFunction(state, retValueTag, binder, index + 1, othersTags...);
@@ -1732,7 +1732,7 @@ static LuaContext::Metatable_t ATTR_UNUSED
 /*            PARTIAL IMPLEMENTATIONS             */
 /**************************************************/
 template<>
-inline auto LuaContext::readTopAndPop<void>(lua_State* state, PushedObject obj)
+inline auto LuaContext::readTopAndPop<void>(lua_State* /*state*/, PushedObject /*obj*/)
     -> void
 {
 }
@@ -1939,8 +1939,7 @@ struct LuaContext::Pusher<std::nullptr_t> {
     static const int minSize = 1;
     static const int maxSize = 1;
 
-    static PushedObject push(lua_State* state, std::nullptr_t value) noexcept {
-        assert(value == nullptr);
+    static PushedObject push(lua_State* state, std::nullptr_t) noexcept {
         lua_pushnil(state);
         return PushedObject{state, 1};
     }
@@ -1997,7 +1996,7 @@ struct LuaContext::Pusher<std::map<TKey,TValue>> {
         for (auto i = value.begin(), e = value.end(); i != e; ++i)
             setTable<TValue>(state, obj, i->first, i->second);
         
-        return std::move(obj);
+        return obj;
     }
 };
 
@@ -2016,7 +2015,7 @@ struct LuaContext::Pusher<std::unordered_map<TKey,TValue>> {
         for (auto i = value.begin(), e = value.end(); i != e; ++i)
             setTable<TValue>(state, obj, i->first, i->second);
         
-        return std::move(obj);
+        return obj;
     }
 };
 
@@ -2035,7 +2034,7 @@ struct LuaContext::Pusher<std::vector<std::pair<TType1,TType2>>> {
         for (auto i = value.begin(), e = value.end(); i != e; ++i)
             setTable<TType2>(state, obj, i->first, i->second);
         
-        return std::move(obj);
+        return obj;
     }
 };
 
@@ -2053,7 +2052,7 @@ struct LuaContext::Pusher<std::vector<TType>> {
         for (unsigned int i = 0; i < value.size(); ++i)
             setTable<TType>(state, obj, i + 1, value[i]);
         
-        return std::move(obj);
+        return obj;
     }
 };
 
@@ -2341,7 +2340,7 @@ struct LuaContext::Pusher<boost::variant<TTypes...>>
         PushedObject obj{state, 0};
         VariantWriter writer{state, obj};
         value.apply_visitor(writer);
-        return std::move(obj);
+        return obj;
     }
 
 private:
@@ -2409,11 +2408,11 @@ private:
             push2(state, std::move(value), std::integral_constant<int,N+1>{});
     }
     
-    static int push2(lua_State* state, const std::tuple<TTypes...>&, std::integral_constant<int,sizeof...(TTypes)>) noexcept {
+    static int push2(lua_State* /*state*/, const std::tuple<TTypes...>&, std::integral_constant<int,sizeof...(TTypes)>) noexcept {
         return 0;
     }
     
-    static int push2(lua_State* state, std::tuple<TTypes...>&&, std::integral_constant<int,sizeof...(TTypes)>) noexcept {
+    static int push2(lua_State* /*state*/, std::tuple<TTypes...>&&, std::integral_constant<int,sizeof...(TTypes)>) noexcept {
         return 0;
     }
 };
@@ -2744,7 +2743,7 @@ private:
     template<typename TIterBegin, typename TIterEnd>
     struct VariantReader<TIterBegin, TIterEnd, typename std::enable_if<boost::mpl::distance<TIterBegin, TIterEnd>::type::value == 0>::type>
     {
-        static auto read(lua_State* state, int index)
+        static auto read(lua_State* /*state*/, int /*index*/)
             -> boost::optional<ReturnType> 
         {
             return boost::none;
@@ -2769,7 +2768,7 @@ public:
 template<>
 struct LuaContext::Reader<std::tuple<>>
 {
-    static auto read(lua_State* state, int index, int maxSize = 0)
+    static auto read(lua_State* /*state*/, int /*index*/, int /*maxSize*/ = 0)
         -> boost::optional<std::tuple<>>
     {
         return std::tuple<>{};
