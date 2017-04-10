@@ -36,4 +36,19 @@ AC_DEFUN([PDNS_CHECK_LDAP],[
   )
 
   AC_ARG_VAR([LDAP_LIBS], [linker flags for openldap])
+
+  AC_CHECK_HEADERS([krb5.h],
+    [],
+    [AC_MSG_ERROR([Kerberos header (krb5.h) not found])]
+  )
+
+  AC_ARG_VAR([KRB5_LIBS], [linker flag to add Kerberos 5 libraries])
+
+  AC_CHECK_LIB([krb5], [krb5_init_context],
+    [
+      KRB5_LIBS="-lkrb5"
+    ]
+  )
+
+  AC_CHECK_FUNCS([krb5_get_init_creds_opt_set_default_flags])
 ])

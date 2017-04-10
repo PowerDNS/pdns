@@ -45,7 +45,7 @@
 using std::string;
 using std::vector;
 
-
+class LdapAuthenticator;
 
 /*
  *  Known DNS RR types
@@ -53,92 +53,101 @@ using std::vector;
  */
 
 static const char* ldap_attrany[] = {
-        "associatedDomain",
-        "dNSTTL",
-        "aRecord",
-        "nSRecord",
-        "cNAMERecord",
-        "sOARecord",
-        "pTRRecord",
-        "hInfoRecord",
-        "mXRecord",
-        "tXTRecord",
-        "rPRecord",
-        "aFSDBRecord",
-//        "SigRecord",
-        "KeyRecord",
-//        "gPosRecord",
-        "aAAARecord",
-        "lOCRecord",
-        "sRVRecord",
-        "nAPTRRecord",
-        "kXRecord",
-        "certRecord",
-//        "a6Record",
-//        "dNameRecord",
-//        "aPLRecord",
-        "dSRecord",
-        "sSHFPRecord",
-        "iPSecKeyRecord",
-        "rRSIGRecord",
-        "nSECRecord",
-        "dNSKeyRecord",
-        "dHCIDRecord",
-        "sPFRecord",
-        "TYPE65534Record",
-        "EUI48Record",
-        "EUI64Record",
-        "TYPE65226Record",
-        "modifyTimestamp",
-        NULL
+  "associatedDomain",
+  "dNSTTL",
+  "aRecord",
+  "nSRecord",
+  "cNAMERecord",
+  "sOARecord",
+  "pTRRecord",
+  "hInfoRecord",
+  "mXRecord",
+  "tXTRecord",
+  "rPRecord",
+  "aFSDBRecord",
+//  "SigRecord",
+  "KeyRecord",
+//  "gPosRecord",
+  "aAAARecord",
+  "lOCRecord",
+  "sRVRecord",
+  "nAPTRRecord",
+  "kXRecord",
+  "certRecord",
+//  "a6Record",
+//  "dNameRecord",
+//  "aPLRecord",
+  "dSRecord",
+  "sSHFPRecord",
+  "iPSecKeyRecord",
+  "rRSIGRecord",
+  "nSECRecord",
+  "dNSKeyRecord",
+  "dHCIDRecord",
+  "sPFRecord",
+  "TYPE65534Record",
+  "EUI48Record",
+  "EUI64Record",
+  "TYPE65226Record",
+  "modifyTimestamp",
+  NULL
 };
 
 
 
 class LdapBackend : public DNSBackend
 {
-        bool m_getdn;
-        bool m_qlog;
-        int m_msgid;
-        uint32_t m_ttl;
-        uint32_t m_default_ttl;
-        unsigned int m_axfrqlen;
-        time_t m_last_modified;
-        string m_myname;
-        DNSName m_qname;
-        PowerLDAP* m_pldap;
-        PowerLDAP::sentry_t m_result;
-        PowerLDAP::sentry_t::iterator m_attribute;
-        vector<string>::iterator m_value;
-        vector<DNSName>::iterator m_adomain;
-        vector<DNSName> m_adomains;
-        QType m_qtype;
+    bool m_getdn;
+    bool m_qlog;
+    int m_msgid;
+    uint32_t m_ttl;
+    uint32_t m_default_ttl;
+    unsigned int m_axfrqlen;
+    time_t m_last_modified;
+    string m_myname;
+    DNSName m_qname;
+    PowerLDAP* m_pldap;
+    LdapAuthenticator *m_authenticator;
+    PowerLDAP::sentry_t m_result;
+    PowerLDAP::sentry_t::iterator m_attribute;
+    vector<string>::iterator m_value;
+    vector<DNSName>::iterator m_adomain;
+    vector<DNSName> m_adomains;
+    QType m_qtype;
+    int m_reconnect_attempts;
 
-        bool (LdapBackend::*m_list_fcnt)( const DNSName&, int );
-        void (LdapBackend::*m_lookup_fcnt)( const QType&, const DNSName&, DNSPacket*, int );
-        bool (LdapBackend::*m_prepare_fcnt)();
+    bool (LdapBackend::*m_list_fcnt)( const DNSName&, int );
+    void (LdapBackend::*m_lookup_fcnt)( const QType&, const DNSName&, DNSPacket*, int );
+    bool (LdapBackend::*m_prepare_fcnt)();
 
-        bool list_simple( const DNSName& target, int domain_id );
-        bool list_strict( const DNSName& target, int domain_id );
+    bool list_simple( const DNSName& target, int domain_id );
+    bool list_strict( const DNSName& target, int domain_id );
 
-        void lookup_simple( const QType& qtype, const DNSName& qdomain, DNSPacket* p, int zoneid );
-        void lookup_strict( const QType& qtype, const DNSName& qdomain, DNSPacket* p, int zoneid );
-        void lookup_tree( const QType& qtype, const DNSName& qdomain, DNSPacket* p, int zoneid );
+    void lookup_simple( const QType& qtype, const DNSName& qdomain, DNSPacket* p, int zoneid );
+    void lookup_strict( const QType& qtype, const DNSName& qdomain, DNSPacket* p, int zoneid );
+    void lookup_tree( const QType& qtype, const DNSName& qdomain, DNSPacket* p, int zoneid );
 
-        bool prepare();
-        bool prepare_simple();
-        bool prepare_strict();
+    bool prepare();
+    bool prepare_simple();
+    bool prepare_strict();
 
-        bool getDomainInfo( const string& domain, DomainInfo& di );
+    bool reconnect();
 
-public:
+  public:
 
-        LdapBackend( const string &suffix="" );
-        ~LdapBackend();
+    LdapBackend( const string &suffix="" );
+    ~LdapBackend();
 
-        bool list( const DNSName& target, int domain_id, bool include_disabled=false );
-        void lookup( const QType& qtype, const DNSName& qdomain, DNSPacket* p = 0, int zoneid = -1 );
-        bool get( DNSResourceRecord& rr );
+    // Native backend
+    bool list( const DNSName& target, int domain_id, bool include_disabled=false );
+    void lookup( const QType& qtype, const DNSName& qdomain, DNSPacket* p = 0, int zoneid = -1 );
+    bool get( DNSResourceRecord& rr );
+
+    bool getDomainInfo( const string& domain, DomainInfo& di );
+
+    // Master backend
+    void getUpdatedMasters( vector<DomainInfo>* domains );
+    void setNotified( uint32_t id, uint32_t serial );
 };
 
 #endif /* LDAPBACKEND_HH */

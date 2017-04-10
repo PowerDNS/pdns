@@ -23,7 +23,6 @@
 #include <map>
 #include <string>
 #include <vector>
-#include <exception>
 #include <stdexcept>
 #include <inttypes.h>
 #include <errno.h>
@@ -40,47 +39,41 @@ using std::map;
 using std::string;
 using std::vector;
 
-class LDAPException : public std::runtime_error
-{
-public:
-        explicit LDAPException( const string &str ) : std::runtime_error( str ) {}
-};
-
-class LDAPTimeout : public LDAPException
-{
-public:
-        explicit LDAPTimeout() : LDAPException( "Timeout" ) {}
-};
+class LdapAuthenticator;
 
 class PowerLDAP
 {
-        LDAP* d_ld;
-        string d_hosts;
-        int d_port;
-        bool d_tls;
-
-        const string getError( int rc = -1 );
-        int waitResult( int msgid = LDAP_RES_ANY, int timeout = 0, LDAPMessage** result = NULL );
-        void ensureConnect();
-        
-public:
-        typedef map<string, vector<string> > sentry_t;
-        typedef vector<sentry_t> sresult_t;
-
-        PowerLDAP( const string& hosts = "ldap://127.0.0.1/", uint16_t port = LDAP_PORT, bool tls = false );
-        ~PowerLDAP();
-
-        void getOption( int option, int* value );
-        void setOption( int option, int value );
-
-        void bind( const string& ldapbinddn = "", const string& ldapsecret = "", int method = LDAP_AUTH_SIMPLE, int timeout = 5 );
-        void simpleBind( const string& ldapbinddn = "", const string& ldapsecret = "" );
-        int search( const string& base, int scope, const string& filter, const char** attr = 0 );
-
-        bool getSearchEntry( int msgid, sentry_t& entry, bool dn = false, int timeout = 5 );
-        void getSearchResults( int msgid, sresult_t& result, bool dn = false, int timeout = 5 );
-
-        static const string escape( const string& tobe );
+    LDAP* d_ld;
+    string d_hosts;
+    int d_port;
+    bool d_tls;
+  
+    const string getError( int rc = -1 );
+    int waitResult( int msgid = LDAP_RES_ANY, int timeout = 0, LDAPMessage** result = NULL );
+    void ensureConnect();
+    
+  public:
+    typedef map<string, vector<string> > sentry_t;
+    typedef vector<sentry_t> sresult_t;
+  
+    PowerLDAP( const string& hosts = "ldap://127.0.0.1/", uint16_t port = LDAP_PORT, bool tls = false );
+    ~PowerLDAP();
+  
+    bool connect();
+  
+    void getOption( int option, int* value );
+    void setOption( int option, int value );
+  
+    void bind( LdapAuthenticator *authenticator );
+    void bind( const string& ldapbinddn = "", const string& ldapsecret = "", int method = LDAP_AUTH_SIMPLE, int timeout = 5 );
+    void simpleBind( const string& ldapbinddn = "", const string& ldapsecret = "" );
+    int search( const string& base, int scope, const string& filter, const char** attr = 0 );
+    void modify( const string& dn, LDAPMod *mods[], LDAPControl **scontrols = 0, LDAPControl **ccontrols = 0 );
+  
+    bool getSearchEntry( int msgid, sentry_t& entry, bool dn = false, int timeout = 5 );
+    void getSearchResults( int msgid, sresult_t& result, bool dn = false, int timeout = 5 );
+  
+    static const string escape( const string& tobe );
 };
 
 

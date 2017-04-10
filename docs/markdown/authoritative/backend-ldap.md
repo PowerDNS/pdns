@@ -58,20 +58,31 @@ There can be multiple LDAP URIs specified for load balancing and high availabili
 In case the used LDAP client library doesn't support LDAP URIs as connection parameter, use plain host names or IP addresses instead (both may optionally be followed by a colon and the port).
 
 ## `ldap-starttls`
-(default "no") : Use TLS encrypted connections to the LDAP server.
-This is only allowed if `ldap-host` is a `ldap://` URI or a host name / IP address.
+(default "no") : Use TLS encrypted connections to the LDAP server. This is only allowed if ldap-host is a <ldap://> URI or a host name / IP address.
 
-## `ldap-basedn`
-(default "") : The PowerDNS LDAP DNS backend searches below this path for objects containing the specified DNS information.
-The retrieval of attributes is limited to this subtree.
-This option must be set to the path according to the layout of the LDAP tree, e.g. `ou=hosts,o=example,c=net` is the DN to my objects containing the DNS information.
+## `ldap-timeout`
+(default: "5") : The number of seconds to wait for LDAP operations to complete.
+
+## `ldap-reconnect-attempts`
+(default: "5") : The number of attempts to make to re-establish a lost connection to the LDAP server.
+
+## `ldap-authmethod`
+(default: "simple") : How to authenticate to the LDAP server. Actually only two methods are supported: "simple", which uses the classical DN / password, or "gssapi", which requires a Kerberos keytab.
 
 ## `ldap-binddn`
-(default "") : Path to the object to authenticate against.
-Should only be used if the LDAP server doesn't support anonymous binds.
+(default "") : Path to the object to authenticate against. Should only be used, if the LDAP server doesn't support anonymous binds and with the "simple" authmethod.
 
 ## `ldap-secret`
-(default "") : Password for authentication against the object specified by `ldap-binddn`.
+(default "") : Password for authentication against the object specified by ldap-binddn. Only used when "authmethod" is "simple".
+
+## `ldap-krb5-keytab`
+(default: "") : Full path to the keytab file to use to authenticate. This is only used when "authmethod" is set to "gssapi". The keytab must, ideally, contain only one principal (or to put it otherwise, only the first principal found in the keytab will be used).
+
+## `ldap-krb5-ccache`
+(default: "") : Full path to the Kerberos credential cache file to use. Actually only files are supported, and the "FILE:" prefix must not be set. The PowerDNS process must be able to write to this file and it *must* be the only one able to read it.
+
+## `ldap-basedn`
+(default "") : The PowerDNS LDAP DNS backend searches below this path for objects containing the specified DNS information. The retrieval of attributes is limited to this subtree. This option must be set to the path according to the layout of your LDAP tree, e.g. ou=hosts,o=linuxnetworks,c=de is the DN to my objects containing the DNS information.
 
 ## `ldap-method`
 (default "simple") :
@@ -85,6 +96,50 @@ Should only be used if the LDAP server doesn't support anonymous binds.
 
 ## `ldap-filter-lookup`
 (default "(:target:)" ) : LDAP filter for limiting IP or name lookups, e.g. (&(:target:)(active=yes)) for returning only entries whose attribute "active" is set to "yes".
+
+# Master Mode
+
+Schema update
+-------------
+
+First off adding master support to the LDAP backend needs
+a schema update. This is required as some metadata must
+be stored by PowerDNS, such as the last successful transfer
+to slaves. The new schema is available in
+schema/pdns-domaininfo.schema.
+
+Once the schema is loaded the zones for which you want to
+be a master must be modified. The dn of the SOA record
+*must* have the object class `PdnsDomain`, and thus the
+`PdnsDomainId` attribute. This attribute is an integer
+that *must* be unique across all zones served by the
+backend. Furthermore the `PdnsDomainType` must be equal
+to 'master' (lower case).
+
+Example
+-------
+
+Here is an example LDIF of a zone that's ready for master
+operation (assuming the 'tree' style):
+
+```
+dn: dc=example,dc=com,ou=dns,dc=mycompany,dc=com
+objectClass: top
+objectClass: domainRelatedObject
+objectClass: dNSDomain2
+objectClass: PdnsDomain
+dc: example
+associatedDomain: example.com
+nSRecord: ns1.example.com
+sOARecord: ns1.example.com. hostmaster.example.com. 2013031101 1800 600 1209600 600
+mXRecord: 10 mx1.example.com
+PdnsDomainId: 1
+PdnsDomainType: master
+PdnsDomainMaster: 192.168.0.2
+```
+
+You should have one attribute `PdnsDomainMaster` per
+master serving this zone.
 
 # Example
 ## Tree design
