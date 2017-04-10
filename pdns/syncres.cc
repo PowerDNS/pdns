@@ -795,7 +795,14 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
   return false;
 }
 
-static inline void addTTLModifiedRecords(const vector<DNSRecord>& records, const uint32_t ttl, vector<DNSRecord>& ret) {
+/*!
+ * Convience function to push the records from records into ret with a new TTL
+ *
+ * \param records DNSRecords that need to go into ret
+ * \param ttl     The new TTL for these records
+ * \param ret     The vector of DNSRecords that should contian the records with the modified TTL
+ */
+static void addTTLModifiedRecords(const vector<DNSRecord>& records, const uint32_t ttl, vector<DNSRecord>& ret) {
   for (const auto& rec : records) {
     DNSRecord r(rec);
     r.d_ttl = ttl;
