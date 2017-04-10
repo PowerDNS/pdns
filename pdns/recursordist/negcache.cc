@@ -24,7 +24,8 @@
 #include "cachecleaner.hh"
 
 /*!
- * Set ne to the NegCacheEntry for the last label in qname and return true
+ * Set ne to the NegCacheEntry for the last label in qname and return true if there
+ * was one.
  *
  * \param qname    The name to look up (only the last label is used)
  * \param now      A timeval with the current time, to check if an entry is expired
@@ -32,20 +33,27 @@
  * \return         true if ne was filled out, false otherwise
  */
 bool NegCache::getRootNXTrust(const DNSName& qname, const struct timeval& now, NegCacheEntry& ne) {
+  // Never deny the root.
+  if (qname.isRoot())
+    return false;
+
   // An 'ENT' QType entry, used as "whole name" in the neg-cache context.
   static const QType qtnull(0);
-  pair<negcache_t::const_iterator, negcache_t::const_iterator> range;
   DNSName lastLabel = qname.getLastLabel();
-  range.first = d_negcache.find(tie(lastLabel, qtnull));
+  negcache_t::const_iterator ni = d_negcache.find(tie(lastLabel, qtnull));
 
-  if (range.first != d_negcache.end() &&
-      range.first->d_auth.isRoot()) {
-    if ((uint32_t)now.tv_sec < range.first->d_ttd) {
-      ne = *range.first;
-      moveCacheItemToBack(d_negcache, range.first);
+  while (ni != d_negcache.end() &&
+         ni->d_name == lastLabel &&
+         ni->d_auth.isRoot() &&
+         ni->d_qtype == qtnull) {
+    // We have something
+    if ((uint32_t)now.tv_sec < ni->d_ttd) {
+      ne = *ni;
+      moveCacheItemToBack(d_negcache, ni);
       return true;
     }
-    moveCacheItemToFront(d_negcache, range.first);
+    moveCacheItemToFront(d_negcache, ni);
+    ni++;
   }
   return false;
 }
