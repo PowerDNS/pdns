@@ -156,6 +156,7 @@ void DNSFilterEngine::clear(size_t zone)
   z.qpolAddr.clear();
   z.postpolAddr.clear();
   z.propolName.clear();
+  z.propolNSAddr.clear();
   z.qpolName.clear();
 }
 
@@ -165,6 +166,7 @@ void DNSFilterEngine::clear()
     z.qpolAddr.clear();
     z.postpolAddr.clear();
     z.propolName.clear();
+    z.propolNSAddr.clear();
     z.qpolName.clear();
   }
 }
