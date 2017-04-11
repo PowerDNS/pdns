@@ -7,7 +7,6 @@
 #include <boost/assign/list_of.hpp>
 
 #include <boost/tuple/tuple.hpp>
-#include <boost/iostreams/stream.hpp>
 #include <boost/iostreams/device/file.hpp>
 #include "dns.hh"
 #include "zoneparser-tng.hh"
