@@ -41,3 +41,6 @@
 /pdns-recursor.service
 /pdns-recursor@.service
 /lua.hpp
+/test-suite.log
+/testrunner.log
+/testrunner.trs

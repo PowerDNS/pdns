@@ -111,6 +111,7 @@ pdns_recursor_SOURCES = \
 	mtasker.hh \
 	mtasker_context.cc mtasker_context.hh \
 	namespaces.hh \
+	negcache.hh negcache.cc \
 	nsecrecords.cc \
 	opensslsigners.cc opensslsigners.hh \
 	packetcache.hh \
@@ -197,6 +198,7 @@ testrunner_SOURCES = \
 	iputils.cc iputils.hh \
 	logger.cc logger.hh \
 	misc.cc misc.hh \
+	negcache.hh negcache.cc \
 	namespaces.hh \
 	nsecrecords.cc \
 	pdnsexception.hh \
@@ -225,6 +227,7 @@ testrunner_SOURCES = \
 	test-iputils_hh.cc \
 	test-misc_hh.cc \
 	test-nmtree.cc \
+	test-negcache_cc.cc \
 	test-rcpgenerator_cc.cc \
 	test-recpacketcache_cc.cc \
 	test-syncres_cc.cc \

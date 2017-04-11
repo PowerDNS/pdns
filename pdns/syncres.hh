@@ -48,6 +48,7 @@
 #include "validate.hh"
 #include "ednssubnet.hh"
 #include "filterpo.hh"
+#include "negcache.hh"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -61,26 +62,6 @@
 void primeHints(void);
 
 class RecursorLua4;
-
-struct BothRecordsAndSignatures
-{
-  vector<DNSRecord> records;
-  vector<DNSRecord> signatures;
-};
-typedef map<pair<DNSName,uint16_t>, BothRecordsAndSignatures> recsig_t;
-
-struct NegCacheEntry
-{
-  DNSName d_name;
-  QType d_qtype;
-  DNSName d_qname;
-  uint32_t d_ttd;
-  uint32_t getTTD() const
-  {
-    return d_ttd;
-  }
-  recsig_t d_dnssecProof;
-};
 
 typedef map<
   DNSName,
@@ -433,21 +414,6 @@ public:
   unsigned int d_totUsec;
   ComboAddress d_requestor;
 
-  typedef multi_index_container <
-    NegCacheEntry,
-    indexed_by <
-       ordered_unique<
-           composite_key<
-                 NegCacheEntry,
-                    member<NegCacheEntry, DNSName, &NegCacheEntry::d_name>,
-                    member<NegCacheEntry, QType, &NegCacheEntry::d_qtype>
-           >,
-           composite_key_compare<CanonDNSNameCompare, std::less<QType> >
-       >,
-       sequenced<>
-    >
-  > negcache_t;
-
   //! This represents a number of decaying Ewmas, used to store performance per nameserver-name.
   /** Modelled to work mostly like the underlying DecayingEwma. After you've called get,
       d_best is filled out with the best address for this collection */
@@ -551,13 +517,13 @@ public:
   static string s_serverID;
 
   struct StaticStorage {
-    negcache_t negcache;
     nsspeeds_t nsSpeeds;
     ednsstatus_t ednsstatus;
     throttle_t throttle;
     fails_t fails;
     domainmap_t* domainmap;
     map<DNSName, bool> dnssecmap;
+    NegCache negcache;
   };
 
 private:

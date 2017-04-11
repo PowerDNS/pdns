@@ -78,6 +78,7 @@ public:
   void prependRawLabel(const std::string& str); //!< Prepend this unescaped label
   std::vector<std::string> getRawLabels() const; //!< Individual raw unescaped labels
   std::string getRawLabel(unsigned int pos) const; //!< Get the specified raw unescaped label
+  DNSName getLastLabel() const; //!< Get the DNSName of the last label
   bool chopOff();                               //!< Turn www.powerdns.com. into powerdns.com., returns false for .
   DNSName makeRelative(const DNSName& zone) const;
   DNSName makeLowerCase() const

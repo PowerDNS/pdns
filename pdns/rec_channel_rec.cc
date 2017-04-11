@@ -11,6 +11,7 @@
 #include "misc.hh"
 #include "recursor_cache.hh"
 #include "syncres.hh"
+#include "negcache.hh"
 #include <boost/function.hpp>
 #include <boost/optional.hpp>
 #include <boost/tuple/tuple.hpp>
@@ -175,26 +176,17 @@ string doGetParameter(T begin, T end)
 }
 
 
-static uint64_t dumpNegCache(SyncRes::negcache_t& negcache, int fd)
+static uint64_t dumpNegCache(NegCache& negcache, int fd)
 {
   FILE* fp=fdopen(dup(fd), "w");
   if(!fp) { // dup probably failed
     return 0;
   }
+  uint64_t ret;
   fprintf(fp, "; negcache dump from thread follows\n;\n");
-  time_t now = time(0);
-  
-  typedef SyncRes::negcache_t::nth_index<1>::type sequence_t;
-  sequence_t& sidx=negcache.get<1>();
-
-  uint64_t count=0;
-  for(const NegCacheEntry& neg :  sidx)
-  {
-    ++count;
-    fprintf(fp, "%s IN %s %d VIA %s\n", neg.d_name.toString().c_str(), neg.d_qtype.getName().c_str(), (unsigned int) (neg.d_ttd - now), neg.d_qname.toString().c_str());
-  }
+  ret = negcache.dumpToFile(fp);
   fclose(fp);
-  return count;
+  return ret;
 }
 
 static uint64_t* pleaseDump(int fd)
@@ -282,23 +274,10 @@ uint64_t* pleaseWipePacketCache(const DNSName& canon, bool subtree)
 
 uint64_t* pleaseWipeAndCountNegCache(const DNSName& canon, bool subtree)
 {
-  if(!subtree) {
-    uint64_t res = t_sstorage->negcache.count(tie(canon));
-    auto range=t_sstorage->negcache.equal_range(tie(canon));
-    t_sstorage->negcache.erase(range.first, range.second);
-    return new uint64_t(res);
-  }
-  else {
-    unsigned int erased=0;
-    for(auto iter = t_sstorage->negcache.lower_bound(tie(canon)); iter != t_sstorage->negcache.end(); ) {
-      if(!iter->d_qname.isPartOf(canon))
-	break;
-      t_sstorage->negcache.erase(iter++);
-      erased++;
-    }
-    return new uint64_t(erased);
-  }
+  uint64_t ret = t_sstorage->negcache.wipe(canon, subtree);
+  return new uint64_t(ret);
 }
+
 
 template<typename T>
 string doWipeCache(T begin, T end)
