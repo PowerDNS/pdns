@@ -103,7 +103,7 @@ static void accountAuthLatency(int usec, int family)
 
 SyncRes::SyncRes(const struct timeval& now) :  d_outqueries(0), d_tcpoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_unreachables(0),
 					       d_totUsec(0), d_now(now),
-					       d_cacheonly(false), d_nocache(false), d_doDNSSEC(false), d_doEDNS0(false), d_lm(s_lm)
+					       d_cacheonly(false), d_doDNSSEC(false), d_doEDNS0(false), d_lm(s_lm)
                                                  
 { 
 }
@@ -479,7 +479,7 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
   int res=0;
 
   // This is a difficult way of expressing "this is a normal query", i.e. not getRootNS.
-  if(!(d_nocache && qtype.getCode()==QType::NS && qname.isRoot())) {
+  if(!(d_updatingRootNS && qtype.getCode()==QType::NS && qname.isRoot())) {
     if(d_cacheonly) { // very limited OOB support
       LWResult lwr;
       LOG(prefix<<qname<<": Recursion not requested for '"<<qname<<"|"<<qtype.getName()<<"', peeking at auth/forward zones"<<endl);
@@ -705,7 +705,10 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vecto
       // We lost the root NS records
       primeHints();
       LOG(prefix<<qname<<": reprimed the root"<<endl);
-      getRootNS(d_now, d_asyncResolve);
+      /* let's prevent an infinite loop */
+      if (!d_updatingRootNS) {
+        getRootNS(d_now, d_asyncResolve);
+      }
     }
   }while(subdomain.chopOff());
 }
@@ -1761,7 +1764,7 @@ int directResolve(const DNSName& qname, const QType& qtype, int qclass, vector<D
 int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback) {
   SyncRes sr(now);
   sr.setDoEDNS0(true);
-  sr.setNoCache();
+  sr.setUpdatingRootNS();
   sr.setDoDNSSEC(g_dnssecmode != DNSSECMode::Off);
   sr.setAsyncCallback(asyncCallback);
 

@@ -535,10 +535,6 @@ public:
   {
     d_cacheonly=state;
   }
-  void setNoCache(bool state=true)
-  {
-    d_nocache=state;
-  }
 
   void setDoEDNS0(bool state=true)
   {
@@ -705,6 +701,12 @@ private:
 
   boost::optional<Netmask> getEDNSSubnetMask(const ComboAddress& local, const DNSName&dn, const ComboAddress& rem);
 
+  void setUpdatingRootNS()
+  {
+    d_updatingRootNS = true;
+  }
+
+
   ostringstream d_trace;
   shared_ptr<RecursorLua4> d_pdl;
   boost::optional<const EDNSSubnetOpts&> d_incomingECS;
@@ -719,14 +721,11 @@ private:
    * This is set when the RD bit is unset in the incoming query
    */
   bool d_cacheonly;
-  /* d_nocache is *only* set in getRootNS() (in pdns_recursor.cc).
-   * It forces us to not look in the cache or local auth.
-   */
-  bool d_nocache;
   bool d_doDNSSEC;
   bool d_doEDNS0{true};
   bool d_incomingECSFound{false};
   bool d_skipCNAMECheck{false};
+  bool d_updatingRootNS{false};
   bool d_wantsRPZ{true};
   bool d_wasOutOfBand{false};
   bool d_wasVariable{false};
