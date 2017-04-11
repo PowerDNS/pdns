@@ -15,6 +15,7 @@ class TestBasics(DNSDistTest):
     mySMN:add(newDNSName("nameAndQtype.tests.powerdns.com."))
     addAction(AndRule{SuffixMatchNodeRule(mySMN), QTypeRule("TXT")}, RCodeAction(dnsdist.NOTIMP))
     addAction(makeRule("drop.test.powerdns.com."), DropAction())
+    addAction(AndRule({QTypeRule(dnsdist.A),QNameRule("ds9a.nl")}), SpoofAction("1.2.3.4"))
     addAction(newDNSName("dnsname.addaction.powerdns.com."), RCodeAction(dnsdist.REFUSED))
     addAction({newDNSName("dnsname-table1.addaction.powerdns.com."), newDNSName("dnsname-table2.addaction.powerdns.com.")}, RCodeAction(dnsdist.REFUSED))
     block=newDNSName("powerdns.org.")
@@ -69,7 +70,7 @@ class TestBasics(DNSDistTest):
         query = dns.message.make_query(name, 'A', 'IN', use_edns=True, options=[ecso])
         response = dns.message.make_response(query)
         rrset = dns.rrset.from_text(name,
-                                    3600,
+                                    60,
                                     dns.rdataclass.IN,
                                     dns.rdatatype.A,
                                     '127.0.0.1')
@@ -196,6 +197,31 @@ class TestBasics(DNSDistTest):
 
         (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
         self.assertEquals(receivedResponse, expectedResponse)
+
+    def testQNameReturnsSpoofed(self):
+        """
+        Basics: test QNameRule and Spoof
+
+        dnsdist is configured to reply 1.2.3.4 for A query for exactly ds9a.nl
+        """
+        name = 'ds9a.nl.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.set_rcode(dns.rcode.NOERROR)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '1.2.3.4')
+        expectedResponse.answer.append(rrset)
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, expectedResponse)
+
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, expectedResponse)
+
 
     def testDomainAndQTypeReturnsNotImplemented(self):
         """
