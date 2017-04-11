@@ -349,7 +349,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
           {"order", (int)a->order},
           {"pools", pools},
           {"latency", (int)(a->latencyUsec/1000.0)},
-          {"queries", (int)a->queries}};
+          {"queries", (double)a->queries}};
 
         /* sending a latency for a DOWN server doesn't make sense */
         if (a->availability == DownstreamState::Availability::Down) {
