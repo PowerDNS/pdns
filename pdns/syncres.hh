@@ -328,10 +328,9 @@ public:
   typedef map<DNSName, DecayingEwmaCollection> nsspeeds_t;
   typedef map<ComboAddress, EDNSStatus> ednsstatus_t;
 
-  struct AuthDomain
+  class AuthDomain
   {
-    vector<ComboAddress> d_servers;
-    bool d_rdForward;
+  public:
     typedef multi_index_container <
       DNSRecord,
       indexed_by <
@@ -344,7 +343,32 @@ public:
         >
       >
     > records_t;
+
     records_t d_records;
+    vector<ComboAddress> d_servers;
+    DNSName d_name;
+    bool d_rdForward{false};
+
+    int getRecords(const DNSName& qname, uint16_t qtype, std::vector<DNSRecord>& records) const;
+    bool isAuth() const
+    {
+      return d_servers.empty();
+    }
+    bool isForward() const
+    {
+      return !isAuth();
+    }
+    bool shouldRecurse() const
+    {
+      return d_rdForward;
+    }
+    const DNSName& getName() const
+    {
+      return d_name;
+    }
+
+  private:
+    void addSOA(std::vector<DNSRecord>& records) const;
   };
 
   typedef map<DNSName, AuthDomain> domainmap_t;
@@ -676,6 +700,7 @@ private:
   bool processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType& qtype, DNSName& auth, bool wasForwarded, const boost::optional<Netmask> ednsmask, bool sendRDQuery, NsSet &nameservers, std::vector<DNSRecord>& ret, const DNSFilterEngine& dfe, bool* gotNewServers, int* rcode);
 
   int doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere);
+  bool doOOBResolve(const AuthDomain& domain, const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, int& res) const;
   bool doOOBResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int &res);
   domainmap_t::const_iterator getBestAuthZone(DNSName* qname) const;
   bool doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int &res);

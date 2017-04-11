@@ -36,8 +36,19 @@
 
 thread_local SyncRes::ThreadLocalStorage SyncRes::t_sstorage;
 
+std::unordered_set<DNSName> SyncRes::s_delegationOnly;
+std::unique_ptr<NetmaskGroup> SyncRes::s_dontQuery{nullptr};
+NetmaskGroup SyncRes::s_ednssubnets;
+SuffixMatchNode SyncRes::s_ednsdomains;
+string SyncRes::s_serverID;
+SyncRes::LogMode SyncRes::s_lm;
+
 unsigned int SyncRes::s_maxnegttl;
 unsigned int SyncRes::s_maxcachettl;
+unsigned int SyncRes::s_maxqperq;
+unsigned int SyncRes::s_maxtotusec;
+unsigned int SyncRes::s_maxdepth;
+unsigned int SyncRes::s_minimumTTL;
 unsigned int SyncRes::s_packetcachettl;
 unsigned int SyncRes::s_packetcacheservfailttl;
 unsigned int SyncRes::s_serverdownmaxfails;
@@ -54,23 +65,12 @@ std::atomic<uint64_t> SyncRes::s_nodelegated;
 std::atomic<uint64_t> SyncRes::s_unreachables;
 uint8_t SyncRes::s_ecsipv4limit;
 uint8_t SyncRes::s_ecsipv6limit;
-unsigned int SyncRes::s_minimumTTL;
 bool SyncRes::s_doIPv6;
 bool SyncRes::s_nopacketcache;
 bool SyncRes::s_rootNXTrust;
-unsigned int SyncRes::s_maxqperq;
-unsigned int SyncRes::s_maxtotusec;
-unsigned int SyncRes::s_maxdepth;
-string SyncRes::s_serverID;
-SyncRes::LogMode SyncRes::s_lm;
-std::unordered_set<DNSName> SyncRes::s_delegationOnly;
-std::unique_ptr<NetmaskGroup> SyncRes::s_dontQuery{nullptr};
-NetmaskGroup SyncRes::s_ednssubnets;
-SuffixMatchNode SyncRes::s_ednsdomains;
+bool SyncRes::s_noEDNS;
 
 #define LOG(x) if(d_lm == Log) { L <<Logger::Warning << x; } else if(d_lm == Store) { d_trace << x; }
-
-bool SyncRes::s_noEDNS;
 
 static void accountAuthLatency(int usec, int family)
 {
@@ -200,6 +200,114 @@ bool SyncRes::doSpecialNamesResolve(const DNSName &qname, const QType &qtype, co
 
 
 //! This is the 'out of band resolver', in other words, the authoritative server
+void SyncRes::AuthDomain::addSOA(std::vector<DNSRecord>& records) const
+{
+  SyncRes::AuthDomain::records_t::const_iterator ziter = d_records.find(boost::make_tuple(getName(), QType::SOA));
+  if (ziter != d_records.end()) {
+    DNSRecord dr = *ziter;
+    dr.d_place = DNSResourceRecord::AUTHORITY;
+    records.push_back(dr);
+  }
+  else {
+    // cerr<<qname<<": can't find SOA record '"<<getName()<<"' in our zone!"<<endl;
+  }
+}
+
+int SyncRes::AuthDomain::getRecords(const DNSName& qname, uint16_t qtype, std::vector<DNSRecord>& records) const
+{
+  int result = RCode::NoError;
+  records.clear();
+
+  // partial lookup
+  std::pair<records_t::const_iterator,records_t::const_iterator> range = d_records.equal_range(tie(qname));
+
+  SyncRes::AuthDomain::records_t::const_iterator ziter;
+  bool somedata = false;
+
+  for(ziter = range.first; ziter != range.second; ++ziter) {
+    somedata = true;
+
+    if(qtype == QType::ANY || ziter->d_type == qtype || ziter->d_type == QType::CNAME) {
+      // let rest of nameserver do the legwork on this one
+      records.push_back(*ziter);
+    }
+    else if (ziter->d_type == QType::NS && ziter->d_name.countLabels() > getName().countLabels()) {
+      // we hit a delegation point!
+      DNSRecord dr = *ziter;
+      dr.d_place=DNSResourceRecord::AUTHORITY;
+      records.push_back(dr);
+    }
+  }
+
+  if (!records.empty()) {
+    /* We have found an exact match, we're done */
+    // cerr<<qname<<": exact match in zone '"<<getName()<<"'"<<endl;
+    return result;
+  }
+
+  if (somedata) {
+    /* We have records for that name, but not of the wanted qtype */
+    // cerr<<qname<<": found record in '"<<getName()<<"', but nothing of the right type, sending SOA"<<endl;
+    addSOA(records);
+
+    return result;
+  }
+
+  // cerr<<qname<<": nothing found so far in '"<<getName()<<"', trying wildcards"<<endl;
+  DNSName wcarddomain(qname);
+  while(wcarddomain != getName() && wcarddomain.chopOff()) {
+    // cerr<<qname<<": trying '*."<<wcarddomain<<"' in "<<getName()<<endl;
+    range = d_records.equal_range(boost::make_tuple(g_wildcarddnsname + wcarddomain));
+    if (range.first==range.second)
+      continue;
+
+    for(ziter = range.first; ziter != range.second; ++ziter) {
+      DNSRecord dr = *ziter;
+      // if we hit a CNAME, just answer that - rest of recursor will do the needful & follow
+      if(dr.d_type == qtype || qtype == QType::ANY || dr.d_type == QType::CNAME) {
+        dr.d_name = qname;
+        dr.d_place = DNSResourceRecord::ANSWER;
+        records.push_back(dr);
+      }
+    }
+
+    if (records.empty()) {
+      addSOA(records);
+    }
+
+    // cerr<<qname<<": in '"<<getName()<<"', had wildcard match on '*."<<wcarddomain<<"'"<<endl;
+    return result;
+  }
+
+  /* Nothing for this name, no wildcard, let's see if there is some NS */
+  DNSName nsdomain(qname);
+  while (nsdomain.chopOff() && nsdomain != getName()) {
+    range = d_records.equal_range(boost::make_tuple(nsdomain,QType::NS));
+    if(range.first == range.second)
+      continue;
+
+    for(ziter = range.first; ziter != range.second; ++ziter) {
+      DNSRecord dr = *ziter;
+      dr.d_place = DNSResourceRecord::AUTHORITY;
+      records.push_back(dr);
+    }
+  }
+
+  if(records.empty()) {
+    // cerr<<qname<<": no NS match in zone '"<<getName()<<"' either, handing out SOA"<<endl;
+    addSOA(records);
+    result = RCode::NXDomain;
+  }
+
+  return result;
+}
+
+bool SyncRes::doOOBResolve(const AuthDomain& domain, const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, int& res) const
+{
+  res = domain.getRecords(qname, qtype.getCode(), ret);
+  return true;
+}
+
 bool SyncRes::doOOBResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int& res)
 {
   string prefix;
@@ -208,103 +316,15 @@ bool SyncRes::doOOBResolve(const DNSName &qname, const QType &qtype, vector<DNSR
     prefix.append(depth, ' ');
   }
 
-  LOG(prefix<<qname<<": checking auth storage for '"<<qname<<"|"<<qtype.getName()<<"'"<<endl);
   DNSName authdomain(qname);
-
   domainmap_t::const_iterator iter=getBestAuthZone(&authdomain);
-  if(iter==t_sstorage.domainmap->end()) {
+  if(iter==t_sstorage.domainmap->end() || !iter->second.isAuth()) {
     LOG(prefix<<qname<<": auth storage has no zone for this query!"<<endl);
     return false;
   }
+
   LOG(prefix<<qname<<": auth storage has data, zone='"<<authdomain<<"'"<<endl);
-  pair<AuthDomain::records_t::const_iterator, AuthDomain::records_t::const_iterator> range;
-
-  range=iter->second.d_records.equal_range(tie(qname)); // partial lookup
-
-  ret.clear();
-  AuthDomain::records_t::const_iterator ziter;
-  bool somedata=false;
-  for(ziter=range.first; ziter!=range.second; ++ziter) {
-    somedata=true;
-    if(qtype.getCode()==QType::ANY || ziter->d_type==qtype.getCode() || ziter->d_type==QType::CNAME)  // let rest of nameserver do the legwork on this one
-      ret.push_back(*ziter);
-    else if(ziter->d_type == QType::NS && ziter->d_name.countLabels() > authdomain.countLabels()) { // we hit a delegation point!
-      DNSRecord dr=*ziter;
-      dr.d_place=DNSResourceRecord::AUTHORITY;
-      ret.push_back(dr);
-    }
-  }
-  if(!ret.empty()) {
-    LOG(prefix<<qname<<": exact match in zone '"<<authdomain<<"'"<<endl);
-    res=0;
-    return true;
-  }
-  if(somedata) {
-    LOG(prefix<<qname<<": found record in '"<<authdomain<<"', but nothing of the right type, sending SOA"<<endl);
-    ziter=iter->second.d_records.find(boost::make_tuple(authdomain, QType::SOA));
-    if(ziter!=iter->second.d_records.end()) {
-      DNSRecord dr=*ziter;
-      dr.d_place=DNSResourceRecord::AUTHORITY;
-      ret.push_back(dr);
-    }
-    else
-      LOG(prefix<<qname<<": can't find SOA record '"<<authdomain<<"' in our zone!"<<endl);
-    res=RCode::NoError;
-    return true;
-  }
-
-  LOG(prefix<<qname<<": nothing found so far in '"<<authdomain<<"', trying wildcards"<<endl);
-  DNSName wcarddomain(qname);
-  while(wcarddomain != iter->first && wcarddomain.chopOff()) {
-    LOG(prefix<<qname<<": trying '*."<<wcarddomain<<"' in "<<authdomain<<endl);
-    range=iter->second.d_records.equal_range(boost::make_tuple(g_wildcarddnsname+wcarddomain));
-    if(range.first==range.second)
-      continue;
-
-    for(ziter=range.first; ziter!=range.second; ++ziter) {
-      DNSRecord dr=*ziter;
-      // if we hit a CNAME, just answer that - rest of recursor will do the needful & follow
-      if(dr.d_type == qtype.getCode() || qtype.getCode() == QType::ANY || dr.d_type == QType::CNAME) {
-        dr.d_name = qname;
-        dr.d_place=DNSResourceRecord::ANSWER;
-        ret.push_back(dr);
-      }
-    }
-    LOG(prefix<<qname<<": in '"<<authdomain<<"', had wildcard match on '*."<<wcarddomain<<"'"<<endl);
-    res=RCode::NoError;
-    return true;
-  }
-
-  DNSName nsdomain(qname);
-
-  while(nsdomain.chopOff() && nsdomain != iter->first) {
-    range=iter->second.d_records.equal_range(boost::make_tuple(nsdomain,QType::NS));
-    if(range.first==range.second)
-      continue;
-
-    for(ziter=range.first; ziter!=range.second; ++ziter) {
-      DNSRecord dr=*ziter;
-      dr.d_place=DNSResourceRecord::AUTHORITY;
-      ret.push_back(dr);
-    }
-  }
-  if(ret.empty()) {
-    LOG(prefix<<qname<<": no NS match in zone '"<<authdomain<<"' either, handing out SOA"<<endl);
-    ziter=iter->second.d_records.find(boost::make_tuple(authdomain, QType::SOA));
-    if(ziter!=iter->second.d_records.end()) {
-      DNSRecord dr=*ziter;
-      dr.d_place=DNSResourceRecord::AUTHORITY;
-      ret.push_back(dr);
-    }
-    else {
-      LOG(prefix<<qname<<": can't find SOA record '"<<authdomain<<"' in our zone!"<<endl);
-    }
-    res=RCode::NXDomain;
-  }
-  else
-    res=0;
-
-  return true;
+  return doOOBResolve(iter->second, qname, qtype, ret, res);
 }
 
 void SyncRes::doEDNSDumpAndClose(int fd)
@@ -486,13 +506,13 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
       DNSName authname(qname);
       domainmap_t::const_iterator iter=getBestAuthZone(&authname);
       if(iter != t_sstorage.domainmap->end()) {
-        const vector<ComboAddress>& servers = iter->second.d_servers;
-        if(servers.empty()) {
+        if(iter->second.isAuth()) {
           ret.clear();
           d_wasOutOfBand = doOOBResolve(qname, qtype, ret, depth, res);
           return res;
         }
         else {
+          const vector<ComboAddress>& servers = iter->second.d_servers;
           const ComboAddress remoteIP = servers.front();
           LOG(prefix<<qname<<": forwarding query to hardcoded nameserver '"<< remoteIP.toStringWithPort()<<"' for zone '"<<authname<<"'"<<endl);
 
@@ -732,7 +752,7 @@ DNSName SyncRes::getBestNSNamesFromCache(const DNSName &qname, const QType& qtyp
 
   domainmap_t::const_iterator iter=getBestAuthZone(&authdomain);
   if(iter!=t_sstorage.domainmap->end()) {
-    if( iter->second.d_servers.empty() )
+    if( iter->second.isAuth() )
       // this gets picked up in doResolveAt, the empty DNSName, combined with the
       // empty vector means 'we are auth for this zone'
       nsset.insert({DNSName(), {{}, false}});
@@ -740,7 +760,7 @@ DNSName SyncRes::getBestNSNamesFromCache(const DNSName &qname, const QType& qtyp
       // Again, picked up in doResolveAt. An empty DNSName, combined with a
       // non-empty vector of ComboAddresses means 'this is a forwarded domain'
       // This is actually picked up in retrieveAddressesForNS called from doResolveAt.
-      nsset.insert({DNSName(), {iter->second.d_servers, iter->second.d_rdForward}});
+      nsset.insert({DNSName(), {iter->second.d_servers, iter->second.shouldRecurse() }});
     }
     return authdomain;
   }

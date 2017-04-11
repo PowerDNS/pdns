@@ -105,7 +105,7 @@ static thread_local std::unique_ptr<tcpClientCounts_t> t_tcpClientCounts;
 thread_local std::unique_ptr<MT_t> MT; // the big MTasker
 thread_local std::unique_ptr<MemRecursorCache> t_RC;
 thread_local std::unique_ptr<RecursorPacketCache> t_packetCache;
-thread_local FDMultiplexer* t_fdm;
+thread_local FDMultiplexer* t_fdm{nullptr};
 thread_local std::unique_ptr<addrringbuf_t> t_remotes, t_servfailremotes, t_largeanswerremotes;
 thread_local std::unique_ptr<boost::circular_buffer<pair<DNSName, uint16_t> > > t_queryring, t_servfailqueryring;
 thread_local std::shared_ptr<NetmaskGroup> t_allowFrom;
@@ -2043,9 +2043,9 @@ static void doStats(void)
 
 static void houseKeeping(void *)
 {
-  static __thread time_t last_stat, last_rootupdate, last_prune, last_secpoll;
-  static __thread int cleanCounter=0;
-  static __thread bool s_running;  // houseKeeping can get suspended in secpoll, and be restarted, which makes us do duplicate work
+  static thread_local time_t last_stat, last_rootupdate, last_prune, last_secpoll;
+  static thread_local int cleanCounter=0;
+  static thread_local bool s_running;  // houseKeeping can get suspended in secpoll, and be restarted, which makes us do duplicate work
   try {
     if(s_running)
       return;

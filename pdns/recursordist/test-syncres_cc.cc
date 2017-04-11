@@ -414,6 +414,40 @@ BOOST_AUTO_TEST_CASE(test_tc_fallback_to_tcp) {
   BOOST_CHECK_EQUAL(res, 0);
 }
 
+BOOST_AUTO_TEST_CASE(test_tc_over_tcp) {
+  std::unique_ptr<SyncRes> sr;
+  init();
+  initSR(sr, true, false);
+
+  size_t tcpQueriesCount = 0;
+
+  sr->setAsyncCallback([&tcpQueriesCount](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
+      if (!doTCP) {
+        setLWResult(res, 0, true, true, false);
+        return 1;
+      }
+
+      /* first TCP query is answered with a TC response */
+      tcpQueriesCount++;
+      if (tcpQueriesCount == 1) {
+        setLWResult(res, 0, true, true, false);
+      }
+      else {
+        setLWResult(res, 0, true, false, false);
+      }
+
+      addRecordToLW(res, domain, QType::A, "192.0.2.1");
+      return 1;
+    });
+
+  primeHints();
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(DNSName("powerdns.com."), QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, 0);
+  BOOST_CHECK_EQUAL(tcpQueriesCount, 2);
+}
+
 BOOST_AUTO_TEST_CASE(test_all_nss_down) {
   std::unique_ptr<SyncRes> sr;
   init();
@@ -1562,6 +1596,42 @@ BOOST_AUTO_TEST_CASE(test_flawed_nsset) {
   BOOST_CHECK_EQUAL(ret.size(), 1);
 }
 
+BOOST_AUTO_TEST_CASE(test_completely_flawed_nsset) {
+  std::unique_ptr<SyncRes> sr;
+  init();
+  initSR(sr, true, false);
+
+  primeHints();
+
+  const DNSName target("powerdns.com.");
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([&queriesCount,target](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
+
+      queriesCount++;
+
+      if (isRootServer(ip) && domain == target) {
+        setLWResult(res, 0, true, false, true);
+        addRecordToLW(res, domain, QType::NS, "pdns-public-ns2.powerdns.com.", DNSResourceRecord::AUTHORITY, 172800);
+        addRecordToLW(res, domain, QType::NS, "pdns-public-ns3.powerdns.com.", DNSResourceRecord::AUTHORITY, 172800);
+        return 1;
+      } else if (domain == DNSName("pdns-public-ns2.powerdns.com.") || domain == DNSName("pdns-public-ns3.powerdns.com.")){
+        setLWResult(res, 0, true, false, true);
+        addRecordToLW(res, ".", QType::SOA, "a.root-servers.net. nstld.verisign-grs.com. 2017032800 1800 900 604800 86400", DNSResourceRecord::AUTHORITY, 86400);
+        return 1;
+      }
+
+      return 0;
+    });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::ServFail);
+  BOOST_CHECK_EQUAL(ret.size(), 0);
+  /* one query to get NSs, then A and AAAA for each NS */
+  BOOST_CHECK_EQUAL(queriesCount, 5);
+}
+
 BOOST_AUTO_TEST_CASE(test_cache_hit) {
   std::unique_ptr<SyncRes> sr;
   init();
@@ -2480,6 +2550,529 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_delegation_oob) {
   BOOST_CHECK(ret[0].d_type == QType::A);
   BOOST_CHECK_EQUAL(queriesCount, 0);
   BOOST_CHECK(sr->wasOutOfBand());
+}
+
+BOOST_AUTO_TEST_CASE(test_auth_zone) {
+  std::unique_ptr<SyncRes> sr;
+  init();
+  initSR(sr, true, false);
+
+  primeHints();
+
+  size_t queriesCount = 0;
+  const DNSName target("powerdns.com.");
+  const ComboAddress addr("192.0.2.5");
+
+  SyncRes::AuthDomain ad;
+  ad.d_name = target;
+  DNSRecord dr;
+  dr.d_place = DNSResourceRecord::ANSWER;
+  dr.d_name = target;
+  dr.d_type = QType::SOA;
+  dr.d_ttl = 3600;
+  dr.d_content = std::make_shared<SOARecordContent>("pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600");
+  ad.d_records.insert(dr);
+
+  dr.d_place = DNSResourceRecord::ANSWER;
+  dr.d_name = target;
+  dr.d_type = QType::A;
+  dr.d_ttl = 3600;
+  dr.d_content = std::make_shared<ARecordContent>(addr);
+  ad.d_records.insert(dr);
+
+  auto map = std::make_shared<SyncRes::domainmap_t>();
+  (*map)[target] = ad;
+  SyncRes::setDomainMap(map);
+
+  sr->setAsyncCallback([&queriesCount](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
+
+      queriesCount++;
+      setLWResult(res, 0, true, false, true);
+      addRecordToLW(res, domain, QType::A, "192.0.2.42");
+      return 1;
+  });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, 0);
+  BOOST_CHECK_EQUAL(ret.size(), 1);
+  BOOST_CHECK(ret[0].d_type == QType::A);
+  BOOST_CHECK_EQUAL(getRR<ARecordContent>(ret[0])->getCA().toString(), addr.toString());
+  BOOST_CHECK_EQUAL(queriesCount, 0);
+}
+
+BOOST_AUTO_TEST_CASE(test_auth_zone_cname_lead_to_oob) {
+  std::unique_ptr<SyncRes> sr;
+  init();
+  initSR(sr, true, false);
+
+  primeHints();
+
+  size_t queriesCount = 0;
+  const DNSName target("powerdns.com.");
+  const DNSName authZone("internal.powerdns.com.");
+  const ComboAddress addr("192.0.2.5");
+
+  SyncRes::AuthDomain ad;
+  ad.d_name = authZone;
+  DNSRecord dr;
+  dr.d_place = DNSResourceRecord::ANSWER;
+  dr.d_name = authZone;
+  dr.d_type = QType::SOA;
+  dr.d_ttl = 3600;
+  dr.d_content = std::make_shared<SOARecordContent>("pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600");
+  ad.d_records.insert(dr);
+
+  dr.d_place = DNSResourceRecord::ANSWER;
+  dr.d_name = authZone;
+  dr.d_type = QType::A;
+  dr.d_ttl = 3600;
+  dr.d_content = std::make_shared<ARecordContent>(addr);
+  ad.d_records.insert(dr);
+
+  auto map = std::make_shared<SyncRes::domainmap_t>();
+  (*map)[authZone] = ad;
+  SyncRes::setDomainMap(map);
+
+  sr->setAsyncCallback([&queriesCount,target,authZone](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
+
+      queriesCount++;
+
+      if (domain == target) {
+        setLWResult(res, 0, true, false, true);
+        addRecordToLW(res, target, QType::CNAME, authZone.toString(), DNSResourceRecord::ANSWER, 3600);
+        return 1;
+      }
+
+      return 0;
+  });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, 0);
+  BOOST_CHECK_EQUAL(ret.size(), 2);
+  BOOST_CHECK(ret[0].d_type == QType::CNAME);
+  BOOST_CHECK_EQUAL(getRR<CNAMERecordContent>(ret[0])->getTarget().toString(), authZone.toString());
+  BOOST_CHECK(ret[1].d_type == QType::A);
+  BOOST_CHECK_EQUAL(getRR<ARecordContent>(ret[1])->getCA().toString(), addr.toString());
+  BOOST_CHECK_EQUAL(queriesCount, 1);
+}
+
+BOOST_AUTO_TEST_CASE(test_auth_zone_oob_lead_to_outgoing_queryb) {
+  std::unique_ptr<SyncRes> sr;
+  init();
+  initSR(sr, true, false);
+
+  primeHints();
+
+  size_t queriesCount = 0;
+  const DNSName target("powerdns.com.");
+  const DNSName externalCNAME("www.open-xchange.com.");
+  const ComboAddress addr("192.0.2.5");
+
+  SyncRes::AuthDomain ad;
+  ad.d_name = target;
+  DNSRecord dr;
+  dr.d_place = DNSResourceRecord::ANSWER;
+  dr.d_name = target;
+  dr.d_type = QType::SOA;
+  dr.d_ttl = 3600;
+  dr.d_content = std::make_shared<SOARecordContent>("pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600");
+  ad.d_records.insert(dr);
+
+  dr.d_place = DNSResourceRecord::ANSWER;
+  dr.d_name = target;
+  dr.d_type = QType::CNAME;
+  dr.d_ttl = 3600;
+  dr.d_content = std::make_shared<CNAMERecordContent>(externalCNAME);
+  ad.d_records.insert(dr);
+
+  auto map = std::make_shared<SyncRes::domainmap_t>();
+  (*map)[target] = ad;
+  SyncRes::setDomainMap(map);
+
+  sr->setAsyncCallback([&queriesCount,externalCNAME,addr](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
+
+      queriesCount++;
+
+      if (domain == externalCNAME) {
+        setLWResult(res, 0, true, false, true);
+        addRecordToLW(res, externalCNAME, QType::A, addr.toString(), DNSResourceRecord::ANSWER, 3600);
+        return 1;
+      }
+
+      return 0;
+  });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, 0);
+  BOOST_CHECK_EQUAL(ret.size(), 2);
+  BOOST_CHECK(ret[0].d_type == QType::CNAME);
+  BOOST_CHECK_EQUAL(getRR<CNAMERecordContent>(ret[0])->getTarget().toString(), externalCNAME.toString());
+  BOOST_CHECK(ret[1].d_type == QType::A);
+  BOOST_CHECK_EQUAL(getRR<ARecordContent>(ret[1])->getCA().toString(), addr.toString());
+  BOOST_CHECK_EQUAL(queriesCount, 1);
+}
+
+BOOST_AUTO_TEST_CASE(test_auth_zone_nodata) {
+  std::unique_ptr<SyncRes> sr;
+  init();
+  initSR(sr, true, false);
+
+  primeHints();
+
+  size_t queriesCount = 0;
+  const DNSName target("nodata.powerdns.com.");
+  const DNSName authZone("powerdns.com");
+
+  SyncRes::AuthDomain ad;
+  ad.d_name = authZone;
+  DNSRecord dr;
+  dr.d_place = DNSResourceRecord::ANSWER;
+  dr.d_name = target;
+  dr.d_type = QType::A;
+  dr.d_ttl = 3600;
+  dr.d_content = std::make_shared<ARecordContent>(ComboAddress("192.0.2.1"));
+  ad.d_records.insert(dr);
+
+  dr.d_place = DNSResourceRecord::ANSWER;
+  dr.d_name = authZone;
+  dr.d_type = QType::SOA;
+  dr.d_ttl = 3600;
+  dr.d_content = std::make_shared<SOARecordContent>("pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600");
+  ad.d_records.insert(dr);
+
+  auto map = std::make_shared<SyncRes::domainmap_t>();
+  (*map)[authZone] = ad;
+  SyncRes::setDomainMap(map);
+
+  sr->setAsyncCallback([&queriesCount](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
+
+      queriesCount++;
+
+      return 0;
+  });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::AAAA), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, 0);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_CHECK(ret[0].d_type == QType::SOA);
+  BOOST_CHECK_EQUAL(queriesCount, 0);
+}
+
+BOOST_AUTO_TEST_CASE(test_auth_zone_nx) {
+  std::unique_ptr<SyncRes> sr;
+  init();
+  initSR(sr, true, false);
+
+  primeHints();
+
+  size_t queriesCount = 0;
+  const DNSName target("nx.powerdns.com.");
+  const DNSName authZone("powerdns.com");
+
+  SyncRes::AuthDomain ad;
+  ad.d_name = authZone;
+  DNSRecord dr;
+  dr.d_place = DNSResourceRecord::ANSWER;
+  dr.d_name = DNSName("powerdns.com.");
+  dr.d_type = QType::SOA;
+  dr.d_ttl = 3600;
+  dr.d_content = std::make_shared<SOARecordContent>("pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600");
+  ad.d_records.insert(dr);
+
+  auto map = std::make_shared<SyncRes::domainmap_t>();
+  (*map)[authZone] = ad;
+  SyncRes::setDomainMap(map);
+
+  sr->setAsyncCallback([&queriesCount](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
+
+      queriesCount++;
+
+      return 0;
+  });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NXDomain);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_CHECK(ret[0].d_type == QType::SOA);
+  BOOST_CHECK_EQUAL(queriesCount, 0);
+}
+
+BOOST_AUTO_TEST_CASE(test_auth_zone_delegation) {
+  std::unique_ptr<SyncRes> sr;
+  init();
+  initSR(sr, true, false);
+
+  primeHints();
+
+  size_t queriesCount = 0;
+  const DNSName target("www.test.powerdns.com.");
+  const ComboAddress targetAddr("192.0.2.2");
+  const DNSName ns("ns1.test.powerdns.com.");
+  const ComboAddress nsAddr("192.0.2.1");
+  const DNSName authZone("powerdns.com");
+
+  SyncRes::AuthDomain ad;
+  ad.d_name = authZone;
+  DNSRecord dr;
+  dr.d_place = DNSResourceRecord::ANSWER;
+  dr.d_name = authZone;
+  dr.d_type = QType::SOA;
+  dr.d_ttl = 3600;
+  dr.d_content = std::make_shared<SOARecordContent>("pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600");
+  ad.d_records.insert(dr);
+
+  dr.d_place = DNSResourceRecord::ANSWER;
+  dr.d_name = DNSName("test.powerdns.com.");
+  dr.d_type = QType::NS;
+  dr.d_ttl = 3600;
+  dr.d_content = std::make_shared<NSRecordContent>(ns);
+  ad.d_records.insert(dr);
+
+  dr.d_place = DNSResourceRecord::ANSWER;
+  dr.d_name = ns;
+  dr.d_type = QType::A;
+  dr.d_ttl = 3600;
+  dr.d_content = std::make_shared<ARecordContent>(nsAddr);
+  ad.d_records.insert(dr);
+
+  auto map = std::make_shared<SyncRes::domainmap_t>();
+  (*map)[authZone] = ad;
+  SyncRes::setDomainMap(map);
+
+  sr->setAsyncCallback([&queriesCount,target,targetAddr,nsAddr](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
+
+      queriesCount++;
+      if (ip == ComboAddress(nsAddr.toString(), 53) && domain == target) {
+        setLWResult(res, 0, true, false, true);
+        addRecordToLW(res, domain, QType::A, targetAddr.toString(), DNSResourceRecord::ANSWER, 3600);
+        return 1;
+      }
+
+      return 0;
+  });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, 0);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_CHECK(ret[0].d_type == QType::A);
+  BOOST_CHECK_EQUAL(queriesCount, 1);
+}
+
+BOOST_AUTO_TEST_CASE(test_auth_zone_delegation_point) {
+  std::unique_ptr<SyncRes> sr;
+  init();
+  initSR(sr, true, false);
+
+  primeHints();
+
+  size_t queriesCount = 0;
+  const DNSName target("test.powerdns.com.");
+  const ComboAddress targetAddr("192.0.2.2");
+  const DNSName ns("ns1.test.powerdns.com.");
+  const ComboAddress nsAddr("192.0.2.1");
+  const DNSName authZone("powerdns.com");
+
+  SyncRes::AuthDomain ad;
+  ad.d_name = authZone;
+  DNSRecord dr;
+  dr.d_place = DNSResourceRecord::ANSWER;
+  dr.d_name = authZone;
+  dr.d_type = QType::SOA;
+  dr.d_ttl = 3600;
+  dr.d_content = std::make_shared<SOARecordContent>("pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600");
+  ad.d_records.insert(dr);
+
+  dr.d_place = DNSResourceRecord::ANSWER;
+  dr.d_name = DNSName("test.powerdns.com.");
+  dr.d_type = QType::NS;
+  dr.d_ttl = 3600;
+  dr.d_content = std::make_shared<NSRecordContent>(ns);
+  ad.d_records.insert(dr);
+
+  dr.d_place = DNSResourceRecord::ANSWER;
+  dr.d_name = ns;
+  dr.d_type = QType::A;
+  dr.d_ttl = 3600;
+  dr.d_content = std::make_shared<ARecordContent>(nsAddr);
+  ad.d_records.insert(dr);
+
+  auto map = std::make_shared<SyncRes::domainmap_t>();
+  (*map)[authZone] = ad;
+  SyncRes::setDomainMap(map);
+
+  sr->setAsyncCallback([&queriesCount,nsAddr,target,targetAddr](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
+
+      queriesCount++;
+
+      if (ip == ComboAddress(nsAddr.toString(), 53) && domain == target) {
+        setLWResult(res, 0, true, false, true);
+        addRecordToLW(res, domain, QType::A, targetAddr.toString(), DNSResourceRecord::ANSWER, 3600);
+        return 1;
+      }
+
+      return 0;
+  });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, 0);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_CHECK(ret[0].d_type == QType::A);
+  BOOST_CHECK_EQUAL(queriesCount, 1);
+}
+
+BOOST_AUTO_TEST_CASE(test_auth_zone_wildcard) {
+  std::unique_ptr<SyncRes> sr;
+  init();
+  initSR(sr, true, false);
+
+  primeHints();
+
+  size_t queriesCount = 0;
+  const DNSName target("test.powerdns.com.");
+  const ComboAddress targetAddr("192.0.2.2");
+  const DNSName authZone("powerdns.com");
+
+  SyncRes::AuthDomain ad;
+  ad.d_name = authZone;
+  DNSRecord dr;
+  dr.d_place = DNSResourceRecord::ANSWER;
+  dr.d_name = authZone;
+  dr.d_type = QType::SOA;
+  dr.d_ttl = 3600;
+  dr.d_content = std::make_shared<SOARecordContent>("pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600");
+  ad.d_records.insert(dr);
+
+  dr.d_place = DNSResourceRecord::ANSWER;
+  dr.d_name = DNSName("*.powerdns.com.");
+  dr.d_type = QType::A;
+  dr.d_ttl = 3600;
+  dr.d_content = std::make_shared<ARecordContent>(targetAddr);
+  ad.d_records.insert(dr);
+
+  auto map = std::make_shared<SyncRes::domainmap_t>();
+  (*map)[authZone] = ad;
+  SyncRes::setDomainMap(map);
+
+  sr->setAsyncCallback([&queriesCount](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
+
+      queriesCount++;
+
+      return 0;
+  });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, 0);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_CHECK(ret[0].d_type == QType::A);
+  BOOST_CHECK_EQUAL(queriesCount, 0);
+}
+
+BOOST_AUTO_TEST_CASE(test_auth_zone_wildcard_nodata) {
+  std::unique_ptr<SyncRes> sr;
+  init();
+  initSR(sr, true, false);
+
+  primeHints();
+
+  size_t queriesCount = 0;
+  const DNSName target("test.powerdns.com.");
+  const ComboAddress targetAddr("192.0.2.2");
+  const DNSName authZone("powerdns.com");
+
+  SyncRes::AuthDomain ad;
+  ad.d_name = authZone;
+  DNSRecord dr;
+  dr.d_place = DNSResourceRecord::ANSWER;
+  dr.d_name = authZone;
+  dr.d_type = QType::SOA;
+  dr.d_ttl = 3600;
+  dr.d_content = std::make_shared<SOARecordContent>("pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600");
+  ad.d_records.insert(dr);
+
+  dr.d_place = DNSResourceRecord::ANSWER;
+  dr.d_name = DNSName("*.powerdns.com.");
+  dr.d_type = QType::A;
+  dr.d_ttl = 3600;
+  dr.d_content = std::make_shared<ARecordContent>(targetAddr);
+  ad.d_records.insert(dr);
+
+  auto map = std::make_shared<SyncRes::domainmap_t>();
+  (*map)[authZone] = ad;
+  SyncRes::setDomainMap(map);
+
+  sr->setAsyncCallback([&queriesCount](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
+
+      queriesCount++;
+
+      return 0;
+  });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::AAAA), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, 0);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_CHECK(ret[0].d_type == QType::SOA);
+  BOOST_CHECK_EQUAL(queriesCount, 0);
+}
+
+BOOST_AUTO_TEST_CASE(test_auth_zone_cache_only) {
+  std::unique_ptr<SyncRes> sr;
+  init();
+  initSR(sr, true, false);
+
+  primeHints();
+
+  size_t queriesCount = 0;
+  const DNSName target("powerdns.com.");
+  const ComboAddress addr("192.0.2.5");
+
+  SyncRes::AuthDomain ad;
+  ad.d_name = target;
+  DNSRecord dr;
+  dr.d_place = DNSResourceRecord::ANSWER;
+  dr.d_name = target;
+  dr.d_type = QType::SOA;
+  dr.d_ttl = 3600;
+  dr.d_content = std::make_shared<SOARecordContent>("pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600");
+  ad.d_records.insert(dr);
+
+  dr.d_place = DNSResourceRecord::ANSWER;
+  dr.d_name = target;
+  dr.d_type = QType::A;
+  dr.d_ttl = 3600;
+  dr.d_content = std::make_shared<ARecordContent>(addr);
+  ad.d_records.insert(dr);
+
+  auto map = std::make_shared<SyncRes::domainmap_t>();
+  (*map)[target] = ad;
+  SyncRes::setDomainMap(map);
+
+  sr->setAsyncCallback([&queriesCount](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
+
+      queriesCount++;
+      setLWResult(res, 0, true, false, true);
+      addRecordToLW(res, domain, QType::A, "192.0.2.42");
+      return 1;
+  });
+
+  /* simulate a no-RD query */
+  sr->setCacheOnly();
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, 0);
+  BOOST_CHECK_EQUAL(ret.size(), 1);
+  BOOST_CHECK(ret[0].d_type == QType::A);
+  BOOST_CHECK_EQUAL(getRR<ARecordContent>(ret[0])->getCA().toString(), addr.toString());
+  BOOST_CHECK_EQUAL(queriesCount, 0);
 }
 
 /*
