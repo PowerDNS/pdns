@@ -79,17 +79,23 @@ attributetype ( 1.3.6.1.4.1.27080.1.12 NAME 'PdnsRecordNoAuth'
     SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
 
 attributetype ( 1.3.6.1.4.1.27080.1.13 NAME 'PdnsRecordOrdername'
-    DESC 'The ordername for the RR. Syntax is RR type, a literal "|", the ordername'
+    DESC 'The ordername for the RR.'
     EQUALITY caseIgnoreMatch
-    SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+    ORDERING caseIgnoreOrderingMatch
+    SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 SINGLE-VALUE )
 
-attributetype (  1.3.6.1.4.1.27080.1.14 NAME 'ALIASRecord'
+attributetype ( 1.3.6.1.4.1.27080.1.14 NAME 'PdnsRecordNoOrdername'
+    DESC 'RR sets for which the ordername in this entry should not be used'
+    EQUALITY caseIgnoreIA5Match
+    SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
+
+attributetype (  1.3.6.1.4.1.27080.1.15 NAME 'ALIASRecord'
     DESC 'PowerDNS ALIAS RR type'
     EQUALITY caseIgnoreIA5Match
     SUBSTR caseIgnoreIA5SubstringsMatch
     SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
 
-attributetype ( 1.3.6.1.4.1.27080.1.15 NAME 'PdnsKeyAlgorithm'
+attributetype ( 1.3.6.1.4.1.27080.1.16 NAME 'PdnsKeyAlgorithm'
     DESC 'TSIG key algorithm'
     EQUALITY caseIgnoreMatch
     SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 SINGLE-VALUE )
@@ -115,7 +121,7 @@ objectclass ( 1.3.6.1.4.1.27080.2.2.3 NAME 'PdnsDomainKey'
 objectclass ( 1.3.6.1.4.1.27080.2.2.4 NAME 'PdnsRecordData'
     DESC 'Additional record data for PDNS'
     SUP top AUXILIARY
-    MAY ( PdnsRecordTTL $ PdnsRecordNoAuth $ PdnsRecordOrdername $ ALIASRecord ) )
+    MAY ( PdnsRecordTTL $ PdnsRecordNoAuth $ PdnsRecordOrdername $ PdnsRecordNoOrdername $ ALIASRecord ) )
 
 objectclass ( 1.3.6.1.4.1.27080.2.2.5 NAME 'PdnsTSIGKey'
     DESC 'PDNS TSIG key'

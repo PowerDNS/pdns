@@ -242,25 +242,17 @@ void LdapBackend::extract_entry_results( const DNSName& domain, const DNSResult&
 
         // Ordername
         if ( m_result.count( "PdnsRecordOrdername" ) && !m_result["PdnsRecordOrdername"].empty() ) {
-          std::string defaultOrdername;
+          std::string defaultOrdername = m_result["PdnsRecordOrdername"][0];
+          bool hasON = true;
 
-          for ( auto rdata : m_result["PdnsRecordOrdername"] ) {
-            std::string qtype;
-            std::size_t pos = rdata.find_first_of( '|', 0 );
-            if ( pos == std::string::npos ) {
-              // This is the default ordername for all records in this entry
-              defaultOrdername = rdata;
-              continue;
+          if ( m_result.count( "PdnsRecordNoOrdername" ) ) {
+            for ( auto rdata : m_result["PdnsRecordNoOrdername"] ) {
+              if ( rdata == QType( local_result.qtype ).getName() )
+                hasON = false;
             }
-
-            qtype = rdata.substr( 0, pos );
-            if ( qtype != QType( local_result.qtype ).getName() )
-              continue;
-
-            local_result.ordername = rdata.substr( pos + 1 );
           }
 
-          if ( local_result.ordername.empty() && !defaultOrdername.empty() )
+          if ( hasON )
             local_result.ordername = defaultOrdername;
         }
 

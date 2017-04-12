@@ -33,49 +33,16 @@
 
 
 PowerLDAP::SearchResult::SearchResult( int msgid, LDAP* ld )
-  : m_msgid( msgid ), d_ld( ld )
+  : m_msgid( msgid ), d_ld( ld ), m_finished( false )
 {
-  bool finished = false;
-
-  while ( !finished ) {
-    LDAPMessage *result = NULL;
-    int i = ldapWaitResult( d_ld, m_msgid, 5, &result );
-    switch ( i ) {
-      case -1:
-        int err_code;
-        ldapGetOption( d_ld, LDAP_OPT_ERROR_NUMBER, &err_code );
-        if ( err_code == LDAP_SERVER_DOWN || err_code == LDAP_CONNECT_ERROR )
-          throw LDAPNoConnection();
-        else
-          throw LDAPException( "PowerLDAP::search(): Error waiting for LDAP result: " + ldapGetError( d_ld, err_code ) );
-        break;
-      case 0:
-        throw LDAPTimeout();
-        break;
-      case LDAP_NO_SUCH_OBJECT:
-        throw LDAPNoSuchObject();
-        break;
-      case LDAP_RES_SEARCH_REFERENCE:
-        ldap_msgfree( result );
-        break;
-      case LDAP_RES_SEARCH_RESULT:
-        finished = true;
-        ldap_msgfree( result );
-        break;
-      case LDAP_RES_SEARCH_ENTRY:
-        m_results.push_back( result );
-        break;
-    }
-  }
 }
 
 
 PowerLDAP::SearchResult::~SearchResult()
 {
-  while ( !m_results.empty() ) {
-    ldap_msgfree( m_results.front() );
-    m_results.pop_front();
-  }
+  if ( !m_finished )
+    ldap_abandon_ext( d_ld, m_msgid, NULL, NULL ); // We don't really care about the return code as there's
+                                                   // not much we can do now
 }
 
 
@@ -86,14 +53,41 @@ bool PowerLDAP::SearchResult::getNext( PowerLDAP::sentry_t& entry, bool dn, int 
   BerElement* ber;
   struct berval** berval;
   vector<string> values;
-  LDAPMessage* result;
+  LDAPMessage* result = NULL;
   LDAPMessage* object;
 
-  if ( m_results.empty() )
-    return false;
+  while ( !m_finished && result == NULL ) {
+    i = ldapWaitResult( d_ld, m_msgid, 5, &result );
+    switch ( i ) {
+      case -1:
+        int err_code;
+        ldapGetOption( d_ld, LDAP_OPT_ERROR_NUMBER, &err_code );
+        if ( err_code == LDAP_SERVER_DOWN || err_code == LDAP_CONNECT_ERROR )
+          throw LDAPNoConnection();
+        else
+          throw LDAPException( "Error waiting for LDAP result: " + ldapGetError( d_ld, err_code ) );
+        break;
+      case 0:
+        throw LDAPTimeout();
+        break;
+      case LDAP_NO_SUCH_OBJECT:
+        return false;
+      case LDAP_RES_SEARCH_REFERENCE:
+        ldap_msgfree( result );
+        result = NULL;
+        break;
+      case LDAP_RES_SEARCH_RESULT:
+        m_finished = true;
+        ldap_msgfree( result );
+        break;
+      case LDAP_RES_SEARCH_ENTRY:
+        // Yay!
+        break;
+    }
+  }
 
-  result = m_results.front();
-  m_results.pop_front();
+  if ( m_finished )
+    return false;
 
   if( ( object = ldap_first_entry( d_ld, result ) ) == NULL )
   {
@@ -152,6 +146,8 @@ void PowerLDAP::SearchResult::getAll( PowerLDAP::sresult_t& results, bool dn, in
 PowerLDAP::PowerLDAP( const string& hosts, uint16_t port, bool tls )
 {
   d_ld = 0;
+  m_sort_supported = false;
+  m_vlv_supported = false;
   d_hosts = hosts;
   d_port = port;
   d_tls = tls;
@@ -206,6 +202,27 @@ void PowerLDAP::ensureConnect()
     ldap_unbind_ext( d_ld, NULL, NULL );
     throw LDAPException( "Couldn't perform STARTTLS: " + getError( err ) );
   }
+
+  char* rootDseAttrs[] = { (char*)"supportedControl", NULL };
+  LDAPMessage* result;
+  err = ldap_search_ext_s( d_ld, "", LDAP_SCOPE_BASE, "objectClass=*", rootDseAttrs, 0, NULL, NULL, NULL, LDAP_NO_LIMIT, &result );
+  if ( err != LDAP_SUCCESS ) {
+    ldap_unbind_ext( d_ld, NULL, NULL );
+    throw LDAPException( "Failed to search the root DSE for supported controls: " + getError( err ) );
+  }
+
+  LDAPMessage* entry = ldap_first_entry( d_ld, result );
+  berval** values;
+  if ( entry != NULL && ( values = ldap_get_values_len( d_ld, entry, "supportedControl" ) ) != NULL ) {
+    for ( int i = 0; values[i] != NULL; ++i ) {
+      if ( strcmp( values[i]->bv_val, LDAP_CONTROL_SORTREQUEST ) == 0 )
+        m_sort_supported = true;
+      else if ( strcmp( values[i]->bv_val, LDAP_CONTROL_VLVREQUEST ) == 0 )
+        m_vlv_supported = true;
+    }
+    ldap_value_free_len( values );
+  }
+  ldap_msgfree( result );
 }
 
 
@@ -329,6 +346,51 @@ PowerLDAP::SearchResult* PowerLDAP::search( const string& base, int scope, const
     throw LDAPNoConnection();
   else if ( rc != LDAP_SUCCESS )
     throw LDAPException( "Starting LDAP search: " + getError( rc ) );
+
+  return new SearchResult( msgid, d_ld );
+}
+
+
+PowerLDAP::SearchResult* PowerLDAP::sorted_search( const string& base, int scope, const string& filter, const string& sort, const char** attr, unsigned int limit )
+{
+  int msgid, rc, sort_rc;
+
+  if ( !m_sort_supported )
+    return NULL;
+
+  LDAPControl* sortcontrol;
+  LDAPSortKey** sortkey;
+  ldap_create_sort_keylist( &sortkey, const_cast<char*>( sort.c_str() ) );
+  rc = ldap_create_sort_control( d_ld, sortkey, 1, &sortcontrol );
+  if ( rc != LDAP_SUCCESS )
+    throw LDAPException( "Failed to create sort control: " + getError( rc ) );
+  ldap_free_sort_keylist( sortkey );
+
+  LDAPControl* vlvcontrol = NULL;
+  if ( m_vlv_supported && limit > 0 ) {
+    LDAPVLVInfo virtuallist;
+    virtuallist.ldvlv_version = 1;
+    virtuallist.ldvlv_before_count = 0;
+    virtuallist.ldvlv_after_count = limit;
+    virtuallist.ldvlv_offset = 0;
+    virtuallist.ldvlv_count = 1;
+    ldap_create_vlv_control( d_ld, &virtuallist, &vlvcontrol );
+  }
+
+  LDAPControl* servercontrols[3];
+  servercontrols[0] = sortcontrol;
+  servercontrols[1] = vlvcontrol;
+  servercontrols[2] = NULL;
+
+  rc = ldap_search_ext( d_ld, base.c_str(), scope, filter.c_str(), const_cast<char**> (attr), 0, servercontrols, NULL, NULL, LDAP_NO_LIMIT, &msgid );
+  if ( rc == LDAP_SERVER_DOWN || rc == LDAP_CONNECT_ERROR )
+    throw LDAPNoConnection();
+  else if ( rc != LDAP_SUCCESS )
+    throw LDAPException( "Starting LDAP search: " + getError( rc ) );
+
+  ldap_control_free( sortcontrol );
+  if ( vlvcontrol != NULL )
+    ldap_control_free( vlvcontrol );
 
   return new SearchResult( msgid, d_ld );
 }

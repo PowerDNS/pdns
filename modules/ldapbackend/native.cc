@@ -162,7 +162,7 @@ void LdapBackend::lookup_simple( const QType &qtype, const DNSName &qname, DNSPa
 {
   string filter, attr, qesc;
   const char** attributes = ldap_attrany + 1;   // skip associatedDomain
-  const char* attronly[] = { NULL, "dNSTTL", "modifyTimestamp", "PdnsDomainId", "PdnsRecordTTL", "PdnsRecordNoAuth", "PdnsRecordOrdername", NULL };
+  const char* attronly[] = { NULL, "dNSTTL", "modifyTimestamp", "PdnsDomainId", "PdnsRecordTTL", "PdnsRecordNoAuth", "PdnsRecordOrdername", "PdnsRecordNoOrdername", NULL };
 
   std::string basedn = getArg( "basedn" );
 
@@ -204,7 +204,7 @@ void LdapBackend::lookup_strict( const QType &qtype, const DNSName &qname, DNSPa
   vector<string> parts;
   string filter, attr, qesc;
   const char** attributes = ldap_attrany + 1;   // skip associatedDomain
-  const char* attronly[] = { NULL, "dNSTTL", "modifyTimestamp", "PdnsDomainId", "PdnsRecordTTL", "PdnsRecordNoAuth", "PdnsRecordOrdername", NULL };
+  const char* attronly[] = { NULL, "dNSTTL", "modifyTimestamp", "PdnsDomainId", "PdnsRecordTTL", "PdnsRecordNoAuth", "PdnsRecordOrdername", "PdnsRecordNoOrdername", NULL };
 
 
   qesc = toLower( m_pldap->escape( qname.toStringRootDot() ) );
@@ -246,7 +246,7 @@ void LdapBackend::lookup_tree( const QType &qtype, const DNSName &qname, DNSPack
 {
   string filter, attr, qesc, dn;
   const char** attributes = ldap_attrany + 1;   // skip associatedDomain
-  const char* attronly[] = { NULL, "dNSTTL", "modifyTimestamp", "PdnsRecordTTL", "PdnsRecordNoAuth", "PdnsRecordOrdername", NULL };
+  const char* attronly[] = { NULL, "dNSTTL", "modifyTimestamp", "PdnsRecordTTL", "PdnsRecordNoAuth", "PdnsRecordOrdername", "PdnsRecordNoOrdername", NULL };
   vector<string> parts;
 
 

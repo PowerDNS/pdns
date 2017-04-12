@@ -96,6 +96,7 @@ static const char* ldap_attrany[] = {
   "PdnsRecordTTL",
   "PdnsRecordNoAuth",
   "PdnsRecordOrdername",
+  "PdnsRecordNoOrdername",
   NULL
 };
 
