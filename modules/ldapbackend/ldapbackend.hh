@@ -107,6 +107,8 @@ class LdapBackend : public DNSBackend
     bool m_getdn;
     int m_msgid;
     PowerLDAP::sentry_t m_result;
+    bool m_dnssec;
+    std::string m_metadata_searchdn;
 
     struct DNSResult {
       QType qtype;
@@ -146,6 +148,10 @@ class LdapBackend : public DNSBackend
     // The qtype parameter is used to filter extracted results.
     void extract_entry_results( const DNSName& domain, const DNSResult& result, QType qtype );
 
+    // Returns the DN under which the metadata for the given domain can be found.
+    // An empty string will be returned if nothing was found.
+    std::string getDomainMetadataDN( const DNSName& name );
+
   public:
 
     LdapBackend( const string &suffix="" );
@@ -161,6 +167,11 @@ class LdapBackend : public DNSBackend
     // Master backend
     void getUpdatedMasters( vector<DomainInfo>* domains );
     void setNotified( uint32_t id, uint32_t serial );
+
+    // DNSSEC backend
+    bool getAllDomainMetadata( const DNSName& name, std::map<std::string, std::vector<std::string> >& meta );
+    bool getDomainMetadata( const DNSName& name, const std::string& kind, std::vector<std::string>& meta );
+    bool setDomainMetadata( const DNSName& name, const std::string& kind, const std::vector<std::string>& meta );
 };
 
 #endif /* LDAPBACKEND_HH */

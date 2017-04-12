@@ -4,7 +4,7 @@ EXTRA_DIST = OBJECTFILES OBJECTLIBS
 
 libldapbackend_la_SOURCES = \
 	ldapbackend.cc ldapbackend.hh \
-	native.cc master.cc \
+	native.cc master.cc dnssec.cc \
 	powerldap.cc powerldap.hh \
 	utils.hh exceptions.hh \
 	ldaputils.hh ldaputils.cc \

@@ -49,6 +49,13 @@ LdapBackend::LdapBackend( const string &suffix )
 
     setArgPrefix( "ldap" + suffix );
 
+    m_dnssec = mustDo( "dnssec" );
+    if ( m_dnssec ) {
+      m_metadata_searchdn = getArg( "metadata-searchdn" );
+      if ( m_metadata_searchdn.empty() )
+        throw( PDNSException( "Please set 'ldap-metadata-searchdn' to use DNSSEC" ) );
+    }
+
     m_getdn = false;
     m_reconnect_attempts = getArgAsNum( "reconnect-attempts" );
     m_list_fcnt = &LdapBackend::list_simple;
@@ -223,6 +230,10 @@ class LdapFactory : public BackendFactory
       declare( suffix, "filter-lookup", "LDAP filter for limiting IP or name lookups", "(:target:)" );
       declare( suffix, "disable-ptrrecord", "Deprecated, use ldap-method=strict instead", "no" );
       declare( suffix, "reconnect-attempts", "Number of attempts to re-establish a lost LDAP connection", "5" );
+      // DNSSEC related settings
+      declare( suffix, "dnssec", "Enable DNSSEC lookups in the backend", "no" );
+      declare( suffix, "metadata-searchdn", "The DN under which the metadata for a given domain can be found", "" );
+      declare( suffix, "metadata-searchfilter", "The filter that will return the domain DN for the metadata searches", "(&(objectClass=organizationalUnit)(ou=:domain:))" );
     }
 
 
