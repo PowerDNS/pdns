@@ -655,7 +655,7 @@ bool LdapBackend::updateDNSSECOrderNameAndAuth( uint32_t domain_id, const DNSNam
   if ( !m_dnssec )
     return false;
 
-  L<<Logger::Debug<< m_myname << " Updating ordername and auth for " << qname << ", ordername=" << ordername << ", auth=" << auth << std::endl;
+  L<<Logger::Debug<< m_myname << " Updating ordername and auth for " << qname << ", ordername=" << ordername << ", auth=" << auth << ", qtype=" << QType( qtype ).getName() << std::endl;
 
   try {
     // Get the zone first
@@ -703,35 +703,46 @@ bool LdapBackend::updateDNSSECOrderNameAndAuth( uint32_t domain_id, const DNSNam
       m_pldap->modify( result["dn"][0], mods );
     }
 
+    // Now let's extract the relevant information from the entry
+    std::set<std::string>              entryRRs,       // The RRs in it
+                                       entryNoAuthRRs; // The RRs on which this entry is not authoritative
+    std::map<std::string, std::string> entryONRRs;     // And the ones with a specific ordername
     std::string entryOrdername;
+    std::string convertedOrdername;
+    if ( !ordername.empty() )
+      convertedOrdername = ordername.makeRelative( zonename ).labelReverse().toString( " ", false );
+    if ( convertedOrdername.empty() )
+      convertedOrdername = " ";
     std::string qtypeName = QType( qtype ).getName();
 
-    if ( result.count( "PdnsRecordOrdername" ) ) {
-      std::string defaultOrdername;
-
-      for ( auto rdata : result["PdnsRecordOrdername"] ) {
-        std::string qt;
-        std::size_t pos = rdata.find_first_of( '|', 0 );
-        if ( pos == std::string::npos ) {
-          defaultOrdername = rdata;
-          continue;
-        }
-
-        qt = rdata.substr( 0, pos );
-        if ( qt != qtypeName )
-          continue;
-
-        // Here we store the full value of the attribute. This way we don't have to
-        // rebuild it if a deletion is required.
-        entryOrdername = rdata;
+    for ( auto attribute : result ) {
+      if ( attribute.first.length() > 6 && attribute.first.substr( attribute.first.length() - 6 ) == "Record" ) {
+        entryRRs.insert( toUpper( attribute.first.substr( 0, attribute.first.length() - 6 ) ) );
       }
-
-      if ( entryOrdername.empty() && !defaultOrdername.empty() && qtype == QType::ANY )
-        entryOrdername = defaultOrdername;
+      else if ( attribute.first == "PdnsRecordNoAuth" ) {
+        for ( auto noauth : attribute.second )
+          entryNoAuthRRs.insert( noauth );
+      }
+      else if ( attribute.first == "PdnsRecordOrdername" ) {
+        for ( auto rrOrdername : attribute.second ) {
+          std::size_t pos = rrOrdername.find_first_of( '|', 0 );
+          if ( pos == std::string::npos ) {
+            entryOrdername = rrOrdername;
+          }
+          else {
+            entryONRRs.insert(
+                std::make_pair(
+                  rrOrdername.substr( 0, pos ),
+                  rrOrdername.substr( pos + 1 )
+                )
+              );
+          }
+        }
+      }
     }
 
     if ( qtype == QType::ANY ) {
-      if ( auth && result.count( "PdnsRecordNoAuth" ) ) {
+      if ( auth && entryNoAuthRRs.size() ) {
         L<<Logger::Debug<< m_myname << " Removing all PdnsRecordNoAuth attributes from " << result["dn"][0] << std::endl;
         LDAPMod mod;
         mod.mod_op = LDAP_MOD_DELETE;
@@ -746,53 +757,79 @@ bool LdapBackend::updateDNSSECOrderNameAndAuth( uint32_t domain_id, const DNSNam
       }
       else if ( !auth ) {
         // We have to look at the attributes present in the entry and add a PdnsRecordNoAuth
-        // for all DNS records that don't have one.
-        std::map<std::string, bool> existingRRs;
-        std::list<std::string> noAuthRRs;
+        // for all RRs that don't have one.
+        std::set<std::string> missingNoAuth;
+        std::set_difference( entryRRs.begin(), entryRRs.end(),
+                             entryNoAuthRRs.begin(), entryNoAuthRRs.end(),
+                             std::inserter( missingNoAuth, missingNoAuth.end() ) );
+        for ( auto rrtype : missingNoAuth ) {
+          L<<Logger::Debug<< m_myname << " Add PdnsRecordNoAuth for RR " << rrtype << " on " << result["dn"][0] << std::endl;
+          LDAPMod mod;
+          mod.mod_op = LDAP_MOD_ADD;
+          mod.mod_type = (char*)"PdnsRecordNoAuth";
+          char* recordValues[] = { (char*)rrtype.c_str(), NULL };
+          mod.mod_values = recordValues;
 
-        if ( result.count( "PdnsRecordNoAuth" ) ) {
-          for ( auto rrtype : result["PdnsRecordNoAuth"] )
-            existingRRs[rrtype] = true;
+          LDAPMod* mods[2];
+          mods[0] = &mod;
+          mods[1] = NULL;
+
+          m_pldap->modify( result["dn"][0], mods );
+        }
+      }
+
+      if ( ordername.empty() && result.count( "PdnsRecordOrdername" ) ) {
+        // Easy as pie, just remove all the ordername attributes
+        L<<Logger::Debug<< m_myname << " Deleting all ordernames" << std::endl;
+
+        LDAPMod mod;
+        mod.mod_op = LDAP_MOD_DELETE;
+        mod.mod_type = (char*)"PdnsRecordOrdername";
+        mod.mod_values = { NULL };
+
+        LDAPMod* mods[2];
+        mods[0] = &mod;
+        mods[1] = NULL;
+        m_pldap->modify( result["dn"][0], mods );
+      }
+      else if ( !ordername.empty() && entryOrdername != convertedOrdername ) {
+        // This sets the entry default ordername, meaning that all RR-specific ordernames
+        // are to be deleted. So long _o/
+        // Take the easy way: delete all and recreate the default one.
+        L<<Logger::Debug<< m_myname << " Setting default entry ordername, deleting others" << std::endl;
+
+        LDAPMod* mods[3];
+
+        LDAPMod delMod;
+        delMod.mod_op = LDAP_MOD_DELETE;
+        delMod.mod_type = (char*)"PdnsRecordOrdername";
+        delMod.mod_values = { NULL };
+
+        LDAPMod addMod;
+        addMod.mod_op = LDAP_MOD_ADD;
+        addMod.mod_type = (char*)"PdnsRecordOrdername";
+        std::string addStr = convertedOrdername;
+        char* addValues[] = { (char*)addStr.c_str(), NULL };
+        addMod.mod_values = addValues;
+
+        if ( result.count( "PdnsOrdername" ) ) {
+          mods[0] = &delMod;
+          mods[1] = &addMod;
+        }
+        else {
+          mods[0] = &addMod;
+          mods[1] = NULL;
         }
 
-        for ( auto attribute : result ) {
-          if ( attribute.first.length() < 6 || attribute.first.substr( attribute.first.length() - 6 ) != "Record" )
-            continue;
+        mods[2] = NULL;
 
-          std::string rrtype = toUpper( attribute.first.substr( 0, attribute.first.length() - 6 ) );
-          if ( !existingRRs.count( rrtype ) )
-            noAuthRRs.push_back( rrtype );
-        }
-
-        if ( noAuthRRs.size() > 0 ) {
-          for ( auto rrtype : noAuthRRs ) {
-            L<<Logger::Debug<< m_myname << " Add PdnsRecordNoAuth for RR " << rrtype << " on " << result["dn"][0] << std::endl;
-            LDAPMod mod;
-            mod.mod_op = LDAP_MOD_ADD;
-            mod.mod_type = (char*)"PdnsRecordNoAuth";
-            char* recordValues[] = { (char*)rrtype.c_str(), NULL };
-            mod.mod_values = recordValues;
-
-            LDAPMod* mods[2];
-            mods[0] = &mod;
-            mods[1] = NULL;
-
-            m_pldap->modify( result["dn"][0], mods );
-          }
-        }
+        m_pldap->modify( result["dn"][0], mods );
       }
     }
     else {
-      bool entryIsAuth = true;
-
-      if ( result.count( "PdnsRecordNoAuth" ) ) {
-        for ( auto rdata : result["PdnsRecordNoAuth"] )
-          if ( rdata == qtypeName )
-            entryIsAuth = false;
-      }
-
-      if ( auth && !entryIsAuth ) {
+      if ( auth && entryNoAuthRRs.count( qtypeName ) ) {
         L<<Logger::Debug<< m_myname << " Deleting PdnsRecordNoAuth=" << qtypeName << std::endl;
+
         LDAPMod mod;
         mod.mod_op = LDAP_MOD_DELETE;
         mod.mod_type = (char*)"PdnsRecordNoAuth";
@@ -805,8 +842,9 @@ bool LdapBackend::updateDNSSECOrderNameAndAuth( uint32_t domain_id, const DNSNam
 
         m_pldap->modify( result["dn"][0], mods );
       }
-      else if ( !auth && entryIsAuth ) {
+      else if ( !auth && !entryNoAuthRRs.count( qtypeName ) ) {
         L<<Logger::Debug<< m_myname << " Adding PdnsRecordNoAuth=" << qtypeName << std::endl;
+
         LDAPMod mod;
         mod.mod_op = LDAP_MOD_ADD;
         mod.mod_type = (char*)"PdnsRecordNoAuth";
@@ -819,62 +857,61 @@ bool LdapBackend::updateDNSSECOrderNameAndAuth( uint32_t domain_id, const DNSNam
 
         m_pldap->modify( result["dn"][0], mods );
       }
-    }
 
-    if ( ordername.empty() && !entryOrdername.empty() ) {
-      L<<Logger::Debug<< m_myname << " Deleting PdnsRecordOrdername=" << entryOrdername << std::endl;
-      LDAPMod mod;
-      mod.mod_op = LDAP_MOD_DELETE;
-      mod.mod_type = (char*)"PdnsRecordOrdername";
-      char* deleteValues[] = { (char*)( entryOrdername.c_str() ), NULL };
-      mod.mod_values = deleteValues;
+      // For the ordername, whatever its value, this will override the default entry ordername.
+      // However, setting an empty ordername on all attribute types held by this entry means
+      // that we have to delete all ordernames.
+      std::set<std::string> remainingONs = entryRRs;
+      if ( remainingONs.count( qtypeName ) )
+        remainingONs.erase( qtypeName );
+      for ( auto rr : entryONRRs )
+        if ( remainingONs.count( rr.first ) && rr.second.empty() )
+          remainingONs.erase( rr.first );
 
-      LDAPMod* mods[2];
-      mods[0] = &mod;
-      mods[1] = NULL;
+      if ( ordername.empty() && result.count( "PdnsRecordOrdername" ) && !remainingONs.size() ) {
+          L<<Logger::Debug<< m_myname << " Removing PdnsRecordOrdername as the last RR will be deleted" << std::endl;
 
-      m_pldap->modify( result["dn"][0], mods );
-    }
-    else if ( !ordername.empty() ) {
-      std::string convertedOrdername;
-      if ( qtype != QType::ANY )
-        convertedOrdername = qtypeName + "|";
-      convertedOrdername.append( ordername.makeRelative( zonename ).labelReverse().toString( " ", false ) );
-      if ( convertedOrdername.empty() )
-        convertedOrdername = " ";
-      L<<Logger::Debug<< m_myname << " Ordername converted from " << ordername << " to " << convertedOrdername << std::endl;
+          LDAPMod mod;
+          mod.mod_op = LDAP_MOD_DELETE;
+          mod.mod_type = (char*)"PdnsRecordOrdername";
+          mod.mod_values = { NULL };
 
-      if ( entryOrdername.empty() ) {
-        L<<Logger::Debug<< m_myname << " Adding PdnsRecordOrdername=" << convertedOrdername << std::endl;
-        LDAPMod mod;
-        mod.mod_op = LDAP_MOD_ADD;
-        mod.mod_type = (char*)"PdnsRecordOrdername";
-        char* addValues[] = { (char*)( convertedOrdername.c_str() ), NULL };
-        mod.mod_values = addValues;
+          LDAPMod* mods[2];
+          mods[0] = &mod;
+          mods[1] = NULL;
 
-        LDAPMod* mods[2];
-        mods[0] = &mod;
-        mods[1] = NULL;
-
-        m_pldap->modify( result["dn"][0], mods );
+          m_pldap->modify( result["dn"][0], mods );
       }
-      else {
-        L<<Logger::Debug<< m_myname << " Replacing PdnsRecordOrdername " << entryOrdername << " with " << convertedOrdername << std::endl;
+      else if ( entryOrdername != convertedOrdername && ( !entryONRRs.count( qtypeName ) || entryONRRs[qtypeName] != convertedOrdername ) && ( entryRRs.count( qtypeName ) ) ) {
+        L<<Logger::Debug<< m_myname << " Setting ordername to " << convertedOrdername << " for RR " << qtypeName << std::endl;
+        LDAPMod* mods[3];
+
         LDAPMod delMod;
         delMod.mod_op = LDAP_MOD_DELETE;
         delMod.mod_type = (char*)"PdnsRecordOrdername";
-        char* delValues[] = { (char*)( entryOrdername.c_str() ), NULL };
+        std::string delStr;
+        char* delValues[] = { NULL, NULL };
         delMod.mod_values = delValues;
 
         LDAPMod addMod;
         addMod.mod_op = LDAP_MOD_ADD;
         addMod.mod_type = (char*)"PdnsRecordOrdername";
-        char* addValues[] = { (char*)( convertedOrdername.c_str() ), NULL };
+        std::string rrOrdername = ordername.empty() ? "" : convertedOrdername;
+        std::string addStr = qtypeName + "|" + rrOrdername;
+        char* addValues[] = { (char*)addStr.c_str(), NULL };
         addMod.mod_values = addValues;
 
-        LDAPMod* mods[3];
-        mods[0] = &delMod;
-        mods[1] = &addMod;
+        if ( entryONRRs.count( qtypeName ) && entryONRRs[qtypeName] != rrOrdername ) {
+          delStr = qtypeName + "|" + entryONRRs[qtypeName];
+          delValues[0] = (char*)delStr.c_str();
+          mods[0] = &delMod;
+          mods[1] = &addMod;
+        }
+        else {
+          mods[0] = &addMod;
+          mods[1] = NULL;
+        }
+
         mods[2] = NULL;
 
         m_pldap->modify( result["dn"][0], mods );
