@@ -650,6 +650,122 @@ bool LdapBackend::removeDomainKey( const DNSName& name, unsigned int id )
 }
 
 
+bool LdapBackend::getBeforeAndAfterNamesAbsolute( uint32_t domain_id, const std::string& qname, DNSName& unhashed, std::string& before, std::string& after )
+{
+  if ( !m_dnssec )
+    return false;
+
+  L<<Logger::Debug<< m_myname << " Searching for names before and after " << unhashed << ", qname: " << qname << ", domain_id: " << domain_id << std::endl;
+
+  try {
+    // Get the zone first
+    std::string filter = "PdnsDomainId=" + std::to_string( domain_id );
+    const char* zoneAttributes[] = { "associatedDomain", NULL };
+    PowerLDAP::sentry_t result;
+
+    int msgid = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, zoneAttributes );
+    if ( !m_pldap->getSearchEntry( msgid, result, true ) ) {
+      L<<Logger::Debug<< m_myname << " Can't find the zone for domain ID " << domain_id << std::endl;
+      return false;
+    }
+
+    std::string basedn = getArg( "basedn" );
+    if ( mustDo( "lookup-zone-rebase" ) )
+      basedn = result["dn"][0];
+
+    std::string domainBase = result["associatedDomain"][0];
+    filter = "(&(|(associatedDomain="+domainBase+")(associatedDomain=*."+domainBase+"))(PdnsRecordOrdername=*))";
+    const char* orderAttributes[] = { "associatedDomain", "PdnsRecordOrdername", NULL };
+    std::map<std::string, std::string> ordernames;
+    msgid = m_pldap->search( basedn, LDAP_SCOPE_SUBTREE, filter, orderAttributes );
+
+    while ( m_pldap->getSearchEntry( msgid, result, false ) ) {
+      // No need to iterate over associatedDomain as for DNSSEC I doubt that having more
+      // than one value for this attribute is going to work.
+      for ( auto ordername : result["PdnsRecordOrdername"] ) {
+        std::size_t pos = ordername.find_first_of( '|', 0 );
+        if ( pos == std::string::npos ) {
+          ordernames[ordername] = result["associatedDomain"][0];
+        }
+        else {
+          std::string orderValue = ordername.substr( pos+1 );
+          if ( !orderValue.empty() )
+            ordernames[ordername.substr(pos+1)] = result["associatedDomain"][0];
+        }
+      }
+    }
+
+    std::string foundBeforeOrdername, foundBeforeDomain, foundAfter, qnameMatch;
+    if ( qname.empty() )
+      qnameMatch = " ";
+    else
+      qnameMatch = qname;
+
+    for ( const auto& ordername : ordernames ) {
+      if ( ordername.first <= qnameMatch ) {
+        foundBeforeOrdername = ordername.first;
+        foundBeforeDomain = ordername.second;
+      }
+      else if ( foundAfter.empty() && ordername.first > qnameMatch ) {
+        foundAfter = ordername.first;
+      }
+    }
+
+    if ( foundAfter.empty() )
+      foundAfter = ordernames.begin()->first;
+
+    after = foundAfter;
+
+    // What follows is how the GSQL backend works. I just took the algorithm as-is, but no comments exist,
+    // so I have no idea what I'm doing exactly right now.
+    if ( before.empty() ) {
+      L<<Logger::Debug<< m_myname << "     Temporary 1: before=" << foundBeforeOrdername << ", unhashed=" << foundBeforeDomain << std::endl;
+
+      if ( foundBeforeDomain.empty() ) {
+        foundBeforeOrdername = ordernames.rbegin()->first;
+        foundBeforeDomain = ordernames.rbegin()->second;
+      }
+
+      L<<Logger::Debug<< m_myname << "     Temporary 2: before=" << ordernames.rbegin()->first << ", unhashed=" << ordernames.rbegin()->second << std::endl;
+
+      before = foundBeforeOrdername;
+      unhashed = DNSName( foundBeforeDomain );
+      L<<Logger::Debug<< m_myname << "     Temporary 3: before=" << before << ", unhashed=" << unhashed << std::endl;
+    }
+    else {
+      before = qname;
+    }
+
+    L<<Logger::Debug<< m_myname << "     Found before=" << before << ", after=" << after << ", unhashed=" << unhashed << std::endl;
+
+    return true;
+  }
+  catch( LDAPTimeout &lt )
+  {
+    L << Logger::Warning << m_myname << " Unable to search LDAP directory: " << lt.what() << endl;
+    throw( DBException( "LDAP server timeout" ) );
+  }
+  catch( LDAPNoConnection &lnc )
+  {
+    L << Logger::Warning << m_myname << " Connection to LDAP lost, trying to reconnect" << endl;
+    if ( reconnect() )
+      return this->getBeforeAndAfterNamesAbsolute( domain_id, qname, unhashed, before, after );
+    else
+      throw PDNSException( "Failed to reconnect to LDAP server" );
+  }
+  catch( LDAPException &le )
+  {
+    L << Logger::Error << m_myname << " Unable to search LDAP directory: " << le.what() << endl;
+    throw( PDNSException( "LDAP server unreachable" ) );   // try to reconnect to another server
+  }
+  catch( std::exception &e )
+  {
+    L << Logger::Error << m_myname << " Caught STL exception getting before and after names for " << qname << ": " << e.what() << endl;
+    throw( DBException( "STL exception" ) );
+  }
+}
+
+
 bool LdapBackend::updateDNSSECOrderNameAndAuth( uint32_t domain_id, const DNSName& zonename, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype )
 {
   if ( !m_dnssec )
