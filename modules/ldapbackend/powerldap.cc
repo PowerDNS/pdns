@@ -153,7 +153,7 @@ void PowerLDAP::bind( const string& ldapbinddn, const string& ldapsecret, int me
   }
 #endif
 
-  waitResult( msgid, timeout, NULL );
+  ldapWaitResult( d_ld, msgid, timeout, NULL );
 }
 
 
@@ -203,31 +203,54 @@ void PowerLDAP::del( const string& dn )
 }
 
 
-int PowerLDAP::search( const string& base, int scope, const string& filter, const char** attr )
+PowerLDAP::SearchResult::SearchResult( int msgid, LDAP* ld )
+  : m_msgid( msgid ), d_ld( ld )
 {
-  int msgid, rc;
+  bool finished = false;
 
-  if ( ( rc = ldap_search_ext( d_ld, base.c_str(), scope, filter.c_str(), const_cast<char**> (attr), 0, NULL, NULL, NULL, LDAP_NO_LIMIT, &msgid ) ) ) {
-    throw LDAPException( "Starting LDAP search: " + getError( rc ) );
+  while ( !finished ) {
+    LDAPMessage *result = NULL;
+    int i = ldapWaitResult( d_ld, m_msgid, 5, &result );
+    switch ( i ) {
+      case -1:
+        int err_code;
+        ldapGetOption( d_ld, LDAP_OPT_ERROR_NUMBER, &err_code );
+        if ( err_code == LDAP_SERVER_DOWN || err_code == LDAP_CONNECT_ERROR )
+          throw LDAPNoConnection();
+        else
+          throw LDAPException( "PowerLDAP::search(): Error waiting for LDAP result: " + ldapGetError( d_ld, err_code ) );
+        break;
+      case 0:
+        throw LDAPTimeout();
+        break;
+      case LDAP_NO_SUCH_OBJECT:
+        throw LDAPNoSuchObject();
+        break;
+      case LDAP_RES_SEARCH_REFERENCE:
+        ldap_msgfree( result );
+        break;
+      case LDAP_RES_SEARCH_RESULT:
+        finished = true;
+        ldap_msgfree( result );
+        break;
+      case LDAP_RES_SEARCH_ENTRY:
+        m_results.push_back( result );
+        break;
+    }
+}
+}
+
+
+PowerLDAP::SearchResult::~SearchResult()
+{
+  while ( !m_results.empty() ) {
+    ldap_msgfree( m_results.front() );
+    m_results.pop_front();
   }
-
-  return msgid;
 }
 
 
-/**
- * Function waits for a result, returns its type and optionally stores the result.
- * If the result is returned, the caller is responsible for freeing it with
- * ldap_msgfree!
- */
-
-int PowerLDAP::waitResult( int msgid, int timeout, LDAPMessage** result )
-{
-  return ldapWaitResult( d_ld, msgid, timeout, result );
-}
-
-
-bool PowerLDAP::getSearchEntry( int msgid, sentry_t& entry, bool dn, int timeout )
+bool PowerLDAP::SearchResult::getNext( PowerLDAP::sentry_t& entry, bool dn, int timeout )
 {
   int i;
   char* attr;
@@ -236,42 +259,17 @@ bool PowerLDAP::getSearchEntry( int msgid, sentry_t& entry, bool dn, int timeout
   vector<string> values;
   LDAPMessage* result;
   LDAPMessage* object;
-  bool hasResult = false;
 
-  while ( !hasResult ) {
-    i = waitResult( msgid, timeout, &result );
-    // Here we deliberately ignore LDAP_RES_SEARCH_REFERENCE as we don't follow them.
-    // Instead we get the next result.
-    // If the function returned an error (i <= 0) we'll deal with after this loop too.
-    if ( i == LDAP_RES_SEARCH_ENTRY || i == LDAP_RES_SEARCH_RESULT || i <= 0 )
-      hasResult = true;
-  }
-
-  if ( i == -1 ) {
-    // Error while retrieving the message
-    int err_code;
-    ldapGetOption( d_ld, LDAP_OPT_ERROR_NUMBER, &err_code );
-    if ( err_code == LDAP_SERVER_DOWN || err_code == LDAP_CONNECT_ERROR )
-      throw LDAPNoConnection();
-    else
-      throw LDAPException( "PowerLDAP::getSearchEntry(): Error when retrieving LDAP result: " + getError( err_code ) );
-  }
-
-  if ( i == 0 ) {
-    // Timeout expired before the message could be retrieved
-    throw LDAPTimeout();
-  }
-
-  if ( i == LDAP_RES_SEARCH_RESULT ) {
-    // We're done with this request
-    ldap_msgfree( result );
+  if ( m_results.empty() )
     return false;
-  }
+
+  result = m_results.front();
+  m_results.pop_front();
 
   if( ( object = ldap_first_entry( d_ld, result ) ) == NULL )
   {
     ldap_msgfree( result );
-    throw LDAPException( "Couldn't get first result entry: " + getError() );
+    throw LDAPException( "Couldn't get first result entry: " + ldapGetError( d_ld, -1 ) );
   }
 
   entry.clear();
@@ -311,15 +309,28 @@ bool PowerLDAP::getSearchEntry( int msgid, sentry_t& entry, bool dn, int timeout
 }
 
 
-void PowerLDAP::getSearchResults( int msgid, sresult_t& result, bool dn, int timeout )
+void PowerLDAP::SearchResult::getAll( PowerLDAP::sresult_t& results, bool dn, int timeout )
 {
-  sentry_t entry;
+  PowerLDAP::sentry_t entry;
 
-  result.clear();
-  while( getSearchEntry( msgid, entry, dn, timeout ) )
+  while( getNext( entry, dn, timeout ) )
   {
-    result.push_back( entry );
+    results.push_back( entry );
   }
+}
+
+
+PowerLDAP::SearchResult* PowerLDAP::search( const string& base, int scope, const string& filter, const char** attr )
+{
+  int msgid, rc;
+
+  rc = ldap_search_ext( d_ld, base.c_str(), scope, filter.c_str(), const_cast<char**> (attr), 0, NULL, NULL, NULL, LDAP_NO_LIMIT, &msgid );
+  if ( rc == LDAP_SERVER_DOWN || rc == LDAP_CONNECT_ERROR )
+    throw LDAPNoConnection();
+  else if ( rc != LDAP_SUCCESS )
+    throw LDAPException( "Starting LDAP search: " + getError( rc ) );
+
+  return new SearchResult( msgid, d_ld );
 }
 
 

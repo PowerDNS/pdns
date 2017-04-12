@@ -39,13 +39,15 @@ LdapBackend::LdapBackend( const string &suffix )
 
   try
   {
-    m_msgid = 0;
+    m_search = NULL;
     m_qname.clear();
     m_pldap = NULL;
     m_authenticator = NULL;
     m_qlog = arg().mustDo( "query-logging" );
     m_default_ttl = arg().asNum( "default-ttl" );
     m_myname = "[LdapBackend]";
+    m_in_list = false;
+    m_current_domainid = -1;
 
     setArgPrefix( "ldap" + suffix );
 
@@ -120,6 +122,7 @@ LdapBackend::LdapBackend( const string &suffix )
 
 LdapBackend::~LdapBackend()
 {
+  delete( m_search );
   delete( m_pldap );
   delete( m_authenticator );
   L << Logger::Notice << m_myname << " Ldap connection closed" << endl;

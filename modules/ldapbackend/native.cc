@@ -29,6 +29,9 @@ bool LdapBackend::list( const DNSName& target, int domain_id, bool include_disab
 {
   try
   {
+    delete( m_search );
+    m_in_list = true;
+    m_current_domainid = domain_id;
     m_qname = target;
     m_results_cache.clear();
 
@@ -73,8 +76,10 @@ inline bool LdapBackend::list_simple( const DNSName& target, int domain_id )
 
   // search for SOARecord of target
   filter = strbind( ":target:", "&(associatedDomain=" + qesc + ")(sOARecord=*)", getArg( "filter-axfr" ) );
-  m_msgid = m_pldap->search( dn, LDAP_SCOPE_SUBTREE, filter, (const char**) ldap_attrany );
-  m_pldap->getSearchEntry( m_msgid, m_result, true );
+  PowerLDAP::SearchResult* search = m_pldap->search( dn, LDAP_SCOPE_SUBTREE, filter, (const char**) ldap_attrany );
+  if ( !search->getNext( m_result, true ) )
+    return false;
+  delete( search );
 
   if( m_result.count( "dn" ) && !m_result["dn"].empty() )
   {
@@ -82,60 +87,21 @@ inline bool LdapBackend::list_simple( const DNSName& target, int domain_id )
     {
       dn = m_result["dn"][0];
     }
-    m_result.erase( "dn" );
   }
 
   // If we have any records associated with this entry let's parse them here
-  m_result.erase( "associatedDomain" );
   DNSResult soa_result;
   soa_result.ttl = m_default_ttl;
   soa_result.lastmod = 0;
   this->extract_common_attributes( soa_result );
   this->extract_entry_results( m_qname, soa_result, QType(uint16_t(QType::ANY)) );
+ 
+  if ( soa_result.domain_id >= 0 )
+    m_current_domainid = soa_result.domain_id;
 
   filter = strbind( ":target:", "associatedDomain=*." + qesc, getArg( "filter-axfr" ) );
   L << Logger::Debug << m_myname << " Search = basedn: " << dn << ", filter: " << filter << endl;
-  m_msgid = m_pldap->search( dn, LDAP_SCOPE_SUBTREE, filter, (const char**) ldap_attrany );
-
-  while ( m_pldap->getSearchEntry( m_msgid, m_result, m_getdn ) ) {
-    // Each search entry can result in multiple results if more than one
-    // associatedDomain is present. However certain characteristics are
-    // common to each result (the TTL and the last modification), so let's
-    // just add them right now to the DNSResult. This will then be copied
-    // for each item found in the entry.
-    DNSResult result_template;
-    result_template.ttl = m_default_ttl;
-    result_template.lastmod = 0;
-    this->extract_common_attributes( result_template );
-
-    // Now on to the real stuff.
-    // We can have more than one associatedDomain in the entry, so for each of them we have to check
-    // that they are indeed under the domain we've been asked to list (nothing enforces this, so you
-    // can have one associatedDomain set to "host.first-domain.com" and another one set to
-    // "host.second-domain.com"). Better not return the latter I guess :)
-    // We also have to generate one DNSResult per DNS-relevant attribute. As we've asked only for them
-    // and the others above we've already cleaned it's just a matter of iterating over them.
-
-    if ( ! m_result.count( "associatedDomain" ) )
-      continue;
-
-    unsigned int axfrqlen = m_qname.toStringRootDot().length();
-    std::vector<std::string> associatedDomains;
-    for ( auto i = m_result["associatedDomain"].begin(); i != m_result["associatedDomain"].end(); ++i ) {
-      // Sanity checks: is this associatedDomain attribute under the requested domain?
-      if ( i->size() >= axfrqlen && i->substr( i->size() - axfrqlen, axfrqlen ) == m_qname.toStringRootDot() )
-        associatedDomains.push_back( *i );
-    }
-    // Same reason as above, we delete this attribute to prevent messing with the DNS records iteration
-    m_result.erase( "associatedDomain" );
-
-    std::string attrname, qstr;
-    QType qt;
-
-    for ( auto domain : associatedDomains ) {
-      this->extract_entry_results( DNSName( domain ), result_template, QType(uint16_t(QType::ANY)) );
-    }
-  }
+  m_search = m_pldap->search( dn, LDAP_SCOPE_SUBTREE, filter, (const char**) ldap_attrany );
 
   return true;
 }
@@ -157,33 +123,14 @@ void LdapBackend::lookup( const QType &qtype, const DNSName &qname, DNSPacket *d
 {
   try
   {
+    delete( m_search );
+    m_in_list = false;
     m_qname = qname;
+    m_current_domainid = zoneid;
+    m_results_cache.clear();
 
     if( m_qlog ) { L.log( "Query: '" + qname.toStringRootDot() + "|" + qtype.getName() + "'", Logger::Error ); }
     (this->*m_lookup_fcnt)( qtype, qname, dnspkt, zoneid );
-
-    while ( m_pldap->getSearchEntry( m_msgid, m_result, m_getdn ) ) {
-      // Same rationale as in LdapBackend::list_simple(), this template will
-      // serve as the base for the results we'll cache.
-      DNSResult result_template;
-      result_template.ttl = m_default_ttl;
-      result_template.lastmod = 0;
-      result_template.domain_id = zoneid;
-      this->extract_common_attributes( result_template );
-
-      // If we have an associatedDomain attribute here this means that we're in strict mode and
-      // that a reverse lookup was requested. We have to slightly tweak the result before extracting
-      // the relevant information.
-      if ( m_result.count( "associatedDomain" ) ) {
-        m_result["pTRRecord"] = m_result["associatedDomain"];
-        m_result.erase( "associatedDomain" );
-      }
-
-      std::string attrname, qstr;
-      QType qt;
-
-      this->extract_entry_results( m_qname, result_template, qtype );
-    }
   }
   catch( LDAPTimeout &lt )
   {
@@ -224,10 +171,11 @@ void LdapBackend::lookup_simple( const QType &qtype, const DNSName &qname, DNSPa
     std::string zoneFilter = "PdnsDomainId=" + std::to_string( zoneid );
     const char* zoneAttributes[] = { "objectClass", NULL };
     PowerLDAP::sentry_t result;
-    int msgid = m_pldap->search( basedn, LDAP_SCOPE_SUBTREE, zoneFilter, zoneAttributes );
-    if ( !m_pldap->getSearchEntry( msgid, result, true ) ) {
+    PowerLDAP::SearchResult* search = m_pldap->search( basedn, LDAP_SCOPE_SUBTREE, zoneFilter, zoneAttributes );
+    if ( !search->getNext( result, true ) ) {
       throw PDNSException( "No zone with ID "+std::to_string(zoneid)+" found" );
     }
+    delete( search );
     basedn = result["dn"][0];
     L<<Logger::Debug<< m_myname << " Searching for RR under " << basedn << std::endl;
   }
@@ -246,7 +194,7 @@ void LdapBackend::lookup_simple( const QType &qtype, const DNSName &qname, DNSPa
   filter = strbind( ":target:", filter, getArg( "filter-lookup" ) );
 
   L << Logger::Debug << m_myname << " Search = basedn: " << basedn << ", filter: " << filter << ", qtype: " << qtype.getName() << ", domain_id: " << zoneid << endl;
-  m_msgid = m_pldap->search( basedn, LDAP_SCOPE_SUBTREE, filter, attributes );
+  m_search = m_pldap->search( basedn, LDAP_SCOPE_SUBTREE, filter, attributes );
 }
 
 
@@ -290,7 +238,7 @@ void LdapBackend::lookup_strict( const QType &qtype, const DNSName &qname, DNSPa
   filter = strbind( ":target:", filter, getArg( "filter-lookup" ) );
 
   L << Logger::Debug << m_myname << " Search = basedn: " << getArg( "basedn" ) << ", filter: " << filter << ", qtype: " << qtype.getName() << endl;
-  m_msgid = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attributes );
+  m_search = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attributes );
 }
 
 
@@ -322,14 +270,88 @@ void LdapBackend::lookup_tree( const QType &qtype, const DNSName &qname, DNSPack
   }
 
   L << Logger::Debug << m_myname << " Search = basedn: " << dn + getArg( "basedn" ) << ", filter: " << filter << ", qtype: " << qtype.getName() << endl;
-  m_msgid = m_pldap->search( dn + getArg( "basedn" ), LDAP_SCOPE_BASE, filter, attributes );
+  m_search = m_pldap->search( dn + getArg( "basedn" ), LDAP_SCOPE_BASE, filter, attributes );
 }
 
 
 bool LdapBackend::get( DNSResourceRecord &rr )
 {
-  if ( m_results_cache.empty() )
-    return false;
+  if ( m_results_cache.empty() ) {
+    while ( m_results_cache.empty() ) {
+      bool exhausted = false;
+      bool valid_entry_found = false;
+
+      while ( !valid_entry_found && !exhausted ) {
+        try {
+          exhausted = !m_search->getNext( m_result, true );
+        }
+        catch( LDAPException &le )
+        {
+          L << Logger::Error << m_myname << " Failed to get next result: " << le.what() << endl;
+          throw( PDNSException( "Get next result impossible" ) );
+        }
+
+        if ( !exhausted ) {
+          if ( !m_in_list ) {
+            // All entries are valid here
+            valid_entry_found = true;
+          }
+          else {
+            // If we're called after list() then the entry *must* contain
+            // associatedDomain, otherwise let's just skip it
+            if ( m_result.count( "associatedDomain" ) )
+              valid_entry_found = true;
+          }
+        }
+      }
+
+      if ( exhausted ) {
+        break;
+      }
+
+      DNSResult result_template;
+      result_template.ttl = m_default_ttl;
+      result_template.lastmod = 0;
+      result_template.domain_id = m_current_domainid;
+      this->extract_common_attributes( result_template );
+
+      std::vector<std::string> associatedDomains;
+
+      if ( m_result.count( "associatedDomain" ) ) {
+        if ( m_in_list ) {
+          // We can have more than one associatedDomain in the entry, so for each of them we have to check
+          // that they are indeed under the domain we've been asked to list (nothing enforces this, so you
+          // can have one associatedDomain set to "host.first-domain.com" and another one set to
+          // "host.second-domain.com"). Better not return the latter I guess :)
+          // We also have to generate one DNSResult per DNS-relevant attribute. As we've asked only for them
+          // and the others above we've already cleaned it's just a matter of iterating over them.
+
+          unsigned int axfrqlen = m_qname.toStringRootDot().length();
+          for ( auto i = m_result["associatedDomain"].begin(); i != m_result["associatedDomain"].end(); ++i ) {
+            // Sanity checks: is this associatedDomain attribute under the requested domain?
+            if ( i->size() >= axfrqlen && i->substr( i->size() - axfrqlen, axfrqlen ) == m_qname.toStringRootDot() )
+              associatedDomains.push_back( *i );
+          }
+        }
+        else {
+          // This was a lookup in strict mode, so we add the reverse lookup
+          // information manually.
+          m_result["pTRRecord"] = m_result["associatedDomain"];
+        }
+      }
+
+      if ( m_in_list ) {
+        for ( auto domain : associatedDomains )
+          this->extract_entry_results( DNSName( domain ), result_template, QType(uint16_t(QType::ANY)) );
+      }
+      else {
+        this->extract_entry_results( m_qname, result_template, QType(uint16_t(QType::ANY)) );
+      }
+    }
+
+    if ( m_results_cache.empty() )
+      return false;
+  }
 
   DNSResult result = m_results_cache.front();
   m_results_cache.pop_front();
@@ -369,8 +391,8 @@ bool LdapBackend::getDomainInfo( const DNSName& domain, DomainInfo& di )
   {
     // search for SOARecord of domain
     filter = "(&(associatedDomain=" + toLower( m_pldap->escape( domain.toStringRootDot() ) ) + ")(SOARecord=*))";
-    m_msgid = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attronly );
-    m_pldap->getSearchEntry( msgid, result );
+    m_search = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attronly );
+    m_search->getNext( result );
   }
   catch( LDAPTimeout &lt )
   {

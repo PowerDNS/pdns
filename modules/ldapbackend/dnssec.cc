@@ -39,12 +39,13 @@ std::string LdapBackend::getDomainMetadataDN( const DNSName &name )
   PowerLDAP::sentry_t result;
 
   try {
-    int msgid = m_pldap->search( m_metadata_searchdn, LDAP_SCOPE_SUBTREE, filter, attributes );
+    PowerLDAP::SearchResult* search = m_pldap->search( m_metadata_searchdn, LDAP_SCOPE_SUBTREE, filter, attributes );
 
-    if ( m_pldap->getSearchEntry( msgid, result, true ) ) {
+    if ( search->getNext( result, true ) ) {
       if ( result.count( "dn" ) && !result["dn"].empty() )
         dn = result["dn"][0];
     }
+    delete( search );
 
     L<<Logger::Debug<< m_myname << " getDomainMetadataDN will return " << dn << endl;
     return dn;
@@ -90,15 +91,16 @@ bool LdapBackend::getDomainMetadata( const DNSName& name, const std::string& kin
   PowerLDAP::sentry_t result;
 
   try {
-    int msgid = m_pldap->search( basedn, LDAP_SCOPE_SUBTREE, filter, attributes );
+    PowerLDAP::SearchResult* search = m_pldap->search( basedn, LDAP_SCOPE_SUBTREE, filter, attributes );
 
     // We're supposed to get just one entry
-    if ( m_pldap->getSearchEntry( msgid, result, m_getdn ) ) {
+    if ( search->getNext( result, m_getdn ) ) {
       if ( result.count( "PdnsMetadataValue" ) && !result["PdnsMetadataValue"].empty() ) {
         for ( auto value : result["PdnsMetadataValue"] )
           meta.push_back( value );
       }
     }
+    delete( search );
 
     return true;
   }
@@ -141,12 +143,13 @@ bool LdapBackend::getAllDomainMetadata( const DNSName& name, std::map<std::strin
   PowerLDAP::sentry_t result;
 
   try {
-    int msgid = m_pldap->search( basedn, LDAP_SCOPE_SUBTREE, filter, attributes );
+    PowerLDAP::SearchResult* search = m_pldap->search( basedn, LDAP_SCOPE_SUBTREE, filter, attributes );
     meta.clear();
 
-    while ( m_pldap->getSearchEntry( msgid, result, false ) ) {
+    while ( search->getNext( result, false ) ) {
       meta[ result["cn"][0] ] = result["PdnsMetadataValue"];
     }
+    delete( search );
 
     return true;
   }
@@ -195,8 +198,9 @@ bool LdapBackend::setDomainMetadata( const DNSName& name, const std::string& kin
     const char* attributes[] = { "cn", NULL };
     PowerLDAP::sentry_t result;
 
-    int msgid = m_pldap->search( basedn, LDAP_SCOPE_SUBTREE, filter, attributes );
-    bool exists = m_pldap->getSearchEntry( msgid, result, true );
+    PowerLDAP::SearchResult* search = m_pldap->search( basedn, LDAP_SCOPE_SUBTREE, filter, attributes );
+    bool exists = search->getNext( result, true );
+    delete( search );
 
     if ( !exists ) {
       // OK, this metadata entry doesn't exist. Let's just create it, yay!
@@ -315,9 +319,9 @@ bool LdapBackend::getDomainKeys( const DNSName& name, unsigned int kind, std::ve
       NULL
     };
 
-    int msgid = m_pldap->search( basedn, LDAP_SCOPE_SUBTREE, filter, attributes );
+    PowerLDAP::SearchResult* search = m_pldap->search( basedn, LDAP_SCOPE_SUBTREE, filter, attributes );
 
-    while ( m_pldap->getSearchEntry( msgid, result, false ) ) {
+    while ( search->getNext( result, false ) ) {
       KeyData kd;
       kd.id = pdns_stou( result["PdnsKeyId"][0] );
       kd.flags = pdns_stou( result["PdnsKeyFlags"][0] );
@@ -330,6 +334,7 @@ bool LdapBackend::getDomainKeys( const DNSName& name, unsigned int kind, std::ve
       L<<Logger::Debug<< m_myname << " Found key with ID " << kd.id << std::endl;
       keys.push_back( kd );
     }
+    delete( search );
 
     return true;
   }
@@ -413,12 +418,13 @@ bool LdapBackend::addDomainKey( const DNSName& name, const KeyData& key, int64_t
     int64_t maxId = 0;
     PowerLDAP::sentry_t keysearch_result;
     const char* keysearch_attributes[] = { "PdnsKeyId", NULL };
-    int msgid = m_pldap->search( basedn, LDAP_SCOPE_SUBTREE, "objectClass=PdnsDomainKey", keysearch_attributes );
-    while ( m_pldap->getSearchEntry( msgid, keysearch_result, false ) ) {
+    PowerLDAP::SearchResult* search = m_pldap->search( basedn, LDAP_SCOPE_SUBTREE, "objectClass=PdnsDomainKey", keysearch_attributes );
+    while ( search->getNext( keysearch_result, false ) ) {
       int64_t currentId = std::stoll( keysearch_result["PdnsKeyId"][0] );
       if ( currentId >= maxId )
         maxId = currentId + 1;
     }
+    delete( search );
 
     std::string maxIdStr = std::to_string( maxId );
     char* keyidValues[] = { (char*)maxIdStr.c_str(), NULL };
@@ -483,12 +489,13 @@ bool LdapBackend::activateDomainKey( const DNSName& name, unsigned int id )
     PowerLDAP::sentry_t result;
     std::string filter = "(&(objectClass=PdnsDomainKey)(PdnsKeyId=" + std::to_string( id ) + "))";
     const char* attributes[] = { "PdnsKeyActive", NULL };
-    int msgid = m_pldap->search( basedn, LDAP_SCOPE_SUBTREE, filter, attributes );
+    PowerLDAP::SearchResult* search = m_pldap->search( basedn, LDAP_SCOPE_SUBTREE, filter, attributes );
 
-    if ( !m_pldap->getSearchEntry( msgid, result, true ) ) {
+    if ( !search->getNext( result, true ) ) {
       L<<Logger::Warning<< m_myname << " No key with this ID found" << std::endl;
       return false;
     }
+    delete( search );
 
     std::string dn = result["dn"][0];
 
@@ -549,12 +556,13 @@ bool LdapBackend::deactivateDomainKey( const DNSName& name, unsigned int id )
     PowerLDAP::sentry_t result;
     std::string filter = "(&(objectClass=PdnsDomainKey)(PdnsKeyId=" + std::to_string( id ) + "))";
     const char* attributes[] = { "PdnsKeyActive", NULL };
-    int msgid = m_pldap->search( basedn, LDAP_SCOPE_SUBTREE, filter, attributes );
+    PowerLDAP::SearchResult* search = m_pldap->search( basedn, LDAP_SCOPE_SUBTREE, filter, attributes );
 
-    if ( !m_pldap->getSearchEntry( msgid, result, true ) ) {
+    if ( !search->getNext( result, true ) ) {
       L<<Logger::Warning<< m_myname << " No key with this ID found" << std::endl;
       return false;
     }
+    delete( search );
 
     std::string dn = result["dn"][0];
 
@@ -613,12 +621,13 @@ bool LdapBackend::removeDomainKey( const DNSName& name, unsigned int id )
     PowerLDAP::sentry_t result;
     std::string filter = "(&(objectClass=PdnsDomainKey)(PdnsKeyId=" + std::to_string( id ) + "))";
     const char* attributes[] = { "PdnsKeyActive", NULL };
-    int msgid = m_pldap->search( basedn, LDAP_SCOPE_SUBTREE, filter, attributes );
+    PowerLDAP::SearchResult* search = m_pldap->search( basedn, LDAP_SCOPE_SUBTREE, filter, attributes );
 
-    if ( !m_pldap->getSearchEntry( msgid, result, true ) ) {
+    if ( !search->getNext( result, true ) ) {
       L<<Logger::Warning<< m_myname << " No key with this ID found" << std::endl;
       return true; // Eh, it's already not there, so everybody's happy, right?
     }
+    delete( search );
 
     std::string dn = result["dn"][0];
     m_pldap->del( dn );
@@ -656,10 +665,11 @@ bool LdapBackend::getTSIGKey( const DNSName& name, DNSName* algorithm, string* c
     std::string filter = "(&(objectClass=PdnsTSIGKey)(cn=" + m_pldap->escape( name.toString( "" ) ) + "))";
     const char* attributes[] = { (char*)"PdnsKeyAlgorithm", (char*)"PdnsKeyContent", NULL };
     PowerLDAP::sentry_t result;
-    int msgid = m_pldap->search( "ou=TSIGKeys," + getArg( "metadata-searchdn" ), LDAP_SCOPE_ONELEVEL, filter, attributes );
+    PowerLDAP::SearchResult* search = m_pldap->search( "ou=TSIGKeys," + getArg( "metadata-searchdn" ), LDAP_SCOPE_ONELEVEL, filter, attributes );
 
-    if ( !m_pldap->getSearchEntry( msgid, result ) )
+    if ( !search->getNext( result ) )
       return false;
+    delete( search );
 
     if ( algorithm->empty() || *algorithm == DNSName( result["PdnsKeyAlgorithm"][0] ) ) {
       *algorithm = DNSName( result["PdnsKeyAlgorithm"][0] );
@@ -716,15 +726,16 @@ bool LdapBackend::setTSIGKey( const DNSName& name, const DNSName& algorithm, con
       std::string filter = "(&(objectClass=PdnsTSIGKey)(cn=" + m_pldap->escape( name.toString( "" ) ) + "))";
       const char* attributes[] = { (char*)"objectClass", NULL };
       PowerLDAP::sentry_t result;
-      int msgid = m_pldap->search( "ou=TSIGKeys," + getArg( "metadata-searchdn" ), LDAP_SCOPE_ONELEVEL, filter, attributes );
+      PowerLDAP::SearchResult* search = m_pldap->search( "ou=TSIGKeys," + getArg( "metadata-searchdn" ), LDAP_SCOPE_ONELEVEL, filter, attributes );
 
       LDAPMod* mods[3];
       mods[0] = &algoMod;
       mods[1] = &contentMod;
       mods[2] = NULL;
 
-      if ( !m_pldap->getSearchEntry( msgid, result, true ) ) // Whaaaa?
+      if ( !search->getNext( result, true ) ) // Whaaaa?
         return false;
+      delete( search );
 
       m_pldap->modify( result["dn"][0], mods );
     }
@@ -801,10 +812,11 @@ bool LdapBackend::deleteTSIGKey( const DNSName& name )
     std::string filter = "(&(objectClass=PdnsTSIGKey)(cn=" + m_pldap->escape( name.toString( "" ) ) + "))";
     const char* attributes[] = { (char*)"objectClass", NULL };
     PowerLDAP::sentry_t result;
-    int msgid = m_pldap->search( "ou=TSIGKeys," + getArg( "metadata-searchdn" ), LDAP_SCOPE_ONELEVEL, filter, attributes );
+    PowerLDAP::SearchResult* search = m_pldap->search( "ou=TSIGKeys," + getArg( "metadata-searchdn" ), LDAP_SCOPE_ONELEVEL, filter, attributes );
 
-    if ( !m_pldap->getSearchEntry( msgid, result, true ) )
+    if ( !search->getNext( result, true ) )
       return false;
+    delete( search );
 
     m_pldap->del( result["dn"][0] );
 
@@ -842,15 +854,16 @@ bool LdapBackend::getTSIGKeys( std::vector<struct TSIGKey>& keys )
     std::string filter = "objectClass=PdnsTSIGKey";
     const char* attributes[] = { (char*)"cn", (char*)"PdnsKeyAlgorithm", (char*)"PdnsKeyContent", NULL };
     PowerLDAP::sentry_t result;
-    int msgid = m_pldap->search( "ou=TSIGKeys," + getArg( "metadata-searchdn" ), LDAP_SCOPE_ONELEVEL, filter, attributes );
+    PowerLDAP::SearchResult* search = m_pldap->search( "ou=TSIGKeys," + getArg( "metadata-searchdn" ), LDAP_SCOPE_ONELEVEL, filter, attributes );
 
-    while ( m_pldap->getSearchEntry( msgid, result, false ) ) {
+    while ( search->getNext( result, false ) ) {
       TSIGKey key;
       key.name = DNSName( result["cn"][0] );
       key.algorithm = DNSName( result["PdnsKeyAlgorithm"][0] );
       key.key = result["PdnsKeyContent"][0];
       keys.push_back( key );
     }
+    delete( search );
 
     return true;
   }
@@ -893,11 +906,12 @@ bool LdapBackend::getBeforeAndAfterNamesAbsolute( uint32_t domain_id, const std:
     const char* zoneAttributes[] = { "associatedDomain", NULL };
     PowerLDAP::sentry_t result;
 
-    int msgid = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, zoneAttributes );
-    if ( !m_pldap->getSearchEntry( msgid, result, true ) ) {
+    PowerLDAP::SearchResult* search = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, zoneAttributes );
+    if ( !search->getNext( result, true ) ) {
       L<<Logger::Debug<< m_myname << " Can't find the zone for domain ID " << domain_id << std::endl;
       return false;
     }
+    delete( search );
 
     std::string basedn = getArg( "basedn" );
     if ( mustDo( "lookup-zone-rebase" ) )
@@ -907,9 +921,9 @@ bool LdapBackend::getBeforeAndAfterNamesAbsolute( uint32_t domain_id, const std:
     filter = "(&(|(associatedDomain="+domainBase+")(associatedDomain=*."+domainBase+"))(PdnsRecordOrdername=*))";
     const char* orderAttributes[] = { "associatedDomain", "PdnsRecordOrdername", NULL };
     std::map<std::string, std::string> ordernames;
-    msgid = m_pldap->search( basedn, LDAP_SCOPE_SUBTREE, filter, orderAttributes );
+    search = m_pldap->search( basedn, LDAP_SCOPE_SUBTREE, filter, orderAttributes );
 
-    while ( m_pldap->getSearchEntry( msgid, result, false ) ) {
+    while ( search->getNext( result, false ) ) {
       // No need to iterate over associatedDomain as for DNSSEC I doubt that having more
       // than one value for this attribute is going to work.
       for ( auto ordername : result["PdnsRecordOrdername"] ) {
@@ -924,6 +938,7 @@ bool LdapBackend::getBeforeAndAfterNamesAbsolute( uint32_t domain_id, const std:
         }
       }
     }
+    delete( search );
 
     std::string foundBeforeOrdername, foundBeforeDomain, foundAfter, qnameMatch;
     if ( qname.empty() )
@@ -1009,11 +1024,12 @@ bool LdapBackend::updateDNSSECOrderNameAndAuth( uint32_t domain_id, const DNSNam
     const char* zoneAttributes[] = { "associatedDomain", NULL };
     PowerLDAP::sentry_t result;
 
-    int msgid = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, zoneAttributes );
-    if ( !m_pldap->getSearchEntry( msgid, result, true ) ) {
+    PowerLDAP::SearchResult* search = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, zoneAttributes );
+    if ( !search->getNext( result, true ) ) {
       L<<Logger::Debug<< m_myname << " Can't find the zone for domain ID " << domain_id << std::endl;
       return false;
     }
+    delete( search );
 
     std::string basedn = getArg( "basedn" );
     if ( mustDo( "lookup-zone-rebase" ) )
@@ -1023,10 +1039,10 @@ bool LdapBackend::updateDNSSECOrderNameAndAuth( uint32_t domain_id, const DNSNam
     filter = "associatedDomain=" + m_pldap->escape( qname.toStringRootDot() );
     filter = strbind( ":target:", filter, getArg( "filter-lookup" ) );
 
-    msgid = m_pldap->search( basedn, LDAP_SCOPE_SUBTREE, filter, (const char**)ldap_attrany );
-    if ( !m_pldap->getSearchEntry( msgid, result, true ) )
+    search = m_pldap->search( basedn, LDAP_SCOPE_SUBTREE, filter, (const char**)ldap_attrany );
+    if ( !search->getNext( result, true ) )
       return false;
-
+    delete( search );
 
     // We have first to make sure that the entry has the correct object class
     bool addObjectClass = true;

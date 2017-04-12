@@ -28,7 +28,7 @@
 void LdapBackend::getUpdatedMasters( vector<DomainInfo>* domains )
 {
   string filter;
-  int msgid;
+  PowerLDAP::SearchResult *search;
   PowerLDAP::sentry_t result;
   const char* attronly[] = {
     "associatedDomain",
@@ -39,7 +39,7 @@ void LdapBackend::getUpdatedMasters( vector<DomainInfo>* domains )
   {
     // First get all domains on which we are master.
     filter = strbind( ":target:", "&(SOARecord=*)(PdnsDomainId=*)", getArg( "filter-axfr" ) );
-    msgid = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attronly );
+    search = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attronly );
   }
   catch( LDAPTimeout &lt )
   {
@@ -64,7 +64,7 @@ void LdapBackend::getUpdatedMasters( vector<DomainInfo>* domains )
     throw( DBException( "STL exception" ) );
   }
 
-  while( m_pldap->getSearchEntry( msgid, result ) ) {
+  while( search->getNext( result ) ) {
     if( !result.count( "associatedDomain" ) || result["associatedDomain"].empty() )
       continue;
 
@@ -77,13 +77,15 @@ void LdapBackend::getUpdatedMasters( vector<DomainInfo>* domains )
     if( di.notified_serial < di.serial )
       domains->push_back( di );
   }
+
+  delete( search );
 }
 
 
 void LdapBackend::setNotified( uint32_t id, uint32_t serial )
 {
   string filter;
-  int msgid;
+  PowerLDAP::SearchResult* search;
   PowerLDAP::sresult_t results;
   PowerLDAP::sentry_t entry;
   const char* attronly[] = { "associatedDomain", NULL };
@@ -92,8 +94,9 @@ void LdapBackend::setNotified( uint32_t id, uint32_t serial )
   {
     // Try to find the notified domain
     filter = strbind( ":target:", "PdnsDomainId=" + std::to_string( id ), getArg( "filter-axfr" ) );
-    msgid = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attronly );
-    m_pldap->getSearchResults( msgid, results, true );
+    search = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attronly );
+    search->getAll( results, true );
+    delete( search );
   }
   catch( LDAPTimeout &lt )
   {

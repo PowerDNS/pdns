@@ -108,12 +108,14 @@ class LdapBackend : public DNSBackend
     bool m_qlog;
     uint32_t m_default_ttl;
     int m_reconnect_attempts;
-
-    bool m_getdn;
-    int m_msgid;
-    PowerLDAP::sentry_t m_result;
     bool m_dnssec;
     std::string m_metadata_searchdn;
+
+    bool m_getdn;
+    PowerLDAP::SearchResult* m_search;
+    PowerLDAP::sentry_t m_result;
+    bool m_in_list;         // true if the previous call was list(), false if it was get()
+    int m_current_domainid; // the domain ID for the domain currently being processed (passed to list() or get())
 
     struct DNSResult {
       int domain_id;
