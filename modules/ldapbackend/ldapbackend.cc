@@ -43,9 +43,6 @@ LdapBackend::LdapBackend( const string &suffix )
     m_qname.clear();
     m_pldap = NULL;
     m_authenticator = NULL;
-    m_ttl = 0;
-    m_axfrqlen = 0;
-    m_last_modified = 0;
     m_qlog = arg().mustDo( "query-logging" );
     m_default_ttl = arg().asNum( "default-ttl" );
     m_myname = "[LdapBackend]";
@@ -56,7 +53,6 @@ LdapBackend::LdapBackend( const string &suffix )
     m_reconnect_attempts = getArgAsNum( "reconnect-attempts" );
     m_list_fcnt = &LdapBackend::list_simple;
     m_lookup_fcnt = &LdapBackend::lookup_simple;
-    m_prepare_fcnt = &LdapBackend::prepare_simple;
 
     if( getArg( "method" ) == "tree" )
     {
@@ -67,7 +63,6 @@ LdapBackend::LdapBackend( const string &suffix )
     {
       m_list_fcnt = &LdapBackend::list_strict;
       m_lookup_fcnt = &LdapBackend::lookup_strict;
-      m_prepare_fcnt = &LdapBackend::prepare_strict;
     }
 
     stringtok( hosts, getArg( "host" ), ", " );
@@ -144,14 +139,74 @@ bool LdapBackend::reconnect()
 }
 
 
+void LdapBackend::extract_common_attributes( DNSResult &result ) {
+  if ( m_result.count( "dNSTTL" ) && !m_result["dNSTTL"].empty() ) {
+    char *endptr;
+    uint32_t ttl = (uint32_t) strtol( m_result["dNSTTL"][0].c_str(), &endptr, 10 );
+
+    if ( *endptr != '\0' ) {
+      // NOTE: this will not give the entry for which the TTL was off.
+      // TODO: improve this.
+      //   - Check how m_getdn is used, because if it's never false then we
+      //     might as well use it.
+      L << Logger::Warning << m_myname << " Invalid time to live for " << m_qname << ": " << m_result["dNSTTL"][0] << endl;
+    }
+    else {
+      result.ttl = ttl;
+    }
+
+    // We have to erase the attribute, otherwise this will mess up the records retrieval later.
+    m_result.erase( "dNSTTL" );
+  }
+
+  if ( m_result.count( "modifyTimestamp" ) && !m_result["modifyTimestamp"].empty() ) {
+    time_t tstamp = 0;
+    if ( ( tstamp = str2tstamp( m_result["modifyTimestamp"][0] ) ) == 0 ) {
+      // Same note as above, we don't know which entry failed here
+      L << Logger::Warning << m_myname << " Invalid modifyTimestamp for " << m_qname << ": " << m_result["modifyTimestamp"][0] << endl;
+    }
+    else {
+      result.lastmod = tstamp;
+    }
+
+    // Here too we have to erase this attribute.
+    m_result.erase( "modifyTimestamp" );
+  }
+}
+
+
+void LdapBackend::extract_entry_results( const DNSName& domain, const DNSResult& result_template, QType qtype ) {
+  std:: string attrname, qstr;
+  QType qt;
+
+  for ( auto attribute : m_result ) {
+    attrname = attribute.first;
+    // extract qtype string from ldap attribute name by removing the 'Record' suffix.
+    qstr = attrname.substr( 0, attrname.length() - 6 );
+    qt = toUpper( qstr );
+
+    for ( auto value : attribute.second ) {
+      if(qtype != qt && qtype != QType::ANY) {
+        continue;
+      }
+
+      DNSResult local_result = result_template;
+      local_result.qtype = qt;
+      local_result.qname = domain;
+      local_result.value = value;
+      m_results_cache.push_back( local_result );
+    }
+  }
+}
+
+
 
 bool LdapBackend::list( const DNSName& target, int domain_id, bool include_disabled )
 {
   try
   {
     m_qname = target;
-    m_axfrqlen = target.toStringRootDot().length();
-    m_adomain = m_adomains.end();   // skip loops in get() first time
+    m_results_cache.clear();
 
     return (this->*m_list_fcnt)( target, domain_id );
   }
@@ -208,14 +263,60 @@ inline bool LdapBackend::list_simple( const DNSName& target, int domain_id )
     m_result.erase( "dn" );
   }
 
-  prepare();
+  // If we have any records associated with this entry let's parse them here
+  m_result.erase( "associatedDomain" );
+  DNSResult soa_result;
+  soa_result.ttl = m_default_ttl;
+  soa_result.lastmod = 0;
+  this->extract_common_attributes( soa_result );
+  this->extract_entry_results( m_qname, soa_result, QType(uint16_t(QType::ANY)) );
+
   filter = strbind( ":target:", "associatedDomain=*." + qesc, getArg( "filter-axfr" ) );
-  DLOG( L << Logger::Debug << m_myname << " Search = basedn: " << dn << ", filter: " << filter << endl );
+  L << Logger::Debug << m_myname << " Search = basedn: " << dn << ", filter: " << filter << endl;
   m_msgid = m_pldap->search( dn, LDAP_SCOPE_SUBTREE, filter, (const char**) ldap_attrany );
+
+  while ( m_pldap->getSearchEntry( m_msgid, m_result, m_getdn ) ) {
+    // Each search entry can result in multiple results if more than one
+    // associatedDomain is present. However certain characteristics are
+    // common to each result (the TTL and the last modification), so let's
+    // just add them right now to the DNSResult. This will then be copied
+    // for each item found in the entry.
+    DNSResult result_template;
+    result_template.ttl = m_default_ttl;
+    result_template.lastmod = 0;
+    this->extract_common_attributes( result_template );
+
+    // Now on to the real stuff.
+    // We can have more than one associatedDomain in the entry, so for each of them we have to check
+    // that they are indeed under the domain we've been asked to list (nothing enforces this, so you
+    // can have one associatedDomain set to "host.first-domain.com" and another one set to
+    // "host.second-domain.com"). Better not return the latter I guess :)
+    // We also have to generate one DNSResult per DNS-relevant attribute. As we've asked only for them
+    // and the others above we've already cleaned it's just a matter of iterating over them.
+
+    if ( ! m_result.count( "associatedDomain" ) )
+      continue;
+
+    unsigned int axfrqlen = m_qname.toStringRootDot().length();
+    std::vector<std::string> associatedDomains;
+    for ( auto i = m_result["associatedDomain"].begin(); i != m_result["associatedDomain"].end(); ++i ) {
+      // Sanity checks: is this associatedDomain attribute under the requested domain?
+      if ( i->size() >= axfrqlen && i->substr( i->size() - axfrqlen, axfrqlen ) == m_qname.toStringRootDot() )
+        associatedDomains.push_back( *i );
+    }
+    // Same reason as above, we delete this attribute to prevent messing with the DNS records iteration
+    m_result.erase( "associatedDomain" );
+
+    std::string attrname, qstr;
+    QType qt;
+
+    for ( auto domain : associatedDomains ) {
+      this->extract_entry_results( DNSName( domain ), result_template, QType(uint16_t(QType::ANY)) );
+    }
+  }
 
   return true;
 }
-
 
 
 inline bool LdapBackend::list_strict( const DNSName& target, int domain_id )
@@ -235,13 +336,30 @@ void LdapBackend::lookup( const QType &qtype, const DNSName &qname, DNSPacket *d
 {
   try
   {
-    m_axfrqlen = 0;
     m_qname = qname;
-    m_adomain = m_adomains.end();   // skip loops in get() first time
     m_qtype = qtype;
 
     if( m_qlog ) { L.log( "Query: '" + qname.toStringRootDot() + "|" + qtype.getName() + "'", Logger::Error ); }
     (this->*m_lookup_fcnt)( qtype, qname, dnspkt, zoneid );
+
+    while ( m_pldap->getSearchEntry( m_msgid, m_result, m_getdn ) ) {
+      // Same rationale as in LdapBackend::list_simple(), this template will
+      // serve as the base for the results we'll cache.
+      DNSResult result_template;
+      result_template.ttl = m_default_ttl;
+      result_template.lastmod = 0;
+      this->extract_common_attributes( result_template );
+
+      // If we have an associatedDomain attribute here this means that we're in strict mode and
+      // that a reverse lookup was requested. We have to slightly tweak the result before extracting
+      // the relevant information.
+      if ( m_result.count( "associatedDomain" ) ) {
+        m_result["pTRRecord"] = m_result["associatedDomain"];
+        m_result.erase( "associatedDomain" );
+      }
+
+      this->extract_entry_results( m_qname, result_template, qtype );
+    }
   }
   catch( LDAPTimeout &lt )
   {
@@ -290,7 +408,7 @@ void LdapBackend::lookup_simple( const QType &qtype, const DNSName &qname, DNSPa
 
   filter = strbind( ":target:", filter, getArg( "filter-lookup" ) );
 
-  DLOG( L << Logger::Debug << m_myname << " Search = basedn: " << getArg( "basedn" ) << ", filter: " << filter << ", qtype: " << qtype.getName() << endl );
+  L << Logger::Debug << m_myname << " Search = basedn: " << getArg( "basedn" ) << ", filter: " << filter << ", qtype: " << qtype.getName() << endl;
   m_msgid = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attributes );
 }
 
@@ -335,7 +453,7 @@ void LdapBackend::lookup_strict( const QType &qtype, const DNSName &qname, DNSPa
 
   filter = strbind( ":target:", filter, getArg( "filter-lookup" ) );
 
-  DLOG( L << Logger::Debug << m_myname << " Search = basedn: " << getArg( "basedn" ) << ", filter: " << filter << ", qtype: " << qtype.getName() << endl );
+  L << Logger::Debug << m_myname << " Search = basedn: " << getArg( "basedn" ) << ", filter: " << filter << ", qtype: " << qtype.getName() << endl;
   m_msgid = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attributes );
 }
 
@@ -368,108 +486,28 @@ void LdapBackend::lookup_tree( const QType &qtype, const DNSName &qname, DNSPack
     dn = "dc=" + *i + "," + dn;
   }
 
-  DLOG( L << Logger::Debug << m_myname << " Search = basedn: " << dn + getArg( "basedn" ) << ", filter: " << filter << ", qtype: " << qtype.getName() << endl );
+  L << Logger::Debug << m_myname << " Search = basedn: " << dn + getArg( "basedn" ) << ", filter: " << filter << ", qtype: " << qtype.getName() << endl;
   m_msgid = m_pldap->search( dn + getArg( "basedn" ), LDAP_SCOPE_BASE, filter, attributes );
 }
 
 
-inline bool LdapBackend::prepare()
-{
-  m_adomains.clear();
-  m_ttl = m_default_ttl;
-  m_last_modified = 0;
-
-  if( m_result.count( "dNSTTL" ) && !m_result["dNSTTL"].empty() )
-  {
-    char* endptr;
-
-    m_ttl = (uint32_t) strtol( m_result["dNSTTL"][0].c_str(), &endptr, 10 );
-    if( *endptr != '\0' )
-    {
-      L << Logger::Warning << m_myname << " Invalid time to live for " << m_qname << ": " << m_result["dNSTTL"][0] << endl;
-      m_ttl = m_default_ttl;
-    }
-    m_result.erase( "dNSTTL" );
-  }
-
-  if( m_result.count( "modifyTimestamp" ) && !m_result["modifyTimestamp"].empty() )
-  {
-    if( ( m_last_modified = str2tstamp( m_result["modifyTimestamp"][0] ) ) == 0 )
-    {
-      L << Logger::Warning << m_myname << " Invalid modifyTimestamp for " << m_qname << ": " << m_result["modifyTimestamp"][0] << endl;
-    }
-    m_result.erase( "modifyTimestamp" );
-  }
-
-  if( !(this->*m_prepare_fcnt)() )
-  {
-    return false;
-  }
-
-  m_adomain = m_adomains.begin();
-  m_attribute = m_result.begin();
-  m_value = m_attribute->second.begin();
-
-  return true;
-}
-
-
-
-inline bool LdapBackend::prepare_simple()
-{
-  if( !m_axfrqlen )   // request was a normal lookup()
-  {
-    m_adomains.push_back( m_qname );
-  }
-  else   // request was a list() for AXFR
-  {
-    if( m_result.count( "associatedDomain" ) )
-    {
-      for(auto i = m_result["associatedDomain"].begin(); i != m_result["associatedDomain"].end(); i++ ) {
-        if( i->size() >= m_axfrqlen && i->substr( i->size() - m_axfrqlen, m_axfrqlen ) == m_qname.toStringRootDot() /* ugh */ ) {
-          m_adomains.push_back( DNSName(*i) );
-        }
-      }
-      m_result.erase( "associatedDomain" );
-    }
-  }
-
-  return true;
-}
-
-
-
-inline bool LdapBackend::prepare_strict()
-{
-  if( !m_axfrqlen )   // request was a normal lookup()
-  {
-    m_adomains.push_back( m_qname );
-    if( m_result.count( "associatedDomain" ) )
-    {
-      m_result["PTRRecord"] = m_result["associatedDomain"];
-      m_result.erase( "associatedDomain" );
-    }
-  }
-  else   // request was a list() for AXFR
-  {
-    if( m_result.count( "associatedDomain" ) )
-    {
-      for(auto i = m_result["associatedDomain"].begin(); i != m_result["associatedDomain"].end(); i++ ) {
-        if( i->size() >= m_axfrqlen && i->substr( i->size() - m_axfrqlen, m_axfrqlen ) == m_qname.toStringRootDot() /* ugh */ ) {
-          m_adomains.push_back( DNSName(*i) );
-        }
-      }
-      m_result.erase( "associatedDomain" );
-    }
-  }
-
-  return true;
-}
-
-
-
 bool LdapBackend::get( DNSResourceRecord &rr )
 {
+  if ( m_results_cache.empty() )
+    return false;
+
+  DNSResult result = m_results_cache.front();
+  m_results_cache.pop_front(); // TODO: remove pop_front() as it's a performance killer apparently
+  rr.qtype = result.qtype;
+  rr.qname = result.qname;
+  rr.ttl = result.ttl;
+  rr.last_modified = 0;
+  rr.content = result.value;
+
+  L << Logger::Debug << m_myname << " Record = qname: " << rr.qname << ", qtype: " << (rr.qtype).getName() << ", ttl: " << rr.ttl << ", content: " << rr.content << endl;
+  return true;
+
+  /*
   QType qt;
   vector<string> parts;
   string attrname, qstr;
@@ -534,6 +572,7 @@ bool LdapBackend::get( DNSResourceRecord &rr )
   }
 
   return false;
+  */
 }
  
  
