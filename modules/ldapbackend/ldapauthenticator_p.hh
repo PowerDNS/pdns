@@ -16,6 +16,7 @@
  *  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#include <krb5.h>
 #include "ldapauthenticator.hh"
 
 #ifndef LDAPAUTHENTICATOR_P_HH
@@ -47,6 +48,9 @@ class LdapGssapiAuthenticator : public LdapAuthenticator
     std::string cCacheFile;
     int timeout;
     std::string lastError;
+
+    krb5_context m_context;
+    krb5_ccache m_ccache;
     
     struct SaslDefaults {
       std::string mech;
@@ -60,6 +64,7 @@ class LdapGssapiAuthenticator : public LdapAuthenticator
   
   public:
     LdapGssapiAuthenticator( const std::string &keytab, const std::string &credsCache, int timeout );
+    ~LdapGssapiAuthenticator();
     virtual bool authenticate( LDAP *conn );
     virtual std::string getError() const;
 };
