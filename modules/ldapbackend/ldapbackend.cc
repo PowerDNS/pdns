@@ -189,10 +189,12 @@ void LdapBackend::extract_common_attributes( DNSResult &result ) {
 void LdapBackend::extract_entry_results( const DNSName& domain, const DNSResult& result_template, QType qtype ) {
   std:: string attrname, qstr;
   QType qt;
+  bool has_records = false;
 
   for ( auto attribute : m_result ) {
     // Find if we're dealing with a record attribute
     if ( attribute.first.length() > 6 && attribute.first.compare( attribute.first.length() - 6, 6, "Record" ) == 0 ) {
+      has_records = true;
       attrname = attribute.first;
       // extract qtype string from ldap attribute name by removing the 'Record' suffix.
       qstr = attrname.substr( 0, attrname.length() - 6 );
@@ -262,6 +264,13 @@ void LdapBackend::extract_entry_results( const DNSName& domain, const DNSResult&
         m_results_cache.push_back( local_result );
       }
     }
+  }
+
+  if ( !has_records ) {
+    // This is an ENT
+    DNSResult local_result = result_template;
+    local_result.qname = domain;
+    m_results_cache.push_back( local_result );
   }
 }
 
