@@ -106,28 +106,28 @@ static const char* ldap_attrany[] = {
 
 class LdapBackend : public DNSBackend
 {
-    bool m_getdn;
-    bool m_qlog;
-    int m_msgid;
-    uint32_t m_ttl;
-    uint32_t m_default_ttl;
-    unsigned int m_axfrqlen;
-    time_t m_last_modified;
-    string m_myname;
-    DNSName m_qname;
-    PowerLDAP* m_pldap;
-    LdapAuthenticator *m_authenticator;
-    PowerLDAP::sentry_t m_result;
-    PowerLDAP::sentry_t::iterator m_attribute;
-    vector<string>::iterator m_value;
-    vector<DNSName>::iterator m_adomain;
-    vector<DNSName> m_adomains;
-    QType m_qtype;
-    int m_reconnect_attempts;
+    bool d_getdn;
+    bool d_qlog;
+    int d_msgid;
+    uint32_t d_ttl;
+    uint32_t d_default_ttl;
+    unsigned int d_axfrqlen;
+    time_t d_last_modified;
+    string d_myname;
+    DNSName d_qname;
+    PowerLDAP* d_pldap;
+    LdapAuthenticator *d_authenticator;
+    PowerLDAP::sentry_t d_result;
+    PowerLDAP::sentry_t::iterator d_attribute;
+    vector<string>::iterator d_value;
+    vector<DNSName>::iterator d_adomain;
+    vector<DNSName> d_adomains;
+    QType d_qtype;
+    int d_reconnect_attempts;
 
-    bool (LdapBackend::*m_list_fcnt)( const DNSName&, int );
-    void (LdapBackend::*m_lookup_fcnt)( const QType&, const DNSName&, DNSPacket*, int );
-    bool (LdapBackend::*m_prepare_fcnt)();
+    bool (LdapBackend::*d_list_fcnt)( const DNSName&, int );
+    void (LdapBackend::*d_lookup_fcnt)( const QType&, const DNSName&, DNSPacket*, int );
+    bool (LdapBackend::*d_prepare_fcnt)();
 
     bool list_simple( const DNSName& target, int domain_id );
     bool list_strict( const DNSName& target, int domain_id );

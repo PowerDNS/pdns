@@ -39,35 +39,35 @@ LdapBackend::LdapBackend( const string &suffix )
 
   try
   {
-    m_msgid = 0;
-    m_qname.clear();
-    m_pldap = NULL;
-    m_authenticator = NULL;
-    m_ttl = 0;
-    m_axfrqlen = 0;
-    m_last_modified = 0;
-    m_qlog = arg().mustDo( "query-logging" );
-    m_default_ttl = arg().asNum( "default-ttl" );
-    m_myname = "[LdapBackend]";
+    d_msgid = 0;
+    d_qname.clear();
+    d_pldap = NULL;
+    d_authenticator = NULL;
+    d_ttl = 0;
+    d_axfrqlen = 0;
+    d_last_modified = 0;
+    d_qlog = arg().mustDo( "query-logging" );
+    d_default_ttl = arg().asNum( "default-ttl" );
+    d_myname = "[LdapBackend]";
 
     setArgPrefix( "ldap" + suffix );
 
-    m_getdn = false;
-    m_reconnect_attempts = getArgAsNum( "reconnect-attempts" );
-    m_list_fcnt = &LdapBackend::list_simple;
-    m_lookup_fcnt = &LdapBackend::lookup_simple;
-    m_prepare_fcnt = &LdapBackend::prepare_simple;
+    d_getdn = false;
+    d_reconnect_attempts = getArgAsNum( "reconnect-attempts" );
+    d_list_fcnt = &LdapBackend::list_simple;
+    d_lookup_fcnt = &LdapBackend::lookup_simple;
+    d_prepare_fcnt = &LdapBackend::prepare_simple;
 
     if( getArg( "method" ) == "tree" )
     {
-      m_lookup_fcnt = &LdapBackend::lookup_tree;
+      d_lookup_fcnt = &LdapBackend::lookup_tree;
     }
 
     if( getArg( "method" ) == "strict" || mustDo( "disable-ptrrecord" ) )
     {
-      m_list_fcnt = &LdapBackend::list_strict;
-      m_lookup_fcnt = &LdapBackend::lookup_strict;
-      m_prepare_fcnt = &LdapBackend::prepare_strict;
+      d_list_fcnt = &LdapBackend::list_strict;
+      d_lookup_fcnt = &LdapBackend::lookup_strict;
+      d_prepare_fcnt = &LdapBackend::prepare_strict;
     }
 
     stringtok( hosts, getArg( "host" ), ", " );
@@ -79,38 +79,38 @@ LdapBackend::LdapBackend( const string &suffix )
       hoststr += " " + hosts[ ( idx + i ) % hosts.size() ];
     }
 
-    g_log << Logger::Info << m_myname << " LDAP servers = " << hoststr << endl;
+    g_log << Logger::Info << d_myname << " LDAP servers = " << hoststr << endl;
 
-    m_pldap = new PowerLDAP( hoststr.c_str(), LDAP_PORT, mustDo( "starttls" ), getArgAsNum( "timeout" ) );
-    m_pldap->setOption( LDAP_OPT_DEREF, LDAP_DEREF_ALWAYS );
+    d_pldap = new PowerLDAP( hoststr.c_str(), LDAP_PORT, mustDo( "starttls" ), getArgAsNum( "timeout" ) );
+    d_pldap->setOption( LDAP_OPT_DEREF, LDAP_DEREF_ALWAYS );
 
     string bindmethod = getArg( "bindmethod" );
     if ( bindmethod == "gssapi" ) {
       setenv( "KRB5CCNAME", getArg( "krb5-ccache" ).c_str(), 1 );
-      m_authenticator = new LdapGssapiAuthenticator( getArg( "krb5-keytab" ), getArg( "krb5-ccache" ), getArgAsNum( "timeout" ) );
+      d_authenticator = new LdapGssapiAuthenticator( getArg( "krb5-keytab" ), getArg( "krb5-ccache" ), getArgAsNum( "timeout" ) );
     }
     else {
-      m_authenticator = new LdapSimpleAuthenticator( getArg( "binddn" ), getArg( "secret" ), getArgAsNum( "timeout" ) );
+      d_authenticator = new LdapSimpleAuthenticator( getArg( "binddn" ), getArg( "secret" ), getArgAsNum( "timeout" ) );
     }
-    m_pldap->bind( m_authenticator );
+    d_pldap->bind( d_authenticator );
 
-    g_log << Logger::Notice << m_myname << " Ldap connection succeeded" << endl;
+    g_log << Logger::Notice << d_myname << " Ldap connection succeeded" << endl;
     return;
   }
   catch( LDAPTimeout &lt )
   {
-    g_log << Logger::Error << m_myname << " Ldap connection to server failed because of timeout" << endl;
+    g_log << Logger::Error << d_myname << " Ldap connection to server failed because of timeout" << endl;
   }
   catch( LDAPException &le )
   {
-    g_log << Logger::Error << m_myname << " Ldap connection to server failed: " << le.what() << endl;
+    g_log << Logger::Error << d_myname << " Ldap connection to server failed: " << le.what() << endl;
   }
   catch( std::exception &e )
   {
-    g_log << Logger::Error << m_myname << " Caught STL exception: " << e.what() << endl;
+    g_log << Logger::Error << d_myname << " Caught STL exception: " << e.what() << endl;
   }
 
-  if( m_pldap != NULL ) { delete( m_pldap ); }
+  if( d_pldap != NULL ) { delete( d_pldap ); }
   throw PDNSException( "Unable to connect to ldap server" );
 }
 
@@ -118,27 +118,27 @@ LdapBackend::LdapBackend( const string &suffix )
 
 LdapBackend::~LdapBackend()
 {
-  delete( m_pldap );
-  delete( m_authenticator );
-  g_log << Logger::Notice << m_myname << " Ldap connection closed" << endl;
+  delete( d_pldap );
+  delete( d_authenticator );
+  g_log << Logger::Notice << d_myname << " Ldap connection closed" << endl;
 }
 
 
 
 bool LdapBackend::reconnect()
 {
-  int attempts = m_reconnect_attempts;
+  int attempts = d_reconnect_attempts;
   bool connected = false;
   while ( !connected && attempts > 0 ) {
-    g_log << Logger::Debug << m_myname << " Reconnection attempts left: " << attempts << endl;
-    connected = m_pldap->connect();
+    g_log << Logger::Debug << d_myname << " Reconnection attempts left: " << attempts << endl;
+    connected = d_pldap->connect();
     if ( !connected )
       Utility::usleep( 250 );
     --attempts;
   }
 
   if ( connected )
-    m_pldap->bind( m_authenticator );
+    d_pldap->bind( d_authenticator );
 
   return connected;
 }
@@ -149,21 +149,21 @@ bool LdapBackend::list( const DNSName& target, int domain_id, bool include_disab
 {
   try
   {
-    m_qname = target;
-    m_qtype = QType::ANY;
-    m_axfrqlen = target.toStringRootDot().length();
-    m_adomain = m_adomains.end();   // skip loops in get() first time
+    d_qname = target;
+    d_qtype = QType::ANY;
+    d_axfrqlen = target.toStringRootDot().length();
+    d_adomain = d_adomains.end();   // skip loops in get() first time
 
-    return (this->*m_list_fcnt)( target, domain_id );
+    return (this->*d_list_fcnt)( target, domain_id );
   }
   catch( LDAPTimeout &lt )
   {
-    g_log << Logger::Warning << m_myname << " Unable to get zone " << target << " from LDAP directory: " << lt.what() << endl;
+    g_log << Logger::Warning << d_myname << " Unable to get zone " << target << " from LDAP directory: " << lt.what() << endl;
     throw DBException( "LDAP server timeout" );
   }
   catch( LDAPNoConnection &lnc )
   {
-    g_log << Logger::Warning << m_myname << " Connection to LDAP lost, trying to reconnect" << endl;
+    g_log << Logger::Warning << d_myname << " Connection to LDAP lost, trying to reconnect" << endl;
     if ( reconnect() )
       this->list( target, domain_id );
     else
@@ -171,12 +171,12 @@ bool LdapBackend::list( const DNSName& target, int domain_id, bool include_disab
   }
   catch( LDAPException &le )
   {
-    g_log << Logger::Error << m_myname << " Unable to get zone " << target << " from LDAP directory: " << le.what() << endl;
+    g_log << Logger::Error << d_myname << " Unable to get zone " << target << " from LDAP directory: " << le.what() << endl;
     throw PDNSException( "LDAP server unreachable" );   // try to reconnect to another server
   }
   catch( std::exception &e )
   {
-    g_log << Logger::Error << m_myname << " Caught STL exception for target " << target << ": " << e.what() << endl;
+    g_log << Logger::Error << d_myname << " Caught STL exception for target " << target << ": " << e.what() << endl;
     throw DBException( "STL exception" );
   }
 
@@ -193,26 +193,26 @@ inline bool LdapBackend::list_simple( const DNSName& target, int domain_id )
 
 
   dn = getArg( "basedn" );
-  qesc = toLower( m_pldap->escape( target.toStringRootDot() ) );
+  qesc = toLower( d_pldap->escape( target.toStringRootDot() ) );
 
   // search for SOARecord of target
   filter = strbind( ":target:", "&(associatedDomain=" + qesc + ")(sOARecord=*)", getArg( "filter-axfr" ) );
-  m_msgid = m_pldap->search( dn, LDAP_SCOPE_SUBTREE, filter, (const char**) ldap_attrany );
-  m_pldap->getSearchEntry( m_msgid, m_result, true );
+  d_msgid = d_pldap->search( dn, LDAP_SCOPE_SUBTREE, filter, (const char**) ldap_attrany );
+  d_pldap->getSearchEntry( d_msgid, d_result, true );
 
-  if( m_result.count( "dn" ) && !m_result["dn"].empty() )
+  if( d_result.count( "dn" ) && !d_result["dn"].empty() )
   {
     if( !mustDo( "basedn-axfr-override" ) )
     {
-      dn = m_result["dn"][0];
+      dn = d_result["dn"][0];
     }
-    m_result.erase( "dn" );
+    d_result.erase( "dn" );
   }
 
   prepare();
   filter = strbind( ":target:", "associatedDomain=*." + qesc, getArg( "filter-axfr" ) );
-  DLOG( g_log << Logger::Debug << m_myname << " Search = basedn: " << dn << ", filter: " << filter << endl );
-  m_msgid = m_pldap->search( dn, LDAP_SCOPE_SUBTREE, filter, (const char**) ldap_attrany );
+  DLOG( g_log << Logger::Debug << d_myname << " Search = basedn: " << dn << ", filter: " << filter << endl );
+  d_msgid = d_pldap->search( dn, LDAP_SCOPE_SUBTREE, filter, (const char**) ldap_attrany );
 
   return true;
 }
@@ -223,7 +223,7 @@ inline bool LdapBackend::list_strict( const DNSName& target, int domain_id )
 {
   if( target.isPartOf(DNSName("in-addr.arpa")) || target.isPartOf(DNSName("ip6.arpa")) )
   {
-    g_log << Logger::Warning << m_myname << " Request for reverse zone AXFR, but this is not supported in strict mode" << endl;
+    g_log << Logger::Warning << d_myname << " Request for reverse zone AXFR, but this is not supported in strict mode" << endl;
     return false;   // AXFR isn't supported in strict mode. Use simple mode and additional PTR records
   }
 
@@ -236,22 +236,22 @@ void LdapBackend::lookup( const QType &qtype, const DNSName &qname, DNSPacket *d
 {
   try
   {
-    m_axfrqlen = 0;
-    m_qname = qname;
-    m_adomain = m_adomains.end();   // skip loops in get() first time
-    m_qtype = qtype;
+    d_axfrqlen = 0;
+    d_qname = qname;
+    d_adomain = d_adomains.end();   // skip loops in get() first time
+    d_qtype = qtype;
 
-    if( m_qlog ) { g_log.log( "Query: '" + qname.toStringRootDot() + "|" + qtype.getName() + "'", Logger::Error ); }
-    (this->*m_lookup_fcnt)( qtype, qname, dnspkt, zoneid );
+    if( d_qlog ) { g_log.log( "Query: '" + qname.toStringRootDot() + "|" + qtype.getName() + "'", Logger::Error ); }
+    (this->*d_lookup_fcnt)( qtype, qname, dnspkt, zoneid );
   }
   catch( LDAPTimeout &lt )
   {
-    g_log << Logger::Warning << m_myname << " Unable to search LDAP directory: " << lt.what() << endl;
+    g_log << Logger::Warning << d_myname << " Unable to search LDAP directory: " << lt.what() << endl;
     throw DBException( "LDAP server timeout" );
   }
   catch( LDAPNoConnection &lnc )
   {
-    g_log << Logger::Warning << m_myname << " Connection to LDAP lost, trying to reconnect" << endl;
+    g_log << Logger::Warning << d_myname << " Connection to LDAP lost, trying to reconnect" << endl;
     if ( reconnect() )
       this->lookup( qtype, qname, dnspkt, zoneid );
     else
@@ -259,12 +259,12 @@ void LdapBackend::lookup( const QType &qtype, const DNSName &qname, DNSPacket *d
   }
   catch( LDAPException &le )
   {
-    g_log << Logger::Error << m_myname << " Unable to search LDAP directory: " << le.what() << endl;
+    g_log << Logger::Error << d_myname << " Unable to search LDAP directory: " << le.what() << endl;
     throw PDNSException( "LDAP server unreachable" );   // try to reconnect to another server
   }
   catch( std::exception &e )
   {
-    g_log << Logger::Error << m_myname << " Caught STL exception for qname " << qname << ": " << e.what() << endl;
+    g_log << Logger::Error << d_myname << " Caught STL exception for qname " << qname << ": " << e.what() << endl;
     throw DBException( "STL exception" );
   }
 }
@@ -278,7 +278,7 @@ void LdapBackend::lookup_simple( const QType &qtype, const DNSName &qname, DNSPa
   const char* attronly[] = { NULL, "dNSTTL", "modifyTimestamp", NULL };
 
 
-  qesc = toLower( m_pldap->escape( qname.toStringRootDot() ) );
+  qesc = toLower( d_pldap->escape( qname.toStringRootDot() ) );
   filter = "associatedDomain=" + qesc;
 
   if( qtype.getCode() != QType::ANY )
@@ -291,8 +291,8 @@ void LdapBackend::lookup_simple( const QType &qtype, const DNSName &qname, DNSPa
 
   filter = strbind( ":target:", filter, getArg( "filter-lookup" ) );
 
-  DLOG( g_log << Logger::Debug << m_myname << " Search = basedn: " << getArg( "basedn" ) << ", filter: " << filter << ", qtype: " << qtype.getName() << endl );
-  m_msgid = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attributes );
+  DLOG( g_log << Logger::Debug << d_myname << " Search = basedn: " << getArg( "basedn" ) << ", filter: " << filter << ", qtype: " << qtype.getName() << endl );
+  d_msgid = d_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attributes );
 }
 
 
@@ -306,7 +306,7 @@ void LdapBackend::lookup_strict( const QType &qtype, const DNSName &qname, DNSPa
   const char* attronly[] = { NULL, "dNSTTL", "modifyTimestamp", NULL };
 
 
-  qesc = toLower( m_pldap->escape( qname.toStringRootDot() ) );
+  qesc = toLower( d_pldap->escape( qname.toStringRootDot() ) );
   stringtok( parts, qesc, "." );
   len = qesc.length();
 
@@ -336,8 +336,8 @@ void LdapBackend::lookup_strict( const QType &qtype, const DNSName &qname, DNSPa
 
   filter = strbind( ":target:", filter, getArg( "filter-lookup" ) );
 
-  DLOG( g_log << Logger::Debug << m_myname << " Search = basedn: " << getArg( "basedn" ) << ", filter: " << filter << ", qtype: " << qtype.getName() << endl );
-  m_msgid = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attributes );
+  DLOG( g_log << Logger::Debug << d_myname << " Search = basedn: " << getArg( "basedn" ) << ", filter: " << filter << ", qtype: " << qtype.getName() << endl );
+  d_msgid = d_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attributes );
 }
 
 
@@ -350,7 +350,7 @@ void LdapBackend::lookup_tree( const QType &qtype, const DNSName &qname, DNSPack
   vector<string> parts;
 
 
-  qesc = toLower( m_pldap->escape( qname.toStringRootDot() ) );
+  qesc = toLower( d_pldap->escape( qname.toStringRootDot() ) );
   filter = "associatedDomain=" + qesc;
 
   if( qtype.getCode() != QType::ANY )
@@ -369,47 +369,47 @@ void LdapBackend::lookup_tree( const QType &qtype, const DNSName &qname, DNSPack
     dn = "dc=" + *i + "," + dn;
   }
 
-  DLOG( g_log << Logger::Debug << m_myname << " Search = basedn: " << dn + getArg( "basedn" ) << ", filter: " << filter << ", qtype: " << qtype.getName() << endl );
-  m_msgid = m_pldap->search( dn + getArg( "basedn" ), LDAP_SCOPE_BASE, filter, attributes );
+  DLOG( g_log << Logger::Debug << d_myname << " Search = basedn: " << dn + getArg( "basedn" ) << ", filter: " << filter << ", qtype: " << qtype.getName() << endl );
+  d_msgid = d_pldap->search( dn + getArg( "basedn" ), LDAP_SCOPE_BASE, filter, attributes );
 }
 
 
 inline bool LdapBackend::prepare()
 {
-  m_adomains.clear();
-  m_ttl = m_default_ttl;
-  m_last_modified = 0;
+  d_adomains.clear();
+  d_ttl = d_default_ttl;
+  d_last_modified = 0;
 
-  if( m_result.count( "dNSTTL" ) && !m_result["dNSTTL"].empty() )
+  if( d_result.count( "dNSTTL" ) && !d_result["dNSTTL"].empty() )
   {
     char* endptr;
 
-    m_ttl = (uint32_t) strtol( m_result["dNSTTL"][0].c_str(), &endptr, 10 );
+    d_ttl = (uint32_t) strtol( d_result["dNSTTL"][0].c_str(), &endptr, 10 );
     if( *endptr != '\0' )
     {
-      g_log << Logger::Warning << m_myname << " Invalid time to live for " << m_qname << ": " << m_result["dNSTTL"][0] << endl;
-      m_ttl = m_default_ttl;
+      g_log << Logger::Warning << d_myname << " Invalid time to live for " << d_qname << ": " << d_result["dNSTTL"][0] << endl;
+      d_ttl = d_default_ttl;
     }
-    m_result.erase( "dNSTTL" );
+    d_result.erase( "dNSTTL" );
   }
 
-  if( m_result.count( "modifyTimestamp" ) && !m_result["modifyTimestamp"].empty() )
+  if( d_result.count( "modifyTimestamp" ) && !d_result["modifyTimestamp"].empty() )
   {
-    if( ( m_last_modified = str2tstamp( m_result["modifyTimestamp"][0] ) ) == 0 )
+    if( ( d_last_modified = str2tstamp( d_result["modifyTimestamp"][0] ) ) == 0 )
     {
-      g_log << Logger::Warning << m_myname << " Invalid modifyTimestamp for " << m_qname << ": " << m_result["modifyTimestamp"][0] << endl;
+      g_log << Logger::Warning << d_myname << " Invalid modifyTimestamp for " << d_qname << ": " << d_result["modifyTimestamp"][0] << endl;
     }
-    m_result.erase( "modifyTimestamp" );
+    d_result.erase( "modifyTimestamp" );
   }
 
-  if( !(this->*m_prepare_fcnt)() )
+  if( !(this->*d_prepare_fcnt)() )
   {
     return false;
   }
 
-  m_adomain = m_adomains.begin();
-  m_attribute = m_result.begin();
-  m_value = m_attribute->second.begin();
+  d_adomain = d_adomains.begin();
+  d_attribute = d_result.begin();
+  d_value = d_attribute->second.begin();
 
   return true;
 }
@@ -418,20 +418,20 @@ inline bool LdapBackend::prepare()
 
 inline bool LdapBackend::prepare_simple()
 {
-  if( !m_axfrqlen )   // request was a normal lookup()
+  if( !d_axfrqlen )   // request was a normal lookup()
   {
-    m_adomains.push_back( m_qname );
+    d_adomains.push_back( d_qname );
   }
   else   // request was a list() for AXFR
   {
-    if( m_result.count( "associatedDomain" ) )
+    if( d_result.count( "associatedDomain" ) )
     {
-      for(auto i = m_result["associatedDomain"].begin(); i != m_result["associatedDomain"].end(); i++ ) {
-        if( i->size() >= m_axfrqlen && i->substr( i->size() - m_axfrqlen, m_axfrqlen ) == m_qname.toStringRootDot() /* ugh */ ) {
-          m_adomains.push_back( DNSName(*i) );
+      for(auto i = d_result["associatedDomain"].begin(); i != d_result["associatedDomain"].end(); i++ ) {
+        if( i->size() >= d_axfrqlen && i->substr( i->size() - d_axfrqlen, d_axfrqlen ) == d_qname.toStringRootDot() /* ugh */ ) {
+          d_adomains.push_back( DNSName(*i) );
         }
       }
-      m_result.erase( "associatedDomain" );
+      d_result.erase( "associatedDomain" );
     }
   }
 
@@ -442,25 +442,25 @@ inline bool LdapBackend::prepare_simple()
 
 inline bool LdapBackend::prepare_strict()
 {
-  if( !m_axfrqlen )   // request was a normal lookup()
+  if( !d_axfrqlen )   // request was a normal lookup()
   {
-    m_adomains.push_back( m_qname );
-    if( m_result.count( "associatedDomain" ) )
+    d_adomains.push_back( d_qname );
+    if( d_result.count( "associatedDomain" ) )
     {
-      m_result["PTRRecord"] = m_result["associatedDomain"];
-      m_result.erase( "associatedDomain" );
+      d_result["PTRRecord"] = d_result["associatedDomain"];
+      d_result.erase( "associatedDomain" );
     }
   }
   else   // request was a list() for AXFR
   {
-    if( m_result.count( "associatedDomain" ) )
+    if( d_result.count( "associatedDomain" ) )
     {
-      for(auto i = m_result["associatedDomain"].begin(); i != m_result["associatedDomain"].end(); i++ ) {
-        if( i->size() >= m_axfrqlen && i->substr( i->size() - m_axfrqlen, m_axfrqlen ) == m_qname.toStringRootDot() /* ugh */ ) {
-          m_adomains.push_back( DNSName(*i) );
+      for(auto i = d_result["associatedDomain"].begin(); i != d_result["associatedDomain"].end(); i++ ) {
+        if( i->size() >= d_axfrqlen && i->substr( i->size() - d_axfrqlen, d_axfrqlen ) == d_qname.toStringRootDot() /* ugh */ ) {
+          d_adomains.push_back( DNSName(*i) );
         }
       }
-      m_result.erase( "associatedDomain" );
+      d_result.erase( "associatedDomain" );
     }
   }
 
@@ -480,57 +480,57 @@ bool LdapBackend::get( DNSResourceRecord &rr )
   {
     do
     {
-      while( m_adomain != m_adomains.end() )
+      while( d_adomain != d_adomains.end() )
       {
-        while( m_attribute != m_result.end() )
+        while( d_attribute != d_result.end() )
         {
-          attrname = m_attribute->first;
+          attrname = d_attribute->first;
           qstr = attrname.substr( 0, attrname.length() - 6 );   // extract qtype string from ldap attribute name
           qt = const_cast<char*>(toUpper( qstr ).c_str());
 
-          while( m_value != m_attribute->second.end() )
+          while( d_value != d_attribute->second.end() )
           {
-            if(m_qtype != qt && m_qtype != QType::ANY) {
-              m_value++;
+            if(d_qtype != qt && d_qtype != QType::ANY) {
+              d_value++;
               continue;
             }
 
 
             rr.qtype = qt;
-            rr.qname = *m_adomain;
-            rr.ttl = m_ttl;
-            rr.last_modified = m_last_modified;
-            rr.content = *m_value;
-            m_value++;
+            rr.qname = *d_adomain;
+            rr.ttl = d_ttl;
+            rr.last_modified = d_last_modified;
+            rr.content = *d_value;
+            d_value++;
 
-            DLOG( g_log << Logger::Debug << m_myname << " Record = qname: " << rr.qname << ", qtype: " << (rr.qtype).getName() << ", ttl: " << rr.ttl << ", content: " << rr.content << endl );
+            DLOG( g_log << Logger::Debug << d_myname << " Record = qname: " << rr.qname << ", qtype: " << (rr.qtype).getName() << ", ttl: " << rr.ttl << ", content: " << rr.content << endl );
             return true;
           }
 
-          m_attribute++;
-          m_value = m_attribute->second.begin();
+          d_attribute++;
+          d_value = d_attribute->second.begin();
         }
-        m_adomain++;
-        m_attribute = m_result.begin();
-        m_value = m_attribute->second.begin();
+        d_adomain++;
+        d_attribute = d_result.begin();
+        d_value = d_attribute->second.begin();
       }
     }
-    while( m_pldap->getSearchEntry( m_msgid, m_result, m_getdn ) && prepare() );
+    while( d_pldap->getSearchEntry( d_msgid, d_result, d_getdn ) && prepare() );
 
   }
   catch( LDAPTimeout &lt )
   {
-    g_log << Logger::Warning << m_myname << " Search failed: " << lt.what() << endl;
+    g_log << Logger::Warning << d_myname << " Search failed: " << lt.what() << endl;
     throw DBException( "LDAP server timeout" );
   }
   catch( LDAPException &le )
   {
-    g_log << Logger::Error << m_myname << " Search failed: " << le.what() << endl;
+    g_log << Logger::Error << d_myname << " Search failed: " << le.what() << endl;
     throw PDNSException( "LDAP server unreachable" );   // try to reconnect to another server
   }
   catch( std::exception &e )
   {
-    g_log << Logger::Error << m_myname << " Caught STL exception for " << m_qname << ": " << e.what() << endl;
+    g_log << Logger::Error << d_myname << " Caught STL exception for " << d_qname << ": " << e.what() << endl;
     throw DBException( "STL exception" );
   }
 
@@ -553,16 +553,16 @@ void LdapBackend::getUpdatedMasters( vector<DomainInfo>* domains )
   {
     // First get all domains on which we are master.
     filter = strbind( ":target:", "&(SOARecord=*)(PdnsDomainId=*)", getArg( "filter-axfr" ) );
-    msgid = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attronly );
+    msgid = d_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attronly );
   }
   catch( LDAPTimeout &lt )
   {
-    g_log << Logger::Warning << m_myname << " Unable to search LDAP directory: " << lt.what() << endl;
+    g_log << Logger::Warning << d_myname << " Unable to search LDAP directory: " << lt.what() << endl;
     throw DBException( "LDAP server timeout" );
   }
   catch( LDAPNoConnection &lnc )
   {
-    g_log << Logger::Warning << m_myname << " Connection to LDAP lost, trying to reconnect" << endl;
+    g_log << Logger::Warning << d_myname << " Connection to LDAP lost, trying to reconnect" << endl;
     if ( reconnect() )
       this->getUpdatedMasters( domains );
     else
@@ -570,7 +570,7 @@ void LdapBackend::getUpdatedMasters( vector<DomainInfo>* domains )
   }
   catch( LDAPException &le )
   {
-    g_log << Logger::Error << m_myname << " Unable to search LDAP directory: " << le.what() << endl;
+    g_log << Logger::Error << d_myname << " Unable to search LDAP directory: " << le.what() << endl;
     throw PDNSException( "LDAP server unreachable" );   // try to reconnect to another server
   }
   catch( std::exception &e )
@@ -578,7 +578,7 @@ void LdapBackend::getUpdatedMasters( vector<DomainInfo>* domains )
     throw DBException( "STL exception" );
   }
 
-  while( m_pldap->getSearchEntry( msgid, result ) ) {
+  while( d_pldap->getSearchEntry( msgid, result ) ) {
     if( !result.count( "associatedDomain" ) || result["associatedDomain"].empty() )
       continue;
 
@@ -605,17 +605,17 @@ void LdapBackend::setNotified( uint32_t id, uint32_t serial )
   {
     // Try to find the notified domain
     filter = strbind( ":target:", "PdnsDomainId=" + std::to_string( id ), getArg( "filter-axfr" ) );
-    msgid = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attronly );
-    m_pldap->getSearchResults( msgid, results, true );
+    msgid = d_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attronly );
+    d_pldap->getSearchResults( msgid, results, true );
   }
   catch( LDAPTimeout &lt )
   {
-    g_log << Logger::Warning << m_myname << " Unable to search LDAP directory: " << lt.what() << endl;
+    g_log << Logger::Warning << d_myname << " Unable to search LDAP directory: " << lt.what() << endl;
     throw DBException( "LDAP server timeout" );
   }
   catch( LDAPNoConnection &lnc )
   {
-    g_log << Logger::Warning << m_myname << " Connection to LDAP lost, trying to reconnect" << endl;
+    g_log << Logger::Warning << d_myname << " Connection to LDAP lost, trying to reconnect" << endl;
     if ( reconnect() )
       this->setNotified( id, serial );
     else
@@ -623,7 +623,7 @@ void LdapBackend::setNotified( uint32_t id, uint32_t serial )
   }
   catch( LDAPException &le )
   {
-    g_log << Logger::Error << m_myname << " Unable to search LDAP directory: " << le.what() << endl;
+    g_log << Logger::Error << d_myname << " Unable to search LDAP directory: " << le.what() << endl;
     throw PDNSException( "LDAP server unreachable" );   // try to reconnect to another server
   }
   catch( std::exception &e )
@@ -652,11 +652,11 @@ void LdapBackend::setNotified( uint32_t id, uint32_t serial )
 
   try
   {
-    m_pldap->modify( dn, mods );
+    d_pldap->modify( dn, mods );
   }
   catch( LDAPNoConnection &lnc )
   {
-    g_log << Logger::Warning << m_myname << " Connection to LDAP lost, trying to reconnect" << endl;
+    g_log << Logger::Warning << d_myname << " Connection to LDAP lost, trying to reconnect" << endl;
     if ( reconnect() )
       this->setNotified( id, serial );
     else
@@ -664,7 +664,7 @@ void LdapBackend::setNotified( uint32_t id, uint32_t serial )
   }
   catch( LDAPException &le )
   {
-    g_log << Logger::Error << m_myname << " Unable to search LDAP directory: " << le.what() << endl;
+    g_log << Logger::Error << d_myname << " Unable to search LDAP directory: " << le.what() << endl;
     throw PDNSException( "LDAP server unreachable" );   // try to reconnect to another server
   }
   catch( std::exception &e )
@@ -693,18 +693,18 @@ bool LdapBackend::getDomainInfo( const DNSName& domain, DomainInfo& di, bool get
   try
   {
     // search for SOARecord of domain
-    filter = "(&(associatedDomain=" + toLower( m_pldap->escape( domain.toStringRootDot() ) ) + ")(SOARecord=*))";
-    m_msgid = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attronly );
-    m_pldap->getSearchEntry( m_msgid, result );
+    filter = "(&(associatedDomain=" + toLower( d_pldap->escape( domain.toStringRootDot() ) ) + ")(SOARecord=*))";
+    d_msgid = d_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attronly );
+    d_pldap->getSearchEntry( d_msgid, result );
   }
   catch( LDAPTimeout &lt )
   {
-    g_log << Logger::Warning << m_myname << " Unable to search LDAP directory: " << lt.what() << endl;
+    g_log << Logger::Warning << d_myname << " Unable to search LDAP directory: " << lt.what() << endl;
     throw DBException( "LDAP server timeout" );
   }
   catch( LDAPNoConnection &lnc )
   {
-    g_log << Logger::Warning << m_myname << " Connection to LDAP lost, trying to reconnect" << endl;
+    g_log << Logger::Warning << d_myname << " Connection to LDAP lost, trying to reconnect" << endl;
     if ( reconnect() )
       this->getDomainInfo( domain, di );
     else
@@ -712,7 +712,7 @@ bool LdapBackend::getDomainInfo( const DNSName& domain, DomainInfo& di, bool get
   }
   catch( LDAPException &le )
   {
-    g_log << Logger::Error << m_myname << " Unable to search LDAP directory: " << le.what() << endl;
+    g_log << Logger::Error << d_myname << " Unable to search LDAP directory: " << le.what() << endl;
     throw PDNSException( "LDAP server unreachable" );   // try to reconnect to another server
   }
   catch( std::exception &e )
