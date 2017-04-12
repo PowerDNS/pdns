@@ -1467,11 +1467,13 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       }
 
       setLuaSideEffect();
-      g_key.clear();
-      if(B64Decode(key, g_key) < 0) {
+      string newkey;
+      if(B64Decode(key, newkey) < 0) {
         g_outputBuffer=string("Unable to decode ")+key+" as Base64";
         errlog("%s", g_outputBuffer);
       }
+      else
+	g_key=newkey;
     });
 
   
