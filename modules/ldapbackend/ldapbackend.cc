@@ -187,21 +187,76 @@ void LdapBackend::extract_entry_results( const DNSName& domain, const DNSResult&
   QType qt;
 
   for ( auto attribute : m_result ) {
-    attrname = attribute.first;
-    // extract qtype string from ldap attribute name by removing the 'Record' suffix.
-    qstr = attrname.substr( 0, attrname.length() - 6 );
-    qt = toUpper( qstr );
+    // Find if we're dealing with a record attribute
+    if ( attribute.first.length() > 6 && attribute.first.compare( attribute.first.length() - 6, 6, "Record" ) == 0 ) {
+      attrname = attribute.first;
+      // extract qtype string from ldap attribute name by removing the 'Record' suffix.
+      qstr = attrname.substr( 0, attrname.length() - 6 );
+      qt = toUpper( qstr );
 
-    for ( auto value : attribute.second ) {
-      if(qtype != qt && qtype != QType::ANY) {
-        continue;
+      for ( auto value : attribute.second ) {
+        if(qtype != qt && qtype != QType::ANY) {
+          continue;
+        }
+
+        DNSResult local_result = result_template;
+        local_result.qtype = qt;
+        local_result.qname = domain;
+        local_result.value = value;
+        local_result.auth = true;
+
+        // Now let's see if we have some PDNS record data
+
+        // TTL
+        if ( m_result.count( "PdnsRecordTTL" ) && !m_result["PdnsRecordTTL"].empty() ) {
+          for ( auto rdata : m_result["PdnsRecordTTL"] ) {
+            std::string qtype;
+            std::size_t pos = rdata.find_first_of( '|', 0 );
+            if ( pos == std::string::npos )
+              continue;
+
+            qtype = rdata.substr( 0, pos );
+            if ( qtype != QType( local_result.qtype ).getName() )
+              continue;
+
+            local_result.ttl = pdns_stou( rdata.substr( pos + 1 ) );
+          }
+        }
+
+        // Not authoritative
+        if ( m_result.count( "PdnsRecordNoAuth" ) && !m_result["PdnsRecordNoAuth"].empty() ) {
+          for ( auto rdata : m_result["PdnsRecordNoAuth"] ) {
+            if ( rdata == QType( local_result.qtype ).getName() )
+              local_result.auth = false;
+          }
+        }
+
+        // Ordername
+        if ( m_result.count( "PdnsRecordOrdername" ) && !m_result["PdnsRecordOrdername"].empty() ) {
+          std::string defaultOrdername;
+
+          for ( auto rdata : m_result["PdnsRecordOrdername"] ) {
+            std::string qtype;
+            std::size_t pos = rdata.find_first_of( '|', 0 );
+            if ( pos == std::string::npos ) {
+              // This is the default ordername for all records in this entry
+              defaultOrdername = rdata;
+              continue;
+            }
+
+            qtype = rdata.substr( 0, pos );
+            if ( qtype != QType( local_result.qtype ).getName() )
+              continue;
+
+            local_result.ordername = rdata.substr( pos + 1 );
+          }
+
+          if ( local_result.ordername.empty() && !defaultOrdername.empty() )
+            local_result.ordername = defaultOrdername;
+        }
+
+        m_results_cache.push_back( local_result );
       }
-
-      DNSResult local_result = result_template;
-      local_result.qtype = qt;
-      local_result.qname = domain;
-      local_result.value = value;
-      m_results_cache.push_back( local_result );
     }
   }
 }

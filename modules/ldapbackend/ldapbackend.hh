@@ -91,6 +91,9 @@ static const char* ldap_attrany[] = {
   "EUI64Record",
   "TYPE65226Record",
   "modifyTimestamp",
+  "PdnsRecordTTL",
+  "PdnsRecordAuth",
+  "PdnsRecordOrdername",
   NULL
 };
 
@@ -116,6 +119,8 @@ class LdapBackend : public DNSBackend
       uint32_t ttl;
       time_t lastmod;
       std::string value;
+      bool auth;
+      std::string ordername;
     };
     std::list<DNSResult> m_results_cache;
 
