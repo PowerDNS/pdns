@@ -455,6 +455,10 @@ test_auth() {
   run "./timestamp ./start-test-stop 5300 ldap-tree"
   run "./timestamp ./start-test-stop 5300 ldap-simple"
   run "./timestamp ./start-test-stop 5300 ldap-strict"
+  run "./timestamp ./start-test-stop 5300 ldap-simple-nsec"
+  run "./timestamp ./start-test-stop 5300 ldap-simple-nsec3"
+  run "./timestamp ./start-test-stop 5300 ldap-simple-nsec3-optout"
+  run "./timestamp ./start-test-stop 5300 ldap-simple-nsec3-narrow"
 
   run "./timestamp ./start-test-stop 5300 bind-both"
   run "./timestamp ./start-test-stop 5300 bind-dnssec-both"
