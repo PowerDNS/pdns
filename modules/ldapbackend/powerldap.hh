@@ -68,7 +68,9 @@ class PowerLDAP
     void bind( const string& ldapbinddn = "", const string& ldapsecret = "", int method = LDAP_AUTH_SIMPLE, int timeout = 5 );
     void simpleBind( const string& ldapbinddn = "", const string& ldapsecret = "" );
     int search( const string& base, int scope, const string& filter, const char** attr = 0 );
+    void add( const string &dn, LDAPMod *mods[] );
     void modify( const string& dn, LDAPMod *mods[], LDAPControl **scontrols = 0, LDAPControl **ccontrols = 0 );
+    void del( const string& dn );
   
     bool getSearchEntry( int msgid, sentry_t& entry, bool dn = false, int timeout = 5 );
     void getSearchResults( int msgid, sresult_t& result, bool dn = false, int timeout = 5 );

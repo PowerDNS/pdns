@@ -167,6 +167,18 @@ void PowerLDAP::simpleBind( const string& ldapbinddn, const string& ldapsecret )
 }
 
 
+void PowerLDAP::add( const string &dn, LDAPMod *mods[] )
+{
+  int rc;
+
+  rc = ldap_add_ext_s( d_ld, dn.c_str(), mods, NULL, NULL );
+  if ( rc == LDAP_SERVER_DOWN || rc == LDAP_CONNECT_ERROR )
+    throw LDAPNoConnection();
+  else if ( rc != LDAP_SUCCESS )
+    throw LDAPException( "Error adding LDAP entry " + dn + ": " + getError( rc ) );
+}
+
+
 void PowerLDAP::modify( const string &dn, LDAPMod *mods[], LDAPControl **scontrols, LDAPControl **ccontrols )
 {
   int rc;
@@ -176,6 +188,18 @@ void PowerLDAP::modify( const string &dn, LDAPMod *mods[], LDAPControl **scontro
     throw LDAPNoConnection();
   else if ( rc != LDAP_SUCCESS )
     throw LDAPException( "Error modifying LDAP entry " + dn + ": " + getError( rc ) );
+}
+
+
+void PowerLDAP::del( const string& dn )
+{
+  int rc;
+
+  rc = ldap_delete_ext_s( d_ld, dn.c_str(), NULL, NULL );
+  if ( rc == LDAP_SERVER_DOWN || rc == LDAP_CONNECT_ERROR )
+    throw LDAPNoConnection();
+  else if ( rc != LDAP_SUCCESS && rc != LDAP_NO_SUCH_OBJECT )
+    throw LDAPException( "Error deleting LDAP entry " + dn + ": " + getError( rc ) );
 }
 
 
