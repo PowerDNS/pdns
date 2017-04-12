@@ -76,7 +76,7 @@ static const char* ldap_attrany[] = {
   "kXRecord",
   "certRecord",
 //  "a6Record",
-//  "dNameRecord",
+  "dNameRecord",
 //  "aPLRecord",
   "dSRecord",
   "sSHFPRecord",
