@@ -64,6 +64,8 @@ class PowerLDAP
         LDAP* d_ld;
         int m_msgid;
         bool m_finished;
+        int m_status;
+        std::string m_error;
 
         SearchResult( const SearchResult& other );
         SearchResult& operator=( const SearchResult& other );
@@ -72,6 +74,12 @@ class PowerLDAP
         SearchResult( int msgid, LDAP* ld );
         ~SearchResult();
 
+        bool finished() const;
+        bool successful() const;
+        int status() const;
+        std::string error() const;
+
+        bool consumeAll();
         bool getNext( PowerLDAP::sentry_t& entry, bool dn = false, int timeout = 5 );
         void getAll( PowerLDAP::sresult_t& results, bool dn = false, int timeout = 5 );
     };

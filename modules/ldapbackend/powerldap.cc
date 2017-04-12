@@ -33,7 +33,7 @@
 
 
 PowerLDAP::SearchResult::SearchResult( int msgid, LDAP* ld )
-  : m_msgid( msgid ), d_ld( ld ), m_finished( false )
+  : m_msgid( msgid ), d_ld( ld ), m_finished( false ), m_status( -1 )
 {
 }
 
@@ -43,6 +43,39 @@ PowerLDAP::SearchResult::~SearchResult()
   if ( !m_finished )
     ldap_abandon_ext( d_ld, m_msgid, NULL, NULL ); // We don't really care about the return code as there's
                                                    // not much we can do now
+}
+
+
+bool PowerLDAP::SearchResult::finished() const
+{
+  return m_finished;
+}
+
+
+bool PowerLDAP::SearchResult::successful() const
+{
+  return m_status == LDAP_SUCCESS;
+}
+
+
+int PowerLDAP::SearchResult::status() const
+{
+  return m_status;
+}
+
+
+std::string PowerLDAP::SearchResult::error() const
+{
+  return m_error;
+}
+
+
+bool PowerLDAP::SearchResult::consumeAll()
+{
+  PowerLDAP::sentry_t r;
+  while ( this->getNext( r ) )
+    ;
+  return this->finished();
 }
 
 
@@ -60,6 +93,8 @@ bool PowerLDAP::SearchResult::getNext( PowerLDAP::sentry_t& entry, bool dn, int 
     i = ldapWaitResult( d_ld, m_msgid, 5, &result );
     switch ( i ) {
       case -1:
+        if ( result != NULL )
+          ldap_msgfree( result );
         int err_code;
         ldapGetOption( d_ld, LDAP_OPT_ERROR_NUMBER, &err_code );
         if ( err_code == LDAP_SERVER_DOWN || err_code == LDAP_CONNECT_ERROR )
@@ -68,21 +103,80 @@ bool PowerLDAP::SearchResult::getNext( PowerLDAP::sentry_t& entry, bool dn, int 
           throw LDAPException( "Error waiting for LDAP result: " + ldapGetError( d_ld, err_code ) );
         break;
       case 0:
+        if ( result != NULL )
+          ldap_msgfree( result );
+        result = NULL;
         throw LDAPTimeout();
         break;
       case LDAP_NO_SUCH_OBJECT:
-        return false;
+        m_finished = true;
+        ldap_msgfree( result );
+        result = NULL;
+        break;
       case LDAP_RES_SEARCH_REFERENCE:
         ldap_msgfree( result );
         result = NULL;
         break;
       case LDAP_RES_SEARCH_RESULT:
         m_finished = true;
-        ldap_msgfree( result );
         break;
       case LDAP_RES_SEARCH_ENTRY:
         // Yay!
         break;
+      default:
+        break;
+    }
+
+    if ( m_finished && result != NULL ) {
+      int rc;
+      char** referals;
+      LDAPControl** controls = NULL;
+      int prc = ldap_parse_result( d_ld, result, &rc, NULL, NULL, &referals, &controls, 0 );
+
+      if ( referals != NULL )
+        ldap_memvfree( (void**)referals );
+
+      if ( prc != LDAP_SUCCESS ) {
+        if ( controls != NULL )
+          ldap_controls_free( controls );
+        ldap_msgfree( result );
+        m_status = prc;
+        return false;
+      }
+
+      if ( rc != LDAP_SUCCESS ) {
+        // Error found, that sucks
+        m_status = rc;
+        m_error = ldapGetError( d_ld, rc );
+
+        // Try to see if we can gain any insight from the controls
+        if ( controls != NULL ) {
+          int idx = 0;
+          LDAPControl* control;
+
+          while ( controls[idx] != NULL ) {
+            control = controls[idx];
+
+            if ( strcmp( LDAP_CONTROL_SORTRESPONSE, control->ldctl_oid ) == 0 ) {
+              ber_int_t rcode;
+              prc = ldap_parse_sortresponse_control( d_ld, control, &rcode, NULL );
+              if ( prc == LDAP_SUCCESS && rc != LDAP_SUCCESS ) {
+                m_status = rc;
+                m_error = "Sorting failed";
+              }
+            }
+            ++idx;
+          }
+        }
+      }
+      else {
+        m_status = 0;
+      }
+
+      if ( controls != NULL )
+        ldap_controls_free( controls );
+
+      ldap_msgfree( result );
     }
   }
 
@@ -160,6 +254,7 @@ void PowerLDAP::ensureConnect()
 
   if(d_ld) {
     ldap_unbind_ext( d_ld, NULL, NULL );
+    d_ld = 0;
   }
 
 #ifdef HAVE_LDAP_INITIALIZE
@@ -176,13 +271,13 @@ void PowerLDAP::ensureConnect()
 
     if( ( err = ldap_initialize( &d_ld, ldapuris.c_str() ) ) != LDAP_SUCCESS )
     {
-        throw LDAPException( "Error initializing LDAP connection to '" + ldapuris + ": " + getError( err ) );
+        throw LDAPException( "Error initializing LDAP connection to '" + ldapuris );
     }
   }
 #else
   if( ( d_ld = ldap_init( d_hosts.c_str(), d_port ) ) == NULL )
   {
-    throw LDAPException( "Error initializing LDAP connection to '" + d_hosts + "': " + string( strerror( errno ) ) );
+    throw LDAPException( "Error initializing LDAP connection to '" + d_hosts + "'" );
   }
 #endif
 
@@ -200,7 +295,7 @@ void PowerLDAP::ensureConnect()
   if( d_tls && ( err = ldap_start_tls_s( d_ld, NULL, NULL ) ) != LDAP_SUCCESS )
   {
     ldap_unbind_ext( d_ld, NULL, NULL );
-    throw LDAPException( "Couldn't perform STARTTLS: " + getError( err ) );
+    throw LDAPException( "Couldn't perform STARTTLS: " + std::string( ldap_err2string( err ) ) );
   }
 
   char* rootDseAttrs[] = { (char*)"supportedControl", NULL };
@@ -208,7 +303,7 @@ void PowerLDAP::ensureConnect()
   err = ldap_search_ext_s( d_ld, "", LDAP_SCOPE_BASE, "objectClass=*", rootDseAttrs, 0, NULL, NULL, NULL, LDAP_NO_LIMIT, &result );
   if ( err != LDAP_SUCCESS ) {
     ldap_unbind_ext( d_ld, NULL, NULL );
-    throw LDAPException( "Failed to search the root DSE for supported controls: " + getError( err ) );
+    throw LDAPException( "Failed to search the root DSE for supported controls: " + std::string( ldap_err2string( err ) ) );
   }
 
   LDAPMessage* entry = ldap_first_entry( d_ld, result );

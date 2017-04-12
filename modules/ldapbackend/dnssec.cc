@@ -924,14 +924,32 @@ bool LdapBackend::getBeforeAndAfterNamesAbsolute( uint32_t domain_id, const std:
     const char* orderAttributes[] = { "associatedDomain", "PdnsRecordOrdername", NULL };
     filter = "(&(|(associatedDomain="+domainBase+")(associatedDomain=*."+domainBase+"))(PdnsRecordOrdername>="+m_pldap->escape(qnameMatch)+"))";
 
-    search = m_pldap->sorted_search( basedn, LDAP_SCOPE_SUBTREE, filter, std::string( "PdnsRecordOrdername" ), orderAttributes, 5 );
+    search = m_pldap->sorted_search( basedn, LDAP_SCOPE_SUBTREE, filter, std::string( "PdnsRecordOrdername" ), orderAttributes, 2 );
     if ( search ) {
       L<<Logger::Debug<< m_myname << " Sorting is available on this server" << std::endl;
 
-      while ( search->getNext( result, false ) ) {
-        foundAfter = result["PdnsRecordOrdername"][0];
-        if ( foundAfter > qnameMatch )
+      // Sorting sometimes fail because the LDAP server cannot honor it.
+      // Retry the search for at most 3 times, and if it works, yay!
+      int retryAttempts = 3;
+      while ( retryAttempts > 0 ) {
+        while ( search->getNext( result, false ) ) {
+          foundAfter = result["PdnsRecordOrdername"][0];
+          if ( foundAfter > qnameMatch )
+            break;
+        }
+
+        search->consumeAll();
+        if ( search->successful() )
           break;
+
+        L<<Logger::Error<< m_myname << " Name after search failed (code '" << search->status() << "'): " << search->error() << std::endl;
+        delete( search );
+        search = m_pldap->sorted_search( basedn, LDAP_SCOPE_SUBTREE, filter, std::string( "PdnsRecordOrdername" ), orderAttributes, 2 );
+        --retryAttempts;
+      }
+      if ( retryAttempts == 0 && !search->successful() ) {
+        delete( search );
+        throw PDNSException( "Name after search failed: " + search->error() );
       }
       delete( search );
 
@@ -939,33 +957,82 @@ bool LdapBackend::getBeforeAndAfterNamesAbsolute( uint32_t domain_id, const std:
         // This was the last entry in the zone, get the first
         filter = "(&(|(associatedDomain="+domainBase+")(associatedDomain=*."+domainBase+"))(PdnsRecordOrdername=*))";
         search = m_pldap->sorted_search( basedn, LDAP_SCOPE_SUBTREE, filter, std::string( "PdnsRecordOrdername" ), orderAttributes, 1 );
-        if ( search->getNext( result, false ) )
-          foundAfter = result["PdnsRecordOrdername"][0];
+
+        // Same as above, retry at most 3 times
+        retryAttempts = 3;
+        while ( retryAttempts > 0 ) {
+          if ( search->getNext( result, false ) )
+            foundAfter = result["PdnsRecordOrdername"][0];
+
+          search->consumeAll();
+          if ( search->successful() )
+            break;
+
+          L<<Logger::Error<< m_myname << " Name after search failed (zone start): " << search->error() << std::endl;
+          delete( search );
+          search = m_pldap->sorted_search( basedn, LDAP_SCOPE_SUBTREE, filter, std::string( "PdnsRecordOrdername" ), orderAttributes, 1 );
+          --retryAttempts;
+        }
+        if ( retryAttempts == 0 && !search->successful() ) {
+          delete( search );
+          throw PDNSException( "Name after search failed (zone start): " + search->error() );
+        }
         delete( search );
       }
 
-      L<<Logger::Debug<< m_myname << "     Found after: " << foundAfter << std::endl;
-
       filter = "(&(|(associatedDomain="+domainBase+")(associatedDomain=*."+domainBase+"))(PdnsRecordOrdername<="+m_pldap->escape(qnameMatch)+"))";
-      search = m_pldap->sorted_search( basedn, LDAP_SCOPE_SUBTREE, filter, std::string( "-PdnsRecordOrdername" ), orderAttributes, 3 );
-      if ( search->getNext( result, false ) ) {
-        foundBeforeOrdername = result["PdnsRecordOrdername"][0];
-        foundBeforeDomain = result["associatedDomain"][0];
+      search = m_pldap->sorted_search( basedn, LDAP_SCOPE_SUBTREE, filter, std::string( "-PdnsRecordOrdername" ), orderAttributes, 1 );
+      // Same as above, retry at most 3 times
+      retryAttempts = 3;
+      while ( retryAttempts > 0 ) {
+        if ( search->getNext( result, false ) ) {
+          foundBeforeOrdername = result["PdnsRecordOrdername"][0];
+          foundBeforeDomain = result["associatedDomain"][0];
+        }
+
+        search->consumeAll();
+        if ( search->successful() )
+          break;
+
+        L<<Logger::Error<< m_myname << " Name before search failed: " << search->error() << std::endl;
+        delete( search );
+        search = m_pldap->sorted_search( basedn, LDAP_SCOPE_SUBTREE, filter, std::string( "-PdnsRecordOrdername" ), orderAttributes, 1 );
+        --retryAttempts;
+      }
+      if ( retryAttempts == 0 && !search->successful() ) {
+        delete( search );
+        throw PDNSException( "Name before search failed: " + search->error() );
       }
       delete( search );
 
       if ( foundBeforeOrdername.empty() ) {
         // This was the first entry in the zone, get the last
         filter = "(&(|(associatedDomain="+domainBase+")(associatedDomain=*."+domainBase+"))(PdnsRecordOrdername=*))";
-        search = m_pldap->sorted_search( basedn, LDAP_SCOPE_SUBTREE, filter, std::string( "-PdnsRecordOrdername" ), orderAttributes, 2 );
-        if ( search->getNext( result, false ) ) {
-          foundBeforeOrdername = result["PdnsRecordOrdername"][0];
-          foundBeforeDomain = result["associatedDomain"][0];
+        search = m_pldap->sorted_search( basedn, LDAP_SCOPE_SUBTREE, filter, std::string( "-PdnsRecordOrdername" ), orderAttributes, 1 );
+
+        // Same old, 3 times
+        retryAttempts = 3;
+        while ( retryAttempts > 0 ) {
+          if ( search->getNext( result, false ) ) {
+            foundBeforeOrdername = result["PdnsRecordOrdername"][0];
+            foundBeforeDomain = result["associatedDomain"][0];
+          }
+
+          search->consumeAll();
+          if ( search->successful() )
+            break;
+
+          L<<Logger::Error<< m_myname << " Name before search failed (zone end): " << search->error() << std::endl;
+          delete( search );
+          search = m_pldap->sorted_search( basedn, LDAP_SCOPE_SUBTREE, filter, std::string( "-PdnsRecordOrdername" ), orderAttributes, 1 );
+          --retryAttempts;
+        }
+        if ( retryAttempts == 0 && !search->successful() ) {
+          delete( search );
+          throw PDNSException( "Name before search failed: " + search->error() );
         }
         delete( search );
       }
-
-      L<<Logger::Debug<< m_myname << "     Found before: " << foundBeforeOrdername << " (" << foundBeforeDomain << ")" << std::endl;
     }
     else {
       // No sorting available on this server, do it manually
@@ -1001,6 +1068,12 @@ bool LdapBackend::getBeforeAndAfterNamesAbsolute( uint32_t domain_id, const std:
         foundBeforeDomain = ordernames.rbegin()->second;
       }
     }
+
+    if ( foundAfter.empty() )
+      throw PDNSException( "Failed to find the name after '" + qname + "'" );
+
+    if ( foundBeforeOrdername.empty() )
+      throw PDNSException( "Failed to find the name before '" + qname + "'" );
 
     after = foundAfter;
 
