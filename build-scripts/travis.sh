@@ -295,7 +295,9 @@ install_auth() {
   run "sudo service slapd restart"
   run "popd"
   run "sudo -u openldap mkdir -p /var/lib/ldap/powerdns"
-  run "sudo ldapadd -Y EXTERNAL -H ldapi:/// -f ./modules/ldapbackend/testfiles/add.ldif"
+  run "sudo ldapmodify -Y EXTERNAL -H ldapi:/// -f ./modules/ldapbackend/testfiles/load-sssvlv.ldif"
+  run "sudo ldapadd -Y EXTERNAL -H ldapi:/// -f ./modules/ldapbackend/testfiles/add-mdb.ldif"
+  run "sudo ldapadd -Y EXTERNAL -H ldapi:/// -f ./modules/ldapbackend/testfiles/add-content.ldif"
 
   # remote-backend tests requirements
   run "sudo apt-get -qq --no-install-recommends install \
@@ -435,6 +437,13 @@ build_docs() {
   run "deactivate"
 }
 
+ldap_clean() {
+  run "sudo service slapd stop"
+  run "sudo rm /var/lib/ldap/powerdns/*"
+  run "sudo service slapd start"
+  run "sudo ldapadd -Y EXTERNAL -H ldapi:/// -f ${TRAVIS_BUILD_DIR}/modules/ldapbackend/testfiles/add-content.ldif"
+}
+
 test_auth() {
   run "make -j3 check"
   run "test -f pdns/test-suite.log && cat pdns/test-suite.log || true"
@@ -453,12 +462,19 @@ test_auth() {
   run "touch tests/ent-asterisk/fail.nsec"
 
   run "./timestamp ./start-test-stop 5300 ldap-tree"
+  ldap_clean
   run "./timestamp ./start-test-stop 5300 ldap-simple"
+  ldap_clean
   run "./timestamp ./start-test-stop 5300 ldap-strict"
+  ldap_clean
   run "./timestamp ./start-test-stop 5300 ldap-simple-nsec"
+  ldap_clean
   run "./timestamp ./start-test-stop 5300 ldap-simple-nsec3"
+  ldap_clean
   run "./timestamp ./start-test-stop 5300 ldap-simple-nsec3-optout"
+  ldap_clean
   run "./timestamp ./start-test-stop 5300 ldap-simple-nsec3-narrow"
+  ldap_clean
 
   run "./timestamp ./start-test-stop 5300 bind-both"
   run "./timestamp ./start-test-stop 5300 bind-dnssec-both"
