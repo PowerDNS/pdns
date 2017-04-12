@@ -179,6 +179,10 @@ void LdapBackend::extract_common_attributes( DNSResult &result ) {
     // Here too we have to erase this attribute.
     m_result.erase( "modifyTimestamp" );
   }
+
+  if ( m_result.count( "PdnsDomainId" ) && !m_result["PdnsDomainId"].empty() ) {
+    result.domain_id = pdns_stou( m_result["PdnsDomainId"][0] );
+  }
 }
 
 
@@ -285,6 +289,7 @@ class LdapFactory : public BackendFactory
       declare( suffix, "filter-lookup", "LDAP filter for limiting IP or name lookups", "(:target:)" );
       declare( suffix, "disable-ptrrecord", "Deprecated, use ldap-method=strict instead", "no" );
       declare( suffix, "reconnect-attempts", "Number of attempts to re-establish a lost LDAP connection", "5" );
+      declare( suffix, "lookup-zone-rebase", "Whether or not to search for a zone record under the zone entry", "no" );
       // DNSSEC related settings
       declare( suffix, "dnssec", "Enable DNSSEC lookups in the backend", "no" );
       declare( suffix, "metadata-searchdn", "The DN under which the metadata for a given domain can be found", "" );

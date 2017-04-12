@@ -91,8 +91,9 @@ static const char* ldap_attrany[] = {
   "EUI64Record",
   "TYPE65226Record",
   "modifyTimestamp",
+  "objectClass",
   "PdnsRecordTTL",
-  "PdnsRecordAuth",
+  "PdnsRecordNoAuth",
   "PdnsRecordOrdername",
   NULL
 };
@@ -114,6 +115,7 @@ class LdapBackend : public DNSBackend
     std::string m_metadata_searchdn;
 
     struct DNSResult {
+      int domain_id;
       QType qtype;
       DNSName qname;
       uint32_t ttl;
@@ -185,6 +187,8 @@ class LdapBackend : public DNSBackend
     bool activateDomainKey( const DNSName& name, unsigned int id );
     bool deactivateDomainKey( const DNSName& name, unsigned int id );
     bool removeDomainKey( const DNSName& name, unsigned int id );
+
+    bool updateDNSSECOrderNameAndAuth( uint32_t domain_id, const DNSName& zonename, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype=QType::ANY );
 };
 
 #endif /* LDAPBACKEND_HH */

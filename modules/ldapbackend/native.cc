@@ -168,6 +168,7 @@ void LdapBackend::lookup( const QType &qtype, const DNSName &qname, DNSPacket *d
       DNSResult result_template;
       result_template.ttl = m_default_ttl;
       result_template.lastmod = 0;
+      result_template.domain_id = zoneid;
       this->extract_common_attributes( result_template );
 
       // If we have an associatedDomain attribute here this means that we're in strict mode and
@@ -214,8 +215,22 @@ void LdapBackend::lookup_simple( const QType &qtype, const DNSName &qname, DNSPa
 {
   string filter, attr, qesc;
   const char** attributes = ldap_attrany + 1;   // skip associatedDomain
-  const char* attronly[] = { NULL, "dNSTTL", "modifyTimestamp", "PdnsRecordTTL", "PdnsRecordAuth", "PdnsRecordOrdername", NULL };
+  const char* attronly[] = { NULL, "dNSTTL", "modifyTimestamp", "PdnsDomainId", "PdnsRecordTTL", "PdnsRecordNoAuth", "PdnsRecordOrdername", NULL };
 
+  std::string basedn = getArg( "basedn" );
+
+  // If configured first search for the zone under which the records are to be found
+  if ( mustDo( "lookup-zone-rebase" ) && zoneid >= 0 ) {
+    std::string zoneFilter = "PdnsDomainId=" + std::to_string( zoneid );
+    const char* zoneAttributes[] = { "objectClass", NULL };
+    PowerLDAP::sentry_t result;
+    int msgid = m_pldap->search( basedn, LDAP_SCOPE_SUBTREE, zoneFilter, zoneAttributes );
+    if ( !m_pldap->getSearchEntry( msgid, result, true ) ) {
+      throw PDNSException( "No zone with ID "+std::to_string(zoneid)+" found" );
+    }
+    basedn = result["dn"][0];
+    L<<Logger::Debug<< m_myname << " Searching for RR under " << basedn << std::endl;
+  }
 
   qesc = toLower( m_pldap->escape( qname.toStringRootDot() ) );
   filter = "associatedDomain=" + qesc;
@@ -230,8 +245,8 @@ void LdapBackend::lookup_simple( const QType &qtype, const DNSName &qname, DNSPa
 
   filter = strbind( ":target:", filter, getArg( "filter-lookup" ) );
 
-  L << Logger::Debug << m_myname << " Search = basedn: " << getArg( "basedn" ) << ", filter: " << filter << ", qtype: " << qtype.getName() << endl;
-  m_msgid = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attributes );
+  L << Logger::Debug << m_myname << " Search = basedn: " << getArg( "basedn" ) << ", filter: " << filter << ", qtype: " << qtype.getName() << ", domain_id: " << zoneid << endl;
+  m_msgid = m_pldap->search( basedn, LDAP_SCOPE_SUBTREE, filter, attributes );
 }
 
 
@@ -241,7 +256,7 @@ void LdapBackend::lookup_strict( const QType &qtype, const DNSName &qname, DNSPa
   vector<string> parts;
   string filter, attr, qesc;
   const char** attributes = ldap_attrany + 1;   // skip associatedDomain
-  const char* attronly[] = { NULL, "dNSTTL", "modifyTimestamp", "PdnsRecordTTL", "PdnsRecordAuth", "PdnsRecordOrdername", NULL };
+  const char* attronly[] = { NULL, "dNSTTL", "modifyTimestamp", "PdnsDomainId", "PdnsRecordTTL", "PdnsRecordNoAuth", "PdnsRecordOrdername", NULL };
 
 
   qesc = toLower( m_pldap->escape( qname.toStringRootDot() ) );
@@ -283,7 +298,7 @@ void LdapBackend::lookup_tree( const QType &qtype, const DNSName &qname, DNSPack
 {
   string filter, attr, qesc, dn;
   const char** attributes = ldap_attrany + 1;   // skip associatedDomain
-  const char* attronly[] = { NULL, "dNSTTL", "modifyTimestamp", "PdnsRecordTTL", "PdnsRecordAuth", "PdnsRecordOrdername", NULL };
+  const char* attronly[] = { NULL, "dNSTTL", "modifyTimestamp", "PdnsRecordTTL", "PdnsRecordNoAuth", "PdnsRecordOrdername", NULL };
   vector<string> parts;
 
 
@@ -324,8 +339,10 @@ bool LdapBackend::get( DNSResourceRecord &rr )
   rr.last_modified = 0;
   rr.content = result.value;
   rr.auth = result.auth;
+  if ( result.domain_id > 0 )
+    rr.domain_id = result.domain_id;
 
-  L << Logger::Debug << m_myname << " Record = qname: " << rr.qname << ", qtype: " << (rr.qtype).getName() << ", ttl: " << rr.ttl << ", content: " << rr.content << endl;
+  L << Logger::Debug << m_myname << " Record = qname: " << rr.qname << ", qtype: " << (rr.qtype).getName() << ", ttl: " << rr.ttl << ", content: " << rr.content << ", auth: " << rr.auth << ", domain_id: " << rr.domain_id << endl;
   return true;
 }
 
@@ -345,6 +362,8 @@ bool LdapBackend::getDomainInfo( const DNSName& domain, DomainInfo& di )
     "PdnsDomainType",
     NULL
   };
+
+  L<<Logger::Debug<< m_myname << " Getting domain info for " << domain << std::endl;
 
   try
   {
