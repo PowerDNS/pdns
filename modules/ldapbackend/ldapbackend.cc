@@ -270,6 +270,10 @@ void LdapBackend::extract_entry_results( const DNSName& domain, const DNSResult&
     // This is an ENT
     DNSResult local_result = result_template;
     local_result.qname = domain;
+    if ( !m_result.count( "PdnsRecordOrdername" ) || m_result["PdnsRecordOrdername"].empty() ) {
+      // An ENT with an order name is authoritative
+      local_result.auth = false;
+    }
     m_results_cache.push_back( local_result );
   }
 }
