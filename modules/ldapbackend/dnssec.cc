@@ -121,6 +121,7 @@ bool LdapBackend::getDomainMetadata( const DNSName& name, const std::string& kin
   }
 }
 
+
 bool LdapBackend::getAllDomainMetadata( const DNSName& name, std::map<std::string, std::vector<std::string> >& meta )
 {
   L<<Logger::Debug<< m_myname << " Getting all metadata for domain " << name << endl;
@@ -167,6 +168,7 @@ bool LdapBackend::getAllDomainMetadata( const DNSName& name, std::map<std::strin
     throw( DBException( "STL exception" ) );
   }
 }
+
 
 bool LdapBackend::setDomainMetadata( const DNSName& name, const std::string& kind, const std::vector<std::string>& meta )
 {
@@ -254,7 +256,10 @@ bool LdapBackend::setDomainMetadata( const DNSName& name, const std::string& kin
 
         m_pldap->modify( result["dn"][0], mods );
       }
+      ret = true;
     }
+
+    return ret;
   }
   catch( LDAPTimeout &lt )
   {
@@ -277,6 +282,363 @@ bool LdapBackend::setDomainMetadata( const DNSName& name, const std::string& kin
   catch( std::exception &e )
   {
     L << Logger::Error << m_myname << " Caught STL exception setting metadata for domain " << name << ": " << e.what() << endl;
+    throw( DBException( "STL exception" ) );
+  }
+}
+
+
+bool LdapBackend::getDomainKeys( const DNSName& name, unsigned int kind, std::vector<KeyData>& keys )
+{
+  if ( !m_dnssec )
+    return false;
+
+  std::string basedn = this->getDomainMetadataDN( name );
+  if ( basedn.empty() )
+    return false;
+
+  L<<Logger::Debug<< m_myname << " Retrieving zone keys for " << name << std::endl;
+
+  try {
+    PowerLDAP::sentry_t result;
+    std::string filter = "objectClass=PdnsDomainKey";
+    const char* attributes[] = {
+      "PdnsKeyId",
+      "PdnsKeyFlags",
+      "PdnsKeyContent",
+      "PdnsKeyActive",
+      NULL
+    };
+
+    int msgid = m_pldap->search( basedn, LDAP_SCOPE_SUBTREE, filter, attributes );
+
+    while ( m_pldap->getSearchEntry( msgid, result, false ) ) {
+      KeyData kd;
+      kd.id = pdns_stou( result["PdnsKeyId"][0] );
+      kd.flags = pdns_stou( result["PdnsKeyFlags"][0] );
+      kd.content = result["PdnsKeyContent"][0];
+      if ( result.count( "PdnsKeyActive" ) )
+        kd.active = true;
+      else
+        kd.active = false;
+
+      L<<Logger::Debug<< m_myname << " Found key with ID " << kd.id << std::endl;
+      keys.push_back( kd );
+    }
+
+    return true;
+  }
+  catch( LDAPTimeout &lt )
+  {
+    L << Logger::Warning << m_myname << " Unable to search LDAP directory: " << lt.what() << endl;
+    throw( DBException( "LDAP server timeout" ) );
+  }
+  catch( LDAPNoConnection &lnc )
+  {
+    L << Logger::Warning << m_myname << " Connection to LDAP lost, trying to reconnect" << endl;
+    if ( reconnect() )
+      return this->getDomainKeys( name, kind, keys );
+    else
+      throw PDNSException( "Failed to reconnect to LDAP server" );
+  }
+  catch( LDAPException &le )
+  {
+    L << Logger::Error << m_myname << " Unable to search LDAP directory: " << le.what() << endl;
+    throw( PDNSException( "LDAP server unreachable" ) );   // try to reconnect to another server
+  }
+  catch( std::exception &e )
+  {
+    L << Logger::Error << m_myname << " Caught STL exception retrieving key for domain " << name << ": " << e.what() << endl;
+    throw( DBException( "STL exception" ) );
+  }
+}
+
+
+bool LdapBackend::addDomainKey( const DNSName& name, const KeyData& key, int64_t& id )
+{
+  if ( !m_dnssec )
+    return false;
+
+  L<<Logger::Debug<< m_myname << " Adding domain key for " << name << std::endl;
+
+  // Same as in setDomainMetadata, we don't create the required entries
+  std::string basedn = this->getDomainMetadataDN( name );
+  if ( basedn.empty() )
+    return false;
+
+  try {
+    // Prepare all the elements first. As LDAP doesn't have the concept of transaction
+    // we risk ending up with two keys with the same ID if there are insertions between
+    // the moment we get the list of keys and the moment we insert. So better not dawdle
+    // between those.
+
+    LDAPMod objectClassMod;
+    objectClassMod.mod_op = LDAP_MOD_ADD;
+    objectClassMod.mod_type = (char*)"objectClass";
+    char* objectClassValues[] = { (char*)"top", (char*)"PdnsDomainKey", NULL };
+    objectClassMod.mod_values = objectClassValues;
+
+    LDAPMod keyidMod;
+    keyidMod.mod_op = LDAP_MOD_ADD;
+    keyidMod.mod_type = (char*)"PdnsKeyId";
+
+    LDAPMod keyflagsMod;
+    keyflagsMod.mod_op = LDAP_MOD_ADD;
+    keyflagsMod.mod_type = (char*)"PdnsKeyFlags";
+    std::string keyflagsStr = std::to_string( key.flags );
+    char* keyflagsValues[] = { (char*)keyflagsStr.c_str(), NULL };
+    keyflagsMod.mod_values = keyflagsValues;
+
+    LDAPMod keycontentMod;
+    keycontentMod.mod_op = LDAP_MOD_ADD;
+    keycontentMod.mod_type = (char*)"PdnsKeyContent";
+    std::string escaped_keycontent = m_pldap->escape( key.content );
+    char* keycontentValues[] = { (char*)escaped_keycontent.c_str(), NULL };
+    keycontentMod.mod_values = keycontentValues;
+
+    LDAPMod keyactiveMod;
+    keyactiveMod.mod_op = LDAP_MOD_ADD;
+    keyactiveMod.mod_type = (char*)"PdnsKeyActive";
+    char* keyactiveValues[] = { (char*)"1", NULL };
+    keyactiveMod.mod_values = keyactiveValues;
+
+    /*
+       Search for all the keys
+    */
+    int64_t maxId = 0;
+    PowerLDAP::sentry_t keysearch_result;
+    const char* keysearch_attributes[] = { "PdnsKeyId", NULL };
+    int msgid = m_pldap->search( basedn, LDAP_SCOPE_SUBTREE, "objectClass=PdnsDomainKey", keysearch_attributes );
+    while ( m_pldap->getSearchEntry( msgid, keysearch_result, false ) ) {
+      int64_t currentId = std::stoll( keysearch_result["PdnsKeyId"][0] );
+      if ( currentId >= maxId )
+        maxId = currentId + 1;
+    }
+
+    std::string maxIdStr = std::to_string( maxId );
+    char* keyidValues[] = { (char*)maxIdStr.c_str(), NULL };
+    keyidMod.mod_values = keyidValues;
+
+    LDAPMod *mods[5];
+    mods[0] = &objectClassMod;
+    mods[1] = &keyidMod;
+    mods[2] = &keyflagsMod;
+    mods[3] = &keycontentMod;
+    if ( key.active )
+      mods[4] = &keyactiveMod;
+    else
+      mods[4] = NULL;
+    mods[5] = NULL;
+
+    std::string dn = "PdnsKeyId=" + maxIdStr + "," + basedn;
+    L<<Logger::Debug<< m_myname << " Will create entry for the key at " << dn << std::endl;
+    m_pldap->add( dn, mods );
+    id = maxId;
+
+    return true;
+  }
+  catch( LDAPTimeout &lt )
+  {
+    L << Logger::Warning << m_myname << " Unable to search LDAP directory: " << lt.what() << endl;
+    throw( DBException( "LDAP server timeout" ) );
+  }
+  catch( LDAPNoConnection &lnc )
+  {
+    L << Logger::Warning << m_myname << " Connection to LDAP lost, trying to reconnect" << endl;
+    if ( reconnect() )
+      return this->addDomainKey( name, key, id );
+    else
+      throw PDNSException( "Failed to reconnect to LDAP server" );
+  }
+  catch( LDAPException &le )
+  {
+    L << Logger::Error << m_myname << " Unable to search LDAP directory: " << le.what() << endl;
+    throw( PDNSException( "LDAP server unreachable" ) );   // try to reconnect to another server
+  }
+  catch( std::exception &e )
+  {
+    L << Logger::Error << m_myname << " Caught STL exception adding key for domain " << name << ": " << e.what() << endl;
+    throw( DBException( "STL exception" ) );
+  }
+}
+
+
+bool LdapBackend::activateDomainKey( const DNSName& name, unsigned int id )
+{
+  if ( !m_dnssec )
+    return false;
+
+  std::string basedn = this->getDomainMetadataDN( name );
+  if ( basedn.empty() )
+    return false;
+
+  L<<Logger::Debug<< m_myname << " Activating key " << id << " on domain " << name << std::endl;
+
+  try {
+    PowerLDAP::sentry_t result;
+    std::string filter = "(&(objectClass=PdnsDomainKey)(PdnsKeyId=" + std::to_string( id ) + "))";
+    const char* attributes[] = { "PdnsKeyActive", NULL };
+    int msgid = m_pldap->search( basedn, LDAP_SCOPE_SUBTREE, filter, attributes );
+
+    if ( !m_pldap->getSearchEntry( msgid, result, true ) ) {
+      L<<Logger::Warning<< m_myname << " No key with this ID found" << std::endl;
+      return false;
+    }
+
+    std::string dn = result["dn"][0];
+
+    if ( !result.count( "PdnsKeyActive" ) ) {
+      LDAPMod mod;
+      mod.mod_op = LDAP_MOD_ADD;
+      mod.mod_type = (char*)"PdnsKeyActive";
+      char* modValues[] = { (char*)"1", NULL };
+      mod.mod_values = modValues;
+
+      LDAPMod* mods[2];
+      mods[0] = &mod;
+      mods[1] = NULL;
+
+      m_pldap->modify( dn, mods );
+    }
+
+    return true;
+  }
+  catch( LDAPTimeout &lt )
+  {
+    L << Logger::Warning << m_myname << " Unable to search LDAP directory: " << lt.what() << endl;
+    throw( DBException( "LDAP server timeout" ) );
+  }
+  catch( LDAPNoConnection &lnc )
+  {
+    L << Logger::Warning << m_myname << " Connection to LDAP lost, trying to reconnect" << endl;
+    if ( reconnect() )
+      return this->activateDomainKey( name, id );
+    else
+      throw PDNSException( "Failed to reconnect to LDAP server" );
+  }
+  catch( LDAPException &le )
+  {
+    L << Logger::Error << m_myname << " Unable to search LDAP directory: " << le.what() << endl;
+    throw( PDNSException( "LDAP server unreachable" ) );   // try to reconnect to another server
+  }
+  catch( std::exception &e )
+  {
+    L << Logger::Error << m_myname << " Caught STL exception activating key for domain " << name << ": " << e.what() << endl;
+    throw( DBException( "STL exception" ) );
+  }
+}
+
+
+bool LdapBackend::deactivateDomainKey( const DNSName& name, unsigned int id )
+{
+  if ( !m_dnssec )
+    return false;
+
+  std::string basedn = this->getDomainMetadataDN( name );
+  if ( basedn.empty() )
+    return false;
+
+  L<<Logger::Debug<< m_myname << " Deactivating key " << id << " on domain " << name << std::endl;
+
+  try {
+    PowerLDAP::sentry_t result;
+    std::string filter = "(&(objectClass=PdnsDomainKey)(PdnsKeyId=" + std::to_string( id ) + "))";
+    const char* attributes[] = { "PdnsKeyActive", NULL };
+    int msgid = m_pldap->search( basedn, LDAP_SCOPE_SUBTREE, filter, attributes );
+
+    if ( !m_pldap->getSearchEntry( msgid, result, true ) ) {
+      L<<Logger::Warning<< m_myname << " No key with this ID found" << std::endl;
+      return false;
+    }
+
+    std::string dn = result["dn"][0];
+
+    if ( result.count( "PdnsKeyActive" ) ) {
+      LDAPMod mod;
+      mod.mod_op = LDAP_MOD_DELETE;
+      mod.mod_type = (char*)"PdnsKeyActive";
+
+      LDAPMod* mods[2];
+      mods[0] = &mod;
+      mods[1] = NULL;
+
+      m_pldap->modify( dn, mods );
+    }
+
+    return true;
+  }
+  catch( LDAPTimeout &lt )
+  {
+    L << Logger::Warning << m_myname << " Unable to search LDAP directory: " << lt.what() << endl;
+    throw( DBException( "LDAP server timeout" ) );
+  }
+  catch( LDAPNoConnection &lnc )
+  {
+    L << Logger::Warning << m_myname << " Connection to LDAP lost, trying to reconnect" << endl;
+    if ( reconnect() )
+      return this->deactivateDomainKey( name, id );
+    else
+      throw PDNSException( "Failed to reconnect to LDAP server" );
+  }
+  catch( LDAPException &le )
+  {
+    L << Logger::Error << m_myname << " Unable to search LDAP directory: " << le.what() << endl;
+    throw( PDNSException( "LDAP server unreachable" ) );   // try to reconnect to another server
+  }
+  catch( std::exception &e )
+  {
+    L << Logger::Error << m_myname << " Caught STL exception deactivating key for domain " << name << ": " << e.what() << endl;
+    throw( DBException( "STL exception" ) );
+  }
+}
+
+
+bool LdapBackend::removeDomainKey( const DNSName& name, unsigned int id )
+{
+  if ( !m_dnssec )
+    return false;
+
+  std::string basedn = this->getDomainMetadataDN( name );
+  if ( basedn.empty() )
+    return false;
+
+  L<<Logger::Debug<< m_myname << " Removing key " << id << " on domain " << name << std::endl;
+
+  try {
+    PowerLDAP::sentry_t result;
+    std::string filter = "(&(objectClass=PdnsDomainKey)(PdnsKeyId=" + std::to_string( id ) + "))";
+    const char* attributes[] = { "PdnsKeyActive", NULL };
+    int msgid = m_pldap->search( basedn, LDAP_SCOPE_SUBTREE, filter, attributes );
+
+    if ( !m_pldap->getSearchEntry( msgid, result, true ) ) {
+      L<<Logger::Warning<< m_myname << " No key with this ID found" << std::endl;
+      return true; // Eh, it's already not there, so everybody's happy, right?
+    }
+
+    std::string dn = result["dn"][0];
+    m_pldap->del( dn );
+    return true;
+  }
+  catch( LDAPTimeout &lt )
+  {
+    L << Logger::Warning << m_myname << " Unable to search LDAP directory: " << lt.what() << endl;
+    throw( DBException( "LDAP server timeout" ) );
+  }
+  catch( LDAPNoConnection &lnc )
+  {
+    L << Logger::Warning << m_myname << " Connection to LDAP lost, trying to reconnect" << endl;
+    if ( reconnect() )
+      return this->removeDomainKey( name, id );
+    else
+      throw PDNSException( "Failed to reconnect to LDAP server" );
+  }
+  catch( LDAPException &le )
+  {
+    L << Logger::Error << m_myname << " Unable to search LDAP directory: " << le.what() << endl;
+    throw( PDNSException( "LDAP server unreachable" ) );   // try to reconnect to another server
+  }
+  catch( std::exception &e )
+  {
+    L << Logger::Error << m_myname << " Caught STL exception removing key for domain " << name << ": " << e.what() << endl;
     throw( DBException( "STL exception" ) );
   }
 }

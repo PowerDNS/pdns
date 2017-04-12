@@ -172,6 +172,12 @@ class LdapBackend : public DNSBackend
     bool getAllDomainMetadata( const DNSName& name, std::map<std::string, std::vector<std::string> >& meta );
     bool getDomainMetadata( const DNSName& name, const std::string& kind, std::vector<std::string>& meta );
     bool setDomainMetadata( const DNSName& name, const std::string& kind, const std::vector<std::string>& meta );
+
+    bool getDomainKeys( const DNSName& name, unsigned int kind, std::vector<KeyData>& keys );
+    bool addDomainKey( const DNSName& name, const KeyData& key, int64_t& id );
+    bool activateDomainKey( const DNSName& name, unsigned int id );
+    bool deactivateDomainKey( const DNSName& name, unsigned int id );
+    bool removeDomainKey( const DNSName& name, unsigned int id );
 };
 
 #endif /* LDAPBACKEND_HH */
