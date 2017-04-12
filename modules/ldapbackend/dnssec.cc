@@ -658,12 +658,26 @@ bool LdapBackend::updateDNSSECOrderNameAndAuth( uint32_t domain_id, const DNSNam
   L<<Logger::Debug<< m_myname << " Updating ordername and auth for " << qname << ", ordername=" << ordername << ", auth=" << auth << std::endl;
 
   try {
-    // Get the record to assess the changes to perform
-    std::string filter = "associatedDomain=" + m_pldap->escape( qname.toStringRootDot() );
-    filter = strbind( ":target:", filter, getArg( "filter-lookup" ) );
+    // Get the zone first
+    std::string filter = "PdnsDomainId=" + std::to_string( domain_id );
+    const char* zoneAttributes[] = { "associatedDomain", NULL };
     PowerLDAP::sentry_t result;
 
-    int msgid = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, (const char**)ldap_attrany );
+    int msgid = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, zoneAttributes );
+    if ( !m_pldap->getSearchEntry( msgid, result, true ) ) {
+      L<<Logger::Debug<< m_myname << " Can't find the zone for domain ID " << domain_id << std::endl;
+      return false;
+    }
+
+    std::string basedn = getArg( "basedn" );
+    if ( mustDo( "lookup-zone-rebase" ) )
+      basedn = result["dn"][0];
+
+    // Get the record to assess the changes to perform
+    filter = "associatedDomain=" + m_pldap->escape( qname.toStringRootDot() );
+    filter = strbind( ":target:", filter, getArg( "filter-lookup" ) );
+
+    msgid = m_pldap->search( basedn, LDAP_SCOPE_SUBTREE, filter, (const char**)ldap_attrany );
     if ( !m_pldap->getSearchEntry( msgid, result, true ) )
       return false;
 
@@ -712,7 +726,7 @@ bool LdapBackend::updateDNSSECOrderNameAndAuth( uint32_t domain_id, const DNSNam
         entryOrdername = rdata;
       }
 
-      if ( entryOrdername.empty() && !defaultOrdername.empty() )
+      if ( entryOrdername.empty() && !defaultOrdername.empty() && qtype == QType::ANY )
         entryOrdername = defaultOrdername;
     }
 
