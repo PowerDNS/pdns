@@ -38,6 +38,7 @@
 #include <boost/multi_index/sequenced_index.hpp>
 #include <boost/version.hpp>
 #include "iputils.hh"
+#include "validate.hh"
 #undef max
 
 #define L theL()
@@ -53,9 +54,9 @@ public:
   }
   unsigned int size();
   unsigned int bytes();
-  int32_t get(time_t, const DNSName &qname, const QType& qt, bool requireAuth, vector<DNSRecord>* res, const ComboAddress& who, vector<std::shared_ptr<RRSIGRecordContent>>* signatures=0, bool* variable=0);
+  int32_t get(time_t, const DNSName &qname, const QType& qt, bool requireAuth, vector<DNSRecord>* res, const ComboAddress& who, vector<std::shared_ptr<RRSIGRecordContent>>* signatures=0, bool* variable=0, vState* state=nullptr);
 
-  void replace(time_t, const DNSName &qname, const QType& qt,  const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, bool auth, boost::optional<Netmask> ednsmask=boost::none);
+  void replace(time_t, const DNSName &qname, const QType& qt,  const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, bool auth, boost::optional<Netmask> ednsmask=boost::none, vState state=Indeterminate);
   void doPrune(void);
   uint64_t doDump(int fd);
 
@@ -85,6 +86,7 @@ private:
     time_t d_ttd;
     records_t d_records;
     Netmask d_netmask;
+    vState d_state;
   };
 
   typedef multi_index_container<

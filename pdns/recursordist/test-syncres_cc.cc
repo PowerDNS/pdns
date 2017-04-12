@@ -242,12 +242,62 @@ BOOST_AUTO_TEST_CASE(test_root_primed) {
   initSR(sr, true, false);
 
   primeHints();
+  const DNSName target("a.root-servers.net.");
 
-  /* we are primed, we should be able to resolve NS . without any query */
+  /* we are primed, we should be able to resolve A a.root-servers.net. without any query */
   vector<DNSRecord> ret;
-  int res = sr->beginResolve(DNSName("."), QType(QType::NS), QClass::IN, ret);
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, 0);
-  BOOST_CHECK_EQUAL(ret.size(), 13);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_CHECK(ret[0].d_type == QType::A);
+  BOOST_CHECK_EQUAL(ret[0].d_name, target);
+
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::AAAA), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, 0);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_CHECK(ret[0].d_type == QType::AAAA);
+  BOOST_CHECK_EQUAL(ret[0].d_name, target);
+
+}
+
+BOOST_AUTO_TEST_CASE(test_root_primed_ns) {
+  std::unique_ptr<SyncRes> sr;
+  init();
+  initSR(sr, true, false);
+
+  primeHints();
+  const DNSName target(".");
+
+  /* we are primed, but we should not be able to NS . without any query
+   because the . NS entry is not stored as authoritative */
+
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([target,&queriesCount](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
+      queriesCount++;
+
+      if (domain == target && type == QType::NS) {
+
+        setLWResult(res, 0, true, false, true);
+        for (char idx = 'a'; idx <= 'm'; idx++) {
+          addRecordToLW(res, g_rootdnsname, QType::NS, std::to_string(idx) + ".root-servers.net.", DNSResourceRecord::ANSWER, 3600);
+        }
+
+        addRecordToLW(res, "a.root-servers.net.", QType::A, "198.41.0.4", DNSResourceRecord::ADDITIONAL, 3600);
+        addRecordToLW(res, "a.root-servers.net.", QType::AAAA, "2001:503:ba3e::2:30", DNSResourceRecord::ADDITIONAL, 3600);
+
+        return 1;
+      }
+
+      return 0;
+    });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, 0);
+  BOOST_REQUIRE_EQUAL(ret.size(), 13);
+  BOOST_CHECK_EQUAL(queriesCount, 1);
 }
 
 BOOST_AUTO_TEST_CASE(test_root_not_primed) {

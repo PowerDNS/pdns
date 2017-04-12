@@ -43,8 +43,9 @@ void doSecPoll(time_t* last_secpoll)
   int res=sr.beginResolve(query, QType(QType::TXT), 1, ret);
 
   if (g_dnssecmode != DNSSECMode::Off && res) {
-    ResolveContext ctx;
-    state = validateRecords(ctx, ret);
+    /*ResolveContext ctx;
+      state = validateRecords(ctx, ret);*/
+    state = sr.getValidationState();
   }
 
   if(state == Bogus) {

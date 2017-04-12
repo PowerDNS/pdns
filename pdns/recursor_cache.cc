@@ -34,7 +34,7 @@ unsigned int MemRecursorCache::bytes()
 }
 
 // returns -1 for no hits
-int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt, bool requireAuth, vector<DNSRecord>* res, const ComboAddress& who, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, bool* variable)
+int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt, bool requireAuth, vector<DNSRecord>* res, const ComboAddress& who, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, bool* variable, vState* state)
 {
   time_t ttd=0;
   //  cerr<<"looking up "<< qname<<"|"+qt.getName()<<"\n";
@@ -55,6 +55,7 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
       if (requireAuth && !i->d_auth)
         continue;
 
+      //cerr<<"TTD is "<<i->d_ttd<<", now is "<<now<<", type is "<<i->d_qtype<<endl;
       if(i->d_ttd > now && ((i->d_qtype == qt.getCode() || qt.getCode()==QType::ANY ||
 			    (qt.getCode()==QType::ADDR && (i->d_qtype == QType::A || i->d_qtype == QType::AAAA) )) 
 			    && (i->d_netmask.empty() || i->d_netmask.match(who)))
@@ -69,7 +70,7 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
 	    DNSRecord dr;
 	    dr.d_name = qname;
 	    dr.d_type = i->d_qtype;
-	    dr.d_class = 1;
+	    dr.d_class = QClass::IN;
 	    dr.d_content = *k; 
 	    dr.d_ttl = static_cast<uint32_t>(i->d_ttd);
 	    dr.d_place = DNSResourceRecord::ANSWER;
@@ -85,12 +86,15 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
           else
             moveCacheItemToBack(d_cache, i);
         }
+        if(state) {
+          *state = i->d_state;
+        }
         if(qt.getCode()!=QType::ANY && qt.getCode()!=QType::ADDR) // normally if we have a hit, we are done
           break;
       }
     }
 
-    //    cerr<<"time left : "<<ttd - now<<", "<< (res ? res->size() : 0) <<"\n";
+    // cerr<<"time left : "<<ttd - now<<", "<< (res ? res->size() : 0) <<"\n";
     return static_cast<int32_t>(ttd-now);
   }
   return -1;
@@ -126,7 +130,7 @@ bool MemRecursorCache::attemptToRefreshNSTTL(const QType& qt, const vector<DNSRe
   return true;
 }
 
-void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt,  const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, bool auth, boost::optional<Netmask> ednsmask)
+void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt,  const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, bool auth, boost::optional<Netmask> ednsmask, vState state)
 {
   d_cachecachevalid=false;
   cache_t::iterator stored;
@@ -142,10 +146,11 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
   CacheEntry ce=*stored; // this is a COPY
   ce.d_qtype=qt.getCode();
   ce.d_signatures=signatures;
+  ce.d_state=state;
   
   //  cerr<<"asked to store "<< (qname.empty() ? "EMPTY" : qname.toString()) <<"|"+qt.getName()<<" -> '";
   //  cerr<<(content.empty() ? string("EMPTY CONTENT")  : content.begin()->d_content->getZoneRepresentation())<<"', auth="<<auth<<", ce.auth="<<ce.d_auth;
-  //   cerr<<", ednsmask: "  <<  (ednsmask ? ednsmask->toString() : "none") <<endl;
+  //  cerr<<", ednsmask: "  <<  (ednsmask ? ednsmask->toString() : "none") <<endl;
 
   if(!auth && ce.d_auth) {  // unauth data came in, we have some auth data, but is it fresh?
     if(ce.d_ttd > now) { // we still have valid data, ignore unauth data
@@ -170,7 +175,7 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
     ce.d_records.clear(); // clear non-auth data
     ce.d_auth = true;
   }
-//  else cerr<<"\tNot nuking"<<endl;
+  //else cerr<<"\tNot nuking"<<endl;
 
 
   for(auto i=content.cbegin(); i != content.cend(); ++i) {
