@@ -12,7 +12,13 @@ olcDbConfig: {1}set_lk_max_objects 1500
 olcDbConfig: {2}set_lk_max_locks 1500
 olcDbConfig: {3}set_lk_max_lockers 1500
 olcDbIndex: objectClass eq
-olcDbIndex: associatedDomain eq
+olcDbIndex: associatedDomain eq,pres,sub
+olcDbIndex: ou eq,pres,sub
+olcDbIndex: cn eq,pres,sub
+olcDbIndex: PdnsDomainId eq,pres
+olcDbIndex: sOARecord pres
+olcDbIndex: nSRecord pres
+olcDbIndex: dNameRecord pres
 olcRootPW: secret
 
 dn: o=power

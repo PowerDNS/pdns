@@ -56,6 +56,10 @@ __EOF__
 				echo "Securing zone $zone"
 				securezone $zone ldap
 
+				# Do a dummy search so that indexes are fresh in the ldap server memory
+				# For cname-wildcard-chain this may make the difference between passing and failing
+				ldapsearch -D $LDAPUSER -w $LDAPPASSWD -b $LDAPBASEDN "(|(associatedDomain=$zone)(associatedDomain=*.$zone))" 2>&1 > /dev/null
+
 				if [ "$zone" = "tsig.com" ]; then
 					$PDNSUTIL --config-dir=. --config-name=ldap import-tsig-key test $ALGORITHM $KEY
 					$PDNSUTIL --config-dir=. --config-name=ldap activate-tsig-key tsig.com test master
