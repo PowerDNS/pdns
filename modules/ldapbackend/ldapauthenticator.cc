@@ -249,10 +249,12 @@ int LdapGssapiAuthenticator::updateTgt()
   krb5_free_principal( context, principal );
 
   if ( code == 0 ) {
-    g_log<<Logger::Error << logPrefix << "krb5 error when getting the TGT: " << std::string( krb5_get_error_message( context, code ) ) << std::endl;
     code = krb5_cc_store_cred( context, ccache, &credentials );
     krb5_free_cred_contents( context, &credentials );
     krb5_cc_close( context, ccache );
+  }
+  else {
+    g_log<<Logger::Error << logPrefix << "krb5 error when getting the TGT: " << std::string( krb5_get_error_message( context, code ) ) << std::endl;
   }
 
   krb5_free_context( context );
