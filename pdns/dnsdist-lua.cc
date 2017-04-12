@@ -1462,11 +1462,18 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
     });
   
   g_lua.writeFunction("setKey", [](const std::string& key) {
+      if(!g_configurationDone && ! g_key.empty()) { // this makes sure the commandline -k key prevails over dnsdist.conf
+        return;                                     // but later setKeys() trump the -k value again
+      }
+
       setLuaSideEffect();
-      if(B64Decode(key, g_key) < 0) {
-	  g_outputBuffer=string("Unable to decode ")+key+" as Base64";
-	  errlog("%s", g_outputBuffer);
-	}
+      string newkey;
+      if(B64Decode(key, newkey) < 0) {
+        g_outputBuffer=string("Unable to decode ")+key+" as Base64";
+        errlog("%s", g_outputBuffer);
+      }
+      else
+	g_key=newkey;
     });
 
   
