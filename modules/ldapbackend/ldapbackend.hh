@@ -169,6 +169,8 @@ class LdapBackend : public DNSBackend
     void setNotified( uint32_t id, uint32_t serial );
 
     // DNSSEC backend
+    bool doesDNSSEC();
+
     bool getAllDomainMetadata( const DNSName& name, std::map<std::string, std::vector<std::string> >& meta );
     bool getDomainMetadata( const DNSName& name, const std::string& kind, std::vector<std::string>& meta );
     bool setDomainMetadata( const DNSName& name, const std::string& kind, const std::vector<std::string>& meta );

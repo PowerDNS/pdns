@@ -25,6 +25,12 @@
 #include <cstdlib>
 
 
+bool LdapBackend::doesDNSSEC()
+{
+  return m_dnssec;
+}
+
+
 std::string LdapBackend::getDomainMetadataDN( const DNSName &name )
 {
   std::string dn;
