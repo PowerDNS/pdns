@@ -245,7 +245,7 @@ void LdapBackend::lookup_simple( const QType &qtype, const DNSName &qname, DNSPa
 
   filter = strbind( ":target:", filter, getArg( "filter-lookup" ) );
 
-  L << Logger::Debug << m_myname << " Search = basedn: " << getArg( "basedn" ) << ", filter: " << filter << ", qtype: " << qtype.getName() << ", domain_id: " << zoneid << endl;
+  L << Logger::Debug << m_myname << " Search = basedn: " << basedn << ", filter: " << filter << ", qtype: " << qtype.getName() << ", domain_id: " << zoneid << endl;
   m_msgid = m_pldap->search( basedn, LDAP_SCOPE_SUBTREE, filter, attributes );
 }
 
