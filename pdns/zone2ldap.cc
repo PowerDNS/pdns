@@ -47,6 +47,7 @@ StatBag S;
 ArgvMap args;
 bool g_dnsttl;
 bool g_pdnsinfo;
+bool g_create_ent;
 unsigned int g_domainid;
 string g_basedn;
 string g_metadatadn;
@@ -91,8 +92,43 @@ static void callback_simple( unsigned int domain_id, const DNSName &domain, cons
 
         std::string stripped=stripDot(content);
         std::string rrvalue = stripped + ((stripped.empty() || stripped[stripped.size()-1]==' ') ? "." : "");
-        std::string dn = "dc=";
-        if( host.countLabels() ) { dn += host.toStringNoDot() + ",dc="; }
+        std::string dn;
+        vector<string> parts;
+        stringtok( parts, host.toStringNoDot(), "." );
+
+        if( host.countLabels() ) {
+                if ( g_create_ent ) {
+                        DNSName ent = g_zonename;
+
+                        for( unsigned int i = parts.size() - 1; i > 0; i-- )
+                        {
+                                ent.prependRawLabel(parts[i]);
+                                dn = "dc=" + parts[i] + "," + dn;
+                                std::string fulldn = dn + "dc=" + g_zonename.toStringNoDot() + "," + g_basedn;
+
+                                if( !g_entries[fulldn] )
+                                {
+                                        g_entries[fulldn] = true;
+
+                                        cout << "dn: " << dn << "dc=" << g_zonename.toStringNoDot() << "," << g_basedn << endl;
+                                        cout << "changetype: add" << endl;
+                                        cout << "objectclass: dnsdomain2" << endl;
+                                        cout << "objectclass: domainrelatedobject" << endl;
+                                        cout << "dc: " << parts[i] << endl;
+                                        cout << "associateddomain: " << ent.toStringNoDot() << endl << endl;
+                                }
+
+                        }
+
+                        dn = "dc=" + parts[0] + "," + dn + "dc=";
+                }
+                else {
+                        dn = "dc=" + host.toStringNoDot() + ",dc=";
+                }
+        }
+        else {
+                dn = "dc=";
+        }
         dn += g_zonename.toStringNoDot() + "," + g_basedn;
         cout << "dn: " << dn << endl;
 
@@ -111,7 +147,10 @@ static void callback_simple( unsigned int domain_id, const DNSName &domain, cons
                         cout << "objectclass: PdnsDomain" << endl;
                         cout << "PdnsDomainId: " << domain_id << endl;
                 }
-                cout << "dc: " << host.toStringNoDot() << endl;
+                if ( g_create_ent && parts.size() )
+                        cout << "dc: " << parts[0] << endl;
+                else
+                        cout << "dc: " << host.toStringNoDot() << endl;
                 if( g_dnsttl ) { cout << "dnsttl: " << ttl << endl; }
                 cout << "associateddomain: " << domain.toStringNoDot() << endl;
         }
@@ -243,6 +282,7 @@ int main( int argc, char* argv[] )
                 args.setSwitch( "resume", "Continue after errors" ) = "no";
                 args.setSwitch( "dnsttl", "Add dnsttl attribute to every entry" ) = "no";
                 args.setSwitch( "pdns-info", "Add the PDNS domain info attributes (this mandates setting --metadata-dn)" ) = "no";
+                args.setSwitch( "create-ent", "Create empty non-terminals (only used with --layout=simple" ) = "no";
                 args.set( "named-conf", "Bind 8 named.conf to parse" ) = "";
                 args.set( "zone-file", "Zone file to parse" ) = "";
                 args.set( "zone-name", "Specify a zone name if zone is set" ) = "";
@@ -292,6 +332,11 @@ int main( int argc, char* argv[] )
                 else {
                         g_pdnsinfo = false;
                 }
+
+                if ( args.mustDo( "create-ent" ) )
+                        g_create_ent = true;
+                else
+                        g_create_ent = false;
 
                 if ( !args["domainid"].empty() )
                         g_domainid = pdns_stou( args["domainid"] );
