@@ -69,7 +69,7 @@ void LdapBackend::getUpdatedMasters( vector<DomainInfo>* domains )
       continue;
 
     DomainInfo di;
-    if ( !getDomainInfo( result["associatedDomain"][0], di ) )
+    if ( !getDomainInfo( DNSName( result["associatedDomain"][0] ), di ) )
       continue;
 
     di.backend = this;

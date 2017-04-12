@@ -156,7 +156,7 @@ class LdapBackend : public DNSBackend
     void lookup( const QType& qtype, const DNSName& qdomain, DNSPacket* p = 0, int zoneid = -1 );
     bool get( DNSResourceRecord& rr );
 
-    bool getDomainInfo( const string& domain, DomainInfo& di );
+    bool getDomainInfo( const DNSName& domain, DomainInfo& di );
 
     // Master backend
     void getUpdatedMasters( vector<DomainInfo>* domains );

@@ -68,7 +68,6 @@ inline bool LdapBackend::list_simple( const DNSName& target, int domain_id )
   string filter;
   string qesc;
 
-
   dn = getArg( "basedn" );
   qesc = toLower( m_pldap->escape( target.toStringRootDot() ) );
 
@@ -330,7 +329,7 @@ bool LdapBackend::get( DNSResourceRecord &rr )
 }
 
 
-bool LdapBackend::getDomainInfo( const string& domain, DomainInfo& di )
+bool LdapBackend::getDomainInfo( const DNSName& domain, DomainInfo& di )
 {
   string filter;
   SOAData sd;
@@ -349,7 +348,7 @@ bool LdapBackend::getDomainInfo( const string& domain, DomainInfo& di )
   try
   {
     // search for SOARecord of domain
-    filter = "(&(associatedDomain=" + toLower( m_pldap->escape( domain ) ) + ")(SOARecord=*))";
+    filter = "(&(associatedDomain=" + toLower( m_pldap->escape( domain.toStringRootDot() ) ) + ")(SOARecord=*))";
     m_msgid = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attronly );
     m_pldap->getSearchEntry( msgid, result );
   }
@@ -387,7 +386,7 @@ bool LdapBackend::getDomainInfo( const string& domain, DomainInfo& di )
       di.id = 0;
 
     di.serial = sd.serial;
-    di.zone = DNSName(domain);
+    di.zone = domain;
 
     if( result.count( "PdnsDomainLastCheck" ) && !result["PdnsDomainLastCheck"].empty() )
       di.last_check = pdns_stou( result["PdnsDomainLastCheck"][0] );
@@ -414,6 +413,8 @@ bool LdapBackend::getDomainInfo( const string& domain, DomainInfo& di )
     else {
       di.kind = DomainInfo::Native;
     }
+
+    di.backend = this;
 
     return true;
   }
