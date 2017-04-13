@@ -174,36 +174,36 @@ class LdapBackend : public DNSBackend
     ~LdapBackend();
 
     // Native backend
-    bool list( const DNSName& target, int domain_id, bool include_disabled=false );
-    void lookup( const QType& qtype, const DNSName& qdomain, DNSPacket* p = 0, int zoneid = -1 );
-    bool get( DNSResourceRecord& rr );
+    bool list( const DNSName& target, int domain_id, bool include_disabled=false ) override;
+    void lookup( const QType& qtype, const DNSName& qdomain, DNSPacket* p = 0, int zoneid = -1 ) override;
+    bool get( DNSResourceRecord& rr ) override;
 
-    bool getDomainInfo( const DNSName& domain, DomainInfo& di );
+    bool getDomainInfo( const DNSName& domain, DomainInfo& di ) override;
 
     // Master backend
-    void getUpdatedMasters( vector<DomainInfo>* domains );
-    void setNotified( uint32_t id, uint32_t serial );
+    void getUpdatedMasters( vector<DomainInfo>* domains ) override;
+    void setNotified( uint32_t id, uint32_t serial ) override;
 
     // DNSSEC backend
-    bool doesDNSSEC();
+    bool doesDNSSEC() override;
 
-    bool getAllDomainMetadata( const DNSName& name, std::map<std::string, std::vector<std::string> >& meta );
-    bool getDomainMetadata( const DNSName& name, const std::string& kind, std::vector<std::string>& meta );
-    bool setDomainMetadata( const DNSName& name, const std::string& kind, const std::vector<std::string>& meta );
+    bool getAllDomainMetadata( const DNSName& name, std::map<std::string, std::vector<std::string> >& meta ) override;
+    bool getDomainMetadata( const DNSName& name, const std::string& kind, std::vector<std::string>& meta ) override;
+    bool setDomainMetadata( const DNSName& name, const std::string& kind, const std::vector<std::string>& meta ) override;
 
-    bool getDomainKeys( const DNSName& name, unsigned int kind, std::vector<KeyData>& keys );
-    bool addDomainKey( const DNSName& name, const KeyData& key, int64_t& id );
-    bool activateDomainKey( const DNSName& name, unsigned int id );
-    bool deactivateDomainKey( const DNSName& name, unsigned int id );
-    bool removeDomainKey( const DNSName& name, unsigned int id );
+    bool getDomainKeys( const DNSName& name, std::vector<KeyData>& keys ) override;
+    bool addDomainKey( const DNSName& name, const KeyData& key, int64_t& id ) override;
+    bool activateDomainKey( const DNSName& name, unsigned int id ) override;
+    bool deactivateDomainKey( const DNSName& name, unsigned int id ) override;
+    bool removeDomainKey( const DNSName& name, unsigned int id ) override;
 
-    bool getTSIGKey( const DNSName& name, DNSName* algorithm, string* content );
-    bool setTSIGKey( const DNSName& name, const DNSName& algorithm, const string& content );
-    bool deleteTSIGKey( const DNSName& name );
-    bool getTSIGKeys( std::vector<struct TSIGKey>& keys );
+    bool getTSIGKey( const DNSName& name, DNSName* algorithm, string* content ) override;
+    bool setTSIGKey( const DNSName& name, const DNSName& algorithm, const string& content ) override;
+    bool deleteTSIGKey( const DNSName& name ) override;
+    bool getTSIGKeys( std::vector<struct TSIGKey>& keys ) override;
 
-    bool getBeforeAndAfterNamesAbsolute( uint32_t domain_id, const std::string& qname, DNSName& unhashed, std::string& before, std::string& after );
-    bool updateDNSSECOrderNameAndAuth( uint32_t domain_id, const DNSName& zonename, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype=QType::ANY );
+    bool getBeforeAndAfterNamesAbsolute( uint32_t domain_id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after ) override;
+    bool updateDNSSECOrderNameAndAuth( uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype=QType::ANY ) override;
 };
 
 #endif /* LDAPBACKEND_HH */

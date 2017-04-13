@@ -297,7 +297,7 @@ bool LdapBackend::setDomainMetadata( const DNSName& name, const std::string& kin
 }
 
 
-bool LdapBackend::getDomainKeys( const DNSName& name, unsigned int kind, std::vector<KeyData>& keys )
+bool LdapBackend::getDomainKeys( const DNSName& name, std::vector<KeyData>& keys )
 {
   if ( !m_dnssec )
     return false;
@@ -347,7 +347,7 @@ bool LdapBackend::getDomainKeys( const DNSName& name, unsigned int kind, std::ve
   {
     L << Logger::Warning << m_myname << " Connection to LDAP lost, trying to reconnect" << endl;
     if ( reconnect() )
-      return this->getDomainKeys( name, kind, keys );
+      return this->getDomainKeys( name, keys );
     else
       throw PDNSException( "Failed to reconnect to LDAP server" );
   }
@@ -893,7 +893,7 @@ bool LdapBackend::getTSIGKeys( std::vector<struct TSIGKey>& keys )
 }
 
 
-bool LdapBackend::getBeforeAndAfterNamesAbsolute( uint32_t domain_id, const std::string& qname, DNSName& unhashed, std::string& before, std::string& after )
+bool LdapBackend::getBeforeAndAfterNamesAbsolute( uint32_t domain_id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after )
 {
   if ( !m_dnssec )
     return false;
@@ -918,7 +918,7 @@ bool LdapBackend::getBeforeAndAfterNamesAbsolute( uint32_t domain_id, const std:
     if ( mustDo( "lookup-zone-rebase" ) )
       basedn = result["dn"][0];
 
-    std::string qnameMatch = qname.empty() ? " " : qname;
+    std::string qnameMatch = qname.empty() ? " " : qname.toStringNoDot();
     std::string foundBeforeOrdername, foundBeforeDomain, foundAfter;
     std::string domainBase = result["associatedDomain"][0];
     const char* orderAttributes[] = { "associatedDomain", "PdnsRecordOrdername", NULL };
@@ -1070,17 +1070,17 @@ bool LdapBackend::getBeforeAndAfterNamesAbsolute( uint32_t domain_id, const std:
     }
 
     if ( foundAfter.empty() )
-      throw PDNSException( "Failed to find the name after '" + qname + "'" );
+      throw PDNSException( "Failed to find the name after '" + qname.toStringNoDot() + "'" );
 
     if ( foundBeforeOrdername.empty() )
-      throw PDNSException( "Failed to find the name before '" + qname + "'" );
+      throw PDNSException( "Failed to find the name before '" + qname.toStringNoDot() + "'" );
 
-    after = foundAfter;
+    after = DNSName( foundAfter );
 
     // What follows is how the GSQL backend works. I just took the algorithm as-is, but no comments exist,
     // so I have no idea what I'm doing exactly right now.
     if ( before.empty() ) {
-      before = foundBeforeOrdername;
+      before = DNSName( foundBeforeOrdername );
       unhashed = DNSName( foundBeforeDomain );
     }
     else {
@@ -1117,7 +1117,7 @@ bool LdapBackend::getBeforeAndAfterNamesAbsolute( uint32_t domain_id, const std:
 }
 
 
-bool LdapBackend::updateDNSSECOrderNameAndAuth( uint32_t domain_id, const DNSName& zonename, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype )
+bool LdapBackend::updateDNSSECOrderNameAndAuth( uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype )
 {
   if ( !m_dnssec )
     return false;
@@ -1126,6 +1126,7 @@ bool LdapBackend::updateDNSSECOrderNameAndAuth( uint32_t domain_id, const DNSNam
 
   try {
     // Get the zone first
+    DNSName zonename;
     std::string filter = "PdnsDomainId=" + std::to_string( domain_id );
     const char* zoneAttributes[] = { "associatedDomain", NULL };
     PowerLDAP::sentry_t result;
@@ -1135,6 +1136,7 @@ bool LdapBackend::updateDNSSECOrderNameAndAuth( uint32_t domain_id, const DNSNam
       L<<Logger::Debug<< m_myname << " Can't find the zone for domain ID " << domain_id << std::endl;
       return false;
     }
+    zonename = DNSName( result["associatedDomain"][0] );
     delete( search );
 
     std::string basedn = getArg( "basedn" );
@@ -1397,7 +1399,7 @@ bool LdapBackend::updateDNSSECOrderNameAndAuth( uint32_t domain_id, const DNSNam
   {
     L << Logger::Warning << m_myname << " Connection to LDAP lost, trying to reconnect" << endl;
     if ( reconnect() )
-      return this->updateDNSSECOrderNameAndAuth( domain_id, zonename, qname, ordername, auth, qtype );
+      return this->updateDNSSECOrderNameAndAuth( domain_id, qname, ordername, auth, qtype );
     else
       throw PDNSException( "Failed to reconnect to LDAP server" );
   }
