@@ -1726,13 +1726,13 @@ BOOST_AUTO_TEST_CASE(test_cache_min_max_ttl) {
   const ComboAddress who;
   vector<DNSRecord> cached;
   const time_t now = time(nullptr);
-  BOOST_REQUIRE_GT(t_RC->get(now, target, QType(QType::A), &cached, who), 0);
+  BOOST_REQUIRE_GT(t_RC->get(now, target, QType(QType::A), true, &cached, who), 0);
   BOOST_REQUIRE_EQUAL(cached.size(), 1);
   BOOST_REQUIRE_GT(cached[0].d_ttl, now);
   BOOST_CHECK_EQUAL((cached[0].d_ttl - now), SyncRes::s_minimumTTL);
 
   cached.clear();
-  BOOST_REQUIRE_GT(t_RC->get(now, target, QType(QType::NS), &cached, who), 0);
+  BOOST_REQUIRE_GT(t_RC->get(now, target, QType(QType::NS), false, &cached, who), 0);
   BOOST_REQUIRE_EQUAL(cached.size(), 1);
   BOOST_REQUIRE_GT(cached[0].d_ttl, now);
   BOOST_CHECK_LE((cached[0].d_ttl - now), SyncRes::s_maxcachettl);

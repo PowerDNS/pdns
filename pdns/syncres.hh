@@ -749,6 +749,7 @@ private:
   bool d_doDNSSEC;
   bool d_doEDNS0{true};
   bool d_incomingECSFound{false};
+  bool d_requireAuthData{true};
   bool d_skipCNAMECheck{false};
   bool d_updatingRootNS{false};
   bool d_wantsRPZ{true};

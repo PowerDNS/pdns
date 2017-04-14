@@ -55,7 +55,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple) {
     int64_t expected = counter-delcounter;
 
     for(; delcounter < counter; ++delcounter) {
-      if(MRC.get(now, DNSName("hello ")+DNSName(std::to_string(delcounter)), QType(QType::A), &retrieved, who, nullptr)) {
+      if(MRC.get(now, DNSName("hello ")+DNSName(std::to_string(delcounter)), QType(QType::A), false, &retrieved, who, nullptr)) {
 	matches++;
       }
     }
@@ -93,13 +93,13 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple) {
 
     retrieved.clear();
     // subnet specific should be returned for a matching subnet
-    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::AAAA), &retrieved, ComboAddress("192.0.2.2"), nullptr), (ttd-now));
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::AAAA), false, &retrieved, ComboAddress("192.0.2.2"), nullptr), (ttd-now));
     BOOST_REQUIRE_EQUAL(retrieved.size(), 1);
     BOOST_CHECK_EQUAL(getRR<AAAARecordContent>(retrieved.at(0))->getCA().toString(), dr1Content.toString());
 
     retrieved.clear();
     // subnet specific should not be returned for a different subnet
-    BOOST_CHECK_LT(MRC.get(now, power, QType(QType::AAAA), &retrieved, ComboAddress("127.0.0.1"), nullptr), 0);
+    BOOST_CHECK_LT(MRC.get(now, power, QType(QType::AAAA), false, &retrieved, ComboAddress("127.0.0.1"), nullptr), 0);
     BOOST_CHECK_EQUAL(retrieved.size(), 0);
 
     // remove everything
@@ -113,7 +113,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple) {
     BOOST_CHECK_EQUAL(MRC.size(), 1);
 
     // NON-subnet specific should always be returned
-    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), &retrieved, ComboAddress("127.0.0.1"), nullptr), (ttd-now));
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("127.0.0.1"), nullptr), (ttd-now));
     BOOST_REQUIRE_EQUAL(retrieved.size(), 1);
     BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr2Content.toString());
     retrieved.clear();
@@ -133,24 +133,24 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple) {
     BOOST_CHECK_EQUAL(MRC.size(), 3);
 
     // we should still get the NON-subnet specific entry
-    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), &retrieved, ComboAddress("127.0.0.1"), nullptr), (ttd-now));
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("127.0.0.1"), nullptr), (ttd-now));
     BOOST_REQUIRE_EQUAL(retrieved.size(), 1);
     BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr2Content.toString());
     retrieved.clear();
 
     // we should get the subnet specific entry if we are from the right subnet
-    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::AAAA), &retrieved, ComboAddress("192.0.2.3"), nullptr), (ttd-now));
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::AAAA), false, &retrieved, ComboAddress("192.0.2.3"), nullptr), (ttd-now));
     BOOST_REQUIRE_EQUAL(retrieved.size(), 1);
     BOOST_CHECK_EQUAL(getRR<AAAARecordContent>(retrieved.at(0))->getCA().toString(), dr1Content.toString());
     retrieved.clear();
 
     // but nothing from a different subnet
-    BOOST_CHECK_LT(MRC.get(now, power, QType(QType::AAAA), &retrieved, ComboAddress("127.0.0.1"), nullptr), 0);
+    BOOST_CHECK_LT(MRC.get(now, power, QType(QType::AAAA), false, &retrieved, ComboAddress("127.0.0.1"), nullptr), 0);
     BOOST_CHECK_EQUAL(retrieved.size(), 0);
     retrieved.clear();
 
     // QType::ANY should return any qtype, so from the right subnet we should get all of them
-    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::ANY), &retrieved, ComboAddress("192.0.2.3"), nullptr), (ttd-now));
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::ANY), false, &retrieved, ComboAddress("192.0.2.3"), nullptr), (ttd-now));
     BOOST_CHECK_EQUAL(retrieved.size(), 3);
     for (const auto& rec : retrieved) {
       BOOST_CHECK(rec.d_type == QType::A || rec.d_type == QType::AAAA || rec.d_type == QType::TXT);
@@ -162,7 +162,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple) {
     retrieved.clear();
 
     // but only the non-subnet specific from the another subnet
-    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::ANY), &retrieved, ComboAddress("127.0.0.1"), nullptr), (ttd-now));
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::ANY), false, &retrieved, ComboAddress("127.0.0.1"), nullptr), (ttd-now));
     BOOST_CHECK_EQUAL(retrieved.size(), 2);
     for (const auto& rec : retrieved) {
       BOOST_CHECK(rec.d_type == QType::A || rec.d_type == QType::TXT);
@@ -170,7 +170,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple) {
     retrieved.clear();
 
     // QType::ADDR should return both A and AAAA but no TXT, so two entries from the right subnet
-    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::ADDR), &retrieved, ComboAddress("192.0.2.3"), nullptr), (ttd-now));
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::ADDR), false, &retrieved, ComboAddress("192.0.2.3"), nullptr), (ttd-now));
     BOOST_CHECK_EQUAL(retrieved.size(), 2);
     for (const auto& rec : retrieved) {
       BOOST_CHECK(rec.d_type == QType::A || rec.d_type == QType::AAAA);
@@ -178,13 +178,13 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple) {
     retrieved.clear();
 
     // but only the non-subnet specific one from the another subnet
-    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::ADDR), &retrieved, ComboAddress("127.0.0.1"), nullptr), (ttd-now));
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::ADDR), false, &retrieved, ComboAddress("127.0.0.1"), nullptr), (ttd-now));
     BOOST_REQUIRE_EQUAL(retrieved.size(), 1);
     BOOST_CHECK(retrieved.at(0).d_type == QType::A);
     retrieved.clear();
 
     // entries are only valid until ttd, we should not get anything after that because they are expired
-    BOOST_CHECK_LT(MRC.get(ttd + 5, power, QType(QType::ADDR), &retrieved, ComboAddress("127.0.0.1"), nullptr), 0);
+    BOOST_CHECK_LT(MRC.get(ttd + 5, power, QType(QType::ADDR), false, &retrieved, ComboAddress("127.0.0.1"), nullptr), 0);
     BOOST_CHECK_EQUAL(retrieved.size(), 0);
     retrieved.clear();
 
@@ -193,7 +193,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple) {
     BOOST_CHECK_EQUAL(MRC.doAgeCache(now, power, QType::TXT, newTTL), true);
 
     // we should still be able to retrieve it
-    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::TXT), &retrieved, ComboAddress("127.0.0.1"), nullptr), newTTL);
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::TXT), false, &retrieved, ComboAddress("127.0.0.1"), nullptr), newTTL);
     BOOST_CHECK_EQUAL(retrieved.size(), 1);
     BOOST_CHECK(retrieved.at(0).d_type == QType::TXT);
     // please note that this is still a TTD at this point
@@ -201,7 +201,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple) {
     retrieved.clear();
 
     // but 10s later it should be gone
-    BOOST_CHECK_LT(MRC.get(now + 10, power, QType(QType::TXT), &retrieved, ComboAddress("127.0.0.1"), nullptr), 0);
+    BOOST_CHECK_LT(MRC.get(now + 10, power, QType(QType::TXT), false, &retrieved, ComboAddress("127.0.0.1"), nullptr), 0);
     BOOST_CHECK_EQUAL(retrieved.size(), 0);
     retrieved.clear();
 
@@ -214,7 +214,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple) {
     records.push_back(dr2);
     MRC.replace(now, power, QType(QType::A), records, signatures, true, boost::none);
     BOOST_CHECK_EQUAL(MRC.size(), 1);
-    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), &retrieved, ComboAddress("127.0.0.1"), nullptr), (ttd-now));
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("127.0.0.1"), nullptr), (ttd-now));
     BOOST_CHECK_EQUAL(retrieved.size(), 1);
 
     DNSRecord dr3;
@@ -236,14 +236,14 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple) {
     // non-auth should not replace valid auth
     MRC.replace(now, power, QType(QType::A), records, signatures, false, boost::none);
     BOOST_CHECK_EQUAL(MRC.size(), 1);
-    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), &retrieved, ComboAddress("127.0.0.1"), nullptr), (ttd-now));
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("127.0.0.1"), nullptr), (ttd-now));
     BOOST_REQUIRE_EQUAL(retrieved.size(), 1);
     BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr2Content.toString());
 
     // but non-auth _should_ replace expired auth
     MRC.replace(ttd + 1, power, QType(QType::A), records, signatures, false, boost::none);
     BOOST_CHECK_EQUAL(MRC.size(), 1);
-    BOOST_CHECK_EQUAL(MRC.get(ttd + 1, power, QType(QType::A), &retrieved, ComboAddress("127.0.0.1"), nullptr), (dr3.d_ttl - (ttd + 1)));
+    BOOST_CHECK_EQUAL(MRC.get(ttd + 1, power, QType(QType::A), false, &retrieved, ComboAddress("127.0.0.1"), nullptr), (dr3.d_ttl - (ttd + 1)));
     BOOST_REQUIRE_EQUAL(retrieved.size(), 1);
     BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr3Content.toString());
 
@@ -252,7 +252,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple) {
     records.push_back(dr2);
     MRC.replace(now, power, QType(QType::A), records, signatures, false, boost::none);
     BOOST_CHECK_EQUAL(MRC.size(), 1);
-    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), &retrieved, ComboAddress("127.0.0.1"), nullptr), (ttd-now));
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("127.0.0.1"), nullptr), (ttd-now));
     BOOST_REQUIRE_EQUAL(retrieved.size(), 1);
     BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr2Content.toString());
 

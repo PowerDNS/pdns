@@ -34,7 +34,7 @@ unsigned int MemRecursorCache::bytes()
 }
 
 // returns -1 for no hits
-int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt, vector<DNSRecord>* res, const ComboAddress& who, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, bool* variable)
+int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt, bool requireAuth, vector<DNSRecord>* res, const ComboAddress& who, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, bool* variable)
 {
   time_t ttd=0;
   //  cerr<<"looking up "<< qname<<"|"+qt.getName()<<"\n";
@@ -51,7 +51,10 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
     res->clear();
 
   if(d_cachecache.first!=d_cachecache.second) {
-    for(cache_t::const_iterator i=d_cachecache.first; i != d_cachecache.second; ++i)
+    for(cache_t::const_iterator i=d_cachecache.first; i != d_cachecache.second; ++i) {
+      if (requireAuth && !i->d_auth)
+        continue;
+
       if(i->d_ttd > now && ((i->d_qtype == qt.getCode() || qt.getCode()==QType::ANY ||
 			    (qt.getCode()==QType::ADDR && (i->d_qtype == QType::A || i->d_qtype == QType::AAAA) )) 
 			    && (i->d_netmask.empty() || i->d_netmask.match(who)))
@@ -85,6 +88,7 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
         if(qt.getCode()!=QType::ANY && qt.getCode()!=QType::ADDR) // normally if we have a hit, we are done
           break;
       }
+    }
 
     //    cerr<<"time left : "<<ttd - now<<", "<< (res ? res->size() : 0) <<"\n";
     return static_cast<int32_t>(ttd-now);
