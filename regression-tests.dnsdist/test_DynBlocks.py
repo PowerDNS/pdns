@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import base64
 import time
 import dns
 from dnsdisttests import DNSDistTest
@@ -345,8 +346,12 @@ class TestDynBlockResponseBytes(DNSDistTest):
     _dynBlockBytesPerSecond = 200
     _dynBlockPeriod = 2
     _dynBlockDuration = 5
-    _config_params = ['_dynBlockBytesPerSecond', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort']
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey)
+    _config_params = ['_consoleKeyB64', '_consolePort', '_dynBlockBytesPerSecond', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort']
     _config_template = """
+    setKey("%s")
+    controlSocket("127.0.0.1:%s")
     function maintenance()
 	    addDynBlocks(exceedRespByterate(%d, %d), "Exceeded response byterate", %d)
     end
@@ -373,6 +378,9 @@ class TestDynBlockResponseBytes(DNSDistTest):
 
         allowed = 0
         sent = 0
+
+        print(time.time())
+
         for _ in xrange(self._dynBlockBytesPerSecond * 5 / len(response.to_wire())):
             (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
             sent = sent + len(response.to_wire())
@@ -388,18 +396,38 @@ class TestDynBlockResponseBytes(DNSDistTest):
 
         # we might be already blocked, but we should have been able to send
         # at least self._dynBlockBytesPerSecond bytes
+        print(allowed)
+        print(sent)
+        print(time.time())
         self.assertGreaterEqual(allowed, self._dynBlockBytesPerSecond)
+
+        print(self.sendConsoleCommand("showDynBlocks()"))
+        print(self.sendConsoleCommand("grepq(\"\")"))
+        print(time.time())
 
         if allowed == sent:
             # wait for the maintenance function to run
+            print("Waiting for the maintenance function to run")
             time.sleep(2)
+
+        print(self.sendConsoleCommand("showDynBlocks()"))
+        print(self.sendConsoleCommand("grepq(\"\")"))
+        print(time.time())
 
         # we should now be dropped for up to self._dynBlockDuration + self._dynBlockPeriod
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertEquals(receivedResponse, None)
 
+        print(self.sendConsoleCommand("showDynBlocks()"))
+        print(self.sendConsoleCommand("grepq(\"\")"))
+        print(time.time())
+
         # wait until we are not blocked anymore
         time.sleep(self._dynBlockDuration + self._dynBlockPeriod)
+
+        print(self.sendConsoleCommand("showDynBlocks()"))
+        print(self.sendConsoleCommand("grepq(\"\")"))
+        print(time.time())
 
         # this one should succeed
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
