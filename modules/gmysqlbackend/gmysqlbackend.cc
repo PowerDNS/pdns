@@ -62,13 +62,6 @@ void gMySQLBackend::reconnect()
                    getArgAsNum("timeout")));
 }
 
-void gMySQLBackend::reconnectIfNeeded()
-{
-  if (!isConnectionUsable()) {
-    reconnect();
-  }
-}
-
 class gMySQLFactory : public BackendFactory
 {
 public:

@@ -1464,6 +1464,7 @@ bool GSQLBackend::startTransaction(const DNSName &domain, int domain_id)
     reconnectIfNeeded();
 
     d_db->startTransaction();
+    d_inTransaction = true;
     if(domain_id >= 0) {
       d_DeleteZoneQuery_stmt->
         bind("domain_id", domain_id)->
@@ -1472,6 +1473,7 @@ bool GSQLBackend::startTransaction(const DNSName &domain, int domain_id)
     }
   }
   catch (SSqlException &e) {
+    d_inTransaction = false;
     throw PDNSException("Database failed to start transaction: "+e.txtReason());
   }
 
@@ -1482,8 +1484,10 @@ bool GSQLBackend::commitTransaction()
 {
   try {
     d_db->commit();
+    d_inTransaction = false;
   }
   catch (SSqlException &e) {
+    d_inTransaction = false;
     throw PDNSException("Database failed to commit transaction: "+e.txtReason());
   }
   return true;
@@ -1493,8 +1497,10 @@ bool GSQLBackend::abortTransaction()
 {
   try {
     d_db->rollback();
+    d_inTransaction = false;
   }
   catch(SSqlException &e) {
+    d_inTransaction = false;
     throw PDNSException("Database failed to abort transaction: "+string(e.txtReason()));
   }
   return true;

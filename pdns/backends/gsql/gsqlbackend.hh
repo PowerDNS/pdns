@@ -250,21 +250,23 @@ protected:
     }
     return false;
   }
-  virtual void reconnectIfNeeded()
+  void reconnectIfNeeded()
   {
-    if (isConnectionUsable()) {
+    if (isConnectionUsable() || inTransaction()) {
       return;
     }
 
-    if (d_db) {
-      d_db->reconnect();
-    }
+    reconnect();
+  }
+  virtual void reconnect() { }
+  virtual bool inTransaction()
+  {
+    return d_inTransaction;
   }
 
 private:
   string d_query_name;
   DNSName d_qname;
-  SSql *d_db;
   SSqlStatement::result_t d_result;
 
   string d_NoIdQuery;
@@ -402,7 +404,9 @@ private:
   SSqlStatement* d_SearchCommentsQuery_stmt;
 
 protected:
+  SSql *d_db{nullptr};
   bool d_dnssecQueries;
+  bool d_inTransaction{false};
 };
 
 #endif /* PDNS_GSQLBACKEND_HH */

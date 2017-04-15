@@ -35,8 +35,7 @@ class gMySQLBackend : public GSQLBackend
 public:
   gMySQLBackend(const string &mode, const string &suffix); //!< Makes our connection to the database. Throws an exception if it fails.
 protected:
-  void reconnectIfNeeded() override;
-  void reconnect();
+  void reconnect() override;
 };
 
 #endif /* PDNS_GMYSQLBACKEND_HH */

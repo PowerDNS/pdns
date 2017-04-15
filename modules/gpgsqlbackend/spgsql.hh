@@ -47,7 +47,7 @@ public:
   void reconnect() override;
 
   PGconn* db() { return d_db; }
-  bool in_trx() { return d_in_trx; }
+  bool in_trx() const { return d_in_trx; }
 
 private:
   PGconn* d_db;
