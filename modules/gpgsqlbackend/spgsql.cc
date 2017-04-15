@@ -346,3 +346,13 @@ void SPgSQL::rollback() {
   execute("rollback");
   d_in_trx = false;
 }
+
+bool SPgSQL::isConnectionUsable()
+{
+  return PQstatus(d_db) == CONNECTION_OK;
+}
+
+void SPgSQL::reconnect()
+{
+  PQreset(d_db);
+}

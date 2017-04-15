@@ -244,6 +244,20 @@ protected:
   string pattern2SQLPattern(const string& pattern);
   void extractRecord(const SSqlStatement::row_t& row, DNSResourceRecord& rr);
   void extractComment(const SSqlStatement::row_t& row, Comment& c);
+  bool isConnectionUsable() {
+    if (d_db) {
+      return d_db->isConnectionUsable();
+    }
+    return false;
+  }
+  virtual void reconnectIfNeeded()
+  {
+    if (d_db) {
+      if(!d_db->isConnectionUsable()) {
+        d_db->reconnect();
+      }
+    }
+  }
 
 private:
   string d_query_name;
