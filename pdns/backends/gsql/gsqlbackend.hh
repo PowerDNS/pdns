@@ -252,10 +252,12 @@ protected:
   }
   virtual void reconnectIfNeeded()
   {
+    if (isConnectionUsable()) {
+      return;
+    }
+
     if (d_db) {
-      if(!d_db->isConnectionUsable()) {
-        d_db->reconnect();
-      }
+      d_db->reconnect();
     }
   }
 
