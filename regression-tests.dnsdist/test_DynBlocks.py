@@ -394,7 +394,7 @@ class TestDynBlockResponseBytes(DNSDistTest):
                 # let's clear the response queue
                 self.clearToResponderQueue()
                 # and stop right there, otherwise we might
-                # wait for so long than the dynblock is gone
+                # wait for so long that the dynblock is gone
                 # by the time we finished
                 break
 
@@ -455,7 +455,7 @@ class TestDynBlockResponseBytes(DNSDistTest):
                 # let's clear the response queue
                 self.clearToResponderQueue()
                 # and stop right there, otherwise we might
-                # wait for so long than the dynblock is gone
+                # wait for so long that the dynblock is gone
                 # by the time we finished
                 break
 
