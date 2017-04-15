@@ -393,6 +393,10 @@ class TestDynBlockResponseBytes(DNSDistTest):
                 # the query has not reached the responder,
                 # let's clear the response queue
                 self.clearToResponderQueue()
+                # and stop right there, otherwise we might
+                # wait for so long than the dynblock is gone
+                # by the time we finished
+                break
 
         # we might be already blocked, but we should have been able to send
         # at least self._dynBlockBytesPerSecond bytes
@@ -450,6 +454,10 @@ class TestDynBlockResponseBytes(DNSDistTest):
                 # the query has not reached the responder,
                 # let's clear the response queue
                 self.clearToResponderQueue()
+                # and stop right there, otherwise we might
+                # wait for so long than the dynblock is gone
+                # by the time we finished
+                break
 
         # we might be already blocked, but we should have been able to send
         # at least self._dynBlockBytesPerSecond bytes
