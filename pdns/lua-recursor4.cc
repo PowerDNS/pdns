@@ -205,6 +205,27 @@ void RecursorLua4::DNSQuestion::addAnswer(uint16_t type, const std::string& cont
   addRecord(type, content, DNSResourceRecord::ANSWER, ttl, name);
 }
 
+vector<pair<int, ComboAddress> > RecursorLua4::DNSQuestion::getNSs() const
+{
+  vector<pair<int, ComboAddress> > ret;
+  int num=1;
+  for(const auto& r : *currentNSs) {
+    ret.push_back({num++, r});
+  }
+  return ret;
+}
+void RecursorLua4::DNSQuestion::resetNS()
+{
+  if (currentNSs == NULL) return;
+  currentNSs->clear();
+}
+
+void RecursorLua4::DNSQuestion::addNS(ComboAddress &addr)
+{
+  if (currentNSs == NULL) return;
+  currentNSs->push_back(addr);
+}
+
 struct DynMetric
 {
   std::atomic<unsigned long>* ptr;
@@ -405,6 +426,9 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   d_lw->registerFunction("addRecord", &DNSQuestion::addRecord);
   d_lw->registerFunction("getRecords", &DNSQuestion::getRecords);
   d_lw->registerFunction("setRecords", &DNSQuestion::setRecords);
+  d_lw->registerFunction("resetNS", &DNSQuestion::resetNS);
+  d_lw->registerFunction("getNSs", &DNSQuestion::getNSs);
+  d_lw->registerFunction("addNS", &DNSQuestion::addNS);
 
   d_lw->registerFunction<void(DNSQuestion::*)(const std::string&)>("addPolicyTag", [](DNSQuestion& dq, const std::string& tag) { if (dq.policyTags) { dq.policyTags->push_back(tag); } });
   d_lw->registerFunction<void(DNSQuestion::*)(const std::vector<std::pair<int, std::string> >&)>("setPolicyTags", [](DNSQuestion& dq, const std::vector<std::pair<int, std::string> >& tags) {
@@ -539,6 +563,7 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   d_nodata = d_lw->readVariable<boost::optional<luacall_t>>("nodata").get_value_or(0);
   d_nxdomain = d_lw->readVariable<boost::optional<luacall_t>>("nxdomain").get_value_or(0);
   d_postresolve = d_lw->readVariable<boost::optional<luacall_t>>("postresolve").get_value_or(0);
+  d_postgetns = d_lw->readVariable<boost::optional<luacall_t>>("postgetns").get_value_or(0);
   d_preoutquery = d_lw->readVariable<boost::optional<luacall_t>>("preoutquery").get_value_or(0);
 
   d_ipfilter = d_lw->readVariable<boost::optional<ipfilter_t>>("ipfilter").get_value_or(0);
@@ -568,6 +593,17 @@ bool RecursorLua4::nodata(DNSQuestion& dq, int& ret)
 bool RecursorLua4::postresolve(DNSQuestion& dq, int& ret)
 {
   return genhook(d_postresolve, dq, ret);
+}
+
+bool RecursorLua4::postgetns(vector<ComboAddress>& nsList, const ComboAddress& requestor, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, int& ret)
+{
+  bool variableAnswer = false;
+  bool wantsRPZ = false;
+  RecursorLua4::DNSQuestion dq(requestor, requestor, query, qtype.getCode(), isTcp, variableAnswer, wantsRPZ);
+  dq.currentRecords = &res;
+  dq.currentNSs = &nsList;
+
+  return genhook(d_postgetns, dq, ret);
 }
 
 bool RecursorLua4::preoutquery(const ComboAddress& ns, const ComboAddress& requestor, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, int& ret)
