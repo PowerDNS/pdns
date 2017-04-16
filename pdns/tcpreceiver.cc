@@ -1373,19 +1373,26 @@ void TCPNameserver::thread()
             }
 
             pthread_t tid;
+            pthread_attr_t tattr;
+
             d_connectionroom_sem->wait(); // blocks if no connections are available
+
+            /* setting a new size */
+            pthread_attr_init(&tattr);
+            pthread_attr_setstacksize(&tattr, PTHREAD_STACK_MIN + 100000);
 
             int room;
             d_connectionroom_sem->getValue( &room);
             if(room<1)
               L<<Logger::Warning<<"Limit of simultaneous TCP connections reached - raise max-tcp-connections"<<endl;
 
-            if(pthread_create(&tid, 0, &doConnection, reinterpret_cast<void*>(fd))) {
+            if(pthread_create(&tid, &tattr, &doConnection, reinterpret_cast<void*>(fd))) {
               L<<Logger::Error<<"Error creating thread: "<<stringerror()<<endl;
               d_connectionroom_sem->post();
               close(fd);
               decrementClientCount(remote);
             }
+            pthread_attr_destroy(&tattr);
           }
         }
       }
