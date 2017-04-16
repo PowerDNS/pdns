@@ -252,7 +252,7 @@ protected:
   }
   void reconnectIfNeeded()
   {
-    if (isConnectionUsable() || inTransaction()) {
+    if (inTransaction() || isConnectionUsable()) {
       return;
     }
 
