@@ -56,6 +56,8 @@ gPgSQLBackend::gPgSQLBackend(const string &mode, const string &suffix)  : GSQLBa
 
 void gPgSQLBackend::reconnect()
 {
+  freeStatements();
+
   if (d_db) {
     d_db->reconnect();
   }
