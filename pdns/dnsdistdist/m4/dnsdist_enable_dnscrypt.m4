@@ -1,7 +1,7 @@
 AC_DEFUN([DNSDIST_ENABLE_DNSCRYPT], [
   AC_MSG_CHECKING([whether to enable DNSCrypt support])
   AC_ARG_ENABLE([dnscrypt],
-    AS_HELP_STRING([--enable-dnscrypt], [enable DNSCrypt support (require libsodium) @<:@default=no@:>@]),
+    AS_HELP_STRING([--enable-dnscrypt], [enable DNSCrypt support (requires libsodium) @<:@default=no@:>@]),
     [enable_dnscrypt=$enableval],
     [enable_dnscrypt=no]
   )
