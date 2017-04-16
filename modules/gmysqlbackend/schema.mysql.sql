@@ -1,6 +1,6 @@
 CREATE TABLE domains (
   id                    INT AUTO_INCREMENT,
-  name                  VARCHAR(255) NOT NULL,
+  name                  VARCHAR(253) NOT NULL,
   master                VARCHAR(128) DEFAULT NULL,
   last_check            INT DEFAULT NULL,
   type                  VARCHAR(6) NOT NULL,
@@ -15,7 +15,7 @@ CREATE UNIQUE INDEX name_index ON domains(name);
 CREATE TABLE records (
   id                    INT AUTO_INCREMENT,
   domain_id             INT DEFAULT NULL,
-  name                  VARCHAR(255) DEFAULT NULL,
+  name                  VARCHAR(253) DEFAULT NULL,
   type                  VARCHAR(10) DEFAULT NULL,
   content               VARCHAR(64000) DEFAULT NULL,
   ttl                   INT DEFAULT NULL,
@@ -43,7 +43,7 @@ CREATE TABLE supermasters (
 CREATE TABLE comments (
   id                    INT AUTO_INCREMENT,
   domain_id             INT NOT NULL,
-  name                  VARCHAR(255) NOT NULL,
+  name                  VARCHAR(253) NOT NULL,
   type                  VARCHAR(10) NOT NULL,
   modified_at           INT NOT NULL,
   account               VARCHAR(40) NOT NULL,

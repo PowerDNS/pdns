@@ -19,7 +19,7 @@ DROP INDEX IF EXISTS orderindex;
 CREATE TABLE comments (
   id                    SERIAL PRIMARY KEY,
   domain_id             INT NOT NULL,
-  name                  VARCHAR(255) NOT NULL,
+  name                  VARCHAR(253) NOT NULL,
   type                  VARCHAR(10) NOT NULL,
   modified_at           INT NOT NULL,
   account               VARCHAR(40) DEFAULT NULL,

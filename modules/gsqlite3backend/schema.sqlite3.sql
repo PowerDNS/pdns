@@ -2,7 +2,7 @@ PRAGMA foreign_keys = 1;
 
 CREATE TABLE domains (
   id                    INTEGER PRIMARY KEY,
-  name                  VARCHAR(255) NOT NULL COLLATE NOCASE,
+  name                  VARCHAR(253) NOT NULL COLLATE NOCASE,
   master                VARCHAR(128) DEFAULT NULL,
   last_check            INTEGER DEFAULT NULL,
   type                  VARCHAR(6) NOT NULL,
@@ -16,7 +16,7 @@ CREATE UNIQUE INDEX name_index ON domains(name);
 CREATE TABLE records (
   id                    INTEGER PRIMARY KEY,
   domain_id             INTEGER DEFAULT NULL,
-  name                  VARCHAR(255) DEFAULT NULL,
+  name                  VARCHAR(253) DEFAULT NULL,
   type                  VARCHAR(10) DEFAULT NULL,
   content               VARCHAR(65535) DEFAULT NULL,
   ttl                   INTEGER DEFAULT NULL,
@@ -46,7 +46,7 @@ CREATE UNIQUE INDEX ip_nameserver_pk ON supermasters(ip, nameserver);
 CREATE TABLE comments (
   id                    INTEGER PRIMARY KEY,
   domain_id             INTEGER NOT NULL,
-  name                  VARCHAR(255) NOT NULL,
+  name                  VARCHAR(253) NOT NULL,
   type                  VARCHAR(10) NOT NULL,
   modified_at           INT NOT NULL,
   account               VARCHAR(40) DEFAULT NULL,

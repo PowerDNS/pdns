@@ -50,7 +50,7 @@ CREATE UNIQUE INDEX namealgoindex ON tsigkeys(name, algorithm);
 CREATE TABLE comments (
   id                    INT AUTO_INCREMENT,
   domain_id             INT NOT NULL,
-  name                  VARCHAR(255) NOT NULL,
+  name                  VARCHAR(253) NOT NULL,
   type                  VARCHAR(10) NOT NULL,
   modified_at           INT NOT NULL,
   account               VARCHAR(40) NOT NULL,
