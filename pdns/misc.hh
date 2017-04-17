@@ -229,19 +229,6 @@ inline int DTime::udiffNoReset()
   return ret;
 }
 
-
-inline bool dns_isspace(char c)
-{
-  return c==' ' || c=='\t' || c=='\r' || c=='\n';
-}
-
-inline unsigned char dns_toupper(unsigned char c)
-{
-  if(c>='a' && c<='z')
-    c+='A'-'a';
-  return c;
-}
-
 inline const string toLower(const string &upper)
 {
   string reply(upper);
