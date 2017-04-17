@@ -177,40 +177,54 @@ compare `qtype` to the numeric constant 5 or the value `pdns.CNAME` -- they are 
 If your function decides to handle a resource record it must return a result code
 of 0 together with a Lua table containing one or more replacement records to be
 stored in the back-end database (if the table is empty, no record is added).
+If you want your record(s) to be appended after the matching record, return 1 and table of record(s).
 If, on the other hand, your function decides not to modify a record, it must
-return pdns.PASS and an empty table indicating that PowerDNS should handle the
+return -1 and an empty table indicating that PowerDNS should handle the
 incoming record as normal.
 
 Consider the following simple example:
 
 ```
-    function axfrfilter(remoteip, zone, qname, qtype, ttl, prio, content)
+    function axfrfilter(remoteip, zone, record)
 
        -- Replace each HINFO records with this TXT
-       if qtype == pdns.HINFO then
+       if record:qtype() == pdns.HINFO then
           resp = {}
-          resp[1] = {    qname   = qname,
+          resp[1] = {
+            qname   = record:qname:toString(),
             qtype   = pdns.TXT,
-            ttl   = 99,
-            content   = "Hello Ahu!"
+            ttl     = 99,
+            content = "Hello Ahu!"
          }
           return 0, resp
        end
 
        -- Grab each _tstamp TXT record and add a time stamp
-       if qtype == pdns.TXT and string.starts(qname, "_tstamp.") then
+       if record:qtype() == pdns.TXT and string.starts(record:qname:toString(), "_tstamp.") then
           resp = {}
           resp[1] = {
-            qname   = qname,
-            qtype   = qtype,
-            ttl   = ttl,
-            content   = os.date("Ver %Y%m%d-%H:%M")
-         }
+            qname   = record:qname():toString(),
+            qtype   = record:qtype(),
+            ttl     = record:ttl(),
+            content = os.date("Ver %Y%m%d-%H:%M")
+          }
           return 0, resp
        end
 
+       -- Append A records with this TXT
+       if record:qtype() == pdns.A then
+          resp = {}
+          resp[1] = {
+            qname   = record:qname:toString(),
+            qtype   = pdns.TXT,
+            ttl     = 99,
+            content = "Hello Ahu, again!"
+          }
+          return 1, resp
+       end
+
        resp = {}
-       return pdns.PASS, resp
+       return -1, resp
     end
 
     function string.starts(s, start)
@@ -221,4 +235,6 @@ Consider the following simple example:
 Upon an incoming AXFR, PowerDNS calls our `axfrfilter` function for each record.
 All HINFO records are replaced by a TXT record with a TTL of 99 seconds and the
 specified string. TXT Records with names starting with `_tstamp.` get their value
-(rdata) set to the current time stamp. All other records are unhandled.
+(rdata) set to the current time stamp.
+A records are appended with a TXT record.
+All other records are unhandled.
