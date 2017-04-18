@@ -54,6 +54,10 @@ DNSCRYPT_CONFIGURE='--enable-dnscrypt \'
 RE2_BUILDREQUIRES='BuildRequires: re2-devel'
 RE2_CONFIGURE='--enable-re2 \'
 
+# nor snmp-devel
+SNMP_BUILDREQUIRES='BuildRequires: net-snmp-devel'
+SNMP_CONFIGURE='--with-net-snmp \'
+
 # CentOS 6 has no luajit
 LUA_BUILDREQUIRES='BuildRequires: luajit-devel'
 LUA_CONFIGURE='--with-luajit \'
@@ -82,6 +86,10 @@ if [ -f /etc/os-release ]; then
       PROTOBUF_BUILDREQUIRES=''
       PROTOBUF_CONFIGURE='--without-protobuf \'
       SHADOW_REQUIRES='shadow'
+      LUA_BUILDREQUIRES='BuildRequires: lua-devel'
+      LUA_CONFIGURE=' \'
+      SNMP_BUILDREQUIRES=''
+      SNMP_CONFIGURE='--without-net-snmp \'
       ;;
   esac
 fi
@@ -126,7 +134,7 @@ Source: dnsdist-${TARBALLVERSION}.tar.bz2
 Requires(pre): ${SHADOW_REQUIRES}
 BuildRequires: boost-devel
 BuildRequires: readline-devel
-BuildRequires: net-snmp-devel
+${SNMP_BUILDREQUIRES}
 ${LUA_BUILDREQUIRES}
 ${PROTOBUF_BUILDREQUIRES}
 ${RE2_BUILDREQUIRES}
@@ -142,7 +150,7 @@ ${SETUP}
 %build
 %configure \
   --sysconfdir=/etc/dnsdist \
-  --with-net-snmp \
+  ${SNMP_CONFIGURE}
   ${LUA_CONFIGURE}
   ${RE2_CONFIGURE}
   ${SODIUM_CONFIGURE}
