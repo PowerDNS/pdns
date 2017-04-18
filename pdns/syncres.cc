@@ -1229,14 +1229,13 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
       if(!wasVariable()) {
         NegCache::NegCacheEntry ne;
 
-        ne.d_name = rec.d_name;
         ne.d_ttd = d_now.tv_sec + rec.d_ttl;
         ne.d_name = qname;
         ne.d_qtype = QType(0); // this encodes 'whole record'
-        ne.d_auth = auth;
+        ne.d_auth = rec.d_name;
         harvestNXRecords(lwr.d_records, ne);
         t_sstorage->negcache.add(ne);
-        if(s_rootNXTrust && auth.isRoot()) { // We should check if it was forwarded here, see issue #5107
+        if(s_rootNXTrust && ne.d_auth.isRoot()) { // We should check if it was forwarded here, see issue #5107
           ne.d_name = ne.d_name.getLastLabel();
           t_sstorage->negcache.add(ne);
         }
