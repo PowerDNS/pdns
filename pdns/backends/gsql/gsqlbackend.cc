@@ -1045,7 +1045,6 @@ bool GSQLBackend::get(DNSResourceRecord &r)
   // L << "GSQLBackend get() was called for "<<qtype.getName() << " record: ";
   SSqlStatement::row_t row;
 
-skiprow:
   if(d_query_stmt->hasNextRow()) {
     try {
       d_query_stmt->nextRow(row);
@@ -1055,8 +1054,8 @@ skiprow:
     }
     try {
       extractRecord(row, r);
-    } catch (...) {
-      goto skiprow;
+    } catch (std::exception &e) {
+      throw PDNSException("Exception '"+string(e.what())+"' occured for row: "+boost::algorithm::join(row, " | "));
     }
     return true;
   }
