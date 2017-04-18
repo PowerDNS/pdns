@@ -121,6 +121,7 @@ Requires(pre): ${SHADOW_REQUIRES}
 BuildRequires: boost-devel
 BuildRequires: lua-devel
 BuildRequires: readline-devel
+BuildRequires: net-snmp-devel
 ${PROTOBUF_BUILDREQUIRES}
 ${RE2_BUILDREQUIRES}
 ${SODIUM_BUILDREQUIRES}
@@ -135,7 +136,7 @@ ${SETUP}
 %build
 %configure \
   --sysconfdir=/etc/dnsdist \
-  --without-net-snmp \
+  --with-net-snmp \
   ${RE2_CONFIGURE}
   ${SODIUM_CONFIGURE}
   ${DNSCRYPT_CONFIGURE}
