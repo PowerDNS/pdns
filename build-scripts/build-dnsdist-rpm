@@ -54,6 +54,10 @@ DNSCRYPT_CONFIGURE='--enable-dnscrypt \'
 RE2_BUILDREQUIRES='BuildRequires: re2-devel'
 RE2_CONFIGURE='--enable-re2 \'
 
+# CentOS 6 has no luajit
+LUA_BUILDREQUIRES='BuildRequires: luajit-devel'
+LUA_CONFIGURE='--with-luajit \'
+
 # These two are the same for sysv and systemd (we don't install defaults files at the moment)
 DEFAULTS_INSTALL=''
 DEFAULTS_FILES=''
@@ -95,6 +99,8 @@ if [ -f /etc/redhat-release ]; then
       SODIUM_BUILDREQUIRES=''
       SODIUM_CONFIGURE='--disable-libsodium \'
       DNSCRYPT_CONFIGURE='--disable-dnscrypt \'
+      LUA_BUILDREQUIRES='BuildRequires: lua-devel'
+      LUA_CONFIGURE=' \'
       SETUP="%setup -n %{name}-${TARBALLVERSION}"
       RPMBUILD_COMMAND="scl enable devtoolset-3 -- ${RPMBUILD_COMMAND}"
       ;;
@@ -119,9 +125,9 @@ Group: System/DNS
 Source: dnsdist-${TARBALLVERSION}.tar.bz2
 Requires(pre): ${SHADOW_REQUIRES}
 BuildRequires: boost-devel
-BuildRequires: lua-devel
 BuildRequires: readline-devel
 BuildRequires: net-snmp-devel
+${LUA_BUILDREQUIRES}
 ${PROTOBUF_BUILDREQUIRES}
 ${RE2_BUILDREQUIRES}
 ${SODIUM_BUILDREQUIRES}
@@ -137,6 +143,7 @@ ${SETUP}
 %configure \
   --sysconfdir=/etc/dnsdist \
   --with-net-snmp \
+  ${LUA_CONFIGURE}
   ${RE2_CONFIGURE}
   ${SODIUM_CONFIGURE}
   ${DNSCRYPT_CONFIGURE}

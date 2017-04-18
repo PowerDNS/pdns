@@ -53,6 +53,7 @@ override_dh_auto_configure:
 		--enable-botan1.10 \
 		--enable-tools \
 		--enable-unit-tests \
+		--with-luajit \
 		$(ENABLE_SYSTEMD) \
 		$(ENABLE_LIBSODIUM)
 

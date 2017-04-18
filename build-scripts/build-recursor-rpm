@@ -215,7 +215,7 @@ Source0: ../%{name}-${TARBALLVERSION}.tar.bz2
 
 Provides: powerdns-recursor = %{version}-%{release}
 BuildRequires: boost-devel
-BuildRequires: lua-devel
+BuildRequires: luajit-devel
 BuildRequires: systemd-units
 BuildRequires: systemd-devel
 BuildRequires: libsodium-devel
@@ -248,6 +248,7 @@ package if you need a dns cache for your network.
 	--with-protobuf \
 	--enable-libsodium \
 	--with-net-snmp \
+	--with-luajit \
 	--enable-systemd
 
 make %{?_smp_mflags}
