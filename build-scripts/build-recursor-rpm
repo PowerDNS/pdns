@@ -123,9 +123,9 @@ Provides: powerdns-recursor = %{version}-%{release}
 BuildRequires: boost148-devel
 BuildRequires: lua-devel
 BuildRequires: libsodium-devel
-#BuildRequires: protobuf-devel
-#BuildRequires: protobuf-compiler
 BuildRequires: net-snmp-devel
+BuildRequires: protobuf-devel
+BuildRequires: protobuf-compiler
 
 Requires(pre): shadow-utils
 Requires(post): /sbin/chkconfig
