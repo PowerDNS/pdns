@@ -1226,7 +1226,9 @@ try
 #endif
           sendUDPResponse(cs->udpFD, response, responseLen, 0, dest, remote);
         }
+        vinfolog("Dropped query for %s|%s from %s, no policy applied", dq.qname->toString(), QType(dq.qtype).getName(), remote.toStringWithPort());
         continue;
+
       }
 
       ss->queries++;
@@ -1294,7 +1296,7 @@ try
 	g_stats.downstreamSendErrors++;
       }
 
-      vinfolog("Got query from %s, relayed to %s", remote.toStringWithPort(), ss->getName());
+      vinfolog("Got query for %s|%s from %s, relayed to %s", ids->qname.toString(), QType(ids->qtype).getName(), remote.toStringWithPort(), ss->getName());
     }
     catch(std::exception& e){
       vinfolog("Got an error in UDP question thread while parsing a query from %s, id %d: %s", remote.toStringWithPort(), queryId, e.what());
@@ -1533,6 +1535,9 @@ void* healthChecksThread()
           dss->reuseds++;
           --dss->outstanding;
           g_stats.downstreamTimeouts++; // this is an 'actively' discovered timeout
+          vinfolog("Had a downstream timeout from %s (%s) for query for %s|%s from %s",
+                   dss->remote.toStringWithPort(), dss->name,
+                   ids.qname.toString(), QType(ids.qtype).getName(), ids.origRemote.toStringWithPort());
 
           struct timespec ts;
           gettime(&ts);
