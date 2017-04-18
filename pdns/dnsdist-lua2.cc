@@ -206,9 +206,15 @@ void moreLua(bool client)
 
   g_lua.writeFunction("newNMG", []() { return NetmaskGroup(); });
   g_lua.registerFunction<void(NetmaskGroup::*)(const std::string&mask)>("addMask", [](NetmaskGroup&nmg, const std::string& mask)
-			 {
-			   nmg.addMask(mask);
-			 });
+                         {
+                           nmg.addMask(mask);
+                         });
+    g_lua.registerFunction<void(NetmaskGroup::*)(const std::map<ComboAddress,int>& map)>("addMasks", [](NetmaskGroup&nmg, const std::map<ComboAddress,int>& map)
+                         {
+                           for (const auto& entry : map) {
+                             nmg.addMask(Netmask(entry.first));
+                           }
+                         });
 
   g_lua.registerFunction("match", (bool (NetmaskGroup::*)(const ComboAddress&) const)&NetmaskGroup::match);
   g_lua.registerFunction("size", &NetmaskGroup::size);  
