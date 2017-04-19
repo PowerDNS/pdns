@@ -53,6 +53,7 @@ class PipeBackend : public DNSBackend
 public:
   PipeBackend(const string &suffix="");
   ~PipeBackend();
+  bool getAuth(const DNSName &domain, SOAData &sd, DNSPacket *p);
   void lookup(const QType&, const DNSName& qdomain, DNSPacket *p=0, int zoneId=-1);
   bool list(const DNSName& target, int domain_id, bool include_disabled=false);
   bool get(DNSResourceRecord &r);

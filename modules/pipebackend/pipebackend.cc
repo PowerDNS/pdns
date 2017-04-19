@@ -349,6 +349,22 @@ bool PipeBackend::get(DNSResourceRecord &r)
   return true;
 }
 
+bool PipeBackend::getAuth(const DNSName &domain, SOAData &sd, DNSPacket *p)
+{
+  if (DNSBackend::getSOA(domain, sd, p)) {
+    /* check if we secretly have a higher SOA and set that in the returned record*/
+    this->lookup(QType(QType::SOA),domain,p);
+    DNSResourceRecord rr;
+    while(this->get(rr)) {
+      if (rr.qtype != QType::SOA) throw PDNSException("Got non-SOA record when asking for SOA");
+      sd.qname = rr.qname;
+    }
+    return true;
+  }
+  return false;
+}
+
+
 //
 // Magic class that is activated when the dynamic library is loaded
 //

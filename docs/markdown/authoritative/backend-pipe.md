@@ -20,6 +20,11 @@ It allows end-users to write PowerDNS backends in any language, a perl sample is
 The PipeBackend is also very well suited for dynamic resolution of queries.
 Example applications include DNS based load balancing, geo-direction, DNS-based failover with low TTLs.
 
+Since version 4.0.1 the PipeBackend can send a 'higher' SOA record when asked for the SOA.
+e.g. A question for `1.2.3.4.5.6.7.8.9.0.8.b.d.1.0.0.2.ip6.arpa|SOA` could be answered with the SOA for `1.0.0.2.ip6.arpa`.
+PowerDNS will then not ask this PipeBacked anymore for any other SOA for every label when searching for the authoritative backend.
+Sending this 'higher' SOA will this decrease load on the nameserver and be faster, as the script is asked fewer questions.
+
 **Note**: The [Remote Backend](backend-remote.md) offers a superset of the functionality of the PipeBackend.
 
 **Note**: Please do read the [Backend Writer' guide](../appendix/backend-writers-guide.md) carefully.
