@@ -122,4 +122,7 @@ $ brew install mariadb
 
 LINUX NOTES
 -----------
-None really.
+If you running in to ```./bootstrap: 2: ./bootstrap: autoreconf: not found```, make sure you install
+```
+sudo apt-get install dh-autoreconf
+```
