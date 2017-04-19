@@ -14,7 +14,10 @@ AC_DEFUN([PDNS_WITH_LUAJIT],[
       [LUAJITPC=""]
     )
     AS_IF([test "x$LUAJITPC" = "x"], [
-      AC_MSG_ERROR([LuaJIT not found])]
+      AC_MSG_ERROR([LuaJIT not found])],
+      [AC_CHECK_HEADER([lua.hpp], [ have_lua_hpp=y ])
+        AM_CONDITIONAL([HAVE_LUA_HPP], [ test x"$have_lua_hpp" = "xy" ])
+      ]
     )
   ])
 
