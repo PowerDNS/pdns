@@ -349,6 +349,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "rmServer", true, "n", "remove server with index n" },
   { "roundrobin", false, "", "Simple round robin over available servers" },
   { "QNameLabelsCountRule", true, "min, max", "matches if the qname has less than `min` or more than `max` labels" },
+  { "QNameRule", true, "qname", "matches queries with the specified qname" },
   { "QNameWireLengthRule", true, "min, max", "matches if the qname's length on the wire is less than `min` or more than `max` bytes" },
   { "QTypeRule", true, "qtype", "matches queries with the specified qtype" },
   { "RCodeRule", true, "rcode", "matches responses with the specified rcode" },
