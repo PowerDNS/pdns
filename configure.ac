@@ -205,7 +205,7 @@ for a in $modules $dynmodules; do
       AS_IF([test "x$with_lua" = "xno"],
         AC_MSG_ERROR([Lua backend needs lua, run ./configure --with-lua])
       )
-      AS_IF([test "x$LUAPC" = "x"],
+      AS_IF([test "x$LUAPC" = "x" -a "x$LUAJITPC" = "x"],
         AC_MSG_ERROR([Lua backend needs lua but we cannot find it])
       )
       ;;
