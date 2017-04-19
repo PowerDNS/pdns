@@ -2680,9 +2680,8 @@ static int serviceMain(int argc, char*argv[])
 {
   L.setName(s_programname);
   L.setLoglevel((Logger::Urgency)(6)); // info and up
-  L.disableSyslog(::arg().mustDo("disable-syslog"));
 
-  if(!::arg()["logging-facility"].empty()) {
+  if(!::arg().mustDo("disable-syslog") && !::arg()["logging-facility"].empty()) {
     int val=logFacilityToLOG(::arg().asNum("logging-facility") );
     if(val >= 0)
       theL().setFacility(val);
@@ -3138,6 +3137,7 @@ int main(int argc, char **argv)
     ::arg().set("loglevel","Amount of logging. Higher is more. Do not set below 3")="4";
     ::arg().set("disable-syslog","Disable logging to syslog, useful when running inside a supervisor that logs stdout")="no";
     ::arg().set("log-common-errors","If we should log rather common errors")="no";
+    ::arg().set("disable-log-timestamp","Disable adding the timestamp to logs sent to stdout")="no";
     ::arg().set("chroot","switch to chroot jail")="";
     ::arg().set("setgid","If set, change group id to this gid for more security")="";
     ::arg().set("setuid","If set, change user id to this uid for more security")="";
@@ -3234,7 +3234,10 @@ int main(int argc, char **argv)
     ::arg().setCmd("version","Print version string");
     ::arg().setCmd("config","Output blank configuration");
     L.toConsole(Logger::Info);
+
     ::arg().laxParse(argc,argv); // do a lax parse
+    L.disableSyslog(::arg().mustDo("disable-syslog"));
+    L.disableTimeStamp(::arg().mustDo("disable-log-timestamp"));
 
     string configname=::arg()["config-dir"]+"/recursor.conf";
     if(::arg()["config-name"]!="") {

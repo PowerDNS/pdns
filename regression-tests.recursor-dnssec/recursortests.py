@@ -455,7 +455,8 @@ distributor-threads=1""".format(confdir=confdir,
         recursorcmd = [os.environ['PDNSRECURSOR'],
                        '--config-dir=%s' % confdir,
                        '--local-port=%s' % port,
-                       '--security-poll-suffix=']
+                       '--security-poll-suffix=',
+                       '--disable-log-timestamp']
         print(' '.join(recursorcmd))
 
         logFile = os.path.join(confdir, 'recursor.log')

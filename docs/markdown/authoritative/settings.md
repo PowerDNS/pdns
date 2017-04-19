@@ -277,6 +277,13 @@ Do not allow zone transfers.
 Disable the rectify step during an outgoing AXFR. Only required for regression
 testing.
 
+## `disable-log-timestamp`
+* Boolean
+* Default: no
+
+When set to 'yes', don't timestamp log messages sent to stdout. Set this to true
+if process supervisor adds timestamps itself.
+
 ## `disable-syslog`
 * Boolean
 * Default: no

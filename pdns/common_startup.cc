@@ -94,6 +94,7 @@ void declareArguments()
   ::arg().set("version-string","PowerDNS version in packets - full, anonymous, powerdns or custom")="full"; 
   ::arg().set("control-console","Debugging switch - don't use")="no"; // but I know you will!
   ::arg().set("loglevel","Amount of logging. Higher is more. Do not set below 3")="4";
+  ::arg().set("disable-log-timestamp","Disable adding the timestamp to logs sent to stdout")="no";
   ::arg().set("disable-syslog","Disable logging to syslog, useful when running inside a supervisor that logs stdout")="no";
   ::arg().set("default-soa-name","name to insert in the SOA record if none set in the backend")="a.misconfigured.powerdns.server";
   ::arg().set("default-soa-mail","mail address to insert in the SOA record if none set in the backend")="";

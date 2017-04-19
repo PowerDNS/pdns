@@ -166,6 +166,13 @@ Operate in the background.
 
 Which domains we only accept delegations from (a Verisign special).
 
+## `disable-log-timestamp`
+* Boolean
+* Default: no
+
+When set to 'yes', don't timestamp log messages sent to stdout. Set this to true
+if process supervisor adds timestamps itself.
+
 ## `disable-packetcache`
 * Boolean
 * Default: no
