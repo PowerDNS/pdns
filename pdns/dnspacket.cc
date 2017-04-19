@@ -587,7 +587,7 @@ try
   // if(!qdomain.empty()) // strip dot
   //   boost::erase_tail(qdomain, 1);
 
-  if(!ntohs(d.qdcount)) {
+  if(!ntohs(d.qdcount) && isHandledOpcode(d.opcode)) {
     if(!d_tcp) {
       L << Logger::Warning << "No question section in packet from " << getRemote() <<", error="<<RCode::to_s(d.rcode)<<endl;
       return -1;
