@@ -123,8 +123,9 @@ Provides: powerdns-recursor = %{version}-%{release}
 BuildRequires: boost148-devel
 BuildRequires: lua-devel
 BuildRequires: libsodium-devel
-#BuildRequires: protobuf-devel
-#BuildRequires: protobuf-compiler
+BuildRequires: net-snmp-devel
+BuildRequires: protobuf-devel
+BuildRequires: protobuf-compiler
 
 Requires(pre): shadow-utils
 Requires(post): /sbin/chkconfig
@@ -148,6 +149,7 @@ package if you need a dns cache for your network.
 	--with-protobuf \
 	--enable-unit-tests \
 	--enable-libsodium \
+	--with-net-snmp \
 	--with-boost=/usr/include/boost148 LIBRARY_PATH=/usr/lib64/boost148
 
 make %{?_smp_mflags} LIBRARY_PATH=/usr/lib64/boost148
@@ -213,10 +215,11 @@ Source0: ../%{name}-${TARBALLVERSION}.tar.bz2
 
 Provides: powerdns-recursor = %{version}-%{release}
 BuildRequires: boost-devel
-BuildRequires: lua-devel
+BuildRequires: luajit-devel
 BuildRequires: systemd-units
 BuildRequires: systemd-devel
 BuildRequires: libsodium-devel
+BuildRequires: net-snmp-devel
 BuildRequires: hostname
 BuildRequires: protobuf-devel
 BuildRequires: protobuf-compiler
@@ -244,6 +247,8 @@ package if you need a dns cache for your network.
 	--enable-unit-tests \
 	--with-protobuf \
 	--enable-libsodium \
+	--with-net-snmp \
+	--with-luajit \
 	--enable-systemd
 
 make %{?_smp_mflags}

@@ -49,8 +49,9 @@ override_dh_auto_configure:
 		--infodir=\$${prefix}/share/info \
 		--libdir='$${prefix}/lib/$(DEB_HOST_MULTIARCH)' \
 		--libexecdir='$${prefix}/lib' \
-		--with-lua \
+		--with-luajit \
 		--with-protobuf=yes \
+		--with-net-snmp \
 		$(ENABLE_SYSTEMD) \
 		$(ENABLE_LIBSODIUM)
 

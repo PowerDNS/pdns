@@ -544,7 +544,7 @@ Requires(postun): systemd-units
 BuildRequires: systemd-units
 BuildRequires: systemd-devel
 BuildRequires: boost-devel
-BuildRequires: lua-devel
+BuildRequires: luajit-devel
 BuildRequires: libsodium-devel
 BuildRequires: bison
 BuildRequires: openssl-devel
@@ -687,7 +687,7 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
 	--disable-dependency-tracking \
 	--disable-silent-rules \
 	--with-modules='' \
-	--with-lua \
+	--with-luajit \
 	--with-dynmodules='%{backends} random' \
 	--enable-tools \
 	--enable-libsodium \
