@@ -354,8 +354,8 @@ bool LdapBackend::get( DNSResourceRecord &rr )
       return false;
   }
 
-  DNSResult result = m_results_cache.front();
-  m_results_cache.pop_front();
+  DNSResult result = m_results_cache.back();
+  m_results_cache.pop_back();
   rr.qtype = result.qtype;
   rr.qname = result.qname;
   rr.ttl = result.ttl;
