@@ -1235,7 +1235,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         ne.d_auth = rec.d_name;
         harvestNXRecords(lwr.d_records, ne);
         t_sstorage->negcache.add(ne);
-        if(s_rootNXTrust && ne.d_auth.isRoot()) { // We should check if it was forwarded here, see issue #5107
+        if(s_rootNXTrust && ne.d_auth.isRoot() && auth.isRoot()) {
           ne.d_name = ne.d_name.getLastLabel();
           t_sstorage->negcache.add(ne);
         }
