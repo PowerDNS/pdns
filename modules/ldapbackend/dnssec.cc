@@ -918,7 +918,7 @@ bool LdapBackend::getBeforeAndAfterNamesAbsolute( uint32_t domain_id, const DNSN
     if ( mustDo( "lookup-zone-rebase" ) )
       basedn = result["dn"][0];
 
-    std::string qnameMatch = qname.empty() ? " " : qname.toStringNoDot();
+    std::string qnameMatch = ( qname.empty() || qname.isRoot() ) ? " " : qname.labelReverse().toString( " ", false );
     std::string foundBeforeOrdername, foundBeforeDomain, foundAfter;
     std::string domainBase = result["associatedDomain"][0];
     const char* orderAttributes[] = { "associatedDomain", "PdnsRecordOrdername", NULL };
@@ -1075,12 +1075,12 @@ bool LdapBackend::getBeforeAndAfterNamesAbsolute( uint32_t domain_id, const DNSN
     if ( foundBeforeOrdername.empty() )
       throw PDNSException( "Failed to find the name before '" + qname.toStringNoDot() + "'" );
 
-    after = DNSName( foundAfter );
+    after = DNSName( boost::replace_all_copy( foundAfter, " ", "." ) ).labelReverse();
 
     // What follows is how the GSQL backend works. I just took the algorithm as-is, but no comments exist,
     // so I have no idea what I'm doing exactly right now.
     if ( before.empty() ) {
-      before = DNSName( foundBeforeOrdername );
+      before = DNSName( boost::replace_all_copy( foundBeforeOrdername, " ", "." ) ).labelReverse();
       unhashed = DNSName( foundBeforeDomain );
     }
     else {
@@ -1126,7 +1126,6 @@ bool LdapBackend::updateDNSSECOrderNameAndAuth( uint32_t domain_id, const DNSNam
 
   try {
     // Get the zone first
-    DNSName zonename;
     std::string filter = "PdnsDomainId=" + std::to_string( domain_id );
     const char* zoneAttributes[] = { "associatedDomain", NULL };
     PowerLDAP::sentry_t result;
@@ -1136,7 +1135,6 @@ bool LdapBackend::updateDNSSECOrderNameAndAuth( uint32_t domain_id, const DNSNam
       L<<Logger::Debug<< m_myname << " Can't find the zone for domain ID " << domain_id << std::endl;
       return false;
     }
-    zonename = DNSName( result["associatedDomain"][0] );
     delete( search );
 
     std::string basedn = getArg( "basedn" );
@@ -1180,7 +1178,7 @@ bool LdapBackend::updateDNSSECOrderNameAndAuth( uint32_t domain_id, const DNSNam
     std::string entryOrdername;
     std::string convertedOrdername;
     if ( !ordername.empty() )
-      convertedOrdername = ordername.makeRelative( zonename ).labelReverse().toString( " ", false );
+      convertedOrdername = ordername.labelReverse().toString( " ", false );
     if ( convertedOrdername.empty() )
       convertedOrdername = " ";
     std::string qtypeName = QType( qtype ).getName();
