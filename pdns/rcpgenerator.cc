@@ -23,6 +23,7 @@
 #include "config.h"
 #endif
 #include "rcpgenerator.hh"
+#include "ascii.hh"
 #include "dnsparser.hh"
 #include "misc.hh"
 #include "utility.hh"
