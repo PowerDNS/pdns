@@ -70,8 +70,8 @@ ns2.example.             3600 IN A    {prefix}.11
         """,
         'example': """
 example.                 3600 IN SOA  {soa}
-example.                 3600 IN NS   ns1.nic.example.
-example.                 3600 IN NS   ns2.nic.example.
+example.                 3600 IN NS   ns1.example.
+example.                 3600 IN NS   ns2.example.
 ns1.example.             3600 IN A    {prefix}.10
 ns2.example.             3600 IN A    {prefix}.11
 
