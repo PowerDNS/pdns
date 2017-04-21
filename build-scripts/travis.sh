@@ -572,6 +572,9 @@ test_auth_ldap() {
 
   run "cd regression-tests"
 
+  #travis unbound is too old for this test (unbound 1.6.0 required)
+  run "touch tests/ent-asterisk/fail.nsec"
+
   run "./timestamp ./start-test-stop 5300 ldap-tree"
   ldap_clean
   run "./timestamp ./start-test-stop 5300 ldap-simple"
@@ -586,6 +589,8 @@ test_auth_ldap() {
   ldap_clean
   run "./timestamp ./start-test-stop 5300 ldap-simple-nsec3-narrow"
   ldap_clean
+
+  run "rm tests/ent-asterisk/fail.nsec"
 }
 
 test_recursor() {

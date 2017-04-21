@@ -89,6 +89,7 @@ __EOF__
 		elif [ $submode = "nsec" ]
 		then
 			extracontexts="dnssec"
+			skipreasons="$skipreasons nsec"
 		elif [ $submode = "nsec3" ]
 		then
 			extracontexts="dnssec nsec3"
