@@ -31,8 +31,6 @@ extern StatBag S;
 
 const unsigned int AuthQueryCache::s_mincleaninterval, AuthQueryCache::s_maxcleaninterval;
 
-extern StatBag S;
-
 AuthQueryCache::AuthQueryCache(size_t mapsCount): d_lastclean(time(nullptr))
 {
   d_maps.resize(mapsCount);
@@ -128,13 +126,18 @@ bool AuthQueryCache::getEntryLocked(cmap_t& map, const DNSName &qname, uint16_t 
   auto& idx = boost::multi_index::get<HashTag>(map);
   auto iter = idx.find(tie(qname, qtype, zoneID));
 
-  if (iter == idx.end())
+  if (iter == idx.end()) {
+    (*d_statnummiss)++;
     return false;
+  }
 
-  if (iter->ttd < now)
+  if (iter->ttd < now) {
+    (*d_statnummiss)++;
     return false;
+  }
 
   value = iter->drs;
+  (*d_statnumhit)++;
   return true;
 }
 
