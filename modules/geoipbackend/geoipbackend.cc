@@ -576,6 +576,14 @@ bool GeoIPBackend::queryRegion(string &ret, GeoIPLookup* gl, const string &ip, c
       ret = valueOrEmpty<char*,string>(gir->region);
       return true;
     }
+  } else if (gi.first == GEOIP_CITY_EDITION_REV0 ||
+             gi.first == GEOIP_CITY_EDITION_REV1) {
+    GeoIPRecord *gir = GeoIP_record_by_addr(gi.second.get(), ip.c_str());
+    if (gir) {
+      ret = valueOrEmpty<char*,string>(gir->region);
+      gl->netmask = gir->netmask;
+      return true;
+    }
   }
   return false;
 }
@@ -586,6 +594,14 @@ bool GeoIPBackend::queryRegionV6(string &ret, GeoIPLookup* gl, const string &ip,
     GeoIPRegion *gir = GeoIP_region_by_addr_v6_gl(gi.second.get(), ip.c_str(), gl);
     if (gir) {
       ret = valueOrEmpty<char*,string>(gir->region);
+      return true;
+    }
+  } else if (gi.first == GEOIP_CITY_EDITION_REV0_V6 ||
+             gi.first == GEOIP_CITY_EDITION_REV1_V6) {
+    GeoIPRecord *gir = GeoIP_record_by_addr_v6(gi.second.get(), ip.c_str());
+    if (gir) {
+      ret = valueOrEmpty<char*,string>(gir->region);
+      gl->netmask = gir->netmask;
       return true;
     }
   }
