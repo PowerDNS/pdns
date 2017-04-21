@@ -193,7 +193,7 @@ private:
   map<pair<DNSName,string>,time_t>d_holes;
   pthread_mutex_t d_holelock;
   void suck(const DNSName &domain, const string &remote);
-  void ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, const ComboAddress& laddr, const ComboAddress& remote, boost::scoped_ptr<AuthLua>& pdl,
+  void ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, const ComboAddress& laddr, const ComboAddress& remote, boost::scoped_ptr<AuthLua4>& pdl,
                 ZoneStatus& zs, vector<DNSRecord>* axfr);
 
   void slaveRefresh(PacketHandler *P);

@@ -81,7 +81,7 @@ struct ZoneStatus
 };
 
 
-void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, const ComboAddress& laddr, const ComboAddress& remote, scoped_ptr<AuthLua>& pdl,
+void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, const ComboAddress& laddr, const ComboAddress& remote, scoped_ptr<AuthLua4>& pdl,
                                  ZoneStatus& zs, vector<DNSRecord>* axfr)
 {
   UeberBackend B; // fresh UeberBackend
@@ -234,7 +234,7 @@ static bool processRecordForZS(const DNSName& domain, bool& firstNSEC3, DNSResou
    5) It updates the Empty Non Terminals
 */
 
-static vector<DNSResourceRecord> doAxfr(const ComboAddress& raddr, const DNSName& domain, const TSIGTriplet& tt, const ComboAddress& laddr,  scoped_ptr<AuthLua>& pdl, ZoneStatus& zs)
+static vector<DNSResourceRecord> doAxfr(const ComboAddress& raddr, const DNSName& domain, const TSIGTriplet& tt, const ComboAddress& laddr,  scoped_ptr<AuthLua4>& pdl, ZoneStatus& zs)
 {
   vector<DNSResourceRecord> rrs;
   AXFRRetriever retriever(raddr, domain, tt, (laddr.sin4.sin_family == 0) ? NULL : &laddr, ((size_t) ::arg().asNum("xfr-max-received-mbytes")) * 1024 * 1024);
@@ -325,11 +325,11 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
     }
 
 
-    scoped_ptr<AuthLua> pdl;
+    scoped_ptr<AuthLua4> pdl;
     vector<string> scripts;
     if(B.getDomainMetadata(domain, "LUA-AXFR-SCRIPT", scripts) && !scripts.empty()) {
       try {
-        pdl.reset(new AuthLua(scripts[0]));
+        pdl.reset(new AuthLua4(scripts[0]));
         L<<Logger::Info<<"Loaded Lua script '"<<scripts[0]<<"' to edit the incoming AXFR of '"<<domain<<"'"<<endl;
       }
       catch(std::exception& e) {

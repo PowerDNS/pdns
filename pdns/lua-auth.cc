@@ -46,11 +46,6 @@ string AuthLua::policycmd(const vector<string>&parts) {
   return "no policy script loaded";
 }
 
-bool AuthLua::axfrfilter(const ComboAddress& remote, const DNSName& zone, const DNSResourceRecord& in, vector<DNSResourceRecord>& out)
-{
-  return false;
-}
-
 #else
 
 
@@ -76,77 +71,6 @@ AuthLua::AuthLua(const std::string &fname)
 {
   registerLuaDNSPacket();
   pthread_mutex_init(&d_lock,0);
-}
-
-bool AuthLua::axfrfilter(const ComboAddress& remote, const DNSName& zone, const DNSResourceRecord& in, vector<DNSResourceRecord>& out)
-{
-  lua_getglobal(d_lua,  "axfrfilter");
-  if(!lua_isfunction(d_lua, -1)) {
-    // cerr<<"No such function 'axfrfilter'\n";
-    lua_pop(d_lua, 1);
-    return false;
-  }
-  
-  lua_pushstring(d_lua,  remote.toString().c_str() );
-  lua_pushstring(d_lua,  zone.toString().c_str() ); // FIXME400 expose DNSName to Lua?
-  lua_pushstring(d_lua,  in.qname.toString().c_str() );
-  lua_pushnumber(d_lua,  in.qtype.getCode() );
-  lua_pushnumber(d_lua,  in.ttl );
-  lua_pushstring(d_lua,  in.content.c_str() );
-
-  if(lua_pcall(d_lua,  6, 2, 0)) { // error
-    string error=string("lua error in axfrfilter: ")+lua_tostring(d_lua, -1);
-    lua_pop(d_lua, 1);
-    throw runtime_error(error);
-    return false;
-  }
-  
-  int newres = (int)lua_tonumber(d_lua, 1); // did we handle it?
-  if(newres < 0) {
-    //cerr << "handler did not handle"<<endl;
-    lua_pop(d_lua, 2);
-    return false;
-  }
-
-  /* get the result */
-  DNSResourceRecord rr;
-  rr.ttl = 3600;
-  rr.domain_id = in.domain_id;
-
-  out.clear();
-
-  /*           1       2   3   4   */
-  /* stack:  boolean table key row */
-
-  int tableLen = getLuaTableLength(d_lua, 2);
-  for(int n=1; n < tableLen + 1; ++n) {
-    lua_pushnumber(d_lua, n);
-    lua_gettable(d_lua, 2);
-
-    uint32_t tmpnum=0;
-    if(!getFromTable("qtype", tmpnum)) 
-      rr.qtype=QType::A;
-    else
-      rr.qtype=tmpnum;
-
-    getFromTable("content", rr.content);
-    if(!getFromTable("ttl", rr.ttl))
-      rr.ttl=3600;
-
-    string qname;
-    if(!getFromTable("qname", qname))
-      rr.qname = zone;
-    else
-      rr.qname=DNSName(qname);
-
-    /* removes 'value'; keeps 'key' for next iteration */
-    lua_pop(d_lua, 1); // table
-
-    //    cerr<<"Adding content '"<<rr.content<<"'\n";
-    out.push_back(rr);
-  }
-  lua_pop(d_lua, 2); // c
-  return true;
 }
 
 struct LuaDNSPacket

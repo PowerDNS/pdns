@@ -11,6 +11,7 @@
 
 AuthLua4::AuthLua4(const std::string& fname) { }
 bool AuthLua4::updatePolicy(const DNSName &qname, QType qtype, const DNSName &zonename, DNSPacket *packet) { return false; }
+bool AuthLua4::axfrfilter(const ComboAddress& remote, const DNSName& zone, const DNSResourceRecord& in, vector<DNSResourceRecord>& out) { return false; }
 AuthLua4::~AuthLua4() { }
 
 #else
@@ -203,6 +204,7 @@ AuthLua4::AuthLua4(const std::string& fname) {
       return luaResult;
   });
 
+
 /* update policy */
   d_lw->registerFunction<DNSName(UpdatePolicyQuery::*)()>("getQName", [](UpdatePolicyQuery& upq) { return upq.qname; });
   d_lw->registerFunction<DNSName(UpdatePolicyQuery::*)()>("getZoneName", [](UpdatePolicyQuery& upq) { return upq.zonename; });
@@ -222,7 +224,47 @@ AuthLua4::AuthLua4(const std::string& fname) {
   d_lw->executeCode(ifs);
 
   d_update_policy = d_lw->readVariable<boost::optional<luacall_update_policy_t>>("updatepolicy").get_value_or(0);
+  d_axfr_filter = d_lw->readVariable<boost::optional<luacall_axfr_filter_t>>("axfrfilter").get_value_or(0);
+
 }
+
+bool AuthLua4::axfrfilter(const ComboAddress& remote, const DNSName& zone, const DNSResourceRecord& in, vector<DNSResourceRecord>& out) {
+  luacall_axfr_filter_t::result_type ret;
+  int rcode;
+
+  if (d_axfr_filter == NULL) return false;
+
+  ret = d_axfr_filter(remote, zone, in);
+  rcode = std::get<0>(ret);
+  if (rcode < 0)
+    return false;
+  else if (rcode == 1)
+    out.push_back(in);
+  else
+    throw PDNSException("Cannot understand return code "+std::to_string(rcode)+" in axfr filter response");
+
+  const auto& rows = std::get<1>(ret);
+
+  for(const auto& row: rows) {
+    DNSResourceRecord rec;
+    for(const auto& col: row.second) {
+      if (col.first == "qtype")
+        rec.qtype = QType(boost::get<unsigned int>(col.second));
+      else if (col.first == "qname")
+        rec.qname = DNSName(boost::get<std::string>(col.second));
+      else if (col.first == "ttl")
+        rec.ttl = boost::get<unsigned int>(col.second);
+      else if (col.first == "content")
+        rec.setContent(boost::get<std::string>(col.second));
+      else
+        throw PDNSException("Cannot understand "+col.first+" in axfr filter response on row "+std::to_string(row.first));
+    }
+    out.push_back(rec);
+  }
+
+  return true;
+}
+
 
 bool AuthLua4::updatePolicy(const DNSName &qname, QType qtype, const DNSName &zonename, DNSPacket *packet) {
   UpdatePolicyQuery upq;
