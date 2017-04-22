@@ -374,7 +374,6 @@ bool LdapBackend::getDomainInfo( const DNSName& domain, DomainInfo& di )
 {
   string filter;
   SOAData sd;
-  int msgid;
   PowerLDAP::sentry_t result;
   const char* attronly[] = {
     "sOARecord",
