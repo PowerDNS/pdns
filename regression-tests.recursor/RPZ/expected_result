@@ -64,3 +64,7 @@ Rcode: 3 (Non-Existent domain), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
 Reply to question for qname='not-rpz.example.net.', qtype=A
 Rcode: 3 (Non-Existent domain), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
 0	not-rpz.example.net.	IN	CNAME	5	rpz-not.com.
+==> echo-me.wildcard-target.example.net is an RPZ wildcard target
+Reply to question for qname='echo-me.wildcard-target.example.net.', qtype=A
+Rcode: 3 (Non-Existent domain), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+0	echo-me.wildcard-target.example.net.	IN	CNAME	7200	echo-me.wildcard-target.example.net.walled-garden.example.net.
