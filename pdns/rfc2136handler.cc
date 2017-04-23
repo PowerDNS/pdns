@@ -11,6 +11,7 @@
 #include "base32.hh"
 
 #include "misc.hh"
+#include "communicator.hh"
 #include "arguments.hh"
 #include "resolver.hh"
 #include "dns_random.hh"
@@ -707,6 +708,7 @@ int PacketHandler::forwardPacket(const string &msgPrefix, DNSPacket *p, DomainIn
 }
 
 int PacketHandler::processUpdate(DNSPacket *p) {
+  extern CommunicatorClass Communicator;
   if (! ::arg().mustDo("dnsupdate"))
     return RCode::Refused;
 
@@ -969,6 +971,8 @@ int PacketHandler::processUpdate(DNSPacket *p) {
       purgeAuthCaches(zone);
 
       L<<Logger::Info<<msgPrefix<<"Update completed, "<<changedRecords<<" changed records committed."<<endl;
+      if(::arg().mustDo("master") || ::arg().mustDo("slave-renotify"))
+        Communicator.notifyDomain(di.zone);
     } else {
       //No change, no commit, we perform abort() because some backends might like this more.
       L<<Logger::Info<<msgPrefix<<"Update completed, 0 changes, rolling back."<<endl;
