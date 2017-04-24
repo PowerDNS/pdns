@@ -2832,10 +2832,14 @@ static int serviceMain(int argc, char*argv[])
   g_maxMThreads = ::arg().asNum("max-mthreads");
 
 <<<<<<< HEAD
+<<<<<<< HEAD
   g_gettagNeedsEDNSOptions = ::arg().mustDo("gettag-needs-edns-options");
 =======
   g_statisticsInterval = ::arg().asNum("statistics-interval");
 >>>>>>> Extract statistics-interval out
+=======
+  g_statisticsInterval = ::arg().asNum("statistics-interval");
+>>>>>>> 92f8c718238d3d6b007b00a70e3ec286fb395761
 
 #ifdef SO_REUSEPORT
   g_reusePort = ::arg().mustDo("reuseport");
