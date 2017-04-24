@@ -1,0 +1,5 @@
+#!/bin/sh
+cleandig city.geo.example.com A ednssubnet 127.0.0.1
+cleandig city.geo.example.com A ednssubnet 127.0.0.2
+cleandig city.geo.example.com A ednssubnet 127.0.0.3
+
