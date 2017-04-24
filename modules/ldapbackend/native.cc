@@ -29,7 +29,6 @@ bool LdapBackend::list( const DNSName& target, int domain_id, bool include_disab
 {
   try
   {
-    delete( m_search );
     m_in_list = true;
     m_current_domainid = domain_id;
     m_qname = target;
@@ -76,10 +75,9 @@ inline bool LdapBackend::list_simple( const DNSName& target, int domain_id )
 
   // search for SOARecord of target
   filter = strbind( ":target:", "&(associatedDomain=" + qesc + ")(sOARecord=*)", getArg( "filter-axfr" ) );
-  PowerLDAP::SearchResult* search = m_pldap->search( dn, LDAP_SCOPE_SUBTREE, filter, (const char**) ldap_attrany );
+  PowerLDAP::SearchResult::Ptr search = m_pldap->search( dn, LDAP_SCOPE_SUBTREE, filter, (const char**) ldap_attrany );
   if ( !search->getNext( m_result, true ) )
     return false;
-  delete( search );
 
   if( m_result.count( "dn" ) && !m_result["dn"].empty() )
   {
@@ -123,7 +121,6 @@ void LdapBackend::lookup( const QType &qtype, const DNSName &qname, DNSPacket *d
 {
   try
   {
-    delete( m_search );
     m_in_list = false;
     m_qname = qname;
     m_current_domainid = zoneid;
@@ -171,11 +168,10 @@ void LdapBackend::lookup_simple( const QType &qtype, const DNSName &qname, DNSPa
     std::string zoneFilter = "PdnsDomainId=" + std::to_string( zoneid );
     const char* zoneAttributes[] = { "objectClass", NULL };
     PowerLDAP::sentry_t result;
-    PowerLDAP::SearchResult* search = m_pldap->search( basedn, LDAP_SCOPE_SUBTREE, zoneFilter, zoneAttributes );
+    PowerLDAP::SearchResult::Ptr search = m_pldap->search( basedn, LDAP_SCOPE_SUBTREE, zoneFilter, zoneAttributes );
     if ( !search->getNext( result, true ) ) {
       throw PDNSException( "No zone with ID "+std::to_string(zoneid)+" found" );
     }
-    delete( search );
     basedn = result["dn"][0];
     L<<Logger::Debug<< m_myname << " Searching for RR under " << basedn << std::endl;
   }

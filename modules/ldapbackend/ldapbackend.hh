@@ -113,7 +113,7 @@ class LdapBackend : public DNSBackend
     std::string m_metadata_searchdn;
 
     bool m_getdn;
-    PowerLDAP::SearchResult* m_search;
+    PowerLDAP::SearchResult::Ptr m_search;
     PowerLDAP::sentry_t m_result;
     bool m_in_list;         // true if the previous call was list(), false if it was get()
     int m_current_domainid; // the domain ID for the domain currently being processed (passed to list() or get())

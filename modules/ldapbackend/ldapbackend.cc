@@ -39,7 +39,6 @@ LdapBackend::LdapBackend( const string &suffix )
 
   try
   {
-    m_search = NULL;
     m_qname.clear();
     m_pldap = NULL;
     m_authenticator = NULL;
@@ -122,7 +121,9 @@ LdapBackend::LdapBackend( const string &suffix )
 
 LdapBackend::~LdapBackend()
 {
-  delete( m_search );
+  m_search.reset(); // This is necessary otherwise m_pldap will get deleted first and
+                    // we may hang in SearchResult::~SearchResult() waiting for the
+                    // current operation to be abandoned
   delete( m_pldap );
   delete( m_authenticator );
   L << Logger::Notice << m_myname << " Ldap connection closed" << endl;

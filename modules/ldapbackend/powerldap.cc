@@ -432,7 +432,7 @@ void PowerLDAP::del( const string& dn )
 }
 
 
-PowerLDAP::SearchResult* PowerLDAP::search( const string& base, int scope, const string& filter, const char** attr )
+PowerLDAP::SearchResult::Ptr PowerLDAP::search( const string& base, int scope, const string& filter, const char** attr )
 {
   int msgid, rc;
 
@@ -442,16 +442,16 @@ PowerLDAP::SearchResult* PowerLDAP::search( const string& base, int scope, const
   else if ( rc != LDAP_SUCCESS )
     throw LDAPException( "Starting LDAP search: " + getError( rc ) );
 
-  return new SearchResult( msgid, d_ld );
+  return SearchResult::Ptr( new SearchResult( msgid, d_ld ) );
 }
 
 
-PowerLDAP::SearchResult* PowerLDAP::sorted_search( const string& base, int scope, const string& filter, const string& sort, const char** attr, unsigned int limit )
+PowerLDAP::SearchResult::Ptr PowerLDAP::sorted_search( const string& base, int scope, const string& filter, const string& sort, const char** attr, unsigned int limit )
 {
   int msgid, rc, sort_rc;
 
   if ( !m_sort_supported )
-    return NULL;
+    return SearchResult::Ptr();
 
   LDAPControl* sortcontrol;
   LDAPSortKey** sortkey;
@@ -487,7 +487,7 @@ PowerLDAP::SearchResult* PowerLDAP::sorted_search( const string& base, int scope
   if ( vlvcontrol != NULL )
     ldap_control_free( vlvcontrol );
 
-  return new SearchResult( msgid, d_ld );
+  return SearchResult::Ptr( new SearchResult( msgid, d_ld ) );
 }
 
 

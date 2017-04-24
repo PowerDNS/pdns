@@ -28,7 +28,7 @@
 void LdapBackend::getUpdatedMasters( vector<DomainInfo>* domains )
 {
   string filter;
-  PowerLDAP::SearchResult *search;
+  PowerLDAP::SearchResult::Ptr search;
   PowerLDAP::sentry_t result;
   const char* attronly[] = {
     "associatedDomain",
@@ -77,15 +77,13 @@ void LdapBackend::getUpdatedMasters( vector<DomainInfo>* domains )
     if( di.notified_serial < di.serial )
       domains->push_back( di );
   }
-
-  delete( search );
 }
 
 
 void LdapBackend::setNotified( uint32_t id, uint32_t serial )
 {
   string filter;
-  PowerLDAP::SearchResult* search;
+  PowerLDAP::SearchResult::Ptr search;
   PowerLDAP::sresult_t results;
   PowerLDAP::sentry_t entry;
   const char* attronly[] = { "associatedDomain", NULL };
@@ -96,7 +94,6 @@ void LdapBackend::setNotified( uint32_t id, uint32_t serial )
     filter = strbind( ":target:", "PdnsDomainId=" + std::to_string( id ), getArg( "filter-axfr" ) );
     search = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attronly );
     search->getAll( results, true );
-    delete( search );
   }
   catch( LDAPTimeout &lt )
   {

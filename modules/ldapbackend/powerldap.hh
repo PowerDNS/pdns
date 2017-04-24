@@ -22,6 +22,7 @@
  */
 #include <list>
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 #include <stdexcept>
@@ -71,6 +72,8 @@ class PowerLDAP
         SearchResult& operator=( const SearchResult& other );
 
       public:
+	typedef std::unique_ptr<SearchResult> Ptr;
+
         SearchResult( int msgid, LDAP* ld );
         ~SearchResult();
 
@@ -95,8 +98,8 @@ class PowerLDAP
     void bind( LdapAuthenticator *authenticator );
     void bind( const string& ldapbinddn = "", const string& ldapsecret = "", int method = LDAP_AUTH_SIMPLE, int timeout = 5 );
     void simpleBind( const string& ldapbinddn = "", const string& ldapsecret = "" );
-    SearchResult* search( const string& base, int scope, const string& filter, const char** attr = 0 );
-    SearchResult* sorted_search( const string& base, int scope, const string& filter, const string& sort, const char** attr = 0, unsigned int limit = 0 );
+    SearchResult::Ptr search( const string& base, int scope, const string& filter, const char** attr = 0 );
+    SearchResult::Ptr sorted_search( const string& base, int scope, const string& filter, const string& sort, const char** attr = 0, unsigned int limit = 0 );
     void add( const string &dn, LDAPMod *mods[] );
     void modify( const string& dn, LDAPMod *mods[], LDAPControl **scontrols = 0, LDAPControl **ccontrols = 0 );
     void del( const string& dn );
