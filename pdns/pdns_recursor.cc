@@ -155,6 +155,7 @@ static bool g_weDistributeQueries; // if true, only 1 thread listens on the inco
 static bool g_reusePort{false};
 static bool g_useOneSocketPerThread;
 static bool g_gettagNeedsEDNSOptions{false};
+static time_t g_statisticsInterval;
 
 std::unordered_set<DNSName> g_delegationOnly;
 RecursorControlChannel s_rcc; // only active in thread 0
@@ -2084,7 +2085,7 @@ static void houseKeeping(void *)
     }
 
     if(!t_id) {
-      if(now.tv_sec - last_stat >= 1800) {
+      if(g_statisticsInterval > 0 && now.tv_sec - last_stat >= g_statisticsInterval) {
 	doStats();
 	last_stat=time(0);
       }
@@ -2832,6 +2833,8 @@ static int serviceMain(int argc, char*argv[])
 
   g_gettagNeedsEDNSOptions = ::arg().mustDo("gettag-needs-edns-options");
 
+  g_statisticsInterval = ::arg().asNum("statistics-interval");
+
 #ifdef SO_REUSEPORT
   g_reusePort = ::arg().mustDo("reuseport");
 #endif
@@ -3157,6 +3160,7 @@ int main(int argc, char **argv)
     ::arg().set("carbon-ourname", "If set, overrides our reported hostname for carbon stats")="";
     ::arg().set("carbon-server", "If set, send metrics in carbon (graphite) format to this server IP address")="";
     ::arg().set("carbon-interval", "Number of seconds between carbon (graphite) updates")="30";
+    ::arg().set("statistics-interval", "Number of seconds between printing of recursor statistics, 0 to disable")="1800";
     ::arg().set("quiet","Suppress logging of questions and answers")="";
     ::arg().set("logging-facility","Facility to log messages as. 0 corresponds to local0")="";
     ::arg().set("config-dir","Location of configuration directory (recursor.conf)")=SYSCONFDIR;
