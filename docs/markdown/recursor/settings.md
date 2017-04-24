@@ -99,6 +99,7 @@ Zones read from these files (in BIND format) are served authoritatively. DNSSEC 
 * Available since: 4.1.0
 
 Interval between logging statistical summary on recursor performance.
+Use 0 to disable.
 
 ## `carbon-interval`
 * Integer
