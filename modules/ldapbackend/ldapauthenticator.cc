@@ -106,6 +106,7 @@ LdapGssapiAuthenticator::LdapGssapiAuthenticator( const std::string& kt, const s
 
 LdapGssapiAuthenticator::~LdapGssapiAuthenticator()
 {
+  krb5_cc_close( m_context, m_ccache );
   krb5_free_context( m_context );
 }
 
@@ -141,27 +142,31 @@ int LdapGssapiAuthenticator::attemptAuth( LDAP *conn )
   SaslDefaults defaults;
   char *ldapOption = 0;
 
-  ldap_get_option( conn, LDAP_OPT_X_SASL_MECH, ldapOption );
-  if ( !ldapOption )
+  int optret = ldap_get_option( conn, LDAP_OPT_X_SASL_MECH, &ldapOption );
+  if ( ( optret != LDAP_OPT_SUCCESS ) || !ldapOption )
     defaults.mech = std::string( "GSSAPI" );
   else
     defaults.mech = std::string( ldapOption );
   ldap_memfree( ldapOption );
+  ldapOption = 0;
 
-  ldap_get_option( conn, LDAP_OPT_X_SASL_REALM, ldapOption );
-  if ( ldapOption )
+  optret = ldap_get_option( conn, LDAP_OPT_X_SASL_REALM, &ldapOption );
+  if ( ( optret == LDAP_OPT_SUCCESS ) && ldapOption )
     defaults.realm = std::string( ldapOption );
   ldap_memfree( ldapOption );
+  ldapOption = 0;
 
-  ldap_get_option( conn, LDAP_OPT_X_SASL_AUTHCID, ldapOption );
-  if ( ldapOption )
+  optret = ldap_get_option( conn, LDAP_OPT_X_SASL_AUTHCID, &ldapOption );
+  if ( ( optret == LDAP_OPT_SUCCESS ) && ldapOption )
     defaults.authcid = std::string( ldapOption );
   ldap_memfree( ldapOption );
+  ldapOption = 0;
 
-  ldap_get_option( conn, LDAP_OPT_X_SASL_AUTHZID, ldapOption );
-  if ( ldapOption )
+  optret = ldap_get_option( conn, LDAP_OPT_X_SASL_AUTHZID, &ldapOption );
+  if ( ( optret == LDAP_OPT_SUCCESS ) && ldapOption )
     defaults.authzid = std::string( ldapOption );
   ldap_memfree( ldapOption );
+  ldapOption = 0;
 
   // And now try to bind
   int rc = ldap_sasl_interactive_bind_s( conn, "", defaults.mech.c_str(),
@@ -197,7 +202,7 @@ int LdapGssapiAuthenticator::updateTgt()
   else {
     code = krb5_kt_default( m_context, &keytab );
   }
-  
+
   if ( code != 0 ) {
     L<<Logger::Error << m_logPrefix << "krb5 error when locating the keytab file: " << std::string( krb5_get_error_message( m_context, code ) ) << std::endl;
     return code;
@@ -212,18 +217,21 @@ int LdapGssapiAuthenticator::updateTgt()
   }
 
   krb5_keytab_entry entry;
-  if ( ( code = krb5_kt_next_entry( m_context, keytab, &entry, &cursor ) ) == 0 ) {
-    code = krb5_copy_principal( m_context, entry.principal, &principal );
-    krb5_kt_free_entry( m_context, &entry );
-  }
-
-  krb5_kt_end_seq_get( m_context, keytab, &cursor );
-  if ( code != 0 ) {
-    L<<Logger::Error << m_logPrefix << "krb5 error when extracting principal information: " << std::string( krb5_get_error_message( m_context, code ) ) << std::endl;
+  if ( ( code = krb5_kt_next_entry( m_context, keytab, &entry, &cursor ) ) != 0 ) {
+    L<<Logger::Error << m_logPrefix << "krb5 error when retrieving first keytab entry: " << std::string( krb5_get_error_message( m_context, code ) ) << std::endl;
     krb5_kt_close( m_context, keytab );
-    krb5_free_principal( m_context, principal );
     return code;
   }
+
+  if ( ( code = krb5_copy_principal( m_context, entry.principal, &principal ) ) != 0 ) {
+    L<<Logger::Error << m_logPrefix << "krb5 error when extracting principal information: " << std::string( krb5_get_error_message( m_context, code ) ) << std::endl;
+    krb5_kt_close( m_context, keytab );
+    krb5_kt_free_entry( m_context, &entry );
+    return code;
+  }
+
+  krb5_kt_free_entry( m_context, &entry );
+  krb5_kt_end_seq_get( m_context, keytab, &cursor );
 
   if ( ( code = krb5_get_init_creds_opt_alloc( m_context, &options ) ) != 0 ) {
     L<<Logger::Error << m_logPrefix << "krb5 error when allocating credentials cache structure: " << std::string( krb5_get_error_message( m_context, code ) ) << std::endl;
@@ -245,6 +253,7 @@ int LdapGssapiAuthenticator::updateTgt()
 
   krb5_get_init_creds_opt_free( m_context, options );
   krb5_kt_close( m_context, keytab );
+  krb5_free_principal( m_context, principal );
 
   // Use a temporary cache to get the initial credentials. This will be moved to the user-configured one later.
   krb5_ccache tmp_ccache = NULL;
@@ -282,7 +291,6 @@ int LdapGssapiAuthenticator::updateTgt()
     return code;
   }
 
-  krb5_cc_close( m_context, tmp_ccache );
   krb5_free_cred_contents( m_context, &credentials );
   krb5_free_principal( m_context, principal );
 
