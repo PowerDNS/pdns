@@ -302,13 +302,41 @@ GeoIPBackend::~GeoIPBackend() {
   }
 }
 
+bool GeoIPBackend::lookup_static(const GeoIPDomain &dom, const DNSName &search, const QType &qtype, const DNSName& qdomain, const std::string &ip, GeoIPLookup &gl, bool v6) {
+  const auto i = dom.records.find(search);
+  int cumul_probability = 0;
+  int probability_rnd = 1+(random() % 1000); // setting probability=0 means it never is used
+
+  if (i != dom.records.end()) { // return static value
+    for(const auto& rr : i->second) {
+      if (rr.has_weight) {
+        gl.netmask = (v6?128:32);
+        int comp = cumul_probability;
+        cumul_probability += rr.weight;
+        if (rr.weight == 0 || probability_rnd < comp || probability_rnd > (comp + rr.weight))
+          continue;
+      }
+      if (qtype == QType::ANY || rr.qtype == qtype) {
+        d_result.push_back(rr);
+        d_result.back().content = format2str(rr.content, ip, v6, &gl);
+        d_result.back().qname = qdomain;
+      }
+    }
+    // ensure we get most strict netmask
+    for(DNSResourceRecord& rr: d_result) {
+      rr.scopeMask = gl.netmask;
+    }
+    return true; // no need to go further
+  }
+
+  return false;
+};
+
 void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket *pkt_p, int zoneId) {
   ReadLock rl(&s_state_lock);
   GeoIPDomain dom;
   GeoIPLookup gl;
   bool found = false;
-  int probability_rnd = 1+(random() % 1000); // setting probability=0 means it never is used
-  int cumul_probability = 0;
 
   if (d_result.size()>0) 
     throw PDNSException("Cannot perform lookup while another is running");
@@ -339,28 +367,8 @@ void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket 
 
   gl.netmask = 0;
 
-  auto i = dom.records.find(search);
-  if (i != dom.records.end()) { // return static value
-    for(const auto& rr : i->second) {
-      if (rr.has_weight) {
-        gl.netmask = (v6?128:32);
-        int comp = cumul_probability;
-        cumul_probability += rr.weight;
-        if (rr.weight == 0 || probability_rnd < comp || probability_rnd > (comp + rr.weight))
-          continue;
-      }
-      if (qtype == QType::ANY || rr.qtype == qtype) {
-	d_result.push_back(rr);
-        d_result.back().content = format2str(rr.content, ip, v6, &gl);
-	d_result.back().qname = qdomain;
-      }
-    }
-    // ensure we get most strict netmask
-    for(DNSResourceRecord& rr: d_result) { 
-      rr.scopeMask = gl.netmask;
-    }
-    return; // no need to go further
-  }
+  if (this->lookup_static(dom, search, qtype, qdomain, ip, gl, v6))
+    return;
 
   auto target = dom.services.find(search);
   if (target == dom.services.end()) return; // no hit
@@ -368,29 +376,16 @@ void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket 
   const NetmaskTree<vector<string> >::node_type* node = target->second.lookup(ComboAddress(ip));
   if (node == NULL) return; // no hit, again.
 
-  string format;
+  DNSName format;
   gl.netmask = node->first.getBits();
 
   // note that this means the array format won't work with indirect
   for(auto it = node->second.begin(); it != node->second.end(); it++) {
-    format = format2str(*it, ip, v6, &gl);
+    format = DNSName(format2str(*it, ip, v6, &gl));
 
     // see if the record can be found
-    auto ri = dom.records.find(DNSName(format));
-    if (ri != dom.records.end()) { // return static value
-      for(const auto& rr: ri->second) {
-        if (qtype == QType::ANY || rr.qtype == qtype) {
-          d_result.push_back(rr);
-          d_result.back().content = format2str(rr.content, ip, v6, &gl);
-          d_result.back().qname = qdomain;
-        }
-      }
-      // ensure we get most strict netmask
-      for(DNSResourceRecord& rr: d_result) {
-        rr.scopeMask = gl.netmask;
-      }
-      return; // no need to go further
-    }
+    if (this->lookup_static(dom, format, qtype, qdomain, ip, gl, v6))
+      return;
   }
 
   // we need this line since we otherwise claim to have NS records etc
@@ -400,7 +395,7 @@ void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket 
   rr.domain_id = dom.id;
   rr.qtype = QType::CNAME;
   rr.qname = qdomain;
-  rr.content = format;
+  rr.content = format.toString();
   rr.auth = 1;
   rr.ttl = dom.ttl;
   rr.scopeMask = gl.netmask;

@@ -98,7 +98,7 @@ private:
   string format2str(string format, const string& ip, bool v6, GeoIPLookup* gl);
   bool d_dnssec; 
   bool hasDNSSECkey(const DNSName& name);
-
+  bool lookup_static(const GeoIPDomain &dom, const DNSName &search, const QType &qtype, const DNSName& qdomain, const std::string &ip, GeoIPLookup &gl, bool v6);
   vector<DNSResourceRecord> d_result;
 };
 
