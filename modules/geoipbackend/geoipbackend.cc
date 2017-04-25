@@ -464,6 +464,54 @@ bool GeoIPBackend::queryCountryV6(string &ret, GeoIPLookup* gl, const string &ip
   return false;
 }
 
+bool GeoIPBackend::queryCountry2(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi) {
+  if (gi.first == GEOIP_COUNTRY_EDITION ||
+      gi.first == GEOIP_LARGE_COUNTRY_EDITION) {
+    ret = GeoIP_code_by_id(GeoIP_id_by_addr_gl(gi.second.get(), ip.c_str(), gl));
+    return true;
+  } else if (gi.first == GEOIP_REGION_EDITION_REV0 ||
+             gi.first == GEOIP_REGION_EDITION_REV1) {
+    GeoIPRegion* gir = GeoIP_region_by_addr_gl(gi.second.get(), ip.c_str(), gl);
+    if (gir) {
+      ret = GeoIP_code_by_id(GeoIP_id_by_code(gir->country_code));
+      return true;
+    }
+  } else if (gi.first == GEOIP_CITY_EDITION_REV0 ||
+             gi.first == GEOIP_CITY_EDITION_REV1) {
+    GeoIPRecord *gir = GeoIP_record_by_addr(gi.second.get(), ip.c_str());
+    if (gir) {
+      ret = gir->country_code;
+      gl->netmask = gir->netmask;
+      return true;
+    }
+  }
+  return false;
+}
+
+bool GeoIPBackend::queryCountry2V6(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi) {
+  if (gi.first == GEOIP_COUNTRY_EDITION_V6 ||
+      gi.first == GEOIP_LARGE_COUNTRY_EDITION_V6) {
+    ret = GeoIP_code_by_id(GeoIP_id_by_addr_v6_gl(gi.second.get(), ip.c_str(), gl));
+    return true;
+  } else if (gi.first == GEOIP_REGION_EDITION_REV0 ||
+             gi.first == GEOIP_REGION_EDITION_REV1) {
+    GeoIPRegion* gir = GeoIP_region_by_addr_v6_gl(gi.second.get(), ip.c_str(), gl);
+    if (gir) {
+      ret = GeoIP_code_by_id(GeoIP_id_by_code(gir->country_code));
+      return true;
+    }
+  } else if (gi.first == GEOIP_CITY_EDITION_REV0_V6 ||
+             gi.first == GEOIP_CITY_EDITION_REV1_V6) {
+    GeoIPRecord *gir = GeoIP_record_by_addr_v6(gi.second.get(), ip.c_str());
+    if (gir) {
+      ret = gir->country_code;
+      gl->netmask = gir->netmask;
+      return true;
+    }
+  }
+  return false;
+}
+
 bool GeoIPBackend::queryContinent(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi) {
   if (gi.first == GEOIP_COUNTRY_EDITION ||
       gi.first == GEOIP_LARGE_COUNTRY_EDITION) {
@@ -647,6 +695,10 @@ string GeoIPBackend::queryGeoIP(const string &ip, bool v6, GeoIPQueryAttribute a
       if (v6) found = queryCountryV6(val, gl, ip, gi);
       else found = queryCountry(val, gl, ip, gi);
       break;
+    case Country2:
+      if (v6) found = queryCountry2V6(val, gl, ip, gi);
+      else found = queryCountry2(val, gl, ip, gi);
+      break;
     case City:
       if (v6) found = queryCityV6(val, gl, ip, gi);
       else found = queryCity(val, gl, ip, gi);
@@ -679,6 +731,8 @@ string GeoIPBackend::format2str(string format, const string& ip, bool v6, GeoIPL
       rep = queryGeoIP(ip, v6, Continent, &tmp_gl);
     } else if (!format.compare(cur,3,"%co")) {
       rep = queryGeoIP(ip, v6, Country, &tmp_gl);
+    } else if (!format.compare(cur,3,"%cc")) {
+      rep = queryGeoIP(ip, v6, Country2, &tmp_gl);
     } else if (!format.compare(cur,3,"%af")) {
       rep = (v6?"v6":"v4");
     } else if (!format.compare(cur,3,"%as")) {
