@@ -23,6 +23,7 @@
 #include "config.h"
 #endif
 #include "geoipbackend.hh"
+#include "pdns/dns_random.hh"
 #include <sstream>
 #include <regex.h>
 #include <glob.h>
@@ -305,7 +306,7 @@ GeoIPBackend::~GeoIPBackend() {
 bool GeoIPBackend::lookup_static(const GeoIPDomain &dom, const DNSName &search, const QType &qtype, const DNSName& qdomain, const std::string &ip, GeoIPLookup &gl, bool v6) {
   const auto i = dom.records.find(search);
   int cumul_probability = 0;
-  int probability_rnd = 1+(random() % 1000); // setting probability=0 means it never is used
+  int probability_rnd = 1+(dns_random(1000)); // setting probability=0 means it never is used
 
   if (i != dom.records.end()) { // return static value
     for(const auto& rr : i->second) {
