@@ -17,7 +17,7 @@ the previous line.
 -->
 
 # PowerDNS Authoritative Server 4.0.3
-Released January 17th 2016
+Released January 17th 2017
 
 This release fixes an issue when using multiple backends, where one of the backends is the BIND backend.
 This regression was introduced in 4.0.2.
@@ -27,7 +27,7 @@ This regression was introduced in 4.0.2.
 - [#4905](https://github.com/PowerDNS/pdns/pull/4905): Revert "auth: In `Bind2Backend::lookup()`, use the `zoneId` when we have it"
 
 # PowerDNS Recursor 4.0.4
-Released January 13th 2016
+Released January 13th 2017
 
 The 4.0.4 version of the PowerDNS Recursor fixes PowerDNS Security Advisories [2016-02](security/powerdns-advisory-2016-02.md) and [2016-04](security/powerdns-advisory-2016-04.md).
 
@@ -58,7 +58,7 @@ The 4.0.4 version of the PowerDNS Recursor fixes PowerDNS Security Advisories [2
 - [commit d8baf17](https://github.com/PowerDNS/pdns/commit/d8baf17): Handle CNAMEs at the apex of secure zones to other secure zones
 
 # PowerDNS Authoritative Server 4.0.2
-Released January 13th 2016
+Released January 13th 2017
 
 This release fixes PowerDNS Security Advisories [2016-02](security/powerdns-advisory-2016-02.md), [2016-03](security/powerdns-advisory-2016-03.md), [2016-04](security/powerdns-advisory-2016-04.md) and [2016-05](security/powerdns-advisory-2016-05.md) and includes a fix for a memory leak in the Postgresql backend.
 
