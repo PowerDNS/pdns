@@ -944,9 +944,9 @@ void PKCS11DNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, stormap_t& s
       throw PDNSException("Could not log in to token (PIN wrong?)");
 };
 
-DNSCryptoKeyEngine* PKCS11DNSCryptoKeyEngine::maker(unsigned int algorithm)
+std::shared_ptr<DNSCryptoKeyEngine> PKCS11DNSCryptoKeyEngine::maker(unsigned int algorithm)
 {
-  return new PKCS11DNSCryptoKeyEngine(algorithm);
+  return std::make_shared<PKCS11DNSCryptoKeyEngine>(algorithm);
 }
 
 // this is called during program startup
