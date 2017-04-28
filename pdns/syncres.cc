@@ -828,7 +828,16 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSR
   //  cout<<"Lookup for '"<<qname<<"|"<<qtype.getName()<<"' -> "<<getLastLabel(qname)<<endl;
 
   DNSName authname(qname);
-  bool wasForwardedOrAuth = (getBestAuthZone(&authname) != t_sstorage->domainmap->end());
+  bool wasForwardedOrAuth = false;
+  bool wasAuth = false;
+  domainmap_t::const_iterator iter=getBestAuthZone(&authname);
+  if(iter != t_sstorage->domainmap->end()) {
+    wasForwardedOrAuth = true;
+    const vector<ComboAddress>& servers = iter->second.d_servers;
+    if(servers.empty()) {
+      wasAuth = true;
+    }
+  }
   NegCache::NegCacheEntry ne;
 
   if(s_rootNXTrust &&
@@ -903,6 +912,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSR
     if(found && !expired) {
       if(!giveNegative)
         res=0;
+      d_wasOutOfBand = wasAuth;
       return true;
     }
     else
