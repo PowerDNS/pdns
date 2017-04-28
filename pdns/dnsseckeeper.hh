@@ -55,6 +55,13 @@ public:
     ED448=16
   };
 
+  enum dsdigestalgorithm_t : uint8_t {
+    SHA1=1,
+    SHA256=2,
+    GOST=3,
+    SHA384=4
+  };
+
   struct KeyMetaData
   {
     string fname;

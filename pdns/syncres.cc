@@ -1187,12 +1187,7 @@ bool SyncRes::throttledOrBlocked(const std::string& prefix, const ComboAddress& 
 
 bool SyncRes::validationEnabled() const
 {
-  return !d_skipValidation && g_dnssecmode != DNSSECMode::Off && g_dnssecmode != DNSSECMode::ProcessNoValidate;
-}
-
-bool SyncRes::validationRequested() const
-{
-  return d_validationRequested;
+  return g_dnssecmode != DNSSECMode::Off && g_dnssecmode != DNSSECMode::ProcessNoValidate;
 }
 
 uint32_t SyncRes::computeLowestTTD(const std::vector<DNSRecord>& records, const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures, uint32_t signaturesTTL) const
@@ -1267,19 +1262,35 @@ vState SyncRes::getTA(const DNSName& zone, dsmap_t& ds)
   return Indeterminate;
 }
 
+static size_t countSupportedDS(const dsmap_t& dsmap)
+{
+  size_t count = 0;
+
+  for (const auto& ds : dsmap) {
+    if (isSupportedDS(ds)) {
+      count++;
+    }
+  }
+
+  return count;
+}
+
 vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsigned int depth)
 {
   vState result = getTA(zone, ds);
 
   if (result != Indeterminate || taOnly) {
+    if (result == Secure && countSupportedDS(ds) == 0) {
+      ds.clear();
+      result = Insecure;
+    }
+
     return result;
   }
 
   bool oldSkipCNAME = d_skipCNAMECheck;
-  bool oldValidationRequested = d_validationRequested;
   bool oldRequireAuthData = d_requireAuthData;
   d_skipCNAMECheck = true;
-  d_validationRequested = true;
   d_requireAuthData = false;
 
   std::set<GetBestNSAnswer> beenthere;
@@ -1288,7 +1299,6 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsi
   vState state = Indeterminate;
   int rcode = doResolve(zone, QType(QType::DS), dsrecords, depth, beenthere, state);
   d_skipCNAMECheck = oldSkipCNAME;
-  d_validationRequested = oldValidationRequested;
   d_requireAuthData = oldRequireAuthData;
 
   if (rcode == RCode::NoError) {
@@ -1296,7 +1306,7 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsi
       for (const auto& record : dsrecords) {
         if (record.d_type == QType::DS) {
           const auto dscontent = getRR<DSRecordContent>(record);
-          if (dscontent) {
+          if (dscontent && isSupportedDS(*dscontent)) {
             ds.insert(*dscontent);
           }
         }
@@ -1322,6 +1332,14 @@ vState SyncRes::getValidationStatus(const DNSName& subdomain, unsigned int depth
   dsmap_t ds;
   vState result = getTA(subdomain, ds);
   if (result != Indeterminate) {
+    if (result == NTA) {
+      result = Insecure;
+    }
+    else if (result == Secure && countSupportedDS(ds) == 0) {
+      ds.clear();
+      result = Insecure;
+    }
+
     return result;
   }
 
@@ -1351,6 +1369,9 @@ vState SyncRes::getValidationStatus(const DNSName& subdomain, unsigned int depth
   result = getDSRecords(subdomain, ds, false, depth);
 
   if (result != Secure) {
+    if (result == NTA) {
+      result = Insecure;
+    }
     return result;
   }
 
@@ -1408,6 +1429,9 @@ vState SyncRes::validateDNSKeys(const DNSName& zone, const std::vector<DNSRecord
     if (!signer.empty() && signer.isPartOf(zone)) {
       vState state = getDSRecords(signer, ds, false, depth);
       if (state != Secure) {
+        if (state == NTA) {
+          state = Insecure;
+        }
         return state;
       }
     }
@@ -2243,8 +2267,6 @@ int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback) {
   try {
     res=sr.beginResolve(g_rootdnsname, QType(QType::NS), 1, ret);
     if (g_dnssecmode != DNSSECMode::Off && g_dnssecmode != DNSSECMode::ProcessNoValidate) {
-/*      ResolveContext ctx;
-        auto state = validateRecords(ctx, ret);*/
       auto state = sr.getValidationState();
       if (state == Bogus)
         throw PDNSException("Got Bogus validation result for .|NS");

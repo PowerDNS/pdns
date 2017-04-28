@@ -112,7 +112,6 @@ bool PacketHandler::addCDNSKEY(DNSPacket *p, DNSPacket *r, const SOAData& sd)
 
   DNSZoneRecord rr;
   bool haveOne=false;
-  DNSSECPrivateKey dpk;
 
   DNSSECKeeper::keyset_t entryPoints = d_dk.getEntryPoints(p->qdomain);
   for(const auto& value: entryPoints) {
@@ -149,7 +148,6 @@ bool PacketHandler::addDNSKEY(DNSPacket *p, DNSPacket *r, const SOAData& sd)
 {
   DNSZoneRecord rr;
   bool haveOne=false;
-  DNSSECPrivateKey dpk;
 
   DNSSECKeeper::keyset_t keyset = d_dk.getKeys(p->qdomain);
   for(const auto& value: keyset) {
@@ -201,13 +199,12 @@ bool PacketHandler::addCDS(DNSPacket *p, DNSPacket *r, const SOAData& sd)
   rr.auth=true;
 
   bool haveOne=false;
-  DNSSECPrivateKey dpk;
 
   DNSSECKeeper::keyset_t keyset = d_dk.getEntryPoints(p->qdomain);
 
   for(auto const &value : keyset) {
     for(auto const &digestAlgo : digestAlgos){
-      rr.dr.d_content=std::make_shared<DSRecordContent>(makeDSFromDNSKey(p->qdomain, value.first.getDNSKEY(), std::stoi(digestAlgo)));
+      rr.dr.d_content=std::make_shared<DSRecordContent>(makeDSFromDNSKey(p->qdomain, value.first.getDNSKEY(), pdns_stou(digestAlgo)));
       r->addRecord(rr);
       haveOne=true;
     }

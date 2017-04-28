@@ -152,7 +152,7 @@ static bool checkSignatureWithKey(time_t now, const shared_ptr<RRSIGRecordConten
       LOG("signature by key with tag "<<sig->d_tag<<" was " << (result ? "" : "NOT ")<<"valid"<<endl);
     }
     else {
-      LOG("Signature is expired/not yet valid"<<endl);
+      LOG("Signature is "<<((sig->d_siginception >= now) ? "not yet valid" : "expired")<<endl);
     }
   }
   catch(std::exception& e) {
@@ -277,7 +277,7 @@ void validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& ds
   for(auto const& dsrc : dsmap)
   {
     auto r = getByTag(tkeys, dsrc.d_tag, dsrc.d_algorithm);
-    //cerr<<"looking at DS with tag "<<dsrc.d_tag<<", algo "<<std::to_string(dsrc.d_algorithm)<<", digest "<<std::to_string(dsrc.d_digesttype)<<" for "<<zone<<", got "<<r.size()<<" DNSKEYs for tag"<<endl;
+    // cerr<<"looking at DS with tag "<<dsrc.d_tag<<", algo "<<std::to_string(dsrc.d_algorithm)<<", digest "<<std::to_string(dsrc.d_digesttype)<<" for "<<zone<<", got "<<r.size()<<" DNSKEYs for tag"<<endl;
 
     for(const auto& drc : r)
     {
@@ -519,6 +519,20 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, skeyset_t& keyset)
   return Bogus;
 }
 
+bool isSupportedDS(const DSRecordContent& ds)
+{
+  if (!DNSCryptoKeyEngine::isAlgorithmSupported(ds.d_algorithm)) {
+    LOG("Discarding DS "<<ds.d_tag<<" because we don't support algorithm number "<<std::to_string(ds.d_algorithm)<<endl);
+    return false;
+  }
+
+  if (!DNSCryptoKeyEngine::isDigestSupported(ds.d_digesttype)) {
+    LOG("Discarding DS "<<ds.d_tag<<" because we don't support digest number "<<std::to_string(ds.d_digesttype)<<endl);
+    return false;
+  }
+
+  return true;
+}
 
 
 

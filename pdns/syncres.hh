@@ -637,11 +637,6 @@ public:
     return d_queryValidationState;
   }
 
-  void setValidationRequested()
-  {
-    d_validationRequested = true;
-  }
-
   static thread_local ThreadLocalStorage t_sstorage;
 
   static std::atomic<uint64_t> s_queries;
@@ -737,7 +732,6 @@ private:
   boost::optional<Netmask> getEDNSSubnetMask(const ComboAddress& local, const DNSName&dn, const ComboAddress& rem);
 
   bool validationEnabled() const;
-  bool validationRequested() const;
   uint32_t computeLowestTTD(const std::vector<DNSRecord>& records, const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures, uint32_t signaturesTTL) const;
   void updateValidationState(vState& state, const vState stateUpdate);
   void updateValidationStatusAfterReferral(const DNSName& newauth, vState& state, unsigned int depth);
@@ -774,9 +768,7 @@ private:
   bool d_incomingECSFound{false};
   bool d_requireAuthData{true};
   bool d_skipCNAMECheck{false};
-  bool d_skipValidation{false};
   bool d_updatingRootNS{false};
-  bool d_validationRequested{false};
   bool d_wantsRPZ{true};
   bool d_wasOutOfBand{false};
   bool d_wasVariable{false};
