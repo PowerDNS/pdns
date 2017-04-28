@@ -1485,8 +1485,8 @@ instantiate a server with additional parameters
  * Pool related:
     * `addPoolRule(domain, pool)`: send queries to this domain to that pool
     * `addPoolRule({domain, domain}, pool)`: send queries to these domains to that pool
-    * `addPoolRule(netmask, pool)`: send queries to this netmask to that pool
-    * `addPoolRule({netmask, netmask}, pool)`: send queries to these netmasks to that pool  
+    * `addPoolRule(netmask, pool)`: send queries from this netmask to that pool
+    * `addPoolRule({netmask, netmask}, pool)`: send queries from these netmasks to that pool
     * `addQPSPoolRule(x, limit, pool)`: like `addPoolRule`, but only select at most 'limit' queries/s for this pool, letting the subsequent rules apply otherwise
     * `getPool(poolname)`: return the ServerPool named `poolname`
     * `getPoolServers(pool)`: return servers part of this pool
