@@ -57,6 +57,7 @@
 #include <sys/types.h>
 #include <pwd.h>
 #include <grp.h>
+#include <system_error>
 
 
 bool g_singleThreaded;
@@ -807,15 +808,26 @@ int makeUNsockaddr(const std::string& path, struct sockaddr_un* ret)
 //! read a line of text from a FILE* to a std::string, returns false on 'no data'
 bool stringfgets(FILE* fp, std::string& line)
 {
-  char buffer[1024];
+  char buffer[512];
   line.clear();
-
+  errno = 0;
+  auto pos = ::ftell (fp);
+  size_t read = 0;
   do {
-    if(!fgets(buffer, sizeof(buffer), fp))
-      return !line.empty();
-
-    line.append(buffer);
-  } while(!strchr(buffer, '\n'));
+    if (NULL == ::fgets (buffer, sizeof(buffer), fp)) {
+       if (errno) {
+          throw std::system_error (errno, std::system_category(),
+                                   "stringfgets() failed");
+       } else {
+          return !line.empty();
+       }
+    }
+    pos += read;
+    read = static_cast<size_t>(::ftell (fp) - pos);
+    assert (read > 0);
+    assert (read < sizeof(buffer));
+    line.append (buffer, read);
+  } while (line.back() != '\n');
   return true;
 }
 
