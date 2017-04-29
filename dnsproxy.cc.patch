@@ -1,0 +1,11 @@
+--- pdns/dnsproxy.cc.orig       Thu Oct 30 06:18:22 2014
++++ pdns/dnsproxy.cc    Mon Dec  8 14:55:41 2014
+@@ -169,7 +169,7 @@
+       memcpy(&d,buffer,sizeof(d));
+       {
+         Lock l(&d_lock);
+-#if BYTE_ORDER == BIG_ENDIAN
++#ifdef _LITTLE_ENDIAN
+         // this is needed because spoof ID down below does not respect the native byteorder
+         d.id = ( 256 * (uint16_t)buffer[1] ) + (uint16_t)buffer[0];  
+ #endif
