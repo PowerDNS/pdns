@@ -2356,6 +2356,61 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd) {
   BOOST_CHECK_EQUAL(ret.size(), 1);
 }
 
+BOOST_AUTO_TEST_CASE(test_auth_zone_delegation_oob) {
+  std::unique_ptr<SyncRes> sr;
+  init();
+  initSR(sr, true, false);
+
+  primeHints();
+
+  size_t queriesCount = 0;
+  const DNSName target("test.xx.");
+  const ComboAddress targetAddr("127.0.0.1");
+  const DNSName ns("localhost.");
+  const ComboAddress nsAddr("127.0.0.1");
+  const DNSName authZone("test.xx");
+
+  SyncRes::AuthDomain ad;
+  DNSRecord dr;
+  dr.d_place = DNSResourceRecord::ANSWER;
+  dr.d_name = authZone;
+  dr.d_type = QType::NS;
+  dr.d_ttl = 1800;
+  dr.d_content = std::make_shared<NSRecordContent>("localhost.");
+  ad.d_records.insert(dr);
+
+  dr.d_place = DNSResourceRecord::ANSWER;
+  dr.d_name = authZone;
+  dr.d_type = QType::A;
+  dr.d_ttl = 1800;
+  dr.d_content = std::make_shared<ARecordContent>(nsAddr);
+  ad.d_records.insert(dr);
+
+  (*t_sstorage->domainmap)[authZone] = ad;
+
+  sr->setAsyncCallback([&queriesCount,nsAddr,target,targetAddr](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
+        queriesCount++;
+        return 0;
+      });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, 0);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_CHECK(ret[0].d_type == QType::A);
+  BOOST_CHECK_EQUAL(queriesCount, 0);
+  BOOST_CHECK(sr->wasOutOfBand());
+
+  /* a second time, to check that the OOB flag is set when the query cache is used */
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, 0);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_CHECK(ret[0].d_type == QType::A);
+  BOOST_CHECK_EQUAL(queriesCount, 0);
+  BOOST_CHECK(sr->wasOutOfBand());
+}
+
 /*
 // cerr<<"asyncresolve called to ask "<<ip.toStringWithPort()<<" about "<<domain.toString()<<" / "<<QType(type).getName()<<" over "<<(doTCP ? "TCP" : "UDP")<<" (rd: "<<sendRDQuery<<", EDNS0 level: "<<EDNS0Level<<")"<<endl;
 
