@@ -1392,6 +1392,8 @@ instantiate a server with additional parameters
     * `getOutstanding()`: this *returns* the number of outstanding queries (doesn't print it!)
     * `rmPool(pool)`: remove server from that pool
     * `setQPS(n)`: set the QPS setting to n
+    * `setWeight(n)`: set the weight setting to n
+    * `setOrder(n)`: set the order setting to n
     * `setAuto()`: set this server to automatic availability testing
     * `setDown()`: force this server to be down
     * `setUp()`: force this server to be UP
