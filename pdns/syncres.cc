@@ -1311,11 +1311,12 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsi
           }
         }
       }
+
+      if (ds.empty()) {
+        return Insecure;
+      }
     }
 
-    if (ds.empty()) {
-      return Insecure;
-    }
     return state;
   }
 
@@ -1390,15 +1391,13 @@ void SyncRes::updateValidationStatusAfterReferral(const DNSName& newauth, vState
 
   dsmap_t ds;
   vState newState = getDSRecords(newauth, ds, state == Insecure || state == Bogus, depth);
+
   if (newState == Indeterminate) {
     /* no (N)TA */
     return;
   }
 
-  if (newState == NTA) {
-    updateValidationState(state, Insecure);
-  }
-  else if (state == Secure) {
+  if (newState == Secure) {
     if (ds.empty()) {
       updateValidationState(state, Insecure);
     }
@@ -1428,6 +1427,7 @@ vState SyncRes::validateDNSKeys(const DNSName& zone, const std::vector<DNSRecord
 
     if (!signer.empty() && signer.isPartOf(zone)) {
       vState state = getDSRecords(signer, ds, false, depth);
+
       if (state != Secure) {
         if (state == NTA) {
           state = Insecure;
