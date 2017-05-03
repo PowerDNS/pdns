@@ -273,7 +273,7 @@ bool DNSBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonename, co
   // lcqname=labelReverse(lcqname);
   DNSName dnc;
   string relqname, sbefore, safter;
-  relqname=labelReverse(makeRelative(qname.toStringNoDot(), zonename.toStringNoDot())); // FIXME400
+  relqname=labelReverse(makeRelative(toLower(qname.toStringNoDot()), zonename.toStringNoDot()));
   //sbefore = before.toString();
   //safter = after.toString();
   bool ret = this->getBeforeAndAfterNamesAbsolute(id, relqname, dnc, sbefore, safter);
