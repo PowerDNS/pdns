@@ -640,10 +640,14 @@ public:
     const char *p = d_packet + d_offset;
     moveOffset(4);
 
-    uint32_t tmp;
+    // This is used for TTL. See RFC 1035 section 2.3.4
+    int32_t tmp;
     memcpy(&tmp, (void*) p, sizeof(tmp));
-    tmp = ntohl(tmp);
+    tmp = (int32_t)ntohl(tmp);
     tmp-=decrease;
+    if (tmp < 0) {
+      tmp = 0;
+    }
     tmp = htonl(tmp);
     memcpy(d_packet + d_offset-4, (const char*)&tmp, sizeof(tmp));
   }
