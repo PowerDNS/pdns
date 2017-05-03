@@ -261,7 +261,7 @@ bool GSQLBackend::setMaster(const DNSName &domain, const string &ip)
       reset();
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to set master of domain \""+domain.toString()+"\": "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to set master of domain '"+domain.toLogString()+"': "+e.txtReason());
   }
   return true;
 }
@@ -278,7 +278,7 @@ bool GSQLBackend::setKind(const DNSName &domain, const DomainInfo::DomainKind ki
       reset();
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to set kind of domain \""+domain.toString()+"\": "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to set kind of domain '"+domain.toLogString()+"': "+e.txtReason());
   }
   return true;
 }
@@ -295,7 +295,7 @@ bool GSQLBackend::setAccount(const DNSName &domain, const string &account)
             reset();
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to set account of domain \""+domain.toString()+"\": "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to set account of domain '"+domain.toLogString()+"': "+e.txtReason());
   }
   return true;
 }
@@ -547,7 +547,7 @@ bool GSQLBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& inse
           reset();
       }
       catch (SSqlException &e) {
-        throw PDNSException("GSQLBackend unable to delete empty non-terminal rr "+qname.toString()+" from domain_id "+itoa(domain_id)+": "+e.txtReason());
+        throw PDNSException("GSQLBackend unable to delete empty non-terminal rr '"+qname.toLogString()+"' from domain_id "+itoa(domain_id)+": "+e.txtReason());
         return false;
       }
     }
@@ -566,7 +566,7 @@ bool GSQLBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& inse
         reset();
     }
     catch (SSqlException &e) {
-      throw PDNSException("GSQLBackend unable to insert empty non-terminal rr "+qname.toString()+" in domain_id "+itoa(domain_id)+": "+e.txtReason());
+      throw PDNSException("GSQLBackend unable to insert empty non-terminal rr '"+qname.toLogString()+"' in domain_id "+itoa(domain_id)+": "+e.txtReason());
       return false;
     }
   }
@@ -1092,7 +1092,7 @@ bool GSQLBackend::list(const DNSName &target, int domain_id, bool include_disabl
 
 bool GSQLBackend::listSubZone(const DNSName &zone, int domain_id) {
 
-  string wildzone = "%." + toLower(zone.toStringNoDot());
+  string wildzone = "%." + zone.makeLowerCase().toStringNoDot();
 
   try {
     reconnectIfNeeded();
@@ -1184,7 +1184,7 @@ bool GSQLBackend::createDomain(const DNSName &domain, const string &type, const 
       reset();
   }
   catch(SSqlException &e) {
-    throw PDNSException("Database error trying to insert new domain '"+domain.toString()+"': "+ e.txtReason());
+    throw PDNSException("Database error trying to insert new domain '"+domain.toLogString()+"': "+ e.txtReason());
   }
   return true;
 }
@@ -1218,7 +1218,7 @@ bool GSQLBackend::createSlaveDomain(const string &ip, const DNSName &domain, con
     createDomain(domain, "SLAVE", masters, account);
   }
   catch(SSqlException &e) {
-    throw PDNSException("Database error trying to insert new slave domain '"+domain.toString()+"': "+ e.txtReason());
+    throw PDNSException("Database error trying to insert new slave domain '"+domain.toLogString()+"': "+ e.txtReason());
   }
   return true;
 }
@@ -1255,7 +1255,7 @@ bool GSQLBackend::deleteDomain(const DNSName &domain)
       reset();
   }
   catch(SSqlException &e) {
-    throw PDNSException("Database error trying to delete domain '"+domain.toString()+"': "+ e.txtReason());
+    throw PDNSException("Database error trying to delete domain '"+domain.toLogString()+"': "+ e.txtReason());
   }
   return true;
 }
