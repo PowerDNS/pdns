@@ -1,0 +1,2 @@
+#!/bin/sh
+cleandig Z1234567890.wtest.com A dnssec
