@@ -253,7 +253,6 @@ int LdapGssapiAuthenticator::updateTgt()
 
   krb5_get_init_creds_opt_free( m_context, options );
   krb5_kt_close( m_context, keytab );
-  krb5_free_principal( m_context, principal );
 
   // Use a temporary cache to get the initial credentials. This will be moved to the user-configured one later.
   krb5_ccache tmp_ccache = NULL;
