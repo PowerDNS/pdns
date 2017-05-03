@@ -30,7 +30,7 @@
 extern bool g_dnssecLOG;
 
 // 4033 5
-enum vState { Indeterminate, Bogus, Insecure, Secure, NTA };
+enum vState { Indeterminate, Bogus, Insecure, Secure, NTA, TA };
 extern const char *vStates[];
 
 // NSEC(3) results
@@ -72,3 +72,4 @@ bool haveNegativeTrustAnchor(const map<DNSName,std::string>& negAnchors, const D
 void validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& dsmap, const skeyset_t& tkeys, vector<shared_ptr<DNSRecordContent> >& toSign, const vector<shared_ptr<RRSIGRecordContent> >& sigs, skeyset_t& validkeys);
 dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16_t qtype);
 bool isSupportedDS(const DSRecordContent& ds);
+DNSName getSigner(const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures);

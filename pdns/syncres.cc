@@ -1217,19 +1217,22 @@ void SyncRes::updateValidationState(vState& state, const vState stateUpdate)
 {
   LOG(d_prefix<<"validation state was "<<std::string(vStates[state])<<", state update is "<<std::string(vStates[stateUpdate])<<endl);
 
-  if (state == Indeterminate) {
-    state = stateUpdate;
+  if (stateUpdate == TA) {
+    state = Secure;
   }
   else if (stateUpdate == NTA) {
     state = Insecure;
+  }
+  else if (stateUpdate == Bogus) {
+    state = Bogus;
+  }
+  else if (state == Indeterminate) {
+    state = stateUpdate;
   }
   else if (stateUpdate == Insecure) {
     if (state != Bogus) {
       state = Insecure;
     }
-  }
-  else if (stateUpdate == Bogus) {
-    state = Bogus;
   }
   LOG(d_prefix<<" validation state is now "<<std::string(vStates[state])<<endl);
 }
@@ -1251,7 +1254,7 @@ vState SyncRes::getTA(const DNSName& zone, dsmap_t& ds)
 
   if (getTrustAnchor(luaLocal->dsAnchors, zone, ds)) {
     LOG("Got TA for "<<zone<<endl);
-    return Secure;
+    return TA;
   }
 
   if (zone.isRoot()) {
@@ -1280,7 +1283,7 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsi
   vState result = getTA(zone, ds);
 
   if (result != Indeterminate || taOnly) {
-    if (result == Secure && countSupportedDS(ds) == 0) {
+    if ((result == Secure || result == TA) && countSupportedDS(ds) == 0) {
       ds.clear();
       result = Insecure;
     }
@@ -1333,10 +1336,14 @@ vState SyncRes::getValidationStatus(const DNSName& subdomain, unsigned int depth
   dsmap_t ds;
   vState result = getTA(subdomain, ds);
   if (result != Indeterminate) {
-    if (result == NTA) {
+    if (result == TA) {
+      result = Secure;
+    }
+    else if (result == NTA) {
       result = Insecure;
     }
-    else if (result == Secure && countSupportedDS(ds) == 0) {
+
+    if (result == Secure && countSupportedDS(ds) == 0) {
       ds.clear();
       result = Insecure;
     }
@@ -1369,7 +1376,10 @@ vState SyncRes::getValidationStatus(const DNSName& subdomain, unsigned int depth
   /* get subdomain DS */
   result = getDSRecords(subdomain, ds, false, depth);
 
-  if (result != Secure) {
+  if (result == TA) {
+    result = Secure;
+  }
+  else if (result != Secure) {
     if (result == NTA) {
       result = Insecure;
     }
@@ -1410,15 +1420,6 @@ void SyncRes::updateValidationStatusAfterReferral(const DNSName& newauth, vState
   }
 }
 
-static DNSName getSigner(const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures)
-{
-  for (const auto sig : signatures) {
-    return sig->d_signer;
-  }
-
-  return DNSName();
-}
-
 vState SyncRes::validateDNSKeys(const DNSName& zone, const std::vector<DNSRecord>& dnskeys, const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures, unsigned int depth)
 {
   dsmap_t ds;
@@ -1428,6 +1429,9 @@ vState SyncRes::validateDNSKeys(const DNSName& zone, const std::vector<DNSRecord
     if (!signer.empty() && signer.isPartOf(zone)) {
       vState state = getDSRecords(signer, ds, false, depth);
 
+      if (state == TA) {
+        state = Secure;
+      }
       if (state != Secure) {
         if (state == NTA) {
           state = Insecure;

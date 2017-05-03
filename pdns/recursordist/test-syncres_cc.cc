@@ -150,12 +150,12 @@ static void init(bool debug=false)
   g_luaconfs.setState(luaconfsCopy);
 
   g_dnssecmode = DNSSECMode::Off;
-  g_dnssecLOG = false;
+  g_dnssecLOG = debug;
 
   ::arg().set("version-string", "string reported on version.pdns or version.bind")="PowerDNS Unit Tests";
 }
 
-static void initSR(std::unique_ptr<SyncRes>& sr, bool edns0, bool dnssec, SyncRes::LogMode lm=SyncRes::LogNone, time_t fakeNow=0)
+static void initSR(std::unique_ptr<SyncRes>& sr, bool dnssec=false, bool debug=false, time_t fakeNow=0)
 {
   struct timeval now;
   if (fakeNow > 0) {
@@ -166,10 +166,13 @@ static void initSR(std::unique_ptr<SyncRes>& sr, bool edns0, bool dnssec, SyncRe
     Utility::gettimeofday(&now, 0);
   }
 
+  init(debug);
+
   sr = std::unique_ptr<SyncRes>(new SyncRes(now));
-  sr->setDoEDNS0(edns0);
+  sr->setDoEDNS0(true);
   sr->setDoDNSSEC(dnssec);
-  sr->setLogMode(lm);
+  sr->setLogMode(debug == false ? SyncRes::LogNone : SyncRes::Log);
+
   SyncRes::setDomainMap(std::make_shared<SyncRes::domainmap_t>());
   SyncRes::clearNegCache();
 }
@@ -387,10 +390,10 @@ BOOST_AUTO_TEST_SUITE(syncres_cc)
 
 BOOST_AUTO_TEST_CASE(test_root_primed) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
+
   const DNSName target("a.root-servers.net.");
 
   /* we are primed, we should be able to resolve A a.root-servers.net. without any query */
@@ -412,8 +415,7 @@ BOOST_AUTO_TEST_CASE(test_root_primed) {
 
 BOOST_AUTO_TEST_CASE(test_root_primed_ns) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
   const DNSName target(".");
@@ -453,8 +455,7 @@ BOOST_AUTO_TEST_CASE(test_root_primed_ns) {
 
 BOOST_AUTO_TEST_CASE(test_root_not_primed) {
   std::unique_ptr<SyncRes> sr;
-  init(false);
-  initSR(sr, true, false);
+  initSR(sr);
 
   size_t queriesCount = 0;
 
@@ -484,8 +485,7 @@ BOOST_AUTO_TEST_CASE(test_root_not_primed) {
 
 BOOST_AUTO_TEST_CASE(test_root_not_primed_and_no_response) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
   std::set<ComboAddress> downServers;
 
   /* we are not primed yet, so SyncRes will have to call primeHints()
@@ -511,8 +511,7 @@ BOOST_AUTO_TEST_CASE(test_root_not_primed_and_no_response) {
 
 BOOST_AUTO_TEST_CASE(test_edns_formerr_fallback) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   ComboAddress noEDNSServer;
   size_t queriesWithEDNS = 0;
@@ -553,8 +552,7 @@ BOOST_AUTO_TEST_CASE(test_edns_formerr_fallback) {
 
 BOOST_AUTO_TEST_CASE(test_edns_notimp_fallback) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   size_t queriesWithEDNS = 0;
   size_t queriesWithoutEDNS = 0;
@@ -590,8 +588,7 @@ BOOST_AUTO_TEST_CASE(test_edns_notimp_fallback) {
 
 BOOST_AUTO_TEST_CASE(test_tc_fallback_to_tcp) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   sr->setAsyncCallback([](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
       if (!doTCP) {
@@ -617,8 +614,7 @@ BOOST_AUTO_TEST_CASE(test_tc_fallback_to_tcp) {
 
 BOOST_AUTO_TEST_CASE(test_tc_over_tcp) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   size_t tcpQueriesCount = 0;
 
@@ -651,8 +647,7 @@ BOOST_AUTO_TEST_CASE(test_tc_over_tcp) {
 
 BOOST_AUTO_TEST_CASE(test_all_nss_down) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
   std::set<ComboAddress> downServers;
 
   primeHints();
@@ -698,8 +693,7 @@ BOOST_AUTO_TEST_CASE(test_all_nss_down) {
 
 BOOST_AUTO_TEST_CASE(test_all_nss_network_error) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
   std::set<ComboAddress> downServers;
 
   primeHints();
@@ -747,8 +741,7 @@ BOOST_AUTO_TEST_CASE(test_all_nss_network_error) {
 
 BOOST_AUTO_TEST_CASE(test_os_limit_errors) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
   std::set<ComboAddress> downServers;
 
   primeHints();
@@ -803,8 +796,7 @@ BOOST_AUTO_TEST_CASE(test_os_limit_errors) {
 
 BOOST_AUTO_TEST_CASE(test_glued_referral) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -853,8 +845,7 @@ BOOST_AUTO_TEST_CASE(test_glued_referral) {
 
 BOOST_AUTO_TEST_CASE(test_glueless_referral) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -922,8 +913,7 @@ BOOST_AUTO_TEST_CASE(test_glueless_referral) {
 
 BOOST_AUTO_TEST_CASE(test_edns_submask_by_domain) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -949,8 +939,7 @@ BOOST_AUTO_TEST_CASE(test_edns_submask_by_domain) {
 
 BOOST_AUTO_TEST_CASE(test_edns_submask_by_addr) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -994,8 +983,7 @@ BOOST_AUTO_TEST_CASE(test_edns_submask_by_addr) {
 
 BOOST_AUTO_TEST_CASE(test_following_cname) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -1039,8 +1027,7 @@ BOOST_AUTO_TEST_CASE(test_following_cname) {
 
 BOOST_AUTO_TEST_CASE(test_included_poisonous_cname) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -1093,8 +1080,7 @@ BOOST_AUTO_TEST_CASE(test_included_poisonous_cname) {
 
 BOOST_AUTO_TEST_CASE(test_cname_loop) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -1134,8 +1120,7 @@ BOOST_AUTO_TEST_CASE(test_cname_loop) {
 
 BOOST_AUTO_TEST_CASE(test_cname_depth) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -1171,8 +1156,7 @@ BOOST_AUTO_TEST_CASE(test_cname_depth) {
 
 BOOST_AUTO_TEST_CASE(test_time_limit) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -1216,8 +1200,7 @@ BOOST_AUTO_TEST_CASE(test_time_limit) {
 
 BOOST_AUTO_TEST_CASE(test_referral_depth) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -1276,8 +1259,7 @@ BOOST_AUTO_TEST_CASE(test_referral_depth) {
 
 BOOST_AUTO_TEST_CASE(test_cname_qperq) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -1319,8 +1301,7 @@ BOOST_AUTO_TEST_CASE(test_cname_qperq) {
 
 BOOST_AUTO_TEST_CASE(test_throttled_server) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -1362,8 +1343,7 @@ BOOST_AUTO_TEST_CASE(test_throttled_server) {
 
 BOOST_AUTO_TEST_CASE(test_throttled_server_count) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -1383,8 +1363,7 @@ BOOST_AUTO_TEST_CASE(test_throttled_server_count) {
 
 BOOST_AUTO_TEST_CASE(test_throttled_server_time) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -1404,8 +1383,7 @@ BOOST_AUTO_TEST_CASE(test_throttled_server_time) {
 
 BOOST_AUTO_TEST_CASE(test_dont_query_server) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -1447,8 +1425,7 @@ BOOST_AUTO_TEST_CASE(test_dont_query_server) {
 
 BOOST_AUTO_TEST_CASE(test_root_nx_trust) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -1570,8 +1547,7 @@ BOOST_AUTO_TEST_CASE(test_root_nx_trust_specific) {
 
 BOOST_AUTO_TEST_CASE(test_root_nx_dont_trust) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -1630,8 +1606,7 @@ BOOST_AUTO_TEST_CASE(test_root_nx_dont_trust) {
 
 BOOST_AUTO_TEST_CASE(test_skip_negcache_for_variable_response) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -1686,8 +1661,7 @@ BOOST_AUTO_TEST_CASE(test_skip_negcache_for_variable_response) {
 
 BOOST_AUTO_TEST_CASE(test_ns_speed) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -1758,8 +1732,7 @@ BOOST_AUTO_TEST_CASE(test_ns_speed) {
 
 BOOST_AUTO_TEST_CASE(test_flawed_nsset) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -1799,8 +1772,7 @@ BOOST_AUTO_TEST_CASE(test_flawed_nsset) {
 
 BOOST_AUTO_TEST_CASE(test_completely_flawed_nsset) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -1835,8 +1807,7 @@ BOOST_AUTO_TEST_CASE(test_completely_flawed_nsset) {
 
 BOOST_AUTO_TEST_CASE(test_cache_hit) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -1863,8 +1834,7 @@ BOOST_AUTO_TEST_CASE(test_cache_hit) {
 
 BOOST_AUTO_TEST_CASE(test_no_rd) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -1888,8 +1858,7 @@ BOOST_AUTO_TEST_CASE(test_no_rd) {
 
 BOOST_AUTO_TEST_CASE(test_cache_min_max_ttl) {
   std::unique_ptr<SyncRes> sr;
-  init(false);
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -1941,8 +1910,7 @@ BOOST_AUTO_TEST_CASE(test_cache_min_max_ttl) {
 
 BOOST_AUTO_TEST_CASE(test_cache_expired_ttl) {
   std::unique_ptr<SyncRes> sr;
-  init(false);
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -1984,8 +1952,7 @@ BOOST_AUTO_TEST_CASE(test_cache_expired_ttl) {
 
 BOOST_AUTO_TEST_CASE(test_delegation_only) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -2020,8 +1987,7 @@ BOOST_AUTO_TEST_CASE(test_delegation_only) {
 
 BOOST_AUTO_TEST_CASE(test_unauth_any) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -2052,8 +2018,7 @@ BOOST_AUTO_TEST_CASE(test_unauth_any) {
 
 BOOST_AUTO_TEST_CASE(test_no_data) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -2073,8 +2038,7 @@ BOOST_AUTO_TEST_CASE(test_no_data) {
 
 BOOST_AUTO_TEST_CASE(test_skip_opt_any) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -2097,8 +2061,7 @@ BOOST_AUTO_TEST_CASE(test_skip_opt_any) {
 
 BOOST_AUTO_TEST_CASE(test_nodata_nsec_nodnssec) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -2123,8 +2086,7 @@ BOOST_AUTO_TEST_CASE(test_nodata_nsec_nodnssec) {
 
 BOOST_AUTO_TEST_CASE(test_nodata_nsec_dnssec) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, true);
+  initSR(sr, true);
 
   primeHints();
 
@@ -2149,8 +2111,7 @@ BOOST_AUTO_TEST_CASE(test_nodata_nsec_dnssec) {
 
 BOOST_AUTO_TEST_CASE(test_nx_nsec_nodnssec) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -2175,8 +2136,7 @@ BOOST_AUTO_TEST_CASE(test_nx_nsec_nodnssec) {
 
 BOOST_AUTO_TEST_CASE(test_nx_nsec_dnssec) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, true);
+  initSR(sr, true);
 
   primeHints();
 
@@ -2201,8 +2161,7 @@ BOOST_AUTO_TEST_CASE(test_nx_nsec_dnssec) {
 
 BOOST_AUTO_TEST_CASE(test_qclass_none) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -2225,8 +2184,7 @@ BOOST_AUTO_TEST_CASE(test_qclass_none) {
 
 BOOST_AUTO_TEST_CASE(test_xfr) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -2255,8 +2213,7 @@ BOOST_AUTO_TEST_CASE(test_xfr) {
 
 BOOST_AUTO_TEST_CASE(test_special_names) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -2380,8 +2337,7 @@ BOOST_AUTO_TEST_CASE(test_special_names) {
 
 BOOST_AUTO_TEST_CASE(test_nameserver_ipv4_rpz) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -2422,8 +2378,7 @@ BOOST_AUTO_TEST_CASE(test_nameserver_ipv4_rpz) {
 
 BOOST_AUTO_TEST_CASE(test_nameserver_ipv6_rpz) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -2464,8 +2419,7 @@ BOOST_AUTO_TEST_CASE(test_nameserver_ipv6_rpz) {
 
 BOOST_AUTO_TEST_CASE(test_nameserver_name_rpz) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -2507,8 +2461,7 @@ BOOST_AUTO_TEST_CASE(test_nameserver_name_rpz) {
 
 BOOST_AUTO_TEST_CASE(test_nameserver_name_rpz_disabled) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -2554,8 +2507,7 @@ BOOST_AUTO_TEST_CASE(test_nameserver_name_rpz_disabled) {
 
 BOOST_AUTO_TEST_CASE(test_forward_zone_nord) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -2592,8 +2544,7 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_nord) {
 
 BOOST_AUTO_TEST_CASE(test_forward_zone_rd) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -2627,8 +2578,7 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_rd) {
 
 BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_nord) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -2665,8 +2615,7 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_nord) {
 
 BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -2755,8 +2704,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_delegation_oob) {
 
 BOOST_AUTO_TEST_CASE(test_auth_zone) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -2804,8 +2752,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone) {
 
 BOOST_AUTO_TEST_CASE(test_auth_zone_cname_lead_to_oob) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -2861,8 +2808,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_cname_lead_to_oob) {
 
 BOOST_AUTO_TEST_CASE(test_auth_zone_oob_lead_to_outgoing_queryb) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -2918,8 +2864,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_oob_lead_to_outgoing_queryb) {
 
 BOOST_AUTO_TEST_CASE(test_auth_zone_nodata) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -2965,8 +2910,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_nodata) {
 
 BOOST_AUTO_TEST_CASE(test_auth_zone_nx) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -3005,8 +2949,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_nx) {
 
 BOOST_AUTO_TEST_CASE(test_auth_zone_delegation) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -3067,8 +3010,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_delegation) {
 
 BOOST_AUTO_TEST_CASE(test_auth_zone_delegation_point) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -3130,8 +3072,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_delegation_point) {
 
 BOOST_AUTO_TEST_CASE(test_auth_zone_wildcard) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -3178,8 +3119,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_wildcard) {
 
 BOOST_AUTO_TEST_CASE(test_auth_zone_wildcard_nodata) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -3226,8 +3166,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_wildcard_nodata) {
 
 BOOST_AUTO_TEST_CASE(test_auth_zone_cache_only) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr);
 
   primeHints();
 
@@ -3305,8 +3244,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig) {
 
 BOOST_AUTO_TEST_CASE(test_dnssec_root_validation_csk) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, true);
+  initSR(sr, true);
 
   g_dnssecmode = DNSSECMode::ValidateAll;
 
@@ -3371,8 +3309,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_root_validation_csk) {
 
 BOOST_AUTO_TEST_CASE(test_dnssec_root_validation_ksk_zsk) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, true);
+  initSR(sr, true);
 
   g_dnssecmode = DNSSECMode::ValidateAll;
 
@@ -3458,8 +3395,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_root_validation_ksk_zsk) {
 
 BOOST_AUTO_TEST_CASE(test_dnssec_bogus_no_dnskey) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, true);
+  initSR(sr, true);
 
   g_dnssecmode = DNSSECMode::ValidateAll;
 
@@ -3523,8 +3459,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_no_dnskey) {
 
 BOOST_AUTO_TEST_CASE(test_dnssec_bogus_dnskey_doesnt_match_ds) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, true);
+  initSR(sr, true);
 
   g_dnssecmode = DNSSECMode::ValidateAll;
 
@@ -3609,8 +3544,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_dnskey_doesnt_match_ds) {
 
 BOOST_AUTO_TEST_CASE(test_dnssec_bogus_rrsig_signed_with_unknown_dnskey) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, true);
+  initSR(sr, true);
 
   g_dnssecmode = DNSSECMode::ValidateAll;
 
@@ -3685,8 +3619,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_rrsig_signed_with_unknown_dnskey) {
 
 BOOST_AUTO_TEST_CASE(test_dnssec_bogus_no_rrsig) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, true);
+  initSR(sr, true);
 
   g_dnssecmode = DNSSECMode::ValidateAll;
 
@@ -3752,8 +3685,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_no_rrsig) {
 
 BOOST_AUTO_TEST_CASE(test_dnssec_insecure_unknown_ds_algorithm) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, true);
+  initSR(sr, true);
 
   g_dnssecmode = DNSSECMode::ValidateAll;
 
@@ -3834,8 +3766,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_unknown_ds_algorithm) {
 
 BOOST_AUTO_TEST_CASE(test_dnssec_insecure_unknown_ds_digest) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, true);
+  initSR(sr, true);
 
   g_dnssecmode = DNSSECMode::ValidateAll;
 
@@ -3859,6 +3790,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_unknown_ds_digest) {
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
   luaconfsCopy.dsAnchors[g_rootdnsname].insert(drc);
+  cerr<<"inserted DS for root with tag "<<drc.d_tag<<" and algo "<<drc.d_algorithm<<endl;
   g_luaconfs.setState(luaconfsCopy);
 
   size_t queriesCount = 0;
@@ -3914,8 +3846,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_unknown_ds_digest) {
 
 BOOST_AUTO_TEST_CASE(test_dnssec_secure_various_algos) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, true);
+  initSR(sr, true);
 
   g_dnssecmode = DNSSECMode::ValidateAll;
 
@@ -3999,8 +3930,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_various_algos) {
 
 BOOST_AUTO_TEST_CASE(test_dnssec_secure_with_nta) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, true);
+  initSR(sr, true);
 
   g_dnssecmode = DNSSECMode::ValidateAll;
 
@@ -4090,8 +4020,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_with_nta) {
 
 BOOST_AUTO_TEST_CASE(test_dnssec_bogus_with_nta) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, true);
+  initSR(sr, true);
 
   g_dnssecmode = DNSSECMode::ValidateAll;
 
@@ -4165,8 +4094,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_with_nta) {
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, true);
+  initSR(sr, true);
 
   g_dnssecmode = DNSSECMode::ValidateAll;
 
@@ -4247,8 +4175,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec) {
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nxdomain_nsec) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, true);
+  initSR(sr, true);
 
   g_dnssecmode = DNSSECMode::ValidateAll;
 
@@ -4333,8 +4260,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nxdomain_nsec) {
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_bogus_no_nsec) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, true);
+  initSR(sr, true);
 
   g_dnssecmode = DNSSECMode::ValidateAll;
 
@@ -4416,8 +4342,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_bogus_no_nsec) {
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_bogus_unsigned_nsec) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, true);
+  initSR(sr, true);
 
   g_dnssecmode = DNSSECMode::ValidateAll;
 
@@ -4499,8 +4424,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_bogus_unsigned_nsec) {
 
 BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, true);
+  initSR(sr, true);
 
   g_dnssecmode = DNSSECMode::ValidateAll;
 
@@ -4530,6 +4454,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure) {
         }
         else {
           setLWResult(res, 0, false, false, true);
+          addRecordToLW(res, domain, QType::SOA, "pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
           addNSECRecordToLW(domain, DNSName("z.powerdns.com."), { QType::NS }, 600, res->d_records);
           addRRSIG(keys, res->d_records, DNSName("com."), 300);
           return 1;
@@ -4544,6 +4469,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure) {
         }
         else {
           setLWResult(res, 0, false, false, true);
+          addRecordToLW(res, domain, QType::SOA, "pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
           return 1;
         }
       }
@@ -4596,8 +4522,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure) {
 
 BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_nodata) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, true);
+  initSR(sr, true);
 
   g_dnssecmode = DNSSECMode::ValidateAll;
 
@@ -4626,6 +4551,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_nodata) {
         }
         else {
           setLWResult(res, 0, false, false, true);
+          addRecordToLW(res, domain, QType::SOA, "pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
           addNSECRecordToLW(domain, DNSName("z.powerdns.com."), { QType::NS }, 600, res->d_records);
           addRRSIG(keys, res->d_records, DNSName("com."), 300);
           return 1;
@@ -4640,6 +4566,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_nodata) {
         }
         else {
           setLWResult(res, 0, false, false, true);
+          addRecordToLW(res, domain, QType::SOA, "pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
           return 1;
         }
       }
@@ -4688,10 +4615,414 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_nodata) {
   BOOST_CHECK_EQUAL(queriesCount, 5);
 }
 
+BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cname) {
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true, true);
+
+  g_dnssecmode = DNSSECMode::ValidateAll;
+
+  primeHints();
+  const DNSName target("powerdns.com.");
+  const DNSName targetCName("power-dns.com.");
+  const ComboAddress targetCNameAddr("192.0.2.42");
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
+  g_luaconfs.setState(luaconfsCopy);
+
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([target,targetCName,targetCNameAddr,&queriesCount,keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
+      queriesCount++;
+
+      if (type == QType::DS) {
+        if (domain == g_rootdnsname || domain == DNSName("com.") || domain == DNSName("powerdns.com.")) {
+          setLWResult(res, 0, false, false, true);
+          addDS(domain, 300, res->d_records, keys);
+          addRRSIG(keys, res->d_records, domain, 300);
+          return 1;
+        }
+        else if (domain == DNSName("power-dns.com.")) {
+          setLWResult(res, 0, false, false, true);
+          addRecordToLW(res, domain, QType::SOA, "pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
+          addNSECRecordToLW(domain, DNSName("z.power-dns.com."), { QType::NS }, 600, res->d_records);
+          addRRSIG(keys, res->d_records, DNSName("com."), 300);
+          return 1;
+        }
+      }
+      else if (type == QType::DNSKEY) {
+        if (domain == g_rootdnsname || domain == DNSName("com.") || domain == DNSName("powerdns.com.")) {
+          setLWResult(res, 0, true, false, true);
+          addDNSKEY(keys, domain, 300, res->d_records);
+          addRRSIG(keys, res->d_records, domain, 300);
+          return 1;
+        }
+        else {
+          setLWResult(res, 0, false, false, true);
+          addRecordToLW(res, domain, QType::SOA, "pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
+          return 1;
+        }
+      }
+      else {
+        if (isRootServer(ip)) {
+          setLWResult(res, 0, false, false, true);
+          addRecordToLW(res, "com.", QType::NS, "a.gtld-servers.com.", DNSResourceRecord::AUTHORITY, 3600);
+          addDS(DNSName("com."), 300, res->d_records, keys);
+          addRRSIG(keys, res->d_records, DNSName("."), 300);
+          addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+          return 1;
+        }
+        else if (ip == ComboAddress("192.0.2.1:53")) {
+          setLWResult(res, 0, false, false, true);
+          addRecordToLW(res, domain, QType::NS, "ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, 3600);
+          if (domain == DNSName("powerdns.com.")) {
+            addDS(DNSName("powerdns.com."), 300, res->d_records, keys);
+          }
+          else if (domain == targetCName) {
+            addNSECRecordToLW(domain, DNSName("z.power-dns.com."), { QType::NS }, 600, res->d_records);
+          }
+          addRRSIG(keys, res->d_records, DNSName("com."), 300);
+          addRecordToLW(res, "ns1.powerdns.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 3600);
+          return 1;
+        }
+        else if (ip == ComboAddress("192.0.2.2:53")) {
+          setLWResult(res, 0, true, false, true);
+          if (domain == DNSName("powerdns.com.")) {
+            addRecordToLW(res, domain, QType::CNAME, targetCName.toString());
+            addRRSIG(keys, res->d_records, domain, 300);
+          }
+          else if (domain == targetCName) {
+            addRecordToLW(res, domain, QType::A, targetCNameAddr.toString());
+          }
+          return 1;
+        }
+      }
+
+      return 0;
+    });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
+  BOOST_REQUIRE_EQUAL(ret.size(), 3);
+  BOOST_CHECK_EQUAL(queriesCount, 9);
+
+  /* again, to test the cache */
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
+  BOOST_REQUIRE_EQUAL(ret.size(), 3);
+  BOOST_CHECK_EQUAL(queriesCount, 9);
+}
+
+BOOST_AUTO_TEST_CASE(test_dnssec_insecure_ta) {
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true);
+
+  g_dnssecmode = DNSSECMode::ValidateAll;
+
+  primeHints();
+  const DNSName target("powerdns.com.");
+  const ComboAddress targetAddr("192.0.2.42");
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
+  /* No key material for .com */
+  generateKeyMaterial(target, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
+  luaconfsCopy.dsAnchors[target].insert(keys[target].second);
+  g_luaconfs.setState(luaconfsCopy);
+
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([target,targetAddr,&queriesCount,keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
+      queriesCount++;
+
+      if (type == QType::DS) {
+        if (domain == g_rootdnsname || domain == DNSName("powerdns.com.")) {
+          setLWResult(res, 0, false, false, true);
+          addDS(domain, 300, res->d_records, keys);
+          addRRSIG(keys, res->d_records, domain, 300);
+          return 1;
+        }
+        else if (domain == DNSName("com.")) {
+          setLWResult(res, 0, false, false, true);
+          addRecordToLW(res, domain, QType::SOA, ". yop. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
+          addNSECRecordToLW(domain, DNSName("dom."), { QType::NS }, 600, res->d_records);
+          addRRSIG(keys, res->d_records, DNSName("."), 300);
+          return 1;
+        }
+      }
+      else if (type == QType::DNSKEY) {
+        if (domain == g_rootdnsname || domain == DNSName("powerdns.com.")) {
+          setLWResult(res, 0, true, false, true);
+          addDNSKEY(keys, domain, 300, res->d_records);
+          addRRSIG(keys, res->d_records, domain, 300);
+          return 1;
+        }
+        else if (domain == DNSName("com.")) {
+          setLWResult(res, 0, false, false, true);
+          addRecordToLW(res, domain, QType::SOA, ". yop. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
+          return 1;
+        }
+      }
+      else if (domain == target) {
+        if (isRootServer(ip)) {
+          setLWResult(res, 0, false, false, true);
+          addRecordToLW(res, "com.", QType::NS, "a.gtld-servers.com.", DNSResourceRecord::AUTHORITY, 3600);
+          addNSECRecordToLW(DNSName("com."), DNSName("com."), { QType::NS }, 600, res->d_records);
+          addRRSIG(keys, res->d_records, DNSName("."), 300);
+          addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+          return 1;
+        }
+        else if (ip == ComboAddress("192.0.2.1:53")) {
+          setLWResult(res, 0, false, false, true);
+          addRecordToLW(res, domain, QType::NS, "ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, 3600);
+          addRecordToLW(res, "ns1.powerdns.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 3600);
+          return 1;
+        }
+        else if (ip == ComboAddress("192.0.2.2:53")) {
+          setLWResult(res, 0, true, false, true);
+          addRecordToLW(res, domain, QType::A, targetAddr.toString(), DNSResourceRecord::ANSWER, 3600);
+          addRRSIG(keys, res->d_records, domain, 300);
+          return 1;
+        }
+      }
+
+      return 0;
+    });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  /* should be insecure but we have a TA for powerdns.com. */
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  /* We got a RRSIG */
+  BOOST_REQUIRE_EQUAL(ret.size(), 2);
+  BOOST_CHECK(ret[0].d_type == QType::A);
+  /* only 5 because no DNSKEY query for com (insecure) */
+  BOOST_CHECK_EQUAL(queriesCount, 5);
+
+  /* again, to test the cache */
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2);
+  BOOST_CHECK(ret[0].d_type == QType::A);
+  BOOST_CHECK_EQUAL(queriesCount, 5);
+}
+
+BOOST_AUTO_TEST_CASE(test_dnssec_insecure_ta_norrsig) {
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true);
+
+  g_dnssecmode = DNSSECMode::ValidateAll;
+
+  primeHints();
+  const DNSName target("powerdns.com.");
+  const ComboAddress targetAddr("192.0.2.42");
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
+  /* No key material for .com */
+  generateKeyMaterial(target, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
+  luaconfsCopy.dsAnchors[target].insert(keys[target].second);
+  g_luaconfs.setState(luaconfsCopy);
+
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([target,targetAddr,&queriesCount,keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
+      queriesCount++;
+
+      if (type == QType::DS) {
+        if (domain == g_rootdnsname || domain == DNSName("powerdns.com.")) {
+          setLWResult(res, 0, false, false, true);
+          addDS(domain, 300, res->d_records, keys);
+          addRRSIG(keys, res->d_records, domain, 300);
+          return 1;
+        }
+        else if (domain == DNSName("com.")) {
+          setLWResult(res, 0, false, false, true);
+          addRecordToLW(res, domain, QType::SOA, ". yop. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
+          addNSECRecordToLW(domain, DNSName("dom."), { QType::NS }, 600, res->d_records);
+          addRRSIG(keys, res->d_records, DNSName("."), 300);
+          return 1;
+        }
+      }
+      else if (type == QType::DNSKEY) {
+        if (domain == g_rootdnsname || domain == DNSName("powerdns.com.")) {
+          setLWResult(res, 0, true, false, true);
+          addDNSKEY(keys, domain, 300, res->d_records);
+          addRRSIG(keys, res->d_records, domain, 300);
+          return 1;
+        }
+        else if (domain == DNSName("com.")) {
+          setLWResult(res, 0, false, false, true);
+          addRecordToLW(res, domain, QType::SOA, ". yop. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
+          return 1;
+        }
+      }
+      else if (domain == target) {
+        if (isRootServer(ip)) {
+          setLWResult(res, 0, false, false, true);
+          addRecordToLW(res, "com.", QType::NS, "a.gtld-servers.com.", DNSResourceRecord::AUTHORITY, 3600);
+          addNSECRecordToLW(DNSName("com."), DNSName("com."), { QType::NS }, 600, res->d_records);
+          addRRSIG(keys, res->d_records, DNSName("."), 300);
+          addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+          return 1;
+        }
+        else if (ip == ComboAddress("192.0.2.1:53")) {
+          setLWResult(res, 0, false, false, true);
+          addRecordToLW(res, domain, QType::NS, "ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, 3600);
+          addRecordToLW(res, "ns1.powerdns.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 3600);
+          return 1;
+        }
+        else if (ip == ComboAddress("192.0.2.2:53")) {
+          setLWResult(res, 0, true, false, true);
+          addRecordToLW(res, domain, QType::A, targetAddr.toString(), DNSResourceRecord::ANSWER, 3600);
+          /* No RRSIG in a now (thanks to TA) Secure zone -> Bogus*/
+          return 1;
+        }
+      }
+
+      return 0;
+    });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  /* should be insecure but we have a TA for powerdns.com., but no RRSIG so Bogus */
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  /* No RRSIG */
+  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_CHECK(ret[0].d_type == QType::A);
+  /* only 4 because no DNSKEY query for com (insecure) and no RRSIG meaning no DNSKEY for powerdns.com */
+  BOOST_CHECK_EQUAL(queriesCount, 4);
+
+  /* again, to test the cache */
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_CHECK(ret[0].d_type == QType::A);
+  BOOST_CHECK_EQUAL(queriesCount, 4);
+}
+
+#if 0
+BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_hidden_cut) {
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true, true, true);
+
+  g_dnssecLOG = true;
+  g_dnssecmode = DNSSECMode::ValidateAll;
+
+  primeHints();
+  const DNSName target("gov.nl.ca.");
+  const ComboAddress targetAddr("192.0.2.42");
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("ca."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
+
+  g_luaconfs.setState(luaconfsCopy);
+
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([target,targetAddr,&queriesCount,keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
+      queriesCount++;
+
+      if (type == QType::DS) {
+        if (domain == g_rootdnsname || domain == DNSName("ca.")) {
+          setLWResult(res, 0, false, false, true);
+          addDS(domain, 300, res->d_records, keys);
+          addRRSIG(keys, res->d_records, domain, 300);
+          return 1;
+        }
+        else {
+          setLWResult(res, 0, false, false, true);
+          addRecordToLW(res, DNSName("ca."), QType::SOA, "jbq01.prd.cira.ca. admin-dns.cira.ca. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
+          addNSECRecordToLW(DNSName("nl.ca."), DNSName("nm.ca."), { QType::NS }, 600, res->d_records);
+          addRRSIG(keys, res->d_records, DNSName("ca."), 300);
+          return 1;
+        }
+      }
+      else if (type == QType::DNSKEY) {
+        if (domain == g_rootdnsname || domain == DNSName("ca.")) {
+          setLWResult(res, 0, true, false, true);
+          addDNSKEY(keys, domain, 300, res->d_records);
+          addRRSIG(keys, res->d_records, domain, 300);
+          return 1;
+        }
+        else {
+          setLWResult(res, 0, false, false, true);
+          addRecordToLW(res, domain, QType::SOA, "jbq01.prd.cira.ca. admin-dns.cira.ca. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
+          return 1;
+        }
+      }
+      else if (domain == target) {
+        if (isRootServer(ip)) {
+          setLWResult(res, 0, false, false, true);
+          addRecordToLW(res, "ca.", QType::NS, "c.ca-servers.ca.", DNSResourceRecord::AUTHORITY, 3600);
+          addDS(DNSName("ca."), 300, res->d_records, keys);
+          addRRSIG(keys, res->d_records, DNSName("."), 300);
+          addRecordToLW(res, "c.ca-servers.ca.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+          return 1;
+        }
+        else if (ip == ComboAddress("192.0.2.1:53")) {
+          setLWResult(res, 0, false, false, true);
+          addRecordToLW(res, domain, QType::NS, "ns.gov.nl.ca.", DNSResourceRecord::AUTHORITY, 3600);
+          /* no DS */
+          addNSECRecordToLW(domain, DNSName("gow.nl.ca."), { QType::NS }, 600, res->d_records);
+          addRRSIG(keys, res->d_records, DNSName("ca."), 300);
+          addRecordToLW(res, "ns.gov.nl.ca.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 3600);
+          return 1;
+        }
+        else if (ip == ComboAddress("192.0.2.2:53")) {
+          setLWResult(res, 0, true, false, true);
+          addRecordToLW(res, domain, QType::A, targetAddr.toString(), DNSResourceRecord::ANSWER, 3600);
+          return 1;
+        }
+      }
+
+      return 0;
+    });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_CHECK(ret[0].d_type == QType::A);
+  /* only 5 because no DNSKEY query for powerdns.com (insecure) */
+  BOOST_CHECK_EQUAL(queriesCount, 5);
+
+  /* again, to test the cache */
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_CHECK(ret[0].d_type == QType::A);
+  BOOST_CHECK_EQUAL(queriesCount, 5);
+}
+#endif /* 0 */
+
 BOOST_AUTO_TEST_CASE(test_dnssec_nta) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, true);
+  initSR(sr, true);
 
   g_dnssecmode = DNSSECMode::ValidateAll;
 
@@ -4757,8 +5088,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_nta) {
 
 BOOST_AUTO_TEST_CASE(test_dnssec_no_ta) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, true);
+  initSR(sr, true);
 
   g_dnssecmode = DNSSECMode::ValidateAll;
 

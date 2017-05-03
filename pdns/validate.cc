@@ -13,7 +13,7 @@ string dotName(string type, DNSName name, string tag);
 string dotEscape(string name);
 
 const char *dStates[]={"nodata", "nxdomain", "nxqtype", "empty non-terminal", "insecure", "opt-out"};
-const char *vStates[]={"Indeterminate", "Bogus", "Insecure", "Secure", "NTA"};
+const char *vStates[]={"Indeterminate", "Bogus", "Insecure", "Secure", "NTA", "TA"};
 
 static vector<shared_ptr<DNSKEYRecordContent > > getByTag(const skeyset_t& keys, uint16_t tag, uint8_t algorithm)
 {
@@ -43,6 +43,20 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
         if(qname == v.first.first && !nsec->d_set.count(qtype)) {
           LOG("Denies existence of type "<<QType(qtype).getName()<<endl);
           return NXQTYPE;
+        }
+
+        /* RFC 6840 section 4.1 "Clarifications on Nonexistence Proofs":
+           Ancestor delegation NSEC or NSEC3 RRs MUST NOT be used to assume
+           nonexistence of any RRs below that zone cut, which include all RRs at
+           that (original) owner name other than DS RRs, and all RRs below that
+           owner name regardless of type.
+        */
+        LOG("type is "<<QType(qtype).getName()<<", NS is "<<std::to_string(nsec->d_set.count(QType::NS))<<", SOA is "<<std::to_string(nsec->d_set.count(QType::SOA))<<", signer is "<<getSigner(v.second.signatures).toString()<<", owner name is "<<v.first.first.toString()<<endl);
+        if (qtype != QType::DS && nsec->d_set.count(QType::NS) && !nsec->d_set.count(QType::SOA) &&
+            getSigner(v.second.signatures).countLabels() < v.first.first.countLabels()) {
+          /* this is an "ancestor delegation" NSEC RR */
+          LOG("An ancestor delegation NSEC RR can only deny the existence of a DS");
+          continue;
         }
 
         /* check if the whole NAME is denied existing */
@@ -534,7 +548,14 @@ bool isSupportedDS(const DSRecordContent& ds)
   return true;
 }
 
+DNSName getSigner(const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures)
+{
+  for (const auto sig : signatures) {
+    return sig->d_signer;
+  }
 
+  return DNSName();
+}
 
 string dotEscape(string name)
 {
