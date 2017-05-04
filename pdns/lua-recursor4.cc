@@ -518,6 +518,15 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   d_lw->registerFunction("set", &DynMetric::set);
   d_lw->registerFunction("get", &DynMetric::get);
 
+  d_lw->writeFunction("getStat", [](const std::string& str) {
+      uint64_t result = 0;
+      optional<uint64_t> value = getStatByName(str);
+      if (value) {
+        result = *value;
+      }
+      return result;
+    });
+
   d_lw->writeFunction("getRecursorThreadId", []() {
       return getRecursorThreadId();
     });
