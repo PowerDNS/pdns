@@ -12,6 +12,6 @@ dist_doc_DATA = \
 	nodnssec-3.x_to_3.4.0_schema.sqlite3.sql \
 	schema.sqlite3.sql
 
-libgsqlite3backend_la_SOURCES = gsqlite3backend.cc gsqlite3backend.hh
+libgsqlite3backend_la_SOURCES = gsqlite3backend.cc gsqlite3backend.hh gsqlite3backend_autoload.cc
 
 libgsqlite3backend_la_LDFLAGS = -module -avoid-version
