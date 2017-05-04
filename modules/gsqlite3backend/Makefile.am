@@ -15,6 +15,6 @@ dist_doc_DATA = \
 	4.3.0_to_4.3.1_schema.sqlite3.sql \
 	schema.sqlite3.sql
 
-libgsqlite3backend_la_SOURCES = gsqlite3backend.cc gsqlite3backend.hh
+libgsqlite3backend_la_SOURCES = gsqlite3backend.cc gsqlite3backend.hh gsqlite3backend_autoload.cc
 
 libgsqlite3backend_la_LDFLAGS = -module -avoid-version
