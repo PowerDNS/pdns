@@ -25,6 +25,7 @@
 #include "../../../modules/gsqlite3backend/gsqlite3backend.hh"
 #include <sys/types.h>
 #include <stdlib.h>
+#include <mutex>
 
 
 struct dlso_gsql {
@@ -498,6 +499,19 @@ extern "C" bool pdns_dlso_register(uint32_t abi_version, struct lib_so_api** ptr
 
 	memset(api, 0, sizeof(*api));
 	*ptr = api;
+
+	// Configuration and its underlying std::map does not allow two thread
+	// to write to it concurrently. When two threads concurrently
+	// declareArguments() the map could do double-free. This is bad and this
+	// shouldn't happen.
+	// Powerdns normally does declare argument and parse configuration
+	// in its very beginning in a single-thread. This is not ArgvMap
+	// responsability to protect from current access. This test backend
+	// being a wrapper Our test backend here may be executed multiple times
+	// by different threads (signing thread, packet receiver)
+	// For this reason, I chose to have a simple mutex, to not allow two
+	// threads to register simultinaeously.
+	std::lock_guard<std::mutex> guard(g_configuration_mutex);
 
 	// First load the sqlite3 backend, and declare arguments
 	gSQLite3Factory * factory;
