@@ -22,10 +22,15 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
+#include <boost/version.hpp>
+#if BOOST_VERSION >= 104400
 #include <boost/accumulators/accumulators.hpp>
 #include <boost/array.hpp>
 #include <boost/accumulators/statistics.hpp>
 #include <boost/program_options.hpp>
+#endif
+
 #include "inflighter.cc"
 #include <deque>
 #include "namespaces.hh"
@@ -34,13 +39,15 @@
 #include "misc.hh"
 #include "dnswriter.hh"
 #include "dnsrecords.hh"
+StatBag S;
 
+
+#if BOOST_VERSION >= 104400
 using namespace boost::accumulators;
 namespace po = boost::program_options;
 
 po::variables_map g_vm;
 
-StatBag S;
 
 bool g_quiet=false;
 bool g_envoutput=false;
@@ -362,3 +369,10 @@ catch(PDNSException& pe)
   cerr<<"Fatal error: "<<pe.reason<<endl;
   exit(EXIT_FAILURE);
 }
+#else /* BOOST_VERSION */
+int main(int argc, char** argv)
+{
+  std::cerr<<"dnsbulktest requires boost >= 1.44.\n"<<std::endl;
+  return(EXIT_FAILURE);
+}
+#endif /* BOOST_VERSION */
