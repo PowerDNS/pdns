@@ -112,7 +112,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
           return NXDOMAIN;
         }
 
-        LOG("Did not cover us, start="<<v.first.first<<", us="<<toBase32Hex(h)<<", end="<<toBase32Hex(nsec3->d_nexthash)<<endl);
+        LOG("Did not cover us ("<<qname<<"), start="<<v.first.first<<", us="<<toBase32Hex(h)<<", end="<<toBase32Hex(nsec3->d_nexthash)<<endl);
       }
     }
   }

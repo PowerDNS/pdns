@@ -3790,7 +3790,6 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_unknown_ds_digest) {
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
   luaconfsCopy.dsAnchors[g_rootdnsname].insert(drc);
-  cerr<<"inserted DS for root with tag "<<drc.d_tag<<" and algo "<<drc.d_algorithm<<endl;
   g_luaconfs.setState(luaconfsCopy);
 
   size_t queriesCount = 0;
@@ -4507,8 +4506,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure) {
   BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 1);
   BOOST_CHECK(ret[0].d_type == QType::A);
-  /* only 5 because no DNSKEY query for powerdns.com (insecure) */
-  BOOST_CHECK_EQUAL(queriesCount, 5);
+  /* only 4 because no DS query for powerdns.com (DS denial in referral), and then no DNSKEY query either (insecure) */
+  BOOST_CHECK_EQUAL(queriesCount, 4);
 
   /* again, to test the cache */
   ret.clear();
@@ -4517,7 +4516,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure) {
   BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 1);
   BOOST_CHECK(ret[0].d_type == QType::A);
-  BOOST_CHECK_EQUAL(queriesCount, 5);
+  BOOST_CHECK_EQUAL(queriesCount, 4);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_nodata) {
@@ -4603,8 +4602,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_nodata) {
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 1);
-  /* only 5 because no DNSKEY query for powerdns.com (insecure) */
-  BOOST_CHECK_EQUAL(queriesCount, 5);
+  /* same as above */
+  BOOST_CHECK_EQUAL(queriesCount, 4);
 
   /* again, to test the cache */
   ret.clear();
@@ -4612,12 +4611,12 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_nodata) {
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 5);
+  BOOST_CHECK_EQUAL(queriesCount, 4);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cname) {
   std::unique_ptr<SyncRes> sr;
-  initSR(sr, true, true);
+  initSR(sr, true);
 
   g_dnssecmode = DNSSECMode::ValidateAll;
 
@@ -4710,7 +4709,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cname) {
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 3);
-  BOOST_CHECK_EQUAL(queriesCount, 9);
+  BOOST_CHECK_EQUAL(queriesCount, 8);
 
   /* again, to test the cache */
   ret.clear();
@@ -4718,7 +4717,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cname) {
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 3);
-  BOOST_CHECK_EQUAL(queriesCount, 9);
+  BOOST_CHECK_EQUAL(queriesCount, 8);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_insecure_ta) {
@@ -4807,8 +4806,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_ta) {
   /* We got a RRSIG */
   BOOST_REQUIRE_EQUAL(ret.size(), 2);
   BOOST_CHECK(ret[0].d_type == QType::A);
-  /* only 5 because no DNSKEY query for com (insecure) */
-  BOOST_CHECK_EQUAL(queriesCount, 5);
+  /* only 4 because no DNSKEY query for com (insecure) */
+  BOOST_CHECK_EQUAL(queriesCount, 4);
 
   /* again, to test the cache */
   ret.clear();
@@ -4817,7 +4816,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_ta) {
   BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 2);
   BOOST_CHECK(ret[0].d_type == QType::A);
-  BOOST_CHECK_EQUAL(queriesCount, 5);
+  BOOST_CHECK_EQUAL(queriesCount, 4);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_insecure_ta_norrsig) {
@@ -4906,8 +4905,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_ta_norrsig) {
   /* No RRSIG */
   BOOST_REQUIRE_EQUAL(ret.size(), 1);
   BOOST_CHECK(ret[0].d_type == QType::A);
-  /* only 4 because no DNSKEY query for com (insecure) and no RRSIG meaning no DNSKEY for powerdns.com */
-  BOOST_CHECK_EQUAL(queriesCount, 4);
+  /* only 3 because no DNSKEY query for com (insecure) and no RRSIG meaning no DNSKEY for powerdns.com */
+  BOOST_CHECK_EQUAL(queriesCount, 3);
 
   /* again, to test the cache */
   ret.clear();
@@ -4916,13 +4915,13 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_ta_norrsig) {
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 1);
   BOOST_CHECK(ret[0].d_type == QType::A);
-  BOOST_CHECK_EQUAL(queriesCount, 4);
+  BOOST_CHECK_EQUAL(queriesCount, 3);
 }
 
 #if 0
 BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_hidden_cut) {
   std::unique_ptr<SyncRes> sr;
-  initSR(sr, true, true, true);
+  initSR(sr, true, true);
 
   g_dnssecLOG = true;
   g_dnssecmode = DNSSECMode::ValidateAll;
@@ -4984,8 +4983,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_hidden_cut) {
         else if (ip == ComboAddress("192.0.2.1:53")) {
           setLWResult(res, 0, false, false, true);
           addRecordToLW(res, domain, QType::NS, "ns.gov.nl.ca.", DNSResourceRecord::AUTHORITY, 3600);
-          /* no DS */
-          addNSECRecordToLW(domain, DNSName("gow.nl.ca."), { QType::NS }, 600, res->d_records);
+          /* denial of DS FOR nl.ca while sending a referral for gov.nl.ca !! */
+          addNSECRecordToLW(DNSName("nl.ca"), DNSName("nm.ca."), { QType::NS }, 600, res->d_records);
           addRRSIG(keys, res->d_records, DNSName("ca."), 300);
           addRecordToLW(res, "ns.gov.nl.ca.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 3600);
           return 1;

@@ -1682,7 +1682,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
   return RCode::NoError;
 }
 
-void SyncRes::getDenialValidationState(NegCache::NegCacheEntry& ne, vState& state, const dState expectedState)
+void SyncRes::getDenialValidationState(NegCache::NegCacheEntry& ne, vState& state, const dState expectedState, bool allowOptOut)
 {
   ne.d_validationState = state;
 
@@ -1690,9 +1690,11 @@ void SyncRes::getDenialValidationState(NegCache::NegCacheEntry& ne, vState& stat
     cspmap_t csp = harvestCSPFromNE(ne);
     dState res = getDenial(csp, ne.d_name, ne.d_qtype.getCode());
     if (res != expectedState) {
-      if (ne.d_qtype.getCode() == QType::DS && res == OPTOUT) {
-        LOG("Invalid denial found for "<<ne.d_name<<", retuning Insecure"<<endl);
-        ne.d_validationState = Insecure;
+      if (res == OPTOUT && allowOptOut) {
+        LOG("OPT-out denial found for "<<ne.d_name<<", retuning Insecure"<<endl);
+        ne.d_validationState = Secure;
+        updateValidationState(state, Insecure);
+        return;
       }
       else {
         LOG("Invalid denial found for "<<ne.d_name<<", retuning Bogus"<<endl);
@@ -1726,7 +1728,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         ne.d_qtype = QType(0); // this encodes 'whole record'
         ne.d_auth = rec.d_name;
         harvestNXRecords(lwr.d_records, ne);
-        getDenialValidationState(ne, state, NXDOMAIN);
+        getDenialValidationState(ne, state, NXDOMAIN, false);
         t_sstorage.negcache.add(ne);
         if(s_rootNXTrust && ne.d_auth.isRoot() && auth.isRoot()) {
           ne.d_name = ne.d_name.getLastLabel();
@@ -1774,25 +1776,24 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
     else if(rec.d_place==DNSResourceRecord::AUTHORITY && rec.d_type==QType::DS && qname.isPartOf(rec.d_name)) {
       LOG(prefix<<qname<<": got DS record '"<<rec.d_name<<"' -> '"<<rec.d_content->getZoneRepresentation()<<"'"<<endl);
     }
-    else if(qtype == QType::DS && (rec.d_type==QType::NSEC || rec.d_type==QType::NSEC3)) {
+    else if(realreferral && rec.d_place==DNSResourceRecord::AUTHORITY && (rec.d_type==QType::NSEC || rec.d_type==QType::NSEC3) && newauth.isPartOf(auth)) {
       /* we might have received a denial of the DS, let's check */
       if (state == Secure) {
         NegCache::NegCacheEntry ne;
         ne.d_auth = auth;
         ne.d_ttd = d_now.tv_sec + rec.d_ttl;
-        ne.d_name = qname;
-        ne.d_qtype = qtype;
+        ne.d_name = newauth;
+        ne.d_qtype = QType::DS;
         harvestNXRecords(lwr.d_records, ne);
         cspmap_t csp = harvestCSPFromNE(ne);
-        dState denialState = getDenial(csp, qname, qtype.getCode());
+        dState denialState = getDenial(csp, newauth, QType::DS);
         if (denialState == NXQTYPE || denialState == OPTOUT) {
-          LOG(prefix<<qname<<": got negative indication of DS record for '"<<qname<<endl);
+          ne.d_validationState = Secure;
           rec.d_ttl = min(s_maxnegttl, rec.d_ttl);
-          ret.push_back(rec);
+          LOG(prefix<<qname<<": got negative indication of DS record for '"<<newauth<<endl);
           if(!wasVariable()) {
             t_sstorage.negcache.add(ne);
           }
-          negindic = true;
         }
       }
     }
@@ -1813,7 +1814,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
           ne.d_name = qname;
           ne.d_qtype = qtype;
           harvestNXRecords(lwr.d_records, ne);
-          getDenialValidationState(ne, state, NXQTYPE);
+          getDenialValidationState(ne, state, NXQTYPE, qtype == QType::DS);
           if(qtype.getCode()) {  // prevents us from blacking out a whole domain
             t_sstorage.negcache.add(ne);
           }
