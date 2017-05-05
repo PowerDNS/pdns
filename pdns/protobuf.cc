@@ -196,6 +196,13 @@ void DNSProtoBufMessage::setRequestor(const ComboAddress& requestor)
 #endif /* HAVE_PROTOBUF */
 }
 
+void DNSProtoBufMessage::setRequestorId(const std::string& requestorId)
+{
+#ifdef HAVE_PROTOBUF
+  d_message.set_requestorid(requestorId);
+#endif /* HAVE_PROTOBUF */
+}
+
 void DNSProtoBufMessage::setResponder(const std::string& responder)
 {
 #ifdef HAVE_PROTOBUF

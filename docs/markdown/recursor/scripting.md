@@ -100,6 +100,7 @@ The DNSQuestion object contains at least the following fields:
      * policyTTL: The TTL in seconds for the `pdns.policyactions.Custom` response
 * wantsRPZ - A boolean that indicates the use of the Policy Engine, can be set to `false` in `prerpz` to disable RPZ for this query
 * data - a Lua object reference that is persistent throughout the lifetime of the `dq` object for a single query. It can be used to store custom data. Most scripts initialise this to an empty table early on so they can store multiple items.
+* requestorId - a string that will be used to set the `requestorId` field in protobuf messages (introduced in 4.1).
 
 It also supports the following methods:
 
@@ -162,7 +163,8 @@ In addition to this integer, this function can return a table of policy tags.
 The resulting tag number can be accessed via `dq.tag` in the `preresolve` hook,
 and the policy tags via `dq:getPolicyTags()` in every hook.
 Starting with 4.1.0, it can also return a table whose keys and values are strings
-to fill the upcoming `DNSQuestion`'s `data` table.
+to fill the upcoming `DNSQuestion`'s `data` table, as well as a `requestorId`
+value to fill the upcoming `DNSQuestion`'s `requestorId` field.
 
 The tagged packetcache can e.g. be used to answer queries from cache that have
 e.g. been filtered for certain IPs (this logic should be implemented in the
