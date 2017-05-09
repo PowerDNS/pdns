@@ -808,7 +808,7 @@ try
       if(sendPacketFromPR(pr, remote, stamp))
         count++;
     } 
-    if(packetLimit && count > packetLimit) 
+    if(packetLimit && count >= packetLimit) 
       break;
 
     mental_time=packet_ts;
