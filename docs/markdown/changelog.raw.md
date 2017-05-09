@@ -16,6 +16,44 @@ the previous line.
 - [#5094](https://github.com/PowerDNS/pdns/pull/5094): make our zone parser adhere to RFC2308 wrt implicit TTLs and add test
 -->
 
+# PowerDNS Recursor 4.0.5
+Release Candidate released 19th of May 2017
+
+This release adds ed25519 (algorithm 15) support for DNSSEC and adds the 2017 DNSSEC root key. If you do DNSSEC validation, this upgrade is **mandatory** to continue validating after October 2017.
+
+## Bug fixes
+
+- [commit bdaa8ad](https://github.com/PowerDNS/pdns/commit/bdaa8ad): Only check the netmask for subnet specific cache entries
+- [commit 233e144](https://github.com/PowerDNS/pdns/commit/233e144): Fix a race condition when (re)priming the root
+- [commit 3642cb3](https://github.com/PowerDNS/pdns/commit/3642cb3): Don't age the root
+- [commit 83f9226](https://github.com/PowerDNS/pdns/commit/83f9226): Fix exception when sending a protobuf message for an empty question
+- [commit 86c4ed0](https://github.com/PowerDNS/pdns/commit/86c4ed0): Clear the RPZ NS IP table when clearing the policy
+- [commit ffdd813](https://github.com/PowerDNS/pdns/commit/ffdd813): LuaWrapper: Allow embedded NULs in strings received from Lua
+- [commit 5e660e9](https://github.com/PowerDNS/pdns/commit/5e660e9): Fix cache-only queries against a forward-zone
+- [commit c5ffd90](https://github.com/PowerDNS/pdns/commit/c5ffd90): Fix coredumps on illumos/SmartOS (Roman Dayneko)
+- [commit 651c0e9](https://github.com/PowerDNS/pdns/commit/651c0e9): StateHolder: Allocate (and copy if needed) before taking the lock
+- [commit 5bec36e](https://github.com/PowerDNS/pdns/commit/5bec36e): Make sure `labelsToAdd` is not empty in `getZoneCuts()`
+- [commit 547d68f](https://github.com/PowerDNS/pdns/commit/547d68f): SuffixMatchNode: Fix insertion issue for an existing node
+- [commit 2875033](https://github.com/PowerDNS/pdns/commit/2875033): rec: only delegate if NS's are below apex in auth-zones
+- [commit e7c183d](https://github.com/PowerDNS/pdns/commit/e7c183d): remove hardcoding of port 53 for TCP/IP forwarded zones in recursor, to address [ticket #4799](https://github.com/PowerDNS/pdns/issues/4799)
+- [commit af76224](https://github.com/PowerDNS/pdns/commit/af76224): Lowercase the TSIG algorithm name in hash computation
+- [commit 3ada4e2](https://github.com/PowerDNS/pdns/commit/3ada4e2): Fix negative port detection for IPv6 addresses on 32-bit
+- [commit 0f59e05](https://github.com/PowerDNS/pdns/commit/0f59e05): Wait until after daemonizing to start the outgoing protobuf thread
+
+## Additions and Enhancements
+
+- [commit 7705e1c](https://github.com/PowerDNS/pdns/commit/7705e1c): Add support for RPZ wildcarded target names
+- [commit 1909556](https://github.com/PowerDNS/pdns/commit/1909556): Add the 2017 root key
+- [commit dff1a11](https://github.com/PowerDNS/pdns/commit/dff1a11): Refuse to start with chroot set in a systemd env
+- [commit abfe671](https://github.com/PowerDNS/pdns/commit/abfe671) and [commit 7abbb2c](https://github.com/PowerDNS/pdns/commit/7abbb2c): Update Ed25519 [algorithm number and mnemonic](http://www.iana.org/assignments/dns-sec-alg-numbers/dns-sec-alg-numbers.xhtml) and hook up to the Recursor (Kees Monshouwer)
+- [commit a052d53](https://github.com/PowerDNS/pdns/commit/a052d53): Store the RPZ policies in an unordered_map instead of a map
+- [commit 5a38a56](https://github.com/PowerDNS/pdns/commit/5a38a56): Handle exceptions raised by `closesocket()`
+- [commit 064444d](https://github.com/PowerDNS/pdns/commit/064444d) and [commit ef43662](https://github.com/PowerDNS/pdns/commit/ef43662): Update the rec_control(1) manpage (phonedph1)
+- [commit 94e6e8a](https://github.com/PowerDNS/pdns/commit/94e6e8a): RPZ: log additions/removals at debug, not info
+- [commit b627731](https://github.com/PowerDNS/pdns/commit/b627731): Unconfuse the RPZ summary
+- [commit 502a850](https://github.com/PowerDNS/pdns/commit/502a850): g.root-servers.net added IPv6 (Kevin Otte)
+- [commit 7a2a645](https://github.com/PowerDNS/pdns/commit/7a2a645): Log outgoing queries / incoming responses via protobuf
+
 # PowerDNS Authoritative Server 4.0.3
 Released January 17th 2017
 
