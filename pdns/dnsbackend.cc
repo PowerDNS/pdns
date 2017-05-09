@@ -265,23 +265,13 @@ bool DNSBackend::getSOA(const DNSName &domain, SOAData &sd, DNSPacket *p)
 
 bool DNSBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonename, const DNSName& qname, DNSName& before, DNSName& after)
 {
-  // FIXME400 FIXME400 FIXME400
-  // string lcqname=toLower(qname); FIXME400 tolower?
-  // string lczonename=toLower(zonename); FIXME400 tolower?
-  // lcqname=makeRelative(lcqname, lczonename);
-  DNSName lczonename = DNSName(toLower(zonename.toString()));
-  // lcqname=labelReverse(lcqname);
-  DNSName dnc;
-  string relqname, sbefore, safter;
-  relqname=labelReverse(makeRelative(qname.toStringNoDot(), zonename.toStringNoDot())); // FIXME400
-  //sbefore = before.toString();
-  //safter = after.toString();
-  bool ret = this->getBeforeAndAfterNamesAbsolute(id, relqname, dnc, sbefore, safter);
-  before = DNSName(labelReverse(sbefore)) + lczonename;
-  after = DNSName(labelReverse(safter)) + lczonename;
+  DNSName unhashed;
+  string sbefore, safter;
+  string srelqname=qname.makeRelative(zonename).makeLowerCase().labelReverse().toString(" ", false);
 
-  // before=dotConcat(labelReverse(before), lczonename); FIXME400
-  // after=dotConcat(labelReverse(after), lczonename); FIXME400
+  bool ret = this->getBeforeAndAfterNamesAbsolute(id, srelqname, unhashed, sbefore, safter);
+  before = (DNSName(labelReverse(sbefore)) + zonename).makeLowerCase();
+  after = (DNSName(labelReverse(safter)) + zonename).makeLowerCase();
   return ret;
 }
 
