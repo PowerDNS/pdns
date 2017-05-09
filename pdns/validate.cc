@@ -24,6 +24,14 @@ static vector<shared_ptr<DNSKEYRecordContent > > getByTag(const skeyset_t& keys,
   return ret;
 }
 
+static bool isCoveredByNSEC3Hash(const std::string& h, const std::string& beginHash, const std::string& nextHash)
+{
+  return ((beginHash < h && h < nextHash) ||          // no wrap          BEGINNING --- HASH -- END
+          (nextHash > h  && beginHash > nextHash) ||  // wrap             HASH --- END --- BEGINNING
+          (nextHash < beginHash  && beginHash < h) || // wrap other case  END --- BEGINNING --- HASH
+          beginHash == nextHash);                     // "we have only 1 NSEC3 record, LOL!"
+}
+
 // FIXME: needs a zone argument, to avoid things like 6840 4.1
 // FIXME: Add ENT support
 // FIXME: Make usable for non-DS records and hook up to validateRecords (or another place)
@@ -75,7 +83,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
           continue;
 
         string h = hashQNameWithSalt(nsec3->d_salt, nsec3->d_iterations, qname);
-        //              cerr<<"Salt length: "<<nsec3->d_salt.length()<<", iterations: "<<nsec3->d_iterations<<", hashed: "<<*(zoneCutIter+1)<<endl;
+        //              cerr<<"Salt length: "<<nsec3->d_salt.length()<<", iterations: "<<nsec3->d_iterations<<", hashed: "<<qname<<endl;
         LOG("\tquery hash: "<<toBase32Hex(h)<<endl);
         string beginHash=fromBase32Hex(v.first.first.getRawLabels()[0]);
 
@@ -98,11 +106,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
         }
 
         /* check if the whole NAME does not exist */
-        if( ((beginHash < h && h < nsec3->d_nexthash) ||                   // no wrap          BEGINNING --- HASH -- END
-              (nsec3->d_nexthash > h  && beginHash > nsec3->d_nexthash) || // wrap             HASH --- END --- BEGINNING
-              (nsec3->d_nexthash < beginHash  && beginHash < h) ||         // wrap other case  END --- BEGINNING --- HASH
-              beginHash == nsec3->d_nexthash))                             // "we have only 1 NSEC3 record, LOL!"
-        {
+        if(isCoveredByNSEC3Hash(h, beginHash, nsec3->d_nexthash)) {
           LOG("Denies existence of name "<<qname<<"/"<<QType(qtype).getName());
           if (qtype == QType::DS && nsec3->d_flags & 1) {
             LOG(" but is opt-out!"<<endl);
@@ -116,6 +120,73 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
       }
     }
   }
+
+  /* check closest encloser */
+  LOG("Now looking for the closest encloser for "<<qname<<endl);
+  DNSName sname(qname);
+  bool found = false;
+
+  while (found == false && sname.chopOff()) {
+    for(const auto& v : validrrsets) {
+      if(v.first.second==QType::NSEC3) {
+        for(const auto& r : v.second.records) {
+          LOG("\t"<<r->getZoneRepresentation()<<endl);
+          auto nsec3 = std::dynamic_pointer_cast<NSEC3RecordContent>(r);
+          if(!nsec3)
+            continue;
+
+          string h = hashQNameWithSalt(nsec3->d_salt, nsec3->d_iterations, sname);
+          string beginHash=fromBase32Hex(v.first.first.getRawLabels()[0]);
+
+          LOG("Comparing "<<toBase32Hex(h)<<" against "<<toBase32Hex(beginHash)<<endl);
+          if(beginHash == h) {
+            LOG("Closest encloser for "<<qname<<" is "<<sname<<endl);
+            found = true;
+            break;
+          }
+        }
+      }
+      if (found == true) {
+        break;
+      }
+    }
+  }
+
+  if (found == true) {
+    /* we now need a NSEC3 RR covering the next closer name */
+    unsigned int labelIdx = qname.countLabels() - sname.countLabels();
+    if (labelIdx >= 1) {
+      DNSName nextCloser(sname);
+      nextCloser.prependRawLabel(qname.getRawLabel(labelIdx - 1));
+      LOG("Looking for a NSEC3 covering the next closer name "<<nextCloser<<endl);
+
+      for(const auto& v : validrrsets) {
+        if(v.first.second==QType::NSEC3) {
+          for(const auto& r : v.second.records) {
+            LOG("\t"<<r->getZoneRepresentation()<<endl);
+            auto nsec3 = std::dynamic_pointer_cast<NSEC3RecordContent>(r);
+            if(!nsec3)
+              continue;
+
+            string h = hashQNameWithSalt(nsec3->d_salt, nsec3->d_iterations, nextCloser);
+            string beginHash=fromBase32Hex(v.first.first.getRawLabels()[0]);
+
+            LOG("Comparing "<<toBase32Hex(h)<<" against "<<toBase32Hex(beginHash)<<endl);
+            if(isCoveredByNSEC3Hash(h, beginHash, nsec3->d_nexthash)) {
+              LOG("Denies existence of name "<<qname<<"/"<<QType(qtype).getName());
+              if (qtype == QType::DS && nsec3->d_flags & 1) {
+                LOG(" but is opt-out!"<<endl);
+                return OPTOUT;
+              }
+              LOG(endl);
+              return NXDOMAIN;
+            }
+          }
+        }
+      }
+    }
+  }
+
   // There were no valid NSEC(3) records
   // XXX maybe this should be INSECURE... it depends on the semantics of this function
   return NODATA;
@@ -166,7 +237,7 @@ static bool checkSignatureWithKey(time_t now, const shared_ptr<RRSIGRecordConten
       LOG("signature by key with tag "<<sig->d_tag<<" was " << (result ? "" : "NOT ")<<"valid"<<endl);
     }
     else {
-      LOG("Signature is "<<((sig->d_siginception >= now) ? "not yet valid" : "expired")<<endl);
+      LOG("Signature is "<<((sig->d_siginception >= now) ? "not yet valid" : "expired")<<" (inception: "<<sig->d_siginception<<", expiration: "<<sig->d_sigexpire<<", now: "<<now<<")"<<endl);
     }
   }
   catch(std::exception& e) {

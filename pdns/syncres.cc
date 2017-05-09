@@ -1393,7 +1393,7 @@ vState SyncRes::getValidationStatus(const DNSName& subdomain, unsigned int depth
   return Secure;
 }
 
-void SyncRes::updateValidationStatusAfterReferral(const DNSName& newauth, vState& state, unsigned int depth)
+void SyncRes::updateValidationStatusAfterReferral(const DNSName& oldauth, const DNSName& newauth, vState& state, unsigned int depth)
 {
   if (!validationEnabled()) {
     return;
@@ -1790,7 +1790,8 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         if (denialState == NXQTYPE || denialState == OPTOUT) {
           ne.d_validationState = Secure;
           rec.d_ttl = min(s_maxnegttl, rec.d_ttl);
-          LOG(prefix<<qname<<": got negative indication of DS record for '"<<newauth<<endl);
+          LOG(prefix<<qname<<": got negative indication of DS record for '"<<newauth<<"'"<<endl);
+          updateValidationState(state, Insecure);
           if(!wasVariable()) {
             t_sstorage.negcache.add(ne);
           }
@@ -2026,7 +2027,6 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
 
   if(realreferral) {
     LOG(prefix<<qname<<": status=did not resolve, got "<<(unsigned int)nsset.size()<<" NS, ");
-    auth=newauth;
 
     nameservers.clear();
     for (auto const &nameserver : nsset) {
@@ -2042,7 +2042,8 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
     }
     LOG("looping to them"<<endl);
     *gotNewServers = true;
-    updateValidationStatusAfterReferral(newauth, state, depth);
+    updateValidationStatusAfterReferral(auth, newauth, state, depth);
+    auth=newauth;
 
     return false;
   }
