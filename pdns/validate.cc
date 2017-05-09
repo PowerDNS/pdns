@@ -1,6 +1,7 @@
 #include "validate.hh"
 #include "misc.hh"
 #include "dnssecinfra.hh"
+#include "dnsseckeeper.hh"
 #include "rec-lua-conf.hh"
 #include "base32.hh"
 #include "logger.hh"
@@ -246,7 +247,7 @@ static bool checkSignatureWithKey(time_t now, const shared_ptr<RRSIGRecordConten
     if(sig->d_siginception < now && sig->d_sigexpire > now) {
       std::shared_ptr<DNSCryptoKeyEngine> dke = shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromPublicKeyString(key->d_algorithm, key->d_key));
       result = dke->verify(msg, sig->d_signature);
-      LOG("signature by key with tag "<<sig->d_tag<<" was " << (result ? "" : "NOT ")<<"valid"<<endl);
+      LOG("signature by key with tag "<<sig->d_tag<<" and algorithm "<<DNSSECKeeper::algorithm2name(sig->d_algorithm)<<" was " << (result ? "" : "NOT ")<<"valid"<<endl);
     }
     else {
       LOG("Signature is "<<((sig->d_siginception >= now) ? "not yet valid" : "expired")<<" (inception: "<<sig->d_siginception<<", expiration: "<<sig->d_sigexpire<<", now: "<<now<<")"<<endl);
@@ -268,7 +269,7 @@ bool validateWithKeySet(time_t now, const DNSName& name, const vector<shared_ptr
     auto r = getByTag(keys, signature->d_tag, signature->d_algorithm);
 
     if(r.empty()) {
-      LOG("No key provided for "<<signature->d_tag<<endl;);
+      LOG("No key provided for "<<signature->d_tag<<" and algorithm "<<std::to_string(signature->d_algorithm)<<endl;);
       continue;
     }
 
@@ -374,7 +375,7 @@ void validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& ds
   for(auto const& dsrc : dsmap)
   {
     auto r = getByTag(tkeys, dsrc.d_tag, dsrc.d_algorithm);
-    // cerr<<"looking at DS with tag "<<dsrc.d_tag<<", algo "<<std::to_string(dsrc.d_algorithm)<<", digest "<<std::to_string(dsrc.d_digesttype)<<" for "<<zone<<", got "<<r.size()<<" DNSKEYs for tag"<<endl;
+    // cerr<<"looking at DS with tag "<<dsrc.d_tag<<", algo "<<DNSSECKeeper::algorithm2name(dsrc.d_algorithm)<<", digest "<<std::to_string(dsrc.d_digesttype)<<" for "<<zone<<", got "<<r.size()<<" DNSKEYs for tag"<<endl;
 
     for(const auto& drc : r)
     {
@@ -391,7 +392,7 @@ void validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& ds
       }
 
       if(isValid) {
-        LOG("got valid DNSKEY (it matches the DS) with tag "<<dsrc.d_tag<<" for "<<zone<<endl);
+        LOG("got valid DNSKEY (it matches the DS) with tag "<<dsrc.d_tag<<" and algorithm "<<std::to_string(dsrc.d_algorithm)<<" for "<<zone<<endl);
 
         validkeys.insert(drc);
         dotNode("DS", zone, "" /*std::to_string(dsrc.d_tag)*/, (boost::format("tag=%d, digest algo=%d, algo=%d") % dsrc.d_tag % static_cast<int>(dsrc.d_digesttype) % static_cast<int>(dsrc.d_algorithm)).str());
@@ -541,7 +542,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, skeyset_t& keyset)
         auto drc=getRR<DNSKEYRecordContent> (rec);
         if(drc) {
           tkeys.insert(drc);
-          LOG("Inserting key with tag "<<drc->getTag()<<": "<<drc->getZoneRepresentation()<<endl);
+          LOG("Inserting key with tag "<<drc->getTag()<<" and algorithm "<<DNSSECKeeper::algorithm2name(drc->d_algorithm)<<": "<<drc->getZoneRepresentation()<<endl);
           //          dotNode("DNSKEY", *zoneCutIter, std::to_string(drc->getTag()), (boost::format("tag=%d, algo=%d") % drc->getTag() % static_cast<int>(drc->d_algorithm)).str());
 
           toSign.push_back(rec.d_content);
