@@ -28,3 +28,7 @@ Rcode: 3 (Non-Existent domain), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
 ==> host.lowercase-outgoing.example.net is served on ns.lowercase-outgoing.example.net, blocked by NS IP rule
 Reply to question for qname='host.lowercase-outgoing.example.net.', qtype=A
 Rcode: 3 (Non-Existent domain), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+==> echo-me.wildcard-target.example.net is an RPZ wildcard target
+Reply to question for qname='echo-me.wildcard-target.example.net.', qtype=A
+Rcode: 3 (Non-Existent domain), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+0	echo-me.wildcard-target.example.net.	IN	CNAME	0	echo-me.wildcard-target.example.net.walled-garden.example.net.

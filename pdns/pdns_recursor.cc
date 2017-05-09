@@ -829,12 +829,7 @@ void startDoResolve(void *p)
           case DNSFilterEngine::PolicyKind::Custom:
             g_stats.policyResults[appliedPolicy.d_kind]++;
             res=RCode::NoError;
-            spoofed.d_name=dc->d_mdp.d_qname;
-            spoofed.d_type=appliedPolicy.d_custom->getType();
-            spoofed.d_ttl = appliedPolicy.d_ttl;
-            spoofed.d_class = 1;
-            spoofed.d_content = appliedPolicy.d_custom;
-            spoofed.d_place = DNSResourceRecord::ANSWER;
+            spoofed=appliedPolicy.getCustomRecord(dc->d_mdp.d_qname);
             ret.push_back(spoofed);
             handleRPZCustom(spoofed, QType(dc->d_mdp.d_qtype), sr, res, ret);
             goto haveAnswer;
@@ -894,12 +889,7 @@ void startDoResolve(void *p)
           case DNSFilterEngine::PolicyKind::Custom:
             ret.clear();
             res=RCode::NoError;
-            spoofed.d_name=dc->d_mdp.d_qname;
-            spoofed.d_type=appliedPolicy.d_custom->getType();
-            spoofed.d_ttl = appliedPolicy.d_ttl;
-            spoofed.d_class = 1;
-            spoofed.d_content = appliedPolicy.d_custom;
-            spoofed.d_place = DNSResourceRecord::ANSWER;
+            spoofed=appliedPolicy.getCustomRecord(dc->d_mdp.d_qname);
             ret.push_back(spoofed);
             handleRPZCustom(spoofed, QType(dc->d_mdp.d_qtype), sr, res, ret);
             goto haveAnswer;
@@ -959,12 +949,7 @@ void startDoResolve(void *p)
           case DNSFilterEngine::PolicyKind::Custom:
             ret.clear();
             res=RCode::NoError;
-            spoofed.d_name=dc->d_mdp.d_qname;
-            spoofed.d_type=appliedPolicy.d_custom->getType();
-            spoofed.d_ttl = appliedPolicy.d_ttl;
-            spoofed.d_class = 1;
-            spoofed.d_content = appliedPolicy.d_custom;
-            spoofed.d_place = DNSResourceRecord::ANSWER;
+            spoofed=appliedPolicy.getCustomRecord(dc->d_mdp.d_qname);
             ret.push_back(spoofed);
             handleRPZCustom(spoofed, QType(dc->d_mdp.d_qtype), sr, res, ret);
             goto haveAnswer;
