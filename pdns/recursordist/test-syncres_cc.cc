@@ -1277,6 +1277,71 @@ BOOST_AUTO_TEST_CASE(test_root_nx_trust) {
   BOOST_CHECK_EQUAL(queriesCount, 1);
 }
 
+BOOST_AUTO_TEST_CASE(test_root_nx_trust_specific) {
+  std::unique_ptr<SyncRes> sr;
+  init();
+  initSR(sr, true, false);
+
+  primeHints();
+
+  const DNSName target1("powerdns.com.");
+  const DNSName target2("notpowerdns.com.");
+  const ComboAddress ns("192.0.2.1:53");
+  size_t queriesCount = 0;
+
+  /* This time the root denies target1 with a "com." SOA instead of a "." one.
+     We should add target1 to the negcache, but not "com.". */
+
+  sr->setAsyncCallback([target1, target2, ns, &queriesCount](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
+
+      queriesCount++;
+
+      if (isRootServer(ip)) {
+
+        if (domain == target1) {
+          setLWResult(res, RCode::NXDomain, true, false, true);
+          addRecordToLW(res, "com.", QType::SOA, "a.root-servers.net. nstld.verisign-grs.com. 2017032800 1800 900 604800 86400", DNSResourceRecord::AUTHORITY, 86400);
+        }
+        else {
+          setLWResult(res, 0, true, false, true);
+          addRecordToLW(res, domain, QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+          addRecordToLW(res, "a.gtld-servers.net.", QType::A, ns.toString(), DNSResourceRecord::ADDITIONAL, 3600);
+        }
+
+        return 1;
+      } else if (ip == ns) {
+
+        setLWResult(res, 0, true, false, false);
+        addRecordToLW(res, domain, QType::A, "192.0.2.2");
+
+        return 1;
+      }
+
+      return 0;
+    });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NXDomain);
+  BOOST_CHECK_EQUAL(ret.size(), 1);
+
+  /* even with root-nx-trust on and a NX answer from the root,
+     we should not have cached the entire TLD this time. */
+  BOOST_CHECK_EQUAL(t_sstorage->negcache.size(), 1);
+
+  ret.clear();
+  res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_REQUIRE(ret[0].d_type == QType::A);
+  BOOST_CHECK_EQUAL(ret[0].d_name, target2);
+  BOOST_CHECK(getRR<ARecordContent>(ret[0])->getCA() == ComboAddress("192.0.2.2"));
+
+  BOOST_CHECK_EQUAL(t_sstorage->negcache.size(), 1);
+
+  BOOST_CHECK_EQUAL(queriesCount, 3);
+}
+
 BOOST_AUTO_TEST_CASE(test_root_nx_dont_trust) {
   std::unique_ptr<SyncRes> sr;
   init();
