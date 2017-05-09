@@ -325,13 +325,21 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
 
     scoped_ptr<AuthLua> pdl;
     vector<string> scripts;
+    string script=::arg()["lua-axfr-script"];
     if(B.getDomainMetadata(domain, "LUA-AXFR-SCRIPT", scripts) && !scripts.empty()) {
+      if (pdns_iequals(scripts[0], "NONE")) {
+        script.clear();
+      } else {
+        script=scripts[0];
+      }
+    }
+    if(!script.empty()){
       try {
-        pdl.reset(new AuthLua(scripts[0]));
-        L<<Logger::Info<<"Loaded Lua script '"<<scripts[0]<<"' to edit the incoming AXFR of '"<<domain<<"'"<<endl;
+        pdl.reset(new AuthLua(script));
+        L<<Logger::Info<<"Loaded Lua script '"<<script<<"' to edit the incoming AXFR of '"<<domain<<"'"<<endl;
       }
       catch(std::exception& e) {
-        L<<Logger::Error<<"Failed to load Lua editing script '"<<scripts[0]<<"' for incoming AXFR of '"<<domain<<"': "<<e.what()<<endl;
+        L<<Logger::Error<<"Failed to load Lua editing script '"<<script<<"' for incoming AXFR of '"<<domain<<"': "<<e.what()<<endl;
         return;
       }
     }

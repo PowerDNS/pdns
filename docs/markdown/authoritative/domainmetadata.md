@@ -62,6 +62,8 @@ If set to 1, attempt IXFR when retrieving zone updates. Otherwise IXFR is not at
 
 ## LUA-AXFR-SCRIPT
 Script to be used to edit incoming AXFRs, see [Modifying a slave zone using a script](modes-of-operation.md#modifying-a-slave-zone-using-a-script).
+This value will override the [`lua-axfr-script`](settings.md#lua-axfr-scriptmaster) setting.
+Use 'NONE' to remove a global script.
 
 ## NSEC3NARROW
 Set to "1" to tell PowerDNS this zone operates in NSEC3 'narrow' mode. See
