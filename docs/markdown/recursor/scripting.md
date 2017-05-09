@@ -26,6 +26,7 @@ Queries can be intercepted in many places:
 * before the resolving logic starts to work (`preresolve`)
 * after the resolving process failed to find a correct answer for a domain (`nodata`, `nxdomain`)
 * after the whole process is done and an answer is ready for the client (`postresolve`)
+* after get the lists of authoritative server and is ready for outgoing query (`postgetns`)
 * before an outgoing query is made to an authoritative server (`preoutquery`)
 
 ## Configuring Lua scripts
@@ -100,6 +101,8 @@ The DNSQuestion object contains at least the following fields:
      * policyTTL: The TTL in seconds for the `pdns.policyactions.Custom` response
 * wantsRPZ - A boolean that indicates the use of the Policy Engine, can be set to `false` in `prerpz` to disable RPZ for this query
 * data - a Lua object reference that is persistent throughout the lifetime of the `dq` object for a single query. It can be used to store custom data. Most scripts initialise this to an empty table early on so they can store multiple items.
+* resetNS - reset outgoing NS server lists on postgetns
+* addNS - add new NS server for outgoing query
 
 It also supports the following methods:
 
@@ -218,6 +221,10 @@ answers which are not NXDOMAIN.
 ### `function nodata(dq)`
 is just like `nxdomain`, except it gets called when a domain exists, but the
 requested type does not.  This is where one would implement DNS64.
+
+### `function postgetns(dq)`
+This hook is call after outgoing query server lists is generated, Use to change the
+target for outging query server lists.
 
 ### `function preoutquery(dq)`
 This hook is not called in response to a client packet, but fires when the Recursor
@@ -497,6 +504,15 @@ function preresolve(dq)
     pdnslog("Not blocking our own domain!")
     dq.appliedPolicy.policyKind = pdns.policykinds.NoAction
   end
+end
+
+function postgetns(dq)
+    if dq.qname.toString() == "www.google.com" then
+        dq:resetNS()
+        dq:addNS(newCA("8.8.8.8:53"))
+        dq:addNS(newCA("8.8.4.4:53"))
+    end
+    return true
 end
 
 function postresolve(dq)

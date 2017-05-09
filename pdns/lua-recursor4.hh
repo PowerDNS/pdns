@@ -67,6 +67,7 @@ public:
     const std::vector<pair<uint16_t, string>>* ednsOptions{nullptr};
     const uint16_t* ednsFlags{nullptr};
     vector<DNSRecord>* currentRecords{nullptr};
+    vector<ComboAddress>* currentNSs{nullptr};
     DNSFilterEngine::Policy* appliedPolicy{nullptr};
     std::vector<std::string>* policyTags{nullptr};
     std::unordered_map<std::string,bool>* discardedPolicies{nullptr};
@@ -84,6 +85,9 @@ public:
     vector<string> getEDNSFlags() const;
     bool getEDNSFlag(string flag) const;
     void setRecords(const vector<pair<int,DNSRecord> >& records);
+    vector<pair<int,ComboAddress> > getNSs() const;
+    void resetNS();
+    void addNS(ComboAddress &addr);
 
     int rcode{0};
     // struct dnsheader, packet length would be great
@@ -109,6 +113,7 @@ public:
   bool nodata(DNSQuestion& dq, int& ret);
   bool postresolve(DNSQuestion& dq, int& ret);
 
+  bool postgetns(vector<ComboAddress>& nsList, const ComboAddress& requestor, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, int& ret);
   bool preoutquery(const ComboAddress& ns, const ComboAddress& requestor, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, int& ret);
   bool ipfilter(const ComboAddress& remote, const ComboAddress& local, const struct dnsheader&);
 
@@ -126,7 +131,7 @@ public:
 
 private:
   typedef std::function<bool(DNSQuestion*)> luacall_t;
-  luacall_t d_prerpz, d_preresolve, d_nxdomain, d_nodata, d_postresolve, d_preoutquery, d_postoutquery;
+  luacall_t d_prerpz, d_preresolve, d_nxdomain, d_nodata, d_postresolve, d_postgetns, d_preoutquery, d_postoutquery;
   bool genhook(luacall_t& func, DNSQuestion& dq, int& ret);
   typedef std::function<bool(ComboAddress,ComboAddress, struct dnsheader)> ipfilter_t;
   ipfilter_t d_ipfilter;

@@ -206,6 +206,7 @@ digraph {
     doResolveAt_retrieveAddressesForNS [label="SyncRes::retrieveAddressesForNS()", color=red];
     doResolveAt_nameserverIPBlockedByRPZ [label="SyncRes::nameserverIPBlockedByRPZ()", color=red];
     doResolveAt_Lua_preoutquery [label="Lua preoutquery", color=red];
+    doResolveAt_Lua_postgetns [label="Lua postgetns", color=red];
     doResolveAt_asyncresolveWrapper [label="SyncRes::asyncresolveWrapper()", color=red];
     doResolveAt_processRecords [label="SyncRes::processRecords()", color=red];
     doResolveAt_doResolve [label="SyncRes::doResolve()", color=red];
@@ -243,6 +244,7 @@ digraph {
     "Get IP from IPs" -> doResolveAt_ImmediateServFailException [label="Too many queries sent while resolving"];
     "Get IP from IPs" -> doResolveAt_ImmediateServFailException [label="Resolving took too long"];
     "Get IP from IPs" -> doResolveAt_mainloop_continue [label="No IP address worked"];
+    "Get IP from IPs" -> doResolveAt_Lua_postgetns;
     "Get IP from IPs" -> doResolveAt_Lua_preoutquery;
 
     doResolveAt_Lua_preoutquery -> "Check resolveret" [label="true"];

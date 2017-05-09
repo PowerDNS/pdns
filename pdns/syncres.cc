@@ -1371,6 +1371,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
       bool doTCP=false;
       bool pierceDontQuery=false;
       bool sendRDQuery=false;
+      int postgetnsret;
       boost::optional<Netmask> ednsmask;
       LWResult lwr;
       if(tns->empty() && nameservers[*tns].first.empty() ) {
@@ -1382,6 +1383,9 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
       else {
         remoteIPs = retrieveAddressesForNS(prefix, qname, tns, depth, beenthere, rnameservers, nameservers, sendRDQuery, pierceDontQuery, flawedNSSet);
 
+	    if(d_pdl && d_pdl->postgetns(remoteIPs, d_requestor, qname, qtype, doTCP, lwr.d_records, postgetnsret)) {
+		  LOG(prefix<<qname<<": query handled by Lua"<<endl);
+	    }
         if(remoteIPs.empty()) {
           LOG(prefix<<qname<<": Failed to get IP for NS "<<*tns<<", trying next if available"<<endl);
           flawedNSSet=true;
