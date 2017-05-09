@@ -33,4 +33,21 @@ public:
   gSQLite3Backend( const std::string & mode, const std::string & suffix );
 };
 
+
+class gSQLite3Factory : public BackendFactory
+{
+public:
+  //! Constructor.
+  gSQLite3Factory( const std::string & mode );
+  //! Declares all needed arguments.
+  void declareArguments( const std::string & suffix = "" );
+
+  //! Constructs a new gSQLite3Backend object.
+  DNSBackend *make( const string & suffix = "" );
+
+private:
+  const string d_mode;
+};
+
+
 #endif // GSQLITEBACKEND_HH
