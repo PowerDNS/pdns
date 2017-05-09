@@ -58,7 +58,7 @@ static Netmask makeNetmaskFromRPZ(const DNSName& name)
   return Netmask(v6);
 }
 
-void RPZRecordToPolicy(const DNSRecord& dr, DNSFilterEngine& target, bool addOrRemove, boost::optional<DNSFilterEngine::Policy> defpol, uint32_t maxTTL, size_t place)
+void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngine::Zone> zone, bool addOrRemove, boost::optional<DNSFilterEngine::Policy> defpol, uint32_t maxTTL)
 {
   static const DNSName drop("rpz-drop."), truncate("rpz-tcp-only."), noaction("rpz-passthru.");
   static const DNSName rpzClientIP("rpz-client-ip"), rpzIP("rpz-ip"),
@@ -140,43 +140,43 @@ void RPZRecordToPolicy(const DNSRecord& dr, DNSFilterEngine& target, bool addOrR
   if(dr.d_name.isPartOf(rpzNSDname)) {
     DNSName filt=dr.d_name.makeRelative(rpzNSDname);
     if(addOrRemove)
-      target.addNSTrigger(filt, pol, place);
+      zone->addNSTrigger(filt, pol);
     else
-      target.rmNSTrigger(filt, pol, place);
+      zone->rmNSTrigger(filt, pol);
   } else 	if(dr.d_name.isPartOf(rpzClientIP)) {
     DNSName filt=dr.d_name.makeRelative(rpzClientIP);
     auto nm=makeNetmaskFromRPZ(filt);
     if(addOrRemove)
-      target.addClientTrigger(nm, pol, place);
+      zone->addClientTrigger(nm, pol);
     else
-      target.rmClientTrigger(nm, pol, place);
+      zone->rmClientTrigger(nm, pol);
     
   } else 	if(dr.d_name.isPartOf(rpzIP)) {
     // cerr<<"Should apply answer content IP policy: "<<dr.d_name<<endl;
     DNSName filt=dr.d_name.makeRelative(rpzIP);
     auto nm=makeNetmaskFromRPZ(filt);
     if(addOrRemove)
-      target.addResponseTrigger(nm, pol, place);
+      zone->addResponseTrigger(nm, pol);
     else
-      target.rmResponseTrigger(nm, pol, place);
+      zone->rmResponseTrigger(nm, pol);
   } else if(dr.d_name.isPartOf(rpzNSIP)) {
     DNSName filt=dr.d_name.makeRelative(rpzNSIP);
     auto nm=makeNetmaskFromRPZ(filt);
     if(addOrRemove)
-      target.addNSIPTrigger(nm, pol, place);
+      zone->addNSIPTrigger(nm, pol);
     else
-      target.rmNSIPTrigger(nm, pol, place);
+      zone->rmNSIPTrigger(nm, pol);
   } else {
     if(addOrRemove)
-      target.addQNameTrigger(dr.d_name, pol, place);
+      zone->addQNameTrigger(dr.d_name, pol);
     else
-      target.rmQNameTrigger(dr.d_name, pol, place);
+      zone->rmQNameTrigger(dr.d_name, pol);
   }
 }
 
-shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const DNSName& zone, DNSFilterEngine& target, boost::optional<DNSFilterEngine::Policy> defpol, uint32_t maxTTL, size_t place, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress)
+shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const DNSName& zoneName, std::shared_ptr<DNSFilterEngine::Zone> zone, boost::optional<DNSFilterEngine::Policy> defpol, uint32_t maxTTL, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress)
 {
-  L<<Logger::Warning<<"Loading RPZ zone '"<<zone<<"' from "<<master.toStringWithPort()<<endl;
+  L<<Logger::Warning<<"Loading RPZ zone '"<<zoneName<<"' from "<<master.toStringWithPort()<<endl;
   if(!tt.name.empty())
     L<<Logger::Warning<<"With TSIG key '"<<tt.name<<"' of algorithm '"<<tt.algo<<"'"<<endl;
 
@@ -184,7 +184,7 @@ shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const
   if (local == ComboAddress())
     local = getQueryLocalAddress(master.sin4.sin_family, 0);
 
-  AXFRRetriever axfr(master, zone, tt, &local, maxReceivedBytes);
+  AXFRRetriever axfr(master, zoneName, tt, &local, maxReceivedBytes);
   unsigned int nrecords=0;
   Resolver::res_t nop;
   vector<DNSRecord> chunk;
@@ -196,13 +196,13 @@ shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const
 	continue;
       }
 
-      dr.d_name.makeUsRelative(zone);
+      dr.d_name.makeUsRelative(zoneName);
       if(dr.d_type==QType::SOA) {
 	sr = getRR<SOARecordContent>(dr);
 	continue;
       }
 
-      RPZRecordToPolicy(dr, target, true, defpol, maxTTL, place);
+      RPZRecordToPolicy(dr, zone, true, defpol, maxTTL);
       nrecords++;
     } 
     if(last != time(0)) {
@@ -215,7 +215,7 @@ shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const
 }
 
 // this function is silent - you do the logging
-int loadRPZFromFile(const std::string& fname, DNSFilterEngine& target, boost::optional<DNSFilterEngine::Policy> defpol, uint32_t maxTTL, size_t place)
+void loadRPZFromFile(const std::string& fname, std::shared_ptr<DNSFilterEngine::Zone> zone, boost::optional<DNSFilterEngine::Policy> defpol, uint32_t maxTTL)
 {
   ZoneParserTNG zpt(fname);
   DNSResourceRecord drr;
@@ -233,13 +233,11 @@ int loadRPZFromFile(const std::string& fname, DNSFilterEngine& target, boost::op
       }
       else {
 	dr.d_name=dr.d_name.makeRelative(domain);
-	RPZRecordToPolicy(dr, target, true, defpol, maxTTL, place);
+	RPZRecordToPolicy(dr, zone, true, defpol, maxTTL);
       }
     }
     catch(PDNSException& pe) {
       throw PDNSException("Issue parsing '"+drr.qname.toString()+"' '"+drr.content+"' at "+zpt.getLineOfFile()+": "+pe.reason);
     }
   }
-  
-  return place;
 }
