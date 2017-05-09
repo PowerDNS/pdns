@@ -52,12 +52,12 @@ DNSCryptoKeyEngine::storvector_t SodiumED25519DNSCryptoKeyEngine::convertToISCVe
 {
   /*
     Private-key-format: v1.2
-    Algorithm: 250 (ED25519SHA512)
+    Algorithm: 15 (ED25519)
     PrivateKey: GU6SnQ/Ou+xC5RumuIUIuJZteXT2z0O/ok1s38Et6mQ=
   */
 
   storvector_t storvector;
-  string algorithm = "250 (ED25519SHA512)";
+  string algorithm = "15 (ED25519)";
 
   storvector.push_back(make_pair("Algorithm", algorithm));
 
@@ -70,7 +70,7 @@ void SodiumED25519DNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::
 {
   /*
     Private-key-format: v1.2
-    Algorithm: 250 (ED25519SHA512)
+    Algorithm: 15 (ED25519)
     PrivateKey: GU6SnQ/Ou+xC5RumuIUIuJZteXT2z0O/ok1s38Et6mQ=
   */
 
@@ -146,7 +146,7 @@ struct LoaderSodiumStruct
 {
   LoaderSodiumStruct()
   {
-    DNSCryptoKeyEngine::report(250, &SodiumED25519DNSCryptoKeyEngine::maker);
+    DNSCryptoKeyEngine::report(15, &SodiumED25519DNSCryptoKeyEngine::maker);
   }
 } loadersodium;
 }
