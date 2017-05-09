@@ -5,6 +5,7 @@
 #include "base32.hh"
 #include "logger.hh"
 bool g_dnssecLOG{false};
+uint16_t g_maxNSEC3Iterations{0};
 
 #define LOG(x) if(g_dnssecLOG) { L <<Logger::Warning << x; }
 void dotEdge(DNSName zone, string type1, DNSName name1, string tag1, string type2, DNSName name2, string tag2, string color="");
@@ -82,6 +83,10 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
         if(!nsec3)
           continue;
 
+        if (g_maxNSEC3Iterations && nsec3->d_iterations > g_maxNSEC3Iterations) {
+          return INSECURE;
+        }
+
         string h = hashQNameWithSalt(nsec3->d_salt, nsec3->d_iterations, qname);
         //              cerr<<"Salt length: "<<nsec3->d_salt.length()<<", iterations: "<<nsec3->d_iterations<<", hashed: "<<qname<<endl;
         LOG("\tquery hash: "<<toBase32Hex(h)<<endl);
@@ -135,6 +140,10 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
           if(!nsec3)
             continue;
 
+          if (g_maxNSEC3Iterations && nsec3->d_iterations > g_maxNSEC3Iterations) {
+            return INSECURE;
+          }
+
           string h = hashQNameWithSalt(nsec3->d_salt, nsec3->d_iterations, sname);
           string beginHash=fromBase32Hex(v.first.first.getRawLabels()[0]);
 
@@ -167,6 +176,9 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
             auto nsec3 = std::dynamic_pointer_cast<NSEC3RecordContent>(r);
             if(!nsec3)
               continue;
+            if (g_maxNSEC3Iterations && nsec3->d_iterations > g_maxNSEC3Iterations) {
+              return INSECURE;
+            }
 
             string h = hashQNameWithSalt(nsec3->d_salt, nsec3->d_iterations, nextCloser);
             string beginHash=fromBase32Hex(v.first.first.getRawLabels()[0]);

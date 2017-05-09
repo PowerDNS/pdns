@@ -721,6 +721,14 @@ to continue serving your customers. Can be set at runtime using
 
 Number of milliseconds to wait for a remote authoritative server to respond.
 
+## `nsec3-max-iterations`
+* Integer
+* Default: 2500
+* Available since: 4.1
+
+Maximum number of iterations allowed for an NSEC3 record. If an answer containing an NSEC3 record
+with more iterations is received, its DNSSEC validation status is treated as Insecure.
+
 ## `packetcache-ttl`
 * Integer
 * Default: 3600

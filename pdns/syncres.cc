@@ -1696,6 +1696,10 @@ void SyncRes::getDenialValidationState(NegCache::NegCacheEntry& ne, vState& stat
         updateValidationState(state, Insecure);
         return;
       }
+      else if (res == INSECURE) {
+        LOG("Insecure denial found for "<<ne.d_name<<", retuning Insecure"<<endl);
+        ne.d_validationState = Insecure;
+      }
       else {
         LOG("Invalid denial found for "<<ne.d_name<<", retuning Bogus"<<endl);
         ne.d_validationState = Bogus;
@@ -1787,7 +1791,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         harvestNXRecords(lwr.d_records, ne);
         cspmap_t csp = harvestCSPFromNE(ne);
         dState denialState = getDenial(csp, newauth, QType::DS);
-        if (denialState == NXQTYPE || denialState == OPTOUT) {
+        if (denialState == NXQTYPE || denialState == OPTOUT || denialState == INSECURE) {
           ne.d_validationState = Secure;
           rec.d_ttl = min(s_maxnegttl, rec.d_ttl);
           LOG(prefix<<qname<<": got negative indication of DS record for '"<<newauth<<"'"<<endl);

@@ -28,6 +28,7 @@
 #include "dnsrecords.hh"
  
 extern bool g_dnssecLOG;
+extern uint16_t g_maxNSEC3Iterations;
 
 // 4033 5
 enum vState { Indeterminate, Bogus, Insecure, Secure, NTA, TA };
