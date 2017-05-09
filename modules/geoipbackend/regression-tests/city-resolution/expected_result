@@ -1,0 +1,12 @@
+0	city.geo.example.com.	IN	A	30	127.0.1.1
+2	.	IN	OPT	0	AAgACAABICB/AAAB
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='city.geo.example.com.', qtype=A
+0	city.geo.example.com.	IN	A	30	127.0.2.1
+2	.	IN	OPT	0	AAgACAABICB/AAAC
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='city.geo.example.com.', qtype=A
+0	city.geo.example.com.	IN	A	30	127.0.3.1
+2	.	IN	OPT	0	AAgACAABICB/AAAD
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='city.geo.example.com.', qtype=A
