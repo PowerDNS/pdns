@@ -87,6 +87,7 @@ public:
       d_qpolAddr.clear();
       d_postpolAddr.clear();
       d_propolName.clear();
+      d_propolNSAddr.clear();
       d_qpolName.clear();
     }
     void reserve(size_t entriesCount)
