@@ -343,6 +343,7 @@ RecursorLua4::RecursorLua4(const std::string& fname)
 
   d_lw->registerMember("rcode", &DNSQuestion::rcode);
   d_lw->registerMember("tag", &DNSQuestion::tag);
+  d_lw->registerMember("requestorId", &DNSQuestion::requestorId);
   d_lw->registerMember("followupFunction", &DNSQuestion::followupFunction);
   d_lw->registerMember("followupPrefix", &DNSQuestion::followupPrefix);
   d_lw->registerMember("followupName", &DNSQuestion::followupName);
@@ -587,10 +588,10 @@ bool RecursorLua4::ipfilter(const ComboAddress& remote, const ComboAddress& loca
   return false; // don't block
 }
 
-unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const std::map<uint16_t, EDNSOptionView>& ednsOptions)
+unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const std::map<uint16_t, EDNSOptionView>& ednsOptions, bool tcp, std::string& requestorId)
 {
   if(d_gettag) {
-    auto ret = d_gettag(remote, ednssubnet, local, qname, qtype, ednsOptions);
+    auto ret = d_gettag(remote, ednssubnet, local, qname, qtype, ednsOptions, tcp);
 
     if (policyTags) {
       const auto& tags = std::get<1>(ret);
@@ -603,6 +604,10 @@ unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& edn
     const auto dataret = std::get<2>(ret);
     if (dataret) {
       data = *dataret;
+    }
+    const auto reqIdret = std::get<3>(ret);
+    if (reqIdret) {
+      requestorId = *reqIdret;
     }
     return std::get<0>(ret);
   }

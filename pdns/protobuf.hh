@@ -68,6 +68,7 @@ public:
   void setRequestor(const ComboAddress& requestor);
   void setResponder(const std::string& responder);
   void setResponder(const ComboAddress& responder);
+  void setRequestorId(const std::string& requestorId);
   std::string toDebugString() const;
 
 #ifdef HAVE_PROTOBUF

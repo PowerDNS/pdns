@@ -100,6 +100,7 @@ The DNSQuestion object contains at least the following fields:
      * policyTTL: The TTL in seconds for the `pdns.policyactions.Custom` response
 * wantsRPZ - A boolean that indicates the use of the Policy Engine, can be set to `false` in `prerpz` to disable RPZ for this query
 * data - a Lua object reference that is persistent throughout the lifetime of the `dq` object for a single query. It can be used to store custom data. Most scripts initialise this to an empty table early on so they can store multiple items.
+* requestorId - a string that will be used to set the `requestorId` field in protobuf messages (introduced in 4.1).
 
 It also supports the following methods:
 
@@ -153,7 +154,7 @@ end
 This hook does not get the full DNSQuestion object, since filling out the fields
 would require packet parsing, which is what we are trying to prevent with `ipfilter`.
 
-### `function gettag(remote, ednssubnet, local, qname, qtype, ednsoptions)`
+### `function gettag(remote, ednssubnet, local, qname, qtype, ednsoptions, tcp)`
 The `gettag` function is invoked when the Recursor attempts to discover in which
 packetcache an answer is available.
 
@@ -162,7 +163,8 @@ In addition to this integer, this function can return a table of policy tags.
 The resulting tag number can be accessed via `dq.tag` in the `preresolve` hook,
 and the policy tags via `dq:getPolicyTags()` in every hook.
 Starting with 4.1.0, it can also return a table whose keys and values are strings
-to fill the upcoming `DNSQuestion`'s `data` table.
+to fill the upcoming `DNSQuestion`'s `data` table, as well as a `requestorId`
+value to fill the upcoming `DNSQuestion`'s `requestorId` field.
 
 The tagged packetcache can e.g. be used to answer queries from cache that have
 e.g. been filtered for certain IPs (this logic should be implemented in the
@@ -174,6 +176,9 @@ through the entire Lua script.
 `EDNSOptionView` objects, with the EDNS option content size in the `size` member
 and the content accessible as a NULL-safe string object via `getContent()`.
 This table is empty unless the `gettag-needs-edns-options` parameter is set.
+
+The `tcp` value (added in 4.1) is a boolean indicating whether the query was
+received over `UDP` (false) or `TCP` (true).
 
 ### `function prerpz(dq)`
 
