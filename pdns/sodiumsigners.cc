@@ -11,23 +11,23 @@ class SodiumED25519DNSCryptoKeyEngine : public DNSCryptoKeyEngine
 public:
   explicit SodiumED25519DNSCryptoKeyEngine(unsigned int algo) : DNSCryptoKeyEngine(algo)
   {}
-  string getName() const { return "Sodium ED25519"; }
-  void create(unsigned int bits);
-  storvector_t convertToISCVector() const;
-  std::string getPubKeyHash() const;
-  std::string sign(const std::string& hash) const;
-  std::string hash(const std::string& hash) const;
-  bool verify(const std::string& msg, const std::string& signature) const;
-  std::string getPublicKeyString() const;
-  int getBits() const;
-  void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap);
-  void fromPublicKeyString(const std::string& content);
-  void fromPEMString(DNSKEYRecordContent& drc, const std::string& raw)
+  string getName() const override { return "Sodium ED25519"; }
+  void create(unsigned int bits) override;
+  storvector_t convertToISCVector() const override;
+  std::string getPubKeyHash() const override;
+  std::string sign(const std::string& hash) const override;
+  std::string hash(const std::string& hash) const override;
+  bool verify(const std::string& msg, const std::string& signature) const override;
+  std::string getPublicKeyString() const override;
+  int getBits() const override;
+  void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap) override;
+  void fromPublicKeyString(const std::string& content) override;
+  void fromPEMString(DNSKEYRecordContent& drc, const std::string& raw) override
   {}
 
-  static DNSCryptoKeyEngine* maker(unsigned int algorithm)
+  static std::shared_ptr<DNSCryptoKeyEngine> maker(unsigned int algorithm)
   {
-    return new SodiumED25519DNSCryptoKeyEngine(algorithm);
+    return std::make_shared<SodiumED25519DNSCryptoKeyEngine>(algorithm);
   }
 
 private:

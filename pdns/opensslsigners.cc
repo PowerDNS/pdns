@@ -197,9 +197,9 @@ public:
   void fromPublicKeyString(const std::string& content) override;
   bool checkKey() const override;
 
-  static DNSCryptoKeyEngine* maker(unsigned int algorithm)
+  static std::shared_ptr<DNSCryptoKeyEngine> maker(unsigned int algorithm)
   {
-    return new OpenSSLRSADNSCryptoKeyEngine(algorithm);
+    return std::make_shared<OpenSSLRSADNSCryptoKeyEngine>(algorithm);
   }
 
 private:
@@ -630,9 +630,9 @@ public:
   void fromPublicKeyString(const std::string& content) override;
   bool checkKey() const override;
 
-  static DNSCryptoKeyEngine* maker(unsigned int algorithm)
+  static std::shared_ptr<DNSCryptoKeyEngine> maker(unsigned int algorithm)
   {
-    return new OpenSSLECDSADNSCryptoKeyEngine(algorithm);
+    return std::make_shared<OpenSSLECDSADNSCryptoKeyEngine>(algorithm);
   }
 
 private:
