@@ -65,12 +65,11 @@ int UnixsocketConnector::send_message(const Json& input) {
 }
 
 int UnixsocketConnector::recv_message(Json& output) {
-  int rv,nread;
+  int rv;
   std::string s_output,err;
 
   struct timeval t0,t;
 
-  nread = 0;
   gettimeofday(&t0, NULL);
   memcpy(&t,&t0,sizeof(t0));
   s_output = "";       
@@ -84,16 +83,11 @@ int UnixsocketConnector::recv_message(Json& output) {
       continue;
     }
 
-    std::string temp;
-    temp.clear();
-
-    rv = this->read(temp);
+    rv = this->read(s_output);
     if (rv == -1) 
       return -1;
 
     if (rv>0) {
-      nread += rv;
-      s_output.append(temp);
       // see if it can be parsed
       output = Json::parse(s_output, err);
       if (output != nullptr) return s_output.size();
@@ -128,25 +122,22 @@ ssize_t UnixsocketConnector::read(std::string &data) {
 }
 
 ssize_t UnixsocketConnector::write(const std::string &data) {
-  ssize_t nwrite, nbuf;
-  size_t pos;
-  char buf[1500];
+  size_t pos = 0;
 
   reconnect();
   if (!connected) return -1;
-  pos = 0;
-  nwrite = 0;
+
   while(pos < data.size()) {
-    nbuf = data.copy(buf, sizeof buf, pos); // copy data and write
-    nwrite = ::write(fd, buf, nbuf);
-    pos = pos + sizeof(buf);
-    if (nwrite < 1) {
+    ssize_t written = ::write(fd, &data.at(pos), data.size() - pos);
+    if (written < 1) {
       connected = false;
       close(fd);
       return -1;
+    } else {
+      pos = pos + static_cast<size_t>(written);
     }
   }
-  return nwrite;
+  return pos;
 }
 
 void UnixsocketConnector::reconnect() {
