@@ -34,7 +34,7 @@ unsigned int MemRecursorCache::bytes()
 }
 
 // returns -1 for no hits
-int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt, bool requireAuth, vector<DNSRecord>* res, const ComboAddress& who, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, bool* variable, vState* state)
+int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt, bool requireAuth, vector<DNSRecord>* res, const ComboAddress& who, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, vState* state)
 {
   time_t ttd=0;
   //  cerr<<"looking up "<< qname<<"|"+qt.getName()<<"\n";
@@ -80,6 +80,10 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
       
 	if(signatures)  // if you do an ANY lookup you are hosed XXXX
 	  *signatures=i->d_signatures;
+
+	if(authorityRecs)  // if you do an ANY lookup you are hosed here too XXXX
+	  *authorityRecs=i->d_authorityRecs;
+
         if(res) {
           if(res->empty())
             moveCacheItemToFront(d_cache, i);
@@ -130,7 +134,7 @@ bool MemRecursorCache::attemptToRefreshNSTTL(const QType& qt, const vector<DNSRe
   return true;
 }
 
-void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt,  const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, bool auth, boost::optional<Netmask> ednsmask, vState state)
+void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt,  const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, boost::optional<Netmask> ednsmask, vState state)
 {
   d_cachecachevalid=false;
   cache_t::iterator stored;
@@ -146,6 +150,7 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
   CacheEntry ce=*stored; // this is a COPY
   ce.d_qtype=qt.getCode();
   ce.d_signatures=signatures;
+  ce.d_authorityRecs=authorityRecs;
   ce.d_state=state;
   
   //  cerr<<"asked to store "<< (qname.empty() ? "EMPTY" : qname.toString()) <<"|"+qt.getName()<<" -> '";

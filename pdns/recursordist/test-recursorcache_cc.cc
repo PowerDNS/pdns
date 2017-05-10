@@ -16,11 +16,12 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple) {
   MemRecursorCache MRC;
 
   std::vector<DNSRecord> records;
+  std::vector<std::shared_ptr<DNSRecord>> authRecords;
   std::vector<std::shared_ptr<RRSIGRecordContent>> signatures;
   time_t now = time(nullptr);
 
   BOOST_CHECK_EQUAL(MRC.size(), 0);
-  MRC.replace(now, DNSName("hello"), QType(QType::A), records, signatures, true, boost::none);
+  MRC.replace(now, DNSName("hello"), QType(QType::A), records, signatures, authRecords, true, boost::none);
   BOOST_CHECK_EQUAL(MRC.size(), 1);
   BOOST_CHECK_GT(MRC.bytes(), 1);
   BOOST_CHECK_EQUAL(MRC.doWipeCache(DNSName("hello"), false, QType::A), 1);
@@ -33,10 +34,10 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple) {
       DNSName a = DNSName("hello ")+DNSName(std::to_string(counter));
       BOOST_CHECK_EQUAL(DNSName(a.toString()), a);
 
-      MRC.replace(now, a, QType(QType::A), records, signatures, true, boost::none);
+      MRC.replace(now, a, QType(QType::A), records, signatures, authRecords, true, boost::none);
       if(!MRC.doWipeCache(a, false))
 	BOOST_FAIL("Could not remove entry we just added to the cache!");
-      MRC.replace(now, a, QType(QType::A), records, signatures, true, boost::none);
+      MRC.replace(now, a, QType(QType::A), records, signatures, authRecords, true, boost::none);
     }
 
     BOOST_CHECK_EQUAL(MRC.size(), counter);
@@ -88,7 +89,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple) {
 
     // insert a subnet specific entry
     records.push_back(dr1);
-    MRC.replace(now, power, QType(QType::AAAA), records, signatures, true, boost::optional<Netmask>("192.0.2.1/25"));
+    MRC.replace(now, power, QType(QType::AAAA), records, signatures, authRecords, true, boost::optional<Netmask>("192.0.2.1/25"));
     BOOST_CHECK_EQUAL(MRC.size(), 1);
 
     retrieved.clear();
@@ -109,7 +110,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple) {
     // insert a NON-subnet specific entry
     records.clear();
     records.push_back(dr2);
-    MRC.replace(now, power, QType(QType::A), records, signatures, true, boost::none);
+    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, boost::none);
     BOOST_CHECK_EQUAL(MRC.size(), 1);
 
     // NON-subnet specific should always be returned
@@ -121,14 +122,14 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple) {
     // insert a subnet specific entry for the same name but a different QType
     records.clear();
     records.push_back(dr1);
-    MRC.replace(now, power, QType(QType::AAAA), records, signatures, true, boost::optional<Netmask>("192.0.2.1/25"));
+    MRC.replace(now, power, QType(QType::AAAA), records, signatures, authRecords, true, boost::optional<Netmask>("192.0.2.1/25"));
     // we should not have replaced the existing entry
     BOOST_CHECK_EQUAL(MRC.size(), 2);
 
     // insert a TXT one, we will use that later
     records.clear();
     records.push_back(dr1);
-    MRC.replace(now, power, QType(QType::TXT), records, signatures, true, boost::none);
+    MRC.replace(now, power, QType(QType::TXT), records, signatures, authRecords, true, boost::none);
     // we should not have replaced any existing entry
     BOOST_CHECK_EQUAL(MRC.size(), 3);
 
@@ -212,7 +213,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple) {
 
     // insert auth record
     records.push_back(dr2);
-    MRC.replace(now, power, QType(QType::A), records, signatures, true, boost::none);
+    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, boost::none);
     BOOST_CHECK_EQUAL(MRC.size(), 1);
     BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("127.0.0.1"), nullptr), (ttd-now));
     BOOST_CHECK_EQUAL(retrieved.size(), 1);
@@ -234,14 +235,14 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple) {
     records.push_back(dr3);
 
     // non-auth should not replace valid auth
-    MRC.replace(now, power, QType(QType::A), records, signatures, false, boost::none);
+    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, false, boost::none);
     BOOST_CHECK_EQUAL(MRC.size(), 1);
     BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("127.0.0.1"), nullptr), (ttd-now));
     BOOST_REQUIRE_EQUAL(retrieved.size(), 1);
     BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr2Content.toString());
 
     // but non-auth _should_ replace expired auth
-    MRC.replace(ttd + 1, power, QType(QType::A), records, signatures, false, boost::none);
+    MRC.replace(ttd + 1, power, QType(QType::A), records, signatures, authRecords, false, boost::none);
     BOOST_CHECK_EQUAL(MRC.size(), 1);
     BOOST_CHECK_EQUAL(MRC.get(ttd + 1, power, QType(QType::A), false, &retrieved, ComboAddress("127.0.0.1"), nullptr), (dr3.d_ttl - (ttd + 1)));
     BOOST_REQUIRE_EQUAL(retrieved.size(), 1);
@@ -250,7 +251,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple) {
     // auth should replace non-auth
     records.clear();
     records.push_back(dr2);
-    MRC.replace(now, power, QType(QType::A), records, signatures, false, boost::none);
+    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, false, boost::none);
     BOOST_CHECK_EQUAL(MRC.size(), 1);
     BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("127.0.0.1"), nullptr), (ttd-now));
     BOOST_REQUIRE_EQUAL(retrieved.size(), 1);
