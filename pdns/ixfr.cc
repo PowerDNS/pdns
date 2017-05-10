@@ -104,7 +104,7 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > > getIXFRDeltas(const ComboAd
     }
 
     for(auto& r: mdp.d_answers) {
-      if(r.first.d_type == QType::TSIG) 
+      if(r.first.d_type == QType::NS || r.first.d_type == QType::TSIG) 
         continue;
       //      cout<<r.first.d_name<< " " <<r.first.d_content->getZoneRepresentation()<<endl;
       r.first.d_name = r.first.d_name.makeRelative(zone);
