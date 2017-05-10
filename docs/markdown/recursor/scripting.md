@@ -377,7 +377,7 @@ output and weird results.
 
 ### Statistics
 
-You can retrieve statistics from Lua using the `getStat("name")` call. For example,
+Since 4.1.0, statistics can be retrieved from Lua using the `getStat("name")` call. For example,
 to retrieve the number of cache misses:
 
 ```
