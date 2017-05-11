@@ -1351,7 +1351,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
     for(auto tns=rnameservers.cbegin();;++tns) {
       if(tns==rnameservers.cend()) {
         LOG(prefix<<qname<<": Failed to resolve via any of the "<<(unsigned int)rnameservers.size()<<" offered NS at level '"<<auth<<"'"<<endl);
-        if(!auth.empty() && flawedNSSet) {
+        if(!auth.isRoot() && flawedNSSet) {
           LOG(prefix<<qname<<": Ageing nameservers for level '"<<auth<<"', next query might succeed"<<endl);
 
           if(t_RC->doAgeCache(d_now.tv_sec, auth, QType::NS, 10))
