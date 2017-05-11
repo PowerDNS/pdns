@@ -37,7 +37,8 @@ void DNSProtoBufMessage::setQuestion(const DNSName& qname, uint16_t qtype, uint1
 #ifdef HAVE_PROTOBUF
   PBDNSMessage_DNSQuestion* question = d_message.mutable_question();
   if (question) {
-    question->set_qname(qname.toString());
+    if(!qname.empty())
+      question->set_qname(qname.toString());
     question->set_qtype(qtype);
     question->set_qclass(qclass);
   }
