@@ -47,18 +47,11 @@ int MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt, vec
   if(res)
     res->clear();
 
-  bool haveSubnetSpecific=false;
   if(d_cachecache.first!=d_cachecache.second) {
-    for(cache_t::const_iterator i=d_cachecache.first; i != d_cachecache.second; ++i) {
-      if(!i->d_netmask.empty()) {
-	//	cout<<"Had a subnet specific hit: "<<i->d_netmask.toString()<<", query was for "<<who.toString()<<": match "<<i->d_netmask.match(who)<<endl;
-	haveSubnetSpecific=true;
-      }
-    }
     for(cache_t::const_iterator i=d_cachecache.first; i != d_cachecache.second; ++i)
       if(i->d_ttd > now && ((i->d_qtype == qt.getCode() || qt.getCode()==QType::ANY ||
 			    (qt.getCode()==QType::ADDR && (i->d_qtype == QType::A || i->d_qtype == QType::AAAA) )) 
-			    && (!haveSubnetSpecific || i->d_netmask.match(who)))
+			    && (i->d_netmask.empty() || i->d_netmask.match(who)))
          ) {
 
 	ttd = i->d_ttd;	
