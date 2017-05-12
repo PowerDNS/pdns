@@ -37,7 +37,7 @@
 #include "arguments.hh"
 #include "packetcache.hh"
 
-#define CommunicatorLoadArgsIntoSet(listname,listset) do {                                 \
+#define CommunicatorLoadArgsIntoSet(listname, listset) do {                                \
   vector<string> parts;                                                                    \
   stringtok(parts, ::arg()[(listname)], ", \t");                                           \
   for (vector<string>::const_iterator iter = parts.begin(); iter != parts.end(); ++iter) { \
@@ -95,9 +95,9 @@ void CommunicatorClass::go()
     exit(1);
   }
 
-  CommunicatorLoadArgsIntoSet("also-notify",d_alsoNotify);
+  CommunicatorLoadArgsIntoSet("also-notify", d_alsoNotify);
 
-  CommunicatorLoadArgsIntoSet("forward-notify",PacketHandler::s_forwardNotify);
+  CommunicatorLoadArgsIntoSet("forward-notify", PacketHandler::s_forwardNotify);
 }
 
 void CommunicatorClass::mainloop(void)
