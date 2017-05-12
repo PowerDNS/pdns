@@ -37,6 +37,21 @@
 #include "arguments.hh"
 #include "packetcache.hh"
 
+#define CommunicatorLoadArgsIntoSet(listname,listset) do {                                 \
+  vector<string> parts;                                                                    \
+  stringtok(parts, ::arg()[(listname)], ", \t");                                           \
+  for (vector<string>::const_iterator iter = parts.begin(); iter != parts.end(); ++iter) { \
+    try {                                                                                  \
+      ComboAddress caIp(*iter, 53);                                                        \
+      (listset).insert(caIp.toStringWithPort());                                           \
+    }                                                                                      \
+    catch(PDNSException &e) {                                                              \
+      L<<Logger::Error<<"Unparseable IP in "<<(listname)<<". Error: "<<e.reason<<endl;     \
+      exit(1);                                                                             \
+    }                                                                                      \
+  }                                                                                        \
+} while(0)
+
 // there can be MANY OF THESE
 void CommunicatorClass::retrievalLoopThread(void)
 {
@@ -80,31 +95,9 @@ void CommunicatorClass::go()
     exit(1);
   }
 
-  vector<string> parts;
-  stringtok(parts, ::arg()["also-notify"], ", \t");
-  for (vector<string>::const_iterator iter = parts.begin(); iter != parts.end(); ++iter) {
-    try {
-      ComboAddress caIp(*iter, 53);
-      d_alsoNotify.insert(caIp.toStringWithPort());
-    }
-    catch(PDNSException &e) {
-      L<<Logger::Error<<"Unparseable IP in also-notify. Error: "<<e.reason<<endl;
-      exit(1);
-    }
-  }
+  CommunicatorLoadArgsIntoSet("also-notify",d_alsoNotify);
 
-  vector<string> forwards;
-  stringtok(forwards, ::arg()["forward-notify"], ", \t");
-  for (vector<string>::const_iterator iter = forwards.begin(); iter != forwards.end(); ++iter) {
-    try {
-      ComboAddress caIp(*iter, 53);
-      PacketHandler::s_forwardNotify.insert(caIp.toStringWithPort());
-    }
-    catch(PDNSException &e) {
-      L<<Logger::Error<<"Unparseable IP in forward-notify. Error: "<<e.reason<<endl;
-      exit(1);
-    }
-  }
+  CommunicatorLoadArgsIntoSet("forward-notify",PacketHandler::s_forwardNotify);
 }
 
 void CommunicatorClass::mainloop(void)
