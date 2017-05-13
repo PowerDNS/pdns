@@ -530,6 +530,7 @@ static bool isValidMetadataKind(const string& kind, bool readonly) {
     "TSIG-ALLOW-DNSUPDATE",
     "FORWARD-DNSUPDATE",
     "SOA-EDIT-DNSUPDATE",
+    "NOTIFY-DNSUPDATE",
     "ALSO-NOTIFY",
     "AXFR-MASTER-TSIG",
     "GSS-ALLOW-AXFR-PRINCIPAL",
