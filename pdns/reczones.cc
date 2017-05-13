@@ -94,7 +94,9 @@ void primeHints(void)
       }
     }
   }
-  t_RC->replace(time(0), DNSName("."), QType(QType::NS), nsset, vector<std::shared_ptr<RRSIGRecordContent>>(), false); // and stuff in the cache (auth)
+  DNSName rootdnsname(".");
+  t_RC->doWipeCache(rootdnsname, false, QType::NS);
+  t_RC->replace(time(0), rootdnsname, QType(QType::NS), nsset, vector<std::shared_ptr<RRSIGRecordContent>>(), false); // and stuff in the cache (auth)
 }
 
 static void makeNameToIPZone(SyncRes::domainmap_t* newMap, const DNSName& hostname, const string& ip)
