@@ -93,6 +93,7 @@ void primeHints(void)
       }
     }
   }
+  t_RC->doWipeCache(g_rootdnsname, false, QType::NS);
   t_RC->replace(time(0), g_rootdnsname, QType(QType::NS), nsset, vector<std::shared_ptr<RRSIGRecordContent>>(), false); // and stuff in the cache
 }
 
