@@ -74,6 +74,7 @@ public:
     {
       return d_kind == rhs.d_kind; // XXX check d_custom too!
     }
+    DNSRecord getCustomRecord(const DNSName& qname) const;
     PolicyKind d_kind;
     std::shared_ptr<DNSRecordContent> d_custom;
     std::shared_ptr<std::string> d_name;

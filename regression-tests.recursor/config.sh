@@ -578,6 +578,7 @@ www.example.net        CNAME www2.example.net.   ; Local-Data Action
 www3.example.net       CNAME www4.example.net.   ; Local-Data Action (to be changed in preresolve)
 www5.example.net       A     192.0.2.15          ; Override www5.example.net.
 trillian.example.net   CNAME .                   ; NXDOMAIN on apex, allows all sub-names (#4086)
+*.wildcard-target.example.net          CNAME         *.walled-garden.example.net.         ; Special form of Local Data: a CNAME RR with a wildcarded target name
 
 32.4.2.0.192.rpz-ip    CNAME rpz-drop.           ; www4.example.net resolves to 192.0.2.4, drop A responses with that IP
 

@@ -32,3 +32,5 @@ echo "==> unsupported2.example.net has an unsupported target, should be ignored 
 $SDIG $nameserver 5301 unsupported2.example.net a recurse 2>&1
 echo "==> not-rpz.example.net is _not_ an RPZ target and should be processed"
 $SDIG $nameserver 5301 not-rpz.example.net a recurse 2>&1
+echo "==> echo-me.wildcard-target.example.net is an RPZ wildcard target"
+$SDIG $nameserver 5301 echo-me.wildcard-target.example.net a recurse 2>&1
