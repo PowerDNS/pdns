@@ -78,7 +78,7 @@ std::atomic<unsigned long>* getDynMetric(const std::string& str)
   return ret;
 }
 
-optional<uint64_t> get(const string& name) 
+static optional<uint64_t> get(const string& name)
 {
   optional<uint64_t> ret;
 
@@ -770,9 +770,9 @@ uint64_t doGetMallocated()
 
 extern ResponseStats g_rs;
 
-bool RecursorControlParser::s_init;
-RecursorControlParser::RecursorControlParser()
+void registerAllStats()
 {
+  static bool s_init = false;
   if(s_init)
     return;
   s_init=true;

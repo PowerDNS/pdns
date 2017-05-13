@@ -3045,6 +3045,7 @@ try
     }
   }
 
+  registerAllStats();
   if(!t_id) {
     t_fdm->addReadFD(s_rcc.d_fd, handleRCC); // control channel
   }

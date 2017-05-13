@@ -380,6 +380,18 @@ Note that metrics live in the same namespace as 'system' metrics. So if you
 generate one that overlaps with a PowerDNS stock metric, you will get double
 output and weird results.
 
+### Statistics
+
+Since 4.1.0, statistics can be retrieved from Lua using the `getStat("name")` call. For example,
+to retrieve the number of cache misses:
+
+```
+cacheMisses = getStat("cache-misses")
+```
+
+Please be aware that retrieving statistics is a relatively costly operation, and as such
+should for example not be done for every query.
+
 ### Logging
 To log messages with the main PowerDNS Recursor process, use `pdnslog(message)`.
 pdnslog can also write out to a syslog loglevel if specified.

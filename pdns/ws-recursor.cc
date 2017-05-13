@@ -410,7 +410,7 @@ void serveStuff(HttpRequest* req, HttpResponse* resp)
 
 RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
 {
-  RecursorControlParser rcp; // inits
+  registerAllStats();
 
   d_ws = new AsyncWebServer(fdm, arg()["webserver-address"], arg().asNum("webserver-port"));
   d_ws->bind();
