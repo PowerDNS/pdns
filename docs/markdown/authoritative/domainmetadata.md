@@ -33,7 +33,7 @@ To dissallow all IP's, except those explicitly allowed by domainmetadata records
 ## AXFR-SOURCE
 The IP address to use as a source address for sending AXFR and IXFR requests.
 
-## ALLOW-DNSUPDATE-FROM, TSIG-ALLOW-DNSUPDATE, FORWARD-DNSUPDATE, SOA-EDIT-DNSUPDATE
+## ALLOW-DNSUPDATE-FROM, TSIG-ALLOW-DNSUPDATE, FORWARD-DNSUPDATE, SOA-EDIT-DNSUPDATE, NOTIFY-DNSUPDATE
 See the documentation on [Dynamic DNS update](dnsupdate.md)
 
 ## ALSO-NOTIFY

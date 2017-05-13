@@ -83,6 +83,15 @@ sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘FORWARD-D
 
 There is no content, the existence of the entry enables the forwarding. This domain-specific setting is only useful when the configuration option **forward-dnsupdate** is set to 'no', as that will disable it globally. Using the domainmetadata setting than allows you to enable it per domain.
 
+## NOTIFY-DNSUPDATE
+Send a notification to all slave servers after every update. This will speed up the propagation of changes and is very useful for acme verification.
+
+```
+sql> select id from domains where name='example.org';
+5
+sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘NOTIFY-DNSUPDATE’,’1’);
+```
+
 ## SOA-EDIT-DNSUPDATE
 This configures how the soa serial should be updated. See [below](#soa-serial-updates).
 
