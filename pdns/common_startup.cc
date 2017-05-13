@@ -189,6 +189,7 @@ void declareArguments()
   ::arg().setSwitch("8bit-dns", "Allow 8bit dns queries")="no";
   ::arg().setSwitch("axfr-lower-serial", "Also AXFR a zone from a master with a lower serial")="no";
 
+  ::arg().set("lua-axfr-script", "Script to be used to edit incoming AXFRs")="";
   ::arg().set("xfr-max-received-mbytes", "Maximum number of megabytes received from an incoming XFR")="100";
 }
 
