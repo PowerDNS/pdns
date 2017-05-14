@@ -349,7 +349,29 @@ void SPgSQL::rollback() {
 
 bool SPgSQL::isConnectionUsable()
 {
-  return PQstatus(d_db) == CONNECTION_OK;
+  if (PQstatus(d_db) != CONNECTION_OK) {
+    return false;
+  }
+
+  bool usable = false;
+  int sd = PQsocket(d_db);
+  bool wasNonBlocking = isNonBlocking(sd);
+
+  if (!wasNonBlocking) {
+    if (!setNonBlocking(sd)) {
+      return usable;
+    }
+  }
+
+  usable = isTCPSocketUsable(sd);
+
+  if (!wasNonBlocking) {
+    if (!setBlocking(sd)) {
+      usable = false;
+    }
+  }
+
+  return usable;
 }
 
 void SPgSQL::reconnect()
