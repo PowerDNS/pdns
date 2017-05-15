@@ -1,8 +1,41 @@
 #include "yahttp.hpp"
 
 namespace YaHTTP {
+
+  bool isspace(char c) {
+    return std::isspace(c) != 0;
+  }
+
+  bool isspace(char c, const std::locale& loc) {
+    return std::isspace(c, loc);
+  }
+
+  bool isxdigit(char c) {
+    return std::isxdigit(c) != 0;
+  }
+
+  bool isxdigit(char c, const std::locale& loc) {
+    return std::isxdigit(c, loc);
+  }
+
+  bool isdigit(char c) {
+    return std::isdigit(c) != 0;
+  }
+
+  bool isdigit(char c, const std::locale& loc) {
+    return std::isdigit(c, loc);
+  }
+
+  bool isalnum(char c) {
+    return std::isalnum(c) != 0;
+  }
+
+  bool isalnum(char c, const std::locale& loc) {
+    return std::isalnum(c, loc);
+  }
+
   template <class T>
-  int AsyncLoader<T>::feed(const std::string& somedata) {
+  bool AsyncLoader<T>::feed(const std::string& somedata) {
     buffer.append(somedata);
     while(state < 2) {
       int cr=0;
@@ -42,7 +75,7 @@ namespace YaHTTP {
           iss >> ver >> target->status;
           std::getline(iss, target->statusText);
           pos1=0;
-          while(pos1 < target->statusText.size() && ::isspace(target->statusText.at(pos1))) pos1++;
+          while(pos1 < target->statusText.size() && YaHTTP::isspace(target->statusText.at(pos1))) pos1++;
           target->statusText = target->statusText.substr(pos1); 
           if ((pos1 = target->statusText.find("\r")) != std::string::npos) {
             target->statusText = target->statusText.substr(0, pos1-1);
@@ -61,36 +94,37 @@ namespace YaHTTP {
         }
       } else if (state == 1) {
         std::string key,value;
-        size_t pos;
+        size_t pos1;
         if (line.empty()) {
           chunked = (target->headers.find("transfer-encoding") != target->headers.end() && target->headers["transfer-encoding"] == "chunked");
           state = 2;
           break;
         }
         // split headers
-        if ((pos = line.find(": ")) == std::string::npos)
+        if ((pos1 = line.find(": ")) == std::string::npos)
           throw ParseError("Malformed header line");
-        key = line.substr(0, pos);
-        value = line.substr(pos+2);
+        key = line.substr(0, pos1);
+        value = line.substr(pos1+2);
         for(std::string::iterator it=key.begin(); it != key.end(); it++)
-          if (std::isspace(*it))
+          if (YaHTTP::isspace(*it))
             throw ParseError("Header key contains whitespace which is not allowed by RFC");
 
         Utility::trim(value);
         std::transform(key.begin(), key.end(), key.begin(), ::tolower);
         // is it already defined
 
-        if ((key == "set-cookie" && target->kind == YAHTTP_TYPE_RESPONSE) ||
-            (key == "cookie" && target->kind == YAHTTP_TYPE_REQUEST)) {
+        if (key == "set-cookie" && target->kind == YAHTTP_TYPE_RESPONSE) {
+          target->jar.parseSetCookieHeader(value);
+        } else if (key == "cookie" && target->kind == YAHTTP_TYPE_REQUEST) {
           target->jar.parseCookieHeader(value);
         } else {
           if (key == "host" && target->kind == YAHTTP_TYPE_REQUEST) {
             // maybe it contains port?
-            if ((pos = value.find(":")) == std::string::npos) {
+            if ((pos1 = value.find(":")) == std::string::npos) {
               target->url.host = value;
             } else {
-              target->url.host = value.substr(0, pos);
-              target->url.port = ::atoi(value.substr(pos).c_str());
+              target->url.host = value.substr(0, pos1);
+              target->url.port = ::atoi(value.substr(pos1).c_str());
             }
           }
           if (target->headers.find(key) != target->headers.end()) {
@@ -136,7 +170,7 @@ namespace YaHTTP {
           buf[pos]=0; // just in case...
           buffer.erase(buffer.begin(), buffer.begin()+pos+1); // remove line from buffer
           sscanf(buf, "%x", &chunk_size);
-          if (!chunk_size) { state = 3; break; } // last chunk
+          if (chunk_size == 0) { state = 3; break; } // last chunk
         } else {
           int crlf=1;
           if (buffer.size() < static_cast<size_t>(chunk_size+1)) return false; // expect newline
@@ -192,7 +226,7 @@ namespace YaHTTP {
     bool sendChunked = false;
 
     if (this->version > 10) { // 1.1 or better
-      if (headers.find("content-length") == headers.end()) {
+      if (headers.find("content-length") == headers.end() && !this->is_multipart) {
         // must use chunked on response
         sendChunked = (kind == YAHTTP_TYPE_RESPONSE);
         if ((headers.find("transfer-encoding") != headers.end() && headers.find("transfer-encoding")->second != "chunked")) {
@@ -210,21 +244,29 @@ namespace YaHTTP {
     // write headers
     strstr_map_t::const_iterator iter = headers.begin();
     while(iter != headers.end()) {
-      if (iter->first == "host" && kind != YAHTTP_TYPE_REQUEST) { iter++; continue; }
+      if (iter->first == "host" && (kind != YAHTTP_TYPE_REQUEST || version < 10)) { iter++; continue; }
       if (iter->first == "transfer-encoding" && sendChunked) { iter++; continue; }
       std::string header = Utility::camelizeHeader(iter->first);
       if (header == "Cookie" || header == "Set-Cookie") cookieSent = true;
       os << Utility::camelizeHeader(iter->first) << ": " << iter->second << "\r\n";
       iter++;
     }
-    if (!cookieSent && jar.cookies.size() > 0) { // write cookies
-      for(strcookie_map_t::const_iterator i = jar.cookies.begin(); i != jar.cookies.end(); i++) {
-        if (kind == YAHTTP_TYPE_REQUEST) {
-          os << "Cookie: ";
-        } else {
-          os << "Set-Cookie: ";
+    if (version > 9 && !cookieSent && jar.cookies.size() > 0) { // write cookies
+     if (kind == YAHTTP_TYPE_REQUEST) {
+        bool first = true;
+        os << "Cookie: ";
+        for(strcookie_map_t::const_iterator i = jar.cookies.begin(); i != jar.cookies.end(); i++) {
+          if (first)
+            first = false;
+          else
+            os << "; ";
+          os << Utility::encodeURL(i->second.name) << "=" << Utility::encodeURL(i->second.value);
         }
-        os << i->second.str() << "\r\n";
+     } else if (kind == YAHTTP_TYPE_REQUEST) {
+        for(strcookie_map_t::const_iterator i = jar.cookies.begin(); i != jar.cookies.end(); i++) {
+          os << "Set-Cookie: ";
+          os << i->second.str() << "\r\n";
+        }
       }
     }
     os << "\r\n";
@@ -270,7 +312,7 @@ namespace YaHTTP {
     while(is.good()) {
       char buf[1024];
       is.read(buf, 1024);
-      if (is.gcount()) { // did we actually read anything
+      if (is.gcount() > 0) { // did we actually read anything
         is.clear();
         if (arl.feed(std::string(buf, is.gcount())) == true) break; // completed
       }
