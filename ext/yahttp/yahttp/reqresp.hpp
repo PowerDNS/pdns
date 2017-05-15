@@ -65,8 +65,8 @@ namespace YaHTTP {
     /* Simple sendfile renderer which streams file to ostream */
     class SendFileRender {
     public:
-      SendFileRender(const std::string& path) {
-        this->path = path;
+      SendFileRender(const std::string& path_) {
+        this->path = path_;
       };
   
       size_t operator()(const HTTPBase *doc __attribute__((unused)), std::ostream& os, bool chunked) const {
@@ -79,10 +79,10 @@ namespace YaHTTP {
 #endif
         n = 0;
 
-        while(ifs && ifs.good()) {
+        while(ifs.good()) {
           ifs.read(buf, sizeof buf);
           n += (k = ifs.gcount());
-          if (k) {
+          if (k > 0) {
             if (chunked) os << std::hex << k << std::dec << "\r\n";
             os.write(buf, k);
             if (chunked) os << "\r\n"; 
@@ -118,6 +118,7 @@ namespace YaHTTP {
       body = "";
       routeName = "";
       version = 11; // default to version 1.1
+      is_multipart = false;
     }
 protected:
     HTTPBase(const HTTPBase& rhs) {
@@ -164,7 +165,7 @@ public:
 
     ssize_t max_request_size; //<! maximum size of request
     ssize_t max_response_size;  //<! maximum size of response
- 
+    bool is_multipart; //<! if the request is multipart, prevents Content-Length header
 #ifdef HAVE_CPP_FUNC_PTR
     funcptr::function<size_t(const HTTPBase*,std::ostream&,bool)> renderer; //<! rendering function
 #endif
@@ -174,8 +175,8 @@ public:
     strstr_map_t& POST() { return postvars; }; //<! accessor for postvars
     strcookie_map_t& COOKIES() { return jar.cookies; }; //<! accessor for cookies
 
-    std::string versionStr(int version) const {
-      switch(version) {
+    std::string versionStr(int version_) const {
+      switch(version_) {
       case  9: return "0.9";
       case 10: return "1.0";
       case 11: return "1.1";
@@ -244,10 +245,10 @@ public:
       this->jar = rhs.jar;
       this->version = rhs.version;
     }
-    void setup(const std::string& method, const std::string& url) {
-      this->url.parse(url);
+    void setup(const std::string& method_, const std::string& url_) {
+      this->url.parse(url_);
       this->headers["host"] = this->url.host;
-      this->method = method;
+      this->method = method_;
       std::transform(this->method.begin(), this->method.end(), this->method.begin(), ::toupper);
       this->headers["user-agent"] = "YaHTTP v1.0";
     }; //<! Set some initial things for a request
@@ -266,17 +267,21 @@ public:
         headers["content-type"] = "application/x-www-form-urlencoded; charset=utf-8";
       } else if (format == multipart) {
         headers["content-type"] = "multipart/form-data; boundary=YaHTTP-12ca543";
+        this->is_multipart = true;
         for(strstr_map_t::const_iterator i = POST().begin(); i != POST().end(); i++) {
-          postbuf << "--YaHTTP-12ca543\r\nContent-Disposition: form-data; name=\"" << Utility::encodeURL(i->first, false) << "; charset=UTF-8\r\n\r\n"
+          postbuf << "--YaHTTP-12ca543\r\nContent-Disposition: form-data; name=\"" << Utility::encodeURL(i->first, false) << "\"; charset=UTF-8\r\nContent-Length: " << i->second.size() << "\r\n\r\n"
             << Utility::encodeURL(i->second, false) << "\r\n";
         }
+        postbuf << "--";
+        body = postbuf.str();
       }
 
       postbuf.str("");
       postbuf << body.length();
       // set method and change headers
       method = "POST";
-      headers["content-length"] = postbuf.str();
+      if (!this->is_multipart)
+        headers["content-length"] = postbuf.str();
     }; //<! convert all postvars into string and stuff it into body
 
     friend std::ostream& operator<<(std::ostream& os, const Request &resp);
@@ -301,15 +306,15 @@ public:
 
     void keyValuePair(const std::string &keyvalue, std::string &key, std::string &value); //<! key value pair parser helper
 
-    void initialize(T* target) {
+    void initialize(T* target_) {
       chunked = false; chunk_size = 0;
       bodybuf.str(""); minbody = 0; maxbody = 0;
-      pos = 0; state = 0; this->target = target; 
+      pos = 0; state = 0; this->target = target_;
       hasBody = false;
       buffer = "";
       this->target->initialize();
     }; //<! Initialize the parser for target and clear state
-    int feed(const std::string& somedata); //<! Feed data to the parser
+    bool feed(const std::string& somedata); //<! Feed data to the parser
     bool ready() {
      return (chunked == true && state == 3) || // if it's chunked we get end of data indication
              (chunked == false && state > 1 &&  
@@ -322,8 +327,8 @@ public:
     void finalize() {
       bodybuf.flush();
       if (ready()) {
-        strstr_map_t::iterator pos = target->headers.find("content-type");
-        if (pos != target->headers.end() && Utility::iequals(pos->second, "application/x-www-form-urlencoded", 32)) {
+        strstr_map_t::iterator cpos = target->headers.find("content-type");
+        if (cpos != target->headers.end() && Utility::iequals(cpos->second, "application/x-www-form-urlencoded", 32)) {
           target->postvars = Utility::parseUrlParameters(bodybuf.str());
         }
         target->body = bodybuf.str();

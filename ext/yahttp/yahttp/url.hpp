@@ -59,7 +59,7 @@ namespace YaHTTP {
              password = url.substr(pos2+1, pos1 - pos2 - 1);
              password = Utility::decodeURL(password);
           } else {
-             username = url.substr(pos+1, pos1 - pos);
+             username = url.substr(pos, pos1 - pos);
           }
           pos = pos1+1;
           username = Utility::decodeURL(username);
