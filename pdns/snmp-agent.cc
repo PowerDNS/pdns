@@ -61,9 +61,11 @@ void SNMPAgent::worker()
 
     FD_ZERO(&fdset);
     FD_SET(d_trapPipe[0], &fdset);
+    block = 1;
+    timeout = { 0, 0 };
     snmp_select_info(&numfds, &fdset, &timeout, &block);
 
-    int res = select(FD_SETSIZE, &fdset, NULL, NULL, NULL);
+    int res = select(FD_SETSIZE, &fdset, nullptr, nullptr, block ? nullptr : &timeout);
 
     if (res == 2) {
       FD_CLR(d_trapPipe[0], &fdset);
@@ -80,6 +82,7 @@ void SNMPAgent::worker()
     }
     else if (res == 0) {
       snmp_timeout();
+      run_alarms();
     }
   }
 #endif /* HAVE_NET_SNMP */
@@ -100,6 +103,15 @@ SNMPAgent::SNMPAgent(const std::string& name, const std::string& masterSocket)
   setenv("MIBS", "", 1);
 
   init_agent(name.c_str());
+
+  /* we use select() so don't use SIGALARM to handle alarms.
+     Note that we need to handle alarms for automatic reconnection
+     to the master to work.
+  */
+  netsnmp_ds_set_boolean(NETSNMP_DS_LIBRARY_ID,
+                         NETSNMP_DS_LIB_ALARM_DONT_USE_SIG,
+                         1);
+
   init_snmp(name.c_str());
 
   if (pipe(d_trapPipe) < 0)
