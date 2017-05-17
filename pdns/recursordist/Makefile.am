@@ -230,6 +230,7 @@ testrunner_SOURCES = \
 	test-negcache_cc.cc \
 	test-rcpgenerator_cc.cc \
 	test-recpacketcache_cc.cc \
+	test-recursorcache_cc.cc \
 	test-syncres_cc.cc \
 	test-tsig.cc \
 	testrunner.cc \
