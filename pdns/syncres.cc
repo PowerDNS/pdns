@@ -1790,16 +1790,19 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
              "Glue address RRsets associated with delegations MUST NOT be signed"
           */
           if (i->first.type == QType::DNSKEY && i->first.place == DNSResourceRecord::ANSWER) {
+            LOG("Validating DNSKEY for "<<i->first.name<<endl);
             recordState = validateDNSKeys(i->first.name, i->second.records, i->second.signatures, depth);
           }
           else {
+            LOG("Validating non-additional record for "<<i->first.name<<endl);
             recordState = validateRecordsWithSigs(depth, i->first.name, i->second.records, i->second.signatures);
           }
         }
       }
       else {
-        /* for non authoritative answer, we only care about the DS record */
-        if (i->first.type == QType::DS && i->first.place == DNSResourceRecord::AUTHORITY) {
+        /* for non authoritative answer, we only care about the DS record (or lack of)  */
+        if ((i->first.type == QType::DS || i->first.type == QType::NSEC || i->first.type == QType::NSEC3) && i->first.place == DNSResourceRecord::AUTHORITY) {
+          LOG("Validating DS record for "<<i->first.name<<endl);
           recordState = validateRecordsWithSigs(depth, i->first.name, i->second.records, i->second.signatures);
         }
       }
