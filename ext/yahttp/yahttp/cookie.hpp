@@ -6,16 +6,29 @@ namespace YaHTTP {
        secure = false;
        httponly = false;
        name = value = "";
+       expires = DateTime();
      }; //!< Set the cookie to empty value
 
      Cookie(const Cookie &rhs) {
+       name = rhs.name;
+       value = rhs.value;
        domain = rhs.domain;
        path = rhs.path;
        secure = rhs.secure;
        httponly = rhs.httponly;
+       expires = rhs.expires;
+     }; //<! Copy cookie values
+
+     Cookie& operator=(const Cookie &rhs) {
        name = rhs.name;
        value = rhs.value;
-     }; //<! Copy cookie values
+       domain = rhs.domain;
+       path = rhs.path;
+       secure = rhs.secure;
+       httponly = rhs.httponly;
+       expires = rhs.expires;
+       return *this;
+     }
 
      DateTime expires; /*!< Expiration date */
      std::string domain; /*!< Domain where cookie is valid */
@@ -29,6 +42,7 @@ namespace YaHTTP {
      std::string str() const {
        std::ostringstream oss;
        oss << YaHTTP::Utility::encodeURL(name) << "=" << YaHTTP::Utility::encodeURL(value);
+
        if (expires.isSet) 
          oss << "; expires=" << expires.cookie_str();
        if (domain.size()>0)
@@ -66,74 +80,64 @@ namespace YaHTTP {
     } //<! key value pair parser
   
     void parseCookieHeader(const std::string &cookiestr) {
-      std::list<Cookie> cookies;
-      int cstate = 0; //cookiestate
-      size_t pos,npos;
+      size_t pos, npos;
+      std::list<Cookie> lcookies;
+      Cookie c;
       pos = 0;
-      cstate = 0;
       while(pos < cookiestr.size()) {
-        if (cookiestr.compare(pos, 7, "expires") ==0 ||
-            cookiestr.compare(pos, 6, "domain")  ==0 ||
-            cookiestr.compare(pos, 4, "path")    ==0) {
-          cstate = 1;
-          // get the date
-          std::string key, value, s;
-          npos = cookiestr.find("; ", pos);
-          if (npos == std::string::npos) {
-            // last value
-            s = std::string(cookiestr.begin() + pos + 1, cookiestr.end());
-            pos = cookiestr.size();
-          } else {
-            s = std::string(cookiestr.begin() + pos + 1, cookiestr.begin() + npos - 1);
-            pos = npos+2;
-          }
-          keyValuePair(s, key, value);
-          if (s == "expires") {
-            DateTime dt;
-            dt.parseCookie(value);
-            for(std::list<Cookie>::iterator i = cookies.begin(); i != cookies.end(); i++)
-              i->expires = dt;
-          } else if (s == "domain") {
-            for(std::list<Cookie>::iterator i = cookies.begin(); i != cookies.end(); i++)
-              i->domain = value;
-          } else if (s == "path") {
-            for(std::list<Cookie>::iterator i = cookies.begin(); i != cookies.end(); i++)
-              i->path = value;
-          }
-        } else if (cookiestr.compare(pos, 8, "httpOnly")==0) {
-          cstate = 1;
-          for(std::list<Cookie>::iterator i = cookies.begin(); i != cookies.end(); i++)
-            i->httponly = true;
-        } else if (cookiestr.compare(pos, 6, "secure")  ==0) {
-          cstate = 1;
-          for(std::list<Cookie>::iterator i = cookies.begin(); i != cookies.end(); i++)
-            i->secure = true;
-        } else if (cstate == 0) { // expect cookie
-          Cookie c;
-          std::string s;
-          npos = cookiestr.find("; ", pos);
-          if (npos == std::string::npos) {
-            // last value
-            s = std::string(cookiestr.begin() + pos, cookiestr.end());
-            pos = cookiestr.size();
-          } else {
-            s = std::string(cookiestr.begin() + pos, cookiestr.begin() + npos);
-            pos = npos+2;
-          }
-          keyValuePair(s, c.name, c.value);
-          c.name = YaHTTP::Utility::decodeURL(c.name);
-          c.value = YaHTTP::Utility::decodeURL(c.value);
-          cookies.push_back(c);
-        } else if (cstate == 1) {
+        if ((npos = cookiestr.find("; ", pos)) == std::string::npos)
+          npos = cookiestr.size();
+        keyValuePair(cookiestr.substr(pos, npos-pos), c.name, c.value);
+        c.name = YaHTTP::Utility::decodeURL(c.name);
+        c.value = YaHTTP::Utility::decodeURL(c.value);
+        lcookies.push_back(c);
+        pos = npos+2;
+      }
+      for(std::list<Cookie>::iterator i = lcookies.begin(); i != lcookies.end(); i++) {
+        this->cookies[i->name] = *i;
+      }
+    }
+
+    void parseSetCookieHeader(const std::string &cookiestr) {
+      Cookie c;
+      size_t pos,npos;
+      std::string k, v;
+
+      if ((pos = cookiestr.find("; ", 0)) == std::string::npos)
+        pos = cookiestr.size();
+      keyValuePair(cookiestr.substr(0, pos), c.name, c.value);
+      c.name = YaHTTP::Utility::decodeURL(c.name);
+      c.value = YaHTTP::Utility::decodeURL(c.value);
+      if (pos < cookiestr.size()) pos+=2;
+
+      while(pos < cookiestr.size()) {
+        if ((npos = cookiestr.find("; ", pos)) == std::string::npos)
+          npos = cookiestr.size();
+        std::string s = cookiestr.substr(pos, npos-pos);
+        if (s.find("=") != std::string::npos)
+          keyValuePair(s, k, v);
+        else
+          k = s;
+        if (k == "expires") {
+          DateTime dt;
+          dt.parseCookie(v);
+          c.expires = dt;
+        } else if (k == "domain") {
+          c.domain = v;
+        } else if (k == "path") {
+          c.path = v;
+        } else if (k == "httpOnly") {
+          c.httponly = true;
+        } else if (k == "secure") {
+          c.secure = true;
+        } else {
           // ignore crap
           break;
         }
+        pos = npos+2;
       }
   
-      // store cookies
-      for(std::list<Cookie>::iterator i = cookies.begin(); i != cookies.end(); i++) {
-        this->cookies[i->name] = *i;
-      }
+      this->cookies[c.name] = c;
     }; //<! Parse multiple cookies from header 
   };
 };

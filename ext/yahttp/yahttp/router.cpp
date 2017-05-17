@@ -27,7 +27,6 @@ namespace YaHTTP {
   bool Router::route(Request *req, THandlerFunction& handler) {
     std::map<std::string, TDelim> params;
     int pos1,pos2;
-    std::string pname;
     bool matched = false;
     std::string rname;
 
