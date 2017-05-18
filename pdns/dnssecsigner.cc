@@ -123,7 +123,7 @@ void fillOutRRSIG(DNSSECPrivateKey& dpk, const DNSName& signQName, RRSIGRecordCo
     g_signatureCount = S.getPointer("signatures");
     
   DNSKEYRecordContent drc = dpk.getDNSKEY(); 
-  const DNSCryptoKeyEngine* rc = dpk.getKey();
+  const std::shared_ptr<DNSCryptoKeyEngine> rc = dpk.getKey();
   rrc.d_tag = drc.getTag();
   rrc.d_algorithm = drc.d_algorithm;
   

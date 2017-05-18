@@ -33,6 +33,9 @@
 #include "recpacketcache.hh"
 #include "utility.hh"
 #include "dns_random.hh"
+#ifdef HAVE_LIBSODIUM
+#include <sodium.h>
+#endif
 #include "opensslsigners.hh"
 #include <iostream>
 #include <errno.h>
@@ -826,12 +829,7 @@ void startDoResolve(void *p)
           case DNSFilterEngine::PolicyKind::Custom:
             g_stats.policyResults[appliedPolicy.d_kind]++;
             res=RCode::NoError;
-            spoofed.d_name=dc->d_mdp.d_qname;
-            spoofed.d_type=appliedPolicy.d_custom->getType();
-            spoofed.d_ttl = appliedPolicy.d_ttl;
-            spoofed.d_class = 1;
-            spoofed.d_content = appliedPolicy.d_custom;
-            spoofed.d_place = DNSResourceRecord::ANSWER;
+            spoofed=appliedPolicy.getCustomRecord(dc->d_mdp.d_qname);
             ret.push_back(spoofed);
             handleRPZCustom(spoofed, QType(dc->d_mdp.d_qtype), sr, res, ret);
             goto haveAnswer;
@@ -891,12 +889,7 @@ void startDoResolve(void *p)
           case DNSFilterEngine::PolicyKind::Custom:
             ret.clear();
             res=RCode::NoError;
-            spoofed.d_name=dc->d_mdp.d_qname;
-            spoofed.d_type=appliedPolicy.d_custom->getType();
-            spoofed.d_ttl = appliedPolicy.d_ttl;
-            spoofed.d_class = 1;
-            spoofed.d_content = appliedPolicy.d_custom;
-            spoofed.d_place = DNSResourceRecord::ANSWER;
+            spoofed=appliedPolicy.getCustomRecord(dc->d_mdp.d_qname);
             ret.push_back(spoofed);
             handleRPZCustom(spoofed, QType(dc->d_mdp.d_qtype), sr, res, ret);
             goto haveAnswer;
@@ -956,12 +949,7 @@ void startDoResolve(void *p)
           case DNSFilterEngine::PolicyKind::Custom:
             ret.clear();
             res=RCode::NoError;
-            spoofed.d_name=dc->d_mdp.d_qname;
-            spoofed.d_type=appliedPolicy.d_custom->getType();
-            spoofed.d_ttl = appliedPolicy.d_ttl;
-            spoofed.d_class = 1;
-            spoofed.d_content = appliedPolicy.d_custom;
-            spoofed.d_place = DNSResourceRecord::ANSWER;
+            spoofed=appliedPolicy.getCustomRecord(dc->d_mdp.d_qname);
             ret.push_back(spoofed);
             handleRPZCustom(spoofed, QType(dc->d_mdp.d_qtype), sr, res, ret);
             goto haveAnswer;
@@ -2777,6 +2765,13 @@ int serviceMain(int argc, char*argv[])
   g_maxMThreads = ::arg().asNum("max-mthreads");
   checkOrFixFDS();
 
+#ifdef HAVE_LIBSODIUM
+  if (sodium_init() == -1) {
+    L<<Logger::Error<<"Unable to initialize sodium crypto library"<<endl;
+    exit(99);
+  }
+#endif
+
   openssl_thread_setup();
   openssl_seed();
 
@@ -2790,6 +2785,14 @@ int serviceMain(int argc, char*argv[])
   Utility::dropGroupPrivs(newuid, newgid);
 
   if (!::arg()["chroot"].empty()) {
+#ifdef HAVE_SYSTEMD
+     char *ns;
+     ns = getenv("NOTIFY_SOCKET");
+     if (ns != nullptr) {
+       L<<Logger::Error<<"Unable to chroot when running from systemd. Please disable chroot= or set the 'Type' for this service to 'simple'"<<endl;
+       exit(1);
+     }
+#endif
     if (chroot(::arg()["chroot"].c_str())<0 || chdir("/") < 0) {
       L<<Logger::Error<<"Unable to chroot to '"+::arg()["chroot"]+"': "<<strerror (errno)<<", exiting"<<endl;
       exit(1);

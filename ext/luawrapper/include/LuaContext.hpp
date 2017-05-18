@@ -2486,10 +2486,11 @@ struct LuaContext::Reader<std::string>
     static auto read(lua_State* state, int index)
         -> boost::optional<std::string>
     {
-        const auto val = lua_tostring(state, index);
+        size_t len;
+        const auto val = lua_tolstring(state, index, &len);
         if (val == 0)
             return boost::none;
-        return std::string(val);
+        return std::string(val, len);
     }
 };
 

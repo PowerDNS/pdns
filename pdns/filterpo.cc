@@ -156,7 +156,19 @@ void DNSFilterEngine::clear(size_t zone)
   z.qpolAddr.clear();
   z.postpolAddr.clear();
   z.propolName.clear();
+  z.propolNSAddr.clear();
   z.qpolName.clear();
+}
+
+void DNSFilterEngine::clear()
+{
+  for(auto& z : d_zones) {
+    z.qpolAddr.clear();
+    z.postpolAddr.clear();
+    z.propolName.clear();
+    z.propolNSAddr.clear();
+    z.qpolName.clear();
+  }
 }
 
 void DNSFilterEngine::addClientTrigger(const Netmask& nm, Policy pol, size_t zone)
@@ -231,4 +243,32 @@ bool DNSFilterEngine::rmNSIPTrigger(const Netmask& nm, Policy pol, size_t zone)
   auto& pols = d_zones[zone].propolNSAddr;
   pols.erase(nm);
   return true;
+}
+
+DNSRecord DNSFilterEngine::Policy::getCustomRecord(const DNSName& qname) const
+{
+  if (d_kind != PolicyKind::Custom) {
+    throw std::runtime_error("Asking for a custom record from a filtering policy of a non-custom type");
+  }
+
+  DNSRecord result;
+  result.d_name = qname;
+  result.d_type = d_custom->getType();
+  result.d_ttl = d_ttl;
+  result.d_class = QClass::IN;
+  result.d_place = DNSResourceRecord::ANSWER;
+  result.d_content = d_custom;
+
+  if (result.d_type == QType::CNAME) {
+    const auto content = std::dynamic_pointer_cast<CNAMERecordContent>(d_custom);
+    if (content) {
+      DNSName target = content->getTarget();
+      if (target.isWildcard()) {
+        target.chopOff();
+        result.d_content = std::make_shared<CNAMERecordContent>((qname + target).toString());
+      }
+    }
+  }
+
+  return result;
 }

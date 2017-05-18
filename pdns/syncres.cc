@@ -439,15 +439,19 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
           const ComboAddress remoteIP = servers.front();
           LOG(prefix<<qname<<": forwarding query to hardcoded nameserver '"<< remoteIP.toStringWithPort()<<"' for zone '"<<authname<<"'"<<endl);
 
-	  boost::optional<Netmask> nm;
+          boost::optional<Netmask> nm;
           res=asyncresolveWrapper(remoteIP, d_doDNSSEC, qname, qtype.getCode(), false, false, &d_now, nm, &lwr);
           // filter out the good stuff from lwr.result()
-
-	  for(const auto& rec : lwr.d_records) {
-            if(rec.d_place == DNSResourceRecord::ANSWER)
-              ret.push_back(rec);
+          if (res == 1) {
+            for(const auto& rec : lwr.d_records) {
+              if(rec.d_place == DNSResourceRecord::ANSWER)
+                ret.push_back(rec);
+            }
+            return 0;
           }
-          return res;
+          else {
+            return RCode::ServFail;
+          }
         }
       }
     }
@@ -1015,7 +1019,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
     for(vector<DNSName >::const_iterator tns=rnameservers.begin();;++tns) {
       if(tns==rnameservers.end()) {
         LOG(prefix<<qname<<": Failed to resolve via any of the "<<(unsigned int)rnameservers.size()<<" offered NS at level '"<<auth<<"'"<<endl);
-        if(auth!=DNSName() && flawedNSSet) {
+        if(!auth.isRoot() && flawedNSSet) {
           LOG(prefix<<qname<<": Ageing nameservers for level '"<<auth<<"', next query might succeed"<<endl);
 
           if(t_RC->doAgeCache(d_now.tv_sec, auth, QType::NS, 10))
