@@ -7,6 +7,13 @@ rm -f pdns*.pid pdns-gsqlite3.conf pdns.sqlite3 named.conf
 
 sed '/directory/ { s@./zones@../regression-tests/zones@ }' ../regression-tests/named.conf > ./named.conf
 
+cat >> ./named.conf << __EOF__
+zone "."{
+	type master;
+	file "../../regression-tests.rootzone/zones/ROOT";
+};
+__EOF__
+
 cat > pdns-gsqlite3.conf << __EOF__
 launch=gsqlite3
 gsqlite3-database=pdns.sqlite3
@@ -38,9 +45,6 @@ check_process
 
 set +e
 
-# Add skipreason to not have full zone output
-# There is a bug in ldns-verify-zone on travis that will make
-# it fail on dnssec-parent.com
 skipreasons='nsec3'
 
 . ../regression-tests/tests/verify-dnssec-zone/command
