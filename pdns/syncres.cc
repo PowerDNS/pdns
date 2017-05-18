@@ -1491,7 +1491,10 @@ SyncRes::zonesStates_t SyncRes::computeZoneCuts(const DNSName& begin, const DNSN
       if (foundCut) {
         cerr<<"- Found cut at "<<qname<<endl;
         dsmap_t ds;
-        cutState = getDSRecords(qname, ds, cutState == Insecure || cutState == Bogus, depth);
+        vState newState = getDSRecords(qname, ds, cutState == Insecure || cutState == Bogus, depth);
+        if (newState != Indeterminate) {
+          cutState = newState;
+        }
         cerr<<"New state is "<<vStates[cutState]<<endl;
         if (cutState == TA) {
           cutState = Secure;
