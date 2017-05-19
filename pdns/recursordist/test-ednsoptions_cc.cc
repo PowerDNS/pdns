@@ -112,4 +112,60 @@ BOOST_AUTO_TEST_CASE(test_getEDNSOptions) {
   BOOST_REQUIRE_GT(it->second.size, 0);
 }
 
+static void checkECSOptionValidity(const std::string& sourceStr, uint8_t sourceMask, uint8_t scopeMask)
+{
+  ComboAddress source(sourceStr);
+  EDNSSubnetOpts ecsOpts;
+  ecsOpts.source = Netmask(source, sourceMask);
+
+  string ecsOptionStr = makeEDNSSubnetOptsString(ecsOpts);
+
+  /* 2 bytes for family, one for source mask and one for scope mask */
+  const size_t ecsHeaderSize = 4;
+  uint8_t sourceBytes = ((sourceMask - 1) >> 3) + 1;
+  BOOST_REQUIRE_EQUAL(ecsOptionStr.size(), (ecsHeaderSize + sourceBytes));
+  /* family */
+  BOOST_REQUIRE_EQUAL(ntohs(*(reinterpret_cast<const uint16_t*>(&ecsOptionStr.at(0)))), source.isIPv4() ? 1 : 2);
+  /* source mask */
+  BOOST_REQUIRE_EQUAL(static_cast<uint8_t>(ecsOptionStr.at(2)), sourceMask);
+  BOOST_REQUIRE_EQUAL(static_cast<uint8_t>(ecsOptionStr.at(3)), scopeMask);
+  ComboAddress truncated(source);
+  truncated.truncate(sourceMask);
+
+  if (sourceMask > 0) {
+    ComboAddress res;
+
+    if (source.isIPv4()) {
+      memset(&res.sin4, 0, sizeof(res.sin4));
+      res.sin4.sin_family = AF_INET;
+      memcpy(&res.sin4.sin_addr.s_addr, &ecsOptionStr.at(4), sourceBytes);
+      BOOST_REQUIRE(res == truncated);
+    }
+    else {
+      memset(&res.sin6, 0, sizeof(res.sin6));
+      res.sin6.sin6_family = AF_INET6;
+      memcpy(&res.sin6.sin6_addr.s6_addr, &ecsOptionStr.at(4), sourceBytes);
+      BOOST_REQUIRE(res == truncated);
+    }
+  }
+
+  EDNSSubnetOpts parsed;
+  BOOST_REQUIRE(getEDNSSubnetOptsFromString(ecsOptionStr, &parsed));
+  BOOST_REQUIRE(parsed.source == Netmask(truncated, sourceMask));
+  BOOST_REQUIRE_EQUAL(ecsOpts.scope.getBits(), parsed.scope.getBits());
+}
+
+BOOST_AUTO_TEST_CASE(test_makeEDNSSubnetOptsString) {
+
+  checkECSOptionValidity("192.0.2.255", 0, 0);
+  checkECSOptionValidity("192.0.2.255", 8, 0);
+  checkECSOptionValidity("255.255.255.255", 9, 0);
+  checkECSOptionValidity("192.0.2.255", 31, 0);
+  checkECSOptionValidity("192.0.2.255", 32, 0);
+  checkECSOptionValidity("2001:DB8::FFFF", 0, 0);
+  checkECSOptionValidity("2001:DB8::FFFF", 32, 0);
+  checkECSOptionValidity("2001:DB8::FFFF", 127, 0);
+  checkECSOptionValidity("2001:DB8::FFFF", 128, 0);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
