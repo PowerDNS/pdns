@@ -134,6 +134,122 @@ private:
   bool d_src;
 };
 
+class TimedIPSetRule : public DNSRule, boost::noncopyable
+{
+private:
+  struct IPv6 {
+    IPv6(const ComboAddress& ca)
+    {
+      static_assert(sizeof(*this)==16, "IPv6 struct has wrong size");
+      memcpy((char*)this, ca.sin6.sin6_addr.s6_addr, 16);
+    }
+    bool operator==(const IPv6& rhs) const
+    {
+      return a==rhs.a && b==rhs.b;
+    }
+    uint64_t a, b;
+  };
+
+public:
+  TimedIPSetRule()
+  {
+    pthread_rwlock_init(&d_lock4, 0);
+    pthread_rwlock_init(&d_lock6, 0);
+  }
+  bool matches(const DNSQuestion* dq) const override
+  {
+    if(dq->remote->sin4.sin_family == AF_INET) {
+      ReadLock rl(&d_lock4);
+      auto fnd = d_ip4s.find(dq->remote->sin4.sin_addr.s_addr);
+      if(fnd == d_ip4s.end()) {
+        return false;
+      }
+      return time(0) < fnd->second;
+    } else {
+      ReadLock rl(&d_lock6);
+      auto fnd = d_ip6s.find({*dq->remote});
+      if(fnd == d_ip6s.end()) {
+        return false;
+      }
+      return time(0) < fnd->second;
+    }
+  }
+
+  void add(const ComboAddress& ca, time_t ttd)
+  {
+    // think twice before adding templates here
+    if(ca.sin4.sin_family == AF_INET) {
+      WriteLock rl(&d_lock4);
+      auto res=d_ip4s.insert({ca.sin4.sin_addr.s_addr, ttd});
+      if(!res.second && res.first->second < ttd)
+        res.first->second = ttd;
+    }
+    else {
+      WriteLock rl(&d_lock6);
+      auto res=d_ip6s.insert({{ca}, ttd});
+      if(!res.second && res.first->second < ttd)
+        res.first->second = ttd;
+    }
+  }
+
+  void remove(const ComboAddress& ca)
+  {
+    if(ca.sin4.sin_family == AF_INET) {
+      WriteLock rl(&d_lock4);
+      d_ip4s.erase(ca.sin4.sin_addr.s_addr);
+    }
+    else {
+      WriteLock rl(&d_lock6);
+      d_ip6s.erase({ca});
+    }
+  }
+
+  void clear()
+  {
+    {
+      WriteLock rl(&d_lock4);
+      d_ip4s.clear();
+    }
+    WriteLock rl(&d_lock6);
+    d_ip6s.clear();
+  }
+  
+  string toString() const override
+  {
+    time_t now=time(0);
+    uint64_t count = 0;
+    {
+      ReadLock rl(&d_lock4);
+      for(const auto& ip : d_ip4s)
+        if(now < ip.second)
+          ++count;
+    }
+    {
+      ReadLock rl(&d_lock6);
+      for(const auto& ip : d_ip6s)
+        if(now < ip.second)
+          ++count;
+    }
+    
+    return "Src: "+std::to_string(count)+" ips";
+  }
+private:
+  struct IPv6Hash
+  {
+    std::size_t operator()(const IPv6& ip) const
+    {
+      auto ah=std::hash<uint64_t>{}(ip.a);
+      auto bh=std::hash<uint64_t>{}(ip.b);
+      return ah & (bh<<1);
+    }
+  };
+  std::unordered_map<IPv6, time_t, IPv6Hash> d_ip6s;
+  std::unordered_map<uint32_t, time_t> d_ip4s;
+  mutable pthread_rwlock_t d_lock4;
+  mutable pthread_rwlock_t d_lock6;
+};
+
+
 class AllRule : public DNSRule
 {
 public:

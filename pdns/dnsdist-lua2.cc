@@ -1265,6 +1265,22 @@ void moreLua(bool client)
       return std::shared_ptr<DNSRule>(new RDRule());
     });
 
+    g_lua.writeFunction("TimedIPSetRule", []() {
+      return std::shared_ptr<TimedIPSetRule>(new TimedIPSetRule());
+    });
+
+    g_lua.registerFunction<void(std::shared_ptr<TimedIPSetRule>::*)()>("clear", [](std::shared_ptr<TimedIPSetRule> tisr) {
+        tisr->clear();
+      });
+
+    g_lua.registerFunction<void(std::shared_ptr<TimedIPSetRule>::*)(const ComboAddress& ca, int t)>("add", [](std::shared_ptr<TimedIPSetRule> tisr, const ComboAddress& ca, int t) {
+        tisr->add(ca, time(0)+t);
+      });
+        
+    g_lua.registerFunction<std::shared_ptr<DNSRule>(std::shared_ptr<TimedIPSetRule>::*)()>("slice", [](std::shared_ptr<TimedIPSetRule> tisr) {
+        return std::dynamic_pointer_cast<DNSRule>(tisr);
+      });
+    
     g_lua.writeFunction("setWHashedPertubation", [](uint32_t pertub) {
         setLuaSideEffect();
         g_hashperturb = pertub;
