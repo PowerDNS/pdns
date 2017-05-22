@@ -1444,7 +1444,7 @@ SyncRes::zonesStates_t SyncRes::computeZoneCuts(const DNSName& begin, const DNSN
   }
   cuts[end] = cutState;
 
-  cerr<<__func__<<", from "<<begin.toString()<<" to "<<end.toString()<<endl;
+  LOG(__func__<<", from "<<begin.toString()<<" to "<<end.toString()<<endl);
 
 #warning using d_requireAuthData here seems wrong
   if (!validationEnabled() || !d_requireAuthData) {
@@ -1452,8 +1452,7 @@ SyncRes::zonesStates_t SyncRes::computeZoneCuts(const DNSName& begin, const DNSN
   }
 
   if(!begin.isPartOf(end)) {
-    //throw PDNSException(end.toLogString() + " is not part of " + begin.toString());
-    cerr<<end.toLogString()<<" is not part of "<<begin.toString()<<endl;
+    throw PDNSException(end.toLogString() + " is not part of " + begin.toString());
   }
 
   DNSName qname(end);
@@ -1466,7 +1465,7 @@ SyncRes::zonesStates_t SyncRes::computeZoneCuts(const DNSName& begin, const DNSN
 
     qname.prependRawLabel(labelsToAdd.back());
     labelsToAdd.pop_back();
-    cerr<<"- Looking for a cut at "<<qname<<endl;
+    LOG("- Looking for a cut at "<<qname<<endl);
 
     bool oldSkipCNAME = d_skipCNAMECheck;
     bool oldRequireAuthData = d_requireAuthData;
@@ -1489,13 +1488,13 @@ SyncRes::zonesStates_t SyncRes::computeZoneCuts(const DNSName& begin, const DNSN
         break;
       }
       if (foundCut) {
-        cerr<<"- Found cut at "<<qname<<endl;
+        LOG("- Found cut at "<<qname<<endl);
         dsmap_t ds;
         vState newState = getDSRecords(qname, ds, cutState == Insecure || cutState == Bogus, depth);
         if (newState != Indeterminate) {
           cutState = newState;
         }
-        cerr<<"New state is "<<vStates[cutState]<<endl;
+        LOG("New state is "<<vStates[cutState]<<endl);
         if (cutState == TA) {
           cutState = Secure;
         }
@@ -1507,9 +1506,9 @@ SyncRes::zonesStates_t SyncRes::computeZoneCuts(const DNSName& begin, const DNSN
     }
   }
 
-  cerr<<"List of cuts from "<<begin<<" to "<<end<<endl;
+  LOG("List of cuts from "<<begin<<" to "<<end<<endl);
   for (const auto& cut : cuts) {
-    cerr<<" - "<<cut.first<<": "<<vStates[cut.second]<<endl;
+    LOG(" - "<<cut.first<<": "<<vStates[cut.second]<<endl);
   }
 
   return cuts;
@@ -1783,7 +1782,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
 
 //    vState recordState = state;
     vState recordState = getValidationStatus(cuts, i->first.name);
-    cerr<<"Got status "<<vStates[recordState]<<" for record "<<i->first.name<<endl;
+    LOG("Got status "<<vStates[recordState]<<" for record "<<i->first.name<<endl);
 
     if (validationEnabled() && recordState == Secure) {
       if (lwr.d_aabit) {
