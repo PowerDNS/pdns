@@ -1617,12 +1617,16 @@ vState SyncRes::getDNSKeys(const DNSName& signer, skeyset_t& keys, unsigned int 
   return Bogus;
 }
 
-vState SyncRes::validateRecordsWithSigs(unsigned int depth, const DNSName& name, const std::vector<DNSRecord>& records, const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures)
+vState SyncRes::validateRecordsWithSigs(unsigned int depth, const DNSName& qname, const QType& qtype, const DNSName& name, const std::vector<DNSRecord>& records, const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures)
 {
   skeyset_t keys;
   if (!signatures.empty()) {
     const DNSName signer = getSigner(signatures);
     if (!signer.empty() && name.isPartOf(signer)) {
+      if (qtype == QType::DNSKEY && signer == qname) {
+        /* we are already retrieving those keys, sorry */
+        return Indeterminate;
+      }
       vState state = getDNSKeys(signer, keys, depth);
       if (state != Secure) {
         return state;
@@ -1648,7 +1652,7 @@ vState SyncRes::validateRecordsWithSigs(unsigned int depth, const DNSName& name,
   return Bogus;
 }
 
-RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr, const DNSName& qname, const DNSName& auth, bool wasForwarded, const boost::optional<Netmask> ednsmask, vState& state, const SyncRes::zonesStates_t& cuts, bool& needWildcardProof)
+RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType& qtype, const DNSName& auth, bool wasForwarded, const boost::optional<Netmask> ednsmask, vState& state, const SyncRes::zonesStates_t& cuts, bool& needWildcardProof)
 {
   struct CacheEntry
   {
@@ -1797,7 +1801,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
           }
           else {
             LOG("Validating non-additional record for "<<i->first.name<<endl);
-            recordState = validateRecordsWithSigs(depth, i->first.name, i->second.records, i->second.signatures);
+            recordState = validateRecordsWithSigs(depth, qname, qtype, i->first.name, i->second.records, i->second.signatures);
           }
         }
       }
@@ -1805,7 +1809,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
         /* for non authoritative answer, we only care about the DS record (or lack of)  */
         if ((i->first.type == QType::DS || i->first.type == QType::NSEC || i->first.type == QType::NSEC3) && i->first.place == DNSResourceRecord::AUTHORITY) {
           LOG("Validating DS record for "<<i->first.name<<endl);
-          recordState = validateRecordsWithSigs(depth, i->first.name, i->second.records, i->second.signatures);
+          recordState = validateRecordsWithSigs(depth, qname, qtype, i->first.name, i->second.records, i->second.signatures);
         }
       }
       updateValidationState(state, recordState);
@@ -2112,7 +2116,7 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
   }
 
   bool needWildcardProof = false;
-  *rcode = updateCacheFromRecords(depth, lwr, qname, auth, wasForwarded, ednsmask, state, cuts, needWildcardProof);
+  *rcode = updateCacheFromRecords(depth, lwr, qname, qtype, auth, wasForwarded, ednsmask, state, cuts, needWildcardProof);
   if (*rcode != RCode::NoError) {
     return true;
   }
