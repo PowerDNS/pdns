@@ -710,6 +710,19 @@ void CommunicatorClass::addSlaveCheckRequest(const DomainInfo& di, const ComboAd
   Lock l(&d_lock);
   DomainInfo ours = di;
   ours.backend = 0;
+  string remote_address = remote.toString();
+
+  // When adding a check, if the remote addr from which notification was
+  // received is a master, clear all other masters so we can be sure the
+  // query goes to that one.
+  for (const auto& master : ours.masters) {
+    if (master == remote_address) {
+      ours.masters.clear();
+      ours.masters.push_back(remote_address);
+      break;
+    }
+  }
+  d_tocheck.erase(di);
   d_tocheck.insert(ours);
   d_any_sem.post(); // kick the loop!
 }
@@ -856,10 +869,17 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
   time_t now = time(0);
   for(val_t& val :  sdomains) {
     DomainInfo& di(val.di);
+    DomainInfo tempdi;
     // might've come from the packethandler
-    if(!di.backend && !B->getDomainInfo(di.zone, di)) {
+    // Please do not overwrite received DI just to make sure it exists in backend.
+    if(!di.backend) {
+      if (!B->getDomainInfo(di.zone, tempdi)) {
         L<<Logger::Warning<<"Ignore domain "<< di.zone<<" since it has been removed from our backend"<<endl;
         continue;
+      }
+      // Backend for di still doesn't exist and this might cause us to
+      // SEGFAULT on the setFresh command later on
+      di.backend = tempdi.backend;
     }
 
     if(!ssr.d_freshness.count(di.id)) { // If we don't have an answer for the domain
