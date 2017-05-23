@@ -149,7 +149,12 @@ void sendPackets(const vector<Socket*>* sockets, const vector<vector<uint8_t>* >
 }
 
 void usage() {
-  cerr<<"Syntax: calidns QUERY_FILE DESTINATION INITIAL_QPS HITRATE"<<endl;
+  cerr<<"Syntax: calidns [OPTIONS] QUERY_FILE DESTINATION INITIAL_QPS HITRATE"<<endl;
+  cerr<<"OPTIONS:"<<endl;
+  cerr<<"  --want-recursion Set the RD bit in the query"<<endl;
+  cerr<<"  --increment      Set the factor by which the QPS should increase (default=1.1)"<<endl;
+  cerr<<"  --help           Show this helpful message"<<endl;
+  cerr<<"  --version        Show the version of calidns"<<endl;
 }
 
 /*
@@ -181,34 +186,54 @@ try
 {
   struct sched_param param;
   param.sched_priority=99;
+  int arg_i = 1;
+  int increment = 1.1;
+  bool wantRecursion = false;
 
-  if (argc == 1 || (argc > 1 && argc <5)) {
-    for(int i = 1; i<argc; i++) {
-      string opt(argv[i]);
-
-      if(opt == "--help") {
-        usage();
-        exit(EXIT_SUCCESS);
-      }
-
-      if(opt == "--version") {
-        cerr<<"calidns "<<VERSION<<endl;
-        exit(EXIT_SUCCESS);
-      }
-    }
-
+  if (argc < 5) {
     usage();
-    if (argc == 1)
-      exit(EXIT_SUCCESS);
     exit(EXIT_FAILURE);
   }
+
+  for(; arg_i<argc; arg_i++) {
+    string opt(argv[arg_i]);
+
+    if(opt == "--help") {
+      usage();
+      exit(EXIT_SUCCESS);
+    }
+
+    if(opt == "--version") {
+      cerr<<"calidns "<<VERSION<<endl;
+      exit(EXIT_SUCCESS);
+    }
+
+    if(opt == "--increment") {
+      increment = std::stoi(argv[arg_i+1]);
+      arg_i++;
+      continue;
+    }
+
+    if(opt == "--want-recursion") {
+      wantRecursion = true;
+      continue;
+    }
+    break;
+  }
+
+  if (argc - arg_i != 4) {
+    usage();
+    exit(EXIT_FAILURE);
+  }
+
+
 
   if(sched_setscheduler(0, SCHED_FIFO, &param) < 0)
     cerr<<"Unable to set SCHED_FIFO: "<<strerror(errno)<<endl;
 
-  double hitrate=atof(argv[4])/100.0;
-  int qpsstart=atoi(argv[3]);
-  ifstream ifs(argv[1]);
+  double hitrate=atof(argv[arg_i+3])/100.0;
+  int qpsstart=atoi(argv[arg_i+2]);
+  ifstream ifs(argv[arg_i]);
   string line;
   reportAllTypes();
   vector<std::shared_ptr<vector<uint8_t> > > unknown, known;
@@ -217,7 +242,7 @@ try
     boost::trim(line);
     auto p = splitField(line, ' ');
     DNSPacketWriter pw(packet, DNSName(p.first), DNSRecordContent::TypeToNumber(p.second));
-    pw.getHeader()->rd=0;
+    pw.getHeader()->rd=wantRecursion;
     pw.getHeader()->id=random();
     if(pw.getHeader()->id % 2) {
         pw.addOpt(1500, 0, EDNSOpts::DNSSECOK);
@@ -229,7 +254,7 @@ try
   cout<<"Generated "<<unknown.size()<<" ready to use queries"<<endl;
   
   vector<Socket*> sockets;
-  ComboAddress dest(argv[2], 53);  
+  ComboAddress dest(argv[arg_i+1], 53);
   for(int i=0; i < 24; ++i) {
     Socket *sock = new Socket(dest.sin4.sin_family, SOCK_DGRAM);
     //    sock->connect(dest);
@@ -241,7 +266,7 @@ try
   int qps;
 
   ofstream plot("plot");
-  for(qps=qpsstart;;qps *= 1.1) {
+  for(qps=qpsstart;;qps *= increment) {
     double seconds=1;
     cout<<"Aiming at "<<qps<< "qps for "<<seconds<<" seconds at cache hitrate "<<100.0*hitrate<<"%";
     unsigned int misses=(1-hitrate)*qps*seconds;
