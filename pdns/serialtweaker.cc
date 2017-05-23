@@ -98,7 +98,11 @@ uint32_t calculateEditSOA(SOAData sd, const string& kind) {
     uint32_t inception = getStartOfWeek();
     if (sd.serial < inception)
       return inception;
-  } else if(!kind.empty()) {
+  }
+  else if(pdns_iequals(kind,"NONE")) {
+      return sd.serial;
+  }
+  else if(!kind.empty()) {
     L<<Logger::Warning<<"SOA-EDIT type '"<<kind<<"' for zone "<<sd.qname.toStringNoDot()<<" is unknown."<<endl;
   }
   return sd.serial;

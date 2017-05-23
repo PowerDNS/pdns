@@ -767,9 +767,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
           rr.content = ip.content;
           rrs.push_back(rr);
         }
-      }
-      else {
-        rrs.push_back(rr);
+        continue;
       }
 
       if (rectify) {
@@ -782,12 +780,17 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
           continue;
         }
       }
+      rrs.push_back(rr);
     } else {
       if (rr.qtype.getCode())
         L<<Logger::Warning<<"Zone '"<<target<<"' contains out-of-zone data '"<<rr.qname<<"|"<<rr.qtype.getName()<<"', ignoring"<<endl;
-      continue;
     }
   }
+
+  // Group records by name and type, signpipe stumbles over interrupted rrsets
+  sort(rrs.begin(), rrs.end(), [](const DNSResourceRecord& a, const DNSResourceRecord& b) {
+    return tie(a.qname, a.qtype) < tie(b.qname, b.qtype);
+  });
 
   if(rectify) {
     // set auth
@@ -798,11 +801,12 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
         do {
           if (shorter==target) // apex is always auth
             continue;
-          if(nsset.count(shorter) && !(rr.qname==shorter && rr.qtype.getCode() == QType::DS))
+          if(nsset.count(shorter) && !(rr.qname==shorter && rr.qtype.getCode() == QType::DS)) {
             rr.auth=false;
+            continue;
+          }
         } while(shorter.chopOff());
-      } else
-        continue;
+      }
     }
 
     if(NSEC3Zone) {

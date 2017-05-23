@@ -1437,7 +1437,7 @@ void verifyCrypto(const string& zone)
     cerr<<"Original DS:   "<<apex.toString()<<" IN DS "<<dsrc.getZoneRepresentation()<<endl;
   }
 #if 0
-  DNSCryptoKeyEngine*key=DNSCryptoKeyEngine::makeFromISCString(drc, "Private-key-format: v1.2\n"
+  std::shared_ptr<DNSCryptoKeyEngine> key=DNSCryptoKeyEngine::makeFromISCString(drc, "Private-key-format: v1.2\n"
       "Algorithm: 12 (ECC-GOST)\n"
       "GostAsn1: MEUCAQAwHAYGKoUDAgITMBIGByqFAwICIwEGByqFAwICHgEEIgQg/9MiXtXKg9FDXDN/R9CmVhJDyuzRAIgh4tPwCu4NHIs=\n");
   string resign=key->sign(hash);
@@ -1602,7 +1602,7 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone)
 
       int bits = -1;
       try {
-        std::unique_ptr<DNSCryptoKeyEngine> engine(DNSCryptoKeyEngine::makeFromPublicKeyString(key.d_algorithm, key.d_key)); // throws on unknown algo or bad key
+        std::shared_ptr<DNSCryptoKeyEngine> engine(DNSCryptoKeyEngine::makeFromPublicKeyString(key.d_algorithm, key.d_key)); // throws on unknown algo or bad key
         bits=engine->getBits();
       }
       catch(std::exception& e) {
@@ -1910,7 +1910,7 @@ try
     cout<<"add-zone-key ZONE {zsk|ksk} [BITS] [active|inactive]"<<endl;
     cout<<"             [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384";
 #ifdef HAVE_LIBSODIUM
-    cout<<"|experimental-ed25519";
+    cout<<"|ed25519";
 #endif
     cout<<"]"<<endl;
     cout<<"                                   Add a ZSK or KSK to zone and specify algo&bits"<<endl;
@@ -2698,7 +2698,7 @@ loadMainConfig(g_vm["config-dir"].as<string>());
       if(algorithm <= 10)
         bits = keyOrZone ? 2048 : 1024;
       else {
-        if(algorithm == 12 || algorithm == 13 || algorithm == 250) // ECDSA, GOST, ED25519
+        if(algorithm == 12 || algorithm == 13 || algorithm == 15) // ECDSA, GOST, ED25519
           bits = 256;
         else if(algorithm == 14)
           bits = 384;
@@ -3030,7 +3030,7 @@ loadMainConfig(g_vm["config-dir"].as<string>());
         return 1;
       } 
 
-      DNSCryptoKeyEngine *dke = NULL;
+      std::shared_ptr<DNSCryptoKeyEngine> dke = nullptr;
       // lookup correct key      
       for(DNSBackend::KeyData &kd :  keys) {
         if (kd.id == id) {
