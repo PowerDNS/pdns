@@ -181,14 +181,14 @@ public:
     if(ca.sin4.sin_family == AF_INET) {
       WriteLock rl(&d_lock4);
       auto res=d_ip4s.insert({ca.sin4.sin_addr.s_addr, ttd});
-      if(!res.second && res.first->second < ttd)
-        res.first->second = ttd;
+      if(!res.second && (time_t)res.first->second < ttd)
+        res.first->second = (uint32_t)ttd;
     }
     else {
       WriteLock rl(&d_lock6);
       auto res=d_ip6s.insert({{ca}, ttd});
-      if(!res.second && res.first->second < ttd)
-        res.first->second = ttd;
+      if(!res.second && (time_t)res.first->second < ttd)
+        res.first->second = (uint32_t)ttd;
     }
   }
 
@@ -212,6 +212,35 @@ public:
     }
     WriteLock rl(&d_lock6);
     d_ip6s.clear();
+  }
+
+  void cleanup()
+  {
+    time_t now=time(0);
+    {
+      WriteLock rl(&d_lock4);
+
+      for(auto iter = d_ip4s.begin(); iter != d_ip4s.end(); ) {
+	if(iter->second < now)
+	  iter=d_ip4s.erase(iter);
+	else
+	  ++iter;
+      }
+	    
+    }
+
+    {
+      WriteLock rl(&d_lock6);
+
+      for(auto iter = d_ip6s.begin(); iter != d_ip6s.end(); ) {
+	if(iter->second < now)
+	  iter=d_ip6s.erase(iter);
+	else
+	  ++iter;
+      }
+	    
+    }
+
   }
   
   string toString() const override
@@ -243,8 +272,8 @@ private:
       return ah & (bh<<1);
     }
   };
-  std::unordered_map<IPv6, time_t, IPv6Hash> d_ip6s;
-  std::unordered_map<uint32_t, time_t> d_ip4s;
+  std::unordered_map<IPv6, uint32_t, IPv6Hash> d_ip6s;
+  std::unordered_map<uint32_t, uint32_t> d_ip4s;
   mutable pthread_rwlock_t d_lock4;
   mutable pthread_rwlock_t d_lock6;
 };

@@ -1273,6 +1273,10 @@ void moreLua(bool client)
         tisr->clear();
       });
 
+    g_lua.registerFunction<void(std::shared_ptr<TimedIPSetRule>::*)()>("cleanup", [](std::shared_ptr<TimedIPSetRule> tisr) {
+        tisr->cleanup();
+      });
+
     g_lua.registerFunction<void(std::shared_ptr<TimedIPSetRule>::*)(const ComboAddress& ca, int t)>("add", [](std::shared_ptr<TimedIPSetRule> tisr, const ComboAddress& ca, int t) {
         tisr->add(ca, time(0)+t);
       });
