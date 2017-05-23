@@ -803,6 +803,19 @@ representing the client's source address, and whose value is an integer represen
 the number of queries matching the corresponding condition (for example the
 `qtype` for `exceedQTypeRate()`, `rcode` for `exceedServFails()`).
 
+In order to prevent some ranges from being blocked, `addWhitelistedDynBlocks()` takes a
+`NetmaskGroup` as a fourth parameter named `whitelist`. The addresses it contains will not
+be blacklisted, even if they match.
+
+```
+whitelisted = newNMG()
+whitelisted:addMask("192.0.2.0/24")
+
+function maintenance()
+	addWhitelistedDynBlocks(exceedQRate(20, 10), "Exceeded query rate", 60, whitelisted)
+end
+```
+
 Dynamic blocks drop matched queries by default, but this behavior can be changed
 with `setDynBlocksAction()`. For example, to send a REFUSED code instead of droppping
 the query:
@@ -1531,6 +1544,7 @@ instantiate a server with additional parameters
     * `clearDynBlocks()`: clear all dynamic blocks
     * `showDynBlocks()`: show dynamic blocks in force
     * `addDynBlocks(addresses, message[, seconds])`: block the set of addresses with message `msg`, for `seconds` seconds (10 by default)
+    * `addWhitelistedDynBlocks(addresses, message[, seconds[, whitelist]])`: block the set of addresses with message `msg`, for `seconds` seconds. Addresses present in the`whitelist` `NetmaskGroup` will not be blocked even if they match
     * `setDynBlocksAction(DNSAction)`: set which action is performed when a query is blocked. Only DNSAction.Drop (the default) and DNSAction.Refused are supported
     * `addBPFFilterDynBlocks(addresses, DynBPFFilter[, seconds])`: block the set of addresses using the supplied BPF Filter, for `seconds` seconds (10 by default)
     * `exceedServFails(rate, seconds)`: get set of addresses that exceed `rate` servfails/s over `seconds` seconds

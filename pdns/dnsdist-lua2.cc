@@ -197,7 +197,70 @@ map<ComboAddress,int> exceedRespByterate(int rate, int seconds)
 		   });
 }
 
+static void addDynBlocks(const map<ComboAddress,int>& m, const std::string& msg, int seconds, const NetmaskGroup& whitelist)
+{
+  auto slow = g_dynblockNMG.getCopy();
+  struct timespec until, now;
+  gettime(&now);
+  until=now;
+  until.tv_sec += seconds;
+  for(const auto& capair : m) {
+    unsigned int count = 0;
+    if (whitelist.match(capair.first)) {
+      continue;
+    }
+    auto got = slow.lookup(Netmask(capair.first));
+    bool expired=false;
+    if(got) {
+      if(until < got->second.until) // had a longer policy
+        continue;
+      if(now < got->second.until) // only inherit count on fresh query we are extending
+        count=got->second.blocks;
+      else
+        expired=true;
+    }
+    DynBlock db{msg,until};
+    db.blocks=count;
+    if(!got || expired)
+      warnlog("Inserting dynamic block for %s for %d seconds: %s", capair.first.toString(), seconds, msg);
+    slow.insert(Netmask(capair.first)).second=db;
+  }
+  g_dynblockNMG.setState(slow);
+}
 
+static void addDynBlockSMT(const vector<pair<unsigned int, string> >&names, const std::string& msg, int seconds, const SuffixMatchNode& whitelist)
+{
+  auto slow = g_dynblockSMT.getCopy();
+  struct timespec until, now;
+  gettime(&now);
+  until=now;
+  until.tv_sec += seconds;
+
+  for(const auto& capair : names) {
+    unsigned int count = 0;
+    DNSName domain(capair.second);
+    if (whitelist.check(domain)) {
+      continue;
+    }
+    auto got = slow.lookup(domain);
+    bool expired=false;
+    if(got) {
+      if(until < got->until) // had a longer policy
+        continue;
+      if(now < got->until) // only inherit count on fresh query we are extending
+        count=got->blocks;
+      else
+        expired=true;
+    }
+
+    DynBlock db{msg,until,domain};
+    db.blocks=count;
+    if(!got || expired)
+      warnlog("Inserting dynamic block for %s for %d seconds: %s", domain, seconds, msg);
+    slow.add(domain, db);
+  }
+  g_dynblockSMT.setState(slow);
+}
 
 void moreLua(bool client)
 {
@@ -252,67 +315,30 @@ void moreLua(bool client)
       g_dynblockSMT.setState(smt);
     });
 
-  g_lua.writeFunction("addDynBlocks", 
-			  [](const map<ComboAddress,int>& m, const std::string& msg, boost::optional<int> seconds) { 
+  g_lua.writeFunction("addDynBlocks",
+                      [](const map<ComboAddress,int>& m, const std::string& msg, boost::optional<int> seconds) {
+                        setLuaSideEffect();
+                        NetmaskGroup nmg;
+                        addDynBlocks(m, msg, seconds ? *seconds : 10, nmg);
+                      });
+
+  g_lua.writeFunction("addWhitelistedDynBlocks",
+                      [](const map<ComboAddress,int>& m, const std::string& msg, int seconds, const NetmaskGroup& whitelist) {
                            setLuaSideEffect();
-			   auto slow = g_dynblockNMG.getCopy();
-			   struct timespec until, now;
-			   gettime(&now);
-			   until=now;
-                           int actualSeconds = seconds ? *seconds : 10;
-			   until.tv_sec += actualSeconds; 
-			   for(const auto& capair : m) {
-			     unsigned int count = 0;
-                             auto got = slow.lookup(Netmask(capair.first));
-                             bool expired=false;
-			     if(got) {
-			       if(until < got->second.until) // had a longer policy
-				 continue;
-			       if(now < got->second.until) // only inherit count on fresh query we are extending
-				 count=got->second.blocks;
-                               else
-                                 expired=true;
-			     }
-			     DynBlock db{msg,until};
-			     db.blocks=count;
-                             if(!got || expired)
-                               warnlog("Inserting dynamic block for %s for %d seconds: %s", capair.first.toString(), actualSeconds, msg);
-			     slow.insert(Netmask(capair.first)).second=db;
-			   }
-			   g_dynblockNMG.setState(slow);
+                           addDynBlocks(m, msg, seconds, whitelist);
 			 });
 
-  g_lua.writeFunction("addDynBlockSMT", 
-                      [](const vector<pair<unsigned int, string> >&names, const std::string& msg, boost::optional<int> seconds) { 
+  g_lua.writeFunction("addDynBlockSMT",
+                      [](const vector<pair<unsigned int, string> >& names, const std::string& msg, boost::optional<int> seconds) {
                            setLuaSideEffect();
-			   auto slow = g_dynblockSMT.getCopy();
-			   struct timespec until, now;
-			   gettime(&now);
-			   until=now;
-                           int actualSeconds = seconds ? *seconds : 10;
-			   until.tv_sec += actualSeconds; 
+                           SuffixMatchNode smn;
+                           addDynBlockSMT(names, msg, seconds ? *seconds : 10, smn);
+			 });
 
- 			   for(const auto& capair : names) {
-			     unsigned int count = 0;
-                             DNSName domain(capair.second);
-                             auto got = slow.lookup(domain);
-                             bool expired=false;
-			     if(got) {
-			       if(until < got->until) // had a longer policy
-				 continue;
-			       if(now < got->until) // only inherit count on fresh query we are extending
-				 count=got->blocks;
-                               else
-                                 expired=true;
-			     }
-
-			     DynBlock db{msg,until,domain};
-			     db.blocks=count;
-                             if(!got || expired)
-                               warnlog("Inserting dynamic block for %s for %d seconds: %s", domain, actualSeconds, msg);
-			     slow.add(domain, db);
-			   }
-			   g_dynblockSMT.setState(slow);
+  g_lua.writeFunction("addWhitelistedDynBlockSMT",
+                      [](const vector<pair<unsigned int, string> >& names, const std::string& msg, int seconds, const SuffixMatchNode& whitelist) {
+                           setLuaSideEffect();
+                           addDynBlockSMT(names, msg, seconds, whitelist);
 			 });
 
   g_lua.writeFunction("setDynBlocksAction", [](DNSAction::Action action) {
