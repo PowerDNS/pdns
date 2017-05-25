@@ -262,7 +262,14 @@ try
   cout<<"Generated "<<unknown.size()<<" ready to use queries"<<endl;
   
   vector<Socket*> sockets;
-  ComboAddress dest(g_vm["destination"].as<string>(), 53);
+  ComboAddress dest;
+  try {
+    dest = ComboAddress(g_vm["destination"].as<string>(), 53);
+  }
+  catch (PDNSException &e) {
+    cerr<<e.reason<<endl;
+    return EXIT_FAILURE;
+  }
   for(int i=0; i < 24; ++i) {
     Socket *sock = new Socket(dest.sin4.sin_family, SOCK_DGRAM);
     //    sock->connect(dest);
