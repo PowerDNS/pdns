@@ -26,10 +26,6 @@
 #include "iputils.hh"
 #include "dnsname.hh"
 
-extern NetmaskGroup g_ednssubnets;
-extern SuffixMatchNode g_ednsdomains;
-extern bool g_useIncomingECS;
-
 struct EDNSSubnetOpts
 {
 	Netmask source;
