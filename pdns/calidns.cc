@@ -187,7 +187,7 @@ try
   struct sched_param param;
   param.sched_priority=99;
   int arg_i = 1;
-  int increment = 1.1;
+  float increment = 1.1;
   bool wantRecursion = false;
 
   if (argc < 5) {
@@ -209,7 +209,7 @@ try
     }
 
     if(opt == "--increment") {
-      increment = std::stoi(argv[arg_i+1]);
+      increment = std::stof(argv[arg_i+1]);
       arg_i++;
       continue;
     }
