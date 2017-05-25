@@ -826,13 +826,19 @@ void moreLua(bool client)
 
     g_lua.registerFunction("getStats", &DNSAction::getStats);
 
-  g_lua.writeFunction("addResponseAction", [](luadnsrule_t var, std::shared_ptr<DNSResponseAction> ea) {
-      setLuaSideEffect();
-      auto rule=makeRule(var);
-      g_resprulactions.modify([rule, ea](decltype(g_resprulactions)::value_type& rulactions){
-          rulactions.push_back({rule, ea});
-        });
-    });
+    g_lua.writeFunction("addResponseAction", [](luadnsrule_t var, boost::variant<std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction> > era) {
+        if (era.type() == typeid(std::shared_ptr<DNSAction>)) {
+          throw std::runtime_error("addResponseAction() can only be called with response-related actions, not query-related ones. Are you looking for addAction()?");
+        }
+
+        auto ea = *boost::get<std::shared_ptr<DNSResponseAction>>(&era);
+
+        setLuaSideEffect();
+        auto rule=makeRule(var);
+        g_resprulactions.modify([rule, ea](decltype(g_resprulactions)::value_type& rulactions){
+            rulactions.push_back({rule, ea});
+          });
+      });
 
     g_lua.writeFunction("showResponseRules", []() {
         setLuaNoSideEffect();

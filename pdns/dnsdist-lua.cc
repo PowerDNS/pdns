@@ -991,8 +991,13 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       return std::shared_ptr<DNSRule>(new RCodeRule(rcode));
     });
 
-  g_lua.writeFunction("addAction", [](luadnsrule_t var, std::shared_ptr<DNSAction> ea)
+  g_lua.writeFunction("addAction", [](luadnsrule_t var, boost::variant<std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction> > era)
 		      {
+                        if (era.type() == typeid(std::shared_ptr<DNSResponseAction>)) {
+                          throw std::runtime_error("addAction() can only be called with query-related actions, not response-related ones. Are you looking for addResponseAction()?");
+                        }
+
+                        auto ea = *boost::get<std::shared_ptr<DNSAction>>(&era);
                         setLuaSideEffect();
 			auto rule=makeRule(var);
 			g_rulactions.modify([rule, ea](decltype(g_rulactions)::value_type& rulactions){
