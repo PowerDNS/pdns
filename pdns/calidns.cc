@@ -232,7 +232,12 @@ try
 
   bool wantRecursion = g_vm.count("want-recursion");
 
-  double hitrate = g_vm["hitrate"].as<double>() / 100;
+  double hitrate = g_vm["hitrate"].as<double>();
+  if (hitrate > 100 || hitrate < 0) {
+    cerr<<"hitrate must be between 0 and 100, not "<<hitrate<<endl;
+    return EXIT_FAILURE;
+  }
+  hitrate /= 100;
   uint32_t qpsstart = g_vm["initital-qps"].as<uint32_t>();
 
   struct sched_param param;
