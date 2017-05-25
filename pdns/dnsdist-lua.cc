@@ -602,7 +602,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       g_ACL.modify([domain](NetmaskGroup& nmg) { nmg.addMask(domain); });
     });
 
-  g_lua.writeFunction("setLocal", [client](const std::string& addr, boost::optional<bool> doTCP, boost::optional<bool> reusePort, boost::optional<int> tcpFastOpenQueueSize) {
+  g_lua.writeFunction("setLocal", [client](const std::string& addr, boost::optional<bool> doTCP, boost::optional<bool> reusePort, boost::optional<int> tcpFastOpenQueueSize, boost::optional<std::string> interface) {
       setLuaSideEffect();
       if(client)
 	return;
@@ -613,14 +613,14 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       try {
 	ComboAddress loc(addr, 53);
 	g_locals.clear();
-	g_locals.push_back(std::make_tuple(loc, doTCP ? *doTCP : true, reusePort ? *reusePort : false, tcpFastOpenQueueSize ? *tcpFastOpenQueueSize : 0)); /// only works pre-startup, so no sync necessary
+	g_locals.push_back(std::make_tuple(loc, doTCP ? *doTCP : true, reusePort ? *reusePort : false, tcpFastOpenQueueSize ? *tcpFastOpenQueueSize : 0, interface ? *interface : "")); /// only works pre-startup, so no sync necessary
       }
       catch(std::exception& e) {
 	g_outputBuffer="Error: "+string(e.what())+"\n";
       }
     });
 
-  g_lua.writeFunction("addLocal", [client](const std::string& addr, boost::optional<bool> doTCP, boost::optional<bool> reusePort, boost::optional<int> tcpFastOpenQueueSize) {
+  g_lua.writeFunction("addLocal", [client](const std::string& addr, boost::optional<bool> doTCP, boost::optional<bool> reusePort, boost::optional<int> tcpFastOpenQueueSize, boost::optional<std::string> interface) {
       setLuaSideEffect();
       if(client)
 	return;
@@ -630,7 +630,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       }
       try {
 	ComboAddress loc(addr, 53);
-	g_locals.push_back(std::make_tuple(loc, doTCP ? *doTCP : true, reusePort ? *reusePort : false, tcpFastOpenQueueSize ? *tcpFastOpenQueueSize : 0)); /// only works pre-startup, so no sync necessary
+	g_locals.push_back(std::make_tuple(loc, doTCP ? *doTCP : true, reusePort ? *reusePort : false, tcpFastOpenQueueSize ? *tcpFastOpenQueueSize : 0, interface ? *interface : "")); /// only works pre-startup, so no sync necessary
       }
       catch(std::exception& e) {
 	g_outputBuffer="Error: "+string(e.what())+"\n";
