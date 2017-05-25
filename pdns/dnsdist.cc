@@ -853,7 +853,11 @@ bool processQuery(LocalStateHolder<NetmaskTree<DynBlock> >& localDynNMGBlock,
     if(now < got->second.until) {
       g_stats.dynBlocked++;
       got->second.blocks++;
-      if (g_dynBlockAction == DNSAction::Action::Refused) {
+      DNSAction::Action action = got->second.action;
+      if (action == DNSAction::Action::None) {
+        action = g_dynBlockAction;
+      }
+      if (action == DNSAction::Action::Refused) {
         vinfolog("Query from %s refused because of dynamic block", dq.remote->toStringWithPort());
         dq.dh->rcode = RCode::Refused;
         dq.dh->qr=true;
@@ -870,7 +874,11 @@ bool processQuery(LocalStateHolder<NetmaskTree<DynBlock> >& localDynNMGBlock,
     if(now < got->until) {
       g_stats.dynBlocked++;
       got->blocks++;
-      if (g_dynBlockAction == DNSAction::Action::Refused) {
+      DNSAction::Action action = got->action;
+      if (action == DNSAction::Action::None) {
+        action = g_dynBlockAction;
+      }
+      if (action == DNSAction::Action::Refused) {
         vinfolog("Query from %s for %s refused because of dynamic block", dq.remote->toStringWithPort(), dq.qname->toString());
         dq.dh->rcode = RCode::Refused;
         dq.dh->qr=true;

@@ -253,7 +253,7 @@ void moreLua(bool client)
     });
 
   g_lua.writeFunction("addDynBlocks", 
-			  [](const map<ComboAddress,int>& m, const std::string& msg, boost::optional<int> seconds) { 
+                      [](const map<ComboAddress,int>& m, const std::string& msg, boost::optional<int> seconds, boost::optional<DNSAction::Action> action) { 
                            setLuaSideEffect();
 			   auto slow = g_dynblockNMG.getCopy();
 			   struct timespec until, now;
@@ -273,7 +273,7 @@ void moreLua(bool client)
                                else
                                  expired=true;
 			     }
-			     DynBlock db{msg,until};
+			     DynBlock db{msg,until,DNSName(),(action ? *action : DNSAction::Action::None)};
 			     db.blocks=count;
                              if(!got || expired)
                                warnlog("Inserting dynamic block for %s for %d seconds: %s", capair.first.toString(), actualSeconds, msg);
@@ -283,7 +283,7 @@ void moreLua(bool client)
 			 });
 
   g_lua.writeFunction("addDynBlockSMT", 
-                      [](const vector<pair<unsigned int, string> >&names, const std::string& msg, boost::optional<int> seconds) { 
+                      [](const vector<pair<unsigned int, string> >&names, const std::string& msg, boost::optional<int> seconds, boost::optional<DNSAction::Action> action) { 
                            setLuaSideEffect();
 			   auto slow = g_dynblockSMT.getCopy();
 			   struct timespec until, now;
@@ -306,7 +306,7 @@ void moreLua(bool client)
                                  expired=true;
 			     }
 
-			     DynBlock db{msg,until,domain};
+			     DynBlock db{msg,until,domain,(action ? *action : DNSAction::Action::None)};
 			     db.blocks=count;
                              if(!got || expired)
                                warnlog("Inserting dynamic block for %s for %d seconds: %s", domain, actualSeconds, msg);
