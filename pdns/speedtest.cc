@@ -265,7 +265,6 @@ vector<uint8_t> makeBigDNSPacketReferral()
   rr.qtype = QType::NS;
   rr.ttl=3600;
   rr.qname=DNSName("com");
-  rr.d_place = DNSResourceRecord::ADDITIONAL;
 
   string gtld="x.gtld-servers.net";
   for(char c='a'; c<= 'm';++c) {
@@ -297,7 +296,7 @@ vector<uint8_t> makeBigDNSPacketReferral()
   DNSPacketWriter pw(packet, DNSName("www.google.com"), QType::A);
   //  shuffle(records);
   for(const auto& rec : records) {
-    pw.startRecord(rec.qname, rec.qtype.getCode(), rec.ttl, 1, rec.d_place);
+    pw.startRecord(rec.qname, rec.qtype.getCode(), rec.ttl, 1, DNSResourceRecord::ADDITIONAL);
     auto drc = DNSRecordContent::mastermake(rec.qtype.getCode(), 1, rec.content);
     drc->toPacket(pw);
     delete drc;
@@ -620,7 +619,6 @@ struct ParsePacketTest
     
       rr.ttl=i->first.d_ttl;
       rr.content=i->first.d_content->getZoneRepresentation();  // this should be the serialised form
-      rr.d_place=(DNSResourceRecord::Place) i->first.d_place;
       lwr.d_result.push_back(rr);
     }
 
