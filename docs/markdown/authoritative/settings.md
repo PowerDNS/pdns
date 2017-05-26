@@ -364,10 +364,10 @@ Forward DNS updates sent to a slave to the master.
 ## `forward-notify`
 * IP addresses, separated by commas
 
-IP addresses to send received notifications to regardless of master or slave settings.
+IP addresses to forward received notifications to regardless of master or slave settings.
 
 Note: The intended use is in anycast environments where it might be necessary for a
-proxy server to preform the AXFR.  The usual checks are preformed before any received
+proxy server to perform the AXFR.  The usual checks are performed before any received
 notification is forwarded.
 
 ## `guardian`

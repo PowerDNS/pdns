@@ -37,21 +37,6 @@
 #include "arguments.hh"
 #include "packetcache.hh"
 
-#define CommunicatorLoadArgsIntoSet(listname, listset) do {                                \
-  vector<string> parts;                                                                    \
-  stringtok(parts, ::arg()[(listname)], ", \t");                                           \
-  for (vector<string>::const_iterator iter = parts.begin(); iter != parts.end(); ++iter) { \
-    try {                                                                                  \
-      ComboAddress caIp(*iter, 53);                                                        \
-      (listset).insert(caIp.toStringWithPort());                                           \
-    }                                                                                      \
-    catch(PDNSException &e) {                                                              \
-      L<<Logger::Error<<"Unparseable IP in "<<(listname)<<". Error: "<<e.reason<<endl;     \
-      exit(1);                                                                             \
-    }                                                                                      \
-  }                                                                                        \
-} while(0)
-
 // there can be MANY OF THESE
 void CommunicatorClass::retrievalLoopThread(void)
 {
@@ -67,6 +52,22 @@ void CommunicatorClass::retrievalLoopThread(void)
       d_suckdomains.pop_front();
     }
     suck(sr.domain, sr.master);
+  }
+}
+
+void CommunicatorClass::LoadArgsIntoSet(const char *listname, set<string> &listset)
+{
+  vector<string> parts;
+  stringtok(parts, ::arg()[listname], ", \t");
+  for (vector<string>::const_iterator iter = parts.begin(); iter != parts.end(); ++iter) {
+    try {
+      ComboAddress caIp(*iter, 53);
+      listset.insert(caIp.toStringWithPort());
+    }
+    catch(PDNSException &e) {
+      L<<Logger::Error<<"Unparseable IP in "<<listname<<". Error: "<<e.reason<<endl;
+      exit(1);
+    }
   }
 }
 
@@ -95,9 +96,9 @@ void CommunicatorClass::go()
     exit(1);
   }
 
-  CommunicatorLoadArgsIntoSet("also-notify", d_alsoNotify);
+  LoadArgsIntoSet("also-notify", d_alsoNotify);
 
-  CommunicatorLoadArgsIntoSet("forward-notify", PacketHandler::s_forwardNotify);
+  LoadArgsIntoSet("forward-notify", PacketHandler::s_forwardNotify);
 }
 
 void CommunicatorClass::mainloop(void)
