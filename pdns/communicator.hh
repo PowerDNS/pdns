@@ -187,7 +187,7 @@ public:
   }
   bool notifyDomain(const DNSName &domain);
 private:
-  void LoadArgsIntoSet(const char *listname, set<string> &listset);
+  void loadArgsIntoSet(const char *listname, set<string> &listset);
   void makeNotifySockets();
   void queueNotifyDomain(const DomainInfo& di, UeberBackend* B);
   int d_nsock4, d_nsock6;

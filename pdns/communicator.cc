@@ -55,7 +55,7 @@ void CommunicatorClass::retrievalLoopThread(void)
   }
 }
 
-void CommunicatorClass::LoadArgsIntoSet(const char *listname, set<string> &listset)
+void CommunicatorClass::loadArgsIntoSet(const char *listname, set<string> &listset)
 {
   vector<string> parts;
   stringtok(parts, ::arg()[listname], ", \t");
@@ -96,9 +96,9 @@ void CommunicatorClass::go()
     exit(1);
   }
 
-  LoadArgsIntoSet("also-notify", d_alsoNotify);
+  loadArgsIntoSet("also-notify", d_alsoNotify);
 
-  LoadArgsIntoSet("forward-notify", PacketHandler::s_forwardNotify);
+  loadArgsIntoSet("forward-notify", PacketHandler::s_forwardNotify);
 }
 
 void CommunicatorClass::mainloop(void)
