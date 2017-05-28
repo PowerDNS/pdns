@@ -57,7 +57,7 @@ static void pdns_luaL_setfuncs (lua_State *L, const luaL_Reg *l, int nup) {
 }
 #else
 static void pdns_luaL_setfuncs (lua_State *L, const luaL_Reg *l, int nup) {
-  lual_setfuncs(L, l, nup);
+  luaL_setfuncs(L, l, nup);
 }
 #endif
 
