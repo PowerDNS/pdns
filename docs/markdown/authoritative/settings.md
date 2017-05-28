@@ -475,6 +475,13 @@ Tell PowerDNS to log all incoming DNS queries. This will lead to a lot of
 logging! Only enable for debugging! Set [`loglevel`](#loglevel) to at least 5
 to see the logs.
 
+## `log-failed-updates`
+* Boolean
+* Default: no
+* Removed in: 3.4.0
+
+If PowerDNS should log failed update requests.
+
 ## `lua-prequery-script`
 * Path
 
