@@ -103,6 +103,12 @@ static thread_local std::shared_ptr<Regex> t_traceRegex;
 static thread_local std::unique_ptr<tcpClientCounts_t> t_tcpClientCounts;
 
 thread_local std::unique_ptr<MT_t> MT; // the big MTasker
+MT_t* getMT()
+{
+  return MT ? MT.get() : 0;
+}
+
+
 thread_local std::unique_ptr<MemRecursorCache> t_RC;
 thread_local std::unique_ptr<RecursorPacketCache> t_packetCache;
 thread_local FDMultiplexer* t_fdm{nullptr};
