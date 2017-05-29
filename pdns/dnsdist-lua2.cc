@@ -512,15 +512,22 @@ void moreLua(bool client)
       }
     });
 
-  g_lua.writeFunction("addDNSCryptBind", [](const std::string& addr, const std::string& providerName, const std::string& certFile, const std::string keyFile, boost::optional<bool> reusePort, boost::optional<int> tcpFastOpenQueueSize, boost::optional<std::string> interface) {
+  g_lua.writeFunction("addDNSCryptBind", [](const std::string& addr, const std::string& providerName, const std::string& certFile, const std::string keyFile, boost::optional<localbind_t> vars) {
       if (g_configurationDone) {
         g_outputBuffer="addDNSCryptBind cannot be used at runtime!\n";
         return;
       }
 #ifdef HAVE_DNSCRYPT
+      bool doTCP = true;
+      bool reusePort = false;
+      int tcpFastOpenQueueSize = 0;
+      std::string interface;
+
+      parseLocalBindVars(vars, doTCP, reusePort, tcpFastOpenQueueSize, interface);
+
       try {
         DnsCryptContext ctx(providerName, certFile, keyFile);
-        g_dnsCryptLocals.push_back(std::make_tuple(ComboAddress(addr, 443), ctx, reusePort ? *reusePort : false, tcpFastOpenQueueSize ? *tcpFastOpenQueueSize : 0, interface ? *interface : ""));
+        g_dnsCryptLocals.push_back(std::make_tuple(ComboAddress(addr, 443), ctx, reusePort, tcpFastOpenQueueSize, interface));
       }
       catch(std::exception& e) {
         errlog(e.what());
