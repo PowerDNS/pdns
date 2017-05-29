@@ -490,8 +490,7 @@ int DnsCryptContext::encryptResponse(char* response, uint16_t responseLen, uint1
   /* skipping response */
   pos += responseLen;
   /* padding */
-  response[pos] = (uint8_t) 0x80;
-  pos++;
+  response[pos++] = (uint8_t) 0x80;
   memset(response + pos, 0, paddingSize - 1);
   pos += (paddingSize - 1);
 
@@ -570,8 +569,7 @@ int DnsCryptContext::encryptQuery(char* query, uint16_t queryLen, uint16_t query
   pos += queryLen;
 
   /* padding */
-  query[pos] = (uint8_t) 0x80;
-  pos++;
+  query[pos++] = (uint8_t) 0x80;
   memset(query + pos, 0, paddingSize - 1);
   pos += paddingSize - 1;
 
