@@ -601,14 +601,17 @@ static string* pleaseGetCurrentQueries()
   boost::format fmt("%1% %|40t|%2% %|47t|%3% %|63t|%4% %|68t|%5%\n");
 
   ostr << (fmt % "qname" % "qtype" % "remote" % "tcp" % "chained");
-  int n=0;
-  for(MT_t::waiters_t::iterator mthread=getMT()->d_waiters.begin(); mthread!=getMT()->d_waiters.end() && n < 100; ++mthread, ++n) {
-    const PacketID& pident = mthread->key;
+  unsigned int n=0;
+  for(const auto& mthread : getMT()->d_waiters) {
+    const PacketID& pident = mthread.key;
     ostr << (fmt 
              % pident.domain.toLogString() /* ?? */ % DNSRecordContent::NumberToType(pident.type) 
              % pident.remote.toString() % (pident.sock ? 'Y' : 'n')
              % (pident.fd == -1 ? 'Y' : 'n')
              );
+    ++n;
+    if (n >= 100)
+      break;
   }
   ostr <<" - done\n";
   return new string(ostr.str());

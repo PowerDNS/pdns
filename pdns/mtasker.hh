@@ -122,9 +122,9 @@ public:
   void getEvents(std::vector<EventKey>& events);
   void makeThread(tfunc_t *start, void* val);
   bool schedule(struct timeval* now=0);
-  bool noProcesses();
-  unsigned int numProcesses();
-  int getTid(); 
+  bool noProcesses() const;
+  unsigned int numProcesses() const;
+  int getTid() const;
   unsigned int getMaxStackUsage();
   unsigned int getUsec();
 
