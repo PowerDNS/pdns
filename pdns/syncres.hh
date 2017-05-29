@@ -819,7 +819,7 @@ struct PacketIDBirthdayCompare: public std::binary_function<PacketID, PacketID, 
 extern thread_local std::unique_ptr<MemRecursorCache> t_RC;
 extern thread_local std::unique_ptr<RecursorPacketCache> t_packetCache;
 typedef MTasker<PacketID,string> MT_t;
-extern thread_local std::unique_ptr<MT_t> MT;
+MT_t* getMT();
 
 struct RecursorStats
 {

@@ -557,7 +557,7 @@ void AsyncServer::asyncWaitForConnections(FDMultiplexer* fdm, const newconnectio
 
 void AsyncServer::newConnection()
 {
-  MT->makeThread(&AsyncServerNewConnectionMT, this);
+  getMT()->makeThread(&AsyncServerNewConnectionMT, this);
 }
 
 
