@@ -1,6 +1,6 @@
 #include "statnode.hh"
 
-StatNode::Stat StatNode::print(int depth, Stat newstat, bool silent) const
+StatNode::Stat StatNode::print(unsigned int depth, Stat newstat, bool silent) const
 {
   if(!silent) {
     cout<<string(depth, ' ');
@@ -31,7 +31,7 @@ StatNode::Stat StatNode::print(int depth, Stat newstat, bool silent) const
 }
 
 
-void  StatNode::visit(visitor_t visitor, Stat &newstat, int depth) const
+void  StatNode::visit(visitor_t visitor, Stat &newstat, unsigned int depth) const
 {
   Stat childstat;
   childstat.queries += s.queries;
@@ -65,7 +65,7 @@ void StatNode::submit(const DNSName& domain, int rcode, const ComboAddress& remo
   for(auto const i : tmp) {
     parts.push_back(i);
   }
-  children[parts.back()].submit(parts, "", rcode, remote);
+  children[parts.back()].submit(parts, "", rcode, remote, 1);
 }
 
 /* www.powerdns.com. -> 
@@ -75,7 +75,7 @@ void StatNode::submit(const DNSName& domain, int rcode, const ComboAddress& remo
    www.powerdns.com. 
 */
 
-void StatNode::submit(deque<string>& labels, const std::string& domain, int rcode, const ComboAddress& remote)
+void StatNode::submit(deque<string>& labels, const std::string& domain, int rcode, const ComboAddress& remote, unsigned int count)
 {
   if(labels.empty())
     return;
@@ -92,7 +92,10 @@ void StatNode::submit(deque<string>& labels, const std::string& domain, int rcod
     ; //    cerr<<"Short name was already set to '"<<name<<"'"<<endl;
 
   if(labels.size()==1) {
-    fullname=name+"."+domain;
+    if (fullname.empty()) {
+      fullname=name+"."+domain;
+      labelsCount = count;
+    }
     //    cerr<<"Hit the end, set our fullname to '"<<fullname<<"'"<<endl<<endl;
     s.queries++;
     if(rcode<0)
@@ -106,10 +109,13 @@ void StatNode::submit(deque<string>& labels, const std::string& domain, int rcod
     s.remotes[remote]++;
   }
   else {
-    fullname=name+"."+domain;
+    if (fullname.empty()) {
+      fullname=name+"."+domain;
+      labelsCount = count;
+    }
     //    cerr<<"Not yet end, set our fullname to '"<<fullname<<"', recursing"<<endl;
     labels.pop_back();
-    children[labels.back()].submit(labels, fullname, rcode, remote);
+    children[labels.back()].submit(labels, fullname, rcode, remote, count+1);
   }
 }
 
