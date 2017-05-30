@@ -39,6 +39,14 @@
 #include "dnsdist-dynbpf.hh"
 #include "bpf-filter.hh"
 
+// ----------------------------------------------------------------------------
+// GCA - Seth Ornstein - 5/30/2017 - for new extra class in DNSQuestion struct
+
+#include <string>
+#include <unordered_map>
+// ----------------------------------------------------------------------------
+
+
 #ifdef HAVE_PROTOBUF
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
@@ -50,6 +58,123 @@ uint64_t uptimeOfProcess(const std::string& str);
 extern uint16_t g_ECSSourcePrefixV4;
 extern uint16_t g_ECSSourcePrefixV6;
 extern bool g_ECSOverride;
+
+
+
+// ----------------------------------------------------------------------------
+// GCA - Seth Ornstein - 5/30/2017 - new extra class in DNSQuestion struct
+
+class QTag
+{
+
+public:
+
+// ----------------------------------------------------------------------------
+// constructor
+// ----------------------------------------------------------------------------
+QTag()
+{
+}
+
+// ----------------------------------------------------------------------------
+// destructor - verify for debugging that it is called as this is how tags become freed
+// ----------------------------------------------------------------------------
+~QTag()
+{
+}
+
+// ----------------------------------------------------------------------------
+// add() - add a label and value to the tags
+// ----------------------------------------------------------------------------
+bool add(std::string strLabel, std::string strValue)
+{
+bool bStatus = true;
+
+   tagData.insert( {strLabel, strValue});
+//   tagData[strLabel] = strValue;
+   return(bStatus);
+}
+
+// ----------------------------------------------------------------------------
+// getMatch() - return the matching tag value
+// ----------------------------------------------------------------------------
+std::string getMatch(const std::string& strLabel)  const
+{
+
+    std::unordered_map<std::string, std::string>::const_iterator got =tagData.find (strLabel);
+    if(got == tagData.end())
+      {
+       return("");
+      }
+    else
+      {
+       return(got->second);
+      }
+}
+
+
+// ----------------------------------------------------------------------------
+// getEntry() - return the specified tag entry
+// ----------------------------------------------------------------------------
+std::string getEntry(int iEntry) const
+{
+std::string strEntry;
+int iCounter = 0;
+
+   std::unordered_map<std::string, std::string>::const_iterator itr;
+   for (itr =tagData.begin(); itr != tagData.end(); itr++)
+      {
+        iCounter++;
+        if(iCounter == iEntry)
+          {
+           strEntry = itr->first;
+           strEntry += strSep;
+           strEntry += itr->second;
+           break;
+          }
+      }
+   return(strEntry);
+
+}
+
+// ----------------------------------------------------------------------------
+// count() - return number of tag entries
+// ----------------------------------------------------------------------------
+int count() const
+{
+   return(tagData.size());
+}
+
+// ----------------------------------------------------------------------------
+// dumpString() - return string with all the tag entries
+// ----------------------------------------------------------------------------
+std::string dumpString() const
+{
+std::string strRet;
+
+    std::unordered_map<std::string, std::string>::const_iterator itr;
+    for (itr =tagData.begin(); itr != tagData.end(); itr++)
+       {
+        strRet += itr->first;
+        strRet += strSep;
+        strRet += itr->second;
+        strRet += "\n";
+       }
+    return(strRet);
+}
+
+public:
+    std::unordered_map<std::string, std::string>tagData;    // try this public....
+
+private:
+
+    const char *strSep = "\t";                      // separation character
+};
+
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+
+
 
 struct DNSQuestion
 {
@@ -71,6 +196,7 @@ struct DNSQuestion
   bool skipCache{false};
   bool ecsOverride;
   bool useECS{true};    
+  QTag qTag;                        // GCA - Seth Ornstein - extra class for tags 5/30/2017
 };
 
 struct DNSResponse : DNSQuestion

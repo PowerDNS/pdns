@@ -831,6 +831,39 @@ void moreLua(bool client)
 #endif
       });
 
+
+// --------------------------------------------------------------------------
+// GCA - Seth Ornstein added lua callable functions - 5/30/2017
+// DNSDistProtoBufMessage - setTagArray, setProtobufResponseType
+
+
+     g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(vector<pair<string, string>>)>("setTagArray", [](DNSDistProtoBufMessage& message, const vector<pair<string, string>>&tags) {
+
+      setLuaSideEffect();
+
+      for (const auto& tag : tags)
+        {
+          message.addTags(tag.first, tag.second);               // add a tag to store text - not used by dnsdist at present?
+        }
+     });
+
+     g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const std::string&, time_t sec, uint uSec)>("setProtobufResponseType", [](DNSDistProtoBufMessage& message, const std::string& strQueryName, time_t sec, uint uSec) {
+
+        message.setType(DNSProtoBufMessage::Response);          // set protobuf type to be response - not query
+
+#ifdef TRASH
+        struct timespec ts;                                     // set protobuf query time - lua can't do microsec
+        gettime(&ts, true);
+        message.setQueryTime(ts.tv_sec, ts.tv_nsec / 1000);
+#endif
+        message.setQueryTime(sec, uSec);                        // seconds and microseconds
+
+        message.addRRs(strQueryName);                           // add a RR to the response
+     });
+
+// --------------------------------------------------------------------------
+
+
     g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const Netmask&)>("setEDNSSubnet", [](DNSDistProtoBufMessage& message, const Netmask& subnet) { message.setEDNSSubnet(subnet); });
     g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const DNSName&, uint16_t, uint16_t)>("setQuestion", [](DNSDistProtoBufMessage& message, const DNSName& qname, uint16_t qtype, uint16_t qclass) { message.setQuestion(qname, qtype, qclass); });
     g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(size_t)>("setBytes", [](DNSDistProtoBufMessage& message, size_t bytes) { message.setBytes(bytes); });

@@ -1586,6 +1586,38 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       }
     });
 
+
+  // --------------------------------------------------------------------------
+  // GCA - Seth Ornstein added lua callable functions - 5/30/2017
+  // DNSQuestion - setTag, getTagMatch, getTagArray
+
+    g_lua.registerFunction<void(DNSQuestion::*)(std::string, std::string)>("setTag", [](DNSQuestion& dq, const std::string& strLabel, const std::string& strValue) {
+
+       dq.qTag.add(strLabel, strValue);
+
+    });
+
+
+     g_lua.registerFunction<string(DNSQuestion::*)(std::string)>("getTagMatch", [](const DNSQuestion& dq, const std::string& strLabel) {
+
+        std::string strValue = dq.qTag.getMatch(strLabel);
+        return(strValue);
+
+     });
+
+
+     g_lua.registerFunction<std::unordered_map<string, string>(DNSQuestion::*)(void)>("getTagArray", [](const DNSQuestion& dq) {
+
+        setLuaNoSideEffect();
+
+        return dq.qTag.tagData;
+      });
+
+// --------------------------------------------------------------------------
+
+
+
+
   /* DNSQuestion bindings */
   /* PowerDNS DNSQuestion compat */
   g_lua.registerMember<const ComboAddress (DNSQuestion::*)>("localaddr", [](const DNSQuestion& dq) -> const ComboAddress { return *dq.local; }, [](DNSQuestion& dq, const ComboAddress newLocal) { (void) newLocal; });
