@@ -11,6 +11,15 @@ AC_DEFUN([PDNS_WITH_NET_SNMP], [
     AS_IF([test "x$with_net_snmp" = "xyes" -o "x$with_net_snmp" = "xauto"], [
       AC_CHECK_PROG([NET_SNMP_CFLAGS], [net-snmp-config], [`net-snmp-config --cflags`])
       AC_CHECK_PROG([NET_SNMP_LIBS], [net-snmp-config], [`net-snmp-config --agent-libs`])
+      AC_CHECK_DECLS([snmp_select_info2], [ : ], [ : ],
+        [AC_INCLUDES_DEFAULT
+          #include <net-snmp/net-snmp-config.h>
+          #include <net-snmp/definitions.h>
+          #include <net-snmp/types.h>
+          #include <net-snmp/utilities.h>
+          #include <net-snmp/config_api.h>
+          #include <net-snmp/session_api.h>
+      ])
     ])
   ])
   AS_IF([test "x$with_net_snmp" = "xyes"], [

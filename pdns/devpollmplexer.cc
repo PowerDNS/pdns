@@ -36,7 +36,6 @@
 #include "syncres.hh"
 
 #include "namespaces.hh"
-#include "namespaces.hh"
 
 class DevPollFDMultiplexer : public FDMultiplexer
 {
@@ -47,7 +46,7 @@ public:
     close(d_devpollfd);
   }
 
-  virtual int run(struct timeval* tv);
+  virtual int run(struct timeval* tv, int timeout=500);
 
   virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const funcparam_t& parameter);
   virtual void removeFD(callbackmap_t& cbmap, int fd);
@@ -113,7 +112,7 @@ void DevPollFDMultiplexer::removeFD(callbackmap_t& cbmap, int fd)
   }
 }
 
-int DevPollFDMultiplexer::run(struct timeval* now)
+int DevPollFDMultiplexer::run(struct timeval* now, int timeout)
 {
   if(d_inrun) {
     throw FDMultiplexerException("FDMultiplexer::run() is not reentrant!\n");
@@ -121,7 +120,7 @@ int DevPollFDMultiplexer::run(struct timeval* now)
   struct dvpoll dvp;
   dvp.dp_nfds = d_readCallbacks.size() + d_writeCallbacks.size();
   dvp.dp_fds = new pollfd[dvp.dp_nfds];
-  dvp.dp_timeout = 500;
+  dvp.dp_timeout = timeout;
   int ret=ioctl(d_devpollfd, DP_POLL, &dvp); 
   gettimeofday(now,0); // MANDATORY!
   
@@ -151,7 +150,7 @@ int DevPollFDMultiplexer::run(struct timeval* now)
   }
   delete[] dvp.dp_fds;
   d_inrun=false;
-  return 0;
+  return ret;
 }
 
 #if 0

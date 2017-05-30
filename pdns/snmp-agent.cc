@@ -3,6 +3,22 @@
 
 #ifdef HAVE_NET_SNMP
 
+#ifndef HAVE_SNMP_SELECT_INFO2
+/* that's terrible, because it means we are going to have trouble with large
+   FD numbers at some point.. */
+# define netsnmp_large_fd_set fd_set
+# define snmp_read2 snmp_read
+# define snmp_select_info2 snmp_select_info
+# define netsnmp_large_fd_set_init(...)
+# define netsnmp_large_fd_set_cleanup(...)
+# define NETSNMP_LARGE_FD_SET FD_SET
+# define NETSNMP_LARGE_FD_CLR FD_CLR
+# define NETSNMP_LARGE_FD_ZERO FD_ZERO
+# define NETSNMP_LARGE_FD_ISSET FD_ISSET
+#else
+# include <net-snmp/library/large_fd_set.h>
+#endif
+
 const oid SNMPAgent::snmpTrapOID[] = { 1, 3, 6, 1, 6, 3, 1, 1, 4, 1, 0 };
 const size_t SNMPAgent::snmpTrapOIDLen = OID_LENGTH(SNMPAgent::snmpTrapOID);
 
@@ -31,7 +47,7 @@ bool SNMPAgent::sendTrap(int fd,
   return true;
 }
 
-void SNMPAgent::handleTraps()
+void SNMPAgent::handleTrapsEvent()
 {
   netsnmp_variable_list* varList = nullptr;
   ssize_t got = 0;
@@ -46,43 +62,103 @@ void SNMPAgent::handleTraps()
   }
   while (got > 0);
 }
+
+void SNMPAgent::handleSNMPQueryEvent(int fd)
+{
+  netsnmp_large_fd_set fdset;
+  netsnmp_large_fd_set_init(&fdset, FD_SETSIZE);
+  NETSNMP_LARGE_FD_ZERO(&fdset);
+  NETSNMP_LARGE_FD_SET(fd, &fdset);
+  snmp_read2(&fdset);
+}
+
+void SNMPAgent::handleTrapsCB(int fd, FDMultiplexer::funcparam_t& var)
+{
+  SNMPAgent** agent = boost::any_cast<SNMPAgent*>(&var);
+  if (!agent || !*agent)
+    throw std::runtime_error("Invalid value received in SNMP trap callback");
+
+  (*agent)->handleTrapsEvent();
+}
+
+void SNMPAgent::handleSNMPQueryCB(int fd, FDMultiplexer::funcparam_t& var)
+{
+  SNMPAgent** agent = boost::any_cast<SNMPAgent*>(&var);
+  if (!agent || !*agent)
+    throw std::runtime_error("Invalid value received in SNMP trap callback");
+
+  (*agent)->handleSNMPQueryEvent(fd);
+}
+
+static FDMultiplexer* getMultiplexer()
+{
+  FDMultiplexer* ret = nullptr;
+  for(const auto& i : FDMultiplexer::getMultiplexerMap()) {
+    try {
+      ret = i.second();
+      return ret;
+    }
+    catch(const FDMultiplexerException& fe) {
+    }
+    catch(...) {
+    }
+  }
+  return ret;
+}
+
 #endif /* HAVE_NET_SNMP */
 
 void SNMPAgent::worker()
 {
 #ifdef HAVE_NET_SNMP
-  int numfds = 0;
+  FDMultiplexer* mplexer = getMultiplexer();
+  if (mplexer == nullptr) {
+    throw std::runtime_error("No FD multiplexer found for the SNMP agent!");
+  }
+
+  int maxfd = 0;
   int block = 1;
-  fd_set fdset;
+  netsnmp_large_fd_set fdset;
   struct timeval timeout = { 0, 0 };
+  struct timeval now;
+
+  /* we want to be notified if a trap is waiting
+   to be sent */
+  mplexer->addReadFD(d_trapPipe[0], &handleTrapsCB, this);
 
   while(true) {
-    numfds = FD_SETSIZE;
+    netsnmp_large_fd_set_init(&fdset, FD_SETSIZE);
+    NETSNMP_LARGE_FD_ZERO(&fdset);
 
-    FD_ZERO(&fdset);
-    FD_SET(d_trapPipe[0], &fdset);
     block = 1;
     timeout = { 0, 0 };
-    snmp_select_info(&numfds, &fdset, &timeout, &block);
+    snmp_select_info2(&maxfd, &fdset, &timeout, &block);
 
-    int res = select(FD_SETSIZE, &fdset, nullptr, nullptr, block ? nullptr : &timeout);
-
-    if (res == 2) {
-      FD_CLR(d_trapPipe[0], &fdset);
-      snmp_read(&fdset);
-      handleTraps();
-    }
-    else if (res == 1)
-    {
-      if (FD_ISSET(d_trapPipe[0], &fdset)) {
-        handleTraps();
-      } else {
-        snmp_read(&fdset);
+    for (int fd = 0; fd < maxfd; fd++) {
+      if (NETSNMP_LARGE_FD_ISSET(fd, &fdset)) {
+        mplexer->addReadFD(fd, &handleSNMPQueryCB, this);
       }
     }
-    else if (res == 0) {
+
+    /* run updates now */
+    int res = mplexer->run(&now, (timeout.tv_sec * 1000) + (timeout.tv_usec / 1000));
+
+    /* we handle timeouts here, the rest has already been handled by callbacks */
+    if (res == 0) {
       snmp_timeout();
       run_alarms();
+    }
+
+    for (int fd = 0; fd < maxfd; fd++) {
+      if (NETSNMP_LARGE_FD_ISSET(fd, &fdset)) {
+        try {
+          mplexer->removeReadFD(fd);
+        }
+        catch(const FDMultiplexerException& e) {
+          /* we might get an exception when removing a closed file descriptor,
+             just ignore it */
+        }
+      }
     }
   }
 #endif /* HAVE_NET_SNMP */
