@@ -18,6 +18,7 @@ the previous line.
 
 # PowerDNS Recursor 4.0.5
 Release Candidate 1 released 19th of May 2017
+
 Release Candidate 2 released 1st of June 2017
 
 This release adds ed25519 (algorithm 15) support for DNSSEC and adds the 2017 DNSSEC root key. If you do DNSSEC validation, this upgrade is **mandatory** to continue validating after October 2017.
