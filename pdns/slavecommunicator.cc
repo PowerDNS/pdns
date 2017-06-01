@@ -779,7 +779,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
 
       DomainNotificationInfo dni;
       dni.di=di;
-      dni.dnssecOk = dk.isPresigned(di.zone);
+      dni.dnssecOk = dk.doesDNSSEC();
 
       if(dk.getTSIGForAccess(di.zone, sr.master, &dni.tsigkeyname)) {
         string secret64;
@@ -874,14 +874,10 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       di.backend->setFresh(di.id);
     }
     else if(theirserial == ourserial) {
-      if(!dk.isPresigned(di.zone)) {
-        L<<Logger::Info<<"Domain '"<< di.zone<<"' is fresh (not presigned, no RRSIG check)"<<endl;
-        di.backend->setFresh(di.id);
-      }
-      else {
+      uint32_t maxExpire=0, maxInception=0;
+      if(dk.isPresigned(di.zone)) {
         B->lookup(QType(QType::RRSIG), di.zone); // can't use DK before we are done with this lookup!
         DNSZoneRecord zr;
-        uint32_t maxExpire=0, maxInception=0;
         while(B->get(zr)) {
           auto rrsig = getRR<RRSIGRecordContent>(zr.dr);
           if(rrsig->d_type == QType::SOA) {
@@ -889,14 +885,30 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
             maxExpire = std::max(maxExpire, rrsig->d_sigexpire);
           }
         }
-        if(maxInception == ssr.d_freshness[di.id].theirInception && maxExpire == ssr.d_freshness[di.id].theirExpire) {
-          L<<Logger::Info<<"Domain '"<< di.zone<<"' is fresh and apex RRSIGs match"<<endl;
-          di.backend->setFresh(di.id);
-        }
-        else {
-          L<<Logger::Warning<<"Domain '"<< di.zone<<"' is fresh, but RRSIGS differ, so DNSSEC stale"<<endl;
-          addSuckRequest(di.zone, *di.masters.begin());
-        }
+      }
+      if(! maxInception && ! ssr.d_freshness[di.id].theirInception) {
+        L<<Logger::Info<<"Domain '"<< di.zone<<"' is fresh (no DNSSEC)"<<endl;
+        di.backend->setFresh(di.id);
+      }
+      else if(maxInception == ssr.d_freshness[di.id].theirInception && maxExpire == ssr.d_freshness[di.id].theirExpire) {
+        L<<Logger::Info<<"Domain '"<< di.zone<<"' is fresh and SOA RRSIGs match"<<endl;
+        di.backend->setFresh(di.id);
+      }
+      else if(maxExpire >= now && ! ssr.d_freshness[di.id].theirInception ) {
+        L<<Logger::Info<<"Domain '"<< di.zone<<"' is fresh, master is no longer signed but (some) signatures are still vallid"<<endl;
+        di.backend->setFresh(di.id);
+      }
+      else if(maxInception && ! ssr.d_freshness[di.id].theirInception ) {
+        L<<Logger::Warning<<"Domain '"<< di.zone<<"' is stale, master is no longer signed and all signatures have expired"<<endl;
+        addSuckRequest(di.zone, *di.masters.begin());
+      }
+      else if(dk.doesDNSSEC() && ! maxInception && ssr.d_freshness[di.id].theirInception) {
+        L<<Logger::Warning<<"Domain '"<< di.zone<<"' is stale, master has signed"<<endl;
+        addSuckRequest(di.zone, *di.masters.begin());
+      }
+      else {
+        L<<Logger::Warning<<"Domain '"<< di.zone<<"' is fresh, but RRSIGs differ, so DNSSEC is stale"<<endl;
+        addSuckRequest(di.zone, *di.masters.begin());
       }
     }
     else {

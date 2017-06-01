@@ -51,6 +51,11 @@ pthread_rwlock_t DNSSECKeeper::s_keycachelock = PTHREAD_RWLOCK_INITIALIZER;
 AtomicCounter DNSSECKeeper::s_ops;
 time_t DNSSECKeeper::s_last_prune;
 
+bool DNSSECKeeper::doesDNSSEC()
+{
+  return d_keymetadb->doesDNSSEC();
+}
+
 bool DNSSECKeeper::isSecuredZone(const DNSName& zone) 
 {
   if(isPresigned(zone))
