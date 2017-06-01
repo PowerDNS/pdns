@@ -368,6 +368,7 @@ private:
       for(int i=0;i<d_fnum;i++) {
         if (d_res_bind[i].buffer) delete [] (char*)d_res_bind[i].buffer;
         if (d_res_bind[i].length) delete [] d_res_bind[i].length;
+        if (d_res_bind[i].error) delete [] d_res_bind[i].error;
         if (d_res_bind[i].is_null) delete [] d_res_bind[i].is_null;
       }
       delete [] d_res_bind;

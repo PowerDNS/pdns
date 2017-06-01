@@ -12,6 +12,7 @@ EXTRA_DIST = \
 dist_doc_DATA = \
 	dnssec-3.x_to_3.4.0_schema.mysql.sql \
 	nodnssec-3.x_to_3.4.0_schema.mysql.sql \
+	3.4.0_to_4.1.0_schema.mysql.sql \
 	schema.mysql.sql
 
 libgmysqlbackend_la_SOURCES = \
