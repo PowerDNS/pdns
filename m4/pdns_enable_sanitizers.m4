@@ -44,8 +44,37 @@ AC_DEFUN([PDNS_ENABLE_ASAN], [
         AC_CHECK_HEADERS([sanitizer/common_interface_defs.h], asan_headers=yes, asan_headers=no)
         AS_IF([test x"$asan_headers" = "xyes" ],
           [AC_CHECK_DECL(__sanitizer_start_switch_fiber,
-            [ AC_DEFINE([HAVE_FIBER_SANITIZER], [1], [Define if ASAN fiber annotation interface is available.]) ],
-            [ ],
+            [
+              AC_MSG_CHECKING([for the exact signature of __sanitizer_finish_switch_fiber])
+              AC_COMPILE_IFELSE([
+                AC_LANG_PROGRAM(
+                  [#include <sanitizer/common_interface_defs.h>],
+                  [
+                    __sanitizer_finish_switch_fiber(nullptr);
+                  ])
+              ], [
+                AC_MSG_RESULT([a single pointer])
+                AC_DEFINE([HAVE_FIBER_SANITIZER], [1], [Define if ASAN fiber annotation interface is available.])
+                AC_DEFINE(HAVE_SANITIZER_FINISH_SWITCH_FIBER_SINGLE_PTR, [1], [Define to 1 if __sanitizer_finish_switch_fiber takes only a pointer])
+              ], [
+                AC_COMPILE_IFELSE([
+                  AC_LANG_PROGRAM(
+                    [#include <sanitizer/common_interface_defs.h>],
+                    [
+                      __sanitizer_finish_switch_fiber(nullptr, nullptr, nullptr);
+                    ])
+                ], [
+                  AC_MSG_RESULT([three pointers])
+                  AC_DEFINE([HAVE_FIBER_SANITIZER], [1], [Define if ASAN fiber annotation interface is available.])
+                  AC_DEFINE(HAVE_SANITIZER_FINISH_SWITCH_FIBER_THREE_PTRS, [1], [Define to 1 if __sanitizer_finish_switch_fiber takes three pointers])
+                ], [
+                  AC_MSG_RESULT([unknown])
+                  AC_MSG_NOTICE([ASAN fiber switching is not available due to an unknown API version])
+                ])
+              ])
+            ], [
+              AC_MSG_NOTICE([ASAN fiber switching is not available])
+            ],
             [#include <sanitizer/common_interface_defs.h>]
           )]
         )
