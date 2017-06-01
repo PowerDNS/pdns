@@ -47,7 +47,7 @@
 #include "mtasker.hh"
 #include "iputils.hh"
 #include "validate.hh"
-
+#include "ednssubnet.hh"
 #include "filterpo.hh"
 
 #include "config.h"
@@ -373,6 +373,7 @@ public:
   static unsigned int s_maxdepth;
   std::unordered_map<std::string,bool> d_discardedPolicies;
   DNSFilterEngine::Policy d_appliedPolicy;
+  boost::optional<const EDNSSubnetOpts&> d_incomingECS;
 #ifdef HAVE_PROTOBUF
   boost::optional<const boost::uuids::uuid&> d_initialRequestId;
 #endif
@@ -389,6 +390,7 @@ public:
   bool d_wasOutOfBand{false};
   bool d_wantsRPZ{true};
   bool d_skipCNAMECheck{false};
+  bool d_incomingECSFound{false};
   
   typedef multi_index_container <
     NegCacheEntry,
@@ -735,10 +737,13 @@ uint64_t* pleaseWipeCache(const DNSName& canon, bool subtree=false);
 uint64_t* pleaseWipePacketCache(const DNSName& canon, bool subtree);
 uint64_t* pleaseWipeAndCountNegCache(const DNSName& canon, bool subtree=false);
 void doCarbonDump(void*);
-boost::optional<Netmask> getEDNSSubnetMask(const ComboAddress& local, const DNSName&dn, const ComboAddress& rem);
+boost::optional<Netmask> getEDNSSubnetMask(const ComboAddress& local, const DNSName&dn, const ComboAddress& rem, boost::optional<const EDNSSubnetOpts&> incomingECS);
 void  parseEDNSSubnetWhitelist(const std::string& wlist);
 
 extern __thread struct timeval g_now;
+
+extern NetmaskGroup g_ednssubnets;
+extern SuffixMatchNode g_ednsdomains;
 
 #ifdef HAVE_PROTOBUF
 extern __thread boost::uuids::random_generator* t_uuidGenerator;

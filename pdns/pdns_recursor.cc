@@ -113,8 +113,6 @@ __thread shared_ptr<Regex>* t_traceRegex;
 __thread boost::uuids::random_generator* t_uuidGenerator;
 #endif
 
-NetmaskGroup g_ednssubnets;
-SuffixMatchNode g_ednsdomains;
 
 RecursorControlChannel s_rcc; // only active in thread 0
 
@@ -199,8 +197,10 @@ struct DNSComboWriter {
   ComboAddress d_remote, d_local;
 #ifdef HAVE_PROTOBUF
   boost::uuids::uuid d_uuid;
-  Netmask d_ednssubnet;
 #endif
+  EDNSSubnetOpts d_ednssubnet;
+  bool d_ecsFound{false};
+  bool d_ecsParsed{false};
   bool d_tcp;
   int d_socket;
   int d_tag{0};
@@ -702,7 +702,18 @@ void startDoResolve(void *p)
 	maxanswersize = min(edo.d_packetsize, g_udpTruncationThreshold);
       dc->d_ednsOpts = edo.d_options;
       haveEDNS=true;
+
+      if (g_useIncomingECS && !dc->d_ecsParsed) {
+        for (const auto& o : edo.d_options) {
+          if (o.first == EDNSOptionCode::ECS) {
+            dc->d_ecsFound = getEDNSSubnetOptsFromString(o.second, &dc->d_ednssubnet);
+            break;
+          }
+        }
+      }
     }
+    /* perhaps there was no EDNS or no ECS but by now we looked */
+    dc->d_ecsParsed = true;
     vector<DNSRecord> ret;
     vector<uint8_t> packet;
 
@@ -715,7 +726,7 @@ void startDoResolve(void *p)
       Netmask requestorNM(dc->d_remote, dc->d_remote.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
       const ComboAddress& requestor = requestorNM.getMaskedNetwork();
       pbMessage.update(dc->d_uuid, &requestor, &dc->d_local, dc->d_tcp, dc->d_mdp.d_header.id);
-      pbMessage.setEDNSSubnet(dc->d_ednssubnet, dc->d_ednssubnet.isIpv4() ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
+      pbMessage.setEDNSSubnet(dc->d_ednssubnet.source, dc->d_ednssubnet.source.isIpv4() ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
       pbMessage.setQuestion(dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass);
     }
 #endif /* HAVE_PROTOBUF */
@@ -758,6 +769,12 @@ void startDoResolve(void *p)
 #ifdef HAVE_PROTOBUF
     sr.d_initialRequestId = dc->d_uuid;
 #endif
+    if (g_useIncomingECS) {
+      sr.d_incomingECSFound = dc->d_ecsFound;
+      if (dc->d_ecsFound) {
+        sr.d_incomingECS = dc->d_ednssubnet;
+      }
+    }
 
     bool tracedQuery=false; // we could consider letting Lua know about this too
     bool variableAnswer = false;
@@ -783,11 +800,9 @@ void startDoResolve(void *p)
     if(!g_quiet || tracedQuery) {
       L<<Logger::Warning<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] " << (dc->d_tcp ? "TCP " : "") << "question for '"<<dc->d_mdp.d_qname<<"|"
        <<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype)<<"' from "<<dc->getRemote();
-#ifdef HAVE_PROTOBUF
-      if(!dc->d_ednssubnet.empty()) {
-        L<<" (ecs "<<dc->d_ednssubnet.toString()<<")";
+      if(!dc->d_ednssubnet.source.empty()) {
+        L<<" (ecs "<<dc->d_ednssubnet.source.toString()<<")";
       }
-#endif
       L<<endl;
     }
 
@@ -1242,8 +1257,9 @@ void makeControlChannelSocket(int processNum=-1)
   }
 }
 
-static void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* qtype, uint16_t* qclass, Netmask* ednssubnet)
+static bool getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* qtype, uint16_t* qclass, EDNSSubnetOpts* ednssubnet)
 {
+  bool found = false;
   const struct dnsheader* dh = (struct dnsheader*)question.c_str();
   size_t questionLen = question.length();
   unsigned int consumed=0;
@@ -1261,11 +1277,13 @@ static void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uin
       if (res == 0 && ecsLen > 4) {
         EDNSSubnetOpts eso;
         if(getEDNSSubnetOptsFromString(ecsStart + 4, ecsLen - 4, &eso)) {
-          *ednssubnet=eso.source;
+          *ednssubnet=eso;
+          found = true;
         }
       }
     }
   }
+  return found;
 }
 
 void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
@@ -1331,7 +1349,6 @@ void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       socklen_t len = dest.getSocklen();
       getsockname(conn->getFD(), (sockaddr*)&dest, &len); // if this fails, we're ok with it
       dc->setLocal(dest);
-      Netmask ednssubnet;
       DNSName qname;
       uint16_t qtype=0;
       uint16_t qclass=0;
@@ -1346,11 +1363,12 @@ void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       if(needECS || (t_pdl->get() && (*t_pdl)->d_gettag)) {
 
         try {
-          getQNameAndSubnet(std::string(conn->data, conn->qlen), &qname, &qtype, &qclass, &ednssubnet);
+          dc->d_ecsParsed = true;
+          dc->d_ecsFound = getQNameAndSubnet(std::string(conn->data, conn->qlen), &qname, &qtype, &qclass, &dc->d_ednssubnet);
 
           if(t_pdl->get() && (*t_pdl)->d_gettag) {
             try {
-              dc->d_tag = (*t_pdl)->gettag(conn->d_remote, ednssubnet, dest, qname, qtype, &dc->d_policyTags);
+              dc->d_tag = (*t_pdl)->gettag(conn->d_remote, dc->d_ednssubnet.source, dest, qname, qtype, &dc->d_policyTags);
             }
             catch(std::exception& e)  {
               if(g_logCommonErrors)
@@ -1372,9 +1390,8 @@ void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       if(luaconfsLocal->protobufServer) {
         try {
           const struct dnsheader* dh = (const struct dnsheader*) conn->data;
-          dc->d_ednssubnet = ednssubnet;
 
-          protobufLogQuery(luaconfsLocal->protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, dc->d_uuid, conn->d_remote, dest, ednssubnet, true, dh->id, conn->qlen, qname, qtype, qclass, dc->d_policyTags);
+          protobufLogQuery(luaconfsLocal->protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, dc->d_uuid, conn->d_remote, dest, dc->d_ednssubnet.source, true, dh->id, conn->qlen, qname, qtype, qclass, dc->d_policyTags);
         }
         catch(std::exception& e) {
           if(g_logCommonErrors)
@@ -1490,7 +1507,9 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
     uniqueId = (*t_uuidGenerator)();
   }
 #endif
-  Netmask ednssubnet;
+  EDNSSubnetOpts ednssubnet;
+  bool ecsFound = false;
+  bool ecsParsed = false;
   try {
     DNSName qname;
     uint16_t qtype=0;
@@ -1510,11 +1529,12 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
 
     if(needECS || (t_pdl->get() && (*t_pdl)->d_gettag)) {
       try {
-        getQNameAndSubnet(question, &qname, &qtype, &qclass, &ednssubnet);
+        ecsParsed = true;
+        ecsFound = getQNameAndSubnet(question, &qname, &qtype, &qclass, &ednssubnet);
 
         if(t_pdl->get() && (*t_pdl)->d_gettag) {
           try {
-            ctag=(*t_pdl)->gettag(fromaddr, ednssubnet, destaddr, qname, qtype, &policyTags);
+            ctag=(*t_pdl)->gettag(fromaddr, ednssubnet.source, destaddr, qname, qtype, &policyTags);
           }
           catch(std::exception& e)  {
             if(g_logCommonErrors)
@@ -1533,7 +1553,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
     RecProtoBufMessage pbMessage(DNSProtoBufMessage::DNSProtoBufMessageType::Response);
 #ifdef HAVE_PROTOBUF
     if(luaconfsLocal->protobufServer) {
-      protobufLogQuery(luaconfsLocal->protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, uniqueId, fromaddr, destaddr, ednssubnet, false, dh->id, question.size(), qname, qtype, qclass, policyTags);
+      protobufLogQuery(luaconfsLocal->protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, uniqueId, fromaddr, destaddr, ednssubnet.source, false, dh->id, question.size(), qname, qtype, qclass, policyTags);
     }
 #endif /* HAVE_PROTOBUF */
 
@@ -1544,7 +1564,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
         Netmask requestorNM(fromaddr, fromaddr.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
         const ComboAddress& requestor = requestorNM.getMaskedNetwork();
         pbMessage.update(uniqueId, &requestor, &destaddr, false, dh->id);
-        pbMessage.setEDNSSubnet(ednssubnet, ednssubnet.isIpv4() ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
+        pbMessage.setEDNSSubnet(ednssubnet.source, ednssubnet.source.isIpv4() ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
         pbMessage.setQueryTime(g_now.tv_sec, g_now.tv_usec);
         protobufLogResponse(luaconfsLocal->protobufServer, pbMessage);
       }
@@ -1606,11 +1626,13 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
   dc->setLocal(destaddr);
   dc->d_tcp=false;
   dc->d_policyTags = policyTags;
+  dc->d_ecsFound = ecsFound;
+  dc->d_ecsParsed = ecsParsed;
+  dc->d_ednssubnet = ednssubnet;
 #ifdef HAVE_PROTOBUF
   if (luaconfsLocal->protobufServer || luaconfsLocal->outgoingProtobufServer) {
     dc->d_uuid = uniqueId;
   }
-  dc->d_ednssubnet = ednssubnet;
 #endif
 
   MT->makeThread(startDoResolve, (void*) dc); // deletes dc
@@ -2562,33 +2584,6 @@ void parseACLs()
   l_initialized = true;
 }
 
-boost::optional<Netmask> getEDNSSubnetMask(const ComboAddress& local, const DNSName&dn, const ComboAddress& rem)
-{
-  if(local.sin4.sin_family != AF_INET || local.sin4.sin_addr.s_addr) { // detect unset 'requestor'
-    if(g_ednsdomains.check(dn) || g_ednssubnets.match(rem)) {
-      int bits =local.sin4.sin_family == AF_INET ? 24 : 56;
-      ComboAddress trunc(local);
-      trunc.truncate(bits);
-      return boost::optional<Netmask>(Netmask(trunc, bits));
-    }
-  }
-  return boost::optional<Netmask>();
-}
-
-void  parseEDNSSubnetWhitelist(const std::string& wlist)
-{
-  vector<string> parts;
-  stringtok(parts, wlist, ",; ");
-  for(const auto& a : parts) {
-    try {
-      Netmask nm(a);
-      g_ednssubnets.addMask(nm);
-    }
-    catch(...) {
-      g_ednsdomains.add(DNSName(a));
-    }
-  }
-}
 
 std::unordered_set<DNSName> g_delegationOnly;
 static void setupDelegationOnly()
@@ -2744,6 +2739,7 @@ int serviceMain(int argc, char*argv[])
   makeTCPServerSockets();
 
   parseEDNSSubnetWhitelist(::arg()["edns-subnet-whitelist"]);
+  g_useIncomingECS = ::arg().mustDo("use-incoming-edns-subnet");
 
   int forks;
   for(forks = 0; forks < ::arg().asNum("processes") - 1; ++forks) {
@@ -3081,7 +3077,10 @@ int main(int argc, char **argv)
     ::arg().set("lua-dns-script", "Filename containing an optional 'lua' script that will be used to modify dns answers")="";
     ::arg().set("latency-statistic-size","Number of latency values to calculate the qa-latency average")="10000";
     ::arg().setSwitch( "disable-packetcache", "Disable packetcache" )= "no";
+    ::arg().set("ecs-ipv4-bits", "Number of bits of IPv4 address to pass for EDNS Client Subnet")="24";
+    ::arg().set("ecs-ipv6-bits", "Number of bits of IPv6 address to pass for EDNS Client Subnet")="56";
     ::arg().set("edns-subnet-whitelist", "List of netmasks and domains that we should enable EDNS subnet for")="";
+    ::arg().setSwitch( "use-incoming-edns-subnet", "Pass along received EDNS Client Subnet information")="";
     ::arg().setSwitch( "pdns-distributes-queries", "If PowerDNS itself should distribute queries over threads")="";
     ::arg().setSwitch( "root-nx-trust", "If set, believe that an NXDOMAIN from the root means the TLD does not exist")="yes";
     ::arg().setSwitch( "any-to-tcp","Answer ANY queries with tc=1, shunting to TCP" )="no";

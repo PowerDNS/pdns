@@ -1131,9 +1131,17 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
 	      LOG(prefix<<qname<<": query handled by Lua"<<endl);
 	    }
 	    else {
-	      ednsmask=getEDNSSubnetMask(d_requestor, qname, *remoteIP);
+	      ednsmask=getEDNSSubnetMask(d_requestor, qname, *remoteIP, d_incomingECSFound ? d_incomingECS : boost::none);
+              if(ednsmask) {
+                LOG(prefix<<qname<<": Adding EDNS Client Subnet Mask "<<ednsmask->toString()<<" to query"<<endl);
+              }
 	      resolveret=asyncresolveWrapper(*remoteIP, d_doDNSSEC, qname,  qtype.getCode(),
 					     doTCP, sendRDQuery, &d_now, ednsmask, &lwr);    // <- we go out on the wire!
+              if(ednsmask) {
+                LOG(prefix<<qname<<": Received EDNS Client Subnet Mask "<<ednsmask->toString()<<" on response"<<endl);
+              }
+
+
 	    }
             if(resolveret==-3)
 	      throw ImmediateServFailException("Query killed by policy");

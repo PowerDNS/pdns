@@ -444,7 +444,7 @@ sdig_SOURCES = \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
-	ednssubnet.cc \
+	ednssubnet.cc iputils.cc \
 	logger.cc \
 	misc.cc misc.hh \
 	nsecrecords.cc \
@@ -674,6 +674,7 @@ toysdig_SOURCES = \
 	ednssubnet.cc ednssubnet.hh \
 	filterpo.hh \
 	gss_context.cc gss_context.hh \
+	iputils.cc \
 	logger.cc \
 	misc.cc misc.hh \
 	nsecrecords.cc \
@@ -884,6 +885,7 @@ dnsreplay_SOURCES = \
 	dnswriter.cc dnswriter.hh \
 	ednssubnet.cc ednssubnet.hh \
 	ednsoptions.cc ednsoptions.hh \
+	iputils.cc \
 	logger.cc \
 	misc.cc \
 	nsecrecords.cc \

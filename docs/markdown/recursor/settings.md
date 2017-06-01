@@ -228,6 +228,20 @@ your network, and may even be a security risk. Therefore, since version 3.1.5,
 the PowerDNS recursor by default does not query private space IP addresses.
 This setting can be used to expand or reduce the limitations.
 
+## `ecs-ipv4-bits`
+* Integer
+* Default: 24
+* Available since 4.1
+
+Number of bits of client IPv4 address to pass when sending EDNS Client Subnet address information.
+
+## `ecs-ipv6-bits`
+* Integer
+* Default: 56
+* Available since 4.1
+
+Number of bits of client IPv6 address to pass when sending EDNS Client Subnet address information.
+
 ## `edns-outgoing-bufsize`
 * Integer
 * Default: 1680
@@ -832,6 +846,15 @@ EDNS0 allows for large UDP response datagrams, which can potentially raise
 performance. Large responses however also have downsides in terms of reflection
 attacks. This setting limits the accepted size. Maximum value is 65535, but
 values above 4096 should probably not be attempted.
+
+## `use-incoming-edns-subnet`
+* Boolean
+* Default: no
+
+Whether to process and pass along a received EDNS Client Subnet to authoritative
+servers. The ECS information will only be sent for netmasks and domains listed
+in `edns-subnet-whitelist`, and will be truncated if the received scope exceeds
+`ecs-ipv4-bits` for IPv4 or `ecs-ipv6-bits` for IPv6.
 
 ## `version`
 Print version of this binary. Useful for checking which version of the PowerDNS
