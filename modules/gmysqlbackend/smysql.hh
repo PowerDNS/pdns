@@ -23,6 +23,7 @@
 #define SMYSQL_HH
 
 #include <mysql.h>
+#include <errmsg.h>
 #include "pdns/backends/gsql/ssql.hh"
 #include "pdns/utility.hh"
 
@@ -44,11 +45,14 @@ public:
   void startTransaction();
   void commit();
   void rollback();
+  MYSQL* db() { return &d_db; }
+  bool in_trx() { return d_in_trx; }
 
 private:
   MYSQL d_db;
   static bool s_dolog;
   static pthread_mutex_t s_myinitlock;
+  bool d_in_trx;
 };
 
 #endif /* SSMYSQL_HH */

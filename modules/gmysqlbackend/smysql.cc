@@ -38,7 +38,7 @@ pthread_mutex_t SMySQL::s_myinitlock = PTHREAD_MUTEX_INITIALIZER;
 class SMySQLStatement: public SSqlStatement
 {
 public:
-  SMySQLStatement(const string& query, bool dolog, int nparams, MYSQL* db) : d_prepared(false)
+  SMySQLStatement(const string& query, bool dolog, int nparams, SMySQL* db) : d_prepared(false)
   {
     d_db = db;
     d_dolog = dolog;
@@ -151,6 +151,7 @@ public:
   SSqlStatement* execute() {
     int err;
 
+    bool allowRetry = true;
     prepareStatement();
 
     if (!d_stmt) return this;
@@ -159,6 +160,7 @@ public:
       L<<Logger::Warning<<"Query: " << d_query <<endl;
     }
 
+retry:
     if ((err = mysql_stmt_bind_param(d_stmt, d_req_bind))) {
       string error(mysql_stmt_error(d_stmt));
       releaseStatement();
@@ -167,6 +169,11 @@ public:
 
     if ((err = mysql_stmt_execute(d_stmt))) {
       string error(mysql_stmt_error(d_stmt));
+      if(allowRetry && mysql_stmt_errno(d_stmt) == CR_SERVER_LOST && !d_db->in_trx()) {
+        allowRetry = false;
+        rePrepareStatement();
+        goto retry;
+      }
       releaseStatement();
       throw SSqlException("Could not execute mysql statement: " + d_query + string(": ") + error);
     }
@@ -220,7 +227,7 @@ public:
   SSqlStatement* nextRow(row_t& row) {
     int err;
     row.clear();
-    if (!hasNextRow()) return this;
+    if (!hasNextRow()) { releaseStatement(); return this; }
 
     if ((err =mysql_stmt_fetch(d_stmt))) {
       if (err != MYSQL_DATA_TRUNCATED) {
@@ -320,7 +327,7 @@ public:
   }
 private:
 
-  void prepareStatement() {
+  void prepareStatement(bool keepbinds=false) {
     int err;
 
     if (d_prepared) return;
@@ -329,7 +336,7 @@ private:
       return;
     }
 
-    if ((d_stmt = mysql_stmt_init(d_db))==NULL)
+    if ((d_stmt = mysql_stmt_init(d_db->db()))==NULL)
       throw SSqlException("Could not initialize mysql statement, out of memory: " + d_query);
 
     if ((err = mysql_stmt_prepare(d_stmt, d_query.c_str(), d_query.size()))) {
@@ -343,7 +350,7 @@ private:
       throw SSqlException("Provided parameter count does not match statement: " + d_query);
     }
 
-    if (d_parnum>0) {
+    if (d_parnum>0 && !keepbinds) {
       d_req_bind = new MYSQL_BIND[d_parnum];
       memset(d_req_bind, 0, sizeof(MYSQL_BIND)*d_parnum);
     }
@@ -351,31 +358,39 @@ private:
     d_prepared = true;
   }
 
-  void releaseStatement() {
+  void releaseStatement(bool keepbinds=false) {
     d_prepared = false;
     if (d_stmt)
       mysql_stmt_close(d_stmt);
     d_stmt = NULL;
-    if (d_req_bind) {
-      for(int i=0;i<d_parnum;i++) {
-        if (d_req_bind[i].buffer) delete [] (char*)d_req_bind[i].buffer;
-        if (d_req_bind[i].length) delete [] d_req_bind[i].length;
+    if(!keepbinds) {
+      if (d_req_bind) {
+        for(int i=0;i<d_parnum;i++) {
+          if (d_req_bind[i].buffer) delete [] (char*)d_req_bind[i].buffer;
+          if (d_req_bind[i].length) delete [] d_req_bind[i].length;
+        }
+        delete [] d_req_bind;
+        d_req_bind = NULL;
       }
-      delete [] d_req_bind;
-      d_req_bind = NULL;
-    }
-    if (d_res_bind) {
-      for(int i=0;i<d_fnum;i++) {
-        if (d_res_bind[i].buffer) delete [] (char*)d_res_bind[i].buffer;
-        if (d_res_bind[i].length) delete [] d_res_bind[i].length;
-        if (d_res_bind[i].is_null) delete [] d_res_bind[i].is_null;
+      if (d_res_bind) {
+        for(int i=0;i<d_fnum;i++) {
+          if (d_res_bind[i].buffer) delete [] (char*)d_res_bind[i].buffer;
+          if (d_res_bind[i].length) delete [] d_res_bind[i].length;
+          if (d_res_bind[i].is_null) delete [] d_res_bind[i].is_null;
+        }
+        delete [] d_res_bind;
+        d_res_bind = NULL;
       }
-      delete [] d_res_bind;
-      d_res_bind = NULL;
     }
     d_paridx = d_fnum = d_resnum = d_residx = 0;
   }
-  MYSQL* d_db;
+
+  void rePrepareStatement()
+  {
+    releaseStatement(true);
+    prepareStatement(true);
+  }
+  SMySQL* d_db;
 
   MYSQL_STMT* d_stmt;
   MYSQL_BIND* d_req_bind;
@@ -404,7 +419,7 @@ SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const 
   do {
 
 #if MYSQL_VERSION_ID >= 50013
-    my_bool reconnect = 0;
+    my_bool reconnect = 1;
     mysql_options(&d_db, MYSQL_OPT_RECONNECT, &reconnect);
 #endif
 
@@ -462,7 +477,7 @@ SSqlException SMySQL::sPerrorException(const string &reason)
 
 SSqlStatement* SMySQL::prepare(const string& query, int nparams)
 {
-  return new SMySQLStatement(query, s_dolog, nparams, &d_db);
+  return new SMySQLStatement(query, s_dolog, nparams, this);
 }
 
 void SMySQL::execute(const string& query)
@@ -477,12 +492,15 @@ void SMySQL::execute(const string& query)
 
 void SMySQL::startTransaction() {
   execute("begin");
+  d_in_trx = true;
 }
 
 void SMySQL::commit() {
   execute("commit");
+  d_in_trx = false;
 }
 
 void SMySQL::rollback() {
   execute("rollback");
+  d_in_trx = false;
 }
