@@ -1505,7 +1505,7 @@ void* healthChecksThread()
             try {
               SConnect(dss->fd, dss->remote);
               dss->connected = true;
-              dss->tid = move(thread(responderThread, dss));
+              dss->tid = thread(responderThread, dss);
             }
             catch(const std::runtime_error& error) {
               infolog("Error connecting to new server with address %s: %s", dss->remote.toStringWithPort(), error.what());
@@ -2184,7 +2184,7 @@ try
       auto ret=std::make_shared<DownstreamState>(ComboAddress(address, 53));
       addServerToPool(localPools, "", ret);
       if (ret->connected) {
-        ret->tid = move(thread(responderThread, ret));
+        ret->tid = thread(responderThread, ret);
       }
       g_dstates.modify([ret](servers_t& servers) { servers.push_back(ret); });
     }

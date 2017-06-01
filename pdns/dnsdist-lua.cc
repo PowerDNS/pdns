@@ -309,11 +309,11 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			  if (ret->connected) {
 			    if(g_launchWork) {
 			      g_launchWork->push_back([ret]() {
-			        ret->tid = move(thread(responderThread, ret));
+			        ret->tid = thread(responderThread, ret);
 			      });
 			    }
 			    else {
-			      ret->tid = move(thread(responderThread, ret));
+			      ret->tid = thread(responderThread, ret);
 			    }
 			  }
 
@@ -470,11 +470,11 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			if (ret->connected) {
 			  if(g_launchWork) {
 			    g_launchWork->push_back([ret]() {
-			      ret->tid = move(thread(responderThread, ret));
+			      ret->tid = thread(responderThread, ret);
 			    });
 			  }
 			  else {
-			    ret->tid = move(thread(responderThread, ret));
+			    ret->tid = thread(responderThread, ret);
 			  }
 			}
 
