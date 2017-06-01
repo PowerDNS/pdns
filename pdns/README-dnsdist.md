@@ -1603,7 +1603,7 @@ instantiate a server with additional parameters
     * NetmaskGroup related
         * function `newNMG()`: returns a NetmaskGroup
         * member `addMask(mask)`: adds `mask` to the NetmaskGroup. Prefix with `!` to exclude this mask from matching.
-        * member `addMask(table)`: adds the keys of `table` to the NetmaskGroup. `table` should be a table whose keys
+        * member `addMasks(table)`: adds the keys of `table` to the NetmaskGroup. `table` should be a table whose keys
         are `ComboAddress` objects and values are integers, as returned by `exceed*` functions
         * member `match(ComboAddress)`: checks if ComboAddress is matched by this NetmaskGroup
         * member `clear()`: clears the NetmaskGroup
