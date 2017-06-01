@@ -195,14 +195,14 @@ try
   hidden.add_options()
     ("query-file", po::value<string>(), "File with queries")
     ("destination", po::value<string>(), "Destination address")
-    ("initital-qps", po::value<uint32_t>(), "Initial number of queries per second")
+    ("initial-qps", po::value<uint32_t>(), "Initial number of queries per second")
     ("hitrate", po::value<double>(), "Aim this percent cache hitrate");
 
   alloptions.add(desc).add(hidden);
   po::positional_options_description p;
   p.add("query-file", 1);
   p.add("destination", 1);
-  p.add("initital-qps", 1);
+  p.add("initial-qps", 1);
   p.add("hitrate", 1);
 
   po::store(po::command_line_parser(argc, argv).options(alloptions).positional(p).run(), g_vm);
@@ -218,7 +218,7 @@ try
     return EXIT_SUCCESS;
   }
 
-  if (!(g_vm.count("query-file") && g_vm.count("destination") && g_vm.count("initital-qps") && g_vm.count("hitrate"))) {
+  if (!(g_vm.count("query-file") && g_vm.count("destination") && g_vm.count("initial-qps") && g_vm.count("hitrate"))) {
     usage(desc);
     return EXIT_FAILURE;
   }
@@ -238,7 +238,7 @@ try
     return EXIT_FAILURE;
   }
   hitrate /= 100;
-  uint32_t qpsstart = g_vm["initital-qps"].as<uint32_t>();
+  uint32_t qpsstart = g_vm["initial-qps"].as<uint32_t>();
 
   struct sched_param param;
   param.sched_priority=99;
@@ -288,7 +288,7 @@ try
   ofstream plot("plot");
   for(qps=qpsstart;;qps *= increment) {
     double seconds=1;
-    cout<<"Aiming at "<<qps<< "qps (RD="<<(wantRecursion ? "1" : "0")<<") for "<<seconds<<" seconds at cache hitrate "<<100.0*hitrate<<"%";
+    cout<<"Aiming at "<<qps<< "qps (RD="<<wantRecursion<<") for "<<seconds<<" seconds at cache hitrate "<<100.0*hitrate<<"%";
     unsigned int misses=(1-hitrate)*qps*seconds;
     unsigned int total=qps*seconds;
     if (misses == 0) {
