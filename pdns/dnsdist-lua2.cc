@@ -209,7 +209,7 @@ void moreLua(bool client)
                          {
                            nmg.addMask(mask);
                          });
-    g_lua.registerFunction<void(NetmaskGroup::*)(const std::map<ComboAddress,int>& map)>("addMasks", [](NetmaskGroup&nmg, const std::map<ComboAddress,int>& map)
+  g_lua.registerFunction<void(NetmaskGroup::*)(const std::map<ComboAddress,int>& map)>("addMasks", [](NetmaskGroup&nmg, const std::map<ComboAddress,int>& map)
                          {
                            for (const auto& entry : map) {
                              nmg.addMask(Netmask(entry.first));
