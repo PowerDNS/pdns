@@ -356,7 +356,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
 
   SyncRes::EDNSStatus::EDNSMode& mode=ednsstatus->mode;
   SyncRes::EDNSStatus::EDNSMode oldmode = mode;
-  int EDNSLevel=0;
+  int EDNSLevel = 0;
   auto luaconfsLocal = g_luaconfs.getLocal();
   ResolveContext ctx;
 #ifdef HAVE_PROTOBUF
