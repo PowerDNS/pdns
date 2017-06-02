@@ -489,8 +489,10 @@ calidns_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-calidns_LDADD = $(LIBCRYPTO_LIBS)
-calidns_LDFLAGS = $(AM_LDFLAGS) $(THREADFLAGS) $(LIBCRYPTO_LDFLAGS)
+calidns_LDADD = $(LIBCRYPTO_LIBS) \
+	$(BOOST_PROGRAM_OPTIONS_LIBS)
+calidns_LDFLAGS = $(AM_LDFLAGS) $(THREADFLAGS) $(LIBCRYPTO_LDFLAGS) \
+	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
 dumresp_SOURCES = \
 	dnslabeltext.cc \
