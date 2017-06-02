@@ -1800,24 +1800,24 @@ int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback) {
     }
     return res;
   }
-  catch(PDNSException& e)
-  {
+  catch(const PDNSException& e) {
     L<<Logger::Error<<"Failed to update . records, got an exception: "<<e.reason<<endl;
   }
-
-  catch(std::exception& e)
-  {
+  catch(const ImmediateServFailException& e) {
+    L<<Logger::Error<<"Failed to update . records, got an exception: "<<e.reason<<endl;
+  }
+  catch(const std::exception& e) {
     L<<Logger::Error<<"Failed to update . records, got an exception: "<<e.what()<<endl;
   }
-
-  catch(...)
-  {
+  catch(...) {
     L<<Logger::Error<<"Failed to update . records, got an exception"<<endl;
   }
+
   if(!res) {
     L<<Logger::Notice<<"Refreshed . records"<<endl;
   }
   else
     L<<Logger::Error<<"Failed to update . records, RCODE="<<res<<endl;
+
   return res;
 }
