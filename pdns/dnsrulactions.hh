@@ -491,7 +491,7 @@ public:
       count = ntohs(dq->dh->arcount);
       break;
     }
-    if (count < d_minCount || count > d_maxCount) {
+    if (count < d_minCount) {
       return false;
     }
     count = getRecordsOfTypeCount(reinterpret_cast<const char*>(dq->dh), dq->len, d_section, d_type);
