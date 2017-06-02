@@ -1588,14 +1588,24 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
 
   // --------------------------------------------------------------------------
-  // GCA - Seth Ornstein added lua callable functions - 5/30/2017
-  // DNSQuestion - setTag, getTagMatch, getTagArray
+  // GCA - Seth Ornstein added lua callable functions - 6/2/2017
+  // DNSQuestion - setTag, setTagArray, getTagMatch, getTagArray
 
     g_lua.registerFunction<void(DNSQuestion::*)(std::string, std::string)>("setTag", [](DNSQuestion& dq, const std::string& strLabel, const std::string& strValue) {
 
        dq.qTag.add(strLabel, strValue);
 
     });
+
+     g_lua.registerFunction<void(DNSQuestion::*)(vector<pair<string, string>>)>("setTagArray", [](DNSQuestion& dq, const vector<pair<string, string>>&tags) {
+
+      setLuaSideEffect();
+
+      for (const auto& tag : tags)
+        {
+           dq.qTag.add(tag.first, tag.second);
+        }
+     });
 
 
      g_lua.registerFunction<string(DNSQuestion::*)(std::string)>("getTagMatch", [](const DNSQuestion& dq, const std::string& strLabel) {

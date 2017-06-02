@@ -833,8 +833,15 @@ void moreLua(bool client)
 
 
 // --------------------------------------------------------------------------
-// GCA - Seth Ornstein added lua callable functions - 5/30/2017
-// DNSDistProtoBufMessage - setTagArray, setProtobufResponseType
+// GCA - Seth Ornstein added lua callable functions - 6/2/2017
+// DNSDistProtoBufMessage - setTag, setTagArray, setProtobufResponseType, setProtobufResponseTypeQT
+
+     g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(std::string, std::string)>("setTag", [](DNSDistProtoBufMessage& message, const std::string& strLabel, const std::string& strValue) {
+
+      setLuaSideEffect();
+
+      message.addTags(strLabel, strValue);               // add a tag to store text - not used by dnsdist normally
+     });
 
 
      g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(vector<pair<string, string>>)>("setTagArray", [](DNSDistProtoBufMessage& message, const vector<pair<string, string>>&tags) {
@@ -843,11 +850,23 @@ void moreLua(bool client)
 
       for (const auto& tag : tags)
         {
-          message.addTags(tag.first, tag.second);               // add a tag to store text - not used by dnsdist at present?
+          message.addTags(tag.first, tag.second);               // add a tag to store text - not used by dnsdist normally
         }
      });
 
-     g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const std::string&, time_t sec, uint uSec)>("setProtobufResponseType", [](DNSDistProtoBufMessage& message, const std::string& strQueryName, time_t sec, uint uSec) {
+
+                                                                // setProtobufResponseType - no timestamp
+     g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const std::string&)>("setProtobufResponseType", [](DNSDistProtoBufMessage& message, const std::string& strQueryName) {
+
+        message.setType(DNSProtoBufMessage::Response);          // set protobuf type to be response - not query
+
+        message.setQueryTime(0, 0);                             // seconds and microseconds
+
+        message.addRRs(strQueryName);                           // add a RR to the response
+     });
+
+                                                                // setProtobufResponseTypeQT - with query time as function parameter
+     g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const std::string&, time_t sec, uint uSec)>("setProtobufResponseTypeTS", [](DNSDistProtoBufMessage& message, const std::string& strQueryName, time_t sec, uint uSec) {
 
         message.setType(DNSProtoBufMessage::Response);          // set protobuf type to be response - not query
 
@@ -860,6 +879,7 @@ void moreLua(bool client)
 
         message.addRRs(strQueryName);                           // add a RR to the response
      });
+
 
 // --------------------------------------------------------------------------
 
