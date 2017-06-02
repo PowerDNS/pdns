@@ -158,6 +158,10 @@ bool Bind2Backend::getNSEC3PARAM(const DNSName& name, NSEC3PARAMRecordContent* n
   if(!d_dnssecdb || d_hybrid)
     return false;
 
+  DomainInfo di;
+  if (getDomainInfo(name, di) == false)
+    return false;
+
   string value;
   vector<string> meta;
   getDomainMetadata(name, "NSEC3PARAM", meta);
@@ -191,6 +195,10 @@ bool Bind2Backend::getAllDomainMetadata(const DNSName& name, std::map<std::strin
   if(!d_dnssecdb || d_hybrid)
     return false;
 
+  DomainInfo di;
+  if (getDomainInfo(name, di) == false)
+    return false;
+
   try {
     d_getAllDomainMetadataQuery_stmt->
       bind("domain", name)->
@@ -213,6 +221,10 @@ bool Bind2Backend::getAllDomainMetadata(const DNSName& name, std::map<std::strin
 bool Bind2Backend::getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta)
 {
   if(!d_dnssecdb || d_hybrid)
+    return false;
+
+  DomainInfo di;
+  if (getDomainInfo(name, di) == false)
     return false;
 
   try {
@@ -238,6 +250,10 @@ bool Bind2Backend::getDomainMetadata(const DNSName& name, const std::string& kin
 bool Bind2Backend::setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta)
 {
   if(!d_dnssecdb || d_hybrid)
+    return false;
+
+  DomainInfo di;
+  if (getDomainInfo(name, di) == false)
     return false;
 
   try {
@@ -266,6 +282,10 @@ bool Bind2Backend::setDomainMetadata(const DNSName& name, const std::string& kin
 bool Bind2Backend::getDomainKeys(const DNSName& name, std::vector<KeyData>& keys)
 {
   if(!d_dnssecdb || d_hybrid)
+    return false;
+
+  DomainInfo di;
+  if (getDomainInfo(name, di) == false)
     return false;
 
   try {
@@ -297,6 +317,10 @@ bool Bind2Backend::removeDomainKey(const DNSName& name, unsigned int id)
   if(!d_dnssecdb || d_hybrid)
     return false;
 
+  DomainInfo di;
+  if (getDomainInfo(name, di) == false)
+    return false;
+
   try {
     d_deleteDomainKeyQuery_stmt->
       bind("domain", name)->
@@ -313,6 +337,10 @@ bool Bind2Backend::removeDomainKey(const DNSName& name, unsigned int id)
 bool Bind2Backend::addDomainKey(const DNSName& name, const KeyData& key, int64_t& id)
 {
   if(!d_dnssecdb || d_hybrid)
+    return false;
+
+  DomainInfo di;
+  if (getDomainInfo(name, di) == false)
     return false;
 
   try {
