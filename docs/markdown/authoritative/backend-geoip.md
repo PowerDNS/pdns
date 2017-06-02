@@ -103,7 +103,7 @@ domains:
 * **domain**: Defines a domain. You need ttl, records, services under this.
 * **ttl**: TTL value for all records
 * **records**: Put fully qualified name as subkey, under which you must define at least soa: key. Note that this is an array of records, so ‐ is needed for the values.
-* **services**: Defines one or more services for querying. The format supports following placeholders, %% = %, %co = 3-letter country, %cn = continent, %af = v4 or v6. There are also other specifiers that will only work with suitable database and currently are untested. These are %re = region, %na = Name (such as, organisation), %ci = City. 
+* **services**: Defines one or more services for querying. The format supports following placeholders, %% = %, %co = 3-letter country, %cn = continent, %af = v4 or v6. There are also other specifiers that will only work with suitable database and currently are untested. These are %re = region, %na = Name (such as, organisation), %ci = City. If the record which a service points to exists under "records" then it is returned as a direct answer.  If it does not exist under "records" then it is returned as a CNAME.
 * From 4.1.0, you can also use %cc = 2 letter country code
 * From 4.0.0, you can also use %as = ASn, %ip = Remote IP
 * From 4.0.0, you can also use additional specifiers. These are %hh = hour, %dd = day, %mo = month, %mos = month as short string, %wd = weekday (as number), %wds weekday as short string. 
@@ -120,3 +120,5 @@ domains:
     - txt: "your ip is %ip"
 
 then caching will not happen for any records of something.example.com. If you need to use TXT for debugging, make sure you use dedicated name for it.
+
+**WARNING**: If your services match wildcard records in your zone file then these will be returned as CNAMEs. This will only be an issue if you are trying to use a service record at the apex of your domain where you need other record types to be present (such as NS and SOA records.) Per RFC2181, CNAME records cannot appear in the same label as NS or SOA records.
