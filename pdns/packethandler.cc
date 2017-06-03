@@ -1308,7 +1308,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
         if(addCDS(p,r, sd))
           goto sendit;
       }
-      else if(p->qtype.getCode() == QType::NSEC3PARAM)
+      else if(p->qtype.getCode() == QType::NSEC3PARAM && d_dk.isSecuredZone(sd.qname))
       {
         if(addNSEC3PARAM(p,r, sd))
           goto sendit;
