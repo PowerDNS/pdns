@@ -1139,6 +1139,8 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
     });
 
   g_lua.registerFunction<void(DownstreamState::*)(int)>("setQPS", [](DownstreamState& s, int lim) { s.qps = lim ? QPSLimiter(lim, lim) : QPSLimiter(); });
+  g_lua.registerFunction<void(DownstreamState::*)(int)>("setWeight", [](DownstreamState& s, int w) { s.weight = w; });
+  g_lua.registerFunction<void(DownstreamState::*)(int)>("setOrder", [](DownstreamState& s, int o) { s.order = o; });
   g_lua.registerFunction<void(std::shared_ptr<DownstreamState>::*)(string)>("addPool", [](std::shared_ptr<DownstreamState> s, string pool) {
       auto localPools = g_pools.getCopy();
       addServerToPool(localPools, pool, s);
