@@ -44,7 +44,7 @@ void LdapBackend::getUpdatedMasters( vector<DomainInfo>* domains )
   catch( LDAPTimeout &lt )
   {
     L << Logger::Warning << m_myname << " Unable to search LDAP directory: " << lt.what() << endl;
-    throw( DBException( "LDAP server timeout" ) );
+    throw DBException( "LDAP server timeout" );
   }
   catch( LDAPNoConnection &lnc )
   {
@@ -57,11 +57,11 @@ void LdapBackend::getUpdatedMasters( vector<DomainInfo>* domains )
   catch( LDAPException &le )
   {
     L << Logger::Error << m_myname << " Unable to search LDAP directory: " << le.what() << endl;
-    throw( PDNSException( "LDAP server unreachable" ) );   // try to reconnect to another server
+    throw PDNSException( "LDAP server unreachable" );   // try to reconnect to another server
   }
   catch( std::exception &e )
   {
-    throw( DBException( "STL exception" ) );
+    throw DBException( "STL exception" );
   }
 
   while( search->getNext( result ) ) {
@@ -98,7 +98,7 @@ void LdapBackend::setNotified( uint32_t id, uint32_t serial )
   catch( LDAPTimeout &lt )
   {
     L << Logger::Warning << m_myname << " Unable to search LDAP directory: " << lt.what() << endl;
-    throw( DBException( "LDAP server timeout" ) );
+    throw DBException( "LDAP server timeout" );
   }
   catch( LDAPNoConnection &lnc )
   {
@@ -111,11 +111,11 @@ void LdapBackend::setNotified( uint32_t id, uint32_t serial )
   catch( LDAPException &le )
   {
     L << Logger::Error << m_myname << " Unable to search LDAP directory: " << le.what() << endl;
-    throw( PDNSException( "LDAP server unreachable" ) );   // try to reconnect to another server
+    throw PDNSException( "LDAP server unreachable" );   // try to reconnect to another server
   }
   catch( std::exception &e )
   {
-    throw( DBException( "STL exception" ) );
+    throw DBException( "STL exception" );
   }
 
   if ( results.empty() )
@@ -152,10 +152,10 @@ void LdapBackend::setNotified( uint32_t id, uint32_t serial )
   catch( LDAPException &le )
   {
     L << Logger::Error << m_myname << " Unable to search LDAP directory: " << le.what() << endl;
-    throw( PDNSException( "LDAP server unreachable" ) );   // try to reconnect to another server
+    throw PDNSException( "LDAP server unreachable" );   // try to reconnect to another server
   }
   catch( std::exception &e )
   {
-    throw( DBException( "STL exception" ) );
+    throw DBException( "STL exception" );
   }
 }

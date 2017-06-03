@@ -54,7 +54,7 @@ LdapBackend::LdapBackend( const string &suffix )
     if ( m_dnssec ) {
       m_metadata_searchdn = getArg( "metadata-searchdn" );
       if ( m_metadata_searchdn.empty() )
-        throw( PDNSException( "Please set 'ldap-metadata-searchdn' to use DNSSEC" ) );
+        throw PDNSException( "Please set 'ldap-metadata-searchdn' to use DNSSEC" );
     }
 
     m_getdn = false;
@@ -114,7 +114,7 @@ LdapBackend::LdapBackend( const string &suffix )
   }
 
   if( m_pldap != NULL ) { delete( m_pldap ); }
-  throw( PDNSException( "Unable to connect to ldap server" ) );
+  throw PDNSException( "Unable to connect to ldap server" );
 }
 
 
