@@ -2789,6 +2789,8 @@ static int serviceMain(int argc, char*argv[])
   SyncRes::s_packetcachettl=::arg().asNum("packetcache-ttl");
   // Cap the packetcache-servfail-ttl to the packetcache-ttl
   uint32_t packetCacheServFailTTL = ::arg().asNum("packetcache-servfail-ttl");
+  if (packetCacheServFailTTL > 60)
+    packetCacheServFailTTL = 60;
   SyncRes::s_packetcacheservfailttl=(packetCacheServFailTTL > SyncRes::s_packetcachettl) ? SyncRes::s_packetcachettl : packetCacheServFailTTL;
   SyncRes::s_serverdownmaxfails=::arg().asNum("server-down-max-fails");
   SyncRes::s_serverdownthrottletime=::arg().asNum("server-down-throttle-time");
@@ -3173,7 +3175,7 @@ int main(int argc, char **argv)
     ::arg().set("max-cache-ttl", "maximum number of seconds to keep a cached entry in memory")="86400";
     ::arg().set("packetcache-ttl", "maximum number of seconds to keep a cached entry in packetcache")="3600";
     ::arg().set("max-packetcache-entries", "maximum number of entries to keep in the packetcache")="500000";
-    ::arg().set("packetcache-servfail-ttl", "maximum number of seconds to keep a cached servfail entry in packetcache")="60";
+    ::arg().set("packetcache-servfail-ttl", "maximum number of seconds to keep a cached servfail entry in packetcache")="5";
     ::arg().set("server-id", "Returned when queried for 'server.id' TXT or NSID, defaults to hostname")="";
     ::arg().set("stats-ringbuffer-entries", "maximum number of packets to store statistics for")="10000";
     ::arg().set("version-string", "string reported on version.pdns or version.bind")=fullVersionString();
