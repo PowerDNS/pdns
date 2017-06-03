@@ -95,8 +95,9 @@ bool LdapBackend::getDomainMetadata( const DNSName& name, const std::string& kin
     // We're supposed to get just one entry
     if ( search->getNext( result, m_getdn ) ) {
       if ( result.count( "PdnsMetadataValue" ) && !result["PdnsMetadataValue"].empty() ) {
-        for ( auto value : result["PdnsMetadataValue"] )
+        for ( const auto& value : result["PdnsMetadataValue"] ) {
           meta.push_back( value );
+	}
       }
     }
 
@@ -1154,19 +1155,19 @@ bool LdapBackend::updateDNSSECOrderNameAndAuth( uint32_t domain_id, const DNSNam
       convertedOrdername = " ";
     std::string qtypeName = QType( qtype ).getName();
 
-    for ( auto attribute : result ) {
+    for ( const auto& attribute : result ) {
       if ( attribute.first.length() > 6 && attribute.first.substr( attribute.first.length() - 6 ) == "Record" ) {
         entryRRs.insert( toUpper( attribute.first.substr( 0, attribute.first.length() - 6 ) ) );
       }
       else if ( attribute.first == "PdnsRecordNoAuth" ) {
-        for ( auto noauth : attribute.second )
+        for ( const auto& noauth : attribute.second )
           entryNoAuthRRs.insert( noauth );
       }
       else if ( attribute.first == "PdnsRecordOrdername" ) {
         entryOrdername = attribute.second[0];
       }
       else if ( attribute.first == "PdnsRecordNoOrdername" ) {
-        for ( auto noON : attribute.second ) {
+        for ( const auto& noON : attribute.second ) {
           entryNoONRRs.insert( noON );
         }
       }
@@ -1193,7 +1194,7 @@ bool LdapBackend::updateDNSSECOrderNameAndAuth( uint32_t domain_id, const DNSNam
         std::set_difference( entryRRs.begin(), entryRRs.end(),
                              entryNoAuthRRs.begin(), entryNoAuthRRs.end(),
                              std::inserter( missingNoAuth, missingNoAuth.end() ) );
-        for ( auto rrtype : missingNoAuth ) {
+        for ( const auto& rrtype : missingNoAuth ) {
           L<<Logger::Debug<< m_myname << " Add PdnsRecordNoAuth for RR " << rrtype << " on " << result["dn"][0] << std::endl;
           LDAPMod mod;
           mod.mod_op = LDAP_MOD_ADD;
@@ -1311,7 +1312,7 @@ bool LdapBackend::updateDNSSECOrderNameAndAuth( uint32_t domain_id, const DNSNam
         std::set<std::string> remainingONs = entryRRs;
         if ( remainingONs.count( qtypeName ) )
           remainingONs.erase( qtypeName );
-        for ( auto rr : entryNoONRRs )
+        for ( const auto& rr : entryNoONRRs )
           remainingONs.erase( rr );
 
         if ( result.count( "PdnsRecordOrdername" ) ) {

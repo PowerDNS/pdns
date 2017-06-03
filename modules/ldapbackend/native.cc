@@ -338,7 +338,7 @@ bool LdapBackend::get( DNSResourceRecord &rr )
       }
 
       if ( m_in_list ) {
-        for ( auto domain : associatedDomains )
+        for ( const auto& domain : associatedDomains )
           this->extract_entry_results( DNSName( domain ), result_template, QType(uint16_t(QType::ANY)) );
       }
       else {

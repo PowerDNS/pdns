@@ -195,7 +195,7 @@ void LdapBackend::extract_entry_results( const DNSName& domain, const DNSResult&
   QType qt;
   bool has_records = false;
 
-  for ( auto attribute : m_result ) {
+  for ( const auto& attribute : m_result ) {
     // Find if we're dealing with a record attribute
     if ( attribute.first.length() > 6 && attribute.first.compare( attribute.first.length() - 6, 6, "Record" ) == 0 ) {
       has_records = true;
@@ -204,7 +204,7 @@ void LdapBackend::extract_entry_results( const DNSName& domain, const DNSResult&
       qstr = attrname.substr( 0, attrname.length() - 6 );
       qt = toUpper( qstr );
 
-      for ( auto value : attribute.second ) {
+      for ( const auto& value : attribute.second ) {
         if(qtype != qt && qtype != QType::ANY) {
           continue;
         }
@@ -219,7 +219,7 @@ void LdapBackend::extract_entry_results( const DNSName& domain, const DNSResult&
 
         // TTL
         if ( m_result.count( "PdnsRecordTTL" ) && !m_result["PdnsRecordTTL"].empty() ) {
-          for ( auto rdata : m_result["PdnsRecordTTL"] ) {
+          for ( const auto& rdata : m_result["PdnsRecordTTL"] ) {
             std::string qtype;
             std::size_t pos = rdata.find_first_of( '|', 0 );
             if ( pos == std::string::npos )
@@ -235,7 +235,7 @@ void LdapBackend::extract_entry_results( const DNSName& domain, const DNSResult&
 
         // Not authoritative
         if ( m_result.count( "PdnsRecordNoAuth" ) && !m_result["PdnsRecordNoAuth"].empty() ) {
-          for ( auto rdata : m_result["PdnsRecordNoAuth"] ) {
+          for ( const auto& rdata : m_result["PdnsRecordNoAuth"] ) {
             if ( rdata == QType( local_result.qtype ).getName() )
               local_result.auth = false;
           }
@@ -247,7 +247,7 @@ void LdapBackend::extract_entry_results( const DNSName& domain, const DNSResult&
           bool hasON = true;
 
           if ( m_result.count( "PdnsRecordNoOrdername" ) ) {
-            for ( auto rdata : m_result["PdnsRecordNoOrdername"] ) {
+            for ( const auto& rdata : m_result["PdnsRecordNoOrdername"] ) {
               if ( rdata == QType( local_result.qtype ).getName() )
                 hasON = false;
             }
