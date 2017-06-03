@@ -220,7 +220,7 @@ This means that 'y.example.com' must exist. However the entry at 'dc=y,dc=exampl
 perfectly fine with that.
 
 If you have BIND zone files then `zone2ldap` can create a LDIF file ready to serve DNSSEC. You have
-to use the `--pdns-info` and `--create-ent` flags for this though.
+to use the `--pdns-info` flag for this though.
 
 Metadata storage
 ----------------

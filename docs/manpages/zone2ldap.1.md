@@ -22,10 +22,6 @@ with pdnsutil.
 --basedn=*DN*
 :    Base DN to store objects below
 
---create-ent
-:    If set zone2ldap will create empty non-terminals. This is required for
-:    DNSSEC to work and is only meaningful with layout=simple.
-
 --domainid=*ID*
 :    The ID of the first zone found, incremented by one for each zone in the
 :    current source. This option only has an effect when used with --pdns-info.
