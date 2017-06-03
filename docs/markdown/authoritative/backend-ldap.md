@@ -68,7 +68,7 @@ There can be multiple LDAP URIs specified for load balancing and high availabili
 In case the used LDAP client library doesn't support LDAP URIs as connection parameter, use plain host names or IP addresses instead (both may optionally be followed by a colon and the port).
 
 ## `ldap-starttls`
-(default "no") : Use TLS encrypted connections to the LDAP server. This is only allowed if ldap-host is a <ldap://> URI or a host name / IP address.
+(default: "no") : Use TLS encrypted connections to the LDAP server. This is only allowed if ldap-host is a <ldap://> URI or a host name / IP address.
 
 ## `ldap-timeout`
 (default: "5") : The number of seconds to wait for LDAP operations to complete.
@@ -80,19 +80,19 @@ In case the used LDAP client library doesn't support LDAP URIs as connection par
 (default: "simple") : How to authenticate to the LDAP server. Actually only two methods are supported: "simple", which uses the classical DN / password, or "gssapi", which requires a Kerberos keytab.
 
 ## `ldap-binddn`
-(default "") : Path to the object to authenticate against. Should only be used, if the LDAP server doesn't support anonymous binds and with the "simple" authmethod.
+(default: empty) : Path to the object to authenticate against. Should only be used, if the LDAP server doesn't support anonymous binds and with the "simple" authmethod.
 
 ## `ldap-secret`
-(default "") : Password for authentication against the object specified by ldap-binddn. Only used when "authmethod" is "simple".
+(default: empty) : Password for authentication against the object specified by ldap-binddn. Only used when "authmethod" is "simple".
 
 ## `ldap-krb5-keytab`
-(default: "") : Full path to the keytab file to use to authenticate. This is only used when "authmethod" is set to "gssapi". The keytab must, ideally, contain only one principal (or to put it otherwise, only the first principal found in the keytab will be used).
+(default: empty) : Full path to the keytab file to use to authenticate. This is only used when "authmethod" is set to "gssapi". The keytab must, ideally, contain only one principal (or to put it otherwise, only the first principal found in the keytab will be used).
 
 ## `ldap-krb5-ccache`
-(default: "") : Full path to the Kerberos credential cache file to use. Actually only files are supported, and the "FILE:" prefix must not be set. The PowerDNS process must be able to write to this file and it *must* be the only one able to read it.
+(default: empty) : Full path to the Kerberos credential cache file to use. Actually only files are supported, and the "FILE:" prefix must not be set. The PowerDNS process must be able to write to this file and it *must* be the only one able to read it.
 
 ## `ldap-basedn`
-(default: "") : The PowerDNS LDAP DNS backend searches below this path for objects containing the specified DNS information. The retrieval of attributes is limited to this subtree. This option must be set to the path according to the layout of your LDAP tree, e.g. ou=hosts,o=linuxnetworks,c=de is the DN to my objects containing the DNS information.
+(default: empty) : The PowerDNS LDAP DNS backend searches below this path for objects containing the specified DNS information. The retrieval of attributes is limited to this subtree. This option must be set to the path according to the layout of your LDAP tree, e.g. ou=hosts,o=linuxnetworks,c=de is the DN to my objects containing the DNS information.
 
 ## `ldap-basedn-axfr-override`
 (default: "no") : When doing a list lookup for AXFR PowerDNS will search for domains in a zone under the DN at which the SOA was found. This is not always wanted. Setting this directive to "yes" will let the backend use the value of `ldap-basedn` as the search base for AFR requests.
@@ -101,23 +101,23 @@ In case the used LDAP client library doesn't support LDAP URIs as connection par
 (default: "no") : This is the same as the previous entry but for simple lookups, not AXFR. This setting must be set to "yes" for DNSSEC to work at all.
 
 ## `ldap-method`
-(default "simple") :
+(default: "simple") :
 
  - `simple`: Search the requested domain by comparing the associatedDomain attributes with the domain string in the question. Only this method supports DNSSEC, and in certain conditions.
  - `tree`: Search entires by translating the domain string into a LDAP dn. Your LDAP tree must be designed in the same way as the DNS LDAP tree. The question for "myhost.linuxnetworks.de" would translate into "dc=myhost,dc=linuxnetworks,dc=de,ou=hosts=..." and the entry where this dn points to would be evaluated for dns records.
  - `strict`: Like simple, but generates PTR records from aRecords or aAAARecords. Using "strict", zone transfers for reverse zones are not possible.
 
 ## `ldap-filter-axfr`
-(default "(:target:)" ) : LDAP filter for limiting AXFR results (zone transfers), e.g. (&(:target:)(active=yes)) for returning only entries whose attribute "active" is set to "yes".
+(default: "(:target:)" ) : LDAP filter for limiting AXFR results (zone transfers), e.g. (&(:target:)(active=yes)) for returning only entries whose attribute "active" is set to "yes".
 
 ## `ldap-filter-lookup`
-(default "(:target:)" ) : LDAP filter for limiting IP or name lookups, e.g. (&(:target:)(active=yes)) for returning only entries whose attribute "active" is set to "yes".
+(default: "(:target:)" ) : LDAP filter for limiting IP or name lookups, e.g. (&(:target:)(active=yes)) for returning only entries whose attribute "active" is set to "yes".
 
 ## `ldap-dnssec`
 (default: "no") : If set to "yes" DNSSEC support will be enabled in the backend.
 
 ## `ldap-metadata-searchdn`
-(default: "") : For DNSSEC certain extra information must be stored that should not be found under the DNS data root. This is because PowerDNS must have write access to this subtree to, for example, create the zone keys. This setting point to the root DN under which the metadata can be stored. It is required if `ldap-dnssec` is set to "yes".
+(default: empty) : For DNSSEC certain extra information must be stored that should not be found under the DNS data root. This is because PowerDNS must have write access to this subtree to, for example, create the zone keys. This setting point to the root DN under which the metadata can be stored. It is required if `ldap-dnssec` is set to "yes".
 
 ## `ldap-metadata-searchfilter`
 (default: "(&(objectClass=organizationalUnit)(ou=:domain:))") : The search filter to use to find the DN under which the metadata for a zone is. The special string ":domain:" will be replace by the zone name in the search filter.
@@ -127,7 +127,7 @@ In case the used LDAP client library doesn't support LDAP URIs as connection par
 Schema update
 -------------
 
-First off adding master support to the LDAP backend requires
+First off, adding master support to the LDAP backend requires
 the pdns-domaininfo.schema mentioned earlier. The schema file
 is available in modules/ldapbackend/pdns-domaininfo.schema
 in the source tree.
