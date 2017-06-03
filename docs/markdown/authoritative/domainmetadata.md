@@ -33,7 +33,7 @@ To disallow all IP's, except those explicitly allowed by domainmetadata records,
 ## AXFR-SOURCE
 The IP address to use as a source address for sending AXFR and IXFR requests.
 
-## ALLOW-DNSUPDATE-FROM, TSIG-ALLOW-DNSUPDATE, FORWARD-DNSUPDATE, SOA-EDIT-DNSUPDATE
+## ALLOW-DNSUPDATE-FROM, TSIG-ALLOW-DNSUPDATE, FORWARD-DNSUPDATE, SOA-EDIT-DNSUPDATE, NOTIFY-DNSUPDATE
 See the documentation on [Dynamic DNS update](dnsupdate.md)
 
 ## ALSO-NOTIFY
@@ -62,6 +62,8 @@ If set to 1, attempt IXFR when retrieving zone updates. Otherwise IXFR is not at
 
 ## LUA-AXFR-SCRIPT
 Script to be used to edit incoming AXFRs, see [Modifying a slave zone using a script](modes-of-operation.md#modifying-a-slave-zone-using-a-script).
+This value will override the [`lua-axfr-script`](settings.md#lua-axfr-scriptmaster) setting.
+Use 'NONE' to remove a global script.
 
 ## NSEC3NARROW
 Set to "1" to tell PowerDNS this zone operates in NSEC3 'narrow' mode. See

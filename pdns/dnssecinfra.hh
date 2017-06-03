@@ -63,13 +63,13 @@ class DNSCryptoKeyEngine
     {
       return true;
     }
-    static DNSCryptoKeyEngine* makeFromISCFile(DNSKEYRecordContent& drc, const char* fname);
-    static DNSCryptoKeyEngine* makeFromISCString(DNSKEYRecordContent& drc, const std::string& content);
-    static DNSCryptoKeyEngine* makeFromPEMString(DNSKEYRecordContent& drc, const std::string& raw);
-    static DNSCryptoKeyEngine* makeFromPublicKeyString(unsigned int algorithm, const std::string& raw);
-    static DNSCryptoKeyEngine* make(unsigned int algorithm);
+    static shared_ptr<DNSCryptoKeyEngine> makeFromISCFile(DNSKEYRecordContent& drc, const char* fname);
+    static shared_ptr<DNSCryptoKeyEngine> makeFromISCString(DNSKEYRecordContent& drc, const std::string& content);
+    static shared_ptr<DNSCryptoKeyEngine> makeFromPEMString(DNSKEYRecordContent& drc, const std::string& raw);
+    static shared_ptr<DNSCryptoKeyEngine> makeFromPublicKeyString(unsigned int algorithm, const std::string& raw);
+    static shared_ptr<DNSCryptoKeyEngine> make(unsigned int algorithm);
     
-    typedef DNSCryptoKeyEngine* maker_t(unsigned int algorithm);
+    typedef shared_ptr<DNSCryptoKeyEngine> maker_t(unsigned int algorithm);
     
     static void report(unsigned int algorithm, maker_t* maker, bool fallback=false);
     static std::pair<unsigned int, unsigned int> testMakers(unsigned int algorithm, maker_t* creator, maker_t* signer, maker_t* verifier);
@@ -98,9 +98,9 @@ struct DNSSECPrivateKey
 {
   uint16_t getTag();
   
-  const DNSCryptoKeyEngine* getKey() const
+  const shared_ptr<DNSCryptoKeyEngine> getKey() const
   {
-    return d_key.get();
+    return d_key;
   }
   
   void setKey(const shared_ptr<DNSCryptoKeyEngine> key)

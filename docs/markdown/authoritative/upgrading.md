@@ -27,6 +27,7 @@ Use `--with-pg-config` to specify a path to a non-default `pg_config` if you hav
 ## Database changes
 No changes have been made to the database schema.
 However, several superfluous queries have been dropped from the SQL backend.
+Furthermore, the generic SQL backends switched to prepared statements.
 If you use a non-standard SQL schema, please review the new defaults.
 
   - `insert-ent-query`, `insert-empty-non-terminal-query`, `insert-ent-order-query` have been replaced by one query named `insert-empty-non-terminal-order-query`
@@ -64,3 +65,9 @@ The API path has changed to `/api/v1`.
 
 Incompatible change: `SOA-EDIT-API` now follows `SOA-EDIT-DNSUPDATE` instead of `SOA-EDIT` (incl. the fact that it now has a default value of `DEFAULT`).
 You must update your existing `SOA-EDIT-API` metadata (set `SOA-EDIT` to your previous `SOA-EDIT-API` value, and `SOA-EDIT-API` to `SOA-EDIT` to keep the old behaviour).
+
+## Resource Record Changes
+Since PowerDNS 4.0.0 the CAA resource record (type 257) is supported. Before PowerDNS 4.0.0 type 257 was used for a proprietary MBOXFW resource record, which
+was removed from PowerDNS 4.0. Hence, if you used CAA records with 3.4.x (stored in the DB with wrong type=MBOXFW but worked fine) and upgrade to 4.0,
+PowerDNS will fail to parse this records and will throw an exception on all queries for a label with MBOXFW records. Thus, make sure to clean up the
+records in the DB.

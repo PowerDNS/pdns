@@ -22,6 +22,7 @@ export NSEC3DIG=/usr/bin/nsec3dig
 export NOTIFY=/usr/bin/pdns_notify
 export SAXFR=/usr/bin/saxfr
 export ZONE2SQL=/usr/bin/zone2sql
+export ZONE2JSON=/usr/bin/zone2json
 export PDNSUTIL=/usr/bin/pdnsutil
 export PDNSCONTROL=/usr/bin/pdns_control
 

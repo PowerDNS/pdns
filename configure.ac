@@ -344,7 +344,7 @@ AC_MSG_NOTICE([----------------])
 AC_MSG_NOTICE([Built-in modules: $modules])
 AC_MSG_NOTICE([Dynamic modules: $dynmodules])
 AC_MSG_NOTICE([])
-AS_IF([test "x$libcrypto_ecdsa" == "xyes"],
+AS_IF([test "x$libcrypto_ecdsa" = "xyes"],
   [AC_MSG_NOTICE([OpenSSL ecdsa: yes])],
   [AC_MSG_NOTICE([OpenSSL ecdsa: no])]
 )

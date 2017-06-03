@@ -78,9 +78,9 @@ bool g_syslog{true};
 
 GlobalStateHolder<NetmaskGroup> g_ACL;
 string g_outputBuffer;
-vector<std::tuple<ComboAddress, bool, bool, int>> g_locals;
+vector<std::tuple<ComboAddress, bool, bool, int, string>> g_locals;
 #ifdef HAVE_DNSCRYPT
-std::vector<std::tuple<ComboAddress,DnsCryptContext,bool, int>> g_dnsCryptLocals;
+std::vector<std::tuple<ComboAddress,DnsCryptContext,bool, int, string>> g_dnsCryptLocals;
 #endif
 #ifdef HAVE_EBPF
 shared_ptr<BPFFilter> g_defaultBPFFilter;
@@ -853,7 +853,11 @@ bool processQuery(LocalStateHolder<NetmaskTree<DynBlock> >& localDynNMGBlock,
     if(now < got->second.until) {
       g_stats.dynBlocked++;
       got->second.blocks++;
-      if (g_dynBlockAction == DNSAction::Action::Refused) {
+      DNSAction::Action action = got->second.action;
+      if (action == DNSAction::Action::None) {
+        action = g_dynBlockAction;
+      }
+      if (action == DNSAction::Action::Refused) {
         vinfolog("Query from %s refused because of dynamic block", dq.remote->toStringWithPort());
         dq.dh->rcode = RCode::Refused;
         dq.dh->qr=true;
@@ -870,7 +874,11 @@ bool processQuery(LocalStateHolder<NetmaskTree<DynBlock> >& localDynNMGBlock,
     if(now < got->until) {
       g_stats.dynBlocked++;
       got->blocks++;
-      if (g_dynBlockAction == DNSAction::Action::Refused) {
+      DNSAction::Action action = got->action;
+      if (action == DNSAction::Action::None) {
+        action = g_dynBlockAction;
+      }
+      if (action == DNSAction::Action::Refused) {
         vinfolog("Query from %s for %s refused because of dynamic block", dq.remote->toStringWithPort(), dq.qname->toString());
         dq.dh->rcode = RCode::Refused;
         dq.dh->qr=true;
@@ -1497,7 +1505,7 @@ void* healthChecksThread()
             try {
               SConnect(dss->fd, dss->remote);
               dss->connected = true;
-              dss->tid = move(thread(responderThread, dss));
+              dss->tid = thread(responderThread, dss);
             }
             catch(const std::runtime_error& error) {
               infolog("Error connecting to new server with address %s: %s", dss->remote.toStringWithPort(), error.what());
@@ -1899,11 +1907,11 @@ try
   if(g_cmdLine.locals.size()) {
     g_locals.clear();
     for(auto loc : g_cmdLine.locals)
-      g_locals.push_back(std::make_tuple(ComboAddress(loc, 53), true, false, 0));
+      g_locals.push_back(std::make_tuple(ComboAddress(loc, 53), true, false, 0, ""));
   }
   
   if(g_locals.empty())
-    g_locals.push_back(std::make_tuple(ComboAddress("127.0.0.1", 53), true, false, 0));
+    g_locals.push_back(std::make_tuple(ComboAddress("127.0.0.1", 53), true, false, 0, ""));
 
   g_configurationDone = true;
 
@@ -1929,11 +1937,24 @@ try
       setsockopt(cs->udpFD, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one));
 #endif
     }
+
     if (std::get<2>(local)) {
 #ifdef SO_REUSEPORT
       SSetsockopt(cs->udpFD, SOL_SOCKET, SO_REUSEPORT, 1);
 #else
       warnlog("SO_REUSEPORT has been configured on local address '%s' but is not supported", std::get<0>(local).toStringWithPort());
+#endif
+    }
+
+    const std::string& itf = std::get<4>(local);
+    if (!itf.empty()) {
+#ifdef SO_BINDTODEVICE
+      int res = setsockopt(cs->udpFD, SOL_SOCKET, SO_BINDTODEVICE, itf.c_str(), itf.length());
+      if (res != 0) {
+        warnlog("Error setting up the interface on local address '%s': %s", std::get<0>(local).toStringWithPort(), strerror(errno));
+      }
+#else
+      warnlog("An interface has been configured on local address '%s' but SO_BINDTODEVICE is not supported", std::get<0>(local).toStringWithPort());
 #endif
     }
 
@@ -1980,6 +2001,19 @@ try
       SSetsockopt(cs->tcpFD, SOL_SOCKET, SO_REUSEPORT, 1);
     }
 #endif
+
+    const std::string& itf = std::get<4>(local);
+    if (!itf.empty()) {
+#ifdef SO_BINDTODEVICE
+      int res = setsockopt(cs->tcpFD, SOL_SOCKET, SO_BINDTODEVICE, itf.c_str(), itf.length());
+      if (res != 0) {
+        warnlog("Error setting up the interface on local address '%s': %s", std::get<0>(local).toStringWithPort(), strerror(errno));
+      }
+#else
+      warnlog("An interface has been configured on local address '%s' but SO_BINDTODEVICE is not supported", std::get<0>(local).toStringWithPort());
+#endif
+    }
+
 #ifdef HAVE_EBPF
     if (g_defaultBPFFilter) {
       cs->attachFilter(g_defaultBPFFilter);
@@ -2022,6 +2056,19 @@ try
       warnlog("SO_REUSEPORT has been configured on local address '%s' but is not supported", std::get<0>(dcLocal).toStringWithPort());
 #endif
     }
+
+    const std::string& itf = std::get<4>(dcLocal);
+    if (!itf.empty()) {
+#ifdef SO_BINDTODEVICE
+      int res = setsockopt(cs->udpFD, SOL_SOCKET, SO_BINDTODEVICE, itf.c_str(), itf.length());
+      if (res != 0) {
+        warnlog("Error setting up the interface on local address '%s': %s", std::get<0>(dcLocal).toStringWithPort(), strerror(errno));
+      }
+#else
+      warnlog("An interface has been configured on local address '%s' but SO_BINDTODEVICE is not supported", std::get<0>(dcLocal).toStringWithPort());
+#endif
+    }
+
 #ifdef HAVE_EBPF
     if (g_defaultBPFFilter) {
       cs->attachFilter(g_defaultBPFFilter);
@@ -2048,12 +2095,25 @@ try
       warnlog("TCP Fast Open has been configured on local address '%s' but is not supported", std::get<0>(dcLocal).toStringWithPort());
 #endif
     }
+
 #ifdef SO_REUSEPORT
     /* no need to warn again if configured but support is not available, we already did for UDP */
     if (std::get<2>(dcLocal)) {
       SSetsockopt(cs->tcpFD, SOL_SOCKET, SO_REUSEPORT, 1);
     }
 #endif
+
+    if (!itf.empty()) {
+#ifdef SO_BINDTODEVICE
+      int res = setsockopt(cs->tcpFD, SOL_SOCKET, SO_BINDTODEVICE, itf.c_str(), itf.length());
+      if (res != 0) {
+        warnlog("Error setting up the interface on local address '%s': %s", std::get<0>(dcLocal).toStringWithPort(), strerror(errno));
+      }
+#else
+      warnlog("An interface has been configured on local address '%s' but SO_BINDTODEVICE is not supported", std::get<0>(dcLocal).toStringWithPort());
+#endif
+    }
+
     if(cs->local.sin4.sin_family == AF_INET6) {
       SSetsockopt(cs->tcpFD, IPPROTO_IPV6, IPV6_V6ONLY, 1);
     }
@@ -2124,7 +2184,7 @@ try
       auto ret=std::make_shared<DownstreamState>(ComboAddress(address, 53));
       addServerToPool(localPools, "", ret);
       if (ret->connected) {
-        ret->tid = move(thread(responderThread, ret));
+        ret->tid = thread(responderThread, ret);
       }
       g_dstates.modify([ret](servers_t& servers) { servers.push_back(ret); });
     }

@@ -353,7 +353,7 @@ template<class Key, class Val>bool MTasker<Key,Val>::schedule(struct timeval*  n
 /** Call this to check if no processes are running anymore
     \return true if no processes are left
  */
-template<class Key, class Val>bool MTasker<Key,Val>::noProcesses()
+template<class Key, class Val>bool MTasker<Key,Val>::noProcesses() const
 {
   return d_threads.empty();
 }
@@ -362,7 +362,7 @@ template<class Key, class Val>bool MTasker<Key,Val>::noProcesses()
 /** Call this to perhaps limit activities if too many threads are running
     \return number of processes running
  */
-template<class Key, class Val>unsigned int MTasker<Key,Val>::numProcesses()
+template<class Key, class Val>unsigned int MTasker<Key,Val>::numProcesses() const
 {
   return d_threads.size();
 }
@@ -386,7 +386,7 @@ template<class Key, class Val>void MTasker<Key,Val>::getEvents(std::vector<Key>&
 /** Processes can call this to get a numerical representation of their current thread ID.
     This can be useful for logging purposes.
 */
-template<class Key, class Val>int MTasker<Key,Val>::getTid()
+template<class Key, class Val>int MTasker<Key,Val>::getTid() const
 {
   return d_tid;
 }

@@ -78,7 +78,7 @@ std::atomic<unsigned long>* getDynMetric(const std::string& str)
   return ret;
 }
 
-optional<uint64_t> get(const string& name) 
+static optional<uint64_t> get(const string& name)
 {
   optional<uint64_t> ret;
 
@@ -191,12 +191,12 @@ static uint64_t dumpNegCache(NegCache& negcache, int fd)
 
 static uint64_t* pleaseDump(int fd)
 {
-  return new uint64_t(t_RC->doDump(fd) + dumpNegCache(t_sstorage->negcache, fd) + t_packetCache->doDump(fd));
+  return new uint64_t(t_RC->doDump(fd) + dumpNegCache(SyncRes::t_sstorage.negcache, fd) + t_packetCache->doDump(fd));
 }
 
 static uint64_t* pleaseDumpNSSpeeds(int fd)
 {
-  return new uint64_t(t_RC->doDumpNSSpeeds(fd));
+  return new uint64_t(SyncRes::doDumpNSSpeeds(fd));
 }
 
 template<typename T>
@@ -274,7 +274,7 @@ uint64_t* pleaseWipePacketCache(const DNSName& canon, bool subtree)
 
 uint64_t* pleaseWipeAndCountNegCache(const DNSName& canon, bool subtree)
 {
-  uint64_t ret = t_sstorage->negcache.wipe(canon, subtree);
+  uint64_t ret = SyncRes::wipeNegCache(canon, subtree);
   return new uint64_t(ret);
 }
 
@@ -596,19 +596,22 @@ static string* pleaseGetCurrentQueries()
 {
   ostringstream ostr;
 
-  ostr << MT->d_waiters.size() <<" currently outstanding questions\n";
+  ostr << getMT()->d_waiters.size() <<" currently outstanding questions\n";
 
   boost::format fmt("%1% %|40t|%2% %|47t|%3% %|63t|%4% %|68t|%5%\n");
 
   ostr << (fmt % "qname" % "qtype" % "remote" % "tcp" % "chained");
-  int n=0;
-  for(MT_t::waiters_t::iterator mthread=MT->d_waiters.begin(); mthread!=MT->d_waiters.end() && n < 100; ++mthread, ++n) {
-    const PacketID& pident = mthread->key;
+  unsigned int n=0;
+  for(const auto& mthread : getMT()->d_waiters) {
+    const PacketID& pident = mthread.key;
     ostr << (fmt 
              % pident.domain.toLogString() /* ?? */ % DNSRecordContent::NumberToType(pident.type) 
              % pident.remote.toString() % (pident.sock ? 'Y' : 'n')
              % (pident.fd == -1 ? 'Y' : 'n')
              );
+    ++n;
+    if (n >= 100)
+      break;
   }
   ostr <<" - done\n";
   return new string(ostr.str());
@@ -621,7 +624,7 @@ static string doCurrentQueries()
 
 uint64_t* pleaseGetThrottleSize()
 {
-  return new uint64_t(t_sstorage ? t_sstorage->throttle.size() : 0);
+  return new uint64_t(SyncRes::getThrottledServersSize());
 }
 
 static uint64_t getThrottleSize()
@@ -631,7 +634,7 @@ static uint64_t getThrottleSize()
 
 uint64_t* pleaseGetNegCacheSize()
 {
-  uint64_t tmp=(t_sstorage ? t_sstorage->negcache.size() : 0);
+  uint64_t tmp=(SyncRes::getNegCacheSize());
   return new uint64_t(tmp);
 }
 
@@ -642,7 +645,7 @@ uint64_t getNegCacheSize()
 
 uint64_t* pleaseGetFailedHostsSize()
 {
-  uint64_t tmp=(t_sstorage ? t_sstorage->fails.size() : 0);
+  uint64_t tmp=(SyncRes::getThrottledServersSize());
   return new uint64_t(tmp);
 }
 uint64_t getFailedHostsSize()
@@ -652,7 +655,7 @@ uint64_t getFailedHostsSize()
 
 uint64_t* pleaseGetNsSpeedsSize()
 {
-  return new uint64_t(t_sstorage ? t_sstorage->nsSpeeds.size() : 0);
+  return new uint64_t(SyncRes::getNSSpeedsSize());
 }
 
 uint64_t getNsSpeedsSize()
@@ -662,7 +665,7 @@ uint64_t getNsSpeedsSize()
 
 uint64_t* pleaseGetConcurrentQueries()
 {
-  return new uint64_t(MT ? MT->numProcesses() : 0);
+  return new uint64_t(getMT() ? getMT()->numProcesses() : 0);
 }
 
 static uint64_t getConcurrentQueries()
@@ -770,9 +773,9 @@ uint64_t doGetMallocated()
 
 extern ResponseStats g_rs;
 
-bool RecursorControlParser::s_init;
-RecursorControlParser::RecursorControlParser()
+void registerAllStats()
 {
+  static bool s_init = false;
   if(s_init)
     return;
   s_init=true;

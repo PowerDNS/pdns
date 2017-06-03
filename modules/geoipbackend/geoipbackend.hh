@@ -73,6 +73,7 @@ public:
     City,
     Continent,
     Country,
+    Country2,
     Name,
     Region
   };
@@ -85,6 +86,8 @@ private:
   string queryGeoIP(const string &ip, bool v6, GeoIPQueryAttribute attribute, GeoIPLookup* gl);
   bool queryCountry(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi);
   bool queryCountryV6(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi);
+  bool queryCountry2(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi);
+  bool queryCountry2V6(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi);
   bool queryContinent(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi);
   bool queryContinentV6(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi);
   bool queryName(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi);
@@ -98,7 +101,7 @@ private:
   string format2str(string format, const string& ip, bool v6, GeoIPLookup* gl);
   bool d_dnssec; 
   bool hasDNSSECkey(const DNSName& name);
-
+  bool lookup_static(const GeoIPDomain &dom, const DNSName &search, const QType &qtype, const DNSName& qdomain, const std::string &ip, GeoIPLookup &gl, bool v6);
   vector<DNSResourceRecord> d_result;
 };
 

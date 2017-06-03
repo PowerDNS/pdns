@@ -999,10 +999,10 @@ the `addLocal()` and `setLocal()` directives to be able to add several identical
 local binds to `dnsdist`:
 
 ```
-addLocal("192.0.2.1:53", true, true)
-addLocal("192.0.2.1:53", true, true)
-addLocal("192.0.2.1:53", true, true)
-addLocal("192.0.2.1:53", true, true)
+addLocal("192.0.2.1:53", { reusePort=true })
+addLocal("192.0.2.1:53", { reusePort=true })
+addLocal("192.0.2.1:53", { reusePort=true })
+addLocal("192.0.2.1:53", { reusePort=true })
 ```
 
 `dnsdist` will then add four identical local binds as if they were different IPs
@@ -1341,8 +1341,8 @@ Here are all functions:
     * member `muted`: if set to true, UDP responses will not be sent for queries received on this bind. Default to false
     * member `toString()`: print the address this bind listens to
  * Network related:
-    * `addLocal(netmask, [true], [false], [TCP Fast Open queue size])`: add to addresses we listen on. Second optional parameter sets TCP or not (UDP is always enabled). Third optional parameter sets SO_REUSEPORT when available. Last parameter sets the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0.
-    * `setLocal(netmask, [true], [false], [TCP Fast Open queue size])`: reset list of addresses we listen on to this address. Second optional parameter sets TCP or not (UDP is always enabled). Third optional parameter sets SO_REUSEPORT when available. Last parameter sets the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0.
+    * `addLocal(addr, [, {doTCP=true, reusePort=false, tcpFastOpenSize=0, interface=\"\"}])`: add `addr` to the list of addresses we listen on. The second parameter is an optional table: `doTCP` sets TCP or not (UDP is always enabled), `reusePort` sets SO_REUSEPORT when available, `tcpFastOpenSize` sets the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0, `interface` sets the network interface to use
+    * `setLocal(addr, [, {doTCP=true, reusePort=false, tcpFastOpenSize=0, interface=\"\"}])`: reset list of addresses we listen on to this address. The second parameter is the same optional table than the one described in `addLocal()`
  * Blocking related:
     * `addDomainBlock(domain)`: block queries within this domain
  * Carbon/Graphite/Metronome statistics related:
@@ -1485,8 +1485,8 @@ instantiate a server with additional parameters
  * Pool related:
     * `addPoolRule(domain, pool)`: send queries to this domain to that pool
     * `addPoolRule({domain, domain}, pool)`: send queries to these domains to that pool
-    * `addPoolRule(netmask, pool)`: send queries to this netmask to that pool
-    * `addPoolRule({netmask, netmask}, pool)`: send queries to these netmasks to that pool  
+    * `addPoolRule(netmask, pool)`: send queries from this netmask to that pool
+    * `addPoolRule({netmask, netmask}, pool)`: send queries from these netmasks to that pool
     * `addQPSPoolRule(x, limit, pool)`: like `addPoolRule`, but only select at most 'limit' queries/s for this pool, letting the subsequent rules apply otherwise
     * `getPool(poolname)`: return the ServerPool named `poolname`
     * `getPoolServers(pool)`: return servers part of this pool
@@ -1530,7 +1530,7 @@ instantiate a server with additional parameters
     * `maintenance()`: called every second by dnsdist if defined, call functions below from it
     * `clearDynBlocks()`: clear all dynamic blocks
     * `showDynBlocks()`: show dynamic blocks in force
-    * `addDynBlocks(addresses, message[, seconds])`: block the set of addresses with message `msg`, for `seconds` seconds (10 by default)
+    * `addDynBlocks(addresses, message[, seconds[, action]])`: block the set of addresses with message `msg`, for `seconds` seconds (10 by default), applying `action` (default to the one set with `setDynBlocksAction()`)
     * `setDynBlocksAction(DNSAction)`: set which action is performed when a query is blocked. Only DNSAction.Drop (the default) and DNSAction.Refused are supported
     * `addBPFFilterDynBlocks(addresses, DynBPFFilter[, seconds])`: block the set of addresses using the supplied BPF Filter, for `seconds` seconds (10 by default)
     * `exceedServFails(rate, seconds)`: get set of addresses that exceed `rate` servfails/s over `seconds` seconds
@@ -1603,7 +1603,7 @@ instantiate a server with additional parameters
     * NetmaskGroup related
         * function `newNMG()`: returns a NetmaskGroup
         * member `addMask(mask)`: adds `mask` to the NetmaskGroup. Prefix with `!` to exclude this mask from matching.
-        * member `addMask(table)`: adds the keys of `table` to the NetmaskGroup. `table` should be a table whose keys
+        * member `addMasks(table)`: adds the keys of `table` to the NetmaskGroup. `table` should be a table whose keys
         are `ComboAddress` objects and values are integers, as returned by `exceed*` functions
         * member `match(ComboAddress)`: checks if ComboAddress is matched by this NetmaskGroup
         * member `clear()`: clears the NetmaskGroup
@@ -1631,7 +1631,7 @@ instantiate a server with additional parameters
     * `setTCPSendTimeout(n)`: set the write timeout on TCP connections from the client, in seconds
     * `setUDPTimeout(n)`: set the maximum time dnsdist will wait for a response from a backend over UDP, in seconds. Defaults to 2
  * DNSCrypt related:
-    * `addDNSCryptBind("127.0.0.1:8443", "provider name", "/path/to/resolver.cert", "/path/to/resolver.key", [false], [TCP Fast Open queue size]):` listen to incoming DNSCrypt queries on 127.0.0.1 port 8443, with a provider name of "provider name", using a resolver certificate and associated key stored respectively in the `resolver.cert` and `resolver.key` files. The fifth optional parameter sets SO_REUSEPORT when available. The last parameter sets the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0.
+    * `addDNSCryptBind("127.0.0.1:8443", "provider name", "/path/to/resolver.cert", "/path/to/resolver.key", [, {doTCP=true, reusePort=false, tcpFastOpenSize=0, interface=\"\"}]):` listen to incoming DNSCrypt queries on 127.0.0.1 port 8443, with a provider name of "provider name", using a resolver certificate and associated key stored respectively in the `resolver.cert` and `resolver.key` files. The fifth parameter is the same optional table than the one described in `addLocal()`, except that TCP is always enabled
     * `generateDNSCryptProviderKeys("/path/to/providerPublic.key", "/path/to/providerPrivate.key"):` generate a new provider keypair
     * `generateDNSCryptCertificate("/path/to/providerPrivate.key", "/path/to/resolver.cert", "/path/to/resolver.key", serial, validFrom, validUntil):` generate a new resolver private key and related certificate, valid from the `validFrom` UNIX timestamp until the `validUntil` one, signed with the provider private key
     * `printDNSCryptProviderFingerprint("/path/to/providerPublic.key")`: display the fingerprint of the provided resolver public key

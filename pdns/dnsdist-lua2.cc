@@ -209,7 +209,7 @@ void moreLua(bool client)
                          {
                            nmg.addMask(mask);
                          });
-    g_lua.registerFunction<void(NetmaskGroup::*)(const std::map<ComboAddress,int>& map)>("addMasks", [](NetmaskGroup&nmg, const std::map<ComboAddress,int>& map)
+  g_lua.registerFunction<void(NetmaskGroup::*)(const std::map<ComboAddress,int>& map)>("addMasks", [](NetmaskGroup&nmg, const std::map<ComboAddress,int>& map)
                          {
                            for (const auto& entry : map) {
                              nmg.addMask(Netmask(entry.first));
@@ -253,7 +253,7 @@ void moreLua(bool client)
     });
 
   g_lua.writeFunction("addDynBlocks", 
-			  [](const map<ComboAddress,int>& m, const std::string& msg, boost::optional<int> seconds) { 
+                      [](const map<ComboAddress,int>& m, const std::string& msg, boost::optional<int> seconds, boost::optional<DNSAction::Action> action) { 
                            setLuaSideEffect();
 			   auto slow = g_dynblockNMG.getCopy();
 			   struct timespec until, now;
@@ -273,7 +273,7 @@ void moreLua(bool client)
                                else
                                  expired=true;
 			     }
-			     DynBlock db{msg,until};
+			     DynBlock db{msg,until,DNSName(),(action ? *action : DNSAction::Action::None)};
 			     db.blocks=count;
                              if(!got || expired)
                                warnlog("Inserting dynamic block for %s for %d seconds: %s", capair.first.toString(), actualSeconds, msg);
@@ -283,7 +283,7 @@ void moreLua(bool client)
 			 });
 
   g_lua.writeFunction("addDynBlockSMT", 
-                      [](const vector<pair<unsigned int, string> >&names, const std::string& msg, boost::optional<int> seconds) { 
+                      [](const vector<pair<unsigned int, string> >&names, const std::string& msg, boost::optional<int> seconds, boost::optional<DNSAction::Action> action) { 
                            setLuaSideEffect();
 			   auto slow = g_dynblockSMT.getCopy();
 			   struct timespec until, now;
@@ -306,7 +306,7 @@ void moreLua(bool client)
                                  expired=true;
 			     }
 
-			     DynBlock db{msg,until,domain};
+			     DynBlock db{msg,until,domain,(action ? *action : DNSAction::Action::None)};
 			     db.blocks=count;
                              if(!got || expired)
                                warnlog("Inserting dynamic block for %s for %d seconds: %s", domain, actualSeconds, msg);
@@ -512,15 +512,22 @@ void moreLua(bool client)
       }
     });
 
-  g_lua.writeFunction("addDNSCryptBind", [](const std::string& addr, const std::string& providerName, const std::string& certFile, const std::string keyFile, boost::optional<bool> reusePort, boost::optional<int> tcpFastOpenQueueSize) {
+  g_lua.writeFunction("addDNSCryptBind", [](const std::string& addr, const std::string& providerName, const std::string& certFile, const std::string keyFile, boost::optional<localbind_t> vars) {
       if (g_configurationDone) {
         g_outputBuffer="addDNSCryptBind cannot be used at runtime!\n";
         return;
       }
 #ifdef HAVE_DNSCRYPT
+      bool doTCP = true;
+      bool reusePort = false;
+      int tcpFastOpenQueueSize = 0;
+      std::string interface;
+
+      parseLocalBindVars(vars, doTCP, reusePort, tcpFastOpenQueueSize, interface);
+
       try {
         DnsCryptContext ctx(providerName, certFile, keyFile);
-        g_dnsCryptLocals.push_back(std::make_tuple(ComboAddress(addr, 443), ctx, reusePort ? *reusePort : false, tcpFastOpenQueueSize ? *tcpFastOpenQueueSize : 0));
+        g_dnsCryptLocals.push_back(std::make_tuple(ComboAddress(addr, 443), ctx, reusePort, tcpFastOpenQueueSize, interface));
       }
       catch(std::exception& e) {
         errlog(e.what());
@@ -826,13 +833,19 @@ void moreLua(bool client)
 
     g_lua.registerFunction("getStats", &DNSAction::getStats);
 
-  g_lua.writeFunction("addResponseAction", [](luadnsrule_t var, std::shared_ptr<DNSResponseAction> ea) {
-      setLuaSideEffect();
-      auto rule=makeRule(var);
-      g_resprulactions.modify([rule, ea](decltype(g_resprulactions)::value_type& rulactions){
-          rulactions.push_back({rule, ea});
-        });
-    });
+    g_lua.writeFunction("addResponseAction", [](luadnsrule_t var, boost::variant<std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction> > era) {
+        if (era.type() == typeid(std::shared_ptr<DNSAction>)) {
+          throw std::runtime_error("addResponseAction() can only be called with response-related actions, not query-related ones. Are you looking for addAction()?");
+        }
+
+        auto ea = *boost::get<std::shared_ptr<DNSResponseAction>>(&era);
+
+        setLuaSideEffect();
+        auto rule=makeRule(var);
+        g_resprulactions.modify([rule, ea](decltype(g_resprulactions)::value_type& rulactions){
+            rulactions.push_back({rule, ea});
+          });
+      });
 
     g_lua.writeFunction("showResponseRules", []() {
         setLuaNoSideEffect();

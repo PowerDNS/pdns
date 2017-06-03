@@ -177,6 +177,24 @@ std::unordered_map<int, vector<boost::variant<string,double>>> getGenResponses(u
   return ret;
 }
 
+void parseLocalBindVars(boost::optional<localbind_t> vars, bool& doTCP, bool& reusePort, int& tcpFastOpenQueueSize, std::string& interface)
+{
+  if (vars) {
+    if (vars->count("doTCP")) {
+      doTCP = boost::get<bool>((*vars)["doTCP"]);
+    }
+    if (vars->count("reusePort")) {
+      reusePort = boost::get<bool>((*vars)["reusePort"]);
+    }
+    if (vars->count("tcpFastOpenQueueSize")) {
+      tcpFastOpenQueueSize = boost::get<int>((*vars)["tcpFastOpenQueueSize"]);
+    }
+    if (vars->count("interface")) {
+      interface = boost::get<std::string>((*vars)["interface"]);
+    }
+  }
+}
+
 vector<std::function<void(void)>> setupLua(bool client, const std::string& config)
 {
   g_launchWork= new vector<std::function<void(void)>>();
@@ -291,11 +309,11 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			  if (ret->connected) {
 			    if(g_launchWork) {
 			      g_launchWork->push_back([ret]() {
-			        ret->tid = move(thread(responderThread, ret));
+			        ret->tid = thread(responderThread, ret);
 			      });
 			    }
 			    else {
-			      ret->tid = move(thread(responderThread, ret));
+			      ret->tid = thread(responderThread, ret);
 			    }
 			  }
 
@@ -452,11 +470,11 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			if (ret->connected) {
 			  if(g_launchWork) {
 			    g_launchWork->push_back([ret]() {
-			      ret->tid = move(thread(responderThread, ret));
+			      ret->tid = thread(responderThread, ret);
 			    });
 			  }
 			  else {
-			    ret->tid = move(thread(responderThread, ret));
+			    ret->tid = thread(responderThread, ret);
 			  }
 			}
 
@@ -602,7 +620,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       g_ACL.modify([domain](NetmaskGroup& nmg) { nmg.addMask(domain); });
     });
 
-  g_lua.writeFunction("setLocal", [client](const std::string& addr, boost::optional<bool> doTCP, boost::optional<bool> reusePort, boost::optional<int> tcpFastOpenQueueSize) {
+  g_lua.writeFunction("setLocal", [client](const std::string& addr, boost::optional<localbind_t> vars) {
       setLuaSideEffect();
       if(client)
 	return;
@@ -610,17 +628,24 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
         g_outputBuffer="setLocal cannot be used at runtime!\n";
         return;
       }
+      bool doTCP = true;
+      bool reusePort = false;
+      int tcpFastOpenQueueSize = 0;
+      std::string interface;
+
+      parseLocalBindVars(vars, doTCP, reusePort, tcpFastOpenQueueSize, interface);
+
       try {
 	ComboAddress loc(addr, 53);
 	g_locals.clear();
-	g_locals.push_back(std::make_tuple(loc, doTCP ? *doTCP : true, reusePort ? *reusePort : false, tcpFastOpenQueueSize ? *tcpFastOpenQueueSize : 0)); /// only works pre-startup, so no sync necessary
+	g_locals.push_back(std::make_tuple(loc, doTCP, reusePort, tcpFastOpenQueueSize, interface)); /// only works pre-startup, so no sync necessary
       }
       catch(std::exception& e) {
 	g_outputBuffer="Error: "+string(e.what())+"\n";
       }
     });
 
-  g_lua.writeFunction("addLocal", [client](const std::string& addr, boost::optional<bool> doTCP, boost::optional<bool> reusePort, boost::optional<int> tcpFastOpenQueueSize) {
+  g_lua.writeFunction("addLocal", [client](const std::string& addr, boost::optional<localbind_t> vars) {
       setLuaSideEffect();
       if(client)
 	return;
@@ -628,9 +653,16 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
         g_outputBuffer="addLocal cannot be used at runtime!\n";
         return;
       }
+      bool doTCP = true;
+      bool reusePort = false;
+      int tcpFastOpenQueueSize = 0;
+      std::string interface;
+
+      parseLocalBindVars(vars, doTCP, reusePort, tcpFastOpenQueueSize, interface);
+
       try {
 	ComboAddress loc(addr, 53);
-	g_locals.push_back(std::make_tuple(loc, doTCP ? *doTCP : true, reusePort ? *reusePort : false, tcpFastOpenQueueSize ? *tcpFastOpenQueueSize : 0)); /// only works pre-startup, so no sync necessary
+	g_locals.push_back(std::make_tuple(loc, doTCP, reusePort, tcpFastOpenQueueSize, interface)); /// only works pre-startup, so no sync necessary
       }
       catch(std::exception& e) {
 	g_outputBuffer="Error: "+string(e.what())+"\n";
@@ -991,8 +1023,13 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       return std::shared_ptr<DNSRule>(new RCodeRule(rcode));
     });
 
-  g_lua.writeFunction("addAction", [](luadnsrule_t var, std::shared_ptr<DNSAction> ea)
+  g_lua.writeFunction("addAction", [](luadnsrule_t var, boost::variant<std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction> > era)
 		      {
+                        if (era.type() == typeid(std::shared_ptr<DNSResponseAction>)) {
+                          throw std::runtime_error("addAction() can only be called with query-related actions, not response-related ones. Are you looking for addResponseAction()?");
+                        }
+
+                        auto ea = *boost::get<std::shared_ptr<DNSAction>>(&era);
                         setLuaSideEffect();
 			auto rule=makeRule(var);
 			g_rulactions.modify([rule, ea](decltype(g_rulactions)::value_type& rulactions){

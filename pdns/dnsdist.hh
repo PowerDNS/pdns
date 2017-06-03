@@ -47,6 +47,68 @@
 void* carbonDumpThread();
 uint64_t uptimeOfProcess(const std::string& str);
 
+extern uint16_t g_ECSSourcePrefixV4;
+extern uint16_t g_ECSSourcePrefixV6;
+extern bool g_ECSOverride;
+
+struct DNSQuestion
+{
+  DNSQuestion(const DNSName* name, uint16_t type, uint16_t class_, const ComboAddress* lc, const ComboAddress* rem, struct dnsheader* header, size_t bufferSize, uint16_t queryLen, bool isTcp): qname(name), qtype(type), qclass(class_), local(lc), remote(rem), dh(header), size(bufferSize), len(queryLen), ecsPrefixLength(rem->sin4.sin_family == AF_INET ? g_ECSSourcePrefixV4 : g_ECSSourcePrefixV6), tcp(isTcp), ecsOverride(g_ECSOverride) { }
+
+#ifdef HAVE_PROTOBUF
+  boost::uuids::uuid uniqueId;
+#endif
+  const DNSName* qname;
+  const uint16_t qtype;
+  const uint16_t qclass;
+  const ComboAddress* local;
+  const ComboAddress* remote;
+  struct dnsheader* dh;
+  size_t size;
+  uint16_t len;
+  uint16_t ecsPrefixLength;
+  const bool tcp;
+  bool skipCache{false};
+  bool ecsOverride;
+  bool useECS{true};    
+};
+
+struct DNSResponse : DNSQuestion
+{
+  DNSResponse(const DNSName* name, uint16_t type, uint16_t class_, const ComboAddress* lc, const ComboAddress* rem, struct dnsheader* header, size_t bufferSize, uint16_t queryLen, bool isTcp, const struct timespec* queryTime_): DNSQuestion(name, type, class_, lc, rem, header, bufferSize, queryLen, isTcp), queryTime(queryTime_) { }
+
+  const struct timespec* queryTime;
+};
+
+/* so what could you do: 
+   drop, 
+   fake up nxdomain, 
+   provide actual answer, 
+   allow & and stop processing, 
+   continue processing, 
+   modify header:    (servfail|refused|notimp), set TC=1,
+   send to pool */
+
+class DNSAction
+{
+public:
+  enum class Action { Drop, Nxdomain, Refused, Spoof, Allow, HeaderModify, Pool, Delay, None};
+  virtual Action operator()(DNSQuestion*, string* ruleresult) const =0;
+  virtual string toString() const = 0;
+  virtual std::unordered_map<string, double> getStats() const 
+  {
+    return {{}};
+  }
+};
+
+class DNSResponseAction
+{
+public:
+  enum class Action { Allow, Delay, Drop, HeaderModify, None };
+  virtual Action operator()(DNSResponse*, string* ruleresult) const =0;
+  virtual string toString() const = 0;
+};
+
 struct DynBlock
 {
   DynBlock& operator=(const DynBlock& rhs)
@@ -54,6 +116,7 @@ struct DynBlock
     reason=rhs.reason;
     until=rhs.until;
     domain=rhs.domain;
+    action=rhs.action;
     blocks.store(rhs.blocks);
     return *this;
   }
@@ -61,6 +124,7 @@ struct DynBlock
   string reason;
   struct timespec until;
   DNSName domain;
+  DNSAction::Action action;
   mutable std::atomic<unsigned int> blocks;
 };
 
@@ -523,39 +587,6 @@ struct DownstreamState
 };
 using servers_t =vector<std::shared_ptr<DownstreamState>>;
 
-extern uint16_t g_ECSSourcePrefixV4;
-extern uint16_t g_ECSSourcePrefixV6;
-extern bool g_ECSOverride;
-
-struct DNSQuestion
-{
-  DNSQuestion(const DNSName* name, uint16_t type, uint16_t class_, const ComboAddress* lc, const ComboAddress* rem, struct dnsheader* header, size_t bufferSize, uint16_t queryLen, bool isTcp): qname(name), qtype(type), qclass(class_), local(lc), remote(rem), dh(header), size(bufferSize), len(queryLen), ecsPrefixLength(rem->sin4.sin_family == AF_INET ? g_ECSSourcePrefixV4 : g_ECSSourcePrefixV6), tcp(isTcp), ecsOverride(g_ECSOverride) { }
-
-#ifdef HAVE_PROTOBUF
-  boost::uuids::uuid uniqueId;
-#endif
-  const DNSName* qname;
-  const uint16_t qtype;
-  const uint16_t qclass;
-  const ComboAddress* local;
-  const ComboAddress* remote;
-  struct dnsheader* dh;
-  size_t size;
-  uint16_t len;
-  uint16_t ecsPrefixLength;
-  const bool tcp;
-  bool skipCache{false};
-  bool ecsOverride;
-  bool useECS{true};    
-};
-
-struct DNSResponse : DNSQuestion
-{
-  DNSResponse(const DNSName* name, uint16_t type, uint16_t class_, const ComboAddress* lc, const ComboAddress* rem, struct dnsheader* header, size_t bufferSize, uint16_t queryLen, bool isTcp, const struct timespec* queryTime_): DNSQuestion(name, type, class_, lc, rem, header, bufferSize, queryLen, isTcp), queryTime(queryTime_) { }
-
-  const struct timespec* queryTime;
-};
-
 typedef std::function<bool(const DNSQuestion*)> blockfilter_t;
 template <class T> using NumberedVector = std::vector<std::pair<unsigned int, T> >;
 
@@ -570,35 +601,6 @@ public:
   virtual bool matches(const DNSQuestion* dq) const =0;
   virtual string toString() const = 0;
   mutable std::atomic<uint64_t> d_matches{0};
-};
-
-/* so what could you do: 
-   drop, 
-   fake up nxdomain, 
-   provide actual answer, 
-   allow & and stop processing, 
-   continue processing, 
-   modify header:    (servfail|refused|notimp), set TC=1,
-   send to pool */
-
-class DNSAction
-{
-public:
-  enum class Action { Drop, Nxdomain, Refused, Spoof, Allow, HeaderModify, Pool, Delay, None};
-  virtual Action operator()(DNSQuestion*, string* ruleresult) const =0;
-  virtual string toString() const = 0;
-  virtual std::unordered_map<string, double> getStats() const 
-  {
-    return {{}};
-  }
-};
-
-class DNSResponseAction
-{
-public:
-  enum class Action { Allow, Delay, Drop, HeaderModify, None };
-  virtual Action operator()(DNSResponse*, string* ruleresult) const =0;
-  virtual string toString() const = 0;
 };
 
 using NumberedServerVector = NumberedVector<shared_ptr<DownstreamState>>;
@@ -649,7 +651,7 @@ extern GlobalStateHolder<NetmaskGroup> g_ACL;
 
 extern ComboAddress g_serverControl; // not changed during runtime
 
-extern std::vector<std::tuple<ComboAddress, bool, bool, int>> g_locals; // not changed at runtime (we hope XXX)
+extern std::vector<std::tuple<ComboAddress, bool, bool, int, std::string>> g_locals; // not changed at runtime (we hope XXX)
 extern vector<ClientState*> g_frontends;
 extern std::string g_key; // in theory needs locking
 extern bool g_truncateTC;
@@ -740,7 +742,7 @@ bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize,
 void restoreFlags(struct dnsheader* dh, uint16_t origFlags);
 
 #ifdef HAVE_DNSCRYPT
-extern std::vector<std::tuple<ComboAddress,DnsCryptContext,bool,int>> g_dnsCryptLocals;
+extern std::vector<std::tuple<ComboAddress,DnsCryptContext,bool,int, std::string>> g_dnsCryptLocals;
 
 int handleDnsCryptQuery(DnsCryptContext* ctx, char* packet, uint16_t len, std::shared_ptr<DnsCryptQuery>& query, uint16_t* decryptedQueryLen, bool tcp, std::vector<uint8_t>& response);
 bool encryptResponse(char* response, uint16_t* responseLen, size_t responseSize, bool tcp, std::shared_ptr<DnsCryptQuery> dnsCryptQuery);

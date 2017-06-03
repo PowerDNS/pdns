@@ -391,11 +391,13 @@ class DNSDistTest(unittest.TestCase):
         sock.connect(("127.0.0.1", cls._consolePort))
         sock.send(ourNonce)
         theirNonce = sock.recv(len(ourNonce))
+        if len(theirNonce) != len(ourNonce):
+            print("Received a nonce of size %, expecting %, console command will not be sent!" % (len(theirNonce), len(ourNonce)))
+            return None
 
         halfNonceSize = len(ourNonce) / 2
         readingNonce = ourNonce[0:halfNonceSize] + theirNonce[halfNonceSize:]
         writingNonce = theirNonce[0:halfNonceSize] + ourNonce[halfNonceSize:]
-
         msg = cls._encryptConsole(command, writingNonce)
         sock.send(struct.pack("!I", len(msg)))
         sock.send(msg)

@@ -1,0 +1,30 @@
+tosql ()
+{
+	if echo $ZONE2SQL | grep -q '../pdns'; then
+		${MAKE} -C ../pdns zone2sql > /dev/null
+	fi
+	$ZONE2SQL --transactions --$1 --named-conf=./named.conf
+}
+
+check_process ()
+{
+	set +e
+	loopcount=0
+	while [ $loopcount -lt 5 ]; do
+		sleep 1
+		pids=$(cat pdns*.pid 2>/dev/null)
+		if [ ! -z "$pids" ]
+		then
+			kill -0 $pids >/dev/null 2>&1
+			if [ $? -eq 0 ]
+			then
+				set -e
+				return
+			fi
+		fi
+	let loopcount=loopcount+1
+	done
+	echo "PowerDNS did not start"
+	exit
+}
+

@@ -50,18 +50,11 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
   if(res)
     res->clear();
 
-  bool haveSubnetSpecific=false;
   if(d_cachecache.first!=d_cachecache.second) {
-    for(cache_t::const_iterator i=d_cachecache.first; i != d_cachecache.second; ++i) {
-      if(!i->d_netmask.empty()) {
-	//	cout<<"Had a subnet specific hit: "<<i->d_netmask.toString()<<", query was for "<<who.toString()<<": match "<<i->d_netmask.match(who)<<endl;
-	haveSubnetSpecific=true;
-      }
-    }
     for(cache_t::const_iterator i=d_cachecache.first; i != d_cachecache.second; ++i)
       if(i->d_ttd > now && ((i->d_qtype == qt.getCode() || qt.getCode()==QType::ANY ||
 			    (qt.getCode()==QType::ADDR && (i->d_qtype == QType::A || i->d_qtype == QType::AAAA) )) 
-			    && (!haveSubnetSpecific || i->d_netmask.match(who)))
+			    && (i->d_netmask.empty() || i->d_netmask.match(who)))
          ) {
 
 	ttd = i->d_ttd;	
@@ -247,29 +240,6 @@ bool MemRecursorCache::doAgeCache(time_t now, const DNSName& name, uint16_t qtyp
     return true;
   }
   return false;
-}
-
-uint64_t MemRecursorCache::doDumpNSSpeeds(int fd)
-{
-  FILE* fp=fdopen(dup(fd), "w");
-  if(!fp)
-    return 0;
-  fprintf(fp, "; nsspeed dump from thread follows\n;\n");
-  uint64_t count=0;
-
-  for(SyncRes::nsspeeds_t::iterator i = t_sstorage->nsSpeeds.begin() ; i!= t_sstorage->nsSpeeds.end(); ++i)
-  {
-    count++;
-    fprintf(fp, "%s -> ", i->first.toString().c_str());
-    for(SyncRes::DecayingEwmaCollection::collection_t::iterator j = i->second.d_collection.begin(); j!= i->second.d_collection.end(); ++j)
-    {
-      // typedef vector<pair<ComboAddress, DecayingEwma> > collection_t;
-      fprintf(fp, "%s/%f ", j->first.toString().c_str(), j->second.peek());
-    }
-    fprintf(fp, "\n");
-  }
-  fclose(fp);
-  return count;
 }
 
 uint64_t MemRecursorCache::doDump(int fd)

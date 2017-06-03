@@ -375,7 +375,7 @@ public:
     return read(buffer, n);
   }
 
-  //! Sets the socket to listen with a default listen backlog of 10 bytes 
+  //! Sets the socket to listen with a default listen backlog of 10 pending connections 
   void listen(unsigned int length=10)
   {
     if(::listen(d_socket,length)<0)

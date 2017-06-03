@@ -92,7 +92,6 @@ pdns_recursor_SOURCES = \
 	dnssecinfra.hh dnssecinfra.cc \
 	dnsseckeeper.hh \
 	dnswriter.cc dnswriter.hh \
-	ecs.cc \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
 	filterpo.cc filterpo.hh \
@@ -189,7 +188,6 @@ testrunner_SOURCES = \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
 	ednscookies.cc ednscookies.hh \
-	ecs.cc \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
 	filterpo.cc filterpo.hh \
@@ -230,6 +228,7 @@ testrunner_SOURCES = \
 	test-negcache_cc.cc \
 	test-rcpgenerator_cc.cc \
 	test-recpacketcache_cc.cc \
+	test-recursorcache_cc.cc \
 	test-syncres_cc.cc \
 	test-tsig.cc \
 	testrunner.cc \

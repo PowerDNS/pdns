@@ -6,7 +6,7 @@
 **calidns** - A DNS recursor testing tool
 
 # SYNOPSIS
-**calidns** *QUERY_FILE* *DESTINATION* *INITIAL_QPS* *HITRATE*
+**calidns** [*OPTIONS*] *QUERY_FILE* *DESTINATION* *INITIAL_QPS* *HITRATE*
 
 # DESCRIPTION
 **calidns** reads queries from *QUERY_FILE* and sends them as a recursive query to
@@ -28,4 +28,9 @@ google.com A
 This is similar to Alexa top 1 million list.
 
 # OPTIONS
-None
+--increment *NUM*
+:    On every subsequent run, multiply the number of queries per second by *NUM*.
+     By default, this is 1.1.
+
+--want-recursion
+:    Set this flag to send queries with the Recursion Desired flag set.

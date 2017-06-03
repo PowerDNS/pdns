@@ -195,7 +195,7 @@ RecursorSNMPAgent::RecursorSNMPAgent(const std::string& name, const std::string&
 #ifdef HAVE_NET_SNMP
   /* This is done so that the statistics maps are
      initialized. */
-  RecursorControlParser rcp;
+  registerAllStats();
 
   registerCounter64Stat("questions", questionsOID, OID_LENGTH(questionsOID));
   registerCounter64Stat("ipv6-questions", ipv6QuestionsOID, OID_LENGTH(ipv6QuestionsOID));

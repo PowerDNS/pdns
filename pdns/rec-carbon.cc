@@ -36,9 +36,9 @@ try
     boost::replace_all(hostname, ".", "_");    
   }
 
+  registerAllStats();
   string msg;
   for(const auto& carbonServer: carbonServers) {
-    RecursorControlParser rcp; // inits if needed
     ComboAddress remote(carbonServer, 2003);
     Socket s(remote.sin4.sin_family, SOCK_STREAM);
 

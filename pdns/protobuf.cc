@@ -37,7 +37,8 @@ void DNSProtoBufMessage::setQuestion(const DNSName& qname, uint16_t qtype, uint1
 #ifdef HAVE_PROTOBUF
   PBDNSMessage_DNSQuestion* question = d_message.mutable_question();
   if (question) {
-    question->set_qname(qname.toString());
+    if(!qname.empty())
+      question->set_qname(qname.toString());
     question->set_qtype(qtype);
     question->set_qclass(qclass);
   }
@@ -193,6 +194,13 @@ void DNSProtoBufMessage::setRequestor(const ComboAddress& requestor)
   else if (requestor.sin4.sin_family == AF_INET6) {
     d_message.set_from(&requestor.sin6.sin6_addr.s6_addr, sizeof(requestor.sin6.sin6_addr.s6_addr));
   }
+#endif /* HAVE_PROTOBUF */
+}
+
+void DNSProtoBufMessage::setRequestorId(const std::string& requestorId)
+{
+#ifdef HAVE_PROTOBUF
+  d_message.set_requestorid(requestorId);
 #endif /* HAVE_PROTOBUF */
 }
 

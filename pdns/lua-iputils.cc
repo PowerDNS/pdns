@@ -43,7 +43,7 @@ extern "C" {
 /*
 ** Adapted from Lua 5.2.0
 */
-static void luaL_setfuncs (lua_State *L, const luaL_Reg *l, int nup) {
+static void pdns_luaL_setfuncs (lua_State *L, const luaL_Reg *l, int nup) {
   luaL_checkstack(L, nup+1, "too many upvalues");
   for (; l->name != NULL; l++) {  /* fill the table with given functions */
     int i;
@@ -54,6 +54,10 @@ static void luaL_setfuncs (lua_State *L, const luaL_Reg *l, int nup) {
     lua_settable(L, -(nup + 3));
   }
   lua_pop(L, nup);  /* remove upvalues */
+}
+#else
+static void pdns_luaL_setfuncs (lua_State *L, const luaL_Reg *l, int nup) {
+  luaL_setfuncs(L, l, nup);
 }
 #endif
 
@@ -261,22 +265,22 @@ extern "C" int luaopen_iputils(lua_State* L)
   luaL_newmetatable(L, "iputils.ca");
   lua_pushvalue(L, -1);
   lua_setfield(L, -2, "__index");
-  luaL_setfuncs(L, iputils_ca_methods, 0);
+  pdns_luaL_setfuncs(L, iputils_ca_methods, 0);
 
   luaL_newmetatable(L, "iputils.ipset");
   lua_pushvalue(L, -1);
   lua_setfield(L, -2, "__index");
-  luaL_setfuncs(L, ipset_methods, 0);
+  pdns_luaL_setfuncs(L, ipset_methods, 0);
 
   luaL_newmetatable(L, "iputils.netmask");
   lua_pushvalue(L, -1);
   lua_setfield(L, -2, "__index");
-  luaL_setfuncs(L, iputils_netmask_methods, 0);
+  pdns_luaL_setfuncs(L, iputils_netmask_methods, 0);
 
   luaL_newmetatable(L, "iputils.nmgroup");
   lua_pushvalue(L, -1);
   lua_setfield(L, -2, "__index");
-  luaL_setfuncs(L, iputils_nmgroup_methods, 0);
+  pdns_luaL_setfuncs(L, iputils_nmgroup_methods, 0);
 
 #if LUA_VERSION_NUM < 502
   luaL_register(L, "iputils", iputils);

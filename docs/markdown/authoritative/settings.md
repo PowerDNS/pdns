@@ -421,6 +421,14 @@ options to allow binding to non-local addresses.
 This feature is intended to facilitate ip-failover setups, but it may also
 mask configuration issues and for this reason it is disabled by default.
 
+## `lua-axfr-script`
+
+* String
+* Default: empty
+* Available since: 4.0.4
+
+Script to be used to edit incoming AXFRs, see [Modifying a slave zone using a script](modes-of-operation.md#modifying-a-slave-zone-using-a-script).
+
 ## `local-address-nonexist-fail`
 * Boolean
 * Default: no
