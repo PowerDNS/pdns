@@ -92,6 +92,19 @@ void CommunicatorClass::go()
       exit(1);
     }
   }
+
+  vector<string> forwards;
+  stringtok(forwards, ::arg()["forward-notify"], ", \t");
+  for (vector<string>::const_iterator iter = forwards.begin(); iter != forwards.end(); ++iter) {
+    try {
+      ComboAddress caIp(*iter, 53);
+      PacketHandler::s_forwardNotify.insert(caIp.toStringWithPort());
+    }
+    catch(PDNSException &e) {
+      L<<Logger::Error<<"Unparseable IP in forward-notify. Error: "<<e.reason<<endl;
+      exit(1);
+    }
+  }
 }
 
 void CommunicatorClass::mainloop(void)
