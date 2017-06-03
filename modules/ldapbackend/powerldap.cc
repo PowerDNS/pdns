@@ -33,40 +33,40 @@
 
 
 PowerLDAP::SearchResult::SearchResult( int msgid, LDAP* ld )
-  : m_msgid( msgid ), d_ld( ld ), m_finished( false ), m_status( -1 )
+  : d_msgid( msgid ), d_ld( ld ), d_finished( false ), d_status( -1 )
 {
 }
 
 
 PowerLDAP::SearchResult::~SearchResult()
 {
-  if ( !m_finished )
-    ldap_abandon_ext( d_ld, m_msgid, NULL, NULL ); // We don't really care about the return code as there's
+  if ( !d_finished )
+    ldap_abandon_ext( d_ld, d_msgid, NULL, NULL ); // We don't really care about the return code as there's
                                                    // not much we can do now
 }
 
 
 bool PowerLDAP::SearchResult::finished() const
 {
-  return m_finished;
+  return d_finished;
 }
 
 
 bool PowerLDAP::SearchResult::successful() const
 {
-  return m_status == LDAP_SUCCESS;
+  return d_status == LDAP_SUCCESS;
 }
 
 
 int PowerLDAP::SearchResult::status() const
 {
-  return m_status;
+  return d_status;
 }
 
 
 std::string PowerLDAP::SearchResult::error() const
 {
-  return m_error;
+  return d_error;
 }
 
 
@@ -89,8 +89,8 @@ bool PowerLDAP::SearchResult::getNext( PowerLDAP::sentry_t& entry, bool dn, int 
   LDAPMessage* result = NULL;
   LDAPMessage* object;
 
-  while ( !m_finished && result == NULL ) {
-    i = ldapWaitResult( d_ld, m_msgid, 5, &result );
+  while ( !d_finished && result == NULL ) {
+    i = ldapWaitResult( d_ld, d_msgid, 5, &result );
     switch ( i ) {
       case -1:
         if ( result != NULL )
@@ -109,7 +109,7 @@ bool PowerLDAP::SearchResult::getNext( PowerLDAP::sentry_t& entry, bool dn, int 
         throw LDAPTimeout();
         break;
       case LDAP_NO_SUCH_OBJECT:
-        m_finished = true;
+        d_finished = true;
         ldap_msgfree( result );
         result = NULL;
         break;
@@ -118,7 +118,7 @@ bool PowerLDAP::SearchResult::getNext( PowerLDAP::sentry_t& entry, bool dn, int 
         result = NULL;
         break;
       case LDAP_RES_SEARCH_RESULT:
-        m_finished = true;
+        d_finished = true;
         break;
       case LDAP_RES_SEARCH_ENTRY:
         // Yay!
@@ -127,7 +127,7 @@ bool PowerLDAP::SearchResult::getNext( PowerLDAP::sentry_t& entry, bool dn, int 
         break;
     }
 
-    if ( m_finished && result != NULL ) {
+    if ( d_finished && result != NULL ) {
       int rc;
       char** referals;
       LDAPControl** controls = NULL;
@@ -140,14 +140,14 @@ bool PowerLDAP::SearchResult::getNext( PowerLDAP::sentry_t& entry, bool dn, int 
         if ( controls != NULL )
           ldap_controls_free( controls );
         ldap_msgfree( result );
-        m_status = prc;
+        d_status = prc;
         return false;
       }
 
       if ( rc != LDAP_SUCCESS ) {
         // Error found, that sucks
-        m_status = rc;
-        m_error = ldapGetError( d_ld, rc );
+        d_status = rc;
+        d_error = ldapGetError( d_ld, rc );
 
         // Try to see if we can gain any insight from the controls
         if ( controls != NULL ) {
@@ -161,8 +161,8 @@ bool PowerLDAP::SearchResult::getNext( PowerLDAP::sentry_t& entry, bool dn, int 
               ber_int_t rcode;
               prc = ldap_parse_sortresponse_control( d_ld, control, &rcode, NULL );
               if ( prc == LDAP_SUCCESS && rc != LDAP_SUCCESS ) {
-                m_status = rc;
-                m_error = "Sorting failed";
+                d_status = rc;
+                d_error = "Sorting failed";
               }
             }
             ++idx;
@@ -170,7 +170,7 @@ bool PowerLDAP::SearchResult::getNext( PowerLDAP::sentry_t& entry, bool dn, int 
         }
       }
       else {
-        m_status = 0;
+        d_status = 0;
       }
 
       if ( controls != NULL )
@@ -180,7 +180,7 @@ bool PowerLDAP::SearchResult::getNext( PowerLDAP::sentry_t& entry, bool dn, int 
     }
   }
 
-  if ( m_finished )
+  if ( d_finished )
     return false;
 
   if( ( object = ldap_first_entry( d_ld, result ) ) == NULL )
@@ -240,8 +240,8 @@ void PowerLDAP::SearchResult::getAll( PowerLDAP::sresult_t& results, bool dn, in
 PowerLDAP::PowerLDAP( const string& hosts, uint16_t port, bool tls )
 {
   d_ld = 0;
-  m_sort_supported = false;
-  m_vlv_supported = false;
+  d_sort_supported = false;
+  d_vlv_supported = false;
   d_hosts = hosts;
   d_port = port;
   d_tls = tls;
@@ -311,9 +311,9 @@ void PowerLDAP::ensureConnect()
   if ( entry != NULL && ( values = ldap_get_values_len( d_ld, entry, "supportedControl" ) ) != NULL ) {
     for ( int i = 0; values[i] != NULL; ++i ) {
       if ( strcmp( values[i]->bv_val, LDAP_CONTROL_SORTREQUEST ) == 0 )
-        m_sort_supported = true;
+        d_sort_supported = true;
       else if ( strcmp( values[i]->bv_val, LDAP_CONTROL_VLVREQUEST ) == 0 )
-        m_vlv_supported = true;
+        d_vlv_supported = true;
     }
     ldap_value_free_len( values );
   }
@@ -450,7 +450,7 @@ PowerLDAP::SearchResult::Ptr PowerLDAP::sorted_search( const string& base, int s
 {
   int msgid, rc, sort_rc;
 
-  if ( !m_sort_supported )
+  if ( !d_sort_supported )
     return SearchResult::Ptr();
 
   LDAPControl* sortcontrol;
@@ -462,7 +462,7 @@ PowerLDAP::SearchResult::Ptr PowerLDAP::sorted_search( const string& base, int s
   ldap_free_sort_keylist( sortkey );
 
   LDAPControl* vlvcontrol = NULL;
-  if ( m_vlv_supported && limit > 0 ) {
+  if ( d_vlv_supported && limit > 0 ) {
     LDAPVLVInfo virtuallist;
     virtuallist.ldvlv_version = 1;
     virtuallist.ldvlv_before_count = 0;

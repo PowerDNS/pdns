@@ -28,10 +28,10 @@
 
 class LdapSimpleAuthenticator : public LdapAuthenticator
 {
-    std::string m_binddn;
-    std::string m_bindpw;
-    int m_timeout;
-    std::string m_lastError;
+    std::string d_binddn;
+    std::string d_bindpw;
+    int d_timeout;
+    std::string d_lastError;
   
     void fillLastError( LDAP *conn, int code );
   
@@ -43,14 +43,14 @@ class LdapSimpleAuthenticator : public LdapAuthenticator
 
 class LdapGssapiAuthenticator : public LdapAuthenticator
 {
-    std::string m_logPrefix;
-    std::string m_keytabFile;
-    std::string m_cCacheFile;
-    int m_timeout;
-    std::string m_lastError;
+    std::string d_logPrefix;
+    std::string d_keytabFile;
+    std::string d_cCacheFile;
+    int d_timeout;
+    std::string d_lastError;
 
-    krb5_context m_context;
-    krb5_ccache m_ccache;
+    krb5_context d_context;
+    krb5_ccache d_ccache;
     
     struct SaslDefaults {
       std::string mech;

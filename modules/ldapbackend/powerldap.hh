@@ -47,8 +47,8 @@ class LdapAuthenticator;
 class PowerLDAP
 {
     LDAP* d_ld;
-    bool m_sort_supported;
-    bool m_vlv_supported;
+    bool d_sort_supported;
+    bool d_vlv_supported;
     string d_hosts;
     int d_port;
     bool d_tls;
@@ -63,10 +63,10 @@ class PowerLDAP
   
     class SearchResult {
         LDAP* d_ld;
-        int m_msgid;
-        bool m_finished;
-        int m_status;
-        std::string m_error;
+        int d_msgid;
+        bool d_finished;
+        int d_status;
+        std::string d_error;
 
         SearchResult( const SearchResult& other );
         SearchResult& operator=( const SearchResult& other );

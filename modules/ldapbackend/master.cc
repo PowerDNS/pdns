@@ -39,16 +39,16 @@ void LdapBackend::getUpdatedMasters( vector<DomainInfo>* domains )
   {
     // First get all domains on which we are master.
     filter = strbind( ":target:", "&(SOARecord=*)(PdnsDomainId=*)", getArg( "filter-axfr" ) );
-    search = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attronly );
+    search = d_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attronly );
   }
   catch( LDAPTimeout &lt )
   {
-    L << Logger::Warning << m_myname << " Unable to search LDAP directory: " << lt.what() << endl;
+    L << Logger::Warning << d_myname << " Unable to search LDAP directory: " << lt.what() << endl;
     throw DBException( "LDAP server timeout" );
   }
   catch( LDAPNoConnection &lnc )
   {
-    L << Logger::Warning << m_myname << " Connection to LDAP lost, trying to reconnect" << endl;
+    L << Logger::Warning << d_myname << " Connection to LDAP lost, trying to reconnect" << endl;
     if ( reconnect() )
       this->getUpdatedMasters( domains );
     else
@@ -56,7 +56,7 @@ void LdapBackend::getUpdatedMasters( vector<DomainInfo>* domains )
   }
   catch( LDAPException &le )
   {
-    L << Logger::Error << m_myname << " Unable to search LDAP directory: " << le.what() << endl;
+    L << Logger::Error << d_myname << " Unable to search LDAP directory: " << le.what() << endl;
     throw PDNSException( "LDAP server unreachable" );   // try to reconnect to another server
   }
   catch( std::exception &e )
@@ -92,17 +92,17 @@ void LdapBackend::setNotified( uint32_t id, uint32_t serial )
   {
     // Try to find the notified domain
     filter = strbind( ":target:", "PdnsDomainId=" + std::to_string( id ), getArg( "filter-axfr" ) );
-    search = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attronly );
+    search = d_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attronly );
     search->getAll( results, true );
   }
   catch( LDAPTimeout &lt )
   {
-    L << Logger::Warning << m_myname << " Unable to search LDAP directory: " << lt.what() << endl;
+    L << Logger::Warning << d_myname << " Unable to search LDAP directory: " << lt.what() << endl;
     throw DBException( "LDAP server timeout" );
   }
   catch( LDAPNoConnection &lnc )
   {
-    L << Logger::Warning << m_myname << " Connection to LDAP lost, trying to reconnect" << endl;
+    L << Logger::Warning << d_myname << " Connection to LDAP lost, trying to reconnect" << endl;
     if ( reconnect() )
       this->setNotified( id, serial );
     else
@@ -110,7 +110,7 @@ void LdapBackend::setNotified( uint32_t id, uint32_t serial )
   }
   catch( LDAPException &le )
   {
-    L << Logger::Error << m_myname << " Unable to search LDAP directory: " << le.what() << endl;
+    L << Logger::Error << d_myname << " Unable to search LDAP directory: " << le.what() << endl;
     throw PDNSException( "LDAP server unreachable" );   // try to reconnect to another server
   }
   catch( std::exception &e )
@@ -139,11 +139,11 @@ void LdapBackend::setNotified( uint32_t id, uint32_t serial )
 
   try
   {
-    m_pldap->modify( dn, mods );
+    d_pldap->modify( dn, mods );
   }
   catch( LDAPNoConnection &lnc )
   {
-    L << Logger::Warning << m_myname << " Connection to LDAP lost, trying to reconnect" << endl;
+    L << Logger::Warning << d_myname << " Connection to LDAP lost, trying to reconnect" << endl;
     if ( reconnect() )
       this->setNotified( id, serial );
     else
@@ -151,7 +151,7 @@ void LdapBackend::setNotified( uint32_t id, uint32_t serial )
   }
   catch( LDAPException &le )
   {
-    L << Logger::Error << m_myname << " Unable to search LDAP directory: " << le.what() << endl;
+    L << Logger::Error << d_myname << " Unable to search LDAP directory: " << le.what() << endl;
     throw PDNSException( "LDAP server unreachable" );   // try to reconnect to another server
   }
   catch( std::exception &e )

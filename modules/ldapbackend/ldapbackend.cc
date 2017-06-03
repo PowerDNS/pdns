@@ -39,38 +39,38 @@ LdapBackend::LdapBackend( const string &suffix )
 
   try
   {
-    m_qname.clear();
-    m_pldap = NULL;
-    m_authenticator = NULL;
-    m_qlog = arg().mustDo( "query-logging" );
-    m_default_ttl = arg().asNum( "default-ttl" );
-    m_myname = "[LdapBackend]";
-    m_in_list = false;
-    m_current_domainid = -1;
+    d_qname.clear();
+    d_pldap = NULL;
+    d_authenticator = NULL;
+    d_qlog = arg().mustDo( "query-logging" );
+    d_default_ttl = arg().asNum( "default-ttl" );
+    d_myname = "[LdapBackend]";
+    d_in_list = false;
+    d_current_domainid = -1;
 
     setArgPrefix( "ldap" + suffix );
 
-    m_dnssec = mustDo( "dnssec" );
-    if ( m_dnssec ) {
-      m_metadata_searchdn = getArg( "metadata-searchdn" );
-      if ( m_metadata_searchdn.empty() )
+    d_dnssec = mustDo( "dnssec" );
+    if ( d_dnssec ) {
+      d_metadata_searchdn = getArg( "metadata-searchdn" );
+      if ( d_metadata_searchdn.empty() )
         throw PDNSException( "Please set 'ldap-metadata-searchdn' to use DNSSEC" );
     }
 
-    m_getdn = false;
-    m_reconnect_attempts = getArgAsNum( "reconnect-attempts" );
-    m_list_fcnt = &LdapBackend::list_simple;
-    m_lookup_fcnt = &LdapBackend::lookup_simple;
+    d_getdn = false;
+    d_reconnect_attempts = getArgAsNum( "reconnect-attempts" );
+    d_list_fcnt = &LdapBackend::list_simple;
+    d_lookup_fcnt = &LdapBackend::lookup_simple;
 
     if( getArg( "method" ) == "tree" )
     {
-      m_lookup_fcnt = &LdapBackend::lookup_tree;
+      d_lookup_fcnt = &LdapBackend::lookup_tree;
     }
 
     if( getArg( "method" ) == "strict" || mustDo( "disable-ptrrecord" ) )
     {
-      m_list_fcnt = &LdapBackend::list_strict;
-      m_lookup_fcnt = &LdapBackend::lookup_strict;
+      d_list_fcnt = &LdapBackend::list_strict;
+      d_lookup_fcnt = &LdapBackend::lookup_strict;
     }
 
     stringtok( hosts, getArg( "host" ), ", " );
@@ -82,38 +82,38 @@ LdapBackend::LdapBackend( const string &suffix )
       hoststr += " " + hosts[ ( idx + i ) % hosts.size() ];
     }
 
-    L << Logger::Info << m_myname << " LDAP servers = " << hoststr << endl;
+    L << Logger::Info << d_myname << " LDAP servers = " << hoststr << endl;
 
-    m_pldap = new PowerLDAP( hoststr.c_str(), LDAP_PORT, mustDo( "starttls" ) );
-    m_pldap->setOption( LDAP_OPT_DEREF, LDAP_DEREF_ALWAYS );
+    d_pldap = new PowerLDAP( hoststr.c_str(), LDAP_PORT, mustDo( "starttls" ) );
+    d_pldap->setOption( LDAP_OPT_DEREF, LDAP_DEREF_ALWAYS );
 
     string bindmethod = getArg( "bindmethod" );
     if ( bindmethod == "gssapi" ) {
       setenv( "KRB5CCNAME", getArg( "krb5-ccache" ).c_str(), 1 );
-      m_authenticator = new LdapGssapiAuthenticator( getArg( "krb5-keytab" ), getArg( "krb5-ccache" ), getArgAsNum( "timeout" ) );
+      d_authenticator = new LdapGssapiAuthenticator( getArg( "krb5-keytab" ), getArg( "krb5-ccache" ), getArgAsNum( "timeout" ) );
     }
     else {
-      m_authenticator = new LdapSimpleAuthenticator( getArg( "binddn" ), getArg( "secret" ), getArgAsNum( "timeout" ) );
+      d_authenticator = new LdapSimpleAuthenticator( getArg( "binddn" ), getArg( "secret" ), getArgAsNum( "timeout" ) );
     }
-    m_pldap->bind( m_authenticator );
+    d_pldap->bind( d_authenticator );
 
-    L << Logger::Notice << m_myname << " Ldap connection succeeded" << endl;
+    L << Logger::Notice << d_myname << " Ldap connection succeeded" << endl;
     return;
   }
   catch( LDAPTimeout &lt )
   {
-    L << Logger::Error << m_myname << " Ldap connection to server failed because of timeout" << endl;
+    L << Logger::Error << d_myname << " Ldap connection to server failed because of timeout" << endl;
   }
   catch( LDAPException &le )
   {
-    L << Logger::Error << m_myname << " Ldap connection to server failed: " << le.what() << endl;
+    L << Logger::Error << d_myname << " Ldap connection to server failed: " << le.what() << endl;
   }
   catch( std::exception &e )
   {
-    L << Logger::Error << m_myname << " Caught STL exception: " << e.what() << endl;
+    L << Logger::Error << d_myname << " Caught STL exception: " << e.what() << endl;
   }
 
-  if( m_pldap != NULL ) { delete( m_pldap ); }
+  if( d_pldap != NULL ) { delete( d_pldap ); }
   throw PDNSException( "Unable to connect to ldap server" );
 }
 
@@ -121,71 +121,71 @@ LdapBackend::LdapBackend( const string &suffix )
 
 LdapBackend::~LdapBackend()
 {
-  m_search.reset(); // This is necessary otherwise m_pldap will get deleted first and
+  d_search.reset(); // This is necessary otherwise d_pldap will get deleted first and
                     // we may hang in SearchResult::~SearchResult() waiting for the
                     // current operation to be abandoned
-  delete( m_pldap );
-  delete( m_authenticator );
-  L << Logger::Notice << m_myname << " Ldap connection closed" << endl;
+  delete( d_pldap );
+  delete( d_authenticator );
+  L << Logger::Notice << d_myname << " Ldap connection closed" << endl;
 }
 
 
 
 bool LdapBackend::reconnect()
 {
-  int attempts = m_reconnect_attempts;
+  int attempts = d_reconnect_attempts;
   bool connected = false;
   while ( !connected && attempts > 0 ) {
-    L << Logger::Debug << m_myname << " Reconnection attempts left: " << attempts << endl;
-    connected = m_pldap->connect();
+    L << Logger::Debug << d_myname << " Reconnection attempts left: " << attempts << endl;
+    connected = d_pldap->connect();
     if ( !connected )
       Utility::usleep( 250 );
     --attempts;
   }
 
   if ( connected )
-    m_pldap->bind( m_authenticator );
+    d_pldap->bind( d_authenticator );
 
   return connected;
 }
 
 
 void LdapBackend::extract_common_attributes( DNSResult &result ) {
-  if ( m_result.count( "dNSTTL" ) && !m_result["dNSTTL"].empty() ) {
+  if ( d_result.count( "dNSTTL" ) && !d_result["dNSTTL"].empty() ) {
     char *endptr;
-    uint32_t ttl = (uint32_t) strtol( m_result["dNSTTL"][0].c_str(), &endptr, 10 );
+    uint32_t ttl = (uint32_t) strtol( d_result["dNSTTL"][0].c_str(), &endptr, 10 );
 
     if ( *endptr != '\0' ) {
       // NOTE: this will not give the entry for which the TTL was off.
       // TODO: improve this.
-      //   - Check how m_getdn is used, because if it's never false then we
+      //   - Check how d_getdn is used, because if it's never false then we
       //     might as well use it.
-      L << Logger::Warning << m_myname << " Invalid time to live for " << m_qname << ": " << m_result["dNSTTL"][0] << endl;
+      L << Logger::Warning << d_myname << " Invalid time to live for " << d_qname << ": " << d_result["dNSTTL"][0] << endl;
     }
     else {
       result.ttl = ttl;
     }
 
     // We have to erase the attribute, otherwise this will mess up the records retrieval later.
-    m_result.erase( "dNSTTL" );
+    d_result.erase( "dNSTTL" );
   }
 
-  if ( m_result.count( "modifyTimestamp" ) && !m_result["modifyTimestamp"].empty() ) {
+  if ( d_result.count( "modifyTimestamp" ) && !d_result["modifyTimestamp"].empty() ) {
     time_t tstamp = 0;
-    if ( ( tstamp = str2tstamp( m_result["modifyTimestamp"][0] ) ) == 0 ) {
+    if ( ( tstamp = str2tstamp( d_result["modifyTimestamp"][0] ) ) == 0 ) {
       // Same note as above, we don't know which entry failed here
-      L << Logger::Warning << m_myname << " Invalid modifyTimestamp for " << m_qname << ": " << m_result["modifyTimestamp"][0] << endl;
+      L << Logger::Warning << d_myname << " Invalid modifyTimestamp for " << d_qname << ": " << d_result["modifyTimestamp"][0] << endl;
     }
     else {
       result.lastmod = tstamp;
     }
 
     // Here too we have to erase this attribute.
-    m_result.erase( "modifyTimestamp" );
+    d_result.erase( "modifyTimestamp" );
   }
 
-  if ( m_result.count( "PdnsDomainId" ) && !m_result["PdnsDomainId"].empty() ) {
-    result.domain_id = pdns_stou( m_result["PdnsDomainId"][0] );
+  if ( d_result.count( "PdnsDomainId" ) && !d_result["PdnsDomainId"].empty() ) {
+    result.domain_id = pdns_stou( d_result["PdnsDomainId"][0] );
   }
 }
 
@@ -195,7 +195,7 @@ void LdapBackend::extract_entry_results( const DNSName& domain, const DNSResult&
   QType qt;
   bool has_records = false;
 
-  for ( const auto& attribute : m_result ) {
+  for ( const auto& attribute : d_result ) {
     // Find if we're dealing with a record attribute
     if ( attribute.first.length() > 6 && attribute.first.compare( attribute.first.length() - 6, 6, "Record" ) == 0 ) {
       has_records = true;
@@ -218,8 +218,8 @@ void LdapBackend::extract_entry_results( const DNSName& domain, const DNSResult&
         // Now let's see if we have some PDNS record data
 
         // TTL
-        if ( m_result.count( "PdnsRecordTTL" ) && !m_result["PdnsRecordTTL"].empty() ) {
-          for ( const auto& rdata : m_result["PdnsRecordTTL"] ) {
+        if ( d_result.count( "PdnsRecordTTL" ) && !d_result["PdnsRecordTTL"].empty() ) {
+          for ( const auto& rdata : d_result["PdnsRecordTTL"] ) {
             std::string qtype;
             std::size_t pos = rdata.find_first_of( '|', 0 );
             if ( pos == std::string::npos )
@@ -234,20 +234,20 @@ void LdapBackend::extract_entry_results( const DNSName& domain, const DNSResult&
         }
 
         // Not authoritative
-        if ( m_result.count( "PdnsRecordNoAuth" ) && !m_result["PdnsRecordNoAuth"].empty() ) {
-          for ( const auto& rdata : m_result["PdnsRecordNoAuth"] ) {
+        if ( d_result.count( "PdnsRecordNoAuth" ) && !d_result["PdnsRecordNoAuth"].empty() ) {
+          for ( const auto& rdata : d_result["PdnsRecordNoAuth"] ) {
             if ( rdata == QType( local_result.qtype ).getName() )
               local_result.auth = false;
           }
         }
 
         // Ordername
-        if ( m_result.count( "PdnsRecordOrdername" ) && !m_result["PdnsRecordOrdername"].empty() ) {
-          std::string defaultOrdername = m_result["PdnsRecordOrdername"][0];
+        if ( d_result.count( "PdnsRecordOrdername" ) && !d_result["PdnsRecordOrdername"].empty() ) {
+          std::string defaultOrdername = d_result["PdnsRecordOrdername"][0];
           bool hasON = true;
 
-          if ( m_result.count( "PdnsRecordNoOrdername" ) ) {
-            for ( const auto& rdata : m_result["PdnsRecordNoOrdername"] ) {
+          if ( d_result.count( "PdnsRecordNoOrdername" ) ) {
+            for ( const auto& rdata : d_result["PdnsRecordNoOrdername"] ) {
               if ( rdata == QType( local_result.qtype ).getName() )
                 hasON = false;
             }
@@ -257,7 +257,7 @@ void LdapBackend::extract_entry_results( const DNSName& domain, const DNSResult&
             local_result.ordername = defaultOrdername;
         }
 
-        m_results_cache.push_back( local_result );
+        d_results_cache.push_back( local_result );
       }
     }
   }
@@ -266,11 +266,11 @@ void LdapBackend::extract_entry_results( const DNSName& domain, const DNSResult&
     // This is an ENT
     DNSResult local_result = result_template;
     local_result.qname = domain;
-    if ( !m_result.count( "PdnsRecordOrdername" ) || m_result["PdnsRecordOrdername"].empty() ) {
+    if ( !d_result.count( "PdnsRecordOrdername" ) || d_result["PdnsRecordOrdername"].empty() ) {
       // An ENT with an order name is authoritative
       local_result.auth = false;
     }
-    m_results_cache.push_back( local_result );
+    d_results_cache.push_back( local_result );
   }
 }
 
