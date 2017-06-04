@@ -199,7 +199,7 @@ static bool processRecordForZS(const DNSName& domain, bool& firstNSEC3, DNSResou
       throw PDNSException("Zones with a mixture of Opt-Out NSEC3 RRs and non-Opt-Out NSEC3 RRs are not supported.");
     zs.optOutFlag = ns3rc.d_flags & 1;
     if (ns3rc.d_set.count(QType::NS) && !(rr.qname==domain)) {
-      DNSName hashPart = DNSName(toLower(rr.qname.makeRelative(domain).toString()));
+      DNSName hashPart = rr.qname.makeRelative(domain);
       zs.secured.insert(hashPart);
     }
     return false;
@@ -247,6 +247,7 @@ vector<DNSResourceRecord> doAxfr(const ComboAddress& raddr, const DNSName& domai
     }
 
     for(Resolver::res_t::iterator i=recs.begin();i!=recs.end();++i) {
+      i->qname.makeUsLowerCase();
       if(i->qtype.getCode() == QType::OPT || i->qtype.getCode() == QType::TSIG) // ignore EDNS0 & TSIG
         continue;
 
@@ -395,7 +396,7 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
           rrs.reserve(axfr.size());
           for(const auto& dr : axfr) {
             DNSResourceRecord rr(dr);
-            rr.qname += domain;
+            (rr.qname += domain).makeUsLowerCase();
             rr.domain_id = zs.domain_id;
             if(!processRecordForZS(domain, firstNSEC3, rr, zs))
               continue;
