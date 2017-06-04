@@ -751,6 +751,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
     rrs.push_back(rr);
 
   while(sd.db->get(rr)) {
+    rr.qname.makeUsLowerCase();
     if(rr.qname.isPartOf(target)) {
       if (rr.qtype.getCode() == QType::ALIAS && ::arg().mustDo("outgoing-axfr-expand-alias")) {
         vector<DNSResourceRecord> ips;
