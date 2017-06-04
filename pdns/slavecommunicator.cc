@@ -262,6 +262,10 @@ vector<DNSResourceRecord> doAxfr(const ComboAddress& raddr, const DNSName& domai
       }
 
       for(DNSResourceRecord& rr :  out) {
+        if(!rr.qname.isPartOf(domain)) {
+          L<<Logger::Error<<"Lua axfrfilter() filter tried to sneak in out-of-zone data '"<<i->qname<<"'|"<<i->qtype.getName()<<" during AXFR of zone '"<<domain<<"', ignoring"<<endl;
+          continue;
+        }
         if(!processRecordForZS(domain, firstNSEC3, rr, zs))
           continue;
         if(rr.qtype.getCode() == QType::SOA) {
