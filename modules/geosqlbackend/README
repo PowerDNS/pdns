@@ -1,0 +1,8 @@
+Initial version of the GeoIP Backend using SQL Database as respository for both geolocation data and zone information.
+More to follow soon!
+
+Author: Shin Sterneck
+Email: shin dot sterneck at asia
+
+License: GNU General Public License v2 (follows PowerDNS's License) to allow for integration.
+Licesne details can be found online at http://www.gnu.org
