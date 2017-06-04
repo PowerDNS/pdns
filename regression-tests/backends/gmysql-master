@@ -13,7 +13,7 @@ case $context in
 		mysql --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" \
 			"$GMYSQLDB" < ../modules/gmysqlbackend/schema.mysql.sql
 
-		tosql gmysql | mysql --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" \
+		tosql gmysql | sed -e "s/id ,'ns1.dnssec-parent.com/id ,'NS1.dnssec-parent.com/g" | mysql --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" \
 			"$GMYSQLDB"
 
 		cat > pdns-gmysql.conf << __EOF__
