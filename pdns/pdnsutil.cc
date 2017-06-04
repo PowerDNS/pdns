@@ -156,7 +156,6 @@ bool rectifyZone(DNSSECKeeper& dk, const DNSName& zone)
   DNSResourceRecord rr;
   set<DNSName> qnames, nsset, dsnames, insnonterm, delnonterm;
   map<DNSName,bool> nonterm;
-  bool doent=true;
   vector<DNSResourceRecord> rrs;
 
   while(sd.db->get(rr)) {
@@ -171,8 +170,7 @@ bool rectifyZone(DNSSECKeeper& dk, const DNSName& zone)
         dsnames.insert(rr.qname);
     }
     else
-      if(doent)
-        delnonterm.insert(rr.qname);
+      delnonterm.insert(rr.qname);
   }
 
   NSEC3PARAMRecordContent ns3pr;
@@ -223,6 +221,7 @@ bool rectifyZone(DNSSECKeeper& dk, const DNSName& zone)
     sd.db->startTransaction(zone, -1);
 
   bool realrr=true;
+  bool doent=true;
   uint32_t maxent = ::arg().asNum("max-ent-entries");
 
   dononterm:;
