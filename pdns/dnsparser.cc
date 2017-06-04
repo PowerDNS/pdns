@@ -121,28 +121,28 @@ shared_ptr<DNSRecordContent> DNSRecordContent::unserialize(const DNSName& qname,
   return ret;
 }
 
-DNSRecordContent* DNSRecordContent::mastermake(const DNSRecord &dr, 
+std::shared_ptr<DNSRecordContent> DNSRecordContent::mastermake(const DNSRecord &dr,
                                                PacketReader& pr)
 {
   uint16_t searchclass = (dr.d_type == QType::OPT) ? 1 : dr.d_class; // class is invalid for OPT
 
   typemap_t::const_iterator i=getTypemap().find(make_pair(searchclass, dr.d_type));
   if(i==getTypemap().end() || !i->second) {
-    return new UnknownRecordContent(dr, pr);
+    return std::make_shared<UnknownRecordContent>(dr, pr);
   }
 
-  return i->second(dr, pr);
+  return std::shared_ptr<DNSRecordContent>(i->second(dr, pr));
 }
 
-DNSRecordContent* DNSRecordContent::mastermake(uint16_t qtype, uint16_t qclass,
+std::shared_ptr<DNSRecordContent> DNSRecordContent::mastermake(uint16_t qtype, uint16_t qclass,
                                                const string& content)
 {
   zmakermap_t::const_iterator i=getZmakermap().find(make_pair(qclass, qtype));
   if(i==getZmakermap().end()) {
-    return new UnknownRecordContent(content);
+    return std::make_shared<UnknownRecordContent>(content);
   }
 
-  return i->second(content);
+  return std::shared_ptr<DNSRecordContent>(i->second(content));
 }
 
 std::unique_ptr<DNSRecordContent> DNSRecordContent::makeunique(uint16_t qtype, uint16_t qclass,
@@ -157,21 +157,21 @@ std::unique_ptr<DNSRecordContent> DNSRecordContent::makeunique(uint16_t qtype, u
 }
 
 
-DNSRecordContent* DNSRecordContent::mastermake(const DNSRecord &dr, PacketReader& pr, uint16_t oc) {
+std::shared_ptr<DNSRecordContent> DNSRecordContent::mastermake(const DNSRecord &dr, PacketReader& pr, uint16_t oc) {
   // For opcode UPDATE and where the DNSRecord is an answer record, we don't care about content, because this is
   // not used within the prerequisite section of RFC2136, so - we can simply use unknownrecordcontent.
   // For section 3.2.3, we do need content so we need to get it properly. But only for the correct QClasses.
   if (oc == Opcode::Update && dr.d_place == DNSResourceRecord::ANSWER && dr.d_class != 1)
-    return new UnknownRecordContent(dr, pr);
+    return std::make_shared<UnknownRecordContent>(dr, pr);
 
   uint16_t searchclass = (dr.d_type == QType::OPT) ? 1 : dr.d_class; // class is invalid for OPT
 
   typemap_t::const_iterator i=getTypemap().find(make_pair(searchclass, dr.d_type));
   if(i==getTypemap().end() || !i->second) {
-    return new UnknownRecordContent(dr, pr);
+    return std::make_shared<UnknownRecordContent>(dr, pr);
   }
 
-  return i->second(dr, pr);
+  return std::shared_ptr<DNSRecordContent>(i->second(dr, pr));
 }
 
 
@@ -207,7 +207,7 @@ DNSRecord::DNSRecord(const DNSResourceRecord& rr)
   d_class = rr.qclass;
   d_place = DNSResourceRecord::ANSWER;
   d_clen = 0;
-  d_content = std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(d_type, rr.qclass, rr.content));
+  d_content = DNSRecordContent::mastermake(d_type, rr.qclass, rr.content);
 }
 
 // If you call this and you are not parsing a packet coming from a socket, you are doing it wrong.
@@ -290,7 +290,7 @@ void MOADNSParser::init(bool query, const char *packet, unsigned int len)
       }
       else {
 //        cerr<<"parsing RR, query is "<<query<<", place is "<<dr.d_place<<", type is "<<dr.d_type<<", class is "<<dr.d_class<<endl;
-        dr.d_content=std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(dr, pr, d_header.opcode));
+        dr.d_content=DNSRecordContent::mastermake(dr, pr, d_header.opcode);
       }
 
       d_answers.push_back(make_pair(dr, pr.d_pos));
@@ -431,15 +431,12 @@ DNSName PacketReader::getName()
     d_pos+=consumed;
     return dn;
   }
-  catch(std::range_error& re)
-    {
-      throw std::out_of_range(string("dnsname issue: ")+re.what());
-    }
-
-  catch(...)
-    {
-      throw std::out_of_range("dnsname issue");
-    }
+  catch(const std::range_error& re) {
+    throw std::out_of_range(string("dnsname issue: ")+re.what());
+  }
+  catch(...) {
+    throw std::out_of_range("dnsname issue");
+  }
   throw PDNSException("PacketReader::getName(): name is empty");
 }
 

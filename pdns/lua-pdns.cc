@@ -255,7 +255,7 @@ void popResourceRecordsTable(lua_State *lua, const DNSName &query, vector<DNSRec
 
     string content;
     getFromTable(lua, "content", content);
-    rr.d_content=shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(rr.d_type, rr.d_class, content));
+    rr.d_content=DNSRecordContent::mastermake(rr.d_type, rr.d_class, content);
 
     if(!getFromTable(lua, "ttl", rr.d_ttl))
       rr.d_ttl=3600;

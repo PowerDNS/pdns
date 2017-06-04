@@ -287,7 +287,7 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
 /** Helper to build a record content as needed. */
 static inline string makeRecordContent(const QType& qtype, const string& content, bool noDot) {
   // noDot: for backend storage, pass true. for API users, pass false.
-  std::unique_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(qtype.getCode(), 1, content));
+  std::unique_ptr<DNSRecordContent> drc(DNSRecordContent::makeunique(qtype.getCode(), QClass::IN, content));
   return drc->getZoneRepresentation(noDot);
 }
 

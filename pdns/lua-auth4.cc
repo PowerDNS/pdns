@@ -142,7 +142,7 @@ AuthLua4::AuthLua4(const std::string& fname) {
     });
 
 
-  d_lw->registerFunction<void(DNSRecord::*)(const std::string&)>("changeContent", [](DNSRecord& dr, const std::string& newContent) { dr.d_content = shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(dr.d_type, 1, newContent)); });
+  d_lw->registerFunction<void(DNSRecord::*)(const std::string&)>("changeContent", [](DNSRecord& dr, const std::string& newContent) { dr.d_content = DNSRecordContent::mastermake(dr.d_type, 1, newContent); });
 
   d_lw->writeFunction("pdnslog", [](const std::string& msg, boost::optional<int> loglevel) {
       theL() << (Logger::Urgency)loglevel.get_value_or(Logger::Warning) << msg<<endl;
