@@ -160,6 +160,7 @@ bool rectifyZone(DNSSECKeeper& dk, const DNSName& zone)
   vector<DNSResourceRecord> rrs;
 
   while(sd.db->get(rr)) {
+    rr.qname.makeUsLowerCase();
     if (rr.qtype.getCode())
     {
       rrs.push_back(rr);
