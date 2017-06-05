@@ -582,7 +582,7 @@ void LdapBackend::getUpdatedMasters( vector<DomainInfo>* domains )
       continue;
 
     DomainInfo di;
-    if ( !getDomainInfo( result["associatedDomain"][0], di ) )
+    if ( !getDomainInfo( DNSName( result["associatedDomain"][0] ), di ) )
       continue;
 
     di.backend = this;
@@ -695,7 +695,7 @@ bool LdapBackend::getDomainInfo( const DNSName& domain, DomainInfo& di )
   try
   {
     // search for SOARecord of domain
-    filter = "(&(associatedDomain=" + toLower( m_pldap->escape( domain ) ) + ")(SOARecord=*))";
+    filter = "(&(associatedDomain=" + toLower( m_pldap->escape( domain.toStringRootDot() ) ) + ")(SOARecord=*))";
     m_msgid = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attronly );
     m_pldap->getSearchEntry( msgid, result );
   }
