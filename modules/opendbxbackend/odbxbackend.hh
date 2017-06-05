@@ -81,15 +81,15 @@ public:
         bool list( const DNSName& target, int domain_id, bool include_disabled=false ) override;
         bool get( DNSResourceRecord& rr ) override;
 
-        bool startTransaction( const string& domain, int domain_id ) override;
+        bool startTransaction( const DNSName& domain, int domain_id ) override;
         bool commitTransaction() override;
         bool abortTransaction() override;
 
-        bool isMaster( const string& domain, const string& ip ) override;
-        bool getDomainInfo( const string& domain, DomainInfo& di ) override;
+        bool isMaster( const DNSName& domain, const string& ip ) override;
+        bool getDomainInfo( const DNSName& domain, DomainInfo& di ) override;
         bool feedRecord( const DNSResourceRecord& rr, const DNSName& ordername ) override;
-        bool createSlaveDomain( const string& ip, const string& domain, const string &nameserver, const string& account ) override;
-        bool superMasterBackend( const string& ip, const string& domain, const vector<DNSResourceRecord>& nsset, string *nameserver, string* account, DNSBackend** ddb ) override;
+        bool createSlaveDomain( const string& ip, const DNSName& domain, const string &nameserver, const string& account ) override;
+        bool superMasterBackend( const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string *nameserver, string* account, DNSBackend** ddb ) override;
 
         void getUpdatedMasters( vector<DomainInfo>* updated ) override;
         void getUnfreshSlaveInfos( vector<DomainInfo>* unfresh ) override;
@@ -165,11 +165,11 @@ public:
         OdbxLoader()
         {
         	BackendMakers().report( &factory );
-		L<< Logger::Info << "[opendbxbackend] This is the opendbx backend version " VERSION
+        	L<< Logger::Info << "[opendbxbackend] This is the opendbx backend version " VERSION
 #ifndef REPRODUCIBLE
-		  << " (" __DATE__ " " __TIME__ ")"
+        		<< " (" __DATE__ " " __TIME__ ")"
 #endif
-		  << " reporting" << endl;
+        		<< " reporting" << endl;
         }
 };
 
