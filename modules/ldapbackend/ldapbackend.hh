@@ -143,7 +143,7 @@ class LdapBackend : public DNSBackend
     void lookup( const QType& qtype, const DNSName& qdomain, DNSPacket* p = 0, int zoneid = -1 ) override;
     bool get( DNSResourceRecord& rr ) override;
 
-    bool getDomainInfo( const string& domain, DomainInfo& di ) override;
+    bool getDomainInfo( const string& domain, DomainInfo& di ); // override; Broken overload
 
     // Master backend
     void getUpdatedMasters( vector<DomainInfo>* domains ) override;

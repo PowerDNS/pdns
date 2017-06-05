@@ -541,7 +541,7 @@ bool LdapBackend::get( DNSResourceRecord &rr )
 void LdapBackend::getUpdatedMasters( vector<DomainInfo>* domains )
 {
   string filter;
-  int msgid;
+  int msgid=0;
   PowerLDAP::sentry_t result;
   const char* attronly[] = {
     "associatedDomain",
@@ -676,11 +676,11 @@ void LdapBackend::setNotified( uint32_t id, uint32_t serial )
 
 
 
-bool LdapBackend::getDomainInfo( const string& domain, DomainInfo& di )
+bool LdapBackend::getDomainInfo( const DNSName& domain, DomainInfo& di )
 {
   string filter;
   SOAData sd;
-  int msgid;
+  int msgid=0;
   PowerLDAP::sentry_t result;
   const char* attronly[] = {
     "sOARecord",
