@@ -68,14 +68,14 @@ class TinyDNSBackend : public DNSBackend
 public:
   // Methods for simple operation
   TinyDNSBackend(const string &suffix);
-  void lookup(const QType &qtype, const DNSName &qdomain, DNSPacket *pkt_p=0, int zoneId=-1);
-  bool list(const DNSName &target, int domain_id, bool include_disabled=false);
-  bool get(DNSResourceRecord &rr);
-  void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false);
+  void lookup(const QType &qtype, const DNSName &qdomain, DNSPacket *pkt_p=0, int zoneId=-1) override;
+  bool list(const DNSName &target, int domain_id, bool include_disabled=false) override;
+  bool get(DNSResourceRecord &rr) override;
+  void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false) override;
 
   //Master mode operation
-  void getUpdatedMasters(vector<DomainInfo>* domains);
-  void setNotified(uint32_t id, uint32_t serial);
+  void getUpdatedMasters(vector<DomainInfo>* domains) override;
+  void setNotified(uint32_t id, uint32_t serial) override;
 private:
   vector<string> getLocations();
 

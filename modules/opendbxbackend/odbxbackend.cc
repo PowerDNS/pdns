@@ -674,7 +674,7 @@ bool OdbxBackend::createSlaveDomain( const string& ip, const string& domain, con
 
 
 
-bool OdbxBackend::feedRecord( const DNSResourceRecord& rr, const DNSName ordername )
+bool OdbxBackend::feedRecord( const DNSResourceRecord& rr, const DNSName& ordername )
 {
         try
         {

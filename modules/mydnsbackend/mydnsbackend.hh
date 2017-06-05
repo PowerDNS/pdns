@@ -36,11 +36,11 @@ public:
   MyDNSBackend(const string &suffix);
   ~MyDNSBackend();
   
-  void lookup(const QType &, const DNSName &qdomain, DNSPacket *p=0, int zoneId=-1);
-  bool list(const DNSName &target, int domain_id, bool include_disabled=false);
-  bool get(DNSResourceRecord &r);
-  bool getSOA(const DNSName& name, SOAData& soadata, DNSPacket*);
-  void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false);
+  void lookup(const QType &, const DNSName &qdomain, DNSPacket *p=0, int zoneId=-1) override;
+  bool list(const DNSName &target, int domain_id, bool include_disabled=false) override;
+  bool get(DNSResourceRecord &r) override;
+  bool getSOA(const DNSName& name, SOAData& soadata, DNSPacket*) override;
+  void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false) override;
 private:
   SMySQL *d_db; 
 

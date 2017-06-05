@@ -179,70 +179,68 @@ public:
     release(&d_SearchCommentsQuery_stmt);
   }
 
-  void lookup(const QType &, const DNSName &qdomain, DNSPacket *p=0, int zoneId=-1);
-  bool list(const DNSName &target, int domain_id, bool include_disabled=false);
-  bool get(DNSResourceRecord &r);
-  void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false);
-  bool isMaster(const DNSName &domain, const string &ip);
-  void alsoNotifies(const DNSName &domain, set<string> *ips);
-  bool startTransaction(const DNSName &domain, int domain_id=-1);
-  bool commitTransaction();
-  bool abortTransaction();
-  bool feedRecord(const DNSResourceRecord &r, const DNSName &ordername);
-  bool feedEnts(int domain_id, map<DNSName,bool>& nonterm);
-  bool feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow);
-  bool createDomain(const DNSName &domain, const string &type, const string &masters, const string &account);
-  bool createDomain(const DNSName &domain) {
+  void lookup(const QType &, const DNSName &qdomain, DNSPacket *p=0, int zoneId=-1) override;
+  bool list(const DNSName &target, int domain_id, bool include_disabled=false) override;
+  bool get(DNSResourceRecord &r) override;
+  void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false) override;
+  bool isMaster(const DNSName &domain, const string &ip) override;
+  void alsoNotifies(const DNSName &domain, set<string> *ips) override;
+  bool startTransaction(const DNSName &domain, int domain_id=-1) override;
+  bool commitTransaction() override;
+  bool abortTransaction() override;
+  bool feedRecord(const DNSResourceRecord &r, const DNSName &ordername) override;
+  bool feedEnts(int domain_id, map<DNSName,bool>& nonterm) override;
+  bool feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow) override;
+  bool createDomain(const DNSName &domain) override {
     return createDomain(domain, "NATIVE", "", "");
   };
-  bool createSlaveDomain(const string &ip, const DNSName &domain, const string &nameserver, const string &account);
-  bool deleteDomain(const DNSName &domain);
-  bool superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db);
-  void setFresh(uint32_t domain_id);
-  void getUnfreshSlaveInfos(vector<DomainInfo> *domains);
-  void getUpdatedMasters(vector<DomainInfo> *updatedDomains);
-  bool getDomainInfo(const DNSName &domain, DomainInfo &di);
-  void setNotified(uint32_t domain_id, uint32_t serial);
-  bool setMaster(const DNSName &domain, const string &ip);
-  bool setKind(const DNSName &domain, const DomainInfo::DomainKind kind);
-  bool setAccount(const DNSName &domain, const string &account);
+  bool createSlaveDomain(const string &ip, const DNSName &domain, const string &nameserver, const string &account) override;
+  bool deleteDomain(const DNSName &domain) override;
+  bool superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db) override;
+  void setFresh(uint32_t domain_id) override;
+  void getUnfreshSlaveInfos(vector<DomainInfo> *domains) override;
+  void getUpdatedMasters(vector<DomainInfo> *updatedDomains) override;
+  bool getDomainInfo(const DNSName &domain, DomainInfo &di) override;
+  void setNotified(uint32_t domain_id, uint32_t serial) override;
+  bool setMaster(const DNSName &domain, const string &ip) override;
+  bool setKind(const DNSName &domain, const DomainInfo::DomainKind kind) override;
+  bool setAccount(const DNSName &domain, const string &account) override;
 
-  virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after);
-  virtual bool updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t=QType::ANY);
+  bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) override;
+  bool updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t=QType::ANY) override;
 
-  virtual bool updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& insert ,set<DNSName>& erase, bool remove);
-  virtual bool doesDNSSEC();
+  bool updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& insert ,set<DNSName>& erase, bool remove) override;
+  bool doesDNSSEC() override;
 
-  virtual bool calculateSOASerial(const DNSName& domain, const SOAData& sd, time_t& serial);
+  bool calculateSOASerial(const DNSName& domain, const SOAData& sd, time_t& serial) override;
 
-  bool replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset);
-  bool listSubZone(const DNSName &zone, int domain_id);
-  bool addDomainKey(const DNSName& name, const KeyData& key, int64_t& id);
-  bool getDomainKeys(const DNSName& name, std::vector<KeyData>& keys);
-  bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta);
-  bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta);
-  bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta);
-  bool clearDomainAllMetadata(const DNSName& domain);
+  bool replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset) override;
+  bool listSubZone(const DNSName &zone, int domain_id) override;
+  bool addDomainKey(const DNSName& name, const KeyData& key, int64_t& id) override;
+  bool getDomainKeys(const DNSName& name, std::vector<KeyData>& keys) override;
+  bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta) override;
+  bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta) override;
+  bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta) override;
   
-  bool removeDomainKey(const DNSName& name, unsigned int id);
-  bool activateDomainKey(const DNSName& name, unsigned int id);
-  bool deactivateDomainKey(const DNSName& name, unsigned int id);
+  bool removeDomainKey(const DNSName& name, unsigned int id) override;
+  bool activateDomainKey(const DNSName& name, unsigned int id) override;
+  bool deactivateDomainKey(const DNSName& name, unsigned int id) override;
   
-  bool getTSIGKey(const DNSName& name, DNSName* algorithm, string* content);
-  bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content);
-  bool deleteTSIGKey(const DNSName& name);
-  bool getTSIGKeys(std::vector< struct TSIGKey > &keys);
+  bool getTSIGKey(const DNSName& name, DNSName* algorithm, string* content) override;
+  bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content) override;
+  bool deleteTSIGKey(const DNSName& name) override;
+  bool getTSIGKeys(std::vector< struct TSIGKey > &keys) override;
 
-  bool listComments(const uint32_t domain_id);
-  bool getComment(Comment& comment);
-  void feedComment(const Comment& comment);
-  bool replaceComments(const uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<Comment>& comments);
-  bool replaceComments(const uint32_t domain_id, const string& qname, const QType& qt, const vector<Comment>& comments);
-  string directBackendCmd(const string &query);
-  bool searchRecords(const string &pattern, int maxResults, vector<DNSResourceRecord>& result);
-  bool searchComments(const string &pattern, int maxResults, vector<Comment>& result);
+  bool listComments(const uint32_t domain_id) override;
+  bool getComment(Comment& comment) override;
+  void feedComment(const Comment& comment) override;
+  bool replaceComments(const uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<Comment>& comments) override;
+  string directBackendCmd(const string &query) override;
+  bool searchRecords(const string &pattern, int maxResults, vector<DNSResourceRecord>& result) override;
+  bool searchComments(const string &pattern, int maxResults, vector<Comment>& result) override;
 
 protected:
+  bool createDomain(const DNSName &domain, const string &type, const string &masters, const string &account);
   string pattern2SQLPattern(const string& pattern);
   void extractRecord(const SSqlStatement::row_t& row, DNSResourceRecord& rr);
   void extractComment(const SSqlStatement::row_t& row, Comment& c);
