@@ -106,6 +106,7 @@ public:
     NSEC3=50,
     NSEC3PARAM=51,
     TLSA=52,
+    SMIMEA=53,
     RKEY=57,
     CDS=59,
     CDNSKEY=60,
