@@ -58,7 +58,7 @@ public:
     void lookup(const QType &qtype, const DNSName &qname, DNSPacket *p, int domain_id);
     bool get(DNSResourceRecord &rr);
     //! fills the soadata struct with the SOA details. Returns false if there is no SOA.
-    bool getSOA(const string &name, SOAData &soadata, DNSPacket *p=0);
+    bool getSOA(const DNSName &name, SOAData &soadata, DNSPacket *p=0);
 
 
 //  MASTER BACKEND
