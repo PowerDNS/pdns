@@ -85,7 +85,7 @@ public:
   void setNotified(uint32_t zoneId, uint32_t serial);
   bool list(const DNSName& domain, int zoneId, bool include_disabled=false);
   bool startTransaction(const DNSName& domain, int zoneId);
-  bool feedRecord(const DNSResourceRecord &rr, string* ordername);
+  bool feedRecord(const DNSResourceRecord &rr, const DNSName ordername);
   bool commitTransaction();
   bool abortTransaction();
   bool superMasterBackend(const string &ip, const DNSName& domain,

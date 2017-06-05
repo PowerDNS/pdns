@@ -174,7 +174,7 @@ class RemoteBackend : public DNSBackend
   virtual bool superMasterBackend(const string &ip, const DNSName& domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **ddb);
   virtual bool createSlaveDomain(const string &ip, const DNSName& domain, const string& nameserver, const string &account);
   virtual bool replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset);
-  virtual bool feedRecord(const DNSResourceRecord &r, string *ordername);
+  virtual bool feedRecord(const DNSResourceRecord &r, const DNSName ordername);
   virtual bool feedEnts(int domain_id, map<DNSName,bool>& nonterm);
   virtual bool feedEnts3(int domain_id, const DNSName& domain, map<DNSName,bool>& nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow);
   virtual bool startTransaction(const DNSName& domain, int domain_id);

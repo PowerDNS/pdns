@@ -87,7 +87,7 @@ public:
 
         bool isMaster( const string& domain, const string& ip );
         bool getDomainInfo( const string& domain, DomainInfo& di );
-        bool feedRecord( const DNSResourceRecord& rr, string *ordername=0 );
+        bool feedRecord( const DNSResourceRecord& rr, const DNSName ordername );
         bool createSlaveDomain( const string& ip, const string& domain, const string &nameserver, const string& account );
         bool superMasterBackend( const string& ip, const string& domain, const vector<DNSResourceRecord>& nsset, string *nameserver, string* account, DNSBackend** ddb );
 

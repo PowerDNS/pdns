@@ -188,7 +188,7 @@ public:
   bool startTransaction(const DNSName &domain, int domain_id=-1);
   bool commitTransaction();
   bool abortTransaction();
-  bool feedRecord(const DNSResourceRecord &r, string *ordername=0);
+  bool feedRecord(const DNSResourceRecord &r, const DNSName &ordername);
   bool feedEnts(int domain_id, map<DNSName,bool>& nonterm);
   bool feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow);
   bool createDomain(const DNSName &domain, const string &type, const string &masters, const string &account);

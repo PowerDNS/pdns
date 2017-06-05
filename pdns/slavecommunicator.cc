@@ -487,8 +487,7 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
 
     bool doent=true;
     uint32_t maxent = ::arg().asNum("max-ent-entries");
-    string ordername;
-    DNSName shorter;
+    DNSName shorter, ordername;
     set<DNSName> rrterm;
     map<DNSName,bool> nonterm;
 
@@ -522,8 +521,8 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
         bool auth;
         if (!rr.auth && rr.qtype.getCode() == QType::NS) {
           if (zs.isNSEC3)
-            ordername=toBase32Hex(hashQNameWithSalt(zs.ns3pr, rr.qname));
-          auth=(!zs.isNSEC3 || !zs.optOutFlag || zs.secured.count(DNSName(ordername)));
+            ordername=DNSName(toBase32Hex(hashQNameWithSalt(zs.ns3pr, rr.qname)));
+          auth=(!zs.isNSEC3 || !zs.optOutFlag || zs.secured.count(ordername));
         } else
           auth=rr.auth;
 
@@ -549,21 +548,21 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
       if (zs.isDnssecZone && rr.qtype.getCode() != QType::RRSIG) {
         if (zs.isNSEC3) {
           // NSEC3
-          ordername=toBase32Hex(hashQNameWithSalt(zs.ns3pr, rr.qname));
-          if(!zs.isNarrow && (rr.auth || (rr.qtype.getCode() == QType::NS && (!zs.optOutFlag || zs.secured.count(DNSName(ordername)))))) {
-            di.backend->feedRecord(rr, &ordername);
+          ordername=DNSName(toBase32Hex(hashQNameWithSalt(zs.ns3pr, rr.qname)));
+          if(!zs.isNarrow && (rr.auth || (rr.qtype.getCode() == QType::NS && (!zs.optOutFlag || zs.secured.count(ordername))))) {
+            di.backend->feedRecord(rr, ordername);
           } else
-            di.backend->feedRecord(rr);
+            di.backend->feedRecord(rr, DNSName());
         } else {
           // NSEC
           if (rr.auth || rr.qtype.getCode() == QType::NS) {
-            ordername=rr.qname.makeRelative(domain).makeLowerCase().labelReverse().toString(" ", false); 
-            di.backend->feedRecord(rr, &ordername);
+            ordername=rr.qname.makeRelative(domain);
+            di.backend->feedRecord(rr, ordername);
           } else
-            di.backend->feedRecord(rr);
+            di.backend->feedRecord(rr, DNSName());
         }
       } else
-        di.backend->feedRecord(rr);
+        di.backend->feedRecord(rr, DNSName());
     }
 
     // Insert empty non-terminals

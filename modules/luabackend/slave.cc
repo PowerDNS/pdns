@@ -33,7 +33,7 @@
    virtual bool startTransaction(const string &qname, int id);
    virtual bool commitTransaction();
    virtual bool abortTransaction();
-   virtual bool feedRecord(const DNSResourceRecord &rr, string* ordername=0);
+   virtual bool feedRecord(const DNSResourceRecord &rr, DNSName &ordername);
 
    virtual bool getDomainInfo(const string &domain, DomainInfo &di);
    virtual bool isMaster(const string &name, const string &ip);
@@ -136,7 +136,7 @@ bool LUABackend::abortTransaction() {
     return ok;
 }
 
-bool LUABackend::feedRecord(const DNSResourceRecord &rr, string *ordername) {
+bool LUABackend::feedRecord(const DNSResourceRecord &rr, const DNSName &ordername) {
 
     if (f_lua_feedrecord == 0)
         return false;

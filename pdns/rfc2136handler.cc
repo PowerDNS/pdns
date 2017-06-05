@@ -273,7 +273,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
       auto newRec = DNSResourceRecord::fromWire(*rr);
       newRec.domain_id = di->id;
       newRec.auth = (rr->d_name == di->zone || rrType.getCode() != QType::NS);
-      di->backend->feedRecord(newRec);
+      di->backend->feedRecord(newRec, DNSName());
       changedRecords++;
 
 
