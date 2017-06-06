@@ -158,7 +158,7 @@ std::unordered_map<int, vector<boost::variant<string,double>>> getGenResponses(u
   vector<pair<int, DNSName>> rcounts;
   rcounts.reserve(counts.size());
   for(const auto& c : counts) 
-    rcounts.push_back(make_pair(c.second, c.first));
+    rcounts.push_back(make_pair(c.second, c.first.makeLowerCase()));
   
   sort(rcounts.begin(), rcounts.end(), [](const decltype(rcounts)::value_type& a, 
                                           const decltype(rcounts)::value_type& b) {
@@ -1351,7 +1351,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       vector<pair<int, DNSName>> rcounts;
       rcounts.reserve(counts.size());
       for(const auto& c : counts) 
-	rcounts.push_back(make_pair(c.second, c.first));
+	rcounts.push_back(make_pair(c.second, c.first.makeLowerCase()));
 
       sort(rcounts.begin(), rcounts.end(), [](const decltype(rcounts)::value_type& a, 
 					      const decltype(rcounts)::value_type& b) {
