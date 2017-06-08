@@ -863,6 +863,12 @@ bool processQuery(LocalStateHolder<NetmaskTree<DynBlock> >& localDynNMGBlock,
         dq.dh->qr=true;
         return true;
       }
+      else if (action == DNSAction::Action::Truncate && !dq.tcp) {
+        vinfolog("Query from %s truncated because of dynamic block", dq.remote->toStringWithPort());
+        dq.dh->tc = true;
+        dq.dh->qr = true;
+        return true;
+      }
       else {
         vinfolog("Query from %s dropped because of dynamic block", dq.remote->toStringWithPort());
         return false;
@@ -882,6 +888,12 @@ bool processQuery(LocalStateHolder<NetmaskTree<DynBlock> >& localDynNMGBlock,
         vinfolog("Query from %s for %s refused because of dynamic block", dq.remote->toStringWithPort(), dq.qname->toString());
         dq.dh->rcode = RCode::Refused;
         dq.dh->qr=true;
+        return true;
+      }
+      else if (action == DNSAction::Action::Truncate && !dq.tcp) {
+        vinfolog("Query from %s for %s truncated because of dynamic block", dq.remote->toStringWithPort(), dq.qname->toString());
+        dq.dh->tc = true;
+        dq.dh->qr = true;
         return true;
       }
       else {
@@ -929,6 +941,11 @@ bool processQuery(LocalStateHolder<NetmaskTree<DynBlock> >& localDynNMGBlock,
         break;
       case DNSAction::Action::Spoof:
         spoofResponseFromString(dq, ruleresult);
+        return true;
+        break;
+      case DNSAction::Action::Truncate:
+        dq.dh->tc = true;
+        dq.dh->qr = true;
         return true;
         break;
       case DNSAction::Action::HeaderModify:

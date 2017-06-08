@@ -779,9 +779,7 @@ class TCAction : public DNSAction
 public:
   DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
   {
-    dq->dh->tc = true;
-    dq->dh->qr = true; // for good measure
-    return Action::HeaderModify;
+    return Action::Truncate;
   }
   string toString() const override
   {

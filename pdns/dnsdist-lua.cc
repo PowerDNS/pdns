@@ -209,8 +209,9 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       {"HeaderModify", (int)DNSAction::Action::HeaderModify},
       {"Pool", (int)DNSAction::Action::Pool},
       {"None",(int)DNSAction::Action::None},
-      {"Delay", (int)DNSAction::Action::Delay}}
-    );
+      {"Delay", (int)DNSAction::Action::Delay},
+      {"Truncate", (int)DNSAction::Action::Truncate}
+    });
 
   g_lua.writeVariable("DNSResponseAction", std::unordered_map<string,int>{
       {"Allow",        (int)DNSResponseAction::Action::Allow        },
