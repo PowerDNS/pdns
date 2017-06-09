@@ -39,7 +39,7 @@ extern char** g_argv;
 void primeHints(void)
 {
   // prime root cache
-  const vState validationState = Secure;
+  const vState validationState = Insecure;
   vector<DNSRecord> nsset;
   if(!t_RC)
     t_RC = std::unique_ptr<MemRecursorCache>(new MemRecursorCache());
