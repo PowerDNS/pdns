@@ -118,7 +118,7 @@ int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qcl
   d_wasOutOfBand=false;
 
   if (doSpecialNamesResolve(qname, qtype, qclass, ret)) {
-    d_queryValidationState = Secure;
+    d_queryValidationState = Insecure;
     return 0;
   }
 
