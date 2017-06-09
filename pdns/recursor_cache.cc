@@ -34,7 +34,7 @@ unsigned int MemRecursorCache::bytes()
 }
 
 // returns -1 for no hits
-int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt, bool requireAuth, vector<DNSRecord>* res, const ComboAddress& who, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, vState* state)
+int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt, bool requireAuth, vector<DNSRecord>* res, const ComboAddress& who, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, vState* state, bool* wasAuth)
 {
   time_t ttd=0;
   //  cerr<<"looking up "<< qname<<"|"+qt.getName()<<"\n";
@@ -92,6 +92,9 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
         }
         if(state) {
           *state = i->d_state;
+        }
+        if(wasAuth) {
+          *wasAuth = i->d_auth;
         }
         if(qt.getCode()!=QType::ANY && qt.getCode()!=QType::ADDR) // normally if we have a hit, we are done
           break;

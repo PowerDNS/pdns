@@ -54,7 +54,7 @@ public:
   }
   unsigned int size();
   unsigned int bytes();
-  int32_t get(time_t, const DNSName &qname, const QType& qt, bool requireAuth, vector<DNSRecord>* res, const ComboAddress& who, vector<std::shared_ptr<RRSIGRecordContent>>* signatures=nullptr, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs=nullptr, bool* variable=nullptr, vState* state=nullptr);
+  int32_t get(time_t, const DNSName &qname, const QType& qt, bool requireAuth, vector<DNSRecord>* res, const ComboAddress& who, vector<std::shared_ptr<RRSIGRecordContent>>* signatures=nullptr, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs=nullptr, bool* variable=nullptr, vState* state=nullptr, bool* wasAuth=nullptr);
 
   void replace(time_t, const DNSName &qname, const QType& qt,  const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, boost::optional<Netmask> ednsmask=boost::none, vState state=Indeterminate);
 
