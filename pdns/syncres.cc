@@ -1616,7 +1616,12 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
     if(rec.d_type == QType::RRSIG) {
       auto rrsig = getRR<RRSIGRecordContent>(rec);
       if (rrsig) {
-        if (rec.d_name == qname && rrsig->d_labels < rec.d_name.countLabels()) {
+        unsigned int labelCount = rec.d_name.countLabels();
+        /* As illustrated in rfc4035's Appendix B.6, the RRSIG label
+           count can be lower than the name's label count if it was
+           synthesized from the wildcard. Note that the difference might
+           be > 1. */
+        if (rec.d_name == qname && rrsig->d_labels < labelCount) {
           LOG(prefix<<qname<<": RRSIG indicates the name was expanded from a wildcard, we need a wildcard proof"<<endl);
           needWildcardProof = true;
         }

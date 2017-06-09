@@ -264,6 +264,11 @@ bool validateWithKeySet(time_t now, const DNSName& name, const vector<shared_ptr
   bool isValid = false;
 
   for(const auto& signature : signatures) {
+    unsigned int labelCount = name.countLabels();
+    if (signature->d_labels > labelCount) {
+      LOG(name<<": Discarding invalid RRSIG whose label count is "<<signature->d_labels<<" while the RRset owner name has only "<<labelCount<<endl);
+    }
+
     vector<shared_ptr<DNSRecordContent> > toSign = records;
 
     auto r = getByTag(keys, signature->d_tag, signature->d_algorithm);
