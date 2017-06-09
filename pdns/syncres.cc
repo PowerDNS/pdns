@@ -131,8 +131,7 @@ int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qcl
     return -1;
 
   set<GetBestNSAnswer> beenthere;
-  SyncRes::zonesStates_t cuts;
-  int res=doResolve(qname, qtype, ret, 0, beenthere, state, cuts);
+  int res=doResolve(qname, qtype, ret, 0, beenthere, state);
   d_queryValidationState = state;
   return res;
 }
@@ -489,7 +488,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
  * \param beenthere
  * \return DNS RCODE or -1 (Error) or -2 (RPZ hit)
  */
-int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state, SyncRes::zonesStates_t& cuts)
+int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state)
 {
   string prefix;
   if(doLog()) {
@@ -541,10 +540,10 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
       }
     }
 
-    if(!d_skipCNAMECheck && doCNAMECacheCheck(qname,qtype,ret,depth,res,state, cuts)) // will reroute us if needed
+    if(!d_skipCNAMECheck && doCNAMECacheCheck(qname,qtype,ret,depth,res,state)) // will reroute us if needed
       return res;
 
-    if(doCacheCheck(qname,qtype,ret,depth,res,state,cuts)) // we done
+    if(doCacheCheck(qname,qtype,ret,depth,res,state)) // we done
       return res;
   }
 
@@ -559,7 +558,7 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
   NsSet nsset;
   bool flawedNSSet=false;
 
-  computeZoneCuts(cuts, qname, g_rootdnsname, depth);
+  computeZoneCuts(qname, g_rootdnsname, depth);
 
   // the two retries allow getBestNSNamesFromCache&co to reprime the root
   // hints, in case they ever go missing
@@ -567,11 +566,11 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
     subdomain=getBestNSNamesFromCache(subdomain, qtype, nsset, &flawedNSSet, depth, beenthere); //  pass beenthere to both occasions
   }
 
-  state = getValidationStatus(cuts, subdomain);
+  state = getValidationStatus(subdomain);
 
   LOG("Initial validation status for "<<qname<<" inherited from "<<subdomain<<" is "<<vStates[state]<<endl);
 
-  if(!(res=doResolveAt(nsset, subdomain, flawedNSSet, qname, qtype, ret, depth, beenthere, state, cuts)))
+  if(!(res=doResolveAt(nsset, subdomain, flawedNSSet, qname, qtype, ret, depth, beenthere, state)))
     return 0;
 
   LOG(prefix<<qname<<": failed (res="<<res<<")"<<endl);
@@ -592,7 +591,7 @@ static bool ipv6First(const ComboAddress& a, const ComboAddress& b)
 
 /** This function explicitly goes out for A or AAAA addresses
 */
-vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth, set<GetBestNSAnswer>& beenthere, zonesStates_t& cuts)
+vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth, set<GetBestNSAnswer>& beenthere)
 {
   typedef vector<DNSRecord> res_t;
   res_t res;
@@ -620,7 +619,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
     }
 
     vState newState = Indeterminate;
-    if(!doResolve(qname, type, res,depth+1, beenthere, newState, cuts) && !res.empty()) {  // this consults cache, OR goes out
+    if(!doResolve(qname, type, res,depth+1, beenthere, newState) && !res.empty()) {  // this consults cache, OR goes out
       for(res_t::const_iterator i=res.begin(); i!= res.end(); ++i) {
         if(i->d_type == QType::A || i->d_type == QType::AAAA) {
 	  if(auto rec = std::dynamic_pointer_cast<ARecordContent>(i->d_content))
@@ -797,7 +796,7 @@ DNSName SyncRes::getBestNSNamesFromCache(const DNSName &qname, const QType& qtyp
   return subdomain;
 }
 
-bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>& ret, unsigned int depth, int &res, vState& state, SyncRes::zonesStates_t& cuts)
+bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>& ret, unsigned int depth, int &res, vState& state)
 {
   string prefix;
   if(doLog()) {
@@ -825,7 +824,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
           /* This means we couldn't figure out the state when this entry was cached,
              most likely because we hadn't computed the zone cuts yet. */
           LOG("Got Indeterminate state from the CNAME cache, validating.."<<endl);
-          state = SyncRes::validateRecordsWithSigs(depth, qname, QType(QType::CNAME), qname, cset, signatures, cuts);
+          state = SyncRes::validateRecordsWithSigs(depth, qname, QType(QType::CNAME), qname, cset, signatures);
           LOG("Got Indeterminate state from the CNAME cache, validation result is "<<vStates[state]<<endl);
         }
 
@@ -856,7 +855,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
           set<GetBestNSAnswer>beenthere;
 
           vState cnameState = Indeterminate;
-          res=doResolve(std::dynamic_pointer_cast<CNAMERecordContent>(j->d_content)->getTarget(), qtype, ret, depth+1, beenthere, cnameState, cuts);
+          res=doResolve(std::dynamic_pointer_cast<CNAMERecordContent>(j->d_content)->getTarget(), qtype, ret, depth+1, beenthere, cnameState);
           LOG("Updating validation state for response to "<<qname<<" from "<<vStates[state]<<" with the state from the CNAME quest: "<<vStates[cnameState]<<endl);
           updateValidationState(state, cnameState);
         }
@@ -887,7 +886,7 @@ static void addTTLModifiedRecords(const vector<DNSRecord>& records, const uint32
 }
 
 
-bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int &res, vState& state, SyncRes::zonesStates_t& cuts)
+bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int &res, vState& state)
 {
   bool giveNegative=false;
 
@@ -973,7 +972,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSR
       /* This means we couldn't figure out the state when this entry was cached,
          most likely because we hadn't computed the zone cuts yet. */
       LOG("Got Indeterminate state from the cache, validating.."<<endl);
-      cachedState = SyncRes::validateRecordsWithSigs(depth, sqname, sqt, sqname, cset, signatures, cuts);
+      cachedState = SyncRes::validateRecordsWithSigs(depth, sqname, sqt, sqname, cset, signatures);
       LOG("Got Indeterminate state from the cache, validation result is "<<vStates[cachedState]<<endl);
     }
 
@@ -1183,13 +1182,13 @@ bool SyncRes::nameserverIPBlockedByRPZ(const DNSFilterEngine& dfe, const ComboAd
   return false;
 }
 
-vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, const DNSName& qname, vector<DNSName >::const_iterator& tns, const unsigned int depth, set<GetBestNSAnswer>& beenthere, const vector<DNSName >& rnameservers, NsSet& nameservers, bool& sendRDQuery, bool& pierceDontQuery, bool& flawedNSSet, zonesStates_t& cuts)
+vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, const DNSName& qname, vector<DNSName >::const_iterator& tns, const unsigned int depth, set<GetBestNSAnswer>& beenthere, const vector<DNSName >& rnameservers, NsSet& nameservers, bool& sendRDQuery, bool& pierceDontQuery, bool& flawedNSSet)
 {
   vector<ComboAddress> result;
 
   if(!tns->empty()) {
     LOG(prefix<<qname<<": Trying to resolve NS '"<<*tns<< "' ("<<1+tns-rnameservers.begin()<<"/"<<(unsigned int)rnameservers.size()<<")"<<endl);
-    result = getAddrs(*tns, depth+2, beenthere, cuts);
+    result = getAddrs(*tns, depth+2, beenthere);
     pierceDontQuery=false;
   }
   else {
@@ -1320,7 +1319,7 @@ static size_t countSupportedDS(const dsmap_t& dsmap)
   return count;
 }
 
-vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsigned int depth, SyncRes::zonesStates_t& cuts)
+vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsigned int depth)
 {
   vState result = getTA(zone, ds);
 
@@ -1342,7 +1341,7 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsi
   std::vector<DNSRecord> dsrecords;
 
   vState state = Indeterminate;
-  int rcode = doResolve(zone, QType(QType::DS), dsrecords, depth + 1, beenthere, state, cuts);
+  int rcode = doResolve(zone, QType(QType::DS), dsrecords, depth + 1, beenthere, state);
   d_skipCNAMECheck = oldSkipCNAME;
   d_requireAuthData = oldRequireAuthData;
 
@@ -1369,7 +1368,7 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsi
   return Bogus;
 }
 
-vState SyncRes::getValidationStatus(const SyncRes::zonesStates_t& cuts, const DNSName& subdomain)
+vState SyncRes::getValidationStatus(const DNSName& subdomain)
 {
   vState result = Indeterminate;
 
@@ -1378,8 +1377,8 @@ vState SyncRes::getValidationStatus(const SyncRes::zonesStates_t& cuts, const DN
   }
   DNSName name(subdomain);
   do {
-    const auto& it = cuts.find(name);
-    if (it != cuts.cend()) {
+    const auto& it = d_cutStates.find(name);
+    if (it != d_cutStates.cend()) {
       LOG("Got status "<<vStates[it->second]<<" for name "<<subdomain<<" (from "<<name<<")"<<endl);
       return it->second;
     }
@@ -1389,53 +1388,38 @@ vState SyncRes::getValidationStatus(const SyncRes::zonesStates_t& cuts, const DN
   return result;
 }
 
-void SyncRes::computeZoneCuts(SyncRes::zonesStates_t& cuts, const DNSName& begin, const DNSName& end, unsigned int depth)
+void SyncRes::computeZoneCuts(const DNSName& begin, const DNSName& end, unsigned int depth)
 {
-  LOG(__func__<<", from "<<begin.toString()<<" to "<<end.toString()<<endl);
   if(!begin.isPartOf(end)) {
     LOG(end.toLogString()<<" is not part of "<<begin.toString()<<endl);
     throw PDNSException(end.toLogString() + " is not part of " + begin.toString());
   }
 
-  if (cuts.count(begin) != 0) {
-    LOG(begin.toLogString()<<" is already in the table!"<<endl);
-    return;
-  }
-
-  if (d_computingZoneCut) {
-    LOG(begin.toLogString()<<" already computing zone cut!"<<endl);
+  if (d_cutStates.count(begin) != 0) {
     return;
   }
 
   dsmap_t ds;
-  vState cutState = getDSRecords(end, ds, false, depth, cuts);
+  vState cutState = getDSRecords(end, ds, false, depth);
   if (cutState == TA) {
     cutState = Secure;
   }
   else if (cutState == NTA) {
     cutState = Insecure;
   }
-  cuts[end] = cutState;
+  d_cutStates[end] = cutState;
 
   if (!validationEnabled()) {
-    LOG("validation is not enabled"<<endl);
     return;
   }
-
-/*  if (d_computingZoneCut) {
-    LOG("already computing zone cuts!"<<endl);
-    return;
-    }*/
 
   DNSName qname(end);
   std::vector<string> labelsToAdd = begin.makeRelative(end).getRawLabels();
 
   bool oldSkipCNAME = d_skipCNAMECheck;
   bool oldRequireAuthData = d_requireAuthData;
-  bool oldComputingZoneCut = d_computingZoneCut;
   d_skipCNAMECheck = true;
   d_requireAuthData = false;
-  d_computingZoneCut = true;
 
   while(qname != begin) {
     bool foundCut = false;
@@ -1452,9 +1436,8 @@ void SyncRes::computeZoneCuts(SyncRes::zonesStates_t& cuts, const DNSName& begin
     vState state = Indeterminate;
     /* temporarily mark as Indeterminate, so that we won't enter an endless loop
        trying to determine that zone cut again. */
-    cuts[qname] = state;
-    SyncRes::zonesStates_t tempCuts = cuts;
-    int rcode = doResolve(qname, QType(QType::NS), nsrecords, depth + 1, beenthere, state, tempCuts);
+    d_cutStates[qname] = state;
+    int rcode = doResolve(qname, QType(QType::NS), nsrecords, depth + 1, beenthere, state);
 
     if (rcode == RCode::NoError && !nsrecords.empty()) {
       for (const auto& record : nsrecords) {
@@ -1466,7 +1449,7 @@ void SyncRes::computeZoneCuts(SyncRes::zonesStates_t& cuts, const DNSName& begin
       if (foundCut) {
         LOG("- Found cut at "<<qname<<endl);
         dsmap_t ds;
-        vState newState = getDSRecords(qname, ds, cutState == Insecure || cutState == Bogus, depth, cuts);
+        vState newState = getDSRecords(qname, ds, cutState == Insecure || cutState == Bogus, depth);
         if (newState != Indeterminate) {
           cutState = newState;
         }
@@ -1477,33 +1460,34 @@ void SyncRes::computeZoneCuts(SyncRes::zonesStates_t& cuts, const DNSName& begin
         else if (cutState == NTA) {
           cutState = Insecure;
         }
-        cuts[qname] = cutState;
+        d_cutStates[qname] = cutState;
       }
     }
     if (!foundCut) {
       /* remove the temporary cut */
-      cuts.erase(qname);
+      d_cutStates.erase(qname);
     }
   }
 
   d_skipCNAMECheck = oldSkipCNAME;
   d_requireAuthData = oldRequireAuthData;
-  d_computingZoneCut = oldComputingZoneCut;
 
   LOG("List of cuts from "<<begin<<" to "<<end<<endl);
-  for (const auto& cut : cuts) {
-    LOG(" - "<<cut.first<<": "<<vStates[cut.second]<<endl);
+  for (const auto& cut : d_cutStates) {
+    if (cut.first.isPartOf(begin) && end.isPartOf(cut.first)) {
+      LOG(" - "<<cut.first<<": "<<vStates[cut.second]<<endl);
+    }
   }
 }
 
-vState SyncRes::validateDNSKeys(const DNSName& zone, const std::vector<DNSRecord>& dnskeys, const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures, unsigned int depth, SyncRes::zonesStates_t& cuts)
+vState SyncRes::validateDNSKeys(const DNSName& zone, const std::vector<DNSRecord>& dnskeys, const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures, unsigned int depth)
 {
   dsmap_t ds;
   if (!signatures.empty()) {
     DNSName signer = getSigner(signatures);
 
     if (!signer.empty() && signer.isPartOf(zone)) {
-      vState state = getDSRecords(signer, ds, false, depth, cuts);
+      vState state = getDSRecords(signer, ds, false, depth);
 
       if (state == TA) {
         state = Secure;
@@ -1544,7 +1528,7 @@ vState SyncRes::validateDNSKeys(const DNSName& zone, const std::vector<DNSRecord
   return Secure;
 }
 
-vState SyncRes::getDNSKeys(const DNSName& signer, skeyset_t& keys, unsigned int depth, SyncRes::zonesStates_t& cuts)
+vState SyncRes::getDNSKeys(const DNSName& signer, skeyset_t& keys, unsigned int depth)
 {
   std::vector<DNSRecord> records;
   std::set<GetBestNSAnswer> beenthere;
@@ -1554,7 +1538,7 @@ vState SyncRes::getDNSKeys(const DNSName& signer, skeyset_t& keys, unsigned int 
   /* following CNAME might lead to us to the wrong DNSKEY */
   bool oldSkipCNAME = d_skipCNAMECheck;
   d_skipCNAMECheck = true;
-  int rcode = doResolve(signer, QType(QType::DNSKEY), records, depth + 1, beenthere, state, cuts);
+  int rcode = doResolve(signer, QType(QType::DNSKEY), records, depth + 1, beenthere, state);
   d_skipCNAMECheck = oldSkipCNAME;
 
   if (rcode == RCode::NoError) {
@@ -1576,7 +1560,7 @@ vState SyncRes::getDNSKeys(const DNSName& signer, skeyset_t& keys, unsigned int 
   return Bogus;
 }
 
-vState SyncRes::validateRecordsWithSigs(unsigned int depth, const DNSName& qname, const QType& qtype, const DNSName& name, const std::vector<DNSRecord>& records, const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures, SyncRes::zonesStates_t& cuts)
+vState SyncRes::validateRecordsWithSigs(unsigned int depth, const DNSName& qname, const QType& qtype, const DNSName& name, const std::vector<DNSRecord>& records, const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures)
 {
   skeyset_t keys;
   if (!signatures.empty()) {
@@ -1586,7 +1570,7 @@ vState SyncRes::validateRecordsWithSigs(unsigned int depth, const DNSName& qname
         /* we are already retrieving those keys, sorry */
         return Indeterminate;
       }
-      vState state = getDNSKeys(signer, keys, depth, cuts);
+      vState state = getDNSKeys(signer, keys, depth);
       if (state != Secure) {
         return state;
       }
@@ -1611,7 +1595,7 @@ vState SyncRes::validateRecordsWithSigs(unsigned int depth, const DNSName& qname
   return Bogus;
 }
 
-RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType& qtype, const DNSName& auth, bool wasForwarded, const boost::optional<Netmask> ednsmask, vState& state, SyncRes::zonesStates_t& cuts, bool& needWildcardProof)
+RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType& qtype, const DNSName& auth, bool wasForwarded, const boost::optional<Netmask> ednsmask, vState& state, bool& needWildcardProof)
 {
   struct CacheEntry
   {
@@ -1749,7 +1733,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
       continue;
 
 //    vState recordState = state;
-    vState recordState = getValidationStatus(cuts, auth);
+    vState recordState = getValidationStatus(auth);
     LOG("Got status "<<vStates[recordState]<<" for record "<<i->first.name<<endl);
 
     if (validationEnabled() && recordState == Secure) {
@@ -1761,11 +1745,11 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
           */
           if (i->first.type == QType::DNSKEY && i->first.place == DNSResourceRecord::ANSWER) {
             LOG("Validating DNSKEY for "<<i->first.name<<endl);
-            recordState = validateDNSKeys(i->first.name, i->second.records, i->second.signatures, depth, cuts);
+            recordState = validateDNSKeys(i->first.name, i->second.records, i->second.signatures, depth);
           }
           else {
             LOG("Validating non-additional record for "<<i->first.name<<endl);
-            recordState = validateRecordsWithSigs(depth, qname, qtype, i->first.name, i->second.records, i->second.signatures, cuts);
+            recordState = validateRecordsWithSigs(depth, qname, qtype, i->first.name, i->second.records, i->second.signatures);
           }
         }
       }
@@ -1773,7 +1757,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
         /* for non authoritative answer, we only care about the DS record (or lack of)  */
         if ((i->first.type == QType::DS || i->first.type == QType::NSEC || i->first.type == QType::NSEC3) && i->first.place == DNSResourceRecord::AUTHORITY) {
           LOG("Validating DS record for "<<i->first.name<<endl);
-          recordState = validateRecordsWithSigs(depth, qname, qtype, i->first.name, i->second.records, i->second.signatures, cuts);
+          recordState = validateRecordsWithSigs(depth, qname, qtype, i->first.name, i->second.records, i->second.signatures);
         }
       }
       updateValidationState(state, recordState);
@@ -1820,7 +1804,7 @@ void SyncRes::getDenialValidationState(NegCache::NegCacheEntry& ne, vState& stat
   }
 }
 
-bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, const QType& qtype, const DNSName& auth, LWResult& lwr, const bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, vState& state, bool needWildcardProof, zonesStates_t& cuts)
+bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, const QType& qtype, const DNSName& auth, LWResult& lwr, const bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, vState& state, bool needWildcardProof)
 {
   bool done = false;
 
@@ -1910,14 +1894,14 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
           rec.d_ttl = min(s_maxnegttl, rec.d_ttl);
           LOG(prefix<<qname<<": got negative indication of DS record for '"<<newauth<<"'"<<endl);
           updateValidationState(state, Insecure);
-          auto cut = cuts.find(newauth);
-          if (cut != cuts.end()) {
+          auto cut = d_cutStates.find(newauth);
+          if (cut != d_cutStates.end()) {
             if (cut->second == Indeterminate) {
               cut->second = state;
             }
           }
           else {
-            cuts[newauth] = state;
+            d_cutStates[newauth] = state;
           }
           if(!wasVariable()) {
             t_sstorage.negcache.add(ne);
@@ -2074,7 +2058,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
   return true;
 }
 
-bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType& qtype, DNSName& auth, bool wasForwarded, const boost::optional<Netmask> ednsmask, bool sendRDQuery, NsSet &nameservers, std::vector<DNSRecord>& ret, const DNSFilterEngine& dfe, bool* gotNewServers, int* rcode, vState& state, SyncRes::zonesStates_t& cuts)
+bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType& qtype, DNSName& auth, bool wasForwarded, const boost::optional<Netmask> ednsmask, bool sendRDQuery, NsSet &nameservers, std::vector<DNSRecord>& ret, const DNSFilterEngine& dfe, bool* gotNewServers, int* rcode, vState& state)
 {
   string prefix;
   if(doLog()) {
@@ -2089,7 +2073,7 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
   }
 
   bool needWildcardProof = false;
-  *rcode = updateCacheFromRecords(depth, lwr, qname, qtype, auth, wasForwarded, ednsmask, state, cuts, needWildcardProof);
+  *rcode = updateCacheFromRecords(depth, lwr, qname, qtype, auth, wasForwarded, ednsmask, state, needWildcardProof);
   if (*rcode != RCode::NoError) {
     return true;
   }
@@ -2101,7 +2085,7 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
   DNSName newauth;
   DNSName newtarget;
 
-  bool done = processRecords(prefix, qname, qtype, auth, lwr, sendRDQuery, ret, nsset, newtarget, newauth, realreferral, negindic, state, needWildcardProof, cuts);
+  bool done = processRecords(prefix, qname, qtype, auth, lwr, sendRDQuery, ret, nsset, newtarget, newauth, realreferral, negindic, state, needWildcardProof);
 
   if(done){
     LOG(prefix<<qname<<": status=got results, this level of recursion done"<<endl);
@@ -2126,12 +2110,9 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
 
     set<GetBestNSAnswer> beenthere2;
     vState cnameState = Indeterminate;
-    bool oldComputingZoneCut = d_computingZoneCut;
-    d_computingZoneCut = false;
-    *rcode = doResolve(newtarget, qtype, ret, depth + 1, beenthere2, cnameState, cuts);
+    *rcode = doResolve(newtarget, qtype, ret, depth + 1, beenthere2, cnameState);
     LOG("Updating validation state for response to "<<qname<<" from "<<vStates[state]<<" with the state from the CNAME quest: "<<vStates[cnameState]<<endl);
     updateValidationState(state, cnameState);
-    d_computingZoneCut = oldComputingZoneCut;
     return true;
   }
 
@@ -2187,7 +2168,7 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
  */
 int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, const DNSName &qname, const QType &qtype,
                          vector<DNSRecord>&ret,
-                         unsigned int depth, set<GetBestNSAnswer>&beenthere, vState& state, SyncRes::zonesStates_t& cuts)
+                         unsigned int depth, set<GetBestNSAnswer>&beenthere, vState& state)
 {
   auto luaconfsLocal = g_luaconfs.getLocal();
   string prefix;
@@ -2244,7 +2225,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
         lwr.d_aabit=true;
 
         /* we have received an answer, are we done ? */
-        bool done = processAnswer(depth, lwr, qname, qtype, auth, false, ednsmask, sendRDQuery, nameservers, ret, luaconfsLocal->dfe, &gotNewServers, &rcode, state, cuts);
+        bool done = processAnswer(depth, lwr, qname, qtype, auth, false, ednsmask, sendRDQuery, nameservers, ret, luaconfsLocal->dfe, &gotNewServers, &rcode, state);
         if (done) {
           return rcode;
         }
@@ -2254,7 +2235,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
       }
       else {
         /* if tns is empty, retrieveAddressesForNS() knows we have hardcoded servers (i.e. "forwards") */
-        remoteIPs = retrieveAddressesForNS(prefix, qname, tns, depth, beenthere, rnameservers, nameservers, sendRDQuery, pierceDontQuery, flawedNSSet, cuts);
+        remoteIPs = retrieveAddressesForNS(prefix, qname, tns, depth, beenthere, rnameservers, nameservers, sendRDQuery, pierceDontQuery, flawedNSSet);
 
         if(remoteIPs.empty()) {
           LOG(prefix<<qname<<": Failed to get IP for NS "<<*tns<<", trying next if available"<<endl);
@@ -2309,7 +2290,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
           t_sstorage.nsSpeeds[*tns].submit(*remoteIP, lwr.d_usec, &d_now);
 
           /* we have received an answer, are we done ? */
-          bool done = processAnswer(depth, lwr, qname, qtype, auth, wasForwarded, ednsmask, sendRDQuery, nameservers, ret, luaconfsLocal->dfe, &gotNewServers, &rcode, state, cuts);
+          bool done = processAnswer(depth, lwr, qname, qtype, auth, wasForwarded, ednsmask, sendRDQuery, nameservers, ret, luaconfsLocal->dfe, &gotNewServers, &rcode, state);
           if (done) {
             return rcode;
           }
