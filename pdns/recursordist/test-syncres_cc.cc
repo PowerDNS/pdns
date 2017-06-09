@@ -4791,7 +4791,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_no_ds_on_referral_insecure) {
   BOOST_CHECK_EQUAL(dsQueriesCount, 2);
 }
 
-BOOST_AUTO_TEST_CASE(test_dnssec_validation_bogus_no_nsec) {
+BOOST_AUTO_TEST_CASE(test_dnssec_validation_bogus_unsigned_nsec) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
@@ -4884,7 +4884,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_bogus_no_nsec) {
   BOOST_CHECK_EQUAL(queriesCount, 8);
 }
 
-BOOST_AUTO_TEST_CASE(test_dnssec_validation_bogus_unsigned_nsec) {
+BOOST_AUTO_TEST_CASE(test_dnssec_validation_bogus_no_nsec) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
