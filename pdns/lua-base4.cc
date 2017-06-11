@@ -104,19 +104,21 @@ void BaseLua4::prepareContext() {
   d_lw->writeFunction("newCAS", []{ return cas_t(); });
 
   // cas_t
-  d_lw->registerFunction<void(cas_t::*)(boost::variant<string,ComboAddress, vector<pair<unsigned int,string> > >)>("add", [](cas_t& cas, const boost::variant<string,ComboAddress,vector<pair<unsigned int,string> > >& in)
+  d_lw->registerFunction<void(cas_t::*)(boost::variant<string,ComboAddress, vector<pair<unsigned int,string> > >)>("add",
+    [](cas_t& cas, const boost::variant<string,ComboAddress,vector<pair<unsigned int,string> > >& in)
     {
       try {
-        if(auto s = boost::get<string>(&in)) {
-          cas.insert(ComboAddress(*s));
-        }
-        else if(auto v = boost::get<vector<pair<unsigned int, string> > >(&in)) {
-          for(const auto& s : *v)
-            cas.insert(ComboAddress(s.second));
-        }
-        else
-          cas.insert(boost::get<ComboAddress>(in));
-      } catch(std::exception& e) { theL() <<Logger::Error<<e.what()<<endl; }
+      if(auto s = boost::get<string>(&in)) {
+        cas.insert(ComboAddress(*s));
+      }
+      else if(auto v = boost::get<vector<pair<unsigned int, string> > >(&in)) {
+        for(const auto& str : *v)
+          cas.insert(ComboAddress(str.second));
+      }
+      else
+        cas.insert(boost::get<ComboAddress>(in));
+      }
+      catch(std::exception& e) { theL() <<Logger::Error<<e.what()<<endl; }
     });
   d_lw->registerFunction<bool(cas_t::*)(const ComboAddress&)>("check",[](const cas_t& cas, const ComboAddress&ca) { return cas.count(ca)>0; });
   d_lw->registerFunction<bool(ComboAddress::*)(const ComboAddress&)>("equal", [](const ComboAddress& lhs, const ComboAddress& rhs) { return ComboAddress::addressOnlyEqual()(lhs, rhs); });
@@ -132,6 +134,7 @@ void BaseLua4::prepareContext() {
   d_lw->registerFunction("empty", &Netmask::empty);
   d_lw->registerFunction("match", (bool (Netmask::*)(const string&) const)&Netmask::match);
   d_lw->registerEqFunction(&Netmask::operator==);
+  d_lw->registerToStringFunction(&Netmask::toString);
 
   // NetmaskGroup
   d_lw->writeFunction("newNMG", []() { return NetmaskGroup(); });

@@ -179,6 +179,7 @@ pdns_server_SOURCES = \
 	json.cc json.hh \
 	lock.hh \
 	logger.cc logger.hh \
+	lua-base4.cc lua-base4.hh \
 	lua-auth.cc lua-auth.hh \
 	lua-auth4.cc lua-auth4.hh \
 	lua-pdns.cc lua-pdns.hh lua-iputils.cc \

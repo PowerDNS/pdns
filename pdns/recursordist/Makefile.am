@@ -111,6 +111,7 @@ pdns_recursor_SOURCES = \
 	lazy_allocator.hh \
 	lock.hh \
 	logger.hh logger.cc \
+	lua-base4.cc lua-base4.hh \
 	lua-recursor4.cc lua-recursor4.hh \
 	lwres.cc lwres.hh \
 	misc.hh misc.cc \
