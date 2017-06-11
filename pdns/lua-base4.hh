@@ -21,8 +21,10 @@ protected:
 #endif
 
 public:
-  explicit BaseLua4(const std::string &fname);
-
+  BaseLua4();
+  void loadFile(const std::string &fname);
+  void loadString(const std::string &script);
+  void loadStream(std::istream &is);
   virtual ~BaseLua4(); // this is so unique_ptr works with an incomplete type
 protected:
   void prepareContext();

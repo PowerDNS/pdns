@@ -41,7 +41,7 @@ unsigned int getRecursorThreadId();
 class RecursorLua4 : public BaseLua4
 {
 public:
-  explicit RecursorLua4(const std::string &fname);
+  RecursorLua4();
   ~RecursorLua4(); // this is so unique_ptr works with an incomplete type
 
   struct DNSQuestion
@@ -118,8 +118,8 @@ public:
   typedef std::function<std::tuple<unsigned int,boost::optional<std::unordered_map<int,string> >,boost::optional<LuaContext::LuaObject>,boost::optional<std::string>,boost::optional<std::string> >(ComboAddress, Netmask, ComboAddress, DNSName, uint16_t, const std::map<uint16_t, EDNSOptionView>&, bool)> gettag_t;
   gettag_t d_gettag; // public so you can query if we have this hooked
 protected:
-  void postPrepareContext() override;
-  void postLoad() override;
+  virtual void postPrepareContext() override;
+  virtual void postLoad() override;
 private:
   typedef std::function<bool(DNSQuestion*)> luacall_t;
   luacall_t d_prerpz, d_preresolve, d_nxdomain, d_nodata, d_postresolve, d_preoutquery, d_postoutquery;

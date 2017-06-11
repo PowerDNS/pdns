@@ -11,27 +11,33 @@
 #include "ednssubnet.hh"
 #include "lua-base4.hh"
 
+BaseLua4::BaseLua4() {
+}
+
+void BaseLua4::loadFile(const std::string &fname) {
+  std::ifstream ifs(fname);
+  if(!ifs) {
+    theL()<<Logger::Error<<"Unable to read configuration file from '"<<fname<<"': "<<strerror(errno)<<endl;
+    return;
+  }
+  loadStream(ifs);
+};
+
+void BaseLua4::loadString(const std::string &script) {
+  std::istringstream iss(script);
+  loadStream(iss);
+};
+
 #if !defined(HAVE_LUA)
 
-BaseLua4::BaseLua4(const std::string &fname) { return; }
 void BaseLua4::prepareContext() { return; }
+void BaseLua4::loadStream(std::istream &is) { return; }
 BaseLua4::~BaseLua4() { }
 
 #else
 
 #undef L
 #include "ext/luawrapper/include/LuaContext.hpp"
-
-BaseLua4::BaseLua4(const std::string &fname) {
-  prepareContext();
-  std::ifstream ifs(fname);
-  if(!ifs) {
-    theL()<<Logger::Error<<"Unable to read configuration file from '"<<fname<<"': "<<strerror(errno)<<endl;
-    return;
-  }
-  d_lw->executeCode(ifs);
-  postLoad();
-};
 
 void BaseLua4::prepareContext() {
   d_lw = std::unique_ptr<LuaContext>(new LuaContext);
@@ -210,6 +216,12 @@ void BaseLua4::prepareContext() {
 
   // so we can let postprepare do changes to this
   d_lw->writeVariable("pdns", d_pd);
+}
+
+void BaseLua4::loadStream(std::istream &is) {
+  d_lw->executeCode(is);
+
+  postLoad();
 }
 
 BaseLua4::~BaseLua4() { }

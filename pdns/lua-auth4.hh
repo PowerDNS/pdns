@@ -12,14 +12,14 @@
 class AuthLua4 : public BaseLua4
 {
 public:
-  explicit AuthLua4(const string &fname);
+  AuthLua4();
   bool updatePolicy(const DNSName &qname, QType qtype, const DNSName &zonename, DNSPacket *packet);
   bool axfrfilter(const ComboAddress&, const DNSName&, const DNSResourceRecord&, std::vector<DNSResourceRecord>&);
 
   ~AuthLua4(); // this is so unique_ptr works with an incomplete type
 protected:
-  void postPrepareContext() override;
-  void postLoad() override;
+  virtual void postPrepareContext() override;
+  virtual void postLoad() override;
 private:
   struct UpdatePolicyQuery {
     DNSName qname;

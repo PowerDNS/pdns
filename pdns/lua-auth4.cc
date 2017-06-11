@@ -7,8 +7,7 @@
 #include "ednssubnet.hh"
 #include <unordered_set>
 
-AuthLua4::AuthLua4(const std::string &fname) : BaseLua4(fname) {
-}
+AuthLua4::AuthLua4() { prepareContext(); }
 
 #if !defined(HAVE_LUA)
 

@@ -32,8 +32,7 @@
 #include "rec-snmp.hh"
 #include <unordered_set>
 
-RecursorLua4::RecursorLua4(const std::string &fname) : BaseLua4(fname) {
-}
+RecursorLua4::RecursorLua4() { prepareContext(); }
 
 static int followCNAMERecords(vector<DNSRecord>& ret, const QType& qtype)
 {
