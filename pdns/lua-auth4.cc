@@ -13,6 +13,8 @@ AuthLua4::AuthLua4() { prepareContext(); }
 
 bool AuthLua4::updatePolicy(const DNSName &qname, QType qtype, const DNSName &zonename, DNSPacket *packet) { return false; }
 bool AuthLua4::axfrfilter(const ComboAddress& remote, const DNSName& zone, const DNSResourceRecord& in, vector<DNSResourceRecord>& out) { return false; }
+DNSPacket *AuthLua4::prequery(DNSPacket *q) { return NULL; }
+
 AuthLua4::~AuthLua4() { }
 
 #else
@@ -46,7 +48,7 @@ void AuthLua4::postPrepareContext() {
   d_lw->registerFunction<DNSPacket, Netmask()>("getRealRemote", [](DNSPacket &p) { return p.getRealRemote(); });
   d_lw->registerFunction<DNSPacket, ComboAddress()>("getLocal", [](DNSPacket &p) { return p.getLocal(); });
   d_lw->registerFunction<DNSPacket, unsigned int()>("getRemotePort", [](DNSPacket &p) { return p.getRemotePort(); });
-
+  d_lw->registerFunction<DNSPacket, std::tuple<const std::string, unsigned int>()>("getQuestion", [](DNSPacket &p) { return std::make_tuple(p.qdomain.toString(), static_cast<unsigned int>(p.qtype.getCode())); });
   d_lw->registerFunction<DNSPacket, void(bool)>("setA", [](DNSPacket &p, bool a) { return p.setA(a); });
   d_lw->registerFunction<DNSPacket, void(unsigned int)>("setID", [](DNSPacket &p, unsigned int id) { return p.setID(static_cast<uint16_t>(id)); });
   d_lw->registerFunction<DNSPacket, void(bool)>("setRA", [](DNSPacket &p, bool ra) { return p.setRA(ra); });
@@ -91,6 +93,7 @@ void AuthLua4::postPrepareContext() {
 void AuthLua4::postLoad() {
   d_update_policy = d_lw->readVariable<boost::optional<luacall_update_policy_t>>("updatepolicy").get_value_or(0);
   d_axfr_filter = d_lw->readVariable<boost::optional<luacall_axfr_filter_t>>("axfrfilter").get_value_or(0);
+  d_prequery = d_lw->readVariable<boost::optional<luacall_prequery_t>>("prequery").get_value_or(0);
 
 }
 
@@ -144,6 +147,16 @@ bool AuthLua4::updatePolicy(const DNSName &qname, QType qtype, const DNSName &zo
   upq.peerPrincipal = packet->d_peer_principal;
 
   return d_update_policy(upq);
+}
+
+DNSPacket *AuthLua4::prequery(DNSPacket *q) {
+  if (d_prequery == NULL) return NULL;
+
+  DNSPacket *r = q->replyPacket();
+  if (d_prequery(r))
+    return r;
+  delete r;
+  return NULL;
 }
 
 AuthLua4::~AuthLua4() { }

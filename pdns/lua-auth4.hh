@@ -15,6 +15,7 @@ public:
   AuthLua4();
   bool updatePolicy(const DNSName &qname, QType qtype, const DNSName &zonename, DNSPacket *packet);
   bool axfrfilter(const ComboAddress&, const DNSName&, const DNSResourceRecord&, std::vector<DNSResourceRecord>&);
+  DNSPacket *prequery(DNSPacket *p);
 
   ~AuthLua4(); // this is so unique_ptr works with an incomplete type
 protected:
@@ -33,7 +34,9 @@ private:
 
   typedef std::function<bool(const UpdatePolicyQuery&)> luacall_update_policy_t;
   typedef std::function<std::tuple<int, std::unordered_map<int, std::unordered_map<std::string,boost::variant<unsigned int,std::string> > > >(const ComboAddress&, const DNSName&, const DNSResourceRecord&)> luacall_axfr_filter_t;
+  typedef std::function<bool(DNSPacket*)> luacall_prequery_t;
 
   luacall_update_policy_t d_update_policy;
   luacall_axfr_filter_t d_axfr_filter;
+  luacall_prequery_t d_prequery;
 };

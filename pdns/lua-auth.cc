@@ -32,11 +32,6 @@ AuthLua::AuthLua(const std::string &fname)
   // empty
 }
 
-DNSPacket* AuthLua::prequery(DNSPacket *p)
-{
-  return 0;
-}
-
 #else
 
 
@@ -206,48 +201,5 @@ void AuthLua::registerLuaDNSPacket(void) {
   lua_pop(d_lua, 1);
 }
 #endif
-
-DNSPacket* AuthLua::prequery(DNSPacket *p)
-{
-  lua_getglobal(d_lua,"prequery");
-  if(!lua_isfunction(d_lua, -1)) {
-    // cerr<<"No such function 'prequery'\n";
-    lua_pop(d_lua, 1);
-    return 0;
-  }
-  
-  DNSPacket *r=0;
-  // allocate a fresh packet and prefill the question
-  r=p->replyPacket();
-
-  // wrap it
-  LuaDNSPacket* lua_dp = (LuaDNSPacket *)lua_newuserdata(d_lua, sizeof(LuaDNSPacket));
-  lua_dp->d_p=r;
-  
-  // make it of the right type
-  luaL_getmetatable(d_lua, "LuaDNSPacket");
-  lua_setmetatable(d_lua, -2);
-
-  if(lua_pcall(d_lua,  1, 1, 0)) { // error 
-    string error=string("lua error in prequery: ")+lua_tostring(d_lua, -1);
-    theL()<<Logger::Error<<error<<endl;
-
-    lua_pop(d_lua, 1);
-    throw runtime_error(error);
-  }
-  bool res=lua_toboolean(d_lua, 1);
-  lua_pop(d_lua, 1);
-  if(res) {
-    // prequery created our response, use it
-    theL()<<Logger::Info<<"overriding query from lua prequery result"<<endl;
-    return r;
-  }
-  else
-  {
-    // prequery wanted nothing to do with this question
-    delete r;
-    return 0;
-  }
-}
 
 #endif

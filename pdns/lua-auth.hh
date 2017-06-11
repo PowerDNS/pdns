@@ -32,7 +32,6 @@ class AuthLua : public PowerDNSLua
 public:
   explicit AuthLua(const std::string& fname);
   // ~AuthLua();
-  DNSPacket* prequery(DNSPacket *p);
 
 private:
   void registerLuaDNSPacket(void);

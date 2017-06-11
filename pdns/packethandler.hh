@@ -110,7 +110,7 @@ private:
   bool d_doIPv6AdditionalProcessing;
   bool d_doDNAME;
   bool d_doExpandALIAS;
-  std::unique_ptr<AuthLua> d_pdl;
+  std::unique_ptr<AuthLua4> d_pdl;
   std::unique_ptr<AuthLua4> d_update_policy_lua;
 
   UeberBackend B; // every thread an own instance
