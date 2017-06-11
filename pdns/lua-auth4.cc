@@ -35,6 +35,47 @@ void AuthLua4::postPrepareContext() {
       return luaResult;
   });
 
+/* DNSPacket */
+  d_lw->writeFunction("newDNSPacket", [](bool isQuery) { return new DNSPacket(isQuery); });
+  d_lw->writeFunction("dupDNSPacket", [](const DNSPacket &orig) { return new DNSPacket(orig); });
+  d_lw->registerFunction<DNSPacket, int(const char *, size_t)>("noparse", [](DNSPacket &p, const char *mesg, size_t len){ return p.noparse(mesg, len); });
+  d_lw->registerFunction<DNSPacket, int(const char *, size_t)>("parse", [](DNSPacket &p, const char *mesg, size_t len){ return p.parse(mesg, len); });
+  d_lw->registerFunction<DNSPacket, const std::string()>("getString", [](DNSPacket &p) { return p.getString(); });
+  d_lw->registerFunction<DNSPacket, void(const ComboAddress&)>("setRemote", [](DNSPacket &p, const ComboAddress &ca) { p.setRemote(&ca); });
+  d_lw->registerFunction<DNSPacket, ComboAddress()>("getRemote", [](DNSPacket &p) { return p.getRemote(); });
+  d_lw->registerFunction<DNSPacket, Netmask()>("getRealRemote", [](DNSPacket &p) { return p.getRealRemote(); });
+  d_lw->registerFunction<DNSPacket, ComboAddress()>("getLocal", [](DNSPacket &p) { return p.getLocal(); });
+  d_lw->registerFunction<DNSPacket, unsigned int()>("getRemotePort", [](DNSPacket &p) { return p.getRemotePort(); });
+
+  d_lw->registerFunction<DNSPacket, void(bool)>("setA", [](DNSPacket &p, bool a) { return p.setA(a); });
+  d_lw->registerFunction<DNSPacket, void(unsigned int)>("setID", [](DNSPacket &p, unsigned int id) { return p.setID(static_cast<uint16_t>(id)); });
+  d_lw->registerFunction<DNSPacket, void(bool)>("setRA", [](DNSPacket &p, bool ra) { return p.setRA(ra); });
+  d_lw->registerFunction<DNSPacket, void(bool)>("setRD", [](DNSPacket &p, bool rd) { return p.setRD(rd); });
+  d_lw->registerFunction<DNSPacket, void(bool)>("setAnswer", [](DNSPacket &p, bool answer) { return p.setAnswer(answer); });
+  d_lw->registerFunction<DNSPacket, void(unsigned int)>("setOpCode", [](DNSPacket &p, unsigned int opcode) { return p.setOpcode(static_cast<uint16_t>(opcode)); });
+  d_lw->registerFunction<DNSPacket, void(int)>("setRcode", [](DNSPacket &p, int rcode) { return p.setRcode(rcode); });
+  d_lw->registerFunction<DNSPacket, void()>("clearRecords",[](DNSPacket &p){p.clearRecords();});
+  d_lw->registerFunction<DNSPacket, void(DNSRecord&, bool)>("addRecord", [](DNSPacket &p, DNSRecord &dr, bool auth) { DNSZoneRecord dzr; dzr.dr = dr; dzr.auth = auth; p.addRecord(dzr); });
+  d_lw->registerFunction<DNSPacket, void(const vector<pair<unsigned int, DNSRecord> >&)>("addRecords", [](DNSPacket &p, const vector<pair<unsigned int, DNSRecord> >& records){ for(const auto &dr: records){ DNSZoneRecord dzr; dzr.dr = std::get<1>(dr); dzr.auth = true; p.addRecord(dzr); }});
+  d_lw->registerFunction<DNSPacket, void(unsigned int, const DNSName&, const std::string&)>("setQuestion", [](DNSPacket &p, unsigned int opcode, const DNSName &name, const string &type){ QType qtype; qtype = type; p.setQuestion(static_cast<int>(opcode), name, static_cast<int>(qtype.getCode())); });
+  d_lw->registerFunction<DNSPacket, bool()>("isEmpty", [](DNSPacket &p){return p.isEmpty();});
+  d_lw->registerFunction<DNSPacket, DNSPacket*()>("replyPacket",[](DNSPacket& p){ return p.replyPacket();});
+  d_lw->registerFunction<DNSPacket, bool()>("hasEDNSSubnet", [](DNSPacket &p){return p.hasEDNSSubnet();});
+  d_lw->registerFunction<DNSPacket, bool()>("hasEDNS",[](DNSPacket &p){return p.hasEDNS();});
+  d_lw->registerFunction<DNSPacket, unsigned int()>("getEDNSVersion",[](DNSPacket &p){return p.getEDNSVersion();});
+  d_lw->registerFunction<DNSPacket, void(unsigned int)>("setEDNSRcode",[](DNSPacket &p, unsigned int extRCode){p.setEDNSRcode(static_cast<uint16_t>(extRCode));});
+  d_lw->registerFunction<DNSPacket, unsigned int()>("getEDNSRcode",[](DNSPacket &p){return p.getEDNSRCode();});
+  d_lw->registerFunction<DNSPacket, DNSName()>("getTSIGKeyname",[](DNSPacket &p){ return p.getTSIGKeyname();});
+  d_lw->registerFunction<DNSPacket, std::unordered_map<unsigned int, DNSRecord>()>("getRRS", [](DNSPacket &p){ std::unordered_map<unsigned int, DNSRecord> ret; unsigned int i; for(const auto &rec: p.getRRS()) { ret.insert({i++, rec.dr}); } return ret;});
+  d_lw->registerMember<DNSPacket, DNSName>("qdomain", [](const DNSPacket &p) -> DNSName { return p.qdomain; }, [](DNSPacket &p, const DNSName& name) { p.qdomain = name; });
+  d_lw->registerMember<DNSPacket, DNSName>("qdomainwild", [](const DNSPacket &p) -> DNSName { return p.qdomainwild; }, [](DNSPacket &p, const DNSName& name) { p.qdomainwild = name; });
+  d_lw->registerMember<DNSPacket, DNSName>("qdomainzone", [](const DNSPacket &p) -> DNSName { return p.qdomainzone; }, [](DNSPacket &p, const DNSName& name) { p.qdomainzone = name; });
+
+  d_lw->registerMember<DNSPacket, std::string>("d_peer_principal", [](const DNSPacket &p) -> std::string { return p.d_peer_principal; }, [](DNSPacket &p, const std::string &princ) { p.d_peer_principal = princ; });
+  d_lw->registerMember<DNSPacket, const std::string>("qtype", [](const DNSPacket &p) ->  const std::string { return p.qtype.getName(); }, [](DNSPacket &p, const std::string &type) { p.qtype = type; });
+/* End of DNSPacket */
+
+
 /* update policy */
   d_lw->registerFunction<DNSName(UpdatePolicyQuery::*)()>("getQName", [](UpdatePolicyQuery& upq) { return upq.qname; });
   d_lw->registerFunction<DNSName(UpdatePolicyQuery::*)()>("getZoneName", [](UpdatePolicyQuery& upq) { return upq.zonename; });
