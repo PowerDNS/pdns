@@ -29,7 +29,6 @@
 #include "dnspacket.hh"
 #include "packetcache.hh"
 #include "dnsseckeeper.hh"
-#include "lua-auth.hh"
 #include "lua-auth4.hh"
 #include "gss_context.hh"
 

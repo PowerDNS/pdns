@@ -42,7 +42,6 @@
 
 #include "base64.hh"
 #include "inflighter.cc"
-#include "lua-auth.hh"
 #include "namespaces.hh"
 #include "common_startup.hh"
 
