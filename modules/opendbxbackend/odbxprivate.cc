@@ -236,7 +236,7 @@ bool OdbxBackend::getDomainList( const string& stmt, vector<DomainInfo>* list, b
 
         		if( ( tmp = odbx_field_value( m_result, 1 ) ) != NULL )
         		{
-			        di.zone = DNSName( string(tmp, odbx_field_length( m_result, 1 )) );
+        			di.zone = DNSName( string(tmp, odbx_field_length( m_result, 1 )) );
         		}
 
         		if( ( tmp = odbx_field_value( m_result, 0 ) ) != NULL )

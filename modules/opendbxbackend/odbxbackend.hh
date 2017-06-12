@@ -76,26 +76,26 @@ public:
         OdbxBackend( const string& suffix="" );
         ~OdbxBackend();
 
-        void lookup( const QType& qtype, const DNSName& qdomain, DNSPacket* p = 0, int zoneid = -1 );
-        bool getSOA( const DNSName& domain, SOAData& sd, DNSPacket* p );
-        bool list( const DNSName& target, int domain_id, bool include_disabled=false );
-        bool get( DNSResourceRecord& rr );
+        void lookup( const QType& qtype, const DNSName& qdomain, DNSPacket* p = 0, int zoneid = -1 ) override;
+        bool getSOA( const DNSName& domain, SOAData& sd, DNSPacket* p ) override;
+        bool list( const DNSName& target, int domain_id, bool include_disabled=false ) override;
+        bool get( DNSResourceRecord& rr ) override;
 
-        bool startTransaction( const string& domain, int domain_id );
-        bool commitTransaction();
-        bool abortTransaction();
+        bool startTransaction( const DNSName& domain, int domain_id ) override;
+        bool commitTransaction() override;
+        bool abortTransaction() override;
 
-        bool isMaster( const string& domain, const string& ip );
-        bool getDomainInfo( const string& domain, DomainInfo& di );
-        bool feedRecord( const DNSResourceRecord& rr, string *ordername=0 );
-        bool createSlaveDomain( const string& ip, const string& domain, const string &nameserver, const string& account );
-        bool superMasterBackend( const string& ip, const string& domain, const vector<DNSResourceRecord>& nsset, string *nameserver, string* account, DNSBackend** ddb );
+        bool isMaster( const DNSName& domain, const string& ip ) override;
+        bool getDomainInfo( const DNSName& domain, DomainInfo& di ) override;
+        bool feedRecord( const DNSResourceRecord& rr, const DNSName& ordername ) override;
+        bool createSlaveDomain( const string& ip, const DNSName& domain, const string &nameserver, const string& account ) override;
+        bool superMasterBackend( const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string *nameserver, string* account, DNSBackend** ddb ) override;
 
-        void getUpdatedMasters( vector<DomainInfo>* updated );
-        void getUnfreshSlaveInfos( vector<DomainInfo>* unfresh );
+        void getUpdatedMasters( vector<DomainInfo>* updated ) override;
+        void getUnfreshSlaveInfos( vector<DomainInfo>* unfresh ) override;
 
-        void setFresh( uint32_t domain_id );
-        void setNotified( uint32_t domain_id, uint32_t serial );
+        void setFresh( uint32_t domain_id ) override;
+        void setNotified( uint32_t domain_id, uint32_t serial ) override;
 };
 
 
@@ -165,11 +165,11 @@ public:
         OdbxLoader()
         {
         	BackendMakers().report( &factory );
-		L<< Logger::Info << "[opendbxbackend] This is the opendbx backend version " VERSION
+        	L<< Logger::Info << "[opendbxbackend] This is the opendbx backend version " VERSION
 #ifndef REPRODUCIBLE
-		  << " (" __DATE__ " " __TIME__ ")"
+        		<< " (" __DATE__ " " __TIME__ ")"
 #endif
-		  << " reporting" << endl;
+        		<< " reporting" << endl;
         }
 };
 

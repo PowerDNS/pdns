@@ -274,13 +274,13 @@ BOOST_AUTO_TEST_CASE(test_method_feedRecord) {
    rr.qclass = QClass::IN;
    rr.ttl = 300;
    rr.content = "ns1.example.com. hostmaster.example.com. 2013013441 7200 3600 1209600 300";
-   BOOST_CHECK(be->feedRecord(rr, NULL));
+   BOOST_CHECK(be->feedRecord(rr, DNSName()));
    rr.qname = DNSName("replace.example.com.");
    rr.qtype = QType::A;
    rr.qclass = QClass::IN;
    rr.ttl = 300;
    rr.content = "127.0.0.1";
-   BOOST_CHECK(be->feedRecord(rr, NULL));
+   BOOST_CHECK(be->feedRecord(rr, DNSName()));
    be->commitTransaction();
 }
 

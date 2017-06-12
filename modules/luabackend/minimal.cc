@@ -176,7 +176,7 @@ bool LUABackend::get(DNSResourceRecord &rr) {
     return !rr.content.empty();
 }
 
-bool LUABackend::getSOA(const string &name, SOAData &soadata, DNSPacket *p) {
+bool LUABackend::getSOA(const DNSName &name, SOAData &soadata, DNSPacket *p) {
     if (logging)
 	L << Logger::Info << backend_name << "(getsoa) BEGIN" << endl;
 
@@ -184,7 +184,7 @@ bool LUABackend::getSOA(const string &name, SOAData &soadata, DNSPacket *p) {
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_getsoa);
 
-    lua_pushstring(lua, name.c_str());
+    lua_pushstring(lua, name.toString().c_str());
 
     if(lua_pcall(lua, 1, 1, f_lua_exec_error) != 0) {
 	string e = backend_name + lua_tostring(lua, -1);

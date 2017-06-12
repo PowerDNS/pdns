@@ -64,51 +64,51 @@ public:
   virtual ~OracleBackend();
 
   void lookup(const QType &qtype, const DNSName& qname, DNSPacket *p = 0,
-              int zoneId = -1);
+              int zoneId = -1) override;
 
   bool getBeforeAndAfterNames(uint32_t zoneId, const DNSName& zone,
                               const DNSName& name,
-                              DNSName& before, DNSName& after);
+                              DNSName& before, DNSName& after) override;
   bool getBeforeAndAfterNamesAbsolute(uint32_t zoneId,
                                       const DNSName& name,
                                       DNSName& unhashed,
                                       DNSName& before,
-                                      DNSName& after);
-  bool get(DNSResourceRecord &rr);
-  vector<string> getDomainMasters(const DNSName& domain, int zoneId);
-  bool isMaster(const DNSName& domain, const string &master);
-  bool getDomainInfo(const DNSName& domain, DomainInfo &di);
-  void alsoNotifies(const DNSName& domain, set<string> *addrs);
-  void getUnfreshSlaveInfos(vector<DomainInfo>* domains);
-  void getUpdatedMasters(vector<DomainInfo>* domains);
-  void setFresh(uint32_t zoneId);
-  void setNotified(uint32_t zoneId, uint32_t serial);
-  bool list(const DNSName& domain, int zoneId, bool include_disabled=false);
-  bool startTransaction(const DNSName& domain, int zoneId);
-  bool feedRecord(const DNSResourceRecord &rr, string* ordername);
-  bool commitTransaction();
-  bool abortTransaction();
+                                      DNSName& after) override;
+  bool get(DNSResourceRecord &rr) override;
+  vector<string> getDomainMasters(const DNSName& domain, int zoneId) override;
+  bool isMaster(const DNSName& domain, const string &master) override;
+  bool getDomainInfo(const DNSName& domain, DomainInfo &di) override;
+  void alsoNotifies(const DNSName& domain, set<string> *addrs) override;
+  void getUnfreshSlaveInfos(vector<DomainInfo>* domains) override;
+  void getUpdatedMasters(vector<DomainInfo>* domains) override;
+  void setFresh(uint32_t zoneId) override;
+  void setNotified(uint32_t zoneId, uint32_t serial) override;
+  bool list(const DNSName& domain, int zoneId, bool include_disabled=false) override;
+  bool startTransaction(const DNSName& domain, int zoneId) override;
+  bool feedRecord(const DNSResourceRecord &rr, const DNSName ordername) override;
+  bool commitTransaction() override;
+  bool abortTransaction() override;
   bool superMasterBackend(const string &ip, const DNSName& domain,
                           const vector<DNSResourceRecord> &nsset,
                           string *account, string *nameserver,
-                          DNSBackend **backend);
+                          DNSBackend **backend) override;
   bool createSlaveDomain(const string &ip, const DNSName& domain,
-                         const string &nameserver, const string &account);
+                         const string &nameserver, const string &account) override;
 
-  bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta); 
-  bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta);
-  bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta);
+  bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta) override;
+  bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta) override;
+  bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta) override;
 
-  bool getTSIGKey(const DNSName& name, DNSName* algorithm, string* content);
-  bool delTSIGKey(const DNSName& name);
-  bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content);
-  bool getTSIGKeys(std::vector< struct TSIGKey > &keys);
+  bool getTSIGKey(const DNSName& name, DNSName* algorithm, string* content) override;
+  bool delTSIGKey(const DNSName& name) override;
+  bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content) override;
+  bool getTSIGKeys(std::vector< struct TSIGKey > &keys) override;
 
-  bool getDomainKeys(const DNSName& name, vector<KeyData>& keys);
-  bool removeDomainKey(const DNSName& name, unsigned int id);
-  bool addDomainKey(const DNSName& name, const KeyData& key, int64_t& id);
-  bool activateDomainKey(const DNSName& name, unsigned int id);
-  bool deactivateDomainKey(const DNSName& name, unsigned int id);
+  bool getDomainKeys(const DNSName& name, vector<KeyData>& keys) override;
+  bool removeDomainKey(const DNSName& name, unsigned int id) override;
+  bool addDomainKey(const DNSName& name, const KeyData& key, int64_t& id) override;
+  bool activateDomainKey(const DNSName& name, unsigned int id) override;
+  bool deactivateDomainKey(const DNSName& name, unsigned int id) override;
 
 private:
 

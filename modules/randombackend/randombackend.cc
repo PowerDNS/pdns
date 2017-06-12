@@ -44,11 +44,11 @@ public:
     d_ourdomain.chopOff();
   }
 
-  bool list(const DNSName &target, int id, bool include_disabled) {
+  bool list(const DNSName &target, int id, bool include_disabled) override {
     return false; // we don't support AXFR
   }
 
-  void lookup(const QType &type, const DNSName &qdomain, DNSPacket *p, int zoneId)
+  void lookup(const QType &type, const DNSName &qdomain, DNSPacket *p, int zoneId) override
   {
     if(qdomain == d_ourdomain){
       if(type.getCode() == QType::SOA || type.getCode() == QType::ANY) {
@@ -69,7 +69,7 @@ public:
     }
   }
 
-  bool get(DNSResourceRecord &rr)
+  bool get(DNSResourceRecord &rr) override
   {
     if(d_answer.empty())
       return false;

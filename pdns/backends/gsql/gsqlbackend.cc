@@ -1266,13 +1266,13 @@ bool GSQLBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
     }
   }
   for(const auto& rr: rrset) {
-    feedRecord(rr);
+    feedRecord(rr, DNSName());
   }
   
   return true;
 }
 
-bool GSQLBackend::feedRecord(const DNSResourceRecord &r, string *ordername)
+bool GSQLBackend::feedRecord(const DNSResourceRecord &r, const DNSName &ordername)
 {
   int prio=0;
   string content(r.content);
@@ -1295,10 +1295,10 @@ bool GSQLBackend::feedRecord(const DNSResourceRecord &r, string *ordername)
       bind("disabled",r.disabled)->
       bind("qname",r.qname);
 
-    if (ordername == NULL)
-      d_InsertRecordQuery_stmt->bindNull("ordername");
+    if (!ordername.empty())
+      d_InsertRecordQuery_stmt->bind("ordername", ordername.labelReverse().makeLowerCase().toString(" ", false));
     else
-      d_InsertRecordQuery_stmt->bind("ordername",*ordername);
+      d_InsertRecordQuery_stmt->bindNull("ordername");
 
     if (d_dnssecQueries)
       d_InsertRecordQuery_stmt->bind("auth", r.auth);

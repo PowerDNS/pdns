@@ -139,15 +139,15 @@ class LdapBackend : public DNSBackend
     ~LdapBackend();
 
     // Native backend
-    bool list( const DNSName& target, int domain_id, bool include_disabled=false );
-    void lookup( const QType& qtype, const DNSName& qdomain, DNSPacket* p = 0, int zoneid = -1 );
-    bool get( DNSResourceRecord& rr );
+    bool list( const DNSName& target, int domain_id, bool include_disabled=false ) override;
+    void lookup( const QType& qtype, const DNSName& qdomain, DNSPacket* p = 0, int zoneid = -1 ) override;
+    bool get( DNSResourceRecord& rr ) override;
 
-    bool getDomainInfo( const string& domain, DomainInfo& di );
+    bool getDomainInfo( const DNSName& domain, DomainInfo& di ) override;
 
     // Master backend
-    void getUpdatedMasters( vector<DomainInfo>* domains );
-    void setNotified( uint32_t id, uint32_t serial );
+    void getUpdatedMasters( vector<DomainInfo>* domains ) override;
+    void setNotified( uint32_t id, uint32_t serial ) override;
 };
 
 #endif /* LDAPBACKEND_HH */

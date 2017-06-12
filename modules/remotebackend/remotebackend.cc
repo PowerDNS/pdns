@@ -716,7 +716,7 @@ bool RemoteBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const
    return true;
 }
 
-bool RemoteBackend::feedRecord(const DNSResourceRecord &rr, string *ordername) {
+bool RemoteBackend::feedRecord(const DNSResourceRecord &rr, const DNSName &ordername) {
    Json query = Json::object{
      { "method", "feedRecord" },
      { "parameters", Json::object{
@@ -727,7 +727,7 @@ bool RemoteBackend::feedRecord(const DNSResourceRecord &rr, string *ordername) {
           { "content", rr.content },
           { "ttl", static_cast<int>(rr.ttl) },
           { "auth", rr.auth },
-          { "ordername", (ordername==nullptr?Json():*ordername) }
+          { "ordername", (ordername.empty()?Json():ordername.toString()) }
         }},
         { "trxid", static_cast<double>(d_trxid) },
      }}

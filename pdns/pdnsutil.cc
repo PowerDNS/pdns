@@ -1153,7 +1153,7 @@ int loadZone(DNSName zone, const string& fname) {
       else
         haveSOA = true;
     }
-    db->feedRecord(rr);
+    db->feedRecord(rr, DNSName());
   }
   db->commitTransaction();
   return EXIT_SUCCESS;
@@ -1188,12 +1188,12 @@ int createZone(const DNSName &zone, const DNSName& nsname) {
   rr.content = DNSRecordContent::mastermake(rr.qtype.getCode(), 1, serializeSOAData(sd))->getZoneRepresentation(true);
   rr.domain_id = di.id;
   di.backend->startTransaction(zone, di.id);
-  di.backend->feedRecord(rr);
+  di.backend->feedRecord(rr, DNSName());
   if(!nsname.empty()) {
     cout<<"Also adding one NS record"<<endl;
     rr.qtype=QType::NS;
     rr.content=nsname.toStringNoDot();
-    di.backend->feedRecord(rr);
+    di.backend->feedRecord(rr, DNSName());
   }
   
   di.backend->commitTransaction();
@@ -1901,12 +1901,12 @@ void testSchema(DNSSECKeeper& dk, const DNSName& zone)
   rr.auth=1;
   rr.content="ns1.example.com. ahu.example.com. 2012081039 7200 3600 1209600 3600";
   cout<<"Feeding SOA"<<endl;
-  db->feedRecord(rr);
+  db->feedRecord(rr, DNSName());
   rr.qtype=QType::TXT;
   // 300 As
   rr.content="\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"";
   cout<<"Feeding overlong TXT"<<endl;
-  db->feedRecord(rr);
+  db->feedRecord(rr, DNSName());
   cout<<"Committing"<<endl;
   db->commitTransaction();
   cout<<"Querying TXT"<<endl;
@@ -1938,12 +1938,12 @@ void testSchema(DNSSECKeeper& dk, const DNSName& zone)
   rr.auth=1;
   rr.content="ns1.example.com. ahu.example.com. 2012081039 7200 3600 1209600 3600";
   cout<<"Feeding SOA"<<endl;
-  db->feedRecord(rr);
+  db->feedRecord(rr, DNSName());
 
   rr.qtype=QType::A;
   rr.qname=DNSName("_underscore")+zone;
   rr.content="127.0.0.1";
-  db->feedRecord(rr);
+  db->feedRecord(rr, DNSName());
 
   rr.qname=DNSName("bla")+zone;
   cout<<"Committing"<<endl;
@@ -3250,7 +3250,7 @@ try
       if (!src->list(di.zone, di.id, true)) throw PDNSException("Failed to list records");
       nr=0;
       while(src->get(rr)) {
-        if (!tgt->feedRecord(rr)) throw PDNSException("Failed to feed record");
+        if (!tgt->feedRecord(rr, DNSName())) throw PDNSException("Failed to feed record");
         nr++;
       }
       // move comments

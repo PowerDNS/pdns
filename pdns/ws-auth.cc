@@ -1130,7 +1130,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 
     for(auto rr : new_records) {
       rr.domain_id = di.id;
-      di.backend->feedRecord(rr);
+      di.backend->feedRecord(rr, DNSName());
     }
     for(Comment& c : new_comments) {
       c.domain_id = di.id;
