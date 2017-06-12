@@ -1,0 +1,2 @@
+#!/bin/sh
+cleandig ns1.dnssec-parent.com NSEC dnssec

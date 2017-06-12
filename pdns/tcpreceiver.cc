@@ -771,6 +771,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
     zrrs.push_back(synth_zrr);
 
   while(sd.db->get(zrr)) {
+    zrr.dr.d_name.makeUsLowerCase();
     if(zrr.dr.d_name.isPartOf(target)) {
       if (zrr.dr.d_type == QType::ALIAS && ::arg().mustDo("outgoing-axfr-expand-alias")) {
         vector<DNSZoneRecord> ips;
@@ -820,10 +821,10 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
         DNSName shorter(zrr.dr.d_name);
         do {
           if (shorter==target) // apex is always auth
-            continue;
+            break;
           if(nsset.count(shorter) && !(zrr.dr.d_name==shorter && zrr.dr.d_type == QType::DS)) {
             zrr.auth=false;
-            continue;
+            break;
           }
         } while(shorter.chopOff());
       }
@@ -871,7 +872,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
       for(const auto& nt :  nonterm) {
         DNSZoneRecord zrr;
         zrr.dr.d_name=nt;
-        zrr.dr.d_type=0; // was TYPE0
+        zrr.dr.d_type=QType::ENT;
         zrr.auth=true;
         zrrs.push_back(zrr);
       }

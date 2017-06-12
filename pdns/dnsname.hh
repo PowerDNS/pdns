@@ -83,12 +83,15 @@ public:
   DNSName makeRelative(const DNSName& zone) const;
   DNSName makeLowerCase() const
   {
-    DNSName ret;
-    ret.d_storage = d_storage;
-    for(auto & c : ret.d_storage) {
+    DNSName ret(*this);
+    ret.makeUsLowerCase();
+    return ret;
+  }
+  void makeUsLowerCase()
+  {
+    for(auto & c : d_storage) {
       c=dns_tolower(c);
     }
-    return ret;
   }
   void makeUsRelative(const DNSName& zone);
   DNSName labelReverse() const;
