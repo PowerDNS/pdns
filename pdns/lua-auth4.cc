@@ -251,7 +251,7 @@ bool AuthLua4::axfrfilter(const ComboAddress& remote, const DNSName& zone, const
       if (col.first == "qtype")
         rec.qtype = QType(boost::get<unsigned int>(col.second));
       else if (col.first == "qname")
-        rec.qname = DNSName(boost::get<std::string>(col.second));
+        rec.qname = DNSName(boost::get<std::string>(col.second)).makeLowerCase();
       else if (col.first == "ttl")
         rec.ttl = boost::get<unsigned int>(col.second);
       else if (col.first == "content")
