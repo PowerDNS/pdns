@@ -109,6 +109,7 @@ public:
   bool getDomainInfo(const DNSName &domain, DomainInfo &di);
   bool createDomain(const DNSName &domain);
   
+  bool doesDNSSEC();
   bool addDomainKey(const DNSName& name, const DNSBackend::KeyData& key, int64_t& id);
   bool getDomainKeys(const DNSName& name, std::vector<DNSBackend::KeyData>& keys);
   bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta);

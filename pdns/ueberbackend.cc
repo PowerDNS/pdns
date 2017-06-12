@@ -98,6 +98,15 @@ bool UeberBackend::createDomain(const DNSName &domain)
   return false;
 }
 
+bool UeberBackend::doesDNSSEC()
+{
+  for(auto* db :  backends) {
+    if(db->doesDNSSEC())
+      return true;
+  }
+  return false;
+}
+
 bool UeberBackend::addDomainKey(const DNSName& name, const DNSBackend::KeyData& key, int64_t& id)
 {
   id = -1;
