@@ -1345,7 +1345,7 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsi
   d_skipCNAMECheck = oldSkipCNAME;
   d_requireAuthData = oldRequireAuthData;
 
-  if (rcode == RCode::NoError) {
+  if (rcode == RCode::NoError || rcode == RCode::NXDomain) {
     if (state == Secure) {
       for (const auto& record : dsrecords) {
         if (record.d_type == QType::DS) {
@@ -1543,6 +1543,10 @@ vState SyncRes::validateDNSKeys(const DNSName& zone, const std::vector<DNSRecord
 
   LOG(d_prefix<<": we now have "<<std::to_string(validatedKeys.size())<<" DNSKEYs"<<endl);
 
+  /* if we found at least one valid RRSIG covering the set,
+     all tentative keys are validated keys. Otherwise it means
+     we haven't found at least one DNSKEY and a matching RRSIG
+     covering this set, this looks Bogus. */
   if (validatedKeys.size() != tentativeKeys.size()) {
     LOG(d_prefix<<": returning Bogus state from "<<__func__<<"("<<zone<<")"<<endl);
     return Bogus;
@@ -1755,9 +1759,8 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
     if(i->second.records.empty()) // this happens when we did store signatures, but passed on the records themselves
       continue;
 
-//    vState recordState = state;
     vState recordState = getValidationStatus(auth);
-    LOG(d_prefix<<"Got status "<<vStates[recordState]<<" for record "<<i->first.name<<endl);
+    LOG(d_prefix<<": got status "<<vStates[recordState]<<" for record "<<i->first.name<<endl);
 
     if (validationEnabled() && recordState == Secure) {
       if (lwr.d_aabit) {

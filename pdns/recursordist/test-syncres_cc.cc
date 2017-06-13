@@ -300,7 +300,7 @@ static void addRRSIG(const testkeysset_t& keys, std::vector<DNSRecord>& records,
   }
 
   RRSIGRecordContent rrc;
-  computeRRSIG(it->second.first, signer, wildcard ? * wildcard : records[recordsCount-1].d_name, records[recordsCount-1].d_type, records[recordsCount-1].d_ttl, sigValidity, rrc, recordcontents, algo);
+  computeRRSIG(it->second.first, signer, wildcard ? *wildcard : records[recordsCount-1].d_name, records[recordsCount-1].d_type, records[recordsCount-1].d_ttl, sigValidity, rrc, recordcontents, algo);
   if (broken) {
     rrc.d_signature[0] ^= 42;
   }
