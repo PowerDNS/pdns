@@ -133,6 +133,8 @@ recursor-4.0.2.security-status                          60 IN TXT "3 Upgrade now
 recursor-4.0.3.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2016-02/ and https://doc.powerdns.com/md/security/powerdns-advisory-2016-04/"
 recursor-4.0.4.security-status                          60 IN TXT "1 OK"
 recursor-4.0.5-rc1.security-status                      60 IN TXT "1 OK"
+recursor-4.0.5-rc2.security-status                      60 IN TXT "1 OK"
+recursor-4.0.5.security-status                          60 IN TXT "1 OK"
 
 ; Recursor Debian
 recursor-3.6.2-2.debian.security-status                 60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2015-01/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/"
