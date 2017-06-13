@@ -755,9 +755,8 @@ void startDoResolve(void *p)
     bool DNSSECOK=false;
     if(t_pdl) {
       sr.setLuaEngine(*t_pdl);
-      sr.d_requestor=dc->d_remote;
     }
-
+    sr.d_requestor=dc->d_remote; // ECS needs this too
     if(g_dnssecmode != DNSSECMode::Off) {
       sr.d_doDNSSEC=true;
 
