@@ -53,6 +53,8 @@
  
 AtomicCounter PacketHandler::s_count;
 NetmaskGroup PacketHandler::s_allowNotifyFrom;
+set<string> PacketHandler::s_forwardNotify;
+
 extern string s_programname;
 
 PacketHandler::PacketHandler():B(s_programname), d_dk(&B)
@@ -831,7 +833,7 @@ int PacketHandler::processNotify(DNSPacket *p)
   */
   vector<string> meta;
 
-  if(!::arg().mustDo("slave")) {
+  if(!::arg().mustDo("slave") && s_forwardNotify.empty()) {
     L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" but slave support is disabled in the configuration"<<endl;
     return RCode::NotImp;
   }
@@ -886,7 +888,17 @@ int PacketHandler::processNotify(DNSPacket *p)
     
   // ok, we've done our checks
   di.backend = 0;
-  Communicator.addSlaveCheckRequest(di, p->d_remote);
+
+  if(!s_forwardNotify.empty()) {
+    set<string> forwardNotify(s_forwardNotify);
+    for(set<string>::const_iterator j=forwardNotify.begin();j!=forwardNotify.end();++j) {
+      L<<Logger::Warning<<"Relaying notification of domain "<<p->qdomain<<" from "<<p->getRemote()<<" to "<<*j<<endl;
+      Communicator.notify(p->qdomain,*j);
+    }
+  }
+
+  if(::arg().mustDo("slave"))
+    Communicator.addSlaveCheckRequest(di, p->d_remote);
   return 0;
 }
 

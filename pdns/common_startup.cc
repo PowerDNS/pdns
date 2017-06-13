@@ -159,6 +159,7 @@ void declareArguments()
 
   ::arg().set("trusted-notification-proxy", "IP address of incoming notification proxy")="";
   ::arg().set("slave-renotify", "If we should send out notifications for slaved updates")="no";
+  ::arg().set("forward-notify", "IP addresses to forward received notifications to regardless of master or slave settings")="";
 
   ::arg().set("default-ttl","Seconds a result is valid if not set otherwise")="3600";
   ::arg().set("max-tcp-connections","Maximum number of TCP connections")="20";
@@ -546,7 +547,7 @@ void mainthread()
   if(::arg().mustDo("webserver") || ::arg().mustDo("api"))
     webserver.go();
 
-  if(::arg().mustDo("slave") || ::arg().mustDo("master"))
+  if(::arg().mustDo("slave") || ::arg().mustDo("master") || !::arg()["forward-notify"].empty())
     Communicator.go(); 
 
   if(!::arg()["experimental-lua-policy-script"].empty()){
