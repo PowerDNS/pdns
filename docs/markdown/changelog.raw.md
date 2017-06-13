@@ -17,15 +17,13 @@ the previous line.
 -->
 
 # PowerDNS Recursor 4.0.5
-Release Candidate 1 released 19th of May 2017
-
-Release Candidate 2 released 1st of June 2017
+Released 13th of June 2017
 
 This release adds ed25519 (algorithm 15) support for DNSSEC and adds the 2017 DNSSEC root key. If you do DNSSEC validation, this upgrade is **mandatory** to continue validating after October 2017.
 
 ## Bug fixes
 
-- [commit af76224](https://github.com/PowerDNS/pdns/commit/af76224): Correctly lowercase the TSIG algorithm name in hash computation
+- [commit af76224](https://github.com/PowerDNS/pdns/commit/af76224): Correctly lowercase the TSIG algorithm name in hash computation, fixes [#4942](https://github.com/PowerDNS/pdns/issues/4942)
 - [commit 86c4ed0](https://github.com/PowerDNS/pdns/commit/86c4ed0): Clear the RPZ NS IP table when clearing the policy, this prevents false positives
 - [commit 5e660e9](https://github.com/PowerDNS/pdns/commit/5e660e9): Fix cache-only queries against a forward-zone, fixes [#5211](https://github.com/PowerDNS/pdns/issues/5211)
 - [commit 2875033](https://github.com/PowerDNS/pdns/commit/2875033): Only delegate if NSes are below apex in auth-zones, fixes [#4771](https://github.com/PowerDNS/pdns/issues/4771)
@@ -36,7 +34,7 @@ This release adds ed25519 (algorithm 15) support for DNSSEC and adds the 2017 DN
 - [commit 3642cb3](https://github.com/PowerDNS/pdns/commit/3642cb3): Don't age the root, fixes a regression from 3.x
 - [commit 83f9226](https://github.com/PowerDNS/pdns/commit/83f9226): Fix exception when sending a protobuf message for an empty question
 - [commit ffdd813](https://github.com/PowerDNS/pdns/commit/ffdd813): LuaWrapper: Allow embedded NULs in strings received from Lua
-- [commit c5ffd90](https://github.com/PowerDNS/pdns/commit/c5ffd90): Fix coredumps on illumos/SmartOS (Roman Dayneko)
+- [commit c5ffd90](https://github.com/PowerDNS/pdns/commit/c5ffd90): Fix coredumps on illumos/SmartOS, fixes [#4579](https://github.com/PowerDNS/pdns/issues/4579) (Roman Dayneko)
 - [commit 651c0e9](https://github.com/PowerDNS/pdns/commit/651c0e9): StateHolder: Allocate (and copy if needed) before taking the lock
 - [commit 547d68f](https://github.com/PowerDNS/pdns/commit/547d68f): SuffixMatchNode: Fix insertion issue for an existing node
 - [commit 3ada4e2](https://github.com/PowerDNS/pdns/commit/3ada4e2): Fix negative port detection for IPv6 addresses on 32-bit systems
