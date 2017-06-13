@@ -55,6 +55,38 @@ This release adds ed25519 (algorithm 15) support for DNSSEC and adds the 2017 DN
 - [commit 502a850](https://github.com/PowerDNS/pdns/commit/502a850): IPv6 address for g.root-servers.net added (Kevin Otte)
 - [commit 7a2a645](https://github.com/PowerDNS/pdns/commit/7a2a645): Log outgoing queries / incoming responses via protobuf
 
+# PowerDNS Authoritative Server 4.0.4
+Release Candidate 1 released June 13th 2017
+
+## Bug fixes
+- [#5346](https://github.com/PowerDNS/pdns/pull/5346): configure.ac: corrects syntax error in test statement on existance of libcrypto_ecdsa (shinsterneck)
+- [#5341](https://github.com/PowerDNS/pdns/pull/5341): Fix typo in ldapbackend.cc from issue #5091 (shantikulkarni)
+- [#5289](https://github.com/PowerDNS/pdns/pull/5289): NSEC sorting (Kees Monshouwer)
+- [#4824](https://github.com/PowerDNS/pdns/pull/4824): Check in the detected OpenSSL/libcrypto for ECDSA
+- [#4781](https://github.com/PowerDNS/pdns/pull/4781): API: correctly take TTL from first record even if we are at the last comment (zeha)
+- [#4901](https://github.com/PowerDNS/pdns/pull/4901): Fix AtomicCounter unit tests on 32-bit
+- [#4911](https://github.com/PowerDNS/pdns/pull/4911): Fix negative port detection for IPv6 addresses on 32-bit
+- [#4508](https://github.com/PowerDNS/pdns/pull/4508): Remove support for 'right' timezones, as this code turned out to be broken
+- [#4961](https://github.com/PowerDNS/pdns/pull/4961): Lowercase the TSIG algorithm name in hash computation
+- [#5048](https://github.com/PowerDNS/pdns/pull/5048): Handle exceptions raised by `closesocket()`
+- [#5378](https://github.com/PowerDNS/pdns/pull/5378): Make sure NSEC ordernames are always lower case
+- [#5297](https://github.com/PowerDNS/pdns/pull/5297):  Don't leak on signing errors during outgoing AXFR; signpipe stumbles over interrupted rrsets; fix memory leak in gmysql backend
+
+## Improvements
+- [#5325](https://github.com/PowerDNS/pdns/pull/5325): YaHTTP: Sync with upstream changes
+- [#5298](https://github.com/PowerDNS/pdns/pull/5298): Notify dnsupdate backport (Kees Monshouwer)
+- [#5317](https://github.com/PowerDNS/pdns/pull/5317): add option to set a global lua-axfr-script value (Kees Monshouwer)
+- [#5130](https://github.com/PowerDNS/pdns/pull/5130): dnsreplay: Add `--source-ip` and `--source-port` options
+- [#5085](https://github.com/PowerDNS/pdns/pull/5085): calidns: Use the correct socket family (IPv4 / IPv6)
+- [#5170](https://github.com/PowerDNS/pdns/pull/5170): Backport: Add an option to allow AXFR of zones with a different (higher/lower) serial #5169  (Kees Monshouwer)
+- [#5071](https://github.com/PowerDNS/pdns/pull/5071): backport #5051: fix godbc query logging (cherry-pick of d2bc6b2)
+- [#4622](https://github.com/PowerDNS/pdns/pull/4622): API dot-inconsistencies
+- [#4762](https://github.com/PowerDNS/pdns/pull/4762): SuffixMatchNode: Fix insertion issue for an existing node
+- [#5016](https://github.com/PowerDNS/pdns/pull/5016): backport #4838: Check if we can link against libatomic if needed
+- [#4861](https://github.com/PowerDNS/pdns/pull/4861): 	Do not resolve the NS-records for NOTIFY targets if the "only-notify" whitelist is empty, as a target will never match an empty whitelist.
+- [#5378](https://github.com/PowerDNS/pdns/pull/5378): Improve the axfr dnssec freshness check; Ignore NSEC3PARAM metadata in an unsigned zone
+- [#5297](https://github.com/PowerDNS/pdns/pull/5297): Create additional `reuseport` sockets before dropping privileges; remove transaction in pgpsql backend
+
 # PowerDNS Authoritative Server 4.0.3
 Released January 17th 2017
 
