@@ -21,7 +21,7 @@ static vector<shared_ptr<DNSKEYRecordContent > > getByTag(const skeyset_t& keys,
 {
   vector<shared_ptr<DNSKEYRecordContent>> ret;
   for(const auto& key : keys)
-    if(key->getTag() == tag && key->d_algorithm == algorithm)
+    if(key->d_protocol == 3 && key->getTag() == tag && key->d_algorithm == algorithm)
       ret.push_back(key);
   return ret;
 }
@@ -253,7 +253,7 @@ static bool checkSignatureWithKey(time_t now, const shared_ptr<RRSIGRecordConten
       LOG("Signature is "<<((sig->d_siginception >= now) ? "not yet valid" : "expired")<<" (inception: "<<sig->d_siginception<<", expiration: "<<sig->d_sigexpire<<", now: "<<now<<")"<<endl);
     }
   }
-  catch(std::exception& e) {
+  catch(const std::exception& e) {
     LOG("Could not make a validator for signature: "<<e.what()<<endl);
   }
   return result;
@@ -388,11 +388,11 @@ void validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& ds
       bool dsCreated = false;
       DSRecordContent dsrc2;
       try {
-        dsrc2=makeDSFromDNSKey(zone, *drc, dsrc.d_digesttype);
+        dsrc2 = makeDSFromDNSKey(zone, *drc, dsrc.d_digesttype);
         dsCreated = true;
         isValid = dsrc == dsrc2;
       }
-      catch(std::exception &e) {
+      catch(const std::exception &e) {
         LOG("Unable to make DS from DNSKey: "<<e.what()<<endl);
       }
 
@@ -436,7 +436,7 @@ void validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& ds
         continue;
       }
 
-      string msg=getMessageForRRSET(zone, *sig, toSign);
+      string msg = getMessageForRRSET(zone, *sig, toSign);
       for(const auto& key : bytag) {
         //          cerr<<"validating : ";
         bool signIsValid = checkSignatureWithKey(now, sig, key, msg);
@@ -451,7 +451,7 @@ void validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& ds
         {
           LOG("validation succeeded - whole DNSKEY set is valid"<<endl);
           // cout<<"    "<<dotEscape("DNSKEY "+stripDot(i->d_signer))<<" -> "<<dotEscape("DNSKEY "+zone)<<";"<<endl;
-          validkeys=tkeys;
+          validkeys = tkeys;
           break;
         }
         else {
