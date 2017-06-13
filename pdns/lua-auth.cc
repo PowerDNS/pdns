@@ -149,6 +149,7 @@ bool AuthLua::axfrfilter(const ComboAddress& remote, const DNSName& zone, const 
     lua_pop(d_lua, 1); // table
 
     //    cerr<<"Adding content '"<<rr.content<<"' with place "<<(int)rr.d_place<<" \n";
+    rr.qname.makeUsLowerCase();
     out.push_back(rr);
   }
   lua_pop(d_lua, 2); // c

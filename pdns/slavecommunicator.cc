@@ -199,7 +199,7 @@ static bool processRecordForZS(const DNSName& domain, bool& firstNSEC3, DNSResou
       throw PDNSException("Zones with a mixture of Opt-Out NSEC3 RRs and non-Opt-Out NSEC3 RRs are not supported.");
     zs.optOutFlag = ns3rc.d_flags & 1;
     if (ns3rc.d_set.count(QType::NS) && !(rr.qname==domain)) {
-      DNSName hashPart = DNSName(toLower(rr.qname.makeRelative(domain).toString()));
+      DNSName hashPart = rr.qname.makeRelative(domain);
       zs.secured.insert(hashPart);
     }
     return false;
@@ -247,6 +247,7 @@ vector<DNSResourceRecord> doAxfr(const ComboAddress& raddr, const DNSName& domai
     }
 
     for(Resolver::res_t::iterator i=recs.begin();i!=recs.end();++i) {
+      i->qname.makeUsLowerCase();
       if(i->qtype.getCode() == QType::OPT || i->qtype.getCode() == QType::TSIG) // ignore EDNS0 & TSIG
         continue;
 
@@ -261,6 +262,10 @@ vector<DNSResourceRecord> doAxfr(const ComboAddress& raddr, const DNSName& domai
       }
 
       for(DNSResourceRecord& rr :  out) {
+        if(!rr.qname.isPartOf(domain)) {
+          L<<Logger::Error<<"Lua axfrfilter() filter tried to sneak in out-of-zone data '"<<i->qname<<"'|"<<i->qtype.getName()<<" during AXFR of zone '"<<domain<<"', ignoring"<<endl;
+          continue;
+        }
         if(!processRecordForZS(domain, firstNSEC3, rr, zs))
           continue;
         if(rr.qtype.getCode() == QType::SOA) {
@@ -395,7 +400,7 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
           rrs.reserve(axfr.size());
           for(const auto& dr : axfr) {
             DNSResourceRecord rr(dr);
-            rr.qname += domain;
+            (rr.qname += domain).makeUsLowerCase();
             rr.domain_id = zs.domain_id;
             if(!processRecordForZS(domain, firstNSEC3, rr, zs))
               continue;
@@ -773,7 +778,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
 
       DomainNotificationInfo dni;
       dni.di=di;
-      dni.dnssecOk = dk.isPresigned(di.zone);
+      dni.dnssecOk = dk.doesDNSSEC();
 
       if(dk.getTSIGForAccess(di.zone, sr.master, &dni.tsigkeyname)) {
         string secret64;
@@ -836,6 +841,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
   L<<Logger::Warning<<"Received serial number updates for "<<ssr.d_freshness.size()<<" zone"<<addS(ssr.d_freshness.size())<<", had "<<ifl.getTimeouts()<<" timeout"<<addS(ifl.getTimeouts())<<endl;
 
   typedef DomainNotificationInfo val_t;
+  unsigned int now = time(0);
   for(val_t& val :  sdomains) {
     DomainInfo& di(val.di);
     // might've come from the packethandler
@@ -853,14 +859,10 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       di.backend->setFresh(di.id);
     }
     else if(theirserial == ourserial) {
-      if(!dk.isPresigned(di.zone)) {
-        L<<Logger::Info<<"Domain '"<< di.zone<<"' is fresh (not presigned, no RRSIG check)"<<endl;
-        di.backend->setFresh(di.id);
-      }
-      else {
+      uint32_t maxExpire=0, maxInception=0;
+      if(dk.isPresigned(di.zone)) {
         B->lookup(QType(QType::RRSIG), di.zone); // can't use DK before we are done with this lookup!
         DNSResourceRecord rr;
-        uint32_t maxExpire=0, maxInception=0;
         while(B->get(rr)) {
           RRSIGRecordContent rrc(rr.content);
           if(rrc.d_type == QType::SOA) {
@@ -868,14 +870,30 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
             maxExpire = std::max(maxExpire, rrc.d_sigexpire);
           }
         }
-        if(maxInception == ssr.d_freshness[di.id].theirInception && maxExpire == ssr.d_freshness[di.id].theirExpire) {
-          L<<Logger::Info<<"Domain '"<< di.zone<<"' is fresh and apex RRSIGs match"<<endl;
-          di.backend->setFresh(di.id);
-        }
-        else {
-          L<<Logger::Warning<<"Domain '"<< di.zone<<"' is fresh, but RRSIGS differ, so DNSSEC stale"<<endl;
-          addSuckRequest(di.zone, *di.masters.begin());
-        }
+      }
+      if(! maxInception && ! ssr.d_freshness[di.id].theirInception) {
+        L<<Logger::Info<<"Domain '"<< di.zone<<"' is fresh (no DNSSEC)"<<endl;
+        di.backend->setFresh(di.id);
+      }
+      else if(maxInception == ssr.d_freshness[di.id].theirInception && maxExpire == ssr.d_freshness[di.id].theirExpire) {
+        L<<Logger::Info<<"Domain '"<< di.zone<<"' is fresh and SOA RRSIGs match"<<endl;
+        di.backend->setFresh(di.id);
+      }
+      else if(maxExpire >= now && ! ssr.d_freshness[di.id].theirInception ) {
+        L<<Logger::Info<<"Domain '"<< di.zone<<"' is fresh, master is no longer signed but (some) signatures are still vallid"<<endl;
+        di.backend->setFresh(di.id);
+      }
+      else if(maxInception && ! ssr.d_freshness[di.id].theirInception ) {
+        L<<Logger::Warning<<"Domain '"<< di.zone<<"' is stale, master is no longer signed and all signatures have expired"<<endl;
+        addSuckRequest(di.zone, *di.masters.begin());
+      }
+      else if(dk.doesDNSSEC() && ! maxInception && ssr.d_freshness[di.id].theirInception) {
+        L<<Logger::Warning<<"Domain '"<< di.zone<<"' is stale, master has signed"<<endl;
+        addSuckRequest(di.zone, *di.masters.begin());
+      }
+      else {
+        L<<Logger::Warning<<"Domain '"<< di.zone<<"' is fresh, but RRSIGs differ, so DNSSEC is stale"<<endl;
+        addSuckRequest(di.zone, *di.masters.begin());
       }
     }
     else {

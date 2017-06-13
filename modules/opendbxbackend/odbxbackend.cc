@@ -42,18 +42,6 @@ inline string& strbind( const string& search, const string& replace, string& sub
 
 
 
-inline string& toLowerByRef( string& str )
-{
-        for( unsigned int i = 0; i < str.length(); i++ )
-        {
-        	str[i] = dns_tolower( str[i] );
-        }
-
-        return str;
-}
-
-
-
 OdbxBackend::OdbxBackend( const string& suffix )
 {
         vector<string> hosts;
@@ -105,7 +93,7 @@ OdbxBackend::~OdbxBackend()
 
 
 
-bool OdbxBackend::getDomainInfo( const string& domain, DomainInfo& di )
+bool OdbxBackend::getDomainInfo( const DNSName& domain, DomainInfo& di )
 {
         const char* tmp;
 
@@ -115,7 +103,7 @@ bool OdbxBackend::getDomainInfo( const string& domain, DomainInfo& di )
         	DLOG( L.log( m_myname + " getDomainInfo()", Logger::Debug ) );
 
         	string stmt = getArg( "sql-zoneinfo" );
-        	string& stmtref = strbind( ":name", escape( toLower( domain ), READ ), stmt );
+        	string& stmtref = strbind( ":name", escape( domain.makeLowerCase().toStringRootDot(), READ ), stmt );
 
         	if( !execStmt( stmtref.c_str(), stmtref.size(), READ ) ) { return false; }
         	if( !getRecord( READ ) ) { return false; }
@@ -170,7 +158,7 @@ bool OdbxBackend::getDomainInfo( const string& domain, DomainInfo& di )
 
         		if( ( tmp = odbx_field_value( m_result, 1 ) ) != NULL )
         		{
-			        di.zone = DNSName(string( tmp, odbx_field_length( m_result, 1 ) ));
+        			di.zone = DNSName(string( tmp, odbx_field_length( m_result, 1 ) ));
         		}
 
         		if( ( tmp = odbx_field_value( m_result, 0 ) ) != NULL )
@@ -201,7 +189,7 @@ bool OdbxBackend::getSOA( const DNSName& domain, SOAData& sd, DNSPacket* p )
         	DLOG( L.log( m_myname + " getSOA()", Logger::Debug ) );
 
         	string stmt = getArg( "sql-lookupsoa" );
-        	string& stmtref = strbind( ":name", escape( domain.toStringNoDot(), READ ), stmt );
+        	string& stmtref = strbind( ":name", escape( domain.makeLowerCase().toStringRootDot(), READ ), stmt );
 
         	if( !execStmt( stmtref.c_str(), stmtref.size(), READ ) ) { return false; }
         	if( !getRecord( READ ) ) { return false; }
@@ -234,12 +222,12 @@ bool OdbxBackend::getSOA( const DNSName& domain, SOAData& sd, DNSPacket* p )
 
         		if( sd.nameserver.empty() )
         		{
-			        sd.nameserver = DNSName(arg()["default-soa-name"]);
+        			sd.nameserver = DNSName(arg()["default-soa-name"]);
         		}
 
         		if( sd.hostmaster.empty() )
         		{
-			        sd.hostmaster = DNSName("hostmaster") + DNSName(domain);
+        			sd.hostmaster = DNSName("hostmaster") + DNSName(domain);
         		}
 
         		sd.db = this;
@@ -263,7 +251,7 @@ bool OdbxBackend::list( const DNSName& target, int zoneid, bool include_disabled
         {
         	DLOG( L.log( m_myname + " list()", Logger::Debug ) );
 
-		m_qname.clear();
+        	m_qname.clear();
         	m_result = NULL;
 
         	int len = snprintf( m_buffer, sizeof( m_buffer ) - 1, "%d", zoneid );
@@ -322,7 +310,7 @@ void OdbxBackend::lookup( const QType& qtype, const DNSName& qname, DNSPacket* d
         	{
         		if( qtype.getCode() == QType::ANY )
         		{
-         			stmt = getArg( "sql-lookupid" );
+        			stmt = getArg( "sql-lookupid" );
         		} else {
         			stmt = getArg( "sql-lookuptypeid" );
         			stmtref = strbind( ":type", qtype.getName(), stmt );
@@ -345,8 +333,7 @@ void OdbxBackend::lookup( const QType& qtype, const DNSName& qname, DNSPacket* d
         		stmtref = strbind( ":id", string( m_buffer, len ), stmtref );
         	}
 
-        	string tmp = qname.toStringNoDot();
-        	stmtref = strbind( ":name", escape( toLowerByRef( tmp ), READ ), stmtref );
+        	stmtref = strbind( ":name", escape( qname.makeLowerCase().toStringRootDot(), READ ), stmtref );
 
         	if( !execStmt( stmtref.c_str(), stmtref.size(), READ ) )
         	{
@@ -387,7 +374,7 @@ bool OdbxBackend::get( DNSResourceRecord& rr )
 
         		if( m_qname.empty() && ( tmp = odbx_field_value( m_result, 1 ) ) != NULL )
         		{
-			        rr.qname = DNSName( string(tmp, odbx_field_length( m_result, 1 ) ));
+        			rr.qname = DNSName( string(tmp, odbx_field_length( m_result, 1 ) ));
         		}
 
         		if( ( tmp = odbx_field_value( m_result, 2 ) ) != NULL )
@@ -509,14 +496,14 @@ void OdbxBackend::setNotified( uint32_t domain_id, uint32_t serial )
 
 
 
-bool OdbxBackend::isMaster( const string& domain, const string& ip )
+bool OdbxBackend::isMaster( const DNSName& domain, const string& ip )
 {
         try
         {
         	DLOG( L.log( m_myname + " isMaster()", Logger::Debug ) );
 
         	string stmt = getArg( "sql-master" );
-        	string& stmtref = strbind( ":name", escape( toLower( domain ), READ ), stmt );
+        	string& stmtref = strbind( ":name", escape( domain.makeLowerCase().toStringRootDot(), READ ), stmt );
 
         	if( !execStmt( stmtref.c_str(), stmtref.size(), READ ) ) { return false; }
         	if( !getRecord( READ ) ) { return false; }
@@ -589,7 +576,7 @@ void OdbxBackend::getUpdatedMasters( vector<DomainInfo>* updated )
 
 
 
-bool OdbxBackend::superMasterBackend( const string& ip, const string& domain, const vector<DNSResourceRecord>& set, string *nameserver, string* account, DNSBackend** ddb )
+bool OdbxBackend::superMasterBackend( const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& set, string *nameserver, string* account, DNSBackend** ddb )
 {
         try
         {
@@ -633,7 +620,7 @@ bool OdbxBackend::superMasterBackend( const string& ip, const string& domain, co
 
 
 
-bool OdbxBackend::createSlaveDomain( const string& ip, const string& domain, const string &nameserver, const string& account )
+bool OdbxBackend::createSlaveDomain( const string& ip, const DNSName& domain, const string &nameserver, const string& account )
 {
         try
         {
@@ -645,8 +632,7 @@ bool OdbxBackend::createSlaveDomain( const string& ip, const string& domain, con
         		return false;
         	}
 
-        	string tmp = domain;
-        	int len = snprintf( m_buffer, sizeof( m_buffer ) - 1, getArg( "sql-insert-slave" ).c_str(), escape( toLowerByRef( tmp ), WRITE ).c_str(),
+        	int len = snprintf( m_buffer, sizeof( m_buffer ) - 1, getArg( "sql-insert-slave" ).c_str(), escape( domain.makeLowerCase().toStringRootDot(), WRITE ).c_str(),
         		escape( ip, WRITE ).c_str(), escape( account, WRITE ).c_str() );
 
         	if( len < 0 )
@@ -686,8 +672,6 @@ bool OdbxBackend::feedRecord( const DNSResourceRecord& rr, string *ordername )
         		return false;
         	}
 
-        	string tmp = rr.qname.toStringNoDot();
-
         	unsigned int priority=0;
         	string content(rr.content);
 
@@ -700,7 +684,7 @@ bool OdbxBackend::feedRecord( const DNSResourceRecord& rr, string *ordername )
         	}
 
         	int len = snprintf( m_buffer, sizeof( m_buffer ) - 1, getArg( "sql-insert-record" ).c_str(), rr.domain_id,
-        		escape( toLowerByRef( tmp ), WRITE ).c_str(), rr.qtype.getName().c_str(), rr.ttl, priority,
+        		escape( rr.qname.makeLowerCase().toStringRootDot(), WRITE ).c_str(), rr.qtype.getName().c_str(), rr.ttl, priority,
         		escape( content, WRITE ).c_str() );
 
         	if( len < 0 )
@@ -728,7 +712,7 @@ bool OdbxBackend::feedRecord( const DNSResourceRecord& rr, string *ordername )
 
 
 
-bool OdbxBackend::startTransaction( const string& domain, int zoneid )
+bool OdbxBackend::startTransaction( const DNSName& domain, int zoneid )
 {
         try
         {
@@ -740,8 +724,8 @@ bool OdbxBackend::startTransaction( const string& domain, int zoneid )
         		return false;
         	}
 
-		string stmtref =  getArg( "sql-transactbegin" );
-		if( !execStmt( stmtref.c_str(), stmtref.size(), WRITE ) ) { return false; }
+        	string stmtref =  getArg( "sql-transactbegin" );
+        	if( !execStmt( stmtref.c_str(), stmtref.size(), WRITE ) ) { return false; }
         	int len = snprintf( m_buffer, sizeof( m_buffer ) - 1, "%d", zoneid );
 
         	if( len < 0 )
@@ -757,9 +741,9 @@ bool OdbxBackend::startTransaction( const string& domain, int zoneid )
         	}
 
                 if(zoneid >= 0) {
-        	        string stmt = getArg( "sql-zonedelete" );
-        	        stmtref = strbind( ":id", string( m_buffer, len ), stmt );
-        	        if( !execStmt( stmtref.c_str(), stmtref.size(), WRITE ) ) { return false; }
+        		string stmt = getArg( "sql-zonedelete" );
+        		stmtref = strbind( ":id", string( m_buffer, len ), stmt );
+        		if( !execStmt( stmtref.c_str(), stmtref.size(), WRITE ) ) { return false; }
                 }
         }
         catch ( std::exception& e )

@@ -597,7 +597,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   NSEC3PARAMRecordContent ns3pr;
   bool narrow;
   bool NSEC3Zone=false;
-  if(dk.getNSEC3PARAM(target, &ns3pr, &narrow)) {
+  if(securedZone && dk.getNSEC3PARAM(target, &ns3pr, &narrow)) {
     NSEC3Zone=true;
     if(narrow) {
       L<<Logger::Error<<"Not doing AXFR of an NSEC3 narrow zone '"<<target<<"' for "<<q->getRemote()<<endl;
@@ -751,6 +751,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
     rrs.push_back(rr);
 
   while(sd.db->get(rr)) {
+    rr.qname.makeUsLowerCase();
     if(rr.qname.isPartOf(target)) {
       if (rr.qtype.getCode() == QType::ALIAS && ::arg().mustDo("outgoing-axfr-expand-alias")) {
         vector<DNSResourceRecord> ips;
@@ -800,10 +801,10 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
         DNSName shorter(rr.qname);
         do {
           if (shorter==target) // apex is always auth
-            continue;
+            break;
           if(nsset.count(shorter) && !(rr.qname==shorter && rr.qtype.getCode() == QType::DS)) {
             rr.auth=false;
-            continue;
+            break;
           }
         } while(shorter.chopOff());
       }
