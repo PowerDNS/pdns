@@ -38,24 +38,38 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
 {
   time_t ttd=0;
   //  cerr<<"looking up "<< qname<<"|"+qt.getName()<<"\n";
-
-  if(!d_cachecachevalid || d_cachedqname!= qname) {
-    //    cerr<<"had cache cache miss"<<endl;
-    d_cachedqname=qname;
-    d_cachecache=d_cache.equal_range(tie(qname));
-    d_cachecachevalid=true;
+  pair<cache_t::iterator, cache_t::iterator> range;
+  bool exact = false;
+  const uint16_t qtype = qt.getCode();
+  if (qtype != QType::ANY && qtype != QType::ADDR) {
+    /* this means we don't have to scan all the netmask-specific entries
+       for the types we don't need */
+    exact = true;
+    range = d_cache.equal_range(tie(qname, qtype));
   }
-  //  else cerr<<"had cache cache hit!"<<endl;
+  else {
+    if(!d_cachecachevalid || d_cachedqname!= qname) {
+      //    cerr<<"had cache cache miss"<<endl;
+      d_cachedqname=qname;
+      d_cachecache=d_cache.equal_range(tie(qname));
+      d_cachecachevalid=true;
+    }
+    // else cerr<<"had cache cache hit!"<<endl;
+
+    range = d_cachecache;
+  }
 
   if(res)
     res->clear();
 
-  if(d_cachecache.first!=d_cachecache.second) {
-    for(cache_t::const_iterator i=d_cachecache.first; i != d_cachecache.second; ++i)
-      if(i->d_ttd > now && ((i->d_qtype == qt.getCode() || qt.getCode()==QType::ANY ||
-			    (qt.getCode()==QType::ADDR && (i->d_qtype == QType::A || i->d_qtype == QType::AAAA) )) 
-			    && (i->d_netmask.empty() || i->d_netmask.match(who)))
-         ) {
+  if(range.first != range.second) {
+    for(cache_t::const_iterator i = range.first; i != range.second; ++i) {
+      if(i->d_ttd > now &&
+         (exact || (i->d_qtype == qtype ||
+                    qtype == QType::ANY ||
+                    (qtype == QType::ADDR && (i->d_qtype == QType::A || i->d_qtype == QType::AAAA)))) &&
+         (i->d_netmask.empty() || i->d_netmask.match(who))) {
+
         if(variable && !i->d_netmask.empty()) {
           *variable=true;
         }
@@ -82,9 +96,10 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
           else
             moveCacheItemToBack(d_cache, i);
         }
-        if(qt.getCode()!=QType::ANY && qt.getCode()!=QType::ADDR) // normally if we have a hit, we are done
+        if(qtype != QType::ANY && qtype != QType::ADDR) // normally if we have a hit, we are done
           break;
       }
+    }
 
     //    cerr<<"time left : "<<ttd - now<<", "<< (res ? res->size() : 0) <<"\n";
     return static_cast<int32_t>(ttd-now);
