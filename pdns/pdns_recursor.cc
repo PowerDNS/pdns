@@ -776,6 +776,7 @@ void startDoResolve(void *p)
       sr.d_incomingECSFound = dc->d_ecsFound;
       if (dc->d_ecsFound) {
         sr.d_incomingECS = dc->d_ednssubnet;
+        sr.d_incomingECSNetwork = sr.d_incomingECS ? sr.d_incomingECS->source.getMaskedNetwork() : ComboAddress();
       }
     }
 

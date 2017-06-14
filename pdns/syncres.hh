@@ -353,7 +353,6 @@ public:
   }
 
   int asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res);
-
   static void doEDNSDumpAndClose(int fd);
 
   static std::atomic<uint64_t> s_queries;
@@ -374,6 +373,7 @@ public:
   std::unordered_map<std::string,bool> d_discardedPolicies;
   DNSFilterEngine::Policy d_appliedPolicy;
   boost::optional<const EDNSSubnetOpts&> d_incomingECS;
+  ComboAddress d_incomingECSNetwork;
 #ifdef HAVE_PROTOBUF
   boost::optional<const boost::uuids::uuid&> d_initialRequestId;
 #endif
