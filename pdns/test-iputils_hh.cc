@@ -191,6 +191,7 @@ BOOST_AUTO_TEST_CASE(test_Netmask) {
   Netmask all6("::/0");
   BOOST_CHECK(all6.match("::1") && all6.match("fe80::92fb:a6ff:fe4a:51da"));
 
+
   Netmask fromCombo1(ComboAddress("192.0.2.1:53"), 32);
   Netmask fromCombo2(ComboAddress("192.0.2.1:54"), 32);
   BOOST_CHECK(fromCombo1 == fromCombo2);
@@ -203,6 +204,30 @@ BOOST_AUTO_TEST_CASE(test_Netmask) {
   BOOST_CHECK(nm25.getBits() == 25);
   BOOST_CHECK(nm25.getNetwork() == ComboAddress("192.0.2.255"));
   BOOST_CHECK(nm25.getMaskedNetwork() == ComboAddress("192.0.2.128"));
+
+  /* Make sure that more specific Netmasks are lesser than less specific ones,
+     as this is very useful when matching. */
+  Netmask specific32("192.0.0.0/32");
+  Netmask specific24("192.0.0.0/24");
+  Netmask specific16("192.0.0.0/16");
+  BOOST_CHECK(specific32 < specific24);
+  BOOST_CHECK(specific24 > specific32);
+  BOOST_CHECK(specific24 < specific16);
+  BOOST_CHECK(specific16 > specific24);
+
+  Netmask sameMask1("192.0.0.0/16");
+  Netmask sameMask2("192.0.0.1/16");
+  BOOST_CHECK(sameMask1 < sameMask2);
+  BOOST_CHECK(sameMask2 > sameMask1);
+
+  /* An empty Netmask should be larger than
+     every others. */
+  Netmask empty = Netmask();
+  Netmask full("255.255.255.255/32");
+  BOOST_CHECK(empty > all);
+  BOOST_CHECK(all < empty);
+  BOOST_CHECK(empty > full);
+  BOOST_CHECK(full < empty);
 }
 
 BOOST_AUTO_TEST_CASE(test_NetmaskGroup) {
