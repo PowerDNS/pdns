@@ -618,6 +618,12 @@ public:
   void setIncomingECS(boost::optional<const EDNSSubnetOpts&> incomingECS)
   {
     d_incomingECS = incomingECS;
+    if (incomingECS) {
+      d_incomingECSNetwork = incomingECS->source.getMaskedNetwork();
+    }
+    else {
+      d_incomingECSNetwork = ComboAddress();
+    }
   }
 
 #ifdef HAVE_PROTOBUF
@@ -755,6 +761,7 @@ private:
   ostringstream d_trace;
   shared_ptr<RecursorLua4> d_pdl;
   boost::optional<const EDNSSubnetOpts&> d_incomingECS;
+  ComboAddress d_incomingECSNetwork;
 #ifdef HAVE_PROTOBUF
   boost::optional<const boost::uuids::uuid&> d_initialRequestId;
 #endif
