@@ -3080,7 +3080,7 @@ int main(int argc, char **argv)
     ::arg().set("ecs-ipv4-bits", "Number of bits of IPv4 address to pass for EDNS Client Subnet")="24";
     ::arg().set("ecs-ipv6-bits", "Number of bits of IPv6 address to pass for EDNS Client Subnet")="56";
     ::arg().set("edns-subnet-whitelist", "List of netmasks and domains that we should enable EDNS subnet for")="";
-    ::arg().setSwitch( "use-incoming-edns-subnet", "Pass along received EDNS Client Subnet information")="";
+    ::arg().setSwitch( "use-incoming-edns-subnet", "Pass along received EDNS Client Subnet information")="no";
     ::arg().setSwitch( "pdns-distributes-queries", "If PowerDNS itself should distribute queries over threads")="";
     ::arg().setSwitch( "root-nx-trust", "If set, believe that an NXDOMAIN from the root means the TLD does not exist")="yes";
     ::arg().setSwitch( "any-to-tcp","Answer ANY queries with tc=1, shunting to TCP" )="no";
