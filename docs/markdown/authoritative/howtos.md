@@ -178,7 +178,7 @@ If you have multiple IP addresses on the internet on one machine, UNIX often sen
 # Using ALIAS records
 The ALIAS record provides a way to have CNAME-like behaviour on the zone apex.
 
-In order to correctly serve ALIAS records, set the [`resolver`](settings.md#resolver) setting to an existing resolver and enable [`expand-alias`](settings.md#expand-alias):
+In order to correctly serve ALIAS records in PowerDNS Authoritative Server 4.1.0 or higher, set the [`resolver`](settings.md#resolver) setting to an existing resolver and enable [`expand-alias`](settings.md#expand-alias):
 
 ```
 resolver=[::1]:5300
@@ -187,7 +187,13 @@ expand-alias=yes
 
 **note**: If `resolver` is unset, ALIAS expension is disabled!
 
-and add the ALIAS record to your zone apex. e.g.:
+**note**: In PowerDNS Authoritative Server 4.0.x, the setting [`recursor`](settings.md#recursor) is used instead, and you should omit the [`expand-alias`](settings.md#expand-alias) setting:
+
+```
+recursor=[::1]:5300
+```
+
+Then add the ALIAS record to your zone apex. e.g.:
 
 ```
 $ORIGIN example.net
