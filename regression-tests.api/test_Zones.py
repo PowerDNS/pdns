@@ -918,6 +918,62 @@ fred   IN  A      192.168.0.4
         self.assertEquals(r.status_code, 422)
         self.assertIn('unknown type', r.json()['error'])
 
+    def test_rrset_cname_and_other(self):
+        name, payload, zone = self.create_zone()
+        rrset = {
+            'changetype': 'replace',
+            'name': name,
+            'type': 'CNAME',
+            'ttl': 3600,
+            'records': [
+                {
+                    "content": "example.org.",
+                    "disabled": False
+                }
+            ]
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(self.url("/api/v1/servers/localhost/zones/" + name), data=json.dumps(payload),
+                               headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 422)
+        self.assertIn('Conflicts with pre-existing non-CNAME RRset', r.json()['error'])
+
+    def test_rrset_other_and_cname(self):
+        name, payload, zone = self.create_zone()
+        rrset = {
+            'changetype': 'replace',
+            'name': 'sub.'+name,
+            'type': 'CNAME',
+            'ttl': 3600,
+            'records': [
+                {
+                    "content": "example.org.",
+                    "disabled": False
+                }
+            ]
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(self.url("/api/v1/servers/localhost/zones/" + name), data=json.dumps(payload),
+                               headers={'content-type': 'application/json'})
+        self.assert_success(r)
+        rrset = {
+            'changetype': 'replace',
+            'name': 'sub.'+name,
+            'type': 'A',
+            'ttl': 3600,
+            'records': [
+                {
+                    "content": "1.2.3.4",
+                    "disabled": False
+                }
+            ]
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(self.url("/api/v1/servers/localhost/zones/" + name), data=json.dumps(payload),
+                               headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 422)
+        self.assertIn('Conflicts with pre-existing CNAME RRset', r.json()['error'])
+
     def test_create_zone_with_leading_space(self):
         # Actual regression.
         name, payload, zone = self.create_zone()
