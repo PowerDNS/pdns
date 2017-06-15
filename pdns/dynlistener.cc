@@ -146,7 +146,11 @@ void DynListener::listenOnUnixDomain(const string& fname)
 
 void DynListener::listenOnTCP(const ComboAddress& local)
 {
-  createSocketAndBind(AF_INET, (struct sockaddr*)& local, local.getSocklen());
+  if (local.isIPv4()) {
+    createSocketAndBind(AF_INET, (struct sockaddr*)& local, local.getSocklen());
+  } else if (local.isIPv6()) {
+    createSocketAndBind(AF_INET6, (struct sockaddr*)& local, local.getSocklen());
+  }
   listen(d_s, 10);
 
   d_socketaddress=local;
