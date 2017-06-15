@@ -64,6 +64,8 @@ std::atomic<uint64_t> SyncRes::s_throttledqueries;
 std::atomic<uint64_t> SyncRes::s_dontqueries;
 std::atomic<uint64_t> SyncRes::s_nodelegated;
 std::atomic<uint64_t> SyncRes::s_unreachables;
+std::atomic<uint64_t> SyncRes::s_ecsqueries;
+std::atomic<uint64_t> SyncRes::s_ecsresponses;
 uint8_t SyncRes::s_ecsipv4limit;
 uint8_t SyncRes::s_ecsipv6limit;
 bool SyncRes::s_doIPv6;
@@ -2008,10 +2010,12 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
     ednsmask=getEDNSSubnetMask(d_requestor, qname, remoteIP);
     if(ednsmask) {
       LOG(prefix<<qname<<": Adding EDNS Client Subnet Mask "<<ednsmask->toString()<<" to query"<<endl);
+      s_ecsqueries++;
     }
     resolveret = asyncresolveWrapper(remoteIP, d_doDNSSEC, qname,  qtype.getCode(),
                                      doTCP, sendRDQuery, &d_now, ednsmask, &lwr);    // <- we go out on the wire!
     if(ednsmask) {
+      s_ecsresponses++;
       LOG(prefix<<qname<<": Received EDNS Client Subnet Mask "<<ednsmask->toString()<<" on response"<<endl);
     }
   }
