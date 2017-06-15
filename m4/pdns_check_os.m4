@@ -39,7 +39,7 @@ AC_DEFUN([PDNS_CHECK_OS],[
   mips* | powerpc* )
     AX_CHECK_LINK_FLAG([-latomic],
       [ : ],
-      AC_MSG_ERROR([Unable to link against libatomic, cannot continue])
+      [ AC_MSG_ERROR([Unable to link against libatomic, cannot continue]) ]
     )
     LDFLAGS="-latomic $LDFLAGS"
     ;;
