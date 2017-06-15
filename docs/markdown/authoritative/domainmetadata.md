@@ -12,14 +12,21 @@ settings.
 
 For the implementation in non-sql backends, please review your backend's documentation.
 
+Apart from raw SQL statements, setting domain metadata can be done with [`pdnsutil set-meta`](dnssec.md#pdnsutil) and retrieving metadata is done with [`pdnsutil get-meta`](dnssec.md#pdnsutil).
+
 ## ALLOW-AXFR-FROM
 Starting with the PowerDNS Authoritative Server 3.1, per-zone AXFR ACLs can be
 stored in the domainmetadata table.
 
-Each ACL row can list one subnet (v4 or v6), or the magical value 'AUTO-NS' that
-tries to allow all potential slaves in.
+Each ACL specifies one subnet (v4 or v6), or the magical value 'AUTO-NS' that tries to allow all potential slaves in.
 
 Example:
+
+```
+pdnsutil set-meta powerdns.org ALLOW-AXFR-FROM AUTO-NS 2001:db8::/48
+```
+
+Each ACL has its own row in the database:
 
 ```
 select id from domains where name='example.com';
@@ -39,6 +46,13 @@ See the documentation on [Dynamic DNS update](dnsupdate.md)
 ## ALSO-NOTIFY
 When notifying this domain, also notify this nameserver (can occur multiple times).
 The nameserver may have contain an optional port number. e.g.:
+
+```
+pdnsutil set-meta powerdns.org ALSO-NOTIFY 192.0.2.1:5300
+pdnsutil set-meta powerdns.org ALLOW-AXFR-FROM 2001:db8:53::1
+```
+
+Or in SQL:
 
 ```
 insert into domainmetadata (domain_id, kind, content) values (7,'ALSO-NOTIFY','192.0.2.1:5300');
