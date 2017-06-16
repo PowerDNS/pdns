@@ -15,8 +15,7 @@ public:
   void create(unsigned int bits) override;
   storvector_t convertToISCVector() const override;
   std::string getPubKeyHash() const override;
-  std::string sign(const std::string& hash) const override;
-  std::string hash(const std::string& hash) const override;
+  std::string sign(const std::string& msg) const override;
   bool verify(const std::string& msg, const std::string& signature) const override;
   std::string getPublicKeyString() const override;
   int getBits() const override;
@@ -106,22 +105,12 @@ void SodiumED25519DNSCryptoKeyEngine::fromPublicKeyString(const std::string& inp
 
 std::string SodiumED25519DNSCryptoKeyEngine::sign(const std::string& msg) const
 {
-  string hash=this->hash(msg);
-  unsigned long long smlen = hash.length() + crypto_sign_ed25519_BYTES;
+  unsigned long long smlen = msg.length() + crypto_sign_ed25519_BYTES;
   std::unique_ptr<unsigned char[]> sm(new unsigned char[smlen]);
 
-  crypto_sign_ed25519(sm.get(), &smlen, (const unsigned char*)hash.c_str(), hash.length(), d_seckey);
+  crypto_sign_ed25519(sm.get(), &smlen, (const unsigned char*)msg.c_str(), msg.length(), d_seckey);
 
   return string((const char*)sm.get(), crypto_sign_ed25519_BYTES);
-}
-
-std::string SodiumED25519DNSCryptoKeyEngine::hash(const std::string& orig) const
-{
-  std::unique_ptr<unsigned char[]> out(new unsigned char[crypto_hash_sha512_BYTES]);
-
-  crypto_hash_sha512(out.get(), (const unsigned char*)orig.c_str(), orig.length());
-
-  return string((const char*)out.get(), crypto_hash_sha512_BYTES);
 }
 
 bool SodiumED25519DNSCryptoKeyEngine::verify(const std::string& msg, const std::string& signature) const
@@ -129,12 +118,11 @@ bool SodiumED25519DNSCryptoKeyEngine::verify(const std::string& msg, const std::
   if (signature.length() != crypto_sign_ed25519_BYTES)
     return false;
 
-  string hash=this->hash(msg);
-  unsigned long long smlen = hash.length() + crypto_sign_ed25519_BYTES;
+  unsigned long long smlen = msg.length() + crypto_sign_ed25519_BYTES;
   std::unique_ptr<unsigned char[]> sm(new unsigned char[smlen]);
 
   memcpy(sm.get(), signature.c_str(), crypto_sign_ed25519_BYTES);
-  memcpy(sm.get() + crypto_sign_ed25519_BYTES, hash.c_str(), hash.length());
+  memcpy(sm.get() + crypto_sign_ed25519_BYTES, msg.c_str(), msg.length());
 
   std::unique_ptr<unsigned char[]> m(new unsigned char[smlen]);
 
