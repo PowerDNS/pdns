@@ -46,7 +46,11 @@ class DNSCryptoKeyEngine
     virtual storvector_t convertToISCVector() const =0;
     std::string convertToISC() const ;
     virtual std::string sign(const std::string& msg) const =0;
-    virtual std::string hash(const std::string& msg) const =0;
+    virtual std::string hash(const std::string& msg) const
+    {
+       throw std::runtime_error("hash() function not implemented");
+       return msg;
+    }
     virtual bool verify(const std::string& msg, const std::string& signature) const =0;
     
     virtual std::string getPubKeyHash()const =0;
