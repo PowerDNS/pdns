@@ -83,6 +83,8 @@ bool DNSSECKeeper::addKey(const DNSName& name, bool setSEPBit, int algorithm, in
         bits = 256;
       else if(algorithm == 14) // ECDSAP384SHA384
         bits = 384;
+      else if(algorithm == 16) // ED448
+        bits = 456;
       else {
         throw runtime_error("Can't guess key size for algorithm "+std::to_string(algorithm));
       }
