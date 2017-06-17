@@ -34,7 +34,7 @@ unsigned int MemRecursorCache::bytes()
 }
 
 // returns -1 for no hits
-int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt, vector<DNSRecord>* res, const ComboAddress& who, vector<std::shared_ptr<RRSIGRecordContent>>* signatures)
+int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt, vector<DNSRecord>* res, const ComboAddress& who, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, bool* variable)
 {
   time_t ttd=0;
   //  cerr<<"looking up "<< qname<<"|"+qt.getName()<<"\n";
@@ -56,7 +56,9 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
 			    (qt.getCode()==QType::ADDR && (i->d_qtype == QType::A || i->d_qtype == QType::AAAA) )) 
 			    && (i->d_netmask.empty() || i->d_netmask.match(who)))
          ) {
-
+        if(variable && !i->d_netmask.empty()) {
+          *variable=true;
+        }
 	ttd = i->d_ttd;	
         //        cerr<<"Looking at "<<i->d_records.size()<<" records for this name"<<endl;
 	for(auto k=i->d_records.begin(); k != i->d_records.end(); ++k) {

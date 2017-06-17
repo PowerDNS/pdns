@@ -764,9 +764,8 @@ static void startDoResolve(void *p)
     bool DNSSECOK=false;
     if(t_pdl) {
       sr.setLuaEngine(t_pdl);
-      sr.d_requestor=dc->d_remote;
     }
-
+    sr.d_requestor=dc->d_remote; // ECS needs this too
     if(g_dnssecmode != DNSSECMode::Off) {
       sr.setDoDNSSEC(true);
 
@@ -3201,7 +3200,7 @@ int main(int argc, char **argv)
     ::arg().set("ecs-ipv4-bits", "Number of bits of IPv4 address to pass for EDNS Client Subnet")="24";
     ::arg().set("ecs-ipv6-bits", "Number of bits of IPv6 address to pass for EDNS Client Subnet")="56";
     ::arg().set("edns-subnet-whitelist", "List of netmasks and domains that we should enable EDNS subnet for")="";
-    ::arg().setSwitch( "use-incoming-edns-subnet", "Pass along received EDNS Client Subnet information")="";
+    ::arg().setSwitch( "use-incoming-edns-subnet", "Pass along received EDNS Client Subnet information")="no";
     ::arg().setSwitch( "pdns-distributes-queries", "If PowerDNS itself should distribute queries over threads")="yes";
     ::arg().setSwitch( "root-nx-trust", "If set, believe that an NXDOMAIN from the root means the TLD does not exist")="yes";
     ::arg().setSwitch( "any-to-tcp","Answer ANY queries with tc=1, shunting to TCP" )="no";
@@ -3220,7 +3219,7 @@ int main(int argc, char **argv)
     ::arg().setSwitch("reuseport","Enable SO_REUSEPORT allowing multiple recursors processes to listen to 1 address")="no";
 
     ::arg().setSwitch("snmp-agent", "If set, register as an SNMP agent")="no";
-    ::arg().setSwitch("snmp-master-socket", "If set and snmp-agent is set, the socket to use to register to the SNMP master")="";
+    ::arg().set("snmp-master-socket", "If set and snmp-agent is set, the socket to use to register to the SNMP master")="";
 
     ::arg().set("tcp-fast-open", "Enable TCP Fast Open support on the listening sockets, using the supplied numerical value as the queue size")="0";
 

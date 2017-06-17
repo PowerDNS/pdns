@@ -268,7 +268,7 @@ public:
   }
 
   //! feeds a record to a zone, needs a call to startTransaction first
-  virtual bool feedRecord(const DNSResourceRecord &rr, string *ordername=0)
+  virtual bool feedRecord(const DNSResourceRecord &rr, const DNSName &ordername)
   {
     return false; // no problem!
   }

@@ -55,6 +55,22 @@ void CommunicatorClass::retrievalLoopThread(void)
   }
 }
 
+void CommunicatorClass::loadArgsIntoSet(const char *listname, set<string> &listset)
+{
+  vector<string> parts;
+  stringtok(parts, ::arg()[listname], ", \t");
+  for (vector<string>::const_iterator iter = parts.begin(); iter != parts.end(); ++iter) {
+    try {
+      ComboAddress caIp(*iter, 53);
+      listset.insert(caIp.toStringWithPort());
+    }
+    catch(PDNSException &e) {
+      L<<Logger::Error<<"Unparseable IP in "<<listname<<". Error: "<<e.reason<<endl;
+      exit(1);
+    }
+  }
+}
+
 void CommunicatorClass::go()
 {
   try {
@@ -80,18 +96,9 @@ void CommunicatorClass::go()
     exit(1);
   }
 
-  vector<string> parts;
-  stringtok(parts, ::arg()["also-notify"], ", \t");
-  for (vector<string>::const_iterator iter = parts.begin(); iter != parts.end(); ++iter) {
-    try {
-      ComboAddress caIp(*iter, 53);
-      d_alsoNotify.insert(caIp.toStringWithPort());
-    }
-    catch(PDNSException &e) {
-      L<<Logger::Error<<"Unparseable IP in also-notify. Error: "<<e.reason<<endl;
-      exit(1);
-    }
-  }
+  loadArgsIntoSet("also-notify", d_alsoNotify);
+
+  loadArgsIntoSet("forward-notify", PacketHandler::s_forwardNotify);
 }
 
 void CommunicatorClass::mainloop(void)

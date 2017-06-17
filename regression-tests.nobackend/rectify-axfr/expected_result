@@ -136,3 +136,15 @@ zone 2.0.192.in-addr.arpa/IN: loaded serial 2000081501 (DNSSEC signed)
 OK
 RETVAL: 0
 
+--- ldns-verify-zone -V2 .
+RETVAL: 0
+
+--- jdnssec-verifyzone .
+zone verified.
+RETVAL: 0
+
+--- named-checkzone .
+zone ./IN: loaded serial 2016021600 (DNSSEC signed)
+OK
+RETVAL: 0
+

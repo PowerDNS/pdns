@@ -458,7 +458,7 @@ test_auth() {
   run "test -f modules/remotebackend/test-suite.log && cat modules/remotebackend/test-suite.log || true"
 
   #DNSName - make -k -j3 -C pdns $(grep '(EXEEXT):' pdns/Makefile | cut -f1 -d\$ | grep -E -v 'dnsdist|calidns')
-  run 'make -k -j3 -C pdns $(grep "(EXEEXT):" pdns/Makefile | cut -f1 -d\$ | grep -E -v "dnspcap2protobuf|dnsdist|calidns|speedtest")'
+  run 'make -k -j3 -C pdns $(grep "(EXEEXT):" pdns/Makefile | cut -f1 -d\$)'
 
   run "cd pdns"
   run "./pdnsutil test-algorithms"

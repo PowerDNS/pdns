@@ -179,6 +179,9 @@ and [DNS update](authoritative/dnsupdate.md) documentation for more information.
 Since 3.0. The TLSA records, specified in [RFC 6698](http://tools.ietf.org/html/rfc6698),
 are used to bind SSL/TLS certificate to named hosts and ports.
 
+## SMIMEA
+Since 4.1. The SMIMEA record type, specified in [RFC 8162](http://tools.ietf.org/html/rfc8162), is used to bind S/MIME certificates to domains.
+
 ## TXT
 The TXT field can be used to attach textual data to a domain. Text is stored
 plainly, PowerDNS understands content not enclosed in quotes. However, all quotes

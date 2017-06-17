@@ -116,20 +116,20 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
 
   string ping;
   bool weWantEDNSSubnet=false;
-  if(EDNS0Level) { 
+  if(EDNS0Level > 0) {
     DNSPacketWriter::optvect_t opts;
     if(srcmask) {
       EDNSSubnetOpts eo;
       eo.source = *srcmask;
       //      cout<<"Adding request mask: "<<eo.source.toString()<<endl;
       opts.push_back(make_pair(8, makeEDNSSubnetOptsString(eo)));
-      srcmask=boost::optional<Netmask>(); // this is also our return value
       weWantEDNSSubnet=true;
     }
 
     pw.addOpt(g_outgoingEDNSBufsize, 0, g_dnssecmode == DNSSECMode::Off ? 0 : EDNSOpts::DNSSECOK, opts); 
     pw.commit();
   }
+  srcmask = boost::none; // this is also our return value, even if EDNS0Level == 0
   lwr->d_rcode = 0;
   lwr->d_haveEDNS = false;
   int ret;
@@ -255,6 +255,10 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
             EDNSSubnetOpts reso;
             if(getEDNSSubnetOptsFromString(opt.second, &reso)) {
               //	    cerr<<"EDNS Subnet response: "<<reso.source.toString()<<", scope: "<<reso.scope.toString()<<", family = "<<reso.scope.getNetwork().sin4.sin_family<<endl;
+              /* rfc7871 states that 0 "indicate[s] that the answer is suitable for all addresses in FAMILY",
+                 so we might want to still pass the information along to be able to differentiate between
+                 IPv4 and IPv6. Still I'm pretty sure it doesn't matter in real life, so let's not duplicate
+                 entries in our cache. */
               if(reso.scope.getBits())
                 srcmask = reso.scope;
             }

@@ -417,7 +417,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
 
   SyncRes::EDNSStatus::EDNSMode& mode=ednsstatus->mode;
   SyncRes::EDNSStatus::EDNSMode oldmode = mode;
-  int EDNSLevel=0;
+  int EDNSLevel = 0;
   auto luaconfsLocal = g_luaconfs.getLocal();
   ResolveContext ctx;
 #ifdef HAVE_PROTOBUF
@@ -794,7 +794,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
   LOG(prefix<<qname<<": Looking for CNAME cache hit of '"<<qname<<"|CNAME"<<"'"<<endl);
   vector<DNSRecord> cset;
   vector<std::shared_ptr<RRSIGRecordContent>> signatures;
-  if(t_RC->get(d_now.tv_sec, qname,QType(QType::CNAME), &cset, d_requestor, &signatures) > 0) {
+  if(t_RC->get(d_now.tv_sec, qname,QType(QType::CNAME), &cset, d_requestor, &signatures, &d_wasVariable) > 0) {
 
     for(auto j=cset.cbegin() ; j != cset.cend() ; ++j) {
       if(j->d_ttl>(unsigned int) d_now.tv_sec) {
@@ -913,7 +913,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSR
   bool found=false, expired=false;
   vector<std::shared_ptr<RRSIGRecordContent>> signatures;
   uint32_t ttl=0;
-  if(t_RC->get(d_now.tv_sec, sqname, sqt, &cset, d_requestor, d_doDNSSEC ? &signatures : 0) > 0) {
+  if(t_RC->get(d_now.tv_sec, sqname, sqt, &cset, d_requestor, d_doDNSSEC ? &signatures : 0, &d_wasVariable) > 0) {
     LOG(prefix<<sqname<<": Found cache hit for "<<sqt.getName()<<": ");
     for(auto j=cset.cbegin() ; j != cset.cend() ; ++j) {
       LOG(j->d_content->getZoneRepresentation());
@@ -1245,7 +1245,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(const std::string& prefix, LWResu
     if(i->second.records.empty()) // this happens when we did store signatures, but passed on the records themselves
       continue;
 
-    t_RC->replace(d_now.tv_sec, i->first.name, QType(i->first.type), i->second.records, i->second.signatures, lwr.d_aabit, i->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::optional<Netmask>());
+    t_RC->replace(d_now.tv_sec, i->first.name, QType(i->first.type), i->second.records, i->second.signatures, lwr.d_aabit, i->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::none);
 
     if(i->first.place == DNSResourceRecord::ANSWER && ednsmask)
       d_wasVariable=true;
@@ -1800,24 +1800,24 @@ int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback) {
     }
     return res;
   }
-  catch(PDNSException& e)
-  {
+  catch(const PDNSException& e) {
     L<<Logger::Error<<"Failed to update . records, got an exception: "<<e.reason<<endl;
   }
-
-  catch(std::exception& e)
-  {
+  catch(const ImmediateServFailException& e) {
+    L<<Logger::Error<<"Failed to update . records, got an exception: "<<e.reason<<endl;
+  }
+  catch(const std::exception& e) {
     L<<Logger::Error<<"Failed to update . records, got an exception: "<<e.what()<<endl;
   }
-
-  catch(...)
-  {
+  catch(...) {
     L<<Logger::Error<<"Failed to update . records, got an exception"<<endl;
   }
+
   if(!res) {
     L<<Logger::Notice<<"Refreshed . records"<<endl;
   }
   else
     L<<Logger::Error<<"Failed to update . records, RCODE="<<res<<endl;
+
   return res;
 }

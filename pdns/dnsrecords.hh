@@ -437,6 +437,16 @@ private:
   string d_cert;
 };
 
+class SMIMEARecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(SMIMEA)
+
+private:
+  uint8_t d_certusage, d_selector, d_matchtype;
+  string d_cert;
+};
+
 class OPENPGPKEYRecordContent : public DNSRecordContent
 {
 public:

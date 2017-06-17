@@ -51,22 +51,22 @@ public:
   GeoIPBackend(const std::string& suffix="");
   ~GeoIPBackend();
 
-  virtual void lookup(const QType &qtype, const DNSName &qdomain, DNSPacket *pkt_p=0, int zoneId=-1);
-  virtual bool list(const DNSName &target, int domain_id, bool include_disabled=false) { return false; } // not supported
-  virtual bool get(DNSResourceRecord &r);
-  virtual void reload();
-  virtual void rediscover(string *status = 0);
-  virtual bool getDomainInfo(const DNSName& domain, DomainInfo &di);
+  void lookup(const QType &qtype, const DNSName &qdomain, DNSPacket *pkt_p=0, int zoneId=-1) override;
+  bool list(const DNSName &target, int domain_id, bool include_disabled=false) override { return false; } // not supported
+  bool get(DNSResourceRecord &r) override;
+  void reload() override;
+  void rediscover(string *status = 0) override;
+  bool getDomainInfo(const DNSName& domain, DomainInfo &di) override;
 
   // dnssec support
-  virtual bool doesDNSSEC() { return d_dnssec; };
-  virtual bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta);
-  virtual bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta);
-  virtual bool getDomainKeys(const DNSName& name, std::vector<DNSBackend::KeyData>& keys);
-  virtual bool removeDomainKey(const DNSName& name, unsigned int id);
-  virtual bool addDomainKey(const DNSName& name, const KeyData& key, int64_t& id);
-  virtual bool activateDomainKey(const DNSName& name, unsigned int id);
-  virtual bool deactivateDomainKey(const DNSName& name, unsigned int id);
+  bool doesDNSSEC() override { return d_dnssec; };
+  bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta) override;
+  bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta) override;
+  bool getDomainKeys(const DNSName& name, std::vector<DNSBackend::KeyData>& keys) override;
+  bool removeDomainKey(const DNSName& name, unsigned int id) override;
+  bool addDomainKey(const DNSName& name, const KeyData& key, int64_t& id) override;
+  bool activateDomainKey(const DNSName& name, unsigned int id) override;
+  bool deactivateDomainKey(const DNSName& name, unsigned int id) override;
 
   enum GeoIPQueryAttribute {
     ASn,

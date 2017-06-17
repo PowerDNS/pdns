@@ -66,6 +66,7 @@ public:
 
   int trySuperMasterSynchronous(DNSPacket *p, const DNSName& tsigkeyname);
   static NetmaskGroup s_allowNotifyFrom;
+  static set<string> s_forwardNotify;
 
 private:
   int trySuperMaster(DNSPacket *p, const DNSName& tsigkeyname);
