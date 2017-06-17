@@ -89,6 +89,9 @@ void showBuildConfiguration()
 #ifdef HAVE_LIBSODIUM
     "sodium " <<
 #endif
+#ifdef HAVE_LIBDECAF
+    "decaf " <<
+#endif
     "openssl " <<
 #ifdef HAVE_LIBDL
     "libdl " <<

@@ -259,6 +259,12 @@ pdns_recursor_SOURCES += \
 pdns_recursor_LDADD += $(LIBSODIUM_LIBS)
 endif
 
+if LIBDECAF
+pdns_recursor_SOURCES += \
+	decafsigners.cc
+pdns_recursor_LDADD += $(LIBDECAF_LIBS)
+endif
+
 if MALLOC_TRACE
 pdns_recursor_SOURCES += \
 	malloctrace.cc \
