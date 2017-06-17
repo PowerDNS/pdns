@@ -13,7 +13,7 @@ CREATE UNIQUE INDEX name_index ON domains(name);
 
 
 CREATE TABLE records (
-  id                    SERIAL PRIMARY KEY,
+  id                    BIGSERIAL PRIMARY KEY,
   domain_id             INT DEFAULT NULL,
   name                  VARCHAR(255) DEFAULT NULL,
   type                  VARCHAR(10) DEFAULT NULL,
