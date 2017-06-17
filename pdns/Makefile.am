@@ -1116,6 +1116,7 @@ testrunner_SOURCES = \
 	base64.cc \
 	bindlexer.l \
 	bindparser.yy \
+	dbdnsseckeeper.cc \
 	dns.cc \
 	dns_random.cc \
 	dnsbackend.cc \
@@ -1126,6 +1127,7 @@ testrunner_SOURCES = \
 	dnsparser.hh dnsparser.cc \
 	dnsrecords.cc \
 	dnssecinfra.cc \
+	dnssecsigner.cc \
 	dnswriter.cc \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc \
@@ -1160,6 +1162,7 @@ testrunner_SOURCES = \
 	test-nmtree.cc \
 	test-packetcache_cc.cc \
 	test-rcpgenerator_cc.cc \
+	test-signers.cc \
 	test-sha_hh.cc \
 	test-statbag_cc.cc \
 	test-zoneparser_tng_cc.cc \
@@ -1182,6 +1185,11 @@ testrunner_LDADD = \
 if PKCS11
 testrunner_SOURCES += pkcs11signers.cc pkcs11signers.hh
 testrunner_LDADD += $(P11KIT1_LIBS)
+endif
+
+if LIBSODIUM
+testrunner_SOURCES += sodiumsigners.cc
+testrunner_LDADD += $(LIBSODIUM_LIBS)
 endif
 
 pdns_control_SOURCES = \
