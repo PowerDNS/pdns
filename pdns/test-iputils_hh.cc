@@ -165,12 +165,18 @@ BOOST_AUTO_TEST_CASE(test_Netmask) {
   ComboAddress remote("130.161.252.29", 53);
   
   Netmask nm("127.0.0.1/24");
+  BOOST_CHECK(nm.getBits() == 24);
   BOOST_CHECK(nm.match(local));
   BOOST_CHECK(!nm.match(remote));
+  BOOST_CHECK(nm.isIpv4());
+  BOOST_CHECK(!nm.isIpv6());
 
   Netmask nm6("fe80::92fb:a6ff:fe4a:51da/64");
+  BOOST_CHECK(nm6.getBits() == 64);
   BOOST_CHECK(nm6.match("fe80::92fb:a6ff:fe4a:51db"));
   BOOST_CHECK(!nm6.match("fe81::92fb:a6ff:fe4a:51db"));
+  BOOST_CHECK(!nm6.isIpv4());
+  BOOST_CHECK(nm6.isIpv6());
 
   Netmask nmp("130.161.252.29/32");
   BOOST_CHECK(nmp.match(remote));
@@ -184,6 +190,19 @@ BOOST_AUTO_TEST_CASE(test_Netmask) {
 
   Netmask all6("::/0");
   BOOST_CHECK(all6.match("::1") && all6.match("fe80::92fb:a6ff:fe4a:51da"));
+
+  Netmask fromCombo1(ComboAddress("192.0.2.1:53"), 32);
+  Netmask fromCombo2(ComboAddress("192.0.2.1:54"), 32);
+  BOOST_CHECK(fromCombo1 == fromCombo2);
+  BOOST_CHECK(fromCombo1.match("192.0.2.1"));
+  BOOST_CHECK(fromCombo1.match(ComboAddress("192.0.2.1:80")));
+  BOOST_CHECK(fromCombo1.getNetwork() == ComboAddress("192.0.2.1"));
+  BOOST_CHECK(fromCombo1.getMaskedNetwork() == ComboAddress("192.0.2.1"));
+
+  Netmask nm25("192.0.2.255/25");
+  BOOST_CHECK(nm25.getBits() == 25);
+  BOOST_CHECK(nm25.getNetwork() == ComboAddress("192.0.2.255"));
+  BOOST_CHECK(nm25.getMaskedNetwork() == ComboAddress("192.0.2.128"));
 }
 
 BOOST_AUTO_TEST_CASE(test_NetmaskGroup) {
