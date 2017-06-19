@@ -1236,14 +1236,91 @@ class TestAdvancedLuaDO(DNSDistTest):
         (_, receivedResponse) = self.sendUDPQuery(queryWithDO, response=None, useQueue=False)
         self.assertTrue(receivedResponse)
         doResponse.id = receivedResponse.id
-        print(doResponse)
-        print(receivedResponse)
         self.assertEquals(receivedResponse, doResponse)
 
         (_, receivedResponse) = self.sendTCPQuery(queryWithDO, response=None, useQueue=False)
         self.assertTrue(receivedResponse)
         doResponse.id = receivedResponse.id
         self.assertEquals(receivedResponse, doResponse)
+
+class TestAdvancedLuaRefused(DNSDistTest):
+
+    _config_template = """
+    function refuse(dq)
+        return DNSAction.Refused, ""
+    end
+    addLuaAction(AllRule(), refuse)
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testRefusedViaLua(self):
+        """
+        Advanced: Refused via Lua
+        """
+        name = 'refused.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '::1')
+        response.answer.append(rrset)
+        refusedResponse = dns.message.make_response(query)
+        refusedResponse.set_rcode(dns.rcode.REFUSED)
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        refusedResponse.id = receivedResponse.id
+        self.assertEquals(receivedResponse, refusedResponse)
+
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        refusedResponse.id = receivedResponse.id
+        self.assertEquals(receivedResponse, refusedResponse)
+
+class TestAdvancedLuaTruncated(DNSDistTest):
+
+    _config_template = """
+    function trunc(dq)
+        if not dq.tcp then
+          return DNSAction.Truncate, ""
+        end
+        return DNSAction.None, ""
+    end
+    addLuaAction(AllRule(), trunc)
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testTCViaLua(self):
+        """
+        Advanced: TC via Lua
+        """
+        name = 'tc.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '::1')
+        response.answer.append(rrset)
+
+        truncatedResponse = dns.message.make_response(query)
+        truncatedResponse.flags |= dns.flags.TC
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        truncatedResponse.id = receivedResponse.id
+        self.assertEquals(receivedResponse, truncatedResponse)
+
+        # no truncation over TCP
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
 
 class TestStatNodeRespRingSince(DNSDistTest):
 

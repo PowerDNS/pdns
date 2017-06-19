@@ -590,6 +590,7 @@ Valid return values for `LuaAction` functions are:
  * DNSAction.Pool: use the specified pool to forward this query
  * DNSAction.Refused: return a response with a Refused rcode
  * DNSAction.Spoof: spoof the response using the supplied IPv4 (A), IPv6 (AAAA) or string (CNAME) value
+ * DNSAction.Truncate: return a response with TC=1
 
 The same feature exists to hand off some responses for Lua inspection, using `addLuaResponseAction(x, func)`.
 
@@ -1531,7 +1532,7 @@ instantiate a server with additional parameters
     * `clearDynBlocks()`: clear all dynamic blocks
     * `showDynBlocks()`: show dynamic blocks in force
     * `addDynBlocks(addresses, message[, seconds[, action]])`: block the set of addresses with message `msg`, for `seconds` seconds (10 by default), applying `action` (default to the one set with `setDynBlocksAction()`)
-    * `setDynBlocksAction(DNSAction)`: set which action is performed when a query is blocked. Only DNSAction.Drop (the default) and DNSAction.Refused are supported
+    * `setDynBlocksAction(DNSAction)`: set which action is performed when a query is blocked. Only DNSAction.Drop (the default), DNSAction.Refused and DNSAction.Truncate are supported
     * `addBPFFilterDynBlocks(addresses, DynBPFFilter[, seconds])`: block the set of addresses using the supplied BPF Filter, for `seconds` seconds (10 by default)
     * `exceedServFails(rate, seconds)`: get set of addresses that exceed `rate` servfails/s over `seconds` seconds
     * `exceedNXDOMAINs(rate, seconds)`: get set of addresses that exceed `rate` NXDOMAIN/s over `seconds` seconds
