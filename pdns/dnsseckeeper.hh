@@ -268,6 +268,14 @@ private:
   static pthread_rwlock_t s_keycachelock;
   static AtomicCounter s_ops;
   static time_t s_last_prune;
+
+public:
+  void preRemoval(const KeyCacheEntry&)
+  {
+  }
+  void preRemoval(const METACacheEntry&)
+  {
+  }
 };
 
 class DNSPacket;

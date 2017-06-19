@@ -832,7 +832,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
             state = SyncRes::validateRecordsWithSigs(depth, qname, QType(QType::CNAME), qname, cset, signatures);
             if (state != Indeterminate) {
               LOG(prefix<<qname<<": got Indeterminate state from the CNAME cache, new validation result is "<<vStates[state]<<endl);
-              t_RC->updateValidationStatus(qname, QType(QType::CNAME), d_requestor, d_requireAuthData, state);
+              t_RC->updateValidationStatus(d_now.tv_sec, qname, QType(QType::CNAME), d_requestor, d_requireAuthData, state);
             }
           }
         }
@@ -990,7 +990,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSR
 
         if (cachedState != Indeterminate) {
           LOG(prefix<<qname<<": got Indeterminate state from the cache, validation result is "<<vStates[cachedState]<<endl);
-          t_RC->updateValidationStatus(sqname, sqt, d_requestor, d_requireAuthData, cachedState);
+          t_RC->updateValidationStatus(d_now.tv_sec, sqname, sqt, d_requestor, d_requireAuthData, cachedState);
         }
       }
     }

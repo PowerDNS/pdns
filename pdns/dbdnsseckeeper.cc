@@ -566,11 +566,11 @@ void DNSSECKeeper::cleanup()
   if(now.tv_sec - s_last_prune > (time_t)(30)) {
     {
         WriteLock l(&s_metacachelock);
-        pruneCollection(s_metacache, ::arg().asNum("max-cache-entries"));
+        pruneCollection(*this, s_metacache, ::arg().asNum("max-cache-entries"));
     }
     {
         WriteLock l(&s_keycachelock);
-        pruneCollection(s_keycache, ::arg().asNum("max-cache-entries"));
+        pruneCollection(*this, s_keycache, ::arg().asNum("max-cache-entries"));
     }
     s_last_prune=time(0);
   }
