@@ -13,7 +13,7 @@ class TestRecordsCountOnlyOneAR(DNSDistTest):
 
     def testRecordsCountRefuseEmptyAR(self):
         """
-        RecordsCount: Refuse arcount == 0
+        RecordsCount: Refuse arcount == 0 (No OPT)
 
         Send a query to "refuseemptyar.recordscount.tests.powerdns.com.",
         check that we are getting a REFUSED response.
@@ -31,7 +31,7 @@ class TestRecordsCountOnlyOneAR(DNSDistTest):
 
     def testRecordsCountAllowOneAR(self):
         """
-        RecordsCount: Allow arcount == 1
+        RecordsCount: Allow arcount == 1 (OPT)
 
         Send a query to "allowonear.recordscount.tests.powerdns.com.",
         check that we are getting a valid response.
@@ -61,7 +61,7 @@ class TestRecordsCountOnlyOneAR(DNSDistTest):
 
     def testRecordsCountRefuseTwoAR(self):
         """
-        RecordsCount: Refuse arcount > 1
+        RecordsCount: Refuse arcount > 1 (OPT + a bogus additional record)
 
         Send a query to "refusetwoar.recordscount.tests.powerdns.com.",
         check that we are getting a REFUSED response.
@@ -264,6 +264,47 @@ class TestRecordsCountNoOPTInAR(DNSDistTest):
         """
         name = 'allowwnooptinar.recordscount.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        response.answer.append(dns.rrset.from_text(name,
+                                                   3600,
+                                                   dns.rdataclass.IN,
+                                                   dns.rdatatype.A,
+                                                   '127.0.0.1'))
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+
+    def testRecordsCountAllowTwoARButNoOPT(self):
+        """
+        RecordsTypeCount: Allow arcount > 1 without OPT
+
+        Send a query to "allowtwoarnoopt.recordscount.tests.powerdns.com.",
+        check that we are getting a valid response.
+        """
+        name = 'allowtwoarnoopt.recordscount.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        query.additional.append(dns.rrset.from_text(name,
+                                                    3600,
+                                                    dns.rdataclass.IN,
+                                                    dns.rdatatype.A,
+                                                    '127.0.0.1'))
+        query.additional.append(dns.rrset.from_text(name,
+                                                    3600,
+                                                    dns.rdataclass.IN,
+                                                    dns.rdatatype.A,
+                                                    '127.0.0.1'))
+
         response = dns.message.make_response(query)
         response.answer.append(dns.rrset.from_text(name,
                                                    3600,
