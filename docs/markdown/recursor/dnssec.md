@@ -138,10 +138,10 @@ $ rec_control add-nta domain.example botched keyroll
 Added Negative Trust Anchor for domain.example. with reason 'botched keyroll'
 ```
 
-To view the currently configured negative trust anchors, run `show-ntas`:
+To view the currently configured negative trust anchors, run `get-ntas`:
 
 ```
-$ rec_control show-ntas
+$ rec_control get-ntas
 Configured Negative Trust Anchors:
 subdomain.example.      Operator failed key-roll
 otherdomain.example.    DS in parent, no DNSKEY in zone
