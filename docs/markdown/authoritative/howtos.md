@@ -187,10 +187,11 @@ expand-alias=yes
 
 **note**: If `resolver` is unset, ALIAS expension is disabled!
 
-**note**: In PowerDNS Authoritative Server 4.0.x, the setting [`recursor`](settings.md#recursor) is used instead, and you should omit the [`expand-alias`](settings.md#expand-alias) setting:
+**note**: In PowerDNS Authoritative Server 4.0.x, the setting [`recursor`](settings.md#recursor) is used instead, and you should omit the [`expand-alias`](settings.md#expand-alias) setting. Note that setting [`recursor`](settings.md#recursor) will allow recursive queries to all clients by default, which you likely do not want for security reasons, so you should restrict this:
 
 ```
 recursor=[::1]:5300
+allow-recursion=::1, 127.0.0.1
 ```
 
 Then add the ALIAS record to your zone apex. e.g.:
