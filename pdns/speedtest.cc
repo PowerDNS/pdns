@@ -229,14 +229,14 @@ vector<uint8_t> makeBigReferral()
   for(char c='a'; c<= 'm';++c) {
     pw.startRecord(DNSName("com"), QType::NS, 3600, 1, DNSResourceRecord::AUTHORITY);
     gtld[0]=c;
-    std::unique_ptr<DNSRecordContent> drc = DNSRecordContent::makeunique(QType::NS, 1, gtld);
+    auto drc = DNSRecordContent::makeunique(QType::NS, 1, gtld);
     drc->toPacket(pw);
   }
 
   for(char c='a'; c<= 'k';++c) {
     gtld[0]=c;
     pw.startRecord(DNSName(gtld), QType::A, 3600, 1, DNSResourceRecord::ADDITIONAL);
-    std::unique_ptr<DNSRecordContent> drc = DNSRecordContent::makeunique(QType::A, 1, "1.2.3.4");
+    auto drc = DNSRecordContent::makeunique(QType::A, 1, "1.2.3.4");
     drc->toPacket(pw);
   }
 
