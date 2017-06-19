@@ -241,6 +241,11 @@ your network, and may even be a security risk. Therefore, since version 3.1.5,
 the PowerDNS recursor by default does not query private space IP addresses.
 This setting can be used to expand or reduce the limitations.
 
+Queries to addresses for zones as configured in any of the settings
+[`forward-zones`](#forward-zones), [`forward-zones-file`](#forward-zones-file)
+or [`forward-zones-recurse`](#forward-zones-recurse) are performed regardless
+of these limitations.
+
 ## `ecs-ipv4-bits`
 * Integer
 * Default: 24
