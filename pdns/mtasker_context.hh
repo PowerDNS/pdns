@@ -76,7 +76,13 @@ static inline void notifyStackSwitchToKernel()
 static inline void notifyStackSwitchDone()
 {
 #ifdef HAVE_FIBER_SANITIZER
+#ifdef HAVE_SANITIZER_FINISH_SWITCH_FIBER_SINGLE_PTR
   __sanitizer_finish_switch_fiber(nullptr);
+#else /* HAVE_SANITIZER_FINISH_SWITCH_FIBER_SINGLE_PTR */
+#ifdef HAVE_SANITIZER_FINISH_SWITCH_FIBER_THREE_PTRS
+  __sanitizer_finish_switch_fiber(nullptr, nullptr, nullptr);
+#endif /* HAVE_SANITIZER_FINISH_SWITCH_FIBER_THREE_PTRS */
+#endif /* HAVE_SANITIZER_FINISH_SWITCH_FIBER_SINGLE_PTR */
 #endif /* HAVE_FIBER_SANITIZER */
 }
 
