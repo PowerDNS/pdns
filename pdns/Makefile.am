@@ -1205,6 +1205,11 @@ testrunner_SOURCES += sodiumsigners.cc
 testrunner_LDADD += $(LIBSODIUM_LIBS)
 endif
 
+if LIBDECAF
+testrunner_SOURCES += decafsigners.cc
+testrunner_LDADD += $(LIBDECAF_LIBS)
+endif
+
 pdns_control_SOURCES = \
 	arguments.cc \
 	dynloader.cc \
