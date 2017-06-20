@@ -61,7 +61,7 @@ template <typename T> void pruneCollection(T& collection, unsigned int maxCached
     else
       ++iter;
 
-    if(toTrim && erased > toTrim)
+    if(toTrim && erased >= toTrim)
       break;
   }
 
