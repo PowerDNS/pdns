@@ -240,8 +240,8 @@ install_auth() {
     jq"
 
   run "cd .."
-  run "wget https://www.verisignlabs.com/dnssec-tools/packages/jdnssec-tools-0.13.tar.gz"
-  run "sudo tar xfz jdnssec-tools-0.13.tar.gz --strip-components=1 -C /"
+  run "wget https://www.monshouwer.eu/download/3rd_party/jdnssec-tools-0.13.ecdsafix.tar.gz"
+  run "sudo tar xfz jdnssec-tools-0.13.ecdsafix.tar.gz --strip-components=1 -C /"
   run "cd ${TRAVIS_BUILD_DIR}"
 
   # pkcs11 test requirements / setup
@@ -258,7 +258,8 @@ install_auth() {
 
   # bind-backend tests requirements
   run "sudo apt-get -qq --no-install-recommends install \
-    alien"
+    alien\
+    fakeroot"
   run "cd .."
   run "wget ftp://ftp.nominum.com/pub/nominum/dnsperf/2.0.0.0/dnsperf-2.0.0.0-1-rhel-6-x86_64.tar.gz"
   run "tar xzvf dnsperf-2.0.0.0-1-rhel-6-x86_64.tar.gz"
