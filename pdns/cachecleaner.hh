@@ -62,7 +62,7 @@ template <typename C, typename T> void pruneCollection(C& container, T& collecti
     else
       ++iter;
 
-    if(toTrim && erased > toTrim)
+    if(toTrim && erased >= toTrim)
       break;
   }
 
