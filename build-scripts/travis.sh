@@ -258,7 +258,8 @@ install_auth() {
 
   # bind-backend tests requirements
   run "sudo apt-get -qq --no-install-recommends install \
-    alien"
+    alien\
+    fakeroot"
   run "cd .."
   run "wget ftp://ftp.nominum.com/pub/nominum/dnsperf/2.0.0.0/dnsperf-2.0.0.0-1-rhel-6-x86_64.tar.gz"
   run "tar xzvf dnsperf-2.0.0.0-1-rhel-6-x86_64.tar.gz"
