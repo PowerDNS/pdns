@@ -195,7 +195,7 @@ static void addRecordToList(std::vector<DNSRecord>& records, const DNSName& name
     rec.d_content = std::make_shared<OPTRecordContent>();
   }
   else {
-    rec.d_content = shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(type, QClass::IN, content));
+    rec.d_content = DNSRecordContent::mastermake(type, QClass::IN, content);
   }
 
   records.push_back(rec);

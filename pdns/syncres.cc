@@ -190,7 +190,7 @@ bool SyncRes::doSpecialNamesResolve(const DNSName &qname, const QType &qtype, co
     dr.d_ttl = 86400;
     for (const auto& ans : answers) {
       dr.d_type = ans.first;
-      dr.d_content = shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(ans.first, qclass, ans.second));
+      dr.d_content = DNSRecordContent::mastermake(ans.first, qclass, ans.second);
       ret.push_back(dr);
     }
   }

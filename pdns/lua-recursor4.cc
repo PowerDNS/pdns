@@ -196,7 +196,7 @@ void RecursorLua4::DNSQuestion::addRecord(uint16_t type, const std::string& cont
   dr.d_ttl=ttl.get_value_or(3600);
   dr.d_type = type;
   dr.d_place = place;
-  dr.d_content = shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(type, 1, content));
+  dr.d_content = DNSRecordContent::mastermake(type, 1, content);
   records.push_back(dr);
 }
 
@@ -372,7 +372,7 @@ RecursorLua4::RecursorLua4(const std::string& fname)
     },
     [](DNSFilterEngine::Policy& pol, const std::string& content) {
       // Only CNAMES for now, when we ever add a d_custom_type, there will be pain
-      pol.d_custom = shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(QType::CNAME, 1, content));
+      pol.d_custom = DNSRecordContent::mastermake(QType::CNAME, 1, content);
     }
   );
   d_lw->registerFunction("getDH", &DNSQuestion::getDH);
@@ -401,7 +401,7 @@ RecursorLua4::RecursorLua4(const std::string& fname)
     });
 
 
-  d_lw->registerFunction<void(DNSRecord::*)(const std::string&)>("changeContent", [](DNSRecord& dr, const std::string& newContent) { dr.d_content = shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(dr.d_type, 1, newContent)); });
+  d_lw->registerFunction<void(DNSRecord::*)(const std::string&)>("changeContent", [](DNSRecord& dr, const std::string& newContent) { dr.d_content = DNSRecordContent::mastermake(dr.d_type, 1, newContent); });
   d_lw->registerFunction("addAnswer", &DNSQuestion::addAnswer);
   d_lw->registerFunction("addRecord", &DNSQuestion::addRecord);
   d_lw->registerFunction("getRecords", &DNSQuestion::getRecords);

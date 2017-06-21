@@ -108,7 +108,7 @@ static void makeNameToIPZone(std::shared_ptr<SyncRes::domainmap_t> newMap, const
   dr.d_ttl=86400;
   dr.d_type=QType::SOA;
   dr.d_class = 1;
-  dr.d_content = std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(QType::SOA, 1, "localhost. root 1 604800 86400 2419200 604800"));
+  dr.d_content = DNSRecordContent::mastermake(QType::SOA, 1, "localhost. root 1 604800 86400 2419200 604800");
   
   ad.d_records.insert(dr);
 
@@ -118,7 +118,7 @@ static void makeNameToIPZone(std::shared_ptr<SyncRes::domainmap_t> newMap, const
   ad.d_records.insert(dr);
   
   dr.d_type=QType::A;
-  dr.d_content= std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(QType::A, 1, ip));
+  dr.d_content = DNSRecordContent::mastermake(QType::A, 1, ip);
   ad.d_records.insert(dr);
   
   if(newMap->count(dr.d_name)) {  
@@ -151,7 +151,7 @@ static void makeIPToNamesZone(std::shared_ptr<SyncRes::domainmap_t> newMap, cons
   dr.d_place=DNSResourceRecord::ANSWER;
   dr.d_ttl=86400;
   dr.d_type=QType::SOA;
-  dr.d_content=std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(QType::SOA, 1, "localhost. root 1 604800 86400 2419200 604800"));
+  dr.d_content=DNSRecordContent::mastermake(QType::SOA, 1, "localhost. root 1 604800 86400 2419200 604800");
   
   ad.d_records.insert(dr);
 
@@ -163,7 +163,7 @@ static void makeIPToNamesZone(std::shared_ptr<SyncRes::domainmap_t> newMap, cons
 
   if(ipparts.size()==4)  // otherwise this is a partial zone
     for(unsigned int n=1; n < parts.size(); ++n) {
-      dr.d_content=std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(QType::PTR, 1, DNSName(parts[n]).toString())); // XXX FIXME DNSNAME PAIN CAN THIS BE RIGHT?
+      dr.d_content=DNSRecordContent::mastermake(QType::PTR, 1, DNSName(parts[n]).toString()); // XXX FIXME DNSNAME PAIN CAN THIS BE RIGHT?
       ad.d_records.insert(dr);
     }
 

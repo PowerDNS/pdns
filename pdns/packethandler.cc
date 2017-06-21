@@ -267,7 +267,7 @@ int PacketHandler::doChaosRequest(DNSPacket *p, DNSPacket *r, DNSName &target)
       }
       else
         content=mode;
-      rr.dr.d_content = shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(QType::TXT, 1, "\""+content+"\""));
+      rr.dr.d_content = DNSRecordContent::mastermake(QType::TXT, 1, "\""+content+"\"");
     }
     else if (target==idserver) {
       // modes: disabled, hostname or custom
@@ -277,7 +277,7 @@ int PacketHandler::doChaosRequest(DNSPacket *p, DNSPacket *r, DNSName &target)
         r->setRcode(RCode::Refused);
         return 0;
       }
-      rr.dr.d_content=shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(QType::TXT, 1, id));
+      rr.dr.d_content=DNSRecordContent::mastermake(QType::TXT, 1, id);
     }
     else {
       r->setRcode(RCode::Refused);
