@@ -635,14 +635,14 @@ method to distribute the zone data to the slaves), then set `only-notify` to an 
 value and specify the notification targets explicitly using [`also-notify`](#also-notify)
 and/or `ALSO-NOTIFY` domain metadata to avoid this potential bottleneck.
 
-## `disable-notification-warning`
+## `enable-notification-warning`
 * Boolean
-* Default: no
+* Default: yes
 
-If all NOTIFYs were suppressed due to `only-notify` and there were no explict
-ALSO-NOTIFYs, PowerDNS will log a warning. This warning can be suppressed with
-this option. This may be useful with `slave-renotify=yes` but only a few slave
-zones have ALSO-NOTIFYs configured.
+By default PowerDNS will log a warning if all NOTIFYs were suppressed due to
+`only-notify` and there were no explict ALSO-NOTIFYs. This warning can be suppressed by
+setting this option to `no`. Disabling the warning may be useful with `slave-renotify=yes`
+and empty `only-notify`, but only a few slave zones have ALSO-NOTIFYs configured.
 
 ## `out-of-zone-additional-processing`
 * Boolean
