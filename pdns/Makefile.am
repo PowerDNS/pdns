@@ -240,6 +240,11 @@ pdns_server_SOURCES += sodiumsigners.cc
 pdns_server_LDADD += $(LIBSODIUM_LIBS)
 endif
 
+if LIBDECAF
+pdns_server_SOURCES += decafsigners.cc
+pdns_server_LDADD += $(LIBDECAF_LIBS)
+endif
+
 if SQLITE3
 pdns_server_SOURCES += ssqlite3.cc ssqlite3.hh
 pdns_server_LDADD += $(SQLITE3_LIBS)
@@ -332,6 +337,11 @@ endif
 if LIBSODIUM
 pdnsutil_SOURCES += sodiumsigners.cc
 pdnsutil_LDADD += $(LIBSODIUM_LIBS)
+endif
+
+if LIBDECAF
+pdnsutil_SOURCES += decafsigners.cc
+pdnsutil_LDADD += $(LIBDECAF_LIBS)
 endif
 
 if SQLITE3
@@ -1121,6 +1131,7 @@ testrunner_SOURCES = \
 	base64.cc \
 	bindlexer.l \
 	bindparser.yy \
+	dbdnsseckeeper.cc \
 	dns.cc \
 	dns_random.cc \
 	dnsbackend.cc \
@@ -1131,6 +1142,7 @@ testrunner_SOURCES = \
 	dnsparser.hh dnsparser.cc \
 	dnsrecords.cc \
 	dnssecinfra.cc \
+	dnssecsigner.cc \
 	dnswriter.cc \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc \
@@ -1166,6 +1178,7 @@ testrunner_SOURCES = \
 	test-nmtree.cc \
 	test-packetcache_cc.cc \
 	test-rcpgenerator_cc.cc \
+	test-signers.cc \
 	test-sha_hh.cc \
 	test-statbag_cc.cc \
 	test-tsig.cc \
@@ -1189,6 +1202,16 @@ testrunner_LDADD = \
 if PKCS11
 testrunner_SOURCES += pkcs11signers.cc pkcs11signers.hh
 testrunner_LDADD += $(P11KIT1_LIBS)
+endif
+
+if LIBSODIUM
+testrunner_SOURCES += sodiumsigners.cc
+testrunner_LDADD += $(LIBSODIUM_LIBS)
+endif
+
+if LIBDECAF
+testrunner_SOURCES += decafsigners.cc
+testrunner_LDADD += $(LIBDECAF_LIBS)
 endif
 
 pdns_control_SOURCES = \

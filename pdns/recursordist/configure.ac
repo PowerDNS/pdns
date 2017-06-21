@@ -117,6 +117,7 @@ PDNS_CHECK_LIBCRYPTO([
 )
 PDNS_CHECK_LIBCRYPTO_ECDSA
 PDNS_CHECK_LIBSODIUM
+PDNS_CHECK_LIBDECAF
 
 PDNS_WITH_NET_SNMP
 
@@ -211,6 +212,10 @@ AC_MSG_NOTICE([OpenSSL ECDSA: $libcrypto_ecdsa])
 AS_IF([test "x$LIBSODIUM_LIBS" != "x"],
   [AC_MSG_NOTICE([libsodium ed25519: yes])],
   [AC_MSG_NOTICE([libsodium ed25519: no])]
+)
+AS_IF([test "x$LIBDECAF_LIBS" != "x"],
+  [AC_MSG_NOTICE([libdecaf ed25519 and ed448: yes])],
+  [AC_MSG_NOTICE([libdecaf ed25519 and ed448: no])]
 )
 AS_IF([test "x$PROTOBUF_LIBS" != "x" -a x"$PROTOC" != "x"],
   [AC_MSG_NOTICE([Protobuf: yes])],
