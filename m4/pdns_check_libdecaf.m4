@@ -16,8 +16,8 @@ AC_DEFUN([PDNS_CHECK_LIBDECAF],[
       AC_DEFINE([HAVE_LIBDECAF],[1],[Define to 1 if you have libdecaf])
       AC_SUBST([LIBDECAF_LIBS],["$LIBS"])
     ],[
-        AC_MSG_ERROR([Could not find libdecaf])]
-    )]
+        AC_MSG_ERROR([Could not find libdecaf])
+    ])
     LIBS="$save_LIBS"
-  )
+  ])
 ])
