@@ -471,6 +471,7 @@ single operation with `setRules()`:
 > setRules( { newRuleAction(TCPRule(), AllowAction()), newRuleAction(AllRule(), DropAction()) } )
 ```
 
+NOTE: Adding large numbers of rules (200+) is slow, and will also impact performance significantly. Instead of creating numerous rules, consider using smaller numbers of individual rules that match large numbers of domains or IP addresses, for example using a `SuffixMatchNodeRule` or a `NetmaskGroupRule`. These rules are optimized for hosting thousands or millions of domain names or IP addresses. 
 
 More power
 ----------
