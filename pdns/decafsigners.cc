@@ -286,7 +286,7 @@ struct LoaderDecafStruct
 {
   LoaderDecafStruct()
   {
-    DNSCryptoKeyEngine::report(15, &DecafED25519DNSCryptoKeyEngine::maker);
+    DNSCryptoKeyEngine::report(15, &DecafED25519DNSCryptoKeyEngine::maker, true);
     DNSCryptoKeyEngine::report(16, &DecafED448DNSCryptoKeyEngine::maker);
   }
 } loaderdecaf;
