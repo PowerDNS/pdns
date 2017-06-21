@@ -439,6 +439,7 @@ A DNS rule can be:
  * a RecordsTypeCountRule
  * a SuffixMatchNodeRule
  * a TCPRule
+ * a TimedIPSetRule
  * a TrailingDataRule
 
 Some specific actions do not stop the processing when they match, contrary to all other actions:
@@ -624,6 +625,50 @@ Note that the query name is presented without a trailing dot to the regex.
 The regex is applied case insensitively. 
 
 Alternatively, if compiled in, RE2Rule provides similar functionality, but against libre2.
+
+Runtime-modifiable IP address sets
+----------------------------------
+From within maintenance() or other places, we may find that certain IP
+addresses must be treated differently for a certain time.
+
+This may be used to temporarily shunt traffic to another pool for example.
+
+`TimedIPSetRule()` creates an object to which native IP addresses can be
+added in ComboAddress form. 
+
+The following methods are available on this rule:
+
+ * `add(CA, seconds)`: Add an IP address to the set for the next `second` seconds
+ * `cleanup()`: Purge the set from expired IP addresses
+ * `clear()`: Clear the entire set
+ * `slice()`: Convert the TimedIPSetRule into a DNSRule that can be passed to `addAction()`
+
+A working example:
+
+```
+tisrElGoog=TimedIPSetRule()
+tisrRest=TimedIPSetRule()
+addAction(tisrElGoog:slice(), PoolAction("elgoog"))
+addAction(tisrRest:slice(), PoolAction(""))
+
+elgoogPeople=newNMG()
+elgoogPeople:addMask("192.168.5.0/28")
+
+function pickPool(dq)
+	if(elgoogPeople:match(dq.remoteaddr)) -- in real life, this would be external
+	then
+		print("Lua caught query for a googlePerson")
+		tisrElGoog:add(dq.remoteaddr, 10)
+		return DNSAction.Pool, "elgoog"
+	else
+		print("Lua caught query for restPerson")
+		tisrRest:add(dq.remoteaddr, 60)
+		return DNSAction.None, ""
+	end
+end
+
+addLuaAction(AllRule(), pickPool)
+```
 
 Inspecting live traffic
 -----------------------
@@ -1426,6 +1471,7 @@ instantiate a server with additional parameters
     * `RE2Rule(regex)`: matches the query name against the supplied regex using the RE2 engine
     * `SuffixMatchNodeRule(smn, [quiet-bool])`: matches based on a group of domain suffixes for rapid testing of membership. Pass `true` as second parameter to prevent listing of all domains matched.
     * `TCPRule(tcp)`: matches question received over TCP if `tcp` is true, over UDP otherwise
+    * `TimedIPSetRule()`: rule which matches a runtime-modifiable set of IP addresses, which also expire
     * `TrailingDataRule()`: matches if the query has trailing data
  * Rule management related:
     * `clearRules()`: remove all current rules
