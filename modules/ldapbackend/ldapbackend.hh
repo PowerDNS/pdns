@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <sstream>
 #include <utility>
+#include <list>
 #include <string>
 #include <cstdlib>
 #include <cctype>
@@ -55,6 +56,7 @@ class LdapAuthenticator;
 static const char* ldap_attrany[] = {
   "associatedDomain",
   "dNSTTL",
+  "ALIASRecord",
   "aRecord",
   "nSRecord",
   "cNAMERecord",
@@ -75,7 +77,7 @@ static const char* ldap_attrany[] = {
   "kXRecord",
   "certRecord",
 //  "a6Record",
-//  "dNameRecord",
+  "dNameRecord",
 //  "aPLRecord",
   "dSRecord",
   "sSHFPRecord",
@@ -90,6 +92,11 @@ static const char* ldap_attrany[] = {
   "EUI64Record",
   "TYPE65226Record",
   "modifyTimestamp",
+  "objectClass",
+  "PdnsRecordTTL",
+  "PdnsRecordNoAuth",
+  "PdnsRecordOrdername",
+  "PdnsRecordNoOrdername",
   NULL
 };
 
@@ -97,28 +104,45 @@ static const char* ldap_attrany[] = {
 
 class LdapBackend : public DNSBackend
 {
-    bool m_getdn;
-    bool m_qlog;
-    int m_msgid;
-    uint32_t m_ttl;
-    uint32_t m_default_ttl;
-    unsigned int m_axfrqlen;
-    time_t m_last_modified;
-    string m_myname;
-    DNSName m_qname;
-    PowerLDAP* m_pldap;
-    LdapAuthenticator *m_authenticator;
-    PowerLDAP::sentry_t m_result;
-    PowerLDAP::sentry_t::iterator m_attribute;
-    vector<string>::iterator m_value;
-    vector<DNSName>::iterator m_adomain;
-    vector<DNSName> m_adomains;
-    QType m_qtype;
-    int m_reconnect_attempts;
+    string d_myname;
 
-    bool (LdapBackend::*m_list_fcnt)( const DNSName&, int );
-    void (LdapBackend::*m_lookup_fcnt)( const QType&, const DNSName&, DNSPacket*, int );
-    bool (LdapBackend::*m_prepare_fcnt)();
+    bool d_qlog;
+    uint32_t d_default_ttl;
+    int d_reconnect_attempts;
+    bool d_dnssec;
+    std::string d_metadata_searchdn;
+
+    bool d_getdn;
+    PowerLDAP::SearchResult::Ptr d_search;
+    PowerLDAP::sentry_t d_result;
+    bool d_in_list;         // true if the previous call was list(), false if it was get()
+    int d_current_domainid; // the domain ID for the domain currently being processed (passed to list() or get())
+
+    struct DNSResult {
+      int domain_id;
+      QType qtype;
+      DNSName qname;
+      uint32_t ttl;
+      time_t lastmod;
+      std::string value;
+      bool auth;
+      std::string ordername;
+
+      DNSResult()
+        : domain_id( -1 ), ttl( 0 ), lastmod( 0 ), value( "" ), auth( true ), ordername( "" )
+      {
+      }
+    };
+    std::list<DNSResult> d_results_cache;
+
+    DNSName d_qname;
+    QType d_qtype;
+
+    PowerLDAP* d_pldap;
+    LdapAuthenticator *d_authenticator;
+
+    bool (LdapBackend::*d_list_fcnt)( const DNSName&, int );
+    void (LdapBackend::*d_lookup_fcnt)( const QType&, const DNSName&, DNSPacket*, int );
 
     bool list_simple( const DNSName& target, int domain_id );
     bool list_strict( const DNSName& target, int domain_id );
@@ -127,11 +151,22 @@ class LdapBackend : public DNSBackend
     void lookup_strict( const QType& qtype, const DNSName& qdomain, DNSPacket* p, int zoneid );
     void lookup_tree( const QType& qtype, const DNSName& qdomain, DNSPacket* p, int zoneid );
 
-    bool prepare();
-    bool prepare_simple();
-    bool prepare_strict();
-
     bool reconnect();
+
+    // Extracts common attributes from the current result stored in d_result and sets them in the given DNSResult.
+    // This will modify d_result by removing attributes that may interfere with the records extraction later.
+    void extract_common_attributes( DNSResult &result );
+
+    // Extract LDAP attributes for the current result stored in d_result and create a new DNSResult that will
+    // be appended in the results cache. The result parameter is used as a template that will be copied for
+    // each result extracted from the entry.
+    // The given domain will be added as the qname attribute of the result.
+    // The qtype parameter is used to filter extracted results.
+    void extract_entry_results( const DNSName& domain, const DNSResult& result, QType qtype );
+
+    // Returns the DN under which the metadata for the given domain can be found.
+    // An empty string will be returned if nothing was found.
+    std::string getDomainMetadataDN( const DNSName& name );
 
   public:
 
@@ -148,6 +183,27 @@ class LdapBackend : public DNSBackend
     // Master backend
     void getUpdatedMasters( vector<DomainInfo>* domains ) override;
     void setNotified( uint32_t id, uint32_t serial ) override;
+
+    // DNSSEC backend
+    bool doesDNSSEC() override;
+
+    bool getAllDomainMetadata( const DNSName& name, std::map<std::string, std::vector<std::string> >& meta ) override;
+    bool getDomainMetadata( const DNSName& name, const std::string& kind, std::vector<std::string>& meta ) override;
+    bool setDomainMetadata( const DNSName& name, const std::string& kind, const std::vector<std::string>& meta ) override;
+
+    bool getDomainKeys( const DNSName& name, std::vector<KeyData>& keys ) override;
+    bool addDomainKey( const DNSName& name, const KeyData& key, int64_t& id ) override;
+    bool activateDomainKey( const DNSName& name, unsigned int id ) override;
+    bool deactivateDomainKey( const DNSName& name, unsigned int id ) override;
+    bool removeDomainKey( const DNSName& name, unsigned int id ) override;
+
+    bool getTSIGKey( const DNSName& name, DNSName* algorithm, string* content ) override;
+    bool setTSIGKey( const DNSName& name, const DNSName& algorithm, const string& content ) override;
+    bool deleteTSIGKey( const DNSName& name ) override;
+    bool getTSIGKeys( std::vector<struct TSIGKey>& keys ) override;
+
+    bool getBeforeAndAfterNamesAbsolute( uint32_t domain_id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after ) override;
+    bool updateDNSSECOrderNameAndAuth( uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype=QType::ANY ) override;
 };
 
 #endif /* LDAPBACKEND_HH */
