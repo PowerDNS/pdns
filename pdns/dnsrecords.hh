@@ -630,7 +630,7 @@ class URIRecordContent : public DNSRecordContent {
   public:
     includeboilerplate(URI)
   private:
-    uint8_t d_priority, d_weight;
+    uint16_t d_priority, d_weight;
     string d_target;
 };
 
