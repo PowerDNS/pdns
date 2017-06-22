@@ -95,6 +95,7 @@ AC_CHECK_HEADERS(
 
 PDNS_ENABLE_BOTAN
 PDNS_CHECK_LIBSODIUM
+PDNS_CHECK_LIBDECAF
 PDNS_CHECK_LIBCRYPTO([
 ],[
    AC_MSG_ERROR([OpenSSL/libcrypto not found])
@@ -347,6 +348,14 @@ AC_MSG_NOTICE([])
 AS_IF([test "x$libcrypto_ecdsa" = "xyes"],
   [AC_MSG_NOTICE([OpenSSL ecdsa: yes])],
   [AC_MSG_NOTICE([OpenSSL ecdsa: no])]
+)
+AS_IF([test "x$LIBSODIUM_LIBS" != "x" || test "x$LIBDECAF_LIBS" != "x"],
+  [AC_MSG_NOTICE([ed25519: yes])],
+  [AC_MSG_NOTICE([ed25519: no])]
+)
+AS_IF([test "x$LIBDECAF_LIBS" != "x"],
+  [AC_MSG_NOTICE([ed448: yes])],
+  [AC_MSG_NOTICE([ed448: no])]
 )
 AS_IF([test "x$needsqlite3" != "x"],
   [AC_MSG_NOTICE([SQLite3: yes])],
