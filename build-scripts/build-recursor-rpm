@@ -64,6 +64,10 @@ if [ -f /etc/redhat-release ]; then
 
 RETVAL=0
 
+PIDDIR=\$(awk -F= '/^socket-dir=/ {print \$2}' /etc/powerdns/recursor.conf)
+if [ -z "\$PIDDIR" ]; then PIDDIR=/var/run; fi
+mkdir -p "\$PIDDIR"
+
 start() {
 	echo -n \$"Starting pdns-recursor: "
 	daemon /usr/sbin/pdns_recursor --daemon 2>/dev/null
@@ -76,7 +80,7 @@ stop() {
 	echo -n \$"Stopping pdns-recursor: "
 	killproc pdns_recursor
 	echo
-	[ \$RETVAL -eq 0 ] && rm -f /var/lock/subsys/pdns-recursor && rm -f /var/run/pdns_recursor.controlsocket
+	[ \$RETVAL -eq 0 ] && rm -f /var/lock/subsys/pdns-recursor && rm -f \$PIDDIR/pdns_recursor.controlsocket
 }
 
 restart() {
