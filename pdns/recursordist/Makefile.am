@@ -335,6 +335,14 @@ rec_control_SOURCES = \
 	rec_control.cc \
 	unix_utility.cc
 
+rec_control_LDFLAGS = \
+	$(AM_LDFLAGS) \
+	$(LIBCRYPTO_LDFLAGS)
+
+rec_control_LDADD = \
+	$(LIBCRYPTO_LIBS) \
+	$(RT_LIBS)
+
 dnslabeltext.cc: dnslabeltext.rl
 	$(AM_V_GEN)$(RAGEL) $< -o dnslabeltext.cc
 

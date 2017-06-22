@@ -64,8 +64,7 @@ bool HttpRequest::compareAuthorization(const string &expected_password)
     vector<string> cparts;
     stringtok(cparts, plain, ":");
 
-    // this gets rid of terminating zeros
-    auth_ok = (cparts.size()==2 && (0==strcmp(cparts[1].c_str(), expected_password.c_str())));
+    auth_ok = (cparts.size()==2 && constantTimeStringEquals(cparts[1], expected_password));
   }
   return auth_ok;
 }
@@ -77,7 +76,7 @@ bool HttpRequest::compareHeader(const string &header_name, const string &expecte
     return false;
 
   // this gets rid of terminating zeros
-  return (0==strcmp(header->second.c_str(), expected_value.c_str()));
+  return constantTimeStringEquals(header->second, expected_value);
 }
 
 

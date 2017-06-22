@@ -514,6 +514,13 @@ dumresp_SOURCES = \
 	unix_utility.cc \
 	qtype.cc 
 
+dumresp_LDFLAGS = \
+	$(AM_LDFLAGS) \
+	$(LIBCRYPTO_LDFLAGS)
+
+dumresp_LDADD = \
+	$(LIBCRYPTO_LIBS)
+
 kvresp_SOURCES = \
 	dnslabeltext.cc dnsname.cc dnsname.hh \
 	kvresp.cc \
@@ -522,6 +529,13 @@ kvresp_SOURCES = \
 	statbag.cc \
 	unix_utility.cc \
 	qtype.cc 
+
+kvresp_LDFLAGS = \
+	$(AM_LDFLAGS) \
+	$(LIBCRYPTO_LDFLAGS)
+
+kvresp_LDADD = \
+	$(LIBCRYPTO_LIBS)
 
 stubquery_SOURCES = \
 	arguments.cc arguments.hh \
@@ -809,6 +823,12 @@ dnswasher_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
+dnswasher_LDFLAGS = \
+	$(AM_LDFLAGS) \
+	$(LIBCRYPTO_LDFLAGS)
+
+dnswasher_LDADD = \
+	$(LIBCRYPTO_LIBS)
 
 dnsbulktest_SOURCES = \
 	base32.cc \
@@ -1229,6 +1249,13 @@ pdns_control_SOURCES = \
 	unix_utility.cc \
 	dnsname.cc \
 	dnslabeltext.cc
+
+pdns_control_LDFLAGS = \
+	$(AM_LDFLAGS) \
+	$(LIBCRYPTO_LDFLAGS)
+
+pdns_control_LDADD = \
+	$(LIBCRYPTO_LIBS)
 
 if UNIT_TESTS
 

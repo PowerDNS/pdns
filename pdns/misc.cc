@@ -57,6 +57,7 @@
 #include <sys/types.h>
 #include <pwd.h>
 #include <grp.h>
+
 #ifdef __FreeBSD__
 #  include <pthread_np.h>
 #endif
@@ -1339,4 +1340,30 @@ int mapThreadToCPUList(pthread_t tid, const std::set<int>& cpus)
                                 &cpuset);
 #endif /* HAVE_PTHREAD_SETAFFINITY_NP */
   return ENOSYS;
+}
+
+#if HAVE_OPENSSL_LIBCRYPTO
+#include <openssl/opensslv.h>
+#include <openssl/crypto.h>
+#endif
+
+bool constantTimeStringEquals(const std::string& a, const std::string& b)
+{
+  if (a.size() != b.size()) {
+    return false;
+  }
+  const size_t size = a.size();
+#if OPENSSL_VERSION_NUMBER >= 0x0090819fL
+  return CRYPTO_memcmp(a.c_str(), b.c_str(), size) == 0;
+#else
+  const volatile unsigned char *_a = (const volatile unsigned char *) a.c_str();
+  const volatile unsigned char *_b = (const volatile unsigned char *) b.c_str();
+  unsigned char res = 0;
+
+  for (size_t idx = 0; idx < size; idx++) {
+    res |= _a[idx] ^ _b[idx];
+  }
+
+  return res == 0;
+#endif
 }
