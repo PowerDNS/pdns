@@ -707,12 +707,16 @@ static void startDoResolve(void *p)
     if (t_queryring)
       t_queryring->push_back(make_pair(dc->d_mdp.d_qname, dc->d_mdp.d_qtype));
 
-    uint32_t maxanswersize= dc->d_tcp ? 65535 : min((uint16_t) 512, g_udpTruncationThreshold);
+    uint16_t maxanswersize = dc->d_tcp ? 65535 : min(static_cast<uint16_t>(512), g_udpTruncationThreshold);
     EDNSOpts edo;
     bool haveEDNS=false;
     if(getEDNSOpts(dc->d_mdp, &edo)) {
-      if(!dc->d_tcp)
-	maxanswersize = min(edo.d_packetsize, g_udpTruncationThreshold);
+      if(!dc->d_tcp) {
+        /* rfc6891 6.2.3:
+           "Values lower than 512 MUST be treated as equal to 512."
+        */
+        maxanswersize = min(static_cast<uint16_t>(edo.d_packetsize >= 512 ? edo.d_packetsize : 512), g_udpTruncationThreshold);
+      }
       dc->d_ednsOpts = edo.d_options;
       haveEDNS=true;
 
@@ -1112,7 +1116,7 @@ static void startDoResolve(void *p)
 	if(i->d_type != QType::OPT) // their TTL ain't real
 	  minTTL = min(minTTL, i->d_ttl);
 	i->d_content->toPacket(pw);
-	if(pw.size() > maxanswersize) {
+	if(pw.size() > static_cast<size_t>(maxanswersize)) {
 	  pw.rollback();
 	  if(i->d_place==DNSResourceRecord::ANSWER)  // only truncate if we actually omitted parts of the answer
             {
