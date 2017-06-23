@@ -63,6 +63,7 @@ public:
 
   int doWipeCache(const DNSName& name, bool sub, uint16_t qtype=0xffff);
   bool doAgeCache(time_t now, const DNSName& name, uint16_t qtype, uint32_t newTTL);
+  bool updateValidationStatus(const DNSName &qname, const QType& qt, const ComboAddress& who, bool requireAuth, vState newState);
 
   uint64_t cacheHits, cacheMisses;
 
@@ -88,7 +89,7 @@ private:
     records_t d_records;
     std::vector<std::shared_ptr<DNSRecord>> d_authorityRecs;
     Netmask d_netmask;
-    vState d_state;
+    mutable vState d_state;
   };
 
   typedef multi_index_container<
@@ -111,6 +112,10 @@ private:
   pair<cache_t::iterator, cache_t::iterator> d_cachecache;
   DNSName d_cachedqname;
   bool d_cachecachevalid;
+
   bool attemptToRefreshNSTTL(const QType& qt, const vector<DNSRecord>& content, const CacheEntry& stored);
+  bool entryMatches(cache_t::const_iterator& entry, const QType& qt, bool requireAuth, const ComboAddress& who);
+  std::pair<cache_t::const_iterator, cache_t::const_iterator> getEntries(const DNSName &qname, const QType& qt);
+
 };
 #endif
