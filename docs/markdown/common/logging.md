@@ -145,3 +145,7 @@ in the configuration.
 **Warning**: If you include dots in `carbon-ourname`, they will not be replaced by underscores, 
 since PowerDNS assumes you know what you are doing if you override your hostname.
 
+## SNMP
+
+Starting with 4.1.0, the recursor can export statistics over `SNMP` and send traps from `Lua`, provided support is enabled and [`snmp-agent`](../recursor/settings.md#snmp-agent) is set.
+
