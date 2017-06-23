@@ -1505,14 +1505,6 @@ void SyncRes::computeZoneCuts(const DNSName& begin, const DNSName& end, unsigned
     if (cut.first.isRoot() || (begin.isPartOf(cut.first) && cut.first.isPartOf(end))) {
       LOG(" - "<<cut.first<<": "<<vStates[cut.second]<<endl);
     }
-    else {
-      if (cut.first.isPartOf(begin)) {
-        LOG("Skipping cut state "<<cut.first<<" because it's not part of "<<begin<<endl);
-      }
-      else {
-        LOG("Skipping cut state "<<cut.first<<" because "<<end<<" is not part of it"<<endl);
-      }
-    }
   }
 }
 
