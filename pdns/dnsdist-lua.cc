@@ -437,7 +437,14 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			}
 
 			if(vars.count("tcpFastOpen")) {
-			  ret->tcpFastOpen=boost::get<bool>(vars["tcpFastOpen"]);
+			  bool fastOpen = boost::get<bool>(vars["tcpFastOpen"]);
+			  if (fastOpen) {
+#ifdef MSG_FASTOPEN
+			    ret->tcpFastOpen=true;
+#else
+			    warnlog("TCP Fast Open has been configured on downstream server %s but is not supported", boost::get<string>(vars["address"]));
+#endif
+			  }
 			}
 
 			if(vars.count("name")) {

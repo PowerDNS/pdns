@@ -61,9 +61,13 @@ static int setupTCPDownstream(shared_ptr<DownstreamState> ds, uint16_t& downstre
         SBind(sock, ds->sourceAddr);
       }
       setNonBlocking(sock);
+#ifdef MSG_FASTOPEN
       if (!ds->tcpFastOpen) {
         SConnectWithTimeout(sock, ds->remote, ds->tcpConnectTimeout);
       }
+#else
+      SConnectWithTimeout(sock, ds->remote, ds->tcpConnectTimeout);
+#endif /* MSG_FASTOPEN */
       return sock;
     }
     catch(const std::runtime_error& e) {
