@@ -329,18 +329,17 @@ install_recursor() {
   run "sudo apt-get -qq --no-install-recommends install \
     authbind \
     daemontools \
-    libbotan-1.10-0 \
     libfaketime \
-    liblua5.2-0 \
     moreutils \
     jq"
   run "cd .."
-  run "wget http://s3.amazonaws.com/alexa-static/top-1m.csv.zip"
-  run "unzip top-1m.csv.zip -d ./pdns/regression-tests"
-  PDNS_SERVER_VERSION="0.0.880gcb54743-1pdns"
-  run "wget https://downloads.powerdns.com/autobuilt/auth/deb/$PDNS_SERVER_VERSION.trusty-amd64/pdns-server_$PDNS_SERVER_VERSION.trusty_amd64.deb"
-  run "wget https://downloads.powerdns.com/autobuilt/auth/deb/$PDNS_SERVER_VERSION.trusty-amd64/pdns-tools_$PDNS_SERVER_VERSION.trusty_amd64.deb"
-  run "sudo dpkg -i pdns-server_$PDNS_SERVER_VERSION.trusty_amd64.deb pdns-tools_$PDNS_SERVER_VERSION.trusty_amd64.deb"
+  run "wget https://s3.amazonaws.com/alexa-static/top-1m.csv.zip"
+  run "unzip top-1m.csv.zip -d ${TRAVIS_BUILD_DIR}/regression-tests"
+  run 'echo -e "deb [arch=amd64] http://repo.powerdns.com/ubuntu trusty-auth-40 main" | sudo tee /etc/apt/sources.list.d/pdns.list'
+  run 'echo -e "Package: pdns-*\nPin: origin PowerDNS\nPin-Priority: 600" | sudo tee /etc/apt/preferences.d/pdns.list'
+  run 'curl https://repo.powerdns.com/FD380FBB-pub.asc | sudo apt-key add - '
+  run 'sudo apt-get update'
+  run 'sudo apt-get -y install pdns-server pdns-tools'
   run "sudo service pdns stop"
   run 'for suffix in {1..40}; do sudo /sbin/ip addr add 10.0.3.$suffix/32 dev lo; done'
   run "sudo touch /etc/authbind/byport/53"
