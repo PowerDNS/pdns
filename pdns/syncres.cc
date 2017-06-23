@@ -1834,6 +1834,10 @@ void SyncRes::getDenialValidationState(NegCache::NegCacheEntry& ne, vState& stat
         LOG(d_prefix<<"Insecure denial found for "<<ne.d_name<<", retuning Insecure"<<endl);
         ne.d_validationState = Insecure;
       }
+      if (res == NXDOMAIN && expectedState == NXQTYPE) {
+        /* might happen for empty non-terminal, have fun */
+        return;
+      }
       else {
         LOG(d_prefix<<"Invalid denial found for "<<ne.d_name<<", retuning Bogus"<<endl);
         ne.d_validationState = Bogus;
