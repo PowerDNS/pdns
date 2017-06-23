@@ -448,14 +448,18 @@ void* tcpClientThread(int pipefd)
 
 	int dsock = -1;
 	uint16_t downstreamFailures=0;
+#ifdef MSG_FASTOPEN
 	bool freshConn = true;
+#endif /* MSG_FASTOPEN */
 	if(sockets.count(ds->remote) == 0) {
 	  dsock=setupTCPDownstream(ds, downstreamFailures);
 	  sockets[ds->remote]=dsock;
 	}
 	else {
 	  dsock=sockets[ds->remote];
+#ifdef MSG_FASTOPEN
 	  freshConn = false;
+#endif /* MSG_FASTOPEN */
         }
 
         ds->queries++;
@@ -493,7 +497,9 @@ void* tcpClientThread(int pipefd)
           downstreamFailures++;
           dsock=setupTCPDownstream(ds, downstreamFailures);
           sockets[ds->remote]=dsock;
+#ifdef MSG_FASTOPEN
           freshConn=true;
+#endif /* MSG_FASTOPEN */
           goto retry;
         }
 
@@ -513,7 +519,9 @@ void* tcpClientThread(int pipefd)
           downstreamFailures++;
           dsock=setupTCPDownstream(ds, downstreamFailures);
           sockets[ds->remote]=dsock;
+#ifdef MSG_FASTOPEN
           freshConn=true;
+#endif /* MSG_FASTOPEN */
           if(xfrStarted) {
             goto drop;
           }
