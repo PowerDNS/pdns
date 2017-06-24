@@ -210,13 +210,14 @@ void LdapBackend::lookup_strict( const QType &qtype, const DNSName &qname, DNSPa
   else   // IPv4 and IPv6 lookups
   {
     filter = "associatedDomain=" + qesc;
-    if( qtype.getCode() != QType::ANY )
-    {
-      attr = qtype.getName() + "Record";
-      filter = "&(" + filter + ")(" + attr + "=*)";
-      attronly[0] = attr.c_str();
-      attributes = attronly;
-    }
+  }
+
+  if( qtype.getCode() != QType::ANY )
+  {
+    attr = qtype.getName() + "Record";
+    filter = "&(" + filter + ")(" + attr + "=*)";
+    attronly[0] = attr.c_str();
+    attributes = attronly;
   }
 
   filter = strbind( ":target:", filter, getArg( "filter-lookup" ) );
