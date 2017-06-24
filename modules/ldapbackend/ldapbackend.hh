@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <sstream>
 #include <utility>
+#include <list>
 #include <string>
 #include <cstdlib>
 #include <cctype>
@@ -106,28 +107,34 @@ static const char* ldap_attrany[] = {
 
 class LdapBackend : public DNSBackend
 {
-    bool d_getdn;
-    bool d_qlog;
-    int d_msgid;
-    uint32_t d_ttl;
-    uint32_t d_default_ttl;
-    unsigned int d_axfrqlen;
-    time_t d_last_modified;
     string d_myname;
+
+    bool d_qlog;
+    uint32_t d_default_ttl;
+    int d_reconnect_attempts;
+
+    bool d_getdn;
+    PowerLDAP::SearchResult::Ptr d_search;
+    PowerLDAP::sentry_t d_result;
+    bool d_in_list;
+
+    struct DNSResult {
+      QType qtype;
+      DNSName qname;
+      uint32_t ttl;
+      time_t lastmod;
+      std::string value;
+    };
+    std::list<DNSResult> d_results_cache;
+
     DNSName d_qname;
+    QType d_qtype;
+
     PowerLDAP* d_pldap;
     LdapAuthenticator *d_authenticator;
-    PowerLDAP::sentry_t d_result;
-    PowerLDAP::sentry_t::iterator d_attribute;
-    vector<string>::iterator d_value;
-    vector<DNSName>::iterator d_adomain;
-    vector<DNSName> d_adomains;
-    QType d_qtype;
-    int d_reconnect_attempts;
 
     bool (LdapBackend::*d_list_fcnt)( const DNSName&, int );
     void (LdapBackend::*d_lookup_fcnt)( const QType&, const DNSName&, DNSPacket*, int );
-    bool (LdapBackend::*d_prepare_fcnt)();
 
     bool list_simple( const DNSName& target, int domain_id );
     bool list_strict( const DNSName& target, int domain_id );
@@ -136,11 +143,18 @@ class LdapBackend : public DNSBackend
     void lookup_strict( const QType& qtype, const DNSName& qdomain, DNSPacket* p, int zoneid );
     void lookup_tree( const QType& qtype, const DNSName& qdomain, DNSPacket* p, int zoneid );
 
-    bool prepare();
-    bool prepare_simple();
-    bool prepare_strict();
-
     bool reconnect();
+
+    // Extracts common attributes from the current result stored in d_result and sets them in the given DNSResult.
+    // This will modify d_result by removing attributes that may interfere with the records extraction later.
+    void extract_common_attributes( DNSResult &result );
+
+    // Extract LDAP attributes for the current result stored in d_result and create a new DNSResult that will
+    // be appended in the results cache. The result parameter is used as a template that will be copied for
+    // each result extracted from the entry.
+    // The given domain will be added as the qname attribute of the result.
+    // The qtype parameter is used to filter extracted results.
+    void extract_entry_results( const DNSName& domain, const DNSResult& result, QType qtype );
 
   public:
 
