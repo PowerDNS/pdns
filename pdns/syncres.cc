@@ -823,6 +823,9 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
         if (validationEnabled() && wasAuth && state == Indeterminate && d_requireAuthData) {
           /* This means we couldn't figure out the state when this entry was cached,
              most likely because we hadn't computed the zone cuts yet. */
+          /* make sure they are computed before validating */
+          computeZoneCuts(qname, g_rootdnsname, depth);
+
           vState recordState = getValidationStatus(qname);
           if (recordState == Secure) {
             LOG(prefix<<qname<<": got Indeterminate state from the CNAME cache, validating.."<<endl);
@@ -977,6 +980,9 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSR
 
       /* This means we couldn't figure out the state when this entry was cached,
          most likely because we hadn't computed the zone cuts yet. */
+      /* make sure they are computed before validating */
+      computeZoneCuts(sqname, g_rootdnsname, depth);
+
       vState recordState = getValidationStatus(qname);
       if (recordState == Secure) {
         LOG(prefix<<sqname<<": got Indeterminate state from the cache, validating.."<<endl);
