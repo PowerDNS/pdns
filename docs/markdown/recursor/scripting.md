@@ -207,7 +207,7 @@ internet.  This is useful to combat botnets, or to disable domains
 unacceptable to an organization for whatever reason.
 
 The rcode can be set to pdns.DROP to drop the query. Other statuses are normal DNS
-return codes, like no error, NXDOMDAIN etc.
+return codes, like no error, NXDOMAIN etc.
 
 ### `function postresolve(dq)`
 is called right before returning a response to a client (and, unless
