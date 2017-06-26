@@ -57,6 +57,7 @@ public:
 
   void replace(time_t, const DNSName &qname, const QType& qt,  const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, bool auth, boost::optional<Netmask> ednsmask=boost::none);
   void doPrune(void);
+  void doPrune(unsigned int keep);
   uint64_t doDump(int fd);
 
   int doWipeCache(const DNSName& name, bool sub, uint16_t qtype=0xffff);

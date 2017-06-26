@@ -51,41 +51,48 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
     res->clear();
 
   if(d_cachecache.first!=d_cachecache.second) {
-    for(cache_t::const_iterator i=d_cachecache.first; i != d_cachecache.second; ++i)
-      if(i->d_ttd > now && ((i->d_qtype == qt.getCode() || qt.getCode()==QType::ANY ||
+    for(cache_t::const_iterator i=d_cachecache.first; i != d_cachecache.second; ++i) {
+      if(i->d_ttd > now) {
+        if ((i->d_qtype == qt.getCode() || qt.getCode()==QType::ANY ||
 			    (qt.getCode()==QType::ADDR && (i->d_qtype == QType::A || i->d_qtype == QType::AAAA) )) 
-			    && (i->d_netmask.empty() || i->d_netmask.match(who)))
-         ) {
-        if(variable && !i->d_netmask.empty()) {
-          *variable=true;
-        }
-	ttd = i->d_ttd;	
-        //        cerr<<"Looking at "<<i->d_records.size()<<" records for this name"<<endl;
-	for(auto k=i->d_records.begin(); k != i->d_records.end(); ++k) {
-	  if(res) {
-	    DNSRecord dr;
-	    dr.d_name = qname;
-	    dr.d_type = i->d_qtype;
-	    dr.d_class = 1;
-	    dr.d_content = *k; 
-	    dr.d_ttl = static_cast<uint32_t>(i->d_ttd);
-	    dr.d_place = DNSResourceRecord::ANSWER;
-	    res->push_back(dr);
-	  }
-	}
-      
-	if(signatures)  // if you do an ANY lookup you are hosed XXXX
-	  *signatures=i->d_signatures;
-        if(res) {
-          if(res->empty())
-            moveCacheItemToFront(d_cache, i);
-          else
-            moveCacheItemToBack(d_cache, i);
-        }
-        if(qt.getCode()!=QType::ANY && qt.getCode()!=QType::ADDR) // normally if we have a hit, we are done
-          break;
-      }
+			    && (i->d_netmask.empty() || i->d_netmask.match(who))) {
 
+          if(variable && !i->d_netmask.empty()) {
+            *variable=true;
+          }
+
+          ttd = i->d_ttd;
+
+          //        cerr<<"Looking at "<<i->d_records.size()<<" records for this name"<<endl;
+          for(auto k=i->d_records.begin(); k != i->d_records.end(); ++k) {
+            if(res) {
+              DNSRecord dr;
+              dr.d_name = qname;
+              dr.d_type = i->d_qtype;
+              dr.d_class = 1;
+              dr.d_content = *k;
+              dr.d_ttl = static_cast<uint32_t>(i->d_ttd);
+              dr.d_place = DNSResourceRecord::ANSWER;
+              res->push_back(dr);
+            }
+          }
+
+          if(signatures)  // if you do an ANY lookup you are hosed XXXX
+            *signatures=i->d_signatures;
+
+          if(res && !res->empty()) {
+            // cache hit
+            moveCacheItemToBack(d_cache, i);
+          }
+
+          if(qt.getCode()!=QType::ANY && qt.getCode()!=QType::ADDR) // normally if we have a hit, we are done
+            break;
+        }
+      } else {
+        // expired entry
+        moveCacheItemToFront(d_cache, i);
+      }
+    }
     //    cerr<<"time left : "<<ttd - now<<", "<< (res ? res->size() : 0) <<"\n";
     return static_cast<int32_t>(ttd-now);
   }
@@ -270,10 +277,15 @@ uint64_t MemRecursorCache::doDump(int fd)
   return count;
 }
 
-void MemRecursorCache::doPrune(void)
+void MemRecursorCache::doPrune(unsigned int keep)
 {
   d_cachecachevalid=false;
 
+  pruneCollection(d_cache, keep);
+}
+
+void MemRecursorCache::doPrune(void)
+{
   unsigned int maxCached=::arg().asNum("max-cache-entries") / g_numThreads;
-  pruneCollection(d_cache, maxCached);
+  doPrune(maxCached);
 }
