@@ -560,9 +560,9 @@ void AsyncServer::newConnection()
   getMT()->makeThread(&AsyncServerNewConnectionMT, this);
 }
 
-
+// This is an entry point from FDM, so it needs to catch everything.
 void AsyncWebServer::serveConnection(Socket *client)
-{
+try {
   HttpRequest req;
   YaHTTP::AsyncRequestLoader yarl;
   yarl.initialize(&req);
@@ -594,6 +594,16 @@ void AsyncWebServer::serveConnection(Socket *client)
   if (asendtcp(data, client) == -1 || data.empty()) {
     L<<Logger::Error<<"Failed sending reply to HTTP client"<<endl;
   }
+}
+catch(PDNSException &e) {
+  L<<Logger::Error<<"HTTP Exception: "<<e.reason<<endl;
+}
+catch(std::exception &e) {
+  if(strstr(e.what(), "timeout")==0)
+    L<<Logger::Error<<"HTTP STL Exception: "<<e.what()<<endl;
+}
+catch(...) {
+  L<<Logger::Error<<"HTTP: Unknown exception"<<endl;
 }
 
 void AsyncWebServer::go() {
