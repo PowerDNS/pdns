@@ -46,7 +46,6 @@ extern std::shared_ptr<UDPNameserver> N;
 extern vector<std::shared_ptr<UDPNameserver> > g_udpReceivers;
 extern int avg_latency;
 extern TCPNameserver *TN;
-extern AuthLua *LPE;
 extern ArgvMap & arg( void );
 extern void declareArguments();
 extern void declareStats();

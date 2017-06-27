@@ -922,7 +922,6 @@ bool validDNSName(const DNSName &name)
 DNSPacket *PacketHandler::question(DNSPacket *p)
 {
   DNSPacket *ret;
-  int policyres = PolicyDecision::PASS;
 
   if(d_pdl)
   {
@@ -936,38 +935,7 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
     rdqueries++;
   }
 
-  if(LPE)
-  {
-    policyres = LPE->police(p, NULL);
-  }
-
-  if (policyres == PolicyDecision::DROP)
-    return NULL;
-
-  if (policyres == PolicyDecision::TRUNCATE) {
-    ret=p->replyPacket();  // generate an empty reply packet
-    ret->d.tc = 1;
-    ret->commitD();
-    return ret;
-  }
-
-  ret=doQuestion(p);
-
-  if(LPE) {
-    policyres = LPE->police(p, ret);
-    if(policyres == PolicyDecision::DROP) {
-      delete ret;
-      return NULL;
-    }
-    if (policyres == PolicyDecision::TRUNCATE) {
-      delete ret;
-      ret=p->replyPacket();  // generate an empty reply packet
-      ret->d.tc = 1;
-      ret->commitD();
-    }
-
-  }
-  return ret;
+  return doQuestion(p);
 }
 
 

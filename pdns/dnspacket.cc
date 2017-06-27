@@ -361,7 +361,7 @@ void DNSPacket::wrapup()
   
   d_rawpacket.assign((char*)&packet[0], packet.size()); // XXX we could do this natively on a vector..
 
-  // copy RR counts so LPE can read them
+  // copy RR counts so they can be read later
   d.qdcount = pw.getHeader()->qdcount;
   d.ancount = pw.getHeader()->ancount;
   d.nscount = pw.getHeader()->nscount;
