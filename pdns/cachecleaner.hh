@@ -23,10 +23,10 @@
 
 #include "lock.hh"
 
-// this function can clean any cache that has a getTTD() method on its entries, and a 'sequence' index as its second index
+// this function can clean any cache that has a getTTD() method on its entries, a preRemoval() method and a 'sequence' index as its second index
 // the ritual is that the oldest entries are in *front* of the sequence collection, so on a hit, move an item to the end
 // on a miss, move it to the beginning
-template <typename T> void pruneCollection(T& collection, unsigned int maxCached, unsigned int scanFraction=1000)
+template <typename C, typename T> void pruneCollection(C& container, T& collection, unsigned int maxCached, unsigned int scanFraction=1000)
 {
   time_t now=time(0);
   unsigned int toTrim=0;
@@ -54,14 +54,15 @@ template <typename T> void pruneCollection(T& collection, unsigned int maxCached
 
   typename sequence_t::iterator iter=sidx.begin(), eiter;
   for(; iter != sidx.end() && tried < lookAt ; ++tried) {
-    if(iter->getTTD() < now) { 
+    if(iter->getTTD() < now) {
+      container.preRemoval(*iter);
       sidx.erase(iter++);
       erased++;
     }
     else
       ++iter;
 
-    if(toTrim && erased > toTrim)
+    if(toTrim && erased >= toTrim)
       break;
   }
 
@@ -76,8 +77,16 @@ template <typename T> void pruneCollection(T& collection, unsigned int maxCached
     // cout<<"Still have "<<toTrim - erased<<" entries left to erase to meet target\n"; 
 
   eiter=iter=sidx.begin();
-  std::advance(eiter, toTrim); 
-  sidx.erase(iter, eiter);      // just lob it off from the beginning
+  std::advance(eiter, toTrim);
+  // just lob it off from the beginning
+  for (auto i = iter; ; ) {
+    if (i == eiter) {
+      break;
+    }
+
+    container.preRemoval(*i);
+    sidx.erase(i++);
+  }
 }
 
 // note: this expects iterator from first index, and sequence MUST be second index!

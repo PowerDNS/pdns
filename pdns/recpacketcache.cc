@@ -199,7 +199,7 @@ uint64_t RecursorPacketCache::bytes()
 
 void RecursorPacketCache::doPruneTo(unsigned int maxCached)
 {
-  pruneCollection(d_packetCache, maxCached);
+  pruneCollection(*this, d_packetCache, maxCached);
 }
 
 uint64_t RecursorPacketCache::doDump(int fd)

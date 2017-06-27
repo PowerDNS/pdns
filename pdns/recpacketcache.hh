@@ -103,6 +103,11 @@ private:
   packetCache_t d_packetCache;
 
   bool checkResponseMatches(std::pair<packetCache_t::index<HashTag>::type::iterator, packetCache_t::index<HashTag>::type::iterator> range, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, RecProtoBufMessage* protobufMessage);
+
+public:
+  void preRemoval(const Entry& entry)
+  {
+  }
 };
 
 #endif

@@ -33,11 +33,113 @@ unsigned int MemRecursorCache::bytes()
   return ret;
 }
 
+int32_t MemRecursorCache::handleHit(cache_t::iterator entry, const DNSName& qname, const ComboAddress& who, vector<DNSRecord>* res, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, vState* state, bool* wasAuth)
+{
+  int32_t ttd = entry->d_ttd;
+
+  if(variable && !entry->d_netmask.empty()) {
+    *variable = true;
+  }
+
+  // cerr<<"Looking at "<<entry->d_records.size()<<" records for this name"<<endl;
+  if (res) {
+    for(const auto& k : entry->d_records) {
+      DNSRecord dr;
+      dr.d_name = qname;
+      dr.d_type = entry->d_qtype;
+      dr.d_class = QClass::IN;
+      dr.d_content = k;
+      dr.d_ttl = static_cast<uint32_t>(entry->d_ttd);
+      dr.d_place = DNSResourceRecord::ANSWER;
+      res->push_back(dr);
+    }
+  }
+
+  if(signatures) { // if you do an ANY lookup you are hosed XXXX
+    *signatures = entry->d_signatures;
+  }
+
+  if(authorityRecs) {
+    *authorityRecs = entry->d_authorityRecs;
+  }
+
+  if (state) {
+    *state = entry->d_state;
+  }
+
+  if (wasAuth) {
+    *wasAuth = entry->d_auth;
+  }
+
+  moveCacheItemToBack(d_cache, entry);
+
+  return ttd;
+}
+
+MemRecursorCache::cache_t::const_iterator MemRecursorCache::getEntryUsingIndex(time_t now, const DNSName &qname, uint16_t qtype, bool requireAuth, const ComboAddress& who)
+{
+  auto indexKey = tie(qname, qtype);
+  auto index = d_index.find(indexKey);
+  if (index != d_index.end() && !index->isEmpty()) {
+    /* we have netmask-specific entries, let's see if we match one */
+    while (true) {
+      const Netmask best = index->lookupBestMatch(who);
+      if (best.empty()) {
+        /* we have nothing more specific for you */
+        break;
+      }
+
+      auto key = boost::make_tuple(qname, qtype, best);
+      auto entry = d_cache.find(key);
+      if (entry == d_cache.end()) {
+        /* index is not up-to-date */
+        index->removeNetmask(best);
+        if (index->isEmpty()) {
+          d_index.erase(index);
+          break;
+        }
+        continue;
+      }
+
+      if (entry->d_ttd > now) {
+        if (!requireAuth || entry->d_auth) {
+          return entry;
+        }
+      }
+      else {
+        /* this netmask-specific entry has expired */
+        moveCacheItemToFront(d_cache, entry);
+        index->removeNetmask(best);
+        if (index->isEmpty()) {
+          d_index.erase(index);
+          break;
+        }
+      }
+    }
+  }
+
+  /* we have nothing specific, let's see if we have a generic one */
+  auto key = boost::make_tuple(qname, qtype, Netmask());
+  auto entry = d_cache.find(key);
+  if (entry != d_cache.end()) {
+    if (entry->d_ttd > now) {
+      if (!requireAuth || entry->d_auth) {
+        return entry;
+      }
+    }
+    else {
+      moveCacheItemToFront(d_cache, entry);
+    }
+  }
+
+  /* nothing for you, sorry */
+  return d_cache.end();
+}
+
 // returns -1 for no hits
 std::pair<MemRecursorCache::cache_t::const_iterator, MemRecursorCache::cache_t::const_iterator> MemRecursorCache::getEntries(const DNSName &qname, const QType& qt)
 {
   //  cerr<<"looking up "<< qname<<"|"+qt.getName()<<"\n";
-
   if(!d_cachecachevalid || d_cachedqname!= qname) {
     //    cerr<<"had cache cache miss"<<endl;
     d_cachedqname=qname;
@@ -49,13 +151,13 @@ std::pair<MemRecursorCache::cache_t::const_iterator, MemRecursorCache::cache_t::
   return d_cachecache;
 }
 
-bool MemRecursorCache::entryMatches(cache_t::const_iterator& entry, const QType& qt, bool requireAuth, const ComboAddress& who)
+bool MemRecursorCache::entryMatches(cache_t::const_iterator& entry, uint16_t qt, bool requireAuth, const ComboAddress& who)
 {
   if (requireAuth && !entry->d_auth)
     return false;
 
-  return ((entry->d_qtype == qt.getCode() || qt.getCode()==QType::ANY ||
-           (qt.getCode()==QType::ADDR && (entry->d_qtype == QType::A || entry->d_qtype == QType::AAAA)))
+  return ((entry->d_qtype == qt || qt == QType::ANY ||
+           (qt == QType::ADDR && (entry->d_qtype == QType::A || entry->d_qtype == QType::AAAA)))
           && (entry->d_netmask.empty() || entry->d_netmask.match(who)));
 }
 
@@ -64,11 +166,42 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
 {
   time_t ttd=0;
   //  cerr<<"looking up "<< qname<<"|"+qt.getName()<<"\n";
+  if(res) {
+    res->clear();
+  }
+
+  const uint16_t qtype = qt.getCode();
+  /* If we don't have any netmask-specific entries at all, let's just skip this
+     to be able to use the nice d_cachecache hack. */
+  if (qtype != QType::ANY && !d_index.empty()) {
+    if (qtype == QType::ADDR) {
+      int32_t ret = -1;
+
+      auto entryA = getEntryUsingIndex(now, qname, QType::A, requireAuth, who);
+      if (entryA != d_cache.end()) {
+        ret = handleHit(entryA, qname, who, res, signatures, authorityRecs, variable, state, wasAuth);
+      }
+      auto entryAAAA = getEntryUsingIndex(now, qname, QType::AAAA, requireAuth, who);
+      if (entryAAAA != d_cache.end()) {
+        int32_t ttdAAAA = handleHit(entryA, qname, who, res, signatures, authorityRecs, variable, state, wasAuth);
+        if (ret > 0) {
+          ret = std::min(ret, ttdAAAA);
+        } else {
+          ret = ttdAAAA;
+        }
+      }
+      return ret > 0 ? static_cast<int32_t>(ret-now) : ret;
+    }
+    else {
+      auto entry = getEntryUsingIndex(now, qname, qtype, requireAuth, who);
+      if (entry != d_cache.end()) {
+        return static_cast<int32_t>(handleHit(entry, qname, who, res, signatures, authorityRecs, variable, state, wasAuth) - now);
+      }
+      return -1;
+    }
+  }
 
   auto entries = getEntries(qname, qt);
-
-  if(res)
-    res->clear();
 
   if(entries.first!=entries.second) {
     for(cache_t::const_iterator i=entries.first; i != entries.second; ++i) {
@@ -78,44 +211,10 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
         continue;
       }
 
-      if (!entryMatches(i, qt, requireAuth, who))
+      if (!entryMatches(i, qtype, requireAuth, who))
         continue;
 
-      if(variable && !i->d_netmask.empty()) {
-        *variable=true;
-      }
-
-      ttd = i->d_ttd;
-
-      //        cerr<<"Looking at "<<i->d_records.size()<<" records for this name"<<endl;
-      for(auto k=i->d_records.begin(); k != i->d_records.end(); ++k) {
-        if(res) {
-          DNSRecord dr;
-          dr.d_name = qname;
-          dr.d_type = i->d_qtype;
-          dr.d_class = QClass::IN;
-          dr.d_content = *k;
-          dr.d_ttl = static_cast<uint32_t>(i->d_ttd);
-          dr.d_place = DNSResourceRecord::ANSWER;
-          res->push_back(dr);
-        }
-      }
-
-      if(signatures)  // if you do an ANY lookup you are hosed XXXX
-        *signatures=i->d_signatures;
-
-      if(authorityRecs)  // if you do an ANY lookup you are hosed here too XXXX
-        *authorityRecs=i->d_authorityRecs;
-
-      moveCacheItemToBack(d_cache, i);
-
-      if(state) {
-        *state = i->d_state;
-      }
-
-      if(wasAuth) {
-        *wasAuth = i->d_auth;
-      }
+      ttd = handleHit(i, qname, who, res, signatures, authorityRecs, variable, state, wasAuth);
 
       if(qt.getCode()!=QType::ANY && qt.getCode()!=QType::ADDR) // normally if we have a hit, we are done
         break;
@@ -155,16 +254,26 @@ bool MemRecursorCache::attemptToRefreshNSTTL(const QType& qt, const vector<DNSRe
   return true;
 }
 
-void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt,  const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, boost::optional<Netmask> ednsmask, vState state)
+void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt, const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, boost::optional<Netmask> ednsmask, vState state)
 {
-  d_cachecachevalid=false;
-  cache_t::iterator stored;
+  d_cachecachevalid = false;
+
+  auto key = boost::make_tuple(qname, qt.getCode(), ednsmask ? *ednsmask : Netmask());
   bool isNew = false;
-  auto key=boost::make_tuple(qname, qt.getCode(), ednsmask ? *ednsmask : Netmask());
-  stored=d_cache.find(key);
-  if(stored == d_cache.end()) {
-    stored=d_cache.insert(CacheEntry(key,CacheEntry::records_t(), auth)).first;
+  cache_t::iterator stored = d_cache.find(key);
+  if (stored == d_cache.end()) {
+    stored = d_cache.insert(CacheEntry(key, CacheEntry::records_t(), auth)).first;
     isNew = true;
+
+    /* don't bother building an index if we don't have any netmask-specific entries */
+    if (ednsmask && !ednsmask->empty()) {
+      auto indexKey = boost::make_tuple(qname, qt.getCode());
+      auto index = d_index.find(indexKey);
+      if (index == d_index.end()) {
+        index = d_index.insert(IndexEntry(qname, qt.getCode())).first;
+      }
+      index->addMask(*ednsmask);
+    }
   }
 
   time_t maxTTD=std::numeric_limits<time_t>::max();
@@ -204,13 +313,12 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
   //else cerr<<"\tNot nuking"<<endl;
 
 
-  for(auto i=content.cbegin(); i != content.cend(); ++i) {
-
+  for(const auto i : content) {
     /* Yes, we have altered the d_ttl value by adding time(nullptr) to it
        prior to calling this function, so the TTL actually holds a TTD. */
-    ce.d_ttd=min(maxTTD, static_cast<time_t>(i->d_ttl));   // XXX this does weird things if TTLs differ in the set
-    //    cerr<<"To store: "<<i->d_content->getZoneRepresentation()<<" with ttl/ttd "<<i->d_ttl<<", capped at: "<<maxTTD<<endl;
-    ce.d_records.push_back(i->d_content);
+    ce.d_ttd=min(maxTTD, static_cast<time_t>(i.d_ttl));   // XXX this does weird things if TTLs differ in the set
+    //    cerr<<"To store: "<<i.d_content->getZoneRepresentation()<<" with ttl/ttd "<<i.d_ttl<<", capped at: "<<maxTTD<<endl;
+    ce.d_records.push_back(i.d_content);
     // there was code here that did things with TTL and auth. Unsure if it was good. XXX
   }
 
@@ -227,13 +335,21 @@ int MemRecursorCache::doWipeCache(const DNSName& name, bool sub, uint16_t qtype)
   pair<cache_t::iterator, cache_t::iterator> range;
 
   if(!sub) {
-    if(qtype==0xffff)
-      range=d_cache.equal_range(tie(name));
-    else
+    pair<index_t::iterator, index_t::iterator> indexRange;
+    if(qtype==0xffff) {
+      range = d_cache.equal_range(tie(name));
+      indexRange = d_index.equal_range(tie(name));
+    }
+    else {
       range=d_cache.equal_range(tie(name, qtype));
+      indexRange = d_index.equal_range(tie(name, qtype));
+    }
     for(cache_t::const_iterator i=range.first; i != range.second; ) {
       count++;
       d_cache.erase(i++);
+    }
+    for(auto i = indexRange.first; i != indexRange.second; ) {
+      d_index.erase(i++);
     }
   }
   else {
@@ -246,6 +362,16 @@ int MemRecursorCache::doWipeCache(const DNSName& name, bool sub, uint16_t qtype)
       }
       else 
 	iter++;
+    }
+    for(auto iter = d_index.lower_bound(tie(name)); iter != d_index.end(); ) {
+      if(!iter->d_qname.isPartOf(name))
+	break;
+      if(iter->d_qtype == qtype || qtype == 0xffff) {
+	d_index.erase(iter++);
+      }
+      else {
+	iter++;
+      }
     }
   }
   return count;
@@ -279,22 +405,31 @@ bool MemRecursorCache::doAgeCache(time_t now, const DNSName& name, uint16_t qtyp
   return false;
 }
 
-bool MemRecursorCache::updateValidationStatus(const DNSName &qname, const QType& qt, const ComboAddress& who, bool requireAuth, vState newState)
+bool MemRecursorCache::updateValidationStatus(time_t now, const DNSName &qname, const QType& qt, const ComboAddress& who, bool requireAuth, vState newState)
 {
   bool updated = false;
+  uint16_t qtype = qt.getCode();
+  if (qtype != QType::ANY && qtype != QType::ADDR && !d_index.empty()) {
+    auto entry = getEntryUsingIndex(now, qname, qtype, requireAuth, who);
+    if (entry == d_cache.end()) {
+      return false;
+    }
+
+    entry->d_state = newState;
+    return true;
+  }
+
   auto entries = getEntries(qname, qt);
 
   for(auto i = entries.first; i != entries.second; ++i) {
-
-    if (!entryMatches(i, qt, requireAuth, who))
+    if (!entryMatches(i, qtype, requireAuth, who))
       continue;
 
     i->d_state = newState;
     updated = true;
 
-    if(qt.getCode()!=QType::ANY && qt.getCode()!=QType::ADDR) // normally if we have a hit, we are done
+    if(qtype != QType::ANY && qtype != QType::ADDR) // normally if we have a hit, we are done
       break;
-
   }
 
   return updated;
@@ -311,14 +446,14 @@ uint64_t MemRecursorCache::doDump(int fd)
 
   uint64_t count=0;
   time_t now=time(0);
-  for(auto i=sidx.cbegin(); i != sidx.cend(); ++i) {
-    for(auto j=i->d_records.cbegin(); j != i->d_records.cend(); ++j) {
+  for(const auto i : sidx) {
+    for(const auto j : i.d_records) {
       count++;
       try {
-        fprintf(fp, "%s %" PRId64 " IN %s %s ; %s\n", i->d_qname.toString().c_str(), static_cast<int64_t>(i->d_ttd - now), DNSRecordContent::NumberToType(i->d_qtype).c_str(), (*j)->getZoneRepresentation().c_str(), i->d_netmask.empty() ? "" : i->d_netmask.toString().c_str());
+        fprintf(fp, "%s %" PRId64 " IN %s %s ; %s\n", i.d_qname.toString().c_str(), static_cast<int64_t>(i.d_ttd - now), DNSRecordContent::NumberToType(i.d_qtype).c_str(), j->getZoneRepresentation().c_str(), i.d_netmask.empty() ? "" : i.d_netmask.toString().c_str());
       }
       catch(...) {
-        fprintf(fp, "; error printing '%s'\n", i->d_qname.empty() ? "EMPTY" : i->d_qname.toString().c_str());
+        fprintf(fp, "; error printing '%s'\n", i.d_qname.empty() ? "EMPTY" : i.d_qname.toString().c_str());
       }
     }
   }
@@ -326,10 +461,15 @@ uint64_t MemRecursorCache::doDump(int fd)
   return count;
 }
 
-void MemRecursorCache::doPrune(void)
+void MemRecursorCache::doPrune(unsigned int keep)
 {
   d_cachecachevalid=false;
 
+  pruneCollection(*this, d_cache, keep);
+}
+
+void MemRecursorCache::doPrune(void)
+{
   unsigned int maxCached=::arg().asNum("max-cache-entries") / g_numThreads;
-  pruneCollection(d_cache, maxCached);
+  doPrune(maxCached);
 }

@@ -71,6 +71,10 @@ class NegCache : public boost::noncopyable {
       return d_negcache.size();
     };
 
+    void preRemoval(const NegCacheEntry& entry)
+    {
+    }
+
   private:
     typedef boost::multi_index_container <
       NegCacheEntry,
