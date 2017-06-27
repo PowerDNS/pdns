@@ -37,15 +37,6 @@ DNSPacket* AuthLua::prequery(DNSPacket *p)
   return 0;
 }
 
-int AuthLua::police(DNSPacket *req, DNSPacket *resp, bool isTcp)
-{
-  return PolicyDecision::PASS;
-}
-
-string AuthLua::policycmd(const vector<string>&parts) {
-  return "no policy script loaded";
-}
-
 #else
 
 
@@ -257,80 +248,6 @@ DNSPacket* AuthLua::prequery(DNSPacket *p)
     delete r;
     return 0;
   }
-}
-
-int AuthLua::police(DNSPacket *req, DNSPacket *resp, bool isTcp)
-{
-  Lock l(&d_lock);
-
-  lua_getglobal(d_lua,  "police");
-  if(!lua_isfunction(d_lua, -1)) {
-    // cerr<<"No such function 'police'\n"; FIXME: raise Exception? check this beforehand so we can log it once?
-    lua_pop(d_lua, 1);
-    return PolicyDecision::PASS;
-  }
-
-  /* wrap request */
-  LuaDNSPacket* lreq = (LuaDNSPacket *)lua_newuserdata(d_lua, sizeof(LuaDNSPacket));
-  lreq->d_p=req;
-  luaL_getmetatable(d_lua, "LuaDNSPacket");
-  lua_setmetatable(d_lua, -2);
-
-  /* wrap response */
-  if(resp) {
-    LuaDNSPacket* lresp = (LuaDNSPacket *)lua_newuserdata(d_lua, sizeof(LuaDNSPacket));
-    lresp->d_p=resp;
-    luaL_getmetatable(d_lua, "LuaDNSPacket");
-    lua_setmetatable(d_lua, -2);
-  }
-  else
-  {
-    lua_pushnil(d_lua);
-  }
-
-  lua_pushboolean(d_lua, isTcp);
-
-  if(lua_pcall(d_lua, 3, 1, 0)) {
-    string error=string("lua error in police: ")+lua_tostring(d_lua, -1);
-    lua_pop(d_lua, 1);
-    theL()<<Logger::Error<<"police error: "<<error<<endl;
-
-    throw runtime_error(error);
-  }
-
-  int res = (int) lua_tonumber(d_lua, 1);
-  lua_pop(d_lua, 1);
-
-  return res;
-}
-
-string AuthLua::policycmd(const vector<string>&parts) {
-  Lock l(&d_lock);
-
-  lua_getglobal(d_lua, "policycmd");
-  if(!lua_isfunction(d_lua, -1)) {
-    // cerr<<"No such function 'police'\n"; FIXME: raise Exception? check this beforehand so we can log it once?
-    lua_pop(d_lua, 1);
-    return "no policycmd function in policy script";
-  }
-
-  for(vector<string>::size_type i=1; i<parts.size(); i++)
-    lua_pushstring(d_lua, parts[i].c_str());
-
-  if(lua_pcall(d_lua, parts.size()-1, 1, 0)) {
-    string error = string("lua error in policycmd: ")+lua_tostring(d_lua, -1);
-    lua_pop(d_lua, 1);
-    return error;
-  }
-
-  const char *ret = lua_tostring(d_lua, 1);
-  string rets;
-  if(ret)
-    rets = ret;
-
-  lua_pop(d_lua, 1);
-
-  return rets;
 }
 
 #endif
