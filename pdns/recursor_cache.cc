@@ -34,9 +34,8 @@ unsigned int MemRecursorCache::bytes()
 }
 
 // returns -1 for no hits
-int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt, vector<DNSRecord>* res, const ComboAddress& who, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, bool* variable)
+std::pair<MemRecursorCache::cache_t::const_iterator, MemRecursorCache::cache_t::const_iterator> MemRecursorCache::getEntries(const DNSName &qname, const QType& qt)
 {
-  time_t ttd=0;
   //  cerr<<"looking up "<< qname<<"|"+qt.getName()<<"\n";
 
   if(!d_cachecachevalid || d_cachedqname!= qname) {
@@ -47,52 +46,86 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
   }
   //  else cerr<<"had cache cache hit!"<<endl;
 
+  return d_cachecache;
+}
+
+bool MemRecursorCache::entryMatches(cache_t::const_iterator& entry, const QType& qt, bool requireAuth, const ComboAddress& who)
+{
+  if (requireAuth && !entry->d_auth)
+    return false;
+
+  return ((entry->d_qtype == qt.getCode() || qt.getCode()==QType::ANY ||
+           (qt.getCode()==QType::ADDR && (entry->d_qtype == QType::A || entry->d_qtype == QType::AAAA)))
+          && (entry->d_netmask.empty() || entry->d_netmask.match(who)));
+}
+
+// returns -1 for no hits
+int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt, bool requireAuth, vector<DNSRecord>* res, const ComboAddress& who, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, vState* state, bool* wasAuth)
+{
+  time_t ttd=0;
+  //  cerr<<"looking up "<< qname<<"|"+qt.getName()<<"\n";
+
+  auto entries = getEntries(qname, qt);
+
   if(res)
     res->clear();
 
-  if(d_cachecache.first!=d_cachecache.second) {
-    for(cache_t::const_iterator i=d_cachecache.first; i != d_cachecache.second; ++i)
-      if(i->d_ttd > now && ((i->d_qtype == qt.getCode() || qt.getCode()==QType::ANY ||
-			    (qt.getCode()==QType::ADDR && (i->d_qtype == QType::A || i->d_qtype == QType::AAAA) )) 
-			    && (i->d_netmask.empty() || i->d_netmask.match(who)))
-         ) {
-        if(variable && !i->d_netmask.empty()) {
-          *variable=true;
-        }
-	ttd = i->d_ttd;	
-        //        cerr<<"Looking at "<<i->d_records.size()<<" records for this name"<<endl;
-	for(auto k=i->d_records.begin(); k != i->d_records.end(); ++k) {
-	  if(res) {
-	    DNSRecord dr;
-	    dr.d_name = qname;
-	    dr.d_type = i->d_qtype;
-	    dr.d_class = 1;
-	    dr.d_content = *k; 
-	    dr.d_ttl = static_cast<uint32_t>(i->d_ttd);
-	    dr.d_place = DNSResourceRecord::ANSWER;
-	    res->push_back(dr);
-	  }
-	}
-      
-	if(signatures)  // if you do an ANY lookup you are hosed XXXX
-	  *signatures=i->d_signatures;
-        if(res) {
-          if(res->empty())
-            moveCacheItemToFront(d_cache, i);
-          else
-            moveCacheItemToBack(d_cache, i);
-        }
-        if(qt.getCode()!=QType::ANY && qt.getCode()!=QType::ADDR) // normally if we have a hit, we are done
-          break;
+  if(entries.first!=entries.second) {
+    for(cache_t::const_iterator i=entries.first; i != entries.second; ++i) {
+
+      if (i->d_ttd <= now) {
+        moveCacheItemToFront(d_cache, i);
+        continue;
       }
 
-    //    cerr<<"time left : "<<ttd - now<<", "<< (res ? res->size() : 0) <<"\n";
+      if (!entryMatches(i, qt, requireAuth, who))
+        continue;
+
+      if(variable && !i->d_netmask.empty()) {
+        *variable=true;
+      }
+
+      ttd = i->d_ttd;
+
+      //        cerr<<"Looking at "<<i->d_records.size()<<" records for this name"<<endl;
+      for(auto k=i->d_records.begin(); k != i->d_records.end(); ++k) {
+        if(res) {
+          DNSRecord dr;
+          dr.d_name = qname;
+          dr.d_type = i->d_qtype;
+          dr.d_class = QClass::IN;
+          dr.d_content = *k;
+          dr.d_ttl = static_cast<uint32_t>(i->d_ttd);
+          dr.d_place = DNSResourceRecord::ANSWER;
+          res->push_back(dr);
+        }
+      }
+
+      if(signatures)  // if you do an ANY lookup you are hosed XXXX
+        *signatures=i->d_signatures;
+
+      if(authorityRecs)  // if you do an ANY lookup you are hosed here too XXXX
+        *authorityRecs=i->d_authorityRecs;
+
+      moveCacheItemToBack(d_cache, i);
+
+      if(state) {
+        *state = i->d_state;
+      }
+
+      if(wasAuth) {
+        *wasAuth = i->d_auth;
+      }
+
+      if(qt.getCode()!=QType::ANY && qt.getCode()!=QType::ADDR) // normally if we have a hit, we are done
+        break;
+    }
+
+    // cerr<<"time left : "<<ttd - now<<", "<< (res ? res->size() : 0) <<"\n";
     return static_cast<int32_t>(ttd-now);
   }
   return -1;
 }
-
-
 
 bool MemRecursorCache::attemptToRefreshNSTTL(const QType& qt, const vector<DNSRecord>& content, const CacheEntry& stored)
 {
@@ -122,7 +155,7 @@ bool MemRecursorCache::attemptToRefreshNSTTL(const QType& qt, const vector<DNSRe
   return true;
 }
 
-void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt,  const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, bool auth, boost::optional<Netmask> ednsmask)
+void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt,  const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, boost::optional<Netmask> ednsmask, vState state)
 {
   d_cachecachevalid=false;
   cache_t::iterator stored;
@@ -138,10 +171,12 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
   CacheEntry ce=*stored; // this is a COPY
   ce.d_qtype=qt.getCode();
   ce.d_signatures=signatures;
+  ce.d_authorityRecs=authorityRecs;
+  ce.d_state=state;
   
   //  cerr<<"asked to store "<< (qname.empty() ? "EMPTY" : qname.toString()) <<"|"+qt.getName()<<" -> '";
   //  cerr<<(content.empty() ? string("EMPTY CONTENT")  : content.begin()->d_content->getZoneRepresentation())<<"', auth="<<auth<<", ce.auth="<<ce.d_auth;
-  //   cerr<<", ednsmask: "  <<  (ednsmask ? ednsmask->toString() : "none") <<endl;
+  //  cerr<<", ednsmask: "  <<  (ednsmask ? ednsmask->toString() : "none") <<endl;
 
   if(!auth && ce.d_auth) {  // unauth data came in, we have some auth data, but is it fresh?
     if(ce.d_ttd > now) { // we still have valid data, ignore unauth data
@@ -166,7 +201,7 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
     ce.d_records.clear(); // clear non-auth data
     ce.d_auth = true;
   }
-//  else cerr<<"\tNot nuking"<<endl;
+  //else cerr<<"\tNot nuking"<<endl;
 
 
   for(auto i=content.cbegin(); i != content.cend(); ++i) {
@@ -242,6 +277,27 @@ bool MemRecursorCache::doAgeCache(time_t now, const DNSName& name, uint16_t qtyp
     return true;
   }
   return false;
+}
+
+bool MemRecursorCache::updateValidationStatus(const DNSName &qname, const QType& qt, const ComboAddress& who, bool requireAuth, vState newState)
+{
+  bool updated = false;
+  auto entries = getEntries(qname, qt);
+
+  for(auto i = entries.first; i != entries.second; ++i) {
+
+    if (!entryMatches(i, qt, requireAuth, who))
+      continue;
+
+    i->d_state = newState;
+    updated = true;
+
+    if(qt.getCode()!=QType::ANY && qt.getCode()!=QType::ADDR) // normally if we have a hit, we are done
+      break;
+
+  }
+
+  return updated;
 }
 
 uint64_t MemRecursorCache::doDump(int fd)

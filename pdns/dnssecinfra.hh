@@ -56,6 +56,10 @@ class DNSCryptoKeyEngine
     virtual std::string getPubKeyHash()const =0;
     virtual std::string getPublicKeyString()const =0;
     virtual int getBits() const =0;
+    virtual unsigned int getAlgorithm() const
+    {
+      return d_algorithm;
+    }
  
     virtual void fromISCMap(DNSKEYRecordContent& drc, stormap_t& stormap)=0;
     virtual void fromPEMString(DNSKEYRecordContent& drc, const std::string& raw)
@@ -72,6 +76,8 @@ class DNSCryptoKeyEngine
     static shared_ptr<DNSCryptoKeyEngine> makeFromPEMString(DNSKEYRecordContent& drc, const std::string& raw);
     static shared_ptr<DNSCryptoKeyEngine> makeFromPublicKeyString(unsigned int algorithm, const std::string& raw);
     static shared_ptr<DNSCryptoKeyEngine> make(unsigned int algorithm);
+    static bool isAlgorithmSupported(unsigned int algo);
+    static bool isDigestSupported(uint8_t digest);
     
     typedef shared_ptr<DNSCryptoKeyEngine> maker_t(unsigned int algorithm);
     
@@ -110,6 +116,7 @@ struct DNSSECPrivateKey
   void setKey(const shared_ptr<DNSCryptoKeyEngine> key)
   {
     d_key = key;
+    d_algorithm = key->getAlgorithm();
   }
   DNSKEYRecordContent getDNSKEY() const;
 
@@ -137,27 +144,17 @@ struct CanonicalCompare: public std::binary_function<string, string, bool>
   }
 };
 
-bool sharedDNSSECCompare(const std::shared_ptr<DNSRecordContent>& a, const shared_ptr<DNSRecordContent>& b);
 string getMessageForRRSET(const DNSName& qname, const RRSIGRecordContent& rrc, std::vector<std::shared_ptr<DNSRecordContent> >& signRecords, bool processRRSIGLabels = false);
 
-DSRecordContent makeDSFromDNSKey(const DNSName& qname, const DNSKEYRecordContent& drc, int digest=1);
+DSRecordContent makeDSFromDNSKey(const DNSName& qname, const DNSKEYRecordContent& drc, uint8_t digest);
 
-
-class RSAContext;
 class DNSSECKeeper; 
-struct DNSSECPrivateKey;
 
-void fillOutRRSIG(DNSSECPrivateKey& dpk, const DNSName& signQName, RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& toSign);
 uint32_t getStartOfWeek();
-void addSignature(DNSSECKeeper& dk, UeberBackend& db, const DNSName& signer, const DNSName signQName, const DNSName& wildcardname, uint16_t signQType, uint32_t signTTL, DNSResourceRecord::Place signPlace,
-  vector<shared_ptr<DNSRecordContent> >& toSign, vector<DNSResourceRecord>& outsigned, uint32_t origTTL);
-int getRRSIGsForRRSET(DNSSECKeeper& dk, const DNSName& signer, const DNSName signQName, uint16_t signQType, uint32_t signTTL,
-  vector<shared_ptr<DNSRecordContent> >& toSign, vector<RRSIGRecordContent> &rrc);
 
 string hashQNameWithSalt(const NSEC3PARAMRecordContent& ns3prc, const DNSName& qname);
 string hashQNameWithSalt(const std::string& salt, unsigned int iterations, const DNSName& qname);
-void decodeDERIntegerSequence(const std::string& input, vector<string>& output);
-class DNSPacket;
+
 void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const std::set<DNSName>& authMap, vector<DNSZoneRecord>& rrs);
 
 void addTSIG(DNSPacketWriter& pw, TSIGRecordContent& trc, const DNSName& tsigkeyname, const string& tsigsecret, const string& tsigprevious, bool timersonly);

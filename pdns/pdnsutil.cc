@@ -1704,16 +1704,16 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = false)
       shown=true;
 
       const std::string prefix(exportDS ? "" : "DS = ");
-      cout<<prefix<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, key, 1).getZoneRepresentation() << " ; ( SHA1 digest )" << endl;
-      cout<<prefix<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, key, 2).getZoneRepresentation() << " ; ( SHA256 digest )" << endl;
+      cout<<prefix<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, key, DNSSECKeeper::SHA1).getZoneRepresentation() << " ; ( SHA1 digest )" << endl;
+      cout<<prefix<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, key, DNSSECKeeper::SHA256).getZoneRepresentation() << " ; ( SHA256 digest )" << endl;
       try {
-        string output=makeDSFromDNSKey(zone, key, 3).getZoneRepresentation();
+        string output=makeDSFromDNSKey(zone, key, DNSSECKeeper::GOST).getZoneRepresentation();
         cout<<prefix<<zone.toString()<<" IN DS "<<output<< " ; ( GOST R 34.11-94 digest )" << endl;
       }
       catch(...)
       {}
       try {
-        string output=makeDSFromDNSKey(zone, key, 4).getZoneRepresentation();
+        string output=makeDSFromDNSKey(zone, key, DNSSECKeeper::SHA384).getZoneRepresentation();
         cout<<prefix<<zone.toString()<<" IN DS "<<output<< " ; ( SHA-384 digest )" << endl;
       }
       catch(...)
@@ -1755,16 +1755,16 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = false)
       if (value.second.keyType == DNSSECKeeper::KSK || value.second.keyType == DNSSECKeeper::CSK) {
         const auto &key = value.first.getDNSKEY();
         const std::string prefix(exportDS ? "" : "DS = ");
-        cout<<prefix<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, key, 1).getZoneRepresentation() << " ; ( SHA1 digest )" << endl;
-        cout<<prefix<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, key, 2).getZoneRepresentation() << " ; ( SHA256 digest )" << endl;
+        cout<<prefix<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, key, DNSSECKeeper::SHA1).getZoneRepresentation() << " ; ( SHA1 digest )" << endl;
+        cout<<prefix<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, key, DNSSECKeeper::SHA256).getZoneRepresentation() << " ; ( SHA256 digest )" << endl;
         try {
-          string output=makeDSFromDNSKey(zone, key, 3).getZoneRepresentation();
+          string output=makeDSFromDNSKey(zone, key, DNSSECKeeper::GOST).getZoneRepresentation();
           cout<<prefix<<zone.toString()<<" IN DS "<<output<< " ; ( GOST R 34.11-94 digest )" << endl;
         }
         catch(...)
         {}
         try {
-          string output=makeDSFromDNSKey(zone, key, 4).getZoneRepresentation();
+          string output=makeDSFromDNSKey(zone, key, DNSSECKeeper::SHA384).getZoneRepresentation();
           cout<<prefix<<zone.toString()<<" IN DS "<<output<< " ; ( SHA-384 digest )" << endl;
         }
         catch(...)
@@ -2815,8 +2815,8 @@ try
     DNSSECPrivateKey dpk=dk.getKeyById(zone, id);
     cout << zone<<" IN DNSKEY "<<dpk.getDNSKEY().getZoneRepresentation() <<endl;
     if(dpk.d_flags == 257) {
-      cout << zone << " IN DS "<<makeDSFromDNSKey(zone, dpk.getDNSKEY(), 1).getZoneRepresentation() << endl;
-      cout << zone << " IN DS "<<makeDSFromDNSKey(zone, dpk.getDNSKEY(), 2).getZoneRepresentation() << endl;
+      cout << zone << " IN DS "<<makeDSFromDNSKey(zone, dpk.getDNSKEY(), DNSSECKeeper::SHA1).getZoneRepresentation() << endl;
+      cout << zone << " IN DS "<<makeDSFromDNSKey(zone, dpk.getDNSKEY(), DNSSECKeeper::SHA256).getZoneRepresentation() << endl;
     }
   }
   else if(cmds[0] == "generate-zone-key") {

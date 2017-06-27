@@ -25,6 +25,7 @@
 #include "dnsparser.hh"
 #include "dnsname.hh"
 #include "dns.hh"
+#include "validate.hh"
 
 using namespace ::boost::multi_index;
 
@@ -50,6 +51,7 @@ class NegCache : public boost::noncopyable {
       uint32_t d_ttd;                     // Timestamp when this entry should die
       recordsAndSignatures authoritySOA;  // The upstream SOA record and RRSIGs
       recordsAndSignatures DNSSECRecords; // The upstream NSEC(3) and RRSIGs
+      vState d_validationState{Indeterminate};
       uint32_t getTTD() const {
         return d_ttd;
       };

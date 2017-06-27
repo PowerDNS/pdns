@@ -1035,12 +1035,9 @@ static void startDoResolve(void *p)
           if(sr.doLog()) {
             L<<Logger::Warning<<"Starting validation of answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<" for "<<dc->d_remote.toStringWithPort()<<endl;
           }
-          
-          ResolveContext ctx;
-#ifdef HAVE_PROTOBUF
-          ctx.d_initialRequestId = dc->d_uuid;
-#endif
-          auto state=validateRecords(ctx, ret);
+
+          auto state = sr.getValidationState();
+
           if(state == Secure) {
             if(sr.doLog()) {
               L<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<" for "<<dc->d_remote.toStringWithPort()<<" validates correctly"<<endl;
@@ -2735,6 +2732,7 @@ static int serviceMain(int argc, char*argv[])
   }
 
   g_dnssecLogBogus = ::arg().mustDo("dnssec-log-bogus");
+  g_maxNSEC3Iterations = ::arg().asNum("nsec3-max-iterations");
 
   try {
     loadRecursorLuaConfig(::arg()["lua-config-file"], ::arg().mustDo("daemon"));
@@ -3226,6 +3224,7 @@ int main(int argc, char **argv)
     ::arg().set("snmp-master-socket", "If set and snmp-agent is set, the socket to use to register to the SNMP master")="";
 
     ::arg().set("tcp-fast-open", "Enable TCP Fast Open support on the listening sockets, using the supplied numerical value as the queue size")="0";
+    ::arg().set("nsec3-max-iterations", "Maximum number of iterations allowed for an NSEC3 record")="2500";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");

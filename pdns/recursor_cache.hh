@@ -38,6 +38,7 @@
 #include <boost/multi_index/sequenced_index.hpp>
 #include <boost/version.hpp>
 #include "iputils.hh"
+#include "validate.hh"
 #undef max
 
 #define L theL()
@@ -53,14 +54,16 @@ public:
   }
   unsigned int size();
   unsigned int bytes();
-  int32_t get(time_t, const DNSName &qname, const QType& qt, vector<DNSRecord>* res, const ComboAddress& who, vector<std::shared_ptr<RRSIGRecordContent>>* signatures=0, bool* variable=0);
+  int32_t get(time_t, const DNSName &qname, const QType& qt, bool requireAuth, vector<DNSRecord>* res, const ComboAddress& who, vector<std::shared_ptr<RRSIGRecordContent>>* signatures=nullptr, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs=nullptr, bool* variable=nullptr, vState* state=nullptr, bool* wasAuth=nullptr);
 
-  void replace(time_t, const DNSName &qname, const QType& qt,  const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, bool auth, boost::optional<Netmask> ednsmask=boost::none);
+  void replace(time_t, const DNSName &qname, const QType& qt,  const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, boost::optional<Netmask> ednsmask=boost::none, vState state=Indeterminate);
+
   void doPrune(void);
   uint64_t doDump(int fd);
 
   int doWipeCache(const DNSName& name, bool sub, uint16_t qtype=0xffff);
   bool doAgeCache(time_t now, const DNSName& name, uint16_t qtype, uint32_t newTTL);
+  bool updateValidationStatus(const DNSName &qname, const QType& qt, const ComboAddress& who, bool requireAuth, vState newState);
 
   uint64_t cacheHits, cacheMisses;
 
@@ -84,7 +87,9 @@ private:
     bool d_auth;
     time_t d_ttd;
     records_t d_records;
+    std::vector<std::shared_ptr<DNSRecord>> d_authorityRecs;
     Netmask d_netmask;
+    mutable vState d_state;
   };
 
   typedef multi_index_container<
@@ -107,6 +112,10 @@ private:
   pair<cache_t::iterator, cache_t::iterator> d_cachecache;
   DNSName d_cachedqname;
   bool d_cachecachevalid;
+
   bool attemptToRefreshNSTTL(const QType& qt, const vector<DNSRecord>& content, const CacheEntry& stored);
+  bool entryMatches(cache_t::const_iterator& entry, const QType& qt, bool requireAuth, const ComboAddress& who);
+  std::pair<cache_t::const_iterator, cache_t::const_iterator> getEntries(const DNSName &qname, const QType& qt);
+
 };
 #endif

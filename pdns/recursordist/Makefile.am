@@ -186,6 +186,7 @@ testrunner_SOURCES = \
 	dnsparser.hh dnsparser.cc \
 	dnsrecords.cc \
 	dnssecinfra.cc \
+	dnsseckeeper.hh \
 	dnswriter.cc dnswriter.hh \
 	ednscookies.cc ednscookies.hh \
 	ednsoptions.cc ednsoptions.hh \
@@ -200,6 +201,7 @@ testrunner_SOURCES = \
 	namespaces.hh \
 	nsecrecords.cc \
 	pdnsexception.hh \
+	opensslsigners.cc opensslsigners.hh \
 	protobuf.cc protobuf.hh \
 	qtype.cc qtype.hh \
 	randomhelper.cc \
@@ -257,6 +259,9 @@ if LIBSODIUM
 pdns_recursor_SOURCES += \
 	sodiumsigners.cc
 pdns_recursor_LDADD += $(LIBSODIUM_LIBS)
+testrunner_SOURCES += \
+	sodiumsigners.cc
+testrunner_LDADD += $(LIBSODIUM_LIBS)
 endif
 
 if LIBDECAF

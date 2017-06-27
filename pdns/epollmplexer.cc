@@ -27,7 +27,6 @@
 #include <iostream>
 #include <unistd.h>
 #include "misc.hh"
-#include "syncres.hh"
 #ifdef __linux__
 #include <sys/epoll.h>
 #endif

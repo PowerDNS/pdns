@@ -139,7 +139,7 @@ try
     numsigs+= csp.second.signatures.size();
   }
    
-  set<DNSKEYRecordContent> keys;
+  skeyset_t keys;
   cspmap_t validrrsets;
 
   if(numsigs) {
