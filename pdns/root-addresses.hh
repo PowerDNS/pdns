@@ -37,7 +37,7 @@ static const char*rootIps4[]={"198.41.0.4",             // a.root-servers.net.
                               };
 
 static const char*rootIps6[]={"2001:503:ba3e::2:30",    // a.root-servers.net.
-                              "2001:500:84::b",         // b.root-servers.net.
+                              "2001:500:200::b",        // b.root-servers.net.
                               "2001:500:2::c",          // c.root-servers.net.
                               "2001:500:2d::d",         // d.root-servers.net.
                               "2001:500:a8::e",         // e.root-servers.net.
