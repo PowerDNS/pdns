@@ -94,10 +94,20 @@ private:
     bool d_auth;
   };
 
-  class IndexEntry
+  /* The ECS Index (d_ecsIndex) keeps track of whether there is any ECS-specific
+     entry for a given (qname,qtype) entry in the cache (d_cache), and if so
+     provides a NetmaskTree of those ECS entries.
+     This allows figuring out quickly if we should look for an entry
+     specific to the requestor IP, and if so which entry is the most
+     specific one.
+     Keeping the entries in the regular cache is currently necessary
+     because of the way we manage expired entries (moving them to the
+     front of the expunge queue to be deleted at a regular interval).
+  */
+  class ECSIndexEntry
   {
   public:
-    IndexEntry(const DNSName& qname, uint16_t qtype): d_qname(qname), d_qtype(qtype)
+    ECSIndexEntry(const DNSName& qname, uint16_t qtype): d_qname(qname), d_qtype(qtype)
     {
     }
 
@@ -149,20 +159,20 @@ private:
                >
   > cache_t;
   typedef multi_index_container<
-    IndexEntry,
+    ECSIndexEntry,
     indexed_by <
       ordered_unique <
         composite_key<
-          IndexEntry,
-          member<IndexEntry,DNSName,&IndexEntry::d_qname>,
-          member<IndexEntry,uint16_t,&IndexEntry::d_qtype>
+          ECSIndexEntry,
+          member<ECSIndexEntry,DNSName,&ECSIndexEntry::d_qname>,
+          member<ECSIndexEntry,uint16_t,&ECSIndexEntry::d_qtype>
         >
       >
     >
-  > index_t;
+  > ecsIndex_t;
 
   cache_t d_cache;
-  index_t d_index;
+  ecsIndex_t d_ecsIndex;
   pair<cache_t::iterator, cache_t::iterator> d_cachecache;
   DNSName d_cachedqname;
   bool d_cachecachevalid;
@@ -170,7 +180,7 @@ private:
   bool attemptToRefreshNSTTL(const QType& qt, const vector<DNSRecord>& content, const CacheEntry& stored);
   bool entryMatches(cache_t::const_iterator& entry, uint16_t qt, bool requireAuth, const ComboAddress& who);
   std::pair<cache_t::const_iterator, cache_t::const_iterator> getEntries(const DNSName &qname, const QType& qt);
-  cache_t::const_iterator getEntryUsingIndex(time_t now, const DNSName &qname, uint16_t qtype, bool requireAuth, const ComboAddress& who);
+  cache_t::const_iterator getEntryUsingECSIndex(time_t now, const DNSName &qname, uint16_t qtype, bool requireAuth, const ComboAddress& who);
   int32_t handleHit(cache_t::iterator entry, const DNSName& qname, const ComboAddress& who, vector<DNSRecord>* res, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, vState* state, bool* wasAuth);
 
 public:
@@ -181,11 +191,11 @@ public:
     }
 
     auto key = tie(entry.d_qname, entry.d_qtype);
-    auto indexEntry = d_index.find(key);
-    if (indexEntry != d_index.end()) {
-      indexEntry->removeNetmask(entry.d_netmask);
-      if (indexEntry->isEmpty()) {
-        d_index.erase(indexEntry);
+    auto ecsIndexEntry = d_ecsIndex.find(key);
+    if (ecsIndexEntry != d_ecsIndex.end()) {
+      ecsIndexEntry->removeNetmask(entry.d_netmask);
+      if (ecsIndexEntry->isEmpty()) {
+        d_ecsIndex.erase(ecsIndexEntry);
       }
     }
   }

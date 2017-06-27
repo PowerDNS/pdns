@@ -76,14 +76,14 @@ int32_t MemRecursorCache::handleHit(cache_t::iterator entry, const DNSName& qnam
   return ttd;
 }
 
-MemRecursorCache::cache_t::const_iterator MemRecursorCache::getEntryUsingIndex(time_t now, const DNSName &qname, uint16_t qtype, bool requireAuth, const ComboAddress& who)
+MemRecursorCache::cache_t::const_iterator MemRecursorCache::getEntryUsingECSIndex(time_t now, const DNSName &qname, uint16_t qtype, bool requireAuth, const ComboAddress& who)
 {
-  auto indexKey = tie(qname, qtype);
-  auto index = d_index.find(indexKey);
-  if (index != d_index.end() && !index->isEmpty()) {
+  auto ecsIndexKey = tie(qname, qtype);
+  auto ecsIndex = d_ecsIndex.find(ecsIndexKey);
+  if (ecsIndex != d_ecsIndex.end() && !ecsIndex->isEmpty()) {
     /* we have netmask-specific entries, let's see if we match one */
     while (true) {
-      const Netmask best = index->lookupBestMatch(who);
+      const Netmask best = ecsIndex->lookupBestMatch(who);
       if (best.empty()) {
         /* we have nothing more specific for you */
         break;
@@ -92,10 +92,10 @@ MemRecursorCache::cache_t::const_iterator MemRecursorCache::getEntryUsingIndex(t
       auto key = boost::make_tuple(qname, qtype, best);
       auto entry = d_cache.find(key);
       if (entry == d_cache.end()) {
-        /* index is not up-to-date */
-        index->removeNetmask(best);
-        if (index->isEmpty()) {
-          d_index.erase(index);
+        /* ecsIndex is not up-to-date */
+        ecsIndex->removeNetmask(best);
+        if (ecsIndex->isEmpty()) {
+          d_ecsIndex.erase(ecsIndex);
           break;
         }
         continue;
@@ -109,9 +109,9 @@ MemRecursorCache::cache_t::const_iterator MemRecursorCache::getEntryUsingIndex(t
       else {
         /* this netmask-specific entry has expired */
         moveCacheItemToFront(d_cache, entry);
-        index->removeNetmask(best);
-        if (index->isEmpty()) {
-          d_index.erase(index);
+        ecsIndex->removeNetmask(best);
+        if (ecsIndex->isEmpty()) {
+          d_ecsIndex.erase(ecsIndex);
           break;
         }
       }
@@ -173,15 +173,15 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
   const uint16_t qtype = qt.getCode();
   /* If we don't have any netmask-specific entries at all, let's just skip this
      to be able to use the nice d_cachecache hack. */
-  if (qtype != QType::ANY && !d_index.empty()) {
+  if (qtype != QType::ANY && !d_ecsIndex.empty()) {
     if (qtype == QType::ADDR) {
       int32_t ret = -1;
 
-      auto entryA = getEntryUsingIndex(now, qname, QType::A, requireAuth, who);
+      auto entryA = getEntryUsingECSIndex(now, qname, QType::A, requireAuth, who);
       if (entryA != d_cache.end()) {
         ret = handleHit(entryA, qname, who, res, signatures, authorityRecs, variable, state, wasAuth);
       }
-      auto entryAAAA = getEntryUsingIndex(now, qname, QType::AAAA, requireAuth, who);
+      auto entryAAAA = getEntryUsingECSIndex(now, qname, QType::AAAA, requireAuth, who);
       if (entryAAAA != d_cache.end()) {
         int32_t ttdAAAA = handleHit(entryA, qname, who, res, signatures, authorityRecs, variable, state, wasAuth);
         if (ret > 0) {
@@ -193,7 +193,7 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
       return ret > 0 ? static_cast<int32_t>(ret-now) : ret;
     }
     else {
-      auto entry = getEntryUsingIndex(now, qname, qtype, requireAuth, who);
+      auto entry = getEntryUsingECSIndex(now, qname, qtype, requireAuth, who);
       if (entry != d_cache.end()) {
         return static_cast<int32_t>(handleHit(entry, qname, who, res, signatures, authorityRecs, variable, state, wasAuth) - now);
       }
@@ -265,14 +265,14 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
     stored = d_cache.insert(CacheEntry(key, CacheEntry::records_t(), auth)).first;
     isNew = true;
 
-    /* don't bother building an index if we don't have any netmask-specific entries */
+    /* don't bother building an ecsIndex if we don't have any netmask-specific entries */
     if (ednsmask && !ednsmask->empty()) {
-      auto indexKey = boost::make_tuple(qname, qt.getCode());
-      auto index = d_index.find(indexKey);
-      if (index == d_index.end()) {
-        index = d_index.insert(IndexEntry(qname, qt.getCode())).first;
+      auto ecsIndexKey = boost::make_tuple(qname, qt.getCode());
+      auto ecsIndex = d_ecsIndex.find(ecsIndexKey);
+      if (ecsIndex == d_ecsIndex.end()) {
+        ecsIndex = d_ecsIndex.insert(ECSIndexEntry(qname, qt.getCode())).first;
       }
-      index->addMask(*ednsmask);
+      ecsIndex->addMask(*ednsmask);
     }
   }
 
@@ -335,21 +335,21 @@ int MemRecursorCache::doWipeCache(const DNSName& name, bool sub, uint16_t qtype)
   pair<cache_t::iterator, cache_t::iterator> range;
 
   if(!sub) {
-    pair<index_t::iterator, index_t::iterator> indexRange;
+    pair<ecsIndex_t::iterator, ecsIndex_t::iterator> ecsIndexRange;
     if(qtype==0xffff) {
       range = d_cache.equal_range(tie(name));
-      indexRange = d_index.equal_range(tie(name));
+      ecsIndexRange = d_ecsIndex.equal_range(tie(name));
     }
     else {
       range=d_cache.equal_range(tie(name, qtype));
-      indexRange = d_index.equal_range(tie(name, qtype));
+      ecsIndexRange = d_ecsIndex.equal_range(tie(name, qtype));
     }
     for(cache_t::const_iterator i=range.first; i != range.second; ) {
       count++;
       d_cache.erase(i++);
     }
-    for(auto i = indexRange.first; i != indexRange.second; ) {
-      d_index.erase(i++);
+    for(auto i = ecsIndexRange.first; i != ecsIndexRange.second; ) {
+      d_ecsIndex.erase(i++);
     }
   }
   else {
@@ -363,11 +363,11 @@ int MemRecursorCache::doWipeCache(const DNSName& name, bool sub, uint16_t qtype)
       else 
 	iter++;
     }
-    for(auto iter = d_index.lower_bound(tie(name)); iter != d_index.end(); ) {
+    for(auto iter = d_ecsIndex.lower_bound(tie(name)); iter != d_ecsIndex.end(); ) {
       if(!iter->d_qname.isPartOf(name))
 	break;
       if(iter->d_qtype == qtype || qtype == 0xffff) {
-	d_index.erase(iter++);
+	d_ecsIndex.erase(iter++);
       }
       else {
 	iter++;
@@ -409,8 +409,8 @@ bool MemRecursorCache::updateValidationStatus(time_t now, const DNSName &qname, 
 {
   bool updated = false;
   uint16_t qtype = qt.getCode();
-  if (qtype != QType::ANY && qtype != QType::ADDR && !d_index.empty()) {
-    auto entry = getEntryUsingIndex(now, qname, qtype, requireAuth, who);
+  if (qtype != QType::ANY && qtype != QType::ADDR && !d_ecsIndex.empty()) {
+    auto entry = getEntryUsingECSIndex(now, qname, qtype, requireAuth, who);
     if (entry == d_cache.end()) {
       return false;
     }
