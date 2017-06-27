@@ -264,4 +264,216 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingExpiredEntries) {
+  MemRecursorCache MRC;
+
+  std::vector<DNSRecord> records;
+  std::vector<std::shared_ptr<RRSIGRecordContent>> signatures;
+  std::vector<std::shared_ptr<DNSRecord>> authRecs;
+  BOOST_CHECK_EQUAL(MRC.size(), 0);
+  time_t now = time(nullptr);
+  DNSName power1("powerdns.com.");
+  DNSName power2("powerdns-1.com.");
+  time_t ttd = now - 30;
+  std::vector<DNSRecord> retrieved;
+  ComboAddress who("192.0.2.1");
+
+  /* entry for power, which expired 30s ago */
+  DNSRecord dr1;
+  ComboAddress dr1Content("2001:DB8::1");
+  dr1.d_name = power1;
+  dr1.d_type = QType::AAAA;
+  dr1.d_class = QClass::IN;
+  dr1.d_content = std::make_shared<AAAARecordContent>(dr1Content);
+  dr1.d_ttl = static_cast<uint32_t>(ttd);
+  dr1.d_place = DNSResourceRecord::ANSWER;
+
+  /* entry for power1, which expired 30 ago too */
+  DNSRecord dr2;
+  ComboAddress dr2Content("2001:DB8::2");
+  dr2.d_name = power2;
+  dr2.d_type = QType::AAAA;
+  dr2.d_class = QClass::IN;
+  dr2.d_content = std::make_shared<AAAARecordContent>(dr2Content);
+  dr2.d_ttl = static_cast<uint32_t>(ttd);
+  dr2.d_place = DNSResourceRecord::ANSWER;
+
+  /* insert both entries */
+  records.push_back(dr1);
+  MRC.replace(now, power1, QType(dr1.d_type), records, signatures, authRecs, true, boost::none);
+  records.clear();
+  records.push_back(dr2);
+  MRC.replace(now, power2, QType(dr2.d_type), records, signatures, authRecs, true, boost::none);
+  records.clear();
+  BOOST_CHECK_EQUAL(MRC.size(), 2);
+
+  /* the one for power2 having been inserted
+     more recently should be removed last */
+  /* we ask that only entry remains in the cache */
+  MRC.doPrune(1);
+  BOOST_CHECK_EQUAL(MRC.size(), 1);
+
+  /* the remaining entry should be power2, but to get it
+     we need to go back in the past a bit */
+  BOOST_CHECK_EQUAL(MRC.get(ttd - 1, power2, QType(dr2.d_type), false, &retrieved, who, nullptr), 1);
+  BOOST_REQUIRE_EQUAL(retrieved.size(), 1);
+  BOOST_CHECK_EQUAL(getRR<AAAARecordContent>(retrieved.at(0))->getCA().toString(), dr2Content.toString());
+  /* check that power1 is gone */
+  BOOST_CHECK_EQUAL(MRC.get(ttd - 1, power1, QType(dr1.d_type), false, &retrieved, who, nullptr), -1);
+
+  /* clear everything up */
+  MRC.doWipeCache(DNSName("."), true);
+  BOOST_CHECK_EQUAL(MRC.size(), 0);
+  records.clear();
+
+  /* insert both entries back */
+  records.push_back(dr1);
+  MRC.replace(now, power1, QType(dr1.d_type), records, signatures, authRecs, true, boost::none);
+  records.clear();
+  records.push_back(dr2);
+  MRC.replace(now, power2, QType(dr2.d_type), records, signatures, authRecs, true, boost::none);
+  records.clear();
+  BOOST_CHECK_EQUAL(MRC.size(), 2);
+
+  /* trigger a miss (expired) for power2 */
+  BOOST_CHECK_EQUAL(MRC.get(now, power2, QType(dr2.d_type), false, &retrieved, who, nullptr), -now);
+
+  /* power2 should have been moved to the front of the expunge
+     queue, and should this time be removed first */
+  /* we ask that only entry remains in the cache */
+  MRC.doPrune(1);
+  BOOST_CHECK_EQUAL(MRC.size(), 1);
+
+  /* the remaining entry should be power1, but to get it
+     we need to go back in the past a bit */
+  BOOST_CHECK_EQUAL(MRC.get(ttd - 1, power1, QType(dr1.d_type), false, &retrieved, who, nullptr), 1);
+  BOOST_REQUIRE_EQUAL(retrieved.size(), 1);
+  BOOST_CHECK_EQUAL(getRR<AAAARecordContent>(retrieved.at(0))->getCA().toString(), dr1Content.toString());
+  /* check that power2 is gone */
+  BOOST_CHECK_EQUAL(MRC.get(ttd - 1, power2, QType(dr2.d_type), false, &retrieved, who, nullptr), -1);
+}
+
+BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingValidEntries) {
+  MemRecursorCache MRC;
+
+  std::vector<DNSRecord> records;
+  std::vector<std::shared_ptr<RRSIGRecordContent>> signatures;
+  std::vector<std::shared_ptr<DNSRecord>> authRecs;
+  BOOST_CHECK_EQUAL(MRC.size(), 0);
+  time_t now = time(nullptr);
+  DNSName power1("powerdns.com.");
+  DNSName power2("powerdns-1.com.");
+  time_t ttd = now + 30;
+  std::vector<DNSRecord> retrieved;
+  ComboAddress who("192.0.2.1");
+
+  /* entry for power, which will expire in 30s */
+  DNSRecord dr1;
+  ComboAddress dr1Content("2001:DB8::1");
+  dr1.d_name = power1;
+  dr1.d_type = QType::AAAA;
+  dr1.d_class = QClass::IN;
+  dr1.d_content = std::make_shared<AAAARecordContent>(dr1Content);
+  dr1.d_ttl = static_cast<uint32_t>(ttd);
+  dr1.d_place = DNSResourceRecord::ANSWER;
+
+  /* entry for power1, which will expire in 30s too */
+  DNSRecord dr2;
+  ComboAddress dr2Content("2001:DB8::2");
+  dr2.d_name = power2;
+  dr2.d_type = QType::AAAA;
+  dr2.d_class = QClass::IN;
+  dr2.d_content = std::make_shared<AAAARecordContent>(dr2Content);
+  dr2.d_ttl = static_cast<uint32_t>(ttd);
+  dr2.d_place = DNSResourceRecord::ANSWER;
+
+  /* insert both entries */
+  records.push_back(dr1);
+  MRC.replace(now, power1, QType(dr1.d_type), records, signatures, authRecs, true, boost::none);
+  records.clear();
+  records.push_back(dr2);
+  MRC.replace(now, power2, QType(dr2.d_type), records, signatures, authRecs, true, boost::none);
+  records.clear();
+  BOOST_CHECK_EQUAL(MRC.size(), 2);
+
+  /* the one for power2 having been inserted
+     more recently should be removed last */
+  /* we ask that only entry remains in the cache */
+  MRC.doPrune(1);
+  BOOST_CHECK_EQUAL(MRC.size(), 1);
+
+  /* the remaining entry should be power2 */
+  BOOST_CHECK_EQUAL(MRC.get(now, power2, QType(dr2.d_type), false, &retrieved, who, nullptr), ttd-now);
+  BOOST_REQUIRE_EQUAL(retrieved.size(), 1);
+  BOOST_CHECK_EQUAL(getRR<AAAARecordContent>(retrieved.at(0))->getCA().toString(), dr2Content.toString());
+  /* check that power1 is gone */
+  BOOST_CHECK_EQUAL(MRC.get(now, power1, QType(dr1.d_type), false, &retrieved, who, nullptr), -1);
+
+  /* clear everything up */
+  MRC.doWipeCache(DNSName("."), true);
+  BOOST_CHECK_EQUAL(MRC.size(), 0);
+  records.clear();
+
+  /* insert both entries back */
+  records.push_back(dr1);
+  MRC.replace(now, power1, QType(dr1.d_type), records, signatures, authRecs, true, boost::none);
+  records.clear();
+  records.push_back(dr2);
+  MRC.replace(now, power2, QType(dr2.d_type), records, signatures, authRecs, true, boost::none);
+  records.clear();
+  BOOST_CHECK_EQUAL(MRC.size(), 2);
+
+  /* replace the entry for power1 */
+  records.push_back(dr1);
+  MRC.replace(now, power1, QType(dr1.d_type), records, signatures, authRecs, true, boost::none);
+  records.clear();
+  BOOST_CHECK_EQUAL(MRC.size(), 2);
+
+  /* the replaced entry for power1 should have been moved
+     to the back of the expunge queue, so power2 should be at the front
+     and should this time be removed first */
+  /* we ask that only entry remains in the cache */
+  MRC.doPrune(1);
+  BOOST_CHECK_EQUAL(MRC.size(), 1);
+
+  /* the remaining entry should be power1 */
+  BOOST_CHECK_EQUAL(MRC.get(now, power1, QType(dr1.d_type), false, &retrieved, who, nullptr), ttd-now);
+  BOOST_REQUIRE_EQUAL(retrieved.size(), 1);
+  BOOST_CHECK_EQUAL(getRR<AAAARecordContent>(retrieved.at(0))->getCA().toString(), dr1Content.toString());
+  /* check that power2 is gone */
+  BOOST_CHECK_EQUAL(MRC.get(now, power2, QType(dr2.d_type), false, &retrieved, who, nullptr), -1);
+
+  /* clear everything up */
+  MRC.doWipeCache(DNSName("."), true);
+  BOOST_CHECK_EQUAL(MRC.size(), 0);
+  records.clear();
+
+  /* insert both entries back */
+  records.push_back(dr1);
+  MRC.replace(now, power1, QType(dr1.d_type), records, signatures, authRecs, true, boost::none);
+  records.clear();
+  records.push_back(dr2);
+  MRC.replace(now, power2, QType(dr2.d_type), records, signatures, authRecs, true, boost::none);
+  records.clear();
+  BOOST_CHECK_EQUAL(MRC.size(), 2);
+
+  /* get a hit for power1 */
+  BOOST_CHECK_EQUAL(MRC.get(now, power1, QType(dr1.d_type), false, &retrieved, who, nullptr), ttd-now);
+  BOOST_REQUIRE_EQUAL(retrieved.size(), 1);
+  BOOST_CHECK_EQUAL(getRR<AAAARecordContent>(retrieved.at(0))->getCA().toString(), dr1Content.toString());
+
+  /* the entry for power1 should have been moved to the back of the expunge queue
+     due to the hit, so power2 should be at the front and should this time be removed first */
+  /* we ask that only entry remains in the cache */
+  MRC.doPrune(1);
+  BOOST_CHECK_EQUAL(MRC.size(), 1);
+
+  /* the remaining entry should be power1 */
+  BOOST_CHECK_EQUAL(MRC.get(now, power1, QType(dr1.d_type), false, &retrieved, who, nullptr), ttd-now);
+  BOOST_REQUIRE_EQUAL(retrieved.size(), 1);
+  BOOST_CHECK_EQUAL(getRR<AAAARecordContent>(retrieved.at(0))->getCA().toString(), dr1Content.toString());
+  /* check that power2 is gone */
+  BOOST_CHECK_EQUAL(MRC.get(now, power2, QType(dr2.d_type), false, &retrieved, who, nullptr), -1);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

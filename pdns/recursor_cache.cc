@@ -461,10 +461,15 @@ uint64_t MemRecursorCache::doDump(int fd)
   return count;
 }
 
-void MemRecursorCache::doPrune(void)
+void MemRecursorCache::doPrune(unsigned int keep)
 {
   d_cachecachevalid=false;
 
+  pruneCollection(*this, d_cache, keep);
+}
+
+void MemRecursorCache::doPrune(void)
+{
   unsigned int maxCached=::arg().asNum("max-cache-entries") / g_numThreads;
-  pruneCollection(*this, d_cache, maxCached);
+  doPrune(maxCached);
 }
