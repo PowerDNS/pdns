@@ -1,98 +1,162 @@
-**Warning**: Recursion was removed from the Authoritative Server in version 4.1.0
+# Migrating from using recursion on the Authoritative Server to using a Recursor
+Recursion was removed from the Authoritative Server in version 4.1.0.
+This chapter discusses two scenarios and how to migrate to a new set up.
 
-# Recursion with the Authoritative Server
-From 2.9.5 onwards, PowerDNS offers both authoritative nameserving capabilities
-and a [recursive nameserver](../recursor/index.md) component. These two halves
-are normally separate but many users insist on combining both recursion and
-authoritative service on one IP address. This can be likened to running Apache
-and Squid both on port 80.
+The first scenario is the one where the Authoritative Server is used as a recursor with some private domains for trusted clients.
+The second scenario is the one where the Authoritative Server serves publicly available domains and is a recursor for a subset of clients.
 
-However, many sites want to do this anyhow and some with good reason. For
-example, a setup like this allows the creation of fake domains which only exist
-for local users. Such domains often don't end on ".com" or ".org" but on
-".intern" or ".name-of-isp".
+## Scenario 1: Authoritative Server as Recursor with private zones
 
-PowerDNS can cooperate with either its own recursor or any other you have
-available to deliver recursive service on its port.
+In this scenario, the Authoritative Server is used as a Recursor for a set of users and systems.
+Its database contains several private domains that are not served on the internet.
 
-By specifying the [`recursor`](settings.md#recursor) option in the configuration
-file, questions requiring recursive treatment will be handed over to the IP
-address specified. An example configuration might be `recursor=203.0.113.7`,
-which designates 203.0.113.7 as the nameserver to handle recursive queries.
+This means that migrating means that a Recursor should listen on the address the Authoritative Server.
+The Authoritative Server will need to listen on the local loopback interface and the Recursor should forward queries to the private domains to the Authoritative Server.
 
-**Warning**: Using `recursor` is NOT RECOMMENDED as it comes with many
-potentially nasty surprises. For more info, you can read
-[Dan Bernstein's article](http://cr.yp.to/djbdns/separation.html) on this topic.
+**Note**: These steps to require restarts and changes where services are bound to, it will inevitably lead to some down time. This guide attempts to prevent downtime to a minimum.
 
-Take care not to point [`recursor`](settings.md#recursor) to the PowerDNS
-Authoritative Server itself, which leads to a very tight packet loop!
+![](400-410-recursor-scenario-1.png)
 
-By specifying [`allow-recursion`](settings.md#allow-recursion), recursion can be
-restricted to netmasks specified. The default is to allow recursion from
-everywhere. Example: `allow-recursion=203.0.113.0/24, 198.51.100.0/26, 192.0.2.4`, `::1`.
+### Migration plan
 
-## Details
-Questions carry a number of flags. One of these is called 'Recursion Desired'.
-If PowerDNS is configured to allow recursion, AND such a flag is seen, AND the
-IP address of the client is allowed to recurse via PowerDNS, then the packet may
-be handed to the recursing backend.
+#### 1. Remove all recursion related settings from `pdns.conf`
 
-If a Recursion Desired packet arrives and PowerDNS is configured to allow
-recursion, but not to the IP address of the client, resolution will proceed as
-if the RD flag were unset and the answer will indicate that recursion was not
-available.
+All settings related to recursion need to be commented out or removed from `pdns.conf` and any files included from there.
+These settings should be removed:
 
-It is also possible to use a resolver living on a different port. To do so,
-specify a recursor like this: `recursor=192.0.2.1:5300`.
+* `allow-recursion`
+* `recursive-cache-ttl`
+* `recursor`
 
-**Reminder:** [according to RFC3986](https://tools.ietf.org/html/rfc3986#section-3.2.2) for IPv6, the notation is to
-encode the IPv6 IP number in square brackets like this: `recursor=[::1]:5300`, as
-they explain in section 3.2.2: Host:
+#### 2. Change the listen address and port for the Authoritative Server
 
-> A host identified by an Internet Protocol literal address, version 6 [RFC3513] or
-later, is distinguished by enclosing the IP literal within square brackets ("[" and "]").
-This is the only place where square bracket characters are allowed in the URI syntax.
-In anticipation of future, as-yet-undefined IP literal address formats, an
-implementation may use an optional version flag to indicate such a format explicitly
-rather than rely on heuristic determination.
+To make the authoritative server listen on the local loopback address and port 5300 change the following in `pdns.conf`:
 
-So, be careful! The authoritative `pdns` service won't communicate with `pdns-recursor` 
-if you write wrongly the IPv6 IP number in the `recursor` line of `pdns.conf`. Therefore,
-~~`recursor=::1:5300`~~ won't work because of the missing required square brackets ("[" and "]") 
-enclosing the IP literal. Please respect IPv6 notation.
+```
+local-ipv6=
+local-address=127.0.0.1
+local-port=5300
+```
 
-If the backend does not answer a question within a large amount of time, this is
-logged as 'Recursive query for remote 198.51.100.15 with internal id 0 was not
-answered by backend within timeout, reusing id'. This may happen when using
-'BIND' as a recursor as it is prone to drop queries which it can't answer
-immediately.
+#### 3. Install and configure the PowerDNS Recursor
 
-To make sure that the local authoritative database overrides recursive
-information, PowerDNS first tries to answer a question from its own database.
-If that succeeds, the answer packet is sent back immediately without involving
-the recursor in any way. This means that for questions for which there is no
-answer, PowerDNS will consult the recursor for an recursive query, even if
-PowerDNS is authoritative for a domain! This will only cause problems if you
-'fake' domains which don't really exist. This also means that if you delegate a
-subzone to another set or authoritative servers, when a request comes in for
-that sub-zone, PowerDNS will respond with a delegation response (as that is the
-answer from the authoritative perspective) and will *not* involve the recursor.
+This is most likely an `apt-get` or `yum install` away, see the [Recursor documentation](../recursor/index.md) for more information.
 
-If you want to create such fake domains or override existing domains, please set
-the `allow-recursion-override` feature (available from 2.9.14 until 2.9.22.6).
+It might be possible that the Recursor can not start as the listen address is in use by the Authoritative Server, this is fine for now.
 
-Some packets, like those asking for MX records which are needed for SMTP
-transport of email, can be subject to 'additional processing'. This means that a
-recursing nameserver is obliged to try to add A records (IP addresses) for any
-of the mail servers mentioned in the packet, should it have these addresses
-available.
+Now configure the listen addresses and ACL for the Recursor to be the same as the Authoritative Server had.
+The following settings should be migrated:
 
-If PowerDNS encounters records needing such processing and finds that it does
-not have the data in its authoritative database, it will send an opportunistic
-quick query to the recursing component to see if it perhaps has such data. This
-question is worded such that the recursing nameserver should return immediately
-such as not to block the authoritative nameserver.
+| Authoritative Setting | Recursor Setting |
+|-----------------------|------------------|
+| `local-address`       | `local-address`  |
+| `local-ipv6`          | `local-address`  |
+| `allow-recursion`     | `allow-from`     |
+| `local-port`          | `local-port`     |
 
-This marks a change from pre-2.9.5 behaviour where a packet was handed wholesale
-to the recursor in case it needed additional processing which could not proceed
-from the authoritative database.
+Now configure the recursor to forward the private domains to the Authoritative Server.
+This is done using the [`forward-zones`](../recursor/settings.md#forward-zones) setting in `recursor.conf`.
+The domains should be forwarded to 127.0.0.1:5300 (the new address and port of the Authoritative Server):
+
+```
+forward-zones=private.example.com=127.0.0.1:5300
+forward-zones+=another.example.com=127.0.0.1:5300
+# etc..
+```
+
+#### 4. Restart the Authoritative Server and the Recursor
+
+Restart the Authoritative Server first so its bind addresses become free for the recursor.
+
+## Scenario 2: Authoritative Server as Recursor for clients and serving public domains
+
+The best way to "migrate" in this scenario is to seperate the recursive service fully from the Authoritative Server.
+See [Dan Bernstein's article](http://cr.yp.to/djbdns/separation.html) on this topic.
+
+If this is not possible, this migration guide will maintain the functionality of the existing installation while allowing to upgrade.
+
+![](400-410-recursor-scenario-2.png)
+
+### Migration plan
+
+#### 1. Remove all recursion related settings from `pdns.conf`
+
+All settings related to recursion need to be commented out or removed from `pdns.conf` and any files included from there.
+These settings should be removed:
+
+* `allow-recursion`
+* `recursive-cache-ttl`
+* `recursor`
+
+#### 2. Change the listen address and port for the Authoritative Server
+
+To make the authoritative server listen on the local loopback address and port 5300 change the following in `pdns.conf`:
+
+```
+local-ipv6=
+local-address=127.0.0.1
+local-port=5300
+```
+
+#### 3. Install and configure the PowerDNS Recursor
+
+This is most likely an `apt-get` or `yum install` away, see the [Recursor's Install Guide](../recursor/install.md) for more information.
+
+It might be possible that the Recursor can not start as the listen address is in use by the Authoritative Server, this is fine for now.
+
+Configure the recursor to listen on the local loopback interface on a different port than the Authoritative Server.
+Set the following in `recursor.conf`:
+
+```
+local-address=127.0.0.1
+local-port=5301
+```
+
+Now configure the recursor to forward the private domains to the Authoritative Server.
+This is done using the [`forward-zones`](../recursor/settings.md#forward-zones) setting in `recursor.conf`.
+The domains should be forwarded to 127.0.0.1:5300 (the new address and port of the Authoritative Server):
+
+```
+forward-zones=private.example.com=127.0.0.1:5300
+forward-zones+=another.example.com=127.0.0.1:5300
+# etc..
+```
+
+#### 4. Install and configure dnsdist
+
+[dnsdist](http://dnsdist.org) is a DNS loadbalancer from the people behind PowerDNS that balances DNS packets based on rules.
+See the [dnsdist download instructions](http://dnsdist.org/download/) on how to install dnsdist.
+
+This guide assumes dnsdist 1.2 or dnsdist master.
+
+After installing, configure dnsdist in `/etc/dnsdist/dnsdist.conf`.
+This is where several settings from the existing Authoritative Server (like listen address and recursive ACL) will be moved to.
+
+| Authoritative Setting | dnsdist Setting                  |
+|-----------------------|----------------------------------|
+| `local-address`       | `setLocal()` and `addLocal()`    |
+| `local-ipv6`          | `setLocal()` and `addLocal()`    |
+| `local-port`          | `setLocal()` and `addLocal()`    |
+| `allow-recursion`     | used in the `NetmaskGroupRule()` |
+
+```lua
+setLocal('IPADDRESS:PORT')
+addLocal('ANOTHERIPADDRESS:PORT')
+setACL({'0.0.0.0/0', '::/0'}) -- Allow all IPs access
+
+newServer({'127.0.0.1:5300', pool='auth'})
+newServer({'127.0.0.1:5301', pool='recursor'})
+
+recursive_ips = newNMG()
+recursive_ips:addMask('NETWORKMASK1') -- These network masks are the ones from allow-recursion in the Authoritative Server
+recursive_ips:addMask('NETWORKMASK2')
+
+addAction(NetmaskGroupRule(recursive_ips), PoolAction('recursor'))
+addAction(AllRule(), PoolAction('auth'))
+```
+
+This configuration will route all queries from the netmasks that are allowed to do recursion to the Recursor and all other queries to the Authoritative Server.
+
+#### 4. Restart the Authoritative Server, the Recursor and dnsdist
+
+Restart the Authoritative Server first so its bind addresses become free for the recursor.
