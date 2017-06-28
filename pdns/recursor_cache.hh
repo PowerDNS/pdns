@@ -74,7 +74,7 @@ private:
   struct CacheEntry
   {
     CacheEntry(const boost::tuple<DNSName, uint16_t, Netmask>& key, const vector<shared_ptr<DNSRecordContent>>& records, bool auth) : 
-      d_records(records), d_qname(key.get<0>()), d_netmask(key.get<2>()), d_ttd(0), d_qtype(key.get<1>()), d_auth(auth)
+      d_records(records), d_qname(key.get<0>()), d_netmask(key.get<2>()), d_state(Indeterminate), d_ttd(0), d_qtype(key.get<1>()), d_auth(auth)
     {}
 
     typedef vector<std::shared_ptr<DNSRecordContent>> records_t;
@@ -84,7 +84,7 @@ private:
     }
 
     records_t d_records;
-    vector<std::shared_ptr<RRSIGRecordContent>> d_signatures;
+    std::vector<std::shared_ptr<RRSIGRecordContent>> d_signatures;
     std::vector<std::shared_ptr<DNSRecord>> d_authorityRecs;
     DNSName d_qname;
     Netmask d_netmask;
