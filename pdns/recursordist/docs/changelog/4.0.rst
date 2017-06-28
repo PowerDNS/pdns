@@ -1,0 +1,570 @@
+Changelogs for 4.0.x
+====================
+
+This page has all the changelogs for the PowerDNS Recursor 4.0 release train.
+
+PowerDNS Recursor 4.0.5
+-----------------------
+
+Released 13th of June 2017
+
+This release adds ed25519 (algorithm 15) support for DNSSEC and adds the
+2017 DNSSEC root key. If you do DNSSEC validation, this upgrade is
+**mandatory** to continue validating after October 2017.
+
+Bug fixes
+^^^^^^^^^
+
+-  `commit af76224 <https://github.com/PowerDNS/pdns/commit/af76224>`__:
+   Correctly lowercase the TSIG algorithm name in hash computation,
+   fixes `#4942 <https://github.com/PowerDNS/pdns/issues/4942>`__
+-  `commit 86c4ed0 <https://github.com/PowerDNS/pdns/commit/86c4ed0>`__:
+   Clear the RPZ NS IP table when clearing the policy, this prevents
+   false positives
+-  `commit 5e660e9 <https://github.com/PowerDNS/pdns/commit/5e660e9>`__:
+   Fix cache-only queries against a forward-zone, fixes
+   `#5211 <https://github.com/PowerDNS/pdns/issues/5211>`__
+-  `commit 2875033 <https://github.com/PowerDNS/pdns/commit/2875033>`__:
+   Only delegate if NSes are below apex in auth-zones, fixes
+   `#4771 <https://github.com/PowerDNS/pdns/issues/4771>`__
+-  `commit e7c183d <https://github.com/PowerDNS/pdns/commit/e7c183d>`__:
+   Remove hardcoding of port 53 for TCP/IP forwarded zones in recursor,
+   fixes `#4799 <https://github.com/PowerDNS/pdns/issues/4799>`__
+-  `commit 5bec36e <https://github.com/PowerDNS/pdns/commit/5bec36e>`__:
+   Make sure ``labelsToAdd`` is not empty in ``getZoneCuts()``
+-  `commit 0f59e05 <https://github.com/PowerDNS/pdns/commit/0f59e05>`__:
+   Wait until after daemonizing to start the outgoing protobuf thread,
+   prevents hangs when the protobuf server is not available
+-  `commit 233e144 <https://github.com/PowerDNS/pdns/commit/233e144>`__:
+   Ensure (re)priming the root never fails
+-  `commit 3642cb3 <https://github.com/PowerDNS/pdns/commit/3642cb3>`__:
+   Don't age the root, fixes a regression from 3.x
+-  `commit 83f9226 <https://github.com/PowerDNS/pdns/commit/83f9226>`__:
+   Fix exception when sending a protobuf message for an empty question
+-  `commit ffdd813 <https://github.com/PowerDNS/pdns/commit/ffdd813>`__:
+   LuaWrapper: Allow embedded NULs in strings received from Lua
+-  `commit c5ffd90 <https://github.com/PowerDNS/pdns/commit/c5ffd90>`__:
+   Fix coredumps on illumos/SmartOS, fixes
+   `#4579 <https://github.com/PowerDNS/pdns/issues/4579>`__ (Roman
+   Dayneko)
+-  `commit 651c0e9 <https://github.com/PowerDNS/pdns/commit/651c0e9>`__:
+   StateHolder: Allocate (and copy if needed) before taking the lock
+-  `commit 547d68f <https://github.com/PowerDNS/pdns/commit/547d68f>`__:
+   SuffixMatchNode: Fix insertion issue for an existing node
+-  `commit 3ada4e2 <https://github.com/PowerDNS/pdns/commit/3ada4e2>`__:
+   Fix negative port detection for IPv6 addresses on 32-bit systems
+
+Additions and Enhancements
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+-  `commit 7705e1c <https://github.com/PowerDNS/pdns/commit/7705e1c>`__:
+   Add support for RPZ wildcarded target names. Fixes
+   `#5237 <https://github.com/PowerDNS/pdns/issues/5237>`__
+-  `#5165 <https://github.com/PowerDNS/pdns/pull/5165>`__: Speed up RPZ
+   zone loading and add a ``zoneSizeHint`` parameter to ``rpzFile`` and
+   ``rpzMaster`` for faster reloads
+-  `#4794 <https://github.com/PowerDNS/pdns/issues/4794>`__: Make the
+   RPZ summary consistent (Fixes
+   `#4342 <https://github.com/PowerDNS/pdns/issues/4342>`__) and log
+   additions/removals at debug level, not info
+-  `commit 1909556 <https://github.com/PowerDNS/pdns/commit/1909556>`__:
+   Add the 2017 root key
+-  `commit abfe671 <https://github.com/PowerDNS/pdns/commit/abfe671>`__
+   and `commit
+   7abbb2c <https://github.com/PowerDNS/pdns/commit/7abbb2c>`__: Update
+   Ed25519 `algorithm number and
+   mnemonic <http://www.iana.org/assignments/dns-sec-alg-numbers/dns-sec-alg-numbers.xhtml>`__
+   and hook up to the Recursor (Kees Monshouwer)
+-  `#5355 <https://github.com/PowerDNS/pdns/pull/5355>`__: Add
+   ``use-incoming-edns-subnet`` option to process and pass along ECS and
+   fix some ECS bugs in the process
+-  `commit dff1a11 <https://github.com/PowerDNS/pdns/commit/dff1a11>`__:
+   Refuse to start with chroot set in a systemd env (Fixes
+   `#4848 <https://github.com/PowerDNS/pdns/issues/4848>`__)
+-  `commit 5a38a56 <https://github.com/PowerDNS/pdns/commit/5a38a56>`__:
+   Handle exceptions raised by ``closesocket()`` to prevent process
+   termination
+-  `#4619 <https://github.com/PowerDNS/pdns/issues/4619>`__: Document
+   missing ``top-pub-queries`` and ``top-pub-servfail-queries`` commands
+   for ``rec_control`` (phonedph1)
+-  `commit 502a850 <https://github.com/PowerDNS/pdns/commit/502a850>`__:
+   IPv6 address for g.root-servers.net added (Kevin Otte)
+-  `commit 7a2a645 <https://github.com/PowerDNS/pdns/commit/7a2a645>`__:
+   Log outgoing queries / incoming responses via protobuf
+
+PowerDNS Recursor 4.0.4
+-----------------------
+
+Released January 13th 2017
+
+The 4.0.4 version of the PowerDNS Recursor fixes PowerDNS Security
+Advisories :doc:`2016-02 <../security-advisories/powerdns-advisory-2016-02>` and
+:doc:`2016-04 <../security-advisories/powerdns-advisory-2016-04>`.
+
+Bug fixes
+^^^^^^^^^
+
+-  `commit 658d9e4 <https://github.com/PowerDNS/pdns/commit/658d9e4>`__:
+   Check TSIG signature on IXFR (Security Advisory
+   :doc:`2016-04 <../security-advisories/powerdns-advisory-2016-04>`)
+-  `commit 91acd82 <https://github.com/PowerDNS/pdns/commit/91acd82>`__:
+   Don't parse spurious RRs in queries when we don't need them (Security
+   Advisory :doc:`2016-02 <../security-advisories/powerdns-advisory-2016-02>`)
+-  `commit 400e28d <https://github.com/PowerDNS/pdns/commit/400e28d>`__:
+   Fix incorrect length check in ``DNSName`` when extracting qtype or
+   qclass
+-  `commit 2168188 <https://github.com/PowerDNS/pdns/commit/2168188>`__:
+   rec: Wait until after daemonizing to start the RPZ and protobuf
+   threads
+-  `commit 3beb3b2 <https://github.com/PowerDNS/pdns/commit/3beb3b2>`__:
+   On (re-)priming, fetch the root NS records
+-  `commit cfeb109 <https://github.com/PowerDNS/pdns/commit/cfeb109>`__:
+   rec: Fix src/dest inversion in the protobuf message for TCP queries
+-  `commit 46a6666 <https://github.com/PowerDNS/pdns/commit/46a6666>`__:
+   NSEC3 optout and Bogus insecure forward fixes
+-  `commit bb437d4 <https://github.com/PowerDNS/pdns/commit/bb437d4>`__:
+   On RPZ customPolicy, follow the resulting CNAME
+-  `commit 6b5a8f3 <https://github.com/PowerDNS/pdns/commit/6b5a8f3>`__:
+   DNSSEC: don't go bogus on zero configured DSs
+-  `commit 1fa6e1b <https://github.com/PowerDNS/pdns/commit/1fa6e1b>`__:
+   Don't crash on an empty query ring
+-  `commit bfb7e5d <https://github.com/PowerDNS/pdns/commit/bfb7e5d>`__:
+   Set the result to NoError before calling ``preresolve``
+
+Additions and Enhancements
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+-  `commit 7c3398a <https://github.com/PowerDNS/pdns/commit/7c3398a>`__:
+   Add ``max-recursion-depth`` to limit the number of internal recursion
+-  `commit 3d59c6f <https://github.com/PowerDNS/pdns/commit/3d59c6f>`__:
+   Fix building with ECDSA support disabled in libcrypto
+-  `commit 0170a3b <https://github.com/PowerDNS/pdns/commit/0170a3b>`__:
+   Add requestorId and some comments to the protobuf definition file
+-  `commit d8cd67b <https://github.com/PowerDNS/pdns/commit/d8cd67b>`__:
+   Make the negcache forwarded zones aware
+-  `commit 46ccbd6 <https://github.com/PowerDNS/pdns/commit/46ccbd6>`__:
+   Cache records for zones that were delegated to from a forwarded zone
+-  `commit 5aa64e6 <https://github.com/PowerDNS/pdns/commit/5aa64e6>`__,
+   `commit 5f4242e <https://github.com/PowerDNS/pdns/commit/5f4242e>`__
+   and `commit
+   0f707cd <https://github.com/PowerDNS/pdns/commit/0f707cd>`__: DNSSEC:
+   Implement keysearch based on zone-cuts
+-  `commit ddf6fa5 <https://github.com/PowerDNS/pdns/commit/ddf6fa5>`__:
+   rec: Add support for boost::context >= 1.61
+-  `commit bb6bd6e <https://github.com/PowerDNS/pdns/commit/bb6bd6e>`__:
+   Add ``getRecursorThreadId()`` to Lua, identifying the current thread
+-  `commit d8baf17 <https://github.com/PowerDNS/pdns/commit/d8baf17>`__:
+   Handle CNAMEs at the apex of secure zones to other secure zones
+
+PowerDNS Recursor 4.0.3
+-----------------------
+
+Released September 6th 2016
+
+The 4.0.3 version of the PowerDNS Recursor features many improvements to
+the Policy Engine (RPZ) and the Lua bindings to it. We would like to
+thank Wim (`42wim <https://github.com/42wim>`__) for testing and
+reporting on the RPZ module.
+
+Bug fixes
+^^^^^^^^^
+
+-  `#4350 <https://github.com/PowerDNS/pdns/pull/4350>`__: Call
+   ``gettag()`` for TCP queries
+-  `#4376 <https://github.com/PowerDNS/pdns/pull/4376>`__: Fix the use
+   of an uninitialized filtering policy
+-  `#4381 <https://github.com/PowerDNS/pdns/pull/4381>`__: Parse
+   query-local-address before lua-config-file
+-  `#4383 <https://github.com/PowerDNS/pdns/pull/4383>`__: Fix accessing
+   an empty policyCustom, policyName from Lua
+-  `#4387 <https://github.com/PowerDNS/pdns/pull/4387>`__: ComboAddress:
+   don't allow invalid ports
+-  `#4388 <https://github.com/PowerDNS/pdns/pull/4388>`__: Fix RPZ
+   default policy not being applied over IXFR
+-  `#4391 <https://github.com/PowerDNS/pdns/pull/4391>`__: DNSSEC:
+   Actually follow RFC 7646 §2.1
+-  `#4396 <https://github.com/PowerDNS/pdns/pull/4396>`__: Add boost
+   context ldflags so freebsd builds can find the libs
+-  `#4402 <https://github.com/PowerDNS/pdns/pull/4402>`__: Ignore NS
+   records in a RPZ zone received over IXFR
+-  `#4403 <https://github.com/PowerDNS/pdns/pull/4403>`__: Fix build
+   with OpenSSL 1.1.0 final
+-  `#4404 <https://github.com/PowerDNS/pdns/pull/4404>`__: Don't
+   validate when a Lua hook took the query
+-  `#4425 <https://github.com/PowerDNS/pdns/pull/4425>`__: Fix a
+   protobuf regression (requestor/responder mix-up)
+
+Additions and Enhancements
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+-  `#4394 <https://github.com/PowerDNS/pdns/pull/4394>`__: Support Boost
+   1.61+ fcontext
+-  `#4402 <https://github.com/PowerDNS/pdns/pull/4402>`__: Add Lua
+   binding for DNSRecord::d\_place
+
+PowerDNS Recursor 4.0.2
+-----------------------
+
+Released August 26th 2016
+
+This release fixes a regression in 4.x where CNAME records for DNSSEC
+signed domains were not sorted before the final answers, leading to some
+clients (notably some versions of Chrome) not being able to extract the
+required answer from the packet. This happened exclusively for DNSSEC
+signed domains, but the problem happens even for clients not requesting
+DNSSEC validation.
+
+Further fixes and changes can be found below:
+
+Bug fixes
+^^^^^^^^^
+
+-  `#4264 <https://github.com/PowerDNS/pdns/pull/4264>`__: Set
+   ``dq.rcode`` before calling postresolve
+-  `#4294 <https://github.com/PowerDNS/pdns/pull/4294>`__: Honor PIE
+   flags.
+-  `#4310 <https://github.com/PowerDNS/pdns/pull/4310>`__: Fix build
+   with LibreSSL, for which OPENSSL\_VERSION\_NUMBER is irrelevant
+-  `#4340 <https://github.com/PowerDNS/pdns/pull/4340>`__: Don't shuffle
+   CNAME records.
+-  `#4354 <https://github.com/PowerDNS/pdns/pull/4354>`__: Fix
+   delegation-only
+
+Additions and enhancements
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+-  `#4288 <https://github.com/PowerDNS/pdns/pull/4288>`__: Respect the
+   timeout when connecting to a protobuf server
+-  `#4300 <https://github.com/PowerDNS/pdns/pull/4300>`__: allow newDN
+   to take a DNSName in; document missing methods
+-  `#4301 <https://github.com/PowerDNS/pdns/pull/4301>`__: expose SMN
+   toString to lua
+-  `#4318 <https://github.com/PowerDNS/pdns/pull/4318>`__: Anonymize the
+   protobuf ECS value as well
+-  `#4324 <https://github.com/PowerDNS/pdns/pull/4324>`__: Allow Lua
+   access to the result of the Policy Engine decision, skip RPZ, finish
+   RPZ implementation
+-  `#4349 <https://github.com/PowerDNS/pdns/pull/4349>`__: Remove unused
+   ``DNSPacket::d_qlen``
+-  `#4351 <https://github.com/PowerDNS/pdns/pull/4351>`__: RPZ: Use
+   query-local-address(6) by default
+-  `#4357 <https://github.com/PowerDNS/pdns/pull/4357>`__: Move the root
+   DNSSEC data to a header file
+
+PowerDNS Recursor 4.0.1
+-----------------------
+
+Released July 29th 2016
+
+This release has several improvements with regards to DNSSEC validation
+and it improves interoperability with DNSSEC clients that expect an
+AD-bit on validated data when they query with only the DO-bit set.
+
+Bug fixes
+^^^^^^^^^
+
+-  `#4119 <https://github.com/PowerDNS/pdns/pull/4119>`__ Improve DNSSEC
+   record skipping for non dnssec queries (Kees Monshouwer)
+-  `#4162 <https://github.com/PowerDNS/pdns/pull/4162>`__ Don't validate
+   zones from the local auth store, go one level down while validating
+   when there is a CNAME
+-  `#4187 <https://github.com/PowerDNS/pdns/pull/4187>`__:
+-  Don't go bogus on islands of security
+-  Check all possible chains for Insecures
+-  Don't go Bogus on a CNAME at the apex
+-  `#4215 <https://github.com/PowerDNS/pdns/pull/4215>`__ RPZ: default
+   policy should also override local data RRs
+-  `#4243 <https://github.com/PowerDNS/pdns/pull/4243>`__ Fix a crash
+   when the next name in a chained query is empty and
+   ``rec_control current-queries`` is invoked
+
+Improvements
+^^^^^^^^^^^^
+
+-  `#4056 <https://github.com/PowerDNS/pdns/pull/4056>`__ OpenSSL 1.1.0
+   support (Christian Hofstaedtler)
+-  `#4133 <https://github.com/PowerDNS/pdns/pull/4133>`__ Add limits to
+   the size of received {A,I}XFR (CVE-2016-6172)
+-  `#4140 <https://github.com/PowerDNS/pdns/pull/4140>`__ Fix warnings
+   with gcc on musl-libc (James Taylor)
+-  `#4160 <https://github.com/PowerDNS/pdns/pull/4160>`__ Also validate
+   on +DO
+-  `#4164 <https://github.com/PowerDNS/pdns/pull/4164>`__ Fail to start
+   when the lua-dns-script does not exist
+-  `#4168 <https://github.com/PowerDNS/pdns/pull/4168>`__ Add more
+   Netmask methods for Lua (Aki Tuomi)
+-  `#4210 <https://github.com/PowerDNS/pdns/pull/4210>`__ Validate
+   DNSSEC for security polling
+-  `#4217 <https://github.com/PowerDNS/pdns/pull/4217>`__ Turn on
+   root-nx-trust by default and log-common-errors=off
+-  `#4207 <https://github.com/PowerDNS/pdns/pull/4207>`__ Allow for
+   multiple trust anchors per zone
+-  `#4242 <https://github.com/PowerDNS/pdns/pull/4242>`__ Fix
+   compilation warning when building without Protobuf
+
+PowerDNS Recursor 4.0.0
+-----------------------
+
+Released July 11th 2016
+
+PowerDNS Recursor 4.0.0 is part of `the great 4.x "Spring
+Cleaning" <http://blog.powerdns.com/2015/11/28/powerdns-spring-cleaning/>`__
+of PowerDNS which lasted through the end of 2015.
+
+As part of the general cleanup, we did the following:
+
+-  Moved to C++ 2011, a cleaner more powerful version of C++ that has
+   allowed us to `improve the quality of
+   implementation <http://bert-hubert.blogspot.nl/2015/01/on-c2011-quality-of-implementation.html>`__
+   in many places.
+-  Implemented dedicated infrastructure for dealing with DNS names that
+   is fully "DNS Native" and needs less escaping and unescaping
+-  Switched to binary storage of DNS records in all places
+-  Moved ACLs to a dedicated Netmask Tree
+-  Implemented a version of
+   `RCU <https://en.wikipedia.org/wiki/Read-copy-update>`__ for
+   configuration changes
+-  Instrumented our use of the memory allocator, reduced number of
+   malloc calls substantially.
+-  The Lua hook infrastructure was redone using LuaWrapper; old scripts
+   will no longer work, but new scripts are easier to write under the
+   new interface.
+
+In addition to this cleanup, which has many internal benefits and solves
+longstanding issues with escaped domain names, 4.0.0 brings the
+following major new features:
+
+-  RPZ aka Response Policy Zone support
+-  IXFR slaving in the PowerDNS Recursor for RPZ
+-  DNSSEC processing in Recursor (Authoritative has had this for years)
+-  DNSSEC validation (without NSEC(3) proof validation)
+-  EDNS Client Subnet support in PowerDNS Recursor (Authoritative has
+   had this for years)
+-  Lua asynchronous queries for per-IP/per-domain status
+-  Caches that can now be wiped per whole zone instead of per name
+-  Statistics on authoritative server response times (split for IPv4 and
+   IPv6)
+-  APIs are no longer marked as 'experimental' and had one final URL
+   change
+-  New metric: tcp-answer-bytes to measure DNS TCP/IP bandwidth, and
+   many other new metrics
+
+Please be aware that beyond the items listed here, there have been heaps
+of tiny changes. As always, please carefully test a new release before
+deploying it.
+
+This release features the following fixes compared to rc1:
+
+-  `#3989 <https://github.com/PowerDNS/pdns/pull/3989>`__ Fix usage of
+   std::distance() in DNSName::isPartOf() (signed/unsigned comparisons)
+-  `#4017 <https://github.com/PowerDNS/pdns/pull/4017>`__ Fix building
+   without Lua. Add ``isTcp`` to ``dq``.
+-  `#4023 <https://github.com/PowerDNS/pdns/pull/4023>`__ Actually log
+   on dnssec=log-fail
+-  `#4028 <https://github.com/PowerDNS/pdns/pull/4028>`__ DNSSEC fixes
+   (NSEC casing, send DO-bit over TCP, DNSSEC trace additions)
+-  `#4052 <https://github.com/PowerDNS/pdns/pull/4052>`__ Don't fail
+   configure on missing fcontext.hpp
+-  `#4096 <https://github.com/PowerDNS/pdns/pull/4096>`__ Don't call
+   ``commit()`` if we skipped all the records
+
+It has the following improvements:
+
+-  `#3400 <https://github.com/PowerDNS/pdns/pull/3400>`__ Enable
+   building on OpenIndiana
+-  `#4016 <https://github.com/PowerDNS/pdns/pull/4016>`__ Log protobuf
+   messages for cache hits. Add policy tags in gettag()
+-  `#4040 <https://github.com/PowerDNS/pdns/pull/4040>`__ Allow DNSSEC
+   validation when chrooted
+-  `#4094 <https://github.com/PowerDNS/pdns/pull/4094>`__ Sort included
+   html files for improved reproducibility (Christian Hofstaedtler)
+
+And these additions:
+
+-  `#3981 <https://github.com/PowerDNS/pdns/pull/3981>`__ Import
+   JavaScript sources for libs shipped with Recursor (Christian
+   Hofstaedtler)
+-  `#4012 <https://github.com/PowerDNS/pdns/pull/4012>`__ add tags
+   support to ProtobufLogger.py
+-  `#4032 <https://github.com/PowerDNS/pdns/pull/4032>`__ Set the
+   existing policy tags in ``dq`` for ``{pre,post}resolve``
+-  `#4077 <https://github.com/PowerDNS/pdns/pull/4077>`__ Add DNSSEC
+   validation statistics
+-  `#4090 <https://github.com/PowerDNS/pdns/pull/4090>`__ Allow
+   reloading the lua-config-file at runtime
+-  `#4097 <https://github.com/PowerDNS/pdns/pull/4097>`__ Allow logging
+   DNSSEC bogus in any mode
+-  `#4125 <https://github.com/PowerDNS/pdns/pull/4125>`__ Add protobuf
+   fields for the query's time in the response
+
+PowerDNS Recursor 4.0.0-rc1
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Released June 9th 2016
+
+This first (and hopefully last) Release Candidate contains the finishing
+touches to the experimental DNSSEC support by adding (Negative) Trust
+Anchor support and fixing a possible issue with DNSSEC and forwarded
+domains:
+
+-  `#3910 <https://github.com/PowerDNS/pdns/pull/3910>`__ Add (Negative)
+   Trust Anchor management
+-  `#3926 <https://github.com/PowerDNS/pdns/pull/3926>`__ Set +CD on
+   forwarded recursive queries
+
+Other changes:
+
+-  `#3941 <https://github.com/PowerDNS/pdns/pull/3941>`__ Ensure
+   delegations from local auth zones are followed
+-  `#3924 <https://github.com/PowerDNS/pdns/pull/3924>`__ Add a virtual
+   hosting unit-file
+-  `#3929 <https://github.com/PowerDNS/pdns/pull/3929>`__ Set the FDs in
+   the unit file to a sane value
+
+Bug fixes:
+
+-  `#3961 <https://github.com/PowerDNS/pdns/pull/3961>`__ Fix building
+   on EL6 i386
+-  `#3957 <https://github.com/PowerDNS/pdns/pull/3957>`__ Add error
+   reporting when parsing forward-zones(-recurse) (Aki Tuomi)
+
+PowerDNS Recursor 4.0.0-beta1
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Released May 27th 2016
+
+This release fixes a bug in the DNSSEC implementation where a name would
+we validated as bogus when talking to non-compliant authoritative
+servers:
+
+-  `#3875 <https://github.com/PowerDNS/pdns/pull/3875>`__ Disable DNSSEC
+   for domain where the auth responds with FORMERR or NOTIMP
+
+Improvements
+^^^^^^^^^^^^
+
+-  `#3866 <https://github.com/PowerDNS/pdns/pull/3866>`__ Increase max
+   FDs in systemd unit file
+-  `#3905 <https://github.com/PowerDNS/pdns/pull/3905>`__ Add a
+   dnssec=process-no-validate option and make it default
+
+Bug fixes
+^^^^^^^^^
+
+-  `#3881 <https://github.com/PowerDNS/pdns/pull/3881>`__ Fix the
+   ``noEdnsOutQueries`` counter
+-  `#3892 <https://github.com/PowerDNS/pdns/pull/3892>`__ support
+   ``clock_gettime`` for platforms that require -lrt
+
+PowerDNS Recursor 4.0.0-alpha3
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Released May 10th 2016
+
+This release features several leaps in the correctness and stability of
+the DNSSEC implementation.
+
+Notable changes are:
+
+-  `#3752 <https://github.com/PowerDNS/pdns/pull/3752>`__ Correct
+   handling of query flags in conformance with `RFC
+   6840 <https://tools.ietf.org/html/rfc6840>`__
+
+Bug fixes
+^^^^^^^^^
+
+-  `#3804 <https://github.com/PowerDNS/pdns/pull/3804>`__ Fix a memory
+   leak in DNSSEC validation
+-  `#3785 <https://github.com/PowerDNS/pdns/pull/3785>`__ and
+   `#3390 <https://github.com/PowerDNS/pdns/pull/3390>`__ Correctly
+   validate insecure delegations
+-  `#3606 <https://github.com/PowerDNS/pdns/pull/3606>`__ Various DNSSEC
+   fixes, disabling DNSSEC on forward-zones
+-  `#3681 <https://github.com/PowerDNS/pdns/pull/3681>`__ Catch
+   exception with a malformed DNSName in ``rec_control wipe-cache``
+-  `#3779 <https://github.com/PowerDNS/pdns/pull/3779>`__,
+   `#3768 <https://github.com/PowerDNS/pdns/pull/3768>`__,
+   `#3766 <https://github.com/PowerDNS/pdns/pull/3766>`__,
+   `#3783 <https://github.com/PowerDNS/pdns/pull/3783>`__ and
+   `#3789 <https://github.com/PowerDNS/pdns/pull/3789>`__ DNSName and
+   other hardening improvements
+
+Improvements
+^^^^^^^^^^^^
+
+-  `#3801 <https://github.com/PowerDNS/pdns/pull/3801>`__ Add missing
+   Lua rcodes bindings
+-  `#3587 <https://github.com/PowerDNS/pdns/pull/3587>`__ Update L-Root
+   addresses
+
+PowerDNS Recursor 4.0.0-alpha2
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Released March 9th 2016
+
+Note that the DNSSEC implementation has several bugs in this release, it
+is advised to set ``dnssec=off`` in your recursor.conf.
+
+This release features many low-level performance fixes. Other notable
+changes since 4.0.0-alpha1 are:
+
+-  `#3259 <https://github.com/PowerDNS/pdns/pull/3259>`__,
+   `#3280 <https://github.com/PowerDNS/pdns/pull/3280>`__ The PowerDNS
+   Recursor now properly uses GNU autoconf and autotools for building
+   and installing
+-  OpenSSL crypto primitives are now used for DNSSEC validation
+-  `#3313 <https://github.com/PowerDNS/pdns/pull/3313>`__ Implement the
+   logic we need to generate EDNS MAC fields in dnsdist & read them in
+   recursor
+   (`blogpost <http://blog.powerdns.com/2016/01/27/per-device-dns-settings-selective-parental-control/>`__
+-  `#3350 <https://github.com/PowerDNS/pdns/pull/3350>`__ Add
+   lowercase-outgoing feature to Recursor
+-  `#3410 <https://github.com/PowerDNS/pdns/pull/3410>`__ Recuweb is now
+   built-in to the daemon
+-  `#3230 <https://github.com/PowerDNS/pdns/pull/3230>`__ API: drop
+   JSONP, add web security headers (Christian Hofstaedtler)
+-  `#3485 <https://github.com/PowerDNS/pdns/pull/3485>`__ Allow multiple
+   carbon-servers
+-  `#3427 <https://github.com/PowerDNS/pdns/pull/3427>`__,
+   `#3479 <https://github.com/PowerDNS/pdns/pull/3479>`__,
+   `#3472 <https://github.com/PowerDNS/pdns/pull/3472>`__ MTasker
+   modernization (Andrew Nelless)
+
+Bug fixes
+~~~~~~~~~
+
+-  `#3444 <https://github.com/PowerDNS/pdns/pull/3444>`__,
+   `#3442 <https://github.com/PowerDNS/pdns/pull/3442>`__ RPZ IXFR fixes
+-  `#3448 <https://github.com/PowerDNS/pdns/pull/3448>`__ Remove
+   edns-subnet-whitelist whitelist pointing to powerdns.com (Christian
+   Hofstaedtler)
+-  `#3293 <https://github.com/PowerDNS/pdns/pull/3293>`__ make
+   asynchronous UDP Lua queries work again in 4.x
+-  `#3365 <https://github.com/PowerDNS/pdns/pull/3365>`__ Apply rcode
+   set in UDPQueryResponse callback (Jan Broers)
+-  `#3244 <https://github.com/PowerDNS/pdns/pull/3244>`__ Fix the
+   forward zones in the recursor
+-  `#3135 <https://github.com/PowerDNS/pdns/pull/3135>`__ Use 56 bits
+   instead of 64 in EDNS Client Subnet option (Winfried Angele)
+-  `#3527 <https://github.com/PowerDNS/pdns/pull/3527>`__ Make the
+   recursor counters atomic
+
+Improvements
+~~~~~~~~~~~~
+
+-  `#3435 <https://github.com/PowerDNS/pdns/pull/3435>`__ Add
+   ``toStringNoDot`` and ``chopOff`` functions to Lua
+-  `#3437 <https://github.com/PowerDNS/pdns/pull/3437>`__ Add
+   ``pdns.now`` timeval struct to recursor Lua
+-  `#3352 <https://github.com/PowerDNS/pdns/pull/3352>`__ Cache
+   improvements
+-  `#3502 <https://github.com/PowerDNS/pdns/pull/3502>`__ Make second
+   argument to pdnslog optional (Thiago Farina)
+-  `#3520 <https://github.com/PowerDNS/pdns/pull/3520>`__ Reduce log
+   level of periodic statistics to notice (Jan Broers)
+
+PowerDNS Recursor 4.0.0-alpha1
+------------------------------
+
+Released December 24th 2015
+

@@ -1,0 +1,61 @@
+Lua Scripting and Statistics
+============================
+
+The Lua engine can generate metrics and can 
+
+Generating Metrics
+------------------
+Custom metrics can be added which will be shown in the output of 'rec_control get-all' and sent to the metrics server over the Carbon protocol.
+They will also appear in the JSON HTTP API.
+
+Create a custom metric with: ``myMetric=getMetric("myspecialmetric")``.
+
+.. function:: getMetric(name) -> Metric
+
+  Returns the :class:`Metric` object with the name ``name``.
+
+  :param str name: The metric to retrieve
+
+.. class:: Metric
+
+  Represents a custom metric
+
+.. classmethod:: Metric::inc()
+
+  Increase metric by 1
+
+.. classmethod:: Metric::incBy(amount)
+
+  Increase metric by amount
+
+  :param int amount:
+
+.. classmethod:: Metric::set(to)
+
+  Set metric to value ``to``
+
+  :param int to:
+
+.. classmethod:: Metric::get() -> int
+
+  Get value of metric
+
+Metrics are shared across all of PowerDNS and are fully atomic and high performance.
+A :class:`Metric` object is effectively a pointer to an atomic value.
+
+Note that metrics live in the same namespace as 'system' metrics. So if you generate one that overlaps with a PowerDNS stock metric, you will get double output and weird results.
+
+Looking at Statistics
+---------------------
+.. versionadded:: 4.1.0
+
+Statistics can be retrieved from Lua using the :func:`getStat` call.
+For example, to retrieve the number of cache misses:
+
+.. code-block:: Lua
+
+    cacheMisses = getStat("cache-misses")
+
+Please be aware that retrieving statistics is a relatively costly operation, and as such should for example not be done for every query.
+
+

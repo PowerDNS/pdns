@@ -1,5 +1,7 @@
 #!/bin/sh -e
 
+set -x
+
 pre() {
   # Test if there are wrong PR links in the changelog
   CL_PR_LINKS="$(grep -E '\[#([0-9]+)\]\(.*[0-9]+\)' markdown/changelog.raw.md | grep -v -E '\[#([0-9]+)\]\(.*\1\)' || true)"

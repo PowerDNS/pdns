@@ -456,13 +456,13 @@ This example script queries a simple key/value store over UDP to decide on wheth
 or not to filter a query:
 
 ```
-!!include=../pdns/kv-example-script.lua
+!!include=../pdns/recursordist/contrib/kv-example-script.lua
 ```
 
 ## Example Script
 
 ```
-!!include=../pdns/powerdns-example-script.lua
+!!include=../pdns/recursordist/contrib/powerdns-example-script.lua
 ```
 
 ### Dropping all traffic from botnet-infected users

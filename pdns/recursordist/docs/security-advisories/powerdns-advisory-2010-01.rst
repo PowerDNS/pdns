@@ -1,0 +1,1 @@
+../../../../docs/security-advisories/powerdns-advisory-2010-01.rst

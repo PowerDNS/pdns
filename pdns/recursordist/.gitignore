@@ -46,3 +46,9 @@
 /testrunner.trs
 /test_libcrypto.log
 /test_libcrypto.trs
+.venv
+html-docs
+.doctrees
+doctrees
+latex
+PowerDNS-Recursor.pdf

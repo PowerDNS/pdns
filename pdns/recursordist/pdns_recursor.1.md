@@ -1,1 +1,0 @@
-../../docs/manpages/pdns_recursor.1.md
