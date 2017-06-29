@@ -198,6 +198,7 @@ class CNAMERecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(CNAME)
+  CNAMERecordContent(const DNSName& content) : d_content(content){}
   DNSName getTarget() const { return d_content; }
 private:
   DNSName d_content;
