@@ -195,6 +195,7 @@ testrunner_SOURCES = \
 	gettime.cc gettime.hh \
 	gss_context.cc gss_context.hh \
 	iputils.cc iputils.hh \
+	ixfr.cc ixfr.hh \
 	logger.cc logger.hh \
 	misc.cc misc.hh \
 	negcache.hh negcache.cc \
@@ -218,6 +219,7 @@ testrunner_SOURCES = \
 	test-arguments_cc.cc \
 	test-base32_cc.cc \
 	test-base64_cc.cc \
+	test-common.hh \
 	test-dnsrecordcontent.cc \
 	test-dns_random_hh.cc \
 	test-dnsname_cc.cc \
@@ -225,6 +227,7 @@ testrunner_SOURCES = \
 	test-dnsrecords_cc.cc \
 	test-ednsoptions_cc.cc \
 	test-iputils_hh.cc \
+	test-ixfr_cc.cc \
 	test-misc_hh.cc \
 	test-nmtree.cc \
 	test-negcache_cc.cc \
@@ -234,6 +237,7 @@ testrunner_SOURCES = \
 	test-syncres_cc.cc \
 	test-tsig.cc \
 	testrunner.cc \
+	tsigverifier.cc tsigverifier.hh \
 	unix_utility.cc \
 	validate.cc validate.hh \
 	validate-recursor.cc validate-recursor.hh \
