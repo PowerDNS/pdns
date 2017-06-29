@@ -655,6 +655,8 @@ public:
   static std::atomic<uint64_t> s_tcpoutqueries;
   static std::atomic<uint64_t> s_nodelegated;
   static std::atomic<uint64_t> s_unreachables;
+  static std::atomic<uint64_t> s_ecsqueries;
+  static std::atomic<uint64_t> s_ecsresponses;
 
   static string s_serverID;
   static unsigned int s_minimumTTL;

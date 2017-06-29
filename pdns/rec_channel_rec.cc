@@ -860,6 +860,8 @@ void registerAllStats()
   addGetStat("dont-outqueries", &SyncRes::s_dontqueries);
   addGetStat("throttled-out", &SyncRes::s_throttledqueries);
   addGetStat("unreachables", &SyncRes::s_unreachables);
+  addGetStat("ecs-queries", &SyncRes::s_ecsqueries);
+  addGetStat("ecs-responses", &SyncRes::s_ecsresponses);
   addGetStat("chain-resends", &g_stats.chainResends);
   addGetStat("tcp-clients", boost::bind(TCPConnection::getCurrentConnections));
 
