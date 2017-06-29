@@ -97,6 +97,9 @@ ns1.optout.example.      3600 IN A    {prefix}.14
 insecure-formerr.example. 3600 IN NS   ns1.insecure-formerr.example.
 ns1.insecure-formerr.example. 3600 IN A    {prefix}.2
 
+ecs-echo.example. 3600 IN NS   ns1.ecs-echo.example.
+ns1.ecs-echo.example. 3600 IN A    {prefix}.21
+
 islandofsecurity.example.          3600 IN NS   ns1.islandofsecurity.example.
 ns1.islandofsecurity.example.      3600 IN A    {prefix}.9
         """,
