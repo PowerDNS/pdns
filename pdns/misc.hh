@@ -594,3 +594,5 @@ gid_t strToGID(const string &str);
 
 unsigned int pdns_stou(const std::string& str, size_t * idx = 0, int base = 10);
 
+bool isSettingThreadCPUAffinitySupported();
+int mapThreadToCPUList(pthread_t tid, const std::set<int>& cpus);

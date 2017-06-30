@@ -2675,6 +2675,71 @@ static void setupDelegationOnly()
   }
 }
 
+static std::map<unsigned int, std::set<int> > parseCPUMap()
+{
+  std::map<unsigned int, std::set<int> > result;
+
+  const std::string value = ::arg()["cpu-map"];
+
+  if (!value.empty() && !isSettingThreadCPUAffinitySupported()) {
+    L<<Logger::Warning<<"CPU mapping requested but not supported, skipping"<<endl;
+    return result;
+  }
+
+  std::vector<std::string> parts;
+
+  stringtok(parts, value, " \t");
+
+  for(const auto& part : parts) {
+    if (part.find('=') == string::npos)
+      continue;
+
+    try {
+      auto headers = splitField(part, '=');
+      trim(headers.first);
+      trim(headers.second);
+
+      unsigned int threadId = pdns_stou(headers.first);
+      std::vector<std::string> cpus;
+
+      stringtok(cpus, headers.second, ",");
+
+      for(const auto& cpu : cpus) {
+        int cpuId = std::stoi(cpu);
+
+        result[threadId].insert(cpuId);
+      }
+    }
+    catch(const std::exception& e) {
+      L<<Logger::Error<<"Error parsing cpu-map entry '"<<part<<"': "<<e.what()<<endl;
+    }
+  }
+
+  return result;
+}
+
+static void setCPUMap(const std::map<unsigned int, std::set<int> >& cpusMap, unsigned int n, pthread_t tid)
+{
+  const auto& cpuMapping = cpusMap.find(n);
+  if (cpuMapping != cpusMap.cend()) {
+    int rc = mapThreadToCPUList(tid, cpuMapping->second);
+    if (rc == 0) {
+      L<<Logger::Info<<"CPU affinity for worker "<<n<<" has been set to CPU map:";
+      for (const auto cpu : cpuMapping->second) {
+        L<<Logger::Info<<" "<<cpu;
+      }
+      L<<Logger::Info<<endl;
+    }
+    else {
+      L<<Logger::Warning<<"Error setting CPU affinity for worker "<<n<<" to CPU map:";
+      for (const auto cpu : cpuMapping->second) {
+        L<<Logger::Info<<" "<<cpu;
+      }
+      L<<Logger::Info<<strerror(rc)<<endl;
+    }
+  }
+}
+
 static int serviceMain(int argc, char*argv[])
 {
   L.setName(s_programname);
@@ -2927,11 +2992,13 @@ static int serviceMain(int argc, char*argv[])
     g_snmpAgent->run();
   }
 
+  const auto cpusMap = parseCPUMap();
   if(g_numThreads == 1) {
     L<<Logger::Warning<<"Operating unthreaded"<<endl;
 #ifdef HAVE_SYSTEMD
     sd_notify(0, "READY=1");
 #endif
+    setCPUMap(cpusMap, 0, pthread_self());
     recursorThread(0);
   }
   else {
@@ -2939,6 +3006,8 @@ static int serviceMain(int argc, char*argv[])
     L<<Logger::Warning<<"Launching "<< g_numThreads <<" threads"<<endl;
     for(unsigned int n=0; n < g_numThreads; ++n) {
       pthread_create(&tid, 0, recursorThread, (void*)(long)n);
+
+      setCPUMap(cpusMap, n, tid);
     }
     void* res;
 #ifdef HAVE_SYSTEMD
@@ -3228,6 +3297,8 @@ int main(int argc, char **argv)
 
     ::arg().set("tcp-fast-open", "Enable TCP Fast Open support on the listening sockets, using the supplied numerical value as the queue size")="0";
     ::arg().set("nsec3-max-iterations", "Maximum number of iterations allowed for an NSEC3 record")="2500";
+
+    ::arg().set("cpu-map", "Thread to CPU mapping, space separated thread-id=cpu1,cpu2..cpuN pairs")="";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");

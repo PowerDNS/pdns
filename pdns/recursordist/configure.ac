@@ -23,9 +23,7 @@ AC_PROG_CC
 AC_PROG_CXX
 AC_LANG([C++])
 
-AC_DEFINE([_GNU_SOURCE], [1],
-  [Define _GNU_SOURCE so that we get all necessary prototypes]
-)
+AC_GNU_SOURCE
 
 AC_DEFINE([RECURSOR], [1],
   [This is the PowerDNS Recursor]
@@ -126,6 +124,8 @@ PDNS_CHECK_RAGEL
 PDNS_CHECK_CURL
 
 AC_CHECK_FUNCS([strcasestr])
+
+PDNS_CHECK_PTHREAD_NP
 
 AC_SUBST([socketdir])
 socketdir="/var/run"
