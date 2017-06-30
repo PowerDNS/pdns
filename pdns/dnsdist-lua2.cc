@@ -831,57 +831,45 @@ void moreLua(bool client)
 #endif
       });
 
+     g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(std::string)>("setTag", [](DNSDistProtoBufMessage& message, const std::string& strValue) {
 
-// --------------------------------------------------------------------------
-// GCA - Seth Ornstein added lua callable functions - 6/2/2017
-// DNSDistProtoBufMessage - setTag, setTagArray, setProtobufResponseType, setProtobufResponseTypeQT
-
-     g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(std::string, std::string)>("setTag", [](DNSDistProtoBufMessage& message, const std::string& strLabel, const std::string& strValue) {
-
-      setLuaSideEffect();
-
-      message.addTags(strLabel, strValue);               // add a tag to store text - not used by dnsdist normally
+      message.addTag(strValue);
      });
 
+     g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(vector<pair<int, string>>)>("setTagArray", [](DNSDistProtoBufMessage& message, const vector<pair<int, string>>&tags) {
 
-     g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(vector<pair<string, string>>)>("setTagArray", [](DNSDistProtoBufMessage& message, const vector<pair<string, string>>&tags) {
-
-      setLuaSideEffect();
 
       for (const auto& tag : tags)
         {
-          message.addTags(tag.first, tag.second);               // add a tag to store text - not used by dnsdist normally
+          message.addTag(tag.second);
         }
      });
 
+     g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(boost::optional <time_t> sec, boost::optional <uint> uSec)>("setProtobufResponseType",
+                                        [](DNSDistProtoBufMessage& message, boost::optional <time_t> sec, boost::optional <uint> uSec) {
 
-                                                                // setProtobufResponseType - no timestamp
-     g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const std::string&)>("setProtobufResponseType", [](DNSDistProtoBufMessage& message, const std::string& strQueryName) {
+        message.setType(DNSProtoBufMessage::Response);
 
-        message.setType(DNSProtoBufMessage::Response);          // set protobuf type to be response - not query
+        message.setQueryTime(sec?*sec:0, uSec?*uSec:0);
 
-        message.setQueryTime(0, 0);                             // seconds and microseconds
-
-        message.addRRs(strQueryName);                           // add a RR to the response
      });
 
-                                                                // setProtobufResponseTypeQT - with query time as function parameter
-     g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const std::string&, time_t sec, uint uSec)>("setProtobufResponseTypeTS", [](DNSDistProtoBufMessage& message, const std::string& strQueryName, time_t sec, uint uSec) {
+     g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const std::string&, uint uType, uint uClass, uint uTTL, vector<pair<int, int>> )>("setProtobufResponseRR", [](DNSDistProtoBufMessage& message,
+                                                            const std::string& strQueryName, uint uType, uint uClass, uint uTTL, const vector<pair<int, int>>& blobData) {
 
-        message.setType(DNSProtoBufMessage::Response);          // set protobuf type to be response - not query
+        size_t blobSize = blobData.size();
 
-#ifdef TRASH
-        struct timespec ts;                                     // set protobuf query time - lua can't do microsec
-        gettime(&ts, true);
-        message.setQueryTime(ts.tv_sec, ts.tv_nsec / 1000);
-#endif
-        message.setQueryTime(sec, uSec);                        // seconds and microseconds
+        unique_ptr<uint8_t[]> ptrBlob (new uint8_t(blobSize));
 
-        message.addRRs(strQueryName);                           // add a RR to the response
+        int jj=0;
+        for (const auto& blob : blobData)
+           {
+            ptrBlob[jj++] = blob.second;
+           }
+
+        message.addRR(strQueryName, uType, uClass, uTTL, ptrBlob.get(), blobSize);
+
      });
-
-
-// --------------------------------------------------------------------------
 
 
     g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const Netmask&)>("setEDNSSubnet", [](DNSDistProtoBufMessage& message, const Netmask& subnet) { message.setEDNSSubnet(subnet); });

@@ -30,23 +30,26 @@ class TestProtobuf(DNSDistTest):
         end
         protobuf:setRequestor(requestor)			
 
-	local tableTags = {}                                     
-        tableTags["TestLabel2"] = "TestData2"                    
-        tableTags["TestLabel1"] = "TestData1"                    
+	local tableTags = {}    
+	table.insert(tableTags, "TestLabel1,TestData1")
+	table.insert(tableTags, "TestLabel2,TestData2")
+                                 
+ --       tableTags["TestLabel2"] = "TestData2"                    
+--        tableTags["TestLabel1"] = "TestData1"                    
 	protobuf:setTagArray(tableTags)                         -- setTagArray 
 
-	protobuf:setTag('TestLabel3', 'TestData3')		-- setTag
+	protobuf:setTag('TestLabel3,TestData3')			-- setTag
 
-	protobuf:setTag("Response", "456")			-- setTag
+	protobuf:setTag("Response,456")				-- setTag
       else							
 	local tableTags = {} 					-- called by testProtobuf()                                   
-        tableTags["TestLabel2"] = "TestData2"                   
-        tableTags["TestLabel1"] = "TestData1"                   
+	table.insert(tableTags, "TestLabel1,TestData1")
+	table.insert(tableTags, "TestLabel2,TestData2")
 	protobuf:setTagArray(tableTags)                         -- setTagArray
 
-	protobuf:setTag('TestLabel3', 'TestData3')		-- setTag
+	protobuf:setTag('TestLabel3,TestData3')			-- setTag
 
-	protobuf:setTag("Response", "456")			-- setTag
+	protobuf:setTag("Response,456")				-- setTag
       end
     end
 
@@ -63,35 +66,43 @@ class TestProtobuf(DNSDistTest):
 	local tableTags = {}					-- declare table
 	tableTags = dq:getTagArray()				-- get table from DNSQuery
 
-	protobuf:setTagArray(tableTags)				-- store table in protobuf
-	protobuf:setTag("Query", "123")				-- add another tag entry in protobuf
+   	local tablePB = {}
+   		for k, v in pairs( tableTags) do
+		table.insert(tablePB, k .. "," .. v)
+   	end
+
+	protobuf:setTagArray(tablePB)				-- store table in protobuf
+	protobuf:setTag("Query,123")				-- add another tag entry in protobuf
 
    	protobuf:setResponseCode(dnsdist.NXDOMAIN)        	-- set protobuf response code to be NXDOMAIN
 
    	local strReqName = dq.qname:toString()		  	-- get request dns name
 
-   	protobuf:setProtobufResponseType(strReqName)    	-- set protobuf to look like a response and not a query
+	protobuf:setProtobufResponseType()			-- set protobuf to look like a response and not a query, with 0 default time
+
+   	blobData={0x7F, 0x00, 0x00, 0x01}			-- 127.0.0.1
+   	protobuf:setProtobufResponseRR(strReqName, 1, 1, 123, blobData)    -- set protobuf to have a RR 
                                                 		
       else
+
 	local tableTags = {}                                    -- called by testProtobuf()
-        tableTags["TestLabel2"] = "TestData2"                   
-        tableTags["TestLabel1"] = "TestData1"                   
+	table.insert(tableTags, "TestLabel1,TestData1")
+	table.insert(tableTags, "TestLabel2,TestData2")
+
 	protobuf:setTagArray(tableTags)                         -- setTagArray
-	protobuf:setTag('TestLabel3', 'TestData3')		-- setTag
-	protobuf:setTag("Query", "123")				-- setTag
+	protobuf:setTag('TestLabel3,TestData3')			-- setTag
+	protobuf:setTag("Query,123")				-- setTag
       end
     end
 
     function alterLuaFirst(dq)					-- called when dnsdist receives new request
-
-	local tt = {}					
-        tt["TestLabel2"] = "TestData2"                  
+	local tt = {}			
         tt["TestLabel1"] = "TestData1"                  
+        tt["TestLabel2"] = "TestData2"                  
 
-	dq:setTagArray(tt)					-- setTagArray
+	dq:setTagArray(tt)					--setTagArray
 
-	dq:setTag('TestLabel3', 'TestData3')			-- setTag
-
+	dq:setTag("TestLabel3","TestData3")			-- setTag
 	return DNSAction.None, ""				-- continue to the next rule
     end
 
@@ -203,6 +214,7 @@ class TestProtobuf(DNSDistTest):
 
 	testList = [u"TestLabel1,TestData1", u"TestLabel2,TestData2", u"TestLabel3,TestData3", u"Query,123"]
 	listx = set(msg.response.tags) ^ set(testList)						# only differences will be in new list
+
 	self.assertEqual(len(listx), 0, "Lists don't match up in Protobuf Query")		# exclusive or of lists should be empty
 
     def checkProtobufResponse(self, msg, protocol, response, initiator='127.0.0.1'):
@@ -263,6 +275,7 @@ class TestProtobuf(DNSDistTest):
 
         # check the protobuf message corresponding to the UDP query
         msg = self.getFirstProtobufMessage()
+
         self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.UDP, query, dns.rdataclass.IN, dns.rdatatype.A, name)		
 
         # check the protobuf message corresponding to the UDP response
@@ -306,7 +319,6 @@ class TestProtobuf(DNSDistTest):
         """
         Protobuf: Check that the Lua callback rewrote the initiator
         """
-
         name = 'lua.protobuf.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
@@ -317,6 +329,7 @@ class TestProtobuf(DNSDistTest):
                                     '127.0.0.1')
         response.answer.append(rrset)
 
+
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
 
         self.assertTrue(receivedQuery)			
@@ -324,7 +337,8 @@ class TestProtobuf(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(response, receivedResponse)
- 
+
+
         # let the protobuf messages the time to get there
         time.sleep(1)
 

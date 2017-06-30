@@ -1586,46 +1586,55 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       }
     });
 
-
-  // --------------------------------------------------------------------------
-  // GCA - Seth Ornstein added lua callable functions - 6/2/2017
-  // DNSQuestion - setTag, setTagArray, getTagMatch, getTagArray
-
     g_lua.registerFunction<void(DNSQuestion::*)(std::string, std::string)>("setTag", [](DNSQuestion& dq, const std::string& strLabel, const std::string& strValue) {
 
-       dq.qTag.add(strLabel, strValue);
+      if(dq.qTag == NULL)
+        {
+         dq.qTag = std::shared_ptr<QTag>(new QTag);
+        }
+      dq.qTag->add(strLabel, strValue);
 
     });
 
      g_lua.registerFunction<void(DNSQuestion::*)(vector<pair<string, string>>)>("setTagArray", [](DNSQuestion& dq, const vector<pair<string, string>>&tags) {
 
-      setLuaSideEffect();
+      if(dq.qTag == NULL)
+        {
+         dq.qTag = std::shared_ptr<QTag>(new QTag);
+        }
 
       for (const auto& tag : tags)
         {
-           dq.qTag.add(tag.first, tag.second);
+           dq.qTag->add(tag.first, tag.second);
         }
+
      });
 
 
      g_lua.registerFunction<string(DNSQuestion::*)(std::string)>("getTagMatch", [](const DNSQuestion& dq, const std::string& strLabel) {
 
-        std::string strValue = dq.qTag.getMatch(strLabel);
-        return(strValue);
+    std::string strValue;
+    if(dq.qTag != NULL)
+      {
+        strValue = dq.qTag->getMatch(strLabel);
+      }
+    return strValue;
 
      });
 
 
      g_lua.registerFunction<std::unordered_map<string, string>(DNSQuestion::*)(void)>("getTagArray", [](const DNSQuestion& dq) {
 
-        setLuaNoSideEffect();
-
-        return dq.qTag.tagData;
+    if(dq.qTag != NULL)
+      {
+        return dq.qTag->tagData;
+      }
+    else
+      {
+       std::unordered_map<string, string> XX;
+       return(XX);
+      }
       });
-
-// --------------------------------------------------------------------------
-
-
 
 
   /* DNSQuestion bindings */

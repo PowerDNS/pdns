@@ -97,11 +97,7 @@ void DNSProtoBufMessage::setEDNSSubnet(const Netmask& subnet, uint8_t mask)
 #endif /* HAVE_PROTOBUF */
 }
 
-// ----------------------------------------------------------------------------
-// GCA - Seth Ornstein - 5/30/2017 - extra protobuf information
-// ----------------------------------------------------------------------------
-
-void DNSProtoBufMessage::addTags(const std::string& strLabel, const std::string& strValue)
+void DNSProtoBufMessage::addTag(const std::string& strValue)
 {
 #ifdef HAVE_PROTOBUF
 
@@ -109,17 +105,12 @@ void DNSProtoBufMessage::addTags(const std::string& strLabel, const std::string&
   if (!response)
     return;
 
-  std::string strTag;
-  strTag  = strLabel;
-  strTag += ",";                           // comma separator between label and value
-  strTag += strValue;
-
-  response->add_tags(strTag);
+  response->add_tags(strValue);
 
 #endif /* HAVE_PROTOBUF */
 }
 
-void DNSProtoBufMessage::addRRs(const std::string& strName)
+void DNSProtoBufMessage::addRR(const std::string& strName, uint32_t uType, uint32_t uClass, uint32_t uTTL, const uint8_t *ptrBlob, size_t uBlobLen)
 {
 #ifdef HAVE_PROTOBUF
 
@@ -131,22 +122,14 @@ void DNSProtoBufMessage::addRRs(const std::string& strName)
       if (rr) {
         string blob;
         rr->set_name(strName.c_str());
-        rr->set_type(1);
-        rr->set_class_(1);
-        rr->set_ttl(123);
-        char cTemp[4];
-        cTemp[0] = 127;
-        cTemp[1] = 0;
-        cTemp[2] = 0;
-        cTemp[3] = 1;
-        rr->set_rdata(cTemp, 4);
+        rr->set_type(uType);
+        rr->set_class_(uClass);
+        rr->set_ttl(uTTL);
+        rr->set_rdata(ptrBlob, uBlobLen);
       }
 
 #endif /* HAVE_PROTOBUF */
 }
-// ----------------------------------------------------------------------------
-
-
 
 void DNSProtoBufMessage::addRRsFromPacket(const char* packet, const size_t len, bool includeCNAME)
 {

@@ -38,13 +38,8 @@
 #include "gettime.hh"
 #include "dnsdist-dynbpf.hh"
 #include "bpf-filter.hh"
-
-// ----------------------------------------------------------------------------
-// GCA - Seth Ornstein - 5/30/2017 - for new extra class in DNSQuestion struct
-
 #include <string>
 #include <unordered_map>
-// ----------------------------------------------------------------------------
 
 
 #ifdef HAVE_PROTOBUF
@@ -60,44 +55,27 @@ extern uint16_t g_ECSSourcePrefixV6;
 extern bool g_ECSOverride;
 
 
-
-// ----------------------------------------------------------------------------
-// GCA - Seth Ornstein - 5/30/2017 - new extra class in DNSQuestion struct
-
 class QTag
 {
 
 public:
 
-// ----------------------------------------------------------------------------
-// constructor
-// ----------------------------------------------------------------------------
 QTag()
 {
 }
 
-// ----------------------------------------------------------------------------
-// destructor - verify for debugging that it is called as this is how tags become freed
-// ----------------------------------------------------------------------------
 ~QTag()
 {
 }
 
-// ----------------------------------------------------------------------------
-// add() - add a label and value to the tags
-// ----------------------------------------------------------------------------
 bool add(std::string strLabel, std::string strValue)
 {
 bool bStatus = true;
 
    tagData.insert( {strLabel, strValue});
-//   tagData[strLabel] = strValue;
-   return(bStatus);
+  return(bStatus);
 }
 
-// ----------------------------------------------------------------------------
-// getMatch() - return the matching tag value
-// ----------------------------------------------------------------------------
 std::string getMatch(const std::string& strLabel)  const
 {
 
@@ -112,68 +90,57 @@ std::string getMatch(const std::string& strLabel)  const
       }
 }
 
-
-// ----------------------------------------------------------------------------
-// getEntry() - return the specified tag entry
-// ----------------------------------------------------------------------------
-std::string getEntry(int iEntry) const
+std::string getEntry(size_t iEntry) const
 {
 std::string strEntry;
-int iCounter = 0;
+size_t iCounter = 0;
 
-   std::unordered_map<std::string, std::string>::const_iterator itr;
-   for (itr =tagData.begin(); itr != tagData.end(); itr++)
+
+   for (const auto& itr : tagData)
       {
         iCounter++;
         if(iCounter == iEntry)
           {
-           strEntry = itr->first;
+           strEntry = itr.first;
            strEntry += strSep;
-           strEntry += itr->second;
+           strEntry += itr.second;
            break;
           }
       }
+
    return(strEntry);
 
 }
 
-// ----------------------------------------------------------------------------
-// count() - return number of tag entries
-// ----------------------------------------------------------------------------
-int count() const
+size_t count() const
 {
    return(tagData.size());
 }
 
-// ----------------------------------------------------------------------------
-// dumpString() - return string with all the tag entries
-// ----------------------------------------------------------------------------
 std::string dumpString() const
 {
 std::string strRet;
 
-    std::unordered_map<std::string, std::string>::const_iterator itr;
-    for (itr =tagData.begin(); itr != tagData.end(); itr++)
-       {
-        strRet += itr->first;
+
+   for (const auto& itr : tagData)
+      {
+        strRet += itr.first;
         strRet += strSep;
-        strRet += itr->second;
+        strRet += itr.second;
         strRet += "\n";
        }
     return(strRet);
+
+
 }
 
 public:
-    std::unordered_map<std::string, std::string>tagData;    // try this public....
+    std::unordered_map<std::string, std::string>tagData;
 
 private:
 
-    const char *strSep = "\t";                      // separation character
+    const char *strSep = "\t";
 };
-
-// ----------------------------------------------------------------------------
-// ----------------------------------------------------------------------------
-
 
 
 struct DNSQuestion
@@ -188,6 +155,7 @@ struct DNSQuestion
   const uint16_t qclass;
   const ComboAddress* local;
   const ComboAddress* remote;
+  std::shared_ptr<QTag> qTag;
   struct dnsheader* dh;
   size_t size;
   uint16_t len;
@@ -196,7 +164,7 @@ struct DNSQuestion
   bool skipCache{false};
   bool ecsOverride;
   bool useECS{true};    
-  QTag qTag;                        // GCA - Seth Ornstein - extra class for tags 5/30/2017
+
 };
 
 struct DNSResponse : DNSQuestion
