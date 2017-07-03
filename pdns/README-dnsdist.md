@@ -1682,6 +1682,7 @@ instantiate a server with additional parameters
     * `addDNSCryptBind("127.0.0.1:8443", "provider name", "/path/to/resolver.cert", "/path/to/resolver.key", [, {doTCP=true, reusePort=false, tcpFastOpenSize=0, interface=\"\"}]):` listen to incoming DNSCrypt queries on 127.0.0.1 port 8443, with a provider name of "provider name", using a resolver certificate and associated key stored respectively in the `resolver.cert` and `resolver.key` files. The fifth parameter is the same optional table than the one described in `addLocal()`, except that TCP is always enabled
     * `generateDNSCryptProviderKeys("/path/to/providerPublic.key", "/path/to/providerPrivate.key"):` generate a new provider keypair
     * `generateDNSCryptCertificate("/path/to/providerPrivate.key", "/path/to/resolver.cert", "/path/to/resolver.key", serial, validFrom, validUntil):` generate a new resolver private key and related certificate, valid from the `validFrom` UNIX timestamp until the `validUntil` one, signed with the provider private key
+    * `getDNSCryptBind(n)`: return the `DNSCryptContext` object corresponding to the bind `n`
     * `printDNSCryptProviderFingerprint("/path/to/providerPublic.key")`: display the fingerprint of the provided resolver public key
     * `showDNSCryptBinds():`: display the currently configured DNSCrypt binds
  * BPFFilter related:
@@ -1693,6 +1694,23 @@ instantiate a server with additional parameters
     * member `getStats()`: print the block tables
     * member `unblock(ComboAddress)`: unblock this address
     * member `unblockQName(DNSName [, qtype=255])`: remove this qname from the block list
+ * DNSCryptCert related:
+    * member `getClientMagic`: return this certificate's client magic value, as a string
+    * member `getEsVersion()`: return the cryptographic construction to use with this certificate, as a string
+    * member `getMagic()`: return the certificate magic number, as a string
+    * member `getProtocolMinorVersion()`: return this certificate's minor version, as a string
+    * member `getResolverPublicKey()`: return the public key corresponding to this certificate, as a string
+    * member `getSerial()`: return the certificate serial number
+    * member `getSignature()`: return this certificate's signature, as a string
+    * member `getTSEnd()`: return the date the certificate is valid from, as a Unix timestamp
+    * member `getTSStart()`: return the date the certificate is valid until (inclusive), as a Unix timestamp
+ * DNSCryptContext related:
+    * member `generateAndLoadInMemoryCertificate(path/to/provider/private/key/file, serial, begin, end)`: generate a new resolver key and the associated certificate in-memory, sign it with the provided provider key, and use the new certificate
+    * member `getCurrentCertificate()`: return the current certificate as a `DnsCryptCert` object
+    * member `getOldCertificate()`: return the previous certificate as a `DnsCryptCert` object
+    * member `getProviderName()`: return the provider name
+    * member `hasOldCertificate()`: return a boolean indicating if the context has a previous certificate, from a certificate rotation
+    * member `loadNewCertificate(path/to/certificate, path/to/key)`: load a new certificate and the corresponding private key, and use it
  * DNSDistProtoBufMessage related:
     * member `setBytes(bytes)`: set the size of the query
     * member `setEDNSSubnet(Netmask)`: set the EDNS Subnet
