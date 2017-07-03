@@ -1952,7 +1952,7 @@ static void makeUDPServerSockets(unsigned int threadId)
     sin.sin4.sin_port = htons(st.port);
 
   
-#ifdef SO_REUSEPORT  
+#ifdef SO_REUSEPORT
     if(g_reusePort) {
       if(setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &one, sizeof(one)) < 0)
         throw PDNSException("SO_REUSEPORT: "+stringerror());
@@ -3013,10 +3013,8 @@ try
   t_fdm->addReadFD(g_pipes[t_id].readToThread, handlePipeRequest);
 
   if(g_useOneSocketPerThread) {
-    for (unsigned int threadId = 0; threadId < g_numWorkerThreads; threadId++) {
-      for(deferredAdd_t::const_iterator i = deferredAdds[threadId].cbegin(); i != deferredAdds[threadId].cend(); ++i) {
-        t_fdm->addReadFD(i->first, i->second);
-      }
+    for(deferredAdd_t::const_iterator i = deferredAdds[t_id].cbegin(); i != deferredAdds[t_id].cend(); ++i) {
+      t_fdm->addReadFD(i->first, i->second);
     }
   }
   else {
