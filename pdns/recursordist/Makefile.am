@@ -185,6 +185,7 @@ testrunner_SOURCES = \
 	gettime.cc gettime.hh \
 	gss_context.cc gss_context.hh \
 	iputils.cc iputils.hh \
+	ixfr.cc ixfr.hh \
 	logger.cc logger.hh \
 	misc.cc misc.hh \
 	namespaces.hh \
@@ -202,16 +203,19 @@ testrunner_SOURCES = \
 	test-arguments_cc.cc \
 	test-base32_cc.cc \
 	test-base64_cc.cc \
+	test-common.hh \
 	test-dns_random_hh.cc \
 	test-dnsname_cc.cc \
 	test-dnsparser_hh.cc \
 	test-dnsrecords_cc.cc \
 	test-iputils_hh.cc \
+	test-ixfr_cc.cc \
 	test-misc_hh.cc \
 	test-nmtree.cc \
 	test-rcpgenerator_cc.cc \
 	test-recpacketcache_cc.cc \
 	testrunner.cc \
+	tsigverifier.cc tsigverifier.hh \
 	unix_utility.cc \
 	zoneparser-tng.cc zoneparser-tng.hh
 
