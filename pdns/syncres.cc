@@ -1389,6 +1389,18 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsi
   return Bogus;
 }
 
+bool SyncRes::haveExactValidationStatus(const DNSName& domain)
+{
+  if (!validationEnabled()) {
+    return false;
+  }
+  const auto& it = d_cutStates.find(domain);
+  if (it != d_cutStates.cend()) {
+    return true;
+  }
+  return false;
+}
+
 vState SyncRes::getValidationStatus(const DNSName& subdomain)
 {
   vState result = Indeterminate;
@@ -1773,7 +1785,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
       continue;
 
     vState recordState = getValidationStatus(auth);
-    LOG(d_prefix<<": got status "<<vStates[recordState]<<" for record "<<i->first.name<<endl);
+    LOG(d_prefix<<": got initial zone status "<<vStates[recordState]<<" for record "<<i->first.name<<endl);
 
     if (validationEnabled() && recordState == Secure) {
       if (lwr.d_aabit) {
@@ -1789,6 +1801,10 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
           else {
             LOG(d_prefix<<"Validating non-additional record for "<<i->first.name<<endl);
             recordState = validateRecordsWithSigs(depth, qname, qtype, i->first.name, i->second.records, i->second.signatures);
+            /* we might have missed a cut (zone cut within the same auth servers), causing the NS query for an Insecure zone to seem Bogus during zone cut determination */
+            if (qtype == QType::NS && i->second.signatures.empty() && recordState == Bogus && haveExactValidationStatus(i->first.name) && getValidationStatus(i->first.name) == Indeterminate) {
+              recordState = Indeterminate;
+            }
           }
         }
       }
@@ -1799,6 +1815,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
           recordState = validateRecordsWithSigs(depth, qname, qtype, i->first.name, i->second.records, i->second.signatures);
         }
       }
+
       updateValidationState(state, recordState);
     }
     else {
