@@ -25,6 +25,10 @@
 #include "logger.hh"
 #include "version.hh"
 
+#ifdef HAVE_BOTAN
+#include <botan/version.h>
+#endif /* HAVE_BOTAN */
+
 static ProductType productType;
 
 string compilerVersion()
@@ -83,8 +87,8 @@ void showProductVersion()
 void showBuildConfiguration()
 {
   theL()<<Logger::Warning<<"Features: "<<
-#ifdef HAVE_BOTAN110
-    "botan1.10 " <<
+#ifdef HAVE_BOTAN
+    "botan" << BOTAN_VERSION_MAJOR << "." << BOTAN_VERSION_MINOR  << " " <<
 #endif
 #ifdef HAVE_LIBSODIUM
     "sodium " <<
@@ -100,7 +104,7 @@ void showBuildConfiguration()
     "lua " <<
 #endif
 #ifdef REMOTEBACKEND_ZEROMQ
-    "remotebackend-zeromq" <<
+    "remotebackend-zeromq " <<
 #endif
 #ifdef HAVE_P11KIT1
     "PKCS#11" <<

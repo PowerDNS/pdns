@@ -23,8 +23,10 @@
 #include "config.h"
 #endif
 #include <botan/botan.h>
+#include <botan/build.h>
 #include <botan/gost_3410.h>
 #include <botan/gost_3411.h>
+#include <botan/pubkey.h>
 #include "dnssecinfra.hh"
 
 using namespace Botan;
@@ -43,15 +45,18 @@ class GOSTDNSCryptoKeyEngine : public DNSCryptoKeyEngine
 {
 public:
   explicit GOSTDNSCryptoKeyEngine(unsigned int algorithm) : DNSCryptoKeyEngine(algorithm) {}
-  // XXX FIXME NEEDS COPY CONSTRUCTOR SO WE DON'T SHARE KEYS
   ~GOSTDNSCryptoKeyEngine(){}
   void create(unsigned int bits) override;
+#if BOTAN_VERSION_MAJOR < 2
   string getName() const override { return "Botan 1.10 GOST"; }
+#else
+  string getName() const override { return "Botan 2 GOST"; }
+#endif
   storvector_t convertToISCVector() const override;
   std::string getPubKeyHash() const override;
-  std::string sign(const std::string& hash) const override;
-  std::string hash(const std::string& hash) const override;
-  bool verify(const std::string& hash, const std::string& signature) const override;
+  std::string sign(const std::string& msg) const override;
+  std::string hash(const std::string& msg) const override;
+  bool verify(const std::string& msg, const std::string& signature) const override;
   std::string getPublicKeyString() const override;
   int getBits() const override;
   void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& content) override;
@@ -65,6 +70,18 @@ public:
   }
 
 private:
+#if BOTAN_VERSION_MAJOR < 2
+  static EC_Domain_Params getParams()
+  {
+    return EC_Domain_Params("1.2.643.2.2.35.1");
+  }
+#else
+  static EC_Group getParams()
+  {
+    return EC_Group("gost_256A");
+  }
+#endif
+
   shared_ptr<GOST_3410_PrivateKey> d_key;
   shared_ptr<GOST_3410_PublicKey> d_pubkey;
 };
@@ -80,8 +97,7 @@ private:
 void GOSTDNSCryptoKeyEngine::create(unsigned int bits)
 {
   AutoSeeded_RNG rng;
-  EC_Domain_Params params("1.2.643.2.2.35.1");
-  d_key = shared_ptr<GOST_3410_PrivateKey>(new GOST_3410_PrivateKey(rng, params));
+  d_key = std::make_shared<GOST_3410_PrivateKey>(rng, getParams());
 }
 
 int GOSTDNSCryptoKeyEngine::getBits() const
@@ -98,17 +114,17 @@ int GOSTDNSCryptoKeyEngine::getBits() const
 
 DNSCryptoKeyEngine::storvector_t GOSTDNSCryptoKeyEngine::convertToISCVector() const
 { 
-  storvector_t storvect;
-  storvect.push_back(make_pair("Algorithm", "12 (ECC-GOST)"));
-  
-  unsigned char asn1Prefix[]=
+  static const unsigned char asn1Prefix[]=
   {0x30, 0x45, 0x02, 0x01, 0x00, 0x30, 0x1c, 0x06, 0x06, 0x2a, 0x85, 0x03, 0x02, 0x02, 
    0x13, 0x30, 0x12, 0x06, 0x07, 0x2a, 0x85, 0x03, 0x02, 0x02, 0x23, 0x01, 0x06, 0x07, 
    0x2a, 0x85, 0x03, 0x02, 0x02, 0x1e, 0x01, 0x04, 0x22, 0x04, 0x20}; // this is DER, fixed for a 32 byte key
 
-  SecureVector<byte> buffer=BigInt::encode(d_key->private_value());
-  string gostasn1((const char*)asn1Prefix, sizeof(asn1Prefix));
-  gostasn1.append((const char*)&*buffer.begin(), (const char*)&*buffer.end());
+  storvector_t storvect;
+  storvect.push_back(make_pair("Algorithm", "12 (ECC-GOST)"));
+
+  auto buffer = BigInt::encode(d_key->private_value());
+  string gostasn1(reinterpret_cast<const char*>(asn1Prefix), sizeof(asn1Prefix));
+  gostasn1.append(buffer.begin(), buffer.end());
   storvect.push_back(make_pair("GostAsn1", gostasn1));
   return storvect;
 }
@@ -135,22 +151,25 @@ void GOSTDNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<std::
   
   BigInt bigint((byte*)rawKey.c_str(), rawKey.size());
  
-  EC_Group params("1.2.643.2.2.35.1");
   AutoSeeded_RNG rng;
-  d_key=shared_ptr<GOST_3410_PrivateKey>(new GOST_3410_PrivateKey(rng, params, bigint));
+  d_key=std::make_shared<GOST_3410_PrivateKey>(rng, getParams(), bigint);
   
   //cerr<<"Is the just imported key on the curve? " << d_key->public_point().on_the_curve()<<endl;
   //cerr<<"Is the just imported key zero? " << d_key->public_point().is_zero()<<endl;
   
   const BigInt&x = d_key->private_value();
-  SecureVector<byte> buffer=BigInt::encode(x);
+  auto buffer = BigInt::encode(x);
  // cerr<<"And out again! "<<makeHexDump(string((const char*)buffer.begin(), (const char*)buffer.end()))<<endl;
 }
 namespace {
 
 BigInt decode_le(const byte msg[], size_t msg_len)
    {
+#if BOTAN_VERSION_MAJOR < 2
    SecureVector<byte> msg_le(msg, msg_len);
+#else
+   Botan::secure_vector<byte> msg_le(msg, msg + msg_len);
+#endif
 
    for(size_t i = 0; i != msg_le.size() / 2; ++i)
       std::swap(msg_le[i], msg_le[msg_le.size()-1-i]);
@@ -166,17 +185,17 @@ void GOSTDNSCryptoKeyEngine::fromPublicKeyString(const std::string& input)
   x=decode_le((const byte*)input.c_str(), input.length()/2);
   y=decode_le((const byte*)input.c_str() + input.length()/2, input.length()/2);
 
-  EC_Domain_Params params("1.2.643.2.2.35.1");
+  auto params = getParams();
   PointGFp point(params.get_curve(), x,y);
-  d_pubkey = shared_ptr<GOST_3410_PublicKey>(new GOST_3410_PublicKey(params, point));
+  d_pubkey = std::make_shared<GOST_3410_PublicKey>(params, point);
   d_key.reset();
 }
 
 std::string GOSTDNSCryptoKeyEngine::getPubKeyHash() const
 {
   const BigInt&x = d_key->private_value();
-  SecureVector<byte> buffer=BigInt::encode(x);
-  return string((const char*)buffer.begin(), (const char*)buffer.end());
+  auto buffer = BigInt::encode(x);
+  return string(buffer.begin(), buffer.end());
 }
 
 std::string GOSTDNSCryptoKeyEngine::getPublicKeyString() const
@@ -187,8 +206,12 @@ std::string GOSTDNSCryptoKeyEngine::getPublicKeyString() const
   
   size_t part_size = std::max(x.bytes(), y.bytes());
  
+#if BOTAN_VERSION_MAJOR < 2
   MemoryVector<byte> bits(2*part_size);
- 
+#else
+  std::vector<byte> bits(2*part_size);
+#endif
+
   x.binary_encode(&bits[part_size - x.bytes()]);
   y.binary_encode(&bits[2*part_size - y.bytes()]);
 
@@ -199,7 +222,7 @@ std::string GOSTDNSCryptoKeyEngine::getPublicKeyString() const
     std::swap(bits[part_size+i], bits[2*part_size-1-i]);
   }
  
-  return string((const char*)bits.begin(), (const char*)bits.end());
+  return string(bits.begin(), bits.end());
 }
 
 /*
@@ -211,11 +234,11 @@ std::string GOSTDNSCryptoKeyEngine::getPublicKeyString() const
 
 std::string GOSTDNSCryptoKeyEngine::sign(const std::string& msg) const
 {
-  GOST_3410_Signature_Operation ops(*d_key);
   AutoSeeded_RNG rng;
+#if BOTAN_VERSION_MAJOR < 2
+  GOST_3410_Signature_Operation ops(*d_key);
   
   string hash= this->hash(msg);
-  
   SecureVector<byte> signature=ops.sign((byte*)hash.c_str(), hash.length(), rng);
 
 #if BOTAN_VERSION_CODE <= BOTAN_VERSION_CODE_FOR(1,9,12)  // see http://bit.ly/gTytUf
@@ -225,28 +248,29 @@ std::string GOSTDNSCryptoKeyEngine::sign(const std::string& msg) const
 #else  
   return string((const char*)signature.begin(), (const char*) signature.end());
 #endif
+
+#else /* BOTAN_VERSION_MAJOR < 2 */
+  PK_Signer signer(*d_key, rng, "Raw");
+  signer.update(hash(msg));
+  auto signature = signer.signature(rng);
+  return string(signature.begin(), signature.end());
+#endif /* BOTAN_VERSION_MAJOR < 2*/
 }
 
 std::string GOSTDNSCryptoKeyEngine::hash(const std::string& orig) const
 {
-  SecureVector<byte> result;
-  
   GOST_34_11 hasher;
-  result= hasher.process(orig);
-  return string((const char*)result.begin(), (const char*) result.end());
+  auto result = hasher.process(orig);
+  return string(result.begin(), result.end());
 }
 
 
 bool GOSTDNSCryptoKeyEngine::verify(const std::string& message, const std::string& signature) const
 {
+  std::shared_ptr<GOST_3410_PublicKey> pk = d_pubkey ? d_pubkey : d_key;
+#if BOTAN_VERSION_MAJOR < 2
   string hash = this->hash(message);
-  GOST_3410_PublicKey* pk;
-  if(d_pubkey) {
-    pk =d_pubkey.get();
-  }
-  else
-    pk = d_key.get();
-    
+
   GOST_3410_Verification_Operation ops(*pk);
 #if BOTAN_VERSION_CODE <= BOTAN_VERSION_CODE_FOR(1,9,12)  // see http://bit.ly/gTytUf
   string rsignature(signature.substr(32));
@@ -255,6 +279,12 @@ bool GOSTDNSCryptoKeyEngine::verify(const std::string& message, const std::strin
 #else
   return ops.verify ((byte*)hash.c_str(), hash.length(), (byte*)signature.c_str(), signature.length());
 #endif
+
+#else /* BOTAN_VERSION_MAJOR < 2 */
+  PK_Verifier verifier(*pk, "Raw");
+  verifier.update(hash(message));
+  return verifier.check_signature(reinterpret_cast<const uint8_t*>(signature.c_str()), signature.size());
+#endif /* BOTAN_VERSION_MAJOR < 2*/
 }
 
 /*
@@ -272,9 +302,11 @@ struct LoaderStruct
 {
   LoaderStruct()
   {
+#if BOTAN_VERSION_MAJOR < 2
     new Botan::LibraryInitializer("thread_safe=true");
     // this leaks, but is fine
     Botan::global_state().set_default_allocator("malloc"); // the other Botan allocator slows down for us
+#endif /* BOTAN_VERSION_MAJOR < 2*/
 
     DNSCryptoKeyEngine::report(12, &GOSTDNSCryptoKeyEngine::maker);
   }
