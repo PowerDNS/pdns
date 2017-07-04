@@ -356,7 +356,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
 
   SyncRes::EDNSStatus::EDNSMode& mode=ednsstatus->mode;
   SyncRes::EDNSStatus::EDNSMode oldmode = mode;
-  int EDNSLevel=0;
+  int EDNSLevel = 0;
   auto luaconfsLocal = g_luaconfs.getLocal();
   ResolveContext ctx;
 #ifdef HAVE_PROTOBUF
@@ -541,7 +541,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
     if(done) {
       if(j==1 && s_doIPv6) { // we got an A record, see if we have some AAAA lying around
 	vector<DNSRecord> cset;
-	if(t_RC->get(d_now.tv_sec, qname, QType(QType::AAAA), &cset, d_requestor) > 0) {
+	if(t_RC->get(d_now.tv_sec, qname, QType(QType::AAAA), &cset, d_incomingECSFound ? d_incomingECSNetwork : d_requestor) > 0) {
 	  for(auto k=cset.cbegin();k!=cset.cend();++k) {
 	    if(k->d_ttl > (unsigned int)d_now.tv_sec ) {
 	      if (auto drc = std::dynamic_pointer_cast<AAAARecordContent>(k->d_content)) {
@@ -592,7 +592,7 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vecto
     LOG(prefix<<qname<<": Checking if we have NS in cache for '"<<subdomain<<"'"<<endl);
     vector<DNSRecord> ns;
     *flawedNSSet = false;
-    if(t_RC->get(d_now.tv_sec, subdomain, QType(QType::NS), &ns, d_requestor) > 0) {
+    if(t_RC->get(d_now.tv_sec, subdomain, QType(QType::NS), &ns, d_incomingECSFound ? d_incomingECSNetwork : d_requestor) > 0) {
       for(auto k=ns.cbegin();k!=ns.cend(); ++k) {
         if(k->d_ttl > (unsigned int)d_now.tv_sec ) {
           vector<DNSRecord> aset;
@@ -600,7 +600,7 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vecto
           const DNSRecord& dr=*k;
 	  auto nrr = getRR<NSRecordContent>(dr);
           if(nrr && (!nrr->getNS().isPartOf(subdomain) || t_RC->get(d_now.tv_sec, nrr->getNS(), s_doIPv6 ? QType(QType::ADDR) : QType(QType::A),
-                                                                    doLog() ? &aset : 0, d_requestor) > 5)) {
+                                                                    doLog() ? &aset : 0, d_incomingECSFound ? d_incomingECSNetwork : d_requestor) > 5)) {
             bestns.push_back(dr);
             LOG(prefix<<qname<<": NS (with ip, or non-glue) in cache for '"<<subdomain<<"' -> '"<<nrr->getNS()<<"'"<<endl);
             LOG(prefix<<qname<<": within bailiwick: "<< nrr->getNS().isPartOf(subdomain));
@@ -713,7 +713,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
   LOG(prefix<<qname<<": Looking for CNAME cache hit of '"<<qname<<"|CNAME"<<"'"<<endl);
   vector<DNSRecord> cset;
   vector<std::shared_ptr<RRSIGRecordContent>> signatures;
-  if(t_RC->get(d_now.tv_sec, qname,QType(QType::CNAME), &cset, d_requestor, &signatures) > 0) {
+  if(t_RC->get(d_now.tv_sec, qname,QType(QType::CNAME), &cset, d_incomingECSFound ? d_incomingECSNetwork : d_requestor, &signatures, &d_wasVariable) > 0) {
 
     for(auto j=cset.cbegin() ; j != cset.cend() ; ++j) {
       if(j->d_ttl>(unsigned int) d_now.tv_sec) {
@@ -842,7 +842,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSR
   bool found=false, expired=false;
   vector<std::shared_ptr<RRSIGRecordContent>> signatures;
   uint32_t ttl=0;
-  if(t_RC->get(d_now.tv_sec, sqname, sqt, &cset, d_requestor, d_doDNSSEC ? &signatures : 0) > 0) {
+  if(t_RC->get(d_now.tv_sec, sqname, sqt, &cset, d_incomingECSFound ? d_incomingECSNetwork : d_requestor, d_doDNSSEC ? &signatures : 0, &d_wasVariable) > 0) {
     LOG(prefix<<sqname<<": Found cache hit for "<<sqt.getName()<<": ");
     for(auto j=cset.cbegin() ; j != cset.cend() ; ++j) {
       LOG(j->d_content->getZoneRepresentation());

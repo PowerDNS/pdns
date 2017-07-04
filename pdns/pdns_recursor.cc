@@ -755,9 +755,8 @@ void startDoResolve(void *p)
     bool DNSSECOK=false;
     if(t_pdl) {
       sr.setLuaEngine(*t_pdl);
-      sr.d_requestor=dc->d_remote;
     }
-
+    sr.d_requestor=dc->d_remote; // ECS needs this too
     if(g_dnssecmode != DNSSECMode::Off) {
       sr.d_doDNSSEC=true;
 
@@ -777,6 +776,7 @@ void startDoResolve(void *p)
       sr.d_incomingECSFound = dc->d_ecsFound;
       if (dc->d_ecsFound) {
         sr.d_incomingECS = dc->d_ednssubnet;
+        sr.d_incomingECSNetwork = sr.d_incomingECS ? sr.d_incomingECS->source.getMaskedNetwork() : ComboAddress();
       }
     }
 
