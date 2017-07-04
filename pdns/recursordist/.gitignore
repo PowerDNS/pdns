@@ -44,3 +44,5 @@
 /test-suite.log
 /testrunner.log
 /testrunner.trs
+/test_libcrypto.log
+/test_libcrypto.trs
