@@ -126,8 +126,8 @@ public:
 
   ComboAddress d_local;
 
-  Socket *accept() {
-    return d_server_socket.accept();
+  std::shared_ptr<Socket> accept() {
+    return std::shared_ptr<Socket>(d_server_socket.accept());
   }
 
 protected:
@@ -142,7 +142,7 @@ public:
   void bind();
   void go();
 
-  void serveConnection(Socket *client);
+  void serveConnection(std::shared_ptr<Socket> client);
   void handleRequest(HttpRequest& request, HttpResponse& resp);
 
   typedef boost::function<void(HttpRequest* req, HttpResponse* resp)> HandlerFunction;

@@ -25,6 +25,7 @@
 #include "utility.hh"
 #include "webserver.hh"
 #include "misc.hh"
+#include <thread>
 #include <vector>
 #include "logger.hh"
 #include <stdio.h>
@@ -36,7 +37,7 @@
 
 struct connectionThreadData {
   WebServer* webServer{nullptr};
-  Socket* client{nullptr};
+  std::shared_ptr<Socket> client{nullptr};
 };
 
 json11::Json HttpRequest::json()
@@ -198,15 +199,9 @@ void WebServer::registerWebHandler(const string& url, HandlerFunction handler) {
   registerBareHandler(url, f);
 }
 
-static void *WebServerConnectionThreadStart(void *p) {
-  connectionThreadData* data = static_cast<connectionThreadData*>(p);
-  pthread_detach(pthread_self());
+static void *WebServerConnectionThreadStart(std::shared_ptr<connectionThreadData> data) {
   data->webServer->serveConnection(data->client);
-
-  delete data->client; // close socket
-  delete data;
-
-  return NULL;
+  return nullptr;
 }
 
 void WebServer::handleRequest(HttpRequest& req, HttpResponse& resp)
@@ -286,7 +281,7 @@ void WebServer::handleRequest(HttpRequest& req, HttpResponse& resp)
   }
 }
 
-void WebServer::serveConnection(Socket *client)
+void WebServer::serveConnection(std::shared_ptr<Socket> client)
 try {
   HttpRequest req;
   YaHTTP::AsyncRequestLoader yarl;
@@ -354,41 +349,32 @@ void WebServer::go()
   if(!d_server)
     return;
   try {
-    pthread_t tid;
-
     NetmaskGroup acl;
     acl.toMasks(::arg()["webserver-allow-from"]);
 
     while(true) {
       // data and data->client will be freed by thread
-      connectionThreadData *data = new connectionThreadData;
+      auto data = std::make_shared<connectionThreadData>();
       data->webServer = this;
       try {
         data->client = d_server->accept();
         if (data->client->acl(acl)) {
-          pthread_create(&tid, 0, &WebServerConnectionThreadStart, (void *)data);
+          std::thread webHandler(WebServerConnectionThreadStart, data);
+          webHandler.detach();
         } else {
           ComboAddress remote;
           if (data->client->getRemote(remote))
             L<<Logger::Error<<"Webserver closing socket: remote ("<< remote.toString() <<") does not match 'webserver-allow-from'"<<endl;
-          delete data->client; // close socket
-          delete data;
         }
       }
       catch(PDNSException &e) {
         L<<Logger::Error<<"PDNSException while accepting a connection in main webserver thread: "<<e.reason<<endl;
-        delete data->client;
-        delete data;
       }
       catch(std::exception &e) {
         L<<Logger::Error<<"STL Exception while accepting a connection in main webserver thread: "<<e.what()<<endl;
-        delete data->client;
-        delete data;
       }
       catch(...) {
         L<<Logger::Error<<"Unknown exception while accepting a connection in main webserver thread"<<endl;
-        delete data->client;
-        delete data;
       }
     }
   }
