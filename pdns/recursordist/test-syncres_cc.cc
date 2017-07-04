@@ -5343,9 +5343,6 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_skipped_cut) {
             }
             else if (domain == DNSName("sub.powerdns.com.")) {
               addRecordToLW(res, domain, QType::NS, "ns1.powerdns.com.");
-              addRRSIG(keys, res->d_records, DNSName("powerdns.com"), 300);
-              addNSECRecordToLW(domain, DNSName("tub.powerdns.com."), { QType::NS }, 600, res->d_records);
-              addRRSIG(keys, res->d_records, DNSName("powerdns.com"), 300);
             }
             else if (domain == DNSName("powerdns.com.")) {
               addRecordToLW(res, domain, QType::NS, "ns1.powerdns.com.");

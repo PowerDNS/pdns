@@ -750,6 +750,7 @@ private:
   vState getDNSKeys(const DNSName& signer, skeyset_t& keys, unsigned int depth);
   void getDenialValidationState(NegCache::NegCacheEntry& ne, vState& state, const dState expectedState, bool allowOptOut);
   vState getTA(const DNSName& zone, dsmap_t& ds);
+  bool haveExactValidationStatus(const DNSName& domain);
   vState getValidationStatus(const DNSName& subdomain);
 
   void computeZoneCuts(const DNSName& begin, const DNSName& end, unsigned int depth);
