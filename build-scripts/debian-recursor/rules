@@ -14,6 +14,9 @@ DEBHELPER_WITH_SYSTEMD := --with systemd
 ENABLE_LIBSODIUM := --enable-libsodium
 LIBSODIUM_DEV := , libsodium-dev
 
+ENABLE_NETSNMP := --with-net-snmp
+NETSNMP_DEV := , libsnmp-dev
+
 # $(ID) and $(VERSION_ID) come from the environment, source this from /etc/os-release
 ifeq ($(ID), ubuntu)
   ifeq ($(VERSION_ID), 14.04)
@@ -28,9 +31,19 @@ ifeq ($(ID), ubuntu)
   endif
 endif
 
+ifeq ($(ID), debian)
+  ifeq ($(VERSION_ID), 9)
+    # SNMP is linked to OpenSSL 1.0 while we link against OpenSSL 1.1
+    ENABLE_NETSNMP = --without-net-snmp
+    NETSNMP_DEV =
+  endif
+endif
+
 debian/control: debian/control.in
 	sed -e "s!@LIBSYSTEMDDEV@!$(LIBSYSTEMD_DEV)!" \
-	    -e "s!@LIBSODIUMDEV@!$(LIBSODIUM_DEV)!" $< > $@
+	    -e "s!@LIBSODIUMDEV@!$(LIBSODIUM_DEV)!" \
+	    -e "s!@LIBSNMPDEV@!$(LIBSNMP_DEV)!" \
+	    $< > $@
 
 # Use new build system
 %:
@@ -51,7 +64,7 @@ override_dh_auto_configure:
 		--libexecdir='$${prefix}/lib' \
 		--with-luajit \
 		--with-protobuf=yes \
-		--with-net-snmp \
+		$(ENABLE_NETSNMP) \
 		$(ENABLE_SYSTEMD) \
 		$(ENABLE_LIBSODIUM)
 
