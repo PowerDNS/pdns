@@ -1,6 +1,12 @@
 Before upgrading, it is advised to read the [changelog](../changelog.md).
 When upgrading several versions, please read **all** notes applying to the upgrade.
 
+# 4.0.5 to 4.0.6
+
+One default was changed:
+
+ - [`use-incoming-edns-subnet`](settings.md#use-incoming-edns-subnet) defaults to off, was on before
+
 # 4.0.3 to 4.0.4
 One setting has been added to limit the risk of overflowing the stack:
 
