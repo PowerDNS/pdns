@@ -382,6 +382,8 @@ build_recursor() {
   run "cd pdns-recursor-*"
   run "CFLAGS='-O1' CXXFLAGS='-O1' ./configure \
     --prefix=$PDNS_RECURSOR_DIR \
+    --enable-botan \
+    --enable-libsodium \
     --enable-unit-tests \
     --disable-silent-rules"
   run "make -k -j3"
@@ -569,6 +571,7 @@ run "sudo apt-get -qq --no-install-recommends install \
   liblua5.1-dev \
   libedit-dev \
   libprotobuf-dev \
+  libbotan1.10-dev \
   pandoc\
   protobuf-compiler"
 
