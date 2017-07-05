@@ -715,7 +715,6 @@ std::shared_ptr<DownstreamState> wrandom(const NumberedServerVector& servers, co
 std::shared_ptr<DownstreamState> whashed(const NumberedServerVector& servers, const DNSQuestion* dq);
 std::shared_ptr<DownstreamState> roundrobin(const NumberedServerVector& servers, const DNSQuestion* dq);
 int getEDNSZ(const char* packet, unsigned int len);
-void spoofResponseFromString(DNSQuestion& dq, const string& spoofContent);
 uint16_t getEDNSOptionCode(const char * packet, size_t len);
 void dnsdistWebserverThread(int sock, const ComboAddress& local, const string& password, const string& apiKey, const boost::optional<std::map<std::string, std::string> >&);
 bool getMsgLen32(int fd, uint32_t* len);
