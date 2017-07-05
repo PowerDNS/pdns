@@ -21,10 +21,10 @@
 
 #include "json11.hpp"
 #include <cassert>
+#include <cmath>
 #include <cstdlib>
 #include <cstdio>
 #include <limits>
-#include <string.h>
 
 namespace json11 {
 
@@ -37,18 +37,31 @@ using std::make_shared;
 using std::initializer_list;
 using std::move;
 
+/* Helper for representing null - just a do-nothing struct, plus comparison
+ * operators so the helpers in JsonValue work. We can't use nullptr_t because
+ * it may not be orderable.
+ */
+struct NullStruct {
+    bool operator==(NullStruct) const { return true; }
+    bool operator<(NullStruct) const { return false; }
+};
+
 /* * * * * * * * * * * * * * * * * * * *
  * Serialization
  */
 
-static void dump(std::nullptr_t, string &out) {
+static void dump(NullStruct, string &out) {
     out += "null";
 }
 
 static void dump(double value, string &out) {
-    char buf[32];
-    snprintf(buf, sizeof buf, "%.17g", value);
-    out += buf;
+    if (std::isfinite(value)) {
+        char buf[32];
+        snprintf(buf, sizeof buf, "%.17g", value);
+        out += buf;
+    } else {
+        out += "null";
+    }
 }
 
 static void dump(int value, string &out) {
@@ -204,9 +217,9 @@ public:
     explicit JsonObject(Json::object &&value)      : Value(move(value)) {}
 };
 
-class JsonNull final : public Value<Json::NUL, std::nullptr_t> {
+class JsonNull final : public Value<Json::NUL, NullStruct> {
 public:
-    JsonNull() : Value(nullptr) {}
+    JsonNull() : Value({}) {}
 };
 
 /* * * * * * * * * * * * * * * * * * * *
@@ -222,12 +235,12 @@ struct Statics {
     Statics() {}
 };
 
-const Statics & statics() {
+static const Statics & statics() {
     static const Statics s {};
     return s;
 }
 
-const Json & static_null() {
+static const Json & static_null() {
     // This has to be separate, not in Statics, because Json() accesses statics().null.
     static const Json json_null;
     return json_null;
@@ -322,11 +335,12 @@ static inline bool in_range(long x, long lower, long upper) {
     return (x >= lower && x <= upper);
 }
 
+namespace {
 /* JsonParser
  *
  * Object that tracks all state of an in-progress parse.
  */
-struct JsonParser {
+struct JsonParser final {
 
     /* State
      */
@@ -334,6 +348,7 @@ struct JsonParser {
     size_t i;
     string &err;
     bool failed;
+    const JsonParse strategy;
 
     /* fail(msg, err_ret = Json())
      *
@@ -360,15 +375,76 @@ struct JsonParser {
             i++;
     }
 
+    /* consume_comment()
+     *
+     * Advance comments (c-style inline and multiline).
+     */
+    bool consume_comment() {
+      bool comment_found = false;
+      if (str[i] == '/') {
+        i++;
+        if (i == str.size())
+          return fail("unexpected end of input inside comment", false);
+        if (str[i] == '/') { // inline comment
+          i++;
+          if (i == str.size())
+            return fail("unexpected end of input inside inline comment", false);
+          // advance until next line
+          while (str[i] != '\n') {
+            i++;
+            if (i == str.size())
+              return fail("unexpected end of input inside inline comment", false);
+          }
+          comment_found = true;
+        }
+        else if (str[i] == '*') { // multiline comment
+          i++;
+          if (i > str.size()-2)
+            return fail("unexpected end of input inside multi-line comment", false);
+          // advance until closing tokens
+          while (!(str[i] == '*' && str[i+1] == '/')) {
+            i++;
+            if (i > str.size()-2)
+              return fail(
+                "unexpected end of input inside multi-line comment", false);
+          }
+          i += 2;
+          if (i == str.size())
+            return fail(
+              "unexpected end of input inside multi-line comment", false);
+          comment_found = true;
+        }
+        else
+          return fail("malformed comment", false);
+      }
+      return comment_found;
+    }
+
+    /* consume_garbage()
+     *
+     * Advance until the current character is non-whitespace and non-comment.
+     */
+    void consume_garbage() {
+      consume_whitespace();
+      if(strategy == JsonParse::COMMENTS) {
+        bool comment_found = false;
+        do {
+          comment_found = consume_comment();
+          consume_whitespace();
+        }
+        while(comment_found);
+      }
+    }
+
     /* get_next_token()
      *
      * Return the next non-whitespace character. If the end of the input is reached,
      * flag an error and return 0.
      */
     char get_next_token() {
-        consume_whitespace();
+        consume_garbage();
         if (i == str.size())
-            return fail("unexpected end of input", 0);
+            return fail("unexpected end of input", (char)0);
 
         return str[i++];
     }
@@ -382,19 +458,19 @@ struct JsonParser {
             return;
 
         if (pt < 0x80) {
-            out += pt;
+            out += static_cast<char>(pt);
         } else if (pt < 0x800) {
-            out += (pt >> 6) | 0xC0;
-            out += (pt & 0x3F) | 0x80;
+            out += static_cast<char>((pt >> 6) | 0xC0);
+            out += static_cast<char>((pt & 0x3F) | 0x80);
         } else if (pt < 0x10000) {
-            out += (pt >> 12) | 0xE0;
-            out += ((pt >> 6) & 0x3F) | 0x80;
-            out += (pt & 0x3F) | 0x80;
+            out += static_cast<char>((pt >> 12) | 0xE0);
+            out += static_cast<char>(((pt >> 6) & 0x3F) | 0x80);
+            out += static_cast<char>((pt & 0x3F) | 0x80);
         } else {
-            out += (pt >> 18) | 0xF0;
-            out += ((pt >> 12) & 0x3F) | 0x80;
-            out += ((pt >> 6) & 0x3F) | 0x80;
-            out += (pt & 0x3F) | 0x80;
+            out += static_cast<char>((pt >> 18) | 0xF0);
+            out += static_cast<char>(((pt >> 12) & 0x3F) | 0x80);
+            out += static_cast<char>(((pt >> 6) & 0x3F) | 0x80);
+            out += static_cast<char>((pt & 0x3F) | 0x80);
         }
     }
 
@@ -436,7 +512,13 @@ struct JsonParser {
             if (ch == 'u') {
                 // Extract 4-byte escape sequence
                 string esc = str.substr(i, 4);
-                for (int j = 0; j < 4; j++) {
+                // Explicitly check length of the substring. The following loop
+                // relies on std::string returning the terminating NUL when
+                // accessing str[length]. Checking here reduces brittleness.
+                if (esc.length() < 4) {
+                    return fail("bad \\u escape: " + esc, "");
+                }
+                for (size_t j = 0; j < 4; j++) {
                     if (!in_range(esc[j], 'a', 'f') && !in_range(esc[j], 'A', 'F')
                             && !in_range(esc[j], '0', '9'))
                         return fail("bad \\u escape: " + esc, "");
@@ -537,7 +619,7 @@ struct JsonParser {
                 i++;
         }
 
-        return std::atof(str.c_str() + start_pos);
+        return std::strtod(str.c_str() + start_pos, nullptr);
     }
 
     /* expect(str, res)
@@ -646,13 +728,14 @@ struct JsonParser {
         return fail("expected value, got " + esc(ch));
     }
 };
+}//namespace {
 
-Json Json::parse(const string &in, string &err) {
-    JsonParser parser { in, 0, err, false };
+Json Json::parse(const string &in, string &err, JsonParse strategy) {
+    JsonParser parser { in, 0, err, false, strategy };
     Json result = parser.parse_json(0);
 
     // Check for any trailing garbage
-    parser.consume_whitespace();
+    parser.consume_garbage();
     if (parser.i != in.size())
         return parser.fail("unexpected trailing " + esc(in[parser.i]));
 
@@ -660,14 +743,19 @@ Json Json::parse(const string &in, string &err) {
 }
 
 // Documented in json11.hpp
-vector<Json> Json::parse_multi(const string &in, string &err) {
-    JsonParser parser { in, 0, err, false };
-
+vector<Json> Json::parse_multi(const string &in,
+                               std::string::size_type &parser_stop_pos,
+                               string &err,
+                               JsonParse strategy) {
+    JsonParser parser { in, 0, err, false, strategy };
+    parser_stop_pos = 0;
     vector<Json> json_vec;
     while (parser.i != in.size() && !parser.failed) {
         json_vec.push_back(parser.parse_json(0));
         // Check for another object
-        parser.consume_whitespace();
+        parser.consume_garbage();
+        if (!parser.failed)
+            parser_stop_pos = parser.i;
     }
     return json_vec;
 }
