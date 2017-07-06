@@ -357,6 +357,7 @@ bool sendSizeAndMsgWithTimeout(int sock, uint16_t bufferLen, const char* buffer,
       do {
         if (written < iov[pos].iov_len) {
           iov[pos].iov_len -= written;
+          iov[pos].iov_base = reinterpret_cast<void*>(reinterpret_cast<char*>(iov[pos].iov_base) + written);
           written = 0;
         }
         else {
