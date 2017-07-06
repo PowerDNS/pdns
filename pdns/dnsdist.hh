@@ -68,26 +68,22 @@ QTag()
 {
 }
 
-bool add(std::string strLabel, std::string strValue)
+void add(std::string strLabel, std::string strValue)
 {
-bool bStatus = true;
 
-   tagData.insert( {strLabel, strValue});
-  return(bStatus);
+  tagData.insert( {strLabel, strValue});
+  return;
 }
 
 std::string getMatch(const std::string& strLabel)  const
 {
 
-    std::unordered_map<std::string, std::string>::const_iterator got =tagData.find (strLabel);
-    if(got == tagData.end())
-      {
-       return("");
-      }
-    else
-      {
-       return(got->second);
-      }
+  std::unordered_map<std::string, std::string>::const_iterator got =tagData.find (strLabel);
+  if(got == tagData.end()) {
+    return "";
+  } else {
+    return got->second;
+  }
 }
 
 std::string getEntry(size_t iEntry) const
@@ -96,25 +92,23 @@ std::string strEntry;
 size_t iCounter = 0;
 
 
-   for (const auto& itr : tagData)
-      {
-        iCounter++;
-        if(iCounter == iEntry)
-          {
-           strEntry = itr.first;
-           strEntry += strSep;
-           strEntry += itr.second;
-           break;
-          }
-      }
+  for (const auto& itr : tagData) {
+    iCounter++;
+    if(iCounter == iEntry) {
+      strEntry = itr.first;
+      strEntry += strSep;
+      strEntry += itr.second;
+      break;
+    }
+  }
 
-   return(strEntry);
+  return strEntry;
 
 }
 
 size_t count() const
 {
-   return(tagData.size());
+   return tagData.size();
 }
 
 std::string dumpString() const
@@ -122,15 +116,13 @@ std::string dumpString() const
 std::string strRet;
 
 
-   for (const auto& itr : tagData)
-      {
-        strRet += itr.first;
-        strRet += strSep;
-        strRet += itr.second;
-        strRet += "\n";
-       }
-    return(strRet);
-
+  for (const auto& itr : tagData) {
+    strRet += itr.first;
+    strRet += strSep;
+    strRet += itr.second;
+    strRet += "\n";
+  }
+  return strRet;
 
 }
 

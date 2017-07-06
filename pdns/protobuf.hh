@@ -71,7 +71,7 @@ public:
   void setRequestorId(const std::string& requestorId);
   std::string toDebugString() const;
   void addTag(const std::string& strValue);
-  void addRR(const std::string& strName, uint32_t utype, uint32_t uClass, uint32_t uTTl, const uint8_t *ptrBlob, size_t uBlobLen);
+  void addRR(const std::string& strName, uint32_t utype, uint32_t uClass, uint32_t uTTl, const std::string& strBlob);
 
 #ifdef HAVE_PROTOBUF
   DNSProtoBufMessage(DNSProtoBufMessage::DNSProtoBufMessageType type, const boost::uuids::uuid& uuid, const ComboAddress* requestor, const ComboAddress* responder, const DNSName& domain, int qtype, uint16_t qclass, uint16_t qid, bool isTCP, size_t bytes);
