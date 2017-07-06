@@ -36,19 +36,31 @@ public:
 
   ~SMySQL();
 
-  SSqlException sPerrorException(const string &reason);
-  void setLog(bool state);
-  SSqlStatement* prepare(const string& query, int nparams);
-  void execute(const string& query);
+  SSqlException sPerrorException(const string &reason) override;
+  void setLog(bool state) override;
+  SSqlStatement* prepare(const string& query, int nparams) override;
+  void execute(const string& query) override;
 
-  void startTransaction();
-  void commit();
-  void rollback();
-
+  void startTransaction() override;
+  void commit() override;
+  void rollback() override;
+  bool isConnectionUsable() override;
 private:
-  MYSQL d_db;
+  void connect();
+
   static bool s_dolog;
   static pthread_mutex_t s_myinitlock;
+
+  MYSQL d_db;
+  std::string d_database;
+  std::string d_host;
+  std::string d_msocket;
+  std::string d_user;
+  std::string d_password;
+  std::string d_group;
+  unsigned int d_timeout;
+  uint16_t d_port;
+  bool d_setIsolation;
 };
 
 #endif /* SSMYSQL_HH */

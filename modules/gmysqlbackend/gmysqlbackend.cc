@@ -39,15 +39,7 @@
 gMySQLBackend::gMySQLBackend(const string &mode, const string &suffix)  : GSQLBackend(mode,suffix)
 {
   try {
-    setDB(new SMySQL(getArg("dbname"),
-                     getArg("host"),
-                     getArgAsNum("port"),
-                     getArg("socket"),
-                     getArg("user"),
-                     getArg("password"),
-                     getArg("group"),
-                     mustDo("innodb-read-committed"),
-                     getArgAsNum("timeout")));
+    reconnect();
   }
 
   catch(SSqlException &e) {
@@ -55,6 +47,19 @@ gMySQLBackend::gMySQLBackend(const string &mode, const string &suffix)  : GSQLBa
     throw PDNSException("Unable to launch "+mode+" connection: "+e.txtReason());
   }
   L<<Logger::Info<<mode<<" Connection successful. Connected to database '"<<getArg("dbname")<<"' on '"<<(getArg("host").empty() ? getArg("socket") : getArg("host"))<<"'."<<endl;
+}
+
+void gMySQLBackend::reconnect()
+{
+  setDB(new SMySQL(getArg("dbname"),
+                   getArg("host"),
+                   getArgAsNum("port"),
+                   getArg("socket"),
+                   getArg("user"),
+                   getArg("password"),
+                   getArg("group"),
+                   mustDo("innodb-read-committed"),
+                   getArgAsNum("timeout")));
 }
 
 class gMySQLFactory : public BackendFactory

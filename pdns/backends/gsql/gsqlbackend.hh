@@ -244,11 +244,29 @@ protected:
   string pattern2SQLPattern(const string& pattern);
   void extractRecord(const SSqlStatement::row_t& row, DNSResourceRecord& rr);
   void extractComment(const SSqlStatement::row_t& row, Comment& c);
+  bool isConnectionUsable() {
+    if (d_db) {
+      return d_db->isConnectionUsable();
+    }
+    return false;
+  }
+  void reconnectIfNeeded()
+  {
+    if (inTransaction() || isConnectionUsable()) {
+      return;
+    }
+
+    reconnect();
+  }
+  virtual void reconnect() { }
+  virtual bool inTransaction()
+  {
+    return d_inTransaction;
+  }
 
 private:
   string d_query_name;
   DNSName d_qname;
-  SSql *d_db;
   SSqlStatement::result_t d_result;
 
   string d_NoIdQuery;
@@ -386,7 +404,9 @@ private:
   SSqlStatement* d_SearchCommentsQuery_stmt;
 
 protected:
+  SSql *d_db{nullptr};
   bool d_dnssecQueries;
+  bool d_inTransaction{false};
 };
 
 #endif /* PDNS_GSQLBACKEND_HH */

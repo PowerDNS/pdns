@@ -187,6 +187,8 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
 void GSQLBackend::setNotified(uint32_t domain_id, uint32_t serial)
 {
   try {
+    reconnectIfNeeded();
+
     d_UpdateSerialOfZoneQuery_stmt->
       bind("serial", serial)->
       bind("domain_id", domain_id)->
@@ -201,6 +203,8 @@ void GSQLBackend::setNotified(uint32_t domain_id, uint32_t serial)
 void GSQLBackend::setFresh(uint32_t domain_id)
 {
   try {
+    reconnectIfNeeded();
+
     d_UpdateLastCheckofZoneQuery_stmt->
       bind("last_check", time(0))->
       bind("domain_id", domain_id)->
@@ -215,6 +219,8 @@ void GSQLBackend::setFresh(uint32_t domain_id)
 bool GSQLBackend::isMaster(const DNSName &domain, const string &ip)
 {
   try {
+    reconnectIfNeeded();
+
     d_MasterOfDomainsZoneQuery_stmt->
       bind("domain", domain)->
       execute()->
@@ -246,6 +252,8 @@ bool GSQLBackend::isMaster(const DNSName &domain, const string &ip)
 bool GSQLBackend::setMaster(const DNSName &domain, const string &ip)
 {
   try {
+    reconnectIfNeeded();
+
     d_UpdateMasterOfZoneQuery_stmt->
       bind("master", ip)->
       bind("domain", domain)->
@@ -261,6 +269,8 @@ bool GSQLBackend::setMaster(const DNSName &domain, const string &ip)
 bool GSQLBackend::setKind(const DNSName &domain, const DomainInfo::DomainKind kind)
 {
   try {
+    reconnectIfNeeded();
+
     d_UpdateKindOfZoneQuery_stmt->
       bind("kind", toUpper(DomainInfo::getKindString(kind)))->
       bind("domain", domain)->
@@ -276,6 +286,8 @@ bool GSQLBackend::setKind(const DNSName &domain, const DomainInfo::DomainKind ki
 bool GSQLBackend::setAccount(const DNSName &domain, const string &account)
 {
   try {
+    reconnectIfNeeded();
+
     d_UpdateAccountOfZoneQuery_stmt->
             bind("account", account)->
             bind("domain", domain)->
@@ -293,6 +305,8 @@ bool GSQLBackend::getDomainInfo(const DNSName &domain, DomainInfo &di)
   /* fill DomainInfo from database info:
      id,name,master IP(s),last_check,notified_serial,type,account */
   try {
+    reconnectIfNeeded();
+
     d_InfoOfDomainsZoneQuery_stmt->
       bind("domain", domain)->
       execute()->
@@ -344,6 +358,8 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
   /* list all domains that need refreshing for which we are slave, and insert into SlaveDomain:
      id,name,master IP,serial */
   try {
+    reconnectIfNeeded();
+
     d_InfoOfAllSlaveDomainsQuery_stmt->
       execute()->
       getResult(d_result)->
@@ -388,6 +404,8 @@ void GSQLBackend::getUpdatedMasters(vector<DomainInfo> *updatedDomains)
   /* list all domains that need notifications for which we are master, and insert into updatedDomains
      id,name,master IP,serial */
   try {
+    reconnectIfNeeded();
+
     d_InfoOfAllMasterDomainsQuery_stmt->
       execute()->
       getResult(d_result)->
@@ -435,6 +453,8 @@ bool GSQLBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
   if (!ordername.empty()) {
     if (qtype == QType::ANY) {
       try {
+        reconnectIfNeeded();
+
         d_updateOrderNameAndAuthQuery_stmt->
           bind("ordername", ordername.labelReverse().toString(" ", false))->
           bind("auth", auth)->
@@ -448,6 +468,8 @@ bool GSQLBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
       }
     } else {
       try {
+        reconnectIfNeeded();
+
         d_updateOrderNameAndAuthTypeQuery_stmt->
           bind("ordername", ordername.labelReverse().toString(" ", false))->
           bind("auth", auth)->
@@ -463,6 +485,8 @@ bool GSQLBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
     }
   } else {
     if (qtype == QType::ANY) {
+      reconnectIfNeeded();
+
       try {
         d_nullifyOrderNameAndUpdateAuthQuery_stmt->
           bind("auth", auth)->
@@ -476,6 +500,8 @@ bool GSQLBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
       }
     } else {
       try {
+        reconnectIfNeeded();
+
         d_nullifyOrderNameAndUpdateAuthTypeQuery_stmt->
           bind("auth", auth)->
           bind("domain_id", domain_id)->
@@ -496,6 +522,8 @@ bool GSQLBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& inse
 {
   if(remove) {
     try {
+      reconnectIfNeeded();
+
       d_RemoveEmptyNonTerminalsFromZoneQuery_stmt->
         bind("domain_id", domain_id)->
         execute()->
@@ -510,6 +538,8 @@ bool GSQLBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& inse
   {
     for(const auto& qname: erase) {
       try {
+        reconnectIfNeeded();
+
         d_DeleteEmptyNonTerminalQuery_stmt->
           bind("domain_id", domain_id)->
           bind("qname", qname)->
@@ -525,6 +555,8 @@ bool GSQLBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& inse
 
   for(const auto& qname: insert) {
     try {
+      reconnectIfNeeded();
+
       d_InsertEmptyNonTerminalOrderQuery_stmt->
         bind("domain_id", domain_id)->
         bind("qname", qname)->
@@ -555,6 +587,8 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
 
   SSqlStatement::row_t row;
   try {
+    reconnectIfNeeded();
+
     d_afterOrderQuery_stmt->
       bind("ordername", qname.labelReverse().toString(" ", false))->
       bind("domain_id", id)->
@@ -574,6 +608,8 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
 
   if(after.empty()) {
     try {
+      reconnectIfNeeded();
+
       d_firstOrderQuery_stmt->
         bind("domain_id", id)->
         execute();
@@ -593,6 +629,8 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
     unhashed.clear();
 
     try {
+      reconnectIfNeeded();
+
       d_beforeOrderQuery_stmt->
         bind("ordername", qname.labelReverse().toString(" ", false))->
         bind("domain_id", id)->
@@ -620,6 +658,8 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
     }
 
     try {
+      reconnectIfNeeded();
+
       d_lastOrderQuery_stmt->
         bind("domain_id", id)->
         execute();
@@ -651,6 +691,8 @@ bool GSQLBackend::addDomainKey(const DNSName& name, const KeyData& key, int64_t&
     return false;
 
   try {
+    reconnectIfNeeded();
+
     d_AddDomainKeyQuery_stmt->
       bind("flags", key.flags)->
       bind("active", key.active)->
@@ -664,6 +706,8 @@ bool GSQLBackend::addDomainKey(const DNSName& name, const KeyData& key, int64_t&
   }
 
   try {
+    reconnectIfNeeded();
+
     d_GetLastInsertedKeyIdQuery_stmt->execute();
     if (!d_GetLastInsertedKeyIdQuery_stmt->hasNextRow()) {
       id = -2;
@@ -690,6 +734,8 @@ bool GSQLBackend::activateDomainKey(const DNSName& name, unsigned int id)
     return false;
 
   try {
+    reconnectIfNeeded();
+
     d_ActivateDomainKeyQuery_stmt->
       bind("domain", name)->
       bind("key_id", id)->
@@ -708,6 +754,8 @@ bool GSQLBackend::deactivateDomainKey(const DNSName& name, unsigned int id)
     return false;
 
   try {
+    reconnectIfNeeded();
+
     d_DeactivateDomainKeyQuery_stmt->
       bind("domain", name)->
       bind("key_id", id)->
@@ -726,6 +774,8 @@ bool GSQLBackend::removeDomainKey(const DNSName& name, unsigned int id)
     return false;
 
   try {
+    reconnectIfNeeded();
+
     d_RemoveDomainKeyQuery_stmt->
       bind("domain", name)->
       bind("key_id", id)->
@@ -741,6 +791,8 @@ bool GSQLBackend::removeDomainKey(const DNSName& name, unsigned int id)
 bool GSQLBackend::getTSIGKey(const DNSName& name, DNSName* algorithm, string* content)
 {
   try {
+    reconnectIfNeeded();
+
     d_getTSIGKeyQuery_stmt->
       bind("key_name", name)->
       execute();
@@ -771,6 +823,8 @@ bool GSQLBackend::getTSIGKey(const DNSName& name, DNSName* algorithm, string* co
 bool GSQLBackend::setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content)
 {
   try {
+    reconnectIfNeeded();
+
     d_setTSIGKeyQuery_stmt->
       bind("key_name", name)->
       bind("algorithm", algorithm)->
@@ -787,6 +841,8 @@ bool GSQLBackend::setTSIGKey(const DNSName& name, const DNSName& algorithm, cons
 bool GSQLBackend::deleteTSIGKey(const DNSName& name)
 {
   try {
+    reconnectIfNeeded();
+
     d_deleteTSIGKeyQuery_stmt->
       bind("key_name", name)->
       execute()->
@@ -801,6 +857,8 @@ bool GSQLBackend::deleteTSIGKey(const DNSName& name)
 bool GSQLBackend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
 {
   try {
+    reconnectIfNeeded();
+
     d_getTSIGKeysQuery_stmt->
       execute();
 
@@ -835,6 +893,8 @@ bool GSQLBackend::getDomainKeys(const DNSName& name, std::vector<KeyData>& keys)
     return false;
 
   try {
+    reconnectIfNeeded();
+
     d_ListDomainKeysQuery_stmt->
       bind("domain", name)->
       execute();
@@ -875,6 +935,8 @@ void GSQLBackend::alsoNotifies(const DNSName &domain, set<string> *ips)
 bool GSQLBackend::getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta)
 {
   try {
+    reconnectIfNeeded();
+
     d_GetAllDomainMetadataQuery_stmt->
       bind("domain", name)->
       execute();
@@ -905,6 +967,8 @@ bool GSQLBackend::getDomainMetadata(const DNSName& name, const std::string& kind
     return false;
 
   try {
+    reconnectIfNeeded();
+
     d_GetDomainMetadataQuery_stmt->
       bind("domain", name)->
       bind("kind", kind)->
@@ -933,6 +997,8 @@ bool GSQLBackend::setDomainMetadata(const DNSName& name, const std::string& kind
     return false;
 
   try {
+    reconnectIfNeeded();
+
     d_ClearDomainMetadataQuery_stmt->
       bind("domain", name)->
       bind("kind", kind)->
@@ -959,6 +1025,8 @@ bool GSQLBackend::setDomainMetadata(const DNSName& name, const std::string& kind
 void GSQLBackend::lookup(const QType &qtype,const DNSName &qname, DNSPacket *pkt_p, int domain_id)
 {
   try {
+    reconnectIfNeeded();
+
     if(qtype.getCode()!=QType::ANY) {
       if(domain_id < 0) {
         d_query_name = "basic-query";
@@ -1005,6 +1073,8 @@ bool GSQLBackend::list(const DNSName &target, int domain_id, bool include_disabl
   DLOG(L<<"GSQLBackend constructing handle for list of domain id '"<<domain_id<<"'"<<endl);
 
   try {
+    reconnectIfNeeded();
+
     d_query_name = "list-query";
     d_query_stmt = d_listQuery_stmt;
     d_query_stmt->
@@ -1025,6 +1095,8 @@ bool GSQLBackend::listSubZone(const DNSName &zone, int domain_id) {
   string wildzone = "%." + toLower(zone.toStringNoDot());
 
   try {
+    reconnectIfNeeded();
+
     d_query_name = "list-subzone-query";
     d_query_stmt = d_listSubZoneQuery_stmt;
     d_query_stmt->
@@ -1075,6 +1147,8 @@ bool GSQLBackend::superMasterBackend(const string &ip, const DNSName &domain, co
   // check if we know the ip/ns couple in the database
   for(vector<DNSResourceRecord>::const_iterator i=nsset.begin();i!=nsset.end();++i) {
     try {
+      reconnectIfNeeded();
+
       d_SuperMasterInfoQuery_stmt->
         bind("ip", ip)->
         bind("nameserver", i->content)->
@@ -1099,6 +1173,8 @@ bool GSQLBackend::superMasterBackend(const string &ip, const DNSName &domain, co
 bool GSQLBackend::createDomain(const DNSName &domain, const string &type, const string &masters, const string &account)
 {
   try {
+    reconnectIfNeeded();
+
     d_InsertZoneQuery_stmt->
       bind("type", type)->
       bind("domain", domain)->
@@ -1120,6 +1196,8 @@ bool GSQLBackend::createSlaveDomain(const string &ip, const DNSName &domain, con
   try {
     if (!nameserver.empty()) {
       // figure out all IP addresses for the master
+      reconnectIfNeeded();
+
       d_GetSuperMasterIPs_stmt->
         bind("nameserver", nameserver)->
         bind("account", account)->
@@ -1153,6 +1231,8 @@ bool GSQLBackend::deleteDomain(const DNSName &domain)
   }
 
   try {
+    reconnectIfNeeded();
+
     d_DeleteZoneQuery_stmt->
       bind("domain_id", di.id)->
       execute()->
@@ -1185,6 +1265,8 @@ void GSQLBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabl
   DLOG(L<<"GSQLBackend retrieving all domains."<<endl);
 
   try {
+    reconnectIfNeeded();
+
     d_getAllDomainsQuery_stmt->
       bind("include_disabled", (int)include_disabled)->
       execute();
@@ -1233,6 +1315,8 @@ void GSQLBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabl
 bool GSQLBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset)
 {
   try {
+    reconnectIfNeeded();
+
     if (qt != QType::ANY) {
       d_DeleteRRSetQuery_stmt->
         bind("domain_id", domain_id)->
@@ -1254,6 +1338,8 @@ bool GSQLBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
 
   if (rrset.empty()) {
     try {
+      reconnectIfNeeded();
+
       d_DeleteCommentRRsetQuery_stmt->
         bind("domain_id", domain_id)->
         bind("qname", qname)->
@@ -1286,6 +1372,8 @@ bool GSQLBackend::feedRecord(const DNSResourceRecord &r, const DNSName &ordernam
   }
 
   try {
+    reconnectIfNeeded();
+
     d_InsertRecordQuery_stmt->
       bind("content",content)->
       bind("ttl",r.ttl)->
@@ -1319,6 +1407,8 @@ bool GSQLBackend::feedEnts(int domain_id, map<DNSName,bool>& nonterm)
 {
   for(const auto& nt: nonterm) {
     try {
+      reconnectIfNeeded();
+
       d_InsertEmptyNonTerminalOrderQuery_stmt->
         bind("domain_id",domain_id)->
         bind("qname", nt.first)->
@@ -1343,6 +1433,8 @@ bool GSQLBackend::feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bo
 
   for(const auto& nt: nonterm) {
     try {
+      reconnectIfNeeded();
+
       d_InsertEmptyNonTerminalOrderQuery_stmt->
         bind("domain_id",domain_id)->
         bind("qname", nt.first);
@@ -1369,7 +1461,10 @@ bool GSQLBackend::feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bo
 bool GSQLBackend::startTransaction(const DNSName &domain, int domain_id)
 {
   try {
+    reconnectIfNeeded();
+
     d_db->startTransaction();
+    d_inTransaction = true;
     if(domain_id >= 0) {
       d_DeleteZoneQuery_stmt->
         bind("domain_id", domain_id)->
@@ -1378,6 +1473,7 @@ bool GSQLBackend::startTransaction(const DNSName &domain, int domain_id)
     }
   }
   catch (SSqlException &e) {
+    d_inTransaction = false;
     throw PDNSException("Database failed to start transaction: "+e.txtReason());
   }
 
@@ -1388,8 +1484,10 @@ bool GSQLBackend::commitTransaction()
 {
   try {
     d_db->commit();
+    d_inTransaction = false;
   }
   catch (SSqlException &e) {
+    d_inTransaction = false;
     throw PDNSException("Database failed to commit transaction: "+e.txtReason());
   }
   return true;
@@ -1399,8 +1497,10 @@ bool GSQLBackend::abortTransaction()
 {
   try {
     d_db->rollback();
+    d_inTransaction = false;
   }
   catch(SSqlException &e) {
+    d_inTransaction = false;
     throw PDNSException("Database failed to abort transaction: "+string(e.txtReason()));
   }
   return true;
@@ -1414,6 +1514,8 @@ bool GSQLBackend::calculateSOASerial(const DNSName& domain, const SOAData& sd, t
   }
   
   try {
+    reconnectIfNeeded();
+
     d_ZoneLastChangeQuery_stmt->
       bind("domain_id", sd.domain_id)->
       execute()->
@@ -1437,6 +1539,8 @@ bool GSQLBackend::calculateSOASerial(const DNSName& domain, const SOAData& sd, t
 bool GSQLBackend::listComments(const uint32_t domain_id)
 {
   try {
+    reconnectIfNeeded();
+
     d_query_name = "list-comments-query";
     d_query_stmt = d_ListCommentsQuery_stmt;
     d_query_stmt->
@@ -1483,6 +1587,8 @@ bool GSQLBackend::getComment(Comment& comment)
 void GSQLBackend::feedComment(const Comment& comment)
 {
   try {
+    reconnectIfNeeded();
+
     d_InsertCommentQuery_stmt->
       bind("domain_id",comment.domain_id)->
       bind("qname",comment.qname)->
@@ -1501,6 +1607,8 @@ void GSQLBackend::feedComment(const Comment& comment)
 bool GSQLBackend::replaceComments(const uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<Comment>& comments)
 {
   try {
+    reconnectIfNeeded();
+
     d_DeleteCommentRRsetQuery_stmt->
       bind("domain_id",domain_id)->
       bind("qname", qname)->
@@ -1525,6 +1633,8 @@ string GSQLBackend::directBackendCmd(const string &query)
    ostringstream out;
 
    unique_ptr<SSqlStatement> stmt(d_db->prepare(query,0));
+
+   reconnectIfNeeded();
 
    stmt->execute();
 
@@ -1559,6 +1669,8 @@ bool GSQLBackend::searchRecords(const string &pattern, int maxResults, vector<DN
   d_qname.clear();
   try {
     string escaped_pattern = pattern2SQLPattern(pattern);
+
+    reconnectIfNeeded();
 
     d_SearchRecordsQuery_stmt->
       bind("value", escaped_pattern)->
@@ -1596,6 +1708,8 @@ bool GSQLBackend::searchComments(const string &pattern, int maxResults, vector<C
   Comment c;
   try {
     string escaped_pattern = pattern2SQLPattern(pattern);
+
+    reconnectIfNeeded();
 
     d_SearchCommentsQuery_stmt->
       bind("value", escaped_pattern)->

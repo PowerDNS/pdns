@@ -34,17 +34,20 @@ public:
 
   ~SPgSQL();
   
-  SSqlException sPerrorException(const string &reason);
-  void setLog(bool state);
-  SSqlStatement* prepare(const string& query, int nparams);
-  void execute(const string& query);
+  SSqlException sPerrorException(const string &reason) override;
+  void setLog(bool state) override;
+  SSqlStatement* prepare(const string& query, int nparams) override;
+  void execute(const string& query) override;
 
-  void startTransaction();
-  void rollback();
-  void commit();
+  void startTransaction() override;
+  void rollback() override;
+  void commit() override;
+
+  bool isConnectionUsable() override;
+  void reconnect() override;
 
   PGconn* db() { return d_db; }
-  bool in_trx() { return d_in_trx; }
+  bool in_trx() const { return d_in_trx; }
 
 private:
   PGconn* d_db;

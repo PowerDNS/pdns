@@ -393,8 +393,7 @@ private:
   int d_residx;
 };
 
-SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const string &msocket, const string &user,
-               const string &password, const string &group, bool setIsolation, unsigned int timeout)
+void SMySQL::connect()
 {
   int retry=1;
 
@@ -410,9 +409,9 @@ SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const 
 #endif
 
 #if MYSQL_VERSION_ID >= 50100
-    if(timeout) {
-      mysql_options(&d_db, MYSQL_OPT_READ_TIMEOUT, &timeout);
-      mysql_options(&d_db, MYSQL_OPT_WRITE_TIMEOUT, &timeout);
+    if(d_timeout) {
+      mysql_options(&d_db, MYSQL_OPT_READ_TIMEOUT, &d_timeout);
+      mysql_options(&d_db, MYSQL_OPT_WRITE_TIMEOUT, &d_timeout);
     }
 #endif
 
@@ -420,18 +419,18 @@ SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const 
     mysql_options(&d_db, MYSQL_SET_CHARSET_NAME, MYSQL_AUTODETECT_CHARSET_NAME);
 #endif
 
-    if (setIsolation && (retry == 1))
+    if (d_setIsolation && (retry == 1))
       mysql_options(&d_db, MYSQL_INIT_COMMAND,"SET SESSION tx_isolation='READ-COMMITTED'");
 
-    mysql_options(&d_db, MYSQL_READ_DEFAULT_GROUP, group.c_str());
+    mysql_options(&d_db, MYSQL_READ_DEFAULT_GROUP, d_group.c_str());
 
-    if (!mysql_real_connect(&d_db, host.empty() ? NULL : host.c_str(),
-                          user.empty() ? NULL : user.c_str(),
-                          password.empty() ? NULL : password.c_str(),
-                          database.empty() ? NULL : database.c_str(),
-                          port,
-                          msocket.empty() ? NULL : msocket.c_str(),
-                          CLIENT_MULTI_RESULTS)) {
+    if (!mysql_real_connect(&d_db, d_host.empty() ? NULL : d_host.c_str(),
+                            d_user.empty() ? NULL : d_user.c_str(),
+                            d_password.empty() ? NULL : d_password.c_str(),
+                            d_database.empty() ? NULL : d_database.c_str(),
+                            d_port,
+                            d_msocket.empty() ? NULL : d_msocket.c_str(),
+                            CLIENT_MULTI_RESULTS)) {
 
       if (retry == 0)
         throw sPerrorException("Unable to connect to database");
@@ -444,6 +443,13 @@ SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const 
       retry=-1;
     }
   } while (retry >= 0);
+}
+
+SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const string &msocket, const string &user,
+               const string &password, const string &group, bool setIsolation, unsigned int timeout):
+  d_database(database), d_host(host), d_msocket(msocket), d_user(user), d_password(password), d_group(group), d_timeout(timeout), d_port(port), d_setIsolation(setIsolation)
+{
+  connect();
 }
 
 void SMySQL::setLog(bool state)
@@ -486,4 +492,27 @@ void SMySQL::commit() {
 
 void SMySQL::rollback() {
   execute("rollback");
+}
+
+bool SMySQL::isConnectionUsable()
+{
+  bool usable = false;
+  int sd = d_db.net.fd;
+  bool wasNonBlocking = isNonBlocking(sd);
+
+  if (!wasNonBlocking) {
+    if (!setNonBlocking(sd)) {
+      return usable;
+    }
+  }
+
+  usable = isTCPSocketUsable(sd);
+
+  if (!wasNonBlocking) {
+    if (!setBlocking(sd)) {
+      usable = false;
+    }
+  }
+
+  return usable;
 }

@@ -54,6 +54,24 @@ gPgSQLBackend::gPgSQLBackend(const string &mode, const string &suffix)  : GSQLBa
   L<<Logger::Info<<mode<<" Connection successful. Connected to database '"<<getArg("dbname")<<"' on '"<<getArg("host")<<"'."<<endl;
 }
 
+void gPgSQLBackend::reconnect()
+{
+  freeStatements();
+
+  if (d_db) {
+    d_db->reconnect();
+  }
+}
+
+bool gPgSQLBackend::inTransaction()
+{
+  const auto* db = dynamic_cast<SPgSQL*>(d_db);
+  if (db) {
+    return db->in_trx();
+  }
+  return false;
+}
+
 class gPgSQLFactory : public BackendFactory
 {
 public:
