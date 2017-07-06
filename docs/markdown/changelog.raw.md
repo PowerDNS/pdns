@@ -16,6 +16,36 @@ the previous line.
 - [#5094](https://github.com/PowerDNS/pdns/pull/5094): make our zone parser adhere to RFC2308 wrt implicit TTLs and add test
 -->
 
+# PowerDNS Recursor 4.0.6
+Released 6th of July 2017
+
+This release features a fix for the ed25519 verifier. This verifier hashed the message before verifying, resulting in unverifiable signatures. Also on the Elliptic Curve front, support was added for ED448 (DNSSEC algorithm 16) by using libdecaf.
+
+Besides that, this release features massive improvements to our edns-client-subnet handling, and some IXFR fixes. Note that this release changes `use-incoming-edns-subnet` to disabled by default.
+
+## Bug fixes
+
+- commit c24288b87: Use the incoming ECS for cache lookup if `use-incoming-edns-subnet` is set
+- commit b91dc6e92: when making a netmask from a comboaddress, we neglected to zero the port. This could lead to a proliferation of netmasks.
+- commit 261591b6f: Don't take the initial ECS source for a scope one if EDNS is off
+- commit 66f894b7a: also set d_requestor without Lua: the ECS logic needs it
+- commit c2086f265: Fix IXFR skipping the additions part of the last sequence
+- commit a5c9534d0: Treat requestor's payload size lower than 512 as equal to 512
+- commit 61b1ea2f4: make URI integers 16 bits, fixes [ticket #5443](https://github.com/PowerDNS/pdns/issues/5443)
+- commit 27f9da3c2: unbreak quoting; fixes [ticket #5401](https://github.com/PowerDNS/pdns/issues/5401)
+
+## Improvements
+
+- commit 2325010e6: with this, EDNS Client Subnet becomes compatible with the packet cache, using the existing variable answer facility.
+- commit 2ec8d8148: Remove just enough entries from the cache, not one more than asked
+- commit 71df15677: Move expired cache entries to the front so they are expunged
+- commit d84834c4c: changed IPv6 addr of b.root-servers.net (Arsen Stasic)
+- commit bcce047bc: e.root-servers.net has IPv6 now (phonedph1)
+- commit cef8ec7c2: hello decaf signers (ED25519 and ED448) Testing algorithm 15: 'Decaf ED25519' ->'Decaf ED25519' -> 'Decaf ED25519' Signature & verify ok, signature 68usec, verify 93usec Testing algorithm 16: 'Decaf ED448' ->'Decaf ED448' -> 'Decaf ED448' Signature & verify ok, signature 163usec, verify 252usec (Kees Monshouwer)
+- commit 68490a4b5: don't use the libdecaf ed25519 signer when libsodium is enabled (Kees Monshouwer)
+- commit 5a88a8ed5: do not hash the message in the ed25519 signer (Kees Monshouwer)
+- commit 0e7893bf4: Disable use-incoming-edns-subnet by default
+
 # PowerDNS Authoritative Server 4.0.4
 Released 23rd of June 2017
 
