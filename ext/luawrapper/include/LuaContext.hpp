@@ -47,6 +47,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <type_traits>
 #include <unordered_map>
 #include <boost/any.hpp>
+#include <boost/format.hpp>
 #include <boost/mpl/distance.hpp>
 #include <boost/mpl/transform.hpp>
 #include <boost/optional.hpp>
@@ -63,6 +64,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #else
 #   define ATTR_UNUSED
 #endif
+
+#define LUACONTEXT_GLOBAL_EQ "e5ddced079fc405aa4937b386ca387d2"
+#define EQ_FUNCTION_NAME "__eq"
+#define TOSTRING_FUNCTION_NAME "__tostring"
 
 /**
  * Defines a Lua context
@@ -100,7 +105,31 @@ public:
         // opening default library if required to do so
         if (openDefaultLibs)
             luaL_openlibs(mState);
+
+         writeGlobalEq();
     }
+
+    void writeGlobalEq() {
+      const auto eqFunction = [](lua_State* lua) -> int {
+        try {
+          lua_pushstring(lua, "__eq");
+          lua_gettable(lua, -2);
+          /* if not found, return false */
+          if (lua_isnil(lua, -1)) {
+            lua_pop(lua, -2);
+            lua_pushboolean(lua, false);
+            return 1;
+          }
+          lua_insert(lua, lua_gettop(lua)-2);
+          return callRaw(lua, PushedObject{lua, 3}, 1).release();
+        } catch(...) {
+          Pusher<std::exception_ptr>::push(lua, std::current_exception()).release();
+          luaError(lua);
+        }
+      };
+      lua_pushcfunction(mState, eqFunction);
+      lua_setglobal(mState, LUACONTEXT_GLOBAL_EQ);
+    };
 
     /**
      * Move constructor
@@ -392,6 +421,56 @@ public:
     {
         static_assert(std::is_function<TFunctionType>::value, "registerFunction must take a function type as template parameter");
         registerFunctionImpl(functionName, std::move(fn), tag<TObject>{}, tag<TFunctionType>{});
+    }
+
+    /**
+     * Wrappers for registering "__eq" function in case we want to change this to something else some day
+     */
+
+    template<typename TPointerToMemberFunction>
+    auto registerEqFunction(TPointerToMemberFunction pointer)
+        -> typename std::enable_if<std::is_member_function_pointer<TPointerToMemberFunction>::value>::type
+    {
+        registerFunctionImpl(EQ_FUNCTION_NAME, std::mem_fn(pointer), tag<TPointerToMemberFunction>{});
+    }
+
+    template<typename TFunctionType, typename TType>
+    void registerEqFunction(TType fn)
+    {
+        static_assert(std::is_member_function_pointer<TFunctionType>::value, "registerFunction must take a member function pointer type as template parameter");
+        registerFunctionImpl(EQ_FUNCTION_NAME, std::move(fn), tag<TFunctionType>{});
+    }
+
+    template<typename TObject, typename TFunctionType, typename TType>
+    void registerEqFunction(TType fn)
+       {
+        static_assert(std::is_function<TFunctionType>::value, "registerFunction must take a function type as template parameter");
+        registerFunctionImpl(EQ_FUNCTION_NAME, std::move(fn), tag<TObject>{}, tag<TFunctionType>{});
+    }
+
+    /**
+     * Wrappers for registering "__tostring" function in case we want to change this to something else some day
+     */
+
+    template<typename TPointerToMemberFunction>
+    auto registerToStringFunction(TPointerToMemberFunction pointer)
+        -> typename std::enable_if<std::is_member_function_pointer<TPointerToMemberFunction>::value>::type
+    {
+        registerFunctionImpl(TOSTRING_FUNCTION_NAME, std::mem_fn(pointer), tag<TPointerToMemberFunction>{});
+    }
+
+    template<typename TFunctionType, typename TType>
+    void registerToStringFunction(TType fn)
+    {
+        static_assert(std::is_member_function_pointer<TFunctionType>::value, "registerFunction must take a member function pointer type as template parameter");
+        registerFunctionImpl(TOSTRING_FUNCTION_NAME, std::move(fn), tag<TFunctionType>{});
+    }
+
+    template<typename TObject, typename TFunctionType, typename TType>
+    void registerToStringFunction(TType fn)
+       {
+        static_assert(std::is_function<TFunctionType>::value, "registerFunction must take a function type as template parameter");
+        registerFunctionImpl(TOSTRING_FUNCTION_NAME, std::move(fn), tag<TObject>{}, tag<TFunctionType>{});
     }
 
     /**
@@ -1496,6 +1575,28 @@ private:
                 }
             };
 
+            const auto toStringFunction = [](lua_State* lua) -> int {
+               try {
+                    assert(lua_gettop(lua) == 1);
+                    assert(lua_isuserdata(lua, 1));
+                    lua_pushstring(lua, "__tostring");
+                    lua_gettable(lua, 1);
+                    if (lua_isnil(lua, -1))
+                    {
+                        const void *ptr = lua_topointer(lua, -2);
+                        lua_pop(lua, 1);
+                        lua_pushstring(lua, (boost::format("userdata 0x%08x") % reinterpret_cast<intptr_t>(ptr)).str().c_str());
+                        return 1;
+                    }
+                    lua_pushvalue(lua, 1);
+		    return callRaw(lua, PushedObject{lua, 2}, 1).release();
+                } catch (...) {
+                    Pusher<std::exception_ptr>::push(lua, std::current_exception()).release();
+                    luaError(lua);
+                }
+            };
+
+
             // writing structure for this type into the registry
             checkTypeRegistration(state, &typeid(TType));
 
@@ -1534,6 +1635,15 @@ private:
             lua_pushstring(state, "__newindex");
             lua_pushcfunction(state, newIndexFunction);
             lua_settable(state, -3);
+
+            lua_pushstring(state, "__tostring");
+            lua_pushcfunction(state, toStringFunction);
+            lua_settable(state, -3);
+
+            lua_pushstring(state, "__eq");
+            lua_getglobal(state, LUACONTEXT_GLOBAL_EQ);
+            lua_settable(state, -3);
+
 
             // at this point, the stack contains the object at offset -2 and the metatable at offset -1
             // lua_setmetatable will bind the two together and pop the metatable
