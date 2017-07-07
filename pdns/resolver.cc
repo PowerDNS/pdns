@@ -217,7 +217,7 @@ static int parseResult(MOADNSParser& mdp, const DNSName& origQname, uint16_t ori
 
 bool Resolver::tryGetSOASerial(DNSName *domain, uint32_t *theirSerial, uint32_t *theirInception, uint32_t *theirExpire, uint16_t* id)
 {
-  struct pollfd *fds = new struct pollfd[locals.size()];
+  auto fds = std::unique_ptr<struct pollfd[]>(new struct pollfd[locals.size()]);
   size_t i = 0, k;
   int sock;
 
@@ -226,8 +226,7 @@ bool Resolver::tryGetSOASerial(DNSName *domain, uint32_t *theirSerial, uint32_t 
     fds[i].events = POLLIN;
   }
 
-  if (poll(fds, i, 250) < 1) { // wait for 0.25s
-    delete [] fds;
+  if (poll(fds.get(), i, 250) < 1) { // wait for 0.25s
     return false;
   }
 
@@ -240,8 +239,6 @@ bool Resolver::tryGetSOASerial(DNSName *domain, uint32_t *theirSerial, uint32_t 
       break;
     }
   }
-
-  delete [] fds;
 
   if (sock < 0) return false; // false alarm
 
