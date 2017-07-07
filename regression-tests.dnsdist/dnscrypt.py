@@ -39,7 +39,7 @@ class DNSCryptResolverCertificate(object):
 
         resolverPK = orig[0:32]
         clientMagic = orig[32:40]
-        serial = struct.unpack_from("I", orig[40:44])
+        serial = struct.unpack_from("I", orig[40:44])[0]
         validFrom = struct.unpack_from("!I", orig[44:48])[0]
         validUntil = struct.unpack_from("!I", orig[48:52])[0]
         return DNSCryptResolverCertificate(serial, validFrom, validUntil, resolverPK, clientMagic)
@@ -109,7 +109,18 @@ class DNSCryptClient(object):
 
         return False
 
-    def _getResolverCertificates(self):
+    def clearExpiredResolverCertificates(self):
+        newCerts = []
+
+        for cert in self._resolverCertificates:
+            if cert.isValid():
+                newCerts.append(cert)
+
+        self._resolverCertificates = newCerts
+
+    def refreshResolverCertificates(self):
+        self.clearExpiredResolverCertificates()
+
         query = dns.message.make_query(self._providerName, dns.rdatatype.TXT, dns.rdataclass.IN)
         data = self._sendQuery(query.to_wire())
 
@@ -129,7 +140,7 @@ class DNSCryptClient(object):
             if cert.isValid():
                 self._resolverCertificates.append(cert)
 
-    def _getResolverCertificate(self):
+    def getResolverCertificate(self):
         certs = self._resolverCertificates
         result = None
         for cert in certs:
@@ -191,10 +202,10 @@ class DNSCryptClient(object):
     def query(self, queryContent, tcp=False):
 
         if not self._hasValidResolverCertificate():
-            self._getResolverCertificates()
+            self.refreshResolverCertificates()
 
         nonce = self._generateNonce()
-        resolverCert = self._getResolverCertificate()
+        resolverCert = self.getResolverCertificate()
         if resolverCert is None:
             raise Exception("No valid certificate found")
         encryptedQuery = self._encryptQuery(queryContent, resolverCert, nonce, tcp)
