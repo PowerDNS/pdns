@@ -94,6 +94,9 @@ class DNSAction
 public:
   enum class Action { Drop, Nxdomain, Refused, Spoof, Allow, HeaderModify, Pool, Delay, Truncate, None};
   virtual Action operator()(DNSQuestion*, string* ruleresult) const =0;
+  virtual ~DNSAction()
+  {
+  }
   virtual string toString() const = 0;
   virtual std::unordered_map<string, double> getStats() const 
   {
@@ -106,6 +109,9 @@ class DNSResponseAction
 public:
   enum class Action { Allow, Delay, Drop, HeaderModify, None };
   virtual Action operator()(DNSResponse*, string* ruleresult) const =0;
+  virtual ~DNSResponseAction()
+  {
+  }
   virtual string toString() const = 0;
 };
 
@@ -598,6 +604,9 @@ extern std::string g_outputBuffer; // locking for this is ok, as locked by g_lua
 class DNSRule
 {
 public:
+  virtual ~DNSRule ()
+  {
+  }
   virtual bool matches(const DNSQuestion* dq) const =0;
   virtual string toString() const = 0;
   mutable std::atomic<uint64_t> d_matches{0};
