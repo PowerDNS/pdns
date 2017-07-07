@@ -270,7 +270,7 @@ class TestSpoofingLuaSpoof(DNSDistTest):
     function spoof1rule(dq)
         if(dq.qtype==1) -- A
         then
-                return DNSAction.Spoof, "192.0.2.1"
+                return DNSAction.Spoof, "192.0.2.1,192.0.2.2"
         elseif(dq.qtype == 28) -- AAAA
         then
                 return DNSAction.Spoof, "2001:DB8::1"
@@ -302,7 +302,7 @@ class TestSpoofingLuaSpoof(DNSDistTest):
                                     60,
                                     dns.rdataclass.IN,
                                     dns.rdatatype.A,
-                                    '192.0.2.1')
+                                    '192.0.2.1', '192.0.2.2')
         expectedResponse.answer.append(rrset)
 
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)

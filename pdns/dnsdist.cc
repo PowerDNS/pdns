@@ -809,16 +809,33 @@ catch(...)
   return 0;
 }
 
-void spoofResponseFromString(DNSQuestion& dq, const string& spoofContent)
+static void spoofResponseFromString(DNSQuestion& dq, const string& spoofContent)
 {
   string result;
-  try {
-    ComboAddress spoofAddr(spoofContent);
-    SpoofAction sa({spoofAddr});
-    sa(&dq, &result);
-  }
-  catch(PDNSException &e) {
-    SpoofAction sa(spoofContent); // CNAME then
+
+  std::vector<std::string> addrs;
+  stringtok(addrs, spoofContent, " ,");
+
+  if (addrs.size() == 1) {
+    try {
+      ComboAddress spoofAddr(spoofContent);
+      SpoofAction sa({spoofAddr});
+      sa(&dq, &result);
+    }
+    catch(const PDNSException &e) {
+      SpoofAction sa(spoofContent); // CNAME then
+      sa(&dq, &result);
+    }
+  } else {
+    std::vector<ComboAddress> cas;
+    for (const auto& addr : addrs) {
+      try {
+        cas.push_back(ComboAddress(addr));
+      }
+      catch (...) {
+      }
+    }
+    SpoofAction sa(cas);
     sa(&dq, &result);
   }
 }
