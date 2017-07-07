@@ -399,6 +399,7 @@ void moreLua(bool client)
                                                       } );
 
   g_lua.registerMember("fullname", &StatNode::fullname);
+  g_lua.registerMember("labelsCount", &StatNode::labelsCount);
   g_lua.registerMember("servfails", &StatNode::Stat::servfails);
   g_lua.registerMember("nxdomains", &StatNode::Stat::nxdomains);
   g_lua.registerMember("queries", &StatNode::Stat::queries);
