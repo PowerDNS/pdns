@@ -59,15 +59,18 @@ EXTRA_DIST = \
 	rec_control.1.md \
 	rrd/* \
 	html incfiles \
+	test_libcrypto \
 	pdns-recursor.service.in
 
 sbin_PROGRAMS = pdns_recursor
 bin_PROGRAMS = rec_control
 
+TESTS=test_libcrypto
+
 if UNIT_TESTS
 noinst_PROGRAMS = testrunner
 TESTS_ENVIRONMENT = env BOOST_TEST_LOG_LEVEL=message SRCDIR='$(srcdir)'
-TESTS=testrunner
+TESTS += testrunner
 else
 check-local:
 	@echo "Unit tests are not enabled"

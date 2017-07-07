@@ -4,7 +4,7 @@ Priority: extra
 Standards-Version: 3.9.6
 Maintainer: PowerDNS Autobuilder <powerdns.support@powerdns.com>
 Origin: PowerDNS
-Build-Depends: debhelper (>= 9~), dh-systemd, quilt, dpkg-dev (>= 1.17.0~), libboost-dev, libboost-serialization-dev, libluajit5.1-dev, libsnmp-dev, libprotobuf-dev, protobuf-compiler, pkg-config @LIBSYSTEMDDEV@ @LIBSODIUMDEV@
+Build-Depends: debhelper (>= 9~), dh-systemd, quilt, dpkg-dev (>= 1.17.0~), libboost-dev, libboost-serialization-dev, libluajit5.1-dev, libprotobuf-dev, protobuf-compiler, pkg-config @LIBSYSTEMDDEV@ @LIBSODIUMDEV@ @LIBSNMPDEV@
 Homepage: http://www.powerdns.com/
 
 Package: pdns-recursor

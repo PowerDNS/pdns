@@ -1,0 +1,12 @@
+#!/bin/sh
+
+if [ $(ldd pdns_recursor | grep -c libcrypto) -gt 1 ]; then
+  echo "Error! pdns_recursor is linked against multiple OpenSSL versions!"
+  echo "This happens when one dependency is linked to OpenSSL 1.0, while"
+  echo "pdns_recursor is linked against OpenSSL 1.1. Please set --with-libcrypto"
+  echo "to the directory of the dependency's OpenSSL or drop the dependency."
+  echo ""
+  echo "On Debian Stretch, this error is most likely caused by attempting to"
+  echo "link in net-snmp."
+  exit 1;
+fi
