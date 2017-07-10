@@ -1,6 +1,14 @@
 pkglib_LTLIBRARIES = libldapbackend.la
 
-EXTRA_DIST = OBJECTFILES OBJECTLIBS
+EXTRA_DIST = \
+    OBJECTFILES \
+    OBJECTLIBS \
+    dnsdomain2.schema \
+    pdns-domaininfo.schema
+
+dist_doc_DATA = \
+    dnsdomain2.schema \
+    pdns-domaininfo.schema
 
 libldapbackend_la_SOURCES = \
 	ldapbackend.cc ldapbackend.hh \
