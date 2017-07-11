@@ -1077,11 +1077,9 @@ static ssize_t udpClientSendRequestToBackend(DownstreamState* ss, const int sd, 
 static void* udpClientThread(ClientState* cs)
 try
 {
-  ComboAddress remote;
-  remote.sin4.sin_family = cs->local.sin4.sin_family;
-  char packet[1500];
   string largerQuery;
   uint16_t qtype, qclass;
+  uint16_t queryId;
 #ifdef HAVE_PROTOBUF
   boost::uuids::random_generator uuidGenerator;
 #endif
@@ -1094,21 +1092,52 @@ try
   auto localDynNMGBlock = g_dynblockNMG.getLocal();
   auto localDynSMTBlock = g_dynblockSMT.getLocal();
   auto localPools = g_pools.getLocal();
-  struct msghdr msgh;
-  struct iovec iov;
-  uint16_t queryId = 0;
-  /* used by HarvestDestinationAddress */
-  char cbuf[256];
-  remote.sin6.sin6_family=cs->local.sin6.sin6_family;
-  fillMSGHdr(&msgh, &iov, cbuf, sizeof(cbuf), packet, sizeof(packet), &remote);
+
+  static const size_t vectSize = 50;
+  struct
+  {
+    char packet[4096];
+    /* used by HarvestDestinationAddress */
+    char cbuf[256];
+    ComboAddress remote;
+    ComboAddress dest;
+    struct iovec iov;
+  }
+  data[vectSize];
+  struct mmsghdr msgVec[vectSize];
+  struct mmsghdr outMsgVec[vectSize];
+
+  for (size_t idx = 0; idx < vectSize; idx++) {
+    data[idx].remote.sin4.sin_family = cs->local.sin4.sin_family;
+
+    fillMSGHdr(&msgVec[idx].msg_hdr, &data[idx].iov, data[idx].cbuf, sizeof(data[idx].cbuf), data[idx].packet, sizeof(data[idx].packet), &data[idx].remote);
+  }
 
   for(;;) {
-    try {
 #ifdef HAVE_DNSCRYPT
       std::shared_ptr<DnsCryptQuery> dnsCryptQuery = 0;
 #endif
-      char* query = packet;
-      ssize_t ret = recvmsg(cs->udpFD, &msgh, 0);
+      for (size_t idx = 0; idx < vectSize; idx++) {
+        data[idx].iov.iov_base = data[idx].packet;
+        data[idx].iov.iov_len = sizeof(data[idx].packet);
+      }
+      int msgsGot = recvmmsg(cs->udpFD, msgVec, vectSize, MSG_WAITFORONE | MSG_TRUNC, nullptr);
+
+      if (msgsGot <= 0) {
+        vinfolog("recvmmsg() failed with: %s", strerror(errno));
+        continue;
+      }
+      //vinfolog("Got %d messages", msgsGot);
+      unsigned int msgsToSend = 0;
+
+    for (int msgIdx = 0; msgIdx < msgsGot; msgIdx++) {
+      const struct msghdr* msgh = &msgVec[msgIdx].msg_hdr;
+      unsigned int ret = msgVec[msgIdx].msg_len;
+      const ComboAddress& remote = data[msgIdx].remote;
+
+    try {
+      char* query = data[msgIdx].packet;
+
       queryId = 0;
 
       if(!acl->match(remote)) {
@@ -1125,7 +1154,7 @@ try
 	continue;
       }
 
-      if (msgh.msg_flags & MSG_TRUNC) {
+      if (msgh->msg_flags & MSG_TRUNC) {
         /* message was too large for our buffer */
         vinfolog("Dropping message too large for our buffer");
         g_stats.nonCompliantQueries++;
@@ -1133,13 +1162,13 @@ try
       }
 
       uint16_t len = (uint16_t) ret;
-      ComboAddress dest;
-      if (HarvestDestinationAddress(&msgh, &dest)) {
+
+      if (HarvestDestinationAddress(msgh, &data[msgIdx].dest)) {
         /* we don't get the port, only the address */
-        dest.sin4.sin_port = cs->local.sin4.sin_port;
+        data[msgIdx].dest.sin4.sin_port = cs->local.sin4.sin_port;
       }
       else {
-        dest.sin4.sin_family = 0;
+        data[msgIdx].dest.sin4.sin_family = 0;
       }
 
 #ifdef HAVE_DNSCRYPT
@@ -1152,7 +1181,7 @@ try
 
         if (!decrypted) {
           if (response.size() > 0) {
-            sendUDPResponse(cs->udpFD, reinterpret_cast<char*>(response.data()), (uint16_t) response.size(), 0, dest, remote);
+            sendUDPResponse(cs->udpFD, reinterpret_cast<char*>(response.data()), (uint16_t) response.size(), 0, data[msgIdx].dest, remote);
           }
           continue;
         }
@@ -1181,7 +1210,7 @@ try
       const uint16_t origFlags = *flags;
       unsigned int consumed = 0;
       DNSName qname(query, len, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
-      DNSQuestion dq(&qname, qtype, qclass, dest.sin4.sin_family != 0 ? &dest : &cs->local, &remote, dh, sizeof(packet), len, false);
+      DNSQuestion dq(&qname, qtype, qclass, data[msgIdx].dest.sin4.sin_family != 0 ? &data[msgIdx].dest : &cs->local, &remote, dh, sizeof(data[msgIdx].packet), len, false);
 #ifdef HAVE_PROTOBUF
       dq.uniqueId = uuidGenerator();
 #endif
@@ -1214,7 +1243,18 @@ try
             continue;
           }
 #endif
-          sendUDPResponse(cs->udpFD, response, responseLen, delayMsec, dest, remote);
+          outMsgVec[msgsToSend].msg_len = 0;
+          fillMSGHdr(&outMsgVec[msgsToSend].msg_hdr, &data[msgIdx].iov, nullptr, 0, response, responseLen, &data[msgIdx].remote);
+
+          if (data[msgIdx].dest.sin4.sin_family == 0) {
+            outMsgVec[msgsToSend].msg_hdr.msg_control = nullptr;
+          }
+          else {
+            addCMsgSrcAddr(&outMsgVec[msgsToSend].msg_hdr, &data[msgIdx].cbuf, &data[msgIdx].dest, 0);
+          }
+
+          msgsToSend++;
+          //sendUDPResponse(cs->udpFD, response, responseLen, delayMsec, dest, remote);
         }
 
         continue;
@@ -1241,11 +1281,11 @@ try
 
       uint32_t cacheKey = 0;
       if (packetCache && !dq.skipCache) {
-        char cachedResponse[4096];
-        uint16_t cachedResponseSize = sizeof cachedResponse;
+//        char cachedResponse[4096];
+        uint16_t cachedResponseSize = dq.size;
         uint32_t allowExpired = ss ? 0 : g_staleCacheEntriesTTL;
-        if (packetCache->get(dq, consumed, dh->id, cachedResponse, &cachedResponseSize, &cacheKey, allowExpired)) {
-          DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.local, dq.remote, (dnsheader*) cachedResponse, sizeof cachedResponse, cachedResponseSize, false, &realTime);
+        if (packetCache->get(dq, consumed, dh->id, query, &cachedResponseSize, &cacheKey, allowExpired)) {
+          DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.local, dq.remote, (dnsheader*) query, dq.size, cachedResponseSize, false, &realTime);
 #ifdef HAVE_PROTOBUF
           dr.uniqueId = dq.uniqueId;
 #endif
@@ -1255,11 +1295,21 @@ try
 
           if (!cs->muted) {
 #ifdef HAVE_DNSCRYPT
-            if (!encryptResponse(cachedResponse, &cachedResponseSize, sizeof cachedResponse, false, dnsCryptQuery, nullptr, nullptr)) {
+            if (!encryptResponse(query, &cachedResponseSize, dq.size, false, dnsCryptQuery, nullptr, nullptr)) {
               continue;
             }
 #endif
-            sendUDPResponse(cs->udpFD, cachedResponse, cachedResponseSize, delayMsec, dest, remote);
+            //sendUDPResponse(cs->udpFD, cachedResponse, cachedResponseSize, delayMsec, dest, remote);
+            outMsgVec[msgsToSend].msg_len = 0;
+            fillMSGHdr(&outMsgVec[msgsToSend].msg_hdr, &data[msgIdx].iov, nullptr, 0, query, cachedResponseSize, &data[msgIdx].remote);
+            if (data[msgIdx].dest.sin4.sin_family == 0) {
+              outMsgVec[msgsToSend].msg_hdr.msg_control = nullptr;
+            }
+            else {
+              addCMsgSrcAddr(&outMsgVec[msgsToSend].msg_hdr, &data[msgIdx].cbuf, &data[msgIdx].dest, 0);
+            }
+
+            msgsToSend++;
           }
 
           g_stats.cacheHits++;
@@ -1286,9 +1336,19 @@ try
             continue;
           }
 #endif
-          sendUDPResponse(cs->udpFD, response, responseLen, 0, dest, remote);
+          outMsgVec[msgsToSend].msg_len = 0;
+          fillMSGHdr(&outMsgVec[msgsToSend].msg_hdr, &data[msgIdx].iov, nullptr, 0, response, responseLen, &data[msgIdx].remote);
+          if (data[msgIdx].dest.sin4.sin_family == 0) {
+            outMsgVec[msgsToSend].msg_hdr.msg_control = nullptr;
+          }
+          else {
+            addCMsgSrcAddr(&outMsgVec[msgsToSend].msg_hdr, &data[msgIdx].cbuf, &data[msgIdx].dest, 0);
+          }
+
+          msgsToSend++;
+//          sendUDPResponse(cs->udpFD, response, responseLen, 0, dest, remote);
         }
-        vinfolog("Dropped query for %s|%s from %s, no policy applied", dq.qname->toString(), QType(dq.qtype).getName(), remote.toStringWithPort());
+        vinfolog("%s query for %s|%s from %s, no policy applied", g_servFailOnNoPolicy ? "Dropped" : "ServFailed", dq.qname->toString(), QType(dq.qtype).getName(), remote.toStringWithPort());
         continue;
 
       }
@@ -1328,8 +1388,8 @@ try
          We need to keep track of which one it is since we may
          want to use the real but not the listening addr to reply.
       */
-      if (dest.sin4.sin_family != 0) {
-        ids->origDest = dest;
+      if (data[msgIdx].dest.sin4.sin_family != 0) {
+        ids->origDest = data[msgIdx].dest;
         ids->destHarvested = true;
       }
       else {
@@ -1360,18 +1420,26 @@ try
 
       vinfolog("Got query for %s|%s from %s, relayed to %s", ids->qname.toString(), QType(ids->qtype).getName(), remote.toStringWithPort(), ss->getName());
     }
-    catch(std::exception& e){
+    catch(const std::exception& e){
       vinfolog("Got an error in UDP question thread while parsing a query from %s, id %d: %s", remote.toStringWithPort(), queryId, e.what());
+    }
+    }
+    if (msgsToSend > 0) {
+      int sent = sendmmsg(cs->udpFD, outMsgVec, msgsToSend, 0);
+      if (sent < 0 || static_cast<unsigned int>(sent) != msgsToSend) {
+        vinfolog("Error sending responses with sendmmsg (%d on %u): %s", sent, msgsToSend, strerror(errno));
+      }
+      //vinfolog("Sent %d responses", sent);
     }
   }
   return 0;
 }
-catch(std::exception &e)
+catch(const std::exception &e)
 {
   errlog("UDP client thread died because of exception: %s", e.what());
   return 0;
 }
-catch(PDNSException &e)
+catch(const PDNSException &e)
 {
   errlog("UDP client thread died because of PowerDNS exception: %s", e.reason);
   return 0;

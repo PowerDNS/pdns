@@ -232,8 +232,9 @@ inline int DTime::udiffNoReset()
 inline const string toLower(const string &upper)
 {
   string reply(upper);
+  const size_t length = reply.length();
   char c;
-  for(unsigned int i = 0; i < reply.length(); i++) {
+  for(unsigned int i = 0; i < length; ++i) {
     c = dns_tolower(upper[i]);
     if( c != upper[i])
       reply[i] = c;
