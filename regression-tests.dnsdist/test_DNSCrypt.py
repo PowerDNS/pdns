@@ -25,8 +25,8 @@ class DNSCryptTest(DNSDistTest):
     _resolverCertificateSerial = 42
 
     # valid from 60s ago until 2h from now
-    _resolverCertificateValidFrom = time.time() - 60
-    _resolverCertificateValidUntil = time.time() + 7200
+    _resolverCertificateValidFrom = int(time.time() - 60)
+    _resolverCertificateValidUntil = int(time.time() + 7200)
 
     _dnsdistStartupDelay = 10
 
@@ -138,6 +138,15 @@ class TestDNSCrypt(DNSCryptTest):
         self.sendConsoleCommand("generateDNSCryptCertificate('DNSCryptProviderPrivate.key', 'DNSCryptResolver.cert.2', 'DNSCryptResolver.key.2', {!s}, {:.0f}, {:.0f})".format(self._resolverCertificateSerial + 1, self._resolverCertificateValidFrom, self._resolverCertificateValidUntil))
         # switch to that new certificate
         self.sendConsoleCommand("getDNSCryptBind(0):loadNewCertificate('DNSCryptResolver.cert.2', 'DNSCryptResolver.key.2')")
+
+        oldSerial = self.sendConsoleCommand("getDNSCryptBind(0):getOldCertificate():getSerial()")
+        self.assertEquals(int(oldSerial), self._resolverCertificateSerial)
+        effectiveSerial = self.sendConsoleCommand("getDNSCryptBind(0):getCurrentCertificate():getSerial()")
+        self.assertEquals(int(effectiveSerial), self._resolverCertificateSerial + 1)
+        tsStart = self.sendConsoleCommand("getDNSCryptBind(0):getCurrentCertificate():getTSStart()")
+        self.assertEquals(int(tsStart), self._resolverCertificateValidFrom)
+        tsEnd = self.sendConsoleCommand("getDNSCryptBind(0):getCurrentCertificate():getTSEnd()")
+        self.assertEquals(int(tsEnd), self._resolverCertificateValidUntil)
 
         # we should still be able to send queries with the previous certificate
         self.doDNSCryptQuery(client, query, response, False)
