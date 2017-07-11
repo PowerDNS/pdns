@@ -236,14 +236,14 @@ public:
 
   void parseZoneFile(BB2DomainInfo *bbd);
   void insertRecord(BB2DomainInfo& bbd, const DNSName &qname, const QType &qtype, const string &content, int ttl, const std::string& hashed=string(), bool *auth=0);
-  void rediscover(string *status=0);
+  void rediscover(string *status=0) override;
 
-  bool isMaster(const DNSName &name, const string &ip);
+  bool isMaster(const DNSName &name, const string &ip) override;
 
   // for supermaster support
-  bool superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db);
+  bool superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db) override;
   static pthread_mutex_t s_supermaster_config_lock;
-  bool createSlaveDomain(const string &ip, const DNSName &domain, const string &nameserver, const string &account);
+  bool createSlaveDomain(const string &ip, const DNSName &domain, const string &nameserver, const string &account) override;
 
 private:
   void setupDNSSEC();
@@ -316,7 +316,7 @@ private:
 
   void queueReloadAndStore(unsigned int id);
   bool findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after);
-  void reload();
+  void reload() override;
   static string DLDomStatusHandler(const vector<string>&parts, Utility::pid_t ppid);
   static string DLListRejectsHandler(const vector<string>&parts, Utility::pid_t ppid);
   static string DLReloadNowHandler(const vector<string>&parts, Utility::pid_t ppid);
