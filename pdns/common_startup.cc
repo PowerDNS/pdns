@@ -49,7 +49,6 @@ int avg_latency;
 TCPNameserver *TN;
 static vector<DNSDistributor*> g_distributors;
 vector<std::shared_ptr<UDPNameserver> > g_udpReceivers;
-AuthLua *LPE;
 
 ArgvMap &arg()
 {
@@ -181,7 +180,6 @@ void declareArguments()
 
   ::arg().set("lua-prequery-script", "Lua script with prequery handler (DO NOT USE)")="";
   ::arg().set("lua-dnsupdate-policy-script", "Lua script with DNS update policy handler")="";
-  ::arg().set("experimental-lua-policy-script", "Lua script for the policy engine")="";
 
   ::arg().setSwitch("traceback-handler","Enable the traceback handler (Linux only)")="yes";
   ::arg().setSwitch("direct-dnskey","Fetch DNSKEY RRs from backend during DNSKEY synthesis")="no";
@@ -420,22 +418,9 @@ try
         cached.d.rd=P->d.rd; // copy in recursion desired bit
         cached.d.id=P->d.id;
         cached.commitD(); // commit d to the packet                        inlined
-
-        int policyres = PolicyDecision::PASS;
-        if(LPE)
-        {
-          // FIXME: cached does not have qdomainwild/qdomainzone because packetcache entries
-          // go through tostring/noparse
-          policyres = LPE->police(&question, &cached);
-        }
-
-        if (policyres == PolicyDecision::PASS) {
-          NS->send(&cached);   // answer it then                              inlined
-          diff=P->d_dt.udiff();
-          avg_latency=(int)(0.999*avg_latency+0.001*diff); // 'EWMA'
-        }
-        // FIXME implement truncate
-
+        NS->send(&cached); // answer it then                              inlined
+        diff=P->d_dt.udiff();
+        avg_latency=(int)(0.999*avg_latency+0.001*diff); // 'EWMA'
         continue;
       }
     }
@@ -549,11 +534,6 @@ void mainthread()
 
   if(::arg().mustDo("slave") || ::arg().mustDo("master") || !::arg()["forward-notify"].empty())
     Communicator.go(); 
-
-  if(!::arg()["experimental-lua-policy-script"].empty()){
-    LPE=new AuthLua(::arg()["experimental-lua-policy-script"]);
-    L<<Logger::Warning<<"Loaded Lua policy script "<<::arg()["experimental-lua-policy-script"]<<endl;
-  }
 
   if(TN)
     TN->go(); // tcp nameserver launch

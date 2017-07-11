@@ -6,6 +6,8 @@ Please upgrade to the PowerDNS Authoritative Server 4.0.0 from 3.4.2+. See the [
 
 ## Changed options
 
+ * `experimental-lua-policy-script` option and the feature itself have been completely dropped. We invite you to use (PowerDNS dnsdist)[http://dnsdist.org] instead.
+
 ### Changed defaults
 
 ## Other changes

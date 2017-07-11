@@ -380,16 +380,6 @@ string DLListZones(const vector<string>&parts, Utility::pid_t ppid)
   return ret.str();
 }
 
-string DLPolicy(const vector<string>&parts, Utility::pid_t ppid)
-{
-  if(LPE) {
-    return LPE->policycmd(parts);
-  }
-  else {
-    return "no policy script loaded";
-  }
-}
-
 #ifdef HAVE_P11KIT1
 extern bool PKCS11ModuleSlotLogin(const std::string& module, const string& tokenId, const std::string& pin);
 #endif

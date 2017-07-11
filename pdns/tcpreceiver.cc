@@ -365,8 +365,6 @@ void *TCPNameserver::doConnection(void *data)
         cached->d.rd=packet->d.rd; // copy in recursion desired bit 
         cached->commitD(); // commit d to the packet                        inlined
 
-        if(LPE) LPE->police(&(*packet), &(*cached), true);
-
         sendPacket(cached, fd); // presigned, don't do it again
         continue;
       }
@@ -380,8 +378,6 @@ void *TCPNameserver::doConnection(void *data)
         }
 
         reply=shared_ptr<DNSPacket>(s_P->doQuestion(packet.get())); // we really need to ask the backend :-)
-
-        if(LPE) LPE->police(&(*packet), &(*reply), true);
       }
 
       if(!reply)  // unable to write an answer?
