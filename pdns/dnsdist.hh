@@ -149,7 +149,6 @@ struct DNSDistStats
   stat_t rdQueries{0};
   stat_t emptyQueries{0};
   stat_t aclDrops{0};
-  stat_t blockFilter{0};
   stat_t dynBlocked{0};
   stat_t ruleDrop{0};
   stat_t ruleNXDomain{0};
@@ -171,7 +170,6 @@ struct DNSDistStats
     {"servfail-responses", &servfailResponses},
     {"queries", &queries},
     {"acl-drops", &aclDrops},
-    {"block-filter", &blockFilter},
     {"rule-drop", &ruleDrop},
     {"rule-nxdomain", &ruleNXDomain},
     {"rule-refused", &ruleRefused},
@@ -593,7 +591,6 @@ struct DownstreamState
 };
 using servers_t =vector<std::shared_ptr<DownstreamState>>;
 
-typedef std::function<bool(const DNSQuestion*)> blockfilter_t;
 template <class T> using NumberedVector = std::vector<std::pair<unsigned int, T> >;
 
 void* responderThread(std::shared_ptr<DownstreamState> state);
@@ -744,7 +741,7 @@ void resetLuaSideEffect(); // reset to indeterminate state
 
 bool responseContentMatches(const char* response, const uint16_t responseLen, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const ComboAddress& remote);
 bool processQuery(LocalStateHolder<NetmaskTree<DynBlock> >& localDynBlockNMG,
-                  LocalStateHolder<SuffixMatchTree<DynBlock> >& localDynBlockSMT, LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > >& localRulactions, blockfilter_t blockFilter, DNSQuestion& dq, string& poolname, int* delayMsec, const struct timespec& now);
+                  LocalStateHolder<SuffixMatchTree<DynBlock> >& localDynBlockSMT, LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > >& localRulactions, DNSQuestion& dq, string& poolname, int* delayMsec, const struct timespec& now);
 bool processResponse(LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSResponseAction> > > >& localRespRulactions, DNSResponse& dr, int* delayMsec);
 bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize, const DNSName& qname, uint16_t origFlags, bool ednsAdded, bool ecsAdded, std::vector<uint8_t>& rewrittenResponse, uint16_t addRoom);
 void restoreFlags(struct dnsheader* dh, uint16_t origFlags);

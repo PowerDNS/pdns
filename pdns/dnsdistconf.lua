@@ -82,32 +82,6 @@ truncateNMG:addMask("fe80::/16")
 
 print(string.format("Have %d entries in truncate NMG", truncateNMG:size()))
 
--- we define a Lua function named blockFilter, which is automatically called
--- when a query is received
--- this example reply with TC=1 for ANY queries, and for queries coming from
--- the specified subnets
--- it also blocks (by returning true) queries for "*.powerdns.org."
-function blockFilter(dq)
-	 print(string.format("Got query from %s, (%s) port number: %d", dq.remoteaddr:toString(), dq.remoteaddr:toStringWithPort(), dq.remoteaddr:getPort()))
-	 if(dq.qtype==dnsdist.ANY or truncateNMG:match(dq.remoteaddr))
-	 then
---	        print("any query, tc=1")
-		dq.dh:setTC(true)
-		dq.dh:setQR(true)
-	 end
-
-	 if(dq.qname:isPartOf(block))
-	 then
-		print("Blocking *.powerdns.org")
-		return true
-	 end
-	 return false
-end
-
--- this is how you disable a filter
-blockFilter = nil
-
-
 -- called to pick a downstream server, ignores 'up' status
 counter=0
 function luaroundrobin(servers, dq)

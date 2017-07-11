@@ -220,15 +220,8 @@ void* tcpClientThread(int pipefd)
      from that point on */
      
   bool outstanding = false;
-  blockfilter_t blockFilter = 0;
   time_t lastTCPCleanup = time(nullptr);
   
-  {
-    std::lock_guard<std::mutex> lock(g_luamutex);
-    auto candidate = g_lua.readVariable<boost::optional<blockfilter_t> >("blockFilter");
-    if(candidate)
-      blockFilter = *candidate;
-  }     
      
   auto localPolicy = g_policy.getLocal();
   auto localRulactions = g_rulactions.getLocal();
@@ -365,7 +358,7 @@ void* tcpClientThread(int pipefd)
 	gettime(&now);
 	gettime(&queryRealTime, true);
 
-	if (!processQuery(localDynBlockNMG, localDynBlockSMT, localRulactions, blockFilter, dq, poolname, &delayMsec, now)) {
+	if (!processQuery(localDynBlockNMG, localDynBlockSMT, localRulactions, dq, poolname, &delayMsec, now)) {
 	  goto drop;
 	}
 

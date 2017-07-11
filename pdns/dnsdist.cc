@@ -842,7 +842,7 @@ static void spoofResponseFromString(DNSQuestion& dq, const string& spoofContent)
 
 bool processQuery(LocalStateHolder<NetmaskTree<DynBlock> >& localDynNMGBlock, 
                   LocalStateHolder<SuffixMatchTree<DynBlock> >& localDynSMTBlock,
-                  LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > >& localRulactions, blockfilter_t blockFilter, DNSQuestion& dq, string& poolname, int* delayMsec, const struct timespec& now)
+                  LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > >& localRulactions, DNSQuestion& dq, string& poolname, int* delayMsec, const struct timespec& now)
 {
   {
     WriteLock wl(&g_rings.queryLock);
@@ -917,15 +917,6 @@ bool processQuery(LocalStateHolder<NetmaskTree<DynBlock> >& localDynNMGBlock,
         vinfolog("Query from %s for %s dropped because of dynamic block", dq.remote->toStringWithPort(), dq.qname->toString());
         return false;
       }
-    }
-  }
-
-  if(blockFilter) {
-    std::lock_guard<std::mutex> lock(g_luamutex);
-
-    if(blockFilter(&dq)) {
-      g_stats.blockFilter++;
-      return false;
     }
   }
 
@@ -1059,13 +1050,6 @@ try
   boost::uuids::random_generator uuidGenerator;
 #endif
 
-  blockfilter_t blockFilter = 0;
-  {
-    std::lock_guard<std::mutex> lock(g_luamutex);
-    auto candidate = g_lua.readVariable<boost::optional<blockfilter_t> >("blockFilter");
-    if(candidate)
-      blockFilter = *candidate;
-  }
   auto acl = g_ACL.getLocal();
   auto localPolicy = g_policy.getLocal();
   auto localRulactions = g_rulactions.getLocal();
@@ -1176,7 +1160,7 @@ try
       gettime(&now);
       gettime(&realTime, true);
 
-      if (!processQuery(localDynNMGBlock, localDynSMTBlock, localRulactions, blockFilter, dq, poolname, &delayMsec, now))
+      if (!processQuery(localDynNMGBlock, localDynSMTBlock, localRulactions, dq, poolname, &delayMsec, now))
       {
         continue;
       }

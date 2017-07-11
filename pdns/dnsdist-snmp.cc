@@ -14,7 +14,7 @@ static const oid queriesOID[] = { DNSDIST_STATS_OID, 1 };
 static const oid responsesOID[] = { DNSDIST_STATS_OID, 2 };
 static const oid servfailResponsesOID[] = { DNSDIST_STATS_OID, 3 };
 static const oid aclDropsOID[] = { DNSDIST_STATS_OID, 4 };
-static const oid blockFilterOID[] = { DNSDIST_STATS_OID, 5 };
+// 5 was BlockFilter, removed in 1.2.0
 static const oid ruleDropOID[] = { DNSDIST_STATS_OID, 6 };
 static const oid ruleNXDomainOID[] = { DNSDIST_STATS_OID, 7 };
 static const oid ruleRefusedOID[] = { DNSDIST_STATS_OID, 8 };
@@ -544,7 +544,6 @@ DNSDistSNMPAgent::DNSDistSNMPAgent(const std::string& name, const std::string& m
   registerCounter64Stat("responses", responsesOID, OID_LENGTH(responsesOID), &g_stats.responses);
   registerCounter64Stat("servfailResponses", servfailResponsesOID, OID_LENGTH(servfailResponsesOID), &g_stats.servfailResponses);
   registerCounter64Stat("aclDrops", aclDropsOID, OID_LENGTH(aclDropsOID), &g_stats.aclDrops);
-  registerCounter64Stat("blockFilter", blockFilterOID, OID_LENGTH(blockFilterOID), &g_stats.blockFilter);
   registerCounter64Stat("ruleDrop", ruleDropOID, OID_LENGTH(ruleDropOID), &g_stats.ruleDrop);
   registerCounter64Stat("ruleNXDomain", ruleNXDomainOID, OID_LENGTH(ruleNXDomainOID), &g_stats.ruleNXDomain);
   registerCounter64Stat("ruleRefused", ruleRefusedOID, OID_LENGTH(ruleRefusedOID), &g_stats.ruleRefused);
