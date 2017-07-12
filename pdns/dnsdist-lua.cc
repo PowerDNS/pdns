@@ -275,6 +275,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			}
 			ComboAddress sourceAddr;
 			unsigned int sourceItf = 0;
+                        std::set<int> cpus;
 			if(auto addressStr = boost::get<string>(&pvars)) {
 			  std::shared_ptr<DownstreamState> ret;
 			  try {
@@ -404,8 +405,8 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			  if(auto* pool = boost::get<string>(&vars["pool"]))
 			    ret->pools.insert(*pool);
 			  else {
-			    auto* pools = boost::get<vector<pair<int, string> > >(&vars["pool"]);
-			    for(auto& p : *pools)
+			    auto pools = boost::get<vector<pair<int, string> > >(vars["pool"]);
+			    for(auto& p : pools)
 			      ret->pools.insert(p.second);
 			  }
 			  for(const auto& poolName: ret->pools) {
@@ -480,14 +481,26 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			  ret->maxCheckFailures=std::stoi(boost::get<string>(vars["maxCheckFailures"]));
 			}
 
+                        if(vars.count("cpus")) {
+                          for (const auto cpu : boost::get<vector<pair<int,string>>>(vars["cpus"])) {
+                            cpus.insert(std::stoi(cpu.second));
+                          }
+			}
+
 			if (ret->connected) {
 			  if(g_launchWork) {
-			    g_launchWork->push_back([ret]() {
+			    g_launchWork->push_back([ret,cpus]() {
 			      ret->tid = thread(responderThread, ret);
+                              if (!cpus.empty()) {
+                                mapThreadToCPUList(ret->tid.native_handle(), cpus);
+                              }
 			    });
 			  }
 			  else {
 			    ret->tid = thread(responderThread, ret);
+                            if (!cpus.empty()) {
+                              mapThreadToCPUList(ret->tid.native_handle(), cpus);
+                            }
 			  }
 			}
 
