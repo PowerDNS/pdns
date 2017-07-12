@@ -41,6 +41,7 @@ std::unordered_set<DNSName> SyncRes::s_delegationOnly;
 std::unique_ptr<NetmaskGroup> SyncRes::s_dontQuery{nullptr};
 NetmaskGroup SyncRes::s_ednssubnets;
 SuffixMatchNode SyncRes::s_ednsdomains;
+EDNSSubnetOpts SyncRes::s_ecsScopeZero;
 string SyncRes::s_serverID;
 SyncRes::LogMode SyncRes::s_lm;
 
@@ -2415,22 +2416,52 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
   return -1;
 }
 
+void SyncRes::setIncomingECS(boost::optional<const EDNSSubnetOpts&> incomingECS)
+{
+  d_incomingECS = incomingECS;
+  if (incomingECS) {
+    if (d_incomingECS->source.getBits() == 0) {
+      /* RFC7871 says we MUST NOT send any ECS if the source scope is 0.
+         But using an empty ECS in that case would mean inserting
+         a non ECS-specific entry into the cache, preventing any further
+         ECS-specific query to be sent.
+         So instead we use the trick described in section 7.1.2:
+         "The subsequent Recursive Resolver query to the Authoritative Nameserver
+         will then either not include an ECS option or MAY optionally include
+         its own address information, which is what the Authoritative
+         Nameserver will almost certainly use to generate any Tailored
+         Response in lieu of an option.  This allows the answer to be handled
+         by the same caching mechanism as other queries, with an explicit
+         indicator of the applicable scope.  Subsequent Stub Resolver queries
+         for /0 can then be answered from this cached response.
+      */
+      d_incomingECS = s_ecsScopeZero;
+      d_incomingECSNetwork = s_ecsScopeZero.source.getMaskedNetwork();
+    }
+    else {
+      uint8_t bits = std::min(incomingECS->source.getBits(), (incomingECS->source.isIpv4() ? s_ecsipv4limit : s_ecsipv6limit));
+      d_incomingECS->source = Netmask(incomingECS->source.getNetwork(), bits);
+      d_incomingECSNetwork = d_incomingECS->source.getMaskedNetwork();
+    }
+  }
+  else {
+    d_incomingECSNetwork = ComboAddress();
+  }
+}
+
 boost::optional<Netmask> SyncRes::getEDNSSubnetMask(const ComboAddress& local, const DNSName&dn, const ComboAddress& rem)
 {
   boost::optional<Netmask> result;
   ComboAddress trunc;
   uint8_t bits;
   if(d_incomingECSFound) {
-    if (d_incomingECS->source.getBits() == 0) {
-      /* RFC7871 says we MUST NOT send any ECS if the source scope is 0 */
-      return result;
-    }
     trunc = d_incomingECSNetwork;
     bits = d_incomingECS->source.getBits();
   }
   else if(!local.isIPv4() || local.sin4.sin_addr.s_addr) { // detect unset 'requestor'
     trunc = local;
     bits = local.isIPv4() ? 32 : 128;
+    bits = std::min(bits, (trunc.isIPv4() ? s_ecsipv4limit : s_ecsipv6limit));
   }
   else {
     /* nothing usable */
@@ -2438,7 +2469,6 @@ boost::optional<Netmask> SyncRes::getEDNSSubnetMask(const ComboAddress& local, c
   }
 
   if(s_ednsdomains.check(dn) || s_ednssubnets.match(rem)) {
-    bits = std::min(bits, (trunc.isIPv4() ? s_ecsipv4limit : s_ecsipv6limit));
     trunc.truncate(bits);
     return boost::optional<Netmask>(Netmask(trunc, bits));
   }

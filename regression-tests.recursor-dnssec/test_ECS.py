@@ -12,6 +12,7 @@ from twisted.internet import reactor
 emptyECSText = 'No ECS received'
 nameECS = 'ecs-echo.example.'
 ttlECS = 60
+ecsReactorRunning = False
 
 class ECSTest(RecursorTest):
     _config_template_default = """
@@ -58,21 +59,20 @@ disable-syslog=yes
 
     @classmethod
     def startResponders(cls):
+        global ecsReactorRunning
         print("Launching responders..")
 
         address = cls._PREFIX + '.21'
         port = 53
 
-        if not reactor.running:
+        if not ecsReactorRunning:
             reactor.listenUDP(port, UDPECSResponder(), interface=address)
+            ecsReactorRunning = True
 
+        if not reactor.running:
             cls._UDPResponder = threading.Thread(name='UDP ECS Responder', target=reactor.run, args=(False,))
             cls._UDPResponder.setDaemon(True)
             cls._UDPResponder.start()
-
-    @classmethod
-    def tearDownResponders(cls):
-        reactor.stop()
 
     @classmethod
     def setUpClass(cls):
@@ -110,6 +110,13 @@ forward-zones=ecs-echo.example=%s.21
         query = dns.message.make_query(nameECS, 'TXT')
         self.sendECSQuery(query, expected)
 
+    def testRequireNoECS(self):
+        expected = dns.rrset.from_text(nameECS, ttlECS, dns.rdataclass.IN, 'TXT', emptyECSText)
+
+        ecso = clientsubnetoption.ClientSubnetOption('0.0.0.0', 0)
+        query = dns.message.make_query(nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
+        self.sendECSQuery(query, expected)
+
 class testIncomingNoECS(ECSTest):
     _confdir = 'IncomingNoECS'
 
@@ -129,6 +136,13 @@ forward-zones=ecs-echo.example=%s.21
         expected = dns.rrset.from_text(nameECS, ttlECS, dns.rdataclass.IN, 'TXT', emptyECSText)
 
         query = dns.message.make_query(nameECS, 'TXT')
+        self.sendECSQuery(query, expected)
+
+    def testRequireNoECS(self):
+        expected = dns.rrset.from_text(nameECS, ttlECS, dns.rdataclass.IN, 'TXT', emptyECSText)
+
+        ecso = clientsubnetoption.ClientSubnetOption('0.0.0.0', 0)
+        query = dns.message.make_query(nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
         self.sendECSQuery(query, expected)
 
 class testECSByName(ECSTest):
@@ -152,6 +166,14 @@ forward-zones=ecs-echo.example=%s.21
     def testNoECS(self):
         expected = dns.rrset.from_text(nameECS, ttlECS, dns.rdataclass.IN, 'TXT', '127.0.0.0/24')
         query = dns.message.make_query(nameECS, 'TXT')
+        self.sendECSQuery(query, expected)
+
+    def testRequireNoECS(self):
+        expected = dns.rrset.from_text(nameECS, ttlECS, dns.rdataclass.IN, 'TXT', '127.0.0.0/24')
+
+        # the request for no ECS is ignored because use-incoming-edns-subnet is not set
+        ecso = clientsubnetoption.ClientSubnetOption('0.0.0.0', 0)
+        query = dns.message.make_query(nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
         self.sendECSQuery(query, expected)
 
 class testECSByNameLarger(ECSTest):
@@ -178,6 +200,14 @@ forward-zones=ecs-echo.example=%s.21
         query = dns.message.make_query(nameECS, 'TXT')
         self.sendECSQuery(query, expected)
 
+    def testRequireNoECS(self):
+        expected = dns.rrset.from_text(nameECS, ttlECS, dns.rdataclass.IN, 'TXT', '127.0.0.1/32')
+
+        # the request for no ECS is ignored because use-incoming-edns-subnet is not set
+        ecso = clientsubnetoption.ClientSubnetOption('0.0.0.0', 0)
+        query = dns.message.make_query(nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
+        self.sendECSQuery(query, expected)
+
 class testECSByNameSmaller(ECSTest):
     _confdir = 'ECSByNameLarger'
 
@@ -197,12 +227,21 @@ forward-zones=ecs-echo.example=%s.21
         query = dns.message.make_query(nameECS, 'TXT')
         self.sendECSQuery(query, expected)
 
+    def testRequireNoECS(self):
+        expected = dns.rrset.from_text(nameECS, ttlECS, dns.rdataclass.IN, 'TXT', '127.0.0.0/16')
+
+        # the request for no ECS is ignored because use-incoming-edns-subnet is not set
+        ecso = clientsubnetoption.ClientSubnetOption('0.0.0.0', 0)
+        query = dns.message.make_query(nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
+        self.sendECSQuery(query, expected)
+
 class testIncomingECSByName(ECSTest):
     _confdir = 'ECSIncomingByName'
 
     _config_template = """edns-subnet-whitelist=ecs-echo.example.
 use-incoming-edns-subnet=yes
 forward-zones=ecs-echo.example=%s.21
+ecs-scope-zero-address=2001:db8::42
     """ % (os.environ['PREFIX'])
 
     def testSendECS(self):
@@ -227,6 +266,13 @@ forward-zones=ecs-echo.example=%s.21
         query = dns.message.make_query(nameECS, 'TXT')
         self.sendECSQuery(query, expected, ttlECS)
 
+    def testRequireNoECS(self):
+        expected = dns.rrset.from_text(nameECS, ttlECS, dns.rdataclass.IN, 'TXT', "2001:db8::42/128")
+
+        ecso = clientsubnetoption.ClientSubnetOption('0.0.0.0', 0)
+        query = dns.message.make_query(nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
+        self.sendECSQuery(query, expected, ttlECS)
+
 class testIncomingECSByNameLarger(ECSTest):
     _confdir = 'ECSIncomingByNameLarger'
 
@@ -234,6 +280,7 @@ class testIncomingECSByNameLarger(ECSTest):
 use-incoming-edns-subnet=yes
 ecs-ipv4-bits=32
 forward-zones=ecs-echo.example=%s.21
+ecs-scope-zero-address=192.168.0.1
     """ % (os.environ['PREFIX'])
 
     def testSendECS(self):
@@ -249,6 +296,13 @@ forward-zones=ecs-echo.example=%s.21
         query = dns.message.make_query(nameECS, 'TXT')
         self.sendECSQuery(query, expected, ttlECS)
 
+    def testRequireNoECS(self):
+        expected = dns.rrset.from_text(nameECS, ttlECS, dns.rdataclass.IN, 'TXT', '192.168.0.1/32')
+
+        ecso = clientsubnetoption.ClientSubnetOption('0.0.0.0', 0)
+        query = dns.message.make_query(nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
+        self.sendECSQuery(query, expected, ttlECS)
+
 class testIncomingECSByNameSmaller(ECSTest):
     _confdir = 'ECSIncomingByNameSmaller'
 
@@ -256,6 +310,7 @@ class testIncomingECSByNameSmaller(ECSTest):
 use-incoming-edns-subnet=yes
 ecs-ipv4-bits=16
 forward-zones=ecs-echo.example=%s.21
+ecs-scope-zero-address=192.168.0.1
     """ % (os.environ['PREFIX'])
 
     def testSendECS(self):
@@ -269,6 +324,13 @@ forward-zones=ecs-echo.example=%s.21
         query = dns.message.make_query(nameECS, 'TXT')
         self.sendECSQuery(query, expected)
 
+    def testRequireNoECS(self):
+        expected = dns.rrset.from_text(nameECS, ttlECS, dns.rdataclass.IN, 'TXT', '192.168.0.1/32')
+
+        ecso = clientsubnetoption.ClientSubnetOption('0.0.0.0', 0)
+        query = dns.message.make_query(nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
+        self.sendECSQuery(query, expected, ttlECS)
+
 class testIncomingECSByNameV6(ECSTest):
     _confdir = 'ECSIncomingByNameV6'
 
@@ -276,6 +338,7 @@ class testIncomingECSByNameV6(ECSTest):
 use-incoming-edns-subnet=yes
 ecs-ipv6-bits=128
 forward-zones=ecs-echo.example=%s.21
+query-local-address6=::1
     """ % (os.environ['PREFIX'])
 
     def testSendECS(self):
@@ -289,6 +352,15 @@ forward-zones=ecs-echo.example=%s.21
 
         query = dns.message.make_query(nameECS, 'TXT')
         res = self.sendUDPQuery(query)
+        self.sendECSQuery(query, expected, ttlECS)
+
+    def testRequireNoECS(self):
+        # we should get ::1/128 because neither ecs-scope-zero-addr nor query-local-address are set,
+        # but query-local-address6 is set to ::1
+        expected = dns.rrset.from_text(nameECS, ttlECS, dns.rdataclass.IN, 'TXT', "::1/128")
+
+        ecso = clientsubnetoption.ClientSubnetOption('0.0.0.0', 0)
+        query = dns.message.make_query(nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
         self.sendECSQuery(query, expected, ttlECS)
 
 class testECSNameMismatch(ECSTest):
@@ -309,6 +381,13 @@ forward-zones=ecs-echo.example=%s.21
         query = dns.message.make_query(nameECS, 'TXT')
         self.sendECSQuery(query, expected)
 
+    def testRequireNoECS(self):
+        expected = dns.rrset.from_text(nameECS, ttlECS, dns.rdataclass.IN, 'TXT', emptyECSText)
+
+        ecso = clientsubnetoption.ClientSubnetOption('0.0.0.0', 0)
+        query = dns.message.make_query(nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
+        self.sendECSQuery(query, expected)
+
 class testECSByIP(ECSTest):
     _confdir = 'ECSByIP'
 
@@ -327,12 +406,21 @@ forward-zones=ecs-echo.example=%s.21
         query = dns.message.make_query(nameECS, 'TXT')
         self.sendECSQuery(query, expected)
 
+    def testRequireNoECS(self):
+        expected = dns.rrset.from_text(nameECS, ttlECS, dns.rdataclass.IN, 'TXT', '127.0.0.0/24')
+
+        # the request for no ECS is ignored because use-incoming-edns-subnet is not set
+        ecso = clientsubnetoption.ClientSubnetOption('0.0.0.0', 0)
+        query = dns.message.make_query(nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
+        self.sendECSQuery(query, expected)
+
 class testIncomingECSByIP(ECSTest):
     _confdir = 'ECSIncomingByIP'
 
     _config_template = """edns-subnet-whitelist=%s.21
 use-incoming-edns-subnet=yes
 forward-zones=ecs-echo.example=%s.21
+ecs-scope-zero-address=::1
     """ % (os.environ['PREFIX'], os.environ['PREFIX'])
 
     def testSendECS(self):
@@ -346,6 +434,14 @@ forward-zones=ecs-echo.example=%s.21
         expected = dns.rrset.from_text(nameECS, ttlECS, dns.rdataclass.IN, 'TXT', '127.0.0.0/24')
         query = dns.message.make_query(nameECS, 'TXT')
         self.sendECSQuery(query, expected)
+
+    def testRequireNoECS(self):
+        # we will get ::1 because ecs-scope-zero-addr is set to ::1
+        expected = dns.rrset.from_text(nameECS, ttlECS, dns.rdataclass.IN, 'TXT', '::1/128')
+
+        ecso = clientsubnetoption.ClientSubnetOption('0.0.0.0', 0)
+        query = dns.message.make_query(nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
+        self.sendECSQuery(query, expected, ttlECS)
 
 class testECSIPMismatch(ECSTest):
     _confdir = 'ECSIPMismatch'
@@ -364,6 +460,13 @@ forward-zones=ecs-echo.example=%s.21
         expected = dns.rrset.from_text(nameECS, ttlECS, dns.rdataclass.IN, 'TXT', emptyECSText)
         query = dns.message.make_query(nameECS, 'TXT')
         res = self.sendUDPQuery(query)
+        self.sendECSQuery(query, expected)
+
+    def testRequireNoECS(self):
+        expected = dns.rrset.from_text(nameECS, ttlECS, dns.rdataclass.IN, 'TXT', emptyECSText)
+
+        ecso = clientsubnetoption.ClientSubnetOption('0.0.0.0', 0)
+        query = dns.message.make_query(nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
         self.sendECSQuery(query, expected)
 
 class UDPECSResponder(DatagramProtocol):

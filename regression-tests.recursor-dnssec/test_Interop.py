@@ -130,9 +130,10 @@ forward-zones+=undelegated.insecure.example=%s.12
 
         reactor.listenUDP(port, UDPResponder(), interface=address)
 
-        cls._UDPResponder = threading.Thread(name='UDP Responder', target=reactor.run, args=(False,))
-        cls._UDPResponder.setDaemon(True)
-        cls._UDPResponder.start()
+        if not reactor.running:
+            cls._UDPResponder = threading.Thread(name='UDP Responder', target=reactor.run, args=(False,))
+            cls._UDPResponder.setDaemon(True)
+            cls._UDPResponder.start()
 
     @classmethod
     def tearDownResponders(cls):
