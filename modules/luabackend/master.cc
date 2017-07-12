@@ -28,11 +28,6 @@
 #include "pdns/logger.hh"
 #include "pdns/arguments.hh"
 
-/* 
-    virtual void getUpdatedMasters(vector<DomainInfo>* domains);
-    virtual void setNotified(int id, uint32_t serial);
-*/
-
 void LUABackend::getUpdatedMasters(vector<DomainInfo>* domains) {
 	
     if (f_lua_getupdatedmasters == 0)
@@ -63,7 +58,7 @@ void LUABackend::getUpdatedMasters(vector<DomainInfo>* domains) {
 	L << Logger::Info << backend_name << "(getUpdatedMasters) END" << endl;
 }
 
-void LUABackend::setNotified(int id, uint32_t serial) {
+void LUABackend::setNotified(uint32_t id, uint32_t serial) {
 	
     if (f_lua_setnotified == 0)
 	return;
