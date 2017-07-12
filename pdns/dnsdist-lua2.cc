@@ -841,14 +841,14 @@ void moreLua(bool client)
       }
      });
 
-    g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(boost::optional <time_t> sec, boost::optional <uint> uSec)>("setProtobufResponseType",
-                                        [](DNSDistProtoBufMessage& message, boost::optional <time_t> sec, boost::optional <uint> uSec) {
+    g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(boost::optional <time_t> sec, boost::optional <uint32_t> uSec)>("setProtobufResponseType",
+                                        [](DNSDistProtoBufMessage& message, boost::optional <time_t> sec, boost::optional <uint32_t> uSec) {
         message.setType(DNSProtoBufMessage::Response);
         message.setQueryTime(sec?*sec:0, uSec?*uSec:0);
      });
 
-    g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const std::string& strQueryName, uint uType, uint uClass, uint uTTL, const std::string& strBlob)>("addResponseRR", [](DNSDistProtoBufMessage& message,
-                                                            const std::string& strQueryName, uint16_t uType, uint uClass, uint32_t uTTL, const std::string& strBlob) {
+    g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const std::string& strQueryName, uint16_t uType, uint16_t uClass, uint32_t uTTL, const std::string& strBlob)>("addResponseRR", [](DNSDistProtoBufMessage& message,
+                                                            const std::string& strQueryName, uint16_t uType, uint16_t uClass, uint32_t uTTL, const std::string& strBlob) {
         message.addRR(strQueryName, uType, uClass, uTTL, strBlob);
      });
 

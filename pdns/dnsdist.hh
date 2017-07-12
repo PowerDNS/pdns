@@ -70,14 +70,12 @@ QTag()
 
 void add(std::string strLabel, std::string strValue)
 {
-
   tagData.insert( {strLabel, strValue});
   return;
 }
 
 std::string getMatch(const std::string& strLabel)  const
 {
-
   std::unordered_map<std::string, std::string>::const_iterator got =tagData.find (strLabel);
   if(got == tagData.end()) {
     return "";
@@ -88,9 +86,8 @@ std::string getMatch(const std::string& strLabel)  const
 
 std::string getEntry(size_t iEntry) const
 {
-std::string strEntry;
-size_t iCounter = 0;
-
+   std::string strEntry;
+   size_t iCounter = 0;
 
   for (const auto& itr : tagData) {
     iCounter++;
@@ -113,8 +110,7 @@ size_t count() const
 
 std::string dumpString() const
 {
-std::string strRet;
-
+  std::string strRet;
 
   for (const auto& itr : tagData) {
     strRet += itr.first;
@@ -127,11 +123,10 @@ std::string strRet;
 }
 
 public:
-    std::unordered_map<std::string, std::string>tagData;
+  std::unordered_map<std::string, std::string>tagData;
 
 private:
-
-    const char *strSep = "\t";
+  const char *strSep = "\t";
 };
 
 
