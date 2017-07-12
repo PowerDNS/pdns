@@ -349,7 +349,7 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const DNSName &target)
     }
 
 found:
-    if(found == (p->qtype == QType::DS)){
+    if(found == (p->qtype == QType::DS) || target != choppedOff) {
       DLOG(L<<Logger::Error<<"found: "<<sd->qname<<endl);
       return true;
     } else {
