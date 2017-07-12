@@ -46,8 +46,8 @@ CREATE TABLE comments (
   name                  VARCHAR(255) NOT NULL,
   type                  VARCHAR(10) NOT NULL,
   modified_at           INT NOT NULL,
-  account               VARCHAR(40) CHARACTER SET 'utf8' NOT NULL,
-  comment               VARCHAR(16000) CHARACTER SET 'utf8' NOT NULL,
+  account               VARCHAR(40) CHARACTER SET 'utf8' DEFAULT NULL,
+  comment               TEXT CHARACTER SET 'utf8' NOT NULL,
   PRIMARY KEY (id)
 ) Engine=InnoDB CHARACTER SET 'latin1';
 
