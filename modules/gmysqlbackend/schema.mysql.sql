@@ -29,7 +29,7 @@ CREATE TABLE records (
 
 CREATE INDEX nametype_index ON records(name,type);
 CREATE INDEX domain_id ON records(domain_id);
-CREATE INDEX recordorder ON records (domain_id, ordername);
+CREATE INDEX ordername ON records (ordername);
 
 
 CREATE TABLE supermasters (
@@ -51,7 +51,6 @@ CREATE TABLE comments (
   PRIMARY KEY (id)
 ) Engine=InnoDB CHARACTER SET 'latin1';
 
-CREATE INDEX comments_domain_id_idx ON comments (domain_id);
 CREATE INDEX comments_name_type_idx ON comments (name, type);
 CREATE INDEX comments_order_idx ON comments (domain_id, modified_at);
 
