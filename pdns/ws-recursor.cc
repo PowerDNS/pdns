@@ -609,5 +609,8 @@ catch(...) {
 void AsyncWebServer::go() {
   if (!d_server)
     return;
-  ((AsyncServer*)d_server)->asyncWaitForConnections(d_fdm, boost::bind(&AsyncWebServer::serveConnection, this, _1));
+  auto server = std::dynamic_pointer_cast<AsyncServer>(d_server);
+  if (!server)
+    return;
+  server->asyncWaitForConnections(d_fdm, boost::bind(&AsyncWebServer::serveConnection, this, _1));
 }

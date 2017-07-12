@@ -57,8 +57,8 @@ private:
   void serveConnection(Socket *socket);
 
 protected:
-  virtual Server* createServer() {
-    return new AsyncServer(d_listenaddress, d_port);
+  virtual std::shared_ptr<Server> createServer() override {
+    return std::make_shared<AsyncServer>(d_listenaddress, d_port);
   };
 };
 

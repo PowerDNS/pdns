@@ -331,7 +331,7 @@ catch(...) {
   L<<Logger::Error<<"HTTP: Unknown exception"<<endl;
 }
 
-WebServer::WebServer(const string &listenaddress, int port) : d_server(NULL)
+WebServer::WebServer(const string &listenaddress, int port) : d_server(nullptr)
 {
   d_listenaddress=listenaddress;
   d_port=port;
@@ -345,7 +345,7 @@ void WebServer::bind()
   }
   catch(NetworkError &e) {
     L<<Logger::Error<<"Listening on HTTP socket failed: "<<e.what()<<endl;
-    d_server = NULL;
+    d_server = nullptr;
   }
 }
 
