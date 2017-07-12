@@ -177,7 +177,7 @@ std::unordered_map<int, vector<boost::variant<string,double>>> getGenResponses(u
   return ret;
 }
 
-void parseLocalBindVars(boost::optional<localbind_t> vars, bool& doTCP, bool& reusePort, int& tcpFastOpenQueueSize, std::string& interface)
+void parseLocalBindVars(boost::optional<localbind_t> vars, bool& doTCP, bool& reusePort, int& tcpFastOpenQueueSize, std::string& interface, std::set<int>& cpus)
 {
   if (vars) {
     if (vars->count("doTCP")) {
@@ -191,6 +191,11 @@ void parseLocalBindVars(boost::optional<localbind_t> vars, bool& doTCP, bool& re
     }
     if (vars->count("interface")) {
       interface = boost::get<std::string>((*vars)["interface"]);
+    }
+    if (vars->count("cpus")) {
+      for (const auto cpu : boost::get<std::vector<std::pair<int,int>>>((*vars)["cpus"])) {
+        cpus.insert(cpu.second);
+      }
     }
   }
 }
@@ -642,13 +647,14 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       bool reusePort = false;
       int tcpFastOpenQueueSize = 0;
       std::string interface;
+      std::set<int> cpus;
 
-      parseLocalBindVars(vars, doTCP, reusePort, tcpFastOpenQueueSize, interface);
+      parseLocalBindVars(vars, doTCP, reusePort, tcpFastOpenQueueSize, interface, cpus);
 
       try {
 	ComboAddress loc(addr, 53);
 	g_locals.clear();
-	g_locals.push_back(std::make_tuple(loc, doTCP, reusePort, tcpFastOpenQueueSize, interface)); /// only works pre-startup, so no sync necessary
+	g_locals.push_back(std::make_tuple(loc, doTCP, reusePort, tcpFastOpenQueueSize, interface, cpus)); /// only works pre-startup, so no sync necessary
       }
       catch(std::exception& e) {
 	g_outputBuffer="Error: "+string(e.what())+"\n";
@@ -667,12 +673,13 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       bool reusePort = false;
       int tcpFastOpenQueueSize = 0;
       std::string interface;
+      std::set<int> cpus;
 
-      parseLocalBindVars(vars, doTCP, reusePort, tcpFastOpenQueueSize, interface);
+      parseLocalBindVars(vars, doTCP, reusePort, tcpFastOpenQueueSize, interface, cpus);
 
       try {
 	ComboAddress loc(addr, 53);
-	g_locals.push_back(std::make_tuple(loc, doTCP, reusePort, tcpFastOpenQueueSize, interface)); /// only works pre-startup, so no sync necessary
+	g_locals.push_back(std::make_tuple(loc, doTCP, reusePort, tcpFastOpenQueueSize, interface, cpus)); /// only works pre-startup, so no sync necessary
       }
       catch(std::exception& e) {
 	g_outputBuffer="Error: "+string(e.what())+"\n";

@@ -78,9 +78,9 @@ bool g_syslog{true};
 
 GlobalStateHolder<NetmaskGroup> g_ACL;
 string g_outputBuffer;
-vector<std::tuple<ComboAddress, bool, bool, int, string>> g_locals;
+vector<std::tuple<ComboAddress, bool, bool, int, string, std::set<int>>> g_locals;
 #ifdef HAVE_DNSCRYPT
-std::vector<std::tuple<ComboAddress,DnsCryptContext,bool, int, string>> g_dnsCryptLocals;
+std::vector<std::tuple<ComboAddress,DnsCryptContext,bool, int, string, std::set<int>>> g_dnsCryptLocals;
 #endif
 #ifdef HAVE_EBPF
 shared_ptr<BPFFilter> g_defaultBPFFilter;
@@ -2032,11 +2032,11 @@ try
   if(g_cmdLine.locals.size()) {
     g_locals.clear();
     for(auto loc : g_cmdLine.locals)
-      g_locals.push_back(std::make_tuple(ComboAddress(loc, 53), true, false, 0, ""));
+      g_locals.push_back(std::make_tuple(ComboAddress(loc, 53), true, false, 0, "", std::set<int>()));
   }
   
   if(g_locals.empty())
-    g_locals.push_back(std::make_tuple(ComboAddress("127.0.0.1", 53), true, false, 0, ""));
+    g_locals.push_back(std::make_tuple(ComboAddress("127.0.0.1", 53), true, false, 0, "", std::set<int>()));
 
   g_configurationDone = true;
 
@@ -2089,6 +2089,8 @@ try
       vinfolog("Attaching default BPF Filter to UDP frontend %s", cs->local.toStringWithPort());
     }
 #endif /* HAVE_EBPF */
+
+    cs->cpus = std::get<5>(local);
 
     SBind(cs->udpFD, cs->local);
     toLaunch.push_back(cs);
@@ -2150,7 +2152,7 @@ try
       bindAny(cs->local.sin4.sin_family, cs->tcpFD);
     SBind(cs->tcpFD, cs->local);
     SListen(cs->tcpFD, 64);
-    warnlog("Listening on %s",cs->local.toStringWithPort());
+    warnlog("Listening on %s", cs->local.toStringWithPort());
 
     toLaunch.push_back(cs);
     g_frontends.push_back(cs);
@@ -2248,6 +2250,9 @@ try
       vinfolog("Attaching default BPF Filter to TCP DNSCrypt frontend %s", cs->local.toStringWithPort());
     }
 #endif /* HAVE_EBPF */
+
+    cs->cpus = std::get<5>(dcLocal);
+
     bindAny(cs->local.sin4.sin_family, cs->tcpFD);
     SBind(cs->tcpFD, cs->local);
     SListen(cs->tcpFD, 64);
@@ -2334,10 +2339,16 @@ try
   for(auto& cs : toLaunch) {
     if (cs->udpFD >= 0) {
       thread t1(udpClientThread, cs);
+      if (!cs->cpus.empty()) {
+        mapThreadToCPUList(t1.native_handle(), cs->cpus);
+      }
       t1.detach();
     }
     else if (cs->tcpFD >= 0) {
       thread t1(tcpAcceptorThread, cs);
+      if (!cs->cpus.empty()) {
+        mapThreadToCPUList(t1.native_handle(), cs->cpus);
+      }
       t1.detach();
     }
   }
