@@ -337,7 +337,6 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
         DNSZoneRecord rr;
         rr.dr.d_name = sd->qname;
         rr.dr.d_type = QType::SOA;
-        
         rr.dr.d_content = makeSOAContent(*sd);
         rr.dr.d_ttl = sd->ttl;
         rr.domain_id = sd->domain_id;
@@ -347,7 +346,7 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
     }
 
 found:
-    if(found == (qtype == QType::DS)){
+    if(found == (qtype == QType::DS) || target != choppedOff) {
       DLOG(L<<Logger::Error<<"found: "<<sd->qname<<endl);
       return true;
     } else {
