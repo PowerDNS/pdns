@@ -10,3 +10,10 @@
 /*.[0-9]
 /Makefile
 /Makefile.in
+/.venv
+/html-docs
+/*.pdf
+/latex
+/doctrees
+html-docs.tar.bz2
+/mans

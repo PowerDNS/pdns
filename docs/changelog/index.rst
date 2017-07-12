@@ -1,0 +1,11 @@
+Changelogs
+==========
+
+The changelogs for the PowerDNS Authoritative Servr are split between release trains.
+
+.. toctree::
+    :maxdepth: 2
+
+    4.1
+    4.0
+    pre-4.0

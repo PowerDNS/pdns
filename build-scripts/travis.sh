@@ -320,19 +320,6 @@ install_auth() {
   run "sudo chmod 755 /etc/authbind/byport/53"
 }
 
-install_docs() {
-  ### documentation requirements
-  run "sudo apt-get -qq --no-install-recommends install \
-    pandoc \
-    xmlto"
-
-  # documentation test requirements
-  run "virtualenv $HOME/.venv"
-  run "source $HOME/.venv/bin/activate"
-  run "pip install -q pandocfilters==1.2.3 mkdocs==0.14 linkchecker==9.3 click==5.1 requests==2.9.2"
-  run "deactivate"
-}
-
 install_recursor() {
   # recursor test requirements / setup
   run "sudo apt-get -qq --no-install-recommends install \
@@ -425,14 +412,6 @@ build_dnsdist(){
   run "find $HOME/dnsdist -ls"
   run "rm -rf pdns/dnsdistdist/dnsdist-*/"
 
-}
-
-build_docs() {
-  run "./bootstrap"
-  run "source $HOME/.venv/bin/activate"
-  run "./configure --disable-dependency-tracking --with-modules='' --with-dyn-modules=''"
-  run "make -C docs"
-  run "deactivate"
 }
 
 test_auth() {
@@ -566,12 +545,6 @@ test_recursor() {
   run "cd regression-tests.api"
   run "./runtests recursor"
   run "cd .."
-}
-
-test_docs() {
-  run "source $HOME/.venv/bin/activate"
-  run "make -C docs check-links"
-  run " deactivate"
 }
 
 test_dnsdist(){

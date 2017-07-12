@@ -1,9 +1,12 @@
-MANPAGES_TARGET_AUTH = pdns_server.1 \
+MAIN_MANS = pdns_server.1 \
 	pdns_control.1 \
 	pdnsutil.1 \
 	zone2json.1 \
 	zone2ldap.1 \
 	zone2sql.1
+
+MANPAGES_INSTALL = $(MAIN_MANS)
+MANPAGES_DIST = $(MAIN_MANS)
 
 MANPAGES_TARGET_TOOLS = calidns.1 \
 	dnsgram.1 \
@@ -19,69 +22,72 @@ MANPAGES_TARGET_TOOLS = calidns.1 \
 	saxfr.1 \
 	sdig.1
 
+MANPAGES_DIST += $(MANPAGES_TARGET_TOOLS) \
+	dnsbulktest.1 \
+	dnstcpbench.1 \
+	dnspcap2protobuf.1
+
 if HAVE_BOOST_GE_148
-MANPAGES_TARGET_TOOLS += dnsbulktest.1 \
+MANPAGES_INSTALL += dnsbulktest.1 \
 	dnstcpbench.1
 endif
 
 if HAVE_PROTOBUF
 if HAVE_PROTOC
-MANPAGES_TARGET_TOOLS += dnspcap2protobuf.1
+MANPAGES_INSTALL += dnspcap2protobuf.1
 endif
 endif
-
-EXTRA_DIST = manpages markdown/*.md markdown/appendix markdown/authoritative markdown/common markdown/httpapi markdown/recursor markdown/security markdown/tools $(MANPAGES_TARGET_AUTH) $(MANPAGES_TARGET_TOOLS)
-
-# Figure out the manpages to build/install
-MANPAGES_TARGET_ALL=$(MANPAGES_TARGET_AUTH)
-man_MANS = $(MANPAGES_TARGET_AUTH)
 
 if TOOLS
-MANPAGES_TARGET_ALL += $(MANPAGES_TARGET_TOOLS)
-man_MANS += $(MANPAGES_TARGET_TOOLS)
+MANPAGES_INSTALL += $(MANPAGES_TARGET_TOOLS)
 endif
 
-all-manpages: $(MANPAGES_TARGET_ALL)
+man_MANS = $(MANPAGES_INSTALL)
 
-# If we can't rebuild the manpages, don't allow creation or deletion
-if HAVE_PANDOC
-$(MANPAGES_TARGET_ALL): %: manpages/%.md
-	$(PANDOC) -s -t man $< -o $@
+EXTRA_DIST = $(MANPAGES_DIST)
 
-clean:
-	rm -rf html html.tar.bz2 *.8 *.1
-else
+if HAVE_VIRTUALENV
 if !HAVE_MANPAGES
-$(MANPAGES_TARGET_ALL):
-	@echo "Pandoc is required to build $@"
+$(MANPAGES_DIST): %: manpages/%.rst .venv
+	.venv/bin/python -msphinx -b man . mans $<
+	mv mans/$@ $@
+endif # if !HAVE_MANPAGES
+
+.venv: requirements.txt
+	virtualenv .venv
+	.venv/bin/pip install -r requirements.txt
+
+html-docs: common/** manpages/** .venv
+	.venv/bin/python -msphinx -b html . html-docs
+
+latex/PowerDNS-Authoritative.pdf: common/** manpages/** .venv
+	.venv/bin/python -msphinx -M latexpdf . .
+
+PowerDNS-Authoritative.pdf: latex/PowerDNS-Authoritative.pdf
+	mv $< $@
+
+html-docs.tar.bz2: html-docs
+	tar cjf $@ $<
+
+all-docs: PowerDNS-Authoritative.pdf html-docs html-docs.tar.bz2
+
+upload-docs: all-docs
+	rsync -crv --delete --no-p --chmod=g=rwX --exclude '*~' ./html-docs/ web1.powerdns.com:/srv/www/doc.powerdns.com/authoritative/
+	rsync -crv --no-p --chmod=g=rwX --exclude '*~' ./html-docs.tar.bz2 web1.powerdns.com:/srv/www/doc.powerdns.com/authoritative/
+	rsync -crv --no-p --chmod=g=rwX --exclude '*~' ./PowerDNS-Authoritative.pdf web1.powerdns.com:/srv/www/doc.powerdns.com/authoritative/
+
+else # if HAVE_VIRTUALENV
+$(dist_MANS):
+	echo "You need virtualenv to generate the manpages"
+	exit 1
+
+PowerDNS-Authoritative.pdf:
+	echo "You need virtualenv to generate the PDF"
+	exit 1
+
+html-docs:
+	echo "You need virtualenv to generate the HTML docs"
+	exit 1
 endif
-endif
 
-# HTML documentation
-html: html/index.html
 
-if FROM_GIT
-html/index.html: process-md.sh mkdocs.yml markdown/** markdown/*/** manpages/*
-	mkdir -p doc-build
-	rsync -a --delete markdown/. doc-build/.
-	cp -r manpages doc-build/
-	./process-md.sh pre
-	mkdocs build --clean
-	./process-md.sh post
-
-html.tar.bz2: html
-	tar cjf html.tar.bz2 html/
-
-check-links: html
-	./checklinks.sh
-
-publish: html html.tar.bz2
-	rsync -crv --no-p --chmod=g=rwX --exclude '*~' ./html/ web1.powerdns.com:/srv/www/doc.powerdns.com/md
-	rsync -crv --no-p --chmod=g=rwX --exclude '*~' ./html.tar.bz2 web1.powerdns.com:/srv/www/doc.powerdns.com/html.tar.bz2
-else
-html/index.html:
-	@echo "Building the documentation HTML is only"
-	@echo "supported from a git checkout"
-endif
-
-.PHONY: html all-manpages

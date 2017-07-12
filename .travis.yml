@@ -8,12 +8,9 @@ env:
   - PDNS_BUILD_PRODUCT=auth
   - PDNS_BUILD_PRODUCT=recursor
   - PDNS_BUILD_PRODUCT=dnsdist
-  - PDNS_BUILD_PRODUCT=docs
 
 matrix:
   exclude:
-    - compiler: clang
-      env: PDNS_BUILD_PRODUCT=docs
     - compiler: clang
       env: PDNS_BUILD_PRODUCT=recursor
   include:

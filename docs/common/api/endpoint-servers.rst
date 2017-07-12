@@ -9,4 +9,4 @@ Server endpoint
 
   Returns a single :json:object:`Server`
 
-  :query server_id: The name of the server.
+  :param server_id: The name of the server.
