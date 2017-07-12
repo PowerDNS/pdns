@@ -3,6 +3,8 @@ The PowerDNS recursor is part of the source tarball of the main PowerDNS distrib
 
 The documentation is only for the 4.0 series, users of older versions are urged to upgrade!
 
+**Note**: [Improved documentation](/recursor) for the master version, the upcoming 4.1 release and the 4.0 is available.
+
 ## Notable features:
 -   Uses [MTasker](http://ds9a.nl/mtasker)
 -   Can handle tens of thousands of concurrent questions. A quad Xeon 3GHz has been measured functioning very well at 400000 real life replayed packets per second. 

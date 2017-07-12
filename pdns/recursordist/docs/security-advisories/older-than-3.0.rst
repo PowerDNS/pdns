@@ -1,0 +1,1 @@
+../../../../docs/security-advisories/older-than-3.0.rst

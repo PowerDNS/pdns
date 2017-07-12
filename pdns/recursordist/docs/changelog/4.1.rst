@@ -1,0 +1,51 @@
+Changelogs for 4.1.x
+====================
+
+.. changelog::
+  :version: 4.1.0
+
+  This is the first release of the PowerDNS Recursor in the 4.1 release train.
+  This release contains several performance and correctness improvements in the EDNS Client subnet area, as well as better DNSSEC processing.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 5138
+    :tickets: 5128
+
+    Add server-side TCP Fast Open support.
+    This adds a new option :ref:`setting-tcp-fast-open`.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 4569
+
+    Pass ``tcp`` to :func:`gettag` to allow a script to take different actions whether a query came in over TCP or UDP.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 4569
+
+    Allow setting the requestor ID field in the :attr:`DNSQuestion <DNSQuestion.requestorId>` from all hooks.
+
+  .. change::
+    :tags: Improvements, DNSSEC
+    :pullreq: 5463, 5223
+    :tickets: 4994, 4490, 4362, 4254
+
+    Implement "on-the-fly" DNSSEC processing.
+    This places the DNSSEC processing alongside the regular recursion, reducing possible cornercases.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5063
+    :tickets: 2818
+
+    Implement CNAME wildcards in recursor authoritative component.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5078
+    :tickets: 4939, 5075
+
+    Show a useful error when an invalid :ref:`setting-lua-config-file` is configured.
+
