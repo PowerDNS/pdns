@@ -1,0 +1,2 @@
+#!/bin/sh
+cleandig something.secure-delegated.dnssec-parent.com DS
