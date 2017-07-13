@@ -471,10 +471,8 @@ static void gatherRecords(const Json container, const DNSName& qname, const QTyp
       makePtr(rr, &ptr);
 
       // verify that there's a zone for the PTR
-      DNSPacket fakePacket(false);
       SOAData sd;
-      fakePacket.qtype = QType::PTR;
-      if (!B.getAuth(&fakePacket, &sd, ptr.qname))
+      if (!B.getAuth(ptr.qname, QType(QType::PTR), &sd, false))
         throw ApiException("Could not find domain for PTR '"+ptr.qname.toString()+"' requested for '"+ptr.content+"'");
 
       ptr.domain_id = sd.domain_id;
@@ -1313,12 +1311,8 @@ static void makePtr(const DNSResourceRecord& rr, DNSResourceRecord* ptr) {
 
 static void storeChangedPTRs(UeberBackend& B, vector<DNSResourceRecord>& new_ptrs) {
   for(const DNSResourceRecord& rr :  new_ptrs) {
-    DNSPacket fakePacket(false);
     SOAData sd;
-    sd.db = (DNSBackend *)-1;  // getAuth() cache bypass
-    fakePacket.qtype = QType::PTR;
-
-    if (!B.getAuth(&fakePacket, &sd, rr.qname))
+    if (!B.getAuth(rr.qname, QType(QType::PTR), &sd, false))
       throw ApiException("Could not find domain for PTR '"+rr.qname.toString()+"' requested for '"+rr.content+"' (while saving)");
 
     string soa_edit_api_kind;

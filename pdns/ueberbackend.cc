@@ -255,7 +255,7 @@ void UeberBackend::getUpdatedMasters(vector<DomainInfo>* domains)
   }
 }
 
-bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const DNSName &target)
+bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* sd, bool cachedOk)
 {
   bool found = false;
   int cstat;
@@ -264,7 +264,7 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const DNSName &target)
   do {
 
     // Check cache
-    if(sd->db != (DNSBackend *)-1 && (d_cache_ttl || d_negcache_ttl)) {
+    if(cachedOk && (d_cache_ttl || d_negcache_ttl)) {
       d_question.qtype = QType::SOA;
       d_question.qname = choppedOff;
       d_question.zoneId = -1;
@@ -307,7 +307,7 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const DNSName &target)
           break;
         } else {
           DLOG(L<<Logger::Error<<"lookup: "<<choppedOff<<endl);
-          if((*i)->getAuth(p, sd, choppedOff)) {
+          if((*i)->getAuth(choppedOff, sd)) {
             DLOG(L<<Logger::Error<<"got: "<<sd->qname<<endl);
             j->first = sd->qname.wirelength();
             j->second = *sd;
@@ -347,7 +347,7 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const DNSName &target)
     }
 
 found:
-    if(found == (p->qtype == QType::DS)){
+    if(found == (qtype == QType::DS)){
       DLOG(L<<Logger::Error<<"found: "<<sd->qname<<endl);
       return true;
     } else {
