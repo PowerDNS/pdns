@@ -134,7 +134,7 @@ If set, chroot to this directory for more security. See [Security](../common/sec
 Make sure that `/dev/log` is available from within the chroot. Logging will
 silently fail over time otherwise (on logrotate).
 
-When using `chroot`, all other paths (except for [`config-dir`](#config-dir) set
+When using `chroot`, all other paths (except for [`config-dir`](#config-dir)) set
 in the configuration are relative to the new root.
 
 When using `chroot` and the API ([`webserver`](#webserver)), [`api-readonly`](#api-readonly)
