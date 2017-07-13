@@ -866,6 +866,7 @@ void OpenSSLECDSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& inpu
 
   int ret = EC_POINT_oct2point(d_ecgroup, pub_key, (unsigned char*) ecdsaPoint.c_str(), ecdsaPoint.length(), d_ctx);
   if (ret != 1) {
+    EC_POINT_free(pub_key);
     throw runtime_error(getName()+" reading ECP point from binary failed");
   }
 
