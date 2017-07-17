@@ -432,7 +432,7 @@ mask configuration issues and for this reason it is disabled by default.
 
 ## `loglevel`
 * Integer between 0 and 9
-* Default: 4
+* Default: 6
 * Available since: 3.6
 
 Amount of logging. Higher is more, more logging may destroy performance.

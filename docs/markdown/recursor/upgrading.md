@@ -1,6 +1,12 @@
 Before upgrading, it is advised to read the [changelog](../changelog.md).
 When upgrading several versions, please read **all** notes applying to the upgrade.
 
+# 4.0.x to 4.1.0
+
+[`setting-max-recursion-depth`](settings.md#setting-max-recursion-depth) defaulted to 4 but
+was always overridden to 6 during the startup. The issue has been fixed and the default value
+set to 6 to keep the behavior consistent.
+
 # 4.0.5 to 4.0.6
 
 One default was changed:

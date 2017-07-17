@@ -2678,7 +2678,6 @@ static void setupDelegationOnly()
 static int serviceMain(int argc, char*argv[])
 {
   L.setName(s_programname);
-  L.setLoglevel((Logger::Urgency)(6)); // info and up
   L.disableSyslog(::arg().mustDo("disable-syslog"));
 
   if(!::arg()["logging-facility"].empty()) {
@@ -3132,7 +3131,7 @@ int main(int argc, char **argv)
     ::arg().set("dnssec-log-bogus", "Log DNSSEC bogus validations")="no";
     ::arg().set("daemon","Operate as a daemon")="no";
     ::arg().setSwitch("write-pid","Write a PID file")="yes";
-    ::arg().set("loglevel","Amount of logging. Higher is more. Do not set below 3")="4";
+    ::arg().set("loglevel","Amount of logging. Higher is more. Do not set below 3")="6";
     ::arg().set("disable-syslog","Disable logging to syslog, useful when running inside a supervisor that logs stdout")="no";
     ::arg().set("log-common-errors","If we should log rather common errors")="no";
     ::arg().set("chroot","switch to chroot jail")="";

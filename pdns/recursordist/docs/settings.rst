@@ -517,7 +517,7 @@ This feature is intended to facilitate ip-failover setups, but it may also mask 
 ``loglevel``
 ------------
 -  Integer between 0 and 9
--  Default: 4
+-  Default: 6
 
 Amount of logging.
 Higher is more, more logging may destroy performance.
