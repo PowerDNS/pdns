@@ -8,68 +8,37 @@ In addition, messages related to responses contain the name, type, class and rda
 Finally, if a RPZ or custom Lua policy has been applied, response messages also contain the applied policy name and some tags.
 This is particularly useful to detect and act on infected hosts.
 
-The protocol buffers message types can be found in the `dnsmessage.proto <https://github.com/PowerDNS/pdns/blob/master/pdns/dnsmessage.proto>`_ file.
-
 Configuring Protocol Buffer logs
 --------------------------------
 Protobuf export to a server is enabled using the ``protobufServer()`` directive:
 
-.. code-block:: Lua
+.. function:: protobufServer(server [[[[[[[, timeout=2], maxQueuedEntries=100], reconnectWaitTime=1], maskV4=32], maskV6=128], asyncConnect=false], taggedOnly=false])
 
-    protobufServer("192.0.2.1:4242" [[[[[[[, timeout], maxQueuedEntries], reconnectWaitTime], maskV4], maskV6], asyncConnect], taggedOnly])
-
-timeout
-^^^^^^^
-Time in seconds to wait when sending a message, defaults to 2.
-
-maxQueuedEntries
-^^^^^^^^^^^^^^^^
-How many entries will be kept in memory if the server becomes unreachable, defaults to 100.
-
-reconnectWaitTime
-^^^^^^^^^^^^^^^^^
-How long to wait, in seconds, between two reconnection attempts, defaults to 1.
-
-maskV4
-^^^^^^
-network mask to apply to the client IPv4 addresses, for anonymization purposes.
-The default of 32 means no anonymization.
-
-maskV6
-^^^^^^
-Same as maskV4, but for IPv6. Defaults to 128.
-
-taggedOnly
-^^^^^^^^^^
-Only entries with a policy or a policy tag set will be sent.
-
-asyncConnect
-^^^^^^^^^^^^
-When set to false (default) the first connection to the server during startup will block up to ``timeout`` seconds, otherwise the connection is done in a separate thread.
+:param string server: The IP and port to connect to
+:param int timeout: Time in seconds to wait when sending a message
+:param int maxQueuedEntries: How many entries will be kept in memory if the server becomes unreachable
+:param int reconnectWaitTime: How long to wait, in seconds, between two reconnection attempts
+:param int maskV4: network mask to apply to the client IPv4 addresses, for anonymization purposes. The default of 32 means no anonymization.
+:param int maskV6: Same as maskV4, but for IPv6. Defaults to 128.
+:param bool taggedOnly: Only entries with a policy or a policy tag set will be sent.
+:param bool asyncConnect: When set to false (default) the first connection to the server during startup will block up to ``timeout`` seconds, otherwise the connection is done in a separate thread.
 
 Logging outgoing queries and responses
 --------------------------------------
 
-While ``protobufServer()`` only exports the queries sent to the recursor from clients, with the corresponding responses, ``outgoingProtobufServer()`` can be used to export outgoing queries sent by the recursor to authoritative servers, along with the corresponding responses.
+While :func:`protobufServer` only exports the queries sent to the recursor from clients, with the corresponding responses, ``outgoingProtobufServer()`` can be used to export outgoing queries sent by the recursor to authoritative servers, along with the corresponding responses.
 
-.. code-block:: Lua
+.. function:: outgoingProtobufServer(server [[[[, timeout=2], maxQueuedEntries=100], reconnectWaitTime=1], asyncConnect=false])
 
-    outgoingProtobufServer("192.0.2.1:4242" [[[[, timeout], maxQueuedEntries], reconnectWaitTime], asyncConnect])
+:param string server: The IP and port to connect to
+:param int timeout: Time in seconds to wait when sending a message
+:param int maxQueuedEntries: How many entries will be kept in memory if the server becomes unreachable
+:param int reconnectWaitTime: How long to wait, in seconds, between two reconnection attempts
+:param bool asyncConnect: When set to false (default) the first connection to the server during startup will block up to ``timeout`` seconds, otherwise the connection is done in a separate thread.
 
-The optional parameters for ``outgoingProtobufServer()`` are:
+Protobol Buffers Definition
+---------------------------
 
-timeout
-^^^^^^^
-Time in seconds to wait when sending a message, defaults to 2.
+The protocol buffers message types can be found in the `dnsmessage.proto <https://github.com/PowerDNS/pdns/blob/master/pdns/dnsmessage.proto>`_ file and is included here:
 
-maxQueuedEntries
-^^^^^^^^^^^^^^^^
-How many entries will be kept in memory if the server becomes unreachable, defaults to 100.
-
-reconnectWaitTime
-^^^^^^^^^^^^^^^^^
-How long to wait, in seconds, between two reconnection attempts, defaults to 1.
-
-asyncConnect
-^^^^^^^^^^^^
-When set to false (default) the first connection to the server during startup will block up to ``timeout`` seconds, otherwise the connection is done in a separate thread.
+.. literalinclude:: ../../../dnsmessage.proto

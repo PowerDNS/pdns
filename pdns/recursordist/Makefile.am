@@ -58,7 +58,8 @@ EXTRA_DIST = \
 	rrd/* \
 	html incfiles \
 	test_libcrypto \
-	pdns-recursor.service.in
+	pdns-recursor.service.in \
+	RECURSOR-MIB.txt
 
 dist-hook:
 	for file in $$(find $(distdir)/docs -type l); do \
