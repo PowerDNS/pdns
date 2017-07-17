@@ -205,6 +205,7 @@ endif # if !HAVE_MANPAGES
 
 .venv: docs/requirements.txt
 	virtualenv .venv
+	.venv/bin/pip install -U pip setuptools setuptools-git
 	.venv/bin/pip install -r $<
 
 latex/dnsdist.pdf: docs/** .venv
