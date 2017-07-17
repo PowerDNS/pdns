@@ -337,7 +337,8 @@ with `mvRule(from, to)` (see below for exact semantics).
 
 Rules have selectors and actions. Current selectors are:
 
- * Source address
+ * Source address (directly passing a netmask as a string, or via NetmaskGroupRule)
+ * Destination address (NetmaskGroupRule)
  * Query type
  * Query domain
  * QPS Limit total
@@ -1454,7 +1455,7 @@ instantiate a server with additional parameters
     * `DNSSECRule()`: matches queries with the DO flag set
     * `MaxQPSIPRule(qps, v4Mask=32, v6Mask=64)`: matches traffic exceeding the qps limit per subnet
     * `MaxQPSRule(qps)`: matches traffic **not** exceeding this qps limit
-    * `NetmaskGroupRule(nmg, [src-bool])`: matches traffic from the specified network range. Pass `false` as second parameter to match NetmaskGroup  against destination address instead of source address
+    * `NetmaskGroupRule(nmg, [src-bool])`: matches traffic from/to the specified network range. Pass `false` as second parameter to match against the destination address (ie the local one) instead of the source one
     * `NotRule()`: matches if the sub-rule does not match
     * `OrRule()`: matches if at least one of the sub-rules matches
     * `OpcodeRule()`: matches queries with the specified opcode
