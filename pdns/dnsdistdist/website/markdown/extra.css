@@ -1,5 +1,0 @@
-/* Allow scrolling of H1...n sidebar */
-.bs-sidebar {
-  overflow: scroll;
-  max-height: 80%;
-}

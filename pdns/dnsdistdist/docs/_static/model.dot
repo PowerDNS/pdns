@@ -1,0 +1,79 @@
+digraph {
+  graph [fontname = "monospace"];
+  node [fontname = "monospace"];
+  edge [fontname = "monospace"];
+
+  Drop [label="Drop query"];
+
+  Incoming_Query [label="Incoming Query"];
+
+  Allowed_ACL [label="In the ACL allow list?"];
+
+  Incoming_Query -> Allowed_ACL;
+  Allowed_ACL -> Drop [label="no"];
+  Allowed_ACL -> Dynamically_Blocked [label="yes"];
+
+  Dynamically_Blocked [label="DynBlocked?"];
+  Perform_DynBlock_Action [label="Perform DynBlock action"];
+  MatchRules [label="Query matches a rule?"];
+
+  Dynamically_Blocked -> Perform_DynBlock_Action [label="yes"];
+  Dynamically_Blocked -> MatchRules [label="no"];
+
+  MatchRules -> "Perform Action" [label="yes"];
+  MatchRules -> DeterminePool [label="no"];
+  DeterminePool [label="Determine pool and policy"];
+
+  "Perform Action" -> IsResponse;
+  "Perform Action" -> MatchRules [label="Action is non-terminal"];
+  "Perform Action" -> Drop [label="DropAction()"];
+
+  IsResponse [label="Query is now a response?"];
+
+  IsResponse -> "Return response to client" [label="yes"];
+  IsResponse -> DeterminePool [label="no"];
+
+  HasCache [label="Does the pool have a packet cache?"];
+  skipCache [label="Should the cache be skipped?"];
+
+  DeterminePool -> HasCache;
+  HasCache -> skipCache [label="yes"];
+  HasCache -> HasPolicy [label="no"];
+
+  skipCache -> HasPolicy [label="yes"];
+  skipCache -> CacheHit [label="no"];
+
+  CacheHit [label="Cache Hit?"];
+  CacheHit -> MakeResponse [label="yes"];
+  CacheHit -> HasPolicy [label="no"];
+
+  MakeResponse [label="Create Response"];
+  MatchCacheRespRule [label="Response matches CacheHitRule?"];
+  MakeResponse -> MatchCacheRespRule;
+
+  MatchCacheRespRule -> "Return response to client" [label="no"];
+  MatchCacheRespRule -> "Perform CacheHit Action" [label="yes"];
+  "Perform CacheHit Action" -> "Return response to client";
+
+  HasPolicy [label="Does the pool have a policy?"];
+
+  HasPolicy -> "Is servFailOnNoPolicy set?" [label="no"];
+  "Is servFailOnNoPolicy set?" -> Drop [label="no"];
+  "Is servFailOnNoPolicy set?" -> ServFail [label="yes"];
+
+  HasPolicy -> "Send Query to backend server" [label="yes"];
+
+  "Send Query to backend server" -> "Got Response from backend";
+
+  RespRule [label="Response matches a ResponseRule?"];
+  "Got Response from backend" -> RespRule;
+  RespRule -> "Perform ResponseAction" [label="yes"];
+  "Perform ResponseAction" -> RespRule [label="Action was non-terminal"];
+  RespRule -> AddToCache [label="no"];
+  "Perform ResponseAction" -> AddToCache;
+  "Perform ResponseAction" -> Drop [label="DropAction()"];
+
+  AddToCache [label="Add to PacketCache"];
+
+  AddToCache -> "Return response to client";
+}

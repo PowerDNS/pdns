@@ -35,7 +35,6 @@ EXTRA_DIST=dnslabeltext.rl \
 	   README.md \
 	   delaypipe.cc delaypipe.hh \
 	   html \
-	   dnsdist.1.md \
 	   .version \
 	   contrib \
 	   build-aux/gen-version \
@@ -198,17 +197,47 @@ MANPAGES=dnsdist.1
 
 dist_man_MANS=$(MANPAGES)
 
-if HAVE_PANDOC
-$(MANPAGES): %: %.md
-	$(AM_V_GEN)$(PANDOC) -s -t man $< -o $@
-else
-if HAVE_MANPAGES
-#nothing
-else
+if HAVE_VIRTUALENV
+if !HAVE_MANPAGES
+$(MANPAGES): %: docs/manpages/%.rst .venv
+	$(AM_V_GEN).venv/bin/python -msphinx -b man docs . $<
+endif # if !HAVE_MANPAGES
+
+.venv: docs/requirements.txt
+	virtualenv .venv
+	.venv/bin/pip install -r $<
+
+latex/dnsdist.pdf: docs/** .venv
+	.venv/bin/python -msphinx -M latexpdf docs .
+
+dnsdist.pdf: latex/dnsdist.pdf
+	mv $< $@
+
+html-docs.tar.bz2: html-docs
+	tar cjf $@ $<
+
+html-docs: docs/** .venv
+	.venv/bin/python -msphinx -b html docs html-docs
+
+all-docs: html-docs html-docs.tar.bz2 dnsdist.pdf
+
+upload-docs: all-docs
+	rsync -crv --delete --no-p --chmod=g=rwX --exclude '*~' ./html-docs/ web1.powerdns.com:/srv/www/dnsdist.org
+	rsync -crv --no-p --chmod=g=rwX --exclude '*~' ./html-docs.tar.bz2 web1.powerdns.com:/srv/www/dnsdist.org
+	rsync -crv --no-p --chmod=g=rwX --exclude '*~' ./dnsdist.pdf web1.powerdns.com:/srv/www/dnsdist.org
+
+else # if HAVE_VIRTUALENV
 $(MANPAGES):
-	echo "You need pandoc to generate the manpages"
+	@echo "You need virtualenv to generate the manpages"
 	exit 1
-endif
+
+html-docs: %: docs/manpages/%.rst .venv
+	@echo "You need virtualenv to generate the HTML documentation"
+	exit 1
+
+dnsdist.pdf:
+	@echo "You need virtualenv to generate the pdf documentation"
+	exit 1
 endif
 
 if HAVE_SYSTEMD

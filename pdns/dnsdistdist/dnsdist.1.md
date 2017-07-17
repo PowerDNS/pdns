@@ -1,1 +1,0 @@
-../../docs/manpages/dnsdist.1.md

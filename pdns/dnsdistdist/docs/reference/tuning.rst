@@ -1,0 +1,80 @@
+Tuning related functions
+========================
+
+.. function:: setMaxTCPClientThreads(num)
+
+  Set the maximum of TCP client threads, handling TCP connections
+
+  :param int num:
+
+.. function:: setMaxTCPConnectionDuration(num)
+
+  Set the maximum duration of an incoming TCP connection, in seconds. 0 (the default) means unlimited
+
+  :param int num:
+
+.. function:: setMaxTCPConnectionsPerClient(num)
+
+  Set the maximum number of TCP connections per client. 0 (the default) means unlimited
+
+  :param int num:
+
+.. function:: setMaxTCPQueriesPerConnection(num)
+
+  Set the maximum number of queries in an incoming TCP connection. 0 (the default) means unlimited
+
+  :param int num:
+
+.. function:: setMaxTCPQueuedConnections(num)
+
+  Set the maximum number of TCP connections queued (waiting to be picked up by a client thread), defaults to 1000. 0 means unlimited
+
+  :param int num:
+
+.. function:: setMaxUDPOutstanding(num)
+
+  Set the maximum number of outstanding UDP queries to a given backend server. This can only be set at configuration time and defaults to 10240
+
+  :param int num:
+
+.. function:: setCacheCleaningDelay(num)
+
+  Set the interval in seconds between two runs of the cache cleaning algorithm, removing expired entries
+
+  :param int num:
+
+.. function:: setCacheCleaningPercentage(num)
+
+  Set the percentage of the cache that the cache cleaning algorithm will try to free by removing expired entries. By default (100), all expired entries are removed
+
+  :param int num:
+
+.. function:: setStaleCacheEntriesTTL(num)
+
+  Allows using cache entries expired for at most n seconds when no backend available to answer for a query
+
+  :param int num:
+
+.. function:: setTCPUseSinglePipe(val)
+
+  Whether the incoming TCP connections should be put into a single queue instead of using per-thread queues. Defaults to false
+
+  :param bool val:
+
+.. function:: setTCPRecvTimeout(num)
+
+  Set the read timeout on TCP connections from the client, in seconds
+
+  :param int num:
+
+.. function:: setTCPSendTimeout(num)
+
+  Set the write timeout on TCP connections from the client, in seconds
+
+  :param int num:
+
+.. function:: setUDPTimeout(num)
+
+  set the maximum time dnsdist will wait for a response from a backend over UDP, in seconds. Defaults to 2
+
+  :param int num:
