@@ -952,13 +952,13 @@ static void apiZoneCryptokeys(HttpRequest *req, HttpResponse *resp) {
 
   if (req->method == "GET") {
     apiZoneCryptokeysGET(zonename, inquireKeyId, resp, &dk);
-  } else if (req->method == "DELETE") {
+  } else if (req->method == "DELETE" && !::arg().mustDo("api-readonly")) {
     if (inquireKeyId == -1)
       throw HttpBadRequestException();
     apiZoneCryptokeysDELETE(zonename, inquireKeyId, req, resp, &dk);
-  } else if (req->method == "POST") {
+  } else if (req->method == "POST" && !::arg().mustDo("api-readonly")) {
     apiZoneCryptokeysPOST(zonename, req, resp, &dk);
-  } else if (req->method == "PUT") {
+  } else if (req->method == "PUT" && !::arg().mustDo("api-readonly")) {
     if (inquireKeyId == -1)
       throw HttpBadRequestException();
     apiZoneCryptokeysPUT(zonename, inquireKeyId, req, resp, &dk);
