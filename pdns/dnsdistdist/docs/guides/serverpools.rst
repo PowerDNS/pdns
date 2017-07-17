@@ -25,17 +25,15 @@ We can similarly add clients to the abuse server:
 
 .. code-block:: lua
 
-  addPoolRule({"192.168.12.0/24", "192.168.13.14"}, "abuse")
+  addAction({"192.168.12.0/24", "192.168.13.14"}, PoolAction("abuse"))
 
 To define a pool that should receive only a :term:`QPS`-limited amount of traffic, do:
 
 .. code-block:: lua
 
-  addQPSPoolRule("com.", 10000, "gtld-cluster")
+  addAction("com.", QPSPoolAction(10000, "gtld-cluster"))
 
 Traffic exceeding the :term:`QPS` limit will not match that rule, and subsequent rules will apply normally.
-
-Both :func:`addDomainBlock` and addPoolRule end up the list of Rules and Actions (for which see below).
 
 :class:`Servers <Server>` can be added to or removed from pools with the :func:`Server:addPool` and :func:`Server:rmPool` functions respectively:
 

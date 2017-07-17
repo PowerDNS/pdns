@@ -30,7 +30,7 @@ Traffic that exceeds a QPS limit, in total or per IP (subnet) can be matched by 
 
 For example::
 
-  addDelay(MaxQPSIPRule(5, 32, 48), 100)
+  addAction(MaxQPSIPRule(5, 32, 48), DelayAction(100))
 
 This measures traffic per IPv4 address and per /48 of IPv6, and if traffic for such an address (range) exceeds 5 qps, it gets delayed by 100ms.
 
@@ -76,6 +76,8 @@ Rule Generators
 
 .. function:: addAnyTCRule()
 
+  .. deprecated:: 1.2.0
+
   Set the TC-bit (truncate) on ANY queries received over UDP.
   Forcing a retry over TCP.
   This is equivalent to doing::
@@ -84,26 +86,47 @@ Rule Generators
 
 .. function:: addDelay(DNSrule, delay)
 
+  .. deprecated:: 1.2.0
+
   Delay the query for ``delay`` milliseconds before sending to a backend.
+  This function is deprecated as of 1.2.0, please use instead:
+
+    addAction(DNSRule, DelayAction(delay))
 
   :param DNSRule: The DNSRule to match traffic
   :param int delay: The delay time in milliseconds.
 
 .. function:: addDisableValidationRule(DNSrule)
 
+  .. deprecated:: 1.2.0
+
   Set the CD (Checking Disabled) flag to 1 for all queries matching the DNSRule.
-  Using this function is equal to using the :func:`DisableValidationAction`.
+  Using this function is equal to using the :func:`DisableValidationAction` action.
 
 .. function:: addDomainBlock(domain)
 
+  .. deprecated:: 1.2.0
+
   Drop all queries for ``domain`` and all names below it.
+  Deprecated as of 1.2.0, please use instead:
+
+    addAction(domain, DropAction())
 
   :param string domain: The domain name to block
 
 .. function:: addDomainSpoof(domain, IPv4[, IPv6])
               addDomainSpoof(domain, {IP[,...]})
 
+  .. deprecated:: 1.2.0
+
   Generate answers for A/AAAA/ANY queries.
+  This function is deprecated as of 1.2.0, please use:
+
+    addAction(domain, SpoofAction({IP[,...]}))
+
+  or:
+
+    addAction(domain, SpoofAction(IPv4[, IPv6]))
 
   :param string domain: Domain name to spoof for
   :param string IPv4: IPv4 address to spoof in the reply
@@ -112,7 +135,11 @@ Rule Generators
 
 .. function:: addDomainCNAMESpoof(domain, cname)
 
-  Generate CNAME answers for queries.
+  .. deprecated:: 1.2.0
+
+  Generate CNAME answers for queries. This function is deprecated as of 1.2.0 in favor of using:
+
+    addAction(domain, SpoofCNAMEAction(cname))
 
   :param string domain: Domain name to spoof for
   :param string cname: Domain name to add CNAME to
@@ -139,18 +166,25 @@ Rule Generators
 
 .. function:: addNoRecurseRule(DNSrule)
 
+  .. deprecated:: 1.2.0
+
   Clear the RD flag for all queries matching the rule.
+  This function is deprecated as of 1.2.0, please use:
+
+    addAction(DNSRule, NoRecurseAction())
 
   :param DNSRule: match queries based on this rule
 
 .. function:: addPoolRule(DNSRule, pool)
+
+  .. deprecated:: 1.2.0
 
   Send queries matching the first argument to the pool ``pool``.
   e.g.::
 
     addPoolRule("example.com", "myPool")
 
-  This is equivalent to::
+  This function is deprecated as of 1.2.0, this is equivalent to::
 
     addAction("example.com", PoolAction("myPool"))
 
@@ -159,16 +193,23 @@ Rule Generators
 
 .. function:: addQPSLimit(DNSrule, limit)
 
+  .. deprecated:: 1.2.0
+
   Limit queries matching the DNSRule to ``limit`` queries per second.
   All queries over the limit are dropped.
+  This function is deprecated as of 1.2.0, please use:
+
+    addAction(DNSRule, QPSLimitAction(limit))
 
   :param DNSRule: match queries based on this rule
   :param int limit: QPS limit for this rule
 
 .. function:: addQPSPoolRule(DNSRule, limit, pool)
 
+  .. deprecated:: 1.2.0
+
   Send at most ``limit`` queries/s for this pool, letting the subsequent rules apply otherwise.
-  This is a convience function for the following syntax::
+  This function is deprecated as of 1.2.0, as it is only a convience function for the following syntax::
 
     addAction("192.0.2.0/24", QPSPoolAction(15, "myPool")
 
@@ -182,9 +223,9 @@ Managing Rules
 
 Active Rules can be shown with :func:`showRules` and removed with :func:`rmRule`::
 
-  > addQPSLimit("h4xorbooter.xyz.", 10)
-  > addQPSLimit({"130.161.0.0/16", "145.14.0.0/16"} , 20)
-  > addQPSLimit({"nl.", "be."}, 1)
+  > addAction("h4xorbooter.xyz.", QPSLimitAction(10))
+  > addAction({"130.161.0.0/16", "145.14.0.0/16"} , QPSLimitAction(20))
+  > addAction({"nl.", "be."}, QPSLimitAction(1))
   > showRules()
   #     Matches Rule                                               Action
   0           0 h4xorbooter.xyz.                                   qps limit to 10

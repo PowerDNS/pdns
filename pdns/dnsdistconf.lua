@@ -36,15 +36,15 @@ newServer({address="192.168.1.30:5300", pool="abuse"})
 
 -- send the queries for selected domain suffixes to the server
 -- in the 'abuse' pool
-addPoolRule({"ezdns.it.", "xxx."}, "abuse")
+addAction({"ezdns.it.", "xxx."}, PoolAction("abuse"))
 
 -- send the queries from a selected subnet to the
 -- abuse pool
-addPoolRule("192.168.1.0/24", "abuse")
+addAction("192.168.1.0/24", PoolAction("abuse"))
 
 -- send the queries for the "com" suffix to the "abuse"
 -- pool, but only up to 100 qps
-addQPSPoolRule("com.", 100, "abuse")
+addAction("com.", QPSPoolRule(100, "abuse"))
 
 -- declare a Lua action function, routing NAPTR queries
 -- to the abuse pool
@@ -68,10 +68,8 @@ addAction(MaxQPSIPRule(5, 24, 64), DropAction())
 topRule()
 
 -- drop queries for the following suffixes:
-addDomainBlock("powerdns.org.")
-addDomainBlock("spectre.")
--- this is equivalent to addAction("isis.", DropAction())
-addDomainBlock("isis.")
+addAction("powerdns.org.", DropAction())
+addAction("spectre.", DropAction())
 
 -- called before we distribute a question
 block=newDNSName("powerdns.org.")
@@ -92,7 +90,7 @@ end
 
 newServer({address="2001:888:2000:1d::2", pool={"auth", "dnssec"}})
 newServer({address="2a01:4f8:110:4389::2", pool={"auth", "dnssec"}})
---setDNSSECPool("dnssec")
+--addAction(DNSSECRule(), PoolAction("dnssec"))
 --topRule()
 
 -- split queries between the 'auth' pool and the regular one,
@@ -119,20 +117,16 @@ end
 -- addAction(AllRule(), DropAction())
 
 -- clear the RD flag in queries for powerdns.com.
--- addNoRecurseRule("powerdns.com.")
--- another way to do the exact same thing:
 -- addAction("powerdns.com.", NoRecurseAction())
 
 -- set the CD flag in queries for powerdns.com.
--- addDisableValidationRule("powerdns.com.")
--- or:
 -- addAction("powerdns.com.", DisableValidationAction())
 
 -- delay all responses for 1000ms
 -- addAction(AllRule(), DelayAction(1000))
 
 -- truncate ANY queries over UDP only
--- addAnyTCRule()
+-- addAction(AndRule{QTypeRule(dnsdist.ANY), TCPRule(false)}, TCAction())
 
 -- truncate ANY queries over TCP only
 -- addAction(AndRule({QTypeRule(dnsdist.ANY), TCPRule(true)}), TCAction())
@@ -166,15 +160,15 @@ end
 
 -- spoof responses for A, AAAA and ANY for spoof.powerdns.com.
 -- A queries will get 192.0.2.1, AAAA 2001:DB8::1 and ANY both
--- addDomainSpoof("spoof.powerdns.com.", "192.0.2.1", "2001:DB8::1")
+-- addAction("spoof.powerdns.com.", SpoofAction({"192.0.2.1", "2001:DB8::1"}))
 
 -- spoof responses will multiple records
 -- A will get 192.0.2.1 and 192.0.2.2, AAAA 20B8::1 and 2001:DB8::2
 -- ANY all of that
--- addDomainSpoof("spoof.powerdns.com", {"192.0.2.1", "192.0.2.2", "20B8::1", "2001:DB8::2"})
+-- addAction("spoof.powerdns.com", SpoofAction({"192.0.2.1", "192.0.2.2", "20B8::1", "2001:DB8::2"}))
 
 -- spoof responses with a CNAME
--- addDomainCNAMESpoof("cnamespoof.powerdns.com.", "cname.powerdns.com.")
+-- addAction("cnamespoof.powerdns.com.", SpoofCNAMEAction("cname.powerdns.com."))
 
 -- spoof responses in Lua
 --[[
