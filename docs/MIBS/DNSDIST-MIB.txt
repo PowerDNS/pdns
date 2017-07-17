@@ -68,13 +68,7 @@ aclDrops OBJECT-TYPE
 	"Number of queries dropped because of the ACL"
     ::= { stats 4 }
 
-blockFilters OBJECT-TYPE
-    SYNTAX Counter64
-    MAX-ACCESS read-only
-    STATUS current
-    DESCRIPTION
-	"Number of queries dropped because of the block filters"
-    ::= { stats 5 }
+-- stats 5 was a BlockFilter Counter, removed in 1.2.0
 
 ruleDrop OBJECT-TYPE
     SYNTAX Counter64
@@ -637,7 +631,6 @@ dnsdistGroup OBJECT-GROUP
         responses,
         servfailResponses,
         aclDrops,
-        blockFilters,
         ruleDrop,
         ruleNXDomain,
         ruleRefused,

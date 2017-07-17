@@ -194,7 +194,7 @@ class TestAPIBasics(DNSDistTest):
             self.assertEquals(entry['type'], 'StatisticItem')
             values[entry['name']] = entry['value']
 
-        expected = ['responses', 'servfail-responses', 'queries', 'acl-drops', 'block-filter',
+        expected = ['responses', 'servfail-responses', 'queries', 'acl-drops',
                     'rule-drop', 'rule-nxdomain', 'rule-refused', 'self-answered', 'downstream-timeouts',
                     'downstream-send-errors', 'trunc-failures', 'no-policy', 'latency0-1',
                     'latency1-10', 'latency10-50', 'latency50-100', 'latency100-1000',
@@ -223,7 +223,7 @@ class TestAPIBasics(DNSDistTest):
         self.assertTrue(r.json())
         content = r.json()
 
-        expected = ['responses', 'servfail-responses', 'queries', 'acl-drops', 'block-filter',
+        expected = ['responses', 'servfail-responses', 'queries', 'acl-drops',
                     'rule-drop', 'rule-nxdomain', 'rule-refused', 'self-answered', 'downstream-timeouts',
                     'downstream-send-errors', 'trunc-failures', 'no-policy', 'latency0-1',
                     'latency1-10', 'latency10-50', 'latency50-100', 'latency100-1000',

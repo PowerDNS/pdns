@@ -18,15 +18,6 @@ class TestBasics(DNSDistTest):
     addAction(AndRule({QTypeRule(dnsdist.A),QNameRule("ds9a.nl")}), SpoofAction("1.2.3.4"))
     addAction(newDNSName("dnsname.addaction.powerdns.com."), RCodeAction(dnsdist.REFUSED))
     addAction({newDNSName("dnsname-table1.addaction.powerdns.com."), newDNSName("dnsname-table2.addaction.powerdns.com.")}, RCodeAction(dnsdist.REFUSED))
-    block=newDNSName("powerdns.org.")
-    function blockFilter(dq)
-        if(dq.qname:isPartOf(block))
-        then
-            print("Blocking *.powerdns.org")
-            return true
-        end
-        return false
-    end
     """
 
     def testDropped(self):
@@ -38,22 +29,6 @@ class TestBasics(DNSDistTest):
         no response.
         """
         name = 'drop.test.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
-        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
-        self.assertEquals(receivedResponse, None)
-
-        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
-        self.assertEquals(receivedResponse, None)
-
-    def testBlockedA(self):
-        """
-        Basics: Blocked A query
-
-        Send an A query for the powerdns.org domain,
-        which is blocked by configuration. We expect
-        no response.
-        """
-        name = 'blockeda.tests.powerdns.org.'
         query = dns.message.make_query(name, 'A', 'IN')
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertEquals(receivedResponse, None)
