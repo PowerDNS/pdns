@@ -55,6 +55,7 @@ endif # if !HAVE_MANPAGES
 
 .venv: requirements.txt
 	virtualenv .venv
+	.venv/bin/pip install -U pip setuptools setuptools-git
 	.venv/bin/pip install -r requirements.txt
 
 html-docs: common/** manpages/** .venv
