@@ -33,7 +33,7 @@
 #include "dnspacket.hh"
 #include "dns.hh"
 
-bool DNSBackend::getAuth(DNSPacket *p, SOAData *sd, const DNSName &target)
+bool DNSBackend::getAuth(const DNSName &target, SOAData *sd)
 {
   return this->getSOA(target, *sd);
 }

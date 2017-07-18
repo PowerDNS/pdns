@@ -169,7 +169,7 @@ public:
   virtual void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false) { }
 
   /** Determines if we are authoritative for a zone, and at what level */
-  virtual bool getAuth(DNSPacket *p, SOAData *sd, const DNSName &target);
+  virtual bool getAuth(const DNSName &target, SOAData *sd);
 
   struct KeyData {
     std::string content;
