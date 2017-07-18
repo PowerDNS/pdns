@@ -1674,7 +1674,12 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
   }
 
   std::vector<std::shared_ptr<DNSRecord>> authorityRecs;
+  bool isCNAMEAnswer = false;
   for(const auto& rec : lwr.d_records) {
+    if(!isCNAMEAnswer && rec.d_place == DNSResourceRecord::ANSWER && rec.d_type == QType::CNAME && (!(qtype==QType(QType::CNAME))) && rec.d_name == qname) {
+      isCNAMEAnswer = true;
+    }
+
     if(needWildcardProof) {
       if (nsecTypes.count(rec.d_type)) {
         authorityRecs.push_back(std::make_shared<DNSRecord>(rec));
@@ -1784,11 +1789,26 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
     if(i->second.records.empty()) // this happens when we did store signatures, but passed on the records themselves
       continue;
 
+    bool isAA = lwr.d_aabit;
+    if (isAA && isCNAMEAnswer && (i->first.place != DNSResourceRecord::ANSWER || i->first.type != QType::CNAME)) {
+      /*
+        rfc2181 states:
+        Note that the answer section of an authoritative answer normally
+        contains only authoritative data.  However when the name sought is an
+        alias (see section 10.1.1) only the record describing that alias is
+        necessarily authoritative.  Clients should assume that other records
+        may have come from the server's cache.  Where authoritative answers
+        are required, the client should query again, using the canonical name
+        associated with the alias.
+      */
+      isAA = false;
+    }
+
     vState recordState = getValidationStatus(auth);
     LOG(d_prefix<<": got initial zone status "<<vStates[recordState]<<" for record "<<i->first.name<<endl);
 
     if (validationEnabled() && recordState == Secure) {
-      if (lwr.d_aabit) {
+      if (isAA) {
         if (i->first.place != DNSResourceRecord::ADDITIONAL) {
           /* the additional entries can be insecure,
              like glue:
@@ -1809,7 +1829,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
         }
       }
       else {
-        /* for non authoritative answer, we only care about the DS record (or lack of)  */
+        /* in a non authoritative answer, we only care about the DS record (or lack of)  */
         if ((i->first.type == QType::DS || i->first.type == QType::NSEC || i->first.type == QType::NSEC3) && i->first.place == DNSResourceRecord::AUTHORITY) {
           LOG(d_prefix<<"Validating DS record for "<<i->first.name<<endl);
           recordState = validateRecordsWithSigs(depth, qname, qtype, i->first.name, i->second.records, i->second.signatures);
@@ -1824,7 +1844,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
       }
     }
 
-    t_RC->replace(d_now.tv_sec, i->first.name, QType(i->first.type), i->second.records, i->second.signatures, authorityRecs, lwr.d_aabit, i->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::none, recordState);
+    t_RC->replace(d_now.tv_sec, i->first.name, QType(i->first.type), i->second.records, i->second.signatures, authorityRecs, isAA, i->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::none, recordState);
 
     if(i->first.place == DNSResourceRecord::ANSWER && ednsmask)
       d_wasVariable=true;
