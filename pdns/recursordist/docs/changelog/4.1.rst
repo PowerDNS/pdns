@@ -2,7 +2,11 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.0-alpha2
+
+.. changelog::
   :version: 4.1.0-alpha1
+  :released: 18th of July 2017
 
   This is the first release of the PowerDNS Recursor in the 4.1 release train.
   This release contains several performance and correctness improvements in the EDNS Client subnet area, as well as better DNSSEC processing.
