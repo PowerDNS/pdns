@@ -216,7 +216,7 @@ static bool isRootServer(const ComboAddress& ip)
   return false;
 }
 
-static void computeRRSIG(const DNSSECPrivateKey& dpk, const DNSName& signer, const DNSName& signQName, uint16_t signQType, uint32_t signTTL, uint32_t sigValidity, RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& toSign, boost::optional<uint8_t> algo=boost::none)
+static void computeRRSIG(const DNSSECPrivateKey& dpk, const DNSName& signer, const DNSName& signQName, uint16_t signQType, uint32_t signTTL, uint32_t sigValidity, RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& toSign, boost::optional<uint8_t> algo=boost::none, boost::optional<uint32_t> inception=boost::none)
 {
   time_t now = time(nullptr);
   DNSKEYRecordContent drc = dpk.getDNSKEY();
@@ -225,7 +225,7 @@ static void computeRRSIG(const DNSSECPrivateKey& dpk, const DNSName& signer, con
   rrc.d_type = signQType;
   rrc.d_labels = signQName.countLabels() - signQName.isWildcard();
   rrc.d_originalttl = signTTL;
-  rrc.d_siginception = now - 10;
+  rrc.d_siginception = inception ? *inception : (now - 10);
   rrc.d_sigexpire = now + sigValidity;
   rrc.d_signer = signer;
   rrc.d_tag = 0;
@@ -3190,8 +3190,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig) {
 
   DNSName qname("powerdns.com.");
 
+  time_t now = time(nullptr);
   RRSIGRecordContent rrc;
-  computeRRSIG(dpk, qname, qname, QType::A, 600, 300, rrc, recordcontents);
+  /* this RRSIG is valid for the current second only */
+  computeRRSIG(dpk, qname, qname, QType::A, 600, 0, rrc, recordcontents, boost::none, now);
 
   skeyset_t keyset;
   keyset.insert(std::make_shared<DNSKEYRecordContent>(dpk.getDNSKEY()));
@@ -3199,7 +3201,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig) {
   std::vector<std::shared_ptr<RRSIGRecordContent> > sigs;
   sigs.push_back(std::make_shared<RRSIGRecordContent>(rrc));
 
-  BOOST_CHECK(validateWithKeySet(time(nullptr), qname, recordcontents, sigs, keyset));
+  BOOST_CHECK(validateWithKeySet(now, qname, recordcontents, sigs, keyset));
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_root_validation_csk) {
