@@ -10,6 +10,11 @@ Please upgrade to the PowerDNS Authoritative Server 4.0.0 from 3.4.2+. See the [
 
 ### Changed defaults
 
+## Removal of recursive capabilities
+
+In 4.1.0, the recursive capabilities and related settings have been removed.
+See the [Recursion Upgrade Guide](recursion.md) for migration plans.
+
 ## Other changes
 
 The `--with-pgsql`, `--with-pgsql-libs`, `--with-pgsql-includes` and `--with-pgsql-config` `configure` options have been deprecated.

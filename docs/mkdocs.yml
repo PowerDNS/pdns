@@ -29,7 +29,7 @@ pages:
     - Various How To's: authoritative/howtos.md
     - Performance Tuning and Monitoring: authoritative/performance.md
     - Migrating to PowerDNS: authoritative/migration.md
-    - Recursion with the Authoritative Server: authoritative/recursion.md
+    - Migrating from recursion with the Authoritative Server: authoritative/recursion.md
     - List of Settings: authoritative/settings.md
     - 'Manpage: zone2json.1': manpages/zone2json.1.md
     - 'Manpage: zone2ldap.1': manpages/zone2ldap.1.md
