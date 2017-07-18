@@ -257,6 +257,47 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple) {
     BOOST_REQUIRE_EQUAL(retrieved.size(), 1);
     BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr2Content.toString());
 
+    // Most specific netmask test
+    // wipe everything
+    MRC.doWipeCache(DNSName("."), true);
+    BOOST_CHECK_EQUAL(MRC.size(), 0);
+    records.clear();
+
+    // insert an entry for 192.0.0.1/8
+    records.clear();
+    records.push_back(dr2);
+    MRC.replace(now, power, QType(QType::A), records, signatures, true, boost::optional<Netmask>("192.0.0.1/8"));
+    BOOST_CHECK_EQUAL(MRC.size(), 1);
+
+    /* same as dr2 except for the actual IP */
+    DNSRecord dr4;
+    ComboAddress dr4Content("192.0.2.126");
+    dr4.d_name = power;
+    dr4.d_type = QType::A;
+    dr4.d_class = QClass::IN;
+    dr4.d_content = std::make_shared<ARecordContent>(dr4Content);
+    dr4.d_ttl = static_cast<uint32_t>(ttd);
+    dr4.d_place = DNSResourceRecord::AUTHORITY;
+
+    // insert an other entry but for 192.168.0.1/31
+    records.clear();
+    records.push_back(dr4);
+    MRC.replace(now, power, QType(QType::A), records, signatures, true, boost::optional<Netmask>("192.168.0.1/31"));
+    // we should not have replaced any existing entry
+    BOOST_CHECK_EQUAL(MRC.size(), 2);
+
+    // insert the same than the first one but for 192.168.0.2/32
+    records.clear();
+    records.push_back(dr2);
+    MRC.replace(now, power, QType(QType::A), records, signatures, true, boost::optional<Netmask>("192.168.0.2/32"));
+    // we should not have replaced any existing entry
+    BOOST_CHECK_EQUAL(MRC.size(), 3);
+
+    // we should get the most specific entry for 192.168.0.1, so the second one
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), &retrieved, ComboAddress("192.168.0.1"), nullptr), (ttd-now));
+    BOOST_REQUIRE_EQUAL(retrieved.size(), 1);
+    BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr4Content.toString());
+    retrieved.clear();
   }
   catch(const PDNSException& e) {
     cerr<<"Had error: "<<e.reason<<endl;
