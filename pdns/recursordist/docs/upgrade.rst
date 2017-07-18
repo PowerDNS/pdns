@@ -7,7 +7,7 @@ When upgrading several versions, please read **all** notes applying to the upgra
 4.0.x to 4.1.0
 --------------
 
-:ref:`setting-max-recursion-depth` defaulted to 4 but was always overridden to 6 during
+:ref:`setting-loglevel` defaulted to 4 but was always overridden to 6 during
 the startup. The issue has been fixed and the default value set to 6 to keep the behavior
 consistent.
 
