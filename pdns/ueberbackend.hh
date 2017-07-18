@@ -98,7 +98,8 @@ public:
 
   void lookup(const QType &, const DNSName &qdomain, DNSPacket *pkt_p=0,  int zoneId=-1);
 
-  bool getAuth(DNSPacket *p, SOAData *sd, const DNSName &target);
+  /** Determines if we are authoritative for a zone, and at what level */
+  bool getAuth(const DNSName &target, SOAData* sd, bool huntingDS, bool cachedOk=true);
   bool getSOA(const DNSName &domain, SOAData &sd);
   bool getSOAUncached(const DNSName &domain, SOAData &sd);  // same, but ignores cache
   bool get(DNSZoneRecord &r);

@@ -33,11 +33,6 @@
 #include "dnspacket.hh"
 #include "dns.hh"
 
-bool DNSBackend::getAuth(DNSPacket *p, SOAData *sd, const DNSName &target)
-{
-  return this->getSOA(target, *sd);
-}
-
 void DNSBackend::setArgPrefix(const string &prefix)
 {
   d_prefix=prefix;
