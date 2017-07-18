@@ -1,11 +1,8 @@
-AC_DEFUN([PDNS_CHECK_PANDOC], [
+AC_DEFUN([PDNS_CHECK_DOC_PREQ], [
   AC_CHECK_PROG([PANDOC], [pandoc], [pandoc], [no])
+  AC_CHECK_PROG([MKDOCS], [mkdocs], [mkdocs], [no])
 
-  AS_IF([test "x$PANDOC" = "xno"], [
-    AS_IF([test ! -d "$srcdir/docs/html" -o ! -f "$srcdir/docs/pdns_server.1"],
-      [AC_MSG_WARN([pandoc is missing, unable to build documentation and manpages.])]
-    )
+  AS_IF([test "x$PANDOC" = "xno" -o "x$MKDOCS" = "xno"], [
+    AC_MSG_ERROR([pandoc or mkdocs not found])
   ])
-  AM_CONDITIONAL([HAVE_PANDOC], [test "x$PANDOC" != "xno"])
-  AM_CONDITIONAL([HAVE_MANPAGES], [test -e "$srcdir/docs/pdns_server.1"])
 ])
