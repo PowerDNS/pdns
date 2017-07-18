@@ -1311,3 +1311,27 @@ unsigned int pdns_stou(const std::string& str, size_t * idx, int base)
   return static_cast<unsigned int>(result);
 }
 
+bool isSettingThreadCPUAffinitySupported()
+{
+#ifdef HAVE_PTHREAD_SETAFFINITY_NP
+  return true;
+#else
+  return false;
+#endif
+}
+
+int mapThreadToCPUList(pthread_t tid, const std::set<int>& cpus)
+{
+#ifdef HAVE_PTHREAD_SETAFFINITY_NP
+  cpu_set_t cpuset;
+  CPU_ZERO(&cpuset);
+  for (const auto cpuID : cpus) {
+    CPU_SET(cpuID, &cpuset);
+  }
+
+  return pthread_setaffinity_np(tid,
+                                sizeof(cpuset),
+                                &cpuset);
+#endif /* HAVE_PTHREAD_SETAFFINITY_NP */
+  return ENOSYS;
+}

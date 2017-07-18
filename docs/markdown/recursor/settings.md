@@ -163,6 +163,23 @@ this depends on `SYSCONFDIR` during compile-time.
 When running multiple recursors on the same server, read settings from
 "recursor-name.conf", this will also rename the binary image.
 
+## `cpu-map`
+* String
+* Default: unset
+* Available since: 4.1.0
+
+Set CPU affinity for worker threads, asking the scheduler to run those threads on a single CPU, or a set of CPUs.
+This parameter accepts a space separated list of thread-id=cpu-id, or thread-id=cpu-id-1,cpu-id-2,...,cpu-id-N.
+For example, to make the worker thread 0 run on CPU id 0 and the worker thread 1 on CPUs 1 and 2:
+
+`cpu-map=0=0 1=1,2`
+
+The number of worker threads is determined by the ['threads'](#threads) setting.
+If [`pdns-distributes-queries`'](#pdns-distributes-queries) is set, an additional thread is started, assigned the id 0,
+and is the only one listening on client sockets and accepting queries, distributing them to the other worker threads afterwards.
+
+This parameter is only available on OS that provides the `pthread_setaffinity_np()` function.
+
 ## `daemon`
 * Boolean
 * Default: no (since 4.0.0, 'yes' before 4.0.0)

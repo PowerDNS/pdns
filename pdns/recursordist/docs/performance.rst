@@ -29,6 +29,9 @@ This prevents a single thread from having to handle every incoming queries, but 
 
 If ``SO_REUSEPORT`` support is available and :ref:`setting-reuseport` is set to true, separate listening sockets are opened for each worker thread and the query distributions is handled by the kernel, avoiding any thundering herd issue as well as preventing the distributor thread from becoming the bottleneck.
 
+.. versionadded:: 4.1.0
+   The :ref:`setting-cpu-map` parameter can be used to pin worker threads to specific CPUs, in order to keep caches as warm as possible and optimize memory access on NUMA systems.
+
 Performance tips
 ----------------
 
