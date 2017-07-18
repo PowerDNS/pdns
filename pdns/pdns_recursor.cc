@@ -925,14 +925,14 @@ void startDoResolve(void *p)
                 for(; i!= ret.cend(); ++i)
                   if(i->d_type == dc->d_mdp.d_qtype && i->d_place == DNSResourceRecord::ANSWER)
                           break;
-                if(i == ret.cend() && (*t_pdl)->nodata(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_tcp, ret, res, &variableAnswer))
+                if(i == ret.cend() && (*t_pdl)->nodata(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_tcp, ret, dc->d_ednsOpts.empty() ? 0 : &dc->d_ednsOpts, res, &variableAnswer))
                   shouldNotValidate = true;
 
 	}
-	else if(res == RCode::NXDomain && (*t_pdl)->nxdomain(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_tcp, ret, res, &variableAnswer))
+	else if(res == RCode::NXDomain && (*t_pdl)->nxdomain(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_tcp, ret, dc->d_ednsOpts.empty() ? 0 : &dc->d_ednsOpts, res, &variableAnswer))
           shouldNotValidate = true;
 
-	if((*t_pdl)->postresolve(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_tcp, ret, &appliedPolicy, &dc->d_policyTags, res, &variableAnswer))
+	if((*t_pdl)->postresolve(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_tcp, ret, dc->d_ednsOpts.empty() ? 0 : &dc->d_ednsOpts, &appliedPolicy, &dc->d_policyTags, res, &variableAnswer))
           shouldNotValidate = true;
       }
 
