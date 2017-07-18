@@ -8,7 +8,7 @@ Statistics endpoint
 
   The names and meaning of these items are described :ref:`here <metricnames>`.
 
-  :query server_id: The name of the server
+  :param server_id: The name of the server
 
   **Example response:**
 

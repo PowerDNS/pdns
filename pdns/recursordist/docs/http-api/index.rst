@@ -57,7 +57,7 @@ All API endpoints for the PowerDNS Recursor are documented here:
 
   ../common/api/endpoint-api
   ../common/api/endpoint-servers
-  ../common/api/endpoint-servers-config
+  endpoint-servers-config
   ../common/api/endpoint-statistics.rst
   endpoint-zones
   endpoint-trace

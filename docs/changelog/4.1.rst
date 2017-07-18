@@ -1,0 +1,485 @@
+Changelogs for 4.1.x
+====================
+
+.. changelog::
+  :version: 4.1.0
+
+  This is the first release of the PowerDNS Recursor in the 4.1 release train.
+
+  .. change::
+    :tags: BIND, Improvements
+    :pullreq: 5094
+
+    Make the zone parser adhere to :rfc:`2308` with regards to implicit TTLs.
+
+    Existing zone files may now be interpreted differently.
+    Specifically, where we previously used the SOA minimum field for the default
+    TTL if none was set explictly, or no $TTL was set, we now use the TTL from
+    the previous line.
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 4373
+
+    Revamp and clean label compression code. Speeds up large packet creation by ~40%.
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 4332
+    :tickets: 4299
+
+    Apply :ref:`setting-non-local-bind` to :ref:`setting-query-local-address` and :ref:`setting-query-local-address6` when possible.
+
+  .. change::
+    :tags: DNSUpdate, New Features
+    :pullreq: 4058
+
+    Allow the use of a :ref:`Lua script <dnsupdate-lua-dnsupdate-policy-script>` to validate DNS Update requests (Aki Tuomi).
+
+  .. change::
+    :tags: API, Improvements
+    :pullreq: 4408
+    :tickets: 4290
+
+    Enable the webserver when :ref:`setting-api` is 'yes' (Christian Hofstaedtler).
+
+  .. change::
+    :tags: API, New Features
+    :pullreq: 4093, 5038
+
+    Add API endpoints for Domain metadata (Christian Kröger).
+
+  .. change::
+    :tags: API, New Features
+    :pullreq: 4106
+    :tickets: 706
+
+    Implement :json:object:`CryptoKey` in the API (Wolfgang Studier, @MrM0nkey, Tudor Soroceanu, Benjamin Zengin).
+
+  .. change::
+    :tags: Internals, Bug Fixes
+    :pullreq: 4424
+
+    Fix compilation on systems with Boost < 1.54
+
+  .. change::
+    :tags: Internals, Improvements, Bug Fixes
+    :pullreq: 4467, 4492
+
+    A number of fixes and improvements that are difficult to untangle:
+
+    * Remove the ASCII :cpp:class:`DNSResourceRecord` from the hot path of packet assembly.
+    * Hash the storage of records in the BindBackend.
+    * Hash the packetcache.
+    * Fix some bugs in the LDAP backend and in the MyDNS backend.
+    * Make the randombackend go 'native' and directly supply records that can be sent to packets
+    * The performance benefit of this PR is measured in "factors" for being a root-server.
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 4504
+    :tickets: 4503
+
+    Improve cleaning, remove an unnecessary lock and improve performance of the packetcache (Kees Monshouwer).
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 4485
+
+    Improve SOA records caching (Kees Monshouwer).
+
+  .. change::
+    :tags: Internals, Bug Fixes
+    :pullreq: 4560, 4548
+    :tickets: 4546
+
+    Fix possible variable shadowing (Kees Monshouwer, Christian Hofstaedtler).
+
+  .. change::
+    :tags: API, Bug Fixes
+    :pullreq: 4526
+    :tickets: 4524
+
+    Make the URL in zone info absolute (Christian Hofstaedtler).
+
+  .. change::
+    :tags: BIND, Bug Fixes
+    :pullreq: 4650
+    :tickets: 4328
+
+    Do not corrupt data supplied by other backends in getAllDomains (Christian Hofstaedtler).
+
+  .. change::
+    :tags: Tools, Improvements
+    :pullreq: 4007
+    :tickets: 4005
+
+    Implement subcommand printing all KSK DS records in pdnsutil (Jonas Wielicki).
+
+  .. change::
+    :tags: Tools, Bug Fixes
+    :pullreq: 4740
+
+    Avoid undefined behaviour in Clang vs. GCC when printing DS records in pdnsutil.
+
+  .. change::
+    :tags: API, Improvements
+    :pullreq: 4751
+    :tickets: 4132
+
+    Prevent sending nameservers list and zone-level NS in rrsets in the API (Christian Hofstaedtler).
+
+  .. change::
+    :tags: Tools, Improvements
+    :pullreq: 4584
+
+     Allow setting the account of a zone via pdnsutil (Tuxis Internet Engineering).
+
+  .. change::
+    :tags: Internals, New Features
+    :pullreq: 4624
+
+    Add TCP management options described in :rfc:`section 10 of RFC 7766 <7766#section-10>`.
+
+  .. change::
+    :tags: Tools, Improvements
+    :pullreq: 4719
+
+    Print "$ORIGIN ." on ``pdnsutil list-zone``, so the output can be used in ``pdnsutil load-zone`` (Tuxis Internet Engineering).
+
+  .. change::
+    :tags: Internals, Bug Fixes
+    :pullreq: 4855
+
+    Fix ``getaddrinfo()`` returning address in triplicate.
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 4829
+
+    Make sure AXFR only deletes records from a SLAVE domain in a multi backend setup (Kees Monshouwer).
+
+  .. change::
+    :tags: Tools, Improvements
+    :pullreq: 4478
+
+    pdnsutil: clarify error message when set-presigned fails with DNSSEC disabled (Peter Thomassen).
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 4908
+
+    Tidy up UeberBackend (Christian Hofstaedtler).
+
+  .. change::
+    :tags: Tools, Improvements
+    :pullreq: 3913
+
+    pdnsutil: Validate names with address records to be valid hostnames (Håkan Lindqvist).
+
+  .. change::
+    :tags: Postgresql, Improvements
+    :pullreq: 4711
+    :ticket: 2138
+
+    Enable setting custom pgsql connection parameters, like TLS parameters (Tarjei Husøy).
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 4944
+
+    Improve API performance by instantiating only one DNSSECKeeper per request.
+
+  .. change::
+    :tags: Remote, Bug Fixes
+    :pullreq: 4997
+
+    Fix two problems with remotebackend (Aki Tuomi):
+
+    * list method used domain-id json parameter, when it was supposed to use domain_id
+    * NULL ordername was not passed as empty string in POST parameters builder, instead it threw an exception
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 4953
+    :tickets: 349, 602
+
+    Incremental backoff for failed slave checks.
+
+    When a SOA record for a slave domain can't be retrieved, use an increasing interval between checking the domain again.
+    This prevents hammering down on already busy servers.
+
+  .. change::
+    :tags: LDAP, Bug Fixes
+    :pullreq: 4922
+    :tickets: 3165
+
+    Fix ldap-strict autoptr feature.
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 4549
+
+    Remove d_place from DNSResourceRecord (Christian Hofstaedtler).
+
+  .. change::
+    :tags: MyDNS, New Features
+    :pullreq: 5043
+
+    Add function to the MyDNS backend to allow backend-to-backend migrations (Aki Tuomi).
+
+  .. change::
+    :tags: Internals, Removed Features
+    :pullreq: 4752
+    :tickets: 4616, 4238, 4315, 3337, 2606, 2380
+
+    Remove recursion. See :doc:`../guides/recursion` for migration strategies (Kees Monshouwer).
+
+  .. change::
+    :tags: Internals, Bug Fixes
+    :pullreq: 5117
+
+    Turn exception in a qthread into an error instead of a crash.
+
+  .. change::
+    :tags: Webserver, Improvements
+    :pullreq: 5116
+    :tickets: 1844
+
+    Report query statistics as full numbers, not scientific notation in the webserver.
+
+  .. change::
+    :tags: Tools, Bug Fixes
+    :pullreq: 5125
+    :tickets: 5124
+
+    In ``pdnsutil create-slave-zone``, actually add all slaves.
+
+  .. change::
+    :tags: BIND, New Features
+    :pullreq: 5115
+    :tickets: 1284
+
+    Support "native" zones in the BIND backend.
+
+  .. change::
+    :tags: Postgresql, Bug Fixes
+    :pullreq: 4929
+    :tickets: 4928
+
+    Make statement actually unique (Christian Hofstaedtler).
+
+  .. change::
+    :tags: Tools, Improvements
+    :pullreq: 5118
+
+    Correct pdnsutil help output for add-zone-key.
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 5169
+
+    Add an option to allow AXFR of zones with a different (higher/lower) serial (Kees Monshouwer).
+
+  .. change::
+    :tags: Tools, Improvements
+    :pullreq: 5062
+    :tickets: 512
+
+    Check for valid hostnames in SRV, NS and MX records.
+
+  .. change::
+    :tags: Postgresql, Improvements
+    :pullreq: 5121, 5221
+    :tickets: 2358, 5193
+
+    Use pkg-config to detect PostgreSQL libraries.
+
+  .. change::
+    :tags: Internals, New Features
+    :pullreq: 5137
+    :tickets: 5129
+
+    Add TCP Fast Open support.
+
+  .. change::
+    :tags: ALIAS, Improvements
+    :pullreq: 5182
+    :tickets: 5119
+
+    Disable ALIAS expansion by default.
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 5112
+    :tickets: 4655
+
+    Use the :ref:`setting-resolver` setting for the stub resolver, use resolv.conf as fallback.
+
+  .. change::
+    :tags: Internals, New Features
+    :pullreq: 5132, 5258
+    :tickets: 4204
+
+    Hash the entire query in the packet cache, split caches. This makes the authoritative server pass the EDNS compliance test.
+
+    Add cache hit/miss statistics (Kees Monshouwer).
+
+  .. change::
+    :tags: LDAP, New Features
+    :pullreq: 4477
+    :tickets: 3358
+
+    Many improvements and additions to the LDAP backend (Grégory Oestreicher).
+
+  .. change::
+    :tags: Internals, Bug Fixes
+    :pullreq: 5212, 5249
+
+    Remove duplicate dns2_tolower() function and move ascii-related function to one file (Thiago Farina).
+
+  .. change::
+    :tags: Internals, Bug Fixes
+    :pullreq: 5209
+
+    Make copying locks impossible.
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 5250
+
+    Re-implement the AXFR Filter with LuaContext (Aki Tuomi).
+
+  .. change::
+    :tags: GeoIP, New Features
+    :pullreq: 5266, 5269, 5270
+    :tickets: 4122, 5255
+
+    Support 2-character country codes and the MaxMind cities database in the GeoIP backend (Aki Tuomi).
+
+  .. change::
+    :tags: GeoIP, Bug Fixes
+    :pullreq: 5267
+    :tickets: 4704
+
+    Apply weights consistently during GeoIP lookups (Aki Tuomi).
+
+  .. change::
+    :tags: Tools, Bug Fixes
+    :pullreq: 5303
+
+    Fix off-by-one in dnsreplay --packet-limit
+
+  .. change::
+    :tags: Internals, New Features
+    :pullreq: 5271, 5190
+    :tickets: 3781
+
+    Add an adjustable statistics interval (@phonedph1).
+
+  .. change::
+    :tags: DNSUpdate, New Features
+    :pullreq: 5264, 5263, 5321
+    :tickets: 4821
+
+    Send a notification to all slave servers after every dnsupdate (Kees Monshouwer, Florian Obser).
+
+  .. change::
+    :tags: Remote, Bug Fixes
+    :pullreq: 5308
+    :tickets: 5306
+
+    Don't copy data around in the Remote Backend when sending and receiving in the Unix Connector.
+
+  .. change::
+    :tags: Internals, Bug Fixes
+    :pullreq: 5320
+
+    Properly truncate trailing bits of EDNS Client Subnet masks.
+
+  .. change::
+    :tags: Internals, Bug Fixes
+    :pullreq: 5161, 5083
+
+    Fix regressions in the AXFR rectification code (Kees Monshouwer, Arthur Gautier).
+
+  .. change::
+    :tags: LDAP, Bug Fixes
+    :pullreq: 5340
+    :tickets: 5091
+
+    Fix an erroneous '.' in ".ip6.arpa" (@shantikulkarni).
+
+  .. change::
+    :tags: Internals, New Features
+    :pullreq: 5316
+
+    Add option to set a global :ref:`setting-lua-axfr-script` (Kees Monshouwer).
+
+  .. change::
+    :tags: Tools, New Features
+    :pullreq: 5339
+
+    calidns: add --increment and --want-recursion flags.
+
+  .. change::
+    :tags: Internals, New Features
+    :pullreq: 4965, 4964, 1701
+
+    Allow forwarding of NOTIFY messages using :ref:`setting-forward-notify` (@DrRemorse).
+
+  .. change::
+    :tags: Internals, Bug Fixes
+    :pullreq: 5408
+
+    Zero the port when creating a netmask from a ComboAddress.
+
+  .. change::
+    :tags: API, Improvements
+    :pullreq: 5389
+    :tickets: 5305
+
+    Forbid mixing CNAMEs and other RRSets in the API (Christan Hofstaedtler).
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 5387
+
+    Allow control socket to listen on IPv6 (@Gibheer).
+
+  .. change::
+    :tags: Types, New Features
+    :pullreq: 5379
+
+    Support the SMIMEA RRType.
+
+  .. change::
+    :tags: Postgresql, MySQL, Bug Fixes
+    :pullreq: 5245
+    :tickets: 5005, 3824
+
+    Reconnect to the server if the My/Pg connection has been closed.
+
+  .. change::
+    :tags: Internals, Removed Features
+    :pullreq: 5468
+
+    Remove the experimental Lua Policy Engine (Aki Tuomi).
+
+  .. change::
+    :tags: Internals, Bug Fixes
+    :pullreq: 5512
+
+    Drop (broken) support for packet-specific SOA replies from backends (Christian Hofstaedtler).
+
+  .. change::
+    :tags: Oracle, Bug Fixes
+    :pullreq: 5506
+
+    Add missing query for last key insert id in the goracle backend (Aki Tuomi).
+
+  .. change::
+    :tags: Postgresql, Improvements
+    :pullreq: 5426
+
+    Use BIGSERIAL for records.id in the gpgsql backend (Arsen Stasic).
