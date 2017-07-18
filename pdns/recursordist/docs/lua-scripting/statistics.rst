@@ -50,6 +50,13 @@ Looking at Statistics
 .. versionadded:: 4.1.0
 
 Statistics can be retrieved from Lua using the :func:`getStat` call.
+
+.. function:: getStat(name) -> int
+
+  Returns the value of a statistic.
+
+  :param string name: The name of the statistic.
+
 For example, to retrieve the number of cache misses:
 
 .. code-block:: Lua
@@ -57,5 +64,3 @@ For example, to retrieve the number of cache misses:
     cacheMisses = getStat("cache-misses")
 
 Please be aware that retrieving statistics is a relatively costly operation, and as such should for example not be done for every query.
-
-

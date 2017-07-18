@@ -29,14 +29,13 @@ Changelogs for 4.1.x
 
   .. change::
     :tags: Improvements, DNSSEC
-    :pullreq: 5463, 5223
+    :pullreq: 5463, 5223, 5486
     :tickets: 4994, 4490, 4362, 4254
 
-    Implement "on-the-fly" DNSSEC processing.
-    This places the DNSSEC processing alongside the regular recursion, reducing possible cornercases.
+    Implement "on-the-fly" DNSSEC processing. This places the DNSSEC processing alongside the regular recursion, reducing possible cornercases, adding unit tests and making the code better maintainable.
 
   .. change::
-    :tags: Improvements
+    :tags: New Features
     :pullreq: 5063
     :tickets: 2818
 
@@ -49,3 +48,187 @@ Changelogs for 4.1.x
 
     Show a useful error when an invalid :ref:`setting-lua-config-file` is configured.
 
+  .. change::
+    :tags: New Features, Protobuf
+    :pullreq: 4291
+    :tickets: 4109
+
+    Add ``taggedOnly`` option to :func:`protobufServer` to only send protobuf messages with a policy or tag set.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 4860
+
+    Fix :class:`DNSQuestion` members alterations from Lua not being taken into account.
+
+  .. change::
+    :tags: Bug Fixes, Protobuf
+    :pullreq: 4984
+    :tickets: 4969
+
+    Fix ``remote``/``local`` inversion in :func:`preoutquery`.
+
+  .. change::
+    :tags: New Features, Scripting
+    :pullreq: 4982
+    :tickets: 4981
+
+    Allow returning the :attr:`DNSQuestion.data` table from :func:`gettag`.
+
+  .. change::
+    :tags: New Features, SNMP
+    :pullreq: 4990, 5404
+
+    Add :ref:`SNMP <snmp>` support.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5106
+
+    Split SyncRes::doResolveAt, add const and static whenever possible. Possibly improving performance while making the code easier to maintain.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5102
+
+    Packet cache speedup and cleanup.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5146
+
+    Make Lua mandatory for recursor builds.
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 5103, 5487
+
+    Use one listening socket per thread when reuseport is enabled.
+
+  .. change::
+    :tags: Improvements, RPZ
+    :pullreq: 5057
+
+    Use the RPZ zone's TTL and add a new `maxTTL` setting.
+
+  .. change::
+    :tags: Improvements, Lua
+    :pullreq: 5141
+
+    Stop (de)serializing :attr:`DNSQuestion.data`.
+
+  .. change::
+    :tags: New Features, Lua
+    :pullreq: 5198
+    :tickets: 5195
+
+    Allow access to EDNS options from the :func:`gettag` hook.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5226
+
+    Refactor the negative cache into a class.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5209
+
+    Ensure locks can not be copied.
+
+  .. change::
+    :tags: Improvements, RPZ
+    :pullreq: 5275, 5307
+    :tickets: 5231, 5236
+
+    RPZ updates are done zone by zone, zones are now shared pointers.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5252
+    :tickets: 5246
+
+    Only apply :ref:`setting-root-nx-trust` if the received SOA is ".".
+
+  .. change::
+    :tags: New Features
+    :pullreq: 4569
+
+    Pass ``tcp`` to :func:`gettag`, allow setting the requestor ID from hooks.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5312
+
+    Don't throw an exception when logging to protobuf without a question set.
+
+  .. change::
+    :tags: New Features, Lua
+    :pullreq: 5293
+
+    Allow retrieving stats from Lua via the :func:`getStat` call.
+
+  .. change::
+    :tags: New Features, RPZ
+    :pullreq: 5265
+    :tickets: 5237
+
+    Add support for RPZ wildcarded target names.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5320
+
+    Correctly truncate EDNS Client Subnetmasks.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5319
+
+    Only check the netmask for subnet specific cache entries.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5236
+
+    Refactor and split ``SyncRes::doResolveAt()``, making it easier to understand.
+    Get rid of ``SyncRes::d_nocache``, makes sure we can't get into a root refresh loop.
+    Limit the use of global variables in SyncRes, to make it easier to understand the interaction between components
+
+  .. change::
+    :tags: Improvements, EDNS Client Subnet
+    :pullreq: 5461, 5472
+
+    Add an ECS index to the cache
+
+  .. change::
+    :tags: New Features, EDNS Client Subnet
+    :pullreq: 5409
+
+    Add ECS metrics.
+
+  .. change::
+    :tags: Improvements, EDNS Client Subnet, DNSSEC
+    :pullreq: 5484
+
+    Use ECS when updating the validation state if needed.
+
+  .. change::
+    :tags: Bug Fixes, API
+    :pullreq: 5466
+    :tickets: 5398
+
+    Clean up auth/recursor code mismatches in the API (Christian Hofstaedtler).
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5474
+    :tickets: 5474
+
+    Only increase ``no-packet-error`` on the first read.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5511
+
+    When dumping the cache, also dump RRSIGs.
