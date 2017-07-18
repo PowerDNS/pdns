@@ -266,7 +266,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple) {
     // insert an entry for 192.0.0.1/8
     records.clear();
     records.push_back(dr2);
-    MRC.replace(now, power, QType(QType::A), records, signatures, true, boost::optional<Netmask>("192.0.0.1/8"));
+    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, boost::optional<Netmask>("192.0.0.1/8"));
     BOOST_CHECK_EQUAL(MRC.size(), 1);
 
     /* same as dr2 except for the actual IP */
@@ -282,19 +282,19 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple) {
     // insert an other entry but for 192.168.0.1/31
     records.clear();
     records.push_back(dr4);
-    MRC.replace(now, power, QType(QType::A), records, signatures, true, boost::optional<Netmask>("192.168.0.1/31"));
+    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, boost::optional<Netmask>("192.168.0.1/31"));
     // we should not have replaced any existing entry
     BOOST_CHECK_EQUAL(MRC.size(), 2);
 
     // insert the same than the first one but for 192.168.0.2/32
     records.clear();
     records.push_back(dr2);
-    MRC.replace(now, power, QType(QType::A), records, signatures, true, boost::optional<Netmask>("192.168.0.2/32"));
+    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, boost::optional<Netmask>("192.168.0.2/32"));
     // we should not have replaced any existing entry
     BOOST_CHECK_EQUAL(MRC.size(), 3);
 
     // we should get the most specific entry for 192.168.0.1, so the second one
-    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), &retrieved, ComboAddress("192.168.0.1"), nullptr), (ttd-now));
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.168.0.1"), nullptr), (ttd-now));
     BOOST_REQUIRE_EQUAL(retrieved.size(), 1);
     BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr4Content.toString());
     retrieved.clear();
