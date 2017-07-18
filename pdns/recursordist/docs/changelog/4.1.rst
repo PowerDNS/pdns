@@ -2,7 +2,7 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
-  :version: 4.1.0
+  :version: 4.1.0-alpha1
 
   This is the first release of the PowerDNS Recursor in the 4.1 release train.
   This release contains several performance and correctness improvements in the EDNS Client subnet area, as well as better DNSSEC processing.
@@ -29,8 +29,8 @@ Changelogs for 4.1.x
 
   .. change::
     :tags: Improvements, DNSSEC
-    :pullreq: 5463, 5223, 5486
-    :tickets: 4994, 4490, 4362, 4254
+    :pullreq: 5223, 5463, 5486, 5528
+    :tickets: 4254, 4362, 4490, 4994
 
     Implement "on-the-fly" DNSSEC processing. This places the DNSSEC processing alongside the regular recursion, reducing possible cornercases, adding unit tests and making the code better maintainable.
 
@@ -232,3 +232,27 @@ Changelogs for 4.1.x
     :pullreq: 5511
 
     When dumping the cache, also dump RRSIGs.
+
+  .. change::
+    :tags: Bug Fixes, DNSSEC
+    :pullreq: 5525
+
+    Fix validation at the exact RRSIG inception or expiration time.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5485
+
+    Don't always override :ref:`setting-loglevel` to 6.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5406, 5530
+
+    Make more specific Netmasks < to less specific ones.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 5482
+
+    Add a :ref:`setting-cpu-map` directive to set CPU affinity per thread.
