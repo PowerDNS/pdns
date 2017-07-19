@@ -15,5 +15,6 @@ These chapters contain extensive information on all functions and object availab
   ebpf
   dnscrypt
   protobuf
+  carbon
   snmp
   tuning
