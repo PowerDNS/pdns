@@ -449,9 +449,13 @@ Status, Statistics and More
 
   Print a list of all allowed netmasks.
 
+.. function:: showBinds()
+
+  Print a list of all the current addresses and ports dnsdist is listening on, also called ``frontends``
+
 .. function:: showResponseLatency()
 
-  show a plot of the response time latency distribution
+  Show a plot of the response time latency distribution
 
 .. function:: showServers()
 
@@ -473,7 +477,7 @@ Status, Statistics and More
 
 .. function:: showTCPStats()
 
-  show some statistics regarding TCP
+  Show some statistics regarding TCP
 
 .. function:: showVersion()
 
