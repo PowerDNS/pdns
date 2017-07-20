@@ -14,13 +14,18 @@
 #include "cachecleaner.hh"
 #include "namespaces.hh"
 
-unsigned int MemRecursorCache::size()
+unsigned int MemRecursorCache::size() const
 {
   return (unsigned int)d_cache.size();
 }
 
+size_t MemRecursorCache::ecsIndexSize() const
+{
+  return d_ecsIndex.size();
+}
+
 // this function is too slow to poll!
-unsigned int MemRecursorCache::bytes()
+unsigned int MemRecursorCache::bytes() const
 {
   unsigned int ret=0;
 
