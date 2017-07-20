@@ -62,7 +62,7 @@ void doSecPoll(bool first)
   }
   else {
     string pkgv(PACKAGEVERSION);
-    if(pkgv.find("0.0."))
+    if(pkgv.find("0.0.") != 0)
       L<<Logger::Warning<<"Could not retrieve security status update for '" + pkgv + "' on '"+query+"', RCODE = "<< RCode::to_s(res)<<endl;
     else
       L<<Logger::Warning<<"Not validating response for security status update, this is a non-release version."<<endl;

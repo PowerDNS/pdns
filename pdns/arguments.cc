@@ -120,7 +120,7 @@ string ArgvMap::helpstring(string prefix)
       i!=helpmap.end();
       i++)
     {
-      if(!prefix.empty() && i->first.find(prefix)) // only print items with prefix
+      if(!prefix.empty() && i->first.find(prefix) != 0) // only print items with prefix
         continue;
 
       help+="  --";
@@ -304,18 +304,18 @@ void ArgvMap::parseOne(const string &arg, const string &parseOnly, bool lax)
   string::size_type pos;
   bool incremental = false;
 
-  if(!arg.find("--") && (pos=arg.find("+="))!=string::npos) // this is a --port+=25 case
+  if(arg.find("--") == 0 && (pos=arg.find("+="))!=string::npos) // this is a --port+=25 case
   {
     var=arg.substr(2,pos-2);
     val=arg.substr(pos+2);
     incremental = true;
   }
-  else if(!arg.find("--") && (pos=arg.find("="))!=string::npos)  // this is a --port=25 case
+  else if(arg.find("--") == 0 && (pos=arg.find("="))!=string::npos)  // this is a --port=25 case
   {
     var=arg.substr(2,pos-2);
     val=arg.substr(pos+1);
   }
-  else if(!arg.find("--") && (arg.find("=")==string::npos))  // this is a --daemon case
+  else if(arg.find("--") == 0 && (arg.find("=")==string::npos))  // this is a --daemon case
   {
     var=arg.substr(2);
     val="";
@@ -376,7 +376,7 @@ void ArgvMap::preParse(int &argc, char **argv, const string &arg)
 {
   for(int n=1;n<argc;n++) {
     string varval=argv[n];
-    if(!varval.find("--"+arg))
+    if(varval.find("--"+arg) == 0)
       parseOne(argv[n]);
   }
 }
