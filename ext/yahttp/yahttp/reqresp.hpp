@@ -132,6 +132,7 @@ protected:
 #ifdef HAVE_CPP_FUNC_PTR
       this->renderer = rhs.renderer;
 #endif
+      this->is_multipart = rhs.is_multipart;
     };
     HTTPBase& operator=(const HTTPBase& rhs) {
       this->url = rhs.url; this->kind = rhs.kind;
@@ -144,6 +145,7 @@ protected:
 #ifdef HAVE_CPP_FUNC_PTR
       this->renderer = rhs.renderer;
 #endif
+      this->is_multipart = rhs.is_multipart;
       return *this;
     };
 public:
