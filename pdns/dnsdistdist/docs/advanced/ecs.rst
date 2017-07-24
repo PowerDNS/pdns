@@ -1,4 +1,4 @@
-Using ENDS Client Subnet
+Using EDNS Client Subnet
 ------------------------
 
 In order to provide the downstream server with the address of the real client, or at least the one talking to dnsdist, the ``useClientSubnet`` parameter can be used when creating a :func:`new server <newServer>`.
