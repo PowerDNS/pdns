@@ -105,6 +105,8 @@ MemRecursorCache::cache_t::const_iterator MemRecursorCache::getEntryUsingECSInde
         if (!requireAuth || entry->d_auth) {
           return entry;
         }
+        /* we need auth data and the best match is not authoritative */
+        return d_cache.end();
       }
       else {
         /* this netmask-specific entry has expired */
