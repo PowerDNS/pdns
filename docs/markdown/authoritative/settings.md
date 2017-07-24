@@ -641,8 +641,7 @@ and/or `ALSO-NOTIFY` domain metadata to avoid this potential bottleneck.
 
 By default PowerDNS will log a warning if all NOTIFYs were suppressed due to
 `only-notify` and there were no explict ALSO-NOTIFYs. This warning can be suppressed by
-setting this option to `no`. Disabling the warning may be useful with `slave-renotify=yes`
-and empty `only-notify`, but only a few slave zones have ALSO-NOTIFYs configured.
+setting this option to `no`.
 
 ## `out-of-zone-additional-processing`
 * Boolean
