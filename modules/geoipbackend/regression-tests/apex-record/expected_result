@@ -1,0 +1,3 @@
+0	geo.example.com.	IN	A	30	127.0.0.1
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='geo.example.com.', qtype=A

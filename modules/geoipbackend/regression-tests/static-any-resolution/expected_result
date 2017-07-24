@@ -1,3 +1,4 @@
+0	geo.example.com.	IN	A	30	127.0.0.1
 0	geo.example.com.	IN	MX	30	10 mx.example.com.
 0	geo.example.com.	IN	NS	30	ns1.example.com.
 0	geo.example.com.	IN	NS	30	ns2.example.com.
