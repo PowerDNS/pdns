@@ -36,3 +36,20 @@ The CD flag can be set on the query by setting ``setCD`` to true.
 e.g.::
 
   newServer({address="192.0.2.1", checkType="AAAA", checkName="a.root-servers.net.", mustResolve=true})
+
+Source address selection
+------------------------
+
+In multi-homed setups, it can be useful to be able to select the source address or the outgoing
+interface used by dnsdist to contact a downstream server. This can be done by using the `source` parameter::
+
+  newServer({address="192.0.2.1", source="192.0.2.127"})
+  newServer({address="192.0.2.1", source="eth1"})
+  newServer({address="192.0.2.1", source="192.0.2.127@eth1"})
+
+The supported values for source are:
+- an IPv4 or IPv6 address, which must exist on the system
+- an interface name
+- an IPv4 or IPv6 address followed by '@' then an interface name
+
+Please note that specifying the interface name is only supported on system having `IP_PKTINFO`.
