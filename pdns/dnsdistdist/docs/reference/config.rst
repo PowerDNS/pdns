@@ -77,8 +77,9 @@ Listen Sockets
                       The default port is 53.
   :param bool do_tcp: Also bind a TCP port on ``address``, defaults to true.
   :param bool so_reuseport: Use ``SO_REUSEPORT`` if it is available, defaults to false
-  :param int tcp_fast_open_qsize: Set to a number higher than 0 to enable TCP Fast Open
-                                  when available. Default is 0.
+  :param int tcp_fast_open_qsize: The size of the TCP Fast Open queue. Set to a number
+                                  higher than 0 to enable TCP Fast Open when available.
+                                  Default is 0.
 
 .. function:: setLocal(address[, options])
 
@@ -102,8 +103,9 @@ Listen Sockets
                       The default port is 53.
   :param bool do_tcp: Also bind a TCP port on ``address``, defaults to true.
   :param bool so_reuseport: Use ``SO_REUSEPORT`` if it is available, defaults to false
-  :param int tcp_fast_open_qsize: Set to a number higher than 0 to enable TCP Fast Open
-                                  when available. Default is 0.
+  :param int tcp_fast_open_qsize: The size of the TCP Fast Open queue. Set to a number
+                                  higher than 0 to enable TCP Fast Open when available.
+                                  Default is 0.
 
 Control Socket, Console and Webserver
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -207,11 +209,13 @@ Servers
       qps=NUM,               -- Limit the number of queries per second to NUM
       order=NUM,             -- The order of this server
       weight=NUM,            -- The weight of this server
-      pool=STRING,           -- The pool this server belongs to (unset or empty string means default pool)
-      retries=NUM,           --
-      tcpConnectTimeout=NUM, --
-      tcpSendTimeout=NUM,    --
-      tcpRecvTimeout=NUM,    --
+      pool=STRING|{STRING},  -- The pools this server belongs to (unset or empty string means default pool) as a string or table of strings
+      retries=NUM,           -- The number of TCP connection attempts to the backend, for a given query
+      tcpConnectTimeout=NUM, -- The timeout (in seconds) of a TCP connection attempt
+      tcpSendTimeout=NUM,    -- The timeout (in seconds) of a TCP write attempt
+      tcpRecvTimeout=NUM,    -- The timeout (in seconds) of a TCP read attempt
+      tcpFastOpen=BOOL,      -- Whether to enable TCP Fast Open
+      name=STRING,           -- The name associated to this backend, for display purpose
       checkName=STRING,      -- Use STRING as QNAME in the health-check query, default: "a.root-servers.net."
       checkType=STRING,      -- Use STRING as QTYPE in the health-check query, default: "A"
       setCD=BOOL,            -- Set the CD (Checking Disabled) flag in the health-check query, default: false
@@ -335,13 +339,25 @@ Pools
 -----
 
 :class:`Server`\ s can be part of any number of pools.
-Pools are automatically created when a server is added to a pool (with :func:`newServer`).
+Pools are automatically created when a server is added to a pool (with :func:`newServer`), or can be manually created with :func:`addPool`.
+
+.. function:: addPool(name) -> ServerPool
+
+  Returns a :class:`ServerPool`.
+
+  :param string name: The name of the pool to create
 
 .. function:: getPool(name) -> ServerPool
 
   Returns a :class:`ServerPool` or nil.
 
   :param string name: The name of the pool
+
+.. function:: rmPool(name)
+
+   Remove the pool named `name`.
+
+  :param string name: The name of the pool to remove
 
 .. function:: getPoolServers(name) -> [ Server ]
 
