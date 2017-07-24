@@ -16,7 +16,7 @@ The first issue can be solved by routing SOA, AXFR and IXFR requests explicitly 
   addAction(OrRule({QTypeRule(dnsdist.SOA), QTypeRule(dnsdist.AXFR), QTypeRule(dnsdist.IXFR)}), PoolAction("master"))
 
 The second one might require allowing AXFR/IXFR from the :program:`dnsdist` source address
-and moving the source address check on :program:`dnsdist`'s side::
+and moving the source address check to :program:`dnsdist`'s side::
 
   addAction(AndRule({OrRule({QTypeRule(dnsdist.AXFR), QTypeRule(dnsdist.IXFR)}), NotRule(makeRule("192.168.1.0/24"))}), RCodeAction(dnsdist.REFUSED))
 
@@ -24,7 +24,7 @@ When :program:`dnsdist` is deployed in front of slaves, however, an issue might 
 queries, because the slave will receive a notification coming from the :program:`dnsdist` address,
 and not the master's one. One way to fix this issue is to allow NOTIFY from the :program:`dnsdist`
 address on the slave side (for example with PowerDNS's `trusted-notification-proxy`) and move the address
-check on :program:`dnsdist`'s side::
+check to :program:`dnsdist`'s side::
 
   addAction(AndRule({OpcodeRule(DNSOpcode.Notify), NotRule(makeRule("192.168.1.0/24"))}), RCodeAction(dnsdist.REFUSED))
 
