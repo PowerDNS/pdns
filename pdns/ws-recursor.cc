@@ -379,7 +379,7 @@ static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
 
 #include "htmlfiles.h"
 
-void serveStuff(HttpRequest* req, HttpResponse* resp) 
+static void serveStuff(HttpRequest* req, HttpResponse* resp)
 {
   resp->headers["Cache-Control"] = "max-age=86400";
 
@@ -560,7 +560,7 @@ void AsyncServer::newConnection()
 }
 
 // This is an entry point from FDM, so it needs to catch everything.
-void AsyncWebServer::serveConnection(std::shared_ptr<Socket> client)
+void AsyncWebServer::serveConnection(std::shared_ptr<Socket> client) const
 try {
   HttpRequest req;
   YaHTTP::AsyncRequestLoader yarl;

@@ -54,7 +54,7 @@ public:
 
 private:
   FDMultiplexer* d_fdm;
-  void serveConnection(std::shared_ptr<Socket> socket);
+  void serveConnection(std::shared_ptr<Socket> socket) const;
 
 protected:
   virtual std::shared_ptr<Server> createServer() override {

@@ -142,8 +142,8 @@ public:
   void bind();
   void go();
 
-  void serveConnection(std::shared_ptr<Socket> client);
-  void handleRequest(HttpRequest& request, HttpResponse& resp);
+  void serveConnection(std::shared_ptr<Socket> client) const;
+  void handleRequest(HttpRequest& request, HttpResponse& resp) const;
 
   typedef boost::function<void(HttpRequest* req, HttpResponse* resp)> HandlerFunction;
   void registerApiHandler(const string& url, HandlerFunction handler);

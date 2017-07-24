@@ -35,11 +35,6 @@
 #include "arguments.hh"
 #include <yahttp/router.hpp>
 
-struct connectionThreadData {
-  WebServer* webServer{nullptr};
-  std::shared_ptr<Socket> client{nullptr};
-};
-
 json11::Json HttpRequest::json()
 {
   string err;
@@ -199,12 +194,12 @@ void WebServer::registerWebHandler(const string& url, HandlerFunction handler) {
   registerBareHandler(url, f);
 }
 
-static void *WebServerConnectionThreadStart(std::shared_ptr<connectionThreadData> data) {
-  data->webServer->serveConnection(data->client);
+static void *WebServerConnectionThreadStart(const WebServer* webServer, std::shared_ptr<Socket> client) {
+  webServer->serveConnection(client);
   return nullptr;
 }
 
-void WebServer::handleRequest(HttpRequest& req, HttpResponse& resp)
+void WebServer::handleRequest(HttpRequest& req, HttpResponse& resp) const
 {
   // set default headers
   resp.headers["Content-Type"] = "text/html; charset=utf-8";
@@ -281,7 +276,7 @@ void WebServer::handleRequest(HttpRequest& req, HttpResponse& resp)
   }
 }
 
-void WebServer::serveConnection(std::shared_ptr<Socket> client)
+void WebServer::serveConnection(std::shared_ptr<Socket> client) const
 try {
   HttpRequest req;
   YaHTTP::AsyncRequestLoader yarl;
@@ -353,17 +348,14 @@ void WebServer::go()
     acl.toMasks(::arg()["webserver-allow-from"]);
 
     while(true) {
-      // data and data->client will be freed by thread
-      auto data = std::make_shared<connectionThreadData>();
-      data->webServer = this;
       try {
-        data->client = d_server->accept();
-        if (data->client->acl(acl)) {
-          std::thread webHandler(WebServerConnectionThreadStart, data);
+        auto client = d_server->accept();
+        if (client->acl(acl)) {
+          std::thread webHandler(WebServerConnectionThreadStart, this, client);
           webHandler.detach();
         } else {
           ComboAddress remote;
-          if (data->client->getRemote(remote))
+          if (client->getRemote(remote))
             L<<Logger::Error<<"Webserver closing socket: remote ("<< remote.toString() <<") does not match 'webserver-allow-from'"<<endl;
         }
       }
