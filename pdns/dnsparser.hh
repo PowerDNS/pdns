@@ -37,6 +37,7 @@
 #include "dnswriter.hh"
 #include "dnsname.hh"
 #include "pdnsexception.hh"
+#include "iputils.hh"
 
 /** DNS records have three representations:
     1) in the packet
@@ -96,6 +97,20 @@ public:
 
   void xfrIP6(std::string &val) {
     xfrBlob(val, 16);
+  }
+
+  void xfrCAWithoutPort(uint8_t version, ComboAddress &val) {
+    string blob;
+    if (version == 4) xfrBlob(blob, 4);
+    else if (version == 6) xfrBlob(blob, 16);
+    else throw runtime_error("invalid IP protocol");
+    val = makeComboAddressFromRaw(version, blob);
+  }
+
+  void xfrCAPort(ComboAddress &val) {
+    uint16_t port;
+    xfr16BitInt(port);
+    val.sin4.sin_port = port;
   }
 
   void xfrTime(uint32_t& val)

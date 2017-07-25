@@ -28,6 +28,7 @@
 #include "dns.hh"
 #include "dnsname.hh"
 #include "namespaces.hh"
+#include "iputils.hh"
 #include <arpa/inet.h>
 
 
@@ -100,6 +101,25 @@ public:
   {
     xfrBlob(val,16);
   }
+
+  void xfrCAWithoutPort(uint8_t version, ComboAddress &val)
+  {
+    if (version == 4) xfrIP(val.sin4.sin_addr.s_addr);
+    else if (version == 6) {
+      string blob;
+      blob.assign((const char*)val.sin6.sin6_addr.s6_addr, 16);
+      xfrBlob(blob, 16);
+    }
+    else throw runtime_error("invalid IP protocol");
+  }
+
+  void xfrCAPort(ComboAddress &val)
+  {
+    uint16_t port;
+    port = val.sin4.sin_port;
+    xfr16BitInt(port);
+  }
+
   void xfrTime(const uint32_t& val)
   {
     xfr32BitInt(val);

@@ -28,6 +28,7 @@
 #include <set>
 #include <bitset>
 #include "namespaces.hh"
+#include "iputils.hh"
 
 #define includeboilerplate(RNAME)   RNAME##RecordContent(const DNSRecord& dr, PacketReader& pr); \
   RNAME##RecordContent(const string& zoneData);                                                  \
@@ -87,6 +88,18 @@ public:
   }
 private:
   string d_ip6; // why??
+};
+
+class XPFRecordContent : public DNSRecordContent
+{
+public:
+  XPFRecordContent(uint8_t protocol, const ComboAddress& src, const ComboAddress& dst);
+  includeboilerplate(XPF);
+
+  uint8_t d_version;
+  uint8_t d_protocol;
+  ComboAddress d_src;
+  ComboAddress d_dst;
 };
 
 class MXRecordContent : public DNSRecordContent

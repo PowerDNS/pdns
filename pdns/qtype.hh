@@ -125,7 +125,8 @@ public:
     CAA=257,
     DLV=32769,
     ADDR=65400,
-    ALIAS=65401
+    ALIAS=65401,
+    XPF=65422
   };
 
   typedef pair<string,uint16_t> namenum;
@@ -217,6 +218,7 @@ private:
       qtype_insert("DLV", 32769);
       qtype_insert("ADDR", 65400);
       qtype_insert("ALIAS", 65401);
+      qtype_insert("XPF", 65422);
     }
   } initializer;
 
