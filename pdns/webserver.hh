@@ -122,11 +122,12 @@ public:
     d_server_socket.bind(d_local);
     d_server_socket.listen();
   }
+  virtual ~Server() { };
 
   ComboAddress d_local;
 
-  Socket *accept() {
-    return d_server_socket.accept();
+  std::shared_ptr<Socket> accept() {
+    return std::shared_ptr<Socket>(d_server_socket.accept());
   }
 
 protected:
@@ -137,11 +138,12 @@ class WebServer : public boost::noncopyable
 {
 public:
   WebServer(const string &listenaddress, int port);
+  virtual ~WebServer() { };
   void bind();
   void go();
 
-  void serveConnection(Socket *client);
-  void handleRequest(HttpRequest& request, HttpResponse& resp);
+  void serveConnection(std::shared_ptr<Socket> client) const;
+  void handleRequest(HttpRequest& request, HttpResponse& resp) const;
 
   typedef boost::function<void(HttpRequest* req, HttpResponse* resp)> HandlerFunction;
   void registerApiHandler(const string& url, HandlerFunction handler);
@@ -150,14 +152,14 @@ public:
 protected:
   void registerBareHandler(const string& url, HandlerFunction handler);
 
-  virtual Server* createServer() {
-    return new Server(d_listenaddress, d_port);
+  virtual std::shared_ptr<Server> createServer() {
+    return std::make_shared<Server>(d_listenaddress, d_port);
   }
 
   string d_listenaddress;
   int d_port;
   string d_password;
-  Server* d_server;
+  std::shared_ptr<Server> d_server;
 };
 
 #endif /* WEBSERVER_HH */

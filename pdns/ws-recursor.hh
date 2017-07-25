@@ -36,7 +36,7 @@ public:
 
   friend void AsyncServerNewConnectionMT(void *p);
 
-  typedef boost::function< void(Socket*) > newconnectioncb_t;
+  typedef boost::function< void(std::shared_ptr<Socket>) > newconnectioncb_t;
   void asyncWaitForConnections(FDMultiplexer* fdm, const newconnectioncb_t& callback);
 
 private:
@@ -54,11 +54,11 @@ public:
 
 private:
   FDMultiplexer* d_fdm;
-  void serveConnection(Socket *socket);
+  void serveConnection(std::shared_ptr<Socket> socket) const;
 
 protected:
-  virtual Server* createServer() {
-    return new AsyncServer(d_listenaddress, d_port);
+  virtual std::shared_ptr<Server> createServer() override {
+    return std::make_shared<AsyncServer>(d_listenaddress, d_port);
   };
 };
 

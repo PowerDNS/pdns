@@ -379,7 +379,7 @@ static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
 
 #include "htmlfiles.h"
 
-void serveStuff(HttpRequest* req, HttpResponse* resp) 
+static void serveStuff(HttpRequest* req, HttpResponse* resp)
 {
   resp->headers["Cache-Control"] = "max-age=86400";
 
@@ -540,9 +540,8 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
 void AsyncServerNewConnectionMT(void *p) {
   AsyncServer *server = (AsyncServer*)p;
   try {
-    Socket* socket = server->accept();
+    auto socket = server->accept();
     server->d_asyncNewConnectionCallback(socket);
-    delete socket;
   } catch (NetworkError &e) {
     // we're running in a shared process/thread, so can't just terminate/abort.
     return;
@@ -561,7 +560,7 @@ void AsyncServer::newConnection()
 }
 
 // This is an entry point from FDM, so it needs to catch everything.
-void AsyncWebServer::serveConnection(Socket *client)
+void AsyncWebServer::serveConnection(std::shared_ptr<Socket> client) const
 try {
   HttpRequest req;
   YaHTTP::AsyncRequestLoader yarl;
@@ -571,7 +570,7 @@ try {
   string data;
   try {
     while(!req.complete) {
-      int bytes = arecvtcp(data, 16384, client, true);
+      int bytes = arecvtcp(data, 16384, client.get(), true);
       if (bytes > 0) {
         req.complete = yarl.feed(data);
       } else {
@@ -591,7 +590,7 @@ try {
   data = ss.str();
 
   // now send the reply
-  if (asendtcp(data, client) == -1 || data.empty()) {
+  if (asendtcp(data, client.get()) == -1 || data.empty()) {
     L<<Logger::Error<<"Failed sending reply to HTTP client"<<endl;
   }
 }
@@ -609,5 +608,8 @@ catch(...) {
 void AsyncWebServer::go() {
   if (!d_server)
     return;
-  ((AsyncServer*)d_server)->asyncWaitForConnections(d_fdm, boost::bind(&AsyncWebServer::serveConnection, this, _1));
+  auto server = std::dynamic_pointer_cast<AsyncServer>(d_server);
+  if (!server)
+    return;
+  server->asyncWaitForConnections(d_fdm, boost::bind(&AsyncWebServer::serveConnection, this, _1));
 }
