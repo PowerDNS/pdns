@@ -267,10 +267,11 @@ union ComboAddress {
   string toString() const
   {
     char host[1024];
-    if(sin4.sin_family && !getnameinfo((struct sockaddr*) this, getSocklen(), host, sizeof(host),0, 0, NI_NUMERICHOST))
+    int retval;
+    if(sin4.sin_family && !(retval = getnameinfo((struct sockaddr*) this, getSocklen(), host, sizeof(host),0, 0, NI_NUMERICHOST)))
       return host;
     else
-      return "invalid";
+      return "invalid "+string(gai_strerror(retval));
   }
 
   string toStringWithPort() const
@@ -306,6 +307,20 @@ inline ComboAddress makeComboAddress(const string& str)
     if(makeIPv6sockaddr(str, &address.sin6) < 0)
       throw NetmaskException("Unable to convert '"+str+"' to a netmask");        
   }
+  return address;
+}
+
+inline ComboAddress makeComboAddressFromRaw(uint8_t version, const string &str)
+{
+  ComboAddress address;
+  size_t len;
+
+  if (version == 4) { len = 4; address.sin4.sin_family=AF_INET; }
+  else if (version == 6) { len = 16; address.sin4.sin_family=AF_INET6; }
+  else throw NetmaskException("invalid address family");
+  if(str.size() != len) throw NetmaskException("invalid raw address length");
+  memcpy(&address.sin4.sin_addr, str.c_str(), len);
+
   return address;
 }
 

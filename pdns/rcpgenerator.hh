@@ -27,6 +27,7 @@
 
 #include "namespaces.hh"
 #include "dnsname.hh"
+#include "iputils.hh"
 
 class RecordTextException : public runtime_error
 {
@@ -48,6 +49,8 @@ public:
   void xfrType(uint16_t& val);
   void xfrIP(uint32_t& val);
   void xfrIP6(std::string& val);
+  void xfrCAWithoutPort(uint8_t version, ComboAddress &val);
+  void xfrCAPort(ComboAddress &val);
   void xfrTime(uint32_t& val);
 
   void xfrName(DNSName& val, bool compress=false, bool noDot=false);
@@ -78,6 +81,8 @@ public:
   void xfr8BitInt(const uint8_t& val);
   void xfrIP(const uint32_t& val);
   void xfrIP6(const std::string& val);
+  void xfrCAWithoutPort(uint8_t version, ComboAddress &val);
+  void xfrCAPort(ComboAddress &val);
   void xfrTime(const uint32_t& val);
   void xfrBase32HexBlob(const string& val);
 
