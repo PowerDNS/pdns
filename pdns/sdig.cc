@@ -24,7 +24,7 @@ string ttl(uint32_t ttl)
 
 void usage() {
   cerr<<"sdig"<<endl;
-  cerr<<"Syntax: sdig IP-ADDRESS PORT QUESTION QUESTION-TYPE [dnssec] [recurse] [showflags] [hidesoadetails] [hidettl] [tcp] [ednssubnet SUBNET/MASK]"<<endl;
+  cerr<<"Syntax: sdig IP-ADDRESS PORT QUESTION QUESTION-TYPE [dnssec] [recurse] [showflags] [hidesoadetails] [hidettl] [tcp] [ednssubnet SUBNET/MASK] [xpf XPFDATA]"<<endl;
 }
 
 int main(int argc, char** argv)
@@ -36,7 +36,7 @@ try
   bool showflags=false;
   bool hidesoadetails=false;
   boost::optional<Netmask> ednsnm;
-
+  std::shared_ptr<DNSRecordContent> xpf;
 
   for(int i=1; i<argc; i++) {
     if ((string) argv[i] == "--help") {
@@ -79,6 +79,8 @@ try
         }
         ednsnm=Netmask(argv[i]);
       }
+      if (strcmp(argv[i], "xpf") == 0)
+        xpf=DNSRecordContent::mastermake(QType::XPF, 1, argv[++i]);
     }
   }
 
@@ -102,6 +104,13 @@ try
     }
 
     pw.addOpt(bufsize, 0, dnssec ? EDNSOpts::DNSSECOK : 0, opts);
+    pw.commit();
+  }
+
+  if(xpf.get())
+  {
+    pw.startRecord(DNSName("."), QType::XPF, 0, 1, DNSResourceRecord::ADDITIONAL);
+    xpf->toPacket(pw);
     pw.commit();
   }
 
