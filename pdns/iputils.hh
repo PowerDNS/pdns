@@ -315,11 +315,19 @@ inline ComboAddress makeComboAddressFromRaw(uint8_t version, const string &str)
   ComboAddress address;
   size_t len;
 
-  if (version == 4) { len = 4; address.sin4.sin_family=AF_INET; }
-  else if (version == 6) { len = 16; address.sin4.sin_family=AF_INET6; }
+  if (version == 4) {
+    len = 4;
+    address.sin4.sin_family=AF_INET;
+    if(str.size() != len) throw NetmaskException("invalid raw address length");
+    memcpy(&address.sin4.sin_addr, str.c_str(), len);
+  }
+  else if (version == 6) {
+    len = 16;
+    address.sin4.sin_family=AF_INET6;
+    if(str.size() != len) throw NetmaskException("invalid raw address length");
+    memcpy(&address.sin6.sin6_addr, str.c_str(), len);
+  }
   else throw NetmaskException("invalid address family");
-  if(str.size() != len) throw NetmaskException("invalid raw address length");
-  memcpy(&address.sin4.sin_addr, str.c_str(), len);
 
   return address;
 }
