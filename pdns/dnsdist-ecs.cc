@@ -259,7 +259,7 @@ void generateOptRR(const std::string& optRData, string& res)
   res.append(optRData.c_str(), optRData.length());
 }
 
-static void replaceEDNSClientSubnetOption(char * const packet, const size_t packetSize, uint16_t * const len, string& largerPacket, const ComboAddress& remote, char * const oldEcsOptionStart, size_t const oldEcsOptionSize, unsigned char * const optRDLen, uint16_t ECSPrefixLength)
+static bool replaceEDNSClientSubnetOption(char * const packet, const size_t packetSize, uint16_t * const len, const ComboAddress& remote, char * const oldEcsOptionStart, size_t const oldEcsOptionSize, unsigned char * const optRDLen, uint16_t ECSPrefixLength)
 {
   assert(packet != NULL);
   assert(len != NULL);
@@ -277,39 +277,29 @@ static void replaceEDNSClientSubnetOption(char * const packet, const size_t pack
     const unsigned int newPacketLen = *len + (ECSOption.length() - oldEcsOptionSize);
     const size_t beforeOptionLen = oldEcsOptionStart - packet;
     const size_t dataBehindSize = *len - beforeOptionLen - oldEcsOptionSize;
-          
+
+    /* check that it fits in the existing buffer */
+    if (newPacketLen > packetSize) {
+      return false;
+    }
+
     /* fix the size of ECS Option RDLen */
     uint16_t newRDLen = (optRDLen[0] * 256) + optRDLen[1];
     newRDLen += (ECSOption.size() - oldEcsOptionSize);
     optRDLen[0] = newRDLen / 256;
     optRDLen[1] = newRDLen % 256;
-    
-    if (newPacketLen <= packetSize) {
-      /* it fits in the existing buffer */
-      if (dataBehindSize > 0) {
-        memmove(oldEcsOptionStart, oldEcsOptionStart + oldEcsOptionSize, dataBehindSize);
-      }
-      memcpy(oldEcsOptionStart + dataBehindSize, ECSOption.c_str(), ECSOption.size());
-      *len = newPacketLen;
+
+    if (dataBehindSize > 0) {
+      memmove(oldEcsOptionStart, oldEcsOptionStart + oldEcsOptionSize, dataBehindSize);
     }
-    else {
-      /* We need a larger packet */
-      if (newPacketLen > largerPacket.capacity()) {
-        largerPacket.reserve(newPacketLen);
-      }
-      /* copy data before the existing option */
-      largerPacket.append(packet, beforeOptionLen);
-      /* copy the new option */
-      largerPacket.append(ECSOption);
-      /* copy data that where behind the existing option */
-      if (dataBehindSize > 0) {
-        largerPacket.append(oldEcsOptionStart + oldEcsOptionSize, dataBehindSize);
-      }
-    }
+    memcpy(oldEcsOptionStart + dataBehindSize, ECSOption.c_str(), ECSOption.size());
+    *len = newPacketLen;
   }
+
+  return true;
 }
 
-void handleEDNSClientSubnet(char* const packet, const size_t packetSize, const unsigned int consumed, uint16_t* const len, string& largerPacket, bool* const ednsAdded, bool* const ecsAdded, const ComboAddress& remote, bool overrideExisting, uint16_t ecsPrefixLength)
+bool handleEDNSClientSubnet(char* const packet, const size_t packetSize, const unsigned int consumed, uint16_t* const len, bool* const ednsAdded, bool* const ecsAdded, const ComboAddress& remote, bool overrideExisting, uint16_t ecsPrefixLength)
 {
   assert(packet != NULL);
   assert(len != NULL);
@@ -330,7 +320,7 @@ void handleEDNSClientSubnet(char* const packet, const size_t packetSize, const u
     if (res == 0) {
       /* there is already an ECS value */
       if (overrideExisting) {
-        replaceEDNSClientSubnetOption(packet, packetSize, len, largerPacket, remote, ecsOptionStart, ecsOptionSize, optRDLen, ecsPrefixLength);
+        return replaceEDNSClientSubnetOption(packet, packetSize, len, remote, ecsOptionStart, ecsOptionSize, optRDLen, ecsPrefixLength);
       }
     } else {
       /* we need to add one EDNS0 ECS option, fixing the size of EDNS0 RDLENGTH */
@@ -340,24 +330,18 @@ void handleEDNSClientSubnet(char* const packet, const size_t packetSize, const u
       generateECSOption(remote, ECSOption, ecsPrefixLength);
       const size_t ECSOptionSize = ECSOption.size();
       
+      /* check if the existing buffer is large enough */
+      if (packetSize - *len <= ECSOptionSize) {
+        return false;
+      }
+
       uint16_t newRDLen = (optRDLen[0] * 256) + optRDLen[1];
       newRDLen += ECSOptionSize;
       optRDLen[0] = newRDLen / 256;
       optRDLen[1] = newRDLen % 256;
 
-      if (packetSize - *len > ECSOptionSize) {
-        /* if the existing buffer is large enough */
-        memcpy(packet + *len, ECSOption.c_str(), ECSOptionSize);
-        *len += ECSOptionSize;
-      }
-      else {
-        if (*len + ECSOptionSize > largerPacket.capacity()) {
-          largerPacket.reserve(*len + ECSOptionSize);
-        }
-        
-        largerPacket.append(packet, *len);
-        largerPacket.append(ECSOption);
-      }
+      memcpy(packet + *len, ECSOption.c_str(), ECSOptionSize);
+      *len += ECSOptionSize;
       *ecsAdded = true;
     }
   }
@@ -368,25 +352,22 @@ void handleEDNSClientSubnet(char* const packet, const size_t packetSize, const u
     string optRData;
     generateECSOption(remote, optRData, ecsPrefixLength);
     generateOptRR(optRData, EDNSRR);
+
+    /* does it fit in the existing buffer? */
+    if (packetSize - *len <= EDNSRR.size()) {
+      return false;
+    }
+
     uint16_t arcount = ntohs(dh->arcount);
     arcount++;
     dh->arcount = htons(arcount);
     *ednsAdded = true;
 
-    /* does it fit in the existing buffer? */
-    if (packetSize - *len > EDNSRR.size()) {
-      memcpy(packet + *len, EDNSRR.c_str(), EDNSRR.size());
-      *len += EDNSRR.size();
-    }
-    else {
-      if (*len + EDNSRR.size() > largerPacket.capacity()) {
-        largerPacket.reserve(*len + EDNSRR.size());
-      }
-      
-      largerPacket.append(packet, *len);
-      largerPacket.append(EDNSRR);
-    }
+    memcpy(packet + *len, EDNSRR.c_str(), EDNSRR.size());
+    *len += EDNSRR.size();
   }
+
+  return true;
 }
 
 static int removeEDNSOptionFromOptions(unsigned char* optionsStart, const uint16_t optionsLen, const uint16_t optionCodeToRemove, uint16_t* newOptionsLen)
