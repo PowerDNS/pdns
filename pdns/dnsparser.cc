@@ -732,13 +732,13 @@ void ageDNSPacket(char* packet, size_t length, uint32_t seconds)
     return;
   try 
   {
-    dnsheader dh;
-    memcpy((void*)&dh, (const dnsheader*)packet, sizeof(dh));
-    uint64_t numrecords = ntohs(dh.ancount) + ntohs(dh.nscount) + ntohs(dh.arcount);
+    const dnsheader* dh = reinterpret_cast<const dnsheader*>(packet);
+    const uint64_t dqcount = ntohs(dh->qdcount);
+    const uint64_t numrecords = ntohs(dh->ancount) + ntohs(dh->nscount) + ntohs(dh->arcount);
     DNSPacketMangler dpm(packet, length);
 
     uint64_t n;
-    for(n=0; n < ntohs(dh.qdcount) ; ++n) {
+    for(n=0; n < dqcount; ++n) {
       dpm.skipLabel();
       /* type and class */
       dpm.skipBytes(4);
