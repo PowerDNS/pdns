@@ -68,7 +68,7 @@ QTag()
 {
 }
 
-void add(std::string strLabel, std::string strValue)
+void add(const std::string strLabel, const std::string strValue)
 {
   tagData.insert( {strLabel, strValue});
   return;
@@ -126,7 +126,7 @@ public:
   std::unordered_map<std::string, std::string>tagData;
 
 private:
-  const char *strSep = "\t";
+  static constexpr char const *strSep = "\t";
 };
 
 

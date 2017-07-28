@@ -123,7 +123,7 @@ void DNSProtoBufMessage::addRR(const std::string& strName, uint16_t uType, uint1
     rr->set_type(uType);
     rr->set_class_(uClass);
     rr->set_ttl(uTTL);
-    rr->set_rdata((const uint8_t *) strBlob.c_str(), strBlob.size());
+    rr->set_rdata(strBlob.c_str(), strBlob.size());
   }
 
 #endif /* HAVE_PROTOBUF */
