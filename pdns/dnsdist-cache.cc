@@ -158,7 +158,8 @@ void DNSDistPacketCache::insert(uint32_t key, const DNSName& qname, uint16_t qty
 
 bool DNSDistPacketCache::get(const DNSQuestion& dq, uint16_t consumed, uint16_t queryId, char* response, uint16_t* responseLen, uint32_t* keyOut, uint32_t allowExpired, bool skipAging)
 {
-  uint32_t key = getKey(*dq.qname, consumed, (const unsigned char*)dq.dh, dq.len, dq.tcp);
+  std::string dnsQName(dq.qname->toDNSString());
+  uint32_t key = getKey(dnsQName, consumed, (const unsigned char*)dq.dh, dq.len, dq.tcp);
   if (keyOut)
     *keyOut = key;
 
@@ -212,7 +213,6 @@ bool DNSDistPacketCache::get(const DNSQuestion& dq, uint16_t consumed, uint16_t 
       return true;
     }
 
-    string dnsQName(dq.qname->toDNSString());
     const size_t dnsQNameLen = dnsQName.length();
     if (value.len < (sizeof(dnsheader) + dnsQNameLen)) {
       return false;
@@ -350,14 +350,14 @@ uint32_t DNSDistPacketCache::getMinTTL(const char* packet, uint16_t length)
   return getDNSPacketMinTTL(packet, length);
 }
 
-uint32_t DNSDistPacketCache::getKey(const DNSName& qname, uint16_t consumed, const unsigned char* packet, uint16_t packetLen, bool tcp)
+uint32_t DNSDistPacketCache::getKey(const std::string& qname, uint16_t consumed, const unsigned char* packet, uint16_t packetLen, bool tcp)
 {
   uint32_t result = 0;
   /* skip the query ID */
   if (packetLen < sizeof(dnsheader))
     throw std::range_error("Computing packet cache key for an invalid packet size");
   result = burtle(packet + 2, sizeof(dnsheader) - 2, result);
-  string lc(qname.toDNSStringLC());
+  string lc(toLower(qname));
   result = burtle((const unsigned char*) lc.c_str(), lc.length(), result);
   if (packetLen < sizeof(dnsheader) + consumed) {
     throw std::range_error("Computing packet cache key for an invalid packet");
