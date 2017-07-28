@@ -331,9 +331,6 @@ void* tcpClientThread(int pipefd)
 	unsigned int consumed = 0;
 	DNSName qname(query, qlen, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
 	DNSQuestion dq(&qname, qtype, qclass, &dest, &ci.remote, dh, queryBuffer.capacity(), qlen, true);
-#ifdef HAVE_PROTOBUF
-        dq.uniqueId = t_uuidGenerator();
-#endif
 
 	string poolname;
 	int delayMsec=0;

@@ -1198,10 +1198,6 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     DNSName qname(query, len, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
     DNSQuestion dq(&qname, qtype, qclass, dest.sin4.sin_family != 0 ? &dest : &cs.local, &remote, dh, queryBufferSize, len, false);
 
-#ifdef HAVE_PROTOBUF
-    dq.uniqueId = t_uuidGenerator();
-#endif
-
     string poolname;
     int delayMsec = 0;
     /* we need an accurate ("real") value for the response and

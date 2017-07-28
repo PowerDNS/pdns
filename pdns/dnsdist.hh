@@ -132,7 +132,7 @@ struct DNSQuestion
   DNSQuestion(const DNSName* name, uint16_t type, uint16_t class_, const ComboAddress* lc, const ComboAddress* rem, struct dnsheader* header, size_t bufferSize, uint16_t queryLen, bool isTcp): qname(name), qtype(type), qclass(class_), local(lc), remote(rem), dh(header), size(bufferSize), len(queryLen), ecsPrefixLength(rem->sin4.sin_family == AF_INET ? g_ECSSourcePrefixV4 : g_ECSSourcePrefixV6), tcp(isTcp), ecsOverride(g_ECSOverride) { }
 
 #ifdef HAVE_PROTOBUF
-  boost::uuids::uuid uniqueId;
+  boost::optional<boost::uuids::uuid> uniqueId;
 #endif
   const DNSName* qname;
   const uint16_t qtype;
@@ -407,7 +407,7 @@ struct IDState
   std::shared_ptr<DnsCryptQuery> dnsCryptQuery{0};
 #endif
 #ifdef HAVE_PROTOBUF
-  boost::uuids::uuid uniqueId;
+  boost::optional<boost::uuids::uuid> uniqueId;
 #endif
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};
   const ClientState* cs{nullptr};
