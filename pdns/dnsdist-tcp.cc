@@ -256,9 +256,6 @@ void* tcpClientThread(int pipefd)
     time_t connectionStartTime = time(NULL);
     std::vector<char> queryBuffer;
 
-    if (!setNonBlocking(ci.fd))
-      goto drop;
-
     if (getsockname(ci.fd, (sockaddr*)&dest, &len)) {
       dest = ci.cs->local;
     }
@@ -627,10 +624,18 @@ void* tcpAcceptorThread(void* p)
     ConnectionInfo* ci = nullptr;
     tcpClientCountIncremented = false;
     try {
+      socklen_t remlen = remote.getSocklen();
       ci = new ConnectionInfo;
       ci->cs = cs;
       ci->fd = -1;
-      ci->fd = SAccept(cs->tcpFD, remote);
+#ifdef HAVE_ACCEPT4
+      ci->fd = accept4(cs->tcpFD, (struct sockaddr*)&remote, &remlen, SOCK_NONBLOCK);
+#else
+      ci->fd = accept(cs->tcpFD, (struct sockaddr*)&remote, &remlen);
+#endif
+      if(ci->fd < 0) {
+        throw std::runtime_error((boost::format("accepting new connection on socket: %s") % strerror(errno)).str());
+      }
 
       if(!acl->match(remote)) {
 	g_stats.aclDrops++;
@@ -640,6 +645,15 @@ void* tcpAcceptorThread(void* p)
 	vinfolog("Dropped TCP connection from %s because of ACL", remote.toStringWithPort());
 	continue;
       }
+
+#ifndef HAVE_ACCEPT4
+      if (!setNonBlocking(ci->fd)) {
+        close(ci->fd);
+        delete ci;
+        ci=nullptr;
+        continue;
+      }
+#endif
 
       if(g_maxTCPQueuedConnections > 0 && g_tcpclientthreads->getQueuedCount() >= g_maxTCPQueuedConnections) {
         close(ci->fd);
