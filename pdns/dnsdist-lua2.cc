@@ -833,24 +833,24 @@ void moreLua(bool client)
 
     g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(std::string)>("setTag", [](DNSDistProtoBufMessage& message, const std::string& strValue) {
       message.addTag(strValue);
-     });
+    });
 
     g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(vector<pair<int, string>>)>("setTagArray", [](DNSDistProtoBufMessage& message, const vector<pair<int, string>>&tags) {
       for (const auto& tag : tags) {
         message.addTag(tag.second);
       }
-     });
+    });
 
     g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(boost::optional <time_t> sec, boost::optional <uint32_t> uSec)>("setProtobufResponseType",
                                         [](DNSDistProtoBufMessage& message, boost::optional <time_t> sec, boost::optional <uint32_t> uSec) {
-        message.setType(DNSProtoBufMessage::Response);
-        message.setQueryTime(sec?*sec:0, uSec?*uSec:0);
-     });
+      message.setType(DNSProtoBufMessage::Response);
+      message.setQueryTime(sec?*sec:0, uSec?*uSec:0);
+    });
 
     g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const std::string& strQueryName, uint16_t uType, uint16_t uClass, uint32_t uTTL, const std::string& strBlob)>("addResponseRR", [](DNSDistProtoBufMessage& message,
                                                             const std::string& strQueryName, uint16_t uType, uint16_t uClass, uint32_t uTTL, const std::string& strBlob) {
-        message.addRR(strQueryName, uType, uClass, uTTL, strBlob);
-     });
+      message.addRR(DNSName(strQueryName), uType, uClass, uTTL, strBlob);
+    });
 
     g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const Netmask&)>("setEDNSSubnet", [](DNSDistProtoBufMessage& message, const Netmask& subnet) { message.setEDNSSubnet(subnet); });
     g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const DNSName&, uint16_t, uint16_t)>("setQuestion", [](DNSDistProtoBufMessage& message, const DNSName& qname, uint16_t qtype, uint16_t qclass) { message.setQuestion(qname, qtype, qclass); });

@@ -110,7 +110,7 @@ void DNSProtoBufMessage::addTag(const std::string& strValue)
 #endif /* HAVE_PROTOBUF */
 }
 
-void DNSProtoBufMessage::addRR(const std::string& strName, uint16_t uType, uint16_t uClass, uint32_t uTTL, const std::string& strBlob)
+void DNSProtoBufMessage::addRR(const DNSName& qname, uint16_t uType, uint16_t uClass, uint32_t uTTL, const std::string& strBlob)
 {
 #ifdef HAVE_PROTOBUF
 
@@ -119,7 +119,7 @@ void DNSProtoBufMessage::addRR(const std::string& strName, uint16_t uType, uint1
     return;
   PBDNSMessage_DNSResponse_DNSRR* rr = response->add_rrs();
   if (rr) {
-    rr->set_name(strName.c_str());
+    rr->set_name(qname.toString());
     rr->set_type(uType);
     rr->set_class_(uClass);
     rr->set_ttl(uTTL);
