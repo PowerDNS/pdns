@@ -37,7 +37,7 @@ public:
   {
   
     declare(suffix,"filename","Filename of the script for lua backend","powerdns-luabackend.lua");
-    declare(suffix,"logging-query","Logging of the LUA Backend","no");
+    declare(suffix,"query-logging","Logging of the LUA Backend","no");
 
   }
   
