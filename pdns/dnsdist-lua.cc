@@ -1461,10 +1461,14 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       }
 
       double totlat=0;
-      int size=0;
+      unsigned int size=0;
       {
 	std::lock_guard<std::mutex> lock(g_rings.respMutex);
 	for(const auto& r : g_rings.respRing) {
+          /* skip actively discovered timeouts */
+          if (r.usec == std::numeric_limits<unsigned int>::max())
+            continue;
+
 	  ++size;
 	  auto iter = histo.lower_bound(r.usec);
 	  if(iter != histo.end())
