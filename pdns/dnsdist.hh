@@ -57,72 +57,67 @@ extern bool g_ECSOverride;
 
 class QTag
 {
-
 public:
-
-QTag()
-{
-}
-
-~QTag()
-{
-}
-
-void add(const std::string strLabel, const std::string strValue)
-{
-  tagData.insert( {strLabel, strValue});
-  return;
-}
-
-std::string getMatch(const std::string& strLabel)  const
-{
-  std::unordered_map<std::string, std::string>::const_iterator got =tagData.find (strLabel);
-  if(got == tagData.end()) {
-    return "";
-  } else {
-    return got->second;
+  QTag()
+  {
   }
-}
 
-std::string getEntry(size_t iEntry) const
-{
-   std::string strEntry;
-   size_t iCounter = 0;
+  ~QTag()
+  {
+  }
 
-  for (const auto& itr : tagData) {
-    iCounter++;
-    if(iCounter == iEntry) {
-      strEntry = itr.first;
-      strEntry += strSep;
-      strEntry += itr.second;
-      break;
+  void add(const std::string strLabel, const std::string strValue)
+  {
+    tagData.insert( {strLabel, strValue});
+    return;
+  }
+
+  std::string getMatch(const std::string& strLabel)  const
+  {
+    std::unordered_map<std::string, std::string>::const_iterator got =tagData.find (strLabel);
+    if(got == tagData.end()) {
+      return "";
+    } else {
+      return got->second;
     }
   }
 
-  return strEntry;
+  std::string getEntry(size_t iEntry) const
+  {
+    std::string strEntry;
+    size_t iCounter = 0;
 
-}
+    for (const auto& itr : tagData) {
+      iCounter++;
+      if(iCounter == iEntry) {
+        strEntry = itr.first;
+        strEntry += strSep;
+        strEntry += itr.second;
+        break;
+      }
+    }
 
-size_t count() const
-{
-   return tagData.size();
-}
-
-std::string dumpString() const
-{
-  std::string strRet;
-
-  for (const auto& itr : tagData) {
-    strRet += itr.first;
-    strRet += strSep;
-    strRet += itr.second;
-    strRet += "\n";
+    return strEntry;
   }
-  return strRet;
 
-}
+  size_t count() const
+  {
+    return tagData.size();
+  }
 
-public:
+  std::string dumpString() const
+  {
+    std::string strRet;
+
+    for (const auto& itr : tagData) {
+      strRet += itr.first;
+      strRet += strSep;
+      strRet += itr.second;
+      strRet += "\n";
+    }
+    return strRet;
+  }
+
   std::unordered_map<std::string, std::string>tagData;
 
 private:
@@ -150,8 +145,7 @@ struct DNSQuestion
   const bool tcp;
   bool skipCache{false};
   bool ecsOverride;
-  bool useECS{true};    
-
+  bool useECS{true};
 };
 
 struct DNSResponse : DNSQuestion

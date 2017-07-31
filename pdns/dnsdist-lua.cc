@@ -1605,29 +1605,28 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
         dq.qTag->add(tag.first, tag.second);
       }
 
-     });
-
+    });
 
   g_lua.registerFunction<string(DNSQuestion::*)(std::string)>("getTag", [](const DNSQuestion& dq, const std::string& strLabel) {
 
-    std::string strValue;
-    if(dq.qTag != nullptr) {
-      strValue = dq.qTag->getMatch(strLabel);
-    }
-    return strValue;
+      std::string strValue;
+      if(dq.qTag != nullptr) {
+        strValue = dq.qTag->getMatch(strLabel);
+      }
+      return strValue;
 
-     });
+    });
 
 
   g_lua.registerFunction<std::unordered_map<string, string>(DNSQuestion::*)(void)>("getTagArray", [](const DNSQuestion& dq) {
 
-    if(dq.qTag != nullptr) {
-      return dq.qTag->tagData;
-    } else {
-      std::unordered_map<string, string> XX;
-      return XX;
-    }
-      });
+      if(dq.qTag != nullptr) {
+        return dq.qTag->tagData;
+      } else {
+        std::unordered_map<string, string> XX;
+        return XX;
+      }
+    });
 
 
   /* DNSQuestion bindings */
