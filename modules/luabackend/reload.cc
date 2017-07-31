@@ -67,7 +67,7 @@ void LUABackend::reload() {
     if (lua)
 	lua_close(lua);
 	
-    logging = ::arg().mustDo("query-logging") || mustDo("logging-query");
+    logging = ::arg().mustDo("query-logging") || mustDo("query-logging");
 
 #if LUA_VERSION_NUM >= 502
     lua = luaL_newstate();
