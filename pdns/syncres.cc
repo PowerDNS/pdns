@@ -1481,6 +1481,17 @@ void SyncRes::computeZoneCuts(const DNSName& begin, const DNSName& end, unsigned
     d_cutStates[qname] = state;
     int rcode = doResolve(qname, QType(QType::NS), nsrecords, depth + 1, beenthere, state);
 
+    if (rcode != RCode::NoError) {
+      /* let's check if we have some results, even non AA
+         because some very popular auth servers are buggy.
+         We only use the result to know that we need to
+         look for a DS.
+      */
+      if(t_RC->get(d_now.tv_sec, qname, QType(QType::NS), false, &nsrecords, d_incomingECSFound ? d_incomingECSNetwork : d_requestor, nullptr, nullptr, nullptr, &state) > 0) {
+        rcode = RCode::NoError;
+      }
+    }
+
     if (rcode == RCode::NoError && !nsrecords.empty()) {
       for (const auto& record : nsrecords) {
         if(record.d_type != QType::NS || record.d_name != qname)
