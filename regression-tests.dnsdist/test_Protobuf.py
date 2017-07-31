@@ -30,25 +30,26 @@ class TestProtobuf(DNSDistTest):
         end
         protobuf:setRequestor(requestor)
 
-	local tableTags = {}
-	table.insert(tableTags, "TestLabel1,TestData1")
-	table.insert(tableTags, "TestLabel2,TestData2")
+        local tableTags = {}
+        table.insert(tableTags, "TestLabel1,TestData1")
+        table.insert(tableTags, "TestLabel2,TestData2")
 
-	protobuf:setTagArray(tableTags)
+        protobuf:setTagArray(tableTags)
 
-	protobuf:setTag('TestLabel3,TestData3')
+        protobuf:setTag('TestLabel3,TestData3')
 
-	protobuf:setTag("Response,456")
+        protobuf:setTag("Response,456")
 
       else
-	local tableTags = {} 					-- called by testProtobuf()
-	table.insert(tableTags, "TestLabel1,TestData1")
-	table.insert(tableTags, "TestLabel2,TestData2")
-	protobuf:setTagArray(tableTags)
 
-	protobuf:setTag('TestLabel3,TestData3')
+        local tableTags = {} 					-- called by testProtobuf()
+        table.insert(tableTags, "TestLabel1,TestData1")
+        table.insert(tableTags, "TestLabel2,TestData2")
+        protobuf:setTagArray(tableTags)
 
-	protobuf:setTag("Response,456")
+        protobuf:setTag('TestLabel3,TestData3')
+
+        protobuf:setTag("Response,456")
 
       end
     end
@@ -64,53 +65,52 @@ class TestProtobuf(DNSDistTest):
         end
         protobuf:setRequestor(requestor)
 
-	local tableTags = {}
-	tableTags = dq:getTagArray()				-- get table from DNSQuery
+        local tableTags = {}
+        tableTags = dq:getTagArray()				-- get table from DNSQuery
 
-   	local tablePB = {}
-   		for k, v in pairs( tableTags) do
-		table.insert(tablePB, k .. "," .. v)
-   	end
+        local tablePB = {}
+          for k, v in pairs( tableTags) do
+          table.insert(tablePB, k .. "," .. v)
+        end
 
-	protobuf:setTagArray(tablePB)				-- store table in protobuf
-	protobuf:setTag("Query,123")				-- add another tag entry in protobuf
+        protobuf:setTagArray(tablePB)				-- store table in protobuf
+        protobuf:setTag("Query,123")				-- add another tag entry in protobuf
 
-   	protobuf:setResponseCode(dnsdist.NXDOMAIN)        	-- set protobuf response code to be NXDOMAIN
+        protobuf:setResponseCode(dnsdist.NXDOMAIN)        	-- set protobuf response code to be NXDOMAIN
 
-   	local strReqName = dq.qname:toString()		  	-- get request dns name
+        local strReqName = dq.qname:toString()		  	-- get request dns name
 
-	protobuf:setProtobufResponseType()			-- set protobuf to look like a response and not a query, with 0 default time
+        protobuf:setProtobufResponseType()			-- set protobuf to look like a response and not a query, with 0 default time
 
-	blobData = '\127' .. '\000' .. '\000' .. '\001'		-- 127.0.0.1, note: lua 5.1 can only embed decimal not hex
+        blobData = '\127' .. '\000' .. '\000' .. '\001'		-- 127.0.0.1, note: lua 5.1 can only embed decimal not hex
 
-   	protobuf:addResponseRR(strReqName, 1, 1, 123, blobData) -- add a RR to the protobuf
+        protobuf:addResponseRR(strReqName, 1, 1, 123, blobData) -- add a RR to the protobuf
 
-	protobuf:setBytes(65)					-- set the size of the query to confirm in checkProtobufBase
+        protobuf:setBytes(65)					-- set the size of the query to confirm in checkProtobufBase
 
       else
 
-	local tableTags = {}                                    -- called by testProtobuf()
-	table.insert(tableTags, "TestLabel1,TestData1")
-	table.insert(tableTags, "TestLabel2,TestData2")
+        local tableTags = {}                                    -- called by testProtobuf()
+        table.insert(tableTags, "TestLabel1,TestData1")
+        table.insert(tableTags, "TestLabel2,TestData2")
 
-	protobuf:setTagArray(tableTags)
-	protobuf:setTag('TestLabel3,TestData3')
-	protobuf:setTag("Query,123")
+        protobuf:setTagArray(tableTags)
+        protobuf:setTag('TestLabel3,TestData3')
+        protobuf:setTag("Query,123")
 
       end
     end
 
     function alterLuaFirst(dq)					-- called when dnsdist receives new request
-	local tt = {}
-        tt["TestLabel1"] = "TestData1"
-        tt["TestLabel2"] = "TestData2"
+      local tt = {}
+      tt["TestLabel1"] = "TestData1"
+      tt["TestLabel2"] = "TestData2"
 
-	dq:setTagArray(tt)
+      dq:setTagArray(tt)
 
-	dq:setTag("TestLabel3","TestData3")
-	return DNSAction.None, ""				-- continue to the next rule
+      dq:setTag("TestLabel3","TestData3")
+      return DNSAction.None, ""				-- continue to the next rule
     end
-
 
     newServer{address="127.0.0.1:%s", useClientSubnet=true}
     rl = newRemoteLogger('127.0.0.1:%s')
@@ -187,17 +187,17 @@ class TestProtobuf(DNSDistTest):
         self.assertTrue(msg.HasField('id'))
         self.assertEquals(msg.id, query.id)
         self.assertTrue(msg.HasField('inBytes'))
-	if normalQueryResponse:
-        	self.assertEquals(msg.inBytes, len(query.to_wire()))        # compare inBytes with length of query/response
+        if normalQueryResponse:
+          # compare inBytes with length of query/response
+          self.assertEquals(msg.inBytes, len(query.to_wire()))
         # dnsdist doesn't set the existing EDNS Subnet for now,
         # although it might be set from Lua
         # self.assertTrue(msg.HasField('originalRequestorSubnet'))
         # self.assertEquals(len(msg.originalRequestorSubnet), 4)
         # self.assertEquals(socket.inet_ntop(socket.AF_INET, msg.originalRequestorSubnet), '127.0.0.1')
 
-
     def checkProtobufQuery(self, msg, protocol, query, qclass, qtype, qname, initiator='127.0.0.1'):
-	self.assertEquals(msg.type, dnsmessage_pb2.PBDNSMessage.DNSQueryType)		# testProtobuf()
+        self.assertEquals(msg.type, dnsmessage_pb2.PBDNSMessage.DNSQueryType)
         self.checkProtobufBase(msg, protocol, query, initiator)
         # dnsdist doesn't fill the responder field for responses
         # because it doesn't keep the information around.
@@ -211,29 +211,24 @@ class TestProtobuf(DNSDistTest):
         self.assertTrue(msg.question.HasField('qName'))
         self.assertEquals(msg.question.qName, qname)
 
-	testList = [u"TestLabel1,TestData1", u"TestLabel2,TestData2", u"TestLabel3,TestData3", u"Query,123"]
-	listx = set(msg.response.tags) ^ set(testList)						# only differences will be in new list
-	self.assertEqual(len(listx), 0, "Lists don't match up in Protobuf Query")		# exclusive or of lists should be empty
+    def checkProtobufTags(self, tags, expectedTags):
+        # only differences will be in new list
+        listx = set(tags) ^ set(expectedTags)
+        # exclusive or of lists should be empty
+        self.assertEqual(len(listx), 0, "Protobuf tags don't match")
 
     def checkProtobufQueryConvertedToResponse(self, msg, protocol, response, initiator='127.0.0.0'):
         self.assertEquals(msg.type, dnsmessage_pb2.PBDNSMessage.DNSResponseType)
-        self.checkProtobufBase(msg, protocol, response, initiator, False)	# skip comparing inBytes with length of response as was query not response originally
+        # skip comparing inBytes (size of the query) with the length of the generated response
+        self.checkProtobufBase(msg, protocol, response, initiator, False)
         self.assertTrue(msg.HasField('response'))
         self.assertTrue(msg.response.HasField('queryTimeSec'))
-
-	testList = [ u"TestLabel1,TestData1", u"TestLabel2,TestData2", u"TestLabel3,TestData3", u"Query,123"]
-	listx = set(msg.response.tags) ^ set(testList)						# only differences will be in new list
-	self.assertEqual(len(listx), 0, "List's don't match up in Protobuf Response")		# exclusive or of lists should be empty
 
     def checkProtobufResponse(self, msg, protocol, response, initiator='127.0.0.1'):
         self.assertEquals(msg.type, dnsmessage_pb2.PBDNSMessage.DNSResponseType)
         self.checkProtobufBase(msg, protocol, response, initiator)
         self.assertTrue(msg.HasField('response'))
         self.assertTrue(msg.response.HasField('queryTimeSec'))
-
-	testList = [ u"TestLabel1,TestData1", u"TestLabel2,TestData2", u"TestLabel3,TestData3", u"Response,456"]
-	listx = set(msg.response.tags) ^ set(testList)						# only differences will be in new list
-	self.assertEqual(len(listx), 0, "List's don't match up in Protobuf Response")		# exclusive or of lists should be empty
 
     def checkProtobufResponseRecord(self, record, rclass, rtype, rname, rttl):
         self.assertTrue(record.HasField('class'))
@@ -251,7 +246,6 @@ class TestProtobuf(DNSDistTest):
         Protobuf: Send data to a protobuf server
         """
         name = 'query.protobuf.tests.powerdns.com.'
-
 
         target = 'target.protobuf.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
@@ -285,10 +279,12 @@ class TestProtobuf(DNSDistTest):
         msg = self.getFirstProtobufMessage()
 
         self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.UDP, query, dns.rdataclass.IN, dns.rdatatype.A, name)
+        self.checkProtobufTags(msg.response.tags, [u"TestLabel1,TestData1", u"TestLabel2,TestData2", u"TestLabel3,TestData3", u"Query,123"])
 
         # check the protobuf message corresponding to the UDP response
         msg = self.getFirstProtobufMessage()
-        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, response)	# check UDP response
+        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, response)
+        self.checkProtobufTags(msg.response.tags, [ u"TestLabel1,TestData1", u"TestLabel2,TestData2", u"TestLabel3,TestData3", u"Response,456"])
         self.assertEquals(len(msg.response.rrs), 2)
         rr = msg.response.rrs[0]
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.CNAME, name, 3600)
@@ -311,10 +307,12 @@ class TestProtobuf(DNSDistTest):
         msg = self.getFirstProtobufMessage()
 
         self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.TCP, query, dns.rdataclass.IN, dns.rdatatype.A, name)
+        self.checkProtobufTags(msg.response.tags, [u"TestLabel1,TestData1", u"TestLabel2,TestData2", u"TestLabel3,TestData3", u"Query,123"])
 
         # check the protobuf message corresponding to the TCP response
         msg = self.getFirstProtobufMessage()
-        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.TCP, response)	# check TCP response
+        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.TCP, response)
+        self.checkProtobufTags(msg.response.tags, [ u"TestLabel1,TestData1", u"TestLabel2,TestData2", u"TestLabel3,TestData3", u"Response,456"])
         self.assertEquals(len(msg.response.rrs), 2)
         rr = msg.response.rrs[0]
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.CNAME, name, 3600)
@@ -354,11 +352,13 @@ class TestProtobuf(DNSDistTest):
         # check the protobuf message corresponding to the UDP query
         msg = self.getFirstProtobufMessage()
 
-	self.checkProtobufQueryConvertedToResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, response, '127.0.0.0')		# check UDP Response
+        self.checkProtobufQueryConvertedToResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, response, '127.0.0.0')
+        self.checkProtobufTags(msg.response.tags, [ u"TestLabel1,TestData1", u"TestLabel2,TestData2", u"TestLabel3,TestData3", u"Query,123"])
 
         # check the protobuf message corresponding to the UDP response
         msg = self.getFirstProtobufMessage()
-        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, response, '127.0.0.0')		# check UDP Response
+        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, response, '127.0.0.0')
+        self.checkProtobufTags(msg.response.tags, [ u"TestLabel1,TestData1", u"TestLabel2,TestData2", u"TestLabel3,TestData3", u"Response,456"])
         self.assertEquals(len(msg.response.rrs), 1)
         for rr in msg.response.rrs:
             self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 3600)
@@ -376,11 +376,13 @@ class TestProtobuf(DNSDistTest):
 
         # check the protobuf message corresponding to the TCP query
         msg = self.getFirstProtobufMessage()
-	self.checkProtobufQueryConvertedToResponse(msg, dnsmessage_pb2.PBDNSMessage.TCP, response, '127.0.0.0')		# check TCP Response
+        self.checkProtobufQueryConvertedToResponse(msg, dnsmessage_pb2.PBDNSMessage.TCP, response, '127.0.0.0')
+        self.checkProtobufTags(msg.response.tags, [ u"TestLabel1,TestData1", u"TestLabel2,TestData2", u"TestLabel3,TestData3", u"Query,123"])
 
         # check the protobuf message corresponding to the TCP response
         msg = self.getFirstProtobufMessage()
-        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.TCP, response, '127.0.0.0')		# check TCP response
+        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.TCP, response, '127.0.0.0')
+        self.checkProtobufTags(msg.response.tags, [ u"TestLabel1,TestData1", u"TestLabel2,TestData2", u"TestLabel3,TestData3", u"Response,456"])
         self.assertEquals(len(msg.response.rrs), 1)
         for rr in msg.response.rrs:
             self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 3600)
