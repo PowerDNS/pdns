@@ -1277,7 +1277,7 @@ uint32_t SyncRes::computeLowestTTD(const std::vector<DNSRecord>& records, const 
 
 void SyncRes::updateValidationState(vState& state, const vState stateUpdate)
 {
-  LOG(d_prefix<<"validation state was "<<std::string(vStates[state])<<", state update is "<<std::string(vStates[stateUpdate])<<endl);
+  LOG(d_prefix<<"validation state was "<<std::string(vStates[state])<<", state update is "<<std::string(vStates[stateUpdate]));
 
   if (stateUpdate == TA) {
     state = Secure;
@@ -1296,7 +1296,7 @@ void SyncRes::updateValidationState(vState& state, const vState stateUpdate)
       state = Insecure;
     }
   }
-  LOG(d_prefix<<" validation state is now "<<std::string(vStates[state])<<endl);
+  LOG(", validation state is now "<<std::string(vStates[state])<<endl);
 }
 
 vState SyncRes::getTA(const DNSName& zone, dsmap_t& ds)
@@ -1618,7 +1618,7 @@ vState SyncRes::validateRecordsWithSigs(unsigned int depth, const DNSName& qname
   if (!signatures.empty()) {
     const DNSName signer = getSigner(signatures);
     if (!signer.empty() && name.isPartOf(signer)) {
-      if (qtype == QType::DNSKEY && signer == qname) {
+      if ((qtype == QType::DNSKEY || qtype == QType::DS) && signer == qname) {
         /* we are already retrieving those keys, sorry */
         return Indeterminate;
       }
