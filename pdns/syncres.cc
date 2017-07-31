@@ -1899,15 +1899,17 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
       rec.d_ttl = min(rec.d_ttl, s_maxnegttl);
       if(newtarget.empty()) // only add a SOA if we're not going anywhere after this
         ret.push_back(rec);
-      if(!wasVariable()) {
-        NegCache::NegCacheEntry ne;
 
-        ne.d_ttd = d_now.tv_sec + rec.d_ttl;
-        ne.d_name = qname;
-        ne.d_qtype = QType(0); // this encodes 'whole record'
-        ne.d_auth = rec.d_name;
-        harvestNXRecords(lwr.d_records, ne);
-        getDenialValidationState(ne, state, NXDOMAIN, false);
+      NegCache::NegCacheEntry ne;
+
+      ne.d_ttd = d_now.tv_sec + rec.d_ttl;
+      ne.d_name = qname;
+      ne.d_qtype = QType(0); // this encodes 'whole record'
+      ne.d_auth = rec.d_name;
+      harvestNXRecords(lwr.d_records, ne);
+      getDenialValidationState(ne, state, NXDOMAIN, false);
+
+      if(!wasVariable()) {
         t_sstorage.negcache.add(ne);
         if(s_rootNXTrust && ne.d_auth.isRoot() && auth.isRoot()) {
           ne.d_name = ne.d_name.getLastLabel();
@@ -2000,14 +2002,16 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
       else {
         rec.d_ttl = min(s_maxnegttl, rec.d_ttl);
         ret.push_back(rec);
+
+        NegCache::NegCacheEntry ne;
+        ne.d_auth = rec.d_name;
+        ne.d_ttd = d_now.tv_sec + rec.d_ttl;
+        ne.d_name = qname;
+        ne.d_qtype = qtype;
+        harvestNXRecords(lwr.d_records, ne);
+        getDenialValidationState(ne, state, NXQTYPE, qtype == QType::DS);
+
         if(!wasVariable()) {
-          NegCache::NegCacheEntry ne;
-          ne.d_auth = rec.d_name;
-          ne.d_ttd = d_now.tv_sec + rec.d_ttl;
-          ne.d_name = qname;
-          ne.d_qtype = qtype;
-          harvestNXRecords(lwr.d_records, ne);
-          getDenialValidationState(ne, state, NXQTYPE, qtype == QType::DS);
           if(qtype.getCode()) {  // prevents us from blacking out a whole domain
             t_sstorage.negcache.add(ne);
           }
@@ -2211,6 +2215,10 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
 
   if(nsset.empty() && !lwr.d_rcode && (negindic || lwr.d_aabit || sendRDQuery)) {
     LOG(prefix<<qname<<": status=noerror, other types may exist, but we are done "<<(negindic ? "(have negative SOA) " : "")<<(lwr.d_aabit ? "(have aa bit) " : "")<<endl);
+
+    if(state == Secure && lwr.d_aabit && !negindic) {
+      updateValidationState(state, Bogus);
+    }
 
     if(d_doDNSSEC)
       addNXNSECS(ret, lwr.d_records);
