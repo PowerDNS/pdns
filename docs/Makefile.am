@@ -62,11 +62,11 @@ EXTRA_DIST = $(MANPAGES_DIST)
 if HAVE_VIRTUALENV
 if !HAVE_MANPAGES
 $(MANPAGES_DIST): %: manpages/%.rst mans
-	mv "mans/$@" "$@" || { rm -rf mans; false; }
+	mv "mans/$@" "$@"
 endif # if !HAVE_MANPAGES
 
 mans: .venv
-	rm -rf "$@"; .venv/bin/python -msphinx -b man . "$@" $(addprefix,manpages/,$(addsuffix,.rst,$(MANPAGES_DIST)))
+	rm -rf "$@.tmp"; .venv/bin/python -msphinx -b man -c . manpages "$@.tmp" && mv "$@.tmp" "$@"; rm -rf "$@.tmp"
 
 .venv: requirements.txt
 	virtualenv .venv
