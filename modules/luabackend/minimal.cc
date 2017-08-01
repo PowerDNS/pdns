@@ -146,29 +146,16 @@ bool LUABackend::get(DNSResourceRecord &rr) {
     }
 
     rr.content.clear();
+    bool got_content = false;
+    got_content = dnsrr_from_table(lua, rr);
 
-    string qt;
-
-    if (getValueFromTable(lua, "type", qt) )
-	rr.qtype = qt;
-    getValueFromTable(lua, "name", rr.qname);
-    getValueFromTable(lua, "domain_id", rr.domain_id);
-    getValueFromTable(lua, "auth", rr.auth);
-    getValueFromTable(lua, "last_modified", rr.last_modified);
-
-    getValueFromTable(lua, "ttl", rr.ttl);
     if (rr.ttl == 0)
         rr.ttl = ::arg().asNum( "default-ttl" );
-
-    getValueFromTable(lua, "content", rr.content);
-    getValueFromTable(lua, "scopeMask", rr.scopeMask);
-
-    lua_pop(lua, 1 );
 
     if (logging)
 	g_log << Logger::Info << backend_name << "(get) END" << endl;
 
-    return !rr.content.empty();
+    return got_content;
 }
 
 bool LUABackend::getSOA(const DNSName &name, SOAData &soadata, bool unmodifiedSerial) {
