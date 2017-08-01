@@ -37,7 +37,7 @@ bool LUABackend::my_mustDo(string a) {
 }
 
 bool LUABackend::my_isEmpty(string a) {
-    return ::arg().isEmpty(LUABACKEND_PREFIX+"-"+a);
+    return ::arg().isEmpty(string(LUABACKEND_PREFIX)+"-"+a);
 }
 
 bool LUABackend::domaininfo_from_table(DomainInfo *di) {
@@ -132,7 +132,7 @@ void LUABackend::dnsrr_to_table(lua_State *lua, const DNSResourceRecord *rr) {
     
 }
 
-bool dnsrr_from_table(lua_State *lua, DNSResourceRecord &rr) {
+bool LUABackend::dnsrr_from_table(lua_State *lua, DNSResourceRecord &rr) {
 
     bool got_content = false;
     string qt_name;
@@ -147,7 +147,7 @@ bool dnsrr_from_table(lua_State *lua, DNSResourceRecord &rr) {
     // when it's a table prefer the code key
     lua_pushliteral(lua, "qtype");
     lua_gettable(lua, -2);
-    returnedwhat = lua_type(lua, -1);
+    size_t returnedwhat = lua_type(lua, -1);
     if (LUA_TTABLE == returnedwhat) {
         if (getValueFromTable(lua, "code", qt_code))
             rr.qtype = qt_code;
