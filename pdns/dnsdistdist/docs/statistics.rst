@@ -17,11 +17,11 @@ Number of times an answer was not found in the :doc:`cache <guides/cache>`.
 
 cpu-sys-msec
 ------------
-Miliseconds spent by :program:`dnsdist` in the "system" state.
+Milliseconds spent by :program:`dnsdist` in the "system" state.
 
 cpu-user-msec
 -------------
-Miliseconds spent by :program:`dnsdist` in the "user" state.
+Milliseconds spent by :program:`dnsdist` in the "user" state.
 
 downstream-send-errors
 ----------------------
