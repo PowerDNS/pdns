@@ -63,7 +63,7 @@ if HAVE_VIRTUALENV
 if !HAVE_MANPAGES
 $(MANPAGES_DIST): %: manpages/%.rst .venv
 	.venv/bin/python -msphinx -b man . mans $<
-	mv mans/$@ $@
+	mv mans/$@ $@; rm -rf mans
 endif # if !HAVE_MANPAGES
 
 .venv: requirements.txt
