@@ -188,6 +188,7 @@ bool LUABackend::getSOA(const DNSName &name, SOAData &soadata, bool unmodifiedSe
     }
 
     soadata.db = this;
+    soadata.qname = name;
     soadata.serial = 0;
     soadata.qname = name;
     getValueFromTable(lua, "serial", soadata.serial);
