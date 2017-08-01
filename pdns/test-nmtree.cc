@@ -95,4 +95,48 @@ BOOST_AUTO_TEST_CASE(test_scale) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_removal) {
+  std::string prefix = "192.";
+  NetmaskTree<int> nmt;
+
+  size_t count = 0;
+  for(unsigned int i = 0; i < 256; ++i) {
+    for(unsigned int j = 16; j <= 32; ++j) {
+      nmt.insert(Netmask(prefix + std::to_string(i) +".127.255/"+std::to_string(j))).second = j;
+      count++;
+    }
+  }
+
+  BOOST_CHECK_EQUAL(nmt.size(), count);
+
+  for(unsigned int i = 0; i < 256; ++i) {
+    ComboAddress key(prefix + std::to_string(i) + ".127.255");
+    const auto result = nmt.lookup(key);
+    BOOST_CHECK_EQUAL(result->first.getBits(), 32);
+    BOOST_CHECK_EQUAL(result->first.getMaskedNetwork().toString(), key.toString());
+    BOOST_CHECK_EQUAL(result->second, 32);
+  }
+
+  for(unsigned int i = 0; i < 256; ++i) {
+    for(unsigned int j = 32; j >= 16; --j) {
+      ComboAddress key(prefix + std::to_string(i) + ".127.255");
+      nmt.erase(Netmask(key, j));
+      const auto result = nmt.lookup(key);
+
+      if (j > 16) {
+        BOOST_REQUIRE(result != nullptr);
+        BOOST_CHECK_EQUAL(result->first.getBits(), j-1);
+        BOOST_CHECK_EQUAL(result->first.getMaskedNetwork().toString(), Netmask(key, j-1).getMaskedNetwork().toString());
+        BOOST_CHECK_EQUAL(result->second, j - 1);
+      }
+      else {
+        BOOST_CHECK(result == nullptr);
+      }
+    }
+  }
+
+  BOOST_CHECK_EQUAL(nmt.size(), 0);
+  BOOST_CHECK(nmt.empty());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
