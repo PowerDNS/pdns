@@ -180,6 +180,7 @@ private:
     bool domaininfo_from_table(DomainInfo *di);
     void domains_from_table(vector<DomainInfo>* domains, const char *f_name);
     void dnsrr_to_table(lua_State *lua, const DNSResourceRecord *rr);
+    bool dnsrr_from_table(lua_State *lua, DNSResourceRecord &rr);
 
     //reload.cc
     void get_lua_function(lua_State *lua, const char *name, int *function);

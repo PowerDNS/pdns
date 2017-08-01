@@ -131,3 +131,49 @@ void LUABackend::dnsrr_to_table(lua_State *lua, const DNSResourceRecord *rr) {
     lua_settable(lua, -3);
     
 }
+
+bool dnsrr_from_table(lua_State *lua, DNSResourceRecord &rr) {
+
+    bool got_content = false;
+    string qt_name;
+    uint16_t qt_code;
+
+    // look for qname key first
+    // try name key if qname wasn't set
+    if (!getValueFromTable(lua, "qname", rr.qname))
+        getValueFromTable(lua, "name", rr.qname);
+
+    // qtype is either a table, string or number
+    // when it's a table prefer the code key
+    lua_pushliteral(lua, "qtype");
+    lua_gettable(lua, -2);
+    returnedwhat = lua_type(lua, -1);
+    if (LUA_TTABLE == returnedwhat) {
+        if (getValueFromTable(lua, "code", qt_code))
+            rr.qtype = qt_code;
+        else
+            if (getValueFromTable(lua, "name", qt_name))
+                rr.qtype = qt_name;
+        lua_pop(lua, 1);
+    } else if (LUA_TNUMBER == returnedwhat) {
+        lua_pop(lua, 1);
+        if (getValueFromTable(lua, "qtype", qt_code))
+            rr.qtype = qt_code;
+    } else {
+        lua_pop(lua, 1);
+        if (getValueFromTable(lua, "qtype", qt_name))
+            rr.qtype = qt_name;
+    }
+
+    getValueFromTable(lua, "qclass", rr.qclass);
+    getValueFromTable(lua, "domain_id", rr.domain_id);
+    getValueFromTable(lua, "auth", rr.auth);
+    getValueFromTable(lua, "last_modified", rr.last_modified);
+
+    getValueFromTable(lua, "ttl", rr.ttl);
+    got_content = getValueFromTable(lua, "content", rr.content);
+    getValueFromTable(lua, "scopeMask", rr.scopeMask);
+
+    return got_content;
+
+}
