@@ -36,6 +36,7 @@ public:
   void declareArguments(const string &suffix="")
   {
   
+    // TODO: tcely: All of the function variables need to be declared here too.
     declare(suffix,"filename","Filename of the script for lua backend","powerdns-luabackend.lua");
     declare(suffix,"query-logging","Logging of the LUA Backend","no");
 
