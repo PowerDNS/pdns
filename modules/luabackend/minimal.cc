@@ -212,7 +212,7 @@ bool LUABackend::getSOA(const DNSName &name, SOAData &soadata, bool unmodifiedSe
     }
 
     if (!getValueFromTable(lua, "nameserver", soadata.nameserver)) {
-        soadata.nameserver = DNSName(arg()["default-soa-name"]);
+        soadata.nameserver = DNSName(::arg()["default-soa-name"]);
         if (soadata.nameserver.empty()) {
     	    g_log<<Logger::Error << backend_name << "(getSOA)" << " Error: SOA Record is missing nameserver for the domain '" << name << "'" << endl;
 	    lua_pop(lua, 1 );
