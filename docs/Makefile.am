@@ -62,8 +62,7 @@ EXTRA_DIST = $(MANPAGES_DIST)
 if HAVE_VIRTUALENV
 if !HAVE_MANPAGES
 $(MANPAGES_DIST): %: manpages/%.rst .venv
-	.venv/bin/python -msphinx -b man . mans $<
-	mv mans/$@ $@; rm -rf mans
+	outputdir="`mktemp -d mans.XXXX`"; .venv/bin/python -msphinx -b man . "$$outputdir" "$<" && mv "$${outputdir}/$@" "$@"; rm -rf "$$outputdir"
 endif # if !HAVE_MANPAGES
 
 .venv: requirements.txt
