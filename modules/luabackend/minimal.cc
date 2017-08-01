@@ -105,8 +105,15 @@ void LUABackend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p, 
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_lookup);
 
+    lua_newtable(lua);
+    lua_pushliteral(lua, "name");
     lua_pushstring(lua, qtype.getName().c_str());
-    lua_pushstring(lua, qname.toString().       c_str());
+    lua_settable(lua, -3);
+    lua_pushliteral(lua, "code");
+    lua_pushinteger(lua, qtype.getCode());
+    lua_settable(lua, -3);
+
+    lua_pushstring(lua, qname.toString().c_str());
     lua_pushinteger(lua, domain_id);
 
     if(lua_pcall(lua, 3, 0, f_lua_exec_error) != 0) {
