@@ -41,7 +41,7 @@ void LUABackend::get_lua_function(lua_State *lua, const char *name, int *functio
     f.append(name);
     
     string arg = "";
-    if (!::arg().isEmpty(f))
+    if (!::arg().isEmpty(LUABACKEND_PREFIX+"-"+f))
         arg = getArg(f);
 
     lua_getglobal(lua, arg == "" ? name : arg.c_str());

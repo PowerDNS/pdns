@@ -36,6 +36,10 @@ bool LUABackend::my_mustDo(string a) {
     return mustDo(a);
 }
 
+bool LUABackend::my_isEmpty(string a) {
+    return ::arg().isEmpty(LUABACKEND_PREFIX+"-"+a);
+}
+
 bool LUABackend::domaininfo_from_table(DomainInfo *di) {
 
     di->backend = NULL;

@@ -91,7 +91,7 @@ int l_arg_get (lua_State *lua) {
 
     string a = lua_tostring(lua, 1);
 
-    if (::arg().isEmpty(a))
+    if (lb->my_isEmpty(a))
 	lua_pushnil(lua);
     else
         lua_pushstring(lua, lb->my_getArg(a).c_str());
@@ -109,7 +109,7 @@ int l_arg_mustdo (lua_State *lua) {
 
     string a = lua_tostring(lua, 1);
 
-    if (::arg().isEmpty(a))
+    if (lb->my_isEmpty(a))
 	lua_pushnil(lua);
     else
         lua_pushboolean(lua, lb->my_mustDo(a));

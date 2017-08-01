@@ -32,7 +32,7 @@
 
 LUABackend::LUABackend(const string &suffix) {
 
-    setArgPrefix("lua"+suffix);
+    setArgPrefix(LUABACKEND_PREFIX+suffix);
 
     try {
 
