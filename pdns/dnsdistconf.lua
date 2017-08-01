@@ -1,9 +1,9 @@
 -- listen for console connection with the given secret key
-controlSocket("0.0.0.0")
-setKey("MXNeLFWHUe4363BBKrY06cAsH8NWNb+Se2eXU5+Bb74=")
+-- controlSocket("0.0.0.0")
+-- setKey(please generate a fresh private key with makeKey())
 
--- start the web server on port 8083, using password 'geheim2'
-webserver("0.0.0.0:8083", "geheim2")
+-- start the web server on port 8083, using password 'set a random password here'
+-- webserver("0.0.0.0:8083", "set a random password here")
 
 -- accept DNS queries on UDP/5200 and TCP/5200
 addLocal("0.0.0.0:5200")
