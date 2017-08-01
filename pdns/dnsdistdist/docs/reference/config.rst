@@ -514,7 +514,7 @@ Status, Statistics and More
   Optionally grouped by the rightmost ``labels`` DNS labels.
 
   :param int num: Number to show, defaults to 10
-  :param int limit: Show queries slower than this amount of miliseconds, defaults to 2000
+  :param int limit: Show queries slower than this amount of milliseconds, defaults to 2000
   :param int label: Number of labels to cut down to
 
 .. _dynblocksref:
