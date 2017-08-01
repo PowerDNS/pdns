@@ -34,11 +34,6 @@ using namespace std;
 
 #include "lua_functions.hh"
 
-/* 
-    virtual void reload();
-    virtual void rediscover(string* status=0);
-*/
-
 void LUABackend::get_lua_function(lua_State *lua, const char *name, int *function) {
     *function = 0;
     
@@ -61,7 +56,6 @@ void LUABackend::reload() {
     
     backend_name.clear();
 
-//	backend_name = "[LUABackend: " + uitoa(backend_pid) + " (" + uitoa(backend_count) +")] ";
     backend_name = "[LUABackend: (" + uitoa(backend_count) +")] ";
     
     if (lua)

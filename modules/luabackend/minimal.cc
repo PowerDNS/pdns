@@ -28,8 +28,6 @@
 #include "pdns/logger.hh"
 #include "pdns/arguments.hh"
 
-//#include "lua_functions.hh"
-
 /* FIRST PART */
 
 LUABackend::LUABackend(const string &suffix) {
@@ -45,7 +43,6 @@ LUABackend::LUABackend(const string &suffix) {
     	    backend_pid = pthread_self();
 	}
 
-//	lb = NULL;
 	lua = NULL;
 	dnspacket = NULL;
 	dnssec = false;
@@ -108,7 +105,6 @@ void LUABackend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p, 
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_lookup);
 
-//    lua_pushnumber(lua, qtype.getCode());
     lua_pushstring(lua, qtype.getName().c_str());
     lua_pushstring(lua, qname.toString().       c_str());
     lua_pushinteger(lua, domain_id);
@@ -151,7 +147,6 @@ bool LUABackend::get(DNSResourceRecord &rr) {
 
     rr.content.clear();
 
-//    uint16_t qt;
     string qt;
 
     if (getValueFromTable(lua, "type", qt) )
