@@ -66,7 +66,7 @@ $(MANPAGES_DIST): %: manpages/%.rst mans
 endif # if !HAVE_MANPAGES
 
 mans: .venv
-	rm -rf "$@"; .venv/bin/python -msphinx -b man manpages "$@"
+	rm -rf "$@"; .venv/bin/python -msphinx -b man -j 2 . "$@" $(addprefix,manpages/,$(addsuffix,.rst,$(MANPAGES_DIST)))
 
 .venv: requirements.txt
 	virtualenv .venv
