@@ -253,11 +253,14 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple) {
     records.push_back(dr2);
     MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, false, boost::none);
     BOOST_CHECK_EQUAL(MRC.size(), 1);
+    // let's first check that non-auth is not returned when we need authoritative data
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), true, &retrieved, ComboAddress("127.0.0.1"), nullptr), -now);
     BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("127.0.0.1"), nullptr), (ttd-now));
     BOOST_REQUIRE_EQUAL(retrieved.size(), 1);
     BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr2Content.toString());
 
-    // Most specific netmask test
+    /**** Most specific netmask tests ****/
+
     // wipe everything
     MRC.doWipeCache(DNSName("."), true);
     BOOST_CHECK_EQUAL(MRC.size(), 0);
@@ -297,6 +300,28 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple) {
     BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.168.0.1"), nullptr), (ttd-now));
     BOOST_REQUIRE_EQUAL(retrieved.size(), 1);
     BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr4Content.toString());
+    retrieved.clear();
+
+    // wipe everything
+    MRC.doWipeCache(DNSName("."), true);
+    BOOST_CHECK_EQUAL(MRC.size(), 0);
+    records.clear();
+
+    // insert an entry for 192.0.0.1/8, non auth
+    records.clear();
+    records.push_back(dr2);
+    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, false, boost::optional<Netmask>("192.0.0.1/8"));
+    BOOST_CHECK_EQUAL(MRC.size(), 1);
+
+    // we should not get it when we need authoritative data
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), true, &retrieved, ComboAddress("192.168.0.1"), nullptr), -1);
+    BOOST_REQUIRE_EQUAL(retrieved.size(), 0);
+    retrieved.clear();
+
+    // but we should when we are OK with non-auth
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.168.0.1"), nullptr), (ttd-now));
+    BOOST_REQUIRE_EQUAL(retrieved.size(), 1);
+    BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr2Content.toString());
     retrieved.clear();
   }
   catch(const PDNSException& e) {
