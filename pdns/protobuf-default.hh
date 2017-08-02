@@ -28,34 +28,28 @@
 
 #include "dnsname.hh"
 #include "iputils.hh"
+#include "protobuf.hh"
 
 #ifdef HAVE_PROTOBUF
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
+#include "dnsmessage.pb.h"
 #endif /* HAVE_PROTOBUF */
 
-class IfaceDNSProtoBufMessage;
-
-class DNSProtoBufMessage
+class DefaultDNSProtoBufMessage : public IfaceDNSProtoBufMessage
 {
 public:
-  enum DNSProtoBufMessageType {
-    Query,
-    Response,
-    OutgoingQuery,
-    IncomingResponse
-  };
-
-  DNSProtoBufMessage()
+  DefaultDNSProtoBufMessage()
   {
   }
 
-  ~DNSProtoBufMessage();
+  DefaultDNSProtoBufMessage(DNSProtoBufMessage::DNSProtoBufMessageType type);
 
-  DNSProtoBufMessage(DNSProtoBufMessage::DNSProtoBufMessageType type);
+  ~DefaultDNSProtoBufMessage()
+  {
+  }
 
-  // not defined in the iface
-  void addRRsFromPacket(const char* packet, const size_t len, bool includeCNAME=false);
+  void addRRsFromPacket(const char* packet, const size_t len, bool includeCNAME);
   void serialize(std::string& data) const;
   void setBytes(size_t bytes);
   void setEDNSSubnet(const Netmask& subnet, uint8_t mask=128);
@@ -65,7 +59,6 @@ public:
   void setRequestor(const ComboAddress& requestor);
   void setRequestor(const std::string& requestor);
   void setResponder(const ComboAddress& responder);
-  void setRequestorId(const std::string& requestorId);
   void setResponder(const std::string& responder);
   void setResponseCode(uint8_t rcode);
   void setTime(time_t sec, uint32_t usec);
@@ -73,39 +66,12 @@ public:
   std::string toDebugString() const;
 
 #ifdef HAVE_PROTOBUF
-  DNSProtoBufMessage(DNSProtoBufMessage::DNSProtoBufMessageType type, const boost::uuids::uuid& uuid, const ComboAddress* requestor, const ComboAddress* responder, const DNSName& domain, int qtype, uint16_t qclass, uint16_t qid, bool isTCP, size_t bytes, bool useDnstap=false);
+  DefaultDNSProtoBufMessage(DNSProtoBufMessage::DNSProtoBufMessageType type, const boost::uuids::uuid& uuid, const ComboAddress* requestor, const ComboAddress* responder, const DNSName& domain, int qtype, uint16_t qclass, uint16_t qid, bool isTCP, size_t bytes);
   void setInitialRequestID(const boost::uuids::uuid& uuid);
   void setUUID(const boost::uuids::uuid& uuid);
   void update(const boost::uuids::uuid& uuid, const ComboAddress* requestor, const ComboAddress* responder, bool isTCP, uint16_t id);
 
-private:
-  IfaceDNSProtoBufMessage *d_message;
-#endif
-};
-
-class IfaceDNSProtoBufMessage
-{
-public:
-  virtual ~IfaceDNSProtoBufMessage() {}
-  virtual void addRRsFromPacket(const char* packet, const size_t len, bool includeCNAME=false) = 0;
-  virtual void serialize(std::string& data) const = 0;
-  virtual void setBytes(size_t bytes) = 0;
-  virtual void setEDNSSubnet(const Netmask& subnet, uint8_t mask=128) = 0;
-  virtual void setQueryTime(time_t sec, uint32_t usec) = 0;
-  virtual void setQuestion(const char* packet, const size_t len) = 0;
-  virtual void setQuestion(const DNSName& qname, uint16_t qtype, uint16_t qclass) = 0;
-  virtual void setRequestor(const ComboAddress& requestor) = 0;
-  virtual void setRequestor(const std::string& requestor) = 0;
-  virtual void setResponder(const ComboAddress& responder) = 0;
-  virtual void setResponder(const std::string& responder) = 0;
-  virtual void setResponseCode(uint8_t rcode) = 0;
-  virtual void setTime(time_t sec, uint32_t usec) = 0;
-  virtual void setType(DNSProtoBufMessage::DNSProtoBufMessageType type) = 0;
-  virtual std::string toDebugString() const = 0;
-
-#ifdef HAVE_PROTOBUF
-  virtual void setInitialRequestID(const boost::uuids::uuid& uuid) = 0;
-  virtual void setUUID(const boost::uuids::uuid& uuid) = 0;
-  virtual void update(const boost::uuids::uuid& uuid, const ComboAddress* requestor, const ComboAddress* responder, bool isTCP, uint16_t id) = 0;
-#endif
+protected:
+  PBDNSMessage proto_message;
+#endif /* HAVE_PROTOBUF */
 };

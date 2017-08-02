@@ -26,13 +26,13 @@
 #include "dnsdist-protobuf.hh"
 
 #ifdef HAVE_PROTOBUF
-#include "dnsmessage.pb.h"
 
-DNSDistProtoBufMessage::DNSDistProtoBufMessage(const DNSQuestion& dq): DNSProtoBufMessage(Query, dq.uniqueId, dq.remote, dq.local, *dq.qname, dq.qtype, dq.qclass, dq.dh->id, dq.tcp, dq.len)
+DNSDistProtoBufMessage::DNSDistProtoBufMessage(const DNSQuestion& dq, bool useDnstap): DNSProtoBufMessage(Query, dq.uniqueId, dq.remote, dq.local, *dq.qname, dq.qtype, dq.qclass, dq.dh->id, dq.tcp, dq.len, useDnstap)
 {
+  setQuestion((const char*)dq.dh, dq.len);
 };
 
-DNSDistProtoBufMessage::DNSDistProtoBufMessage(const DNSResponse& dr, bool includeCNAME): DNSProtoBufMessage(Response, dr.uniqueId, dr.remote, dr.local, *dr.qname, dr.qtype, dr.qclass, dr.dh->id, dr.tcp, dr.len)
+DNSDistProtoBufMessage::DNSDistProtoBufMessage(const DNSResponse& dr, bool includeCNAME, bool useDnstap): DNSProtoBufMessage(Response, dr.uniqueId, dr.remote, dr.local, *dr.qname, dr.qtype, dr.qclass, dr.dh->id, dr.tcp, dr.len, useDnstap)
 {
   setQueryTime(dr.queryTime->tv_sec, dr.queryTime->tv_nsec / 1000);
   setResponseCode(dr.dh->rcode);

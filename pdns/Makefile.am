@@ -43,6 +43,7 @@ EXTRA_DIST = \
 	dnslabeltext.rl \
 	dnslabeltext.cc \
 	dnsmessage.proto \
+	dnstap.proto \
 	effective_tld_names.dat \
 	mtasker.cc \
 	inflighter.cc \
@@ -65,6 +66,7 @@ CLEANFILES = \
 	backends/gsql/gsqlbackend.gcno \
 	backends/gsql/gsqlbackend.gcov \
 	dnsmessage.pb.cc dnsmessage.pb.h \
+	dnstap.pb.cc dnstap.pb.h \
 	pdns.conf-dist
 
 noinst_SCRIPTS = pdns.init
@@ -512,7 +514,7 @@ dumresp_SOURCES = \
 	misc.cc misc.hh \
 	statbag.cc \
 	unix_utility.cc \
-	qtype.cc 
+	qtype.cc
 
 kvresp_SOURCES = \
 	dnslabeltext.cc dnsname.cc dnsname.hh \
@@ -521,7 +523,7 @@ kvresp_SOURCES = \
 	misc.cc misc.hh \
 	statbag.cc \
 	unix_utility.cc \
-	qtype.cc 
+	qtype.cc
 
 stubquery_SOURCES = \
 	arguments.cc arguments.hh \
@@ -1079,8 +1081,12 @@ bin_PROGRAMS += dnspcap2protobuf
 dnsmessage.pb.cc: dnsmessage.proto
 	$(AM_V_GEN)$(PROTOC) --cpp_out=./ $<
 
-BUILT_SOURCES += dnsmessage.pb.cc
-dnspcap2protobuf.$(OBJEXT): dnsmessage.pb.cc
+dnstap.pb.cc: dnstap.proto
+	$(AM_V_GEN)$(PROTOC) --cpp_out=./ $<
+
+BUILT_SOURCES += dnsmessage.pb.cc dnstap.pb.cc
+
+dnspcap2protobuf.$(OBJEXT): dnsmessage.pb.cc dnstap.pb.cc
 
 dnspcap2protobuf_SOURCES = \
 	base32.cc \
@@ -1098,6 +1104,8 @@ dnspcap2protobuf_SOURCES = \
 	misc.cc \
 	nsecrecords.cc \
 	protobuf.cc protobuf.hh \
+	protobuf-default.cc protobuf-default.hh \
+	protobuf-dnstap.cc protobuf-dnstap.hh \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
 	sillyrecords.cc \
@@ -1105,7 +1113,7 @@ dnspcap2protobuf_SOURCES = \
 	unix_utility.cc \
 	utility.hh
 
-nodist_dnspcap2protobuf_SOURCES=dnsmessage.pb.cc dnsmessage.pb.h
+nodist_dnspcap2protobuf_SOURCES=dnsmessage.pb.cc dnsmessage.pb.h dnstap.pb.cc dnstap.pb.h
 
 dnspcap2protobuf_LDFLAGS = \
 	$(AM_LDFLAGS) \
@@ -1195,13 +1203,26 @@ testrunner_SOURCES = \
 testrunner_LDFLAGS = \
 	$(AM_LDFLAGS) \
 	$(LIBCRYPTO_LDFLAGS) \
-	$(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) 
+	$(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS)
 
 testrunner_LDADD = \
 	$(LIBCRYPTO_LIBS) \
 	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
 	$(RT_LIBS) \
 	$(LIBDL)
+
+if HAVE_PROTOBUF
+if HAVE_PROTOC
+nodist_testrunner_SOURCES = \
+	dnsmessage.pb.cc dnsmessage.pb.h
+	dnstap.pb.cc dnstap.pb.h
+
+testrunner_LDADD += \
+	$(PROTOBUF_LIBS)
+
+recpacketcache.$(OBJEXT): dnsmessage.pb.cc dnstap.pb.cc
+endif
+endif
 
 if PKCS11
 testrunner_SOURCES += pkcs11signers.cc pkcs11signers.hh

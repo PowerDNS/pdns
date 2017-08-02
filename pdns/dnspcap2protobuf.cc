@@ -28,10 +28,11 @@
 #include "iputils.hh"
 #include "misc.hh"
 #include "protobuf.hh"
+#include "protobuf-default.hh"
+#include "protobuf-dnstap.hh"
 #include "dns.hh"
 #include "dnspcap.hh"
 #include "dnsparser.hh"
-#include "protobuf.hh"
 
 #include "statbag.hh"
 StatBag S;

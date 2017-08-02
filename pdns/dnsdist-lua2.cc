@@ -67,15 +67,15 @@ void resetLuaSideEffect()
   g_noLuaSideEffect = boost::logic::indeterminate;
 }
 
-map<ComboAddress,int> filterScore(const map<ComboAddress, unsigned int,ComboAddress::addressOnlyLessThan >& counts, 
+map<ComboAddress,int> filterScore(const map<ComboAddress, unsigned int,ComboAddress::addressOnlyLessThan >& counts,
 				  double delta, int rate)
 {
   std::multimap<unsigned int,ComboAddress> score;
-  for(const auto& e : counts) 
+  for(const auto& e : counts)
     score.insert({e.second, e.first});
 
   map<ComboAddress,int> ret;
-  
+
   double lim = delta*rate;
   for(auto s = score.crbegin(); s != score.crend() && s->first > lim; ++s) {
     ret[s->second]=s->first;
@@ -96,7 +96,7 @@ static void statNodeRespRing(statvisitor_t visitor, unsigned int seconds)
   }
 
   std::lock_guard<std::mutex> lock(g_rings.respMutex);
-  
+
   StatNode root;
   for(const auto& c : g_rings.respRing) {
     if (now < c.when)
@@ -109,17 +109,17 @@ static void statNodeRespRing(statvisitor_t visitor, unsigned int seconds)
   }
   StatNode::Stat node;
 
-  root.visit([&visitor](const StatNode* node_, const StatNode::Stat& self, const StatNode::Stat& children) {
-      visitor(*node_, self, children);},  node);
+  root.visit([&visitor](const StatNode* node, const StatNode::Stat& self, const StatNode::Stat& children) {
+      visitor(*node, self, children);},  node);
 
 }
 
-vector<pair<unsigned int, std::unordered_map<string,string> > > getRespRing(boost::optional<int> rcode) 
+vector<pair<unsigned int, std::unordered_map<string,string> > > getRespRing(boost::optional<int> rcode)
 {
   typedef std::unordered_map<string,string>  entry_t;
   vector<pair<unsigned int, entry_t > > ret;
   std::lock_guard<std::mutex> lock(g_rings.respMutex);
-  
+
   entry_t e;
   unsigned int count=1;
   for(const auto& c : g_rings.respRing) {
@@ -134,7 +134,7 @@ vector<pair<unsigned int, std::unordered_map<string,string> > > getRespRing(boos
 }
 
 typedef   map<ComboAddress, unsigned int,ComboAddress::addressOnlyLessThan > counts_t;
-map<ComboAddress,int> exceedRespGen(int rate, int seconds, std::function<void(counts_t&, const Rings::Response&)> T) 
+map<ComboAddress,int> exceedRespGen(int rate, int seconds, std::function<void(counts_t&, const Rings::Response&)> T)
 {
   counts_t counts;
   struct timespec cutoff, mintime, now;
@@ -157,7 +157,7 @@ map<ComboAddress,int> exceedRespGen(int rate, int seconds, std::function<void(co
   return filterScore(counts, delta, rate);
 }
 
-map<ComboAddress,int> exceedQueryGen(int rate, int seconds, std::function<void(counts_t&, const Rings::Query&)> T) 
+map<ComboAddress,int> exceedQueryGen(int rate, int seconds, std::function<void(counts_t&, const Rings::Query&)> T)
 {
   counts_t counts;
   struct timespec cutoff, mintime, now;
@@ -180,18 +180,18 @@ map<ComboAddress,int> exceedQueryGen(int rate, int seconds, std::function<void(c
 }
 
 
-map<ComboAddress,int> exceedRCode(int rate, int seconds, int rcode) 
+map<ComboAddress,int> exceedRCode(int rate, int seconds, int rcode)
 {
-  return exceedRespGen(rate, seconds, [rcode](counts_t& counts, const Rings::Response& r) 
+  return exceedRespGen(rate, seconds, [rcode](counts_t& counts, const Rings::Response& r)
 		   {
 		     if(r.dh.rcode == rcode)
 		       counts[r.requestor]++;
 		   });
 }
 
-map<ComboAddress,int> exceedRespByterate(int rate, int seconds) 
+map<ComboAddress,int> exceedRespByterate(int rate, int seconds)
 {
-  return exceedRespGen(rate, seconds, [](counts_t& counts, const Rings::Response& r) 
+  return exceedRespGen(rate, seconds, [](counts_t& counts, const Rings::Response& r)
 		   {
 		     counts[r.requestor]+=r.size;
 		   });
@@ -244,8 +244,8 @@ void moreLua(bool client)
                          });
 
   g_lua.registerFunction("match", (bool (NetmaskGroup::*)(const ComboAddress&) const)&NetmaskGroup::match);
-  g_lua.registerFunction("size", &NetmaskGroup::size);  
-  g_lua.registerFunction("clear", &NetmaskGroup::clear);  
+  g_lua.registerFunction("size", &NetmaskGroup::size);
+  g_lua.registerFunction("clear", &NetmaskGroup::clear);
 
 
   g_lua.writeFunction("showDynBlocks", []() {
@@ -279,15 +279,15 @@ void moreLua(bool client)
       g_dynblockSMT.setState(smt);
     });
 
-  g_lua.writeFunction("addDynBlocks", 
-                      [](const map<ComboAddress,int>& m, const std::string& msg, boost::optional<int> seconds, boost::optional<DNSAction::Action> action) { 
+  g_lua.writeFunction("addDynBlocks",
+                      [](const map<ComboAddress,int>& m, const std::string& msg, boost::optional<int> seconds, boost::optional<DNSAction::Action> action) {
                            setLuaSideEffect();
 			   auto slow = g_dynblockNMG.getCopy();
 			   struct timespec until, now;
 			   gettime(&now);
 			   until=now;
                            int actualSeconds = seconds ? *seconds : 10;
-			   until.tv_sec += actualSeconds; 
+			   until.tv_sec += actualSeconds;
 			   for(const auto& capair : m) {
 			     unsigned int count = 0;
                              auto got = slow.lookup(Netmask(capair.first));
@@ -309,15 +309,15 @@ void moreLua(bool client)
 			   g_dynblockNMG.setState(slow);
 			 });
 
-  g_lua.writeFunction("addDynBlockSMT", 
-                      [](const vector<pair<unsigned int, string> >&names, const std::string& msg, boost::optional<int> seconds, boost::optional<DNSAction::Action> action) { 
+  g_lua.writeFunction("addDynBlockSMT",
+                      [](const vector<pair<unsigned int, string> >&names, const std::string& msg, boost::optional<int> seconds, boost::optional<DNSAction::Action> action) {
                            setLuaSideEffect();
 			   auto slow = g_dynblockSMT.getCopy();
 			   struct timespec until, now;
 			   gettime(&now);
 			   until=now;
                            int actualSeconds = seconds ? *seconds : 10;
-			   until.tv_sec += actualSeconds; 
+			   until.tv_sec += actualSeconds;
 
  			   for(const auto& capair : names) {
 			     unsigned int count = 0;
@@ -356,7 +356,7 @@ void moreLua(bool client)
       }
     });
 
-  g_lua.registerFunction<bool(nmts_t::*)(const ComboAddress&)>("match", 
+  g_lua.registerFunction<bool(nmts_t::*)(const ComboAddress&)>("match",
 								     [](nmts_t& s, const ComboAddress& ca) { return s.match(ca); });
 
   g_lua.writeFunction("exceedServFails", [](unsigned int rate, int seconds) {
@@ -392,7 +392,7 @@ void moreLua(bool client)
 
   g_lua.writeFunction("getRespRing", getRespRing);
 
-  g_lua.registerFunction<StatNode, unsigned int()>("numChildren", 
+  g_lua.registerFunction<StatNode, unsigned int()>("numChildren",
                                                       [](StatNode& sn) -> unsigned int {
 
                                                         return sn.children.size();
@@ -439,12 +439,12 @@ void moreLua(bool client)
         vec.push_back(*str);
       else {
         auto v = boost::get<vector<pair<int, string> > >(inp);
-        for(const auto& a: v) 
+        for(const auto& a: v)
           vec.push_back(a.second);
       }
-    
+
       for(const auto& s : vec) {
-        try 
+        try
           {
             nm = Netmask(s);
           }
@@ -454,7 +454,7 @@ void moreLua(bool client)
           }
           else {
             try { dn=DNSName(s); }
-            catch(...) 
+            catch(...)
               {
                 g_outputBuffer = "Could not parse '"+s+"' as domain name or netmask";
                 return;
@@ -480,11 +480,11 @@ void moreLua(bool client)
       sort(rr.begin(), rr.end(), [](const decltype(rr)::value_type& a, const decltype(rr)::value_type& b) {
         return b.when < a.when;
       });
-      
+
       unsigned int num=0;
       struct timespec now;
       gettime(&now);
-            
+
       std::multimap<struct timespec, string> out;
 
       boost::format      fmt("%-7.1f %-47s %-12s %-5d %-25s %-5s %-6.1f %-2s %-2s %-2s %s\n");
@@ -500,7 +500,7 @@ void moreLua(bool client)
           if(nmmatch && dnmatch) {
             QType qt(c.qtype);
             out.insert(make_pair(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % "" % htons(c.dh.id) % c.name.toString() % qt.getName()  % "" % (c.dh.tc ? "TC" : "") % (c.dh.rd? "RD" : "") % (c.dh.aa? "AA" : "") %  "Question").str() )) ;
-            
+
             if(limit && *limit==++num)
               break;
           }
@@ -523,7 +523,7 @@ void moreLua(bool client)
           QType qt(c.qtype);
 	  if(!c.dh.rcode)
 	    extra=". " +std::to_string(htons(c.dh.ancount))+ " answers";
-	  else 
+	  else
 	    extra.clear();
           if(c.usec != std::numeric_limits<decltype(c.usec)>::max())
             out.insert(make_pair(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % c.ds.toStringWithPort() % htons(c.dh.id) % c.name.toString()  % qt.getName()  % (c.usec/1000.0) % (c.dh.tc ? "TC" : "") % (c.dh.rd? "RD" : "") % (c.dh.aa? "AA" : "") % (RCode::to_s(c.dh.rcode) + extra)).str()  )) ;
@@ -831,6 +831,21 @@ void moreLua(bool client)
 #endif
       });
 
+    g_lua.writeFunction("FrameStreamLogAction", [](std::shared_ptr<IfaceRemoteLogger> logger, boost::optional<std::function<void(const DNSQuestion&, DNSDistProtoBufMessage*)> > alterFunc) {
+#ifdef HAVE_PROTOBUF
+        return std::shared_ptr<DNSAction>(new FrameStreamLogAction(logger, alterFunc));
+#else
+        throw std::runtime_error("Protobuf support is required to use FrameStreamLogAction");
+#endif
+      });
+    g_lua.writeFunction("FrameStreamLogResponseAction", [](std::shared_ptr<IfaceRemoteLogger> logger, boost::optional<std::function<void(const DNSResponse&, DNSDistProtoBufMessage*)> > alterFunc, boost::optional<bool> includeCNAME) {
+#ifdef HAVE_PROTOBUF
+        return std::shared_ptr<DNSResponseAction>(new FrameStreamLogResponseAction(logger, alterFunc, includeCNAME ? *includeCNAME : false));
+#else
+        throw std::runtime_error("Protobuf support is required to use FrameStreamLogResponseAction");
+#endif
+      });
+
     g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const Netmask&)>("setEDNSSubnet", [](DNSDistProtoBufMessage& message, const Netmask& subnet) { message.setEDNSSubnet(subnet); });
     g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const DNSName&, uint16_t, uint16_t)>("setQuestion", [](DNSDistProtoBufMessage& message, const DNSName& qname, uint16_t qtype, uint16_t qclass) { message.setQuestion(qname, qtype, qclass); });
     g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(size_t)>("setBytes", [](DNSDistProtoBufMessage& message, size_t bytes) { message.setBytes(bytes); });
@@ -853,7 +868,11 @@ void moreLua(bool client)
       });
 
     g_lua.writeFunction("newRemoteLogger", [client](const std::string& remote, boost::optional<uint16_t> timeout, boost::optional<uint64_t> maxQueuedEntries, boost::optional<uint8_t> reconnectWaitTime) {
-        return std::make_shared<RemoteLogger>(ComboAddress(remote), timeout ? *timeout : 2, maxQueuedEntries ? *maxQueuedEntries : 100, reconnectWaitTime ? *reconnectWaitTime : 1);
+        return std::shared_ptr<IfaceRemoteLogger>(new RemoteLogger(ComboAddress(remote), timeout ? *timeout : 2, maxQueuedEntries ? *maxQueuedEntries : 100, reconnectWaitTime ? *reconnectWaitTime : 1));
+      });
+
+    g_lua.writeFunction("newFrameStreamLogger", [client](const std::string& socket_path) {
+        return std::shared_ptr<IfaceRemoteLogger>(new FrameStreamLogger(socket_path));
       });
 
     g_lua.writeFunction("TeeAction", [](const std::string& remote, boost::optional<bool> addECS) {
@@ -1342,11 +1361,11 @@ void moreLua(bool client)
     g_lua.registerFunction<void(std::shared_ptr<TimedIPSetRule>::*)(const ComboAddress& ca, int t)>("add", [](std::shared_ptr<TimedIPSetRule> tisr, const ComboAddress& ca, int t) {
         tisr->add(ca, time(0)+t);
       });
-        
+
     g_lua.registerFunction<std::shared_ptr<DNSRule>(std::shared_ptr<TimedIPSetRule>::*)()>("slice", [](std::shared_ptr<TimedIPSetRule> tisr) {
         return std::dynamic_pointer_cast<DNSRule>(tisr);
       });
-    
+
     g_lua.writeFunction("setWHashedPertubation", [](uint32_t pertub) {
         setLuaSideEffect();
         g_hashperturb = pertub;
