@@ -24,6 +24,7 @@
 #include "dnsdist-lua.hh"
 #include "dnsdist-protobuf.hh"
 
+#include "dnsrecords.hh"
 #include "dolog.hh"
 #include "dnstap.hh"
 #include "ednsoptions.hh"
@@ -923,6 +924,189 @@ private:
   std::string d_value;
 };
 
+class RewriteMapAction : public DNSAction
+{
+public:
+  RewriteMapAction(const SuffixMatchTree<std::pair<DNSName,DNSName> >& tree): d_smt(tree)
+  {
+  }
+  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override;
+  string toString() const override
+  {
+    return "rewrite map";
+  }
+private:
+  SuffixMatchTree<std::pair<DNSName,DNSName> > d_smt;
+};
+
+class RewriteMapResponseAction : public DNSResponseAction
+{
+public:
+  RewriteMapResponseAction(const SuffixMatchTree<std::pair<DNSName, DNSName> >& tree): d_smt(tree)
+  {
+  }
+  DNSResponseAction::Action operator()(DNSResponse* dr, string* ruleresult) const override;
+  string toString() const override
+  {
+    return "rewrite map";
+  }
+private:
+  SuffixMatchTree<std::pair<DNSName, DNSName> > d_smt;
+};
+
+DNSAction::Action RewriteMapAction::operator()(DNSQuestion* dq, string* ruleresult) const
+{
+  const auto pair = d_smt.lookup(*dq->qname);
+
+  if (pair == nullptr) {
+    return Action::None;
+  }
+
+  DNSName rebased(*dq->qname);
+  rebased.rebase(pair->first, pair->second);
+  char* buffer = reinterpret_cast<char*>(dq->dh);
+  const size_t originalQNameSize = dq->qname->wirelength();
+  const std::string newQNameWire =  rebased.toDNSString();
+  const size_t newQNameSize = newQNameWire.size();
+  size_t newSize = dq->len - originalQNameSize + newQNameSize;
+
+  if (dq->len < originalQNameSize || newSize > dq->size) {
+    return Action::None;
+  }
+
+  if (dq->len > (sizeof(dnsheader) + originalQNameSize)) {
+    const size_t remainingDataSize = dq->len - (sizeof(dnsheader) + originalQNameSize);
+    memmove(buffer + sizeof(dnsheader) + newQNameSize, buffer + sizeof(dnsheader) + originalQNameSize, remainingDataSize);
+  }
+
+  memcpy(buffer + sizeof(dnsheader), newQNameWire.data(), newQNameSize);
+
+  dq->len = newSize;
+  *(dq->qname) = rebased;
+
+  return Action::HeaderModify;
+}
+
+static void rebaseContent(const uint16_t qtype, std::shared_ptr<DNSRecordContent>& content, const DNSName& from, const DNSName& to)
+{
+  if (qtype == QType::CNAME) {
+    const auto initial = std::dynamic_pointer_cast<CNAMERecordContent>(content);
+    if (!initial) {
+      return;
+    }
+    DNSName rebased(initial->getTarget());
+    if (!rebased.isPartOf(from)) {
+      return;
+    }
+    rebased.rebase(from, to);
+    content = std::make_shared<CNAMERecordContent>(rebased);
+  }
+  else if (qtype == QType::MX) {
+    const auto initial = std::dynamic_pointer_cast<MXRecordContent>(content);
+    if (!initial) {
+      return;
+    }
+    DNSName rebased(initial->d_mxname);
+    if (!rebased.isPartOf(from)) {
+      return;
+    }
+    rebased.rebase(from, to);
+    auto rebasedContent = std::make_shared<MXRecordContent>(initial->d_preference, rebased);
+    content = rebasedContent;
+  }
+  else if (qtype == QType::SRV) {
+    const auto initial = std::dynamic_pointer_cast<SRVRecordContent>(content);
+    if (!initial) {
+      return;
+    }
+    DNSName rebased(initial->d_target);
+    if (!rebased.isPartOf(from)) {
+      return;
+    }
+    rebased.rebase(from, to);
+    auto rebasedContent = std::make_shared<SRVRecordContent>(initial->d_preference, initial->d_weight, initial->d_port, rebased);
+    content = rebasedContent;
+  }
+  else if (qtype == QType::NS) {
+    const auto initial = std::dynamic_pointer_cast<NSRecordContent>(content);
+    if (!initial) {
+      return;
+    }
+    DNSName rebased(initial->getNS());
+    if (!rebased.isPartOf(from)) {
+      return;
+    }
+    rebased.rebase(from, to);
+    auto rebasedContent = std::make_shared<NSRecordContent>(rebased);
+    content = rebasedContent;
+  }
+}
+
+static bool rewriteAnswer(DNSResponse& dr, const DNSName& from, const DNSName& to)
+{
+  try {
+    MOADNSParser mdp(false, reinterpret_cast<const char*>(dr.dh), dr.len);
+
+    vector<uint8_t> packet;
+    DNSName newQName(*dr.qname);
+    newQName.rebase(from, to);
+
+    DNSPacketWriter pw(packet, newQName, mdp.d_qtype, mdp.d_qclass);
+
+    *(pw.getHeader()) = mdp.d_header;
+    pw.getHeader()->qdcount = htons(1);
+    pw.getHeader()->ancount = 0;
+    pw.getHeader()->nscount = 0;
+    pw.getHeader()->arcount = 0;
+
+    for(auto& pair : mdp.d_answers) {
+      DNSRecord& dr = pair.first;
+
+      DNSName rebased(dr.d_name);
+      if (rebased.isPartOf(from)) {
+        rebased.rebase(from, to);
+      }
+
+      pw.startRecord(rebased, dr.d_type, dr.d_ttl, dr.d_class, dr.d_place);
+
+      if (dr.d_class == QClass::IN) {
+        rebaseContent(dr.d_type, dr.d_content, from, to);
+      }
+
+      dr.d_content->toPacket(pw);
+    }
+    pw.commit();
+
+    if (packet.size() > dr.size) {
+      return false;
+    }
+
+    memcpy(reinterpret_cast<char*>(dr.dh), packet.data(), packet.size());
+    dr.len = packet.size();
+
+    return true;
+  }
+  catch(const std::exception& e) {
+    vinfolog("Got exception while rewriting answer: %s", e.what());
+  }
+
+  return false;
+}
+
+DNSResponseAction::Action RewriteMapResponseAction::operator()(DNSResponse* dr, string* ruleresult) const
+{
+  const auto pair = d_smt.lookup(*dr->qname);
+
+  if (pair == nullptr) {
+    return Action::None;
+  }
+
+  if (rewriteAnswer(*dr, pair->first, pair->second)) {
+    return Action::HeaderModify;
+  }
+  return Action::None;
+}
+
 template<typename T, typename ActionT>
 static void addAction(GlobalStateHolder<vector<T> > *someRulActions, luadnsrule_t var, std::shared_ptr<ActionT> action, boost::optional<luaruleparams_t> params) {
   setLuaSideEffect();
@@ -1188,5 +1372,23 @@ void setupLuaActions()
 
   g_lua.writeFunction("TagResponseAction", [](std::string tag, std::string value) {
       return std::shared_ptr<DNSResponseAction>(new TagResponseAction(tag, value));
+    });
+
+  g_lua.writeFunction("RewriteMapAction", [](const std::map<std::string,std::string>& map) {
+      SuffixMatchTree<std::pair<DNSName, DNSName> > smt;
+      for (const auto entry : map) {
+        smt.add(DNSName(entry.first), std::make_pair(DNSName(entry.first),DNSName(entry.second)));
+      }
+
+      return std::shared_ptr<DNSAction>(new RewriteMapAction(smt));
+    });
+
+  g_lua.writeFunction("RewriteMapResponseAction", [](const std::map<std::string,std::string>& map) {
+      SuffixMatchTree<std::pair<DNSName, DNSName> > smt;
+      for (const auto entry : map) {
+        smt.add(DNSName(entry.second), std::make_pair(DNSName(entry.second),DNSName(entry.first)));
+      }
+
+      return std::shared_ptr<DNSResponseAction>(new RewriteMapResponseAction(smt));
     });
 }

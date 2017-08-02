@@ -50,6 +50,7 @@
 #include "delaypipe.hh"
 #include "dolog.hh"
 #include "dnsname.hh"
+#include "dnsrecords.hh"
 #include "dnswriter.hh"
 #include "ednsoptions.hh"
 #include "gettime.hh"
@@ -479,6 +480,9 @@ try {
         if (!processResponse(localRespRulactions, dr, &ids->delayMsec)) {
           continue;
         }
+
+      /* might have been altered by a response rule */
+      responseLen = dr.len;
 
 #ifdef HAVE_DNSCRYPT
         if (ids->dnsCryptQuery) {
@@ -1371,6 +1375,9 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
           return;
         }
 
+        /* might have been altered by a response rule */
+        cachedResponseSize = dr.len;
+
         if (!cs.muted) {
 #ifdef HAVE_DNSCRYPT
           if (!encryptResponse(query, &cachedResponseSize, dq.size, false, dnsCryptQuery, nullptr, nullptr)) {
@@ -2028,6 +2035,8 @@ try
   openlog("dnsdist", LOG_PID, LOG_DAEMON);
   g_console=true;
 
+  reportBasicTypes();
+
 #ifdef HAVE_LIBSODIUM
   if (sodium_init() == -1) {
     cerr<<"Unable to initialize crypto library"<<endl;
@@ -2042,8 +2051,8 @@ try
     srandom(tv.tv_sec ^ tv.tv_usec ^ getpid());
     g_hashperturb=random();
   }
-  
 #endif
+
   ComboAddress clientAddress = ComboAddress();
   g_cmdLine.config=SYSCONFDIR "/dnsdist.conf";
   struct option longopts[]={ 

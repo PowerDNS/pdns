@@ -225,6 +225,7 @@ class PTRRecordContent : public DNSRecordContent
 public:
   includeboilerplate(PTR)
   explicit PTRRecordContent(const DNSName& content) : d_content(content){}
+  const DNSName& getContent() const { return d_content; }
 private:
   DNSName d_content;
 };

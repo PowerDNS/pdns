@@ -879,6 +879,35 @@ The following actions exist.
   :param string alterFunction: Name of a function to modify the contents of the logs before sending
   :param bool includeCNAME: Whether or not to parse and export CNAMEs. Default false
 
+.. function:: RewriteMapAction(map)
+
+  .. versionadded:: 1.3.0
+
+  Rewrite the QName of queries based on the content of the map.
+  For example, if the map contains a key ``example.com.`` with the associated value ``notexample.org.``,
+  a query for ``test.example.com.`` will be sent to the backend with a QName of ``test.notexample.org.``.
+  To function properly, a matching :func:`RewriteMapResponseAction` action should be defined to rewrite
+  responses.
+
+  :param table map: A map containing the domains to rewrite from as keys, and the domains to rewrite to as values.
+
+.. function:: RewriteMapResponseAction(map)
+
+  .. versionadded:: 1.3.0
+
+  Rewrite the QName of responses based on the content of the map.
+  For example, if the map contains a key ``example.com.`` with the associated value ``notexample.org.``,
+  a response from the backend for ``test.example.com.`` will be sent to the client with a QName of ``test.notexample.org.``.
+  To function properly, a matching :func:`RewriteMapAction` action should be defined to rewrite queries.
+  Only the following record types see their content rewritten, others are left untouched:
+
+   * CNAME
+   * MX
+   * NS
+   * SRV
+
+  :param table map: A map containing the domains to rewrite from as keys, and the domains to rewrite to as values.
+
 .. function:: SkipCacheAction()
 
   Don't lookup the cache for this query, don't store the answer.

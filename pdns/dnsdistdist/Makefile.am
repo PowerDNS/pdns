@@ -78,6 +78,7 @@ dnsdist-web.$(OBJEXT): htmlfiles.h
 
 dnsdist_SOURCES = \
 	ascii.hh \
+	base32.cc base32.hh \
 	base64.hh \
 	bpf-filter.cc bpf-filter.hh \
 	dns.cc dns.hh \
@@ -104,6 +105,7 @@ dnsdist_SOURCES = \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.hh dnsparser.cc \
+	dnsrecords.hh dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
 	dolog.hh \
 	ednsoptions.cc ednsoptions.hh \
@@ -117,13 +119,16 @@ dnsdist_SOURCES = \
 	misc.cc misc.hh \
 	mplexer.hh \
 	namespaces.hh \
+	nsecrecords.cc \
 	pdnsexception.hh \
 	protobuf.cc protobuf.hh \
 	dnstap.cc dnstap.hh \
 	qtype.cc qtype.hh \
+	rcpgenerator.cc rcpgenerator.hh \
 	remote_logger.cc remote_logger.hh \
 	pollmplexer.cc \
 	sholder.hh \
+	sillyrecords.cc \
 	snmp-agent.cc snmp-agent.hh \
 	sodcrypto.cc sodcrypto.hh \
 	sstuff.hh \

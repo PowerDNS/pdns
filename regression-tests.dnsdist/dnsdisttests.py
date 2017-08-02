@@ -144,7 +144,7 @@ class DNSDistTest(unittest.TestCase):
         if len(request.question) != 1:
             print("Skipping query with question count %d" % (len(request.question)))
             return None
-        healthcheck = not str(request.question[0].name).endswith('tests.powerdns.com.')
+        healthcheck = str(request.question[0].name).endswith('a.root-servers.net.')
         if not healthcheck:
             cls._ResponderIncrementCounter()
             if not fromQueue.empty():
