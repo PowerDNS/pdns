@@ -80,7 +80,7 @@ Rule Generators
   Forcing a retry over TCP.
   This is equivalent to doing::
 
-    addAction(AndRule({QTypeRule(255), TCPRule(false)}), TCAction())
+    addAction(AndRule({QTypeRule(dnsdist.ANY), TCPRule(false)}), TCAction())
 
 .. function:: addDelay(DNSrule, delay)
 
