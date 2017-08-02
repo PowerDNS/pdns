@@ -76,11 +76,11 @@ Rule Generators
 
 .. function:: addAnyTCRule()
 
-  Set the TC-bit (truncate) on all queries received over UDP.
+  Set the TC-bit (truncate) on ANY queries received over UDP.
   Forcing a retry over TCP.
   This is equivalent to doing::
 
-    addAction(AndRule(AllRule(), TCPRule(false)), TCAction())
+    addAction(AndRule({QTypeRule(dnsdist.ANY), TCPRule(false)}), TCAction())
 
 .. function:: addDelay(DNSrule, delay)
 
