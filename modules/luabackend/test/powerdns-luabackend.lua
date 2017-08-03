@@ -142,6 +142,9 @@ function table_deepjoin(tab1, tab2)
     return new
 end
 
+-- Args:
+--    qname string: "test.com."
+--    domainid number: 1
 function list(qname, domainid)
     q_type = "ANY"
     q_name = qname
