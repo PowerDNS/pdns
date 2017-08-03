@@ -50,22 +50,84 @@ domains[origin].records[origin] = {
     --{qtype = "SOA", ttl = domains[origin].soa.ttl, content = content_from_soatab(domains[origin].soa)},
     {qtype = "NS", ttl = ttl, content = "ns1."..origin},
     {qtype = "NS", ttl = ttl, content = "ns2."..origin},
+    {qtype = "MX", ttl = ttl, content = "10 ."},
+    {qtype = "MX", ttl = ttl, content = "15 smtp-servers."..origin},
 }
 domains[origin].records["ns1."..origin] = {
-    {qtype = "A", ttl = 120, content = "10.11.12.14" },
-    {qtype = "AAAA", ttl = 120, content = "1:2:3:4:5:6:7:9" },
+    {qtype = "A", ttl = ttl, content = "1.1.1.1"},
 }
 domains[origin].records["ns2."..origin] = {
-    {qtype = "A", ttl = 120, content = "10.11.12.15" },
-    {qtype = "AAAA", ttl = 120, content = "1:2:3:4:5:6:7:10" },
+    {qtype = "A", ttl = ttl, content = "2.2.2.2"},
 }
 
-domains[origin].records["www."..origin] = {
-    {qtype = "CNAME", ttl = 120, content = "host."..origin },
+domains[origin].records["toroot."..origin] = {
+    {qtype = "CNAME", ttl = ttl, content = "."},
 }
-domains[origin].records["host."..origin] = {
-    {qtype = "A", ttl = 120, content = "10.11.12.13" },
-    {qtype = "AAAA", ttl = 120, content = "1:2:3:4:5:6:7:8" },
+domains[origin].records["www."..origin] = {
+    {qtype = "CNAME", ttl = ttl, content = "server1."..origin},
+}
+domains[origin].records["server1."..origin] = {
+    {qtype = "A", ttl = ttl, content = "1.2.3.4"},
+    {qtype = "RP", ttl = ttl, content = "ahu.ds9a.nl. counter"},
+}
+domains[origin].records["*.test."..origin] = {
+    {qtype = "CNAME", ttl = ttl, content = "server1."..origin},
+}
+domains[origin].records["www.test."..origin] = {
+    {qtype = "A", ttl = ttl, content = "4.3.2.1"},
+}
+domains[origin].records["sub.test."..origin] = {
+    {qtype = "NS", ttl = ttl, content = "ns-test.example.net."},
+}
+domains[origin].records["enum."..origin] = {
+    {qtype = "NAPTR", ttl = ttl, content = [=[100 50 "u" "e2u+sip" "" testuser.domain.com.]=]},
+}
+domains[origin].records["counter."..origin] = {
+    {qtype = "A", ttl = ttl, content = "1.1.1.5"},
+}
+domains[origin].records["_ldap._tcp.dc."..origin] = {
+    {qtype = "SRV", ttl = ttl, content = "0 100 389 server2.example.net."},
+}
+domains[origin].records["_double._tcp.dc."..origin] = {
+    {qtype = "SRV", ttl = ttl, content = "0 100 389 server1"..origin},
+    {qtype = "SRV", ttl = ttl, content = "1 100 389 server1"..origin},
+}
+domains[origin].records["_root._tcp.dc."..origin] = {
+    {qtype = "SRV", ttl = ttl, content = "0 0 0 ."},
+}
+domains[origin].records["blah."..origin] = {
+    {qtype = "NS", ttl = ttl, content = "blah."..origin},
+    {qtype = "A", ttl = ttl, content = "192.168.6.1"},
+}
+domains[origin].records["very-long-txt."..origin] = {
+    {qtype = "TXT", ttl = ttl, content = [=["A very long TXT record! boy you won't believe how long. A very long TXT record! boy you won't believe how long. A very long TXT record! boy you won't believe how long. A very long TXT record! boy you won't believe how long. A very long TXT record! boy you won't believe how long!"]=]},
+}
+domains[origin].records["within-server."..origin] = {
+    {qtype = "CNAME", ttl = ttl, content = "outpost.example.com."},
+}
+domains[origin].records["_underscore."..origin] = {
+    {qtype = "TXT", ttl = ttl, content = [=["underscores are terrible"]=]},
+}
+domains[origin].records["b.c."..origin] = {
+    {qtype = "A", ttl = ttl, content = "5.6.7.8"},
+}
+domains[origin].records["*.a.b.c."..origin] = {
+    {qtype = "A", ttl = ttl, content = "8.7.6.5"},
+}
+domains[origin].records["aland."..origin] = {
+    {qtype = "TXT", ttl = ttl, content = [=["\195\133LAND ISLANDS"]=]},
+}
+domains[origin].records["hightxt."..origin] = {
+    {qtype = "TXT", ttl = ttl, content = [=["v=spf1 mx ip4:78.46.192.210 -all"]=]},
+    {qtype = "SPF", ttl = ttl, content = [=["v=spf1 mx ip4:78.46.192.210 -all"]=]},
+}
+domains[origin].records["d."..origin] = {
+    {qtype = "DNAME", ttl = ttl, content = "d2.test2.com."},
+}
+domains[origin].records["interrupted-rrset."..origin] = {
+    {qtype = "A", ttl = ttl, content = "1.1.1.1"},
+    {qtype = "TXT", ttl = ttl, content = [=["check AXFR signpipe"]=]},
+    {qtype = "A", ttl = ttl, content = "2.2.2.2"},
 }
 
 
