@@ -206,9 +206,9 @@ Servers
 
     newServer({
       address="IP:PORT",     -- IP and PORT of the backend server (mandatory)
-      qps=NUM,               -- Limit the number of queries per second to NUM
-      order=NUM,             -- The order of this server
-      weight=NUM,            -- The weight of this server
+      qps=NUM,               -- Limit the number of queries per second to NUM, when using the `firstAvailable` policy
+      order=NUM,             -- The order of this server, used by the `leastOustanding` and `firstAvailable` policies
+      weight=NUM,            -- The weight of this server, used by the `wrandom` and `whashed` policies
       pool=STRING|{STRING},  -- The pools this server belongs to (unset or empty string means default pool) as a string or table of strings
       retries=NUM,           -- The number of TCP connection attempts to the backend, for a given query
       tcpConnectTimeout=NUM, -- The timeout (in seconds) of a TCP connection attempt

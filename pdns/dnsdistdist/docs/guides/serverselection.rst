@@ -2,6 +2,8 @@ Loadbalancing and Server Policies
 =================================
 
 :program:`dnsdist` selects the server (if there are multiple eligable) to send queries to based on the configured policy.
+Only servers that are marked as 'up', either forced so by the administrator or as the result of the last health check, might
+be selected.
 
 Built-in Policies
 -----------------
@@ -9,12 +11,17 @@ Built-in Policies
 ``leastOutstanding``
 ~~~~~~~~~~~~~~~~~~~~
 
-The default load balancing policy is called ``leastOutstanding``, which means the server with the least queries 'in the air' is picked (and within those, the one with the lowest order, and within those, the one with the lowest latency).
+The default load balancing policy is called ``leastOutstanding``, which means the server with the least queries 'in the air' is picked.
+The exact selection algorithm is:
+
+- pick the server with the least queries 'in the air' ;
+- in case of a tie, pick the one with the lowest configured 'order' ;
+- in case of a tie, pick the one with the lowest measured latency (over an average on the last 128 queries answered by that server).
 
 ``firstAvailable``
 ~~~~~~~~~~~~~~~~~~
 
-The ``firstAvailable`` policy, picks the first server that has not exceeded its QPS limit.
+The ``firstAvailable`` policy, picks the first available server that has not exceeded its QPS limit, ordered by increasing 'order'.
 If all servers are above their QPS limit, a server is selected based on the ``leastOutstanding`` policy.
 For now this is the only policy using the QPS limit.
 
@@ -23,10 +30,14 @@ For now this is the only policy using the QPS limit.
 
 A further policy, ``wrandom`` assigns queries randomly, but based on the weight parameter passed to :func:`newServer`.
 
+For example, if two servers are available, the first one with a weigth of 2 and the second one with a weight of 1 (the default), the
+first one should get two thirds of the incoming queries and the second one the remaining third.
+
 ``whashed``
 ~~~~~~~~~~~
 
 ``whashed`` is a similar weighted policy, but assigns questions with identical hash to identical servers, allowing for better cache concentration ('sticky queries').
+The current hash algorithm is based on the qname of the query.
 
 .. function:: setWHashedPertubation(value)
 
