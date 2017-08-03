@@ -287,9 +287,7 @@ domains[origin].records["external-mail."..origin] = {
     {qtype = "MX", ttl = ttl, content = "25 server1.test.com."},
 }
 domains[origin].records["text."..origin] = {
-    {qtype = "TXT", ttl = ttl, content = [=[( 
- "Hi, this is some text"   
-  )]=]},
+    {qtype = "TXT", ttl = ttl, content = "Hi, this is some text"},
 }
 domains[origin].records["multitext."..origin] = {
     {qtype = "TXT", ttl = ttl, content = [=["text part one" "text part two" "text part three"]=]},
