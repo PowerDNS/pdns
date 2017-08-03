@@ -84,7 +84,7 @@ try
         }
         const auto states = g_dstates.getCopy();
         for(const auto& state : states) {
-          string serverName = state->getName();
+          string serverName = state->name.empty() ? (state->remote.toString() + ":" + std::to_string(state->remote.getPort())) : state->getName();
           boost::replace_all(serverName, ".", "_");
           const string base = "dnsdist." + hostname + ".main.servers." + serverName + ".";
           str<<base<<"queries" << ' ' << state->queries.load() << " " << now << "\r\n";
@@ -97,7 +97,7 @@ try
           if (front->udpFD == -1 && front->tcpFD == -1)
             continue;
 
-          string frontName = front->local.toStringWithPort() + (front->udpFD >= 0 ? "_udp" : "_tcp");
+          string frontName = front->local.toString() + ":" + std::to_string(front->local.getPort()) +  (front->udpFD >= 0 ? "_udp" : "_tcp");
           boost::replace_all(frontName, ".", "_");
           const string base = "dnsdist." + hostname + ".main.frontends." + frontName + ".";
           str<<base<<"queries" << ' ' << front->queries.load() << " " << now << "\r\n";
