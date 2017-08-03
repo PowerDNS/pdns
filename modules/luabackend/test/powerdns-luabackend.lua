@@ -140,7 +140,7 @@ domains[origin] = {
         ttl = 100000,
         nameserver = "ns1."..origin,
         hostmaster = "ahu."..origin,
-        serial = 2017080201,
+        serial = 2847484148,
         refresh = 28800,
         retry = 7200,
         expire = 604800,
@@ -154,12 +154,205 @@ domains[domains[origin].domain_id] = domains[origin]
 domains[origin].records[origin] = {
     --{qtype = "SOA", ttl = domains[origin].soa.ttl, content = content_from_soatab(domains[origin].soa)},
     {qtype = "NS", ttl = ttl, content = "ns1."..origin},
-    {qtype = "A", ttl = ttl, content = "10.9.8.7" },
-    {qtype = "AAAA", ttl = ttl, content = "10:9:8::7" },
+    {qtype = "NS", ttl = ttl, content = "ns2."..origin},
+    {qtype = "MX", ttl = ttl, content = "10 smtp-servers.example.com."},
+    {qtype = "MX", ttl = ttl, content = "15 smtp-servers.test.com."},
 }
 domains[origin].records["ns1."..origin] = {
-    {qtype = "A", ttl = 120, content = "10.9.8.6" },
-    {qtype = "AAAA", ttl = 120, content = "10:9:8::6" },
+    {qtype = "A", ttl = ttl, content = "192.168.1.1"},
+}
+domains[origin].records["ns2."..origin] = {
+    {qtype = "A", ttl = ttl, content = "192.168.1.2"},
+}
+domains[origin].records["double."..origin] = {
+    {qtype = "A", ttl = ttl, content = "192.168.5.1"},
+    {qtype = "A", ttl = ttl, content = "192.168.5.1"},
+}
+domains[origin].records["hightype."..origin] = {
+    {qtype = "A", ttl = ttl, content = "192.168.1.5"},
+    {qtype = "TYPE65534", ttl = ttl, content = "\\# 5 07ED260001"},
+}
+domains[origin].records["localhost."..origin] = {
+    {qtype = "A", ttl = ttl, content = "127.0.0.1"},
+}
+domains[origin].records["www."..origin] = {
+    {qtype = "CNAME", ttl = ttl, content = "outpost."..origin},
+}
+domains[origin].records["location."..origin] = {
+    {qtype = "LOC", ttl = ttl, content = [=[51 56 0.123 N 5 54 0.000 E 4.00m 1.00m 10000.00m 10.00m]=]},
+    {qtype = "LOC", ttl = ttl, content = [=[51 56 1.456 S 5 54 0.000 E 4.00m 2.00m 10000.00m 10.00m]=]},
+    {qtype = "LOC", ttl = ttl, content = [=[51 56 2.789 N 5 54 0.000 W 4.00m 3.00m 10000.00m 10.00m]=]},
+    {qtype = "LOC", ttl = ttl, content = [=[51 56 3.012 S 5 54 0.000 W 4.00m 4.00m 10000.00m 10.00m]=]},
+}
+domains[origin].records["unauth."..origin] = {
+    {qtype = "CNAME", ttl = ttl, content = "no-idea.example.org."},
+}
+domains[origin].records["dsdelegation."..origin] = {
+    {qtype = "NS", ttl = ttl, content = "ns.example.com."},
+    {qtype = "DS", ttl = ttl, content = "28129 8 1 caf1eaaecdabe7616670788f9022454bf5fd9fda"},
+}
+domains[origin].records["nxd."..origin] = {
+    {qtype = "CNAME", ttl = ttl, content = "nxdomain.example.com."},
+}
+domains[origin].records["hwinfo."..origin] = {
+    {qtype = "HINFO", ttl = ttl, content = [=["abc" "def"]=]},
+}
+domains[origin].records["smtp-servers."..origin] = {
+    {qtype = "A", ttl = ttl, content = "192.168.0.2"},
+    {qtype = "A", ttl = ttl, content = "192.168.0.3"},
+    {qtype = "A", ttl = ttl, content = "192.168.0.4"},
+}
+domains[origin].records["outpost."..origin] = {
+    {qtype = "A", ttl = ttl, content = "192.168.2.1"},
+}
+domains[origin].records["start."..origin] = {
+    {qtype = "CNAME", ttl = ttl, content = "x.y.z.w1."..origin},
+}
+domains[origin].records["*.w1."..origin] = {
+    {qtype = "CNAME", ttl = ttl, content = "x.y.z.w2."..origin},
+}
+domains[origin].records["*.w2."..origin] = {
+    {qtype = "CNAME", ttl = ttl, content = "x.y.z.w3."..origin},
+}
+domains[origin].records["*.w3."..origin] = {
+    {qtype = "CNAME", ttl = ttl, content = "x.y.z.w4."..origin},
+}
+domains[origin].records["*.w4."..origin] = {
+    {qtype = "CNAME", ttl = ttl, content = "x.y.z.w5."..origin},
+}
+domains[origin].records["*.w5."..origin] = {
+    {qtype = "A", ttl = ttl, content = "1.2.3.5"},
+}
+domains[origin].records["start1."..origin] = {
+    {qtype = "CNAME", ttl = ttl, content = "start2."..origin},
+}
+domains[origin].records["start2."..origin] = {
+    {qtype = "CNAME", ttl = ttl, content = "start3."..origin},
+}
+domains[origin].records["start3."..origin] = {
+    {qtype = "CNAME", ttl = ttl, content = "start4."..origin},
+}
+domains[origin].records["start4."..origin] = {
+    {qtype = "A", ttl = ttl, content = "192.168.2.2"},
+}
+domains[origin].records["loop1."..origin] = {
+    {qtype = "CNAME", ttl = ttl, content = "loop2."..origin},
+}
+domains[origin].records["loop2."..origin] = {
+    {qtype = "CNAME", ttl = ttl, content = "loop3."..origin},
+}
+domains[origin].records["loop3."..origin] = {
+    {qtype = "CNAME", ttl = ttl, content = "loop1."..origin},
+}
+domains[origin].records["external."..origin] = {
+    {qtype = "CNAME", ttl = ttl, content = "somewhere.else.net."},
+}
+domains[origin].records["semi-external."..origin] = {
+    {qtype = "CNAME", ttl = ttl, content = "bla.something.wtest.com."},
+}
+domains[origin].records["server1."..origin] = {
+    {qtype = "CNAME", ttl = ttl, content = "server1.france."..origin},
+}
+domains[origin].records["france."..origin] = {
+    {qtype = "NS", ttl = ttl, content = "ns1.otherprovider.net."},
+    {qtype = "NS", ttl = ttl, content = "ns2.otherprovider.net."},
+}
+domains[origin].records["usa."..origin] = {
+    {qtype = "NS", ttl = ttl, content = "usa-ns1.usa."..origin},
+    {qtype = "NS", ttl = ttl, content = "usa-ns2.usa."..origin},
+}
+domains[origin].records["usa-ns1.usa."..origin] = {
+    {qtype = "A", ttl = ttl, content = "192.168.4.1"},
+}
+domains[origin].records["usa-ns2.usa."..origin] = {
+    {qtype = "A", ttl = ttl, content = "192.168.4.2"},
+}
+domains[origin].records["italy."..origin] = {
+    {qtype = "NS", ttl = ttl, content = "italy-ns1."..origin},
+    {qtype = "NS", ttl = ttl, content = "italy-ns2."..origin},
+}
+domains[origin].records["italy-ns1."..origin] = {
+    {qtype = "A", ttl = ttl, content = "192.168.5.1"},
+}
+domains[origin].records["italy-ns2."..origin] = {
+    {qtype = "A", ttl = ttl, content = "192.168.5.2"},
+}
+domains[origin].records["mail."..origin] = {
+    {qtype = "MX", ttl = ttl, content = "25 smtp1."..origin},
+}
+domains[origin].records["smtp1."..origin] = {
+    {qtype = "CNAME", ttl = ttl, content = "outpost."..origin},
+}
+domains[origin].records["external-mail."..origin] = {
+    {qtype = "MX", ttl = ttl, content = "25 server1.test.com."},
+}
+domains[origin].records["text."..origin] = {
+    {qtype = "TXT", ttl = ttl, content = [=[( 
+ "Hi, this is some text"   
+  )]=]},
+}
+domains[origin].records["multitext."..origin] = {
+    {qtype = "TXT", ttl = ttl, content = [=["text part one" "text part two" "text part three"]=]},
+}
+domains[origin].records["escapedtext."..origin] = {
+    {qtype = "TXT", ttl = ttl, content = [=["begin" "the \"middle\" p\\art" "the end"]=]},
+}
+domains[origin].records["text0."..origin] = {
+    {qtype = "TXT", ttl = ttl, content = [=["k=rsa; p=one"]=]},
+}
+domains[origin].records["text1."..origin] = {
+    {qtype = "TXT", ttl = ttl, content = [=["k=rsa\; p=one"]=]},
+}
+domains[origin].records["text2."..origin] = {
+    {qtype = "TXT", ttl = ttl, content = [=["k=rsa\\; p=one"]=]},
+}
+domains[origin].records["text3."..origin] = {
+    {qtype = "TXT", ttl = ttl, content = [=["k=rsa\\\; p=one"]=]},
+}
+domains[origin].records["host.*.sub."..origin] = {
+    {qtype = "A", ttl = ttl, content = "192.168.6.1"},
+}
+domains[origin].records["ipv6."..origin] = {
+    {qtype = "AAAA", ttl = ttl, content = "2001:6A8:0:1:210:4BFF:FE4B:4C61"},
+}
+domains[origin].records["together-too-much."..origin] = {
+    {qtype = "MX", ttl = ttl, content = "25 toomuchinfo-a."..origin},
+    {qtype = "MX", ttl = ttl, content = "25 toomuchinfo-b."..origin},
+}
+
+local tab = {}
+for oct4 = 1, 25, 1 do
+    tab[1 + #tab] = {qtype = "A", ttl = ttl, content = "192.168.99."..oct4}
+end
+domains[origin].records["toomuchinfo-a."..origin] = tab
+tab = nil
+
+local tab = {}
+for oct4 = 26, 99, 1 do
+    tab[1 + #tab] = {qtype = "A", ttl = ttl, content = "192.168.99."..oct4}
+end
+domains[origin].records["toomuchinfo-b."..origin] = tab
+tab = nil
+
+for n = 0, 19999, 1 do
+    domains[origin].records["host-"..n.."."..origin] = {
+        {qtype = "A", ttl = ttl, content = "192.168.1."..( n % 256)}
+    }
+end
+domains[origin].records["host-0."..origin] = {
+    {qtype = "EUI48", ttl = ttl, content = "00-50-56-9b-00-e7"},
+}
+domains[origin].records["host-1."..origin] = {
+    {qtype = "EUI48", ttl = ttl, content = "00-50-56-9b-00-e7-7e-57"},
+}
+domains[origin].records["rhs-at-expansion."..origin] = {
+    {qtype = "CNAME", ttl = ttl, content = origin},
+}
+domains[origin].records["google-alias."..origin] = {
+    {qtype = "ALIAS", ttl = ttl, content = "google-public-dns-a.google.com."},
+}
+domains[origin].records["host-for-auto-ptr."..origin] = {
+    {qtype = "A", ttl = ttl, content = "192.0.2.1"},
 }
 
 
