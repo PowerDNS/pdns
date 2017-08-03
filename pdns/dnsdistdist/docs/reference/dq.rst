@@ -76,13 +76,55 @@ The DNSQuestion object has several attributes, many of them read-only:
 
 It also supports the following methods:
 
-.. classmethod:: DNSQuestion.getDO() -> bool
+.. classmethod:: DNSQuestion:getDO() -> bool
 
   .. versionadded:: 1.2.0
 
   Get the value of the DNSSEC OK bit.
 
   :returns: true if the DO bit was set, false otherwise
+
+.. classmethod:: DNSQuestion:getTag(key) -> string
+
+  .. versionadded:: 1.2.0
+
+  Get the value of a tag stored into the DNSQuestion object.
+
+  :param string key: The tag's key
+  :returns: A table of tags, using strings as keys and values
+
+.. classmethod:: DNSQuestion:getTagArray() -> table
+
+  .. versionadded:: 1.2.0
+
+  Get all the tags stored into the DNSQuestion object.
+
+  :returns: The tag's value if it was set, an empty string otherwise
+
+.. classmethod:: DNSQuestion:sendTrap(reason)
+
+  .. versionadded:: 1.2.0
+
+  Send an SNMP trap.
+
+  :param string reason: An optional string describing the reason why this trap was sent
+
+.. classmethod:: DNSQuestion:setTag(key, value)
+
+  .. versionadded:: 1.2.0
+
+  Set a tag into the DNSQuestion object.
+
+  :param string key: The tag's key
+  :param string value: The tag's value
+
+.. classmethod:: DNSQuestion:setTagArray(tags)
+
+  .. versionadded:: 1.2.0
+
+  Set an array of tags into the DNSQuestion object.
+
+  :param table tags: A table of tags, using strings as keys and values
 
 .. _DNSResponse:
 
