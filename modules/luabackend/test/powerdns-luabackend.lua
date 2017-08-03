@@ -414,6 +414,10 @@ function list(qname, domainid)
     local tab = domains[domain_id] or domains[q_name:lower()]
     if (("table" == type(tab)) and ("table" == type(tab.records))) then
         r = {}
+
+        -- domain_id might have been -1
+        domain_id = tab.domain_id
+
         local k, v, kk, vv
         for k, v in pairs(tab.records) do
             for kk, vv in ipairs(v) do
