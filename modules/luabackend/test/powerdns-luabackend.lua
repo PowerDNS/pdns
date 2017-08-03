@@ -13,7 +13,7 @@ local remote_ip, remote_port, local_ip
 local origin, ttl
 local domains = {}
 
--- shared state between lookup and get functions
+-- shared state between list/lookup and get functions
 local domain_id, q_name, q_type
 local c, r, size
 
