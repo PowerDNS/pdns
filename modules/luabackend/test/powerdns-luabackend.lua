@@ -340,6 +340,7 @@ domains[origin].records["host-1."..origin] = {
     {qtype = "A", ttl = ttl, content = "192.168.1.1"}
     {qtype = "EUI48", ttl = ttl, content = "00-50-56-9b-00-e7-7e-57"},
 }
+--[=[
 local hnfmt = "host-%d.%s"
 local ipfmt = "192.168.1.%d"
 for n = 2, 19999, 1 do
@@ -347,6 +348,7 @@ for n = 2, 19999, 1 do
         {qtype = "A", ttl = ttl, content = ipfmt:format( n % 256)}
     }
 end
+--]=]
 
 domains[origin].records["rhs-at-expansion."..origin] = {
     {qtype = "CNAME", ttl = ttl, content = origin},
@@ -426,7 +428,22 @@ function list(qname, domainid)
         local k, v, kk, vv
         for k, v in pairs(tab.records) do
             for kk, vv in ipairs(v) do
-                r[1 + #r] = table_deepjoin(vv, {domain_id = domain_id, qname = k, name = k})
+                r[1 + #r] = table_deepjoin(vv, {qname = k, name = k})
+            end
+        end
+
+        -- compute the host-N.example.com. entries rather than using memory
+        if (2 == domain_id) then
+            local hnfmt = "host-%d.%s"
+            local ipfmt = "192.168.1.%d"
+            for n = 2, 19999, 1 do
+                r[1 + #r] = {
+                    qname = hnfmt:format(n, q_name),
+                    name = hnfmt:format(n, q_name)
+                    qtype = "A",
+                    ttl = 120,
+                    content = ipfmt:format(n % 256),
+                }
             end
         end
     end
@@ -475,6 +492,17 @@ function lookup(qtype, qname, domainid)
 
     -- remote_ip, remote_port, local_ip = dnspacket()
     -- logger(log_debug, "(l_lookup)", "dnspacket", "remote:", remote_ip, "port:", remote_port, "local:", local_ip)
+
+    -- compute the host-N.example.com. entries rather than using memory
+    local hostname, num, domain = qname:lower():match("^(host%-(%d+))%.(example%.com%.)$")
+    if (hostname and domains[domain] and (2 <= num) and (19999 <= num)) then
+        domain_id = domaindomains[domain].domain_id
+        r = {{
+            qtype = "A",
+            ttl = 120,
+            content = ("192.168.1.%d"):format(num % 256),
+        }}
+    end
 
     if ("table" == type(r)) then
         size = #r
