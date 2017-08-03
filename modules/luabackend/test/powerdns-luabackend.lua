@@ -10,7 +10,7 @@ local dnspacket = dnspacket
 
 local remote_ip, remote_port, local_ip
 
-local origin
+local origin, ttl
 local domains = {}
 
 -- shared state between lookup and get functions
@@ -26,11 +26,13 @@ function content_from_soatab(t)
         )
 end
 
+ttl = 3600
 origin = "test.com."
 domains[origin] = {
     domain_id = 1 + #domains,
     name = origin,
     soa = {
+        ttl = ttl,
         nameserver = "ns1."..origin,
         hostmaster = "ahu.example.com.",
         serial = 2005092501,
@@ -38,7 +40,6 @@ domains[origin] = {
         retry = 7200,
         expire = 604800,
         default_ttl = 86400,
-        ttl = 3600,
     },
     records = {},
 }
@@ -47,8 +48,8 @@ domains[domains[origin].domain_id] = domains[origin]
 
 domains[origin].records[origin] = {
     {qtype = "SOA", ttl = domains[origin].soa.ttl, content = content_from_soatab(domains[origin].soa) },
-    {qtype = "NS", ttl = 120, content = "ns1."..origin },
-    {qtype = "NS", ttl = 120, content = "ns2."..origin },
+    {qtype = "NS", ttl = ttl, content = "ns1."..origin},
+    {qtype = "NS", ttl = ttl, content = "ns2."..origin},
 }
 domains[origin].records["ns1."..origin] = {
     {qtype = "A", ttl = 120, content = "10.11.12.14" },
@@ -68,11 +69,13 @@ domains[origin].records["host."..origin] = {
 }
 
 
+ttl = 120
 origin = "example.com."
 domains[origin] = {
     domain_id = 1 + #domains,
     name = origin,
     soa = {
+        ttl = 100000,
         nameserver = "ns1."..origin,
         hostmaster = "ahu."..origin,
         serial = 2017080201,
@@ -80,7 +83,6 @@ domains[origin] = {
         retry = 7200,
         expire = 604800,
         default_ttl = 86400,
-        ttl = 3600,
     },
     records = {},
 }
@@ -89,9 +91,9 @@ domains[domains[origin].domain_id] = domains[origin]
 
 domains[origin].records[origin] = {
     {qtype = "SOA", ttl = domains[origin].soa.ttl, content = content_from_soatab(domains[origin].soa) },
-    {qtype = "NS", ttl = 120, content = "ns1."..origin },
-    {qtype = "A", ttl = 120, content = "10.9.8.7" },
-    {qtype = "AAAA", ttl = 120, content = "10:9:8::7" },
+    {qtype = "NS", ttl = ttl, content = "ns1."..origin},
+    {qtype = "A", ttl = ttl, content = "10.9.8.7" },
+    {qtype = "AAAA", ttl = ttl, content = "10:9:8::7" },
 }
 domains[origin].records["ns1."..origin] = {
     {qtype = "A", ttl = 120, content = "10.9.8.6" },
