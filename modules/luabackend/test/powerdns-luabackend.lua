@@ -424,12 +424,12 @@ function list(qname, domainid)
 
     if ("table" == type(r)) then
         size = #r
-        logger(log_debug, "(l_getsoa)", "size:", size)
-        logger(log_debug, "(l_getsoa) end: success")
+        logger(log_debug, "(l_list)", "size:", size)
+        logger(log_debug, "(l_list) end: success")
         return true
     end
 
-    logger(log_debug, "(l_getsoa) end: not found")
+    logger(log_debug, "(l_list) end: not found")
     return false
 end
 
