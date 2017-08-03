@@ -332,17 +332,22 @@ end
 domains[origin].records["toomuchinfo-b."..origin] = tab
 tab = nil
 
-for n = 0, 19999, 1 do
-    domains[origin].records["host-"..n.."."..origin] = {
-        {qtype = "A", ttl = ttl, content = "192.168.1."..( n % 256)}
-    }
-end
 domains[origin].records["host-0."..origin] = {
+    {qtype = "A", ttl = ttl, content = "192.168.1.0"}
     {qtype = "EUI48", ttl = ttl, content = "00-50-56-9b-00-e7"},
 }
 domains[origin].records["host-1."..origin] = {
+    {qtype = "A", ttl = ttl, content = "192.168.1.1"}
     {qtype = "EUI48", ttl = ttl, content = "00-50-56-9b-00-e7-7e-57"},
 }
+local hnfmt = "host-%d.%s"
+local ipfmt = "192.168.1.%d"
+for n = 2, 19999, 1 do
+    domains[origin].records[hnfmt:format(n, origin)] = {
+        {qtype = "A", ttl = ttl, content = ipfmt:format( n % 256)}
+    }
+end
+
 domains[origin].records["rhs-at-expansion."..origin] = {
     {qtype = "CNAME", ttl = ttl, content = origin},
 }
