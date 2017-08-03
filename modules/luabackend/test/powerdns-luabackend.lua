@@ -47,7 +47,7 @@ domains[domains[origin].domain_id] = domains[origin]
 
 
 domains[origin].records[origin] = {
-    {qtype = "SOA", ttl = domains[origin].soa.ttl, content = content_from_soatab(domains[origin].soa) },
+    --{qtype = "SOA", ttl = domains[origin].soa.ttl, content = content_from_soatab(domains[origin].soa)},
     {qtype = "NS", ttl = ttl, content = "ns1."..origin},
     {qtype = "NS", ttl = ttl, content = "ns2."..origin},
 }
@@ -90,7 +90,7 @@ domains[domains[origin].domain_id] = domains[origin]
 
 
 domains[origin].records[origin] = {
-    {qtype = "SOA", ttl = domains[origin].soa.ttl, content = content_from_soatab(domains[origin].soa) },
+    --{qtype = "SOA", ttl = domains[origin].soa.ttl, content = content_from_soatab(domains[origin].soa)},
     {qtype = "NS", ttl = ttl, content = "ns1."..origin},
     {qtype = "A", ttl = ttl, content = "10.9.8.7" },
     {qtype = "AAAA", ttl = ttl, content = "10:9:8::7" },
