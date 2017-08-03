@@ -454,6 +454,8 @@ test_auth() {
   #travis unbound is too old for this test (unbound 1.6.0 required)
   run "touch tests/ent-asterisk/fail.nsec"
 
+  run "./timestamp ./start-test-stop 5300 lua-minimal nowait 0 apex-level-a-but-no-a"
+
   run "./timestamp ./start-test-stop 5300 ldap-tree"
   run "./timestamp ./start-test-stop 5300 ldap-simple"
   run "./timestamp ./start-test-stop 5300 ldap-strict"
