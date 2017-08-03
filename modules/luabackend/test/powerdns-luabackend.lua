@@ -20,7 +20,7 @@ local c, r, size
 
 function content_from_soatab(t)
     return ("%s %s %u %u %u %u %u"):format(
-            t.hostmaster, t.nameserver,
+            t.nameserver, t.hostmaster,
             t.serial, t.refresh, t.retry,
             t.expire, t.default_ttl
         )
@@ -31,8 +31,8 @@ domains[origin] = {
     domain_id = 1 + #domains,
     name = origin,
     soa = {
-        hostmaster = "ahu.example.com.",
         nameserver = "ns1."..origin,
+        hostmaster = "ahu.example.com.",
         serial = 2005092501,
         refresh = 28800,
         retry = 7200,
@@ -73,8 +73,8 @@ domains[origin] = {
     domain_id = 1 + #domains,
     name = origin,
     soa = {
-        hostmaster = "hostmaster."..origin,
         nameserver = "ns1."..origin,
+        hostmaster = "ahu."..origin,
         serial = 2017080201,
         refresh = 28800,
         retry = 7200,
