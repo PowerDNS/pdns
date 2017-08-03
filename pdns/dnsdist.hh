@@ -38,6 +38,9 @@
 #include "gettime.hh"
 #include "dnsdist-dynbpf.hh"
 #include "bpf-filter.hh"
+#include <string>
+#include <unordered_map>
+
 
 #ifdef HAVE_PROTOBUF
 #include <boost/uuid/uuid.hpp>
@@ -51,6 +54,77 @@ extern uint16_t g_ECSSourcePrefixV4;
 extern uint16_t g_ECSSourcePrefixV6;
 extern bool g_ECSOverride;
 
+
+class QTag
+{
+public:
+  QTag()
+  {
+  }
+
+  ~QTag()
+  {
+  }
+
+  void add(const std::string strLabel, const std::string strValue)
+  {
+    tagData.insert( {strLabel, strValue});
+    return;
+  }
+
+  std::string getMatch(const std::string& strLabel)  const
+  {
+    std::unordered_map<std::string, std::string>::const_iterator got =tagData.find (strLabel);
+    if(got == tagData.end()) {
+      return "";
+    } else {
+      return got->second;
+    }
+  }
+
+  std::string getEntry(size_t iEntry) const
+  {
+    std::string strEntry;
+    size_t iCounter = 0;
+
+    for (const auto& itr : tagData) {
+      iCounter++;
+      if(iCounter == iEntry) {
+        strEntry = itr.first;
+        strEntry += strSep;
+        strEntry += itr.second;
+        break;
+      }
+    }
+
+    return strEntry;
+  }
+
+  size_t count() const
+  {
+    return tagData.size();
+  }
+
+  std::string dumpString() const
+  {
+    std::string strRet;
+
+    for (const auto& itr : tagData) {
+      strRet += itr.first;
+      strRet += strSep;
+      strRet += itr.second;
+      strRet += "\n";
+    }
+    return strRet;
+  }
+
+  std::unordered_map<std::string, std::string>tagData;
+
+private:
+  static constexpr char const *strSep = "\t";
+};
+
+
 struct DNSQuestion
 {
   DNSQuestion(const DNSName* name, uint16_t type, uint16_t class_, const ComboAddress* lc, const ComboAddress* rem, struct dnsheader* header, size_t bufferSize, uint16_t queryLen, bool isTcp): qname(name), qtype(type), qclass(class_), local(lc), remote(rem), dh(header), size(bufferSize), len(queryLen), ecsPrefixLength(rem->sin4.sin_family == AF_INET ? g_ECSSourcePrefixV4 : g_ECSSourcePrefixV6), tcp(isTcp), ecsOverride(g_ECSOverride) { }
@@ -63,6 +137,7 @@ struct DNSQuestion
   const uint16_t qclass;
   const ComboAddress* local;
   const ComboAddress* remote;
+  std::shared_ptr<QTag> qTag;
   struct dnsheader* dh;
   size_t size;
   uint16_t len;
@@ -70,7 +145,7 @@ struct DNSQuestion
   const bool tcp;
   bool skipCache{false};
   bool ecsOverride;
-  bool useECS{true};    
+  bool useECS{true};
 };
 
 struct DNSResponse : DNSQuestion

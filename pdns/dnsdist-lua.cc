@@ -1586,6 +1586,49 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       }
     });
 
+  g_lua.registerFunction<void(DNSQuestion::*)(std::string, std::string)>("setTag", [](DNSQuestion& dq, const std::string& strLabel, const std::string& strValue) {
+
+      if(dq.qTag == nullptr) {
+        dq.qTag = std::make_shared<QTag>();
+      }
+      dq.qTag->add(strLabel, strValue);
+
+    });
+
+  g_lua.registerFunction<void(DNSQuestion::*)(vector<pair<string, string>>)>("setTagArray", [](DNSQuestion& dq, const vector<pair<string, string>>&tags) {
+
+      if(dq.qTag == nullptr) {
+        dq.qTag = std::make_shared<QTag>();
+      }
+
+      for (const auto& tag : tags) {
+        dq.qTag->add(tag.first, tag.second);
+      }
+
+    });
+
+  g_lua.registerFunction<string(DNSQuestion::*)(std::string)>("getTag", [](const DNSQuestion& dq, const std::string& strLabel) {
+
+      std::string strValue;
+      if(dq.qTag != nullptr) {
+        strValue = dq.qTag->getMatch(strLabel);
+      }
+      return strValue;
+
+    });
+
+
+  g_lua.registerFunction<std::unordered_map<string, string>(DNSQuestion::*)(void)>("getTagArray", [](const DNSQuestion& dq) {
+
+      if(dq.qTag != nullptr) {
+        return dq.qTag->tagData;
+      } else {
+        std::unordered_map<string, string> XX;
+        return XX;
+      }
+    });
+
+
   /* DNSQuestion bindings */
   /* PowerDNS DNSQuestion compat */
   g_lua.registerMember<const ComboAddress (DNSQuestion::*)>("localaddr", [](const DNSQuestion& dq) -> const ComboAddress { return *dq.local; }, [](DNSQuestion& dq, const ComboAddress newLocal) { (void) newLocal; });

@@ -70,6 +70,8 @@ public:
   void setResponder(const ComboAddress& responder);
   void setRequestorId(const std::string& requestorId);
   std::string toDebugString() const;
+  void addTag(const std::string& strValue);
+  void addRR(const DNSName& qame, uint16_t utype, uint16_t uClass, uint32_t uTTl, const std::string& strBlob);
 
 #ifdef HAVE_PROTOBUF
   DNSProtoBufMessage(DNSProtoBufMessage::DNSProtoBufMessageType type, const boost::uuids::uuid& uuid, const ComboAddress* requestor, const ComboAddress* responder, const DNSName& domain, int qtype, uint16_t qclass, uint16_t qid, bool isTCP, size_t bytes);

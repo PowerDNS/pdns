@@ -97,6 +97,38 @@ void DNSProtoBufMessage::setEDNSSubnet(const Netmask& subnet, uint8_t mask)
 #endif /* HAVE_PROTOBUF */
 }
 
+void DNSProtoBufMessage::addTag(const std::string& strValue)
+{
+#ifdef HAVE_PROTOBUF
+
+  PBDNSMessage_DNSResponse* response = d_message.mutable_response();
+  if (!response)
+    return;
+
+  response->add_tags(strValue);
+
+#endif /* HAVE_PROTOBUF */
+}
+
+void DNSProtoBufMessage::addRR(const DNSName& qname, uint16_t uType, uint16_t uClass, uint32_t uTTL, const std::string& strBlob)
+{
+#ifdef HAVE_PROTOBUF
+
+  PBDNSMessage_DNSResponse* response = d_message.mutable_response();
+  if (!response)
+    return;
+  PBDNSMessage_DNSResponse_DNSRR* rr = response->add_rrs();
+  if (rr) {
+    rr->set_name(qname.toString());
+    rr->set_type(uType);
+    rr->set_class_(uClass);
+    rr->set_ttl(uTTL);
+    rr->set_rdata(strBlob.c_str(), strBlob.size());
+  }
+
+#endif /* HAVE_PROTOBUF */
+}
+
 void DNSProtoBufMessage::addRRsFromPacket(const char* packet, const size_t len, bool includeCNAME)
 {
 #ifdef HAVE_PROTOBUF
