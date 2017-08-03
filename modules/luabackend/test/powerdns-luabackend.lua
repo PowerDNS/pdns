@@ -335,11 +335,11 @@ domains[origin].records["toomuchinfo-b."..origin] = tab
 tab = nil
 
 domains[origin].records["host-0."..origin] = {
-    {qtype = "A", ttl = ttl, content = "192.168.1.0"}
+    {qtype = "A", ttl = ttl, content = "192.168.1.0"},
     {qtype = "EUI48", ttl = ttl, content = "00-50-56-9b-00-e7"},
 }
 domains[origin].records["host-1."..origin] = {
-    {qtype = "A", ttl = ttl, content = "192.168.1.1"}
+    {qtype = "A", ttl = ttl, content = "192.168.1.1"},
     {qtype = "EUI48", ttl = ttl, content = "00-50-56-9b-00-e7-7e-57"},
 }
 --[=[
@@ -443,7 +443,7 @@ function list(qname, domainid)
             for n = 2, 19999, 1 do
                 r[1 + #r] = {
                     qname = hnfmt:format(n, q_name),
-                    name = hnfmt:format(n, q_name)
+                    name = hnfmt:format(n, q_name),
                     qtype = "A",
                     ttl = 120,
                     content = ipfmt:format(n % 256),
