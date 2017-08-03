@@ -148,10 +148,11 @@ end
 --    qname string: "test.com."
 --    domainid number: 1
 function list(qname, domainid)
+    logger(log_debug, "(l_list) begin")
     q_type = "ANY"
     q_name = qname
     domain_id = domainid
-    logger(log_debug, "(l_list)", "target:", q_name, " domain_id:", domain_id )
+    logger(log_debug, "(l_list)", "target:", q_name, "domain_id:", domain_id)
 
     c = 0
     r = nil
@@ -169,10 +170,13 @@ function list(qname, domainid)
     end
 
     if ("table" == type(r)) then
-	size = #r
+        size = #r
+        logger(log_debug, "(l_getsoa)", "size:", size)
+        logger(log_debug, "(l_getsoa) end: success")
         return true
     end
 
+    logger(log_debug, "(l_getsoa) end: not found")
     return false
 end
 
@@ -181,10 +185,11 @@ end
 --    qname string: "test.com."
 --    domainid number: 1
 function lookup(qtype, qname, domainid)
+    logger(log_debug, "(l_lookup) begin")
     q_type = ("table" == type(qtype)) and qtype.name or qtype
     q_name = qname
     domain_id = domainid
-    logger(log_debug, "(l_lookup)", "q_type:", q_type, " q_name:", q_name, " domain_id:", domain_id )
+    logger(log_debug, "(l_lookup)", "q_type:", q_type, "q_name:", q_name, "domain_id:", domain_id)
 
     if (0 < domain_id) then
         r = domains[domain_id].records[q_name:lower()]
@@ -207,27 +212,31 @@ function lookup(qtype, qname, domainid)
     size = 0
 
     -- remote_ip, remote_port, local_ip = dnspacket()
-    -- logger(log_debug, "(l_lookup) dnspacket", "remote:", remote_ip, " port:", remote_port, " local:", local_ip)
+    -- logger(log_debug, "(l_lookup)", "dnspacket", "remote:", remote_ip, "port:", remote_port, "local:", local_ip)
 
     if ("table" == type(r)) then
-	size = #r
+        size = #r
     end
     logger(log_debug, "(l_lookup)", "size:", size)
+    logger(log_debug, "(l_lookup) end")
 end
 
 function get()
     logger(log_debug, "(l_get) begin")
 
+    local tab
     local kk, vv
     while c < size do
-	c = c + 1
-	if (("ANY" == q_type) or (r[c].qtype == q_type)) then
-	    for kk,vv in ipairs(r[c]) do
-		logger(log_debug, "(l_get) ", kk, type(vv), vv)
-	    end
+        c = c + 1
+        if (("ANY" == q_type) or (r[c].qtype == q_type)) then
+            for kk,vv in ipairs(r[c]) do
+                logger(log_debug, "(l_get)", kk, type(vv), vv)
+            end
+            tab = table_deepjoin(r[c], {domain_id = domain_id, qname = q_name:lower(), name = q_name:lower()})
+            logger(log_debug, "(l_get)", tab.domain_id, tab.qname, tab.ttl, "IN", tab.qtype, tab.content)
             logger(log_debug, "(l_get) end: success")
-	    return table_deepjoin(r[c], {domain_id = domain_id, qname = q_name:lower(), name = q_name:lower()})
-	end
+            return tab
+        end
     end
 
     logger(log_debug, "(l_get) end: not found")
@@ -237,12 +246,16 @@ end
 -- Args:
 --    qname string: "test.com."
 function getsoa(qname)
-    logger(log_debug, "(l_getsoa) begin", "qname:", qname)
+    logger(log_debug, "(l_getsoa) begin")
+    logger(log_debug, "(l_getsoa)", q_type, "qname:", qname)
 
+    local tab
     r = domains[qname:lower()]
     if (("table" == type(r)) and ("table" == type(r.soa))) then
-	logger(log_debug, "(l_getsoa) end: ", r.name, r.domain_id, r.soa.serial)
-	return table_deepjoin({qname = qname, domain_id = r.domain_id}, r.soa)
+        tab = table_deepjoin({qname = qname, domain_id = r.domain_id}, r.soa)
+        logger(log_debug, "(l_getsoa)", r.domain_id, r.name, r.soa.ttl, content_from_soatab(tab))
+        logger(log_debug, "(l_getsoa) end: success")
+        return tab
     end
 
     logger(log_debug, "(l_getsoa) end: not found")
