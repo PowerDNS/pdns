@@ -47,6 +47,7 @@ domains[domains[origin].domain_id] = domains[origin]
 
 
 domains[origin].records[origin] = {
+    -- This is not used since the getsoa function us using the SOA table instead.
     --{qtype = "SOA", ttl = domains[origin].soa.ttl, content = content_from_soatab(domains[origin].soa)},
     {qtype = "NS", ttl = ttl, content = "ns1."..origin},
     {qtype = "NS", ttl = ttl, content = "ns2."..origin},
@@ -152,6 +153,7 @@ domains[domains[origin].domain_id] = domains[origin]
 
 
 domains[origin].records[origin] = {
+    -- This is not used since the getsoa function us using the SOA table instead.
     --{qtype = "SOA", ttl = domains[origin].soa.ttl, content = content_from_soatab(domains[origin].soa)},
     {qtype = "NS", ttl = ttl, content = "ns1."..origin},
     {qtype = "NS", ttl = ttl, content = "ns2."..origin},
@@ -341,6 +343,8 @@ domains[origin].records["host-1."..origin] = {
     {qtype = "EUI48", ttl = ttl, content = "00-50-56-9b-00-e7-7e-57"},
 }
 --[=[
+-- Disabled the in-memory storage since it was slower than computing
+-- these as needed. See the list/lookup functions below.
 local hnfmt = "host-%d.%s"
 local ipfmt = "192.168.1.%d"
 for n = 2, 19999, 1 do
