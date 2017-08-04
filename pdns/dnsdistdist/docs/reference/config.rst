@@ -120,6 +120,14 @@ Control Socket, Console and Webserver
 
   Generate and print an encryption key.
 
+.. function:: setConsoleConnectionsLogging(enabled)
+
+  .. versionadded:: 1.2.0
+
+  Whether to log the opening and closing of console connections.
+
+  :param bool enabled: Default to true.
+
 .. function:: setKey(key)
 
   Use ``key`` as shared secret between the client and the server

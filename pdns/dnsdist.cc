@@ -1591,7 +1591,10 @@ try
   int sock;
   warnlog("Accepting control connections on %s", local.toStringWithPort());
   while((sock=SAccept(fd, client)) >= 0) {
-    warnlog("Got control connection from %s", client.toStringWithPort());
+    if (g_logConsoleConnections) {
+      warnlog("Got control connection from %s", client.toStringWithPort());
+    }
+
     thread t(controlClientThread, sock, client);
     t.detach();
   }

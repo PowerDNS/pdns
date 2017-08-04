@@ -1458,4 +1458,8 @@ void moreLua(bool client)
         setLuaSideEffect();
         g_downstreamTCPCleanupInterval = interval;
       });
+
+    g_lua.writeFunction("setConsoleConnectionsLogging", [](bool enabled) {
+        g_logConsoleConnections = enabled;
+      });
 }
