@@ -176,31 +176,91 @@ attributetype ( 1.3.6.1.4.1.2428.20.1.49 NAME 'dHCIDRecord'
 	SUBSTR caseIgnoreIA5SubstringsMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
 
+attributetype ( 1.3.6.1.4.1.2428.20.1.50 NAME 'nSEC3Record'
+	DESC 'NSEC record version 3, RFC 5155'
+	EQUALITY caseIgnoreIA5Match
+	SUBSTR caseIgnoreIA5SubstringsMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
+
+attributetype ( 1.3.6.1.4.1.2428.20.1.51 NAME 'nSEC3PARAMRecord'
+	DESC 'NSEC3 parameters, RFC 5155'
+	EQUALITY caseIgnoreIA5Match
+	SUBSTR caseIgnoreIA5SubstringsMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
+
+attributetype ( 1.3.6.1.4.1.2428.20.1.52 NAME 'tLSARecord'
+	DESC 'TLSA certificate association, RFC 6698'
+	EQUALITY caseIgnoreIA5Match
+	SUBSTR caseIgnoreIA5SubstringsMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
+
+attributetype ( 1.3.6.1.4.1.2428.20.1.59 NAME 'cDSRecord'
+	DESC 'Child DS, RFC7344'
+	EQUALITY caseIgnoreIA5Match
+	SUBSTR caseIgnoreIA5SubstringsMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
+
+attributetype ( 1.3.6.1.4.1.2428.20.1.60 NAME 'cDNSKeyRecord'
+	DESC 'DNSKEY(s) the Child wants reflected in DS, RFC7344'
+	EQUALITY caseIgnoreIA5Match
+	SUBSTR caseIgnoreIA5SubstringsMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
+
+attributetype ( 1.3.6.1.4.1.2428.20.1.61 NAME 'openPGPKeyRecord'
+	DESC 'OpenPGP Key, RFC7929'
+	EQUALITY caseIgnoreIA5Match
+	SUBSTR caseIgnoreIA5SubstringsMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
+
 attributetype ( 1.3.6.1.4.1.2428.20.1.99 NAME 'sPFRecord'
 	DESC 'Sender Policy Framework, RFC 4408'
 	EQUALITY caseIgnoreIA5Match
 	SUBSTR caseIgnoreIA5SubstringsMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
 
-attributetype ( 1.3.6.1.4.1.2428.20.1.65534 NAME 'TYPE65534Record'
-	DESC ''
-	EQUALITY caseIgnoreIA5Match
-	SUBSTR caseIgnoreIA5SubstringsMatch
-	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
-
 attributetype ( 1.3.6.1.4.1.2428.20.1.108 NAME 'EUI48Record'
-	DESC ''
+	DESC 'EUI-48 address, RFC7043'
 	EQUALITY caseIgnoreIA5Match
 	SUBSTR caseIgnoreIA5SubstringsMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
 
 attributetype ( 1.3.6.1.4.1.2428.20.1.109 NAME 'EUI64Record'
-	DESC ''
+	DESC 'EUI-64 address, RFC7043'
+	EQUALITY caseIgnoreIA5Match
+	SUBSTR caseIgnoreIA5SubstringsMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
+
+attributetype ( 1.3.6.1.4.1.2428.20.1.249 NAME 'tKeyRecord'
+	DESC 'Transaction Key, RFC2930'
+	EQUALITY caseIgnoreIA5Match
+	SUBSTR caseIgnoreIA5SubstringsMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
+
+attributetype ( 1.3.6.1.4.1.2428.20.1.256 NAME 'uRIRecord'
+	DESC 'URI, RFC7553'
+	EQUALITY caseIgnoreIA5Match
+	SUBSTR caseIgnoreIA5SubstringsMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
+
+attributetype ( 1.3.6.1.4.1.2428.20.1.257 NAME 'cAARecord'
+	DESC 'Certification Authority Restriction, RFC6844'
+	EQUALITY caseIgnoreIA5Match
+	SUBSTR caseIgnoreIA5SubstringsMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
+
+attributetype ( 1.3.6.1.4.1.2428.20.1.32769 NAME 'dLVRecord'
+	DESC 'DNSSEC Lookaside Validation, RFC4431'
 	EQUALITY caseIgnoreIA5Match
 	SUBSTR caseIgnoreIA5SubstringsMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
 
 attributetype ( 1.3.6.1.4.1.2428.20.1.65226 NAME 'TYPE65226Record'
+	DESC ''
+	EQUALITY caseIgnoreIA5Match
+	SUBSTR caseIgnoreIA5SubstringsMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
+
+attributetype ( 1.3.6.1.4.1.2428.20.1.65534 NAME 'TYPE65534Record'
 	DESC ''
 	EQUALITY caseIgnoreIA5Match
 	SUBSTR caseIgnoreIA5SubstringsMatch
@@ -215,6 +275,9 @@ objectclass ( 1.3.6.1.4.1.2428.20.2 NAME 'dNSDomain2'
 		NAPTRRecord $ KXRecord $ CERTRecord $ A6Record $
 		DNAMERecord $ APLRecord $ DSRecord $ SSHFPRecord $
 		IPSECKEYRecord $ RRSIGRecord $ NSECRecord $
-		DNSKEYRecord $ DHCIDRecord $ SPFRecord $ TYPE65534Record $
-		TYPE65226Record $ EUI48Record $ EUI64Record
+		DNSKEYRecord $ DHCIDRecord $ NSEC3Record $ NSEC3PARAMRecord $
+		TLSARecord $ CDSRecord $ CDNSKEYRecord $ OPENPGPKEYRecord $
+		SPFRecord $ EUI48Record $ EUI64Record $ TKEYRecord $
+		URIRecord $ CAARecord $ DLVRecord $ TYPE65226Record $
+		TYPE65534Record
 	) )
