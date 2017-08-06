@@ -249,7 +249,7 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   );
   //d_lw->registerFunction("__eq", &DNSName::operator==);
   d_lw->writeVariable("DNSName", DNSName{});
-  d_lw->writeFunction<bool(DNSName::*)(DNSName::*)>(
+  d_lw->writeFunction(
     "DNSName", LuaContext::Metatable, "__eq",
     [](const DNSName& lhs, const DNSName& rhs) {
       return lhs==rhs;
