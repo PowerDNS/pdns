@@ -7,7 +7,7 @@ bind-config=./named.conf
 bind-ignore-broken-records=yes
 __EOF__
 
-		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --config-dir=. \
+		$RUNWRAPPER $PDNS --daemon=no --local-address=$address --local-port=$port --config-dir=. \
 			--config-name=bind --socket-dir=./ --no-shuffle \
 			--cache-ttl=$cachettl --dname-processing \
 			--disable-axfr-rectify=yes &
@@ -88,7 +88,7 @@ __EOF__
 			skipreasons="nodyndns noalias nsec"
 		fi
 
-		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --config-dir=. \
+		$RUNWRAPPER $PDNS --daemon=no --local-address=$address --local-port=$port --config-dir=. \
 			--config-name=bind --socket-dir=./ --no-shuffle \
 			--cache-ttl=$cachettl --dname-processing \
 			--disable-axfr-rectify=yes $lua_prequery &
