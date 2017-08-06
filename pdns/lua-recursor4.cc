@@ -247,7 +247,14 @@ RecursorLua4::RecursorLua4(const std::string& fname)
        return lhs==DNSName(rhs);
     }
   );
-  d_lw->registerFunction("__eq", &DNSName::operator==);
+  //d_lw->registerFunction("__eq", &DNSName::operator==);
+  d_lw->writeVariable("DNSName", DNSName{});
+  d_lw->writeFunction<bool(DNSName::*)(DNSName::*)>(
+    "DNSName", LuaContext::Metatable, "__eq",
+    [](const DNSName& lhs, const DNSName& rhs) {
+      return lhs==rhs;
+    }
+  );
 
   d_lw->registerFunction<string(ComboAddress::*)()>("toString", [](const ComboAddress& ca) { return ca.toString(); });
   d_lw->registerFunction<string(ComboAddress::*)()>("toStringWithPort", [](const ComboAddress& ca) { return ca.toStringWithPort(); });
