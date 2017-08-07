@@ -260,6 +260,7 @@ void MOADNSParser::init(bool query, const char *packet, unsigned int len)
 
     struct dnsrecordheader ah;
     vector<unsigned char> record;
+    bool seenTSIG = false;
     validPacket=true;
     d_answers.reserve((unsigned int)(d_header.ancount + d_header.nscount + d_header.arcount));
     for(n=0;n < (unsigned int)(d_header.ancount + d_header.nscount + d_header.arcount); ++n) {
@@ -271,16 +272,16 @@ void MOADNSParser::init(bool query, const char *packet, unsigned int len)
         dr.d_place=DNSResourceRecord::AUTHORITY;
       else 
         dr.d_place=DNSResourceRecord::ADDITIONAL;
-      
+
       unsigned int recordStartPos=pr.d_pos;
 
       DNSName name=pr.getName();
-      
+
       pr.getDnsrecordheader(ah);
       dr.d_ttl=ah.d_ttl;
       dr.d_type=ah.d_type;
       dr.d_class=ah.d_class;
-      
+
       dr.d_name=name;
       dr.d_clen=ah.d_clen;
 
@@ -295,20 +296,26 @@ void MOADNSParser::init(bool query, const char *packet, unsigned int len)
 
       d_answers.push_back(make_pair(dr, pr.d_pos));
 
+      if (dr.d_place == DNSResourceRecord::ADDITIONAL && seenTSIG && dr.d_type != QType::XPF) {
+        /* only XPF records are allowed after a TSIG */
+        throw MOADNSException("Packet ("+d_qname.toString()+"|#"+std::to_string(d_qtype)+") has an unexpected record ("+std::to_string(dr.d_type)+") after a TSIG one.");
+      }
+
       if(dr.d_type == QType::TSIG && dr.d_class == QClass::ANY) {
-        if(dr.d_place != DNSResourceRecord::ADDITIONAL || n != (unsigned int)(d_header.ancount + d_header.nscount + d_header.arcount) - 1) {
+        if(dr.d_place != DNSResourceRecord::ADDITIONAL) {
           throw MOADNSException("Packet ("+d_qname.toLogString()+"|#"+std::to_string(d_qtype)+") has a TSIG record in an invalid position.");
         }
+        seenTSIG = true;
         d_tsigPos = recordStartPos + sizeof(struct dnsheader);
       }
     }
 
-#if 0    
+#if 0
     if(pr.d_pos!=contentlen) {
       throw MOADNSException("Packet ("+d_qname+"|#"+std::to_string(d_qtype)+") has trailing garbage ("+ std::to_string(pr.d_pos) + " < " + 
                             std::to_string(contentlen) + ")");
     }
-#endif 
+#endif
   }
   catch(std::out_of_range &re) {
     if(validPacket && d_header.tc) { // don't sweat it over truncated packets, but do adjust an, ns and arcount
