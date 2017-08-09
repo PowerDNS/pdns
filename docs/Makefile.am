@@ -58,10 +58,10 @@ endif # if !HAVE_MANPAGES
 	.venv/bin/pip install -U pip setuptools setuptools-git
 	.venv/bin/pip install -r requirements.txt
 
-html-docs: common/** manpages/** .venv
+html-docs: common/** manpages/** .venv *.rst
 	.venv/bin/python -msphinx -b html . html-docs
 
-latex/PowerDNS-Authoritative.pdf: common/** manpages/** .venv
+latex/PowerDNS-Authoritative.pdf: common/** manpages/** .venv *.rst
 	.venv/bin/python -msphinx -M latexpdf . .
 
 PowerDNS-Authoritative.pdf: latex/PowerDNS-Authoritative.pdf
