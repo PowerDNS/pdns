@@ -95,6 +95,7 @@ public:
   }
   void makeUsRelative(const DNSName& zone);
   DNSName getCommonLabels(const DNSName& other) const; //!< Return the list of common labels from the top, for example 'c.d' for 'a.b.c.d' and 'x.y.c.d'
+  void rebase(const DNSName& from, const DNSName& to);
   DNSName labelReverse() const;
   bool isWildcard() const;
   bool isHostname() const;

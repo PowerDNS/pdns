@@ -274,6 +274,12 @@ DNSName DNSName::getCommonLabels(const DNSName& other) const
   return result;
 }
 
+void DNSName::rebase(const DNSName& from, const DNSName& to)
+{
+  makeUsRelative(from);
+  *this += to;
+}
+
 DNSName DNSName::labelReverse() const
 {
   DNSName ret;
