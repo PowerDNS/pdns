@@ -62,6 +62,7 @@ AC_MSG_RESULT([$enable_hardening])
 AS_IF([test "x$enable_hardening" != "xno"], [
   AC_CC_PIE
   AC_CC_STACK_PROTECTOR
+  AC_CC_F_STACK_CHECK
   AC_CC_PARAM_SSP_BUFFER_SIZE([4])
   AC_CC_D_FORTIFY_SOURCE
   AC_LD_RELRO
