@@ -382,13 +382,6 @@ public:
   //! All answers contained in this packet (everything *but* the question section)
   answers_t d_answers;
 
-  shared_ptr<PacketReader> getPacketReader(uint16_t offset)
-  {
-    shared_ptr<PacketReader> pr(new PacketReader(d_content));
-    pr->d_pos=offset;
-    return pr;
-  }
-
   uint16_t getTSIGPos() const
   {
     return d_tsigPos;
