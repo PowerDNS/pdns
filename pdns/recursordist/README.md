@@ -43,6 +43,7 @@ To compile from a git checkout, install pandoc, ragel, automake and autoconf.
 Then run
 
 ```
+$ cd pdns/pdns/recursordist/
 $ ./bootstrap
 $ ./configure
 $ make
