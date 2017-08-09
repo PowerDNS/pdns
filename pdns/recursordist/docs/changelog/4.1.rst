@@ -53,13 +53,6 @@ Changelogs for 4.1.x
     Show a useful error when an invalid :ref:`setting-lua-config-file` is configured.
 
   .. change::
-    :tags: New Features, Protobuf
-    :pullreq: 4291
-    :tickets: 4109
-
-    Add ``taggedOnly`` option to :func:`protobufServer` to only send protobuf messages with a policy or tag set.
-
-  .. change::
     :tags: Bug Fixes
     :pullreq: 4860
 
