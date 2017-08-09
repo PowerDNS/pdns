@@ -127,8 +127,14 @@ void UDPNameserver::bindIPv4()
           d_can_reuseport = false;
 #endif
 
-    if( ::arg().mustDo("non-local-bind") )
+    if( ::arg().mustDo("non-local-bind")) {
+      try {
 	Utility::setBindAny(AF_INET, s);
+      }
+      catch(const std::exception& e) {
+        theL()<<Logger::Warning<<e.what()<<endl;
+      }
+    }
 
     locala=ComboAddress(localname, ::arg().asNum("local-port"));
     if(locala.sin4.sin_family != AF_INET) 
@@ -238,8 +244,14 @@ void UDPNameserver::bindIPv6()
           d_can_reuseport = false;
 #endif
 
-    if( ::arg().mustDo("non-local-bind") )
+    if( ::arg().mustDo("non-local-bind")) {
+      try {
 	Utility::setBindAny(AF_INET6, s);
+      }
+      catch(const std::exception& e) {
+        theL()<<Logger::Warning<<e.what()<<endl;
+      }
+    }
 
     if( !d_additional_socket )
         g_localaddresses.push_back(locala);

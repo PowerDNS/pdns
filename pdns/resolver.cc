@@ -50,6 +50,7 @@
 #include <poll.h>
 #include "gss_context.hh"
 #include "namespaces.hh"
+#include "logger.hh"
 
 int makeQuerySocket(const ComboAddress& local, bool udpOrTCP, bool nonLocalBind)
 {
@@ -65,8 +66,14 @@ int makeQuerySocket(const ComboAddress& local, bool udpOrTCP, bool nonLocalBind)
 
   setCloseOnExec(sock);
 
-  if(nonLocalBind)
-    Utility::setBindAny(local.sin4.sin_family, sock);
+  if(nonLocalBind) {
+    try {
+      Utility::setBindAny(local.sin4.sin_family, sock);
+    }
+    catch(const std::exception& e) {
+      theL()<<Logger::Warning<<e.what()<<endl;
+    }
+  }
 
   if(udpOrTCP) {
     // udp, try hard to bind an unpredictable port

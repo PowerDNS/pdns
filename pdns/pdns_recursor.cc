@@ -2043,8 +2043,14 @@ static void makeTCPServerSockets(unsigned int threadId)
     }
 #endif
 
-    if( ::arg().mustDo("non-local-bind") )
+    if( ::arg().mustDo("non-local-bind") ) {
+      try {
 	Utility::setBindAny(AF_INET, fd);
+      }
+      catch(const std::exception& e) {
+        theL()<<Logger::Warning<<e.what()<<endl;
+      }
+    }
 
 #ifdef SO_REUSEPORT
     if(g_reusePort) {
@@ -2127,8 +2133,14 @@ static void makeUDPServerSockets(unsigned int threadId)
 	L<<Logger::Error<<"Failed to set IPv6 socket to IPv6 only, continuing anyhow: "<<strerror(errno)<<endl;
       }
     }
-    if( ::arg().mustDo("non-local-bind") )
+    if( ::arg().mustDo("non-local-bind") ) {
+      try {
 	Utility::setBindAny(AF_INET6, fd);
+      }
+      catch(const std::exception& e) {
+        theL()<<Logger::Warning<<e.what()<<endl;
+      }
+    }
 
     setCloseOnExec(fd);
 
@@ -3185,14 +3197,40 @@ static int serviceMain(int argc, char*argv[])
   openssl_thread_setup();
   openssl_seed();
 
-  int newgid=0;
-  if(!::arg()["setgid"].empty())
-    newgid=Utility::makeGidNumeric(::arg()["setgid"]);
-  int newuid=0;
-  if(!::arg()["setuid"].empty())
-    newuid=Utility::makeUidNumeric(::arg()["setuid"]);
+  gid_t newgid=0;
+  if(!::arg()["setgid"].empty()) {
+    try {
+      newgid = strToGID(::arg()["setgid"]);
+    }
+    catch(const std::exception& e) {
+      theL()<<Logger::Critical<<e.what()<<endl;
+      exit(1);
+    }
+  }
 
-  Utility::dropGroupPrivs(newuid, newgid);
+  uid_t newuid=0;
+  if(!::arg()["setuid"].empty()) {
+    try {
+      newuid = strToUID(::arg()["setuid"]);
+    }
+    catch(const std::exception& e) {
+      theL()<<Logger::Critical<<e.what()<<endl;
+      exit(1);
+    }
+  }
+
+  try {
+    bool supplementaryGroupsSet = false;
+    Utility::dropGroupPrivs(newuid, newgid, true, &supplementaryGroupsSet);
+    theL()<<Logger::Info<<"Set effective group id to "<<newgid<<endl;
+    if (!supplementaryGroupsSet) {
+      theL()<<Logger::Warning<<"Unable to determine user name for uid "<<newuid<<endl;
+    }
+  }
+  catch(const std::runtime_error& e) {
+    theL()<<Logger::Critical<<e.what()<<endl;
+    exit(1);
+  }
 
   if (!::arg()["chroot"].empty()) {
 #ifdef HAVE_SYSTEMD
@@ -3218,7 +3256,14 @@ static int serviceMain(int argc, char*argv[])
 
   makeControlChannelSocket( ::arg().asNum("processes") > 1 ? forks : -1);
 
-  Utility::dropUserPrivs(newuid);
+  try {
+    Utility::dropUserPrivs(newuid);
+    theL()<<Logger::Info<<"Set effective user id to "<<newuid<<endl;
+  }
+  catch(const std::runtime_error& e) {
+    theL()<<Logger::Critical<<e.what()<<endl;
+    exit(1);
+  }
 
   makeThreadPipes();
 

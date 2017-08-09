@@ -1251,8 +1251,14 @@ TCPNameserver::TCPNameserver()
 #endif
     }
 
-    if( ::arg().mustDo("non-local-bind") )
+    if( ::arg().mustDo("non-local-bind")) {
+      try {
 	Utility::setBindAny(AF_INET, s);
+      }
+      catch(const std::exception& e) {
+        theL()<<Logger::Warning<<e.what()<<endl;
+      }
+    }
 
     if(::bind(s, (sockaddr*)&local, local.getSocklen())<0) {
       close(s);
@@ -1303,8 +1309,15 @@ TCPNameserver::TCPNameserver()
 #endif
     }
 
-    if( ::arg().mustDo("non-local-bind") )
+    if( ::arg().mustDo("non-local-bind")) {
+      try {
 	Utility::setBindAny(AF_INET6, s);
+      }
+      catch(const std::exception& e) {
+        theL()<<Logger::Warning<<e.what()<<endl;
+      }
+    }
+
     if(setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &tmp, sizeof(tmp)) < 0) {
       L<<Logger::Error<<"Failed to set IPv6 socket to IPv6 only, continuing anyhow: "<<strerror(errno)<<endl;
     }

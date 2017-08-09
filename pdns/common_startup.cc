@@ -472,13 +472,28 @@ void mainthread()
 {
    Utility::srandom(time(0) ^ getpid());
 
-   int newgid=0;      
-   if(!::arg()["setgid"].empty()) 
-     newgid=Utility::makeGidNumeric(::arg()["setgid"]);      
-   int newuid=0;      
-   if(!::arg()["setuid"].empty())        
-     newuid=Utility::makeUidNumeric(::arg()["setuid"]); 
-   
+   gid_t newgid=0;
+   if(!::arg()["setgid"].empty()) {
+     try {
+       newgid = strToGID(::arg()["setgid"]);
+     }
+     catch(const std::exception& e) {
+       theL()<<Logger::Critical<<e.what()<<endl;
+       exit(1);
+     }
+   }
+
+   uid_t newuid=0;
+   if(!::arg()["setuid"].empty()) {
+     try {
+       newuid = strToUID(::arg()["setuid"]);
+     }
+     catch(const std::exception& e) {
+       theL()<<Logger::Critical<<e.what()<<endl;
+       exit(1);
+     }
+   }
+
    g_anyToTcp = ::arg().mustDo("any-to-tcp");
    g_8bitDNS = ::arg().mustDo("8bit-dns");
 
@@ -503,7 +518,20 @@ void mainthread()
      triggerLoadOfLibraries();
      if(::arg().mustDo("master") || ::arg().mustDo("slave"))
         gethostbyname("a.root-servers.net"); // this forces all lookup libraries to be loaded
-     Utility::dropGroupPrivs(newuid, newgid);
+
+     try {
+       bool supplementaryGroupsSet = false;
+       Utility::dropGroupPrivs(newuid, newgid, true, &supplementaryGroupsSet);
+       theL()<<Logger::Info<<"Set effective group id to "<<newgid<<endl;
+       if (!supplementaryGroupsSet) {
+         theL()<<Logger::Warning<<"Unable to determine user name for uid "<<newuid<<endl;
+       }
+     }
+     catch(const std::runtime_error& e) {
+       theL()<<Logger::Critical<<e.what()<<endl;
+       exit(1);
+     }
+
      if(chroot(::arg()["chroot"].c_str())<0 || chdir("/")<0) {
        L<<Logger::Error<<"Unable to chroot to '"+::arg()["chroot"]+"': "<<strerror(errno)<<", exiting"<<endl; 
        exit(1);
@@ -511,11 +539,29 @@ void mainthread()
      else
        L<<Logger::Error<<"Chrooted to '"<<::arg()["chroot"]<<"'"<<endl;      
    } else {
-     Utility::dropGroupPrivs(newuid, newgid);
+     try {
+       bool supplementaryGroupsSet = false;
+       Utility::dropGroupPrivs(newuid, newgid, true, &supplementaryGroupsSet);
+       theL()<<Logger::Info<<"Set effective group id to "<<newgid<<endl;
+       if (!supplementaryGroupsSet) {
+         theL()<<Logger::Warning<<"Unable to determine user name for uid "<<newuid<<endl;
+       }
+     }
+     catch(const std::runtime_error& e) {
+       theL()<<Logger::Critical<<e.what()<<endl;
+       exit(1);
+     }
    }
 
   AuthWebServer webserver;
-  Utility::dropUserPrivs(newuid);
+  try {
+    Utility::dropUserPrivs(newuid);
+    theL()<<Logger::Info<<"Set effective user id to "<<newuid<<endl;
+  }
+  catch(const std::runtime_error& e) {
+    theL()<<Logger::Critical<<e.what()<<endl;
+    exit(1);
+  }
 
   // We need to start the Recursor Proxy before doing secpoll, see issue #2453
   if(::arg().mustDo("resolver")){

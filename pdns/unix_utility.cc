@@ -28,7 +28,6 @@
 #include <unistd.h>
 #include <stdlib.h> 
 #include "pdnsexception.hh"
-#include "logger.hh"
 #include "misc.hh"
 #include <pwd.h>
 #include <grp.h>
@@ -84,22 +83,22 @@ void Utility::setBindAny(int af, sock_t sock)
   (void) one; // avoids 'unused var' warning on systems that have none of the defines checked below
 #ifdef IP_FREEBIND
   if (setsockopt(sock, IPPROTO_IP, IP_FREEBIND, &one, sizeof(one)) < 0)
-      theL()<<Logger::Warning<<"Warning: IP_FREEBIND setsockopt failed: "<<strerror(errno)<<endl;
+    throw std::runtime_error("Warning: IP_FREEBIND setsockopt failed: " + stringerror());
 #endif
 
 #ifdef IP_BINDANY
   if (af == AF_INET)
     if (setsockopt(sock, IPPROTO_IP, IP_BINDANY, &one, sizeof(one)) < 0)
-      theL()<<Logger::Warning<<"Warning: IP_BINDANY setsockopt failed: "<<strerror(errno)<<endl;
+      throw std::runtime_error("Warning: IP_BINDANY setsockopt failed: " + stringerror());
 #endif
 #ifdef IPV6_BINDANY
   if (af == AF_INET6)
     if (setsockopt(sock, IPPROTO_IPV6, IPV6_BINDANY, &one, sizeof(one)) < 0)
-      theL()<<Logger::Warning<<"Warning: IPV6_BINDANY setsockopt failed: "<<strerror(errno)<<endl;
+      throw std::runtime_error("Warning: IPV6_BINDANY setsockopt failed: " + stringerror());
 #endif
 #ifdef SO_BINDANY
   if (setsockopt(sock, SOL_SOCKET, SO_BINDANY, &one, sizeof(one)) < 0)
-      theL()<<Logger::Warning<<"Warning: SO_BINDANY setsockopt failed: "<<strerror(errno)<<endl;
+    throw std::runtime_error("Warning: SO_BINDANY setsockopt failed: " + stringerror());
 #endif
 }
 
@@ -124,27 +123,28 @@ void Utility::usleep(unsigned long usec)
 
 
 // Drops the program's group privileges.
-void Utility::dropGroupPrivs( int uid, int gid )
+void Utility::dropGroupPrivs(uid_t uid, gid_t gid, bool addSupplementaryGroups, bool* supplementaryGroupsSet)
 {
-  if(gid) {
-    if(setgid(gid)<0) {
-      theL()<<Logger::Critical<<"Unable to set effective group id to "<<gid<<": "<<stringerror()<<endl;
-      exit(1);
+  if (gid) {
+    if (setgid(gid) < 0) {
+      throw std::runtime_error("Unable to set effective group id to " + std::to_string(gid) + ": " + stringerror());
     }
-    else
-      theL()<<Logger::Info<<"Set effective group id to "<<gid<<endl;
 
-    struct passwd *pw=getpwuid(uid);
-    if(!pw) {
-      theL()<<Logger::Warning<<"Unable to determine user name for uid "<<uid<<endl;
-      if (setgroups(0, NULL)<0) {
-        theL()<<Logger::Critical<<"Unable to drop supplementary gids: "<<stringerror()<<endl;
-        exit(1);
+    struct passwd *pw = nullptr;
+    if (addSupplementaryGroups) {
+      pw = getpwuid(uid);
+      if (supplementaryGroupsSet) {
+        *supplementaryGroupsSet = (pw != nullptr);
+      }
+    }
+
+    if (!pw) {
+      if (setgroups(0, nullptr) < 0) {
+        throw std::runtime_error("Unable to drop supplementary gids: " + stringerror());
       }
     } else {
-      if (initgroups(pw->pw_name, gid)<0) {
-        theL()<<Logger::Critical<<"Unable to set supplementary groups: "<<stringerror()<<endl;
-        exit(1);
+      if (initgroups(pw->pw_name, gid) < 0) {
+        throw std::runtime_error("Unable to set supplementary groups: " + stringerror());
       }
     }
   }
@@ -152,15 +152,12 @@ void Utility::dropGroupPrivs( int uid, int gid )
 
 
 // Drops the program's user privileges.
-void Utility::dropUserPrivs( int uid )
+void Utility::dropUserPrivs( uid_t uid )
 {
-  if(uid) {
-    if(setuid(uid)<0) {
-      theL()<<Logger::Critical<<"Unable to set effective user id to "<<uid<<":  "<<stringerror()<<endl;
-      exit(1);
+  if (uid) {
+    if (setuid(uid) < 0) {
+      throw std::runtime_error("Unable to set effective user id to " + std::to_string(uid) + ": " + stringerror());
     }
-    else
-      theL()<<Logger::Info<<"Set effective user id to "<<uid<<endl;
   }
 }
 
@@ -177,41 +174,6 @@ int Utility::gettimeofday( struct timeval *tv, void *tz )
 {
   return ::gettimeofday(tv,0);
 }
-
-
-
-// Retrieves a gid using a groupname.
-int Utility::makeGidNumeric(const string &group)
-{
-  int newgid;
-  if(!(newgid=atoi(group.c_str()))) {
-    errno=0;
-    struct group *gr=getgrnam(group.c_str());
-    if(!gr) {
-      theL()<<Logger::Critical<<"Unable to look up gid of group '"<<group<<"': "<< (errno ? strerror(errno) : "not found") <<endl;
-      exit(1);
-    }
-    newgid=gr->gr_gid;
-  }
-  return newgid;
-}
-
-
-// Retrieves an uid using a username.
-int Utility::makeUidNumeric(const string &username)
-{
-  int newuid;
-  if(!(newuid=atoi(username.c_str()))) {
-    struct passwd *pw=getpwnam(username.c_str());
-    if(!pw) {
-      theL()<<Logger::Critical<<"Unable to look up uid of user '"<<username<<"': "<< (errno ? strerror(errno) : "not found") <<endl;
-      exit(1);
-    }
-    newuid=pw->pw_uid;
-  }
-  return newuid;
-}
-
 
 // Returns a random number.
 long int Utility::random( void )
