@@ -7,6 +7,6 @@ AC_DEFUN([PDNS_CHECK_VIRTUALENV], [
     )
   ])
   AM_CONDITIONAL([HAVE_VIRTUALENV], [test "x$VIRTUALENV" != "xno"])
-  AM_CONDITIONAL([HAVE_MANPAGES], [test -e "$srcdir/pdns_server.1"])
+  AM_CONDITIONAL([HAVE_MANPAGES], [test -e "$srcdir/docs/pdns_server.1"])
 ])
 
