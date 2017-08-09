@@ -151,7 +151,7 @@ then
 	exit
 fi
 
-address='127.0.0.1'
+address="${PDNS_LISTEN_ADDR:-127.0.0.1}"
 port=$1
 [ -z "$port" ] && port=5300
 context=$2
