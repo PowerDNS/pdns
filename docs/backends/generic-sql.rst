@@ -29,7 +29,7 @@ To add a domain, issue the following:
 
 .. code-block:: SQL
 
-    INSERT INTO domains (name, type) VALUES ('powerdns.com', 'NATIVE');
+    INSERT INTO domains (name, type) VALUES ('example.com', 'NATIVE');
 
 The records table can now be filled by with the domain_id set to the id
 of the domains table row just inserted.
@@ -54,13 +54,13 @@ added. Typical output is:
 
     Apr 09 13:34:29 All slave domains are fresh
     Apr 09 13:35:29 1 slave domain needs checking
-    Apr 09 13:35:29 Domain powerdns.com is stale, master serial 1, our serial 0
+    Apr 09 13:35:29 Domain example.com is stale, master serial 1, our serial 0
     Apr 09 13:35:30 [gPgSQLBackend] Connected to database
-    Apr 09 13:35:30 AXFR started for 'powerdns.com'
-    Apr 09 13:35:30 AXFR done for 'powerdns.com'
+    Apr 09 13:35:30 AXFR started for 'example.com'
+    Apr 09 13:35:30 AXFR done for 'example.com'
     Apr 09 13:35:30 [gPgSQLBackend] Closing connection
 
-From now on, PowerDNS is authoritative for the 'powerdns.com' zone and
+From now on, PowerDNS is authoritative for the 'example.com' zone and
 will respond accordingly for queries within that zone.
 
 Periodically, PowerDNS schedules checks to see if domains are still
@@ -103,7 +103,7 @@ master operation instead of the default native replication, issue:
 
 .. code-block:: SQL
 
-    INSERT INTO domains (name, type) VALUES ('powerdns.com', 'MASTER');
+    INSERT INTO domains (name, type) VALUES ('example.com', 'MASTER');
 
 Make sure that the assigned id in the domains table matches the
 domain_id field in the records table!
