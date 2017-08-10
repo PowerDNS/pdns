@@ -5,40 +5,22 @@ if [ "$0" != "./build-scripts/build-auth-rpm" ]; then
   exit 1
 fi
 
-if [ -z "$VERSION" ]; then
-  echo 'Please set $VERSION' >&2
-  exit 1
-fi
+. build-scripts/functions.sh
+TARBALLPREFIX=pdns
 
-if [ -z "$TARBALLVERSION" ]; then
-  TARBALLVERSION=$VERSION
-fi
-
-if [ -z "$RELEASE" ];then
-  echo 'Please set $RELEASE' >&2
-  exit 1
-fi
+startup
 
 set -e
 set -x
 
-# Prepare the build environment
-rpmdev-setuptree
-
-# This is somethat ugly...
-if [ -f pdns-${TARBALLVERSION}.tar.bz2 ]; then
-  mv pdns-${TARBALLVERSION}.tar.bz2 $HOME/rpmbuild/SOURCES
-else
-  echo "pdns-${TARBALLVERSION}.tar.bz2 not found" >&2
-  exit 1
-fi
+cp_tarball_to_rpm_sources
 
 # Some setups need rpmbuild in a 'special' env
 RPMBUILD_COMMAND='rpmbuild -bb pdns.spec'
 
 if [ -r /etc/os-release ]; then
   OLDVERSION=$VERSION
-  source /etc/os-release
+  . /etc/os-release
   OS="${NAME} ${VERSION}"
   VERSION=$OLDVERSION
 fi
@@ -48,8 +30,6 @@ if [ -f /etc/redhat-release ]; then
 fi
 
 case "$OS" in
-#    Fedora\ *\ 21*)
-#      ;;
   CentOS\ *\ 6*)
     RPMBUILD_COMMAND="scl enable devtoolset-3 -- ${RPMBUILD_COMMAND}"
     cat > $HOME/rpmbuild/SOURCES/pdns.init <<EOF

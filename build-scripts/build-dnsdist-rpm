@@ -5,34 +5,15 @@ if [ "$0" != "./build-scripts/build-dnsdist-rpm" ]; then
   exit 1
 fi
 
-if [ -z "$VERSION" ]; then
-  echo 'Please set $VERSION' >&2
-  exit 1
-fi
+. build-scripts/functions.sh
+TARBALLPREFIX=dnsdist
 
-if [ -z "$TARBALLVERSION" ]; then
-  TARBALLVERSION=${VERSION}
-fi
-
-if [ -z "$RELEASE" ];then
-  echo 'Please set $RELEASE' >&2
-  exit 1
-fi
+startup
 
 set -e
 set -x
 
-# Prepare the build environment
-rpmdev-setuptree
-
-# This is somethat ugly...
-if [ -f dnsdist-${TARBALLVERSION}.tar.bz2 ]; then
-  mv dnsdist-${TARBALLVERSION}.tar.bz2 $HOME/rpmbuild/SOURCES
-else
-  echo "dnsdist-${TARBALLVERSION}.tar.bz2 not found" >&2
-  exit 1
-fi
-
+cp_tarball_to_rpm_sources
 
 # Some RPM platforms use systemd, others sysv, we default to systemd here
 INIT_BUILDREQUIRES='BuildRequires: systemd-devel'

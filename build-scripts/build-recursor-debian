@@ -5,28 +5,17 @@ if [ "$0" != "./build-scripts/build-recursor-debian" ]; then
   exit 1
 fi
 
-if [ -z "$VERSION" ]; then
-  echo 'Please set $VERSION' >&2
-  exit 1
-fi
+. build-scripts/functions.sh
+TARBALLPREFIX=pdns-recursor
 
-if [ -z "$RELEASE" ];then
-  echo 'Please set $RELEASE' >&2
-  exit 1
-fi
-
-if [ -z "$DISTDIR" ]; then
-  echo 'Please set $DISTDIR to the directory where pdns-recursor.tar.gz was unpacked' >&2
-  exit 1
-fi
+startup
 
 set -e
 set -x
 
-rm -rf $DISTDIR/debian
-cp -r build-scripts/debian-recursor $DISTDIR/debian
+cp_tarball_to_tmp
 
-cd $DISTDIR
+cd ${SRCDIR}
 
 cat > debian/changelog << EOF
 pdns-recursor (${VERSION}-${RELEASE}) unstable; urgency=medium
@@ -48,5 +37,6 @@ if [ ${ID} = "ubuntu" -a ${VERSION_ID} = "14.04" ]; then
 fi
 
 fakeroot debian/rules debian/control
-
 fakeroot debian/rules binary
+
+mv_debs_to_pwd
