@@ -392,26 +392,29 @@ void handleEDNSClientSubnet(char* const packet, const size_t packetSize, const u
 static int removeEDNSOptionFromOptions(unsigned char* optionsStart, const uint16_t optionsLen, const uint16_t optionCodeToRemove, uint16_t* newOptionsLen)
 {
   unsigned char* p = optionsStart;
-  const unsigned char* end = p + optionsLen;
-  while ((p + 4) <= end) {
+  size_t pos = 0;
+  while ((pos + 4) <= optionsLen) {
     unsigned char* optionBegin = p;
     const uint16_t optionCode = 0x100*p[0] + p[1];
     p += sizeof(optionCode);
+    pos += sizeof(optionCode);
     const uint16_t optionLen = 0x100*p[0] + p[1];
     p += sizeof(optionLen);
-    if ((p + optionLen) > end) {
+    pos += sizeof(optionLen);
+    if ((pos + optionLen) > optionsLen) {
       return EINVAL;
     }
     if (optionCode == optionCodeToRemove) {
-      if (p + optionLen < end) {
+      if (pos + optionLen < optionsLen) {
         /* move remaining options over the removed one,
            if any */
-        memmove(optionBegin, p + optionLen, end - (p + optionLen));
+        memmove(optionBegin, p + optionLen, optionsLen - (pos + optionLen));
       }
       *newOptionsLen = optionsLen - (sizeof(optionCode) + sizeof(optionLen) + optionLen);
       return 0;
     }
     p += optionLen;
+    pos += optionLen;
   }
   return ENOENT;
 }
