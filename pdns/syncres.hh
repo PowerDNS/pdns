@@ -570,6 +570,16 @@ public:
     d_doDNSSEC=state;
   }
 
+  void setDNSSECValidationRequested(bool requested=true)
+  {
+    d_DNSSECValidationRequested = requested;
+  }
+
+  bool isDNSSECValidationRequested() const
+  {
+    return d_DNSSECValidationRequested;
+  }
+
   void setWantsRPZ(bool state=true)
   {
     d_wantsRPZ=state;
@@ -778,6 +788,7 @@ private:
    */
   bool d_cacheonly;
   bool d_doDNSSEC;
+  bool d_DNSSECValidationRequested{false};
   bool d_doEDNS0{true};
   bool d_incomingECSFound{false};
   bool d_requireAuthData{true};

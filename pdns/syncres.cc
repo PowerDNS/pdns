@@ -135,6 +135,14 @@ int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qcl
   set<GetBestNSAnswer> beenthere;
   int res=doResolve(qname, qtype, ret, 0, beenthere, state);
   d_queryValidationState = state;
+
+  if (d_queryValidationState != Indeterminate) {
+    g_stats.dnssecValidations++;
+  }
+  if (d_DNSSECValidationRequested) {
+    increaseDNSSECStateCounter(d_queryValidationState);
+  }
+
   return res;
 }
 
@@ -822,7 +830,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
     for(auto j=cset.cbegin() ; j != cset.cend() ; ++j) {
       if(j->d_ttl>(unsigned int) d_now.tv_sec) {
 
-        if (validationEnabled() && wasAuth && state == Indeterminate && d_requireAuthData) {
+        if (d_DNSSECValidationRequested && wasAuth && state == Indeterminate && d_requireAuthData) {
           /* This means we couldn't figure out the state when this entry was cached,
              most likely because we hadn't computed the zone cuts yet. */
           /* make sure they are computed before validating */
@@ -978,7 +986,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSR
 
     LOG(prefix<<sqname<<": Found cache hit for "<<sqt.getName()<<": ");
 
-    if (validationEnabled() && sqt != QType::DNSKEY && wasCachedAuth && cachedState == Indeterminate && d_requireAuthData) {
+    if (d_DNSSECValidationRequested && sqt != QType::DNSKEY && wasCachedAuth && cachedState == Indeterminate && d_requireAuthData) {
 
       /* This means we couldn't figure out the state when this entry was cached,
          most likely because we hadn't computed the zone cuts yet. */
@@ -1258,6 +1266,8 @@ uint32_t SyncRes::computeLowestTTD(const std::vector<DNSRecord>& records, const 
   for(const auto& record : records)
     lowestTTD = min(lowestTTD, record.d_ttl);
 
+  /* even if it was not requested for that request (Process, and neither AD nor DO set),
+     it might be requested at a later time so we need to be careful with the TTL. */
   if (validationEnabled() && !signatures.empty()) {
     /* if we are validating, we don't want to cache records after their signatures
        expires. */
@@ -1391,7 +1401,7 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsi
 
 bool SyncRes::haveExactValidationStatus(const DNSName& domain)
 {
-  if (!validationEnabled()) {
+  if (!d_DNSSECValidationRequested) {
     return false;
   }
   const auto& it = d_cutStates.find(domain);
@@ -1405,7 +1415,7 @@ vState SyncRes::getValidationStatus(const DNSName& subdomain)
 {
   vState result = Indeterminate;
 
-  if (!validationEnabled()) {
+  if (!d_DNSSECValidationRequested) {
     return result;
   }
   DNSName name(subdomain);
@@ -1443,7 +1453,7 @@ void SyncRes::computeZoneCuts(const DNSName& begin, const DNSName& end, unsigned
   LOG(d_prefix<<": setting cut state for "<<end<<" to "<<vStates[cutState]<<endl);
   d_cutStates[end] = cutState;
 
-  if (!validationEnabled()) {
+  if (!d_DNSSECValidationRequested) {
     return;
   }
 
@@ -1807,7 +1817,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
     vState recordState = getValidationStatus(auth);
     LOG(d_prefix<<": got initial zone status "<<vStates[recordState]<<" for record "<<i->first.name<<endl);
 
-    if (validationEnabled() && recordState == Secure) {
+    if (d_DNSSECValidationRequested && recordState == Secure) {
       if (isAA) {
         if (i->first.place != DNSResourceRecord::ADDITIONAL) {
           /* the additional entries can be insecure,
@@ -1839,7 +1849,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
       updateValidationState(state, recordState);
     }
     else {
-      if (validationEnabled()) {
+      if (d_DNSSECValidationRequested) {
         LOG(d_prefix<<"Skipping validation because the current state is "<<vStates[recordState]<<endl);
       }
     }
@@ -2459,6 +2469,7 @@ int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback) {
   sr.setDoEDNS0(true);
   sr.setUpdatingRootNS();
   sr.setDoDNSSEC(g_dnssecmode != DNSSECMode::Off);
+  sr.setDNSSECValidationRequested(g_dnssecmode != DNSSECMode::Off && g_dnssecmode != DNSSECMode::ProcessNoValidate);
   sr.setAsyncCallback(asyncCallback);
 
   vector<DNSRecord> ret;

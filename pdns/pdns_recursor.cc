@@ -765,6 +765,7 @@ static void startDoResolve(void *p)
     uint32_t minTTL=std::numeric_limits<uint32_t>::max();
 
     SyncRes sr(dc->d_now);
+
     bool DNSSECOK=false;
     if(t_pdl) {
       sr.setLuaEngine(t_pdl);
@@ -782,9 +783,12 @@ static void startDoResolve(void *p)
       // Ignore the client-set CD flag
       pw.getHeader()->cd=0;
     }
+    sr.setDNSSECValidationRequested(g_dnssecmode == DNSSECMode::ValidateAll || g_dnssecmode==DNSSECMode::ValidateForLog || ((dc->d_mdp.d_header.ad || DNSSECOK) && g_dnssecmode==DNSSECMode::Process));
+
 #ifdef HAVE_PROTOBUF
     sr.setInitialRequestId(dc->d_uuid);
 #endif
+
     if (g_useIncomingECS) {
       sr.setIncomingECSFound(dc->d_ecsFound);
       if (dc->d_ecsFound) {
@@ -1030,7 +1034,7 @@ static void startDoResolve(void *p)
       pw.getHeader()->rcode=res;
 
       // Does the validation mode or query demand validation?
-      if(!shouldNotValidate && (g_dnssecmode == DNSSECMode::ValidateAll || g_dnssecmode==DNSSECMode::ValidateForLog || ((dc->d_mdp.d_header.ad || DNSSECOK) && g_dnssecmode==DNSSECMode::Process))) {
+      if(!shouldNotValidate && sr.isDNSSECValidationRequested()) {
         try {
           if(sr.doLog()) {
             L<<Logger::Warning<<"Starting validation of answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<" for "<<dc->d_remote.toStringWithPort()<<endl;

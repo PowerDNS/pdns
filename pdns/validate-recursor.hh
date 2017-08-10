@@ -20,13 +20,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
-#include "dnsparser.hh"
 #include "namespaces.hh"
 #include "validate.hh"
 #include "logger.hh"
-#include "resolve-context.hh"
-
-vState validateRecords(const ResolveContext& ctx, const vector<DNSRecord>& recs);
 
 /* Off: 3.x behaviour, we do no DNSSEC, no EDNS
    ProcessNoValidate: we gather DNSSEC records on all queries, but we will never validate
@@ -41,3 +37,4 @@ extern bool g_dnssecLogBogus;
 
 bool checkDNSSECDisabled();
 bool warnIfDNSSECDisabled(const string& msg);
+vState increaseDNSSECStateCounter(const vState& state);

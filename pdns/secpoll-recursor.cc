@@ -25,8 +25,11 @@ void doSecPoll(time_t* last_secpoll)
   struct timeval now;
   gettimeofday(&now, 0);
   SyncRes sr(now);
-  if (g_dnssecmode != DNSSECMode::Off)
+  if (g_dnssecmode != DNSSECMode::Off) {
     sr.setDoDNSSEC(true);
+    sr.setDNSSECValidationRequested(true);
+  }
+
   vector<DNSRecord> ret;
 
   string version = "recursor-" +pkgv;

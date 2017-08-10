@@ -171,11 +171,20 @@ static void initSR(std::unique_ptr<SyncRes>& sr, bool dnssec=false, bool debug=f
 
   sr = std::unique_ptr<SyncRes>(new SyncRes(now));
   sr->setDoEDNS0(true);
-  sr->setDoDNSSEC(dnssec);
+  if (dnssec) {
+    sr->setDoDNSSEC(dnssec);
+  }
+
   sr->setLogMode(debug == false ? SyncRes::LogNone : SyncRes::Log);
 
   SyncRes::setDomainMap(std::make_shared<SyncRes::domainmap_t>());
   SyncRes::clearNegCache();
+}
+
+static void setDNSSECValidation(std::unique_ptr<SyncRes>& sr, const DNSSECMode& mode)
+{
+  sr->setDNSSECValidationRequested(true);
+  g_dnssecmode = mode;
 }
 
 static void setLWResult(LWResult* res, int rcode, bool aa=false, bool tc=false, bool edns=false)
@@ -3208,7 +3217,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_root_validation_csk) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target(".");
@@ -3273,7 +3282,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_root_validation_ksk_zsk) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target(".");
@@ -3359,7 +3368,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_no_dnskey) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target(".");
@@ -3423,7 +3432,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_dnskey_doesnt_match_ds) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target(".");
@@ -3508,7 +3517,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_rrsig_signed_with_unknown_dnskey) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target(".");
@@ -3583,7 +3592,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_no_rrsig) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target(".");
@@ -3649,7 +3658,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_unknown_ds_algorithm) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target(".");
@@ -3730,7 +3739,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_unknown_ds_digest) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target(".");
@@ -3809,7 +3818,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_bad_sig) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target(".");
@@ -3875,7 +3884,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_bad_algo) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target(".");
@@ -3942,7 +3951,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_various_algos) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target("powerdns.com.");
@@ -4041,7 +4050,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_a_then_ns) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target("powerdns.com.");
@@ -4149,7 +4158,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_a_then_ns) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target("powerdns.com.");
@@ -4253,7 +4262,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_with_nta) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target("powerdns.com.");
@@ -4357,7 +4366,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_with_nta) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target("powerdns.com.");
@@ -4445,7 +4454,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target("powerdns.com.");
@@ -4541,7 +4550,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nxdomain_nsec) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target("nx.powerdns.com.");
@@ -4649,7 +4658,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target("www.powerdns.com.");
@@ -4752,7 +4761,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_no_ds_on_referral_secure) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target("www.powerdns.com.");
@@ -4862,7 +4871,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_no_ds_on_referral_insecure) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target("www.powerdns.com.");
@@ -4971,7 +4980,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_bogus_unsigned_nsec) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target("powerdns.com.");
@@ -5064,7 +5073,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_bogus_no_nsec) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target("powerdns.com.");
@@ -5157,7 +5166,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target("powerdns.com.");
@@ -5264,7 +5273,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_skipped_cut) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target("www.sub.powerdns.com.");
@@ -5382,7 +5391,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_to_ta_skipped_cut) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target("www.sub.powerdns.com.");
@@ -5498,7 +5507,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_nodata) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target("powerdns.com.");
@@ -5606,7 +5615,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cname) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target("powerdns.com.");
@@ -5730,7 +5739,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_to_secure_cname) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target("power-dns.com.");
@@ -5851,7 +5860,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_to_secure_cname) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target("power-dns.com.");
@@ -5952,7 +5961,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_bogus_cname) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target("power-dns.com.");
@@ -6053,7 +6062,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_secure_cname) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target("power-dns.com.");
@@ -6154,7 +6163,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_to_insecure_cname) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target("powerdns.com.");
@@ -6271,7 +6280,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_ta) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target("powerdns.com.");
@@ -6371,7 +6380,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_ta_norrsig) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target("powerdns.com.");
@@ -6471,7 +6480,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_nta) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target(".");
@@ -6537,7 +6546,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_no_ta) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target(".");
