@@ -160,7 +160,7 @@ try
     DNSPacket cached(false);
     g_PC->get(&q, &cached);
 
-    g_PC->insert(&q, &r, 10);
+    g_PC->insert(&q, &r, 60);
   }
 
   return 0;
