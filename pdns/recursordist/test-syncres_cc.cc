@@ -4871,7 +4871,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_ds_sign_loop) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target("www.powerdns.com.");
@@ -6714,7 +6714,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_nodata) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
-  g_dnssecmode = DNSSECMode::ValidateAll;
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target("powerdns.com.");
