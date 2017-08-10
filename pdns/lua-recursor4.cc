@@ -274,8 +274,7 @@ RecursorLua4::RecursorLua4(const std::string& fname)
     }
   );
   d_lw->executeCode("DNSName = { ud = DNSName, }");
-  d_lw->executeCode("DNSName.__call = function(self, a) local mt = getmetatable(self) local n = mt.ud(a or '') local nmt = getmetatable(n) local udmt = getmetatable(mt.u
-) nmt.__eq = udmt.__eq nmt.__tostring = udmt.__tostring return n end");
+  d_lw->executeCode("DNSName.__call = function(self, a) local mt = getmetatable(self) local n = mt.ud(a or '') local nmt = getmetatable(n) local udmt = getmetatable(mt.ud) nmt.__eq = udmt.__eq nmt.__tostring = udmt.__tostring return n end");
   d_lw->executeCode("DNSName.__eq = function(self, o) local mt = getmetatable(self) local udmt = getmetatable(mt.ud) return udmt.__eq(self, o) end");
   d_lw->executeCode("DNSName.__tostring = function(self) local mt = getmetatable(self) local udmt = getmetatable(mt.ud) return udmt.__tostring(self) end");
   d_lw->executeCode("DNSName = setmetatable({}, DNSName)");
