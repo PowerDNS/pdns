@@ -825,7 +825,7 @@ void restoreFlags(struct dnsheader* dh, uint16_t origFlags);
 extern std::vector<std::tuple<ComboAddress,DnsCryptContext,bool,int, std::string>> g_dnsCryptLocals;
 
 int handleDnsCryptQuery(DnsCryptContext* ctx, char* packet, uint16_t len, std::shared_ptr<DnsCryptQuery>& query, uint16_t* decryptedQueryLen, bool tcp, std::vector<uint8_t>& response);
-bool encryptResponse(char* response, uint16_t* responseLen, size_t responseSize, bool tcp, std::shared_ptr<DnsCryptQuery> dnsCryptQuery);
+bool encryptResponse(char* response, uint16_t* responseLen, size_t responseSize, bool tcp, std::shared_ptr<DnsCryptQuery> dnsCryptQuery, dnsheader** dh, dnsheader* dhCopy);
 #endif
 
 #include "dnsdist-snmp.hh"

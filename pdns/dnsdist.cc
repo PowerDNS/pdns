@@ -331,10 +331,17 @@ bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize,
 }
 
 #ifdef HAVE_DNSCRYPT
-bool encryptResponse(char* response, uint16_t* responseLen, size_t responseSize, bool tcp, std::shared_ptr<DnsCryptQuery> dnsCryptQuery)
+bool encryptResponse(char* response, uint16_t* responseLen, size_t responseSize, bool tcp, std::shared_ptr<DnsCryptQuery> dnsCryptQuery, dnsheader** dh, dnsheader* dhCopy)
 {
   if (dnsCryptQuery) {
     uint16_t encryptedResponseLen = 0;
+
+    /* save the original header before encrypting it in place */
+    if (dh != nullptr && *dh != nullptr && dhCopy != nullptr) {
+      memcpy(dhCopy, *dh, sizeof(dnsheader));
+      *dh = dhCopy;
+    }
+
     int res = dnsCryptQuery->ctx->encryptResponse(response, *responseLen, responseSize, dnsCryptQuery, tcp, &encryptedResponseLen);
     if (res == 0) {
       *responseLen = encryptedResponseLen;
@@ -377,15 +384,18 @@ try {
   auto localRespRulactions = g_resprulactions.getLocal();
 #ifdef HAVE_DNSCRYPT
   char packet[4096 + DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE];
+  /* when the answer is encrypted in place, we need to get a copy
+     of the original header before encryption to fill the ring buffer */
+  dnsheader dhCopy;
 #else
   char packet[4096];
 #endif
   static_assert(sizeof(packet) <= UINT16_MAX, "Packet size should fit in a uint16_t");
   vector<uint8_t> rewrittenResponse;
 
-  struct dnsheader* dh = (struct dnsheader*)packet;
   uint16_t queryId = 0;
   for(;;) {
+    dnsheader* dh = reinterpret_cast<struct dnsheader*>(packet);
     try {
       ssize_t got = recv(state->fd, packet, sizeof(packet), 0);
       char * response = packet;
@@ -449,7 +459,7 @@ try {
 
       if (ids->cs && !ids->cs->muted) {
 #ifdef HAVE_DNSCRYPT
-        if (!encryptResponse(response, &responseLen, responseSize, false, ids->dnsCryptQuery)) {
+        if (!encryptResponse(response, &responseLen, responseSize, false, ids->dnsCryptQuery, &dh, &dhCopy)) {
           continue;
         }
 #endif
@@ -1174,7 +1184,7 @@ try
 
         if (!cs->muted) {
 #ifdef HAVE_DNSCRYPT
-          if (!encryptResponse(response, &responseLen, dq.size, false, dnsCryptQuery)) {
+          if (!encryptResponse(response, &responseLen, dq.size, false, dnsCryptQuery, nullptr, nullptr)) {
             continue;
           }
 #endif
@@ -1219,7 +1229,7 @@ try
 
           if (!cs->muted) {
 #ifdef HAVE_DNSCRYPT
-            if (!encryptResponse(cachedResponse, &cachedResponseSize, sizeof cachedResponse, false, dnsCryptQuery)) {
+            if (!encryptResponse(cachedResponse, &cachedResponseSize, sizeof cachedResponse, false, dnsCryptQuery, nullptr, nullptr)) {
               continue;
             }
 #endif
@@ -1246,7 +1256,7 @@ try
           dq.dh->qr = true;
 
 #ifdef HAVE_DNSCRYPT
-          if (!encryptResponse(response, &responseLen, dq.size, false, dnsCryptQuery)) {
+          if (!encryptResponse(response, &responseLen, dq.size, false, dnsCryptQuery, nullptr, nullptr)) {
             continue;
           }
 #endif

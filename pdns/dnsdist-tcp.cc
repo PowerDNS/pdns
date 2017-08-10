@@ -233,6 +233,11 @@ void* tcpClientThread(int pipefd)
 #ifdef HAVE_PROTOBUF
   boost::uuids::random_generator uuidGenerator;
 #endif
+#ifdef HAVE_DNSCRYPT
+  /* when the answer is encrypted in place, we need to get a copy
+     of the original header before encryption to fill the ring buffer */
+  dnsheader dhCopy;
+#endif
 
   map<ComboAddress,int> sockets;
   for(;;) {
@@ -365,7 +370,7 @@ void* tcpClientThread(int pipefd)
 	if(dq.dh->qr) { // something turned it into a response
           restoreFlags(dh, origFlags);
 #ifdef HAVE_DNSCRYPT
-          if (!encryptResponse(queryBuffer, &dq.len, dq.size, true, dnsCryptQuery)) {
+          if (!encryptResponse(queryBuffer, &dq.len, dq.size, true, dnsCryptQuery, nullptr, nullptr)) {
             goto drop;
           }
 #endif
@@ -413,7 +418,7 @@ void* tcpClientThread(int pipefd)
             }
 
 #ifdef HAVE_DNSCRYPT
-            if (!encryptResponse(cachedResponse, &cachedResponseSize, sizeof cachedResponse, true, dnsCryptQuery)) {
+            if (!encryptResponse(cachedResponse, &cachedResponseSize, sizeof cachedResponse, true, dnsCryptQuery, nullptr, nullptr)) {
               goto drop;
             }
 #endif
@@ -433,7 +438,7 @@ void* tcpClientThread(int pipefd)
             dq.dh->qr = true;
 
 #ifdef HAVE_DNSCRYPT
-            if (!encryptResponse(queryBuffer, &dq.len, dq.size, true, dnsCryptQuery)) {
+            if (!encryptResponse(queryBuffer, &dq.len, dq.size, true, dnsCryptQuery, nullptr, nullptr)) {
               goto drop;
             }
 #endif
@@ -569,7 +574,7 @@ void* tcpClientThread(int pipefd)
 	}
 
 #ifdef HAVE_DNSCRYPT
-        if (!encryptResponse(response, &responseLen, responseSize, true, dnsCryptQuery)) {
+        if (!encryptResponse(response, &responseLen, responseSize, true, dnsCryptQuery, &dh, &dhCopy)) {
           goto drop;
         }
 #endif
