@@ -775,6 +775,7 @@ struct ConsoleKeyword {
   }
 };
 extern const std::vector<ConsoleKeyword> g_consoleKeywords;
+extern bool g_logConsoleConnections;
 
 #ifdef HAVE_EBPF
 extern shared_ptr<BPFFilter> g_defaultBPFFilter;

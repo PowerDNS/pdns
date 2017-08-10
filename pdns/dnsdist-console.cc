@@ -35,6 +35,7 @@
 #include "ext/json11/json11.hpp"
 
 vector<pair<struct timeval, string> > g_confDelta;
+bool g_logConsoleConnections{true};
 
 // MUST BE CALLED UNDER A LOCK - right now the LuaLock
 void feedConfigDelta(const std::string& line)
@@ -358,6 +359,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "sendCustomTrap", true, "str", "send a custom `SNMP` trap from Lua, containing the `str` string"},
   { "setACL", true, "{netmask, netmask}", "replace the ACL set with these netmasks. Use `setACL({})` to reset the list, meaning no one can use us" },
   { "setAPIWritable", true, "bool, dir", "allow modifications via the API. if `dir` is set, it must be a valid directory where the configuration files will be written by the API" },
+  { "setConsoleConnectionsLogging", true, "enabled", "whether to log the opening and closing of console connections" },
   { "setDNSSECPool", true, "pool name", "move queries requesting DNSSEC processing to this pool" },
   { "setDynBlocksAction", true, "action", "set which action is performed when a query is blocked. Only DNSAction.Drop (the default) and DNSAction.Refused are supported" },
   { "setECSOverride", true, "bool", "whether to override an existing EDNS Client Subnet value in the query" },
@@ -568,7 +570,9 @@ try
     putMsgLen32(fd, response.length());
     writen2(fd, response.c_str(), response.length());
   }
-  infolog("Closed control connection from %s", client.toStringWithPort());
+  if (g_logConsoleConnections) {
+    infolog("Closed control connection from %s", client.toStringWithPort());
+  }
   close(fd);
   fd=-1;
 }
