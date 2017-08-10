@@ -20193,6 +20193,3 @@ rhs-at-expansion	IN   CNAME      @
 google-alias		IN 	ALIAS 	google-public-dns-a.google.com.
 ;
 host-for-auto-ptr	IN	A 192.0.2.1
-;
-xpf 				IN XPF 4 17 1.2.3.4 5.6.7.8 43707 52445
-xpf6    			IN XPF 6 17 1:2:3:4:5:6:7:8 f:e:d:c:b:a:9:8 43707 52445
