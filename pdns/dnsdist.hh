@@ -148,6 +148,7 @@ struct DNSQuestion
   bool skipCache{false};
   bool ecsOverride;
   bool useECS{true};
+  bool addXPF{true};
 };
 
 struct DNSResponse : DNSQuestion
@@ -630,6 +631,7 @@ struct DownstreamState
   bool mustResolve{false};
   bool upStatus{false};
   bool useECS{false};
+  bool addXPF{false};
   bool setCD{false};
   std::atomic<bool> connected{false};
   bool tcpFastOpen{false};
@@ -850,6 +852,8 @@ extern std::vector<std::tuple<ComboAddress,DnsCryptContext,bool,int, std::string
 int handleDnsCryptQuery(DnsCryptContext* ctx, char* packet, uint16_t len, std::shared_ptr<DnsCryptQuery>& query, uint16_t* decryptedQueryLen, bool tcp, std::vector<uint8_t>& response);
 bool encryptResponse(char* response, uint16_t* responseLen, size_t responseSize, bool tcp, std::shared_ptr<DnsCryptQuery> dnsCryptQuery, dnsheader** dh, dnsheader* dhCopy);
 #endif
+
+bool addXPF(DNSQuestion& dq);
 
 #include "dnsdist-snmp.hh"
 

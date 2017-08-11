@@ -1144,3 +1144,17 @@ TCP port where the webserver should listen on.
 -  Default: yes
 
 If a PID file should be written to `socket-dir`_
+
+``xpf-allow-from``
+-------------
+.. versionadded:: 4.1.0
+
+-  IP ranges, separated by commas
+-  Default: empty
+
+This is an experimental implementation of `draft-bellis-dnsop-xpf`.
+The server will trust XPF records found in queries sent from those netmasks (both IPv4 and IPv6),
+and will adjust queries' source and destination accordingly. This is especially useful when the recursor
+is placed behind a proxy like dnsdist.
+Note that the `allow-from`_ setting is still applied to the original source address, and thus access restriction
+should be done on the proxy.
