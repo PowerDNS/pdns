@@ -36,7 +36,7 @@ AC_DEFUN([AX_ENABLE_SYSTEMD_OPTS], [
 ])
 
 AC_DEFUN([AX_ALLOW_SYSTEMD_OPTS], [
-	AX_ARG_DEFAULT_DISABLE([systemd], [Enable systemd support])
+	AX_ARG_DEFAULT_DISABLE([systemd], [Enable systemd support], [$1])
 	AX_SYSTEMD_OPTIONS()
 ])
 
@@ -124,7 +124,7 @@ dnl Systemd will be disabled by default but if your build system is detected
 dnl to have systemd build libraries it will be enabled. You can always force
 dnl disable with --disable-systemd
 AC_DEFUN([AX_AVAILABLE_SYSTEMD], [
-	AX_ALLOW_SYSTEMD_OPTS()
+	AX_ALLOW_SYSTEMD_OPTS([, but will be enabled when libraries are found])
 	AX_CHECK_SYSTEMD_DETECT_AND_ENABLE()
 	AX_CHECK_SYSTEMD()
 ])
