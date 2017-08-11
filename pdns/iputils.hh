@@ -188,6 +188,8 @@ union ComboAddress {
     sin4.sin_family=AF_INET;
     sin4.sin_addr.s_addr=0;
     sin4.sin_port=0;
+    sin6.sin6_scope_id = 0;
+    sin6.sin6_flowinfo = 0;
   }
 
   ComboAddress(const struct sockaddr *sa, socklen_t salen) {
@@ -267,7 +269,7 @@ union ComboAddress {
   string toString() const
   {
     char host[1024];
-    int retval;
+    int retval = 0;
     if(sin4.sin_family && !(retval = getnameinfo((struct sockaddr*) this, getSocklen(), host, sizeof(host),0, 0, NI_NUMERICHOST)))
       return host;
     else
@@ -310,26 +312,28 @@ inline ComboAddress makeComboAddress(const string& str)
   return address;
 }
 
-inline ComboAddress makeComboAddressFromRaw(uint8_t version, const string &str)
+inline ComboAddress makeComboAddressFromRaw(uint8_t version, const char* raw, size_t len)
 {
   ComboAddress address;
-  size_t len;
 
   if (version == 4) {
-    len = 4;
-    address.sin4.sin_family=AF_INET;
-    if(str.size() != len) throw NetmaskException("invalid raw address length");
-    memcpy(&address.sin4.sin_addr, str.c_str(), len);
+    address.sin4.sin_family = AF_INET;
+    if (len != sizeof(address.sin4.sin_addr)) throw NetmaskException("invalid raw address length");
+    memcpy(&address.sin4.sin_addr, raw, sizeof(address.sin4.sin_addr));
   }
   else if (version == 6) {
-    len = 16;
-    address.sin4.sin_family=AF_INET6;
-    if(str.size() != len) throw NetmaskException("invalid raw address length");
-    memcpy(&address.sin6.sin6_addr, str.c_str(), len);
+    address.sin6.sin6_family = AF_INET6;
+    if (len != sizeof(address.sin6.sin6_addr)) throw NetmaskException("invalid raw address length");
+    memcpy(&address.sin6.sin6_addr, raw, sizeof(address.sin6.sin6_addr));
   }
   else throw NetmaskException("invalid address family");
 
   return address;
+}
+
+inline ComboAddress makeComboAddressFromRaw(uint8_t version, const string &str)
+{
+  return makeComboAddressFromRaw(version, str.c_str(), str.size());
 }
 
 /** This class represents a netmask and can be queried to see if a certain

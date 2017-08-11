@@ -14,9 +14,6 @@
 #include "ednssubnet.hh"
 #include "iputils.hh"
 
-/* extract a specific EDNS0 option from a pointer on the beginning rdLen of the OPT RR */
-int getEDNSOption(char* optRR, size_t len, uint16_t wantedOption, char ** optionValue, size_t * optionValueSize);
-
 BOOST_AUTO_TEST_SUITE(ednsoptions_cc)
 
 static void getRawQueryWithECSAndCookie(const DNSName& name, const Netmask& ecs, const std::string& clientCookie, const std::string& serverCookie, std::vector<uint8_t>& query)

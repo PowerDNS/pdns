@@ -245,6 +245,8 @@ Servers
 
     newServer({
       address="IP:PORT",     -- IP and PORT of the backend server (mandatory)
+      addXPF=BOOL,           -- Add the client's IP address and port to the query, along with the original destination address and port,
+                             -- using the experimental XPF record from `draft-bellis-dnsop-xpf`. Default to false
       qps=NUM,               -- Limit the number of queries per second to NUM, when using the `firstAvailable` policy
       order=NUM,             -- The order of this server, used by the `leastOustanding` and `firstAvailable` policies
       weight=NUM,            -- The weight of this server, used by the `wrandom` and `whashed` policies
