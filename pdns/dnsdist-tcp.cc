@@ -190,7 +190,11 @@ static bool sendResponseToClient(int fd, const char* response, uint16_t response
 static bool maxConnectionDurationReached(unsigned int maxConnectionDuration, time_t start, unsigned int& remainingTime)
 {
   if (maxConnectionDuration) {
-    time_t elapsed = time(NULL) - start;
+    time_t curtime = time(nullptr);
+    unsigned int elapsed = 0;
+    if (curtime > start) { // To prevent issues when time goes backward
+      elapsed = curtime - start;
+    }
     if (elapsed >= maxConnectionDuration) {
       return true;
     }
