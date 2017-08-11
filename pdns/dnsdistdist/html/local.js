@@ -46,97 +46,6 @@ $(document).ready(function() {
     cpugraph.render();
     var intervalcount=0;
 
-    function updateRingBuffers()
-    {
-        var filtered=$("#filter1").is(':checked')
-        var qstring='jsonstat?command=get-query-ring&name=queries';
-        if(filtered)
-            qstring=qstring+"&public-filtered=1";
-
-        $.getJSON(qstring,
-                  function(data) {
-                      console.log(data);
-                      var bouw="<table><tr><th>Number</th><th>Domain</th><th>Type</th></tr>";
-                      var num=0;
-                      var total=0, rest=0;
-                      $.each(data["entries"], function(a,b) {
-                          total+=b[0];
-                          if(num++ > 10) {
-                              rest+=b[0];
-                              return;
-                          }
-                          if(b[1].length > 25)
-                              b[1]=b[1].substring(0,25);
-
-                          bouw=bouw+("<tr><td>"+b[0]+"</td><td>"+b[1]+"</td><td>"+b[2]+"</td></tr>");
-                      });
-                      bouw+="<tr><td>"+rest+"</td><td>Rest</td></tr>";
-                      bouw=bouw+"</table>";
-                      $("#queryring").html(bouw);
-
-                  });
-
-        filtered=$("#filter2").is(':checked')
-        qstring='jsonstat?command=get-query-ring&name=servfail-queries';
-        if(filtered)
-            qstring=qstring+"&public-filtered=1";
-
-        $.getJSON(qstring, 
-                  function(data) {
-                      var bouw="<table><tr><th>Number</th><th>Servfail domain</th><th>Type</th></tr>";
-                      var num=0, total=0, rest=0;
-                      $.each(data["entries"], function(a,b) {
-                          total+=b[0];
-                          if(num++ > 10) {
-                              rest+=b[0];
-                              return;
-                          }
-                          if(b[1].length > 25)
-                              b[1]=b[1].substring(0,25);
-                          bouw=bouw+("<tr><td>"+b[0]+"</td><td>"+b[1]+"</td><td>"+b[2]+"</td></tr>");
-                      });
-                      bouw+="<tr><td>"+rest+"</td><td>Rest</td></tr>";
-                      bouw=bouw+"</table>";
-                      $("#servfailqueryring").html(bouw);
-
-                  });
-
-        $.getJSON('jsonstat?command=get-remote-ring&name=remotes', 
-                  function(data) {
-                      var bouw="<table><tr><th>Number</th><th>Remote</th></tr>";
-                      var num=0, total=0, rest=0;
-                      $.each(data["entries"], function(a,b) {
-                          total+=b[0];
-                          if(num++ > 10) {
-                              rest +=b[0];
-                              return;
-                          }
-                          bouw=bouw+("<tr><td>"+b[0]+"</td><td>"+b[1]+"</td></tr>");
-                      });
-                      bouw+="<tr><td>"+rest+"</td><td>Rest</td></tr>";
-                      bouw=bouw+"</table>";
-                      $("#remotering").html(bouw);
-
-                  });
-
-        $.getJSON('jsonstat?command=get-remote-ring&name=servfail-remotes', 
-                  function(data) {
-                      var bouw="<table><tr><th>Number</th><th>Servfail Remote</th></tr>";
-                      var num=0, total=0, rest=0;
-                      $.each(data["entries"], function(a,b) {
-                          total+=b[0];
-                          if(num++ > 10) {
-                              rest += b[0];
-                              return;
-                          }
-                          bouw=bouw+("<tr><td>"+b[0]+"</td><td>"+b[1]+"</td></tr>");
-                      });
-                      bouw+="<tr><td>"+rest+"</td><td>Rest</td></tr>";
-                      bouw=bouw+"</table>";
-                      $("#servfailremotering").html(bouw);
-                  });
-    }
-
     function update()
     {
         $.ajax({
@@ -227,10 +136,6 @@ $(document).ready(function() {
                });
 
 
-//        if((intervalcount++)%5)
-  //          return;
-        //      updateRingBuffers();
-
         $.ajax({ url: 'jsonstat?command=dynblocklist', type: 'GET', dataType: 'json', jsonp: false,
                  success: function(data) {
                      var bouw='<table width="100%"><tr align=left><th>Dyn blocked netmask</th><th>Seconds</th><th>Blocks</th><th align=left>Reason</th></tr>';
@@ -267,9 +172,6 @@ $(document).ready(function() {
 
     };
     
-    $("#filter1").click(updateRingBuffers);
-    $("#filter2").click(updateRingBuffers);
-
     update();
     setInterval(update, 1000);
 });

@@ -63,7 +63,7 @@ $(document).ready(function() {
 
 	$.getJSON(qstring,
 		  function(data) {
-		      var bouw="<table><tr><th>Number</th><th>Domain</th><th>Type</th></tr>";
+		      var table = $('<table><tr><th>Number</th><th>Domain</th><th>Type</th></tr></table>');
 		      var num=0;
 		      var total=0, rest=0;
 		      $.each(data["entries"], function(a,b) {
@@ -75,12 +75,26 @@ $(document).ready(function() {
 			  if(b[1].length > 25)
 			      b[1]=b[1].substring(0,25);
 
-			  bouw=bouw+("<tr><td>"+b[0]+"</td><td>"+b[1]+"</td><td>"+b[2]+"</td></tr>");
-		      });
-		      bouw+="<tr><td>"+rest+"</td><td>Rest</td></tr>";
-		      bouw=bouw+"</table>";
-		      $("#queryring").html(bouw);
-
+			  var line = $('<tr />');
+			  var number = $('<td />');
+			  number.text(b[0]);
+			  var domain = $('<td />');
+			  domain.text(b[1]);
+			  var type = $('<td />');
+			  type.text(b[2]);
+			  line.append(number);
+			  line.append(domain);
+			  line.append(type);
+			  table.append(line);
+                      });
+		      var line = $('<tr />');
+		      var number = $('<td />');
+		      number.text(rest);
+		      var label = $('<td>Rest</td>');
+		      line.append(number);
+		      line.append(label);
+		      table.append(line);
+		      $("#queryring").html(table);
 		  });
 
 	filtered=$("#filter2").is(':checked')
@@ -91,7 +105,7 @@ $(document).ready(function() {
 
 	$.getJSON(qstring, 
 		  function(data) {
-		      var bouw="<table><tr><th>Number</th><th>Servfail domain</th><th>Type</th></tr>";
+		      var table = $('<table><tr><th>Number</th><th>Servfail domain</th><th>Type</th></tr></table>');
 		      var num=0, total=0, rest=0;
 		      $.each(data["entries"], function(a,b) {
 			  total+=b[0];
@@ -101,11 +115,26 @@ $(document).ready(function() {
 			  }
 			  if(b[1].length > 25)
 			      b[1]=b[1].substring(0,25);
-			  bouw=bouw+("<tr><td>"+b[0]+"</td><td>"+b[1]+"</td><td>"+b[2]+"</td></tr>");
+			  var line = $('<tr />');
+			  var number = $('<td />');
+			  number.text(b[0]);
+			  var domain = $('<td />');
+			  domain.text(b[1]);
+			  var type = $('<td />');
+			  type.text(b[2]);
+			  line.append(number);
+			  line.append(domain);
+			  line.append(type);
+			  table.append(line);
 		      });
-		      bouw+="<tr><td>"+rest+"</td><td>Rest</td></tr>";
-		      bouw=bouw+"</table>";
-		      $("#servfailqueryring").html(bouw);
+		      var line = $('<tr />');
+		      var number = $('<td />');
+		      number.text(rest);
+		      var label = $('<td>Rest</td>');
+		      line.append(number);
+		      line.append(label);
+		      table.append(line);
+		      $("#servfailqueryring").html(table);
 
 		  });
 
