@@ -1,10 +1,10 @@
 AC_DEFUN([AX_ARG_DEFAULT_ENABLE], [
-AC_ARG_ENABLE([$1], AS_HELP_STRING([--disable-$1], [$2 (default is ENABLED)]))
+AC_ARG_ENABLE([$1], AS_HELP_STRING([--disable-$1], [$2 (default is ENABLED$3)]))
 AX_PARSE_VALUE([$1], [y])
 ])
 
 AC_DEFUN([AX_ARG_DEFAULT_DISABLE], [
-AC_ARG_ENABLE([$1], AS_HELP_STRING([--enable-$1], [$2 (default is DISABLED)]))
+AC_ARG_ENABLE([$1], AS_HELP_STRING([--enable-$1], [$2 (default is DISABLED$3)]))
 AX_PARSE_VALUE([$1], [n])
 ])
 
