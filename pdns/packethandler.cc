@@ -885,6 +885,7 @@ int PacketHandler::processNotify(DNSPacket *p)
     
   // ok, we've done our checks
   di.backend = 0;
+  L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<": forwardNotify and addSlaveCheckRequest() ..."<<endl;
 
   if(!s_forwardNotify.empty()) {
     set<string> forwardNotify(s_forwardNotify);
