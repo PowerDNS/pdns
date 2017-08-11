@@ -165,7 +165,7 @@ SOA-EDIT
 
 When serving this zone, modify the SOA serial number in one of several
 ways. Mostly useful to get slaves to re-transfer a zone regularly to get
-fresh RRSIGs. See the `DNSSEC
+fresh RRSIGs. See the :ref:`DNSSEC
 documentation <soa-edit-ensure-signature-freshness-on-slaves>`
 for more information.
 
