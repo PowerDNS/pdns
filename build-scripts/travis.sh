@@ -534,7 +534,7 @@ test_recursor() {
   export DNSBULKTEST="/usr/bin/dnsbulktest"
   export RECCONTROL="${PDNS_RECURSOR_DIR}/bin/rec_control"
   run "cd pdns/recursordist/pdns-recursor-*"
-  run "make -j 3 check"
+  run "make -j 3 check || (cat test-suite.log; false)"
   run "cd ${TRAVIS_BUILD_DIR}"
   run "./build-scripts/test-recursor"
   export RECURSOR="${PDNSRECURSOR}"
