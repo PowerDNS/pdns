@@ -272,8 +272,8 @@ private:
       return ah & (bh<<1);
     }
   };
-  std::unordered_map<IPv6, uint32_t, IPv6Hash> d_ip6s;
-  std::unordered_map<uint32_t, uint32_t> d_ip4s;
+  std::unordered_map<IPv6, time_t, IPv6Hash> d_ip6s;
+  std::unordered_map<uint32_t, time_t> d_ip4s;
   mutable pthread_rwlock_t d_lock4;
   mutable pthread_rwlock_t d_lock6;
 };
