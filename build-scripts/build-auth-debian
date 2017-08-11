@@ -1,32 +1,21 @@
 #!/bin/sh
 
-export DEBFULLNAME="PowerDNS.COM BV AutoBuilder"
-export DEBEMAIL="noreply@powerdns.com"
-
 if [ "$0" != "./build-scripts/build-auth-debian" ]; then
   echo "Please run me from the root checkout dir"
   exit 1
 fi
 
-if [ -z "$VERSION" ]; then
-  echo 'Please set $VERSION' >&2
-  exit 1
-fi
+. build-scripts/functions.sh
+TARBALLPREFIX=pdns
 
-if [ -z "$RELEASE" ];then
-  echo 'Please set $RELEASE' >&2
-  exit 1
-fi
-
-DISTDIR=${DISTDIR:=.}
+startup
 
 set -e
 set -x
 
-rm -rf $DISTDIR/debian/
-cp -r build-scripts/debian-authoritative $DISTDIR/debian
+cp_tarball_to_tmp
 
-cd $DISTDIR
+cd ${SRCDIR}
 
 cat > debian/changelog << EOF
 pdns (${VERSION}-${RELEASE}) unstable; urgency=medium
@@ -60,3 +49,5 @@ if $(echo $PDNS_VERSION | grep -q -E '^0\.0\.'); then
 fi
 
 DH_OPTIONS=--parallel fakeroot debian/rules binary
+
+mv_debs_to_pwd

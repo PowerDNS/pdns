@@ -5,33 +5,15 @@ if [ "$0" != "./build-scripts/build-recursor-rpm" ]; then
   exit 1
 fi
 
-if [ -z "$VERSION" ]; then
-  echo 'Please set $VERSION' >&2
-  exit 1
-fi
+. build-scripts/functions.sh
+TARBALLPREFIX=pdns-recursor
 
-if [ -z "$TARBALLVERSION" ]; then
-  TARBALLVERSION=${VERSION}
-fi
-
-if [ -z "$RELEASE" ];then
-  echo 'Please set $RELEASE' >&2
-  exit 1
-fi
+startup
 
 set -e
 set -x
 
-# Prepare the build environment
-rpmdev-setuptree
-
-# This is somethat ugly...
-if [ -f pdns-recursor-${TARBALLVERSION}.tar.bz2 ]; then
-  mv pdns-recursor-${TARBALLVERSION}.tar.bz2 $HOME/rpmbuild/SOURCES
-else
-  echo "pdns-recursor-${TARBALLVERSION}.tar.bz2 not found" >&2
-  exit 1
-fi
+cp_tarball_to_rpm_sources
 
 # Some setups need rpmbuild in a 'special' env
 RPMBUILD_COMMAND='rpmbuild -bb pdns-recursor.spec'
@@ -59,7 +41,7 @@ if [ -f /etc/redhat-release ]; then
 # pidfile: /var/run/pdns_recursor.pid
 #
 
-# source function library
+# . function library
 . /etc/rc.d/init.d/functions
 
 RETVAL=0
