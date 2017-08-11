@@ -37,4 +37,6 @@ fi
 fakeroot debian/rules debian/control
 fakeroot debian/rules binary
 
+cd -
+
 mv_debs_to_pwd
