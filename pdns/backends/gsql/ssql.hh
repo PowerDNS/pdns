@@ -76,7 +76,7 @@ class SSql
 {
 public:
   virtual SSqlException sPerrorException(const string &reason)=0;
-  virtual SSqlStatement* prepare(const string& query, int nparams)=0;
+  virtual std::unique_ptr<SSqlStatement> prepare(const string& query, int nparams)=0;
   virtual void execute(const string& query)=0;
   virtual void startTransaction()=0;
   virtual void rollback()=0;

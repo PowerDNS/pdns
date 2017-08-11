@@ -326,10 +326,10 @@ void SPgSQL::execute(const string& query)
   }
 }
 
-SSqlStatement* SPgSQL::prepare(const string& query, int nparams)
+std::unique_ptr<SSqlStatement> SPgSQL::prepare(const string& query, int nparams)
 {
   d_nstatement++;
-  return new SPgSQLStatement(query, s_dolog, nparams, this, d_nstatement);
+  return std::unique_ptr<SSqlStatement>(new SPgSQLStatement(query, s_dolog, nparams, this, d_nstatement));
 }
 
 void SPgSQL::startTransaction() {

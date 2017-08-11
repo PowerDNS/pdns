@@ -65,15 +65,6 @@ static string backendName="[MyDNSbackend]";
 MyDNSBackend::MyDNSBackend(const string &suffix) {
   setArgPrefix("mydns"+suffix);
  
-  d_domainIdQuery_stmt = NULL;
-  d_domainNoIdQuery_stmt = NULL;
-  d_listQuery_stmt = NULL;
-  d_soaQuery_stmt = NULL;
-  d_basicQuery_stmt = NULL;
-  d_anyQuery_stmt = NULL;
-  d_query_stmt = NULL;
-  d_allDomainsQuery_stmt = NULL;
-
   try {
     d_db = new SMySQL(getArg("dbname"),
       getArg("host"),
@@ -150,20 +141,13 @@ MyDNSBackend::MyDNSBackend(const string &suffix) {
 }
 
 MyDNSBackend::~MyDNSBackend() {
-  delete d_domainIdQuery_stmt;
-  d_domainIdQuery_stmt = NULL;
-  delete d_domainNoIdQuery_stmt;
-  d_domainNoIdQuery_stmt = NULL;
-  delete d_listQuery_stmt;
-  d_listQuery_stmt = NULL;
-  delete d_soaQuery_stmt;
-  d_soaQuery_stmt = NULL;
-  delete d_basicQuery_stmt;
-  d_basicQuery_stmt = NULL;
-  delete d_anyQuery_stmt;
-  d_anyQuery_stmt = NULL;
-  delete d_allDomainsQuery_stmt;
-  d_allDomainsQuery_stmt = NULL;
+  d_domainIdQuery_stmt.release();
+  d_domainNoIdQuery_stmt.release();
+  d_listQuery_stmt.release();
+  d_soaQuery_stmt.release();
+  d_basicQuery_stmt.release();
+  d_anyQuery_stmt.release();
+  d_allDomainsQuery_stmt.release();
   delete(d_db);
 }
 
@@ -197,8 +181,8 @@ bool MyDNSBackend::list(const DNSName &target, int zoneId, bool include_disabled
   };
 
   try {
-    d_query_stmt = d_listQuery_stmt;
-    d_query_stmt->
+    d_query_stmt = &d_listQuery_stmt;
+    (*d_query_stmt)->
       bind("domain_id", zoneId)->
       execute();
   }
@@ -336,8 +320,8 @@ void MyDNSBackend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p
 
       if (qtype.getCode()==QType::ANY) {
         DLOG(L<<Logger::Debug<<"Running d_anyQuery_stmt with " << zoneId << ", " << host << ", " << sdom  << ", " << zoneId <<" , "<< qname << ", " << qtype.getName() << endl);
-        d_query_stmt = d_anyQuery_stmt;
-        d_query_stmt->
+        d_query_stmt = &d_anyQuery_stmt;
+        (*d_query_stmt)->
           bind("domain_id", zoneId)->
           bind("host", host)->
           bind("qname", qname.toString())->
@@ -346,8 +330,8 @@ void MyDNSBackend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p
           execute();
       } else {
         DLOG(L<<Logger::Debug<<"Running d_basicQuery_stmt with " << zoneId << ", " << host << ", " << qname << ", " << qtype.getName() << endl);
-        d_query_stmt = d_basicQuery_stmt;
-        d_query_stmt->
+        d_query_stmt = &d_basicQuery_stmt;
+        (*d_query_stmt)->
           bind("domain_id", zoneId)->
           bind("host", host)->
           bind("qname", qname.toString())->
@@ -368,7 +352,7 @@ bool MyDNSBackend::get(DNSResourceRecord &rr) {
   if (d_origin.empty()) {
     if (d_query_stmt) {
       try {
-        d_query_stmt->reset();
+        (*d_query_stmt)->reset();
       } catch (SSqlException &e) {
         throw PDNSException("MyDNSBackend unable to lookup "+d_qname+": "+e.txtReason());
       }
@@ -380,9 +364,9 @@ bool MyDNSBackend::get(DNSResourceRecord &rr) {
 
   SSqlStatement::row_t rrow;
 
-  if (d_query_stmt->hasNextRow()) {
+  if ((*d_query_stmt)->hasNextRow()) {
     try {
-      d_query_stmt->nextRow(rrow);
+      (*d_query_stmt)->nextRow(rrow);
     } catch (SSqlException &e) {
       throw PDNSException("MyDNSBackend unable to lookup "+d_qname+": "+e.txtReason());
     }
@@ -433,7 +417,7 @@ bool MyDNSBackend::get(DNSResourceRecord &rr) {
   }
 
   try {
-    d_query_stmt->reset();
+    (*d_query_stmt)->reset();
   } catch (SSqlException &e) {
     throw PDNSException("MyDNSBackend unable to lookup "+d_qname+": "+e.txtReason());
   }

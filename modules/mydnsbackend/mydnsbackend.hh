@@ -51,14 +51,14 @@ private:
 
   SSqlStatement::result_t d_result;
 
-  SSqlStatement* d_query_stmt;
-  SSqlStatement* d_domainIdQuery_stmt;
-  SSqlStatement* d_domainNoIdQuery_stmt;
-  SSqlStatement* d_listQuery_stmt;
-  SSqlStatement* d_soaQuery_stmt;
-  SSqlStatement* d_basicQuery_stmt;
-  SSqlStatement* d_anyQuery_stmt;
-  SSqlStatement* d_allDomainsQuery_stmt;
+  std::unique_ptr<SSqlStatement>* d_query_stmt;
+  std::unique_ptr<SSqlStatement> d_domainIdQuery_stmt;
+  std::unique_ptr<SSqlStatement> d_domainNoIdQuery_stmt;
+  std::unique_ptr<SSqlStatement> d_listQuery_stmt;
+  std::unique_ptr<SSqlStatement> d_soaQuery_stmt;
+  std::unique_ptr<SSqlStatement> d_basicQuery_stmt;
+  std::unique_ptr<SSqlStatement> d_anyQuery_stmt;
+  std::unique_ptr<SSqlStatement> d_allDomainsQuery_stmt;
 };
 
 #endif /* MYDNSBACKEND_HH */

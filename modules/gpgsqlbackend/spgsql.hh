@@ -36,7 +36,7 @@ public:
   
   SSqlException sPerrorException(const string &reason) override;
   void setLog(bool state) override;
-  SSqlStatement* prepare(const string& query, int nparams) override;
+  unique_ptr<SSqlStatement> prepare(const string& query, int nparams) override;
   void execute(const string& query) override;
 
   void startTransaction() override;

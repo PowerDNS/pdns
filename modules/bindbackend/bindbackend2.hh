@@ -286,20 +286,20 @@ private:
     handle(const handle &);
   };
 
-  SSqlStatement* d_getAllDomainMetadataQuery_stmt;
-  SSqlStatement* d_getDomainMetadataQuery_stmt;
-  SSqlStatement* d_deleteDomainMetadataQuery_stmt;
-  SSqlStatement* d_insertDomainMetadataQuery_stmt;
-  SSqlStatement* d_getDomainKeysQuery_stmt;
-  SSqlStatement* d_deleteDomainKeyQuery_stmt;
-  SSqlStatement* d_insertDomainKeyQuery_stmt;
-  SSqlStatement* d_GetLastInsertedKeyIdQuery_stmt;
-  SSqlStatement* d_activateDomainKeyQuery_stmt;
-  SSqlStatement* d_deactivateDomainKeyQuery_stmt;
-  SSqlStatement* d_getTSIGKeyQuery_stmt;
-  SSqlStatement* d_setTSIGKeyQuery_stmt;
-  SSqlStatement* d_deleteTSIGKeyQuery_stmt;
-  SSqlStatement* d_getTSIGKeysQuery_stmt;
+  unique_ptr<SSqlStatement> d_getAllDomainMetadataQuery_stmt;
+  unique_ptr<SSqlStatement> d_getDomainMetadataQuery_stmt;
+  unique_ptr<SSqlStatement> d_deleteDomainMetadataQuery_stmt;
+  unique_ptr<SSqlStatement> d_insertDomainMetadataQuery_stmt;
+  unique_ptr<SSqlStatement> d_getDomainKeysQuery_stmt;
+  unique_ptr<SSqlStatement> d_deleteDomainKeyQuery_stmt;
+  unique_ptr<SSqlStatement> d_insertDomainKeyQuery_stmt;
+  unique_ptr<SSqlStatement> d_GetLastInsertedKeyIdQuery_stmt;
+  unique_ptr<SSqlStatement> d_activateDomainKeyQuery_stmt;
+  unique_ptr<SSqlStatement> d_deactivateDomainKeyQuery_stmt;
+  unique_ptr<SSqlStatement> d_getTSIGKeyQuery_stmt;
+  unique_ptr<SSqlStatement> d_setTSIGKeyQuery_stmt;
+  unique_ptr<SSqlStatement> d_deleteTSIGKeyQuery_stmt;
+  unique_ptr<SSqlStatement> d_getTSIGKeysQuery_stmt;
 
   string d_transaction_tmpname;
   string d_logprefix;

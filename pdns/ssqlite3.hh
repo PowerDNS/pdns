@@ -42,7 +42,7 @@ public:
   //! Destructor.
   ~SSQLite3();
 
-  SSqlStatement* prepare(const string& query, int nparams);
+  std::unique_ptr<SSqlStatement> prepare(const string& query, int nparams) override;
   void execute(const string& query);
   void setLog(bool state);
 
