@@ -138,6 +138,8 @@ MyDNSBackend::MyDNSBackend(const string &suffix) {
     L<<Logger::Error<<"Cannot prepare statements: " << e.txtReason() <<endl;
     throw PDNSException("Cannot prepare statements: " + e.txtReason());
   }
+  // keeps static analyzers happy
+  d_query_stmt = nullptr;
 }
 
 MyDNSBackend::~MyDNSBackend() {
