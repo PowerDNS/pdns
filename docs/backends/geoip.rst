@@ -167,6 +167,9 @@ then caching will not happen for any records of something.example.com.
 If you need to use TXT for debugging, make sure you use dedicated name
 for it.
 
+Since v4.1.0 you can mix service and static records to produce the sum
+of these records, including apex record.
+
 .. warning::
   If your services match wildcard records in your zone file
   then these will be returned as CNAMEs. This will only be an issue if you

@@ -45,6 +45,7 @@ domains:
     unknown.service.geo.example.com:
       - a: 127.0.0.1
   services:
+    geo.example.com: '%cn.service.geo.example.com'
     www.geo.example.com: '%cn.service.geo.example.com'
     indirect.geo.example.com: '%cn.elsewhere.example.com'
     city.geo.example.com: '%ci.%re.%cc.city.geo.example.com'

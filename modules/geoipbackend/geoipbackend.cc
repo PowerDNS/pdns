@@ -368,8 +368,7 @@ void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket 
 
   gl.netmask = 0;
 
-  if (this->lookup_static(dom, search, qtype, qdomain, ip, gl, v6))
-    return;
+  (void)this->lookup_static(dom, search, qtype, qdomain, ip, gl, v6);
 
   auto target = dom.services.find(search);
   if (target == dom.services.end()) return; // no hit
@@ -387,6 +386,15 @@ void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket 
     // see if the record can be found
     if (this->lookup_static(dom, format, qtype, qdomain, ip, gl, v6))
       return;
+  }
+
+  if (!d_result.empty()) {
+    L<<Logger::Error<<
+       "Cannot have static record and CNAME at the same time" <<
+       "Please fix your configuration for \"" << qdomain << "\", so that" <<
+       "it can be resolved by GeoIP backend directly."<< std::endl;
+    d_result.clear();
+    return;
   }
 
   // we need this line since we otherwise claim to have NS records etc
