@@ -257,65 +257,66 @@ void UeberBackend::getUpdatedMasters(vector<DomainInfo>* domains)
 
 bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* sd, bool cachedOk)
 {
+  // A backend can respond to our authority request with the 'best' match it
+  // has. For example, when asked for a.b.c.example.com. it might respond with
+  // com. We then store that and keep querying the other backends in case one
+  // of them has a more specific zone but don't bother asking this specific
+  // backend again for b.c.example.com., c.example.com. and example.com.
+  // If a backend has no match it may respond with an enmpty qname.
+
   bool found = false;
   int cstat;
-  DNSName choppedOff(target);
+  DNSName shorter(target);
   vector<pair<size_t, SOAData> > bestmatch (backends.size(), make_pair(target.wirelength()+1, SOAData()));
   do {
 
     // Check cache
     if(cachedOk && (d_cache_ttl || d_negcache_ttl)) {
       d_question.qtype = QType::SOA;
-      d_question.qname = choppedOff;
+      d_question.qname = shorter;
       d_question.zoneId = -1;
 
       cstat = cacheHas(d_question,d_answers);
 
       if(cstat == 1 && !d_answers.empty() && d_cache_ttl) {
-        DLOG(L<<Logger::Error<<"has pos cache entry: "<<choppedOff<<endl);
+        DLOG(L<<Logger::Error<<"has pos cache entry: "<<shorter<<endl);
         fillSOAData(d_answers[0], *sd);
 
         sd->db = 0;
-        sd->qname = choppedOff;
+        sd->qname = shorter;
         goto found;
       } else if(cstat == 0 && d_negcache_ttl) {
-        DLOG(L<<Logger::Error<<"has neg cache entry: "<<choppedOff<<endl);
+        DLOG(L<<Logger::Error<<"has neg cache entry: "<<shorter<<endl);
         continue;
       }
     }
 
     // Check backends
-    // A backend can respond to our SOA request with the 'best'
-    // match it has. For example, when asked the SOA for a.b.c.powerdns.com.
-    // it might respond with the SOA for powerdns.com.
-    // We then store that, keep querying the other backends in case
-    // one of them has a more specific SOA but don't bother
-    // asking this specific backend again for b.c.powerdns.com. or c.powerdns.com.
     {
       vector<DNSBackend *>::const_iterator i = backends.begin();
       vector<pair<size_t, SOAData> >::iterator j = bestmatch.begin();
       for(; i != backends.end() && j != bestmatch.end(); ++i, ++j) {
 
-        DLOG(L<<Logger::Error<<"backend: "<<i-backends.begin()<<", qname: "<<choppedOff<<endl);
+        DLOG(L<<Logger::Error<<"backend: "<<i-backends.begin()<<", qname: "<<shorter<<endl);
 
-        if(j->first < choppedOff.wirelength()) {
-          DLOG(L<<Logger::Error<<"skip this backend, we already know the 'higher' match: "<<j->second.qname<<endl);
+        if(j->first < shorter.wirelength()) {
+          DLOG(L<<Logger::Error<<"skipped, we already found a shorter best match in this backend: "<<j->second.qname<<endl);
           continue;
-        } else if(j->first == choppedOff.wirelength()) {
-          DLOG(L<<Logger::Error<<"use 'higher' match: "<<j->second.qname<<endl);
+        } else if(j->first == shorter.wirelength()) {
+          DLOG(L<<Logger::Error<<"use shorter best match: "<<j->second.qname<<endl);
           *sd = j->second;
           break;
         } else {
-          DLOG(L<<Logger::Error<<"lookup: "<<choppedOff<<endl);
-          if((*i)->getAuth(choppedOff, sd)) {
+          DLOG(L<<Logger::Error<<"lookup: "<<shorter<<endl);
+          if((*i)->getAuth(shorter, sd)) {
             DLOG(L<<Logger::Error<<"got: "<<sd->qname<<endl);
             j->first = sd->qname.wirelength();
             j->second = *sd;
-            if(sd->qname == choppedOff) {
+            if(sd->qname == shorter) {
               break;
             }
           } else {
-            DLOG(L<<Logger::Error<<"no match for: "<<choppedOff<<endl);
+            DLOG(L<<Logger::Error<<"no match for: "<<shorter<<endl);
           }
         }
       }
@@ -323,8 +324,8 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
       // Add to cache
       if(i == backends.end()) {
         if(d_negcache_ttl) {
-          DLOG(L<<Logger::Error<<"add neg cache entry:"<<choppedOff<<endl);
-          d_question.qname=choppedOff;
+          DLOG(L<<Logger::Error<<"add neg cache entry:"<<shorter<<endl);
+          d_question.qname=shorter;
           addNegCache(d_question);
         }
         continue;
@@ -337,7 +338,6 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
         DNSZoneRecord rr;
         rr.dr.d_name = sd->qname;
         rr.dr.d_type = QType::SOA;
-        
         rr.dr.d_content = makeSOAContent(*sd);
         rr.dr.d_ttl = sd->ttl;
         rr.domain_id = sd->domain_id;
@@ -347,7 +347,7 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
     }
 
 found:
-    if(found == (qtype == QType::DS)){
+    if(found == (qtype == QType::DS) || target != shorter) {
       DLOG(L<<Logger::Error<<"found: "<<sd->qname<<endl);
       return true;
     } else {
@@ -355,7 +355,7 @@ found:
       found = true;
     }
 
-  } while(choppedOff.chopOff());
+  } while(shorter.chopOff());
   return found;
 }
 
