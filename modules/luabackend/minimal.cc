@@ -200,6 +200,7 @@ bool LUABackend::getSOA(const DNSName &name, SOAData &soadata) {
 
     soadata.db = this;
     soadata.serial = 0;
+    soadata.qname = name;
     getValueFromTable(lua, "serial", soadata.serial);
     if (soadata.serial == 0) {
 	lua_pop(lua, 1 );
