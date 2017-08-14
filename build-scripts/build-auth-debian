@@ -50,4 +50,6 @@ fi
 
 DH_OPTIONS=--parallel fakeroot debian/rules binary
 
+cd -
+
 mv_debs_to_pwd
