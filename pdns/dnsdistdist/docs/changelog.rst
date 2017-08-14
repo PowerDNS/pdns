@@ -385,6 +385,12 @@ Changelog
 
     Remove BlockFilter.
 
+  .. change::
+    :tags: New Features
+    :pullreq: 5396
+
+    Add the capability to set arbitrary tags in protobuf messages.
+
 1.1.0
 -----
 
