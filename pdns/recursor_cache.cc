@@ -289,7 +289,16 @@ uint64_t MemRecursorCache::doDump(int fd)
     for(auto j=i->d_records.cbegin(); j != i->d_records.cend(); ++j) {
       count++;
       try {
-        fprintf(fp, "%s %d IN %s %s ; %s\n", i->d_qname.toString().c_str(), (int32_t)(i->d_ttd - now), DNSRecordContent::NumberToType(i->d_qtype).c_str(), (*j)->getZoneRepresentation().c_str(), i->d_netmask.empty() ? "" : i->d_netmask.toString().c_str());
+        fprintf(fp, "%s %d IN %s %s ; auth=%i %s\n", i->d_qname.toString().c_str(), (int32_t)(i->d_ttd - now), DNSRecordContent::NumberToType(i->d_qtype).c_str(), (*j)->getZoneRepresentation().c_str(), i->d_auth, i->d_netmask.empty() ? "" : i->d_netmask.toString().c_str());
+      }
+      catch(...) {
+        fprintf(fp, "; error printing '%s'\n", i->d_qname.empty() ? "EMPTY" : i->d_qname.toString().c_str());
+      }
+    }
+    for(const auto &sig : i->d_signatures) {
+      count++;
+      try {
+        fprintf(fp, "%s %" PRId64 " IN RRSIG %s ; %s\n", i->d_qname.toString().c_str(), static_cast<int64_t>(i->d_ttd - now), sig->getZoneRepresentation().c_str(), i->d_netmask.empty() ? "" : i->d_netmask.toString().c_str());
       }
       catch(...) {
         fprintf(fp, "; error printing '%s'\n", i->d_qname.empty() ? "EMPTY" : i->d_qname.toString().c_str());
