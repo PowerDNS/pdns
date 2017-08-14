@@ -1,6 +1,9 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
+#include <cinttypes>
+
 #include "recursor_cache.hh"
 #include "misc.hh"
 #include <iostream>
