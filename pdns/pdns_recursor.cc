@@ -1089,7 +1089,7 @@ static void startDoResolve(void *p)
       if(ret.size()) {
         orderAndShuffle(ret);
 	if(auto sl = luaconfsLocal->sortlist.getOrderCmp(dc->d_remote)) {
-	  sort(ret.begin(), ret.end(), *sl);
+	  stable_sort(ret.begin(), ret.end(), *sl);
 	  variableAnswer=true;
 	}
       }
