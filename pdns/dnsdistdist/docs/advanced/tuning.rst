@@ -29,12 +29,11 @@ Large installations are advised to increase the default value at the cost of a s
 
 Most of the query processing is done in C++ for maximum performance, but some operations are executed in Lua for maximum flexibility:
 
- * The :func:`blockfilter` function
  * Rules added by :func:`addLuaAction`
  * Server selection policies defined via :func:`setServerPolicyLua` or :func:`newServerPolicy`
 
 While Lua is fast, its use should be restricted to the strict necessary in order to achieve maximum performance, it might be worth considering using LuaJIT instead of Lua.
-When Lua inspection is needed, the best course of action is to restrict the queries sent to Lua inspection by using :func:`addLuaAction` instead of inspecting all queries in the :func:`blockfilter` function.
+When Lua inspection is needed, the best course of action is to restrict the queries sent to Lua inspection by using :func:`addLuaAction` with a selector.
 
 :program:`dnsdist` design choices mean that the processing of UDP queries is done by only one thread per local bind.
 This is great to keep lock contention to a low level, but might not be optimal for setups using a lot of processing power, caused for example by a large number of complicated rules.

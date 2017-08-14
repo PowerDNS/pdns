@@ -499,6 +499,8 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
   g_lua.writeFunction("addAnyTCRule", []() {
       setLuaSideEffect();
+      warnlog("addAnyTCRule() is deprecated and will be removed in 1.3.0, please use addAction(AndRule{QTypeRule(dnsdist.ANY), TCPRule(false)}, TCAction()) instead");
+
       auto rules=g_rulactions.getCopy();
       std::vector<pair<int, shared_ptr<DNSRule> >> v;
       v.push_back({1, std::make_shared<QTypeRule>(0xff)});
@@ -707,6 +709,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
   g_lua.writeFunction("addDomainBlock", [](const std::string& domain) { 
       setLuaSideEffect();
+      warnlog("addDomainBlock() is deprecated and will be removed in 1.3.0, please use addAction(\"%s\", DropAction()) instead", domain);
       SuffixMatchNode smn;
       smn.add(DNSName(domain));
 	g_rulactions.modify([smn](decltype(g_rulactions)::value_type& rulactions) {
@@ -809,6 +812,8 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
   g_lua.writeFunction("addDomainSpoof", [](const std::string& domain, boost::variant<string,vector<pair<int, string>>> inp, boost::optional<string> b) { 
       setLuaSideEffect();
+      warnlog("addDomainSpoof() is deprecated and will be removed in 1.3.0, please use addAction(\"%s\", SpoofAction(...)) instead", domain);
+
       SuffixMatchNode smn;
       vector<ComboAddress> outp;
       try
@@ -840,6 +845,8 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
   g_lua.writeFunction("addDomainCNAMESpoof", [](const std::string& domain, const std::string& cname) {
       setLuaSideEffect();
+      warnlog("addDomainCNAMESpoof() is deprecated and will be removed in 1.3.0, please use addAction(\"%s\", SpoofCNAMEAction(\"%s\")) instead", domain, cname);
+
       SuffixMatchNode smn;
       try
       {
@@ -1048,6 +1055,8 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
   g_lua.writeFunction("addPoolRule", [](luadnsrule_t var, string pool) {
       setLuaSideEffect();
+      warnlog("addPoolRule() is deprecated and will be removed in 1.3.0, please use addAction(..., PoolAction(\"%s\")) instead", pool);
+
       auto rule=makeRule(var);
 	g_rulactions.modify([rule, pool](decltype(g_rulactions)::value_type& rulactions) {
 	    rulactions.push_back({
@@ -1058,6 +1067,8 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
   g_lua.writeFunction("addNoRecurseRule", [](luadnsrule_t var) {
       setLuaSideEffect();
+      warnlog("addNoRecurseRule() is deprecated and will be removed in 1.3.0, please use addAction(..., NoRecurseAction()) instead");
+
       auto rule=makeRule(var);
 	g_rulactions.modify([rule](decltype(g_rulactions)::value_type& rulactions) {
 	    rulactions.push_back({
@@ -1068,6 +1079,8 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
   g_lua.writeFunction("addDisableValidationRule", [](luadnsrule_t var) {
       setLuaSideEffect();
+      warnlog("addDisableValidationRule() is deprecated and will be removed in 1.3.0, please use addAction(..., DisableValidationAction()) instead");
+
       auto rule=makeRule(var);
 	g_rulactions.modify([rule](decltype(g_rulactions)::value_type& rulactions) {
 	    rulactions.push_back({
@@ -1079,6 +1092,8 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
   g_lua.writeFunction("addQPSPoolRule", [](luadnsrule_t var, int limit, string pool) {
       setLuaSideEffect();
+      warnlog("addQPSPoolRule() is deprecated and will be removed in 1.3.0, please use addAction(..., QPSPoolAction(%d, \"%s\")) instead", limit, pool);
+
       auto rule = makeRule(var);
       g_rulactions.modify([rule, pool,limit](decltype(g_rulactions)::value_type& rulactions) {
 	  rulactions.push_back({
@@ -1089,6 +1104,8 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
   g_lua.writeFunction("setDNSSECPool", [](const std::string& pool) {
       setLuaSideEffect();
+      warnlog("setDNSSECPool() is deprecated and will be removed in 1.3.0, please use addAction(DNSSECRule(), PoolAction(\"%s\")) instead", pool);
+
       g_rulactions.modify([pool](decltype(g_rulactions)::value_type& rulactions) {
 	  rulactions.push_back({std::make_shared<DNSSECRule>(), 
 		std::make_shared<PoolAction>(pool)}); 
@@ -1097,15 +1114,19 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
   g_lua.writeFunction("addQPSLimit", [](luadnsrule_t var, int lim) {
       setLuaSideEffect();
+      warnlog("addQPSLimit() is deprecated and will be removed in 1.3.0, please use addAction(..., QPSAction(%d)) instead", lim);
+
       auto rule = makeRule(var);
       g_rulactions.modify([lim,rule](decltype(g_rulactions)::value_type& rulactions) {
 	  rulactions.push_back({rule, 
 		std::make_shared<QPSAction>(lim)});
 	});
     });
-   
+
   g_lua.writeFunction("addDelay", [](luadnsrule_t var, int msec) {
       setLuaSideEffect();
+      warnlog("addDelay() is deprecated and will be removed in 1.3.0, please use addAction(..., DelayAction(%d)) instead", msec);
+
       auto rule = makeRule(var);
       g_rulactions.modify([msec,rule](decltype(g_rulactions)::value_type& rulactions) {
 	  rulactions.push_back({rule, 
