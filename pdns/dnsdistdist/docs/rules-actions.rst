@@ -78,9 +78,8 @@ Rule Generators
 
   .. deprecated:: 1.2.0
 
-  Set the TC-bit (truncate) on ANY queries received over UDP.
-  Forcing a retry over TCP.
-  This is equivalent to doing::
+  Set the TC-bit (truncate) on ANY queries received over UDP, forcing a retry over TCP.
+  This function is deprecated as of 1.2.0 and will be removed in 1.3.0. This is equivalent to doing::
 
     addAction(AndRule({QTypeRule(dnsdist.ANY), TCPRule(false)}), TCAction())
 
@@ -89,7 +88,7 @@ Rule Generators
   .. deprecated:: 1.2.0
 
   Delay the query for ``delay`` milliseconds before sending to a backend.
-  This function is deprecated as of 1.2.0, please use instead:
+  This function is deprecated as of 1.2.0 and will be removed in 1.3.0, please use instead:
 
     addAction(DNSRule, DelayAction(delay))
 
@@ -101,14 +100,14 @@ Rule Generators
   .. deprecated:: 1.2.0
 
   Set the CD (Checking Disabled) flag to 1 for all queries matching the DNSRule.
-  Using this function is equal to using the :func:`DisableValidationAction` action.
+  This function is deprecated as of 1.2.0 and will be removed in 1.3.0. Please use the :func:`DisableValidationAction` action instead.
 
 .. function:: addDomainBlock(domain)
 
   .. deprecated:: 1.2.0
 
   Drop all queries for ``domain`` and all names below it.
-  Deprecated as of 1.2.0, please use instead:
+  Deprecated as of 1.2.0 and will be removed in 1.3.0, please use instead:
 
     addAction(domain, DropAction())
 
@@ -120,7 +119,7 @@ Rule Generators
   .. deprecated:: 1.2.0
 
   Generate answers for A/AAAA/ANY queries.
-  This function is deprecated as of 1.2.0, please use:
+  This function is deprecated as of 1.2.0 and will be removed in 1.3.0, please use:
 
     addAction(domain, SpoofAction({IP[,...]}))
 
@@ -137,7 +136,7 @@ Rule Generators
 
   .. deprecated:: 1.2.0
 
-  Generate CNAME answers for queries. This function is deprecated as of 1.2.0 in favor of using:
+  Generate CNAME answers for queries. This function is deprecated as of 1.2.0 and will be removed in 1.3.0, in favor of using:
 
     addAction(domain, SpoofCNAMEAction(cname))
 
@@ -169,7 +168,7 @@ Rule Generators
   .. deprecated:: 1.2.0
 
   Clear the RD flag for all queries matching the rule.
-  This function is deprecated as of 1.2.0, please use:
+  This function is deprecated as of 1.2.0 and will be removed in 1.3.0, please use:
 
     addAction(DNSRule, NoRecurseAction())
 
@@ -184,7 +183,7 @@ Rule Generators
 
     addPoolRule("example.com", "myPool")
 
-  This function is deprecated as of 1.2.0, this is equivalent to::
+  This function is deprecated as of 1.2.0 and will be removed in 1.3.0, this is equivalent to::
 
     addAction("example.com", PoolAction("myPool"))
 
@@ -197,7 +196,7 @@ Rule Generators
 
   Limit queries matching the DNSRule to ``limit`` queries per second.
   All queries over the limit are dropped.
-  This function is deprecated as of 1.2.0, please use:
+  This function is deprecated as of 1.2.0 and will be removed in 1.3.0, please use:
 
     addAction(DNSRule, QPSLimitAction(limit))
 
@@ -209,7 +208,7 @@ Rule Generators
   .. deprecated:: 1.2.0
 
   Send at most ``limit`` queries/s for this pool, letting the subsequent rules apply otherwise.
-  This function is deprecated as of 1.2.0, as it is only a convience function for the following syntax::
+  This function is deprecated as of 1.2.0 and will be removed in 1.3.0, as it is only a convience function for the following syntax::
 
     addAction("192.0.2.0/24", QPSPoolAction(15, "myPool")
 
