@@ -276,6 +276,12 @@ union ComboAddress {
   }
 
   void truncate(unsigned int bits) noexcept;
+
+  uint16_t getPort() const
+  {
+    return ntohs(sin4.sin_port);
+  }
+
 };
 
 /** This exception is thrown by the Netmask class and by extension by the NetmaskGroup class */
