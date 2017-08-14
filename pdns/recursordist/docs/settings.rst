@@ -1069,7 +1069,11 @@ IP address for the webserver to listen on.
 ``webserver-allow-from``
 ------------------------
 -  IP addresses, comma separated
--  Default: 0.0.0.0, ::/0
+-  Default: 127.0.0.1,::1
+
+.. versionchanged:: 4.1.0
+
+    Default is now 127.0.0.1,::1, was 0.0.0.0,::/0 before.
 
 These subnets are allowed to access the webserver.
 

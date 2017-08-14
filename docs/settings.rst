@@ -1432,7 +1432,11 @@ IP Address for webserver/API to listen on.
 ------------------------
 
 -  IP ranges, separated by commas or whitespace
--  Default: 0.0.0.0/0,::/0
+-  Default: 127.0.0.1,::1
+
+.. versionchanged:: 4.1.0
+
+    Default is now 127.0.0.1,::1, was 0.0.0.0,::/0 before.
 
 Webserver/API access is only allowed from these subnets.
 

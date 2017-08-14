@@ -3222,7 +3222,7 @@ int main(int argc, char **argv)
     ::arg().set("webserver-address", "IP Address of webserver to listen on") = "127.0.0.1";
     ::arg().set("webserver-port", "Port of webserver to listen on") = "8082";
     ::arg().set("webserver-password", "Password required for accessing the webserver") = "";
-    ::arg().set("webserver-allow-from","Webserver access is only allowed from these subnets")="0.0.0.0/0,::/0";
+    ::arg().set("webserver-allow-from","Webserver access is only allowed from these subnets")="127.0.0.1,::1";
     ::arg().set("carbon-ourname", "If set, overrides our reported hostname for carbon stats")="";
     ::arg().set("carbon-server", "If set, send metrics in carbon (graphite) format to this server IP address")="";
     ::arg().set("carbon-interval", "Number of seconds between carbon (graphite) updates")="30";
