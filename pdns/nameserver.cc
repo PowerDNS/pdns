@@ -378,7 +378,7 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
   else
     packet->d_dt.set(); // timing    
 
-  if(packet->parse(mesg, (size_t) len)<0) {
+  if(packet->questionparse(mesg, (size_t) len)<0) {
     S.inc("corrupt-packets");
     S.ringAccount("remotes-corrupt", packet->d_remote);
 

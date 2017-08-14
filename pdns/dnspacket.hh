@@ -63,11 +63,11 @@ class DNSSECKeeper;
 class DNSPacket
 {
 public:
-  DNSPacket(bool isQuery);
+  explicit DNSPacket(bool isQuery);
   DNSPacket(const DNSPacket &orig);
 
   int noparse(const char *mesg, size_t len); //!< just suck the data inward
-  int parse(const char *mesg, size_t len); //!< parse a raw UDP or TCP packet and suck the data inward
+  int questionparse(const char *mesg, size_t len); //!< parse a raw UDP or TCP packet and suck the data inward. DOES NOT FILL d_rrs!!
   const string& getString(); //!< for serialization - just passes the whole packet
 
   // address & socket manipulation
