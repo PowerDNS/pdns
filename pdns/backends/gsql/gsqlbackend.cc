@@ -1506,7 +1506,7 @@ bool GSQLBackend::abortTransaction()
   return true;
 }
 
-bool GSQLBackend::calculateSOASerial(const DNSName& domain, const SOAData& sd, time_t& serial)
+bool GSQLBackend::calculateSOASerial(const DNSName& domain, const SOAData& sd, uint32_t& serial)
 {
   if (d_ZoneLastChangeQuery.empty()) {
     // query not set => fall back to default impl
