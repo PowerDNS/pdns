@@ -65,7 +65,7 @@ bool SortListOrderCmp::operator()(const DNSRecord& ar, const DNSRecord& br) cons
   else if(!aAddr && bAddr)
     return true;
   else if(!aAddr && !bAddr)
-    return true;
+    return false;
   
 
   int aOrder=std::numeric_limits<int>::max();
