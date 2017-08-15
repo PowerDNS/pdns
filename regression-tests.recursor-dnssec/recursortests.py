@@ -569,7 +569,7 @@ distributor-threads=1""".format(confdir=confdir,
                 raise
 
     @classmethod
-    def sendUDPQuery(cls, query, timeout=2.0):
+    def sendUDPQuery(cls, query, timeout=2.0, fwparams=dict()):
         if timeout:
             cls._sock.settimeout(timeout)
 
@@ -584,7 +584,7 @@ distributor-threads=1""".format(confdir=confdir,
 
         message = None
         if data:
-            message = dns.message.from_wire(data)
+            message = dns.message.from_wire(data, **fwparams)
         return message
 
     @classmethod
