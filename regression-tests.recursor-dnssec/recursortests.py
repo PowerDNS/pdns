@@ -102,6 +102,12 @@ ns1.ecs-echo.example. 3600 IN A    {prefix}.21
 
 islandofsecurity.example.          3600 IN NS   ns1.islandofsecurity.example.
 ns1.islandofsecurity.example.      3600 IN A    {prefix}.9
+
+sortcname.example.                 3600 IN CNAME sort
+sort.example.                      3600 IN A     17.38.42.80
+sort.example.                      3600 IN A     192.168.0.1
+sort.example.                      3600 IN A     17.238.240.5
+sort.example.                      3600 IN MX    25 mx
         """,
         'secure.example': """
 secure.example.          3600 IN SOA  {soa}
