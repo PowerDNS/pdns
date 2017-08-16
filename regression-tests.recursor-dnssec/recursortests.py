@@ -655,7 +655,7 @@ distributor-threads=1""".format(confdir=confdir,
         msgFlags = dns.flags.to_text(msg.flags).split()
         missingFlags = [flag for flag in flags if flag not in msgFlags]
 
-        msgEdnsFlags = dns.flags.edns_to_text(msg.flags).split()
+        msgEdnsFlags = dns.flags.edns_to_text(msg.ednsflags).split()
         missingEdnsFlags = [ednsflag for ednsflag in ednsflags if ednsflag not in msgEdnsFlags]
 
         if len(missingFlags) or len(missingEdnsFlags) or len(msgFlags) > len(flags):
