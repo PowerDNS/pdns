@@ -175,7 +175,7 @@ Authoritative Server. This is done using the
 
 `dnsdist <http://dnsdist.org>`__ is a DNS loadbalancer from the people
 behind PowerDNS that balances DNS packets based on rules. See the
-`dnsdist download instructions <http://dnsdist.org/download/>`__ on how
+`dnsdist download instructions <http://dnsdist.org/install.html>`__ on how
 to install dnsdist.
 
 This guide assumes dnsdist 1.2 or dnsdist master.
