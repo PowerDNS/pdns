@@ -40,7 +40,7 @@ forward-zones+=undelegated.insecure.example=%s.12
         res = self.sendUDPQuery(query)
 
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
-        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'], ['DO'])
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'], [])
         self.assertRRsetInAnswer(res, expected)
 
     def testUndelegatedForwardedZoneExisting(self):
@@ -56,7 +56,7 @@ forward-zones+=undelegated.insecure.example=%s.12
         res = self.sendUDPQuery(query)
 
         self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
-        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'], ['DO'])
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'], [])
 
     def testUndelegatedForwardedZoneNXDOMAIN(self):
         """
@@ -71,7 +71,7 @@ forward-zones+=undelegated.insecure.example=%s.12
         res = self.sendUDPQuery(query)
 
         self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
-        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'], ['DO'])
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'], [])
 
     def testUndelegatedForwardedInsecureZoneExisting(self):
         """
@@ -87,7 +87,7 @@ forward-zones+=undelegated.insecure.example=%s.12
         res = self.sendUDPQuery(query)
 
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
-        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'], ['DO'])
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'], [])
         self.assertRRsetInAnswer(res, expected)
 
     def testUndelegatedForwardedInsecureZoneNXDOMAIN(self):
@@ -103,7 +103,7 @@ forward-zones+=undelegated.insecure.example=%s.12
         res = self.sendUDPQuery(query)
 
         self.assertRcodeEqual(res, dns.rcode.NXDOMAIN)
-        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'], ['DO'])
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'], [])
 
     def testBothSecureCNAMEAtApex(self):
         """
@@ -119,7 +119,7 @@ forward-zones+=undelegated.insecure.example=%s.12
         self.assertRRsetInAnswer(res, expectedA)
         self.assertRRsetInAnswer(res, expectedCNAME)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
-        self.assertMessageHasFlags(res, ['QR', 'RD', 'RA', 'AD'], ['DO'])
+        self.assertMessageHasFlags(res, ['QR', 'RD', 'RA', 'AD'], [])
 
     @classmethod
     def startResponders(cls):
