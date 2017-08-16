@@ -149,29 +149,7 @@ bool rectifyZone(DNSSECKeeper& dk, const DNSName& zone)
   SOAData sd;
 
   if(!B.getSOAUncached(zone, sd)) {
-    cerr<<"No SOA known for '"<<zone<<"', is such a zone in the database?"<<endl;
-    return false;
-  }
-  sd.db->list(zone, sd.domain_id);
-
-  DNSResourceRecord rr;
-  set<DNSName> qnames, nsset, dsnames, insnonterm, delnonterm;
-  map<DNSName,bool> nonterm;
-  vector<DNSResourceRecord> rrs;
-
-  while(sd.db->get(rr)) {
-    rr.qname.makeUsLowerCase();
-    if (rr.qtype.getCode())
-    {
-      rrs.push_back(rr);
-      qnames.insert(rr.qname);
-      if(rr.qtype.getCode() == QType::NS && rr.qname != zone)
-        nsset.insert(rr.qname);
-      if(rr.qtype.getCode() == QType::DS)
-        dsnames.insert(rr.qname);
-    }
-    else
-      delnonterm.insert(rr.qname);
+    cerr<<"No SOA known for '"<<zone.toString()<<"', is such a zone in the database?"<<endl;
   }
 
   NSEC3PARAMRecordContent ns3pr;
@@ -193,133 +171,8 @@ bool rectifyZone(DNSSECKeeper& dk, const DNSName& zone)
   else
     cerr<<"Adding empty non-terminals for non-DNSSEC zone"<<endl;
 
-  set<DNSName> nsec3set;
-  if (haveNSEC3 && !narrow) {
-    for (auto &rr: rrs) {
-      bool skip=false;
-      DNSName shorter = rr.qname;
-      if (shorter != zone && shorter.chopOff() && shorter != zone) {
-        do {
-          if(nsset.count(shorter)) {
-            skip=true;
-            break;
-          }
-        } while(shorter.chopOff() && shorter != zone);
-      }
-      shorter = rr.qname;
-      if(!skip && (rr.qtype.getCode() != QType::NS || !isOptOut)) {
-
-        do {
-          if(!nsec3set.count(shorter)) {
-            nsec3set.insert(shorter);
-          }
-        } while(shorter != zone && shorter.chopOff());
-      }
-    }
-  }
-
-  if(doTransaction)
-    sd.db->startTransaction(zone, -1);
-
-  bool realrr=true;
-  bool doent=true;
-  uint32_t maxent = ::arg().asNum("max-ent-entries");
-
-  dononterm:;
-  for (const auto& qname: qnames)
-  {
-    bool auth=true;
-    DNSName ordername;
-    auto shorter(qname);
-
-    if(realrr) {
-      do {
-        if(nsset.count(shorter)) {
-          auth=false;
-          break;
-        }
-      } while(shorter.chopOff());
-    } else {
-      auth=nonterm.find(qname)->second;
-    }
-
-    if(haveNSEC3) // NSEC3
-    {
-      if(!narrow && nsec3set.count(qname)) {
-        ordername=DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, qname)));
-        if(!realrr)
-          auth=true;
-      } else if(!realrr)
-        auth=false;
-    }
-    else if (realrr) // NSEC
-      ordername=qname.makeRelative(zone);
-
-    if(g_verbose)
-      cerr<<"'"<<qname<<"' -> '"<< ordername <<"'"<<endl;
-    sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, auth);
-
-    if(realrr)
-    {
-      if (dsnames.count(qname))
-        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, true, QType::DS);
-      if (!auth || nsset.count(qname)) {
-        ordername.clear();
-        if(isOptOut && !dsnames.count(qname))
-          sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, false, QType::NS);
-        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, false, QType::A);
-        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, false, QType::AAAA);
-      }
-
-      if(doent)
-      {
-        shorter=qname;
-        while(shorter!=zone && shorter.chopOff())
-        {
-          if(!qnames.count(shorter))
-          {
-            if(!(maxent))
-            {
-              cerr<<"Zone '"<<zone<<"' has too many empty non terminals."<<endl;
-              insnonterm.clear();
-              delnonterm.clear();
-              doent=false;
-              break;
-            }
-
-            if (!delnonterm.count(shorter) && !nonterm.count(shorter))
-              insnonterm.insert(shorter);
-            else
-              delnonterm.erase(shorter);
-
-            if (!nonterm.count(shorter)) {
-              nonterm.insert(pair<DNSName, bool>(shorter, auth));
-              --maxent;
-            } else if (auth)
-              nonterm[shorter]=true;
-          }
-        }
-      }
-    }
-  }
-
-  if(realrr)
-  {
-    //cerr<<"Total: "<<nonterm.size()<<" Insert: "<<insnonterm.size()<<" Delete: "<<delnonterm.size()<<endl;
-    if(!insnonterm.empty() || !delnonterm.empty() || !doent)
-    {
-      sd.db->updateEmptyNonTerminals(sd.domain_id, insnonterm, delnonterm, !doent);
-    }
-    if(doent)
-    {
-      realrr=false;
-      qnames.clear();
-      for(const auto& nt :  nonterm){
-        qnames.insert(nt.first);
-      }
-      goto dononterm;
-    }
-  }
+  if (!dk.rectifyZone(B, zone))
+    return false;
 
   if(doTransaction)
     sd.db->commitTransaction();

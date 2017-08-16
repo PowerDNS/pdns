@@ -209,6 +209,8 @@ public:
   
   void getFromMeta(const DNSName& zname, const std::string& key, std::string& value);
   void getSoaEdit(const DNSName& zname, std::string& value);
+
+  bool rectifyZone(UeberBackend& B, const DNSName& zone);
 private:
 
 
