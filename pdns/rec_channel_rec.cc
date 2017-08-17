@@ -261,6 +261,46 @@ string doDumpEDNSStatus(T begin, T end)
   return "done\n";
 }
 
+template<typename T>
+string doDumpRPZ(T begin, T end)
+{
+  T i=begin;
+
+  if (i == end) {
+    return "No zone name specified\n";
+  }
+  string zoneName = *i;
+  i++;
+
+  if (i == end) {
+    return "No file name specified\n";
+  }
+  string fname = *i;
+
+  auto luaconf = g_luaconfs.getLocal();
+  const auto zone = luaconf->dfe.getZone(zoneName);
+  if (!zone) {
+    return "No RPZ zone named "+zoneName+"\n";
+  }
+
+  int fd = open(fname.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0660);
+
+  if(fd < 0) {
+    return "Error opening dump file for writing: "+string(strerror(errno))+"\n";
+  }
+
+  FILE* fp = fdopen(fd, "w");
+  if (!fp) {
+    close(fd);
+    return "Error converting file descriptor: "+string(strerror(errno))+"\n";
+  }
+
+  zone->dump(fp);
+  fclose(fp);
+
+  return "done\n";
+}
+
 uint64_t* pleaseWipeCache(const DNSName& canon, bool subtree)
 {
   return new uint64_t(t_RC->doWipeCache(canon, subtree));
@@ -1150,6 +1190,7 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 "dump-cache <filename>            dump cache contents to the named file\n"
 "dump-edns [status] <filename>    dump EDNS status to the named file\n"
 "dump-nsspeeds <filename>         dump nsspeeds statistics to the named file\n"
+"dump-rpz <zone name> <filename>  dump the content of a RPZ zone to the named file\n"
 "get [key1] [key2] ..             get specific statistics\n"
 "get-all                          get all statistics\n"
 "get-ntas                         get all configured Negative Trust Anchors\n"
@@ -1183,10 +1224,10 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
   if(cmd=="get-all")
     return getAllStats();
 
-  if(cmd=="get") 
+  if(cmd=="get")
     return doGet(begin, end);
-  
-  if(cmd=="get-parameter") 
+
+  if(cmd=="get-parameter")
     return doGetParameter(begin, end);
 
   if(cmd=="quit") {
@@ -1197,25 +1238,29 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
   if(cmd=="version") {
     return getPDNSVersion()+"\n";
   }
-  
+
   if(cmd=="quit-nicely") {
     *command=&doExitNicely;
     return "bye nicely\n";
-  }  
+  }
 
-  if(cmd=="dump-cache") 
+  if(cmd=="dump-cache")
     return doDumpCache(begin, end);
 
-  if(cmd=="dump-ednsstatus" || cmd=="dump-edns") 
+  if(cmd=="dump-ednsstatus" || cmd=="dump-edns")
     return doDumpEDNSStatus(begin, end);
 
   if(cmd=="dump-nsspeeds")
     return doDumpNSSpeeds(begin, end);
 
-  if(cmd=="wipe-cache" || cmd=="flushname") 
+  if(cmd=="dump-rpz") {
+    return doDumpRPZ(begin, end);
+  }
+
+  if(cmd=="wipe-cache" || cmd=="flushname")
     return doWipeCache(begin, end);
 
-  if(cmd=="reload-lua-script") 
+  if(cmd=="reload-lua-script")
     return doQueueReloadLuaScript(begin, end);
 
   if(cmd=="reload-lua-config") {
@@ -1235,10 +1280,10 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
     }
   }
 
-  if(cmd=="set-carbon-server") 
+  if(cmd=="set-carbon-server")
     return doSetCarbonServer(begin, end);
 
-  if(cmd=="trace-regex") 
+  if(cmd=="trace-regex")
     return doTraceRegex(begin, end);
 
   if(cmd=="unload-lua-script") {

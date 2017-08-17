@@ -85,6 +85,12 @@ dump-nsspeeds *FILENAME*
     dumping, the recursor will not answer questions. Statistics are kept per
     thread, and the dumps end up in the same file.
 
+dump-rpz *ZONE NAME* *FILE NAME*
+    Dumps the content of the RPZ zone named *ZONE NAME* to the *FILENAME*
+    mentioned. This file should not exist already, PowerDNS will refuse to
+    overwrite it otherwise. While dumping, the recursor will not answer
+    questions.
+
 get *STATISTIC* [*STATISTIC*]...
     Retrieve a statistic. For items that can be queried, see
     :doc:`../metrics`
