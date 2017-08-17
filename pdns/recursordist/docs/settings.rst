@@ -553,6 +553,15 @@ It is recommended not to set this below 3.
 
 Some DNS errors occur rather frequently and are no cause for alarm.
 
+``log-rpz-changes``
+---------------------
+.. versionadded:: 4.1.0
+
+-  Boolean
+-  Default: no
+
+Log additions and removals to RPZ zones at Info (6) level instead of Debug (7).
+
 .. _setting-logging-facility:
 
 ``logging-facility``

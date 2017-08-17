@@ -164,6 +164,7 @@ string s_programname="pdns_recursor";
 string s_pidfname;
 unsigned int g_numThreads;
 uint16_t g_outgoingEDNSBufsize;
+bool g_logRPZChanges{false};
 
 #define LOCAL_NETS "127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fc00::/7, fe80::/10"
 // Bad Nets taken from both:
@@ -2887,6 +2888,7 @@ static int serviceMain(int argc, char*argv[])
   g_latencyStatSize=::arg().asNum("latency-statistic-size");
 
   g_logCommonErrors=::arg().mustDo("log-common-errors");
+  g_logRPZChanges = ::arg().mustDo("log-rpz-changes");
 
   g_anyToTcp = ::arg().mustDo("any-to-tcp");
   g_udpTruncationThreshold = ::arg().asNum("udp-truncation-threshold");
@@ -3302,6 +3304,8 @@ int main(int argc, char **argv)
     ::arg().set("nsec3-max-iterations", "Maximum number of iterations allowed for an NSEC3 record")="2500";
 
     ::arg().set("cpu-map", "Thread to CPU mapping, space separated thread-id=cpu1,cpu2..cpuN pairs")="";
+
+    ::arg().setSwitch("log-rpz-changes", "Log additions and removals to RPZ zones at Info level")="no";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");
