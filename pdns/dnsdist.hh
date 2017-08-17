@@ -638,7 +638,10 @@ struct DownstreamState
   }
   void setUp() { availability = Availability::Up; }
   void setDown() { availability = Availability::Down; }
-  void setAuto() { availability = Availability::Auto; }
+  void setAuto() {
+    upStatus = false;
+    availability = Availability::Auto;
+  }
   string getName() const {
     if (name.empty()) {
       return remote.toStringWithPort();
