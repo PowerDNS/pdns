@@ -303,10 +303,15 @@ A server object returned by :func:`getServer` can be manipulated with these func
 
   :param str pool: The pool to remove the server from
 
-.. classmethod:: Server:setAuto()
+.. classmethod:: Server:setAuto([status])
+
+.. versionchanged:: 1.3.0
+    ``status`` optional parameter added.
 
   Set the server in the default auto state.
-  This will enable health check queries that will set the server ``up`` and ``down`` appropriatly.
+  This will enable health check queries that will set the server ``up`` and ``down`` appropriately.
+
+  :param bool status: Set the initial status of the server to ``up`` (true) or ``down`` (false) instead of using the last known status
 
 .. classmethod:: Server:setQPS(limit)
 
