@@ -1179,7 +1179,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
         int algo = DNSSECKeeper::shorthand2algorithm(z_algo);
 
         int64_t id;
-        if (!dk.addKey(zonename, k_algos.empty(), algo, id, z_size)) {
+        if (!dk.addKey(zonename, false, algo, id, z_size)) {
           throw ApiException("No backend was able to secure '" + zonename.toString() + "', most likely because no DNSSEC"
                              + "capable backends are loaded, or because the backends have DNSSEC disabled."
                              + "For the Generic SQL backends, set the 'gsqlite3-dnssec', 'gmysql-dnssec' or"
