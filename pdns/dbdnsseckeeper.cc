@@ -627,6 +627,7 @@ bool DNSSECKeeper::rectifyZone(UeberBackend& B, const DNSName& zone)
   bool isOptOut=(haveNSEC3 && ns3pr.d_flags);
 
   bool realrr=true;
+  bool doent=true;
   uint32_t maxent = ::arg().asNum("max-ent-entries");
 
   dononterm:;
