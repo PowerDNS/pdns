@@ -649,25 +649,25 @@ bool DNSSECKeeper::rectifyZone(UeberBackend& B, const DNSName& zone)
     if(haveNSEC3) // NSEC3
     {
       if(!narrow && (realrr || !isOptOut || nonterm.find(qname)->second))
-        ordername=DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, qname))) + zone;
+        ordername=DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, qname)));
       else if(!realrr)
         auth=false;
     }
     else if (realrr) // NSEC
-      ordername=qname;
+      ordername=qname.makeRelative(zone);
 
-    sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, zone, qname, ordername, auth);
+    sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, auth);
 
     if(realrr)
     {
       if (dsnames.count(qname))
-        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, zone, qname, ordername, true, QType::DS);
+        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, true, QType::DS);
       if (!auth || nsset.count(qname)) {
         ordername.clear();
         if(isOptOut)
-          sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, zone, qname, ordername, false, QType::NS);
-        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, zone, qname, ordername, false, QType::A);
-        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, zone, qname, ordername, false, QType::AAAA);
+          sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, false, QType::NS);
+        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, false, QType::A);
+        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, false, QType::AAAA);
       }
 
       if(doent)
@@ -707,7 +707,7 @@ bool DNSSECKeeper::rectifyZone(UeberBackend& B, const DNSName& zone)
     //cerr<<"Total: "<<nonterm.size()<<" Insert: "<<insnonterm.size()<<" Delete: "<<delnonterm.size()<<endl;
     if(!insnonterm.empty() || !delnonterm.empty() || !doent)
     {
-      sd.db->updateEmptyNonTerminals(sd.domain_id, zone, insnonterm, delnonterm, !doent);
+      sd.db->updateEmptyNonTerminals(sd.domain_id, insnonterm, delnonterm, !doent);
     }
     if(doent)
     {
