@@ -45,13 +45,13 @@ bool editSOA(DNSSECKeeper& dk, const DNSName& qname, DNSPacket* dp)
     if(rr.dr.d_type == QType::SOA && rr.dr.d_name == qname) {
       string kind;
       dk.getSoaEdit(qname, kind);
-      return editSOARecord(rr, kind, qname);
+      return editSOARecord(rr, kind);
     }
   }
   return false;
 }
 
-bool editSOARecord(DNSZoneRecord& rr, const string& kind, const DNSName& qname) {
+bool editSOARecord(DNSZoneRecord& rr, const string& kind) {
   if(kind.empty())
     return false;
   auto src = getRR<SOARecordContent>(rr.dr);
