@@ -38,6 +38,7 @@
 #include "base64.hh"
 #include "cachecleaner.hh"
 #include "arguments.hh"
+#include "base32.hh"
 
 
 using namespace boost::assign;
@@ -285,11 +286,19 @@ bool DNSSECKeeper::getNSEC3PARAM(const DNSName& zname, NSEC3PARAMRecordContent* 
   return true;
 }
 
-bool DNSSECKeeper::setNSEC3PARAM(const DNSName& zname, const NSEC3PARAMRecordContent& ns3p, const bool& narrow)
+bool DNSSECKeeper::checkNSEC3PARAM(const NSEC3PARAMRecordContent& ns3p)
 {
   static int maxNSEC3Iterations=::arg().asNum("max-nsec3-iterations");
   if (ns3p.d_iterations > maxNSEC3Iterations)
-    throw runtime_error("Can't set NSEC3PARAM for zone '"+zname.toString()+"': number of NSEC3 iterations is above 'max-nsec3-iterations'");
+    return false;
+
+  return true;
+}
+
+bool DNSSECKeeper::setNSEC3PARAM(const DNSName& zname, const NSEC3PARAMRecordContent& ns3p, const bool& narrow)
+{
+  if (!checkNSEC3PARAM(ns3p))
+    throw runtime_error("NSEC3PARAMs provided for zone '"+zname.toString()+"' are invalid. Check if the number of NSEC3 iterations is above 'max-nsec3-iterations'");
 
   if (ns3p.d_algorithm != 1)
     throw runtime_error("Invalid hash algorithm for NSEC3: '"+std::to_string(ns3p.d_algorithm)+"' for zone '"+zname.toString()+"'. The only valid value is '1'");
@@ -574,4 +583,142 @@ void DNSSECKeeper::cleanup()
     }
     s_last_prune=time(0);
   }
+}
+
+/**
+ * Rectify the zone given using the given backend. Automatically chooses NSEC vs NSEC3 appropriately
+ */
+bool DNSSECKeeper::rectifyZone(UeberBackend& B, const DNSName& zone)
+{
+  if(isPresigned(zone)){
+    return false;
+  }
+
+  SOAData sd;
+
+  if(!B.getSOAUncached(zone, sd)) {
+    return false;
+  }
+  sd.db->list(zone, sd.domain_id);
+
+  DNSResourceRecord rr;
+  set<DNSName> qnames, nsset, dsnames, insnonterm, delnonterm;
+  map<DNSName,bool> nonterm;
+  vector<DNSResourceRecord> rrs;
+
+  while(sd.db->get(rr)) {
+    rr.qname.makeUsLowerCase();
+    if (rr.qtype.getCode())
+    {
+      rrs.push_back(rr);
+      qnames.insert(rr.qname);
+      if(rr.qtype.getCode() == QType::NS && rr.qname != zone)
+        nsset.insert(rr.qname);
+      if(rr.qtype.getCode() == QType::DS)
+        dsnames.insert(rr.qname);
+    }
+    else
+      delnonterm.insert(rr.qname);
+  }
+
+  NSEC3PARAMRecordContent ns3pr;
+  bool narrow;
+  bool haveNSEC3 = getNSEC3PARAM(zone, &ns3pr, &narrow);
+  bool isOptOut=(haveNSEC3 && ns3pr.d_flags);
+
+  bool realrr=true;
+  bool doent=true;
+  uint32_t maxent = ::arg().asNum("max-ent-entries");
+
+  dononterm:;
+  for (const auto& qname: qnames)
+  {
+    bool auth=true;
+    DNSName ordername;
+    auto shorter(qname);
+
+    if(realrr) {
+      do {
+        if(nsset.count(shorter)) {
+          auth=false;
+          break;
+        }
+      } while(shorter.chopOff());
+    }
+
+    if(haveNSEC3) // NSEC3
+    {
+      if(!narrow && (realrr || !isOptOut || nonterm.find(qname)->second))
+        ordername=DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, qname)));
+      else if(!realrr)
+        auth=false;
+    }
+    else if (realrr) // NSEC
+      ordername=qname.makeRelative(zone);
+
+    sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, auth);
+
+    if(realrr)
+    {
+      if (dsnames.count(qname))
+        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, true, QType::DS);
+      if (!auth || nsset.count(qname)) {
+        ordername.clear();
+        if(isOptOut)
+          sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, false, QType::NS);
+        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, false, QType::A);
+        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, false, QType::AAAA);
+      }
+
+      if(doent)
+      {
+        shorter=qname;
+        while(shorter!=zone && shorter.chopOff())
+        {
+          if(!qnames.count(shorter))
+          {
+            if(!(maxent))
+            {
+              cerr<<"Zone '"<<zone.toString()<<"' has too many empty non terminals."<<endl;
+              insnonterm.clear();
+              delnonterm.clear();
+              doent=false;
+              break;
+            }
+
+            if (!delnonterm.count(shorter) && !nonterm.count(shorter))
+              insnonterm.insert(shorter);
+            else
+              delnonterm.erase(shorter);
+
+            if (!nonterm.count(shorter)) {
+              nonterm.insert(pair<DNSName, bool>(shorter, auth));
+              --maxent;
+            } else if (auth)
+              nonterm[shorter]=true;
+          }
+        }
+      }
+    }
+  }
+
+  if(realrr)
+  {
+    //cerr<<"Total: "<<nonterm.size()<<" Insert: "<<insnonterm.size()<<" Delete: "<<delnonterm.size()<<endl;
+    if(!insnonterm.empty() || !delnonterm.empty() || !doent)
+    {
+      sd.db->updateEmptyNonTerminals(sd.domain_id, insnonterm, delnonterm, !doent);
+    }
+    if(doent)
+    {
+      realrr=false;
+      qnames.clear();
+      for(const auto& nt :  nonterm){
+        qnames.insert(nt.first);
+      }
+      goto dononterm;
+    }
+  }
+
+  return true;
 }
