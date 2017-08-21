@@ -1872,13 +1872,13 @@ void SyncRes::getDenialValidationState(NegCache::NegCacheEntry& ne, vState& stat
     dState res = getDenial(csp, ne.d_name, ne.d_qtype.getCode());
     if (res != expectedState) {
       if (res == OPTOUT && allowOptOut) {
-        LOG(d_prefix<<"OPT-out denial found for "<<ne.d_name<<", retuning Insecure"<<endl);
+        LOG(d_prefix<<"OPT-out denial found for "<<ne.d_name<<", returning Insecure"<<endl);
         ne.d_validationState = Secure;
         updateValidationState(state, Insecure);
         return;
       }
       else if (res == INSECURE) {
-        LOG(d_prefix<<"Insecure denial found for "<<ne.d_name<<", retuning Insecure"<<endl);
+        LOG(d_prefix<<"Insecure denial found for "<<ne.d_name<<", returning Insecure"<<endl);
         ne.d_validationState = Insecure;
       }
       if (res == NXDOMAIN && expectedState == NXQTYPE) {
@@ -1886,7 +1886,7 @@ void SyncRes::getDenialValidationState(NegCache::NegCacheEntry& ne, vState& stat
         return;
       }
       else {
-        LOG(d_prefix<<"Invalid denial found for "<<ne.d_name<<", retuning Bogus"<<endl);
+        LOG(d_prefix<<"Invalid denial found for "<<ne.d_name<<", returning Bogus, res="<<res<<", expectedState="<<expectedState<<endl);
         ne.d_validationState = Bogus;
       }
       updateValidationState(state, ne.d_validationState);
