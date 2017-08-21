@@ -1200,7 +1200,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
     // L<<Logger::Warning<<"Query for '"<<p->qdomain<<"' "<<p->qtype.getName()<<" from "<<p->getRemote()<< " (tcp="<<p->d_tcp<<")"<<endl;
     
     if(p->qtype.getCode()==QType::IXFR) {
-      r->setRcode(RCode::NotImp);
+      r->setRcode(RCode::Refused);
       return r;
     }
 
@@ -1214,9 +1214,9 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
         return r;
     }
 
-    // we only know about qclass IN (and ANY), send NotImp for everything else.
+    // we only know about qclass IN (and ANY), send Refused for everything else.
     if(p->qclass != QClass::IN && p->qclass!=QClass::ANY) {
-      r->setRcode(RCode::NotImp);
+      r->setRcode(RCode::Refused);
       return r;
     }
 
@@ -1299,7 +1299,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
     // this TRUMPS a cname!
     if(p->qtype.getCode() == QType::RRSIG) {
       L<<Logger::Info<<"Direct RRSIG query for "<<target<<" from "<<p->getRemote()<<endl;
-      r->setRcode(RCode::NotImp);
+      r->setRcode(RCode::Refused);
       goto sendit;
     }
 
