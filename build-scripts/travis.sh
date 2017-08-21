@@ -485,7 +485,10 @@ test_auth() {
 
   run "rm tests/ent-asterisk/fail.nsec"
 
-  run "cd .."
+  run "cd ../modules/luabackend/test2"
+  run "../../../regression-tests/timestamp ./runtest"
+
+  run "cd ../../.."
 
   run "cd regression-tests.rootzone"
   run "./timestamp ./start-test-stop 5300 bind-both"
