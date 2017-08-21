@@ -3,6 +3,7 @@ Changelog
 
 .. changelog::
   :version: 1.2.0
+  :released: 21st of August 2017
 
   .. change::
     :tags: Improvements
@@ -387,9 +388,56 @@ Changelog
 
   .. change::
     :tags: New Features
-    :pullreq: 5396
+    :pullreq: 5396, 5577
 
     Add the capability to set arbitrary tags in protobuf messages.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5563
+    :tickets: 5559
+
+    Skip timeouts on the response latency graph.
+
+  .. change::
+    :tags: Removals
+    :pullreq: 5526
+    :tickets: 5069
+
+    Deprecate syntactic sugar functions.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5579
+    :tickets: 5538
+
+    Don't use square brackets for IPv6 in Carbon metrics.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5580
+    :tickets: 5566
+
+    Copy the DNS header before encrypting it in place.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 5581
+    :tickets: 5565
+
+    Add setConsoleConnectionsLogging().
+
+  .. change::
+    :tags: Security
+    :pullreq: 5630
+
+    Fix potential pointer wrap-around on 32 bits.
+
+  .. change::
+    :tags: Security
+    :pullreq: 5631
+
+    Make the API available with an API key only.
 
 1.1.0
 -----
