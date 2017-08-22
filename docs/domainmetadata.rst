@@ -169,6 +169,19 @@ fresh RRSIGs. See the :ref:`DNSSEC
 documentation <soa-edit-ensure-signature-freshness-on-slaves>`
 for more information.
 
+.. _metadata-soa-edit-api:
+
+SOA-EDIT-API
+------------
+
+On changes to the contents of a zone made through the :doc:`API <http-api/index>`,
+the SOA record will be edited according to the SOA-EDIT-API rules. These rules
+are the same as the :ref:`SOA-EDIT-DNSUPDATE <dnsupdate-soa-serial-updates>` rules.
+If not set during zone creation, a SOA-EDIT-API metadata record is created and set to ``DEFAULT``.
+If this record is removed from the backend, the default behaviour is to not do any SOA editing based on this setting.
+This is different from setting ``DEFAULT``.
+
+
 TSIG-ALLOW-AXFR
 ---------------
 

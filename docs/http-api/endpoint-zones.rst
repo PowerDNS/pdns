@@ -12,6 +12,8 @@ Zones endpoint
 
   :param server_id: The name of the server
 
+  A :json:object:`Zone` MUST be sent in the request body.
+
   -  ``dnssec``, ``nsec3narrow``, ``presigned``, ``nsec3param``, ``active-keys`` are OPTIONAL.
   -  ``dnssec``, ``nsec3narrow``, ``presigned`` default to ``false``.
 

@@ -170,6 +170,8 @@ verification.
     5
     sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘NOTIFY-DNSUPDATE’,’1’);
 
+.. _metadata-soa-edit-dnsupdate:
+
 SOA-EDIT-DNSUPDATE
 ~~~~~~~~~~~~~~~~~~
 
