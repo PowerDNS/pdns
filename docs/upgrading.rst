@@ -121,3 +121,7 @@ CAA records with 3.4.x (stored in the DB with wrong type=MBOXFW but
 worked fine) and upgrade to 4.0, PowerDNS will fail to parse this
 records and will throw an exception on all queries for a label with
 MBOXFW records. Thus, make sure to clean up the records in the DB.
+
+In version 3.X, the PowerDNS Authoritative Server silently ignored records that
+have a 'priority' field (like MX or SRV), but where one was not in the database.
+In 4.X, :doc:`pdnsutil check-zone <manpages/pdnsutil.1>` will complain about this.
