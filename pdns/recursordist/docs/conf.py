@@ -88,7 +88,7 @@ todo_include_todos = False
 
 # -- Changelog Options ----------------------------------------------------
 
-changelog_render_ticket = "https://github.com/PowerDNS/pdns/issue/%s"
+changelog_render_ticket = "https://github.com/PowerDNS/pdns/issues/%s"
 changelog_render_pullreq = "https://github.com/PowerDNS/pdns/pull/%s"
 changelog_render_changeset = "https://github.com/PowerDNS/pdns/commit/%s"
 
