@@ -953,9 +953,6 @@ static void startDoResolve(void *p)
 {
   DNSComboWriter* dc=(DNSComboWriter *)p;
   try {
-    if (t_queryring)
-      t_queryring->push_back(make_pair(dc->d_mdp.d_qname, dc->d_mdp.d_qtype));
-
     uint16_t maxanswersize = dc->d_tcp ? 65535 : min(static_cast<uint16_t>(512), g_udpTruncationThreshold);
     EDNSOpts edo;
     std::vector<pair<uint16_t, string> > ednsOpts;
@@ -1847,6 +1844,10 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       else {
         ++g_stats.qcounter;
         ++g_stats.tcpqcounter;
+        if (t_queryring != nullptr) {
+          t_queryring->push_back(make_pair(dc->d_mdp.d_qname, dc->d_mdp.d_qtype));
+        }
+
         MT->makeThread(startDoResolve, dc); // deletes dc, will set state to BYTE0 again
         return;
       }
@@ -2025,9 +2026,17 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
        as cacheable we would cache it with a wrong tag, so better safe than sorry. */
     vState valState;
     if (qnameParsed) {
+      if (t_queryring != nullptr) {
+        t_queryring->push_back(make_pair(qname, qtype));
+      }
       cacheHit = (!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, question, qname, qtype, qclass, g_now.tv_sec, &response, &age, &valState, &qhash, pbMessage ? &(*pbMessage) : nullptr));
     }
     else {
+      if (t_queryring != nullptr) {
+        uint16_t qtype, qclass;
+        DNSName qname(question.c_str(), question.length(), sizeof(dnsheader), false, &qtype, &qclass, 0);
+        t_queryring->push_back(make_pair(qname, qtype));
+      }
       cacheHit = (!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, question, qname, &qtype, &qclass, g_now.tv_sec, &response, &age, &valState, &qhash, pbMessage ? &(*pbMessage) : nullptr));
     }
 
