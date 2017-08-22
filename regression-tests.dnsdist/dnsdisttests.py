@@ -435,7 +435,7 @@ class DNSDistTest(unittest.TestCase):
         sock.send(ourNonce)
         theirNonce = sock.recv(len(ourNonce))
         if len(theirNonce) != len(ourNonce):
-            print("Received a nonce of size %d, expecting %d, console command will not be sent!" % (len(theirNonce), len(ourNonce)))
+            print("Received a nonce of size %d, expecting %d, console command will not be sent! Is libsodium support enabled?" % (len(theirNonce), len(ourNonce)))
             return None
 
         halfNonceSize = int(len(ourNonce) / 2)
