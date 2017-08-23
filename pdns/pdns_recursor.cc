@@ -2882,6 +2882,33 @@ static int serviceMain(int argc, char*argv[])
   SyncRes::s_ecsipv4limit = ::arg().asNum("ecs-ipv4-bits");
   SyncRes::s_ecsipv6limit = ::arg().asNum("ecs-ipv6-bits");
 
+  if (!::arg().isEmpty("ecs-scope-zero-address")) {
+    ComboAddress scopeZero(::arg()["ecs-scope-zero-address"]);
+    SyncRes::setECSScopeZeroAddress(Netmask(scopeZero, scopeZero.isIPv4() ? 32 : 128));
+  }
+  else {
+    bool found = false;
+    for (const auto& addr : g_localQueryAddresses4) {
+      if (!IsAnyAddress(addr)) {
+        SyncRes::setECSScopeZeroAddress(Netmask(addr, 32));
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      for (const auto& addr : g_localQueryAddresses6) {
+        if (!IsAnyAddress(addr)) {
+          SyncRes::setECSScopeZeroAddress(Netmask(addr, 128));
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        SyncRes::setECSScopeZeroAddress(Netmask("127.0.0.1/32"));
+      }
+    }
+  }
+
   g_networkTimeoutMsec = ::arg().asNum("network-timeout");
 
   g_initialDomainMap = parseAuthAndForwards();
@@ -3280,6 +3307,7 @@ int main(int argc, char **argv)
     ::arg().set("ecs-ipv4-bits", "Number of bits of IPv4 address to pass for EDNS Client Subnet")="24";
     ::arg().set("ecs-ipv6-bits", "Number of bits of IPv6 address to pass for EDNS Client Subnet")="56";
     ::arg().set("edns-subnet-whitelist", "List of netmasks and domains that we should enable EDNS subnet for")="";
+    ::arg().set("ecs-scope-zero-address", "Address to send to whitelisted authoritative servers for incoming queries with ECS prefix-length source of 0")="";
     ::arg().setSwitch( "use-incoming-edns-subnet", "Pass along received EDNS Client Subnet information")="no";
     ::arg().setSwitch( "pdns-distributes-queries", "If PowerDNS itself should distribute queries over threads")="yes";
     ::arg().setSwitch( "root-nx-trust", "If set, believe that an NXDOMAIN from the root means the TLD does not exist")="yes";

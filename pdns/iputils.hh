@@ -435,7 +435,7 @@ public:
     }
     return result;
   }
-  int getBits() const
+  uint8_t getBits() const
   {
     return d_bits;
   }

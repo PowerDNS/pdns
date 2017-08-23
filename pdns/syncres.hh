@@ -536,6 +536,11 @@ public:
     return t_sstorage.domainmap;
   }
 
+  static void setECSScopeZeroAddress(const Netmask& scopeZeroMask)
+  {
+    s_ecsScopeZero.source = scopeZeroMask;
+  }
+
   explicit SyncRes(const struct timeval& now);
 
   int beginResolve(const DNSName &qname, const QType &qtype, uint16_t qclass, vector<DNSRecord>&ret);
@@ -625,16 +630,7 @@ public:
     d_skipCNAMECheck = skip;
   }
 
-  void setIncomingECS(boost::optional<const EDNSSubnetOpts&> incomingECS)
-  {
-    d_incomingECS = incomingECS;
-    if (incomingECS) {
-      d_incomingECSNetwork = incomingECS->source.getMaskedNetwork();
-    }
-    else {
-      d_incomingECSNetwork = ComboAddress();
-    }
-  }
+  void setIncomingECS(boost::optional<const EDNSSubnetOpts&> incomingECS);
 
 #ifdef HAVE_PROTOBUF
   void setInitialRequestId(boost::optional<const boost::uuids::uuid&> initialRequestId)
@@ -702,6 +698,7 @@ private:
   static std::unordered_set<DNSName> s_delegationOnly;
   static NetmaskGroup s_ednssubnets;
   static SuffixMatchNode s_ednsdomains;
+  static EDNSSubnetOpts s_ecsScopeZero;
   static LogMode s_lm;
   static std::unique_ptr<NetmaskGroup> s_dontQuery;
 
@@ -773,7 +770,7 @@ private:
   zonesStates_t d_cutStates;
   ostringstream d_trace;
   shared_ptr<RecursorLua4> d_pdl;
-  boost::optional<const EDNSSubnetOpts&> d_incomingECS;
+  boost::optional<EDNSSubnetOpts> d_incomingECS;
   ComboAddress d_incomingECSNetwork;
 #ifdef HAVE_PROTOBUF
   boost::optional<const boost::uuids::uuid&> d_initialRequestId;
