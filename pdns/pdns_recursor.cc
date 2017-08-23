@@ -54,7 +54,6 @@
 #include <fcntl.h>
 #include <fstream>
 #include "sortlist.hh"
-extern SortList g_sortlist;
 #include "sstuff.hh"
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>

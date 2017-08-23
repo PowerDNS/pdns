@@ -39,19 +39,6 @@ std::unique_ptr<SortListOrderCmp> SortList::getOrderCmp(const ComboAddress& who)
   return make_unique<SortListOrderCmp>(fnd->second);
 }
 
-bool SortListOrderCmp::operator()(const ComboAddress& a, const ComboAddress& b) const
-{
-  int aOrder=std::numeric_limits<int>::max();
-  int bOrder=aOrder;
-
-  if(d_slo.d_orders.match(a))
-    aOrder = d_slo.d_orders.lookup(a)->second;
-  if(d_slo.d_orders.match(b))
-    bOrder = d_slo.d_orders.lookup(b)->second;
-
-  return aOrder < bOrder;
-}
-
 // call this with **stable_sort**
 bool SortListOrderCmp::operator()(const DNSRecord& ar, const DNSRecord& br) const
 {
