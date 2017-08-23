@@ -156,30 +156,35 @@ void DNSFilterEngine::assureZones(size_t zone)
 void DNSFilterEngine::Zone::addClientTrigger(const Netmask& nm, Policy pol)
 {
   pol.d_name = d_name;
+  pol.d_type = PolicyType::ClientIP;
   d_qpolAddr.insert(nm).second=pol;
 }
 
 void DNSFilterEngine::Zone::addResponseTrigger(const Netmask& nm, Policy pol)
 {
   pol.d_name = d_name;
+  pol.d_type = PolicyType::ResponseIP;
   d_postpolAddr.insert(nm).second=pol;
 }
 
 void DNSFilterEngine::Zone::addQNameTrigger(const DNSName& n, Policy pol)
 {
   pol.d_name = d_name;
+  pol.d_type = PolicyType::QName;
   d_qpolName[n]=pol;
 }
 
 void DNSFilterEngine::Zone::addNSTrigger(const DNSName& n, Policy pol)
 {
   pol.d_name = d_name;
+  pol.d_type = PolicyType::NSDName;
   d_propolName[n]=pol;
 }
 
 void DNSFilterEngine::Zone::addNSIPTrigger(const Netmask& nm, Policy pol)
 {
   pol.d_name = d_name;
+  pol.d_type = PolicyType::NSIP;
   d_propolNSAddr.insert(nm).second = pol;
 }
 

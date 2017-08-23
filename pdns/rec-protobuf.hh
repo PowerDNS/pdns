@@ -22,7 +22,7 @@
 #pragma once
 
 #include "protobuf.hh"
-
+#include "filterpo.hh"
 #include "dnsrecords.hh"
 
 class RecProtoBufMessage: public DNSProtoBufMessage
@@ -45,6 +45,7 @@ public:
   void addRRs(const std::vector<DNSRecord>& records);
   void addRR(const DNSRecord& record);
   void setAppliedPolicy(const std::string& policy);
+  void setAppliedPolicyType(const DNSFilterEngine::PolicyType& policyType);
   void setPolicyTags(const std::vector<std::string>& policyTags);
   std::string getAppliedPolicy() const;
   std::vector<std::string> getPolicyTags() const;

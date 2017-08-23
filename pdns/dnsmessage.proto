@@ -36,6 +36,14 @@ message PBDNSMessage {
     UDP = 1;                                    // User Datagram Protocol (RFC 768)
     TCP = 2;                                    // Transmission Control Protocol (RFC 793)
   }
+  enum PolicyType {
+    UNKNOWN = 1;                                // No policy applied, or unknown type
+    QNAME = 2;                                  // Policy matched on the QName
+    CLIENTIP = 3;                               // Policy matched on the client IP
+    RESPONSEIP = 4;                             // Policy matched on one of the IPs contained in the answer
+    NSDNAME = 5;                                // Policy matched on the name of one nameserver involved
+    NSIP = 6;                                   // Policy matched on the IP of one nameserver involved
+  }
   required Type type = 1;
   optional bytes messageId = 2;                 // UUID, shared by the query and the response
   optional bytes serverIdentity = 3;            // UUID of the server emitting the protobuf message
@@ -69,6 +77,7 @@ message PBDNSMessage {
     repeated string tags = 4;                   // Additional tags
     optional uint32 queryTimeSec = 5;           // Time of the corresponding query reception (seconds since epoch)
     optional uint32 queryTimeUsec = 6;          // Time of the corresponding query reception (additional micro-seconds)
+    optional PolicyType appliedPolicyType = 7;  // Type of the filtering policy (RPZ or Lua) applied
   }
 
   optional DNSResponse response = 13;

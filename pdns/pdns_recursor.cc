@@ -1147,6 +1147,7 @@ static void startDoResolve(void *p)
       pbMessage.setResponseCode(pw.getHeader()->rcode);
       if (appliedPolicy.d_name) {
         pbMessage.setAppliedPolicy(*appliedPolicy.d_name);
+        pbMessage.setAppliedPolicyType(appliedPolicy.d_type);
       }
       pbMessage.setPolicyTags(dc->d_policyTags);
       pbMessage.setQueryTime(dc->d_now.tv_sec, dc->d_now.tv_usec);
