@@ -79,13 +79,28 @@ static void apiSaveACL(const NetmaskGroup& nmg)
   apiWriteConfigFile("acl", content);
 }
 
-static bool compareAuthorization(YaHTTP::Request& req, const string &expected_password, const string& expectedApiKey)
+static bool checkAPIKey(const YaHTTP::Request& req, const string& expectedApiKey)
 {
-  // validate password
-  YaHTTP::strstr_map_t::iterator header = req.headers.find("authorization");
-  bool auth_ok = false;
-  if (header != req.headers.end() && toLower(header->second).find("basic ") == 0) {
-    string cookie = header->second.substr(6);
+  if (expectedApiKey.empty()) {
+    return false;
+  }
+
+  const auto header = req.headers.find("x-api-key");
+  if (header != req.headers.end()) {
+    return (header->second == expectedApiKey);
+  }
+
+  return false;
+}
+
+static bool checkWebPassword(const YaHTTP::Request& req, const string &expected_password)
+{
+  static const char basicStr[] = "basic ";
+
+  const auto header = req.headers.find("authorization");
+
+  if (header != req.headers.end() && toLower(header->second).find(basicStr) == 0) {
+    string cookie = header->second.substr(sizeof(basicStr) - 1);
 
     string plain;
     B64Decode(cookie, plain);
@@ -93,21 +108,46 @@ static bool compareAuthorization(YaHTTP::Request& req, const string &expected_pa
     vector<string> cparts;
     stringtok(cparts, plain, ":");
 
-    // this gets rid of terminating zeros
-    auth_ok = (cparts.size()==2 && (0==strcmp(cparts[1].c_str(), expected_password.c_str())));
-  }
-  if (!auth_ok && !expectedApiKey.empty()) {
-    /* if this is a request for the API,
-       check if the API key is correct */
-    if (req.url.path=="/jsonstat" ||
-        req.url.path.find("/api/") == 0) {
-      header = req.headers.find("x-api-key");
-      if (header != req.headers.end()) {
-        auth_ok = (0==strcmp(header->second.c_str(), expectedApiKey.c_str()));
-      }
+    if (cparts.size() == 2) {
+      return cparts[1] == expected_password;
     }
   }
-  return auth_ok;
+
+  return false;
+}
+
+static bool isAnAPIRequest(const YaHTTP::Request& req)
+{
+  return req.url.path.find("/api/") == 0;
+}
+
+static bool isAnAPIRequestAllowedWithWebAuth(const YaHTTP::Request& req)
+{
+  return req.url.path == "/api/v1/servers/localhost";
+}
+
+static bool isAStatsRequest(const YaHTTP::Request& req)
+{
+  return req.url.path == "/jsonstat";
+}
+
+static bool compareAuthorization(const YaHTTP::Request& req, const string &expected_password, const string& expectedApiKey)
+{
+  if (isAnAPIRequest(req)) {
+    /* Access to the API requires a valid API key */
+    if (checkAPIKey(req, expectedApiKey)) {
+      return true;
+    }
+
+    return isAnAPIRequestAllowedWithWebAuth(req) && checkWebPassword(req, expected_password);
+  }
+
+  if (isAStatsRequest(req)) {
+    /* Access to the stats is allowed for both API and Web users */
+    return checkAPIKey(req, expectedApiKey) || checkWebPassword(req, expected_password);
+  }
+
+  return checkWebPassword(req, expected_password);
 }
 
 static bool isMethodAllowed(const YaHTTP::Request& req)
@@ -123,9 +163,9 @@ static bool isMethodAllowed(const YaHTTP::Request& req)
   return false;
 }
 
-static void handleCORS(YaHTTP::Request& req, YaHTTP::Response& resp)
+static void handleCORS(const YaHTTP::Request& req, YaHTTP::Response& resp)
 {
-  YaHTTP::strstr_map_t::iterator origin = req.headers.find("Origin");
+  const auto origin = req.headers.find("Origin");
   if (origin != req.headers.end()) {
     if (req.method == "OPTIONS") {
       /* Pre-flight request */
@@ -139,7 +179,10 @@ static void handleCORS(YaHTTP::Request& req, YaHTTP::Response& resp)
     }
 
     resp.headers["Access-Control-Allow-Origin"] = origin->second;
-    resp.headers["Access-Control-Allow-Credentials"] = "true";
+
+    if (isAStatsRequest(req) || isAnAPIRequestAllowedWithWebAuth(req)) {
+      resp.headers["Access-Control-Allow-Credentials"] = "true";
+    }
   }
 }
 

@@ -17,4 +17,5 @@ Table of Contents
    manpages/*
    changelog
    upgrade_guide
+   security-advisories/index
    glossary

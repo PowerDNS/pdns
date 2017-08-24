@@ -151,6 +151,7 @@ then
 	exit
 fi
 
+address="${PDNS_LISTEN_ADDR:-127.0.0.1}"
 port=$1
 [ -z "$port" ] && port=5300
 context=$2
@@ -307,6 +308,7 @@ dotests () {
 
 RETVAL=0
 
+export address
 export port
 export context
 export extracontexts

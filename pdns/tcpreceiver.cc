@@ -653,8 +653,12 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   DNSZoneRecord dzrsoa;
   dzrsoa.auth=true;
   dzrsoa.dr=DNSRecord(soa);
+
+  string kind;
+  dk.getSoaEdit(sd.qname, kind);
+  editSOARecord(dzrsoa, kind);
+
   outpacket->addRecord(dzrsoa);
-  editSOA(dk, sd.qname, outpacket.get());
   if(securedZone) {
     set<DNSName> authSet;
     authSet.insert(target);
@@ -1046,7 +1050,6 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   /* and terminate with yet again the SOA record */
   outpacket=getFreshAXFRPacket(q);
   outpacket->addRecord(dzrsoa);
-  editSOA(dk, sd.qname, outpacket.get());
   if(haveTSIGDetails && !tsigkeyname.empty())
     outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true); 
   

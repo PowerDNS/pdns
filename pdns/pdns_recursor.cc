@@ -54,7 +54,6 @@
 #include <fcntl.h>
 #include <fstream>
 #include "sortlist.hh"
-extern SortList g_sortlist;
 #include "sstuff.hh"
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
@@ -164,6 +163,7 @@ string s_programname="pdns_recursor";
 string s_pidfname;
 unsigned int g_numThreads;
 uint16_t g_outgoingEDNSBufsize;
+bool g_logRPZChanges{false};
 
 #define LOCAL_NETS "127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fc00::/7, fe80::/10"
 // Bad Nets taken from both:
@@ -1089,7 +1089,7 @@ static void startDoResolve(void *p)
       if(ret.size()) {
         orderAndShuffle(ret);
 	if(auto sl = luaconfsLocal->sortlist.getOrderCmp(dc->d_remote)) {
-	  sort(ret.begin(), ret.end(), *sl);
+	  stable_sort(ret.begin(), ret.end(), *sl);
 	  variableAnswer=true;
 	}
       }
@@ -1146,6 +1146,7 @@ static void startDoResolve(void *p)
       pbMessage.setResponseCode(pw.getHeader()->rcode);
       if (appliedPolicy.d_name) {
         pbMessage.setAppliedPolicy(*appliedPolicy.d_name);
+        pbMessage.setAppliedPolicyType(appliedPolicy.d_type);
       }
       pbMessage.setPolicyTags(dc->d_policyTags);
       pbMessage.setQueryTime(dc->d_now.tv_sec, dc->d_now.tv_usec);
@@ -2880,6 +2881,33 @@ static int serviceMain(int argc, char*argv[])
   SyncRes::s_ecsipv4limit = ::arg().asNum("ecs-ipv4-bits");
   SyncRes::s_ecsipv6limit = ::arg().asNum("ecs-ipv6-bits");
 
+  if (!::arg().isEmpty("ecs-scope-zero-address")) {
+    ComboAddress scopeZero(::arg()["ecs-scope-zero-address"]);
+    SyncRes::setECSScopeZeroAddress(Netmask(scopeZero, scopeZero.isIPv4() ? 32 : 128));
+  }
+  else {
+    bool found = false;
+    for (const auto& addr : g_localQueryAddresses4) {
+      if (!IsAnyAddress(addr)) {
+        SyncRes::setECSScopeZeroAddress(Netmask(addr, 32));
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      for (const auto& addr : g_localQueryAddresses6) {
+        if (!IsAnyAddress(addr)) {
+          SyncRes::setECSScopeZeroAddress(Netmask(addr, 128));
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        SyncRes::setECSScopeZeroAddress(Netmask("127.0.0.1/32"));
+      }
+    }
+  }
+
   g_networkTimeoutMsec = ::arg().asNum("network-timeout");
 
   g_initialDomainMap = parseAuthAndForwards();
@@ -2887,6 +2915,7 @@ static int serviceMain(int argc, char*argv[])
   g_latencyStatSize=::arg().asNum("latency-statistic-size");
 
   g_logCommonErrors=::arg().mustDo("log-common-errors");
+  g_logRPZChanges = ::arg().mustDo("log-rpz-changes");
 
   g_anyToTcp = ::arg().mustDo("any-to-tcp");
   g_udpTruncationThreshold = ::arg().asNum("udp-truncation-threshold");
@@ -3277,6 +3306,7 @@ int main(int argc, char **argv)
     ::arg().set("ecs-ipv4-bits", "Number of bits of IPv4 address to pass for EDNS Client Subnet")="24";
     ::arg().set("ecs-ipv6-bits", "Number of bits of IPv6 address to pass for EDNS Client Subnet")="56";
     ::arg().set("edns-subnet-whitelist", "List of netmasks and domains that we should enable EDNS subnet for")="";
+    ::arg().set("ecs-scope-zero-address", "Address to send to whitelisted authoritative servers for incoming queries with ECS prefix-length source of 0")="";
     ::arg().setSwitch( "use-incoming-edns-subnet", "Pass along received EDNS Client Subnet information")="no";
     ::arg().setSwitch( "pdns-distributes-queries", "If PowerDNS itself should distribute queries over threads")="yes";
     ::arg().setSwitch( "root-nx-trust", "If set, believe that an NXDOMAIN from the root means the TLD does not exist")="yes";
@@ -3302,6 +3332,8 @@ int main(int argc, char **argv)
     ::arg().set("nsec3-max-iterations", "Maximum number of iterations allowed for an NSEC3 record")="2500";
 
     ::arg().set("cpu-map", "Thread to CPU mapping, space separated thread-id=cpu1,cpu2..cpuN pairs")="";
+
+    ::arg().setSwitch("log-rpz-changes", "Log additions and removals to RPZ zones at Info level")="no";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");

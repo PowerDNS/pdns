@@ -11,8 +11,10 @@ class TestAPIBasics(DNSDistTest):
     _webServerPort = 8083
     _webServerBasicAuthPassword = 'secret'
     _webServerAPIKey = 'apisecret'
-    # paths accessible using the API key
-    _apiPaths = ['/api/v1/servers/localhost', '/api/v1/servers/localhost/config', '/api/v1/servers/localhost/config/allow-from', '/api/v1/servers/localhost/statistics', '/jsonstat?command=stats', '/jsonstat?command=dynblocklist']
+    # paths accessible using the API key only
+    _apiOnlyPaths = ['/api/v1/servers/localhost/config', '/api/v1/servers/localhost/config/allow-from', '/api/v1/servers/localhost/statistics']
+    # paths accessible using an API key or basic auth
+    _statsPaths = [ '/jsonstat?command=stats', '/jsonstat?command=dynblocklist', '/api/v1/servers/localhost']
     # paths accessible using basic auth only (list not exhaustive)
     _basicOnlyPaths = ['/', '/index.html']
     _config_params = ['_testServerPort', '_webServerPort', '_webServerBasicAuthPassword', '_webServerAPIKey']
@@ -26,7 +28,7 @@ class TestAPIBasics(DNSDistTest):
         """
         API: Basic Authentication
         """
-        for path in self._basicOnlyPaths + self._apiPaths:
+        for path in self._basicOnlyPaths + self._statsPaths:
             url = 'http://127.0.0.1:' + str(self._webServerPort) + path
             r = requests.get(url, auth=('whatever', self._webServerBasicAuthPassword), timeout=self._webTimeout)
             self.assertTrue(r)
@@ -37,7 +39,7 @@ class TestAPIBasics(DNSDistTest):
         API: X-Api-Key
         """
         headers = {'x-api-key': self._webServerAPIKey}
-        for path in self._apiPaths:
+        for path in self._apiOnlyPaths + self._statsPaths:
             url = 'http://127.0.0.1:' + str(self._webServerPort) + path
             r = requests.get(url, headers=headers, timeout=self._webTimeout)
             self.assertTrue(r)
@@ -51,6 +53,15 @@ class TestAPIBasics(DNSDistTest):
         for path in self._basicOnlyPaths:
             url = 'http://127.0.0.1:' + str(self._webServerPort) + path
             r = requests.get(url, headers=headers, timeout=self._webTimeout)
+            self.assertEquals(r.status_code, 401)
+
+    def testAPIKeyOnly(self):
+        """
+        API: API Key Only
+        """
+        for path in self._apiOnlyPaths:
+            url = 'http://127.0.0.1:' + str(self._webServerPort) + path
+            r = requests.get(url, auth=('whatever', self._webServerBasicAuthPassword), timeout=self._webTimeout)
             self.assertEquals(r.status_code, 401)
 
     def testServersLocalhost(self):

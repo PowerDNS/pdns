@@ -39,28 +39,21 @@ std::unique_ptr<SortListOrderCmp> SortList::getOrderCmp(const ComboAddress& who)
   return make_unique<SortListOrderCmp>(fnd->second);
 }
 
-bool SortListOrderCmp::operator()(const ComboAddress& a, const ComboAddress& b) const
-{
-  int aOrder=std::numeric_limits<int>::max();
-  int bOrder=aOrder;
-
-  if(d_slo.d_orders.match(a))
-    aOrder = d_slo.d_orders.lookup(a)->second;
-  if(d_slo.d_orders.match(b))
-    bOrder = d_slo.d_orders.lookup(b)->second;
-
-  return aOrder < bOrder;
-}
-
+// call this with **stable_sort**
 bool SortListOrderCmp::operator()(const DNSRecord& ar, const DNSRecord& br) const
 {
-  if(ar.d_type < br.d_type)
-    return true;
-  if(ar.d_type > br.d_type)
-    return false;
+  bool aAddr = (ar.d_type == QType::A || ar.d_type == QType::AAAA);
+  bool bAddr = (br.d_type == QType::A || br.d_type == QType::AAAA);
 
-  if(ar.d_type != QType::A && ar.d_type != QType::AAAA) 
-    return false;  // all other types are equal among themselves
+  // anything address related is always 'larger', rest is equal
+  
+  if(aAddr && !bAddr)
+    return false;
+  else if(!aAddr && bAddr)
+    return true;
+  else if(!aAddr && !bAddr)
+    return false;
+  
 
   int aOrder=std::numeric_limits<int>::max();
   int bOrder=aOrder;

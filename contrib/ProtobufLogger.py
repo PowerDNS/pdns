@@ -66,6 +66,21 @@ class PDNSPBConnHandler(object):
                                               message.question.qType,
                                               message.question.qName))
 
+    @staticmethod
+    def getAppliedPolicyTypeAsString(polType):
+        if polType == dnsmessage_pb2.PBDNSMessage.UNKNOWN:
+            return 'Unknown'
+        elif polType == dnsmessage_pb2.PBDNSMessage.QNAME:
+            return 'QName'
+        elif polType == dnsmessage_pb2.PBDNSMessage.CLIENTIP:
+            return 'Client IP'
+        elif polType == dnsmessage_pb2.PBDNSMessage.RESPONSEIP:
+            return 'Response IP'
+        elif polType == dnsmessage_pb2.PBDNSMessage.NSDNAME:
+            return 'NS DName'
+        elif polType == dnsmessage_pb2.PBDNSMessage.NSIP:
+            return 'NS IP'
+
     def printResponse(self, message):
         if message.HasField('response'):
             response = message.response
@@ -79,6 +94,8 @@ class PDNSPBConnHandler(object):
             policystr = ''
             if response.HasField('appliedPolicy') and response.appliedPolicy:
                 policystr = ', Applied policy: ' + response.appliedPolicy
+                if response.HasField('appliedPolicyType'):
+                    policystr = policystr + ' (' + self.getAppliedPolicyTypeAsString(response.appliedPolicyType) + ')'
 
             tagsstr = ''
             if response.tags:

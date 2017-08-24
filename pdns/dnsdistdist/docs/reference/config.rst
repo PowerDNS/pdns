@@ -574,7 +574,7 @@ Dynamic Blocks
 .. function:: setDynBlocksAction(action)
 
   Set which action is performed when a query is blocked.
-  Only DNSAction.Drop (the default) and DNSAction.Refused are supported.
+  Only DNSAction.Drop (the default), DNSAction.Refused and DNSAction.Truncate are supported.
 
 .. function:: addBPFFilterDynBlocks(addresses, filter[, seconds])
 

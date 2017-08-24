@@ -815,10 +815,9 @@ extern ResponseStats g_rs;
 
 void registerAllStats()
 {
-  static bool s_init = false;
-  if(s_init)
+  static std::atomic_flag s_init = ATOMIC_FLAG_INIT;
+  if(s_init.test_and_set())
     return;
-  s_init=true;
 
   addGetStat("questions", &g_stats.qcounter);
   addGetStat("ipv6-questions", &g_stats.ipv6qcounter);

@@ -109,7 +109,7 @@ EOF
 			cp -f $testsdir/list-all-records/expected_result.dnssec $testsdir/list-all-records/expected_result.nsec3
 		fi
 
-		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
+		$RUNWRAPPER $PDNS --daemon=no --local-address=$address --local-port=$port --socket-dir=./ \
 			--no-shuffle --launch=remote \
 			--cache-ttl=$cachettl --dname-processing --no-config \
 			--distributor-threads=1 \

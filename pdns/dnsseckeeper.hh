@@ -284,7 +284,7 @@ uint32_t localtime_format_YYYYMMDDSS(time_t t, uint32_t seq);
 uint32_t calculateEditSOA(const DNSZoneRecord& rr, const string& kind);
 uint32_t calculateEditSOA(const SOAData& sd, const string& kind);
 bool editSOA(DNSSECKeeper& dk, const DNSName& qname, DNSPacket* dp);
-bool editSOARecord(DNSZoneRecord& rr, const string& kind, const DNSName& qname);
+bool editSOARecord(DNSZoneRecord& rr, const string& kind);
 // for SOA-EDIT-DNSUPDATE/API
 uint32_t calculateIncreaseSOA(SOAData sd, const string& increaseKind, const string& editKind);
 bool increaseSOARecord(DNSResourceRecord& rr, const string& increaseKind, const string& editKind);

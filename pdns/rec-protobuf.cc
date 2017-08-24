@@ -61,6 +61,37 @@ void RecProtoBufMessage::setAppliedPolicy(const std::string& policy)
 #endif /* HAVE_PROTOBUF */
 }
 
+void RecProtoBufMessage::setAppliedPolicyType(const DNSFilterEngine::PolicyType& type)
+{
+#ifdef HAVE_PROTOBUF
+  PBDNSMessage_DNSResponse* response = d_message.mutable_response();
+  if (response) {
+    switch(type) {
+    case DNSFilterEngine::PolicyType::None:
+      response->set_appliedpolicytype(PBDNSMessage_PolicyType_UNKNOWN);
+      break;
+    case DNSFilterEngine::PolicyType::QName:
+      response->set_appliedpolicytype(PBDNSMessage_PolicyType_QNAME);
+      break;
+    case DNSFilterEngine::PolicyType::ClientIP:
+      response->set_appliedpolicytype(PBDNSMessage_PolicyType_CLIENTIP);
+      break;
+    case DNSFilterEngine::PolicyType::ResponseIP:
+      response->set_appliedpolicytype(PBDNSMessage_PolicyType_RESPONSEIP);
+      break;
+    case DNSFilterEngine::PolicyType::NSDName:
+      response->set_appliedpolicytype(PBDNSMessage_PolicyType_NSDNAME);
+      break;
+    case DNSFilterEngine::PolicyType::NSIP:
+      response->set_appliedpolicytype(PBDNSMessage_PolicyType_NSIP);
+      break;
+    default:
+      throw std::runtime_error("Unsupported protobuf policy type");
+    }
+  }
+#endif /* HAVE_PROTOBUF */
+}
+
 void RecProtoBufMessage::setPolicyTags(const std::vector<std::string>& policyTags)
 {
 #ifdef HAVE_PROTOBUF

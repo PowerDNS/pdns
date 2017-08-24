@@ -85,7 +85,7 @@ EOF
 
 		base64 -d < $testsdir/GeoLiteCity.dat.b64 > $testsdir/GeoLiteCity.dat
 
-		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
+		$RUNWRAPPER $PDNS --daemon=no --local-address=$address --local-port=$port --socket-dir=./ \
 			--no-shuffle --launch=geoip \
 			--cache-ttl=$cachettl --dname-processing --no-config \
 			--distributor-threads=1 \

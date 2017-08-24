@@ -66,9 +66,11 @@ class DNSFilterEngine
 {
 public:
   enum class PolicyKind { NoAction, Drop, NXDOMAIN, NODATA, Truncate, Custom};
+  enum class PolicyType { None, QName, ClientIP, ResponseIP, NSDName, NSIP };
+
   struct Policy
   {
-    Policy(): d_kind(PolicyKind::NoAction), d_custom(nullptr), d_name(nullptr), d_ttl(0)
+    Policy(): d_custom(nullptr), d_name(nullptr), d_kind(PolicyKind::NoAction), d_type(PolicyType::None), d_ttl(0)
     {
     }
     bool operator==(const Policy& rhs) const
@@ -82,6 +84,8 @@ public:
     PolicyKind d_kind;
     std::shared_ptr<DNSRecordContent> d_custom;
     std::shared_ptr<std::string> d_name;
+    PolicyKind d_kind;
+    PolicyType d_type;
     int32_t d_ttl;
   };
 
