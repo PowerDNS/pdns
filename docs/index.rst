@@ -15,6 +15,8 @@ Multiple backends can be enabled in the configuration by using the
 
 See the :doc:`backend <backends/index>` documentation for more information.
 
+This documentation is also available as a `PDF document <PowerDNS-Authoritative.pdf>`_.
+
 Getting Started
 ---------------
 

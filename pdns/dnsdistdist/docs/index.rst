@@ -40,3 +40,4 @@ There are several ways to reach us:
 
 If you require commercial support, please see the `PowerDNS.com website <https://powerdns.com>`_ or email us at powerdns.support.sales@powerdns.com.
 
+This documentation is also available as a `PDF document <dnsdist.pdf>`_.

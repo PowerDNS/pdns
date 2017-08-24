@@ -217,16 +217,16 @@ queries must return the following fields in order:
    checking is performed.
 -  prio: For MX and SRV records, this should be the priority of the
    record specified.
--  qtype: The ASCII representation of the qtype of this record. Examples
+-  type: The ASCII representation of the qtype of this record. Examples
    are 'A', 'MX', 'SOA', 'AAAA'. Make sure that this field returns an
    exact answer - PowerDNS won't recognise 'A ' as 'A'. This can be
    achieved by using a VARCHAR instead of a CHAR.
 -  domain_id: Unique identifier for this domain. This id must be unique
    across all backends. Must be a positive integer.
--  name: Actual name of a record. Must not end in a '.' and be fully
-   qualified - it is not relative to the name of the domain!
 -  disabled: Boolean, if set to true, this record is hidden from DNS
    clients, but can still be modified from the REST API. See :ref:`generic-sql-disabled-data`.
+-  name: Actual name of a record. Must not end in a '.' and be fully
+   qualified - it is not relative to the name of the domain!
 -  auth: A boolean describing if PowerDNS is authoritative for this
    record (DNSSEC)
 
