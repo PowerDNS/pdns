@@ -390,6 +390,7 @@ void RPZIXFRTracker(const ComboAddress& master, const DNSName& zoneName, boost::
       }
     }
     L<<Logger::Info<<"Had "<<totremove<<" RPZ removal"<<addS(totremove)<<", "<<totadd<<" addition"<<addS(totadd)<<" for "<<zoneName<<" New serial: "<<oursr->d_st.serial<<endl;
+    newZone->setSerial(oursr->d_st.serial);
 
     /* we need to replace the existing zone with the new one,
        but we don't want to touch anything else, especially other zones,

@@ -143,7 +143,7 @@ void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngine::Zon
       zone->addNSTrigger(filt, pol);
     else
       zone->rmNSTrigger(filt, pol);
-  } else 	if(dr.d_name.isPartOf(rpzClientIP)) {
+  } else if(dr.d_name.isPartOf(rpzClientIP)) {
     DNSName filt=dr.d_name.makeRelative(rpzClientIP);
     auto nm=makeNetmaskFromRPZ(filt);
     if(addOrRemove)
@@ -151,7 +151,7 @@ void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngine::Zon
     else
       zone->rmClientTrigger(nm, pol);
     
-  } else 	if(dr.d_name.isPartOf(rpzIP)) {
+  } else if(dr.d_name.isPartOf(rpzIP)) {
     // cerr<<"Should apply answer content IP policy: "<<dr.d_name<<endl;
     DNSName filt=dr.d_name.makeRelative(rpzIP);
     auto nm=makeNetmaskFromRPZ(filt);
@@ -226,7 +226,8 @@ void loadRPZFromFile(const std::string& fname, std::shared_ptr<DNSFilterEngine::
 	drr.content=".";
       DNSRecord dr(drr);
       if(dr.d_type == QType::SOA) {
-	domain = dr.d_name;
+        domain = dr.d_name;
+        zone->setDomain(domain);
       }
       else if(dr.d_type == QType::NS) {
 	continue;
@@ -236,7 +237,7 @@ void loadRPZFromFile(const std::string& fname, std::shared_ptr<DNSFilterEngine::
 	RPZRecordToPolicy(dr, zone, true, defpol, maxTTL);
       }
     }
-    catch(PDNSException& pe) {
+    catch(const PDNSException& pe) {
       throw PDNSException("Issue parsing '"+drr.qname.toString()+"' '"+drr.content+"' at "+zpt.getLineOfFile()+": "+pe.reason);
     }
   }
