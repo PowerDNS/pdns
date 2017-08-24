@@ -5,10 +5,7 @@
 #include "sstuff.hh"
 #include <iostream>
 #include "misc.hh"
-#include "utility.hh" 
 
-
-#include "namespaces.hh"
 #include "namespaces.hh"
 
 static FDMultiplexer* make()
@@ -43,7 +40,7 @@ void SelectFDMultiplexer::removeFD(callbackmap_t& cbmap, int fd)
     throw FDMultiplexerException("Tried to remove unlisted fd "+std::to_string(fd)+ " from multiplexer");
 }
 
-int SelectFDMultiplexer::run(struct timeval* now)
+int SelectFDMultiplexer::run(struct timeval* now, int timeout)
 {
   if(d_inrun) {
     throw FDMultiplexerException("FDMultiplexer::run() is not reentrant!\n");
@@ -64,9 +61,9 @@ int SelectFDMultiplexer::run(struct timeval* now)
     fdmax=max(i->first, fdmax);
   }
   
-  struct timeval tv={0,500000};
+  struct timeval tv={timeout / 1000 , (timeout % 1000) * 1000};
   int ret=select(fdmax + 1, &readfds, &writefds, 0, &tv);
-  Utility::gettimeofday(now, 0); // MANDATORY!
+  gettimeofday(now, 0); // MANDATORY!
   
   if(ret < 0 && errno!=EINTR)
     throw FDMultiplexerException("select returned error: "+stringerror());
@@ -76,12 +73,14 @@ int SelectFDMultiplexer::run(struct timeval* now)
 
   d_iter=d_readCallbacks.end();
   d_inrun=true;
-  
+
+  int got = 0;
   for(callbackmap_t::iterator i=d_readCallbacks.begin(); i != d_readCallbacks.end() && i->first <= fdmax; ) {
     d_iter=i++;
 
     if(FD_ISSET(d_iter->first, &readfds)) {
       d_iter->second.d_callback(d_iter->first, d_iter->second.d_parameter);
+      got++;
       continue;  // so we don't refind ourselves as writable
     }
   }
@@ -90,11 +89,12 @@ int SelectFDMultiplexer::run(struct timeval* now)
     d_iter=i++;
     if(FD_ISSET(d_iter->first, &writefds)) {
       d_iter->second.d_callback(d_iter->first, d_iter->second.d_parameter);
+      got++;
     }
   }
 
   d_inrun=false;
-  return 0;
+  return got;
 }
 
 #if 0

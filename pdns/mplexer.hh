@@ -30,7 +30,6 @@
 #include <map>
 #include <stdexcept>
 #include <string>
-#include "utility.hh"
 
 class FDMultiplexerException : public std::runtime_error
 {
@@ -50,7 +49,6 @@ public:
 class FDMultiplexer
 {
 public:
-  //  typedef boost::variant<PacketID, TCPConnection> funcparam_t;
   typedef boost::any funcparam_t;
 protected:
 
@@ -68,7 +66,9 @@ public:
   virtual ~FDMultiplexer()
   {}
 
-  virtual int run(struct timeval* tv) = 0;
+  /* tv will be updated to 'now' before run returns */
+  /* timeout is in ms */
+  virtual int run(struct timeval* tv, int timeout=500) = 0;
 
   //! Add an fd to the read watch list - currently an fd can only be on one list at a time!
   virtual void addReadFD(int fd, callbackfunc_t toDo, const funcparam_t& parameter=funcparam_t())
@@ -131,7 +131,6 @@ public:
   
   virtual std::string getName() = 0;
 
-
 protected:
   typedef std::map<int, Callback> callbackmap_t;
   callbackmap_t d_readCallbacks, d_writeCallbacks;
@@ -168,7 +167,7 @@ public:
   virtual ~SelectFDMultiplexer()
   {}
 
-  virtual int run(struct timeval* tv);
+  virtual int run(struct timeval* tv, int timeout=500);
 
   virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const funcparam_t& parameter);
   virtual void removeFD(callbackmap_t& cbmap, int fd);

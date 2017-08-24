@@ -17,6 +17,8 @@
 #undef INET6 /* SRSLY? */
 #endif /* HAVE_NET_SNMP */
 
+#include "mplexer.hh"
+
 class SNMPAgent
 {
 public:
@@ -49,12 +51,14 @@ protected:
   static bool sendTrap(int fd,
                        netsnmp_variable_list* varList);
 
-  void handleTraps();
-
   int d_trapPipe[2] = { -1, -1};
 #endif /* HAVE_NET_SNMP */
 private:
   void worker();
+  static void handleTrapsCB(int fd, FDMultiplexer::funcparam_t& var);
+  static void handleSNMPQueryCB(int fd, FDMultiplexer::funcparam_t& var);
+  void handleTrapsEvent();
+  void handleSNMPQueryEvent(int fd);
 
   std::thread d_thread;
 };

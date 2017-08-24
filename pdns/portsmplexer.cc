@@ -11,9 +11,7 @@
 #include <iostream>
 
 #include "misc.hh"
-#include "syncres.hh"
 
-#include "namespaces.hh"
 #include "namespaces.hh"
 
 class PortsFDMultiplexer : public FDMultiplexer
@@ -25,7 +23,7 @@ public:
     close(d_portfd);
   }
 
-  virtual int run(struct timeval* tv);
+  virtual int run(struct timeval* tv, int timeout=500);
 
   virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter);
   virtual void removeFD(callbackmap_t& cbmap, int fd);
@@ -80,16 +78,17 @@ void PortsFDMultiplexer::removeFD(callbackmap_t& cbmap, int fd)
     throw FDMultiplexerException("Removing fd from port set: "+stringerror());
 }
 
-int PortsFDMultiplexer::run(struct timeval* now)
+int PortsFDMultiplexer::run(struct timeval* now, int timeout)
 {
   if(d_inrun) {
     throw FDMultiplexerException("FDMultiplexer::run() is not reentrant!\n");
   }
   
-  struct timespec timeout;
-  timeout.tv_sec=0; timeout.tv_nsec=500000000;
+  struct timespec timeoutspec;
+  timeoutspec.tv_sec = time / 1000;
+  timeoutspec.tv_nsec = (time % 1000) * 1000000;
   unsigned int numevents=1;
-  int ret= port_getn(d_portfd, d_pevents.get(), min(PORT_MAX_LIST, s_maxevents), &numevents, &timeout);
+  int ret= port_getn(d_portfd, d_pevents.get(), min(PORT_MAX_LIST, s_maxevents), &numevents, &timeoutspec);
   
   /* port_getn has an unusual API - (ret == -1, errno == ETIME) can
      mean partial success; you must check (*numevents) in this case
@@ -133,7 +132,7 @@ int PortsFDMultiplexer::run(struct timeval* now)
   }
 
   d_inrun=false;
-  return 0;
+  return numevents;
 }
 
 #if 0

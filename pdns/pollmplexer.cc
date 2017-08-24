@@ -6,9 +6,6 @@
 #include <iostream>
 #include <poll.h>
 #include "misc.hh"
-#include "syncres.hh"
-#include "utility.hh" 
-#include "namespaces.hh"
 #include "namespaces.hh"
 
 
@@ -49,7 +46,7 @@ bool pollfdcomp(const struct pollfd& a, const struct pollfd& b)
   return a.fd < b.fd;
 }
 
-int PollFDMultiplexer::run(struct timeval* now)
+int PollFDMultiplexer::run(struct timeval* now, int timeout=500)
 {
   if(d_inrun) {
     throw FDMultiplexerException("FDMultiplexer::run() is not reentrant!\n");
@@ -70,15 +67,15 @@ int PollFDMultiplexer::run(struct timeval* now)
     pollfds.push_back(pollfd);
   }
 
-  int ret=poll(&pollfds[0], pollfds.size(), 500);
-  Utility::gettimeofday(now, 0); // MANDATORY!
+  int ret=poll(&pollfds[0], pollfds.size(), timeout);
+  gettimeofday(now, 0); // MANDATORY!
   
   if(ret < 0 && errno!=EINTR)
     throw FDMultiplexerException("poll returned error: "+stringerror());
 
   d_iter=d_readCallbacks.end();
   d_inrun=true;
-  
+
   for(unsigned int n = 0; n < pollfds.size(); ++n) {  
     if(pollfds[n].revents == POLLIN) {
       d_iter=d_readCallbacks.find(pollfds[n].fd);
@@ -97,7 +94,7 @@ int PollFDMultiplexer::run(struct timeval* now)
     }
   }
   d_inrun=false;
-  return 0;
+  return ret;
 }
 
 #if 0

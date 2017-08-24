@@ -27,14 +27,12 @@
 #include <iostream>
 #include <unistd.h>
 #include "misc.hh"
-#include "syncres.hh"
 #include <sys/types.h>
 #if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
 #include <sys/event.h>
 #endif
 #include <sys/time.h>
 
-#include "namespaces.hh"
 #include "namespaces.hh"
 
 class KqueueFDMultiplexer : public FDMultiplexer
@@ -46,7 +44,7 @@ public:
     close(d_kqueuefd);
   }
 
-  virtual int run(struct timeval* tv);
+  virtual int run(struct timeval* tv, int timeout=500);
 
   virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter);
   virtual void removeFD(callbackmap_t& cbmap, int fd);
@@ -105,15 +103,15 @@ void KqueueFDMultiplexer::removeFD(callbackmap_t& cbmap, int fd)
     throw FDMultiplexerException("Removing fd from kqueue set: "+stringerror());
 }
 
-int KqueueFDMultiplexer::run(struct timeval* now)
+int KqueueFDMultiplexer::run(struct timeval* now, int timeout)
 {
   if(d_inrun) {
     throw FDMultiplexerException("FDMultiplexer::run() is not reentrant!\n");
   }
   
   struct timespec ts;
-  ts.tv_sec=0;
-  ts.tv_nsec=500000000U;
+  ts.tv_sec=timeout/1000;
+  ts.tv_nsec=(timeout % 1000) * 1000000;
 
   int ret=kevent(d_kqueuefd, 0, 0, d_kevents.get(), s_maxevents, &ts);
   gettimeofday(now,0); // MANDATORY!
@@ -141,7 +139,7 @@ int KqueueFDMultiplexer::run(struct timeval* now)
   }
 
   d_inrun=false;
-  return 0;
+  return ret;
 }
 
 #if 0
