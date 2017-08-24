@@ -101,6 +101,12 @@ The DNSQuestion object contains at least the following fields:
 
     A string that will be used to set the ``requestorId`` field in :doc:`protobuf <../lua-config/protobuf>` messages.
 
+.. attribute:: DNSQuestion.deviceId str
+
+    .. versionadded:: 4.1.0
+
+    A string that will be used to set the ``deviceId`` field in :doc:`protobuf <../lua-config/protobuf>` messages.
+
 .. attribute:: DNSQuestion.udpAnswer -> str
 
     Answer to the :attr:`udpQuery <DNSQuestion.udpQuery>` when when using the ``udpQueryResponse`` :attr:`followupFunction <DNSQuestion.followupFunction>`.
