@@ -878,23 +878,33 @@ bool processQuery(LocalStateHolder<NetmaskTree<DynBlock> >& localDynNMGBlock,
 
   if(auto got=localDynNMGBlock->lookup(*dq.remote)) {
     if(now < got->second.until) {
-      g_stats.dynBlocked++;
-      got->second.blocks++;
       DNSAction::Action action = got->second.action;
       if (action == DNSAction::Action::None) {
         action = g_dynBlockAction;
       }
       if (action == DNSAction::Action::Refused) {
         vinfolog("Query from %s refused because of dynamic block", dq.remote->toStringWithPort());
+        g_stats.dynBlocked++;
+        got->second.blocks++;
+      
         dq.dh->rcode = RCode::Refused;
         dq.dh->qr=true;
         return true;
       }
-      else if (action == DNSAction::Action::Truncate && !dq.tcp) {
-        vinfolog("Query from %s truncated because of dynamic block", dq.remote->toStringWithPort());
-        dq.dh->tc = true;
-        dq.dh->qr = true;
-        return true;
+      else if (action == DNSAction::Action::Truncate) {
+        if(!dq.tcp) {
+          g_stats.dynBlocked++;
+          got->second.blocks++;
+
+          vinfolog("Query from %s truncated because of dynamic block", dq.remote->toStringWithPort());
+          dq.dh->tc = true;
+          dq.dh->qr = true;
+          return true;
+        }
+        else {
+          vinfolog("Query from %s for %s over TCP *not* truncated because of dynamic block", dq.remote->toStringWithPort(), dq.qname->toString());
+        }
+
       }
       else {
         vinfolog("Query from %s dropped because of dynamic block", dq.remote->toStringWithPort());
@@ -905,23 +915,32 @@ bool processQuery(LocalStateHolder<NetmaskTree<DynBlock> >& localDynNMGBlock,
 
   if(auto got=localDynSMTBlock->lookup(*dq.qname)) {
     if(now < got->until) {
-      g_stats.dynBlocked++;
-      got->blocks++;
       DNSAction::Action action = got->action;
       if (action == DNSAction::Action::None) {
         action = g_dynBlockAction;
       }
       if (action == DNSAction::Action::Refused) {
         vinfolog("Query from %s for %s refused because of dynamic block", dq.remote->toStringWithPort(), dq.qname->toString());
+        g_stats.dynBlocked++;
+        got->blocks++;
+
         dq.dh->rcode = RCode::Refused;
         dq.dh->qr=true;
         return true;
       }
-      else if (action == DNSAction::Action::Truncate && !dq.tcp) {
-        vinfolog("Query from %s for %s truncated because of dynamic block", dq.remote->toStringWithPort(), dq.qname->toString());
-        dq.dh->tc = true;
-        dq.dh->qr = true;
-        return true;
+      else if (action == DNSAction::Action::Truncate) {
+        if(!dq.tcp) {
+          g_stats.dynBlocked++;
+          got->blocks++;
+      
+          vinfolog("Query from %s for %s truncated because of dynamic block", dq.remote->toStringWithPort(), dq.qname->toString());
+          dq.dh->tc = true;
+          dq.dh->qr = true;
+          return true;
+        }
+        else {
+          vinfolog("Query from %s for %s over TCP *not* truncated because of dynamic block", dq.remote->toStringWithPort(), dq.qname->toString());
+        }
       }
       else {
         vinfolog("Query from %s for %s dropped because of dynamic block", dq.remote->toStringWithPort(), dq.qname->toString());
