@@ -81,7 +81,6 @@ public:
     DNSRecord getCustomRecord(const DNSName& qname) const;
     DNSRecord getRecord(const DNSName& qname) const;
 
-    PolicyKind d_kind;
     std::shared_ptr<DNSRecordContent> d_custom;
     std::shared_ptr<std::string> d_name;
     PolicyKind d_kind;
