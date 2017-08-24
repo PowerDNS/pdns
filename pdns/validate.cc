@@ -65,7 +65,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
         if (qtype != QType::DS && nsec->d_set.count(QType::NS) && !nsec->d_set.count(QType::SOA) &&
             getSigner(v.second.signatures).countLabels() < v.first.first.countLabels()) {
           /* this is an "ancestor delegation" NSEC RR */
-          LOG("An ancestor delegation NSEC RR can only deny the existence of a DS");
+          LOG("An ancestor delegation NSEC RR can only deny the existence of a DS"<<endl);
           continue;
         }
 
