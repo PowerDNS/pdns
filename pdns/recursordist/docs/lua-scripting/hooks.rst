@@ -53,8 +53,8 @@ Interception Functions
     :param DNSHeader dh: The DNS Header of the query.
 
 
-.. function:: gettag(remote, ednssubnet, local, qname, qtype, ednsoptions, tcp) -> int
-              gettag(remote, ednssubnet, local, qname, qtype, ednsoptions) -> int
+.. function:: gettag(remote, ednssubnet, localip, qname, qtype, ednsoptions, tcp) -> int
+              gettag(remote, ednssubnet, localip, qname, qtype, ednsoptions) -> int
 
     .. versionchanged:: 4.1.0
 
@@ -75,8 +75,8 @@ Interception Functions
     In the latter case, repeated queries will pass through the entire Lua script.
 
     :param ComboAddress remote: The sender's IP address
-    :param ??? ednssubnet: The EDNS Client subnet that was extracted from the packet
-    :param ComboAddress local: The IP address the query was received on
+    :param Netmask ednssubnet: The EDNS Client subnet that was extracted from the packet
+    :param ComboAddress localip: The IP address the query was received on
     :param DNSName qname: The domain name the query is for
     :param int qtype: The query type of the query
     :param ednsoptions: A table whose keys are EDNS option codes and values are :class:`EDNSOptionView` objects. This table is empty unless the :ref:`setting-gettag-needs-edns-options` option is set.
