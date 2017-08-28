@@ -61,44 +61,74 @@ meta['example.org.'] = {
 	['SOA-EDIT'] = {},
 }
 
+local domains_name = {} 
+domains_name["example.com."] = {
+	domain_id = 11,
+	name = "example.com.",
+	type = "NATIVE",
+	soa = {
+		nameserver = "ns1.example.com.",
+		hostmaster = "ahu.example.com.",
+		serial = 2005092501,
+		refresh = 7200,
+		retry = 3600,
+		expire = 1209600,
+		default_ttl = 3600,
+		ttl = 3600
+	}
+}
+domains_name["example.org."] = {
+	domain_id = 22,
+	name = "example.org.",
+	type = "NATIVE",
+	soa = {
+		nameserver = "nsa.example.org.",
+		hostmaster = "ahu.example.org.",
+		serial = 2016020516,
+		refresh = 7200,
+		retry = 3600,
+		expire = 1209600,
+		default_ttl = 3600,
+		ttl = 36000
+	}
+}
+
 local records = {}
-records["example.com."] = { 
-    {domain_id = 11, name = "example.com.", type = "SOA", ttl = 36000, content = "ns1.example.com. ahu.example.com. 2005092501 7200 3600 1209600 3600"},
-    {domain_id = 11, name = "example.com.", type = "NS", ttl = 120, content = "ns1.example.com."},
-    {domain_id = 11, name = "example.com.", type = "NS", ttl = 120, content = "ns2.example.com."},
+records["example.com."] = {
+	{domain_id = 11, name = "example.com.", type = "NS", ttl = 120, content = "ns1.example.com."},
+	{domain_id = 11, name = "example.com.", type = "NS", ttl = 120, content = "ns2.example.com."},
 }
 records["ns1.example.com."] = {
-    {domain_id = 11, name = "ns1.example.com.", type = "A", ttl = 120, content = "10.11.12.14"},
-    {domain_id = 11, name = "ns1.example.com.", type = "AAAA", ttl = 120, content = "1:2:3:4:5:6:7:9"}
+	{domain_id = 11, name = "ns1.example.com.", type = "A", ttl = 120, content = "10.11.12.14"},
+	{domain_id = 11, name = "ns1.example.com.", type = "AAAA", ttl = 120, content = "1:2:3:4:5:6:7:9"}
 }
 records["ns2.example.com."] = {
-    {domain_id = 11, name = "ns2.example.com.", type = "A", ttl = 120, content = "10.11.12.15"},
-    {domain_id = 11, name = "ns2.example.com.", type = "AAAA", ttl = 120, content = "1:2:3:4:5:6:7:10"}
+	{domain_id = 11, name = "ns2.example.com.", type = "A", ttl = 120, content = "10.11.12.15"},
+	{domain_id = 11, name = "ns2.example.com.", type = "AAAA", ttl = 120, content = "1:2:3:4:5:6:7:10"}
 }
 records["www.example.com."] = {
-    {domain_id = 11, name = "www.example.com.", type = "CNAME", ttl = 120, content = "host.example.com."} }
+	{domain_id = 11, name = "www.example.com.", type = "CNAME", ttl = 120, content = "host.example.com."} }
 records["host.example.com."] = {
-    {domain_id = 11, name = "host.example.com.", type = "A", ttl = 120, content = "10.11.12.13"},
-    {domain_id = 11, name = "host.example.com.", type = "AAAA", ttl = 120, content = "1:2:3:4:5:6:7:8"}
+	{domain_id = 11, name = "host.example.com.", type = "A", ttl = 120, content = "10.11.12.13"},
+	{domain_id = 11, name = "host.example.com.", type = "AAAA", ttl = 120, content = "1:2:3:4:5:6:7:8"}
 }
 records["example.org."] = { 
-    {domain_id = 22, name = "example.org.", type = "SOA", ttl = 36000, content = "nsa.example.org. ahu.example.org. 2016020516 7200 3600 1209600 3600"},
-    {domain_id = 22, name = "example.org.", type = "NS", ttl = 123, content = "nsa.example.org."},
-    {domain_id = 22, name = "example.org.", type = "NS", ttl = 123, content = "nsb.example.org."},
+	{domain_id = 22, name = "example.org.", type = "NS", ttl = 123, content = "nsa.example.org."},
+	{domain_id = 22, name = "example.org.", type = "NS", ttl = 123, content = "nsb.example.org."},
 }
 records["nsa.example.org."] = {
-    {domain_id = 22, name = "nsa.example.org.", type = "A", ttl = 123, content = "192.168.100.100"},
-    {domain_id = 22, name = "nsa.example.org.", type = "AAAA", ttl = 123, content = "1:2:3:4:5:6:7:100"}
+	{domain_id = 22, name = "nsa.example.org.", type = "A", ttl = 123, content = "192.168.100.100"},
+	{domain_id = 22, name = "nsa.example.org.", type = "AAAA", ttl = 123, content = "1:2:3:4:5:6:7:100"}
 }
 records["nsb.example.org."] = {
-    {domain_id = 22, name = "nsb.example.org.", type = "A", ttl = 123, content = "192.168.200.200"},
-    {domain_id = 22, name = "nsb.example.org.", type = "AAAA", ttl = 123, content = "1:2:3:4:5:6:7:200"}
+	{domain_id = 22, name = "nsb.example.org.", type = "A", ttl = 123, content = "192.168.200.200"},
+	{domain_id = 22, name = "nsb.example.org.", type = "AAAA", ttl = 123, content = "1:2:3:4:5:6:7:200"}
 }
 records["www.example.org."] = {
-    {domain_id = 22, name = "www.example.org.", type = "CNAME", ttl = 123, content = "host.example.org."} }
+	{domain_id = 22, name = "www.example.org.", type = "CNAME", ttl = 123, content = "host.example.org."} }
 records["host.example.org."] = {
-    {domain_id = 22, name = "host.example.org.", type = "A", ttl = 123, content = "192.168.150.150"},
-    {domain_id = 22, name = "host.example.org.", type = "AAAA", ttl = 123, content = "1:2:3:4:5:6:7:150"}
+	{domain_id = 22, name = "host.example.org.", type = "A", ttl = 123, content = "192.168.150.150"},
+	{domain_id = 22, name = "host.example.org.", type = "AAAA", ttl = 123, content = "1:2:3:4:5:6:7:150"}
 }
 
 -- 'global' state:
@@ -147,8 +177,13 @@ end
 
 
 function getsoa(name)
-	logger(log_debug, "(l_getsoa) name:", name)
-	return false
+	logger(log_debug, "(l_getsoa) begin", "name:", name)
+	r = domains_name[name]
+	if type(r) == "table" then
+		logger(log_debug, "(l_getsoa) end: ", type(r), type(r["soa"]))
+		return r["soa"]
+	end
+	logger(log_debug, "(l_getsoa) end: not found")
 end
 
 
