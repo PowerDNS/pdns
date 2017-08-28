@@ -216,9 +216,8 @@ void DNSProxy::mainloop(void)
         d.id=i->second.id;
         memcpy(buffer,&d,sizeof(d));  // commit spoofed id
 
-        DNSPacket p(false),q(false);
-        p.parse(buffer,(size_t)len);
-        q.parse(buffer,(size_t)len);
+        DNSPacket p(false);
+        p.questionparse(buffer,(size_t)len);
 
         if(p.qtype.getCode() != i->second.qtype || p.qdomain != i->second.qname) {
           L<<Logger::Error<<"Discarding packet from recursor backend with id "<<(d.id^d_xor)<<

@@ -173,7 +173,7 @@ time_t CommunicatorClass::doNotifications()
 
     p.setRemote(&from);
 
-    if(p.parse(buffer,(size_t)size)<0) {
+    if(p.questionparse(buffer,(size_t)size)<0) {
       L<<Logger::Warning<<"Unable to parse SOA notification answer from "<<p.getRemote()<<endl;
       continue;
     }

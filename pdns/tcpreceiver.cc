@@ -329,7 +329,7 @@ void *TCPNameserver::doConnection(void *data)
       packet->setRemote(&remote);
       packet->d_tcp=true;
       packet->setSocket(fd);
-      if(packet->parse(mesg.get(), pktlen)<0)
+      if(packet->questionparse(mesg.get(), pktlen)<0)
         break;
       
       if(packet->qtype.getCode()==QType::AXFR) {

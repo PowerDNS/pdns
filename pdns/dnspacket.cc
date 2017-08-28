@@ -524,8 +524,9 @@ bool DNSPacket::getTKEYRecord(TKEYRecordContent *tr, DNSName *keyname) const
 /** This function takes data from the network, possibly received with recvfrom, and parses
     it into our class. Results of calling this function multiple times on one packet are
     unknown. Returns -1 if the packet cannot be parsed.
+    Does not actually store data records in d_rrs!
 */
-int DNSPacket::parse(const char *mesg, size_t length)
+int DNSPacket::questionparse(const char *mesg, size_t length)
 try
 {
   d_rawpacket.assign(mesg,length); 

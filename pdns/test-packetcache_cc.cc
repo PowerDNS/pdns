@@ -145,7 +145,7 @@ try
 
     DNSPacketWriter pw(pak, qname, QType::A);
     DNSPacket q(true);
-    q.parse((char*)&pak[0], pak.size());
+    q.questionparse((char*)&pak[0], pak.size());
 
     pak.clear();
     DNSPacketWriter pw2(pak, qname, QType::A);
@@ -154,7 +154,7 @@ try
     pw2.commit();
 
     DNSPacket r(false);
-    r.parse((char*)&pak[0], pak.size());
+    r.questionparse((char*)&pak[0], pak.size());
 
     /* this step is necessary to get a valid hash */
     DNSPacket cached(false);
@@ -181,7 +181,7 @@ try
 
     DNSPacketWriter pw(pak, qname, QType::A);
     DNSPacket q(true);
-    q.parse((char*)&pak[0], pak.size());
+    q.questionparse((char*)&pak[0], pak.size());
     DNSPacket r(false);
 
     if(!g_PC->get(&q, &r)) {
@@ -296,14 +296,14 @@ BOOST_AUTO_TEST_CASE(test_AuthPacketCache) {
 
     {
       DNSPacketWriter pw(pak, DNSName("www.powerdns.com"), QType::A);
-      q.parse((char*)&pak[0], pak.size());
+      q.questionparse((char*)&pak[0], pak.size());
 
-      differentIDQ.parse((char*)&pak[0], pak.size());
+      differentIDQ.questionparse((char*)&pak[0], pak.size());
       differentIDQ.setID(4242);
 
       pw.addOpt(512, 0, 0);
       pw.commit();
-      ednsQ.parse((char*)&pak[0], pak.size());
+      ednsQ.questionparse((char*)&pak[0], pak.size());
 
       pak.clear();
     }
@@ -314,7 +314,7 @@ BOOST_AUTO_TEST_CASE(test_AuthPacketCache) {
       DNSPacketWriter pw(pak, DNSName("www.powerdns.com"), QType::A);
       pw.addOpt(512, 0, 0, DNSPacketWriter::optvect_t(), 42);
       pw.commit();
-      ednsVersion42.parse((char*)&pak[0], pak.size());
+      ednsVersion42.questionparse((char*)&pak[0], pak.size());
       pak.clear();
     }
 
@@ -322,7 +322,7 @@ BOOST_AUTO_TEST_CASE(test_AuthPacketCache) {
       DNSPacketWriter pw(pak, DNSName("www.powerdns.com"), QType::A);
       pw.addOpt(512, 0, EDNSOpts::DNSSECOK);
       pw.commit();
-      ednsDO.parse((char*)&pak[0], pak.size());
+      ednsDO.questionparse((char*)&pak[0], pak.size());
       pak.clear();
     }
 
@@ -332,7 +332,7 @@ BOOST_AUTO_TEST_CASE(test_AuthPacketCache) {
       DNSPacketWriter pw(pak, DNSName("www.powerdns.com"), QType::A);
       pw.addOpt(512, 0, 0, opts);
       pw.commit();
-      ecs1.parse((char*)&pak[0], pak.size());
+      ecs1.questionparse((char*)&pak[0], pak.size());
       pak.clear();
       opts.clear();
     }
@@ -343,7 +343,7 @@ BOOST_AUTO_TEST_CASE(test_AuthPacketCache) {
       opts.push_back(make_pair(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(ecsOpts)));
       pw.addOpt(512, 0, 0, opts);
       pw.commit();
-      ecs2.parse((char*)&pak[0], pak.size());
+      ecs2.questionparse((char*)&pak[0], pak.size());
       pak.clear();
       opts.clear();
     }
@@ -354,7 +354,7 @@ BOOST_AUTO_TEST_CASE(test_AuthPacketCache) {
       opts.push_back(make_pair(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(ecsOpts)));
       pw.addOpt(512, 0, 0, opts);
       pw.commit();
-      ecs3.parse((char*)&pak[0], pak.size());
+      ecs3.questionparse((char*)&pak[0], pak.size());
       pak.clear();
       opts.clear();
     }
@@ -365,7 +365,7 @@ BOOST_AUTO_TEST_CASE(test_AuthPacketCache) {
       pw.xfrIP(htonl(0x7f000001));
       pw.commit();
 
-      r.parse((char*)&pak[0], pak.size());
+      r.questionparse((char*)&pak[0], pak.size());
     }
 
     /* this call is required so the correct hash is set into q->d_hash */
