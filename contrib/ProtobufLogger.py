@@ -157,7 +157,9 @@ class PDNSPBConnHandler(object):
                                                     protostr,
                                                     msg.id,
                                                     messageidstr,
-                                                    initialrequestidstr))
+                                                    initialrequestidstr,
+                                                    requestorId,
+                                                    deviceId))
 
     def getRequestorSubnet(self, msg):
         requestorstr = None
