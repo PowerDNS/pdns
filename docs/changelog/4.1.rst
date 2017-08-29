@@ -483,3 +483,135 @@ Changelogs for 4.1.x
     :pullreq: 5426
 
     Use BIGSERIAL for records.id in the gpgsql backend (Arsen Stasic).
+
+  .. change::
+    :tags: Internals, Bug Fixes
+    :pullreq: 5525
+
+    Fix validation at the exact RRSIG inception or expiration time
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 5523
+
+    Fix typo in two log messages (Ruben Kerkhof).
+
+  .. change::
+    :tags: API, Bug Fixes
+    :pullreq: 5516
+
+    Avoid creating fake DNSPacket objects just for calling getAuth() from API code (Christian Hofstaedtler).
+
+  .. change::
+    :tags: LDAP, Improvements
+    :pullreq: 5509
+
+    Ship ldapbackend schema files in tarball (Christian Hofstaedtler).
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 5542
+
+    Update YaHTTP (to fix a warning reported by Coverity).
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 5541
+
+    Clarify how we check the return value of std::string::find() (reported by Coverity).
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 5543
+
+    Wrap the webserver's and Resolver::tryGetSOASerial objects into smart pointers.
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 4692
+
+    SSql: Use unique_ptr for statements (Aki Tuomi).
+
+  .. change::
+    :tags: MySQL, Improvements
+    :pullreq: 5605
+
+    mydnsbackend: Initialize d_query_stmt (Aki Tuomi).
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 5599
+
+    Fix libatomic detection on ppc64 (Sander Hoentjen).
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 5588
+
+    Switch the default webserver's ACL to "127.0.0.1, ::1".
+
+  .. change::
+    :tags: API, Bug Fixes
+    :pullreq: 5589
+
+    Check if the API is read-only on crypto keys methods.
+
+  .. change::
+    :tags: API, Bug Fixes
+    :pullreq: 5556
+
+    Fix getSOA() in luabackend (@zilopbg).
+
+  .. change::
+    :tags: MySQL & Postgresql, Improvements
+    :pullreq: 5518
+
+    Schema changes for MySQL / MariaDB and PostgreSQL to fir storage requirements of various versions (Kees Monshouwer).
+
+  .. change::
+    :tags: GeoIP, Improvements
+    :pullreq: 5548
+
+    Add ability to have service record for apex record and any other static record (Aki Tuomi).
+
+  .. change::
+    :tags: Internals, Bug Fixes
+    :pullreq: 5519
+
+    Lookups one level (or more) below apex did confuse getAuth() for qytpe DS (Kees Monshouwer).
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 5611
+
+    NOTIMP is only appropriate for an unsupported opcode (Kees Monshouwer).
+
+  .. change::
+    :tags: Tools, Bug Fixes
+    :pullreq: 5610
+
+    Fix that pdnsutil edit-zone complains about auth=1 problems on all data.
+
+  .. change::
+    :tags: Internals, Bug Fixes
+    :pullreq: 5633
+
+    First and last SOA in an AXFR must be identical (Kees Monshouwer).
+
+  .. change::
+    :tags: API, Improvements
+    :pullreq: 4195
+
+    Prevent duplicate records in single RRset (Christian Hofstaedtler).
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 5641
+
+    Catch DNSName exception in the Zoneparser.
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 5583
+
+    Listen on 127.0.0.1 during regression tests (@tcely).
