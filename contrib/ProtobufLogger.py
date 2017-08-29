@@ -161,16 +161,22 @@ class PDNSPBConnHandler(object):
         if requestor:
             requestorstr = ' (' + requestor + ')'
 
-        print('[%s] %s of size %d: %s%s -> %s (%s), id: %d, uuid: %s%s' % (datestr,
-                                                                           typestr,
-                                                                           msg.inBytes,
-                                                                           ipfromstr,
-                                                                           requestorstr,
-                                                                           iptostr,
-                                                                           protostr,
-                                                                           msg.id,
-                                                                           messageidstr,
-                                                                           initialrequestidstr))
+        deviceId = binascii.hexlify(bytearray(msg.deviceId))
+        requestorId = msg.requestorId
+
+        print('[%s] %s of size %d: %s%s -> %s (%s), id: %d, uuid: %s%s '
+                  'requestorid: %s deviceid: %s' % (datestr,
+                                                    typestr,
+                                                    msg.inBytes,
+                                                    ipfromstr,
+                                                    requestorstr,
+                                                    iptostr,
+                                                    protostr,
+                                                    msg.id,
+                                                    messageidstr,
+                                                    initialrequestidstr,
+                                                    requestorId,
+                                                    deviceId))
 
     def getRequestorSubnet(self, msg):
         requestorstr = None

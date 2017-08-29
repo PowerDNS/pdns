@@ -597,7 +597,7 @@ bool RecursorLua4::ipfilter(const ComboAddress& remote, const ComboAddress& loca
   return false; // don't block
 }
 
-unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const std::map<uint16_t, EDNSOptionView>& ednsOptions, bool tcp, std::string& requestorId)
+unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const std::map<uint16_t, EDNSOptionView>& ednsOptions, bool tcp, std::string& requestorId, std::string& deviceId)
 {
   if(d_gettag) {
     auto ret = d_gettag(remote, ednssubnet, local, qname, qtype, ednsOptions, tcp);
@@ -617,6 +617,10 @@ unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& edn
     const auto reqIdret = std::get<3>(ret);
     if (reqIdret) {
       requestorId = *reqIdret;
+    }
+    const auto deviceIdret = std::get<4>(ret);
+    if (deviceIdret) {
+      deviceId = *deviceIdret;
     }
     return std::get<0>(ret);
   }

@@ -69,6 +69,7 @@ public:
   void setResponder(const std::string& responder);
   void setResponder(const ComboAddress& responder);
   void setRequestorId(const std::string& requestorId);
+  void setDeviceId(const std::string& deviceId);
   std::string toDebugString() const;
   void addTag(const std::string& strValue);
   void addRR(const DNSName& qame, uint16_t utype, uint16_t uClass, uint32_t uTTl, const std::string& strBlob);

@@ -206,6 +206,7 @@ struct DNSComboWriter {
 #ifdef HAVE_PROTOBUF
   boost::uuids::uuid d_uuid;
   string d_requestorId;
+  string d_deviceId;
 #endif
   EDNSSubnetOpts d_ednssubnet;
   bool d_ecsFound{false};
@@ -647,13 +648,14 @@ catch(...)
 }
 
 #ifdef HAVE_PROTOBUF
-static void protobufLogQuery(const std::shared_ptr<RemoteLogger>& logger, uint8_t maskV4, uint8_t maskV6, const boost::uuids::uuid& uniqueId, const ComboAddress& remote, const ComboAddress& local, const Netmask& ednssubnet, bool tcp, uint16_t id, size_t len, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::vector<std::string>& policyTags, const std::string& requestorId)
+static void protobufLogQuery(const std::shared_ptr<RemoteLogger>& logger, uint8_t maskV4, uint8_t maskV6, const boost::uuids::uuid& uniqueId, const ComboAddress& remote, const ComboAddress& local, const Netmask& ednssubnet, bool tcp, uint16_t id, size_t len, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::vector<std::string>& policyTags, const std::string& requestorId, const std::string& deviceId)
 {
   Netmask requestorNM(remote, remote.sin4.sin_family == AF_INET ? maskV4 : maskV6);
   const ComboAddress& requestor = requestorNM.getMaskedNetwork();
   RecProtoBufMessage message(DNSProtoBufMessage::Query, uniqueId, &requestor, &local, qname, qtype, qclass, id, tcp, len);
   message.setEDNSSubnet(ednssubnet, ednssubnet.isIpv4() ? maskV4 : maskV6);
   message.setRequestorId(requestorId);
+  message.setDeviceId(deviceId);
 
   if (!policyTags.empty()) {
     message.setPolicyTags(policyTags);
@@ -816,6 +818,7 @@ static void startDoResolve(void *p)
     dq.data = dc->d_data;
 #ifdef HAVE_PROTOBUF
     dq.requestorId = dc->d_requestorId;
+    dq.deviceId = dc->d_deviceId;
 #endif
 
     if(dc->d_mdp.d_qtype==QType::ANY && !dc->d_tcp && g_anyToTcp) {
@@ -1151,6 +1154,7 @@ static void startDoResolve(void *p)
       pbMessage.setPolicyTags(dc->d_policyTags);
       pbMessage.setQueryTime(dc->d_now.tv_sec, dc->d_now.tv_usec);
       pbMessage.setRequestorId(dq.requestorId);
+      pbMessage.setDeviceId(dq.deviceId);
       protobufLogResponse(luaconfsLocal->protobufServer, pbMessage);
     }
 #endif
@@ -1417,6 +1421,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       uint16_t qclass=0;
       bool needECS = false;
       string requestorId;
+      string deviceId;
 #ifdef HAVE_PROTOBUF
       auto luaconfsLocal = g_luaconfs.getLocal();
       if (luaconfsLocal->protobufServer) {
@@ -1433,7 +1438,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 
           if(t_pdl && t_pdl->d_gettag) {
             try {
-              dc->d_tag = t_pdl->gettag(conn->d_remote, dc->d_ednssubnet.source, dest, qname, qtype, &dc->d_policyTags, dc->d_data, ednsOptions, true, requestorId);
+              dc->d_tag = t_pdl->gettag(conn->d_remote, dc->d_ednssubnet.source, dest, qname, qtype, &dc->d_policyTags, dc->d_data, ednsOptions, true, requestorId, deviceId);
             }
             catch(std::exception& e)  {
               if(g_logCommonErrors)
@@ -1450,6 +1455,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 #ifdef HAVE_PROTOBUF
       if(luaconfsLocal->protobufServer || luaconfsLocal->outgoingProtobufServer) {
         dc->d_requestorId = requestorId;
+        dc->d_deviceId = deviceId;
         dc->d_uuid = (*t_uuidGenerator)();
       }
 
@@ -1458,7 +1464,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           const struct dnsheader* dh = (const struct dnsheader*) conn->data;
 
           if (!luaconfsLocal->protobufTaggedOnly) {
-            protobufLogQuery(luaconfsLocal->protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, dc->d_uuid, conn->d_remote, dest, dc->d_ednssubnet.source, true, dh->id, conn->qlen, qname, qtype, qclass, dc->d_policyTags, dc->d_requestorId);
+            protobufLogQuery(luaconfsLocal->protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, dc->d_uuid, conn->d_remote, dest, dc->d_ednssubnet.source, true, dh->id, conn->qlen, qname, qtype, qclass, dc->d_policyTags, dc->d_requestorId, dc->d_deviceId);
           }
         }
         catch(std::exception& e) {
@@ -1568,6 +1574,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   std::vector<std::string> policyTags;
   LuaContext::LuaObject data;
   string requestorId;
+  string deviceId;
 #ifdef HAVE_PROTOBUF
   boost::uuids::uuid uniqueId;
   auto luaconfsLocal = g_luaconfs.getLocal();
@@ -1608,7 +1615,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 
         if(t_pdl && t_pdl->d_gettag) {
           try {
-            ctag=t_pdl->gettag(fromaddr, ednssubnet.source, destaddr, qname, qtype, &policyTags, data, ednsOptions, false, requestorId);
+            ctag=t_pdl->gettag(fromaddr, ednssubnet.source, destaddr, qname, qtype, &policyTags, data, ednsOptions, false, requestorId, deviceId);
           }
           catch(std::exception& e)  {
             if(g_logCommonErrors)
@@ -1628,7 +1635,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 #ifdef HAVE_PROTOBUF
     if(luaconfsLocal->protobufServer) {
       if (!luaconfsLocal->protobufTaggedOnly || !policyTags.empty()) {
-        protobufLogQuery(luaconfsLocal->protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, uniqueId, fromaddr, destaddr, ednssubnet.source, false, dh->id, question.size(), qname, qtype, qclass, policyTags, requestorId);
+        protobufLogQuery(luaconfsLocal->protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, uniqueId, fromaddr, destaddr, ednssubnet.source, false, dh->id, question.size(), qname, qtype, qclass, policyTags, requestorId, deviceId);
       }
     }
 #endif /* HAVE_PROTOBUF */
@@ -1649,6 +1656,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         pbMessage.setEDNSSubnet(ednssubnet.source, ednssubnet.source.isIpv4() ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
         pbMessage.setQueryTime(g_now.tv_sec, g_now.tv_usec);
         pbMessage.setRequestorId(requestorId);
+        pbMessage.setDeviceId(deviceId);
         protobufLogResponse(luaconfsLocal->protobufServer, pbMessage);
       }
 #endif /* HAVE_PROTOBUF */
@@ -1719,6 +1727,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     dc->d_uuid = uniqueId;
   }
   dc->d_requestorId = requestorId;
+  dc->d_deviceId = deviceId;
 #endif
 
   MT->makeThread(startDoResolve, (void*) dc); // deletes dc

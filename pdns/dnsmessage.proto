@@ -84,4 +84,5 @@ message PBDNSMessage {
   optional bytes originalRequestorSubnet = 14;  // EDNS Client Subnet value
   optional string requestorId = 15;             // Username of the requestor
   optional bytes initialRequestId = 16;         // UUID of the incoming query that initiated this outgoing query or incoming response
+  optional bytes deviceId = 17;     		// Device ID of the requestor (could be mac address IP address or e.g. IMEI)
 }
