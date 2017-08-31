@@ -4,7 +4,7 @@ Changelogs for 4.1.x
 .. changelog::
   :version: 4.1.0
 
-  This is the first release of the PowerDNS Recursor in the 4.1 release train.
+  This is the first release candidate of the PowerDNS Authoritative Server in the 4.1 release train.
 
   .. change::
     :tags: BIND, Improvements
@@ -566,7 +566,7 @@ Changelogs for 4.1.x
     :tags: MySQL & Postgresql, Improvements
     :pullreq: 5518
 
-    Schema changes for MySQL / MariaDB and PostgreSQL to fir storage requirements of various versions (Kees Monshouwer).
+    Schema changes for MySQL / MariaDB and PostgreSQL to for storage requirements of various versions (Kees Monshouwer).
 
   .. change::
     :tags: GeoIP, Improvements
