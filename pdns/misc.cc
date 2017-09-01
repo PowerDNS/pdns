@@ -57,7 +57,9 @@
 #include <sys/types.h>
 #include <pwd.h>
 #include <grp.h>
-
+#ifdef __FreeBSD__
+#  include <pthread_np.h>
+#endif
 
 bool g_singleThreaded;
 
@@ -1323,6 +1325,9 @@ bool isSettingThreadCPUAffinitySupported()
 int mapThreadToCPUList(pthread_t tid, const std::set<int>& cpus)
 {
 #ifdef HAVE_PTHREAD_SETAFFINITY_NP
+#  ifdef __FreeBSD__
+#    define cpu_set_t cpuset_t
+#  endif
   cpu_set_t cpuset;
   CPU_ZERO(&cpuset);
   for (const auto cpuID : cpus) {
