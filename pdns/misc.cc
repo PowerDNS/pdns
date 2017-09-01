@@ -1325,7 +1325,7 @@ bool isSettingThreadCPUAffinitySupported()
 int mapThreadToCPUList(pthread_t tid, const std::set<int>& cpus)
 {
 #ifdef HAVE_PTHREAD_SETAFFINITY_NP
-#  ifndef cpu_set_t
+#  ifdef __FreeBSD__
 #    define cpu_set_t cpuset_t
 #  endif
   cpu_set_t cpuset;
