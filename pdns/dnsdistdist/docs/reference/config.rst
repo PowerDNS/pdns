@@ -529,11 +529,11 @@ Status, Statistics and More
 
 .. function:: topResponses([num[, rcode[, labels]]])
 
-  Print the ``num`` most seen responses with an RCODE or ``rcode``.
+  Print the ``num`` most seen responses with an RCODE of ``rcode``.
   Optionally grouped by the rightmost ``labels`` DNS labels.
 
   :param int num: Number to show, defaults to 10
-  :param int rcode: Response code (e.g. 0=NO Error, 2=ServFail, 3=ServFail), defaults to 0
+  :param int rcode: :ref:`Response code <DNSRCode>`, defaults to 0 (No Error)
   :param int label: Number of labels to cut down to
 
 .. function:: topSlow([num[, limit[, labels]]])
