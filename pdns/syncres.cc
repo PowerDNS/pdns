@@ -960,17 +960,16 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSR
       LOG(prefix<<qname<<": Entire name '"<<qname<<"', is negatively cached via '"<<ne.d_auth<<"' for another "<<sttl<<" seconds"<<endl);
       res = RCode::NXDomain;
     }
-    if(d_doDNSSEC) {
-      addTTLModifiedRecords(ne.DNSSECRecords.records, sttl, ret);
-      addTTLModifiedRecords(ne.DNSSECRecords.signatures, sttl, ret);
-    }
   }
 
   if (giveNegative) {
     // Transplant SOA to the returned packet
     addTTLModifiedRecords(ne.authoritySOA.records, sttl, ret);
-    if(d_doDNSSEC)
+    if(d_doDNSSEC) {
       addTTLModifiedRecords(ne.authoritySOA.signatures, sttl, ret);
+      addTTLModifiedRecords(ne.DNSSECRecords.records, sttl, ret);
+      addTTLModifiedRecords(ne.DNSSECRecords.signatures, sttl, ret);
+    }
 
     LOG(prefix<<qname<<": updating validation state with negative cache content for "<<qname<<" to "<<vStates[cachedState]<<endl);
     state = cachedState;
