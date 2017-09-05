@@ -2,7 +2,17 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
-  :version: 4.1.0
+  :version: 4.1.0-rc2
+
+  .. change::
+    :tags: Packages, New Features
+    :pullreq: 5665
+
+    Add :doc:`PKCS#11 <../../dnssec/pkcs11>` support to packages on Operating Systems that support it.
+
+.. changelog::
+  :version: 4.1.0-rc1
+  :released: 31st of August 2017
 
   This is the first release candidate of the PowerDNS Authoritative Server in the 4.1 release train.
 
