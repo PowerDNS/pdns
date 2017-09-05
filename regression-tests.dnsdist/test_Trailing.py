@@ -12,7 +12,7 @@ class TestTrailing(DNSDistTest):
     _testServerPort = 5360
     _config_template = """
     newServer{address="127.0.0.1:%s"}
-    addAction(AndRule({QTypeRule(dnsdist.AAAA), TrailingDataRule()}), DropAction())
+    addAction(AndRule({QTypeRule(DNSQType.AAAA), TrailingDataRule()}), DropAction())
     """
     @classmethod
     def startResponders(cls):

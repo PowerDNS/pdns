@@ -504,7 +504,7 @@ class TestAdvancedTruncateAnyAndTCP(DNSDistTest):
 class TestAdvancedAndNot(DNSDistTest):
 
     _config_template = """
-    addAction(AndRule({NotRule(QTypeRule("A")), TCPRule(false)}), RCodeAction(dnsdist.NOTIMP))
+    addAction(AndRule({NotRule(QTypeRule("A")), TCPRule(false)}), RCodeAction(DNSRCode.NOTIMP))
     newServer{address="127.0.0.1:%s"}
     """
     def testAOverUDPReturnsNotImplementedCanary(self):
@@ -576,7 +576,7 @@ class TestAdvancedAndNot(DNSDistTest):
 class TestAdvancedOr(DNSDistTest):
 
     _config_template = """
-    addAction(OrRule({QTypeRule("A"), TCPRule(false)}), RCodeAction(dnsdist.NOTIMP))
+    addAction(OrRule({QTypeRule("A"), TCPRule(false)}), RCodeAction(DNSRCode.NOTIMP))
     newServer{address="127.0.0.1:%s"}
     """
     def testAAAAOverUDPReturnsNotImplemented(self):
@@ -970,7 +970,7 @@ class TestAdvancedQPSNone(DNSDistTest):
 
     _config_template = """
     addQPSLimit("qpsnone.advanced.tests.powerdns.com", 100)
-    addAction(AllRule(), RCodeAction(dnsdist.REFUSED))
+    addAction(AllRule(), RCodeAction(DNSRCode.REFUSED))
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -998,7 +998,7 @@ class TestAdvancedNMGRule(DNSDistTest):
     _config_template = """
     allowed = newNMG()
     allowed:addMask("192.0.2.1/32")
-    addAction(NotRule(NetmaskGroupRule(allowed)), RCodeAction(dnsdist.REFUSED))
+    addAction(NotRule(NetmaskGroupRule(allowed)), RCodeAction(DNSRCode.REFUSED))
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -1023,7 +1023,7 @@ class TestAdvancedNMGRule(DNSDistTest):
 class TestAdvancedLabelsCountRule(DNSDistTest):
 
     _config_template = """
-    addAction(QNameLabelsCountRule(5,6), RCodeAction(dnsdist.REFUSED))
+    addAction(QNameLabelsCountRule(5,6), RCodeAction(DNSRCode.REFUSED))
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -1083,7 +1083,7 @@ class TestAdvancedLabelsCountRule(DNSDistTest):
 class TestAdvancedWireLengthRule(DNSDistTest):
 
     _config_template = """
-    addAction(QNameWireLengthRule(54,56), RCodeAction(dnsdist.REFUSED))
+    addAction(QNameWireLengthRule(54,56), RCodeAction(DNSRCode.REFUSED))
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -1410,7 +1410,7 @@ com.""")
 class TestAdvancedRD(DNSDistTest):
 
     _config_template = """
-    addAction(RDRule(), RCodeAction(dnsdist.REFUSED))
+    addAction(RDRule(), RCodeAction(DNSRCode.REFUSED))
     newServer{address="127.0.0.1:%s"}
     """
 

@@ -8,7 +8,7 @@ class TestResponseRuleNXDelayed(DNSDistTest):
 
     _config_template = """
     newServer{address="127.0.0.1:%s"}
-    addResponseAction(RCodeRule(dnsdist.NXDOMAIN), DelayResponseAction(1000))
+    addResponseAction(RCodeRule(DNSRCode.NXDOMAIN), DelayResponseAction(1000))
     """
 
     def testNXDelayed(self):

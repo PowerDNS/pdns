@@ -81,7 +81,10 @@ Rule Generators
   Set the TC-bit (truncate) on ANY queries received over UDP, forcing a retry over TCP.
   This function is deprecated as of 1.2.0 and will be removed in 1.3.0. This is equivalent to doing::
 
-    addAction(AndRule({QTypeRule(dnsdist.ANY), TCPRule(false)}), TCAction())
+    addAction(AndRule({QTypeRule(DNSQType.ANY), TCPRule(false)}), TCAction())
+
+  .. versionchanged:: 1.3.0
+    Before 1.3.0, the QTypes were in the ``dnsdist`` namespace. Use ``dnsdist.ANY`` in these versions.
 
 .. function:: addDelay(DNSrule, delay)
 
@@ -447,7 +450,10 @@ These ``DNSRule``\ s be one of the following items:
 
   Matches queries with the specified ``qtype``
   ``qtype`` may be specified as an integer or as one of the built-in QTypes.
-  For instance ``dnsdist.A``, ``dnsdist.TXT`` and ``dnsdist.ANY``.
+  For instance ``DNSQType.A``, ``DNSQType.TXT`` and ``DNSQType.ANY``.
+
+  .. versionchanged:: 1.3.0
+    Before 1.3.0, the QTypes were in the ``dnsdist`` namespace. Use ``dnsdist.A``, ``dnsdist.TXT`` and ``dnsdist.ANY`` in these versions.
 
   :param int qtype: The QType to match on
 
@@ -494,7 +500,7 @@ These ``DNSRule``\ s be one of the following items:
 
   Matches if there is at least ``minCount`` and at most ``maxCount`` records of type ``type`` in the section ``section``.
   ``section`` can be specified as an integer or as a ref:`DNSSection`.
-  ``qtype`` may be specified as an integer or as one of the built-in QTypes, for instance ``dnsdist.A`` or ``dnsdist.TXT``.
+  ``qtype`` may be specified as an integer or as one of the :ref:`built-in QTypes <DNSQType>`, for instance ``DNSQType.A`` or ``DNSQType.TXT``.
 
   :param int section: The section to match on
   :param int qtype: The QTYPE to match on

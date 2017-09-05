@@ -242,24 +242,24 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       {"Additional",3 }
     });
 
-  vector<pair<string, int> > rcodes = {{"NOERROR",  RCode::NoError  },
-                                       {"FORMERR",  RCode::FormErr  },
-                                       {"SERVFAIL", RCode::ServFail },
-                                       {"NXDOMAIN", RCode::NXDomain },
-                                       {"NOTIMP",   RCode::NotImp   },
-                                       {"REFUSED",  RCode::Refused  },
-                                       {"YXDOMAIN", RCode::YXDomain },
-                                       {"YXRRSET",  RCode::YXRRSet  },
-                                       {"NXRRSET",  RCode::NXRRSet  },
-                                       {"NOTAUTH",  RCode::NotAuth  },
-                                       {"NOTZONE",  RCode::NotZone  }
-  };
+  g_lua.writeVariable("DNSRCode", std::unordered_map<string, int>{
+      {"NOERROR",  RCode::NoError  },
+      {"FORMERR",  RCode::FormErr  },
+      {"SERVFAIL", RCode::ServFail },
+      {"NXDOMAIN", RCode::NXDomain },
+      {"NOTIMP",   RCode::NotImp   },
+      {"REFUSED",  RCode::Refused  },
+      {"YXDOMAIN", RCode::YXDomain },
+      {"YXRRSET",  RCode::YXRRSet  },
+      {"NXRRSET",  RCode::NXRRSet  },
+      {"NOTAUTH",  RCode::NotAuth  },
+      {"NOTZONE",  RCode::NotZone  }
+  });
+
   vector<pair<string, int> > dd;
   for(const auto& n : QType::names)
     dd.push_back({n.first, n.second});
-  for(const auto& n : rcodes)
-    dd.push_back({n.first, n.second});
-  g_lua.writeVariable("dnsdist", dd);
+  g_lua.writeVariable("DNSQType", dd);
   
   g_lua.writeFunction("newServer", 
 		      [client](boost::variant<string,newserver_t> pvars, boost::optional<int> qps)
