@@ -468,23 +468,22 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
     }
     break;
   case QType::AFSDB:
-    try {
-      stringtok(recparts, rr.content);
-      if(recparts.size() == 2)
-      {
+    stringtok(recparts, rr.content);
+    if(recparts.size() == 2) {
+      try {
         recparts[1]=toCanonic(d_zonename, recparts[1]).toStringRootDot();
-      } else {
-        throw PDNSException("AFSDB record for "+rr.qname.toString()+" invalid");
+      } catch (std::exception &e) {
+        throw PDNSException("Error in record '" + rr.qname.toString() + " " + rr.qtype.getName() + "': " + e.what());
       }
-      rr.content.clear();
-      for(string::size_type n = 0; n < recparts.size(); ++n) {
-        if(n)
-          rr.content.append(1,' ');
+    } else {
+      throw PDNSException("AFSDB record for "+rr.qname.toString()+" invalid");
+    }
+    rr.content.clear();
+    for(string::size_type n = 0; n < recparts.size(); ++n) {
+      if(n)
+        rr.content.append(1,' ');
 
-        rr.content+=recparts[n];
-      }
-    } catch (std::exception &e) {
-      throw PDNSException("Error in record '" + rr.qname.toString() + " " + rr.qtype.getName() + "': " + e.what());
+      rr.content+=recparts[n];
     }
     break;
   case QType::SOA:
