@@ -34,6 +34,14 @@ static bool isCoveredByNSEC3Hash(const std::string& h, const std::string& beginH
           beginHash == nextHash);                     // "we have only 1 NSEC3 record, LOL!"
 }
 
+static bool isCoveredByNSEC(const DNSName& name, const DNSName& begin, const DNSName& next)
+{
+  return ((begin.canonCompare(name) && name.canonCompare(next)) ||  // no wrap          BEGINNING --- NAME --- NEXT
+          (name.canonCompare(next) && next.canonCompare(begin)) ||  // wrap             NAME --- NEXT --- BEGINNING
+          (next.canonCompare(begin) && begin.canonCompare(name)) || // wrap other case  NEXT --- BEGINNING --- NAME
+          (begin == next));                                         // "we have only 1 NSEC record, LOL!"
+}
+
 // FIXME: needs a zone argument, to avoid things like 6840 4.1
 // FIXME: Add ENT support
 // FIXME: Make usable for non-DS records and hook up to validateRecords (or another place)
@@ -70,7 +78,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
         }
 
         /* check if the whole NAME is denied existing */
-        if(v.first.first.canonCompare(qname) && qname.canonCompare(nsec->d_next)) {
+        if(isCoveredByNSEC(qname, v.first.first, nsec->d_next)) {
           LOG("Denies existence of name "<<qname<<"/"<<QType(qtype).getName()<<endl);
           return NXDOMAIN;
         }
