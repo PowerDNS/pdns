@@ -150,8 +150,7 @@ Number of cache inserts that were deferred because of maintenance
 
 deferred-cache-lookup
 ^^^^^^^^^^^^^^^^^^^^^
-Number of cache lookups that were deferred
-   because of maintenance
+Number of cache lookups that were deferred because of maintenance
 
 .. _stat-deferred-packetcache-inserts:
 
@@ -415,8 +414,7 @@ Number of questions received over UDP
 
 udp-recvbuf-errors
 ^^^^^^^^^^^^^^^^^^
-Number of errors caused in the UDP receive
-   buffer
+Number of errors caused in the UDP receive buffer
 
 .. _stat-udp-sndbuf-errors:
 
