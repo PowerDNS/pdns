@@ -31,7 +31,7 @@ static bool isCoveredByNSEC3Hash(const std::string& h, const std::string& beginH
   return ((beginHash < h && h < nextHash) ||          // no wrap          BEGINNING --- HASH -- END
           (nextHash > h  && beginHash > nextHash) ||  // wrap             HASH --- END --- BEGINNING
           (nextHash < beginHash  && beginHash < h) || // wrap other case  END --- BEGINNING --- HASH
-          beginHash == nextHash);                     // "we have only 1 NSEC3 record, LOL!"
+          (beginHash == nextHash && h != beginHash));   // "we have only 1 NSEC3 record, LOL!"
 }
 
 static bool isCoveredByNSEC(const DNSName& name, const DNSName& begin, const DNSName& next)
@@ -39,7 +39,7 @@ static bool isCoveredByNSEC(const DNSName& name, const DNSName& begin, const DNS
   return ((begin.canonCompare(name) && name.canonCompare(next)) ||  // no wrap          BEGINNING --- NAME --- NEXT
           (name.canonCompare(next) && next.canonCompare(begin)) ||  // wrap             NAME --- NEXT --- BEGINNING
           (next.canonCompare(begin) && begin.canonCompare(name)) || // wrap other case  NEXT --- BEGINNING --- NAME
-          (begin == next));                                         // "we have only 1 NSEC record, LOL!"
+          (begin == next && name != begin));                        // "we have only 1 NSEC record, LOL!"
 }
 
 // FIXME: needs a zone argument, to avoid things like 6840 4.1
@@ -58,7 +58,12 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
           continue;
 
         /* check if the type is denied */
-        if(qname == v.first.first && !nsec->d_set.count(qtype)) {
+        if(qname == v.first.first) {
+          if (nsec->d_set.count(qtype)) {
+            LOG("Does _not_ deny existence of type "<<QType(qtype).getName()<<endl);
+            continue;
+          }
+
           LOG("Denies existence of type "<<QType(qtype).getName()<<endl);
           return NXQTYPE;
         }
@@ -102,7 +107,12 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
         string beginHash=fromBase32Hex(v.first.first.getRawLabels()[0]);
 
         // If the name exists, check if the qtype is denied
-        if(beginHash == h && !nsec3->d_set.count(qtype)) {
+        if(beginHash == h) {
+          if (nsec3->d_set.count(qtype)) {
+            LOG("Does _not_ deny existence of type "<<QType(qtype).getName()<<" for name "<<qname<<"  (not opt-out).");
+            continue;
+          }
+
           LOG("Denies existence of type "<<QType(qtype).getName()<<" for name "<<qname<<"  (not opt-out).");
           /*
            * RFC 5155 section 8.9:
