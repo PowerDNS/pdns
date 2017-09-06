@@ -6907,6 +6907,82 @@ BOOST_AUTO_TEST_CASE(test_nsec_denial_only_one_nsec) {
   BOOST_CHECK_EQUAL(denialState, NODATA);
 }
 
+BOOST_AUTO_TEST_CASE(test_nsec_root_nxd_denial) {
+  init();
+
+  testkeysset_t keys;
+  generateKeyMaterial(DNSName("."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
+
+  vector<DNSRecord> records;
+
+  vector<shared_ptr<DNSRecordContent>> recordContents;
+  vector<shared_ptr<RRSIGRecordContent>> signatureContents;
+
+  /*
+    The RRSIG from "." denies the existence of anything between a. and c.,
+    including b.
+  */
+  addNSECRecordToLW(DNSName("a."), DNSName("c."), { QType::NS }, 600, records);
+  recordContents.push_back(records.at(0).d_content);
+  addRRSIG(keys, records, DNSName("."), 300);
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+  records.clear();
+
+  ContentSigPair pair;
+  pair.records = recordContents;
+  pair.signatures = signatureContents;
+  cspmap_t denialMap;
+  denialMap[std::make_pair(DNSName("a."), QType::NSEC)] = pair;
+
+  dState denialState = getDenial(denialMap, DNSName("b."), QType::A);
+  BOOST_CHECK_EQUAL(denialState, NXDOMAIN);
+}
+
+BOOST_AUTO_TEST_CASE(test_nsec_ancestor_nxqtype_denial) {
+  init();
+
+  testkeysset_t keys;
+  generateKeyMaterial(DNSName("."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
+
+  vector<DNSRecord> records;
+
+  vector<shared_ptr<DNSRecordContent>> recordContents;
+  vector<shared_ptr<RRSIGRecordContent>> signatureContents;
+
+  /*
+    The RRSIG from "." denies the existence of any type except NS at a.
+    However since it's an ancestor delegation NSEC (NS bit set, SOA bit clear,
+    signer field that is shorter than the owner name of the NSEC RR) it can't
+    be used to deny anything except the whole name or a DS.
+  */
+  addNSECRecordToLW(DNSName("a."), DNSName("b."), { QType::NS }, 600, records);
+  recordContents.push_back(records.at(0).d_content);
+  addRRSIG(keys, records, DNSName("."), 300);
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+  records.clear();
+
+  ContentSigPair pair;
+  pair.records = recordContents;
+  pair.signatures = signatureContents;
+  cspmap_t denialMap;
+  denialMap[std::make_pair(DNSName("a."), QType::NSEC)] = pair;
+
+  /* RFC 6840 section 4.1 "Clarifications on Nonexistence Proofs":
+     Ancestor delegation NSEC or NSEC3 RRs MUST NOT be used to assume
+     nonexistence of any RRs below that zone cut, which include all RRs at
+     that (original) owner name other than DS RRs, and all RRs below that
+     owner name regardless of type.
+  */
+
+  dState denialState = getDenial(denialMap, DNSName("a."), QType::A);
+  /* no data means the qname/qtype is not denied, because an ancestor
+     delegation NSEC can only deny the DS */
+  BOOST_CHECK_EQUAL(denialState, NODATA);
+
+  denialState = getDenial(denialMap, DNSName("a."), QType::DS);
+  BOOST_CHECK_EQUAL(denialState, NXQTYPE);
+}
+
 /*
 // cerr<<"asyncresolve called to ask "<<ip.toStringWithPort()<<" about "<<domain.toString()<<" / "<<QType(type).getName()<<" over "<<(doTCP ? "TCP" : "UDP")<<" (rd: "<<sendRDQuery<<", EDNS0 level: "<<EDNS0Level<<")"<<endl;
 
