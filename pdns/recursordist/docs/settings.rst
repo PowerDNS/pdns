@@ -354,9 +354,9 @@ Number of bits of client IPv6 address to pass when sending EDNS Client Subnet ad
 - Default: empty
 
 The IP address sent via EDNS Client Subnet to authoritative servers listed in
-`edns-subnet-whitelist`_ when `use-incoming-ecs`_ is set and the query has
+`edns-subnet-whitelist`_ when `use-incoming-edns-subnet`_ is set and the query has
 an ECS source prefix-length set to 0.
-The default is to look for the first usable (not an `any` one) address in
+The default is to look for the first usable (not an ``any`` one) address in
 `query-local-address`_ then `query-local-address6`_. If no suitable address is
 found, the recursor fallbacks to sending 127.0.0.1.
 
