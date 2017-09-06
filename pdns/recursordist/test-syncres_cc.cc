@@ -6767,6 +6767,146 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_nodata) {
   BOOST_CHECK_EQUAL(queriesCount, 6);
 }
 
+BOOST_AUTO_TEST_CASE(test_nsec_denial_nowrap) {
+  init();
+
+  testkeysset_t keys;
+  generateKeyMaterial(DNSName("example.org."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
+
+  vector<DNSRecord> records;
+
+  vector<shared_ptr<DNSRecordContent>> recordContents;
+  vector<shared_ptr<RRSIGRecordContent>> signatureContents;
+
+  /*
+    No wrap test case:
+    a.example.org. -> d.example.org. denies the existence of b.example.org.
+   */
+  addNSECRecordToLW(DNSName("a.example.org."), DNSName("d.example.org"), { QType::A, QType::TXT, QType::RRSIG, QType::NSEC }, 600, records);
+  recordContents.push_back(records.at(0).d_content);
+  addRRSIG(keys, records, DNSName("example.org."), 300);
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+  records.clear();
+
+  ContentSigPair pair;
+  pair.records = recordContents;
+  pair.signatures = signatureContents;
+  cspmap_t denialMap;
+  denialMap[std::make_pair(DNSName("a.example.org."), QType::NSEC)] = pair;
+
+  dState denialState = getDenial(denialMap, DNSName("b.example.org."), QType::A);
+  BOOST_CHECK_EQUAL(denialState, NXDOMAIN);
+
+  denialState = getDenial(denialMap, DNSName("d.example.org."), QType::A);
+  /* let's check that d.example.org. is not denied by this proof */
+  BOOST_CHECK_EQUAL(denialState, NODATA);
+}
+
+BOOST_AUTO_TEST_CASE(test_nsec_denial_wrap_case_1) {
+  init();
+
+  testkeysset_t keys;
+  generateKeyMaterial(DNSName("example.org."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
+
+  vector<DNSRecord> records;
+
+  vector<shared_ptr<DNSRecordContent>> recordContents;
+  vector<shared_ptr<RRSIGRecordContent>> signatureContents;
+
+  /*
+    Wrap case 1 test case:
+    z.example.org. -> b.example.org. denies the existence of a.example.org.
+   */
+  addNSECRecordToLW(DNSName("z.example.org."), DNSName("b.example.org"), { QType::A, QType::TXT, QType::RRSIG, QType::NSEC }, 600, records);
+  recordContents.push_back(records.at(0).d_content);
+  addRRSIG(keys, records, DNSName("example.org."), 300);
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+  records.clear();
+
+  ContentSigPair pair;
+  pair.records = recordContents;
+  pair.signatures = signatureContents;
+  cspmap_t denialMap;
+  denialMap[std::make_pair(DNSName("z.example.org."), QType::NSEC)] = pair;
+
+  dState denialState = getDenial(denialMap, DNSName("a.example.org."), QType::A);
+  BOOST_CHECK_EQUAL(denialState, NXDOMAIN);
+
+  denialState = getDenial(denialMap, DNSName("d.example.org."), QType::A);
+  /* let's check that d.example.org. is not denied by this proof */
+  BOOST_CHECK_EQUAL(denialState, NODATA);
+}
+
+BOOST_AUTO_TEST_CASE(test_nsec_denial_wrap_case_2) {
+  init();
+
+  testkeysset_t keys;
+  generateKeyMaterial(DNSName("example.org."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
+
+  vector<DNSRecord> records;
+
+  vector<shared_ptr<DNSRecordContent>> recordContents;
+  vector<shared_ptr<RRSIGRecordContent>> signatureContents;
+
+  /*
+    Wrap case 2 test case:
+    y.example.org. -> a.example.org. denies the existence of z.example.org.
+   */
+  addNSECRecordToLW(DNSName("y.example.org."), DNSName("a.example.org"), { QType::A, QType::TXT, QType::RRSIG, QType::NSEC }, 600, records);
+  recordContents.push_back(records.at(0).d_content);
+  addRRSIG(keys, records, DNSName("example.org."), 300);
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+  records.clear();
+
+  ContentSigPair pair;
+  pair.records = recordContents;
+  pair.signatures = signatureContents;
+  cspmap_t denialMap;
+  denialMap[std::make_pair(DNSName("y.example.org."), QType::NSEC)] = pair;
+
+  dState denialState = getDenial(denialMap, DNSName("z.example.org."), QType::A);
+  BOOST_CHECK_EQUAL(denialState, NXDOMAIN);
+
+  denialState = getDenial(denialMap, DNSName("d.example.org."), QType::A);
+  /* let's check that d.example.org. is not denied by this proof */
+  BOOST_CHECK_EQUAL(denialState, NODATA);
+}
+
+BOOST_AUTO_TEST_CASE(test_nsec_denial_only_one_nsec) {
+  init();
+
+  testkeysset_t keys;
+  generateKeyMaterial(DNSName("example.org."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
+
+  vector<DNSRecord> records;
+
+  vector<shared_ptr<DNSRecordContent>> recordContents;
+  vector<shared_ptr<RRSIGRecordContent>> signatureContents;
+
+  /*
+    Only one NSEC in the whole zone test case:
+    a.example.org. -> a.example.org. denies the existence of b.example.org.
+   */
+  addNSECRecordToLW(DNSName("a.example.org."), DNSName("a.example.org"), { QType::A, QType::TXT, QType::RRSIG, QType::NSEC }, 600, records);
+  recordContents.push_back(records.at(0).d_content);
+  addRRSIG(keys, records, DNSName("example.org."), 300);
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+  records.clear();
+
+  ContentSigPair pair;
+  pair.records = recordContents;
+  pair.signatures = signatureContents;
+  cspmap_t denialMap;
+  denialMap[std::make_pair(DNSName("a.example.org."), QType::NSEC)] = pair;
+
+  dState denialState = getDenial(denialMap, DNSName("b.example.org."), QType::A);
+  BOOST_CHECK_EQUAL(denialState, NXDOMAIN);
+
+  denialState = getDenial(denialMap, DNSName("a.example.org."), QType::A);
+  /* let's check that d.example.org. is not denied by this proof */
+  BOOST_CHECK_EQUAL(denialState, NODATA);
+}
+
 /*
 // cerr<<"asyncresolve called to ask "<<ip.toStringWithPort()<<" about "<<domain.toString()<<" / "<<QType(type).getName()<<" over "<<(doTCP ? "TCP" : "UDP")<<" (rd: "<<sendRDQuery<<", EDNS0 level: "<<EDNS0Level<<")"<<endl;
 
