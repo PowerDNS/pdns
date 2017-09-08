@@ -55,6 +55,12 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
           return NXQTYPE;
         }
 
+        /* check if the whole NAME is denied existing */
+        if(v.first.first.canonCompare(qname) && qname.canonCompare(nsec->d_next)) {
+          LOG("Denies existence of name "<<qname<<"/"<<QType(qtype).getName()<<endl);
+          return NXDOMAIN;
+        }
+
         /* RFC 6840 section 4.1 "Clarifications on Nonexistence Proofs":
            Ancestor delegation NSEC or NSEC3 RRs MUST NOT be used to assume
            nonexistence of any RRs below that zone cut, which include all RRs at
@@ -65,14 +71,8 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
         if (qtype != QType::DS && nsec->d_set.count(QType::NS) && !nsec->d_set.count(QType::SOA) &&
             getSigner(v.second.signatures).countLabels() < v.first.first.countLabels()) {
           /* this is an "ancestor delegation" NSEC RR */
-          LOG("An ancestor delegation NSEC RR can only deny the existence of a DS");
+          LOG("An ancestor delegation NSEC RR can only deny the existence of a DS"<<endl);
           continue;
-        }
-
-        /* check if the whole NAME is denied existing */
-        if(v.first.first.canonCompare(qname) && qname.canonCompare(nsec->d_next)) {
-          LOG("Denies existence of name "<<qname<<"/"<<QType(qtype).getName()<<endl);
-          return NXDOMAIN;
         }
 
         LOG("Did not deny existence of "<<QType(qtype).getName()<<", "<<v.first.first<<"?="<<qname<<", "<<nsec->d_set.count(qtype)<<", next: "<<nsec->d_next<<endl);
