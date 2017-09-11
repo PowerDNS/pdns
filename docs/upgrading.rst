@@ -11,8 +11,19 @@ upgrade notes if your version is older than 3.4.2.
 4.0.X to 4.1.0
 --------------
 
- - Recursion has been removed, see the :doc:`dedicated migration guide <guides/recursion>`.
- - ALIAS record expension is disabled by default, use :ref:`setting-expand-alias` to enable.
+- Recursion has been removed, see the :doc:`dedicated migration guide <guides/recursion>`.
+- ALIAS record expension is disabled by default, use :ref:`setting-expand-alias` to enable.
+- The :doc:`LDAP Backend <backends/ldap>` now supports additional Record types
+
+  - NSEC3
+  - NSEC3PARAM
+  - TLSA
+  - CDS
+  - CDNSKEY
+  - OPENPGPKEY
+  - TKEY
+  - URI
+  - CAA
 
 Changed options
 ^^^^^^^^^^^^^^^
