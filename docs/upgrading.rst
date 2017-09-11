@@ -38,6 +38,9 @@ and ``--with-pgsql-config`` ``configure`` options have been deprecated.
 ``--with-pg-config`` to specify a path to a non-default ``pg_config`` if
 you have Postgresql installed in a non-default location.
 
+The improved :doc:`LDAP Backend <backends/ldap>` backend now requires Kerberos headers to be installed.
+Specifically, it needs `krb5.h` to be installed.
+
 4.0.X to 4.0.2
 --------------
 
