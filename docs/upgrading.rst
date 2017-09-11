@@ -29,8 +29,8 @@ Changed options
 ^^^^^^^^^^^^^^^
 
 -  ``experimental-lua-policy-script`` option and the feature itself have
-   been completely dropped. We invite you to use (PowerDNS
-   dnsdist)[http://dnsdist.org] instead.
+   been completely dropped. We invite you to use `PowerDNS
+   dnsdist <https://dnsdist.org>`_ instead.
 
 - As recursion has been removed from the Authoritative Server, the
   ``allow-recursion``, ``recursive-cache-ttl`` and ``recursor`` options have
