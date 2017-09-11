@@ -21,6 +21,10 @@ Changed options
    been completely dropped. We invite you to use (PowerDNS
    dnsdist)[http://dnsdist.org] instead.
 
+- As recursion has been removed from the Authoritative Server, the
+  ``allow-recursion``, ``recursive-cache-ttl`` and ``recursor`` options have
+  been removed as well.
+
 Changed defaults
 ~~~~~~~~~~~~~~~~
 
