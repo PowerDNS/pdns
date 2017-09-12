@@ -52,6 +52,8 @@ string DNSResourceRecord::getZoneRepresentation(bool noDot) const {
     case QType::SRV:
     case QType::MX:
       stringtok(parts, content);
+      if (!parts.size())
+        return "";
       last = *parts.rbegin();
       ret << content;
       if (last == ".")
