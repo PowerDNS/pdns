@@ -1431,6 +1431,40 @@ vState SyncRes::getValidationStatus(const DNSName& subdomain)
   return result;
 }
 
+bool SyncRes::lookForCut(const DNSName& qname, unsigned int depth, const vState existingState, vState& newState)
+{
+  bool foundCut = false;
+  std::set<GetBestNSAnswer> beenthere;
+  std::vector<DNSRecord> nsrecords;
+
+  int rcode = doResolve(qname, QType(QType::NS), nsrecords, depth, beenthere, newState);
+
+  if (rcode == RCode::NoError && !nsrecords.empty()) {
+    for (const auto& record : nsrecords) {
+      if(record.d_type != QType::NS || record.d_name != qname)
+        continue;
+      foundCut = true;
+      break;
+    }
+
+    if (foundCut) {
+      dsmap_t ds;
+      vState dsState = getDSRecords(qname, ds, newState == Bogus || existingState == Insecure || existingState == Bogus, depth);
+      if (dsState != Indeterminate) {
+        newState = dsState;
+      }
+      if (newState == TA) {
+        newState = Secure;
+      }
+      else if (newState == NTA) {
+        newState = Insecure;
+      }
+    }
+  }
+
+  return foundCut;
+}
+
 void SyncRes::computeZoneCuts(const DNSName& begin, const DNSName& end, unsigned int depth)
 {
   if(!begin.isPartOf(end)) {
@@ -1466,7 +1500,6 @@ void SyncRes::computeZoneCuts(const DNSName& begin, const DNSName& end, unsigned
   d_requireAuthData = false;
 
   while(qname != begin) {
-    bool foundCut = false;
     if (labelsToAdd.empty())
       break;
 
@@ -1482,45 +1515,20 @@ void SyncRes::computeZoneCuts(const DNSName& begin, const DNSName& end, unsigned
       }
     }
 
-    std::set<GetBestNSAnswer> beenthere;
-    std::vector<DNSRecord> nsrecords;
-
-    vState state = Indeterminate;
+    vState newState = Indeterminate;
     /* temporarily mark as Indeterminate, so that we won't enter an endless loop
        trying to determine that zone cut again. */
-    d_cutStates[qname] = state;
-    int rcode = doResolve(qname, QType(QType::NS), nsrecords, depth + 1, beenthere, state);
-
-    if (rcode == RCode::NoError && !nsrecords.empty()) {
-      for (const auto& record : nsrecords) {
-        if(record.d_type != QType::NS || record.d_name != qname)
-          continue;
-        foundCut = true;
-        break;
+    d_cutStates[qname] = newState;
+    bool foundCut = lookForCut(qname, depth + 1, cutState, newState);
+    if (foundCut) {
+      LOG(d_prefix<<": - Found cut at "<<qname<<endl);
+      if (newState != Indeterminate) {
+        cutState = newState;
       }
-      if (foundCut) {
-        LOG(d_prefix<<": - Found cut at "<<qname<<endl);
-        /* if we get a Bogus state while retrieving the NS,
-           the cut state is Bogus (we'll look for a (N)TA below though). */
-        if (state == Bogus) {
-          cutState = Bogus;
-        }
-        dsmap_t ds;
-        vState newState = getDSRecords(qname, ds, cutState == Insecure || cutState == Bogus, depth);
-        if (newState != Indeterminate) {
-          cutState = newState;
-        }
-        LOG(d_prefix<<": New state for "<<qname<<" is "<<vStates[cutState]<<endl);
-        if (cutState == TA) {
-          cutState = Secure;
-        }
-        else if (cutState == NTA) {
-          cutState = Insecure;
-        }
-        d_cutStates[qname] = cutState;
-      }
+      LOG(d_prefix<<": New state for "<<qname<<" is "<<vStates[cutState]<<endl);
+      d_cutStates[qname] = cutState;
     }
-    if (!foundCut) {
+    else {
       /* remove the temporary cut */
       LOG(d_prefix<<qname<<": removing cut state for "<<qname<<", was "<<vStates[d_cutStates[qname]]<<endl);
       d_cutStates.erase(qname);
