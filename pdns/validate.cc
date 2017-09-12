@@ -109,21 +109,17 @@ static dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const
 }
 
 /*
- * Finds all the zone-cuts between begin (longest name) and end (shortest name),
- * returns them all zone cuts, including end, but (possibly) not begin
+ * Finds the zone-cut closest between current (shortest name) and target (longest name).
  */
-vector<DNSName> getZoneCuts(const DNSName& begin, const DNSName& end, DNSRecordOracle& dro)
+DNSName getNextCut(const DNSName& current, const DNSName& target, DNSRecordOracle& dro)
 {
-  vector<DNSName> ret;
-  if(!begin.isPartOf(end))
-    throw PDNSException(end.toLogString() + "is not part of " + begin.toString());
+  if (!target.isPartOf(current))
+    throw PDNSException(target.toLogString() + "is not part of " + current.toString());
 
-  DNSName qname(end);
-  vector<string> labelsToAdd = begin.makeRelative(end).getRawLabels();
+  DNSName qname(current);
+  vector<string> labelsToAdd = target.makeRelative(current).getRawLabels();
 
-  // The shortest name is assumed to a zone cut
-  ret.push_back(qname);
-  while(qname != begin) {
+  while(qname != target) {
     bool foundCut = false;
     if (labelsToAdd.empty())
       break;
@@ -138,9 +134,9 @@ vector<DNSName> getZoneCuts(const DNSName& begin, const DNSName& end, DNSRecordO
       break;
     }
     if (foundCut)
-      ret.push_back(qname);
+      return qname;
   }
-  return ret;
+  return target;
 }
 
 void validateWithKeySet(const cspmap_t& rrsets, cspmap_t& validated, const keyset_t& keys)
@@ -274,14 +270,9 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
   if (tmp)
     dsmap = *tmp;
 
-  auto zoneCuts = getZoneCuts(zone, lowestTA, dro);
-
-  LOG("Found the following zonecuts:")
-  for(const auto& zonecut : zoneCuts)
-    LOG(" => "<<zonecut);
-  LOG(endl);
-
-  for(auto zoneCutIter = zoneCuts.cbegin(); zoneCutIter != zoneCuts.cend(); ++zoneCutIter)
+  DNSName current_cut = lowestTA;
+  LOG("Got the following cut: "<<current_cut<<endl);
+  for(;;)
   {
     vector<RRSIGRecordContent> sigs;
     vector<shared_ptr<DNSRecordContent> > toSign;
@@ -291,10 +282,10 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
     validkeys.clear();
 
     //    cerr<<"got DS for ["<<qname<<"], grabbing DNSKEYs"<<endl;
-    auto records=dro.get(*zoneCutIter, (uint16_t)QType::DNSKEY);
+    auto records=dro.get(current_cut, (uint16_t)QType::DNSKEY);
     // this should use harvest perhaps
     for(const auto& rec : records) {
-      if(rec.d_name != *zoneCutIter)
+      if(rec.d_name != current_cut)
         continue;
 
       if(rec.d_type == QType::RRSIG)
@@ -336,7 +327,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
         bool isValid = false;
         DSRecordContent dsrc2;
         try {
-          dsrc2=makeDSFromDNSKey(*zoneCutIter, drc, dsrc.d_digesttype);
+          dsrc2=makeDSFromDNSKey(current_cut, drc, dsrc.d_digesttype);
           isValid = dsrc == dsrc2;
         }
         catch(std::exception &e) {
@@ -344,16 +335,16 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
         }
 
         if(isValid) {
-          LOG("got valid DNSKEY (it matches the DS) with tag "<<dsrc.d_tag<<" for "<<*zoneCutIter<<endl);
+          LOG("got valid DNSKEY (it matches the DS) with tag "<<dsrc.d_tag<<" for "<<current_cut<<endl);
 
           validkeys.insert(drc);
-          dotNode("DS", *zoneCutIter, "" /*std::to_string(dsrc.d_tag)*/, (boost::format("tag=%d, digest algo=%d, algo=%d") % dsrc.d_tag % static_cast<int>(dsrc.d_digesttype) % static_cast<int>(dsrc.d_algorithm)).str());
+          dotNode("DS", current_cut, "" /*std::to_string(dsrc.d_tag)*/, (boost::format("tag=%d, digest algo=%d, algo=%d") % dsrc.d_tag % static_cast<int>(dsrc.d_digesttype) % static_cast<int>(dsrc.d_algorithm)).str());
         }
         else {
           LOG("DNSKEY did not match the DS, parent DS: "<<dsrc.getZoneRepresentation() << " ! = "<<dsrc2.getZoneRepresentation()<<endl);
         }
         // cout<<"    subgraph "<<dotEscape("cluster "+*zoneCutIter)<<" { "<<dotEscape("DS "+*zoneCutIter)<<" -> "<<dotEscape("DNSKEY "+*zoneCutIter)<<" [ label = \""<<dsrc.d_tag<<"/"<<static_cast<int>(dsrc.d_digesttype)<<"\" ]; label = \"zone: "<<*zoneCutIter<<"\"; }"<<endl;
-        dotEdge(DNSName("."), "DS", *zoneCutIter, "" /*std::to_string(dsrc.d_tag)*/, "DNSKEY", *zoneCutIter, std::to_string(drc.getTag()), isValid ? "green" : "red");
+        dotEdge(DNSName("."), "DS", current_cut, "" /*std::to_string(dsrc.d_tag)*/, "DNSKEY", current_cut, std::to_string(drc.getTag()), isValid ? "green" : "red");
         // dotNode("DNSKEY", *zoneCutIter, (boost::format("tag=%d, algo=%d") % drc.getTag() % static_cast<int>(drc.d_algorithm)).str());
       }
     }
@@ -370,7 +361,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
       for(auto i=sigs.cbegin(); i!=sigs.cend(); i++)
       {
         //        cerr<<"got sig for keytag "<<i->d_tag<<" matching "<<getByTag(tkeys, i->d_tag).size()<<" keys of which "<<getByTag(validkeys, i->d_tag).size()<<" valid"<<endl;
-        string msg=getMessageForRRSET(*zoneCutIter, *i, toSign);
+        string msg=getMessageForRRSET(current_cut, *i, toSign);
         auto bytag = getByTag(validkeys, i->d_tag);
         for(const auto& j : bytag) {
           //          cerr<<"validating : ";
@@ -389,9 +380,9 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
             LOG("Could not make a validator for signature: "<<e.what()<<endl);
           }
           for(uint16_t tag : toSignTags) {
-            dotEdge(*zoneCutIter,
-                "DNSKEY", *zoneCutIter, std::to_string(i->d_tag),
-                "DNSKEY", *zoneCutIter, std::to_string(tag), isValid ? "green" : "red");
+            dotEdge(current_cut,
+                "DNSKEY", current_cut, std::to_string(i->d_tag),
+                "DNSKEY", current_cut, std::to_string(tag), isValid ? "green" : "red");
           }
 
           if(isValid)
@@ -414,35 +405,36 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
       LOG("ended up with zero valid DNSKEYs, going Bogus"<<endl);
       return Bogus;
     }
-    LOG("situation: we have one or more valid DNSKEYs for ["<<*zoneCutIter<<"] (want ["<<zone<<"])"<<endl);
+    LOG("situation: we have one or more valid DNSKEYs for ["<<current_cut<<"] (want ["<<zone<<"])"<<endl);
 
-    if(zoneCutIter == zoneCuts.cend()-1) {
+    if(current_cut == zone) {
       LOG("requested keyset found! returning Secure for the keyset"<<endl);
       keyset.insert(validkeys.cbegin(), validkeys.cend());
       return Secure;
     }
 
     // We now have the DNSKEYs, use them to validate the DS records at the next zonecut
-    LOG("next name ["<<*(zoneCutIter+1)<<"], trying to get DS"<<endl);
+    current_cut = getNextCut(current_cut, zone, dro);
+    LOG("next name ["<<current_cut<<"], trying to get DS"<<endl);
 
     dsmap_t tdsmap; // tentative DSes
     dsmap.clear();
     toSign.clear();
     toSignTags.clear();
 
-    auto recs=dro.get(*(zoneCutIter+1), QType::DS);
+    auto recs=dro.get(current_cut, QType::DS);
 
     cspmap_t cspmap=harvestCSPFromRecs(recs);
 
     cspmap_t validrrsets;
     validateWithKeySet(cspmap, validrrsets, validkeys);
 
-    LOG("got "<<cspmap.count(make_pair(*(zoneCutIter+1),QType::DS))<<" records for DS query of which "<<validrrsets.count(make_pair(*(zoneCutIter+1),QType::DS))<<" valid "<<endl);
+    LOG("got "<<cspmap.count(make_pair(current_cut, QType::DS))<<" records for DS query of which "<<validrrsets.count(make_pair(current_cut,QType::DS))<<" valid "<<endl);
 
-    auto r = validrrsets.equal_range(make_pair(*(zoneCutIter+1), QType::DS));
+    auto r = validrrsets.equal_range(make_pair(current_cut, QType::DS));
     if(r.first == r.second) {
-      LOG("No DS for "<<*(zoneCutIter+1)<<", now look for a secure denial"<<endl);
-      dState res = getDenial(validrrsets, *(zoneCutIter+1), QType::DS);
+      LOG("No DS for "<<current_cut<<", now look for a secure denial"<<endl);
+      dState res = getDenial(validrrsets, current_cut, QType::DS);
       if (res == INSECURE || res == NXDOMAIN)
         return Bogus;
       if (res == NXQTYPE || res == OPTOUT)
