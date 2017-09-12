@@ -45,7 +45,7 @@ The following documents describe the JSON objects available in the API:
 
     ../common/api/dataformat
     ../common/api/server
-    ../common/api/zone
+    zone
     ../common/api/configsetting
     ../common/api/statisticitem
     cryptokeyitem

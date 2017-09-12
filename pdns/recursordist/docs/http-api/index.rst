@@ -11,7 +11,7 @@ The following documents contain the information for the PowerDNS API:
 
     ../common/api/dataformat
     ../common/api/server
-    ../common/api/zone
+    zone
     ../common/api/configsetting
     ../common/api/statisticitem
 
