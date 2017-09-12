@@ -64,10 +64,8 @@ string DNSResourceRecord::getZoneRepresentation(bool noDot) const {
     case QType::NS:
     case QType::PTR:
       ret<<content;
-      if (content != ".") {
-        if(!noDot)
-          ret<<".";
-      }
+      if (*(content.rbegin()) != '.' && !noDot)
+        ret<<".";
       break;
     default:
       ret<<content;
