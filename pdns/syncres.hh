@@ -352,7 +352,7 @@ public:
     d_skipCNAMECheck = skip;
   }
 
-  int asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res);
+  int asyncresolveWrapper(const ComboAddress& ip, bool wantsEDNS, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res);
   static void doEDNSDumpAndClose(int fd);
 
   static std::atomic<uint64_t> s_queries;
