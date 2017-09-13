@@ -551,7 +551,10 @@ try
 
   if(getEDNSOpts(mdp, &edo)) {
     d_haveednssection=true;
-    d_maxreplylen=std::min(edo.d_packetsize, s_udpTruncationThreshold);
+    /* rfc6891 6.2.3:
+       "Values lower than 512 MUST be treated as equal to 512."
+    */
+    d_maxreplylen=std::min(std::max(static_cast<uint16_t>(512), edo.d_packetsize), s_udpTruncationThreshold);
 //    cerr<<edo.d_Z<<endl;
     if(edo.d_Z & EDNSOpts::DNSSECOK)
       d_dnssecOk=true;
