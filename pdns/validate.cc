@@ -42,6 +42,59 @@ static bool isCoveredByNSEC(const DNSName& name, const DNSName& begin, const DNS
           (begin == next && name != begin));                        // "we have only 1 NSEC record, LOL!"
 }
 
+static std::string getHashFromNSEC3(const DNSName& qname, const std::shared_ptr<NSEC3RecordContent> nsec3)
+{
+  std::string result;
+
+  if (g_maxNSEC3Iterations && nsec3->d_iterations > g_maxNSEC3Iterations) {
+    return result;
+  }
+
+  return hashQNameWithSalt(nsec3->d_salt, nsec3->d_iterations, qname);
+}
+
+bool denialProvesNoDelegation(const DNSName& zone, const std::vector<DNSRecord>& dsrecords)
+{
+  for (const auto& record : dsrecords) {
+    if (record.d_type == QType::NSEC) {
+      const auto nsec = getRR<NSECRecordContent>(record);
+      if (!nsec) {
+        continue;
+      }
+
+      if (record.d_name == zone) {
+        return !nsec->d_set.count(QType::NS);
+      }
+
+      if (isCoveredByNSEC(zone, record.d_name, nsec->d_next)) {
+        return true;
+      }
+    }
+    else if (record.d_type == QType::NSEC3) {
+      const auto nsec3 = getRR<NSEC3RecordContent>(record);
+      if (!nsec3) {
+        continue;
+      }
+
+      const string h = getHashFromNSEC3(zone, nsec3);
+      if (h.empty()) {
+        return false;
+      }
+
+      const string beginHash = fromBase32Hex(record.d_name.getRawLabels()[0]);
+      if (beginHash == h) {
+        return !nsec3->d_set.count(QType::NS);
+      }
+
+      if (isCoveredByNSEC3Hash(h, beginHash, nsec3->d_nexthash)) {
+        return !(nsec3->d_flags & 1);
+      }
+    }
+  }
+
+  return false;
+}
+
 // FIXME: needs a zone argument, to avoid things like 6840 4.1
 // FIXME: Add ENT support
 // FIXME: Make usable for non-DS records and hook up to validateRecords (or another place)
@@ -99,11 +152,11 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
         if(!nsec3)
           continue;
 
-        if (g_maxNSEC3Iterations && nsec3->d_iterations > g_maxNSEC3Iterations) {
+        string h = getHashFromNSEC3(qname, nsec3);
+        if (h.empty()) {
           return INSECURE;
         }
 
-        string h = hashQNameWithSalt(nsec3->d_salt, nsec3->d_iterations, qname);
         //              cerr<<"Salt length: "<<nsec3->d_salt.length()<<", iterations: "<<nsec3->d_iterations<<", hashed: "<<qname<<endl;
         LOG("\tquery hash: "<<toBase32Hex(h)<<endl);
         string beginHash=fromBase32Hex(v.first.first.getRawLabels()[0]);

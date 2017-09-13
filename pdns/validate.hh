@@ -74,3 +74,4 @@ void validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& ds
 dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16_t qtype);
 bool isSupportedDS(const DSRecordContent& ds);
 DNSName getSigner(const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures);
+bool denialProvesNoDelegation(const DNSName& zone, const std::vector<DNSRecord>& dsrecords);
