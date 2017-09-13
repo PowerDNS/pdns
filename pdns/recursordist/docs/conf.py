@@ -77,7 +77,8 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store',
                     'http-api/override.rst',
                     'common/zonemetadata.rst',
                     'common/endpoint-servers-config.rst',
-                    'common/secpoll.rst']
+                    'common/secpoll.rst',
+                    'common/api/zone.rst']
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'

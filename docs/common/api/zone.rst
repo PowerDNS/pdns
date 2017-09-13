@@ -1,28 +1,3 @@
-Zones in the API
-================
-
-Zone
-----
-
-A Zone object represents an authoritative DNS Zone.
-
-A Resource Record Set (below as "RRset") are all records for a given name and type.
-
-Comments are per-RRset.
-
-.. json:object:: Zone
-
-  Represents a configured zone in the PowerDNS server.
-
-  :property string id: Opaque zone id (string), assigned by the Server. Do not interpret. Guaranteed to be safe for embedding in URLs.
-  :property string name: Name of the zone (e.g. "example.com.") **must** have a trailing dot
-  :property string type: Set to "Zone"
-  :property string url: API endpoint for this zone
-  :property string kind: Zone kind, one of "Native", "Master", "Slave" on the Authoritative Server. One of "Native", "Forwarded" on the Recursor.
-  :property [RRSet] rrsets: RRSets in this zone
-
-  .. include:: ../../http-api/zone-properties.rst
-
 RRSet
 -----
 

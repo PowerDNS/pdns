@@ -11,15 +11,30 @@ upgrade notes if your version is older than 3.4.2.
 4.0.X to 4.1.0
 --------------
 
- - Recursion has been removed, see the :doc:`dedicated migration guide <guides/recursion>`.
- - ALIAS record expension is disabled by default, use :ref:`setting-expand-alias` to enable.
+- Recursion has been removed, see the :doc:`dedicated migration guide <guides/recursion>`.
+- ALIAS record expension is disabled by default, use :ref:`setting-expand-alias` to enable.
+- The :doc:`LDAP Backend <backends/ldap>` now supports additional Record types
+
+  - NSEC3
+  - NSEC3PARAM
+  - TLSA
+  - CDS
+  - CDNSKEY
+  - OPENPGPKEY
+  - TKEY
+  - URI
+  - CAA
 
 Changed options
 ^^^^^^^^^^^^^^^
 
 -  ``experimental-lua-policy-script`` option and the feature itself have
-   been completely dropped. We invite you to use (PowerDNS
-   dnsdist)[http://dnsdist.org] instead.
+   been completely dropped. We invite you to use `PowerDNS
+   dnsdist <https://dnsdist.org>`_ instead.
+
+- As recursion has been removed from the Authoritative Server, the
+  ``allow-recursion``, ``recursive-cache-ttl`` and ``recursor`` options have
+  been removed as well.
 
 Changed defaults
 ~~~~~~~~~~~~~~~~
@@ -33,6 +48,9 @@ and ``--with-pgsql-config`` ``configure`` options have been deprecated.
 ``pkg-config``, falling back to detecting ``pg_config``. Use
 ``--with-pg-config`` to specify a path to a non-default ``pg_config`` if
 you have Postgresql installed in a non-default location.
+
+The improved :doc:`LDAP Backend <backends/ldap>` backend now requires Kerberos headers to be installed.
+Specifically, it needs `krb5.h` to be installed.
 
 4.0.X to 4.0.2
 --------------

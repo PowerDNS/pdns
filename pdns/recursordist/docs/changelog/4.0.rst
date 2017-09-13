@@ -3,6 +3,61 @@ Changelogs for 4.0.x
 
 This page has all the changelogs for the PowerDNS Recursor 4.0 release train.
 
+PowerDNS Recursor 4.0.6
+-----------------------
+
+Released 6th of July 2017
+
+This release features a fix for the ed25519 verifier.
+This verifier hashed the message before verifying, resulting in unverifiable signatures.
+Also on the Elliptic Curve front, support was added for ED448 (DNSSEC algorithm 16) by using libdecaf.
+
+Besides that, this release features massive improvements to our edns-client-subnet handling, and some IXFR fixes.
+Note that this release changes :ref:`setting-use-incoming-edns-subnet` to disabled by default.
+
+Bug fixes
+^^^^^^^^^
+
+- `commit c24288b87 <https://github.com/PowerDNS/pdns/commit/c24288b87>`__:
+   Use the incoming ECS for cache lookup if :ref:`setting-use-incoming-edns-subnet` is set
+- `commit b91dc6e92 <https://github.com/PowerDNS/pdns/commit/b91dc6e92>`__:
+   when making a netmask from a comboaddress, we neglected to zero the port. This could lead to a proliferation of netmasks.
+- `commit 261591b6f <https://github.com/PowerDNS/pdns/commit/261591b6f>`__:
+   Don't take the initial ECS source for a scope one if EDNS is off
+- `commit 66f894b7a <https://github.com/PowerDNS/pdns/commit/66f894b7a>`__:
+   also set ``d_requestor`` without Lua: the ECS logic needs it
+- `commit c2086f265 <https://github.com/PowerDNS/pdns/commit/c2086f265>`__:
+   Fix IXFR skipping the additions part of the last sequence
+- `commit a5c9534d0 <https://github.com/PowerDNS/pdns/commit/a5c9534d0>`__:
+   Treat requestor's payload size lower than 512 as equal to 512
+- `commit 61b1ea2f4 <https://github.com/PowerDNS/pdns/commit/61b1ea2f4>`__:
+   make URI integers 16 bits, fixes `ticket #5443 <https://github.com/PowerDNS/pdns/issues/5443>`__
+- `commit 27f9da3c2 <https://github.com/PowerDNS/pdns/commit/27f9da3c2>`__:
+   unbreak quoting; fixes `ticket #5401 <https://github.com/PowerDNS/pdns/issues/5401>`__
+
+Improvements
+^^^^^^^^^^^^
+
+- `commit 2325010e6 <https://github.com/PowerDNS/pdns/commit/2325010e6>`__:
+   with this, EDNS Client Subnet becomes compatible with the packet cache, using the existing variable answer facility.
+- `commit 2ec8d8148 <https://github.com/PowerDNS/pdns/commit/2ec8d8148>`__:
+   Remove just enough entries from the cache, not one more than asked
+- `commit 71df15677 <https://github.com/PowerDNS/pdns/commit/71df15677>`__:
+   Move expired cache entries to the front so they are expunged
+- `commit d84834c4c <https://github.com/PowerDNS/pdns/commit/d84834c4c>`__:
+   changed IPv6 addr of b.root-servers.net (Arsen Stasic)
+- `commit bcce047bc <https://github.com/PowerDNS/pdns/commit/bcce047bc>`__:
+   e.root-servers.net has IPv6 now (phonedph1)
+- `commit cef8ec7c2 <https://github.com/PowerDNS/pdns/commit/cef8ec7c2>`__:
+   hello decaf signers (ED25519 and ED448) Testing algorithm 15: 'Decaf ED25519' ->'Decaf ED25519' -> 'Decaf ED25519' Signature & verify ok, signature 68usec, verify 93usec Testing algorithm 16: 'Decaf ED448' ->'Decaf ED448' -> 'Decaf ED448' Signature & verify ok, signature 163usec, verify 252usec (Kees Monshouwer)
+- `commit 68490a4b5 <https://github.com/PowerDNS/pdns/commit/68490a4b5>`__:
+   don't use the libdecaf ed25519 signer when libsodium is enabled (Kees Monshouwer)
+- `commit 5a88a8ed5 <https://github.com/PowerDNS/pdns/commit/5a88a8ed5>`__:
+   do not hash the message in the ed25519 signer (Kees Monshouwer)
+- `commit 0e7893bf4 <https://github.com/PowerDNS/pdns/commit/0e7893bf4>`__:
+   Disable use-incoming-edns-subnet by default
+
+
 PowerDNS Recursor 4.0.5
 -----------------------
 
