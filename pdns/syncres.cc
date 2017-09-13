@@ -1350,7 +1350,7 @@ static size_t countSupportedDS(const dsmap_t& dsmap)
   return count;
 }
 
-vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsigned int depth)
+vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsigned int depth, bool bogusOnNXD)
 {
   vState result = getTA(zone, ds);
 
@@ -1376,7 +1376,7 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsi
   d_skipCNAMECheck = oldSkipCNAME;
   d_requireAuthData = oldRequireAuthData;
 
-  if (rcode == RCode::NoError || rcode == RCode::NXDomain) {
+  if (rcode == RCode::NoError || (rcode == RCode::NXDomain && !bogusOnNXD)) {
     if (state == Secure) {
       for (const auto& record : dsrecords) {
         if (record.d_type == QType::DS) {
