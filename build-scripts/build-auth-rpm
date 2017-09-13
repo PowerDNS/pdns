@@ -534,6 +534,7 @@ BuildRequires: bison
 BuildRequires: openssl-devel
 BuildRequires: protobuf-devel
 BuildRequires: protobuf-compiler
+BuildRequires: p11-kit-devel
 Provides: powerdns = %{version}-%{release}
 %global backends %{backends} bind
 
@@ -676,6 +677,7 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
 	--enable-tools \
 	--enable-libsodium \
 	--enable-unit-tests \
+	--enable-experimental-pkcs11 \
 	--enable-systemd
 
 make %{?_smp_mflags}

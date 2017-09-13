@@ -102,6 +102,9 @@ void showBuildConfiguration()
 #ifdef REMOTEBACKEND_ZEROMQ
     "remotebackend-zeromq" <<
 #endif
+#ifdef HAVE_P11KIT1
+    "PKCS#11" <<
+#endif
 #ifdef VERBOSELOG
     "verboselog" <<
 #endif

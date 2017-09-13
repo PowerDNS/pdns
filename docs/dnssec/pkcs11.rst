@@ -18,6 +18,11 @@ empty. PIN is required for assigning keys to zone.
 Using with SoftHSM
 ------------------
 
+.. warning::
+  Due to an interaction between `SoftHSM and Botan <https://github.com/PowerDNS/pdns/issues/2496>`__,
+  the PowerDNS Authoritative Server **will most likely** crash on exit when built with ``--enable-botan1.10 --enable-experimental-pkcs11``.
+  This is the case with the packages provided from the PowerDNS repositories.
+
 To test this feature, a software HSM can be used. It is **not
 recommended** to use this in production.
 
