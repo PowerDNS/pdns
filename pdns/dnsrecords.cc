@@ -45,18 +45,29 @@ void DNSResourceRecord::setContent(const string &cont) {
 
 string DNSResourceRecord::getZoneRepresentation(bool noDot) const {
   ostringstream ret;
+  vector<string> parts;
+  string last;
+
   switch(qtype.getCode()) {
     case QType::SRV:
     case QType::MX:
+      stringtok(parts, content);
+      if (!parts.size())
+        return "";
+      last = *parts.rbegin();
+      ret << content;
+      if (last == ".")
+        break;
+      if (*(last.rbegin()) != '.' && !noDot)
+        ret << ".";
+      break;
     case QType::CNAME:
     case QType::DNAME:
     case QType::NS:
     case QType::PTR:
-      if (*(content.rbegin()) != '.') {
-        ret<<content;
-        if(!noDot)
-          ret<<".";
-      }
+      ret<<content;
+      if (*(content.rbegin()) != '.' && !noDot)
+        ret<<".";
       break;
     default:
       ret<<content;
