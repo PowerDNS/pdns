@@ -136,6 +136,9 @@ package if you need a dns cache for your network.
 
 make %{?_smp_mflags} LIBRARY_PATH=/usr/lib64/boost148
 
+%check
+make %{?_smp_mflags} check || (cat test-suite.log && false)
+
 %install
 %{__rm} -rf %{buildroot}
 make install DESTDIR=%{buildroot}
@@ -234,6 +237,9 @@ package if you need a dns cache for your network.
 	--enable-systemd
 
 make %{?_smp_mflags}
+
+%check
+make %{?_smp_mflags} check || (cat test-suite.log && false)
 
 %install
 make install DESTDIR=%{buildroot}

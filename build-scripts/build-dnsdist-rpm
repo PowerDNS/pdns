@@ -141,6 +141,9 @@ ${SETUP}
 
 make
 
+%check
+make %{?_smp_mflags} check || (cat test-suite.log && false)
+
 %install
 %make_install
 install -d %{buildroot}/%{_sysconfdir}/dnsdist
