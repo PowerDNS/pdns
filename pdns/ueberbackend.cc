@@ -264,7 +264,6 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
   // backend again for b.c.example.com., c.example.com. and example.com.
   // If a backend has no match it may respond with an enmpty qname.
 
-  bool found = false;
   int cstat;
   DNSName shorter(target);
   vector<pair<size_t, SOAData> > bestmatch (backends.size(), make_pair(target.wirelength()+1, SOAData()));
@@ -347,13 +346,22 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
     }
 
 found:
-    if(found == (qtype == QType::DS) || target != shorter) {
+    // For all queries except DS we answer the query from the most specific zone
+    if(p->qtype != QType::DS){
       DLOG(L<<Logger::Error<<"found: "<<sd->qname<<endl);
       return true;
-    } else {
-      DLOG(L<<Logger::Error<<"chasing next: "<<sd->qname<<endl);
-      found = true;
     }
+
+    // DS records must be answered from the parent zone (the zone
+    // which has the delegation). Hence, if we found Authority, we
+    // have to check if the found Authority zone is identical to the
+    // queried label. If yes, we have to chase the next Authority to
+    // find the parent zone.
+    if(sd->qname != target){
+      DLOG(L<<Logger::Error<<"found: "<<sd->qname<<endl);
+      return true;
+    }
+    DLOG(L<<Logger::Error<<"DS queried, chasing next to find parent of: "<<sd->qname<<endl);
 
   } while(shorter.chopOff());
   return found;
