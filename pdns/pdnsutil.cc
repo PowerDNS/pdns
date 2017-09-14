@@ -584,16 +584,16 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
       if (rr.qtype.getCode() == QType::SRV) {
         vector<string> parts;
         stringtok(parts, rr.getZoneRepresentation());
-        toCheck = DNSName(parts[3]);
+        if (parts.size() == 4) toCheck = DNSName(parts[3]);
       } else if (rr.qtype.getCode() == QType::MX) {
         vector<string> parts;
         stringtok(parts, rr.getZoneRepresentation());
-        toCheck = DNSName(parts[1]);
+        if (parts.size() == 2) toCheck = DNSName(parts[1]);
       } else {
         toCheck = DNSName(rr.content);
       }
 
-      if (!toCheck.isHostname()) {
+      if (!toCheck.empty() && !toCheck.isHostname()) {
         cout<<"[Warning] "<<rr.qtype.getName()<<" record in zone '"<<zone<<"' has non-hostname content '"<<toCheck<<"'."<<endl;
         numwarnings++;
       }
