@@ -1519,8 +1519,33 @@ void SyncRes::computeZoneCuts(const DNSName& begin, const DNSName& end, unsigned
     if (cutIt != d_cutStates.cend()) {
       if (cutIt->second != Indeterminate) {
         LOG(d_prefix<<": - Cut already known at "<<qname<<endl);
+        cutState = cutIt->second;
         continue;
       }
+    }
+
+    /* no need to look for NS and DS if we are already insecure or bogus,
+       just look for (N)TA
+    */
+    if (cutState == Insecure || cutState == Bogus) {
+      dsmap_t ds;
+      vState newState = getDSRecords(qname, ds, true, depth);
+      if (newState == Indeterminate) {
+        continue;
+      }
+
+      LOG(d_prefix<<": New state for "<<qname<<" is "<<vStates[newState]<<endl);
+      if (newState == TA) {
+        newState = Secure;
+      }
+      else if (newState == NTA) {
+        newState = Insecure;
+      }
+      cutState = newState;
+
+      d_cutStates[qname] = cutState;
+
+      continue;
     }
 
     vState newState = Indeterminate;
