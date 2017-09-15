@@ -484,8 +484,3 @@ void MemRecursorCache::doPrune(unsigned int keep)
   pruneCollection(*this, d_cache, keep);
 }
 
-void MemRecursorCache::doPrune(void)
-{
-  unsigned int maxCached=::arg().asNum("max-cache-entries") / g_numThreads;
-  doPrune(maxCached);
-}

@@ -61,7 +61,6 @@ public:
 
   void replace(time_t, const DNSName &qname, const QType& qt,  const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, boost::optional<Netmask> ednsmask=boost::none, vState state=Indeterminate);
 
-  void doPrune(void);
   void doPrune(unsigned int keep);
   uint64_t doDump(int fd);
 

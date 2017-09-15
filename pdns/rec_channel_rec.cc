@@ -612,6 +612,24 @@ string setMinimumTTL(T begin, T end)
   return "New minimum TTL: " + std::to_string(SyncRes::s_minimumTTL) + "\n";
 }
 
+template<typename T>
+string setMaxCacheEntries(T begin, T end)
+{
+  if(end-begin != 1) 
+    return "Need to supply new cache size\n";
+  g_maxCacheEntries = pdns_stou(*begin);
+  return "New minimum TTL: " + std::to_string(g_maxCacheEntries) + "\n";
+}
+
+template<typename T>
+string setMaxPacketCacheEntries(T begin, T end)
+{
+  if(end-begin != 1) 
+    return "Need to supply new packet cache size\n";
+  g_maxPacketCacheEntries = pdns_stou(*begin);
+  return "New minimum TTL: " + std::to_string(g_maxPacketCacheEntries) + "\n";
+}
+
 
 static uint64_t getSysTimeMsec()
 {
@@ -1205,6 +1223,8 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 "reload-lua-script [filename]     (re)load Lua script\n"
 "reload-lua-config [filename]     (re)load Lua configuration file\n"
 "reload-zones                     reload all auth and forward zones\n"
+"set-max-cache-entries value      set new maximum cache size"
+"set-max-packetcache-entries val  set new maximum packet cache size"      
 "set-minimum-ttl value            set minimum-ttl-override\n"
 "set-carbon-server                set a carbon server for telemetry\n"
 "set-dnssec-log-bogus SETTING     enable (SETTING=yes) or disable (SETTING=no) logging of DNSSEC validation failures\n"
@@ -1352,6 +1372,13 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
     return reloadAuthAndForwards();
   }
 
+  if(cmd=="set-max-cache-entries") {
+    return setMaxCacheEntries(begin, end);
+  }
+  if(cmd=="set-max-packetcache-entries") {
+    return setMaxPacketCacheEntries(begin, end);
+  }
+  
   if(cmd=="set-minimum-ttl") {
     return setMinimumTTL(begin, end);
   }
