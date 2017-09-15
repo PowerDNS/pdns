@@ -42,6 +42,8 @@ Zones endpoint
 
   Modifies present RRsets and comments. Returns ``204 No Content`` on success.
 
+  The new zone serial will be returned in an `X-PDNS-Zone-Serial` header (auth 4.1+).
+
   :param server_id: The name of the server
   :param zone_id: The id number of the :json:object:`Zone`
 

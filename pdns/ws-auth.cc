@@ -1499,6 +1499,10 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
       if (!di.backend->replaceRRSet(di.id, rr.qname, rr.qtype, vector<DNSResourceRecord>(1, rr))) {
         throw ApiException("Hosting backend does not support editing records.");
       }
+
+      // return new serial in a header
+      fillSOAData(rr.content, sd);
+      resp->headers["X-PDNS-Zone-Serial"] = std::to_string(sd.serial);
     }
 
   } catch(...) {
