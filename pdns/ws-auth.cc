@@ -1500,9 +1500,10 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
         throw ApiException("Hosting backend does not support editing records.");
       }
 
-      // return new serial in a header
+      // return old and new serials in headers
+      resp->headers["X-PDNS-Old-Serial"] = std::to_string(sd.serial);
       fillSOAData(rr.content, sd);
-      resp->headers["X-PDNS-Zone-Serial"] = std::to_string(sd.serial);
+      resp->headers["X-PDNS-New-Serial"] = std::to_string(sd.serial);
     }
 
   } catch(...) {
