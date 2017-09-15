@@ -38,6 +38,38 @@
 using std::thread;
 using std::unique_ptr;
 
+#ifdef __APPLE__
+#define MSG_WAITFORONE 0
+// macOS does not support sendmmsg/recvmmsg, so we provide a (non-perfect) stub
+struct mmsghdr {
+    struct msghdr msg_hdr;
+    unsigned int msg_len;
+};
+int sendmmsg(int sockfd, struct mmsghdr *msgvec, unsigned int vlen, unsigned int flags) {
+    // Sends all messages individually
+    ssize_t msg_len;
+    bool error = false;
+    assert(vlen >= 1);
+    for (int i = 0; i < vlen; i++) {
+        msg_len = sendmsg(sockfd, &msgvec[i].msg_hdr, flags);
+        msgvec[i].msg_len = (msg_len >= 0 ? msg_len : 0);
+        if (msg_len < 0) error = true;
+    }
+    return error ? -1 : vlen;
+}
+int recvmmsg(int sockfd, struct mmsghdr *msgvec, unsigned int vlen, unsigned int flags, struct timespec *timeout) {
+    // Will only receive one message and ignores the passed in timeout
+    ssize_t msg_len;
+    assert(vlen >= 1);
+    msg_len = recvmsg(sockfd, &msgvec->msg_hdr, flags);
+    msgvec[0].msg_len = (msg_len >= 0 ? msg_len : 0);
+    return msg_len < 0 ? -1 : 1;
+}
+int sched_setscheduler(int, int, void*) {
+  return 0;
+}
+#endif
+
 StatBag S;
 
 std::atomic<unsigned int> g_recvcounter, g_recvbytes;
