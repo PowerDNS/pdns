@@ -183,9 +183,9 @@ void declareArguments()
 
   ::arg().setSwitch("traceback-handler","Enable the traceback handler (Linux only)")="yes";
   ::arg().setSwitch("direct-dnskey","Fetch DNSKEY RRs from backend during DNSKEY synthesis")="no";
-  ::arg().set("default-ksk-algorithms","Default KSK algorithms")="ecdsa256";
+  ::arg().set("default-ksk-algorithm","Default KSK algorithms")="ecdsa256";
   ::arg().set("default-ksk-size","Default KSK size (0 means default)")="0";
-  ::arg().set("default-zsk-algorithms","Default ZSK algorithms")="";
+  ::arg().set("default-zsk-algorithm","Default ZSK algorithms")="";
   ::arg().set("default-zsk-size","Default ZSK size (0 means default)")="0";
   ::arg().set("max-nsec3-iterations","Limit the number of NSEC3 hash iterations")="500"; // RFC5155 10.3
 

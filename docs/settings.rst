@@ -272,12 +272,16 @@ Debugging switch - don't use.
 Operate as a daemon.
 
 .. _setting-default-ksk-algorithms:
+.. _setting-default-ksk-algorithm:
 
-``default-ksk-algorithms``
+``default-ksk-algorithm``
 --------------------------
 
 -  String
 -  Default: ecdsa256
+
+.. versionchanged:: 4.1.0
+  Renamed from ``default-ksk-algorithms``. Does no longer support multiple algorithm names.
 
 The algorithm that should be used for the KSK when running
 :doc:`pdnsutil secure-zone <manpages/pdnsutil.1>`. Must be one
@@ -301,9 +305,10 @@ of:
 --------------------
 
 -  Integer
--  Default: whichever is default for ``default-ksk-algorithms``
+-  Default: whichever is default for `default-ksk-algorithm`_
 
 The default keysize for the KSK generated with :doc:`pdnsutil secure-zone <dnssec/pdnsutil>`.
+Only relevant for algorithms with non-fixed keysizes (like RSA)
 
 .. _setting-default-soa-name:
 
@@ -358,12 +363,16 @@ Mail address to insert in the SOA record if none set in the backend.
 TTL to use when none is provided.
 
 .. _setting-default-zsk-algorithms:
+.. _setting-default-zsk-algorithm:
 
-``default-zsk-algorithms``
+``default-zsk-algorithm``
 --------------------------
 
 -  String
 -  Default: (empty)
+
+.. versionchanged:: 4.1.0
+  Renamed from ``default-zsk-algorithms``. Does no longer support multiple algorithm names.
 
 The algorithm that should be used for the ZSK when running
 :doc:`pdnsutil secure-zone <manpages/pdnsutil.1>`. Must be one
@@ -387,9 +396,10 @@ of:
 --------------------
 
 -  Integer
--  Default: whichever is default for ``default-zsk-algorithms``
+-  Default: 0 (automatic default for `default-zsk-algorithm`_)
 
 The default keysize for the ZSK generated with :doc:`pdnsutil secure-zone <dnssec/pdnsutil>`.
+Only relevant for algorithms with non-fixed keysizes (like RSA)
 
 .. _setting-direct-dnskey:
 
