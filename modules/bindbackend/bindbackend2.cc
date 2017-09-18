@@ -205,10 +205,10 @@ bool Bind2Backend::startTransaction(const DNSName &qname, int id)
     d_transaction_tmpname=bbd.d_filename+"."+itoa(random());
     d_of=new ofstream(d_transaction_tmpname.c_str());
     if(!*d_of) {
-      throw DBException("Unable to open temporary zonefile '"+d_transaction_tmpname+"': "+stringerror());
       unlink(d_transaction_tmpname.c_str());
       delete d_of;
       d_of=0;
+      throw DBException("Unable to open temporary zonefile '"+d_transaction_tmpname+"': "+stringerror());
     }
     
     *d_of<<"; Written by PowerDNS, don't edit!"<<endl;
