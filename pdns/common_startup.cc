@@ -28,6 +28,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #include "dynhandler.hh"
+#include "dnsseckeeper.hh"
 
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
@@ -523,6 +524,17 @@ void mainthread()
     doSecPoll(true);
   }
   catch(...) {}
+
+  // Some sanity checking on default key settings
+  for (const string& algotype : {"ksk", "zsk"}) {
+    int algo, size;
+    algo = DNSSECKeeper::shorthand2algorithm(::arg()["default-"+algotype+"-algorithm"]);
+    size = ::arg().asNum("default-"+algotype+"-size");
+    if (algo == -1)
+      L<<Logger::Warning<<"Warning: default-"<<algotype<<"-algorithm set to unknown algorithm: "<<::arg()["default-"+algotype+"-algorithm"]<<endl;
+    else if (algo <= 10 && size == 0)
+      L<<Logger::Warning<<"Warning: default-"<<algotype<<"-algorithm is set to an algorithm("<<::arg()["default-"+algotype+"-algorithm"]<<") that requires a non-zero default-"<<algotype<<"-size!"<<endl;
+  }
 
   // NOW SAFE TO CREATE THREADS!
   dl->go();

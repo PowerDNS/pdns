@@ -34,6 +34,7 @@
 #include "nameserver.hh"
 #include "statbag.hh"
 #include "tcpreceiver.hh"
+#include "dnsseckeeper.hh"
 
 extern ArgvMap theArg;
 extern StatBag S;  //!< Statistics are gathered across PDNS via the StatBag class S
