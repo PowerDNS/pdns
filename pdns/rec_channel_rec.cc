@@ -843,7 +843,9 @@ void registerAllStats()
 
   addGetStat("cache-hits", doGetCacheHits);
   addGetStat("cache-misses", doGetCacheMisses); 
-  addGetStat("cache-entries", doGetCacheSize); 
+  addGetStat("cache-entries", doGetCacheSize);
+  addGetStat("max-cache-entries", []() { return g_maxCacheEntries.load(); });
+  addGetStat("max-packetcache-entries", []() { return g_maxPacketCacheEntries.load();}); 
   addGetStat("cache-bytes", doGetCacheBytes); 
   
   addGetStat("packetcache-hits", doGetPacketCacheHits);
