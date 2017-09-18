@@ -209,6 +209,7 @@ bool Bind2Backend::startTransaction(const DNSName &qname, int id)
       unlink(d_transaction_tmpname.c_str());
       delete d_of;
       d_of=0;
+      return false;
     }
     
     *d_of<<"; Written by PowerDNS, don't edit!"<<endl;
