@@ -193,7 +193,7 @@ bool Bind2Backend::startTransaction(const DNSName &qname, int id)
   if(id < 0) {
     d_transaction_tmpname.clear();
     d_transaction_id=id;
-    return true;
+    return false;
   }
   if(id == 0) {
     throw DBException("domain_id 0 is invalid for this backend.");
@@ -209,7 +209,6 @@ bool Bind2Backend::startTransaction(const DNSName &qname, int id)
       unlink(d_transaction_tmpname.c_str());
       delete d_of;
       d_of=0;
-      return false;
     }
     
     *d_of<<"; Written by PowerDNS, don't edit!"<<endl;
@@ -223,7 +222,7 @@ bool Bind2Backend::startTransaction(const DNSName &qname, int id)
 bool Bind2Backend::commitTransaction()
 {
   if(d_transaction_id < 0)
-    return true;
+    return false;
   delete d_of;
   d_of=0;
 
