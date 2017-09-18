@@ -1935,10 +1935,6 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         newtarget=content->getTarget();
       }
     }
-    else if((rec.d_type==QType::RRSIG || rec.d_type==QType::NSEC || rec.d_type==QType::NSEC3) && rec.d_place==DNSResourceRecord::ANSWER) {
-      if(rec.d_type != QType::RRSIG || rec.d_name == qname)
-        ret.push_back(rec); // enjoy your DNSSEC
-    }
     else if(needWildcardProof && (rec.d_type==QType::RRSIG || rec.d_type==QType::NSEC || rec.d_type==QType::NSEC3) && rec.d_place==DNSResourceRecord::AUTHORITY) {
       ret.push_back(rec); // enjoy your DNSSEC
     }
@@ -1953,6 +1949,10 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
 
       done=true;
       ret.push_back(rec);
+    }
+    else if((rec.d_type==QType::RRSIG || rec.d_type==QType::NSEC || rec.d_type==QType::NSEC3) && rec.d_place==DNSResourceRecord::ANSWER) {
+      if(rec.d_type != QType::RRSIG || rec.d_name == qname)
+        ret.push_back(rec); // enjoy your DNSSEC
     }
     else if(rec.d_place==DNSResourceRecord::AUTHORITY && rec.d_type==QType::NS && qname.isPartOf(rec.d_name)) {
       if(moreSpecificThan(rec.d_name,auth)) {
