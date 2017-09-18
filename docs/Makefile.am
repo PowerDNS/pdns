@@ -78,7 +78,7 @@ upload-docs: all-docs
 	rsync -crv --no-p --chmod=g=rwX --exclude '*~' ./PowerDNS-Authoritative.pdf web1.powerdns.com:/srv/www/doc.powerdns.com/authoritative/
 
 else # if HAVE_VIRTUALENV
-$(dist_MANS):
+$(MANPAGES_DIST):
 	echo "You need virtualenv to generate the manpages"
 	exit 1
 
