@@ -174,7 +174,8 @@ void Bind2Backend::safePutBBDomainInfo(const BB2DomainInfo& bbd)
 void Bind2Backend::setNotified(uint32_t id, uint32_t serial)
 {
   BB2DomainInfo bbd;
-  safeGetBBDomainInfo(id, &bbd);
+  if (!safeGetBBDomainInfo(id, &bbd))
+    return;
   bbd.d_lastnotified = serial;
   safePutBBDomainInfo(bbd);
 }
@@ -256,7 +257,8 @@ bool Bind2Backend::abortTransaction()
 bool Bind2Backend::feedRecord(const DNSResourceRecord &rr, const DNSName &ordername)
 {
   BB2DomainInfo bbd;
-  safeGetBBDomainInfo(d_transaction_id, &bbd);
+  if (!safeGetBBDomainInfo(d_transaction_id, &bbd))
+    return false;
 
   string qname;
   string name = bbd.d_name.toString();
@@ -522,8 +524,10 @@ string Bind2Backend::DLReloadNowHandler(const vector<string>&parts, Utility::pid
     if(safeGetBBDomainInfo(zone, &bbd)) {
       Bind2Backend bb2;
       bb2.queueReloadAndStore(bbd.d_id);
-      safeGetBBDomainInfo(zone, &bbd); // Read the *new* domain status
-      ret<< *i << ": "<< (bbd.d_wasRejectedLastReload ? "[rejected]": "") <<"\t"<<bbd.d_status<<"\n";
+      if (!safeGetBBDomainInfo(zone, &bbd)) // Read the *new* domain status
+          ret << *i << ": [missing]\n";
+      else
+          ret<< *i << ": "<< (bbd.d_wasRejectedLastReload ? "[rejected]": "") <<"\t"<<bbd.d_status<<"\n";
     }
     else
       ret<< *i << " no such domain\n";
@@ -960,7 +964,8 @@ bool Bind2Backend::findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const DNSName&
 bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)
 {
   BB2DomainInfo bbd;
-  safeGetBBDomainInfo(id, &bbd);
+  if (!safeGetBBDomainInfo(id, &bbd))
+    return false;
 
   NSEC3PARAMRecordContent ns3pr;
 
