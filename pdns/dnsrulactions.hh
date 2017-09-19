@@ -760,6 +760,18 @@ public:
 };
 
 
+class ProbaRule : public DNSRule
+{
+public:
+  ProbaRule(double proba) : d_proba(proba)
+  {
+  }
+  bool matches(const DNSQuestion* dq) const override;
+  string toString() const override;
+  double d_proba;
+};
+
+
 class DropAction : public DNSAction
 {
 public:
@@ -834,6 +846,7 @@ public:
   DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override;
   string toString() const override;
   std::unordered_map<string, double> getStats() const override;
+
 private:
   ComboAddress d_remote;
   std::thread d_worker;
@@ -855,8 +868,6 @@ private:
   std::atomic<bool> d_pleaseQuit{false};
   bool d_addECS{false};
 };
-
-
 
 class PoolAction : public DNSAction
 {

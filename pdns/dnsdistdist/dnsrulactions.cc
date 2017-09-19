@@ -21,8 +21,23 @@
  */
 #include "dnsrulactions.hh"
 #include <iostream>
+#include <boost/format.hpp>
 
 using namespace std;
+
+bool ProbaRule::matches(const DNSQuestion* dq) const
+{
+  if(d_proba == 1.0)
+    return true;
+  double rnd = 1.0*random() / RAND_MAX;
+  return rnd > (1.0 - d_proba);
+}
+
+string ProbaRule::toString() const 
+{
+  return "match with prob. " + (boost::format("%0.2f") % d_proba).str();
+}
+
 
 TeeAction::TeeAction(const ComboAddress& ca, bool addECS) : d_remote(ca), d_addECS(addECS)
 {
@@ -39,10 +54,12 @@ TeeAction::~TeeAction()
   d_worker.join();
 }
 
+
 DNSAction::Action TeeAction::operator()(DNSQuestion* dq, string* ruleresult) const 
 {
-  if(dq->tcp) 
+  if(dq->tcp) {
     d_tcpdrops++;
+  }
   else {
     ssize_t res;
     d_queries++;

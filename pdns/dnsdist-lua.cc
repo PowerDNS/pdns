@@ -969,6 +969,11 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       return std::shared_ptr<DNSRule>(new AllRule());
     });
 
+  g_lua.writeFunction("ProbaRule", [](double proba) {
+      return std::shared_ptr<DNSRule>(new ProbaRule(proba));
+    });
+
+  
   g_lua.writeFunction("QNameRule", [](const std::string& qname) {
       return std::shared_ptr<DNSRule>(new QNameRule(DNSName(qname)));
     });
