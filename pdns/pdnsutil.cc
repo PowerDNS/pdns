@@ -80,9 +80,9 @@ void loadMainConfig(const std::string& configdir)
   string configname=::arg()["config-dir"]+"/"+s_programname+".conf";
   cleanSlashes(configname);
 
-  ::arg().set("default-ksk-algorithm","Default KSK algorithms")="ecdsa256";
+  ::arg().set("default-ksk-algorithm","Default KSK algorithm")="ecdsa256";
   ::arg().set("default-ksk-size","Default KSK size (0 means default)")="0";
-  ::arg().set("default-zsk-algorithm","Default ZSK algorithms")="";
+  ::arg().set("default-zsk-algorithm","Default ZSK algorithm")="";
   ::arg().set("default-zsk-size","Default ZSK size (0 means default)")="0";
   ::arg().set("default-soa-edit","Default SOA-EDIT value")="";
   ::arg().set("default-soa-edit-signed","Default SOA-EDIT value for signed zones")="";

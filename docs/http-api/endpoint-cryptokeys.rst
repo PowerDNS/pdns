@@ -19,7 +19,7 @@ These endpoints allow for the manipulation of DNSSEC crypto material.
 
   if ``content``, ``bits`` and ``algo`` are null, a key will be generated based
   on the :ref:`setting-default-ksk-algorithm` and :ref:`setting-default-ksk-size`
-  sttings for a KSK and the :ref:`setting-default-zsk-algorithm` and :ref:`setting-default-zsk-size`
+  settings for a KSK and the :ref:`setting-default-zsk-algorithm` and :ref:`setting-default-zsk-size`
   options for a ZSK.
 
   :param server_id: The name of the server
