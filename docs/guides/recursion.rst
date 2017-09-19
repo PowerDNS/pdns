@@ -102,7 +102,7 @@ for the recursor.
 Scenario 2: Authoritative Server as Recursor for clients and serving public domains
 -----------------------------------------------------------------------------------
 
-The best way to "migrate" in this scenario is to seperate the recursive
+The best way to "migrate" in this scenario is to separate the recursive
 service fully from the Authoritative Server. See `Dan Bernstein's
 article <http://cr.yp.to/djbdns/separation.html>`__ on this topic.
 
