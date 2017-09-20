@@ -414,6 +414,14 @@ These ``DNSRule``\ s be one of the following items:
 
   :param int code: The opcode to match
 
+.. function:: ProbaRule(probability)
+
+  .. versionadded:: 1.3.0
+
+  Matches queries with a given probability. 1.0 means "always"
+
+  :param double probability: Probability of a match
+
 .. function:: QClassRule(qclass)
 
   Matches queries with the specified ``qclass``.
