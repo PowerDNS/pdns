@@ -54,7 +54,7 @@ void doSecPoll(bool first)
   if(!res && !ret.empty()) {
     string content=getRR<TXTRecordContent>(ret.begin()->dr)->d_text;
 
-    pair<string, string> split = splitField(content, ' ');
+    pair<string, string> split = splitField(unquotify(content), ' ');
 
     security_status = std::stoi(split.first);
     g_security_message = split.second;
