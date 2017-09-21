@@ -1383,6 +1383,7 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsi
   if (rcode == RCode::NoError || (rcode == RCode::NXDomain && !bogusOnNXD)) {
 
     if (state == Secure) {
+      bool gotCNAME = false;
       for (const auto& record : dsrecords) {
         if (record.d_type == QType::DS) {
           const auto dscontent = getRR<DSRecordContent>(record);
@@ -1390,11 +1391,14 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsi
             ds.insert(*dscontent);
           }
         }
+        else if (record.d_type == QType::CNAME && record.d_name == zone) {
+          gotCNAME = true;
+        }
       }
 
       if (rcode == RCode::NoError && ds.empty()) {
         if (foundCut) {
-          if (denialProvesNoDelegation(zone, dsrecords)) {
+          if (gotCNAME || denialProvesNoDelegation(zone, dsrecords)) {
             /* we are still inside the same Secure zone */
 
             *foundCut = false;
@@ -2257,6 +2261,12 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
 
     if (qtype == QType::DS) {
       LOG(prefix<<qname<<": status=got a CNAME referral, but we are looking for a DS"<<endl);
+
+      if(d_doDNSSEC)
+        addNXNSECS(ret, lwr.d_records);
+
+      *rcode = RCode::NoError;
+      return true;
     }
     else {
       LOG(prefix<<qname<<": status=got a CNAME referral, starting over with "<<newtarget<<endl);
