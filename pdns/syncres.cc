@@ -1912,13 +1912,13 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
   return RCode::NoError;
 }
 
-void SyncRes::getDenialValidationState(NegCache::NegCacheEntry& ne, vState& state, const dState expectedState, bool allowOptOut)
+void SyncRes::getDenialValidationState(NegCache::NegCacheEntry& ne, vState& state, const dState expectedState, bool allowOptOut, bool referralToUnsigned)
 {
   ne.d_validationState = state;
 
   if (state == Secure) {
     cspmap_t csp = harvestCSPFromNE(ne);
-    dState res = getDenial(csp, ne.d_name, ne.d_qtype.getCode());
+    dState res = getDenial(csp, ne.d_name, ne.d_qtype.getCode(), referralToUnsigned);
     if (res != expectedState) {
       if (res == OPTOUT && allowOptOut) {
         LOG(d_prefix<<"OPT-out denial found for "<<ne.d_name<<endl);
@@ -1965,7 +1965,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
       ne.d_qtype = QType(0); // this encodes 'whole record'
       ne.d_auth = rec.d_name;
       harvestNXRecords(lwr.d_records, ne);
-      getDenialValidationState(ne, state, NXDOMAIN, false);
+      getDenialValidationState(ne, state, NXDOMAIN, false, false);
 
       if(!wasVariable()) {
         t_sstorage.negcache.add(ne);
@@ -2028,7 +2028,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         ne.d_qtype = QType::DS;
         harvestNXRecords(lwr.d_records, ne);
         cspmap_t csp = harvestCSPFromNE(ne);
-        dState denialState = getDenial(csp, newauth, QType::DS);
+        dState denialState = getDenial(csp, newauth, QType::DS, true);
         if (denialState == NXQTYPE || denialState == OPTOUT || denialState == INSECURE) {
           ne.d_validationState = Secure;
           rec.d_ttl = min(s_maxnegttl, rec.d_ttl);
@@ -2074,7 +2074,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         ne.d_name = qname;
         ne.d_qtype = qtype;
         harvestNXRecords(lwr.d_records, ne);
-        getDenialValidationState(ne, state, NXQTYPE, qtype == QType::DS);
+        getDenialValidationState(ne, state, NXQTYPE, qtype == QType::DS, false);
 
         if(!wasVariable()) {
           if(qtype.getCode()) {  // prevents us from blacking out a whole domain

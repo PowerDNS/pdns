@@ -544,37 +544,6 @@ void PacketHandler::addNSECX(DNSPacket *p, DNSPacket *r, const DNSName& target, 
   }
 }
 
-static void incrementHash(std::string& raw) // I wonder if this is correct, cmouse? ;-)
-{
-  if(raw.empty())
-    return;
-    
-  for(string::size_type pos=raw.size(); pos; ) {
-    --pos;
-    unsigned char c = (unsigned char)raw[pos];
-    ++c;
-    raw[pos] = (char) c;
-    if(c)
-      break;
-  }
-}
-
-static void decrementHash(std::string& raw) // I wonder if this is correct, cmouse? ;-)
-{
-  if(raw.empty())
-    return;
-    
-  for(string::size_type pos=raw.size(); pos; ) {
-    --pos;
-    unsigned char c = (unsigned char)raw[pos];
-    --c;
-    raw[pos] = (char) c;
-    if(c != 0xff)
-      break;
-  }
-}
-
-
 bool getNSEC3Hashes(bool narrow, DNSBackend* db, int id, const std::string& hashed, bool decrement, DNSName& unhashed, std::string& before, std::string& after, int mode)
 {
   bool ret;

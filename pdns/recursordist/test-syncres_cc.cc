@@ -3,6 +3,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include "arguments.hh"
+#include "base32.hh"
 #include "dnssecinfra.hh"
 #include "dnsseckeeper.hh"
 #include "lua-recursor4.hh"
@@ -337,6 +338,48 @@ static void addNSECRecordToLW(const DNSName& domain, const DNSName& next, const 
   rec.d_place = DNSResourceRecord::AUTHORITY;
 
   records.push_back(rec);
+}
+
+static void addNSEC3RecordToLW(const DNSName& hashedName, const std::string& hashedNext, const std::string& salt, unsigned int iterations, const std::set<uint16_t>& types,  uint32_t ttl, std::vector<DNSRecord>& records)
+{
+  NSEC3RecordContent nrc;
+  nrc.d_algorithm = 1;
+  nrc.d_flags = 0;
+  nrc.d_iterations = iterations;
+  nrc.d_salt = salt;
+  nrc.d_nexthash = hashedNext;
+  nrc.d_set = types;
+
+  DNSRecord rec;
+  rec.d_name = hashedName;
+  rec.d_ttl = ttl;
+  rec.d_type = QType::NSEC3;
+  rec.d_content = std::make_shared<NSEC3RecordContent>(nrc);
+  rec.d_place = DNSResourceRecord::AUTHORITY;
+
+  records.push_back(rec);
+}
+
+static void addNSEC3UnhashedRecordToLW(const DNSName& domain, const std::string& next, const std::set<uint16_t>& types,  uint32_t ttl, std::vector<DNSRecord>& records)
+{
+  static const std::string salt = "deadbeef";
+  static const unsigned int iterations = 10;
+  std::string hashed = hashQNameWithSalt(salt, iterations, domain);
+
+  addNSEC3RecordToLW(DNSName(toBase32Hex(hashed)), next, salt, iterations, types, ttl, records);
+}
+
+void addNSEC3NarrowRecordToLW(const DNSName& domain, const std::set<uint16_t>& types,  uint32_t ttl, std::vector<DNSRecord>& records)
+{
+  static const std::string salt = "deadbeef";
+  static const unsigned int iterations = 10;
+  std::string hashed = hashQNameWithSalt(salt, iterations, domain);
+
+  std::string hashedNext(hashed);
+  incrementHash(hashedNext);
+  decrementHash(hashed);
+
+  addNSEC3RecordToLW(DNSName(toBase32Hex(hashed)), hashedNext, salt, iterations, types, ttl, records);
 }
 
 static void generateKeyMaterial(const DNSName& name, unsigned int algo, uint8_t digest, testkeysset_t& keys)
@@ -6801,10 +6844,10 @@ BOOST_AUTO_TEST_CASE(test_nsec_denial_nowrap) {
   cspmap_t denialMap;
   denialMap[std::make_pair(DNSName("a.example.org."), QType::NSEC)] = pair;
 
-  dState denialState = getDenial(denialMap, DNSName("b.example.org."), QType::A);
+  dState denialState = getDenial(denialMap, DNSName("b.example.org."), QType::A, false);
   BOOST_CHECK_EQUAL(denialState, NXDOMAIN);
 
-  denialState = getDenial(denialMap, DNSName("d.example.org."), QType::A);
+  denialState = getDenial(denialMap, DNSName("d.example.org."), QType::A, false);
   /* let's check that d.example.org. is not denied by this proof */
   BOOST_CHECK_EQUAL(denialState, NODATA);
 }
@@ -6836,10 +6879,10 @@ BOOST_AUTO_TEST_CASE(test_nsec_denial_wrap_case_1) {
   cspmap_t denialMap;
   denialMap[std::make_pair(DNSName("z.example.org."), QType::NSEC)] = pair;
 
-  dState denialState = getDenial(denialMap, DNSName("a.example.org."), QType::A);
+  dState denialState = getDenial(denialMap, DNSName("a.example.org."), QType::A, false);
   BOOST_CHECK_EQUAL(denialState, NXDOMAIN);
 
-  denialState = getDenial(denialMap, DNSName("d.example.org."), QType::A);
+  denialState = getDenial(denialMap, DNSName("d.example.org."), QType::A, false);
   /* let's check that d.example.org. is not denied by this proof */
   BOOST_CHECK_EQUAL(denialState, NODATA);
 }
@@ -6871,10 +6914,10 @@ BOOST_AUTO_TEST_CASE(test_nsec_denial_wrap_case_2) {
   cspmap_t denialMap;
   denialMap[std::make_pair(DNSName("y.example.org."), QType::NSEC)] = pair;
 
-  dState denialState = getDenial(denialMap, DNSName("z.example.org."), QType::A);
+  dState denialState = getDenial(denialMap, DNSName("z.example.org."), QType::A, false);
   BOOST_CHECK_EQUAL(denialState, NXDOMAIN);
 
-  denialState = getDenial(denialMap, DNSName("d.example.org."), QType::A);
+  denialState = getDenial(denialMap, DNSName("d.example.org."), QType::A, false);
   /* let's check that d.example.org. is not denied by this proof */
   BOOST_CHECK_EQUAL(denialState, NODATA);
 }
@@ -6906,10 +6949,10 @@ BOOST_AUTO_TEST_CASE(test_nsec_denial_only_one_nsec) {
   cspmap_t denialMap;
   denialMap[std::make_pair(DNSName("a.example.org."), QType::NSEC)] = pair;
 
-  dState denialState = getDenial(denialMap, DNSName("b.example.org."), QType::A);
+  dState denialState = getDenial(denialMap, DNSName("b.example.org."), QType::A, false);
   BOOST_CHECK_EQUAL(denialState, NXDOMAIN);
 
-  denialState = getDenial(denialMap, DNSName("a.example.org."), QType::A);
+  denialState = getDenial(denialMap, DNSName("a.example.org."), QType::A, false);
   /* let's check that d.example.org. is not denied by this proof */
   BOOST_CHECK_EQUAL(denialState, NODATA);
 }
@@ -6941,7 +6984,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_root_nxd_denial) {
   cspmap_t denialMap;
   denialMap[std::make_pair(DNSName("a."), QType::NSEC)] = pair;
 
-  dState denialState = getDenial(denialMap, DNSName("b."), QType::A);
+  dState denialState = getDenial(denialMap, DNSName("b."), QType::A, false);
   BOOST_CHECK_EQUAL(denialState, NXDOMAIN);
 }
 
@@ -6981,13 +7024,140 @@ BOOST_AUTO_TEST_CASE(test_nsec_ancestor_nxqtype_denial) {
      owner name regardless of type.
   */
 
-  dState denialState = getDenial(denialMap, DNSName("a."), QType::A);
+  dState denialState = getDenial(denialMap, DNSName("a."), QType::A, false);
   /* no data means the qname/qtype is not denied, because an ancestor
      delegation NSEC can only deny the DS */
   BOOST_CHECK_EQUAL(denialState, NODATA);
 
-  denialState = getDenial(denialMap, DNSName("a."), QType::DS);
+  denialState = getDenial(denialMap, DNSName("a."), QType::DS, true);
   BOOST_CHECK_EQUAL(denialState, NXQTYPE);
+}
+
+BOOST_AUTO_TEST_CASE(test_nsec_insecure_delegation_denial) {
+  init();
+
+  testkeysset_t keys;
+  generateKeyMaterial(DNSName("."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
+
+  vector<DNSRecord> records;
+
+  vector<shared_ptr<DNSRecordContent>> recordContents;
+  vector<shared_ptr<RRSIGRecordContent>> signatureContents;
+
+  /*
+   * RFC 5155 section 8.9:
+   * If there is an NSEC3 RR present in the response that matches the
+   * delegation name, then the validator MUST ensure that the NS bit is
+   * set and that the DS bit is not set in the Type Bit Maps field of the
+   * NSEC3 RR.
+   */
+  /*
+    The RRSIG from "." denies the existence of any type at a.
+    NS should be set if it was proving an insecure delegation, let's check that
+    we correctly detect that it's not.
+  */
+  addNSECRecordToLW(DNSName("a."), DNSName("b."), { }, 600, records);
+  recordContents.push_back(records.at(0).d_content);
+  addRRSIG(keys, records, DNSName("."), 300);
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+  records.clear();
+
+  ContentSigPair pair;
+  pair.records = recordContents;
+  pair.signatures = signatureContents;
+  cspmap_t denialMap;
+  denialMap[std::make_pair(DNSName("a."), QType::NSEC)] = pair;
+
+  /* Insecure because the NS is not set, so while it does
+     denies the DS, it can't prove an insecure delegation */
+  dState denialState = getDenial(denialMap, DNSName("a."), QType::DS, true);
+  BOOST_CHECK_EQUAL(denialState, INSECURE);
+}
+
+BOOST_AUTO_TEST_CASE(test_nsec3_ancestor_nxqtype_denial) {
+  init();
+
+  testkeysset_t keys;
+  generateKeyMaterial(DNSName("."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
+
+  vector<DNSRecord> records;
+
+  vector<shared_ptr<DNSRecordContent>> recordContents;
+  vector<shared_ptr<RRSIGRecordContent>> signatureContents;
+
+  /*
+    The RRSIG from "." denies the existence of any type except NS at a.
+    However since it's an ancestor delegation NSEC (NS bit set, SOA bit clear,
+    signer field that is shorter than the owner name of the NSEC RR) it can't
+    be used to deny anything except the whole name or a DS.
+  */
+  addNSEC3UnhashedRecordToLW(DNSName("a."), "whatever", { QType::NS }, 600, records);
+  recordContents.push_back(records.at(0).d_content);
+  addRRSIG(keys, records, DNSName("."), 300);
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+
+  ContentSigPair pair;
+  pair.records = recordContents;
+  pair.signatures = signatureContents;
+  cspmap_t denialMap;
+  denialMap[std::make_pair(records.at(0).d_name, records.at(0).d_type)] = pair;
+  records.clear();
+
+  /* RFC 6840 section 4.1 "Clarifications on Nonexistence Proofs":
+     Ancestor delegation NSEC or NSEC3 RRs MUST NOT be used to assume
+     nonexistence of any RRs below that zone cut, which include all RRs at
+     that (original) owner name other than DS RRs, and all RRs below that
+     owner name regardless of type.
+  */
+
+  dState denialState = getDenial(denialMap, DNSName("a."), QType::A, false);
+  /* no data means the qname/qtype is not denied, because an ancestor
+     delegation NSEC3 can only deny the DS */
+  BOOST_CHECK_EQUAL(denialState, NODATA);
+
+  denialState = getDenial(denialMap, DNSName("a."), QType::DS, true);
+  BOOST_CHECK_EQUAL(denialState, NXQTYPE);
+}
+
+BOOST_AUTO_TEST_CASE(test_nsec3_insecure_delegation_denial) {
+  init();
+
+  testkeysset_t keys;
+  generateKeyMaterial(DNSName("."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
+
+  vector<DNSRecord> records;
+
+  vector<shared_ptr<DNSRecordContent>> recordContents;
+  vector<shared_ptr<RRSIGRecordContent>> signatureContents;
+
+  /*
+   * RFC 5155 section 8.9:
+   * If there is an NSEC3 RR present in the response that matches the
+   * delegation name, then the validator MUST ensure that the NS bit is
+   * set and that the DS bit is not set in the Type Bit Maps field of the
+   * NSEC3 RR.
+   */
+  /*
+    The RRSIG from "." denies the existence of any type at a.
+    NS should be set if it was proving an insecure delegation, let's check that
+    we correctly detect that it's not.
+  */
+  addNSEC3UnhashedRecordToLW(DNSName("a."), "whatever", { }, 600, records);
+  recordContents.push_back(records.at(0).d_content);
+  addRRSIG(keys, records, DNSName("."), 300);
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+
+  ContentSigPair pair;
+  pair.records = recordContents;
+  pair.signatures = signatureContents;
+  cspmap_t denialMap;
+  denialMap[std::make_pair(records.at(0).d_name, records.at(0).d_type)] = pair;
+  records.clear();
+
+  /* Insecure because the NS is not set, so while it does
+     denies the DS, it can't prove an insecure delegation */
+  dState denialState = getDenial(denialMap, DNSName("a."), QType::DS, true);
+  BOOST_CHECK_EQUAL(denialState, INSECURE);
 }
 
 /*

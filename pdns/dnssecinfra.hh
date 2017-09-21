@@ -155,6 +155,9 @@ uint32_t getStartOfWeek();
 string hashQNameWithSalt(const NSEC3PARAMRecordContent& ns3prc, const DNSName& qname);
 string hashQNameWithSalt(const std::string& salt, unsigned int iterations, const DNSName& qname);
 
+void incrementHash(std::string& raw);
+void decrementHash(std::string& raw);
+
 void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const std::set<DNSName>& authMap, vector<DNSZoneRecord>& rrs);
 
 void addTSIG(DNSPacketWriter& pw, TSIGRecordContent& trc, const DNSName& tsigkeyname, const string& tsigsecret, const string& tsigprevious, bool timersonly);

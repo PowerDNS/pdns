@@ -498,6 +498,36 @@ string hashQNameWithSalt(const std::string& salt, unsigned int iterations, const
   return toHash;
 }
 
+void incrementHash(std::string& raw) // I wonder if this is correct, cmouse? ;-)
+{
+  if(raw.empty())
+    return;
+
+  for(string::size_type pos=raw.size(); pos; ) {
+    --pos;
+    unsigned char c = (unsigned char)raw[pos];
+    ++c;
+    raw[pos] = (char) c;
+    if(c)
+      break;
+  }
+}
+
+void decrementHash(std::string& raw) // I wonder if this is correct, cmouse? ;-)
+{
+  if(raw.empty())
+    return;
+
+  for(string::size_type pos=raw.size(); pos; ) {
+    --pos;
+    unsigned char c = (unsigned char)raw[pos];
+    --c;
+    raw[pos] = (char) c;
+    if(c != 0xff)
+      break;
+  }
+}
+
 DNSKEYRecordContent DNSSECPrivateKey::getDNSKEY() const
 {
   return makeDNSKEYFromDNSCryptoKeyEngine(getKey(), d_algorithm, d_flags);

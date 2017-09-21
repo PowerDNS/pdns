@@ -98,7 +98,7 @@ bool denialProvesNoDelegation(const DNSName& zone, const std::vector<DNSRecord>&
 // FIXME: needs a zone argument, to avoid things like 6840 4.1
 // FIXME: Add ENT support
 // FIXME: Make usable for non-DS records and hook up to validateRecords (or another place)
-dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16_t qtype)
+dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16_t qtype, bool referralToUnsigned)
 {
   for(const auto& v : validrrsets) {
     LOG("Do have: "<<v.first.first<<"/"<<DNSRecordContent::NumberToType(v.first.second)<<endl);
@@ -134,6 +134,18 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
           }
 
           LOG("Denies existence of type "<<QType(qtype).getName()<<endl);
+
+          /*
+           * RFC 4035 Section 2.3:
+           * The bitmap for the NSEC RR at a delegation point requires special
+           * attention.  Bits corresponding to the delegation NS RRset and any
+           * RRsets for which the parent zone has authoritative data MUST be set
+           */
+          if (referralToUnsigned && qtype == QType::DS && !nsec->d_set.count(QType::NS)) {
+            LOG("However, no NS record exists at this level!"<<endl);
+            return INSECURE;
+          }
+
           return NXQTYPE;
         }
 
@@ -161,14 +173,30 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
         LOG("\tquery hash: "<<toBase32Hex(h)<<endl);
         string beginHash=fromBase32Hex(v.first.first.getRawLabels()[0]);
 
+        /* RFC 6840 section 4.1 "Clarifications on Nonexistence Proofs":
+           Ancestor delegation NSEC or NSEC3 RRs MUST NOT be used to assume
+           nonexistence of any RRs below that zone cut, which include all RRs at
+           that (original) owner name other than DS RRs, and all RRs below that
+           owner name regardless of type.
+        */
+        if (nsec3->d_set.count(QType::NS) && !nsec3->d_set.count(QType::SOA) &&
+            getSigner(v.second.signatures).countLabels() < v.first.first.countLabels()) {
+          LOG("type is "<<QType(qtype).getName()<<", NS is "<<std::to_string(nsec3->d_set.count(QType::NS))<<", SOA is "<<std::to_string(nsec3->d_set.count(QType::SOA))<<", signer is "<<getSigner(v.second.signatures).toString()<<", owner name is "<<v.first.first.toString()<<endl);
+          /* this is an "ancestor delegation" NSEC3 RR */
+          if (beginHash == h && qtype != QType::DS) {
+            LOG("An ancestor delegation NSEC3 RR can only deny the existence of a DS"<<endl);
+            continue;
+          }
+        }
+
         // If the name exists, check if the qtype is denied
         if(beginHash == h) {
           if (nsec3->d_set.count(qtype)) {
-            LOG("Does _not_ deny existence of type "<<QType(qtype).getName()<<" for name "<<qname<<"  (not opt-out).");
+            LOG("Does _not_ deny existence of type "<<QType(qtype).getName()<<" for name "<<qname<<" (not opt-out)."<<endl);
             continue;
           }
 
-          LOG("Denies existence of type "<<QType(qtype).getName()<<" for name "<<qname<<"  (not opt-out).");
+          LOG("Denies existence of type "<<QType(qtype).getName()<<" for name "<<qname<<" (not opt-out)."<<endl);
           /*
            * RFC 5155 section 8.9:
            * If there is an NSEC3 RR present in the response that matches the
@@ -176,7 +204,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
            * set and that the DS bit is not set in the Type Bit Maps field of the
            * NSEC3 RR.
            */
-          if (qtype == QType::DS && !nsec3->d_set.count(QType::NS)) {
+          if (referralToUnsigned && qtype == QType::DS && !nsec3->d_set.count(QType::NS)) {
             LOG("However, no NS record exists at this level!"<<endl);
             return INSECURE;
           }
@@ -671,7 +699,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, skeyset_t& keyset)
     auto r = validrrsets.equal_range(make_pair(*(zoneCutIter+1), QType::DS));
     if(r.first == r.second) {
       LOG("No DS for "<<*(zoneCutIter+1)<<", now look for a secure denial"<<endl);
-      dState res = getDenial(validrrsets, *(zoneCutIter+1), QType::DS);
+      dState res = getDenial(validrrsets, *(zoneCutIter+1), QType::DS, true);
       if (res == INSECURE || res == NXDOMAIN)
         return Bogus;
       if (res == NXQTYPE || res == OPTOUT)
