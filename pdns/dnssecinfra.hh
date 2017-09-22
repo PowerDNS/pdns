@@ -106,7 +106,10 @@ class DNSCryptoKeyEngine
 
 struct DNSSECPrivateKey
 {
-  uint16_t getTag();
+  uint16_t getTag() const
+  {
+    return getDNSKEY().getTag();
+  }
   
   const shared_ptr<DNSCryptoKeyEngine> getKey() const
   {
