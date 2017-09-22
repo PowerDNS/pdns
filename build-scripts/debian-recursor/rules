@@ -84,3 +84,6 @@ override_dh_strip:
 
 override_dh_installinit:
 	dh_installinit --error-handler=initscript_error -- defaults 19 85
+
+override_dh_auto_test:
+	$(MAKE) check || (cat test-suite.log && false)

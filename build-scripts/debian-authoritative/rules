@@ -93,7 +93,7 @@ override_dh_auto_build-arch:
 
 # Verbose tests (shows used compiler/linker and their flags)
 override_dh_auto_test:
-	$(MAKE) -C pdns check
+	$(MAKE) -C pdns check || (cat pdns/test-suite.log && false)
 	#dh_auto_test -- V=1
 
 # restore moved files
