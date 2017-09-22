@@ -204,11 +204,10 @@ bool Bind2Backend::startTransaction(const DNSName &qname, int id)
   BB2DomainInfo bbd;
   if(safeGetBBDomainInfo(id, &bbd)) {
     d_transaction_tmpname=bbd.d_filename+"."+itoa(random());
-    d_of=new ofstream(d_transaction_tmpname.c_str());
+    d_of=std::unique_ptr<ofstream>(new ofstream(d_transaction_tmpname.c_str()));
     if(!*d_of) {
       unlink(d_transaction_tmpname.c_str());
-      delete d_of;
-      d_of=0;
+      d_of.reset();
       throw DBException("Unable to open temporary zonefile '"+d_transaction_tmpname+"': "+stringerror());
     }
     
@@ -224,8 +223,7 @@ bool Bind2Backend::commitTransaction()
 {
   if(d_transaction_id < 0)
     return false;
-  delete d_of;
-  d_of=0;
+  d_of.reset();
 
   BB2DomainInfo bbd;
   if(safeGetBBDomainInfo(d_transaction_id, &bbd)) {
@@ -245,9 +243,8 @@ bool Bind2Backend::abortTransaction()
   // 0  = invalid transact
   // >0 = actual transaction
   if(d_transaction_id > 0) {
-    delete d_of;
-    d_of=0;
     unlink(d_transaction_tmpname.c_str());
+    d_of.reset();
     d_transaction_id=0;
   }
 
@@ -291,7 +288,9 @@ bool Bind2Backend::feedRecord(const DNSResourceRecord &rr, const DNSName &ordern
     stripDomainSuffix(&content, name);
     // fallthrough
   default:
-    *d_of<<qname<<"\t"<<rr.ttl<<"\t"<<rr.qtype.getName()<<"\t"<<content<<endl;
+    if (d_of && *d_of) {
+      *d_of<<qname<<"\t"<<rr.ttl<<"\t"<<rr.qtype.getName()<<"\t"<<content<<endl;
+    }
   }
   return true;
 }
