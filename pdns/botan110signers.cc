@@ -181,8 +181,9 @@ std::string GOSTDNSCryptoKeyEngine::getPubKeyHash() const
 
 std::string GOSTDNSCryptoKeyEngine::getPublicKeyString() const
 {
-  const BigInt&x =d_key->public_point().get_affine_x();
-  const BigInt&y =d_key->public_point().get_affine_y();
+  std::shared_ptr<GOST_3410_PublicKey> pk = d_pubkey ? d_pubkey : d_key;
+  const BigInt&x =pk->public_point().get_affine_x();
+  const BigInt&y =pk->public_point().get_affine_y();
   
   size_t part_size = std::max(x.bytes(), y.bytes());
  
