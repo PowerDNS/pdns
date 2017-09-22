@@ -299,7 +299,7 @@ private:
   string d_transaction_tmpname;
   string d_logprefix;
   set<string> alsoNotify; //!< this is used to store the also-notify list of interested peers.
-  ofstream *d_of;
+  std::unique_ptr<ofstream> d_of;
   handle d_handle;
   static string s_binddirectory;                              //!< this is used to store the 'directory' setting of the bind configuration
   static int s_first;                                  //!< this is raised on construction to prevent multiple instances of us being generated
