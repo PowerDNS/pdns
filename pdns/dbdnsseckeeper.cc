@@ -394,7 +394,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getEntryPoints(const DNSName& zname)
   DNSSECKeeper::keyset_t keys = getKeys(zname);
 
   for(auto const &keymeta : keys)
-    if(keymeta.second.active && (keymeta.second.keyType == KSK || keymeta.second.keyType == CSK))
+    if(keymeta.second.keyType == KSK || keymeta.second.keyType == CSK)
       ret.push_back(keymeta);
   return ret;
 }
