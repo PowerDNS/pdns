@@ -836,7 +836,7 @@ static void apiZoneCryptokeysPOST(DNSName zonename, HttpRequest *req, HttpRespon
   int64_t insertedId;
 
   if (content.is_null()) {
-    int bits = 0;
+    int bits = keyOrZone ? ::arg().asNum("default-ksk-size") : ::arg().asNum("default-zsk-size");
     auto docbits = document["bits"];
     if (!docbits.is_null()) {
       if (!docbits.is_number() || (fmod(docbits.number_value(), 1.0) != 0) || docbits.int_value() < 0) {
@@ -845,7 +845,7 @@ static void apiZoneCryptokeysPOST(DNSName zonename, HttpRequest *req, HttpRespon
         bits = docbits.int_value();
       }
     }
-    int algorithm = 13; // ecdsa256
+    int algorithm = DNSSECKeeper::shorthand2algorithm(keyOrZone ? ::arg()["default-ksk-algorithm"] : ::arg()["default-zsk-algorithm"]);
     auto providedAlgo = document["algo"];
     if (providedAlgo.is_string()) {
       algorithm = DNSSECKeeper::shorthand2algorithm(providedAlgo.string_value());

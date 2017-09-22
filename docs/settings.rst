@@ -272,28 +272,37 @@ Debugging switch - don't use.
 Operate as a daemon.
 
 .. _setting-default-ksk-algorithms:
+.. _setting-default-ksk-algorithm:
 
-``default-ksk-algorithms``
+``default-ksk-algorithm``
 --------------------------
 
 -  String
 -  Default: ecdsa256
 
-The algorithm that should be used for the KSK when running
-:doc:`pdnsutil secure-zone <manpages/pdnsutil.1>`. Must be one
-of: 
+.. versionchanged:: 4.1.0
+  Renamed from ``default-ksk-algorithms``. No longer supports multiple algorithm names.
 
-* rsamd5 
-* dh 
-* dsa 
-* ecc 
-* rsasha1 
-* rsasha256 
+The algorithm that should be used for the KSK when running
+:doc:`pdnsutil secure-zone <manpages/pdnsutil.1>` or using the :doc:`Zone API endpoint <http-api/endpoint-zones>`
+to enable DNSSEC. Must be one of:
+
+* rsamd5
+* dh
+* dsa
+* ecc
+* rsasha1
+* rsasha256
 * rsasha512
-* ecc-gost 
-* ecdsa256 (ECDSA P-256 with SHA256) 
-* ecdsa384 (ECDSA P-384 with SHA384) 
+* ecc-gost
+* ecdsa256 (ECDSA P-256 with SHA256)
+* ecdsa384 (ECDSA P-384 with SHA384)
 * ed25519
+
+.. note::
+  Actual supported algorithms depend on the crypto-libraries
+  PowerDNS was compiled against. To check the supported DNSSEC algoritms
+  in your build of PowerDNS, run ``pdnsutil list-algorithms``.
 
 .. _setting-default-ksk-size:
 
@@ -301,9 +310,10 @@ of:
 --------------------
 
 -  Integer
--  Default: whichever is default for ``default-ksk-algorithms``
+-  Default: whichever is default for `default-ksk-algorithm`_
 
 The default keysize for the KSK generated with :doc:`pdnsutil secure-zone <dnssec/pdnsutil>`.
+Only relevant for algorithms with non-fixed keysizes (like RSA).
 
 .. _setting-default-soa-name:
 
@@ -358,28 +368,37 @@ Mail address to insert in the SOA record if none set in the backend.
 TTL to use when none is provided.
 
 .. _setting-default-zsk-algorithms:
+.. _setting-default-zsk-algorithm:
 
-``default-zsk-algorithms``
+``default-zsk-algorithm``
 --------------------------
 
 -  String
 -  Default: (empty)
 
-The algorithm that should be used for the ZSK when running
-:doc:`pdnsutil secure-zone <manpages/pdnsutil.1>`. Must be one
-of: 
+.. versionchanged:: 4.1.0
+  Renamed from ``default-zsk-algorithms``. Does no longer support multiple algorithm names.
 
-* rsamd5 
-* dh 
-* dsa 
-* ecc 
-* rsasha1 
-* rsasha256 
+The algorithm that should be used for the ZSK when running
+:doc:`pdnsutil secure-zone <manpages/pdnsutil.1>` or using the :doc:`Zone API endpoint <http-api/endpoint-zones>`
+to enable DNSSEC. Must be one of:
+
+* rsamd5
+* dh
+* dsa
+* ecc
+* rsasha1
+* rsasha256
 * rsasha512
-* ecc-gost 
-* ecdsa256 (ECDSA P-256 with SHA256) 
-* ecdsa384 (ECDSA P-384 with SHA384) 
+* ecc-gost
+* ecdsa256 (ECDSA P-256 with SHA256)
+* ecdsa384 (ECDSA P-384 with SHA384)
 * ed25519
+
+.. note::
+  Actual supported algorithms depend on the crypto-libraries
+  PowerDNS was compiled against. To check the supported DNSSEC algoritms
+  in your build of PowerDNS, run ``pdnsutil list-algorithms``.
 
 .. _setting-default-zsk-size:
 
@@ -387,9 +406,10 @@ of:
 --------------------
 
 -  Integer
--  Default: whichever is default for ``default-zsk-algorithms``
+-  Default: 0 (automatic default for `default-zsk-algorithm`_)
 
 The default keysize for the ZSK generated with :doc:`pdnsutil secure-zone <dnssec/pdnsutil>`.
+Only relevant for algorithms with non-fixed keysizes (like RSA).
 
 .. _setting-direct-dnskey:
 

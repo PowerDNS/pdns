@@ -36,6 +36,12 @@ Changed options
   ``allow-recursion``, ``recursive-cache-ttl`` and ``recursor`` options have
   been removed as well.
 
+- ``default-ksk-algorithms`` has been renamed to :ref:`setting-default-ksk-algorithm`
+  and only supports a single algorithm name now.
+
+- ``default-zsk-algorithms`` has been renamed to :ref:`setting-default-zsk-algorithm`
+  and only supports a single algorithm name now.
+
 Changed defaults
 ~~~~~~~~~~~~~~~~
 

@@ -28,6 +28,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #include "dynhandler.hh"
+#include "dnsseckeeper.hh"
 
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
@@ -183,9 +184,9 @@ void declareArguments()
 
   ::arg().setSwitch("traceback-handler","Enable the traceback handler (Linux only)")="yes";
   ::arg().setSwitch("direct-dnskey","Fetch DNSKEY RRs from backend during DNSKEY synthesis")="no";
-  ::arg().set("default-ksk-algorithms","Default KSK algorithms")="ecdsa256";
+  ::arg().set("default-ksk-algorithm","Default KSK algorithm")="ecdsa256";
   ::arg().set("default-ksk-size","Default KSK size (0 means default)")="0";
-  ::arg().set("default-zsk-algorithms","Default ZSK algorithms")="";
+  ::arg().set("default-zsk-algorithm","Default ZSK algorithm")="";
   ::arg().set("default-zsk-size","Default ZSK size (0 means default)")="0";
   ::arg().set("max-nsec3-iterations","Limit the number of NSEC3 hash iterations")="500"; // RFC5155 10.3
 
@@ -523,6 +524,17 @@ void mainthread()
     doSecPoll(true);
   }
   catch(...) {}
+
+  // Some sanity checking on default key settings
+  for (const string& algotype : {"ksk", "zsk"}) {
+    int algo, size;
+    algo = DNSSECKeeper::shorthand2algorithm(::arg()["default-"+algotype+"-algorithm"]);
+    size = ::arg().asNum("default-"+algotype+"-size");
+    if (algo == -1)
+      L<<Logger::Warning<<"Warning: default-"<<algotype<<"-algorithm set to unknown algorithm: "<<::arg()["default-"+algotype+"-algorithm"]<<endl;
+    else if (algo <= 10 && size == 0)
+      L<<Logger::Warning<<"Warning: default-"<<algotype<<"-algorithm is set to an algorithm ("<<::arg()["default-"+algotype+"-algorithm"]<<") that requires a non-zero default-"<<algotype<<"-size!"<<endl;
+  }
 
   // NOW SAFE TO CREATE THREADS!
   dl->go();

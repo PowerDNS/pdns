@@ -80,9 +80,9 @@ void loadMainConfig(const std::string& configdir)
   string configname=::arg()["config-dir"]+"/"+s_programname+".conf";
   cleanSlashes(configname);
 
-  ::arg().set("default-ksk-algorithms","Default KSK algorithms")="ecdsa256";
+  ::arg().set("default-ksk-algorithm","Default KSK algorithm")="ecdsa256";
   ::arg().set("default-ksk-size","Default KSK size (0 means default)")="0";
-  ::arg().set("default-zsk-algorithms","Default ZSK algorithms")="";
+  ::arg().set("default-zsk-algorithm","Default ZSK algorithm")="";
   ::arg().set("default-zsk-size","Default ZSK size (0 means default)")="0";
   ::arg().set("default-soa-edit","Default SOA-EDIT value")="";
   ::arg().set("default-soa-edit-signed","Default SOA-EDIT value for signed zones")="";
@@ -1780,23 +1780,21 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = false)
 bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
 {
   // parse attribute
-  vector<string> k_algos;
-  vector<string> z_algos;
   int k_size;
   int z_size;
   // temp var for addKey
   int64_t id;
 
-  stringtok(k_algos, ::arg()["default-ksk-algorithms"], " ,");
+  string k_algo = ::arg()["default-ksk-algorithm"];
   k_size = ::arg().asNum("default-ksk-size");
-  stringtok(z_algos, ::arg()["default-zsk-algorithms"], " ,");
+  string z_algo = ::arg()["default-zsk-algorithm"];
   z_size = ::arg().asNum("default-zsk-size");
 
   if (k_size < 0) {
      throw runtime_error("KSK key size must be equal to or greater than 0");
   }
 
-  if (k_algos.size() < 1 && z_algos.size() < 1) {
+  if (k_algo == "" && z_algo == "") {
      throw runtime_error("Zero algorithms given for KSK+ZSK in total");
   }
 
@@ -1822,20 +1820,17 @@ bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
     cerr<<"pdnsutil disable-dnssec "<<zone<<" right now!"<<endl;
   }
 
-  if (k_size)
-    cout << "Securing zone with key size " << k_size << endl;
-  else
-    cout << "Securing zone with default key size" << endl;
+  if (k_algo != "") { // Add a KSK
+    if (k_size)
+      cout << "Securing zone with key size " << k_size << endl;
+    else
+      cout << "Securing zone with default key size" << endl;
 
-  if (k_algos.empty()) { /* only a ZSK was requested by the defaults, set the SEP bit */
-  }
+    cout << "Adding "<<(z_algo == "" ? "CSK (257)" : "KSK")<<" with algorithm " << k_algo << endl;
 
-  for(auto &k_algo: k_algos) {
-    cout << "Adding "<<(z_algos.empty()? "CSK (257)" : "KSK")<<" with algorithm " << k_algo << endl;
+    int k_real_algo = DNSSECKeeper::shorthand2algorithm(k_algo);
 
-    int algo = DNSSECKeeper::shorthand2algorithm(k_algo);
-
-    if (!dk.addKey(zone, true, algo, id, k_size, true)) {
+    if (!dk.addKey(zone, true, k_real_algo, id, k_size, true)) {
       cerr<<"No backend was able to secure '"<<zone<<"', most likely because no DNSSEC"<<endl;
       cerr<<"capable backends are loaded, or because the backends have DNSSEC disabled."<<endl;
       cerr<<"For the Generic SQL backends, set the 'gsqlite3-dnssec', 'gmysql-dnssec' or"<<endl;
@@ -1844,13 +1839,12 @@ bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
     }
   }
 
-  for(auto &z_algo :  z_algos)
-  {
-    cout << "Adding "<<(k_algos.empty()? "CSK (256)" : "ZSK")<<" with algorithm " << z_algo << endl;
+  if (z_algo != "") {
+    cout << "Adding "<<(k_algo == "" ? "CSK (256)" : "ZSK")<<" with algorithm " << z_algo << endl;
 
-    int algo = DNSSECKeeper::shorthand2algorithm(z_algo);
+    int z_real_algo = DNSSECKeeper::shorthand2algorithm(z_algo);
 
-    if (!dk.addKey(zone, false, algo, id, z_size, true)) {
+    if (!dk.addKey(zone, false, z_real_algo, id, z_size, true)) {
       cerr<<"No backend was able to secure '"<<zone<<"', most likely because no DNSSEC"<<endl;
       cerr<<"capable backends are loaded, or because the backends have DNSSEC disabled."<<endl;
       cerr<<"For the Generic SQL backends, set the 'gsqlite3-dnssec', 'gmysql-dnssec' or"<<endl;
