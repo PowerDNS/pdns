@@ -5,14 +5,14 @@ NetmaskGroup
 
    Represents a group of netmasks that can be used to match :class:`ComboAddress`\ es against.
 
-.. function:: newNGM() -> NetmaskGroup
+.. function:: newNMG() -> NetmaskGroup
 
   Returns a NetmaskGroup
 
 .. classmethod:: NetmaskGroup:addMask(mask)
                  NetmaskGroup:addMask(masks)
 
-  Add one or more masks to the NGM.
+  Add one or more masks to the NMG.
 
   :param string mask: Add this mask, prefix with `!` to exclude this mask from matching.
   :param table masks: Adds the keys of the table to the :class:`NetmaskGroup`. It should be a table whose keys are :class:`ComboAddress` objects and values are integers, as returned by `exceed*` functions.
