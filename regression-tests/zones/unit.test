@@ -7,3 +7,4 @@ root.srv.unit.test. 300 IN SRV 10 10 5060 .
 naptr-a.unit.test. 300 IN NAPTR 100 10 "" "" "/urn:cid:.+@([^\.]+\.)(.*)$/\2/i" .
 naptr-b.unit.test. 300 IN NAPTR 100 50 "s" "http+I2L+I2C+I2R" "" _http._tcp.rec.test.
 unit.test. 300 IN SOA ns.unit.test. hostmaster.unit.test. 1 3600 1200 604800 300
+unit.test. 300 IN AFSDB 1 afsdb.unit.test.
