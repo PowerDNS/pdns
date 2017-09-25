@@ -2810,10 +2810,6 @@ try
     unsigned int id=pdns_stou(cmds[2]);
     DNSSECPrivateKey dpk=dk.getKeyById(zone, id);
     cout << zone<<" IN DNSKEY "<<dpk.getDNSKEY().getZoneRepresentation() <<endl;
-    if(dpk.d_flags == 257) {
-      cout << zone << " IN DS "<<makeDSFromDNSKey(zone, dpk.getDNSKEY(), DNSSECKeeper::SHA1).getZoneRepresentation() << endl;
-      cout << zone << " IN DS "<<makeDSFromDNSKey(zone, dpk.getDNSKEY(), DNSSECKeeper::SHA256).getZoneRepresentation() << endl;
-    }
   }
   else if(cmds[0] == "generate-zone-key") {
     if(cmds.size() < 2 ) {
