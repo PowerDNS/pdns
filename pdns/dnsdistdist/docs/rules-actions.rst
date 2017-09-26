@@ -429,7 +429,7 @@ These ``DNSRule``\ s be one of the following items:
 
   :param int qclass: The Query Class to match on
 
-.. function:: QnameRule(qname)
+.. function:: QNameRule(qname)
 
   .. versionadded:: 1.2.0
 
