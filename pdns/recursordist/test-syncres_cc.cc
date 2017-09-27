@@ -2151,13 +2151,13 @@ BOOST_AUTO_TEST_CASE(test_qclass_none) {
   BOOST_CHECK_EQUAL(queriesCount, 0);
 }
 
-BOOST_AUTO_TEST_CASE(test_xfr) {
+BOOST_AUTO_TEST_CASE(test_special_types) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr);
 
   primeHints();
 
-  /* {A,I}XFR should be rejected right away */
+  /* {A,I}XFR, RRSIG and NSEC3 should be rejected right away */
   size_t queriesCount = 0;
 
   sr->setAsyncCallback([&queriesCount](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
@@ -2175,6 +2175,16 @@ BOOST_AUTO_TEST_CASE(test_xfr) {
   BOOST_CHECK_EQUAL(queriesCount, 0);
 
   res = sr->beginResolve(target, QType(QType::IXFR), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, -1);
+  BOOST_CHECK_EQUAL(ret.size(), 0);
+  BOOST_CHECK_EQUAL(queriesCount, 0);
+
+  res = sr->beginResolve(target, QType(QType::RRSIG), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, -1);
+  BOOST_CHECK_EQUAL(ret.size(), 0);
+  BOOST_CHECK_EQUAL(queriesCount, 0);
+
+  res = sr->beginResolve(target, QType(QType::NSEC3), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, -1);
   BOOST_CHECK_EQUAL(ret.size(), 0);
   BOOST_CHECK_EQUAL(queriesCount, 0);
