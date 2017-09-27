@@ -13,6 +13,9 @@ upgrade notes if your version is older than 3.4.2.
 
 - Recursion has been removed, see the :doc:`dedicated migration guide <guides/recursion>`.
 - ALIAS record expension is disabled by default, use :ref:`setting-expand-alias` to enable.
+- *Your LDAP schema might need to be updated*, because new record types
+  have been added (see below) and the ``dNSDomain2`` type has been
+  changed.
 - The :doc:`LDAP Backend <backends/ldap>` now supports additional Record types
 
   - NSEC3
