@@ -66,21 +66,17 @@ DNSAction::Action TeeAction::operator()(DNSQuestion* dq, string* ruleresult) con
 
     if(d_addECS) {
       std::string query;
-      std::string larger;
       uint16_t len = dq->len;
       bool ednsAdded = false;
       bool ecsAdded = false;
       query.reserve(dq->size);
       query.assign((char*) dq->dh, len);
 
-      handleEDNSClientSubnet((char*) query.c_str(), query.size(), dq->qname->wirelength(), &len, larger, &ednsAdded, &ecsAdded, *dq->remote, dq->ecsOverride, dq->ecsPrefixLength);
+      if (!handleEDNSClientSubnet((char*) query.c_str(), query.size(), dq->qname->wirelength(), &len, &ednsAdded, &ecsAdded, *dq->remote, dq->ecsOverride, dq->ecsPrefixLength)) {
+        return DNSAction::Action::None;
+      }
 
-      if (larger.empty()) {
-        res = send(d_fd, query.c_str(), len, 0);
-      }
-      else {
-        res = send(d_fd, larger.c_str(), larger.length(), 0);
-      }
+      res = send(d_fd, query.c_str(), len, 0);
     }
     else {
       res = send(d_fd, (char*)dq->dh, dq->len, 0);

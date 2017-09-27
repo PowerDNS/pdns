@@ -550,12 +550,13 @@ void moreLua(bool client)
       bool reusePort = false;
       int tcpFastOpenQueueSize = 0;
       std::string interface;
+      std::set<int> cpus;
 
-      parseLocalBindVars(vars, doTCP, reusePort, tcpFastOpenQueueSize, interface);
+      parseLocalBindVars(vars, doTCP, reusePort, tcpFastOpenQueueSize, interface, cpus);
 
       try {
         DnsCryptContext ctx(providerName, certFile, keyFile);
-        g_dnsCryptLocals.push_back(std::make_tuple(ComboAddress(addr, 443), ctx, reusePort, tcpFastOpenQueueSize, interface));
+        g_dnsCryptLocals.push_back(std::make_tuple(ComboAddress(addr, 443), ctx, reusePort, tcpFastOpenQueueSize, interface, cpus));
       }
       catch(std::exception& e) {
         errlog(e.what());
@@ -762,8 +763,8 @@ void moreLua(bool client)
         }
     });
 
-    g_lua.writeFunction("newPacketCache", [client](size_t maxEntries, boost::optional<uint32_t> maxTTL, boost::optional<uint32_t> minTTL, boost::optional<uint32_t> tempFailTTL, boost::optional<uint32_t> staleTTL, boost::optional<bool> dontAge) {
-        return std::make_shared<DNSDistPacketCache>(maxEntries, maxTTL ? *maxTTL : 86400, minTTL ? *minTTL : 0, tempFailTTL ? *tempFailTTL : 60, staleTTL ? *staleTTL : 60, dontAge ? *dontAge : false);
+    g_lua.writeFunction("newPacketCache", [client](size_t maxEntries, boost::optional<uint32_t> maxTTL, boost::optional<uint32_t> minTTL, boost::optional<uint32_t> tempFailTTL, boost::optional<uint32_t> staleTTL, boost::optional<bool> dontAge, boost::optional<size_t> numberOfShards, boost::optional<bool> deferrableInsertLock) {
+        return std::make_shared<DNSDistPacketCache>(maxEntries, maxTTL ? *maxTTL : 86400, minTTL ? *minTTL : 0, tempFailTTL ? *tempFailTTL : 60, staleTTL ? *staleTTL : 60, dontAge ? *dontAge : false, numberOfShards ? *numberOfShards : 1, deferrableInsertLock ? *deferrableInsertLock : true);
       });
     g_lua.registerFunction("toString", &DNSDistPacketCache::toString);
     g_lua.registerFunction("isFull", &DNSDistPacketCache::isFull);
@@ -1461,5 +1462,20 @@ void moreLua(bool client)
 
     g_lua.writeFunction("setConsoleConnectionsLogging", [](bool enabled) {
         g_logConsoleConnections = enabled;
+      });
+
+    g_lua.writeFunction("setUDPMultipleMessagesVectorSize", [](size_t vSize) {
+        if (g_configurationDone) {
+          errlog("setUDPMultipleMessagesVectorSize() cannot be used at runtime!");
+          g_outputBuffer="setUDPMultipleMessagesVectorSize() cannot be used at runtime!\n";
+          return;
+        }
+#if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
+        setLuaSideEffect();
+        g_udpVectorSize = vSize;
+#else
+        errlog("recvmmsg() support is not available!");
+        g_outputBuffer="recvmmsg support is not available!\n";
+#endif
       });
 }

@@ -30,7 +30,7 @@ struct DNSQuestion;
 class DNSDistPacketCache : boost::noncopyable
 {
 public:
-  DNSDistPacketCache(size_t maxEntries, uint32_t maxTTL=86400, uint32_t minTTL=0, uint32_t tempFailureTTL=60, uint32_t staleTTL=60, bool dontAge=false);
+  DNSDistPacketCache(size_t maxEntries, uint32_t maxTTL=86400, uint32_t minTTL=0, uint32_t tempFailureTTL=60, uint32_t staleTTL=60, bool dontAge=false, uint32_t shards=1, bool deferrableInsertLock=true);
   ~DNSDistPacketCache();
 
   void insert(uint32_t key, const DNSName& qname, uint16_t qtype, uint16_t qclass, const char* response, uint16_t responseLen, bool tcp, uint8_t rcode);
@@ -40,7 +40,7 @@ public:
   void expungeByName(const DNSName& name, uint16_t qtype=QType::ANY, bool suffixMatch=false);
   bool isFull();
   string toString();
-  uint64_t getSize() const { return d_map.size(); }
+  uint64_t getSize();
   uint64_t getHits() const { return d_hits; }
   uint64_t getMisses() const { return d_misses; }
   uint64_t getDeferredLookups() const { return d_deferredLookups; }
@@ -68,11 +68,35 @@ private:
     bool tcp{false};
   };
 
-  static uint32_t getKey(const DNSName& qname, uint16_t consumed, const unsigned char* packet, uint16_t packetLen, bool tcp);
-  static bool cachedValueMatches(const CacheValue& cachedValue, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool tcp);
+  class CacheShard
+  {
+  public:
+    CacheShard(): d_entriesCount(0)
+    {
+      pthread_rwlock_init(&d_lock, 0);
+    }
+    CacheShard(const CacheShard& old): d_entriesCount(0)
+    {
+      pthread_rwlock_init(&d_lock, 0);
+    }
 
-  pthread_rwlock_t d_lock;
-  std::unordered_map<uint32_t,CacheValue> d_map;
+    void setSize(size_t maxSize)
+    {
+      d_map.reserve(maxSize);
+    }
+
+    std::unordered_map<uint32_t,CacheValue> d_map;
+    pthread_rwlock_t d_lock;
+    std::atomic<uint64_t> d_entriesCount;
+  };
+
+  static uint32_t getKey(const std::string& qname, uint16_t consumed, const unsigned char* packet, uint16_t packetLen, bool tcp);
+  static bool cachedValueMatches(const CacheValue& cachedValue, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool tcp);
+  uint32_t getShardIndex(uint32_t key) const;
+  void insertLocked(CacheShard& shard, uint32_t key, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool tcp, CacheValue& newValue, time_t now, time_t newValidity);
+
+  std::vector<CacheShard> d_shards;
+
   std::atomic<uint64_t> d_deferredLookups{0};
   std::atomic<uint64_t> d_deferredInserts{0};
   std::atomic<uint64_t> d_hits{0};
@@ -80,10 +104,14 @@ private:
   std::atomic<uint64_t> d_insertCollisions{0};
   std::atomic<uint64_t> d_lookupCollisions{0};
   std::atomic<uint64_t> d_ttlTooShorts{0};
+
   size_t d_maxEntries;
+  uint32_t d_expungeIndex{0};
+  uint32_t d_shardCount;
   uint32_t d_maxTTL;
   uint32_t d_tempFailureTTL;
   uint32_t d_minTTL;
   uint32_t d_staleTTL;
   bool d_dontAge;
+  bool d_deferrableInsertLock;
 };

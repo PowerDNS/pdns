@@ -58,8 +58,9 @@ Listen Sockets
 
   * ``doTCP=true``: bool - Also bind on TCP on ``address``.
   * ``reusePort=false``: bool - Set the ``SO_REUSEPORT`` socket option.
-  * ``tcpFastOpenSize=0``: int - Set the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0
-  * ``interface=""``: str - Sets the network interface to use
+  * ``tcpFastOpenSize=0``: int - Set the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0.
+  * ``interface=""``: str - Set the network interface to use.
+  * ``cpus={}``: table - Set the CPU affinity for this listener thread, asking the scheduler to run it on a single CPU id, or a set of CPU ids. This parameter is only available if the OS provides the pthread_setaffinity_np() function.
 
   .. code-block:: lua
 
@@ -397,7 +398,10 @@ PacketCache
 A Pool can have a packet cache to answer queries directly in stead of going to the backend.
 See :doc:`../guides/cache` for a how to.
 
-.. function:: newPacketCache(maxEntries[, maxTTL=86400[, minTTL=0[, temporaryFailureTTL=60[, staleTTL=60[, dontAge=false]]]]]) -> PacketCache
+.. function:: newPacketCache(maxEntries[, maxTTL=86400[, minTTL=0[, temporaryFailureTTL=60[, staleTTL=60[, dontAge=false[, numberOfShards=1[, deferrableInsertLock=true]]]]]]]) -> PacketCache
+
+  .. versionchanged:: 1.2.0
+    ``numberOfShard`` and ``deferrableInsertLock`` parameters added.
 
   Creates a new :class:`PacketCache` with the settings specified.
 
@@ -406,7 +410,9 @@ See :doc:`../guides/cache` for a how to.
   :param int minTTL: Don't cache entries with a TTL lower than this
   :param int temporaryFailureTTL: On a SERVFAIL or REFUSED from the backend, cache for this amount of seconds
   :param int staleTTL: When the backend servers are not reachable, send responses if the cache entry is expired at most this amount of seconds
-  :param bool dontAge: Don't reduce TTLs when serving from the cache. use this when :program:`dnsdist` fronts a cluster of authoritative servers
+  :param bool dontAge: Don't reduce TTLs when serving from the cache. Use this when :program:`dnsdist` fronts a cluster of authoritative servers
+  :param int numberOfShards: Number of shards to divide the cache into, to reduce lock contention
+  :param bool deferrableInsertLock: Whether the cache should give up insertion if the lock is held by another thread, or simply wait to get the lock
 
 .. class:: PacketCache
 

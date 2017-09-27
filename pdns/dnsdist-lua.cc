@@ -177,7 +177,7 @@ std::unordered_map<int, vector<boost::variant<string,double>>> getGenResponses(u
   return ret;
 }
 
-void parseLocalBindVars(boost::optional<localbind_t> vars, bool& doTCP, bool& reusePort, int& tcpFastOpenQueueSize, std::string& interface)
+void parseLocalBindVars(boost::optional<localbind_t> vars, bool& doTCP, bool& reusePort, int& tcpFastOpenQueueSize, std::string& interface, std::set<int>& cpus)
 {
   if (vars) {
     if (vars->count("doTCP")) {
@@ -191,6 +191,11 @@ void parseLocalBindVars(boost::optional<localbind_t> vars, bool& doTCP, bool& re
     }
     if (vars->count("interface")) {
       interface = boost::get<std::string>((*vars)["interface"]);
+    }
+    if (vars->count("cpus")) {
+      for (const auto cpu : boost::get<std::vector<std::pair<int,int>>>((*vars)["cpus"])) {
+        cpus.insert(cpu.second);
+      }
     }
   }
 }
@@ -270,6 +275,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			}
 			ComboAddress sourceAddr;
 			unsigned int sourceItf = 0;
+                        std::set<int> cpus;
 			if(auto addressStr = boost::get<string>(&pvars)) {
 			  std::shared_ptr<DownstreamState> ret;
 			  try {
@@ -399,8 +405,8 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			  if(auto* pool = boost::get<string>(&vars["pool"]))
 			    ret->pools.insert(*pool);
 			  else {
-			    auto* pools = boost::get<vector<pair<int, string> > >(&vars["pool"]);
-			    for(auto& p : *pools)
+			    auto pools = boost::get<vector<pair<int, string> > >(vars["pool"]);
+			    for(auto& p : pools)
 			      ret->pools.insert(p.second);
 			  }
 			  for(const auto& poolName: ret->pools) {
@@ -475,14 +481,26 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			  ret->maxCheckFailures=std::stoi(boost::get<string>(vars["maxCheckFailures"]));
 			}
 
+                        if(vars.count("cpus")) {
+                          for (const auto cpu : boost::get<vector<pair<int,string>>>(vars["cpus"])) {
+                            cpus.insert(std::stoi(cpu.second));
+                          }
+			}
+
 			if (ret->connected) {
 			  if(g_launchWork) {
-			    g_launchWork->push_back([ret]() {
+			    g_launchWork->push_back([ret,cpus]() {
 			      ret->tid = thread(responderThread, ret);
+                              if (!cpus.empty()) {
+                                mapThreadToCPUList(ret->tid.native_handle(), cpus);
+                              }
 			    });
 			  }
 			  else {
 			    ret->tid = thread(responderThread, ret);
+                            if (!cpus.empty()) {
+                              mapThreadToCPUList(ret->tid.native_handle(), cpus);
+                            }
 			  }
 			}
 
@@ -642,13 +660,14 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       bool reusePort = false;
       int tcpFastOpenQueueSize = 0;
       std::string interface;
+      std::set<int> cpus;
 
-      parseLocalBindVars(vars, doTCP, reusePort, tcpFastOpenQueueSize, interface);
+      parseLocalBindVars(vars, doTCP, reusePort, tcpFastOpenQueueSize, interface, cpus);
 
       try {
 	ComboAddress loc(addr, 53);
 	g_locals.clear();
-	g_locals.push_back(std::make_tuple(loc, doTCP, reusePort, tcpFastOpenQueueSize, interface)); /// only works pre-startup, so no sync necessary
+	g_locals.push_back(std::make_tuple(loc, doTCP, reusePort, tcpFastOpenQueueSize, interface, cpus)); /// only works pre-startup, so no sync necessary
       }
       catch(std::exception& e) {
 	g_outputBuffer="Error: "+string(e.what())+"\n";
@@ -667,12 +686,13 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       bool reusePort = false;
       int tcpFastOpenQueueSize = 0;
       std::string interface;
+      std::set<int> cpus;
 
-      parseLocalBindVars(vars, doTCP, reusePort, tcpFastOpenQueueSize, interface);
+      parseLocalBindVars(vars, doTCP, reusePort, tcpFastOpenQueueSize, interface, cpus);
 
       try {
 	ComboAddress loc(addr, 53);
-	g_locals.push_back(std::make_tuple(loc, doTCP, reusePort, tcpFastOpenQueueSize, interface)); /// only works pre-startup, so no sync necessary
+	g_locals.push_back(std::make_tuple(loc, doTCP, reusePort, tcpFastOpenQueueSize, interface, cpus)); /// only works pre-startup, so no sync necessary
       }
       catch(std::exception& e) {
 	g_outputBuffer="Error: "+string(e.what())+"\n";

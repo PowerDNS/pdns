@@ -54,7 +54,6 @@ extern uint16_t g_ECSSourcePrefixV4;
 extern uint16_t g_ECSSourcePrefixV6;
 extern bool g_ECSOverride;
 
-
 class QTag
 {
 public:
@@ -124,13 +123,16 @@ private:
   static constexpr char const *strSep = "\t";
 };
 
+#ifdef HAVE_PROTOBUF
+extern thread_local boost::uuids::random_generator t_uuidGenerator;
+#endif
 
 struct DNSQuestion
 {
   DNSQuestion(const DNSName* name, uint16_t type, uint16_t class_, const ComboAddress* lc, const ComboAddress* rem, struct dnsheader* header, size_t bufferSize, uint16_t queryLen, bool isTcp): qname(name), qtype(type), qclass(class_), local(lc), remote(rem), dh(header), size(bufferSize), len(queryLen), ecsPrefixLength(rem->sin4.sin_family == AF_INET ? g_ECSSourcePrefixV4 : g_ECSSourcePrefixV6), tcp(isTcp), ecsOverride(g_ECSOverride) { }
 
 #ifdef HAVE_PROTOBUF
-  boost::uuids::uuid uniqueId;
+  boost::optional<boost::uuids::uuid> uniqueId;
 #endif
   const DNSName* qname;
   const uint16_t qtype;
@@ -150,7 +152,7 @@ struct DNSQuestion
 
 struct DNSResponse : DNSQuestion
 {
-  DNSResponse(const DNSName* name, uint16_t type, uint16_t class_, const ComboAddress* lc, const ComboAddress* rem, struct dnsheader* header, size_t bufferSize, uint16_t queryLen, bool isTcp, const struct timespec* queryTime_): DNSQuestion(name, type, class_, lc, rem, header, bufferSize, queryLen, isTcp), queryTime(queryTime_) { }
+  DNSResponse(const DNSName* name, uint16_t type, uint16_t class_, const ComboAddress* lc, const ComboAddress* rem, struct dnsheader* header, size_t bufferSize, uint16_t responseLen, bool isTcp, const struct timespec* queryTime_): DNSQuestion(name, type, class_, lc, rem, header, bufferSize, responseLen, isTcp), queryTime(queryTime_) { }
 
   const struct timespec* queryTime;
 };
@@ -405,7 +407,7 @@ struct IDState
   std::shared_ptr<DnsCryptQuery> dnsCryptQuery{0};
 #endif
 #ifdef HAVE_PROTOBUF
-  boost::uuids::uuid uniqueId;
+  boost::optional<boost::uuids::uuid> uniqueId;
 #endif
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};
   const ClientState* cs{nullptr};
@@ -488,6 +490,7 @@ extern QueryCount g_qcount;
 
 struct ClientState
 {
+  std::set<int> cpus;
   ComboAddress local;
 #ifdef HAVE_DNSCRYPT
   DnsCryptContext* dnscryptCtx{0};
@@ -732,7 +735,7 @@ extern GlobalStateHolder<NetmaskGroup> g_ACL;
 
 extern ComboAddress g_serverControl; // not changed during runtime
 
-extern std::vector<std::tuple<ComboAddress, bool, bool, int, std::string>> g_locals; // not changed at runtime (we hope XXX)
+extern std::vector<std::tuple<ComboAddress, bool, bool, int, std::string, std::set<int>>> g_locals; // not changed at runtime (we hope XXX)
 extern vector<ClientState*> g_frontends;
 extern std::string g_key; // in theory needs locking
 extern bool g_truncateTC;
@@ -757,6 +760,7 @@ extern bool g_servFailOnNoPolicy;
 extern uint32_t g_hashperturb;
 extern bool g_useTCPSinglePipe;
 extern std::atomic<uint16_t> g_downstreamTCPCleanupInterval;
+extern size_t g_udpVectorSize;
 
 struct ConsoleKeyword {
   std::string name;
@@ -781,6 +785,22 @@ extern bool g_logConsoleConnections;
 extern shared_ptr<BPFFilter> g_defaultBPFFilter;
 extern std::vector<std::shared_ptr<DynBPFFilter> > g_dynBPFFilters;
 #endif /* HAVE_EBPF */
+
+struct LocalHolders
+{
+  LocalHolders(): acl(g_ACL.getLocal()), policy(g_policy.getLocal()), rulactions(g_rulactions.getLocal()), cacheHitRespRulactions(g_cachehitresprulactions.getLocal()), servers(g_dstates.getLocal()), dynNMGBlock(g_dynblockNMG.getLocal()), dynSMTBlock(g_dynblockSMT.getLocal()), pools(g_pools.getLocal())
+  {
+  }
+
+  LocalStateHolder<NetmaskGroup> acl;
+  LocalStateHolder<ServerPolicy> policy;
+  LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > > rulactions;
+  LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSResponseAction> > > > cacheHitRespRulactions;
+  LocalStateHolder<servers_t> servers;
+  LocalStateHolder<NetmaskTree<DynBlock> > dynNMGBlock;
+  LocalStateHolder<SuffixMatchTree<DynBlock> > dynSMTBlock;
+  LocalStateHolder<pools_t> pools;
+};
 
 struct dnsheader;
 
@@ -816,14 +836,14 @@ bool getLuaNoSideEffect(); // set if there were only explicit declarations of _n
 void resetLuaSideEffect(); // reset to indeterminate state
 
 bool responseContentMatches(const char* response, const uint16_t responseLen, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const ComboAddress& remote);
-bool processQuery(LocalStateHolder<NetmaskTree<DynBlock> >& localDynBlockNMG,
-                  LocalStateHolder<SuffixMatchTree<DynBlock> >& localDynBlockSMT, LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > >& localRulactions, DNSQuestion& dq, string& poolname, int* delayMsec, const struct timespec& now);
+bool processQuery(LocalHolders& holders, DNSQuestion& dq, string& poolname, int* delayMsec, const struct timespec& now);
 bool processResponse(LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSResponseAction> > > >& localRespRulactions, DNSResponse& dr, int* delayMsec);
 bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize, const DNSName& qname, uint16_t origFlags, bool ednsAdded, bool ecsAdded, std::vector<uint8_t>& rewrittenResponse, uint16_t addRoom);
 void restoreFlags(struct dnsheader* dh, uint16_t origFlags);
+bool checkQueryHeaders(const struct dnsheader* dh);
 
 #ifdef HAVE_DNSCRYPT
-extern std::vector<std::tuple<ComboAddress,DnsCryptContext,bool,int, std::string>> g_dnsCryptLocals;
+extern std::vector<std::tuple<ComboAddress,DnsCryptContext,bool,int, std::string, std::set<int>>> g_dnsCryptLocals;
 
 int handleDnsCryptQuery(DnsCryptContext* ctx, char* packet, uint16_t len, std::shared_ptr<DnsCryptQuery>& query, uint16_t* decryptedQueryLen, bool tcp, std::vector<uint8_t>& response);
 bool encryptResponse(char* response, uint16_t* responseLen, size_t responseSize, bool tcp, std::shared_ptr<DnsCryptQuery> dnsCryptQuery, dnsheader** dh, dnsheader* dhCopy);

@@ -1253,6 +1253,10 @@ public:
   DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
   {
 #ifdef HAVE_PROTOBUF
+    if (!dq->uniqueId) {
+      dq->uniqueId = t_uuidGenerator();
+    }
+
     DNSDistProtoBufMessage message(*dq);
     {
       if (d_alterFunc) {
@@ -1306,6 +1310,10 @@ public:
   DNSResponseAction::Action operator()(DNSResponse* dr, string* ruleresult) const override
   {
 #ifdef HAVE_PROTOBUF
+    if (!dr->uniqueId) {
+      dr->uniqueId = t_uuidGenerator();
+    }
+
     DNSDistProtoBufMessage message(*dr, d_includeCNAME);
     {
       if (d_alterFunc) {

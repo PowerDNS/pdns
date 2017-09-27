@@ -73,8 +73,18 @@ Tuning related functions
 
   :param int num:
 
+.. function:: setUDPMultipleMessagesVectorSize(num)
+
+  .. versionadded:: 1.2.0
+
+  Set the maximum number of UDP queries messages to accept in a single `recvmmsg()` call. Only available if the underlying OS
+  support `recvmmsg()` with the `MSG_WAITFORONE` option. Defaults to 1, which means only query at a time is accepted, using
+  `recvmsg()` instead of `recvmmsg()`.
+
+  :param int num:
+
 .. function:: setUDPTimeout(num)
 
-  set the maximum time dnsdist will wait for a response from a backend over UDP, in seconds. Defaults to 2
+  Set the maximum time dnsdist will wait for a response from a backend over UDP, in seconds. Defaults to 2
 
   :param int num:
