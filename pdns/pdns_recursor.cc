@@ -1015,7 +1015,7 @@ static void startDoResolve(void *p)
       dc=0;
       return;
     }
-    if(tracedQuery || res == PolicyDecision::PASS || res == RCode::ServFail || pw.getHeader()->rcode == RCode::ServFail)
+    if(tracedQuery || res == -1 || res == RCode::ServFail || pw.getHeader()->rcode == RCode::ServFail)
     { 
       string trace(sr.getTrace());
       if(!trace.empty()) {
@@ -1028,7 +1028,7 @@ static void startDoResolve(void *p)
       }
     }
 
-    if(res == PolicyDecision::PASS) {  // XXX what does this MEAN? Why servfail on PASS?
+    if(res == -1) {
       pw.getHeader()->rcode=RCode::ServFail;
       // no commit here, because no record
       g_stats.servFails++;
