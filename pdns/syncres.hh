@@ -744,6 +744,7 @@ extern __thread struct timeval g_now;
 
 extern NetmaskGroup g_ednssubnets;
 extern SuffixMatchNode g_ednsdomains;
+extern bool g_lowercaseOutgoing;
 
 #ifdef HAVE_PROTOBUF
 extern __thread boost::uuids::random_generator* t_uuidGenerator;
