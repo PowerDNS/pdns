@@ -331,7 +331,7 @@ install_recursor() {
     moreutils \
     snmpd"
   run "cd .."
-  run "wget https://s3.amazonaws.com/alexa-static/top-1m.csv.zip"
+  run "wget http://s3-us-west-1.amazonaws.com/umbrella-static/top-1m.csv.zip"
   run "unzip top-1m.csv.zip -d ${TRAVIS_BUILD_DIR}/regression-tests"
   run 'echo -e "deb [arch=amd64] http://repo.powerdns.com/ubuntu trusty-auth-40 main" | sudo tee /etc/apt/sources.list.d/pdns.list'
   run 'echo -e "Package: pdns-*\nPin: origin PowerDNS\nPin-Priority: 600" | sudo tee /etc/apt/preferences.d/pdns.list'
