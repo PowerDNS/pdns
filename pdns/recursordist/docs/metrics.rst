@@ -246,7 +246,15 @@ counts all end-user initiated queries with the RD   bit set, received over IPv6 
 
 malloc-bytes
 ^^^^^^^^^^^^
-returns the number of bytes allocated by the   process (broken, always returns 0)
+returns the number of bytes allocated by the process (broken, always returns 0)
+
+max-cache-entries
+^^^^^^^^^^^^^^^^^
+currently configured maximum number of cache entries
+
+max-packetcache-entries
+^^^^^^^^^^^^^^^^^
+currently configured maximum number of packet cache entries
 
 max-mthread-stack
 ^^^^^^^^^^^^^^^^^

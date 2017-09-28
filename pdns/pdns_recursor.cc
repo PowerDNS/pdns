@@ -156,6 +156,7 @@ static bool g_useOneSocketPerThread;
 static bool g_gettagNeedsEDNSOptions{false};
 static time_t g_statisticsInterval;
 static bool g_useIncomingECS;
+std::atomic<uint32_t> g_maxCacheEntries, g_maxPacketCacheEntries;
 
 RecursorControlChannel s_rcc; // only active in thread 0
 RecursorStats g_stats;
@@ -2080,10 +2081,10 @@ static void houseKeeping(void *)
     if(now.tv_sec - last_prune > (time_t)(5 + t_id)) {
       DTime dt;
       dt.setTimeval(now);
-      t_RC->doPrune(); // this function is local to a thread, so fine anyhow
-      t_packetCache->doPruneTo(::arg().asNum("max-packetcache-entries") / g_numWorkerThreads);
+      t_RC->doPrune(g_maxCacheEntries / g_numThreads); // this function is local to a thread, so fine anyhow
+      t_packetCache->doPruneTo(g_maxPacketCacheEntries / g_numWorkerThreads);
 
-      SyncRes::pruneNegCache(::arg().asNum("max-cache-entries") / (g_numWorkerThreads * 10));
+      SyncRes::pruneNegCache(g_maxCacheEntries / (g_numWorkerThreads * 10));
 
       if(!((cleanCounter++)%40)) {  // this is a full scan!
 	time_t limit=now.tv_sec-300;
@@ -2817,6 +2818,9 @@ static int serviceMain(int argc, char*argv[])
   g_dnssecLogBogus = ::arg().mustDo("dnssec-log-bogus");
   g_maxNSEC3Iterations = ::arg().asNum("nsec3-max-iterations");
 
+  g_maxCacheEntries = ::arg().asNum("max-cache-entries");
+  g_maxPacketCacheEntries = ::arg().asNum("max-packetcache-entries");
+  
   try {
     loadRecursorLuaConfig(::arg()["lua-config-file"], ::arg().mustDo("daemon"));
   }
