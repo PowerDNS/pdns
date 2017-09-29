@@ -224,6 +224,7 @@ try
     ("type,t",  po::value<string>()->default_value("A"), "What type to query for")
     ("envoutput,e", "write report in shell environment format")
     ("version", "show the version number")
+    ("www", po::value<bool>()->default_value("true"), "duplicate all queries with an additional 'www.' in front")
   ;
 
   po::options_description alloptions;
@@ -258,6 +259,7 @@ try
     return EXIT_FAILURE;
   }
 
+  bool doWww = g_vm["www"].as<bool>();
   g_quiet = g_vm.count("quiet") > 0;
   g_envoutput = g_vm.count("envoutput") > 0;
   uint16_t qtype;
@@ -303,7 +305,8 @@ try
       continue; // this was an IP address
     }
     domains.push_back(TypedQuery(split.second, qtype));
-    domains.push_back(TypedQuery("www."+split.second, qtype));
+    if(doWww)
+      domains.push_back(TypedQuery("www."+split.second, qtype));
   }
   cerr<<"Read "<<domains.size()<<" domains!"<<endl;
   random_shuffle(domains.begin(), domains.end());
