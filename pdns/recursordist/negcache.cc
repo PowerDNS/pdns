@@ -69,13 +69,13 @@ bool NegCache::getRootNXTrust(const DNSName& qname, const struct timeval& now, N
  * \param ne       A NegCacheEntry that is filled when there is a cache entry
  * \return         true if ne was filled out, false otherwise
  */
-bool NegCache::get(const DNSName& qname, const QType& qtype, const struct timeval& now, NegCacheEntry& ne) {
+bool NegCache::get(const DNSName& qname, const QType& qtype, const struct timeval& now, NegCacheEntry& ne, bool typeMustMatch) {
   auto range = d_negcache.equal_range(tie(qname));
   negcache_t::iterator ni = range.first;
 
   while (ni != range.second) {
     // We have an entry
-    if (ni->d_qtype.getCode() == 0 || ni->d_qtype == qtype) {
+    if ((!typeMustMatch && ni->d_qtype.getCode() == 0) || ni->d_qtype == qtype) {
       // We match the QType or the whole name is denied
       if((uint32_t) now.tv_sec < ni->d_ttd) {
         // Not expired
