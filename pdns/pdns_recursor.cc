@@ -1222,16 +1222,23 @@ static void startDoResolve(void *p)
         }
       }
     }
-
+    float spent=makeFloat(sr.getNow()-dc->d_now);
     if(!g_quiet) {
       L<<Logger::Error<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] answer to "<<(dc->d_mdp.d_header.rd?"":"non-rd ")<<"question '"<<dc->d_mdp.d_qname<<"|"<<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype);
       L<<"': "<<ntohs(pw.getHeader()->ancount)<<" answers, "<<ntohs(pw.getHeader()->arcount)<<" additional, took "<<sr.d_outqueries<<" packets, "<<
-	sr.d_totUsec/1000.0<<" ms, "<<
-	sr.d_throttledqueries<<" throttled, "<<sr.d_timeouts<<" timeouts, "<<sr.d_tcpoutqueries<<" tcp connections, rcode="<<res<<endl;
+	sr.d_totUsec/1000.0<<" netw ms, "<< spent*1000.0<<" tot ms, "<<
+	sr.d_throttledqueries<<" throttled, "<<sr.d_timeouts<<" timeouts, "<<sr.d_tcpoutqueries<<" tcp connections, rcode="<< res;
+
+      if(!shouldNotValidate && sr.isDNSSECValidationRequested()) {
+	L<< ", dnssec="<<vStates[sr.getValidationState()];
+      }
+	
+      L<<endl;
+
     }
 
     sr.d_outqueries ? t_RC->cacheMisses++ : t_RC->cacheHits++;
-    float spent=makeFloat(sr.getNow()-dc->d_now);
+
     if(spent < 0.001)
       g_stats.answers0_1++;
     else if(spent < 0.010)
