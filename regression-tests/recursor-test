@@ -36,7 +36,10 @@ mkdir -p recursor-bulktest
 rm -f failed_tests passed_tests
 touch failed_tests passed_tests
 : ${THRESHOLD:="95"}
-if [ "$DBT_OKPERCENTAGEINT" -ge $THRESHOLD ]
+
+ANANSWER=$[(100*(${DBT_QUEUED}-${DBT_ERRORS}-${DBT_TIMEOUTS}) )/${DBT_QUEUED}]
+
+if [ "$ANANSWER" -ge $THRESHOLD ]
 then
 	echo recursor-bulktest >> passed_tests
 	RETVAL=0
