@@ -333,9 +333,9 @@ install_recursor() {
   run "cd .."
   run "wget http://s3-us-west-1.amazonaws.com/umbrella-static/top-1m.csv.zip"
   run "unzip top-1m.csv.zip -d ${TRAVIS_BUILD_DIR}/regression-tests"
-  run 'echo -e "deb [arch=amd64] http://repo.powerdns.com/ubuntu trusty-auth-40 main" | sudo tee /etc/apt/sources.list.d/pdns.list'
+  run 'echo -e "deb [arch=amd64] http://repo.powerdns.com/ubuntu trusty-auth-master main" | sudo tee /etc/apt/sources.list.d/pdns.list'
   run 'echo -e "Package: pdns-*\nPin: origin PowerDNS\nPin-Priority: 600" | sudo tee /etc/apt/preferences.d/pdns.list'
-  run 'curl https://repo.powerdns.com/FD380FBB-pub.asc | sudo apt-key add - '
+  run 'curl https://repo.powerdns.com/CBC8B383-pub.asc | sudo apt-key add - '
   run 'sudo apt-get update'
   run 'sudo apt-get -y install pdns-server pdns-tools'
   run "sudo service pdns stop"
