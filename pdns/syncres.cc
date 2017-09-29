@@ -1359,8 +1359,16 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsi
       *foundCut = (result != Indeterminate);
     }
 
-    if ((result == Secure || result == TA) && countSupportedDS(ds) == 0) {
-      ds.clear();
+    if (result == TA) {
+      if (countSupportedDS(ds) == 0) {
+        ds.clear();
+        result = Insecure;
+      }
+      else {
+        result = Secure;
+      }
+    }
+    else if (result == NTA) {
       result = Insecure;
     }
 
@@ -1465,23 +1473,14 @@ bool SyncRes::lookForCut(const DNSName& qname, unsigned int depth, const vState 
     newState = dsState;
   }
 
-  if (foundCut) {
-    if (newState == TA) {
-      newState = Secure;
-    }
-    else if (newState == NTA) {
-      newState = Insecure;
-    }
-  }
-
   return foundCut;
 }
 
 void SyncRes::computeZoneCuts(const DNSName& begin, const DNSName& end, unsigned int depth)
 {
   if(!begin.isPartOf(end)) {
-    LOG(d_prefix<<" "<<end.toLogString()<<" is not part of "<<begin.toString()<<endl);
-    throw PDNSException(end.toLogString() + " is not part of " + begin.toString());
+    LOG(d_prefix<<" "<<begin.toLogString()<<" is not part of "<<end.toString()<<endl);
+    throw PDNSException(begin.toLogString() + " is not part of " + end.toString());
   }
 
   if (d_cutStates.count(begin) != 0) {
@@ -1490,12 +1489,6 @@ void SyncRes::computeZoneCuts(const DNSName& begin, const DNSName& end, unsigned
 
   dsmap_t ds;
   vState cutState = getDSRecords(end, ds, false, depth);
-  if (cutState == TA) {
-    cutState = Secure;
-  }
-  else if (cutState == NTA) {
-    cutState = Insecure;
-  }
   LOG(d_prefix<<": setting cut state for "<<end<<" to "<<vStates[cutState]<<endl);
   d_cutStates[end] = cutState;
 
@@ -1539,12 +1532,6 @@ void SyncRes::computeZoneCuts(const DNSName& begin, const DNSName& end, unsigned
       }
 
       LOG(d_prefix<<": New state for "<<qname<<" is "<<vStates[newState]<<endl);
-      if (newState == TA) {
-        newState = Secure;
-      }
-      else if (newState == NTA) {
-        newState = Insecure;
-      }
       cutState = newState;
 
       d_cutStates[qname] = cutState;
@@ -1592,13 +1579,7 @@ vState SyncRes::validateDNSKeys(const DNSName& zone, const std::vector<DNSRecord
     if (!signer.empty() && signer.isPartOf(zone)) {
       vState state = getDSRecords(signer, ds, false, depth);
 
-      if (state == TA) {
-        state = Secure;
-      }
       if (state != Secure) {
-        if (state == NTA) {
-          state = Insecure;
-        }
         return state;
       }
     }
