@@ -1,4 +1,4 @@
-#!/bin/sh -ex
+#!/bin/bash -ex
 port=$1
 [ -z "$port" ] && port=5300
 limit=$2
