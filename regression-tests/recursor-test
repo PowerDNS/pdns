@@ -26,7 +26,7 @@ rm -f recursor.pid pdns_recursor.pid
 <measurement><name>%% CPU used</name><value>%P</value></measurement>
 '         ${RECURSOR} --daemon=no --local-port=$port --socket-dir=./ --trace=$TRACE --config-dir=. --query-local-address6="${QLA6}" > recursor.log 2>&1 &
 sleep 3
-${DNSBULKTEST} -qe 127.0.0.1 $port $limit < ${CSV} > bulktest.results
+${DNSBULKTEST} --www=false -qe 127.0.0.1 $port $limit < ${CSV} > bulktest.results
 kill $(cat pdns_recursor.pid)
 sleep 5
 
