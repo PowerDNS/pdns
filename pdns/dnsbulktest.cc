@@ -354,6 +354,11 @@ try
     cout<<"DBT_QUEUED="<<domains.size()<<endl;
     cout<<"DBT_SENDERRORS="<<sr.d_senderrors<<endl;
     cout<<"DBT_RECEIVED="<<sr.d_receiveds<<endl;
+    cout<<"DBT_NXDOMAINS="<<sr.d_nxdomains<<endl;
+    cout<<"DBT_NODATAS="<<sr.d_nodatas<<endl;
+    cout<<"DBT_UNKNOWNS="<<sr.d_unknowns<<endl;
+    cout<<"DBT_OKS="<<sr.d_oks<<endl;
+    cout<<"DBT_ERRORS="<<sr.d_errors<<endl;
     cout<<"DBT_TIMEOUTS="<<inflighter.getTimeouts()<<endl;
     cout<<"DBT_UNEXPECTEDS="<<inflighter.getUnexpecteds()<<endl;
     cout<<"DBT_OKPERCENTAGE="<<((float)sr.d_oks/domains.size()*100)<<endl;
