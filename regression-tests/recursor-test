@@ -6,7 +6,7 @@ limit=$2
 
 : ${RECURSOR:="../pdns/recursordist/pdns_recursor"}
 : ${CSV:="top-1m.csv"}
-: ${IPv6:="1"}
+: ${IPv6:="0"}
 : ${TRACE:="fail"}
 : ${DNSBULKTEST:="../pdns/dnsbulktest"}
 
