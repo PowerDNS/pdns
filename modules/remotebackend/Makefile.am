@@ -6,7 +6,7 @@ AM_CPPFLAGS += \
 
 AM_LDFLAGS = $(THREADFLAGS)
 
-JSON11_LIBS = $(top_srcdir)/ext/json11/libjson11.la
+JSON11_LIBS = $(top_builddir)/ext/json11/libjson11.la
 
 EXTRA_DIST = \
 	OBJECTFILES \
