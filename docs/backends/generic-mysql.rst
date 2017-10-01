@@ -78,7 +78,7 @@ Connect to the UNIX socket at this path. Mutually exclusive with :ref:`setting-g
 ``gmysql-dbname``
 ^^^^^^^^^^^^^^^^^
 
-Name of the database to connect to. Default: "pdns".
+Name of the database to connect to. Default: "powerdns".
 
 .. _setting-gmysql-user:
 
