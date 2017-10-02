@@ -66,6 +66,27 @@ BOOST_AUTO_TEST_CASE(test_get_entry) {
   BOOST_CHECK_EQUAL(ne.d_auth, auth);
 }
 
+BOOST_AUTO_TEST_CASE(test_get_entry_exact_type) {
+  /* Add a full name negative entry to the cache and attempt to get an entry for
+   * the A record, asking only for an exact match.
+   */
+  DNSName qname("www2.powerdns.com");
+  DNSName auth("powerdns.com");
+
+  struct timeval now;
+  Utility::gettimeofday(&now, 0);
+
+  NegCache cache;
+  cache.add(genNegCacheEntry(qname, auth, now));
+
+  BOOST_CHECK_EQUAL(cache.size(), 1);
+
+  NegCache::NegCacheEntry ne;
+  bool ret = cache.get(qname, QType(1), now, ne, true);
+
+  BOOST_CHECK_EQUAL(ret, false);
+}
+
 BOOST_AUTO_TEST_CASE(test_get_NODATA_entry) {
   DNSName qname("www2.powerdns.com");
   DNSName auth("powerdns.com");

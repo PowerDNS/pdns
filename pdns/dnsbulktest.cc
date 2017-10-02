@@ -224,6 +224,7 @@ try
     ("type,t",  po::value<string>()->default_value("A"), "What type to query for")
     ("envoutput,e", "write report in shell environment format")
     ("version", "show the version number")
+    ("www", po::value<bool>()->default_value("true"), "duplicate all queries with an additional 'www.' in front")
   ;
 
   po::options_description alloptions;
@@ -258,6 +259,7 @@ try
     return EXIT_FAILURE;
   }
 
+  bool doWww = g_vm["www"].as<bool>();
   g_quiet = g_vm.count("quiet") > 0;
   g_envoutput = g_vm.count("envoutput") > 0;
   uint16_t qtype;
@@ -303,7 +305,8 @@ try
       continue; // this was an IP address
     }
     domains.push_back(TypedQuery(split.second, qtype));
-    domains.push_back(TypedQuery("www."+split.second, qtype));
+    if(doWww)
+      domains.push_back(TypedQuery("www."+split.second, qtype));
   }
   cerr<<"Read "<<domains.size()<<" domains!"<<endl;
   random_shuffle(domains.begin(), domains.end());
@@ -351,6 +354,11 @@ try
     cout<<"DBT_QUEUED="<<domains.size()<<endl;
     cout<<"DBT_SENDERRORS="<<sr.d_senderrors<<endl;
     cout<<"DBT_RECEIVED="<<sr.d_receiveds<<endl;
+    cout<<"DBT_NXDOMAINS="<<sr.d_nxdomains<<endl;
+    cout<<"DBT_NODATAS="<<sr.d_nodatas<<endl;
+    cout<<"DBT_UNKNOWNS="<<sr.d_unknowns<<endl;
+    cout<<"DBT_OKS="<<sr.d_oks<<endl;
+    cout<<"DBT_ERRORS="<<sr.d_errors<<endl;
     cout<<"DBT_TIMEOUTS="<<inflighter.getTimeouts()<<endl;
     cout<<"DBT_UNEXPECTEDS="<<inflighter.getUnexpecteds()<<endl;
     cout<<"DBT_OKPERCENTAGE="<<((float)sr.d_oks/domains.size()*100)<<endl;
