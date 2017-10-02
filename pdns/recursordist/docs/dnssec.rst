@@ -74,6 +74,9 @@ Trust Anchor Management
 In the PowerDNS Recursor, both positive and negative trust anchors can be configured during startup (from a persistent configuration file) and at runtime (which is volatile).
 However, all trust anchors are configurable.
 
+Current trust anchors can be queried from the recursor by sending a query for "trustanchor.server CH TXT".
+This query will (if :ref:`setting-allow-trust-anchor-query` is enabled) return a TXT record per trust-anchor in the format ``"DOMAIN KEYTAG [KEYTAG]..."``.
+
 Trust Anchors
 ^^^^^^^^^^^^^
 The PowerDNS Recursor ships with the DNSSEC Root key built-in.
