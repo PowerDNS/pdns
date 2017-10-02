@@ -948,17 +948,24 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSR
   }
   else if (t_sstorage.negcache.get(qname, qtype, d_now, ne) &&
            !(wasForwardedOrAuth && ne.d_auth != authname)) { // Only the authname nameserver can neg cache entries
-    res = 0;
-    sttl = ne.d_ttd - d_now.tv_sec;
-    giveNegative = true;
-    cachedState = ne.d_validationState;
-    if(ne.d_qtype.getCode()) {
-      LOG(prefix<<qname<<": "<<qtype.getName()<<" is negatively cached via '"<<ne.d_auth<<"' for another "<<sttl<<" seconds"<<endl);
-      res = RCode::NoError;
-    }
-    else {
-      LOG(prefix<<qname<<": Entire name '"<<qname<<"', is negatively cached via '"<<ne.d_auth<<"' for another "<<sttl<<" seconds"<<endl);
-      res = RCode::NXDomain;
+
+    /* If we are looking for a DS, discard NXD if auth == qname
+       and ask for a specific denial instead */
+    if (qtype != QType::DS || ne.d_qtype.getCode() || ne.d_auth != qname ||
+        t_sstorage.negcache.get(qname, qtype, d_now, ne, true))
+    {
+      res = 0;
+      sttl = ne.d_ttd - d_now.tv_sec;
+      giveNegative = true;
+      cachedState = ne.d_validationState;
+      if(ne.d_qtype.getCode()) {
+        LOG(prefix<<qname<<": "<<qtype.getName()<<" is negatively cached via '"<<ne.d_auth<<"' for another "<<sttl<<" seconds"<<endl);
+        res = RCode::NoError;
+      }
+      else {
+        LOG(prefix<<qname<<": Entire name '"<<qname<<"', is negatively cached via '"<<ne.d_auth<<"' for another "<<sttl<<" seconds"<<endl);
+        res = RCode::NXDomain;
+      }
     }
   }
 

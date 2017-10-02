@@ -58,7 +58,7 @@ class NegCache : public boost::noncopyable {
     };
 
     void add(const NegCacheEntry& ne);
-    bool get(const DNSName& qname, const QType& qtype, const struct timeval& now, NegCacheEntry& ne);
+    bool get(const DNSName& qname, const QType& qtype, const struct timeval& now, NegCacheEntry& ne, bool typeMustMatch=false);
     bool getRootNXTrust(const DNSName& qname, const struct timeval& now, NegCacheEntry& ne);
     uint64_t count(const DNSName& qname) const;
     uint64_t count(const DNSName& qname, const QType qtype) const;
