@@ -12,6 +12,8 @@ class testTrustAnchorsEnabled(RecursorTest):
     _root_DS = None
     _lua_config_file = """
 addDS("powerdns.com", "44030 8 1 B763646757DF621DD1204AD3BFA0675B49BE3279")
+addNTA("example")
+addNTA("example.com", "some reason")
 """
 
     def testTrustanchorDotServer(self):
@@ -19,6 +21,17 @@ addDS("powerdns.com", "44030 8 1 B763646757DF621DD1204AD3BFA0675B49BE3279")
             'trustanchor.server.', 86400, dns.rdataclass.CH, 'TXT',
             ['". 19036 20326"', '"powerdns.com. 44030"'])
         query = dns.message.make_query('trustanchor.server', 'TXT',
+                                       dns.rdataclass.CH)
+        result = self.sendUDPQuery(query)
+
+        self.assertRcodeEqual(result, dns.rcode.NOERROR)
+        self.assertRRsetInAnswer(result, expected)
+
+    def testNegativerustanchorDotServer(self):
+        expected = dns.rrset.from_text_list(
+            'negativetrustanchor.server.', 86400, dns.rdataclass.CH, 'TXT',
+            ['"example."', '"example.com. some reason"'])
+        query = dns.message.make_query('negativetrustanchor.server', 'TXT',
                                        dns.rdataclass.CH)
         result = self.sendUDPQuery(query)
 
@@ -40,6 +53,13 @@ class testTrustAnchorsDisabled(RecursorTest):
 
     def testTrustanchorDotServer(self):
         query = dns.message.make_query('trustanchor.server', 'TXT',
+                                       dns.rdataclass.CH)
+        result = self.sendUDPQuery(query)
+
+        self.assertRcodeEqual(result, dns.rcode.SERVFAIL)
+
+    def testNegativerustanchorDotServer(self):
+        query = dns.message.make_query('negativetrustanchor.server', 'TXT',
                                        dns.rdataclass.CH)
         result = self.sendUDPQuery(query)
 

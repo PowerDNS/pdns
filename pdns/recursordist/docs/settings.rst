@@ -63,7 +63,7 @@ Useful for mitigating ANY reflection attacks.
 -  Boolean
 -  Default: yes
 
-Allow ``trustanchor.server CH TXT`` queries to view the configured :doc:`DNSSEC <dnssec>` trust anchors.
+Allow ``trustanchor.server CH TXT`` and ``negativetrustanchor.server CH TXT`` queries to view the configured :doc:`DNSSEC <dnssec>` (negative) trust anchors.
 
 .. _setting-api-config-dir:
 
