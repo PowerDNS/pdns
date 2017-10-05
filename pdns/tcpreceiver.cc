@@ -894,6 +894,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
         DNSName relative=zrr.dr.d_name.makeRelative(target);
         ns3rrs.insert(fromBase32Hex(relative.toStringNoDot()));
       }
+      if(presignedZone) csp.submit(zrr);
       continue;
     }
 
