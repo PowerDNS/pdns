@@ -1123,11 +1123,10 @@ static void startDoResolve(void *p)
 	i->d_content->toPacket(pw);
 	if(pw.size() > static_cast<size_t>(maxanswersize)) {
 	  pw.rollback();
-	  if(i->d_place==DNSResourceRecord::ANSWER)  // only truncate if we actually omitted parts of the answer
-            {
-              pw.getHeader()->tc=1;
-              pw.truncate();
-            }
+	  if(i->d_place != DNSResourceRecord::ADDITIONAL) {
+            pw.getHeader()->tc=1;
+            pw.truncate();
+          }
 	  goto sendit; // need to jump over pw.commit
 	}
 	needCommit = true;
