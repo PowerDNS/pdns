@@ -21,9 +21,10 @@
  */
 #ifndef PDNS_SIGNINGPIPE
 #define PDNS_SIGNINGPIPE
-#include <vector>
-#include <pthread.h>
 #include <stdio.h>
+#include <thread>
+#include <vector>
+
 #include "dnsseckeeper.hh"
 #include "dns.hh"
 
@@ -56,9 +57,8 @@ private:
   void addSignedToChunks(chunk_t* signedChunk);
   pair<vector<int>, vector<int> > waitForRW(bool rd, bool wr, int seconds);
 
-  void worker(int n, int fd);
-  
-  static void* helperWorker(void* p);
+  static void* helperWorker(ChunkedSigningPipe* csp, int fd);
+  void worker(int fd);
 
   unsigned int d_numworkers;
   int d_submitted;
@@ -71,7 +71,7 @@ private:
   
   std::vector<int> d_sockets;
   std::set<int> d_eof;
-  vector<pthread_t> d_tids;
+  vector<std::thread> d_threads;
   bool d_mustSign;
   bool d_final;
 };
