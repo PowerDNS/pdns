@@ -75,3 +75,4 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
 bool isSupportedDS(const DSRecordContent& ds);
 DNSName getSigner(const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures);
 bool denialProvesNoDelegation(const DNSName& zone, const std::vector<DNSRecord>& dsrecords);
+bool isRRSIGNotExpired(const time_t now, const shared_ptr<RRSIGRecordContent> sig);

@@ -1117,6 +1117,15 @@ static bool magicAddrMatch(const QType& query, const QType& answer)
   return answer.getCode() == QType::A || answer.getCode() == QType::AAAA;
 }
 
+static uint32_t getRRSIGTTL(const time_t now, const std::shared_ptr<RRSIGRecordContent>& rrsig)
+{
+  uint32_t res = 0;
+  if (now < rrsig->d_sigexpire) {
+    res = static_cast<uint32_t>(rrsig->d_sigexpire) - now;
+  }
+  return res;
+}
+
 static const set<uint16_t> nsecTypes = {QType::NSEC, QType::NSEC3};
 
 /* Fills the authoritySOA and DNSSECRecords fields from ne with those found in the records
@@ -1124,7 +1133,7 @@ static const set<uint16_t> nsecTypes = {QType::NSEC, QType::NSEC3};
  * \param records The records to parse for the authority SOA and NSEC(3) records
  * \param ne      The NegCacheEntry to be filled out (will not be cleared, only appended to
  */
-static void harvestNXRecords(const vector<DNSRecord>& records, NegCache::NegCacheEntry& ne) {
+static void harvestNXRecords(const vector<DNSRecord>& records, NegCache::NegCacheEntry& ne, const time_t now, uint32_t* lowestTTL) {
   for(const auto& rec : records) {
     if(rec.d_place != DNSResourceRecord::AUTHORITY)
       // RFC 4035 section 3.1.3. indicates that NSEC records MUST be placed in
@@ -1138,19 +1147,33 @@ static void harvestNXRecords(const vector<DNSRecord>& records, NegCache::NegCach
       if(rrsig) {
         if(rrsig->d_type == QType::SOA) {
           ne.authoritySOA.signatures.push_back(rec);
+          if (lowestTTL && isRRSIGNotExpired(now, rrsig)) {
+            *lowestTTL = min(*lowestTTL, rec.d_ttl);
+            *lowestTTL = min(*lowestTTL, getRRSIGTTL(now, rrsig));
+          }
         }
         if(nsecTypes.count(rrsig->d_type)) {
           ne.DNSSECRecords.signatures.push_back(rec);
+          if (lowestTTL && isRRSIGNotExpired(now, rrsig)) {
+            *lowestTTL = min(*lowestTTL, rec.d_ttl);
+            *lowestTTL = min(*lowestTTL, getRRSIGTTL(now, rrsig));
+          }
         }
       }
       continue;
     }
     if(rec.d_type == QType::SOA) {
       ne.authoritySOA.records.push_back(rec);
+      if (lowestTTL) {
+        *lowestTTL = min(*lowestTTL, rec.d_ttl);
+      }
       continue;
     }
     if(nsecTypes.count(rec.d_type)) {
       ne.DNSSECRecords.records.push_back(rec);
+      if (lowestTTL) {
+        *lowestTTL = min(*lowestTTL, rec.d_ttl);
+      }
       continue;
     }
   }
@@ -1178,7 +1201,7 @@ static cspmap_t harvestCSPFromNE(const NegCache::NegCacheEntry& ne)
 static void addNXNSECS(vector<DNSRecord>&ret, const vector<DNSRecord>& records)
 {
   NegCache::NegCacheEntry ne;
-  harvestNXRecords(records, ne);
+  harvestNXRecords(records, ne, 0, nullptr);
   ret.insert(ret.end(), ne.authoritySOA.signatures.begin(), ne.authoritySOA.signatures.end());
   ret.insert(ret.end(), ne.DNSSECRecords.records.begin(), ne.DNSSECRecords.records.end());
   ret.insert(ret.end(), ne.DNSSECRecords.signatures.begin(), ne.DNSSECRecords.signatures.end());
@@ -1282,8 +1305,8 @@ uint32_t SyncRes::computeLowestTTD(const std::vector<DNSRecord>& records, const 
     lowestTTD = min(lowestTTD, static_cast<uint32_t>(signaturesTTL + d_now.tv_sec));
 
     for(const auto& sig : signatures) {
-      if (sig->d_siginception <= d_now.tv_sec && sig->d_sigexpire > d_now.tv_sec) {
-        // we don't decrement d_sigexpire by 'now' because we actually want a TTD, not a TTL */
+      if (isRRSIGNotExpired(d_now.tv_sec, sig)) {
+        // we don't decerement d_sigexpire by 'now' because we actually want a TTD, not a TTL */
         lowestTTD = min(lowestTTD, static_cast<uint32_t>(sig->d_sigexpire));
       }
     }
@@ -1948,11 +1971,13 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
 
       NegCache::NegCacheEntry ne;
 
-      ne.d_ttd = d_now.tv_sec + rec.d_ttl;
+      uint32_t lowestTTL = rec.d_ttl;
       ne.d_name = qname;
       ne.d_qtype = QType(0); // this encodes 'whole record'
       ne.d_auth = rec.d_name;
-      harvestNXRecords(lwr.d_records, ne);
+      harvestNXRecords(lwr.d_records, ne, d_now.tv_sec, &lowestTTL);
+      ne.d_ttd = d_now.tv_sec + lowestTTL;
+
       getDenialValidationState(ne, state, NXDOMAIN, false, false);
 
       if(!wasVariable()) {
@@ -2011,15 +2036,17 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
       if (state == Secure) {
         NegCache::NegCacheEntry ne;
         ne.d_auth = auth;
-        ne.d_ttd = d_now.tv_sec + rec.d_ttl;
         ne.d_name = newauth;
         ne.d_qtype = QType::DS;
-        harvestNXRecords(lwr.d_records, ne);
+        rec.d_ttl = min(s_maxnegttl, rec.d_ttl);
+        uint32_t lowestTTL = rec.d_ttl;
+        harvestNXRecords(lwr.d_records, ne, d_now.tv_sec, &lowestTTL);
+
         cspmap_t csp = harvestCSPFromNE(ne);
         dState denialState = getDenial(csp, newauth, QType::DS, true);
         if (denialState == NXQTYPE || denialState == OPTOUT || denialState == INSECURE) {
+          ne.d_ttd = lowestTTL + d_now.tv_sec;
           ne.d_validationState = Secure;
-          rec.d_ttl = min(s_maxnegttl, rec.d_ttl);
           LOG(prefix<<qname<<": got negative indication of DS record for '"<<newauth<<"'"<<endl);
 
           auto cut = d_cutStates.find(newauth);
@@ -2058,10 +2085,12 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
 
         NegCache::NegCacheEntry ne;
         ne.d_auth = rec.d_name;
-        ne.d_ttd = d_now.tv_sec + rec.d_ttl;
+        uint32_t lowestTTL = rec.d_ttl;
         ne.d_name = qname;
         ne.d_qtype = qtype;
-        harvestNXRecords(lwr.d_records, ne);
+        harvestNXRecords(lwr.d_records, ne, d_now.tv_sec, &lowestTTL);
+        ne.d_ttd = d_now.tv_sec + lowestTTL;
+
         getDenialValidationState(ne, state, NXQTYPE, qtype == QType::DS, false);
 
         if(!wasVariable()) {

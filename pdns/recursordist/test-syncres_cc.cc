@@ -278,10 +278,10 @@ static bool addRRSIG(const testkeysset_t& keys, std::vector<DNSRecord>& records,
   }
 
   DNSRecord rec;
+  rec.d_type = QType::RRSIG;
   rec.d_place = records[recordsCount-1].d_place;
   rec.d_name = records[recordsCount-1].d_name;
-  rec.d_type = QType::RRSIG;
-  rec.d_ttl = sigValidity;
+  rec.d_ttl = records[recordsCount-1].d_ttl;
 
   rec.d_content = std::make_shared<RRSIGRecordContent>(rrc);
   records.push_back(rec);
@@ -428,8 +428,8 @@ static int genericDSAndDNSKEYHandler(LWResult* res, const DNSName& domain, DNSNa
 
   if (type == QType::DNSKEY) {
     setLWResult(res, 0, true, false, true);
-    addDNSKEY(keys, auth, 300, res->d_records);
-    addRRSIG(keys, res->d_records, auth, 300);
+    addDNSKEY(keys, domain, 300, res->d_records);
+    addRRSIG(keys, res->d_records, domain, 300);
     return 1;
   }
 
@@ -7301,6 +7301,136 @@ BOOST_AUTO_TEST_CASE(test_nsec3_insecure_delegation_denial) {
      denies the DS, it can't prove an insecure delegation */
   dState denialState = getDenial(denialMap, DNSName("a."), QType::DS, true);
   BOOST_CHECK_EQUAL(denialState, INSECURE);
+}
+
+BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_negcache_validity) {
+  std::unique_ptr<SyncRes> sr;
+  const time_t now = time(nullptr);
+  initSR(sr, true);
+
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
+
+  primeHints();
+  const DNSName target("com.");
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
+  g_luaconfs.setState(luaconfsCopy);
+
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([target,&queriesCount,keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
+      queriesCount++;
+
+      DNSName auth = domain;
+      auth.chopOff();
+
+      if (type == QType::DS || type == QType::DNSKEY) {
+        return genericDSAndDNSKEYHandler(res, domain, auth, type, keys);
+      }
+      else {
+        setLWResult(res, RCode::NoError, true, false, true);
+        addRecordToLW(res, domain, QType::SOA, "pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
+        addRRSIG(keys, res->d_records, domain, 300);
+        addNSECRecordToLW(domain, DNSName("z."), { QType::NSEC, QType::RRSIG }, 600, res->d_records);
+        addRRSIG(keys, res->d_records, domain, 1);
+        return 1;
+      }
+
+      return 0;
+    });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_REQUIRE_EQUAL(ret.size(), 4);
+  BOOST_CHECK_EQUAL(queriesCount, 4);
+
+  /* check that the entry has not been negatively cached for longer than the RRSIG validity */
+  NegCache::NegCacheEntry ne;
+  BOOST_CHECK_EQUAL(SyncRes::t_sstorage.negcache.size(), 1);
+  BOOST_REQUIRE_EQUAL(SyncRes::t_sstorage.negcache.get(target, QType(QType::A), sr->getNow(), ne), true);
+  BOOST_CHECK_EQUAL(ne.d_ttd, now + 1);
+  BOOST_CHECK_EQUAL(ne.authoritySOA.records.size(), 1);
+  BOOST_CHECK_EQUAL(ne.authoritySOA.signatures.size(), 1);
+  BOOST_CHECK_EQUAL(ne.DNSSECRecords.records.size(), 1);
+  BOOST_CHECK_EQUAL(ne.DNSSECRecords.signatures.size(), 1);
+
+  /* again, to test the cache */
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_REQUIRE_EQUAL(ret.size(), 4);
+  BOOST_CHECK_EQUAL(queriesCount, 4);
+}
+
+BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_cache_validity) {
+  std::unique_ptr<SyncRes> sr;
+  const time_t now = time(nullptr);
+  initSR(sr, true);
+
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
+
+  primeHints();
+  const DNSName target("com.");
+  const ComboAddress targetAddr("192.0.2.42");
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
+  g_luaconfs.setState(luaconfsCopy);
+
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([target,targetAddr,&queriesCount,keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
+      queriesCount++;
+
+      DNSName auth = domain;
+      auth.chopOff();
+
+      if (type == QType::DS || type == QType::DNSKEY) {
+        return genericDSAndDNSKEYHandler(res, domain, auth, type, keys);
+      }
+      else {
+        setLWResult(res, RCode::NoError, true, false, true);
+        addRecordToLW(res, domain, QType::A, targetAddr.toString(), DNSResourceRecord::ANSWER, 3600);
+        addRRSIG(keys, res->d_records, domain, 1);
+        return 1;
+      }
+
+      return 0;
+    });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2);
+  BOOST_CHECK_EQUAL(queriesCount, 4);
+
+  /* check that the entry has not been cached for longer than the RRSIG validity */
+  const ComboAddress who;
+  vector<DNSRecord> cached;
+  vector<std::shared_ptr<RRSIGRecordContent>> signatures;
+  BOOST_REQUIRE_EQUAL(t_RC->get(now, target, QType(QType::A), true, &cached, who, &signatures), 1);
+  BOOST_REQUIRE_EQUAL(cached.size(), 1);
+  BOOST_REQUIRE_EQUAL(signatures.size(), 1);
+  BOOST_CHECK_EQUAL((cached[0].d_ttl - now), 1);
+
+  /* again, to test the cache */
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2);
+  BOOST_CHECK_EQUAL(queriesCount, 4);
 }
 
 /*
