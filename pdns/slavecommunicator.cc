@@ -415,6 +415,7 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
         }
         else {
           L<<Logger::Warning<<"Done with IXFR of '"<<domain<<"' from remote '"<<remote<<"', got "<<zs.numDeltas<<" delta"<<addS(zs.numDeltas)<<", serial now "<<zs.soa_serial<<endl;
+          purgeAuthCaches(domain.toString()+"$");
           return;
         }
       }
