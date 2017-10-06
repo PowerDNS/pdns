@@ -12,11 +12,13 @@ class BasicDNSSEC(RecursorTest):
         cls.wipeRecursorCache(confdir)
 
     @classmethod
-    def sendQuery(self, name, rdtype):
+    def sendQuery(self, name, rdtype, useTCP=False):
         """Helper function that creates the query"""
         msg = dns.message.make_query(name, rdtype, want_dnssec=True)
         msg.flags |= dns.flags.AD
 
+        if useTCP:
+            return self.sendTCPQuery(msg)
         return self.sendUDPQuery(msg)
 
     def testSecureAnswer(self):
@@ -101,7 +103,8 @@ class BasicDNSSEC(RecursorTest):
         self.assertMessageIsAuthenticated(res)
 
     def testSecureCNAMEWildCardNXDOMAIN(self):
-        res = self.sendQuery('something.cnamewildcardnxdomain.secure.example.', 'A')
+        # the answer to this query reaches the UDP truncation threshold, so let's use TCP
+        res = self.sendQuery('something.cnamewildcardnxdomain.secure.example.', 'A', useTCP=True)
         expectedCNAME = dns.rrset.from_text('something.cnamewildcardnxdomain.secure.example.', 0, dns.rdataclass.IN, 'CNAME', 'doesntexist.secure.example.')
 
         self.assertRcodeEqual(res, dns.rcode.NXDOMAIN)
