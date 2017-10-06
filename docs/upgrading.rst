@@ -48,6 +48,8 @@ Changed options
 Changed defaults
 ~~~~~~~~~~~~~~~~
 
+- The default value of :ref:`setting-webserver-allow-from` has been changed from ``0.0.0.0, ::/0`` to ``127.0.0.1, ::1``.
+
 Other changes
 ^^^^^^^^^^^^^
 
