@@ -128,3 +128,12 @@ Zones endpoint
 
   :param server_id: The name of the server
   :param zone_id: The id number of the :json:object:`Zone`
+
+.. http:put:: /api/v1/servers/:server_id/zones/:zone_id/rectify
+
+  Rectify the zone data. This does not take into account the :ref:`metadata-api-rectify` metadata.
+
+  :param server_id: The name of the server
+  :param zone_id: The id number of the :json:object:`Zone`
+
+  Fails on slave zones and zones that do not have DNSSEC.

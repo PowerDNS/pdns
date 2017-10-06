@@ -1447,6 +1447,32 @@ static void apiServerZoneNotify(HttpRequest* req, HttpResponse* resp) {
   resp->setSuccessResult("Notification queued");
 }
 
+static void apiServerZoneRectify(HttpRequest* req, HttpResponse* resp) {
+  DNSName zonename = apiZoneIdToName(req->parameters["id"]);
+
+  if(req->method != "PUT")
+    throw HttpMethodNotAllowedException();
+
+  UeberBackend B;
+  DomainInfo di;
+  if(!B.getDomainInfo(zonename, di))
+    throw ApiException("Could not find domain '"+zonename.toString()+"'");
+
+  DNSSECKeeper dk(&B);
+
+  if (!dk.isSecuredZone(zonename))
+    throw ApiException("Zone '" + zonename.toString() + "' is not DNSSEC signed, not rectifying.");
+
+  if (di.kind == DomainInfo::Slave)
+    throw ApiException("Zone '" + zonename.toString() + "' is a slave zone, not rectifying.");
+
+  string error_msg = "";
+  if (!dk.rectifyZone(zonename, error_msg))
+    throw ApiException("Failed to rectify '" + zonename.toString() + "' " + error_msg);
+
+  resp->setSuccessResult("Rectified");
+}
+
 static void makePtr(const DNSResourceRecord& rr, DNSResourceRecord* ptr) {
   if (rr.qtype.getCode() == QType::A) {
     uint32_t ip;
@@ -1831,6 +1857,7 @@ void AuthWebServer::webThread()
       d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/metadata/<kind>", &apiZoneMetadataKind);
       d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/metadata", &apiZoneMetadata);
       d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/notify", &apiServerZoneNotify);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/rectify", &apiServerZoneRectify);
       d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", &apiServerZoneDetail);
       d_ws->registerApiHandler("/api/v1/servers/localhost/zones", &apiServerZones);
       d_ws->registerApiHandler("/api/v1/servers/localhost", &apiServerDetail);
