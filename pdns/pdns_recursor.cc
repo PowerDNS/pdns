@@ -1237,7 +1237,7 @@ static void startDoResolve(void *p)
     }
 
     sr.d_outqueries ? t_RC->cacheMisses++ : t_RC->cacheHits++;
-
+            
     if(spent < 0.001)
       g_stats.answers0_1++;
     else if(spent < 0.010)
@@ -1253,6 +1253,28 @@ static void startDoResolve(void *p)
     newLat = min(newLat,(uint64_t)(((uint64_t) g_networkTimeoutMsec)*1000)); // outliers of several minutes exist..
     g_stats.avgLatencyUsec=(1-1.0/g_latencyStatSize)*g_stats.avgLatencyUsec + (float)newLat/g_latencyStatSize;
     // no worries, we do this for packet cache hits elsewhere
+
+    auto ourtime = 1000.0*spent-sr.d_totUsec/1000.0; // in msec
+    if(ourtime < 1)
+      g_stats.ourtime0_1++;
+    else if(ourtime < 2)
+      g_stats.ourtime1_2++;
+    else if(ourtime < 4)
+      g_stats.ourtime2_4++;
+    else if(ourtime < 8)
+      g_stats.ourtime4_8++;
+    else if(ourtime < 16)
+      g_stats.ourtime8_16++;
+    else if(ourtime < 32)
+      g_stats.ourtime16_32++;
+    else {
+      //      cerr<<"SLOW: "<<ourtime<<"ms -> "<<dc->d_mdp.d_qname<<"|"<<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype)<<endl;
+      g_stats.ourtimeSlow++;
+    }
+
+    newLat=ourtime*1000; // usec
+    g_stats.avgLatencyOursUsec=(1-1.0/g_latencyStatSize)*g_stats.avgLatencyOursUsec + (float)newLat/g_latencyStatSize;
+    
     //    cout<<dc->d_mdp.d_qname<<"\t"<<MT->getUsec()<<"\t"<<sr.d_outqueries<<endl;
     delete dc;
     dc=0;
@@ -1691,6 +1713,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         updateResponseStats(tmpdh.rcode, fromaddr, response.length(), 0, 0);
       }
       g_stats.avgLatencyUsec=(1-1.0/g_latencyStatSize)*g_stats.avgLatencyUsec + 0.0; // we assume 0 usec
+      g_stats.avgLatencyOursUsec=(1-1.0/g_latencyStatSize)*g_stats.avgLatencyOursUsec + 0.0; // we assume 0 usec
       return 0;
     }
   }
