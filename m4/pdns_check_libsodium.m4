@@ -18,7 +18,7 @@ AC_DEFUN([PDNS_CHECK_LIBSODIUM], [
         AC_CHECK_FUNCS([crypto_box_easy_afternm])
         CFLAGS=$save_CFLAGS
         LIBS=$save_LIBS
-      ])
+      ], [ : ])
     ])
   ])
   AM_CONDITIONAL([LIBSODIUM], [test "x$LIBSODIUM_LIBS" != "x"])
