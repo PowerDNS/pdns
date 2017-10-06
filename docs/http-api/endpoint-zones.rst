@@ -8,21 +8,21 @@ Zones endpoint
 
 .. http:post:: /api/v1/servers/:server_id/zones
 
-  Creates a new domain.
+  Creates a new domain, returns the :json:object:`Zone` on creation.
 
   :param server_id: The name of the server
+  :query rrsets: "true" (default) or "false", whether to include the "rrsets" in the response :json:object:`Zone` object.
+  :statuscode 201: The zone was successfully created
 
   A :json:object:`Zone` MUST be sent in the request body.
 
-  -  ``dnssec``, ``nsec3narrow``, ``presigned``, ``nsec3param``, ``active-keys`` are OPTIONAL.
-  -  ``dnssec``, ``nsec3narrow``, ``presigned`` default to ``false``.
+  -  ``dnssec``, ``nsec3narrow``, ``presigned``, ``nsec3param``, ``api_rectify``, ``active-keys`` are OPTIONAL.
+  -  ``dnssec``, ``nsec3narrow``, ``presigned``, ``api_rectify`` default to ``false``.
 
   The server MUST create a SOA record.
   The created SOA record SHOULD have serial set to the value given as ``serial`` (or 0 if missing), use the nameserver name, email, TTL values as specified in the PowerDNS configuration (``default-soa-name``, ``default-soa-mail``, etc).
   These default values can be overridden by supplying a custom SOA record in the records list.
   If ``soa_edit_api`` is set, the SOA record is edited according to the SOA-EDIT-API rules before storing it (also applies to custom SOA records).
-
-  **TODO**: ``dnssec``, ``nsec3narrow``, ``nsec3param``, ``presigned`` are not yet implemented.
 
 .. http:get:: /api/v1/servers/:server_id/zones/:zone_id
 
@@ -30,6 +30,7 @@ Zones endpoint
 
   :param server_id: The name of the server
   :param zone_id: The id number of the :json:object:`Zone`
+  :query rrsets: "true" (default) or "false", whether to include the "rrsets" in the response :json:object:`Zone` object.
 
 .. http:delete:: /api/v1/servers/:server_id/zones/:zone_id
 
