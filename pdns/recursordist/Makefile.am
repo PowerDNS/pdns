@@ -242,6 +242,7 @@ testrunner_SOURCES = \
 	test-rcpgenerator_cc.cc \
 	test-recpacketcache_cc.cc \
 	test-recursorcache_cc.cc \
+	test-signers.cc \
 	test-syncres_cc.cc \
 	test-tsig.cc \
 	testrunner.cc \
@@ -265,6 +266,9 @@ if BOTAN110
 pdns_recursor_SOURCES += \
 	botan110signers.cc
 pdns_recursor_LDADD += $(BOTAN110_LIBS)
+testrunner_SOURCES += \
+	botan110signers.cc
+testrunner_LDADD += $(BOTAN110_LIBS)
 endif
 
 if LIBSODIUM
