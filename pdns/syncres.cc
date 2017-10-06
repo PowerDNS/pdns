@@ -569,7 +569,8 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
   NsSet nsset;
   bool flawedNSSet=false;
 
-  computeZoneCuts(qname, g_rootdnsname, depth);
+  /* we use subdomain here instead of qname because for DS queries we only care about the state of the parent zone */
+  computeZoneCuts(subdomain, g_rootdnsname, depth);
 
   // the two retries allow getBestNSNamesFromCache&co to reprime the root
   // hints, in case they ever go missing
@@ -1276,14 +1277,13 @@ uint32_t SyncRes::computeLowestTTD(const std::vector<DNSRecord>& records, const 
   /* even if it was not requested for that request (Process, and neither AD nor DO set),
      it might be requested at a later time so we need to be careful with the TTL. */
   if (validationEnabled() && !signatures.empty()) {
-    /* if we are validating, we don't want to cache records after their signatures
-       expires. */
+    /* if we are validating, we don't want to cache records after their signatures expire. */
     /* records TTL are now TTD, let's add 'now' to the signatures lowest TTL */
     lowestTTD = min(lowestTTD, static_cast<uint32_t>(signaturesTTL + d_now.tv_sec));
 
     for(const auto& sig : signatures) {
       if (sig->d_siginception <= d_now.tv_sec && sig->d_sigexpire > d_now.tv_sec) {
-        // we don't decerement d_sigexpire by 'now' because we actually want a TTD, not a TTL */
+        // we don't decrement d_sigexpire by 'now' because we actually want a TTD, not a TTL */
         lowestTTD = min(lowestTTD, static_cast<uint32_t>(sig->d_sigexpire));
       }
     }
