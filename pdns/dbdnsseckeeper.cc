@@ -291,14 +291,37 @@ bool DNSSECKeeper::getNSEC3PARAM(const DNSName& zname, NSEC3PARAMRecordContent* 
   return true;
 }
 
-bool DNSSECKeeper::setNSEC3PARAM(const DNSName& zname, const NSEC3PARAMRecordContent& ns3p, const bool& narrow)
+/*
+ * Check is the provided NSEC3PARAM record is something we can work with
+ *
+ * \param ns3p NSEC3PARAMRecordContent to check
+ * \param msg string to fill with an error message
+ * \return true on valid, false otherwise
+ */
+bool DNSSECKeeper::checkNSEC3PARAM(const NSEC3PARAMRecordContent& ns3p, string& msg)
 {
   static int maxNSEC3Iterations=::arg().asNum("max-nsec3-iterations");
-  if (ns3p.d_iterations > maxNSEC3Iterations)
-    throw runtime_error("Can't set NSEC3PARAM for zone '"+zname.toString()+"': number of NSEC3 iterations is above 'max-nsec3-iterations'");
+  bool ret = true;
+  if (ns3p.d_iterations > maxNSEC3Iterations) {
+    msg += "Number of NSEC3 iterations is above 'max-nsec3-iterations'.";
+    ret = false;
+  }
 
-  if (ns3p.d_algorithm != 1)
-    throw runtime_error("Invalid hash algorithm for NSEC3: '"+std::to_string(ns3p.d_algorithm)+"' for zone '"+zname.toString()+"'. The only valid value is '1'");
+  if (ns3p.d_algorithm != 1) {
+    if (!ret)
+      msg += ' ';
+    msg += "Invalid hash algorithm for NSEC3: '"+std::to_string(ns3p.d_algorithm)+"', the only valid value is '1'.";
+    ret = false;
+  }
+
+  return ret;
+}
+
+bool DNSSECKeeper::setNSEC3PARAM(const DNSName& zname, const NSEC3PARAMRecordContent& ns3p, const bool& narrow)
+{
+  string error_msg = "";
+  if (!checkNSEC3PARAM(ns3p, error_msg))
+    throw runtime_error("NSEC3PARAMs provided for zone '"+zname.toString()+"' are invalid: " + error_msg);
 
   clearCaches(zname);
   string descr = ns3p.getZoneRepresentation();
