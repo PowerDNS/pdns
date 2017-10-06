@@ -40,15 +40,16 @@ public:
   typedef vector<DNSResourceRecord> rrset_t; 
   typedef rrset_t chunk_t; // for now
   
-  ChunkedSigningPipe(const DNSName& signerName, bool mustSign, /* FIXME servers is unused? */ const string& servers=string(), unsigned int numWorkers=3);
+  ChunkedSigningPipe(const DNSName& signerName, bool mustSign, unsigned int numWorkers=3);
   ~ChunkedSigningPipe();
   bool submit(const DNSResourceRecord& rr);
   chunk_t getChunk(bool final=false);
+  unsigned int getReady() const;
 
   std::atomic<unsigned long> d_signed;
-  int d_queued;
-  int d_outstanding;
-  unsigned int getReady();
+  unsigned int d_queued;
+  unsigned int d_outstanding;
+
 private:
   void flushToSign();	
   void dedupRRSet();
@@ -61,7 +62,7 @@ private:
   static void* helperWorker(void* p);
 
   unsigned int d_numworkers;
-  int d_submitted;
+  unsigned int d_submitted;
 
   rrset_t* d_rrsetToSign;
   std::deque< std::vector<DNSResourceRecord> > d_chunks;
@@ -72,6 +73,8 @@ private:
   std::vector<int> d_sockets;
   std::set<int> d_eof;
   vector<pthread_t> d_tids;
+  std::map<int,int> d_outstandings;
+
   bool d_mustSign;
   bool d_final;
 };

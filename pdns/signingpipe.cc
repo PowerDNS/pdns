@@ -70,7 +70,7 @@ catch(...) {
   return 0;
 }
 
-ChunkedSigningPipe::ChunkedSigningPipe(const DNSName& signerName, bool mustSign, const string& servers, unsigned int workers)
+ChunkedSigningPipe::ChunkedSigningPipe(const DNSName& signerName, bool mustSign, unsigned int workers)
   : d_signed(0), d_queued(0), d_outstanding(0), d_numworkers(workers), d_submitted(0), d_signer(signerName),
     d_maxchunkrecords(100), d_tids(d_numworkers), d_mustSign(mustSign), d_final(false)
 {
@@ -90,6 +90,7 @@ ChunkedSigningPipe::ChunkedSigningPipe(const DNSName& signerName, bool mustSign,
     pthread_create(&d_tids[n], 0, helperWorker, (void*) new StartHelperStruct(this, n, fds[1]));
     setNonBlocking(fds[0]);
     d_sockets.push_back(fds[0]);
+    d_outstandings[fds[0]] = 0;
   }
 }
 
@@ -145,7 +146,7 @@ bool ChunkedSigningPipe::submit(const DNSResourceRecord& rr)
 pair<vector<int>, vector<int> > ChunkedSigningPipe::waitForRW(bool rd, bool wr, int seconds)
 {
   vector<pollfd> pfds;
-  
+
   for(unsigned int n = 0; n < d_sockets.size(); ++n) {    
     if(d_eof.count(d_sockets[n]))  
       continue;
@@ -158,7 +159,7 @@ pair<vector<int>, vector<int> > ChunkedSigningPipe::waitForRW(bool rd, bool wr, 
       pfd.events |= POLLOUT;
     pfds.push_back(pfd);
   }
-  
+
   int res = poll(&pfds[0], pfds.size(), (seconds < 0) ? -1 : (seconds * 1000)); // -1 = infinite
   if(res < 0)
     unixDie("polling for activity from signers, "+std::to_string(d_sockets.size()));
@@ -209,12 +210,13 @@ void ChunkedSigningPipe::sendRRSetToWorker() // it sounds so socialist!
   
   pair<vector<int>, vector<int> > rwVect;
   
-  rwVect = waitForRW(wantRead, wantWrite, -1); // wait for something to happen  
+  rwVect = waitForRW(wantRead, wantWrite, -1); // wait for something to happen
   
   if(wantWrite && !rwVect.second.empty()) {
     random_shuffle(rwVect.second.begin(), rwVect.second.end()); // pick random available worker
     writen2(*rwVect.second.begin(), &d_rrsetToSign, sizeof(d_rrsetToSign));
     d_rrsetToSign = new rrset_t;
+    d_outstandings[*rwVect.second.begin()]++;
     d_outstanding++;
     d_queued++;
     wantWrite=false;
@@ -231,6 +233,9 @@ void ChunkedSigningPipe::sendRRSetToWorker() // it sounds so socialist!
         while(d_outstanding) {
           int res = readn(fd, &chunk, sizeof(chunk));
           if(!res) {
+            if (d_outstandings[fd] > 0) {
+              throw std::runtime_error("A signing pipe worker died while we were waiting for its result");
+            }
             d_eof.insert(fd);
             break;
           }
@@ -242,6 +247,7 @@ void ChunkedSigningPipe::sendRRSetToWorker() // it sounds so socialist!
           }
           
           --d_outstanding;
+          d_outstandings[fd]--;
           
           addSignedToChunks(chunk);
           
@@ -250,22 +256,23 @@ void ChunkedSigningPipe::sendRRSetToWorker() // it sounds so socialist!
       }
       if(!d_outstanding || !d_final)
         break;
-      rwVect = waitForRW(1, 0, -1); // wait for something to happen  
+      rwVect = waitForRW(true, false, -1); // wait for something to happen
     }
   }
   
   if(wantWrite) {  // our optimization above failed, we now wait synchronously
-    rwVect = waitForRW(0, wantWrite, -1); // wait for something to happen  
+    rwVect = waitForRW(false, wantWrite, -1); // wait for something to happen
     random_shuffle(rwVect.second.begin(), rwVect.second.end()); // pick random available worker
     writen2(*rwVect.second.begin(), &d_rrsetToSign, sizeof(d_rrsetToSign));
     d_rrsetToSign = new rrset_t;
+    d_outstandings[*rwVect.second.begin()]++;
     d_outstanding++;
     d_queued++;
   }
   
 }
 
-unsigned int ChunkedSigningPipe::getReady()
+unsigned int ChunkedSigningPipe::getReady() const
 {
    unsigned int sum=0; 
    for(const std::vector<DNSResourceRecord>& v :  d_chunks) {
