@@ -267,10 +267,8 @@ int main(int argc, char **argv)
 try
 {
     reportAllTypes();
-#if __GNUC__ >= 3
     std::ios_base::sync_with_stdio(false);
-#endif
-   
+  
     ::arg().setSwitch("gpgsql","Output in format suitable for default gpgsqlbackend")="no";
     ::arg().setSwitch("gmysql","Output in format suitable for default gmysqlbackend")="no";
     ::arg().setSwitch("mydns","Output in format suitable for default mydnsbackend")="no";
