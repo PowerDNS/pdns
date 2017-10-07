@@ -1007,7 +1007,7 @@ this to an empty string disables secpoll.
 -  String
 -  Default: The hostname of the server
 
-This is the server ID that will be returned on an EDNS NSID query.
+This is the server ID that will be returned on an EDNS NSID query. It defaults to the server's hostname.
 
 .. _setting-only-notify:
 
