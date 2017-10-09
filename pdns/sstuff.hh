@@ -96,7 +96,7 @@ public:
     int s=::accept(d_socket,(sockaddr *)&remote, &remlen);
     if(s<0) {
       if(errno==EAGAIN)
-        return 0;
+        return nullptr;
 
       throw NetworkError("Accepting a connection: "+string(strerror(errno)));
     }

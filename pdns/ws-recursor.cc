@@ -541,7 +541,9 @@ void AsyncServerNewConnectionMT(void *p) {
   AsyncServer *server = (AsyncServer*)p;
   try {
     auto socket = server->accept();
-    server->d_asyncNewConnectionCallback(socket);
+    if (socket) {
+      server->d_asyncNewConnectionCallback(socket);
+    }
   } catch (NetworkError &e) {
     // we're running in a shared process/thread, so can't just terminate/abort.
     return;
