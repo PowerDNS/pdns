@@ -1271,10 +1271,10 @@ static void startDoResolve(void *p)
       //      cerr<<"SLOW: "<<ourtime<<"ms -> "<<dc->d_mdp.d_qname<<"|"<<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype)<<endl;
       g_stats.ourtimeSlow++;
     }
-
-    newLat=ourtime*1000; // usec
-    g_stats.avgLatencyOursUsec=(1-1.0/g_latencyStatSize)*g_stats.avgLatencyOursUsec + (float)newLat/g_latencyStatSize;
-    
+    if(ourtime >= 0.0) {
+      newLat=ourtime*1000; // usec
+      g_stats.avgLatencyOursUsec=(1-1.0/g_latencyStatSize)*g_stats.avgLatencyOursUsec + (float)newLat/g_latencyStatSize;
+    }
     //    cout<<dc->d_mdp.d_qname<<"\t"<<MT->getUsec()<<"\t"<<sr.d_outqueries<<endl;
     delete dc;
     dc=0;
