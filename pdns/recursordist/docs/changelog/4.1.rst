@@ -2,7 +2,239 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
-  :version: 4.1.0-alpha2
+  :version: 4.1.0-rc1
+  :released: 9th of October 2017
+
+  The RC1 release features many fixes to the DNSSEC validation code, reported by different users. Other improvements include: logging, RPZ and the Remote Logger.
+
+  While not specifically mentioned in the ChangeLog, also thanks to Winfried Angele for bringing a documentation issue to our attention!
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5530
+
+    Add a missing header for PRId64 in the negative cache, required on EL5/EL6.
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 5543
+
+    Wrap the webserver's and Resolver::tryGetSOASerial objects into smart pointers (also thanks to Christian Hofstaedtler for reviewing!)
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 5545
+
+    Add more unit tests for the NetmaskTree and ECS cache index.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5549
+
+    Prevent an infinite loop if we need auth and the best match is not.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5570
+
+    Be more careful about the validation of negative answers.
+
+  .. change::
+    :tags: Bug Fixes, DNSSEC
+    :pullreq: 5569
+
+    Don't fetch the DNSKEY of a zone to validate the DS of the same zone.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5599
+    :tickets: 5456
+
+    Fix libatomic detection on ppc64. (Sander Hoentjen)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5588
+
+    Switch the default webserver's ACL to ``127.0.0.1, ::1``.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5598
+    :tickets: 5524
+
+    Add help text on autodetecting systemd support. (Ruben Kerkhof thanks for reporting!)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5615
+    :tickets: 5357
+
+    Fix sortlist in the presence of CNAME. (Benoit Perroud thanks for
+    reporting this issue!)
+
+  .. change::
+    :tags: Bug Fixes, DNSSEC
+    :pullreq: 5614
+
+    Improve DNSSEC debug logging,
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5622
+
+    Add ``log-rpz-changes`` to log RPZ additions and removals.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5621
+
+    Log the policy type (QName, Client IP, NS IP...) over protobuf.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5515
+
+    Fix cache handling of ECS queries with a source length of 0.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5637
+
+    Remove unused SortList compare operator for ComboAddress.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5620
+
+    Add support for dumping the in-memory RPZ zones to a file.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5328
+    :tickets: 5327
+
+    Handle SNMP alarms so we can reconnect to the master.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5646
+
+    Support for identifying devices by id such as mac address.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5662
+
+    Fix Recursor 4.1.0 alpha 1 compilation on FreeBSD. (@RvdE)
+
+  .. change::
+    :tags: Bug Fixes, DNSSEC
+    :pullreq: 5672
+    :tickets: 5649
+
+    Add NSEC records on nx-trust cache hits.
+
+  .. change::
+    :tags: Bug Fixes, DNSSEC
+    :pullreq: 5671
+    :tickets: 5650
+
+    Handle NSEC wrap-around.
+
+  .. change::
+    :tags: Bug Fixes, DNSSEC
+    :pullreq: 5670
+    :tickets: 5648, 5651
+
+    Fix erroneous check for section 4.1 of rfc6840.
+
+  .. change::
+    :tags: Bug Fixes, DNSSEC
+    :pullreq: 5715
+    :tickets: 5705
+
+    Handle direct NSEC queries.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5739
+
+    Remove pdns.PASS and pdns.TRUNCATE.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5734
+
+    Fix a crash when getting a public GOST key if the private one is not set.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5699
+
+    Implement dynamic cache sizeing.
+
+  .. change::
+    :tags: Bug Fixes, DNSSEC
+    :pullreq: 5716
+    :tickets: 5681
+
+    Detect zone cuts by asking for DS instead of NS.
+
+  .. change::
+    :tags: Bug Fixes, DNSSEC
+    :pullreq: 5738
+    :tickets: 5735
+
+    Do not allow direct queries for RRSIG or NSEC3.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5755
+
+    Improve dnsbulktest experience in Travis for more robustness.
+
+  .. change::
+    :tags: Improvements, DNSSEC
+    :pullreq: 5756
+
+    Improve ``--quiet=false`` output to include DNSSEC and more timing details.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5772
+
+    Set ``TC=1`` if we had to omit part of the AUTHORITY section.
+
+  .. change::
+    :tags: Bug Fixes, DNSSEC
+    :pullreq: 5771
+
+    The target zone being insecure doesn't mean that the denial of the DS is too, if the parent zone is Secure..
+
+  .. change::
+    :tags: Improvements, DNSSEC
+    :pullreq: 5733
+
+    Add DNSSEC test vectors for RSA, ECDSA, ed25519 and GOST.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5773
+
+    Don't negcache entries for longer than their RRSIG validity.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5764
+
+    autoconf: set ``--enable-libsodium`` to ``auto``.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5792
+
+    Gracefully handle Socket::accept() returning a null pointer on EAGAIN.
 
 .. changelog::
   :version: 4.1.0-alpha1
