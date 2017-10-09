@@ -305,10 +305,12 @@ bool TinyDNSBackend::get(DNSResourceRecord &rr)
         DLOG(cerr<<"CONTENT: "<<rr.content<<endl);
       }
       catch (...) {
+        L<<Logger::Error<<backendname<<"Failed to parse record content for "<<rr.qname<<" with type "<<rr.qtype.getName();
         if (d_ignorebogus) {
-          L<<Logger::Error<<backendname<<"Failed to parse record content for "<<rr.qname<<" with type "<<rr.qtype.getName()<<". Ignoring!"<<endl;
+          L<<". Ignoring!"<<endl;
           continue;
         } else
+          L<<". Erroring out!"<<endl;
           throw;
       }
 //      DLOG(L<<Logger::Debug<<backendname<<"Returning ["<<rr.content<<"] for ["<<rr.qname<<"] of RecordType ["<<rr.qtype.getName()<<"]"<<endl;);
