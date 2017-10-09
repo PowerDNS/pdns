@@ -935,11 +935,7 @@ public:
   string reason; //! Print this to tell the user what went wrong
 };
 
-#if (__GNUC__ == 4 && __GNUC_MINOR__ == 2)
-typedef boost::circular_buffer<SComboAddress> addrringbuf_t;
-#else
 typedef boost::circular_buffer<ComboAddress> addrringbuf_t;
-#endif
 extern thread_local std::unique_ptr<addrringbuf_t> t_servfailremotes, t_largeanswerremotes, t_remotes;
 
 extern thread_local std::unique_ptr<boost::circular_buffer<pair<DNSName,uint16_t> > > t_queryring, t_servfailqueryring;
