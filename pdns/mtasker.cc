@@ -344,6 +344,8 @@ template<class Key, class Val>bool MTasker<Key,Val>::schedule(struct timeval*  n
       }
       else if(i->ttd.tv_sec)
         break;
+      else
+	++i;
     }
   }
   return false;
