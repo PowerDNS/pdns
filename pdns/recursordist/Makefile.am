@@ -206,6 +206,7 @@ testrunner_SOURCES = \
 	ixfr.cc ixfr.hh \
 	logger.cc logger.hh \
 	misc.cc misc.hh \
+	mtasker_fcontext.cc \
 	negcache.hh negcache.cc \
 	namespaces.hh \
 	nsecrecords.cc \
@@ -237,6 +238,7 @@ testrunner_SOURCES = \
 	test-iputils_hh.cc \
 	test-ixfr_cc.cc \
 	test-misc_hh.cc \
+	test-mtasker.cc \
 	test-nmtree.cc \
 	test-negcache_cc.cc \
 	test-rcpgenerator_cc.cc \
@@ -254,10 +256,12 @@ testrunner_SOURCES = \
 
 testrunner_LDFLAGS = \
 	$(AM_LDFLAGS) \
+	$(BOOST_CONTEXT_LDFLAGS) \
 	$(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) \
 	$(LIBCRYPTO_LDFLAGS)
 
 testrunner_LDADD = \
+	$(BOOST_CONTEXT_LIBS) \
 	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
 	$(LIBCRYPTO_LIBS) \
 	$(RT_LIBS)
