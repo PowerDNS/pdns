@@ -206,7 +206,7 @@ testrunner_SOURCES = \
 	ixfr.cc ixfr.hh \
 	logger.cc logger.hh \
 	misc.cc misc.hh \
-	mtasker_fcontext.cc \
+	mtasker_context.cc \
 	negcache.hh negcache.cc \
 	namespaces.hh \
 	nsecrecords.cc \

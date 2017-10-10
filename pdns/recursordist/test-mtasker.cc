@@ -47,7 +47,7 @@ static void willThrow(void* p)
 
 
 BOOST_AUTO_TEST_CASE(test_MtaskerException) {
-  BOOST_CHECK_EXCEPTION( {
+  BOOST_CHECK_THROW( {
       MTasker<> mt;
       mt.makeThread(willThrow, 0);
       struct timeval now;
@@ -55,6 +55,6 @@ BOOST_AUTO_TEST_CASE(test_MtaskerException) {
       for(;;) {
 	mt.schedule(&now);
       }
-    }, std::exception, [](const std::exception& e) { return true; });
+    }, std::exception);
 }
 BOOST_AUTO_TEST_SUITE_END()
