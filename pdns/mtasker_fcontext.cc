@@ -152,7 +152,7 @@ threadWrapper (transfer_t const t) {
 #if BOOST_VERSION < 106100
     jump_fcontext (reinterpret_cast<fcontext_t*>(&ctx->uc_mcontext),
                    static_cast<fcontext_t>(next_ctx),
-                   static_cast<bool>(ctx->exception));
+                   reinterpret_cast<intptr_t>(ctx));
 #else
     jump_fcontext (static_cast<fcontext_t>(next_ctx), 0);
 #endif
@@ -189,10 +189,12 @@ pdns_swapcontext
      or we switch back to pdns_swapcontext(),
      in both case we will be returning from a call to jump_fcontext(). */
 #if BOOST_VERSION < 106100
-    if (jump_fcontext (reinterpret_cast<fcontext_t*>(&octx.uc_mcontext),
-                       static_cast<fcontext_t>(ctx.uc_mcontext), 0)) {
-        std::rethrow_exception (ctx.exception);
-    }
+    intptr_t ptr = jump_fcontext(reinterpret_cast<fcontext_t*>(&octx.uc_mcontext),
+                                 static_cast<fcontext_t>(ctx.uc_mcontext), 0);
+
+    auto origctx = reinterpret_cast<pdns_ucontext_t*>(ptr);
+    if(origctx && origctx->exception)
+        std::rethrow_exception (origctx->exception);
 #else
   transfer_t res = jump_fcontext (static_cast<fcontext_t>(ctx.uc_mcontext), &octx.uc_mcontext);
   if (res.data) {
