@@ -73,3 +73,7 @@ catch(std::exception& e)
 {
   L<<Logger::Error<<"Error in carbon thread: "<<e.what()<<endl;
 }
+catch(...)
+{
+  L<<Logger::Error<<"Unknown error in carbon thread"<<endl;
+}
