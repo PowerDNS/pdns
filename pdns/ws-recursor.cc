@@ -547,11 +547,11 @@ void AsyncServerNewConnectionMT(void *p) {
     }
   } catch (NetworkError &e) {
     // we're running in a shared process/thread, so can't just terminate/abort.
-    L<<Logger::Error<<"Network error in web thread: "<<e.what()<<endl;
+    L<<Logger::Warning<<"Network error in web thread: "<<e.what()<<endl;
     return;
   }
   catch (...) {
-    L<<Logger::Error<<"Unknown error in web thread: "<<endl;
+    L<<Logger::Warning<<"Unknown error in web thread"<<endl;
 
     return;
   }
