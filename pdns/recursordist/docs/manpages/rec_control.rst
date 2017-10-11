@@ -1,7 +1,7 @@
 rec_control manual page
 =======================
 
-Synopsys
+Synopsis
 --------
 
 **rec_control** [*OPTION*]... *COMMAND* [*COMMAND-OPTION*]...
