@@ -39,7 +39,7 @@ script:
 notifications:
   irc:
     channels:
-      - "irc.oftc.net#powerdns-dev"
+      - secure: "RDw5WKYf/gS3JnfIdkK51U4K2Xg/WNMn1uB/5AZbHbcqZJ/ZnbILCu0eBC83blQr+UuaQG7/sUFhWbtwoivD2I/4wOQGWIysBEZ8bSoySPSc4u0YU45aPjN+Ohrrp9qw7Smts3tYHbrOqfLfZ39L8lJq06vuMoBp6eHVkSBT7AY="
     template:
       - "%{author} @ %{repository} / %{branch} - Build:#%{build_number} : %{message} - Changes: %{compare_url} - Build details: %{build_url}"
     use_notice: true
