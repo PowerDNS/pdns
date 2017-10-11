@@ -474,7 +474,7 @@ void OpenSSLRSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map
   if (iqmp == NULL) {
     RSA_free(key);
     BN_clear_free(dmq1);
-    BN_clear_free(iqmp);
+    BN_clear_free(dmp1);
     throw runtime_error(getName()+" allocation of BIGNUM iqmp failed");
   }
   RSA_set0_crt_params(key, dmp1, dmq1, iqmp);
@@ -562,6 +562,7 @@ void OpenSSLRSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& input)
   BIGNUM *n = BN_bin2bn((unsigned char*)modulus.c_str(), modulus.length(), NULL);
   if (!n) {
     RSA_free(key);
+    BN_clear_free(e);
     throw runtime_error(getName()+" error loading n value of public key");
   }
 
