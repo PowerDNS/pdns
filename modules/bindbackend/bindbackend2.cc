@@ -353,6 +353,7 @@ void Bind2Backend::getAllDomains(vector<DomainInfo> *domains, bool include_disab
       di.zone=i->d_name;
       di.last_check=i->d_lastcheck;
       di.kind=i->d_masters.empty() ? DomainInfo::Master : DomainInfo::Slave; //TODO: what about Native?
+      di.masters=i->d_masters;
       di.backend=this;
       domains->push_back(di);
     };
