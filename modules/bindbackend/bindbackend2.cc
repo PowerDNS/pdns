@@ -302,7 +302,7 @@ void Bind2Backend::getUpdatedMasters(vector<DomainInfo> *changedDomains)
     ReadLock rl(&s_state_lock);
 
     for(state_t::const_iterator i = s_state.begin(); i != s_state.end() ; ++i) {
-      if(!i->d_masters.empty() && this->alsoNotify.empty() && i->d_also_notify.empty())
+      if(i->d_kind != DomainInfo::Master)
         continue;
 
       DomainInfo di;
@@ -352,7 +352,7 @@ void Bind2Backend::getAllDomains(vector<DomainInfo> *domains, bool include_disab
       di.id=i->d_id;
       di.zone=i->d_name;
       di.last_check=i->d_lastcheck;
-      di.kind=i->d_masters.empty() ? DomainInfo::Master : DomainInfo::Slave; //TODO: what about Native?
+      di.kind=i->d_kind;
       di.masters=i->d_masters;
       di.backend=this;
       domains->push_back(di);
@@ -374,7 +374,7 @@ void Bind2Backend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
   {
     ReadLock rl(&s_state_lock);
     for(state_t::const_iterator i = s_state.begin(); i != s_state.end() ; ++i) {
-      if(i->d_masters.empty())
+      if(i->d_kind != DomainInfo::Slave)
         continue;
       DomainInfo sd;
       sd.id=i->d_id;
@@ -412,7 +412,7 @@ bool Bind2Backend::getDomainInfo(const DNSName& domain, DomainInfo &di)
   di.masters=bbd.d_masters;
   di.last_check=bbd.d_lastcheck;
   di.backend=this;
-  di.kind=bbd.d_masters.empty() ? DomainInfo::Master : DomainInfo::Slave;
+  di.kind=bbd.d_kind;
   di.serial=0;
   try {
     SOAData sd;
@@ -839,6 +839,12 @@ void Bind2Backend::loadConfig(string* status)
         bbd.d_masters=i->masters;
         bbd.d_also_notify=i->alsoNotify;
 
+        bbd.d_kind = DomainInfo::Native;
+        if (i->type == "master")
+          bbd.d_kind = DomainInfo::Master;
+        if (i->type == "slave")
+          bbd.d_kind = DomainInfo::Slave;
+
         newnames.insert(bbd.d_name);
         if(filenameChanged || !bbd.d_loaded || !bbd.current()) {
           L<<Logger::Info<<d_logprefix<<" parsing '"<<i->name<<"' from file '"<<i->filename<<"'"<<endl;
@@ -1196,6 +1202,9 @@ bool Bind2Backend::isMaster(const DNSName& name, const string &ip)
   if(!safeGetBBDomainInfo(name, &bbd))
     return false;
 
+  if(bbd.d_kind != DomainInfo::Slave)
+    return false;
+
   for(vector<string>::const_iterator iter = bbd.d_masters.begin(); iter != bbd.d_masters.end(); ++iter)
     if(*iter==ip)
       return true;
@@ -1286,6 +1295,7 @@ bool Bind2Backend::createSlaveDomain(const string &ip, const DNSName& domain, co
   }
 
   BB2DomainInfo bbd = createDomainEntry(domain, filename);
+  bbd.d_kind = DomainInfo::Slave;
   bbd.d_masters.push_back(ip);
   safePutBBDomainInfo(bbd);
   return true;
