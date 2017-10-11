@@ -48,7 +48,7 @@ static bool nsecProvesENT(const DNSName& name, const DNSName& begin, const DNSNa
      - begin < name
      - next is a child of name
   */
-  return begin.canonCompare(name) && next.isPartOf(name);
+  return begin.canonCompare(name) && next != name && next.isPartOf(name);
 }
 
 static std::string getHashFromNSEC3(const DNSName& qname, const std::shared_ptr<NSEC3RecordContent> nsec3)

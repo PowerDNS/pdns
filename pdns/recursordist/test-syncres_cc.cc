@@ -7248,6 +7248,10 @@ BOOST_AUTO_TEST_CASE(test_nsec_ent_denial) {
      it is an ENT */
   denialState = getDenial(denialMap, DNSName("c.powerdns.com."), QType::AAAA, true, true);
   BOOST_CHECK_EQUAL(denialState, NXQTYPE);
+
+  /* this NSEC is not valid to prove a NXQTYPE for QType::A at a.c.powerdns.com either */
+  denialState = getDenial(denialMap, DNSName("a.c.powerdns.com."), QType::A, true, true);
+  BOOST_CHECK_EQUAL(denialState, NODATA);
 }
 
 BOOST_AUTO_TEST_CASE(test_nsec3_ancestor_nxqtype_denial) {
