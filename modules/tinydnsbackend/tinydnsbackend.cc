@@ -309,9 +309,10 @@ bool TinyDNSBackend::get(DNSResourceRecord &rr)
         if (d_ignorebogus) {
           L<<". Ignoring!"<<endl;
           continue;
-        } else
+        } else {
           L<<". Erroring out!"<<endl;
           throw;
+        }
       }
 //      DLOG(L<<Logger::Debug<<backendname<<"Returning ["<<rr.content<<"] for ["<<rr.qname<<"] of RecordType ["<<rr.qtype.getName()<<"]"<<endl;);
       return true;
