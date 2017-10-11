@@ -42,6 +42,15 @@ static bool isCoveredByNSEC(const DNSName& name, const DNSName& begin, const DNS
           (begin == next && name != begin));                        // "we have only 1 NSEC record, LOL!"
 }
 
+static bool nsecProvesENT(const DNSName& name, const DNSName& begin, const DNSName& next)
+{
+  /* if name is an ENT:
+     - begin < name
+     - next is a child of name
+  */
+  return begin.canonCompare(name) && next.isPartOf(name);
+}
+
 static std::string getHashFromNSEC3(const DNSName& qname, const std::shared_ptr<NSEC3RecordContent> nsec3)
 {
   std::string result;
@@ -95,10 +104,7 @@ bool denialProvesNoDelegation(const DNSName& zone, const std::vector<DNSRecord>&
   return false;
 }
 
-// FIXME: needs a zone argument, to avoid things like 6840 4.1
-// FIXME: Add ENT support
-// FIXME: Make usable for non-DS records and hook up to validateRecords (or another place)
-dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16_t qtype, bool referralToUnsigned)
+dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16_t qtype, bool referralToUnsigned, bool wantsNoDataProof)
 {
   for(const auto& v : validrrsets) {
     LOG("Do have: "<<v.first.first<<"/"<<DNSRecordContent::NumberToType(v.first.second)<<endl);
@@ -155,6 +161,12 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
 
         /* check if the whole NAME is denied existing */
         if(isCoveredByNSEC(qname, v.first.first, nsec->d_next)) {
+
+          if (wantsNoDataProof && nsecProvesENT(qname, v.first.first, nsec->d_next)) {
+            LOG("Denies existence of type "<<qname<<"/"<<QType(qtype).getName()<<" by proving that "<<qname<<" is an ENT"<<endl);
+            return NXQTYPE;
+          }
+
           LOG("Denies existence of name "<<qname<<"/"<<QType(qtype).getName()<<endl);
           return NXDOMAIN;
         }
@@ -712,7 +724,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, skeyset_t& keyset)
     auto r = validrrsets.equal_range(make_pair(*(zoneCutIter+1), QType::DS));
     if(r.first == r.second) {
       LOG("No DS for "<<*(zoneCutIter+1)<<", now look for a secure denial"<<endl);
-      dState res = getDenial(validrrsets, *(zoneCutIter+1), QType::DS, true);
+      dState res = getDenial(validrrsets, *(zoneCutIter+1), QType::DS, true, true);
       if (res == INSECURE || res == NXDOMAIN)
         return Bogus;
       if (res == NXQTYPE || res == OPTOUT)

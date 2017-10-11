@@ -1929,7 +1929,7 @@ void SyncRes::getDenialValidationState(NegCache::NegCacheEntry& ne, vState& stat
 
   if (state == Secure) {
     cspmap_t csp = harvestCSPFromNE(ne);
-    dState res = getDenial(csp, ne.d_name, ne.d_qtype.getCode(), referralToUnsigned);
+    dState res = getDenial(csp, ne.d_name, ne.d_qtype.getCode(), referralToUnsigned, expectedState == NXQTYPE);
     if (res != expectedState) {
       if (res == OPTOUT && allowOptOut) {
         LOG(d_prefix<<"OPT-out denial found for "<<ne.d_name<<endl);
@@ -1939,10 +1939,6 @@ void SyncRes::getDenialValidationState(NegCache::NegCacheEntry& ne, vState& stat
       else if (res == INSECURE) {
         LOG(d_prefix<<"Insecure denial found for "<<ne.d_name<<", returning Insecure"<<endl);
         ne.d_validationState = Insecure;
-      }
-      if (res == NXDOMAIN && expectedState == NXQTYPE) {
-        /* might happen for empty non-terminal, have fun */
-        return;
       }
       else {
         LOG(d_prefix<<"Invalid denial found for "<<ne.d_name<<", returning Bogus, res="<<res<<", expectedState="<<expectedState<<endl);
@@ -2043,7 +2039,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         harvestNXRecords(lwr.d_records, ne, d_now.tv_sec, &lowestTTL);
 
         cspmap_t csp = harvestCSPFromNE(ne);
-        dState denialState = getDenial(csp, newauth, QType::DS, true);
+        dState denialState = getDenial(csp, newauth, QType::DS, true, true);
         if (denialState == NXQTYPE || denialState == OPTOUT || denialState == INSECURE) {
           ne.d_ttd = lowestTTL + d_now.tv_sec;
           ne.d_validationState = Secure;
