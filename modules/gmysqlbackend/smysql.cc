@@ -233,8 +233,8 @@ public:
     row.reserve(d_fnum);
 
     for(int i=0;i<d_fnum;i++) {
-      if (*d_res_bind[i].error) {
-        L<<Logger::Warning<<"Result field at row " << d_residx << " column " << i << " has errno " << *d_res_bind[i].error << endl;
+      if (err == MYSQL_DATA_TRUNCATED && *d_res_bind[i].error) {
+        L<<Logger::Warning<<"Result field at row " << d_residx << " column " << i << " has been truncated, we allocated " << d_res_bind[i].buffer_length << " bytes but at least " << *d_res_bind[i].length << " was needed" << endl;
       }
       if (*d_res_bind[i].is_null) {
         row.push_back("");
