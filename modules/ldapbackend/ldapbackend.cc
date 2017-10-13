@@ -201,6 +201,57 @@ void LdapBackend::extract_entry_results( const DNSName& domain, const DNSResult&
         local_result.qtype = qt;
         local_result.qname = domain;
         local_result.value = value;
+        local_result.auth = true;
+
+        // Now let's see if we have some PDNS record data
+
+        // TTL
+        if ( d_result.count( "PdnsRecordTTL" ) && !d_result["PdnsRecordTTL"].empty() ) {
+          for ( const auto& rdata : d_result["PdnsRecordTTL"] ) {
+            std::string qtype;
+            std::size_t pos = rdata.find_first_of( '|', 0 );
+            if ( pos == std::string::npos )
+              continue;
+
+            qtype = rdata.substr( 0, pos );
+            if ( qtype != QType( local_result.qtype ).getName() )
+              continue;
+
+            local_result.ttl = pdns_stou( rdata.substr( pos + 1 ) );
+          }
+        }
+
+        // Not authoritative
+        if ( d_result.count( "PdnsRecordNoAuth" ) && !d_result["PdnsRecordNoAuth"].empty() ) {
+          for ( const auto& rdata : d_result["PdnsRecordNoAuth"] ) {
+            if ( rdata == QType( local_result.qtype ).getName() )
+              local_result.auth = false;
+          }
+        }
+
+        // Ordername
+        if ( d_result.count( "PdnsRecordOrdername" ) && !d_result["PdnsRecordOrdername"].empty() ) {
+          std::string defaultOrdername;
+
+          for ( const auto& rdata : d_result["PdnsRecordOrdername"] ) {
+            std::string qtype;
+            std::size_t pos = rdata.find_first_of( '|', 0 );
+            if ( pos == std::string::npos ) {
+              // This is the default ordername for all records in this entry
+              defaultOrdername = rdata;
+              continue;
+            }
+
+            qtype = rdata.substr( 0, pos );
+            if ( qtype != QType( local_result.qtype ).getName() )
+              continue;
+
+            local_result.ordername = rdata.substr( pos + 1 );
+          }
+
+          if ( local_result.ordername.empty() && !defaultOrdername.empty() )
+            local_result.ordername = defaultOrdername;
+        }
 
         d_results_cache.push_back( local_result );
       }

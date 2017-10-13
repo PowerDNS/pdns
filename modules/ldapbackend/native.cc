@@ -160,7 +160,7 @@ void LdapBackend::lookup_simple( const QType &qtype, const DNSName &qname, DNSPa
 {
   string filter, attr, qesc;
   const char** attributes = ldap_attrany + 1;   // skip associatedDomain
-  const char* attronly[] = { NULL, "dNSTTL", "modifyTimestamp", NULL };
+  const char* attronly[] = { NULL, "dNSTTL", "modifyTimestamp", "PdnsRecordTTL", "PdnsRecordAuth", "PdnsRecordOrdername", NULL };
 
 
   qesc = toLower( d_pldap->escape( qname.toStringRootDot() ) );
@@ -188,7 +188,7 @@ void LdapBackend::lookup_strict( const QType &qtype, const DNSName &qname, DNSPa
   vector<string> parts;
   string filter, attr, qesc;
   const char** attributes = ldap_attrany + 1;   // skip associatedDomain
-  const char* attronly[] = { NULL, "dNSTTL", "modifyTimestamp", NULL };
+  const char* attronly[] = { NULL, "dNSTTL", "modifyTimestamp", "PdnsRecordTTL", "PdnsRecordAuth", "PdnsRecordOrdername", NULL };
 
 
   qesc = toLower( d_pldap->escape( qname.toStringRootDot() ) );
@@ -232,7 +232,7 @@ void LdapBackend::lookup_tree( const QType &qtype, const DNSName &qname, DNSPack
 {
   string filter, attr, qesc, dn;
   const char** attributes = ldap_attrany + 1;   // skip associatedDomain
-  const char* attronly[] = { NULL, "dNSTTL", "modifyTimestamp", NULL };
+  const char* attronly[] = { NULL, "dNSTTL", "modifyTimestamp", "PdnsRecordTTL", "PdnsRecordAuth", "PdnsRecordOrdername", NULL };
   vector<string> parts;
 
 
@@ -345,6 +345,7 @@ bool LdapBackend::get( DNSResourceRecord &rr )
   rr.ttl = result.ttl;
   rr.last_modified = 0;
   rr.content = result.value;
+  rr.auth = result.auth;
 
   g_log << Logger::Debug << d_myname << " Record = qname: " << rr.qname << ", qtype: " << (rr.qtype).getName() << ", ttl: " << rr.ttl << ", content: " << rr.content << endl;
   return true;
