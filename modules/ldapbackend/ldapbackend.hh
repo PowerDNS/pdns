@@ -129,6 +129,11 @@ class LdapBackend : public DNSBackend
       std::string value;
       bool auth;
       std::string ordername;
+
+      DNSResult()
+        : ttl( 0 ), lastmod( 0 ), value( "" ), auth( true ), ordername( "" )
+      {
+      }
     };
     std::list<DNSResult> d_results_cache;
 
