@@ -58,6 +58,12 @@ attributetype ( 1.3.6.1.4.1.27080.1.13 NAME 'PdnsRecordOrdername'
     EQUALITY caseIgnoreMatch
     SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
 
+attributetype (  1.3.6.1.4.1.27080.1.15 NAME 'ALIASRecord'
+    DESC 'PowerDNS ALIAS RR type'
+    EQUALITY caseIgnoreIA5Match
+    SUBSTR caseIgnoreIA5SubstringsMatch
+    SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
+
 objectclass ( 1.3.6.1.4.1.27080.2.2.1 NAME 'PdnsDomain'
     DESC 'PDNS domain metadata information'
     SUP top AUXILIARY
@@ -68,4 +74,4 @@ objectclass ( 1.3.6.1.4.1.27080.2.2.1 NAME 'PdnsDomain'
 objectclass ( 1.3.6.1.4.1.27080.2.2.4 NAME 'PdnsRecordData'
     DESC 'Additional record data for PDNS'
     SUP top AUXILIARY
-    MAY ( PdnsRecordTTL $ PdnsRecordNoAuth $ PdnsRecordOrdername ) )
+    MAY ( PdnsRecordTTL $ PdnsRecordNoAuth $ PdnsRecordOrdername $ ALIASRecord ) )

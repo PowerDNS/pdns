@@ -56,6 +56,7 @@ class LdapAuthenticator;
 static const char* ldap_attrany[] = {
   "associatedDomain",
   "dNSTTL",
+  "ALIASRecord",
   "aRecord",
   "nSRecord",
   "cNAMERecord",
