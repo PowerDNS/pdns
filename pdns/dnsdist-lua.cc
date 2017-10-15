@@ -912,7 +912,7 @@ void setupLuaConfig(bool client)
       parseLocalBindVars(vars, doTCP, reusePort, tcpFastOpenQueueSize, interface, cpus);
 
       try {
-        DnsCryptContext ctx(providerName, certFile, keyFile);
+        auto ctx = std::make_shared<DNSCryptContext>(providerName, certFile, keyFile);
         g_dnsCryptLocals.push_back(std::make_tuple(ComboAddress(addr, 443), ctx, reusePort, tcpFastOpenQueueSize, interface, cpus));
       }
       catch(std::exception& e) {
@@ -929,17 +929,13 @@ void setupLuaConfig(bool client)
       setLuaNoSideEffect();
 #ifdef HAVE_DNSCRYPT
       ostringstream ret;
-      boost::format fmt("%1$-3d %2% %|25t|%3$-20.20s %|26t|%4$-8d %|35t|%5$-21.21s %|56t|%6$-9d %|66t|%7$-21.21s" );
-      ret << (fmt % "#" % "Address" % "Provider Name" % "Serial" % "Validity" % "P. Serial" % "P. Validity") << endl;
+      boost::format fmt("%1$-3d %2% %|25t|%3$-20.20s");
+      ret << (fmt % "#" % "Address" % "Provider Name") << endl;
       size_t idx = 0;
 
       for (const auto& local : g_dnsCryptLocals) {
-        const DnsCryptContext& ctx = std::get<1>(local);
-        bool const hasOldCert = ctx.hasOldCertificate();
-        const DnsCryptCert& cert = ctx.getCurrentCertificate();
-        const DnsCryptCert& oldCert = ctx.getOldCertificate();
-
-        ret<< (fmt % idx % std::get<0>(local).toStringWithPort() % ctx.getProviderName() % cert.signedData.serial % DnsCryptContext::certificateDateToStr(cert.signedData.tsEnd) % (hasOldCert ? oldCert.signedData.serial : 0) % (hasOldCert ? DnsCryptContext::certificateDateToStr(oldCert.signedData.tsEnd) : "-")) << endl;
+        const std::shared_ptr<DNSCryptContext> ctx = std::get<1>(local);
+        ret<< (fmt % idx % std::get<0>(local).toStringWithPort() % ctx->getProviderName()) << endl;
         idx++;
       }
 
@@ -949,12 +945,12 @@ void setupLuaConfig(bool client)
 #endif
     });
 
-  g_lua.writeFunction("getDNSCryptBind", [client](size_t idx) {
+  g_lua.writeFunction("getDNSCryptBind", [](size_t idx) {
       setLuaNoSideEffect();
 #ifdef HAVE_DNSCRYPT
-      DnsCryptContext* ret = nullptr;
+      std::shared_ptr<DNSCryptContext> ret = nullptr;
       if (idx < g_dnsCryptLocals.size()) {
-        ret = &(std::get<1>(g_dnsCryptLocals.at(idx)));
+        ret = std::get<1>(g_dnsCryptLocals.at(idx));
       }
       return ret;
 #else
@@ -970,7 +966,7 @@ void setupLuaConfig(bool client)
       sodium_mlock(privateKey, sizeof(privateKey));
 
       try {
-        DnsCryptContext::generateProviderKeys(publicKey, privateKey);
+        DNSCryptContext::generateProviderKeys(publicKey, privateKey);
 
         ofstream pubKStream(publicKeyFile);
         pubKStream.write((char*) publicKey, sizeof(publicKey));
@@ -980,7 +976,7 @@ void setupLuaConfig(bool client)
         privKStream.write((char*) privateKey, sizeof(privateKey));
         privKStream.close();
 
-        g_outputBuffer="Provider fingerprint is: " + DnsCryptContext::getProviderFingerprint(publicKey) + "\n";
+        g_outputBuffer="Provider fingerprint is: " + DNSCryptContext::getProviderFingerprint(publicKey) + "\n";
       }
       catch(std::exception& e) {
         errlog(e.what());
@@ -1007,7 +1003,7 @@ void setupLuaConfig(bool client)
           throw std::runtime_error("Invalid dnscrypt provider public key file " + publicKeyFile);
 
         file.close();
-        g_outputBuffer="Provider fingerprint is: " + DnsCryptContext::getProviderFingerprint(publicKey) + "\n";
+        g_outputBuffer="Provider fingerprint is: " + DNSCryptContext::getProviderFingerprint(publicKey) + "\n";
       }
       catch(std::exception& e) {
         errlog(e.what());
@@ -1018,16 +1014,16 @@ void setupLuaConfig(bool client)
 #endif
     });
 
-  g_lua.writeFunction("generateDNSCryptCertificate", [](const std::string& providerPrivateKeyFile, const std::string& certificateFile, const std::string privateKeyFile, uint32_t serial, time_t begin, time_t end) {
+  g_lua.writeFunction("generateDNSCryptCertificate", [](const std::string& providerPrivateKeyFile, const std::string& certificateFile, const std::string privateKeyFile, uint32_t serial, time_t begin, time_t end, boost::optional<DNSCryptExchangeVersion> version) {
       setLuaNoSideEffect();
 #ifdef HAVE_DNSCRYPT
-      DnsCryptPrivateKey privateKey;
-      DnsCryptCert cert;
+      DNSCryptPrivateKey privateKey;
+      DNSCryptCert cert;
 
       try {
-        if (generateDNSCryptCertificate(providerPrivateKeyFile, serial, begin, end, cert, privateKey)) {
+        if (generateDNSCryptCertificate(providerPrivateKeyFile, serial, begin, end, version ? *version : DNSCryptExchangeVersion::VERSION1, cert, privateKey)) {
           privateKey.saveToFile(privateKeyFile);
-          DnsCryptContext::saveCertFromFile(cert, certificateFile);
+          DNSCryptContext::saveCertFromFile(cert, certificateFile);
         }
       }
       catch(const std::exception& e) {

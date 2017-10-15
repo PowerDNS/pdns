@@ -90,7 +90,7 @@ string g_outputBuffer;
 vector<std::tuple<ComboAddress, bool, bool, int, string, std::set<int>>> g_locals;
 std::vector<std::shared_ptr<TLSFrontend>> g_tlslocals;
 #ifdef HAVE_DNSCRYPT
-std::vector<std::tuple<ComboAddress,DnsCryptContext,bool, int, string, std::set<int>>> g_dnsCryptLocals;
+std::vector<std::tuple<ComboAddress,std::shared_ptr<DNSCryptContext>,bool, int, string, std::set<int> >> g_dnsCryptLocals;
 #endif
 #ifdef HAVE_EBPF
 shared_ptr<BPFFilter> g_defaultBPFFilter;
@@ -336,7 +336,7 @@ bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize,
 }
 
 #ifdef HAVE_DNSCRYPT
-bool encryptResponse(char* response, uint16_t* responseLen, size_t responseSize, bool tcp, std::shared_ptr<DnsCryptQuery> dnsCryptQuery, dnsheader** dh, dnsheader* dhCopy)
+bool encryptResponse(char* response, uint16_t* responseLen, size_t responseSize, bool tcp, std::shared_ptr<DNSCryptQuery> dnsCryptQuery, dnsheader** dh, dnsheader* dhCopy)
 {
   if (dnsCryptQuery) {
     uint16_t encryptedResponseLen = 0;
@@ -347,7 +347,7 @@ bool encryptResponse(char* response, uint16_t* responseLen, size_t responseSize,
       *dh = dhCopy;
     }
 
-    int res = dnsCryptQuery->ctx->encryptResponse(response, *responseLen, responseSize, dnsCryptQuery, tcp, &encryptedResponseLen);
+    int res = dnsCryptQuery->encryptResponse(response, *responseLen, responseSize, tcp, &encryptedResponseLen);
     if (res == 0) {
       *responseLen = encryptedResponseLen;
     } else {
@@ -1154,15 +1154,15 @@ static bool isUDPQueryAcceptable(ClientState& cs, LocalHolders& holders, const s
 }
 
 #ifdef HAVE_DNSCRYPT
-static bool checkDNSCryptQuery(const ClientState& cs, const char* query, uint16_t& len, std::shared_ptr<DnsCryptQuery>& dnsCryptQuery, const ComboAddress& dest, const ComboAddress& remote)
+static bool checkDNSCryptQuery(const ClientState& cs, const char* query, uint16_t& len, std::shared_ptr<DNSCryptQuery>& dnsCryptQuery, const ComboAddress& dest, const ComboAddress& remote, time_t now)
 {
   if (cs.dnscryptCtx) {
     vector<uint8_t> response;
     uint16_t decryptedQueryLen = 0;
 
-    dnsCryptQuery = std::make_shared<DnsCryptQuery>();
+    dnsCryptQuery = std::make_shared<DNSCryptQuery>(cs.dnscryptCtx);
 
-    bool decrypted = handleDnsCryptQuery(cs.dnscryptCtx, const_cast<char*>(query), len, dnsCryptQuery, &decryptedQueryLen, false, response);
+    bool decrypted = handleDNSCryptQuery(const_cast<char*>(query), len, dnsCryptQuery, &decryptedQueryLen, false, now, response);
 
     if (!decrypted) {
       if (response.size() > 0) {
@@ -1221,10 +1221,18 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       return;
     }
 
-#ifdef HAVE_DNSCRYPT
-    std::shared_ptr<DnsCryptQuery> dnsCryptQuery = nullptr;
+    /* we need an accurate ("real") value for the response and
+       to store into the IDS, but not for insertion into the
+       rings for example */
+    struct timespec queryRealTime;
+    struct timespec now;
+    gettime(&now);
+    gettime(&queryRealTime, true);
 
-    if (!checkDNSCryptQuery(cs, query, len, dnsCryptQuery, dest, remote)) {
+#ifdef HAVE_DNSCRYPT
+    std::shared_ptr<DNSCryptQuery> dnsCryptQuery = nullptr;
+
+    if (!checkDNSCryptQuery(cs, query, len, dnsCryptQuery, dest, remote, queryRealTime.tv_sec)) {
       return;
     }
 #endif
@@ -1238,14 +1246,6 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
 
     string poolname;
     int delayMsec = 0;
-    /* we need an accurate ("real") value for the response and
-       to store into the IDS, but not for insertion into the
-       rings for example */
-    struct timespec queryRealTime;
-    struct timespec now;
-    gettime(&now);
-    gettime(&queryRealTime, true);
-
     const uint16_t * flags = getFlagsFromDNSHeader(dh);
     const uint16_t origFlags = *flags;
     uint16_t qtype, qclass;
@@ -2362,7 +2362,7 @@ try
   for(auto& dcLocal : g_dnsCryptLocals) {
     ClientState* cs = new ClientState;
     cs->local = std::get<0>(dcLocal);
-    cs->dnscryptCtx = &(std::get<1>(dcLocal));
+    cs->dnscryptCtx = std::get<1>(dcLocal);
     cs->udpFD = SSocket(cs->local.sin4.sin_family, SOCK_DGRAM, 0);
     if(cs->local.sin4.sin_family == AF_INET6) {
       SSetsockopt(cs->udpFD, IPPROTO_IPV6, IPV6_V6ONLY, 1);
@@ -2408,7 +2408,7 @@ try
 
     cs = new ClientState;
     cs->local = std::get<0>(dcLocal);
-    cs->dnscryptCtx = &(std::get<1>(dcLocal));
+    cs->dnscryptCtx = std::get<1>(dcLocal);
     cs->tcpFD = SSocket(cs->local.sin4.sin_family, SOCK_STREAM, 0);
     SSetsockopt(cs->tcpFD, SOL_SOCKET, SO_REUSEADDR, 1);
 #ifdef TCP_DEFER_ACCEPT

@@ -94,7 +94,6 @@ class DNSCryptClient(object):
         data = None
         if tcp:
             got = sock.recv(2)
-            print(len(got))
             if got:
                 (rlen,) = struct.unpack("!H", got)
                 data = sock.recv(rlen)
@@ -134,6 +133,8 @@ class DNSCryptClient(object):
         if an.rdclass != dns.rdataclass.IN or an.rdtype != dns.rdatatype.TXT or len(an.items) == 0:
             raise Exception("Invalid response to public key request")
 
+        self._resolverCertificates = []
+
         for item in an.items:
             if len(item.strings) != 1:
                 continue
@@ -149,6 +150,15 @@ class DNSCryptClient(object):
             if cert.isValid():
                 if result is None or cert.serial > result.serial:
                     result = cert
+
+        return result
+
+    def getAllResolverCertificates(self, onlyValid=False):
+        certs = self._resolverCertificates
+        result = []
+        for cert in certs:
+            if not onlyValid or cert.isValid():
+                result.append(cert)
 
         return result
 

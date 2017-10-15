@@ -316,14 +316,21 @@ void* tcpClientThread(int pipefd)
 
         char* query = &queryBuffer[0];
         handler.read(query, qlen, g_tcpRecvTimeout, remainingTime);
+
+        /* we need this one to be accurate ("real") for the protobuf message */
+	struct timespec queryRealTime;
+	struct timespec now;
+	gettime(&now);
+	gettime(&queryRealTime, true);
+
 #ifdef HAVE_DNSCRYPT
-        std::shared_ptr<DnsCryptQuery> dnsCryptQuery = nullptr;
+        std::shared_ptr<DNSCryptQuery> dnsCryptQuery = nullptr;
 
         if (ci.cs->dnscryptCtx) {
-          dnsCryptQuery = std::make_shared<DnsCryptQuery>();
+          dnsCryptQuery = std::make_shared<DNSCryptQuery>(ci.cs->dnscryptCtx);
           uint16_t decryptedQueryLen = 0;
           vector<uint8_t> response;
-          bool decrypted = handleDnsCryptQuery(ci.cs->dnscryptCtx, query, qlen, dnsCryptQuery, &decryptedQueryLen, true, response);
+          bool decrypted = handleDNSCryptQuery(query, qlen, dnsCryptQuery, &decryptedQueryLen, true, queryRealTime.tv_sec, response);
 
           if (!decrypted) {
             if (response.size() > 0) {
@@ -342,11 +349,6 @@ void* tcpClientThread(int pipefd)
 
 	string poolname;
 	int delayMsec=0;
-	/* we need this one to be accurate ("real") for the protobuf message */
-	struct timespec queryRealTime;
-	struct timespec now;
-	gettime(&now);
-	gettime(&queryRealTime, true);
 
 	const uint16_t* flags = getFlagsFromDNSHeader(dh);
 	uint16_t origFlags = *flags;
