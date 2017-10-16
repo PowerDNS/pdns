@@ -6987,10 +6987,10 @@ BOOST_AUTO_TEST_CASE(test_nsec_denial_nowrap) {
   cspmap_t denialMap;
   denialMap[std::make_pair(DNSName("a.example.org."), QType::NSEC)] = pair;
 
-  dState denialState = getDenial(denialMap, DNSName("b.example.org."), QType::A, false);
+  dState denialState = getDenial(denialMap, DNSName("b.example.org."), QType::A, false, false);
   BOOST_CHECK_EQUAL(denialState, NXDOMAIN);
 
-  denialState = getDenial(denialMap, DNSName("d.example.org."), QType::A, false);
+  denialState = getDenial(denialMap, DNSName("d.example.org."), QType::A, false, false);
   /* let's check that d.example.org. is not denied by this proof */
   BOOST_CHECK_EQUAL(denialState, NODATA);
 }
@@ -7022,10 +7022,10 @@ BOOST_AUTO_TEST_CASE(test_nsec_denial_wrap_case_1) {
   cspmap_t denialMap;
   denialMap[std::make_pair(DNSName("z.example.org."), QType::NSEC)] = pair;
 
-  dState denialState = getDenial(denialMap, DNSName("a.example.org."), QType::A, false);
+  dState denialState = getDenial(denialMap, DNSName("a.example.org."), QType::A, false, false);
   BOOST_CHECK_EQUAL(denialState, NXDOMAIN);
 
-  denialState = getDenial(denialMap, DNSName("d.example.org."), QType::A, false);
+  denialState = getDenial(denialMap, DNSName("d.example.org."), QType::A, false, false);
   /* let's check that d.example.org. is not denied by this proof */
   BOOST_CHECK_EQUAL(denialState, NODATA);
 }
@@ -7057,10 +7057,10 @@ BOOST_AUTO_TEST_CASE(test_nsec_denial_wrap_case_2) {
   cspmap_t denialMap;
   denialMap[std::make_pair(DNSName("y.example.org."), QType::NSEC)] = pair;
 
-  dState denialState = getDenial(denialMap, DNSName("z.example.org."), QType::A, false);
+  dState denialState = getDenial(denialMap, DNSName("z.example.org."), QType::A, false, false);
   BOOST_CHECK_EQUAL(denialState, NXDOMAIN);
 
-  denialState = getDenial(denialMap, DNSName("d.example.org."), QType::A, false);
+  denialState = getDenial(denialMap, DNSName("d.example.org."), QType::A, false, false);
   /* let's check that d.example.org. is not denied by this proof */
   BOOST_CHECK_EQUAL(denialState, NODATA);
 }
@@ -7092,10 +7092,10 @@ BOOST_AUTO_TEST_CASE(test_nsec_denial_only_one_nsec) {
   cspmap_t denialMap;
   denialMap[std::make_pair(DNSName("a.example.org."), QType::NSEC)] = pair;
 
-  dState denialState = getDenial(denialMap, DNSName("b.example.org."), QType::A, false);
+  dState denialState = getDenial(denialMap, DNSName("b.example.org."), QType::A, false, false);
   BOOST_CHECK_EQUAL(denialState, NXDOMAIN);
 
-  denialState = getDenial(denialMap, DNSName("a.example.org."), QType::A, false);
+  denialState = getDenial(denialMap, DNSName("a.example.org."), QType::A, false, false);
   /* let's check that d.example.org. is not denied by this proof */
   BOOST_CHECK_EQUAL(denialState, NODATA);
 }
@@ -7127,7 +7127,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_root_nxd_denial) {
   cspmap_t denialMap;
   denialMap[std::make_pair(DNSName("a."), QType::NSEC)] = pair;
 
-  dState denialState = getDenial(denialMap, DNSName("b."), QType::A, false);
+  dState denialState = getDenial(denialMap, DNSName("b."), QType::A, false, false);
   BOOST_CHECK_EQUAL(denialState, NXDOMAIN);
 }
 
@@ -7167,12 +7167,12 @@ BOOST_AUTO_TEST_CASE(test_nsec_ancestor_nxqtype_denial) {
      owner name regardless of type.
   */
 
-  dState denialState = getDenial(denialMap, DNSName("a."), QType::A, false);
+  dState denialState = getDenial(denialMap, DNSName("a."), QType::A, false, false);
   /* no data means the qname/qtype is not denied, because an ancestor
      delegation NSEC can only deny the DS */
   BOOST_CHECK_EQUAL(denialState, NODATA);
 
-  denialState = getDenial(denialMap, DNSName("a."), QType::DS, true);
+  denialState = getDenial(denialMap, DNSName("a."), QType::DS, true, true);
   BOOST_CHECK_EQUAL(denialState, NXQTYPE);
 }
 
@@ -7213,8 +7213,45 @@ BOOST_AUTO_TEST_CASE(test_nsec_insecure_delegation_denial) {
 
   /* Insecure because the NS is not set, so while it does
      denies the DS, it can't prove an insecure delegation */
-  dState denialState = getDenial(denialMap, DNSName("a."), QType::DS, true);
+  dState denialState = getDenial(denialMap, DNSName("a."), QType::DS, true, true);
   BOOST_CHECK_EQUAL(denialState, INSECURE);
+}
+
+BOOST_AUTO_TEST_CASE(test_nsec_ent_denial) {
+  init();
+
+  testkeysset_t keys;
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
+
+  vector<DNSRecord> records;
+
+  vector<shared_ptr<DNSRecordContent>> recordContents;
+  vector<shared_ptr<RRSIGRecordContent>> signatureContents;
+
+  addNSECRecordToLW(DNSName("a.powerdns.com."), DNSName("a.c.powerdns.com."), { QType::A }, 600, records);
+  recordContents.push_back(records.at(0).d_content);
+  addRRSIG(keys, records, DNSName("powerdns.com."), 300);
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+  records.clear();
+
+  ContentSigPair pair;
+  pair.records = recordContents;
+  pair.signatures = signatureContents;
+  cspmap_t denialMap;
+  denialMap[std::make_pair(DNSName("a.powerdns.com."), QType::NSEC)] = pair;
+
+  /* this NSEC is not valid to prove a NXQTYPE at b.powerdns.com */
+  dState denialState = getDenial(denialMap, DNSName("b.powerdns.com."), QType::AAAA, true, true);
+  BOOST_CHECK_EQUAL(denialState, NXDOMAIN);
+
+  /* it is valid to prove a NXQTYPE at c.powerdns.com because it proves that
+     it is an ENT */
+  denialState = getDenial(denialMap, DNSName("c.powerdns.com."), QType::AAAA, true, true);
+  BOOST_CHECK_EQUAL(denialState, NXQTYPE);
+
+  /* this NSEC is not valid to prove a NXQTYPE for QType::A at a.c.powerdns.com either */
+  denialState = getDenial(denialMap, DNSName("a.c.powerdns.com."), QType::A, true, true);
+  BOOST_CHECK_EQUAL(denialState, NODATA);
 }
 
 BOOST_AUTO_TEST_CASE(test_nsec3_ancestor_nxqtype_denial) {
@@ -7253,12 +7290,12 @@ BOOST_AUTO_TEST_CASE(test_nsec3_ancestor_nxqtype_denial) {
      owner name regardless of type.
   */
 
-  dState denialState = getDenial(denialMap, DNSName("a."), QType::A, false);
+  dState denialState = getDenial(denialMap, DNSName("a."), QType::A, false, true);
   /* no data means the qname/qtype is not denied, because an ancestor
      delegation NSEC3 can only deny the DS */
   BOOST_CHECK_EQUAL(denialState, NODATA);
 
-  denialState = getDenial(denialMap, DNSName("a."), QType::DS, true);
+  denialState = getDenial(denialMap, DNSName("a."), QType::DS, true, true);
   BOOST_CHECK_EQUAL(denialState, NXQTYPE);
 }
 
@@ -7299,7 +7336,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_insecure_delegation_denial) {
 
   /* Insecure because the NS is not set, so while it does
      denies the DS, it can't prove an insecure delegation */
-  dState denialState = getDenial(denialMap, DNSName("a."), QType::DS, true);
+  dState denialState = getDenial(denialMap, DNSName("a."), QType::DS, true, true);
   BOOST_CHECK_EQUAL(denialState, INSECURE);
 }
 
