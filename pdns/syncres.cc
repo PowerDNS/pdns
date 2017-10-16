@@ -377,7 +377,11 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool wantsEDNS, const D
     else if(mode==EDNSStatus::UNKNOWN || mode==EDNSStatus::EDNSOK || mode==EDNSStatus::EDNSIGNORANT)
       EDNSLevel = 1;
     
-    ret=asyncresolve(ip, domain, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, luaconfsLocal->outgoingProtobufServer, res);
+    DNSName sendQname(domain);
+    if (g_lowercaseOutgoing)
+      sendQname = sendQname.makeLowerCase();
+
+    ret=asyncresolve(ip, sendQname, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, luaconfsLocal->outgoingProtobufServer, res);
     if(ret < 0) {
       return ret; // transport error, nothing to learn here
     }
