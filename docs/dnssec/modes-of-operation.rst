@@ -137,6 +137,8 @@ not required to be rectified on the master.
 
 Signatures and Hashing is similar as described in :ref:`dnssec-online-signing`.
 
+.. _dnssec-modes-bind-mode:
+
 BIND-mode operation
 -------------------
 
@@ -147,6 +149,9 @@ To use this mode, add
 ``bind-dnssec-db=/var/db/bind-dnssec-db.sqlite3`` to pdns.conf, and run
 ``pdnsutil create-bind-db /var/db/bind-dnssec-db.sqlite3``. Then,
 restart PowerDNS.
+
+.. note::
+  This sqlite database is different from the database used for the regular :doc:`SQLite 3 backend <../backends/generic-sqlite3>`.
 
 After this, you can use ``pdnsutil secure-zone`` and all other pdnsutil
 commands on your BIND zones without trouble.
@@ -167,8 +172,8 @@ In hybrid mode, keying material and zone records are stored in different
 backends. This allows for 'bindbackend' operation in full DNSSEC mode.
 
 To benefit from this mode, include at least one database-based backend
-in the 'launch' statement. The :doc:`SQLite 3 backend <../backends/generic-sqlite3>` probably complements BIND mode
-best, since it does not require a database server process.
+in the :ref:`setting-launch` statement. See the :doc:`backend specific documentation <../backends/index>`
+on how to initialize the database and backend.
 
 .. warning::
   For now, it is necessary to execute a manual SQL 'insert'
@@ -177,3 +182,9 @@ best, since it does not require a database server process.
   statement::
 
       insert into domains (name, type) values ('powerdnssec.org', 'NATIVE');
+
+The :doc:`SQLite 3 backend <../backends/generic-sqlite3>` probably complements BIND mode best, since it does not require a database server process.
+
+.. note::
+  The sqlite3 database must be created using the normal schema for this backend.
+  The database created with ``pdnsutil create-bind-db`` will not work in this backend.
