@@ -542,6 +542,11 @@ static void checkDefaultDNSSECAlgos() {
   }
 }
 
+static void throwUnableToSecure(const DNSName& zonename) {
+  throw ApiException("No backend was able to secure '" + zonename.toString() + "', most likely because no DNSSEC"
+      + "capable backends are loaded, or because the backends have DNSSEC disabled. Check your configuration.");
+}
+
 static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& di, const DNSName& zonename, const Json document) {
   string zonemaster;
   bool shouldRectify = false;
@@ -599,20 +604,14 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
         if (k_algo != -1) {
           int64_t id;
           if (!dk.addKey(zonename, true, k_algo, id, k_size)) {
-            throw ApiException("No backend was able to secure '" + zonename.toString() + "', most likely because no DNSSEC"
-                + "capable backends are loaded, or because the backends have DNSSEC disabled."
-                + "For the Generic SQL backends, set the 'gsqlite3-dnssec', 'gmysql-dnssec' or"
-                + "'gpgsql-dnssec' flag. Also make sure the schema has been updated for DNSSEC!");
+            throwUnableToSecure(zonename);
           }
         }
 
         if (z_algo != -1) {
           int64_t id;
           if (!dk.addKey(zonename, false, z_algo, id, z_size)) {
-            throw ApiException("No backend was able to secure '" + zonename.toString() + "', most likely because no DNSSEC"
-                + "capable backends are loaded, or because the backends have DNSSEC disabled."
-                + "For the Generic SQL backends, set the 'gsqlite3-dnssec', 'gmysql-dnssec' or"
-                + "'gpgsql-dnssec' flag. Also make sure the schema has been updated for DNSSEC!");
+            throwUnableToSecure(zonename);
           }
         }
 
@@ -620,11 +619,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
         isDNSSECZone = dk.isSecuredZone(zonename);
 
         if (!isDNSSECZone) {
-          throw ApiException("Failed to secure '" + zonename.toString() + "'. Is your backend dnssec enabled? (set "
-              + "gsqlite3-dnssec, or gmysql-dnssec etc). Check this first."
-              + "If you run with the BIND backend, make sure you have configured"
-              + "it to use DNSSEC with 'bind-dnssec-db=/path/fname' and"
-              + "'pdnsutil create-bind-db /path/fname'!");
+          throwUnableToSecure(zonename);
         }
         shouldRectify = true;
       }
