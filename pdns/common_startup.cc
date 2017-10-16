@@ -528,6 +528,8 @@ void mainthread()
   // Some sanity checking on default key settings
   for (const string& algotype : {"ksk", "zsk"}) {
     int algo, size;
+    if (::arg()["default-"+algotype+"-algorithm"].empty())
+      continue;
     algo = DNSSECKeeper::shorthand2algorithm(::arg()["default-"+algotype+"-algorithm"]);
     size = ::arg().asNum("default-"+algotype+"-size");
     if (algo == -1)
