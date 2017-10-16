@@ -587,7 +587,13 @@ bool DNSSECKeeper::getTSIGForAccess(const DNSName& zone, const string& master, D
   return false;
 }
 
-bool DNSSECKeeper::rectifyZone(const DNSName& zone, string& error) {
+/* Rectifies the zone
+ *
+ * \param zone The zone to rectify
+ * \param error& A string where error messages are added
+ * \param doTransaction Whether or not to wrap the rectify in a transaction
+ */
+bool DNSSECKeeper::rectifyZone(const DNSName& zone, string& error, bool doTransaction) {
   if (isPresigned(zone)) {
     error =  "Rectify presigned zone '"+zone.toLogString()+"' is not allowed/necessary.";
     return false;
@@ -662,7 +668,8 @@ bool DNSSECKeeper::rectifyZone(const DNSName& zone, string& error) {
     }
   }
 
-  sd.db->startTransaction(zone, -1);
+  if (doTransaction)
+    sd.db->startTransaction(zone, -1);
 
   bool realrr=true;
   bool doent=true;
@@ -766,7 +773,8 @@ bool DNSSECKeeper::rectifyZone(const DNSName& zone, string& error) {
     }
   }
 
-  sd.db->commitTransaction();
+  if (doTransaction)
+    sd.db->commitTransaction();
 
   return true;
 }
