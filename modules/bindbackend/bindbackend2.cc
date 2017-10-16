@@ -806,6 +806,12 @@ void Bind2Backend::loadConfig(string* status)
         i!=domains.end();
         ++i) 
       {
+        if (!(i->hadFileDirective)) {
+          L<<Logger::Warning<<d_logprefix<<" Zone '"<<i->name<<"' has no 'file' directive set in "<<getArg("config")<<endl;
+          rejected++;
+          continue;
+        }
+
         if(i->type == "") {
           L<<Logger::Warning<<d_logprefix<<" Warning! Skipping zone '"<<i->name<<"' because it has no type specified"<<endl;
           rejected++;
