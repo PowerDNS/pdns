@@ -593,10 +593,19 @@ bool DNSSECKeeper::rectifyZone(const DNSName& zone, string& error) {
     return false;
   }
 
-  UeberBackend B("default");
+  UeberBackend* B = d_keymetadb;
+  std::unique_ptr<UeberBackend> b;
+
+  if (d_ourDB) {
+    // We don't have a *full* Ueberbackend, just a key-only one.
+    // Let's create one and use it
+    b = std::unique_ptr<UeberBackend>(new UeberBackend());
+    B = b.get();
+  }
+
   SOAData sd;
 
-  if(!B.getSOAUncached(zone, sd)) {
+  if(!B->getSOAUncached(zone, sd)) {
     error = "No SOA known for '" + zone.toLogString() + "', is such a zone in the database?";
     return false;
   }
