@@ -3059,6 +3059,12 @@ try
     string kind = cmds[2];
     vector<string> meta(cmds.begin() + 3, cmds.end());
 
+    DomainInfo di;
+    if (!B.getDomainInfo(zone, di)){
+      cerr << "No such zone in the database" << endl;
+      return false;
+    }
+
     if (!B.setDomainMetadata(zone, kind, meta)) {
       cerr << "Unable to set meta for '" << zone << "'" << endl;
       return 1;
