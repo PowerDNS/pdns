@@ -149,7 +149,6 @@ static std::atomic<bool> statsWanted;
 static std::atomic<bool> g_quiet;
 static bool g_logCommonErrors;
 static bool g_anyToTcp;
-static bool g_lowercaseOutgoing;
 static bool g_weDistributeQueries; // if true, only 1 thread listens on the incoming query sockets
 static bool g_reusePort{false};
 static bool g_useOneSocketPerThread;
@@ -162,6 +161,7 @@ RecursorControlChannel s_rcc; // only active in thread 0
 RecursorStats g_stats;
 string s_programname="pdns_recursor";
 string s_pidfname;
+bool g_lowercaseOutgoing;
 unsigned int g_numThreads;
 uint16_t g_outgoingEDNSBufsize;
 bool g_logRPZChanges{false};
@@ -760,10 +760,6 @@ static void startDoResolve(void *p)
     pw.getHeader()->id=dc->d_mdp.d_header.id;
     pw.getHeader()->rd=dc->d_mdp.d_header.rd;
     pw.getHeader()->cd=dc->d_mdp.d_header.cd;
-
-    // DO NOT MOVE THIS CODE UP - DNSPacketWriter needs to get the original-cased version
-    if (g_lowercaseOutgoing)
-      dc->d_mdp.d_qname = dc->d_mdp.d_qname.makeLowerCase();
 
     uint32_t minTTL=std::numeric_limits<uint32_t>::max();
 

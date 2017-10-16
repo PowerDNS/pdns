@@ -19,6 +19,7 @@ RecursorStats g_stats;
 GlobalStateHolder<LuaConfigItems> g_luaconfs;
 thread_local std::unique_ptr<MemRecursorCache> t_RC{nullptr};
 unsigned int g_numThreads = 1;
+bool g_lowercaseOutgoing = false;
 
 /* Fake some required functions we didn't want the trouble to
    link with */
@@ -7468,6 +7469,68 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_cache_validity) {
   BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 2);
   BOOST_CHECK_EQUAL(queriesCount, 4);
+}
+
+BOOST_AUTO_TEST_CASE(test_lowercase_outgoing) {
+  g_lowercaseOutgoing = true;
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr);
+
+  primeHints();
+
+  vector<DNSName> sentOutQnames;
+
+  const DNSName target("WWW.POWERDNS.COM");
+  const DNSName cname("WWW.PowerDNS.org");
+
+  sr->setAsyncCallback([target, cname, &sentOutQnames](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
+
+      sentOutQnames.push_back(domain);
+
+      if (isRootServer(ip)) {
+        if (domain == target) {
+          setLWResult(res, 0, false, false, true);
+          addRecordToLW(res, "powerdns.com.", QType::NS, "pdns-public-ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, 172800);
+          addRecordToLW(res, "pdns-public-ns1.powerdns.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+          return 1;
+        }
+        if (domain == cname) {
+          setLWResult(res, 0, false, false, true);
+          addRecordToLW(res, "powerdns.org.", QType::NS, "pdns-public-ns1.powerdns.org.", DNSResourceRecord::AUTHORITY, 172800);
+          addRecordToLW(res, "pdns-public-ns1.powerdns.org.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 3600);
+          return 1;
+        }
+      } else if (ip == ComboAddress("192.0.2.1:53")) {
+        if (domain == target) {
+          setLWResult(res, 0, true, false, false);
+          addRecordToLW(res, domain, QType::CNAME, cname.toString());
+          return 1;
+        }
+      } else if (ip == ComboAddress("192.0.2.2:53")) {
+        if (domain == cname) {
+          setLWResult(res, 0, true, false, false);
+          addRecordToLW(res, domain, QType::A, "127.0.0.1");
+          return 1;
+        }
+      }
+      return 0;
+  });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+
+  BOOST_REQUIRE_EQUAL(ret.size(), 2);
+  BOOST_CHECK_EQUAL(ret[0].d_content->getZoneRepresentation(), cname.toString());
+
+  BOOST_REQUIRE_EQUAL(sentOutQnames.size(), 4);
+  BOOST_CHECK_EQUAL(sentOutQnames[0].toString(), target.makeLowerCase().toString());
+  BOOST_CHECK_EQUAL(sentOutQnames[1].toString(), target.makeLowerCase().toString());
+  BOOST_CHECK_EQUAL(sentOutQnames[2].toString(), cname.makeLowerCase().toString());
+  BOOST_CHECK_EQUAL(sentOutQnames[3].toString(), cname.makeLowerCase().toString());
+
+  g_lowercaseOutgoing = false;
 }
 
 /*
