@@ -564,9 +564,12 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
   if (document["soa_edit"].is_string()) {
     di.backend->setDomainMetadataOne(zonename, "SOA-EDIT", document["soa_edit"].string_value());
   }
-  if (document["api_rectify"].is_string()) {
-    di.backend->setDomainMetadataOne(zonename, "API-RECTIFY", document["api_rectify"].string_value());
+  try {
+    bool api_rectify = boolFromJson(document, "api_rectify");
+    di.backend->setDomainMetadataOne(zonename, "API-RECTIFY", api_rectify ? "1" : "0");
   }
+  catch (JsonException) {}
+
   if (document["account"].is_string()) {
     di.backend->setAccount(zonename, document["account"].string_value());
   }
