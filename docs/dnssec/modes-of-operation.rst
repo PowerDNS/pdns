@@ -84,13 +84,33 @@ In PowerDNS live signing mode, signatures, as served through RRSIG
 records, are calculated on the fly, and heavily cached. All CPU cores
 are used for the calculation.
 
-RRSIGs have a validity period, in PowerDNS by default this period starts
-at most a week in the past, and continues at least a week into the
-future.
+RRSIGs have a validity period, in PowerDNS this period is 3 weeks.
+This period starts at most a week in the past, and continues at least a week into the future.
+This interval jumps with one-week increments every Thursday.
 
-Precisely speaking, the time period used is always from the start of the
-previous Thursday until the Thursday two weeks later. This two-week
-interval jumps with one-week increments every Thursday.
+The time period used is always calculated based on the moment of rollover.
+The inception timestamp is the most recent Thursday 00:00:00 UTC, which is exactly one week ago at the moment of rollover.
+The expiry timestamp is the Thursday 00:00:00 UTC two weeks later from the moment of rollover.
+Graphically, it looks like this::
+
+  RRSIG(1) Inception                                                    RRSIG(1) Expiry
+  |                                                                                   |
+  v                                                                                   v
+  |================================ RRSIG(1) validity ================================|
+                              |================================ RRSIG(2) validity ================================|
+                              ^                                                                                   ^
+                              |                                                                                   |
+                              RRSIG(2) Inception                                                    RRSIG(2) Expiry
+
+                              |----- RRSIG(1) served -----|----- RRSIG(2) served -----|
+
+  |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+  thu fri sat sun mon tue wed thu fri sat sun mon tue wed thu fri sat sun mon tue wed thu fri sat sun mon tue wed thu
+                                                          ^
+                                                          |
+                                                          RRSIG roll-over(1 to 2)
+
+At all times, only one RRSIG per signed RRset per ZSK is served when responding to clients.
 
 .. note::
   Why Thursday? POSIX-based operating systems count the time
