@@ -9,6 +9,20 @@ As the PowerDNS Recursor is distributed with a configure script, compiling it is
   make
   make install
 
+Getting the sources
+-------------------
+
+There are 3 ways of getting the source.
+
+If you want the bleeding edge, you can clone the `repository at GitHub <https://github.com/PowerDNS/pdns>`__ and run ``./bootstrap`` in the ``pdns/recursordist`` directory of the clone.
+
+You can also download snapshot tarballs `here <https://downloads.powerdns.com/autobuilt_browser/#/recursor>`__.
+
+You can also download releases on the `website <https://downloads.powerdns.com/releases/>`__.
+These releases are PGP-signed with one of these key-ids:
+
+.. include:: ../common/tarball-pgp-keys.rst
+
 Dependencies
 ------------
 
