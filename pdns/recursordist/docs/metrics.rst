@@ -253,7 +253,7 @@ max-cache-entries
 currently configured maximum number of cache entries
 
 max-packetcache-entries
-^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^
 currently configured maximum number of packet cache entries
 
 max-mthread-stack

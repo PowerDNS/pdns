@@ -1084,7 +1084,7 @@ Start the webserver (for REST API).
 
 ``webserver-address``
 ---------------------
--  IP Addresses, separated by spaces
+-  IP Address
 -  Default: 127.0.0.1
 
 IP address for the webserver to listen on.

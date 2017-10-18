@@ -221,7 +221,7 @@ These are the settings available for **SOA-EDIT-DNSUPDATE**.
 -  EPOCH: Change the serial to the number of seconds since the EPOCH,
    aka unixtime.
 -  SOA-EDIT: Change the serial to whatever SOA-EDIT would provide. See
-   `Domain metadata <domainmetadata>`
+   :doc:`Domain metadata <domainmetadata>`
 -  SOA-EDIT-INCREASE: Change the serial to whatever SOA-EDIT would
    provide. If what SOA-EDIT provides is lower than the current serial,
    increase the current serial by 1.

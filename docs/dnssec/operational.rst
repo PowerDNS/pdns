@@ -182,8 +182,6 @@ Sets the SOA serial to the number of seconds since the epoch.
   databases directly with incremental updates (or use the same database
   server on the slaves)
 
-.. deprecated:: 4.1.0
-
 NONE
 ^^^^
 
