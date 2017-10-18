@@ -77,10 +77,8 @@ Zones endpoint
   :param server_id: The name of the server
   :param zone_id: The id number of the :json:object:`Zone`
 
-  Allowed fields in client body: all except ``id`` and ``url``.
+  Allowed fields in client body: all except ``id``, ``url`` and ``name``.
   Returns ``204 No Content`` on success.
-
-  Changing ``name`` renames the zone, as expected.
 
 .. http:put:: /api/v1/servers/:server_id/zones/:zone_id/notify
 
