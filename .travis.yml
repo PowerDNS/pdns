@@ -24,6 +24,8 @@ before_script:
   - git describe --always --dirty=+
   # temporary workaround for https://github.com/travis-ci/travis-ci/issues/8554
   -  sudo rm -f /etc/apt/sources.list.d/mongodb-3.2.list
+  # temporary workaround for https://github.com/travis-ci/travis-ci/issues/8604
+  - sudo rm -f /etc/apt/sources.list.d/*riak*
 
   ### setup travis environment ###
   - sudo sysctl net.ipv6.conf.lo.disable_ipv6=0
