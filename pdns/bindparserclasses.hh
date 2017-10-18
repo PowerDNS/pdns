@@ -51,6 +51,7 @@ public:
   vector<string> masters;
   set<string> alsoNotify;
   string type;
+  bool hadFileDirective;
     
   dev_t d_dev;
   ino_t d_ino;

@@ -89,6 +89,8 @@ void BindParser::setVerbose(bool verbose)
 
 void BindParser::commit(BindDomainInfo DI)
 {
+  DI.hadFileDirective = (DI.filename != "");
+
   if(DI.filename[0]!='/')
     DI.filename=d_dir+"/"+DI.filename;
 
