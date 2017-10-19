@@ -617,7 +617,9 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
 
   QType type;
   bool oldRequireAuthData = d_requireAuthData;
+  bool oldValidationRequested = d_DNSSECValidationRequested;
   d_requireAuthData = false;
+  d_DNSSECValidationRequested = false;
 
   for(int j=1; j<2+s_doIPv6; j++)
   {
@@ -665,6 +667,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
   }
 
   d_requireAuthData = oldRequireAuthData;
+  d_DNSSECValidationRequested = oldValidationRequested;
 
   if(ret.size() > 1) {
     random_shuffle(ret.begin(), ret.end(), dns_random);
@@ -1534,9 +1537,7 @@ void SyncRes::computeZoneCuts(const DNSName& begin, const DNSName& end, unsigned
   std::vector<string> labelsToAdd = begin.makeRelative(end).getRawLabels();
 
   bool oldSkipCNAME = d_skipCNAMECheck;
-  bool oldRequireAuthData = d_requireAuthData;
   d_skipCNAMECheck = true;
-  d_requireAuthData = false;
 
   while(qname != begin) {
     if (labelsToAdd.empty())
@@ -1594,7 +1595,6 @@ void SyncRes::computeZoneCuts(const DNSName& begin, const DNSName& end, unsigned
   }
 
   d_skipCNAMECheck = oldSkipCNAME;
-  d_requireAuthData = oldRequireAuthData;
 
   LOG(d_prefix<<": list of cuts from "<<begin<<" to "<<end<<endl);
   for (const auto& cut : d_cutStates) {
