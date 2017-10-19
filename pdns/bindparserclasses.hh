@@ -33,7 +33,7 @@
 class BindDomainInfo 
 {
 public:
-  BindDomainInfo() : d_dev(0), d_ino(0)
+  BindDomainInfo() : hadFileDirective(false), d_dev(0), d_ino(0)
   {}
 
   void clear() 
