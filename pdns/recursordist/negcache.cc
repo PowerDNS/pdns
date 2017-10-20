@@ -101,6 +101,21 @@ void NegCache::add(const NegCacheEntry& ne) {
 }
 
 /*!
+ * Update the validation state of an existing entry with the provided state.
+ *
+ * \param qname The name of the entry to replace
+ * \param qtype The type of the entry to replace
+ * \param newState The new validation state
+ */
+void NegCache::updateValidationStatus(const DNSName& qname, const QType& qtype, const vState newState) {
+  auto range = d_negcache.equal_range(tie(qname, qtype));
+
+  if (range.first != range.second) {
+    range.first->d_validationState = newState;
+  }
+}
+
+/*!
  * Returns the amount of entries in the cache
  *
  * \param qname The name of the entries to be counted
