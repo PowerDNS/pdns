@@ -425,7 +425,7 @@ bool isTCPSocketUsable(int sock)
       return false;
     }
     else {
-      int err = errno;
+      err = errno;
 
       if (err == EAGAIN || err == EWOULDBLOCK) {
         /* socket is usable, no data waiting */
