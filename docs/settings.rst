@@ -454,7 +454,7 @@ regression testing.
 Do not log to syslog, only to stdout. Use this setting when running
 inside a supervisor that handles logging (like systemd).
 
-..warning::
+.. warning::
   Do not use this setting in combination with :ref:`setting-daemon` as all
   logging will disappear.
 
