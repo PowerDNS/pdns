@@ -808,6 +808,10 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       return std::shared_ptr<DNSAction>(new PoolAction(a));
     });
 
+  g_lua.writeFunction("QPSAction", [](int limit) {
+      return std::shared_ptr<DNSAction>(new QPSAction(limit));
+    });
+
   g_lua.writeFunction("QPSPoolAction", [](int limit, const string& a) {
       return std::shared_ptr<DNSAction>(new QPSPoolAction(limit, a));
     });
