@@ -125,8 +125,8 @@ void CoProcess::checkStatus()
     throw PDNSException("Unable to ascertain status of coprocess "+itoa(d_pid)+" from "+itoa(getpid())+": "+string(strerror(errno)));
   else if(ret) {
     if(WIFEXITED(status)) {
-      int ret=WEXITSTATUS(status);
-      throw PDNSException("Coprocess exited with code "+itoa(ret));
+      int exitStatus=WEXITSTATUS(status);
+      throw PDNSException("Coprocess exited with code "+itoa(exitStatus));
     }
     if(WIFSIGNALED(status)) {
       int sig=WTERMSIG(status);

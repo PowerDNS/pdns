@@ -204,9 +204,7 @@ try
       n+=numread;
     }
 
-    string packet = string(creply, len);
-
-    MOADNSParser mdp(false, packet);
+    MOADNSParser mdp(false, string(creply, len));
     if (mdp.d_header.rcode != 0) {
       throw PDNSException(string("Remote server refused: ") + std::to_string(mdp.d_header.rcode));
     }

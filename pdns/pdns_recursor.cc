@@ -1267,8 +1267,8 @@ static void startDoResolve(void *p)
     // Luawrapper nests the exception from Lua, so we unnest it here
     try {
         std::rethrow_if_nested(e);
-    } catch(const std::exception& e) {
-        L<<". Extra info: "<<e.what();
+    } catch(const std::exception& ne) {
+        L<<". Extra info: "<<ne.what();
     } catch(...) {}
 
     L<<endl;

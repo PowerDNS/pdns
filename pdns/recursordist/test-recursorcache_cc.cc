@@ -574,12 +574,12 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingValidEntries) {
   size_t found = 0;
   for (size_t i = 0; i <= 255; i++) {
     retrieved.clear();
-    ComboAddress who("192.0.2." + std::to_string(i));
+    ComboAddress whoLoop("192.0.2." + std::to_string(i));
 
-    auto ret = MRC.get(now, power1, QType(QType::A), false, &retrieved, who);
+    auto ret = MRC.get(now, power1, QType(QType::A), false, &retrieved, whoLoop);
     if (ret > 0) {
       BOOST_REQUIRE_EQUAL(retrieved.size(), 1);
-      BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), who.toString());
+      BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), whoLoop.toString());
       found++;
     }
     else {

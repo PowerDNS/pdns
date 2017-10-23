@@ -645,9 +645,9 @@ bool DNSSECKeeper::rectifyZone(const DNSName& zone, string& error, bool doTransa
 
   set<DNSName> nsec3set;
   if (haveNSEC3 && !narrow) {
-    for (auto &rr: rrs) {
+    for (auto &loopRR: rrs) {
       bool skip=false;
-      DNSName shorter = rr.qname;
+      DNSName shorter = loopRR.qname;
       if (shorter != zone && shorter.chopOff() && shorter != zone) {
         do {
           if(nsset.count(shorter)) {
@@ -656,8 +656,8 @@ bool DNSSECKeeper::rectifyZone(const DNSName& zone, string& error, bool doTransa
           }
         } while(shorter.chopOff() && shorter != zone);
       }
-      shorter = rr.qname;
-      if(!skip && (rr.qtype.getCode() != QType::NS || !isOptOut)) {
+      shorter = loopRR.qname;
+      if(!skip && (loopRR.qtype.getCode() != QType::NS || !isOptOut)) {
 
         do {
           if(!nsec3set.count(shorter)) {

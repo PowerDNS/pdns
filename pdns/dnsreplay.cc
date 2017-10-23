@@ -649,17 +649,17 @@ bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote, int stam
       s_origanswers++;
       qids_t::const_iterator iter=qids.find(qi);      
       if(iter != qids.end()) {
-        QuestionData qd=*iter;
-        qd.d_origAnswers=mdp.d_answers;
-        qd.d_origRcode=mdp.d_header.rcode;
+        QuestionData eqd=*iter;
+        eqd.d_origAnswers=mdp.d_answers;
+        eqd.d_origRcode=mdp.d_header.rcode;
         
         if(!dh->ra) {
           s_norecursionavailable++;
-          qd.d_norecursionavailable=true;
+          eqd.d_norecursionavailable=true;
         }
-        qids.replace(iter, qd);
+        qids.replace(iter, eqd);
 
-        if(qd.d_newRcode!=-1) {
+        if(eqd.d_newRcode!=-1) {
           measureResultAndClean(iter);
         }
         

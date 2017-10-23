@@ -24,17 +24,17 @@
 #endif
 #include "remotebackend.hh"
 
-PipeConnector::PipeConnector(std::map<std::string,std::string> options) {
-  if (options.count("command") == 0) {
+PipeConnector::PipeConnector(std::map<std::string,std::string> optionsMap) {
+  if (optionsMap.count("command") == 0) {
     L<<Logger::Error<<"Cannot find 'command' option in connection string"<<endl;
     throw PDNSException();
   }
-  this->command = options.find("command")->second;
-  this->options = options;
+  this->command = optionsMap.find("command")->second;
+  this->options = optionsMap;
   d_timeout=2000;
 
-  if (options.find("timeout") != options.end()) {
-     d_timeout = std::stoi(options.find("timeout")->second);
+  if (optionsMap.find("timeout") != optionsMap.end()) {
+     d_timeout = std::stoi(optionsMap.find("timeout")->second);
   }
 
   d_pid = -1;
@@ -190,8 +190,8 @@ bool PipeConnector::checkStatus()
     throw PDNSException("Unable to ascertain status of coprocess "+itoa(d_pid)+" from "+itoa(getpid())+": "+string(strerror(errno)));
   else if(ret) {
     if(WIFEXITED(status)) {
-      int ret=WEXITSTATUS(status);
-      throw PDNSException("Coprocess exited with code "+itoa(ret));
+      int exitStatus=WEXITSTATUS(status);
+      throw PDNSException("Coprocess exited with code "+itoa(exitStatus));
     }
     if(WIFSIGNALED(status)) {
       int sig=WTERMSIG(status);

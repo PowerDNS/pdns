@@ -815,15 +815,15 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
 
   if(rectify) {
     // set auth
-    for(DNSZoneRecord &zrr :  zrrs) {
-      zrr.auth=true;
-      if (zrr.dr.d_type != QType::NS || zrr.dr.d_name!=target) {
-        DNSName shorter(zrr.dr.d_name);
+    for(DNSZoneRecord &loopZRR :  zrrs) {
+      loopZRR.auth=true;
+      if (loopZRR.dr.d_type != QType::NS || loopZRR.dr.d_name!=target) {
+        DNSName shorter(loopZRR.dr.d_name);
         do {
           if (shorter==target) // apex is always auth
             break;
-          if(nsset.count(shorter) && !(zrr.dr.d_name==shorter && zrr.dr.d_type == QType::DS)) {
-            zrr.auth=false;
+          if(nsset.count(shorter) && !(loopZRR.dr.d_name==shorter && loopZRR.dr.d_type == QType::DS)) {
+            loopZRR.auth=false;
             break;
           }
         } while(shorter.chopOff());
@@ -834,9 +834,9 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
       // ents are only required for NSEC3 zones
       uint32_t maxent = ::arg().asNum("max-ent-entries");
       set<DNSName> nsec3set, nonterm;
-      for (auto &zrr: zrrs) {
+      for (auto &loopZRR: zrrs) {
         bool skip=false;
-        DNSName shorter = zrr.dr.d_name;
+        DNSName shorter = loopZRR.dr.d_name;
         if (shorter != target && shorter.chopOff() && shorter != target) {
           do {
             if(nsset.count(shorter)) {
@@ -845,8 +845,8 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
             }
           } while(shorter.chopOff() && shorter != target);
         }
-        shorter = zrr.dr.d_name;
-        if(!skip && (zrr.dr.d_type != QType::NS || !ns3pr.d_flags)) {
+        shorter = loopZRR.dr.d_name;
+        if(!skip && (loopZRR.dr.d_type != QType::NS || !ns3pr.d_flags)) {
           do {
             if(!nsec3set.count(shorter)) {
               nsec3set.insert(shorter);
@@ -855,8 +855,8 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
         }
       }
 
-      for(DNSZoneRecord &zrr :  zrrs) {
-        DNSName shorter(zrr.dr.d_name);
+      for(DNSZoneRecord &loopZRR :  zrrs) {
+        DNSName shorter(loopZRR.dr.d_name);
         while(shorter != target && shorter.chopOff()) {
           if(!qnames.count(shorter) && !nonterm.count(shorter) && nsec3set.count(shorter)) {
             if(!(maxent)) {
@@ -870,11 +870,11 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
       }
 
       for(const auto& nt :  nonterm) {
-        DNSZoneRecord zrr;
-        zrr.dr.d_name=nt;
-        zrr.dr.d_type=QType::ENT;
-        zrr.auth=true;
-        zrrs.push_back(zrr);
+        DNSZoneRecord tempRR;
+        tempRR.dr.d_name=nt;
+        tempRR.dr.d_type=QType::ENT;
+        tempRR.auth=true;
+        zrrs.push_back(tempRR);
       }
     }
   }
@@ -888,39 +888,39 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   DTime dt;
   dt.set();
   int records=0;
-  for(DNSZoneRecord &zrr :  zrrs) {
-    if (zrr.dr.d_type == QType::RRSIG) {
-      if(presignedZone && NSEC3Zone && getRR<RRSIGRecordContent>(zrr.dr)->d_type == QType::NSEC3) {
-        ns3rrs.insert(zrr.dr.d_name.makeRelative(sd.qname));
+  for(DNSZoneRecord &loopZRR :  zrrs) {
+    if (loopZRR.dr.d_type == QType::RRSIG) {
+      if(presignedZone && NSEC3Zone && getRR<RRSIGRecordContent>(loopZRR.dr)->d_type == QType::NSEC3) {
+        ns3rrs.insert(loopZRR.dr.d_name.makeRelative(sd.qname));
       }
       continue;
     }
 
     // only skip the DNSKEY, CDNSKEY and CDS if direct-dnskey is enabled, to avoid changing behaviour
     // when it is not enabled.
-    if(::arg().mustDo("direct-dnskey") && (zrr.dr.d_type == QType::DNSKEY || zrr.dr.d_type == QType::CDNSKEY || zrr.dr.d_type == QType::CDS))
+    if(::arg().mustDo("direct-dnskey") && (loopZRR.dr.d_type == QType::DNSKEY || loopZRR.dr.d_type == QType::CDNSKEY || loopZRR.dr.d_type == QType::CDS))
       continue;
 
     records++;
-    if(securedZone && (zrr.auth || zrr.dr.d_type == QType::NS)) {
-      if (NSEC3Zone || zrr.dr.d_type) {
-        keyname = NSEC3Zone ? DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, zrr.dr.d_name))) : zrr.dr.d_name;
+    if(securedZone && (loopZRR.auth || loopZRR.dr.d_type == QType::NS)) {
+      if (NSEC3Zone || loopZRR.dr.d_type) {
+        keyname = NSEC3Zone ? DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, loopZRR.dr.d_name))) : loopZRR.dr.d_name;
         NSECXEntry& ne = nsecxrepo[keyname];
         ne.d_ttl = sd.default_ttl;
-        ne.d_auth = (ne.d_auth || zrr.auth || (NSEC3Zone && (!ns3pr.d_flags || (presignedZone && ns3pr.d_flags))));
-        if (zrr.dr.d_type) {
-          ne.d_set.insert(zrr.dr.d_type);
+        ne.d_auth = (ne.d_auth || loopZRR.auth || (NSEC3Zone && (!ns3pr.d_flags || (presignedZone && ns3pr.d_flags))));
+        if (loopZRR.dr.d_type) {
+          ne.d_set.insert(loopZRR.dr.d_type);
         }
       }
     }
 
-    if (!zrr.dr.d_type)
+    if (!loopZRR.dr.d_type)
       continue; // skip empty non-terminals
 
-    if(zrr.dr.d_type == QType::SOA)
+    if(loopZRR.dr.d_type == QType::SOA)
       continue; // skip SOA - would indicate end of AXFR
 
-    if(csp.submit(zrr)) {
+    if(csp.submit(loopZRR)) {
       for(;;) {
         outpacket->getRRS() = csp.getChunk();
         if(!outpacket->getRRS().empty()) {

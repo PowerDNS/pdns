@@ -219,7 +219,6 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
   bool presigned=dk.isPresigned(zone);
   bool validKeys=dk.checkKeys(zone);
 
-  DNSResourceRecord rr;
   uint64_t numrecords=0, numerrors=0, numwarnings=0;
 
   if (haveNSEC3) {
@@ -276,9 +275,10 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
 
   vector<DNSResourceRecord> records;
   if(!suppliedrecords) {
+    DNSResourceRecord drr;
     sd.db->list(zone, sd.domain_id, g_verbose);
-    while(sd.db->get(rr)) {
-      records.push_back(rr);
+    while(sd.db->get(drr)) {
+      records.push_back(drr);
     }
   }
   else 
@@ -841,11 +841,11 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
   }
   cmdline.clear();
   ZoneParserTNG zpt(tmpnam, g_rootdnsname);
-  DNSResourceRecord rr;
+  DNSResourceRecord zrr;
   map<pair<DNSName,uint16_t>, vector<DNSRecord> > grouped;
-  while(zpt.get(rr)) {
+  while(zpt.get(zrr)) {
     try {
-      DNSRecord dr(rr);
+      DNSRecord dr(zrr);
       post.push_back(dr);
       grouped[{dr.d_name,dr.d_type}].push_back(dr);
     }
@@ -923,14 +923,14 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
   else if(changed.empty() || c!='a')
     goto reAsk2;
 
-  for(const auto& c : changed) {
+  for(const auto& change : changed) {
     vector<DNSResourceRecord> vrr;
-    for(const DNSRecord& rr : grouped[c.first]) {
-      DNSResourceRecord drr = DNSResourceRecord::fromWire(rr);
-      drr.domain_id = di.id;
-      vrr.push_back(drr);
+    for(const DNSRecord& rr : grouped[change.first]) {
+      DNSResourceRecord crr = DNSResourceRecord::fromWire(rr);
+      crr.domain_id = di.id;
+      vrr.push_back(crr);
     }
-    di.backend->replaceRRSet(di.id, c.first.first, QType(c.first.second), vrr);
+    di.backend->replaceRRSet(di.id, change.first.first, QType(change.first.second), vrr);
   }
   rectifyZone(dk, zone);
   return EXIT_SUCCESS;

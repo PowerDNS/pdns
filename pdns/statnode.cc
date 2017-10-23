@@ -88,8 +88,9 @@ void StatNode::submit(deque<string>& labels, const std::string& domain, int rcod
     name=labels.back();
     //    cerr<<"Set short name to '"<<name<<"'"<<endl;
   }
-  else 
-    ; //    cerr<<"Short name was already set to '"<<name<<"'"<<endl;
+  else {
+    //    cerr<<"Short name was already set to '"<<name<<"'"<<endl;
+  }
 
   if(labels.size()==1) {
     if (fullname.empty()) {
