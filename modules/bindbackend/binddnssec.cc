@@ -57,7 +57,7 @@ bool Bind2Backend::removeDomainKey(const DNSName& name, unsigned int id)
 { return false; }
 
 bool Bind2Backend::addDomainKey(const DNSName& name, const KeyData& key, int64_t& id)
-{ return -1; }
+{ return false; }
 
 bool Bind2Backend::activateDomainKey(const DNSName& name, unsigned int id)
 { return false; }

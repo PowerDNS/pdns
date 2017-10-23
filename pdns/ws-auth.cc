@@ -970,7 +970,7 @@ static void apiZoneCryptokeysPOST(DNSName zonename, HttpRequest *req, HttpRespon
     throw ApiException("Invalid keytype " + stringFromJson(document, "keytype"));
   }
 
-  int64_t insertedId;
+  int64_t insertedId = -1;
 
   if (content.is_null()) {
     int bits = keyOrZone ? ::arg().asNum("default-ksk-size") : ::arg().asNum("default-zsk-size");
@@ -995,7 +995,9 @@ static void apiZoneCryptokeysPOST(DNSName zonename, HttpRequest *req, HttpRespon
     }
 
     try {
-      dk->addKey(zonename, keyOrZone, algorithm, insertedId, bits, active);
+      if (!dk->addKey(zonename, keyOrZone, algorithm, insertedId, bits, active)) {
+        throw ApiException("Adding key failed, perhaps DNSSEC not enabled in configuration?");
+      }
     } catch (std::runtime_error& error) {
       throw ApiException(error.what());
     }
@@ -1021,7 +1023,9 @@ static void apiZoneCryptokeysPOST(DNSName zonename, HttpRequest *req, HttpRespon
     catch (std::runtime_error& error) {
       throw ApiException("Key could not be parsed. Make sure your key format is correct.");
     } try {
-      dk->addKey(zonename, dpk,insertedId, active);
+      if (!dk->addKey(zonename, dpk,insertedId, active)) {
+        throw ApiException("Adding key failed, perhaps DNSSEC not enabled in configuration?");
+      }
     } catch (std::runtime_error& error) {
       throw ApiException(error.what());
     }
