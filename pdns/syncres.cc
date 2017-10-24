@@ -1918,7 +1918,14 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
       }
     }
 
-    t_RC->replace(d_now.tv_sec, i->first.name, QType(i->first.type), i->second.records, i->second.signatures, authorityRecs, isAA, i->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::none, recordState);
+    /* We don't need to store NSEC3 records in the positive cache because:
+       - we don't allow direct NSEC3 queries
+       - denial of existence proofs in wildcard expanded positive responses are stored in authorityRecs
+       - denial of existence proofs for negative responses are stored in the negative cache
+    */
+    if (i->first.type != QType::NSEC3) {
+      t_RC->replace(d_now.tv_sec, i->first.name, QType(i->first.type), i->second.records, i->second.signatures, authorityRecs, isAA, i->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::none, recordState);
+    }
 
     if(i->first.place == DNSResourceRecord::ANSWER && ednsmask)
       d_wasVariable=true;
