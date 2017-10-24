@@ -302,7 +302,7 @@ void Bind2Backend::getUpdatedMasters(vector<DomainInfo> *changedDomains)
     ReadLock rl(&s_state_lock);
 
     for(state_t::const_iterator i = s_state.begin(); i != s_state.end() ; ++i) {
-      if(i->d_kind != DomainInfo::Master)
+      if(i->d_kind != DomainInfo::Master && this->alsoNotify.empty() && i->d_also_notify.empty())
         continue;
 
       DomainInfo di;
