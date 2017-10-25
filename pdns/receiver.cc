@@ -467,6 +467,7 @@ int main(int argc, char **argv)
 
     L.setLoglevel((Logger::Urgency)(::arg().asNum("loglevel")));
     L.disableSyslog(::arg().mustDo("disable-syslog"));
+    L.setTimestamps(::arg().mustDo("log-timestamp"));
     L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));  
 
     if(::arg().mustDo("help") || ::arg().mustDo("config")) {

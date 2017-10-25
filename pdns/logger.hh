@@ -60,6 +60,10 @@ public:
     d_disableSyslog = d;
   }
 
+  void setTimestamps(bool t) {
+    d_timestamps = t;
+  }
+
   //! Log to a file.
   void toFile( const string & filename );
   
@@ -107,6 +111,7 @@ private:
   Urgency consoleUrgency;
   bool opened;
   bool d_disableSyslog;
+  bool d_timestamps{true};
   static pthread_once_t s_once;
   static pthread_key_t s_loggerKey;
 };

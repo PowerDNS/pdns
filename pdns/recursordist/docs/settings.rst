@@ -538,6 +538,22 @@ It is highly recommended to bind to explicit addresses.
 Local port to bind to.
 If an address in `local-address`_ does not have an explicit port, this port is used.
 
+.. _setting-log-timestamp:
+
+``log-timestamp``
+-----------------
+
+.. versionadded:: 4.1.0
+
+- Bool
+- Default: yes
+
+When printing log lines to stdout, prefix them with timestamps.
+Disable this if the process supervisor timestamps these lines already.
+
+.. note::
+  The systemd unit file supplied with the source code already disables timestamp printing
+
 .. _setting-non-local-bind:
 
 ``non-local-bind``
