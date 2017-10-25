@@ -898,6 +898,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
   return false;
 }
 
+namespace {
 struct CacheEntry
 {
   vector<DNSRecord> records;
@@ -914,6 +915,7 @@ struct CacheKey
   }
 };
 typedef map<CacheKey, CacheEntry> tcache_t;
+}
 
 static void reapRecordsFromNegCacheEntryForValidation(tcache_t& tcache, const vector<DNSRecord>& records)
 {
