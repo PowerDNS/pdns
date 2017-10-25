@@ -22,8 +22,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include <botan/botan.h>
-#include <botan/build.h>
+#include <botan/auto_rng.h>
 #include <botan/gost_3410.h>
 #include <botan/gost_3411.h>
 #include <botan/pubkey.h>
