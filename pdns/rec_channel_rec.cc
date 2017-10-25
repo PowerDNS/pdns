@@ -880,8 +880,7 @@ void registerAllStats()
   addGetStat("x-ourtime8-16", &g_stats.ourtime8_16);
   addGetStat("x-ourtime16-32", &g_stats.ourtime16_32);
   addGetStat("x-ourtime-slow", &g_stats.ourtimeSlow);
-  
-  
+
   addGetStat("auth4-answers0-1", &g_stats.auth4Answers0_1);
   addGetStat("auth4-answers1-10", &g_stats.auth4Answers1_10);
   addGetStat("auth4-answers10-100", &g_stats.auth4Answers10_100);
