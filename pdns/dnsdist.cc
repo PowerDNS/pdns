@@ -445,6 +445,7 @@ try {
 
       uint16_t addRoom = 0;
       DNSResponse dr(&ids->qname, ids->qtype, ids->qclass, &ids->origDest, &ids->origRemote, dh, sizeof(packet), responseLen, false, &ids->sentTime.d_start);
+      dr.poolname = ids->poolname;
 #ifdef HAVE_PROTOBUF
       dr.uniqueId = ids->uniqueId;
 #endif
@@ -1361,6 +1362,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     ids->packetCache = packetCache;
     ids->ednsAdded = ednsAdded;
     ids->ecsAdded = ecsAdded;
+    ids->poolname = poolname;
 
     /* If we couldn't harvest the real dest addr, still
        write down the listening addr since it will be useful

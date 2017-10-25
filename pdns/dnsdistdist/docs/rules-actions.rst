@@ -509,6 +509,13 @@ These ``DNSRule``\ s be one of the following items:
   :param int minCount: The minimum number of entries
   :param int maxCount: The maximum number of entries
 
+.. function:: ResponsePoolRule(poolname)
+
+  Matches the pool that the response is received from
+
+  :note: Only use it with ``addResponseAction()``. It's not expected to work with ``addAction()``.
+  :param string poolname: The poolname to match on
+
 .. function:: RE2Rule(regex)
 
   Matches the query name against the supplied regex using the RE2 engine.

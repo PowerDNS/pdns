@@ -771,6 +771,23 @@ public:
   double d_proba;
 };
 
+class ResponsePoolRule : public DNSRule
+{
+public:
+  ResponsePoolRule(string pool): d_pool(pool)
+  {
+  }
+  bool matches(const DNSQuestion* dq) const override
+  {
+    return dq->poolname == d_pool;
+  }
+  string toString() const override
+  {
+    return "pool=="+d_pool;
+  }
+private:
+  string d_pool;
+};
 
 class DropAction : public DNSAction
 {
