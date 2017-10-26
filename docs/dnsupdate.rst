@@ -114,10 +114,13 @@ TSIG-ALLOW-DNSUPDATE
 
 This setting allows you to set the TSIG key required to do an DNS
 update. If you have GSS-TSIG enabled, you can use Kerberos principals
-here. An example:
+here. An example, using :program:`pdnsutil` to create the key:
 
 ::
 
+    pdnsutil generate-tsig-key test hmac-md5
+    Create new TSIG key test hmac-md5 kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=
+    
     sql> insert into tsigkeys (name, algorithm, secret) values ('test', 'hmac-md5', 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=');
     sql> select id from domains where name='example.org';
     5
