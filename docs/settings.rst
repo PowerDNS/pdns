@@ -673,6 +673,22 @@ big problems if you have multiple IP addresses. Unix does not provide a
 way of figuring out what IP address a packet was sent to when binding to
 any.
 
+.. _setting-log-timestamp:
+
+``log-timestamp``
+-----------------
+
+.. versionadded:: 4.1.0
+
+- Bool
+- Default: yes
+
+When printing log lines to stdout, prefix them with timestamps.
+Disable this if the process supervisor timestamps these lines already.
+
+.. note::
+  The systemd unit file supplied with the source code already disables timestamp printing
+
 .. _setting-non-local-bind:
 
 ``non-local-bind``
