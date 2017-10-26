@@ -215,10 +215,14 @@ void doConsole()
           >(withReturn ? ("return "+line) : line);
         if(ret) {
           if (const auto dsValue = boost::get<shared_ptr<DownstreamState>>(&*ret)) {
-            cout<<(*dsValue)->getName()<<endl;
+            if (*dsValue) {
+              cout<<(*dsValue)->getName()<<endl;
+            }
           }
           else if (const auto csValue = boost::get<ClientState*>(&*ret)) {
-            cout<<(*csValue)->local.toStringWithPort()<<endl;
+            if (*csValue) {
+              cout<<(*csValue)->local.toStringWithPort()<<endl;
+            }
           }
           else if (const auto strValue = boost::get<string>(&*ret)) {
             cout<<*strValue<<endl;
@@ -524,10 +528,18 @@ try
 
       if(ret) {
         if (const auto dsValue = boost::get<shared_ptr<DownstreamState>>(&*ret)) {
-          response=(*dsValue)->getName()+"\n";
+          if (*dsValue) {
+            response=(*dsValue)->getName()+"\n";
+          } else {
+            response="";
+          }
         }
         else if (const auto csValue = boost::get<ClientState*>(&*ret)) {
-          response=(*csValue)->local.toStringWithPort()+"\n";
+          if (*csValue) {
+            response=(*csValue)->local.toStringWithPort()+"\n";
+          } else {
+            response="";
+          }
         }
         else if (const auto strValue = boost::get<string>(&*ret)) {
           response=*strValue+"\n";
