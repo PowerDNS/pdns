@@ -139,9 +139,9 @@ An example of how to use a TSIG key with the :program:`nsupdate` command:
     !
 
 If a TSIG key is set for the domain, it is required to be used for the
-update. The TSIG is extra security on top of the
-``ALLOW-DNSUPDATE-FROM`` setting. If a TSIG key is set, the IP(-range)
-still needs to be allowed via ``ALLOW-DNSUPDATE-FROM``.
+update. The TSIG is an alternative means of securing updates, instead of using the
+``ALLOW-DNSUPDATE-FROM`` setting. If a TSIG key is set, and if ``ALLOW-DNSUPDATE-FROM`` is set,
+the IP(-range) of the updater still needs to be allowed via ``ALLOW-DNSUPDATE-FROM``. 
 
 FORWARD-DNSUPDATE
 ~~~~~~~~~~~~~~~~~
