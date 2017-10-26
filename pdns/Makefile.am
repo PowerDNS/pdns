@@ -39,6 +39,10 @@ if GSS_TSIG
 AM_CPPFLAGS +=$(GSS_CFLAGS)
 endif
 
+if LIBSODIUM
+AM_CPPFLAGS +=$(LIBSODIUM_CFLAGS)
+endif
+
 EXTRA_DIST = \
 	dnslabeltext.rl \
 	dnslabeltext.cc \
