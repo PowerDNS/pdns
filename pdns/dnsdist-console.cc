@@ -242,7 +242,7 @@ void doConsole()
       }
     }
     catch(const LuaContext::WrongTypeException& e) {
-      std::cerr<<"Command returned an object we can't print"<<std::endl;
+      std::cerr<<"Command returned an object we can't print: "<<std::string(e.what())<<std::endl;
       // tried to return something we don't understand
     }
     catch(const LuaContext::ExecutionErrorException& e) {
