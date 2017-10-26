@@ -39,12 +39,13 @@ enable DNS update support. Default is ``no``.
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 A list of IP ranges that are allowed to perform updates on any domain.
-The default is ``0.0.0.0/0``, which means that all ranges are accepted.
+The default is ``127.0.0.0/8``, which means that all loopback addresses are accepted.
 Multiple entries can be used on this line
 (``allow-dnsupdate-from=198.51.100.0/8 203.0.113.2/32``). The option can
 be left empty to disallow everything, this then should be used in
 combination with the ``ALLOW-DNSUPDATE-FROM`` :doc:`domain metadata <domainmetadata>` setting per
-zone.
+zone. Setting a range here and in ``ALLOW-DNSUPDATE-FROM`` enables updates
+from either address range.
 
 ``forward-dnsupdate``
 ~~~~~~~~~~~~~~~~~~~~~
