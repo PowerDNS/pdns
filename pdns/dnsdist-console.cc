@@ -208,6 +208,7 @@ void doConsole()
             boost::variant<
               string, 
               shared_ptr<DownstreamState>,
+              ClientState*,
               std::unordered_map<string, double>
               >
             >
@@ -215,6 +216,9 @@ void doConsole()
         if(ret) {
           if (const auto dsValue = boost::get<shared_ptr<DownstreamState>>(&*ret)) {
             cout<<(*dsValue)->getName()<<endl;
+          }
+          else if (const auto csValue = boost::get<ClientState*>(&*ret)) {
+            cout<<(*csValue)->local.toStringWithPort()<<endl;
           }
           else if (const auto strValue = boost::get<string>(&*ret)) {
             cout<<*strValue<<endl;
@@ -512,18 +516,22 @@ try
             boost::variant<
               string, 
               shared_ptr<DownstreamState>,
+              ClientState*,
               std::unordered_map<string, double>
               >
             >
           >(withReturn ? ("return "+line) : line);
 
       if(ret) {
-	if (const auto dsValue = boost::get<shared_ptr<DownstreamState>>(&*ret)) {
-	  response=(*dsValue)->getName()+"\n";
-	}
-	else if (const auto strValue = boost::get<string>(&*ret)) {
-	  response=*strValue+"\n";
-	}
+        if (const auto dsValue = boost::get<shared_ptr<DownstreamState>>(&*ret)) {
+          response=(*dsValue)->getName()+"\n";
+        }
+        else if (const auto csValue = boost::get<ClientState*>(&*ret)) {
+          response=(*csValue)->local.toStringWithPort()+"\n";
+        }
+        else if (const auto strValue = boost::get<string>(&*ret)) {
+          response=*strValue+"\n";
+        }
         else if(const auto um = boost::get<std::unordered_map<string, double> >(&*ret)) {
           using namespace json11;
           Json::object o;
