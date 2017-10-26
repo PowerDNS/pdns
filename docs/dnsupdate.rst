@@ -44,7 +44,8 @@ Multiple entries can be used on this line
 (``allow-dnsupdate-from=198.51.100.0/8 203.0.113.2/32``). The option can
 be left empty to disallow everything, this then should be used in
 combination with the ``ALLOW-DNSUPDATE-FROM`` :doc:`domain metadata <domainmetadata>` setting per
-zone.
+zone. Setting a range here and in ``ALLOW-DNSUPDATE-FROM`` enables updates
+from either address range.
 
 ``forward-dnsupdate``
 ~~~~~~~~~~~~~~~~~~~~~
