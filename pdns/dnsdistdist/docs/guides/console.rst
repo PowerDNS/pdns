@@ -9,7 +9,7 @@ The console can be enabled with :func:`controlSocket`:
 
 .. code-block:: lua
 
-  controlSocket('192.0.2.53:5900')
+  controlSocket('192.0.2.53:5199')
 
 To enable encryption, first generate a key with :func:`makeKey`::
 
