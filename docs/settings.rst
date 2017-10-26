@@ -45,7 +45,7 @@ AXFR.
 -  IP ranges, separated by commas
 -  Default: 127.0.0.0/8,::1
 
-Allow DNS updates from these IP ranges. Set to empty string to honour ``ALLOW-DNSUPDATE-FROM`` in ``domainmetadata``.
+Allow DNS updates from these IP ranges. Set to empty string to honour ``ALLOW-DNSUPDATE-FROM`` in :ref:`metadata-allow-dnsupdate-from`.
 
 .. _setting-allow-notify-from:
 
