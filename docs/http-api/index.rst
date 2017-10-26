@@ -26,14 +26,17 @@ Enabling the API
 To enable the API, the webserver and the HTTP API need to be enbaled.
 Add these lines to the ``pdns.conf``::
 
-    webserver=yes
-    webserver-port=8082
+    api=yes
     api-key=changeme
+    webserver=yes
+    webserver-port=8081
+
+The API endpoints run off of the same webserver, but the :ref:`setting-api` is required to enable API access. Setting :ref:`setting-api` also implicitly enables the webserver v4.1.x onwards.
 
 And restart, the following examples should start working::
 
-    curl -v -H 'X-API-Key: changeme' http://127.0.0.1:8082/api/v1/servers/localhost | jq .
-    curl -v -H 'X-API-Key: changeme' http://127.0.0.1:8082/api/v1/servers/localhost/zones | jq .
+    curl -v -H 'X-API-Key: changeme' http://127.0.0.1:8081/api/v1/servers/localhost | jq .
+    curl -v -H 'X-API-Key: changeme' http://127.0.0.1:8081/api/v1/servers/localhost/zones | jq .
 
 JSON Objects
 ------------

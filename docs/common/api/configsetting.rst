@@ -16,5 +16,5 @@ ConfigSetting
     {
       "name": "webserver-port",
       "type": "ConfigSetting",
-      "value": "8082"
+      "value": "8081"
     }
