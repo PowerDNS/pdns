@@ -2,6 +2,77 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.0-rc2
+  :released: …th of November 2017
+
+  The RC2 release features mainly some fixes for DNSSEC and some other
+  bug fixes and improvements.
+
+  Also thanks Christian Hofstaedtler for help on the documentation!
+
+  .. change::
+    :tags: API, Improvements
+    :pullreq: 5805
+
+    The carbon & webserver API mthreads get improved logging.
+
+  .. change::
+    :tags: DNSSEC, Bug Fixes
+    :pullreq: 5808
+
+    Check that the NSEC covers an ENT when looking for NODATA.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5824
+    :tickets: 5663
+
+    New b.root ipv4 address (Kees Monshouwer).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5740
+
+    Lowercase all outgoing qnames when lowercase-outgoing is set.
+
+  .. change::
+    :tags: DNSSEC, Improvements
+    :pullreq: 5834
+
+    Don't directly store NSEC3 records in the positive cache.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5774
+
+    Implement experimental metric tracking time spent within PowerDNS per query.
+
+  .. change::
+    :tags: DNSSEC, Bug Fixes
+    :pullreq: 5835
+    :tickets: 5827
+
+    Disable validation for infra queries, validate entries from the negcache.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5842
+
+    Add log-timestamp option.  This option can be used to disable
+    printing timestamps to stdout, this is useful when using
+    systemd-journald or another supervisor that timestamps stdout by
+    itself.  As the logs will not have 2 timestamps.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5762
+    :tickets: 5439
+
+    Create socket-dir from init-script.  This fixes this issue for sys v
+    init. For systemd, it is advices that the admin creates these
+    directories (or doesn't touch the setting).
+
+.. changelog::
   :version: 4.1.0-rc1
   :released: 9th of October 2017
 
