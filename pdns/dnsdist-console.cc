@@ -208,13 +208,21 @@ void doConsole()
             boost::variant<
               string, 
               shared_ptr<DownstreamState>,
+              ClientState*,
               std::unordered_map<string, double>
               >
             >
           >(withReturn ? ("return "+line) : line);
         if(ret) {
           if (const auto dsValue = boost::get<shared_ptr<DownstreamState>>(&*ret)) {
-            cout<<(*dsValue)->getName()<<endl;
+            if (*dsValue) {
+              cout<<(*dsValue)->getName()<<endl;
+            }
+          }
+          else if (const auto csValue = boost::get<ClientState*>(&*ret)) {
+            if (*csValue) {
+              cout<<(*csValue)->local.toStringWithPort()<<endl;
+            }
           }
           else if (const auto strValue = boost::get<string>(&*ret)) {
             cout<<*strValue<<endl;
@@ -242,7 +250,7 @@ void doConsole()
       }
     }
     catch(const LuaContext::WrongTypeException& e) {
-      std::cerr<<"Command returned an object we can't print"<<std::endl;
+      std::cerr<<"Command returned an object we can't print: "<<std::string(e.what())<<std::endl;
       // tried to return something we don't understand
     }
     catch(const LuaContext::ExecutionErrorException& e) {
@@ -315,6 +323,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "fixupCase", true, "bool", "if set (default to no), rewrite the first qname of the question part of the answer to match the one from the query. It is only useful when you have a downstream server that messes up the case of the question qname in the answer" },
   { "generateDNSCryptCertificate", true, "\"/path/to/providerPrivate.key\", \"/path/to/resolver.cert\", \"/path/to/resolver.key\", serial, validFrom, validUntil", "generate a new resolver private key and related certificate, valid from the `validFrom` timestamp until the `validUntil` one, signed with the provider private key" },
   { "generateDNSCryptProviderKeys", true, "\"/path/to/providerPublic.key\", \"/path/to/providerPrivate.key\"", "generate a new provider keypair" },
+  { "getBind", true, "n", "returns the listener at index n" },
   { "getDNSCryptBind", true, "n", "return the `DNSCryptContext` object corresponding to the bind `n`" },
   { "getPool", true, "name", "return the pool named `name`, or \"\" for the default pool" },
   { "getPoolServers", true, "pool", "return servers part of this pool" },
@@ -392,6 +401,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "setVerboseHealthChecks", true, "bool", "set whether health check errors will be logged" },
   { "show", true, "string", "outputs `string`" },
   { "showACL", true, "", "show our ACL set" },
+  { "showBinds", true, "", "show listening addresses (frontends)" },
   { "showCacheHitResponseRules", true, "", "show all defined cache hit response rules" },
   { "showDNSCryptBinds", true, "", "display the currently configured DNSCrypt binds" },
   { "showDynBlocks", true, "", "show dynamic blocks in force" },
@@ -510,18 +520,30 @@ try
             boost::variant<
               string, 
               shared_ptr<DownstreamState>,
+              ClientState*,
               std::unordered_map<string, double>
               >
             >
           >(withReturn ? ("return "+line) : line);
 
       if(ret) {
-	if (const auto dsValue = boost::get<shared_ptr<DownstreamState>>(&*ret)) {
-	  response=(*dsValue)->getName()+"\n";
-	}
-	else if (const auto strValue = boost::get<string>(&*ret)) {
-	  response=*strValue+"\n";
-	}
+        if (const auto dsValue = boost::get<shared_ptr<DownstreamState>>(&*ret)) {
+          if (*dsValue) {
+            response=(*dsValue)->getName()+"\n";
+          } else {
+            response="";
+          }
+        }
+        else if (const auto csValue = boost::get<ClientState*>(&*ret)) {
+          if (*csValue) {
+            response=(*csValue)->local.toStringWithPort()+"\n";
+          } else {
+            response="";
+          }
+        }
+        else if (const auto strValue = boost::get<string>(&*ret)) {
+          response=*strValue+"\n";
+        }
         else if(const auto um = boost::get<std::unordered_map<string, double> >(&*ret)) {
           using namespace json11;
           Json::object o;
