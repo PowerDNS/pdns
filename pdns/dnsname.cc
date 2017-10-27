@@ -261,11 +261,14 @@ DNSName DNSName::getCommonLabels(const DNSName& other) const
   const std::vector<std::string> others = other.getRawLabels();
 
   for (size_t pos = 0; ours.size() > pos && others.size() > pos; pos++) {
-    if (ours.at(ours.size() - pos - 1) != others.at(others.size() - pos - 1)) {
+    const std::string& ourLabel = ours.at(ours.size() - pos - 1);
+    const std::string& otherLabel = others.at(others.size() - pos - 1);
+
+    if (!pdns_iequals(ourLabel, otherLabel)) {
       break;
     }
 
-    result.prependRawLabel(ours.at(ours.size() - pos - 1));
+    result.prependRawLabel(ourLabel);
   }
 
   return result;

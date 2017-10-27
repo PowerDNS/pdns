@@ -884,6 +884,10 @@ BOOST_AUTO_TEST_CASE(test_getcommonlabels) {
   BOOST_CHECK_EQUAL(name2.getCommonLabels(name3), DNSName());
   BOOST_CHECK_EQUAL(name3.getCommonLabels(name1), DNSName());
   BOOST_CHECK_EQUAL(name3.getCommonLabels(name2), DNSName());
+
+  const DNSName name4("WWw.PowErDnS.org");
+  BOOST_CHECK_EQUAL(name3.getCommonLabels(name4), name3);
+  BOOST_CHECK_EQUAL(name4.getCommonLabels(name3), name4);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
