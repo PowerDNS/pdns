@@ -1821,6 +1821,9 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
       isCNAMEAnswer = true;
     }
 
+    /* if we have a positive answer synthetized from a wildcard,
+       we need to store the corresponding NSEC/NSEC3 records proving
+       that the exact name did not exist in the negative cache */
     if(needWildcardProof) {
       if (nsecTypes.count(rec.d_type)) {
         authorityRecs.push_back(std::make_shared<DNSRecord>(rec));
@@ -1837,10 +1840,10 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
       if (rrsig) {
         /* As illustrated in rfc4035's Appendix B.6, the RRSIG label
            count can be lower than the name's label count if it was
-           synthesized from the wildcard. Note that the difference might
+           synthetized from the wildcard. Note that the difference might
            be > 1. */
         if (rec.d_name == qname && rrsig->d_labels < labelCount) {
-          LOG(prefix<<qname<<": RRSIG indicates the name was expanded from a wildcard, we need a wildcard proof"<<endl);
+          LOG(prefix<<qname<<": RRSIG indicates the name was synthetized from a wildcard, we need a wildcard proof"<<endl);
           needWildcardProof = true;
         }
 
@@ -2049,7 +2052,9 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
       NegCache::NegCacheEntry ne;
 
       uint32_t lowestTTL = rec.d_ttl;
-      ne.d_name = qname;
+      /* if we get an NXDomain answer with a CNAME, the name
+         does exist but the target does not */
+      ne.d_name = newtarget.empty() ? qname : newtarget;
       ne.d_qtype = QType(0); // this encodes 'whole record'
       ne.d_auth = rec.d_name;
       harvestNXRecords(lwr.d_records, ne, d_now.tv_sec, &lowestTTL);
@@ -2063,7 +2068,12 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         ne.d_validationState = state;
       }
 
-      if(!wasVariable()) {
+      /* if we get an NXDomain answer with a CNAME, let's not cache the
+         target, even the server was authoritative for it,
+         and do an additional query for the CNAME target.
+         We have a regression test making sure we do exactly that.
+      */
+      if(!wasVariable() && newtarget.empty()) {
         t_sstorage.negcache.add(ne);
         if(s_rootNXTrust && ne.d_auth.isRoot() && auth.isRoot()) {
           ne.d_name = ne.d_name.getLastLabel();
@@ -2079,6 +2089,9 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         newtarget=content->getTarget();
       }
     }
+    /* if we have a positive answer synthetized from a wildcard, we need to
+       return the corresponding NSEC/NSEC3 records from the AUTHORITY section
+       proving that the exact name did not exist */
     else if(needWildcardProof && (rec.d_type==QType::RRSIG || rec.d_type==QType::NSEC || rec.d_type==QType::NSEC3) && rec.d_place==DNSResourceRecord::AUTHORITY) {
       ret.push_back(rec); // enjoy your DNSSEC
     }
@@ -2093,6 +2106,28 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
 
       done=true;
       ret.push_back(rec);
+
+      if (state == Secure && needWildcardProof) {
+        /* We have a positive answer synthetized from a wildcard, we need to check that we have
+           proof that the exact name doesn't exist so the wildcard can be used,
+           as described in section 5.3.4 of RFC 4035 and 5.3 of FRC 7129.
+        */
+        NegCache::NegCacheEntry ne;
+
+        uint32_t lowestTTL = rec.d_ttl;
+        ne.d_name = qname;
+        ne.d_qtype = QType(0); // this encodes 'whole record'
+        harvestNXRecords(lwr.d_records, ne, d_now.tv_sec, &lowestTTL);
+
+        cspmap_t csp = harvestCSPFromNE(ne);
+        dState res = getDenial(csp, qname, ne.d_qtype.getCode(), false, false, false);
+        if (res != NXDOMAIN) {
+          LOG(d_prefix<<"Invalid denial in wildcard expanded positive response found for "<<qname<<", returning Bogus, res="<<res<<endl);
+          updateValidationState(state, Bogus);
+          /* we already store the record with a different validation status, let's fix it */
+          t_RC->updateValidationStatus(d_now.tv_sec, qname, qtype, d_incomingECSFound ? d_incomingECSNetwork : d_requestor, lwr.d_aabit, Bogus);
+        }
+      }
     }
     else if((rec.d_type==QType::RRSIG || rec.d_type==QType::NSEC || rec.d_type==QType::NSEC3) && rec.d_place==DNSResourceRecord::ANSWER) {
       if(rec.d_type != QType::RRSIG || rec.d_name == qname)

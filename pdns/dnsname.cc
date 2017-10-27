@@ -253,6 +253,24 @@ void DNSName::makeUsRelative(const DNSName& zone)
     clear();
 }
 
+DNSName DNSName::getCommonLabels(const DNSName& other) const
+{
+  DNSName result;
+
+  const std::vector<std::string> ours = getRawLabels();
+  const std::vector<std::string> others = other.getRawLabels();
+
+  for (size_t pos = 0; ours.size() > pos && others.size() > pos; pos++) {
+    if (ours.at(ours.size() - pos - 1) != others.at(others.size() - pos - 1)) {
+      break;
+    }
+
+    result.prependRawLabel(ours.at(ours.size() - pos - 1));
+  }
+
+  return result;
+}
+
 DNSName DNSName::labelReverse() const
 {
   DNSName ret;
