@@ -22,8 +22,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include <botan/botan.h>
-#include <botan/build.h>
+#include <botan/auto_rng.h>
 #include <botan/gost_3410.h>
 #include <botan/gost_3411.h>
 #include <botan/pubkey.h>
@@ -47,11 +46,7 @@ public:
   explicit GOSTDNSCryptoKeyEngine(unsigned int algorithm) : DNSCryptoKeyEngine(algorithm) {}
   ~GOSTDNSCryptoKeyEngine(){}
   void create(unsigned int bits) override;
-#if BOTAN_VERSION_MAJOR < 2
-  string getName() const override { return "Botan 1.10 GOST"; }
-#else
   string getName() const override { return "Botan 2 GOST"; }
-#endif
   storvector_t convertToISCVector() const override;
   std::string getPubKeyHash() const override;
   std::string sign(const std::string& msg) const override;
@@ -70,17 +65,10 @@ public:
   }
 
 private:
-#if BOTAN_VERSION_MAJOR < 2
-  static EC_Domain_Params getParams()
-  {
-    return EC_Domain_Params("1.2.643.2.2.35.1");
-  }
-#else
   static EC_Group getParams()
   {
     return EC_Group("gost_256A");
   }
-#endif
 
   shared_ptr<GOST_3410_PrivateKey> d_key;
   shared_ptr<GOST_3410_PublicKey> d_pubkey;
@@ -165,11 +153,7 @@ namespace {
 
 BigInt decode_le(const byte msg[], size_t msg_len)
    {
-#if BOTAN_VERSION_MAJOR < 2
-   SecureVector<byte> msg_le(msg, msg_len);
-#else
    Botan::secure_vector<byte> msg_le(msg, msg + msg_len);
-#endif
 
    for(size_t i = 0; i != msg_le.size() / 2; ++i)
       std::swap(msg_le[i], msg_le[msg_le.size()-1-i]);
@@ -206,11 +190,7 @@ std::string GOSTDNSCryptoKeyEngine::getPublicKeyString() const
   
   size_t part_size = std::max(x.bytes(), y.bytes());
  
-#if BOTAN_VERSION_MAJOR < 2
-  MemoryVector<byte> bits(2*part_size);
-#else
   std::vector<byte> bits(2*part_size);
-#endif
 
   x.binary_encode(&bits[part_size - x.bytes()]);
   y.binary_encode(&bits[2*part_size - y.bytes()]);
@@ -235,26 +215,10 @@ std::string GOSTDNSCryptoKeyEngine::getPublicKeyString() const
 std::string GOSTDNSCryptoKeyEngine::sign(const std::string& msg) const
 {
   AutoSeeded_RNG rng;
-#if BOTAN_VERSION_MAJOR < 2
-  GOST_3410_Signature_Operation ops(*d_key);
-  
-  string hash= this->hash(msg);
-  SecureVector<byte> signature=ops.sign((byte*)hash.c_str(), hash.length(), rng);
-
-#if BOTAN_VERSION_CODE <= BOTAN_VERSION_CODE_FOR(1,9,12)  // see http://bit.ly/gTytUf
-  string reversed((const char*)signature.begin()+ signature.size()/2, signature.size()/2);
-  reversed.append((const char*)signature.begin(), signature.size()/2);
-  return reversed;
-#else  
-  return string((const char*)signature.begin(), (const char*) signature.end());
-#endif
-
-#else /* BOTAN_VERSION_MAJOR < 2 */
   PK_Signer signer(*d_key, rng, "Raw");
   signer.update(hash(msg));
   auto signature = signer.signature(rng);
   return string(signature.begin(), signature.end());
-#endif /* BOTAN_VERSION_MAJOR < 2*/
 }
 
 std::string GOSTDNSCryptoKeyEngine::hash(const std::string& orig) const
@@ -268,23 +232,9 @@ std::string GOSTDNSCryptoKeyEngine::hash(const std::string& orig) const
 bool GOSTDNSCryptoKeyEngine::verify(const std::string& message, const std::string& signature) const
 {
   std::shared_ptr<GOST_3410_PublicKey> pk = d_pubkey ? d_pubkey : d_key;
-#if BOTAN_VERSION_MAJOR < 2
-  string hash = this->hash(message);
-
-  GOST_3410_Verification_Operation ops(*pk);
-#if BOTAN_VERSION_CODE <= BOTAN_VERSION_CODE_FOR(1,9,12)  // see http://bit.ly/gTytUf
-  string rsignature(signature.substr(32));
-  rsignature.append(signature.substr(0,32));
-  return ops.verify ((byte*)hash.c_str(), hash.length(), (byte*)rsignature.c_str(), rsignature.length());
-#else
-  return ops.verify ((byte*)hash.c_str(), hash.length(), (byte*)signature.c_str(), signature.length());
-#endif
-
-#else /* BOTAN_VERSION_MAJOR < 2 */
   PK_Verifier verifier(*pk, "Raw");
   verifier.update(hash(message));
   return verifier.check_signature(reinterpret_cast<const uint8_t*>(signature.c_str()), signature.size());
-#endif /* BOTAN_VERSION_MAJOR < 2*/
 }
 
 /*
@@ -302,13 +252,7 @@ struct LoaderStruct
 {
   LoaderStruct()
   {
-#if BOTAN_VERSION_MAJOR < 2
-    new Botan::LibraryInitializer("thread_safe=true");
-    // this leaks, but is fine
-    Botan::global_state().set_default_allocator("malloc"); // the other Botan allocator slows down for us
-#endif /* BOTAN_VERSION_MAJOR < 2*/
-
     DNSCryptoKeyEngine::report(12, &GOSTDNSCryptoKeyEngine::maker);
   }
-} loaderBotan110;
+} loaderBotan2;
 }
