@@ -136,6 +136,8 @@ void doClient(ComboAddress server, const std::string& command)
     
     if(line=="quit")
       break;
+    if(line=="help")
+      line="help()";
 
     /* no need to send an empty line to the server */
     if(line.empty())
@@ -194,6 +196,8 @@ void doConsole()
     
     if(line=="quit")
       break;
+    if(line=="help")
+      line="help()";
 
     string response;
     try {
