@@ -51,13 +51,14 @@ class NegCache : public boost::noncopyable {
       uint32_t d_ttd;                     // Timestamp when this entry should die
       recordsAndSignatures authoritySOA;  // The upstream SOA record and RRSIGs
       recordsAndSignatures DNSSECRecords; // The upstream NSEC(3) and RRSIGs
-      vState d_validationState{Indeterminate};
+      mutable vState d_validationState{Indeterminate};
       uint32_t getTTD() const {
         return d_ttd;
       };
     };
 
     void add(const NegCacheEntry& ne);
+    void updateValidationStatus(const DNSName& qname, const QType& qtype, const vState newState);
     bool get(const DNSName& qname, const QType& qtype, const struct timeval& now, NegCacheEntry& ne, bool typeMustMatch=false);
     bool getRootNXTrust(const DNSName& qname, const struct timeval& now, NegCacheEntry& ne);
     uint64_t count(const DNSName& qname) const;

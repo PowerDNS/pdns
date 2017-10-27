@@ -32,12 +32,13 @@
 
 
 
-PowerLDAP::PowerLDAP( const string& hosts, uint16_t port, bool tls )
+PowerLDAP::PowerLDAP( const string& hosts, uint16_t port, bool tls, int timeout )
 {
   d_ld = 0;
   d_hosts = hosts;
   d_port = port;
   d_tls = tls;
+  d_timeout = timeout;
   ensureConnect();
 }
 
@@ -131,7 +132,7 @@ void PowerLDAP::bind( LdapAuthenticator* authenticator )
 }
 
 
-void PowerLDAP::bind( const string& ldapbinddn, const string& ldapsecret, int method, int timeout )
+void PowerLDAP::bind( const string& ldapbinddn, const string& ldapsecret, int method)
 {
   int msgid;
 
@@ -153,7 +154,7 @@ void PowerLDAP::bind( const string& ldapbinddn, const string& ldapsecret, int me
   }
 #endif
 
-  waitResult( msgid, timeout, NULL );
+  waitResult( msgid, NULL );
 }
 
 
@@ -163,7 +164,7 @@ void PowerLDAP::bind( const string& ldapbinddn, const string& ldapsecret, int me
 
 void PowerLDAP::simpleBind( const string& ldapbinddn, const string& ldapsecret )
 {
-  this->bind( ldapbinddn, ldapsecret, LDAP_AUTH_SIMPLE, 30 );
+  this->bind( ldapbinddn, ldapsecret, LDAP_AUTH_SIMPLE );
 }
 
 
@@ -197,13 +198,13 @@ int PowerLDAP::search( const string& base, int scope, const string& filter, cons
  * ldap_msgfree!
  */
 
-int PowerLDAP::waitResult( int msgid, int timeout, LDAPMessage** result )
+int PowerLDAP::waitResult( int msgid, LDAPMessage** result )
 {
-  return ldapWaitResult( d_ld, msgid, timeout, result );
+  return ldapWaitResult( d_ld, msgid, d_timeout, result );
 }
 
 
-bool PowerLDAP::getSearchEntry( int msgid, sentry_t& entry, bool dn, int timeout )
+bool PowerLDAP::getSearchEntry( int msgid, sentry_t& entry, bool dn )
 {
   int i;
   char* attr;
@@ -215,7 +216,7 @@ bool PowerLDAP::getSearchEntry( int msgid, sentry_t& entry, bool dn, int timeout
   bool hasResult = false;
 
   while ( !hasResult ) {
-    i = waitResult( msgid, timeout, &result );
+    i = waitResult( msgid, &result );
     // Here we deliberately ignore LDAP_RES_SEARCH_REFERENCE as we don't follow them.
     // Instead we get the next result.
     // If the function returned an error (i <= 0) we'll deal with after this loop too.
@@ -287,12 +288,12 @@ bool PowerLDAP::getSearchEntry( int msgid, sentry_t& entry, bool dn, int timeout
 }
 
 
-void PowerLDAP::getSearchResults( int msgid, sresult_t& result, bool dn, int timeout )
+void PowerLDAP::getSearchResults( int msgid, sresult_t& result, bool dn )
 {
   sentry_t entry;
 
   result.clear();
-  while( getSearchEntry( msgid, entry, dn, timeout ) )
+  while( getSearchEntry( msgid, entry, dn ) )
   {
     result.push_back( entry );
   }

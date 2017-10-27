@@ -1272,7 +1272,7 @@ public:
   }
   string toString() const override
   {
-    return "remote log to " + d_logger->toString();
+    return "remote log to " + (d_logger ? d_logger->toString() : "");
   }
 private:
   std::shared_ptr<RemoteLogger> d_logger;
@@ -1329,7 +1329,7 @@ public:
   }
   string toString() const override
   {
-    return "remote log response to " + d_logger->toString();
+    return "remote log response to " + (d_logger ? d_logger->toString() : "");
   }
 private:
   std::shared_ptr<RemoteLogger> d_logger;

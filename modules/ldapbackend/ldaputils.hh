@@ -31,6 +31,6 @@ void ldapGetOption( LDAP *conn, int option, void *value );
 
 std::string ldapGetError( LDAP *conn, int code );
 
-int ldapWaitResult( LDAP *conn, int msgid = LDAP_RES_ANY, int timeout = 0, LDAPMessage** result = NULL );
+int ldapWaitResult( LDAP *conn, int msgid, int timeout, LDAPMessage** result = NULL );
 
 #endif // LDAPUTILS_HH

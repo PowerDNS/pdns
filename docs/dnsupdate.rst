@@ -39,12 +39,13 @@ enable DNS update support. Default is ``no``.
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 A list of IP ranges that are allowed to perform updates on any domain.
-The default is ``0.0.0.0/0``, which means that all ranges are accepted.
+The default is ``127.0.0.0/8``, which means that all loopback addresses are accepted.
 Multiple entries can be used on this line
 (``allow-dnsupdate-from=198.51.100.0/8 203.0.113.2/32``). The option can
 be left empty to disallow everything, this then should be used in
 combination with the ``ALLOW-DNSUPDATE-FROM`` :doc:`domain metadata <domainmetadata>` setting per
-zone.
+zone. Setting a range here and in ``ALLOW-DNSUPDATE-FROM`` enables updates
+from either address range.
 
 ``forward-dnsupdate``
 ~~~~~~~~~~~~~~~~~~~~~
@@ -113,10 +114,13 @@ TSIG-ALLOW-DNSUPDATE
 
 This setting allows you to set the TSIG key required to do an DNS
 update. If you have GSS-TSIG enabled, you can use Kerberos principals
-here. An example:
+here. An example, using :program:`pdnsutil` to create the key:
 
 ::
 
+    pdnsutil generate-tsig-key test hmac-md5
+    Create new TSIG key test hmac-md5 kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=
+    
     sql> insert into tsigkeys (name, algorithm, secret) values ('test', 'hmac-md5', 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=');
     sql> select id from domains where name='example.org';
     5
@@ -135,9 +139,9 @@ An example of how to use a TSIG key with the :program:`nsupdate` command:
     !
 
 If a TSIG key is set for the domain, it is required to be used for the
-update. The TSIG is extra security on top of the
-``ALLOW-DNSUPDATE-FROM`` setting. If a TSIG key is set, the IP(-range)
-still needs to be allowed via ``ALLOW-DNSUPDATE-FROM``.
+update. The TSIG is an alternative means of securing updates, instead of using the
+``ALLOW-DNSUPDATE-FROM`` setting. If a TSIG key is set, and if ``ALLOW-DNSUPDATE-FROM`` is set,
+the IP(-range) of the updater still needs to be allowed via ``ALLOW-DNSUPDATE-FROM``. 
 
 FORWARD-DNSUPDATE
 ~~~~~~~~~~~~~~~~~
@@ -221,7 +225,7 @@ These are the settings available for **SOA-EDIT-DNSUPDATE**.
 -  EPOCH: Change the serial to the number of seconds since the EPOCH,
    aka unixtime.
 -  SOA-EDIT: Change the serial to whatever SOA-EDIT would provide. See
-   `Domain metadata <domainmetadata>`
+   :doc:`Domain metadata <domainmetadata>`
 -  SOA-EDIT-INCREASE: Change the serial to whatever SOA-EDIT would
    provide. If what SOA-EDIT provides is lower than the current serial,
    increase the current serial by 1.

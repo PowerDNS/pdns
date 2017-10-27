@@ -11,7 +11,7 @@ grouped.
   it will inevitably cause problems, problems that may be hard to debug.
   Use ``pdnsutil check-zone`` to validate your zone data.
 
-..note::
+.. note::
   Whenever the storage format is mentioned, this relates only to
   the way the record should be stored in one of the :doc:`generic SQL <../backends/generic-sql>` backends. The other
   backends should use their *native* format.

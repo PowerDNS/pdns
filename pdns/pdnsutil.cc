@@ -135,196 +135,14 @@ void loadMainConfig(const std::string& configdir)
   UeberBackend::go();
 }
 
-// irritatingly enough, rectifyZone needs its own ueberbackend and can't therefore benefit from transactions outside its scope
-// I think this has to do with interlocking transactions between B and DK, but unsure.
 bool rectifyZone(DNSSECKeeper& dk, const DNSName& zone)
 {
-  if(dk.isPresigned(zone)){
-    cerr<<"Rectify presigned zone '"<<zone<<"' is not allowed/necessary."<<endl;
-    return false;
+  string error;
+  bool ret = dk.rectifyZone(zone, error, true);
+  if (!ret) {
+    cerr<<error<<endl;
   }
-
-  UeberBackend B("default");
-  bool doTransaction=true; // but see above
-  SOAData sd;
-
-  if(!B.getSOAUncached(zone, sd)) {
-    cerr<<"No SOA known for '"<<zone<<"', is such a zone in the database?"<<endl;
-    return false;
-  }
-  sd.db->list(zone, sd.domain_id);
-
-  DNSResourceRecord rr;
-  set<DNSName> qnames, nsset, dsnames, insnonterm, delnonterm;
-  map<DNSName,bool> nonterm;
-  vector<DNSResourceRecord> rrs;
-
-  while(sd.db->get(rr)) {
-    rr.qname.makeUsLowerCase();
-    if (rr.qtype.getCode())
-    {
-      rrs.push_back(rr);
-      qnames.insert(rr.qname);
-      if(rr.qtype.getCode() == QType::NS && rr.qname != zone)
-        nsset.insert(rr.qname);
-      if(rr.qtype.getCode() == QType::DS)
-        dsnames.insert(rr.qname);
-    }
-    else
-      delnonterm.insert(rr.qname);
-  }
-
-  NSEC3PARAMRecordContent ns3pr;
-  bool narrow;
-  bool haveNSEC3=dk.getNSEC3PARAM(zone, &ns3pr, &narrow);
-  bool isOptOut=(haveNSEC3 && ns3pr.d_flags);
-  if(dk.isSecuredZone(zone))
-  {
-    if(!haveNSEC3)
-      cerr<<"Adding NSEC ordering information "<<endl;
-    else if(!narrow) {
-      if(!isOptOut)
-        cerr<<"Adding NSEC3 hashed ordering information for '"<<zone<<"'"<<endl;
-      else
-        cerr<<"Adding NSEC3 opt-out hashed ordering information for '"<<zone<<"'"<<endl;
-    } else
-      cerr<<"Erasing NSEC3 ordering since we are narrow, only setting 'auth' fields"<<endl;
-  }
-  else
-    cerr<<"Adding empty non-terminals for non-DNSSEC zone"<<endl;
-
-  set<DNSName> nsec3set;
-  if (haveNSEC3 && !narrow) {
-    for (auto &rr: rrs) {
-      bool skip=false;
-      DNSName shorter = rr.qname;
-      if (shorter != zone && shorter.chopOff() && shorter != zone) {
-        do {
-          if(nsset.count(shorter)) {
-            skip=true;
-            break;
-          }
-        } while(shorter.chopOff() && shorter != zone);
-      }
-      shorter = rr.qname;
-      if(!skip && (rr.qtype.getCode() != QType::NS || !isOptOut)) {
-
-        do {
-          if(!nsec3set.count(shorter)) {
-            nsec3set.insert(shorter);
-          }
-        } while(shorter != zone && shorter.chopOff());
-      }
-    }
-  }
-
-  if(doTransaction)
-    sd.db->startTransaction(zone, -1);
-
-  bool realrr=true;
-  bool doent=true;
-  uint32_t maxent = ::arg().asNum("max-ent-entries");
-
-  dononterm:;
-  for (const auto& qname: qnames)
-  {
-    bool auth=true;
-    DNSName ordername;
-    auto shorter(qname);
-
-    if(realrr) {
-      do {
-        if(nsset.count(shorter)) {
-          auth=false;
-          break;
-        }
-      } while(shorter.chopOff());
-    } else {
-      auth=nonterm.find(qname)->second;
-    }
-
-    if(haveNSEC3) // NSEC3
-    {
-      if(!narrow && nsec3set.count(qname)) {
-        ordername=DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, qname)));
-        if(!realrr)
-          auth=true;
-      } else if(!realrr)
-        auth=false;
-    }
-    else if (realrr) // NSEC
-      ordername=qname.makeRelative(zone);
-
-    if(g_verbose)
-      cerr<<"'"<<qname<<"' -> '"<< ordername <<"'"<<endl;
-    sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, auth);
-
-    if(realrr)
-    {
-      if (dsnames.count(qname))
-        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, true, QType::DS);
-      if (!auth || nsset.count(qname)) {
-        ordername.clear();
-        if(isOptOut && !dsnames.count(qname))
-          sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, false, QType::NS);
-        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, false, QType::A);
-        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, false, QType::AAAA);
-      }
-
-      if(doent)
-      {
-        shorter=qname;
-        while(shorter!=zone && shorter.chopOff())
-        {
-          if(!qnames.count(shorter))
-          {
-            if(!(maxent))
-            {
-              cerr<<"Zone '"<<zone<<"' has too many empty non terminals."<<endl;
-              insnonterm.clear();
-              delnonterm.clear();
-              doent=false;
-              break;
-            }
-
-            if (!delnonterm.count(shorter) && !nonterm.count(shorter))
-              insnonterm.insert(shorter);
-            else
-              delnonterm.erase(shorter);
-
-            if (!nonterm.count(shorter)) {
-              nonterm.insert(pair<DNSName, bool>(shorter, auth));
-              --maxent;
-            } else if (auth)
-              nonterm[shorter]=true;
-          }
-        }
-      }
-    }
-  }
-
-  if(realrr)
-  {
-    //cerr<<"Total: "<<nonterm.size()<<" Insert: "<<insnonterm.size()<<" Delete: "<<delnonterm.size()<<endl;
-    if(!insnonterm.empty() || !delnonterm.empty() || !doent)
-    {
-      sd.db->updateEmptyNonTerminals(sd.domain_id, insnonterm, delnonterm, !doent);
-    }
-    if(doent)
-    {
-      realrr=false;
-      qnames.clear();
-      for(const auto& nt :  nonterm){
-        qnames.insert(nt.first);
-      }
-      goto dononterm;
-    }
-  }
-
-  if(doTransaction)
-    sd.db->commitTransaction();
-
-  return true;
+  return ret;
 }
 
 void dbBench(const std::string& fname)
@@ -1424,7 +1242,7 @@ void testSpeed(DNSSECKeeper& dk, const DNSName& zone, const string& remote, int 
     throw runtime_error("No backends available for DNSSEC key storage");
   }
 
-  ChunkedSigningPipe csp(DNSName(zone), 1, remote, cores);
+  ChunkedSigningPipe csp(DNSName(zone), 1, cores);
   
   vector<DNSZoneRecord> signatures;
   uint32_t rnd;
@@ -3058,6 +2876,12 @@ try
     DNSName zone(cmds[1]);
     string kind = cmds[2];
     vector<string> meta(cmds.begin() + 3, cmds.end());
+
+    DomainInfo di;
+    if (!B.getDomainInfo(zone, di)){
+      cerr << "No such zone in the database" << endl;
+      return false;
+    }
 
     if (!B.setDomainMetadata(zone, kind, meta)) {
       cerr << "Unable to set meta for '" << zone << "'" << endl;

@@ -808,6 +808,10 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       return std::shared_ptr<DNSAction>(new PoolAction(a));
     });
 
+  g_lua.writeFunction("QPSAction", [](int limit) {
+      return std::shared_ptr<DNSAction>(new QPSAction(limit));
+    });
+
   g_lua.writeFunction("QPSPoolAction", [](int limit, const string& a) {
       return std::shared_ptr<DNSAction>(new QPSPoolAction(limit, a));
     });
@@ -1212,7 +1216,13 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.registerFunction("isUp", &DownstreamState::isUp);
   g_lua.registerFunction("setDown", &DownstreamState::setDown);
   g_lua.registerFunction("setUp", &DownstreamState::setUp);
-  g_lua.registerFunction("setAuto", &DownstreamState::setAuto);
+  g_lua.registerFunction<void(DownstreamState::*)(boost::optional<bool> newStatus)>("setAuto", [](DownstreamState& s, boost::optional<bool> newStatus) {
+      if (newStatus) {
+        s.upStatus = *newStatus;
+      }
+      s.setAuto();
+    });
+
   g_lua.registerFunction("getName", &DownstreamState::getName);
   g_lua.registerFunction("getNameWithAddr", &DownstreamState::getNameWithAddr);
   g_lua.registerMember("upStatus", &DownstreamState::upStatus);

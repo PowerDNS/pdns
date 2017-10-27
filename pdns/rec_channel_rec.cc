@@ -873,6 +873,14 @@ void registerAllStats()
   addGetStat("answers100-1000", &g_stats.answers100_1000);
   addGetStat("answers-slow", &g_stats.answersSlow);
 
+  addGetStat("x-ourtime0-1", &g_stats.ourtime0_1);
+  addGetStat("x-ourtime1-2", &g_stats.ourtime1_2);
+  addGetStat("x-ourtime2-4", &g_stats.ourtime2_4);
+  addGetStat("x-ourtime4-8", &g_stats.ourtime4_8);
+  addGetStat("x-ourtime8-16", &g_stats.ourtime8_16);
+  addGetStat("x-ourtime16-32", &g_stats.ourtime16_32);
+  addGetStat("x-ourtime-slow", &g_stats.ourtimeSlow);
+
   addGetStat("auth4-answers0-1", &g_stats.auth4Answers0_1);
   addGetStat("auth4-answers1-10", &g_stats.auth4Answers1_10);
   addGetStat("auth4-answers10-100", &g_stats.auth4Answers10_100);
@@ -887,6 +895,7 @@ void registerAllStats()
 
 
   addGetStat("qa-latency", doGetAvgLatencyUsec);
+  addGetStat("x-our-latency", []() { return g_stats.avgLatencyOursUsec; });
   addGetStat("unexpected-packets", &g_stats.unexpectedCount);
   addGetStat("case-mismatches", &g_stats.caseMismatchCount);
   addGetStat("spoof-prevents", &g_stats.spoofCount);

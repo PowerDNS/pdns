@@ -31,6 +31,18 @@ Configuration Parameters
 
 Location of the Bind configuration file to parse.
 
+PowerDNS does not support every directive supported by Bind.
+It supports the following blocks and directives:
+
+* ``options``
+   * ``directory``
+   * ``also-notify``
+* ``zone``
+   * ``file``
+   * ``type``
+   * ``masters``
+   * ``also-notify``
+
 .. _setting-bind-check-interval:
 
 ``bind-check-interval``

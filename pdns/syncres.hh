@@ -755,7 +755,9 @@ private:
   vState validateDNSKeys(const DNSName& zone, const std::vector<DNSRecord>& dnskeys, const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures, unsigned int depth);
   vState getDSRecords(const DNSName& zone, dsmap_t& ds, bool onlyTA, unsigned int depth, bool bogusOnNXD=true, bool* foundCut=nullptr);
   vState getDNSKeys(const DNSName& signer, skeyset_t& keys, unsigned int depth);
-  void getDenialValidationState(NegCache::NegCacheEntry& ne, vState& state, const dState expectedState, bool allowOptOut, bool referralToUnsigned);
+  dState getDenialValidationState(NegCache::NegCacheEntry& ne, const vState state, const dState expectedState, bool referralToUnsigned);
+  void updateDenialValidationState(NegCache::NegCacheEntry& ne, vState& state, const dState denialState, const dState expectedState, bool allowOptOut);
+  void computeNegCacheValidationStatus(NegCache::NegCacheEntry& ne, const DNSName& qname, const QType& qtype, const int res, vState& state, unsigned int depth);
   vState getTA(const DNSName& zone, dsmap_t& ds);
   bool haveExactValidationStatus(const DNSName& domain);
   vState getValidationStatus(const DNSName& subdomain, bool allowIndeterminate=true);
@@ -870,7 +872,9 @@ struct RecursorStats
   std::atomic<uint64_t> answers0_1, answers1_10, answers10_100, answers100_1000, answersSlow;
   std::atomic<uint64_t> auth4Answers0_1, auth4Answers1_10, auth4Answers10_100, auth4Answers100_1000, auth4AnswersSlow;
   std::atomic<uint64_t> auth6Answers0_1, auth6Answers1_10, auth6Answers10_100, auth6Answers100_1000, auth6AnswersSlow;
-  double avgLatencyUsec;
+  std::atomic<uint64_t> ourtime0_1, ourtime1_2, ourtime2_4, ourtime4_8, ourtime8_16, ourtime16_32, ourtimeSlow;
+  double avgLatencyUsec{0};
+  double avgLatencyOursUsec{0};
   std::atomic<uint64_t> qcounter;     // not increased for unauth packets
   std::atomic<uint64_t> ipv6qcounter;
   std::atomic<uint64_t> tcpqcounter;
@@ -935,11 +939,7 @@ public:
   string reason; //! Print this to tell the user what went wrong
 };
 
-#if (__GNUC__ == 4 && __GNUC_MINOR__ == 2)
-typedef boost::circular_buffer<SComboAddress> addrringbuf_t;
-#else
 typedef boost::circular_buffer<ComboAddress> addrringbuf_t;
-#endif
 extern thread_local std::unique_ptr<addrringbuf_t> t_servfailremotes, t_largeanswerremotes, t_remotes;
 
 extern thread_local std::unique_ptr<boost::circular_buffer<pair<DNSName,uint16_t> > > t_queryring, t_servfailqueryring;
@@ -951,6 +951,7 @@ extern RecursorStats g_stats;
 extern unsigned int g_numThreads;
 extern uint16_t g_outgoingEDNSBufsize;
 extern std::atomic<uint32_t> g_maxCacheEntries, g_maxPacketCacheEntries;
+extern bool g_lowercaseOutgoing;
 
 
 std::string reloadAuthAndForwards();

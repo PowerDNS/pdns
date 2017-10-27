@@ -81,7 +81,7 @@ LdapBackend::LdapBackend( const string &suffix )
 
     L << Logger::Info << m_myname << " LDAP servers = " << hoststr << endl;
 
-    m_pldap = new PowerLDAP( hoststr.c_str(), LDAP_PORT, mustDo( "starttls" ) );
+    m_pldap = new PowerLDAP( hoststr.c_str(), LDAP_PORT, mustDo( "starttls" ), getArgAsNum( "timeout" ) );
     m_pldap->setOption( LDAP_OPT_DEREF, LDAP_DEREF_ALWAYS );
 
     string bindmethod = getArg( "bindmethod" );

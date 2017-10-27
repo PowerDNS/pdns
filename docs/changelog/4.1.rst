@@ -5,6 +5,12 @@ Changelogs for 4.1.x
   :version: 4.1.0-rc2
 
   .. change::
+    :tags: DNSSEC, Bug Fixes
+    :pullreq: 5815
+
+    Ignore SOA-EDIT for PRESIGNED zones.
+
+  .. change::
     :tags: Packages, New Features
     :pullreq: 5665
 

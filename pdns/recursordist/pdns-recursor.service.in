@@ -8,7 +8,7 @@ After=network-online.target
 
 [Service]
 Type=notify
-ExecStart=@sbindir@/pdns_recursor --daemon=no --write-pid=no --disable-syslog
+ExecStart=@sbindir@/pdns_recursor --daemon=no --write-pid=no --disable-syslog --log-timestamp=no
 Restart=on-failure
 StartLimitInterval=0
 PrivateTmp=true

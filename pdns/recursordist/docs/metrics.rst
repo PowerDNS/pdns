@@ -253,7 +253,7 @@ max-cache-entries
 currently configured maximum number of cache entries
 
 max-packetcache-entries
-^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^
 currently configured maximum number of packet cache entries
 
 max-mthread-stack
@@ -439,3 +439,61 @@ number of seconds process has been running (since 3.1.5)
 user-msec
 ^^^^^^^^^
 number of CPU milliseconds spent in 'user' mode
+
+x-our-latency
+^^^^^^^^^^^^^
+.. versionadded:: 4.1
+
+New metric, which is not yet proven to be reliable. PowerDNS measures per query how much time has been spent waiting on
+authoritative servers. In addition, the Recursor measures the total amount of time needed to answer a question. The
+difference between these two durations is a measure of how much time was spent within PowerDNS. This metric is the average
+of that difference, in microseconds. Since 4.1.
+
+x-ourtime0-1
+^^^^^^^^^^^^
+.. versionadded:: 4.1
+
+New metric, which is not yet proven to be reliable. See x-our-latency for further details. Counts responses
+where between 0 and 1 milliseconds was spent within the Recursor. Since 4.1.
+
+x-ourtime1-2
+^^^^^^^^^^^^
+.. versionadded:: 4.1
+
+New metric, which is not yet proven to be reliable. See x-our-latency for further details. Counts responses
+where between 1 and 2 milliseconds was spent within the Recursor. Since 4.1.
+
+x-ourtime2-4
+^^^^^^^^^^^^
+.. versionadded:: 4.1
+
+New metric, which is not yet proven to be reliable. See x-our-latency for further details. Counts responses
+where between 2 and 4 milliseconds was spent within the Recursor. Since 4.1.
+
+x-ourtime4-8
+^^^^^^^^^^^^
+.. versionadded:: 4.1
+
+New metric, which is not yet proven to be reliable. See x-our-latency for further details. Counts responses
+where between 4 and 8 milliseconds was spent within the Recursor. Since 4.1.
+
+x-ourtime8-16
+^^^^^^^^^^^^^
+.. versionadded:: 4.1
+
+New metric, which is not yet proven to be reliable. See x-our-latency for further details. Counts responses
+where between 8 and 16 milliseconds was spent within the Recursor. Since 4.1.
+
+x-ourtime16-32
+^^^^^^^^^^^^^^
+.. versionadded:: 4.1
+
+New metric, which is not yet proven to be reliable. See x-our-latency for further details. Counts responses
+where between 16 and 32 milliseconds was spent within the Recursor. Since 4.1.
+
+x-ourtime-slow
+^^^^^^^^^^^^^^
+.. versionadded:: 4.1
+
+New metric, which is not yet proven to be reliable. See x-our-latency for further details. Counts responses
+where more than 32 milliseconds was spent within the Recursor. Since 4.1.

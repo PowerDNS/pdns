@@ -149,7 +149,6 @@ static std::atomic<bool> statsWanted;
 static std::atomic<bool> g_quiet;
 static bool g_logCommonErrors;
 static bool g_anyToTcp;
-static bool g_lowercaseOutgoing;
 static bool g_weDistributeQueries; // if true, only 1 thread listens on the incoming query sockets
 static bool g_reusePort{false};
 static bool g_useOneSocketPerThread;
@@ -162,6 +161,7 @@ RecursorControlChannel s_rcc; // only active in thread 0
 RecursorStats g_stats;
 string s_programname="pdns_recursor";
 string s_pidfname;
+bool g_lowercaseOutgoing;
 unsigned int g_numThreads;
 uint16_t g_outgoingEDNSBufsize;
 bool g_logRPZChanges{false};
@@ -761,10 +761,6 @@ static void startDoResolve(void *p)
     pw.getHeader()->rd=dc->d_mdp.d_header.rd;
     pw.getHeader()->cd=dc->d_mdp.d_header.cd;
 
-    // DO NOT MOVE THIS CODE UP - DNSPacketWriter needs to get the original-cased version
-    if (g_lowercaseOutgoing)
-      dc->d_mdp.d_qname = dc->d_mdp.d_qname.makeLowerCase();
-
     uint32_t minTTL=std::numeric_limits<uint32_t>::max();
 
     SyncRes sr(dc->d_now);
@@ -1253,6 +1249,28 @@ static void startDoResolve(void *p)
     newLat = min(newLat,(uint64_t)(((uint64_t) g_networkTimeoutMsec)*1000)); // outliers of several minutes exist..
     g_stats.avgLatencyUsec=(1-1.0/g_latencyStatSize)*g_stats.avgLatencyUsec + (float)newLat/g_latencyStatSize;
     // no worries, we do this for packet cache hits elsewhere
+
+    auto ourtime = 1000.0*spent-sr.d_totUsec/1000.0; // in msec
+    if(ourtime < 1)
+      g_stats.ourtime0_1++;
+    else if(ourtime < 2)
+      g_stats.ourtime1_2++;
+    else if(ourtime < 4)
+      g_stats.ourtime2_4++;
+    else if(ourtime < 8)
+      g_stats.ourtime4_8++;
+    else if(ourtime < 16)
+      g_stats.ourtime8_16++;
+    else if(ourtime < 32)
+      g_stats.ourtime16_32++;
+    else {
+      //      cerr<<"SLOW: "<<ourtime<<"ms -> "<<dc->d_mdp.d_qname<<"|"<<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype)<<endl;
+      g_stats.ourtimeSlow++;
+    }
+    if(ourtime >= 0.0) {
+      newLat=ourtime*1000; // usec
+      g_stats.avgLatencyOursUsec=(1-1.0/g_latencyStatSize)*g_stats.avgLatencyOursUsec + (float)newLat/g_latencyStatSize;
+    }
     //    cout<<dc->d_mdp.d_qname<<"\t"<<MT->getUsec()<<"\t"<<sr.d_outqueries<<endl;
     delete dc;
     dc=0;
@@ -1691,6 +1709,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         updateResponseStats(tmpdh.rcode, fromaddr, response.length(), 0, 0);
       }
       g_stats.avgLatencyUsec=(1-1.0/g_latencyStatSize)*g_stats.avgLatencyUsec + 0.0; // we assume 0 usec
+      g_stats.avgLatencyOursUsec=(1-1.0/g_latencyStatSize)*g_stats.avgLatencyOursUsec + 0.0; // we assume 0 usec
       return 0;
     }
   }
@@ -2765,6 +2784,7 @@ static int serviceMain(int argc, char*argv[])
 {
   L.setName(s_programname);
   L.disableSyslog(::arg().mustDo("disable-syslog"));
+  L.setTimestamps(::arg().mustDo("log-timestamp"));
 
   if(!::arg()["logging-facility"].empty()) {
     int val=logFacilityToLOG(::arg().asNum("logging-facility") );
@@ -3254,6 +3274,7 @@ int main(int argc, char **argv)
     ::arg().setSwitch("write-pid","Write a PID file")="yes";
     ::arg().set("loglevel","Amount of logging. Higher is more. Do not set below 3")="6";
     ::arg().set("disable-syslog","Disable logging to syslog, useful when running inside a supervisor that logs stdout")="no";
+    ::arg().set("log-timestamp","Print timestamps in log lines, useful to disable when running with a tool that timestamps stdout already")="yes";
     ::arg().set("log-common-errors","If we should log rather common errors")="no";
     ::arg().set("chroot","switch to chroot jail")="";
     ::arg().set("setgid","If set, change group id to this gid for more security")="";

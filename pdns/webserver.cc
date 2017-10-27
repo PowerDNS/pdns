@@ -350,6 +350,9 @@ void WebServer::go()
     while(true) {
       try {
         auto client = d_server->accept();
+        if (!client) {
+          continue;
+        }
         if (client->acl(acl)) {
           std::thread webHandler(WebServerConnectionThreadStart, this, client);
           webHandler.detach();

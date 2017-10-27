@@ -673,9 +673,9 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   trc.d_mac = outpacket->d_trc.d_mac;
   outpacket = getFreshAXFRPacket(q);
   
-  ChunkedSigningPipe csp(target, securedZone, "", ::arg().asNum("signing-threads", 1));
+  ChunkedSigningPipe csp(target, securedZone, ::arg().asNum("signing-threads", 1));
   
-  typedef map<string, NSECXEntry> nsecxrepo_t;
+  typedef map<DNSName, NSECXEntry, CanonDNSNameCompare> nsecxrepo_t;
   nsecxrepo_t nsecxrepo;
   
   // this is where the DNSKEYs go  in
@@ -700,7 +700,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   for(const DNSSECKeeper::keyset_t::value_type& value :  keys) {
     zrr.dr.d_type = QType::DNSKEY;
     zrr.dr.d_content = std::make_shared<DNSKEYRecordContent>(value.first.getDNSKEY());
-    string keyname = NSEC3Zone ? hashQNameWithSalt(ns3pr, zrr.dr.d_name) : zrr.dr.d_name.labelReverse().toString(" ", false);
+    DNSName keyname = NSEC3Zone ? DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, zrr.dr.d_name))) : zrr.dr.d_name;
     NSECXEntry& ne = nsecxrepo[keyname];
     
     ne.d_set.insert(zrr.dr.d_type);
@@ -743,7 +743,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
     ns3pr.d_flags = 0;
     zrr.dr.d_content = std::make_shared<NSEC3PARAMRecordContent>(ns3pr);
     ns3pr.d_flags = flags;
-    string keyname = hashQNameWithSalt(ns3pr, zrr.dr.d_name);
+    DNSName keyname = DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, zrr.dr.d_name)));
     NSECXEntry& ne = nsecxrepo[keyname];
     
     ne.d_set.insert(zrr.dr.d_type);
@@ -882,17 +882,16 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
 
   /* now write all other records */
   
-  string keyname;
-  set<string> ns3rrs;
+  DNSName keyname;
+  set<DNSName> ns3rrs;
   unsigned int udiff;
   DTime dt;
   dt.set();
   int records=0;
   for(DNSZoneRecord &zrr :  zrrs) {
     if (zrr.dr.d_type == QType::RRSIG) {
-      if(presignedZone && getRR<RRSIGRecordContent>(zrr.dr)->d_type == QType::NSEC3) {
-        DNSName relative=zrr.dr.d_name.makeRelative(target);
-        ns3rrs.insert(fromBase32Hex(relative.toStringNoDot()));
+      if(presignedZone && NSEC3Zone && getRR<RRSIGRecordContent>(zrr.dr)->d_type == QType::NSEC3) {
+        ns3rrs.insert(zrr.dr.d_name.makeRelative(sd.qname));
       }
       continue;
     }
@@ -905,7 +904,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
     records++;
     if(securedZone && (zrr.auth || zrr.dr.d_type == QType::NS)) {
       if (NSEC3Zone || zrr.dr.d_type) {
-        keyname = NSEC3Zone ? hashQNameWithSalt(ns3pr, zrr.dr.d_name) : zrr.dr.d_name.labelReverse().toString(" ", false);
+        keyname = NSEC3Zone ? DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, zrr.dr.d_name))) : zrr.dr.d_name;
         NSECXEntry& ne = nsecxrepo[keyname];
         ne.d_ttl = sd.default_ttl;
         ne.d_auth = (ne.d_auth || zrr.auth || (NSEC3Zone && (!ns3pr.d_flags || (presignedZone && ns3pr.d_flags))));
@@ -964,8 +963,8 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
             if(inext == nsecxrepo.end())
               inext = nsecxrepo.begin();
           }
-          n3rc.d_nexthash = inext->first;
-          zrr.dr.d_name = DNSName(toBase32Hex(iter->first))+DNSName(sd.qname);
+          n3rc.d_nexthash = fromBase32Hex(inext->first.toStringNoDot());
+          zrr.dr.d_name = iter->first+sd.qname;
 
           zrr.dr.d_ttl = sd.default_ttl;
           zrr.dr.d_content = std::make_shared<NSEC3RecordContent>(n3rc);
@@ -994,14 +993,13 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
       nrc.d_set = iter->second.d_set;
       nrc.d_set.insert(QType::RRSIG);
       nrc.d_set.insert(QType::NSEC);
-      if(boost::next(iter) != nsecxrepo.end()) {
-        nrc.d_next = DNSName(boost::replace_all_copy(boost::next(iter)->first, " ", ".")).labelReverse();  // XXX likely we need to do the spaces thing here
-      }
+
+      if(boost::next(iter) != nsecxrepo.end())
+        nrc.d_next = boost::next(iter)->first;
       else
-        nrc.d_next=DNSName(boost::replace_all_copy(nsecxrepo.begin()->first," ", ".")).labelReverse();     // XXX likely we need to do the spaces thing here
-  
-      zrr.dr.d_name = DNSName(boost::replace_all_copy(iter->first, " ", ".")).labelReverse();  // XXX likely we need to do the spaces thing here
-  
+        nrc.d_next=nsecxrepo.begin()->first;
+      zrr.dr.d_name = iter->first;
+
       zrr.dr.d_ttl = sd.default_ttl;
       zrr.dr.d_content = std::make_shared<NSECRecordContent>(nrc);
       zrr.dr.d_type = QType::NSEC;

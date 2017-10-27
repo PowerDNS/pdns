@@ -539,13 +539,23 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
 
 void AsyncServerNewConnectionMT(void *p) {
   AsyncServer *server = (AsyncServer*)p;
+  
   try {
-    auto socket = server->accept();
-    server->d_asyncNewConnectionCallback(socket);
+    auto socket = server->accept(); // this is actually a shared_ptr
+    if (socket) {
+      server->d_asyncNewConnectionCallback(socket);
+    }
   } catch (NetworkError &e) {
     // we're running in a shared process/thread, so can't just terminate/abort.
+    L<<Logger::Warning<<"Network error in web thread: "<<e.what()<<endl;
     return;
   }
+  catch (...) {
+    L<<Logger::Warning<<"Unknown error in web thread"<<endl;
+
+    return;
+  }
+
 }
 
 void AsyncServer::asyncWaitForConnections(FDMultiplexer* fdm, const newconnectioncb_t& callback)

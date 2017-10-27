@@ -84,13 +84,33 @@ In PowerDNS live signing mode, signatures, as served through RRSIG
 records, are calculated on the fly, and heavily cached. All CPU cores
 are used for the calculation.
 
-RRSIGs have a validity period, in PowerDNS by default this period starts
-at most a week in the past, and continues at least a week into the
-future.
+RRSIGs have a validity period, in PowerDNS this period is 3 weeks.
+This period starts at most a week in the past, and continues at least a week into the future.
+This interval jumps with one-week increments every Thursday.
 
-Precisely speaking, the time period used is always from the start of the
-previous Thursday until the Thursday two weeks later. This two-week
-interval jumps with one-week increments every Thursday.
+The time period used is always calculated based on the moment of rollover.
+The inception timestamp is the most recent Thursday 00:00:00 UTC, which is exactly one week ago at the moment of rollover.
+The expiry timestamp is the Thursday 00:00:00 UTC two weeks later from the moment of rollover.
+Graphically, it looks like this::
+
+  RRSIG(1) Inception                                                    RRSIG(1) Expiry
+  |                                                                                   |
+  v                                                                                   v
+  |================================ RRSIG(1) validity ================================|
+                              |================================ RRSIG(2) validity ================================|
+                              ^                                                                                   ^
+                              |                                                                                   |
+                              RRSIG(2) Inception                                                    RRSIG(2) Expiry
+
+                              |----- RRSIG(1) served -----|----- RRSIG(2) served -----|
+
+  |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+  thu fri sat sun mon tue wed thu fri sat sun mon tue wed thu fri sat sun mon tue wed thu fri sat sun mon tue wed thu
+                                                          ^
+                                                          |
+                                                          RRSIG roll-over(1 to 2)
+
+At all times, only one RRSIG per signed RRset per ZSK is served when responding to clients.
 
 .. note::
   Why Thursday? POSIX-based operating systems count the time
@@ -137,6 +157,8 @@ not required to be rectified on the master.
 
 Signatures and Hashing is similar as described in :ref:`dnssec-online-signing`.
 
+.. _dnssec-modes-bind-mode:
+
 BIND-mode operation
 -------------------
 
@@ -147,6 +169,9 @@ To use this mode, add
 ``bind-dnssec-db=/var/db/bind-dnssec-db.sqlite3`` to pdns.conf, and run
 ``pdnsutil create-bind-db /var/db/bind-dnssec-db.sqlite3``. Then,
 restart PowerDNS.
+
+.. note::
+  This sqlite database is different from the database used for the regular :doc:`SQLite 3 backend <../backends/generic-sqlite3>`.
 
 After this, you can use ``pdnsutil secure-zone`` and all other pdnsutil
 commands on your BIND zones without trouble.
@@ -167,8 +192,8 @@ In hybrid mode, keying material and zone records are stored in different
 backends. This allows for 'bindbackend' operation in full DNSSEC mode.
 
 To benefit from this mode, include at least one database-based backend
-in the 'launch' statement. The :doc:`SQLite 3 backend <../backends/generic-sqlite3>` probably complements BIND mode
-best, since it does not require a database server process.
+in the :ref:`setting-launch` statement. See the :doc:`backend specific documentation <../backends/index>`
+on how to initialize the database and backend.
 
 .. warning::
   For now, it is necessary to execute a manual SQL 'insert'
@@ -177,3 +202,9 @@ best, since it does not require a database server process.
   statement::
 
       insert into domains (name, type) values ('powerdnssec.org', 'NATIVE');
+
+The :doc:`SQLite 3 backend <../backends/generic-sqlite3>` probably complements BIND mode best, since it does not require a database server process.
+
+.. note::
+  The sqlite3 database must be created using the normal schema for this backend.
+  The database created with ``pdnsutil create-bind-db`` will not work in this backend.

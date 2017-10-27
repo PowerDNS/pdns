@@ -1258,7 +1258,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     bool ecsAdded = false;
     if (dq.useECS && ss && ss->useECS) {
       if (!handleEDNSClientSubnet(query, dq.size, consumed, &dq.len, &(ednsAdded), &(ecsAdded), remote, dq.ecsOverride, dq.ecsPrefixLength)) {
-        vinfolog("Dropping query from µs because we couldn't insert the ECS value", remote.toStringWithPort());
+        vinfolog("Dropping query from %s because we couldn't insert the ECS value", remote.toStringWithPort());
         return;
       }
     }
@@ -1329,7 +1329,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
           sendUDPResponse(cs.udpFD, response, responseLen, 0, dest, remote);
         }
       }
-      vinfolog("%s query for %s|%s from %s, no policy applied", g_servFailOnNoPolicy ? "Dropped" : "ServFailed", dq.qname->toString(), QType(dq.qtype).getName(), remote.toStringWithPort());
+      vinfolog("%s query for %s|%s from %s, no policy applied", g_servFailOnNoPolicy ? "ServFailed" : "Dropped", dq.qname->toString(), QType(dq.qtype).getName(), remote.toStringWithPort());
       return;
     }
 

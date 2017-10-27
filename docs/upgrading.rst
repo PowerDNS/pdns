@@ -48,6 +48,8 @@ Changed options
 Changed defaults
 ~~~~~~~~~~~~~~~~
 
+- The default value of :ref:`setting-webserver-allow-from` has been changed from ``0.0.0.0, ::/0`` to ``127.0.0.1, ::1``.
+
 Other changes
 ^^^^^^^^^^^^^
 
@@ -57,6 +59,9 @@ and ``--with-pgsql-config`` ``configure`` options have been deprecated.
 ``pkg-config``, falling back to detecting ``pg_config``. Use
 ``--with-pg-config`` to specify a path to a non-default ``pg_config`` if
 you have Postgresql installed in a non-default location.
+
+The ``--enable-libsodium`` configure flag has changed from 'no' to 'auto'.
+This means that if libsodium and its development header are installed, it will be linked in.
 
 The improved :doc:`LDAP Backend <backends/ldap>` backend now requires Kerberos headers to be installed.
 Specifically, it needs `krb5.h` to be installed.

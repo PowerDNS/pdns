@@ -198,7 +198,7 @@ Rule Generators
   All queries over the limit are dropped.
   This function is deprecated as of 1.2.0 and will be removed in 1.3.0, please use:
 
-    addAction(DNSRule, QPSLimitAction(limit))
+    addAction(DNSRule, QPSAction(limit))
 
   :param DNSRule: match queries based on this rule
   :param int limit: QPS limit for this rule
@@ -222,9 +222,9 @@ Managing Rules
 
 Active Rules can be shown with :func:`showRules` and removed with :func:`rmRule`::
 
-  > addAction("h4xorbooter.xyz.", QPSLimitAction(10))
-  > addAction({"130.161.0.0/16", "145.14.0.0/16"} , QPSLimitAction(20))
-  > addAction({"nl.", "be."}, QPSLimitAction(1))
+  > addAction("h4xorbooter.xyz.", QPSAction(10))
+  > addAction({"130.161.0.0/16", "145.14.0.0/16"} , QPSAction(20))
+  > addAction({"nl.", "be."}, QPSAction(1))
   > showRules()
   #     Matches Rule                                               Action
   0           0 h4xorbooter.xyz.                                   qps limit to 10
@@ -666,6 +666,13 @@ The following actions exist.
   Send the packet into the specified pool.
 
   :param string poolname: The name of the pool
+
+.. function:: QPSAction(maxqps)
+
+  Drop a packet if it does exceed the ``maxqps`` queries per second limits.
+  Letting the subsequent rules apply otherwise.
+
+  :param int maxqps: The QPS limit
 
 .. function:: QPSPoolAction(maxqps, poolname)
 

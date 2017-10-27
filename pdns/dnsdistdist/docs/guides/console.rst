@@ -9,7 +9,7 @@ The console can be enabled with :func:`controlSocket`:
 
 .. code-block:: lua
 
-  controlSocket('192.0.2.53:5900')
+  controlSocket('192.0.2.53:5199')
 
 To enable encryption, first generate a key with :func:`makeKey`::
 
@@ -32,7 +32,7 @@ If you want to connect over the network, create a configuration file with the sa
 
 Alternatively, you can specify the address and key on the client commandline::
 
-  dnsdist -K "ENCODED KEY" -c 192.0.2.53:5199
+  dnsdist -k "ENCODED KEY" -c 192.0.2.53:5199
 
 .. warning::
 

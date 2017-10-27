@@ -43,8 +43,9 @@ AXFR.
 ------------------------
 
 -  IP ranges, separated by commas
+-  Default: 127.0.0.0/8,::1
 
-Allow DNS updates from these IP ranges.
+Allow DNS updates from these IP ranges. Set to empty string to honour ``ALLOW-DNSUPDATE-FROM`` in :ref:`metadata-allow-dnsupdate-from`.
 
 .. _setting-allow-notify-from:
 
@@ -454,7 +455,7 @@ regression testing.
 Do not log to syslog, only to stdout. Use this setting when running
 inside a supervisor that handles logging (like systemd).
 
-..warning::
+.. warning::
   Do not use this setting in combination with :ref:`setting-daemon` as all
   logging will disappear.
 
@@ -672,6 +673,22 @@ specific interfaces and not use the default 'bind to any'. This causes
 big problems if you have multiple IP addresses. Unix does not provide a
 way of figuring out what IP address a packet was sent to when binding to
 any.
+
+.. _setting-log-timestamp:
+
+``log-timestamp``
+-----------------
+
+.. versionadded:: 4.1.0
+
+- Bool
+- Default: yes
+
+When printing log lines to stdout, prefix them with timestamps.
+Disable this if the process supervisor timestamps these lines already.
+
+.. note::
+  The systemd unit file supplied with the source code already disables timestamp printing
 
 .. _setting-non-local-bind:
 
