@@ -77,7 +77,7 @@ The password to for :ref:`setting-gpgsql-user`. Default: not set.
 ``gpgsql-dnssec``
 ^^^^^^^^^^^^^^^^^
 
-Enable DNSSEC processing for this backend. Default=no.
+Enable DNSSEC processing for this backend. Default: no.
 
 .. _setting-gpsql-extra-connection-parameters:
 

@@ -64,7 +64,7 @@ Host (ip address) to connect to. Mutually exclusive with :ref:`setting-gmysql-so
 ``gmysql-port``
 ^^^^^^^^^^^^^^^
 
-The port to connect to on :ref:`setting-gmysql-host`. Default: 3306
+The port to connect to on :ref:`setting-gmysql-host`. Default: 3306.
 
 .. _setting-gmysql-socket:
 
@@ -106,14 +106,14 @@ The password to for :ref:`setting-gmysql-user`.
 ``gmysql-dnssec``
 ^^^^^^^^^^^^^^^^^
 
-Enable DNSSEC processing for this backend. Default=no.
+Enable DNSSEC processing for this backend. Default: no.
 
 .. _setting-gmysql-innodb-read-committed:
 
 ``gmysql-innodb-read-committed``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Use the InnoDB READ-COMMITTED transaction isolation level. Default=yes.
+Use the InnoDB READ-COMMITTED transaction isolation level. Default: yes.
 
 .. _setting-gmysql-timeout:
 

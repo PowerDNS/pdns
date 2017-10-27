@@ -69,13 +69,13 @@ public:
 
   void declareArguments(const string &suffix="")
   {
-    declare(suffix,"dbname","Pdns backend database name to connect to","powerdns");
+    declare(suffix,"dbname","Database name to connect to","powerdns");
     declare(suffix,"user","Database backend user to connect as","powerdns");
     declare(suffix,"host","Database backend host to connect to","");
-    declare(suffix,"port","Database backend port to connect to","0");
-    declare(suffix,"socket","Pdns backend socket to connect to","");
-    declare(suffix,"password","Pdns backend password to connect with","");
-    declare(suffix,"group", "Pdns backend MySQL 'group' to connect as", "client");
+    declare(suffix,"port","Database backend port to connect to","3306");
+    declare(suffix,"socket","Database backend socket to connect to","");
+    declare(suffix,"password","Database backend password to connect with","");
+    declare(suffix,"group", "Database backend MySQL 'group' to connect as", "client");
     declare(suffix,"innodb-read-committed","Use InnoDB READ-COMMITTED transaction isolation level","yes");
     declare(suffix,"timeout", "The timeout in seconds for each attempt to read/write to the server", "10");
 
