@@ -41,7 +41,7 @@ Netmask class
 
     True if the netmask is an IPv6 netmask.
 
-.. classmethod:: Netmask:match(address) -> vool
+.. classmethod:: Netmask:match(address) -> bool
 
     True if the address passed in address matches
 
