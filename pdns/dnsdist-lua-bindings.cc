@@ -288,7 +288,6 @@ void setupLuaBindings(bool client)
 #ifdef HAVE_DNSCRYPT
     /* DNSCryptContext bindings */
     g_lua.registerFunction<std::string(DNSCryptContext::*)()>("getProviderName", [](const DNSCryptContext& ctx) { return ctx.getProviderName().toStringNoDot(); });
-    g_lua.registerFunction("addNewCertificate", &DNSCryptContext::addNewCertificate);
     g_lua.registerFunction("markActive", &DNSCryptContext::markActive);
     g_lua.registerFunction("markInactive", &DNSCryptContext::markInactive);
     g_lua.registerFunction("removeInactiveCertificate", &DNSCryptContext::removeInactiveCertificate);
@@ -327,12 +326,60 @@ void setupLuaBindings(bool client)
       }
 
       std::shared_ptr<DNSCryptCertificatePair> result = nullptr;
-      auto certs = ctx->getCertificates();
-      if (idx < certs.size()) {
-        result = certs.at(idx);
+      auto pairs = ctx->getCertificates();
+      if (idx < pairs.size()) {
+        result = pairs.at(idx);
       }
 
       return result;
+    });
+
+        g_lua.registerFunction<DNSCryptCert(std::shared_ptr<DNSCryptContext>::*)()>("getCurrentCertificate", [](std::shared_ptr<DNSCryptContext> ctx) {
+
+      if (ctx == nullptr) {
+        throw std::runtime_error("DNSCryptContext::getCurrentCertificate() called on a nil value");
+      }
+
+      auto pairs = ctx->getCertificates();
+      for (const auto& pair : pairs) {
+        if (pair->active) {
+          return pair->cert;
+        }
+      }
+
+      throw std::runtime_error("This context has no active certificate");
+    });
+
+    g_lua.registerFunction<DNSCryptCert(std::shared_ptr<DNSCryptContext>::*)()>("getOldCertificate", [](std::shared_ptr<DNSCryptContext> ctx) {
+
+      if (ctx == nullptr) {
+        throw std::runtime_error("DNSCryptContext::getOldCertificate() called on a nil value");
+      }
+
+      auto pairs = ctx->getCertificates();
+      for (const auto& pair : pairs) {
+        if (!pair->active) {
+          return pair->cert;
+        }
+      }
+
+      throw std::runtime_error("This context has no inactive certificate");
+    });
+
+    g_lua.registerFunction<bool(std::shared_ptr<DNSCryptContext>::*)()>("hasOldCertificate", [](std::shared_ptr<DNSCryptContext> ctx) {
+
+      if (ctx == nullptr) {
+        throw std::runtime_error("DNSCryptContext::hasOldCertificate() called on a nil value");
+      }
+
+      auto pairs = ctx->getCertificates();
+      for (const auto& pair : pairs) {
+        if (!pair->active) {
+          return true;
+        }
+      }
+
+      return false;
     });
 
     g_lua.registerFunction<std::string(std::shared_ptr<DNSCryptContext>::*)()>("printCertificates", [](const std::shared_ptr<DNSCryptContext> ctx) {
