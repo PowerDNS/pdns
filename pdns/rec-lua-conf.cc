@@ -33,9 +33,10 @@ GlobalStateHolder<LuaConfigItems> g_luaconfs;
 
 LuaConfigItems::LuaConfigItems()
 {
+  DNSName root("."); // don't use g_rootdnsname here, it might not exist yet
   for (const auto &dsRecord : rootDSs) {
     auto ds=unique_ptr<DSRecordContent>(dynamic_cast<DSRecordContent*>(DSRecordContent::make(dsRecord)));
-    dsAnchors[g_rootdnsname].insert(*ds);
+    dsAnchors[root].insert(*ds);
   }
 }
 
