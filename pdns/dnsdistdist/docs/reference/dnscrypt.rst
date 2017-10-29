@@ -26,7 +26,7 @@ DNSCrypt objects and functions
   :param string publicKey: path to write the public key to
   :param string privateKey: path to write the private key to
 
-.. function:: generateDNSCryptCertificate(privatekey, certificate, keyfile, serial, validFrom, validUntil)
+.. function:: generateDNSCryptCertificate(privatekey, certificate, keyfile, serial, validFrom, validUntil, version)
 
   generate a new resolver private key and related certificate, valid from the ``validFrom`` UNIX timestamp until the ``validUntil`` one, signed with the provider private key.
 
@@ -36,6 +36,7 @@ DNSCrypt objects and functions
   :param int serial: The certificate's serial number.
   :param int validFrom: Unix timestamp from when the certificate will be valid.
   :param int validUntil: Unix timestamp until when the certificate will be valid.
+  :param DNSCryptExchangeVersion version: The exchange version to use. Possible values are ``DNSCryptExchangeVersion::VERSION1`` (default, X25519-XSalsa20Poly1305) and ``DNSCryptExchangeVersion::VERSION2`` (X25519-XChacha20Poly1305).
 
 .. function:: printDNSCryptProviderFingerprint(keyfile)
 
