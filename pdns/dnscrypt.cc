@@ -214,7 +214,7 @@ void DNSCryptContext::generateCertificate(uint32_t serial, time_t begin, time_t 
   memcpy(cert.protocolMinorVersion, protocolMinorVersion, sizeof(protocolMinorVersion));
   memcpy(cert.signedData.resolverPK, pubK, sizeof(cert.signedData.resolverPK));
   memcpy(cert.signedData.clientMagic, pubK, sizeof(cert.signedData.clientMagic));
-  cert.signedData.serial = serial;
+  cert.signedData.serial = htonl(serial);
   cert.signedData.tsStart = htonl((uint32_t) begin);
   cert.signedData.tsEnd = htonl((uint32_t) end);
 

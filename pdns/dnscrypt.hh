@@ -86,7 +86,7 @@ class DNSCryptCert
 public:
   uint32_t getSerial() const
   {
-    return signedData.serial;
+    return ntohl(signedData.serial);
   }
   uint32_t getTSStart() const
   {
