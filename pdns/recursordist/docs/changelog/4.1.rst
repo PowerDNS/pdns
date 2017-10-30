@@ -5,8 +5,8 @@ Changelogs for 4.1.x
   :version: 4.1.0-rc2
   :released: …th of November 2017
 
-  The RC2 release features mainly some fixes for DNSSEC and some other
-  bug fixes and improvements.
+  The second Release Candidate contains several correctness fixes for DNSSEC,
+  mostly in the area of verifying negative responses.
 
   Also thanks Christian Hofstaedtler for help on the documentation!
 
@@ -14,26 +14,27 @@ Changelogs for 4.1.x
     :tags: API, Improvements
     :pullreq: 5805
 
-    The carbon & webserver API mthreads get improved logging.
+    Improve logging for the built-in :doc:`webserver <../../http-api/index>`
+    and the :ref:`Carbon <metricscarbon>` sender.
 
   .. change::
     :tags: DNSSEC, Bug Fixes
     :pullreq: 5808
 
-    Check that the NSEC covers an ENT when looking for NODATA.
+    Check that the NSEC covers an empty non-terminal when looking for NODATA.
 
   .. change::
-    :tags: Improvements
+    :tags: Improvements, Internals
     :pullreq: 5824
     :tickets: 5663
 
     New b.root ipv4 address (Kees Monshouwer).
 
   .. change::
-    :tags: Improvements
+    :tags: Bug Fixes, Internals
     :pullreq: 5740
 
-    Lowercase all outgoing qnames when lowercase-outgoing is set.
+    Lowercase all outgoing qnames when :ref:`setting-lowercase-outgoing` is set.
 
   .. change::
     :tags: DNSSEC, Improvements
@@ -45,46 +46,51 @@ Changelogs for 4.1.x
     :tags: Improvements
     :pullreq: 5774
 
-    Implement experimental metric tracking time spent within PowerDNS per query.
+    Add :ref:`experimental metrics <stat-x-our-latency>` that track the time spent inside PowerDNS per query.
+    These metrics ignore time spent waiting for the network.
 
   .. change::
     :tags: DNSSEC, Bug Fixes
     :pullreq: 5835
     :tickets: 5827
 
-    Disable validation for infra queries, validate entries from the negcache.
+    Disable validation for infrastructure queries (e.g. when recursing for a name).
+    Also validate entries from the Negative cache if they were not validated before.
 
   .. change::
     :tags: Improvements
     :pullreq: 5842
 
-    Add log-timestamp option.  This option can be used to disable
-    printing timestamps to stdout, this is useful when using
-    systemd-journald or another supervisor that timestamps stdout by
-    itself.  As the logs will not have 2 timestamps.
+    Add :ref:`setting-log-timestamp` setting. This option can be used to disable
+    printing timestamps to stdout, this is useful when using ``systemd-journald``
+    or another supervisor that timestamps output by itself.
 
   .. change::
     :tags: Bug Fixes
     :pullreq: 5762
     :tickets: 5439
 
-    Create socket-dir from init-script.  This fixes this issue for sys v
-    init. For systemd, it is adviced that the admin creates these
-    directories (or doesn't touch the setting).
+    Create :ref:`setting-socket-dir` from the init-script.
 
   .. change::
     :tags: DNSSEC, Bug Fixes
     :pullreq: 5868
     :tickets: 5861
 
-    Fix DNSSEC validation for denial of wildcards in negative answer and
-    denial of existence proofs in wildcard expanded positive responses.
+    Fix DNSSEC validation for denial of wildcards in negative answers and
+    denial of existence proofs in wildcard-expanded positive responses.
 
   .. change::
     :tags: DNSSEC, Bug Fixes
     :pullreq: 5873
 
     Fix DNSSEC validation when using ``-flto``.
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 5803
+
+    Fix crashes with uncaught exceptions in MThreads.
 
 .. changelog::
   :version: 4.1.0-rc1
