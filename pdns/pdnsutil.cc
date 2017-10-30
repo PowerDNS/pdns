@@ -266,7 +266,8 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
 
 
   bool hasNsAtApex = false;
-  set<DNSName> tlsas, cnames, noncnames, glue, checkglue;
+  set<DNSName> tlsas, cnames, noncnames, glue, checkglue, nsrecords;
+  set<pair<DNSName, QType> > recs;
   set<string> recordcontents;
   map<string, unsigned int> ttl;
 
@@ -386,10 +387,17 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
       } else if (rr.qtype.getCode() == QType::DNSKEY) {
         cout<<"[Warning] DNSKEY record not at apex '"<<rr.qname<<" IN "<<rr.qtype.getName()<<" "<<rr.content<<"' in zone '"<<zone<<"', should not be here."<<endl;
         numwarnings++;
-      } else if (rr.qtype.getCode() == QType::NS && DNSName(rr.content).isPartOf(rr.qname)) {
-        checkglue.insert(DNSName(toLower(rr.content)));
+      } else if (rr.qtype.getCode() == QType::NS) {
+        if (DNSName(rr.content).isPartOf(rr.qname)) {
+          checkglue.insert(DNSName(toLower(rr.content)));
+        }
+        nsrecords.insert(rr.qname);
       } else if (rr.qtype.getCode() == QType::A || rr.qtype.getCode() == QType::AAAA) {
         glue.insert(rr.qname);
+      }
+
+      if (rr.qtype != QType::NS && rr.qtype != QType::DS) {
+        recs.insert({rr.qname, rr.qtype});
       }
     }
 
@@ -505,6 +513,15 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
     if (!glue.count(qname)) {
       cout<<"[Warning] Missing glue for '"<<qname<<"' in zone '"<<zone<<"'"<<endl;
       numwarnings++;
+    }
+  }
+
+  for(const auto &nsrecord : nsrecords) {
+    for (const auto &q : recs) {
+      if (q.first.isPartOf(nsrecord)) {
+        cout<<"[Warning] '"<<q.first<<"|"<<q.second.getName()<<"' in zone '"<<zone<<"' is eclipsed by the zone-cut at '"<<nsrecord<<"'"<<endl;
+        numwarnings++;
+      }
     }
   }
 
