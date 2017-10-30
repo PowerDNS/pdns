@@ -266,8 +266,8 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
 
 
   bool hasNsAtApex = false;
-  set<DNSName> tlsas, cnames, noncnames, glue, checkglue, nsrecords;
-  set<pair<DNSName, QType> > recs;
+  set<DNSName> tlsas, cnames, noncnames, glue, checkglue;
+  set<pair<DNSName, QType> > recs, checkOcclusion;
   set<string> recordcontents;
   map<string, unsigned int> ttl;
 
@@ -391,12 +391,14 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
         if (DNSName(rr.content).isPartOf(rr.qname)) {
           checkglue.insert(DNSName(toLower(rr.content)));
         }
-        nsrecords.insert(rr.qname);
+        checkOcclusion.insert({rr.qname, rr.qtype});
       } else if (rr.qtype.getCode() == QType::A || rr.qtype.getCode() == QType::AAAA) {
         glue.insert(rr.qname);
+      } else if (rr.qtype == QType::DNAME) {
+        checkOcclusion.insert({rr.qname, rr.qtype});
       }
 
-      if (rr.qtype != QType::NS && rr.qtype != QType::DS) {
+      if (rr.qtype != QType::NS && rr.qtype != QType::DS && rr.qtype != QType::DNAME) {
         recs.insert({rr.qname, rr.qtype});
       }
     }
@@ -516,10 +518,17 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
     }
   }
 
-  for(const auto &nsrecord : nsrecords) {
+  for(const auto &qname : checkOcclusion) {
     for (const auto &q : recs) {
-      if (q.first.isPartOf(nsrecord)) {
-        cout<<"[Warning] '"<<q.first<<"|"<<q.second.getName()<<"' in zone '"<<zone<<"' is eclipsed by the zone-cut at '"<<nsrecord<<"'"<<endl;
+      if (q.first.isPartOf(qname.first)) {
+        cout<<"[Warning] '"<<q.first<<"|"<<q.second.getName()<<"' in zone '"<<zone<<"' is occluded by a ";
+        if (qname.second == QType::NS) {
+          cout<<"delegation";
+        }
+        if (qname.second == QType::DNAME) {
+          cout<<"DNAME";
+        }
+        cout<<" at '"<<qname.first<<"'"<<endl;
         numwarnings++;
       }
     }
