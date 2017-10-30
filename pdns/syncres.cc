@@ -1440,19 +1440,23 @@ vState SyncRes::getTA(const DNSName& zone, dsmap_t& ds)
   auto luaLocal = g_luaconfs.getLocal();
 
   if (luaLocal->dsAnchors.empty()) {
+    LOG(d_prefix<<": No trust anchors configured, everything is Insecure"<<endl);
     /* We have no TA, everything is insecure */
     return Insecure;
   }
 
   std::string reason;
   if (haveNegativeTrustAnchor(luaLocal->negAnchors, zone, reason)) {
-    LOG(d_prefix<<": got NTA for "<<zone<<endl);
+    LOG(d_prefix<<": got NTA for '"<<zone<<"'"<<endl);
     return NTA;
   }
 
   if (getTrustAnchor(luaLocal->dsAnchors, zone, ds)) {
-    LOG(d_prefix<<": got TA for "<<zone<<endl);
+    LOG(d_prefix<<": got TA for '"<<zone<<"'"<<endl);
     return TA;
+  }
+  else {
+    LOG(d_prefix<<": no TA found for '"<<zone<<"' among "<< luaLocal->dsAnchors.size()<<endl);
   }
 
   if (zone.isRoot()) {
@@ -1860,7 +1864,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
       LOG(prefix<<qname<<": OPT answer '"<<rec.d_name<<"' from '"<<auth<<"' nameservers" <<endl);
       continue;
     }
-    LOG(prefix<<qname<<": accept answer '"<<rec.d_name<<"|"<<DNSRecordContent::NumberToType(rec.d_type)<<"|"<<rec.d_content->getZoneRepresentation()<<"' from '"<<auth<<"' nameservers? "<<(int)rec.d_place<<" ");
+    LOG(prefix<<qname<<": accept answer '"<<rec.d_name<<"|"<<DNSRecordContent::NumberToType(rec.d_type)<<"|"<<rec.d_content->getZoneRepresentation()<<"' from '"<<auth<<"' nameservers? ttl="<<rec.d_ttl<<", place="<<(int)rec.d_place<<" ");
     if(rec.d_type == QType::ANY) {
       LOG("NO! - we don't accept 'ANY' data"<<endl);
       continue;
