@@ -609,6 +609,16 @@ static bool ipv6First(const ComboAddress& a, const ComboAddress& b)
 }
 #endif
 
+struct speedOrderCA
+{
+  speedOrderCA(std::map<ComboAddress,double>& speeds): d_speeds(speeds) {}
+  bool operator()(const ComboAddress& a, const ComboAddress& b) const
+  {
+    return d_speeds[a] < d_speeds[b];
+  }
+  std::map<ComboAddress, double>& d_speeds;
+};
+
 /** This function explicitly goes out for A or AAAA addresses
 */
 vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth, set<GetBestNSAnswer>& beenthere)
@@ -674,21 +684,37 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
   d_DNSSECValidationRequested = oldValidationRequested;
 
   if(ret.size() > 1) {
+    map<ComboAddress, double> speeds;
+
+    auto& collection = t_sstorage.nsSpeeds[qname].d_collection;
+    for(const auto& val: ret) {
+      double speed;
+      speed=collection[val].get(&d_now);
+      speeds[val]=speed;
+    }
+
+    t_sstorage.nsSpeeds[qname].purge(speeds);
+
     random_shuffle(ret.begin(), ret.end(), dns_random);
+    speedOrderCA so(speeds);
+    stable_sort(ret.begin(), ret.end(), so);
 
-    // move 'best' address for this nameserver name up front
-    nsspeeds_t::iterator best = t_sstorage.nsSpeeds.find(qname);
-
-    if(best != t_sstorage.nsSpeeds.end())
-      for(ret_t::iterator i=ret.begin(); i != ret.end(); ++i) {
-        if(*i==best->second.d_best) {  // got the fastest one
-          if(i!=ret.begin()) {
-            *i=*ret.begin();
-            *ret.begin()=best->second.d_best;
-          }
-          break;
+    if(doLog()) {
+      string prefix=d_prefix;
+      prefix.append(depth, ' ');
+      LOG(prefix<<"Nameserver "<<qname<<" IPs: ");
+      bool first = true;
+      for(const auto& addr : ret) {
+        if (first) {
+          first = false;
         }
+        else {
+          LOG(", ");
+        }
+        LOG((addr.toString())<<"(" << (boost::format("%0.2f") % (speeds[addr]/1000.0)).str() <<"ms)");
       }
+      LOG(endl);
+    }
   }
 
   return ret;

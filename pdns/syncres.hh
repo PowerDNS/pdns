@@ -282,18 +282,7 @@ public:
   {
     void submit(const ComboAddress& remote, int usecs, const struct timeval* now)
     {
-      collection_t::iterator pos;
-      for(pos=d_collection.begin(); pos != d_collection.end(); ++pos)
-        if(pos->first==remote)
-          break;
-      if(pos!=d_collection.end()) {
-        pos->second.submit(usecs, now);
-      }
-      else {
-        DecayingEwma de;
-        de.submit(usecs, now);
-        d_collection.push_back(make_pair(remote, de));
-      }
+      d_collection[remote].submit(usecs, now);
     }
 
     double get(const struct timeval* now)
@@ -302,10 +291,10 @@ public:
         return 0;
       double ret=std::numeric_limits<double>::max();
       double tmp;
-      for(collection_t::iterator pos=d_collection.begin(); pos != d_collection.end(); ++pos) {
-        if((tmp=pos->second.get(now)) < ret) {
+      for (auto& entry : d_collection) {
+        if((tmp = entry.second.get(now)) < ret) {
           ret=tmp;
-          d_best=pos->first;
+          d_best=entry.first;
         }
       }
 
@@ -314,13 +303,25 @@ public:
 
     bool stale(time_t limit) const
     {
-      for(collection_t::const_iterator pos=d_collection.begin(); pos != d_collection.end(); ++pos)
-        if(!pos->second.stale(limit))
+      for(const auto& entry : d_collection)
+        if(!entry.second.stale(limit))
           return false;
       return true;
     }
 
-    typedef vector<pair<ComboAddress, DecayingEwma> > collection_t;
+    void purge(const std::map<ComboAddress, double>& keep)
+    {
+      for (auto iter = d_collection.begin(); iter != d_collection.end(); ) {
+        if (keep.find(iter->first) != keep.end()) {
+          ++iter;
+        }
+        else {
+          iter = d_collection.erase(iter);
+        }
+      }
+    }
+
+    typedef std::map<ComboAddress, DecayingEwma> collection_t;
     collection_t d_collection;
     ComboAddress d_best;
   };
