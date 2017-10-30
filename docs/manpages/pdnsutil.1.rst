@@ -88,13 +88,13 @@ set-nsec3 *ZONE* '*HASH-ALGORITHM* *FLAGS* *ITERATIONS* *SALT*' [**narrow**]
     know you need it. For *ITERATIONS*, please consult RFC 5155, section
     10.3. And be aware that a high number might overload validating
     resolvers. The *SALT* is a hexadecimal string encoding the bits for
-    the salt. Setting **narrow** will make PowerDNS send out "white
-    lies" about the next secure record. Instead of looking it up in the
-    database, it will send out the hash + 1 as the next secure record. A
-    sample commandline is: "pdnsutil set-nsec3 powerdnssec.org '1 1 1
-    ab' narrow". **WARNING**: If running in RSASHA1 mode (algorithm 5 or
-    7), switching from NSEC to NSEC3 will require a DS update in the
-    parent zone.
+    the salt, or - to use no salt. Setting **narrow** will make PowerDNS
+    send out "white lies" about the next secure record. Instead of
+    looking it up in the database, it will send out the hash + 1 as the
+    next secure record. A sample commandline is: "pdnsutil set-nsec3
+    powerdnssec.org '1 1 1 ab' narrow". **WARNING**: If running in
+    RSASHA1 mode (algorithm 5 or 7), switching from NSEC to NSEC3 will
+    require a DS update in the parent zone.
 unset-nsec3 *ZONE*
     Converts *ZONE* to NSEC operations. **WARNING**: If running in
     RSASHA1 mode (algorithm 5 or 7), switching from NSEC to NSEC3 will

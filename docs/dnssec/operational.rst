@@ -52,7 +52,7 @@ The quoted part is the content of the NSEC3PARAM records, as defined in
    set as ``0``
 -  Number of iterations of the hash function, read :rfc:`RFC 5155, Section
    10.3 <5155#section-10.3>` for recommendations
--  Salt (in hexadecimal) to apply during hashing
+-  Salt to apply during hashing, in hexadecimal, or ``-`` to use no salt
 
 To convert a zone from NSEC3 to NSEC operations, run:
 
