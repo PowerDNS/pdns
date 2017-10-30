@@ -74,27 +74,27 @@ protected:
     buflen = 0;
   };
 public:
-  P11KitAttribute(CK_ATTRIBUTE_TYPE type, const std::string& value) {
+  P11KitAttribute(CK_ATTRIBUTE_TYPE type_, const std::string& value) {
     Init();
-    this->type = type;
+    this->type = type_;
     setString(value);
   }
 
-  P11KitAttribute(CK_ATTRIBUTE_TYPE type, char value) {
+  P11KitAttribute(CK_ATTRIBUTE_TYPE type_, char value) {
     Init();
-    this->type = type;
+    this->type = type_;
     setByte(value);
   }
 
-  P11KitAttribute(CK_ATTRIBUTE_TYPE type, unsigned char value) {
+  P11KitAttribute(CK_ATTRIBUTE_TYPE type_, unsigned char value) {
     Init();
-    this->type = type;
+    this->type = type_;
     setByte(value);
   }
 
-  P11KitAttribute(CK_ATTRIBUTE_TYPE type, unsigned long value) {
+  P11KitAttribute(CK_ATTRIBUTE_TYPE type_, unsigned long value) {
     Init();
-    this->type = type;
+    this->type = type_;
     setLong(value);
   }
 
@@ -571,9 +571,9 @@ class Pkcs11Token {
       }
 
       // then allocate memory
-      for(size_t k=0; k < attributes.size(); k++) {
-        if (attributes[k].valueType() == Attribute_String) {
-          attr[k].pValue = attributes[k].allocate(attr[k].ulValueLen);
+      for(size_t idx=0; idx < attributes.size(); idx++) {
+        if (attributes[idx].valueType() == Attribute_String) {
+          attr[idx].pValue = attributes[idx].allocate(attr[idx].ulValueLen);
         }
       }
 
@@ -582,9 +582,9 @@ class Pkcs11Token {
       logError("C_GetAttributeValue");
 
       // copy values to map and release allocated memory
-      for(size_t k=0; k < attributes.size(); k++) {
-        if (attributes[k].valueType() == Attribute_String) {
-          attributes[k].commit(attr[k].ulValueLen);
+      for(size_t idx=0; idx < attributes.size(); idx++) {
+        if (attributes[idx].valueType() == Attribute_String) {
+          attributes[idx].commit(attr[idx].ulValueLen);
         }
       }
 

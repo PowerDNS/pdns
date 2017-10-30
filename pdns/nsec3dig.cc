@@ -212,17 +212,17 @@ try
   set<DNSName> proven;
   set<DNSName> denied;
   namesseen.insert(qname);
-  for(const auto &n: namesseen)
+  for(const auto &name: namesseen)
   {
-    DNSName shorter(n);
+    DNSName shorter(name);
     do {
       namestocheck.insert(shorter);
     } while(shorter.chopOff());
   }
-  for(const auto &n: namestocheck)
+  for(const auto &name: namestocheck)
   {
-    proveOrDeny(nsec3s, n, nsec3salt, nsec3iters, proven, denied);
-    proveOrDeny(nsec3s, g_wildcarddnsname+n, nsec3salt, nsec3iters, proven, denied);
+    proveOrDeny(nsec3s, name, nsec3salt, nsec3iters, proven, denied);
+    proveOrDeny(nsec3s, g_wildcarddnsname+name, nsec3salt, nsec3iters, proven, denied);
   }
 
   if(names.count(qname))

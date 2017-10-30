@@ -91,20 +91,20 @@ void GeoIPBackend::initialize() {
   YAML::Node config;
   vector<GeoIPDomain> tmp_domains;
 
-  string mode = getArg("database-cache");
+  string modeStr = getArg("database-cache");
   int flags;
-  if (mode == "standard") 
+  if (modeStr == "standard")
     flags = GEOIP_STANDARD;
-  else if (mode == "memory")
+  else if (modeStr == "memory")
     flags = GEOIP_MEMORY_CACHE;
-  else if (mode == "index") 
+  else if (modeStr == "index")
     flags = GEOIP_INDEX_CACHE;
 #ifdef HAVE_MMAP
-  else if (mode == "mmap")
+  else if (modeStr == "mmap")
     flags = GEOIP_MMAP_CACHE;
 #endif
   else
-    throw PDNSException("Invalid cache mode " + mode + " for GeoIP backend");
+    throw PDNSException("Invalid cache mode " + modeStr + " for GeoIP backend");
 
   s_geoip_files.clear(); // reset pointers
 
@@ -376,15 +376,15 @@ void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket 
   const NetmaskTree<vector<string> >::node_type* node = target->second.lookup(ComboAddress(ip));
   if (node == NULL) return; // no hit, again.
 
-  DNSName format;
+  DNSName sformat;
   gl.netmask = node->first.getBits();
 
   // note that this means the array format won't work with indirect
   for(auto it = node->second.begin(); it != node->second.end(); it++) {
-    format = DNSName(format2str(*it, ip, v6, &gl));
+    sformat = DNSName(format2str(*it, ip, v6, &gl));
 
     // see if the record can be found
-    if (this->lookup_static(dom, format, qtype, qdomain, ip, gl, v6))
+    if (this->lookup_static(dom, sformat, qtype, qdomain, ip, gl, v6))
       return;
   }
 
@@ -404,7 +404,7 @@ void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket 
   rr.domain_id = dom.id;
   rr.qtype = QType::CNAME;
   rr.qname = qdomain;
-  rr.content = format.toString();
+  rr.content = sformat.toString();
   rr.auth = 1;
   rr.ttl = dom.ttl;
   rr.scopeMask = gl.netmask;
@@ -735,7 +735,7 @@ string GeoIPBackend::queryGeoIP(const string &ip, bool v6, GeoIPQueryAttribute a
   return ret;
 }
 
-string GeoIPBackend::format2str(string format, const string& ip, bool v6, GeoIPLookup* gl) {
+string GeoIPBackend::format2str(string sformat, const string& ip, bool v6, GeoIPLookup* gl) {
   string::size_type cur,last;
   time_t t = time((time_t*)NULL);
   GeoIPLookup tmp_gl; // largest wins
@@ -743,62 +743,62 @@ string GeoIPBackend::format2str(string format, const string& ip, bool v6, GeoIPL
   gmtime_r(&t, &gtm);
   last=0;
 
-  while((cur = format.find("%", last)) != string::npos) {
+  while((cur = sformat.find("%", last)) != string::npos) {
     string rep;
     int nrep=3;
     tmp_gl.netmask = 0;
-    if (!format.compare(cur,3,"%cn")) {
+    if (!sformat.compare(cur,3,"%cn")) {
       rep = queryGeoIP(ip, v6, Continent, &tmp_gl);
-    } else if (!format.compare(cur,3,"%co")) {
+    } else if (!sformat.compare(cur,3,"%co")) {
       rep = queryGeoIP(ip, v6, Country, &tmp_gl);
-    } else if (!format.compare(cur,3,"%cc")) {
+    } else if (!sformat.compare(cur,3,"%cc")) {
       rep = queryGeoIP(ip, v6, Country2, &tmp_gl);
-    } else if (!format.compare(cur,3,"%af")) {
+    } else if (!sformat.compare(cur,3,"%af")) {
       rep = (v6?"v6":"v4");
-    } else if (!format.compare(cur,3,"%as")) {
+    } else if (!sformat.compare(cur,3,"%as")) {
       rep = queryGeoIP(ip, v6, ASn, &tmp_gl);
-    } else if (!format.compare(cur,3,"%re")) {
+    } else if (!sformat.compare(cur,3,"%re")) {
       rep = queryGeoIP(ip, v6, Region, &tmp_gl);
-    } else if (!format.compare(cur,3,"%na")) {
+    } else if (!sformat.compare(cur,3,"%na")) {
       rep = queryGeoIP(ip, v6, Name, &tmp_gl);
-    } else if (!format.compare(cur,3,"%ci")) {
+    } else if (!sformat.compare(cur,3,"%ci")) {
       rep = queryGeoIP(ip, v6, City, &tmp_gl);
-    } else if (!format.compare(cur,3,"%hh")) {
+    } else if (!sformat.compare(cur,3,"%hh")) {
       rep = boost::str(boost::format("%02d") % gtm.tm_hour);
       tmp_gl.netmask = (v6?128:32);
-    } else if (!format.compare(cur,3,"%yy")) {
+    } else if (!sformat.compare(cur,3,"%yy")) {
       rep = boost::str(boost::format("%02d") % (gtm.tm_year + 1900));
       tmp_gl.netmask = (v6?128:32);
-    } else if (!format.compare(cur,3,"%dd")) {
+    } else if (!sformat.compare(cur,3,"%dd")) {
       rep = boost::str(boost::format("%02d") % (gtm.tm_yday + 1));
       tmp_gl.netmask = (v6?128:32);
-    } else if (!format.compare(cur,4,"%wds")) {
+    } else if (!sformat.compare(cur,4,"%wds")) {
       nrep=4;
       rep = GeoIP_WEEKDAYS[gtm.tm_wday];
       tmp_gl.netmask = (v6?128:32);
-    } else if (!format.compare(cur,4,"%mos")) {
+    } else if (!sformat.compare(cur,4,"%mos")) {
       nrep=4;
       rep = GeoIP_MONTHS[gtm.tm_mon];
       tmp_gl.netmask = (v6?128:32);
-    } else if (!format.compare(cur,3,"%wd")) {
+    } else if (!sformat.compare(cur,3,"%wd")) {
       rep = boost::str(boost::format("%02d") % (gtm.tm_wday + 1));
       tmp_gl.netmask = (v6?128:32);
-    } else if (!format.compare(cur,3,"%mo")) {
+    } else if (!sformat.compare(cur,3,"%mo")) {
       rep = boost::str(boost::format("%02d") % (gtm.tm_mon + 1));
       tmp_gl.netmask = (v6?128:32);
-    } else if (!format.compare(cur,3,"%ip")) {
+    } else if (!sformat.compare(cur,3,"%ip")) {
       rep = ip;
       tmp_gl.netmask = (v6?128:32);
-    } else if (!format.compare(cur,2,"%%")) {
+    } else if (!sformat.compare(cur,2,"%%")) {
       last = cur + 2; continue;
     } else {
       last = cur + 1; continue; 
     }
     if (tmp_gl.netmask > gl->netmask) gl->netmask = tmp_gl.netmask;
-    format.replace(cur, nrep, rep);
+    sformat.replace(cur, nrep, rep);
     last = cur + rep.size(); // move to next attribute
   }
-  return format;
+  return sformat;
 }
 
 void GeoIPBackend::reload() {

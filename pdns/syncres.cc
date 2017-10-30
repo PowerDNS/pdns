@@ -878,9 +878,9 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
         }
 
         for(const auto& rec : authorityRecs) {
-          DNSRecord dr(*rec);
-          dr.d_ttl=j->d_ttl - d_now.tv_sec;
-          ret.push_back(dr);
+          DNSRecord authDR(*rec);
+          authDR.d_ttl=j->d_ttl - d_now.tv_sec;
+          ret.push_back(authDR);
         }
 
         if(qtype != QType::CNAME) { // perhaps they really wanted a CNAME!
@@ -1646,8 +1646,8 @@ void SyncRes::computeZoneCuts(const DNSName& begin, const DNSName& end, unsigned
        just look for (N)TA
     */
     if (cutState == Insecure || cutState == Bogus) {
-      dsmap_t ds;
-      vState newState = getDSRecords(qname, ds, true, depth);
+      dsmap_t cutDS;
+      vState newState = getDSRecords(qname, cutDS, true, depth);
       if (newState == Indeterminate) {
         continue;
       }

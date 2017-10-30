@@ -1309,9 +1309,9 @@ bool Bind2Backend::searchRecords(const string &pattern, int maxResults, vector<D
     for(state_t::const_iterator i = s_state.begin(); i != s_state.end() ; ++i) {
       BB2DomainInfo h;
       safeGetBBDomainInfo(i->d_id, &h);
-      shared_ptr<const recordstorage_t> handle = h.d_records.get();
+      shared_ptr<const recordstorage_t> rhandle = h.d_records.get();
 
-      for(recordstorage_t::const_iterator ri = handle->begin(); result.size() < static_cast<vector<DNSResourceRecord>::size_type>(maxResults) && ri != handle->end(); ri++) {
+      for(recordstorage_t::const_iterator ri = rhandle->begin(); result.size() < static_cast<vector<DNSResourceRecord>::size_type>(maxResults) && ri != rhandle->end(); ri++) {
         DNSName name = ri->qname.empty() ? i->d_name : (ri->qname+i->d_name);
         if (sm.match(name) || sm.match(ri->content)) {
           DNSResourceRecord r;

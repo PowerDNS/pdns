@@ -84,8 +84,8 @@ AuthLua4::AuthLua4(const std::string& fname) {
                                                                                        cas.insert(ComboAddress(*s));
                                                                                      }
                                                                                      else if(auto v = boost::get<vector<pair<unsigned int, string> > >(&in)) {
-                                                                                       for(const auto& s : *v)
-                                                                                         cas.insert(ComboAddress(s.second));
+                                                                                       for(const auto& str : *v)
+                                                                                         cas.insert(ComboAddress(str.second));
                                                                                      }
                                                                                      else
                                                                                        cas.insert(boost::get<ComboAddress>(in));
@@ -136,8 +136,8 @@ AuthLua4::AuthLua4(const std::string& fname) {
 
       if(auto rec = std::dynamic_pointer_cast<ARecordContent>(dr.d_content))
         ret=rec->getCA(53);
-      else if(auto rec = std::dynamic_pointer_cast<AAAARecordContent>(dr.d_content))
-        ret=rec->getCA(53);
+      else if(auto aaaarec = std::dynamic_pointer_cast<AAAARecordContent>(dr.d_content))
+        ret=aaaarec->getCA(53);
       return ret;
     });
 

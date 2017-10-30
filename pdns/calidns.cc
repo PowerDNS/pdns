@@ -253,8 +253,8 @@ try
   while(getline(ifs, line)) {
     vector<uint8_t> packet;
     boost::trim(line);
-    auto p = splitField(line, ' ');
-    DNSPacketWriter pw(packet, DNSName(p.first), DNSRecordContent::TypeToNumber(p.second));
+    const auto fields = splitField(line, ' ');
+    DNSPacketWriter pw(packet, DNSName(fields.first), DNSRecordContent::TypeToNumber(fields.second));
     pw.getHeader()->rd=wantRecursion;
     pw.getHeader()->id=random();
     if(pw.getHeader()->id % 2) {

@@ -195,11 +195,11 @@ bool ZoneParserTNG::getTemplateLine()
         char radix='d';
         sscanf(spec.c_str(), "%d,%d,%c", &offset, &width, &radix);  // parse format specifier
 
-        char format[12];
-        snprintf(format, sizeof(format) - 1, "%%0%d%c", width, radix); // make into printf-style format
+        char sformat[12];
+        snprintf(sformat, sizeof(sformat) - 1, "%%0%d%c", width, radix); // make into printf-style format
 
         char tmp[80];
-        snprintf(tmp, sizeof(tmp)-1, format, d_templatecounter + offset); // and do the actual printing
+        snprintf(tmp, sizeof(tmp)-1, sformat, d_templatecounter + offset); // and do the actual printing
         outpart+=tmp;
       }
       else

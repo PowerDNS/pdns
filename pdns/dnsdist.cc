@@ -2477,8 +2477,8 @@ catch(const LuaContext::ExecutionErrorException& e) {
   try {
     errlog("Fatal Lua error: %s", e.what());
     std::rethrow_if_nested(e);
-  } catch(const std::exception& e) {
-    errlog("Details: %s", e.what());
+  } catch(const std::exception& ne) {
+    errlog("Details: %s", ne.what());
   }
   catch(PDNSException &ae)
   {

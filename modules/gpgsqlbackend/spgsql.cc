@@ -82,7 +82,6 @@ public:
     }
     d_res_set = PQexecPrepared(d_db(), d_stmt.c_str(), d_nparams, paramValues, paramLengths, NULL, 0);
     ExecStatusType status = PQresultStatus(d_res_set);
-    string errmsg(PQresultErrorMessage(d_res_set));
     if (status != PGRES_COMMAND_OK && status != PGRES_TUPLES_OK && status != PGRES_NONFATAL_ERROR) {
       string errmsg(PQresultErrorMessage(d_res_set));
       releaseStatement();

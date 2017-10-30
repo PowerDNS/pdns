@@ -30,17 +30,17 @@
 #define UNIX_PATH_MAX 108
 #endif
 
-UnixsocketConnector::UnixsocketConnector(std::map<std::string,std::string> options) {
-  if (options.count("path") == 0) {
+UnixsocketConnector::UnixsocketConnector(std::map<std::string,std::string> optionsMap) {
+  if (optionsMap.count("path") == 0) {
     L<<Logger::Error<<"Cannot find 'path' option in connection string"<<endl;
     throw PDNSException();
   } 
   this->timeout = 2000;
-  if (options.find("timeout") != options.end()) { 
-    this->timeout = std::stoi(options.find("timeout")->second);
+  if (optionsMap.find("timeout") != optionsMap.end()) {
+    this->timeout = std::stoi(optionsMap.find("timeout")->second);
   }
-  this->path = options.find("path")->second;
-  this->options = options;
+  this->path = optionsMap.find("path")->second;
+  this->options = optionsMap;
   this->connected = false;
   this->fd = -1;
 }

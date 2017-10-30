@@ -1962,7 +1962,6 @@ BOOST_AUTO_TEST_CASE(test_no_rd) {
 
 BOOST_AUTO_TEST_CASE(test_cache_min_max_ttl) {
   std::unique_ptr<SyncRes> sr;
-  const time_t now = time(nullptr);
   initSR(sr);
 
   primeHints();
@@ -1989,6 +1988,7 @@ BOOST_AUTO_TEST_CASE(test_cache_min_max_ttl) {
       return 0;
     });
 
+  const time_t now = time(nullptr);
   SyncRes::s_minimumTTL = 60;
   SyncRes::s_maxcachettl = 3600;
 
@@ -7948,7 +7948,6 @@ BOOST_AUTO_TEST_CASE(test_nsec3_insecure_delegation_denial) {
 
 BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_negcache_validity) {
   std::unique_ptr<SyncRes> sr;
-  const time_t now = time(nullptr);
   initSR(sr, true);
 
   setDNSSECValidation(sr, DNSSECMode::ValidateAll);
@@ -7986,6 +7985,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_negcache_validity) {
       return 0;
     });
 
+  const time_t now = time(nullptr);
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
@@ -8014,7 +8014,6 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_negcache_validity) {
 
 BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_cache_validity) {
   std::unique_ptr<SyncRes> sr;
-  const time_t now = time(nullptr);
   initSR(sr, true);
 
   setDNSSECValidation(sr, DNSSECMode::ValidateAll);
@@ -8051,6 +8050,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_cache_validity) {
       return 0;
     });
 
+  const time_t now = time(nullptr);
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);

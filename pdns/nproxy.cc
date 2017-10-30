@@ -91,8 +91,7 @@ try
   if(res < 0) 
     throw runtime_error("reading packet from remote: "+stringerror());
     
-  string packet(buffer, res);
-  MOADNSParser mdp(true, packet);
+  MOADNSParser mdp(true, string(buffer,res));
   nif.domain = mdp.d_qname;
   nif.origID = mdp.d_header.id;
 
