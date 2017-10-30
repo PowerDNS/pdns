@@ -3,7 +3,7 @@ Changelogs for 4.1.x
 
 .. changelog::
   :version: 4.1.0-rc2
-  :released: …th of November 2017
+  :released: 30th of October 2017
 
   The second Release Candidate contains several correctness fixes for DNSSEC,
   mostly in the area of verifying negative responses.
