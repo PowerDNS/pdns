@@ -69,8 +69,22 @@ Changelogs for 4.1.x
     :tickets: 5439
 
     Create socket-dir from init-script.  This fixes this issue for sys v
-    init. For systemd, it is advices that the admin creates these
+    init. For systemd, it is adviced that the admin creates these
     directories (or doesn't touch the setting).
+
+  .. change::
+    :tags: DNSSEC, Bug Fixes
+    :pullreq: 5868
+    :tickets: 5861
+
+    Fix DNSSEC validation for denial of wildcards in negative answer and
+    denial of existence proofs in wildcard expanded positive responses.
+
+  .. change::
+    :tags: DNSSEC, Bug Fixes
+    :pullreq: 5873
+
+    Fix DNSSEC validation when using ``-flto``.
 
 .. changelog::
   :version: 4.1.0-rc1
