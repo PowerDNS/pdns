@@ -79,11 +79,11 @@ public:
 
   void declareArguments(const string &suffix="")
   {
-    declare(suffix,"dbname","Pdns backend database name to connect to","");
-    declare(suffix,"user","Pdns backend user to connect as","");
-    declare(suffix,"host","Pdns backend host to connect to","");
+    declare(suffix,"dbname","Backend database name to connect to","");
+    declare(suffix,"user","Database backend user to connect as","");
+    declare(suffix,"host","Database backend host to connect to","");
     declare(suffix,"port","Database backend port to connect to","");
-    declare(suffix,"password","Pdns backend password to connect with","");
+    declare(suffix,"password","Database backend password to connect with","");
     declare(suffix,"extra-connection-parameters", "Extra parameters to add to connection string","");
 
     declare(suffix,"dnssec","Enable DNSSEC processing","no");
