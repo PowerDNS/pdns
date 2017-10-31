@@ -33,6 +33,7 @@
 #include "lua-recursor4.hh"
 #include "rec-lua-conf.hh"
 #include "syncres.hh"
+#include "dnsseckeeper.hh"
 #include "validate-recursor.hh"
 
 thread_local SyncRes::ThreadLocalStorage SyncRes::t_sstorage;
@@ -1542,17 +1543,36 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsi
 
   if (rcode == RCode::NoError || (rcode == RCode::NXDomain && !bogusOnNXD)) {
 
+    uint8_t bestDigestType = 0;
+
     if (state == Secure) {
       bool gotCNAME = false;
       for (const auto& record : dsrecords) {
         if (record.d_type == QType::DS) {
           const auto dscontent = getRR<DSRecordContent>(record);
           if (dscontent && isSupportedDS(*dscontent)) {
+            // Make GOST a lower prio than SHA256
+            if (dscontent->d_digesttype == DNSSECKeeper::GOST && bestDigestType == DNSSECKeeper::SHA256) {
+              continue;
+            }
+            if (dscontent->d_digesttype > bestDigestType || (bestDigestType == DNSSECKeeper::GOST && dscontent->d_digesttype == DNSSECKeeper::SHA256)) {
+              bestDigestType = dscontent->d_digesttype;
+            }
             ds.insert(*dscontent);
           }
         }
         else if (record.d_type == QType::CNAME && record.d_name == zone) {
           gotCNAME = true;
+        }
+      }
+
+      /* RFC 4509 section 3: "Validator implementations SHOULD ignore DS RRs containing SHA-1
+       * digests if DS RRs with SHA-256 digests are present in the DS RRset."
+       * As SHA348 is specified as well, the spirit of the this line is "use the best algorithm".
+       */
+      for (const auto& dsrec : ds) {
+        if (dsrec.d_digesttype != bestDigestType) {
+          ds.erase(dsrec);
         }
       }
 
