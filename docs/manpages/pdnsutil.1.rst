@@ -198,7 +198,11 @@ set-kind *ZONE* *KIND*
     Change the kind of *ZONE* to *KIND* (master, slave, native).
 set-account *ZONE* *ACCOUNT*
     Change the account (owner) of *ZONE* to *ACCOUNT*.
-set-meta *ZONE* *ATTRIBUTE* [*VALUE*]
+add-meta *ZONE* *ATTRIBUTE* *VALUE* [*VALUE*]...
+    Append *VALUE* to the existing *ATTRIBUTE* metadata for *ZONE*.
+    Will return an error if *ATTRIBUTE* does not support multiple values, use
+    **set-meta** for these values.
+set-meta *ZONE* *ATTRIBUTE* [*VALUE*]...
     Set domainmetadata *ATTRIBUTE* for *ZONE* to *VALUE*. An empty value
     clears it.
 set-presigned *ZONE*
