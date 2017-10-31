@@ -893,6 +893,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
       if(presignedZone && NSEC3Zone && getRR<RRSIGRecordContent>(loopZRR.dr)->d_type == QType::NSEC3) {
         ns3rrs.insert(loopZRR.dr.d_name.makeRelative(sd.qname));
       }
+      if(presignedZone) csp.submit(zrr);
       continue;
     }
 
