@@ -7856,7 +7856,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_ent_denial) {
   pair.signatures = signatureContents;
   denialMap[std::make_pair(DNSName(").powerdns.com."), QType::NSEC)] = pair;
 
-  denialState = getDenial(denialMap, DNSName("b.powerdns.com."), QType::A, true, true);
+  denialState = getDenial(denialMap, DNSName("b.powerdns.com."), QType::A, true, false);
   BOOST_CHECK_EQUAL(denialState, NXDOMAIN);
 }
 

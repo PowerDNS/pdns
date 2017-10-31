@@ -155,13 +155,50 @@ static DNSName getNSECOwnerName(const DNSName& initialOwner, const std::vector<s
   return result;
 }
 
+static bool provesNoDataWildCard(const DNSName& qname, const uint16_t qtype, const cspmap_t& validrrsets)
+{
+  LOG("Trying to prove that there is no data in wildcard for "<<qname<<"/"<<QType(qtype).getName()<<endl);
+  for (const auto& v : validrrsets) {
+    LOG("Do have: "<<v.first.first<<"/"<<DNSRecordContent::NumberToType(v.first.second)<<endl);
+    if (v.first.second == QType::NSEC) {
+      for (const auto& r : v.second.records) {
+        LOG("\t"<<r->getZoneRepresentation()<<endl);
+        auto nsec = std::dynamic_pointer_cast<NSECRecordContent>(r);
+        if (!nsec) {
+          continue;
+        }
+
+        if (!v.first.first.isWildcard()) {
+          continue;
+        }
+        DNSName wildcard = getNSECOwnerName(v.first.first, v.second.signatures);
+        if (qname.countLabels() < wildcard.countLabels()) {
+          continue;
+        }
+
+        wildcard.chopOff();
+
+        if (qname.isPartOf(wildcard)) {
+          LOG("\tWildcard matches");
+          if (qtype == 0 || !nsec->d_set.count(qtype)) {
+            LOG(" and proves that the type did not exist"<<endl);
+            return true;
+          }
+          LOG(" BUT the type did exist!"<<endl);
+          return false;
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
 /*
-  This function checks whether the existence of a wildcard covering qname|qtype
+  This function checks whether the non-existence of a wildcard covering qname|qtype
   is proven by the NSEC records in validrrsets.
-  If `wildcardExists` is not NULL, if will be set to true if a wildcard exists
-  for this qname but doesn't have this qtype.
 */
-static bool provesNoWildCard(const DNSName& qname, const uint16_t qtype, const cspmap_t & validrrsets, bool* wildcardExists=nullptr)
+static bool provesNoWildCard(const DNSName& qname, const uint16_t qtype, const cspmap_t & validrrsets)
 {
   LOG("Trying to prove that there is no wildcard for "<<qname<<"/"<<QType(qtype).getName()<<endl);
   for (const auto& v : validrrsets) {
@@ -187,20 +224,9 @@ static bool provesNoWildCard(const DNSName& qname, const uint16_t qtype, const c
         while (wildcard.chopOff() && wildcardLabelsCount >= commonLabelsCount) {
           DNSName target = g_wildcarddnsname + wildcard;
 
-          if (owner == target) {
-            LOG("\tWildcard matches");
-            if (wildcardExists) {
-              *wildcardExists = true;
-            }
-            if (qtype == 0 || !nsec->d_set.count(qtype)) {
-              LOG(" and proves that the type did not exist"<<endl);
-              return true;
-            }
-            LOG(" BUT the type did exist!"<<endl);
-            return false;
-          }
+          LOG("Comparing owner: "<<owner<<" with target: "<<target<<endl);
 
-          if (isCoveredByNSEC(g_wildcarddnsname + wildcard, owner, nsec->d_next)) {
+          if (isCoveredByNSEC(target, owner, nsec->d_next)) {
             LOG("\tWildcard is covered"<<endl);
             return true;
           }
@@ -213,7 +239,7 @@ static bool provesNoWildCard(const DNSName& qname, const uint16_t qtype, const c
 }
 
 /*
-  This function checks whether the existence of a wildcard covering qname|qtype
+  This function checks whether the non-existence of a wildcard covering qname|qtype
   is proven by the NSEC3 records in validrrsets.
   If `wildcardExists` is not NULL, if will be set to true if a wildcard exists
   for this qname but doesn't have this qtype.
@@ -298,6 +324,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
         if (!v.first.first.isPartOf(signer))
           continue;
 
+        const DNSName owner = getNSECOwnerName(v.first.first, v.second.signatures);
         /* RFC 6840 section 4.1 "Clarifications on Nonexistence Proofs":
            Ancestor delegation NSEC or NSEC3 RRs MUST NOT be used to assume
            nonexistence of any RRs below that zone cut, which include all RRs at
@@ -305,17 +332,17 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
            owner name regardless of type.
         */
         if (nsec->d_set.count(QType::NS) && !nsec->d_set.count(QType::SOA) &&
-            signer.countLabels() < v.first.first.countLabels()) {
-          LOG("type is "<<QType(qtype).getName()<<", NS is "<<std::to_string(nsec->d_set.count(QType::NS))<<", SOA is "<<std::to_string(nsec->d_set.count(QType::SOA))<<", signer is "<<signer.toString()<<", owner name is "<<v.first.first.toString()<<endl);
+            signer.countLabels() < owner.countLabels()) {
+          LOG("type is "<<QType(qtype).getName()<<", NS is "<<std::to_string(nsec->d_set.count(QType::NS))<<", SOA is "<<std::to_string(nsec->d_set.count(QType::SOA))<<", signer is "<<signer.toString()<<", owner name is "<<owner.toString()<<endl);
           /* this is an "ancestor delegation" NSEC RR */
-          if (qname == v.first.first && qtype != QType::DS) {
+          if (qname == owner && qtype != QType::DS) {
             LOG("An ancestor delegation NSEC RR can only deny the existence of a DS"<<endl);
             continue;
           }
         }
 
         /* check if the type is denied */
-        if(qname == v.first.first) {
+        if(qname == owner) {
           if (nsec->d_set.count(qtype)) {
             LOG("Does _not_ deny existence of type "<<QType(qtype).getName()<<endl);
             continue;
@@ -343,7 +370,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
           /* we know that the name exists (but this qtype doesn't) so except
              if the answer was generated by a wildcard expansion, no wildcard
              could have matched (rfc4035 section 5.4 bullet 1) */
-          if (!isWildcardExpanded(v.first.first, v.second.signatures)) {
+          if (!isWildcardExpanded(owner, v.second.signatures)) {
             needWildcardProof = false;
           }
 
@@ -356,26 +383,34 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
         }
 
         /* check if the whole NAME is denied existing */
-        if(isCoveredByNSEC(qname, v.first.first, nsec->d_next)) {
+        if(isCoveredByNSEC(qname, owner, nsec->d_next)) {
           /* if the name is an ENT and we received a NODATA answer,
              we are fine with a NSEC proving that the name does not exist. */
-          if (wantsNoDataProof && nsecProvesENT(qname, v.first.first, nsec->d_next)) {
+          if (wantsNoDataProof && nsecProvesENT(qname, owner, nsec->d_next)) {
             LOG("Denies existence of type "<<qname<<"/"<<QType(qtype).getName()<<" by proving that "<<qname<<" is an ENT"<<endl);
             return NXQTYPE;
           }
 
-          bool wildcardExists = false;
-          if (!needWildcardProof || provesNoWildCard(qname, qtype, validrrsets, &wildcardExists)) {
-            if (wildcardExists) {
-              return NXQTYPE;
-            }
+          if (!needWildcardProof) {
             return NXDOMAIN;
           }
+
+          if (wantsNoDataProof) {
+            if (provesNoDataWildCard(qname, qtype, validrrsets)) {
+              return NXQTYPE;
+            }
+          }
+          else {
+            if (provesNoWildCard(qname, qtype, validrrsets)) {
+              return NXDOMAIN;
+            }
+          }
+
           LOG("But the existence of a wildcard is not denied for "<<qname<<"/"<<QType(qtype).getName()<<endl);
           return NODATA;
         }
 
-        LOG("Did not deny existence of "<<QType(qtype).getName()<<", "<<v.first.first<<"?="<<qname<<", "<<nsec->d_set.count(qtype)<<", next: "<<nsec->d_next<<endl);
+        LOG("Did not deny existence of "<<QType(qtype).getName()<<", "<<owner<<"?="<<qname<<", "<<nsec->d_set.count(qtype)<<", next: "<<nsec->d_next<<endl);
       }
     } else if(v.first.second==QType::NSEC3) {
       for(const auto& r : v.second.records) {
