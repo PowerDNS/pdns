@@ -477,6 +477,10 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			  ret->useECS=boost::get<bool>(vars["useClientSubnet"]);
 			}
 
+			if(vars.count("ipBindAddrNoPort")) {
+			  ret->ipBindAddrNoPort=boost::get<bool>(vars["ipBindAddrNoPort"]);
+			}
+
 			if(vars.count("maxCheckFailures")) {
 			  ret->maxCheckFailures=std::stoi(boost::get<string>(vars["maxCheckFailures"]));
 			}

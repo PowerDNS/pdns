@@ -631,6 +631,7 @@ struct DownstreamState
   bool setCD{false};
   std::atomic<bool> connected{false};
   bool tcpFastOpen{false};
+  bool ipBindAddrNoPort{true};
   bool isUp() const
   {
     if(availability == Availability::Down)
