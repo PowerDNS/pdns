@@ -2683,8 +2683,9 @@ try
     cout << "Flags: " << dspk.d_flags << endl << 
              dspk.getKey()->convertToISC() << endl; 
   } else if (cmds[0]=="generate-tsig-key") {
+    string usage = "Syntax: " + cmds[0] + " name (hmac-md5|hmac-sha1|hmac-sha224|hmac-sha256|hmac-sha384|hmac-sha512)";
      if (cmds.size() < 3) {
-        cerr << "Syntax: " << cmds[0] << " name (hmac-md5|hmac-sha1|hmac-sha224|hmac-sha256|hmac-sha384|hmac-sha512)" << endl;
+        cerr << usage << endl;
         return 0;
      }
      DNSName name(cmds[1]);
@@ -2707,10 +2708,11 @@ try
        klen = 64;
      } else {
        cerr << "Cannot generate key for " << algo << endl;
+       cerr << usage << endl;
        return 1;
      }
 
-     cerr << "Generating new key with " << klen << " bytes (this can take a while)" << endl;
+     cerr << "Generating new key with " << klen << " bytes" << endl;
      for(size_t i = 0; i < klen; i+=4) {
         *(unsigned int*)(tmpkey+i) = dns_random(0xffffffff);
      }
