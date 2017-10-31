@@ -223,7 +223,7 @@ Servers
       tcpSendTimeout=NUM,    -- The timeout (in seconds) of a TCP write attempt
       tcpRecvTimeout=NUM,    -- The timeout (in seconds) of a TCP read attempt
       tcpFastOpen=BOOL,      -- Whether to enable TCP Fast Open
-      ipBindAddrNoPort=BOOL, -- Whether to enable IP Bind Address No Port
+      ipBindAddrNoPort=BOOL, -- Whether to enable IP_BIND_ADDRESS_NO_PORT if available, default: true
       name=STRING,           -- The name associated to this backend, for display purpose
       checkName=STRING,      -- Use STRING as QNAME in the health-check query, default: "a.root-servers.net."
       checkType=STRING,      -- Use STRING as QTYPE in the health-check query, default: "A"
