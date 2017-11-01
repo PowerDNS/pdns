@@ -215,7 +215,16 @@ string doDumpNSSpeeds(T begin, T end)
   try {
     total = broadcastAccFunction<uint64_t>(boost::bind(pleaseDumpNSSpeeds, fd));
   }
-  catch(...){}
+  catch(std::exception& e)
+  {
+    close(fd);
+    return "error dumping NS speeds: "+string(e.what())+"\n";
+  }
+  catch(PDNSException& e)
+  {
+    close(fd);
+    return "error dumping NS speeds: "+e.reason+"\n";
+  }
 
   close(fd);
   return "dumped "+std::to_string(total)+" records\n";

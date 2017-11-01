@@ -368,7 +368,9 @@ uint64_t SyncRes::doDumpNSSpeeds(int fd)
   for(const auto& i : t_sstorage.nsSpeeds)
   {
     count++;
-    fprintf(fp, "%s -> ", i.first.toString().c_str());
+
+    // an <empty> can appear hear in case of authoritative (hosted) zones
+    fprintf(fp, "%s -> ", i.first.toLogString().c_str());
     for(const auto& j : i.second.d_collection)
     {
       // typedef vector<pair<ComboAddress, DecayingEwma> > collection_t;
@@ -685,7 +687,6 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
 
   if(ret.size() > 1) {
     map<ComboAddress, double> speeds;
-
     auto& collection = t_sstorage.nsSpeeds[qname].d_collection;
     for(const auto& val: ret) {
       double speed;
@@ -1202,8 +1203,10 @@ inline vector<DNSName> SyncRes::shuffleInSpeedOrder(NsSet &tnameservers, const s
 {
   vector<DNSName> rnameservers;
   rnameservers.reserve(tnameservers.size());
-  for(const auto& tns:tnameservers) {
+  for(const auto& tns: tnameservers) {
     rnameservers.push_back(tns.first);
+    if(tns.first.empty()) // this was an authoritative OOB zone, don't pollute the nsSpeeds with that
+      return rnameservers;
   }
   map<DNSName, double> speeds;
 
