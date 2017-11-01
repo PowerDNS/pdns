@@ -911,6 +911,7 @@ dnsreplay_SOURCES = \
 	dnswriter.cc dnswriter.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
+	histog.hh \
 	iputils.cc \
 	logger.cc \
 	misc.cc \

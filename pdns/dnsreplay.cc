@@ -310,9 +310,9 @@ void accountFlightTime(qids_t::const_iterator iter, const struct timeval& now)
   if(udiff >= 0) // the timestamps on the packets are not quite gettimeofday()
     referenceFlightTimesMap[udiff]++;
 
-  if(udiff > 5000000) {
+  /*if(udiff > 5000000) {
     cout << "Super slow: "<<iter->d_qi << " "<<udiff<<" replay id: "<<iter->d_assignedID<<"\n";
-  }
+  }*/
   
   udiff=1000000*DiffTime(iter->d_origQueryTime, iter->d_origResponseTime);
   if(udiff >= 0) // pcap timestamps also do weird things
