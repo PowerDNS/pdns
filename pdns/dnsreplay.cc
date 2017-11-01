@@ -62,6 +62,7 @@ What to do with timeouts. We keep around at most 65536 outstanding answers.
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#include "histog.hh"
 #include <bitset>
 #include "statbag.hh"
 #include "dnspcap.hh"
@@ -196,7 +197,7 @@ struct QuestionTag{};
 
 struct QuestionData
 {
-  QuestionData() : d_assignedID(-1), d_origRcode(-1), d_newRcode(-1), d_norecursionavailable(false), d_origlate(false), d_newlate(false)
+  QuestionData() : d_assignedID(-1), d_origRcode(-1), d_newRcode(-1), d_norecursionavailable(false), d_origlate(false), d_newlate(false), d_duplicate(false)
   {
   }
   QuestionIdentifier d_qi;
@@ -204,8 +205,10 @@ struct QuestionData
   MOADNSParser::answers_t d_origAnswers, d_newAnswers;
   int d_origRcode, d_newRcode;
   struct timeval d_resentTime;
+  struct timeval d_origQueryTime, d_origResponseTime;
   bool d_norecursionavailable;
   bool d_origlate, d_newlate;
+  mutable bool d_duplicate;
 };
 
 typedef multi_index_container<
@@ -297,53 +300,67 @@ bool isRootReferral(const MOADNSParser::answers_t& answers)
   return ok;
 }
 
-vector<uint32_t> flightTimes;
-void accountFlightTime(qids_t::const_iterator iter)
+map<uint32_t, uint32_t> referenceFlightTimesMap, origFlightTimesMap;
+
+void accountFlightTime(qids_t::const_iterator iter, const struct timeval& now)
 {
-  if(flightTimes.empty())
-    flightTimes.resize(2050); 
+  if(iter->d_duplicate) // the numbers will be messed up
+    return;
+  int udiff=1000000*DiffTime(iter->d_resentTime, now);
+  if(udiff >= 0) // the timestamps on the packets are not quite gettimeofday()
+    referenceFlightTimesMap[udiff]++;
 
-  struct timeval now;
-  gettimeofday(&now, 0);
-  unsigned int mdiff = 1000*DiffTime(iter->d_resentTime, now);
-  if(mdiff > flightTimes.size()-2)
-    mdiff= flightTimes.size()-1;
-
-  flightTimes[mdiff]++;
+  if(udiff > 5000000) {
+    cout << "Super slow: "<<iter->d_qi << " "<<udiff<<" replay id: "<<iter->d_assignedID<<"\n";
+  }
+  
+  udiff=1000000*DiffTime(iter->d_origQueryTime, iter->d_origResponseTime);
+  if(udiff >= 0) // pcap timestamps also do weird things
+    origFlightTimesMap[udiff]++;
 }
+
 
 uint64_t countLessThan(unsigned int msec)
 {
   uint64_t ret=0;
-  for(unsigned int i = 0 ; i < msec && i < flightTimes.size() ; ++i) {
-    ret += flightTimes[i];
+  for(const auto& i : referenceFlightTimesMap) {
+    if(i.first > msec*1000)
+      break;
+    ret += i.second;
   }
   return ret;
 }
 
 void emitFlightTimes()
 {
-  uint64_t totals = countLessThan(flightTimes.size());
-  unsigned int limits[]={1, 2, 3, 4, 5, 10, 20, 30, 40, 50, 100, 200, 500, 1000, (unsigned int) flightTimes.size()};
+  uint32_t highestTime=referenceFlightTimesMap.cend()->first;
+  uint64_t totals = countLessThan(highestTime);
+  unsigned int limits[]={1, 2, 3, 4, 5, 10, 20, 30, 40, 50, 100, 200, 500, 1000, 2000, (unsigned int) highestTime};
   uint64_t sofar=0;
   cout.setf(std::ios::fixed);
   cout.precision(2);
   for(unsigned int i =0 ; i < sizeof(limits)/sizeof(limits[0]); ++i) {
-    if(limits[i]!=flightTimes.size())
+    if(limits[i]!=highestTime)
       cout<<"Within "<<limits[i]<<" msec: ";
     else 
       cout<<"Beyond "<<limits[i]-2<<" msec: ";
     uint64_t here = countLessThan(limits[i]);
     cout<<100.0*here/totals<<"% ("<<100.0*(here-sofar)/totals<<"%)"<<endl;
     sofar=here;
-    
+  }
+
+  if(g_vm.count("log-histogram")) {
+    ofstream loghistogramReference("log-histogram.reference");
+    writeLogHistogramFile(referenceFlightTimesMap, loghistogramReference);
+    ofstream loghistogramOrig("log-histogram.orig");
+    writeLogHistogramFile(origFlightTimesMap, loghistogramOrig);
   }
 }
 
-void measureResultAndClean(qids_t::const_iterator iter)
+void measureResultAndClean(qids_t::const_iterator iter, const struct timeval& now)
 {
   const QuestionData& qd=*iter;
-  accountFlightTime(iter);
+  accountFlightTime(iter, now);
 
   set<DNSRecord> canonicOrig, canonicNew;
   compactAnswerSet(qd.d_origAnswers, canonicOrig);
@@ -417,8 +434,25 @@ try
   
   if(res < 0 || res==0)
     return;
+  struct timeval now;
+  int len;
+  for(;;) {
 
-  while(s_socket->recvFromAsync(packet, remote)) {
+    struct msghdr msgh;
+    struct iovec iov;
+    char cbuf[256];
+    char mesg[4096];
+    remote.sin6.sin6_family=AF_INET6; // make sure it is big enough
+    fillMSGHdr(&msgh, &iov, cbuf, sizeof(cbuf), mesg, sizeof(mesg), &remote);
+
+    if((len=recvmsg(s_socket->getHandle(), &msgh, 0)) < 0 )
+      break;
+
+    packet.assign(mesg, len);
+    if(!HarvestTimestamp(&msgh, &now)) {
+      gettimeofday(&now, 0);
+    }
+
     try {
       s_weanswers++;
       MOADNSParser mdp(false, packet.c_str(), packet.length());
@@ -443,7 +477,7 @@ try
       idindex.replace(found, qd);
       if(qd.d_origRcode!=-1) {
 	qids_t::const_iterator iter= qids.project<0>(found);
-	measureResultAndClean(iter);
+	measureResultAndClean(iter, now);
       }
     }
     catch(MOADNSException &e)
@@ -632,10 +666,11 @@ bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote, int stam
     QuestionIdentifier qi=QuestionIdentifier::create(pr.getSource(), pr.getDest(), mdp);
 
     if(!mdp.d_header.qr) {
-
-      if(qids.count(qi)) {
+      auto fnd=qids.find(qi);
+      if(fnd != qids.end()) {
         if(!g_quiet)
           cout<<"Saw an exact duplicate question in PCAP "<<qi<< endl;
+        fnd->d_duplicate=true;
         s_duplicates++;
 	s_idmanager.releaseID(qd.d_assignedID); // release = puts at back of pool
         return sent;
@@ -643,6 +678,7 @@ bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote, int stam
       // new question - ID assigned above already
       qd.d_qi=qi;
       gettimeofday(&qd.d_resentTime,0);
+      qd.d_origQueryTime=timeval{pr.d_pheader.ts.tv_sec, pr.d_pheader.ts.tv_usec};
       qids.insert(qd);
     }
     else {
@@ -657,10 +693,13 @@ bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote, int stam
           s_norecursionavailable++;
           eqd.d_norecursionavailable=true;
         }
+        eqd.d_origResponseTime=timeval{pr.d_pheader.ts.tv_sec, pr.d_pheader.ts.tv_usec};
         qids.replace(iter, eqd);
 
         if(eqd.d_newRcode!=-1) {
-          measureResultAndClean(iter);
+          struct timeval now;
+          gettimeofday(&now, 0);
+          measureResultAndClean(iter, now);
         }
         
         return sent;
@@ -703,15 +742,16 @@ try
   desc.add_options()
     ("help,h", "produce help message")
     ("version", "show version number")
+    ("ecs-stamp", "Add original IP address to ECS in replay")
+    ("ecs-mask", po::value<uint16_t>(), "Replace first octet of src IP address with this value in ECS")
+    ("log-histogram", "Emit a logarithmic histogram to log-histogram.orig & .reference")
     ("packet-limit", po::value<uint32_t>()->default_value(0), "stop after this many packets")
     ("quiet", po::value<bool>()->default_value(true), "don't be too noisy")
     ("recursive", po::value<bool>()->default_value(true), "look at recursion desired packets, or not (defaults true)")
-    ("speedup", po::value<float>()->default_value(1), "replay at this speedup")
-    ("timeout-msec", po::value<uint32_t>()->default_value(500), "wait at least this many milliseconds for a reply")
-    ("ecs-stamp", "Add original IP address to ECS in replay")
-    ("ecs-mask", po::value<uint16_t>(), "Replace first octet of src IP address with this value in ECS")
     ("source-ip", po::value<string>()->default_value(""), "IP to send the replayed packet from")
-    ("source-port", po::value<uint16_t>()->default_value(0), "Port to send the replayed packet from");
+    ("source-port", po::value<uint16_t>()->default_value(0), "Port to send the replayed packet from")
+    ("speedup", po::value<float>()->default_value(1), "replay at this speedup")
+    ("timeout-msec", po::value<uint32_t>()->default_value(500), "wait at least this many milliseconds for a reply");
 
   po::options_description alloptions;
   po::options_description hidden("hidden options");
@@ -759,7 +799,7 @@ try
 
   PcapPacketReader pr(g_vm["pcap-source"].as<string>());
   s_socket= new Socket(AF_INET, SOCK_DGRAM);
-
+  setSocketTimestamps(s_socket->getHandle());
   s_socket->setNonBlocking();
 
   if(g_vm.count("source-ip") && !g_vm["source-ip"].as<string>().empty())
