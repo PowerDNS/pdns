@@ -8287,7 +8287,7 @@ BOOST_AUTO_TEST_CASE(test_getDSRecords_multialgo_two_highest) {
   }
 }
 
-#ifdef HAVE_BOTAN110
+#ifdef HAVE_BOTAN
 BOOST_AUTO_TEST_CASE(test_getDSRecords_multialgo_prefer_sha384_over_gost) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
