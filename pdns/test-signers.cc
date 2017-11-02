@@ -59,7 +59,7 @@ static const struct signerParams
     DNSSECKeeper::RSASHA256,
     true
   },
-#ifdef HAVE_BOTAN110
+#ifdef HAVE_BOTAN
   /* ECC-GOST from rfc5933 */
   { "Algorithm: 12\n"
     "GostAsn1: MEUCAQAwHAYGKoUDAgITMBIGByqFAwICIwEGByqFAwICHgEEIgQg/9MiXtXKg9FDXDN/R9CmVhJDyuzRAIgh4tPwCu4NHIs=\n",
@@ -78,7 +78,7 @@ static const struct signerParams
     DNSSECKeeper::ECCGOST,
     false
   },
-#endif /* HAVE_BOTAN110 */
+#endif /* HAVE_BOTAN */
 #ifdef HAVE_LIBCRYPTO_ECDSA
   /* ECDSA-P256-SHA256 from https://github.com/CZ-NIC/knot/blob/master/src/dnssec/tests/sample_keys.h */
   { "Algorithm: 13\n"

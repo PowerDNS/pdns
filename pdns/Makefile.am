@@ -19,8 +19,8 @@ AM_LDFLAGS = \
 AM_LFLAGS = -i
 AM_YFLAGS = -d --verbose --debug
 
-if BOTAN110
-AM_CPPFLAGS += $(BOTAN110_CFLAGS)
+if BOTAN
+AM_CPPFLAGS += $(BOTAN_CFLAGS)
 endif
 
 if PKCS11
@@ -234,9 +234,9 @@ pdns_server_LDADD = \
 	$(LIBCRYPTO_LIBS) \
 	$(SYSTEMD_LIBS)
 
-if BOTAN110
-pdns_server_SOURCES += botan110signers.cc
-pdns_server_LDADD += $(BOTAN110_LIBS)
+if BOTAN
+pdns_server_SOURCES += botansigners.cc
+pdns_server_LDADD += $(BOTAN_LIBS)
 endif
 
 if LIBSODIUM
@@ -333,9 +333,9 @@ pdnsutil_LDADD = \
 	$(BOOST_PROGRAM_OPTIONS_LIBS) \
 	$(LIBCRYPTO_LIBS)
 
-if BOTAN110
-pdnsutil_SOURCES += botan110signers.cc
-pdnsutil_LDADD += $(BOTAN110_LIBS)
+if BOTAN
+pdnsutil_SOURCES += botansigners.cc
+pdnsutil_LDADD += $(BOTAN_LIBS)
 endif
 
 if LIBSODIUM
@@ -729,9 +729,9 @@ if GSS_TSIG
 toysdig_LDADD += $(GSS_LIBS)
 endif
 
-if BOTAN110
-toysdig_SOURCES += botan110signers.cc
-toysdig_LDADD += $(BOTAN110_LIBS)
+if BOTAN
+toysdig_SOURCES += botansigners.cc
+toysdig_LDADD += $(BOTAN_LIBS)
 endif
 
 if PKCS11
@@ -1218,9 +1218,9 @@ testrunner_SOURCES += sodiumsigners.cc
 testrunner_LDADD += $(LIBSODIUM_LIBS)
 endif
 
-if BOTAN110
-testrunner_SOURCES += botan110signers.cc
-testrunner_LDADD += $(BOTAN110_LIBS)
+if BOTAN
+testrunner_SOURCES += botansigners.cc
+testrunner_LDADD += $(BOTAN_LIBS)
 endif
 
 if LIBDECAF
