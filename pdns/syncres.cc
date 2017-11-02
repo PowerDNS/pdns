@@ -692,9 +692,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
   map<ComboAddress, double> speeds;
   auto& collection = t_sstorage.nsSpeeds[qname].d_collection;
   for(const auto& val: ret) {
-    double speed;
-    speed=collection[val].get(&d_now);
-    speeds[val]=speed;
+    speeds[val] = collection[val].get(&d_now);
   }
 
   t_sstorage.nsSpeeds[qname].purge(speeds);
