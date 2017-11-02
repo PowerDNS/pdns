@@ -659,7 +659,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   editSOARecord(dzrsoa, kind);
 
   outpacket->addRecord(dzrsoa);
-  if(securedZone) {
+  if(securedZone && !presignedZone) {
     set<DNSName> authSet;
     authSet.insert(target);
     addRRSigs(dk, signatureDB, authSet, outpacket->getRRS());
@@ -673,7 +673,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   trc.d_mac = outpacket->d_trc.d_mac;
   outpacket = getFreshAXFRPacket(q);
   
-  ChunkedSigningPipe csp(target, securedZone, ::arg().asNum("signing-threads", 1));
+  ChunkedSigningPipe csp(target, (securedZone && !presignedZone), ::arg().asNum("signing-threads", 1));
   
   typedef map<DNSName, NSECXEntry, CanonDNSNameCompare> nsecxrepo_t;
   nsecxrepo_t nsecxrepo;
@@ -883,18 +883,13 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   /* now write all other records */
   
   DNSName keyname;
-  set<DNSName> ns3rrs;
   unsigned int udiff;
   DTime dt;
   dt.set();
   int records=0;
   for(DNSZoneRecord &loopZRR :  zrrs) {
-    if (loopZRR.dr.d_type == QType::RRSIG) {
-      if(presignedZone && NSEC3Zone && getRR<RRSIGRecordContent>(loopZRR.dr)->d_type == QType::NSEC3) {
-        ns3rrs.insert(loopZRR.dr.d_name.makeRelative(sd.qname));
-      }
+    if (!presignedZone && loopZRR.dr.d_type == QType::RRSIG)
       continue;
-    }
 
     // only skip the DNSKEY, CDNSKEY and CDS if direct-dnskey is enabled, to avoid changing behaviour
     // when it is not enabled.
@@ -904,11 +899,15 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
     records++;
     if(securedZone && (loopZRR.auth || loopZRR.dr.d_type == QType::NS)) {
       if (NSEC3Zone || loopZRR.dr.d_type) {
-        keyname = NSEC3Zone ? DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, loopZRR.dr.d_name))) : loopZRR.dr.d_name;
+        if (presignedZone && NSEC3Zone && loopZRR.dr.d_type == QType::RRSIG && getRR<RRSIGRecordContent>(loopZRR.dr)->d_type == QType::NSEC3) {
+          keyname = loopZRR.dr.d_name.makeRelative(sd.qname);
+        } else {
+          keyname = NSEC3Zone ? DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, loopZRR.dr.d_name))) : loopZRR.dr.d_name;
+        }
         NSECXEntry& ne = nsecxrepo[keyname];
         ne.d_ttl = sd.default_ttl;
-        ne.d_auth = (ne.d_auth || loopZRR.auth || (NSEC3Zone && (!ns3pr.d_flags || (presignedZone && ns3pr.d_flags))));
-        if (loopZRR.dr.d_type) {
+        ne.d_auth = (ne.d_auth || loopZRR.auth || (NSEC3Zone && (!ns3pr.d_flags)));
+        if (loopZRR.dr.d_type && loopZRR.dr.d_type != QType::RRSIG) {
           ne.d_set.insert(loopZRR.dr.d_type);
         }
       }
@@ -944,7 +943,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   if(securedZone) {
     if(NSEC3Zone) {
       for(nsecxrepo_t::const_iterator iter = nsecxrepo.begin(); iter != nsecxrepo.end(); ++iter) {
-        if(iter->second.d_auth && (!presignedZone || !ns3pr.d_flags || ns3rrs.count(iter->first))) {
+        if(iter->second.d_auth) {
           NSEC3RecordContent n3rc;
           n3rc.d_set = iter->second.d_set;
           if (n3rc.d_set.size() && (n3rc.d_set.size() != 1 || !n3rc.d_set.count(QType::NS)))
@@ -957,7 +956,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
           inext++;
           if(inext == nsecxrepo.end())
             inext = nsecxrepo.begin();
-          while((!inext->second.d_auth || (presignedZone && ns3pr.d_flags && !ns3rrs.count(inext->first)))  && inext != iter)
+          while(!inext->second.d_auth && inext != iter)
           {
             inext++;
             if(inext == nsecxrepo.end())
