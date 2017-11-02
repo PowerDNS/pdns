@@ -3065,9 +3065,15 @@ try
       if (!tgt->createDomain(di.zone)) throw PDNSException("Failed to create zone");
       tgt->setKind(di.zone, di.kind);
       tgt->setAccount(di.zone,di.account);
+      string masters="";
+      bool first = true;
       for(const string& master: di.masters) {
-        tgt->setMaster(di.zone, master);
+        if (!first)
+          masters += ", ";
+        first = false;
+        masters += master;
       }
+      tgt->setMaster(di.zone, masters);
       // move records
       if (!src->list(di.zone, di.id, true)) throw PDNSException("Failed to list records");
       nr=0;

@@ -159,6 +159,7 @@ public:
   void setCheckInterval(time_t seconds);
 
   DNSName d_name;   //!< actual name of the domain
+  DomainInfo::DomainKind d_kind; //!< the kind of domain
   string d_filename; //!< full absolute filename of the zone on disk
   string d_status; //!< message describing status of a domain, for human consumption
   vector<string> d_masters;     //!< IP address of the master of this domain
