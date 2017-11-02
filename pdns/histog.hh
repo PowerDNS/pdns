@@ -19,6 +19,8 @@ struct LogHistogramBin
   double latMedian;
   double latStddev;
   uint64_t count;
+  double cumulLatAverage;
+  double cumulLatMedian;
 };
 
 template<typename T>
@@ -32,8 +34,10 @@ std::vector<LogHistogramBin> createLogHistogram(const T& bins,
   }
 
   namespace ba=boost::accumulators;
-  ba::accumulator_set<double, ba::features<ba::tag::mean, ba::tag::median, ba::tag::variance>, double> acc;
-  
+  ba::accumulator_set<double, ba::features<ba::tag::mean, ba::tag::median, ba::tag::variance>, unsigned> acc;
+
+  ba::accumulator_set<double, ba::features<ba::tag::mean, ba::tag::median, ba::tag::variance>, unsigned int> cumulstats;
+
   uint64_t bincount=0;
   std::vector<LogHistogramBin> ret;
   for(const auto& c: bins) {
@@ -42,10 +46,11 @@ std::vector<LogHistogramBin> createLogHistogram(const T& bins,
     sum += c.second;
     bincount += c.second;
       
-    acc(c.first, ba::weight=c.second);
-      
+    acc(c.first/1000.0, ba::weight=c.second);
+    for(unsigned int i=0; i < c.second; ++i)
+      cumulstats(c.first/1000.0, ba::weight=1); // "weighted" does not work for median
     if(sum > percentiles.front() * totcumul / 100.0) {
-      ret.push_back({100.0-percentiles.front(), (double)c.first, ba::mean(acc), ba::median(acc), sqrt(ba::variance(acc)), bincount});
+      ret.push_back({100.0-percentiles.front(), (double)c.first/1000.0, ba::mean(acc), ba::median(acc), sqrt(ba::variance(acc)), bincount, ba::mean(cumulstats), ba::median(cumulstats)});
       
       percentiles.pop_front();
       acc=decltype(acc)();
@@ -62,11 +67,24 @@ void writeLogHistogramFile(const T& bins, std::ofstream& out, std::deque<double>
 {
 
   auto vec = createLogHistogram(bins, percentiles);
-  out<<"# slow-percentile usec-latency-max usec-latency-mean usec-latency-median usec-latency-stddev num-queries\n";
+  out<< R"(# set logscale xy
+# set mxtics 10
+# set mytics 10
+# set grid xtics
+# set grid ytics
+# set xlabel "Slowest percentile"
+# set ylabel "Millisecond response time"
+# set terminal svg
+# set output 'log-histogram.svg'
+# plot 'log-histogram' using 1:2 with linespoints title 'Average latency per percentile', \
+#	'log-histogram' using 1:6 with linespoints title 'Cumulative average latency', \
+#	'log-histogram' using 1:7 with linespoints title 'Cumulative median latency')"<<"\n";
+
+  out<<"# slow-percentile usec-latency-mean usec-latency-max usec-latency-median usec-latency-stddev usec-latency-cumul usec-latency-median-cumul num-queries\n";
   
   
   for(const auto& e : vec) {
-    out<<e.percentile<<" "<<e.latLimit<<" "<<e.latAverage<<" "<<e.latMedian<<" "<<e.latStddev<<" "<<e.count<<"\n";
+    out<<e.percentile<<" "<<e.latAverage<<" "<<e.latLimit<<" "<<e.latMedian<<" "<<e.latStddev<<" "<<e.cumulLatAverage<<" "<<e.cumulLatMedian<<" "<<e.count<<"\n";
   }
   out.flush();
 }
