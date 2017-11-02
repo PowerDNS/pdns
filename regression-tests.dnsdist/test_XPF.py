@@ -10,8 +10,9 @@ class XPFTest(DNSDistTest):
 
     _xpfCode = 65422
     _config_template = """
-    newServer{address="127.0.0.1:%s", addXPF=true}
+    newServer{address="127.0.0.1:%d", addXPF=%d}
     """
+    _config_params = ['_testServerPort', '_xpfCode']
 
     def checkMessageHasXPF(self, msg, expectedValue):
         self.assertGreaterEqual(len(msg.additional), 1)

@@ -245,8 +245,6 @@ Servers
 
     newServer({
       address="IP:PORT",     -- IP and PORT of the backend server (mandatory)
-      addXPF=BOOL,           -- Add the client's IP address and port to the query, along with the original destination address and port,
-                             -- using the experimental XPF record from `draft-bellis-dnsop-xpf`. Default to false
       qps=NUM,               -- Limit the number of queries per second to NUM, when using the `firstAvailable` policy
       order=NUM,             -- The order of this server, used by the `leastOustanding` and `firstAvailable` policies
       weight=NUM,            -- The weight of this server, used by the `wrandom` and `whashed` policies
@@ -265,11 +263,13 @@ Servers
       maxCheckFailures=NUM,  -- Allow NUM check failures before declaring the backend down, default: false
       mustResolve=BOOL,      -- Set to true when the health check MUST return a NOERROR RCODE and an answer
       useClientSubnet=BOOL,  -- Add the client's IP address in the EDNS Client Subnet option when forwarding the query to this backend
-      source=STRING          -- The source address or interface to use for queries to this backend, by default this is left to the kernel's address selection
+      source=STRING,         -- The source address or interface to use for queries to this backend, by default this is left to the kernel's address selection
                              -- The following formats are supported:
                              --   "address", e.g. "192.0.2.2"
                              --   "interface name", e.g. "eth0"
                              --   "address@interface", e.g. "192.0.2.2@eth0"
+      addXPF=NUM             -- Add the client's IP address and port to the query, along with the original destination address and port,
+                             -- using the experimental XPF record from `draft-bellis-dnsop-xpf` and the specified option code. Default is disabled (0)
     })
 
   :param str server_string: A simple IP:PORT string.
