@@ -363,13 +363,16 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
         L<<Logger::Error<<"Failed to load AXFR source '"<<localaddr[0]<<"' for incoming AXFR of '"<<domain<<"': "<<e.what()<<endl;
         return;
       }
-    } else { 
-      if(raddr.sin4.sin_family == AF_INET)
-        laddr=ComboAddress(::arg()["query-local-address"]);
-      else if(!::arg()["query-local-address6"].empty())
-        laddr=ComboAddress(::arg()["query-local-address6"]);
-      else
-        laddr.sin4.sin_family = 0;
+    } else {
+      if(raddr.sin4.sin_family == AF_INET && !::arg()["query-local-address"].empty()) {
+        laddr = ComboAddress(::arg()["query-local-address"]);
+      } else if(raddr.sin4.sin_family == AF_INET6 && !::arg()["query-local-address6"].empty()) {
+        laddr = ComboAddress(::arg()["query-local-address6"]);
+      } else {
+        bool isv6 = raddr.sin4.sin_family == AF_INET6;
+        L<<Logger::Error<<"Unable to AXFR, destination address is IPv" << (isv6 ? "6" : "4") << ", but query-local-address"<< (isv6 ? "6" : "") << " is unset!"<<endl;
+        return;
+      }
     }
 
     bool hadDnssecZone = false;

@@ -99,13 +99,16 @@ Resolver::Resolver()
   locals["default4"] = -1;
   locals["default6"] = -1;
   try {
-    locals["default4"] = makeQuerySocket(ComboAddress(::arg()["query-local-address"]), true, ::arg().mustDo("non-local-bind"));
+    if(!::arg()["query-local-address"].empty())
+      locals["default4"] = makeQuerySocket(ComboAddress(::arg()["query-local-address"]), true, ::arg().mustDo("non-local-bind"));
     if(!::arg()["query-local-address6"].empty())
       locals["default6"] = makeQuerySocket(ComboAddress(::arg()["query-local-address6"]), true, ::arg().mustDo("non-local-bind"));
   }
   catch(...) {
     if(locals["default4"]>=0)
       close(locals["default4"]);
+    if(locals["default6"]>=0)
+      close(locals["default6"]);
     throw;
   }
 }
@@ -153,6 +156,11 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const ComboAddress& l
   if (local.sin4.sin_family == 0) {
     // up to us.
     sock = remote.sin4.sin_family == AF_INET ? locals["default4"] : locals["default6"];
+    if (sock == -1) {
+      string ipv = remote.sin4.sin_family == AF_INET ? "4" : "6";
+      string qla = remote.sin4.sin_family == AF_INET ? "" : "6";
+      throw ResolverException("No IPv" + ipv + " socket available, is query-local-address" + qla + " unset?");
+    }
   } else {
     std::string lstr = local.toString();
     std::map<std::string, int>::iterator lptr;
@@ -357,15 +365,14 @@ AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
   : d_tsigVerifier(tt, remote, d_trc), d_receivedBytes(0), d_maxReceivedBytes(maxReceivedBytes)
 {
   ComboAddress local;
-  if (laddr != NULL) {
-    local = (ComboAddress) (*laddr);
+  if (laddr != nullptr) {
+    local = ComboAddress(*laddr);
   } else {
-    if(remote.sin4.sin_family == AF_INET)
+    if(remote.sin4.sin_family == AF_INET && !::arg()["query-local-address"].empty()) {
       local=ComboAddress(::arg()["query-local-address"]);
-    else if(!::arg()["query-local-address6"].empty())
+    } else if(remote.sin4.sin_family == AF_INET6 && !::arg()["query-local-address6"].empty()) {
       local=ComboAddress(::arg()["query-local-address6"]);
-    else
-      local=ComboAddress("::");
+    }
   }
   d_sock = -1;
   try {
