@@ -296,13 +296,16 @@ void MOADNSParser::init(bool query, const char *packet, unsigned int len)
 
       d_answers.push_back(make_pair(dr, pr.d_pos));
 
-      if (dr.d_place == DNSResourceRecord::ADDITIONAL && seenTSIG && dr.d_type != QType::XPF) {
+      /* XXX: XPF records should be allowed after TSIG as soon as the actual XPF option code has been assigned:
+         if (dr.d_place == DNSResourceRecord::ADDITIONAL && seenTSIG && dr.d_type != QType::XPF)
+      */
+      if (dr.d_place == DNSResourceRecord::ADDITIONAL && seenTSIG) {
         /* only XPF records are allowed after a TSIG */
         throw MOADNSException("Packet ("+d_qname.toString()+"|#"+std::to_string(d_qtype)+") has an unexpected record ("+std::to_string(dr.d_type)+") after a TSIG one.");
       }
 
       if(dr.d_type == QType::TSIG && dr.d_class == QClass::ANY) {
-        if(dr.d_place != DNSResourceRecord::ADDITIONAL) {
+        if(seenTSIG || dr.d_place != DNSResourceRecord::ADDITIONAL) {
           throw MOADNSException("Packet ("+d_qname.toLogString()+"|#"+std::to_string(d_qtype)+") has a TSIG record in an invalid position.");
         }
         seenTSIG = true;

@@ -1098,12 +1098,12 @@ static ssize_t udpClientSendRequestToBackend(DownstreamState* ss, const int sd, 
   return result;
 }
 
-bool addXPF(DNSQuestion& dq)
+bool addXPF(DNSQuestion& dq, uint16_t optionCode)
 {
   std::string payload = generateXPFPayload(dq.tcp, *dq.remote, *dq.local);
   uint8_t root = '\0';
   dnsrecordheader drh;
-  drh.d_type = htons(QType::XPF);
+  drh.d_type = htons(optionCode);
   drh.d_class = htons(QClass::IN);
   drh.d_ttl = 0;
   drh.d_clen = htons(payload.size());
@@ -1386,8 +1386,8 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       return;
     }
 
-    if (dq.addXPF && ss->addXPF) {
-      addXPF(dq);
+    if (dq.addXPF && ss->xpfOptionCode != 0) {
+      addXPF(dq, ss->xpfOptionCode);
     }
 
     ss->queries++;
@@ -1537,7 +1537,6 @@ static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holde
   }
 }
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
-
 
 // listens to incoming queries, sends out to downstream servers, noting the intended return path
 static void* udpClientThread(ClientState* cs)

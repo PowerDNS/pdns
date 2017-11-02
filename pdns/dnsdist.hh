@@ -623,6 +623,7 @@ struct DownstreamState
   int tcpSendTimeout{30};
   unsigned int sourceItf{0};
   uint16_t retries{5};
+  uint16_t xpfOptionCode{0};
   uint8_t currentCheckFailures{0};
   uint8_t maxCheckFailures{1};
   StopWatch sw;
@@ -631,7 +632,6 @@ struct DownstreamState
   bool mustResolve{false};
   bool upStatus{false};
   bool useECS{false};
-  bool addXPF{false};
   bool setCD{false};
   std::atomic<bool> connected{false};
   bool tcpFastOpen{false};
@@ -853,7 +853,7 @@ int handleDnsCryptQuery(DnsCryptContext* ctx, char* packet, uint16_t len, std::s
 bool encryptResponse(char* response, uint16_t* responseLen, size_t responseSize, bool tcp, std::shared_ptr<DnsCryptQuery> dnsCryptQuery, dnsheader** dh, dnsheader* dhCopy);
 #endif
 
-bool addXPF(DNSQuestion& dq);
+bool addXPF(DNSQuestion& dq, uint16_t optionCode);
 
 #include "dnsdist-snmp.hh"
 

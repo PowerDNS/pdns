@@ -1158,3 +1158,13 @@ and will adjust queries' source and destination accordingly. This is especially 
 is placed behind a proxy like dnsdist.
 Note that the `allow-from`_ setting is still applied to the original source address, and thus access restriction
 should be done on the proxy.
+
+``xpf-option-code``
+-------------
+.. versionadded:: 4.1.0
+
+-  Integer
+-  Default: 0
+
+This is an experimental implementation of `draft-bellis-dnsop-xpf`.
+The option code to use for XPF records, as long as an official code has not been assigned to it. 0 means disabled.
