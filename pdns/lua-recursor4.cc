@@ -337,6 +337,7 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   d_lw->registerMember<bool (DNSQuestion::*)>("isTcp", [](const DNSQuestion& dq) -> bool { return dq.isTcp; }, [](DNSQuestion& dq, bool newTcp) { (void) newTcp; });
   d_lw->registerMember<const ComboAddress (DNSQuestion::*)>("localaddr", [](const DNSQuestion& dq) -> const ComboAddress& { return dq.local; }, [](DNSQuestion& dq, const ComboAddress& newLocal) { (void) newLocal; });
   d_lw->registerMember<const ComboAddress (DNSQuestion::*)>("remoteaddr", [](const DNSQuestion& dq) -> const ComboAddress& { return dq.remote; }, [](DNSQuestion& dq, const ComboAddress& newRemote) { (void) newRemote; });
+  d_lw->registerMember<vState (DNSQuestion::*)>("validationState", [](const DNSQuestion& dq) -> vState { return dq.validationState; }, [](DNSQuestion& dq, vState newState) { (void) newState; });
 
   d_lw->registerMember<bool (DNSQuestion::*)>("variable", [](const DNSQuestion& dq) -> bool { return dq.variable; }, [](DNSQuestion& dq, bool newVariable) { dq.variable = newVariable; });
   d_lw->registerMember<bool (DNSQuestion::*)>("wantsRPZ", [](const DNSQuestion& dq) -> bool { return dq.wantsRPZ; }, [](DNSQuestion& dq, bool newWantsRPZ) { dq.wantsRPZ = newWantsRPZ; });
@@ -503,6 +504,14 @@ RecursorLua4::RecursorLua4(const std::string& fname)
 
   for(const auto& n : QType::names)
     pd.push_back({n.first, n.second});
+
+  pd.push_back({"validationstates", in_t{
+        {"Indeterminate", Indeterminate },
+        {"Bogus", Bogus },
+        {"Insecure", Insecure },
+        {"Secure", Secure },
+  }});
+
   pd.push_back({"now", &g_now});
   d_lw->registerMember("tv_sec", &timeval::tv_sec);
   d_lw->registerMember("tv_usec", &timeval::tv_usec);

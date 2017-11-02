@@ -20,18 +20,20 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
-#include "iputils.hh"
-#include "dnsname.hh"
-#include "namespaces.hh"
-#include "dnsrecords.hh"
-#include "filterpo.hh"
-#include "ednsoptions.hh"
 
 #include <unordered_map>
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
+#include "iputils.hh"
+#include "dnsname.hh"
+#include "namespaces.hh"
+#include "dnsrecords.hh"
+#include "filterpo.hh"
+#include "ednsoptions.hh"
+#include "validate.hh"
 
 string GenUDPQueryResponse(const ComboAddress& dest, const string& query);
 unsigned int getRecursorThreadId();
@@ -72,6 +74,7 @@ public:
     std::unordered_map<std::string,bool>* discardedPolicies{nullptr};
     std::string requestorId;
     std::string deviceId;
+    vState validationState{Indeterminate};
     bool& variable;
     bool& wantsRPZ;
     unsigned int tag{0};
