@@ -1179,8 +1179,7 @@ Seconds to store recursive packets in the :ref:`packet-cache`.
 ------------
 
 -  IP Address
-
-.. deprecated:: 4.1.0
+-  Removed in: 4.1.0
 
 If set, recursive queries will be handed to the recursor specified here.
 
