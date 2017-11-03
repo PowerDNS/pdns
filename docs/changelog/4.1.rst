@@ -3,20 +3,12 @@ Changelogs for 4.1.x
 
 .. changelog::
   :version: 4.1.0-rc2
-  :released: 2nd of November 2017
+  :released: 3rd of November 2017
 
   This is the second release candidate of the PowerDNS Authoritative Server in the 4.1 release train.
 
-  Ofcourse, this release also includes corrected typos, improvements to
-  the documentation and a lot of minor improvements of issues discovered
-  by @jpmens!
-
-  Thanks to everyone who tested Release Candidate 1 of the Authoritative
-  Server.
-
-  Thanks for fixing issues not mentioned below go out to: Kees Monshouwer.
-
-  Additional documentation improvements by: Anhad Jai Singh and Christian Hofstaedtler.
+  This release has several performance improvements, stability and
+  correctness fixes.
 
   .. change::
     :tags: Packages, New Features
@@ -30,14 +22,14 @@ Changelogs for 4.1.x
     :tickets: 5673
 
     Improve trailing dot handling internally which lead to a segfault in
-    ``pdns_util`` before.
+    pdnsutil before.
 
   .. change::
     :tags: Bug Fixes, Internals
     :pullreq: 5678
 
     Treat requestor's payload size lower than 512 as equal to 512.
-    Before, we did not follow :rfc:`6891` section 6.2.3 correctly.
+    Before, we did not follow :rfc:`6891 <6891#section-6.2.3>` correctly.
 
   .. change::
     :tags: Improvements, LDAP
@@ -79,9 +71,7 @@ Changelogs for 4.1.x
     :pullreq: 5729
     :tickets: 5719
 
-    Remove printing of DS records from ``pdnsutil export-zone-dnskey
-    …``. This was not only inconsistent behaviour but also done
-    incorrectly.
+    Remove printing of DS records from ``pdnsutil export-zone-dnskey …``. This was not only inconsistent behaviour but also done incorrectly.
 
   .. change::
     :tags: Bug Fixes, DNSSEC
@@ -140,7 +130,7 @@ Changelogs for 4.1.x
     * Rectify DNSSEC zones after POST/PATCH when API-RECTIFY metadata is 1
     * Allow setting this metadata via the "api-rectify" param in a Zone object
     * Show "nsec3param" and "nsec3narrow" in Zone API responses
-    * Add an "rrsets" request parameter for a zone to skip sending RRSets in the response (Closes #5712)
+    * Add an "rrsets" request parameter for a zone to skip sending RRSets in the response
     * Add rectify endpoint in the API
 
   .. change::
@@ -172,7 +162,7 @@ Changelogs for 4.1.x
     :pullreq: 5810
     :tickets: 5115, 5807
 
-    Fix issues when migrating from the BIND backend to gsqlite3:
+    Fix issues when b2b-migrating from the BIND backend to a database:
 
     * No masters were set in the target db (#5807)
     * Only the last master in the list of masters would be added to the target database
