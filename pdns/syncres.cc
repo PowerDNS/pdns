@@ -874,7 +874,12 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
           /* This means we couldn't figure out the state when this entry was cached,
              most likely because we hadn't computed the zone cuts yet. */
           /* make sure they are computed before validating */
-          computeZoneCuts(qname, g_rootdnsname, depth);
+          DNSName subdomain(qname);
+          /* if we are retrieving a DS, we only care about the state of the parent zone */
+          if(qtype == QType::DS)
+            subdomain.chopOff();
+
+          computeZoneCuts(subdomain, g_rootdnsname, depth);
 
           vState recordState = getValidationStatus(qname, false);
           if (recordState == Secure) {
@@ -979,7 +984,12 @@ static void addTTLModifiedRecords(const vector<DNSRecord>& records, const uint32
 
 void SyncRes::computeNegCacheValidationStatus(NegCache::NegCacheEntry& ne, const DNSName& qname, const QType& qtype, const int res, vState& state, unsigned int depth)
 {
-  computeZoneCuts(qname, g_rootdnsname, depth);
+  DNSName subdomain(qname);
+  /* if we are retrieving a DS, we only care about the state of the parent zone */
+  if(qtype == QType::DS)
+    subdomain.chopOff();
+
+  computeZoneCuts(subdomain, g_rootdnsname, depth);
 
   tcache_t tcache;
   reapRecordsFromNegCacheEntryForValidation(tcache, ne.authoritySOA.records);
@@ -1001,13 +1011,13 @@ void SyncRes::computeNegCacheValidationStatus(NegCache::NegCacheEntry& ne, const
     }
 
     if (recordState == Secure) {
-      vState cachedState = SyncRes::validateRecordsWithSigs(depth, qname, qtype, owner, entry.second.records, entry.second.signatures);
+      recordState = SyncRes::validateRecordsWithSigs(depth, qname, qtype, owner, entry.second.records, entry.second.signatures);
+    }
 
-      if (state == Secure && cachedState != recordState) {
-        updateValidationState(state, cachedState);
-        if (state != Secure) {
-          break;
-        }
+    if (recordState != Indeterminate && recordState != state) {
+      updateValidationState(state, recordState);
+      if (state != Secure) {
+        break;
       }
     }
   }
@@ -1122,17 +1132,25 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSR
       /* This means we couldn't figure out the state when this entry was cached,
          most likely because we hadn't computed the zone cuts yet. */
       /* make sure they are computed before validating */
-      computeZoneCuts(sqname, g_rootdnsname, depth);
+      DNSName subdomain(sqname);
+      /* if we are retrieving a DS, we only care about the state of the parent zone */
+      if(qtype == QType::DS)
+        subdomain.chopOff();
+
+      computeZoneCuts(subdomain, g_rootdnsname, depth);
 
       vState recordState = getValidationStatus(qname, false);
       if (recordState == Secure) {
         LOG(prefix<<sqname<<": got Indeterminate state from the cache, validating.."<<endl);
         cachedState = SyncRes::validateRecordsWithSigs(depth, sqname, sqt, sqname, cset, signatures);
+      }
+      else {
+        cachedState = recordState;
+      }
 
-        if (cachedState != Indeterminate) {
-          LOG(prefix<<qname<<": got Indeterminate state from the cache, validation result is "<<vStates[cachedState]<<endl);
-          t_RC->updateValidationStatus(d_now.tv_sec, sqname, sqt, d_incomingECSFound ? d_incomingECSNetwork : d_requestor, d_requireAuthData, cachedState);
-        }
+      if (cachedState != Indeterminate) {
+        LOG(prefix<<qname<<": got Indeterminate state from the cache, validation result is "<<vStates[cachedState]<<endl);
+        t_RC->updateValidationStatus(d_now.tv_sec, sqname, sqt, d_incomingECSFound ? d_incomingECSNetwork : d_requestor, d_requireAuthData, cachedState);
       }
     }
 
