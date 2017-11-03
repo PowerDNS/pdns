@@ -220,7 +220,7 @@ retry:
 
           delete QD->Q;
         } else {
-          L<<Logger::Error<<"Backend error (retry once): "<<e.reason<<endl;
+          L<<Logger::Notice<<"Backend error (retry once): "<<e.reason<<endl;
           goto retry;
         }
       }
@@ -237,7 +237,7 @@ retry:
 
           delete QD->Q;
         } else {
-          L<<Logger::Error<<"Caught unknown exception in Distributor thread "<<(long)pthread_self()<<" (retry once)"<<endl;
+          L<<Logger::Warning<<"Caught unknown exception in Distributor thread "<<(long)pthread_self()<<" (retry once)"<<endl;
           goto retry;
         }
       }
@@ -282,7 +282,7 @@ retry:
       S.inc("servfail-packets");
       S.ringAccount("servfail-queries",q->qdomain.toLogString());
     } else {
-      L<<Logger::Error<<"Backend error (retry once): "<<e.reason<<endl;
+      L<<Logger::Notice<<"Backend error (retry once): "<<e.reason<<endl;
       goto retry;
     }
   }
@@ -297,7 +297,7 @@ retry:
       S.inc("servfail-packets");
       S.ringAccount("servfail-queries",q->qdomain.toLogString());
     } else {
-      L<<Logger::Error<<"Caught unknown exception in Distributor thread "<<(unsigned long)pthread_self()<<" (retry once)"<<endl;
+      L<<Logger::Warning<<"Caught unknown exception in Distributor thread "<<(unsigned long)pthread_self()<<" (retry once)"<<endl;
       goto retry;
     }
   }
