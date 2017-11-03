@@ -29,7 +29,7 @@ Changelogs for 4.1.x
     :pullreq: 5678
 
     Treat requestor's payload size lower than 512 as equal to 512.
-    Before, we did not follow :rfc:`6891 <6891#section-6.2.3>` correctly.
+    Before, we did not follow :rfc:`RFC 6891 section 6.2.3 <6891#section-6.2.3>` correctly.
 
   .. change::
     :tags: Improvements, LDAP
