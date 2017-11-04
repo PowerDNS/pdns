@@ -200,7 +200,7 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
   if(!req->getvars["resetring"].empty()) {
     if (S.ringExists(req->getvars["resetring"]))
       S.resetRing(req->getvars["resetring"]);
-    resp->status = 301;
+    resp->status = 302;
     resp->headers["Location"] = req->url.path;
     return;
   }
@@ -208,7 +208,7 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
     int size=std::stoi(req->getvars["size"]);
     if (S.ringExists(req->getvars["resizering"]) && size > 0 && size <= 500000)
       S.resizeRing(req->getvars["resizering"], std::stoi(req->getvars["size"]));
-    resp->status = 301;
+    resp->status = 302;
     resp->headers["Location"] = req->url.path;
     return;
   }
