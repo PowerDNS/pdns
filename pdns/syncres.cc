@@ -685,17 +685,19 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
   d_requireAuthData = oldRequireAuthData;
   d_DNSSECValidationRequested = oldValidationRequested;
 
+  /* we need to remove from the nsSpeeds collection the existing IPs
+     for this nameserver that are no longer in the set, even if there
+     is only one or none at all in the current set.
+  */
+  map<ComboAddress, double> speeds;
+  auto& collection = t_sstorage.nsSpeeds[qname].d_collection;
+  for(const auto& val: ret) {
+    speeds[val] = collection[val].get(&d_now);
+  }
+
+  t_sstorage.nsSpeeds[qname].purge(speeds);
+
   if(ret.size() > 1) {
-    map<ComboAddress, double> speeds;
-    auto& collection = t_sstorage.nsSpeeds[qname].d_collection;
-    for(const auto& val: ret) {
-      double speed;
-      speed=collection[val].get(&d_now);
-      speeds[val]=speed;
-    }
-
-    t_sstorage.nsSpeeds[qname].purge(speeds);
-
     random_shuffle(ret.begin(), ret.end(), dns_random);
     speedOrderCA so(speeds);
     stable_sort(ret.begin(), ret.end(), so);
