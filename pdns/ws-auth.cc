@@ -627,8 +627,13 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
       // "dnssec": false in json
       if (isDNSSECZone) {
         disableDNSSECOnZone(dk, zonename);
-        if (!dk.isSecuredZone(zonename)) {
-           throw ApiException("Unable to remove DNSSEC from " + zonename.toString());
+        isDNSSECZone = dk.isSecuredZone(zonename);
+        
+        if (!isDNSSECZone) {
+          // We disabled DNSSEC, so ask to rectify
+          shouldRectify = true;
+        } else {
+          throw ApiException("Unable to remove DNSSEC from " + zonename.toString());
         }
       } else {
         throw ApiException("DNSSEC is not enabled on " + zonename.toString());
