@@ -141,9 +141,11 @@ try
     ("rd", po::value<bool>(), "If set to true, only process RD packets, to false only non-RD, unset: both")
     ("ipv4", po::value<bool>()->default_value(true), "Process IPv4 packets")
     ("ipv6", po::value<bool>()->default_value(true), "Process IPv6 packets")
-    ("servfail-tree", "Figure out subtrees that generate servfails")
     ("log-histogram", "Write a log-histogram to file 'log-histogram'")
+    ("full-histogram", po::value<double>(), "Write a log-histogram to file 'full-histogram' with this millisecond bin size")
     ("load-stats,l", po::value<string>()->default_value(""), "if set, emit per-second load statistics (questions, answers, outstanding)")
+    ("servfail-tree", "Figure out subtrees that generate servfails")
+    ("stats-dir", po::value<string>()->default_value("."), "Directory where statistics will be saved")
     ("write-failures,w", po::value<string>()->default_value(""), "if set, write weird packets to this PCAP file")
     ("verbose,v", "be verbose");
     
@@ -428,9 +430,23 @@ try
   sum=0;
 
   if(g_vm.count("log-histogram")) {
-    ofstream loglog("log-histogram");
+    string fname = g_vm["stats-dir"].as<string>()+"/log-histogram";
+    ofstream loglog(fname);
+    if(!loglog)
+      throw runtime_error("Unable to write statistics to "+fname);
+
     writeLogHistogramFile(cumul, loglog);
   }
+
+  if(g_vm.count("full-histogram")) {
+    string fname=g_vm["stats-dir"].as<string>()+"/full-histogram";
+    ofstream loglog(fname);
+    if(!loglog)
+      throw runtime_error("Unable to write statistics to "+fname);
+    writeFullHistogramFile(cumul, g_vm["full-histogram"].as<double>(), loglog);
+  }
+
+  
   sum=0;
   double lastperc=0, perc=0;
   for(cumul_t::const_iterator i=cumul.begin(); i!=cumul.end(); ++i) {
