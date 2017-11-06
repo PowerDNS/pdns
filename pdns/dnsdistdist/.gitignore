@@ -33,6 +33,7 @@
 /dnsmessage.pb.cc
 /dnsmessage.pb.h
 /dnsdist.service
+/dnsdist@.service
 /lua.hpp
 /test-driver
 dnsdist.pdf

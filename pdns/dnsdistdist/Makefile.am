@@ -265,10 +265,14 @@ if HAVE_SYSTEMD
 dnsdist.service: dnsdist.service.in
 	$(AM_V_GEN)sed -e 's![@]bindir[@]!$(bindir)!' < $< > $@
 
+dnsdist@.service: dnsdist.service
+	$(AM_V_GEN)sed -e 's!/dnsdist !&--config $(sysconfdir)/dnsdist-%i.conf !' < $< >$@
+
 systemdsystemunitdir = $(SYSTEMD_DIR)
 
 systemdsystemunit_DATA = \
-	dnsdist.service
+	dnsdist.service \
+	dnsdist@.service
 endif
 
 if !HAVE_LUA_HPP
