@@ -329,6 +329,8 @@ public:
   typedef map<DNSName, DecayingEwmaCollection> nsspeeds_t;
   typedef map<ComboAddress, EDNSStatus> ednsstatus_t;
 
+  vState getDSRecords(const DNSName& zone, dsmap_t& ds, bool onlyTA, unsigned int depth, bool bogusOnNXD=true, bool* foundCut=nullptr);
+
   class AuthDomain
   {
   public:
@@ -754,7 +756,6 @@ private:
   void updateValidationState(vState& state, const vState stateUpdate);
   vState validateRecordsWithSigs(unsigned int depth, const DNSName& qname, const QType& qtype, const DNSName& name, const std::vector<DNSRecord>& records, const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures);
   vState validateDNSKeys(const DNSName& zone, const std::vector<DNSRecord>& dnskeys, const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures, unsigned int depth);
-  vState getDSRecords(const DNSName& zone, dsmap_t& ds, bool onlyTA, unsigned int depth, bool bogusOnNXD=true, bool* foundCut=nullptr);
   vState getDNSKeys(const DNSName& signer, skeyset_t& keys, unsigned int depth);
   dState getDenialValidationState(NegCache::NegCacheEntry& ne, const vState state, const dState expectedState, bool referralToUnsigned);
   void updateDenialValidationState(NegCache::NegCacheEntry& ne, vState& state, const dState denialState, const dState expectedState, bool allowOptOut);
