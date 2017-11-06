@@ -626,7 +626,16 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
     } else {
       // "dnssec": false in json
       if (isDNSSECZone) {
-        disableDNSSECOnZone(dk, zonename);
+        DNSSECKeeper::keyset_t keyset=dk.getKeys(zone);
+        if(!keyset.empty())  {
+          for(DNSSECKeeper::keyset_t::value_type value :  keyset) {
+            dk.deactivateKey(zonename, value.second.id);
+            dk.removeKey(zonename, value.second.id);
+          }
+        }
+        dk.unsetNSEC3PARAM(zonename);
+        dk.unsetPresigned(zonename);
+        
         isDNSSECZone = dk.isSecuredZone(zonename);
         
         if (!isDNSSECZone) {
