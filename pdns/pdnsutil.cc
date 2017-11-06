@@ -2683,47 +2683,49 @@ try
     cout << "Flags: " << dspk.d_flags << endl << 
              dspk.getKey()->convertToISC() << endl; 
   } else if (cmds[0]=="generate-tsig-key") {
-     if (cmds.size() < 3) {
-        cerr << "Syntax: " << cmds[0] << " name (hmac-md5|hmac-sha1|hmac-sha224|hmac-sha256|hmac-sha384|hmac-sha512)" << endl;
-        return 0;
-     }
-     DNSName name(cmds[1]);
-     string algo = cmds[2];
-     string key;
-     char tmpkey[64];
+    string usage = "Syntax: " + cmds[0] + " name (hmac-md5|hmac-sha1|hmac-sha224|hmac-sha256|hmac-sha384|hmac-sha512)";
+    if (cmds.size() < 3) {
+      cerr << usage << endl;
+      return 0;
+    }
+    DNSName name(cmds[1]);
+    string algo = cmds[2];
+    string key;
+    char tmpkey[64];
 
-     size_t klen = 0;
-     if (algo == "hmac-md5") {
-       klen = 32;
-     } else if (algo == "hmac-sha1") {
-       klen = 32;
-     } else if (algo == "hmac-sha224") {
-       klen = 32;
-     } else if (algo == "hmac-sha256") {
-       klen = 64;
-     } else if (algo == "hmac-sha384") {
-       klen = 64;
-     } else if (algo == "hmac-sha512") {
-       klen = 64;
-     } else {
-       cerr << "Cannot generate key for " << algo << endl;
-       return 1;
-     }
+    size_t klen = 0;
+    if (algo == "hmac-md5") {
+      klen = 32;
+    } else if (algo == "hmac-sha1") {
+      klen = 32;
+    } else if (algo == "hmac-sha224") {
+      klen = 32;
+    } else if (algo == "hmac-sha256") {
+      klen = 64;
+    } else if (algo == "hmac-sha384") {
+      klen = 64;
+    } else if (algo == "hmac-sha512") {
+      klen = 64;
+    } else {
+      cerr << "Cannot generate key for " << algo << endl;
+      cerr << usage << endl;
+      return 1;
+    }
 
-     cerr << "Generating new key with " << klen << " bytes (this can take a while)" << endl;
-     for(size_t i = 0; i < klen; i+=4) {
-        *(unsigned int*)(tmpkey+i) = dns_random(0xffffffff);
-     }
-     key = Base64Encode(std::string(tmpkey, klen));
+    cerr << "Generating new key with " << klen << " bytes" << endl;
+    for(size_t i = 0; i < klen; i+=4) {
+      *(unsigned int*)(tmpkey+i) = dns_random(0xffffffff);
+    }
+    key = Base64Encode(std::string(tmpkey, klen));
 
-     UeberBackend B("default");
-     if (B.setTSIGKey(name, DNSName(algo), key)) { // you are feeling bored, put up DNSName(algo) up earlier
-       cout << "Create new TSIG key " << name << " " << algo << " " << key << endl;
-     } else {
-       cerr << "Failure storing new TSIG key " << name << " " << algo << " " << key << endl;
-       return 1;
-     }
-     return 0;
+    UeberBackend B("default");
+    if (B.setTSIGKey(name, DNSName(algo), key)) { // you are feeling bored, put up DNSName(algo) up earlier
+      cout << "Create new TSIG key " << name << " " << algo << " " << key << endl;
+    } else {
+      cerr << "Failure storing new TSIG key " << name << " " << algo << " " << key << endl;
+      return 1;
+    }
+    return 0;
   } else if (cmds[0]=="import-tsig-key") {
      if (cmds.size() < 4) {
         cerr << "Syntax: " << cmds[0] << " name algorithm key" << endl;
