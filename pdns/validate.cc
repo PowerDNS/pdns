@@ -337,7 +337,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
            */
           if (referralToUnsigned && qtype == QType::DS && !nsec->d_set.count(QType::NS)) {
             LOG("However, no NS record exists at this level!"<<endl);
-            return INSECURE;
+            return NODATA;
           }
 
           /* we know that the name exists (but this qtype doesn't) so except
@@ -442,7 +442,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
            */
           if (referralToUnsigned && qtype == QType::DS && !nsec3->d_set.count(QType::NS)) {
             LOG("However, no NS record exists at this level!"<<endl);
-            return INSECURE;
+            return NODATA;
           }
 
           return NXQTYPE;
@@ -475,11 +475,11 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
             if(!nsec3)
               continue;
 
-            if (g_maxNSEC3Iterations && nsec3->d_iterations > g_maxNSEC3Iterations) {
+            string h = getHashFromNSEC3(closestEncloser, nsec3);
+            if (h.empty()) {
               return INSECURE;
             }
 
-            string h = hashQNameWithSalt(nsec3->d_salt, nsec3->d_iterations, closestEncloser);
             string beginHash=fromBase32Hex(v.first.first.getRawLabels()[0]);
 
             LOG("Comparing "<<toBase32Hex(h)<<" ("<<closestEncloser<<") against "<<toBase32Hex(beginHash)<<endl);
@@ -526,11 +526,12 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
             auto nsec3 = std::dynamic_pointer_cast<NSEC3RecordContent>(r);
             if(!nsec3)
               continue;
-            if (g_maxNSEC3Iterations && nsec3->d_iterations > g_maxNSEC3Iterations) {
+
+            string h = getHashFromNSEC3(nextCloser, nsec3);
+            if (h.empty()) {
               return INSECURE;
             }
 
-            string h = hashQNameWithSalt(nsec3->d_salt, nsec3->d_iterations, nextCloser);
             string beginHash=fromBase32Hex(v.first.first.getRawLabels()[0]);
 
             LOG("Comparing "<<toBase32Hex(h)<<" against "<<toBase32Hex(beginHash)<<" -> "<<toBase32Hex(nsec3->d_nexthash)<<endl);

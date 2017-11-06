@@ -2153,10 +2153,20 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         cspmap_t csp = harvestCSPFromNE(ne);
         dState res = getDenial(csp, qname, ne.d_qtype.getCode(), false, false, false);
         if (res != NXDOMAIN) {
-          LOG(d_prefix<<"Invalid denial in wildcard expanded positive response found for "<<qname<<", returning Bogus, res="<<res<<endl);
-          updateValidationState(state, Bogus);
-          /* we already store the record with a different validation status, let's fix it */
-          t_RC->updateValidationStatus(d_now.tv_sec, qname, qtype, d_incomingECSFound ? d_incomingECSNetwork : d_requestor, lwr.d_aabit, Bogus);
+          vState st = Bogus;
+          if (res == INSECURE) {
+            /* Some part could not be validated, for example a NSEC3 record with a too large number of iterations,
+               this is not enough to warrant a Bogus, but go Insecure. */
+            st = Insecure;
+            LOG(d_prefix<<"Unable to validate denial in wildcard expanded positive response found for "<<qname<<", returning Insecure, res="<<res<<endl);
+          }
+          else {
+            LOG(d_prefix<<"Invalid denial in wildcard expanded positive response found for "<<qname<<", returning Bogus, res="<<res<<endl);
+          }
+
+          updateValidationState(state, st);
+          /* we already stored the record with a different validation status, let's fix it */
+          t_RC->updateValidationStatus(d_now.tv_sec, qname, qtype, d_incomingECSFound ? d_incomingECSNetwork : d_requestor, lwr.d_aabit, st);
         }
       }
     }
