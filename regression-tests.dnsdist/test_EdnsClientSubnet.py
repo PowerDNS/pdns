@@ -4,51 +4,7 @@ import clientsubnetoption
 import cookiesoption
 from dnsdisttests import DNSDistTest
 
-class TestEdnsClientSubnet(DNSDistTest):
-    def compareOptions(self, a, b):
-        self.assertEquals(len(a), len(b))
-        for idx in xrange(len(a)):
-            self.assertEquals(a[idx], b[idx])
-
-    def checkMessageNoEDNS(self, expected, received):
-        self.assertEquals(expected, received)
-        self.assertEquals(received.edns, -1)
-        self.assertEquals(len(received.options), 0)
-
-    def checkMessageEDNSWithoutECS(self, expected, received, withCookies=0):
-        self.assertEquals(expected, received)
-        self.assertEquals(received.edns, 0)
-        self.assertEquals(len(received.options), withCookies)
-        if withCookies:
-            for option in received.options:
-                self.assertEquals(option.otype, 10)
-
-    def checkMessageEDNSWithECS(self, expected, received):
-        self.assertEquals(expected, received)
-        self.assertEquals(received.edns, 0)
-        self.assertEquals(len(received.options), 1)
-        self.assertEquals(received.options[0].otype, clientsubnetoption.ASSIGNED_OPTION_CODE)
-        self.compareOptions(expected.options, received.options)
-
-    def checkQueryEDNSWithECS(self, expected, received):
-        self.checkMessageEDNSWithECS(expected, received)
-
-    def checkResponseEDNSWithECS(self, expected, received):
-        self.checkMessageEDNSWithECS(expected, received)
-
-    def checkQueryEDNSWithoutECS(self, expected, received):
-        self.checkMessageEDNSWithoutECS(expected, received)
-
-    def checkResponseEDNSWithoutECS(self, expected, received, withCookies=0):
-        self.checkMessageEDNSWithoutECS(expected, received, withCookies)
-
-    def checkQueryNoEDNS(self, expected, received):
-        self.checkMessageNoEDNS(expected, received)
-
-    def checkResponseNoEDNS(self, expected, received):
-        self.checkMessageNoEDNS(expected, received)
-
-class TestEdnsClientSubnetNoOverride(TestEdnsClientSubnet):
+class TestEdnsClientSubnetNoOverride(DNSDistTest):
     """
     dnsdist is configured to add the EDNS0 Client Subnet
     option, but only if it's not already present in the
@@ -381,7 +337,7 @@ class TestEdnsClientSubnetNoOverride(TestEdnsClientSubnet):
         self.checkResponseEDNSWithoutECS(expectedResponse, receivedResponse, withCookies=2)
 
 
-class TestEdnsClientSubnetOverride(TestEdnsClientSubnet):
+class TestEdnsClientSubnetOverride(DNSDistTest):
     """
     dnsdist is configured to add the EDNS0 Client Subnet
     option, overwriting any existing value.
@@ -591,7 +547,7 @@ class TestEdnsClientSubnetOverride(TestEdnsClientSubnet):
         self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
         self.checkResponseEDNSWithECS(response, receivedResponse)
 
-class TestECSDisabledByRuleOrLua(TestEdnsClientSubnet):
+class TestECSDisabledByRuleOrLua(DNSDistTest):
     """
     dnsdist is configured to add the EDNS0 Client Subnet
     option, but we disable it via DisableECSAction()
@@ -699,7 +655,7 @@ class TestECSDisabledByRuleOrLua(TestEdnsClientSubnet):
         self.checkQueryNoEDNS(query, receivedQuery)
         self.checkResponseNoEDNS(response, receivedResponse)
 
-class TestECSOverrideSetByRuleOrLua(TestEdnsClientSubnet):
+class TestECSOverrideSetByRuleOrLua(DNSDistTest):
     """
     dnsdist is configured to set the EDNS0 Client Subnet
     option without overriding an existing one, but we
@@ -813,7 +769,7 @@ class TestECSOverrideSetByRuleOrLua(TestEdnsClientSubnet):
         self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
         self.checkResponseEDNSWithECS(response, receivedResponse)
 
-class TestECSPrefixLengthSetByRuleOrLua(TestEdnsClientSubnet):
+class TestECSPrefixLengthSetByRuleOrLua(DNSDistTest):
     """
     dnsdist is configured to set the EDNS0 Client Subnet
     option with a prefix length of 24 for IPv4 and 56 for IPv6,
