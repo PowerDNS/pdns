@@ -226,6 +226,7 @@ Servers
       tcpFastOpen=BOOL,      -- Whether to enable TCP Fast Open
       ipBindAddrNoPort=BOOL, -- Whether to enable IP_BIND_ADDRESS_NO_PORT if available, default: true
       name=STRING,           -- The name associated to this backend, for display purpose
+      checkClass=NUM,        -- Use NUM as QCLASS in the health-check query, default: DNSClass.IN
       checkName=STRING,      -- Use STRING as QNAME in the health-check query, default: "a.root-servers.net."
       checkType=STRING,      -- Use STRING as QTYPE in the health-check query, default: "A"
       setCD=BOOL,            -- Set the CD (Checking Disabled) flag in the health-check query, default: false

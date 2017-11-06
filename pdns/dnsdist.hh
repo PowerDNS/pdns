@@ -599,6 +599,7 @@ struct DownstreamState
   ComboAddress sourceAddr;
   DNSName checkName{"a.root-servers.net."};
   QType checkType{QType::A};
+  uint16_t checkClass{QClass::IN};
   std::atomic<uint64_t> idOffset{0};
   std::atomic<uint64_t> sendErrors{0};
   std::atomic<uint64_t> outstanding{0};
