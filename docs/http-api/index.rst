@@ -23,7 +23,7 @@ The following webserver related configuration items are available:
 Enabling the API
 ----------------
 
-To enable the API, the webserver and the HTTP API need to be enbaled.
+To enable the API, the webserver and the HTTP API need to be enabled.
 Add these lines to the ``pdns.conf``::
 
     api=yes
