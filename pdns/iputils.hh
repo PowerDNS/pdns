@@ -550,10 +550,13 @@ private:
   };
 
 public:
-  NetmaskTree() noexcept {
+  NetmaskTree() noexcept : NetmaskTree(false) {
   }
 
-  NetmaskTree(const NetmaskTree& rhs) {
+  NetmaskTree(bool cleanup) noexcept : d_cleanup_tree(cleanup) {
+  }
+
+  NetmaskTree(const NetmaskTree& rhs): d_cleanup_tree(rhs.d_cleanup_tree) {
     // it is easier to copy the nodes than tree.
     // also acts as handy compactor
     for(auto const& node: rhs._nodes)
@@ -711,6 +714,24 @@ public:
     return ret;
   }
 
+  void cleanup_tree(TreeNode* node)
+  {
+    // only cleanup this node if it has no children and node4 and node6 are both empty
+    if (!(node->left || node->right || node->node6 || node->node4)) {
+      // get parent node ptr
+      TreeNode* parent = node->parent;
+      // delete this node
+      if (parent) {
+	if (parent->left.get() == node)
+	  parent->left.reset();
+	else
+	  parent->right.reset();
+	// now recurse up to the parent
+	cleanup_tree(parent);
+      }
+    }
+  }
+
   //<! Removes key from TreeMap. This does not clean up the tree.
   void erase(const key_type& key) {
     TreeNode *node = root.get();
@@ -738,7 +759,11 @@ public:
           else
             it++;
         }
+
         node->node4.reset();
+
+        if (d_cleanup_tree)
+          cleanup_tree(node);
       }
     } else {
       uint64_t* addr = (uint64_t*)key.getNetwork().sin6.sin6_addr.s6_addr;
@@ -765,6 +790,9 @@ public:
         }
 
         node->node6.reset();
+
+        if (d_cleanup_tree)
+          cleanup_tree(node);
       }
     }
   }
@@ -807,6 +835,7 @@ public:
 private:
   unique_ptr<TreeNode> root; //<! Root of our tree
   std::vector<node_type*> _nodes; //<! Container for actual values
+  bool d_cleanup_tree; //<! Whether or not to cleanup the tree on erase
 };
 
 /** This class represents a group of supplemental Netmask classes. An IP address matchs
@@ -815,6 +844,14 @@ private:
 class NetmaskGroup
 {
 public:
+  //! By default, initialise the tree to cleanup
+  NetmaskGroup() noexcept : NetmaskGroup(true) {
+  }
+
+  //! This allows control over whether to cleanup or not
+  NetmaskGroup(bool cleanup) noexcept : tree(cleanup) {
+  }
+
   //! If this IP address is matched by any of the classes within
 
   bool match(const ComboAddress *ip) const
@@ -827,6 +864,23 @@ public:
   bool match(const ComboAddress& ip) const
   {
     return match(&ip);
+  }
+
+  bool lookup(const ComboAddress* ip, Netmask* nmp) const
+  {
+    const auto &ret = tree.lookup(*ip);
+    if (ret) {
+      if (nmp != nullptr)
+        *nmp = ret->first;
+
+      return ret->second;
+    }
+    return false;
+  }
+
+  bool lookup(const ComboAddress& ip, Netmask* nmp) const
+  {
+    return lookup(&ip, nmp);
   }
 
   //! Add this string to the list of possible matches
@@ -843,6 +897,18 @@ public:
   void addMask(const Netmask& nm, bool positive=true)
   {
     tree.insert(nm).second=positive;
+  }
+
+  //! Delete this Netmask from the list of possible matches
+  void deleteMask(const Netmask& nm)
+  {
+    tree.erase(nm);
+  }
+
+  void deleteMask(const std::string& ip)
+  {
+    if (!ip.empty())
+      deleteMask(Netmask(ip));
   }
 
   void clear()

@@ -97,7 +97,7 @@ BOOST_AUTO_TEST_CASE(test_scale) {
 
 BOOST_AUTO_TEST_CASE(test_removal) {
   std::string prefix = "192.";
-  NetmaskTree<int> nmt;
+  NetmaskTree<int> nmt(true);
 
   size_t count = 0;
   for(unsigned int i = 0; i < 256; ++i) {
