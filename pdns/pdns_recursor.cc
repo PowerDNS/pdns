@@ -703,6 +703,26 @@ static void handleRPZCustom(const DNSRecord& spoofed, const QType& qtype, SyncRe
   }
 }
 
+static bool addRecordToPacket(DNSPacketWriter& pw, const DNSRecord& rec, uint32_t& minTTL, const uint16_t maxAnswerSize)
+{
+  pw.startRecord(rec.d_name, rec.d_type, rec.d_ttl, rec.d_class, rec.d_place);
+
+  if(rec.d_type != QType::OPT) // their TTL ain't real
+    minTTL = min(minTTL, rec.d_ttl);
+
+  rec.d_content->toPacket(pw);
+  if(pw.size() > static_cast<size_t>(maxAnswerSize)) {
+    pw.rollback();
+    if(rec.d_place != DNSResourceRecord::ADDITIONAL) {
+      pw.getHeader()->tc=1;
+      pw.truncate();
+    }
+    return false;
+  }
+
+  return true;
+}
+
 static void startDoResolve(void *p)
 {
   DNSComboWriter* dc=(DNSComboWriter *)p;
@@ -1093,9 +1113,6 @@ static void startDoResolve(void *p)
 	  variableAnswer=true;
 	}
       }
-      if(haveEDNS)  {
-	ret.push_back(makeOpt(edo.d_packetsize, 0, edo.d_Z));
-      }
 
       bool needCommit = false;
       for(auto i=ret.cbegin(); i!=ret.cend(); ++i) {
@@ -1113,19 +1130,12 @@ static void startDoResolve(void *p)
           continue;
         }
 
-	pw.startRecord(i->d_name, i->d_type, i->d_ttl, i->d_class, i->d_place);
-	if(i->d_type != QType::OPT) // their TTL ain't real
-	  minTTL = min(minTTL, i->d_ttl);
-	i->d_content->toPacket(pw);
-	if(pw.size() > static_cast<size_t>(maxanswersize)) {
-	  pw.rollback();
-	  if(i->d_place != DNSResourceRecord::ADDITIONAL) {
-            pw.getHeader()->tc=1;
-            pw.truncate();
-          }
-	  goto sendit; // need to jump over pw.commit
-	}
-	needCommit = true;
+        if (!addRecordToPacket(pw, *i, minTTL, maxanswersize)) {
+          needCommit = false;
+          break;
+        }
+        needCommit = true;
+
 #ifdef HAVE_PROTOBUF
         if(luaconfsLocal->protobufServer && (i->d_type == QType::A || i->d_type == QType::AAAA || i->d_type == QType::CNAME)) {
           pbMessage.addRR(*i);
@@ -1136,6 +1146,18 @@ static void startDoResolve(void *p)
 	pw.commit();
     }
   sendit:;
+
+    if (haveEDNS) {
+      /* we try to add the EDNS OPT RR even for truncated answers,
+         as rfc6891 states:
+         "The minimal response MUST be the DNS header, question section, and an
+         OPT record.  This MUST also occur when a truncated response (using
+         the DNS header's TC bit) is returned."
+      */
+      if (addRecordToPacket(pw, makeOpt(edo.d_packetsize, 0, edo.d_Z), minTTL, maxanswersize)) {
+        pw.commit();
+      }
+    }
 
     g_rs.submitResponse(dc->d_mdp.d_qtype, packet.size(), !dc->d_tcp);
     updateResponseStats(res, dc->d_remote, packet.size(), &dc->d_mdp.d_qname, dc->d_mdp.d_qtype);
