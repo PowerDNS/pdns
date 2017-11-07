@@ -86,7 +86,7 @@ void AuthWebServer::statThread()
   }
   catch(...) {
     L<<Logger::Error<<"Webserver statThread caught an exception, dying"<<endl;
-    exit(1);
+    _exit(1);
   }
 }
 
@@ -1874,6 +1874,6 @@ void AuthWebServer::webThread()
   }
   catch(...) {
     L<<Logger::Error<<"AuthWebServer thread caught an exception, dying"<<endl;
-    exit(1);
+    _exit(1);
   }
 }

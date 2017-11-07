@@ -286,7 +286,7 @@ void DNSProxy::mainloop(void)
     L << Logger::Error << "Caught unknown exception." << endl;
   }
   L<<Logger::Error<<"Exiting because DNS proxy failed"<<endl;
-  exit(1);
+  _exit(1);
 }
 
 DNSProxy::~DNSProxy() {

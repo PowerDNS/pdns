@@ -1233,7 +1233,7 @@ TCPNameserver::TCPNameserver()
     int tmp=1;
     if(setsockopt(s,SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0) {
       L<<Logger::Error<<"Setsockopt failed"<<endl;
-      exit(1);  
+      _exit(1);  
     }
 
     if (::arg().asNum("tcp-fast-open") > 0) {
@@ -1285,7 +1285,7 @@ TCPNameserver::TCPNameserver()
     int tmp=1;
     if(setsockopt(s,SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0) {
       L<<Logger::Error<<"Setsockopt failed"<<endl;
-      exit(1);  
+      _exit(1);  
     }
 
     if (::arg().asNum("tcp-fast-open") > 0) {
@@ -1354,7 +1354,7 @@ void TCPNameserver::thread()
             
             if(errno==EMFILE) {
               L<<Logger::Error<<"TCP handler out of filedescriptors, exiting, won't recover from this"<<endl;
-              exit(1);
+              _exit(1);
             }
           }
           else {
@@ -1393,7 +1393,7 @@ void TCPNameserver::thread()
   catch(...) {
     L<<Logger::Error<<"TCPNameserver dying because of an unexpected fatal error"<<endl;
   }
-  exit(1); // take rest of server with us
+  _exit(1); // take rest of server with us
 }
 
 
