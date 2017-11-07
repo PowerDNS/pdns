@@ -56,6 +56,6 @@ Backends might implement additional features (by coincidence or not).
 These things are not supported through the API.
 
 When creating a slave zone, it is recommended to not set any of
-``nameservers``, ``records`` or ``zone``.
+``nameservers``, ``rrsets`` or ``zone``.
 
 .. include:: ../common/api/zone.rst
