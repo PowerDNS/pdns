@@ -10,6 +10,7 @@ import sys
 import threading
 import time
 import unittest
+import clientsubnetoption
 import dns
 import dns.message
 import libnacl
@@ -45,10 +46,10 @@ class DNSDistTest(unittest.TestCase):
     def startResponders(cls):
         print("Launching responders..")
 
-        cls._UDPResponder = threading.Thread(name='UDP Responder', target=cls.UDPResponder, args=[cls._testServerPort])
+        cls._UDPResponder = threading.Thread(name='UDP Responder', target=cls.UDPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue])
         cls._UDPResponder.setDaemon(True)
         cls._UDPResponder.start()
-        cls._TCPResponder = threading.Thread(name='TCP Responder', target=cls.TCPResponder, args=[cls._testServerPort])
+        cls._TCPResponder = threading.Thread(name='TCP Responder', target=cls.TCPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue])
         cls._TCPResponder.setDaemon(True)
         cls._TCPResponder.start()
 
@@ -123,7 +124,7 @@ class DNSDistTest(unittest.TestCase):
             cls._responsesCounter[threading.currentThread().name] = 1
 
     @classmethod
-    def _getResponse(cls, request):
+    def _getResponse(cls, request, fromQueue, toQueue):
         response = None
         if len(request.question) != 1:
             print("Skipping query with question count %d" % (len(request.question)))
@@ -131,12 +132,12 @@ class DNSDistTest(unittest.TestCase):
         healthcheck = not str(request.question[0].name).endswith('tests.powerdns.com.')
         if not healthcheck:
             cls._ResponderIncrementCounter()
-            if not cls._toResponderQueue.empty():
-                response = cls._toResponderQueue.get(True, cls._queueTimeout)
+            if not fromQueue.empty():
+                response = fromQueue.get(True, cls._queueTimeout)
                 if response:
                     response = copy.copy(response)
                     response.id = request.id
-                    cls._fromResponderQueue.put(request, True, cls._queueTimeout)
+                    toQueue.put(request, True, cls._queueTimeout)
 
         if not response:
             # unexpected query, or health check
@@ -145,14 +146,14 @@ class DNSDistTest(unittest.TestCase):
         return response
 
     @classmethod
-    def UDPResponder(cls, port, ignoreTrailing=False):
+    def UDPResponder(cls, port, fromQueue, toQueue, ignoreTrailing=False):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         sock.bind(("127.0.0.1", port))
         while True:
             data, addr = sock.recvfrom(4096)
             request = dns.message.from_wire(data, ignore_trailing=ignoreTrailing)
-            response = cls._getResponse(request)
+            response = cls._getResponse(request, fromQueue, toQueue)
 
             if not response:
                 continue
@@ -163,7 +164,7 @@ class DNSDistTest(unittest.TestCase):
         sock.close()
 
     @classmethod
-    def TCPResponder(cls, port, ignoreTrailing=False, multipleResponses=False):
+    def TCPResponder(cls, port, fromQueue, toQueue, ignoreTrailing=False, multipleResponses=False):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         try:
@@ -180,7 +181,7 @@ class DNSDistTest(unittest.TestCase):
             (datalen,) = struct.unpack("!H", data)
             data = conn.recv(datalen)
             request = dns.message.from_wire(data, ignore_trailing=ignoreTrailing)
-            response = cls._getResponse(request)
+            response = cls._getResponse(request, fromQueue, toQueue)
 
             if not response:
                 conn.close()
@@ -191,10 +192,10 @@ class DNSDistTest(unittest.TestCase):
             conn.send(wire)
 
             while multipleResponses:
-                if cls._toResponderQueue.empty():
+                if fromQueue.empty():
                     break
 
-                response = cls._toResponderQueue.get(True, cls._queueTimeout)
+                response = fromQueue.get(True, cls._queueTimeout)
                 if not response:
                     break
 
@@ -406,3 +407,46 @@ class DNSDistTest(unittest.TestCase):
         data = sock.recv(responseLen)
         response = cls._decryptConsole(data, readingNonce)
         return response
+
+    def compareOptions(self, a, b):
+        self.assertEquals(len(a), len(b))
+        for idx in xrange(len(a)):
+            self.assertEquals(a[idx], b[idx])
+
+    def checkMessageNoEDNS(self, expected, received):
+        self.assertEquals(expected, received)
+        self.assertEquals(received.edns, -1)
+        self.assertEquals(len(received.options), 0)
+
+    def checkMessageEDNSWithoutECS(self, expected, received, withCookies=0):
+        self.assertEquals(expected, received)
+        self.assertEquals(received.edns, 0)
+        self.assertEquals(len(received.options), withCookies)
+        if withCookies:
+            for option in received.options:
+                self.assertEquals(option.otype, 10)
+
+    def checkMessageEDNSWithECS(self, expected, received):
+        self.assertEquals(expected, received)
+        self.assertEquals(received.edns, 0)
+        self.assertEquals(len(received.options), 1)
+        self.assertEquals(received.options[0].otype, clientsubnetoption.ASSIGNED_OPTION_CODE)
+        self.compareOptions(expected.options, received.options)
+
+    def checkQueryEDNSWithECS(self, expected, received):
+        self.checkMessageEDNSWithECS(expected, received)
+
+    def checkResponseEDNSWithECS(self, expected, received):
+        self.checkMessageEDNSWithECS(expected, received)
+
+    def checkQueryEDNSWithoutECS(self, expected, received):
+        self.checkMessageEDNSWithoutECS(expected, received)
+
+    def checkResponseEDNSWithoutECS(self, expected, received, withCookies=0):
+        self.checkMessageEDNSWithoutECS(expected, received, withCookies)
+
+    def checkQueryNoEDNS(self, expected, received):
+        self.checkMessageNoEDNS(expected, received)
+
+    def checkResponseNoEDNS(self, expected, received):
+        self.checkMessageNoEDNS(expected, received)

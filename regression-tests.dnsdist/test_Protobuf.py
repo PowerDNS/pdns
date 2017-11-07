@@ -153,11 +153,11 @@ class TestProtobuf(DNSDistTest):
 
     @classmethod
     def startResponders(cls):
-        cls._UDPResponder = threading.Thread(name='UDP Responder', target=cls.UDPResponder, args=[cls._testServerPort])
+        cls._UDPResponder = threading.Thread(name='UDP Responder', target=cls.UDPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue])
         cls._UDPResponder.setDaemon(True)
         cls._UDPResponder.start()
 
-        cls._TCPResponder = threading.Thread(name='TCP Responder', target=cls.TCPResponder, args=[cls._testServerPort])
+        cls._TCPResponder = threading.Thread(name='TCP Responder', target=cls.TCPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue])
         cls._TCPResponder.setDaemon(True)
         cls._TCPResponder.start()
 
