@@ -1,10 +1,25 @@
 "use strict";
 
 // var moment= require('moment');
-var gdata = {}
+var gdata = {};
 
 $(document).ready(function () {
     $.ajaxSetup({cache: false});
+
+    var getTemplate = function (name) {
+        var template = $('#' + name + '-template').html();
+        return Handlebars.compile(template);
+    };
+    var cachedTemplates = {};
+    var render = function (name, ctx) {
+        var t = cachedTemplates[name];
+        if (!t) {
+            t = getTemplate(name);
+            cachedTemplates[name] = t;
+        }
+        var h = t(ctx);
+        $('#' + name).html(h);
+    };
 
     var password = $("#password").val();
     $("#password").change(function (e) {
@@ -43,7 +58,7 @@ $(document).ready(function () {
             timeBase: new Date().getTime() / 1000
         })
     });
-    var y_ticks = new Rickshaw.Graph.Axis.Y({
+    var cpu_y_ticks = new Rickshaw.Graph.Axis.Y({
         graph: cpugraph,
         orientation: 'left',
         tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
@@ -53,99 +68,77 @@ $(document).ready(function () {
     cpugraph.render();
     var intervalcount = 0;
 
+    var jsonstatParams = function (command, name, filtered) {
+        var d = {
+            'api-key': password,
+            'command': command,
+            'name': name
+        };
+        if (filtered) {
+            d['public-filtered'] = '1';
+        }
+        return d;
+    };
+
+    var makeRingRows = function (data) {
+        var num = 0;
+        var total = 0, rest = 0;
+        var rows = [];
+        $.each(data["entries"], function (a, b) {
+            total += b[0];
+            if (num++ > 10) {
+                rest += b[0];
+                return;
+            }
+            if (b[1].length > 25)
+                b[1] = b[1].substring(0, 25);
+            rows.push(b);
+        });
+        while (rows.length < 10) {
+            rows.push([]);
+        }
+        rows.push([rest, 'REST', '']);
+        return rows;
+    };
+
     function updateRingBuffers() {
-        var filtered = $("#filter1").is(':checked')
-        var qstring = 'jsonstat?api-key=' + password + '&command=get-query-ring&name=queries';
-
-        if (filtered)
-            qstring = qstring + "&public-filtered=1";
-
-        $.getJSON(qstring,
+        $.getJSON('jsonstat', jsonstatParams('get-query-ring', 'queries', $("#filter1").is(':checked')),
             function (data) {
-                var bouw = "<table><tr><th>Number</th><th>Domain</th><th>Type</th></tr>";
-                var num = 0;
-                var total = 0, rest = 0;
-                $.each(data["entries"], function (a, b) {
-                    total += b[0];
-                    if (num++ > 10) {
-                        rest += b[0];
-                        return;
-                    }
-                    if (b[1].length > 25)
-                        b[1] = b[1].substring(0, 25);
-
-                    bouw = bouw + ("<tr><td>" + b[0] + "</td><td>" + b[1] + "</td><td>" + b[2] + "</td></tr>");
-                });
-                bouw += "<tr><td>" + rest + "</td><td>Rest</td></tr>";
-                bouw = bouw + "</table>";
-                $("#queryring").html(bouw);
-
+                var rows = makeRingRows(data);
+                render('queryring', {rows: rows});
             });
 
-        filtered = $("#filter2").is(':checked')
-        qstring = 'jsonstat?api-key=' + password + '&command=get-query-ring&name=servfail-queries';
-
-        if (filtered)
-            qstring = qstring + "&public-filtered=1";
-
-        $.getJSON(qstring,
+        $.getJSON('jsonstat', jsonstatParams('get-query-ring', 'servfail-queries', $("#filter1").is(':checked')),
             function (data) {
-                var bouw = "<table><tr><th>Number</th><th>Servfail domain</th><th>Type</th></tr>";
-                var num = 0, total = 0, rest = 0;
-                $.each(data["entries"], function (a, b) {
-                    total += b[0];
-                    if (num++ > 10) {
-                        rest += b[0];
-                        return;
-                    }
-                    if (b[1].length > 25)
-                        b[1] = b[1].substring(0, 25);
-                    bouw = bouw + ("<tr><td>" + b[0] + "</td><td>" + b[1] + "</td><td>" + b[2] + "</td></tr>");
-                });
-                bouw += "<tr><td>" + rest + "</td><td>Rest</td></tr>";
-                bouw = bouw + "</table>";
-                $("#servfailqueryring").html(bouw);
-
+                var rows = makeRingRows(data);
+                render('servfailqueryring', {rows: rows});
             });
 
-        $.getJSON('jsonstat?api-key=' + password + '&command=get-remote-ring&name=remotes',
+        $.getJSON('jsonstat', jsonstatParams('get-remote-ring', 'remotes', false),
             function (data) {
-                var bouw = "<table><tr><th>Number</th><th>Remote</th></tr>";
-                var num = 0, total = 0, rest = 0;
-                $.each(data["entries"], function (a, b) {
-                    total += b[0];
-                    if (num++ > 10) {
-                        rest += b[0];
-                        return;
-                    }
-                    bouw = bouw + ("<tr><td>" + b[0] + "</td><td>" + b[1] + "</td></tr>");
-                });
-                bouw += "<tr><td>" + rest + "</td><td>Rest</td></tr>";
-                bouw = bouw + "</table>";
-                $("#remotering").html(bouw);
-
+                var rows = makeRingRows(data);
+                render('remotering', {rows: rows});
             });
 
-        $.getJSON('jsonstat?api-key=' + password + '&command=get-remote-ring&name=servfail-remotes',
+        $.getJSON('jsonstat', jsonstatParams('get-remote-ring', 'servfail-remotes', false),
             function (data) {
-                var bouw = "<table><tr><th>Number</th><th>Servfail Remote</th></tr>";
-                var num = 0, total = 0, rest = 0;
-                $.each(data["entries"], function (a, b) {
-                    total += b[0];
-                    if (num++ > 10) {
-                        rest += b[0];
-                        return;
-                    }
-                    bouw = bouw + ("<tr><td>" + b[0] + "</td><td>" + b[1] + "</td></tr>");
-                });
-                bouw += "<tr><td>" + rest + "</td><td>Rest</td></tr>";
-                bouw = bouw + "</table>";
-                $("#servfailremotering").html(bouw);
-
+                var rows = makeRingRows(data);
+                render('servfailremotering', {rows: rows});
             });
-
-
     }
+
+    var connectionOK = function (ok, o) {
+        if (ok) {
+            $("#connection-status").hide();
+            $("#connection-error").html("");
+            $("#content-hidden-on-load").show();
+        } else {
+            $("#connection-status").show();
+            $("#connection-error").html(o.status + " " + o.statusText);
+        }
+    };
+
+    var version = null;
 
     function update() {
         $.ajax({
@@ -153,33 +146,39 @@ $(document).ready(function () {
             type: 'GET',
             dataType: 'json',
             success: function (adata, x, y) {
-                $("#connection-status").hide();
-                $("#connection-error").html("");
+                connectionOK(true);
+
                 var data = {};
                 $.each(adata, function (key, val) {
                     data[val.name] = val.value;
                 });
-                $("#questions").text(data["questions"]);
-                $("#over-capacity-drops").text(data["over-capacity-drops"]);
-                $("#too-old").text(data["too-old-drops"]);
-                $("#uptime").text(moment.duration(data["uptime"] * 1000.0).humanize());
-                $("#latency").text(data["qa-latency"] / 1000.0);
+
                 if (!gdata["sys-msec"])
                     gdata = data;
 
-                var cpu = ((1.0 * data["sys-msec"] + 1.0 * data["user-msec"] - 1.0 * gdata["sys-msec"] - 1.0 * gdata["user-msec"]) / 10.0);
-
-                $("#cpu").text(cpu.toFixed(2));
+                var cpu = 0.1 * (1.0 * data["sys-msec"] + 1.0 * data["user-msec"]
+                                 - 1.0 * gdata["sys-msec"] - 1.0 * gdata["user-msec"]);
                 var qps = 1.0 * data["questions"] - 1.0 * gdata["questions"];
-                $("#qps").text(qps);
-
                 var servfailps = 1.0 * data["servfail-answers"] - 1.0 * gdata["servfail-answers"];
+                var totpcache = 1.0 * data["packetcache-hits"] - 1.0 * gdata["packetcache-hits"] +
+                                1.0 * data["packetcache-misses"] - 1.0 * gdata["packetcache-misses"];
+                var phitrate = 0;
+                if (totpcache > 0) {
+                    phitrate = 100.0 * (data["packetcache-hits"] - 1.0 * gdata["packetcache-hits"]) / totpcache;
+                }
 
-                var totpcache = 1.0 * data["packetcache-hits"] - 1.0 * gdata["packetcache-hits"] + 1.0 * data["packetcache-misses"] - 1.0 * gdata["packetcache-misses"];
-                if (totpcache > 0)
-                    $("#phitrate").text((100.0 * (data["packetcache-hits"] - 1.0 * gdata["packetcache-hits"]) / totpcache).toFixed(2));
-                else
-                    $("#phitrate").text(0);
+                var stats = {
+                    version: version || '...',
+                    questions: data["questions"],
+                    over_capacity_drops: data["over-capacity-drops"],
+                    too_old: data["too-old-drops"],
+                    uptime: moment.duration(data["uptime"] * 1000.0).humanize(),
+                    latency: data["qa-latency"] / 1000.0,
+                    cpu: cpu.toFixed(2),
+                    qps: qps,
+                    phitrate: phitrate.toFixed(2)
+                };
+                render('top-stats', stats);
 
                 qpsgraph.series.addData({qps: qps, servfailps: servfailps});
                 qpsgraph.render();
@@ -190,31 +189,27 @@ $(document).ready(function () {
                 gdata = data;
             },
             error: function (o) {
-                $("#connection-status").show();
-                $("#connection-error").html(o.status + " " + o.statusText);
+                connectionOK(false, o);
             },
             beforeSend: function (xhr) {
                 xhr.setRequestHeader('X-API-Key', 'changeme');
-
-
                 return true;
             }
         });
 
-        $.ajax({
-            url: 'api/v1/servers/localhost?api-key=' + password, type: 'GET', dataType: 'json',
-            success: function (data) {
-                $("#version").text("PowerDNS " + data["daemon_type"] + " " + data["version"]);
-            }
-        });
-
+        if (!version) {
+            $.ajax({
+                url: 'api/v1/servers/localhost?api-key=' + password, type: 'GET', dataType: 'json',
+                success: function (data) {
+                    version = "PowerDNS " + data["daemon_type"] + " " + data["version"];
+                }
+            });
+        }
 
         if ((intervalcount++) % 5)
             return;
         updateRingBuffers();
-
-
-    };
+    }
 
     $("#filter1").click(updateRingBuffers);
     $("#filter2").click(updateRingBuffers);
