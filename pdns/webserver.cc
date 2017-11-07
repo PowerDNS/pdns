@@ -382,5 +382,5 @@ void WebServer::go()
   catch(...) {
     L<<Logger::Error<<"Unknown exception in main webserver thread"<<endl;
   }
-  exit(1);
+  _exit(1);
 }
