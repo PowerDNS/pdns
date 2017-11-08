@@ -184,6 +184,7 @@ public:
   void registerApiHandler(const string& url, HandlerFunction handler);
   void registerWebHandler(const string& url, HandlerFunction handler);
 
+
 protected:
   void registerBareHandler(const string& url, HandlerFunction handler);
 
@@ -203,6 +204,8 @@ protected:
   bool d_registerWebHandlerCalled{false};
 
   NetmaskGroup d_acl;
+
+  const string d_logprefix = "[webserver] ";
 };
 
 #endif /* WEBSERVER_HH */

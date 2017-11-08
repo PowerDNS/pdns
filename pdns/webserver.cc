@@ -308,6 +308,43 @@ try {
   resp.write(ss);
   string reply = ss.str();
 
+  ComboAddress remote;
+  client->getRemote(remote);
+  g_log<<Logger::Warning<<d_logprefix<<remote<<" \""<<req.method<<" "<<req.url.path<<" HTTP/"<<req.versionStr(req.version)<<"\" "<<resp.status<<" "<<reply.size()<<endl;
+  bool first = true;
+  for (const auto& r : req.getvars) {
+    if (first) {
+      first = false;
+      g_log<<Logger::Info<<d_logprefix<<" GET params:"<<endl;
+    }
+    g_log<<Logger::Info<<d_logprefix<<"  "<<r.first<<": "<<r.second<<endl;
+  }
+  first = true;
+  for (const auto& r : req.postvars) {
+    if (first) {
+      first = false;
+      g_log<<Logger::Info<<d_logprefix<<" POST params:"<<endl;
+    }
+    g_log<<Logger::Info<<d_logprefix<<"  "<<r.first<<": "<<r.second<<endl;
+  }
+  first = true;
+  for (const auto& h : req.headers) {
+    if (first) {
+      first = false;
+      g_log<<Logger::Info<<d_logprefix<<" Request headers:"<<endl;
+    }
+    g_log<<Logger::Info<<d_logprefix<<"  "<<h.first<<": "<<h.second<<endl;
+  }
+  first = true;
+  for (const auto& h : resp.headers) {
+    if (first) {
+      first = false;
+      g_log<<Logger::Info<<d_logprefix<<" Response headers:"<<endl;
+    }
+    g_log<<Logger::Info<<d_logprefix<<"  "<<h.first<<": "<<h.second<<endl;
+  }
+  g_log<<Logger::Debug<<d_logprefix<<" Full request body: "<<req.body<<endl;
+  g_log<<Logger::Debug<<d_logprefix<<" Full response body: "<<resp.body<<endl;
   client->writenWithTimeout(reply.c_str(), reply.size(), timeout);
 }
 catch(PDNSException &e) {
