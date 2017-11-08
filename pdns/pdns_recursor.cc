@@ -924,6 +924,8 @@ static void startDoResolve(void *p)
         res = RCode::ServFail;
       }
 
+      dq.validationState = sr.getValidationState();
+
       // During lookup, an NSDNAME or NSIP trigger was hit in RPZ
       if (res == -2) { // XXX This block should be macro'd, it is repeated post-resolve.
         appliedPolicy = sr.d_appliedPolicy;
