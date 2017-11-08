@@ -2028,6 +2028,15 @@ static void houseKeeping(void *)
         {
           L<<Logger::Error<<"Exception while performing security poll: "<<e.what()<<endl;
         }
+        catch(PDNSException& e)
+        {
+          L<<Logger::Error<<"Exception while performing security poll: "<<e.reason<<endl;
+        }
+        catch(...)
+        {
+          L<<Logger::Error<<"Exception while performing security poll"<<endl;
+        }
+
       }
     }
     s_running=false;
