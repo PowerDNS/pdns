@@ -2158,7 +2158,10 @@ static void houseKeeping(void *)
 	try {
 	  doSecPoll(&last_secpoll);
 	}
-	catch(...) {}
+	catch(std::exception& e)
+        {
+          L<<Logger::Error<<"Exception while performing security poll: "<<e.what()<<endl;
+        }
       }
     }
     s_running=false;
