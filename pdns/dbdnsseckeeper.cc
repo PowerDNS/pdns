@@ -593,9 +593,10 @@ bool DNSSECKeeper::getTSIGForAccess(const DNSName& zone, const string& master, D
  *
  * \param zone The zone to rectify
  * \param error& A string where error messages are added
+ * \param info& A string where informational messages are added
  * \param doTransaction Whether or not to wrap the rectify in a transaction
  */
-bool DNSSECKeeper::rectifyZone(const DNSName& zone, string& error, bool doTransaction) {
+bool DNSSECKeeper::rectifyZone(const DNSName& zone, string& error, string& info, bool doTransaction) {
   if (isPresigned(zone)) {
     error =  "Rectify presigned zone '"+zone.toLogString()+"' is not allowed/necessary.";
     return false;
@@ -620,6 +621,7 @@ bool DNSSECKeeper::rectifyZone(const DNSName& zone, string& error, bool doTransa
 
   sd.db->list(zone, sd.domain_id);
 
+  ostringstream infostream;
   DNSResourceRecord rr;
   set<DNSName> qnames, nsset, dsnames, insnonterm, delnonterm;
   map<DNSName,bool> nonterm;
@@ -644,6 +646,25 @@ bool DNSSECKeeper::rectifyZone(const DNSName& zone, string& error, bool doTransa
   bool narrow;
   bool haveNSEC3 = getNSEC3PARAM(zone, &ns3pr, &narrow);
   bool isOptOut = (haveNSEC3 && ns3pr.d_flags);
+
+  if(isSecuredZone(zone)) {
+    if(!haveNSEC3) {
+      infostream<<"Adding NSEC ordering information ";
+    }
+    else if(!narrow) {
+      if(!isOptOut) {
+	infostream<<"Adding NSEC3 hashed ordering information for '"<<zone<<"'";
+      }
+      else {
+	infostream<<"Adding NSEC3 opt-out hashed ordering information for '"<<zone<<"'";
+      }
+    } else {
+      infostream<<"Erasing NSEC3 ordering since we are narrow, only setting 'auth' fields";
+    }
+  }
+  else {
+    infostream<<"Adding empty non-terminals for non-DNSSEC zone";
+  }
 
   set<DNSName> nsec3set;
   if (haveNSEC3 && !narrow) {
@@ -707,10 +728,6 @@ bool DNSSECKeeper::rectifyZone(const DNSName& zone, string& error, bool doTransa
     else if (realrr) // NSEC
       ordername=qname.makeRelative(zone);
 
-    /*
-    if(g_verbose)
-      cerr<<"'"<<qname<<"' -> '"<< ordername <<"'"<<endl;
-      */
     sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, auth);
 
     if(realrr)
@@ -778,6 +795,7 @@ bool DNSSECKeeper::rectifyZone(const DNSName& zone, string& error, bool doTransa
   if (doTransaction)
     sd.db->commitTransaction();
 
+  info = infostream.str();
   return true;
 }
 
