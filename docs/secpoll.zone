@@ -1,4 +1,4 @@
-@       86400   IN  SOA pdns-public-ns1.powerdns.com. pieter\.lexis.powerdns.com. 2017110302 10800 3600 604800 10800
+@       86400   IN  SOA pdns-public-ns1.powerdns.com. pieter\.lexis.powerdns.com. 2017110801 10800 3600 604800 10800
 @       3600    IN  NS  pdns-public-ns1.powerdns.com.
 @       3600    IN  NS  pdns-public-ns2.powerdns.com.
 ; Auth
@@ -183,7 +183,10 @@ recursor-4.0.3-5_exp1.debian.security-status            60 IN TXT "3 Upgrade now
 recursor-4.0.3-5_exp2.debian.security-status            60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2016-02/ and https://doc.powerdns.com/md/security/powerdns-advisory-2016-04/"
 recursor-4.0.3-5_exp3.debian.security-status            60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2016-02/ and https://doc.powerdns.com/md/security/powerdns-advisory-2016-04/"
 recursor-4.0.3-6.debian.security-status                 60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2016-02/ and https://doc.powerdns.com/md/security/powerdns-advisory-2016-04/"
+recursor-4.0.4-1_bpo8_1.debian.security-status		60 IN TXT "1 OK"
+recursor-4.0.4-1_deb9u1.debian.security-status          60 IN TXT "1 OK"
 recursor-4.0.4-1.debian.security-status                 60 IN TXT "1 OK"
+recursor-4.0.5-2.debian.security-status                 60 IN TXT "1 OK"
 
 ; Recursor Raspbian
 recursor-3.6.2-2.raspbian.security-status               60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2015-01/"
