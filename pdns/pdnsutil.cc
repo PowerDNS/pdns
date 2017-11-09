@@ -1787,6 +1787,32 @@ void testSchema(DNSSECKeeper& dk, const DNSName& zone)
   cout<<"End of tests, please remove "<<zone<<" from domains+records"<<endl;
 }
 
+int addOrSetMeta(const DNSName& zone, const string& kind, const vector<string>& values, bool clobber) {
+  UeberBackend B("default");
+  DomainInfo di;
+
+  if (!B.getDomainInfo(zone, di)) {
+    cerr << "Invalid zone '" << zone << "'" << endl;
+    return 1;
+  }
+
+  vector<string> all_metadata;
+
+  if (!clobber) {
+    B.getDomainMetadata(zone, kind, all_metadata);
+  }
+
+  all_metadata.insert(all_metadata.end(), values.begin(), values.end());
+
+  if (!B.setDomainMetadata(zone, kind, all_metadata)) {
+    cerr << "Unable to set meta for '" << zone << "'" << endl;
+    return 1;
+  }
+
+  cout << "Set '" << zone << "' meta " << kind << " = " << boost::join(all_metadata, ", ") << endl;
+  return 0;
+}
+
 int main(int argc, char** argv)
 try
 {  
@@ -1896,6 +1922,8 @@ try
     cout<<"set-publish-cdnskey ZONE           Enable sending CDNSKEY responses for ZONE"<<endl;
     cout<<"set-publish-cds ZONE [DIGESTALGOS] Enable sending CDS responses for ZONE, using DIGESTALGOS as signature algorithms"<<endl;
     cout<<"                                   DIGESTALGOS should be a comma separated list of numbers, is is '1,2' by default"<<endl;
+    cout<<"add-meta ZONE KIND VALUE           Add zone metadata, this adds to the existing KIND"<<endl;
+    cout<<"                   [VALUE ...]"<<endl;
     cout<<"set-meta ZONE KIND [VALUE] [VALUE] Set zone metadata, optionally providing a value. *No* value clears meta"<<endl;
     cout<<"                                   Note - this will replace all metadata records of KIND!"<<endl;
     cout<<"show-zone ZONE                     Show DNSSEC (public) key details about a zone"<<endl;
@@ -2869,28 +2897,26 @@ try
     }  
     return 0;
 
-  } else if (cmds[0]=="set-meta") {
-    UeberBackend B("default");
+  } else if (cmds[0]=="set-meta" || cmds[0]=="add-meta") {
     if (cmds.size() < 3) {
-       cerr << "Syntax: " << cmds[0] << " zone kind [value value ..]" << endl;
+       cerr << "Syntax: " << cmds[0] << " ZONE KIND [VALUE VALUE ..]" << endl;
        return 1;
     }
     DNSName zone(cmds[1]);
     string kind = cmds[2];
+    static vector<string> multiMetaWhitelist = {"ALLOW-AXFR-FROM", "ALLOW-DNSUPDATE-FROM",
+      "ALSO-NOTIFY", "TSIG-ALLOW-AXFR", "TSIG-ALLOW-DNSUPDATE", "GSS-ALLOW-AXFR-PRINCIPAL",
+      "PUBLISH-CDS"};
+    bool clobber = true;
+    if (cmds[0] == "add-meta") {
+      clobber = false;
+      if (find(multiMetaWhitelist.begin(), multiMetaWhitelist.end(), kind) == multiMetaWhitelist.end() && kind.find("X-") != 0) {
+        cerr<<"Refusing to add metadata to single-value metadata "<<kind<<endl;
+        return 1;
+      }
+    }
     vector<string> meta(cmds.begin() + 3, cmds.end());
-
-    DomainInfo di;
-    if (!B.getDomainInfo(zone, di)){
-      cerr << "No such zone in the database" << endl;
-      return false;
-    }
-
-    if (!B.setDomainMetadata(zone, kind, meta)) {
-      cerr << "Unable to set meta for '" << zone << "'" << endl;
-      return 1;
-    } else {
-      cout << "Set '" << zone << "' meta " << kind << " = " << boost::join(meta, ", ") << endl;
-    }
+    return addOrSetMeta(zone, kind, meta, clobber);
   } else if (cmds[0]=="hsm") {
 #ifdef HAVE_P11KIT1
     UeberBackend B("default");
