@@ -101,11 +101,16 @@ LuaConfigItems::LuaConfigItems()
 
 static void init(bool debug=false)
 {
+  L.setName("test");
+  L.disableSyslog(true);
+
   if (debug) {
-    L.setName("test");
     L.setLoglevel((Logger::Urgency)(6)); // info and up
-    L.disableSyslog(true);
     L.toConsole(Logger::Info);
+  }
+  else {
+    L.setLoglevel(Logger::None);
+    L.toConsole(Logger::Error);
   }
 
   seedRandom("/dev/urandom");
@@ -775,7 +780,7 @@ BOOST_AUTO_TEST_CASE(test_all_nss_network_error) {
       }
       else {
         downServers.insert(ip);
-        return -1;
+        return 0;
       }
     });
 
@@ -791,8 +796,62 @@ BOOST_AUTO_TEST_CASE(test_all_nss_network_error) {
   for (const auto& server : downServers) {
     BOOST_CHECK_EQUAL(SyncRes::getServerFailsCount(server), 1);
     BOOST_CHECK(SyncRes::isThrottled(time(nullptr), server, target, QType::A));
-;
   }
+}
+
+BOOST_AUTO_TEST_CASE(test_only_one_ns_up_resolving_itself_with_glue) {
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr);
+
+  primeHints();
+
+  DNSName target("www.powerdns.com.");
+
+  sr->setAsyncCallback([target](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
+
+      if (isRootServer(ip)) {
+        setLWResult(res, 0, false, false, true);
+        if (domain == target) {
+          addRecordToLW(res, "powerdns.com.", QType::NS, "pdns-public-ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, 172800);
+          addRecordToLW(res, "powerdns.com.", QType::NS, "pdns-public-ns2.powerdns.net.", DNSResourceRecord::AUTHORITY, 172800);
+          addRecordToLW(res, "pdns-public-ns1.powerdns.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 172800);
+          addRecordToLW(res, "pdns-public-ns1.powerdns.com.", QType::AAAA, "2001:DB8::2", DNSResourceRecord::ADDITIONAL, 172800);
+        }
+        else if (domain == DNSName("pdns-public-ns2.powerdns.net.")) {
+          addRecordToLW(res, "powerdns.net.", QType::NS, "pdns-public-ns2.powerdns.net.", DNSResourceRecord::AUTHORITY, 172800);
+          addRecordToLW(res, "powerdns.net.", QType::NS, "pdns-public-ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, 172800);
+          addRecordToLW(res, "pdns-public-ns2.powerdns.net.", QType::A, "192.0.2.3", DNSResourceRecord::ADDITIONAL, 172800);
+          addRecordToLW(res, "pdns-public-ns2.powerdns.net.", QType::AAAA, "2001:DB8::3", DNSResourceRecord::ADDITIONAL, 172800);
+        }
+        return 1;
+      }
+      else if (ip == ComboAddress("192.0.2.3:53")) {
+        setLWResult(res, 0, true, false, true);
+        if (domain == DNSName("pdns-public-ns2.powerdns.net.")) {
+          if (type == QType::A) {
+            addRecordToLW(res, "pdns-public-ns2.powerdns.net.", QType::A, "192.0.2.3");
+          }
+          else if (type == QType::AAAA) {
+            addRecordToLW(res, "pdns-public-ns2.powerdns.net.", QType::AAAA, "2001:DB8::3");
+          }
+        }
+        else if (domain == target) {
+          if (type == QType::A) {
+            addRecordToLW(res, domain, QType::A, "192.0.2.1");
+          }
+          else if (type == QType::AAAA) {
+            addRecordToLW(res, domain, QType::AAAA, "2001:DB8::1");
+          }
+        }
+        return 1;
+      }
+      return 0;
+    });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(ret.size(), 1);
 }
 
 BOOST_AUTO_TEST_CASE(test_os_limit_errors) {
