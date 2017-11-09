@@ -626,7 +626,26 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
     } else {
       // "dnssec": false in json
       if (isDNSSECZone) {
-        throw ApiException("Refusing to un-secure zone " + zonename.toString());
+        DNSSECKeeper::keyset_t keyset=dk.getKeys(zone);
+        if(!keyset.empty())  {
+          for(DNSSECKeeper::keyset_t::value_type value :  keyset) {
+            dk.deactivateKey(zonename, value.second.id);
+            dk.removeKey(zonename, value.second.id);
+          }
+        }
+        dk.unsetNSEC3PARAM(zonename);
+        dk.unsetPresigned(zonename);
+        
+        isDNSSECZone = dk.isSecuredZone(zonename);
+        
+        if (!isDNSSECZone) {
+          // We disabled DNSSEC, so ask to rectify
+          shouldRectify = true;
+        } else {
+          throw ApiException("Unable to remove DNSSEC from " + zonename.toString());
+        }
+      } else {
+        throw ApiException("DNSSEC is not enabled on " + zonename.toString());
       }
     }
   }
