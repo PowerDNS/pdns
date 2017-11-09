@@ -8428,7 +8428,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_insecure) {
   BOOST_CHECK_EQUAL(sr->getValidationState(), Indeterminate);
   BOOST_REQUIRE_EQUAL(ret.size(), 1);
   for (const auto& record : ret) {
-    BOOST_CHECK(record.d_type == QType::A || record.d_type == QType::RRSIG);
+    BOOST_CHECK(record.d_type == QType::A);
   }
   BOOST_CHECK_EQUAL(queriesCount, 1);
 
@@ -8441,7 +8441,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_insecure) {
   BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 1);
   for (const auto& record : ret) {
-    BOOST_CHECK(record.d_type == QType::A || record.d_type == QType::RRSIG);
+    BOOST_CHECK(record.d_type == QType::A);
   }
   BOOST_CHECK_EQUAL(queriesCount, 1);
 }
@@ -8495,7 +8495,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_bogus) {
   BOOST_CHECK_EQUAL(sr->getValidationState(), Indeterminate);
   BOOST_REQUIRE_EQUAL(ret.size(), 1);
   for (const auto& record : ret) {
-    BOOST_CHECK(record.d_type == QType::A || record.d_type == QType::RRSIG);
+    BOOST_CHECK(record.d_type == QType::A);
   }
   BOOST_CHECK_EQUAL(queriesCount, 1);
 
@@ -8508,9 +8508,229 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_bogus) {
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 1);
   for (const auto& record : ret) {
-    BOOST_CHECK(record.d_type == QType::A || record.d_type == QType::RRSIG);
+    BOOST_CHECK(record.d_type == QType::A);
   }
   BOOST_CHECK_EQUAL(queriesCount, 3);
+}
+
+BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cname_cache_secure) {
+  /*
+    Validation is optional, and the first query does not ask for it,
+    so the answer is cached as Indeterminate.
+    The second query asks for validation, answer should be marked as
+    Secure.
+  */
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true);
+
+  setDNSSECValidation(sr, DNSSECMode::Process);
+
+  primeHints();
+  const DNSName target("com.");
+  const DNSName cnameTarget("cname-com.");
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
+  g_luaconfs.setState(luaconfsCopy);
+
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([target,cnameTarget,&queriesCount,keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
+      queriesCount++;
+
+      if (type == QType::DS || type == QType::DNSKEY) {
+        return genericDSAndDNSKEYHandler(res, domain, domain, type, keys, false);
+      }
+      else {
+        if (domain == target && type == QType::A) {
+          setLWResult(res, 0, true, false, true);
+          addRecordToLW(res, target, QType::CNAME, cnameTarget.toString());
+          addRRSIG(keys, res->d_records, DNSName("."), 300);
+          addRecordToLW(res, cnameTarget, QType::A, "192.0.2.1");
+          addRRSIG(keys, res->d_records, DNSName("."), 300);
+          return 1;
+        } else if (domain == cnameTarget && type == QType::A) {
+          setLWResult(res, 0, true, false, true);
+          addRecordToLW(res, cnameTarget, QType::A, "192.0.2.1");
+          addRRSIG(keys, res->d_records, DNSName("."), 300);
+          return 1;
+        }
+      }
+
+      return 0;
+    });
+
+  vector<DNSRecord> ret;
+  /* first query does not require validation */
+  sr->setDNSSECValidationRequested(false);
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Indeterminate);
+  BOOST_REQUIRE_EQUAL(ret.size(), 4);
+  for (const auto& record : ret) {
+    BOOST_CHECK(record.d_type == QType::CNAME || record.d_type == QType::A || record.d_type == QType::RRSIG);
+  }
+  BOOST_CHECK_EQUAL(queriesCount, 2);
+
+
+  ret.clear();
+  /* second one _does_ require validation */
+  sr->setDNSSECValidationRequested(true);
+  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_REQUIRE_EQUAL(ret.size(), 4);
+  for (const auto& record : ret) {
+    BOOST_CHECK(record.d_type == QType::CNAME || record.d_type == QType::A || record.d_type == QType::RRSIG);
+  }
+  BOOST_CHECK_EQUAL(queriesCount, 5);
+}
+
+BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cname_cache_insecure) {
+  /*
+    Validation is optional, and the first query does not ask for it,
+    so the answer is cached as Indeterminate.
+    The second query asks for validation, answer should be marked as
+    Insecure.
+  */
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true);
+
+  setDNSSECValidation(sr, DNSSECMode::Process);
+
+  primeHints();
+  const DNSName target("com.");
+  const DNSName cnameTarget("cname-com.");
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  g_luaconfs.setState(luaconfsCopy);
+
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([target,cnameTarget,&queriesCount,keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
+      queriesCount++;
+
+      if (type == QType::DS || type == QType::DNSKEY) {
+        return genericDSAndDNSKEYHandler(res, domain, domain, type, keys, false);
+      }
+      else {
+        if (domain == target && type == QType::A) {
+          setLWResult(res, 0, true, false, true);
+          addRecordToLW(res, target, QType::CNAME, cnameTarget.toString());
+          addRecordToLW(res, cnameTarget, QType::A, "192.0.2.1");
+          return 1;
+        } else if (domain == cnameTarget && type == QType::A) {
+          setLWResult(res, 0, true, false, true);
+          addRecordToLW(res, cnameTarget, QType::A, "192.0.2.1");
+          return 1;
+        }
+      }
+
+      return 0;
+    });
+
+  vector<DNSRecord> ret;
+  /* first query does not require validation */
+  sr->setDNSSECValidationRequested(false);
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Indeterminate);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2);
+  for (const auto& record : ret) {
+    BOOST_CHECK(record.d_type == QType::CNAME || record.d_type == QType::A);
+  }
+  BOOST_CHECK_EQUAL(queriesCount, 2);
+
+
+  ret.clear();
+  /* second one _does_ require validation */
+  sr->setDNSSECValidationRequested(true);
+  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2);
+  for (const auto& record : ret) {
+    BOOST_CHECK(record.d_type == QType::CNAME || record.d_type == QType::A);
+  }
+  BOOST_CHECK_EQUAL(queriesCount, 2);
+}
+
+BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cname_cache_bogus) {
+  /*
+    Validation is optional, and the first query does not ask for it,
+    so the answer is cached as Indeterminate.
+    The second query asks for validation, answer should be marked as
+    Bogus.
+  */
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true);
+
+  setDNSSECValidation(sr, DNSSECMode::Process);
+
+  primeHints();
+  const DNSName target("com.");
+  const DNSName cnameTarget("cname-com.");
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
+  g_luaconfs.setState(luaconfsCopy);
+
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([target,cnameTarget,&queriesCount,keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
+      queriesCount++;
+
+      if (type == QType::DS || type == QType::DNSKEY) {
+        return genericDSAndDNSKEYHandler(res, domain, domain, type, keys, false);
+      }
+      else {
+        if (domain == target && type == QType::A) {
+          setLWResult(res, 0, true, false, true);
+          addRecordToLW(res, target, QType::CNAME, cnameTarget.toString());
+          addRecordToLW(res, cnameTarget, QType::A, "192.0.2.1");
+          /* no RRSIG */
+          return 1;
+        } else if (domain == cnameTarget && type == QType::A) {
+          setLWResult(res, 0, true, false, true);
+          addRecordToLW(res, cnameTarget, QType::A, "192.0.2.1");
+          /* no RRSIG */
+          return 1;
+        }
+      }
+
+      return 0;
+    });
+
+  vector<DNSRecord> ret;
+  /* first query does not require validation */
+  sr->setDNSSECValidationRequested(false);
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Indeterminate);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2);
+  for (const auto& record : ret) {
+    BOOST_CHECK(record.d_type == QType::CNAME || record.d_type == QType::A);
+  }
+  BOOST_CHECK_EQUAL(queriesCount, 2);
+
+
+  ret.clear();
+  /* second one _does_ require validation */
+  sr->setDNSSECValidationRequested(true);
+  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2);
+  for (const auto& record : ret) {
+    BOOST_CHECK(record.d_type == QType::CNAME || record.d_type == QType::A);
+  }
+  BOOST_CHECK_EQUAL(queriesCount, 5);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_negcache_secure) {
