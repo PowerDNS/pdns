@@ -210,7 +210,7 @@ public:
   
   void getFromMeta(const DNSName& zname, const std::string& key, std::string& value);
   void getSoaEdit(const DNSName& zname, std::string& value);
-  bool rectifyZone(const DNSName& zone, std::string& error, bool doTransaction);
+  bool rectifyZone(const DNSName& zone, std::string& error, std::string& info, bool doTransaction);
 private:
 
 

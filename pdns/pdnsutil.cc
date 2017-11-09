@@ -137,9 +137,13 @@ void loadMainConfig(const std::string& configdir)
 
 bool rectifyZone(DNSSECKeeper& dk, const DNSName& zone)
 {
+  string output;
   string error;
-  bool ret = dk.rectifyZone(zone, error, true);
-  if (!ret) {
+  bool ret = dk.rectifyZone(zone, error, output, true);
+  if (!output.empty()) {
+    cerr<<output<<endl;
+  }
+  if (!ret && !error.empty()) {
     cerr<<error<<endl;
   }
   return ret;

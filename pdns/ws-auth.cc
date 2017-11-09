@@ -650,8 +650,9 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
   string api_rectify;
   di.backend->getDomainMetadataOne(zonename, "API-RECTIFY", api_rectify);
   if (shouldRectify && dk.isSecuredZone(zonename) && !dk.isPresigned(zonename) && api_rectify == "1") {
+    string info;
     string error_msg = "";
-    if (!dk.rectifyZone(zonename, error_msg, true))
+    if (!dk.rectifyZone(zonename, error_msg, info, true))
       throw ApiException("Failed to rectify '" + zonename.toString() + "' " + error_msg);
   }
 }
@@ -1469,7 +1470,8 @@ static void apiServerZoneRectify(HttpRequest* req, HttpResponse* resp) {
     throw ApiException("Zone '" + zonename.toString() + "' is a slave zone, not rectifying.");
 
   string error_msg = "";
-  if (!dk.rectifyZone(zonename, error_msg, true))
+  string info;
+  if (!dk.rectifyZone(zonename, error_msg, info, true))
     throw ApiException("Failed to rectify '" + zonename.toString() + "' " + error_msg);
 
   resp->setSuccessResult("Rectified");
@@ -1695,7 +1697,8 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
   di.backend->getDomainMetadataOne(zonename, "API-RECTIFY", api_rectify);
   if (dk.isSecuredZone(zonename) && !dk.isPresigned(zonename) && api_rectify == "1") {
     string error_msg = "";
-    if (!dk.rectifyZone(zonename, error_msg, false))
+    string info;
+    if (!dk.rectifyZone(zonename, error_msg, info, false))
       throw ApiException("Failed to rectify '" + zonename.toString() + "' " + error_msg);
   }
 
