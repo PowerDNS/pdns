@@ -472,6 +472,13 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
         rdata = r.json()
         self.assertEquals(rdata["metadata"], payload_metadata["metadata"])
 
+    def test_create_metadata_in_non_existent_zone(self):
+        payload_metadata = {"type": "Metadata", "kind": "AXFR-SOURCE", "metadata": ["127.0.0.2"]}
+        r = self.session.post(self.url("/api/v1/servers/localhost/zones/idonotexist.123.456.example./metadata"),
+                              data=json.dumps(payload_metadata))
+        self.assertEquals(r.status_code, 422)
+        self.assertIn('Could not find domain ', r.json()['error'])
+
     def test_create_slave_zone(self):
         # Test that nameservers can be absent for slave zones.
         name, payload, data = self.create_zone(kind='Slave', nameservers=None, masters=['127.0.0.2'])

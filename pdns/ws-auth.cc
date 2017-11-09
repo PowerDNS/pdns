@@ -711,7 +711,11 @@ static bool isValidMetadataKind(const string& kind, bool readonly) {
 
 static void apiZoneMetadata(HttpRequest* req, HttpResponse *resp) {
   DNSName zonename = apiZoneIdToName(req->parameters["id"]);
+
   UeberBackend B;
+  DomainInfo di;
+  if (!B.getDomainInfo(zonename, di))
+    throw ApiException("Could not find domain '"+zonename.toString()+"'");
 
   if (req->method == "GET") {
     map<string, vector<string> > md;
@@ -791,8 +795,13 @@ static void apiZoneMetadata(HttpRequest* req, HttpResponse *resp) {
 
 static void apiZoneMetadataKind(HttpRequest* req, HttpResponse* resp) {
   DNSName zonename = apiZoneIdToName(req->parameters["id"]);
-  string kind = req->parameters["kind"];
+
   UeberBackend B;
+  DomainInfo di;
+  if (!B.getDomainInfo(zonename, di))
+    throw ApiException("Could not find domain '"+zonename.toString()+"'");
+
+  string kind = req->parameters["kind"];
 
   if (req->method == "GET") {
     vector<string> metadata;
