@@ -2998,6 +2998,11 @@ static int serviceMain(int argc, char*argv[])
   g_lowercaseOutgoing = ::arg().mustDo("lowercase-outgoing");
 
   g_numWorkerThreads = ::arg().asNum("threads");
+  if (g_numWorkerThreads < 1) {
+    L<<Logger::Warning<<"Asked to run with 0 threads, raising to 1 instead"<<endl;
+    g_numWorkerThreads = 1;
+  }
+
   g_numThreads = g_numWorkerThreads + g_weDistributeQueries;
   g_maxMThreads = ::arg().asNum("max-mthreads");
 
