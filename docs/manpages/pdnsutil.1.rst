@@ -137,6 +137,8 @@ generate-tsig-key *NAME* *ALGORITHM*
     Generate new TSIG key with name *NAME* and the specified algorithm.
 import-tsig-key *NAME* *ALGORITHM* *KEY*
     Import *KEY* of the specified algorithm as *NAME*.
+list-tsig-keys
+    Show a list of all configured TSIG keys.
 
 ZONE MANIPULATION COMMANDS
 --------------------------
