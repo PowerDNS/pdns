@@ -26,7 +26,7 @@ How can I limit Zone Transfers (AXFR) per Domain?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 With the ALLOW-AXFR-FROM metadata, See :ref:`the documentation <metadata-allow-axfr-from>`.
 
-I have a working Supermaster/Superslave setup but when I remove Domains from the Master they still remain on the Slave. Am i doing something wrong?
+I have a working Supermaster/Superslave setup but when I remove Domains from the Master they still remain on the Slave. Am I doing something wrong?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 You're not doing anything wrong.
 This is the perfectly normal and expected behavior because the AXFR (DNS Zonetransfer) Protocol does not provide for zone deletion.
@@ -35,14 +35,14 @@ You need to remove the zones from the slave manually or via a custom script.
 Operational
 -----------
 
-The ADDITIONAL is section different than bind's answer, why?
+The ADDITIONAL is section different than BIND's answer, why?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 My server is not answering with a verbose "ADDITIONAL SECTION" that includes A records for the namservers of the domain queried
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Powerdns by default does not 'trust' other zones in its own database.
-You may want to add :ref:`setting-out-of-zone-additional-processing` to ``yes`` in your configuration to tell him to do so.
-If the domain your nameservers are in is known to the backend it will now include them into the additional section.
+The PowerDNS Authoritative Server by default does not 'trust' other zones in its own database.
+You may want to add :ref:`setting-out-of-zone-additional-processing` to ``yes`` in your configuration to tell it to do so.
+If the domain your nameservers are in are known to the backend they will now be included in the additional section.
 
 PowerDNS does not give authoritative answers, how come?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
