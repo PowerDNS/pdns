@@ -107,7 +107,7 @@ class TestAdvancedFixupCase(DNSDistTest):
 class TestAdvancedRemoveRD(DNSDistTest):
 
     _config_template = """
-    addNoRecurseRule("norecurse.advanced.tests.powerdns.com.")
+    addAction("norecurse.advanced.tests.powerdns.com.", NoRecurseAction())
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -181,7 +181,7 @@ class TestAdvancedRemoveRD(DNSDistTest):
 class TestAdvancedAddCD(DNSDistTest):
 
     _config_template = """
-    addDisableValidationRule("setcd.advanced.tests.powerdns.com.")
+    addAction("setcd.advanced.tests.powerdns.com.", DisableValidationAction())
     addAction(makeRule("setcdviaaction.advanced.tests.powerdns.com."), DisableValidationAction())
     newServer{address="127.0.0.1:%s"}
     """
@@ -289,7 +289,7 @@ class TestAdvancedAddCD(DNSDistTest):
 class TestAdvancedClearRD(DNSDistTest):
 
     _config_template = """
-    addNoRecurseRule("clearrd.advanced.tests.powerdns.com.")
+    addAction("clearrd.advanced.tests.powerdns.com.", NoRecurseAction())
     addAction(makeRule("clearrdviaaction.advanced.tests.powerdns.com."), NoRecurseAction())
     newServer{address="127.0.0.1:%s"}
     """

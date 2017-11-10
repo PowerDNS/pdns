@@ -826,7 +826,6 @@ bool getMsgLen32(int fd, uint32_t* len);
 bool putMsgLen32(int fd, uint32_t len);
 void* tcpAcceptorThread(void* p);
 
-void moreLua(bool client);
 void doClient(ComboAddress server, const std::string& command);
 void doConsole();
 void controlClientThread(int fd, ComboAddress client);

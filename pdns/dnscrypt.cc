@@ -593,4 +593,31 @@ int DnsCryptContext::encryptQuery(char* query, uint16_t queryLen, uint16_t query
   return res;
 }
 
+bool generateDNSCryptCertificate(const std::string& providerPrivateKeyFile, uint32_t serial, time_t begin, time_t end, DnsCryptCert& certOut, DnsCryptPrivateKey& keyOut)
+{
+  bool success = false;
+  unsigned char providerPrivateKey[DNSCRYPT_PROVIDER_PRIVATE_KEY_SIZE];
+  sodium_mlock(providerPrivateKey, sizeof(providerPrivateKey));
+  sodium_memzero(providerPrivateKey, sizeof(providerPrivateKey));
+
+  try {
+    ifstream providerKStream(providerPrivateKeyFile);
+    providerKStream.read((char*) providerPrivateKey, sizeof(providerPrivateKey));
+    if (providerKStream.fail()) {
+      providerKStream.close();
+      throw std::runtime_error("Invalid DNSCrypt provider key file " + providerPrivateKeyFile);
+    }
+
+    DnsCryptContext::generateCertificate(serial, begin, end, providerPrivateKey, keyOut, certOut);
+    success = true;
+  }
+  catch(const std::exception& e) {
+    errlog(e.what());
+  }
+
+  sodium_memzero(providerPrivateKey, sizeof(providerPrivateKey));
+  sodium_munlock(providerPrivateKey, sizeof(providerPrivateKey));
+  return success;
+}
+
 #endif

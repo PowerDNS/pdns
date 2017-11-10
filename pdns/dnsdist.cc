@@ -40,7 +40,7 @@
 #include "delaypipe.hh"
 #include <unistd.h>
 #include "sodcrypto.hh"
-#include "dnsrulactions.hh"
+#include "dnsdist-lua.hh"
 #include <grp.h>
 #include <pwd.h>
 #include "lock.hh"
@@ -48,6 +48,7 @@
 #include <sys/resource.h>
 #include "dnsdist-cache.hh"
 #include "gettime.hh"
+#include "ednsoptions.hh"
 
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
