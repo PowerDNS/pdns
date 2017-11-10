@@ -624,7 +624,7 @@ struct speedOrderCA
 
 /** This function explicitly goes out for A or AAAA addresses
 */
-vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth, set<GetBestNSAnswer>& beenthere)
+vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth, set<GetBestNSAnswer>& beenthere, bool cacheOnly)
 {
   typedef vector<DNSRecord> res_t;
   res_t res;
@@ -633,10 +633,12 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
   ret_t ret;
 
   QType type;
+  bool oldCacheOnly = d_cacheonly;
   bool oldRequireAuthData = d_requireAuthData;
   bool oldValidationRequested = d_DNSSECValidationRequested;
   d_requireAuthData = false;
   d_DNSSECValidationRequested = false;
+  d_cacheonly = cacheOnly;
 
   for(int j=1; j<2+s_doIPv6; j++)
   {
@@ -685,6 +687,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
 
   d_requireAuthData = oldRequireAuthData;
   d_DNSSECValidationRequested = oldValidationRequested;
+  d_cacheonly = oldCacheOnly;
 
   /* we need to remove from the nsSpeeds collection the existing IPs
      for this nameserver that are no longer in the set, even if there
@@ -1381,13 +1384,13 @@ bool SyncRes::nameserverIPBlockedByRPZ(const DNSFilterEngine& dfe, const ComboAd
   return false;
 }
 
-vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, const DNSName& qname, vector<DNSName >::const_iterator& tns, const unsigned int depth, set<GetBestNSAnswer>& beenthere, const vector<DNSName >& rnameservers, NsSet& nameservers, bool& sendRDQuery, bool& pierceDontQuery, bool& flawedNSSet)
+vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, const DNSName& qname, vector<DNSName >::const_iterator& tns, const unsigned int depth, set<GetBestNSAnswer>& beenthere, const vector<DNSName >& rnameservers, NsSet& nameservers, bool& sendRDQuery, bool& pierceDontQuery, bool& flawedNSSet, bool cacheOnly)
 {
   vector<ComboAddress> result;
 
   if(!tns->empty()) {
     LOG(prefix<<qname<<": Trying to resolve NS '"<<*tns<< "' ("<<1+tns-rnameservers.begin()<<"/"<<(unsigned int)rnameservers.size()<<")"<<endl);
-    result = getAddrs(*tns, depth+2, beenthere);
+    result = getAddrs(*tns, depth+2, beenthere, cacheOnly);
     pierceDontQuery=false;
   }
   else {
@@ -2573,10 +2576,13 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
         return -1;
       }
 
-      // this line needs to identify the 'self-resolving' behaviour, but we get it wrong now
-      if(qname == *tns && qtype.getCode()==QType::A && rnameservers.size() > (size_t)(1+1*s_doIPv6)) {
-        LOG(prefix<<qname<<": Not using NS to resolve itself! ("<<(1+tns-rnameservers.cbegin())<<"/"<<rnameservers.size()<<")"<<endl);
-        continue;
+      bool cacheOnly = false;
+      // this line needs to identify the 'self-resolving' behaviour
+      if(qname == *tns && (qtype.getCode() == QType::A || qtype.getCode() == QType::AAAA)) {
+        /* we might have a glue entry in cache so let's try this NS
+           but only if we have enough in the cache to know how to reach it */
+        LOG(prefix<<qname<<": Using NS to resolve itself, but only using what we have in cache ("<<(1+tns-rnameservers.cbegin())<<"/"<<rnameservers.size()<<")"<<endl);
+        cacheOnly = true;
       }
 
       typedef vector<ComboAddress> remoteIPs_t;
@@ -2608,7 +2614,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
       }
       else {
         /* if tns is empty, retrieveAddressesForNS() knows we have hardcoded servers (i.e. "forwards") */
-        remoteIPs = retrieveAddressesForNS(prefix, qname, tns, depth, beenthere, rnameservers, nameservers, sendRDQuery, pierceDontQuery, flawedNSSet);
+        remoteIPs = retrieveAddressesForNS(prefix, qname, tns, depth, beenthere, rnameservers, nameservers, sendRDQuery, pierceDontQuery, flawedNSSet, cacheOnly);
 
         if(remoteIPs.empty()) {
           LOG(prefix<<qname<<": Failed to get IP for NS "<<*tns<<", trying next if available"<<endl);
