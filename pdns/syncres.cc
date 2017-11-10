@@ -1256,13 +1256,6 @@ inline vector<DNSName> SyncRes::shuffleInSpeedOrder(NsSet &tnameservers, const s
   return rnameservers;
 }
 
-static bool magicAddrMatch(const QType& query, const QType& answer)
-{
-  if(query.getCode() != QType::ADDR)
-    return false;
-  return answer.getCode() == QType::A || answer.getCode() == QType::AAAA;
-}
-
 static uint32_t getRRSIGTTL(const time_t now, const std::shared_ptr<RRSIGRecordContent>& rrsig)
 {
   uint32_t res = 0;
@@ -2171,7 +2164,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
     // for ANY answers we *must* have an authoritative answer, unless we are forwarding recursively
     else if(rec.d_place==DNSResourceRecord::ANSWER && rec.d_name == qname &&
             (
-              rec.d_type==qtype.getCode() || (lwr.d_aabit && (qtype==QType(QType::ANY) || magicAddrMatch(qtype, QType(rec.d_type)) ) ) || sendRDQuery
+              rec.d_type==qtype.getCode() || ((lwr.d_aabit || sendRDQuery) && qtype == QType(QType::ANY))
               )
       )
     {
