@@ -144,6 +144,7 @@ try
     ("log-histogram", "Write a log-histogram to file 'log-histogram'")
     ("full-histogram", po::value<double>(), "Write a log-histogram to file 'full-histogram' with this millisecond bin size")
     ("load-stats,l", po::value<string>()->default_value(""), "if set, emit per-second load statistics (questions, answers, outstanding)")
+    ("no-servfail-stats", "Don't include servfails in response time stats")
     ("servfail-tree", "Figure out subtrees that generate servfails")
     ("stats-dir", po::value<string>()->default_value("."), "Directory where statistics will be saved")
     ("write-failures,w", po::value<string>()->default_value(""), "if set, write weird packets to this PCAP file")
@@ -191,6 +192,7 @@ try
   bool doIPv4 = g_vm["ipv4"].as<bool>();
   bool doIPv6 = g_vm["ipv6"].as<bool>();
   bool doServFailTree = g_vm.count("servfail-tree");
+  bool noservfailstats = g_vm.count("no-servfail-stats");
   int dnserrors=0, parsefail=0;
   typedef map<uint32_t,uint32_t> cumul_t;
   cumul_t cumul;
@@ -334,7 +336,8 @@ try
 		(pr.d_pheader.ts.tv_usec - qd.d_firstquestiontime.tv_usec) ;
 
 	      //	      cout<<"Usecs for "<<qi<<": "<<usecs<<endl;
-	      cumul[usecs]++;
+              if(!noservfailstats || header.rcode != 2)
+                cumul[usecs]++;
             
 	      if(header.rcode != 0 && header.rcode!=3) 
 		errorresult++;
