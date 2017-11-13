@@ -9,7 +9,7 @@
 #include <vector>
 #include <fstream>
 #include <deque>
-
+#include <map>
 
 struct LogHistogramBin
 {
@@ -62,6 +62,7 @@ std::vector<LogHistogramBin> createLogHistogram(const T& bins,
     });
   return ret;
 }
+
 template<typename T>
 void writeLogHistogramFile(const T& bins, std::ostream& out, std::deque<double> percentiles={0.001, 0.01, 0.1, 0.2, 0.5, 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 94, 95, 96, 97, 97.5, 98, 98.5, 99, 99.5, 99.6, 99.9, 99.99, 99.999, 99.9999} )
 {
@@ -85,6 +86,20 @@ void writeLogHistogramFile(const T& bins, std::ostream& out, std::deque<double> 
   
   for(const auto& e : vec) {
     out<<e.percentile<<" "<<e.latAverage<<" "<<e.latLimit<<" "<<e.latMedian<<" "<<e.latStddev<<" "<<e.cumulLatAverage<<" "<<e.cumulLatMedian<<" "<<e.count<<"\n";
+  }
+  out.flush();
+}
+
+template<typename T>
+void writeFullHistogramFile(const T& bins, double binMsec, std::ofstream& out)
+{
+  std::map<unsigned int, uint64_t> reducedBins;
+  for(const auto& b : bins) {
+    reducedBins[b.first/(1000.0*binMsec)]+=b.second;
+  }
+  out<<"# msec-bin-low count\n";
+  for(const auto& rb : reducedBins) {
+    out<<rb.first*binMsec<<" "<<rb.second<<"\n";
   }
   out.flush();
 }
