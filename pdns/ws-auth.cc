@@ -311,7 +311,7 @@ static Json::object getZoneInfo(const DomainInfo& di) {
   return Json::object {
     // id is the canonical lookup key, which doesn't actually match the name (in some cases)
     { "id", zoneId },
-    { "url", "/api/v1/servers/localhost/zones/" + zoneId },
+    { "url", "api/v1/servers/localhost/zones/" + zoneId },
     { "name", di.zone.toString() },
     { "kind", di.getKindString() },
     { "dnssec", dk.isSecuredZone(di.zone) },
