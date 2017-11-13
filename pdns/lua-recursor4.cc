@@ -478,8 +478,7 @@ RecursorLua4::RecursorLua4(const std::string& fname)
     });
   typedef vector<pair<string, int> > in_t;
   vector<pair<string, boost::variant<int, in_t, struct timeval* > > >  pd{
-    {"PASS", (int)PolicyDecision::PASS}, {"DROP",  (int)PolicyDecision::DROP},
-    {"TRUNCATE", (int)PolicyDecision::TRUNCATE}
+    {"DROP",  (int)PolicyDecision::DROP}
   };
 
   vector<pair<string, int> > rcodes = {{"NOERROR",  RCode::NoError  },
