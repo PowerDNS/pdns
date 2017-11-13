@@ -655,6 +655,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 
     // if records/comments are given, load and check them
     bool have_soa = false;
+    bool have_zone_ns = false;
     vector<DNSResourceRecord> new_records;
     vector<Comment> new_comments;
     vector<DNSResourceRecord> new_ptrs;
@@ -690,6 +691,9 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
         increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
         // fixup dots after serializeSOAData/increaseSOARecord
         rr.content = makeBackendRecordContent(rr.qtype, rr.content);
+      }
+      if (rr.qtype.getCode() == QType::NS && rr.qname==zonename) {
+        have_zone_ns = true;
       }
     }
 
@@ -731,6 +735,9 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       }
       autorr.qtype = "NS";
       new_records.push_back(autorr);
+      if (have_zone_ns) {
+        throw ApiException("Nameservers list MUST NOT be mixed with zone-level NS in rrsets");
+      }
     }
 
     // no going back after this
