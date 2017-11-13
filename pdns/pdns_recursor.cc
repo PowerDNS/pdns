@@ -1216,7 +1216,16 @@ void startDoResolve(void *p)
     delete dc;
   }
   catch(std::exception& e) {
-    L<<Logger::Error<<"STL error "<< makeLoginfo(dc)<<": "<<e.what()<<endl;
+    L<<Logger::Error<<"STL error "<< makeLoginfo(dc)<<": "<<e.what();
+
+    // Luawrapper nests the exception from Lua, so we unnest it here
+    try {
+        std::rethrow_if_nested(e);
+    } catch(const std::exception& e) {
+        L<<". Extra info: "<<e.what();
+    } catch(...) {}
+
+    L<<endl;
     delete dc;
   }
   catch(...) {
