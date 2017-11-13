@@ -444,7 +444,23 @@ public:
 
   bool operator<(const Netmask& rhs) const 
   {
-    return tie(d_network, d_bits) < tie(rhs.d_network, rhs.d_bits);
+    if (empty() && !rhs.empty())
+      return false;
+
+    if (!empty() && rhs.empty())
+      return true;
+
+    if (d_bits > rhs.d_bits)
+      return true;
+    if (d_bits < rhs.d_bits)
+      return false;
+
+    return d_network < rhs.d_network;
+  }
+
+  bool operator>(const Netmask& rhs) const
+  {
+    return rhs.operator<(*this);
   }
 
   bool operator==(const Netmask& rhs) const 
