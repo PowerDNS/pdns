@@ -229,9 +229,14 @@ void DNSSECKeeper::getSoaEdit(const DNSName& zname, std::string& value)
   static const string soaEdit(::arg()["default-soa-edit"]);
   static const string soaEditSigned(::arg()["default-soa-edit-signed"]);
 
+  if (isPresigned(zname)) {
+    // SOA editing on a presigned zone never makes sense
+    return;
+  }
+
   getFromMeta(zname, "SOA-EDIT", value);
 
-  if ((!soaEdit.empty() || !soaEditSigned.empty()) && value.empty() && !isPresigned(zname)) {
+  if ((!soaEdit.empty() || !soaEditSigned.empty()) && value.empty()) {
     if (!soaEditSigned.empty() && isSecuredZone(zname))
       value=soaEditSigned;
     if (value.empty())
