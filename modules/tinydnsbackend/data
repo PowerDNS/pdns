@@ -20011,6 +20011,7 @@
 +host-9997.example.com:192.168.1.13:120
 +host-9998.example.com:192.168.1.14:120
 +host-9999.example.com:192.168.1.15:120
++host-for-auto-ptr.example.com:192.0.2.1:120
 +host.\052.sub.example.com:192.168.6.1:120
 +italy-ns1.example.com:192.168.5.1:120
 +italy-ns2.example.com:192.168.5.2:120
@@ -20284,3 +20285,7 @@ Zstest.com:ns1.example.com.:ahu.example.com.:2000081501:28800:7200:604800:86400:
 +ns1.cdnskey-cds-test.com:1.1.1.1:3600
 +ns2.cdnskey-cds-test.com:2.2.2.2:3600
 Zcdnskey-cds-test.com:ns1.cdnskey-cds-test.:ahu.example.com.:2005092501:28800:7200:604800:86400:3600
+#2000081501 auto axfr-get
+&2.0.192.in-addr.arpa::ns1.example.com.:120
+&2.0.192.in-addr.arpa::ns2.example.com.:120
+Z2.0.192.in-addr.arpa:ns1.example.com.:ahu.example.com.:2000081501:28800:7200:604800:86400:120
