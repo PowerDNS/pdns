@@ -40,7 +40,7 @@ public:
   bool list(const DNSName &target, int domain_id, bool include_disabled=false);
   bool get(DNSResourceRecord &r);
   bool getSOA(const DNSName& name, SOAData& soadata, DNSPacket*);
-    
+  void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false);
 private:
   SMySQL *d_db; 
 
@@ -58,6 +58,7 @@ private:
   SSqlStatement* d_soaQuery_stmt;
   SSqlStatement* d_basicQuery_stmt;
   SSqlStatement* d_anyQuery_stmt;
+  SSqlStatement* d_allDomainsQuery_stmt;
 };
 
 #endif /* MYDNSBACKEND_HH */
