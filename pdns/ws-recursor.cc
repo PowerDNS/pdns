@@ -525,7 +525,7 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
     }
     if(queries.size() != totIncluded) {
       entries.push_back(Json::array {
-        (int)(queries.size() - totIncluded), "", ""
+        (int)(queries.size() - totIncluded), ""
       });
     }
 
