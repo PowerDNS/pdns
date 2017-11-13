@@ -1187,7 +1187,7 @@ int createSlaveZone(const vector<string>& cmds) {
   }
   vector<string> masters;
   for (unsigned i=2; i < cmds.size(); i++) {
-    ComboAddress master(cmds[2], 53);
+    ComboAddress master(cmds[i], 53);
     masters.push_back(master.toStringWithPort());
   }
   cerr<<"Creating slave zone '"<<zone<<"', with master(s) '"<<boost::join(masters, ",")<<"'"<<endl;
