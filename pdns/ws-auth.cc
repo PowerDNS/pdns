@@ -1237,6 +1237,56 @@ static void checkDuplicateRecords(vector<DNSResourceRecord>& records) {
   }
 }
 
+static void apiServerTsigKeys(HttpRequest* req, HttpResponse* resp) {
+  if (req->method != "GET") {
+    throw HttpMethodNotAllowedException();
+  }
+
+  vector<struct TSIGKey> keys;
+
+  UeberBackend B;
+  if (!B.getTSIGKeys(keys)) {
+    throw ApiException("Unable to retrieve TSIG keys");
+  }
+
+  Json::array doc;
+
+  for(const auto &key : keys) {
+    Json::object tsigkey = {
+      { "id", apiZoneNameToId(key.name) },
+      { "algorithm", key.algorithm.toString() },
+      { "key", key.key }
+    };
+    doc.push_back(tsigkey);
+  }
+
+  resp->setBody(doc);
+}
+
+static void apiServerTsigKeyDetail(HttpRequest* req, HttpResponse* resp) {
+  if (req->method != "GET") {
+    throw HttpMethodNotAllowedException();
+  }
+
+  DNSName keyname = apiZoneIdToName(req->parameters["id"]);
+
+  UeberBackend B;
+  DNSName algo;
+  string content;
+
+  if (!B.getTSIGKey(keyname, &algo, &content)) {
+    throw ApiException("Unable to retrieve TSIG key with id '"+keyname.toLogString()+"'");
+  }
+
+  Json::object tsigkey = {
+    { "id", apiZoneNameToId(keyname) },
+    { "algorithm", algo.toString() },
+    { "key", content }
+  };
+
+  resp->setBody(tsigkey);
+}
+
 static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
   UeberBackend B;
   DNSSECKeeper dk(&B);
@@ -1937,6 +1987,8 @@ void AuthWebServer::webThread()
       d_ws->registerApiHandler("/api/v1/servers/localhost/search-log", &apiServerSearchLog);
       d_ws->registerApiHandler("/api/v1/servers/localhost/search-data", &apiServerSearchData);
       d_ws->registerApiHandler("/api/v1/servers/localhost/statistics", &apiServerStatistics);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/tsigkeys/<id>", &apiServerTsigKeyDetail);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/tsigkeys", &apiServerTsigKeys);
       d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/axfr-retrieve", &apiServerZoneAxfrRetrieve);
       d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/cryptokeys/<key_id>", &apiZoneCryptokeys);
       d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/cryptokeys", &apiZoneCryptokeys);
