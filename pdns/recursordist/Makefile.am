@@ -1,6 +1,6 @@
 JSON11_LIBS = $(top_srcdir)/ext/json11/libjson11.la
 
-AM_CPPFLAGS = $(LUA_CFLAGS) $(YAHTTP_CFLAGS) $(BOOST_CPPFLAGS) $(BOTAN110_CFLAGS) $(SANITIZER_FLAGS) -O3 -Wall -pthread -DSYSCONFDIR=\"${sysconfdir}\" $(SYSTEMD_CFLAGS)
+AM_CPPFLAGS = $(LUA_CFLAGS) $(YAHTTP_CFLAGS) $(BOOST_CPPFLAGS) $(BOTAN_CFLAGS) $(SANITIZER_FLAGS) -O3 -Wall -pthread -DSYSCONFDIR=\"${sysconfdir}\" $(SYSTEMD_CFLAGS)
 
 AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/json11 \
@@ -36,7 +36,7 @@ endif
 EXTRA_DIST = \
 	NOTICE \
 	.version \
-	botan110signers.cc \
+	botansigners.cc \
 	build-aux/gen-version \
 	contrib/* \
 	devpollmplexer.cc \
@@ -155,10 +155,33 @@ pdns_recursor_LDADD = \
 pdns_recursor_LDFLAGS = $(AM_LDFLAGS) \
 	$(LIBCRYPTO_LDFLAGS)
 
-if BOTAN110
+testrunner_LDADD = \
+	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
+	$(LIBCRYPTO_LIBS) \
+	$(RT_LIBS)
+
+if BOTAN
 pdns_recursor_SOURCES += \
-	botan110signers.cc
-pdns_recursor_LDADD += $(BOTAN110_LIBS)
+	botansigners.cc
+pdns_recursor_LDADD += $(BOTAN_LIBS)
+testrunner_SOURCES += \
+	botansigners.cc
+testrunner_LDADD += $(BOTAN_LIBS)
+endif
+
+if LIBSODIUM
+pdns_recursor_SOURCES += \
+	sodiumsigners.cc
+pdns_recursor_LDADD += $(LIBSODIUM_LIBS)
+testrunner_SOURCES += \
+	sodiumsigners.cc
+testrunner_LDADD += $(LIBSODIUM_LIBS)
+endif
+
+if LIBDECAF
+pdns_recursor_SOURCES += \
+	decafsigners.cc
+pdns_recursor_LDADD += $(LIBDECAF_LIBS)
 endif
 
 if MALLOC_TRACE

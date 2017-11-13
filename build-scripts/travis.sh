@@ -362,7 +362,7 @@ install_dnsdist() {
 
 build_auth() {
   run "./bootstrap"
-  # Build without --enable-botan1.10 option, Botan/SoftHSM conflict #2496
+  # Build without --enable-botan, no botan 2.x in Travis CI
   run "CFLAGS='-O1' CXXFLAGS='-O1' ./configure \
     --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 ldap lua mydns opendbx pipe random remote tinydns godbc' \
     --with-modules='' \
@@ -389,8 +389,11 @@ build_recursor() {
   run "tar xf pdns-recursor-*.tar.bz2"
   run "rm -f pdns-recursor-*.tar.bz2"
   run "cd pdns-recursor-*"
-  run "CFLAGS='-O1' CXXFLAGS='-O1' ./configure \
+  # Build without --enable-botan, no botan 2.x in Travis CI
+  run "CFLAGS='-O1' CXXFLAGS='-O1' CXX=${COMPILER} ./configure \
     --prefix=$PDNS_RECURSOR_DIR \
+    --enable-libsodium \
+    --enable-unit-tests \
     --disable-silent-rules"
   run "make -k -j3"
   run "make install"
@@ -575,6 +578,7 @@ test_repo(){
 }
 
 # global build requirements
+# Add botan 2.x when available in Travis CI
 run "sudo apt-get -qq --no-install-recommends install \
   libboost-all-dev \
   liblua5.1-dev \
