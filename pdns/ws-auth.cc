@@ -30,6 +30,7 @@
 #include "logger.hh"
 #include "statbag.hh"
 #include "misc.hh"
+#include "base64.hh"
 #include "arguments.hh"
 #include "dns.hh"
 #include "comment.hh"
@@ -1237,30 +1238,91 @@ static void checkDuplicateRecords(vector<DNSResourceRecord>& records) {
   }
 }
 
+static void checkTSIGKey(UeberBackend& B, const DNSName& keyname, const DNSName& algo, const string& content) {
+  DNSName algoFromDB;
+  string contentFromDB;
+  B.getTSIGKey(keyname, &algoFromDB, &contentFromDB);
+  if (!contentFromDB.empty() || !algoFromDB.empty()) {
+    throw ApiException("A TSIG key with the name '"+keyname.toLogString()+"' already exists");
+  }
+
+  TSIGHashEnum the;
+  if (!getTSIGHashEnum(algo, the)) {
+    throw ApiException("Unknown TSIG algorithm: " + algo.toLogString());
+  }
+
+  string b64out;
+  if (B64Decode(content, b64out) == -1) {
+    throw ApiException("TSIG content '" + content + "' cannot be base64-decoded");
+  }
+}
+
+static Json::object makeJSONTSIGKey(const DNSName& keyname, const DNSName& algo, const string& content) {
+  Json::object tsigkey = {
+    { "name", keyname.toStringNoDot() },
+    { "id", apiZoneNameToId(keyname) },
+    { "algorithm", algo.toStringNoDot() },
+    { "key", content },
+    { "type", "TSIGKey" }
+  };
+  return tsigkey;
+}
+
+static Json::object makeJSONTSIGKey(const struct TSIGKey& key) {
+  return makeJSONTSIGKey(key.name, key.algorithm, key.key);
+}
+
 static void apiServerTsigKeys(HttpRequest* req, HttpResponse* resp) {
-  if (req->method != "GET") {
+  UeberBackend B;
+  if (req->method == "GET") {
+    vector<struct TSIGKey> keys;
+
+    if (!B.getTSIGKeys(keys)) {
+      throw ApiException("Unable to retrieve TSIG keys");
+    }
+
+    Json::array doc;
+
+    for(const auto &key : keys) {
+      doc.push_back(makeJSONTSIGKey(key));
+    }
+    resp->setBody(doc);
+  }
+
+  if (req->method != "GET" && ::arg().mustDo("api-readonly")) {
     throw HttpMethodNotAllowedException();
   }
 
-  vector<struct TSIGKey> keys;
+  if (req->method == "POST") {
+    auto document = req->json();
+    DNSName keyname(stringFromJson(document, "name"));
+    DNSName algo(stringFromJson(document, "algorithm"));
+    string content(stringFromJson(document, "key"));
 
-  UeberBackend B;
-  if (!B.getTSIGKeys(keys)) {
-    throw ApiException("Unable to retrieve TSIG keys");
+    if (content.empty()) {
+      size_t klen = 64;
+      if (algo.toStringNoDot() == "hmac-md5"
+          || algo.toStringNoDot() == "hmac-sha1"
+          || algo.toStringNoDot() == "hmac-sha224") {
+        klen = 32;
+      }
+      char tmpkey[64];
+      for(size_t i = 0; i < klen; i+=4) {
+        *(unsigned int*)(tmpkey+i) = dns_random(0xffffffff);
+      }
+      content = Base64Encode(std::string(tmpkey, klen));
+    }
+
+    // Will throw and ApiException on error
+    checkTSIGKey(B, keyname, algo, content);
+
+    if(!B.setTSIGKey(keyname, algo, content)) {
+      throw ApiException("Unable to add TSIG key");
+    }
+
+    resp->status = 201;
+    resp->setBody(makeJSONTSIGKey(keyname, algo, content));
   }
-
-  Json::array doc;
-
-  for(const auto &key : keys) {
-    Json::object tsigkey = {
-      { "id", apiZoneNameToId(key.name) },
-      { "algorithm", key.algorithm.toString() },
-      { "key", key.key }
-    };
-    doc.push_back(tsigkey);
-  }
-
-  resp->setBody(doc);
 }
 
 static void apiServerTsigKeyDetail(HttpRequest* req, HttpResponse* resp) {
@@ -1278,13 +1340,7 @@ static void apiServerTsigKeyDetail(HttpRequest* req, HttpResponse* resp) {
     throw ApiException("Unable to retrieve TSIG key with id '"+keyname.toLogString()+"'");
   }
 
-  Json::object tsigkey = {
-    { "id", apiZoneNameToId(keyname) },
-    { "algorithm", algo.toString() },
-    { "key", content }
-  };
-
-  resp->setBody(tsigkey);
+  resp->setBody(makeJSONTSIGKey(keyname, algo, content));
 }
 
 static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
