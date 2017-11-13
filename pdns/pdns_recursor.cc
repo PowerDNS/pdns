@@ -2649,7 +2649,31 @@ int serviceMain(int argc, char*argv[])
     exit(99);
   }
 
-  loadRecursorLuaConfig(::arg()["lua-config-file"], ::arg().mustDo("daemon"));
+  // keep this ABOVE loadRecursorLuaConfig!
+  if(::arg()["dnssec"]=="off")
+    g_dnssecmode=DNSSECMode::Off;
+  else if(::arg()["dnssec"]=="process-no-validate")
+    g_dnssecmode=DNSSECMode::ProcessNoValidate;
+  else if(::arg()["dnssec"]=="process")
+    g_dnssecmode=DNSSECMode::Process;
+  else if(::arg()["dnssec"]=="validate")
+    g_dnssecmode=DNSSECMode::ValidateAll;
+  else if(::arg()["dnssec"]=="log-fail")
+    g_dnssecmode=DNSSECMode::ValidateForLog;
+  else {
+    L<<Logger::Error<<"Unknown DNSSEC mode "<<::arg()["dnssec"]<<endl;
+    exit(1);
+  }
+
+  g_dnssecLogBogus = ::arg().mustDo("dnssec-log-bogus");
+
+  try {
+    loadRecursorLuaConfig(::arg()["lua-config-file"], ::arg().mustDo("daemon"));
+  }
+  catch (PDNSException &e) {
+    L<<Logger::Error<<"Cannot load Lua configuration: "<<e.reason<<endl;
+    exit(1);
+  }
 
   parseACLs();
   sortPublicSuffixList();
