@@ -295,7 +295,15 @@ static void handleGenUDPQueryResponse(int fd, FDMultiplexer::funcparam_t& var)
 {
   PacketID pident=*any_cast<PacketID>(&var);
   char resp[512];
-  ssize_t ret=recv(fd, resp, sizeof(resp), 0);
+  ComboAddress fromaddr;
+  socklen_t addrlen=sizeof(fromaddr);
+
+  ssize_t ret=recvfrom(fd, resp, sizeof(resp), 0, (sockaddr *)&fromaddr, &addrlen);
+  if (fromaddr != pident.remote) {
+    L<<Logger::Notice<<"Response received from the wrong remote host ("<<fromaddr.toStringWithPort()<<" instead of "<<pident.remote.toStringWithPort()<<"), discarding"<<endl;
+
+  }
+
   t_fdm->removeReadFD(fd);
   if(ret >= 0) {
     string data(resp, (size_t) ret);
@@ -319,6 +327,7 @@ string GenUDPQueryResponse(const ComboAddress& dest, const string& query)
 
   PacketID pident;
   pident.sock=&s;
+  pident.remote=dest;
   pident.type=0;
   t_fdm->addReadFD(s.getHandle(), handleGenUDPQueryResponse, pident);
 
