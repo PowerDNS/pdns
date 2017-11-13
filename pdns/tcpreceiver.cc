@@ -801,10 +801,10 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
         DNSName shorter(rr.qname);
         do {
           if (shorter==target) // apex is always auth
-            break;
+            continue;
           if(nsset.count(shorter) && !(rr.qname==shorter && rr.qtype.getCode() == QType::DS)) {
             rr.auth=false;
-            break;
+            continue;
           }
         } while(shorter.chopOff());
       }
