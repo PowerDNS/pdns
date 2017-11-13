@@ -1657,12 +1657,16 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   struct msghdr msgh;
   struct iovec iov;
   char cbuf[256];
+  bool firstQuery = true;
 
   fromaddr.sin6.sin6_family=AF_INET6; // this makes sure fromaddr is big enough
   fillMSGHdr(&msgh, &iov, cbuf, sizeof(cbuf), data, sizeof(data), &fromaddr);
 
   for(;;)
   if((len=recvmsg(fd, &msgh, 0)) >= 0) {
+
+    firstQuery = false;
+
     if(t_remotes)
       t_remotes->push_back(fromaddr);
 
@@ -1735,8 +1739,9 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   }
   else {
     // cerr<<t_id<<" had error: "<<stringerror()<<endl;
-    if(errno == EAGAIN)
+    if(firstQuery && errno == EAGAIN)
       g_stats.noPacketError++;
+
     break;
   }
 }
