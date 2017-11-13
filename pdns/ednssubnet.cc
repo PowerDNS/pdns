@@ -88,10 +88,13 @@ string makeEDNSSubnetOptsString(const EDNSSubnetOpts& eso)
   ret.assign((const char*)&esow, sizeof(esow));
   int octetsout = ((esow.sourceMask - 1)>> 3)+1;
 
+  ComboAddress src=eso.source.getNetwork();
+  src.truncate(esow.sourceMask);
+  
   if(family == htons(1)) 
-    ret.append((const char*) &eso.source.getNetwork().sin4.sin_addr.s_addr, octetsout);
+    ret.append((const char*) &src.sin4.sin_addr.s_addr, octetsout);
   else
-    ret.append((const char*) &eso.source.getNetwork().sin6.sin6_addr.s6_addr, octetsout);
+    ret.append((const char*) &src.sin6.sin6_addr.s6_addr, octetsout);
   return ret;
 }
 
