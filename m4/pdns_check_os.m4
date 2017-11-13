@@ -36,10 +36,12 @@ AC_DEFUN([PDNS_CHECK_OS],[
   AM_CONDITIONAL([HAVE_SOLARIS], [test "x$have_solaris" = "xyes"])
 
   case "$host" in
-  mips* | powerpc* )
-    AX_CHECK_LINK_FLAG([-latomic],
-      [ : ],
-      [ AC_MSG_ERROR([Unable to link against libatomic, cannot continue]) ]
+  mips* | powerpc-* )
+    AC_MSG_CHECKING([whether the linker accepts -latomic])
+    LDFLAGS="-latomic $LDFLAGS"
+    AC_LINK_IFELSE([m4_default([],[AC_LANG_PROGRAM()])],
+      [AC_MSG_RESULT([yes])],
+      [AC_MSG_ERROR([Unable to link against libatomic, cannot continue])]
     )
     LDFLAGS="-latomic $LDFLAGS"
     ;;
