@@ -19,6 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include "histog.hh"
 #include "dnsdist.hh"
 #include "dnsdist-cache.hh"
 #include "dnsrulactions.hh"
@@ -36,7 +37,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <unistd.h>
-
+#include <sstream>
 #include "dnsdist-lua.hh"
 
 boost::tribool g_noLuaSideEffect;
@@ -427,6 +428,22 @@ void moreLua(bool client)
       }
     });
 
+  g_lua.writeFunction("getPercentiles", []() {
+      map<uint32_t, uint32_t> histo;
+      decltype(g_rings.respRing) rr;
+      {
+	std::lock_guard<std::mutex> lock(g_rings.respMutex);
+        rr=g_rings.respRing;
+      }
+      for(const auto& r : rr)
+	histo[r.usec]++;
+
+      ostringstream ret;
+      writeLogHistogramFile(histo, ret);
+      g_outputBuffer=ret.str();
+      
+    });
+  
   g_lua.writeFunction("grepq", [](boost::variant<string, vector<pair<int,string> > > inp, boost::optional<unsigned int> limit) {
       setLuaNoSideEffect();
       boost::optional<Netmask>  nm;

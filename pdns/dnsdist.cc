@@ -1297,6 +1297,9 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
         g_stats.cacheHits++;
         g_stats.latency0_1++;  // we're not going to measure this
         doLatencyAverages(0);  // same
+	std::lock_guard<std::mutex> lock(g_rings.respMutex);
+	Rings::Response r{now, remote, *dq.qname, dq.qtype, 0, 0, *dh, ComboAddress()};
+	g_rings.respRing.push_back(r);
         return;
       }
       g_stats.cacheMisses++;
