@@ -524,7 +524,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
 
   for(const auto &qname : checkOcclusion) {
     for (const auto &q : recs) {
-      if (q.first.isPartOf(qname.first)) {
+      if (q.first.isPartOf(qname.first) && !checkglue.count(q.first)) {
         cout<<"[Warning] '"<<q.first<<"|"<<q.second.getName()<<"' in zone '"<<zone<<"' is occluded by a ";
         if (qname.second == QType::NS) {
           cout<<"delegation";
