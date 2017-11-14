@@ -22,44 +22,44 @@
 
 #include "xpf.hh"
 
-std::string generateXPFPayload(bool tcp, const ComboAddress& remote, const ComboAddress& local)
+std::string generateXPFPayload(bool tcp, const ComboAddress& source, const ComboAddress& destination)
 {
-  if (remote.sin4.sin_family != local.sin4.sin_family) {
-    throw std::runtime_error("The XPF local and remote addresses must be of the same family");
+  if (source.sin4.sin_family != destination.sin4.sin_family) {
+    throw std::runtime_error("The XPF destination and source addresses must be of the same family");
   }
 
   std::string ret;
-  const uint8_t version = remote.isIPv4() ? 4 : 6;
+  const uint8_t version = source.isIPv4() ? 4 : 6;
   const uint8_t protocol = tcp ? 6 : 17;
-  const size_t addrSize = remote.isIPv4() ? sizeof(remote.sin4.sin_addr.s_addr) : sizeof(remote.sin6.sin6_addr.s6_addr);
-  const uint16_t remotePort = remote.sin4.sin_port;
-  const uint16_t localPort = local.sin4.sin_port;
+  const size_t addrSize = source.isIPv4() ? sizeof(source.sin4.sin_addr.s_addr) : sizeof(source.sin6.sin6_addr.s6_addr);
+  const uint16_t sourcePort = source.sin4.sin_port;
+  const uint16_t destinationPort = destination.sin4.sin_port;
 
-  ret.reserve(sizeof(version) + sizeof(protocol) + (addrSize * 2) + sizeof(remotePort) + sizeof(localPort));
+  ret.reserve(sizeof(version) + sizeof(protocol) + (addrSize * 2) + sizeof(sourcePort) + sizeof(destinationPort));
 
   ret.append(reinterpret_cast<const char*>(&version), sizeof(version));
   ret.append(reinterpret_cast<const char*>(&protocol), sizeof(protocol));
 
-  if (remote.isIPv4()) {
-    assert(addrSize == sizeof(remote.sin4.sin_addr.s_addr));
-    ret.append(reinterpret_cast<const char*>(&remote.sin4.sin_addr.s_addr), addrSize);
+  if (source.isIPv4()) {
+    assert(addrSize == sizeof(source.sin4.sin_addr.s_addr));
+    ret.append(reinterpret_cast<const char*>(&source.sin4.sin_addr.s_addr), addrSize);
   }
   else {
-    assert(addrSize == sizeof(remote.sin6.sin6_addr.s6_addr));
-    ret.append(reinterpret_cast<const char*>(&remote.sin6.sin6_addr.s6_addr), addrSize);
+    assert(addrSize == sizeof(source.sin6.sin6_addr.s6_addr));
+    ret.append(reinterpret_cast<const char*>(&source.sin6.sin6_addr.s6_addr), addrSize);
   }
 
-  if (remote.isIPv4()) {
-    assert(addrSize == sizeof(local.sin4.sin_addr.s_addr));
-    ret.append(reinterpret_cast<const char*>(&local.sin4.sin_addr.s_addr), addrSize);
+  if (source.isIPv4()) {
+    assert(addrSize == sizeof(destination.sin4.sin_addr.s_addr));
+    ret.append(reinterpret_cast<const char*>(&destination.sin4.sin_addr.s_addr), addrSize);
   }
   else {
-    assert(addrSize == sizeof(local.sin6.sin6_addr.s6_addr));
-    ret.append(reinterpret_cast<const char*>(&local.sin6.sin6_addr.s6_addr), addrSize);
+    assert(addrSize == sizeof(destination.sin6.sin6_addr.s6_addr));
+    ret.append(reinterpret_cast<const char*>(&destination.sin6.sin6_addr.s6_addr), addrSize);
   }
 
-  ret.append(reinterpret_cast<const char*>(&remotePort), sizeof(remotePort));
-  ret.append(reinterpret_cast<const char*>(&localPort), sizeof(localPort));
+  ret.append(reinterpret_cast<const char*>(&sourcePort), sizeof(sourcePort));
+  ret.append(reinterpret_cast<const char*>(&destinationPort), sizeof(destinationPort));
 
   return ret;
 }
