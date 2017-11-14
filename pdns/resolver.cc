@@ -208,7 +208,7 @@ static int parseResult(MOADNSParser& mdp, const DNSName& origQname, uint16_t ori
   return 0;
 }
 
-bool Resolver::tryGetSOASerial(DNSName *domain, uint32_t *theirSerial, uint32_t *theirInception, uint32_t *theirExpire, uint16_t* id)
+bool Resolver::tryGetSOASerial(DNSName *domain, ComboAddress* remote, uint32_t *theirSerial, uint32_t *theirInception, uint32_t *theirExpire, uint16_t* id)
 {
   auto fds = std::unique_ptr<struct pollfd[]>(new struct pollfd[locals.size()]);
   size_t i = 0, k;
@@ -236,10 +236,10 @@ bool Resolver::tryGetSOASerial(DNSName *domain, uint32_t *theirSerial, uint32_t 
   if (sock < 0) return false; // false alarm
 
   int err;
-  ComboAddress fromaddr;
-  socklen_t addrlen=fromaddr.getSocklen();
+  remote->sin6.sin6_family = AF_INET6; // make sure getSocklen() below returns a large enough value
+  socklen_t addrlen=remote->getSocklen();
   char buf[3000];
-  err = recvfrom(sock, buf, sizeof(buf), 0,(struct sockaddr*)(&fromaddr), &addrlen);
+  err = recvfrom(sock, buf, sizeof(buf), 0,(struct sockaddr*)(remote), &addrlen);
   if(err < 0) {
     if(errno == EAGAIN)
       return false;
@@ -252,13 +252,13 @@ bool Resolver::tryGetSOASerial(DNSName *domain, uint32_t *theirSerial, uint32_t 
   *domain = mdp.d_qname;
   
   if(domain->empty())
-    throw ResolverException("SOA query to '" + fromaddr.toStringWithPort() + "' produced response without domain name (RCode: " + RCode::to_s(mdp.d_header.rcode) + ")");
+    throw ResolverException("SOA query to '" + remote->toStringWithPort() + "' produced response without domain name (RCode: " + RCode::to_s(mdp.d_header.rcode) + ")");
 
   if(mdp.d_answers.empty())
-    throw ResolverException("Query to '" + fromaddr.toStringWithPort() + "' for SOA of '" + domain->toString() + "' produced no results (RCode: " + RCode::to_s(mdp.d_header.rcode) + ")");
+    throw ResolverException("Query to '" + remote->toStringWithPort() + "' for SOA of '" + domain->toLogString() + "' produced no results (RCode: " + RCode::to_s(mdp.d_header.rcode) + ")");
   
   if(mdp.d_qtype != QType::SOA)
-    throw ResolverException("Query to '" + fromaddr.toStringWithPort() + "' for SOA of '" + domain->toString() + "' returned wrong record type");
+    throw ResolverException("Query to '" + remote->toStringWithPort() + "' for SOA of '" + domain->toLogString() + "' returned wrong record type");
 
   *theirInception = *theirExpire = 0;
   bool gotSOA=false;
@@ -279,7 +279,7 @@ bool Resolver::tryGetSOASerial(DNSName *domain, uint32_t *theirSerial, uint32_t 
     }
   }
   if(!gotSOA)
-    throw ResolverException("Query to '" + fromaddr.toString() + "' for SOA of '" + domain->toLogString() + "' did not return a SOA");
+    throw ResolverException("Query to '" + remote->toString() + "' for SOA of '" + domain->toLogString() + "' did not return a SOA");
   return true;
 }
 
@@ -302,10 +302,14 @@ int Resolver::resolve(const string &ipport, const DNSName &domain, int type, Res
     socklen_t addrlen = sizeof(from);
     char buffer[3000];
     int len;
-    
+
     if((len=recvfrom(sock, buffer, sizeof(buffer), 0,(struct sockaddr*)(&from), &addrlen)) < 0) 
       throw ResolverException("recvfrom error waiting for answer: "+stringerror());
-  
+
+    if (from != to) {
+      throw ResolverException("Got answer from the wrong peer while resolving ("+from.toStringWithPort()+" instead of "+to.toStringWithPort()+", discarding");
+    }
+
     MOADNSParser mdp(false, buffer, len);
     return parseResult(mdp, domain, type, id, res);
   }

@@ -44,18 +44,21 @@ DNSProxy::DNSProxy(const string &remote)
 
   vector<string> addresses;
   stringtok(addresses, remote, " ,\t");
-  ComboAddress remaddr(addresses[0], 53);
-  
-  if((d_sock=socket(remaddr.sin4.sin_family, SOCK_DGRAM,0))<0)
+  d_remote = ComboAddress(addresses[0], 53);
+
+  if((d_sock=socket(d_remote.sin4.sin_family, SOCK_DGRAM,0))<0) {
     throw PDNSException(string("socket: ")+strerror(errno));
- 
+  }
+
   ComboAddress local;
-  if(remaddr.sin4.sin_family==AF_INET)
+  if(d_remote.sin4.sin_family==AF_INET) {
     local = ComboAddress("0.0.0.0");
-  else
+  }
+  else {
     local = ComboAddress("::");
+  }
     
-  int n=0;
+  unsigned int n=0;
   for(;n<10;n++) {
     local.sin4.sin_port = htons(10000+dns_random(50000));
     
@@ -68,11 +71,12 @@ DNSProxy::DNSProxy(const string &remote)
     throw PDNSException(string("binding dnsproxy socket: ")+strerror(errno));
   }
 
-  if(connect(d_sock, (sockaddr *)&remaddr, remaddr.getSocklen())<0) 
-    throw PDNSException("Unable to UDP connect to remote nameserver "+remaddr.toStringWithPort()+": "+stringerror());
+  if(connect(d_sock, (sockaddr *)&d_remote, d_remote.getSocklen())<0) {
+    throw PDNSException("Unable to UDP connect to remote nameserver "+d_remote.toStringWithPort()+": "+stringerror());
+  }
 
   d_xor=dns_random(0xffff);
-  L<<Logger::Error<<"DNS Proxy launched, local port "<<ntohs(local.sin4.sin_port)<<", remote "<<remaddr.toStringWithPort()<<endl;
+  L<<Logger::Error<<"DNS Proxy launched, local port "<<ntohs(local.sin4.sin_port)<<", remote "<<d_remote.toStringWithPort()<<endl;
 } 
 
 void DNSProxy::go()
@@ -179,9 +183,11 @@ void DNSProxy::mainloop(void)
     struct msghdr msgh;
     struct iovec iov;
     char cbuf[256];
+    ComboAddress fromaddr;
 
     for(;;) {
-      len=recv(d_sock, buffer, sizeof(buffer),0); // answer from our backend
+      socklen_t fromaddrSize = sizeof(fromaddr);
+      len=recvfrom(d_sock, buffer, sizeof(buffer),0, (struct sockaddr*) &fromaddr, &fromaddrSize); // answer from our backend
       if(len<(ssize_t)sizeof(dnsheader)) {
         if(len<0)
           L<<Logger::Error<<"Error receiving packet from recursor backend: "<<stringerror()<<endl;
@@ -190,6 +196,10 @@ void DNSProxy::mainloop(void)
         else
           L<<Logger::Error<<"Short packet from recursor backend, "<<len<<" bytes"<<endl;
         
+        continue;
+      }
+      if (fromaddr != d_remote) {
+        L<<Logger::Error<<"Got answer from unexpected host "<<fromaddr.toStringWithPort()<<" instead of our recursor backend "<<d_remote.toStringWithPort()<<endl;
         continue;
       }
       (*d_resanswers)++;
