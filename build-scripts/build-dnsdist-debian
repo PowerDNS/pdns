@@ -35,6 +35,7 @@ if [ ${ID} = "ubuntu" -a ${VERSION_ID} = "14.04" ]; then
 fi
 
 fakeroot debian/rules debian/control
+fakeroot debian/rules debian/dnsdist.install
 fakeroot debian/rules binary
 
 cd -
