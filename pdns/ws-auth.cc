@@ -1287,13 +1287,7 @@ static void apiServerTsigKeys(HttpRequest* req, HttpResponse* resp) {
       doc.push_back(makeJSONTSIGKey(key));
     }
     resp->setBody(doc);
-  }
-
-  if (req->method != "GET" && ::arg().mustDo("api-readonly")) {
-    throw HttpMethodNotAllowedException();
-  }
-
-  if (req->method == "POST") {
+  } else if (req->method == "POST" && !::arg().mustDo("api-readonly")) {
     auto document = req->json();
     DNSName keyname(stringFromJson(document, "name"));
     DNSName algo(stringFromJson(document, "algorithm"));
@@ -1322,17 +1316,14 @@ static void apiServerTsigKeys(HttpRequest* req, HttpResponse* resp) {
 
     resp->status = 201;
     resp->setBody(makeJSONTSIGKey(keyname, algo, content));
+  } else {
+    throw HttpMethodNotAllowedException();
   }
 }
 
 static void apiServerTsigKeyDetail(HttpRequest* req, HttpResponse* resp) {
-  if (req->method != "GET") {
-    throw HttpMethodNotAllowedException();
-  }
-
-  DNSName keyname = apiZoneIdToName(req->parameters["id"]);
-
   UeberBackend B;
+  DNSName keyname = apiZoneIdToName(req->parameters["id"]);
   DNSName algo;
   string content;
 
@@ -1340,7 +1331,59 @@ static void apiServerTsigKeyDetail(HttpRequest* req, HttpResponse* resp) {
     throw ApiException("Unable to retrieve TSIG key with id '"+keyname.toLogString()+"'");
   }
 
-  resp->setBody(makeJSONTSIGKey(keyname, algo, content));
+  json11::Json document;
+
+  if (!req->body.empty()) {
+    document = req->json();
+  }
+
+  struct TSIGKey tsk;
+  tsk.name = keyname;
+  tsk.algorithm = algo;
+  tsk.key = content;
+
+  if (req->method == "GET") {
+    resp->setBody(makeJSONTSIGKey(tsk));
+  } else if (req->method == "PUT" && !::arg().mustDo("api-readonly")) {
+    if (document["name"].is_string()) {
+      tsk.name = DNSName(document["name"].string_value());
+    }
+    if (document["algorithm"].is_string()) {
+      tsk.algorithm = DNSName(document["algorithm"].string_value());
+
+      TSIGHashEnum the;
+      if (!getTSIGHashEnum(tsk.algorithm, the)) {
+        throw ApiException("Unknown TSIG algorithm: " + tsk.algorithm.toLogString());
+      }
+    }
+    if (document["key"].is_string()) {
+      string new_content = document["key"].string_value();
+      string decoded;
+      if (B64Decode(new_content, decoded) == -1) {
+        throw ApiException("Can not base64 decode key content '" + new_content + "'");
+      }
+      tsk.key = new_content;
+    }
+    if (!B.setTSIGKey(tsk.name, tsk.algorithm, tsk.key)) {
+      throw ApiException("Unable to save TSIG Key");
+    }
+    if (tsk.name != keyname) {
+      // Remove the old key
+      if (!B.deleteTSIGKey(keyname)) {
+        throw ApiException("Unable to remove TSIG key '" + keyname.toStringNoDot() + "'");
+      }
+    }
+    resp->setBody(makeJSONTSIGKey(tsk));
+  } else if (req->method == "DELETE" && !::arg().mustDo("api-readonly")) {
+    if (!B.deleteTSIGKey(keyname)) {
+      throw ApiException("Unable to remove TSIG key '" + keyname.toStringNoDot() + "'");
+    } else {
+      resp->body = "";
+      resp->status = 204;
+    }
+  } else {
+    throw HttpMethodNotAllowedException();
+  }
 }
 
 static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
