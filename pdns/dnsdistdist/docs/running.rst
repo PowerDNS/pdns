@@ -30,8 +30,6 @@ These commands can be copied to the configuration file, should they need to pers
 Running as unprivileged user
 ----------------------------
 
-:program:`dnsdist` can drop privileges using the ``--uid`` and ``--gid`` command line switches
-to ensure it does not run with root privileges after binding its listening sockets.
-It is highly recommended to create a system user and group for :program:`dnsdist`. Note that
-most packaged versions of :program:`dnsdist` already create this user.
-
+:program:`dnsdist` can drop privileges using the ``--uid`` and ``--gid`` command line switches to ensure it does not run with root privileges after binding its listening sockets.
+It is highly recommended to create a system user and group for :program:`dnsdist`.
+Note that most packaged versions of :program:`dnsdist` already create this user.
