@@ -134,13 +134,6 @@ void ARecordContent::doRecordCheck(const DNSRecord& dr)
 
 boilerplate_conv(AAAA, QType::AAAA, conv.xfrIP6(d_ip6); );
 
-boilerplate_conv(XPF, QType::XPF, conv.xfr8BitInt(d_version);
-                                  conv.xfr8BitInt(d_protocol);
-                                  conv.xfrCAWithoutPort(d_version, d_src);
-                                  conv.xfrCAWithoutPort(d_version, d_dst);
-                                  conv.xfrCAPort(d_src);
-                                  conv.xfrCAPort(d_dst));
-
 boilerplate_conv(NS, QType::NS, conv.xfrName(d_content, true));
 boilerplate_conv(PTR, QType::PTR, conv.xfrName(d_content, true));
 boilerplate_conv(CNAME, QType::CNAME, conv.xfrName(d_content, true));
@@ -624,7 +617,6 @@ void reportOtherTypes()
    DLVRecordContent::report();
    DNSRecordContent::regist(QClass::ANY, QType::TSIG, &TSIGRecordContent::make, &TSIGRecordContent::make, "TSIG");
    DNSRecordContent::regist(QClass::ANY, QType::TKEY, &TKEYRecordContent::make, &TKEYRecordContent::make, "TKEY");
-   XPFRecordContent::report();
    //TSIGRecordContent::report();
    OPTRecordContent::report();
    EUI48RecordContent::report();

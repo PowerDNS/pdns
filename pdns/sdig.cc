@@ -36,7 +36,8 @@ try
   bool showflags=false;
   bool hidesoadetails=false;
   boost::optional<Netmask> ednsnm;
-  std::shared_ptr<DNSRecordContent> xpf;
+  uint16_t xpfcode = 0, xpfversion = 0, xpfproto = 0;
+  char *xpfsrc = NULL, *xpfdst = NULL;
 
   for(int i=1; i<argc; i++) {
     if ((string) argv[i] == "--help") {
@@ -72,15 +73,23 @@ try
       if (strcmp(argv[i], "tcp") == 0)
         tcp=true;
       if (strcmp(argv[i], "ednssubnet") == 0) {
-        i++;
-        if (argc == i) {
-          usage();
+        if(argc < i+2) {
+          cerr<<"ednssubnet needs an argument"<<endl;
           exit(EXIT_FAILURE);
         }
-        ednsnm=Netmask(argv[i]);
+        ednsnm=Netmask(argv[++i]);
       }
-      if (strcmp(argv[i], "xpf") == 0)
-        xpf=DNSRecordContent::mastermake(QType::XPF, 1, argv[++i]);
+      if (strcmp(argv[i], "xpf") == 0) {
+        if(argc < i+6) {
+          cerr<<"xpf needs five arguments"<<endl;
+          exit(EXIT_FAILURE);
+        }
+        xpfcode = atoi(argv[++i]);
+        xpfversion = atoi(argv[++i]);
+        xpfproto = atoi(argv[++i]);
+        xpfsrc = argv[++i];
+        xpfdst = argv[++i];
+      }
     }
   }
 
@@ -107,10 +116,17 @@ try
     pw.commit();
   }
 
-  if(xpf.get())
+  if(xpfcode)
   {
-    pw.startRecord(DNSName("."), QType::XPF, 0, 1, DNSResourceRecord::ADDITIONAL);
-    xpf->toPacket(pw);
+    ComboAddress src(xpfsrc), dst(xpfdst);
+    pw.startRecord(DNSName("."), xpfcode, 0, 1, DNSResourceRecord::ADDITIONAL);
+    // xpf->toPacket(pw);
+    pw.xfr8BitInt(xpfversion);
+    pw.xfr8BitInt(xpfproto);
+    pw.xfrCAWithoutPort(xpfversion, src);
+    pw.xfrCAWithoutPort(xpfversion, dst);
+    pw.xfrCAPort(src);
+    pw.xfrCAPort(dst);
     pw.commit();
   }
 
