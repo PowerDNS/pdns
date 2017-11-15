@@ -254,6 +254,9 @@ string reloadAuthAndForwards()
     }
 
     string configname=::arg()["config-dir"]+"/recursor.conf";
+    if(::arg()["config-name"]!="") {
+      configname=::arg()["config-dir"]+"/recursor-"+::arg()["config-name"]+".conf";
+    }
     cleanSlashes(configname);
     
     if(!::arg().preParseFile(configname.c_str(), "forward-zones"))
