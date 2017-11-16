@@ -2,6 +2,90 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.0-rc3
+  :released: 17th of November 2017
+
+  This is the third release candidate of the PowerDNS Authoritative Server in the 4.1 release train.
+
+  This release features various bug fixes and some improvements to
+  ``pdnsutil``.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5905
+
+    Use 302 redirects in the webserver for ringbuffer reset or
+    resize. With the current 301 redirect it is only possible to reset
+    or resize once. Every next duplicate action is replaced by the
+    destination cached in the browser.
+
+  .. change::
+    :tags: Tools, Bug Fixes
+    :pullreq: 5884
+    :tickets: 5849
+
+    Fix messages created by ``pdnsutil generate-tsig-key``.
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 5616
+
+    Better support for deleting entries in NetmaskTree and NetmaskGroup.
+
+  .. change::
+    :tags: Internals, Bug Fixes
+    :pullreq: 5917
+
+    Use ``_exit()`` when we really really want to exit, for example
+    after a fatal error. This stops us dying while we die. A call to
+    ``exit()`` will trigger destructors, which may paradoxically stop
+    the process from exiting, taking down only one thread, but harming
+    the rest of the process.
+
+  .. change::
+    :tags: Tools, New Features
+    :pullreq: 5883
+    :tickets: 5853
+
+    Add ``add-meta`` command to ``pdnsutil`` that can be used to append
+    to existing metadata without clobbering it.
+
+  .. change::
+    :tags: Tools, Bug Fixes
+    :pullreq: 5928
+    :tickets: 5903
+
+    Add back missing output details to rectifyZone.
+
+  .. change::
+    :tags: Tools, Improvements
+    :pullreq: 5879
+    :tickets: 3059, 5948, 5949
+
+    Warn if records in a zone are occluded.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5938
+
+    Don't crash when asked to run with zero threads.
+
+  .. change::
+    :tags: API, Improvements
+    :pullreq: 5935
+
+    Throw exception for metadata endpoint with wrong zone. Before, We
+    would happily accept this POST.
+
+  .. change::
+    :tags: API, New Features
+    :pullreq: 5936
+    :tickets: 5909, 5910
+
+    Make it possible to disable DNSSEC via the API, this is equivalent
+    to doing ``pdnsutil disable-dnssec``.
+
+.. changelog::
   :version: 4.1.0-rc2
   :released: 3rd of November 2017
 
