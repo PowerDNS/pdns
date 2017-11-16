@@ -1,6 +1,6 @@
 swagger: '2.0'
 info:
-  version: '0.0.7'
+  version: "0.0.10"
   title: PowerDNS Authoritative HTTP API
   license:
     name: MIT
@@ -420,7 +420,7 @@ paths:
           type: integer
       responses:
         '200':
-          description: Returns an single array of objects. Objects may be records, zones or comments.
+          description: Returns a single JSON object with a single array of strings.
           schema:
             $ref: '#/definitions/SearchResults'
 
@@ -447,7 +447,7 @@ paths:
           schema:
             type: array
             items:
-              - $ref: '#/definitions/Metadata'
+              $ref: '#/definitions/Metadata'
     post:
       summary: 'Creates a set of metadata entries'
       description: 'Creates a set of metadata entries of given kind for the zone. Existing metadata entries for the zone with the same kind are not overwritten.'
@@ -471,7 +471,7 @@ paths:
           schema:
             type: array
             items:
-              - $ref: '#/definitions/Metadata'
+              $ref: '#/definitions/Metadata'
       responses:
         '204':
           description: OK
@@ -502,9 +502,7 @@ paths:
         '200':
           description: List of Metadata objects
           schema:
-            type: array
-            items:
-              - $ref: '#/definitions/Metadata'
+            $ref: '#/definitions/Metadata'
     put:
       summary: 'Modify the content of a single kind of domain metadata.'
       operationId: modifyZoneMetadataKind
@@ -520,14 +518,17 @@ paths:
           type: string
           in: path
           required: true
+        - name: metadata_kind
+          description: The kind of metadata
+          required: true
+          type: string
+          in: path
         - name: metadata
-          description: List of metadata to add/create
+          description: metadata to add/create
           required: true
           in: body
           schema:
-            type: array
-            items:
-              - $ref: '#/definitions/Metadata'
+            $ref: '#/definitions/Metadata'
       responses:
         '204':
           description: OK
@@ -579,7 +580,7 @@ paths:
           schema:
             type: array
             items:
-              - $ref: '#/definitions/Cryptokey'
+              $ref: '#/definitions/Cryptokey'
     post:
       summary: 'Creates a Cryptokey'
       description: 'This method adds a new key to a zone. The key can either be generated or imported by supplying the content parameter. if content, bits and algo are null, a key will be generated based on the default-ksk-algorithm and default-ksk-size settings for a KSK and the default-zsk-algorithm and default-zsk-size options for a ZSK.'
@@ -601,12 +602,12 @@ paths:
           required: true
           in: body
           schema:
-            type: array
-            items:
-              - $ref: '#/definitions/Cryptokey'
+            $ref: '#/definitions/Cryptokey'
       responses:
-        '204':
-          description: OK
+        '201':
+          description: Created
+          schema:
+            $ref: '#/definitions/Cryptokey'
 
   '/servers/{server_id}/zones/{zone_id}/cryptokeys/{cryptokey_id}':
     get:
@@ -632,11 +633,9 @@ paths:
           description: 'The id value of the CryptoKey'
       responses:
         '200':
-          description: List of Cryptokeys
+          description: Cryptokey
           schema:
-            type: array
-            items:
-              - $ref: '#/definitions/Cryptokey'
+            $ref: '#/definitions/Cryptokey'
     put:
       summary: 'This method (de)activates a key from zone_name specified by cryptokey_id'
       operationId: modifyCryptokey
@@ -655,11 +654,14 @@ paths:
         - name: cryptokey_id
           description: Cryptokey to manipulate
           required: true
+          in: path
+          type: string
+        - name: cryptokey
+          description: the Cryptokey
+          required: true
           in: body
           schema:
-            type: array
-            items:
-              - $ref: '#/definitions/Cryptokey'
+            $ref: '#/definitions/Cryptokey'
       responses:
         '204':
           description: OK
@@ -954,7 +956,7 @@ definitions:
   SearchResults:
     type: array
     items:
-      - $ref: '#/definitions/SearchResult'
+      $ref: '#/definitions/SearchResult'
 
   Metadata:
     properties:
@@ -987,9 +989,14 @@ definitions:
       ds:
         type: array
         items:
-          # 'TODO: What is a DS record?'
-          type: object
+          type: string
         description: 'An array of DS records for this key'
       privatekey:
         type: string
         description: 'The private key in ISC format'
+      algorithm:
+        type: string
+        description: 'The name of the algorithm of the key, should be a mnemonic'
+      bits:
+        type: integer
+        description: 'The size of the key'
