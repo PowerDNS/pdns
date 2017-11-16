@@ -87,23 +87,37 @@ public:
     }
   }
 
+  /*
+   * Returns the algorithm number based on the mnemonic (or old PowerDNS value of) a string.
+   * See https://www.iana.org/assignments/dns-sec-alg-numbers/dns-sec-alg-numbers.xhtml for the mapping
+   */
   static int shorthand2algorithm(const string &algorithm)
   {
     if (!algorithm.compare("rsamd5")) return RSAMD5;
     if (!algorithm.compare("dh")) return DH;
     if (!algorithm.compare("dsa")) return DSA;
     if (!algorithm.compare("rsasha1")) return RSASHA1;
+    if (!algorithm.compare("dsa-nsec3-sha1")) return DSANSEC3SHA1;
+    if (!algorithm.compare("rsasha1-nsec3-sha1")) return RSASHA1NSEC3SHA1;
     if (!algorithm.compare("rsasha256")) return RSASHA256;
     if (!algorithm.compare("rsasha512")) return RSASHA512;
     if (!algorithm.compare("ecc-gost")) return ECCGOST;
     if (!algorithm.compare("gost")) return ECCGOST;
     if (!algorithm.compare("ecdsa256")) return ECDSA256;
+    if (!algorithm.compare("ecdsap256sha256")) return ECDSA256;
     if (!algorithm.compare("ecdsa384")) return ECDSA384;
+    if (!algorithm.compare("ecdsap384sha384")) return ECDSA384;
     if (!algorithm.compare("ed25519")) return ED25519;
     if (!algorithm.compare("ed448")) return ED448;
+    if (!algorithm.compare("indirect")) return 252;
+    if (!algorithm.compare("privatedns")) return 253;
+    if (!algorithm.compare("privateoid")) return 254;
     return -1;
   }
 
+  /*
+   * Returns the mnemonic from https://www.iana.org/assignments/dns-sec-alg-numbers/dns-sec-alg-numbers.xhtml
+   */
   static string algorithm2name(uint8_t algo) {
     switch(algo) {
       case 0:
