@@ -238,7 +238,10 @@ void CommunicatorClass::sendNotification(int sock, const DNSName& domain, const 
   pw.getHeader()->aa = true; 
 
   if (tsigkeyname.empty() == false) {
-    B.getTSIGKey(tsigkeyname, &tsigalgorithm, &tsigsecret64);
+    if (!B.getTSIGKey(tsigkeyname, &tsigalgorithm, &tsigsecret64)) {
+      L<<Logger::Error<<"TSIG key '"<<tsigkeyname<<"' for domain '"<<domain<<"' not found"<<endl;
+      return;
+    }
     TSIGRecordContent trc;
     if (tsigalgorithm.toStringNoDot() == "hmac-md5")
       trc.d_algoName = DNSName(tsigalgorithm.toStringNoDot() + ".sig-alg.reg.int.");
@@ -248,7 +251,10 @@ void CommunicatorClass::sendNotification(int sock, const DNSName& domain, const 
     trc.d_fudge = 300;
     trc.d_origID=ntohs(id);
     trc.d_eRcode=0;
-    B64Decode(tsigsecret64, tsigsecret);
+    if (B64Decode(tsigsecret64, tsigsecret) == -1) {
+      L<<Logger::Error<<"Unable to Base-64 decode TSIG key '"<<tsigkeyname<<"' for domain '"<<domain<<"'"<<endl;
+      return;
+    }
     addTSIG(pw, trc, tsigkeyname, tsigsecret, "", false);
   }
 
