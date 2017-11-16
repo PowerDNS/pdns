@@ -60,9 +60,9 @@ Changelogs for 4.1.x
   .. change::
     :tags: Tools, Improvements
     :pullreq: 5879
-    :tickets: 3059
+    :tickets: 3059, 5948, 5949.
 
-    Warn if records in a zone are eclipsed.
+    Warn if records in a zone are occluded.
 
   .. change::
     :tags: Bug Fixes
