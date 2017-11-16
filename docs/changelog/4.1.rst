@@ -65,12 +65,6 @@ Changelogs for 4.1.x
     Warn if records in a zone are occluded.
 
   .. change::
-    :tags: Bug Fixes
-    :pullreq: 5938
-
-    Don't crash when asked to run with zero threads.
-
-  .. change::
     :tags: API, Improvements
     :pullreq: 5935
 
