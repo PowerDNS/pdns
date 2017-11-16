@@ -60,7 +60,7 @@ Changelogs for 4.1.x
   .. change::
     :tags: Tools, Improvements
     :pullreq: 5879
-    :tickets: 3059, 5948, 5949.
+    :tickets: 3059, 5948, 5949
 
     Warn if records in a zone are occluded.
 
