@@ -988,7 +988,7 @@ static void apiZoneCryptokeysPOST(DNSName zonename, HttpRequest *req, HttpRespon
   bool active = boolFromJson(document, "active", false);
   bool keyOrZone;
 
-  if (stringFromJson(document, "keytype") == "ksk") {
+  if (stringFromJson(document, "keytype") == "ksk" || stringFromJson(document, "keytype") == "csk") {
     keyOrZone = true;
   } else if (stringFromJson(document, "keytype") == "zsk") {
     keyOrZone = false;
