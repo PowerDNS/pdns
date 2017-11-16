@@ -626,7 +626,15 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
     } else {
       // "dnssec": false in json
       if (isDNSSECZone) {
-        throw ApiException("Refusing to un-secure zone " + zonename.toString());
+        string info, error;
+        if (!dk.unSecureZone(zonename, error, info)) {
+          throw ApiException("Error while un-securing zone '"+ zonename.toString()+"': " + error);
+        }
+        isDNSSECZone = dk.isSecuredZone(zonename);
+        if (isDNSSECZone) {
+          throw ApiException("Unable to un-secure zone '"+ zonename.toString()+"'");
+        }
+        shouldRectify = true;
       }
     }
   }

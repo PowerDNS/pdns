@@ -1358,24 +1358,12 @@ bool disableDNSSECOnZone(DNSSECKeeper& dk, const DNSName& zone)
     return false;
   }
 
-  if(!dk.isSecuredZone(zone)) {
-    cerr<<"Zone is not secured"<<endl;
-    return false;
+  string error, info;
+  bool ret = dk.unSecureZone(zone, error, info);
+  if (!ret) {
+    cerr << error << endl;
   }
-  DNSSECKeeper::keyset_t keyset=dk.getKeys(zone);
-
-  if(keyset.empty())  {
-    cerr << "No keys for zone '"<<zone<<"'."<<endl;
-  }
-  else {  
-    for(DNSSECKeeper::keyset_t::value_type value :  keyset) {
-      dk.deactivateKey(zone, value.second.id);
-      dk.removeKey(zone, value.second.id);
-    }
-  }
-  dk.unsetNSEC3PARAM(zone);
-  dk.unsetPresigned(zone);
-  return true;
+  return ret;
 }
 
 int setZoneAccount(const DNSName& zone, const string &account)

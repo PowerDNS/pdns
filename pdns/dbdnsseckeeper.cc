@@ -589,6 +589,26 @@ bool DNSSECKeeper::getTSIGForAccess(const DNSName& zone, const string& master, D
   return false;
 }
 
+bool DNSSECKeeper::unSecureZone(const DNSName& zone, string& error, string& info) {
+  // Not calling isSecuredZone(), as it will return false for zones with zero
+  // active keys.
+  DNSSECKeeper::keyset_t keyset=getKeys(zone);
+
+  if(keyset.empty())  {
+    error = "No keys for zone '" + zone.toLogString() + "'.";
+    return false;
+  }
+
+  for(auto& key : keyset) {
+    deactivateKey(zone, key.second.id);
+    removeKey(zone, key.second.id);
+  }
+
+  unsetNSEC3PARAM(zone);
+  unsetPresigned(zone);
+  return true;
+}
+
 /* Rectifies the zone
  *
  * \param zone The zone to rectify

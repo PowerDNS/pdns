@@ -363,6 +363,30 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
         self.assertEquals(keys[0]['active'], True)
         self.assertEquals(keys[0]['keytype'], 'csk')
 
+    def test_create_zone_with_dnssec_disable_dnssec(self):
+        """
+        Create a zone with "dnssec", then set "dnssec" to false and see if the
+        keys are gone
+        """
+        name = unique_zone_name()
+        name, payload, data = self.create_zone(dnssec=True)
+
+        self.session.put(self.url("/api/v1/servers/localhost/zones/" + name),
+                         data=json.dumps({'dnssec': False}))
+        r = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name))
+
+        zoneinfo = r.json()
+
+        self.assertEquals(r.status_code, 200)
+        self.assertEquals(zoneinfo['dnssec'], False)
+
+        r = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name + '/cryptokeys'))
+
+        keys = r.json()
+
+        self.assertEquals(r.status_code, 200)
+        self.assertEquals(len(keys), 0)
+
     def test_create_zone_with_nsec3param(self):
         """
         Create a zone with "nsec3param" set and see if the metadata was added.
