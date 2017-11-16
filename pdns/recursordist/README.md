@@ -49,6 +49,8 @@ $ ./configure
 $ make
 ```
 
+On macOS, you may need to `brew install openssl` and set `PKG_CONFIG_PATH=/usr/local/opt/openssl/lib/pkgconfig` during configure.
+
 Lua scripting
 -------------
 To benefit from Lua scripting, as described on https://doc.powerdns.com/md/recursor/scripting/
