@@ -72,7 +72,7 @@ class Cryptokeys(ApiTestCase):
             payload = {
                 'keytype': type,
                 'active' : active,
-                'algo' : algo
+                'algorithm' : algo
             }
         if bits > 0:
             payload['bits'] = bits

@@ -892,7 +892,9 @@ static void apiZoneCryptokeysGET(DNSName zonename, int inquireKeyId, HttpRespons
         { "active", value.second.active },
         { "keytype", keyType },
         { "flags", (uint16_t)value.first.d_flags },
-        { "dnskey", value.first.getDNSKEY().getZoneRepresentation() }
+        { "dnskey", value.first.getDNSKEY().getZoneRepresentation() },
+        { "algorithm", DNSSECKeeper::algorithm2name(value.first.d_algorithm) },
+        { "bits", value.first.getKey()->getBits() }
     };
 
     if (value.second.keyType == DNSSECKeeper::KSK || value.second.keyType == DNSSECKeeper::CSK) {
@@ -942,10 +944,10 @@ static void apiZoneCryptokeysDELETE(DNSName zonename, int inquireKeyId, HttpRequ
  * This method adds a key to a zone by generate it or content parameter.
  * Parameter:
  *  {
- *  "content" : "key The format used is compatible with BIND and NSD/LDNS" <string>
+ *  "privatekey" : "key The format used is compatible with BIND and NSD/LDNS" <string>
  *  "keytype" : "ksk|zsk" <string>
  *  "active"  : "true|false" <value>
- *  "algo" : "key generation algorithm "name|number" as default"<string> https://doc.powerdns.com/md/authoritative/dnssec/#supported-algorithms
+ *  "algorithm" : "key generation algorithm name as default"<string> https://doc.powerdns.com/md/authoritative/dnssec/#supported-algorithms
  *  "bits" : number of bits <int>
  *  }
  *
@@ -954,7 +956,7 @@ static void apiZoneCryptokeysDELETE(DNSName zonename, int inquireKeyId, HttpRequ
  *    The server returns 422 Unprocessable Entity {"error" : "Invalid keytype 'keytype'"}
  *  Case 2: 'bits' must be a positive integer value.
  *    The server returns 422 Unprocessable Entity {"error" : "'bits' must be a positive integer value."}
- *  Case 3: The "algo" isn't supported
+ *  Case 3: The "algorithm" isn't supported
  *    The server returns 422 Unprocessable Entity {"error" : "Unknown algorithm: 'algo'"}
  *  Case 4: Algorithm <= 10 and no bits were passed
  *    The server returns 422 Unprocessable Entity {"error" : "Creating an algorithm algo key requires the size (in bits) to be passed"}
@@ -976,7 +978,13 @@ static void apiZoneCryptokeysDELETE(DNSName zonename, int inquireKeyId, HttpRequ
 
 static void apiZoneCryptokeysPOST(DNSName zonename, HttpRequest *req, HttpResponse *resp, DNSSECKeeper *dk) {
   auto document = req->json();
-  auto content = document["content"];
+  string privatekey_fieldname = "privatekey";
+  auto privatekey = document["privatekey"];
+  if (privatekey.is_null()) {
+    // Fallback to the old "content" behaviour
+    privatekey = document["content"];
+    privatekey_fieldname = "content";
+  }
   bool active = boolFromJson(document, "active", false);
   bool keyOrZone;
 
@@ -990,7 +998,7 @@ static void apiZoneCryptokeysPOST(DNSName zonename, HttpRequest *req, HttpRespon
 
   int64_t insertedId = -1;
 
-  if (content.is_null()) {
+  if (privatekey.is_null()) {
     int bits = keyOrZone ? ::arg().asNum("default-ksk-size") : ::arg().asNum("default-zsk-size");
     auto docbits = document["bits"];
     if (!docbits.is_null()) {
@@ -1001,7 +1009,7 @@ static void apiZoneCryptokeysPOST(DNSName zonename, HttpRequest *req, HttpRespon
       }
     }
     int algorithm = DNSSECKeeper::shorthand2algorithm(keyOrZone ? ::arg()["default-ksk-algorithm"] : ::arg()["default-zsk-algorithm"]);
-    auto providedAlgo = document["algo"];
+    auto providedAlgo = document["algorithm"];
     if (providedAlgo.is_string()) {
       algorithm = DNSSECKeeper::shorthand2algorithm(providedAlgo.string_value());
       if (algorithm == -1)
@@ -1021,13 +1029,14 @@ static void apiZoneCryptokeysPOST(DNSName zonename, HttpRequest *req, HttpRespon
     }
     if (insertedId < 0)
       throw ApiException("Adding key failed, perhaps DNSSEC not enabled in configuration?");
-  } else if (document["bits"].is_null() && document["algo"].is_null()) {
-    auto keyData = stringFromJson(document, "content");
+  } else if (document["bits"].is_null() && document["algorithm"].is_null()) {
+    auto keyData = stringFromJson(document, privatekey_fieldname);
     DNSKEYRecordContent dkrc;
     DNSSECPrivateKey dpk;
     try {
       shared_ptr<DNSCryptoKeyEngine> dke(DNSCryptoKeyEngine::makeFromISCString(dkrc, keyData));
       dpk.d_algorithm = dkrc.d_algorithm;
+      // TODO remove in 4.2.0
       if(dpk.d_algorithm == 7)
         dpk.d_algorithm = 5;
 
@@ -1050,7 +1059,7 @@ static void apiZoneCryptokeysPOST(DNSName zonename, HttpRequest *req, HttpRespon
     if (insertedId < 0)
       throw ApiException("Adding key failed, perhaps DNSSEC not enabled in configuration?");
   } else {
-    throw ApiException("Either you submit just the 'content' field or you leave 'content' empty and submit the other fields.");
+    throw ApiException("Either you submit just the 'privatekey' field or you leave 'privatekey' empty and submit the other fields.");
   }
   apiZoneCryptokeysGET(zonename, insertedId, resp, dk);
   resp->status = 201;
