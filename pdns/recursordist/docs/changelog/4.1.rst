@@ -2,13 +2,155 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.0-rc3
+  :released: 17th of November 2017
+
+  The third Release Candidate adds support for Botan 2.x (and removes
+  support for Botan 1.10!), has a lot of DNSSEC fixes, features a
+  cleaned up web UI and has miscellaneous minor improvements.
+
+  .. change::
+    :tags: Internals, Bug Fixes
+    :pullreq: 5877
+    :tickets: 1066
+
+    Sort NS addresses by speed and remove old ones.
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 5498
+    :tickets: 2250, 5797
+
+    Add support for Botan 2.x and remove support for Botan 1.10.
+
+  .. change::
+    :tags: Internals, Bug Fixes
+    :pullreq: 5896
+
+    Purge ``nsSpeeds`` entries even if we get less than 2 new entries.
+
+  .. change::
+    :tags: DNSSEC, Bug Fixes
+    :pullreq: 5889
+
+    Prevent possible downgrade attacks in the recursor.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5876
+
+    Print more details of trust anchors. In addition, the
+    :ref:`setting-trace` output that mentions if data from authoritative
+    servers gets accepted now also prints the TTL and clarifies the
+    'place' number previously printed.
+
+  .. change::
+    :tags: DNSSEC, Bug Fixes
+    :pullreq: 5885
+    :tickets: 5882
+
+    Split NODATA / NXDOMAIN NSEC wildcard denial proof of
+    existence. Otherwise there is a very real risk that a NSEC will
+    cover a more specific wildcard and we end up with what looks like a
+    NXDOMAIN proof but is a NODATA one.
+
+  .. change::
+    :tags: DNSSEC, Bug Fixes
+    :pullreq: 5904
+
+    Fix incomplete validation of cached entries.
+
+  .. change::
+    :tags: DNSSEC, Bug Fixes
+    :pullreq: 5912
+
+    Fix going Insecure on NSEC3 hashes with too many iterations, since
+    we could have gone Bogus on a positive answer synthetized from a
+    wildcard if the corresponding NSEC3 had more iterations that we were
+    willing to accept, while the correct result is Insecure.
+
+  .. change::
+    :tags: Internals, Bug Fixes
+    :pullreq: 5881
+    :tickets: 5618
+
+    Add EDNS to truncated, servfail answers.
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 5616
+
+    Better support for deleting entries in ``NetmaskTree`` and
+    ``NetmaskGroup``.
+
+  .. change::
+    :tags: Internals, Bug Fixes
+    :pullreq: 5917
+
+    Use ``_exit()`` when we really really want to exit, for example
+    after a fatal error. This stops us dying while we die. A call to
+    ``exit()`` will trigger destructors, which may paradoxically stop
+    the process from exiting, taking down only one thread, but harming
+    the rest of the process.
+
+  .. change::
+    :tags: Lua, DNSSEC, Improvements
+    :pullreq: 5895
+    :tickets: 5888
+
+    Add the DNSSEC validation state to the ``DNSQuestion`` Lua object
+    (although the ability to update the validation state from these
+    hooks is postponed to after 4.1.0).
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5930
+
+    In the recursor secpoll code, we assumed the TXT record would be the
+    first record first record we received. Sometimes it was the RRSIG,
+    leading to a silent error, and no secpoll check. Fixed the
+    assumption, added an error.
+
+  .. change::
+    :tags: Internals, Bug Fixes
+    :pullreq: 5938
+
+    Don't crash when asked to run with zero threads.
+
+  .. change::
+    :tags: Internals, Bug Fixes
+    :pullreq: 5939
+    :tickets: 5934
+
+    Only accept types not matching the query if we asked for ANY. Even
+    from forward-recurse servers.
+
+  .. change::
+    :tags: Internals, Bug Fixes
+    :pullreq: 5937
+    :tickets: 2758
+
+    Allow the use of a 'self-resolving' NS if cached A / AAAA
+    exists. Before this, we could skip a perfectly valid NS for which we
+    had retrieved the A and / or AAAA entries, for example via a glue.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5961
+
+    Add the config-name argument to the definition of configname. There
+    was a bug where the config-name parameter was not used to change the
+    path of the config file. This meant that some commands via
+    rec_control (e.g. reload-acls) would fail when run against a
+    recursor which had config-name defined. The correct behaviour was
+    present in some, but not all, definitions of configname. (@jake2184)
+
+.. changelog::
   :version: 4.1.0-rc2
   :released: 30th of October 2017
 
   The second Release Candidate contains several correctness fixes for DNSSEC,
   mostly in the area of verifying negative responses.
-
-  Also thanks Christian Hofstaedtler for help on the documentation!
 
   .. change::
     :tags: API, Improvements
