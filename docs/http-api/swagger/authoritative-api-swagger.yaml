@@ -1,6 +1,6 @@
 swagger: '2.0'
 info:
-  version: "0.0.10"
+  version: "0.0.12"
   title: PowerDNS Authoritative HTTP API
   license:
     name: MIT
@@ -427,7 +427,7 @@ paths:
   '/servers/{server_id}/zones/{zone_id}/metadata':
     get:
       summary: Get all the MetaData associated with the zone.
-      operationId: listZoneMetadata
+      operationId: listMetadata
       tags:
         - zonemetadata
       parameters:
@@ -451,7 +451,7 @@ paths:
     post:
       summary: 'Creates a set of metadata entries'
       description: 'Creates a set of metadata entries of given kind for the zone. Existing metadata entries for the zone with the same kind are not overwritten.'
-      operationId: createZoneMetadata
+      operationId: createMetadata
       tags:
         - zonemetadata
       parameters:
@@ -479,7 +479,7 @@ paths:
   '/servers/{server_id}/zones/{zone_id}/metadata/{metadata_kind}':
     get:
       summary: Get the content of a single kind of domain metadata as a list of MetaData objects.
-      operationId: listZoneMetadataKind
+      operationId: getMetadata
       tags:
         - zonemetadata
       parameters:
@@ -505,7 +505,7 @@ paths:
             $ref: '#/definitions/Metadata'
     put:
       summary: 'Modify the content of a single kind of domain metadata.'
-      operationId: modifyZoneMetadataKind
+      operationId: modifyMetadata
       tags:
         - zonemetadata
       parameters:
@@ -534,7 +534,7 @@ paths:
           description: OK
     delete:
       summary: 'Delete all items of a single kind of domain metadata.'
-      operationId: deleteZoneMetadataKind
+      operationId: deleteMetadata
       tags:
         - zonemetadata
       parameters:
@@ -560,9 +560,9 @@ paths:
   '/servers/{server_id}/zones/{zone_id}/cryptokeys':
     get:
       summary: 'Get all CryptoKeys for a zone, except the privatekey'
-      operationId: listZoneCryptoKeys
+      operationId: listCryptokeys
       tags:
-        - cryptokey
+        - zonecryptokey
       parameters:
         - name: server_id
           in: path
@@ -576,7 +576,7 @@ paths:
           description: The id of the zone to retrieve
       responses:
         '200':
-          description: List of Metadata objects
+          description: List of Cryptokey objects
           schema:
             type: array
             items:
@@ -584,9 +584,9 @@ paths:
     post:
       summary: 'Creates a Cryptokey'
       description: 'This method adds a new key to a zone. The key can either be generated or imported by supplying the content parameter. if content, bits and algo are null, a key will be generated based on the default-ksk-algorithm and default-ksk-size settings for a KSK and the default-zsk-algorithm and default-zsk-size options for a ZSK.'
-      operationId: createCryptoKey
+      operationId: createCryptokey
       tags:
-        - cryptokey
+        - zonecryptokey
       parameters:
         - name: server_id
           in: path
@@ -597,8 +597,8 @@ paths:
           type: string
           in: path
           required: true
-        - name: metadata
-          description: List of metadata to add/create
+        - name: cryptokey
+          description: Add a Cryptokey
           required: true
           in: body
           schema:
@@ -614,7 +614,7 @@ paths:
       summary: 'Returns all data about the CryptoKey, including the privatekey.'
       operationId: listCryptokey
       tags:
-        - cryptokey
+        - zonecryptokey
       parameters:
         - name: server_id
           in: path
@@ -640,7 +640,7 @@ paths:
       summary: 'This method (de)activates a key from zone_name specified by cryptokey_id'
       operationId: modifyCryptokey
       tags:
-        - cryptokey
+        - zonecryptokey
       parameters:
         - name: server_id
           in: path
@@ -671,7 +671,7 @@ paths:
       summary: 'This method deletes a key specified by cryptokey_id.'
       operationId: deleteCryptokey
       tags:
-        - cryptokey
+        - zonecryptokey
       parameters:
         - name: server_id
           in: path
