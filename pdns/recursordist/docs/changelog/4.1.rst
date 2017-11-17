@@ -5,10 +5,9 @@ Changelogs for 4.1.x
   :version: 4.1.0-rc3
   :released: 17th of November 2017
 
-  The third Release Candidate contains …
-  - a cleaned up web UI
-
-  Also thanks to …
+  The third Release Candidate adds support for Botan 2.x (and removes
+  support for Botan 1.10!), has a lot of DNSSEC fixes, features a
+  cleaned up web UI and has miscellaneous minor improvements.
 
   .. change::
     :tags: Internals, Bug Fixes
@@ -22,7 +21,7 @@ Changelogs for 4.1.x
     :pullreq: 5498
     :tickets: 2250, 5797
 
-    Add support for Botan 2.x.
+    Add support for Botan 2.x and remove support for Botan 1.10.
 
   .. change::
     :tags: Internals, Bug Fixes
@@ -40,10 +39,10 @@ Changelogs for 4.1.x
     :tags: Improvements
     :pullreq: 5876
 
-    Print more details of trust anchors. In addition, the :ref:`--trace`
-    output that mentions if data from authoritative servers gets
-    accepted now also prints the TTL and clarifies the 'place' number
-    previously printed.
+    Print more details of trust anchors. In addition, the
+    :ref:`setting-trace` output that mentions if data from authoritative
+    servers gets accepted now also prints the TTL and clarifies the
+    'place' number previously printed.
 
   .. change::
     :tags: DNSSEC, Bug Fixes
@@ -56,7 +55,7 @@ Changelogs for 4.1.x
     NXDOMAIN proof but is a NODATA one.
 
   .. change::
-    :tags: Bug Fixes
+    :tags: DNSSEC, Bug Fixes
     :pullreq: 5904
 
     Fix incomplete validation of cached entries.
@@ -95,7 +94,7 @@ Changelogs for 4.1.x
     the rest of the process.
 
   .. change::
-    :tags: API, DNSSEC, Improvements
+    :tags: Lua, DNSSEC, Improvements
     :pullreq: 5895
     :tickets: 5888
 
@@ -135,14 +134,23 @@ Changelogs for 4.1.x
     exists. Before this, we could skip a perfectly valid NS for which we
     had retrieved the A and / or AAAA entries, for example via a glue.
 
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5961
+
+    Add the config-name argument to the definition of configname. There
+    was a bug where the config-name parameter was not used to change the
+    path of the config file. This meant that some commands via
+    rec_control (e.g. reload-acls) would fail when run against a
+    recursor which had config-name defined. The correct behaviour was
+    present in some, but not all, definitions of configname. (@jake2184)
+
 .. changelog::
   :version: 4.1.0-rc2
   :released: 30th of October 2017
 
   The second Release Candidate contains several correctness fixes for DNSSEC,
   mostly in the area of verifying negative responses.
-
-  Also thanks Christian Hofstaedtler for help on the documentation!
 
   .. change::
     :tags: API, Improvements
