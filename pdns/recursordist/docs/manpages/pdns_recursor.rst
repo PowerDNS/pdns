@@ -1,4 +1,4 @@
-pdns_server manual page
+pdns_recursor manual page
 =======================
 
 Synopsis
