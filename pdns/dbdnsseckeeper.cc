@@ -626,6 +626,10 @@ bool DNSSECKeeper::rectifyZone(const DNSName& zone, string& error, string& info,
   std::unique_ptr<UeberBackend> b;
 
   if (d_ourDB) {
+    if (!doTransaction) {
+      error = "Can not rectify a zone with a new Ueberbackend inside a transaction.";
+      return false;
+    }
     // We don't have a *full* Ueberbackend, just a key-only one.
     // Let's create one and use it
     b = std::unique_ptr<UeberBackend>(new UeberBackend());
