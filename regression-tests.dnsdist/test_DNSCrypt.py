@@ -140,13 +140,13 @@ class TestDNSCrypt(DNSCryptTest):
         # add that new certificate
         self.sendConsoleCommand("getDNSCryptBind(0):loadNewCertificate('DNSCryptResolver.cert.2', 'DNSCryptResolver.key.2')")
 
-        oldSerial = self.sendConsoleCommand("getDNSCryptBind(0):getCertificatePair(0):getCertificate():getSerial()")
+        oldSerial = self.sendConsoleCommand("getDNSCryptBind(0):getCertificate(0):getSerial()")
         self.assertEquals(int(oldSerial), self._resolverCertificateSerial)
-        effectiveSerial = self.sendConsoleCommand("getDNSCryptBind(0):getCertificatePair(1):getCertificate():getSerial()")
+        effectiveSerial = self.sendConsoleCommand("getDNSCryptBind(0):getCertificate(1):getSerial()")
         self.assertEquals(int(effectiveSerial), self._resolverCertificateSerial + 1)
-        tsStart = self.sendConsoleCommand("getDNSCryptBind(0):getCertificatePair(1):getCertificate():getTSStart()")
+        tsStart = self.sendConsoleCommand("getDNSCryptBind(0):getCertificate(1):getTSStart()")
         self.assertEquals(int(tsStart), self._resolverCertificateValidFrom)
-        tsEnd = self.sendConsoleCommand("getDNSCryptBind(0):getCertificatePair(1):getCertificate():getTSEnd()")
+        tsEnd = self.sendConsoleCommand("getDNSCryptBind(0):getCertificate(1):getTSEnd()")
         self.assertEquals(int(tsEnd), self._resolverCertificateValidUntil)
 
         # we should still be able to send queries with the previous certificate

@@ -144,6 +144,14 @@ Context
     :param int end: Unix timestamp from until the certificate is valid
     :param DNSCryptExchangeVersion version: The exchange version to use. Possible values are ``DNSCryptExchangeVersion::VERSION1`` (default, X25519-XSalsa20Poly1305) and ``DNSCryptExchangeVersion::VERSION2`` (X25519-XChacha20Poly1305)
 
+  .. method:: DNSCryptContext:getCertificate(index) -> DNSCryptCert
+
+    .. versionadded:: 1.3.0
+
+    Return the certificate with index `index`.
+
+    :param int index: The index of the certificate, starting at 0
+
   .. method:: DNSCryptContext:getCertificatePair(index) -> DNSCryptCertificatePair
 
     .. versionadded:: 1.3.0
@@ -158,32 +166,9 @@ Context
 
     Return a table of certificate pairs.
 
-  .. method:: DNSCryptContext:getCurrentCertificate() -> DNSCryptCert
-
-    .. deprecated:: 1.3.0
-
-    Return the current certificate. Deprecated as of 1.3.0 since more than one active certificate
-    is now supported. For compatibility, it will return the first active certificate.
-
-  .. method:: DNSCryptContext:getOldCertificate() -> DNSCryptCert
-
-    .. deprecated:: 1.3.0
-
-    Return the previous certificate. Deprecated as of 1.3.0 since more than one inactive certificate
-    is now supported. For compatibility, it will return the first inactive certificate.
-
   .. method:: DNSCryptContext:getProviderName() -> string
 
     Return the provider name
-
-  .. method:: DNSCryptContext:hasOldCertificate() -> bool
-
-    .. deprecated:: 1.3.0
-
-    Whether or not the context has a previous certificate, from a certificate rotation. Since
-    1.3.0 several certificates active and inactive certificates can be used at the same time,
-    so this function is deprecated. In order to keep compatibility this function will simply
-    return `true` if at least one inactive certificate is configured.
 
   .. method:: DNSCryptContext:loadNewCertificate(certificate, keyfile[, active])
 
