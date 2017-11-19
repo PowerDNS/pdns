@@ -832,6 +832,24 @@ bool readFileIfThere(const char* fname, std::string* line)
   return true;
 }
 
+bool readWholeFileIfThere(const std::string& fname, std::string* content)
+{
+  content->clear();
+  FILE* ptr = fopen(fname.c_str(), "r");
+  if(!ptr)
+    return false;
+  std::shared_ptr<FILE> fp(ptr, fclose);
+  
+  char buffer[4096];
+  int bytes;
+  while((bytes=fread(buffer, 1, 4096, fp.get()))) {
+    content->append(buffer,bytes);
+  }
+
+  return true;
+}
+
+
 Regex::Regex(const string &expr)
 {
   if(regcomp(&d_preg, expr.c_str(), REG_ICASE|REG_NOSUB|REG_EXTENDED))
