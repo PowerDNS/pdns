@@ -604,7 +604,7 @@ BOOST_AUTO_TEST_CASE(test_compare_canonical) {
   }
   sort(vec.begin(), vec.end(), CanonDNSNameCompare());
   //  for(const auto& v : vec)
-  //    cerr<<'"'<<v.toString()<<'"'<<endl;
+  //    cerr<<'"'<<v<<'"'<<endl;
 
   vector<DNSName> right;
   for(const auto& b: {"bert.com.",  "Aleph1.powerdns.com.",

@@ -109,7 +109,7 @@ void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngine::Zon
     else if(!crcTarget.empty() && !crcTarget.isRoot() && crcTarget.getRawLabel(crcTarget.countLabels() - 1).compare(0, rpzPrefix.length(), rpzPrefix) == 0) {
       /* this is very likely an higher format number or a configuration error,
          let's just ignore it. */
-      L<<Logger::Info<<"Discarding unsupported RPZ entry "<<crcTarget.toString()<<" for "<<dr.d_name<<endl;
+      L<<Logger::Info<<"Discarding unsupported RPZ entry "<<crcTarget<<" for "<<dr.d_name<<endl;
       return;
     }
     else {

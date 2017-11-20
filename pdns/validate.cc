@@ -333,7 +333,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
         */
         if (nsec->d_set.count(QType::NS) && !nsec->d_set.count(QType::SOA) &&
             signer.countLabels() < owner.countLabels()) {
-          LOG("type is "<<QType(qtype).getName()<<", NS is "<<std::to_string(nsec->d_set.count(QType::NS))<<", SOA is "<<std::to_string(nsec->d_set.count(QType::SOA))<<", signer is "<<signer.toString()<<", owner name is "<<owner.toString()<<endl);
+          LOG("type is "<<QType(qtype).getName()<<", NS is "<<std::to_string(nsec->d_set.count(QType::NS))<<", SOA is "<<std::to_string(nsec->d_set.count(QType::SOA))<<", signer is "<<signer<<", owner name is "<<owner<<endl);
           /* this is an "ancestor delegation" NSEC RR */
           if (qname == owner && qtype != QType::DS) {
             LOG("An ancestor delegation NSEC RR can only deny the existence of a DS"<<endl);
@@ -445,7 +445,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
         */
         if (nsec3->d_set.count(QType::NS) && !nsec3->d_set.count(QType::SOA) &&
             signer.countLabels() < v.first.first.countLabels()) {
-          LOG("type is "<<QType(qtype).getName()<<", NS is "<<std::to_string(nsec3->d_set.count(QType::NS))<<", SOA is "<<std::to_string(nsec3->d_set.count(QType::SOA))<<", signer is "<<signer.toString()<<", owner name is "<<v.first.first.toString()<<endl);
+          LOG("type is "<<QType(qtype).getName()<<", NS is "<<std::to_string(nsec3->d_set.count(QType::NS))<<", SOA is "<<std::to_string(nsec3->d_set.count(QType::SOA))<<", signer is "<<signer<<", owner name is "<<v.first.first<<endl);
           /* this is an "ancestor delegation" NSEC3 RR */
           if (beginHash == h && qtype != QType::DS) {
             LOG("An ancestor delegation NSEC3 RR can only deny the existence of a DS"<<endl);
@@ -909,7 +909,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, skeyset_t& keyset)
         lowestNTA = negAnchor.first;
 
     if(!lowestNTA.empty()) {
-      LOG("Found a Negative Trust Anchor for "<<lowestNTA.toStringRootDot()<<", which was added with reason '"<<negAnchors.at(lowestNTA)<<"', ");
+      LOG("Found a Negative Trust Anchor for "<<lowestNTA<<", which was added with reason '"<<negAnchors.at(lowestNTA)<<"', ");
 
       /* RFC 7646 section 2.1 tells us that we SHOULD still validate if there
        * is a Trust Anchor below the Negative Trust Anchor for the name we
@@ -920,7 +920,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, skeyset_t& keyset)
         LOG("marking answer Insecure"<<endl);
         return NTA; // Not Insecure, this way validateRecords() can shortcut
       }
-      LOG("but a Trust Anchor for "<<lowestTA.toStringRootDot()<<" is configured, continuing validation."<<endl);
+      LOG("but a Trust Anchor for "<<lowestTA<<" is configured, continuing validation."<<endl);
     }
   }
 
