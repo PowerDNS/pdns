@@ -1590,9 +1590,12 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsi
        * digests if DS RRs with SHA-256 digests are present in the DS RRset."
        * As SHA348 is specified as well, the spirit of the this line is "use the best algorithm".
        */
-      for (const auto& dsrec : ds) {
-        if (dsrec.d_digesttype != bestDigestType) {
-          ds.erase(dsrec);
+      for (auto dsrec = ds.begin(); dsrec != ds.end(); ) {
+        if (dsrec->d_digesttype != bestDigestType) {
+          dsrec = ds.erase(dsrec);
+        }
+        else {
+          ++dsrec;
         }
       }
 
