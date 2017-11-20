@@ -1030,7 +1030,7 @@ void SyncRes::computeNegCacheValidationStatus(NegCache::NegCacheEntry& ne, const
 
   if (state == Secure) {
     dState expectedState = res == RCode::NXDomain ? NXDOMAIN : NXQTYPE;
-    dState denialState = getDenialValidationState(ne, state, expectedState, qtype == QType::DS);
+    dState denialState = getDenialValidationState(ne, state, expectedState, false);
     updateDenialValidationState(ne, state, denialState, expectedState, qtype == QType::DS);
   }
   if (state != Indeterminate) {
