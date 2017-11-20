@@ -356,11 +356,11 @@ BOOST_AUTO_TEST_CASE(test_clear) {
 BOOST_AUTO_TEST_CASE(test_dumpToFile) {
   NegCache cache;
   vector<string> expected;
-  expected.push_back("www1.powerdns.com. 600 IN TYPE0 VIA powerdns.com.\n");
-  expected.push_back("www1.powerdns.com. 600 IN ENT deadbeef. ; (Indeterminate)\n");
+  expected.push_back("www1.powerdns.com. 600 IN TYPE0 VIA powerdns.com. ; (Indeterminate)\n");
+  expected.push_back("www1.powerdns.com. 600 IN NSEC deadbeef. ; (Indeterminate)\n");
   expected.push_back("www1.powerdns.com. 600 IN RRSIG NSEC 5 3 600 21000101000000 21000101000000 24567 dummy. data ;\n");
-  expected.push_back("www2.powerdns.com. 600 IN TYPE0 VIA powerdns.com.\n");
-  expected.push_back("www2.powerdns.com. 600 IN ENT deadbeef. ; (Indeterminate)\n");
+  expected.push_back("www2.powerdns.com. 600 IN TYPE0 VIA powerdns.com. ; (Indeterminate)\n");
+  expected.push_back("www2.powerdns.com. 600 IN NSEC deadbeef. ; (Indeterminate)\n");
   expected.push_back("www2.powerdns.com. 600 IN RRSIG NSEC 5 3 600 21000101000000 21000101000000 24567 dummy. data ;\n");
 
   struct timeval now;
