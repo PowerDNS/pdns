@@ -258,6 +258,9 @@ bool Resolver::tryGetSOASerial(DNSName *domain, uint32_t *theirSerial, uint32_t 
   *id=mdp.d_header.id;
   *domain = mdp.d_qname;
   
+  if(domain->empty())
+    throw ResolverException("SOA query to '" + fromaddr.toStringWithPort() + "' produced response without domain name (RCode: " + RCode::to_s(mdp.d_header.rcode) + ")");
+
   if(mdp.d_answers.empty())
     throw ResolverException("Query to '" + fromaddr.toStringWithPort() + "' for SOA of '" + domain->toString() + "' produced no results (RCode: " + RCode::to_s(mdp.d_header.rcode) + ")");
   
