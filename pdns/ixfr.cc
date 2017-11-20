@@ -51,7 +51,7 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > > processIXFRRecords(const Co
 
     auto sr = getRR<SOARecordContent>(records[pos]);
     if (!sr) {
-      throw std::runtime_error("Error getting the content of the first SOA record of this IXFR sequence for zone '"+zone.toString()+"' from master '"+master.toStringWithPort()+"'");
+      throw std::runtime_error("Error getting the content of the first SOA record of this IXFR sequence for zone '"+zone.toLogString()+"' from master '"+master.toStringWithPort()+"'");
     }
 
     // cerr<<"Serial is "<<sr->d_st.serial<<", final serial is "<<masterSOA->d_st.serial<<endl;
@@ -71,12 +71,12 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > > processIXFRRecords(const Co
     }
 
     if (pos >= records.size()) {
-      throw std::runtime_error("No SOA record to finish the removals part of the IXFR sequence of zone '" + zone.toString() + "' from " + master.toStringWithPort());
+      throw std::runtime_error("No SOA record to finish the removals part of the IXFR sequence of zone '" + zone.toLogString() + "' from " + master.toStringWithPort());
     }
 
     sr = getRR<SOARecordContent>(records[pos]);
     if (!sr) {
-      throw std::runtime_error("Invalid SOA record to finish the removals part of the IXFR sequence of zone '" + zone.toString() + "' from " + master.toStringWithPort());
+      throw std::runtime_error("Invalid SOA record to finish the removals part of the IXFR sequence of zone '" + zone.toLogString() + "' from " + master.toStringWithPort());
     }
 
     // this is the serial of the zone after the removals
@@ -91,22 +91,22 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > > processIXFRRecords(const Co
     }
 
     if (pos >= records.size()) {
-      throw std::runtime_error("No SOA record to finish the additions part of the IXFR sequence of zone '" + zone.toString() + "' from " + master.toStringWithPort());
+      throw std::runtime_error("No SOA record to finish the additions part of the IXFR sequence of zone '" + zone.toLogString() + "' from " + master.toStringWithPort());
     }
 
     sr = getRR<SOARecordContent>(records[pos]);
     if (!sr) {
-      throw std::runtime_error("Invalid SOA record to finish the additions part of the IXFR sequence of zone '" + zone.toString() + "' from " + master.toStringWithPort());
+      throw std::runtime_error("Invalid SOA record to finish the additions part of the IXFR sequence of zone '" + zone.toLogString() + "' from " + master.toStringWithPort());
     }
 
     if (sr->d_st.serial != newSerial) {
-      throw std::runtime_error("Invalid serial (" + std::to_string(sr->d_st.serial) + ", expecting " + std::to_string(newSerial) + ") in the SOA record finishing the additions part of the IXFR sequence of zone '" + zone.toString() + "' from " + master.toStringWithPort());
+      throw std::runtime_error("Invalid serial (" + std::to_string(sr->d_st.serial) + ", expecting " + std::to_string(newSerial) + ") in the SOA record finishing the additions part of the IXFR sequence of zone '" + zone.toLogString() + "' from " + master.toStringWithPort());
     }
 
     if (newSerial == masterSOA->d_st.serial) {
       // this was the last sequence
       if (pos != (records.size() - 1)) {
-        throw std::runtime_error("Trailing records after the last IXFR sequence of zone '" + zone.toString() + "' from " + master.toStringWithPort());
+        throw std::runtime_error("Trailing records after the last IXFR sequence of zone '" + zone.toLogString() + "' from " + master.toStringWithPort());
       }
     }
 
@@ -138,7 +138,7 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > > getIXFRDeltas(const ComboAd
     try {
       trc.d_algoName = getTSIGAlgoName(the);
     } catch(PDNSException& pe) {
-      throw std::runtime_error("TSIG algorithm '"+tt.algo.toString()+"' is unknown.");
+      throw std::runtime_error("TSIG algorithm '"+tt.algo.toLogString()+"' is unknown.");
     }
     trc.d_time = time((time_t*)NULL);
     trc.d_fudge = 300;
@@ -179,7 +179,7 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > > getIXFRDeltas(const ComboAd
       break;
 
     if (maxReceivedBytes > 0 && (maxReceivedBytes - receivedBytes) < (size_t) len)
-      throw std::runtime_error("Reached the maximum number of received bytes in an IXFR delta for zone '"+zone.toString()+"' from master "+master.toStringWithPort());
+      throw std::runtime_error("Reached the maximum number of received bytes in an IXFR delta for zone '"+zone.toLogString()+"' from master "+master.toStringWithPort());
 
     char reply[len]; 
     readn2(s.getHandle(), reply, len);
@@ -187,7 +187,7 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > > getIXFRDeltas(const ComboAd
 
     MOADNSParser mdp(false, string(reply, len));
     if(mdp.d_header.rcode) 
-      throw std::runtime_error("Got an error trying to IXFR zone '"+zone.toString()+"' from master '"+master.toStringWithPort()+"': "+RCode::to_s(mdp.d_header.rcode));
+      throw std::runtime_error("Got an error trying to IXFR zone '"+zone.toLogString()+"' from master '"+master.toStringWithPort()+"': "+RCode::to_s(mdp.d_header.rcode));
 
     //    cout<<"Got a response, rcode: "<<mdp.d_header.rcode<<", got "<<mdp.d_answers.size()<<" answers"<<endl;
 
@@ -200,12 +200,12 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > > getIXFRDeltas(const ComboAd
       if(!masterSOA) {
         // we have not seen the first SOA record yet
         if (r.first.d_type != QType::SOA) {
-          throw std::runtime_error("The first record of the IXFR answer for zone '"+zone.toString()+"' from master '"+master.toStringWithPort()+"' is not a SOA ("+QType(r.first.d_type).getName()+")");
+          throw std::runtime_error("The first record of the IXFR answer for zone '"+zone.toLogString()+"' from master '"+master.toStringWithPort()+"' is not a SOA ("+QType(r.first.d_type).getName()+")");
         }
 
 	auto sr = getRR<SOARecordContent>(r.first);
 	if (!sr) {
-          throw std::runtime_error("Error getting the content of the first SOA record of the IXFR answer for zone '"+zone.toString()+"' from master '"+master.toStringWithPort()+"'");
+          throw std::runtime_error("Error getting the content of the first SOA record of the IXFR answer for zone '"+zone.toLogString()+"' from master '"+master.toStringWithPort()+"'");
         }
 
         if(sr->d_st.serial == std::dynamic_pointer_cast<SOARecordContent>(oursr.d_content)->d_st.serial) {
@@ -222,7 +222,7 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > > getIXFRDeltas(const ComboAd
         if(r.first.d_type == QType::OPT)
           continue;
 
-        throw std::runtime_error("Unexpected record (" +QType(r.first.d_type).getName()+") in non-answer section ("+std::to_string(r.first.d_place)+")in IXFR response for zone '"+zone.toString()+"' from master '"+master.toStringWithPort());
+        throw std::runtime_error("Unexpected record (" +QType(r.first.d_type).getName()+") in non-answer section ("+std::to_string(r.first.d_place)+")in IXFR response for zone '"+zone.toLogString()+"' from master '"+master.toStringWithPort());
       }
 
       r.first.d_name.makeUsRelative(zone);

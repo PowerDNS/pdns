@@ -625,7 +625,7 @@ static const vector<DNSName> getZoneCuts(const DNSName& begin, const DNSName& en
 {
   vector<DNSName> ret;
   if(!begin.isPartOf(end))
-    throw PDNSException(end.toLogString() + "is not part of " + begin.toString());
+    throw PDNSException(end.toLogString() + "is not part of " + begin.toLogString());
 
   DNSName qname(end);
   vector<string> labelsToAdd = begin.makeRelative(end).getRawLabels();

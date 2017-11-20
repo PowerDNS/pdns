@@ -696,14 +696,14 @@ void addTSIG(DNSPacketWriter& pw, TSIGRecordContent& trc, const DNSName& tsigkey
 {
   TSIGHashEnum algo;
   if (!getTSIGHashEnum(trc.d_algoName, algo)) {
-    throw PDNSException(string("Unsupported TSIG HMAC algorithm ") + trc.d_algoName.toString());
+    throw PDNSException(string("Unsupported TSIG HMAC algorithm ") + trc.d_algoName.toLogString());
   }
 
   string toSign = makeTSIGPayload(tsigprevious, reinterpret_cast<const char*>(pw.getContent().data()), pw.getContent().size(), tsigkeyname, trc, timersonly);
 
   if (algo == TSIG_GSS) {
     if (!gss_add_signature(tsigkeyname, toSign, trc.d_mac)) {
-      throw PDNSException(string("Could not add TSIG signature with algorithm 'gss-tsig' and key name '")+tsigkeyname.toString()+string("'"));
+      throw PDNSException(string("Could not add TSIG signature with algorithm 'gss-tsig' and key name '")+tsigkeyname.toLogString()+string("'"));
     }
   } else {
     trc.d_mac = calculateHMAC(tsigsecret, toSign, algo);
@@ -723,16 +723,16 @@ bool validateTSIG(const std::string& packet, size_t sigPos, const TSIGTriplet& t
 
   TSIGHashEnum algo;
   if (!getTSIGHashEnum(trc.d_algoName, algo)) {
-    throw std::runtime_error("Unsupported TSIG HMAC algorithm " + trc.d_algoName.toString());
+    throw std::runtime_error("Unsupported TSIG HMAC algorithm " + trc.d_algoName.toLogString());
   }
 
   TSIGHashEnum expectedAlgo;
   if (!getTSIGHashEnum(tt.algo, expectedAlgo)) {
-    throw std::runtime_error("Unsupported TSIG HMAC algorithm expected " + tt.algo.toString());
+    throw std::runtime_error("Unsupported TSIG HMAC algorithm expected " + tt.algo.toLogString());
   }
 
   if (algo != expectedAlgo) {
-    throw std::runtime_error("Signature with TSIG key '"+tt.name.toString()+"' does not match the expected algorithm (" + tt.algo.toString() + " / " + trc.d_algoName.toString() + ")");
+    throw std::runtime_error("Signature with TSIG key '"+tt.name.toLogString()+"' does not match the expected algorithm (" + tt.algo.toLogString() + " / " + trc.d_algoName.toLogString() + ")");
   }
 
   string tsigMsg;
@@ -741,13 +741,13 @@ bool validateTSIG(const std::string& packet, size_t sigPos, const TSIGTriplet& t
   if (algo == TSIG_GSS) {
     GssContext gssctx(tt.name);
     if (!gss_verify_signature(tt.name, tsigMsg, theirMAC)) {
-      throw std::runtime_error("Signature with TSIG key '"+tt.name.toString()+"' failed to validate");
+      throw std::runtime_error("Signature with TSIG key '"+tt.name.toLogString()+"' failed to validate");
     }
   } else {
     string ourMac = calculateHMAC(tt.secret, tsigMsg, algo);
 
     if(!constantTimeStringEquals(ourMac, theirMAC)) {
-      throw std::runtime_error("Signature with TSIG key '"+tt.name.toString()+"' failed to validate");
+      throw std::runtime_error("Signature with TSIG key '"+tt.name.toLogString()+"' failed to validate");
     }
   }
 

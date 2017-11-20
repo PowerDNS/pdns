@@ -16,7 +16,7 @@ static Netmask makeNetmaskFromRPZ(const DNSName& name)
    * Terrible right?
    */
   if(parts.size() < 2 || parts.size() > 9)
-    throw PDNSException("Invalid IP address in RPZ: "+name.toString());
+    throw PDNSException("Invalid IP address in RPZ: "+name.toLogString());
 
   bool isV6 = (stoi(parts[0]) > 32);
   bool hadZZ = false;
@@ -29,7 +29,7 @@ static Netmask makeNetmaskFromRPZ(const DNSName& name)
 
     if (pdns_iequals(part,"zz")) {
       if (hadZZ)
-        throw PDNSException("more than one 'zz' label found in RPZ name"+name.toString());
+        throw PDNSException("more than one 'zz' label found in RPZ name"+name.toLogString());
       part = "";
       isV6 = true;
       hadZZ = true;
@@ -37,7 +37,7 @@ static Netmask makeNetmaskFromRPZ(const DNSName& name)
   }
 
   if (isV6 && parts.size() < 9 && !hadZZ)
-    throw PDNSException("No 'zz' label found in an IPv6 RPZ name shorter than 9 elements: "+name.toString());
+    throw PDNSException("No 'zz' label found in an IPv6 RPZ name shorter than 9 elements: "+name.toLogString());
 
   if (parts.size() == 5 && !isV6)
     return Netmask(parts[4]+"."+parts[3]+"."+parts[2]+"."+parts[1]+"/"+parts[0]);
@@ -238,7 +238,7 @@ void loadRPZFromFile(const std::string& fname, std::shared_ptr<DNSFilterEngine::
       }
     }
     catch(const PDNSException& pe) {
-      throw PDNSException("Issue parsing '"+drr.qname.toString()+"' '"+drr.content+"' at "+zpt.getLineOfFile()+": "+pe.reason);
+      throw PDNSException("Issue parsing '"+drr.qname.toLogString()+"' '"+drr.content+"' at "+zpt.getLineOfFile()+": "+pe.reason);
     }
   }
 }

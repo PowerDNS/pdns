@@ -685,7 +685,7 @@ struct SlaveSenderReceiver
       }
     }
     catch(PDNSException& e) {
-      throw runtime_error("While attempting to query freshness of '"+dni.di.zone.toString()+"': "+e.reason);
+      throw runtime_error("While attempting to query freshness of '"+dni.di.zone.toLogString()+"': "+e.reason);
     }
   }
 

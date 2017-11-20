@@ -1674,8 +1674,8 @@ bool SyncRes::lookForCut(const DNSName& qname, unsigned int depth, const vState 
 void SyncRes::computeZoneCuts(const DNSName& begin, const DNSName& end, unsigned int depth)
 {
   if(!begin.isPartOf(end)) {
-    LOG(d_prefix<<" "<<begin.toLogString()<<" is not part of "<<end.toString()<<endl);
-    throw PDNSException(begin.toLogString() + " is not part of " + end.toString());
+    LOG(d_prefix<<" "<<begin.toLogString()<<" is not part of "<<end.toLogString()<<endl);
+    throw PDNSException(begin.toLogString() + " is not part of " + end.toLogString());
   }
 
   if (d_cutStates.count(begin) != 0) {

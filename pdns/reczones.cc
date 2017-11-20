@@ -438,10 +438,10 @@ std::shared_ptr<SyncRes::domainmap_t> parseAuthAndForwards()
 	    dr.d_place=DNSResourceRecord::ANSWER;
           }
           catch(std::exception &e) {
-            throw PDNSException("Error parsing record '"+rr.qname.toString()+"' of type "+rr.qtype.getName()+" in zone '"+headers.first+"' from file '"+headers.second+"': "+e.what());
+            throw PDNSException("Error parsing record '"+rr.qname.toLogString()+"' of type "+rr.qtype.getName()+" in zone '"+headers.first+"' from file '"+headers.second+"': "+e.what());
           }
           catch(...) {
-            throw PDNSException("Error parsing record '"+rr.qname.toString()+"' of type "+rr.qtype.getName()+" in zone '"+headers.first+"' from file '"+headers.second+"'");
+            throw PDNSException("Error parsing record '"+rr.qname.toLogString()+"' of type "+rr.qtype.getName()+" in zone '"+headers.first+"' from file '"+headers.second+"'");
           }
 
           ad.d_records.insert(dr);
