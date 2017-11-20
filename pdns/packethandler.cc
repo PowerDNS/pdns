@@ -1288,7 +1288,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
         if(rec->d_type != QType::CNAME && rec->d_type != p->qtype.getCode())
           continue;
         
-        auto recvec=luaSynth(rec->getCode(), target, sd.qname, sd.domain_id, p->getRemote(), rec->d_type);
+        auto recvec=luaSynth(rec->getCode(), target, sd.qname, sd.domain_id, p->getRemote(), p->getRealRemote(), rec->d_type);
         if(!recvec.empty()) {
           for(const auto& r : recvec) {
             rr.dr.d_type = rec->d_type; // might be CNAME
