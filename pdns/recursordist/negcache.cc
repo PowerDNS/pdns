@@ -186,9 +186,9 @@ uint64_t NegCache::dumpToFile(FILE* fp) {
   negcache_sequence_t& sidx = d_negcache.get<1>();
   for(const NegCacheEntry& ne : sidx) {
     ret++;
-    fprintf(fp, "%s %d IN %s VIA %s\n", ne.d_name.toString().c_str(), (unsigned int) (ne.d_ttd - now), ne.d_qtype.getName().c_str(), ne.d_auth.toString().c_str());
+    fprintf(fp, "%s %d IN %s VIA %s ; (%s)\n", ne.d_name.toString().c_str(), (unsigned int) (ne.d_ttd - now), ne.d_qtype.getName().c_str(), ne.d_auth.toString().c_str(), vStates[ne.d_validationState]);
     for (const auto& rec : ne.DNSSECRecords.records) {
-      fprintf(fp, "%s %" PRId64 " IN %s %s ; (%s)\n", ne.d_name.toString().c_str(), static_cast<int64_t>(ne.d_ttd - now), DNSRecordContent::NumberToType(ne.d_qtype.getCode()).c_str(), rec.d_content->getZoneRepresentation().c_str(), vStates[ne.d_validationState]);
+      fprintf(fp, "%s %" PRId64 " IN %s %s ; (%s)\n", ne.d_name.toString().c_str(), static_cast<int64_t>(ne.d_ttd - now), DNSRecordContent::NumberToType(rec.d_type).c_str(), rec.d_content->getZoneRepresentation().c_str(), vStates[ne.d_validationState]);
     }
     for (const auto& sig : ne.DNSSECRecords.signatures) {
       fprintf(fp, "%s %" PRId64 " IN RRSIG %s ;\n", ne.d_name.toString().c_str(), static_cast<int64_t>(ne.d_ttd - now), sig.d_content->getZoneRepresentation().c_str());
