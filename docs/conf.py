@@ -34,7 +34,7 @@ import guzzle_sphinx_theme
 # ones.
 #extensions = []
 #extensions = ['redjack.sphinx.lua', 'sphinxcontrib.httpdomain', 'sphinxjsondomain']
-extensions = ['sphinxcontrib.httpdomain', 'sphinxjsondomain',
+extensions = ['sphinxcontrib.openapi',
               'sphinxcontrib.fulltoc', 'changelog']
 
 # Add any paths that contain templates here, relative to this directory.
@@ -77,7 +77,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store',
                     '.venv',
                     'security-advisories/security-policy.rst',
                     'common/secpoll.rst',
-                    'common/api/zone.rst']
+                    'common/api/*']
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
