@@ -13,6 +13,9 @@ LIBSODIUM_DEV := , libsodium-dev
 ENABLE_SYSTEMD := --enable-systemd --with-systemd=/lib/systemd/system
 LIBSYSTEMD_DEV := , libsystemd-dev
 DEBHELPER_WITH_SYSTEMD := --with systemd
+DH_INSTALLINIT_OVERRIDE := dh_systemd_start --restart-after-upgrade dnsdist.service # Do not stop the service in prerm, but restart during postinst on upgrade
+PREPARE_SERVICE := sed -i 's!^ExecStart.*!& -u _dnsdist -g _dnsdist!' dnsdist.service.in
+FILES_SYSTEMD := 'lib/systemd/system/dnsdist*'
 
 ENABLE_RE2 := --enable-re2
 LIBRE2_DEV := , libre2-dev
@@ -28,6 +31,9 @@ ifeq ($(ID), ubuntu)
     DEBHELPER_WITH_SYSTEMD=
     ENABLE_RE2=
     LIBRE2_DEV=
+    DH_INSTALLINIT_OVERRIDE=true
+    PREPARE_SERVICE=true
+    FILES_SYSTEMD=''
   endif
 endif
 
@@ -36,6 +42,10 @@ debian/control: debian/control.in
 	    -e "s!@LIBSYSTEMDDEV@!$(LIBSYSTEMD_DEV)!" \
 	    -e "s!@LIBRE2DEV@!$(LIBRE2_DEV)!" $< > $@
 
+debian/dnsdist.install: debian/dnsdist.install.in
+	cp $< $@
+	echo $(FILES_SYSTEMD) >> $@
+
 %:
 	dh $@ \
 	  --with autotools-dev \
@@ -43,6 +53,7 @@ debian/control: debian/control.in
 	  $(DEBHELPER_WITH_SYSTEMD)
 
 override_dh_auto_configure:
+	$(PREPARE_SERVICE)
 	./configure \
 	  --host=$(DEB_HOST_GNU_TYPE) \
 	  --build=$(DEB_BUILD_GNU_TYPE) \
@@ -67,3 +78,7 @@ override_dh_strip:
 
 override_dh_auto_test:
 	$(MAKE) check || (cat test-suite.log && false)
+
+override_dh_installinit:
+	dh_installinit
+	$(DH_INSTALLINIT_OVERRIDE)
