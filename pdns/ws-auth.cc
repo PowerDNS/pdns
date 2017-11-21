@@ -1709,7 +1709,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
     throw;
   }
 
-  DNSSECKeeper dk;
+  DNSSECKeeper dk(&B);
   string api_rectify;
   di.backend->getDomainMetadataOne(zonename, "API-RECTIFY", api_rectify);
   if (dk.isSecuredZone(zonename) && !dk.isPresigned(zonename) && api_rectify == "1") {
