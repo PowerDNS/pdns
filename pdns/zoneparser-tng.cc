@@ -465,7 +465,6 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
     } catch (std::exception &e) {
       throw PDNSException("Error in record '" + rr.qname.toString() + " " + rr.qtype.getName() + "': " + e.what());
     }
-    rr.content=toCanonic(d_zonename, rr.content).toStringRootDot();
     break;
   case QType::AFSDB:
     stringtok(recparts, rr.content);
