@@ -361,6 +361,23 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp, bool doRRSets)
   di.backend->getDomainMetadataOne(zonename, "API-RECTIFY", api_rectify);
   doc["api_rectify"] = (api_rectify == "1");
 
+  // TSIG
+  vector<string> tsig_master, tsig_slave;
+  di.backend->getDomainMetadata(zonename, "TSIG-ALLOW-AXFR", tsig_master);
+  di.backend->getDomainMetadata(zonename, "AXFR-MASTER-TSIG", tsig_slave);
+
+  Json::array tsig_master_keys;
+  for (const auto& keyname : tsig_master) {
+    tsig_master_keys.push_back(apiZoneNameToId(DNSName(keyname)));
+  }
+  doc["master_tsig_key_ids"] = tsig_master_keys;
+
+  Json::array tsig_slave_keys;
+  for (const auto& keyname : tsig_slave) {
+    tsig_slave_keys.push_back(apiZoneNameToId(DNSName(keyname)));
+  }
+  doc["slave_tsig_key_ids"] = tsig_slave_keys;
+
   if (doRRSets) {
     vector<DNSResourceRecord> records;
     vector<Comment> comments;
