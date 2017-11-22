@@ -14,21 +14,18 @@ These endpoints allow for the manipulation of DNSSEC crypto material.
 
 .. http:post:: /api/v1/servers/:server_id/zones/:zone_id/cryptokeys
 
-  This method adds a new key to a zone.
-  The key can either be generated or imported by supplying the ``content`` parameter.
+  This method adds a new key to a zone, POST data should be a :json:object:`CryptoKey`.
+  But not all fields needs to be present:
 
-  if ``content``, ``bits`` and ``algo`` are null, a key will be generated based
+  The key can either be generated or imported by supplying the ``privatekey`` parameter.
+
+  if ``privatekey``, ``bits`` and ``algorithm`` are null, a key will be generated based
   on the :ref:`setting-default-ksk-algorithm` and :ref:`setting-default-ksk-size`
   settings for a KSK and the :ref:`setting-default-zsk-algorithm` and :ref:`setting-default-zsk-size`
   options for a ZSK.
 
   :param server_id: The name of the server
   :param zone_id: The id value of the :json:object:`Zone`
-  :reqjson string content: The private key to use (The format used is compatible with BIND and NSD/LDNS)
-  :reqjson string keytype: Either "ksk" or "zsk"
-  :reqjson bool active: If not set the key will not be active by default
-  :reqjson int bits: Number of bits in the key (if ``content`` is not set)
-  :reqjson int,string algo: The DNSSEC algorithm (if ``content`` is not set), see :ref:`dnssec-supported-algos`
   :statuscode 201: Everything was fine, returns all public data as a :json:object:`CryptoKey`.
   :statuscode 422: Returned when something is wrong with the content of the request.
                    Contains an error message
@@ -44,7 +41,8 @@ These endpoints allow for the manipulation of DNSSEC crypto material.
 
 .. http:put:: /api/v1/servers/:server_id/zones/:zone_name/cryptokeys/:cryptokey_id
 
-  This method (de)activates a key from ``zone_name`` specified by ``cryptokey_id``.
+  This method changes a key from ``zone_name`` specified by ``cryptokey_id``.
+  At this time, only changing the ``active`` parameter is supported.
 
   :param string server_id: The name of the server
   :param string zone_id: The id value of the :json:object:`Zone`

@@ -1653,6 +1653,8 @@ class AuthZoneKeys(ApiTestCase, AuthZonesHelperMixin):
         del key0['dnskey']
         del key0['ds']
         expected = {
+            u'algorithm': u'ECDSAP256SHA256',
+            u'bits': 256,
             u'active': True,
             u'type': u'Cryptokey',
             u'keytype': u'csk',
