@@ -56,19 +56,19 @@ Number of currently used file descriptors.
 
 latency-avg100
 --------------
-Average response latency of the last 100 packets.
+Average response latency in microseconds of the last 100 packets
 
 latency-avg1000
 ---------------
-Average response latency of the last 1000 packets.
+Average response latency in microseconds of the last 1000 packets.
 
 latency-avg10000
 ----------------
-Average response latency of the last 10000 packets.
+Average response latency in microseconds of the last 10000 packets.
 
 latency-avg1000000
 ------------------
-Average response latency of the last 1000000 packets.
+Average response latency in microseconds of the last 1000000 packets.
 
 latency-slow
 ------------
