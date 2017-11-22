@@ -298,7 +298,7 @@ static bool provesNSEC3NoWildCard(DNSName wildcard, uint16_t const qtype, const 
 /*
   This function checks whether the existence of qname|qtype is denied by the NSEC and NSEC3
   in validrrsets.
-  - If `referralToUnsigned` is true and qtype is QType::DS, this functions returns Insecure
+  - If `referralToUnsigned` is true and qtype is QType::DS, this functions returns NODATA
   if a NSEC or NSEC3 proves that the name exists but no NS type exists, as specified in RFC 5155 section 8.9.
   - If `wantsNoDataProof` is set but a NSEC proves that the whole name does not exist, the function will return
   NXQTYPE is the name is proven to be ENT and NXDOMAIN otherwise.

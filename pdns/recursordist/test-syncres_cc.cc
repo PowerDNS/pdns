@@ -8873,6 +8873,67 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_negcache_secure) {
   BOOST_CHECK_EQUAL(ne.DNSSECRecords.signatures.size(), 1);
 }
 
+BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_negcache_secure_ds) {
+  /*
+    Validation is optional, and the first query does not ask for it,
+    so the answer is negatively cached as Indeterminate.
+    The second query asks for validation, answer should be marked as
+    Secure.
+    The difference with test_dnssec_validation_from_negcache_secure is
+    that have one more level here, so we are going to look for the proof
+    that the DS does not exist for the last level. Since there is no cut,
+    we should accept the fact that the NSEC denies DS and NS both.
+  */
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true);
+
+  setDNSSECValidation(sr, DNSSECMode::Process);
+
+  primeHints();
+  const DNSName target("www.com.");
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
+  g_luaconfs.setState(luaconfsCopy);
+
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([target,&queriesCount,keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
+      queriesCount++;
+
+      if (type == QType::DS || type == QType::DNSKEY) {
+        if (domain == target) {
+          /* there is no cut */
+          return genericDSAndDNSKEYHandler(res, domain, domain, type, keys, false);
+        }
+        return genericDSAndDNSKEYHandler(res, domain, domain, type, keys);
+      }
+
+      return 0;
+    });
+
+  vector<DNSRecord> ret;
+  /* first query does not require validation */
+  sr->setDNSSECValidationRequested(false);
+  int res = sr->beginResolve(target, QType(QType::DS), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Indeterminate);
+  BOOST_REQUIRE_EQUAL(ret.size(), 4);
+  BOOST_CHECK_EQUAL(queriesCount, 1);
+
+  ret.clear();
+  /* second one _does_ require validation */
+  sr->setDNSSECValidationRequested(true);
+  res = sr->beginResolve(target, QType(QType::DS), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_REQUIRE_EQUAL(ret.size(), 4);
+  BOOST_CHECK_EQUAL(queriesCount, 4);
+}
+
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_negcache_insecure) {
   /*
     Validation is optional, and the first query does not ask for it,
