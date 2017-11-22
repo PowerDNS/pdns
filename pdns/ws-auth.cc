@@ -770,10 +770,12 @@ static bool isValidMetadataKind(const string& kind, bool readonly) {
   // the following options do not allow modifications via API
   static vector<string> protectedOptions {
     "API-RECTIFY",
+    "AXFR-MASTER-TSIG",
     "NSEC3NARROW",
     "NSEC3PARAM",
     "PRESIGNED",
-    "LUA-AXFR-SCRIPT"
+    "LUA-AXFR-SCRIPT",
+    "TSIG-ALLOW-AXFR"
   };
 
   if (kind.find("X-") == 0)
