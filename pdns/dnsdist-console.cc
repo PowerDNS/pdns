@@ -339,7 +339,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "leastOutstanding", false, "", "Send traffic to downstream server with least outstanding queries, with the lowest 'order', and within that the lowest recent latency"},
   { "LogAction", true, "[filename], [binary], [append], [buffered]", "Log a line for each query, to the specified file if any, to the console (require verbose) otherwise. When logging to a file, the `binary` optional parameter specifies whether we log in binary form (default) or in textual form, the `append` optional parameter specifies whether we open the file for appending or truncate each time (default), and the `buffered` optional parameter specifies whether writes to the file are buffered (default) or not." },
   { "makeKey", true, "", "generate a new server access key, emit configuration line ready for pasting" },
-  { "MaxQPSIPRule", true, "qps, v4Mask=32, v6Mask=64", "matches traffic exceeding the qps limit per subnet" },
+  { "MaxQPSIPRule", true, "qps, v4Mask=32, v6Mask=64, burst=qps", "matches traffic exceeding the qps limit per subnet" },
   { "MaxQPSRule", true, "qps", "matches traffic **not** exceeding this qps limit" },
   { "mvCacheHitResponseRule", true, "from, to", "move cache hit response rule 'from' to a position where it is in front of 'to'. 'to' can be one larger than the largest rule" },
   { "mvResponseRule", true, "from, to", "move response rule 'from' to a position where it is in front of 'to'. 'to' can be one larger than the largest rule" },

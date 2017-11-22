@@ -382,13 +382,14 @@ These ``DNSRule``\ s be one of the following items:
 
   Matches queries with the DO flag set
 
-.. function:: MaxQPSIPRule(qps[, v4Mask[, v6Mask]])
+.. function:: MaxQPSIPRule(qps[, v4Mask[, v6Mask[, burst]]])
 
-  Matches traffic for a subnet specified by ``v4Mask`` or ``v6Mask`` exceeding ``qps`` queries per second
+  Matches traffic for a subnet specified by ``v4Mask`` or ``v6Mask`` exceeding ``qps`` queries per second up to ``burst`` allowed 
 
   :param int qps: The number of queries per second allowed, above this number traffic is matched
   :param int v4Mask: The IPv4 netmask to match on. Default is 32 (the whole address)
   :param int v6Mask: The IPv6 netmask to match on. Default is 64
+  :param int burst: The number of burstable queries per second allowed. Default is same as qps
 
 .. function:: MaxQPSRule(qps)
 
