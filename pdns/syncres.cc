@@ -1747,7 +1747,7 @@ void SyncRes::computeZoneCuts(const DNSName& begin, const DNSName& end, unsigned
     }
     else {
       /* remove the temporary cut */
-      LOG(d_prefix<<qname<<": removing cut state for "<<qname<<", was "<<vStates[d_cutStates[qname]]<<endl);
+      LOG(d_prefix<<qname<<": removing cut state for "<<qname<<endl);
       d_cutStates.erase(qname);
     }
   }
@@ -2081,7 +2081,10 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
 
 void SyncRes::updateDenialValidationState(NegCache::NegCacheEntry& ne, vState& state, const dState denialState, const dState expectedState, bool allowOptOut)
 {
-  if (denialState != expectedState) {
+  if (denialState == expectedState) {
+    ne.d_validationState = Secure;
+  }
+  else {
     if (denialState == OPTOUT && allowOptOut) {
       LOG(d_prefix<<"OPT-out denial found for "<<ne.d_name<<endl);
       ne.d_validationState = Secure;
