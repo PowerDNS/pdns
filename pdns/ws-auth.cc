@@ -717,6 +717,29 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
       }
     }
   }
+
+  if (!document["master_tsig_key_ids"].is_null()) {
+    vector<string> metadata;
+    for(auto value : document["master_tsig_key_ids"].array_items()) {
+      auto keyname(value.string_value());
+      // XXX test if the key actually exists?
+      metadata.push_back(apiZoneIdToName(keyname).toString());
+    }
+    if (!di.backend->setDomainMetadata(zonename, "TSIG-ALLOW-AXFR", metadata)) {
+      throw ApiException("Unable to set new TSIG master keys for zone '" + zonename.toLogString() + "'");
+    }
+  }
+  if (!document["slave_tsig_key_ids"].is_null()) {
+    vector<string> metadata;
+    for(auto value : document["slave_tsig_key_ids"].array_items()) {
+      auto keyname(value.string_value());
+      // XXX test if the key actually exists?
+      metadata.push_back(apiZoneIdToName(keyname).toString());
+    }
+    if (!di.backend->setDomainMetadata(zonename, "AXFR-MASTER-TSIG", metadata)) {
+      throw ApiException("Unable to set new TSIG slave keys for zone '" + zonename.toLogString() + "'");
+    }
+  }
 }
 
 static bool isValidMetadataKind(const string& kind, bool readonly) {
