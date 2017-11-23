@@ -24,6 +24,11 @@ void doSecPoll(time_t* last_secpoll)
   string pkgv(PACKAGEVERSION);
   struct timeval now;
   gettimeofday(&now, 0);
+
+  /* update last_secpoll right now, even if it fails
+     we don't want to retry right away and hammer the server */
+  *last_secpoll=now.tv_sec;
+
   SyncRes sr(now);
   if (g_dnssecmode != DNSSECMode::Off)
     sr.d_doDNSSEC=true;
@@ -65,18 +70,15 @@ void doSecPoll(time_t* last_secpoll)
     g_security_status = std::stoi(split.first);
     g_security_message = split.second;
 
-    *last_secpoll=now.tv_sec;
   }
   else {
     if(pkgv.find("0.0."))
       L<<Logger::Warning<<"Could not retrieve security status update for '" +pkgv+ "' on '"<<query<<"', RCODE = "<< RCode::to_s(res)<<endl;
     else
-      L<<Logger::Warning<<"Ignoring response for security status update, this a non-release version."<<endl;
+      L<<Logger::Warning<<"Ignoring response for security status update, this is a non-release version."<<endl;
 
     if(g_security_status == 1) // it was ok, now it is unknown
       g_security_status = 0;
-    if(res == RCode::NXDomain) // if we had NXDOMAIN, keep on trying more more frequently
-      *last_secpoll=now.tv_sec; 
   }
 
   if(g_security_status == 2) {

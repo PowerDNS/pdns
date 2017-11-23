@@ -163,7 +163,7 @@ void validateWithKeySet(const cspmap_t& rrsets, cspmap_t& validated, const keyse
 	bool isValid = false;
 	try {
 	  unsigned int now=time(0);
-	  if(signature->d_siginception < now && signature->d_sigexpire > now) {
+	  if(signature->d_siginception <= now && signature->d_sigexpire >= now) {
 	    std::shared_ptr<DNSCryptoKeyEngine> dke = shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromPublicKeyString(l.d_algorithm, l.d_key));
 	    isValid = dke->verify(msg, signature->d_signature);
             LOG("signature by key with tag "<<signature->d_tag<<" was " << (isValid ? "" : "NOT ")<<"valid"<<endl);
@@ -368,7 +368,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
           bool isValid = false;
           try {
             unsigned int now = time(0);
-            if(i->d_siginception < now && i->d_sigexpire > now) {
+            if(i->d_siginception <= now && i->d_sigexpire >= now) {
               std::shared_ptr<DNSCryptoKeyEngine> dke = shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromPublicKeyString(j.d_algorithm, j.d_key));
               isValid = dke->verify(msg, i->d_signature);
             }

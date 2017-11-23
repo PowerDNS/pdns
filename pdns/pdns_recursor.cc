@@ -978,7 +978,7 @@ void startDoResolve(void *p)
       dc=0;
       return;
     }
-    if(tracedQuery || res == PolicyDecision::PASS || res == RCode::ServFail || pw.getHeader()->rcode == RCode::ServFail)
+    if(tracedQuery || res == -1 || res == RCode::ServFail || pw.getHeader()->rcode == RCode::ServFail)
     { 
       string trace(sr.getTrace());
       if(!trace.empty()) {
@@ -991,7 +991,7 @@ void startDoResolve(void *p)
       }
     }
 
-    if(res == PolicyDecision::PASS) {  // XXX what does this MEAN? Why servfail on PASS?
+    if(res == -1) {
       pw.getHeader()->rcode=RCode::ServFail;
       // no commit here, because no record
       g_stats.servFails++;
@@ -1216,7 +1216,16 @@ void startDoResolve(void *p)
     delete dc;
   }
   catch(std::exception& e) {
-    L<<Logger::Error<<"STL error "<< makeLoginfo(dc)<<": "<<e.what()<<endl;
+    L<<Logger::Error<<"STL error "<< makeLoginfo(dc)<<": "<<e.what();
+
+    // Luawrapper nests the exception from Lua, so we unnest it here
+    try {
+        std::rethrow_if_nested(e);
+    } catch(const std::exception& e) {
+        L<<". Extra info: "<<e.what();
+    } catch(...) {}
+
+    L<<endl;
     delete dc;
   }
   catch(...) {
@@ -1648,12 +1657,16 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   struct msghdr msgh;
   struct iovec iov;
   char cbuf[256];
+  bool firstQuery = true;
 
   fromaddr.sin6.sin6_family=AF_INET6; // this makes sure fromaddr is big enough
   fillMSGHdr(&msgh, &iov, cbuf, sizeof(cbuf), data, sizeof(data), &fromaddr);
 
   for(;;)
   if((len=recvmsg(fd, &msgh, 0)) >= 0) {
+
+    firstQuery = false;
+
     if(t_remotes)
       t_remotes->push_back(fromaddr);
 
@@ -1726,8 +1739,9 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   }
   else {
     // cerr<<t_id<<" had error: "<<stringerror()<<endl;
-    if(errno == EAGAIN)
+    if(firstQuery && errno == EAGAIN)
       g_stats.noPacketError++;
+
     break;
   }
 }
@@ -2511,6 +2525,9 @@ void parseACLs()
 
   if(l_initialized) { // only reload configuration file on second call
     string configname=::arg()["config-dir"]+"/recursor.conf";
+    if(::arg()["config-name"]!="") {
+      configname=::arg()["config-dir"]+"/recursor-"+::arg()["config-name"]+".conf";
+    }
     cleanSlashes(configname);
 
     if(!::arg().preParseFile(configname.c_str(), "allow-from-file"))
@@ -2640,7 +2657,31 @@ int serviceMain(int argc, char*argv[])
     exit(99);
   }
 
-  loadRecursorLuaConfig(::arg()["lua-config-file"], ::arg().mustDo("daemon"));
+  // keep this ABOVE loadRecursorLuaConfig!
+  if(::arg()["dnssec"]=="off")
+    g_dnssecmode=DNSSECMode::Off;
+  else if(::arg()["dnssec"]=="process-no-validate")
+    g_dnssecmode=DNSSECMode::ProcessNoValidate;
+  else if(::arg()["dnssec"]=="process")
+    g_dnssecmode=DNSSECMode::Process;
+  else if(::arg()["dnssec"]=="validate")
+    g_dnssecmode=DNSSECMode::ValidateAll;
+  else if(::arg()["dnssec"]=="log-fail")
+    g_dnssecmode=DNSSECMode::ValidateForLog;
+  else {
+    L<<Logger::Error<<"Unknown DNSSEC mode "<<::arg()["dnssec"]<<endl;
+    exit(1);
+  }
+
+  g_dnssecLogBogus = ::arg().mustDo("dnssec-log-bogus");
+
+  try {
+    loadRecursorLuaConfig(::arg()["lua-config-file"], ::arg().mustDo("daemon"));
+  }
+  catch (PDNSException &e) {
+    L<<Logger::Error<<"Cannot load Lua configuration: "<<e.reason<<endl;
+    exit(1);
+  }
 
   parseACLs();
   sortPublicSuffixList();
@@ -3073,7 +3114,7 @@ int main(int argc, char **argv)
     ::arg().set("export-etc-hosts", "If we should serve up contents from /etc/hosts")="off";
     ::arg().set("export-etc-hosts-search-suffix", "Also serve up the contents of /etc/hosts with this suffix")="";
     ::arg().set("etc-hosts-file", "Path to 'hosts' file")="/etc/hosts";
-    ::arg().set("serve-rfc1918", "If we should be authoritative for RFC 1918 private IP space")="";
+    ::arg().set("serve-rfc1918", "If we should be authoritative for RFC 1918 private IP space")="yes";
     ::arg().set("lua-dns-script", "Filename containing an optional 'lua' script that will be used to modify dns answers")="";
     ::arg().set("latency-statistic-size","Number of latency values to calculate the qa-latency average")="10000";
     ::arg().setSwitch( "disable-packetcache", "Disable packetcache" )= "no";
@@ -3081,7 +3122,7 @@ int main(int argc, char **argv)
     ::arg().set("ecs-ipv6-bits", "Number of bits of IPv6 address to pass for EDNS Client Subnet")="56";
     ::arg().set("edns-subnet-whitelist", "List of netmasks and domains that we should enable EDNS subnet for")="";
     ::arg().setSwitch( "use-incoming-edns-subnet", "Pass along received EDNS Client Subnet information")="no";
-    ::arg().setSwitch( "pdns-distributes-queries", "If PowerDNS itself should distribute queries over threads")="";
+    ::arg().setSwitch( "pdns-distributes-queries", "If PowerDNS itself should distribute queries over threads")="yes";
     ::arg().setSwitch( "root-nx-trust", "If set, believe that an NXDOMAIN from the root means the TLD does not exist")="yes";
     ::arg().setSwitch( "any-to-tcp","Answer ANY queries with tc=1, shunting to TCP" )="no";
     ::arg().setSwitch( "lowercase-outgoing","Force outgoing questions to lowercase")="no";
