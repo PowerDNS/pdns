@@ -1320,7 +1320,7 @@ static void apiServerTsigKeys(HttpRequest* req, HttpResponse* resp) {
     vector<struct TSIGKey> keys;
 
     if (!B.getTSIGKeys(keys)) {
-      throw ApiException("Unable to retrieve TSIG keys");
+      throw HttpInternalServerErrorException("Unable to retrieve TSIG keys");
     }
 
     Json::array doc;
@@ -1333,7 +1333,7 @@ static void apiServerTsigKeys(HttpRequest* req, HttpResponse* resp) {
     auto document = req->json();
     DNSName keyname(stringFromJson(document, "name"));
     DNSName algo(stringFromJson(document, "algorithm"));
-    string content(stringFromJson(document, "key"));
+    string content = document["key"].string_value();
 
     if (content.empty()) {
       size_t klen = 64;
@@ -1353,7 +1353,7 @@ static void apiServerTsigKeys(HttpRequest* req, HttpResponse* resp) {
     checkTSIGKey(B, keyname, algo, content);
 
     if(!B.setTSIGKey(keyname, algo, content)) {
-      throw ApiException("Unable to add TSIG key");
+      throw HttpInternalServerErrorException("Unable to add TSIG key");
     }
 
     resp->status = 201;
@@ -1370,7 +1370,7 @@ static void apiServerTsigKeyDetail(HttpRequest* req, HttpResponse* resp) {
   string content;
 
   if (!B.getTSIGKey(keyname, &algo, &content)) {
-    throw ApiException("Unable to retrieve TSIG key with id '"+keyname.toLogString()+"'");
+    throw HttpNotFoundException("TSIG key with name '"+keyname.toLogString()+"' not found");
   }
 
   json11::Json document;
@@ -1407,18 +1407,18 @@ static void apiServerTsigKeyDetail(HttpRequest* req, HttpResponse* resp) {
       tsk.key = new_content;
     }
     if (!B.setTSIGKey(tsk.name, tsk.algorithm, tsk.key)) {
-      throw ApiException("Unable to save TSIG Key");
+      throw HttpInternalServerErrorException("Unable to save TSIG Key");
     }
     if (tsk.name != keyname) {
       // Remove the old key
       if (!B.deleteTSIGKey(keyname)) {
-        throw ApiException("Unable to remove TSIG key '" + keyname.toStringNoDot() + "'");
+        throw HttpInternalServerErrorException("Unable to remove TSIG key '" + keyname.toStringNoDot() + "'");
       }
     }
     resp->setBody(makeJSONTSIGKey(tsk));
   } else if (req->method == "DELETE" && !::arg().mustDo("api-readonly")) {
     if (!B.deleteTSIGKey(keyname)) {
-      throw ApiException("Unable to remove TSIG key '" + keyname.toStringNoDot() + "'");
+      throw HttpInternalServerErrorException("Unable to remove TSIG key '" + keyname.toStringNoDot() + "'");
     } else {
       resp->body = "";
       resp->status = 204;
