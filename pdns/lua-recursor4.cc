@@ -241,6 +241,9 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   d_lw->registerFunction("isPartOf", &DNSName::isPartOf);
   d_lw->registerFunction<unsigned int(DNSName::*)()>("countLabels", [](const DNSName& name) { return name.countLabels(); });
   d_lw->registerFunction<size_t(DNSName::*)()>("wirelength", [](const DNSName& name) { return name.wirelength(); });
+  d_lw->registerFunction<string(DNSName::*)()>("toString", [](const DNSName&dn ) { return dn.toString(); });
+  d_lw->registerFunction<string(DNSName::*)()>("toStringNoDot", [](const DNSName&dn ) { return dn.toStringNoDot(); });
+  d_lw->registerFunction<bool(DNSName::*)()>("chopOff", [](DNSName&dn ) { return dn.chopOff(); });
   d_lw->registerFunction<bool(DNSName::*)(const std::string&)>(
     "equal",
      [](const DNSName& lhs, const std::string& rhs) {
@@ -248,6 +251,33 @@ RecursorLua4::RecursorLua4(const std::string& fname)
     }
   );
   d_lw->registerFunction("__eq", &DNSName::operator==);
+  d_lw->writeVariable("DNSName", DNSName{});
+  d_lw->writeFunction(
+    "DNSName", LuaContext::Metatable, "__eq",
+    [](const DNSName& lhs, const DNSName& rhs) {
+      return lhs==rhs;
+    }
+  );
+  d_lw->writeFunction(
+    "DNSName", LuaContext::Metatable, "__tostring",
+    [](const DNSName& self) {
+      return self.toString();
+    }
+  );
+  d_lw->writeFunction(
+    "DNSName", LuaContext::Metatable, "__call",
+    [](const DNSName& self, boost::variant<const std::string, const DNSName> dom) {
+      if(dom.which() == 0)
+       return DNSName(boost::get<const std::string>(dom));
+      else
+       return DNSName(boost::get<const DNSName>(dom));
+    }
+  );
+  d_lw->executeCode("DNSName = { ud = DNSName, }");
+  d_lw->executeCode("DNSName.__call = function(self, a) local mt = getmetatable(self) local n = mt.ud(a or '') local nmt = getmetatable(n) local udmt = getmetatable(mt.ud) nmt.__eq = udmt.__eq nmt.__tostring = udmt.__tostring return n end");
+  d_lw->executeCode("DNSName.__eq = function(self, o) local mt = getmetatable(self) local udmt = getmetatable(mt.ud) return udmt.__eq(self, o) end");
+  d_lw->executeCode("DNSName.__tostring = function(self) local mt = getmetatable(self) local udmt = getmetatable(mt.ud) return udmt.__tostring(self) end");
+  d_lw->executeCode("DNSName = setmetatable({}, DNSName)");
 
   d_lw->registerFunction<string(ComboAddress::*)()>("toString", [](const ComboAddress& ca) { return ca.toString(); });
   d_lw->registerFunction<string(ComboAddress::*)()>("toStringWithPort", [](const ComboAddress& ca) { return ca.toStringWithPort(); });
@@ -328,9 +358,6 @@ RecursorLua4::RecursorLua4(const std::string& fname)
 
 
   d_lw->registerFunction("match", (bool (NetmaskGroup::*)(const ComboAddress&) const)&NetmaskGroup::match);
-  d_lw->registerFunction<string(DNSName::*)()>("toString", [](const DNSName&dn ) { return dn.toString(); });
-  d_lw->registerFunction<string(DNSName::*)()>("toStringNoDot", [](const DNSName&dn ) { return dn.toStringNoDot(); });
-  d_lw->registerFunction<bool(DNSName::*)()>("chopOff", [](DNSName&dn ) { return dn.chopOff(); });
 
   d_lw->registerMember<const DNSName (DNSQuestion::*)>("qname", [](const DNSQuestion& dq) -> const DNSName& { return dq.qname; }, [](DNSQuestion& dq, const DNSName& newName) { (void) newName; });
   d_lw->registerMember<uint16_t (DNSQuestion::*)>("qtype", [](const DNSQuestion& dq) -> uint16_t { return dq.qtype; }, [](DNSQuestion& dq, uint16_t newType) { (void) newType; });

@@ -9,7 +9,7 @@ dropset:add("123.cn")
 malwareset = newDS()
 malwareset:add("nl")
 
-magic2 = newDN("www.magic2.com")
+magic2 = DNSName("www.magic2.com")
 
 
 magicMetric = getMetric("magic")
@@ -18,7 +18,8 @@ magicMetric = getMetric("magic")
 -- return false to say you did not take over the question, but we'll still listen to 'variable'
 -- to selectively disable the cache
 function preresolve(dq)
-	print("Got question for "..dq.qname:toString().." from "..dq.remoteaddr:toString().." to "..dq.localaddr:toString())
+	local name = DNSName(dq.qname)
+	print("Got question for "..tostring(name).." from "..dq.remoteaddr:toString().." to "..dq.localaddr:toString())
 
         local ednssubnet=dq:getEDNSSubnet()
 	if(ednssubnet) then
@@ -46,6 +47,9 @@ function preresolve(dq)
 		print("not magic..")
 	end
 
+	if(magic2 == name) then
+		print("Play that funky magic!!")
+	end
 	if(dq.qname:__eq(magic2)) -- we hope to improve this syntax
 	then
 		print("Faster magic") -- compares against existing DNSName
@@ -127,7 +131,7 @@ function postresolve(dq)
 	return true
 end
 
-nxdomainsuffix=newDN("com")
+nxdomainsuffix=DNSName("com")
 
 function nxdomain(dq)
 	print("Hooking: ",dq.qname:toString())
