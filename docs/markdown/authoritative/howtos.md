@@ -161,6 +161,8 @@ setting to an existing resolver:
 recursor=[::1]:5300
 ```
 
+**note**: If `resolver` is unset, ALIAS expension is disabled!
+
 and add the ALIAS record to your zone apex. e.g.:
 
 ```

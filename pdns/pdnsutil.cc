@@ -1187,7 +1187,7 @@ int createSlaveZone(const vector<string>& cmds) {
   }
   vector<string> masters;
   for (unsigned i=2; i < cmds.size(); i++) {
-    ComboAddress master(cmds[2], 53);
+    ComboAddress master(cmds[i], 53);
     masters.push_back(master.toStringWithPort());
   }
   cerr<<"Creating slave zone '"<<zone<<"', with master(s) '"<<boost::join(masters, ",")<<"'"<<endl;
@@ -2914,6 +2914,12 @@ loadMainConfig(g_vm["config-dir"].as<string>());
     DNSName zone(cmds[1]);
     string kind = cmds[2];
     vector<string> meta(cmds.begin() + 3, cmds.end());
+
+    DomainInfo di;
+    if (!B.getDomainInfo(zone, di)){
+      cerr << "No such zone in the database" << endl;
+      return false;
+    }
 
     if (!B.setDomainMetadata(zone, kind, meta)) {
       cerr << "Unable to set meta for '" << zone << "'" << endl;

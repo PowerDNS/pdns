@@ -19,8 +19,8 @@ AM_LDFLAGS = \
 AM_LFLAGS = -i
 AM_YFLAGS = -d --verbose --debug
 
-if BOTAN110
-AM_CPPFLAGS += $(BOTAN110_CFLAGS)
+if BOTAN
+AM_CPPFLAGS += $(BOTAN_CFLAGS)
 endif
 
 if PKCS11
@@ -223,9 +223,9 @@ pdns_server_LDADD = \
 	$(LIBCRYPTO_LIBS) \
 	$(SYSTEMD_LIBS)
 
-if BOTAN110
-pdns_server_SOURCES += botan110signers.cc
-pdns_server_LDADD += $(BOTAN110_LIBS)
+if BOTAN
+pdns_server_SOURCES += botansigners.cc
+pdns_server_LDADD += $(BOTAN_LIBS)
 endif
 
 if LIBSODIUM
@@ -319,9 +319,9 @@ pdnsutil_LDADD = \
 	$(BOOST_PROGRAM_OPTIONS_LIBS) \
 	$(LIBCRYPTO_LIBS)
 
-if BOTAN110
-pdnsutil_SOURCES += botan110signers.cc
-pdnsutil_LDADD += $(BOTAN110_LIBS)
+if BOTAN
+pdnsutil_SOURCES += botansigners.cc
+pdnsutil_LDADD += $(BOTAN_LIBS)
 endif
 
 if LIBSODIUM
@@ -455,6 +455,7 @@ sdig_SOURCES = \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
 	ednssubnet.cc \
+	iputils.hh iputils.cc \
 	logger.cc \
 	misc.cc misc.hh \
 	nsecrecords.cc \
@@ -682,6 +683,7 @@ toysdig_SOURCES = \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
 	ednssubnet.cc ednssubnet.hh \
+	iputils.cc iputils.hh \
 	filterpo.hh \
 	gss_context.cc gss_context.hh \
 	logger.cc \
@@ -712,9 +714,9 @@ if GSS_TSIG
 toysdig_LDADD += $(GSS_LIBS)
 endif
 
-if BOTAN110
-toysdig_SOURCES += botan110signers.cc
-toysdig_LDADD += $(BOTAN110_LIBS)
+if BOTAN
+toysdig_SOURCES += botansigners.cc
+toysdig_LDADD += $(BOTAN_LIBS)
 endif
 
 if PKCS11
@@ -894,6 +896,7 @@ dnsreplay_SOURCES = \
 	dnswriter.cc dnswriter.hh \
 	ednssubnet.cc ednssubnet.hh \
 	ednsoptions.cc ednsoptions.hh \
+	iputils.hh iputils.cc \
 	logger.cc \
 	misc.cc \
 	nsecrecords.cc \
@@ -1203,6 +1206,11 @@ endif
 if LIBSODIUM
 testrunner_SOURCES += sodiumsigners.cc
 testrunner_LDADD += $(LIBSODIUM_LIBS)
+endif
+
+if BOTAN
+testrunner_SOURCES += botansigners.cc
+testrunner_LDADD += $(BOTAN_LIBS)
 endif
 
 if LIBDECAF

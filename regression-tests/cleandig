@@ -1,4 +1,10 @@
 #!/bin/sh
+
+set -e
+which drill >/dev/null 2>/dev/null || (echo "missing drill tool" >&2; exit 1)
+which unbound-host >/dev/null 2>/dev/null || (echo "missing unbound-host tool" >&2; exit 1)
+set +e
+
 if [ ! -e ${testsdir}/${testname}/use.drill ]
 then
 	if [ "$2" != "AXFR" ]

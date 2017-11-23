@@ -626,8 +626,14 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
       algorithm = DNSName("hmac-md5");
     if (algorithm != DNSName("gss-tsig")) {
       Lock l(&s_plock);
-      s_P->getBackend()->getTSIGKey(tsigkeyname, &algorithm, &tsig64);
-      B64Decode(tsig64, tsigsecret);
+      if(!s_P->getBackend()->getTSIGKey(tsigkeyname, &algorithm, &tsig64)) {
+        L<<Logger::Error<<"TSIG key '"<<tsigkeyname<<"' for domain '"<<target<<"' not found"<<endl;
+        return 0;
+      }
+      if (B64Decode(tsig64, tsigsecret) == -1) {
+        L<<Logger::Error<<"Unable to Base-64 decode TSIG key '"<<tsigkeyname<<"' for domain '"<<target<<"'"<<endl;
+        return 0;
+      }
     }
   }
   
@@ -801,10 +807,10 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
         DNSName shorter(rr.qname);
         do {
           if (shorter==target) // apex is always auth
-            break;
+            continue;
           if(nsset.count(shorter) && !(rr.qname==shorter && rr.qtype.getCode() == QType::DS)) {
             rr.auth=false;
-            break;
+            continue;
           }
         } while(shorter.chopOff());
       }
@@ -1142,8 +1148,14 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
       if (algorithm == DNSName("hmac-md5.sig-alg.reg.int"))
         algorithm = DNSName("hmac-md5");
       Lock l(&s_plock);
-      s_P->getBackend()->getTSIGKey(tsigkeyname, &algorithm, &tsig64);
-      B64Decode(tsig64, tsigsecret);
+      if(!s_P->getBackend()->getTSIGKey(tsigkeyname, &algorithm, &tsig64)) {
+        L<<Logger::Error<<"TSIG key '"<<tsigkeyname<<"' for domain '"<<target<<"' not found"<<endl;
+        return 0;
+      }
+      if (B64Decode(tsig64, tsigsecret) == -1) {
+        L<<Logger::Error<<"Unable to Base-64 decode TSIG key '"<<tsigkeyname<<"' for domain '"<<target<<"'"<<endl;
+        return 0;
+      }
     }
 
     UeberBackend signatureDB;

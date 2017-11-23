@@ -421,8 +421,13 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
   case QType::MX:
     stringtok(recparts, rr.content);
     if(recparts.size()==2) {
-      if (recparts[1]!=".")
-        recparts[1] = toCanonic(d_zonename, recparts[1]).toStringRootDot();
+      if (recparts[1]!=".") {
+        try {
+          recparts[1] = toCanonic(d_zonename, recparts[1]).toStringRootDot();
+        } catch (std::exception &e) {
+          throw PDNSException("Error in record '" + rr.qname.toString() + " " + rr.qtype.getName() + "': " + e.what());
+        }
+      }
       rr.content=recparts[0]+" "+recparts[1];
     }
     break;
@@ -439,8 +444,13 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
   case QType::SRV:
     stringtok(recparts, rr.content);
     if(recparts.size()==4) {
-      if(recparts[3]!=".")
-        recparts[3] = toCanonic(d_zonename, recparts[3]).toStringRootDot();
+      if(recparts[3]!=".") {
+        try {
+          recparts[3] = toCanonic(d_zonename, recparts[3]).toStringRootDot();
+        } catch (std::exception &e) {
+          throw PDNSException("Error in record '" + rr.qname.toString() + " " + rr.qtype.getName() + "': " + e.what());
+        }
+      }
       rr.content=recparts[0]+" "+recparts[1]+" "+recparts[2]+" "+recparts[3];
     }
     break;
@@ -450,10 +460,31 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
   case QType::CNAME:
   case QType::DNAME:
   case QType::PTR:
-  case QType::AFSDB:
-    rr.content=toCanonic(d_zonename, rr.content).toStringRootDot();
+    try {
+      rr.content = toCanonic(d_zonename, rr.content).toStringRootDot();
+    } catch (std::exception &e) {
+      throw PDNSException("Error in record '" + rr.qname.toString() + " " + rr.qtype.getName() + "': " + e.what());
+    }
     break;
+  case QType::AFSDB:
+    stringtok(recparts, rr.content);
+    if(recparts.size() == 2) {
+      try {
+        recparts[1]=toCanonic(d_zonename, recparts[1]).toStringRootDot();
+      } catch (std::exception &e) {
+        throw PDNSException("Error in record '" + rr.qname.toString() + " " + rr.qtype.getName() + "': " + e.what());
+      }
+    } else {
+      throw PDNSException("AFSDB record for "+rr.qname.toString()+" invalid");
+    }
+    rr.content.clear();
+    for(string::size_type n = 0; n < recparts.size(); ++n) {
+      if(n)
+        rr.content.append(1,' ');
 
+      rr.content+=recparts[n];
+    }
+    break;
   case QType::SOA:
     stringtok(recparts, rr.content);
     if(recparts.size() > 7)
@@ -462,8 +493,8 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
       try {
         recparts[0]=toCanonic(d_zonename, recparts[0]).toStringRootDot();
         recparts[1]=toCanonic(d_zonename, recparts[1]).toStringRootDot();
-      } catch (runtime_error &re) {
-        throw PDNSException(re.what());
+      } catch (std::exception &e) {
+        throw PDNSException("Error in record '" + rr.qname.toString() + " " + rr.qtype.getName() + "': " + e.what());
       }
     }
     rr.content.clear();

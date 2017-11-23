@@ -51,6 +51,7 @@ private:
   string d_connectlogstr;
   static bool s_dolog;
   bool d_in_trx;
+  unsigned int d_nstatement;
 };
-      
+
 #endif /* SPGSQL_HH */

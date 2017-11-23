@@ -54,9 +54,11 @@ class Zones(ApiTestCase):
         example_com = [domain for domain in domains if domain['name'] in ('example.com', 'example.com.')]
         self.assertEquals(len(example_com), 1)
         example_com = example_com[0]
+        print(example_com)
         required_fields = ['id', 'url', 'name', 'kind']
         if is_auth():
             required_fields = required_fields + ['masters', 'last_check', 'notified_serial', 'serial', 'account']
+            self.assertNotEquals(example_com['serial'], 0)
         elif is_recursor():
             required_fields = required_fields + ['recursion_desired', 'servers']
         for field in required_fields:
@@ -258,6 +260,55 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
             headers={'content-type': 'application/json'})
         self.assertEquals(r.status_code, 422)
         self.assertIn('contains unsupported characters', r.json()['error'])
+
+    def test_create_zone_mixed_nameservers_ns_rrset_zonelevel(self):
+        name = unique_zone_name()
+        rrset = {
+            "name": name,
+            "type": "NS",
+            "ttl": 3600,
+            "records": [{
+                "content": "ns2.example.com.",
+                "disabled": False,
+            }],
+        }
+        payload = {
+            'name': name,
+            'kind': 'Native',
+            'nameservers': ['ns1.example.com.'],
+            'rrsets': [rrset],
+        }
+        print payload
+        r = self.session.post(
+            self.url("/api/v1/servers/localhost/zones"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 422)
+        self.assertIn('Nameservers list MUST NOT be mixed with zone-level NS in rrsets', r.json()['error'])
+
+    def test_create_zone_mixed_nameservers_ns_rrset_below_zonelevel(self):
+        name = unique_zone_name()
+        rrset = {
+            "name": 'subzone.'+name,
+            "type": "NS",
+            "ttl": 3600,
+            "records": [{
+                "content": "ns2.example.com.",
+                "disabled": False,
+            }],
+        }
+        payload = {
+            'name': name,
+            'kind': 'Native',
+            'nameservers': ['ns1.example.com.'],
+            'rrsets': [rrset],
+        }
+        print payload
+        r = self.session.post(
+            self.url("/api/v1/servers/localhost/zones"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assert_success_json(r)
 
     def test_create_zone_with_symbols(self):
         name, payload, data = self.create_zone(name='foo/bar.'+unique_zone_name())

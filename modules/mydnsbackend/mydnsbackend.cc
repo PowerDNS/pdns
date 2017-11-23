@@ -73,6 +73,7 @@ MyDNSBackend::MyDNSBackend(const string &suffix) {
   d_basicQuery_stmt = NULL;
   d_anyQuery_stmt = NULL;
   d_query_stmt = NULL;
+  d_allDomainsQuery_stmt = NULL;
 
   try {
     d_db = new SMySQL(getArg("dbname"),
@@ -106,17 +107,20 @@ MyDNSBackend::MyDNSBackend(const string &suffix) {
     string domainIdQuery = "SELECT origin, minimum FROM `"+soatable+"` WHERE id = ?";
     string domainNoIdQuery = "SELECT id, origin, minimum FROM `"+soatable+"` WHERE origin = ?";
     string soaQuery = "SELECT id, mbox, serial, ns, refresh, retry, expire, minimum, ttl FROM `"+soatable+"` WHERE origin = ?";
+    string allDomainsQuery = "SELECT id, origin, serial FROM `"+soatable+"`";
 
     if (!soawhere.empty()) {
       domainIdQuery += " AND " + soawhere;  
       domainNoIdQuery += " AND " + soawhere;
       soaQuery += " AND "+soawhere;
+      allDomainsQuery += " WHERE "+soawhere;
     }
 
     d_domainIdQuery_stmt = d_db->prepare(domainIdQuery, 1);
     d_domainNoIdQuery_stmt = d_db->prepare(domainNoIdQuery, 1);
     d_soaQuery_stmt = d_db->prepare(soaQuery, 1);
-  
+    d_allDomainsQuery_stmt = d_db->prepare(allDomainsQuery, 0);
+
     string listQuery = "SELECT type, data, aux, ttl, zone, name FROM `"+rrtable+"` WHERE zone = ?";
     string basicQuery = "SELECT type, data, aux, ttl, zone FROM `"+rrtable+"` WHERE zone = ? AND (name = ? OR name = ?) AND type = ?";
     string anyQuery = "(SELECT type, data, aux, ttl, zone FROM `"+rrtable+"` WHERE zone = ? AND (name = ? OR name = ?)";
@@ -159,6 +163,8 @@ MyDNSBackend::~MyDNSBackend() {
   d_basicQuery_stmt = NULL;
   delete d_anyQuery_stmt;
   d_anyQuery_stmt = NULL;
+  delete d_allDomainsQuery_stmt;
+  d_allDomainsQuery_stmt = NULL;
   delete(d_db);
 }
 
@@ -436,6 +442,34 @@ bool MyDNSBackend::get(DNSResourceRecord &rr) {
   d_query_stmt = NULL;
 
   return false;
+}
+
+void MyDNSBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabled) {
+  /* include_disabled is unfortunately ignored here */
+  try {
+    d_allDomainsQuery_stmt->
+      execute();
+
+    while(d_allDomainsQuery_stmt->hasNextRow()) {
+      SSqlStatement::row_t row;
+      DomainInfo di;
+      d_allDomainsQuery_stmt->nextRow(row);
+
+      di.id = pdns_stou(row[0]);
+      di.zone = DNSName(row[1]);
+      di.serial = pdns_stou(row[2]);
+      di.kind = DomainInfo::Native;
+      di.backend = this;
+
+      domains->push_back(di);
+    }
+
+    d_allDomainsQuery_stmt->
+      reset();
+  }
+  catch (SSqlException &e) {
+    throw PDNSException("MyDNSBackend unable to list all domains: "+e.txtReason());
+  }
 }
 
 class MyDNSFactory : public BackendFactory {
