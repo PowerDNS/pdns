@@ -143,6 +143,9 @@ list-tsig-keys
 ZONE MANIPULATION COMMANDS
 --------------------------
 
+add-record *ZONE* *NAME* *TYPE* [*TTL*] *CONTENT*
+    Add one or more records of *NAME* and *TYPE* to *ZONE* with *CONTENT* 
+    and optional *TTL*. If *TTL* is not set, default will be used. 
 create-zone *ZONE*
     Create an empty zone named *ZONE*.
 create-slave-zone *ZONE* *MASTER* [*MASTER*]..
