@@ -141,7 +141,7 @@ int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qcl
   if (d_queryValidationState != Indeterminate) {
     g_stats.dnssecValidations++;
   }
-  if (d_DNSSECValidationRequested) {
+  if (shouldValidate()) {
     increaseDNSSECStateCounter(d_queryValidationState);
   }
 
@@ -562,11 +562,28 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
       }
     }
 
-    if(!d_skipCNAMECheck && doCNAMECacheCheck(qname,qtype,ret,depth,res,state)) // will reroute us if needed
-      return res;
+    DNSName authname(qname);
+    bool wasForwardedOrAuthZone = false;
+    bool wasAuthZone = false;
+    domainmap_t::const_iterator iter = getBestAuthZone(&authname);
+    if(iter != t_sstorage.domainmap->end()) {
+      wasForwardedOrAuthZone = true;
+      const vector<ComboAddress>& servers = iter->second.d_servers;
+      if(servers.empty()) {
+        wasAuthZone = true;
+      }
+    }
 
-    if(doCacheCheck(qname,qtype,ret,depth,res,state)) // we done
+    if(!d_skipCNAMECheck && doCNAMECacheCheck(qname, qtype, ret, depth, res, state, wasAuthZone)) { // will reroute us if needed
+      d_wasOutOfBand = wasAuthZone;
       return res;
+    }
+
+    if(doCacheCheck(qname, authname, wasForwardedOrAuthZone, wasAuthZone, qtype, ret, depth, res, state)) {
+      // we done
+      d_wasOutOfBand = wasAuthZone;
+      return res;
+    }
   }
 
   if(d_cacheonly)
@@ -852,7 +869,7 @@ DNSName SyncRes::getBestNSNamesFromCache(const DNSName &qname, const QType& qtyp
   return subdomain;
 }
 
-bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>& ret, unsigned int depth, int &res, vState& state)
+bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>& ret, unsigned int depth, int &res, vState& state, bool wasAuthZone)
 {
   string prefix;
   if(doLog()) {
@@ -876,7 +893,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
     for(auto j=cset.cbegin() ; j != cset.cend() ; ++j) {
       if(j->d_ttl>(unsigned int) d_now.tv_sec) {
 
-        if (d_DNSSECValidationRequested && wasAuth && state == Indeterminate && d_requireAuthData) {
+        if (!wasAuthZone && shouldValidate() && wasAuth && state == Indeterminate && d_requireAuthData) {
           /* This means we couldn't figure out the state when this entry was cached,
              most likely because we hadn't computed the zone cuts yet. */
           /* make sure they are computed before validating */
@@ -1039,7 +1056,7 @@ void SyncRes::computeNegCacheValidationStatus(NegCache::NegCacheEntry& ne, const
   }
 }
 
-bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int &res, vState& state)
+bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool wasForwardedOrAuthZone, bool wasAuthZone, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int &res, vState& state)
 {
   bool giveNegative=false;
 
@@ -1054,25 +1071,13 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSR
   QType sqt(qtype);
   uint32_t sttl=0;
   //  cout<<"Lookup for '"<<qname<<"|"<<qtype.getName()<<"' -> "<<getLastLabel(qname)<<endl;
-
-  DNSName authname(qname);
   vState cachedState;
-  bool wasForwardedOrAuth = false;
-  bool wasAuth = false;
-  domainmap_t::const_iterator iter=getBestAuthZone(&authname);
-  if(iter != t_sstorage.domainmap->end()) {
-    wasForwardedOrAuth = true;
-    const vector<ComboAddress>& servers = iter->second.d_servers;
-    if(servers.empty()) {
-      wasAuth = true;
-    }
-  }
   NegCache::NegCacheEntry ne;
 
   if(s_rootNXTrust &&
      t_sstorage.negcache.getRootNXTrust(qname, d_now, ne) &&
       ne.d_auth.isRoot() &&
-      !(wasForwardedOrAuth && !authname.isRoot())) { // when forwarding, the root may only neg-cache if it was forwarded to.
+      !(wasForwardedOrAuthZone && !authname.isRoot())) { // when forwarding, the root may only neg-cache if it was forwarded to.
     sttl = ne.d_ttd - d_now.tv_sec;
     LOG(prefix<<qname<<": Entire name '"<<qname<<"', is negatively cached via '"<<ne.d_auth<<"' & '"<<ne.d_name<<"' for another "<<sttl<<" seconds"<<endl);
     res = RCode::NXDomain;
@@ -1080,7 +1085,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSR
     cachedState = ne.d_validationState;
   }
   else if (t_sstorage.negcache.get(qname, qtype, d_now, ne) &&
-           !(wasForwardedOrAuth && ne.d_auth != authname)) { // Only the authname nameserver can neg cache entries
+           !(wasForwardedOrAuthZone && ne.d_auth != authname)) { // Only the authname nameserver can neg cache entries
 
     /* If we are looking for a DS, discard NXD if auth == qname
        and ask for a specific denial instead */
@@ -1106,7 +1111,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSR
 
     state = cachedState;
 
-    if (d_DNSSECValidationRequested && state == Indeterminate) {
+    if (!wasAuthZone && shouldValidate() && state == Indeterminate) {
       LOG(prefix<<qname<<": got Indeterminate state for records retrieved from the negative cache, validating.."<<endl);
       computeNegCacheValidationStatus(ne, qname, qtype, res, state, depth);
     }
@@ -1133,7 +1138,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSR
 
     LOG(prefix<<sqname<<": Found cache hit for "<<sqt.getName()<<": ");
 
-    if (d_DNSSECValidationRequested && wasCachedAuth && cachedState == Indeterminate && d_requireAuthData) {
+    if (!wasAuthZone && shouldValidate() && wasCachedAuth && cachedState == Indeterminate && d_requireAuthData) {
 
       /* This means we couldn't figure out the state when this entry was cached,
          most likely because we hadn't computed the zone cuts yet. */
@@ -1196,7 +1201,6 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSR
     if(found && !expired) {
       if (!giveNegative)
         res=0;
-      d_wasOutOfBand = wasAuth;
       LOG(prefix<<qname<<": updating validation state with cache content for "<<qname<<" to "<<vStates[cachedState]<<endl);
       state = cachedState;
       return true;
@@ -1626,7 +1630,7 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsi
 
 bool SyncRes::haveExactValidationStatus(const DNSName& domain)
 {
-  if (!d_DNSSECValidationRequested) {
+  if (!shouldValidate()) {
     return false;
   }
   const auto& it = d_cutStates.find(domain);
@@ -1640,7 +1644,7 @@ vState SyncRes::getValidationStatus(const DNSName& subdomain, bool allowIndeterm
 {
   vState result = Indeterminate;
 
-  if (!d_DNSSECValidationRequested) {
+  if (!shouldValidate()) {
     return result;
   }
   DNSName name(subdomain);
@@ -1687,7 +1691,7 @@ void SyncRes::computeZoneCuts(const DNSName& begin, const DNSName& end, unsigned
   LOG(d_prefix<<": setting cut state for "<<end<<" to "<<vStates[cutState]<<endl);
   d_cutStates[end] = cutState;
 
-  if (!d_DNSSECValidationRequested) {
+  if (!shouldValidate()) {
     return;
   }
 
@@ -2022,7 +2026,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
     vState recordState = getValidationStatus(i->first.name, false);
     LOG(d_prefix<<": got initial zone status "<<vStates[recordState]<<" for record "<<i->first.name<<endl);
 
-    if (d_DNSSECValidationRequested && recordState == Secure) {
+    if (shouldValidate() && recordState == Secure) {
       vState initialState = recordState;
 
       if (isAA) {
@@ -2058,7 +2062,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
       }
     }
     else {
-      if (d_DNSSECValidationRequested) {
+      if (shouldValidate()) {
         LOG(d_prefix<<"Skipping validation because the current state is "<<vStates[recordState]<<endl);
       }
     }
@@ -2604,7 +2608,9 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
 
       if(tns->empty() && !wasForwarded) {
         LOG(prefix<<qname<<": Domain is out-of-band"<<endl);
-        state = Insecure;
+        /* setting state to indeterminate since validation is disabled for local auth zone,
+           and Insecure would be misleading. */
+        state = Indeterminate;
         d_wasOutOfBand = doOOBResolve(qname, qtype, lwr.d_records, depth, lwr.d_rcode);
         lwr.d_tcbit=false;
         lwr.d_aabit=true;

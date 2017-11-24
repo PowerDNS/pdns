@@ -2824,39 +2824,30 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd) {
   BOOST_CHECK_EQUAL(ret.size(), 1);
 }
 
-BOOST_AUTO_TEST_CASE(test_auth_zone_delegation_oob) {
+BOOST_AUTO_TEST_CASE(test_auth_zone_oob) {
   std::unique_ptr<SyncRes> sr;
-  init();
-  initSR(sr, true, false);
+  initSR(sr, true);
 
   primeHints();
 
   size_t queriesCount = 0;
   const DNSName target("test.xx.");
   const ComboAddress targetAddr("127.0.0.1");
-  const DNSName ns("localhost.");
-  const ComboAddress nsAddr("127.0.0.1");
   const DNSName authZone("test.xx");
 
   SyncRes::AuthDomain ad;
   DNSRecord dr;
-  dr.d_place = DNSResourceRecord::ANSWER;
-  dr.d_name = authZone;
-  dr.d_type = QType::NS;
-  dr.d_ttl = 1800;
-  dr.d_content = std::make_shared<NSRecordContent>("localhost.");
-  ad.d_records.insert(dr);
 
   dr.d_place = DNSResourceRecord::ANSWER;
-  dr.d_name = authZone;
+  dr.d_name = target;
   dr.d_type = QType::A;
   dr.d_ttl = 1800;
-  dr.d_content = std::make_shared<ARecordContent>(nsAddr);
+  dr.d_content = std::make_shared<ARecordContent>(targetAddr);
   ad.d_records.insert(dr);
 
   (*SyncRes::t_sstorage.domainmap)[authZone] = ad;
 
-  sr->setAsyncCallback([&queriesCount,nsAddr,target,targetAddr](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
+  sr->setAsyncCallback([&queriesCount](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
         queriesCount++;
         return 0;
       });
@@ -2868,6 +2859,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_delegation_oob) {
   BOOST_CHECK(ret[0].d_type == QType::A);
   BOOST_CHECK_EQUAL(queriesCount, 0);
   BOOST_CHECK(sr->wasOutOfBand());
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Indeterminate);
 
   /* a second time, to check that the OOB flag is set when the query cache is used */
   ret.clear();
@@ -2877,6 +2869,88 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_delegation_oob) {
   BOOST_CHECK(ret[0].d_type == QType::A);
   BOOST_CHECK_EQUAL(queriesCount, 0);
   BOOST_CHECK(sr->wasOutOfBand());
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Indeterminate);
+
+  /* a third time, to check that the validation is disabled when the OOB flag is set */
+  ret.clear();
+  sr->setDNSSECValidationRequested(true);
+  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, 0);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_CHECK(ret[0].d_type == QType::A);
+  BOOST_CHECK_EQUAL(queriesCount, 0);
+  BOOST_CHECK(sr->wasOutOfBand());
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Indeterminate);
+}
+
+BOOST_AUTO_TEST_CASE(test_auth_zone_oob_cname) {
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true);
+
+  primeHints();
+
+  size_t queriesCount = 0;
+  const DNSName target("cname.test.xx.");
+  const DNSName targetCname("cname-target.test.xx.");
+  const ComboAddress targetCnameAddr("127.0.0.1");
+  const DNSName authZone("test.xx");
+
+  SyncRes::AuthDomain ad;
+  DNSRecord dr;
+
+  dr.d_place = DNSResourceRecord::ANSWER;
+  dr.d_name = target;
+  dr.d_type = QType::CNAME;
+  dr.d_ttl = 1800;
+  dr.d_content = std::make_shared<CNAMERecordContent>(targetCname);
+  ad.d_records.insert(dr);
+
+  dr.d_place = DNSResourceRecord::ANSWER;
+  dr.d_name = targetCname;
+  dr.d_type = QType::A;
+  dr.d_ttl = 1800;
+  dr.d_content = std::make_shared<ARecordContent>(targetCnameAddr);
+  ad.d_records.insert(dr);
+
+  (*SyncRes::t_sstorage.domainmap)[authZone] = ad;
+
+  sr->setAsyncCallback([&queriesCount](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
+        queriesCount++;
+        return 0;
+      });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, 0);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2);
+  BOOST_CHECK(ret[0].d_type == QType::CNAME);
+  BOOST_CHECK(ret[1].d_type == QType::A);
+  BOOST_CHECK_EQUAL(queriesCount, 0);
+  BOOST_CHECK(sr->wasOutOfBand());
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Indeterminate);
+
+  /* a second time, to check that the OOB flag is set when the query cache is used */
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, 0);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2);
+  BOOST_CHECK(ret[0].d_type == QType::CNAME);
+  BOOST_CHECK(ret[1].d_type == QType::A);
+  BOOST_CHECK_EQUAL(queriesCount, 0);
+  BOOST_CHECK(sr->wasOutOfBand());
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Indeterminate);
+
+  /* a third time, to check that the validation is disabled when the OOB flag is set */
+  ret.clear();
+  sr->setDNSSECValidationRequested(true);
+  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, 0);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2);
+  BOOST_CHECK(ret[0].d_type == QType::CNAME);
+  BOOST_CHECK(ret[1].d_type == QType::A);
+  BOOST_CHECK_EQUAL(queriesCount, 0);
+  BOOST_CHECK(sr->wasOutOfBand());
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Indeterminate);
 }
 
 BOOST_AUTO_TEST_CASE(test_auth_zone) {
@@ -3126,7 +3200,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_nx) {
 
 BOOST_AUTO_TEST_CASE(test_auth_zone_delegation) {
   std::unique_ptr<SyncRes> sr;
-  initSR(sr);
+  initSR(sr, true, false);
 
   primeHints();
 
@@ -3165,9 +3239,19 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_delegation) {
   (*map)[authZone] = ad;
   SyncRes::setDomainMap(map);
 
-  sr->setAsyncCallback([&queriesCount,target,targetAddr,nsAddr](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
+  testkeysset_t keys;
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::RSASHA512, DNSSECKeeper::SHA384, keys, luaconfsCopy.dsAnchors);
+  g_luaconfs.setState(luaconfsCopy);
+
+  sr->setAsyncCallback([&queriesCount,target,targetAddr,nsAddr,authZone,keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
 
       queriesCount++;
+      if (type == QType::DS || type == QType::DNSKEY) {
+        return genericDSAndDNSKEYHandler(res, domain, DNSName("."), type, keys, domain == authZone);
+      }
+
       if (ip == ComboAddress(nsAddr.toString(), 53) && domain == target) {
         setLWResult(res, 0, true, false, true);
         addRecordToLW(res, domain, QType::A, targetAddr.toString(), DNSResourceRecord::ANSWER, 3600);
@@ -3177,12 +3261,14 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_delegation) {
       return 0;
   });
 
+  sr->setDNSSECValidationRequested(true);
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_REQUIRE_EQUAL(ret.size(), 1);
   BOOST_CHECK(ret[0].d_type == QType::A);
-  BOOST_CHECK_EQUAL(queriesCount, 1);
+  BOOST_CHECK_EQUAL(queriesCount, 4);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Indeterminate);
 }
 
 BOOST_AUTO_TEST_CASE(test_auth_zone_delegation_point) {
