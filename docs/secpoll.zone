@@ -1,4 +1,4 @@
-@       86400   IN  SOA pdns-public-ns1.powerdns.com. pieter\.lexis.powerdns.com. 2017112202 10800 3600 604800 10800
+@       86400   IN  SOA pdns-public-ns1.powerdns.com. pieter\.lexis.powerdns.com. 2017112701 10800 3600 604800 10800
 @       3600    IN  NS  pdns-public-ns1.powerdns.com.
 @       3600    IN  NS  pdns-public-ns2.powerdns.com.
 ; Auth
@@ -16,7 +16,7 @@ auth-3.4.7.security-status                              60 IN TXT "3 Upgrade now
 auth-3.4.8.security-status                              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2016-01/ https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/ https://doc.powerdns.com/3/security/powerdns-advisory-2016-03/ https://doc.powerdns.com/3/security/powerdns-advisory-2016-04/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-05/"
 auth-3.4.9.security-status                              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2016-01/ https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/ https://doc.powerdns.com/3/security/powerdns-advisory-2016-03/ https://doc.powerdns.com/3/security/powerdns-advisory-2016-04/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-05/"
 auth-3.4.10.security-status                             60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/ https://doc.powerdns.com/3/security/powerdns-advisory-2016-03/ https://doc.powerdns.com/3/security/powerdns-advisory-2016-04/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-05/"
-auth-3.4.11.security-status                             60 IN TXT "1 OK"
+auth-3.4.11.security-status                             60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2017-04/"
 
 auth-4.0.0-alpha1.security-status                       60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2016-02/ https://doc.powerdns.com/md/security/powerdns-advisory-2016-03/ https://doc.powerdns.com/md/security/powerdns-advisory-2016-04/ https://doc.powerdns.com/md/security/powerdns-advisory-2016-05/"
 auth-4.0.0-alpha2.security-status                       60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2016-02/ https://doc.powerdns.com/md/security/powerdns-advisory-2016-03/ https://doc.powerdns.com/md/security/powerdns-advisory-2016-04/ https://doc.powerdns.com/md/security/powerdns-advisory-2016-05/"
@@ -26,11 +26,12 @@ auth-4.0.0-rc1.security-status                          60 IN TXT "3 Upgrade now
 auth-4.0.0-rc2.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2016-02/ https://doc.powerdns.com/md/security/powerdns-advisory-2016-03/ https://doc.powerdns.com/md/security/powerdns-advisory-2016-04/ https://doc.powerdns.com/md/security/powerdns-advisory-2016-05/"
 auth-4.0.0.security-status                              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2016-02/ https://doc.powerdns.com/md/security/powerdns-advisory-2016-03/ https://doc.powerdns.com/md/security/powerdns-advisory-2016-04/ https://doc.powerdns.com/md/security/powerdns-advisory-2016-05/"
 auth-4.0.1.security-status                              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2016-02/ https://doc.powerdns.com/md/security/powerdns-advisory-2016-03/ https://doc.powerdns.com/md/security/powerdns-advisory-2016-04/ https://doc.powerdns.com/md/security/powerdns-advisory-2016-05/"
-auth-4.0.2.security-status                              60 IN TXT "1 OK"
-auth-4.0.3.security-status                              60 IN TXT "1 OK"
-auth-4.0.4-rc1.security-status                          60 IN TXT "1 OK"
-auth-4.0.4.security-status                              60 IN TXT "1 OK"
-auth-4.0.5.security-status                              60 IN TXT "1 OK"
+auth-4.0.2.security-status                              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2017-04/"
+auth-4.0.3.security-status                              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2017-04/"
+auth-4.0.4-rc1.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2017-04/"
+auth-4.0.4.security-status                              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2017-04/"
+auth-4.0.5.security-status                              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2017-04/"
+auth-4.0.6.security-status                              60 IN TXT "1 OK"
 auth-4.1.0-rc1.security-status                          60 IN TXT "1 OK"
 auth-4.1.0-rc2.security-status                          60 IN TXT "1 OK"
 auth-4.1.0-rc3.security-status                          60 IN TXT "1 OK"
@@ -58,7 +59,7 @@ auth-3.4.1-4_deb8u3.debian.security-status              60 IN TXT "3 Upgrade now
 auth-3.4.1-4_deb8u4.debian.security-status              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2016-01/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-03/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-04/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-05/"
 auth-3.4.1-4_deb8u5.debian.security-status              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2016-01/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-03/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-04/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-05/"
 auth-3.4.1-4_deb8u6.debian.security-status              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-03/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-04/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-05/"
-auth-3.4.1-4_deb8u7.debian.security-status              60 IN TXT "1 OK"
+auth-3.4.1-4_deb8u7.debian.security-status              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2017-04/"
 
 auth-3.4.4-2_bpo8_1.debian.security-status              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2015-01/ and https://doc.powerdns.com/3/security/powerdns-advisory-2015-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2015-03/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-03/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-04/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-05/"
 auth-3.4.5-1_bpo8_1.debian.security-status              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2015-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2015-03/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-03/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-04/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-05/"
@@ -87,8 +88,8 @@ auth-4.0.1-4.debian.security-status                     60 IN TXT "3 Upgrade now
 auth-4.0.1-5.debian.security-status                     60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2016-02/ https://doc.powerdns.com/md/security/powerdns-advisory-2016-03/ https://doc.powerdns.com/md/security/powerdns-advisory-2016-04/ https://doc.powerdns.com/md/security/powerdns-advisory-2016-05/"
 auth-4.0.1-6.debian.security-status                     60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2016-02/ https://doc.powerdns.com/md/security/powerdns-advisory-2016-03/ https://doc.powerdns.com/md/security/powerdns-advisory-2016-04/ https://doc.powerdns.com/md/security/powerdns-advisory-2016-05/"
 auth-4.0.1-7.debian.security-status                     60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2016-02/ https://doc.powerdns.com/md/security/powerdns-advisory-2016-03/ https://doc.powerdns.com/md/security/powerdns-advisory-2016-04/ https://doc.powerdns.com/md/security/powerdns-advisory-2016-05/"
-auth-4.0.2-1.debian.security-status                     60 IN TXT "1 OK"
-auth-4.0.3-1.debian.security-status                     60 IN TXT "1 OK"
+auth-4.0.2-1.debian.security-status                     60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2017-04/"
+auth-4.0.3-1.debian.security-status                     60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2017-04/"
 
 ; Auth Ubuntu
 auth-3.4.1-3.ubuntu.security-status                     60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2015-01/ and https://doc.powerdns.com/3/security/powerdns-advisory-2015-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-03/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-04/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-05/"
@@ -125,7 +126,7 @@ recursor-3.7.0.security-status                          60 IN TXT "3 Upgrade now
 recursor-3.7.1.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2015-01/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/"
 recursor-3.7.2.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2015-01/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/"
 recursor-3.7.3.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/"
-recursor-3.7.4.security-status                          60 IN TXT "1 OK"
+recursor-3.7.4.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2017-06/"
 
 recursor-4.0.0-alpha1.security-status                   60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2016-02/ and https://doc.powerdns.com/md/security/powerdns-advisory-2016-04/"
 recursor-4.0.0-alpha2.security-status                   60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2016-02/ and https://doc.powerdns.com/md/security/powerdns-advisory-2016-04/"
@@ -136,13 +137,14 @@ recursor-4.0.0.security-status                          60 IN TXT "3 Upgrade now
 recursor-4.0.1.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2016-02/ and https://doc.powerdns.com/md/security/powerdns-advisory-2016-04/"
 recursor-4.0.2.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2016-02/ and https://doc.powerdns.com/md/security/powerdns-advisory-2016-04/"
 recursor-4.0.3.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2016-02/ and https://doc.powerdns.com/md/security/powerdns-advisory-2016-04/"
-recursor-4.0.4.security-status                          60 IN TXT "1 OK"
-recursor-4.0.5-rc1.security-status                      60 IN TXT "1 OK"
-recursor-4.0.5-rc2.security-status                      60 IN TXT "1 OK"
-recursor-4.0.5.security-status                          60 IN TXT "1 OK"
-recursor-4.0.6.security-status                          60 IN TXT "1 OK"
-recursor-4.0.7.security-status                          60 IN TXT "1 OK"
-recursor-4.1.0-alpha1.security-status					60 IN TXT "1 OK"
+recursor-4.0.4.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2017-03/ https://doc.powerdns.com/md/security/powerdns-advisory-2017-05/ https://doc.powerdns.com/md/security/powerdns-advisory-2017-06/ and https://doc.powerdns.com/md/security/powerdns-advisory-2017-07/"
+recursor-4.0.5-rc1.security-status                      60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2017-03/ https://doc.powerdns.com/md/security/powerdns-advisory-2017-05/ https://doc.powerdns.com/md/security/powerdns-advisory-2017-06/ and https://doc.powerdns.com/md/security/powerdns-advisory-2017-07/"
+recursor-4.0.5-rc2.security-status                      60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2017-03/ https://doc.powerdns.com/md/security/powerdns-advisory-2017-05/ https://doc.powerdns.com/md/security/powerdns-advisory-2017-06/ and https://doc.powerdns.com/md/security/powerdns-advisory-2017-07/"
+recursor-4.0.5.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2017-03/ https://doc.powerdns.com/md/security/powerdns-advisory-2017-05/ https://doc.powerdns.com/md/security/powerdns-advisory-2017-06/ and https://doc.powerdns.com/md/security/powerdns-advisory-2017-07/"
+recursor-4.0.6.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2017-03/ https://doc.powerdns.com/md/security/powerdns-advisory-2017-05/ https://doc.powerdns.com/md/security/powerdns-advisory-2017-06/ and https://doc.powerdns.com/md/security/powerdns-advisory-2017-07/"
+recursor-4.0.7.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2017-03/ https://doc.powerdns.com/md/security/powerdns-advisory-2017-05/ https://doc.powerdns.com/md/security/powerdns-advisory-2017-06/ and https://doc.powerdns.com/md/security/powerdns-advisory-2017-07/"
+recursor-4.0.8.security-status                          60 IN TXT "1 OK"
+recursor-4.1.0-alpha1.security-status                   60 IN TXT "1 OK"
 recursor-4.1.0-rc1.security-status                      60 IN TXT "1 OK"
 recursor-4.1.0-rc2.security-status                      60 IN TXT "1 OK"
 recursor-4.1.0-rc3.security-status                      60 IN TXT "1 OK"
@@ -154,7 +156,7 @@ recursor-3.6.2-2_deb8u1.debian.security-status          60 IN TXT "3 Upgrade now
 recursor-3.6.2-2_deb8u1_bpo70_1.debian.security-status  60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2015-01/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/"
 recursor-3.6.2-2_deb8u2.debian.security-status          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/"
 recursor-3.6.2-2_deb8u2_bpo70_1.debian.security-status  60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/"
-recursor-3.6.2-2_deb8u3.debian.security-status          60 IN TXT "1 OK"
+recursor-3.6.2-2_deb8u3.debian.security-status          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2017-06/"
 
 recursor-3.7.2-1.debian.security-status                 60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2015-01/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/"
 recursor-3.7.2-1_bpo8_1.debian.security-status          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2015-01/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/"
@@ -187,10 +189,10 @@ recursor-4.0.3-5_exp1.debian.security-status            60 IN TXT "3 Upgrade now
 recursor-4.0.3-5_exp2.debian.security-status            60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2016-02/ and https://doc.powerdns.com/md/security/powerdns-advisory-2016-04/"
 recursor-4.0.3-5_exp3.debian.security-status            60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2016-02/ and https://doc.powerdns.com/md/security/powerdns-advisory-2016-04/"
 recursor-4.0.3-6.debian.security-status                 60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2016-02/ and https://doc.powerdns.com/md/security/powerdns-advisory-2016-04/"
-recursor-4.0.4-1_bpo8_1.debian.security-status		60 IN TXT "1 OK"
-recursor-4.0.4-1_deb9u1.debian.security-status          60 IN TXT "1 OK"
-recursor-4.0.4-1.debian.security-status                 60 IN TXT "1 OK"
-recursor-4.0.5-2.debian.security-status                 60 IN TXT "1 OK"
+recursor-4.0.4-1_bpo8_1.debian.security-status          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2017-03/ https://doc.powerdns.com/md/security/powerdns-advisory-2017-05/ https://doc.powerdns.com/md/security/powerdns-advisory-2017-06/ and https://doc.powerdns.com/md/security/powerdns-advisory-2017-07/"
+recursor-4.0.4-1_deb9u1.debian.security-status          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2017-03/ https://doc.powerdns.com/md/security/powerdns-advisory-2017-05/ https://doc.powerdns.com/md/security/powerdns-advisory-2017-06/ and https://doc.powerdns.com/md/security/powerdns-advisory-2017-07/"
+recursor-4.0.4-1.debian.security-status                 60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2017-03/ https://doc.powerdns.com/md/security/powerdns-advisory-2017-05/ https://doc.powerdns.com/md/security/powerdns-advisory-2017-06/ and https://doc.powerdns.com/md/security/powerdns-advisory-2017-07/"
+recursor-4.0.5-2.debian.security-status                 60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2017-03/ https://doc.powerdns.com/md/security/powerdns-advisory-2017-05/ https://doc.powerdns.com/md/security/powerdns-advisory-2017-06/ and https://doc.powerdns.com/md/security/powerdns-advisory-2017-07/"
 
 ; Recursor Raspbian
 recursor-3.6.2-2.raspbian.security-status               60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2015-01/"
