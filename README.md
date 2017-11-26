@@ -71,32 +71,32 @@ See https://doc.powerdns.com/md/appendix/compiling-powerdns/ for more details.
 
 If you run into C++11-related symbol trouble, please try passing `CPPFLAGS=-D_GLIBCXX_USE_CXX11_ABI=0` (or 1) to `./configure` to make sure you are compatible with the installed dependencies.
 
-On macOS, you may need to `brew install openssl` and set `PKG_CONFIG_PATH=/usr/local/opt/openssl/lib/pkgconfig` during configure.
-
-COMPILING THE RECURSOR
+Compiling the Recursor
 ----------------------
 See the README in pdns/recursordist.
 
-COMPILING DNSDIST
-----------------------
+Compiling dnsdist
+-----------------
 See the README in pdns/dnsdistdist.
 
-SOLARIS NOTES
+Solaris Notes
 -------------
 Use a recent gcc. OpenCSW is a good source, as is Solaris 11 IPS.
 
 If you encounter problems with the Solaris make, gmake is advised.
 
-FREEBSD NOTES
+FreeBSD Notes
 -------------
 You need to compile using gmake - regular make only appears to work, but doesn't in fact. Use gmake, not make.
 
 The clang compiler installed through FreeBSD's package manager does not expose all of the C++11 features needed under `std=gnuc++11`. Force the compiler to use `std=c++11` mode instead.
 
-    export CXXFLAGS=-std=c++11
+```
+$ export CXXFLAGS=-std=c++11
+```
 
-MAC OS X NOTES
---------------
+macOS Notes
+-----------
 PowerDNS Authoritative Server is available through Homebrew:
 
 ```
@@ -104,24 +104,17 @@ $ brew install pdns
 ```
 
 If you want to compile yourself, the dependencies can be installed using
-Homebrew:
+Homebrew. You need to tell configure where to find OpenSSL, too.
 
 ```
-$ brew install boost lua pkg-config ragel
+$ brew install boost lua pkg-config ragel openssl
+$ ./configure --with-modules="" --with-lua PKG_CONFIG_PATH=/usr/local/opt/openssl/lib/pkgconfig
+$ make -j4
 ```
 
-For PostgreSQL support:
+Additionally, for PostgreSQL support, run `brew install postgresql` and add `--with-modules="gpsql"` to `./configure`.
+For MySQL support, run `brew install mariadb` and add `--with-modules="gmysql"` to `./configure`.
 
-```
-$ brew install postgresql
-```
-
-For MySQL support:
-
-```
-$ brew install mariadb
-```
-
-LINUX NOTES
+Linux notes
 -----------
 None really.
