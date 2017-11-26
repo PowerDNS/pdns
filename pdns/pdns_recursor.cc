@@ -167,6 +167,7 @@ uint16_t g_outgoingEDNSBufsize;
 bool g_logRPZChanges{false};
 
 #define LOCAL_NETS "127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fc00::/7, fe80::/10"
+#define LOCAL_NETS_INVERSE "!127.0.0.0/8, !10.0.0.0/8, !100.64.0.0/10, !169.254.0.0/16, !192.168.0.0/16, !172.16.0.0/12, !::1/128, !fc00::/7, !fe80::/10"
 // Bad Nets taken from both:
 // http://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
 // and
@@ -789,7 +790,6 @@ static void startDoResolve(void *p)
     if(t_pdl) {
       sr.setLuaEngine(t_pdl);
     }
-    sr.d_requestor=dc->d_remote; // ECS needs this too
     if(g_dnssecmode != DNSSECMode::Off) {
       sr.setDoDNSSEC(true);
 
@@ -808,12 +808,7 @@ static void startDoResolve(void *p)
     sr.setInitialRequestId(dc->d_uuid);
 #endif
 
-    if (g_useIncomingECS) {
-      sr.setIncomingECSFound(dc->d_ecsFound);
-      if (dc->d_ecsFound) {
-        sr.setIncomingECS(dc->d_ednssubnet);
-      }
-    }
+    sr.setQuerySource(dc->d_remote, g_useIncomingECS && !dc->d_ednssubnet.source.empty() ? boost::optional<const EDNSSubnetOpts&>(dc->d_ednssubnet) : boost::none);
 
     bool tracedQuery=false; // we could consider letting Lua know about this too
     bool variableAnswer = false;
@@ -2990,6 +2985,10 @@ static int serviceMain(int argc, char*argv[])
     }
   }
 
+  SyncRes::parseEDNSSubnetWhitelist(::arg()["edns-subnet-whitelist"]);
+  SyncRes::parseEDNSSubnetAddFor(::arg()["ecs-add-for"]);
+  g_useIncomingECS = ::arg().mustDo("use-incoming-edns-subnet");
+
   g_networkTimeoutMsec = ::arg().asNum("network-timeout");
 
   g_initialDomainMap = parseAuthAndForwards();
@@ -3033,9 +3032,6 @@ static int serviceMain(int argc, char*argv[])
     makeUDPServerSockets(0);
     makeTCPServerSockets(0);
   }
-
-  SyncRes::parseEDNSSubnetWhitelist(::arg()["edns-subnet-whitelist"]);
-  g_useIncomingECS = ::arg().mustDo("use-incoming-edns-subnet");
 
   int forks;
   for(forks = 0; forks < ::arg().asNum("processes") - 1; ++forks) {
@@ -3394,6 +3390,7 @@ int main(int argc, char **argv)
     ::arg().set("ecs-ipv4-bits", "Number of bits of IPv4 address to pass for EDNS Client Subnet")="24";
     ::arg().set("ecs-ipv6-bits", "Number of bits of IPv6 address to pass for EDNS Client Subnet")="56";
     ::arg().set("edns-subnet-whitelist", "List of netmasks and domains that we should enable EDNS subnet for")="";
+    ::arg().set("ecs-add-for", "List of client netmasks for which EDNS Client Subnet will be added")="0.0.0.0/0, ::/0, " LOCAL_NETS_INVERSE;
     ::arg().set("ecs-scope-zero-address", "Address to send to whitelisted authoritative servers for incoming queries with ECS prefix-length source of 0")="";
     ::arg().setSwitch( "use-incoming-edns-subnet", "Pass along received EDNS Client Subnet information")="no";
     ::arg().setSwitch( "pdns-distributes-queries", "If PowerDNS itself should distribute queries over threads")="yes";
