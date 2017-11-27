@@ -693,7 +693,7 @@ distributor-threads=1""".format(confdir=confdir,
         for ans in msg.answer:
             ret += "%s\n" % ans.to_text()
             if ans.match(rrset.name, rrset.rdclass, rrset.rdtype, 0, None):
-                self.assertEqual(ans, rrset)
+                self.assertEqual(ans, rrset, "'%s' != '%s'" % (ans.to_text(), rrset.to_text()))
                 found = True
 
         if not found:
