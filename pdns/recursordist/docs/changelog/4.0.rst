@@ -6,7 +6,11 @@ This page has all the changelogs for the PowerDNS Recursor 4.0 release train.
 PowerDNS Recursor 4.0.7
 -----------------------
 
-Unreleased
+Released 27th of November 2017
+
+This release fixes PowerDNS Security Advisories :doc:`2017-03 <../security-advisories/powerdns-advisory-2017-03>`,
+doc:`2017-05 <../security-advisories/powerdns-advisory-2017-05>`, doc:`2017-06 <../security-advisories/powerdns-advisory-2017-06>`
+an ddoc:`2017-07 <../security-advisories/powerdns-advisory-2017-07>`.
 
 Bug fixes
 ^^^^^^^^^
@@ -18,6 +22,9 @@ Bug fixes
 - `#5740 <https://github.com/PowerDNS/pdns/pull/5740>`__: Lowercase all outgoing qnames when lowercase-outgoing is set
 - `#5599 <https://github.com/PowerDNS/pdns/pull/5599>`__: Fix libatomic detection on ppc64
 - `#5961 <https://github.com/PowerDNS/pdns/pull/5961>`__: Edit configname definition to include the 'config-name' argument (Jake Reynolds)
+- `#5995 <https://github.com/PowerDNS/pdns/pull/5995>`__: Security Advisories :doc:`2017-03 <../security-advisories/powerdns-advisory-2017-03>`,
+  :doc:`2017-05 <../security-advisories/powerdns-advisory-2017-05>`, :doc:`2017-06 <../security-advisories/powerdns-advisory-2017-06>` and
+  :doc:`2017-07 <../security-advisories/powerdns-advisory-2017-07>`.
 
 Improvements
 ^^^^^^^^^^^^
