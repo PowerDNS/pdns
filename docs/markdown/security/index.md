@@ -8,4 +8,4 @@ We also remind you that the best supported and most secure version is the latest
 
 ## Security Advisories
 
-All PowerDNS security advisories are available in the most recent version of the documentation: [Authoritative Server](/authoritative/security-advisories/index.html), [Recursor](/recursor/security-advisories/index.html)
+All PowerDNS security advisories are available in the most recent version of the documentation: [Authoritative Server](https://doc.powerdns.com/authoritative/security-advisories/index.html), [Recursor](https://doc.powerdns.com/recursor/security-advisories/index.html)
