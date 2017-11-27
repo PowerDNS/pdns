@@ -87,6 +87,11 @@ vState validateRecords(const ResolveContext& ctx, const vector<DNSRecord>& recs)
     bool first = true;
     for(const auto& csp : cspmap) {
       for(const auto& sig : csp.second.signatures) {
+
+        if (!csp.first.first.isPartOf(sig->d_signer)) {
+          return increaseDNSSECStateCounter(Bogus);
+        }
+
         vState newState = getKeysFor(sro, sig->d_signer, keys); // XXX check validity here
 
         if (newState == Bogus) // No hope
