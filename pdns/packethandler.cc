@@ -1287,7 +1287,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
         auto rec=getRR<LUARecordContent>(rr.dr);
         if(rec->d_type == QType::CNAME || rec->d_type == p->qtype.getCode()) {
           noCache=true;
-          auto recvec=luaSynth(rec->getCode(), target, sd.qname, sd.domain_id, p->getRemote(), p->getRealRemote(), rec->d_type);
+          auto recvec=luaSynth(rec->getCode(), target, sd.qname, sd.domain_id, *p, rec->d_type);
           if(!recvec.empty()) {
 
             for(const auto& r : recvec) {

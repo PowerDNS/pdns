@@ -429,14 +429,18 @@ void IsUpOracle::checkURLThread(ComboAddress rem, std::string url, opts_t opts)
 
 IsUpOracle g_up;
 
-std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, const DNSName& query, const DNSName& zone, int zoneid, const ComboAddress& who, const Netmask& realWho, uint16_t qtype) 
+std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, const DNSName& query, const DNSName& zone, int zoneid, const DNSPacket& dnsp, uint16_t qtype) 
 {
   std::vector<shared_ptr<DNSRecordContent>> ret;
   
   LuaContext lua;
   lua.writeVariable("qname", query.toString());
-  lua.writeVariable("who", who.toString());
-  lua.writeVariable("realwho", realWho.toString());
+  lua.writeVariable("who", dnsp.getRemote().toString());
+  lua.writeVariable("whoPort", dnsp.getRemote().toStringWithPort());
+  if(dnsp.hasEDNSSubnet())
+    lua.writeVariable("realwho", dnsp.getRealRemote().toString());
+  else
+    lua.writeVariable("realwho", "no ECS");
 
   lua.writeFunction("ifportup", [](int port, const vector<pair<int, string> >& ips) {
       vector<ComboAddress> candidates;
@@ -549,7 +553,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
     });
   lua.executeCode("debug.sethook(report, '', 1000)");
 
-  lua.writeFunction("continent", [&who](const std::string& continent) {
+  lua.writeFunction("continent", [](const std::string& continent) {
       return true;
     });
 

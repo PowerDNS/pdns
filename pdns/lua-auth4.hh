@@ -43,5 +43,4 @@ private:
   luacall_axfr_filter_t d_axfr_filter;
 };
 std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, const DNSName& qname,
-                                                   const DNSName& zone, int zoneid, const ComboAddress& who,
-                                                   const Netmask& realwho, uint16_t qtype);
+                                                   const DNSName& zone, int zoneid, const DNSPacket& dnsp, uint16_t qtype);
