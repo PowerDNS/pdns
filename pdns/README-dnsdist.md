@@ -21,6 +21,6 @@ Bootstrap and let configure know where to find libedit:
 
 ```
 $ ./bootstrap
-$ ./configure --with-lua 'PKG_CONFIG_PATH=/usr/local/opt/libedit/lib/pkgconfig
+$ ./configure 'PKG_CONFIG_PATH=/usr/local/opt/libedit/lib/pkgconfig'
 $ make
 ```
