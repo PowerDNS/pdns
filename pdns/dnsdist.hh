@@ -129,7 +129,7 @@ extern thread_local boost::uuids::random_generator t_uuidGenerator;
 
 struct DNSQuestion
 {
-  DNSQuestion(const DNSName* name, uint16_t type, uint16_t class_, const ComboAddress* lc, const ComboAddress* rem, struct dnsheader* header, size_t bufferSize, uint16_t queryLen, bool isTcp): qname(name), qtype(type), qclass(class_), local(lc), remote(rem), dh(header), size(bufferSize), len(queryLen), ecsPrefixLength(rem->sin4.sin_family == AF_INET ? g_ECSSourcePrefixV4 : g_ECSSourcePrefixV6), tcp(isTcp), ecsOverride(g_ECSOverride) { }
+  DNSQuestion(const DNSName* name, uint16_t type, uint16_t class_, const ComboAddress* lc, const ComboAddress* rem, struct dnsheader* header, size_t bufferSize, uint16_t queryLen, bool isTcp): qname(name), qtype(type), qclass(class_), local(lc), remote(rem), dh(header), size(bufferSize), len(queryLen), ecsPrefixLength(rem->sin4.sin_family == AF_INET ? g_ECSSourcePrefixV4 : g_ECSSourcePrefixV6), tempFailureTTL(boost::none), tcp(isTcp), ecsOverride(g_ECSOverride) { }
 
 #ifdef HAVE_PROTOBUF
   boost::optional<boost::uuids::uuid> uniqueId;
@@ -144,6 +144,7 @@ struct DNSQuestion
   size_t size;
   uint16_t len;
   uint16_t ecsPrefixLength;
+  boost::optional<uint32_t> tempFailureTTL;
   const bool tcp;
   bool skipCache{false};
   bool ecsOverride;
@@ -386,7 +387,7 @@ struct ClientState;
 
 struct IDState
 {
-  IDState() : origFD(-1), sentTime(true), delayMsec(0) { origDest.sin4.sin_family = 0;}
+  IDState() : origFD(-1), sentTime(true), delayMsec(0), tempFailureTTL(boost::none) { origDest.sin4.sin_family = 0;}
   IDState(const IDState& orig)
   {
     origFD = orig.origFD;
@@ -394,6 +395,7 @@ struct IDState
     origRemote = orig.origRemote;
     origDest = orig.origDest;
     delayMsec = orig.delayMsec;
+    tempFailureTTL = orig.tempFailureTTL;
     age.store(orig.age.load());
   }
 
@@ -419,6 +421,7 @@ struct IDState
   uint16_t origID;                                            // 2
   uint16_t origFlags;                                         // 2
   int delayMsec;
+  boost::optional<uint32_t> tempFailureTTL;
   bool ednsAdded{false};
   bool ecsAdded{false};
   bool skipCache{false};

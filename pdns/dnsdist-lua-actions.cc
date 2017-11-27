@@ -527,6 +527,24 @@ public:
   }
 };
 
+class TempFailureCacheTTLAction : public DNSAction
+{
+public:
+  TempFailureCacheTTLAction(uint32_t ttl) : d_ttl(ttl)
+  {}
+  TempFailureCacheTTLAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  {
+    dq->tempFailureTTL = d_ttl;
+    return Action::None;
+  }
+  string toString() const override
+  {
+    return "set tempfailure cache ttl to "+std::to_string(d_ttl);
+  }
+private:
+  uint32_t d_ttl;
+};
+
 class ECSPrefixLengthAction : public DNSAction
 {
 public:
@@ -947,6 +965,10 @@ void setupLuaActions()
 
   g_lua.writeFunction("SkipCacheAction", []() {
       return std::shared_ptr<DNSAction>(new SkipCacheAction);
+    });
+
+  g_lua.writeFunction("TempFailureCacheTTLAction", [](int maxTTL) {
+      return std::shared_ptr<DNSAction>(new TempFailureCacheTTLAction(maxTTL));
     });
 
   g_lua.writeFunction("DropResponseAction", []() {

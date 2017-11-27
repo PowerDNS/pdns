@@ -45,7 +45,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
       bool found = PC.get(dq, a.wirelength(), 0, responseBuf, &responseBufSize, &key);
       BOOST_CHECK_EQUAL(found, false);
 
-      PC.insert(key, a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false, 0);
+      PC.insert(key, a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false, 0, boost::none);
 
       found = PC.get(dq, a.wirelength(), pwR.getHeader()->id, responseBuf, &responseBufSize, &key, 0, true);
       if (found == true) {
@@ -109,6 +109,52 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_PacketCacheServFailTTL) {
+  const size_t maxEntries = 150000;
+  DNSDistPacketCache PC(maxEntries, 86400, 1);
+
+  ComboAddress remote;
+  try {
+    DNSName a = DNSName("servfail");
+    BOOST_CHECK_EQUAL(DNSName(a.toString()), a);
+
+    vector<uint8_t> query;
+    DNSPacketWriter pwQ(query, a, QType::A, QClass::IN, 0);
+    pwQ.getHeader()->rd = 1;
+
+    vector<uint8_t> response;
+    DNSPacketWriter pwR(response, a, QType::A, QClass::IN, 0);
+    pwR.getHeader()->rd = 1;
+    pwR.getHeader()->ra = 0;
+    pwR.getHeader()->qr = 1;
+    pwR.getHeader()->rcode = RCode::ServFail;
+    pwR.getHeader()->id = pwQ.getHeader()->id;
+    pwR.commit();
+    uint16_t responseLen = response.size();
+
+    char responseBuf[4096];
+    uint16_t responseBufSize = sizeof(responseBuf);
+    uint32_t key = 0;
+    DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, (struct dnsheader*) query.data(), query.size(), query.size(), false);
+    bool found = PC.get(dq, a.wirelength(), 0, responseBuf, &responseBufSize, &key);
+    BOOST_CHECK_EQUAL(found, false);
+
+    // Insert with failure-TTL of 0 (-> should not enter cache).
+    PC.insert(key, a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false, RCode::ServFail, boost::optional<uint32_t>(0));
+    found = PC.get(dq, a.wirelength(), pwR.getHeader()->id, responseBuf, &responseBufSize, &key, 0, true);
+    BOOST_CHECK_EQUAL(found, false);
+
+    // Insert with failure-TTL non-zero (-> should not enter cache).
+    PC.insert(key, a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false, RCode::ServFail, boost::optional<uint32_t>(300));
+    found = PC.get(dq, a.wirelength(), pwR.getHeader()->id, responseBuf, &responseBufSize, &key, 0, true);
+    BOOST_CHECK_EQUAL(found, true);
+  }
+  catch(PDNSException& e) {
+    cerr<<"Had error: "<<e.reason<<endl;
+    throw;
+  }
+}
+
 static DNSDistPacketCache PC(500000);
 
 static void *threadMangler(void* off)
@@ -139,7 +185,7 @@ static void *threadMangler(void* off)
       DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, (struct dnsheader*) query.data(), query.size(), query.size(), false);
       PC.get(dq, a.wirelength(), 0, responseBuf, &responseBufSize, &key);
 
-      PC.insert(key, a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false, 0);
+      PC.insert(key, a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false, 0, boost::none);
     }
   }
   catch(PDNSException& e) {
