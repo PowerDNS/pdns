@@ -215,7 +215,7 @@ Changelogs for 4.1.x
     :tags: Improvements
     :pullreq: 5842
 
-    Add :ref:`log-timestamp` option. This option can be used to disable
+    Add :ref:`setting-log-timestamp` option. This option can be used to disable
     printing timestamps to stdout, this is useful when using
     systemd-journald or another supervisor that timestamps stdout by
     itself. As the logs will not have 2 timestamps.
