@@ -2166,6 +2166,10 @@ static void houseKeeping(void *)
         {
           L<<Logger::Error<<"Exception while performing security poll: "<<e.reason<<endl;
         }
+        catch(ImmediateServFailException &e)
+        {
+          L<<Logger::Error<<"Exception while performing security poll: "<<e.reason<<endl;
+        }
         catch(...)
         {
           L<<Logger::Error<<"Exception while performing security poll"<<endl;
