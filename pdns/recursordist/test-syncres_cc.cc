@@ -8793,6 +8793,86 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cname_cache_bogus) {
   BOOST_CHECK_EQUAL(queriesCount, 5);
 }
 
+BOOST_AUTO_TEST_CASE(test_dnssec_validation_additional_without_rrsig) {
+  /*
+    We get a record from a secure zone in the additional section, without
+    the corresponding RRSIG. The record should not be marked as authoritative
+    and should be correctly validated.
+  */
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true);
+
+  setDNSSECValidation(sr, DNSSECMode::Process);
+
+  primeHints();
+  const DNSName target("com.");
+  const DNSName addTarget("nsX.com.");
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
+  g_luaconfs.setState(luaconfsCopy);
+
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([target,addTarget,&queriesCount,keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
+      queriesCount++;
+
+      if (type == QType::DS || type == QType::DNSKEY) {
+        if (domain == addTarget) {
+          DNSName auth(domain);
+          /* no DS for com, auth will be . */
+          auth.chopOff();
+          return genericDSAndDNSKEYHandler(res, domain, auth, type, keys, false);
+        }
+        return genericDSAndDNSKEYHandler(res, domain, domain, type, keys, false);
+      }
+      else {
+        if (domain == target && type == QType::A) {
+          setLWResult(res, 0, true, false, true);
+          addRecordToLW(res, target, QType::A, "192.0.2.1");
+          addRRSIG(keys, res->d_records, DNSName("."), 300);
+          addRecordToLW(res, addTarget, QType::A, "192.0.2.42", DNSResourceRecord::ADDITIONAL);
+          /* no RRSIG for the additional record */
+          return 1;
+        } else if (domain == addTarget && type == QType::A) {
+          setLWResult(res, 0, true, false, true);
+          addRecordToLW(res, addTarget, QType::A, "192.0.2.42");
+          addRRSIG(keys, res->d_records, DNSName("."), 300);
+          return 1;
+        }
+      }
+
+      return 0;
+    });
+
+  vector<DNSRecord> ret;
+  /* first query for target/A, will pick up the additional record as non-auth / unvalidated */
+  sr->setDNSSECValidationRequested(false);
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Indeterminate);
+  BOOST_CHECK_EQUAL(ret.size(), 2);
+  for (const auto& record : ret) {
+    BOOST_CHECK(record.d_type == QType::RRSIG || record.d_type == QType::A);
+  }
+  BOOST_CHECK_EQUAL(queriesCount, 1);
+
+  ret.clear();
+  /* ask for the additional record directly, we should not use
+     the non-auth one and issue a new query, properly validated */
+  sr->setDNSSECValidationRequested(true);
+  res = sr->beginResolve(addTarget, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_CHECK_EQUAL(ret.size(), 2);
+  for (const auto& record : ret) {
+    BOOST_CHECK(record.d_type == QType::RRSIG || record.d_type == QType::A);
+  }
+  BOOST_CHECK_EQUAL(queriesCount, 5);
+}
+
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_negcache_secure) {
   /*
     Validation is optional, and the first query does not ask for it,

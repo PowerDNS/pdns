@@ -2004,7 +2004,19 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
     if(i->second.records.empty()) // this happens when we did store signatures, but passed on the records themselves
       continue;
 
-    bool isAA = lwr.d_aabit;
+    /* Even if the AA bit is set, additional data cannot be considered
+       as authoritative. This is especially important during validation
+       because keeping records in the additional section is allowed even
+       if the corresponding RRSIGs are not included, without setting the TC
+       bit, as stated in rfc4035's section 3.1.1.  Including RRSIG RRs in a Response:
+       "When placing a signed RRset in the Additional section, the name
+       server MUST also place its RRSIG RRs in the Additional section.
+       If space does not permit inclusion of both the RRset and its
+       associated RRSIG RRs, the name server MAY retain the RRset while
+       dropping the RRSIG RRs.  If this happens, the name server MUST NOT
+       set the TC bit solely because these RRSIG RRs didn't fit."
+    */
+    bool isAA = lwr.d_aabit && i->first.place != DNSResourceRecord::ADDITIONAL;
     if (isAA && isCNAMEAnswer && (i->first.place != DNSResourceRecord::ANSWER || i->first.type != QType::CNAME)) {
       /*
         rfc2181 states:
