@@ -63,12 +63,7 @@ bool editSOARecord(DNSZoneRecord& rr, const string& kind) {
 uint32_t calculateEditSOA(const DNSZoneRecord& rr, const string& kind)
 {
   auto src = getRR<SOARecordContent>(rr.dr);
-  if(pdns_iequals(kind,"INCEPTION")) {
-    L<<Logger::Warning<<"Deprecation warning: The 'INCEPTION' soa-edit value will be removed in PowerDNS 4.1"<<endl;
-    time_t inception = getStartOfWeek();
-    return localtime_format_YYYYMMDDSS(inception, 1);
-  }
-  else if(pdns_iequals(kind,"INCEPTION-INCREMENT")) {
+  if(pdns_iequals(kind,"INCEPTION-INCREMENT")) {
     time_t inception = getStartOfWeek();
     uint32_t inception_serial = localtime_format_YYYYMMDDSS(inception, 1);
     uint32_t dont_increment_after = localtime_format_YYYYMMDDSS(inception + 2*86400, 99);
@@ -79,17 +74,11 @@ uint32_t calculateEditSOA(const DNSZoneRecord& rr, const string& kind)
       return (src->d_st.serial + 2); /* "<inceptionday>00" and "<inceptionday>01" are reserved for inception increasing, so increment sd.serial by two */
     }
   }
-  else if(pdns_iequals(kind,"INCEPTION-WEEK")) {
-    L<<Logger::Warning<<"Deprecation warning: The 'INCEPTION-WEEK' soa-edit value will be removed in PowerDNS 4.1"<<endl;
-    time_t inception = getStartOfWeek();
-    return ( inception / (7*86400) );
-  }
   else if(pdns_iequals(kind,"INCREMENT-WEEKS")) {
     time_t inception = getStartOfWeek();
     return (src->d_st.serial + (inception / (7*86400)));
   }
   else if(pdns_iequals(kind,"EPOCH")) {
-    L<<Logger::Warning<<"Deprecation warning: The 'EPOCH' soa-edit value will be removed in PowerDNS 4.1"<<endl;
     return time(0);
   }
   else if(pdns_iequals(kind,"INCEPTION-EPOCH")) {
