@@ -9,8 +9,8 @@ PowerDNS Recursor 4.0.7
 Released 27th of November 2017
 
 This release fixes PowerDNS Security Advisories :doc:`2017-03 <../security-advisories/powerdns-advisory-2017-03>`,
-doc:`2017-05 <../security-advisories/powerdns-advisory-2017-05>`, doc:`2017-06 <../security-advisories/powerdns-advisory-2017-06>`
-an ddoc:`2017-07 <../security-advisories/powerdns-advisory-2017-07>`.
+:doc:`2017-05 <../security-advisories/powerdns-advisory-2017-05>`, :doc:`2017-06 <../security-advisories/powerdns-advisory-2017-06>`
+and :doc:`2017-07 <../security-advisories/powerdns-advisory-2017-07>`.
 
 Bug fixes
 ^^^^^^^^^
