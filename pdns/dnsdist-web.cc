@@ -448,10 +448,11 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
       for(const auto& a : localRules) {
 	Json::object rule{
           {"id", num++},
-          {"matches", (double)a.first->d_matches},
-          {"rule", a.first->toString()},
-          {"action", a.second->toString()},
-          {"action-stats", a.second->getStats()}
+          {"uuid", boost::uuids::to_string(a.d_id)},
+          {"matches", (double)a.d_rule->d_matches},
+          {"rule", a.d_rule->toString()},
+          {"action", a.d_action->toString()},
+          {"action-stats", a.d_action->getStats()}
         };
 	rules.push_back(rule);
       }
@@ -462,9 +463,10 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
       for(const auto& a : localResponseRules) {
         Json::object rule{
           {"id", num++},
-          {"matches", (double)a.first->d_matches},
-          {"rule", a.first->toString()},
-          {"action", a.second->toString()},
+          {"uuid", boost::uuids::to_string(a.d_id)},
+          {"matches", (double)a.d_rule->d_matches},
+          {"rule", a.d_rule->toString()},
+          {"action", a.d_action->toString()},
         };
         responseRules.push_back(rule);
       }
@@ -475,9 +477,10 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
       for(const auto& a : localCacheHitResponseRules) {
         Json::object rule{
           {"id", num++},
-          {"matches", (double)a.first->d_matches},
-          {"rule", a.first->toString()},
-          {"action", a.second->toString()},
+          {"uuid", boost::uuids::to_string(a.d_id)},
+          {"matches", (double)a.d_rule->d_matches},
+          {"rule", a.d_rule->toString()},
+          {"action", a.d_action->toString()},
         };
         cacheHitResponseRules.push_back(rule);
       }

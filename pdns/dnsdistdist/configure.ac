@@ -22,15 +22,10 @@ PDNS_CHECK_OS
 PDNS_CHECK_NETWORK_LIBS
 PDNS_CHECK_PTHREAD_NP
 
-boost_required_version=1.35
 
 PDNS_WITH_PROTOBUF
-AS_IF([test "x$PROTOBUF_LIBS" != "x" -a x"$PROTOC" != "x"],
-  # The protobuf code needs boost::uuid, which is available from 1.42 onward
-  [AC_MSG_WARN([Bumping minimal Boost requirement to 1.42. To keep the requirement at 1.35, disable protobuf support])
-  boost_required_version=1.42]
-)
 
+boost_required_version=1.42
 BOOST_REQUIRE([$boost_required_version])
 
 PDNS_ENABLE_UNIT_TESTS

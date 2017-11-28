@@ -42,10 +42,9 @@
 #include <unordered_map>
 #include "tcpiohandler.hh"
 
-#ifdef HAVE_PROTOBUF
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
-#endif
+#include <boost/uuid/uuid_io.hpp>
 
 void* carbonDumpThread();
 uint64_t uptimeOfProcess(const std::string& str);
@@ -123,9 +122,7 @@ private:
   static constexpr char const *strSep = "\t";
 };
 
-#ifdef HAVE_PROTOBUF
 extern thread_local boost::uuids::random_generator t_uuidGenerator;
-#endif
 
 struct DNSQuestion
 {
@@ -728,6 +725,20 @@ enum ednsHeaderFlags {
   EDNS_HEADER_FLAG_DO = 32768
 };
 
+struct DNSDistRuleAction
+{
+  std::shared_ptr<DNSRule> d_rule;
+  std::shared_ptr<DNSAction> d_action;
+  boost::uuids::uuid d_id;
+};
+
+struct DNSDistResponseRuleAction
+{
+  std::shared_ptr<DNSRule> d_rule;
+  std::shared_ptr<DNSResponseAction> d_action;
+  boost::uuids::uuid d_id;
+};
+
 extern GlobalStateHolder<SuffixMatchTree<DynBlock>> g_dynblockSMT;
 extern DNSAction::Action g_dynBlockAction;
 
@@ -735,9 +746,9 @@ extern GlobalStateHolder<vector<CarbonConfig> > g_carbon;
 extern GlobalStateHolder<ServerPolicy> g_policy;
 extern GlobalStateHolder<servers_t> g_dstates;
 extern GlobalStateHolder<pools_t> g_pools;
-extern GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > > g_rulactions;
-extern GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSResponseAction> > > > g_resprulactions;
-extern GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSResponseAction> > > > g_cachehitresprulactions;
+extern GlobalStateHolder<vector<DNSDistRuleAction> > g_rulactions;
+extern GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_resprulactions;
+extern GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_cachehitresprulactions;
 extern GlobalStateHolder<NetmaskGroup> g_ACL;
 
 extern ComboAddress g_serverControl; // not changed during runtime
@@ -802,8 +813,8 @@ struct LocalHolders
 
   LocalStateHolder<NetmaskGroup> acl;
   LocalStateHolder<ServerPolicy> policy;
-  LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > > rulactions;
-  LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSResponseAction> > > > cacheHitRespRulactions;
+  LocalStateHolder<vector<DNSDistRuleAction> > rulactions;
+  LocalStateHolder<vector<DNSDistResponseRuleAction> > cacheHitRespRulactions;
   LocalStateHolder<servers_t> servers;
   LocalStateHolder<NetmaskTree<DynBlock> > dynNMGBlock;
   LocalStateHolder<SuffixMatchTree<DynBlock> > dynSMTBlock;
@@ -844,7 +855,7 @@ void resetLuaSideEffect(); // reset to indeterminate state
 
 bool responseContentMatches(const char* response, const uint16_t responseLen, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const ComboAddress& remote);
 bool processQuery(LocalHolders& holders, DNSQuestion& dq, string& poolname, int* delayMsec, const struct timespec& now);
-bool processResponse(LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSResponseAction> > > >& localRespRulactions, DNSResponse& dr, int* delayMsec);
+bool processResponse(LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, int* delayMsec);
 bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize, const DNSName& qname, uint16_t origFlags, bool ednsAdded, bool ecsAdded, std::vector<uint8_t>& rewrittenResponse, uint16_t addRoom);
 void restoreFlags(struct dnsheader* dh, uint16_t origFlags);
 bool checkQueryHeaders(const struct dnsheader* dh);

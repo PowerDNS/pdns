@@ -82,13 +82,13 @@ class TestAPIBasics(DNSDistTest):
             self.assertIn(key, content)
 
         for rule in content['rules']:
-            for key in ['id', 'matches', 'rule', 'action']:
+            for key in ['id', 'matches', 'rule', 'action', 'uuid']:
                 self.assertIn(key, rule)
             for key in ['id', 'matches']:
                 self.assertTrue(rule[key] >= 0)
 
         for rule in content['response-rules']:
-            for key in ['id', 'matches', 'rule', 'action']:
+            for key in ['id', 'matches', 'rule', 'action', 'uuid']:
                 self.assertIn(key, rule)
             for key in ['id', 'matches']:
                 self.assertTrue(rule[key] >= 0)
