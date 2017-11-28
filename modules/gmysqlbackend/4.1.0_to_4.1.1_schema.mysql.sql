@@ -1,0 +1,1 @@
+ALTER TABLE domains MODIFY notified_serial INT UNSIGNED DEFAULT NULL;
