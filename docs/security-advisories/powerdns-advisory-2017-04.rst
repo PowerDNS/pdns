@@ -19,7 +19,7 @@ are still allowed even though the API has been configured as read-only
 via the
 `api-readonly <https://docs.powerdns.com/authoritative/settings.html#api-readonly>`__
 keyword.
-This missing check allows an attacker with valid API credentials could flush
+This missing check allows an attacker with valid API credentials to flush
 the cache, trigger a zone transfer or send a NOTIFY. This issue has been
 assigned CVE-2017-15091.
 
