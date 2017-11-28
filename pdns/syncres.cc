@@ -1768,7 +1768,7 @@ vState SyncRes::validateDNSKeys(const DNSName& zone, const std::vector<DNSRecord
   if (!signatures.empty()) {
     DNSName signer = getSigner(signatures);
 
-    if (!signer.empty() && signer.isPartOf(zone)) {
+    if (!signer.empty() && zone.isPartOf(signer)) {
       vState state = getDSRecords(signer, ds, false, depth);
 
       if (state != Secure) {
