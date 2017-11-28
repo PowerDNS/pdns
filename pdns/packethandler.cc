@@ -275,8 +275,9 @@ int PacketHandler::doChaosRequest(DNSPacket *p, DNSPacket *r, DNSName &target)
         return 0;
       }
       string tid=id;
-      if(!tid.empty() && tid[0]!='"') // see #6010 however
-	tid = "\"" + tid + "\"";
+      if(!tid.empty() && tid[0]!='"') { // see #6010 however
+        tid = "\"" + tid + "\"";
+      }
       rr.dr.d_content=DNSRecordContent::mastermake(QType::TXT, 1, tid);
     }
     else {
