@@ -97,7 +97,7 @@ at `<https://doc.powerdns.com/>`
 --quiet
     Suppress logging of questions and answers.
 --server-id=<text>
-    Return *text* WHen queried for 'server.id' TXT, defaults to
+    Return *text* WHen queried for 'id.server' TXT, defaults to
     hostname.
 --serve-rfc1918
     On by default, this makes the server authoritatively aware of:

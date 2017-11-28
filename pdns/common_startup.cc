@@ -149,7 +149,7 @@ void declareArguments()
   ::arg().set("negquery-cache-ttl","Seconds to store negative query results in the QueryCache")="60";
   ::arg().set("query-cache-ttl","Seconds to store query results in the QueryCache")="20";
   ::arg().set("soa-minimum-ttl","Default SOA minimum ttl")="3600";
-  ::arg().set("server-id", "Returned when queried for 'server.id' TXT or NSID, defaults to hostname - disabled or custom")="";
+  ::arg().set("server-id", "Returned when queried for 'id.server' TXT or NSID, defaults to hostname - disabled or custom")="";
   ::arg().set("soa-refresh-default","Default SOA refresh")="10800";
   ::arg().set("soa-retry-default","Default SOA retry")="3600";
   ::arg().set("soa-expire-default","Default SOA expire")="604800";
