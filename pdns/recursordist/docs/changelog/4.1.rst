@@ -2,6 +2,50 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.0
+  :released: TBD
+
+  This is the first release in the 4.1.x train.
+
+  *text to be written by Bert*
+
+  .. change::
+    :tags: Internals, DNSSEC, Bug Fixes
+    :pullreq: 5972
+
+    Dump the validation status of negcache entries, fix DNSSEC type.
+
+  .. change::
+    :tags: Internals, Bug Fixes
+    :pullreq: 5980
+
+    Cache Secure validation state when inserting negcache entries.
+
+  .. change::
+    :tags: DNSSEC, Bug Fixes
+    :pullreq: 5978
+
+    Fix DNSSEC validation of DS denial from the negative cache.
+
+  .. change::
+    :tags: DNSSEC, Bug Fixes
+    :pullreq: 5997
+
+    Store additional records as non-auth, even on AA=1 answers.
+
+  .. change::
+    :tags: DNSSEC, Bug Fixes
+    :pullreq: 6008
+
+    Don't leak when the loading a public ECDSA key fails.
+
+  .. change::
+    :tags: DNSSEC, Bug Fixes
+    :pullreq: 6009
+
+    When validating DNSKeys, the zone should be part of the signer.
+
+.. changelog::
   :version: 4.1.0-rc3
   :released: 17th of November 2017
 
