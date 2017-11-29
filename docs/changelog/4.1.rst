@@ -3,14 +3,24 @@ Changelogs for 4.1.x
 
 .. changelog::
   :version: 4.1.0
-  :released: TBD
+  :released: 29th of November 2017
 
   This is the first release in the 4.1.x train.
 
-  *text to be written by Bert*
+  The full release notes can be read at: https://wordpress.com/post/blog.powerdns.com/2473
 
-  Changes since 4.1.0-rc3
-  -----------------------
+  The 4.1 release is a major upgrade for the Authoritative Server featuring many improvements and speedups:
+
+  - Improved performance: 400% speedup in some scenarios,
+  - Crypto API: DNSSEC fully configurable via RESTful API,
+  - Improved documentation,
+  - Database related improvements,
+  - Enhanced tooling,
+  - Support for TCP Fast Open,
+  - Support for non-local bind,
+  - Our packages now ship with PKCS #11 support.
+
+  And, while we recognize this has an impact on many installations and may be painful, it was necessary to remove support for Recursor passthrough.  To read more about this please see the blog post mentioned above.
 
   .. change::
     :tags: DNSSEC, Bug Fixes
