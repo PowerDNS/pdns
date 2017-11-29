@@ -128,15 +128,17 @@ BOOST_AUTO_TEST_CASE(test_basic) {
 
   BOOST_CHECK_EQUAL(unset.toString(), "www.powerdns\\.com.com.");
 
+  DNSName rfc4343_2_1("~!.example.");
   DNSName rfc4343_2_2(R"(Donald\032E\.\032Eastlake\0323rd.example.)");
   DNSName example("example.");
+  BOOST_CHECK(rfc4343_2_1.isPartOf(example));
   BOOST_CHECK(rfc4343_2_2.isPartOf(example));
+  BOOST_CHECK_EQUAL(rfc4343_2_1.toString(), "~!.example.");
 
   auto labels=rfc4343_2_2.getRawLabels();
   BOOST_CHECK_EQUAL(*labels.begin(), "Donald E. Eastlake 3rd");
   BOOST_CHECK_EQUAL(*labels.rbegin(), "example");
   BOOST_CHECK_EQUAL(labels.size(), 2);
-
 
   DNSName build;
   build.appendRawLabel("Donald E. Eastlake 3rd");
