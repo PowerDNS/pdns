@@ -282,7 +282,7 @@ public:
   }
 
   //! if this returns true, DomainInfo di contains information about the domain
-  virtual bool getDomainInfo(const DNSName &domain, DomainInfo &di)
+  virtual bool getDomainInfo(const DNSName &domain, DomainInfo &di, bool getSerial=true)
   {
     return false;
   }

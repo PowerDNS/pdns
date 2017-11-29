@@ -93,7 +93,7 @@ OdbxBackend::~OdbxBackend()
 
 
 
-bool OdbxBackend::getDomainInfo( const DNSName& domain, DomainInfo& di )
+bool OdbxBackend::getDomainInfo( const DNSName& domain, DomainInfo& di, bool getSerial )
 {
         const char* tmp;
 
@@ -119,7 +119,7 @@ bool OdbxBackend::getDomainInfo( const DNSName& domain, DomainInfo& di )
         		di.backend = this;
         		di.serial = 0;
 
-        		if( ( tmp = odbx_field_value( m_result, 6 ) ) != NULL )
+        		if( getSerial && ( tmp = odbx_field_value( m_result, 6 ) ) != NULL )
         		{
         			SOAData sd;
 

@@ -577,7 +577,7 @@ void RemoteBackend::parseDomainInfo(const Json &obj, DomainInfo &di)
    di.backend = this;
 }
 
-bool RemoteBackend::getDomainInfo(const DNSName& domain, DomainInfo &di) {
+bool RemoteBackend::getDomainInfo(const DNSName& domain, DomainInfo &di, bool getSerial) {
    if (domain.empty()) return false;
    Json query = Json::object{
      { "method", "getDomainInfo" },

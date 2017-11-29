@@ -602,7 +602,7 @@ void GeoIPBackend::rediscover(string* status) {
   reload();
 }
 
-bool GeoIPBackend::getDomainInfo(const DNSName& domain, DomainInfo &di) {
+bool GeoIPBackend::getDomainInfo(const DNSName& domain, DomainInfo &di, bool getSerial) {
   ReadLock rl(&s_state_lock);
 
   for(GeoIPDomain dom :  s_domains) {

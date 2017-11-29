@@ -195,7 +195,7 @@ public:
   void setFresh(uint32_t domain_id) override;
   void getUnfreshSlaveInfos(vector<DomainInfo> *domains) override;
   void getUpdatedMasters(vector<DomainInfo> *updatedDomains) override;
-  bool getDomainInfo(const DNSName &domain, DomainInfo &di) override;
+  bool getDomainInfo(const DNSName &domain, DomainInfo &di, bool getSerial=true) override;
   void setNotified(uint32_t domain_id, uint32_t serial) override;
   bool setMaster(const DNSName &domain, const string &ip) override;
   bool setKind(const DNSName &domain, const DomainInfo::DomainKind kind) override;

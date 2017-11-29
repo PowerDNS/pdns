@@ -300,7 +300,7 @@ bool GSQLBackend::setAccount(const DNSName &domain, const string &account)
   return true;
 }
 
-bool GSQLBackend::getDomainInfo(const DNSName &domain, DomainInfo &di)
+bool GSQLBackend::getDomainInfo(const DNSName &domain, DomainInfo &di, bool getSerial)
 {
   /* fill DomainInfo from database info:
      id,name,master IP(s),last_check,notified_serial,type,account */
@@ -337,15 +337,17 @@ bool GSQLBackend::getDomainInfo(const DNSName &domain, DomainInfo &di)
   di.backend=this;
 
   di.serial = 0;
-  try {
-    SOAData sd;
-    if(!getSOA(domain, sd))
-      g_log<<Logger::Notice<<"No serial for '"<<domain<<"' found - zone is missing?"<<endl;
-    else
-      di.serial = sd.serial;
-  }
-  catch(PDNSException &ae){
-    g_log<<Logger::Error<<"Error retrieving serial for '"<<domain<<"': "<<ae.reason<<endl;
+  if(getSerial) {
+    try {
+      SOAData sd;
+      if(!getSOA(domain, sd))
+        g_log<<Logger::Notice<<"No serial for '"<<domain<<"' found - zone is missing?"<<endl;
+      else
+        di.serial = sd.serial;
+    }
+    catch(PDNSException &ae){
+      g_log<<Logger::Error<<"Error retrieving serial for '"<<domain<<"': "<<ae.reason<<endl;
+    }
   }
 
   di.kind = DomainInfo::stringToKind(type);

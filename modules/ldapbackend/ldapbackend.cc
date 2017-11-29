@@ -675,7 +675,7 @@ void LdapBackend::setNotified( uint32_t id, uint32_t serial )
 
 
 
-bool LdapBackend::getDomainInfo( const DNSName& domain, DomainInfo& di )
+bool LdapBackend::getDomainInfo( const DNSName& domain, DomainInfo& di, bool getSerial )
 {
   string filter;
   SOAData sd;

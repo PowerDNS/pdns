@@ -191,7 +191,7 @@ public:
   ~Bind2Backend();
   void getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains) override;
   void getUpdatedMasters(vector<DomainInfo> *changedDomains) override;
-  bool getDomainInfo(const DNSName &domain, DomainInfo &di) override;
+  bool getDomainInfo(const DNSName &domain, DomainInfo &di, bool getSerial=true ) override;
   time_t getCtime(const string &fname);
    // DNSSEC
   bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) override;

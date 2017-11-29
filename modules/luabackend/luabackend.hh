@@ -68,7 +68,7 @@ public:
 
 //  SLAVE BACKEND
 
-    bool getDomainInfo(const DNSName& domain, DomainInfo &di) override;
+    bool getDomainInfo(const DNSName& domain, DomainInfo &di, bool getSerial=true) override;
     bool isMaster(const DNSName& name, const string &ip) override;
     void getUnfreshSlaveInfos(vector<DomainInfo>* domains) override;
     void setFresh(uint32_t id) override;

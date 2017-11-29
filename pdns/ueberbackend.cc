@@ -80,10 +80,10 @@ void UeberBackend::go(void)
   pthread_mutex_unlock(&d_mut);
 }
 
-bool UeberBackend::getDomainInfo(const DNSName &domain, DomainInfo &di)
+bool UeberBackend::getDomainInfo(const DNSName &domain, DomainInfo &di, bool getSerial)
 {
   for(vector<DNSBackend *>::const_iterator i=backends.begin();i!=backends.end();++i)
-    if((*i)->getDomainInfo(domain, di))
+    if((*i)->getDomainInfo(domain, di, getSerial))
       return true;
   return false;
 }

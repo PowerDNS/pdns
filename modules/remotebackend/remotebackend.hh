@@ -167,7 +167,7 @@ class RemoteBackend : public DNSBackend
   bool addDomainKey(const DNSName& name, const KeyData& key, int64_t& id) override;
   bool activateDomainKey(const DNSName& name, unsigned int id) override;
   bool deactivateDomainKey(const DNSName& name, unsigned int id) override;
-  bool getDomainInfo(const DNSName& domain, DomainInfo& di) override;
+  bool getDomainInfo(const DNSName& domain, DomainInfo& di, bool getSerial=true ) override;
   void setNotified(uint32_t id, uint32_t serial) override;
   bool doesDNSSEC() override;
   bool isMaster(const DNSName& name, const string &ip) override;

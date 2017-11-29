@@ -401,7 +401,7 @@ void Bind2Backend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
   }
 }
 
-bool Bind2Backend::getDomainInfo(const DNSName& domain, DomainInfo &di)
+bool Bind2Backend::getDomainInfo(const DNSName& domain, DomainInfo &di, bool getSerial)
 {
   BB2DomainInfo bbd;
   if(!safeGetBBDomainInfo(domain, &bbd))
@@ -414,14 +414,16 @@ bool Bind2Backend::getDomainInfo(const DNSName& domain, DomainInfo &di)
   di.backend=this;
   di.kind=bbd.d_kind;
   di.serial=0;
-  try {
-    SOAData sd;
-    sd.serial=0;
-    
-    getSOA(bbd.d_name,sd); // we might not *have* a SOA yet
-    di.serial=sd.serial;
+  if(getSerial) {
+    try {
+      SOAData sd;
+      sd.serial=0;
+
+      getSOA(bbd.d_name,sd); // we might not *have* a SOA yet
+      di.serial=sd.serial;
+    }
+    catch(...){}
   }
-  catch(...){}
   
   return true;
 }

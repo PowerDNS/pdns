@@ -258,7 +258,7 @@ bool LUABackend::isMaster(const DNSName& domain, const string &ip) {
     return ok;
 }
 
-bool LUABackend::getDomainInfo(const DNSName&domain, DomainInfo &di) {
+bool LUABackend::getDomainInfo(const DNSName&domain, DomainInfo &di, bool getSerial) {
     if (f_lua_getdomaininfo == 0)
         return false;
 
