@@ -3,11 +3,24 @@ Changelogs for 4.1.x
 
 .. changelog::
   :version: 4.1.0
-  :released: TBD
+  :released: 30th of November 2017
 
-  This is the first release in the 4.1.x train.
+  This is the first release in the 4.1 train.
 
-  *text to be written by Bert*
+  The full release notes can be read `on the blog <https://wordpress.com/post/blog.powerdns.com/2474>`_.
+
+  This is a major release containing significant speedups (both in throughput and latency), enhanced capabilities and a highly conformant and robust DNSSEC validation implementation that is ready for heavy production use. In addition, our EDNS Client Subnet implementation now scales effortlessly to networks needing very fine grained scopes (as used by some ‘country sized’ service providers).
+
+  - Improved DNSSEC support,
+  - Improved documentation,
+  - Improved RPZ support,
+  - Improved EDNS Client Subnet support,
+  - Support for Botan 2.x (and removal of support for Botan 1.10),
+  - SNMP support,
+  - Lua engine has gained access to more parts of the recursor,
+  - CPU affinity can now be specified,
+  - TCP Fast Open support,
+  - New performance metrics.
 
   .. change::
     :tags: Internals, DNSSEC, Bug Fixes
