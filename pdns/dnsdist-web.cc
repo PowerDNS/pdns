@@ -19,6 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include "histog.hh"
 #include "dnsdist.hh"
 #include "sstuff.hh"
 #include "ext/json11/json11.hpp"
@@ -34,6 +35,7 @@
 #include "htmlfiles.h"
 #include "base64.hh"
 #include "gettime.hh"
+
 
 bool g_apiReadWrite{false};
 std::string g_apiConfigDirectory;
@@ -219,6 +221,22 @@ static void addCustomHeaders(YaHTTP::Response& resp, const boost::optional<std::
   }
 }
 
+static string getContentTypeFor(const std::string& path, const std::string& charset)
+{
+  vector<string> parts;
+  stringtok(parts, path, ".");
+  if(parts.back() == "html")
+    return  "text/html" + charset;
+  else if(parts.back() == "css")
+    return  "text/css" + charset;
+  else if(parts.back() == "js")
+    return  "application/javascript" + charset;
+  else if(parts.back() == "png")
+    return  "image/png";
+  else
+    return "application/binary"; // just made this up
+}
+  
 static void connectionThread(int sock, ComboAddress remote, string password, string apiKey, const boost::optional<std::map<std::string, std::string> >& customHeaders)
 {
   using namespace json11;
@@ -334,6 +352,40 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
         Json my_json = obj;
         resp.body=my_json.dump();
         resp.headers["Content-Type"] = "application/json";
+      }
+      else if(command=="percentiles") {
+        vector<uint32_t> times;
+        times.reserve(g_rings.respRing.capacity());
+        
+        DTime dt;
+        {
+          std::lock_guard<std::mutex> lock(g_rings.respMutex);
+          for(const auto& r : g_rings.respRing) {
+            if(r.usec < 10000000)
+              times.push_back(r.usec);
+          }
+        }
+        map<uint32_t, uint32_t> histo;
+        for(const auto& t : times) {
+          histo[t]++;
+        }
+        
+        auto bins=createLogHistogram(histo);
+        Json::array obj;
+        for(const auto& b : bins) {
+          Json::array a;
+          a.push_back(b.percentile);
+          if(b.latAverage==0.0)
+            a.push_back(0.001);
+          else
+            a.push_back(b.latAverage);
+          obj.push_back(a);
+        }
+        
+        Json my_json = obj;
+        resp.body=my_json.dump();
+        resp.headers["Content-Type"] = "application/json";
+
       }
       else if(command=="ebpfblocklist") {
         Json::object obj;
@@ -612,15 +664,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
     else if(!req.url.path.empty() && g_urlmap.count(req.url.path.c_str()+1)) {
       resp.body.assign(g_urlmap[req.url.path.c_str()+1]);
       vector<string> parts;
-      stringtok(parts, req.url.path, ".");
-      if(parts.back() == "html")
-        resp.headers["Content-Type"] = "text/html" + charset;
-      else if(parts.back() == "css")
-        resp.headers["Content-Type"] = "text/css" + charset;
-      else if(parts.back() == "js")
-        resp.headers["Content-Type"] = "application/javascript" + charset;
-      else if(parts.back() == "png")
-        resp.headers["Content-Type"] = "image/png";
+      resp.headers["Content-Type"] = getContentTypeFor(req.url.path, charset);
       resp.status=200;
     }
     else if(req.url.path=="/") {
@@ -629,8 +673,17 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
       resp.status=200;
     }
     else {
-      // cerr<<"404 for: "<<req.url.path<<endl;
       resp.status=404;
+      if(req.url.path.find("..")== string::npos && readWholeFileIfThere("./html-dyn/"+req.url.path, &resp.body)) {
+        cout<<"Served up "<<req.url.path<<endl;
+        resp.headers["Content-Type"] = getContentTypeFor(req.url.path, charset);
+        resp.status=200;
+      }
+      else  {
+        cerr<<"Could not find file for "<<req.url.path<<endl;
+      }
+      // cerr<<"404 for: "<<req.url.path<<endl;
+
     }
 
     std::ostringstream ofs;

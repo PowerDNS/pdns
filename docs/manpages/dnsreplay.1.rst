@@ -35,6 +35,7 @@ PORT
 --ecs-mask <VAL>         When EDNS forwarding an IP address, mask out first octet with this value
 --ecs-stamp <FLAG>       Add original IP address as EDNS Client Subnet Option when 
                          forwarding to reference server
+--log-histogram          Write out a log-histogram of response times to 'log-histogram'
 --packet-limit <NUM>     Stop after replaying *NUM* packets. Default for *NUM* is 0, which
                          means no limit.
 --quiet <FLAG>           If *FLAG* is set to 1. dnsreplay will not be very noisy with its

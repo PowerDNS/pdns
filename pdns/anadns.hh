@@ -38,16 +38,17 @@ struct QuestionIdentifier
   bool operator<(const QuestionIdentifier& rhs) const
   {
     return 
-      tie(d_source, d_dest, d_qname, d_qtype, d_id) < 
-      tie(rhs.d_source, rhs.d_dest, rhs.d_qname, rhs.d_qtype, rhs.d_id);
+      tie(d_id,         d_qtype,     d_source,     d_dest,     d_qname) < 
+      tie(rhs.d_id, rhs.d_qtype, rhs.d_source, rhs.d_dest, rhs.d_qname);
   }
 
+
   // the canonical direction is that of the question
-  static QuestionIdentifier create(const ComboAddress& src, const ComboAddress& dst, const MOADNSParser& mdp)
+  static QuestionIdentifier create(const ComboAddress& src, const ComboAddress& dst, const struct dnsheader& header, const DNSName& qname, uint16_t qtype)
   {
     QuestionIdentifier ret;
 
-    if(mdp.d_header.qr) {
+    if(header.qr) {
       ret.d_source = dst;
       ret.d_dest = src;
     }
@@ -55,12 +56,19 @@ struct QuestionIdentifier
       ret.d_source = src;
       ret.d_dest = dst;
     }
-    ret.d_qname=mdp.d_qname;
-    ret.d_qtype=mdp.d_qtype;
-    ret.d_id=mdp.d_header.id;
+    ret.d_qname=qname;
+    ret.d_qtype=qtype;
+    ret.d_id=ntohs(header.id);
     return ret;
   }
 
+  // the canonical direction is that of the question
+  static QuestionIdentifier create(const ComboAddress& src, const ComboAddress& dst, const MOADNSParser& mdp)
+  {
+    return create(src, dst, mdp.d_header, mdp.d_qname, mdp.d_qtype);
+  }
+
+  
   ComboAddress d_source, d_dest;
 
   DNSName d_qname;
