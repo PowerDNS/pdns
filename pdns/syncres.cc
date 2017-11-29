@@ -897,6 +897,10 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
   if(t_RC->get(d_now.tv_sec, qname, QType(QType::CNAME), d_requireAuthData, &cset, d_incomingECSFound ? d_incomingECSNetwork : d_requestor, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &state, &wasAuth) > 0) {
 
     for(auto j=cset.cbegin() ; j != cset.cend() ; ++j) {
+      if (j->d_class != QClass::IN) {
+        continue;
+      }
+
       if(j->d_ttl>(unsigned int) d_now.tv_sec) {
 
         if (!wasAuthZone && shouldValidate() && wasAuth && state == Indeterminate && d_requireAuthData) {
@@ -1175,7 +1179,13 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
     }
 
     for(auto j=cset.cbegin() ; j != cset.cend() ; ++j) {
+
       LOG(j->d_content->getZoneRepresentation());
+
+      if (j->d_class != QClass::IN) {
+        continue;
+      }
+
       if(j->d_ttl>(unsigned int) d_now.tv_sec) {
         DNSRecord dr=*j;
         ttl = (dr.d_ttl-=d_now.tv_sec);
@@ -1902,6 +1912,10 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
   const unsigned int labelCount = qname.countLabels();
   bool isCNAMEAnswer = false;
   for(const auto& rec : lwr.d_records) {
+    if (rec.d_class != QClass::IN) {
+      continue;
+    }
+
     if(!isCNAMEAnswer && rec.d_place == DNSResourceRecord::ANSWER && rec.d_type == QType::CNAME && (!(qtype==QType(QType::CNAME))) && rec.d_name == qname) {
       isCNAMEAnswer = true;
     }
@@ -1947,7 +1961,12 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
     }
     LOG(prefix<<qname<<": accept answer '"<<rec.d_name<<"|"<<DNSRecordContent::NumberToType(rec.d_type)<<"|"<<rec.d_content->getZoneRepresentation()<<"' from '"<<auth<<"' nameservers? ttl="<<rec.d_ttl<<", place="<<(int)rec.d_place<<" ");
     if(rec.d_type == QType::ANY) {
-      LOG("NO! - we don't accept 'ANY' data"<<endl);
+      LOG("NO! - we don't accept 'ANY'-typed data"<<endl);
+      continue;
+    }
+
+    if(rec.d_class != QClass::IN) {
+      LOG("NO! - we don't accept records for any other class than 'IN'"<<endl);
       continue;
     }
 
