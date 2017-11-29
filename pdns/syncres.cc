@@ -728,6 +728,10 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
   if(t_RC->get(d_now.tv_sec, qname,QType(QType::CNAME), &cset, d_incomingECSFound ? d_incomingECSNetwork : d_requestor, &signatures, &d_wasVariable) > 0) {
 
     for(auto j=cset.cbegin() ; j != cset.cend() ; ++j) {
+      if (j->d_class != QClass::IN) {
+        continue;
+      }
+
       if(j->d_ttl>(unsigned int) d_now.tv_sec) {
         LOG(prefix<<qname<<": Found cache CNAME hit for '"<< qname << "|CNAME" <<"' to '"<<j->d_content->getZoneRepresentation()<<"'"<<endl);
         DNSRecord dr=*j;
@@ -860,7 +864,13 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSR
   if(t_RC->get(d_now.tv_sec, sqname, sqt, &cset, d_incomingECSFound ? d_incomingECSNetwork : d_requestor, d_doDNSSEC ? &signatures : 0, &d_wasVariable) > 0) {
     LOG(prefix<<sqname<<": Found cache hit for "<<sqt.getName()<<": ");
     for(auto j=cset.cbegin() ; j != cset.cend() ; ++j) {
+
       LOG(j->d_content->getZoneRepresentation());
+
+      if (j->d_class != QClass::IN) {
+        continue;
+      }
+
       if(j->d_ttl>(unsigned int) d_now.tv_sec) {
         DNSRecord dr=*j;
         ttl = (dr.d_ttl-=d_now.tv_sec);
@@ -1262,6 +1272,9 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
       tcache_t tcache;
 
       for(const auto& rec : lwr.d_records) {
+        if (rec.d_class != QClass::IN) {
+          continue;
+        }
         if(rec.d_type == QType::RRSIG) {
           auto rrsig = getRR<RRSIGRecordContent>(rec);
           if (rrsig) {
@@ -1279,7 +1292,12 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
         }
         LOG(prefix<<qname<<": accept answer '"<<rec.d_name<<"|"<<DNSRecordContent::NumberToType(rec.d_type)<<"|"<<rec.d_content->getZoneRepresentation()<<"' from '"<<auth<<"' nameservers? "<<(int)rec.d_place<<" ");
         if(rec.d_type == QType::ANY) {
-          LOG("NO! - we don't accept 'ANY' data"<<endl);
+          LOG("NO! - we don't accept 'ANY'-typed data"<<endl);
+          continue;
+        }
+
+        if(rec.d_class != QClass::IN) {
+          LOG("NO! - we don't accept records for any other class than 'IN'"<<endl);
           continue;
         }
 
