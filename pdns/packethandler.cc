@@ -729,7 +729,7 @@ int PacketHandler::trySuperMaster(DNSPacket *p, const DNSName& tsigkeyname)
   }
 }
 
-int PacketHandler::trySuperMasterSynchronous(DNSPacket *p, const DNSName& tsigkeyname)
+int PacketHandler::trySuperMasterSynchronous(const DNSPacket *p, const DNSName& tsigkeyname)
 {
   string remote = p->getRemote().toString();
   if(p->hasEDNSSubnet() && ::arg().contains("trusted-notification-proxy", remote)) {

@@ -208,7 +208,14 @@ private:
   Semaphore d_any_sem;
   time_t d_tickinterval;
   set<DomainInfo> d_tocheck;
-  vector<DNSPacket> d_potentialsupermasters;
+  struct cmp {
+    bool operator()(const DNSPacket& a, const DNSPacket& b) {
+      return a.qdomain < b.qdomain;
+    };
+  };
+
+  std::set<DNSPacket, cmp> d_potentialsupermasters;
+
   set<string> d_alsoNotify;
   NotificationQueue d_nq;
   NetmaskGroup d_onlyNotify;

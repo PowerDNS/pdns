@@ -723,8 +723,8 @@ void CommunicatorClass::addTrySuperMasterRequest(DNSPacket *p)
 {
   Lock l(&d_lock);
   DNSPacket ours = *p;
-  d_potentialsupermasters.push_back(ours);
-  d_any_sem.post(); // kick the loop!
+  if(d_potentialsupermasters.insert(ours).second)
+    d_any_sem.post(); // kick the loop!
 }
 
 void CommunicatorClass::slaveRefresh(PacketHandler *P)
@@ -734,18 +734,18 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
 
   UeberBackend *B=P->getBackend();
   vector<DomainInfo> rdomains;
-  vector<DomainNotificationInfo> sdomains; 
-  vector<DNSPacket> trysuperdomains;
-
+  vector<DomainNotificationInfo> sdomains;
+  set<DNSPacket, cmp> trysuperdomains;
   {
     Lock l(&d_lock);
     rdomains.insert(rdomains.end(), d_tocheck.begin(), d_tocheck.end());
     d_tocheck.clear();
-    trysuperdomains.insert(trysuperdomains.end(), d_potentialsupermasters.begin(), d_potentialsupermasters.end());
+
+    trysuperdomains = d_potentialsupermasters;
     d_potentialsupermasters.clear();
   }
 
-  for(DNSPacket& dp :  trysuperdomains) {
+  for(const DNSPacket& dp :  trysuperdomains) {
     // get the TSIG key name
     TSIGRecordContent trc;
     DNSName tsigkeyname;

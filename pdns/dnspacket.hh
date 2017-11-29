@@ -120,7 +120,7 @@ public:
   void setMaxReplyLen(int bytes); //!< set the max reply len (used when retrieving from the packet cache, and this changed)
 
   bool couldBeCached(); //!< returns 0 if this query should bypass the packet cache
-  bool hasEDNSSubnet();
+  bool hasEDNSSubnet() const;
   bool hasEDNS();
   uint8_t getEDNSVersion() const { return d_ednsversion; };
   void setEDNSRcode(uint16_t extRCode)
