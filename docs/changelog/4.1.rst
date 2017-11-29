@@ -5,9 +5,9 @@ Changelogs for 4.1.x
   :version: 4.1.0
   :released: 29th of November 2017
 
-  This is the first release in the 4.1.x train.
+  This is the first release in the 4.1 train.
 
-  The full release notes can be read at: https://wordpress.com/post/blog.powerdns.com/2473
+  The full release notes can be read `on the blog <https://wordpress.com/post/blog.powerdns.com/2473>`_.
 
   The 4.1 release is a major upgrade for the Authoritative Server featuring many improvements and speedups:
 
@@ -18,9 +18,10 @@ Changelogs for 4.1.x
   - Enhanced tooling,
   - Support for TCP Fast Open,
   - Support for non-local bind,
+  - Support for Botan 2.x (and removal of support for Botan 1.10),
   - Our packages now ship with PKCS #11 support.
 
-  And, while we recognize this has an impact on many installations and may be painful, it was necessary to remove support for Recursor passthrough.  To read more about this please see the blog post mentioned above.
+  And, while we recognize this has an impact on many installations and may be painful, it was necessary to remove support for Recursor passthrough.  To read more about this please see the blog post mentioned above or read the :doc:`migration guide <../../guides/recursion>`.
 
   .. change::
     :tags: DNSSEC, Bug Fixes
