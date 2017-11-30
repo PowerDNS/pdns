@@ -586,7 +586,7 @@ int PacketHandler::forwardPacket(const string &msgPrefix, DNSPacket *p, DomainIn
   }
 
   for(const auto& remote : di->masters) {
-    g_log<<Logger::Notice<<msgPrefix<<"Forwarding packet to master "<<remote.toStringWithPortExcept(53)<<endl;
+    g_log<<Logger::Notice<<msgPrefix<<"Forwarding packet to master "<<remote<<endl;
 
     ComboAddress local;
     if (remote.sin4.sin_family == AF_INET && !::arg()["query-local-address"].empty()) {

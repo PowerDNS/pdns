@@ -228,7 +228,7 @@ Logger& Logger::operator<<(const DNSName &d)
 
 Logger& Logger::operator<<(const ComboAddress &ca)
 {
-  *this<<ca.toString();
+  *this<<ca.toLogString();
   return *this;
 }
 

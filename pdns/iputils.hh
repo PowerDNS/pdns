@@ -294,7 +294,11 @@ union ComboAddress {
       return "["+toString() + "]:" + std::to_string(ntohs(sin4.sin_port));
   }
 
-  
+  string toLogString() const
+  {
+    return toStringWithPortExcept(53);
+  }
+
   void truncate(unsigned int bits) noexcept;
 
   uint16_t getPort() const

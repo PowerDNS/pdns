@@ -252,7 +252,7 @@ string DLNotifyRetrieveHandler(const vector<string>&parts, Utility::pid_t ppid)
 
   random_shuffle(di.masters.begin(), di.masters.end());
   Communicator.addSuckRequest(domain, di.masters.front()); 
-  return "Added retrieval request for '"+domain.toString()+"' from master "+di.masters.front().toStringWithPortExcept(53);
+  return "Added retrieval request for '"+domain.toString()+"' from master "+di.masters.front().toLogString();
 }
 
 string DLNotifyHostHandler(const vector<string>&parts, Utility::pid_t ppid)

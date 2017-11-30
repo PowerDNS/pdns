@@ -299,7 +299,7 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote)
   }
   RemoveSentinel rs(domain, this); // this removes us from d_inprogress when we go out of scope
 
-  L<<Logger::Error<<"Initiating transfer of '"<<domain<<"' from remote '"<<remote.toStringWithPortExcept(53)<<"'"<<endl;
+  g_log<<Logger::Error<<"Initiating transfer of '"<<domain<<"' from remote '"<<remote<<"'"<<endl;
   UeberBackend B; // fresh UeberBackend
 
   DomainInfo di;
@@ -398,10 +398,10 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote)
       B.getDomainMetadata(domain, "IXFR", meta);
       if(!meta.empty() && meta[0]=="1") {
         vector<DNSRecord> axfr;
-        g_log<<Logger::Warning<<"Starting IXFR of '"<<domain<<"' from remote "<<remote.toStringWithPortExcept(53)<<endl;
+        g_log<<Logger::Warning<<"Starting IXFR of '"<<domain<<"' from remote "<<remote<<endl;
         ixfrSuck(domain, tt, laddr, remote, pdl, zs, &axfr);
         if(!axfr.empty()) {
-          g_log<<Logger::Warning<<"IXFR of '"<<domain<<"' from remote '"<<remote.toStringWithPortExcept(53)<<"' turned into an AXFR"<<endl;
+          g_log<<Logger::Warning<<"IXFR of '"<<domain<<"' from remote '"<<remote<<"' turned into an AXFR"<<endl;
           bool firstNSEC3=true;
           rrs.reserve(axfr.size());
           for(const auto& dr : axfr) {
@@ -426,9 +426,9 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote)
     }
 
     if(rrs.empty()) {
-      g_log<<Logger::Warning<<"Starting AXFR of '"<<domain<<"' from remote "<<remote.toStringWithPortExcept(53)<<endl;
+      g_log<<Logger::Warning<<"Starting AXFR of '"<<domain<<"' from remote "<<remote<<endl;
       rrs = doAxfr(remote, domain, tt, laddr, pdl, zs);
-      g_log<<Logger::Warning<<"AXFR of '"<<domain<<"' from remote "<<remote.toStringWithPortExcept(53)<<" done"<<endl;
+      g_log<<Logger::Warning<<"AXFR of '"<<domain<<"' from remote "<<remote<<" done"<<endl;
     }
  
     if(zs.isNSEC3) {

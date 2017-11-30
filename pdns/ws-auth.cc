@@ -1458,7 +1458,7 @@ static void apiServerZoneAxfrRetrieve(HttpRequest* req, HttpResponse* resp) {
 
   random_shuffle(di.masters.begin(), di.masters.end());
   Communicator.addSuckRequest(zonename, di.masters.front());
-  resp->setSuccessResult("Added retrieval request for '"+zonename.toString()+"' from master "+di.masters.front().toStringWithPortExcept(53));
+  resp->setSuccessResult("Added retrieval request for '"+zonename.toString()+"' from master "+di.masters.front().toLogString());
 }
 
 static void apiServerZoneNotify(HttpRequest* req, HttpResponse* resp) {
