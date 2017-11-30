@@ -21,11 +21,11 @@ $SDIG $nameserver 5301 capped-ttl.example.net a recurse 2>&1
 echo "==> defpol-with-ttl.example.net should use the default policy's TTL and not the zone one"
 $SDIG $nameserver 5301 defpol-with-ttl.example.net a recurse 2>&1
 echo "==> defpol-with-ttl-capped.example.net should use the default policy's TTL, but capped to maxTTL"
-$SDIG $nameserver 5301 defpol-with-ttl-capped.example.net a recurse 2>&1
+$SDIG $nameserver 5301 defpol-with-ttl-capped.example.net a recurse 2>&1 | sed 's/\(0\tdefault.example.net.\tIN\t[A-Z0-9]\+\t\)\([0-9]\+\)/\115/'
 echo "==> defpol-without-ttl.example.net should use the zone's TTL"
-$SDIG $nameserver 5301 defpol-without-ttl.example.net a recurse 2>&1
+$SDIG $nameserver 5301 defpol-without-ttl.example.net a recurse 2>&1 | sed 's/\(0\tdefault.example.net.\tIN\t[A-Z0-9]\+\t\)\([0-9]\+\)/\115/'
 echo "==> defpol-without-ttl-capped.example.net should use the zone's TTL but capped to maxTTL"
-$SDIG $nameserver 5301 defpol-without-ttl-capped.example.net a recurse 2>&1
+$SDIG $nameserver 5301 defpol-without-ttl-capped.example.net a recurse 2>&1 | sed 's/\(0\tdefault.example.net.\tIN\t[A-Z0-9]\+\t\)\([0-9]\+\)/\115/'
 echo "==> unsupported.example.net has an unsupported target, should be ignored from the RPZ zone"
 $SDIG $nameserver 5301 unsupported.example.net a recurse 2>&1
 echo "==> unsupported2.example.net has an unsupported target, should be ignored from the RPZ zone"
