@@ -50,7 +50,7 @@ BOOST_AUTO_TEST_CASE(test_AddressIsUs6) {
   
   BOOST_CHECK_EQUAL(AddressIsUs(local1), true);
 //  BOOST_CHECK_EQUAL(AddressIsUs(local2), false);
-  BOOST_CHECK_EQUAL(AddressIsUs(local3), true);
+  if(!getenv("PDNS_TEST_NO_IPV6")) BOOST_CHECK_EQUAL(AddressIsUs(local3), true);
   BOOST_CHECK_EQUAL(AddressIsUs(Remote), false);
   Remote.sin4.sin_port = 1;
   BOOST_CHECK_EQUAL(AddressIsUs(Remote), false);
