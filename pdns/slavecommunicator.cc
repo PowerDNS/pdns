@@ -750,15 +750,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     TSIGRecordContent trc;
     DNSName tsigkeyname;
     dp.getTSIGDetails(&trc, &tsigkeyname);
-    int res;
-    res=P->trySuperMasterSynchronous(&dp, tsigkeyname);
-    if(res>=0) {
-      DNSPacket *r=dp.replyPacket();
-      r->setRcode(res);
-      r->setOpcode(Opcode::Notify);
-      N->send(r);
-      delete r;
-    }
+    P->trySuperMasterSynchronous(&dp, tsigkeyname); // FIXME could use some error loging
   }
   if(rdomains.empty()) { // if we have priority domains, check them first
     B->getUnfreshSlaveInfos(&rdomains);
