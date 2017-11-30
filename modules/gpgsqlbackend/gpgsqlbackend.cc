@@ -101,8 +101,6 @@ public:
     declare(suffix,"remove-empty-non-terminals-from-zone-query", "remove all empty non-terminals from zone", "delete from records where domain_id=$1 and type is null");
     declare(suffix,"delete-empty-non-terminal-query", "delete empty non-terminal from zone", "delete from records where domain_id=$1 and name=$2 and type is null");
 
-    declare(suffix,"master-zone-query","Data", "select master from domains where name=$1 and type='SLAVE'");
-
     declare(suffix,"info-zone-query","","select id,name,master,last_check,notified_serial,type,account from domains where name=$1");
 
     declare(suffix,"info-all-slaves-query","","select id,name,master,last_check from domains where type='SLAVE'");

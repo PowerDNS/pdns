@@ -178,7 +178,6 @@ public:
   bool list(const DNSName &target, int domain_id, bool include_disabled=false) override;
   bool get(DNSResourceRecord &r) override;
   void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false) override;
-  bool isMaster(const DNSName &domain, const string &ip) override;
   void alsoNotifies(const DNSName &domain, set<string> *ips) override;
   bool startTransaction(const DNSName &domain, int domain_id=-1) override;
   bool commitTransaction() override;

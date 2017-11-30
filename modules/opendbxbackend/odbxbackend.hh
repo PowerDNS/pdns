@@ -85,7 +85,6 @@ public:
         bool commitTransaction() override;
         bool abortTransaction() override;
 
-        bool isMaster( const DNSName& domain, const string& ip ) override;
         bool getDomainInfo( const DNSName& domain, DomainInfo& di, bool getSerial=true ) override;
         bool feedRecord( const DNSResourceRecord& rr, const DNSName& ordername ) override;
         bool createSlaveDomain( const string& ip, const DNSName& domain, const string &nameserver, const string& account ) override;

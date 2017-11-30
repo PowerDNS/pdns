@@ -61,7 +61,6 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_listQuery=getArg("list-query");
   d_listSubZoneQuery=getArg("list-subzone-query");
 
-  d_MasterOfDomainsZoneQuery=getArg("master-zone-query");
   d_InfoOfDomainsZoneQuery=getArg("info-zone-query");
   d_InfoOfAllSlaveDomainsQuery=getArg("info-all-slaves-query");
   d_SuperMasterInfoQuery=getArg("supermaster-query");
@@ -130,7 +129,6 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_ANYIdQuery_stmt = NULL;
   d_listQuery_stmt = NULL;
   d_listSubZoneQuery_stmt = NULL;
-  d_MasterOfDomainsZoneQuery_stmt = NULL;
   d_InfoOfDomainsZoneQuery_stmt = NULL;
   d_InfoOfAllSlaveDomainsQuery_stmt = NULL;
   d_SuperMasterInfoQuery_stmt = NULL;
@@ -214,39 +212,6 @@ void GSQLBackend::setFresh(uint32_t domain_id)
   catch (SSqlException &e) {
     throw PDNSException("GSQLBackend unable to refresh domain_id "+itoa(domain_id)+": "+e.txtReason());
   }
-}
-
-bool GSQLBackend::isMaster(const DNSName &domain, const string &ip)
-{
-  try {
-    reconnectIfNeeded();
-
-    d_MasterOfDomainsZoneQuery_stmt->
-      bind("domain", domain)->
-      execute()->
-      getResult(d_result)->
-      reset();
-  }
-  catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to retrieve list of master domains: "+e.txtReason());
-  }
-
-  if(!d_result.empty()) {
-    ASSERT_ROW_COLUMNS("master-zone-query", d_result[0], 1);
-
-    // we can have multiple masters separated by commas
-    vector<string> masters;
-    stringtok(masters, d_result[0][0], " ,\t");
-
-    for(const auto& master: masters) {
-      const ComboAddress caMaster(master);
-      if(ip == caMaster.toString())
-        return true;
-    }
-  }
-
-  // no matching master
-  return false;
 }
 
 bool GSQLBackend::setMaster(const DNSName &domain, const string &ip)

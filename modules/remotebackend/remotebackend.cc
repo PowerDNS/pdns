@@ -609,23 +609,6 @@ void RemoteBackend::setNotified(uint32_t id, uint32_t serial) {
    }
 }
 
-bool RemoteBackend::isMaster(const DNSName& name, const string &ip)
-{
-   Json query = Json::object{
-     { "method", "isMaster" },
-     { "parameters", Json::object {
-       { "name", name.toString() },
-       { "ip", ip }
-     }}
-   };
-
-   Json answer;
-   if (this->send(query) == false || this->recv(answer) == false)
-     return false;
-
-   return true;
-}
-
 bool RemoteBackend::superMasterBackend(const string &ip, const DNSName& domain, const vector<DNSResourceRecord>&nsset, string* nameserver, string *account, DNSBackend **ddb)
 {
    Json::array rrset;

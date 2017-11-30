@@ -36,7 +36,6 @@
    virtual bool feedRecord(const DNSResourceRecord &rr, DNSName &ordername);
 
    virtual bool getDomainInfo(const string &domain, DomainInfo &di);
-   virtual bool isMaster(const string &name, const string &ip);
    virtual void getUnfreshSlaveInfos(vector<DomainInfo>* domains);
    virtual void setFresh(uint32_t id);
 */
@@ -222,40 +221,6 @@ void LUABackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains) {
     if (logging)
 	g_log << Logger::Info << backend_name << "(getUnfreshSlaveInfos) END" << endl;
 
-}
-
-bool LUABackend::isMaster(const DNSName& domain, const string &ip) {
-	
-    if (f_lua_ismaster == 0)
-        return false;
-
-    if (logging)
-	g_log << Logger::Error << backend_name << "(isMaster) BEGIN" << endl;
-
-    lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_ismaster);
-
-    lua_pushstring(lua, domain.toString().c_str());
-    lua_pushstring(lua, ip.c_str());
-    
-    if(lua_pcall(lua, 2, 1, f_lua_exec_error) != 0) {
-        string e = backend_name + lua_tostring(lua, -1);
-        lua_pop(lua, 1);
-
-        throw runtime_error(e);
-    }
-
-    size_t returnedwhat = lua_type(lua, -1);
-    bool ok = false;
-    
-    if (returnedwhat == LUA_TBOOLEAN)
-        ok = lua_toboolean(lua, -1);
-    
-    lua_pop(lua, 1);
-    
-    if (logging)
-	g_log << Logger::Info << backend_name << "(isMaster) END" << endl;
-
-    return ok;
 }
 
 bool LUABackend::getDomainInfo(const DNSName&domain, DomainInfo &di, bool getSerial) {
