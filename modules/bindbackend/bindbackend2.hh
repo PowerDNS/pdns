@@ -162,7 +162,7 @@ public:
   DomainInfo::DomainKind d_kind; //!< the kind of domain
   string d_filename; //!< full absolute filename of the zone on disk
   string d_status; //!< message describing status of a domain, for human consumption
-  vector<string> d_masters;     //!< IP address of the master of this domain
+  vector<ComboAddress> d_masters;     //!< IP address of the master of this domain
   set<string> d_also_notify; //!< IP list of hosts to also notify
   LookButDontTouch<recordstorage_t> d_records;  //!< the actual records belonging to this domain
   time_t d_ctime;  //!< last known ctime of the file on disk

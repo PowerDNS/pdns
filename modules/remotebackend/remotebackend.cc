@@ -557,7 +557,7 @@ void RemoteBackend::parseDomainInfo(const Json &obj, DomainInfo &di)
    di.id = intFromJson(obj, "id", -1);
    di.zone = DNSName(stringFromJson(obj, "zone"));
    for(const auto& master: obj["masters"].array_items())
-     di.masters.push_back(master.string_value());
+     di.masters.push_back(ComboAddress(master.string_value(), 53));
 
    di.notified_serial = static_cast<unsigned int>(doubleFromJson(obj, "notified_serial", -1));
    di.serial = static_cast<unsigned int>(obj["serial"].number_value());

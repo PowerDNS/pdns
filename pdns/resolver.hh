@@ -60,9 +60,9 @@ public:
 
   typedef vector<DNSResourceRecord> res_t;
   //! synchronously resolve domain|type at IP, store result in result, rcode in ret
-  int resolve(const string &ip, const DNSName &domain, int type, res_t* result, const ComboAddress& local);
+  int resolve(const ComboAddress &ip, const DNSName &domain, int type, res_t* result, const ComboAddress& local);
 
-  int resolve(const string &ip, const DNSName &domain, int type, res_t* result);
+  int resolve(const ComboAddress &ip, const DNSName &domain, int type, res_t* result);
 
   //! only send out a resolution request
   uint16_t sendResolve(const ComboAddress& remote, const ComboAddress& local, const DNSName &domain, int type, int *localsock, bool dnssecOk=false,
@@ -72,7 +72,7 @@ public:
   bool tryGetSOASerial(DNSName *theirDomain, ComboAddress* remote, uint32_t* theirSerial, uint32_t* theirInception, uint32_t* theirExpire, uint16_t* id);
   
   //! convenience function that calls resolve above
-  void getSoaSerial(const string &, const DNSName &, uint32_t *);
+  void getSoaSerial(const ComboAddress&, const DNSName &, uint32_t *);
   
 private:
   std::map<std::string, int> locals;

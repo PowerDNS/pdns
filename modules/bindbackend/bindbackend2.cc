@@ -1299,7 +1299,7 @@ bool Bind2Backend::createSlaveDomain(const string &ip, const DNSName& domain, co
 
   BB2DomainInfo bbd = createDomainEntry(domain, filename);
   bbd.d_kind = DomainInfo::Slave;
-  bbd.d_masters.push_back(ip);
+  bbd.d_masters.push_back(ComboAddress(ip, 53));
   safePutBBDomainInfo(bbd);
   return true;
 }

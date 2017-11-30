@@ -731,16 +731,16 @@ int PacketHandler::trySuperMaster(DNSPacket *p, const DNSName& tsigkeyname)
 
 int PacketHandler::trySuperMasterSynchronous(const DNSPacket *p, const DNSName& tsigkeyname)
 {
-  string remote = p->getRemote().toString();
-  if(p->hasEDNSSubnet() && ::arg().contains("trusted-notification-proxy", remote)) {
-    remote = p->getRealRemote().toStringNoMask();
+  ComboAddress remote = p->getRemote();
+  if(p->hasEDNSSubnet() && ::arg().contains("trusted-notification-proxy", remote.toString())) {
+    remote = p->getRealRemote().getNetwork();
   }
 
   Resolver::res_t nsset;
   try {
     Resolver resolver;
     uint32_t theirserial;
-    resolver.getSoaSerial(remote,p->qdomain, &theirserial);
+    resolver.getSoaSerial(remote, p->qdomain, &theirserial);
     resolver.resolve(remote, p->qdomain, QType::NS, &nsset);
   }
   catch(ResolverException &re) {
@@ -768,7 +768,7 @@ int PacketHandler::trySuperMasterSynchronous(const DNSPacket *p, const DNSName& 
     return RCode::Refused;
   }
 
-  if(!B.superMasterBackend(remote, p->qdomain, nsset, &nameserver, &account, &db)) {
+  if(!B.superMasterBackend(remote.toString(), p->qdomain, nsset, &nameserver, &account, &db)) {
     g_log<<Logger::Error<<"Unable to find backend willing to host "<<p->qdomain<<" for potential supermaster "<<remote<<". Remote nameservers: "<<endl;
     for(const auto& rr: nsset) {
       if(rr.qtype==QType::NS)

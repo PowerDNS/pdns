@@ -141,7 +141,12 @@ bool OdbxBackend::getDomainInfo( const DNSName& domain, DomainInfo& di, bool get
 
         		if( ( tmp = odbx_field_value( m_result, 3 ) ) != NULL )
         		{
-        			stringtok(di.masters, string( tmp, odbx_field_length( m_result, 3 ) ), ", \t");
+        			vector<string> masters;
+        			stringtok(masters, string( tmp, odbx_field_length( m_result, 3 ) ), ", \t");
+        			for(const auto& m : masters)
+        			{
+        				di.masters.emplace_back(m, 53);
+        			}
         		}
 
         		if( ( tmp = odbx_field_value( m_result, 2 ) ) != NULL )

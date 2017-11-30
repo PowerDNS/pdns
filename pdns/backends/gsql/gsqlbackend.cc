@@ -294,7 +294,10 @@ bool GSQLBackend::getDomainInfo(const DNSName &domain, DomainInfo &di, bool getS
   } catch (...) {
     return false;
   }
-  stringtok(di.masters, d_result[0][2], " ,\t");
+  vector<string> masters;
+  stringtok(masters, d_result[0][2], " ,\t");
+  for(const auto& m : masters)
+    di.masters.emplace_back(m, 53);
   di.last_check=pdns_stou(d_result[0][3]);
   di.notified_serial = pdns_stou(d_result[0][4]);
   string type=d_result[0][5];
@@ -347,7 +350,12 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
     } catch (...) {
       continue;
     }
-    stringtok(sd.masters, d_result[n][2], ", \t");
+
+    vector<string> masters;
+    stringtok(masters, d_result[n][2], ", \t");
+    for(const auto& m : masters)
+      sd.masters.emplace_back(m, 53);
+
     sd.last_check=pdns_stou(d_result[n][3]);
     sd.backend=this;
     sd.kind=DomainInfo::Slave;
@@ -1251,7 +1259,10 @@ void GSQLBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabl
       }
   
       if (!row[4].empty()) {
-        stringtok(di.masters, row[4], " ,\t");
+        vector<string> masters;
+        stringtok(masters, row[4], " ,\t");
+        for(const auto& m : masters)
+          di.masters.emplace_back(m, 53);
       }
 
       SOAData sd;

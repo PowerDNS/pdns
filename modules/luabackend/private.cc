@@ -72,7 +72,7 @@ bool LUABackend::domaininfo_from_table(DomainInfo *di) {
 	while (lua_next(lua, -2)) {
     	    value = lua_tostring(lua, -1);
     	    lua_pop(lua,1);
-    	    di->masters.push_back(value);
+    	    di->masters.push_back(ComboAddress(value, 53));
 	}    
     }
   

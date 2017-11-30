@@ -1416,7 +1416,7 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = false)
     else if(di.kind == DomainInfo::Slave) {
       cout<<"Master"<<addS(di.masters)<<": ";
       for(const auto& m : di.masters)
-        cout<<m<<" ";
+        cout<<m.toStringWithPort()<<" ";
       cout<<endl;
       struct tm tm;
       localtime_r(&di.last_check, &tm);
@@ -3105,11 +3105,11 @@ try
       tgt->setAccount(di.zone,di.account);
       string masters="";
       bool first = true;
-      for(const string& master: di.masters) {
+      for(const auto& master: di.masters) {
         if (!first)
           masters += ", ";
         first = false;
-        masters += master;
+        masters += master.toStringWithPortExcept(53);
       }
       tgt->setMaster(di.zone, masters);
       // move records

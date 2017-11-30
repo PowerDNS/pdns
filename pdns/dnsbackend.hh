@@ -52,7 +52,7 @@ struct DomainInfo
   DNSName zone;
   time_t last_check;
   string account;
-  vector<string> masters; // FIXME use ComboAddress
+  vector<ComboAddress> masters; 
   DNSBackend *backend;
 
   uint32_t id;

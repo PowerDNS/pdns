@@ -49,7 +49,7 @@
 using boost::scoped_ptr;
 
 
-void CommunicatorClass::addSuckRequest(const DNSName &domain, const string &master)
+void CommunicatorClass::addSuckRequest(const DNSName &domain, const ComboAddress& master)
 {
   Lock l(&d_lock);
   SuckRequest sr;
@@ -288,7 +288,7 @@ static vector<DNSResourceRecord> doAxfr(const ComboAddress& raddr, const DNSName
 }   
 
 
-void CommunicatorClass::suck(const DNSName &domain, const string &remote)
+void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote)
 {
   {
     Lock l(&d_lock);
@@ -299,7 +299,7 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
   }
   RemoveSentinel rs(domain, this); // this removes us from d_inprogress when we go out of scope
 
-  g_log<<Logger::Error<<"Initiating transfer of '"<<domain<<"' from remote '"<<remote<<"'"<<endl;
+  L<<Logger::Error<<"Initiating transfer of '"<<domain<<"' from remote '"<<remote.toStringWithPortExcept(53)<<"'"<<endl;
   UeberBackend B; // fresh UeberBackend
 
   DomainInfo di;
@@ -354,7 +354,7 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
 
     vector<string> localaddr;
     ComboAddress laddr;
-    ComboAddress raddr(remote, 53);
+
     if(B.getDomainMetadata(domain, "AXFR-SOURCE", localaddr) && !localaddr.empty()) {
       try {
         laddr = ComboAddress(localaddr[0]);
@@ -365,12 +365,12 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
         return;
       }
     } else {
-      if(raddr.sin4.sin_family == AF_INET && !::arg()["query-local-address"].empty()) {
+      if(remote.sin4.sin_family == AF_INET && !::arg()["query-local-address"].empty()) {
         laddr = ComboAddress(::arg()["query-local-address"]);
-      } else if(raddr.sin4.sin_family == AF_INET6 && !::arg()["query-local-address6"].empty()) {
+      } else if(remote.sin4.sin_family == AF_INET6 && !::arg()["query-local-address6"].empty()) {
         laddr = ComboAddress(::arg()["query-local-address6"]);
       } else {
-        bool isv6 = raddr.sin4.sin_family == AF_INET6;
+        bool isv6 = remote.sin4.sin_family == AF_INET6;
         g_log<<Logger::Error<<"Unable to AXFR, destination address is IPv" << (isv6 ? "6" : "4") << ", but query-local-address"<< (isv6 ? "6" : "") << " is unset!"<<endl;
         return;
       }
@@ -398,10 +398,10 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
       B.getDomainMetadata(domain, "IXFR", meta);
       if(!meta.empty() && meta[0]=="1") {
         vector<DNSRecord> axfr;
-        g_log<<Logger::Warning<<"Starting IXFR of '"<<domain<<"' from remote "<<raddr.toStringWithPort()<<endl;
-        ixfrSuck(domain, tt, laddr, raddr, pdl, zs, &axfr);
+        g_log<<Logger::Warning<<"Starting IXFR of '"<<domain<<"' from remote "<<remote.toStringWithPortExcept(53)<<endl;
+        ixfrSuck(domain, tt, laddr, remote, pdl, zs, &axfr);
         if(!axfr.empty()) {
-          g_log<<Logger::Warning<<"IXFR of '"<<domain<<"' from remote '"<<raddr.toStringWithPort()<<"' turned into an AXFR"<<endl;
+          g_log<<Logger::Warning<<"IXFR of '"<<domain<<"' from remote '"<<remote.toStringWithPortExcept(53)<<"' turned into an AXFR"<<endl;
           bool firstNSEC3=true;
           rrs.reserve(axfr.size());
           for(const auto& dr : axfr) {
@@ -426,9 +426,9 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
     }
 
     if(rrs.empty()) {
-      g_log<<Logger::Warning<<"Starting AXFR of '"<<domain<<"' from remote "<<raddr.toStringWithPort()<<endl;
-      rrs = doAxfr(raddr, domain, tt, laddr, pdl, zs);
-      g_log<<Logger::Warning<<"AXFR of '"<<domain<<"' from remote "<<raddr.toStringWithPort()<<" done"<<endl;
+      g_log<<Logger::Warning<<"Starting AXFR of '"<<domain<<"' from remote "<<remote.toStringWithPortExcept(53)<<endl;
+      rrs = doAxfr(remote, domain, tt, laddr, pdl, zs);
+      g_log<<Logger::Warning<<"AXFR of '"<<domain<<"' from remote "<<remote.toStringWithPortExcept(53)<<" done"<<endl;
     }
  
     if(zs.isNSEC3) {
@@ -665,10 +665,9 @@ struct SlaveSenderReceiver
   {
     random_shuffle(dni.di.masters.begin(), dni.di.masters.end());
     try {
-      ComboAddress remote(*dni.di.masters.begin(), 53);
       return std::make_tuple(dni.di.zone,
-                             remote,
-                             d_resolver.sendResolve(remote,
+                             *dni.di.masters.begin(),
+                             d_resolver.sendResolve(*dni.di.masters.begin(),
                                                     dni.localaddr,
                                                     dni.di.zone,
                                                     QType::SOA,

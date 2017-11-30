@@ -303,6 +303,10 @@ static inline string makeBackendRecordContent(const QType& qtype, const string& 
 
 static Json::object getZoneInfo(const DomainInfo& di, DNSSECKeeper *dk) {
   string zoneId = apiZoneNameToId(di.zone);
+  vector<string> masters;
+  for(const auto& m : di.masters)
+    masters.push_back(m.toStringWithPortExcept(53));
+  
   return Json::object {
     // id is the canonical lookup key, which doesn't actually match the name (in some cases)
     { "id", zoneId },
@@ -311,7 +315,7 @@ static Json::object getZoneInfo(const DomainInfo& di, DNSSECKeeper *dk) {
     { "kind", di.getKindString() },
     { "dnssec", dk->isSecuredZone(di.zone) },
     { "account", di.account },
-    { "masters", di.masters },
+    { "masters", masters },
     { "serial", (double)di.serial },
     { "notified_serial", (double)di.notified_serial },
     { "last_check", (double)di.last_check }
@@ -1454,7 +1458,7 @@ static void apiServerZoneAxfrRetrieve(HttpRequest* req, HttpResponse* resp) {
 
   random_shuffle(di.masters.begin(), di.masters.end());
   Communicator.addSuckRequest(zonename, di.masters.front());
-  resp->setSuccessResult("Added retrieval request for '"+zonename.toString()+"' from master "+di.masters.front());
+  resp->setSuccessResult("Added retrieval request for '"+zonename.toString()+"' from master "+di.masters.front().toStringWithPortExcept(53));
 }
 
 static void apiServerZoneNotify(HttpRequest* req, HttpResponse* resp) {

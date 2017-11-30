@@ -585,16 +585,8 @@ int PacketHandler::forwardPacket(const string &msgPrefix, DNSPacket *p, DomainIn
     return RCode::Refused;
   }
 
-  for(vector<string>::const_iterator master=di->masters.begin(); master != di->masters.end(); master++) {
-    g_log<<Logger::Notice<<msgPrefix<<"Forwarding packet to master "<<*master<<endl;
-    ComboAddress remote;
-    try {
-      remote = ComboAddress(*master, 53);
-    }
-    catch (...) {
-      g_log<<Logger::Error<<msgPrefix<<"Failed to parse "<<*master<<" as valid remote."<<endl;
-      continue;
-    }
+  for(const auto& remote : di->masters) {
+    g_log<<Logger::Notice<<msgPrefix<<"Forwarding packet to master "<<remote.toStringWithPortExcept(53)<<endl;
 
     ComboAddress local;
     if (remote.sin4.sin_family == AF_INET && !::arg()["query-local-address"].empty()) {
