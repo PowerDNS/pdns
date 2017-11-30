@@ -54,4 +54,10 @@ Finally, it's also possible to attach it to specific binds at runtime::
 
 This will dynamically block all hosts that exceeded 20 queries/s as measured over the past 10 seconds, and the dynamic block will last for 60 seconds.
 
+The dynamic eBPF blocks and the number of queries they blocked can be seen in the web interface and retrieved from the API. Note however that eBPF dynamic objects need to be registered before they appear in the web interface or the API, using the :func:`registerDynBPFFilter` function::
+
+  registerDynBPFFilter(dbpf)
+
+They can be unregistered at a later point using the :func:`unregisterDynBPFFilter` function.
+
 This feature has been successfully tested on Arch Linux, Arch Linux ARM, Fedora Core 23 and Ubuntu Xenial
