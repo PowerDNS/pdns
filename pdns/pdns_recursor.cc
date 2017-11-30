@@ -2024,7 +2024,19 @@ static void houseKeeping(void *)
 	try {
 	  doSecPoll(&last_secpoll);
 	}
-	catch(...) {}
+	catch(std::exception& e)
+        {
+          L<<Logger::Error<<"Exception while performing security poll: "<<e.what()<<endl;
+        }
+        catch(PDNSException& e)
+        {
+          L<<Logger::Error<<"Exception while performing security poll: "<<e.reason<<endl;
+        }
+        catch(...)
+        {
+          L<<Logger::Error<<"Exception while performing security poll"<<endl;
+        }
+
       }
     }
     s_running=false;

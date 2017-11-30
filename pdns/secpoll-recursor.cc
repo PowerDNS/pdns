@@ -33,7 +33,7 @@ void doSecPoll(time_t* last_secpoll)
   if (g_dnssecmode != DNSSECMode::Off)
     sr.d_doDNSSEC=true;
   vector<DNSRecord> ret;
-
+  
   string version = "recursor-" +pkgv;
   string qstring(version.substr(0, 63)+ ".security-status."+::arg()["security-poll-suffix"]);
 
@@ -60,16 +60,20 @@ void doSecPoll(time_t* last_secpoll)
   }
 
   if(!res && !ret.empty()) {
-    string content=ret.begin()->d_content->getZoneRepresentation();
+    string content;
+    for(const auto&r : ret) {
+      if(r.d_type == QType::TXT)
+        content = r.d_content->getZoneRepresentation();
+    }
+
     if(!content.empty() && content[0]=='"' && content[content.size()-1]=='"') {
       content=content.substr(1, content.length()-2);
     }
-      
+
     pair<string, string> split = splitField(content, ' ');
     
     g_security_status = std::stoi(split.first);
     g_security_message = split.second;
-
   }
   else {
     if(pkgv.find("0.0."))
