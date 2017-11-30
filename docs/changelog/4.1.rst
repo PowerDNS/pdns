@@ -23,6 +23,8 @@ Changelogs for 4.1.x
 
   Recursor passthrough removal: This will impact many installations, and we realize this may be painful, but it is necessary. Previously, the PowerDNS Authoritative Server contained a facility for sending recursion desired queries to a resolving backend, possibly after first consulting its local cache. This feature (‘recursor=’) was frequently confusing and also delivered inconsistent results, for example when a query ended up referring to a CNAME that was outside of the Authoritative Server’s knowledge. To read more about this please see the blog post mentioned above or read the :doc:`migration guide <../../guides/recursion>`.
 
+  Changes since 4.1.0-rc3:
+
   .. change::
     :tags: DNSSEC, Bug Fixes
     :pullreq: 5968
