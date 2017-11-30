@@ -1,4 +1,11 @@
 #!/bin/sh
+
+if [ ! -z "$BUILDER_VERSION" ]; then
+  printf $BUILDER_VERSION
+  echo $BUILDER_VERSION > .version
+  exit 0
+fi
+
 VERSION="unknown"
 
 DIRTY=""
