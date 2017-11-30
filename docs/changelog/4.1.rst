@@ -21,7 +21,7 @@ Changelogs for 4.1.x
   - Support for Botan 2.x (and removal of support for Botan 1.10),
   - Our packages now ship with PKCS #11 support.
 
-  And, while we recognize this has an impact on many installations and may be painful, it was necessary to remove support for Recursor passthrough.  To read more about this please see the blog post mentioned above or read the :doc:`migration guide <../../guides/recursion>`.
+  Recursor passthrough removal: This will impact many installations, and we realize this may be painful, but it is necessary. Previously, the PowerDNS Authoritative Server contained a facility for sending recursion desired queries to a resolving backend, possibly after first consulting its local cache. This feature (‘recursor=’) was frequently confusing and also delivered inconsistent results, for example when a query ended up referring to a CNAME that was outside of the Authoritative Server’s knowledge. To read more about this please see the blog post mentioned above or read the :doc:`migration guide <../../guides/recursion>`.
 
   .. change::
     :tags: DNSSEC, Bug Fixes
