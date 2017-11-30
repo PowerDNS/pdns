@@ -2,6 +2,62 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.0
+  :released: 30th of November 2017
+
+  This is the first release in the 4.1 train.
+
+  The full release notes can be read `on the blog <https://wordpress.com/post/blog.powerdns.com/2473>`_.
+
+  The 4.1 release is a major upgrade for the Authoritative Server featuring many improvements and speedups:
+
+  - Improved performance: 400% speedup in some scenarios,
+  - Crypto API: DNSSEC fully configurable via RESTful API,
+  - Improved documentation,
+  - Database related improvements,
+  - Enhanced tooling,
+  - Support for TCP Fast Open,
+  - Support for non-local bind,
+  - Support for Botan 2.x (and removal of support for Botan 1.10),
+  - Our packages now ship with PKCS #11 support.
+
+  Recursor passthrough removal: This will impact many installations, and we realize this may be painful, but it is necessary. Previously, the PowerDNS Authoritative Server contained a facility for sending recursion desired queries to a resolving backend, possibly after first consulting its local cache. This feature (‘recursor=’) was frequently confusing and also delivered inconsistent results, for example when a query ended up referring to a CNAME that was outside of the Authoritative Server’s knowledge. To read more about this please see the blog post mentioned above or read the :doc:`migration guide <../../guides/recursion>`.
+
+  Changes since 4.1.0-rc3:
+
+  .. change::
+    :tags: DNSSEC, Bug Fixes
+    :pullreq: 5968
+
+    Fix hang when PATCHing zone during rectify.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5976
+    :tickets: 5974
+
+    Report remote IP when SOA query comes back with empty question section.
+
+  .. change::
+    :tags: API, Improvements
+    :pullreq: 5964
+    :tickets: 5862
+
+    Make the /cryptokeys endpoint consistently use CryptoKey objects.
+
+  .. change::
+    :tags: Removed Features
+    :pullreq: 6004
+
+    Remove deprecated SOA-EDIT values: INCEPTION and INCEPTION-WEEK.
+
+  .. change::
+    :tags: API, Bug Fixes
+    :pullreq: 6007
+
+    Deny cache flush, zone retrieve and notify if the API is read-only.
+
+.. changelog::
   :version: 4.1.0-rc3
   :released: 17th of November 2017
 
