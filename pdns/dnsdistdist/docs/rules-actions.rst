@@ -695,7 +695,7 @@ The following actions exist.
   Send the content of this query to a remote logger via Protocol Buffer.
   ``alterFunction`` is a callback, receiving a :class:`DNSQuestion` and a :class:`DNSDistProtoBufMessage`, that can be used to modify the Protocol Buffer content, for example for anonymization purposes
 
-  :param string remoteLogger: An IP:PORT combo to send the remote log to
+  :param string remoteLogger: The :func:`remoteLogger <newRemoteLogger>` object to write to
   :param string alterFunction: Name of a function to modify the contents of the logs before sending
 
 .. function:: RemoteLogResponseAction(remoteLogger[, alterFunction[, includeCNAME]])
@@ -705,7 +705,7 @@ The following actions exist.
   ``includeCNAME`` indicates whether CNAME records inside the response should be parsed and exported.
   The default is to only exports A and AAAA records
 
-  :param string remoteLogger: An IP:PORT combo to send the remote log to
+  :param string remoteLogger: The :func:`remoteLogger <newRemoteLogger>` object to write to
   :param string alterFunction: Name of a function to modify the contents of the logs before sending
   :param bool includeCNAME: Whether or not to parse and export CNAMEs. Default false
 
