@@ -91,7 +91,7 @@ struct DomainInfo
   {
     for( const auto& master: masters) {
       const ComboAddress caMaster(master);
-      if(ip == caMaster)
+      if(ComboAddress::addressOnlyEqual()(ip, caMaster))
         return true;
     }
     return false;
