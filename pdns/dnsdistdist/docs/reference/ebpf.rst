@@ -3,6 +3,15 @@ eBPF functions and objects
 
 These are all the functions, objects and methods related to the :doc:`../advanced/ebpf`.
 
+.. function:: addBPFFilterDynBlocks(addresses, dynbpf[, seconds=10])
+
+  This is the eBPF equivalent of :func:`addDynBlocks`, blocking a set of addresses for (optionally) a number of seconds, using an eBPF dynamic filter.
+  The default number of seconds to block for is 10.
+
+  :param addresses: set of Addresses as returned by an exceed function
+  :param DynBPFFilter: The dynamic eBPF filter to use
+  :param int seconds: The number of seconds this block to expire
+
 .. function:: newBPFFilter(maxV4, maxV6, maxQNames) -> BPFFilter
 
   Return a new eBPF socket filter with a maximum of maxV4 IPv4, maxV6 IPv6 and maxQNames qname entries in the block table.
@@ -11,11 +20,29 @@ These are all the functions, objects and methods related to the :doc:`../advance
   :param int maxV6: Maximum number of IPv6 entries in this filter
   :param int maxQNames: Maximum number of QName entries in this filter
 
+.. function:: newDynBPFFilter(bpf) -> DynBPFFilter
+
+  Return a new dynamic eBPF filter associated to a given BPF Filter.
+
+  :param BPFFilter bpf: The underlying eBPF filter
+
 .. function:: setDefaultBPFFilter(filter)
 
   When used at configuration time, the corresponding BPFFilter will be attached to every bind.
 
-  :param BPFFilter filter: The filter ro attach
+  :param BPFFilter filter: The filter to attach
+
+.. function:: registerDynBPFFilter(dynbpf)
+
+   Register a DynBPFFilter filter so that it appears in the web interface and the API.
+
+  :param DynBPFFilter dynbpf: The dynamic eBPF filter to register
+
+.. function:: unregisterDynBPFFilter(dynbpf)
+
+   Remove a DynBPFFilter filter from the web interface and the API.
+
+  :param DynBPFFilter dynbpf: The dynamic eBPF filter to unregister
 
 .. class:: BPFFilter
 
@@ -55,3 +82,13 @@ These are all the functions, objects and methods related to the :doc:`../advance
 
   :param DNSName name: the name to unblock
   :param int qtype: The qtype to unblock
+
+.. class:: DynBPFFilter
+
+  Represents an dynamic eBPF filter, allowing the use of ephemeral rules to an existing eBPF filter.
+
+.. classmethod:: BPFFilter:purgeExpired()
+
+  Remove the expired ephemeral rules associated with this filter.
+
+
