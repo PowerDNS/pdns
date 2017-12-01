@@ -168,7 +168,7 @@ class TestResponseRuleEditTTL(DNSDistTest):
       return DNSAction.None, ""
     end
 
-    addLuaResponseAction(AllRule(), editTTLFunc)
+    addResponseAction(AllRule(), LuaResponseAction(editTTLFunc))
     """
 
     def testTTLEdited(self):

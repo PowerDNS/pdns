@@ -651,6 +651,22 @@ The following actions exist.
   :param bool append: Append to the log. Default false
   :param bool buffered: Use buffered I/O. default true
 
+.. function:: LuaAction(function)
+
+  Invoke a Lua function that accepts a :class:`DNSQuestion`.
+
+  The ``function`` should return a :ref:`DNSAction`.
+
+  :param string function: the name of a Lua function
+
+.. function:: LuaResponseAction(function)
+
+  Invoke a Lua function that accepts a :class:`DNSResponse`.
+
+  The ``function`` should return a :ref:`DNSResponseAction`.
+
+  :param string function: the name of a Lua function
+
 .. function:: MacAddrAction(option)
 
   Add the source MAC address to the query as EDNS0 option ``option``.

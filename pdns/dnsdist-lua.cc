@@ -790,6 +790,11 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			  });
 		      });
 
+  g_lua.writeFunction("LuaAction", [](LuaAction::func_t func) {
+      setLuaSideEffect();
+      return std::shared_ptr<DNSAction>(new LuaAction(func));
+    });
+
   g_lua.writeFunction("addLuaResponseAction", [](luadnsrule_t var, LuaResponseAction::func_t func) {
       setLuaSideEffect();
       auto rule=makeRule(var);
@@ -797,6 +802,11 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
           rulactions.push_back({rule,
                 std::make_shared<LuaResponseAction>(func)});
         });
+    });
+
+  g_lua.writeFunction("LuaResponseAction", [](LuaResponseAction::func_t func) {
+      setLuaSideEffect();
+      return std::shared_ptr<DNSResponseAction>(new LuaResponseAction(func));
     });
 
   g_lua.writeFunction("NoRecurseAction", []() {

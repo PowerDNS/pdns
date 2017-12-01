@@ -115,7 +115,7 @@ class TestProtobuf(DNSDistTest):
     newServer{address="127.0.0.1:%s", useClientSubnet=true}
     rl = newRemoteLogger('127.0.0.1:%s')
 
-    addLuaAction(AllRule(), alterLuaFirst)							-- Add tags to DNSQuery first
+    addAction(AllRule(), LuaAction(alterLuaFirst))							-- Add tags to DNSQuery first
 
     addAction(AllRule(), RemoteLogAction(rl, alterProtobufQuery))				-- Send protobuf message before lookup
 
