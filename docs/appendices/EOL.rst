@@ -1,14 +1,32 @@
 End of life statements
 ======================
 
-The currently supported release train of PowerDNS Authoritative Server is 4.x.
+The currently supported release train of PowerDNS Authoritative Server is 4.1.
 
-PowerDNS Authoritative Server 3.4 is considered legacy and will only
-receive critical bug fixes and security fixes.
+PowerDNS Authoritative Server 4.0 will only receive correctness, stability and security updates.
 
-PowerDNS Authoritative Server 3.3 will only receive security fixes.
+PowerDNS Authoritative Server 3.x and 2.x are end of life, and will not
+receive any updates, not even security fixes.
 
-PowerDNS Authoritative Server 3.2, 3.1, 3.0 and 2.x are end of life.
+Note: Users with a commercial agreement with PowerDNS.COM BV or Open-Xchange
+can receive extended support for releases which are End Of Life. If you are
+such a user, these EOL statements do not apply to you.
+
+PowerDNS Authoritative Server 3.x
+---------------------------------
+1st of December 2017
+
+The PowerDNS Authoritative Server 3.x releases are no longer supported, and
+will not receive any further updates, not even for security purposes.
+
+All users are urged to upgrade to version 4.1.  To upgrade from 3.x to 4.x,
+:doc:`follow these instructions <../upgrading>`
+
+If you need help with upgrading, we provide `migration
+services <https://www.powerdns.com/support-services-consulting.html>`__
+to our supported users. If you are currently running 3.x and need
+help to tide you over, we can also provide that as part of a `support
+agreement <https://www.powerdns.com/support-services-consulting.html>`__.
 
 PowerDNS Authoritative Server 2.x
 ---------------------------------
@@ -43,6 +61,6 @@ to our supported users. If you are currently running 2.9.22 and need
 help to tide you over, we can also provide that as part of a `support
 agreement <https://www.powerdns.com/support-services-consulting.html>`__.
 
-But we urge everyone to move on to PowerDNS Authoritative Server 4.0 or
+But we urge everyone to move on to PowerDNS Authoritative Server 4.1 or
 later - it is a faster, more standards conforming and more powerful
 nameserver!
