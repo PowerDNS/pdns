@@ -390,6 +390,8 @@ void* tcpClientThread(int pipefd)
 #ifdef HAVE_PROTOBUF
             dr.uniqueId = dq.uniqueId;
 #endif
+            dr.qTag = dq.qTag;
+
             if (!processResponse(holders.cacheHitRespRulactions, dr, &delayMsec)) {
               goto drop;
             }
@@ -542,6 +544,8 @@ void* tcpClientThread(int pipefd)
 #ifdef HAVE_PROTOBUF
         dr.uniqueId = dq.uniqueId;
 #endif
+        dr.qTag = dq.qTag;
+
         if (!processResponse(localRespRulactions, dr, &delayMsec)) {
           break;
         }

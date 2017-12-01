@@ -768,7 +768,42 @@ public:
   }
   bool matches(const DNSQuestion* dq) const override;
   string toString() const override;
+private:
   double d_proba;
+};
+
+class TagRule : public DNSRule
+{
+public:
+  TagRule(std::string tag, boost::optional<std::string> value) : d_value(value), d_tag(tag)
+  {
+  }
+  bool matches(const DNSQuestion* dq) const override
+  {
+    if (dq->qTag == nullptr) {
+      return false;
+    }
+
+    const auto got = dq->qTag->tagData.find(d_tag);
+    if (got == dq->qTag->tagData.cend()) {
+      return false;
+    }
+
+    if (!d_value) {
+      return true;
+    }
+
+    return got->second == *d_value;
+  }
+
+  string toString() const override
+  {
+    return "tag '" + d_tag + "' is set" + (d_value ? (" to '" + *d_value + "'") : "");
+  }
+
+private:
+  boost::optional<std::string> d_value;
+  std::string d_tag;
 };
 
 
@@ -1401,4 +1436,54 @@ public:
   }
 private:
   std::string d_reason;
+};
+
+class TagAction : public DNSAction
+{
+public:
+  TagAction(const std::string tag, std::string value): d_tag(tag), d_value(value)
+  {
+  }
+  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  {
+    if (dq->qTag == nullptr) {
+      dq->qTag = std::make_shared<QTag>();
+    }
+
+    dq->qTag->add(d_tag, d_value);
+
+    return Action::None;
+  }
+  string toString() const override
+  {
+    return "set tag '" + d_tag + "' to value '" + d_value + "'";
+  }
+private:
+  std::string d_tag;
+  std::string d_value;
+};
+
+class TagResponseAction : public DNSResponseAction
+{
+public:
+  TagResponseAction(const std::string tag, std::string value): d_tag(tag), d_value(value)
+  {
+  }
+  DNSResponseAction::Action operator()(DNSResponse* dr, string* ruleresult) const override
+  {
+    if (dr->qTag == nullptr) {
+      dr->qTag = std::make_shared<QTag>();
+    }
+
+    dr->qTag->add(d_tag, d_value);
+
+    return Action::None;
+  }
+  string toString() const override
+  {
+    return "set tag '" + d_tag + "' to value '" + d_value + "'";
+  }
+private:
+  std::string d_tag;
+  std::string d_value;
 };

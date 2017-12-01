@@ -1481,4 +1481,16 @@ void moreLua(bool client)
         g_outputBuffer="recvmmsg support is not available!\n";
 #endif
       });
+
+    g_lua.writeFunction("TagAction", [](std::string tag, std::string value) {
+        return std::shared_ptr<DNSAction>(new TagAction(tag, value));
+      });
+
+    g_lua.writeFunction("TagResponseAction", [](std::string tag, std::string value) {
+        return std::shared_ptr<DNSResponseAction>(new TagResponseAction(tag, value));
+      });
+
+    g_lua.writeFunction("TagRule", [](std::string tag, boost::optional<std::string> value) {
+        return std::shared_ptr<DNSRule>(new TagRule(tag, value));
+      });
 }
