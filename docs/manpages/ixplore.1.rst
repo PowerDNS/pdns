@@ -1,8 +1,6 @@
 ixplore
 =======
 
-:program:`ixplore` - A tool that provides insights into IXFRs
-
 Synopsis
 --------
 

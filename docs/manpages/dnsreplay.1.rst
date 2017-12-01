@@ -1,8 +1,6 @@
 dnsreplay
 =========
 
-:program:`dnsreplay` - A PowerDNS nameserver debugging tool
-
 Synopsis
 --------
 

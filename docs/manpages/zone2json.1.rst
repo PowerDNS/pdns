@@ -1,8 +1,6 @@
 zone2json
 =========
 
-:program:`zone2json` - convert BIND zones to JSON
-
 Synopsis
 --------
 

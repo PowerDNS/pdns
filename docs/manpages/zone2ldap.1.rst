@@ -1,8 +1,6 @@
 zone2ldap
 =========
 
-:program:`zone2ldap` - convert zonefiles to ldif
-
 Synopsis
 --------
 

@@ -1,8 +1,6 @@
 zone2sql
 ========
 
-:program:`zone2sql` - convert BIND zones to SQL
-
 Synopsis
 --------
 

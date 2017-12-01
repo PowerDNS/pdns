@@ -1,8 +1,6 @@
 nsec3dig
 ========
 
-:program:`nsec3dig` - Show and validate NSEC3 proofs
-
 Synopsis
 --------
 
