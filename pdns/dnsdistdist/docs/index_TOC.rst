@@ -14,7 +14,7 @@ Table of Contents
    guides/*
    advanced/index
    reference/index
-   manpages/*
+   manpages/index
    changelog
    upgrade_guide
    security-advisories/index
