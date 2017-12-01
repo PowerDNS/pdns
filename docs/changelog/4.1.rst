@@ -7,7 +7,7 @@ Changelogs for 4.1.x
 
   This is the first release in the 4.1 train.
 
-  The full release notes can be read `on the blog <https://wordpress.com/post/blog.powerdns.com/2473>`_.
+  The full release notes can be read `on the blog <https://blog.powerdns.com/2017/11/30/powerdns-authoritative-server-4-1/>`_.
 
   The 4.1 release is a major upgrade for the Authoritative Server featuring many improvements and speedups:
 
