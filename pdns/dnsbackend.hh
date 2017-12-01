@@ -90,8 +90,7 @@ struct DomainInfo
   const bool isMaster(const ComboAddress& ip)
   {
     for( const auto& master: masters) {
-      const ComboAddress caMaster(master);
-      if(ComboAddress::addressOnlyEqual()(ip, caMaster))
+      if(ComboAddress::addressOnlyEqual()(ip, master))
         return true;
     }
     return false;

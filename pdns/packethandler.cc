@@ -731,7 +731,7 @@ int PacketHandler::trySuperMaster(DNSPacket *p, const DNSName& tsigkeyname)
 
 int PacketHandler::trySuperMasterSynchronous(const DNSPacket *p, const DNSName& tsigkeyname)
 {
-  ComboAddress remote = p->getRemote();
+  ComboAddress remote = p->getRemote().setPort(53);
   if(p->hasEDNSSubnet() && ::arg().contains("trusted-notification-proxy", remote.toString())) {
     remote = p->getRealRemote().getNetwork();
   }

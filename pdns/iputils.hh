@@ -302,6 +302,13 @@ union ComboAddress {
     return ntohs(sin4.sin_port);
   }
 
+  ComboAddress setPort(uint16_t port) const
+  {
+    ComboAddress ret(*this);
+    ret.sin4.sin_port=htons(port);
+    return ret;
+  }
+
 };
 
 /** This exception is thrown by the Netmask class and by extension by the NetmaskGroup class */
