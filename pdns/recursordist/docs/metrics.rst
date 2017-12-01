@@ -59,7 +59,7 @@ This endpoint exports all statistics in a single JSON document.
 
 Using ``rec_control``
 ^^^^^^^^^^^^^^^^^^^^^
-Metrics can also be gathered on the system itself by invoking :doc:`rec_control <manpages/rec_control>`::
+Metrics can also be gathered on the system itself by invoking :doc:`rec_control <manpages/rec_control.1>`::
 
    rec_control get-all
 

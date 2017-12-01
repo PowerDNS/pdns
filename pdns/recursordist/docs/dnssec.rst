@@ -94,7 +94,7 @@ Now (re)start the recursor to load these trust anchors.
 
 Runtime Configuration of Trust Anchors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-To change or add trust anchors at runtime, use the :doc:`manpages/rec_control` tool.
+To change or add trust anchors at runtime, use the :doc:`manpages/rec_control.1` tool.
 These runtime settings are not saved to disk.
 To make them permanent, they should be added to the :ref:`setting-lua-config-file` as described above.
 
@@ -142,7 +142,7 @@ This function requires the name of the zone and an optional reason:
 Runtime Configuration of Negative Trust Anchors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The :doc:`manpages/rec_control` command can be used to manage the negative trust anchors of a running instance.
+The :doc:`manpages/rec_control.1` command can be used to manage the negative trust anchors of a running instance.
 These runtime settings are lost when restarting the recursor, more permanent NTAs should be added to the :ref:`setting-lua-config-file` with ``addNTA()``.
 
 Adding a negative trust anchor is done with the ``add-nta`` command (that optionally accepts a reason):

@@ -369,7 +369,7 @@ dist_man_MANS=$(MANPAGES)
 
 if HAVE_VIRTUALENV
 if !HAVE_MANPAGES
-$(MANPAGES): %.1: docs/manpages/%.rst .venv
+$(MANPAGES): %: docs/manpages/%.rst .venv
 	.venv/bin/python -msphinx -b man docs . $<
 endif # if !HAVE_MANPAGES
 

@@ -1,5 +1,5 @@
-pdns_recursor manual page
-=======================
+pdns_recursor
+=============
 
 Synopsis
 --------
