@@ -676,9 +676,9 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
     if(!doResolve(qname, type, res,depth+1, beenthere, newState) && !res.empty()) {  // this consults cache, OR goes out
       for(res_t::const_iterator i=res.begin(); i!= res.end(); ++i) {
         if(i->d_type == QType::A || i->d_type == QType::AAAA) {
-	  if(auto rec = std::dynamic_pointer_cast<ARecordContent>(i->d_content))
+	  if(auto rec = getRR<ARecordContent>(*i))
 	    ret.push_back(rec->getCA(53));
-	  else if(auto aaaarec = std::dynamic_pointer_cast<AAAARecordContent>(i->d_content))
+	  else if(auto aaaarec = getRR<AAAARecordContent>(*i))
 	    ret.push_back(aaaarec->getCA(53));
           done=true;
         }
@@ -690,7 +690,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
 	if(t_RC->get(d_now.tv_sec, qname, QType(QType::AAAA), false, &cset, d_incomingECSFound ? d_incomingECSNetwork : d_requestor) > 0) {
 	  for(auto k=cset.cbegin();k!=cset.cend();++k) {
 	    if(k->d_ttl > (unsigned int)d_now.tv_sec ) {
-	      if (auto drc = std::dynamic_pointer_cast<AAAARecordContent>(k->d_content)) {
+	      if (auto drc = getRR<AAAARecordContent>(*k)) {
 	        ComboAddress ca=drc->getCA(53);
 	        ret.push_back(ca);
 	      }
@@ -790,8 +790,11 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vecto
         GetBestNSAnswer answer;
         answer.qname=qname;
 	answer.qtype=qtype.getCode();
-	for(const auto& dr : bestns)
-	  answer.bestns.insert(make_pair(dr.d_name, getRR<NSRecordContent>(dr)->getNS()));
+	for(const auto& dr : bestns) {
+          if (auto nsContent = getRR<NSRecordContent>(dr)) {
+            answer.bestns.insert(make_pair(dr.d_name, nsContent->getNS()));
+          }
+        }
 
         if(beenthere.count(answer)) {
 	  brokeloop=true;
@@ -862,9 +865,12 @@ DNSName SyncRes::getBestNSNamesFromCache(const DNSName &qname, const QType& qtyp
 
   for(auto k=bestns.cbegin() ; k != bestns.cend(); ++k) {
     // The actual resolver code will not even look at the ComboAddress or bool
-    nsset.insert({std::dynamic_pointer_cast<NSRecordContent>(k->d_content)->getNS(), {{}, false}}); 
-    if(k==bestns.cbegin())
-      subdomain=k->d_name;
+    const auto nsContent = getRR<NSRecordContent>(*k);
+    if (nsContent) {
+      nsset.insert({nsContent->getNS(), {{}, false}});
+      if(k==bestns.cbegin())
+        subdomain=k->d_name;
+    }
   }
   return subdomain;
 }
@@ -942,9 +948,12 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
           set<GetBestNSAnswer>beenthere;
 
           vState cnameState = Indeterminate;
-          res=doResolve(std::dynamic_pointer_cast<CNAMERecordContent>(j->d_content)->getTarget(), qtype, ret, depth+1, beenthere, cnameState);
-          LOG(prefix<<qname<<": updating validation state for response to "<<qname<<" from "<<vStates[state]<<" with the state from the CNAME quest: "<<vStates[cnameState]<<endl);
-          updateValidationState(state, cnameState);
+          const auto cnameContent = getRR<CNAMERecordContent>(*j);
+          if (cnameContent) {
+            res=doResolve(cnameContent->getTarget(), qtype, ret, depth+1, beenthere, cnameState);
+            LOG(prefix<<qname<<": updating validation state for response to "<<qname<<" from "<<vStates[state]<<" with the state from the CNAME quest: "<<vStates[cnameState]<<endl);
+            updateValidationState(state, cnameState);
+          }
         }
         else
           res=0;
