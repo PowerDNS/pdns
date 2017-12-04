@@ -1,8 +1,6 @@
 pdns_notify
 ===========
 
-:program:`pdns_notify` - A simple DNS NOTIFY sender
-
 Synopsis
 --------
 

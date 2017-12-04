@@ -1,8 +1,6 @@
 dnstcpbench
 ===========
 
-:program:`dnstcpbench` - tool to perform TCP benchmarking of nameservers
-
 Synopsis
 --------
 

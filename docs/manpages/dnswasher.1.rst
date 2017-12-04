@@ -1,8 +1,6 @@
 dnswasher
 =========
 
-:program:`dnswasher` - A PowerDNS nameserver debugging tool
-
 Synopsis
 --------
 

@@ -17,7 +17,7 @@ PowerDNS Recursor
     dns64
     security
     settings
-    manpages/*
+    manpages/index
     security-advisories/index
     upgrade
     changelog/index

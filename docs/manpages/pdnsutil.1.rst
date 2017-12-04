@@ -1,8 +1,6 @@
 pdnsutil
 ========
 
-pdnsutil - PowerDNS dnssec command and control
-
 Synopsis
 --------
 

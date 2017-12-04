@@ -50,7 +50,7 @@ source_suffix = '.rst'
 master_doc = 'indexTOC'
 
 # General information about the project.
-project = 'PowerDNS Recursor'
+project = 'PowerDNS Authoritative Server'
 copyright = '2017, PowerDNS.COM BV'
 author = 'PowerDNS.COM BV'
 
@@ -166,11 +166,35 @@ latex_logo = 'common/powerdns-logo-500px.png'
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
+descriptions = {
+    'calidns': 'A DNS recursor testing tool',
+    'dnsbulktest': 'A debugging tool for intermittent resolver failures',
+    'dnsgram': 'A debugging tool for intermittent resolver failures',
+    'dnspcap2protobuf': 'A tool to convert PCAPs of DNS traffic to PowerDNS Protobuf',
+    'dnsreplay': 'A PowerDNS nameserver debugging tool',
+    'dnsscan': 'List the amount of queries per qtype in a pcap',
+    'dnsscope': 'A PowerDNS nameserver debugging tool',
+    'dnstcpbench': 'tool to perform TCP benchmarking of nameservers',
+    'dnswasher': 'A PowerDNS nameserver debugging tool',
+    'dumresp': 'A dumb DNS responder',
+    'ixplore': 'A tool that provides insights into IXFRs',
+    'nsec3dig': 'Show and validate NSEC3 proofs',
+    'pdns_control': 'Control the PowerDNS nameserver',
+    'pdns_notify': 'A simple DNS NOTIFY sender',
+    'pdns_server': 'The PowerDNS Authoritative Namserver',
+    'pdnsutil': 'PowerDNS record and DNSSEC command and control',
+    'saxfr': 'Perform AXFRs and show information about it',
+    'sdig': 'Perform a DNS query and show the results',
+    'zone2json': 'convert BIND zones to JSON',
+    'zone2ldap': 'convert zonefiles to ldif',
+    'zone2sql': 'convert BIND zones to SQL',
+}
 man_pages = []
 for f in glob.glob('manpages/*.1.rst'):
     srcname = '.'.join(f.split('.')[:-1])
     destname = srcname.split('/')[-1][:-2]
-    man_pages.append((srcname, destname, '', [author], 1))
+    man_pages.append((srcname, destname, descriptions.get(destname, ''),
+                      [author], 1))
 
 # -- Options for Texinfo output -------------------------------------------
 

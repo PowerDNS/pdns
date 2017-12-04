@@ -1,7 +1,5 @@
-dnsdist manual page
-===================
-
-**dnsdist** - tool to balance DNS queries over downstream servers
+dnsdist
+=======
 
 Synopsis
 --------

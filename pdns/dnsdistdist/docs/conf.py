@@ -153,7 +153,8 @@ latex_logo = '_static/powerdns-logo-trans.png'
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('manpages/dnsdist.1', 'dnsdist', 'dnsdist',
+    ('manpages/dnsdist.1', 'dnsdist',
+     'A DNS and DoS aware, scriptable loadbalancer',
      [author], 1)
 ]
 
