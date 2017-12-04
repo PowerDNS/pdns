@@ -202,8 +202,8 @@ This is where several settings from the existing Authoritative Server
     addLocal('ANOTHERIPADDRESS:PORT')
     setACL({'0.0.0.0/0', '::/0'}) -- Allow all IPs access
 
-    newServer({'127.0.0.1:5300', pool='auth'})
-    newServer({'127.0.0.1:5301', pool='recursor'})
+    newServer({address='127.0.0.1:5300', pool='auth'})
+    newServer({address='127.0.0.1:5301', pool='recursor'})
 
     recursive_ips = newNMG()
     recursive_ips:addMask('NETWORKMASK1') -- These network masks are the ones from allow-recursion in the Authoritative Server
@@ -216,7 +216,7 @@ This configuration will route all queries from the netmasks that are
 allowed to do recursion to the Recursor and all other queries to the
 Authoritative Server.
 
-4. Restart the Authoritative Server, the Recursor and dnsdist
+5. Restart the Authoritative Server, the Recursor and dnsdist
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Restart the Authoritative Server first so its bind addresses become free
