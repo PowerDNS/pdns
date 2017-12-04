@@ -22,6 +22,7 @@ Within dnsdist several core object types exist:
 * :class:`QPSLimiter`: implements a QPS-based filter
 * :class:`SuffixMatchNode`: represents a group of domain suffixes for rapid testing of membership
 * :class:`DNSHeader`: represents the header of a DNS packet
+* :class:`ClientState`: sometimes also called Bind or Frontend, represents the addresses and ports dnsdist is listening on
 
 The existence of most of these objects can mostly be ignored, unless you plan to write your own hooks and policies, but it helps to understand an expressions like:
 
@@ -458,6 +459,53 @@ See :doc:`../guides/cache` for a how to.
 .. classmethod:: PacketCache:toString() -> string
 
   Return the number of entries in the Packet Cache, and the maximum number of entries
+
+Client State
+------------
+
+Also called frontend or bind, the Client State object returned by :func:`getBind` and listed with :func:`showBinds` represents an address and port dnsdist is listening on.
+
+.. function:: getBind(index) -> ClientState
+
+  Return a ClientState object.
+
+  :param int index: The object index
+
+ClientState functions
+~~~~~~~~~~~~~~~~~~~~~
+
+.. class:: ClientState
+
+  This object represents an address and port dnsdist is listening on. When ``reuseport`` is in use, several ClientState objects can be present for the same address and port.
+
+.. classmethod:: Server:addPool(pool)
+
+  Add this server to a pool.
+
+  :param str pool: The pool to add the server to
+
+.. classmethod:: ClientState:attachFilter(filter)
+
+   Attach a BPF filter to this frontend.
+
+   :param BPFFilter filter: The filter to attach to this frontend
+
+.. classmethod:: ClientState:detachFilter()
+
+   Remove the BPF filter associated to this frontend, if any.
+
+.. classmethod:: ClientState:toString() -> string
+
+  Return the address and port this frontend is listening on.
+
+  :returns: The address and port this frontend is listening on
+
+Attributes
+~~~~~~~~~~
+
+.. attribute:: ClientState.muted
+
+  If set to true, queries received on this frontend will be normally processed and sent to a backend if needed, but no response will be ever be sent to the client over UDP. TCP queries are processed normally and responses sent to the client.
 
 Status, Statistics and More
 ---------------------------

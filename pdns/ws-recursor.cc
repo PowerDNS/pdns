@@ -76,10 +76,11 @@ static void apiServerConfigAllowFrom(HttpRequest* req, HttpResponse* resp)
       throw ApiException("'value' must be an array");
     }
 
+    NetmaskGroup nmg;
     for (auto value : jlist.array_items()) {
       try {
-        Netmask(value.string_value());
-      } catch (NetmaskException &e) {
+        nmg.addMask(value.string_value());
+      } catch (const NetmaskException &e) {
         throw ApiException(e.reason);
       }
     }
@@ -91,9 +92,7 @@ static void apiServerConfigAllowFrom(HttpRequest* req, HttpResponse* resp)
 
     // Clear allow-from, and provide a "parent" value
     ss << "allow-from=" << endl;
-    for (auto value : jlist.array_items()) {
-      ss << "allow-from+=" << value.string_value() << endl;
-    }
+    ss << "allow-from+=" << nmg.toString() << endl;
 
     apiWriteConfigFile("allow-from", ss.str());
 
@@ -201,10 +200,15 @@ static void doCreateZone(const Json document)
       if (server == "") {
         throw ApiException("Forwarded-to server must not be an empty string");
       }
-      if (!serverlist.empty()) {
-        serverlist += ";";
+      try {
+        ComboAddress ca = parseIPAndPort(server, 53);
+        if (!serverlist.empty()) {
+          serverlist += ";";
+        }
+        serverlist += ca.toStringWithPort();
+      } catch (const PDNSException &e) {
+        throw ApiException(e.reason);
       }
-      serverlist += server;
     }
     if (serverlist == "")
       throw ApiException("Need at least one upstream server when forwarding");

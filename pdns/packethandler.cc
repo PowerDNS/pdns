@@ -274,7 +274,11 @@ int PacketHandler::doChaosRequest(DNSPacket *p, DNSPacket *r, DNSName &target)
         r->setRcode(RCode::Refused);
         return 0;
       }
-      rr.dr.d_content=DNSRecordContent::mastermake(QType::TXT, 1, id);
+      string tid=id;
+      if(!tid.empty() && tid[0]!='"') { // see #6010 however
+        tid = "\"" + tid + "\"";
+      }
+      rr.dr.d_content=DNSRecordContent::mastermake(QType::TXT, 1, tid);
     }
     else {
       r->setRcode(RCode::Refused);

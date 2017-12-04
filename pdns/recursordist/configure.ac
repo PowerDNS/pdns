@@ -120,7 +120,7 @@ PDNS_CHECK_LIBDECAF
 PDNS_WITH_NET_SNMP
 
 # check for tools we might need
-PDNS_CHECK_RAGEL
+PDNS_CHECK_RAGEL([pdns/dnslabeltext.cc], [www.powerdns.com])
 PDNS_CHECK_CURL
 
 AC_CHECK_FUNCS([strcasestr])
