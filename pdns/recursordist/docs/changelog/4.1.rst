@@ -22,6 +22,8 @@ Changelogs for 4.1.x
   - TCP Fast Open support,
   - New performance metrics.
 
+  Changes since 4.1.0-rc3:
+
   .. change::
     :tags: Internals, DNSSEC, Bug Fixes
     :pullreq: 5972
