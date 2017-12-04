@@ -31,6 +31,7 @@
 #include <stdexcept>
 #include <string>
 #include "utility.hh"
+#include <sys/time.h>
 
 class FDMultiplexerException : public std::runtime_error
 {
