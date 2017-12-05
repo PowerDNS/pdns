@@ -1295,7 +1295,7 @@ static void checkTSIGKey(UeberBackend& B, const DNSName& keyname, const DNSName&
   string contentFromDB;
   B.getTSIGKey(keyname, &algoFromDB, &contentFromDB);
   if (!contentFromDB.empty() || !algoFromDB.empty()) {
-    throw ApiException("A TSIG key with the name '"+keyname.toLogString()+"' already exists");
+    throw HttpConflictException("A TSIG key with the name '"+keyname.toLogString()+"' already exists");
   }
 
   TSIGHashEnum the;
@@ -1359,7 +1359,7 @@ static void apiServerTsigKeys(HttpRequest* req, HttpResponse* resp) {
       content = Base64Encode(std::string(tmpkey, klen));
     }
 
-    // Will throw and ApiException on error
+    // Will throw an ApiException or HttpConflictException on error
     checkTSIGKey(B, keyname, algo, content);
 
     if(!B.setTSIGKey(keyname, algo, content)) {

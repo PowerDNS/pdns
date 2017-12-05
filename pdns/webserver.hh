@@ -114,6 +114,7 @@ public:
 class HttpConflictException : public HttpException {
 public:
   HttpConflictException() : HttpException(409) { };
+  HttpConflictException(const string& msg) : HttpException(409, msg) { };
 };
 
 class HttpInternalServerErrorException : public HttpException {

@@ -162,7 +162,7 @@ class AuthTSIG(ApiTestCase, AuthTSIGHelperMixin):
         r = self.session.post(self.url("/api/v1/servers/localhost/tsigkeys"),
                               headers={'accept': 'application/json'},
                               data=json.dumps(payload))
-        self.assertEqual(r.status_code, 422)
+        self.assertEqual(r.status_code, 409)
         data = r.json()
         self.assertIn('A TSIG key with the name ', data['error'])
 
