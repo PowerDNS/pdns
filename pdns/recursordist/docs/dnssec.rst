@@ -2,6 +2,10 @@ DNSSEC in the PowerDNS Recursor
 ===============================
 As of 4.0.0, the PowerDNS Recursor has support for DNSSEC processing and experimental support for DNSSEC validation.
 
+.. warning::
+  The DNSSEC implementation in the PowerDNS Recursor 4.0.x is known to have deficiencies due to its original design.
+  When doing DNSSEC validation, ensure you are running 4.1.0 or later which has a fully reworked (and correct) DNSSEC implementation.
+
 DNSSEC settings
 ---------------
 The PowerDNS Recursor has 5 different levels of DNSSEC processing, which can be set with the :ref:`setting-dnssec` setting in the ``recursor.conf``.
