@@ -18,6 +18,12 @@ Nice to have:
 If you omit the tools above, some tests fail, but you can still run the
 tests. 
 
+
+On debian-jessie, most of these tools can be retrieve with:
+```
+$ sudo apt-get install validns ldnsutils bind9utils unbound-host
+```
+
 Automated tests
 ---------------
 
