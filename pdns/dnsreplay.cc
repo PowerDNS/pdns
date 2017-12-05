@@ -595,7 +595,7 @@ static void addECSOption(char* packet, const size_t& packetSize, uint16_t* len, 
 
   uint16_t arcount = ntohs(dh->arcount);
   /* does it fit in the existing buffer? */
-  if (packetSize - *len > EDNSRR.size()) {
+  if (packetSize > *len && packetSize - *len > EDNSRR.size()) {
     arcount++;
     dh->arcount = htons(arcount);
     memcpy(packet + *len, EDNSRR.c_str(), EDNSRR.size());
