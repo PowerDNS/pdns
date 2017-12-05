@@ -1383,12 +1383,6 @@ static void apiServerTSIGKeyDetail(HttpRequest* req, HttpResponse* resp) {
     throw HttpNotFoundException("TSIG key with name '"+keyname.toLogString()+"' not found");
   }
 
-  json11::Json document;
-
-  if (!req->body.empty()) {
-    document = req->json();
-  }
-
   struct TSIGKey tsk;
   tsk.name = keyname;
   tsk.algorithm = algo;
@@ -1397,6 +1391,10 @@ static void apiServerTSIGKeyDetail(HttpRequest* req, HttpResponse* resp) {
   if (req->method == "GET") {
     resp->setBody(makeJSONTSIGKey(tsk));
   } else if (req->method == "PUT" && !::arg().mustDo("api-readonly")) {
+    json11::Json document;
+    if (!req->body.empty()) {
+      document = req->json();
+    }
     if (document["name"].is_string()) {
       tsk.name = DNSName(document["name"].string_value());
     }
