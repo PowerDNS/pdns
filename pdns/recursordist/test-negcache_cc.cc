@@ -20,7 +20,7 @@ static recordsAndSignatures genRecsAndSigs(const DNSName& name, const uint16_t q
 
   if (sigs) {
     rec.d_type = QType::RRSIG;
-    rec.d_content = std::make_shared<RRSIGRecordContent>(QType(qtype).getName() + " 5 3 600 2100010100000000 2100010100000000 24567 dummy data");
+    rec.d_content = std::make_shared<RRSIGRecordContent>(QType(qtype).getName() + " 5 3 600 2037010100000000 2037010100000000 24567 dummy data");
     ret.signatures.push_back(rec);
   }
 
@@ -358,10 +358,10 @@ BOOST_AUTO_TEST_CASE(test_dumpToFile) {
   vector<string> expected;
   expected.push_back("www1.powerdns.com. 600 IN TYPE0 VIA powerdns.com. ; (Indeterminate)\n");
   expected.push_back("www1.powerdns.com. 600 IN NSEC deadbeef. ; (Indeterminate)\n");
-  expected.push_back("www1.powerdns.com. 600 IN RRSIG NSEC 5 3 600 21000101000000 21000101000000 24567 dummy. data ;\n");
+  expected.push_back("www1.powerdns.com. 600 IN RRSIG NSEC 5 3 600 20370101000000 20370101000000 24567 dummy. data ;\n");
   expected.push_back("www2.powerdns.com. 600 IN TYPE0 VIA powerdns.com. ; (Indeterminate)\n");
   expected.push_back("www2.powerdns.com. 600 IN NSEC deadbeef. ; (Indeterminate)\n");
-  expected.push_back("www2.powerdns.com. 600 IN RRSIG NSEC 5 3 600 21000101000000 21000101000000 24567 dummy. data ;\n");
+  expected.push_back("www2.powerdns.com. 600 IN RRSIG NSEC 5 3 600 20370101000000 20370101000000 24567 dummy. data ;\n");
 
   struct timeval now;
   Utility::gettimeofday(&now, 0);
