@@ -731,7 +731,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
       metadata.push_back(keyname.toString());
     }
     if (!di.backend->setDomainMetadata(zonename, "TSIG-ALLOW-AXFR", metadata)) {
-      throw ApiException("Unable to set new TSIG master keys for zone '" + zonename.toLogString() + "'");
+      throw HttpInternalServerErrorException("Unable to set new TSIG master keys for zone '" + zonename.toLogString() + "'");
     }
   }
   if (!document["slave_tsig_key_ids"].is_null()) {
@@ -747,7 +747,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
       metadata.push_back(keyname.toString());
     }
     if (!di.backend->setDomainMetadata(zonename, "AXFR-MASTER-TSIG", metadata)) {
-      throw ApiException("Unable to set new TSIG slave keys for zone '" + zonename.toLogString() + "'");
+      throw HttpInternalServerErrorException("Unable to set new TSIG slave keys for zone '" + zonename.toLogString() + "'");
     }
   }
 }
