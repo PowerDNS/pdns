@@ -23,7 +23,7 @@ public:
   explicit AuthLua4(const std::string& fname);
   bool updatePolicy(const DNSName &qname, QType qtype, const DNSName &zonename, DNSPacket *packet);
   bool axfrfilter(const ComboAddress&, const DNSName&, const DNSResourceRecord&, std::vector<DNSResourceRecord>&);
-
+  LuaContext* getLua();
   ~AuthLua4(); // this is so unique_ptr works with an incomplete type
 private:
   struct UpdatePolicyQuery {

@@ -16,12 +16,18 @@
 AuthLua4::AuthLua4(const std::string& fname) { }
 bool AuthLua4::updatePolicy(const DNSName &qname, QType qtype, const DNSName &zonename, DNSPacket *packet) { return false; }
 bool AuthLua4::axfrfilter(const ComboAddress& remote, const DNSName& zone, const DNSResourceRecord& in, vector<DNSResourceRecord>& out) { return false; }
+LuaContext* AuthLua4::getLua() { return 0; }
 AuthLua4::~AuthLua4() { }
 
 #else
 
 #undef L
 #include "ext/luawrapper/include/LuaContext.hpp"
+
+LuaContext* AuthLua4::getLua()
+{
+  return d_lw.get();
+}
 
 AuthLua4::AuthLua4(const std::string& fname) {
   d_lw = std::unique_ptr<LuaContext>(new LuaContext);
@@ -220,15 +226,17 @@ AuthLua4::AuthLua4(const std::string& fname) {
   d_lw->registerFunction<std::string(UpdatePolicyQuery::*)()>("getPeerPrincipal", [](UpdatePolicyQuery& upq) { return upq.peerPrincipal; });
 /* end of update policy */
 
-  ifstream ifs(fname);
-  if(!ifs) {
-    theL()<<Logger::Error<<"Unable to read configuration file from '"<<fname<<"': "<<strerror(errno)<<endl;
-    return;
-  }
-  d_lw->executeCode(ifs);
+  if(!fname.empty()) {
+    ifstream ifs(fname);
+    if(!ifs) {
+      theL()<<Logger::Error<<"Unable to read configuration file from '"<<fname<<"': "<<strerror(errno)<<endl;
+      return;
+    }
+    d_lw->executeCode(ifs);
 
-  d_update_policy = d_lw->readVariable<boost::optional<luacall_update_policy_t>>("updatepolicy").get_value_or(0);
-  d_axfr_filter = d_lw->readVariable<boost::optional<luacall_axfr_filter_t>>("axfrfilter").get_value_or(0);
+    d_update_policy = d_lw->readVariable<boost::optional<luacall_update_policy_t>>("updatepolicy").get_value_or(0);
+    d_axfr_filter = d_lw->readVariable<boost::optional<luacall_axfr_filter_t>>("axfrfilter").get_value_or(0);
+  }
 
 }
 
@@ -391,7 +399,7 @@ bool IsUpOracle::isUp(const ComboAddress& remote, const std::string& url, std::u
   std::lock_guard<std::mutex> l(d_mutex);
   auto iter = d_statuses.find(cd);
   if(iter == d_statuses.end()) {
-    cout<<"First ever query for "<<remote.toString()<<" and url "<<url<<", launching checker"<<endl;
+    //    cout<<"First ever query for "<<remote.toString()<<" and url "<<url<<", launching checker"<<endl;
     std::thread* checker = new std::thread(&IsUpOracle::checkURLThread, this, remote, url, opts);
     d_statuses[cd]={checker, false};
     return false;
@@ -405,20 +413,20 @@ void IsUpOracle::checkURLThread(ComboAddress rem, std::string url, opts_t opts)
   for(bool first=true;;first=false) {
     try {
       MiniCurl mc;
-      cout<<"Checking URL "<<url<<" at "<<rem.toString()<<endl;
+      //      cout<<"Checking URL "<<url<<" at "<<rem.toString()<<endl;
       string content=mc.getURL(url, &rem);
       if(opts.count("stringmatch") && content.find(opts["stringmatch"]) == string::npos) {
-        cout<<"URL "<<url<<" is up at "<<rem.toString()<<", but could not find stringmatch "<<opts["stringmatch"]<<" in page content, setting DOWN"<<endl;
+        //        cout<<"URL "<<url<<" is up at "<<rem.toString()<<", but could not find stringmatch "<<opts["stringmatch"]<<" in page content, setting DOWN"<<endl;
         setDown(rem, url, opts);
         goto loop;
       }
       if(!upStatus(rem,url))
-        cout<<"Declaring "<<rem.toString()<<" UP for URL "<<url<<"!"<<endl;
+        ; // cout<<"Declaring "<<rem.toString()<<" UP for URL "<<url<<"!"<<endl;
       setUp(rem, url);
     }
     catch(std::exception& ne) {
       if(upStatus(rem,url,opts) || first)
-        cout<<"Failed to connect to "<<rem.toString()<<" for URL "<<url<<", setting DOWN, error: "<<ne.what()<<endl;
+        ; // cout<<"Failed to connect to "<<rem.toString()<<" for URL "<<url<<", setting DOWN, error: "<<ne.what()<<endl;
       setDown(rem,url);
     }
   loop:;
@@ -431,17 +439,25 @@ IsUpOracle g_up;
 
 std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, const DNSName& query, const DNSName& zone, int zoneid, const DNSPacket& dnsp, uint16_t qtype) 
 {
+  AuthLua4 alua("");
   std::vector<shared_ptr<DNSRecordContent>> ret;
   
-  LuaContext lua;
-  lua.writeVariable("qname", query.toString());
-  lua.writeVariable("who", dnsp.getRemote().toString());
-  lua.writeVariable("whoPort", dnsp.getRemote().toStringWithPort());
-  if(dnsp.hasEDNSSubnet())
-    lua.writeVariable("realwho", dnsp.getRealRemote().toString());
-  else
-    lua.writeVariable("realwho", "no ECS");
+  LuaContext& lua = *alua.getLua();
+  lua.writeVariable("qname", query);
+  lua.writeVariable("who", dnsp.getRemote());
+  ComboAddress bestwho;
+  if(dnsp.hasEDNSSubnet()) {
+    lua.writeVariable("ecs-who", dnsp.getRealRemote());
+    bestwho=dnsp.getRealRemote().getNetwork();
+    lua.writeVariable("best-who", dnsp.getRealRemote().getNetwork());
+  }
+  else {
+    lua.writeVariable("ecs-who", dnsp.getRemote());
+    bestwho=dnsp.getRemote();
+  }
 
+  
+  
   lua.writeFunction("ifportup", [](int port, const vector<pair<int, string> >& ips) {
       vector<ComboAddress> candidates;
       for(const auto& i : ips) {
@@ -449,13 +465,13 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
         if(g_up.isUp(rem))
           candidates.push_back(rem);
       }
-      cout<<"Have "<<candidates.size()<<" candidate IP addresses: ";
+      //      cout<<"Have "<<candidates.size()<<" candidate IP addresses: ";
       for(const auto& c : candidates)
         cout<<c.toString()<<" ";
       cout<<endl;
       vector<string> ret;
       if(candidates.empty()) {
-        cout<<"Everything is down. Returning all of them"<<endl;
+        //        cout<<"Everything is down. Returning all of them"<<endl;
         for(const auto& i : ips) 
           ret.push_back(i.second);
       }
@@ -495,10 +511,10 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
       }
 
       //
-      cout<<"Have "<<candidates.size()<<" units of IP addresses: "<<endl;
+      //      cout<<"Have "<<candidates.size()<<" units of IP addresses: "<<endl;
       int ucount=1;
       for(const auto& unit : candidates) {
-        cout<<"Unit "<<ucount<<": ";
+        //        cout<<"Unit "<<ucount<<": ";
         for(const auto& c : unit)
           cout<<c.toString()<<" ";
         cout<<endl;
@@ -511,13 +527,13 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
           if(g_up.isUp(c, url, opts))
             available.push_back(c);
         if(available.empty()) {
-          cerr<<"Entire unit is down, trying next one if available"<<endl;
+          //  cerr<<"Entire unit is down, trying next one if available"<<endl;
           continue;
         }
         ret.push_back(available[random() % available.size()].toString());
         return ret;
       }      
-      cerr<<"ALL units are down, returning all IP addresses"<<endl;
+      //      cerr<<"ALL units are down, returning all IP addresses"<<endl;
       for(const auto& unit : candidates) {
         for(const auto& c : unit)
           ret.push_back(c.toString());
@@ -527,7 +543,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
                     });
 
   
-  lua.writeFunction("pickRandom", [](const vector<pair<int, string> >& ips) {
+  lua.writeFunction("pickrandom", [](const vector<pair<int, string> >& ips) {
       return ips[random()%ips.size()].second;
     });
 
@@ -548,7 +564,6 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
 
   int counter=0;
   lua.writeFunction("report", [&counter](string event, boost::optional<string> line){
-      cout<<"It was toooo much"<<endl;
       throw std::runtime_error("Script took too long");
     });
   lua.executeCode("debug.sethook(report, '', 1000)");
@@ -557,15 +572,52 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
       return true;
     });
 
+  lua.writeFunction("country", [](const std::string& country) {
+      return true;
+    });
+
+  lua.writeFunction("netmask", [bestwho](const vector<pair<int,string>>& ips) {
+      for(const auto& i :ips) {
+        Netmask nm(i.second);
+        if(nm.match(bestwho))
+          return true;
+      }
+      return false;
+    });
+
+  /* {
+       {
+        {'192.168.0.0/16', '10.0.0.0/8'}, 
+        {'192.168.20.20', '192.168.20.21'}
+       },
+       {
+        {'0.0.0.0/0'}, {'192.0.2.1'}
+       }
+     }
+  */  
+  lua.writeFunction("view", [bestwho](const vector<pair<int, vector<pair<int, vector<pair<int, string> > > > > >& in) {
+      for(const auto& rule : in) {
+        const auto& netmasks=rule.second[0].second;
+        const auto& destinations=rule.second[1].second;
+        for(const auto& nmpair : netmasks) {
+          Netmask nm(nmpair.second);
+          if(nm.match(bestwho)) {
+            return destinations[random() % destinations.size()].second;
+          }
+        }
+      }
+      return std::string();
+    }
+    );
+  
+  
   lua.writeFunction("include", [&lua,zone,zoneid](string record) {
       try {
-        cerr<<"Wants to load record '"<<record<<"'"<<endl;
         UeberBackend ub;
         ub.lookup(QType(QType::LUA), DNSName(record) +zone, 0, zoneid);
         DNSZoneRecord dr;
         while(ub.get(dr)) {
           auto lr = getRR<LUARecordContent>(dr.dr);
-          cout<<"About to execute "<<lr->getCode()<<endl;
           lua.executeCode(lr->getCode());
         }
       }catch(std::exception& e) { cerr<<"Oops: "<<e.what()<<endl; }

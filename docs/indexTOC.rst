@@ -17,6 +17,7 @@ PowerDNS Authoritative Server
     domainmetadata
     dnsupdate
     tsig
+    lua-records
     guides/index
     backends/index
     http-api/index

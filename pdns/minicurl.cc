@@ -40,7 +40,6 @@ void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem)
     // url = http://hostname.enzo/url 
 
     string host4=extractHostFromURL(str);
-    cout<<"Host name: '"<<host4<<"'"<<endl;
     string hcode=(host4+":80:"+rem->toString());
     //cout<<"Setting hardcoded IP: "<<hcode<<endl;
     hostlist = curl_slist_append(NULL, hcode.c_str());
