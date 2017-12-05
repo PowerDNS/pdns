@@ -612,7 +612,7 @@ paths:
   '/servers/{server_id}/zones/{zone_id}/cryptokeys/{cryptokey_id}':
     get:
       summary: 'Returns all data about the CryptoKey, including the privatekey.'
-      operationId: listCryptokey
+      operationId: getCryptokey
       tags:
         - zonecryptokey
       parameters:
