@@ -1,6 +1,6 @@
 swagger: '2.0'
 info:
-  version: "0.0.12"
+  version: "0.0.13"
   title: PowerDNS Authoritative HTTP API
   license:
     name: MIT
