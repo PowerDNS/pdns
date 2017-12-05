@@ -1324,7 +1324,7 @@ static Json::object makeJSONTSIGKey(const struct TSIGKey& key) {
   return makeJSONTSIGKey(key.name, key.algorithm, key.key);
 }
 
-static void apiServerTsigKeys(HttpRequest* req, HttpResponse* resp) {
+static void apiServerTSIGKeys(HttpRequest* req, HttpResponse* resp) {
   UeberBackend B;
   if (req->method == "GET") {
     vector<struct TSIGKey> keys;
@@ -1373,7 +1373,7 @@ static void apiServerTsigKeys(HttpRequest* req, HttpResponse* resp) {
   }
 }
 
-static void apiServerTsigKeyDetail(HttpRequest* req, HttpResponse* resp) {
+static void apiServerTSIGKeyDetail(HttpRequest* req, HttpResponse* resp) {
   UeberBackend B;
   DNSName keyname = apiZoneIdToName(req->parameters["id"]);
   DNSName algo;
@@ -2138,8 +2138,8 @@ void AuthWebServer::webThread()
       d_ws->registerApiHandler("/api/v1/servers/localhost/search-log", &apiServerSearchLog);
       d_ws->registerApiHandler("/api/v1/servers/localhost/search-data", &apiServerSearchData);
       d_ws->registerApiHandler("/api/v1/servers/localhost/statistics", &apiServerStatistics);
-      d_ws->registerApiHandler("/api/v1/servers/localhost/tsigkeys/<id>", &apiServerTsigKeyDetail);
-      d_ws->registerApiHandler("/api/v1/servers/localhost/tsigkeys", &apiServerTsigKeys);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/tsigkeys/<id>", &apiServerTSIGKeyDetail);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/tsigkeys", &apiServerTSIGKeys);
       d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/axfr-retrieve", &apiServerZoneAxfrRetrieve);
       d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/cryptokeys/<key_id>", &apiZoneCryptokeys);
       d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/cryptokeys", &apiZoneCryptokeys);
