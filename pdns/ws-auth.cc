@@ -720,10 +720,15 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
 
   if (!document["master_tsig_key_ids"].is_null()) {
     vector<string> metadata;
+    DNSName keyAlgo;
+    string keyContent;
     for(auto value : document["master_tsig_key_ids"].array_items()) {
-      auto keyname(value.string_value());
-      // XXX test if the key actually exists?
-      metadata.push_back(apiZoneIdToName(keyname).toString());
+      auto keyname(apiZoneIdToName(value.string_value()));
+      B.getTSIGKey(keyname, &keyAlgo, &keyContent);
+      if (keyAlgo.empty() || keyContent.empty()) {
+        throw ApiException("A TSIG key with the name '"+keyname.toLogString()+"' does not exist");
+      }
+      metadata.push_back(keyname.toString());
     }
     if (!di.backend->setDomainMetadata(zonename, "TSIG-ALLOW-AXFR", metadata)) {
       throw ApiException("Unable to set new TSIG master keys for zone '" + zonename.toLogString() + "'");
@@ -731,10 +736,15 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
   }
   if (!document["slave_tsig_key_ids"].is_null()) {
     vector<string> metadata;
+    DNSName keyAlgo;
+    string keyContent;
     for(auto value : document["slave_tsig_key_ids"].array_items()) {
-      auto keyname(value.string_value());
-      // XXX test if the key actually exists?
-      metadata.push_back(apiZoneIdToName(keyname).toString());
+      auto keyname(apiZoneIdToName(value.string_value()));
+      B.getTSIGKey(keyname, &keyAlgo, &keyContent);
+      if (keyAlgo.empty() || keyContent.empty()) {
+        throw ApiException("A TSIG key with the name '"+keyname.toLogString()+"' does not exist");
+      }
+      metadata.push_back(keyname.toString());
     }
     if (!di.backend->setDomainMetadata(zonename, "AXFR-MASTER-TSIG", metadata)) {
       throw ApiException("Unable to set new TSIG slave keys for zone '" + zonename.toLogString() + "'");
