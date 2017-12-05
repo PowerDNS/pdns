@@ -272,8 +272,9 @@ void* tcpClientThread(int pipefd)
         ds = nullptr;
         outstanding = false;
 
-        if(!getNonBlockingMsgLen(ci.fd, &qlen, g_tcpRecvTimeout))
+        if(!getNonBlockingMsgLen(ci.fd, &qlen, g_tcpRecvTimeout)) {
           break;
+        }
 
         queriesCount++;
 
@@ -356,7 +357,7 @@ void* tcpClientThread(int pipefd)
 #endif
           sendResponseToClient(ci.fd, query, dq.len);
 	  g_stats.selfAnswered++;
-	  goto drop;
+	  continue;
 	}
 
         std::shared_ptr<ServerPool> serverPool = getPool(*holders.pools, poolname);
@@ -401,7 +402,7 @@ void* tcpClientThread(int pipefd)
 #endif
             sendResponseToClient(ci.fd, cachedResponse, cachedResponseSize);
             g_stats.cacheHits++;
-            goto drop;
+            continue;
           }
           g_stats.cacheMisses++;
         }
@@ -420,6 +421,7 @@ void* tcpClientThread(int pipefd)
             }
 #endif
             sendResponseToClient(ci.fd, query, dq.len);
+            continue;
           }
 
           break;
