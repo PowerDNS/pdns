@@ -36,7 +36,7 @@ compiler with C++-2011 support.
 On Debian 8.0, the following is useful:
 
 ```
-$ apt-get install g++ libboost-all-dev libtool make pkg-config libmysqlclient-dev libssl-dev
+$ apt-get install g++ libboost-all-dev libtool make pkg-config libmysqlclient-dev libssl-dev virtualenv
 ```
 
 When building from git, the following packages are also required: autoconf, automake,
