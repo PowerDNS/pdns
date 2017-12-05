@@ -420,7 +420,7 @@ paths:
           type: integer
       responses:
         '200':
-          description: Returns a single JSON object with a single array of strings.
+          description: Returns a JSON array with results
           schema:
             $ref: '#/definitions/SearchResults'
 
