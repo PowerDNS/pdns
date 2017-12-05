@@ -24,6 +24,8 @@ On debian-jessie, most of these tools can be retrieve with:
 $ sudo apt-get install validns ldnsutils bind9utils unbound-host
 ```
 
+libnet-dns-perl is needed for some dyndns tests.
+
 Automated tests
 ---------------
 
