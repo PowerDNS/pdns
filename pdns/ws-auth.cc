@@ -1320,8 +1320,8 @@ static Json::object makeJSONTSIGKey(const DNSName& keyname, const DNSName& algo,
   return tsigkey;
 }
 
-static Json::object makeJSONTSIGKey(const struct TSIGKey& key) {
-  return makeJSONTSIGKey(key.name, key.algorithm, key.key);
+static Json::object makeJSONTSIGKey(const struct TSIGKey& key, bool doContent=true) {
+  return makeJSONTSIGKey(key.name, key.algorithm, doContent ? key.key : "");
 }
 
 static void apiServerTSIGKeys(HttpRequest* req, HttpResponse* resp) {
@@ -1336,7 +1336,7 @@ static void apiServerTSIGKeys(HttpRequest* req, HttpResponse* resp) {
     Json::array doc;
 
     for(const auto &key : keys) {
-      doc.push_back(makeJSONTSIGKey(key));
+      doc.push_back(makeJSONTSIGKey(key, false));
     }
     resp->setBody(doc);
   } else if (req->method == "POST" && !::arg().mustDo("api-readonly")) {
