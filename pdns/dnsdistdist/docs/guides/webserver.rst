@@ -102,8 +102,10 @@ URL Endpoints
   Get a quick overview of several parameters.
 
   :>json string acl: A string of comma-separated netmasks currently allowed by the :ref:`ACL <ACL>`.
+  :>json list cache-hit-response-rules: A list of :json:object:`ResponseRule` objects applied on cache hits
   :>json string daemon_type: The type of daemon, always "dnsdist"
   :>json list frontends: A list of :json:object:`Frontend` objects
+  :>json list pools: A list of :json:object:`Pool` objects
   :>json list response-rules: A list of :json:object:`ResponseRule` objects
   :>json list rules: A list of :json:object:`Rule` objects
   :>json list servers: A list of :json:object:`Server` objects
@@ -162,12 +164,29 @@ JSON Objects
   :property boolean udp: true if this is a UDP bind
   :property boolean tcp: true if this is a TCP bind
 
+.. json:object:: Pool
+
+  A description of a pool of backend servers.
+
+  :property integer id: Internal identifier
+  :property integer cacheDeferredInserts: The number of times an entry could not be inserted in the associated cache, if any, because of a lock
+  :property integer cacheDeferredLookups: The number of times an entry could not be looked up from the associated cache, if any, because of a lock
+  :property integer cacheEntries: The current number of entries in the associated cache, if any
+  :property integer cacheHits: The number of cache hits for the associated cache, if any
+  :property integer cacheLookupCollisions: The number of times an entry retrieved from the cache based on the query hash did not match the actual query
+  :property integer cacheInsertCollisions: The number of times an entry could not be inserted into the cache because a different entry with the same hash already existed
+  :property integer cacheMisses: The number of cache misses for the associated cache, if any
+  :property integer cacheSize: The maximum number of entries in the associated cache, if any
+  :property integer cacheTTLTooShorts: The number of times an entry could not be inserted into the cache because its TTL was set below the minimum threshold
+  :property string name: Name of the pool
+  :property integer serversCount: Number of backends in this pool
+
 .. json:object:: Rule
 
   This represents a policy that is applied to queries
 
   :property string action: The action taken when the rule matches (e.g. "to pool abuse")
-  :property dict action-stats: TODO
+  :property dict action-stats: A list of statistics whose content varies depending on the kind of rule
   :property integer id: The identifier (or order) of this rule
   :property integer matches: How many times this rule was hit
   :property string rule: The matchers for the packet (e.g. "qname==bad-domain1.example., bad-domain2.example.")
@@ -176,7 +195,10 @@ JSON Objects
 
   This represents a policy that is applied to responses
 
-  TODO
+  :property string action: The action taken when the rule matches (e.g. "drop")
+  :property integer id: The identifier (or order) of this rule
+  :property integer matches: How many times this rule was hit
+  :property string rule: The matchers for the packet (e.g. "qname==bad-domain1.example., bad-domain2.example.")
 
 .. json:object:: Server
 
@@ -192,7 +214,8 @@ JSON Objects
   :property integer qps: The current number of queries per second to this server
   :property integer qpsLimit: The configured maximum number of queries per second
   :property integer queries: Total number of queries sent to this backend
-  :property integer reuseds: TODO
+  :property integer reuseds: Number of queries for which a response was not received in time
+  :property integer sendErrors: Number of network errors while sending a query to this server
   :property string state: The state of the server (e.g. "DOWN" or "up")
   :property integer weight: The weight assigned to this server
 

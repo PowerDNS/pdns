@@ -78,7 +78,7 @@ class TestAPIBasics(DNSDistTest):
 
         self.assertEquals(content['daemon_type'], 'dnsdist')
 
-        for key in ['version', 'acl', 'local', 'rules', 'response-rules', 'servers', 'frontends']:
+        for key in ['version', 'acl', 'local', 'rules', 'response-rules', 'cache-hit-response-rules', 'servers', 'frontends', 'pools']:
             self.assertIn(key, content)
 
         for rule in content['rules']:
@@ -93,9 +93,15 @@ class TestAPIBasics(DNSDistTest):
             for key in ['id', 'matches']:
                 self.assertTrue(rule[key] >= 0)
 
+        for rule in content['cache-hit-response-rules']:
+            for key in ['id', 'matches', 'rule', 'action']:
+                self.assertIn(key, rule)
+            for key in ['id', 'matches']:
+                self.assertTrue(rule[key] >= 0)
+
         for server in content['servers']:
             for key in ['id', 'latency', 'name', 'weight', 'outstanding', 'qpsLimit',
-                        'reuseds', 'state', 'address', 'pools', 'qps', 'queries', 'order']:
+                        'reuseds', 'state', 'address', 'pools', 'qps', 'queries', 'order', 'sendErrors']:
                 self.assertIn(key, server)
 
             for key in ['id', 'latency', 'weight', 'outstanding', 'qpsLimit', 'reuseds',
@@ -110,6 +116,13 @@ class TestAPIBasics(DNSDistTest):
 
             for key in ['id', 'queries']:
                 self.assertTrue(frontend[key] >= 0)
+
+        for pool in content['pools']:
+            for key in ['id', 'name', 'cacheSize', 'cacheEntries', 'cacheHits', 'cacheMisses', 'cacheDeferredInserts', 'cacheDeferredLookups', 'cacheLookupCollisions', 'cacheInsertCollisions', 'cacheTTLTooShorts']:
+                self.assertIn(key, pool)
+
+            for key in ['id', 'cacheSize', 'cacheEntries', 'cacheHits', 'cacheMisses', 'cacheDeferredInserts', 'cacheDeferredLookups', 'cacheLookupCollisions', 'cacheInsertCollisions', 'cacheTTLTooShorts']:
+                self.assertTrue(pool[key] >= 0)
 
     def testServersIDontExist(self):
         """

@@ -375,6 +375,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
 	  status = "DOWN";
 	else 
 	  status = (a->upStatus ? "up" : "down");
+
 	Json::array pools;
 	for(const auto& p: a->pools)
 	  pools.push_back(p);
@@ -392,7 +393,9 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
           {"order", (int)a->order},
           {"pools", pools},
           {"latency", (int)(a->latencyUsec/1000.0)},
-          {"queries", (double)a->queries}};
+          {"queries", (double)a->queries},
+          {"sendErrors", (int)a->sendErrors}
+        };
 
         /* sending a latency for a DOWN server doesn't make sense */
         if (a->availability == DownstreamState::Availability::Down) {
@@ -417,16 +420,38 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
         frontends.push_back(frontend);
       }
 
+      Json::array pools;
+      auto localPools = g_pools.getCopy();
+      num=0;
+      for(const auto& pool :localPools) {
+        const auto& cache = pool.second->packetCache;
+        Json::object entry {
+          { "id", num++ },
+          { "name", pool.first },
+          { "serversCount", (int) pool.second->servers.size() },
+          { "cacheSize", (double) (cache ? cache->getMaxEntries() : 0) },
+          { "cacheEntries", (double) (cache ? cache->getEntriesCount() : 0) },
+          { "cacheHits", (double) (cache ? cache->getHits() : 0) },
+          { "cacheMisses", (double) (cache ? cache->getMisses() : 0) },
+          { "cacheDeferredInserts", (double) (cache ? cache->getDeferredInserts() : 0) },
+          { "cacheDeferredLookups", (double) (cache ? cache->getDeferredLookups() : 0) },
+          { "cacheLookupCollisions", (double) (cache ? cache->getLookupCollisions() : 0) },
+          { "cacheInsertCollisions", (double) (cache ? cache->getInsertCollisions() : 0) },
+          { "cacheTTLTooShorts", (double) (cache ? cache->getTTLTooShorts() : 0) }
+        };
+        pools.push_back(entry);
+      }
+
       Json::array rules;
       auto localRules = g_rulactions.getCopy();
       num=0;
       for(const auto& a : localRules) {
 	Json::object rule{
-	  {"id", num++},
-	  {"matches", (double)a.first->d_matches},
-	  {"rule", a.first->toString()},
-          {"action", a.second->toString()}, 
-          {"action-stats", a.second->getStats()} 
+          {"id", num++},
+          {"matches", (double)a.first->d_matches},
+          {"rule", a.first->toString()},
+          {"action", a.second->toString()},
+          {"action-stats", a.second->getStats()}
         };
 	rules.push_back(rule);
       }
@@ -444,6 +469,19 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
         responseRules.push_back(rule);
       }
 
+      Json::array cacheHitResponseRules;
+      num=0;
+      auto localCacheHitResponseRules = g_cachehitresprulactions.getCopy();
+      for(const auto& a : localCacheHitResponseRules) {
+        Json::object rule{
+          {"id", num++},
+          {"matches", (double)a.first->d_matches},
+          {"rule", a.first->toString()},
+          {"action", a.second->toString()},
+        };
+        cacheHitResponseRules.push_back(rule);
+      }
+
       string acl;
 
       vector<string> vec;
@@ -451,7 +489,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
 
       for(const auto& s : vec) {
         if(!acl.empty()) acl += ", ";
-        acl+=s;      
+        acl+=s;
       }
       string localaddresses;
       for(const auto& loc : g_locals) {
@@ -460,14 +498,16 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
       }
  
       Json my_json = Json::object {
-	{ "daemon_type", "dnsdist" },
-	{ "version", VERSION},
-	{ "servers", servers},
-	{ "frontends", frontends },
-	{ "rules", rules},
-	{ "response-rules", responseRules},
-	{ "acl", acl},
-	{ "local", localaddresses}
+        { "daemon_type", "dnsdist" },
+        { "version", VERSION},
+        { "servers", servers},
+        { "frontends", frontends },
+        { "pools", pools },
+        { "rules", rules},
+        { "response-rules", responseRules},
+        { "cache-hit-response-rules", cacheHitResponseRules},
+        { "acl", acl},
+        { "local", localaddresses}
       };
       resp.headers["Content-Type"] = "application/json";
       resp.body=my_json.dump();
