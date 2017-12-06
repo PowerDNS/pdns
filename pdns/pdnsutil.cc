@@ -918,7 +918,7 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
   set_difference(pre.cbegin(), pre.cend(), post.cbegin(), post.cend(), back_inserter(diff), DNSRecord::prettyCompare);
   for(const auto& d : diff) {
     ostringstream str;
-    str<<'-'<< d.d_name <<" "<<d.d_ttl<<" IN "<<DNSRecordContent::NumberToType(d.d_type)<<" "<<d.d_content->getZoneRepresentation(true)<<endl;
+    str<<"\033[0;31m-"<< d.d_name <<" "<<d.d_ttl<<" IN "<<DNSRecordContent::NumberToType(d.d_type)<<" "<<d.d_content->getZoneRepresentation(true)<<"\033[0m"<<endl;
     changed[{d.d_name,d.d_type}] += str.str();
 
   }
@@ -927,7 +927,7 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
   for(const auto& d : diff) {
     ostringstream str;
 
-    str<<'+'<< d.d_name <<" "<<d.d_ttl<<" IN "<<DNSRecordContent::NumberToType(d.d_type)<<" "<<d.d_content->getZoneRepresentation(true)<<endl;
+    str<<"\033[0;32m+"<< d.d_name <<" "<<d.d_ttl<<" IN "<<DNSRecordContent::NumberToType(d.d_type)<<" "<<d.d_content->getZoneRepresentation(true)<<"\033[0m"<<endl;
     changed[{d.d_name,d.d_type}]+=str.str();
   }
   if (changed.size() > 0)
