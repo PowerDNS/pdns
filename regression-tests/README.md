@@ -139,15 +139,15 @@ files in all subdirectories to see what happened.
 
 Debian Jessie notes
 -------------------
-On debian-jessie, most of these tools can be retrieve with:
+On debian-jessie, most of these tools can be retrieved with:
 ```
 $ sudo apt-get install validns ldnsutils bind9utils libnet-dns-perl
 $ sudo apt-get -t jessie-backports install unbound-host
 ```
 
-libnet-dns-perl is needed for one dyndns tests.
+libnet-dns-perl is needed for one dyndns test.
 
-This does not install the jdnssec-verifyzone tools. The test that will break without that cna be disabled with:
+This does not install the jdnssec-verifyzone tools. The test that will break without that can be disabled with:
 ```
 touch tests/verify-dnssec-zone/allow-missing
 ```
