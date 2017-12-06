@@ -719,9 +719,7 @@ int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret)
     if(pos == string::npos)
       return -1;
     ourAddr.assign(addr.c_str() + 1, pos-1);
-    if (pos + 1 == addr.size()) {
-      port = 0;
-    } else {
+    if (pos + 1 != addr.size()) { // complete after ], no port specified
       if (pos + 2 > addr.size() || addr[pos+1]!=':')
         return -1;
       try {
