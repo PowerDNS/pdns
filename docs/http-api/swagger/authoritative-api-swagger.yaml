@@ -696,6 +696,7 @@ paths:
 
 definitions:
   Server:
+    title: Server
     properties:
       type:
         type: string
@@ -725,6 +726,8 @@ definitions:
       $ref: '#/definitions/Server'
 
   Zone:
+    title: Zone
+    description: This represents an authoritative DNS Zone.
     properties:
       id:
         type: string
@@ -800,6 +803,8 @@ definitions:
       $ref: '#/definitions/Zone'
 
   RRSet:
+    title: RRSet
+    description: This represents a Resource Record Set (all records with the same name and type).
     required:
       - name
       - type
@@ -831,6 +836,8 @@ definitions:
           $ref: '#/definitions/Comment'
 
   Record:
+    title: Record
+    description: The RREntry object represents a single record.
     required:
       - content
       - disabled # PatchZone endpoint complains if this is missing
@@ -846,6 +853,8 @@ definitions:
         description: 'If set to true, the server will find the matching reverse zone and create a PTR there. Existing PTR records are replaced. If no matching reverse Zone, an error is thrown. Only valid in client bodies, only valid for A and AAAA types. Not returned by the server.'
 
   Comment:
+    title: Comment
+    description: A comment about an RRSet.
     properties:
       content:
         type: string
@@ -858,6 +867,7 @@ definitions:
         description: 'Timestamp of the last change to the comment'
 
   ConfigSetting:
+    title: ConfigSetting
     properties:
       name:
         type: string
@@ -870,6 +880,7 @@ definitions:
         description: 'The value of setting name'
 
   StatisticItem:
+    title: StatisticItem
     properties:
       name:
         type: string
@@ -882,6 +893,7 @@ definitions:
         description: 'The value of item'
 
   SearchResultZone:
+    title: SearchResultZone
     properties:
       name:
         type: string
@@ -892,6 +904,7 @@ definitions:
         type: string
 
   SearchResultRecord:
+    title: SearchResultRecord
     properties:
       content:
         type: string
@@ -912,6 +925,7 @@ definitions:
         type: integer
 
   SearchResultComment:
+    title: SearchResultComment
     properties:
       content:
         type: string
@@ -934,6 +948,7 @@ definitions:
 
 # Since we can't do 'anyOf' at the moment, we create a 'superset object'
   SearchResult:
+    title: SearchResult
     properties:
       content:
         type: string
@@ -959,6 +974,8 @@ definitions:
       $ref: '#/definitions/SearchResult'
 
   Metadata:
+    title: Metadata
+    description: Represents zone metadata
     properties:
       kind:
         type: string
@@ -970,6 +987,8 @@ definitions:
         description: 'Array with all values for this metadata kind.'
 
   Cryptokey:
+    title: Cryptokey
+    description: 'Describes a DNSSEC cryptographic key'
     properties:
       type:
         type: string
