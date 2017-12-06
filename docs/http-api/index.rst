@@ -101,5 +101,6 @@ The API exposes several endpoints and objects:
   zone
   cryptokey
   metadata
+  tsigkey
   search
   statistics
