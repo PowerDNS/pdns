@@ -404,12 +404,10 @@ void* tcpClientThread(int pipefd)
         }
 
         if (dq.useECS && ((ds && ds->useECS) || (!ds && serverPool->getECS()))) {
-          uint16_t newLen = dq.len;
-          if (!handleEDNSClientSubnet(query, dq.size, consumed, &newLen, &ednsAdded, &ecsAdded, dq.ecsSet ? dq.ecs.getNetwork() : ci.remote, dq.ecsOverride, dq.ecsSet ? dq.ecs.getBits() : dq.ecsPrefixLength)) {
+          if (!handleEDNSClientSubnet(dq, &(ednsAdded), &(ecsAdded))) {
             vinfolog("Dropping query from %s because we couldn't insert the ECS value", ci.remote.toStringWithPort());
             goto drop;
           }
-          dq.len = newLen;
         }
 
         uint32_t cacheKey = 0;
