@@ -358,7 +358,7 @@ install_dnsdist() {
 }
 
 build_auth() {
-  run "./bootstrap"
+  run "autoreconf -vi"
   # Build without --enable-botan, no botan 2.x in Travis CI
   run "CFLAGS='-O1' CXXFLAGS='-O1' ./configure \
     --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 ldap lua mydns opendbx pipe random remote tinydns godbc' \

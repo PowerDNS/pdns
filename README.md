@@ -43,7 +43,7 @@ When building from git, the following packages are also required: autoconf, auto
 ragel, bison and flex, then generate the configure file:
 
 ```
-$ ./bootstrap
+$ autoreconf -vi
 ```
 
 To compile a very clean version, use:
