@@ -47,7 +47,7 @@ public:
 };
 
 static vector<GeoIPDomain> s_domains;
-static int s_rc = 0; // refcount
+static int s_rc = 0; // refcount - always accessed under lock
 
 struct geoip_deleter {
   void operator()(GeoIP* ptr) {
@@ -125,7 +125,8 @@ void GeoIPBackend::initialize() {
   if (s_geoip_files.empty())
     L<<Logger::Warning<<"No GeoIP database files loaded!"<<endl;
 
-  config = YAML::LoadFile(getArg("zones-file"));
+  if(!getArg("zones-file").empty())
+    config = YAML::LoadFile(getArg("zones-file"));
 
   for(YAML::Node domain :  config["domains"]) {
     GeoIPDomain dom;
@@ -444,6 +445,37 @@ bool GeoIPBackend::queryCountry(string &ret, GeoIPLookup* gl, const string &ip, 
   return false;
 }
 
+bool GeoIPBackend::queryLatLon(double& lat, double& lon, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi) {
+  if (gi.first == GEOIP_CITY_EDITION_REV0 ||
+             gi.first == GEOIP_CITY_EDITION_REV1) {
+    GeoIPRecord *gir = GeoIP_record_by_addr(gi.second.get(), ip.c_str());
+    if (gir) {
+      lat = gir->latitude;
+      lon = gir->longitude;
+      gl->netmask = gir->netmask;
+      return true;
+    }
+  }
+  return false;
+}
+
+bool GeoIPBackend::queryLatLonV6(double& lat, double& lon, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi) {
+  /*
+  if (gi.first == GEOIP_CITY_EDITION_REV0 ||
+             gi.first == GEOIP_CITY_EDITION_REV1) {
+    GeoIPRecord *gir = GeoIP_record_by_addr(gi.second.get(), ip.c_str());
+    if (gir) {
+      lat = gir->latitude;
+      lon = gir->longitude;
+      gl->netmask = gir->netmask;
+      return true;
+    }
+  }
+  */
+  return false;
+}
+
+
 bool GeoIPBackend::queryCountryV6(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi) {
   if (gi.first == GEOIP_COUNTRY_EDITION_V6 ||
       gi.first == GEOIP_LARGE_COUNTRY_EDITION_V6) {
@@ -690,6 +722,7 @@ bool GeoIPBackend::queryCityV6(string &ret, GeoIPLookup* gl, const string &ip, c
 string GeoIPBackend::queryGeoIP(const string &ip, bool v6, GeoIPQueryAttribute attribute, GeoIPLookup* gl) {
   string ret = "unknown";
 
+  double lat=0, lon=0;
   for(auto const& gi: s_geoip_files) {
     string val;
     bool found = false;
@@ -723,6 +756,12 @@ string GeoIPBackend::queryGeoIP(const string &ip, bool v6, GeoIPQueryAttribute a
       if (v6) found = queryCityV6(val, gl, ip, gi);
       else found = queryCity(val, gl, ip, gi);
       break;
+    case LatLon:
+      if (v6) found = queryLatLonV6(lat, lon, gl, ip, gi);
+      else found = queryLatLon(lat, lon, gl, ip, gi);
+      val = std::to_string(lat)+" "+std::to_string(lon);
+      break;
+
     }
 
     if (!found || val.empty() || val == "--") continue; // try next database

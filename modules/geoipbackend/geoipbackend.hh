@@ -75,7 +75,8 @@ public:
     Country,
     Country2,
     Name,
-    Region
+    Region,
+    LatLon
   };
 
 private:
@@ -83,7 +84,11 @@ private:
 
   void initialize();
   void ip2geo(const GeoIPDomain& dom, const string& qname, const string& ip);
+public:
   string queryGeoIP(const string &ip, bool v6, GeoIPQueryAttribute attribute, GeoIPLookup* gl);
+  bool queryLatLon(double& lat, double& lon, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi);
+  bool queryLatLonV6(double& lat, double& lon, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi);
+private:
   bool queryCountry(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi);
   bool queryCountryV6(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi);
   bool queryCountry2(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi);
@@ -98,6 +103,8 @@ private:
   bool queryRegionV6(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi);
   bool queryCity(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi);
   bool queryCityV6(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi);
+
+
   string format2str(string format, const string& ip, bool v6, GeoIPLookup* gl);
   bool d_dnssec; 
   bool hasDNSSECkey(const DNSName& name);

@@ -358,8 +358,24 @@ bool PacketHandler::getBestWildcard(DNSPacket *p, SOAData& sd, const DNSName &ta
       B.lookup(QType(QType::ANY), g_wildcarddnsname+subdomain, p, sd.domain_id);
     }
     while(B.get(rr)) {
-      if(rr.dr.d_type == p->qtype.getCode() || rr.dr.d_type == QType::CNAME || (p->qtype.getCode() == QType::ANY && rr.dr.d_type != QType::RRSIG))
+      if(rr.dr.d_type == QType::LUA) {
+        DLOG(L<<"Have a wildcard LUA match"<<endl);
+        auto rec=getRR<LUARecordContent>(rr.dr);
+        if(rec->d_type == QType::CNAME || rec->d_type == p->qtype.getCode()) {
+          //    noCache=true;
+          DLOG(L<<"Executing Lua: '"<<rec->getCode()<<"'"<<endl);
+          auto recvec=luaSynth(rec->getCode(), target, sd.qname, sd.domain_id, *p, rec->d_type);
+          for(const auto& r : recvec) {
+            rr.dr.d_type = rec->d_type; // might be CNAME
+            rr.dr.d_content = r;
+            rr.scopeMask = 32; // XXX or 128 - needs to disable cache in any case
+            ret->push_back(rr);
+          }
+        }
+      }
+      else if(rr.dr.d_type == p->qtype.getCode() || rr.dr.d_type == QType::CNAME || (p->qtype.getCode() == QType::ANY && rr.dr.d_type != QType::RRSIG))
         ret->push_back(rr);
+      
       wildcard=g_wildcarddnsname+subdomain;
       haveSomething=true;
     }

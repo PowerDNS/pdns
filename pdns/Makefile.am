@@ -182,6 +182,7 @@ pdns_server_SOURCES = \
 	lua-auth.cc lua-auth.hh \
 	lua-auth4.cc lua-auth4.hh \
 	lua-pdns.cc lua-pdns.hh lua-iputils.cc \
+	lua-record.cc \
 	minicurl.cc minicurl.hh \
 	mastercommunicator.cc \
 	md5.hh \
