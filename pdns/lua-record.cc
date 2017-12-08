@@ -5,6 +5,7 @@
 #include <mutex>
 #include "minicurl.hh"
 #include "ueberbackend.hh"
+#include <boost/format.hpp>
 #include "../../modules/geoipbackend/geoipbackend.hh"
 class IsUpOracle
 {
@@ -196,6 +197,33 @@ static string getGeo(const std::string& ip, GeoIPBackend::GeoIPQueryAttribute qa
   return "";
 }
 
+static ComboAddress wrandom(vector<pair<int,ComboAddress> >& wips)
+{
+  int sum=0;
+  vector<pair<int, ComboAddress> > pick;
+  for(auto& i : wips) {
+    sum += i.first;
+    pick.push_back({sum, i.second});
+  }
+  int r = random() % sum;
+  auto p = upper_bound(pick.begin(), pick.end(),r, [](int r, const decltype(pick)::value_type& a) { return  r < a.first;});
+  return p->second;
+}
+
+static ComboAddress whashed(const ComboAddress& bestwho, vector<pair<int,ComboAddress> >& wips)
+{
+  int sum=0;
+  vector<pair<int, ComboAddress> > pick;
+  for(auto& i : wips) {
+    sum += i.first;
+    pick.push_back({sum, i.second});
+  }
+  ComboAddress::addressOnlyHash aoh;
+  int r = aoh(bestwho) % sum;
+  auto p = upper_bound(pick.begin(), pick.end(),r, [](int r, const decltype(pick)::value_type& a) { return  r < a.first;});
+  return p->second;
+}
+
 static bool getLatLon(const std::string& ip, double& lat, double& lon)
 {
   string inp = getGeo(ip, GeoIPBackend::LatLon);
@@ -208,9 +236,34 @@ static bool getLatLon(const std::string& ip, double& lat, double& lon)
   return true;
 }
 
+
+static ComboAddress closest(const ComboAddress& bestwho, vector<ComboAddress>& wips)
+{
+  map<double,vector<ComboAddress> > ranked;
+  double wlat=0, wlon=0;
+  getLatLon(bestwho.toString(), wlat, wlon);
+  //        cout<<"bestwho "<<wlat<<", "<<wlon<<endl;
+  vector<string> ret;
+  for(const auto& c : wips) {
+    double lat=0, lon=0;
+    getLatLon(c.toString(), lat, lon);
+    //          cout<<c.toString()<<": "<<lat<<", "<<lon<<endl;
+    double latdiff = wlat-lat;
+    double londiff = wlon-lon;
+    if(londiff > 180)
+      londiff = 360 - londiff; 
+    double dist2=latdiff*latdiff + londiff*londiff;
+    //          cout<<"    distance: "<<sqrt(dist2) * 40000.0/360<<" km"<<endl; // length of a degree
+    ranked[dist2].push_back(c);
+  }
+  return ranked.begin()->second[random() % ranked.begin()->second.size()];
+}
+
+
+
 std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, const DNSName& query, const DNSName& zone, int zoneid, const DNSPacket& dnsp, uint16_t qtype) 
 {
-  cerr<<"Called for "<<query<<", in zone "<<zone<<" for type "<<qtype<<endl;
+  //  cerr<<"Called for "<<query<<", in zone "<<zone<<" for type "<<qtype<<endl;
   
   AuthLua4 alua("");
   std::vector<shared_ptr<DNSRecordContent>> ret;
@@ -234,6 +287,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
     getLatLon(bestwho.toString(), lat, lon);
     return std::to_string(lat)+" "+std::to_string(lon);
   });
+
   
   lua.writeFunction("closestMagic", [&bestwho,&query](){
       cout<<query<<endl;
@@ -249,25 +303,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
         }
       }
       
-      map<double,vector<ComboAddress> > ranked;
-      double wlat=0, wlon=0;
-      getLatLon(bestwho.toString(), wlat, wlon);
-      //        cout<<"bestwho "<<wlat<<", "<<wlon<<endl;
-      vector<string> ret;
-      for(const auto& c : candidates) {
-        double lat=0, lon=0;
-        getLatLon(c.toString(), lat, lon);
-        //          cout<<c.toString()<<": "<<lat<<", "<<lon<<endl;
-        double latdiff = wlat-lat;
-        double londiff = wlon-lon;
-        if(londiff > 180)
-          londiff = 360 - londiff; 
-        double dist2=latdiff*latdiff + londiff*londiff;
-        //          cout<<"    distance: "<<sqrt(dist2) * 40000.0/360<<" km"<<endl; // length of a degree
-        ranked[dist2].push_back(c);
-      }
-      ret.push_back(ranked.begin()->second[random() % ranked.begin()->second.size()].toString());
-      return ret;
+      return closest(bestwho, candidates);
     });
   
   
@@ -285,24 +321,8 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
           ret.push_back(i.second);
       }
       else {
-        map<double,vector<ComboAddress> > ranked;
-        double wlat=0, wlon=0;
-        getLatLon(bestwho.toString(), wlat, wlon);
-        //        cout<<"bestwho "<<wlat<<", "<<wlon<<endl;
-        for(const auto& c : candidates) {
-          double lat=0, lon=0;
-          getLatLon(c.toString(), lat, lon);
-          //          cout<<c.toString()<<": "<<lat<<", "<<lon<<endl;
-          double latdiff = wlat-lat;
-          double londiff = wlon-lon;
-          if(londiff > 180)
-            londiff = 360 - londiff; 
-          double dist2=latdiff*latdiff + londiff*londiff;
-          //          cout<<"    distance: "<<sqrt(dist2) * 40000.0/360<<" km"<<endl; // length of a degree
-          ranked[dist2].push_back(c);
-        }
-        ret.push_back(ranked.begin()->second[random() % ranked.begin()->second.size()].toString());
-        //        ret.push_back(candidates[random() % candidates.size()].toString());
+        auto res=closest(bestwho, candidates);
+        ret.push_back(res.toString());
       }
       return ret;
     });
@@ -361,6 +381,11 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
       return ret;
                     });
 
+
+
+  /* idea: we have policies on vectors of ComboAddresses, like
+     random, wrandom, whashed, closest. In C++ this is ComboAddress in,
+     ComboAddress out. In Lua, vector string in, string out */
   
   lua.writeFunction("pickrandom", [](const vector<pair<int, string> >& ips) {
       return ips[random()%ips.size()].second;
@@ -369,18 +394,33 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
   // wrandom({ {100, '1.2.3.4'}, {50, '5.4.3.2'}, {1, '192.168.1.0'}})"
 
   lua.writeFunction("wrandom", [](std::unordered_map<int, std::unordered_map<int, string> > ips) {
-      int sum=0;
-      vector<pair<int, string> > pick;
-      for(auto& i : ips) {
-        sum += atoi(i.second[1].c_str());
-        pick.push_back({sum, i.second[2]});
-      }
-      int r = random() % sum;
-      auto p = upper_bound(pick.begin(), pick.end(),r, [](int r, const decltype(pick)::value_type& a) { return  r < a.first;});
-      return p->second;
+      vector<pair<int,ComboAddress> > conv;
+      for(auto& i : ips) 
+        conv.emplace_back(atoi(i.second[1].c_str()), ComboAddress(i.second[2]));
+      
+      return wrandom(conv).toString();
+    });
+
+  lua.writeFunction("whashed", [&bestwho](std::unordered_map<int, std::unordered_map<int, string> > ips) {
+      vector<pair<int,ComboAddress> > conv;
+      for(auto& i : ips) 
+        conv.emplace_back(atoi(i.second[1].c_str()), ComboAddress(i.second[2]));
+      
+      return whashed(bestwho, conv).toString();
       
     });
 
+
+  lua.writeFunction("closest", [&bestwho](std::unordered_map<int, std::unordered_map<int, string> > ips) {
+      vector<ComboAddress > conv;
+      for(auto& i : ips) 
+        conv.emplace_back(i.second[2]);
+      
+      return closest(bestwho, conv).toString();
+      
+    });
+
+  
   int counter=0;
   lua.writeFunction("report", [&counter](string event, boost::optional<string> line){
       throw std::runtime_error("Script took too long");
@@ -401,9 +441,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
 
   lua.writeFunction("asnum", [&bestwho](const combovar_t& asns) {
       string res=getGeo(bestwho.toString(), GeoIPBackend::ASn);
-      cerr<<"res: "<<res<<endl;
       return doCompare(asns, res, [](const std::string& a, const std::string& b) {
-          cerr<<a<<", "<<b<<endl;
           return !strcasecmp(a.c_str(), b.c_str());
         });
     });

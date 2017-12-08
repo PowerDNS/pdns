@@ -29,18 +29,27 @@ dynamic records can do.
 
 Here is a very basic example::
 
-     www	IN	LUA	A	"return ifportup(443, {'192.0.2.1', '192.0.2.2'})"
+     www    IN    LUA    A    "ifportup(443, {'192.0.2.1', '192.0.2.2'})"
 
 This turns the 'www' name within a zone into a magical record that will
 randomly return 192.0.2.1 or 192.0.2.2, as long as both of these IP
 addresses listen on port 443. 
 
 If either IP address stops listening, only the other address will be
-returned. If all IP addresses are down a random one is returned anyhow.
+returned. If all IP addresses are down, all candidates are returned.
 
 Because DNS queries require rapid answers, server availability is not checked
 synchronously. In the background, a process periodically determines if IP
 addresses mentioned in availability rules are, in fact, available.
+
+Another example::
+  
+    www    IN    LUA    A    "closest({'192.0.2.1','192.0.2.2','198.51.100.1'})"
+
+This uses the GeoIP backend to find indications of the geographical location of
+the requestor and the listed IP addresses. It will return with one of the closest
+addresses.
+
 
 Record format
 -------------
@@ -63,7 +72,7 @@ More powerful example
 
 A more powerful example::
 
-    west    IN    LUA    A    ( "return ifurlup('https://www.lua.org/',           "
+    west    IN    LUA    A    ( "ifurlup('https://www.lua.org/',                  "
                                 "{{'192.0.2.1', '192.0.2.2'}, {'198.51.100.1'}},  "
                                 "{stringmatch='Programming in Lua'})              " )
 
@@ -95,22 +104,25 @@ outside of Europe will hit 198.51.100.1 as long as it is available, and the
 
 Advanced topics
 ---------------
+By default, LUA records are executed with 'return ' prefixed to them. This saves
+a lof of typing for common cases. To run actual Lua scripts, start a record with a ';'
+which indicates no 'return ' should be prepended.
 
 To keep records more concise and readable, configuration can be stored in
 separate records. The full example from above can also be written as::
 
-    config    IN    LUA    LUA ("settings={stringmatch='Programming in Lua'}  "
+    config    IN    LUA    LUA (";settings={stringmatch='Programming in Lua'}  "
                                 "EUips={'192.0.2.1', '192.0.2.2'}             "
                                 "USAips={'198.51.100.1'}                      ")
 
-    www       IN    LUA    CNAME ( "if(continent('EU')) then return 'west.powerdns.org' "
+    www       IN    LUA    CNAME ( ";if(continent('EU')) then return 'west.powerdns.org' "
                                    "else return 'usa.powerdns.org' end" )
 
-    usa       IN    LUA    A    ( "include(config)                               "
+    usa       IN    LUA    A    ( ";include(config)                               "
                                   "return ifurlup('https://www.lua.org/',        "
                                   "{USAips, EUips}, settings)                    " )
 
-    west      IN    LUA    A    ( "include(config)                               "
+    west      IN    LUA    A    ( ";include(config)                               "
                                   "return ifurlup('https://www.lua.org/',        "
                                   "{EUips, USAips}, settings)                    " )
 
@@ -190,6 +202,17 @@ This will return IP address 192.168.1.54 for queries coming from
 
 This function also works for CNAME or TXT records.
 
+``whashed({{weight, 'ip1'}, {weight, 'ip2'}})``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Based on the hash of ``bestwho``, returns an IP address from the list
+supplied, as weighted by the various ``weight`` parameters.
+
+Because of the hash, the same client keeps getting the same answer, but
+given sufficient clients, the load is still spread according to the weight
+factors.
+
+Performs no uptime checking.
+
 ``wrandom({{weight, 'ip1'}, {weight, 'ip2'}})``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Returns a random IP address from the list supplied, as weighted by the
@@ -215,7 +238,13 @@ they do not need to see.
 A non-supporting DNS server will also serve a zone with LUA records, but
 they will not function.
 
+.. note::
+  Under NO circumstances serve LUA records from zones from untrusted sources!
+  LUA records will be able to bring down your system and possible take over
+  control of it. 
+
 LUA records can be DNSSEC signed, but because they are dynamic, it is not
 possible to combine pre-signed DNSSEC zone and LUA records. In other words,
 the signing key must be available on the server creating answers based on
 LUA records.
+
