@@ -118,6 +118,10 @@ Control Socket, Console and Webserver
 
   :param str address: An IP address with optional port. By default, the port is 5199.
 
+.. function:: inClientStartup()
+
+  Returns true while the console client is parsing the configuration.
+
 .. function:: makeKey()
 
   Generate and print an encryption key.

@@ -266,6 +266,11 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
     dd.push_back({n.first, n.second});
   g_lua.writeVariable("dnsdist", dd);
   
+  g_lua.writeFunction("inClientStartup", [client]() {
+        return client;
+  });
+
+
   g_lua.writeFunction("newServer", 
 		      [client](boost::variant<string,newserver_t> pvars, boost::optional<int> qps)
 		      { 
