@@ -716,15 +716,19 @@ int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret)
   unsigned int port;
   if(addr[0]=='[') { // [::]:53 style address
     string::size_type pos = addr.find(']');
-    if(pos == string::npos || pos + 2 > addr.size() || addr[pos+1]!=':')
+    if(pos == string::npos)
       return -1;
     ourAddr.assign(addr.c_str() + 1, pos-1);
-    try {
-      port = pdns_stou(addr.substr(pos+2));
-      portSet = true;
-    }
-    catch(std::out_of_range) {
-      return -1;
+    if (pos + 1 != addr.size()) { // complete after ], no port specified
+      if (pos + 2 > addr.size() || addr[pos+1]!=':')
+        return -1;
+      try {
+        port = pdns_stou(addr.substr(pos+2));
+        portSet = true;
+      }
+      catch(std::out_of_range) {
+        return -1;
+      }
     }
   }
   ret->sin6_scope_id=0;
