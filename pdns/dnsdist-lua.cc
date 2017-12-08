@@ -267,7 +267,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.writeVariable("dnsdist", dd);
   
   g_lua.writeFunction("inClientStartup", [client]() {
-        return client;
+        return client && !g_configurationDone;
   });
 
 
