@@ -1803,7 +1803,7 @@ catch(std::exception& e)
 
 static void bindAny(int af, int sock)
 {
-  int one = 1;
+  __attribute__((unused)) int one = 1;
 
 #ifdef IP_FREEBIND
   if (setsockopt(sock, IPPROTO_IP, IP_FREEBIND, &one, sizeof(one)) < 0)
