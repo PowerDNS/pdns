@@ -329,8 +329,9 @@ static bool shouldDoRRSets(HttpRequest* req) {
 static void fillZone(const DNSName& zonename, HttpResponse* resp, bool doRRSets) {
   UeberBackend B;
   DomainInfo di;
-  if(!B.getDomainInfo(zonename, di))
-    throw ApiException("Could not find domain '"+zonename.toString()+"'");
+  if(!B.getDomainInfo(zonename, di)) {
+    throw HttpNotFoundException();
+  }
 
   DNSSECKeeper dk(&B);
   Json::object doc = getZoneInfo(di, &dk);
@@ -723,8 +724,9 @@ static void apiZoneMetadata(HttpRequest* req, HttpResponse *resp) {
 
   UeberBackend B;
   DomainInfo di;
-  if (!B.getDomainInfo(zonename, di))
-    throw ApiException("Could not find domain '"+zonename.toString()+"'");
+  if (!B.getDomainInfo(zonename, di)) {
+    throw HttpNotFoundException();
+  }
 
   if (req->method == "GET") {
     map<string, vector<string> > md;
@@ -807,8 +809,9 @@ static void apiZoneMetadataKind(HttpRequest* req, HttpResponse* resp) {
 
   UeberBackend B;
   DomainInfo di;
-  if (!B.getDomainInfo(zonename, di))
-    throw ApiException("Could not find domain '"+zonename.toString()+"'");
+  if (!B.getDomainInfo(zonename, di)) {
+    throw HttpNotFoundException();
+  }
 
   string kind = req->parameters["kind"];
 
@@ -1108,8 +1111,9 @@ static void apiZoneCryptokeys(HttpRequest *req, HttpResponse *resp) {
   UeberBackend B;
   DNSSECKeeper dk(&B);
   DomainInfo di;
-  if (!B.getDomainInfo(zonename, di))
-    throw HttpBadRequestException();
+  if (!B.getDomainInfo(zonename, di)) {
+    throw HttpNotFoundException();
+  }
 
   int inquireKeyId = -1;
   if (req->parameters.count("key_id")) {
@@ -1366,12 +1370,14 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
   DNSName zonename = apiZoneIdToName(req->parameters["id"]);
 
+  UeberBackend B;
+  DomainInfo di;
+  if (!B.getDomainInfo(zonename, di)) {
+    throw HttpNotFoundException();
+  }
+
   if(req->method == "PUT" && !::arg().mustDo("api-readonly")) {
     // update domain settings
-    UeberBackend B;
-    DomainInfo di;
-    if(!B.getDomainInfo(zonename, di))
-      throw ApiException("Could not find domain '"+zonename.toString()+"'");
 
     updateDomainSettingsFromDocument(B, di, zonename, req->json());
 
@@ -1381,11 +1387,6 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
   }
   else if(req->method == "DELETE" && !::arg().mustDo("api-readonly")) {
     // delete domain
-    UeberBackend B;
-    DomainInfo di;
-    if(!B.getDomainInfo(zonename, di))
-      throw ApiException("Could not find domain '"+zonename.toString()+"'");
-
     if(!di.backend->deleteDomain(zonename))
       throw ApiException("Deleting domain '"+zonename.toString()+"' failed: backend delete failed/unsupported");
 
@@ -1400,7 +1401,6 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
     fillZone(zonename, resp, shouldDoRRSets(req));
     return;
   }
-
   throw HttpMethodNotAllowedException();
 }
 
@@ -1414,8 +1414,9 @@ static void apiServerZoneExport(HttpRequest* req, HttpResponse* resp) {
 
   UeberBackend B;
   DomainInfo di;
-  if(!B.getDomainInfo(zonename, di))
-    throw ApiException("Could not find domain '"+zonename.toString()+"'");
+  if (!B.getDomainInfo(zonename, di)) {
+    throw HttpNotFoundException();
+  }
 
   DNSResourceRecord rr;
   SOAData sd;
@@ -1448,8 +1449,9 @@ static void apiServerZoneAxfrRetrieve(HttpRequest* req, HttpResponse* resp) {
 
   UeberBackend B;
   DomainInfo di;
-  if(!B.getDomainInfo(zonename, di))
-    throw ApiException("Could not find domain '"+zonename.toString()+"'");
+  if (!B.getDomainInfo(zonename, di)) {
+    throw HttpNotFoundException();
+  }
 
   if(di.masters.empty())
     throw ApiException("Domain '"+zonename.toString()+"' is not a slave domain (or has no master defined)");
@@ -1467,8 +1469,9 @@ static void apiServerZoneNotify(HttpRequest* req, HttpResponse* resp) {
 
   UeberBackend B;
   DomainInfo di;
-  if(!B.getDomainInfo(zonename, di))
-    throw ApiException("Could not find domain '"+zonename.toString()+"'");
+  if (!B.getDomainInfo(zonename, di)) {
+    throw HttpNotFoundException();
+  }
 
   if(!Communicator.notifyDomain(zonename))
     throw ApiException("Failed to add to the queue - see server log");
@@ -1484,8 +1487,9 @@ static void apiServerZoneRectify(HttpRequest* req, HttpResponse* resp) {
 
   UeberBackend B;
   DomainInfo di;
-  if(!B.getDomainInfo(zonename, di))
-    throw ApiException("Could not find domain '"+zonename.toString()+"'");
+  if (!B.getDomainInfo(zonename, di)) {
+    throw HttpNotFoundException();
+  }
 
   DNSSECKeeper dk(&B);
 
@@ -1584,8 +1588,9 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
   UeberBackend B;
   DomainInfo di;
   DNSName zonename = apiZoneIdToName(req->parameters["id"]);
-  if (!B.getDomainInfo(zonename, di))
-    throw ApiException("Could not find domain '"+zonename.toString()+"'");
+  if (!B.getDomainInfo(zonename, di)) {
+    throw HttpNotFoundException();
+  }
 
   vector<DNSResourceRecord> new_records;
   vector<Comment> new_comments;
