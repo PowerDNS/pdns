@@ -191,25 +191,27 @@ bool doCompare(const T& var, const std::string& res, const C& cmp)
   return false;
 }
 }
-static string getGeo(const std::string& ip, GeoIPBackend::GeoIPQueryAttribute qa)
+
+
+std::string getGeo(const std::string& ip, GeoIPBackend::GeoIPQueryAttribute qa) __attribute__((weak));
+
+std::string getGeo(const std::string& ip, GeoIPBackend::GeoIPQueryAttribute qa)
 {
-  try {
-    GeoIPBackend gib;
-    GeoIPLookup gl;
-    string res=gib.queryGeoIP(ip, false, qa, &gl);
-    //    cout<<"Result for "<<ip<<" lookup: "<<res<<endl;
-    if(qa==GeoIPBackend::ASn && boost::starts_with(res, "as"))
-      return res.substr(2);
-    return res;
-  }
-  catch(std::exception& e) {
-    cout<<"Error: "<<e.what()<<endl;
-  }
-  catch(PDNSException& e) {
-    cout<<"Error: "<<e.reason<<endl;
-  }
-  return "";
+  cerr<<"Weak variant called"<<endl;
+  return "unknown";
 }
+
+static ComboAddress pickrandom(vector<ComboAddress>& ips)
+{
+  return ips[random() % ips.size()];
+}
+
+static ComboAddress hashed(const ComboAddress& who, vector<ComboAddress>& ips)
+{
+  ComboAddress::addressOnlyHash aoh;
+  return ips[aoh(who) % ips.size()];
+}
+
 
 static ComboAddress wrandom(vector<pair<int,ComboAddress> >& wips)
 {
@@ -376,7 +378,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
     });
   
   
-  lua.writeFunction("ifportup", [&bestwho](int port, const vector<pair<int, string> >& ips, const std::unordered_map<string,string>& options) {
+  lua.writeFunction("ifportup", [&bestwho](int port, const vector<pair<int, string> >& ips, const boost::optional<std::unordered_map<string,string>> options) {
       vector<ComboAddress> candidates;
       for(const auto& i : ips) {
         ComboAddress rem(i.second, port);
@@ -390,7 +392,22 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
           ret.push_back(i.second);
       }
       else {
-        auto res=closest(bestwho, candidates);
+        ComboAddress res;
+        string selector="random";
+        if(options) {
+          if(options->count("selector"))
+            selector=options->find("selector")->second;
+        }
+        if(selector=="random")
+          res=pickrandom(candidates);
+        else if(selector=="closest")
+          res=closest(bestwho, candidates);
+        else if(selector=="hashed")
+          res=hashed(bestwho, candidates);
+        else {
+          L<<Logger::Warning<<"LUA Record ifportup called with unknown selector '"<<selector<<"'"<<endl;
+          res=pickrandom(candidates);
+        }
         ret.push_back(res.toString());
       }
       return ret;

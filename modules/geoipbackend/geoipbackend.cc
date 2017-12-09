@@ -1098,6 +1098,27 @@ bool GeoIPBackend::hasDNSSECkey(const DNSName& name) {
   return false;
 }
 
+string getGeo(const std::string& ip, GeoIPBackend::GeoIPQueryAttribute qa)
+{
+  try {
+    GeoIPBackend gib;
+    GeoIPLookup gl;
+    string res=gib.queryGeoIP(ip, false, qa, &gl);
+    //    cout<<"Result for "<<ip<<" lookup: "<<res<<endl;
+    if(qa==GeoIPBackend::ASn && boost::starts_with(res, "as"))
+      return res.substr(2);
+    return res;
+  }
+  catch(std::exception& e) {
+    cout<<"Error: "<<e.what()<<endl;
+  }
+  catch(PDNSException& e) {
+    cout<<"Error: "<<e.reason<<endl;
+  }
+  return "";
+}
+
+
 class GeoIPFactory : public BackendFactory{
 public:
   GeoIPFactory() : BackendFactory("geoip") {}

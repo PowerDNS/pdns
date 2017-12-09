@@ -112,4 +112,6 @@ private:
   vector<DNSResourceRecord> d_result;
 };
 
+std::string getGeo(const std::string& ip, GeoIPBackend::GeoIPQueryAttribute qa);
+
 #endif /* PDNS_GEOIPBACKEND_HH */
