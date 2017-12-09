@@ -7,6 +7,20 @@
 #include "ueberbackend.hh"
 #include <boost/format.hpp>
 #include "../../modules/geoipbackend/geoipbackend.hh"
+
+/* to do:
+   global allow-lua-record setting
+   zone metadata setting
+   fix compilation/linking with/without geoipbackend
+        use weak symbol?
+   unify ifupurl/ifupport
+      add attribute for query source 
+      add attribute for certificate chedk
+   add list of current monitors
+      expire them too?
+
+ */
+
 class IsUpOracle
 {
 private:
@@ -236,6 +250,57 @@ static bool getLatLon(const std::string& ip, double& lat, double& lon)
   return true;
 }
 
+static bool getLatLon(const std::string& ip, string& loc)
+{
+  int latdeg, latmin, londeg, lonmin;
+  double latsec, lonsec;
+  char lathem='X', lonhem='X';
+  
+  double lat, lon;
+  if(!getLatLon(ip, lat, lon))
+    return false;
+
+  if(lat > 0) {
+    lathem='N';
+  }
+  else {
+    lat = -lat;
+    lathem='S';
+  }
+
+  if(lon > 0) {
+    lonhem='E';
+  }
+  else {
+    lon = -lon;
+    lonhem='W';
+  }
+
+  /*
+    >>> deg = int(R)
+    >>> min = int((R - int(R)) * 60.0)
+    >>> sec = (((R - int(R)) * 60.0) - min) * 60.0
+    >>> print("{}º {}' {}\"".format(deg, min, sec))
+  */
+
+  
+  latdeg = lat;
+  latmin = (lat - latdeg)*60.0;
+  latsec = (((lat - latdeg)*60.0) - latmin)*60.0;
+
+  londeg = lon;
+  lonmin = (lon - londeg)*60.0;
+  lonsec = (((lon - londeg)*60.0) - lonmin)*60.0;
+
+  // 51 59 00.000 N 5 55 00.000 E 4.00m 1.00m 10000.00m 10.00m
+
+  boost::format fmt("%d %d %d %c %d %d %d %c 0.00m 1.00m 10000.00m 10.00m");
+
+  loc= (fmt % latdeg % latmin % latsec % lathem % londeg % lonmin % lonsec % lonhem ).str();
+  return true;
+}
+                      
+                      
 
 static ComboAddress closest(const ComboAddress& bestwho, vector<ComboAddress>& wips)
 {
@@ -273,28 +338,32 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
   lua.writeVariable("who", dnsp.getRemote());
   ComboAddress bestwho;
   if(dnsp.hasEDNSSubnet()) {
-    lua.writeVariable("ecs-who", dnsp.getRealRemote());
+    lua.writeVariable("ecswho", dnsp.getRealRemote());
     bestwho=dnsp.getRealRemote().getNetwork();
-    lua.writeVariable("best-who", dnsp.getRealRemote().getNetwork());
+    lua.writeVariable("bestwho", dnsp.getRealRemote().getNetwork());
   }
   else {
-    lua.writeVariable("ecs-who", dnsp.getRemote());
     bestwho=dnsp.getRemote();
   }
 
   lua.writeFunction("latlon", [&bestwho]() {
-    double lat, lon;
-    getLatLon(bestwho.toString(), lat, lon);
-    return std::to_string(lat)+" "+std::to_string(lon);
+      double lat, lon;
+      getLatLon(bestwho.toString(), lat, lon);
+      return std::to_string(lat)+" "+std::to_string(lon);
+    });
+
+  lua.writeFunction("latlonloc", [&bestwho]() {
+      string loc;
+      getLatLon(bestwho.toString(), loc);
+      cout<<"loc: "<<loc<<endl;
+      return loc;
   });
 
   
   lua.writeFunction("closestMagic", [&bestwho,&query](){
-      cout<<query<<endl;
       vector<ComboAddress> candidates;
       for(auto l : query.getRawLabels()) {
         boost::replace_all(l, "-", ".");
-        cout<<l<<endl;
         try {
           candidates.emplace_back(l);
         }
@@ -303,7 +372,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
         }
       }
       
-      return closest(bestwho, candidates);
+      return closest(bestwho, candidates).toString();
     });
   
   
