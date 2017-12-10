@@ -148,7 +148,7 @@ bool HarvestDestinationAddress(const struct msghdr* msgh, ComboAddress* destinat
   memset(destination, 0, sizeof(*destination));
   const struct cmsghdr* cmsg;
   for (cmsg = CMSG_FIRSTHDR(msgh); cmsg != NULL; cmsg = CMSG_NXTHDR(const_cast<struct msghdr*>(msgh), const_cast<struct cmsghdr*>(cmsg))) {
-#if defined(IP_PKTINFO)
+#if defined(IP_PKTINFO) && !defined(__NetBSD__)
      if ((cmsg->cmsg_level == IPPROTO_IP) && (cmsg->cmsg_type == IP_PKTINFO)) {
         struct in_pktinfo *i = (struct in_pktinfo *) CMSG_DATA(cmsg);
         destination->sin4.sin_addr = i->ipi_addr;
@@ -157,7 +157,11 @@ bool HarvestDestinationAddress(const struct msghdr* msgh, ComboAddress* destinat
     }
 #elif defined(IP_RECVDSTADDR)
     if ((cmsg->cmsg_level == IPPROTO_IP) && (cmsg->cmsg_type == IP_RECVDSTADDR)) {
+#  ifdef __NetBSD__
+      struct in_addr *i = (struct in_addr *) CCMSG_DATA(cmsg);
+#  else
       struct in_addr *i = (struct in_addr *) CMSG_DATA(cmsg);
+#  endif
       destination->sin4.sin_addr = *i;
       destination->sin4.sin_family = AF_INET;      
       return true;
@@ -165,7 +169,11 @@ bool HarvestDestinationAddress(const struct msghdr* msgh, ComboAddress* destinat
 #endif
 
     if ((cmsg->cmsg_level == IPPROTO_IPV6) && (cmsg->cmsg_type == IPV6_PKTINFO)) {
+#ifdef __NetBSD__
+        struct in6_pktinfo *i = (struct in6_pktinfo *) CCMSG_DATA(cmsg);
+#else
         struct in6_pktinfo *i = (struct in6_pktinfo *) CMSG_DATA(cmsg);
+#endif
         destination->sin6.sin6_addr = i->ipi6_addr;
         destination->sin4.sin_family = AF_INET6;
         return true;

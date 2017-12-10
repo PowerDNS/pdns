@@ -27,7 +27,7 @@
 #include <limits>
 #include "dolog.hh"
 
-#if defined (__OpenBSD__)
+#if defined (__OpenBSD__) || defined(__NetBSD__)
 #include <readline/readline.h>
 #else
 #include <editline/readline.h>
