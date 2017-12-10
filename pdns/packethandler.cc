@@ -350,6 +350,14 @@ bool PacketHandler::getBestWildcard(DNSPacket *p, SOAData& sd, const DNSName &ta
   DNSName subdomain(target);
   bool haveSomething=false;
 
+  bool doLua=g_doGlobalLuaRecord;
+  if(!doLua) {
+    string val;
+    d_dk.getFromMeta(sd.qname, "ENABLE-LUA-RECORD", val);
+    doLua = (val=="1");
+  }
+
+  
   wildcard=subdomain;
   while( subdomain.chopOff() && !haveSomething )  {
     if (subdomain.empty()) {
@@ -359,7 +367,13 @@ bool PacketHandler::getBestWildcard(DNSPacket *p, SOAData& sd, const DNSName &ta
     }
     while(B.get(rr)) {
       if(rr.dr.d_type == QType::LUA) {
+        if(!doLua) {
+          DLOG(L<<"Have a wildcard LUA match, but not doing LUA record for this zone"<<endl);
+          continue;
+        }
+                  
         DLOG(L<<"Have a wildcard LUA match"<<endl);
+        
         auto rec=getRR<LUARecordContent>(rr.dr);
         if(rec->d_type == QType::CNAME || rec->d_type == p->qtype.getCode()) {
           //    noCache=true;
@@ -1079,6 +1093,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
 
   DNSPacket *r=0;
   bool noCache=false;
+  bool doLua=g_doGlobalLuaRecord;
   
   if(p->d.qr) { // QR bit from dns packet (thanks RA from N)
     if(d_logDNSDetails)
@@ -1297,9 +1312,18 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
     rrset.clear();
     haveAlias.trimToLabels(0);
     weDone = weRedirected = weHaveUnauth =  false;
+
+
+    if(!doLua) {
+      string val;
+      d_dk.getFromMeta(sd.qname, "ENABLE-LUA-RECORD", val);
+      doLua = (val=="1");
+    }
     
     while(B.get(rr)) {
       if(rr.dr.d_type == QType::LUA) {
+        if(!doLua)
+          continue;
         auto rec=getRR<LUARecordContent>(rr.dr);
         if(rec->d_type == QType::CNAME || rec->d_type == p->qtype.getCode()) {
           noCache=true;

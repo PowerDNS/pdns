@@ -32,7 +32,7 @@ static string extractHostFromURL(const std::string& url)
   return url.substr(pos, endpos-pos);
 }
 
-void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem)
+void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const ComboAddress* src)
 {
   if(rem) {
     struct curl_slist *hostlist = NULL;
@@ -49,6 +49,9 @@ void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem)
 
     curl_easy_setopt(d_curl, CURLOPT_RESOLVE, hostlist);
   }
+  if(src) {
+    curl_easy_setopt(d_curl, CURLOPT_INTERFACE, src->toString());
+  }
   curl_easy_setopt(d_curl, CURLOPT_FOLLOWLOCATION, true);
   /* only allow HTTP, TFTP and SFTP */
   curl_easy_setopt(d_curl, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
@@ -62,9 +65,9 @@ void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem)
   
   d_data.clear();
 }
-std::string MiniCurl::getURL(const std::string& str, const ComboAddress* rem)
+std::string MiniCurl::getURL(const std::string& str, const ComboAddress* rem, const ComboAddress* src)
 {
-  setupURL(str, rem);
+  setupURL(str, rem, src);
   auto res = curl_easy_perform(d_curl);
   long http_code = 0;
   curl_easy_getinfo(d_curl, CURLINFO_RESPONSE_CODE, &http_code);

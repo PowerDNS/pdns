@@ -87,8 +87,9 @@ GeoIPBackend::GeoIPBackend(const string& suffix) {
   s_rc++;
 }
 
-string getGeoForLua(const std::string& ip, GeoIPBackend::GeoIPQueryAttribute qa)
+string getGeoForLua(const std::string& ip, int qaint)
 {
+  GeoIPBackend::GeoIPQueryAttribute qa((GeoIPBackend::GeoIPQueryAttribute)qaint);
   try {
     GeoIPBackend gib;
     GeoIPLookup gl;
@@ -311,7 +312,7 @@ void GeoIPBackend::initialize() {
   s_domains.clear();
   std::swap(s_domains, tmp_domains);
 
-  extern std::function<std::string(const std::string& ip, GeoIPBackend::GeoIPQueryAttribute)> g_getGeo;
+  extern std::function<std::string(const std::string& ip, int)> g_getGeo;
   g_getGeo = getGeoForLua;
 }
 

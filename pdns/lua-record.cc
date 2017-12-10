@@ -6,20 +6,19 @@
 #include "minicurl.hh"
 #include "ueberbackend.hh"
 #include <boost/format.hpp>
-// this is only for the ENUM
-#include "../../modules/geoipbackend/geoipbackend.hh"
+
+#include "../modules/geoipbackend/geoipbackend.hh" // only for the enum
 
 /* to do:
-   global allow-lua-record setting
-   zone metadata setting
-   fix compilation/linking with/without geoipbackend
-        use weak symbol?
+   block AXFR unless TSIG, or override
+   
+   zone metadata setting to enable
+
    unify ifupurl/ifupport
       add attribute for query source 
       add attribute for certificate chedk
    add list of current monitors
       expire them too?
-
  */
 
 class IsUpOracle
@@ -33,37 +32,24 @@ private:
     opts_t opts;
     bool operator<(const CheckDesc& rhs) const
     {
-      return std::make_tuple(rem, url) <
-        std::make_tuple(rhs.rem, rhs.url);
+      std::map<string,string> oopts, rhsoopts;
+      for(const auto& m : opts)
+        oopts[m.first]=m.second;
+      for(const auto& m : rhs.opts)
+        rhsoopts[m.first]=m.second;
+      
+      return std::make_tuple(rem, url, oopts) <
+        std::make_tuple(rhs.rem, rhs.url, rhsoopts);
     }
   };
 public:
-  bool isUp(const ComboAddress& remote);
+  bool isUp(const ComboAddress& remote, opts_t opts);
   bool isUp(const ComboAddress& remote, const std::string& url, opts_t opts=opts_t());
+  bool isUp(const CheckDesc& cd);
     
 private:
   void checkURLThread(ComboAddress rem, std::string url, opts_t opts);
-  void checkTCPThread(const ComboAddress& rem) {
-    CheckDesc cd{rem};
-    setDown(cd);
-    for(bool first=true;;first=false) {
-      try {
-        Socket s(rem.sin4.sin_family, SOCK_STREAM);
-        s.setNonBlocking();
-        s.connect(rem, 1);
-        if(!isUp(rem))
-          L<<Logger::Warning<<"Lua record monitoring declaring TCP/IP "<<rem.toStringWithPort()<<" UP!"<<endl;
-        setUp(cd);
-      }
-      catch(NetworkError& ne) {
-        if(isUp(rem) || first)
-          L<<Logger::Warning<<"Lua record monitoring declaring TCP/IP "<<rem.toStringWithPort()<<" DOWN!"<<endl;
-        setDown(cd);
-      }
-      sleep(1);
-    }
-  }
-
+  void checkTCPThread(ComboAddress rem, opts_t opts);
 
   struct Checker
   {
@@ -119,18 +105,24 @@ private:
 
 };
 
-bool IsUpOracle::isUp(const ComboAddress& remote)
+bool IsUpOracle::isUp(const CheckDesc& cd)
 {
   std::lock_guard<std::mutex> l(d_mutex);
-  CheckDesc cd{remote};
   auto iter = d_statuses.find(cd);
   if(iter == d_statuses.end()) {
-    L<<Logger::Warning<<"Launching TCP/IP status checker for "<<remote.toStringWithPort()<<endl;
-    std::thread* checker = new std::thread(&IsUpOracle::checkTCPThread, this, remote);
+//    L<<Logger::Warning<<"Launching TCP/IP status checker for "<<remote.toStringWithPort()<<endl;
+    std::thread* checker = new std::thread(&IsUpOracle::checkTCPThread, this, cd.rem, cd.opts);
     d_statuses[cd]=Checker{checker, false};
     return false;
   }
   return iter->second.status;
+
+}
+
+bool IsUpOracle::isUp(const ComboAddress& remote, opts_t opts)
+{
+  CheckDesc cd{remote, "", opts};
+  return isUp(cd);
 }
 
 bool IsUpOracle::isUp(const ComboAddress& remote, const std::string& url, std::unordered_map<string,string> opts)
@@ -148,6 +140,38 @@ bool IsUpOracle::isUp(const ComboAddress& remote, const std::string& url, std::u
   return iter->second.status;
 }
 
+void IsUpOracle::checkTCPThread(ComboAddress rem, opts_t opts)
+{
+  CheckDesc cd{rem, "", opts};
+  setDown(cd);
+  for(bool first=true;;first=false) {
+    try {
+      Socket s(rem.sin4.sin_family, SOCK_STREAM);
+      s.setNonBlocking();
+      ComboAddress src;
+      if(opts.count("source")) {
+        src=ComboAddress(opts["source"]);
+        s.bind(src);
+      }
+      s.connect(rem, 1);
+      if(!isUp(cd)) {
+        L<<Logger::Warning<<"Lua record monitoring declaring TCP/IP "<<rem.toStringWithPort()<<" ";
+        if(opts.count("source"))
+          L<<"(source "<<src.toString()<<") ";
+        L<<"UP!"<<endl;
+      }
+      setUp(cd);
+    }
+    catch(NetworkError& ne) {
+      if(isUp(rem, opts) || first)
+        L<<Logger::Warning<<"Lua record monitoring declaring TCP/IP "<<rem.toStringWithPort()<<" DOWN: "<<ne.what()<<endl;
+      setDown(cd);
+    }
+    sleep(1);
+  }
+}
+
+
 void IsUpOracle::checkURLThread(ComboAddress rem, std::string url, opts_t opts) 
 {
   setDown(rem, url, opts);
@@ -155,7 +179,14 @@ void IsUpOracle::checkURLThread(ComboAddress rem, std::string url, opts_t opts)
     try {
       MiniCurl mc;
       //      cout<<"Checking URL "<<url<<" at "<<rem.toString()<<endl;
-      string content=mc.getURL(url, &rem);
+
+      string content;
+      if(opts.count("source")) {
+        ComboAddress src(opts["source"]);
+        content=mc.getURL(url, &rem, &src);
+      }
+      else
+        content=mc.getURL(url, &rem);
       if(opts.count("stringmatch") && content.find(opts["stringmatch"]) == string::npos) {
         //        cout<<"URL "<<url<<" is up at "<<rem.toString()<<", but could not find stringmatch "<<opts["stringmatch"]<<" in page content, setting DOWN"<<endl;
         setDown(rem, url, opts);
@@ -163,12 +194,12 @@ void IsUpOracle::checkURLThread(ComboAddress rem, std::string url, opts_t opts)
       }
       if(!upStatus(rem,url))
         L<<Logger::Warning<<"LUA record monitoring declaring "<<rem.toString()<<" UP for URL "<<url<<"!"<<endl;
-      setUp(rem, url);
+      setUp(rem, url,opts);
     }
     catch(std::exception& ne) {
       if(upStatus(rem,url,opts) || first)
         L<<Logger::Warning<<"LUA record monitoring declaring "<<rem.toString()<<" DOWN for URL "<<url<<", error: "<<ne.what()<<endl;
-      setDown(rem,url);
+      setDown(rem,url,opts);
     }
   loop:;
     sleep(5);
@@ -194,11 +225,10 @@ bool doCompare(const T& var, const std::string& res, const C& cmp)
 }
 
 
-std::function<std::string(const std::string&, GeoIPBackend::GeoIPQueryAttribute)> g_getGeo;
-
 std::string getGeo(const std::string& ip, GeoIPBackend::GeoIPQueryAttribute qa)
 {
   static bool initialized;
+  extern std::function<std::string(const std::string& ip, int)> g_getGeo;
   if(!g_getGeo) {
     if(!initialized) {
       L<<Logger::Error<<"LUA Record attempted to use GeoIPBackend functionality, but backend not launched"<<endl;
@@ -207,7 +237,7 @@ std::string getGeo(const std::string& ip, GeoIPBackend::GeoIPQueryAttribute qa)
     return "unknown";
   }
   else
-    return g_getGeo(ip, qa);
+    return g_getGeo(ip, (int)qa);
 }
 
 static ComboAddress pickrandom(vector<ComboAddress>& ips)
@@ -389,9 +419,13 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
   
   lua.writeFunction("ifportup", [&bestwho](int port, const vector<pair<int, string> >& ips, const boost::optional<std::unordered_map<string,string>> options) {
       vector<ComboAddress> candidates;
+      std::unordered_map<string, string> opts;
+      if(options)
+        opts = *options;
+      
       for(const auto& i : ips) {
         ComboAddress rem(i.second, port);
-        if(g_up.isUp(rem))
+        if(g_up.isUp(rem, opts))
           candidates.push_back(rem);
       }
       vector<string> ret;
@@ -593,7 +627,10 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
           auto lr = getRR<LUARecordContent>(dr.dr);
           lua.executeCode(lr->getCode());
         }
-      }catch(std::exception& e) { cerr<<"Oops: "<<e.what()<<endl; }
+      }
+      catch(std::exception& e) {
+        L<<Logger::Error<<"Failed to load include record for LUArecord "<<(DNSName(record)+zone)<<": "<<e.what()<<endl;
+      }
     });
 
   

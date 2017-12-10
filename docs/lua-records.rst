@@ -21,6 +21,12 @@ tiny (or larger) `Lua <https://www.lua.org>`_ statements.
   interoperability, and strive to turn this functionalitity into a broadly
   supported standard.
 
+To enable this feature, either set 'global-lua-record' in the configuration,
+or set the 'ENABLE-LUA-RECORD' per-zone metadata item to 1.  
+
+In addition, to benefit from the geographical features, make sure the PowerDNS
+launch statement includes the ``geoip`` backend.
+
 Examples
 --------
 
@@ -50,6 +56,12 @@ This uses the GeoIP backend to find indications of the geographical location of
 the requestor and the listed IP addresses. It will return with one of the closest
 addresses.
 
+``closest`` and ifportup can be combined as follows::
+
+  www    IN    LUA    A    ("ifportup(443, {'192.0.2.1', '192.0.2.2', '198.51.100.1'}"
+                            ", {selector='closest'})                                 ")
+
+This will pick from the viable IP addresses the one deemed closest to the user.                         
 
 Record format
 -------------
@@ -141,12 +153,12 @@ The Lua snippets can query the following variables:
 IP address of requesting resolver
 
 
-``ecs-who``
+``ecswho``
 ~~~~~~~~~~~
 The EDNS Client Subnet, should one have been set on the query. Unset
 otherwise.
 
-``best-who``
+``bestwho``
 ~~~~~~~~~~~~
 In absence of ECS, this is set to the IP address of requesting resolver. 
 Otherwise set to the network part of the EDNS Client Subnet supplied by the
@@ -155,8 +167,8 @@ resolver.
 Functions available
 -------------------
 
-``ifportup(portnum, {'ip1', 'ip2'})``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+``ifportup(portnum, {'ip1', 'ip2'}, options)``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Simplistic test to see if an IP address listens on a certain port. Note that
 both IPv4 and IPv6 addresses can be tested, but that it is an error to list
 IPv4 addresses on an AAAA record, or IPv6 addresses on an A record.
@@ -164,6 +176,12 @@ IPv4 addresses on an AAAA record, or IPv6 addresses on an A record.
 Will return a single IP address from the set of available IP addresses. If
 no IP address is available, will return a random element of the set of
 addresses suppplied for testing.
+
+Various options can be set in the ``options`` parameter:
+
+ - ``selector``: used to pick the IP address from list of viable candidates. Choices include 'closest', 'random', 'hashed'.
+ - ``source``: Source IP address to check from
+
 
 ``ifurlup(url, {{'ip1', 'ip2'}, {ip3}, options)``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -176,7 +194,8 @@ returned.
 
 Various options can be set in the ``options`` parameter:
 
- - ``interval``: number of seconds to wait between checks
+ - ``selector``: used to pick the IP address from list of viable candidates. Choices include 'closest', 'random', 'hashed'.
+ - ``source``: Source IP address to check from
  - ``stringmatch``: check ``url`` for this string, only declare 'up' if
    found
 
@@ -202,8 +221,8 @@ This will return IP address 192.168.1.54 for queries coming from
 
 This function also works for CNAME or TXT records.
 
-``whashed({{weight, 'ip1'}, {weight, 'ip2'}})``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+``whashed({{weight, 'ip1'}, ..})``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Based on the hash of ``bestwho``, returns an IP address from the list
 supplied, as weighted by the various ``weight`` parameters.
 
@@ -213,25 +232,32 @@ factors.
 
 Performs no uptime checking.
 
-``wrandom({{weight, 'ip1'}, {weight, 'ip2'}})``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+``wrandom({{weight, 'ip1'}, ..})``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Returns a random IP address from the list supplied, as weighted by the
 various ``weight`` parameters. Performs no uptime checking.
 
-``country('NL')``
-~~~~~~~~~~~~~~~~~
-Returns true if the ``best-who`` IP address of the client is within the
+``asnum(num)`` or ``asnum({num1,num2..})``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Returns true if the ``bestwho`` IP address is determined to be from
+any of the listed AS numbers.
+
+``country('NL')`` or ``country({'NL',..})
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Returns true if the ``bestwho`` IP address of the client is within the
 two letter ISO country code passed, as described in :doc:`backends/geoip`.
 
-``continent('EU')``
-~~~~~~~~~~~~~~~~~~~
-Returns true if the ``best-who`` IP address of the client is within the
+``continent('EU')`` or ``continent({'EU',..})
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Returns true if the ``bestwho`` IP address of the client is within the
 continent passed, as described in :doc:`backends/geoip`. 
 
 Details & Security
 ------------------
 LUA records are synthesized on query. They can also be transferred via AXFR
-to other PowerDNS servers. LUA records themselves can not be queried
+to other PowerDNS servers.
+
+LUA records themselves can not be queried
 however, as this would allow third parties to see load balancing internals
 they do not need to see.
 
@@ -248,3 +274,6 @@ possible to combine pre-signed DNSSEC zone and LUA records. In other words,
 the signing key must be available on the server creating answers based on
 LUA records.
 
+Note that to protect operators, support for the LUA record must be enabled
+explicitly, either globally (``global-lua-record``) or per zone
+(``ENABLE-LUA-RECORD``=1).
