@@ -87,6 +87,27 @@ GeoIPBackend::GeoIPBackend(const string& suffix) {
   s_rc++;
 }
 
+string getGeoForLua(const std::string& ip, GeoIPBackend::GeoIPQueryAttribute qa)
+{
+  try {
+    GeoIPBackend gib;
+    GeoIPLookup gl;
+    string res=gib.queryGeoIP(ip, false, qa, &gl);
+    //    cout<<"Result for "<<ip<<" lookup: "<<res<<endl;
+    if(qa==GeoIPBackend::ASn && boost::starts_with(res, "as"))
+      return res.substr(2);
+    return res;
+  }
+  catch(std::exception& e) {
+    cout<<"Error: "<<e.what()<<endl;
+  }
+  catch(PDNSException& e) {
+    cout<<"Error: "<<e.reason<<endl;
+  }
+  return "";
+}
+
+
 void GeoIPBackend::initialize() {
   YAML::Node config;
   vector<GeoIPDomain> tmp_domains;
@@ -289,6 +310,9 @@ void GeoIPBackend::initialize() {
 
   s_domains.clear();
   std::swap(s_domains, tmp_domains);
+
+  extern std::function<std::string(const std::string& ip, GeoIPBackend::GeoIPQueryAttribute)> g_getGeo;
+  g_getGeo = getGeoForLua;
 }
 
 GeoIPBackend::~GeoIPBackend() {
@@ -1098,25 +1122,6 @@ bool GeoIPBackend::hasDNSSECkey(const DNSName& name) {
   return false;
 }
 
-string getGeo(const std::string& ip, GeoIPBackend::GeoIPQueryAttribute qa)
-{
-  try {
-    GeoIPBackend gib;
-    GeoIPLookup gl;
-    string res=gib.queryGeoIP(ip, false, qa, &gl);
-    //    cout<<"Result for "<<ip<<" lookup: "<<res<<endl;
-    if(qa==GeoIPBackend::ASn && boost::starts_with(res, "as"))
-      return res.substr(2);
-    return res;
-  }
-  catch(std::exception& e) {
-    cout<<"Error: "<<e.what()<<endl;
-  }
-  catch(PDNSException& e) {
-    cout<<"Error: "<<e.reason<<endl;
-  }
-  return "";
-}
 
 
 class GeoIPFactory : public BackendFactory{

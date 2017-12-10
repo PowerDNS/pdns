@@ -6,6 +6,7 @@
 #include "minicurl.hh"
 #include "ueberbackend.hh"
 #include <boost/format.hpp>
+// this is only for the ENUM
 #include "../../modules/geoipbackend/geoipbackend.hh"
 
 /* to do:
@@ -193,12 +194,20 @@ bool doCompare(const T& var, const std::string& res, const C& cmp)
 }
 
 
-std::string getGeo(const std::string& ip, GeoIPBackend::GeoIPQueryAttribute qa) __attribute__((weak));
+std::function<std::string(const std::string&, GeoIPBackend::GeoIPQueryAttribute)> g_getGeo;
 
 std::string getGeo(const std::string& ip, GeoIPBackend::GeoIPQueryAttribute qa)
 {
-  cerr<<"Weak variant called"<<endl;
-  return "unknown";
+  static bool intialized;
+  if(!g_getGeo) {
+    if(!initialized) {
+      L<<Logger::Error<<"LUA Record attempted to use GeoIPBackend functionality, but backend not launched"<<endl;
+      initialized=true;
+    }
+    return "unknown";
+  }
+  else
+    return g_getGeo(ip, qa);
 }
 
 static ComboAddress pickrandom(vector<ComboAddress>& ips)
