@@ -838,7 +838,7 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
   di.backend->list(zone, di.id);
   pre.clear(); post.clear();
   {
-    if(tmpfd < 0 && (tmpfd=open(tmpnam, O_WRONLY | O_TRUNC, 0600)) < 0)
+    if(tmpfd < 0 && (tmpfd=open(tmpnam, O_CREAT | O_WRONLY | O_TRUNC, 0600)) < 0)
       unixDie("Error reopening temporary file "+string(tmpnam));
     string header("; Warning - every name in this file is ABSOLUTE!\n$ORIGIN .\n");
     if(write(tmpfd, header.c_str(), header.length()) < 0)
