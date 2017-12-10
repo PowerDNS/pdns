@@ -11,12 +11,17 @@
 
 /* to do:
    block AXFR unless TSIG, or override
-   
-   zone metadata setting to enable
+
+   investigate IPv6
+
+   check the wildcard 'no cache' stuff, we may get it wrong
+
+   ponder ECS scopemask setting
+
+   ponder netmask tree from file for huge number of netmasks
 
    unify ifupurl/ifupport
-      add attribute for query source 
-      add attribute for certificate chedk
+      add attribute for certificate check
    add list of current monitors
       expire them too?
  */
