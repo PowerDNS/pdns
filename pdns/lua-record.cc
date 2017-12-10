@@ -198,7 +198,7 @@ std::function<std::string(const std::string&, GeoIPBackend::GeoIPQueryAttribute)
 
 std::string getGeo(const std::string& ip, GeoIPBackend::GeoIPQueryAttribute qa)
 {
-  static bool intialized;
+  static bool initialized;
   if(!g_getGeo) {
     if(!initialized) {
       L<<Logger::Error<<"LUA Record attempted to use GeoIPBackend functionality, but backend not launched"<<endl;
