@@ -37,7 +37,7 @@ Here is a very basic example::
 
      www    IN    LUA    A    "ifportup(443, {'192.0.2.1', '192.0.2.2'})"
 
-This turns the 'www' name within a zone into a magical record that will
+This turns the 'www' name within a zone into a special record that will
 randomly return 192.0.2.1 or 192.0.2.2, as long as both of these IP
 addresses listen on port 443. 
 
@@ -199,9 +199,43 @@ Various options can be set in the ``options`` parameter:
  - ``stringmatch``: check ``url`` for this string, only declare 'up' if
    found
 
-``pickrandom({'ip1', ip2'})``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+``pickrandom({'ip1', ip2',..})``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Returns a random IP address from the list supplied.
+
+``closest({'ip1', ip2',..})``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Returns IP address deemed closest to the ``bestwho`` IP address.
+
+``latlon()``
+~~~~~~~~~~~~
+Returns text listing fractional latitude/longitude associated with the ``bestwho`` IP address.
+
+``latlonloc()``
+~~~~~~~~~~~~~~~
+Returns text in LOC record format listing latitude/longitude associated with the ``bestwho`` IP address.
+
+``closestMagic()``
+~~~~~~~~~~~~~~~~~~
+Suitable for use as a wildcard LUA A record. Will parse the query name which should be in format::
+
+  192-0-2-1.192-0-2-2.198-51-100-1.magic.v4.powerdns.org
+
+It will then resolve to an A record with the IP address closest to ``bestwho`` from the list
+of supplied addresses.
+
+In the ``magic.v4.powerdns.org`` this looks like::
+  
+  *.magic.v4.powerdns.org    IN    LUA    A    "closestMagic()"
+
+
+In another zone, a record is then present like this::
+    
+  www-balanced.powerdns.org    IN    CNAME    192-0-2-1.192-0-2-2.198-51-100-1.magic.v4.powerdns.org
+
+This effectively opens up your server to being a 'geographical load balancer as a service'.
+
+Performs no uptime checking.  
 
 ``view({{{'netmask1', 'netmask2'}, {'content1', 'content2'}}, ...})``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -211,7 +245,7 @@ The input consists of a list of netmask/result pairs.
 
 An example::
 
-    view.v4.powerdns.org    IN    LUA    A ("return view({                           "
+    view.v4.powerdns.org    IN    LUA    A ("view({                                  "
                                             "{ {'192.168.0.0/16'}, {'192.168.1.54'}}," 
                                             "{ {'0.0.0.0/0'}, {'1.2.3.4'}}           "
                                             " }) " )
@@ -242,15 +276,19 @@ various ``weight`` parameters. Performs no uptime checking.
 Returns true if the ``bestwho`` IP address is determined to be from
 any of the listed AS numbers.
 
-``country('NL')`` or ``country({'NL',..})
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+``country('NL')`` or ``country({'NL',..})``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Returns true if the ``bestwho`` IP address of the client is within the
 two letter ISO country code passed, as described in :doc:`backends/geoip`.
 
-``continent('EU')`` or ``continent({'EU',..})
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+``continent('EU')`` or ``continent({'EU',..})``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Returns true if the ``bestwho`` IP address of the client is within the
 continent passed, as described in :doc:`backends/geoip`. 
+
+``netmask({'192.168.0.0/16', '10.0.0.0/8'})``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Returns true if ``bestwho`` is within any of the listed subnets.
 
 Details & Security
 ------------------
@@ -276,4 +314,4 @@ LUA records.
 
 Note that to protect operators, support for the LUA record must be enabled
 explicitly, either globally (``global-lua-record``) or per zone
-(``ENABLE-LUA-RECORD``=1).
+(``ENABLE-LUA-RECORD`` = 1).

@@ -50,7 +50,7 @@ void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const C
     curl_easy_setopt(d_curl, CURLOPT_RESOLVE, hostlist);
   }
   if(src) {
-    curl_easy_setopt(d_curl, CURLOPT_INTERFACE, src->toString());
+    curl_easy_setopt(d_curl, CURLOPT_INTERFACE, src->toString().c_str());
   }
   curl_easy_setopt(d_curl, CURLOPT_FOLLOWLOCATION, true);
   /* only allow HTTP, TFTP and SFTP */

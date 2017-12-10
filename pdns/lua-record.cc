@@ -556,9 +556,6 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
     });
   lua.executeCode("debug.sethook(report, '', 1000)");
 
-  lua.writeFunction("latlon", [&bestwho]() {
-      return getGeo(bestwho.toString(), GeoIPBackend::LatLon);
-    });
   
   typedef const boost::variant<string,vector<pair<int,string> > > combovar_t;
   lua.writeFunction("continent", [&bestwho](const combovar_t& continent) {
