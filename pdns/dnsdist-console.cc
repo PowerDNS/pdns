@@ -360,6 +360,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "registerDynBPFFilter", true, "DynBPFFilter", "register this dynamic BPF filter into the web interface so that its counters are displayed" },
   { "RemoteLogAction", true, "RemoteLogger [, alterFunction]", "send the content of this query to a remote logger via Protocol Buffer. `alterFunction` is a callback, receiving a DNSQuestion and a DNSDistProtoBufMessage, that can be used to modify the Protocol Buffer content, for example for anonymization purposes" },
   { "RemoteLogResponseAction", true, "RemoteLogger [,alterFunction [,includeCNAME]]", "send the content of this response to a remote logger via Protocol Buffer. `alterFunction` is the same callback than the one in `RemoteLogAction` and `includeCNAME` indicates whether CNAME records inside the response should be parsed and exported. The default is to only exports A and AAAA records" },
+  { "ResponsePoolRule", true, "poolname", "matches the pool the response received from" },
   { "rmCacheHitResponseRule", true, "n", "remove cache hit response rule n" },
   { "rmResponseRule", true, "n", "remove response rule n" },
   { "rmRule", true, "n", "remove rule n" },

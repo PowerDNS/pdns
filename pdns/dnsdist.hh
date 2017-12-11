@@ -148,6 +148,7 @@ struct DNSQuestion
   bool skipCache{false};
   bool ecsOverride;
   bool useECS{true};
+  string poolname;
 };
 
 struct DNSResponse : DNSQuestion
@@ -403,6 +404,7 @@ struct IDState
   ComboAddress origDest;                                      // 28
   StopWatch sentTime;                                         // 16
   DNSName qname;                                              // 80
+  string poolname;
 #ifdef HAVE_DNSCRYPT
   std::shared_ptr<DnsCryptQuery> dnsCryptQuery{0};
 #endif

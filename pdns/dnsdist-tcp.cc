@@ -541,6 +541,7 @@ void* tcpClientThread(int pipefd)
 
         dh = (struct dnsheader*) response;
         DNSResponse dr(&qname, qtype, qclass, &dest, &ci.remote, dh, responseSize, responseLen, true, &queryRealTime);
+        dr.poolname = poolname;
 #ifdef HAVE_PROTOBUF
         dr.uniqueId = dq.uniqueId;
 #endif

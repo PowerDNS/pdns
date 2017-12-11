@@ -1352,6 +1352,10 @@ void moreLua(bool client)
       return std::shared_ptr<DNSRule>(new RDRule());
     });
 
+    g_lua.writeFunction("ResponsePoolRule", [](string pool) {
+      return std::shared_ptr<DNSRule>(new ResponsePoolRule(pool));
+    });
+
     g_lua.writeFunction("TimedIPSetRule", []() {
       return std::shared_ptr<TimedIPSetRule>(new TimedIPSetRule());
     });
