@@ -267,6 +267,7 @@ BuildRequires: boost-devel
 BuildRequires: lua-devel
 BuildRequires: libsodium-devel
 BuildRequires: bison
+BuildRequires: libcurl-devel
 Provides: powerdns = %{version}-%{release}
 
 %description
@@ -315,7 +316,6 @@ This package contains the pipe backend for %{name}
 Summary: Remote backend for %{name}
 Group: System Environment/Daemons
 Requires: %{name}%{?_isa} = %{version}-%{release}
-BuildRequires: libcurl-devel
 %global backends %{backends} remote
 
 %description backend-remote
@@ -535,6 +535,7 @@ BuildRequires: openssl-devel
 BuildRequires: protobuf-devel
 BuildRequires: protobuf-compiler
 BuildRequires: p11-kit-devel
+BuildRequires: libcurl-devel
 Provides: powerdns = %{version}-%{release}
 %global backends %{backends} bind
 
