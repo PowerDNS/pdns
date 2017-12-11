@@ -160,135 +160,185 @@ otherwise.
 
 ``bestwho``
 ~~~~~~~~~~~~
-In absence of ECS, this is set to the IP address of requesting resolver. 
+In absence of ECS, this is set to the IP address of requesting resolver.
 Otherwise set to the network part of the EDNS Client Subnet supplied by the
 resolver.
 
 Functions available
 -------------------
 
-``ifportup(portnum, {'ip1', 'ip2'}, options)``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Simplistic test to see if an IP address listens on a certain port. Note that
-both IPv4 and IPv6 addresses can be tested, but that it is an error to list
-IPv4 addresses on an AAAA record, or IPv6 addresses on an A record.
+Record creation functions
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Will return a single IP address from the set of available IP addresses. If
-no IP address is available, will return a random element of the set of
-addresses suppplied for testing.
+.. function:: ifportup(portnum, addresses[, options])
 
-Various options can be set in the ``options`` parameter:
+  Simplistic test to see if an IP address listens on a certain port. Note that
+  both IPv4 and IPv6 addresses can be tested, but that it is an error to list
+  IPv4 addresses on an AAAA record, or IPv6 addresses on an A record.
 
- - ``selector``: used to pick the IP address from list of viable candidates. Choices include 'closest', 'random', 'hashed'.
- - ``source``: Source IP address to check from
+  Will return a single IP address from the set of available IP addresses. If
+  no IP address is available, will return a random element of the set of
+  addresses suppplied for testing.
 
+  :param int portnum: The port number to test connections to.
+  :param {str} addresses: The list of IP addresses to check connectivity for.
+  :param options: Table of options for this specific check, see below.
 
-``ifurlup(url, {{'ip1', 'ip2'}, {ip3}, options)``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-More sophisticated test that attempts an actual http(s) connection to
-``url``. In addition, multiple groups of IP addresses can be supplied. The
-first set with a working (available) IP address is used. 
+  Various options can be set in the ``options`` parameter:
 
-If all addresses are down, as usual, a random element from all sets is
-returned.
-
-Various options can be set in the ``options`` parameter:
-
- - ``selector``: used to pick the IP address from list of viable candidates. Choices include 'closest', 'random', 'hashed'.
- - ``source``: Source IP address to check from
- - ``stringmatch``: check ``url`` for this string, only declare 'up' if
-   found
-
-``pickrandom({'ip1', ip2',..})``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Returns a random IP address from the list supplied.
-
-``closest({'ip1', ip2',..})``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Returns IP address deemed closest to the ``bestwho`` IP address.
-
-``latlon()``
-~~~~~~~~~~~~
-Returns text listing fractional latitude/longitude associated with the ``bestwho`` IP address.
-
-``latlonloc()``
-~~~~~~~~~~~~~~~
-Returns text in LOC record format listing latitude/longitude associated with the ``bestwho`` IP address.
-
-``closestMagic()``
-~~~~~~~~~~~~~~~~~~
-Suitable for use as a wildcard LUA A record. Will parse the query name which should be in format::
-
-  192-0-2-1.192-0-2-2.198-51-100-1.magic.v4.powerdns.org
-
-It will then resolve to an A record with the IP address closest to ``bestwho`` from the list
-of supplied addresses.
-
-In the ``magic.v4.powerdns.org`` this looks like::
-  
-  *.magic.v4.powerdns.org    IN    LUA    A    "closestMagic()"
+  - ``selector``: used to pick the IP address from list of viable candidates. Choices include 'closest', 'random', 'hashed'.
+  - ``source``: Source IP address to check from
 
 
-In another zone, a record is then present like this::
-    
-  www-balanced.powerdns.org    IN    CNAME    192-0-2-1.192-0-2-2.198-51-100-1.magic.v4.powerdns.org
+.. function:: ifurlup(url, addresses[, options])
 
-This effectively opens up your server to being a 'geographical load balancer as a service'.
+  More sophisticated test that attempts an actual http(s) connection to
+  ``url``. In addition, multiple groups of IP addresses can be supplied. The
+  first set with a working (available) IP address is used.
 
-Performs no uptime checking.  
+  If all addresses are down, as usual, a random element from all sets is
+  returned.
 
-``view({{{'netmask1', 'netmask2'}, {'content1', 'content2'}}, ...})``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Shorthand function to implement 'views' for all record types.
+  :param string url: The url to retrieve.
+  :param addresses: List of lists of IP addresses to check the URL on.
+  :param options: Table of options for this specific check, see below.
 
-The input consists of a list of netmask/result pairs. 
+  Various options can be set in the ``options`` parameter:
 
-An example::
+  - ``selector``: used to pick the IP address from list of viable candidates. Choices include 'closest', 'random', 'hashed'.
+  - ``source``: Source IP address to check from
+  - ``stringmatch``: check ``url`` for this string, only declare 'up' if found
 
-    view.v4.powerdns.org    IN    LUA    A ("view({                                  "
-                                            "{ {'192.168.0.0/16'}, {'192.168.1.54'}}," 
-                                            "{ {'0.0.0.0/0'}, {'1.2.3.4'}}           "
-                                            " }) " )
+  An example of IP address sets:
 
-This will return IP address 192.168.1.54 for queries coming from
-192.168.0.0/16, and 1.2.3.4 for all other queries.
+  .. code-block:: lua
 
-This function also works for CNAME or TXT records.
+    ifurlup("example.com", { {"192.0.2.20", "203.0.113.4"}, {"203.0.113.2"} })
 
-``whashed({{weight, 'ip1'}, ..})``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Based on the hash of ``bestwho``, returns an IP address from the list
-supplied, as weighted by the various ``weight`` parameters.
+.. function:: pickrandom(addresses)
 
-Because of the hash, the same client keeps getting the same answer, but
-given sufficient clients, the load is still spread according to the weight
-factors.
+  Returns a random IP address from the list supplied.
 
-Performs no uptime checking.
+  :param addresses: A list of strings with the possible IP addresses.
 
-``wrandom({{weight, 'ip1'}, ..})``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Returns a random IP address from the list supplied, as weighted by the
-various ``weight`` parameters. Performs no uptime checking.
+.. function:: closest(addresses)
 
-``asnum(num)`` or ``asnum({num1,num2..})``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Returns true if the ``bestwho`` IP address is determined to be from
-any of the listed AS numbers.
+  Returns IP address deemed closest to the ``bestwho`` IP address.
 
-``country('NL')`` or ``country({'NL',..})``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Returns true if the ``bestwho`` IP address of the client is within the
-two letter ISO country code passed, as described in :doc:`backends/geoip`.
+  :param addresses: A list of strings with the possible IP addresses.
 
-``continent('EU')`` or ``continent({'EU',..})``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Returns true if the ``bestwho`` IP address of the client is within the
-continent passed, as described in :doc:`backends/geoip`. 
+.. function:: latlon()
 
-``netmask({'192.168.0.0/16', '10.0.0.0/8'})``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Returns true if ``bestwho`` is within any of the listed subnets.
+  Returns text listing fractional latitude/longitude associated with the ``bestwho`` IP address.
+
+.. function:: latlonloc()
+
+  Returns text in LOC record format listing latitude/longitude associated with the ``bestwho`` IP address.
+
+.. function:: closestMagic()
+
+  Suitable for use as a wildcard LUA A record. Will parse the query name which should be in format::
+
+    192-0-2-1.192-0-2-2.198-51-100-1.magic.v4.powerdns.org
+
+  It will then resolve to an A record with the IP address closest to ``bestwho`` from the list
+  of supplied addresses.
+
+  In the ``magic.v4.powerdns.org`` this looks like::
+
+    *.magic.v4.powerdns.org    IN    LUA    A    "closestMagic()"
+
+
+  In another zone, a record is then present like this::
+
+    www-balanced.powerdns.org    IN    CNAME    192-0-2-1.192-0-2-2.198-51-100-1.magic.v4.powerdns.org
+
+  This effectively opens up your server to being a 'geographical load balancer as a service'.
+
+  Performs no uptime checking.
+
+.. function:: view(pairs)
+
+  Shorthand function to implement 'views' for all record types.
+
+  :param pairs: A list of netmask/result pairs.
+
+  An example::
+
+      view.v4.powerdns.org    IN    LUA    A ("view({                                  "
+                                              "{ {'192.168.0.0/16'}, {'192.168.1.54'}},"
+                                              "{ {'0.0.0.0/0'}, {'192.0.2.1'}}         "
+                                              " }) " )
+
+  This will return IP address 192.168.1.54 for queries coming from
+  192.168.0.0/16, and 192.0.2.1 for all other queries.
+
+  This function also works for CNAME or TXT records.
+
+.. function:: whashed(weightparams)
+
+  Based on the hash of ``bestwho``, returns an IP address from the list
+  supplied, as weighted by the various ``weight`` parameters.
+  Performs no uptime checking.
+
+  :param weightparams: table of weight, IP addresses.
+
+  Because of the hash, the same client keeps getting the same answer, but
+  given sufficient clients, the load is still spread according to the weight
+  factors.
+
+  An example::
+
+    mydomain.example.com    IN    LUA    A ("whashed(                                   "
+                                            "        {15, {"192.0.2.1", "203.0.113.2"}, "
+                                            "        {100, {"198.51.100.5"}             "
+                                            ")                                          ")
+
+
+.. function:: wrandom(weightparams)
+
+  Returns a random IP address from the list supplied, as weighted by the
+  various ``weight`` parameters. Performs no uptime checking.
+
+  :param weightparams: table of weight, IP addresses.
+
+  See :func:`whashed` for an example.
+
+Helper functions
+~~~~~~~~~~~~~~~~
+
+.. function:: asnum(number)
+              asnum(numbers)
+
+  Returns true if the ``bestwho`` IP address is determined to be from
+  any of the listed AS numbers.
+
+  :param int number: An AS number
+  :param [int] numbers: A list of AS numbers
+
+.. function:: country(country)
+              country(countries)
+
+  Returns true if the ``bestwho`` IP address of the client is within the
+  two letter ISO country code passed, as described in :doc:`backends/geoip`.
+
+  :param string country: A country code like "NL"
+  :param [string] countries: A list of country codes
+
+.. function:: continent(continent)
+              continent(continents)
+
+  Returns true if the ``bestwho`` IP address of the client is within the
+  continent passed, as described in :doc:`backends/geoip`.
+
+  :param string continent: A continent code like "EU"
+  :param [string] continents: A list of continent codes
+
+.. function:: netmask(netmasks)
+
+  Returns true if ``bestwho`` is within any of the listed subnets.
+
+  :param [string] netmasks: The list of IP addresses to check against
 
 Details & Security
 ------------------
