@@ -1924,7 +1924,7 @@ BOOST_AUTO_TEST_CASE(test_flawed_nsset) {
     });
 
   /* we populate the cache with a flawed NSset, i.e. there is a NS entry but no corresponding glue */
-  time_t now = time(nullptr);
+  time_t now = sr->getNow().tv_sec;
   std::vector<DNSRecord> records;
   std::vector<shared_ptr<RRSIGRecordContent> > sigs;
   addRecordToList(records, target, QType::NS, "pdns-public-ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, now + 3600);
@@ -1986,7 +1986,7 @@ BOOST_AUTO_TEST_CASE(test_cache_hit) {
     });
 
   /* we populate the cache with eveything we need */
-  time_t now = time(nullptr);
+  time_t now = sr->getNow().tv_sec;
   std::vector<DNSRecord> records;
   std::vector<shared_ptr<RRSIGRecordContent> > sigs;
 
@@ -2051,7 +2051,7 @@ BOOST_AUTO_TEST_CASE(test_cache_min_max_ttl) {
       return 0;
     });
 
-  const time_t now = time(nullptr);
+  const time_t now = sr->getNow().tv_sec;
   SyncRes::s_minimumTTL = 60;
   SyncRes::s_maxcachettl = 3600;
 
@@ -2102,7 +2102,7 @@ BOOST_AUTO_TEST_CASE(test_cache_expired_ttl) {
     });
 
   /* we populate the cache with entries that expired 60s ago*/
-  time_t now = time(nullptr);
+  time_t now = sr->getNow().tv_sec;
   std::vector<DNSRecord> records;
   std::vector<shared_ptr<RRSIGRecordContent> > sigs;
   addRecordToList(records, target, QType::A, "192.0.2.42", DNSResourceRecord::ANSWER, now - 60);
@@ -8781,7 +8781,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_negcache_validity) {
       return 0;
     });
 
-  const time_t now = time(nullptr);
+  const time_t now = sr->getNow().tv_sec;
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
@@ -8847,7 +8847,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_cache_validity) {
       return 0;
     });
 
-  const time_t now = time(nullptr);
+  const time_t now = sr->getNow().tv_sec;
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
