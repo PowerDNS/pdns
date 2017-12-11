@@ -3,6 +3,19 @@ Changelogs for 4.0.x
 
 This page has all the changelogs for the PowerDNS Recursor 4.0 release train.
 
+PowerDNS Recursor 4.0.8
+-----------------------
+
+Released 12th of December 2017
+
+This release fixes PowerDNS Security Advisory :doc:`2017-08 <../security-advisories/powerdns-advisory-2017-08>`.
+
+Bug fixes
+^^^^^^^^^
+
+- `#5930 <https://github.com/PowerDNS/pdns/pull/5930>`__: Don't assume TXT record is first record for secpoll
+- `#6082 <https://github.com/PowerDNS/pdns/pull/6082>`__: Don't add non-IN records to the cache
+
 PowerDNS Recursor 4.0.7
 -----------------------
 
