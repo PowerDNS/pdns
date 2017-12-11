@@ -2,7 +2,7 @@ PowerDNS Security Advisory 2017-08: Crafted CNAME answer can cause a denial of s
 ======================================================================================
 
 -  CVE: CVE-2017-15120
--  Date: December 12th 2017
+-  Date: December 11th 2017
 -  Credit: Toshifumi Sakaguchi
 -  Affects: PowerDNS Recursor from 4.0.0 up to and including 4.0.7
 -  Not affected: PowerDNS Recursor 3.7.4, 4.0.8, 4.1.0
