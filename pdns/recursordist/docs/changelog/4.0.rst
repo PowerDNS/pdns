@@ -6,7 +6,7 @@ This page has all the changelogs for the PowerDNS Recursor 4.0 release train.
 PowerDNS Recursor 4.0.8
 -----------------------
 
-Released 12th of December 2017
+Released 11th of December 2017
 
 This release fixes PowerDNS Security Advisory :doc:`2017-08 <../security-advisories/powerdns-advisory-2017-08>`.
 
