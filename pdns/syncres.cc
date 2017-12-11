@@ -537,9 +537,9 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
     if(!doResolve(qname, type, res,depth+1, beenthere) && !res.empty()) {  // this consults cache, OR goes out
       for(res_t::const_iterator i=res.begin(); i!= res.end(); ++i) {
         if(i->d_type == QType::A || i->d_type == QType::AAAA) {
-	  if(auto rec = std::dynamic_pointer_cast<ARecordContent>(i->d_content))
+	  if(auto rec = getRR<ARecordContent>(*i))
 	    ret.push_back(rec->getCA(53));
-	  else if(auto aaaarec = std::dynamic_pointer_cast<AAAARecordContent>(i->d_content))
+	  else if(auto aaaarec = getRR<AAAARecordContent>(*i))
 	    ret.push_back(aaaarec->getCA(53));
           done=true;
         }
@@ -551,7 +551,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
 	if(t_RC->get(d_now.tv_sec, qname, QType(QType::AAAA), &cset, d_incomingECSFound ? d_incomingECSNetwork : d_requestor) > 0) {
 	  for(auto k=cset.cbegin();k!=cset.cend();++k) {
 	    if(k->d_ttl > (unsigned int)d_now.tv_sec ) {
-	      if (auto drc = std::dynamic_pointer_cast<AAAARecordContent>(k->d_content)) {
+	      if (auto drc = getRR<AAAARecordContent>(*k)) {
 	        ComboAddress ca=drc->getCA(53);
 	        ret.push_back(ca);
 	      }
@@ -628,8 +628,11 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vecto
         GetBestNSAnswer answer;
         answer.qname=qname;
 	answer.qtype=qtype.getCode();
-	for(const auto& dr : bestns)
-	  answer.bestns.insert(make_pair(dr.d_name, getRR<NSRecordContent>(dr)->getNS()));
+	for(const auto& dr : bestns) {
+          if (auto nsContent = getRR<NSRecordContent>(dr)) {
+            answer.bestns.insert(make_pair(dr.d_name, nsContent->getNS()));
+          }
+        }
 
         if(beenthere.count(answer)) {
 	  brokeloop=true;
@@ -696,9 +699,11 @@ DNSName SyncRes::getBestNSNamesFromCache(const DNSName &qname, const QType& qtyp
 
   for(auto k=bestns.cbegin() ; k != bestns.cend(); ++k) {
     // The actual resolver code will not even look at the ComboAddress or bool
-    nsset.insert({std::dynamic_pointer_cast<NSRecordContent>(k->d_content)->getNS(), {{}, false}}); 
-    if(k==bestns.cbegin())
-      subdomain=k->d_name;
+    if (auto nsContent = getRR<NSRecordContent>(*k)) {
+      nsset.insert({nsContent->getNS(), {{}, false}});
+      if(k==bestns.cbegin())
+        subdomain=k->d_name;
+    }
   }
   return subdomain;
 }
@@ -723,6 +728,10 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
   if(t_RC->get(d_now.tv_sec, qname,QType(QType::CNAME), &cset, d_incomingECSFound ? d_incomingECSNetwork : d_requestor, &signatures, &d_wasVariable) > 0) {
 
     for(auto j=cset.cbegin() ; j != cset.cend() ; ++j) {
+      if (j->d_class != QClass::IN) {
+        continue;
+      }
+
       if(j->d_ttl>(unsigned int) d_now.tv_sec) {
         LOG(prefix<<qname<<": Found cache CNAME hit for '"<< qname << "|CNAME" <<"' to '"<<j->d_content->getZoneRepresentation()<<"'"<<endl);
         DNSRecord dr=*j;
@@ -742,7 +751,10 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
 
         if(!(qtype==QType(QType::CNAME))) { // perhaps they really wanted a CNAME!
           set<GetBestNSAnswer>beenthere;
-          res=doResolve(std::dynamic_pointer_cast<CNAMERecordContent>(j->d_content)->getTarget(), qtype, ret, depth+1, beenthere);
+          const auto cnameContent = getRR<CNAMERecordContent>(*j);
+          if (cnameContent) {
+            res=doResolve(cnameContent->getTarget(), qtype, ret, depth+1, beenthere);
+          }
         }
         else
           res=0;
@@ -852,7 +864,13 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSR
   if(t_RC->get(d_now.tv_sec, sqname, sqt, &cset, d_incomingECSFound ? d_incomingECSNetwork : d_requestor, d_doDNSSEC ? &signatures : 0, &d_wasVariable) > 0) {
     LOG(prefix<<sqname<<": Found cache hit for "<<sqt.getName()<<": ");
     for(auto j=cset.cbegin() ; j != cset.cend() ; ++j) {
+
       LOG(j->d_content->getZoneRepresentation());
+
+      if (j->d_class != QClass::IN) {
+        continue;
+      }
+
       if(j->d_ttl>(unsigned int) d_now.tv_sec) {
         DNSRecord dr=*j;
         ttl = (dr.d_ttl-=d_now.tv_sec);
@@ -1254,6 +1272,9 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
       tcache_t tcache;
 
       for(const auto& rec : lwr.d_records) {
+        if (rec.d_class != QClass::IN) {
+          continue;
+        }
         if(rec.d_type == QType::RRSIG) {
           auto rrsig = getRR<RRSIGRecordContent>(rec);
           if (rrsig) {
@@ -1271,7 +1292,12 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
         }
         LOG(prefix<<qname<<": accept answer '"<<rec.d_name<<"|"<<DNSRecordContent::NumberToType(rec.d_type)<<"|"<<rec.d_content->getZoneRepresentation()<<"' from '"<<auth<<"' nameservers? "<<(int)rec.d_place<<" ");
         if(rec.d_type == QType::ANY) {
-          LOG("NO! - we don't accept 'ANY' data"<<endl);
+          LOG("NO! - we don't accept 'ANY'-typed data"<<endl);
+          continue;
+        }
+
+        if(rec.d_class != QClass::IN) {
+          LOG("NO! - we don't accept records for any other class than 'IN'"<<endl);
           continue;
         }
 
