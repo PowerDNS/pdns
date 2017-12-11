@@ -335,6 +335,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "getResponseRing", true, "", "return the current content of the response ring" },
   { "getServer", true, "n", "returns server with index n" },
   { "getServers", true, "", "returns a table with all defined servers" },
+  { "inClientStartup", true, "", "returns true during console client parsing of configuration" },
   { "grepq", true, "Netmask|DNS Name|100ms|{\"::1\", \"powerdns.com\", \"100ms\"} [, n]", "shows the last n queries and responses matching the specified client address or range (Netmask), or the specified DNS Name, or slower than 100ms" },
   { "leastOutstanding", false, "", "Send traffic to downstream server with least outstanding queries, with the lowest 'order', and within that the lowest recent latency"},
   { "LogAction", true, "[filename], [binary], [append], [buffered]", "Log a line for each query, to the specified file if any, to the console (require verbose) otherwise. When logging to a file, the `binary` optional parameter specifies whether we log in binary form (default) or in textual form, the `append` optional parameter specifies whether we open the file for appending or truncate each time (default), and the `buffered` optional parameter specifies whether writes to the file are buffered (default) or not." },
