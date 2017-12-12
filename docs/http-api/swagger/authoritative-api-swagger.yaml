@@ -141,7 +141,7 @@ paths:
         '200':
           description: OK
     patch:
-      summary: 'Modifies present RRsets and comments. Returns 204 No Content on success.'
+      summary: 'Creates/modifies/deletes RRsets present in the payload and their comments. Returns 204 No Content on success.'
       operationId: patchZone
       tags:
         - zones
