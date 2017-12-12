@@ -47,11 +47,16 @@ class Cryptokeys(ApiTestCase):
         except subprocess.CalledProcessError as e:
             self.fail("pdnsutil list-keys failed: " + e.output)
 
+    def test_get_wrong_zone(self):
+        self.keyid = self.add_zone_key()
+        r = self.session.get(self.url("/api/v1/servers/localhost/zones/"+self.zone+"fail/cryptokeys/"+self.keyid))
+        self.assertEquals(r.status_code, 404)
+
     def test_delete_wrong_zone(self):
         self.keyid = self.add_zone_key()
         #checks for not covered zonename
         r = self.session.delete(self.url("/api/v1/servers/localhost/zones/"+self.zone+"fail/cryptokeys/"+self.keyid))
-        self.assertEquals(r.status_code, 400)
+        self.assertEquals(r.status_code, 404)
 
     def test_delete_key_is_gone(self):
         self.keyid = self.add_zone_key()
