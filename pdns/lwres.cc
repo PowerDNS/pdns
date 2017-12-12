@@ -161,7 +161,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
   
     // sleep until we see an answer to this, interface to mtasker
     
-    ret=arecvfrom(reinterpret_cast<char *>(buf.get()), bufsize-1,0, ip, &len, qid,
+    ret=arecvfrom(reinterpret_cast<char *>(buf.get()), bufsize, 0, ip, &len, qid,
                   domain, type, queryfd, now);
   }
   else {
