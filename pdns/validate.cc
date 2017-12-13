@@ -306,9 +306,12 @@ static bool provesNSEC3NoWildCard(DNSName wildcard, uint16_t const qtype, const 
   useful when we have a positive answer synthetized from a wildcard and we only need to prove that the exact
   name does not exist.
 */
-dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16_t qtype, bool referralToUnsigned, bool wantsNoDataProof, bool needWildcardProof)
+dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16_t qtype, bool referralToUnsigned, bool wantsNoDataProof, bool needWildcardProof, unsigned int wildcardLabelsCount)
 {
   bool nsec3Seen = false;
+  if (!needWildcardProof && wildcardLabelsCount == 0) {
+    throw std::runtime_error("Invalid wildcard labels count for the validation of a positive answer synthetized from a wildcard");
+  }
 
   for(const auto& v : validrrsets) {
     LOG("Do have: "<<v.first.first<<"/"<<DNSRecordContent::NumberToType(v.first.second)<<endl);
@@ -538,7 +541,11 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
        expanded wildcard in the response.
     */
     found = true;
-    closestEncloser.chopOff();
+    unsigned int closestEncloserLabelsCount = closestEncloser.countLabels();
+    while (wildcardLabelsCount > 0 && closestEncloserLabelsCount > wildcardLabelsCount) {
+      closestEncloser.chopOff();
+      closestEncloserLabelsCount--;
+    }
   }
 
   bool nextCloserFound = false;
