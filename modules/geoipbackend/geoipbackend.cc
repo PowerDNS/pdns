@@ -22,7 +22,10 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#include <yaml-cpp/yaml.h>
 #include "geoipbackend.hh"
+#include <GeoIP.h>
+#include <GeoIPCity.h>
 #include "pdns/dns_random.hh"
 #include <sstream>
 #include <regex.h>

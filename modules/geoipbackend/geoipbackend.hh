@@ -28,11 +28,8 @@
 #include <map>
 #include <string>
 #include <fstream>
-#include <yaml-cpp/yaml.h>
-#include <pthread.h>
 
-#include <GeoIP.h>
-#include <GeoIPCity.h>
+#include <pthread.h>
 #include <sys/types.h>
 #include <dirent.h>
 
@@ -44,6 +41,8 @@
 struct geoip_deleter;
 
 class GeoIPDomain;
+struct GeoIPLookup;
+struct GeoIP;
 
 class GeoIPBackend: public DNSBackend {
 public:
