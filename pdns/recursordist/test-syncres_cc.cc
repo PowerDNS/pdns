@@ -5307,7 +5307,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_wildcard) {
   setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
-  const DNSName target("www.powerdns.com.");
+  const DNSName target("www.sub.powerdns.com.");
   testkeysset_t keys;
 
   auto luaconfsCopy = g_luaconfs.getCopy();
@@ -5324,11 +5324,16 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_wildcard) {
       queriesCount++;
 
       if (type == QType::DS || type == QType::DNSKEY) {
-        if (type == QType::DS && domain == target) {
+        if (type == QType::DS && domain.isPartOf(DNSName("sub.powerdns.com"))) {
           setLWResult(res, RCode::NoError, true, false, true);
           addRecordToLW(res, DNSName("powerdns.com."), QType::SOA, "pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
           addRRSIG(keys, res->d_records, DNSName("powerdns.com."), 300);
-          addNSECRecordToLW(DNSName("www.powerdns.com."), DNSName("wwz.powerdns.com."), { QType::A, QType::NSEC, QType::RRSIG }, 600, res->d_records);
+          if (domain == DNSName("sub.powerdns.com")) {
+            addNSECRecordToLW(DNSName("sub.powerdns.com."), DNSName("sud.powerdns.com."), { QType::A, QType::NSEC, QType::RRSIG }, 600, res->d_records);
+          }
+          else if (domain == target) {
+            addNSECRecordToLW(DNSName("www.sub.powerdns.com."), DNSName("wwz.sub.powerdns.com."), { QType::A, QType::NSEC, QType::RRSIG }, 600, res->d_records);
+          }
           addRRSIG(keys, res->d_records, DNSName("powerdns.com"), 300);
           return 1;
         }
@@ -5386,7 +5391,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_wildcard) {
             addNSEC3UnhashedRecordToLW(DNSName("powerdns.com."), DNSName("powerdns.com."), "whatever", { QType::A, QType::TXT, QType::RRSIG, QType::NSEC }, 600, res->d_records);
             addRRSIG(keys, res->d_records, DNSName("powerdns.com."), 300);
             /* then the next closer */
-            addNSEC3NarrowRecordToLW(DNSName("www.powerdns.com."), DNSName("powerdns.com."), { QType::A, QType::TXT, QType::RRSIG, QType::NSEC }, 600, res->d_records);
+            addNSEC3NarrowRecordToLW(DNSName("sub.powerdns.com."), DNSName("powerdns.com."), { QType::A, QType::TXT, QType::RRSIG, QType::NSEC }, 600, res->d_records);
             addRRSIG(keys, res->d_records, DNSName("powerdns.com."), 300);
           }
           return 1;
@@ -5401,7 +5406,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_wildcard) {
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 6);
-  BOOST_CHECK_EQUAL(queriesCount, 9);
+  BOOST_CHECK_EQUAL(queriesCount, 10);
 
   /* again, to test the cache */
   ret.clear();
@@ -5409,7 +5414,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_wildcard) {
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 6);
-  BOOST_CHECK_EQUAL(queriesCount, 9);
+  BOOST_CHECK_EQUAL(queriesCount, 10);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_wildcard_too_many_iterations) {
