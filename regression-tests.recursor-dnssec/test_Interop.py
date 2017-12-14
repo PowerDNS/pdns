@@ -135,10 +135,6 @@ forward-zones+=undelegated.insecure.example=%s.12
             cls._UDPResponder.setDaemon(True)
             cls._UDPResponder.start()
 
-    @classmethod
-    def tearDownResponders(cls):
-        reactor.stop()
-
 class UDPResponder(DatagramProtocol):
     def datagramReceived(self, datagram, address):
         request = dns.message.from_wire(datagram)

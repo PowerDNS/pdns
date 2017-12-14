@@ -37,27 +37,9 @@ udp-truncation-threshold=%d
             largeReactorRunning = True
 
         if not reactor.running:
-            cls._UDPResponder = threading.Thread(name='UDP Large Responder', target=reactor.run, args=(False,))
+            cls._UDPResponder = threading.Thread(name='UDP Responder', target=reactor.run, args=(False,))
             cls._UDPResponder.setDaemon(True)
             cls._UDPResponder.start()
-
-    @classmethod
-    def setUpClass(cls):
-        cls.setUpSockets()
-
-        cls.startResponders()
-
-        confdir = os.path.join('configs', cls._confdir)
-        cls.createConfigDir(confdir)
-
-        cls.generateRecursorConfig(confdir)
-        cls.startRecursor(confdir, cls._recursorPort)
-
-        print("Launching tests..")
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tearDownRecursor()
 
     def checkResponseContent(self, rawResponse, value):
        self.assertEquals(len(rawResponse), self._udpTruncationThreshold)

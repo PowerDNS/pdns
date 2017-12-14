@@ -70,7 +70,7 @@ disable-syslog=yes
             ecsReactorRunning = True
 
         if not reactor.running:
-            cls._UDPResponder = threading.Thread(name='UDP ECS Responder', target=reactor.run, args=(False,))
+            cls._UDPResponder = threading.Thread(name='UDP Responder', target=reactor.run, args=(False,))
             cls._UDPResponder.setDaemon(True)
             cls._UDPResponder.start()
 
