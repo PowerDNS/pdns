@@ -396,6 +396,7 @@ try {
   uint16_t queryId = 0;
   for(;;) {
     dnsheader* dh = reinterpret_cast<struct dnsheader*>(packet);
+    bool outstandingDecreased = false;
     try {
       ssize_t got = recv(state->fd, packet, sizeof(packet), 0);
       char * response = packet;
@@ -428,6 +429,7 @@ try {
       }
 
       --state->outstanding;  // you'd think an attacker could game this, but we're using connected socket
+      outstandingDecreased = true;
 
       if(dh->tc && g_truncateTC) {
         truncateTC(response, &responseLen);
@@ -501,12 +503,21 @@ try {
         ids->dnsCryptQuery = 0;
 #endif
         ids->origFD = -1;
+        outstandingDecreased = false;
       }
 
       rewrittenResponse.clear();
     }
-    catch(std::exception& e){
+    catch(const std::exception& e){
       vinfolog("Got an error in UDP responder thread while parsing a response from %s, id %d: %s", state->remote.toStringWithPort(), queryId, e.what());
+      if (outstandingDecreased) {
+        /* so an exception was raised after we decreased the outstanding queries counter,
+           but before we could set ids->origFD to -1 (because we also set outstandingDecreased
+           to false then), meaning the IDS still considered active and we will decrease the
+           counter again on a duplicate, or simply while reaping downstream timeouts, so let's
+           increase it back. */
+        state->outstanding++;
+      }
     }
   }
   return 0;
