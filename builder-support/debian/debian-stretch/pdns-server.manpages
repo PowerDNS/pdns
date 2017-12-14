@@ -1,0 +1,5 @@
+debian/tmp/usr/share/man/man1/pdns_control.1
+debian/tmp/usr/share/man/man1/pdns_server.1
+debian/tmp/usr/share/man/man1/pdnsutil.1
+debian/tmp/usr/share/man/man1/zone2json.1
+debian/tmp/usr/share/man/man1/zone2sql.1

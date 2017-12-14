@@ -1,0 +1,5 @@
+ALTER TABLE records MODIFY id BIGINT AUTO_INCREMENT;
+CREATE INDEX ordername ON records (ordername);
+DROP INDEX recordorder ON records;
+
+DROP INDEX comments_domain_id_idx ON comments;
