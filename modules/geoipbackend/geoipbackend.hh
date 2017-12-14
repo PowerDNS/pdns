@@ -42,11 +42,11 @@ struct geoip_deleter;
 
 class GeoIPDomain;
 struct GeoIPLookup;
-struct GeoIP;
+struct GeoIPTag;
 
 class GeoIPBackend: public DNSBackend {
 public:
-  typedef pair<int,unique_ptr<GeoIP,geoip_deleter> > geoip_file_t;
+  typedef pair<int,unique_ptr<GeoIPTag,geoip_deleter> > geoip_file_t;
   GeoIPBackend(const std::string& suffix="");
   ~GeoIPBackend();
 

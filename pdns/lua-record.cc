@@ -24,6 +24,8 @@
       add attribute for certificate check
    add list of current monitors
       expire them too?
+
+   pool of UeberBackends?
  */
 
 class IsUpOracle
@@ -370,11 +372,24 @@ static ComboAddress closest(const ComboAddress& bestwho, vector<ComboAddress>& w
   return ranked.begin()->second[random() % ranked.begin()->second.size()];
 }
 
-
+static std::vector<DNSZoneRecord> lookup(const DNSName& name, uint16_t qtype, int zoneid)
+{
+  static UeberBackend ub;
+  static std::mutex mut;
+  std::lock_guard<std::mutex> lock(mut);
+  ub.lookup(QType(qtype), name, nullptr, zoneid);
+  DNSZoneRecord dr;
+  vector<DNSZoneRecord> ret;
+  while(ub.get(dr)) {
+    ret.push_back(dr);
+  }
+  return ret;
+}
 
 std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, const DNSName& query, const DNSName& zone, int zoneid, const DNSPacket& dnsp, uint16_t qtype) 
 {
   //  cerr<<"Called for "<<query<<", in zone "<<zone<<" for type "<<qtype<<endl;
+  //  cerr<<"Code: '"<<code<<"'"<<endl;
   
   AuthLua4 alua("");
   std::vector<shared_ptr<DNSRecordContent>> ret;
@@ -405,7 +420,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
       return loc;
   });
 
-  
+   
   lua.writeFunction("closestMagic", [&bestwho,&query](){
       vector<ComboAddress> candidates;
       for(auto l : query.getRawLabels()) {
@@ -421,6 +436,146 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
       return closest(bestwho, candidates).toString();
     });
   
+
+  
+  lua.writeFunction("createReverse", [&bestwho,&query,&zone](string suffix, boost::optional<std::unordered_map<string,string>> e){
+      try {
+      auto labels= query.getRawLabels();
+      if(labels.size()<4)
+        return std::string("unknown");
+
+      vector<ComboAddress> candidates;
+
+      // exceptions are relative to zone
+      // so, query comes in for 4.3.2.1.in-addr.arpa, zone is called 2.1.in-addr.arpa
+      // e["1.2.3.4"]="bert.powerdns.com" - should match, easy enough to do
+      // the issue is with classless delegation.. 
+      if(e) {
+        ComboAddress req(labels[3]+"."+labels[2]+"."+labels[1]+"."+labels[0], 0);
+        const auto& uom = *e;
+        for(const auto& c : uom)
+          if(ComboAddress(c.first, 0) == req)
+            return c.second;
+      }
+      
+
+      boost::format fmt(suffix);
+      fmt.exceptions( boost::io::all_error_bits ^ ( boost::io::too_many_args_bit | boost::io::too_few_args_bit )  );
+      fmt % labels[3] % labels[2] % labels[1] % labels[0];
+
+      fmt % (labels[3]+"-"+labels[2]+"-"+labels[1]+"-"+labels[0]);
+
+      boost::format fmt2("%02x%02x%02x%02x");
+      for(int i=3; i>=0; --i)
+        fmt2 % atoi(labels[i].c_str());
+
+      fmt % (fmt2.str());
+
+      return fmt.str();
+      }
+      catch(std::exception& e) {
+        cerr<<"error: "<<e.what()<<endl;
+      }
+      return std::string("error");
+    });
+
+  lua.writeFunction("createForward", [&zone, &query]() {
+      DNSName rel=query.makeRelative(zone);
+      auto parts = rel.getRawLabels();
+      if(parts.size()==4)
+        return parts[0]+"."+parts[1]+"."+parts[2]+"."+parts[3];
+      if(parts.size()==1) {
+        // either hex string, or 12-13-14-15
+        cout<<parts[0]<<endl;
+        int x1, x2, x3, x4;
+        if(sscanf(parts[0].c_str()+2, "%02x%02x%02x%02x", &x1, &x2, &x3, &x4)==4) {
+          return std::to_string(x1)+"."+std::to_string(x2)+"."+std::to_string(x3)+"."+std::to_string(x4);
+        }
+          
+        
+      }
+      return std::string("0.0.0.0");
+    });
+
+  lua.writeFunction("createForward6", [&query,&zone]() {
+      DNSName rel=query.makeRelative(zone);
+      auto parts = rel.getRawLabels();
+      if(parts.size()==8) {
+        string tot;
+        for(int i=0; i<8; ++i) {
+          if(i)
+            tot.append(1,':');
+          tot+=parts[i];
+        }
+        ComboAddress ca(tot);
+        return ca.toString();
+      }
+      else if(parts.size()==1) {
+        boost::replace_all(parts[0],"-",":");
+        ComboAddress ca(parts[0]);
+        return ca.toString();
+      }
+
+      return std::string("::");
+    });
+
+  
+  lua.writeFunction("createReverse6", [&bestwho,&query,&zone](string suffix, boost::optional<std::unordered_map<string,string>> e){
+      vector<ComboAddress> candidates;
+
+      try {
+        auto labels= query.getRawLabels();
+        if(labels.size()<32)
+          return std::string("unknown");
+        cout<<"Suffix: '"<<suffix<<"'"<<endl;
+        boost::format fmt(suffix);
+        fmt.exceptions( boost::io::all_error_bits ^ ( boost::io::too_many_args_bit | boost::io::too_few_args_bit )  );
+    
+
+        string together;
+        vector<string> quads;
+        for(int i=0; i<8; ++i) {
+          if(i)
+            together+=":";
+          string quad;
+          for(int j=0; j <4; ++j) {
+            quad.append(1, labels[31-i*4-j][0]);
+            together += labels[31-i*4-j][0];
+          }
+          quads.push_back(quad);
+        }
+        ComboAddress ip6(together,0);
+
+        if(e) {
+          auto& addrs=*e;
+          for(const auto& addr: addrs) {
+            // this makes sure we catch all forms of the address
+            if(ComboAddress(addr.first,0)==ip6)
+              return addr.second;
+          }
+        }
+        
+        string dashed=ip6.toString();
+        boost::replace_all(dashed, ":", "-");
+        
+        for(int i=31; i>=0; --i)
+          fmt % labels[i];
+        fmt % dashed;
+
+        for(const auto& quad : quads)
+          fmt % quad;
+        
+        return fmt.str();
+      }
+      catch(std::exception& e) {
+        cerr<<"Exception: "<<e.what()<<endl;
+      }
+      catch(PDNSException& e) {
+        cerr<<"Exception: "<<e.reason<<endl;
+      }
+      return std::string("unknown");
+    });
+
   
   lua.writeFunction("ifportup", [&bestwho](int port, const vector<pair<int, string> >& ips, const boost::optional<std::unordered_map<string,string>> options) {
       vector<ComboAddress> candidates;
@@ -622,10 +777,9 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
   
   lua.writeFunction("include", [&lua,zone,zoneid](string record) {
       try {
-        UeberBackend ub;
-        ub.lookup(QType(QType::LUA), DNSName(record) +zone, 0, zoneid);
-        DNSZoneRecord dr;
-        while(ub.get(dr)) {
+        cout<<"include("<<record<<")"<<endl;
+        vector<DNSZoneRecord> drs = lookup(DNSName(record) +zone, QType::LUA, zoneid);
+        for(const auto& dr : drs) {
           auto lr = getRR<LUARecordContent>(dr.dr);
           lua.executeCode(lr->getCode());
         }
@@ -641,8 +795,9 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
     if(!code.empty() && code[0]!=';')
       actual = "return ";
     actual+=code;
+
     auto content=lua.executeCode<boost::variant<string, vector<pair<int, string> > > >(actual);
-    //  cout<<"Counter: "<<counter<<endl;
+
     vector<string> contents;
     if(auto str = boost::get<string>(&content))
       contents.push_back(*str);

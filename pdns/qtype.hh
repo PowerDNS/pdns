@@ -218,6 +218,7 @@ private:
       qtype_insert("DLV", 32769);
       qtype_insert("ADDR", 65400);
       qtype_insert("ALIAS", 65401);
+      qtype_insert("LUA", 65402);
     }
   } initializer;
 
