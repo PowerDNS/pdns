@@ -1,3 +1,4 @@
+@IF [ ! -z "$M_authoritative" ]
 RUN if $(echo ${BUILDER_VERSION} | grep -q -E '^0\.0\.'); then \
   # make sure we don't break dependencies for master releases \
   sed -i '/pdns-server (<< .*/d' pdns-${BUILDER_VERSION}/debian/control; \
@@ -6,3 +7,4 @@ fi
 RUN PDNS_TEST_NO_IPV6=1 builder/helpers/build-debs.sh pdns-${BUILDER_VERSION}
 
 RUN mv pdns*${BUILDER_VERSION}*.deb /dist
+@ENDIF

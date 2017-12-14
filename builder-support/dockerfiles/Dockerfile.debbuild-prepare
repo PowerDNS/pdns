@@ -1,6 +1,6 @@
 FROM dist-base as package-builder
 ARG APT_URL
-RUN apt-get -y install devscripts dpkg-dev build-essential python3
+RUN apt-get -y install devscripts dpkg-dev build-essential python3 equivs
 
 RUN mkdir /dist /pdns
 WORKDIR /pdns
@@ -15,4 +15,6 @@ ARG BUILDER_RELEASE
 
 COPY --from=sdist /sdist /sdist
 
+@IF [ ! -z "$M_authoritative" ]
 RUN tar xvf /sdist/pdns-${BUILDER_VERSION}.tar.bz2
+@ENDIF
