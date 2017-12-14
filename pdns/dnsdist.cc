@@ -513,7 +513,7 @@ try {
       if (outstandingDecreased) {
         /* so an exception was raised after we decreased the outstanding queries counter,
            but before we could set ids->origFD to -1 (because we also set outstandingDecreased
-           to false then), meaning the IDS still considered active and we will decrease the
+           to false then), meaning the IDS is still considered active and we will decrease the
            counter again on a duplicate, or simply while reaping downstream timeouts, so let's
            increase it back. */
         state->outstanding++;
