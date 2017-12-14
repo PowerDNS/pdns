@@ -36,7 +36,7 @@
 
 bool g_anyToTcp;
 bool g_8bitDNS;
-bool g_doGlobalLuaRecord;
+bool g_doLuaRecord;
 typedef Distributor<DNSPacket,DNSPacket,PacketHandler> DNSDistributor;
 
 ArgvMap theArg;
@@ -198,7 +198,7 @@ void declareArguments()
   ::arg().setSwitch("expand-alias", "Expand ALIAS records")="no";
   ::arg().setSwitch("outgoing-axfr-expand-alias", "Expand ALIAS records during outgoing AXFR")="no";
   ::arg().setSwitch("8bit-dns", "Allow 8bit dns queries")="no";
-  ::arg().setSwitch("global-lua-record", "Process LUA record for all zones")="no";
+  ::arg().setSwitch("enable-lua-record", "Process LUA record for all zones (metadata overrides this)")="no";
   ::arg().setSwitch("axfr-lower-serial", "Also AXFR a zone from a master with a lower serial")="no";
 
   ::arg().set("lua-axfr-script", "Script to be used to edit incoming AXFRs")="";
@@ -481,7 +481,7 @@ void mainthread()
    
    g_anyToTcp = ::arg().mustDo("any-to-tcp");
    g_8bitDNS = ::arg().mustDo("8bit-dns");
-   g_doGlobalLuaRecord = ::arg().mustDo("global-lua-record");
+   g_doLuaRecord = ::arg().mustDo("enable-lua-record");
 
    DNSPacket::s_udpTruncationThreshold = std::max(512, ::arg().asNum("udp-truncation-threshold"));
    DNSPacket::s_doEDNSSubnetProcessing = ::arg().mustDo("edns-subnet-processing");

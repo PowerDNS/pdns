@@ -350,7 +350,7 @@ bool PacketHandler::getBestWildcard(DNSPacket *p, SOAData& sd, const DNSName &ta
   DNSName subdomain(target);
   bool haveSomething=false;
 
-  bool doLua=g_doGlobalLuaRecord;
+  bool doLua=g_doLuaRecord;
   if(!doLua) {
     string val;
     d_dk.getFromMeta(sd.qname, "ENABLE-LUA-RECORD", val);
@@ -1093,7 +1093,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
 
   DNSPacket *r=0;
   bool noCache=false;
-  bool doLua=g_doGlobalLuaRecord;
+  bool doLua=g_doLuaRecord;
   
   if(p->d.qr) { // QR bit from dns packet (thanks RA from N)
     if(d_logDNSDetails)

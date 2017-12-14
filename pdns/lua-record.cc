@@ -416,7 +416,6 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
   lua.writeFunction("latlonloc", [&bestwho]() {
       string loc;
       getLatLon(bestwho.toString(), loc);
-      cout<<"loc: "<<loc<<endl;
       return loc;
   });
 
@@ -474,7 +473,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
       return fmt.str();
       }
       catch(std::exception& e) {
-        cerr<<"error: "<<e.what()<<endl;
+        L<<Logger::Error<<"error: "<<e.what()<<endl;
       }
       return std::string("error");
     });
@@ -486,7 +485,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
         return parts[0]+"."+parts[1]+"."+parts[2]+"."+parts[3];
       if(parts.size()==1) {
         // either hex string, or 12-13-14-15
-        cout<<parts[0]<<endl;
+        //        cout<<parts[0]<<endl;
         int x1, x2, x3, x4;
         if(sscanf(parts[0].c_str()+2, "%02x%02x%02x%02x", &x1, &x2, &x3, &x4)==4) {
           return std::to_string(x1)+"."+std::to_string(x2)+"."+std::to_string(x3)+"."+std::to_string(x4);
@@ -527,7 +526,6 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
         auto labels= query.getRawLabels();
         if(labels.size()<32)
           return std::string("unknown");
-        cout<<"Suffix: '"<<suffix<<"'"<<endl;
         boost::format fmt(suffix);
         fmt.exceptions( boost::io::all_error_bits ^ ( boost::io::too_many_args_bit | boost::io::too_few_args_bit )  );
     
@@ -568,10 +566,10 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
         return fmt.str();
       }
       catch(std::exception& e) {
-        cerr<<"Exception: "<<e.what()<<endl;
+        L<<Logger::Error<<"LUA Record xception: "<<e.what()<<endl;
       }
       catch(PDNSException& e) {
-        cerr<<"Exception: "<<e.reason<<endl;
+        L<<Logger::Error<<"LUA Record exception: "<<e.reason<<endl;
       }
       return std::string("unknown");
     });
@@ -777,7 +775,6 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
   
   lua.writeFunction("include", [&lua,zone,zoneid](string record) {
       try {
-        cout<<"include("<<record<<")"<<endl;
         vector<DNSZoneRecord> drs = lookup(DNSName(record) +zone, QType::LUA, zoneid);
         for(const auto& dr : drs) {
           auto lr = getRR<LUARecordContent>(dr.dr);
@@ -812,7 +809,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
         ret.push_back(std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(qtype, 1, content )));
     }
   }catch(std::exception &e) {
-    cerr<<"Lua reported: "<<e.what()<<endl;
+    L<<Logger::Error<<"Lua record reported: "<<e.what()<<endl;
   }
 
   return ret;
