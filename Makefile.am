@@ -4,8 +4,6 @@ EXTRA_DIST = \
 	INSTALL \
 	NOTICE \
 	README \
-	.version \
-	build-aux/gen-version \
 	codedocs/doxygen.conf \
 	contrib/powerdns.solaris.init.d \
 	pdns/named.conf.parsertest \
