@@ -1,0 +1,19 @@
+FROM alpine:3.6 as pdns-authoritative
+
+RUN apk add --no-cache gcc g++ make tar autoconf automake protobuf-dev lua-dev \
+                       libtool file boost-dev curl openssl-dev ragel py-virtualenv
+
+
+# the pdns/ dir is a bit broad, but who cares :)
+ADD configure.ac Makefile.am INSTALL NOTICE README /pdns-authoritative/
+@EXEC sdist_dirs=(build-aux m4 pdns ext docs modules codedocs contrib regression-tests)
+@EXEC for d in ${sdist_dirs[@]} ; do echo "COPY $d/ /pdns-authoritative/$d/" ; done
+WORKDIR /pdns-authoritative/
+
+RUN mkdir /sdist
+
+ARG BUILDER_VERSION
+RUN BUILDER_VERSION=${BUILDER_VERSION} autoreconf -v -i --force && \
+    ./configure --without-modules --without-dynmodules --disable-dependency-tracking && \
+    make dist
+RUN cp pdns-${BUILDER_VERSION}.tar.bz2 /sdist/
