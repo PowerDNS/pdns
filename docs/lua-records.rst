@@ -345,17 +345,16 @@ Details & Security
 LUA records are synthesized on query. They can also be transferred via AXFR
 to other PowerDNS servers.
 
-LUA records themselves can not be queried
-however, as this would allow third parties to see load balancing internals
+LUA records themselves can not be queried however, as this would allow third parties to see load balancing internals
 they do not need to see.
 
 A non-supporting DNS server will also serve a zone with LUA records, but
-they will not function.
+they will not function, and will in fact leak the contents of the LUA record.
 
 .. note::
-  Under NO circumstances serve LUA records from zones from untrusted sources!
+  Under NO circumstances serve LUA records from zones from untrusted sources! 
   LUA records will be able to bring down your system and possible take over
-  control of it. 
+  control of it. Use TSIG on AXFR even from trusted sources!
 
 LUA records can be DNSSEC signed, but because they are dynamic, it is not
 possible to combine pre-signed DNSSEC zone and LUA records. In other words,
@@ -363,5 +362,5 @@ the signing key must be available on the server creating answers based on
 LUA records.
 
 Note that to protect operators, support for the LUA record must be enabled
-explicitly, either globally (``global-lua-record``) or per zone
+explicitly, either globally (``enable-lua-record``) or per zone
 (``ENABLE-LUA-RECORD`` = 1).
