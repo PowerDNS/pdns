@@ -310,7 +310,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
 {
   bool nsec3Seen = false;
   if (!needWildcardProof && wildcardLabelsCount == 0) {
-    throw std::runtime_error("Invalid wildcard labels count for the validation of a positive answer synthetized from a wildcard");
+    throw PDNSException("Invalid wildcard labels count for the validation of a positive answer synthetized from a wildcard");
   }
 
   for(const auto& v : validrrsets) {
