@@ -1556,7 +1556,7 @@ static bool upCheck(DownstreamState& ds)
 try
 {
   vector<uint8_t> packet;
-  DNSPacketWriter dpw(packet, ds.checkName, ds.checkType.getCode());
+  DNSPacketWriter dpw(packet, ds.checkName, ds.checkType.getCode(), ds.checkClass);
   dnsheader * requestHeader = dpw.getHeader();
   requestHeader->rd=true;
   if (ds.setCD) {
