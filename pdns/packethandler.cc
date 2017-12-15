@@ -490,7 +490,9 @@ void PacketHandler::emitNSEC(DNSPacket *r, const SOAData& sd, const DNSName& nam
 
   B.lookup(QType(QType::ANY), name, NULL, sd.domain_id);
   while(B.get(rr)) {
-    if(rr.dr.d_type == QType::NS || rr.auth)
+    if(rr.dr.d_type == QType::LUA)
+      nrc.d_set.insert(getRR<LUARecordContent>(rr.dr)->d_type);
+    else if(rr.dr.d_type == QType::NS || rr.auth)
       nrc.d_set.insert(rr.dr.d_type);
   }
 
@@ -532,7 +534,9 @@ void PacketHandler::emitNSEC3(DNSPacket *r, const SOAData& sd, const NSEC3PARAMR
 
     B.lookup(QType(QType::ANY), name, NULL, sd.domain_id);
     while(B.get(rr)) {
-      if(rr.dr.d_type && (rr.dr.d_type == QType::NS || rr.auth)) // skip empty non-terminals
+      if(rr.dr.d_type == QType::LUA)
+        n3rc.d_set.insert(getRR<LUARecordContent>(rr.dr)->d_type);
+      else if(rr.dr.d_type && (rr.dr.d_type == QType::NS || rr.auth)) // skip empty non-terminals
         n3rc.d_set.insert(rr.dr.d_type);
     }
   }
