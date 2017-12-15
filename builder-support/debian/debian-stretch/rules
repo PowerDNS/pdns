@@ -27,11 +27,12 @@ override_dh_auto_configure:
 		--sysconfdir=/etc/powerdns \
 		--with-dynmodules="$(backends)" \
 		--with-modules="" \
-		--enable-libsodium \
 		--enable-tools \
-		--without-protobuf \
+		--enable-libsodium \
+		--with-luajit \
+		--with-protobuf \
 		--enable-unit-tests \
-		--enable-reproducible \
+		--enable-experimental-pkcs11 \
 		$(CONFIGURE_ARGS)
 
 override_dh_strip:
