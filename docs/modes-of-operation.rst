@@ -23,6 +23,12 @@ PowerDNS users employ Oracle replication which also works very well.
 To use native replication, configure your backend storage to do the
 replication and do not configure PowerDNS to do so.
 
+Typically, a database slave will be configured as read-only as
+uni-directional database replication is usually sufficient. A PowerDNS
+server only requires database write access if it is participating as a
+master or slave in zone transfers, or has a frontend attached for
+managing records etc.
+
 .. _master-operation:
 
 Master operation
