@@ -1,0 +1,16 @@
+# First do the source builds
+@INCLUDE Dockerfile.target.sdist
+
+FROM debian:jessie as dist-base
+ARG APT_URL
+RUN apt-get update && apt-get -y dist-upgrade
+
+@INCLUDE Dockerfile.debbuild-prepare
+
+ADD builder-support/debian/debian-jessie/ pdns-${BUILDER_VERSION}/debian/
+
+@INCLUDE Dockerfile.debbuild
+
+# Do a test install and verify
+# Can be skipped with skiptests=1 in the environment
+# @EXEC [ "$skiptests" = "" ] && include Dockerfile.debtest
