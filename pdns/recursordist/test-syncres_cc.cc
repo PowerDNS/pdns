@@ -2102,7 +2102,8 @@ BOOST_AUTO_TEST_CASE(test_cache_expired_ttl) {
     });
 
   /* we populate the cache with entries that expired 60s ago*/
-  time_t now = sr->getNow().tv_sec;
+  const time_t now = sr->getNow().tv_sec;
+
   std::vector<DNSRecord> records;
   std::vector<shared_ptr<RRSIGRecordContent> > sigs;
   addRecordToList(records, target, QType::A, "192.0.2.42", DNSResourceRecord::ANSWER, now - 60);
@@ -2115,6 +2116,43 @@ BOOST_AUTO_TEST_CASE(test_cache_expired_ttl) {
   BOOST_REQUIRE_EQUAL(ret.size(), 1);
   BOOST_REQUIRE(ret[0].d_type == QType::A);
   BOOST_CHECK_EQUAL(getRR<ARecordContent>(ret[0])->getCA().toStringWithPort(), ComboAddress("192.0.2.2").toStringWithPort());
+}
+
+BOOST_AUTO_TEST_CASE(test_cache_auth) {
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr);
+
+  primeHints();
+
+  /* the auth server is sending the same answer in answer and additional,
+     check that we only return one result, and we only cache one too. */
+  const DNSName target("cache-auth.powerdns.com.");
+
+  sr->setAsyncCallback([target](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res) {
+
+      setLWResult(res, 0, true, false, true);
+      addRecordToLW(res, domain, QType::A, "192.0.2.2", DNSResourceRecord::ANSWER, 10);
+      addRecordToLW(res, domain, QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 10);
+
+      return 1;
+    });
+
+  const time_t now = sr->getNow().tv_sec;
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_REQUIRE_EQUAL(QType(ret.at(0).d_type).getName(), QType(QType::A).getName());
+  BOOST_CHECK_EQUAL(getRR<ARecordContent>(ret.at(0))->getCA().toString(), ComboAddress("192.0.2.2").toString());
+
+  /* check that we correctly cached only the answer entry, not the additional one */
+  const ComboAddress who;
+  vector<DNSRecord> cached;
+  BOOST_REQUIRE_GT(t_RC->get(now, target, QType(QType::A), true, &cached, who), 0);
+  BOOST_REQUIRE_EQUAL(cached.size(), 1);
+  BOOST_REQUIRE_EQUAL(QType(cached.at(0).d_type).getName(), QType(QType::A).getName());
+  BOOST_CHECK_EQUAL(getRR<ARecordContent>(cached.at(0))->getCA().toString(), ComboAddress("192.0.2.2").toString());
 }
 
 BOOST_AUTO_TEST_CASE(test_delegation_only) {
