@@ -14,7 +14,7 @@ class TestCaching(DNSDistTest):
         dq.skipCache = true
         return DNSAction.None, ""
     end
-    addLuaAction("nocachevialua.cache.tests.powerdns.com.", skipViaLua)
+    addAction("nocachevialua.cache.tests.powerdns.com.", LuaAction(skipViaLua))
     newServer{address="127.0.0.1:%s"}
     """
 

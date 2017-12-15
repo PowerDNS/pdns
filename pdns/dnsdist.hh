@@ -65,20 +65,20 @@ public:
   {
   }
 
-  void add(const std::string strLabel, const std::string strValue)
+  void add(const std::string& strLabel, const std::string& strValue)
   {
-    tagData.insert( {strLabel, strValue});
+    tagData.insert({strLabel, strValue});
     return;
   }
 
   std::string getMatch(const std::string& strLabel)  const
   {
-    std::unordered_map<std::string, std::string>::const_iterator got =tagData.find (strLabel);
-    if(got == tagData.end()) {
+    const auto got = tagData.find(strLabel);
+    if (got == tagData.cend()) {
       return "";
-    } else {
-      return got->second;
     }
+
+    return got->second;
   }
 
   std::string getEntry(size_t iEntry) const
@@ -117,7 +117,7 @@ public:
     return strRet;
   }
 
-  std::unordered_map<std::string, std::string>tagData;
+  std::unordered_map<std::string, std::string> tagData;
 
 private:
   static constexpr char const *strSep = "\t";
@@ -410,6 +410,7 @@ struct IDState
   boost::optional<boost::uuids::uuid> uniqueId;
 #endif
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};
+  std::shared_ptr<QTag> qTag{nullptr};
   const ClientState* cs{nullptr};
   uint32_t cacheKey;                                          // 8
   std::atomic<uint16_t> age;                                  // 4

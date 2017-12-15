@@ -528,6 +528,13 @@ These ``DNSRule``\ s be one of the following items:
   :param SuffixMatchNode smb: The SuffixMatchNode to match on
   :param bool quiet: Do not return the list of matched domains. Default is false.
 
+.. function:: TagRule(name [, value])
+
+  Matches question or answer with a tag named ``name`` set. If ``value`` is specified, the existing tag value should match too.
+
+  :param bool name: The name of the tag that has to be set
+  :param bool value: If set, the value the tag has to be set to. Default is unset
+
 .. function:: TCPRule([tcp])
 
   Matches question received over TCP if ``tcp`` is true, over UDP otherwise.
@@ -644,6 +651,22 @@ The following actions exist.
   :param bool append: Append to the log. Default false
   :param bool buffered: Use buffered I/O. default true
 
+.. function:: LuaAction(function)
+
+  Invoke a Lua function that accepts a :class:`DNSQuestion`.
+
+  The ``function`` should return a :ref:`DNSAction`.
+
+  :param string function: the name of a Lua function
+
+.. function:: LuaResponseAction(function)
+
+  Invoke a Lua function that accepts a :class:`DNSResponse`.
+
+  The ``function`` should return a :ref:`DNSResponseAction`.
+
+  :param string function: the name of a Lua function
+
 .. function:: MacAddrAction(option)
 
   Add the source MAC address to the query as EDNS0 option ``option``.
@@ -741,6 +764,20 @@ The following actions exist.
   Forge a response with the specified CNAME value.
 
   :param string cname: The name to respond with
+
+.. function:: TagAction(name, value)
+
+  Associate a tag named ``name`` with a value of ``value`` to this query, that will be passed on to the response.
+
+  :param string name: The name of the tag to set
+  :param string cname: The value of the tag
+
+.. function:: TagResponseAction(name, value)
+
+  Associate a tag named ``name`` with a value of ``value`` to this response.
+
+  :param string name: The name of the tag to set
+  :param string cname: The value of the tag
 
 .. function:: TCAction()
 

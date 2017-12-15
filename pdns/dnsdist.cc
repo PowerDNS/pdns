@@ -450,6 +450,8 @@ try {
 #ifdef HAVE_PROTOBUF
       dr.uniqueId = ids->uniqueId;
 #endif
+      dr.qTag = ids->qTag;
+
       if (!processResponse(localRespRulactions, dr, &ids->delayMsec)) {
         continue;
       }
@@ -1283,6 +1285,8 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
 #ifdef HAVE_PROTOBUF
         dr.uniqueId = dq.uniqueId;
 #endif
+        dr.qTag = dq.qTag;
+
         if (!processResponse(holders.cacheHitRespRulactions, dr, &delayMsec)) {
           return;
         }
@@ -1372,6 +1376,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     ids->packetCache = packetCache;
     ids->ednsAdded = ednsAdded;
     ids->ecsAdded = ecsAdded;
+    ids->qTag = dq.qTag;
 
     /* If we couldn't harvest the real dest addr, still
        write down the listening addr since it will be useful

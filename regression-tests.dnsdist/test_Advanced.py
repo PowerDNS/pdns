@@ -1196,7 +1196,7 @@ class TestAdvancedLuaDO(DNSDistTest):
         end
         return DNSAction.None, ""
     end
-    addLuaAction(AllRule(), nxDOLua)
+    addAction(AllRule(), LuaAction(nxDOLua))
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -1249,7 +1249,7 @@ class TestAdvancedLuaRefused(DNSDistTest):
     function refuse(dq)
         return DNSAction.Refused, ""
     end
-    addLuaAction(AllRule(), refuse)
+    addAction(AllRule(), LuaAction(refuse))
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -1288,7 +1288,7 @@ class TestAdvancedLuaTruncated(DNSDistTest):
         end
         return DNSAction.None, ""
     end
-    addLuaAction(AllRule(), trunc)
+    addAction(AllRule(), LuaAction(trunc))
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -1455,7 +1455,7 @@ class TestAdvancedGetLocalPort(DNSDistTest):
       local port = dq.localaddr:getPort()
       return DNSAction.Spoof, "port-was-"..port..".local-port.advanced.tests.powerdns.com."
     end
-    addLuaAction("local-port.advanced.tests.powerdns.com.", answerBasedOnLocalPort)
+    addAction("local-port.advanced.tests.powerdns.com.", LuaAction(answerBasedOnLocalPort))
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -1489,7 +1489,7 @@ class TestAdvancedGetLocalPortOnAnyBind(DNSDistTest):
       local port = dq.localaddr:getPort()
       return DNSAction.Spoof, "port-was-"..port..".local-port-any.advanced.tests.powerdns.com."
     end
-    addLuaAction("local-port-any.advanced.tests.powerdns.com.", answerBasedOnLocalPort)
+    addAction("local-port-any.advanced.tests.powerdns.com.", LuaAction(answerBasedOnLocalPort))
     newServer{address="127.0.0.1:%s"}
     """
     _dnsDistListeningAddr = "0.0.0.0"

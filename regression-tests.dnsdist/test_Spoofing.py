@@ -281,8 +281,8 @@ class TestSpoofingLuaSpoof(DNSDistTest):
     function spoof2rule(dq)
         return DNSAction.Spoof, "spoofedcname.spoofing.tests.powerdns.com."
     end
-    addLuaAction("luaspoof1.spoofing.tests.powerdns.com.", spoof1rule)
-    addLuaAction("luaspoof2.spoofing.tests.powerdns.com.", spoof2rule)
+    addAction("luaspoof1.spoofing.tests.powerdns.com.", LuaAction(spoof1rule))
+    addAction("luaspoof2.spoofing.tests.powerdns.com.", LuaAction(spoof2rule))
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -407,7 +407,7 @@ class TestSpoofingLuaWithStatistics(DNSDistTest):
                 return DNSAction.Spoof, "192.0.2.0"
         end
     end
-    addLuaAction("luaspoofwithstats.spoofing.tests.powerdns.com.", spoof1rule)
+    addAction("luaspoofwithstats.spoofing.tests.powerdns.com.", LuaAction(spoof1rule))
     newServer{address="127.0.0.1:%s"}
     """
 

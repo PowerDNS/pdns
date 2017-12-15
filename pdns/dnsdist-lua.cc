@@ -803,6 +803,11 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			  });
 		      });
 
+  g_lua.writeFunction("LuaAction", [](LuaAction::func_t func) {
+      setLuaSideEffect();
+      return std::shared_ptr<DNSAction>(new LuaAction(func));
+    });
+
   g_lua.writeFunction("addLuaResponseAction", [](luadnsrule_t var, LuaResponseAction::func_t func) {
       setLuaSideEffect();
       auto rule=makeRule(var);
@@ -810,6 +815,11 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
           rulactions.push_back({rule,
                 std::make_shared<LuaResponseAction>(func)});
         });
+    });
+
+  g_lua.writeFunction("LuaResponseAction", [](LuaResponseAction::func_t func) {
+      setLuaSideEffect();
+      return std::shared_ptr<DNSResponseAction>(new LuaResponseAction(func));
     });
 
   g_lua.writeFunction("NoRecurseAction", []() {
@@ -1738,7 +1748,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.registerMember<uint16_t (DNSResponse::*)>("qclass", [](const DNSResponse& dq) -> uint16_t { return dq.qclass; }, [](DNSResponse& dq, uint16_t newClass) { (void) newClass; });
   g_lua.registerMember<int (DNSResponse::*)>("rcode", [](const DNSResponse& dq) -> int { return dq.dh->rcode; }, [](DNSResponse& dq, int newRCode) { dq.dh->rcode = newRCode; });
   g_lua.registerMember<const ComboAddress (DNSResponse::*)>("remoteaddr", [](const DNSResponse& dq) -> const ComboAddress { return *dq.remote; }, [](DNSResponse& dq, const ComboAddress newRemote) { (void) newRemote; });
-  g_lua.registerMember("dh", &DNSResponse::dh);
+  g_lua.registerMember<dnsheader* (DNSResponse::*)>("dh", [](const DNSResponse& dr) -> dnsheader* { return dr.dh; }, [](DNSResponse& dr, dnsheader * newdh) { dr.dh = newdh; });
   g_lua.registerMember<uint16_t (DNSResponse::*)>("len", [](const DNSResponse& dq) -> uint16_t { return dq.len; }, [](DNSResponse& dq, uint16_t newlen) { dq.len = newlen; });
   g_lua.registerMember<uint8_t (DNSResponse::*)>("opcode", [](const DNSResponse& dq) -> uint8_t { return dq.dh->opcode; }, [](DNSResponse& dq, uint8_t newOpcode) { (void) newOpcode; });
   g_lua.registerMember<size_t (DNSResponse::*)>("size", [](const DNSResponse& dq) -> size_t { return dq.size; }, [](DNSResponse& dq, size_t newSize) { (void) newSize; });
