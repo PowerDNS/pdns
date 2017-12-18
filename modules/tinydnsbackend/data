@@ -20102,7 +20102,7 @@
 +usa-ns2.usa.example.com:192.168.4.2:120
 :dsdelegation.example.com:43:m\341\010\001\312\361\352\256\315\253\347afpx\217\220\042EK\365\375\237\332:120
 :escapedtext.example.com:16:\005begin\022the\040\042middle\042\040p\134art\007the\040end:120
-:google-alias.example.com:65401:\023google-public-dns-a\006google\300\024:120
+:google-alias.example.com:65401:\023google-public-dns-a\006google\003com\000:120
 :hightype.example.com:65534:\007\355\046\000\001:120
 :host-0.example.com:108:\000PV\233\000\347:120
 :host-1.example.com:109:\000PV\233\000\347\176W:120
