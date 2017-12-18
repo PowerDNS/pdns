@@ -189,4 +189,6 @@ private:
   bool hasOldCert{false};
 };
 
+bool generateDNSCryptCertificate(const std::string& providerPrivateKeyFile, uint32_t serial, time_t begin, time_t end, DnsCryptCert& certOut, DnsCryptPrivateKey& keyOut);
+
 #endif

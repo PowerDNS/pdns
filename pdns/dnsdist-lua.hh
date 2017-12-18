@@ -21,8 +21,90 @@
  */
 #pragma once
 
-typedef std::unordered_map<std::string, boost::variant<bool, int, std::string, std::vector<std::pair<int,int> > > > localbind_t;
-void parseLocalBindVars(boost::optional<localbind_t> vars, bool& doTCP, bool& reusePort, int& tcpFastOpenQueueSize, std::string& interface, std::set<int>& cpus);
+class LuaAction : public DNSAction
+{
+public:
+  typedef std::function<std::tuple<int, string>(DNSQuestion* dq)> func_t;
+  LuaAction(LuaAction::func_t func) : d_func(func)
+  {}
+
+  Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  {
+    std::lock_guard<std::mutex> lock(g_luamutex);
+    auto ret = d_func(dq);
+    if(ruleresult)
+      *ruleresult=std::get<1>(ret);
+    return (Action)std::get<0>(ret);
+  }
+
+  string toString() const override
+  {
+    return "Lua script";
+  }
+
+private:
+  func_t d_func;
+};
+
+class LuaResponseAction : public DNSResponseAction
+{
+public:
+  typedef std::function<std::tuple<int, string>(DNSResponse* dr)> func_t;
+  LuaResponseAction(LuaResponseAction::func_t func) : d_func(func)
+  {}
+
+  Action operator()(DNSResponse* dr, string* ruleresult) const override
+  {
+    std::lock_guard<std::mutex> lock(g_luamutex);
+    auto ret = d_func(dr);
+    if(ruleresult)
+      *ruleresult=std::get<1>(ret);
+    return (Action)std::get<0>(ret);
+  }
+
+  string toString() const override
+  {
+    return "Lua response script";
+  }
+
+private:
+  func_t d_func;
+};
+
+class SpoofAction : public DNSAction
+{
+public:
+  SpoofAction(const vector<ComboAddress>& addrs): d_addrs(addrs)
+  {
+  }
+  SpoofAction(const string& cname): d_cname(cname)
+  {
+  }
+  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override;
+  string toString() const override
+  {
+    string ret = "spoof in ";
+    if(!d_cname.empty()) {
+      ret+=d_cname.toString()+ " ";
+    } else {
+      for(const auto& a : d_addrs)
+        ret += a.toString()+" ";
+    }
+    return ret;
+  }
+private:
+  std::vector<ComboAddress> d_addrs;
+  DNSName d_cname;
+};
 
 typedef boost::variant<string, vector<pair<int, string>>, std::shared_ptr<DNSRule>, DNSName, vector<pair<int, DNSName> > > luadnsrule_t;
 std::shared_ptr<DNSRule> makeRule(const luadnsrule_t& var);
+
+typedef NetmaskTree<DynBlock> nmts_t;
+
+void setupLuaActions();
+void setupLuaBindings(bool client);
+void setupLuaBindingsDNSQuestion();
+void setupLuaRules();
+void setupLuaInspection();
+void setupLuaVars();

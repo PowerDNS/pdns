@@ -8,38 +8,8 @@ class TestRoutingPoolRouting(DNSDistTest):
 
     _config_template = """
     newServer{address="127.0.0.1:%s", pool="real"}
-    addPoolRule("pool.routing.tests.powerdns.com", "real")
     addAction(makeRule("poolaction.routing.tests.powerdns.com"), PoolAction("real"))
-    addQPSPoolRule("qpspool.routing.tests.powerdns.com", 10, "abuse")
-    addAction(makeRule("qpspoolaction.routing.tests.powerdns.com"), QPSPoolAction(10, "abuse"))
     """
-
-    def testPolicyPool(self):
-        """
-        Routing: Set pool by qname
-
-        Send an A query to "pool.routing.tests.powerdns.com.",
-        check that dnsdist routes the query to the "real" pool.
-        """
-        name = 'pool.routing.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
-        response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
-        response.answer.append(rrset)
-
-        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-        receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
-
-        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-        receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
 
     def testPolicyPoolAction(self):
         """
@@ -48,7 +18,7 @@ class TestRoutingPoolRouting(DNSDistTest):
         Send an A query to "poolaction.routing.tests.powerdns.com.",
         check that dnsdist routes the query to the "real" pool.
         """
-        name = 'pool.routing.tests.powerdns.com.'
+        name = 'poolaction.routing.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
         rrset = dns.rrset.from_text(name,
@@ -88,52 +58,8 @@ class TestRoutingPoolRouting(DNSDistTest):
 class TestRoutingQPSPoolRouting(DNSDistTest):
     _config_template = """
     newServer{address="127.0.0.1:%s", pool="regular"}
-    addQPSPoolRule("qpspool.routing.tests.powerdns.com", 10, "regular")
     addAction(makeRule("qpspoolaction.routing.tests.powerdns.com"), QPSPoolAction(10, "regular"))
     """
-
-    def testQPSPool(self):
-        """
-        Routing: Set pool by QPS
-
-        Send queries to "qpspool.routing.tests.powerdns.com."
-        check that dnsdist does not route the query to the "regular" pool
-        when the max QPS has been reached.
-        """
-        maxQPS = 10
-        name = 'qpspool.routing.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
-        response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
-        response.answer.append(rrset)
-
-        for _ in range(maxQPS):
-            (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-            receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
-
-        # we should now be sent to the "abuse" pool which is empty,
-        # so the queries should be dropped
-        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
-        self.assertEquals(receivedResponse, None)
-
-        time.sleep(1)
-
-        # again, over TCP this time
-        for _ in range(maxQPS):
-            (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-            receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
-
-
-        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
-        self.assertEquals(receivedResponse, None)
 
     def testQPSPoolAction(self):
         """
