@@ -397,6 +397,10 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
   LuaContext& lua = *alua.getLua();
   lua.writeVariable("qname", query);
   lua.writeVariable("who", dnsp.getRemote());
+  lua.writeVariable("dh", (dnsheader*)&dnsp.d);
+  lua.writeVariable("dnssecOK", dnsp.d_dnssecOk);
+  lua.writeVariable("tcp", dnsp.d_tcp);
+  lua.writeVariable("ednsPKTSize", dnsp.d_ednsRawPacketSizeLimit);
   ComboAddress bestwho;
   if(dnsp.hasEDNSSubnet()) {
     lua.writeVariable("ecswho", dnsp.getRealRemote());
