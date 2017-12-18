@@ -491,7 +491,7 @@ string PacketReader::getText(bool multi, bool lenField)
 
 string PacketReader::getUnquotedText(bool lenField)
 {
-  int16_t stop_at;
+  uint16_t stop_at;
   if(lenField)
     stop_at = (uint8_t)d_content.at(d_pos) + d_pos + 1;
   else
