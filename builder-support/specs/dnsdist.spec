@@ -15,12 +15,14 @@ BuildRequires: lua-devel
 BuildRequires: protobuf-compiler
 BuildRequires: protobuf-devel
 BuildRequires: re2-devel
-%elif 0%{?suse_version}
+%endif
+%if 0%{?suse_version}
 BuildRequires: boost-devel
 BuildRequires: lua-devel
 BuildRequires: systemd-units
 BuildRequires: systemd-devel
-%else
+%endif
+%if 0%{?rhel} >= 7
 BuildRequires: boost-devel
 BuildRequires: libsodium-devel
 BuildRequires: luajit-devel
@@ -34,10 +36,12 @@ BuildRequires: systemd-devel
 
 %if 0%{?el6}
 Requires(pre): shadow-utils
-%elif 0%{suse_version}
+%endif
+%if 0%{?suse_version}
 Requires(pre): shadow
 %systemd_requires
-%else
+%endif
+%if 0%{?rhel} >= 7
 Requires(pre): shadow-utils
 %systemd_requires
 %endif
@@ -61,14 +65,16 @@ sed -i '/^ExecStart/ s/dnsdist/dnsdist -u dnsdist -g dnsdist/' dnsdist.service.i
   --with-net-snmp \
   --with-protobuf \
   --with-boost=/usr/include/boost148 LIBRARY_PATH=/usr/lib64/boost148
-%elif 0%{suse_version}
+%endif
+%if 0%{?suse_version}
   --disable-dnscrypt \
   --disable-libsodium \
   --disable-re2 \
   --enable-systemd --with-systemd=/lib/systemd/system \
   --without-protobuf \
   --without-net-snmp
-%else
+%endif
+%if 0%{?rhel} >= 7
   --with-protobuf \
   --with-luajit \
   --enable-libsodium \
@@ -109,9 +115,11 @@ exit 0
 %post
 %if 0%{?el6}
 /sbin/chkconfig --add %{name}
-%elif 0%{?suse_version}
+%endif
+%if 0%{?suse_version}
 %service_add_post %{name}.service
-%else
+%endif
+%if 0%{?rhel} >= 7
 %systemd_post %{name}.service
 %endif
 
@@ -122,9 +130,11 @@ if [ "\$1" -eq "0" ]; then
   /sbin/service %{name} stop > /dev/null 2>&1 || :
   /sbin/chkconfig --del %{name}
 fi
-%elif 0%{?suse_version}
+%endif
+%if 0%{?suse_version}
 %service_del_preun %{name}.service
-%else
+%endif
+%if 0%{?rhel} >= 7
 %systemd_preun %{name}.service
 %endif
 
@@ -133,9 +143,11 @@ fi
 if [ "\$1" -ge "1" ] ; then
   /sbin/service %{name} condrestart >/dev/null 2>&1 || :
 fi
-%elif 0%{?suse_version}
+%endif
+%if 0%{?suse_version}
 %service_del_postun %{name}.service
-%else
+%endif
+%if 0%{?rhel} >= 7
 %systemd_postun_with_restart %{name}.service
 %endif
 

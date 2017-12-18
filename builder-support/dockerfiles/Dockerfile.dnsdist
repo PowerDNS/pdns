@@ -1,9 +1,7 @@
 FROM alpine:3.6 as dnsdist
 
 RUN apk add --no-cache gcc g++ make tar autoconf automake protobuf-dev lua-dev \
-                       libtool file boost-dev ragel py-virtualenv
-RUN apk add --no-cache \
-                       libedit-dev
+                       libtool file boost-dev ragel py-virtualenv git libedit-dev
 
 ADD builder/helpers/set-configure-ac-version.sh /dnsdist/builder/helpers/
 @EXEC sdist_dirs=(build-aux m4 pdns ext)
