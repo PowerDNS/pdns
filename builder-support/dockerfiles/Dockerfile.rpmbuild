@@ -29,6 +29,14 @@ RUN if $(grep -q 'release 6' /etc/redhat-release); then \
     fi
 @ENDIF
 
+@IF [ ! -z "$M_dnsdist" ]
+RUN if $(grep -q 'release 6' /etc/redhat-release); then \
+      scl enable devtoolset-3 -- builder/helpers/build-specs.sh builder-support/specs/dnsdist.spec; \
+    else \
+      builder/helpers/build-specs.sh builder-support/specs/dnsdist.spec; \
+    fi
+@ENDIF
+
 # mv accross layers with overlay2 is buggy in some kernel versions (results in empty dirs)
 # See: https://github.com/moby/moby/issues/33733
 #RUN mv /root/rpmbuild/RPMS/* /dist/

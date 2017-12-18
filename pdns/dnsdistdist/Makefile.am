@@ -51,9 +51,7 @@ EXTRA_DIST=dnslabeltext.rl \
 	   README.md \
 	   delaypipe.cc delaypipe.hh \
 	   html \
-	   .version \
 	   contrib \
-	   build-aux/gen-version \
 	   ext/incbin/UNLICENSE \
 	   incfiles \
 	   src_js \
