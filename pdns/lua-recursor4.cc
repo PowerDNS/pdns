@@ -32,6 +32,8 @@
 #include "rec-snmp.hh"
 #include <unordered_set>
 
+RecursorLua4::RecursorLua4() { prepareContext(); }
+
 static int followCNAMERecords(vector<DNSRecord>& ret, const QType& qtype)
 {
   vector<DNSRecord> resolved;
@@ -214,124 +216,8 @@ struct DynMetric
   void set(unsigned long val) { *ptr =val; }
 };
 
-RecursorLua4::RecursorLua4(const std::string& fname)
+void RecursorLua4::postPrepareContext()
 {
-  d_lw = std::unique_ptr<LuaContext>(new LuaContext);
-
-  d_lw->registerFunction<int(dnsheader::*)()>("getID", [](dnsheader& dh) { return dh.id; });
-  d_lw->registerFunction<bool(dnsheader::*)()>("getCD", [](dnsheader& dh) { return dh.cd; });
-  d_lw->registerFunction<bool(dnsheader::*)()>("getTC", [](dnsheader& dh) { return dh.tc; });
-  d_lw->registerFunction<bool(dnsheader::*)()>("getRA", [](dnsheader& dh) { return dh.ra; });
-  d_lw->registerFunction<bool(dnsheader::*)()>("getAD", [](dnsheader& dh) { return dh.ad; });
-  d_lw->registerFunction<bool(dnsheader::*)()>("getAA", [](dnsheader& dh) { return dh.aa; });
-  d_lw->registerFunction<bool(dnsheader::*)()>("getRD", [](dnsheader& dh) { return dh.rd; });
-  d_lw->registerFunction<int(dnsheader::*)()>("getRCODE", [](dnsheader& dh) { return dh.rcode; });
-  d_lw->registerFunction<int(dnsheader::*)()>("getOPCODE", [](dnsheader& dh) { return dh.opcode; });
-  d_lw->registerFunction<int(dnsheader::*)()>("getQDCOUNT", [](dnsheader& dh) { return ntohs(dh.qdcount); });
-  d_lw->registerFunction<int(dnsheader::*)()>("getANCOUNT", [](dnsheader& dh) { return ntohs(dh.ancount); });
-  d_lw->registerFunction<int(dnsheader::*)()>("getNSCOUNT", [](dnsheader& dh) { return ntohs(dh.nscount); });
-  d_lw->registerFunction<int(dnsheader::*)()>("getARCOUNT", [](dnsheader& dh) { return ntohs(dh.arcount); });
-
-  d_lw->writeFunction("newDN", [](boost::variant<const std::string, const DNSName> dom){
-    if(dom.which() == 0)
-      return DNSName(boost::get<const std::string>(dom));
-    else
-      return DNSName(boost::get<const DNSName>(dom));
-  });
-  d_lw->registerFunction("isPartOf", &DNSName::isPartOf);
-  d_lw->registerFunction<unsigned int(DNSName::*)()>("countLabels", [](const DNSName& name) { return name.countLabels(); });
-  d_lw->registerFunction<size_t(DNSName::*)()>("wirelength", [](const DNSName& name) { return name.wirelength(); });
-  d_lw->registerFunction<bool(DNSName::*)(const std::string&)>(
-    "equal",
-     [](const DNSName& lhs, const std::string& rhs) {
-       return lhs==DNSName(rhs);
-    }
-  );
-  d_lw->registerFunction("__eq", &DNSName::operator==);
-
-  d_lw->registerFunction<string(ComboAddress::*)()>("toString", [](const ComboAddress& ca) { return ca.toString(); });
-  d_lw->registerFunction<string(ComboAddress::*)()>("toStringWithPort", [](const ComboAddress& ca) { return ca.toStringWithPort(); });
-  d_lw->registerFunction<uint16_t(ComboAddress::*)()>("getPort", [](const ComboAddress& ca) { return ntohs(ca.sin4.sin_port); } );
-  d_lw->registerFunction<string(ComboAddress::*)()>("getRaw", [](const ComboAddress& ca) { 
-      if(ca.sin4.sin_family == AF_INET) {
-        auto t=ca.sin4.sin_addr.s_addr; return string((const char*)&t, 4); 
-      }
-      else 
-        return string((const char*)&ca.sin6.sin6_addr.s6_addr, 16);
-    } );
-  d_lw->registerFunction<bool(ComboAddress::*)()>("isIPv4", [](const ComboAddress& ca) { return ca.sin4.sin_family == AF_INET; });
-  d_lw->registerFunction<bool(ComboAddress::*)()>("isIPv6", [](const ComboAddress& ca) { return ca.sin4.sin_family == AF_INET6; });
-  d_lw->registerFunction<bool(ComboAddress::*)()>("isMappedIPv4", [](const ComboAddress& ca) { return ca.isMappedIPv4(); });
-  d_lw->registerFunction<ComboAddress(ComboAddress::*)()>("mapToIPv4", [](const ComboAddress& ca) { return ca.mapToIPv4(); });
-  d_lw->registerFunction<void(ComboAddress::*)(unsigned int)>("truncate", [](ComboAddress& ca, unsigned int bits) { ca.truncate(bits); });
-
-  d_lw->writeFunction("newCA", [](const std::string& a) { return ComboAddress(a); });
-  typedef std::unordered_set<ComboAddress,ComboAddress::addressOnlyHash,ComboAddress::addressOnlyEqual> cas_t;
-  d_lw->writeFunction("newCAS", []{ return cas_t(); });
-
-
-  d_lw->registerFunction<void(cas_t::*)(boost::variant<string,ComboAddress, vector<pair<unsigned int,string> > >)>(
-    "add",
-    [](cas_t& cas, const boost::variant<string,ComboAddress,vector<pair<unsigned int,string> > >& in)
-    {
-      try {
-        if(auto s = boost::get<string>(&in)) {
-          cas.insert(ComboAddress(*s));
-        }
-        else if(auto v = boost::get<vector<pair<unsigned int, string> > >(&in)) {
-          for(const auto&entry : *v)
-            cas.insert(ComboAddress(entry.second));
-          }
-        else {
-          cas.insert(boost::get<ComboAddress>(in));
-        }
-      }
-      catch(std::exception& e) { theL() <<Logger::Error<<e.what()<<endl; }
-    });
-
-  d_lw->registerFunction<bool(cas_t::*)(const ComboAddress&)>("check",[](const cas_t& cas, const ComboAddress&ca) {
-      return (bool)cas.count(ca);
-    });
-
-  d_lw->registerFunction<bool(ComboAddress::*)(const ComboAddress&)>(
-    "equal",
-    [](const ComboAddress& lhs, const ComboAddress& rhs) {
-      return ComboAddress::addressOnlyEqual()(lhs, rhs);
-    }
-  );
-  
-  d_lw->writeFunction("newNetmask", [](const string& s) { return Netmask(s); });
-  d_lw->registerFunction<ComboAddress(Netmask::*)()>("getNetwork", [](const Netmask& nm) { return nm.getNetwork(); } ); // const reference makes this necessary
-  d_lw->registerFunction<ComboAddress(Netmask::*)()>("getMaskedNetwork", [](const Netmask& nm) { return nm.getMaskedNetwork(); } );
-  d_lw->registerFunction("isIpv4", &Netmask::isIpv4);
-  d_lw->registerFunction("isIpv6", &Netmask::isIpv6);
-  d_lw->registerFunction("getBits", &Netmask::getBits);
-  d_lw->registerFunction("toString", &Netmask::toString);
-  d_lw->registerFunction("empty", &Netmask::empty);
-  d_lw->registerFunction("match", (bool (Netmask::*)(const string&) const)&Netmask::match);
-  d_lw->registerFunction("__eq", &Netmask::operator==);
-
-  d_lw->writeFunction("newNMG", []() { return NetmaskGroup(); });
-  d_lw->registerFunction<void(NetmaskGroup::*)(const std::string&mask)>(
-    "addMask", [](NetmaskGroup&nmg, const std::string& mask){
-      nmg.addMask(mask);
-    }
-  );
-
-  d_lw->registerFunction<void(NetmaskGroup::*)(const vector<pair<unsigned int, std::string>>&)>(
-    "addMasks",
-    [](NetmaskGroup&nmg, const vector<pair<unsigned int, std::string>>& masks){
-      for(const auto& mask: masks)
-        nmg.addMask(mask.second);
-    }
-  );
-
-
-  d_lw->registerFunction("match", (bool (NetmaskGroup::*)(const ComboAddress&) const)&NetmaskGroup::match);
-  d_lw->registerFunction<string(DNSName::*)()>("toString", [](const DNSName&dn ) { return dn.toString(); });
-  d_lw->registerFunction<string(DNSName::*)()>("toStringNoDot", [](const DNSName&dn ) { return dn.toStringNoDot(); });
-  d_lw->registerFunction<bool(DNSName::*)()>("chopOff", [](DNSName&dn ) { return dn.chopOff(); });
-
   d_lw->registerMember<const DNSName (DNSQuestion::*)>("qname", [](const DNSQuestion& dq) -> const DNSName& { return dq.qname; }, [](DNSQuestion& dq, const DNSName& newName) { (void) newName; });
   d_lw->registerMember<uint16_t (DNSQuestion::*)>("qtype", [](const DNSQuestion& dq) -> uint16_t { return dq.qtype; }, [](DNSQuestion& dq, uint16_t newType) { (void) newType; });
   d_lw->registerMember<bool (DNSQuestion::*)>("isTcp", [](const DNSQuestion& dq) -> bool { return dq.isTcp; }, [](DNSQuestion& dq, bool newTcp) { (void) newTcp; });
@@ -459,41 +345,7 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   d_lw->registerFunction("check",(bool (SuffixMatchNode::*)(const DNSName&) const) &SuffixMatchNode::check);
   d_lw->registerFunction("toString",(string (SuffixMatchNode::*)() const) &SuffixMatchNode::toString);
 
-
-  d_lw->writeFunction("pdnslog", [](const std::string& msg, boost::optional<int> loglevel) {
-      theL() << (Logger::Urgency)loglevel.get_value_or(Logger::Warning) << msg<<endl;
-    });
-  typedef vector<pair<string, int> > in_t;
-  vector<pair<string, boost::variant<int, in_t, struct timeval* > > >  pd{
-    {"DROP",  (int)PolicyDecision::DROP}
-  };
-
-  vector<pair<string, int> > rcodes = {{"NOERROR",  RCode::NoError  },
-                                       {"FORMERR",  RCode::FormErr  },
-                                       {"SERVFAIL", RCode::ServFail },
-                                       {"NXDOMAIN", RCode::NXDomain },
-                                       {"NOTIMP",   RCode::NotImp   },
-                                       {"REFUSED",  RCode::Refused  },
-                                       {"YXDOMAIN", RCode::YXDomain },
-                                       {"YXRRSET",  RCode::YXRRSet  },
-                                       {"NXRRSET",  RCode::NXRRSet  },
-                                       {"NOTAUTH",  RCode::NotAuth  },
-                                       {"NOTZONE",  RCode::NotZone  }};
-  for(const auto& rcode : rcodes)
-    pd.push_back({rcode.first, rcode.second});
-
-  pd.push_back({"loglevels", in_t{
-        {"Alert", LOG_ALERT},
-	{"Critical", LOG_CRIT},
-	{"Debug", LOG_DEBUG},
-        {"Emergency", LOG_EMERG},
-	{"Info", LOG_INFO},
-	{"Notice", LOG_NOTICE},
-	{"Warning", LOG_WARNING},
-	{"Error", LOG_ERR}
-	  }});
-
-  pd.push_back({"policykinds", in_t {
+  d_pd.push_back({"policykinds", in_t {
     {"NoAction", (int)DNSFilterEngine::PolicyKind::NoAction},
     {"Drop",     (int)DNSFilterEngine::PolicyKind::Drop    },
     {"NXDOMAIN", (int)DNSFilterEngine::PolicyKind::NXDOMAIN},
@@ -503,20 +355,16 @@ RecursorLua4::RecursorLua4(const std::string& fname)
     }});
 
   for(const auto& n : QType::names)
-    pd.push_back({n.first, n.second});
+    d_pd.push_back({n.first, n.second});
 
-  pd.push_back({"validationstates", in_t{
+  d_pd.push_back({"validationstates", in_t{
         {"Indeterminate", Indeterminate },
         {"Bogus", Bogus },
         {"Insecure", Insecure },
         {"Secure", Secure },
   }});
 
-  pd.push_back({"now", &g_now});
-  d_lw->registerMember("tv_sec", &timeval::tv_sec);
-  d_lw->registerMember("tv_usec", &timeval::tv_usec);
-
-  d_lw->writeVariable("pdns", pd);
+  d_pd.push_back({"now", &g_now});
 
   d_lw->writeFunction("getMetric", [](const std::string& str) {
       return DynMetric{getDynMetric(str)};
@@ -545,13 +393,9 @@ RecursorLua4::RecursorLua4(const std::string& fname)
         g_snmpAgent->sendCustomTrap(str);
       }
     });
-  
-  ifstream ifs(fname);
-  if(!ifs) {
-    throw std::runtime_error("Unable to read configuration file from '"+fname+"': "+strerror(errno));
-  }  	
-  d_lw->executeCode(ifs);
+}
 
+void RecursorLua4::postLoad() {
   d_prerpz = d_lw->readVariable<boost::optional<luacall_t>>("prerpz").get_value_or(0);
   d_preresolve = d_lw->readVariable<boost::optional<luacall_t>>("preresolve").get_value_or(0);
   d_nodata = d_lw->readVariable<boost::optional<luacall_t>>("nodata").get_value_or(0);

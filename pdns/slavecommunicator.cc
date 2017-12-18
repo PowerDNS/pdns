@@ -42,7 +42,6 @@
 
 #include "base64.hh"
 #include "inflighter.cc"
-#include "lua-auth.hh"
 #include "namespaces.hh"
 #include "common_startup.hh"
 
@@ -342,7 +341,8 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
     }
     if(!script.empty()){
       try {
-        pdl.reset(new AuthLua4(script));
+        pdl.reset(new AuthLua4());
+        pdl->loadFile(script);
         L<<Logger::Info<<"Loaded Lua script '"<<script<<"' to edit the incoming AXFR of '"<<domain<<"'"<<endl;
       }
       catch(std::exception& e) {

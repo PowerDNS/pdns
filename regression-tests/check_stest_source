@@ -1,7 +1,7 @@
 function prequery ( dnspacket )
   qname, qtype = dnspacket:getQuestion()
-  remote = dnspacket:getRemote()
-  if qname == "stest.com." and remote ~= "127.0.0.2" then
+  remote = tostring(dnspacket:getRemote())
+  if qname == newDN("stest.com.") and remote ~= "127.0.0.2" then
     dnspacket:setRcode(pdns.NXDOMAIN)
     return true
     end

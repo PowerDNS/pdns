@@ -2582,7 +2582,8 @@ static string* doReloadLuaScript()
       return new string("unloaded\n");
     }
     else {
-      t_pdl = std::make_shared<RecursorLua4>(fname);
+      t_pdl = std::make_shared<RecursorLua4>();
+      t_pdl->loadFile(fname);
     }
   }
   catch(std::exception& e) {
@@ -3157,7 +3158,8 @@ try
 
   try {
     if(!::arg()["lua-dns-script"].empty()) {
-      t_pdl = std::make_shared<RecursorLua4>(::arg()["lua-dns-script"]);
+      t_pdl = std::make_shared<RecursorLua4>();
+      t_pdl->loadFile(::arg()["lua-dns-script"]);
       L<<Logger::Warning<<"Loaded 'lua' script from '"<<::arg()["lua-dns-script"]<<"'"<<endl;
     }
   }
