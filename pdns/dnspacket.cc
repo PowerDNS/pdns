@@ -121,7 +121,7 @@ DNSPacket::DNSPacket(const DNSPacket &orig)
   d_tsigtimersonly = orig.d_tsigtimersonly;
   d_trc = orig.d_trc;
   d_tsigsecret = orig.d_tsigsecret;
-  
+  d_ednsRawPacketSizeLimit = orig.d_ednsRawPacketSizeLimit;
   d_havetsig = orig.d_havetsig;
   d_wrapped=orig.d_wrapped;
 
@@ -547,13 +547,13 @@ try
   d_havetsig = mdp.getTSIGPos();
   d_haveednssubnet = false;
   d_haveednssection = false;
-  
 
   if(getEDNSOpts(mdp, &edo)) {
     d_haveednssection=true;
     /* rfc6891 6.2.3:
        "Values lower than 512 MUST be treated as equal to 512."
     */
+    d_ednsRawPacketSizeLimit=edo.d_packetsize;
     d_maxreplylen=std::min(std::max(static_cast<uint16_t>(512), edo.d_packetsize), s_udpTruncationThreshold);
 //    cerr<<edo.d_Z<<endl;
     if(edo.d_Z & EDNSOpts::DNSSECOK)
@@ -580,9 +580,10 @@ try
     }
     d_ednsversion = edo.d_version;
     d_ednsrcode = edo.d_extRCode;
-  }
+ }
   else  {
     d_maxreplylen=512;
+    d_ednsRawPacketSizeLimit=-1;
   }
 
   memcpy((void *)&d,(const void *)d_rawpacket.c_str(),12);
