@@ -17,7 +17,7 @@ COPY --from=pdns-authoritative /sdist/ /sdist/
 @ENDIF
 
 @IF [ ! -z "$M_recursor" ]
-COPY --from=recursor /sdist/ /sdist/
+COPY --from=pdns-recursor /sdist/ /sdist/
 @ENDIF
 
 @IF [ ! -z "$M_dnsdist" ]

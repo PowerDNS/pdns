@@ -42,9 +42,6 @@ AM_CPPFLAGS +=$(LUA_CFLAGS)
 endif
 
 EXTRA_DIST = \
-	NOTICE \
-	.version \
-	build-aux/gen-version \
 	contrib/* \
 	devpollmplexer.cc \
 	dnslabeltext.cc \
