@@ -7,7 +7,7 @@ RUN apt-get update && apt-get -y dist-upgrade
 
 @INCLUDE Dockerfile.debbuild-prepare
 
-ADD builder-support/debian/debian-stretch/ pdns-${BUILDER_VERSION}/debian/
+ADD builder-support/debian/authoritative/debian-stretch/ pdns-${BUILDER_VERSION}/debian/
 
 @INCLUDE Dockerfile.debbuild
 

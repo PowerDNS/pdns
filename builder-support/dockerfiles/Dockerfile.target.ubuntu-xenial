@@ -7,7 +7,7 @@ RUN apt-get update && apt-get -y dist-upgrade
 
 @INCLUDE Dockerfile.debbuild-prepare
 
-ADD builder-support/debian/debian-jessie/ pdns-${BUILDER_VERSION}/debian/
+ADD builder-support/debian/authoritative/debian-jessie/ pdns-${BUILDER_VERSION}/debian/
 
 @INCLUDE Dockerfile.debbuild
 
