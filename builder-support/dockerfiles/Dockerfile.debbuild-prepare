@@ -18,3 +18,7 @@ COPY --from=sdist /sdist /sdist
 @IF [ ! -z "$M_authoritative" ]
 RUN tar xvf /sdist/pdns-${BUILDER_VERSION}.tar.bz2
 @ENDIF
+
+@IF [ ! -z "$M_dnsdist" ]
+RUN tar xvf /sdist/dnsdist-${BUILDER_VERSION}.tar.bz2
+@ENDIF
