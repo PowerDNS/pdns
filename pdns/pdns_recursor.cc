@@ -3091,7 +3091,12 @@ static int serviceMain(int argc, char*argv[])
       L<<Logger::Error<<"Chrooted to '"<<::arg()["chroot"]<<"'"<<endl;
   }
 
-  s_pidfname=::arg()["socket-dir"]+"/"+s_programname+".pid";
+  if(::arg()["server-id-in-pidname"] == "1") {
+    s_pidfname=::arg()["socket-dir"]+"/"+s_programname+"_"+SyncRes::s_serverID+".pid";
+  }
+  else {
+    s_pidfname=::arg()["socket-dir"]+"/"+s_programname+".pid";
+  }
   if(!s_pidfname.empty())
     unlink(s_pidfname.c_str()); // remove possible old pid file
   writePid();
@@ -3368,6 +3373,7 @@ int main(int argc, char **argv)
     ::arg().set("max-packetcache-entries", "maximum number of entries to keep in the packetcache")="500000";
     ::arg().set("packetcache-servfail-ttl", "maximum number of seconds to keep a cached servfail entry in packetcache")="60";
     ::arg().set("server-id", "Returned when queried for 'id.server' TXT or NSID, defaults to hostname")="";
+    ::arg().set("server-id-in-pidname", "server-id-in-pidname", "Add the server-id to the pid filename, disabled by default, enabled when set to 1")="";
     ::arg().set("stats-ringbuffer-entries", "maximum number of packets to store statistics for")="10000";
     ::arg().set("version-string", "string reported on version.pdns or version.bind")=fullVersionString();
     ::arg().set("allow-from", "If set, only allow these comma separated netmasks to recurse")=LOCAL_NETS;
