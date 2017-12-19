@@ -68,7 +68,7 @@ void AuthLua4::postPrepareContext() {
   d_lw->registerFunction<DNSPacket, void(unsigned int)>("setEDNSRcode",[](DNSPacket &p, unsigned int extRCode){p.setEDNSRcode(static_cast<uint16_t>(extRCode));});
   d_lw->registerFunction<DNSPacket, unsigned int()>("getEDNSRcode",[](DNSPacket &p){return p.getEDNSRCode();});
   d_lw->registerFunction<DNSPacket, DNSName()>("getTSIGKeyname",[](DNSPacket &p){ return p.getTSIGKeyname();});
-  d_lw->registerFunction<DNSPacket, std::unordered_map<unsigned int, DNSRecord>()>("getRRS", [](DNSPacket &p){ std::unordered_map<unsigned int, DNSRecord> ret; unsigned int i; for(const auto &rec: p.getRRS()) { ret.insert({i++, rec.dr}); } return ret;});
+  d_lw->registerFunction<DNSPacket, std::unordered_map<unsigned int, DNSRecord>()>("getRRS", [](DNSPacket &p){ std::unordered_map<unsigned int, DNSRecord> ret; unsigned int i = 0; for(const auto &rec: p.getRRS()) { ret.insert({i++, rec.dr}); } return ret;});
   d_lw->registerMember<DNSPacket, DNSName>("qdomain", [](const DNSPacket &p) -> DNSName { return p.qdomain; }, [](DNSPacket &p, const DNSName& name) { p.qdomain = name; });
   d_lw->registerMember<DNSPacket, DNSName>("qdomainwild", [](const DNSPacket &p) -> DNSName { return p.qdomainwild; }, [](DNSPacket &p, const DNSName& name) { p.qdomainwild = name; });
   d_lw->registerMember<DNSPacket, DNSName>("qdomainzone", [](const DNSPacket &p) -> DNSName { return p.qdomainzone; }, [](DNSPacket &p, const DNSName& name) { p.qdomainzone = name; });
