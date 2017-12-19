@@ -411,7 +411,7 @@ These ``DNSRule``\ s be one of the following items:
 .. function:: OpcodeRule(code)
 
   Matches queries with opcode ``code``.
-  ``code`` can be directly specified as an integer, or one of the `built-in DNSOpcode <#opcode>`_.
+  ``code`` can be directly specified as an integer, or one of the `built-in DNSOpcodes <DNSOpcode>`.
 
   :param int code: The opcode to match
 
@@ -426,7 +426,7 @@ These ``DNSRule``\ s be one of the following items:
 .. function:: QClassRule(qclass)
 
   Matches queries with the specified ``qclass``.
-  ``class`` can be specified as an integer or as one of the built-in `QClass <#qclass>`_.
+  ``class`` can be specified as an integer or as one of the built-in :ref:`DNSQClass`.
 
   :param int qclass: The Query Class to match on
 
@@ -463,7 +463,7 @@ These ``DNSRule``\ s be one of the following items:
 .. function:: RCodeRule(rcode)
 
   Matches queries or responses the specified ``rcode``.
-  ``rcode`` can be specified as an integer or as one of the built-in `RCode <#rcode>`_.
+  ``rcode`` can be specified as an integer or as one of the built-in `RCode <DNSRcode>`.
 
   :param int rcode: The RCODE to match on
 
