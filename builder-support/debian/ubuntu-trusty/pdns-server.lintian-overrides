@@ -1,0 +1,4 @@
+# Often this file will contain passwords.
+pdns-server: non-standard-file-perm etc/powerdns/pdns.conf 0600 != 0644
+# We load lsb-functions conditionally.
+pdns-server: init.d-script-needs-depends-on-lsb-base

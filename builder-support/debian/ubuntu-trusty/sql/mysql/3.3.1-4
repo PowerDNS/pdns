@@ -1,0 +1,17 @@
+-- 3.0 to 3.1
+
+ALTER TABLE records MODIFY content VARCHAR(64000);
+ALTER TABLE tsigkeys MODIFY algorithm VARCHAR(50);
+
+-- 3.1 to 3.2
+ALTER TABLE records MODIFY ordername    VARCHAR(255) BINARY;
+DROP INDEX orderindex ON records;
+CREATE INDEX recordorder ON records (domain_id, ordername);
+
+-- 3.2 to 3.3
+ALTER TABLE supermasters MODIFY ip VARCHAR(64);
+DROP INDEX rec_name_index ON records;
+
+-- 3.3 to 3.3.1
+-- None for MySQL
+

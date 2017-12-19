@@ -1,7 +1,8 @@
 FROM alpine:3.6 as pdns-authoritative
 
 RUN apk add --no-cache gcc g++ make tar autoconf automake protobuf-dev lua-dev \
-                       libtool file boost-dev curl openssl-dev ragel py-virtualenv
+                       libtool file boost-dev curl openssl-dev ragel py-virtualenv \
+                       flex bison git
 
 # the pdns/ dir is a bit broad, but who cares :)
 ADD configure.ac Makefile.am COPYING INSTALL NOTICE README /pdns-authoritative/

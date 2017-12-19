@@ -1,0 +1,21 @@
+-- MariaDB default index size and default character set causes the
+-- name indexes to fail to create. Therefore we are overriding the
+-- character set to something smaller than the insane utf8mb4 def.
+
+ALTER TABLE domains CONVERT TO CHARACTER SET 'latin1';
+ALTER TABLE domains MODIFY account VARCHAR(40) CHARACTER SET 'utf8' DEFAULT NULL;
+
+ALTER TABLE records CONVERT TO CHARACTER SET 'latin1';
+
+ALTER TABLE supermasters CONVERT TO CHARACTER SET 'latin1';
+ALTER TABLE supermasters MODIFY account VARCHAR(40) CHARACTER SET 'utf8' NOT NULL;
+
+ALTER TABLE comments CONVERT TO CHARACTER SET 'latin1';
+ALTER TABLE comments MODIFY account VARCHAR(40) CHARACTER SET 'utf8' NOT NULL;
+ALTER TABLE comments MODIFY comment TEXT CHARACTER SET 'utf8' NOT NULL;
+
+ALTER TABLE domainmetadata CONVERT TO CHARACTER SET 'latin1';
+
+ALTER TABLE cryptokeys CONVERT TO CHARACTER SET 'latin1';
+
+ALTER TABLE tsigkeys CONVERT TO CHARACTER SET 'latin1';
