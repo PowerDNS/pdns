@@ -640,14 +640,6 @@ Dynamic Blocks
   Set which action is performed when a query is blocked.
   Only DNSAction.Drop (the default), DNSAction.Refused and DNSAction.Truncate are supported.
 
-.. function:: addBPFFilterDynBlocks(addresses, filter[, seconds])
-
-  Block the set of addresses using the supplied BPF Filter, for seconds seconds (10 by default)
-
-  :param addresses: A set of addresses as returned by the exceed functions.
-  :param filter: and EBPF filter
-  :param int seconds: Number of seconds to block for
-
 .. _exceedfuncs:
 
 Getting addresses that exceeded parameters

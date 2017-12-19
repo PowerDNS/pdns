@@ -1,13 +1,13 @@
 Running multiple instances
 ==========================
 
-Sometimes, it can be advantageous to run multiple instances of :prog:`dnsdist`.
+Sometimes, it can be advantageous to run multiple instances of :program:`dnsdist`.
 Usecases can be:
 
  * Multiple inbound IP addresses with different rulesets
  * Taking advantage of more processes, using SO_REUSEPORT
 
-:prog:`dnsdist` supports loading a different configuration file with the ``--config`` command line switch.
+:program:`dnsdist` supports loading a different configuration file with the ``--config`` command line switch.
 
 By default, ``SYSCONFDIR/dnsdist.conf`` is loaded. ``SYSCONFDIR`` is usually ``/etc`` or ``/etc/dnsdist``.
 
