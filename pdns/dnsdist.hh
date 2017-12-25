@@ -40,7 +40,7 @@
 #include "bpf-filter.hh"
 #include <string>
 #include <unordered_map>
-
+#include "tcpiohandler.hh"
 
 #ifdef HAVE_PROTOBUF
 #include <boost/uuid/uuid.hpp>
@@ -496,6 +496,7 @@ struct ClientState
 #ifdef HAVE_DNSCRYPT
   DnsCryptContext* dnscryptCtx{0};
 #endif
+  shared_ptr<TLSFrontend> tlsFrontend;
   std::atomic<uint64_t> queries{0};
   int udpFD{-1};
   int tcpFD{-1};
@@ -739,6 +740,7 @@ extern GlobalStateHolder<NetmaskGroup> g_ACL;
 extern ComboAddress g_serverControl; // not changed during runtime
 
 extern std::vector<std::tuple<ComboAddress, bool, bool, int, std::string, std::set<int>>> g_locals; // not changed at runtime (we hope XXX)
+extern std::vector<shared_ptr<TLSFrontend>> g_tlslocals;
 extern vector<ClientState*> g_frontends;
 extern std::string g_key; // in theory needs locking
 extern bool g_truncateTC;

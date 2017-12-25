@@ -28,6 +28,15 @@ if HAVE_RE2
 AM_CPPFLAGS += $(RE2_CFLAGS)
 endif
 
+if HAVE_DNS_OVER_TLS
+if HAVE_LIBSSL
+AM_CPPFLAGS += $(LIBSSL_CFLAGS)
+endif
+
+if HAVE_GNUTLS
+AM_CPPFLAGS += $(GNUTLS_CFLAGS)
+endif
+endif
 
 EXTRA_DIST=dnslabeltext.rl \
 	   dnsdistconf.lua \
@@ -116,6 +125,7 @@ dnsdist_SOURCES = \
 	sodcrypto.cc sodcrypto.hh \
 	sstuff.hh \
 	statnode.cc statnode.hh \
+	tcpiohandler.cc tcpiohandler.hh \
 	ext/luawrapper/include/LuaContext.hpp \
 	ext/json11/json11.cpp \
 	ext/json11/json11.hpp \
@@ -139,6 +149,16 @@ dnsdist_LDADD = \
 
 if HAVE_RE2
 dnsdist_LDADD += $(RE2_LIBS)
+endif
+
+if HAVE_DNS_OVER_TLS
+if HAVE_GNUTLS
+dnsdist_LDADD += -lgnutls
+endif
+
+if HAVE_LIBSSL
+dnsdist_LDADD += $(LIBSSL_LIBS) $(LIBCRYPTO_LIBS)
+endif
 endif
 
 if !HAVE_LUA_HPP

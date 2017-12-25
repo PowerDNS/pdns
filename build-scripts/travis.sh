@@ -407,6 +407,7 @@ build_dnsdist(){
     --enable-unit-tests \
     --enable-libsodium \
     --enable-dnscrypt \
+    --enable-dns-over-tls \
     --prefix=$HOME/dnsdist \
     --disable-silent-rules"
   run "make -k -j3"

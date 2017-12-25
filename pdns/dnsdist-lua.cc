@@ -35,6 +35,7 @@
 #include "dnswriter.hh"
 #include "dolog.hh"
 #include "lock.hh"
+#include "protobuf.hh"
 #include "sodcrypto.hh"
 
 #include <boost/logic/tribool.hpp>
@@ -490,7 +491,18 @@ void setupLuaConfig(bool client)
   g_lua.writeFunction("shutdown", []() {
 #ifdef HAVE_SYSTEMD
       sd_notify(0, "STOPPING=1");
-#endif
+#endif /* HAVE_SYSTEMD */
+#if 0
+      // Useful for debugging leaks, but might lead to race under load
+      // since other threads are still runing.
+      for(auto& frontend : g_tlslocals) {
+        frontend->cleanup();
+      }
+      g_tlslocals.clear();
+#ifdef HAVE_PROTOBUF
+      google::protobuf::ShutdownProtobufLibrary();
+#endif /* HAVE_PROTOBUF */
+#endif /* 0 */
       _exit(0);
   } );
 
@@ -1361,6 +1373,116 @@ void setupLuaConfig(bool client)
       g_outputBuffer="recvmmsg support is not available!\n";
 #endif
     });
+
+    g_lua.writeFunction("addTLSLocal", [client](const std::string& addr, const std::string& certFile, const std::string& keyFile, boost::optional<localbind_t> vars) {
+        if (client)
+          return;
+#ifdef HAVE_DNS_OVER_TLS
+        setLuaSideEffect();
+        if (g_configurationDone) {
+          g_outputBuffer="addTLSLocal cannot be used at runtime!\n";
+          return;
+        }
+        shared_ptr<TLSFrontend> frontend = std::make_shared<TLSFrontend>();
+        frontend->d_certFile = certFile;
+        frontend->d_keyFile = keyFile;
+
+        if (vars) {
+          bool doTCP = true;
+          parseLocalBindVars(vars, doTCP, frontend->d_reusePort, frontend->d_tcpFastOpenQueueSize, frontend->d_interface, frontend->d_cpus);
+
+          if (vars->count("provider")) {
+            frontend->d_provider = boost::get<const string>((*vars)["provider"]);
+          }
+
+          if (vars->count("ciphers")) {
+            frontend->d_ciphers = boost::get<const string>((*vars)["ciphers"]);
+          }
+
+          if (vars->count("ticketKeyFile")) {
+            frontend->d_ticketKeyFile = boost::get<const string>((*vars)["ticketKeyFile"]);
+          }
+
+          if (vars->count("ticketsKeysRotationDelay")) {
+            frontend->d_ticketsKeyRotationDelay = std::stoi(boost::get<const string>((*vars)["ticketsKeysRotationDelay"]));
+          }
+
+          if (vars->count("numberOfTicketsKeys")) {
+            frontend->d_numberOfTicketsKeys = std::stoi(boost::get<const string>((*vars)["numberOfTicketsKeys"]));
+          }
+        }
+
+        try {
+          frontend->d_addr = ComboAddress(addr, 853);
+          vinfolog("Loading TLS provider %s", frontend->d_provider);
+          g_tlslocals.push_back(frontend); /// only works pre-startup, so no sync necessary
+        }
+        catch(const std::exception& e) {
+          g_outputBuffer="Error: "+string(e.what())+"\n";
+        }
+#else
+        g_outputBuffer="DNS over TLS support is not present!\n";
+#endif
+      });
+
+    g_lua.writeFunction("showTLSContexts", [client]() {
+#ifdef HAVE_DNS_OVER_TLS
+        setLuaNoSideEffect();
+        try {
+          ostringstream ret;
+          boost::format fmt("%1$-3d %2$-20.20s %|25t|%3$-14d %|40t|%4$-14d %|54t|%5$-21.21s");
+          //             1    2           3                 4                  5
+          ret << (fmt % "#" % "Address" % "# ticket keys" % "Rotation delay" % "Next rotation" ) << endl;
+          size_t counter = 0;
+          for (const auto& ctx : g_tlslocals) {
+            ret << (fmt % counter % ctx->d_addr.toStringWithPort() % ctx->getTicketsKeysCount() % ctx->getTicketsKeyRotationDelay() % ctx->getNextTicketsKeyRotation()) << endl;
+            counter++;
+          }
+          g_outputBuffer = ret.str();
+        }
+        catch(const std::exception& e) {
+          g_outputBuffer = e.what();
+          throw;
+        }
+#else
+        g_outputBuffer="DNS over TLS support is not present!\n";
+#endif
+      });
+
+    g_lua.writeFunction("getTLSContext", [client](size_t index) {
+        std::shared_ptr<TLSCtx> result = nullptr;
+#ifdef HAVE_DNS_OVER_TLS
+        setLuaNoSideEffect();
+        try {
+          if (index < g_tlslocals.size()) {
+            result = g_tlslocals.at(index)->getContext();
+          }
+          else {
+            errlog("Error: trying to get TLS context with index %zu but we only have %zu\n", index, g_tlslocals.size());
+            g_outputBuffer="Error: trying to get TLS context with index " + std::to_string(index) + " but we only have " + std::to_string(g_tlslocals.size()) + "\n";
+          }
+        }
+        catch(const std::exception& e) {
+          g_outputBuffer="Error: "+string(e.what())+"\n";
+          errlog("Error: %s\n", string(e.what()));
+        }
+#else
+        g_outputBuffer="DNS over TLS support is not present!\n";
+#endif
+        return result;
+      });
+
+    g_lua.registerFunction<void(std::shared_ptr<TLSCtx>::*)()>("rotateTicketsKey", [](std::shared_ptr<TLSCtx> ctx) {
+        if (ctx != nullptr) {
+          ctx->rotateTicketsKey(time(nullptr));
+        }
+      });
+
+    g_lua.registerFunction<void(std::shared_ptr<TLSCtx>::*)(const std::string&)>("loadTicketsKeys", [](std::shared_ptr<TLSCtx> ctx, const std::string& file) {
+        if (ctx != nullptr) {
+          ctx->loadTicketsKeys(file);
+        }
+      });
 }
 
 vector<std::function<void(void)>> setupLua(bool client, const std::string& config)

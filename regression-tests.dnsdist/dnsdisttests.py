@@ -4,6 +4,7 @@ import copy
 import Queue
 import os
 import socket
+import ssl
 import struct
 import subprocess
 import sys
@@ -251,17 +252,36 @@ class DNSDistTest(unittest.TestCase):
         return sock
 
     @classmethod
-    def sendTCPQueryOverConnection(cls, sock, query, rawQuery=False):
+    def openTLSConnection(cls, port, serverName, caCert=None, timeout=None):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        if timeout:
+            sock.settimeout(timeout)
+
+        # 2.7.9+
+        if hasattr(ssl, 'create_default_context'):
+            sslctx = ssl.create_default_context(cafile=caCert)
+            sslsock = sslctx.wrap_socket(sock, server_hostname=serverName)
+        else:
+            sslsock = ssl.wrap_socket(sock, ca_certs=caCert, cert_reqs=ssl.CERT_REQUIRED)
+
+        sslsock.connect(("127.0.0.1", port))
+        return sslsock
+
+    @classmethod
+    def sendTCPQueryOverConnection(cls, sock, query, rawQuery=False, response=None, timeout=2.0):
         if not rawQuery:
             wire = query.to_wire()
         else:
             wire = query
 
+        if response:
+            cls._toResponderQueue.put(response, True, timeout)
+
         sock.send(struct.pack("!H", len(wire)))
         sock.send(wire)
 
     @classmethod
-    def recvTCPResponseOverConnection(cls, sock):
+    def recvTCPResponseOverConnection(cls, sock, useQueue=False, timeout=2.0):
         message = None
         data = sock.recv(2)
         if data:
@@ -269,7 +289,12 @@ class DNSDistTest(unittest.TestCase):
             data = sock.recv(datalen)
             if data:
                 message = dns.message.from_wire(data)
-        return message
+
+        if useQueue and not cls._fromResponderQueue.empty():
+            receivedQuery = cls._fromResponderQueue.get(True, timeout)
+            return (receivedQuery, message)
+        else:
+            return message
 
     @classmethod
     def sendTCPQuery(cls, query, response, useQueue=True, timeout=2.0, rawQuery=False):
