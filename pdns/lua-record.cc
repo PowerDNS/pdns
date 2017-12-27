@@ -439,6 +439,14 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
       return closest(bestwho, candidates).toString();
     });
   
+  lua.writeFunction("latlonMagic", [&query](){
+      auto labels= query.getRawLabels();
+      if(labels.size()<4)
+        return std::string("unknown");
+      double lat, lon;
+      getLatLon(labels[3]+"."+labels[2]+"."+labels[1]+"."+labels[0], lat, lon);
+      return std::to_string(lat)+" "+std::to_string(lon);
+    });
 
   
   lua.writeFunction("createReverse", [&bestwho,&query,&zone](string suffix, boost::optional<std::unordered_map<string,string>> e){
