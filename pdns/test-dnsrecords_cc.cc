@@ -17,9 +17,11 @@ BOOST_AUTO_TEST_SUITE(test_dnsrecords_cc)
 #define REC_CHECK_EQUAL(a,b) { if (val.get<4>()) { BOOST_WARN_EQUAL(a,b); } else {  BOOST_CHECK_EQUAL(a,b); } }
 #define REC_CHECK_MESSAGE(cond,msg) { if (val.get<4>()) { BOOST_WARN_MESSAGE(cond,msg); } else {  BOOST_CHECK_MESSAGE(cond,msg); } }
 #define REC_FAIL_XSUCCESS(msg) { if (val.get<4>()) { BOOST_CHECK_MESSAGE(false, std::string("Test has unexpectedly passed: ") + msg); } } // fail if test succeeds
-#define REC_FAIL_XSUCCESS2(msg) { if (val.get<2>()) { BOOST_CHECK_MESSAGE(false, std::string("Test has unexpectedly passed: ") + msg); } } // fail if test succeeds (for the bad records test case)
+#define REC_FAIL_XSUCCESS2(msg) { if (val.get<3>()) { BOOST_CHECK_MESSAGE(false, std::string("Test has unexpectedly passed: ") + msg); } } // fail if test succeeds (for the bad records test case)
 
-typedef enum { zone, wire } case_type_enum_t;
+enum class case_type_enum_t { zone, wire };
+static const auto zone = case_type_enum_t::zone;
+static const auto wire = case_type_enum_t::wire;
 
 BOOST_AUTO_TEST_CASE(test_record_types) {
   // tuple contains <type, user value, zone representation, line value, broken>
@@ -269,7 +271,7 @@ BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
     vector<uint8_t> packet;
     DNSPacketWriter pw(packet, DNSName("unit.test"), q.getCode());
 
-    if (val.get<2>()) {
+    if (val.get<3>()) {
       bool success=true;
       BOOST_WARN_EXCEPTION( { auto drc = DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>()); pw.startRecord(DNSName("unit.test"), q.getCode()); drc->toPacket(pw); success=false; }, std::exception, test_dnsrecords_cc_predicate );
       if (success==false) REC_FAIL_XSUCCESS2(q.getName() << " test #" << n << " has unexpectedly passed"); // a bad record was detected when it was supposed not to be detected
