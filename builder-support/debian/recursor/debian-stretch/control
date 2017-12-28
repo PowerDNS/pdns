@@ -1,0 +1,30 @@
+Source: pdns-recursor
+Section: net
+Priority: extra
+Standards-Version: 4.1.2
+Maintainer: Debian DNS Packaging <pkg-dns-devel@lists.alioth.debian.org>
+Uploaders: Chris Hofstaedtler <zeha@debian.org>,
+           Marc Haber <mh+debian-packages@zugschlus.de>
+Build-Depends: debhelper (>= 10~),
+               libboost-all-dev,
+               libluajit-5.1-dev,
+               libprotobuf-dev,
+               libsodium-dev,
+               libssl-dev,
+               libsystemd-dev [linux-any],
+               pkg-config,
+               protobuf-compiler,
+               ragel
+Vcs-Git: https://anonscm.debian.org/git/pkg-dns/pdns-recursor.git
+Vcs-Browser: https://anonscm.debian.org/cgit/pkg-dns/pdns-recursor.git
+Homepage: https://www.powerdns.com/
+
+Package: pdns-recursor
+Architecture: any
+Depends: adduser,
+         dns-root-data,
+         ${misc:Depends},
+         ${shlibs:Depends}
+Description: PowerDNS Recursor
+ High-performance resolving name server, utilizing multiple
+ processor and including Lua scripting capabilities.

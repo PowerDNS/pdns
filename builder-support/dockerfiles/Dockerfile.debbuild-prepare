@@ -19,6 +19,10 @@ COPY --from=sdist /sdist /sdist
 RUN tar xvf /sdist/pdns-${BUILDER_VERSION}.tar.bz2
 @ENDIF
 
+@IF [ ! -z "$M_recursor" ]
+RUN tar xvf /sdist/pdns-recursor-${BUILDER_VERSION}.tar.bz2
+@ENDIF
+
 @IF [ ! -z "$M_dnsdist" ]
 RUN tar xvf /sdist/dnsdist-${BUILDER_VERSION}.tar.bz2
 @ENDIF
