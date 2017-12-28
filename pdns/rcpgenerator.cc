@@ -102,17 +102,22 @@ void RecordTextReader::xfrIP(uint32_t &val)
   uint32_t octet=0;
   val=0;
   char count=0;
-  
+  bool last_was_digit = false;
+
   for(;;) {
     if(d_string.at(d_pos)=='.') {
+      if (!last_was_digit)
+        throw RecordTextException(string("unable to parse IP address, dot without previous digit"));
+      last_was_digit = false;
       val<<=8;
       val+=octet;
       octet=0;
       count++;
       if(count > 3)
-        break;
+        throw RecordTextException(string("unable to parse IP address, too many dots"));
     }
     else if(isdigit(d_string.at(d_pos))) {
+      last_was_digit = true;
       octet*=10;
       octet+=d_string.at(d_pos) - '0';
       if(octet > 255)
@@ -127,10 +132,12 @@ void RecordTextReader::xfrIP(uint32_t &val)
     if(d_pos == d_string.length())
       break;
   }
-  if(count<=3) {
-    val<<=8;
-    val+=octet;
-  }
+  if (count != 3)
+    throw RecordTextException(string("unable to parse IP address, not enough dots"));
+  if (!last_was_digit)
+    throw RecordTextException(string("unable to parse IP address, trailing dot"));
+  val<<=8;
+  val+=octet;
   val=ntohl(val);
 }
 
