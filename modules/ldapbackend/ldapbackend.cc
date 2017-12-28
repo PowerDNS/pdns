@@ -150,6 +150,7 @@ bool LdapBackend::list( const DNSName& target, int domain_id, bool include_disab
   try
   {
     m_qname = target;
+    m_qtype = QType::ANY;
     m_axfrqlen = target.toStringRootDot().length();
     m_adomain = m_adomains.end();   // skip loops in get() first time
 
