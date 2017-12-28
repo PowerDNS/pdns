@@ -271,6 +271,11 @@ BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
     vector<uint8_t> packet;
     DNSPacketWriter pw(packet, DNSName("unit.test"), q.getCode());
 
+    if (val.get<2>() == wire) {
+      BOOST_WARN_MESSAGE(false, "wire checks not supported");
+      continue;
+    }
+
     if (val.get<3>()) {
       bool success=true;
       BOOST_WARN_EXCEPTION( { auto drc = DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>()); pw.startRecord(DNSName("unit.test"), q.getCode()); drc->toPacket(pw); success=false; }, std::exception, test_dnsrecords_cc_predicate );
