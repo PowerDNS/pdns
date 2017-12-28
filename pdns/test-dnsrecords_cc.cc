@@ -243,7 +243,7 @@ BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
      (case_t(QType::AAAA, "23:00", zone, false)) // time when this test was written 
      (case_t(QType::AAAA, "23:00::15::43", zone, false)) // double compression
      (case_t(QType::AAAA, "2a23:00::15::", zone, false)) // ditto 
-     (case_t(QType::AAAA, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff", zone, false)) // truncated wire value
+     (case_t(QType::AAAA, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff", wire, false)) // truncated wire value
 // empty label, must be broken
      (case_t(QType::CNAME, "name..example.com.", zone, false))
 // overly large label (64), must be broken
