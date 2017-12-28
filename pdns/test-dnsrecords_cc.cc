@@ -279,7 +279,7 @@ BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
     if (val.get<3>()) {
       bool success=true;
       BOOST_WARN_EXCEPTION( { auto drc = DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>()); pw.startRecord(DNSName("unit.test"), q.getCode()); drc->toPacket(pw); success=false; }, std::exception, test_dnsrecords_cc_predicate );
-      if (success==false) REC_FAIL_XSUCCESS2(q.getName() << " test #" << n << " has unexpectedly passed"); // a bad record was detected when it was supposed not to be detected
+      if (success) REC_FAIL_XSUCCESS2(q.getName() << " test #" << n << " has unexpectedly passed"); // a bad record was detected when it was supposed not to be detected
     } else {
       BOOST_CHECK_EXCEPTION( { auto drc = DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>()); pw.startRecord(DNSName("unit.test"), q.getCode()); drc->toPacket(pw); }, std::exception, test_dnsrecords_cc_predicate );
     }
