@@ -79,6 +79,12 @@ void RecordTextReader::xfrTime(uint32_t &val)
   uint64_t itmp;
   xfr64BitInt(itmp);
 
+  if (itmp <= (uint32_t)~0) {
+    // formatted as seconds since epoch, not as YYYYMMDDHHmmSS:
+    val = (uint32_t) itmp;
+    return;
+  }
+
   ostringstream tmp;
 
   tmp<<itmp;
