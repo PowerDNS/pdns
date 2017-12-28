@@ -14,6 +14,6 @@ RUN mkdir /sdist
 ARG BUILDER_VERSION
 RUN /pdns-recursor/builder/helpers/set-configure-ac-version.sh && \
      autoreconf -v -i --force && \
-    ./configure --without-modules --without-dynmodules --disable-dependency-tracking && \
+    ./configure --disable-dependency-tracking && \
     make dist
 RUN cp pdns-recursor-${BUILDER_VERSION}.tar.bz2 /sdist/

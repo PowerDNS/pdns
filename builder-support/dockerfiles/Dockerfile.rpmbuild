@@ -29,6 +29,14 @@ RUN if $(grep -q 'release 6' /etc/redhat-release); then \
     fi
 @ENDIF
 
+@IF [ ! -z "$M_recursor" ]
+RUN if $(grep -q 'release 6' /etc/redhat-release); then \
+      scl enable devtoolset-3 -- builder/helpers/build-specs.sh builder-support/specs/pdns-recursor.spec; \
+    else \
+      builder/helpers/build-specs.sh builder-support/specs/pdns-recursor.spec; \
+    fi
+@ENDIF
+
 @IF [ ! -z "$M_dnsdist" ]
 RUN if $(grep -q 'release 6' /etc/redhat-release); then \
       scl enable devtoolset-3 -- builder/helpers/build-specs.sh builder-support/specs/dnsdist.spec; \
