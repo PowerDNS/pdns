@@ -193,31 +193,26 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
    BOOST_TEST_MESSAGE("Checking record type " << q.getName() << " test #" << n);
    try {
       std::string recData;
-      if (q.getCode() != QType::TSIG) {
-        auto rec = DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>());
-        BOOST_CHECK_MESSAGE(rec != NULL, "mastermake( " << q.getCode() << ", 1, " << val.get<1>() << ") returned NULL");
-        if (rec == NULL) continue;
-        // now verify the record (note that this will be same as *zone* value (except for certain QTypes)
+      auto rec = DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>());
+      BOOST_CHECK_MESSAGE(rec != NULL, "mastermake( " << q.getCode() << ", 1, " << val.get<1>() << ") returned NULL");
+      if (rec == NULL) continue;
+      // now verify the record (note that this will be same as *zone* value (except for certain QTypes)
 
-        switch(q.getCode()) {
-        case QType::NS:
-        case QType::PTR:
-        case QType::MX:
-        case QType::CNAME:
-        case QType::SOA:
-        case QType::TXT:
-           // check *input* value instead 
-           REC_CHECK_EQUAL(rec->getZoneRepresentation(), val.get<1>());
-           break;
-        default:
-           REC_CHECK_EQUAL(rec->getZoneRepresentation(), val.get<2>());
-        }
-        recData = rec->serialize(DNSName("rec.test"));
-      } else {
-        std::shared_ptr<DNSRecordContent> rec3 = DNSRecordContent::unserialize(DNSName("rec.test"),q.getCode(),(val.get<3>()));
-        // TSIG special, only works the other way
-        recData = rec3->serialize(DNSName("rec.test"));
+      switch(q.getCode()) {
+      case QType::NS:
+      case QType::PTR:
+      case QType::MX:
+      case QType::CNAME:
+      case QType::SOA:
+      case QType::TXT:
+          // check *input* value instead
+          REC_CHECK_EQUAL(rec->getZoneRepresentation(), val.get<1>());
+          break;
+      default:
+          REC_CHECK_EQUAL(rec->getZoneRepresentation(), val.get<2>());
       }
+      recData = rec->serialize(DNSName("rec.test"));
+
       std::shared_ptr<DNSRecordContent> rec2 = DNSRecordContent::unserialize(DNSName("rec.test"),q.getCode(),recData);
       BOOST_CHECK_MESSAGE(rec2 != NULL, "unserialize(rec.test, " << q.getCode() << ", recData) returned NULL");
       if (rec2 == NULL) continue;
