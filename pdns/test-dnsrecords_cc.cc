@@ -76,9 +76,9 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
      (CASE_L(QType::HINFO, "\"i686\" Linux", "\"i686\" \"Linux\"", "\x04i686\x05Linux",false))
      (CASE_L(QType::HINFO, "i686 Linux", "\"i686\" \"Linux\"", "\x04i686\x05Linux",true))
 // local name
-     (CASE_S(QType::MX, "10 mx.rec.test.", "\x00\x0a\02mx\xc0\x11",false))
+     (CASE_S(QType::MX, "10 mx.rec.test.", "\x00\x0a\x02mx\xc0\x11",false))
 // non-local name
-     (CASE_S(QType::MX, "20 mx.example.com.", "\x00\x14\02mx\x07""example\x03""com\x00",false))
+     (CASE_S(QType::MX, "20 mx.example.com.", "\x00\x14\x02mx\x07""example\x03""com\x00",false))
 // root label
      (CASE_S(QType::MX, "20 .", "\x00\x14\x00",false))
 
