@@ -33,8 +33,8 @@ pthread_rwlock_t GeoIPBackend::s_state_lock=PTHREAD_RWLOCK_INITIALIZER;
 
 struct GeoIPDNSResourceRecord: DNSResourceRecord {
 public:
-	int weight;
-	bool has_weight;
+  int weight;
+  bool has_weight;
 };
 
 class GeoIPDomain {
@@ -143,7 +143,7 @@ void GeoIPBackend::initialize() {
         rr.domain_id = dom.id;
         rr.ttl = dom.ttl;
         rr.qname = qname;
-        if (rec->first.IsNull()) { 
+        if (rec->first.IsNull()) {
           rr.qtype = QType(0);
         } else {
           string qtype = boost::to_upper_copy(rec->first.as<string>());
@@ -157,7 +157,7 @@ void GeoIPBackend::initialize() {
            for(YAML::const_iterator iter = rec->second.begin(); iter != rec->second.end(); iter++) {
              string attr = iter->first.as<string>();
              if (attr == "content") {
-	       string content = iter->second.as<string>();
+               string content = iter->second.as<string>();
                rr.content = content;
              } else if (attr == "weight") {
                rr.weight = iter->second.as<int>();
@@ -173,11 +173,11 @@ void GeoIPBackend::initialize() {
                throw PDNSException(string("Unsupported record attribute ") + attr + string(" for ") + rr.qname.toLogString());
              }
            }
-	} else {
+        } else {
           string content=rec->second.as<string>();
           rr.content = content;
           rr.weight = 100;
-        } 
+        }
         rr.auth = 1;
         rrs.push_back(rr);
       }
@@ -339,14 +339,14 @@ void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket 
   GeoIPLookup gl;
   bool found = false;
 
-  if (d_result.size()>0) 
+  if (d_result.size()>0)
     throw PDNSException("Cannot perform lookup while another is running");
 
   DNSName search = qdomain;
 
   d_result.clear();
 
-  if (zoneId > -1 && zoneId < static_cast<int>(s_domains.size())) 
+  if (zoneId > -1 && zoneId < static_cast<int>(s_domains.size()))
     dom = s_domains[zoneId];
   else {
     for(const GeoIPDomain& i : s_domains) {   // this is arguably wrong, we should probably find the most specific match
@@ -792,7 +792,7 @@ string GeoIPBackend::format2str(string sformat, const string& ip, bool v6, GeoIP
     } else if (!sformat.compare(cur,2,"%%")) {
       last = cur + 2; continue;
     } else {
-      last = cur + 1; continue; 
+      last = cur + 1; continue;
     }
     if (tmp_gl.netmask > gl->netmask) gl->netmask = tmp_gl.netmask;
     sformat.replace(cur, nrep, rep);
@@ -803,7 +803,7 @@ string GeoIPBackend::format2str(string sformat, const string& ip, bool v6, GeoIP
 
 void GeoIPBackend::reload() {
   WriteLock wl(&s_state_lock);
-  
+
   try {
     initialize();
   } catch (PDNSException &pex) {
@@ -998,7 +998,7 @@ bool GeoIPBackend::activateDomainKey(const DNSName& name, unsigned int id) {
           if (regexec(&reg, glob_result.gl_pathv[i], 5, regm, 0) == 0) {
             unsigned int kid = pdns_stou(glob_result.gl_pathv[i]+regm[3].rm_so);
             if (kid == id && !strcmp(glob_result.gl_pathv[i]+regm[4].rm_so,"0")) {
-              ostringstream newpath; 
+              ostringstream newpath;
               newpath << getArg("dnssec-keydir") << "/" << dom.domain.toStringNoDot() << "." << pdns_stou(glob_result.gl_pathv[i]+regm[2].rm_so) << "." << kid << ".1.key";
               if (rename(glob_result.gl_pathv[i], newpath.str().c_str())) {
                 cerr << "Cannot active key: " << strerror(errno) << endl;
@@ -1008,7 +1008,7 @@ bool GeoIPBackend::activateDomainKey(const DNSName& name, unsigned int id) {
         }
       }
       globfree(&glob_result);
-      regfree(&reg); 
+      regfree(&reg);
       return true;
     }
   }
