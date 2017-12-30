@@ -24,6 +24,7 @@
 #endif
 #include "geoipbackend.hh"
 #include "geoipinterface.hh"
+#ifdef HAVE_GEOIP
 #include "GeoIPCity.h"
 
 struct geoip_deleter {
@@ -388,3 +389,11 @@ unique_ptr<GeoIPInterface> GeoIPInterface::makeDATInterface(const string &fname,
     mode = opt->second;
   return unique_ptr<GeoIPInterface>(new GeoIPInterfaceDAT(fname, mode));
 }
+
+#else
+
+unique_ptr<GeoIPInterface> GeoIPInterface::makeDATInterface(const string &fname, const map<string, string>& opts) {
+  throw PDNSException("libGeoIP support not compiled in");
+}
+
+#endif
