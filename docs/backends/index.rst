@@ -34,7 +34,7 @@ The following table describes the supported backends and some of their capabilit
 +------------------------------------------------+--------+--------+-------+--------------+-------------+---------------------------------+--------------+
 | :doc:`Remote <remote>`                         | Yes    | Yes\*  | Yes\* | Yes\*        | Yes\*       | Yes\*                           | ``remote``   |
 +------------------------------------------------+--------+--------+-------+--------------+-------------+---------------------------------+--------------+
-| :doc:`TinyDNS <tinydns>`                       | Yes    | Yes    | No    | No           | No          | Parti                           | ``tinydns``  |
+| :doc:`TinyDNS <tinydns>`                       | Yes    | Yes    | No    | No           | No          | Partial                         | ``tinydns``  |
 +------------------------------------------------+--------+--------+-------+--------------+-------------+---------------------------------+--------------+
 
 All the generic SQL backends have similar functionality, apart from the database they communicate with.
