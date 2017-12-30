@@ -17,7 +17,11 @@ namespace {
   };
 }
 
-#define _CASE_L(type, inval, zoneval, lineval, broken) case_t(type, std::string(inval), std::string(zoneval), std::string(lineval, sizeof(lineval)-1), broken)
+// use a user-defined literal operator instead? should be supported in
+// C++11, but only C++14 added the `s` suffix.
+#define BINARY(s) (std::string(s, sizeof(s) - 1))
+
+#define _CASE_L(type, inval, zoneval, lineval, broken) case_t(type, BINARY(inval), BINARY(zoneval), BINARY(lineval), broken)
 #define CASE_L(type, inval, zoneval, lineval) _CASE_L(type, inval, zoneval, lineval, broken_marker::WORKING)
 #define CASE_S(type, zoneval, lineval) _CASE_L(type, zoneval, zoneval, lineval, broken_marker::WORKING)
 #define BROKEN_CASE_L(type, inval, zoneval, lineval) _CASE_L(type, inval, zoneval, lineval, broken_marker::BROKEN)
@@ -251,10 +255,10 @@ BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
   typedef boost::tuple<const QType::typeenum, const std::string, case_type_t, broken_marker> case_t;
   typedef std::list<case_t> cases_t;
 
-#define ZONE_CASE(type, input) case_t(type, input, case_type_t::zone, broken_marker::WORKING)
-#define WIRE_CASE(type, input) case_t(type, std::string(input, sizeof(input) - 1), case_type_t::wire, broken_marker::WORKING)
-#define BROKEN_ZONE_CASE(type, input) case_t(type, input, case_type_t::zone, broken_marker::BROKEN)
-#define BROKEN_WIRE_CASE(type, input) case_t(type, std::string(input, sizeof(input) - 1), case_type_t::wire, broken_marker::BROKEN)
+#define ZONE_CASE(type, input) case_t(type, BINARY(input), case_type_t::zone, broken_marker::WORKING)
+#define WIRE_CASE(type, input) case_t(type, BINARY(input), case_type_t::wire, broken_marker::WORKING)
+#define BROKEN_ZONE_CASE(type, input) case_t(type, BINARY(input), case_type_t::zone, broken_marker::BROKEN)
+#define BROKEN_WIRE_CASE(type, input) case_t(type, BINARY(input), case_type_t::wire, broken_marker::BROKEN)
 
   const cases_t cases = boost::assign::list_of
      (ZONE_CASE(QType::A, "932.521.256.42")) // hollywood IP
