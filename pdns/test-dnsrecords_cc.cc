@@ -188,6 +188,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
   for(const cases_t::value_type& val :  cases) {
    QType q(val.get<0>());
    if (lq != q.getCode()) n = 0;
+   BOOST_CHECK_MESSAGE(q.getCode() >= lq, "record types not sorted correctly: " << q.getCode() << " < " << lq);
    lq = q.getCode();
    n++;
    BOOST_TEST_CHECKPOINT("Checking record type " << q.getName() << " test #" << n);
