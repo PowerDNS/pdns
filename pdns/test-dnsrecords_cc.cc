@@ -306,10 +306,25 @@ BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
 
     if (broken_marker::BROKEN == broken) {
       bool success=true;
-      BOOST_WARN_EXCEPTION( { auto drc = DNSRecordContent::mastermake(q.getCode(), 1, input); pw.startRecord(DNSName("unit.test"), q.getCode()); drc->toPacket(pw); success=false; }, std::exception, test_dnsrecords_cc_predicate );
+      BOOST_WARN_EXCEPTION(
+        {
+          auto drc = DNSRecordContent::mastermake(q.getCode(), 1, input);
+          pw.startRecord(DNSName("unit.test"), q.getCode());
+          drc->toPacket(pw);
+          success=false;
+        },
+        std::exception, test_dnsrecords_cc_predicate
+      );
       if (success) REC_FAIL_XSUCCESS(q.getName() << " test #" << n << " has unexpectedly passed"); // a bad record was detected when it was supposed not to be detected
     } else {
-      BOOST_CHECK_EXCEPTION( { auto drc = DNSRecordContent::mastermake(q.getCode(), 1, input); pw.startRecord(DNSName("unit.test"), q.getCode()); drc->toPacket(pw); }, std::exception, test_dnsrecords_cc_predicate );
+      BOOST_CHECK_EXCEPTION(
+        {
+          auto drc = DNSRecordContent::mastermake(q.getCode(), 1, input);
+          pw.startRecord(DNSName("unit.test"), q.getCode());
+          drc->toPacket(pw);
+        },
+        std::exception, test_dnsrecords_cc_predicate
+      );
     }
   };
 }
