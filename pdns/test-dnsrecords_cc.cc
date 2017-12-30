@@ -17,10 +17,9 @@
 #define BROKEN_CASE_S(type, zoneval, lineval) _CASE_L(type, zoneval, zoneval, lineval, true)
 BOOST_AUTO_TEST_SUITE(test_dnsrecords_cc)
 
-#define REC_CHECK_EQUAL(a,b) { if (val.get<4>()) { BOOST_WARN_EQUAL(a,b); } else {  BOOST_CHECK_EQUAL(a,b); } }
-#define REC_CHECK_MESSAGE(cond,msg) { if (val.get<4>()) { BOOST_WARN_MESSAGE(cond,msg); } else {  BOOST_CHECK_MESSAGE(cond,msg); } }
-#define REC_FAIL_XSUCCESS(msg) { if (val.get<4>()) { BOOST_CHECK_MESSAGE(false, std::string("Test has unexpectedly passed: ") + msg); } } // fail if test succeeds
-#define REC_FAIL_XSUCCESS2(msg) { if (val.get<3>()) { BOOST_CHECK_MESSAGE(false, std::string("Test has unexpectedly passed: ") + msg); } } // fail if test succeeds (for the bad records test case)
+#define REC_CHECK_EQUAL(a,b) { if (broken) { BOOST_WARN_EQUAL(a,b); } else {  BOOST_CHECK_EQUAL(a,b); } }
+#define REC_CHECK_MESSAGE(cond,msg) { if (broken) { BOOST_WARN_MESSAGE(cond,msg); } else {  BOOST_CHECK_MESSAGE(cond,msg); } }
+#define REC_FAIL_XSUCCESS(msg) { if (broken) { BOOST_CHECK_MESSAGE(false, std::string("Test has unexpectedly passed: ") + msg); } } // fail if test succeeds
 
 BOOST_AUTO_TEST_CASE(test_record_types) {
   // tuple contains <type, user value, zone representation, line value, broken>
@@ -184,7 +183,12 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
   int n=0;
   int lq=-1;
   for(const cases_t::value_type& val :  cases) {
-   QType q(val.get<0>());
+   const QType q(val.get<0>());
+   const std::string& inval = val.get<1>();
+   const std::string& zoneval = val.get<2>();
+   const std::string& lineval = val.get<3>();
+   const bool broken = val.get<4>();
+
    if (lq != q.getCode()) n = 0;
    BOOST_CHECK_MESSAGE(q.getCode() >= lq, "record types not sorted correctly: " << q.getCode() << " < " << lq);
    lq = q.getCode();
@@ -193,8 +197,8 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
    BOOST_TEST_MESSAGE("Checking record type " << q.getName() << " test #" << n);
    try {
       std::string recData;
-      auto rec = DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>());
-      BOOST_CHECK_MESSAGE(rec != NULL, "mastermake( " << q.getCode() << ", 1, " << val.get<1>() << ") returned NULL");
+      auto rec = DNSRecordContent::mastermake(q.getCode(), 1, inval);
+      BOOST_CHECK_MESSAGE(rec != NULL, "mastermake( " << q.getCode() << ", 1, " << inval << ") returned NULL");
       if (rec == NULL) continue;
       // now verify the record (note that this will be same as *zone* value (except for certain QTypes)
 
@@ -206,10 +210,10 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
       case QType::SOA:
       case QType::TXT:
           // check *input* value instead
-          REC_CHECK_EQUAL(rec->getZoneRepresentation(), val.get<1>());
+          REC_CHECK_EQUAL(rec->getZoneRepresentation(), inval);
           break;
       default:
-          REC_CHECK_EQUAL(rec->getZoneRepresentation(), val.get<2>());
+          REC_CHECK_EQUAL(rec->getZoneRepresentation(), zoneval);
       }
       recData = rec->serialize(DNSName("rec.test"));
 
@@ -217,9 +221,9 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
       BOOST_CHECK_MESSAGE(rec2 != NULL, "unserialize(rec.test, " << q.getCode() << ", recData) returned NULL");
       if (rec2 == NULL) continue;
       // now verify the zone representation (here it can be different!)
-      REC_CHECK_EQUAL(rec2->getZoneRepresentation(), val.get<2>());
+      REC_CHECK_EQUAL(rec2->getZoneRepresentation(), zoneval);
       // and last, check the wire format (using hex format for error readability)
-      string cmpData = makeHexDump(val.get<3>());
+      string cmpData = makeHexDump(lineval);
       recData = makeHexDump(recData);
       REC_CHECK_EQUAL(recData, cmpData);
    } catch (std::runtime_error &err) {
@@ -274,7 +278,11 @@ BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
   int lq=-1;
 
   for(const cases_t::value_type& val :  cases) {
-    QType q(val.get<0>());
+    const QType q(val.get<0>());
+    const std::string& input = val.get<1>();
+    const case_type_t case_type = val.get<2>();
+    const bool broken = val.get<3>();
+
     if (lq != q.getCode()) n = 0;
     lq = q.getCode();
     n++;
@@ -284,17 +292,17 @@ BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
     vector<uint8_t> packet;
     DNSPacketWriter pw(packet, DNSName("unit.test"), q.getCode());
 
-    if (val.get<2>() == case_type_t::wire) {
+    if (case_type == case_type_t::wire) {
       BOOST_WARN_MESSAGE(false, "wire checks not supported");
       continue;
     }
 
-    if (val.get<3>()) {
+    if (broken) {
       bool success=true;
-      BOOST_WARN_EXCEPTION( { auto drc = DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>()); pw.startRecord(DNSName("unit.test"), q.getCode()); drc->toPacket(pw); success=false; }, std::exception, test_dnsrecords_cc_predicate );
-      if (success) REC_FAIL_XSUCCESS2(q.getName() << " test #" << n << " has unexpectedly passed"); // a bad record was detected when it was supposed not to be detected
+      BOOST_WARN_EXCEPTION( { auto drc = DNSRecordContent::mastermake(q.getCode(), 1, input); pw.startRecord(DNSName("unit.test"), q.getCode()); drc->toPacket(pw); success=false; }, std::exception, test_dnsrecords_cc_predicate );
+      if (success) REC_FAIL_XSUCCESS(q.getName() << " test #" << n << " has unexpectedly passed"); // a bad record was detected when it was supposed not to be detected
     } else {
-      BOOST_CHECK_EXCEPTION( { auto drc = DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>()); pw.startRecord(DNSName("unit.test"), q.getCode()); drc->toPacket(pw); }, std::exception, test_dnsrecords_cc_predicate );
+      BOOST_CHECK_EXCEPTION( { auto drc = DNSRecordContent::mastermake(q.getCode(), 1, input); pw.startRecord(DNSName("unit.test"), q.getCode()); drc->toPacket(pw); }, std::exception, test_dnsrecords_cc_predicate );
     }
   };
 }
