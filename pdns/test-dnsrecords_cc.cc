@@ -10,20 +10,27 @@
 #include <boost/scoped_ptr.hpp>
 #include "dnsrecords.hh"
 
+namespace {
+  enum class broken_marker {
+    WORKING,
+    BROKEN,
+  };
+}
+
 #define _CASE_L(type, inval, zoneval, lineval, broken) case_t(type, std::string(inval), std::string(zoneval), std::string(lineval, sizeof(lineval)-1), broken)
-#define CASE_L(type, inval, zoneval, lineval) _CASE_L(type, inval, zoneval, lineval, false)
-#define CASE_S(type, zoneval, lineval) _CASE_L(type, zoneval, zoneval, lineval, false)
-#define BROKEN_CASE_L(type, inval, zoneval, lineval) _CASE_L(type, inval, zoneval, lineval, true)
-#define BROKEN_CASE_S(type, zoneval, lineval) _CASE_L(type, zoneval, zoneval, lineval, true)
+#define CASE_L(type, inval, zoneval, lineval) _CASE_L(type, inval, zoneval, lineval, broken_marker::WORKING)
+#define CASE_S(type, zoneval, lineval) _CASE_L(type, zoneval, zoneval, lineval, broken_marker::WORKING)
+#define BROKEN_CASE_L(type, inval, zoneval, lineval) _CASE_L(type, inval, zoneval, lineval, broken_marker::BROKEN)
+#define BROKEN_CASE_S(type, zoneval, lineval) _CASE_L(type, zoneval, zoneval, lineval, broken_marker::BROKEN)
 BOOST_AUTO_TEST_SUITE(test_dnsrecords_cc)
 
-#define REC_CHECK_EQUAL(a,b) { if (broken) { BOOST_WARN_EQUAL(a,b); } else {  BOOST_CHECK_EQUAL(a,b); } }
-#define REC_CHECK_MESSAGE(cond,msg) { if (broken) { BOOST_WARN_MESSAGE(cond,msg); } else {  BOOST_CHECK_MESSAGE(cond,msg); } }
-#define REC_FAIL_XSUCCESS(msg) { if (broken) { BOOST_CHECK_MESSAGE(false, std::string("Test has unexpectedly passed: ") + msg); } } // fail if test succeeds
+#define REC_CHECK_EQUAL(a,b) { if (broken_marker::BROKEN == broken) { BOOST_WARN_EQUAL(a,b); } else {  BOOST_CHECK_EQUAL(a,b); } }
+#define REC_CHECK_MESSAGE(cond,msg) { if (broken_marker::BROKEN == broken) { BOOST_WARN_MESSAGE(cond,msg); } else {  BOOST_CHECK_MESSAGE(cond,msg); } }
+#define REC_FAIL_XSUCCESS(msg) { if (broken_marker::BROKEN == broken) { BOOST_CHECK_MESSAGE(false, std::string("Test has unexpectedly passed: ") + msg); } } // fail if test succeeds
 
 BOOST_AUTO_TEST_CASE(test_record_types) {
   // tuple contains <type, user value, zone representation, line value, broken>
-  typedef boost::tuple<const QType::typeenum, const std::string, const std::string, const std::string, bool> case_t;
+  typedef boost::tuple<QType::typeenum, std::string, std::string, std::string, broken_marker> case_t;
   typedef std::list<case_t> cases_t;
   reportAllTypes();
   MRRecordContent::report();
@@ -38,7 +45,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
 
 // why yes, they are unordered by name, how nice of you to notice
 
-  cases_t cases = boost::assign::list_of
+  const cases_t cases = boost::assign::list_of
      (CASE_S(QType::A, "127.0.0.1", "\x7F\x00\x00\x01"))
 // local nameserver
      (CASE_S(QType::NS, "ns.rec.test.", "\x02ns\xc0\x11"))
@@ -187,7 +194,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
    const std::string& inval = val.get<1>();
    const std::string& zoneval = val.get<2>();
    const std::string& lineval = val.get<3>();
-   const bool broken = val.get<4>();
+   const broken_marker broken = val.get<4>();
 
    if (lq != q.getCode()) n = 0;
    BOOST_CHECK_MESSAGE(q.getCode() >= lq, "record types not sorted correctly: " << q.getCode() << " < " << lq);
@@ -241,15 +248,15 @@ BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
   enum class case_type_t { zone, wire };
 
   // qtype, value, zone/wire format, broken
-  typedef boost::tuple<const QType::typeenum, const std::string, case_type_t, bool> case_t;
+  typedef boost::tuple<const QType::typeenum, const std::string, case_type_t, broken_marker> case_t;
   typedef std::list<case_t> cases_t;
 
-#define ZONE_CASE(type, input) case_t(type, input, case_type_t::zone, false)
-#define WIRE_CASE(type, input) case_t(type, std::string(input, sizeof(input) - 1), case_type_t::wire, false)
-#define BROKEN_ZONE_CASE(type, input) case_t(type, input, case_type_t::zone, true)
-#define BROKEN_WIRE_CASE(type, input) case_t(type, std::string(input, sizeof(input) - 1), case_type_t::wire, true)
+#define ZONE_CASE(type, input) case_t(type, input, case_type_t::zone, broken_marker::WORKING)
+#define WIRE_CASE(type, input) case_t(type, std::string(input, sizeof(input) - 1), case_type_t::wire, broken_marker::WORKING)
+#define BROKEN_ZONE_CASE(type, input) case_t(type, input, case_type_t::zone, broken_marker::BROKEN)
+#define BROKEN_WIRE_CASE(type, input) case_t(type, std::string(input, sizeof(input) - 1), case_type_t::wire, broken_marker::BROKEN)
 
-  cases_t cases = boost::assign::list_of
+  const cases_t cases = boost::assign::list_of
      (ZONE_CASE(QType::A, "932.521.256.42")) // hollywood IP
      (ZONE_CASE(QType::A, "932.521")) // truncated hollywood IP
      (ZONE_CASE(QType::A, "10.0")) // truncated IP
@@ -281,7 +288,7 @@ BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
     const QType q(val.get<0>());
     const std::string& input = val.get<1>();
     const case_type_t case_type = val.get<2>();
-    const bool broken = val.get<3>();
+    const broken_marker broken = val.get<3>();
 
     if (lq != q.getCode()) n = 0;
     lq = q.getCode();
@@ -297,7 +304,7 @@ BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
       continue;
     }
 
-    if (broken) {
+    if (broken_marker::BROKEN == broken) {
       bool success=true;
       BOOST_WARN_EXCEPTION( { auto drc = DNSRecordContent::mastermake(q.getCode(), 1, input); pw.startRecord(DNSName("unit.test"), q.getCode()); drc->toPacket(pw); success=false; }, std::exception, test_dnsrecords_cc_predicate );
       if (success) REC_FAIL_XSUCCESS(q.getName() << " test #" << n << " has unexpectedly passed"); // a bad record was detected when it was supposed not to be detected
