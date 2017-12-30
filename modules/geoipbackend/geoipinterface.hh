@@ -34,20 +34,20 @@ public:
     Region
   };
 
-  virtual bool queryCountry(string &ret, GeoIPLookup* gl, const string &ip) = 0;
-  virtual bool queryCountryV6(string &ret, GeoIPLookup* gl, const string &ip) = 0;
-  virtual bool queryCountry2(string &ret, GeoIPLookup* gl, const string &ip) = 0;
-  virtual bool queryCountry2V6(string &ret, GeoIPLookup* gl, const string &ip) = 0;
-  virtual bool queryContinent(string &ret, GeoIPLookup* gl, const string &ip) = 0;
-  virtual bool queryContinentV6(string &ret, GeoIPLookup* gl, const string &ip) = 0;
-  virtual bool queryName(string &ret, GeoIPLookup* gl, const string &ip) = 0;
-  virtual bool queryNameV6(string &ret, GeoIPLookup* gl, const string &ip) = 0;
-  virtual bool queryASnum(string &ret, GeoIPLookup* gl, const string &ip) = 0;
-  virtual bool queryASnumV6(string &ret, GeoIPLookup* gl, const string &ip) = 0;
-  virtual bool queryRegion(string &ret, GeoIPLookup* gl, const string &ip) = 0;
-  virtual bool queryRegionV6(string &ret, GeoIPLookup* gl, const string &ip) = 0;
-  virtual bool queryCity(string &ret, GeoIPLookup* gl, const string &ip) = 0;
-  virtual bool queryCityV6(string &ret, GeoIPLookup* gl, const string &ip) = 0;
+  virtual bool queryCountry(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
+  virtual bool queryCountryV6(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
+  virtual bool queryCountry2(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
+  virtual bool queryCountry2V6(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
+  virtual bool queryContinent(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
+  virtual bool queryContinentV6(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
+  virtual bool queryName(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
+  virtual bool queryNameV6(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
+  virtual bool queryASnum(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
+  virtual bool queryASnumV6(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
+  virtual bool queryRegion(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
+  virtual bool queryRegionV6(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
+  virtual bool queryCity(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
+  virtual bool queryCityV6(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
 
   virtual ~GeoIPInterface() { }
 

@@ -55,15 +55,20 @@ public:
     d_db_type = GeoIP_database_edition(d_gi.get());
   }
 
-  bool queryCountry(string &ret, GeoIPLookup* gl, const string &ip) override {
+  bool queryCountry(string &ret, GeoIPNetmask& gl, const string &ip) override {
+    GeoIPLookup tmp_gl = {
+      .netmask = gl.netmask,
+    };
     if (d_db_type == GEOIP_COUNTRY_EDITION ||
         d_db_type == GEOIP_LARGE_COUNTRY_EDITION) {
-      ret = GeoIP_code3_by_id(GeoIP_id_by_addr_gl(d_gi.get(), ip.c_str(), gl));
+      ret = GeoIP_code3_by_id(GeoIP_id_by_addr_gl(d_gi.get(), ip.c_str(), &tmp_gl));
+      gl.netmask = tmp_gl.netmask;
       return true;
     } else if (d_db_type == GEOIP_REGION_EDITION_REV0 ||
                d_db_type == GEOIP_REGION_EDITION_REV1) {
-      GeoIPRegion* gir = GeoIP_region_by_addr_gl(d_gi.get(), ip.c_str(), gl);
+      GeoIPRegion* gir = GeoIP_region_by_addr_gl(d_gi.get(), ip.c_str(), &tmp_gl);
       if (gir) {
+        gl.netmask = tmp_gl.netmask;
         ret = GeoIP_code3_by_id(GeoIP_id_by_code(gir->country_code));
         return true;
       }
@@ -72,22 +77,27 @@ public:
       GeoIPRecord *gir = GeoIP_record_by_addr(d_gi.get(), ip.c_str());
       if (gir) {
         ret = gir->country_code3;
-        gl->netmask = gir->netmask;
+        gl.netmask = gir->netmask;
         return true;
       }
     }
     return false;
   }
 
-  bool queryCountryV6(string &ret, GeoIPLookup* gl, const string &ip) override {
+  bool queryCountryV6(string &ret, GeoIPNetmask& gl, const string &ip) override {
+    GeoIPLookup tmp_gl = {
+      .netmask = gl.netmask,
+    };
     if (d_db_type == GEOIP_COUNTRY_EDITION_V6 ||
         d_db_type == GEOIP_LARGE_COUNTRY_EDITION_V6) {
-      ret = GeoIP_code3_by_id(GeoIP_id_by_addr_v6_gl(d_gi.get(), ip.c_str(), gl));
+      ret = GeoIP_code3_by_id(GeoIP_id_by_addr_v6_gl(d_gi.get(), ip.c_str(), &tmp_gl));
+      gl.netmask = tmp_gl.netmask;
       return true;
     } else if (d_db_type == GEOIP_REGION_EDITION_REV0 ||
                d_db_type == GEOIP_REGION_EDITION_REV1) {
-      GeoIPRegion* gir = GeoIP_region_by_addr_v6_gl(d_gi.get(), ip.c_str(), gl);
+      GeoIPRegion* gir = GeoIP_region_by_addr_v6_gl(d_gi.get(), ip.c_str(), &tmp_gl);
       if (gir) {
+        gl.netmask = tmp_gl.netmask;
         ret = GeoIP_code3_by_id(GeoIP_id_by_code(gir->country_code));
         return true;
       }
@@ -96,22 +106,27 @@ public:
       GeoIPRecord *gir = GeoIP_record_by_addr_v6(d_gi.get(), ip.c_str());
       if (gir) {
         ret = gir->country_code3;
-        gl->netmask = gir->netmask;
+        gl.netmask = gir->netmask;
         return true;
       }
     }
     return false;
   }
 
-  bool queryCountry2(string &ret, GeoIPLookup* gl, const string &ip) override {
+  bool queryCountry2(string &ret, GeoIPNetmask& gl, const string &ip) override {
+    GeoIPLookup tmp_gl = {
+      .netmask = gl.netmask,
+    };
     if (d_db_type == GEOIP_COUNTRY_EDITION ||
         d_db_type == GEOIP_LARGE_COUNTRY_EDITION) {
-      ret = GeoIP_code_by_id(GeoIP_id_by_addr_gl(d_gi.get(), ip.c_str(), gl));
+      ret = GeoIP_code_by_id(GeoIP_id_by_addr_gl(d_gi.get(), ip.c_str(), &tmp_gl));
+      gl.netmask = tmp_gl.netmask;
       return true;
     } else if (d_db_type == GEOIP_REGION_EDITION_REV0 ||
                d_db_type == GEOIP_REGION_EDITION_REV1) {
-      GeoIPRegion* gir = GeoIP_region_by_addr_gl(d_gi.get(), ip.c_str(), gl);
+      GeoIPRegion* gir = GeoIP_region_by_addr_gl(d_gi.get(), ip.c_str(), &tmp_gl);
       if (gir) {
+        gl.netmask = tmp_gl.netmask;
         ret = GeoIP_code_by_id(GeoIP_id_by_code(gir->country_code));
         return true;
       }
@@ -120,22 +135,27 @@ public:
       GeoIPRecord *gir = GeoIP_record_by_addr(d_gi.get(), ip.c_str());
       if (gir) {
         ret = gir->country_code;
-        gl->netmask = gir->netmask;
+        gl.netmask = gir->netmask;
         return true;
       }
     }
     return false;
   }
 
-  bool queryCountry2V6(string &ret, GeoIPLookup* gl, const string &ip) override {
+  bool queryCountry2V6(string &ret, GeoIPNetmask& gl, const string &ip) override {
+    GeoIPLookup tmp_gl = {
+      .netmask = gl.netmask,
+    };
     if (d_db_type == GEOIP_COUNTRY_EDITION_V6 ||
         d_db_type == GEOIP_LARGE_COUNTRY_EDITION_V6) {
-      ret = GeoIP_code_by_id(GeoIP_id_by_addr_v6_gl(d_gi.get(), ip.c_str(), gl));
+      ret = GeoIP_code_by_id(GeoIP_id_by_addr_v6_gl(d_gi.get(), ip.c_str(), &tmp_gl));
+      gl.netmask = tmp_gl.netmask;
       return true;
     } else if (d_db_type == GEOIP_REGION_EDITION_REV0 ||
                d_db_type == GEOIP_REGION_EDITION_REV1) {
-      GeoIPRegion* gir = GeoIP_region_by_addr_v6_gl(d_gi.get(), ip.c_str(), gl);
+      GeoIPRegion* gir = GeoIP_region_by_addr_v6_gl(d_gi.get(), ip.c_str(), &tmp_gl);
       if (gir) {
+        gl.netmask = tmp_gl.netmask;
         ret = GeoIP_code_by_id(GeoIP_id_by_code(gir->country_code));
         return true;
       }
@@ -144,22 +164,27 @@ public:
       GeoIPRecord *gir = GeoIP_record_by_addr_v6(d_gi.get(), ip.c_str());
       if (gir) {
         ret = gir->country_code;
-        gl->netmask = gir->netmask;
+        gl.netmask = gir->netmask;
         return true;
       }
     }
     return false;
   }
 
-  bool queryContinent(string &ret, GeoIPLookup* gl, const string &ip) override {
+  bool queryContinent(string &ret, GeoIPNetmask& gl, const string &ip) override {
+    GeoIPLookup tmp_gl = {
+      .netmask = gl.netmask,
+    };
     if (d_db_type == GEOIP_COUNTRY_EDITION ||
         d_db_type == GEOIP_LARGE_COUNTRY_EDITION) {
-      ret = GeoIP_continent_by_id(GeoIP_id_by_addr_gl(d_gi.get(), ip.c_str(), gl));
+      ret = GeoIP_continent_by_id(GeoIP_id_by_addr_gl(d_gi.get(), ip.c_str(), &tmp_gl));
+      gl.netmask = tmp_gl.netmask;
       return true;
     } else if (d_db_type == GEOIP_REGION_EDITION_REV0 ||
                d_db_type == GEOIP_REGION_EDITION_REV1) {
-      GeoIPRegion* gir = GeoIP_region_by_addr_gl(d_gi.get(), ip.c_str(), gl);
+      GeoIPRegion* gir = GeoIP_region_by_addr_gl(d_gi.get(), ip.c_str(), &tmp_gl);
       if (gir) {
+        gl.netmask = tmp_gl.netmask;
         ret = GeoIP_continent_by_id(GeoIP_id_by_code(gir->country_code));
         return true;
       }
@@ -168,22 +193,27 @@ public:
       GeoIPRecord *gir = GeoIP_record_by_addr(d_gi.get(), ip.c_str());
       if (gir) {
         ret =  ret = GeoIP_continent_by_id(GeoIP_id_by_code(gir->country_code));
-        gl->netmask = gir->netmask;
+        gl.netmask = gir->netmask;
         return true;
       }
     }
     return false;
   }
 
-  bool queryContinentV6(string &ret, GeoIPLookup* gl, const string &ip) override {
+  bool queryContinentV6(string &ret, GeoIPNetmask& gl, const string &ip) override {
+    GeoIPLookup tmp_gl = {
+      .netmask = gl.netmask,
+    };
     if (d_db_type == GEOIP_COUNTRY_EDITION_V6 ||
         d_db_type == GEOIP_LARGE_COUNTRY_EDITION_V6) {
-      ret = GeoIP_continent_by_id(GeoIP_id_by_addr_v6_gl(d_gi.get(), ip.c_str(), gl));
+      ret = GeoIP_continent_by_id(GeoIP_id_by_addr_v6_gl(d_gi.get(), ip.c_str(), &tmp_gl));
+      gl.netmask = tmp_gl.netmask;
       return true;
     } else if (d_db_type == GEOIP_REGION_EDITION_REV0 ||
                d_db_type == GEOIP_REGION_EDITION_REV1) {
-      GeoIPRegion* gir = GeoIP_region_by_addr_v6_gl(d_gi.get(), ip.c_str(), gl);
+      GeoIPRegion* gir = GeoIP_region_by_addr_v6_gl(d_gi.get(), ip.c_str(), &tmp_gl);
       if (gir) {
+        gl.netmask = tmp_gl.netmask;
         ret = GeoIP_continent_by_id(GeoIP_id_by_code(gir->country_code));
         return true;
       }
@@ -192,18 +222,22 @@ public:
       GeoIPRecord *gir = GeoIP_record_by_addr_v6(d_gi.get(), ip.c_str());
       if (gir) {
         ret = GeoIP_continent_by_id(GeoIP_id_by_code(gir->country_code));
-        gl->netmask = gir->netmask;
+        gl.netmask = gir->netmask;
         return true;
       }
     }
     return false;
   }
 
-  bool queryName(string &ret, GeoIPLookup* gl, const string &ip) override {
+  bool queryName(string &ret, GeoIPNetmask& gl, const string &ip) override {
+    GeoIPLookup tmp_gl = {
+      .netmask = gl.netmask,
+    };
     if (d_db_type == GEOIP_ISP_EDITION ||
         d_db_type == GEOIP_ORG_EDITION) {
-      string val = valueOrEmpty<char*,string>(GeoIP_name_by_addr_gl(d_gi.get(), ip.c_str(), gl));
+      string val = valueOrEmpty<char*,string>(GeoIP_name_by_addr_gl(d_gi.get(), ip.c_str(), &tmp_gl));
       if (!val.empty()) {
+        gl.netmask = tmp_gl.netmask;
         // reduce space to dash
         ret = boost::replace_all_copy(val, " ", "-");
         return true;
@@ -212,11 +246,15 @@ public:
     return false;
   }
 
-  bool queryNameV6(string &ret, GeoIPLookup* gl, const string &ip) override {
+  bool queryNameV6(string &ret, GeoIPNetmask& gl, const string &ip) override {
+    GeoIPLookup tmp_gl = {
+      .netmask = gl.netmask,
+    };
     if (d_db_type == GEOIP_ISP_EDITION_V6 ||
         d_db_type == GEOIP_ORG_EDITION_V6) {
-      string val = valueOrEmpty<char*,string>(GeoIP_name_by_addr_v6_gl(d_gi.get(), ip.c_str(), gl));
+      string val = valueOrEmpty<char*,string>(GeoIP_name_by_addr_v6_gl(d_gi.get(), ip.c_str(), &tmp_gl));
       if (!val.empty()) {
+        gl.netmask = tmp_gl.netmask;
         // reduce space to dash
         ret = boost::replace_all_copy(val, " ", "-");
         return true;
@@ -225,13 +263,17 @@ public:
     return false;
   }
 
-  bool queryASnum(string &ret, GeoIPLookup* gl, const string &ip) override {
+  bool queryASnum(string &ret, GeoIPNetmask& gl, const string &ip) override {
+    GeoIPLookup tmp_gl = {
+      .netmask = gl.netmask,
+    };
     if (d_db_type == GEOIP_ASNUM_EDITION) {
-      string val = valueOrEmpty<char*,string>(GeoIP_name_by_addr_gl(d_gi.get(), ip.c_str(), gl));
+      string val = valueOrEmpty<char*,string>(GeoIP_name_by_addr_gl(d_gi.get(), ip.c_str(), &tmp_gl));
       if (!val.empty()) {
         vector<string> asnr;
         stringtok(asnr, val);
         if(asnr.size()>0) {
+          gl.netmask = tmp_gl.netmask;
           ret = asnr[0];
           return true;
         }
@@ -240,13 +282,17 @@ public:
     return false;
   }
 
-  bool queryASnumV6(string &ret, GeoIPLookup* gl, const string &ip) override {
+  bool queryASnumV6(string &ret, GeoIPNetmask& gl, const string &ip) override {
+    GeoIPLookup tmp_gl = {
+      .netmask = gl.netmask,
+    };
     if (d_db_type == GEOIP_ASNUM_EDITION_V6) {
-      string val = valueOrEmpty<char*,string>(GeoIP_name_by_addr_v6_gl(d_gi.get(), ip.c_str(), gl));
+      string val = valueOrEmpty<char*,string>(GeoIP_name_by_addr_v6_gl(d_gi.get(), ip.c_str(), &tmp_gl));
       if (!val.empty()) {
         vector<string> asnr;
         stringtok(asnr, val);
         if(asnr.size()>0) {
+          gl.netmask = tmp_gl.netmask;
           ret = asnr[0];
           return true;
         }
@@ -255,11 +301,15 @@ public:
     return false;
   }
 
-  bool queryRegion(string &ret, GeoIPLookup* gl, const string &ip) override {
+  bool queryRegion(string &ret, GeoIPNetmask& gl, const string &ip) override {
+    GeoIPLookup tmp_gl = {
+      .netmask = gl.netmask,
+    };
     if (d_db_type == GEOIP_REGION_EDITION_REV0 ||
         d_db_type == GEOIP_REGION_EDITION_REV1) {
-      GeoIPRegion *gir = GeoIP_region_by_addr_gl(d_gi.get(), ip.c_str(), gl);
+      GeoIPRegion *gir = GeoIP_region_by_addr_gl(d_gi.get(), ip.c_str(), &tmp_gl);
       if (gir) {
+        gl.netmask = tmp_gl.netmask;
         ret = valueOrEmpty<char*,string>(gir->region);
         return true;
       }
@@ -268,18 +318,22 @@ public:
       GeoIPRecord *gir = GeoIP_record_by_addr(d_gi.get(), ip.c_str());
       if (gir) {
         ret = valueOrEmpty<char*,string>(gir->region);
-        gl->netmask = gir->netmask;
+        gl.netmask = gir->netmask;
         return true;
       }
     }
     return false;
   }
 
-  bool queryRegionV6(string &ret, GeoIPLookup* gl, const string &ip) override {
+  bool queryRegionV6(string &ret, GeoIPNetmask& gl, const string &ip) override {
+    GeoIPLookup tmp_gl = {
+      .netmask = gl.netmask,
+    };
     if (d_db_type == GEOIP_REGION_EDITION_REV0 ||
         d_db_type == GEOIP_REGION_EDITION_REV1) {
-      GeoIPRegion *gir = GeoIP_region_by_addr_v6_gl(d_gi.get(), ip.c_str(), gl);
+      GeoIPRegion *gir = GeoIP_region_by_addr_v6_gl(d_gi.get(), ip.c_str(), &tmp_gl);
       if (gir) {
+        gl.netmask = tmp_gl.netmask;
         ret = valueOrEmpty<char*,string>(gir->region);
         return true;
       }
@@ -288,33 +342,33 @@ public:
       GeoIPRecord *gir = GeoIP_record_by_addr_v6(d_gi.get(), ip.c_str());
       if (gir) {
         ret = valueOrEmpty<char*,string>(gir->region);
-        gl->netmask = gir->netmask;
+        gl.netmask = gir->netmask;
         return true;
       }
     }
     return false;
   }
 
-  bool queryCity(string &ret, GeoIPLookup* gl, const string &ip) override {
+  bool queryCity(string &ret, GeoIPNetmask& gl, const string &ip) override {
     if (d_db_type == GEOIP_CITY_EDITION_REV0 ||
         d_db_type == GEOIP_CITY_EDITION_REV1) {
       GeoIPRecord *gir = GeoIP_record_by_addr(d_gi.get(), ip.c_str());
       if (gir) {
         ret = valueOrEmpty<char*,string>(gir->city);
-        gl->netmask = gir->netmask;
+        gl.netmask = gir->netmask;
         return true;
       }
     }
     return false;
   }
 
-  bool queryCityV6(string &ret, GeoIPLookup* gl, const string &ip) override {
+  bool queryCityV6(string &ret, GeoIPNetmask& gl, const string &ip) override {
     if (d_db_type == GEOIP_CITY_EDITION_REV0_V6 ||
         d_db_type == GEOIP_CITY_EDITION_REV1_V6) {
       GeoIPRecord *gir = GeoIP_record_by_addr_v6(d_gi.get(), ip.c_str());
       if (gir) {
         ret = valueOrEmpty<char*,string>(gir->city);
-        gl->netmask = gir->netmask;
+        gl.netmask = gir->netmask;
         return true;
       }
     }

@@ -45,6 +45,10 @@ class GeoIPInterface;
 
 class GeoIPDomain;
 
+struct GeoIPNetmask {
+  int netmask;
+};
+
 class GeoIPBackend: public DNSBackend {
 public:
   GeoIPBackend(const std::string& suffix="");
@@ -71,10 +75,10 @@ private:
   static pthread_rwlock_t s_state_lock;
 
   void initialize();
-  string format2str(string format, const string& ip, bool v6, GeoIPLookup* gl);
+  string format2str(string format, const string& ip, bool v6, GeoIPNetmask& gl);
   bool d_dnssec;
   bool hasDNSSECkey(const DNSName& name);
-  bool lookup_static(const GeoIPDomain &dom, const DNSName &search, const QType &qtype, const DNSName& qdomain, const std::string &ip, GeoIPLookup &gl, bool v6);
+  bool lookup_static(const GeoIPDomain &dom, const DNSName &search, const QType &qtype, const DNSName& qdomain, const std::string &ip, GeoIPNetmask& gl, bool v6);
   vector<DNSResourceRecord> d_result;
   vector<GeoIPInterface> d_files;
 };
