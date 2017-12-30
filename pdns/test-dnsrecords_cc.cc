@@ -22,10 +22,6 @@ BOOST_AUTO_TEST_SUITE(test_dnsrecords_cc)
 #define REC_FAIL_XSUCCESS(msg) { if (val.get<4>()) { BOOST_CHECK_MESSAGE(false, std::string("Test has unexpectedly passed: ") + msg); } } // fail if test succeeds
 #define REC_FAIL_XSUCCESS2(msg) { if (val.get<3>()) { BOOST_CHECK_MESSAGE(false, std::string("Test has unexpectedly passed: ") + msg); } } // fail if test succeeds (for the bad records test case)
 
-enum class case_type_enum_t { zone, wire };
-static const auto zone = case_type_enum_t::zone;
-static const auto wire = case_type_enum_t::wire;
-
 BOOST_AUTO_TEST_CASE(test_record_types) {
   // tuple contains <type, user value, zone representation, line value, broken>
   typedef boost::tuple<const QType::typeenum, const std::string, const std::string, const std::string, bool> case_t;
@@ -238,33 +234,40 @@ bool test_dnsrecords_cc_predicate( std::exception const &ex ) { return true; }
 
 // these *MUST NOT* parse properly!
 BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
+  enum class case_type_t { zone, wire };
+
   // qtype, value, zone/wire format, broken
-  typedef boost::tuple<const QType::typeenum, const std::string, case_type_enum_t, bool> case_t;
+  typedef boost::tuple<const QType::typeenum, const std::string, case_type_t, bool> case_t;
   typedef std::list<case_t> cases_t;
 
+#define ZONE_CASE(type, input) case_t(type, input, case_type_t::zone, false)
+#define WIRE_CASE(type, input) case_t(type, std::string(input, sizeof(input) - 1), case_type_t::wire, false)
+#define BROKEN_ZONE_CASE(type, input) case_t(type, input, case_type_t::zone, true)
+#define BROKEN_WIRE_CASE(type, input) case_t(type, std::string(input, sizeof(input) - 1), case_type_t::wire, true)
+
   cases_t cases = boost::assign::list_of
-     (case_t(QType::A, "932.521.256.42", zone, false)) // hollywood IP
-     (case_t(QType::A, "932.521", zone, false)) // truncated hollywood IP
-     (case_t(QType::A, "10.0", zone, false)) // truncated IP
-     (case_t(QType::A, "10.0.0.1.", zone, false)) // trailing dot
-     (case_t(QType::A, "10.0.0.", zone, false)) // trailing dot
-     (case_t(QType::A, ".0.0.1", zone, false)) // empty octet
-     (case_t(QType::A, "10..0.1", zone, false)) // empty octet
-     (case_t(QType::A, "\xca\xec\x00", wire, false)) // truncated wire value
-     (case_t(QType::A, "127.0.0.1 evil data", zone, false)) // trailing garbage
-     (case_t(QType::AAAA, "23:00", zone, false)) // time when this test was written
-     (case_t(QType::AAAA, "23:00::15::43", zone, false)) // double compression
-     (case_t(QType::AAAA, "2a23:00::15::", zone, false)) // ditto
-     (case_t(QType::AAAA, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff", wire, false)) // truncated wire value
+     (ZONE_CASE(QType::A, "932.521.256.42")) // hollywood IP
+     (ZONE_CASE(QType::A, "932.521")) // truncated hollywood IP
+     (ZONE_CASE(QType::A, "10.0")) // truncated IP
+     (ZONE_CASE(QType::A, "10.0.0.1.")) // trailing dot
+     (ZONE_CASE(QType::A, "10.0.0.")) // trailing dot
+     (ZONE_CASE(QType::A, ".0.0.1")) // empty octet
+     (ZONE_CASE(QType::A, "10..0.1")) // empty octet
+     (WIRE_CASE(QType::A, "\xca\xec\x00")) // truncated wire value
+     (ZONE_CASE(QType::A, "127.0.0.1 evil data")) // trailing garbage
+     (ZONE_CASE(QType::AAAA, "23:00")) // time when this test was written
+     (ZONE_CASE(QType::AAAA, "23:00::15::43")) // double compression
+     (ZONE_CASE(QType::AAAA, "2a23:00::15::")) // ditto
+     (WIRE_CASE(QType::AAAA, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff")) // truncated wire value
 // empty label, must be broken
-     (case_t(QType::CNAME, "name..example.com.", zone, false))
+     (ZONE_CASE(QType::CNAME, "name..example.com."))
 // overly large label (64), must be broken
-     (case_t(QType::CNAME, "1234567890123456789012345678901234567890123456789012345678901234.example.com.", zone, false))
+     (ZONE_CASE(QType::CNAME, "1234567890123456789012345678901234567890123456789012345678901234.example.com."))
 // local overly large name (256), must be broken
-     (case_t(QType::CNAME, "123456789012345678901234567890123456789012345678901234567890123.123456789012345678901234567890123456789012345678901234567890123.123456789012345678901234567890123456789012345678901234567890123.12345678901234567890123456789012345678901234567890123.rec.test.", zone, false))
+     (ZONE_CASE(QType::CNAME, "123456789012345678901234567890123456789012345678901234567890123.123456789012345678901234567890123456789012345678901234567890123.123456789012345678901234567890123456789012345678901234567890123.12345678901234567890123456789012345678901234567890123.rec.test."))
 // non-local overly large name (256), must be broken
-     (case_t(QType::CNAME, "123456789012345678901234567890123456789012345678901234567890123.123456789012345678901234567890123456789012345678901234567890123.123456789012345678901234567890123456789012345678901234567890123.12345678901234567890123456789012345678901234567890123456789012.", zone, false))
-     (case_t(QType::SOA, "ns.rec.test hostmaster.test.rec 20130512010 3600 3600 604800 120", zone, false)) // too long serial
+     (ZONE_CASE(QType::CNAME, "123456789012345678901234567890123456789012345678901234567890123.123456789012345678901234567890123456789012345678901234567890123.123456789012345678901234567890123456789012345678901234567890123.12345678901234567890123456789012345678901234567890123456789012."))
+     (ZONE_CASE(QType::SOA, "ns.rec.test hostmaster.test.rec 20130512010 3600 3600 604800 120")) // too long serial
 ;
 
   int n=0;
@@ -281,7 +284,7 @@ BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
     vector<uint8_t> packet;
     DNSPacketWriter pw(packet, DNSName("unit.test"), q.getCode());
 
-    if (val.get<2>() == wire) {
+    if (val.get<2>() == case_type_t::wire) {
       BOOST_WARN_MESSAGE(false, "wire checks not supported");
       continue;
     }
