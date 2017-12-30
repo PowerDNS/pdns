@@ -23,6 +23,7 @@
 #include "config.h"
 #endif
 #include "geoipbackend.hh"
+#include "geoipinterface.hh"
 #include "pdns/dns_random.hh"
 #include <sstream>
 #include <regex.h>
@@ -48,14 +49,6 @@ public:
 
 static vector<GeoIPDomain> s_domains;
 static int s_rc = 0; // refcount
-
-struct geoip_deleter {
-  void operator()(GeoIP* ptr) {
-    if (ptr) GeoIP_delete(ptr);
-  };
-};
-
-static vector<GeoIPBackend::geoip_file_t> s_geoip_files;
 
 static string GeoIP_WEEKDAYS[] = { "mon", "tue", "wed", "thu", "fri", "sat", "sun" };
 static string GeoIP_MONTHS[] = { "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec" };
@@ -87,38 +80,21 @@ GeoIPBackend::GeoIPBackend(const string& suffix) {
   s_rc++;
 }
 
+static vector<std::unique_ptr<GeoIPInterface> > s_geoip_files;
+
 void GeoIPBackend::initialize() {
   YAML::Node config;
   vector<GeoIPDomain> tmp_domains;
 
   string modeStr = getArg("database-cache");
-  int flags;
-  if (modeStr == "standard")
-    flags = GEOIP_STANDARD;
-  else if (modeStr == "memory")
-    flags = GEOIP_MEMORY_CACHE;
-  else if (modeStr == "index")
-    flags = GEOIP_INDEX_CACHE;
-#ifdef HAVE_MMAP
-  else if (modeStr == "mmap")
-    flags = GEOIP_MMAP_CACHE;
-#endif
-  else
-    throw PDNSException("Invalid cache mode " + modeStr + " for GeoIP backend");
-
   s_geoip_files.clear(); // reset pointers
 
   if (getArg("database-files").empty() == false) {
     vector<string> files;
     stringtok(files, getArg("database-files"), " ,\t\r\n");
     for(auto const& file: files) {
-      GeoIP *fptr;
-      int mode;
-      fptr = GeoIP_open(file.c_str(), flags);
-      if (!fptr)
-        throw PDNSException("Cannot open GeoIP database " + file);
-      mode = GeoIP_database_edition(fptr);
-      s_geoip_files.emplace_back(geoip_file_t(mode, unique_ptr<GeoIP,geoip_deleter>(fptr)));
+      const string& fileStr = string("dat:") + file + string(";mode=") + modeStr;
+      s_geoip_files.push_back(GeoIPInterface::makeInterface(fileStr));
     }
   }
 
@@ -420,274 +396,7 @@ bool GeoIPBackend::get(DNSResourceRecord &r) {
   return true;
 }
 
-bool GeoIPBackend::queryCountry(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi) {
-  if (gi.first == GEOIP_COUNTRY_EDITION ||
-      gi.first == GEOIP_LARGE_COUNTRY_EDITION) {
-    ret = GeoIP_code3_by_id(GeoIP_id_by_addr_gl(gi.second.get(), ip.c_str(), gl));
-    return true;
-  } else if (gi.first == GEOIP_REGION_EDITION_REV0 ||
-             gi.first == GEOIP_REGION_EDITION_REV1) {
-    GeoIPRegion* gir = GeoIP_region_by_addr_gl(gi.second.get(), ip.c_str(), gl);
-    if (gir) {
-      ret = GeoIP_code3_by_id(GeoIP_id_by_code(gir->country_code));
-      return true;
-    }
-  } else if (gi.first == GEOIP_CITY_EDITION_REV0 ||
-             gi.first == GEOIP_CITY_EDITION_REV1) {
-    GeoIPRecord *gir = GeoIP_record_by_addr(gi.second.get(), ip.c_str());
-    if (gir) {
-      ret = gir->country_code3;
-      gl->netmask = gir->netmask;
-      return true;
-    }
-  }
-  return false;
-}
-
-bool GeoIPBackend::queryCountryV6(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi) {
-  if (gi.first == GEOIP_COUNTRY_EDITION_V6 ||
-      gi.first == GEOIP_LARGE_COUNTRY_EDITION_V6) {
-    ret = GeoIP_code3_by_id(GeoIP_id_by_addr_v6_gl(gi.second.get(), ip.c_str(), gl));
-    return true;
-  } else if (gi.first == GEOIP_REGION_EDITION_REV0 ||
-             gi.first == GEOIP_REGION_EDITION_REV1) {
-    GeoIPRegion* gir = GeoIP_region_by_addr_v6_gl(gi.second.get(), ip.c_str(), gl);
-    if (gir) {
-      ret = GeoIP_code3_by_id(GeoIP_id_by_code(gir->country_code));
-      return true;
-    }
-  } else if (gi.first == GEOIP_CITY_EDITION_REV0_V6 ||
-             gi.first == GEOIP_CITY_EDITION_REV1_V6) {
-    GeoIPRecord *gir = GeoIP_record_by_addr_v6(gi.second.get(), ip.c_str());
-    if (gir) {
-      ret = gir->country_code3;
-      gl->netmask = gir->netmask;
-      return true;
-    }
-  }
-  return false;
-}
-
-bool GeoIPBackend::queryCountry2(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi) {
-  if (gi.first == GEOIP_COUNTRY_EDITION ||
-      gi.first == GEOIP_LARGE_COUNTRY_EDITION) {
-    ret = GeoIP_code_by_id(GeoIP_id_by_addr_gl(gi.second.get(), ip.c_str(), gl));
-    return true;
-  } else if (gi.first == GEOIP_REGION_EDITION_REV0 ||
-             gi.first == GEOIP_REGION_EDITION_REV1) {
-    GeoIPRegion* gir = GeoIP_region_by_addr_gl(gi.second.get(), ip.c_str(), gl);
-    if (gir) {
-      ret = GeoIP_code_by_id(GeoIP_id_by_code(gir->country_code));
-      return true;
-    }
-  } else if (gi.first == GEOIP_CITY_EDITION_REV0 ||
-             gi.first == GEOIP_CITY_EDITION_REV1) {
-    GeoIPRecord *gir = GeoIP_record_by_addr(gi.second.get(), ip.c_str());
-    if (gir) {
-      ret = gir->country_code;
-      gl->netmask = gir->netmask;
-      return true;
-    }
-  }
-  return false;
-}
-
-bool GeoIPBackend::queryCountry2V6(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi) {
-  if (gi.first == GEOIP_COUNTRY_EDITION_V6 ||
-      gi.first == GEOIP_LARGE_COUNTRY_EDITION_V6) {
-    ret = GeoIP_code_by_id(GeoIP_id_by_addr_v6_gl(gi.second.get(), ip.c_str(), gl));
-    return true;
-  } else if (gi.first == GEOIP_REGION_EDITION_REV0 ||
-             gi.first == GEOIP_REGION_EDITION_REV1) {
-    GeoIPRegion* gir = GeoIP_region_by_addr_v6_gl(gi.second.get(), ip.c_str(), gl);
-    if (gir) {
-      ret = GeoIP_code_by_id(GeoIP_id_by_code(gir->country_code));
-      return true;
-    }
-  } else if (gi.first == GEOIP_CITY_EDITION_REV0_V6 ||
-             gi.first == GEOIP_CITY_EDITION_REV1_V6) {
-    GeoIPRecord *gir = GeoIP_record_by_addr_v6(gi.second.get(), ip.c_str());
-    if (gir) {
-      ret = gir->country_code;
-      gl->netmask = gir->netmask;
-      return true;
-    }
-  }
-  return false;
-}
-
-bool GeoIPBackend::queryContinent(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi) {
-  if (gi.first == GEOIP_COUNTRY_EDITION ||
-      gi.first == GEOIP_LARGE_COUNTRY_EDITION) {
-    ret = GeoIP_continent_by_id(GeoIP_id_by_addr_gl(gi.second.get(), ip.c_str(), gl));
-    return true;
-  } else if (gi.first == GEOIP_REGION_EDITION_REV0 ||
-             gi.first == GEOIP_REGION_EDITION_REV1) {
-    GeoIPRegion* gir = GeoIP_region_by_addr_gl(gi.second.get(), ip.c_str(), gl);
-    if (gir) {
-      ret = GeoIP_continent_by_id(GeoIP_id_by_code(gir->country_code));
-      return true;
-    }
-  } else if (gi.first == GEOIP_CITY_EDITION_REV0 ||
-             gi.first == GEOIP_CITY_EDITION_REV1) {
-    GeoIPRecord *gir = GeoIP_record_by_addr(gi.second.get(), ip.c_str());
-    if (gir) {
-      ret =  ret = GeoIP_continent_by_id(GeoIP_id_by_code(gir->country_code));
-      gl->netmask = gir->netmask;
-      return true;
-    }
-  }
-  return false;
-}
-
-bool GeoIPBackend::queryContinentV6(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi) {
-  if (gi.first == GEOIP_COUNTRY_EDITION_V6 ||
-      gi.first == GEOIP_LARGE_COUNTRY_EDITION_V6) {
-    ret = GeoIP_continent_by_id(GeoIP_id_by_addr_v6_gl(gi.second.get(), ip.c_str(), gl));
-    return true;
-  } else if (gi.first == GEOIP_REGION_EDITION_REV0 ||
-             gi.first == GEOIP_REGION_EDITION_REV1) {
-    GeoIPRegion* gir = GeoIP_region_by_addr_v6_gl(gi.second.get(), ip.c_str(), gl);
-    if (gir) {
-      ret = GeoIP_continent_by_id(GeoIP_id_by_code(gir->country_code));
-      return true;
-    }
-  } else if (gi.first == GEOIP_CITY_EDITION_REV0_V6 ||
-             gi.first == GEOIP_CITY_EDITION_REV1_V6) {
-    GeoIPRecord *gir = GeoIP_record_by_addr_v6(gi.second.get(), ip.c_str());
-    if (gir) {
-      ret = GeoIP_continent_by_id(GeoIP_id_by_code(gir->country_code));
-      gl->netmask = gir->netmask;
-      return true;
-    }
-  }
-  return false;
-}
-
-bool GeoIPBackend::queryName(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi) {
-  if (gi.first == GEOIP_ISP_EDITION ||
-      gi.first == GEOIP_ORG_EDITION) {
-    string val = valueOrEmpty<char*,string>(GeoIP_name_by_addr_gl(gi.second.get(), ip.c_str(), gl));
-    if (!val.empty()) {
-      // reduce space to dash
-      ret = boost::replace_all_copy(val, " ", "-");
-      return true;
-    }
-  }
-  return false;
-}
-
-bool GeoIPBackend::queryNameV6(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi) {
-  if (gi.first == GEOIP_ISP_EDITION_V6 ||
-      gi.first == GEOIP_ORG_EDITION_V6) {
-    string val = valueOrEmpty<char*,string>(GeoIP_name_by_addr_v6_gl(gi.second.get(), ip.c_str(), gl));
-    if (!val.empty()) {
-      // reduce space to dash
-      ret = boost::replace_all_copy(val, " ", "-");
-      return true;
-    }
-  }
-  return false;
-}
-
-bool GeoIPBackend::queryASnum(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi) {
-  if (gi.first == GEOIP_ASNUM_EDITION) {
-    string val = valueOrEmpty<char*,string>(GeoIP_name_by_addr_gl(gi.second.get(), ip.c_str(), gl));
-    if (!val.empty()) {
-      vector<string> asnr;
-      stringtok(asnr, val);
-      if(asnr.size()>0) {
-        ret = asnr[0];
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
-bool GeoIPBackend::queryASnumV6(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi) {
-  if (gi.first == GEOIP_ASNUM_EDITION_V6) {
-    string val = valueOrEmpty<char*,string>(GeoIP_name_by_addr_v6_gl(gi.second.get(), ip.c_str(), gl));
-    if (!val.empty()) {
-      vector<string> asnr;
-      stringtok(asnr, val);
-      if(asnr.size()>0) {
-        ret = asnr[0];
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
-bool GeoIPBackend::queryRegion(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi) {
-  if (gi.first == GEOIP_REGION_EDITION_REV0 ||
-      gi.first == GEOIP_REGION_EDITION_REV1) {
-    GeoIPRegion *gir = GeoIP_region_by_addr_gl(gi.second.get(), ip.c_str(), gl);
-    if (gir) {
-      ret = valueOrEmpty<char*,string>(gir->region);
-      return true;
-    }
-  } else if (gi.first == GEOIP_CITY_EDITION_REV0 ||
-             gi.first == GEOIP_CITY_EDITION_REV1) {
-    GeoIPRecord *gir = GeoIP_record_by_addr(gi.second.get(), ip.c_str());
-    if (gir) {
-      ret = valueOrEmpty<char*,string>(gir->region);
-      gl->netmask = gir->netmask;
-      return true;
-    }
-  }
-  return false;
-}
-
-bool GeoIPBackend::queryRegionV6(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi) {
-  if (gi.first == GEOIP_REGION_EDITION_REV0 ||
-      gi.first == GEOIP_REGION_EDITION_REV1) {
-    GeoIPRegion *gir = GeoIP_region_by_addr_v6_gl(gi.second.get(), ip.c_str(), gl);
-    if (gir) {
-      ret = valueOrEmpty<char*,string>(gir->region);
-      return true;
-    }
-  } else if (gi.first == GEOIP_CITY_EDITION_REV0_V6 ||
-             gi.first == GEOIP_CITY_EDITION_REV1_V6) {
-    GeoIPRecord *gir = GeoIP_record_by_addr_v6(gi.second.get(), ip.c_str());
-    if (gir) {
-      ret = valueOrEmpty<char*,string>(gir->region);
-      gl->netmask = gir->netmask;
-      return true;
-    }
-  }
-  return false;
-}
-
-bool GeoIPBackend::queryCity(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi) {
-  if (gi.first == GEOIP_CITY_EDITION_REV0 ||
-      gi.first == GEOIP_CITY_EDITION_REV1) {
-    GeoIPRecord *gir = GeoIP_record_by_addr(gi.second.get(), ip.c_str());
-    if (gir) {
-      ret = valueOrEmpty<char*,string>(gir->city);
-      gl->netmask = gir->netmask;
-      return true;
-    }
-  }
-  return false;
-}
-
-bool GeoIPBackend::queryCityV6(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi) {
-  if (gi.first == GEOIP_CITY_EDITION_REV0_V6 ||
-      gi.first == GEOIP_CITY_EDITION_REV1_V6) {
-    GeoIPRecord *gir = GeoIP_record_by_addr_v6(gi.second.get(), ip.c_str());
-    if (gir) {
-      ret = valueOrEmpty<char*,string>(gir->city);
-      gl->netmask = gir->netmask;
-      return true;
-    }
-  }
-  return false;
-}
-
-
-string GeoIPBackend::queryGeoIP(const string &ip, bool v6, GeoIPQueryAttribute attribute, GeoIPLookup* gl) {
+string queryGeoIP(const string &ip, bool v6, GeoIPInterface::GeoIPQueryAttribute attribute, GeoIPLookup* gl) {
   string ret = "unknown";
 
   for(auto const& gi: s_geoip_files) {
@@ -695,33 +404,33 @@ string GeoIPBackend::queryGeoIP(const string &ip, bool v6, GeoIPQueryAttribute a
     bool found = false;
 
     switch(attribute) {
-    case ASn:
-      if (v6) found = queryASnumV6(val, gl, ip, gi);
-      else found = queryASnum(val, gl, ip, gi);
+    case GeoIPInterface::ASn:
+      if (v6) found = gi->queryASnumV6(val, gl, ip);
+      else found =gi->queryASnum(val, gl, ip);
       break;
-    case Name:
-      if (v6) found = queryNameV6(val, gl, ip, gi);
-      else found = queryName(val, gl, ip, gi);
+    case GeoIPInterface::Name:
+      if (v6) found = gi->queryNameV6(val, gl, ip);
+      else found = gi->queryName(val, gl, ip);
       break;
-    case Continent:
-      if (v6) found = queryContinentV6(val, gl, ip, gi);
-      else found = queryContinent(val, gl, ip, gi);
+    case GeoIPInterface::Continent:
+      if (v6) found = gi->queryContinentV6(val, gl, ip);
+      else found = gi->queryContinent(val, gl, ip);
       break;
-    case Region:
-      if (v6) found = queryRegionV6(val, gl, ip, gi);
-      else found = queryRegion(val, gl, ip, gi);
+    case GeoIPInterface::Region:
+      if (v6) found = gi->queryRegionV6(val, gl, ip);
+      else found = gi->queryRegion(val, gl, ip);
       break;
-    case Country:
-      if (v6) found = queryCountryV6(val, gl, ip, gi);
-      else found = queryCountry(val, gl, ip, gi);
+    case GeoIPInterface::Country:
+      if (v6) found = gi->queryCountryV6(val, gl, ip);
+      else found = gi->queryCountry(val, gl, ip);
       break;
-    case Country2:
-      if (v6) found = queryCountry2V6(val, gl, ip, gi);
-      else found = queryCountry2(val, gl, ip, gi);
+    case GeoIPInterface::Country2:
+      if (v6) found = gi->queryCountry2V6(val, gl, ip);
+      else found = gi->queryCountry2(val, gl, ip);
       break;
-    case City:
-      if (v6) found = queryCityV6(val, gl, ip, gi);
-      else found = queryCity(val, gl, ip, gi);
+    case GeoIPInterface::City:
+      if (v6) found = gi->queryCityV6(val, gl, ip);
+      else found = gi->queryCity(val, gl, ip);
       break;
     }
 
@@ -748,21 +457,21 @@ string GeoIPBackend::format2str(string sformat, const string& ip, bool v6, GeoIP
     int nrep=3;
     tmp_gl.netmask = 0;
     if (!sformat.compare(cur,3,"%cn")) {
-      rep = queryGeoIP(ip, v6, Continent, &tmp_gl);
+      rep = queryGeoIP(ip, v6, GeoIPInterface::Continent, &tmp_gl);
     } else if (!sformat.compare(cur,3,"%co")) {
-      rep = queryGeoIP(ip, v6, Country, &tmp_gl);
+      rep = queryGeoIP(ip, v6, GeoIPInterface::Country, &tmp_gl);
     } else if (!sformat.compare(cur,3,"%cc")) {
-      rep = queryGeoIP(ip, v6, Country2, &tmp_gl);
+      rep = queryGeoIP(ip, v6, GeoIPInterface::Country2, &tmp_gl);
     } else if (!sformat.compare(cur,3,"%af")) {
       rep = (v6?"v6":"v4");
     } else if (!sformat.compare(cur,3,"%as")) {
-      rep = queryGeoIP(ip, v6, ASn, &tmp_gl);
+      rep = queryGeoIP(ip, v6, GeoIPInterface::ASn, &tmp_gl);
     } else if (!sformat.compare(cur,3,"%re")) {
-      rep = queryGeoIP(ip, v6, Region, &tmp_gl);
+      rep = queryGeoIP(ip, v6, GeoIPInterface::Region, &tmp_gl);
     } else if (!sformat.compare(cur,3,"%na")) {
-      rep = queryGeoIP(ip, v6, Name, &tmp_gl);
+      rep = queryGeoIP(ip, v6, GeoIPInterface::Name, &tmp_gl);
     } else if (!sformat.compare(cur,3,"%ci")) {
-      rep = queryGeoIP(ip, v6, City, &tmp_gl);
+      rep = queryGeoIP(ip, v6, GeoIPInterface::City, &tmp_gl);
     } else if (!sformat.compare(cur,3,"%hh")) {
       rep = boost::str(boost::format("%02d") % gtm.tm_hour);
       tmp_gl.netmask = (v6?128:32);
