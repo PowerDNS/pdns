@@ -224,6 +224,7 @@ pdns_server_LDFLAGS = \
 	$(DYNLINKFLAGS) \
 	$(LIBCRYPTO_LDFLAGS)
 
+EXTRA_pdns_server_DEPENDENCIES = @moduleobjects@
 pdns_server_LDADD = \
 	@moduleobjects@ \
 	@modulelibs@ \
@@ -323,6 +324,7 @@ pdnsutil_LDFLAGS = \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
 	$(LIBCRYPTO_LDFLAGS)
 
+EXTRA_pdnsutil_DEPENDENCIES = @moduleobjects@
 pdnsutil_LDADD = \
 	@moduleobjects@ \
 	@modulelibs@ \
