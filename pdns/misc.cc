@@ -883,11 +883,7 @@ void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, const ComboAddress* sour
 
     pkt = (struct in_pktinfo *) CMSG_DATA(cmsg);
     memset(pkt, 0, sizeof(*pkt));
-#  ifdef __NetBSD__
-    pkt->ipi_addr = source->sin4.sin_addr;
-#  else
     pkt->ipi_spec_dst = source->sin4.sin_addr;
-#  endif
     pkt->ipi_ifindex = itfIndex;
 #elif defined(IP_SENDSRCADDR)
     struct in_addr *in;
