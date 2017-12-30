@@ -27,15 +27,11 @@
 #include <vector>
 #include <map>
 #include <string>
-#include <fstream>
-#include <yaml-cpp/yaml.h>
 #include <pthread.h>
-
-#include <GeoIP.h>
-#include <GeoIPCity.h>
 #include <sys/types.h>
 #include <dirent.h>
 
+#include "GeoIP.h"
 #include "pdns/dnspacket.hh"
 #include "pdns/dns.hh"
 #include "pdns/dnsbackend.hh"

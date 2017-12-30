@@ -29,6 +29,8 @@
 #include <regex.h>
 #include <glob.h>
 #include <boost/algorithm/string/replace.hpp>
+#include <fstream>
+#include <yaml-cpp/yaml.h>
 
 pthread_rwlock_t GeoIPBackend::s_state_lock=PTHREAD_RWLOCK_INITIALIZER;
 
