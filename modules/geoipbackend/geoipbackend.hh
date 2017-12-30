@@ -31,7 +31,6 @@
 #include <sys/types.h>
 #include <dirent.h>
 
-#include "GeoIP.h"
 #include "pdns/dnspacket.hh"
 #include "pdns/dns.hh"
 #include "pdns/dnsbackend.hh"

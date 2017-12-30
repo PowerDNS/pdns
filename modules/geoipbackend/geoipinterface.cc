@@ -39,7 +39,7 @@ unique_ptr<GeoIPInterface> GeoIPInterface::makeInterface(const string& dbStr) {
     filename = parts2[0];
     size_t pos = filename.find_last_of(".");
     if (pos != string::npos)
-      driver = driver.substr(pos+1);
+      driver = filename.substr(pos+1);
     else
       driver = "unknown";
   } else {
@@ -59,6 +59,8 @@ unique_ptr<GeoIPInterface> GeoIPInterface::makeInterface(const string& dbStr) {
 
   if (driver == "dat") {
      return makeDATInterface(filename, opts);
+  } else if (driver == "mmdb") {
+     return makeMMDBInterface(filename, opts);
   } else {
      throw PDNSException(string("Unsupported file type '") + driver + string("' (use type: prefix to force type)"));
   }

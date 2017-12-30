@@ -53,6 +53,7 @@ public:
 
   static unique_ptr<GeoIPInterface> makeInterface(const string& dbStr);
 private:
+  static unique_ptr<GeoIPInterface> makeMMDBInterface(const string &fname, const map<string, string>& opts);
   static unique_ptr<GeoIPInterface> makeDATInterface(const string& fname, const map<string, string>& opts);
 };
 
