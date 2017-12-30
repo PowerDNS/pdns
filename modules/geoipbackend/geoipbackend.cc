@@ -88,15 +88,13 @@ void GeoIPBackend::initialize() {
   YAML::Node config;
   vector<GeoIPDomain> tmp_domains;
 
-  string modeStr = getArg("database-cache");
   s_geoip_files.clear(); // reset pointers
 
   if (getArg("database-files").empty() == false) {
     vector<string> files;
     stringtok(files, getArg("database-files"), " ,\t\r\n");
     for(auto const& file: files) {
-      const string& fileStr = string("dat:") + file + string(";mode=") + modeStr;
-      s_geoip_files.push_back(GeoIPInterface::makeInterface(fileStr));
+      s_geoip_files.push_back(GeoIPInterface::makeInterface(file));
     }
   }
 
@@ -776,8 +774,7 @@ public:
 
   void declareArguments(const string &suffix = "") {
     declare(suffix, "zones-file", "YAML file to load zone(s) configuration", "");
-    declare(suffix, "database-files", "File(s) to load geoip data from", "");
-    declare(suffix, "database-cache", "Cache mode (standard, memory, index, mmap)", "standard");
+    declare(suffix, "database-files", "File(s) to load geoip data from ([driver:]path[;opt=value]", "");
     declare(suffix, "dnssec-keydir", "Directory to hold dnssec keys (also turns DNSSEC on)", "");
   }
 
