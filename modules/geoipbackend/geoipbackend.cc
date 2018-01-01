@@ -446,8 +446,24 @@ string queryGeoIP(const string &ip, bool v6, GeoIPInterface::GeoIPQueryAttribute
   return ret;
 }
 
+bool queryGeoLocation(const string &ip, bool v6, GeoIPNetmask& gl, double& lat, double& lon,
+                      boost::optional<int>& alt, boost::optional<int>& prec)
+{
+  for(auto const& gi: s_geoip_files) {
+    string val;
+    if (v6) {
+      if (gi->queryLocationV6(gl, ip, lat, lon, alt, prec))
+        return true;
+     } else if (gi->queryLocation(gl, ip, lat, lon, alt, prec))
+        return true;
+  }
+  return false;
+}
+
 string GeoIPBackend::format2str(string sformat, const string& ip, bool v6, GeoIPNetmask& gl) {
   string::size_type cur,last;
+  boost::optional<int> alt, prec;
+  double lat, lon;
   time_t t = time((time_t*)NULL);
   GeoIPNetmask tmp_gl; // largest wins
   struct tm gtm;
@@ -474,6 +490,48 @@ string GeoIPBackend::format2str(string sformat, const string& ip, bool v6, GeoIP
       rep = queryGeoIP(ip, v6, GeoIPInterface::Name, tmp_gl);
     } else if (!sformat.compare(cur,3,"%ci")) {
       rep = queryGeoIP(ip, v6, GeoIPInterface::City, tmp_gl);
+    } else if (!sformat.compare(cur,4,"%loc")) {
+      char ns, ew;
+      int d1, d2, m1, m2;
+      double s1, s2;
+      if (!queryGeoLocation(ip, v6, gl, lat, lon, alt, prec)) {
+        rep = "";
+      } else {
+        ns = (lat>0) ? 'N' : 'S';
+        ew = (lon>0) ? 'E' : 'W';
+        /* remove sign */
+        lat = fabs(lat);
+        lon = fabs(lon);
+        d1 = static_cast<int>(lat);
+        d2 = static_cast<int>(lon);
+        m1 = static_cast<int>((lat - d1)*60.0);
+        m2 = static_cast<int>((lon - d2)*60.0);
+        s1 = static_cast<double>(lat - d1 - m1/60.0)*3600.0;
+        s2 = static_cast<double>(lon - d2 - m2/60.0)*3600.0;
+        rep = str(boost::format("%d %d %0.3f %c %d %d %0.3f %c") %
+                                d1 % m1 % s1 % ns % d2 % m2 % s2 % ew);
+        if (alt)
+          rep = rep + str(boost::format(" %d.00") % *alt);
+        else
+          rep = rep + string(" 0.00");
+        if (prec)
+          rep = rep + str(boost::format(" %dm") % *prec);
+      }
+      nrep = 4;
+    } else if (!sformat.compare(cur,4,"%lat")) {
+      if (!queryGeoLocation(ip, v6, gl, lat, lon, alt, prec)) {
+        rep = "";
+      } else {
+        rep = str(boost::format("%lf") % lat);
+      }
+      nrep = 4;
+    } else if (!sformat.compare(cur,4,"%lon")) {
+      if (!queryGeoLocation(ip, v6, gl, lat, lon, alt, prec)) {
+        rep = "";
+      } else {
+        rep = str(boost::format("%lf") % lon);
+      }
+      nrep = 4;
     } else if (!sformat.compare(cur,3,"%hh")) {
       rep = boost::str(boost::format("%02d") % gtm.tm_hour);
       tmp_gl.netmask = (v6?128:32);

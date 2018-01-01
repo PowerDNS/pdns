@@ -376,6 +376,42 @@ public:
     return false;
   }
 
+  bool queryLocationV6(GeoIPNetmask& gl, const string &ip,
+                       double& latitude, double& longitude,
+                       boost::optional<int>& alt, boost::optional<int>& prec) override {
+    if (d_db_type == GEOIP_REGION_EDITION_REV0 ||
+        d_db_type == GEOIP_REGION_EDITION_REV1 ||
+        d_db_type == GEOIP_CITY_EDITION_REV0_V6 ||
+        d_db_type == GEOIP_CITY_EDITION_REV1_V6) {
+      GeoIPRecord *gir = GeoIP_record_by_addr_v6(d_gi.get(), ip.c_str());
+      if (gir) {
+        latitude = gir->latitude;
+        longitude = gir->longitude;
+        gl.netmask = gir->netmask;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool queryLocation(GeoIPNetmask& gl, const string &ip,
+                     double& latitude, double& longitude,
+                     boost::optional<int>& alt, boost::optional<int>& prec) override {
+    if (d_db_type == GEOIP_REGION_EDITION_REV0 ||
+        d_db_type == GEOIP_REGION_EDITION_REV1 ||
+        d_db_type == GEOIP_CITY_EDITION_REV0 ||
+        d_db_type == GEOIP_CITY_EDITION_REV1) {
+      GeoIPRecord *gir = GeoIP_record_by_addr(d_gi.get(), ip.c_str());
+      if (gir) {
+        latitude = gir->latitude;
+        longitude = gir->longitude;
+        gl.netmask = gir->netmask;
+        return true;
+      }
+    }
+    return false;
+  }
+
   ~GeoIPInterfaceDAT() { }
 private:
   unsigned int d_db_type;

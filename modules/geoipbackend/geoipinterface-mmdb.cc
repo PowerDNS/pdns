@@ -194,6 +194,44 @@ public:
     return true;
   }
 
+  bool queryLocation(GeoIPNetmask& gl, const string &ip,
+                     double& latitude, double& longitude,
+                     boost::optional<int>& alt, boost::optional<int>& prec) override {
+    MMDB_entry_data_s data;
+    MMDB_lookup_result_s res;
+    if (!mmdbLookup(ip, false, gl, res))
+      return false;
+    if (MMDB_get_value(&res.entry, &data, "location", "latitude", NULL) != MMDB_SUCCESS || !data.has_data)
+      return false;
+    latitude = data.double_value;
+     if (MMDB_get_value(&res.entry, &data, "location", "longitude", NULL) != MMDB_SUCCESS || !data.has_data)
+      return false;
+    longitude = data.double_value;
+    if (MMDB_get_value(&res.entry, &data, "location", "accuracy_radius", NULL) != MMDB_SUCCESS || !data.has_data)
+      return false;
+    prec = data.uint16;
+    return true;
+  }
+
+  bool queryLocationV6(GeoIPNetmask& gl, const string &ip,
+                       double& latitude, double& longitude,
+                       boost::optional<int>& alt, boost::optional<int>& prec) override {
+    MMDB_entry_data_s data;
+    MMDB_lookup_result_s res;
+    if (!mmdbLookup(ip, true, gl, res))
+      return false;
+    if (MMDB_get_value(&res.entry, &data, "location", "latitude", NULL) != MMDB_SUCCESS || !data.has_data)
+      return false;
+    latitude = data.double_value;
+     if (MMDB_get_value(&res.entry, &data, "location", "longitude", NULL) != MMDB_SUCCESS || !data.has_data)
+      return false;
+    longitude = data.double_value;
+    if (MMDB_get_value(&res.entry, &data, "location", "accuracy_radius", NULL) != MMDB_SUCCESS || !data.has_data)
+      return false;
+    prec = data.uint16;
+    return true;
+  }
+
   ~GeoIPInterfaceMMDB() { MMDB_close(&d_s); };
 private:
   MMDB_s d_s;
