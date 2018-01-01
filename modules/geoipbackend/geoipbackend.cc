@@ -555,6 +555,20 @@ string GeoIPBackend::format2str(string sformat, const string& ip, bool v6, GeoIP
     } else if (!sformat.compare(cur,3,"%mo")) {
       rep = boost::str(boost::format("%02d") % (gtm.tm_mon + 1));
       tmp_gl.netmask = (v6?128:32);
+    } else if (!sformat.compare(cur,4,"%ip6")) {
+      nrep = 4;
+      if (v6)
+        rep = ip;
+      else
+        rep = "";
+      tmp_gl.netmask = (v6?128:32);
+    } else if (!sformat.compare(cur,4,"%ip4")) {
+      nrep = 4;
+      if (!v6)
+        rep = ip;
+      else
+        rep = "";
+      tmp_gl.netmask = (v6?128:32);
     } else if (!sformat.compare(cur,3,"%ip")) {
       rep = ip;
       tmp_gl.netmask = (v6?128:32);
