@@ -71,7 +71,7 @@ string productTypeApiType() {
 
 void showProductVersion()
 {
-  theL()<<Logger::Warning<<productName()<<" "<< VERSION << " (C) 2001-2017 "
+  theL()<<Logger::Warning<<productName()<<" "<< VERSION << " (C) 2001-2018 "
     "PowerDNS.COM BV" << endl;
   theL()<<Logger::Warning<<"Using "<<(sizeof(unsigned long)*8)<<"-bits mode. "
     "Built using " << compilerVersion()
