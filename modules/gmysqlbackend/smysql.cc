@@ -268,6 +268,7 @@ public:
         }
         mysql_stmt_free_result(d_stmt);
       }
+      releaseStatement();
     }
 #endif
     return this; 
