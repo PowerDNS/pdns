@@ -368,8 +368,8 @@ void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket 
 
   if (!d_result.empty()) {
     L<<Logger::Error<<
-       "Cannot have static record and CNAME at the same time" <<
-       "Please fix your configuration for \"" << qdomain << "\", so that" <<
+       "Cannot have static record and CNAME at the same time." <<
+       "Please fix your configuration for \"" << qdomain << "\", so that " <<
        "it can be resolved by GeoIP backend directly."<< std::endl;
     d_result.clear();
     return;
