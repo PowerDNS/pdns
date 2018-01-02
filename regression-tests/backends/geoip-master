@@ -26,6 +26,9 @@ domains:
       - ns: ns1.example.com
       - ns: ns2.example.com
       - mx: 10 mx.example.com
+    loc.geo.example.com:
+      - loc: "%loc"
+      - txt: "%lat %lon"
     c1.l1.o1.city.geo.example.com:
       - a: 127.0.1.1
     c2.l2.o1.city.geo.example.com:
