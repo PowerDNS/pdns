@@ -17,6 +17,14 @@ DNSPacket *AuthLua4::prequery(DNSPacket *q) { return NULL; }
 
 AuthLua4::~AuthLua4() { }
 
+void AuthLua4::postPrepareContext()
+{
+}
+
+void AuthLua4::postLoad()
+{
+}
+
 #else
 
 #undef L
