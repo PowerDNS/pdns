@@ -11,7 +11,8 @@ import tempfile
 import time
 
 SQLITE_DB = 'pdns.sqlite3'
-WEBPORT = '5556'
+WEBPORT = 5556
+DNSPORT = 5300
 APIKEY = '1234567890abcdefghijklmnopq-key'
 PDNSUTIL_CMD = ["../pdns/pdnsutil", "--config-dir=."]
 
@@ -64,6 +65,15 @@ def ensure_empty_dir(name):
     os.mkdir(name)
 
 
+def format_call_args(cmd):
+    return "$ '%s'" % ("' '".join(cmd))
+
+
+def run_check_call(cmd, *args, **kwargs):
+    print format_call_args(cmd)
+    subprocess.check_call(cmd, *args, **kwargs)
+
+
 wait = ('--wait' in sys.argv)
 if wait:
     sys.argv.remove('--wait')
@@ -81,16 +91,23 @@ if daemon not in ('authoritative', 'recursor'):
 
 daemon = sys.argv[1]
 
+pdns_server = os.environ.get("PDNSSERVER", "../pdns/pdns_server")
 pdns_recursor = os.environ.get("PDNSRECURSOR", "../pdns/recursordist/pdns_recursor")
+common_args = [
+    "--daemon=no", "--socket-dir=.", "--config-dir=.",
+    "--local-address=127.0.0.1", "--local-port="+str(DNSPORT),
+    "--webserver=yes", "--webserver-port="+str(WEBPORT), "--webserver-address=127.0.0.1", "--webserver-password=something",
+    "--api-key="+APIKEY
+]
 
 if daemon == 'authoritative':
 
     # Prepare sqlite DB with some zones.
-    subprocess.check_call(["rm", "-f", SQLITE_DB])
-    subprocess.check_call(["make", "-C", "../pdns", "zone2sql"])
+    run_check_call(["rm", "-f", SQLITE_DB])
+    run_check_call(["make", "-C", "../pdns", "zone2sql"])
 
     with open('../modules/gsqlite3backend/schema.sqlite3.sql', 'r') as schema_file:
-        subprocess.check_call(["sqlite3", SQLITE_DB], stdin=schema_file)
+        run_check_call(["sqlite3", SQLITE_DB], stdin=schema_file)
 
     with open('named.conf', 'w') as named_conf:
         named_conf.write(NAMED_CONF_TPL)
@@ -100,7 +117,7 @@ if daemon == 'authoritative':
         if p.returncode != 0:
             raise Exception("zone2sql failed")
         tf.seek(0, os.SEEK_SET)  # rewind
-        subprocess.check_call(["sqlite3", SQLITE_DB], stdin=tf)
+        run_check_call(["sqlite3", SQLITE_DB], stdin=tf)
 
     with open('bindbackend.conf', 'w') as bindbackend_conf:
         bindbackend_conf.write(BINDBACKEND_CONF_TPL)
@@ -108,8 +125,8 @@ if daemon == 'authoritative':
     with open('pdns.conf', 'w') as pdns_conf:
         pdns_conf.write(AUTH_CONF_TPL)
 
-    subprocess.check_call(PDNSUTIL_CMD + ["secure-zone", "powerdnssec.org"])
-    pdnscmd = ("../pdns/pdns_server --daemon=no --local-address=127.0.0.1 --local-ipv6= --local-port=5300 --socket-dir=./ --no-shuffle --dnsupdate=yes --cache-ttl=0 --config-dir=. --api=yes --webserver-port="+WEBPORT+" --webserver-address=127.0.0.1 --api-key="+APIKEY).split()
+    run_check_call(PDNSUTIL_CMD + ["secure-zone", "powerdnssec.org"])
+    servercmd = [pdns_server] + common_args + ["--local-ipv6=", "--no-shuffle", "--dnsupdate=yes", "--cache-ttl=0", "--api=yes"]
 
 else:
     conf_dir = 'rec-conf.d'
@@ -121,13 +138,13 @@ else:
     with open(conf_dir+'/example.com..conf', 'w') as conf_file:
         conf_file.write(REC_EXAMPLE_COM_CONF_TPL)
 
-    pdnscmd = (pdns_recursor + " --daemon=no --socket-dir=. --config-dir=. --allow-from-file=acl.list --local-address=127.0.0.1 --local-port=5555 --webserver=yes --webserver-port="+WEBPORT+" --webserver-address=127.0.0.1 --webserver-password=something --api-key="+APIKEY).split()
+    servercmd = [pdns_recursor] + common_args + ["--allow-from-file=acl.list"]
 
 
 # Now run pdns and the tests.
-print "Launching pdns..."
-print ' '.join(pdnscmd)
-pdns = subprocess.Popen(pdnscmd, close_fds=True)
+print "Launching server..."
+print format_call_args(servercmd)
+serverproc = subprocess.Popen(servercmd, close_fds=True)
 
 print "Waiting for webserver port to become available..."
 available = False
@@ -141,16 +158,16 @@ for try_number in range(0, 10):
 
 if not available:
     print "Webserver port not reachable after 10 tries, giving up."
-    pdns.terminate()
-    pdns.wait()
+    serverproc.terminate()
+    serverproc.wait()
     sys.exit(2)
 
 print "Running tests..."
-rc = 0
+returncode = 0
 test_env = {}
 test_env.update(os.environ)
 test_env.update({
-    'WEBPORT': WEBPORT,
+    'WEBPORT': str(WEBPORT),
     'APIKEY': APIKEY,
     'DAEMON': daemon,
     'SQLITE_DB': SQLITE_DB,
@@ -159,14 +176,14 @@ test_env.update({
 
 try:
     print ""
-    p = subprocess.check_call(["nosetests", "--with-xunit"] + tests, env=test_env)
+    run_check_call(["nosetests", "--with-xunit", "-v"] + tests, env=test_env)
 except subprocess.CalledProcessError as ex:
-    rc = ex.returncode
+    returncode = ex.returncode
 finally:
     if wait:
         print "Waiting as requested, press ENTER to stop."
         raw_input()
-    pdns.terminate()
-    pdns.wait()
+    serverproc.terminate()
+    serverproc.wait()
 
-sys.exit(rc)
+sys.exit(returncode)
