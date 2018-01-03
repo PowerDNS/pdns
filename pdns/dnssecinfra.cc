@@ -235,11 +235,11 @@ pair<unsigned int, unsigned int> DNSCryptoKeyEngine::testMakers(unsigned int alg
   unsigned int bits;
   if(algo <= 10)
     bits=1024;
-  else if(algo == 12 || algo == 13 || algo == 15) // ECC-GOST or ECDSAP256SHA256 or ED25519
-    bits=256;
-  else if(algo == 14) // ECDSAP384SHA384
+  else if(algo == DNSSECKeeper::ECCGOST || algo == DNSSECKeeper::ECDSA256 || algo == DNSSECKeeper::ED25519)
+    bits = 256;
+  else if(algo == DNSSECKeeper::ECDSA384)
     bits = 384;
-  else if(algo == 16) // ED448
+  else if(algo == DNSSECKeeper::ED448)
     bits = 456;
   else
     throw runtime_error("Can't guess key size for algorithm "+std::to_string(algo));
