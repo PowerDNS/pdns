@@ -32,6 +32,7 @@
 #include <openssl/opensslv.h>
 #include "opensslsigners.hh"
 #include "dnssecinfra.hh"
+#include "dnsseckeeper.hh"
 
 #if (OPENSSL_VERSION_NUMBER < 0x1010000fL || defined LIBRESSL_VERSION_NUMBER)
 /* OpenSSL < 1.1.0 needs support for threading/locking in the calling application. */
@@ -211,6 +212,19 @@ private:
 
 void OpenSSLRSADNSCryptoKeyEngine::create(unsigned int bits)
 {
+  if ((d_algorithm == DNSSECKeeper::RSASHA1 || d_algorithm == DNSSECKeeper::RSASHA1NSEC3SHA1) && (bits < 512 || bits > 4096)) {
+    /* RFC3110 */
+    throw runtime_error(getName()+" RSASHA1 key generation failed for invalid bits size " + std::to_string(bits));
+  }
+  if (d_algorithm == DNSSECKeeper::RSASHA256 && (bits < 512 || bits > 4096)) {
+    /* RFC5702 */
+    throw runtime_error(getName()+" RSASHA256 key generation failed for invalid bits size " + std::to_string(bits));
+  }
+  if (d_algorithm == DNSSECKeeper::RSASHA512 && (bits < 1024 || bits > 4096)) {
+    /* RFC5702 */
+    throw runtime_error(getName()+" RSASHA512 key generation failed for invalid bits size " + std::to_string(bits));
+  }
+
   BIGNUM *e = BN_new();
   if (!e) {
     throw runtime_error(getName()+" key generation failed, unable to allocate e");
