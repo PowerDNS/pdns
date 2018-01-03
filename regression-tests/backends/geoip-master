@@ -84,6 +84,7 @@ EOF
 		fi
 
 		base64 -d < $testsdir/GeoLiteCity.dat.b64 > $testsdir/GeoLiteCity.dat
+		base64 -d < $testsdir/GeoLiteCity.mmdb.b64 > $testsdir/GeoLiteCity.mmdb
 
 		geoipdatabase=${geoipdatabase:-$testsdir/GeoLiteCity.dat}
 
