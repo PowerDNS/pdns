@@ -453,7 +453,6 @@ test_auth() {
   run "./timestamp ./start-test-stop 5300 bind-hybrid-nsec3"
   #ecdsa - ./timestamp ./start-test-stop 5300 bind-dnssec-pkcs11
 
-  run "export geoipregion=oc geoipregionip=1.2.3.4"
   run "./timestamp ./start-test-stop 5300 geoip"
   run "./timestamp ./start-test-stop 5300 geoip-nsec3-narrow"
 
