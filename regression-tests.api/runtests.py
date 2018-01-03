@@ -100,6 +100,8 @@ common_args = [
     "--api-key="+APIKEY
 ]
 
+run_check_call(["make", "-C", "../pdns", "sdig"])
+
 if daemon == 'authoritative':
 
     # Prepare sqlite DB with some zones.
@@ -161,6 +163,9 @@ if not available:
     serverproc.terminate()
     serverproc.wait()
     sys.exit(2)
+
+print "Query for example.com/A to create statistic data..."
+run_check_call(["../pdns/sdig", "127.0.0.1", str(DNSPORT), "example.com", "A"])
 
 print "Running tests..."
 returncode = 0
