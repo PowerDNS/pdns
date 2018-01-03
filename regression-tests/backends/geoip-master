@@ -26,6 +26,9 @@ domains:
       - ns: ns1.example.com
       - ns: ns2.example.com
       - mx: 10 mx.example.com
+    ip.geo.example.com:
+      - a: "%ip4"
+      - aaaa: "%ip6"
     loc.geo.example.com:
       - loc: "%loc"
       - txt: "%lat %lon"
