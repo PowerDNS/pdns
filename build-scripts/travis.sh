@@ -460,6 +460,8 @@ test_auth() {
 
   run "./timestamp ./start-test-stop 5300 geoip"
   run "./timestamp ./start-test-stop 5300 geoip-nsec3-narrow"
+  run "export geoipdatabase=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb"
+  run "./timestamp ./start-test-stop 5300 geoip"
 
   run "./timestamp ./start-test-stop 5300 gmysql-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 gmysql-both"
