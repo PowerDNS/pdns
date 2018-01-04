@@ -82,7 +82,9 @@
 #include <sys/endian.h>
 #endif
 
-#if defined(__NetBSD_Version__) && __NetBSD_Version__ < 899001100 && defined(IP_PKTINFO)
+#if defined(__NetBSD__) && defined(IP_PKTINFO) && !defined(IP_SENDSRCADDR)
+// The IP_PKTINFO option in NetBSD was incompatible with Linux until a
+// change that also introduced IP_SENDSRCADDR for FreeBSD compatibility.
 #undef IP_PKTINFO
 #endif
 
