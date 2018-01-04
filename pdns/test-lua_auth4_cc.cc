@@ -30,7 +30,7 @@ BOOST_AUTO_TEST_CASE(test_prequery) {
   DNSPacket *p = new DNSPacket(true);
   p->qdomain = DNSName("mod.unit.test.");
   lua.loadString(script);
-  DNSPacket *r;
+  DNSPacket *r = nullptr;
   try {
     r = lua.prequery(p);
     BOOST_CHECK_EQUAL(r->qdomain.toString(), "mod.unit.test.");
