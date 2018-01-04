@@ -85,11 +85,11 @@ bool DNSSECKeeper::addKey(const DNSName& name, bool setSEPBit, int algorithm, in
     if(algorithm <= 10)
       throw runtime_error("Creating an algorithm " +std::to_string(algorithm)+" ("+algorithm2name(algorithm)+") key requires the size (in bits) to be passed.");
     else {
-      if(algorithm == 12 || algorithm == 13 || algorithm == 15) // GOST, ECDSAP256SHA256, ED25519
+      if(algorithm == DNSSECKeeper::ECCGOST || algorithm == DNSSECKeeper::ECDSA256 || algorithm == DNSSECKeeper::ED25519)
         bits = 256;
-      else if(algorithm == 14) // ECDSAP384SHA384
+      else if(algorithm == DNSSECKeeper::ECDSA384)
         bits = 384;
-      else if(algorithm == 16) // ED448
+      else if(algorithm == DNSSECKeeper::ED448)
         bits = 456;
       else {
         throw runtime_error("Can not guess key size for algorithm "+std::to_string(algorithm));
@@ -163,8 +163,8 @@ DNSSECPrivateKey DNSSECKeeper::getKeyById(const DNSName& zname, unsigned int id)
     dpk.d_flags = kd.flags;
     dpk.d_algorithm = dkrc.d_algorithm;
     
-    if(dpk.d_algorithm == 5 && getNSEC3PARAM(zname)) {
-      dpk.d_algorithm += 2;
+    if(dpk.d_algorithm == DNSSECKeeper::RSASHA1 && getNSEC3PARAM(zname)) {
+      dpk.d_algorithm = DNSSECKeeper::RSASHA1NSEC3SHA1;
     }
     
     return dpk;    
@@ -485,9 +485,9 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const DNSName& zone, bool useCache)
 
     dpk.d_flags = kd.flags;
     dpk.d_algorithm = dkrc.d_algorithm;
-    if(dpk.d_algorithm == 5 && getNSEC3PARAM(zone)) {
+    if(dpk.d_algorithm == DNSSECKeeper::RSASHA1 && getNSEC3PARAM(zone)) {
       L<<Logger::Warning<<"Zone '"<<zone<<"' has NSEC3 semantics, but the "<< (kd.active ? "" : "in" ) <<"active key with id "<<kd.id<<" has 'Algorithm: 5'. This should be corrected to 'Algorithm: 7' in the database (or NSEC3 should be disabled)."<<endl;
-      dpk.d_algorithm+=2;
+      dpk.d_algorithm = DNSSECKeeper::RSASHA1NSEC3SHA1;
     }
 
     KeyMetaData kmd;

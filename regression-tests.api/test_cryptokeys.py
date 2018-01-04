@@ -112,11 +112,11 @@ class Cryptokeys(ApiTestCase):
 
     # Test POST to add a key with specific algorithm number
     def test_post_specific_number(self):
-        self.post_helper(algo=10, bits=512)
+        self.post_helper(algo=10, bits=1024)
 
     # Test POST to add a key with specific name and bits
     def test_post_specific_name_bits(self):
-        self.post_helper(algo="rsasha256", bits=256)
+        self.post_helper(algo="rsasha256", bits=2048)
 
     # Test POST to add a key with specific name
     def test_post_specific_name(self):

@@ -32,6 +32,7 @@
 #include <openssl/opensslv.h>
 #include "opensslsigners.hh"
 #include "dnssecinfra.hh"
+#include "dnsseckeeper.hh"
 
 #if (OPENSSL_VERSION_NUMBER < 0x1010000fL || defined LIBRESSL_VERSION_NUMBER)
 /* OpenSSL < 1.1.0 needs support for threading/locking in the calling application. */
@@ -211,6 +212,19 @@ private:
 
 void OpenSSLRSADNSCryptoKeyEngine::create(unsigned int bits)
 {
+  if ((d_algorithm == DNSSECKeeper::RSASHA1 || d_algorithm == DNSSECKeeper::RSASHA1NSEC3SHA1) && (bits < 512 || bits > 4096)) {
+    /* RFC3110 */
+    throw runtime_error(getName()+" RSASHA1 key generation failed for invalid bits size " + std::to_string(bits));
+  }
+  if (d_algorithm == DNSSECKeeper::RSASHA256 && (bits < 512 || bits > 4096)) {
+    /* RFC5702 */
+    throw runtime_error(getName()+" RSASHA256 key generation failed for invalid bits size " + std::to_string(bits));
+  }
+  if (d_algorithm == DNSSECKeeper::RSASHA512 && (bits < 1024 || bits > 4096)) {
+    /* RFC5702 */
+    throw runtime_error(getName()+" RSASHA512 key generation failed for invalid bits size " + std::to_string(bits));
+  }
+
   BIGNUM *e = BN_new();
   if (!e) {
     throw runtime_error(getName()+" key generation failed, unable to allocate e");
@@ -264,14 +278,14 @@ DNSCryptoKeyEngine::storvector_t OpenSSLRSADNSCryptoKeyEngine::convertToISCVecto
 
   string algorithm=std::to_string(d_algorithm);
   switch(d_algorithm) {
-    case 5:
-    case 7:
+    case DNSSECKeeper::RSASHA1:
+    case DNSSECKeeper::RSASHA1NSEC3SHA1:
       algorithm += " (RSASHA1)";
       break;
-    case 8:
+    case DNSSECKeeper::RSASHA256:
       algorithm += " (RSASHA256)";
       break;
-    case 10:
+    case DNSSECKeeper::RSASHA512:
       algorithm += " (RSASHA512)";
       break;
     default:
@@ -291,20 +305,17 @@ DNSCryptoKeyEngine::storvector_t OpenSSLRSADNSCryptoKeyEngine::convertToISCVecto
 
 std::string OpenSSLRSADNSCryptoKeyEngine::hash(const std::string& orig) const
 {
-  if (d_algorithm == 5 || d_algorithm == 7) {
-    /* RSA SHA1 */
+  if (d_algorithm == DNSSECKeeper::RSASHA1 || d_algorithm == DNSSECKeeper::RSASHA1NSEC3SHA1) {
     unsigned char hash[SHA_DIGEST_LENGTH];
     SHA1((unsigned char*) orig.c_str(), orig.length(), hash);
     return string((char*) hash, sizeof(hash));
   }
-  else if (d_algorithm == 8) {
-    /* RSA SHA256 */
+  else if (d_algorithm == DNSSECKeeper::RSASHA256) {
     unsigned char hash[SHA256_DIGEST_LENGTH];
     SHA256((unsigned char*) orig.c_str(), orig.length(), hash);
     return string((char*) hash, sizeof(hash));
   }
-  else if (d_algorithm == 10) {
-    /* RSA SHA512 */
+  else if (d_algorithm == DNSSECKeeper::RSASHA512) {
     unsigned char hash[SHA512_DIGEST_LENGTH];
     SHA512((unsigned char*) orig.c_str(), orig.length(), hash);
     return string((char*) hash, sizeof(hash));

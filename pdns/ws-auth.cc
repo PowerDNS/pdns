@@ -1040,8 +1040,8 @@ static void apiZoneCryptokeysPOST(DNSName zonename, HttpRequest *req, HttpRespon
       shared_ptr<DNSCryptoKeyEngine> dke(DNSCryptoKeyEngine::makeFromISCString(dkrc, keyData));
       dpk.d_algorithm = dkrc.d_algorithm;
       // TODO remove in 4.2.0
-      if(dpk.d_algorithm == 7)
-        dpk.d_algorithm = 5;
+      if(dpk.d_algorithm == DNSSECKeeper::RSASHA1NSEC3SHA1)
+        dpk.d_algorithm = DNSSECKeeper::RSASHA1;
 
       if (keyOrZone)
         dpk.d_flags = 257;
