@@ -82,6 +82,10 @@
 #include <sys/endian.h>
 #endif
 
+#if defined(__NetBSD_Version__) && __NetBSD_Version__ < 899001100 && defined(IP_PKTINFO)
+#undef IP_PKTINFO
+#endif
+
 union ComboAddress {
   struct sockaddr_in sin4;
   struct sockaddr_in6 sin6;
