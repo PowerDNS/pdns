@@ -268,7 +268,7 @@ SOARecordContent::SOARecordContent(const DNSName& mname, const DNSName& rname, c
   d_st=st;
 }
 
-boilerplate_conv(SOA, QType::SOA, 
+boilerplate_conv(SOA, QType::SOA,
                  conv.xfrName(d_mname, true);
                  conv.xfrName(d_rname, true);
                  conv.xfr32BitInt(d_st.serial);

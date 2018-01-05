@@ -179,7 +179,7 @@ bool OdbxBackend::getDomainInfo( const DNSName& domain, DomainInfo& di )
 
 
 
-bool OdbxBackend::getSOA( const DNSName& domain, SOAData& sd)
+bool OdbxBackend::getSOA( const DNSName& domain, SOAData& sd, bool unmodifiedSerial)
 {
         const char* tmp;
 
@@ -210,7 +210,7 @@ bool OdbxBackend::getSOA( const DNSName& domain, SOAData& sd)
         			sd.ttl = strtoul( tmp, NULL, 10 );
         		}
 
-        		if( sd.serial == 0 && ( tmp = odbx_field_value( m_result, 1 ) ) != NULL )
+        		if( !unmodifiedSerial && sd.serial == 0 && ( tmp = odbx_field_value( m_result, 1 ) ) != NULL )
         		{
         			sd.serial = strtol( tmp, NULL, 10 );
         		}

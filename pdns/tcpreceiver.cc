@@ -535,16 +535,23 @@ namespace {
     bool d_auth;
   };
 
-  DNSResourceRecord makeDNSRRFromSOAData(const SOAData& sd)
+  DNSZoneRecord makeEditedDNSZRFromSOAData(DNSSECKeeper& dk, const SOAData& sd)
   {
-    DNSResourceRecord soa;
-    soa.qname= sd.qname;
-    soa.qtype=QType::SOA;
-    soa.content=serializeSOAData(sd);
-    soa.ttl=sd.ttl;
-    soa.domain_id=sd.domain_id;
-    soa.auth = true;
-    return soa;
+    SOAData edited = sd;
+    edited.serial = calculateEditSOA(sd.serial, dk, sd.qname);
+
+    DNSRecord soa;
+    soa.d_name = sd.qname;
+    soa.d_type = QType::SOA;
+    soa.d_ttl = sd.ttl;
+    soa.d_place = DNSResourceRecord::ANSWER;
+    soa.d_content = makeSOAContent(edited);
+
+    DNSZoneRecord dzr;
+    dzr.auth = true;
+    dzr.dr = soa;
+
+    return dzr;
   }
 
   shared_ptr<DNSPacket> getFreshAXFRPacket(shared_ptr<DNSPacket> q)
@@ -655,16 +662,8 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   
   // SOA *must* go out first, our signing pipe might reorder
   DLOG(L<<"Sending out SOA"<<endl);
-  DNSResourceRecord soa = makeDNSRRFromSOAData(sd);
-  DNSZoneRecord dzrsoa;
-  dzrsoa.auth=true;
-  dzrsoa.dr=DNSRecord(soa);
-
-  string kind;
-  dk.getSoaEdit(sd.qname, kind);
-  editSOARecord(dzrsoa, kind);
-
-  outpacket->addRecord(dzrsoa);
+  DNSZoneRecord soa = makeEditedDNSZRFromSOAData(dk, sd);
+  outpacket->addRecord(soa);
   if(securedZone && !presignedZone) {
     set<DNSName> authSet;
     authSet.insert(target);
@@ -1052,7 +1051,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   DLOG(L<<"Done writing out records"<<endl);
   /* and terminate with yet again the SOA record */
   outpacket=getFreshAXFRPacket(q);
-  outpacket->addRecord(dzrsoa);
+  outpacket->addRecord(soa);
   if(haveTSIGDetails && !tsigkeyname.empty())
     outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true); 
   
@@ -1148,9 +1147,7 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
     return 0;
   }
 
-  string soaedit;
-  dk.getSoaEdit(target, soaedit);
-  if (!rfc1982LessThan(serial, calculateEditSOA(sd, soaedit))) {
+  if (!rfc1982LessThan(serial, calculateEditSOA(sd.serial, dk, sd.qname))) {
     TSIGRecordContent trc;
     DNSName tsigkeyname;
     string tsigsecret;
@@ -1177,13 +1174,8 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
 
     // SOA *must* go out first, our signing pipe might reorder
     DLOG(L<<"Sending out SOA"<<endl);
-    DNSResourceRecord soa = makeDNSRRFromSOAData(sd);
-    DNSZoneRecord dzrsoa;
-    dzrsoa.dr=DNSRecord(soa);
-    dzrsoa.auth=true;
-    
-    outpacket->addRecord(dzrsoa);
-    editSOA(dk, sd.qname, outpacket.get());
+    DNSZoneRecord soa = makeEditedDNSZRFromSOAData(dk, sd);
+    outpacket->addRecord(soa);
     if(securedZone) {
       set<DNSName> authSet;
       authSet.insert(target);

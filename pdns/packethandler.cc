@@ -1058,8 +1058,6 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
   DNSZoneRecord rr;
   SOAData sd;
 
-  // string subdomain="";
-  string soa;
   int retargetcount=0;
   set<DNSName> authSet;
 
@@ -1253,6 +1251,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
     if(p->qtype.getCode() == QType::SOA && sd.qname==p->qdomain) {
       rr.dr.d_name=sd.qname;
       rr.dr.d_type=QType::SOA;
+      sd.serial = calculateEditSOA(sd.serial, d_dk, sd.qname);
       rr.dr.d_content=makeSOAContent(sd);
       rr.dr.d_ttl=sd.ttl;
       rr.domain_id=sd.domain_id;
@@ -1322,9 +1321,10 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
 
     /* Add in SOA if required */
     if(target==sd.qname) {
-        rr.dr.d_type = QType::SOA;
-        rr.dr.d_content = makeSOAContent(sd);
         rr.dr.d_name = sd.qname;
+        rr.dr.d_type = QType::SOA;
+        sd.serial = calculateEditSOA(sd.serial, d_dk, sd.qname);
+        rr.dr.d_content = makeSOAContent(sd);
         rr.dr.d_ttl = sd.ttl;
         rr.domain_id = sd.domain_id;
         rr.auth = true;
@@ -1435,8 +1435,6 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
       return 0;
     }
 
-    editSOA(d_dk, sd.qname, r);
-    
     for(const auto& loopRR: r->getRRS()) {
       if(loopRR.scopeMask) {
         noCache=true;

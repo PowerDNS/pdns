@@ -298,11 +298,8 @@ public:
 class DNSPacket;
 uint32_t localtime_format_YYYYMMDDSS(time_t t, uint32_t seq);
 // for SOA-EDIT
-uint32_t calculateEditSOA(const DNSZoneRecord& rr, const string& kind);
-uint32_t calculateEditSOA(const SOAData& sd, const string& kind);
-bool editSOA(DNSSECKeeper& dk, const DNSName& qname, DNSPacket* dp);
-bool editSOARecord(DNSZoneRecord& rr, const string& kind);
+uint32_t calculateEditSOA(uint32_t old_serial, DNSSECKeeper& dk, const DNSName& zonename);
+uint32_t calculateEditSOA(uint32_t old_serial, const string& kind, const DNSName& zonename);
 // for SOA-EDIT-DNSUPDATE/API
-uint32_t calculateIncreaseSOA(SOAData sd, const string& increaseKind, const string& editKind);
-bool increaseSOARecord(DNSResourceRecord& rr, const string& increaseKind, const string& editKind);
-bool increaseSOARecord(DNSZoneRecord& rr, const string& increaseKind, const string& editKind);
+bool increaseSOARecord(DNSResourceRecord& dr, const string& increaseKind, const string& editKind);
+bool makeIncreasedSOARecord(SOAData& sd, const string& increaseKind, const string& editKind, DNSResourceRecord& rrout);
