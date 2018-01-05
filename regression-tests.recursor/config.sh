@@ -215,14 +215,19 @@ android.marvin.example.net.  3600    IN  A   192.0.2.5
 EOF
 
 cat > $PREFIX.15/prequery.lua <<EOF
+if not newDN then
+  function newDN(x)
+    return x
+  end
+end
 function prequery ( dnspacket )
     qname, qtype = dnspacket:getQuestion()
-    if qtype == pdns.A and qname == "www.marvin.example.net."
+    if qtype == pdns.A and qname == newDN("www.marvin.example.net.")
     then
         dnspacket:setRcode(pdns.NXDOMAIN)
         ret = {}
         ret[1] = {qname=qname, qtype=pdns.CNAME, content="android.marvin.example.net", place=1}
-        ret[2] = {qname="marvin.example.net", qtype=pdns.SOA, content="$SOA", place=2}
+        ret[2] = {qname=newDN("marvin.example.net"), qtype=pdns.SOA, content="$SOA", place=2}
         dnspacket:addRecords(ret)
         return true
     end
@@ -240,14 +245,19 @@ www.trillian.example.net.     3600 IN CNAME www2.arthur.example.net.
 EOF
 
 cat > $PREFIX.16/prequery.lua <<EOF
+if not newDN then
+  function newDN(x)
+    return x
+  end
+end
 function prequery ( dnspacket )
     qname, qtype = dnspacket:getQuestion()
-    if qtype == pdns.A and qname == "www.trillian.example.net."
+    if qtype == pdns.A and qname == newDN("www.trillian.example.net.")
     then
         dnspacket:setRcode(pdns.NXDOMAIN)
         ret = {}
         ret[1] = {qname=qname, qtype=pdns.CNAME, content="www2.arthur.example.net", place=1}
-        ret[2] = {qname="", qtype=pdns.SOA, content="$SOA", place=2}
+        ret[2] = {qname=newDN(""), qtype=pdns.SOA, content="$SOA", place=2}
         dnspacket:addRecords(ret)
         return true
     end
@@ -270,14 +280,19 @@ EOF
 cat > $PREFIX.17/prequery.lua <<EOF
 posix = require 'posix'
 
+if not newDN then
+  function newDN(x)
+    return x
+  end
+end
 function prequery ( dnspacket )
     qname, qtype = dnspacket:getQuestion()
-    if (string.sub(qname, -21) == ".1.ghost.example.net." and posix.stat('drop-1')) or
-       (string.sub(qname, -21) == ".2.ghost.example.net." and posix.stat('drop-2'))
+    if (string.sub(tostring(qname), -21) == ".1.ghost.example.net." and posix.stat('drop-1')) or
+       (string.sub(tostring(qname), -21) == ".2.ghost.example.net." and posix.stat('drop-2'))
     then
         dnspacket:setRcode(pdns.NXDOMAIN)
         ret = {}
-        ret[1] = {qname="ghost.example.net", qtype=pdns.SOA, content="$SOA", place=2}
+        ret[1] = {qname=newDN("ghost.example.net"), qtype=pdns.SOA, content="$SOA", place=2}
         dnspacket:addRecords(ret)
         return true
     end
@@ -297,19 +312,24 @@ EOF
 cat > $PREFIX.18/prequery.lua <<EOF
 i=0
 
+if not newDN then
+  function newDN(x)
+    return x
+  end
+end
 function prequery ( dnspacket )
     i = i + 1
     qname, qtype = dnspacket:getQuestion()
-    if qtype == pdns.A and string.sub(qname, -25) == ".www.1.ghost.example.net."
+    if qtype == pdns.A and string.sub(tostring(qname), -25) == ".www.1.ghost.example.net."
     then
         dnspacket:setRcode(pdns.NOERROR)
         ret = {}
         -- www.1.ghost.example.net. 20  IN  A   192.0.2.7
         ret[1] = {qname=qname, qtype=pdns.A, content="192.0.2.7", ttl=20, place=1}
         -- 1.ghost.example.net. 20  IN  NS  ns.1.ghost.example.net.
-        ret[2] = {qname="1.ghost.example.net", qtype=pdns.NS, content="ns"..i..".1.ghost.example.net", ttl=20, place=2}
+        ret[2] = {qname=newDN("1.ghost.example.net"), qtype=pdns.NS, content="ns"..i..".1.ghost.example.net", ttl=20, place=2}
         -- ns.1.ghost.example.net.  20  IN  A   10.0.3.18
-        ret[3] = {qname="ns"..i..".1.ghost.example.net", qtype=pdns.A, content="10.0.3.18", ttl=20, place=3}
+        ret[3] = {qname=newDN("ns")..i..".1.ghost.example.net", qtype=pdns.A, content="10.0.3.18", ttl=20, place=3}
         dnspacket:addRecords(ret)
         return true
     end
@@ -326,15 +346,20 @@ ns.2.ghost.example.net.   20 IN A   $PREFIX.19
 *.www.2.ghost.example.net.  20 IN A   192.0.2.8
 EOF
 cat > $PREFIX.19/prequery.lua <<EOF
+if not newDN then
+  function newDN(x)
+    return x
+  end
+end
 function prequery ( dnspacket )
     qname, qtype = dnspacket:getQuestion()
-    if qtype == pdns.A and string.sub(qname, -25) == ".www.2.ghost.example.net."
+    if qtype == pdns.A and string.sub(tostring(qname), -25) == ".www.2.ghost.example.net."
     then
         dnspacket:setRcode(pdns.NOERROR)
         ret = {}
         ret[1] = {qname=qname, qtype=pdns.A, content="192.0.2.8", ttl=20, place=1}
-        ret[2] = {qname="2.ghost.example.net", qtype=pdns.NS, content="ns.2.ghost.example.net", ttl=20, place=2}
-        ret[3] = {qname="ns.2.ghost.example.net", qtype=pdns.A, content="10.0.3.19", ttl=20, place=3}
+        ret[2] = {qname=newDN("2.ghost.example.net"), qtype=pdns.NS, content="ns.2.ghost.example.net", ttl=20, place=2}
+        ret[3] = {qname=newDN("ns.2.ghost.example.net"), qtype=pdns.A, content="10.0.3.19", ttl=20, place=3}
         dnspacket:addRecords(ret)
         return true
     end
@@ -455,10 +480,15 @@ filename = "questions.txt"
 file = io.open(filename, "w")
 file:close()
 
+if not newDN then
+  function newDN(x)
+    return x
+  end
+end
 function prequery ( dnspacket )
     qname, qtype = dnspacket:getQuestion()
     file = io.open('questions.txt', "a")
-    file:write(qname .. "\n")
+    file:write(tostring(qname) .. "\n")
     file:close()
 
     return false

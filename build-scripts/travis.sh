@@ -339,7 +339,7 @@ install_recursor() {
   run 'echo -e "Package: pdns-*\nPin: origin repo.powerdns.com\nPin-Priority: 9001" | sudo tee /etc/apt/preferences.d/pdns'
   run 'curl https://repo.powerdns.com/CBC8B383-pub.asc | sudo apt-key add - '
   run 'sudo apt-get update'
-  run 'sudo apt-get -y install pdns-server pdns-tools'
+  run 'sudo apt-get -y install pdns-server pdns-tools lua-posix'
   run "sudo service pdns stop"
   run 'for suffix in {1..40}; do sudo /sbin/ip addr add 10.0.3.$suffix/32 dev lo; done'
   run "sudo touch /etc/authbind/byport/53"
