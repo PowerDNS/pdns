@@ -108,9 +108,11 @@ AC_DEFUN([PDNS_CHECK_LIBCRYPTO], [
         [
             AC_MSG_RESULT([yes])
             $1
+            AC_DEFINE([HAVE_OPENSSL_LIBCRYPTO], [1], [define to 1 if OpenSSL's libcrypto support is available.])
         ], [
             AC_MSG_RESULT([no])
             $2
+            AC_DEFINE([HAVE_OPENSSL_LIBCRYPTO], [0], [define to 1 if OpenSSL's libcrypto support is available.])
         ])
     CPPFLAGS="$save_CPPFLAGS"
     LDFLAGS="$save_LDFLAGS"

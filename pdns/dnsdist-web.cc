@@ -87,7 +87,7 @@ static bool checkAPIKey(const YaHTTP::Request& req, const string& expectedApiKey
 
   const auto header = req.headers.find("x-api-key");
   if (header != req.headers.end()) {
-    return (header->second == expectedApiKey);
+    return constantTimeStringEquals(header->second, expectedApiKey);
   }
 
   return false;
@@ -109,7 +109,7 @@ static bool checkWebPassword(const YaHTTP::Request& req, const string &expected_
     stringtok(cparts, plain, ":");
 
     if (cparts.size() == 2) {
-      return cparts[1] == expected_password;
+      return constantTimeStringEquals(cparts[1], expected_password);
     }
   }
 
