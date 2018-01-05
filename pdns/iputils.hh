@@ -82,6 +82,12 @@
 #include <sys/endian.h>
 #endif
 
+#if defined(__NetBSD__) && defined(IP_PKTINFO) && !defined(IP_SENDSRCADDR)
+// The IP_PKTINFO option in NetBSD was incompatible with Linux until a
+// change that also introduced IP_SENDSRCADDR for FreeBSD compatibility.
+#undef IP_PKTINFO
+#endif
+
 union ComboAddress {
   struct sockaddr_in sin4;
   struct sockaddr_in6 sin6;
@@ -992,6 +998,7 @@ int SSetsockopt(int sockfd, int level, int opname, int value);
 #elif defined(IP_RECVDSTADDR)
   #define GEN_IP_PKTINFO IP_RECVDSTADDR 
 #endif
+
 bool IsAnyAddress(const ComboAddress& addr);
 bool HarvestDestinationAddress(const struct msghdr* msgh, ComboAddress* destination);
 bool HarvestTimestamp(struct msghdr* msgh, struct timeval* tv);
