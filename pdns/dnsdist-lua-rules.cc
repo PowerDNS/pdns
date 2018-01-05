@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include "dnsdist.hh"
+#include "dnsdist-ecs.hh"
 #include "dnsdist-lua.hh"
 
 #include "dnsparser.hh"
@@ -738,6 +739,52 @@ private:
   int d_rcode;
 };
 
+class ERCodeRule : public DNSRule
+{
+public:
+  ERCodeRule(int rcode) : d_rcode(rcode & 0xF), d_extrcode(rcode >> 4)
+  {
+  }
+  bool matches(const DNSQuestion* dq) const override
+  {
+    // avoid parsing EDNS OPT RR when not needed.
+    if (d_rcode != dq->dh->rcode) {
+      return false;
+    }
+
+    char * optStart = NULL;
+    size_t optLen = 0;
+    bool last = false;
+    int res = locateEDNSOptRR((char*)dq->dh, dq->len, &optStart, &optLen, &last);
+    if (res != 0) {
+      // no EDNS OPT RR
+      return d_extrcode == 0;
+    }
+
+    /* root label (1), type (2), class (2), ttl (4) + rdlen (2)*/
+    if (optLen < 11) {
+      return false;
+    }
+
+    if (*optStart != 0) {
+      // OPT RR Name != '.'
+      return false;
+    }
+    EDNS0Record edns0;
+    static_assert(sizeof(EDNS0Record) == sizeof(uint32_t), "sizeof(EDNS0Record) must match sizeof(uint32_t) AKA RR TTL size");
+    memcpy(&edns0, optStart + 5, sizeof edns0);
+
+    return d_extrcode == edns0.extRCode;
+  }
+  string toString() const override
+  {
+    return "ercode=="+ERCode::to_s(d_rcode | (d_extrcode << 4));
+  }
+private:
+  int d_rcode;     // plain DNS Rcode
+  int d_extrcode;  // upper bits in EDNS0 record
+};
+
 class RDRule : public DNSRule
 {
 public:
@@ -1162,6 +1209,10 @@ void setupLuaRules()
 
   g_lua.writeFunction("RCodeRule", [](int rcode) {
       return std::shared_ptr<DNSRule>(new RCodeRule(rcode));
+    });
+
+  g_lua.writeFunction("ERCodeRule", [](int rcode) {
+      return std::shared_ptr<DNSRule>(new ERCodeRule(rcode));
     });
 
   g_lua.writeFunction("showRules", []() {

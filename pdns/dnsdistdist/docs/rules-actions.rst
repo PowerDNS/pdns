@@ -462,8 +462,17 @@ These ``DNSRule``\ s be one of the following items:
 
 .. function:: RCodeRule(rcode)
 
-  Matches queries or responses the specified ``rcode``.
-  ``rcode`` can be specified as an integer or as one of the built-in `RCode <DNSRcode>`.
+  Matches queries or responses with the specified ``rcode``.
+  ``rcode`` can be specified as an integer or as one of the built-in :ref:`DNSRCode`.
+  Only the non-extended RCode is matched (lower 4bits).
+
+  :param int rcode: The RCODE to match on
+
+.. function:: ERCodeRule(rcode)
+
+  Matches queries or responses with the specified ``rcode``.
+  ``rcode`` can be specified as an integer or as one of the built-in :ref:`DNSRCode`.
+  The full 16bit RCode will be matched. If no EDNS OPT RR is present, the upper 12 bits are treated as 0.
 
   :param int rcode: The RCODE to match on
 
@@ -709,7 +718,7 @@ The following actions exist.
 .. function:: RCodeAction(rcode)
 
   Reply immediatly by turning the query into a response with the specified ``rcode``.
-  ``rcode`` can be specified as an integer or as one of the built-in `RCode <#rcode>`_.
+  ``rcode`` can be specified as an integer or as one of the built-in :ref:`DNSRCode`.
 
   :param int rcode: The RCODE to respond with.
 

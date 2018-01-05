@@ -54,12 +54,17 @@ std::vector<std::string> RCode::rcodes_s = boost::assign::list_of
   ("Duplicate key name")
   ("Algorithm not supported")
   ("Bad Truncation")
+  ("Bad/missing Server Cookie")
 ;
 
 std::string RCode::to_s(unsigned short rcode) {
   if (rcode > RCode::rcodes_s.size()-1 ) 
     return std::string("Err#")+std::to_string(rcode);
   return RCode::rcodes_s[rcode];
+}
+
+std::string ERCode::to_s(unsigned short rcode) {
+  return RCode::to_s(rcode);
 }
 
 class BoundsCheckingPointer

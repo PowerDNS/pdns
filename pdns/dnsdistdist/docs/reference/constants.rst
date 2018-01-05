@@ -14,6 +14,8 @@ OPCode
 - ``DNSOpcode.Notify``
 - ``DNSOpcode.Update``
 
+Reference: https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-5
+
 .. _DNSQClass:
 
 QClass
@@ -23,6 +25,8 @@ QClass
 - ``QClass.CHAOS``
 - ``QClass.NONE``
 - ``QClass.ANY``
+
+Reference: https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-2
 
 .. _DNSRCode:
 
@@ -40,6 +44,19 @@ RCode
 - ``dnsdist.NXRRSET``
 - ``dnsdist.NOTAUTH``
 - ``dnsdist.NOTZONE``
+- ``dnsdist.BADVERS``
+- ``dnsdist.BADSIG``
+- ``dnsdist.BADKEY``
+- ``dnsdist.BADTIME``
+- ``dnsdist.BADMODE``
+- ``dnsdist.BADNAME``
+- ``dnsdist.BADALG``
+- ``dnsdist.BADTRUNC``
+- ``dnsdist.BADCOOKIE``
+
+RCodes below and including ``BADVERS`` are extended RCodes that can only be matched using :func:`ERCodeRule`.
+
+Reference: https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-6
 
 .. _DNSSection:
 
