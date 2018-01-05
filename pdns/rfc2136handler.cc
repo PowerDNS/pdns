@@ -833,7 +833,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
     if (rr->d_place == DNSResourceRecord::ANSWER) {
       int res = checkUpdatePrerequisites(rr, &di);
       if (res>0) {
-        L<<Logger::Error<<msgPrefix<<"Failed PreRequisites check, returning "<<res<<endl;
+        L<<Logger::Error<<msgPrefix<<"Failed PreRequisites check, returning "<<RCode::to_s(res)<<endl;
         di.backend->abortTransaction();
         return res;
       }
@@ -880,7 +880,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
         }
       }
       if (matchRR != foundRR || foundRR != vec->size()) {
-        L<<Logger::Error<<msgPrefix<<"Failed PreRequisites check, returning NXRRSet"<<endl;
+        L<<Logger::Error<<msgPrefix<<"Failed PreRequisites check (RRs differ), returning NXRRSet"<<endl;
         di.backend->abortTransaction();
         return RCode::NXRRSet;
       }
