@@ -32,7 +32,9 @@
 #include "arguments.hh"
 #include "dnsparser.hh"
 #include "responsestats.hh"
+#ifndef RECURSOR
 #include "statbag.hh"
+#endif
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
