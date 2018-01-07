@@ -305,6 +305,8 @@ pdnsutil_SOURCES = \
 	iputils.cc iputils.hh \
 	json.cc \
 	logger.cc \
+	lua-auth4.cc lua-auth4.hh \
+	lua-base4.cc lua-base4.hh \
 	misc.cc misc.hh \
 	nsecrecords.cc \
 	opensslsigners.cc opensslsigners.hh \
@@ -317,6 +319,7 @@ pdnsutil_SOURCES = \
 	sillyrecords.cc \
 	sstuff.hh \
 	statbag.cc \
+	stubresolver.cc stubresolver.hh \
 	ueberbackend.cc \
 	unix_utility.cc \
 	zoneparser-tng.cc
@@ -364,6 +367,10 @@ endif
 if PKCS11
 pdnsutil_SOURCES +=  pkcs11signers.cc pkcs11signers.hh
 pdnsutil_LDADD += $(P11KIT1_LIBS)
+endif
+
+if LUA
+pdnsutil_LDADD += $(LUA_LIBS)
 endif
 
 if GSS_TSIG
