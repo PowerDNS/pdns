@@ -1,0 +1,5 @@
+0	www.test.invalid.	IN	A	60	127.0.0.3
+0	www.test.invalid.	IN	RRSIG	60	A 13 3 60 [expiry] [inception] [keytag] test.invalid. ...
+2	.	IN	OPT	32768	
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='www.test.invalid.', qtype=A

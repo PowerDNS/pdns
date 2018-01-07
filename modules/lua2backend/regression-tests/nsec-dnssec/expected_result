@@ -1,0 +1,7 @@
+1	test.invalid.	IN	NSEC	4	ns1.test.invalid. NS SOA TXT RRSIG NSEC DNSKEY
+1	test.invalid.	IN	RRSIG	4	NSEC 13 2 4 [expiry] [inception] [keytag] test.invalid. ...
+1	test.invalid.	IN	RRSIG	4	SOA 13 2 60 [expiry] [inception] [keytag] test.invalid. ...
+1	test.invalid.	IN	SOA	4	ns1.test.invalid. root.test.invalid. 20180115 1 2 3 4
+2	.	IN	OPT	32768	
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='middle.test.invalid.', qtype=A
