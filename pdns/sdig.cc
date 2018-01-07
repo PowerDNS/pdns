@@ -2,6 +2,7 @@
 #include "config.h"
 #endif
 #include "dnsparser.hh"
+#include "ednsoptions.hh"
 #include "sstuff.hh"
 #include "misc.hh"
 #include "dnswriter.hh"
@@ -92,7 +93,7 @@ try
     if(ednsnm) {
       EDNSSubnetOpts eo;
       eo.source = *ednsnm;
-      opts.push_back(make_pair(8, makeEDNSSubnetOptsString(eo)));
+      opts.push_back(make_pair(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(eo)));
     }
 
     pw.addOpt(bufsize, 0, dnssec ? EDNSOpts::DNSSECOK : 0, opts);
@@ -196,12 +197,7 @@ try
     for(vector<pair<uint16_t, string> >::const_iterator iter = edo.d_options.begin();
         iter != edo.d_options.end(); 
         ++iter) {
-      if(iter->first == 5) {// 'EDNS PING'
-        cerr<<"Have ednsping: '"<<iter->second<<"'\n";
-        //if(iter->second == ping) 
-         // cerr<<"It is correct!"<<endl;
-      }
-      if(iter->first == 8) {// 'EDNS subnet'
+      if(iter->first == EDNSOptionCode::ECS) {// 'EDNS subnet'
 	EDNSSubnetOpts reso;
         if(getEDNSSubnetOptsFromString(iter->second, &reso)) {
           cerr<<"EDNS Subnet response: "<<reso.source.toString()<<", scope: "<<reso.scope.toString()<<", family = "<<reso.scope.getNetwork().sin4.sin_family<<endl;

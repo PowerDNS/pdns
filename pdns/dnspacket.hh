@@ -175,7 +175,6 @@ private:
 
   vector<DNSZoneRecord> d_rrs; // 8
   string d_rawpacket; // this is where everything lives 8
-  string d_ednsping;
   EDNSSubnetOpts d_eso;
 
   int d_maxreplylen;
