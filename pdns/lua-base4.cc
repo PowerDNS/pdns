@@ -71,6 +71,18 @@ void BaseLua4::prepareContext() {
   d_lw->registerFunction<bool(DNSName::*)()>("chopOff", [](DNSName&dn ) { return dn.chopOff(); });
 
   // DNSResourceRecord
+  d_lw->writeFunction("newDRR", [](const DNSName& qname, const string& qtype, const unsigned int ttl, const string& content, boost::optional<int> domain_id, boost::optional<int> auth){
+    auto drr = DNSResourceRecord();
+    drr.qname = qname;
+    drr.qtype = qtype;
+    drr.ttl = ttl;
+    drr.setContent(content);
+    if (domain_id)
+      drr.domain_id = *domain_id;
+    if (auth)
+      drr.auth = *auth;
+     return drr;
+  });
   d_lw->registerEqFunction(&DNSResourceRecord::operator==);
   d_lw->registerFunction("__lt", &DNSResourceRecord::operator<);
   d_lw->registerFunction<string(DNSResourceRecord::*)()>("toString", [](const DNSResourceRecord& rec) { return rec.getZoneRepresentation();} );
