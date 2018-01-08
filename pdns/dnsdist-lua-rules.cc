@@ -761,7 +761,7 @@ public:
       return d_extrcode == 0;
     }
 
-    /* root label (1), type (2), class (2), ttl (4) + rdlen (2)*/
+    // root label (1), type (2), class (2), ttl (4) + rdlen (2)
     if (optLen < 11) {
       return false;
     }
@@ -772,6 +772,7 @@ public:
     }
     EDNS0Record edns0;
     static_assert(sizeof(EDNS0Record) == sizeof(uint32_t), "sizeof(EDNS0Record) must match sizeof(uint32_t) AKA RR TTL size");
+    // copy out 4-byte "ttl" (really the EDNS0 record), after root label (1) + type (2) + class (2).
     memcpy(&edns0, optStart + 5, sizeof edns0);
 
     return d_extrcode == edns0.extRCode;
