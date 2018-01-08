@@ -46,7 +46,7 @@ std::vector<std::string> RCode::rcodes_s = boost::assign::list_of
   ("Err#12")
   ("Err#13")
   ("Err#14")
-  ("Err#15")
+  ("Err#15")  // Last non-extended RCode
   ("Bad OPT Version / TSIG Signature Failure")
   ("Key not recognized")
   ("Signature out of time window")
@@ -58,13 +58,15 @@ std::vector<std::string> RCode::rcodes_s = boost::assign::list_of
 ;
 
 std::string RCode::to_s(uint8_t rcode) {
-  if (rcode > RCode::rcodes_s.size()-1 ) 
-    return std::string("Err#")+std::to_string(rcode);
-  return RCode::rcodes_s[rcode];
+  if (rcode > 0xF)
+    return std::string("ErrOutOfRange");
+  return ERCode::to_s(rcode);
 }
 
 std::string ERCode::to_s(uint8_t rcode) {
-  return RCode::to_s(rcode);
+  if (rcode > RCode::rcodes_s.size()-1)
+    return std::string("Err#")+std::to_string(rcode);
+  return RCode::rcodes_s[rcode];
 }
 
 class BoundsCheckingPointer
