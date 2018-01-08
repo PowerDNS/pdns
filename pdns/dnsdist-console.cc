@@ -419,6 +419,8 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "TagResponseAction", true, "name, value", "set the tag named 'name' to the given value" },
   { "TagRule", true, "name [, value]", "matches if the tag named 'name' is present, with the given 'value' matching if any" },
   { "TCAction", true, "", "create answer to query with TC and RD bits set, to move to TCP" },
+  { "TeeAction", true, "remote [, addECS]", "send copy of query to remote, optionally adding ECS info" },
+  { "TempFailureCacheTTLAction", true, "ttl", "set packetcache TTL for temporary failure replies" },
   { "testCrypto", true, "", "test of the crypto all works" },
   { "TimedIPSetRule", true, "", "Create a rule which matches a set of IP addresses which expire"}, 
   { "topBandwidth", true, "top", "show top-`top` clients that consume the most bandwidth over length of ringbuffer" },

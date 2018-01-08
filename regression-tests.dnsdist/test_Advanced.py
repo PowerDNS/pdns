@@ -1516,3 +1516,45 @@ class TestAdvancedGetLocalPortOnAnyBind(DNSDistTest):
 
         (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
         self.assertEquals(receivedResponse, response)
+
+class TestAdvancedLuaTempFailureTTL(DNSDistTest):
+
+    _config_template = """
+    function testAction(dq)
+      if dq.tempFailureTTL ~= nil then
+        return DNSAction.Spoof, "initially.not.nil.but." + dq.tempFailureTTL + ".tests.powerdns.com."
+      end
+      dq.tempFailureTTL = 30
+      if dq.tempFailureTTL ~= 30 then
+        return DNSAction.Spoof, "after.set.not.expected.value.but." + dq.tempFailureTTL + ".tests.powerdns.com."
+      end
+      dq.tempFailureTTL = nil
+      if dq.tempFailureTTL ~= nil then
+        return DNSAction.Spoof, "after.unset.not.nil.but." + dq.tempFailureTTL + ".tests.powerdns.com."
+      end
+      return DNSAction.None, ""
+    end
+    addAction(AllRule(), LuaAction(testAction))
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testTempFailureTTLBinding(self):
+        """
+        Exercise dq.tempFailureTTL Lua binding
+        """
+        name = 'tempfailurettlbinding.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '::1')
+        response.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)

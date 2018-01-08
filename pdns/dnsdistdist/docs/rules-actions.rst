@@ -791,4 +791,8 @@ The following actions exist.
   :param string remote: An IP:PORT conbination to send the copied queries to
   :param bool addECS: Whether or not to add ECS information. Default false
 
+.. function:: TempFailureCacheTTLAction(ttl)
 
+  Set the cache TTL to use for ServFail and Refused replies. TTL is not applied for successful replies.
+
+  :param int ttl: Cache TTL for temporary failure replies
