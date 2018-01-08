@@ -755,7 +755,7 @@ public:
     char * optStart = NULL;
     size_t optLen = 0;
     bool last = false;
-    int res = locateEDNSOptRR((char*)dq->dh, dq->len, &optStart, &optLen, &last);
+    int res = locateEDNSOptRR(const_cast<char*>(reinterpret_cast<const char*>(dq->dh)), dq->len, &optStart, &optLen, &last);
     if (res != 0) {
       // no EDNS OPT RR
       return d_extrcode == 0;
