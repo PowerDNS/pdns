@@ -1275,7 +1275,7 @@ inline vector<DNSName> SyncRes::shuffleInSpeedOrder(NsSet &tnameservers, const s
           LOG(endl<<prefix<<"             ");
         }
       }
-      LOG((i->empty() ? string("<empty>") : i->toString())<<"(" << (boost::format("%0.2f") % (speeds[*i]/1000.0)).str() <<"ms)");
+      LOG(i->toLogString()<<"(" << (boost::format("%0.2f") % (speeds[*i]/1000.0)).str() <<"ms)");
     }
     LOG(endl);
   }
@@ -1697,8 +1697,8 @@ bool SyncRes::lookForCut(const DNSName& qname, unsigned int depth, const vState 
 void SyncRes::computeZoneCuts(const DNSName& begin, const DNSName& end, unsigned int depth)
 {
   if(!begin.isPartOf(end)) {
-    LOG(d_prefix<<" "<<begin.toLogString()<<" is not part of "<<end.toString()<<endl);
-    throw PDNSException(begin.toLogString() + " is not part of " + end.toString());
+    LOG(d_prefix<<" "<<begin.toLogString()<<" is not part of "<<end.toLogString()<<endl);
+    throw PDNSException(begin.toLogString() + " is not part of " + end.toLogString());
   }
 
   if (d_cutStates.count(begin) != 0) {

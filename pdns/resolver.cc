@@ -199,7 +199,7 @@ static int parseResult(MOADNSParser& mdp, const DNSName& origQname, uint16_t ori
     if(mdp.d_header.qdcount != 1)
       throw ResolverException("resolver: received answer with wrong number of questions ("+itoa(mdp.d_header.qdcount)+")");
     if(mdp.d_qname != origQname)
-      throw ResolverException(string("resolver: received an answer to another question (")+mdp.d_qname.toString()+"!="+ origQname.toString()+".)");
+      throw ResolverException(string("resolver: received an answer to another question (")+mdp.d_qname.toLogString()+"!="+ origQname.toLogString()+".)");
   }
 
   vector<DNSResourceRecord> ret;
@@ -286,7 +286,7 @@ bool Resolver::tryGetSOASerial(DNSName *domain, uint32_t *theirSerial, uint32_t 
     }
   }
   if(!gotSOA)
-    throw ResolverException("Query to '" + fromaddr.toString() + "' for SOA of '" + domain->toString() + "' did not return a SOA");
+    throw ResolverException("Query to '" + fromaddr.toString() + "' for SOA of '" + domain->toLogString() + "' did not return a SOA");
   return true;
 }
 
@@ -348,21 +348,21 @@ void Resolver::getSoaSerial(const string &ipport, const DNSName &domain, uint32_
   int ret = resolve(ipport, domain, QType::SOA, &res);
   
   if(ret || res.empty())
-    throw ResolverException("Query to '" + ipport + "' for SOA of '" + domain.toString() + "' produced no answers");
+    throw ResolverException("Query to '" + ipport + "' for SOA of '" + domain.toLogString() + "' produced no answers");
 
   if(res[0].qtype.getCode() != QType::SOA) 
-    throw ResolverException("Query to '" + ipport + "' for SOA of '" + domain.toString() + "' produced a "+res[0].qtype.getName()+" record");
+    throw ResolverException("Query to '" + ipport + "' for SOA of '" + domain.toLogString() + "' produced a "+res[0].qtype.getName()+" record");
 
   vector<string>parts;
   stringtok(parts, res[0].content);
   if(parts.size()<3)
-    throw ResolverException("Query to '" + ipport + "' for SOA of '" + domain.toString() + "' produced an unparseable response");
+    throw ResolverException("Query to '" + ipport + "' for SOA of '" + domain.toLogString() + "' produced an unparseable response");
 
   try {
     *serial=pdns_stou(parts[2]);
   }
   catch(const std::out_of_range& oor) {
-    throw ResolverException("Query to '" + ipport + "' for SOA of '" + domain.toString() + "' produced an unparseable serial");
+    throw ResolverException("Query to '" + ipport + "' for SOA of '" + domain.toLogString() + "' produced an unparseable serial");
   }
 }
 

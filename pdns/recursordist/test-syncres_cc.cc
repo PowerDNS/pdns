@@ -264,7 +264,7 @@ static bool addRRSIG(const testkeysset_t& keys, std::vector<DNSRecord>& records,
 
   const auto it = keys.find(signer);
   if (it == keys.cend()) {
-    throw std::runtime_error("No DNSKEY found for " + signer.toString() + ", unable to compute the requested RRSIG");
+    throw std::runtime_error("No DNSKEY found for " + signer.toLogString() + ", unable to compute the requested RRSIG");
   }
 
   size_t recordsCount = records.size();
@@ -300,7 +300,7 @@ static void addDNSKEY(const testkeysset_t& keys, const DNSName& signer, uint32_t
 {
   const auto it = keys.find(signer);
   if (it == keys.cend()) {
-    throw std::runtime_error("No DNSKEY found for " + signer.toString());
+    throw std::runtime_error("No DNSKEY found for " + signer.toLogString());
   }
 
   DNSRecord rec;

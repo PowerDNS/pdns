@@ -117,7 +117,7 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp)
 {
   auto iter = SyncRes::t_sstorage.domainmap->find(zonename);
   if (iter == SyncRes::t_sstorage.domainmap->end())
-    throw ApiException("Could not find domain '"+zonename.toString()+"'");
+    throw ApiException("Could not find domain '"+zonename.toLogString()+"'");
 
   const SyncRes::AuthDomain& zone = iter->second;
 
@@ -296,7 +296,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp)
 
   SyncRes::domainmap_t::const_iterator iter = SyncRes::t_sstorage.domainmap->find(zonename);
   if (iter == SyncRes::t_sstorage.domainmap->end())
-    throw ApiException("Could not find domain '"+zonename.toString()+"'");
+    throw ApiException("Could not find domain '"+zonename.toLogString()+"'");
 
   if(req->method == "PUT" && !::arg().mustDo("api-readonly")) {
     Json document = req->json();

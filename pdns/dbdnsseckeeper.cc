@@ -169,7 +169,7 @@ DNSSECPrivateKey DNSSECKeeper::getKeyById(const DNSName& zname, unsigned int id)
     
     return dpk;    
   }
-  throw runtime_error("Can't find a key with id "+std::to_string(id)+" for zone '"+zname.toString()+"'");
+  throw runtime_error("Can't find a key with id "+std::to_string(id)+" for zone '"+zname.toLogString()+"'");
 }
 
 
@@ -321,7 +321,7 @@ bool DNSSECKeeper::setNSEC3PARAM(const DNSName& zname, const NSEC3PARAMRecordCon
 {
   string error_msg = "";
   if (!checkNSEC3PARAM(ns3p, error_msg))
-    throw runtime_error("NSEC3PARAMs provided for zone '"+zname.toString()+"' are invalid: " + error_msg);
+    throw runtime_error("NSEC3PARAMs provided for zone '"+zname.toLogString()+"' are invalid: " + error_msg);
 
   clearCaches(zname);
   string descr = ns3p.getZoneRepresentation();
