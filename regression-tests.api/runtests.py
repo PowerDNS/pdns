@@ -100,7 +100,14 @@ common_args = [
     "--api-key="+APIKEY
 ]
 
-run_check_call(["make", "-C", "../pdns", "sdig"])
+# Take sdig if it exists (recursor in travis), otherwise build it from Authoritative source.
+sdig = os.environ.get("SDIG", "")
+if sdig:
+    sdig = os.path.abspath(sdig)
+if not sdig or not os.path.exists(sdig):
+    run_check_call(["make", "-C", "../pdns", "sdig"])
+    sdig = "../pdns/sdig"
+
 
 if daemon == 'authoritative':
 
@@ -165,7 +172,7 @@ if not available:
     sys.exit(2)
 
 print "Query for example.com/A to create statistic data..."
-run_check_call(["../pdns/sdig", "127.0.0.1", str(DNSPORT), "example.com", "A"])
+run_check_call([sdig, "127.0.0.1", str(DNSPORT), "example.com", "A"])
 
 print "Running tests..."
 returncode = 0
