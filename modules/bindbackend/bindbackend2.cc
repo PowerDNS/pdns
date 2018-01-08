@@ -891,7 +891,6 @@ void Bind2Backend::loadConfig(string* status)
             bbd.d_status=msg.str();
 
             L<<Logger::Warning<<d_logprefix<<msg.str()<<endl;
-            cerr << msg.str() << endl;
             rejected++;
           }
 	  safePutBBDomainInfo(bbd);
