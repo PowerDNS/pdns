@@ -385,7 +385,7 @@ class TestTempFailureCacheTTLAction(DNSDistTest):
         self.assertEquals(receivedResponse, response)
 
         # next query should hit the cache
-        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertFalse(receivedQuery)
         self.assertTrue(receivedResponse)
         self.assertEquals(receivedResponse, response)
