@@ -36,6 +36,7 @@
 #include "dnsseckeeper.hh"
 #include "dns.hh"
 #include "dnsbackend.hh"
+#include "ednsoptions.hh"
 #include "pdnsexception.hh"
 #include "dnspacket.hh"
 #include "logger.hh"
@@ -105,7 +106,6 @@ DNSPacket::DNSPacket(const DNSPacket &orig)
   qdomainwild=orig.qdomainwild;
   qdomainzone=orig.qdomainzone;
   d_maxreplylen = orig.d_maxreplylen;
-  d_ednsping = orig.d_ednsping;
   d_wantsnsid = orig.d_wantsnsid;
   d_anyLocal = orig.d_anyLocal;  
   d_eso = orig.d_eso;
@@ -242,7 +242,7 @@ void DNSPacket::setCompress(bool compress)
 
 bool DNSPacket::couldBeCached()
 {
-  return d_ednsping.empty() && !d_wantsnsid && qclass==QClass::IN && !d_havetsig;
+  return !d_wantsnsid && qclass==QClass::IN && !d_havetsig;
 }
 
 unsigned int DNSPacket::getMinTTL()
@@ -306,11 +306,6 @@ void DNSPacket::wrapup()
     }
   }
 
-  if(!d_ednsping.empty()) {
-    opts.push_back(make_pair(4, d_ednsping));
-  }
-  
-  
   if(!d_rrs.empty() || !opts.empty() || d_haveednssubnet || d_haveednssection) {
     try {
       uint8_t maxScopeMask=0;
@@ -402,7 +397,6 @@ DNSPacket *DNSPacket::replyPacket() const
   r->qtype = qtype;
   r->qclass = qclass;
   r->d_maxreplylen = d_maxreplylen;
-  r->d_ednsping = d_ednsping;
   r->d_wantsnsid = d_wantsnsid;
   r->d_dnssecOk = d_dnssecOk;
   r->d_eso = d_eso;
@@ -447,7 +441,6 @@ int DNSPacket::noparse(const char *mesg, size_t length)
     return -1;
   }
   d_wantsnsid=false;
-  d_ednsping.clear();
   d_maxreplylen=512;
   memcpy((void *)&d,(const void *)d_rawpacket.c_str(),12);
   return 0;
@@ -543,7 +536,6 @@ try
 
   d_wantsnsid=false;
   d_dnssecOk=false;
-  d_ednsping.clear();
   d_havetsig = mdp.getTSIGPos();
   d_haveednssubnet = false;
   d_haveednssection = false;
@@ -562,13 +554,10 @@ try
     for(vector<pair<uint16_t, string> >::const_iterator iter = edo.d_options.begin();
         iter != edo.d_options.end(); 
         ++iter) {
-      if(iter->first == 3) {// 'EDNS NSID'
-        d_wantsnsid=1;
+      if(iter->first == EDNSOptionCode::NSID) {
+        d_wantsnsid=true;
       }
-      else if(iter->first == 5) {// 'EDNS PING'
-        d_ednsping = iter->second;
-      }
-      else if(s_doEDNSSubnetProcessing && (iter->first == 8)) { // 'EDNS SUBNET'
+      else if(s_doEDNSSubnetProcessing && (iter->first == EDNSOptionCode::ECS)) { // 'EDNS SUBNET'
         if(getEDNSSubnetOptsFromString(iter->second, &d_eso)) {
           //cerr<<"Parsed, source: "<<d_eso.source.toString()<<", scope: "<<d_eso.scope.toString()<<", family = "<<d_eso.scope.getNetwork().sin4.sin_family<<endl;
           d_haveednssubnet=true;
