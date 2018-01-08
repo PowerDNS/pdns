@@ -23,7 +23,7 @@
 #include "sodcrypto.hh"
 #include "pwd.h"
 
-#if defined (__OpenBSD__)
+#if defined (__OpenBSD__) || defined(__NetBSD__)
 #include <readline/readline.h>
 #include <readline/history.h>
 #else

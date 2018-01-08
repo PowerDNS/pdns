@@ -146,7 +146,11 @@ bool HarvestTimestamp(struct msghdr* msgh, struct timeval* tv)
 bool HarvestDestinationAddress(const struct msghdr* msgh, ComboAddress* destination)
 {
   memset(destination, 0, sizeof(*destination));
+#ifdef __NetBSD__
+  struct cmsghdr* cmsg;
+#else
   const struct cmsghdr* cmsg;
+#endif
   for (cmsg = CMSG_FIRSTHDR(msgh); cmsg != NULL; cmsg = CMSG_NXTHDR(const_cast<struct msghdr*>(msgh), const_cast<struct cmsghdr*>(cmsg))) {
 #if defined(IP_PKTINFO)
      if ((cmsg->cmsg_level == IPPROTO_IP) && (cmsg->cmsg_type == IP_PKTINFO)) {
