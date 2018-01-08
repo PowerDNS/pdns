@@ -224,6 +224,10 @@ backend-cmd *BACKEND* *CMD* [*CMD..*]
     Send a text command to a backend for execution. GSQL backends will
     take SQL commands, other backends may take different things. Be
     careful!
+bench-db [*FILE*]
+    Perform a benchmark of the backend-database.
+    *FILE* can be a file with a list, one per line, of domain names to use for this.
+    If *FILE* is not specified, powerdns.com is used.
 
 See also
 --------
