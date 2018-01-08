@@ -57,13 +57,13 @@ std::vector<std::string> RCode::rcodes_s = boost::assign::list_of
   ("Bad/missing Server Cookie")
 ;
 
-std::string RCode::to_s(unsigned short rcode) {
+std::string RCode::to_s(uint8_t rcode) {
   if (rcode > RCode::rcodes_s.size()-1 ) 
     return std::string("Err#")+std::to_string(rcode);
   return RCode::rcodes_s[rcode];
 }
 
-std::string ERCode::to_s(unsigned short rcode) {
+std::string ERCode::to_s(uint8_t rcode) {
   return RCode::to_s(rcode);
 }
 

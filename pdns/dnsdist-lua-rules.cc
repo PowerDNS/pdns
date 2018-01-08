@@ -724,7 +724,7 @@ private:
 class RCodeRule : public DNSRule
 {
 public:
-  RCodeRule(int rcode) : d_rcode(rcode)
+  RCodeRule(uint8_t rcode) : d_rcode(rcode)
   {
   }
   bool matches(const DNSQuestion* dq) const override
@@ -736,13 +736,13 @@ public:
     return "rcode=="+RCode::to_s(d_rcode);
   }
 private:
-  int d_rcode;
+  uint8_t d_rcode;
 };
 
 class ERCodeRule : public DNSRule
 {
 public:
-  ERCodeRule(int rcode) : d_rcode(rcode & 0xF), d_extrcode(rcode >> 4)
+  ERCodeRule(uint8_t rcode) : d_rcode(rcode & 0xF), d_extrcode(rcode >> 4)
   {
   }
   bool matches(const DNSQuestion* dq) const override
@@ -781,8 +781,8 @@ public:
     return "ercode=="+ERCode::to_s(d_rcode | (d_extrcode << 4));
   }
 private:
-  int d_rcode;     // plain DNS Rcode
-  int d_extrcode;  // upper bits in EDNS0 record
+  uint8_t d_rcode;     // plain DNS Rcode
+  uint8_t d_extrcode;  // upper bits in EDNS0 record
 };
 
 class RDRule : public DNSRule
@@ -1207,11 +1207,11 @@ void setupLuaRules()
       return std::shared_ptr<DNSRule>(new QNameWireLengthRule(min, max));
     });
 
-  g_lua.writeFunction("RCodeRule", [](int rcode) {
+  g_lua.writeFunction("RCodeRule", [](uint8_t rcode) {
       return std::shared_ptr<DNSRule>(new RCodeRule(rcode));
     });
 
-  g_lua.writeFunction("ERCodeRule", [](int rcode) {
+  g_lua.writeFunction("ERCodeRule", [](uint8_t rcode) {
       return std::shared_ptr<DNSRule>(new ERCodeRule(rcode));
     });
 
