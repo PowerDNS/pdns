@@ -144,7 +144,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheServFailTTL) {
     found = PC.get(dq, a.wirelength(), pwR.getHeader()->id, responseBuf, &responseBufSize, &key, 0, true);
     BOOST_CHECK_EQUAL(found, false);
 
-    // Insert with failure-TTL non-zero (-> should not enter cache).
+    // Insert with failure-TTL non-zero (-> should enter cache).
     PC.insert(key, a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false, RCode::ServFail, boost::optional<uint32_t>(300));
     found = PC.get(dq, a.wirelength(), pwR.getHeader()->id, responseBuf, &responseBufSize, &key, 0, true);
     BOOST_CHECK_EQUAL(found, true);
