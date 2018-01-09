@@ -24,7 +24,7 @@ string ttl(uint32_t ttl)
 
 void usage() {
   cerr<<"sdig"<<endl;
-  cerr<<"Syntax: sdig IP-ADDRESS PORT QUESTION QUESTION-TYPE [dnssec] [recurse] [showflags] [hidesoadetails] [hidettl] [tcp] [ednssubnet SUBNET/MASK]"<<endl;
+  cerr<<"Syntax: sdig IP-ADDRESS PORT QUESTION QUESTION-TYPE [dnssec] [recurse] [showflags] [hidesoadetails] [hidettl] [tcp] [ednssubnet SUBNET/MASK] [xpf XPFDATA]"<<endl;
 }
 
 int main(int argc, char** argv)
@@ -36,7 +36,8 @@ try
   bool showflags=false;
   bool hidesoadetails=false;
   boost::optional<Netmask> ednsnm;
-
+  uint16_t xpfcode = 0, xpfversion = 0, xpfproto = 0;
+  char *xpfsrc = NULL, *xpfdst = NULL;
 
   for(int i=1; i<argc; i++) {
     if ((string) argv[i] == "--help") {
@@ -72,7 +73,22 @@ try
       if (strcmp(argv[i], "tcp") == 0)
         tcp=true;
       if (strcmp(argv[i], "ednssubnet") == 0) {
+       if(argc < i+2) {
+          cerr<<"ednssubnet needs an argument"<<endl;
+          exit(EXIT_FAILURE);
+        }
         ednsnm=Netmask(argv[++i]);
+      }
+      if (strcmp(argv[i], "xpf") == 0) {
+        if(argc < i+6) {
+          cerr<<"xpf needs five arguments"<<endl;
+          exit(EXIT_FAILURE);
+        }
+        xpfcode = atoi(argv[++i]);
+        xpfversion = atoi(argv[++i]);
+        xpfproto = atoi(argv[++i]);
+        xpfsrc = argv[++i];
+        xpfdst = argv[++i];
       }
     }
   }
@@ -97,6 +113,20 @@ try
     }
 
     pw.addOpt(bufsize, 0, dnssec ? EDNSOpts::DNSSECOK : 0, opts);
+    pw.commit();
+  }
+
+  if(xpfcode)
+  {
+    ComboAddress src(xpfsrc), dst(xpfdst);
+    pw.startRecord(DNSName("."), xpfcode, 0, 1, DNSResourceRecord::ADDITIONAL);
+    // xpf->toPacket(pw);
+    pw.xfr8BitInt(xpfversion);
+    pw.xfr8BitInt(xpfproto);
+    pw.xfrCAWithoutPort(xpfversion, src);
+    pw.xfrCAWithoutPort(xpfversion, dst);
+    pw.xfrCAPort(src);
+    pw.xfrCAPort(dst);
     pw.commit();
   }
 

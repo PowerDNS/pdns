@@ -308,6 +308,10 @@ void setupLuaConfig(bool client)
 			  ret->ipBindAddrNoPort=boost::get<bool>(vars["ipBindAddrNoPort"]);
 			}
 
+			if(vars.count("addXPF")) {
+                          ret->xpfOptionCode=std::stoi(boost::get<string>(vars["addXPF"]));
+			}
+
 			if(vars.count("maxCheckFailures")) {
 			  ret->maxCheckFailures=std::stoi(boost::get<string>(vars["maxCheckFailures"]));
 			}

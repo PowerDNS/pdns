@@ -429,6 +429,10 @@ void* tcpClientThread(int pipefd)
           break;
         }
 
+        if (dq.addXPF && ds->xpfOptionCode != 0) {
+          addXPF(dq, ds->xpfOptionCode);
+        }
+
 	int dsock = -1;
 	uint16_t downstreamFailures=0;
 #ifdef MSG_FASTOPEN

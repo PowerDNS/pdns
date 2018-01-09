@@ -175,6 +175,28 @@ void RecordTextReader::xfrIP6(std::string &val)
   d_pos += len;
 }
 
+void RecordTextReader::xfrCAWithoutPort(uint8_t version, ComboAddress &val)
+{
+  if (version == 4) {
+    uint32_t ip;
+    xfrIP(ip);
+    val = makeComboAddressFromRaw(4, string((const char*) &ip, 4));
+  }
+  else if (version == 6) {
+    string ip;
+    xfrIP6(ip);
+    val = makeComboAddressFromRaw(6, ip);
+  }
+  else throw RecordTextException("invalid address family");
+}
+
+void RecordTextReader::xfrCAPort(ComboAddress &val)
+{
+  uint16_t port;
+  xfr16BitInt(port);
+  val.sin4.sin_port = port;
+}
+
 bool RecordTextReader::eof()
 {
   return d_pos==d_end;
@@ -499,6 +521,21 @@ void RecordTextWriter::xfrIP6(const std::string& val)
     throw RecordTextException("Unable to convert to ipv6 address");
   
   d_string += std::string(addrbuf);
+}
+
+void RecordTextWriter::xfrCAWithoutPort(uint8_t version, ComboAddress &val)
+{
+  string ip = val.toString();
+
+  if(!d_string.empty())
+    d_string.append(1,' ');
+
+  d_string += ip;
+}
+
+void RecordTextWriter::xfrCAPort(ComboAddress &val)
+{
+  xfr16BitInt(val.sin4.sin_port);
 }
 
 void RecordTextWriter::xfrTime(const uint32_t& val)

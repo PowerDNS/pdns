@@ -116,6 +116,7 @@ dnsdist_SOURCES = \
 	sodcrypto.cc sodcrypto.hh \
 	sstuff.hh \
 	statnode.cc statnode.hh \
+	xpf.cc xpf.hh \
 	ext/luawrapper/include/LuaContext.hpp \
 	ext/json11/json11.cpp \
 	ext/json11/json11.hpp \
@@ -204,7 +205,8 @@ testrunner_SOURCES = \
 	sholder.hh \
 	sodcrypto.cc \
 	sstuff.hh \
-	testrunner.cc
+	testrunner.cc \
+	xpf.cc xpf.hh
 
 testrunner_LDFLAGS = \
 	$(AM_LDFLAGS) \
