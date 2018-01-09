@@ -59,6 +59,10 @@ public:
   void xfrBlobNoSpaces(string& val, int len=-1);
   void xfrBlob(string& val, int len=-1);
 
+  const string getRemaining() const {
+    return d_string.substr(d_pos);
+  }
+
   bool eof();
 private:
   string d_string;
@@ -89,6 +93,10 @@ public:
   void xfrBlob(const string& val, int len=-1);
   void xfrHexBlob(const string& val, bool keepReading=false);
   bool eof() { return true; };
+
+  const string getRemaining() const {
+     return "";
+  }
 private:
   string& d_string;
   bool d_nodot;

@@ -153,6 +153,9 @@ public:
   uint16_t d_pos;
 
   bool eof() { return true; };
+  const string getRemaining() const {
+    return "";
+  };
 
 private:
   uint16_t d_startrecordpos; // needed for getBlob later on

@@ -746,7 +746,7 @@ template<class Convertor>                                         \
 void RNAME##RecordContent::xfrPacket(Convertor& conv, bool noDot) \
 {                                                                 \
   CONV;                                                           \
-  if (conv.eof() == false) throw MOADNSException("All data was not consumed"); \
+  if (conv.eof() == false) throw MOADNSException("When parsing " #RNAME " trailing data was not parsed: '" + conv.getRemaining() + "'"); \
 }                                                                 \
 
 struct EDNSOpts

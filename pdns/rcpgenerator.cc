@@ -28,13 +28,18 @@
 #include "misc.hh"
 #include "utility.hh"
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/classification.hpp>
+
 #include <iostream>
 #include "base32.hh"
 #include "base64.hh"
 #include "namespaces.hh"
 
-RecordTextReader::RecordTextReader(const string& str, const string& zone) : d_string(str), d_zone(zone), d_pos(0), d_end(str.size())
+RecordTextReader::RecordTextReader(const string& str, const string& zone) : d_string(str), d_zone(zone), d_pos(0)
 {
+   /* remove whitespace */
+   boost::trim_if(d_string, boost::algorithm::is_space());
+   d_end = d_string.size();
 }
 
 void RecordTextReader::xfr48BitInt(uint64_t &val)
