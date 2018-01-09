@@ -661,7 +661,6 @@ struct SlaveSenderReceiver
   {
     random_shuffle(dni.di.masters.begin(), dni.di.masters.end());
     try {
-      ComboAddress remote(*dni.di.masters.begin());
       return make_pair(dni.di.zone,
         d_resolver.sendResolve(ComboAddress(*dni.di.masters.begin(), 53), dni.localaddr,
           dni.di.zone,
