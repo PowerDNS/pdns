@@ -1282,7 +1282,9 @@ void setupLuaConfig(bool client)
       g_useTCPSinglePipe = flag;
     });
 
-  g_lua.writeFunction("snmpAgent", [](bool enableTraps, boost::optional<std::string> masterSocket) {
+  g_lua.writeFunction("snmpAgent", [client](bool enableTraps, boost::optional<std::string> masterSocket) {
+      if(client)
+        return;
 #ifdef HAVE_NET_SNMP
       if (g_configurationDone) {
         errlog("snmpAgent() cannot be used at runtime!");
