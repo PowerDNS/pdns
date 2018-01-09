@@ -361,6 +361,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "QNameWireLengthRule", true, "min, max", "matches if the qname's length on the wire is less than `min` or more than `max` bytes" },
   { "QTypeRule", true, "qtype", "matches queries with the specified qtype" },
   { "RCodeRule", true, "rcode", "matches responses with the specified rcode" },
+  { "ERCodeRule", true, "rcode", "matches responses with the specified extended rcode (EDNS0)" },
   { "sendCustomTrap", true, "str", "send a custom `SNMP` trap from Lua, containing the `str` string"},
   { "setACL", true, "{netmask, netmask}", "replace the ACL set with these netmasks. Use `setACL({})` to reset the list, meaning no one can use us" },
   { "setAPIWritable", true, "bool, dir", "allow modifications via the API. if `dir` is set, it must be a valid directory where the configuration files will be written by the API" },

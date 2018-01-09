@@ -75,7 +75,16 @@ void setupLuaVars()
                                        {"YXRRSET",  RCode::YXRRSet  },
                                        {"NXRRSET",  RCode::NXRRSet  },
                                        {"NOTAUTH",  RCode::NotAuth  },
-                                       {"NOTZONE",  RCode::NotZone  }
+                                       {"NOTZONE",  RCode::NotZone  },
+                                       {"BADVERS",  ERCode::BADVERS },
+                                       {"BADSIG",   ERCode::BADSIG  },
+                                       {"BADKEY",   ERCode::BADKEY  },
+                                       {"BADTIME",  ERCode::BADTIME   },
+                                       {"BADMODE",  ERCode::BADMODE   },
+                                       {"BADNAME",  ERCode::BADNAME   },
+                                       {"BADALG",   ERCode::BADALG    },
+                                       {"BADTRUNC", ERCode::BADTRUNC  },
+                                       {"BADCOOKIE",ERCode::BADCOOKIE },
   };
   vector<pair<string, int> > dd;
   for(const auto& n : QType::names)

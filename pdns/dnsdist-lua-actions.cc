@@ -275,7 +275,7 @@ private:
 class RCodeAction : public DNSAction
 {
 public:
-  RCodeAction(int rcode) : d_rcode(rcode) {}
+  RCodeAction(uint8_t rcode) : d_rcode(rcode) {}
   DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
   {
     dq->dh->rcode = d_rcode;
@@ -288,7 +288,7 @@ public:
   }
 
 private:
-  int d_rcode;
+  uint8_t d_rcode;
 };
 
 class TCAction : public DNSAction
@@ -959,7 +959,7 @@ void setupLuaActions()
       return std::shared_ptr<DNSAction>(new LogAction(fname, binary ? *binary : true, append ? *append : false, buffered ? *buffered : false));
     });
 
-  g_lua.writeFunction("RCodeAction", [](int rcode) {
+  g_lua.writeFunction("RCodeAction", [](uint8_t rcode) {
       return std::shared_ptr<DNSAction>(new RCodeAction(rcode));
     });
 
