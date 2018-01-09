@@ -156,15 +156,15 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const ComboAddress& l
   } else {
     std::string lstr = local.toString();
     std::map<std::string, int>::iterator lptr;
-    // see if there is a local
 
+    // reuse an existing local socket or make a new one
     if ((lptr = locals.find(lstr)) != locals.end()) {
       sock = lptr->second;
     } else {
       // try to make socket
       sock = makeQuerySocket(local, true);
       if (sock < 0)
-        throw ResolverException("Unable to create socket to "+remote.toStringWithPort()+": "+stringerror());
+        throw ResolverException("Unable to create local socket on "+lstr+" to "+remote.toStringWithPort()+": "+stringerror());
       setNonBlocking( sock );
       locals[lstr] = sock;
     }
