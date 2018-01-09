@@ -626,12 +626,6 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
   }
 }
 namespace {
-struct QueryInfo
-{
-  struct timeval query_ttd;
-  uint16_t id;
-};
-
 struct DomainNotificationInfo
 {
   DomainInfo di;
