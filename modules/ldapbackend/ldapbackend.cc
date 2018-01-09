@@ -586,8 +586,6 @@ void LdapBackend::getUpdatedMasters( vector<DomainInfo>* domains )
     if ( !getDomainInfo( DNSName( result["associatedDomain"][0] ), di ) )
       continue;
 
-    di.backend = this;
-
     if( di.notified_serial < di.serial )
       domains->push_back( di );
   }
@@ -681,7 +679,6 @@ bool LdapBackend::getDomainInfo( const DNSName& domain, DomainInfo& di )
 {
   string filter;
   SOAData sd;
-  int msgid=0;
   PowerLDAP::sentry_t result;
   const char* attronly[] = {
     "sOARecord",
@@ -698,7 +695,7 @@ bool LdapBackend::getDomainInfo( const DNSName& domain, DomainInfo& di )
     // search for SOARecord of domain
     filter = "(&(associatedDomain=" + toLower( m_pldap->escape( domain.toStringRootDot() ) ) + ")(SOARecord=*))";
     m_msgid = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attronly );
-    m_pldap->getSearchEntry( msgid, result );
+    m_pldap->getSearchEntry( m_msgid, result );
   }
   catch( LDAPTimeout &lt )
   {
@@ -762,6 +759,7 @@ bool LdapBackend::getDomainInfo( const DNSName& domain, DomainInfo& di )
       di.kind = DomainInfo::Native;
     }
 
+    di.backend = this;
     return true;
   }
 
