@@ -666,6 +666,7 @@ struct SlaveSenderReceiver
         d_resolver.sendResolve(ComboAddress(*dni.di.masters.begin(), 53), dni.localaddr,
           dni.di.zone,
           QType::SOA,
+          nullptr,
           dni.dnssecOk, dni.tsigkeyname, dni.tsigalgname, dni.tsigsecret)
       );
     }

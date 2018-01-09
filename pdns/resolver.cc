@@ -119,7 +119,7 @@ Resolver::~Resolver()
 }
 
 uint16_t Resolver::sendResolve(const ComboAddress& remote, const ComboAddress& local,
-                               const DNSName &domain, int type, bool dnssecOK,
+                               const DNSName &domain, int type, int *localsock, bool dnssecOK,
                                const DNSName& tsigkeyname, const DNSName& tsigalgorithm,
                                const string& tsigsecret)
 {
@@ -170,6 +170,9 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const ComboAddress& l
     }
   }
 
+  if (localsock != nullptr) {
+    *localsock = sock;
+  }
   if(sendto(sock, &packet[0], packet.size(), 0, (struct sockaddr*)(&remote), remote.getSocklen()) < 0) {
     throw ResolverException("Unable to ask query of "+remote.toStringWithPort()+": "+stringerror());
   }
@@ -285,22 +288,8 @@ int Resolver::resolve(const string &ipport, const DNSName &domain, int type, Res
   try {
     ComboAddress to(ipport, 53);
 
-    int id = sendResolve(to, local, domain, type);
-    int sock;
-
-    // choose socket based on local
-    if (local.sin4.sin_family == 0) {
-      // up to us.
-      sock = to.sin4.sin_family == AF_INET ? locals["default4"] : locals["default6"];
-    } else {
-      std::string lstr = local.toString();
-      std::map<std::string, int>::iterator lptr;
-      // see if there is a local
-
-      if ((lptr = locals.find(lstr)) != locals.end()) sock = lptr->second;
-      else throw ResolverException("sendResolve did not create socket for " + lstr);
-    }
-
+    int sock = -1;
+    int id = sendResolve(to, local, domain, type, &sock);
     int err=waitForData(sock, 0, 3000000); 
   
     if(!err) {
