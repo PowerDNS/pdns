@@ -662,21 +662,12 @@ struct SlaveSenderReceiver
     random_shuffle(dni.di.masters.begin(), dni.di.masters.end());
     try {
       ComboAddress remote(*dni.di.masters.begin());
-      if (dni.localaddr.sin4.sin_family == 0) {
-        return make_pair(dni.di.zone,
-          d_resolver.sendResolve(ComboAddress(*dni.di.masters.begin(), 53),
-            dni.di.zone,
-            QType::SOA,
-            dni.dnssecOk, dni.tsigkeyname, dni.tsigalgname, dni.tsigsecret)
-        );
-      } else {
-        return make_pair(dni.di.zone,
-          d_resolver.sendResolve(ComboAddress(*dni.di.masters.begin(), 53), dni.localaddr,
-            dni.di.zone,
-            QType::SOA,
-            dni.dnssecOk, dni.tsigkeyname, dni.tsigalgname, dni.tsigsecret)
-        );
-      }
+      return make_pair(dni.di.zone,
+        d_resolver.sendResolve(ComboAddress(*dni.di.masters.begin(), 53), dni.localaddr,
+          dni.di.zone,
+          QType::SOA,
+          dni.dnssecOk, dni.tsigkeyname, dni.tsigalgname, dni.tsigsecret)
+      );
     }
     catch(PDNSException& e) {
       throw runtime_error("While attempting to query freshness of '"+dni.di.zone.toLogString()+"': "+e.reason);

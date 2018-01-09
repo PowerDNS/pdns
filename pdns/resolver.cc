@@ -176,16 +176,6 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const ComboAddress& l
   return randomid;
 }
 
-uint16_t Resolver::sendResolve(const ComboAddress& remote, const DNSName &domain,
-                               int type, bool dnssecOK,
-                               const DNSName& tsigkeyname, const DNSName& tsigalgorithm,
-                               const string& tsigsecret)
-{
-  ComboAddress local;
-  local.sin4.sin_family = 0;
-  return this->sendResolve(remote, local, domain, type, dnssecOK, tsigkeyname, tsigalgorithm, tsigsecret);
-}
-
 static int parseResult(MOADNSParser& mdp, const DNSName& origQname, uint16_t origQtype, uint16_t id, Resolver::res_t* result)
 {
   result->clear();

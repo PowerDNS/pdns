@@ -68,9 +68,6 @@ public:
   uint16_t sendResolve(const ComboAddress& remote, const ComboAddress& local, const DNSName &domain, int type, bool dnssecOk=false,
     const DNSName& tsigkeyname=DNSName(), const DNSName& tsigalgorithm=DNSName(), const string& tsigsecret="");
 
-  uint16_t sendResolve(const ComboAddress& remote, const DNSName &domain, int type, bool dnssecOk=false,
-    const DNSName& tsigkeyname=DNSName(), const DNSName& tsigalgorithm=DNSName(), const string& tsigsecret="");
-
   //! see if we got a SOA response from our sendResolve
   bool tryGetSOASerial(DNSName *theirDomain, uint32_t* theirSerial, uint32_t* theirInception, uint32_t* theirExpire, uint16_t* id);
   
