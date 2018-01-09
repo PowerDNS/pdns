@@ -913,11 +913,3 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     }
   }
 }
-
-// stub for PowerDNSLua linking
-int directResolve(const std::string& qname, const QType& qtype, int qclass, vector<DNSResourceRecord>& ret)
-{
-  return -1;
-}
-
-
