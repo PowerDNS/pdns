@@ -95,6 +95,7 @@ bin_PROGRAMS += \
 	saxfr \
 	stubquery \
 	ixplore \
+	ixfrdist \
 	sdig
 
 if HAVE_RECVMMSG
@@ -123,6 +124,7 @@ EXTRA_PROGRAMS = \
 	dumresp \
 	kvresp \
 	ixplore \
+	ixfrdist \
 	pdns_notify \
 	nproxy \
 	nsec3dig \
@@ -584,6 +586,51 @@ endif
 
 if GSS_TSIG
 saxfr_LDADD += $(GSS_LIBS)
+endif
+
+ixfrdist_SOURCES = \
+	arguments.cc \
+	base32.cc \
+	base64.cc base64.hh \
+	dns.cc \
+	dns_random.cc dns_random.hh \
+	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
+	dnsparser.cc dnsparser.hh \
+	dnsrecords.cc \
+	dnssecinfra.cc \
+	dnswriter.cc dnswriter.hh \
+	gss_context.cc gss_context.hh \
+	logger.cc \
+	misc.cc misc.hh \
+	nsecrecords.cc \
+	qtype.cc \
+	rcpgenerator.cc rcpgenerator.hh \
+	resolver.cc \
+	ixfr.cc ixfr.hh \
+	ixfrdist.cc \
+	sillyrecords.cc \
+	sstuff.hh \
+	statbag.cc \
+	tsigverifier.cc tsigverifier.hh \
+	unix_utility.cc zoneparser-tng.cc
+
+ixfrdist_LDADD = \
+	$(BOOST_PROGRAM_OPTIONS_LIBS) \
+	$(LIBCRYPTO_LIBS)
+
+ixfrdist_LDFLAGS = \
+	$(AM_LDFLAGS) \
+	$(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
+	$(LIBCRYPTO_LDFLAGS)
+
+if PKCS11
+ixfrdist_SOURCES += pkcs11signers.cc pkcs11signers.hh
+ixfrdist_LDADD += $(P11KIT1_LIBS)
+endif
+
+if GSS_TSIG
+ixfrdist_LDADD += $(GSS_LIBS)
 endif
 
 
