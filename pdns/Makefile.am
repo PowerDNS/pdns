@@ -607,6 +607,7 @@ ixfrdist_SOURCES = \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
 	resolver.cc \
+	ixfrutils.cc ixfrutils.hh \
 	ixfr.cc ixfr.hh \
 	ixfrdist.cc \
 	sillyrecords.cc \
@@ -654,6 +655,7 @@ ixplore_SOURCES = \
 	rcpgenerator.cc rcpgenerator.hh \
 	resolver.cc \
 	ixfr.cc ixfr.hh \
+	ixfrutils.cc ixfrutils.hh \
 	ixplore.cc \
 	sillyrecords.cc \
 	sstuff.hh \

@@ -44,6 +44,7 @@
 #include "resolver.hh"
 #include <fstream>
 #include "ixfr.hh"
+#include "ixfrutils.hh"
 using namespace boost::multi_index;
 StatBag S;
 
@@ -59,6 +60,9 @@ po::variables_map g_vm;
 void usage(po::options_description &desc) {
   cerr << "Usage: ixfrdist [OPTION]... DOMAIN [DOMAIN]..."<<endl;
   cerr << desc << "\n";
+}
+
+void updateThread() {
 }
 
 int main(int argc, char** argv) {
