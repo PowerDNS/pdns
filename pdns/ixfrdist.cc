@@ -22,30 +22,13 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include "arguments.hh"
-#include "base64.hh"
-#include <sys/types.h>
-#include <dirent.h>
-
-#include "dnsparser.hh"
-#include "sstuff.hh"
-#include "misc.hh"
-#include "dnswriter.hh"
-#include "dnsrecords.hh"
-#include "statbag.hh"
-#include "base32.hh"
-#include "dnssecinfra.hh"
-
-#include "dns_random.hh"
-#include "gss_context.hh"
-#include "zoneparser-tng.hh"
-#include <boost/multi_index_container.hpp>
 #include <boost/program_options.hpp>
-#include "resolver.hh"
-#include <fstream>
 #include "ixfr.hh"
 #include "ixfrutils.hh"
-using namespace boost::multi_index;
+
+/* BEGIN Needed because of deeper dependencies */
+#include "arguments.hh"
+#include "statbag.hh"
 StatBag S;
 
 ArgvMap &arg()
@@ -53,6 +36,9 @@ ArgvMap &arg()
   static ArgvMap theArg;
   return theArg;
 }
+/* END Needed because of deeper dependencies */
+
+using namespace boost::multi_index;
 
 namespace po = boost::program_options;
 po::variables_map g_vm;
