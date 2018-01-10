@@ -318,8 +318,13 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
       rr.content=o.str();
     }
 
-    if(rr.qtype.getCode() == QType::TXT && !rr.content.empty() && rr.content[0]!='"')
+    if(rr.qtype.getCode() == QType::TXT && !rr.content.empty() && rr.content[0]!='"') {
+      cout<<"[Error] TXT record is missing quotes around content: "<<rr.qname.toString()<<" IN "<<rr.qtype.getName()<<" "<<rr.content<<endl;
+      numerrors++;
+
+      // Add quotes here, so duplicate record detection works.
       rr.content = "\""+rr.content+"\"";
+    }
 
     try {
       shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content));
