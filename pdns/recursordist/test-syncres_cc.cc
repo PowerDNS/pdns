@@ -75,18 +75,18 @@ void primeHints(void)
     arr.d_content=std::make_shared<ARecordContent>(ComboAddress(rootIps4[c-'a']));
     vector<DNSRecord> aset;
     aset.push_back(arr);
-    t_RC->replace(time(0), DNSName(templ), QType(QType::A), aset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), true); // auth, nuke it all
+    t_RC->replace(time(nullptr), DNSName(templ), QType(QType::A), aset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), true); // auth, nuke it all
     if (rootIps6[c-'a'] != NULL) {
       aaaarr.d_content=std::make_shared<AAAARecordContent>(ComboAddress(rootIps6[c-'a']));
 
       vector<DNSRecord> aaaaset;
       aaaaset.push_back(aaaarr);
-      t_RC->replace(time(0), DNSName(templ), QType(QType::AAAA), aaaaset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), true);
+      t_RC->replace(time(nullptr), DNSName(templ), QType(QType::AAAA), aaaaset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), true);
     }
 
     nsset.push_back(nsrr);
   }
-  t_RC->replace(time(0), g_rootdnsname, QType(QType::NS), nsset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), false); // and stuff in the cache
+  t_RC->replace(time(nullptr), g_rootdnsname, QType(QType::NS), nsset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), false); // and stuff in the cache
 }
 
 LuaConfigItems::LuaConfigItems()
@@ -746,9 +746,10 @@ BOOST_AUTO_TEST_CASE(test_all_nss_down) {
   BOOST_CHECK_EQUAL(ret.size(), 0);
   BOOST_CHECK_EQUAL(downServers.size(), 4);
 
+  time_t now = sr->getNow().tv_sec;
   for (const auto& server : downServers) {
     BOOST_CHECK_EQUAL(SyncRes::getServerFailsCount(server), 1);
-    BOOST_CHECK(SyncRes::isThrottled(time(nullptr), server, target, QType::A));
+    BOOST_CHECK(SyncRes::isThrottled(now, server, target, QType::A));
   }
 }
 
@@ -793,9 +794,10 @@ BOOST_AUTO_TEST_CASE(test_all_nss_network_error) {
   BOOST_CHECK_EQUAL(ret.size(), 0);
   BOOST_CHECK_EQUAL(downServers.size(), 4);
 
+  time_t now = sr->getNow().tv_sec;
   for (const auto& server : downServers) {
     BOOST_CHECK_EQUAL(SyncRes::getServerFailsCount(server), 1);
-    BOOST_CHECK(SyncRes::isThrottled(time(nullptr), server, target, QType::A));
+    BOOST_CHECK(SyncRes::isThrottled(now, server, target, QType::A));
   }
 }
 
@@ -903,9 +905,10 @@ BOOST_AUTO_TEST_CASE(test_os_limit_errors) {
   BOOST_CHECK_EQUAL(downServers.size(), 3);
 
   /* Error is reported as "OS limit error" (-2) so the servers should _NOT_ be marked down */
+  time_t now = sr->getNow().tv_sec;
   for (const auto& server : downServers) {
     BOOST_CHECK_EQUAL(SyncRes::getServerFailsCount(server), 0);
-    BOOST_CHECK(!SyncRes::isThrottled(time(nullptr), server, target, QType::A));
+    BOOST_CHECK(!SyncRes::isThrottled(now, server, target, QType::A));
   }
 }
 
@@ -1498,7 +1501,8 @@ BOOST_AUTO_TEST_CASE(test_throttled_server) {
     });
 
   /* mark ns as down */
-  SyncRes::doThrottle(time(nullptr), ns, SyncRes::s_serverdownthrottletime, 10000);
+  time_t now = sr->getNow().tv_sec;
+  SyncRes::doThrottle(now, ns, SyncRes::s_serverdownthrottletime, 10000);
 
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
@@ -1518,14 +1522,15 @@ BOOST_AUTO_TEST_CASE(test_throttled_server_count) {
 
   const size_t blocks = 10;
   /* mark ns as down for 'blocks' queries */
-  SyncRes::doThrottle(time(nullptr), ns, SyncRes::s_serverdownthrottletime, blocks);
+  time_t now = sr->getNow().tv_sec;
+  SyncRes::doThrottle(now, ns, SyncRes::s_serverdownthrottletime, blocks);
 
   for (size_t idx = 0; idx < blocks; idx++) {
-    BOOST_CHECK(SyncRes::isThrottled(time(nullptr), ns));
+    BOOST_CHECK(SyncRes::isThrottled(now, ns));
   }
 
   /* we have been throttled 'blocks' times, we should not be throttled anymore */
-  BOOST_CHECK(!SyncRes::isThrottled(time(nullptr), ns));
+  BOOST_CHECK(!SyncRes::isThrottled(now, ns));
 }
 
 BOOST_AUTO_TEST_CASE(test_throttled_server_time) {
@@ -1538,14 +1543,13 @@ BOOST_AUTO_TEST_CASE(test_throttled_server_time) {
 
   const size_t seconds = 1;
   /* mark ns as down for 'seconds' seconds */
-  SyncRes::doThrottle(time(nullptr), ns, seconds, 10000);
+  time_t now = sr->getNow().tv_sec;
+  SyncRes::doThrottle(now, ns, seconds, 10000);
 
-  BOOST_CHECK(SyncRes::isThrottled(time(nullptr), ns));
-
-  sleep(seconds + 1);
+  BOOST_CHECK(SyncRes::isThrottled(now, ns));
 
   /* we should not be throttled anymore */
-  BOOST_CHECK(!SyncRes::isThrottled(time(nullptr), ns));
+  BOOST_CHECK(!SyncRes::isThrottled(now + 2, ns));
 }
 
 BOOST_AUTO_TEST_CASE(test_dont_query_server) {
@@ -1875,8 +1879,7 @@ BOOST_AUTO_TEST_CASE(test_ns_speed) {
       return 0;
     });
 
-  struct timeval now;
-  gettimeofday(&now, 0);
+  struct timeval now = sr->getNow();
 
   /* make pdns-public-ns2.powerdns.com. the fastest NS, with its IPv6 address faster than the IPV4 one,
      then pdns-public-ns1.powerdns.com. on IPv4 */
