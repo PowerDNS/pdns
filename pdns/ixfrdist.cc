@@ -132,9 +132,9 @@ void updateThread(const vector<DNSName> &domains) {
           cerr<<"[INFO]   Done!"<<endl;
         }
       } catch (ResolverException &e) {
-        cerr<<"[WARNING] Could not retrieve AXFR: "<<e.reason<<endl;
+        cerr<<"[WARNING] Could not retrieve AXFR for '"<<domain<<"': "<<e.reason<<endl;
       } catch (runtime_error &e) {
-        cerr<<"[WARNING] Could not save zone to disk: "<<e.what()<<endl;
+        cerr<<"[WARNING] Could not save zone '"<<domain<<"' to disk: "<<e.what()<<endl;
       }
       serials[domain] = getSerialsFromDir(dir);
       lastCheck[domain] = now;
