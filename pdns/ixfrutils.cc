@@ -21,10 +21,12 @@
  */
 
 #include <dirent.h>
+#include <errno.h>
 #include "ixfrutils.hh"
 #include "sstuff.hh"
 #include "dnssecinfra.hh"
 #include "zoneparser-tng.hh"
+#include "dnsparser.hh"
 
 uint32_t getSerialFromMaster(const ComboAddress& master, const DNSName& zone, shared_ptr<SOARecordContent>& sr, const TSIGTriplet& tt)
 {
@@ -53,8 +55,10 @@ uint32_t getSerialFromMaster(const ComboAddress& master, const DNSName& zone, sh
   }
   for(const auto& r: mdp.d_answers) {
     if(r.first.d_type == QType::SOA) {
-      sr = std::dynamic_pointer_cast<SOARecordContent>(r.first.d_content);
-      return sr->d_st.serial;
+      sr = getRR<SOARecordContent>(r.first);
+      if(sr != nullptr) {
+        return sr->d_st.serial;
+      }
     }
   }
   return 0;
@@ -65,7 +69,7 @@ uint32_t getSerialsFromDir(const std::string& dir)
   uint32_t ret=0;
   DIR* dirhdl=opendir(dir.c_str());
   if(!dirhdl)
-    throw runtime_error("Could not open IXFR directory");
+    throw runtime_error("Could not open IXFR directory '" + dir + "': " + strerror(errno));
   struct dirent *entry;
 
   while((entry = readdir(dirhdl))) {
