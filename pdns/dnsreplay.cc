@@ -553,9 +553,6 @@ Orig    9           21      29     36         47        57       66    72
   pruneQids();
 }
 
-
-bool g_rdSelector;
-
 static void generateOptRR(const std::string& optRData, string& res)
 {
   const uint8_t name = 0;
@@ -603,12 +600,14 @@ static void addECSOption(char* packet, const size_t& packetSize, uint16_t* len, 
   }
 }
 
+static bool g_rdSelector;
+static uint16_t g_pcapDnsPort;
 
-bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote, int stamp)
+static bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote, int stamp)
 {
   dnsheader* dh=(dnsheader*)pr.d_payload;
   bool sent=false;
-  if((ntohs(pr.d_udp->uh_dport)!=53 && ntohs(pr.d_udp->uh_sport)!=53) || dh->rd != g_rdSelector || (unsigned int)pr.d_len <= sizeof(dnsheader))
+  if((ntohs(pr.d_udp->uh_dport)!=g_pcapDnsPort && ntohs(pr.d_udp->uh_sport)!=g_pcapDnsPort) || dh->rd != g_rdSelector || (unsigned int)pr.d_len <= sizeof(dnsheader))
     return sent;
 
   QuestionData qd;
@@ -704,6 +703,7 @@ try
     ("help,h", "produce help message")
     ("version", "show version number")
     ("packet-limit", po::value<uint32_t>()->default_value(0), "stop after this many packets")
+    ("pcap-dns-port", po::value<uint16_t>()->default_value(53), "look at packets from or to this port in the PCAP (defaults to 53)")
     ("quiet", po::value<bool>()->default_value(true), "don't be too noisy")
     ("recursive", po::value<bool>()->default_value(true), "look at recursion desired packets, or not (defaults true)")
     ("speedup", po::value<float>()->default_value(1), "replay at this speedup")
@@ -750,6 +750,7 @@ try
   uint32_t packetLimit = g_vm["packet-limit"].as<uint32_t>();
 
   g_rdSelector = g_vm["recursive"].as<bool>();
+  g_pcapDnsPort = g_vm["pcap-dns-port"].as<uint16_t>();
 
   g_quiet = g_vm["quiet"].as<bool>();
 
