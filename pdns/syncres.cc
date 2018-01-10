@@ -889,6 +889,45 @@ struct speedOrder
   map<DNSName, double>& d_speeds;
 };
 
+inline vector<ComboAddress> SyncRes::shuffleForwardSpeed(vector<ComboAddress> &nameservers, const string &prefix, const bool wasRd)
+{
+  vector<ComboAddress> out_nameservers;
+  vector<DNSName> rnameservers;
+  for(const auto& ns:nameservers) {
+    rnameservers.push_back(DNSName(ns.toStringWithPort()));
+  }
+
+  map<DNSName, double> speeds;
+
+  for(const auto& val: rnameservers) {
+    double speed;
+    speed=t_sstorage->nsSpeeds[val].get(&d_now);
+    speeds[val]=speed;
+  }
+  random_shuffle(rnameservers.begin(),rnameservers.end(), dns_random);
+  speedOrder so(speeds);
+  stable_sort(rnameservers.begin(),rnameservers.end(), so);
+
+  for(vector<DNSName>::const_iterator i=rnameservers.cbegin();i!=rnameservers.cend();++i) {
+    out_nameservers.push_back(ComboAddress(i->toStringNoDot()));
+  }
+
+  if(doLog()) {
+    LOG(prefix<<"Nameservers: ");
+    for(vector<DNSName>::const_iterator i=rnameservers.cbegin();i!=rnameservers.cend();++i) {
+      if(i!=rnameservers.cbegin()) {
+        LOG(", ");
+        if(!((i-rnameservers.cbegin())%3)) {
+          LOG(endl<<prefix<<"             ");
+        }
+      }
+      LOG((wasRd ? string("+") : string()) << i->toStringNoDot() <<"(" << (boost::format("%0.2f") % (speeds[*i]/1000.0)).str() <<"ms)");
+    }
+    LOG(endl);
+  }
+  return out_nameservers;
+}
+
 inline vector<DNSName> SyncRes::shuffleInSpeedOrder(NsSet &tnameservers, const string &prefix)
 {
   vector<DNSName> rnameservers;
@@ -1007,14 +1046,13 @@ vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, 
   }
   else {
     LOG(prefix<<qname<<": Domain has hardcoded nameserver");
-
-    result = nameservers[*tns].first;
-    if(result.size() > 1) {
+    if(nameservers[*tns].first.size() > 1) {
       LOG("s");
     }
     LOG(endl);
 
     sendRDQuery = nameservers[*tns].second;
+    result = shuffleForwardSpeed(nameservers[*tns].first, doLog() ? (prefix+qname.toString()+": ") : string(), sendRDQuery);
     pierceDontQuery=true;
   }
   return result;
@@ -1397,7 +1435,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
               }
 
               if(resolveret!=-2) { // don't account for resource limits, they are our own fault
-		t_sstorage->nsSpeeds[*tns].submit(*remoteIP, 1000000, &d_now); // 1 sec
+		t_sstorage->nsSpeeds[tns->empty()? DNSName(remoteIP->toStringWithPort()) : *tns].submit(*remoteIP, 1000000, &d_now); // 1 sec
 
 		// code below makes sure we don't filter COM or the root
                 if (s_serverdownmaxfails > 0 && (auth != g_rootdnsname) && t_sstorage->fails.incr(*remoteIP) >= s_serverdownmaxfails) {
@@ -1449,7 +1487,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
         */
         //        cout<<"msec: "<<lwr.d_usec/1000.0<<", "<<g_avgLatency/1000.0<<'\n';
 
-        t_sstorage->nsSpeeds[*tns].submit(*remoteIP, lwr.d_usec, &d_now);
+        t_sstorage->nsSpeeds[tns->empty()? DNSName(remoteIP->toStringWithPort()) : *tns].submit(*remoteIP, lwr.d_usec, &d_now);
       }
 
       if(s_minimumTTL) {
