@@ -601,15 +601,17 @@ ixfrdist_SOURCES = \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
 	gss_context.cc gss_context.hh \
+	ixfr.cc ixfr.hh \
+	ixfrdist.cc \
+	ixfrutils.cc ixfrutils.hh \
 	logger.cc \
 	misc.cc misc.hh \
+	mplexer.hh \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
 	resolver.cc \
-	ixfrutils.cc ixfrutils.hh \
-	ixfr.cc ixfr.hh \
-	ixfrdist.cc \
+	selectmplexer.cc \
 	sillyrecords.cc \
 	sstuff.hh \
 	statbag.cc \

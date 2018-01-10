@@ -28,6 +28,8 @@
 #include "ixfrutils.hh"
 #include "resolver.hh"
 #include "dns_random.hh"
+#include "sstuff.hh"
+#include "mplexer.hh"
 
 /* BEGIN Needed because of deeper dependencies */
 #include "arguments.hh"
@@ -41,6 +43,13 @@ ArgvMap &arg()
 }
 /* END Needed because of deeper dependencies */
 
+
+// For all the listen-sockets
+SelectFDMultiplexer g_fdm;
+
+// The domains we support
+set<DNSName> g_domains;
+
 using namespace boost::multi_index;
 
 namespace po = boost::program_options;
@@ -48,18 +57,19 @@ po::variables_map g_vm;
 string g_workdir;
 ComboAddress g_master;
 bool g_verbose = false;
+bool g_debug = false;
 
 void usage(po::options_description &desc) {
   cerr << "Usage: ixfrdist [OPTION]... DOMAIN [DOMAIN]..."<<endl;
   cerr << desc << "\n";
 }
 
-void updateThread(const vector<DNSName> &domains) {
+void updateThread() {
   std::map<DNSName, uint32_t> serials;
   std::map<DNSName, time_t> lastCheck;
 
   // Initialize the serials we have
-  for (const auto &domain : domains) {
+  for (const auto &domain : g_domains) {
     lastCheck[domain] = 0;
     string dir = g_workdir + "/" + domain.toString();
     try {
@@ -69,7 +79,7 @@ void updateThread(const vector<DNSName> &domains) {
       cerr<<"[INFO] "<<e.what()<<", attempting to create"<<endl;
       // Attempt to create it, if _that_ fails, there is no hope
       if (mkdir(dir.c_str(), 0777) == -1) {
-        cerr<<"[ERROR] Could not create '"<<dir<<"': "<<strerror(errno)<<endl;
+        cerr<<"[Error] Could not create '"<<dir<<"': "<<strerror(errno)<<endl;
         exit(EXIT_FAILURE);
       }
     }
@@ -77,7 +87,7 @@ void updateThread(const vector<DNSName> &domains) {
 
   while (true) {
     time_t now = time(nullptr);
-    for (const auto &domain : domains) {
+    for (const auto &domain : g_domains) {
       string dir = g_workdir + "/" + domain.toString();
       if (now - lastCheck[domain] < 30) { // YOLO 30 seconds
           continue;
@@ -143,12 +153,64 @@ void updateThread(const vector<DNSName> &domains) {
   } /* while (true) */
 } /* updateThread */
 
+void handleUDPRequest(int fd, boost::any&) {
+  // TODO make the buffer-size configurable
+  char buf[4096];
+  struct sockaddr saddr;
+  socklen_t fromlen;
+  int res = recvfrom(fd, buf, sizeof(buf), 0, &saddr, &fromlen);
+  ComboAddress from(&saddr, fromlen);
+
+  if (res == 0) {
+    cerr<<"[Warning] Got an empty message from "<<from.toStringWithPort()<<endl;
+    return;
+  }
+
+  // TODO better error handling/logging
+  if(res < 0) {
+    cerr<<"[Warning] Could not read message from "<<from.toStringWithPort()<<": "<<strerror(errno)<<endl;
+    return;
+  }
+
+  MOADNSParser mdp(true, string(buf, res));
+  vector<string> info_msg;
+
+  if (g_debug) {
+    cerr<<"[Debug] Had "<<mdp.d_qname<<"|"<<QType(mdp.d_qtype).getName()<<" query from "<<from.toStringWithPort()<<endl;
+  }
+
+  if (mdp.d_qtype != QType::SOA && mdp.d_qtype != QType::AXFR && mdp.d_qtype != QType::IXFR) {
+    info_msg.push_back("QType is unsupported (" + QType(mdp.d_qtype).getName() + " is not in {SOA,AXFR,IXFR}.");
+  }
+
+  if (g_domains.find(mdp.d_qname) == g_domains.end()) {
+    info_msg.push_back("Domain name '" + mdp.d_qname.toLogString() + "' is not configured for distribution");
+  }
+
+  if (!info_msg.empty()) {
+    cerr<<"[Warning] Ignoring "<<mdp.d_qname<<"|"<<QType(mdp.d_qtype).getName()<<" query from "<<from.toStringWithPort();
+    if (g_verbose) {
+      cerr<<":";
+      for (const auto& s : info_msg) {
+        cerr<<endl<<"    "<<s;
+      }
+    }
+    cerr<<endl;
+    return;
+  }
+}
+
+void handleTCPRequest(int fd, boost::any&) {
+}
+
+
 int main(int argc, char** argv) {
   po::options_description desc("IXFR distribution tool");
   desc.add_options()
     ("help", "produce help message")
     ("version", "Display the version of ixfrdist")
     ("verbose", "Be verbose")
+    ("debug", "Be even more verbose")
     ("listen-address", po::value< vector< string>>(), "IP Address(es) to listen on")
     ("server-address", po::value<string>()->default_value("127.0.0.1:5300"), "server address")
     ("work-dir", po::value<string>()->default_value("."), "Directory for storing AXFR and IXFR data")
@@ -165,25 +227,29 @@ int main(int argc, char** argv) {
   po::store(po::command_line_parser(argc, argv).options(alloptions).positional(p).run(), g_vm);
   po::notify(g_vm);
 
-  if (g_vm.count("help")) {
+  if (g_vm.count("help") > 0) {
     usage(desc);
     return EXIT_SUCCESS;
   }
 
-  if (g_vm.count("version")) {
+  if (g_vm.count("version") > 0) {
     cout<<"ixfrdist "<<VERSION<<endl;
     return EXIT_SUCCESS;
   }
 
-  if (g_vm.count("verbose")) {
+  if (g_vm.count("verbose") > 0 || g_vm.count("debug") > 0) {
     g_verbose = true;
+  }
+
+  if (g_vm.count("debug") > 0) {
+    g_debug = true;
   }
 
   bool had_error = false;
 
   vector<ComboAddress> listen_addresses = {ComboAddress("127.0.0.1:53")};
 
-  if (g_vm.count("listen-address")) {
+  if (g_vm.count("listen-address") > 0) {
     listen_addresses.clear();
     for (const auto &addr : g_vm["listen-address"].as< vector< string> >()) {
       try {
@@ -207,15 +273,58 @@ int main(int argc, char** argv) {
     had_error = true;
   }
 
-  vector<DNSName> domains;
-
   for (const auto &domain : g_vm["domains"].as<vector<string>>()) {
     try {
-      domains.push_back(DNSName(domain));
+      g_domains.insert(DNSName(domain));
     } catch (PDNSException &e) {
       cerr<<"[Error] '"<<domain<<"' is not a valid domain name: "<<e.reason<<endl;
       had_error = true;
     }
+  }
+
+  for (const auto addr : listen_addresses) {
+    // Create UDP socket
+    int s = socket(addr.sin4.sin_family, SOCK_DGRAM, 0);
+    if (s < 0) {
+      cerr<<"[Error] Unable to create socket: "<<strerror(errno)<<endl;
+      had_error = true;
+      continue;
+    }
+
+    setNonBlocking(s);
+
+    if (bind(s, (sockaddr*) &addr, addr.getSocklen()) < 0) {
+      cerr<<"[Error] Unable to bind to "<<addr.toStringWithPort()<<": "<<strerror(errno)<<endl;
+      had_error = true;
+      continue;
+    }
+
+    g_fdm.addReadFD(s, handleUDPRequest);
+
+    // Create TCP socket
+    int t = socket(addr.sin4.sin_family, SOCK_STREAM, 0);
+
+    if (t < 0) {
+      cerr<<"[Error] Unable to create socket: "<<strerror(errno)<<endl;
+      had_error = true;
+      continue;
+    }
+
+    setNonBlocking(t);
+
+    if (bind(t, (sockaddr*) &addr, addr.getSocklen()) < 0) {
+      cerr<<"[Error] Unable to bind to "<<addr.toStringWithPort()<<": "<<strerror(errno)<<endl;
+      had_error = true;
+    }
+
+    // TODO Make backlog configurable?
+    if (listen(t, 30) < 0) {
+      cerr<<"[Error] Unable to listen on "<<addr.toStringWithPort()<<": "<<strerror(errno)<<endl;
+      had_error = true;
+      continue;
+    }
+
+    g_fdm.addReadFD(t, handleTCPRequest);
   }
 
   g_workdir = g_vm["work-dir"].as<string>();
@@ -228,8 +337,19 @@ int main(int argc, char** argv) {
   // It all starts here
   // Init the things we need
   reportAllTypes();
+
+  // TODO read from urandom (perhaps getrandom(2)?
   dns_random_init("0123456789abcdef");
 
   // Updater thread (TODO: actually thread it :))
-  updateThread(domains);
+  // TODO use mplexer?
+  // updateThread();
+
+  // start loop
+  cout<<"IXFR distributor starting up!"<<endl;
+  struct timeval now;
+  for(;;) {
+    gettimeofday(&now, 0);
+    g_fdm.run(&now);
+  }
 }
