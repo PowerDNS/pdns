@@ -391,7 +391,9 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
   //  cerr<<"Called for "<<query<<", in zone "<<zone<<" for type "<<qtype<<endl;
   //  cerr<<"Code: '"<<code<<"'"<<endl;
   
-  AuthLua4 alua("");
+  AuthLua4 alua;
+  //
+  
   std::vector<shared_ptr<DNSRecordContent>> ret;
   
   LuaContext& lua = *alua.getLua();

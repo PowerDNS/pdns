@@ -181,7 +181,7 @@ pdns_server_SOURCES = \
 	logger.cc logger.hh \
 	lua-base4.cc lua-base4.hh \
 	lua-auth4.cc lua-auth4.hh \
-	lua-pdns.cc lua-pdns.hh lua-iputils.cc \
+	lua-pdns.hh \
 	lua-record.cc \
 	minicurl.cc minicurl.hh \
 	mastercommunicator.cc \
