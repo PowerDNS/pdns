@@ -2353,7 +2353,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
 
 bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType& qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool* truncated)
 {
-  int resolveret;
+  int resolveret = RCode::NoError;
   s_outqueries++;
   d_outqueries++;
 
