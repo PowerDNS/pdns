@@ -125,6 +125,15 @@ void loadMainConfig(const std::string& configdir)
 
   seedRandom(::arg()["entropy-source"]);
 
+#ifdef HAVE_LIBSODIUM
+  if (sodium_init() == -1) {
+    cerr<<"Unable to initialize sodium crypto library"<<endl;
+    exit(99);
+  }
+#endif
+
+  openssl_seed();
+
   if (!::arg()["chroot"].empty()) {
     if (chroot(::arg()["chroot"].c_str())<0 || chdir("/") < 0) {
       cerr<<"Unable to chroot to '"+::arg()["chroot"]+"': "<<strerror (errno)<<endl;
@@ -238,7 +247,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
       DNSKEYRecordContent dkrc;
       shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(dkrc, kd.content));
 
-      if(dkrc.d_algorithm == 5) {
+      if(dkrc.d_algorithm == DNSSECKeeper::RSASHA1) {
         cout<<"[Warning] zone '"<<zone<<"' has NSEC3 semantics, but the "<< (kd.active ? "" : "in" ) <<"active key with id "<<kd.id<<" has 'Algorithm: 5'. This should be corrected to 'Algorithm: 7' in the database (or NSEC3 should be disabled)."<<endl;
         numwarnings++;
       }
@@ -577,53 +586,16 @@ int increaseSerial(const DNSName& zone, DNSSECKeeper &dk)
     cerr<<"Serial increase of presigned zone '"<<zone<<"' is not allowed."<<endl;
     return -1;
   }
-  
+
   string soaEditKind;
   dk.getSoaEdit(zone, soaEditKind);
 
-  sd.db->lookup(QType(QType::SOA), zone);
-  vector<DNSResourceRecord> rrs;
   DNSResourceRecord rr;
-  DNSZoneRecord szr;
-  while (sd.db->get(rr)) {
-    if (rr.qtype.getCode() == QType::SOA) {
-      rrs.push_back(rr);
-      szr.dr=DNSRecord(rr) ;
-    }
-  } 
-
-  if (rrs.size() > 1) {
-    cerr<<rrs.size()<<" SOA records found for "<<zone<<"!"<<endl;
-    return -1;
-  }
-  if (rrs.size() < 1) {
-     cerr<<zone<<" not found!"<<endl;
-  }
-  
-  if (soaEditKind.empty()) {
-    sd.serial++;
-  }
-  else if(pdns_iequals(soaEditKind,"INCREMENT-WEEKS")) {
-    sd.serial++;
-  }
-  else if(pdns_iequals(soaEditKind,"INCEPTION-INCREMENT")) {
-    uint32_t today_serial = localtime_format_YYYYMMDDSS(time(NULL), 1);
-
-    if (sd.serial < today_serial) {
-      sd.serial = today_serial;
-    }
-    else {
-      sd.serial++;
-    }
-  }
-  else {
-    sd.serial = calculateEditSOA(szr, soaEditKind) + 1;
-  }
-  rrs[0].content = serializeSOAData(sd);
+  makeIncreasedSOARecord(sd, "SOA-EDIT-INCREASE", soaEditKind, rr);
 
   sd.db->startTransaction(zone, -1);
 
-  if (! sd.db->replaceRRSet(sd.domain_id, zone, rr.qtype, rrs)) {
+  if (!sd.db->replaceRRSet(sd.domain_id, zone, rr.qtype, vector<DNSResourceRecord>(1, rr))) {
    sd.db->abortTransaction();
    cerr<<"Backend did not replace SOA record. Backend might not support this operation."<<endl;
    return -1;
@@ -641,8 +613,8 @@ int increaseSerial(const DNSName& zone, DNSSECKeeper &dk)
     } else
       ordername=zone;
     if(g_verbose)
-      cerr<<"'"<<rrs[0].qname<<"' -> '"<< ordername <<"'"<<endl;
-    sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, rrs[0].qname, ordername, true);
+      cerr<<"'"<<rr.qname<<"' -> '"<< ordername <<"'"<<endl;
+    sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, rr.qname, ordername, true);
   }
 
   sd.db->commitTransaction();
@@ -918,7 +890,7 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
   set_difference(pre.cbegin(), pre.cend(), post.cbegin(), post.cend(), back_inserter(diff), DNSRecord::prettyCompare);
   for(const auto& d : diff) {
     ostringstream str;
-    str<<'-'<< d.d_name <<" "<<d.d_ttl<<" IN "<<DNSRecordContent::NumberToType(d.d_type)<<" "<<d.d_content->getZoneRepresentation(true)<<endl;
+    str<<"\033[0;31m-"<< d.d_name <<" "<<d.d_ttl<<" IN "<<DNSRecordContent::NumberToType(d.d_type)<<" "<<d.d_content->getZoneRepresentation(true)<<"\033[0m"<<endl;
     changed[{d.d_name,d.d_type}] += str.str();
 
   }
@@ -927,7 +899,7 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
   for(const auto& d : diff) {
     ostringstream str;
 
-    str<<'+'<< d.d_name <<" "<<d.d_ttl<<" IN "<<DNSRecordContent::NumberToType(d.d_type)<<" "<<d.d_content->getZoneRepresentation(true)<<endl;
+    str<<"\033[0;32m+"<< d.d_name <<" "<<d.d_ttl<<" IN "<<DNSRecordContent::NumberToType(d.d_type)<<" "<<d.d_content->getZoneRepresentation(true)<<"\033[0m"<<endl;
     changed[{d.d_name,d.d_type}]+=str.str();
   }
   if (changed.size() > 0)
@@ -1036,7 +1008,7 @@ int createZone(const DNSName &zone, const DNSName& nsname) {
   ).str();
   SOAData sd;
   fillSOAData(soa, sd);  // fills out default values for us
-  rr.content = DNSRecordContent::mastermake(rr.qtype.getCode(), 1, serializeSOAData(sd))->getZoneRepresentation(true);
+  rr.content = makeSOAContent(sd)->getZoneRepresentation(true);
   rr.domain_id = di.id;
   di.backend->startTransaction(zone, di.id);
   di.backend->feedRecord(rr, DNSName());
@@ -1956,15 +1928,6 @@ try
 
   loadMainConfig(g_vm["config-dir"].as<string>());
 
-#ifdef HAVE_LIBSODIUM
-  if (sodium_init() == -1) {
-    cerr<<"Unable to initialize sodium crypto library"<<endl;
-    exit(99);
-  }
-#endif
-
-  openssl_seed();
-
   if (cmds[0] == "test-algorithm") {
     if(cmds.size() != 2) {
       cerr << "Syntax: pdnsutil test-algorithm algonum"<<endl;
@@ -2186,7 +2149,7 @@ try
     bool keyOrZone=false;
     int tmp_algo=0;
     int bits=0;
-    int algorithm=13; // ecdsa256
+    int algorithm=DNSSECKeeper::ECDSA256;
     bool active=false;
     for(unsigned int n=2; n < cmds.size(); ++n) {
       if(pdns_iequals(cmds[n], "zsk"))
@@ -2586,8 +2549,8 @@ try
     
     dpk.d_algorithm = pdns_stou(cmds[3]);
     
-    if(dpk.d_algorithm == 7)
-      dpk.d_algorithm = 5;
+    if(dpk.d_algorithm == DNSSECKeeper::RSASHA1NSEC3SHA1)
+      dpk.d_algorithm = DNSSECKeeper::RSASHA1;
       
     cerr<<(int)dpk.d_algorithm<<endl;
     
@@ -2631,8 +2594,8 @@ try
     dpk.setKey(key);
     dpk.d_algorithm = drc.d_algorithm;
     
-    if(dpk.d_algorithm == 7)
-      dpk.d_algorithm = 5;
+    if(dpk.d_algorithm == DNSSECKeeper::RSASHA1NSEC3SHA1)
+      dpk.d_algorithm = DNSSECKeeper::RSASHA1;
     
     dpk.d_flags = 257; 
     bool active=true;
@@ -2684,7 +2647,7 @@ try
     bool keyOrZone=false;
     int tmp_algo=0;
     int bits=0;
-    int algorithm=13; // ecdsa256
+    int algorithm=DNSSECKeeper::ECDSA256;
     for(unsigned int n=1; n < cmds.size(); ++n) {
       if(pdns_iequals(cmds[n], "zsk"))
         keyOrZone = false;
@@ -2709,14 +2672,14 @@ try
       if(algorithm <= 10)
         bits = keyOrZone ? 2048 : 1024;
       else {
-        if(algorithm == 12 || algorithm == 13 || algorithm == 15) // ECDSA, GOST, ED25519
+        if(algorithm == DNSSECKeeper::ECCGOST || algorithm == DNSSECKeeper::ECDSA256 || algorithm == DNSSECKeeper::ED25519)
           bits = 256;
-        else if(algorithm == 14)
+        else if(algorithm == DNSSECKeeper::ECDSA384)
           bits = 384;
-        else if(algorithm == 16) // ED448
+        else if(algorithm == DNSSECKeeper::ED448)
           bits = 456;
         else {
-          throw runtime_error("Can't guess key size for algorithm "+std::to_string(algorithm));
+          throw runtime_error("Can not guess key size for algorithm "+std::to_string(algorithm));
         }
       }
     }

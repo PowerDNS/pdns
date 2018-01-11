@@ -111,6 +111,7 @@ pdns_recursor_SOURCES = \
 	lazy_allocator.hh \
 	lock.hh \
 	logger.hh logger.cc \
+	lua-base4.cc lua-base4.hh \
 	lua-recursor4.cc lua-recursor4.hh \
 	lwres.cc lwres.hh \
 	misc.hh misc.cc \
@@ -369,7 +370,7 @@ dist_man_MANS=$(MANPAGES)
 
 if HAVE_VIRTUALENV
 if !HAVE_MANPAGES
-$(MANPAGES): %.1: docs/manpages/%.rst .venv
+$(MANPAGES): %: docs/manpages/%.rst .venv
 	.venv/bin/python -msphinx -b man docs . $<
 endif # if !HAVE_MANPAGES
 

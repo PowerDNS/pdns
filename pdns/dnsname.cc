@@ -423,7 +423,7 @@ string DNSName::escapeLabel(const std::string& label)
       ret+="\\.";
     else if(p=='\\')
       ret+="\\\\";
-    else if(p > 0x21 && p < 0x7e)
+    else if(p > 0x20 && p < 0x7f)
       ret.append(1, (char)p);
     else {
       ret+="\\" + (boost::format("%03d") % (unsigned int)p).str();

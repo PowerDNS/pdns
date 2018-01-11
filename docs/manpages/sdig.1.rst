@@ -1,8 +1,6 @@
 sdig
 ====
 
-:program:`sdig` - Perform a DNS query and show the results
-
 Synopsis
 --------
 

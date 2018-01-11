@@ -140,6 +140,36 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
         print data
         self.assertEquals(data['soa_edit_api'], 'DEFAULT')
 
+    def test_create_zone_with_soa_edit(self):
+        name, payload, data = self.create_zone(soa_edit='INCEPTION-INCREMENT', soa_edit_api='SOA-EDIT-INCREASE')
+        print data
+        self.assertEquals(data['soa_edit'], 'INCEPTION-INCREMENT')
+        self.assertEquals(data['soa_edit_api'], 'SOA-EDIT-INCREASE')
+        soa_serial = get_first_rec(data, name, 'SOA')['content'].split(' ')[2]
+        # These particular settings lead to the first serial set to YYYYMMDD01.
+        self.assertEquals(soa_serial[-2:], '01')
+        rrset = {
+            'changetype': 'replace',
+            'name': name,
+            'type': 'A',
+            'ttl': 3600,
+            'records': [
+                {
+                    "content": "127.0.0.1",
+                    "disabled": False
+                }
+            ]
+        }
+        payload = {'rrsets': [rrset]}
+        self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + data['id']),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        r = self.session.get(self.url("/api/v1/servers/localhost/zones/" + data['id']))
+        data = r.json()
+        soa_serial = get_first_rec(data, name, 'SOA')['content'].split(' ')[2]
+        self.assertEquals(soa_serial[-2:], '02')
+
     def test_create_zone_with_records(self):
         name = unique_zone_name()
         rrset = {
@@ -500,8 +530,9 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
         payload_metadata = {"type": "Metadata", "kind": "AXFR-SOURCE", "metadata": ["127.0.0.2"]}
         r = self.session.post(self.url("/api/v1/servers/localhost/zones/idonotexist.123.456.example./metadata"),
                               data=json.dumps(payload_metadata))
-        self.assertEquals(r.status_code, 422)
-        self.assertIn('Could not find domain ', r.json()['error'])
+        self.assertEquals(r.status_code, 404)
+        # Note: errors should probably contain json (see #5988)
+        # self.assertIn('Could not find domain ', r.json()['error'])
 
     def test_create_slave_zone(self):
         # Test that nameservers can be absent for slave zones.
@@ -1653,6 +1684,8 @@ class AuthZoneKeys(ApiTestCase, AuthZonesHelperMixin):
         del key0['dnskey']
         del key0['ds']
         expected = {
+            u'algorithm': u'ECDSAP256SHA256',
+            u'bits': 256,
             u'active': True,
             u'type': u'Cryptokey',
             u'keytype': u'csk',

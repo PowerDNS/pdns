@@ -76,10 +76,11 @@ static void apiServerConfigAllowFrom(HttpRequest* req, HttpResponse* resp)
       throw ApiException("'value' must be an array");
     }
 
+    NetmaskGroup nmg;
     for (auto value : jlist.array_items()) {
       try {
-        Netmask(value.string_value());
-      } catch (NetmaskException &e) {
+        nmg.addMask(value.string_value());
+      } catch (const NetmaskException &e) {
         throw ApiException(e.reason);
       }
     }
@@ -91,9 +92,7 @@ static void apiServerConfigAllowFrom(HttpRequest* req, HttpResponse* resp)
 
     // Clear allow-from, and provide a "parent" value
     ss << "allow-from=" << endl;
-    for (auto value : jlist.array_items()) {
-      ss << "allow-from+=" << value.string_value() << endl;
-    }
+    ss << "allow-from+=" << nmg.toString() << endl;
 
     apiWriteConfigFile("allow-from", ss.str());
 
@@ -118,7 +117,7 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp)
 {
   auto iter = SyncRes::t_sstorage.domainmap->find(zonename);
   if (iter == SyncRes::t_sstorage.domainmap->end())
-    throw ApiException("Could not find domain '"+zonename.toString()+"'");
+    throw ApiException("Could not find domain '"+zonename.toLogString()+"'");
 
   const SyncRes::AuthDomain& zone = iter->second;
 
@@ -201,10 +200,15 @@ static void doCreateZone(const Json document)
       if (server == "") {
         throw ApiException("Forwarded-to server must not be an empty string");
       }
-      if (!serverlist.empty()) {
-        serverlist += ";";
+      try {
+        ComboAddress ca = parseIPAndPort(server, 53);
+        if (!serverlist.empty()) {
+          serverlist += ";";
+        }
+        serverlist += ca.toStringWithPort();
+      } catch (const PDNSException &e) {
+        throw ApiException(e.reason);
       }
-      serverlist += server;
     }
     if (serverlist == "")
       throw ApiException("Need at least one upstream server when forwarding");
@@ -292,7 +296,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp)
 
   SyncRes::domainmap_t::const_iterator iter = SyncRes::t_sstorage.domainmap->find(zonename);
   if (iter == SyncRes::t_sstorage.domainmap->end())
-    throw ApiException("Could not find domain '"+zonename.toString()+"'");
+    throw ApiException("Could not find domain '"+zonename.toLogString()+"'");
 
   if(req->method == "PUT" && !::arg().mustDo("api-readonly")) {
     Json document = req->json();

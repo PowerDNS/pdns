@@ -1,8 +1,6 @@
 dumresp
 =======
 
-:program:`dumresp` - A dumb DNS responder
-
 Synopsis
 --------
 

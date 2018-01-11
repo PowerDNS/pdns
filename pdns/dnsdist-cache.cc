@@ -89,7 +89,7 @@ void DNSDistPacketCache::insertLocked(CacheShard& shard, uint32_t key, const DNS
   value = newValue;
 }
 
-void DNSDistPacketCache::insert(uint32_t key, const DNSName& qname, uint16_t qtype, uint16_t qclass, const char* response, uint16_t responseLen, bool tcp, uint8_t rcode)
+void DNSDistPacketCache::insert(uint32_t key, const DNSName& qname, uint16_t qtype, uint16_t qclass, const char* response, uint16_t responseLen, bool tcp, uint8_t rcode, boost::optional<uint32_t> tempFailureTTL)
 {
   if (responseLen < sizeof(dnsheader))
     return;
@@ -97,7 +97,7 @@ void DNSDistPacketCache::insert(uint32_t key, const DNSName& qname, uint16_t qty
   uint32_t minTTL;
 
   if (rcode == RCode::ServFail || rcode == RCode::Refused) {
-    minTTL = d_tempFailureTTL;
+    minTTL = tempFailureTTL == boost::none ? d_tempFailureTTL : *tempFailureTTL;
     if (minTTL == 0) {
       return;
     }

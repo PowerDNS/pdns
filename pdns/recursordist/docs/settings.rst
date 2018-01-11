@@ -322,6 +322,22 @@ This setting can be used to expand or reduce the limitations.
 
 Queries to addresses for zones as configured in any of the settings `forward-zones`_, `forward-zones-file`_ or `forward-zones-recurse`_ are performed regardless of these limitations.
 
+.. _setting-ecs-add-for:
+
+``ecs-add-for``
+--------------------------
+.. versionadded:: 4.2.0
+
+-  Comma separated list of netmasks
+-  Default: 0.0.0.0/0, ::, !127.0.0.0/8, !10.0.0.0/8, !100.64.0.0/10, !169.254.0.0/16, !192.168.0.0/16, !172.16.0.0/12, !::1/128, !fc00::/7, !fe80::/10
+
+List of requestor netmasks for which the requestor IP Address should be used as the :rfc:`EDNS Client Subnet <7871>` for outgoing queries. Outgoing queries for requestors that do not match this list will use the `ecs-scope-zero-address`_ instead.
+Valid incoming ECS values from `use-incoming-edns-subnet`_ are not replaced.
+
+Regardless of the value of this setting, ECS values are only sent for outgoing queries matching the conditions in the `edns-subnet-whitelist`_ setting. This setting only controls the actual value being sent.
+
+This defaults to not using the requestor address inside RFC1918 and similar "private" IP address spaces.
+
 .. _setting-ecs-ipv4-bits:
 
 ``ecs-ipv4-bits``
@@ -378,8 +394,10 @@ Lower this if you experience timeouts.
 -  Default: (none)
 
 List of netmasks and domains that :rfc:`EDNS Client Subnet <7871>` should be enabled for in outgoing queries.
-For example, an EDNS Client Subnet option containing the address of the initial requestor will be added to an outgoing query sent to server 192.0.2.1 for domain X if 192.0.2.1 matches one of the supplied netmasks, or if X matches one of the supplied domains.
-The initial requestor address will be truncated to 24 bits for IPv4 and to 56 bits for IPv6, as recommended in the privacy section of RFC 7871.
+
+For example, an EDNS Client Subnet option containing the address of the initial requestor (but see `ecs-add-for`_) will be added to an outgoing query sent to server 192.0.2.1 for domain X if 192.0.2.1 matches one of the supplied netmasks, or if X matches one of the supplied domains.
+The initial requestor address will be truncated to 24 bits for IPv4 (see `ecs-ipv4-bits`_) and to 56 bits for IPv6 (see `ecs-ipv6-bits`_), as recommended in the privacy section of RFC 7871.
+
 By default, this option is empty, meaning no EDNS Client Subnet information is sent.
 
 .. _setting-entropy-source:

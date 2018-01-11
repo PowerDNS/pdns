@@ -65,10 +65,7 @@ public:
   int resolve(const string &ip, const DNSName &domain, int type, res_t* result);
 
   //! only send out a resolution request
-  uint16_t sendResolve(const ComboAddress& remote, const ComboAddress& local, const DNSName &domain, int type, bool dnssecOk=false,
-    const DNSName& tsigkeyname=DNSName(), const DNSName& tsigalgorithm=DNSName(), const string& tsigsecret="");
-
-  uint16_t sendResolve(const ComboAddress& remote, const DNSName &domain, int type, bool dnssecOk=false,
+  uint16_t sendResolve(const ComboAddress& remote, const ComboAddress& local, const DNSName &domain, int type, int *localsock, bool dnssecOk=false,
     const DNSName& tsigkeyname=DNSName(), const DNSName& tsigalgorithm=DNSName(), const string& tsigsecret="");
 
   //! see if we got a SOA response from our sendResolve

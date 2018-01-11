@@ -46,7 +46,7 @@ bool TSIGTCPVerifier::check(const string& data, const MOADNSParser& mdp)
 
   if (checkTSIG) {
     if (theirMac.empty()) {
-      throw std::runtime_error("No TSIG on AXFR response from "+d_remote.toStringWithPort()+" , should be signed with TSIG key '"+d_tt.name.toString()+"'");
+      throw std::runtime_error("No TSIG on AXFR response from "+d_remote.toStringWithPort()+" , should be signed with TSIG key '"+d_tt.name.toLogString()+"'");
     }
 
     try {

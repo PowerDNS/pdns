@@ -60,6 +60,10 @@
 #ifdef __FreeBSD__
 #  include <pthread_np.h>
 #endif
+#ifdef __NetBSD__
+#  include <pthread.h>
+#  include <sched.h>
+#endif
 
 bool g_singleThreaded;
 
@@ -716,15 +720,19 @@ int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret)
   unsigned int port;
   if(addr[0]=='[') { // [::]:53 style address
     string::size_type pos = addr.find(']');
-    if(pos == string::npos || pos + 2 > addr.size() || addr[pos+1]!=':')
+    if(pos == string::npos)
       return -1;
     ourAddr.assign(addr.c_str() + 1, pos-1);
-    try {
-      port = pdns_stou(addr.substr(pos+2));
-      portSet = true;
-    }
-    catch(std::out_of_range) {
-      return -1;
+    if (pos + 1 != addr.size()) { // complete after ], no port specified
+      if (pos + 2 > addr.size() || addr[pos+1]!=':')
+        return -1;
+      try {
+        port = pdns_stou(addr.substr(pos+2));
+        portSet = true;
+      }
+      catch(std::out_of_range) {
+        return -1;
+      }
     }
   }
   ret->sin6_scope_id=0;
@@ -862,7 +870,7 @@ void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, const ComboAddress* sour
     pkt->ipi6_ifindex = itfIndex;
   }
   else {
-#ifdef IP_PKTINFO
+#if defined(IP_PKTINFO)
     struct in_pktinfo *pkt;
 
     msgh->msg_control = cmsgbuf;
@@ -877,8 +885,7 @@ void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, const ComboAddress* sour
     memset(pkt, 0, sizeof(*pkt));
     pkt->ipi_spec_dst = source->sin4.sin_addr;
     pkt->ipi_ifindex = itfIndex;
-#endif
-#ifdef IP_SENDSRCADDR
+#elif defined(IP_SENDSRCADDR)
     struct in_addr *in;
 
     msgh->msg_control = cmsgbuf;
@@ -1325,9 +1332,20 @@ bool isSettingThreadCPUAffinitySupported()
 int mapThreadToCPUList(pthread_t tid, const std::set<int>& cpus)
 {
 #ifdef HAVE_PTHREAD_SETAFFINITY_NP
-#  ifdef __FreeBSD__
-#    define cpu_set_t cpuset_t
-#  endif
+#  ifdef __NetBSD__
+  cpuset_t *cpuset;
+  cpuset = cpuset_create();
+  for (const auto cpuID : cpus) {
+    cpuset_set(cpuID, cpuset);
+  }
+
+  return pthread_setaffinity_np(tid,
+                                cpuset_size(cpuset),
+                                cpuset);
+#  else
+#    ifdef __FreeBSD__
+#      define cpu_set_t cpuset_t
+#    endif
   cpu_set_t cpuset;
   CPU_ZERO(&cpuset);
   for (const auto cpuID : cpus) {
@@ -1337,6 +1355,7 @@ int mapThreadToCPUList(pthread_t tid, const std::set<int>& cpus)
   return pthread_setaffinity_np(tid,
                                 sizeof(cpuset),
                                 &cpuset);
+#  endif
 #endif /* HAVE_PTHREAD_SETAFFINITY_NP */
   return ENOSYS;
 }

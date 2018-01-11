@@ -19,6 +19,7 @@ class ECSTest(RecursorTest):
 daemon=no
 trace=yes
 dont-query=
+ecs-add-for=0.0.0.0/0
 local-address=127.0.0.1
 packetcache-ttl=0
 packetcache-servfail-ttl=0
@@ -70,7 +71,7 @@ disable-syslog=yes
             ecsReactorRunning = True
 
         if not reactor.running:
-            cls._UDPResponder = threading.Thread(name='UDP ECS Responder', target=reactor.run, args=(False,))
+            cls._UDPResponder = threading.Thread(name='UDP Responder', target=reactor.run, args=(False,))
             cls._UDPResponder.setDaemon(True)
             cls._UDPResponder.start()
 

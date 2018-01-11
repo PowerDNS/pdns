@@ -42,7 +42,6 @@
 
 #include "base64.hh"
 #include "inflighter.cc"
-#include "lua-auth.hh"
 #include "namespaces.hh"
 #include "common_startup.hh"
 
@@ -342,7 +341,8 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
     }
     if(!script.empty()){
       try {
-        pdl.reset(new AuthLua4(script));
+        pdl.reset(new AuthLua4());
+        pdl->loadFile(script);
         L<<Logger::Info<<"Loaded Lua script '"<<script<<"' to edit the incoming AXFR of '"<<domain<<"'"<<endl;
       }
       catch(std::exception& e) {
@@ -626,12 +626,6 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
   }
 }
 namespace {
-struct QueryInfo
-{
-  struct timeval query_ttd;
-  uint16_t id;
-};
-
 struct DomainNotificationInfo
 {
   DomainInfo di;
@@ -667,25 +661,16 @@ struct SlaveSenderReceiver
   {
     random_shuffle(dni.di.masters.begin(), dni.di.masters.end());
     try {
-      ComboAddress remote(*dni.di.masters.begin());
-      if (dni.localaddr.sin4.sin_family == 0) {
-        return make_pair(dni.di.zone,
-          d_resolver.sendResolve(ComboAddress(*dni.di.masters.begin(), 53),
-            dni.di.zone,
-            QType::SOA,
-            dni.dnssecOk, dni.tsigkeyname, dni.tsigalgname, dni.tsigsecret)
-        );
-      } else {
-        return make_pair(dni.di.zone,
-          d_resolver.sendResolve(ComboAddress(*dni.di.masters.begin(), 53), dni.localaddr,
-            dni.di.zone,
-            QType::SOA,
-            dni.dnssecOk, dni.tsigkeyname, dni.tsigalgname, dni.tsigsecret)
-        );
-      }
+      return make_pair(dni.di.zone,
+        d_resolver.sendResolve(ComboAddress(*dni.di.masters.begin(), 53), dni.localaddr,
+          dni.di.zone,
+          QType::SOA,
+          nullptr,
+          dni.dnssecOk, dni.tsigkeyname, dni.tsigalgname, dni.tsigsecret)
+      );
     }
     catch(PDNSException& e) {
-      throw runtime_error("While attempting to query freshness of '"+dni.di.zone.toString()+"': "+e.reason);
+      throw runtime_error("While attempting to query freshness of '"+dni.di.zone.toLogString()+"': "+e.reason);
     }
   }
 
@@ -928,11 +913,3 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     }
   }
 }
-
-// stub for PowerDNSLua linking
-int directResolve(const std::string& qname, const QType& qtype, int qclass, vector<DNSResourceRecord>& ret)
-{
-  return -1;
-}
-
-

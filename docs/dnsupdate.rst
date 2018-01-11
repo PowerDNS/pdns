@@ -92,6 +92,8 @@ Per zone settings
 For permissions, a number of per zone settings are available via the
 :doc:`domain metadata `<domainmetadata>`.
 
+.. _metadata-allow-dnsupdate-from:
+
 ALLOW-DNSUPDATE-FROM
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -108,6 +110,8 @@ allowed per row, but multiple rows can be added. An example:
 
 This will allow 198.51.100.0/8 and 203.0.113.2/32 to send DNS update
 messages for the example.org domain.
+
+.. _metadata-tsig-allow-dnsupdate:
 
 TSIG-ALLOW-DNSUPDATE
 ~~~~~~~~~~~~~~~~~~~~
@@ -143,6 +147,8 @@ update. The TSIG is an alternative means of securing updates, instead of using t
 ``ALLOW-DNSUPDATE-FROM`` setting. If a TSIG key is set, and if ``ALLOW-DNSUPDATE-FROM`` is set,
 the IP(-range) of the updater still needs to be allowed via ``ALLOW-DNSUPDATE-FROM``. 
 
+.. _metadata-forward-dnsupdate:
+
 FORWARD-DNSUPDATE
 ~~~~~~~~~~~~~~~~~
 
@@ -160,6 +166,8 @@ This domain-specific setting is only useful when the configuration
 option :ref:`setting-forward-dnsupdate` is set to 'no', as that will disable it
 globally. Using the domainmetadata setting than allows you to enable it
 per domain.
+
+.. _metadata-notify-dnsupdate:
 
 NOTIFY-DNSUPDATE
 ~~~~~~~~~~~~~~~~

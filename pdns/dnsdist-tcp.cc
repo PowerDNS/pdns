@@ -272,8 +272,9 @@ void* tcpClientThread(int pipefd)
         ds = nullptr;
         outstanding = false;
 
-        if(!getNonBlockingMsgLen(ci.fd, &qlen, g_tcpRecvTimeout))
+        if(!getNonBlockingMsgLen(ci.fd, &qlen, g_tcpRecvTimeout)) {
           break;
+        }
 
         queriesCount++;
 
@@ -356,7 +357,7 @@ void* tcpClientThread(int pipefd)
 #endif
           sendResponseToClient(ci.fd, query, dq.len);
 	  g_stats.selfAnswered++;
-	  goto drop;
+	  continue;
 	}
 
         std::shared_ptr<ServerPool> serverPool = getPool(*holders.pools, poolname);
@@ -390,6 +391,8 @@ void* tcpClientThread(int pipefd)
 #ifdef HAVE_PROTOBUF
             dr.uniqueId = dq.uniqueId;
 #endif
+            dr.qTag = dq.qTag;
+
             if (!processResponse(holders.cacheHitRespRulactions, dr, &delayMsec)) {
               goto drop;
             }
@@ -401,7 +404,7 @@ void* tcpClientThread(int pipefd)
 #endif
             sendResponseToClient(ci.fd, cachedResponse, cachedResponseSize);
             g_stats.cacheHits++;
-            goto drop;
+            continue;
           }
           g_stats.cacheMisses++;
         }
@@ -420,6 +423,7 @@ void* tcpClientThread(int pipefd)
             }
 #endif
             sendResponseToClient(ci.fd, query, dq.len);
+            continue;
           }
 
           break;
@@ -542,12 +546,14 @@ void* tcpClientThread(int pipefd)
 #ifdef HAVE_PROTOBUF
         dr.uniqueId = dq.uniqueId;
 #endif
+        dr.qTag = dq.qTag;
+
         if (!processResponse(localRespRulactions, dr, &delayMsec)) {
           break;
         }
 
 	if (packetCache && !dq.skipCache) {
-	  packetCache->insert(cacheKey, qname, qtype, qclass, response, responseLen, true, dh->rcode);
+	  packetCache->insert(cacheKey, qname, qtype, qclass, response, responseLen, true, dh->rcode, dq.tempFailureTTL);
 	}
 
 #ifdef HAVE_DNSCRYPT

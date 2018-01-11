@@ -65,20 +65,20 @@ public:
   {
   }
 
-  void add(const std::string strLabel, const std::string strValue)
+  void add(const std::string& strLabel, const std::string& strValue)
   {
-    tagData.insert( {strLabel, strValue});
+    tagData.insert({strLabel, strValue});
     return;
   }
 
   std::string getMatch(const std::string& strLabel)  const
   {
-    std::unordered_map<std::string, std::string>::const_iterator got =tagData.find (strLabel);
-    if(got == tagData.end()) {
+    const auto got = tagData.find(strLabel);
+    if (got == tagData.cend()) {
       return "";
-    } else {
-      return got->second;
     }
+
+    return got->second;
   }
 
   std::string getEntry(size_t iEntry) const
@@ -117,7 +117,7 @@ public:
     return strRet;
   }
 
-  std::unordered_map<std::string, std::string>tagData;
+  std::unordered_map<std::string, std::string> tagData;
 
 private:
   static constexpr char const *strSep = "\t";
@@ -129,7 +129,7 @@ extern thread_local boost::uuids::random_generator t_uuidGenerator;
 
 struct DNSQuestion
 {
-  DNSQuestion(const DNSName* name, uint16_t type, uint16_t class_, const ComboAddress* lc, const ComboAddress* rem, struct dnsheader* header, size_t bufferSize, uint16_t queryLen, bool isTcp): qname(name), qtype(type), qclass(class_), local(lc), remote(rem), dh(header), size(bufferSize), len(queryLen), ecsPrefixLength(rem->sin4.sin_family == AF_INET ? g_ECSSourcePrefixV4 : g_ECSSourcePrefixV6), tcp(isTcp), ecsOverride(g_ECSOverride) { }
+  DNSQuestion(const DNSName* name, uint16_t type, uint16_t class_, const ComboAddress* lc, const ComboAddress* rem, struct dnsheader* header, size_t bufferSize, uint16_t queryLen, bool isTcp): qname(name), qtype(type), qclass(class_), local(lc), remote(rem), dh(header), size(bufferSize), len(queryLen), ecsPrefixLength(rem->sin4.sin_family == AF_INET ? g_ECSSourcePrefixV4 : g_ECSSourcePrefixV6), tempFailureTTL(boost::none), tcp(isTcp), ecsOverride(g_ECSOverride) { }
 
 #ifdef HAVE_PROTOBUF
   boost::optional<boost::uuids::uuid> uniqueId;
@@ -144,6 +144,7 @@ struct DNSQuestion
   size_t size;
   uint16_t len;
   uint16_t ecsPrefixLength;
+  boost::optional<uint32_t> tempFailureTTL;
   const bool tcp;
   bool skipCache{false};
   bool ecsOverride;
@@ -386,7 +387,7 @@ struct ClientState;
 
 struct IDState
 {
-  IDState() : origFD(-1), sentTime(true), delayMsec(0) { origDest.sin4.sin_family = 0;}
+  IDState() : origFD(-1), sentTime(true), delayMsec(0), tempFailureTTL(boost::none) { origDest.sin4.sin_family = 0;}
   IDState(const IDState& orig)
   {
     origFD = orig.origFD;
@@ -394,6 +395,7 @@ struct IDState
     origRemote = orig.origRemote;
     origDest = orig.origDest;
     delayMsec = orig.delayMsec;
+    tempFailureTTL = orig.tempFailureTTL;
     age.store(orig.age.load());
   }
 
@@ -410,6 +412,7 @@ struct IDState
   boost::optional<boost::uuids::uuid> uniqueId;
 #endif
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};
+  std::shared_ptr<QTag> qTag{nullptr};
   const ClientState* cs{nullptr};
   uint32_t cacheKey;                                          // 8
   std::atomic<uint16_t> age;                                  // 4
@@ -418,6 +421,7 @@ struct IDState
   uint16_t origID;                                            // 2
   uint16_t origFlags;                                         // 2
   int delayMsec;
+  boost::optional<uint32_t> tempFailureTTL;
   bool ednsAdded{false};
   bool ecsAdded{false};
   bool skipCache{false};
@@ -599,6 +603,7 @@ struct DownstreamState
   ComboAddress sourceAddr;
   DNSName checkName{"a.root-servers.net."};
   QType checkType{QType::A};
+  uint16_t checkClass{QClass::IN};
   std::atomic<uint64_t> idOffset{0};
   std::atomic<uint64_t> sendErrors{0};
   std::atomic<uint64_t> outstanding{0};
@@ -824,7 +829,6 @@ bool getMsgLen32(int fd, uint32_t* len);
 bool putMsgLen32(int fd, uint32_t len);
 void* tcpAcceptorThread(void* p);
 
-void moreLua(bool client);
 void doClient(ComboAddress server, const std::string& command);
 void doConsole();
 void controlClientThread(int fd, ComboAddress client);

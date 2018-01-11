@@ -1,8 +1,6 @@
 pdnsutil
 ========
 
-pdnsutil - PowerDNS dnssec command and control
-
 Synopsis
 --------
 
@@ -143,6 +141,9 @@ list-tsig-keys
 ZONE MANIPULATION COMMANDS
 --------------------------
 
+add-record *ZONE* *NAME* *TYPE* [*TTL*] *CONTENT*
+    Add one or more records of *NAME* and *TYPE* to *ZONE* with *CONTENT* 
+    and optional *TTL*. If *TTL* is not set, default will be used. 
 create-zone *ZONE*
     Create an empty zone named *ZONE*.
 create-slave-zone *ZONE* *MASTER* [*MASTER*]..
@@ -223,6 +224,10 @@ backend-cmd *BACKEND* *CMD* [*CMD..*]
     Send a text command to a backend for execution. GSQL backends will
     take SQL commands, other backends may take different things. Be
     careful!
+bench-db [*FILE*]
+    Perform a benchmark of the backend-database.
+    *FILE* can be a file with a list, one per line, of domain names to use for this.
+    If *FILE* is not specified, powerdns.com is used.
 
 See also
 --------

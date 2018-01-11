@@ -18,7 +18,7 @@ cp_tarball_to_rpm_sources
 # Some RPM platforms use systemd, others sysv, we default to systemd here
 INIT_BUILDREQUIRES='BuildRequires: systemd-devel'
 INIT_INSTALL='sed -i "s,/^\(ExecStart.*\)dnsdist\(.*\)\$,\1dnsdist -u dnsdist -g dnsdist\2," %{buildroot}/lib/systemd/system/dnsdist.service'
-INIT_FILES='/lib/systemd/system/dnsdist.service'
+INIT_FILES='/lib/systemd/system/dnsdist*'
 INIT_CONFIGURE='--enable-systemd --with-systemd=/lib/systemd/system \'
 
 # CentOS 6 has protobuf, but not a modern enough boost. We default to with protobuf
@@ -128,6 +128,9 @@ dnsdist is a high-performance DNS loadbalancer that is scriptable in Lua.
 %prep
 ${SETUP}
 
+# run as dnsdist user
+sed -i '/^ExecStart/ s/dnsdist/dnsdist -u dnsdist -g dnsdist/' dnsdist.service.in
+
 %build
 %configure \
   --sysconfdir=/etc/dnsdist \
@@ -140,6 +143,7 @@ ${SETUP}
   ${PROTOBUF_CONFIGURE}
 
 make
+mv dnsdistconf.lua dnsdist.conf.sample
 
 %check
 make %{?_smp_mflags} check || (cat test-suite.log && false)
@@ -193,8 +197,9 @@ fi
 
 %files
 %{!?_licensedir:%global license %%doc}
-%license COPYING
+%doc dnsdist.conf.sample
 %doc README.md
+%license COPYING
 %{_bindir}/*
 %{_mandir}/man1/*
 %dir %{_sysconfdir}/dnsdist

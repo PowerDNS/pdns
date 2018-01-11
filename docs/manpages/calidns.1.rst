@@ -1,8 +1,6 @@
 calidns
 =======
 
-:program:`calidns` - A DNS recursor testing tool
-
 Synopsis
 --------
 

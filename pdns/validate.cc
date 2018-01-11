@@ -298,7 +298,7 @@ static bool provesNSEC3NoWildCard(DNSName wildcard, uint16_t const qtype, const 
 /*
   This function checks whether the existence of qname|qtype is denied by the NSEC and NSEC3
   in validrrsets.
-  - If `referralToUnsigned` is true and qtype is QType::DS, this functions returns Insecure
+  - If `referralToUnsigned` is true and qtype is QType::DS, this functions returns NODATA
   if a NSEC or NSEC3 proves that the name exists but no NS type exists, as specified in RFC 5155 section 8.9.
   - If `wantsNoDataProof` is set but a NSEC proves that the whole name does not exist, the function will return
   NXQTYPE is the name is proven to be ENT and NXDOMAIN otherwise.
@@ -306,9 +306,12 @@ static bool provesNSEC3NoWildCard(DNSName wildcard, uint16_t const qtype, const 
   useful when we have a positive answer synthetized from a wildcard and we only need to prove that the exact
   name does not exist.
 */
-dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16_t qtype, bool referralToUnsigned, bool wantsNoDataProof, bool needWildcardProof)
+dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16_t qtype, bool referralToUnsigned, bool wantsNoDataProof, bool needWildcardProof, unsigned int wildcardLabelsCount)
 {
   bool nsec3Seen = false;
+  if (!needWildcardProof && wildcardLabelsCount == 0) {
+    throw PDNSException("Invalid wildcard labels count for the validation of a positive answer synthetized from a wildcard");
+  }
 
   for(const auto& v : validrrsets) {
     LOG("Do have: "<<v.first.first<<"/"<<DNSRecordContent::NumberToType(v.first.second)<<endl);
@@ -333,7 +336,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
         */
         if (nsec->d_set.count(QType::NS) && !nsec->d_set.count(QType::SOA) &&
             signer.countLabels() < owner.countLabels()) {
-          LOG("type is "<<QType(qtype).getName()<<", NS is "<<std::to_string(nsec->d_set.count(QType::NS))<<", SOA is "<<std::to_string(nsec->d_set.count(QType::SOA))<<", signer is "<<signer.toString()<<", owner name is "<<owner.toString()<<endl);
+          LOG("type is "<<QType(qtype).getName()<<", NS is "<<std::to_string(nsec->d_set.count(QType::NS))<<", SOA is "<<std::to_string(nsec->d_set.count(QType::SOA))<<", signer is "<<signer<<", owner name is "<<owner<<endl);
           /* this is an "ancestor delegation" NSEC RR */
           if (qname == owner && qtype != QType::DS) {
             LOG("An ancestor delegation NSEC RR can only deny the existence of a DS"<<endl);
@@ -445,7 +448,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
         */
         if (nsec3->d_set.count(QType::NS) && !nsec3->d_set.count(QType::SOA) &&
             signer.countLabels() < v.first.first.countLabels()) {
-          LOG("type is "<<QType(qtype).getName()<<", NS is "<<std::to_string(nsec3->d_set.count(QType::NS))<<", SOA is "<<std::to_string(nsec3->d_set.count(QType::SOA))<<", signer is "<<signer.toString()<<", owner name is "<<v.first.first.toString()<<endl);
+          LOG("type is "<<QType(qtype).getName()<<", NS is "<<std::to_string(nsec3->d_set.count(QType::NS))<<", SOA is "<<std::to_string(nsec3->d_set.count(QType::SOA))<<", signer is "<<signer<<", owner name is "<<v.first.first<<endl);
           /* this is an "ancestor delegation" NSEC3 RR */
           if (beginHash == h && qtype != QType::DS) {
             LOG("An ancestor delegation NSEC3 RR can only deny the existence of a DS"<<endl);
@@ -538,7 +541,11 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
        expanded wildcard in the response.
     */
     found = true;
-    closestEncloser.chopOff();
+    unsigned int closestEncloserLabelsCount = closestEncloser.countLabels();
+    while (wildcardLabelsCount > 0 && closestEncloserLabelsCount > wildcardLabelsCount) {
+      closestEncloser.chopOff();
+      closestEncloserLabelsCount--;
+    }
   }
 
   bool nextCloserFound = false;
@@ -625,7 +632,7 @@ static const vector<DNSName> getZoneCuts(const DNSName& begin, const DNSName& en
 {
   vector<DNSName> ret;
   if(!begin.isPartOf(end))
-    throw PDNSException(end.toLogString() + "is not part of " + begin.toString());
+    throw PDNSException(end.toLogString() + "is not part of " + begin.toLogString());
 
   DNSName qname(end);
   vector<string> labelsToAdd = begin.makeRelative(end).getRawLabels();
@@ -909,7 +916,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, skeyset_t& keyset)
         lowestNTA = negAnchor.first;
 
     if(!lowestNTA.empty()) {
-      LOG("Found a Negative Trust Anchor for "<<lowestNTA.toStringRootDot()<<", which was added with reason '"<<negAnchors.at(lowestNTA)<<"', ");
+      LOG("Found a Negative Trust Anchor for "<<lowestNTA<<", which was added with reason '"<<negAnchors.at(lowestNTA)<<"', ");
 
       /* RFC 7646 section 2.1 tells us that we SHOULD still validate if there
        * is a Trust Anchor below the Negative Trust Anchor for the name we
@@ -920,7 +927,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, skeyset_t& keyset)
         LOG("marking answer Insecure"<<endl);
         return NTA; // Not Insecure, this way validateRecords() can shortcut
       }
-      LOG("but a Trust Anchor for "<<lowestTA.toStringRootDot()<<" is configured, continuing validation."<<endl);
+      LOG("but a Trust Anchor for "<<lowestTA<<" is configured, continuing validation."<<endl);
     }
   }
 

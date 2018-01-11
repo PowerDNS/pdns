@@ -132,6 +132,9 @@ public:
   }
   bool eof() { return true; } // we don't know how long the record should be
 
+  const string getRemaining() const {
+    return "";
+  }
 private:
   uint16_t lookupName(const DNSName& name, uint16_t* matchlen);
   vector<uint16_t> d_namepositions;

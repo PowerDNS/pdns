@@ -1,5 +1,5 @@
-rec_control manual page
-=======================
+rec_control
+===========
 
 Synopsis
 --------

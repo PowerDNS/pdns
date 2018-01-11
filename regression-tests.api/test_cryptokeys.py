@@ -47,11 +47,16 @@ class Cryptokeys(ApiTestCase):
         except subprocess.CalledProcessError as e:
             self.fail("pdnsutil list-keys failed: " + e.output)
 
+    def test_get_wrong_zone(self):
+        self.keyid = self.add_zone_key()
+        r = self.session.get(self.url("/api/v1/servers/localhost/zones/"+self.zone+"fail/cryptokeys/"+self.keyid))
+        self.assertEquals(r.status_code, 404)
+
     def test_delete_wrong_zone(self):
         self.keyid = self.add_zone_key()
         #checks for not covered zonename
         r = self.session.delete(self.url("/api/v1/servers/localhost/zones/"+self.zone+"fail/cryptokeys/"+self.keyid))
-        self.assertEquals(r.status_code, 400)
+        self.assertEquals(r.status_code, 404)
 
     def test_delete_key_is_gone(self):
         self.keyid = self.add_zone_key()
@@ -72,7 +77,7 @@ class Cryptokeys(ApiTestCase):
             payload = {
                 'keytype': type,
                 'active' : active,
-                'algo' : algo
+                'algorithm' : algo
             }
         if bits > 0:
             payload['bits'] = bits
@@ -107,11 +112,11 @@ class Cryptokeys(ApiTestCase):
 
     # Test POST to add a key with specific algorithm number
     def test_post_specific_number(self):
-        self.post_helper(algo=10, bits=512)
+        self.post_helper(algo=10, bits=1024)
 
     # Test POST to add a key with specific name and bits
     def test_post_specific_name_bits(self):
-        self.post_helper(algo="rsasha256", bits=256)
+        self.post_helper(algo="rsasha256", bits=2048)
 
     # Test POST to add a key with specific name
     def test_post_specific_name(self):

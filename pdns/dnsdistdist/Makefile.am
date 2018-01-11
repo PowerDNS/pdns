@@ -80,7 +80,12 @@ dnsdist_SOURCES = \
 	dnsdist-dnscrypt.cc \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
 	dnsdist-lua.hh dnsdist-lua.cc \
-	dnsdist-lua2.cc \
+	dnsdist-lua-actions.cc \
+	dnsdist-lua-bindings.cc \
+	dnsdist-lua-bindings-dnsquestion.cc \
+	dnsdist-lua-inspection.cc \
+	dnsdist-lua-rules.cc \
+	dnsdist-lua-vars.cc \
 	dnsdist-protobuf.cc dnsdist-protobuf.hh \
 	dnsdist-rings.cc \
 	dnsdist-snmp.cc dnsdist-snmp.hh \
@@ -89,7 +94,6 @@ dnsdist_SOURCES = \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.hh dnsparser.cc \
-	dnsrulactions.cc dnsrulactions.hh \
 	dnswriter.cc dnswriter.hh \
 	dolog.hh \
 	ednsoptions.cc ednsoptions.hh \
@@ -178,6 +182,7 @@ testrunner_SOURCES = \
 	test-dnsdist_cc.cc \
 	test-dnsdistpacketcache_cc.cc \
 	test-dnscrypt_cc.cc \
+	test-iputils_hh.cc \
 	dnsdist.hh \
 	dnsdist-cache.cc dnsdist-cache.hh \
 	dnsdist-ecs.cc dnsdist-ecs.hh \

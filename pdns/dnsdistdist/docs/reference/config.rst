@@ -22,6 +22,7 @@ Within dnsdist several core object types exist:
 * :class:`QPSLimiter`: implements a QPS-based filter
 * :class:`SuffixMatchNode`: represents a group of domain suffixes for rapid testing of membership
 * :class:`DNSHeader`: represents the header of a DNS packet
+* :class:`ClientState`: sometimes also called Bind or Frontend, represents the addresses and ports dnsdist is listening on
 
 The existence of most of these objects can mostly be ignored, unless you plan to write your own hooks and policies, but it helps to understand an expressions like:
 
@@ -116,6 +117,10 @@ Control Socket, Console and Webserver
   Bind to ``addr`` and listen for a connection for the console
 
   :param str address: An IP address with optional port. By default, the port is 5199.
+
+.. function:: inClientStartup()
+
+  Returns true while the console client is parsing the configuration.
 
 .. function:: makeKey()
 
@@ -226,6 +231,7 @@ Servers
       tcpFastOpen=BOOL,      -- Whether to enable TCP Fast Open
       ipBindAddrNoPort=BOOL, -- Whether to enable IP_BIND_ADDRESS_NO_PORT if available, default: true
       name=STRING,           -- The name associated to this backend, for display purpose
+      checkClass=NUM,        -- Use NUM as QCLASS in the health-check query, default: DNSClass.IN
       checkName=STRING,      -- Use STRING as QNAME in the health-check query, default: "a.root-servers.net."
       checkType=STRING,      -- Use STRING as QTYPE in the health-check query, default: "A"
       setCD=BOOL,            -- Set the CD (Checking Disabled) flag in the health-check query, default: false
@@ -459,6 +465,53 @@ See :doc:`../guides/cache` for a how to.
 
   Return the number of entries in the Packet Cache, and the maximum number of entries
 
+Client State
+------------
+
+Also called frontend or bind, the Client State object returned by :func:`getBind` and listed with :func:`showBinds` represents an address and port dnsdist is listening on.
+
+.. function:: getBind(index) -> ClientState
+
+  Return a ClientState object.
+
+  :param int index: The object index
+
+ClientState functions
+~~~~~~~~~~~~~~~~~~~~~
+
+.. class:: ClientState
+
+  This object represents an address and port dnsdist is listening on. When ``reuseport`` is in use, several ClientState objects can be present for the same address and port.
+
+.. classmethod:: Server:addPool(pool)
+
+  Add this server to a pool.
+
+  :param str pool: The pool to add the server to
+
+.. classmethod:: ClientState:attachFilter(filter)
+
+   Attach a BPF filter to this frontend.
+
+   :param BPFFilter filter: The filter to attach to this frontend
+
+.. classmethod:: ClientState:detachFilter()
+
+   Remove the BPF filter associated to this frontend, if any.
+
+.. classmethod:: ClientState:toString() -> string
+
+  Return the address and port this frontend is listening on.
+
+  :returns: The address and port this frontend is listening on
+
+Attributes
+~~~~~~~~~~
+
+.. attribute:: ClientState.muted
+
+  If set to true, queries received on this frontend will be normally processed and sent to a backend if needed, but no response will be ever be sent to the client over UDP. TCP queries are processed normally and responses sent to the client.
+
 Status, Statistics and More
 ---------------------------
 
@@ -587,14 +640,6 @@ Dynamic Blocks
 
   Set which action is performed when a query is blocked.
   Only DNSAction.Drop (the default), DNSAction.Refused and DNSAction.Truncate are supported.
-
-.. function:: addBPFFilterDynBlocks(addresses, filter[, seconds])
-
-  Block the set of addresses using the supplied BPF Filter, for seconds seconds (10 by default)
-
-  :param addresses: A set of addresses as returned by the exceed functions.
-  :param filter: and EBPF filter
-  :param int seconds: Number of seconds to block for
 
 .. _exceedfuncs:
 

@@ -20102,7 +20102,7 @@
 +usa-ns2.usa.example.com:192.168.4.2:120
 :dsdelegation.example.com:43:m\341\010\001\312\361\352\256\315\253\347afpx\217\220\042EK\365\375\237\332:120
 :escapedtext.example.com:16:\005begin\022the\040\042middle\042\040p\134art\007the\040end:120
-:google-alias.example.com:65401:\023google-public-dns-a\006google\300\024:120
+:google-alias.example.com:65401:\023google-public-dns-a\006google\003com\000:120
 :hightype.example.com:65534:\007\355\046\000\001:120
 :host-0.example.com:108:\000PV\233\000\347:120
 :host-1.example.com:109:\000PV\233\000\347\176W:120
@@ -20213,12 +20213,6 @@ Ztest.dyndns:ns1.test.dyndns.:ahu.example.dyndns.:2012060701:28800:7200:604800:8
 +ns1.wtest.com:2.3.4.5:3600
 +server1.wtest.com:1.2.3.4:3600
 +wtest.com:9.9.9.9:3600
-:a.b.c.d.e.wtest.com:16:\011non-empty:3600
-:b.c.d.e.wtest.com:16:\011non-empty:3600
-:c.d.e.wtest.com:16:\011non-empty:3600
-:d.e.wtest.com:16:\011non-empty:3600
-:e.wtest.com:16:\011non-empty:3600
-:something.wtest.com:16:\045make\040the\040empty\040non-terminal\040non-empty:3600
 @secure.wtest.com::server1.wtest.com.:10:3600
 @wtest.com::smtp-servers.example.com.:10:3600
 @wtest.com::smtp-servers.wtest.com.:15:3600

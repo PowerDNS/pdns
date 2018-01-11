@@ -107,7 +107,7 @@ class TestAdvancedFixupCase(DNSDistTest):
 class TestAdvancedRemoveRD(DNSDistTest):
 
     _config_template = """
-    addNoRecurseRule("norecurse.advanced.tests.powerdns.com.")
+    addAction("norecurse.advanced.tests.powerdns.com.", NoRecurseAction())
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -181,7 +181,7 @@ class TestAdvancedRemoveRD(DNSDistTest):
 class TestAdvancedAddCD(DNSDistTest):
 
     _config_template = """
-    addDisableValidationRule("setcd.advanced.tests.powerdns.com.")
+    addAction("setcd.advanced.tests.powerdns.com.", DisableValidationAction())
     addAction(makeRule("setcdviaaction.advanced.tests.powerdns.com."), DisableValidationAction())
     newServer{address="127.0.0.1:%s"}
     """
@@ -289,7 +289,7 @@ class TestAdvancedAddCD(DNSDistTest):
 class TestAdvancedClearRD(DNSDistTest):
 
     _config_template = """
-    addNoRecurseRule("clearrd.advanced.tests.powerdns.com.")
+    addAction("clearrd.advanced.tests.powerdns.com.", NoRecurseAction())
     addAction(makeRule("clearrdviaaction.advanced.tests.powerdns.com."), NoRecurseAction())
     newServer{address="127.0.0.1:%s"}
     """
@@ -1196,7 +1196,7 @@ class TestAdvancedLuaDO(DNSDistTest):
         end
         return DNSAction.None, ""
     end
-    addLuaAction(AllRule(), nxDOLua)
+    addAction(AllRule(), LuaAction(nxDOLua))
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -1249,7 +1249,7 @@ class TestAdvancedLuaRefused(DNSDistTest):
     function refuse(dq)
         return DNSAction.Refused, ""
     end
-    addLuaAction(AllRule(), refuse)
+    addAction(AllRule(), LuaAction(refuse))
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -1288,7 +1288,7 @@ class TestAdvancedLuaTruncated(DNSDistTest):
         end
         return DNSAction.None, ""
     end
-    addLuaAction(AllRule(), trunc)
+    addAction(AllRule(), LuaAction(trunc))
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -1455,7 +1455,7 @@ class TestAdvancedGetLocalPort(DNSDistTest):
       local port = dq.localaddr:getPort()
       return DNSAction.Spoof, "port-was-"..port..".local-port.advanced.tests.powerdns.com."
     end
-    addLuaAction("local-port.advanced.tests.powerdns.com.", answerBasedOnLocalPort)
+    addAction("local-port.advanced.tests.powerdns.com.", LuaAction(answerBasedOnLocalPort))
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -1489,7 +1489,7 @@ class TestAdvancedGetLocalPortOnAnyBind(DNSDistTest):
       local port = dq.localaddr:getPort()
       return DNSAction.Spoof, "port-was-"..port..".local-port-any.advanced.tests.powerdns.com."
     end
-    addLuaAction("local-port-any.advanced.tests.powerdns.com.", answerBasedOnLocalPort)
+    addAction("local-port-any.advanced.tests.powerdns.com.", LuaAction(answerBasedOnLocalPort))
     newServer{address="127.0.0.1:%s"}
     """
     _dnsDistListeningAddr = "0.0.0.0"
@@ -1515,4 +1515,46 @@ class TestAdvancedGetLocalPortOnAnyBind(DNSDistTest):
         self.assertEquals(receivedResponse, response)
 
         (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, response)
+
+class TestAdvancedLuaTempFailureTTL(DNSDistTest):
+
+    _config_template = """
+    function testAction(dq)
+      if dq.tempFailureTTL ~= nil then
+        return DNSAction.Spoof, "initially.not.nil.but." + dq.tempFailureTTL + ".tests.powerdns.com."
+      end
+      dq.tempFailureTTL = 30
+      if dq.tempFailureTTL ~= 30 then
+        return DNSAction.Spoof, "after.set.not.expected.value.but." + dq.tempFailureTTL + ".tests.powerdns.com."
+      end
+      dq.tempFailureTTL = nil
+      if dq.tempFailureTTL ~= nil then
+        return DNSAction.Spoof, "after.unset.not.nil.but." + dq.tempFailureTTL + ".tests.powerdns.com."
+      end
+      return DNSAction.None, ""
+    end
+    addAction(AllRule(), LuaAction(testAction))
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testTempFailureTTLBinding(self):
+        """
+        Exercise dq.tempFailureTTL Lua binding
+        """
+        name = 'tempfailurettlbinding.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '::1')
+        response.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
         self.assertEquals(receivedResponse, response)

@@ -112,3 +112,7 @@ Use the active column in the resource record table, "yes" by default.
 Setting this to 'yes' will make the backend behave like MyDNS on the TTL
 values. Setting it to 'no' will make it ignore the minimal-ttl of the
 zone. The default is "yes".
+
+Migrating from MyDNS to another SQL backend
+-------------------------------------------
+To use one of the :doc:`generic SQL backend <generic-sql>`, like the :doc:`Postgresql <generic-postgresql>` or :doc:`MySQL <generic-mysql>` backends, the data can be migratedusing the :ref:`Backend to Backend <b2b-migrate>` migration guide.

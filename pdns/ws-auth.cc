@@ -277,7 +277,7 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
     printtable(ret,req->getvars["ring"],S.getRingTitle(req->getvars["ring"]),100);
 
   ret<<"</div></div>"<<endl;
-  ret<<"<footer class=\"row\">"<<fullVersionString()<<"<br>&copy; 2013 - 2017 <a href=\"http://www.powerdns.com/\">PowerDNS.COM BV</a>.</footer>"<<endl;
+  ret<<"<footer class=\"row\">"<<fullVersionString()<<"<br>&copy; 2013 - 2018 <a href=\"http://www.powerdns.com/\">PowerDNS.COM BV</a>.</footer>"<<endl;
   ret<<"</body></html>"<<endl;
 
   resp->body = ret.str();
@@ -329,8 +329,9 @@ static bool shouldDoRRSets(HttpRequest* req) {
 static void fillZone(const DNSName& zonename, HttpResponse* resp, bool doRRSets) {
   UeberBackend B;
   DomainInfo di;
-  if(!B.getDomainInfo(zonename, di))
-    throw ApiException("Could not find domain '"+zonename.toString()+"'");
+  if(!B.getDomainInfo(zonename, di)) {
+    throw HttpNotFoundException();
+  }
 
   DNSSECKeeper dk(&B);
   Json::object doc = getZoneInfo(di, &dk);
@@ -723,8 +724,9 @@ static void apiZoneMetadata(HttpRequest* req, HttpResponse *resp) {
 
   UeberBackend B;
   DomainInfo di;
-  if (!B.getDomainInfo(zonename, di))
-    throw ApiException("Could not find domain '"+zonename.toString()+"'");
+  if (!B.getDomainInfo(zonename, di)) {
+    throw HttpNotFoundException();
+  }
 
   if (req->method == "GET") {
     map<string, vector<string> > md;
@@ -807,8 +809,9 @@ static void apiZoneMetadataKind(HttpRequest* req, HttpResponse* resp) {
 
   UeberBackend B;
   DomainInfo di;
-  if (!B.getDomainInfo(zonename, di))
-    throw ApiException("Could not find domain '"+zonename.toString()+"'");
+  if (!B.getDomainInfo(zonename, di)) {
+    throw HttpNotFoundException();
+  }
 
   string kind = req->parameters["kind"];
 
@@ -892,7 +895,9 @@ static void apiZoneCryptokeysGET(DNSName zonename, int inquireKeyId, HttpRespons
         { "active", value.second.active },
         { "keytype", keyType },
         { "flags", (uint16_t)value.first.d_flags },
-        { "dnskey", value.first.getDNSKEY().getZoneRepresentation() }
+        { "dnskey", value.first.getDNSKEY().getZoneRepresentation() },
+        { "algorithm", DNSSECKeeper::algorithm2name(value.first.d_algorithm) },
+        { "bits", value.first.getKey()->getBits() }
     };
 
     if (value.second.keyType == DNSSECKeeper::KSK || value.second.keyType == DNSSECKeeper::CSK) {
@@ -942,10 +947,10 @@ static void apiZoneCryptokeysDELETE(DNSName zonename, int inquireKeyId, HttpRequ
  * This method adds a key to a zone by generate it or content parameter.
  * Parameter:
  *  {
- *  "content" : "key The format used is compatible with BIND and NSD/LDNS" <string>
+ *  "privatekey" : "key The format used is compatible with BIND and NSD/LDNS" <string>
  *  "keytype" : "ksk|zsk" <string>
  *  "active"  : "true|false" <value>
- *  "algo" : "key generation algorithm "name|number" as default"<string> https://doc.powerdns.com/md/authoritative/dnssec/#supported-algorithms
+ *  "algorithm" : "key generation algorithm name as default"<string> https://doc.powerdns.com/md/authoritative/dnssec/#supported-algorithms
  *  "bits" : number of bits <int>
  *  }
  *
@@ -954,7 +959,7 @@ static void apiZoneCryptokeysDELETE(DNSName zonename, int inquireKeyId, HttpRequ
  *    The server returns 422 Unprocessable Entity {"error" : "Invalid keytype 'keytype'"}
  *  Case 2: 'bits' must be a positive integer value.
  *    The server returns 422 Unprocessable Entity {"error" : "'bits' must be a positive integer value."}
- *  Case 3: The "algo" isn't supported
+ *  Case 3: The "algorithm" isn't supported
  *    The server returns 422 Unprocessable Entity {"error" : "Unknown algorithm: 'algo'"}
  *  Case 4: Algorithm <= 10 and no bits were passed
  *    The server returns 422 Unprocessable Entity {"error" : "Creating an algorithm algo key requires the size (in bits) to be passed"}
@@ -976,11 +981,17 @@ static void apiZoneCryptokeysDELETE(DNSName zonename, int inquireKeyId, HttpRequ
 
 static void apiZoneCryptokeysPOST(DNSName zonename, HttpRequest *req, HttpResponse *resp, DNSSECKeeper *dk) {
   auto document = req->json();
-  auto content = document["content"];
+  string privatekey_fieldname = "privatekey";
+  auto privatekey = document["privatekey"];
+  if (privatekey.is_null()) {
+    // Fallback to the old "content" behaviour
+    privatekey = document["content"];
+    privatekey_fieldname = "content";
+  }
   bool active = boolFromJson(document, "active", false);
   bool keyOrZone;
 
-  if (stringFromJson(document, "keytype") == "ksk") {
+  if (stringFromJson(document, "keytype") == "ksk" || stringFromJson(document, "keytype") == "csk") {
     keyOrZone = true;
   } else if (stringFromJson(document, "keytype") == "zsk") {
     keyOrZone = false;
@@ -990,7 +1001,7 @@ static void apiZoneCryptokeysPOST(DNSName zonename, HttpRequest *req, HttpRespon
 
   int64_t insertedId = -1;
 
-  if (content.is_null()) {
+  if (privatekey.is_null()) {
     int bits = keyOrZone ? ::arg().asNum("default-ksk-size") : ::arg().asNum("default-zsk-size");
     auto docbits = document["bits"];
     if (!docbits.is_null()) {
@@ -1001,7 +1012,7 @@ static void apiZoneCryptokeysPOST(DNSName zonename, HttpRequest *req, HttpRespon
       }
     }
     int algorithm = DNSSECKeeper::shorthand2algorithm(keyOrZone ? ::arg()["default-ksk-algorithm"] : ::arg()["default-zsk-algorithm"]);
-    auto providedAlgo = document["algo"];
+    auto providedAlgo = document["algorithm"];
     if (providedAlgo.is_string()) {
       algorithm = DNSSECKeeper::shorthand2algorithm(providedAlgo.string_value());
       if (algorithm == -1)
@@ -1021,15 +1032,16 @@ static void apiZoneCryptokeysPOST(DNSName zonename, HttpRequest *req, HttpRespon
     }
     if (insertedId < 0)
       throw ApiException("Adding key failed, perhaps DNSSEC not enabled in configuration?");
-  } else if (document["bits"].is_null() && document["algo"].is_null()) {
-    auto keyData = stringFromJson(document, "content");
+  } else if (document["bits"].is_null() && document["algorithm"].is_null()) {
+    auto keyData = stringFromJson(document, privatekey_fieldname);
     DNSKEYRecordContent dkrc;
     DNSSECPrivateKey dpk;
     try {
       shared_ptr<DNSCryptoKeyEngine> dke(DNSCryptoKeyEngine::makeFromISCString(dkrc, keyData));
       dpk.d_algorithm = dkrc.d_algorithm;
-      if(dpk.d_algorithm == 7)
-        dpk.d_algorithm = 5;
+      // TODO remove in 4.2.0
+      if(dpk.d_algorithm == DNSSECKeeper::RSASHA1NSEC3SHA1)
+        dpk.d_algorithm = DNSSECKeeper::RSASHA1;
 
       if (keyOrZone)
         dpk.d_flags = 257;
@@ -1050,7 +1062,7 @@ static void apiZoneCryptokeysPOST(DNSName zonename, HttpRequest *req, HttpRespon
     if (insertedId < 0)
       throw ApiException("Adding key failed, perhaps DNSSEC not enabled in configuration?");
   } else {
-    throw ApiException("Either you submit just the 'content' field or you leave 'content' empty and submit the other fields.");
+    throw ApiException("Either you submit just the 'privatekey' field or you leave 'privatekey' empty and submit the other fields.");
   }
   apiZoneCryptokeysGET(zonename, insertedId, resp, dk);
   resp->status = 201;
@@ -1099,8 +1111,9 @@ static void apiZoneCryptokeys(HttpRequest *req, HttpResponse *resp) {
   UeberBackend B;
   DNSSECKeeper dk(&B);
   DomainInfo di;
-  if (!B.getDomainInfo(zonename, di))
-    throw HttpBadRequestException();
+  if (!B.getDomainInfo(zonename, di)) {
+    throw HttpNotFoundException();
+  }
 
   int inquireKeyId = -1;
   if (req->parameters.count("key_id")) {
@@ -1242,8 +1255,6 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       if (rr.qtype.getCode() == QType::SOA && rr.qname==zonename) {
         have_soa = true;
         increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
-        // fixup dots after serializeSOAData/increaseSOARecord
-        rr.content = makeBackendRecordContent(rr.qtype, rr.content);
       }
       if (rr.qtype.getCode() == QType::NS && rr.qname==zonename) {
         have_zone_ns = true;
@@ -1258,18 +1269,16 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 
     if (!have_soa && zonekind != DomainInfo::Slave) {
       // synthesize a SOA record so the zone "really" exists
-      string soa = (boost::format("%s %s %lu")
+      string soa = (boost::format("%s %s %ul")
         % ::arg()["default-soa-name"]
         % (::arg().isEmpty("default-soa-mail") ? (DNSName("hostmaster.") + zonename).toString() : ::arg()["default-soa-mail"])
         % document["serial"].int_value()
       ).str();
       SOAData sd;
       fillSOAData(soa, sd);  // fills out default values for us
-      autorr.qtype = "SOA";
-      autorr.content = serializeSOAData(sd);
+      autorr.qtype = QType::SOA;
+      autorr.content = makeSOAContent(sd)->getZoneRepresentation(true);
       increaseSOARecord(autorr, soa_edit_api_kind, soa_edit_kind);
-      // fixup dots after serializeSOAData/increaseSOARecord
-      autorr.content = makeBackendRecordContent(autorr.qtype, autorr.content);
       new_records.push_back(autorr);
     }
 
@@ -1286,7 +1295,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       } catch (...) {
         throw ApiException("Unable to parse DNS Name for NS '" + nameserver + "'");
       }
-      autorr.qtype = "NS";
+      autorr.qtype = QType::NS;
       new_records.push_back(autorr);
       if (have_zone_ns) {
         throw ApiException("Nameservers list MUST NOT be mixed with zone-level NS in rrsets");
@@ -1357,12 +1366,14 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
   DNSName zonename = apiZoneIdToName(req->parameters["id"]);
 
+  UeberBackend B;
+  DomainInfo di;
+  if (!B.getDomainInfo(zonename, di)) {
+    throw HttpNotFoundException();
+  }
+
   if(req->method == "PUT" && !::arg().mustDo("api-readonly")) {
     // update domain settings
-    UeberBackend B;
-    DomainInfo di;
-    if(!B.getDomainInfo(zonename, di))
-      throw ApiException("Could not find domain '"+zonename.toString()+"'");
 
     updateDomainSettingsFromDocument(B, di, zonename, req->json());
 
@@ -1372,11 +1383,6 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
   }
   else if(req->method == "DELETE" && !::arg().mustDo("api-readonly")) {
     // delete domain
-    UeberBackend B;
-    DomainInfo di;
-    if(!B.getDomainInfo(zonename, di))
-      throw ApiException("Could not find domain '"+zonename.toString()+"'");
-
     if(!di.backend->deleteDomain(zonename))
       throw ApiException("Deleting domain '"+zonename.toString()+"' failed: backend delete failed/unsupported");
 
@@ -1391,7 +1397,6 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
     fillZone(zonename, resp, shouldDoRRSets(req));
     return;
   }
-
   throw HttpMethodNotAllowedException();
 }
 
@@ -1405,8 +1410,9 @@ static void apiServerZoneExport(HttpRequest* req, HttpResponse* resp) {
 
   UeberBackend B;
   DomainInfo di;
-  if(!B.getDomainInfo(zonename, di))
-    throw ApiException("Could not find domain '"+zonename.toString()+"'");
+  if (!B.getDomainInfo(zonename, di)) {
+    throw HttpNotFoundException();
+  }
 
   DNSResourceRecord rr;
   SOAData sd;
@@ -1434,13 +1440,14 @@ static void apiServerZoneExport(HttpRequest* req, HttpResponse* resp) {
 static void apiServerZoneAxfrRetrieve(HttpRequest* req, HttpResponse* resp) {
   DNSName zonename = apiZoneIdToName(req->parameters["id"]);
 
-  if(req->method != "PUT")
+  if(req->method != "PUT" || ::arg().mustDo("api-readonly"))
     throw HttpMethodNotAllowedException();
 
   UeberBackend B;
   DomainInfo di;
-  if(!B.getDomainInfo(zonename, di))
-    throw ApiException("Could not find domain '"+zonename.toString()+"'");
+  if (!B.getDomainInfo(zonename, di)) {
+    throw HttpNotFoundException();
+  }
 
   if(di.masters.empty())
     throw ApiException("Domain '"+zonename.toString()+"' is not a slave domain (or has no master defined)");
@@ -1453,13 +1460,14 @@ static void apiServerZoneAxfrRetrieve(HttpRequest* req, HttpResponse* resp) {
 static void apiServerZoneNotify(HttpRequest* req, HttpResponse* resp) {
   DNSName zonename = apiZoneIdToName(req->parameters["id"]);
 
-  if(req->method != "PUT")
+  if(req->method != "PUT" || ::arg().mustDo("api-readonly"))
     throw HttpMethodNotAllowedException();
 
   UeberBackend B;
   DomainInfo di;
-  if(!B.getDomainInfo(zonename, di))
-    throw ApiException("Could not find domain '"+zonename.toString()+"'");
+  if (!B.getDomainInfo(zonename, di)) {
+    throw HttpNotFoundException();
+  }
 
   if(!Communicator.notifyDomain(zonename))
     throw ApiException("Failed to add to the queue - see server log");
@@ -1475,8 +1483,9 @@ static void apiServerZoneRectify(HttpRequest* req, HttpResponse* resp) {
 
   UeberBackend B;
   DomainInfo di;
-  if(!B.getDomainInfo(zonename, di))
-    throw ApiException("Could not find domain '"+zonename.toString()+"'");
+  if (!B.getDomainInfo(zonename, di)) {
+    throw HttpNotFoundException();
+  }
 
   DNSSECKeeper dk(&B);
 
@@ -1544,16 +1553,7 @@ static void storeChangedPTRs(UeberBackend& B, vector<DNSResourceRecord>& new_ptr
     sd.db->getDomainMetadataOne(sd.qname, "SOA-EDIT-API", soa_edit_api_kind);
     sd.db->getDomainMetadataOne(sd.qname, "SOA-EDIT", soa_edit_kind);
     if (!soa_edit_api_kind.empty()) {
-      soarr.qname = sd.qname;
-      soarr.content = serializeSOAData(sd);
-      soarr.qtype = "SOA";
-      soarr.domain_id = sd.domain_id;
-      soarr.auth = 1;
-      soarr.ttl = sd.ttl;
-      increaseSOARecord(soarr, soa_edit_api_kind, soa_edit_kind);
-      // fixup dots after serializeSOAData/increaseSOARecord
-      soarr.content = makeBackendRecordContent(soarr.qtype, soarr.content);
-      soa_changed = true;
+      soa_changed = makeIncreasedSOARecord(sd, soa_edit_api_kind, soa_edit_kind, soarr);
     }
 
     sd.db->startTransaction(sd.qname);
@@ -1575,8 +1575,9 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
   UeberBackend B;
   DomainInfo di;
   DNSName zonename = apiZoneIdToName(req->parameters["id"]);
-  if (!B.getDomainInfo(zonename, di))
-    throw ApiException("Could not find domain '"+zonename.toString()+"'");
+  if (!B.getDomainInfo(zonename, di)) {
+    throw HttpNotFoundException();
+  }
 
   vector<DNSResourceRecord> new_records;
   vector<Comment> new_comments;
@@ -1638,7 +1639,6 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
             rr.domain_id = di.id;
             if (rr.qtype.getCode() == QType::SOA && rr.qname==zonename) {
               soa_edit_done = increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
-              rr.content = makeBackendRecordContent(rr.qtype, rr.content);
             }
           }
           checkDuplicateRecords(new_records);
@@ -1680,22 +1680,14 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
     // edit SOA (if needed)
     if (!soa_edit_api_kind.empty() && !soa_edit_done) {
       SOAData sd;
-      if (!B.getSOA(zonename, sd))
+      if (!B.getSOAUncached(zonename, sd, true))
         throw ApiException("No SOA found for domain '"+zonename.toString()+"'");
 
       DNSResourceRecord rr;
-      rr.qname = zonename;
-      rr.content = serializeSOAData(sd);
-      rr.qtype = "SOA";
-      rr.domain_id = di.id;
-      rr.auth = 1;
-      rr.ttl = sd.ttl;
-      increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
-      // fixup dots after serializeSOAData/increaseSOARecord
-      rr.content = makeBackendRecordContent(rr.qtype, rr.content);
-
-      if (!di.backend->replaceRRSet(di.id, rr.qname, rr.qtype, vector<DNSResourceRecord>(1, rr))) {
-        throw ApiException("Hosting backend does not support editing records.");
+      if (makeIncreasedSOARecord(sd, soa_edit_api_kind, soa_edit_kind, rr)) {
+        if (!di.backend->replaceRRSet(di.id, rr.qname, rr.qtype, vector<DNSResourceRecord>(1, rr))) {
+          throw ApiException("Hosting backend does not support editing records.");
+        }
       }
 
       // return old and new serials in headers
@@ -1709,7 +1701,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
     throw;
   }
 
-  DNSSECKeeper dk;
+  DNSSECKeeper dk(&B);
   string api_rectify;
   di.backend->getDomainMetadataOne(zonename, "API-RECTIFY", api_rectify);
   if (dk.isSecuredZone(zonename) && !dk.isPresigned(zonename) && api_rectify == "1") {
@@ -1815,7 +1807,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
 }
 
 void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
-  if(req->method != "PUT")
+  if(req->method != "PUT" || ::arg().mustDo("api-readonly"))
     throw HttpMethodNotAllowedException();
 
   DNSName canon = apiNameToDNSName(req->getvars["domain"]);

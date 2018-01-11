@@ -294,19 +294,19 @@ void BPFFilter::block(const DNSName& qname, uint16_t qtype)
 
   std::string keyStr = qname.toDNSStringLC();
   if (keyStr.size() > sizeof(key.qname)) {
-    throw std::runtime_error("Invalid QName to block " + qname.toString());
+    throw std::runtime_error("Invalid QName to block " + qname.toLogString());
   }
   memcpy(key.qname, keyStr.c_str(), keyStr.size());
 
   {
     std::unique_lock<std::mutex> lock(d_mutex);
     if (d_qNamesCount >= d_maxQNames) {
-      throw std::runtime_error("Table full when trying to block " + qname.toString());
+      throw std::runtime_error("Table full when trying to block " + qname.toLogString());
     }
 
     int res = bpf_lookup_elem(d_qnamemap.fd, &key, &value);
     if (res != -1) {
-      throw std::runtime_error("Trying to block an already blocked qname: " + qname.toString());
+      throw std::runtime_error("Trying to block an already blocked qname: " + qname.toLogString());
     }
 
     res = bpf_update_elem(d_qnamemap.fd, &key, &value, BPF_NOEXIST);
@@ -315,7 +315,7 @@ void BPFFilter::block(const DNSName& qname, uint16_t qtype)
     }
 
     if (res != 0) {
-      throw std::runtime_error("Error adding blocked qname " + qname.toString() + ": " + std::string(strerror(errno)));
+      throw std::runtime_error("Error adding blocked qname " + qname.toLogString() + ": " + std::string(strerror(errno)));
     }
   }
 }
@@ -327,7 +327,7 @@ void BPFFilter::unblock(const DNSName& qname, uint16_t qtype)
   (void) qtype;
 
   if (keyStr.size() > sizeof(key.qname)) {
-    throw std::runtime_error("Invalid QName to block " + qname.toString());
+    throw std::runtime_error("Invalid QName to block " + qname.toLogString());
   }
   memcpy(key.qname, keyStr.c_str(), keyStr.size());
 
@@ -339,7 +339,7 @@ void BPFFilter::unblock(const DNSName& qname, uint16_t qtype)
       d_qNamesCount--;
     }
     else {
-      throw std::runtime_error("Error removing qname address " + qname.toString() + ": " + std::string(strerror(errno)));
+      throw std::runtime_error("Error removing qname address " + qname.toLogString() + ": " + std::string(strerror(errno)));
     }
   }
 }

@@ -179,7 +179,7 @@ pdns_server_SOURCES = \
 	json.cc json.hh \
 	lock.hh \
 	logger.cc logger.hh \
-	lua-auth.cc lua-auth.hh \
+	lua-base4.cc lua-base4.hh \
 	lua-auth4.cc lua-auth4.hh \
 	lua-pdns.cc lua-pdns.hh lua-iputils.cc \
 	lua-record.cc \
@@ -227,6 +227,7 @@ pdns_server_LDFLAGS = \
 	$(DYNLINKFLAGS) \
 	$(LIBCRYPTO_LDFLAGS)
 
+EXTRA_pdns_server_DEPENDENCIES = @moduleobjects@
 pdns_server_LDADD = \
 	@moduleobjects@ \
 	@modulelibs@ \
@@ -326,6 +327,7 @@ pdnsutil_LDFLAGS = \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
 	$(LIBCRYPTO_LDFLAGS)
 
+EXTRA_pdnsutil_DEPENDENCIES = @moduleobjects@
 pdnsutil_LDADD = \
 	@moduleobjects@ \
 	@modulelibs@ \
@@ -1157,6 +1159,9 @@ testrunner_SOURCES = \
 	iputils.cc \
 	ixfr.cc ixfr.hh \
 	logger.cc \
+	lua-auth4.hh lua-auth4.cc \
+	lua-base4.hh lua-base4.cc \
+	stubresolver.hh stubresolver.cc \
 	misc.cc \
 	nameserver.cc \
 	nsecrecords.cc \
@@ -1182,6 +1187,7 @@ testrunner_SOURCES = \
 	test-iputils_hh.cc \
 	test-ixfr_cc.cc \
 	test-lock_hh.cc \
+	test-lua_auth4_cc.cc \
 	test-md5_hh.cc \
 	test-misc_hh.cc \
 	test-nameserver_cc.cc \
@@ -1208,6 +1214,7 @@ testrunner_LDADD = \
 	$(LIBCRYPTO_LIBS) \
 	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
 	$(RT_LIBS) \
+	$(LUA_LIBS) \
 	$(LIBDL)
 
 if PKCS11

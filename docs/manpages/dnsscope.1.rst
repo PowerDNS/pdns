@@ -1,8 +1,6 @@
 dnsscope
 ========
 
-:program:`dnsscope` - A PowerDNS nameserver debugging tool
-
 Synopsis
 --------
 

@@ -125,7 +125,7 @@ public:
   virtual ~DNSBackend(){};
 
   //! fills the soadata struct with the SOA details. Returns false if there is no SOA.
-  virtual bool getSOA(const DNSName &name, SOAData &soadata);
+  virtual bool getSOA(const DNSName &name, SOAData &soadata, bool unmodifiedSerial=false);
 
   //! Calculates a SOA serial for the zone and stores it in the third argument.
   virtual bool calculateSOASerial(const DNSName& domain, const SOAData& sd, time_t& serial);

@@ -1,8 +1,6 @@
 dnsscan
 =======
 
-:program:`dnsscan` - List the amount of queries per qtype in a pcap
-
 Synopsis
 --------
 

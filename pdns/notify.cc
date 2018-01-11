@@ -37,7 +37,7 @@
 #include "mplexer.hh"
 #include "statbag.hh"
 #include "arguments.hh"
-
+#include "version.hh"
 #include "namespaces.hh"
 using namespace ::boost::multi_index;
 #include "namespaces.hh"

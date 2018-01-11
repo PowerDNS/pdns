@@ -217,8 +217,9 @@ vector<DNSBackend *>BackendMakerClass::all(bool metadataOnly)
 
     \param domain Domain we want to get the SOA details of
     \param sd SOAData which is filled with the SOA details
+    \param unmodifiedSerial bool if set, serial will be returned as stored in the backend (maybe 0)
 */
-bool DNSBackend::getSOA(const DNSName &domain, SOAData &sd)
+bool DNSBackend::getSOA(const DNSName &domain, SOAData &sd, bool unmodifiedSerial)
 {
   this->lookup(QType(QType::SOA),domain);
 
@@ -251,7 +252,7 @@ bool DNSBackend::getSOA(const DNSName &domain, SOAData &sd)
       sd.hostmaster=DNSName("hostmaster")+domain;
   }
 
-  if(!sd.serial) { // magic time!
+  if(!unmodifiedSerial && !sd.serial) { // magic time!
     DLOG(L<<Logger::Warning<<"Doing SOA serial number autocalculation for "<<rr.qname<<endl);
 
     time_t serial;
@@ -419,13 +420,4 @@ void fillSOAData(const string &content, SOAData &data)
   catch(const std::out_of_range& oor) {
     throw PDNSException("Out of range exception parsing "+content);
   }
-}
-
-string serializeSOAData(const SOAData &d)
-{
-  ostringstream o;
-  //  nameservername hostmaster serial-number [refresh [retry [expire [ minimum] ] ] ]
-  o<<d.nameserver.toString()<<" "<< d.hostmaster.toString() <<" "<< d.serial <<" "<< d.refresh << " "<< d.retry << " "<< d.expire << " "<< d.default_ttl;
-
-  return o.str();
 }

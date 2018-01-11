@@ -1,6 +1,15 @@
 Protobuf Logging Reference
 ==========================
 
+.. function:: newRemoteLogger(address [, timeout=2[, maxQueuedEntries=100[, reconnectWaitTime=1]]])
+
+  Create a Remote Logger object, to use with :func:`RemoteLogAction` and :func:`RemoteLogResponseAction`.
+
+  :param string address: An IP:PORT combination where the logger is listening
+  :param int timeout: TCP connect timeout in seconds
+  :param int maxQueuedEntries: Queue this many messages before dropping new ones (e.g. when the remote listener closes the connection)
+  :param int reconnectWaitTime: Time in seconds between reconnection attempts
+
 .. class:: DNSDistProtoBufMessage
 
   This object represents a single protobuf message as emitted by :program:`dnsdist`.

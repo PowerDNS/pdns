@@ -10,7 +10,7 @@ fi
 
 missing_elements=""
 for element in $elements; do
-  grep -q -e "^$element" ../pdns/recursordist/docs/manpages/rec_control.rst || missing_elements="$element\n$missing_elements"
+  grep -q -e "^$element" ../pdns/recursordist/docs/manpages/rec_control.1.rst || missing_elements="$element\n$missing_elements"
 done
 
 if [ "x$missing_elements" != "x" ]; then

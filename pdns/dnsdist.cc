@@ -27,7 +27,7 @@
 #include <limits>
 #include "dolog.hh"
 
-#if defined (__OpenBSD__)
+#if defined (__OpenBSD__) || defined(__NetBSD__)
 #include <readline/readline.h>
 #else
 #include <editline/readline.h>
@@ -40,7 +40,7 @@
 #include "delaypipe.hh"
 #include <unistd.h>
 #include "sodcrypto.hh"
-#include "dnsrulactions.hh"
+#include "dnsdist-lua.hh"
 #include <grp.h>
 #include <pwd.h>
 #include "lock.hh"
@@ -48,6 +48,7 @@
 #include <sys/resource.h>
 #include "dnsdist-cache.hh"
 #include "gettime.hh"
+#include "ednsoptions.hh"
 
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
@@ -404,6 +405,7 @@ try {
   uint16_t queryId = 0;
   for(;;) {
     dnsheader* dh = reinterpret_cast<struct dnsheader*>(packet);
+    bool outstandingDecreased = false;
     try {
       ssize_t got = recv(state->fd, packet, sizeof(packet), 0);
       char * response = packet;
@@ -436,6 +438,7 @@ try {
       }
 
       --state->outstanding;  // you'd think an attacker could game this, but we're using connected socket
+      outstandingDecreased = true;
 
       if(dh->tc && g_truncateTC) {
         truncateTC(response, &responseLen);
@@ -448,6 +451,8 @@ try {
 #ifdef HAVE_PROTOBUF
       dr.uniqueId = ids->uniqueId;
 #endif
+      dr.qTag = ids->qTag;
+
       if (!processResponse(localRespRulactions, dr, &ids->delayMsec)) {
         continue;
       }
@@ -462,7 +467,7 @@ try {
       }
 
       if (ids->packetCache && !ids->skipCache) {
-        ids->packetCache->insert(ids->cacheKey, ids->qname, ids->qtype, ids->qclass, response, responseLen, false, dh->rcode);
+        ids->packetCache->insert(ids->cacheKey, ids->qname, ids->qtype, ids->qclass, response, responseLen, false, dh->rcode, ids->tempFailureTTL);
       }
 
       if (ids->cs && !ids->cs->muted) {
@@ -509,12 +514,21 @@ try {
         ids->dnsCryptQuery = nullptr;
 #endif
         ids->origFD = -1;
+        outstandingDecreased = false;
       }
 
       rewrittenResponse.clear();
     }
-    catch(std::exception& e){
+    catch(const std::exception& e){
       vinfolog("Got an error in UDP responder thread while parsing a response from %s, id %d: %s", state->remote.toStringWithPort(), queryId, e.what());
+      if (outstandingDecreased) {
+        /* so an exception was raised after we decreased the outstanding queries counter,
+           but before we could set ids->origFD to -1 (because we also set outstandingDecreased
+           to false then), meaning the IDS is still considered active and we will decrease the
+           counter again on a duplicate, or simply while reaping downstream timeouts, so let's
+           increase it back. */
+        state->outstanding++;
+      }
     }
   }
   return 0;
@@ -1272,6 +1286,8 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
 #ifdef HAVE_PROTOBUF
         dr.uniqueId = dq.uniqueId;
 #endif
+        dr.qTag = dq.qTag;
+
         if (!processResponse(holders.cacheHitRespRulactions, dr, &delayMsec)) {
           return;
         }
@@ -1355,12 +1371,14 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     ids->qtype = dq.qtype;
     ids->qclass = dq.qclass;
     ids->delayMsec = delayMsec;
+    ids->tempFailureTTL = dq.tempFailureTTL;
     ids->origFlags = origFlags;
     ids->cacheKey = cacheKey;
     ids->skipCache = dq.skipCache;
     ids->packetCache = packetCache;
     ids->ednsAdded = ednsAdded;
     ids->ecsAdded = ecsAdded;
+    ids->qTag = dq.qTag;
 
     /* If we couldn't harvest the real dest addr, still
        write down the listening addr since it will be useful
@@ -1545,7 +1563,7 @@ static bool upCheck(DownstreamState& ds)
 try
 {
   vector<uint8_t> packet;
-  DNSPacketWriter dpw(packet, ds.checkName, ds.checkType.getCode());
+  DNSPacketWriter dpw(packet, ds.checkName, ds.checkType.getCode(), ds.checkClass);
   dnsheader * requestHeader = dpw.getHeader();
   requestHeader->rd=true;
   if (ds.setCD) {
@@ -1803,7 +1821,7 @@ catch(std::exception& e)
 
 static void bindAny(int af, int sock)
 {
-  int one = 1;
+  __attribute__((unused)) int one = 1;
 
 #ifdef IP_FREEBIND
   if (setsockopt(sock, IPPROTO_IP, IP_FREEBIND, &one, sizeof(one)) < 0)

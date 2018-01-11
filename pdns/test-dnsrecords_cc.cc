@@ -17,9 +17,11 @@ BOOST_AUTO_TEST_SUITE(test_dnsrecords_cc)
 #define REC_CHECK_EQUAL(a,b) { if (val.get<4>()) { BOOST_WARN_EQUAL(a,b); } else {  BOOST_CHECK_EQUAL(a,b); } }
 #define REC_CHECK_MESSAGE(cond,msg) { if (val.get<4>()) { BOOST_WARN_MESSAGE(cond,msg); } else {  BOOST_CHECK_MESSAGE(cond,msg); } }
 #define REC_FAIL_XSUCCESS(msg) { if (val.get<4>()) { BOOST_CHECK_MESSAGE(false, std::string("Test has unexpectedly passed: ") + msg); } } // fail if test succeeds
-#define REC_FAIL_XSUCCESS2(msg) { if (val.get<2>()) { BOOST_CHECK_MESSAGE(false, std::string("Test has unexpectedly passed: ") + msg); } } // fail if test succeeds (for the bad records test case)
+#define REC_FAIL_XSUCCESS2(msg) { if (val.get<3>()) { BOOST_CHECK_MESSAGE(false, std::string("Test has unexpectedly passed: ") + msg); } } // fail if test succeeds (for the bad records test case)
 
-typedef enum { zone, wire } case_type_enum_t;
+enum class case_type_enum_t { zone, wire };
+static const auto zone = case_type_enum_t::zone;
+static const auto wire = case_type_enum_t::wire;
 
 BOOST_AUTO_TEST_CASE(test_record_types) {
   // tuple contains <type, user value, zone representation, line value, broken>
@@ -41,11 +43,11 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
   cases_t cases = boost::assign::list_of
      (CASE_S(QType::A, "127.0.0.1", "\x7F\x00\x00\x01",false))
 // local nameserver
-     (CASE_L(QType::NS, "ns.rec.test.", "ns.rec.test.", "\x02ns\xc0\x11",false))
+     (CASE_S(QType::NS, "ns.rec.test.", "\x02ns\xc0\x11",false))
 // non-local nameserver
      (CASE_S(QType::NS, "ns.example.com.", "\x02ns\x07""example\x03""com\x00",false))
 // local alias
-     (CASE_L(QType::CNAME, "name.rec.test.", "name.rec.test.", "\x04name\xc0\x11",false))
+     (CASE_S(QType::CNAME, "name.rec.test.", "\x04name\xc0\x11",false))
 // non-local alias
      (CASE_S(QType::CNAME, "name.example.com.", "\x04name\x07""example\x03""com\x00",false))
 // max label length (63)
@@ -56,8 +58,6 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
      (CASE_S(QType::CNAME, "123456789012345678901234567890123456789012345678901234567890123.123456789012345678901234567890123456789012345678901234567890123.123456789012345678901234567890123456789012345678901234567890123.1234567890123456789012345678901234567890123456789012345678901.", "\x3f""123456789012345678901234567890123456789012345678901234567890123\x3f""123456789012345678901234567890123456789012345678901234567890123\x3f""123456789012345678901234567890123456789012345678901234567890123\x3d""1234567890123456789012345678901234567890123456789012345678901\x00", false))
 // local names
      (CASE_S(QType::SOA, "ns.rec.test. hostmaster.test.rec. 2013051201 3600 3600 604800 120", "\x02ns\xc0\x11\x0ahostmaster\x04test\x03rec\x00\x77\xfc\xb9\x41\x00\x00\x0e\x10\x00\x00\x0e\x10\x00\x09\x3a\x80\x00\x00\x00\x78",false))
-// local name without dots
-     (CASE_L(QType::SOA, "ns.rec.test. hostmaster.test.rec. 2013051201 3600 3600 604800 120", "ns.rec.test. hostmaster.test.rec. 2013051201 3600 3600 604800 120", "\x02ns\xc0\x11\x0ahostmaster\x04test\x03rec\x00\x77\xfc\xb9\x41\x00\x00\x0e\x10\x00\x00\x0e\x10\x00\x09\x3a\x80\x00\x00\x00\x78",false))
 // non-local names
      (CASE_S(QType::SOA, "ns.example.com. hostmaster.example.com. 2013051201 3600 3600 604800 120", "\x02ns\x07""example\x03""com\x00\x0ahostmaster\xc0\x28\x77\xfc\xb9\x41\x00\x00\x0e\x10\x00\x00\x0e\x10\x00\x09\x3a\x80\x00\x00\x00\x78",false))
 
@@ -68,9 +68,9 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
      (CASE_S(QType::MR, "newmailbox.example.com.", "\x0anewmailbox\x07""example\x03""com\x00",false))
 
 // local name
-     (CASE_L(QType::PTR, "ptr.rec.test.", "ptr.rec.test.", "\x03ptr\xc0\x11",false))
+     (CASE_S(QType::PTR, "ptr.rec.test.", "\x03ptr\xc0\x11",false))
 // non-local name
-     (CASE_L(QType::PTR, "ptr.example.com.", "ptr.example.com.", "\x03ptr\x07""example\x03""com\x00",false))
+     (CASE_S(QType::PTR, "ptr.example.com.", "\x03ptr\x07""example\x03""com\x00",false))
      (CASE_S(QType::HINFO, "\"i686\" \"Linux\"", "\x04i686\x05Linux",false))
      (CASE_L(QType::HINFO, "i686 \"Linux\"", "\"i686\" \"Linux\"", "\x04i686\x05Linux",true))
      (CASE_L(QType::HINFO, "\"i686\" Linux", "\"i686\" \"Linux\"", "\x04i686\x05Linux",false))
@@ -85,9 +85,9 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
      (CASE_S(QType::TXT, "\"short text\"", "\x0ashort text",false))
      (CASE_S(QType::TXT, "\"long record test 1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111\" \"2222222222\"", "\xff""long record test 1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111\x0a""2222222222",false))
      (CASE_L(QType::TXT, "\"long record test 11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111112222222222\"", "\"long record test 1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111\" \"2222222222\"", "\xff""long record test 1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111\x0a""2222222222",false))
-     (CASE_L(QType::TXT, "\"\\195\\133LAND ISLANDS\"", "\"\\195\\133LAND ISLANDS\"", "\x0e\xc3\x85LAND ISLANDS", false))
+     (CASE_S(QType::TXT,  "\"\\195\\133LAND ISLANDS\"", "\x0e\xc3\x85LAND ISLANDS", false))
      (CASE_L(QType::TXT, "\"\xc3\x85LAND ISLANDS\"", "\"\\195\\133LAND ISLANDS\"", "\x0e\xc3\x85LAND ISLANDS", false))
-     (CASE_L(QType::TXT, "\"nonbreakingtxt\"", "\"nonbreakingtxt\"", "\x0enonbreakingtxt",false))
+     (CASE_S(QType::TXT, "\"nonbreakingtxt\"", "\x0enonbreakingtxt",false))
 // local name
      (CASE_S(QType::RP, "admin.rec.test. admin-info.rec.test.", "\x05""admin\x03rec\x04test\x00\x0a""admin-info\x03rec\x04test\x00",false))
 // non-local name
@@ -119,7 +119,6 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
 // X.509 as per PKIX
      (CASE_S(QType::CERT, "1 0 0 MIIB9DCCAV2gAwIBAgIJAKxUfFVXhw7HMA0GCSqGSIb3DQEBBQUAMBMxETAPBgNVBAMMCHJlYy50ZXN0MB4XDTEzMDUxMjE5NDgwOVoXDTEzMDYxMTE5NDgwOVowEzERMA8GA1UEAwwIcmVjLnRlc3QwgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJAoGBANKCu5aN/ewOXRPfzAo27XMXhYFCThCjfInTAUIEkzs6jBFZ/eyyIa/kFoiD0tAKwfFfykYU+9XgXeLjetD7rYt3SN3bzzCznoBGbGHHM0Fecrn0LV+tC/NfBB61Yx7e0AMUxmxIeLNRQW5ca5CW8qcIiiQ4fl0BScUjc5+E9QLHAgMBAAGjUDBOMB0GA1UdDgQWBBRzcVu/2bwrgkES+FhYbxZqr7mUgjAfBgNVHSMEGDAWgBRzcVu/2bwrgkES+FhYbxZqr7mUgjAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBBQUAA4GBAFVQ8dZBOasOhsWzA/xpAV0WdsqVkxBxrkGIRlbHHBFqOBOOz2MFSzUNx4mDy0qDKI28gcWmWaVsxoQ9VFLD6YRJuUoM8MDNcZDJbKpfDumjvvfnUAK+SiM2c4Ur3xpf0wanCA60/q2bOtFiB0tfAH6RVuIgMC3qjHAIaKEld+fE", "\x00\x01\x00\x00\x00\x30\x82\x01\xf4\x30\x82\x01\x5d\xa0\x03\x02\x01\x02\x02\x09\x00\xac\x54\x7c\x55\x57\x87\x0e\xc7\x30\x0d\x06\x09\x2a\x86\x48\x86\xf7\x0d\x01\x01\x05\x05\x00\x30\x13\x31\x11\x30\x0f\x06\x03\x55\x04\x03\x0c\x08\x72\x65\x63\x2e\x74\x65\x73\x74\x30\x1e\x17\x0d\x31\x33\x30\x35\x31\x32\x31\x39\x34\x38\x30\x39\x5a\x17\x0d\x31\x33\x30\x36\x31\x31\x31\x39\x34\x38\x30\x39\x5a\x30\x13\x31\x11\x30\x0f\x06\x03\x55\x04\x03\x0c\x08\x72\x65\x63\x2e\x74\x65\x73\x74\x30\x81\x9f\x30\x0d\x06\x09\x2a\x86\x48\x86\xf7\x0d\x01\x01\x01\x05\x00\x03\x81\x8d\x00\x30\x81\x89\x02\x81\x81\x00\xd2\x82\xbb\x96\x8d\xfd\xec\x0e\x5d\x13\xdf\xcc\x0a\x36\xed\x73\x17\x85\x81\x42\x4e\x10\xa3\x7c\x89\xd3\x01\x42\x04\x93\x3b\x3a\x8c\x11\x59\xfd\xec\xb2\x21\xaf\xe4\x16\x88\x83\xd2\xd0\x0a\xc1\xf1\x5f\xca\x46\x14\xfb\xd5\xe0\x5d\xe2\xe3\x7a\xd0\xfb\xad\x8b\x77\x48\xdd\xdb\xcf\x30\xb3\x9e\x80\x46\x6c\x61\xc7\x33\x41\x5e\x72\xb9\xf4\x2d\x5f\xad\x0b\xf3\x5f\x04\x1e\xb5\x63\x1e\xde\xd0\x03\x14\xc6\x6c\x48\x78\xb3\x51\x41\x6e\x5c\x6b\x90\x96\xf2\xa7\x08\x8a\x24\x38\x7e\x5d\x01\x49\xc5\x23\x73\x9f\x84\xf5\x02\xc7\x02\x03\x01\x00\x01\xa3\x50\x30\x4e\x30\x1d\x06\x03\x55\x1d\x0e\x04\x16\x04\x14\x73\x71\x5b\xbf\xd9\xbc\x2b\x82\x41\x12\xf8\x58\x58\x6f\x16\x6a\xaf\xb9\x94\x82\x30\x1f\x06\x03\x55\x1d\x23\x04\x18\x30\x16\x80\x14\x73\x71\x5b\xbf\xd9\xbc\x2b\x82\x41\x12\xf8\x58\x58\x6f\x16\x6a\xaf\xb9\x94\x82\x30\x0c\x06\x03\x55\x1d\x13\x04\x05\x30\x03\x01\x01\xff\x30\x0d\x06\x09\x2a\x86\x48\x86\xf7\x0d\x01\x01\x05\x05\x00\x03\x81\x81\x00\x55\x50\xf1\xd6\x41\x39\xab\x0e\x86\xc5\xb3\x03\xfc\x69\x01\x5d\x16\x76\xca\x95\x93\x10\x71\xae\x41\x88\x46\x56\xc7\x1c\x11\x6a\x38\x13\x8e\xcf\x63\x05\x4b\x35\x0d\xc7\x89\x83\xcb\x4a\x83\x28\x8d\xbc\x81\xc5\xa6\x59\xa5\x6c\xc6\x84\x3d\x54\x52\xc3\xe9\x84\x49\xb9\x4a\x0c\xf0\xc0\xcd\x71\x90\xc9\x6c\xaa\x5f\x0e\xe9\xa3\xbe\xf7\xe7\x50\x02\xbe\x4a\x23\x36\x73\x85\x2b\xdf\x1a\x5f\xd3\x06\xa7\x08\x0e\xb4\xfe\xad\x9b\x3a\xd1\x62\x07\x4b\x5f\x00\x7e\x91\x56\xe2\x20\x30\x2d\xea\x8c\x70\x08\x68\xa1\x25\x77\xe7\xc4",false))
      (CASE_L(QType::DS, "20642 8 2 04443ABE7E94C3985196BEAE5D548C727B044DDA5151E60D7CD76A9F D931D00E", "20642 8 2 04443abe7e94c3985196beae5d548c727b044dda5151e60d7cd76a9fd931d00e", "\x50\xa2\x08\x02\x04\x44\x3a\xbe\x7e\x94\xc3\x98\x51\x96\xbe\xae\x5d\x54\x8c\x72\x7b\x04\x4d\xda\x51\x51\xe6\x0d\x7c\xd7\x6a\x9f\xd9\x31\xd0\x0e",false))
-     (CASE_L(QType::DS, "20642 8 2 04443ABE7E94C3985196BEAE5D548C727B044DDA5151E60D7CD76A9F D931D00E", "20642 8 2 04443abe7e94c3985196beae5d548c727b044dda5151e60d7cd76a9fd931d00e", "\x50\xa2\x08\x02\x04\x44\x3a\xbe\x7e\x94\xc3\x98\x51\x96\xbe\xae\x5d\x54\x8c\x72\x7b\x04\x4d\xda\x51\x51\xe6\x0d\x7c\xd7\x6a\x9f\xd9\x31\xd0\x0e",false))
      (CASE_S(QType::SSHFP, "1 1 aa65e3415a50d9b3519c2b17aceb815fc2538d88", "\x01\x01\xaa\x65\xe3\x41\x5a\x50\xd9\xb3\x51\x9c\x2b\x17\xac\xeb\x81\x5f\xc2\x53\x8d\x88",false))
 // as per RFC4025 
      (CASE_L(QType::SSHFP, "1 1 aa65e3415a50d9b3519c2b17aceb815fc253 8d88", "1 1 aa65e3415a50d9b3519c2b17aceb815fc2538d88", "\x01\x01\xaa\x65\xe3\x41\x5a\x50\xd9\xb3\x51\x9c\x2b\x17\xac\xeb\x81\x5f\xc2\x53\x8d\x88",false))
@@ -133,6 +132,8 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
      (CASE_S(QType::IPSECKEY, "10 3 1 gw.rec.test. V19hwufL6LJARVIxzHDyGdvZ7dbQE0Kyl18yPIWj/sbCcsBbz7zO6Q2qgdzmWI3OvGNne2nxflhorhefKIMsUg==", "\x0a\x03\x01\x02gw\x03rec\x04test\x00\x57\x5f\x61\xc2\xe7\xcb\xe8\xb2\x40\x45\x52\x31\xcc\x70\xf2\x19\xdb\xd9\xed\xd6\xd0\x13\x42\xb2\x97\x5f\x32\x3c\x85\xa3\xfe\xc6\xc2\x72\xc0\x5b\xcf\xbc\xce\xe9\x0d\xaa\x81\xdc\xe6\x58\x8d\xce\xbc\x63\x67\x7b\x69\xf1\x7e\x58\x68\xae\x17\x9f\x28\x83\x2c\x52",false))
 
      (CASE_S(QType::RRSIG, "SOA 8 3 300 20130523000000 20130509000000 54216 rec.test. ecWKD/OsdAiXpbM/sgPT82KVD/WiQnnqcxoJgiH3ixHa+LOAcYU7FG7V4BRRJxLriY1e0rB2gAs3kCel9D4bzfK6wAqG4Di/eHUgHptRlaR2ycELJ4t1pjzrnuGiIzA1wM2izRmeE+Xoy1367Qu0pOz5DLzTfQITWFsB2iUzN4Y=", "\x00\x06\x08\x03\x00\x00\x01\x2c\x51\x9d\x5c\x00\x51\x8a\xe7\x00\xd3\xc8\x03\x72\x65\x63\x04\x74\x65\x73\x74\x00\x79\xc5\x8a\x0f\xf3\xac\x74\x08\x97\xa5\xb3\x3f\xb2\x03\xd3\xf3\x62\x95\x0f\xf5\xa2\x42\x79\xea\x73\x1a\x09\x82\x21\xf7\x8b\x11\xda\xf8\xb3\x80\x71\x85\x3b\x14\x6e\xd5\xe0\x14\x51\x27\x12\xeb\x89\x8d\x5e\xd2\xb0\x76\x80\x0b\x37\x90\x27\xa5\xf4\x3e\x1b\xcd\xf2\xba\xc0\x0a\x86\xe0\x38\xbf\x78\x75\x20\x1e\x9b\x51\x95\xa4\x76\xc9\xc1\x0b\x27\x8b\x75\xa6\x3c\xeb\x9e\xe1\xa2\x23\x30\x35\xc0\xcd\xa2\xcd\x19\x9e\x13\xe5\xe8\xcb\x5d\xfa\xed\x0b\xb4\xa4\xec\xf9\x0c\xbc\xd3\x7d\x02\x13\x58\x5b\x01\xda\x25\x33\x37\x86",false))
+     // timestamps can be given as (32-bit wrapped) epoch too:
+     (CASE_L(QType::RRSIG, "SOA 8 3 300 1369267200 1368057600 54216 rec.test. ecWKD/OsdAiXpbM/sgPT82KVD/WiQnnqcxoJgiH3ixHa+LOAcYU7FG7V4BRRJxLriY1e0rB2gAs3kCel9D4bzfK6wAqG4Di/eHUgHptRlaR2ycELJ4t1pjzrnuGiIzA1wM2izRmeE+Xoy1367Qu0pOz5DLzTfQITWFsB2iUzN4Y=", "SOA 8 3 300 20130523000000 20130509000000 54216 rec.test. ecWKD/OsdAiXpbM/sgPT82KVD/WiQnnqcxoJgiH3ixHa+LOAcYU7FG7V4BRRJxLriY1e0rB2gAs3kCel9D4bzfK6wAqG4Di/eHUgHptRlaR2ycELJ4t1pjzrnuGiIzA1wM2izRmeE+Xoy1367Qu0pOz5DLzTfQITWFsB2iUzN4Y=", "\x00\x06\x08\x03\x00\x00\x01\x2c\x51\x9d\x5c\x00\x51\x8a\xe7\x00\xd3\xc8\x03\x72\x65\x63\x04\x74\x65\x73\x74\x00\x79\xc5\x8a\x0f\xf3\xac\x74\x08\x97\xa5\xb3\x3f\xb2\x03\xd3\xf3\x62\x95\x0f\xf5\xa2\x42\x79\xea\x73\x1a\x09\x82\x21\xf7\x8b\x11\xda\xf8\xb3\x80\x71\x85\x3b\x14\x6e\xd5\xe0\x14\x51\x27\x12\xeb\x89\x8d\x5e\xd2\xb0\x76\x80\x0b\x37\x90\x27\xa5\xf4\x3e\x1b\xcd\xf2\xba\xc0\x0a\x86\xe0\x38\xbf\x78\x75\x20\x1e\x9b\x51\x95\xa4\x76\xc9\xc1\x0b\x27\x8b\x75\xa6\x3c\xeb\x9e\xe1\xa2\x23\x30\x35\xc0\xcd\xa2\xcd\x19\x9e\x13\xe5\xe8\xcb\x5d\xfa\xed\x0b\xb4\xa4\xec\xf9\x0c\xbc\xd3\x7d\x02\x13\x58\x5b\x01\xda\x25\x33\x37\x86",false))
      (CASE_S(QType::NSEC, "a.rec.test. A NS SOA MX AAAA RRSIG NSEC DNSKEY", "\x01""a\x03rec\x04test\x00\x00\x07\x62\x01\x00\x08\x00\x03\x80",false))
      (CASE_S(QType::DNSKEY, "257 3 5 AwEAAZVtlHc8O4TVmlGx/PGJTc7hbVjMR7RywxLuAm1dqgyHvgNRD7chYLsALOdZKW6VRvusbyhoOPilnh8XpucBDqjGD6lIemsURz7drZEqcLupVA0TPxXABZ6auJ3jumqIhSOcLj9rpSwI4xuWt0yu6LR9tL2q8+A0yEZxcAaKS+Wq0fExJ93NxgXl1/fY+JcYQvonjd31GxXXef9uf0exXyzowh5h8+IIBETU+ZiYVB5BqiwkICZL/OX57idm99ycA2/tIen66F8u2ueTvgPcecnoqHvW0MtLQKzeNmqdGNthHhV5di0SZdMZQeo/izs68uN2WzqQDZy9Ec2JwBTbxWE=", "\x01\x01\x03\x05\x03\x01\x00\x01\x95\x6d\x94\x77\x3c\x3b\x84\xd5\x9a\x51\xb1\xfc\xf1\x89\x4d\xce\xe1\x6d\x58\xcc\x47\xb4\x72\xc3\x12\xee\x02\x6d\x5d\xaa\x0c\x87\xbe\x03\x51\x0f\xb7\x21\x60\xbb\x00\x2c\xe7\x59\x29\x6e\x95\x46\xfb\xac\x6f\x28\x68\x38\xf8\xa5\x9e\x1f\x17\xa6\xe7\x01\x0e\xa8\xc6\x0f\xa9\x48\x7a\x6b\x14\x47\x3e\xdd\xad\x91\x2a\x70\xbb\xa9\x54\x0d\x13\x3f\x15\xc0\x05\x9e\x9a\xb8\x9d\xe3\xba\x6a\x88\x85\x23\x9c\x2e\x3f\x6b\xa5\x2c\x08\xe3\x1b\x96\xb7\x4c\xae\xe8\xb4\x7d\xb4\xbd\xaa\xf3\xe0\x34\xc8\x46\x71\x70\x06\x8a\x4b\xe5\xaa\xd1\xf1\x31\x27\xdd\xcd\xc6\x05\xe5\xd7\xf7\xd8\xf8\x97\x18\x42\xfa\x27\x8d\xdd\xf5\x1b\x15\xd7\x79\xff\x6e\x7f\x47\xb1\x5f\x2c\xe8\xc2\x1e\x61\xf3\xe2\x08\x04\x44\xd4\xf9\x98\x98\x54\x1e\x41\xaa\x2c\x24\x20\x26\x4b\xfc\xe5\xf9\xee\x27\x66\xf7\xdc\x9c\x03\x6f\xed\x21\xe9\xfa\xe8\x5f\x2e\xda\xe7\x93\xbe\x03\xdc\x79\xc9\xe8\xa8\x7b\xd6\xd0\xcb\x4b\x40\xac\xde\x36\x6a\x9d\x18\xdb\x61\x1e\x15\x79\x76\x2d\x12\x65\xd3\x19\x41\xea\x3f\x8b\x3b\x3a\xf2\xe3\x76\x5b\x3a\x90\x0d\x9c\xbd\x11\xcd\x89\xc0\x14\xdb\xc5\x61",false))
 
@@ -193,31 +194,26 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
    BOOST_TEST_MESSAGE("Checking record type " << q.getName() << " test #" << n);
    try {
       std::string recData;
-      if (q.getCode() != QType::TSIG) {
-        auto rec = DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>());
-        BOOST_CHECK_MESSAGE(rec != NULL, "mastermake( " << q.getCode() << ", 1, " << val.get<1>() << ") returned NULL");
-        if (rec == NULL) continue;
-        // now verify the record (note that this will be same as *zone* value (except for certain QTypes)
+      auto rec = DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>());
+      BOOST_CHECK_MESSAGE(rec != NULL, "mastermake( " << q.getCode() << ", 1, " << val.get<1>() << ") returned NULL");
+      if (rec == NULL) continue;
+      // now verify the record (note that this will be same as *zone* value (except for certain QTypes)
 
-        switch(q.getCode()) {
-        case QType::NS:
-        case QType::PTR:
-        case QType::MX:
-        case QType::CNAME:
-        case QType::SOA:
-        case QType::TXT:
-           // check *input* value instead 
-           REC_CHECK_EQUAL(rec->getZoneRepresentation(), val.get<1>());
-           break;
-        default:
-           REC_CHECK_EQUAL(rec->getZoneRepresentation(), val.get<2>());
-        }
-        recData = rec->serialize(DNSName("rec.test"));
-      } else {
-        std::shared_ptr<DNSRecordContent> rec3 = DNSRecordContent::unserialize(DNSName("rec.test"),q.getCode(),(val.get<3>()));
-        // TSIG special, only works the other way
-        recData = rec3->serialize(DNSName("rec.test"));
+      switch(q.getCode()) {
+      case QType::NS:
+      case QType::PTR:
+      case QType::MX:
+      case QType::CNAME:
+      case QType::SOA:
+      case QType::TXT:
+          // check *input* value instead
+          REC_CHECK_EQUAL(rec->getZoneRepresentation(), val.get<1>());
+          break;
+      default:
+          REC_CHECK_EQUAL(rec->getZoneRepresentation(), val.get<2>());
       }
+      recData = rec->serialize(DNSName("rec.test"));
+
       std::shared_ptr<DNSRecordContent> rec2 = DNSRecordContent::unserialize(DNSName("rec.test"),q.getCode(),recData);
       BOOST_CHECK_MESSAGE(rec2 != NULL, "unserialize(rec.test, " << q.getCode() << ", recData) returned NULL");
       if (rec2 == NULL) continue;
@@ -245,13 +241,18 @@ BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
 
   cases_t cases = boost::assign::list_of
      (case_t(QType::A, "932.521.256.42", zone, false)) // hollywood IP
-     (case_t(QType::A, "932.521", zone, false)) // truncated IP
+     (case_t(QType::A, "932.521", zone, false)) // truncated hollywood IP
+     (case_t(QType::A, "10.0", zone, false)) // truncated IP
+     (case_t(QType::A, "10.0.0.1.", zone, false)) // trailing dot
+     (case_t(QType::A, "10.0.0.", zone, false)) // trailing dot
+     (case_t(QType::A, ".0.0.1", zone, false)) // empty octet
+     (case_t(QType::A, "10..0.1", zone, false)) // empty octet
      (case_t(QType::A, "\xca\xec\x00", wire, false)) // truncated wire value
      (case_t(QType::A, "127.0.0.1 evil data", zone, false)) // trailing garbage
      (case_t(QType::AAAA, "23:00", zone, false)) // time when this test was written 
      (case_t(QType::AAAA, "23:00::15::43", zone, false)) // double compression
      (case_t(QType::AAAA, "2a23:00::15::", zone, false)) // ditto 
-     (case_t(QType::AAAA, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff", zone, false)) // truncated wire value
+     (case_t(QType::AAAA, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff", wire, false)) // truncated wire value
 // empty label, must be broken
      (case_t(QType::CNAME, "name..example.com.", zone, false))
 // overly large label (64), must be broken
@@ -277,10 +278,15 @@ BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
     vector<uint8_t> packet;
     DNSPacketWriter pw(packet, DNSName("unit.test"), q.getCode());
 
-    if (val.get<2>()) {
+    if (val.get<2>() == wire) {
+      BOOST_WARN_MESSAGE(false, "wire checks not supported");
+      continue;
+    }
+
+    if (val.get<3>()) {
       bool success=true;
       BOOST_WARN_EXCEPTION( { auto drc = DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>()); pw.startRecord(DNSName("unit.test"), q.getCode()); drc->toPacket(pw); success=false; }, std::exception, test_dnsrecords_cc_predicate );
-      if (success==false) REC_FAIL_XSUCCESS2(q.getName() << " test #" << n << " has unexpectedly passed"); // a bad record was detected when it was supposed not to be detected
+      if (success) REC_FAIL_XSUCCESS2(q.getName() << " test #" << n << " has unexpectedly passed"); // a bad record was detected when it was supposed not to be detected
     } else {
       BOOST_CHECK_EXCEPTION( { auto drc = DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>()); pw.startRecord(DNSName("unit.test"), q.getCode()); drc->toPacket(pw); }, std::exception, test_dnsrecords_cc_predicate );
     }

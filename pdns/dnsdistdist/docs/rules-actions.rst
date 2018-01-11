@@ -382,13 +382,14 @@ These ``DNSRule``\ s be one of the following items:
 
   Matches queries with the DO flag set
 
-.. function:: MaxQPSIPRule(qps[, v4Mask[, v6Mask]])
+.. function:: MaxQPSIPRule(qps[, v4Mask[, v6Mask[, burst]]])
 
-  Matches traffic for a subnet specified by ``v4Mask`` or ``v6Mask`` exceeding ``qps`` queries per second
+  Matches traffic for a subnet specified by ``v4Mask`` or ``v6Mask`` exceeding ``qps`` queries per second up to ``burst`` allowed 
 
   :param int qps: The number of queries per second allowed, above this number traffic is matched
   :param int v4Mask: The IPv4 netmask to match on. Default is 32 (the whole address)
   :param int v6Mask: The IPv6 netmask to match on. Default is 64
+  :param int burst: The number of burstable queries per second allowed. Default is same as qps
 
 .. function:: MaxQPSRule(qps)
 
@@ -410,7 +411,7 @@ These ``DNSRule``\ s be one of the following items:
 .. function:: OpcodeRule(code)
 
   Matches queries with opcode ``code``.
-  ``code`` can be directly specified as an integer, or one of the `built-in DNSOpcode <#opcode>`_.
+  ``code`` can be directly specified as an integer, or one of the `built-in DNSOpcodes <DNSOpcode>`.
 
   :param int code: The opcode to match
 
@@ -425,7 +426,7 @@ These ``DNSRule``\ s be one of the following items:
 .. function:: QClassRule(qclass)
 
   Matches queries with the specified ``qclass``.
-  ``class`` can be specified as an integer or as one of the built-in `QClass <#qclass>`_.
+  ``class`` can be specified as an integer or as one of the built-in :ref:`DNSQClass`.
 
   :param int qclass: The Query Class to match on
 
@@ -461,8 +462,17 @@ These ``DNSRule``\ s be one of the following items:
 
 .. function:: RCodeRule(rcode)
 
-  Matches queries or responses the specified ``rcode``.
-  ``rcode`` can be specified as an integer or as one of the built-in `RCode <#rcode>`_.
+  Matches queries or responses with the specified ``rcode``.
+  ``rcode`` can be specified as an integer or as one of the built-in :ref:`DNSRCode`.
+  Only the non-extended RCode is matched (lower 4bits).
+
+  :param int rcode: The RCODE to match on
+
+.. function:: ERCodeRule(rcode)
+
+  Matches queries or responses with the specified ``rcode``.
+  ``rcode`` can be specified as an integer or as one of the built-in :ref:`DNSRCode`.
+  The full 16bit RCode will be matched. If no EDNS OPT RR is present, the upper 12 bits are treated as 0.
 
   :param int rcode: The RCODE to match on
 
@@ -526,6 +536,13 @@ These ``DNSRule``\ s be one of the following items:
 
   :param SuffixMatchNode smb: The SuffixMatchNode to match on
   :param bool quiet: Do not return the list of matched domains. Default is false.
+
+.. function:: TagRule(name [, value])
+
+  Matches question or answer with a tag named ``name`` set. If ``value`` is specified, the existing tag value should match too.
+
+  :param bool name: The name of the tag that has to be set
+  :param bool value: If set, the value the tag has to be set to. Default is unset
 
 .. function:: TCPRule([tcp])
 
@@ -643,6 +660,22 @@ The following actions exist.
   :param bool append: Append to the log. Default false
   :param bool buffered: Use buffered I/O. default true
 
+.. function:: LuaAction(function)
+
+  Invoke a Lua function that accepts a :class:`DNSQuestion`.
+
+  The ``function`` should return a :ref:`DNSAction`.
+
+  :param string function: the name of a Lua function
+
+.. function:: LuaResponseAction(function)
+
+  Invoke a Lua function that accepts a :class:`DNSResponse`.
+
+  The ``function`` should return a :ref:`DNSResponseAction`.
+
+  :param string function: the name of a Lua function
+
 .. function:: MacAddrAction(option)
 
   Add the source MAC address to the query as EDNS0 option ``option``.
@@ -685,7 +718,7 @@ The following actions exist.
 .. function:: RCodeAction(rcode)
 
   Reply immediatly by turning the query into a response with the specified ``rcode``.
-  ``rcode`` can be specified as an integer or as one of the built-in `RCode <#rcode>`_.
+  ``rcode`` can be specified as an integer or as one of the built-in :ref:`DNSRCode`.
 
   :param int rcode: The RCODE to respond with.
 
@@ -694,7 +727,7 @@ The following actions exist.
   Send the content of this query to a remote logger via Protocol Buffer.
   ``alterFunction`` is a callback, receiving a :class:`DNSQuestion` and a :class:`DNSDistProtoBufMessage`, that can be used to modify the Protocol Buffer content, for example for anonymization purposes
 
-  :param string remoteLogger: An IP:PORT combo to send the remote log to
+  :param string remoteLogger: The :func:`remoteLogger <newRemoteLogger>` object to write to
   :param string alterFunction: Name of a function to modify the contents of the logs before sending
 
 .. function:: RemoteLogResponseAction(remoteLogger[, alterFunction[, includeCNAME]])
@@ -704,7 +737,7 @@ The following actions exist.
   ``includeCNAME`` indicates whether CNAME records inside the response should be parsed and exported.
   The default is to only exports A and AAAA records
 
-  :param string remoteLogger: An IP:PORT combo to send the remote log to
+  :param string remoteLogger: The :func:`remoteLogger <newRemoteLogger>` object to write to
   :param string alterFunction: Name of a function to modify the contents of the logs before sending
   :param bool includeCNAME: Whether or not to parse and export CNAMEs. Default false
 
@@ -741,6 +774,20 @@ The following actions exist.
 
   :param string cname: The name to respond with
 
+.. function:: TagAction(name, value)
+
+  Associate a tag named ``name`` with a value of ``value`` to this query, that will be passed on to the response.
+
+  :param string name: The name of the tag to set
+  :param string cname: The value of the tag
+
+.. function:: TagResponseAction(name, value)
+
+  Associate a tag named ``name`` with a value of ``value`` to this response.
+
+  :param string name: The name of the tag to set
+  :param string cname: The value of the tag
+
 .. function:: TCAction()
 
   Create answer to query with TC and RD bits set, to force the client to TCP.
@@ -753,4 +800,8 @@ The following actions exist.
   :param string remote: An IP:PORT conbination to send the copied queries to
   :param bool addECS: Whether or not to add ECS information. Default false
 
+.. function:: TempFailureCacheTTLAction(ttl)
 
+  Set the cache TTL to use for ServFail and Refused replies. TTL is not applied for successful replies.
+
+  :param int ttl: Cache TTL for temporary failure replies

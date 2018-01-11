@@ -285,7 +285,7 @@ Operate as a daemon.
   Renamed from ``default-ksk-algorithms``. No longer supports multiple algorithm names.
 
 The algorithm that should be used for the KSK when running
-:doc:`pdnsutil secure-zone <manpages/pdnsutil.1>` or using the :doc:`Zone API endpoint <http-api/endpoint-zones>`
+:doc:`pdnsutil secure-zone <manpages/pdnsutil.1>` or using the :doc:`Zone API endpoint <http-api/cryptokey>`
 to enable DNSSEC. Must be one of:
 
 * rsamd5
@@ -381,7 +381,7 @@ TTL to use when none is provided.
   Renamed from ``default-zsk-algorithms``. Does no longer support multiple algorithm names.
 
 The algorithm that should be used for the ZSK when running
-:doc:`pdnsutil secure-zone <manpages/pdnsutil.1>` or using the :doc:`Zone API endpoint <http-api/endpoint-zones>`
+:doc:`pdnsutil secure-zone <manpages/pdnsutil.1>` or using the :doc:`Zone API endpoint <http-api/cryptokey>`
 to enable DNSSEC. Must be one of:
 
 * rsamd5

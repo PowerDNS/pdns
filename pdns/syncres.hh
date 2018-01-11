@@ -421,17 +421,26 @@ public:
     s_dontQuery = nullptr;
   }
   static void parseEDNSSubnetWhitelist(const std::string& wlist);
-  static void addEDNSSubnet(const Netmask& subnet)
+  static void parseEDNSSubnetAddFor(const std::string& subnetlist);
+  static void addEDNSLocalSubnet(const std::string& subnet)
   {
-    s_ednssubnets.addMask(subnet);
+    s_ednslocalsubnets.addMask(subnet);
+  }
+  static void addEDNSRemoteSubnet(const std::string& subnet)
+  {
+    s_ednsremotesubnets.addMask(subnet);
   }
   static void addEDNSDomain(const DNSName& domain)
   {
     s_ednsdomains.add(domain);
   }
-  static void clearEDNSSubnets()
+  static void clearEDNSLocalSubnets()
   {
-    s_ednssubnets.clear();
+    s_ednslocalsubnets.clear();
+  }
+  static void clearEDNSRemoteSubnets()
+  {
+    s_ednsremotesubnets.clear();
   }
   static void clearEDNSDomains()
   {
@@ -588,6 +597,11 @@ public:
     return d_DNSSECValidationRequested;
   }
 
+  bool shouldValidate() const
+  {
+    return d_DNSSECValidationRequested && !d_wasOutOfBand;
+  }
+
   void setWantsRPZ(bool state=true)
   {
     d_wantsRPZ=state;
@@ -596,11 +610,6 @@ public:
   bool getWantsRPZ() const
   {
     return d_wantsRPZ;
-  }
-
-  void setIncomingECSFound(bool state=true)
-  {
-    d_incomingECSFound=state;
   }
 
   string getTrace() const
@@ -633,7 +642,7 @@ public:
     d_skipCNAMECheck = skip;
   }
 
-  void setIncomingECS(boost::optional<const EDNSSubnetOpts&> incomingECS);
+  void setQuerySource(const ComboAddress& requestor, boost::optional<const EDNSSubnetOpts&> incomingECS);
 
 #ifdef HAVE_PROTOBUF
   void setInitialRequestId(boost::optional<const boost::uuids::uuid&> initialRequestId)
@@ -694,12 +703,14 @@ public:
   unsigned int d_timeouts;
   unsigned int d_unreachables;
   unsigned int d_totUsec;
-  ComboAddress d_requestor;
 
 private:
+  ComboAddress d_requestor;
+  ComboAddress d_cacheRemote;
 
   static std::unordered_set<DNSName> s_delegationOnly;
-  static NetmaskGroup s_ednssubnets;
+  static NetmaskGroup s_ednslocalsubnets;
+  static NetmaskGroup s_ednsremotesubnets;
   static SuffixMatchNode s_ednsdomains;
   static EDNSSubnetOpts s_ecsScopeZero;
   static LogMode s_lm;
@@ -728,8 +739,8 @@ private:
   bool doOOBResolve(const AuthDomain& domain, const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, int& res) const;
   bool doOOBResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int &res);
   domainmap_t::const_iterator getBestAuthZone(DNSName* qname) const;
-  bool doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int &res, vState& state);
-  bool doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int &res, vState& state);
+  bool doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int &res, vState& state, bool wasAuthZone);
+  bool doCacheCheck(const DNSName &qname, const DNSName& authname, bool wasForwardedOrAuthZone, bool wasAuthZone, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int &res, vState& state);
   void getBestNSFromCache(const DNSName &qname, const QType &qtype, vector<DNSRecord>&bestns, bool* flawedNSSet, unsigned int depth, set<GetBestNSAnswer>& beenthere);
   DNSName getBestNSNamesFromCache(const DNSName &qname, const QType &qtype, NsSet& nsset, bool* flawedNSSet, unsigned int depth, set<GetBestNSAnswer>&beenthere);
 
@@ -742,14 +753,14 @@ private:
   bool throttledOrBlocked(const std::string& prefix, const ComboAddress& remoteIP, const DNSName& qname, const QType& qtype, bool pierceDontQuery);
 
   vector<ComboAddress> retrieveAddressesForNS(const std::string& prefix, const DNSName& qname, vector<DNSName >::const_iterator& tns, const unsigned int depth, set<GetBestNSAnswer>& beenthere, const vector<DNSName >& rnameservers, NsSet& nameservers, bool& sendRDQuery, bool& pierceDontQuery, bool& flawedNSSet, bool cacheOnly);
-  RCode::rcodes_ updateCacheFromRecords(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType& qtype, const DNSName& auth, bool wasForwarded, const boost::optional<Netmask>, vState& state, bool& needWildcardProof);
-  bool processRecords(const std::string& prefix, const DNSName& qname, const QType& qtype, const DNSName& auth, LWResult& lwr, const bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, vState& state, bool needWildcardProof);
+  RCode::rcodes_ updateCacheFromRecords(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType& qtype, const DNSName& auth, bool wasForwarded, const boost::optional<Netmask>, vState& state, bool& needWildcardProof, unsigned int& wildcardLabelsCount);
+  bool processRecords(const std::string& prefix, const DNSName& qname, const QType& qtype, const DNSName& auth, LWResult& lwr, const bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, vState& state, const bool needWildcardProof, const unsigned int wildcardLabelsCount);
 
   bool doSpecialNamesResolve(const DNSName &qname, const QType &qtype, const uint16_t qclass, vector<DNSRecord> &ret);
 
   int asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res) const;
 
-  boost::optional<Netmask> getEDNSSubnetMask(const ComboAddress& local, const DNSName&dn, const ComboAddress& rem);
+  boost::optional<Netmask> getEDNSSubnetMask(const DNSName&dn, const ComboAddress& rem);
 
   bool validationEnabled() const;
   uint32_t computeLowestTTD(const std::vector<DNSRecord>& records, const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures, uint32_t signaturesTTL) const;
@@ -775,8 +786,7 @@ private:
   zonesStates_t d_cutStates;
   ostringstream d_trace;
   shared_ptr<RecursorLua4> d_pdl;
-  boost::optional<EDNSSubnetOpts> d_incomingECS;
-  ComboAddress d_incomingECSNetwork;
+  boost::optional<Netmask> d_outgoingECSNetwork;
 #ifdef HAVE_PROTOBUF
   boost::optional<const boost::uuids::uuid&> d_initialRequestId;
 #endif
@@ -792,7 +802,6 @@ private:
   bool d_doDNSSEC;
   bool d_DNSSECValidationRequested{false};
   bool d_doEDNS0{true};
-  bool d_incomingECSFound{false};
   bool d_requireAuthData{true};
   bool d_skipCNAMECheck{false};
   bool d_updatingRootNS{false};

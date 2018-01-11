@@ -14,7 +14,7 @@ class TestCaching(DNSDistTest):
         dq.skipCache = true
         return DNSAction.None, ""
     end
-    addLuaAction("nocachevialua.cache.tests.powerdns.com.", skipViaLua)
+    addAction("nocachevialua.cache.tests.powerdns.com.", LuaAction(skipViaLua))
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -352,6 +352,52 @@ class TestCaching(DNSDistTest):
         # different case query should still hit the cache
         (_, receivedResponse) = self.sendUDPQuery(differentCaseQuery, response=None, useQueue=False)
         self.assertEquals(receivedResponse, differentCaseResponse)
+
+
+class TestTempFailureCacheTTLAction(DNSDistTest):
+
+    _config_template = """
+    pc = newPacketCache(100, 86400, 1)
+    getPool(""):setCache(pc)
+    addAction("servfail.cache.tests.powerdns.com.", TempFailureCacheTTLAction(1))
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testTempFailureCacheTTLAction(self):
+        """
+        Cache: When a TempFailure TTL is set, it should be honored
+
+        dnsdist is configured to cache packets, plus a specific qname is
+        set up with a lower TempFailure Cache TTL. we are sending one request
+        (cache miss) and verify that the cache is hit for the following query,
+        but the TTL then expires before the larger "good" packetcache TTL.
+        """
+        name = 'servfail.cache.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'AAAA', 'IN')
+        response = dns.message.make_response(query)
+        response.set_rcode(dns.rcode.SERVFAIL)
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+        # next query should hit the cache
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertFalse(receivedQuery)
+        self.assertTrue(receivedResponse)
+        self.assertEquals(receivedResponse, response)
+
+        # now we wait a bit for the Failure-Cache TTL to expire
+        time.sleep(2)
+
+        # next query should NOT hit the cache
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        self.assertEquals(receivedResponse, response)
 
 
 class TestCachingWithExistingEDNS(DNSDistTest):

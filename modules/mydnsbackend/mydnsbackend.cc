@@ -196,7 +196,7 @@ bool MyDNSBackend::list(const DNSName &target, int zoneId, bool include_disabled
   return true;
 }
 
-bool MyDNSBackend::getSOA(const DNSName& name, SOAData& soadata) {
+bool MyDNSBackend::getSOA(const DNSName& name, SOAData& soadata, bool unmodifiedSerial) {
   string query;
   SSqlStatement::row_t rrow;
 
@@ -211,7 +211,7 @@ bool MyDNSBackend::getSOA(const DNSName& name, SOAData& soadata) {
       reset();
   }
   catch (SSqlException &e) {
-    throw PDNSException("MyDNSBackend unable to get soa for domain "+name.toString()+": "+e.txtReason());
+    throw PDNSException("MyDNSBackend unable to get soa for domain "+name.toLogString()+": "+e.txtReason());
   }
 
   if (d_result.empty()) {
@@ -269,7 +269,7 @@ void MyDNSBackend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p
           reset();
       }
       catch (SSqlException &e) {
-        throw PDNSException("MyDNSBackend unable to lookup "+qname.toString()+": "+e.txtReason());
+        throw PDNSException("MyDNSBackend unable to lookup "+qname.toLogString()+": "+e.txtReason());
       }
 
       if (d_result.empty() == false) {
@@ -292,7 +292,7 @@ void MyDNSBackend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p
         reset();
     }
     catch (SSqlException &e) {
-      throw PDNSException("MyDNSBackend unable to lookup "+qname.toString()+": "+e.txtReason());
+      throw PDNSException("MyDNSBackend unable to lookup "+qname.toLogString()+": "+e.txtReason());
     }
 
     if(d_result.empty()) {
@@ -342,7 +342,7 @@ void MyDNSBackend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p
       }
     }
     catch (SSqlException &e) {
-      throw PDNSException("MyDNSBackend unable to lookup "+qname.toString()+": "+e.txtReason());
+      throw PDNSException("MyDNSBackend unable to lookup "+qname.toLogString()+": "+e.txtReason());
     }
 
     d_qname = qname.toString();

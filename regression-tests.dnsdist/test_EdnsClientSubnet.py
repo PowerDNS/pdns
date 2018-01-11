@@ -3,6 +3,7 @@ import dns
 import clientsubnetoption
 import cookiesoption
 from dnsdisttests import DNSDistTest
+from datetime import datetime, timedelta
 
 class TestEdnsClientSubnetNoOverride(DNSDistTest):
     """
@@ -564,7 +565,7 @@ class TestECSDisabledByRuleOrLua(DNSDistTest):
         dq.useECS = false
         return DNSAction.None, ""
     end
-    addLuaAction("disabledvialua.ecsrules.tests.powerdns.com.", disableECSViaLua)
+    addAction("disabledvialua.ecsrules.tests.powerdns.com.", LuaAction(disableECSViaLua))
     """
 
     def testWithECSNotDisabled(self):
@@ -672,7 +673,7 @@ class TestECSOverrideSetByRuleOrLua(DNSDistTest):
         dq.ecsOverride = true
         return DNSAction.None, ""
     end
-    addLuaAction("overriddenvialua.ecsrules.tests.powerdns.com.", overrideECSViaLua)
+    addAction("overriddenvialua.ecsrules.tests.powerdns.com.", LuaAction(overrideECSViaLua))
     """
 
     def testWithECSOverrideNotSet(self):
@@ -786,7 +787,7 @@ class TestECSPrefixLengthSetByRuleOrLua(DNSDistTest):
         dq.ecsPrefixLength = 32
         return DNSAction.None, ""
     end
-    addLuaAction("overriddenprefixlengthvialua.ecsrules.tests.powerdns.com.", overrideECSPrefixLengthViaLua)
+    addAction("overriddenprefixlengthvialua.ecsrules.tests.powerdns.com.", LuaAction(overrideECSPrefixLengthViaLua))
     """
 
     def testWithECSPrefixLengthNotOverridden(self):

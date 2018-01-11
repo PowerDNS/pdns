@@ -370,7 +370,7 @@ void RPZIXFRTracker(const ComboAddress& master, const DNSName& zoneName, boost::
 	}
 	else {
           totremove++;
-	  L<<(g_logRPZChanges ? Logger::Info : Logger::Debug)<<"Had removal of "<<rr.d_name<<" from RPZ zone "<<zoneName.toStringNoDot()<<endl;
+	  L<<(g_logRPZChanges ? Logger::Info : Logger::Debug)<<"Had removal of "<<rr.d_name<<" from RPZ zone "<<zoneName<<endl;
 	  RPZRecordToPolicy(rr, newZone, false, defpol, maxTTL);
 	}
       }
@@ -387,7 +387,7 @@ void RPZIXFRTracker(const ComboAddress& master, const DNSName& zoneName, boost::
 	}
 	else {
           totadd++;
-	  L<<(g_logRPZChanges ? Logger::Info : Logger::Debug)<<"Had addition of "<<rr.d_name<<" to RPZ zone "<<zoneName.toStringNoDot()<<endl;
+	  L<<(g_logRPZChanges ? Logger::Info : Logger::Debug)<<"Had addition of "<<rr.d_name<<" to RPZ zone "<<zoneName<<endl;
 	  RPZRecordToPolicy(rr, newZone, true, defpol, maxTTL);
 	}
       }
@@ -438,10 +438,10 @@ std::shared_ptr<SyncRes::domainmap_t> parseAuthAndForwards()
 	    dr.d_place=DNSResourceRecord::ANSWER;
           }
           catch(std::exception &e) {
-            throw PDNSException("Error parsing record '"+rr.qname.toString()+"' of type "+rr.qtype.getName()+" in zone '"+headers.first+"' from file '"+headers.second+"': "+e.what());
+            throw PDNSException("Error parsing record '"+rr.qname.toLogString()+"' of type "+rr.qtype.getName()+" in zone '"+headers.first+"' from file '"+headers.second+"': "+e.what());
           }
           catch(...) {
-            throw PDNSException("Error parsing record '"+rr.qname.toString()+"' of type "+rr.qtype.getName()+" in zone '"+headers.first+"' from file '"+headers.second+"'");
+            throw PDNSException("Error parsing record '"+rr.qname.toLogString()+"' of type "+rr.qtype.getName()+" in zone '"+headers.first+"' from file '"+headers.second+"'");
           }
 
           ad.d_records.insert(dr);

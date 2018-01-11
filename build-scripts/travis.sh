@@ -419,7 +419,7 @@ build_dnsdist(){
 }
 
 test_auth() {
-  run "make -j3 check"
+  run "make -j3 check || (cat pdns/test-suite.log; false)"
   run "test -f pdns/test-suite.log && cat pdns/test-suite.log || true"
   run "test -f modules/remotebackend/test-suite.log && cat modules/remotebackend/test-suite.log || true"
 

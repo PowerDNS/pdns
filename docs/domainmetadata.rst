@@ -50,7 +50,7 @@ records, add ``allow-axfr-ips=`` to ``pdns.conf``.
 
 API-RECTIFY
 -----------
-.. since:: 4.1.0
+.. versionadded:: 4.1.0
 
 This metadata item controls whether or not a zone is fully rectified on changes
 to the contents of a zone made through the :doc:`API <http-api/index>`.

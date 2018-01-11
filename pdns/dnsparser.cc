@@ -297,7 +297,7 @@ void MOADNSParser::init(bool query, const char *packet, unsigned int len)
 
       if(dr.d_type == QType::TSIG && dr.d_class == QClass::ANY) {
         if(dr.d_place != DNSResourceRecord::ADDITIONAL || n != (unsigned int)(d_header.ancount + d_header.nscount + d_header.arcount) - 1) {
-          throw MOADNSException("Packet ("+d_qname.toString()+"|#"+std::to_string(d_qtype)+") has a TSIG record in an invalid position.");
+          throw MOADNSException("Packet ("+d_qname.toLogString()+"|#"+std::to_string(d_qtype)+") has a TSIG record in an invalid position.");
         }
         d_tsigPos = recordStartPos + sizeof(struct dnsheader);
       }
@@ -491,7 +491,7 @@ string PacketReader::getText(bool multi, bool lenField)
 
 string PacketReader::getUnquotedText(bool lenField)
 {
-  int16_t stop_at;
+  uint16_t stop_at;
   if(lenField)
     stop_at = (uint8_t)d_content.at(d_pos) + d_pos + 1;
   else

@@ -8,3 +8,19 @@ runtime, and that its statistics can be queried from a console-like
 interface.
 
 All `dnsdist` features are documented at [dnsdist.org](http://dnsdist.org).
+
+## macOS Notes
+
+Install dependencies from Homebrew:
+
+```
+$ brew install autoconf automake boost libedit libsodium libtool lua pkg-config protobuf
+```
+
+Bootstrap and let configure know where to find libedit:
+
+```
+$ ./bootstrap
+$ ./configure 'PKG_CONFIG_PATH=/usr/local/opt/libedit/lib/pkgconfig'
+$ make
+```

@@ -136,7 +136,7 @@ boilerplate_conv(AAAA, QType::AAAA, conv.xfrIP6(d_ip6); );
 boilerplate_conv(NS, QType::NS, conv.xfrName(d_content, true));
 boilerplate_conv(PTR, QType::PTR, conv.xfrName(d_content, true));
 boilerplate_conv(CNAME, QType::CNAME, conv.xfrName(d_content, true));
-boilerplate_conv(ALIAS, QType::ALIAS, conv.xfrName(d_content, true));
+boilerplate_conv(ALIAS, QType::ALIAS, conv.xfrName(d_content, false));
 boilerplate_conv(DNAME, QType::DNAME, conv.xfrName(d_content));
 boilerplate_conv(MR, QType::MR, conv.xfrName(d_alias, true));
 boilerplate_conv(MINFO, QType::MINFO, conv.xfrName(d_rmailbx, true); conv.xfrName(d_emailbx, true));
@@ -282,7 +282,7 @@ SOARecordContent::SOARecordContent(const DNSName& mname, const DNSName& rname, c
   d_st=st;
 }
 
-boilerplate_conv(SOA, QType::SOA, 
+boilerplate_conv(SOA, QType::SOA,
                  conv.xfrName(d_mname, true);
                  conv.xfrName(d_rname, true);
                  conv.xfr32BitInt(d_st.serial);

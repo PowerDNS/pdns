@@ -23,7 +23,7 @@
 #include "sodcrypto.hh"
 #include "pwd.h"
 
-#if defined (__OpenBSD__)
+#if defined (__OpenBSD__) || defined(__NetBSD__)
 #include <readline/readline.h>
 #include <readline/history.h>
 #else
@@ -285,20 +285,11 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   /* keyword, function, parameters, description */
   { "addACL", true, "netmask", "add to the ACL set who can use this server" },
   { "addAction", true, "DNS rule, DNS action", "add a rule" },
-  { "addAnyTCRule", true, "", "(deprecated) generate TC=1 answers to ANY queries received over UDP, moving them to TCP" },
-  { "addDelay", true, "domain, n", "(deprecated) delay answers within that domain by n milliseconds" },
-  { "addDisableValidationRule", true, "DNS rule", "(deprecated) set the CD flags to 1 for all queries matching the specified domain" },
   { "addDNSCryptBind", true, "\"127.0.0.1:8443\", \"provider name\", \"/path/to/resolver.cert\", \"/path/to/resolver.key\", {reusePort=false, tcpFastOpenSize=0, interface=\"\", cpus={}}", "listen to incoming DNSCrypt queries on 127.0.0.1 port 8443, with a provider name of `provider name`, using a resolver certificate and associated key stored respectively in the `resolver.cert` and `resolver.key` files. The fifth optional parameter is a table of parameters" },
-  { "addDomainBlock", true, "domain", "(deprecated) block queries within this domain" },
-  { "addDomainSpoof", true, "domain, ip[, ip6]", "(deprecated) generate answers for A/AAAA/ANY queries using the ip parameters" },
   { "addDynBlocks", true, "addresses, message[, seconds[, action]]", "block the set of addresses with message `msg`, for `seconds` seconds (10 by default), applying `action` (default to the one set with `setDynBlocksAction()`)" },
   { "addLocal", true, "addr [, {doTCP=true, reusePort=false, tcpFastOpenSize=0, interface=\"\", cpus={}}]", "add `addr` to the list of addresses we listen on" },
   { "addLuaAction", true, "x, func", "where 'x' is all the combinations from `addAction`, and func is a function with the parameter `dq`, which returns an action to be taken on this packet. Good for rare packets but where you want to do a lot of processing" },
   { "addLuaResponseAction", true, "x, func", "where 'x' is all the combinations from `addAction`, and func is a function with the parameter `dr`, which returns an action to be taken on this response packet. Good for rare packets but where you want to do a lot of processing" },
-  { "addNoRecurseRule", true, "domain", "(deprecated) clear the RD flag for all queries matching the specified domain" },
-  { "addPoolRule", true, "domain, pool", "(deprecated) send queries to this domain to that pool" },
-  { "addQPSLimit", true, "domain, n", "(deprecated) limit queries within that domain to n per second" },
-  { "addQPSPoolRule", true, "x, limit, pool", "(deprecated) like `addPoolRule`, but only select at most 'limit' queries/s for this pool, letting the subsequent rules apply otherwise" },
   { "addCacheHitResponseAction", true, "DNS rule, DNS response action", "add a cache hit response rule" },
   { "addResponseAction", true, "DNS rule, DNS response action", "add a response rule" },
   { "AllowAction", true, "", "let these packets go through" },
@@ -335,11 +326,12 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "getResponseRing", true, "", "return the current content of the response ring" },
   { "getServer", true, "n", "returns server with index n" },
   { "getServers", true, "", "returns a table with all defined servers" },
+  { "inClientStartup", true, "", "returns true during console client parsing of configuration" },
   { "grepq", true, "Netmask|DNS Name|100ms|{\"::1\", \"powerdns.com\", \"100ms\"} [, n]", "shows the last n queries and responses matching the specified client address or range (Netmask), or the specified DNS Name, or slower than 100ms" },
   { "leastOutstanding", false, "", "Send traffic to downstream server with least outstanding queries, with the lowest 'order', and within that the lowest recent latency"},
   { "LogAction", true, "[filename], [binary], [append], [buffered]", "Log a line for each query, to the specified file if any, to the console (require verbose) otherwise. When logging to a file, the `binary` optional parameter specifies whether we log in binary form (default) or in textual form, the `append` optional parameter specifies whether we open the file for appending or truncate each time (default), and the `buffered` optional parameter specifies whether writes to the file are buffered (default) or not." },
   { "makeKey", true, "", "generate a new server access key, emit configuration line ready for pasting" },
-  { "MaxQPSIPRule", true, "qps, v4Mask=32, v6Mask=64", "matches traffic exceeding the qps limit per subnet" },
+  { "MaxQPSIPRule", true, "qps, v4Mask=32, v6Mask=64, burst=qps", "matches traffic exceeding the qps limit per subnet" },
   { "MaxQPSRule", true, "qps", "matches traffic **not** exceeding this qps limit" },
   { "mvCacheHitResponseRule", true, "from, to", "move cache hit response rule 'from' to a position where it is in front of 'to'. 'to' can be one larger than the largest rule" },
   { "mvResponseRule", true, "from, to", "move response rule 'from' to a position where it is in front of 'to'. 'to' can be one larger than the largest rule" },
@@ -369,6 +361,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "QNameWireLengthRule", true, "min, max", "matches if the qname's length on the wire is less than `min` or more than `max` bytes" },
   { "QTypeRule", true, "qtype", "matches queries with the specified qtype" },
   { "RCodeRule", true, "rcode", "matches responses with the specified rcode" },
+  { "ERCodeRule", true, "rcode", "matches responses with the specified extended rcode (EDNS0)" },
   { "sendCustomTrap", true, "str", "send a custom `SNMP` trap from Lua, containing the `str` string"},
   { "setACL", true, "{netmask, netmask}", "replace the ACL set with these netmasks. Use `setACL({})` to reset the list, meaning no one can use us" },
   { "setAPIWritable", true, "bool, dir", "allow modifications via the API. if `dir` is set, it must be a valid directory where the configuration files will be written by the API" },
@@ -423,7 +416,12 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "SNMPTrapAction", true, "[reason]", "send an SNMP trap, adding the optional `reason` string as the query description"},
   { "SNMPTrapResponseAction", true, "[reason]", "send an SNMP trap, adding the optional `reason` string as the response description"},
   { "SpoofAction", true, "{ip, ...} ", "forge a response with the specified IPv4 (for an A query) or IPv6 (for an AAAA). If you specify multiple addresses, all that match the query type (A, AAAA or ANY) will get spoofed in" },
+  { "TagAction", true, "name, value", "set the tag named 'name' to the given value" },
+  { "TagResponseAction", true, "name, value", "set the tag named 'name' to the given value" },
+  { "TagRule", true, "name [, value]", "matches if the tag named 'name' is present, with the given 'value' matching if any" },
   { "TCAction", true, "", "create answer to query with TC and RD bits set, to move to TCP" },
+  { "TeeAction", true, "remote [, addECS]", "send copy of query to remote, optionally adding ECS info" },
+  { "TempFailureCacheTTLAction", true, "ttl", "set packetcache TTL for temporary failure replies" },
   { "testCrypto", true, "", "test of the crypto all works" },
   { "TimedIPSetRule", true, "", "Create a rule which matches a set of IP addresses which expire"}, 
   { "topBandwidth", true, "top", "show top-`top` clients that consume the most bandwidth over length of ringbuffer" },

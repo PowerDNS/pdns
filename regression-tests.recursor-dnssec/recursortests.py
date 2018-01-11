@@ -575,7 +575,7 @@ distributor-threads=1""".format(confdir=confdir,
                 raise
 
     @classmethod
-    def sendUDPQuery(cls, query, timeout=2.0, fwparams=dict()):
+    def sendUDPQuery(cls, query, timeout=2.0, decode=True, fwparams=dict()):
         if timeout:
             cls._sock.settimeout(timeout)
 
@@ -590,6 +590,8 @@ distributor-threads=1""".format(confdir=confdir,
 
         message = None
         if data:
+            if not decode:
+                return data
             message = dns.message.from_wire(data, **fwparams)
         return message
 
@@ -655,7 +657,7 @@ distributor-threads=1""".format(confdir=confdir,
         msgFlags = dns.flags.to_text(msg.flags).split()
         missingFlags = [flag for flag in flags if flag not in msgFlags]
 
-        msgEdnsFlags = dns.flags.edns_to_text(msg.flags).split()
+        msgEdnsFlags = dns.flags.edns_to_text(msg.ednsflags).split()
         missingEdnsFlags = [ednsflag for ednsflag in ednsflags if ednsflag not in msgEdnsFlags]
 
         if len(missingFlags) or len(missingEdnsFlags) or len(msgFlags) > len(flags):
@@ -693,7 +695,7 @@ distributor-threads=1""".format(confdir=confdir,
         for ans in msg.answer:
             ret += "%s\n" % ans.to_text()
             if ans.match(rrset.name, rrset.rdclass, rrset.rdtype, 0, None):
-                self.assertEqual(ans, rrset)
+                self.assertEqual(ans, rrset, "'%s' != '%s'" % (ans.to_text(), rrset.to_text()))
                 found = True
 
         if not found:
