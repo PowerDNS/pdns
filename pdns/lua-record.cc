@@ -199,7 +199,7 @@ void IsUpOracle::checkURLThread(ComboAddress rem, std::string url, opts_t opts)
         setDown(rem, url, opts);
         goto loop;
       }
-      if(!upStatus(rem,url))
+      if(!upStatus(rem,url,opts))
         L<<Logger::Warning<<"LUA record monitoring declaring "<<rem.toString()<<" UP for URL "<<url<<"!"<<endl;
       setUp(rem, url,opts);
     }
@@ -247,19 +247,19 @@ std::string getGeo(const std::string& ip, GeoIPBackend::GeoIPQueryAttribute qa)
     return g_getGeo(ip, (int)qa);
 }
 
-static ComboAddress pickrandom(vector<ComboAddress>& ips)
+static ComboAddress pickrandom(const vector<ComboAddress>& ips)
 {
   return ips[random() % ips.size()];
 }
 
-static ComboAddress hashed(const ComboAddress& who, vector<ComboAddress>& ips)
+static ComboAddress hashed(const ComboAddress& who, const vector<ComboAddress>& ips)
 {
   ComboAddress::addressOnlyHash aoh;
   return ips[aoh(who) % ips.size()];
 }
 
 
-static ComboAddress wrandom(vector<pair<int,ComboAddress> >& wips)
+static ComboAddress wrandom(const vector<pair<int,ComboAddress> >& wips)
 {
   int sum=0;
   vector<pair<int, ComboAddress> > pick;
@@ -350,7 +350,7 @@ static bool getLatLon(const std::string& ip, string& loc)
                       
                       
 
-static ComboAddress closest(const ComboAddress& bestwho, vector<ComboAddress>& wips)
+static ComboAddress closest(const ComboAddress& bestwho, const vector<ComboAddress>& wips)
 {
   map<double,vector<ComboAddress> > ranked;
   double wlat=0, wlon=0;
@@ -384,6 +384,25 @@ static std::vector<DNSZoneRecord> lookup(const DNSName& name, uint16_t qtype, in
     ret.push_back(dr);
   }
   return ret;
+}
+
+static ComboAddress useSelector(const boost::optional<std::unordered_map<string, string>>& options, const ComboAddress& bestwho, const vector<ComboAddress>& candidates)
+{
+  string selector="random";
+  if(options) {
+    if(options->count("selector"))
+      selector=options->find("selector")->second;
+  }
+
+  if(selector=="random")
+    return pickrandom(candidates);
+  else if(selector=="closest")
+    return closest(bestwho, candidates);
+  else if(selector=="hashed")
+    return hashed(bestwho, candidates);
+
+  L<<Logger::Warning<<"LUA Record ifportup called with unknown selector '"<<selector<<"'"<<endl;
+  return pickrandom(candidates);
 }
 
 std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, const DNSName& query, const DNSName& zone, int zoneid, const DNSPacket& dnsp, uint16_t qtype) 
@@ -607,29 +626,14 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
           ret.push_back(i.second);
       }
       else {
-        ComboAddress res;
-        string selector="random";
-        if(options) {
-          if(options->count("selector"))
-            selector=options->find("selector")->second;
-        }
-        if(selector=="random")
-          res=pickrandom(candidates);
-        else if(selector=="closest")
-          res=closest(bestwho, candidates);
-        else if(selector=="hashed")
-          res=hashed(bestwho, candidates);
-        else {
-          L<<Logger::Warning<<"LUA Record ifportup called with unknown selector '"<<selector<<"'"<<endl;
-          res=pickrandom(candidates);
-        }
+        ComboAddress res=useSelector(options, bestwho, candidates);
         ret.push_back(res.toString());
       }
       return ret;
     });
 
 
-  lua.writeFunction("ifurlup", [](const std::string& url,
+  lua.writeFunction("ifurlup", [&bestwho](const std::string& url,
                                   const boost::variant<
                                   vector<pair<int, string> >,
                                   vector<pair<int, vector<pair<int, string> > > >
@@ -670,7 +674,8 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
           //  cerr<<"Entire unit is down, trying next one if available"<<endl;
           continue;
         }
-        ret.push_back(available[random() % available.size()].toString());
+        ComboAddress res=useSelector(options, bestwho, available);
+        ret.push_back(res.toString());
         return ret;
       }      
       //      cerr<<"ALL units are down, returning all IP addresses"<<endl;

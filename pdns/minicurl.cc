@@ -9,6 +9,7 @@ MiniCurl::MiniCurl()
 
 MiniCurl::~MiniCurl()
 {
+  // NEEDS TO CLEAN HOSTLIST
   curl_easy_cleanup(d_curl);
 }
 
@@ -35,7 +36,7 @@ static string extractHostFromURL(const std::string& url)
 void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const ComboAddress* src)
 {
   if(rem) {
-    struct curl_slist *hostlist = NULL;
+    struct curl_slist *hostlist = NULL; // THIS SHOULD BE FREED
 
     // url = http://hostname.enzo/url 
 
