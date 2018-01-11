@@ -8,6 +8,16 @@ Please upgrade to the PowerDNS Authoritative Server 4.0.0 from 3.4.2+.
 See the `3.X <https://doc.powerdns.com/3/authoritative/upgrading/>`__
 upgrade notes if your version is older than 3.4.2.
 
+4.1.0 to 4.1.1
+--------------
+
+- The :doc:`Generic MySQL backend <backends/generic-mysql>` schema has
+  changed: the ``notified_serial`` column default in the ``domains``
+  table has been changed from ``INT DEFAULT NULL`` to ``INT UNSIGNED
+  DEFAULT NULL``:
+
+  - ``ALTER TABLE domains MODIFY notified_serial INT UNSIGNED DEFAULT NULL;``
+
 4.0.X to 4.1.0
 --------------
 

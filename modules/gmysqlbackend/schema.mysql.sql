@@ -4,7 +4,7 @@ CREATE TABLE domains (
   master                VARCHAR(128) DEFAULT NULL,
   last_check            INT DEFAULT NULL,
   type                  VARCHAR(6) NOT NULL,
-  notified_serial       INT DEFAULT NULL,
+  notified_serial       INT UNSIGNED DEFAULT NULL,
   account               VARCHAR(40) CHARACTER SET 'utf8' DEFAULT NULL,
   PRIMARY KEY (id)
 ) Engine=InnoDB CHARACTER SET 'latin1';
