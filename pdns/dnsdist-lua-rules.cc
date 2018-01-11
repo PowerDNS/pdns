@@ -1137,15 +1137,15 @@ void setupLuaRules()
 
       int matches=0;
       ComboAddress dummy("127.0.0.1");
-      DTime dt;
-      dt.set();
+      StopWatch sw;
+      sw.start();
       for(int n=0; n < times; ++n) {
         const item& i = items[n % items.size()];
-        DNSQuestion dq(&i.qname, i.qtype, i.qclass, &i.rem, &i.rem, (struct dnsheader*)&i.packet[0], i.packet.size(), i.packet.size(), false);
+        DNSQuestion dq(&i.qname, i.qtype, i.qclass, &i.rem, &i.rem, (struct dnsheader*)&i.packet[0], i.packet.size(), i.packet.size(), false, &sw.d_start);
         if(rule->matches(&dq))
           matches++;
       }
-      double udiff=dt.udiff();
+      double udiff=sw.udiff();
       g_outputBuffer=(boost::format("Had %d matches out of %d, %.1f qps, in %.1f usec\n") % matches % times % (1000000*(1.0*times/udiff)) % udiff).str();
 
     });

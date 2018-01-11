@@ -30,6 +30,7 @@
 
 DNSDistProtoBufMessage::DNSDistProtoBufMessage(const DNSQuestion& dq): DNSProtoBufMessage(Query, dq.uniqueId ? *dq.uniqueId : t_uuidGenerator(), dq.remote, dq.local, *dq.qname, dq.qtype, dq.qclass, dq.dh->id, dq.tcp, dq.len)
 {
+  setQueryTime(dq.queryTime->tv_sec, dq.queryTime->tv_nsec / 1000);
 };
 
 DNSDistProtoBufMessage::DNSDistProtoBufMessage(const DNSResponse& dr, bool includeCNAME): DNSProtoBufMessage(Response, dr.uniqueId ? *dr.uniqueId : t_uuidGenerator(), dr.remote, dr.local, *dr.qname, dr.qtype, dr.qclass, dr.dh->id, dr.tcp, dr.len)
