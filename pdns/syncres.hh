@@ -739,7 +739,7 @@ private:
   DNSName getBestNSNamesFromCache(const DNSName &qname, const QType &qtype, NsSet& nsset, bool* flawedNSSet, unsigned int depth, set<GetBestNSAnswer>&beenthere);
 
   inline vector<DNSName> shuffleInSpeedOrder(NsSet &nameservers, const string &prefix);
-  inline vector<ComboAddress> shuffleForwardSpeed(vector<ComboAddress> &nameservers, const string &prefix, const bool wasRd);
+  inline vector<ComboAddress> shuffleForwardSpeed(vector<ComboAddress> &rnameservers, const string &prefix, const bool wasRd);
   bool moreSpecificThan(const DNSName& a, const DNSName &b) const;
   vector<ComboAddress> getAddrs(const DNSName &qname, unsigned int depth, set<GetBestNSAnswer>& beenthere, bool cacheOnly);
 

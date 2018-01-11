@@ -1282,43 +1282,34 @@ inline vector<DNSName> SyncRes::shuffleInSpeedOrder(NsSet &tnameservers, const s
   return rnameservers;
 }
 
-inline vector<ComboAddress> SyncRes::shuffleForwardSpeed(vector<ComboAddress> &nameservers, const string &prefix, const bool wasRd)
+inline vector<ComboAddress> SyncRes::shuffleForwardSpeed(vector<ComboAddress> &rnameservers, const string &prefix, const bool wasRd)
 {
-  vector<ComboAddress> out_nameservers;
-  vector<DNSName> rnameservers;
-  for(const auto& ns:nameservers) {
-    rnameservers.push_back(DNSName(ns.toStringWithPort()));
-  }
-
-  map<DNSName, double> speeds;
+  map<ComboAddress, double> speeds;
 
   for(const auto& val: rnameservers) {
     double speed;
-    speed=t_sstorage.nsSpeeds[val].get(&d_now);
+    DNSName nsName = DNSName(val.toStringWithPort());
+    speed=t_sstorage.nsSpeeds[nsName].get(&d_now);
     speeds[val]=speed;
   }
   random_shuffle(rnameservers.begin(),rnameservers.end(), dns_random);
-  speedOrder so(speeds);
+  speedOrderCA so(speeds);
   stable_sort(rnameservers.begin(),rnameservers.end(), so);
-
-  for(vector<DNSName>::const_iterator i=rnameservers.cbegin();i!=rnameservers.cend();++i) {
-    out_nameservers.push_back(ComboAddress(i->toStringNoDot()));
-  }
 
   if(doLog()) {
     LOG(prefix<<"Nameservers: ");
-    for(vector<DNSName>::const_iterator i=rnameservers.cbegin();i!=rnameservers.cend();++i) {
+    for(vector<ComboAddress>::const_iterator i=rnameservers.cbegin();i!=rnameservers.cend();++i) {
       if(i!=rnameservers.cbegin()) {
         LOG(", ");
         if(!((i-rnameservers.cbegin())%3)) {
           LOG(endl<<prefix<<"             ");
         }
       }
-      LOG((wasRd ? string("+") : string("-")) << i->toStringNoDot() <<"(" << (boost::format("%0.2f") % (speeds[*i]/1000.0)).str() <<"ms)");
+      LOG((wasRd ? string("+") : string("-")) << i->toStringWithPort() <<"(" << (boost::format("%0.2f") % (speeds[*i]/1000.0)).str() <<"ms)");
     }
     LOG(endl);
   }
-  return out_nameservers;
+  return rnameservers;
 }
 
 static uint32_t getRRSIGTTL(const time_t now, const std::shared_ptr<RRSIGRecordContent>& rrsig)
