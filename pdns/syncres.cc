@@ -40,7 +40,8 @@ thread_local SyncRes::ThreadLocalStorage SyncRes::t_sstorage;
 
 std::unordered_set<DNSName> SyncRes::s_delegationOnly;
 std::unique_ptr<NetmaskGroup> SyncRes::s_dontQuery{nullptr};
-NetmaskGroup SyncRes::s_ednssubnets;
+NetmaskGroup SyncRes::s_ednslocalsubnets;
+NetmaskGroup SyncRes::s_ednsremotesubnets;
 SuffixMatchNode SyncRes::s_ednsdomains;
 EDNSSubnetOpts SyncRes::s_ecsScopeZero;
 string SyncRes::s_serverID;
@@ -687,7 +688,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
     if(done) {
       if(j==1 && s_doIPv6) { // we got an A record, see if we have some AAAA lying around
 	vector<DNSRecord> cset;
-	if(t_RC->get(d_now.tv_sec, qname, QType(QType::AAAA), false, &cset, d_incomingECSFound ? d_incomingECSNetwork : d_requestor) > 0) {
+	if(t_RC->get(d_now.tv_sec, qname, QType(QType::AAAA), false, &cset, d_cacheRemote) > 0) {
 	  for(auto k=cset.cbegin();k!=cset.cend();++k) {
 	    if(k->d_ttl > (unsigned int)d_now.tv_sec ) {
 	      if (auto drc = getRR<AAAARecordContent>(*k)) {
@@ -760,7 +761,7 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vecto
     vector<DNSRecord> ns;
     *flawedNSSet = false;
 
-    if(t_RC->get(d_now.tv_sec, subdomain, QType(QType::NS), false, &ns, d_incomingECSFound ? d_incomingECSNetwork : d_requestor) > 0) {
+    if(t_RC->get(d_now.tv_sec, subdomain, QType(QType::NS), false, &ns, d_cacheRemote) > 0) {
       for(auto k=ns.cbegin();k!=ns.cend(); ++k) {
         if(k->d_ttl > (unsigned int)d_now.tv_sec ) {
           vector<DNSRecord> aset;
@@ -768,7 +769,7 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vecto
           const DNSRecord& dr=*k;
 	  auto nrr = getRR<NSRecordContent>(dr);
           if(nrr && (!nrr->getNS().isPartOf(subdomain) || t_RC->get(d_now.tv_sec, nrr->getNS(), s_doIPv6 ? QType(QType::ADDR) : QType(QType::A),
-                                                                    false, doLog() ? &aset : 0, d_incomingECSFound ? d_incomingECSNetwork : d_requestor) > 5)) {
+                                                                    false, doLog() ? &aset : 0, d_cacheRemote) > 5)) {
             bestns.push_back(dr);
             LOG(prefix<<qname<<": NS (with ip, or non-glue) in cache for '"<<subdomain<<"' -> '"<<nrr->getNS()<<"'"<<endl);
             LOG(prefix<<qname<<": within bailiwick: "<< nrr->getNS().isPartOf(subdomain));
@@ -894,7 +895,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
   vector<std::shared_ptr<RRSIGRecordContent>> signatures;
   vector<std::shared_ptr<DNSRecord>> authorityRecs;
   bool wasAuth;
-  if(t_RC->get(d_now.tv_sec, qname, QType(QType::CNAME), d_requireAuthData, &cset, d_incomingECSFound ? d_incomingECSNetwork : d_requestor, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &state, &wasAuth) > 0) {
+  if(t_RC->get(d_now.tv_sec, qname, QType(QType::CNAME), d_requireAuthData, &cset, d_cacheRemote, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &state, &wasAuth) > 0) {
 
     for(auto j=cset.cbegin() ; j != cset.cend() ; ++j) {
       if (j->d_class != QClass::IN) {
@@ -920,7 +921,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
             state = SyncRes::validateRecordsWithSigs(depth, qname, QType(QType::CNAME), qname, cset, signatures);
             if (state != Indeterminate) {
               LOG(prefix<<qname<<": got Indeterminate state from the CNAME cache, new validation result is "<<vStates[state]<<endl);
-              t_RC->updateValidationStatus(d_now.tv_sec, qname, QType(QType::CNAME), d_incomingECSFound ? d_incomingECSNetwork : d_requestor, d_requireAuthData, state);
+              t_RC->updateValidationStatus(d_now.tv_sec, qname, QType(QType::CNAME), d_cacheRemote, d_requireAuthData, state);
             }
           }
         }
@@ -1147,7 +1148,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
   vector<std::shared_ptr<DNSRecord>> authorityRecs;
   uint32_t ttl=0;
   bool wasCachedAuth;
-  if(t_RC->get(d_now.tv_sec, sqname, sqt, d_requireAuthData, &cset, d_incomingECSFound ? d_incomingECSNetwork : d_requestor, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &cachedState, &wasCachedAuth) > 0) {
+  if(t_RC->get(d_now.tv_sec, sqname, sqt, d_requireAuthData, &cset, d_cacheRemote, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &cachedState, &wasCachedAuth) > 0) {
 
     LOG(prefix<<sqname<<": Found cache hit for "<<sqt.getName()<<": ");
 
@@ -1174,7 +1175,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
 
       if (cachedState != Indeterminate) {
         LOG(prefix<<qname<<": got Indeterminate state from the cache, validation result is "<<vStates[cachedState]<<endl);
-        t_RC->updateValidationStatus(d_now.tv_sec, sqname, sqt, d_incomingECSFound ? d_incomingECSNetwork : d_requestor, d_requireAuthData, cachedState);
+        t_RC->updateValidationStatus(d_now.tv_sec, sqname, sqt, d_cacheRemote, d_requireAuthData, cachedState);
       }
     }
 
@@ -2257,7 +2258,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
 
           updateValidationState(state, st);
           /* we already stored the record with a different validation status, let's fix it */
-          t_RC->updateValidationStatus(d_now.tv_sec, qname, qtype, d_incomingECSFound ? d_incomingECSNetwork : d_requestor, lwr.d_aabit, st);
+          t_RC->updateValidationStatus(d_now.tv_sec, qname, qtype, d_cacheRemote, lwr.d_aabit, st);
         }
       }
     }
@@ -2374,7 +2375,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
     LOG(prefix<<qname<<": query handled by Lua"<<endl);
   }
   else {
-    ednsmask=getEDNSSubnetMask(d_requestor, qname, remoteIP);
+    ednsmask=getEDNSSubnetMask(qname, remoteIP);
     if(ednsmask) {
       LOG(prefix<<qname<<": Adding EDNS Client Subnet Mask "<<ednsmask->toString()<<" to query"<<endl);
       s_ecsqueries++;
@@ -2749,11 +2750,25 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
   return -1;
 }
 
-void SyncRes::setIncomingECS(boost::optional<const EDNSSubnetOpts&> incomingECS)
+void SyncRes::setQuerySource(const ComboAddress& requestor, boost::optional<const EDNSSubnetOpts&> incomingECS)
 {
-  d_incomingECS = incomingECS;
-  if (incomingECS) {
-    if (d_incomingECS->source.getBits() == 0) {
+  d_requestor = requestor;
+
+  if (incomingECS && incomingECS->source.getBits() > 0) {
+    d_cacheRemote = incomingECS->source.getMaskedNetwork();
+    uint8_t bits = std::min(incomingECS->source.getBits(), (incomingECS->source.isIpv4() ? s_ecsipv4limit : s_ecsipv6limit));
+    ComboAddress trunc = incomingECS->source.getNetwork();
+    trunc.truncate(bits);
+    d_outgoingECSNetwork = boost::optional<Netmask>(Netmask(trunc, bits));
+  } else {
+    d_cacheRemote = d_requestor;
+    if(!incomingECS && s_ednslocalsubnets.match(d_requestor)) {
+      ComboAddress trunc = d_requestor;
+      uint8_t bits = d_requestor.isIPv4() ? 32 : 128;
+      bits = std::min(bits, (trunc.isIPv4() ? s_ecsipv4limit : s_ecsipv6limit));
+      trunc.truncate(bits);
+      d_outgoingECSNetwork = boost::optional<Netmask>(Netmask(trunc, bits));
+    } else if (s_ecsScopeZero.source.getBits() > 0) {
       /* RFC7871 says we MUST NOT send any ECS if the source scope is 0.
          But using an empty ECS in that case would mean inserting
          a non ECS-specific entry into the cache, preventing any further
@@ -2768,45 +2783,21 @@ void SyncRes::setIncomingECS(boost::optional<const EDNSSubnetOpts&> incomingECS)
          indicator of the applicable scope.  Subsequent Stub Resolver queries
          for /0 can then be answered from this cached response.
       */
-      d_incomingECS = s_ecsScopeZero;
-      d_incomingECSNetwork = s_ecsScopeZero.source.getMaskedNetwork();
+      d_outgoingECSNetwork = boost::optional<Netmask>(s_ecsScopeZero.source.getMaskedNetwork());
+      d_cacheRemote = s_ecsScopeZero.source.getNetwork();
+    } else {
+      // ECS disabled because no scope-zero address could be derived.
+      d_outgoingECSNetwork = boost::none;
     }
-    else {
-      uint8_t bits = std::min(incomingECS->source.getBits(), (incomingECS->source.isIpv4() ? s_ecsipv4limit : s_ecsipv6limit));
-      d_incomingECS->source = Netmask(incomingECS->source.getNetwork(), bits);
-      d_incomingECSNetwork = d_incomingECS->source.getMaskedNetwork();
-    }
-  }
-  else {
-    d_incomingECSNetwork = ComboAddress();
   }
 }
 
-boost::optional<Netmask> SyncRes::getEDNSSubnetMask(const ComboAddress& local, const DNSName&dn, const ComboAddress& rem)
+boost::optional<Netmask> SyncRes::getEDNSSubnetMask(const DNSName& dn, const ComboAddress& rem)
 {
-  boost::optional<Netmask> result;
-  ComboAddress trunc;
-  uint8_t bits;
-  if(d_incomingECSFound) {
-    trunc = d_incomingECSNetwork;
-    bits = d_incomingECS->source.getBits();
+  if(d_outgoingECSNetwork && (s_ednsdomains.check(dn) || s_ednsremotesubnets.match(rem))) {
+    return d_outgoingECSNetwork;
   }
-  else if(!local.isIPv4() || local.sin4.sin_addr.s_addr) { // detect unset 'requestor'
-    trunc = local;
-    bits = local.isIPv4() ? 32 : 128;
-    bits = std::min(bits, (trunc.isIPv4() ? s_ecsipv4limit : s_ecsipv6limit));
-  }
-  else {
-    /* nothing usable */
-    return result;
-  }
-
-  if(s_ednsdomains.check(dn) || s_ednssubnets.match(rem)) {
-    trunc.truncate(bits);
-    return boost::optional<Netmask>(Netmask(trunc, bits));
-  }
-
-  return result;
+  return boost::none;
 }
 
 void SyncRes::parseEDNSSubnetWhitelist(const std::string& wlist)
@@ -2815,11 +2806,20 @@ void SyncRes::parseEDNSSubnetWhitelist(const std::string& wlist)
   stringtok(parts, wlist, ",; ");
   for(const auto& a : parts) {
     try {
-      s_ednssubnets.addMask(Netmask(a));
+      s_ednsremotesubnets.addMask(Netmask(a));
     }
     catch(...) {
       s_ednsdomains.add(DNSName(a));
     }
+  }
+}
+
+void SyncRes::parseEDNSSubnetAddFor(const std::string& subnetlist)
+{
+  vector<string> parts;
+  stringtok(parts, subnetlist, ",; ");
+  for(const auto& a : parts) {
+    s_ednslocalsubnets.addMask(a);
   }
 }
 

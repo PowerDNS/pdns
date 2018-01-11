@@ -19,6 +19,7 @@ class ECSTest(RecursorTest):
 daemon=no
 trace=yes
 dont-query=
+ecs-add-for=0.0.0.0/0
 local-address=127.0.0.1
 packetcache-ttl=0
 packetcache-servfail-ttl=0
