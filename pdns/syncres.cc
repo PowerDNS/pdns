@@ -1282,26 +1282,27 @@ inline vector<DNSName> SyncRes::shuffleInSpeedOrder(NsSet &tnameservers, const s
   return rnameservers;
 }
 
-inline vector<ComboAddress> SyncRes::shuffleForwardSpeed(vector<ComboAddress> &rnameservers, const string &prefix, const bool wasRd)
+inline vector<ComboAddress> SyncRes::shuffleForwardSpeed(const vector<ComboAddress> &rnameservers, const string &prefix, const bool wasRd)
 {
+  vector<ComboAddress> nameservers = rnameservers;
   map<ComboAddress, double> speeds;
 
-  for(const auto& val: rnameservers) {
+  for(const auto& val: nameservers) {
     double speed;
     DNSName nsName = DNSName(val.toStringWithPort());
     speed=t_sstorage.nsSpeeds[nsName].get(&d_now);
     speeds[val]=speed;
   }
-  random_shuffle(rnameservers.begin(),rnameservers.end(), dns_random);
+  random_shuffle(nameservers.begin(),nameservers.end(), dns_random);
   speedOrderCA so(speeds);
-  stable_sort(rnameservers.begin(),rnameservers.end(), so);
+  stable_sort(nameservers.begin(),nameservers.end(), so);
 
   if(doLog()) {
     LOG(prefix<<"Nameservers: ");
-    for(vector<ComboAddress>::const_iterator i=rnameservers.cbegin();i!=rnameservers.cend();++i) {
-      if(i!=rnameservers.cbegin()) {
+    for(vector<ComboAddress>::const_iterator i=nameservers.cbegin();i!=nameservers.cend();++i) {
+      if(i!=nameservers.cbegin()) {
         LOG(", ");
-        if(!((i-rnameservers.cbegin())%3)) {
+        if(!((i-nameservers.cbegin())%3)) {
           LOG(endl<<prefix<<"             ");
         }
       }
@@ -1309,7 +1310,7 @@ inline vector<ComboAddress> SyncRes::shuffleForwardSpeed(vector<ComboAddress> &r
     }
     LOG(endl);
   }
-  return rnameservers;
+  return nameservers;
 }
 
 static uint32_t getRRSIGTTL(const time_t now, const std::shared_ptr<RRSIGRecordContent>& rrsig)
