@@ -1,9 +1,10 @@
 AC_DEFUN([DNSDIST_CHECK_GNUTLS], [
   AC_MSG_CHECKING([whether we will be linking in GnuTLS])
+  HAVE_GNUTLS=0
   AC_ARG_ENABLE([gnutls],
     AS_HELP_STRING([--enable-gnutls],[use GnuTLS @<:@default=auto@:>@]),
     [enable_gnutls=$enableval],
-    [enable_gnutls=no],
+    [enable_gnutls=auto],
   )
   AC_MSG_RESULT([$enable_gnutls])
 
@@ -11,6 +12,7 @@ AC_DEFUN([DNSDIST_CHECK_GNUTLS], [
     AS_IF([test "x$enable_gnutls" = "xyes" -o "x$enable_gnutls" = "xauto"], [
       # we require gnutls_certificate_set_x509_key_file, added in 3.1.11
       PKG_CHECK_MODULES([GNUTLS], [gnutls >= 3.1.11], [
+        [HAVE_GNUTLS=1]
         AC_DEFINE([HAVE_GNUTLS], [1], [Define to 1 if you have GnuTLS])
       ], [ : ])
     ])
