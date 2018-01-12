@@ -412,7 +412,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "showServerPolicy", true, "", "show name of currently operational server selection policy" },
   { "showServers", true, "", "output all servers" },
   { "showTCPStats", true, "", "show some statistics regarding TCP" },
-  { "showTLSContext", true, "", "list all the available TLS contexts" },
+  { "showTLSContexts", true, "", "list all the available TLS contexts" },
   { "showVersion", true, "", "show the current version" },
   { "shutdown", true, "", "shut down `dnsdist`" },
   { "snmpAgent", true, "enableTraps [, masterSocket]", "enable `SNMP` support. `enableTraps` is a boolean indicating whether traps should be sent and `masterSocket` an optional string specifying how to connect to the master agent"},
