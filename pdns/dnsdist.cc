@@ -83,7 +83,9 @@ bool g_syslog{true};
 
 GlobalStateHolder<NetmaskGroup> g_ACL;
 string g_outputBuffer;
+
 vector<std::tuple<ComboAddress, bool, bool, int, string, std::set<int>>> g_locals;
+std::vector<std::shared_ptr<TLSFrontend>> g_tlslocals;
 #ifdef HAVE_DNSCRYPT
 std::vector<std::tuple<ComboAddress,DnsCryptContext,bool, int, string, std::set<int>>> g_dnsCryptLocals;
 #endif
@@ -2079,6 +2081,16 @@ try
       cout<<"dnsdist "<<VERSION<<" ("<<LUA_RELEASE<<")"<<endl;
 #endif
       cout<<"Enabled features: ";
+#ifdef HAVE_DNS_OVER_TLS
+      cout<<"dns-over-tls(";
+#ifdef HAVE_GNUTLS
+      cout<<"gnutls ";
+#endif
+#ifdef HAVE_LIBSSL
+      cout<<"openssl";
+#endif
+      cout<<") ";
+#endif
 #ifdef HAVE_DNSCRYPT
       cout<<"dnscrypt ";
 #endif
@@ -2379,6 +2391,62 @@ try
     tcpBindsCount++;
   }
 #endif
+
+  for(auto& frontend : g_tlslocals) {
+    ClientState* cs = new ClientState;
+    cs->local = frontend->d_addr;
+    cs->tcpFD = SSocket(cs->local.sin4.sin_family, SOCK_STREAM, 0);
+    SSetsockopt(cs->tcpFD, SOL_SOCKET, SO_REUSEADDR, 1);
+#ifdef TCP_DEFER_ACCEPT
+    SSetsockopt(cs->tcpFD, SOL_TCP,TCP_DEFER_ACCEPT, 1);
+#endif
+    if (frontend->d_tcpFastOpenQueueSize > 0) {
+#ifdef TCP_FASTOPEN
+      SSetsockopt(cs->tcpFD, SOL_TCP, TCP_FASTOPEN, frontend->d_tcpFastOpenQueueSize);
+#else
+      warnlog("TCP Fast Open has been configured on local address '%s' but is not supported", cs->local.toStringWithPort());
+#endif
+    }
+    if (frontend->d_reusePort) {
+#ifdef SO_REUSEPORT
+      SSetsockopt(cs->tcpFD, SOL_SOCKET, SO_REUSEPORT, 1);
+#else
+      warnlog("SO_REUSEPORT has been configured on local address '%s' but is not supported", cs.local.toStringWithPort());
+#endif
+    }
+    if(cs->local.sin4.sin_family == AF_INET6) {
+      SSetsockopt(cs->tcpFD, IPPROTO_IPV6, IPV6_V6ONLY, 1);
+    }
+
+    if (!frontend->d_interface.empty()) {
+#ifdef SO_BINDTODEVICE
+      int res = setsockopt(cs->tcpFD, SOL_SOCKET, SO_BINDTODEVICE, frontend->d_interface.c_str(), frontend->d_interface.length());
+      if (res != 0) {
+        warnlog("Error setting up the interface on local address '%s': %s", cs->local.toStringWithPort(), strerror(errno));
+      }
+#else
+      warnlog("An interface has been configured on local address '%s' but SO_BINDTODEVICE is not supported", cs->local.toStringWithPort());
+#endif
+    }
+
+    cs->cpus = frontend->d_cpus;
+
+    bindAny(cs->local.sin4.sin_family, cs->tcpFD);
+    if (frontend->setupTLS()) {
+      cs->tlsFrontend = frontend;
+      SBind(cs->tcpFD, cs->local);
+      SListen(cs->tcpFD, 64);
+      warnlog("Listening on %s for TLS", cs->local.toStringWithPort());
+      toLaunch.push_back(cs);
+      g_frontends.push_back(cs);
+      tcpBindsCount++;
+    }
+    else {
+      delete cs;
+      errlog("Error while setting up TLS on local address '%s', exiting", cs->local.toStringWithPort());
+      _exit(EXIT_FAILURE);
+    }
+  }
 
   if(g_cmdLine.beDaemon) {
     g_console=false;

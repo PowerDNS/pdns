@@ -83,6 +83,31 @@ Listen Sockets
                                   higher than 0 to enable TCP Fast Open when available.
                                   Default is 0.
 
+.. function:: addTLSLocal(address, certFile, keyFile[, options])
+
+  .. versionadded:: 1.3.0
+
+  Listen on the specified address and TCP port for incoming DNS over TLS connections, presenting the specified X.509 certificate.
+
+  :param str address: The IP Address with an optional port to listen on.
+                      The default port is 853.
+  :param str certFile: The path to a X.509 certificate file in PEM format.
+  :param str keyFile: The path to the private key file corresponding to the certificate.
+  :param table options: A table with key: value pairs with listen options.
+
+  Options:
+
+  * ``doTCP=true``: bool - Also bind on TCP on ``address``.
+  * ``reusePort=false``: bool - Set the ``SO_REUSEPORT`` socket option.
+  * ``tcpFastOpenSize=0``: int - Set the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0.
+  * ``interface=""``: str - Set the network interface to use.
+  * ``cpus={}``: table - Set the CPU affinity for this listener thread, asking the scheduler to run it on a single CPU id, or a set of CPU ids. This parameter is only available if the OS provides the pthread_setaffinity_np() function.
+  * ``provider``: str - The TLS library to use between GnuTLS and OpenSSL, if they were available and enabled at compilation time.
+  * ``ciphers``: str - The TLS ciphers to use. The exact format depends on the provider used.
+  * ``numberOfTicketsKeys``: int - The maximum number of tickets keys to keep in memory at the same time, if the provider supports it (GnuTLS doesn't, OpenSSL does). Only one key is marked as active and used to encrypt new tickets while the remaining ones can still be used to decrypt existing tickets after a rotation. Default to 5.
+  * ``ticketKeyFile``: str - The path to a file from where TLS tickets keys should be loaded, to support RFC 5077. These keys should be rotated often and never written to persistent storage to preserve forward secrecy. The default is to generate a random key. The OpenSSL provider supports several tickets keys to be able to decrypt existing sessions after the rotation, while the GnuTLS provider only supports one key.
+  * ``ticketsKeysRotationDelay``: int - Set the delay before the TLS tickets key is rotated, in seconds. Default is 43200 (12h).
+
 .. function:: setLocal(address[, options])
 
   .. versionadded:: 1.2.0
@@ -519,6 +544,11 @@ Status, Statistics and More
 
   Print all statistics dnsdist gathers
 
+.. function:: getTLSContext(idx)
+  .. versionadded:: 1.3.0
+
+  Return the TLSContext object for the context of index ``idx``.
+
 .. function:: grepq(selector[, num])
               grepq(selectors[, num])
 
@@ -567,6 +597,11 @@ Status, Statistics and More
 .. function:: showTCPStats()
 
   Show some statistics regarding TCP
+
+.. function:: showTLSContexts()
+  .. versionadded:: 1.3.0
+
+  Print the list of all availables DNS over TLS contexts.
 
 .. function:: showVersion()
 
@@ -689,3 +724,21 @@ Other functions
 
   If this function exists, it is called every second to so regular tasks.
   This can be used for e.g. :doc:`Dynamic Blocks <../guides/dynblocks>`.
+
+TLSContext
+~~~~~~~~~~
+
+.. class:: TLSContext
+  .. versionadded:: 1.3.0
+
+  This object represents an address and port dnsdist is listening on for DNS over TLS queries.
+
+.. classmethod:: TLSContext:rotateTicketsKey()
+
+   Replace the current TLS tickets key by a new random one.
+
+.. classmethod:: TLSContext:loadTicketsKeys(ticketsKeysFile)
+
+   Load new tickets keys from the selected file, replacing the existing ones. These keys should be rotated often and never written to persistent storage to preserve forward secrecy. The default is to generate a random key. The OpenSSL provider supports several tickets keys to be able to decrypt existing sessions after the rotation, while the GnuTLS provider only supports one key.
+
+  :param str ticketsKeysFile: The path to a file from where TLS tickets keys should be loaded.
