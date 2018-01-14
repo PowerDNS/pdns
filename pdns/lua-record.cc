@@ -401,7 +401,7 @@ static ComboAddress useSelector(const boost::optional<std::unordered_map<string,
   else if(selector=="hashed")
     return hashed(bestwho, candidates);
 
-  L<<Logger::Warning<<"LUA Record ifportup called with unknown selector '"<<selector<<"'"<<endl;
+  L<<Logger::Warning<<"LUA Record called with unknown selector '"<<selector<<"'"<<endl;
   return pickrandom(candidates);
 }
 
