@@ -484,7 +484,7 @@ void* tcpClientThread(int pipefd)
           sendSizeAndMsgWithTimeout(dsock, dq.len, query, ds->tcpSendTimeout, &ds->remote, &ds->sourceAddr, ds->sourceItf, 0, socketFlags);
         }
         catch(const runtime_error& e) {
-          vinfolog("Downstream connection to %s died on us, getting a new one!", ds->getName());
+          vinfolog("Downstream connection to %s died on us (%s), getting a new one!", ds->getName(), e.what());
           close(dsock);
           dsock=-1;
           sockets.erase(ds->remote);
@@ -502,7 +502,7 @@ void* tcpClientThread(int pipefd)
         if (isXFR) {
           dq.skipCache = true;
         }
-
+        bool firstPacket=true;
       getpacket:;
 
         if(!getNonBlockingMsgLen(dsock, &rlen, ds->tcpRecvTimeout)) {
@@ -544,10 +544,10 @@ void* tcpClientThread(int pipefd)
           break;
         }
 
-        if (!responseContentMatches(response, responseLen, qname, qtype, qclass, ds->remote)) {
+        if (firstPacket && !responseContentMatches(response, responseLen, qname, qtype, qclass, ds->remote)) {
           break;
         }
-
+        firstPacket=false;
         if (!fixUpResponse(&response, &responseLen, &responseSize, qname, origFlags, ednsAdded, ecsAdded, rewrittenResponse, addRoom)) {
           break;
         }
