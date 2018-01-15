@@ -219,6 +219,26 @@ static void addCustomHeaders(YaHTTP::Response& resp, const boost::optional<std::
   }
 }
 
+template<typename T>
+static json11::Json::array someResponseRulesToJson(GlobalStateHolder<vector<T>>* someResponseRules)
+{
+  using namespace json11;
+  Json::array responseRules;
+  int num=0;
+  auto localResponseRules = someResponseRules->getCopy();
+  for(const auto& a : localResponseRules) {
+    Json::object rule{
+      {"id", num++},
+      {"uuid", boost::uuids::to_string(a.d_id)},
+      {"matches", (double)a.d_rule->d_matches},
+      {"rule", a.d_rule->toString()},
+      {"action", a.d_action->toString()},
+    };
+    responseRules.push_back(rule);
+  }
+  return responseRules;
+}
+
 static void connectionThread(int sock, ComboAddress remote, string password, string apiKey, const boost::optional<std::map<std::string, std::string> >& customHeaders)
 {
   using namespace json11;
@@ -457,33 +477,8 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
 	rules.push_back(rule);
       }
       
-      Json::array responseRules;
-      auto localResponseRules = g_resprulactions.getCopy();
-      num=0;
-      for(const auto& a : localResponseRules) {
-        Json::object rule{
-          {"id", num++},
-          {"uuid", boost::uuids::to_string(a.d_id)},
-          {"matches", (double)a.d_rule->d_matches},
-          {"rule", a.d_rule->toString()},
-          {"action", a.d_action->toString()},
-        };
-        responseRules.push_back(rule);
-      }
-
-      Json::array cacheHitResponseRules;
-      num=0;
-      auto localCacheHitResponseRules = g_cachehitresprulactions.getCopy();
-      for(const auto& a : localCacheHitResponseRules) {
-        Json::object rule{
-          {"id", num++},
-          {"uuid", boost::uuids::to_string(a.d_id)},
-          {"matches", (double)a.d_rule->d_matches},
-          {"rule", a.d_rule->toString()},
-          {"action", a.d_action->toString()},
-        };
-        cacheHitResponseRules.push_back(rule);
-      }
+      auto responseRules = someResponseRulesToJson(&g_resprulactions);
+      auto cacheHitResponseRules = someResponseRulesToJson(&g_cachehitresprulactions);
 
       string acl;
 
