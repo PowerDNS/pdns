@@ -1917,7 +1917,7 @@ static void makeTCPServerSockets(unsigned int threadId)
     }
 
 #ifdef TCP_DEFER_ACCEPT
-    if(setsockopt(fd, SOL_TCP, TCP_DEFER_ACCEPT, &tmp, sizeof tmp) >= 0) {
+    if(setsockopt(fd, IPPROTO_TCP, TCP_DEFER_ACCEPT, &tmp, sizeof tmp) >= 0) {
       if(i==locals.begin())
         L<<Logger::Error<<"Enabled TCP data-ready filter for (slight) DoS protection"<<endl;
     }

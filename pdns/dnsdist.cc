@@ -2239,7 +2239,7 @@ try
 
     SSetsockopt(cs->tcpFD, SOL_SOCKET, SO_REUSEADDR, 1);
 #ifdef TCP_DEFER_ACCEPT
-    SSetsockopt(cs->tcpFD, SOL_TCP,TCP_DEFER_ACCEPT, 1);
+    SSetsockopt(cs->tcpFD, IPPROTO_TCP, TCP_DEFER_ACCEPT, 1);
 #endif
     if (std::get<3>(local) > 0) {
 #ifdef TCP_FASTOPEN
@@ -2342,7 +2342,7 @@ try
     cs->tcpFD = SSocket(cs->local.sin4.sin_family, SOCK_STREAM, 0);
     SSetsockopt(cs->tcpFD, SOL_SOCKET, SO_REUSEADDR, 1);
 #ifdef TCP_DEFER_ACCEPT
-    SSetsockopt(cs->tcpFD, SOL_TCP,TCP_DEFER_ACCEPT, 1);
+    SSetsockopt(cs->tcpFD, IPPROTO_TCP, TCP_DEFER_ACCEPT, 1);
 #endif
     if (std::get<3>(dcLocal) > 0) {
 #ifdef TCP_FASTOPEN
@@ -2398,11 +2398,11 @@ try
     cs->tcpFD = SSocket(cs->local.sin4.sin_family, SOCK_STREAM, 0);
     SSetsockopt(cs->tcpFD, SOL_SOCKET, SO_REUSEADDR, 1);
 #ifdef TCP_DEFER_ACCEPT
-    SSetsockopt(cs->tcpFD, SOL_TCP,TCP_DEFER_ACCEPT, 1);
+    SSetsockopt(cs->tcpFD, IPPROTO_TCP, TCP_DEFER_ACCEPT, 1);
 #endif
     if (frontend->d_tcpFastOpenQueueSize > 0) {
 #ifdef TCP_FASTOPEN
-      SSetsockopt(cs->tcpFD, SOL_TCP, TCP_FASTOPEN, frontend->d_tcpFastOpenQueueSize);
+      SSetsockopt(cs->tcpFD, IPPROTO_TCP, TCP_FASTOPEN, frontend->d_tcpFastOpenQueueSize);
 #else
       warnlog("TCP Fast Open has been configured on local address '%s' but is not supported", cs->local.toStringWithPort());
 #endif
