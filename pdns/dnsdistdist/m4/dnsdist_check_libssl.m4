@@ -1,7 +1,7 @@
 AC_DEFUN([DNSDIST_CHECK_LIBSSL], [
   AC_MSG_CHECKING([whether we will be linking in OpenSSL libssl])
   HAVE_LIBSSL=0
-    AC_ARG_ENABLE([libssl],
+  AC_ARG_ENABLE([libssl],
     AS_HELP_STRING([--enable-libssl],[use OpenSSL libssl @<:@default=auto@:>@]),
     [enable_libssl=$enableval],
     [enable_libssl=auto],
