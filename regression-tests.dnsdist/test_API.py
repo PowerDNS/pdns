@@ -78,7 +78,7 @@ class TestAPIBasics(DNSDistTest):
 
         self.assertEquals(content['daemon_type'], 'dnsdist')
 
-        rule_groups = ['response-rules', 'cache-hit-response-rules']
+        rule_groups = ['response-rules', 'cache-hit-response-rules', 'self-answered-response-rules']
         for key in ['version', 'acl', 'local', 'rules', 'servers', 'frontends', 'pools'] + rule_groups:
             self.assertIn(key, content)
 

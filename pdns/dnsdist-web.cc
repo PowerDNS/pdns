@@ -479,6 +479,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
       
       auto responseRules = someResponseRulesToJson(&g_resprulactions);
       auto cacheHitResponseRules = someResponseRulesToJson(&g_cachehitresprulactions);
+      auto selfAnsweredResponseRules = someResponseRulesToJson(&g_selfansweredresprulactions);
 
       string acl;
 
@@ -504,6 +505,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
         { "rules", rules},
         { "response-rules", responseRules},
         { "cache-hit-response-rules", cacheHitResponseRules},
+        { "self-answered-response-rules", selfAnsweredResponseRules},
         { "acl", acl},
         { "local", localaddresses}
       };

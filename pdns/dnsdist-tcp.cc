@@ -361,6 +361,17 @@ void* tcpClientThread(int pipefd)
 
 	if(dq.dh->qr) { // something turned it into a response
           restoreFlags(dh, origFlags);
+
+          DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.local, dq.remote, reinterpret_cast<dnsheader*>(query), dq.size, dq.len, true, &queryRealTime);
+#ifdef HAVE_PROTOBUF
+          dr.uniqueId = dq.uniqueId;
+#endif
+          dr.qTag = dq.qTag;
+
+          if (!processResponse(holders.selfAnsweredRespRulactions, dr, &delayMsec)) {
+            goto drop;
+          }
+
 #ifdef HAVE_DNSCRYPT
           if (!encryptResponse(query, &dq.len, dq.size, true, dnsCryptQuery, nullptr, nullptr)) {
             goto drop;
@@ -427,6 +438,16 @@ void* tcpClientThread(int pipefd)
             restoreFlags(dh, origFlags);
             dq.dh->rcode = RCode::ServFail;
             dq.dh->qr = true;
+
+            DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.local, dq.remote, reinterpret_cast<dnsheader*>(query), dq.size, dq.len, false, &queryRealTime);
+#ifdef HAVE_PROTOBUF
+            dr.uniqueId = dq.uniqueId;
+#endif
+            dr.qTag = dq.qTag;
+
+            if (!processResponse(holders.selfAnsweredRespRulactions, dr, &delayMsec)) {
+              goto drop;
+            }
 
 #ifdef HAVE_DNSCRYPT
             if (!encryptResponse(query, &dq.len, dq.size, true, dnsCryptQuery, nullptr, nullptr)) {

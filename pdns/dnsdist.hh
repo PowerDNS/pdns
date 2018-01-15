@@ -749,6 +749,7 @@ extern GlobalStateHolder<pools_t> g_pools;
 extern GlobalStateHolder<vector<DNSDistRuleAction> > g_rulactions;
 extern GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_resprulactions;
 extern GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_cachehitresprulactions;
+extern GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_selfansweredresprulactions;
 extern GlobalStateHolder<NetmaskGroup> g_ACL;
 
 extern ComboAddress g_serverControl; // not changed during runtime
@@ -807,7 +808,7 @@ extern std::vector<std::shared_ptr<DynBPFFilter> > g_dynBPFFilters;
 
 struct LocalHolders
 {
-  LocalHolders(): acl(g_ACL.getLocal()), policy(g_policy.getLocal()), rulactions(g_rulactions.getLocal()), cacheHitRespRulactions(g_cachehitresprulactions.getLocal()), servers(g_dstates.getLocal()), dynNMGBlock(g_dynblockNMG.getLocal()), dynSMTBlock(g_dynblockSMT.getLocal()), pools(g_pools.getLocal())
+  LocalHolders(): acl(g_ACL.getLocal()), policy(g_policy.getLocal()), rulactions(g_rulactions.getLocal()), cacheHitRespRulactions(g_cachehitresprulactions.getLocal()), selfAnsweredRespRulactions(g_selfansweredresprulactions.getLocal()), servers(g_dstates.getLocal()), dynNMGBlock(g_dynblockNMG.getLocal()), dynSMTBlock(g_dynblockSMT.getLocal()), pools(g_pools.getLocal())
   {
   }
 
@@ -815,6 +816,7 @@ struct LocalHolders
   LocalStateHolder<ServerPolicy> policy;
   LocalStateHolder<vector<DNSDistRuleAction> > rulactions;
   LocalStateHolder<vector<DNSDistResponseRuleAction> > cacheHitRespRulactions;
+  LocalStateHolder<vector<DNSDistResponseRuleAction> > selfAnsweredRespRulactions;
   LocalStateHolder<servers_t> servers;
   LocalStateHolder<NetmaskTree<DynBlock> > dynNMGBlock;
   LocalStateHolder<SuffixMatchTree<DynBlock> > dynSMTBlock;

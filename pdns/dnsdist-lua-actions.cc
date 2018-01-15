@@ -864,6 +864,14 @@ void setupLuaActions()
       addAction(&g_cachehitresprulactions, var, boost::get<std::shared_ptr<DNSResponseAction> >(era), params);
     });
 
+  g_lua.writeFunction("addSelfAnsweredResponseAction", [](luadnsrule_t var, boost::variant<std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction>> era, boost::optional<luaruleparams_t> params) {
+      if (era.type() != typeid(std::shared_ptr<DNSResponseAction>)) {
+        throw std::runtime_error("addSelfAnsweredResponseAction() can only be called with response-related actions, not query-related ones. Are you looking for addAction()?");
+      }
+
+      addAction(&g_selfansweredresprulactions, var, boost::get<std::shared_ptr<DNSResponseAction> >(era), params);
+    });
+
   g_lua.registerFunction<void(DNSAction::*)()>("printStats", [](const DNSAction& ta) {
       setLuaNoSideEffect();
       auto stats = ta.getStats();

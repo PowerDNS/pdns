@@ -1034,6 +1034,22 @@ void setupLuaRules()
       mvRule(&g_cachehitresprulactions, from, to);
     });
 
+  g_lua.writeFunction("showSelfAnsweredResponseRules", [](boost::optional<bool> showUUIDs) {
+      showRules(&g_selfansweredresprulactions, showUUIDs);
+    });
+
+  g_lua.writeFunction("rmSelfAnsweredResponseRule", [](boost::variant<unsigned int, std::string> id) {
+      rmRule(&g_selfansweredresprulactions, id);
+    });
+
+  g_lua.writeFunction("topSelfAnsweredResponseRule", []() {
+      topRule(&g_selfansweredresprulactions);
+    });
+
+  g_lua.writeFunction("mvSelfAnsweredResponseRule", [](unsigned int from, unsigned int to) {
+      mvRule(&g_selfansweredresprulactions, from, to);
+    });
+
   g_lua.writeFunction("rmRule", [](boost::variant<unsigned int, std::string> id) {
       rmRule(&g_rulactions, id);
     });

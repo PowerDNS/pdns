@@ -103,6 +103,7 @@ URL Endpoints
 
   :>json string acl: A string of comma-separated netmasks currently allowed by the :ref:`ACL <ACL>`.
   :>json list cache-hit-response-rules: A list of :json:object:`ResponseRule` objects applied on cache hits
+  :>json list self-answered-response-rules: A list of :json:object:`ResponseRule` objects applied on self-answered queries
   :>json string daemon_type: The type of daemon, always "dnsdist"
   :>json list frontends: A list of :json:object:`Frontend` objects
   :>json list pools: A list of :json:object:`Pool` objects
