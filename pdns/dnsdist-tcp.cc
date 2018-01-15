@@ -383,16 +383,12 @@ void* tcpClientThread(int pipefd)
 	}
 
         std::shared_ptr<ServerPool> serverPool = getPool(*holders.pools, poolname);
-        std::shared_ptr<DNSDistPacketCache> packetCache = nullptr;
-        auto policy = holders.policy->policy;
+        std::shared_ptr<DNSDistPacketCache> packetCache = serverPool->packetCache;
+        auto policy = *(holders.policy);
         if (serverPool->policy != nullptr) {
-          policy = serverPool->policy->policy;
+          policy = *(serverPool->policy);
         }
-        {
-          std::lock_guard<std::mutex> lock(g_luamutex);
-          ds = policy(serverPool->servers, &dq);
-          packetCache = serverPool->packetCache;
-        }
+        ds = getBackendFromPolicy(policy, serverPool->servers, dq);
 
         if (dq.useECS && ds && ds->useECS) {
           uint16_t newLen = dq.len;

@@ -614,9 +614,9 @@ using servers_t =vector<std::shared_ptr<DownstreamState>>;
 template <class T> using NumberedVector = std::vector<std::pair<unsigned int, T> >;
 
 void* responderThread(std::shared_ptr<DownstreamState> state);
-extern std::mutex g_luamutex;
+extern pthread_rwlock_t g_lualock;
 extern LuaContext g_lua;
-extern std::string g_outputBuffer; // locking for this is ok, as locked by g_luamutex
+extern std::string g_outputBuffer; // locking for this is ok, as locked by g_lualock
 
 class DNSRule
 {
@@ -636,6 +636,7 @@ struct ServerPolicy
 {
   string name;
   policyfunc_t policy;
+  bool isReadOnly;
 };
 
 struct ServerPool
@@ -768,6 +769,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 std::shared_ptr<ServerPool> getPool(const pools_t& pools, const std::string& poolName);
 std::shared_ptr<ServerPool> createPoolIfNotExists(pools_t& pools, const string& poolName);
 const NumberedServerVector& getDownstreamCandidates(const pools_t& pools, const std::string& poolName);
+std::shared_ptr<DownstreamState> getBackendFromPolicy(const ServerPolicy& policy, const NumberedServerVector& servers, const DNSQuestion& dq);
 
 std::shared_ptr<DownstreamState> firstAvailable(const NumberedServerVector& servers, const DNSQuestion* dq);
 
