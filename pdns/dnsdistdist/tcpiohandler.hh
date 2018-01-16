@@ -19,6 +19,10 @@ protected:
 class TLSCtx
 {
 public:
+  TLSCtx()
+  {
+    d_rotatingTicketsKey.clear();
+  }
   virtual ~TLSCtx() {}
   virtual std::unique_ptr<TLSConnection> getConnection(int socket, unsigned int timeout, time_t now) = 0;
   virtual void rotateTicketsKey(time_t now) = 0;
@@ -53,7 +57,7 @@ public:
   virtual size_t getTicketsKeysCount() = 0;
 
 protected:
-  std::atomic_flag d_rotatingTicketsKey{ATOMIC_FLAG_INIT};
+  std::atomic_flag d_rotatingTicketsKey;
   time_t d_ticketsKeyRotationDelay{0};
   time_t d_ticketsKeyNextRotation{0};
 };
