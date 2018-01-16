@@ -325,14 +325,14 @@ void setupLuaConfig(bool client)
 			if (ret->connected) {
 			  if(g_launchWork) {
 			    g_launchWork->push_back([ret,cpus]() {
-			      ret->tid = thread(responderThread, ret);
+                              ret->tid = thread(responderThread, ret, g_rings.getResponseInserterId());
                               if (!cpus.empty()) {
                                 mapThreadToCPUList(ret->tid.native_handle(), cpus);
                               }
 			    });
 			  }
 			  else {
-			    ret->tid = thread(responderThread, ret);
+                            ret->tid = thread(responderThread, ret, g_rings.getResponseInserterId());
                             if (!cpus.empty()) {
                               mapThreadToCPUList(ret->tid.native_handle(), cpus);
                             }
@@ -1298,14 +1298,14 @@ void setupLuaConfig(bool client)
       g_servFailOnNoPolicy = servfail;
     });
 
-  g_lua.writeFunction("setRingBuffersSize", [](size_t capacity) {
+  g_lua.writeFunction("setRingBuffersSize", [](size_t capacity, boost::optional<size_t> numberOfShards) {
       setLuaSideEffect();
       if (g_configurationDone) {
         errlog("setRingBuffersSize() cannot be used at runtime!");
         g_outputBuffer="setRingBuffersSize() cannot be used at runtime!\n";
         return;
       }
-      g_rings.setCapacity(capacity);
+      g_rings.setCapacity(capacity, numberOfShards ? *numberOfShards : 1);
     });
 
   g_lua.writeFunction("setWHashedPertubation", [](uint32_t pertub) {

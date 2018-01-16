@@ -235,6 +235,7 @@ void* tcpClientThread(int pipefd)
   /* we get launched with a pipe on which we receive file descriptors from clients that we own
      from that point on */
 
+  const auto queryInserterId = g_rings.getQueryInserterId();
   bool outstanding = false;
   time_t lastTCPCleanup = time(nullptr);
   
@@ -358,7 +359,7 @@ void* tcpClientThread(int pipefd)
 	DNSName qname(query, qlen, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
 	DNSQuestion dq(&qname, qtype, qclass, &dest, &ci.remote, dh, queryBuffer.capacity(), qlen, true, &queryRealTime);
 
-	if (!processQuery(holders, dq, poolname, &delayMsec, now)) {
+	if (!processQuery(holders, dq, poolname, &delayMsec, now, queryInserterId)) {
 	  goto drop;
 	}
 
@@ -632,10 +633,7 @@ void* tcpClientThread(int pipefd)
         struct timespec answertime;
         gettime(&answertime);
         unsigned int udiff = 1000000.0*DiffTime(now,answertime);
-        {
-          std::lock_guard<std::mutex> lock(g_rings.respMutex);
-          g_rings.respRing.push_back({answertime, ci.remote, qname, dq.qtype, (unsigned int)udiff, (unsigned int)responseLen, *dh, ds->remote});
-        }
+        g_rings.insertResponse(answertime, ci.remote, qname, dq.qtype, (unsigned int)udiff, (unsigned int)responseLen, *dh, ds->remote, queryInserterId);
 
         rewrittenResponse.clear();
       }
