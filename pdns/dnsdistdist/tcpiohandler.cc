@@ -377,7 +377,7 @@ public:
       OpenSSL_add_ssl_algorithms();
       openssl_thread_setup();
 
-     s_ticketsKeyIndex = SSL_CTX_get_ex_new_index(0, nullptr, nullptr, nullptr, nullptr);
+      s_ticketsKeyIndex = SSL_CTX_get_ex_new_index(0, nullptr, nullptr, nullptr, nullptr);
 
       if (s_ticketsKeyIndex == -1) {
         throw std::runtime_error("Error getting an index for tickets key");
@@ -743,26 +743,31 @@ class GnuTLSIOCtx: public TLSCtx
 public:
   GnuTLSIOCtx(const TLSFrontend& fe)
   {
+    int rc = 0;
     d_ticketsKeyRotationDelay = fe.d_ticketsKeyRotationDelay;
 
-    if (gnutls_certificate_allocate_credentials(&d_creds) != GNUTLS_E_SUCCESS) {
-      throw std::runtime_error("Error allocating credentials for TLS context on " + fe.d_addr.toStringWithPort());
+    rc = gnutls_certificate_allocate_credentials(&d_creds);
+    if (rc != GNUTLS_E_SUCCESS) {
+      throw std::runtime_error("Error allocating credentials for TLS context on " + fe.d_addr.toStringWithPort() + ": " + gnutls_strerror(rc));
     }
 
-    if (gnutls_certificate_set_x509_key_file(d_creds, fe.d_certFile.c_str(), fe.d_keyFile.c_str(), GNUTLS_X509_FMT_PEM) != GNUTLS_E_SUCCESS) {
+    rc = gnutls_certificate_set_x509_key_file(d_creds, fe.d_certFile.c_str(), fe.d_keyFile.c_str(), GNUTLS_X509_FMT_PEM);
+    if (rc != GNUTLS_E_SUCCESS) {
       gnutls_certificate_free_credentials(d_creds);
-      throw std::runtime_error("Error loading certificate and key for TLS context on " + fe.d_addr.toStringWithPort());
+      throw std::runtime_error("Error loading certificate and key for TLS context on " + fe.d_addr.toStringWithPort() + ": " + gnutls_strerror(rc));
     }
 
 #if GNUTLS_VERSION_NUMBER >= 0x030600
-    if (gnutls_certificate_set_known_dh_params(d_creds, GNUTLS_SEC_PARAM_HIGH) != GNUTLS_E_SUCCESS) {
+    rc = gnutls_certificate_set_known_dh_params(d_creds, GNUTLS_SEC_PARAM_HIGH);
+    if (rc != GNUTLS_E_SUCCESS) {
       gnutls_certificate_free_credentials(d_creds);
-      throw std::runtime_error("Error setting DH params for TLS context on " + fe.d_addr.toStringWithPort());
+      throw std::runtime_error("Error setting DH params for TLS context on " + fe.d_addr.toStringWithPort() + ": " + gnutls_strerror(rc));
     }
 #endif
 
-    if (gnutls_priority_init(&d_priorityCache, fe.d_ciphers.empty() ? "NORMAL" : fe.d_ciphers.c_str(), nullptr) != GNUTLS_E_SUCCESS) {
-      warnlog("Error setting up TLS cipher preferences to %s, skipping.", fe.d_ciphers.c_str());
+    rc = gnutls_priority_init(&d_priorityCache, fe.d_ciphers.empty() ? "NORMAL" : fe.d_ciphers.c_str(), nullptr);
+    if (rc != GNUTLS_E_SUCCESS) {
+      warnlog("Error setting up TLS cipher preferences to %s (%s), skipping.", fe.d_ciphers.c_str(), gnutls_strerror(rc));
     }
 
     try {
