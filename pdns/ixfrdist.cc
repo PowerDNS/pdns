@@ -117,13 +117,14 @@ void* updateThread(void*) {
       try {
         auto newSerial = getSerialFromMaster(g_master, domain, sr); // TODO TSIG
         if(g_soas.find(domain) != g_soas.end() && g_verbose) {
-          cerr<<"[INFO]   Got SOA Serial: "<< newSerial<<", had Serial: "<<g_soas[domain]->d_st.serial<<endl;
-        }
-        if (g_soas.find(domain) != g_soas.end() && newSerial == g_soas[domain]->d_st.serial) {
-          if (g_verbose) {
-            cerr<<"[INFO]   Not updating."<<endl;
+          cerr<<"[INFO] Got SOA Serial for "<<domain<<" from "<<g_master.toStringWithPort()<<": "<< newSerial<<", had Serial: "<<g_soas[domain]->d_st.serial;
+          if (newSerial == g_soas[domain]->d_st.serial) {
+            if (g_verbose) {
+              cerr<<", not updating."<<endl;
+            }
+            continue;
           }
-          continue;
+          cerr<<", will update."<<endl;
         }
       } catch (runtime_error &e) {
         cerr<<"[WARNING] Unable to get SOA serial update for '"<<domain<<"': "<<e.what()<<endl;
@@ -154,12 +155,16 @@ void* updateThread(void*) {
             }
           }
         }
+        if (soa == nullptr) {
+          cerr<<"[WARNING] No SOA was found in the AXFR of "<<domain<<endl;
+          continue;
+        }
         if (g_verbose) {
-          cerr<<"[INFO]    Done! Received "<<nrecords<<" records. Attempting to write to disk!"<<endl;
+          cerr<<"[INFO] Retrieved all zone data for "<<domain<<". Received "<<nrecords<<" records."<<endl;
         }
         writeZoneToDisk(records, domain, dir);
         if (g_verbose) {
-          cerr<<"[INFO]    Done!"<<endl;
+          cerr<<"[INFO] Wrote zonedata for "<<domain<<" with serial "<<soa->d_st.serial<<" to "<<dir<<endl;
         }
       } catch (ResolverException &e) {
         cerr<<"[WARNING] Could not retrieve AXFR for '"<<domain<<"': "<<e.reason<<endl;
@@ -169,9 +174,7 @@ void* updateThread(void*) {
       lastCheck[domain] = now;
       {
         std::lock_guard<std::mutex> guard(g_soas_mutex);
-        if (soa != nullptr) {
-          g_soas[domain] = soa;
-        }
+        g_soas[domain] = soa;
       }
     } /* for (const auto &domain : domains) */
     sleep(10);
@@ -186,11 +189,11 @@ bool checkQuery(const MOADNSParser& mdp, const ComboAddress& saddr, const bool u
   }
 
   if (udp && mdp.d_qtype != QType::SOA && mdp.d_qtype != QType::IXFR) {
-    info_msg.push_back("QType is unsupported (" + QType(mdp.d_qtype).getName() + " is not in {SOA,IXFR}.");
+    info_msg.push_back("QType is unsupported (" + QType(mdp.d_qtype).getName() + " is not in {SOA,IXFR}");
   }
 
   if (!udp && mdp.d_qtype != QType::SOA && mdp.d_qtype != QType::IXFR && mdp.d_qtype != QType::AXFR) {
-    info_msg.push_back("QType is unsupported (" + QType(mdp.d_qtype).getName() + " is not in {SOA,IXFR,AXFR}.");
+    info_msg.push_back("QType is unsupported (" + QType(mdp.d_qtype).getName() + " is not in {SOA,IXFR,AXFR}");
   }
 
   if (g_domains.find(mdp.d_qname) == g_domains.end()) {
@@ -204,9 +207,14 @@ bool checkQuery(const MOADNSParser& mdp, const ComboAddress& saddr, const bool u
   if (!info_msg.empty()) {
     cerr<<"[WARNING] Ignoring "<<mdp.d_qname<<"|"<<QType(mdp.d_qtype).getName()<<" query from "<<saddr.toStringWithPort();
     if (g_verbose) {
-      cerr<<":";
+      cerr<<": ";
+      bool first = true;
       for (const auto& s : info_msg) {
-        cerr<<endl<<"    "<<s;
+        if (!first) {
+          cerr<<", ";
+          first = false;
+        }
+        cerr<<s;
       }
     }
     cerr<<endl;
