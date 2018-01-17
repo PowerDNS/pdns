@@ -148,3 +148,20 @@ void loadZoneFromDisk(records_t& records, const string& fname, const DNSName& zo
     throw runtime_error("Zone not complete!");
   }
 }
+
+/*
+ * Load the zone `zone` from `fname` and put the first found SOA into `soa`
+ * Does NOT check for nullptr
+ */
+void loadSOAFromDisk(const DNSName& zone, const string& fname, shared_ptr<SOARecordContent>& soa)
+{
+  ZoneParserTNG zpt(fname, zone);
+  DNSResourceRecord rr;
+
+  while(zpt.get(rr)) {
+    if (rr.qtype == QType::SOA) {
+      soa = getRR<SOARecordContent>(DNSRecord(rr));
+      return;
+    }
+  }
+}
