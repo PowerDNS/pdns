@@ -224,6 +224,12 @@ bool checkQuery(const MOADNSParser& mdp, const ComboAddress& saddr, const bool u
   return true;
 }
 
+/*
+ * Returns a vector<uint8_t> that represents the full response to a SOA
+ * query. QNAME is read from mdp.
+ *
+ * TODO Maybe return void and modify the vector in-place?
+ */
 vector<uint8_t> makeSOAPacket(const MOADNSParser& mdp) {
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, mdp.d_qname, mdp.d_qtype);
@@ -238,6 +244,51 @@ vector<uint8_t> makeSOAPacket(const MOADNSParser& mdp) {
   return packet;
 }
 
+bool makeAXFRPacket(const MOADNSParser& mdp, vector<uint8_t>& packet) {
+  DNSPacketWriter pw(packet, mdp.d_qname, mdp.d_qtype);
+  pw.getHeader()->id = mdp.d_header.id;
+  pw.getHeader()->rd = mdp.d_header.rd;
+  pw.getHeader()->qr = 1;
+
+  string dir = g_workdir + "/" + mdp.d_qname.toString();
+  auto serial = getSerialsFromDir(dir);
+  string fname = dir + "/" + std::to_string(serial);
+  // Use the SOA from the file, the one in g_soas _may_ have changed
+  shared_ptr<SOARecordContent> soa;
+  loadSOAFromDisk(mdp.d_qname, fname, soa);
+  if (soa == nullptr) {
+    // :(
+    cerr<<"[WARNING] Could not retrieve SOA record from "<<fname<<" for AXFR"<<endl;
+    return false;
+  }
+  records_t records;
+  loadZoneFromDisk(records, fname, mdp.d_qname);
+  if (records.empty()) {
+    cerr<<"[WARNING] Could not load zone from "<<fname<<" for AXFR"<<endl;
+    return false;
+  }
+
+  // Add the first SOA
+  pw.startRecord(mdp.d_qname, QType::SOA);
+  soa->toPacket(pw);
+  pw.commit();
+
+  for (auto const &record : records) {
+    if (record.d_type == QType::SOA) {
+      continue;
+    }
+    pw.startRecord(record.d_name + mdp.d_qname, record.d_type);
+    record.d_content->toPacket(pw);
+  }
+  pw.commit();
+
+  // Add the final SOA
+  pw.startRecord(mdp.d_qname, QType::SOA);
+  soa->toPacket(pw);
+  pw.commit();
+
+  return true;
+}
 
 void handleUDPRequest(int fd, boost::any&) {
   // TODO make the buffer-size configurable
@@ -332,6 +383,13 @@ void handleTCPRequest(int fd, boost::any&) {
     vector<uint8_t> packet;
     if (mdp.d_qtype == QType::SOA) {
       packet = makeSOAPacket(mdp);
+    }
+
+    if (mdp.d_qtype == QType::AXFR) {
+      if (!makeAXFRPacket(mdp, packet)) {
+        close(cfd);
+        return;
+      }
     }
 
     char buf[2];
