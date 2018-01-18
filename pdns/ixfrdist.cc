@@ -290,6 +290,111 @@ bool makeAXFRPacket(const MOADNSParser& mdp, vector<uint8_t>& packet) {
   return true;
 }
 
+/* Produces an IXFR packet and if one can not be made, an AXFR packet in `packet`
+ */
+bool makeIXFRPacket(const MOADNSParser& mdp, const shared_ptr<SOARecordContent>& clientSOA, vector<uint8_t> packet) {
+  string dir = g_workdir + "/" + mdp.d_qname.toString();
+
+  // Let's see if we have the old zone
+  // TODO lock the zone from clean up (when implemented)
+  string oldZoneFname = dir + "/" + std::to_string(clientSOA->d_st.serial);
+  struct stat s;
+  if (stat(oldZoneFname.c_str(), &s) == -1) {
+    if (errno == ENOENT) {
+      if (g_verbose) {
+        cerr<<"[INFO] IXFR for "<<mdp.d_qname<<" not possible: no zone data with serial "<<clientSOA->d_st.serial<<", sending out AXFR"<<endl;
+      }
+      return makeAXFRPacket(mdp, packet);
+    }
+    cerr<<"[WARNING] Could not determine existence of "<<oldZoneFname<<" for IXFR: "<<strerror(errno)<<endl;
+    return false;
+  }
+
+  auto newSerial = getSerialsFromDir(dir);
+  string newZoneFname = dir + "/" + std::to_string(newSerial);
+
+  // Use the SOA from the file, the one in g_soas _may_ have changed
+  shared_ptr<SOARecordContent> newSOA;
+  loadSOAFromDisk(mdp.d_qname, newZoneFname, newSOA);
+  if (newSOA == nullptr) {
+    // :(
+    cerr<<"[WARNING] Could not retrieve SOA record from "<<newZoneFname<<" for IXFR"<<endl;
+    return false;
+  }
+
+  records_t oldRecords, newRecords;
+  loadZoneFromDisk(oldRecords, oldZoneFname, mdp.d_qname);
+  loadZoneFromDisk(newRecords, newZoneFname, mdp.d_qname);
+
+  if (oldRecords.empty() || newRecords.empty()) {
+    if (oldRecords.empty()) {
+      cerr<<"[WARNING] Unable to load zone from "<<oldZoneFname<<endl;
+    }
+    if (newRecords.empty()) {
+      cerr<<"[WARNING] Unable to load zone from "<<newZoneFname<<endl;
+    }
+    return false;
+  }
+
+  DNSPacketWriter pw(packet, mdp.d_qname, mdp.d_qtype);
+  pw.getHeader()->id = mdp.d_header.id;
+  pw.getHeader()->rd = mdp.d_header.rd;
+  pw.getHeader()->qr = 1;
+
+  /* An IXFR packet's ANSWER section looks as follows:
+   * SOA new_serial
+   * SOA old_serial
+   * ... removed records ...
+   * SOA new_serial
+   * ... added records ...
+   * SOA new_serial
+   */
+
+  pw.startRecord(mdp.d_qname, QType::SOA);
+  newSOA->toPacket(pw);
+
+  pw.startRecord(mdp.d_qname, QType::SOA);
+  clientSOA->toPacket(pw);
+  pw.commit();
+
+  // Removed records
+  vector<DNSRecord> diff;
+  set_difference(oldRecords.cbegin(), oldRecords.cend(), newRecords.cbegin(), newRecords.cend(), back_inserter(diff), oldRecords.value_comp());
+  for(const auto& d : diff) {
+    if (d.d_type == QType::SOA) {
+      continue;
+    }
+    pw.startRecord(d.d_name + mdp.d_qname, d.d_type);
+    d.d_content->toPacket(pw);
+  }
+  pw.commit();
+
+  // Added records
+  pw.startRecord(mdp.d_qname, QType::SOA);
+  newSOA->toPacket(pw);
+  pw.commit();
+
+  diff.clear();
+
+  set_difference(newRecords.cbegin(), newRecords.cend(), oldRecords.cbegin(), oldRecords.cend(), back_inserter(diff), oldRecords.value_comp());
+  for(const auto& d : diff) {
+    if (d.d_type == QType::SOA) {
+      continue;
+    }
+    pw.startRecord(d.d_name + mdp.d_qname, d.d_type);
+    d.d_content->toPacket(pw);
+  }
+
+  pw.commit();
+
+  // Final SOA
+  pw.startRecord(mdp.d_qname, QType::SOA);
+  newSOA->toPacket(pw);
+  pw.commit();
+
+  return true;
+}
+
 void handleUDPRequest(int fd, boost::any&) {
   // TODO make the buffer-size configurable
   char buf[4096];
@@ -391,6 +496,36 @@ void handleTCPRequest(int fd, boost::any&) {
         return;
       }
     }
+
+    if (mdp.d_qtype == QType::IXFR) {
+      /* RFC 1995 section 3:
+       *  The IXFR query packet format is the same as that of a normal DNS
+       *  query, but with the query type being IXFR and the authority section
+       *  containing the SOA record of client's version of the zone.
+       */
+      shared_ptr<SOARecordContent> clientSOA;
+      for (auto &answer : mdp.d_answers) {
+        // from dnsparser.hh:
+        // typedef vector<pair<DNSRecord, uint16_t > > answers_t;
+        if (answer.first.d_type == QType::SOA && answer.first.d_place == DNSResourceRecord::AUTHORITY) {
+          clientSOA = getRR<SOARecordContent>(answer.first);
+          if (clientSOA != nullptr) {
+            break;
+          }
+        }
+      } /* for (auto const &answer : mdp.d_answers) */
+
+      if (clientSOA == nullptr) {
+        cerr<<"[WARNING] IXFR request packet did not contain a SOA record in the AUTHORITY section"<<endl;
+        close(cfd);
+        return;
+      }
+
+      if (!makeIXFRPacket(mdp, clientSOA, packet)) {
+        close(cfd);
+        return;
+      }
+    } /* if (mdp.d_qtype == QType::IXFR) */
 
     char buf[2];
     buf[0]=packet.size()/256;
