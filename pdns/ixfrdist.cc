@@ -294,7 +294,7 @@ void handleUDPRequest(int fd, boost::any&) {
   // TODO make the buffer-size configurable
   char buf[4096];
   ComboAddress saddr;
-  socklen_t fromlen;
+  socklen_t fromlen = sizeof(saddr);
   int res = recvfrom(fd, buf, sizeof(buf), 0, (struct sockaddr*) &saddr, &fromlen);
 
   if (res == 0) {
@@ -329,7 +329,7 @@ void handleUDPRequest(int fd, boost::any&) {
 
 void handleTCPRequest(int fd, boost::any&) {
   ComboAddress saddr;
-  socklen_t socklen;
+  socklen_t socklen = sizeof(saddr);
 
   int cfd = accept(fd, (sockaddr*) &saddr, &socklen);
 
