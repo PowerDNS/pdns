@@ -99,7 +99,7 @@ uint32_t getSerialFromRecords(const records_t& records, DNSRecord& soaret)
 void writeZoneToDisk(const records_t& records, const DNSName& zone, const std::string& directory)
 {
   DNSRecord soa;
-  int serial = getSerialFromRecords(records, soa);
+  auto serial = getSerialFromRecords(records, soa);
   string fname=directory +"/"+std::to_string(serial);
   FILE* fp=fopen((fname+".partial").c_str(), "w");
   if(!fp)
