@@ -31,7 +31,7 @@
 #include "dns_random.hh"
 #include "sstuff.hh"
 #include "mplexer.hh"
-
+#include "misc.hh"
 
 /* BEGIN Needed because of deeper dependencies */
 #include "arguments.hh"
@@ -227,11 +227,8 @@ bool checkQuery(const MOADNSParser& mdp, const ComboAddress& saddr, const bool u
 /*
  * Returns a vector<uint8_t> that represents the full response to a SOA
  * query. QNAME is read from mdp.
- *
- * TODO Maybe return void and modify the vector in-place?
  */
-vector<uint8_t> makeSOAPacket(const MOADNSParser& mdp) {
-  vector<uint8_t> packet;
+bool makeSOAPacket(const MOADNSParser& mdp, vector<uint8_t>& packet) {
   DNSPacketWriter pw(packet, mdp.d_qname, mdp.d_qtype);
   pw.getHeader()->id = mdp.d_header.id;
   pw.getHeader()->rd = mdp.d_header.rd;
@@ -241,7 +238,7 @@ vector<uint8_t> makeSOAPacket(const MOADNSParser& mdp) {
   g_soas[mdp.d_qname]->toPacket(pw);
   pw.commit();
 
-  return packet;
+  return true;
 }
 
 bool makeAXFRPacket(const MOADNSParser& mdp, vector<uint8_t>& packet) {
@@ -290,14 +287,30 @@ bool makeAXFRPacket(const MOADNSParser& mdp, vector<uint8_t>& packet) {
   return true;
 }
 
-/* Produces an IXFR packet and if one can not be made, an AXFR packet in `packet`
+/* Produces an IXFR if one can be made according to the rules in RFC 1995 and
+ * creates a SOA or AXFR packet when required by the RFC.
  */
 bool makeIXFRPacket(const MOADNSParser& mdp, const shared_ptr<SOARecordContent>& clientSOA, vector<uint8_t>& packet) {
   string dir = g_workdir + "/" + mdp.d_qname.toString();
+  // Get the new SOA only once, so it will not change under our noses from the
+  // updateThread.
+  uint32_t newSerial = g_soas[mdp.d_qname]->d_st.serial;
 
   // Let's see if we have the old zone
   // TODO lock the zone from clean up (when implemented)
   string oldZoneFname = dir + "/" + std::to_string(clientSOA->d_st.serial);
+  string newZoneFname = dir + "/" + std::to_string(newSerial);
+
+  if (rfc1982LessThan(newSerial, clientSOA->d_st.serial)){
+    /* RFC 1995 Section 2
+     *    If an IXFR query with the same or newer version number than that of
+     *    the server is received, it is replied to with a single SOA record of
+     *    the server's current version, just as in AXFR.
+     */
+    return makeSOAPacket(mdp, packet);
+  }
+
+  // Check if we can actually make an IXFR
   struct stat s;
   if (stat(oldZoneFname.c_str(), &s) == -1) {
     if (errno == ENOENT) {
@@ -310,12 +323,9 @@ bool makeIXFRPacket(const MOADNSParser& mdp, const shared_ptr<SOARecordContent>&
     return false;
   }
 
-  auto newSerial = getSerialsFromDir(dir);
-  string newZoneFname = dir + "/" + std::to_string(newSerial);
-
-  // Use the SOA from the file, the one in g_soas _may_ have changed
   shared_ptr<SOARecordContent> newSOA;
   loadSOAFromDisk(mdp.d_qname, newZoneFname, newSOA);
+
   if (newSOA == nullptr) {
     // :(
     cerr<<"[WARNING] Could not retrieve SOA record from "<<newZoneFname<<" for IXFR"<<endl;
@@ -423,9 +433,19 @@ void handleUDPRequest(int fd, boost::any&) {
     return;
   }
 
-  // Let's not complicate this with IXFR over UDP (and looking if we need to truncate etc).
-  // Just send the current SOA and let the client try over TCP
-  auto packet = makeSOAPacket(mdp);
+  /* RFC 1995 Section 2
+   *    Transport of a query may be by either UDP or TCP.  If an IXFR query
+   *    is via UDP, the IXFR server may attempt to reply using UDP if the
+   *    entire response can be contained in a single DNS packet.  If the UDP
+   *    reply does not fit, the query is responded to with a single SOA
+   *    record of the server's current version to inform the client that a
+   *    TCP query should be initiated.
+   *
+   * Let's not complicate this with IXFR over UDP (and looking if we need to truncate etc).
+   * Just send the current SOA and let the client try over TCP
+   */
+  vector<uint8_t> packet;
+  makeSOAPacket(mdp, packet);
   if(sendto(fd, &packet[0], packet.size(), 0, (struct sockaddr*) &saddr, fromlen) < 0) {
     cerr<<"[WARNING] Could not send reply for "<<mdp.d_qname<<"|"<<QType(mdp.d_qtype).getName()<<" to "<<saddr.toStringWithPort()<<": "<<strerror(errno)<<endl;
   }
@@ -487,7 +507,10 @@ void handleTCPRequest(int fd, boost::any&) {
 
     vector<uint8_t> packet;
     if (mdp.d_qtype == QType::SOA) {
-      packet = makeSOAPacket(mdp);
+      if (!makeSOAPacket(mdp,packet)) {
+        close(cfd);
+        return;
+      }
     }
 
     if (mdp.d_qtype == QType::AXFR) {
