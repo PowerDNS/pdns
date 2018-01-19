@@ -944,10 +944,10 @@ void setupLuaRules()
       }
     });
 
-  g_lua.writeFunction("rmResponseRule", [](boost::variant<unsigned int, std::string> num) {
+  g_lua.writeFunction("rmResponseRule", [](boost::variant<unsigned int, std::string> id) {
       setLuaSideEffect();
       auto rules = g_resprulactions.getCopy();
-      if (auto str = boost::get<std::string>(&num)) {
+      if (auto str = boost::get<std::string>(&id)) {
         boost::uuids::string_generator gen;
         const auto uuid = gen(*str);
         rules.erase(std::remove_if(rules.begin(),
@@ -955,7 +955,7 @@ void setupLuaRules()
                                    [uuid](const DNSDistResponseRuleAction& a) { return a.d_id == uuid; }),
                     rules.end());
       }
-      else if (auto pos = boost::get<unsigned int>(&num)) {
+      else if (auto pos = boost::get<unsigned int>(&id)) {
         if (*pos >= rules.size()) {
           g_outputBuffer = "Error: attempt to delete non-existing rule\n";
           return;
@@ -1018,10 +1018,10 @@ void setupLuaRules()
       }
     });
 
-  g_lua.writeFunction("rmCacheHitResponseRule", [](boost::variant<unsigned int, std::string> num) {
+  g_lua.writeFunction("rmCacheHitResponseRule", [](boost::variant<unsigned int, std::string> id) {
       setLuaSideEffect();
       auto rules = g_cachehitresprulactions.getCopy();
-      if (auto str = boost::get<std::string>(&num)) {
+      if (auto str = boost::get<std::string>(&id)) {
         boost::uuids::string_generator gen;
         const auto uuid = gen(*str);
         rules.erase(std::remove_if(rules.begin(),
@@ -1029,7 +1029,7 @@ void setupLuaRules()
                                    [uuid](const DNSDistResponseRuleAction& a) { return a.d_id == uuid; }),
                     rules.end());
       }
-      else if (auto pos = boost::get<unsigned int>(&num)) {
+      else if (auto pos = boost::get<unsigned int>(&id)) {
         if (*pos >= rules.size()) {
           g_outputBuffer = "Error: attempt to delete non-existing rule\n";
           return;
@@ -1069,10 +1069,10 @@ void setupLuaRules()
       g_cachehitresprulactions.setState(rules);
     });
 
-  g_lua.writeFunction("rmRule", [](boost::variant<unsigned int, std::string> num) {
+  g_lua.writeFunction("rmRule", [](boost::variant<unsigned int, std::string> id) {
       setLuaSideEffect();
       auto rules = g_rulactions.getCopy();
-      if (auto str = boost::get<std::string>(&num)) {
+      if (auto str = boost::get<std::string>(&id)) {
         boost::uuids::string_generator gen;
         const auto uuid = gen(*str);
         rules.erase(std::remove_if(rules.begin(),
@@ -1080,7 +1080,7 @@ void setupLuaRules()
                                    [uuid](const DNSDistRuleAction& a) { return a.d_id == uuid; }),
                     rules.end());
       }
-      else if (auto pos = boost::get<unsigned int>(&num)) {
+      else if (auto pos = boost::get<unsigned int>(&id)) {
         if (*pos >= rules.size()) {
           g_outputBuffer = "Error: attempt to delete non-existing rule\n";
           return;
