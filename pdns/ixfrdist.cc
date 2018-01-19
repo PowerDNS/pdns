@@ -292,7 +292,7 @@ bool makeAXFRPacket(const MOADNSParser& mdp, vector<uint8_t>& packet) {
 
 /* Produces an IXFR packet and if one can not be made, an AXFR packet in `packet`
  */
-bool makeIXFRPacket(const MOADNSParser& mdp, const shared_ptr<SOARecordContent>& clientSOA, vector<uint8_t> packet) {
+bool makeIXFRPacket(const MOADNSParser& mdp, const shared_ptr<SOARecordContent>& clientSOA, vector<uint8_t>& packet) {
   string dir = g_workdir + "/" + mdp.d_qname.toString();
 
   // Let's see if we have the old zone
