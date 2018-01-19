@@ -468,16 +468,15 @@ void handleUDPRequest(int fd, boost::any&) {
 
 void handleTCPRequest(int fd, boost::any&) {
   ComboAddress saddr;
-  socklen_t socklen = sizeof(saddr);
+  int cfd = 0;
 
-  int cfd = accept(fd, (sockaddr*) &saddr, &socklen);
-
-  if (cfd == -1) {
-    cerr<<"Accepting connection from "<<saddr.toStringWithPort()<<" failed: "<<strerror(errno)<<endl;
+  try {
+    cfd = SAccept(fd, saddr);
+    setBlocking(cfd);
+  } catch(runtime_error &e) {
+    cerr<<"[ERROR] "<<e.what()<<endl;
     return;
   }
-
-  setBlocking(cfd);
 
   if (saddr == ComboAddress("0.0.0.0", 0)) {
     cerr<<"[WARNING] Could not determine source of message"<<endl;
@@ -666,52 +665,24 @@ int main(int argc, char** argv) {
   }
 
   set<int> allSockets;
-  for (const auto addr : listen_addresses) {
-    // Create UDP socket
-    int s = socket(addr.sin4.sin_family, SOCK_DGRAM, 0);
-    if (s < 0) {
-      cerr<<"[ERROR] Unable to create socket: "<<strerror(errno)<<endl;
-      had_error = true;
-      continue;
+  for (const auto& addr : listen_addresses) {
+    for (const auto& stype : {SOCK_DGRAM, SOCK_STREAM}) {
+      try {
+        int s = SSocket(addr.sin4.sin_family, stype, 0);
+        setNonBlocking(s);
+        setReuseAddr(s);
+        SBind(s, addr);
+        if (stype == SOCK_STREAM) {
+          SListen(s, 30); // TODO make this configurable
+        }
+        g_fdm.addReadFD(s, stype == SOCK_DGRAM ? handleUDPRequest : handleTCPRequest);
+        allSockets.insert(s);
+      } catch(runtime_error &e) {
+        cerr<<"[ERROR] "<<e.what()<<endl;
+        had_error = true;
+        continue;
+      }
     }
-
-    setNonBlocking(s);
-    setReuseAddr(s);
-
-    if (bind(s, (sockaddr*) &addr, addr.getSocklen()) < 0) {
-      cerr<<"[ERROR] Unable to bind to "<<addr.toStringWithPort()<<": "<<strerror(errno)<<endl;
-      had_error = true;
-      continue;
-    }
-
-    g_fdm.addReadFD(s, handleUDPRequest);
-
-    // Create TCP socket
-    int t = socket(addr.sin4.sin_family, SOCK_STREAM, 0);
-
-    if (t < 0) {
-      cerr<<"[ERROR] Unable to create socket: "<<strerror(errno)<<endl;
-      had_error = true;
-      continue;
-    }
-
-    setNonBlocking(t);
-    setReuseAddr(t);
-
-    if (bind(t, (sockaddr*) &addr, addr.getSocklen()) < 0) {
-      cerr<<"[ERROR] Unable to bind to "<<addr.toStringWithPort()<<": "<<strerror(errno)<<endl;
-      had_error = true;
-    }
-
-    // TODO Make backlog configurable?
-    if (listen(t, 30) < 0) {
-      cerr<<"[ERROR] Unable to listen on "<<addr.toStringWithPort()<<": "<<strerror(errno)<<endl;
-      had_error = true;
-      continue;
-    }
-
-    g_fdm.addReadFD(t, handleTCPRequest);
-    allSockets.insert(t);
   }
 
   g_workdir = g_vm["work-dir"].as<string>();

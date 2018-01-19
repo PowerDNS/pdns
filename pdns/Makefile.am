@@ -601,6 +601,7 @@ ixfrdist_SOURCES = \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
 	gss_context.cc gss_context.hh \
+	iputils.hh iputils.cc \
 	ixfr.cc ixfr.hh \
 	ixfrdist.cc \
 	ixfrutils.cc ixfrutils.hh \
