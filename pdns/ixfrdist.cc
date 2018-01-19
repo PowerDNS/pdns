@@ -66,6 +66,12 @@ ComboAddress g_master;
 bool g_verbose = false;
 bool g_debug = false;
 
+bool g_exiting = false;
+
+void handleSignal(int signum) {
+  g_exiting = true;
+}
+
 void usage(po::options_description &desc) {
   cerr << "Usage: ixfrdist [OPTION]... DOMAIN [DOMAIN]..."<<endl;
   cerr << desc << "\n";
@@ -104,18 +110,22 @@ void* updateThread(void*) {
   }
 
   while (true) {
+    if (g_exiting) {
+      break;
+    }
     time_t now = time(nullptr);
     for (const auto &domain : g_domains) {
-      string dir = g_workdir + "/" + domain.toString();
-      if (now - lastCheck[domain] < 30) { // YOLO 30 seconds
+      if (now - lastCheck[domain] < g_soas[domain]->d_st.refresh) {
         continue;
       }
+      string dir = g_workdir + "/" + domain.toString();
       if (g_verbose) {
         cerr<<"[INFO] Attempting to retrieve SOA Serial update for '"<<domain<<"' from '"<<g_master.toStringWithPort()<<"'"<<endl;
       }
       shared_ptr<SOARecordContent> sr;
       try {
         auto newSerial = getSerialFromMaster(g_master, domain, sr); // TODO TSIG
+        lastCheck[domain] = now;
         if(g_soas.find(domain) != g_soas.end() && g_verbose) {
           cerr<<"[INFO] Got SOA Serial for "<<domain<<" from "<<g_master.toStringWithPort()<<": "<< newSerial<<", had Serial: "<<g_soas[domain]->d_st.serial;
           if (newSerial == g_soas[domain]->d_st.serial) {
@@ -171,13 +181,12 @@ void* updateThread(void*) {
       } catch (runtime_error &e) {
         cerr<<"[WARNING] Could not save zone '"<<domain<<"' to disk: "<<e.what()<<endl;
       }
-      lastCheck[domain] = now;
       {
         std::lock_guard<std::mutex> guard(g_soas_mutex);
         g_soas[domain] = soa;
       }
     } /* for (const auto &domain : domains) */
-    sleep(10);
+    sleep(1);
   } /* while (true) */
 } /* updateThread */
 
@@ -644,6 +653,7 @@ int main(int argc, char** argv) {
     }
   }
 
+  set<int> allSockets;
   for (const auto addr : listen_addresses) {
     // Create UDP socket
     int s = socket(addr.sin4.sin_family, SOCK_DGRAM, 0);
@@ -654,6 +664,7 @@ int main(int argc, char** argv) {
     }
 
     setNonBlocking(s);
+    setReuseAddr(s);
 
     if (bind(s, (sockaddr*) &addr, addr.getSocklen()) < 0) {
       cerr<<"[ERROR] Unable to bind to "<<addr.toStringWithPort()<<": "<<strerror(errno)<<endl;
@@ -673,6 +684,7 @@ int main(int argc, char** argv) {
     }
 
     setNonBlocking(t);
+    setReuseAddr(t);
 
     if (bind(t, (sockaddr*) &addr, addr.getSocklen()) < 0) {
       cerr<<"[ERROR] Unable to bind to "<<addr.toStringWithPort()<<": "<<strerror(errno)<<endl;
@@ -687,6 +699,7 @@ int main(int argc, char** argv) {
     }
 
     g_fdm.addReadFD(t, handleTCPRequest);
+    allSockets.insert(t);
   }
 
   g_workdir = g_vm["work-dir"].as<string>();
@@ -697,6 +710,10 @@ int main(int argc, char** argv) {
   }
 
   // It all starts here
+  signal(SIGTERM, handleSignal);
+  signal(SIGINT, handleSignal);
+  signal(SIGSTOP, handleSignal);
+
   // Init the things we need
   reportAllTypes();
 
@@ -713,5 +730,19 @@ int main(int argc, char** argv) {
   for(;;) {
     gettimeofday(&now, 0);
     g_fdm.run(&now);
+    if (g_exiting) {
+      cerr<<"Shutting down!"<<endl;
+      for (const int& fd : allSockets) {
+        try {
+          closesocket(fd);
+        } catch(PDNSException &e) {
+          cerr<<"[ERROR] "<<e.reason<<endl;
+        }
+      }
+      break;
+    }
   }
+  char* x;
+  pthread_join(qtid, (void**)&x);
+  return EXIT_SUCCESS;
 }
