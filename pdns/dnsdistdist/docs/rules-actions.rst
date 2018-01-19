@@ -312,7 +312,7 @@ For Rules related to the incoming query:
 
   Move the last rule to the first position.
 
-.. function:: rmRule(n)
+.. function:: rmRule(id)
 
   .. versionchanged:: 1.3.0
     ``id`` can now be an UUID.
@@ -346,7 +346,7 @@ For Rules related to responses:
   :param int from: Rule number to move
   :param int to: Location to more the Rule to
 
-.. function:: rmResponseRule(n)
+.. function:: rmResponseRule(id)
 
   .. versionchanged:: 1.3.0
     ``id`` can now be an UUID.
@@ -402,8 +402,6 @@ Functions for manipulation Cache Hit Rules:
     ``id`` can now be an UUID.
 
   :param int id: The UUID of the rule to remove if ``id`` is an UUID, its position otherwise
-
-  :param int n: Rule number to remove
 
 .. function:: showCacheHitResponseRules([showUUIDs])
 
