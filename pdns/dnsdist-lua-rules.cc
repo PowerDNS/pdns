@@ -892,7 +892,7 @@ std::shared_ptr<DNSRule> makeRule(const luadnsrule_t& var)
     return std::make_shared<NetmaskGroupRule>(nmg, true);
 }
 
-static boost::uuids::uuid getRuleID(std::string& id)
+static boost::uuids::uuid makeRuleID(std::string& id)
 {
   if (id.empty()) {
     return t_uuidGenerator();
@@ -912,7 +912,7 @@ void parseRuleParams(boost::optional<luaruleparams_t> params, boost::uuids::uuid
     }
   }
 
-  uuid = getRuleID(uuidStr);
+  uuid = makeRuleID(uuidStr);
 }
 
 void setupLuaRules()
