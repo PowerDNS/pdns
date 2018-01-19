@@ -177,6 +177,7 @@ descriptions = {
     'dnstcpbench': 'tool to perform TCP benchmarking of nameservers',
     'dnswasher': 'A PowerDNS nameserver debugging tool',
     'dumresp': 'A dumb DNS responder',
+    'ixfrdist': 'An IXFR/AXFR-only server that re-distributes zones',
     'ixplore': 'A tool that provides insights into IXFRs',
     'nsec3dig': 'Show and validate NSEC3 proofs',
     'pdns_control': 'Control the PowerDNS nameserver',
