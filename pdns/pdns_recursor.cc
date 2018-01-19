@@ -3435,6 +3435,11 @@ int main(int argc, char **argv)
     }
     cleanSlashes(configname);
 
+    if(!::arg().getCommands().empty()) {
+      cerr<<"Fatal: non-option on the command line, perhaps a '--setting=123' statement missed the '='?"<<endl;
+      exit(99);
+    }
+
     if(::arg().mustDo("config")) {
       cout<<::arg().configstring()<<endl;
       exit(0);
