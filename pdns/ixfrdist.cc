@@ -250,12 +250,21 @@ bool makeSOAPacket(const MOADNSParser& mdp, vector<uint8_t>& packet) {
   return true;
 }
 
-bool makeAXFRPacket(const MOADNSParser& mdp, vector<uint8_t>& packet) {
+vector<uint8_t> getSOAPacket(const MOADNSParser& mdp, const shared_ptr<SOARecordContent>& soa) {
+  vector<uint8_t> packet;
   DNSPacketWriter pw(packet, mdp.d_qname, mdp.d_qtype);
   pw.getHeader()->id = mdp.d_header.id;
   pw.getHeader()->rd = mdp.d_header.rd;
   pw.getHeader()->qr = 1;
 
+  // Add the first SOA
+  pw.startRecord(mdp.d_qname, QType::SOA);
+  soa->toPacket(pw);
+  pw.commit();
+  return packet;
+}
+
+bool makeAXFRPackets(const MOADNSParser& mdp, vector<vector<uint8_t>>& packets) {
   string dir = g_workdir + "/" + mdp.d_qname.toString();
   auto serial = getSerialsFromDir(dir);
   string fname = dir + "/" + std::to_string(serial);
@@ -274,32 +283,51 @@ bool makeAXFRPacket(const MOADNSParser& mdp, vector<uint8_t>& packet) {
     return false;
   }
 
-  // Add the first SOA
-  pw.startRecord(mdp.d_qname, QType::SOA);
-  soa->toPacket(pw);
-  pw.commit();
+  // Initial SOA
+  packets.push_back(getSOAPacket(mdp, soa));
 
   for (auto const &record : records) {
     if (record.d_type == QType::SOA) {
       continue;
     }
+    vector<uint8_t> packet;
+    DNSPacketWriter pw(packet, mdp.d_qname, mdp.d_qtype);
+    pw.getHeader()->id = mdp.d_header.id;
+    pw.getHeader()->rd = mdp.d_header.rd;
+    pw.getHeader()->qr = 1;
     pw.startRecord(record.d_name + mdp.d_qname, record.d_type);
     record.d_content->toPacket(pw);
+    pw.commit();
+    packets.push_back(packet);
   }
-  pw.commit();
 
-  // Add the final SOA
-  pw.startRecord(mdp.d_qname, QType::SOA);
-  soa->toPacket(pw);
-  pw.commit();
+  // Final SOA
+  packets.push_back(getSOAPacket(mdp, soa));
 
   return true;
+}
+
+void makeXFRPacketsFromDNSRecords(const MOADNSParser& mdp, const vector<DNSRecord>& records, vector<vector<uint8_t>>& packets) {
+  for(const auto& r : records) {
+    if (r.d_type == QType::SOA) {
+      continue;
+    }
+    vector<uint8_t> packet;
+    DNSPacketWriter pw(packet, mdp.d_qname, mdp.d_qtype);
+    pw.getHeader()->id = mdp.d_header.id;
+    pw.getHeader()->rd = mdp.d_header.rd;
+    pw.getHeader()->qr = 1;
+    pw.startRecord(r.d_name + mdp.d_qname, r.d_type);
+    r.d_content->toPacket(pw);
+    pw.commit();
+    packets.push_back(packet);
+  }
 }
 
 /* Produces an IXFR if one can be made according to the rules in RFC 1995 and
  * creates a SOA or AXFR packet when required by the RFC.
  */
-bool makeIXFRPacket(const MOADNSParser& mdp, const shared_ptr<SOARecordContent>& clientSOA, vector<uint8_t>& packet) {
+bool makeIXFRPackets(const MOADNSParser& mdp, const shared_ptr<SOARecordContent>& clientSOA, vector<vector<uint8_t>>& packets) {
   string dir = g_workdir + "/" + mdp.d_qname.toString();
   // Get the new SOA only once, so it will not change under our noses from the
   // updateThread.
@@ -316,7 +344,12 @@ bool makeIXFRPacket(const MOADNSParser& mdp, const shared_ptr<SOARecordContent>&
      *    the server is received, it is replied to with a single SOA record of
      *    the server's current version, just as in AXFR.
      */
-    return makeSOAPacket(mdp, packet);
+    vector<uint8_t> packet;
+    bool ret = makeSOAPacket(mdp, packet);
+    if (ret) {
+      packets.push_back(packet);
+    }
+    return ret;
   }
 
   // Check if we can actually make an IXFR
@@ -326,7 +359,7 @@ bool makeIXFRPacket(const MOADNSParser& mdp, const shared_ptr<SOARecordContent>&
       if (g_verbose) {
         cerr<<"[INFO] IXFR for "<<mdp.d_qname<<" not possible: no zone data with serial "<<clientSOA->d_st.serial<<", sending out AXFR"<<endl;
       }
-      return makeAXFRPacket(mdp, packet);
+      return makeAXFRPackets(mdp, packets);
     }
     cerr<<"[WARNING] Could not determine existence of "<<oldZoneFname<<" for IXFR: "<<strerror(errno)<<endl;
     return false;
@@ -355,11 +388,6 @@ bool makeIXFRPacket(const MOADNSParser& mdp, const shared_ptr<SOARecordContent>&
     return false;
   }
 
-  DNSPacketWriter pw(packet, mdp.d_qname, mdp.d_qtype);
-  pw.getHeader()->id = mdp.d_header.id;
-  pw.getHeader()->rd = mdp.d_header.rd;
-  pw.getHeader()->qr = 1;
-
   /* An IXFR packet's ANSWER section looks as follows:
    * SOA new_serial
    * SOA old_serial
@@ -369,47 +397,24 @@ bool makeIXFRPacket(const MOADNSParser& mdp, const shared_ptr<SOARecordContent>&
    * SOA new_serial
    */
 
-  pw.startRecord(mdp.d_qname, QType::SOA);
-  newSOA->toPacket(pw);
-
-  pw.startRecord(mdp.d_qname, QType::SOA);
-  clientSOA->toPacket(pw);
-  pw.commit();
+  packets.push_back(getSOAPacket(mdp, newSOA));
+  packets.push_back(getSOAPacket(mdp, clientSOA));
 
   // Removed records
   vector<DNSRecord> diff;
   set_difference(oldRecords.cbegin(), oldRecords.cend(), newRecords.cbegin(), newRecords.cend(), back_inserter(diff), oldRecords.value_comp());
-  for(const auto& d : diff) {
-    if (d.d_type == QType::SOA) {
-      continue;
-    }
-    pw.startRecord(d.d_name + mdp.d_qname, d.d_type);
-    d.d_content->toPacket(pw);
-  }
-  pw.commit();
+  makeXFRPacketsFromDNSRecords(mdp, diff, packets);
 
   // Added records
-  pw.startRecord(mdp.d_qname, QType::SOA);
-  newSOA->toPacket(pw);
-  pw.commit();
+  packets.push_back(getSOAPacket(mdp, newSOA));
 
   diff.clear();
 
   set_difference(newRecords.cbegin(), newRecords.cend(), oldRecords.cbegin(), oldRecords.cend(), back_inserter(diff), oldRecords.value_comp());
-  for(const auto& d : diff) {
-    if (d.d_type == QType::SOA) {
-      continue;
-    }
-    pw.startRecord(d.d_name + mdp.d_qname, d.d_type);
-    d.d_content->toPacket(pw);
-  }
-
-  pw.commit();
+  makeXFRPacketsFromDNSRecords(mdp, diff, packets);
 
   // Final SOA
-  pw.startRecord(mdp.d_qname, QType::SOA);
-  newSOA->toPacket(pw);
-  pw.commit();
+  packets.push_back(getSOAPacket(mdp, newSOA));
 
   return true;
 }
@@ -514,16 +519,19 @@ void handleTCPRequest(int fd, boost::any&) {
       return;
     }
 
-    vector<uint8_t> packet;
+    vector<vector<uint8_t>> packets;
     if (mdp.d_qtype == QType::SOA) {
-      if (!makeSOAPacket(mdp,packet)) {
+    vector<uint8_t> packet;
+      bool ret = makeSOAPacket(mdp, packet);
+      if (!ret) {
         close(cfd);
         return;
       }
+      packets.push_back(packet);
     }
 
     if (mdp.d_qtype == QType::AXFR) {
-      if (!makeAXFRPacket(mdp, packet)) {
+      if (!makeAXFRPackets(mdp, packets)) {
         close(cfd);
         return;
       }
@@ -553,18 +561,20 @@ void handleTCPRequest(int fd, boost::any&) {
         return;
       }
 
-      if (!makeIXFRPacket(mdp, clientSOA, packet)) {
+      if (!makeIXFRPackets(mdp, clientSOA, packets)) {
         close(cfd);
         return;
       }
     } /* if (mdp.d_qtype == QType::IXFR) */
 
-    char buf[2];
-    buf[0]=packet.size()/256;
-    buf[1]=packet.size()%256;
+    for (const auto& packet : packets) {
+      char buf[2];
+      buf[0]=packet.size()/256;
+      buf[1]=packet.size()%256;
 
-    int send = writen2(cfd, buf, 2);
-    send += writen2(cfd, &packet[0], packet.size());
+      int send = writen2(cfd, buf, 2);
+      send += writen2(cfd, &packet[0], packet.size());
+    }
     shutdown(cfd, 2);
   } catch (MOADNSException &e) {
     cerr<<"[WARNING] Could not parse DNS packet from "<<saddr.toStringWithPort()<<": "<<e.what()<<endl;
