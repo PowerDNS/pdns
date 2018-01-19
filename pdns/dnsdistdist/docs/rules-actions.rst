@@ -143,17 +143,27 @@ Rule Generators
   :param string domain: Domain name to spoof for
   :param string cname: Domain name to add CNAME to
 
-.. function:: addLuaAction(DNSrule, function)
+.. function:: addLuaAction(DNSrule, function [, options])
+
+  .. versionchanged:: 1.3.0
+    Added the optional parameter ``options``.
 
   Invoke a Lua function that accepts a :class:`DNSQuestion`.
   This function works similar to using :func:`LuaAction`.
-
   The ``function`` should return a :ref:`DNSAction`.
 
   :param DNSRule: match queries based on this rule
   :param string function: the name of a Lua function
+  :param table options: A table with key: value pairs with options.
 
-.. function:: addLuaResponseAction(DNSrule, function)
+  Options:
+
+  * ``uuid``: string - UUID to assign to the new rule. By default a random UUID is generated for each rule.
+
+.. function:: addLuaResponseAction(DNSrule, function [, options])
+
+  .. versionchanged:: 1.3.0
+    Added the optional parameter ``options``.
 
   Invoke a Lua function that accepts a :class:`DNSQuestion` on the response.
   This function works similar to using :func:`LuaAction`.
@@ -162,6 +172,11 @@ Rule Generators
 
   :param DNSRule: match queries based on this rule
   :param string function: the name of a Lua function
+  :param table options: A table with key: value pairs with options.
+
+  Options:
+
+  * ``uuid``: string - UUID to assign to the new rule. By default a random UUID is generated for each rule.
 
 .. function:: addNoRecurseRule(DNSrule)
 

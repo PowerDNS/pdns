@@ -835,25 +835,27 @@ void setupLuaActions()
         });
     });
 
-  g_lua.writeFunction("addLuaAction", [](luadnsrule_t var, LuaAction::func_t func) {
+  g_lua.writeFunction("addLuaAction", [](luadnsrule_t var, LuaAction::func_t func, boost::optional<luaruleparams_t> params) {
       setLuaSideEffect();
+
+      boost::uuids::uuid uuid;
+      parseRuleParams(params, uuid);
+
       auto rule=makeRule(var);
-      g_rulactions.modify([rule,func](decltype(g_rulactions)::value_type& rulactions){
-          rulactions.push_back({
-              rule,
-                std::make_shared<LuaAction>(func),
-                t_uuidGenerator() });
+      g_rulactions.modify([rule, func, uuid](decltype(g_rulactions)::value_type& rulactions){
+          rulactions.push_back({rule, std::make_shared<LuaAction>(func), uuid});
         });
     });
 
-  g_lua.writeFunction("addLuaResponseAction", [](luadnsrule_t var, LuaResponseAction::func_t func) {
+  g_lua.writeFunction("addLuaResponseAction", [](luadnsrule_t var, LuaResponseAction::func_t func, boost::optional<luaruleparams_t> params) {
       setLuaSideEffect();
+
+      boost::uuids::uuid uuid;
+      parseRuleParams(params, uuid);
+
       auto rule=makeRule(var);
-      g_resprulactions.modify([rule,func](decltype(g_resprulactions)::value_type& rulactions){
-          rulactions.push_back({
-                rule,
-                std::make_shared<LuaResponseAction>(func),
-                t_uuidGenerator() });
+      g_resprulactions.modify([rule, func, uuid](decltype(g_resprulactions)::value_type& rulactions){
+          rulactions.push_back({rule, std::make_shared<LuaResponseAction>(func), uuid});
         });
     });
 
