@@ -950,10 +950,12 @@ void setupLuaRules()
       if (auto str = boost::get<std::string>(&id)) {
         boost::uuids::string_generator gen;
         const auto uuid = gen(*str);
-        rules.erase(std::remove_if(rules.begin(),
-                                   rules.end(),
-                                   [uuid](const DNSDistResponseRuleAction& a) { return a.d_id == uuid; }),
-                    rules.end());
+        if (rules.erase(std::remove_if(rules.begin(),
+                                       rules.end(),
+                                       [uuid](const DNSDistResponseRuleAction& a) { return a.d_id == uuid; }),
+                        rules.end()) == rules.end()) {
+          g_outputBuffer = "Error: no rule matched\n";
+        }
       }
       else if (auto pos = boost::get<unsigned int>(&id)) {
         if (*pos >= rules.size()) {
@@ -1024,10 +1026,12 @@ void setupLuaRules()
       if (auto str = boost::get<std::string>(&id)) {
         boost::uuids::string_generator gen;
         const auto uuid = gen(*str);
-        rules.erase(std::remove_if(rules.begin(),
-                                   rules.end(),
-                                   [uuid](const DNSDistResponseRuleAction& a) { return a.d_id == uuid; }),
-                    rules.end());
+        if (rules.erase(std::remove_if(rules.begin(),
+                                       rules.end(),
+                                       [uuid](const DNSDistResponseRuleAction& a) { return a.d_id == uuid; }),
+                        rules.end()) == rules.end()) {
+          g_outputBuffer = "Error: no rule matched\n";
+        }
       }
       else if (auto pos = boost::get<unsigned int>(&id)) {
         if (*pos >= rules.size()) {
@@ -1075,10 +1079,12 @@ void setupLuaRules()
       if (auto str = boost::get<std::string>(&id)) {
         boost::uuids::string_generator gen;
         const auto uuid = gen(*str);
-        rules.erase(std::remove_if(rules.begin(),
-                                   rules.end(),
-                                   [uuid](const DNSDistRuleAction& a) { return a.d_id == uuid; }),
-                    rules.end());
+        if (rules.erase(std::remove_if(rules.begin(),
+                                       rules.end(),
+                                       [uuid](const DNSDistRuleAction& a) { return a.d_id == uuid; }),
+                        rules.end()) == rules.end()) {
+          g_outputBuffer = "Error: no rule matched\n";
+        }
       }
       else if (auto pos = boost::get<unsigned int>(&id)) {
         if (*pos >= rules.size()) {
