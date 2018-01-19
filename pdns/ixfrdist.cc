@@ -69,6 +69,9 @@ bool g_debug = false;
 bool g_exiting = false;
 
 void handleSignal(int signum) {
+  if (g_verbose) {
+    cerr<<"[INFO] Got "<<strsignal(signum)<<" signal, exiting"<<endl;
+  }
   g_exiting = true;
 }
 
@@ -111,6 +114,9 @@ void* updateThread(void*) {
 
   while (true) {
     if (g_exiting) {
+      if (g_verbose) {
+        cerr<<"[INFO] UpdateThread stopped"<<endl;
+      }
       break;
     }
     time_t now = time(nullptr);
@@ -714,7 +720,9 @@ int main(int argc, char** argv) {
     gettimeofday(&now, 0);
     g_fdm.run(&now);
     if (g_exiting) {
-      cerr<<"Shutting down!"<<endl;
+      if (g_verbose) {
+        cerr<<"[INFO] Shutting down!"<<endl;
+      }
       for (const int& fd : allSockets) {
         try {
           closesocket(fd);
@@ -727,5 +735,8 @@ int main(int argc, char** argv) {
   }
   char* x;
   pthread_join(qtid, (void**)&x);
+  if (g_verbose) {
+    cerr<<"[INFO] IXFR distributor stopped"<<endl;
+  }
   return EXIT_SUCCESS;
 }
