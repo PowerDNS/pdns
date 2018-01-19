@@ -187,7 +187,7 @@ JSON Objects
 
   :property string action: The action taken when the rule matches (e.g. "to pool abuse")
   :property dict action-stats: A list of statistics whose content varies depending on the kind of rule
-  :property integer id: The order of this rule
+  :property integer id: The position of this rule
   :property integer matches: How many times this rule was hit
   :property string rule: The matchers for the packet (e.g. "qname==bad-domain1.example., bad-domain2.example.")
   :property string uuid: The UUID of this rule
