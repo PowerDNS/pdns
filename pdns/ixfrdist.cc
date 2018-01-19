@@ -477,6 +477,8 @@ void handleTCPRequest(int fd, boost::any&) {
     return;
   }
 
+  setBlocking(cfd);
+
   if (saddr == ComboAddress("0.0.0.0", 0)) {
     cerr<<"[WARNING] Could not determine source of message"<<endl;
     return;
