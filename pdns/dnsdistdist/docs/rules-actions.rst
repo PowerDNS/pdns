@@ -143,17 +143,27 @@ Rule Generators
   :param string domain: Domain name to spoof for
   :param string cname: Domain name to add CNAME to
 
-.. function:: addLuaAction(DNSrule, function)
+.. function:: addLuaAction(DNSrule, function [, options])
+
+  .. versionchanged:: 1.3.0
+    Added the optional parameter ``options``.
 
   Invoke a Lua function that accepts a :class:`DNSQuestion`.
   This function works similar to using :func:`LuaAction`.
-
   The ``function`` should return a :ref:`DNSAction`.
 
   :param DNSRule: match queries based on this rule
   :param string function: the name of a Lua function
+  :param table options: A table with key: value pairs with options.
 
-.. function:: addLuaResponseAction(DNSrule, function)
+  Options:
+
+  * ``uuid``: string - UUID to assign to the new rule. By default a random UUID is generated for each rule.
+
+.. function:: addLuaResponseAction(DNSrule, function [, options])
+
+  .. versionchanged:: 1.3.0
+    Added the optional parameter ``options``.
 
   Invoke a Lua function that accepts a :class:`DNSQuestion` on the response.
   This function works similar to using :func:`LuaAction`.
@@ -162,6 +172,11 @@ Rule Generators
 
   :param DNSRule: match queries based on this rule
   :param string function: the name of a Lua function
+  :param table options: A table with key: value pairs with options.
+
+  Options:
+
+  * ``uuid``: string - UUID to assign to the new rule. By default a random UUID is generated for each rule.
 
 .. function:: addNoRecurseRule(DNSrule)
 
@@ -233,12 +248,20 @@ Active Rules can be shown with :func:`showRules` and removed with :func:`rmRule`
 
 For Rules related to the incoming query:
 
-.. function:: addAction(DNSrule, action)
+.. function:: addAction(DNSrule, action [, options])
+
+  .. versionchanged:: 1.3.0
+    Added the optional parameter ``options``.
 
   Add a Rule and Action to the existing rules.
 
   :param DNSrule rule: A DNSRule, e.g. an :func:`allRule` or a compounded bunch of rules using e.g. :func:`AndRule`
   :param action: The action to take
+  :param table options: A table with key: value pairs with options.
+
+  Options:
+
+  * ``uuid``: string - UUID to assign to the new rule. By default a random UUID is generated for each rule.
 
 .. function:: clearRules()
 
@@ -258,12 +281,20 @@ For Rules related to the incoming query:
   :param int from: Rule number to move
   :param int to: Location to more the Rule to
 
-.. function:: newRuleAction(rule, action)
+.. function:: newRuleAction(rule, action[, options])
+
+  .. versionchanged:: 1.3.0
+    Added the optional parameter ``options``.
 
   Return a pair of DNS Rule and DNS Action, to be used with :func:`setRules`.
 
   :param Rule rule: A `Rule <#traffic-matching>`_
   :param Action action: The `Action <#actions>`_ to apply to the matched traffic
+  :param table options: A table with key: value pairs with options.
+
+  Options:
+
+  * ``uuid``: string - UUID to assign to the new rule. By default a random UUID is generated for each rule.
 
 .. function:: setRules(rules)
 
@@ -271,28 +302,41 @@ For Rules related to the incoming query:
 
   :param [RuleAction] rules: A list of RuleActions
 
-.. function:: showRules()
+.. function:: showRules([showUUIDs])
 
-  Show all defined rules for queries.
+  Show all defined rules for queries, optionally displaying their UUIDs.
+
+  :param bool showUUIDs: Whether to display the UUIDs, defaults to false
 
 .. function:: topRule()
 
   Move the last rule to the first position.
 
-.. function:: rmRule(n)
+.. function:: rmRule(id)
 
-  Remove rule ``n``.
+  .. versionchanged:: 1.3.0
+    ``id`` can now be an UUID.
 
-  :param int n: Rule number to remove
+  Remove rule ``id``.
+
+  :param int id: The UUID of the rule to remove if ``id`` is an UUID, its position otherwise
 
 For Rules related to responses:
 
-.. function:: addResponseAction(DNSRule, action)
+.. function:: addResponseAction(DNSRule, action [, options])
+
+  .. versionchanged:: 1.3.0
+    Added the optional parameter ``options``.
 
   Add a Rule and Action for responses to the existing rules.
 
   :param DNSRule: A DNSRule, e.g. an :func:`allRule` or a compounded bunch of rules using e.g. :func:`AndRule`
   :param action: The action to take
+  :param table options: A table with key: value pairs with options.
+
+  Options:
+
+  * ``uuid``: string - UUID to assign to the new rule. By default a random UUID is generated for each rule.
 
 .. function:: mvResponseRule(from, to)
 
@@ -302,15 +346,20 @@ For Rules related to responses:
   :param int from: Rule number to move
   :param int to: Location to more the Rule to
 
-.. function:: rmResponseRule(n)
+.. function:: rmResponseRule(id)
 
-  Remove response rule ``n``.
+  .. versionchanged:: 1.3.0
+    ``id`` can now be an UUID.
 
-  :param int n: Rule number to remove
+  Remove response rule ``id``.
 
-.. function:: showResponseRules()
+  :param int id: The UUID of the rule to remove if ``id`` is an UUID, its position otherwise
 
-  Show all defined response rules.
+.. function:: showResponseRules([showUUIDs])
+
+  Show all defined response rules, optionally displaying their UUIDs.
+
+  :param bool showUUIDs: Whether to display the UUIDs, defaults to false
 
 .. function:: topResponseRule()
 
@@ -318,14 +367,22 @@ For Rules related to responses:
 
 Functions for manipulation Cache Hit Rules:
 
-.. function:: addCacheHitAction(DNSRule, action)
+.. function:: addCacheHitResponseAction(DNSRule, action)
 
   .. versionadded:: 1.2.0
 
-  Add a Rule and Action for Cache Hits to the existing rules.
+  .. versionchanged:: 1.3.0
+    Added the optional parameter ``options``.
+
+  Add a Rule and ResponseAction for Cache Hits to the existing rules.
 
   :param DNSRule: A DNSRule, e.g. an :func:`allRule` or a compounded bunch of rules using e.g. :func:`AndRule`
   :param action: The action to take
+  :param table options: A table with key: value pairs with options.
+
+  Options:
+
+  * ``uuid``: string - UUID to assign to the new rule. By default a random UUID is generated for each rule.
 
 .. function:: mvCacheHitResponseRule(from, to)
 
@@ -337,19 +394,22 @@ Functions for manipulation Cache Hit Rules:
   :param int from: Rule number to move
   :param int to: Location to more the Rule to
 
-.. function:: rmCacheHitResponseRule(n)
+.. function:: rmCacheHitResponseRule(id)
 
   .. versionadded:: 1.2.0
 
-  Remove cache hit response rule ``n``.
+  .. versionchanged:: 1.3.0
+    ``id`` can now be an UUID.
 
-  :param int n: Rule number to remove
+  :param int id: The UUID of the rule to remove if ``id`` is an UUID, its position otherwise
 
-.. function:: showCacheHitResponseRules()
+.. function:: showCacheHitResponseRules([showUUIDs])
 
   .. versionadded:: 1.2.0
 
-  Show all defined cache hit response rules.
+  Show all defined cache hit response rules, optionally displaying their UUIDs.
+
+  :param bool showUUIDs: Whether to display the UUIDs, defaults to false
 
 .. function:: topCacheHitResponseRule()
 

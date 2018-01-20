@@ -918,6 +918,7 @@ void setupLuaConfig(bool client)
 #else
       g_outputBuffer="Error: DNSCrypt support is not enabled.\n";
 #endif
+
     });
 
   g_lua.writeFunction("showDNSCryptBinds", []() {

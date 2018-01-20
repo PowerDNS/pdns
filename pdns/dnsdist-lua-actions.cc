@@ -810,62 +810,85 @@ private:
 
 void setupLuaActions()
 {
-  g_lua.writeFunction("newRuleAction", [](luadnsrule_t dnsrule, std::shared_ptr<DNSAction> action) {
+  g_lua.writeFunction("newRuleAction", [](luadnsrule_t dnsrule, std::shared_ptr<DNSAction> action, boost::optional<luaruleparams_t> params) {
+      boost::uuids::uuid uuid;
+      parseRuleParams(params, uuid);
+
       auto rule=makeRule(dnsrule);
-      return std::make_shared<std::pair< luadnsrule_t, std::shared_ptr<DNSAction> > >(rule, action);
+      DNSDistRuleAction ra({rule, action, uuid});
+      return std::make_shared<DNSDistRuleAction>(ra);
     });
 
-  g_lua.writeFunction("addAction", [](luadnsrule_t var, boost::variant<std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction> > era) {
+  g_lua.writeFunction("addAction", [](luadnsrule_t var, boost::variant<std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction> > era, boost::optional<luaruleparams_t> params) {
       if (era.type() == typeid(std::shared_ptr<DNSResponseAction>)) {
         throw std::runtime_error("addAction() can only be called with query-related actions, not response-related ones. Are you looking for addResponseAction()?");
       }
 
+      boost::uuids::uuid uuid;
+      parseRuleParams(params, uuid);
+
       auto ea = *boost::get<std::shared_ptr<DNSAction>>(&era);
       setLuaSideEffect();
       auto rule=makeRule(var);
-      g_rulactions.modify([rule, ea](decltype(g_rulactions)::value_type& rulactions){
-          rulactions.push_back({rule, ea});
+      g_rulactions.modify([rule, ea, uuid](decltype(g_rulactions)::value_type& rulactions){
+          rulactions.push_back({rule, ea, uuid});
         });
     });
 
-  g_lua.writeFunction("addLuaAction", [](luadnsrule_t var, LuaAction::func_t func)
-		      {
-                        setLuaSideEffect();
-			auto rule=makeRule(var);
-			g_rulactions.modify([rule,func](decltype(g_rulactions)::value_type& rulactions){
-			    rulactions.push_back({rule,
-				  std::make_shared<LuaAction>(func)});
-			  });
-		      });
-
-  g_lua.writeFunction("addLuaResponseAction", [](luadnsrule_t var, LuaResponseAction::func_t func) {
+  g_lua.writeFunction("addLuaAction", [](luadnsrule_t var, LuaAction::func_t func, boost::optional<luaruleparams_t> params) {
       setLuaSideEffect();
+
+      boost::uuids::uuid uuid;
+      parseRuleParams(params, uuid);
+
       auto rule=makeRule(var);
-      g_resprulactions.modify([rule,func](decltype(g_resprulactions)::value_type& rulactions){
-          rulactions.push_back({rule,
-                std::make_shared<LuaResponseAction>(func)});
+      g_rulactions.modify([rule, func, uuid](decltype(g_rulactions)::value_type& rulactions){
+          rulactions.push_back({rule, std::make_shared<LuaAction>(func), uuid});
         });
     });
 
-  g_lua.writeFunction("addResponseAction", [](luadnsrule_t var, boost::variant<std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction> > era) {
+  g_lua.writeFunction("addLuaResponseAction", [](luadnsrule_t var, LuaResponseAction::func_t func, boost::optional<luaruleparams_t> params) {
+      setLuaSideEffect();
+
+      boost::uuids::uuid uuid;
+      parseRuleParams(params, uuid);
+
+      auto rule=makeRule(var);
+      g_resprulactions.modify([rule, func, uuid](decltype(g_resprulactions)::value_type& rulactions){
+          rulactions.push_back({rule, std::make_shared<LuaResponseAction>(func), uuid});
+        });
+    });
+
+  g_lua.writeFunction("addResponseAction", [](luadnsrule_t var, boost::variant<std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction> > era, boost::optional<luaruleparams_t> params) {
       if (era.type() == typeid(std::shared_ptr<DNSAction>)) {
         throw std::runtime_error("addResponseAction() can only be called with response-related actions, not query-related ones. Are you looking for addAction()?");
       }
 
       auto ea = *boost::get<std::shared_ptr<DNSResponseAction>>(&era);
+      boost::uuids::uuid uuid;
+      parseRuleParams(params, uuid);
 
       setLuaSideEffect();
       auto rule=makeRule(var);
-      g_resprulactions.modify([rule, ea](decltype(g_resprulactions)::value_type& rulactions){
-          rulactions.push_back({rule, ea});
+      g_resprulactions.modify([rule, ea, uuid](decltype(g_resprulactions)::value_type& rulactions){
+          rulactions.push_back({rule, ea, uuid});
         });
     });
 
-  g_lua.writeFunction("addCacheHitResponseAction", [](luadnsrule_t var, std::shared_ptr<DNSResponseAction> ea) {
+  g_lua.writeFunction("addCacheHitResponseAction", [](luadnsrule_t var, boost::variant<std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction>> era, boost::optional<luaruleparams_t> params) {
+      if (era.type() == typeid(std::shared_ptr<DNSAction>)) {
+        throw std::runtime_error("addCacheHitResponseAction() can only be called with response-related actions, not query-related ones. Are you looking for addAction()?");
+      }
+
       setLuaSideEffect();
       auto rule=makeRule(var);
-      g_cachehitresprulactions.modify([rule, ea](decltype(g_cachehitresprulactions)::value_type& rulactions){
-          rulactions.push_back({rule, ea});
+
+      boost::uuids::uuid uuid;
+      parseRuleParams(params, uuid);
+
+      auto ea = *boost::get<std::shared_ptr<DNSResponseAction>>(&era);
+      g_cachehitresprulactions.modify([rule, ea, uuid](decltype(g_cachehitresprulactions)::value_type& rulactions){
+          rulactions.push_back({rule, ea, uuid});
         });
     });
 
@@ -886,7 +909,7 @@ void setupLuaActions()
       boost::optional<std::shared_ptr<DNSAction>> ret;
       auto rulactions = g_rulactions.getCopy();
       if(num < rulactions.size())
-        ret=rulactions[num].second;
+        ret=rulactions[num].d_action;
       return ret;
     });
 

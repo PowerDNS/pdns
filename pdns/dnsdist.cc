@@ -54,9 +54,7 @@
 #include <systemd/sd-daemon.h>
 #endif
 
-#ifdef HAVE_PROTOBUF
 thread_local boost::uuids::random_generator t_uuidGenerator;
-#endif
 
 /* Known sins:
 
@@ -134,9 +132,10 @@ DNSDistSNMPAgent* g_snmpAgent{nullptr};
 
    If all downstreams are over QPS, we pick the fastest server */
 
-GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > > g_rulactions;
-GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSResponseAction> > > > g_resprulactions;
-GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSResponseAction> > > > g_cachehitresprulactions;
+GlobalStateHolder<vector<DNSDistRuleAction> > g_rulactions;
+GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_resprulactions;
+GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_cachehitresprulactions;
+
 Rings g_rings;
 QueryCount g_qcount;
 
@@ -981,9 +980,9 @@ bool processQuery(LocalHolders& holders, DNSQuestion& dq, string& poolname, int*
   DNSAction::Action action=DNSAction::Action::None;
   string ruleresult;
   for(const auto& lr : *holders.rulactions) {
-    if(lr.first->matches(&dq)) {
-      lr.first->d_matches++;
-      action=(*lr.second)(&dq, &ruleresult);
+    if(lr.d_rule->matches(&dq)) {
+      lr.d_rule->d_matches++;
+      action=(*lr.d_action)(&dq, &ruleresult);
 
       switch(action) {
       case DNSAction::Action::Allow:
@@ -1034,14 +1033,14 @@ bool processQuery(LocalHolders& holders, DNSQuestion& dq, string& poolname, int*
   return true;
 }
 
-bool processResponse(LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSResponseAction> > > >& localRespRulactions, DNSResponse& dr, int* delayMsec)
+bool processResponse(LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, int* delayMsec)
 {
   DNSResponseAction::Action action=DNSResponseAction::Action::None;
   std::string ruleresult;
   for(const auto& lr : *localRespRulactions) {
-    if(lr.first->matches(&dr)) {
-      lr.first->d_matches++;
-      action=(*lr.second)(&dr, &ruleresult);
+    if(lr.d_rule->matches(&dr)) {
+      lr.d_rule->d_matches++;
+      action=(*lr.d_action)(&dr, &ruleresult);
       switch(action) {
       case DNSResponseAction::Action::Allow:
         return true;
