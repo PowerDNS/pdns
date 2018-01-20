@@ -32,6 +32,7 @@
 #include "sstuff.hh"
 #include "mplexer.hh"
 #include "misc.hh"
+#include "iputils.hh"
 
 /* BEGIN Needed because of deeper dependencies */
 #include "arguments.hh"
