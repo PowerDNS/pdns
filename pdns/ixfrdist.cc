@@ -25,6 +25,7 @@
 #include <boost/program_options.hpp>
 #include <sys/stat.h>
 #include <mutex>
+#include <thread>
 #include "ixfr.hh"
 #include "ixfrutils.hh"
 #include "resolver.hh"
@@ -81,7 +82,7 @@ void usage(po::options_description &desc) {
   cerr << desc << "\n";
 }
 
-void* updateThread(void*) {
+void updateThread() {
   std::map<DNSName, time_t> lastCheck;
 
   // Initialize the serials we have
@@ -102,7 +103,7 @@ void* updateThread(void*) {
       // Most likely, the directory does not exist.
       cerr<<"[INFO] "<<e.what()<<", attempting to create"<<endl;
       // Attempt to create it, if _that_ fails, there is no hope
-      if (mkdir(dir.c_str(), 0777) == -1) {
+      if (mkdir(dir.c_str(), 0777) == -1 && errno != EEXIST) {
         cerr<<"[ERROR] Could not create '"<<dir<<"': "<<strerror(errno)<<endl;
         exit(EXIT_FAILURE);
       }
@@ -122,7 +123,8 @@ void* updateThread(void*) {
     }
     time_t now = time(nullptr);
     for (const auto &domain : g_domains) {
-      if (now - lastCheck[domain] < g_soas[domain]->d_st.refresh) {
+      if ((g_soas.find(domain) != g_soas.end() && now - lastCheck[domain] < g_soas[domain]->d_st.refresh) || // Only check if we have waited `refresh` seconds
+          (g_soas.find(domain) == g_soas.end() && now - lastCheck[domain] < 30))  {                          // Or if we could not get an update at all still, every 30 seconds
         continue;
       }
       string dir = g_workdir + "/" + domain.toString();
@@ -131,8 +133,8 @@ void* updateThread(void*) {
       }
       shared_ptr<SOARecordContent> sr;
       try {
-        auto newSerial = getSerialFromMaster(g_master, domain, sr); // TODO TSIG
         lastCheck[domain] = now;
+        auto newSerial = getSerialFromMaster(g_master, domain, sr); // TODO TSIG
         if(g_soas.find(domain) != g_soas.end() && g_verbose) {
           cerr<<"[INFO] Got SOA Serial for "<<domain<<" from "<<g_master.toStringWithPort()<<": "<< newSerial<<", had Serial: "<<g_soas[domain]->d_st.serial;
           if (newSerial == g_soas[domain]->d_st.serial) {
@@ -710,11 +712,9 @@ int main(int argc, char** argv) {
   // TODO read from urandom (perhaps getrandom(2)?
   dns_random_init("0123456789abcdef");
 
-  pthread_t qtid;
-
   cout<<"[INFO] IXFR distributor starting up!"<<endl;
 
-  pthread_create(&qtid, 0, updateThread, 0);
+  std::thread ut(updateThread);
 
   struct timeval now;
   for(;;) {
@@ -734,8 +734,7 @@ int main(int argc, char** argv) {
       break;
     }
   }
-  char* x;
-  pthread_join(qtid, (void**)&x);
+  ut.join();
   if (g_verbose) {
     cerr<<"[INFO] IXFR distributor stopped"<<endl;
   }
