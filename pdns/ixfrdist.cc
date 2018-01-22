@@ -440,9 +440,9 @@ void handleUDPRequest(int fd, boost::any&) {
     return;
   }
 
-  // TODO better error handling/logging
   if(res < 0) {
-    cerr<<"[WARNING] Could not read message from "<<saddr.toStringWithPort()<<": "<<strerror(errno)<<endl;
+    auto savedErrno = errno;
+    cerr<<"[WARNING] Could not read message from "<<saddr.toStringWithPort()<<": "<<strerror(savedErrno)<<endl;
     return;
   }
 
@@ -470,7 +470,8 @@ void handleUDPRequest(int fd, boost::any&) {
   vector<uint8_t> packet;
   makeSOAPacket(mdp, packet);
   if(sendto(fd, &packet[0], packet.size(), 0, (struct sockaddr*) &saddr, fromlen) < 0) {
-    cerr<<"[WARNING] Could not send reply for "<<mdp.d_qname<<"|"<<QType(mdp.d_qtype).getName()<<" to "<<saddr.toStringWithPort()<<": "<<strerror(errno)<<endl;
+    auto savedErrno = errno;
+    cerr<<"[WARNING] Could not send reply for "<<mdp.d_qname<<"|"<<QType(mdp.d_qtype).getName()<<" to "<<saddr.toStringWithPort()<<": "<<strerror(savedErrno)<<endl;
   }
   return;
 }
@@ -502,7 +503,8 @@ void handleTCPRequest(int fd, boost::any&) {
       return;
     }
     if (res == -1) {
-      cerr<<"[WARNING] Could not read message from "<<saddr.toStringWithPort()<<": "<<strerror(errno)<<endl;
+      auto savedErrno = errno;
+      cerr<<"[WARNING] Could not read message from "<<saddr.toStringWithPort()<<": "<<strerror(savedErrno)<<endl;
       close(cfd);
       return;
     }
@@ -511,7 +513,8 @@ void handleTCPRequest(int fd, boost::any&) {
   res = recv(cfd, &buf, sizeof(buf), 0);
 
   if (res == -1) {
-    cerr<<"[WARNING] Could not read message from "<<saddr.toStringWithPort()<<": "<<strerror(errno)<<endl;
+    auto savedErrno = errno;
+    cerr<<"[WARNING] Could not read message from "<<saddr.toStringWithPort()<<": "<<strerror(savedErrno)<<endl;
     close(cfd);
     return;
   }
