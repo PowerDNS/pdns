@@ -2,6 +2,75 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.1
+  :released: 22nd of January 2018
+
+  This is the second release in the 4.1 train.
+
+  This release fixes PowerDNS Security Advisory :doc:`2018-01 <../security-advisories/powerdns-advisory-2018-01>`.
+
+  The full release notes can be read `on the blog <https://blog.powerdns.com/2018/01/22/powerdns-recursor-4-1-1/>`_.
+
+  This is a release on the stable branch and contains a fix for the
+  abovementioned security issue and several bug fixes from the
+  development branch.
+
+  .. change::
+    :tags: DNSSEC, Bug Fixes
+    :pullreq: 6215
+
+    Correctly handle ancestor delegation NSEC{,3} for children. Fixes
+    the DNSSEC validation issue found in Knot Resolver, where a NSEC{3}
+    ancestor delegation is wrongly use to prove the non-existence of a
+    RR below the delegation.
+    We already had the correct check for the exact owner name, but not
+    for RRs below the delegation.
+    (Security Advisory :doc:`2018-01 <../security-advisories/powerdns-advisory-2018-01>`)
+
+  .. change::
+    :tags: Internals, Bug Fixes
+    :pullreq: 6209
+    :tickets: 6212
+
+    Fix to make ``primeHints`` threadsafe, otherwise there's a small
+    chance on startup that the root-server IPs will be incorrect.
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 6085
+    :tickets: 6198
+
+    Don't process records for another class than IN. We don't use
+    records of another class than IN, but we used to store some of them
+    in the cache which is useless. Just skip them.
+
+  .. change::
+    :tags: DNSSEC, Bug Fixes
+    :pullreq: 6092
+    :tickets: 6199
+
+    Fix the computation of the closest encloser for positive
+    answers. When the positive answer is expanded from a wildcard with
+    NSEC3, the closest encloser is not always parent of the qname,
+    depending on the number of labels in the initial wildcard.
+
+  .. change::
+    :tags: DNSSEC, Bug Fixes
+    :pullreq: 6095
+    :tickets: 6200
+
+    Pass the correct buffer size to ``arecvfrom()``. The incorrect size
+    could possibly cause DNSSEC failures.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6137
+    :tickets: 6201
+
+    Don't validate signature for "glue" CNAME, since anything else than
+    the initial CNAME can't be considered authoritative.
+
+.. changelog::
   :version: 4.1.0
   :released: 4th of December 2017
 
