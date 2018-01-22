@@ -11,7 +11,7 @@ Changelogs for 4.1.x
 
   The full release notes can be read `on the blog <https://blog.powerdns.com/2018/01/22/powerdns-recursor-4-1-1/>`_.
 
-  This is a release on the stable branch and contains a fix for the
+  This is a release on the stable branch, containing a fix for the
   abovementioned security issue and several bug fixes from the
   development branch.
 
