@@ -66,7 +66,7 @@ void primeHints(void)
   arr.d_ttl=aaaarr.d_ttl=nsrr.d_ttl=time(nullptr)+3600000;
 
   for(char c='a';c<='m';++c) {
-    static char templ[40];
+    char templ[40];
     strncpy(templ,"a.root-servers.net.", sizeof(templ) - 1);
     templ[sizeof(templ)-1] = '\0';
     *templ=c;
