@@ -1,10 +1,10 @@
-AM_CPPFLAGS += $(SYSTEMD_CFLAGS) $(LUA_CFLAGS) $(LIBEDIT_CFLAGS) $(LIBSODIUM_CFLAGS) $(YAHTTP_CFLAGS) $(SANITIZER_FLAGS) $(NET_SNMP_CFLAGS) -DSYSCONFDIR=\"${sysconfdir}\"
+AM_CPPFLAGS += $(SYSTEMD_CFLAGS) $(LUA_CFLAGS) $(LIBEDIT_CFLAGS) $(LIBSODIUM_CFLAGS) $(FSTRM_CFLAGS) $(YAHTTP_CFLAGS) $(SANITIZER_FLAGS) $(NET_SNMP_CFLAGS) -DSYSCONFDIR=\"${sysconfdir}\"
 
 ACLOCAL_AMFLAGS = -I m4
 
 SUBDIRS=ext/yahttp
 
-CLEANFILES = dnsmessage.pb.cc dnsmessage.pb.h htmlfiles.h.tmp htmlfiles.h
+CLEANFILES = dnsmessage.pb.cc dnsmessage.pb.h htmlfiles.h.tmp htmlfiles.h dnstap.pb.cc dnstap.pb.h
 
 dnslabeltext.cc: dnslabeltext.rl
 	$(AM_V_GEN)$(RAGEL) $< -o dnslabeltext.cc
@@ -41,6 +41,7 @@ endif
 EXTRA_DIST=dnslabeltext.rl \
 	   dnsdistconf.lua \
 	   dnsmessage.proto \
+	   dnstap.proto \
 	   README.md \
 	   delaypipe.cc delaypipe.hh \
 	   html \
@@ -108,6 +109,7 @@ dnsdist_SOURCES = \
 	ednsoptions.cc ednsoptions.hh \
 	ednscookies.cc ednscookies.hh \
 	ednssubnet.cc ednssubnet.hh \
+	fstrm_logger.cc fstrm_logger.hh \
 	gettime.cc gettime.hh \
 	htmlfiles.h \
 	iputils.cc iputils.hh \
@@ -117,6 +119,7 @@ dnsdist_SOURCES = \
 	namespaces.hh \
 	pdnsexception.hh \
 	protobuf.cc protobuf.hh \
+	dnstap.cc dnstap.hh \
 	qtype.cc qtype.hh \
 	remote_logger.cc remote_logger.hh \
 	selectmplexer.cc \
@@ -144,6 +147,7 @@ dnsdist_LDADD = \
 	$(RT_LIBS) \
 	$(YAHTTP_LIBS) \
 	$(LIBSODIUM_LIBS) \
+	$(FSTRM_LIBS) \
 	$(SANITIZER_FLAGS) \
 	$(SYSTEMD_LIBS) \
 	$(NET_SNMP_LIBS)
@@ -173,12 +177,15 @@ if HAVE_PROTOC
 dnsmessage.pb.cc: dnsmessage.proto
 	$(AM_V_GEN)$(PROTOC) -I$(srcdir) --cpp_out=./ $<
 
-BUILT_SOURCES += dnsmessage.pb.cc
+dnstap.pb.cc: dnstap.proto
+	$(AM_V_GEN)$(PROTOC) -I$(srcdir) --cpp_out=./ $<
 
-nodist_dnsdist_SOURCES = dnsmessage.pb.cc dnsmessage.pb.h
+BUILT_SOURCES += dnsmessage.pb.cc dnstap.pb.cc
+
+nodist_dnsdist_SOURCES = dnsmessage.pb.cc dnsmessage.pb.h dnstap.pb.cc dnstap.pb.h
 dnsdist_LDADD += $(PROTOBUF_LIBS)
 
-dnsdist.$(OBJEXT): dnsmessage.pb.cc
+dnsdist.$(OBJEXT): dnsmessage.pb.cc dnstap.pb.cc
 endif
 endif
 
@@ -237,6 +244,7 @@ testrunner_LDFLAGS = \
 testrunner_LDADD = \
 	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
 	$(LIBSODIUM_LIBS) \
+	$(FSTRM_LIBS) \
 	$(RT_LIBS) \
 	$(SANITIZER_FLAGS)
 

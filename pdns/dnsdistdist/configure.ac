@@ -14,6 +14,7 @@ LT_PREREQ([2.2.2])
 LT_INIT([disable-static])
 
 PDNS_CHECK_LIBSODIUM
+PDNS_CHECK_FSTRM
 PDNS_CHECK_RAGEL([dnslabeltext.cc], [www.dnsdist.org])
 PDNS_CHECK_LIBEDIT
 PDNS_CHECK_CLOCK_GETTIME
@@ -144,6 +145,10 @@ AS_IF([test "x$LIBSODIUM_LIBS" != "x"],
 AS_IF([test "x$enable_dnscrypt" != "xno"],
   [AC_MSG_NOTICE([DNSCrypt: yes])],
   [AC_MSG_NOTICE([DNSCrypt: no])]
+)
+AS_IF([test "x$FSTRM_LIBS" != "x"],
+  [AC_MSG_NOTICE([fstrm: yes])],
+  [AC_MSG_NOTICE([fstrm: no])]
 )
 AS_IF([test "x$RE2_LIBS" != "x"],
   [AC_MSG_NOTICE([re2: yes])],

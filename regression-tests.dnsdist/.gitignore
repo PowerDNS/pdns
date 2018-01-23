@@ -7,4 +7,4 @@ DNSCryptResolver*
 .dnsdist_history
 .history
 dnsdist.log
-/dnsmessage_pb2.py
+/*_pb2.py

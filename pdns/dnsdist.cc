@@ -2163,6 +2163,9 @@ try
 #ifdef HAVE_LIBSODIUM
       cout<<"libsodium ";
 #endif
+#ifdef HAVE_FSTRM
+      cout<<"fstrm ";
+#endif
 #ifdef HAVE_PROTOBUF
       cout<<"protobuf ";
 #endif
