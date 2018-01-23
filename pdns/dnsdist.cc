@@ -1389,8 +1389,8 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       return;
     }
 
-    if (dq.addXPF && ss->xpfOptionCode != 0) {
-      addXPF(dq, ss->xpfOptionCode);
+    if (dq.addXPF && ss->xpfRRCode != 0) {
+      addXPF(dq, ss->xpfRRCode);
     }
 
     ss->queries++;

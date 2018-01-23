@@ -440,8 +440,8 @@ void* tcpClientThread(int pipefd)
           break;
         }
 
-        if (dq.addXPF && ds->xpfOptionCode != 0) {
-          addXPF(dq, ds->xpfOptionCode);
+        if (dq.addXPF && ds->xpfRRCode != 0) {
+          addXPF(dq, ds->xpfRRCode);
         }
 
 	int dsock = -1;

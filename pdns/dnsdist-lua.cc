@@ -310,7 +310,7 @@ void setupLuaConfig(bool client)
 			}
 
 			if(vars.count("addXPF")) {
-                          ret->xpfOptionCode=std::stoi(boost::get<string>(vars["addXPF"]));
+                          ret->xpfRRCode=std::stoi(boost::get<string>(vars["addXPF"]));
 			}
 
 			if(vars.count("maxCheckFailures")) {

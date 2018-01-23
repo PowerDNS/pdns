@@ -269,7 +269,7 @@ Servers
                              --   "interface name", e.g. "eth0"
                              --   "address@interface", e.g. "192.0.2.2@eth0"
       addXPF=NUM             -- Add the client's IP address and port to the query, along with the original destination address and port,
-                             -- using the experimental XPF record from `draft-bellis-dnsop-xpf` and the specified option code. Default is disabled (0)
+                             -- using the experimental XPF record from `draft-bellis-dnsop-xpf <https://datatracker.ietf.org/doc/draft-bellis-dnsop-xpf/>`_ and the specified option code. Default is disabled (0)
     })
 
   :param str server_string: A simple IP:PORT string.
