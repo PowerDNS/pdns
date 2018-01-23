@@ -639,7 +639,7 @@ struct DomainNotificationInfo
 
 struct SlaveSenderReceiver
 {
-  typedef pair<DNSName, uint16_t> Identifier;
+  typedef std::tuple<DNSName, ComboAddress, uint16_t> Identifier;
 
   struct Answer {
     uint32_t theirSerial;
@@ -661,13 +661,16 @@ struct SlaveSenderReceiver
   {
     random_shuffle(dni.di.masters.begin(), dni.di.masters.end());
     try {
-      return make_pair(dni.di.zone,
-        d_resolver.sendResolve(ComboAddress(*dni.di.masters.begin(), 53), dni.localaddr,
-          dni.di.zone,
-          QType::SOA,
-          nullptr,
-          dni.dnssecOk, dni.tsigkeyname, dni.tsigalgname, dni.tsigsecret)
-      );
+      ComboAddress remote(*dni.di.masters.begin(), 53);
+      return std::make_tuple(dni.di.zone,
+                             remote,
+                             d_resolver.sendResolve(remote,
+                                                    dni.localaddr,
+                                                    dni.di.zone,
+                                                    QType::SOA,
+                                                    nullptr,
+                                                    dni.dnssecOk, dni.tsigkeyname, dni.tsigalgname, dni.tsigsecret)
+        );
     }
     catch(PDNSException& e) {
       throw runtime_error("While attempting to query freshness of '"+dni.di.zone.toLogString()+"': "+e.reason);
@@ -676,7 +679,7 @@ struct SlaveSenderReceiver
 
   bool receive(Identifier& id, Answer& a)
   {
-    if(d_resolver.tryGetSOASerial(&id.first, &a.theirSerial, &a.theirInception, &a.theirExpire, &id.second)) {
+    if(d_resolver.tryGetSOASerial(&(std::get<0>(id)), &(std::get<1>(id)), &a.theirSerial, &a.theirInception, &a.theirExpire, &(std::get<2>(id)))) {
       return 1;
     }
     return 0;

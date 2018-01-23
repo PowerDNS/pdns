@@ -81,6 +81,7 @@ private:
   typedef map<int,ConntrackEntry> map_t;
 
   // Data
+  ComboAddress d_remote;
   AtomicCounter* d_resanswers;
   AtomicCounter* d_udpanswers;
   AtomicCounter* d_resquestions;
