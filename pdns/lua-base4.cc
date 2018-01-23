@@ -59,6 +59,9 @@ void BaseLua4::prepareContext() {
 
   // DNSName
   d_lw->writeFunction("newDN", [](const std::string& dom){ return DNSName(dom); });
+  d_lw->registerFunction("__lt", &DNSName::operator<);
+  d_lw->registerFunction("canonCompare", &DNSName::canonCompare);
+  d_lw->registerFunction("makeRelative", &DNSName::makeRelative);
   d_lw->registerFunction("isPartOf", &DNSName::isPartOf);
   d_lw->registerFunction<unsigned int(DNSName::*)()>("countLabels", [](const DNSName& name) { return name.countLabels(); });
   d_lw->registerFunction<size_t(DNSName::*)()>("wirelength", [](const DNSName& name) { return name.wirelength(); });
