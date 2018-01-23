@@ -8587,6 +8587,10 @@ BOOST_AUTO_TEST_CASE(test_nsec_ancestor_nxqtype_denial) {
      delegation NSEC can only deny the DS */
   BOOST_CHECK_EQUAL(denialState, NODATA);
 
+  /* it can not be used to deny any RRs below that owner name either */
+  denialState = getDenial(denialMap, DNSName("sub.a."), QType::A, false, false);
+  BOOST_CHECK_EQUAL(denialState, NODATA);
+
   denialState = getDenial(denialMap, DNSName("a."), QType::DS, true, true);
   BOOST_CHECK_EQUAL(denialState, NXQTYPE);
 }
@@ -8850,6 +8854,36 @@ BOOST_AUTO_TEST_CASE(test_nsec3_ancestor_nxqtype_denial) {
 
   denialState = getDenial(denialMap, DNSName("a."), QType::DS, true, true);
   BOOST_CHECK_EQUAL(denialState, NXQTYPE);
+
+  /* it can not be used to deny any RRs below that owner name either */
+  /* Add NSEC3 for the next closer */
+  recordContents.clear();
+  signatureContents.clear();
+  records.clear();
+  addNSEC3NarrowRecordToLW(DNSName("sub.a."), DNSName("."), { QType::A, QType::TXT, QType::RRSIG, QType::NSEC3 }, 600, records);
+  recordContents.push_back(records.at(0).d_content);
+  addRRSIG(keys, records, DNSName("."), 300);
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+
+  pair.records = recordContents;
+  pair.signatures = signatureContents;
+  denialMap[std::make_pair(records.at(0).d_name, records.at(0).d_type)] = pair;
+
+  /* add wildcard denial */
+  recordContents.clear();
+  signatureContents.clear();
+  records.clear();
+  addNSEC3NarrowRecordToLW(DNSName("*.a."), DNSName("."), { QType::A, QType::TXT, QType::RRSIG, QType::NSEC3 }, 600, records);
+  recordContents.push_back(records.at(0).d_content);
+  addRRSIG(keys, records, DNSName("."), 300);
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+
+  pair.records = recordContents;
+  pair.signatures = signatureContents;
+  denialMap[std::make_pair(records.at(0).d_name, records.at(0).d_type)] = pair;
+
+  denialState = getDenial(denialMap, DNSName("sub.a."), QType::A, false, true);
+  BOOST_CHECK_EQUAL(denialState, NODATA);
 }
 
 BOOST_AUTO_TEST_CASE(test_nsec3_denial_too_many_iterations) {

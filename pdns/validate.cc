@@ -155,6 +155,20 @@ static DNSName getNSECOwnerName(const DNSName& initialOwner, const std::vector<s
   return result;
 }
 
+static bool isNSECAncestorDelegation(const DNSName& signer, const DNSName& owner, const std::shared_ptr<NSECRecordContent> nsec)
+{
+  return nsec->d_set.count(QType::NS) &&
+    !nsec->d_set.count(QType::SOA) &&
+    signer.countLabels() < owner.countLabels();
+}
+
+static bool isNSEC3AncestorDelegation(const DNSName& signer, const DNSName& owner, const std::shared_ptr<NSEC3RecordContent> nsec3)
+{
+  return nsec3->d_set.count(QType::NS) &&
+    !nsec3->d_set.count(QType::SOA) &&
+    signer.countLabels() < owner.countLabels();
+}
+
 static bool provesNoDataWildCard(const DNSName& qname, const uint16_t qtype, const cspmap_t& validrrsets)
 {
   LOG("Trying to prove that there is no data in wildcard for "<<qname<<"/"<<QType(qtype).getName()<<endl);
@@ -334,21 +348,18 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
            that (original) owner name other than DS RRs, and all RRs below that
            owner name regardless of type.
         */
-        if (nsec->d_set.count(QType::NS) && !nsec->d_set.count(QType::SOA) &&
-            signer.countLabels() < owner.countLabels()) {
+        if (qtype != QType::DS && (qname == owner || qname.isPartOf(owner)) && isNSECAncestorDelegation(signer, owner, nsec)) {
           LOG("type is "<<QType(qtype).getName()<<", NS is "<<std::to_string(nsec->d_set.count(QType::NS))<<", SOA is "<<std::to_string(nsec->d_set.count(QType::SOA))<<", signer is "<<signer<<", owner name is "<<owner<<endl);
           /* this is an "ancestor delegation" NSEC RR */
-          if (qname == owner && qtype != QType::DS) {
-            LOG("An ancestor delegation NSEC RR can only deny the existence of a DS"<<endl);
-            continue;
-          }
+          LOG("An ancestor delegation NSEC RR can only deny the existence of a DS"<<endl);
+          return NODATA;
         }
 
         /* check if the type is denied */
         if(qname == owner) {
           if (nsec->d_set.count(qtype)) {
             LOG("Does _not_ deny existence of type "<<QType(qtype).getName()<<endl);
-            continue;
+            return NODATA;
           }
 
           LOG("Denies existence of type "<<QType(qtype).getName()<<endl);
@@ -446,21 +457,18 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
            that (original) owner name other than DS RRs, and all RRs below that
            owner name regardless of type.
         */
-        if (nsec3->d_set.count(QType::NS) && !nsec3->d_set.count(QType::SOA) &&
-            signer.countLabels() < v.first.first.countLabels()) {
+        if (qtype != QType::DS && beginHash == h && isNSEC3AncestorDelegation(signer, v.first.first, nsec3)) {
           LOG("type is "<<QType(qtype).getName()<<", NS is "<<std::to_string(nsec3->d_set.count(QType::NS))<<", SOA is "<<std::to_string(nsec3->d_set.count(QType::SOA))<<", signer is "<<signer<<", owner name is "<<v.first.first<<endl);
           /* this is an "ancestor delegation" NSEC3 RR */
-          if (beginHash == h && qtype != QType::DS) {
-            LOG("An ancestor delegation NSEC3 RR can only deny the existence of a DS"<<endl);
-            continue;
-          }
+          LOG("An ancestor delegation NSEC3 RR can only deny the existence of a DS"<<endl);
+          return NODATA;
         }
 
         // If the name exists, check if the qtype is denied
         if(beginHash == h) {
           if (nsec3->d_set.count(qtype)) {
             LOG("Does _not_ deny existence of type "<<QType(qtype).getName()<<" for name "<<qname<<" (not opt-out)."<<endl);
-            continue;
+            return NODATA;
           }
 
           LOG("Denies existence of type "<<QType(qtype).getName()<<" for name "<<qname<<" (not opt-out)."<<endl);
@@ -513,6 +521,12 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
             if(!nsec3)
               continue;
 
+            const DNSName signer = getSigner(v.second.signatures);
+            if (!v.first.first.isPartOf(signer)) {
+              LOG("Owner "<<v.first.first<<" is not part of the signer "<<signer<<", ignoring"<<endl);
+              continue;
+            }
+
             string h = getHashFromNSEC3(closestEncloser, nsec3);
             if (h.empty()) {
               return INSECURE;
@@ -522,6 +536,11 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
 
             LOG("Comparing "<<toBase32Hex(h)<<" ("<<closestEncloser<<") against "<<toBase32Hex(beginHash)<<endl);
             if(beginHash == h) {
+              if (qtype != QType::DS && isNSEC3AncestorDelegation(signer, v.first.first, nsec3)) {
+                LOG("An ancestor delegation NSEC3 RR can only deny the existence of a DS"<<endl);
+                continue;
+              }
+
               LOG("Closest encloser for "<<qname<<" is "<<closestEncloser<<endl);
               found = true;
               break;
