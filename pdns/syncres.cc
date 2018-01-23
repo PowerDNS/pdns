@@ -1283,6 +1283,37 @@ inline vector<DNSName> SyncRes::shuffleInSpeedOrder(NsSet &tnameservers, const s
   return rnameservers;
 }
 
+inline vector<ComboAddress> SyncRes::shuffleForwardSpeed(const vector<ComboAddress> &rnameservers, const string &prefix, const bool wasRd)
+{
+  vector<ComboAddress> nameservers = rnameservers;
+  map<ComboAddress, double> speeds;
+
+  for(const auto& val: nameservers) {
+    double speed;
+    DNSName nsName = DNSName(val.toStringWithPort());
+    speed=t_sstorage.nsSpeeds[nsName].get(&d_now);
+    speeds[val]=speed;
+  }
+  random_shuffle(nameservers.begin(),nameservers.end(), dns_random);
+  speedOrderCA so(speeds);
+  stable_sort(nameservers.begin(),nameservers.end(), so);
+
+  if(doLog()) {
+    LOG(prefix<<"Nameservers: ");
+    for(vector<ComboAddress>::const_iterator i=nameservers.cbegin();i!=nameservers.cend();++i) {
+      if(i!=nameservers.cbegin()) {
+        LOG(", ");
+        if(!((i-nameservers.cbegin())%3)) {
+          LOG(endl<<prefix<<"             ");
+        }
+      }
+      LOG((wasRd ? string("+") : string("-")) << i->toStringWithPort() <<"(" << (boost::format("%0.2f") % (speeds[*i]/1000.0)).str() <<"ms)");
+    }
+    LOG(endl);
+  }
+  return nameservers;
+}
+
 static uint32_t getRRSIGTTL(const time_t now, const std::shared_ptr<RRSIGRecordContent>& rrsig)
 {
   uint32_t res = 0;
@@ -1420,13 +1451,13 @@ vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, 
   else {
     LOG(prefix<<qname<<": Domain has hardcoded nameserver");
 
-    result = nameservers[*tns].first;
-    if(result.size() > 1) {
+    if(nameservers[*tns].first.size() > 1) {
       LOG("s");
     }
     LOG(endl);
 
     sendRDQuery = nameservers[*tns].second;
+    result = shuffleForwardSpeed(nameservers[*tns].first, doLog() ? (prefix+qname.toString()+": ") : string(), sendRDQuery);
     pierceDontQuery=true;
   }
   return result;
@@ -2423,7 +2454,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
     }
 
     if(resolveret != -2) { // don't account for resource limits, they are our own fault
-      t_sstorage.nsSpeeds[nsName].submit(remoteIP, 1000000, &d_now); // 1 sec
+      t_sstorage.nsSpeeds[nsName.empty()? DNSName(remoteIP.toStringWithPort()) : nsName].submit(remoteIP, 1000000, &d_now); // 1 sec
 
       // code below makes sure we don't filter COM or the root
       if (s_serverdownmaxfails > 0 && (auth != g_rootdnsname) && t_sstorage.fails.incr(remoteIP) >= s_serverdownmaxfails) {
@@ -2723,7 +2754,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
           */
           //        cout<<"msec: "<<lwr.d_usec/1000.0<<", "<<g_avgLatency/1000.0<<'\n';
 
-          t_sstorage.nsSpeeds[*tns].submit(*remoteIP, lwr.d_usec, &d_now);
+          t_sstorage.nsSpeeds[tns->empty()? DNSName(remoteIP->toStringWithPort()) : *tns].submit(*remoteIP, lwr.d_usec, &d_now);
 
           /* we have received an answer, are we done ? */
           bool done = processAnswer(depth, lwr, qname, qtype, auth, wasForwarded, ednsmask, sendRDQuery, nameservers, ret, luaconfsLocal->dfe, &gotNewServers, &rcode, state);
