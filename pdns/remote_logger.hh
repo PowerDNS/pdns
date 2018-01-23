@@ -42,6 +42,7 @@ public:
     return d_remote.toStringWithPort();
   }
 private:
+  void busyReconnectLoop();
   bool reconnect();
   void worker();
 
@@ -55,5 +56,6 @@ private:
   uint8_t d_reconnectWaitTime;
   std::atomic<bool> d_exiting{false};
   bool d_asyncConnect{false};
+  bool d_connected{false};
   std::thread d_thread;
 };
