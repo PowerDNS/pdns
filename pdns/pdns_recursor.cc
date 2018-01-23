@@ -148,7 +148,7 @@ static unsigned int g_maxMThreads;
 static unsigned int g_numWorkerThreads;
 static int g_tcpTimeout;
 static uint16_t g_udpTruncationThreshold;
-static uint16_t g_xpfOptionCode{0};
+static uint16_t g_xpfRRCode{0};
 static std::atomic<bool> statsWanted;
 static std::atomic<bool> g_quiet;
 static bool g_logCommonErrors;
@@ -1385,7 +1385,7 @@ static void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uin
                               bool& foundECS, EDNSSubnetOpts* ednssubnet, std::map<uint16_t, EDNSOptionView>* options,
                               bool& foundXPF, ComboAddress* xpfSource, ComboAddress* xpfDest)
 {
-  const bool lookForXPF = xpfSource != nullptr && g_xpfOptionCode != 0;
+  const bool lookForXPF = xpfSource != nullptr && g_xpfRRCode != 0;
   const bool lookForECS = ednssubnet != nullptr;
   const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(question.c_str());
   size_t questionLen = question.length();
@@ -1440,7 +1440,7 @@ static void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uin
         }
       }
     }
-    else if (lookForXPF && ntohs(drh->d_type) == g_xpfOptionCode && ntohs(drh->d_class) == QClass::IN && drh->d_ttl == 0) {
+    else if (lookForXPF && ntohs(drh->d_type) == g_xpfRRCode && ntohs(drh->d_class) == QClass::IN && drh->d_ttl == 0) {
       if ((questionLen - pos) < ntohs(drh->d_clen)) {
         return;
       }
@@ -3065,7 +3065,7 @@ static int serviceMain(int argc, char*argv[])
   g_useIncomingECS = ::arg().mustDo("use-incoming-edns-subnet");
 
   g_XPFAcl.toMasks(::arg()["xpf-allow-from"]);
-  g_xpfOptionCode = ::arg().asNum("xpf-option-code");
+  g_xpfRRCode = ::arg().asNum("xpf-rr-code");
 
   g_networkTimeoutMsec = ::arg().asNum("network-timeout");
 
@@ -3500,7 +3500,7 @@ int main(int argc, char **argv)
     ::arg().setSwitch("log-rpz-changes", "Log additions and removals to RPZ zones at Info level")="no";
 
     ::arg().set("xpf-allow-from","XPF information is only processed from these subnets")="";
-    ::arg().set("xpf-option-code","XPF option code to use")="0";
+    ::arg().set("xpf-rr-code","XPF option code to use")="0";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");

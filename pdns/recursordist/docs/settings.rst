@@ -1163,26 +1163,35 @@ TCP port where the webserver should listen on.
 
 If a PID file should be written to `socket-dir`_
 
+.. _setting-xpf-allow-from:
+
 ``xpf-allow-from``
--------------
-.. versionadded:: 4.1.0
+------------------
+.. versionadded:: 4.2.0
 
 -  IP ranges, separated by commas
 -  Default: empty
 
-This is an experimental implementation of `draft-bellis-dnsop-xpf`.
+.. note::
+  This is an experimental implementation of `draft-bellis-dnsop-xpf <https://datatracker.ietf.org/doc/draft-bellis-dnsop-xpf/>`_.
+
 The server will trust XPF records found in queries sent from those netmasks (both IPv4 and IPv6),
 and will adjust queries' source and destination accordingly. This is especially useful when the recursor
-is placed behind a proxy like dnsdist.
-Note that the `allow-from`_ setting is still applied to the original source address, and thus access restriction
+is placed behind a proxy like `dnsdist <https://dnsdist.org>`_.
+Note that the ref:`setting-allow-from` setting is still applied to the original source address, and thus access restriction
 should be done on the proxy.
 
-``xpf-option-code``
--------------
-.. versionadded:: 4.1.0
+.. _setting-xpf-rr-code:
+
+``xpf-rr-code``
+-------------------
+.. versionadded:: 4.2.0
 
 -  Integer
 -  Default: 0
 
-This is an experimental implementation of `draft-bellis-dnsop-xpf`.
-The option code to use for XPF records, as long as an official code has not been assigned to it. 0 means disabled.
+.. note::
+  This is an experimental implementation of `draft-bellis-dnsop-xpf <https://datatracker.ietf.org/doc/draft-bellis-dnsop-xpf/>`_.
+
+This option sets the resource record code to use for XPF records, as long as an official code has not been assigned to it.
+0 means that XPF is disabled.
