@@ -368,11 +368,11 @@ AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
   if (laddr != nullptr) {
     local = ComboAddress(*laddr);
   } else {
-    if(remote.sin4.sin_family == AF_INET && !::arg()["query-local-address"].empty()) {
-      local=ComboAddress(::arg()["query-local-address"]);
-    } else if(remote.sin4.sin_family == AF_INET6 && !::arg()["query-local-address6"].empty()) {
-      local=ComboAddress(::arg()["query-local-address6"]);
+    string qlas = remote.sin4.sin_family == AF_INET ? "query-local-address" : "query-local-address6";
+    if (::arg()[qlas].empty()) {
+      throw ResolverException("Unable to determine source address for AXFR request to " + remote.toStringWithPort() + " for " + domain.toLogString() + ". " + qlas + " is unset");
     }
+    local=ComboAddress(::arg()[qlas]);
   }
   d_sock = -1;
   try {
