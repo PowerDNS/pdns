@@ -617,7 +617,7 @@ These ``DNSRule``\ s be one of the following items:
 Combining Rules
 ~~~~~~~~~~~~~~~
 
-.. function:: andRule(selectors)
+.. function:: AndRule(selectors)
 
   Matches traffic if all ``selectors`` match.
 
