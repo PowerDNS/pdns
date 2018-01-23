@@ -28,6 +28,7 @@
 #include <set>
 #include <bitset>
 #include "namespaces.hh"
+#include "iputils.hh"
 
 #define includeboilerplate(RNAME)   RNAME##RecordContent(const DNSRecord& dr, PacketReader& pr); \
   RNAME##RecordContent(const string& zoneData);                                                  \

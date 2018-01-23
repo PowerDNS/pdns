@@ -19,13 +19,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#include "dnsdist.hh"
-#include "dnsdist-ecs.hh"
-#include "sstuff.hh"
-#include "misc.hh"
-#include <netinet/tcp.h>
+
+#include "config.h"
+
+#include <fstream>
+#include <getopt.h>
+#include <grp.h>
 #include <limits>
-#include "dolog.hh"
+#include <netinet/tcp.h>
+#include <pwd.h>
+#include <sys/resource.h>
+#include <unistd.h>
 
 #if defined (__OpenBSD__) || defined(__NetBSD__)
 #include <readline/readline.h>
@@ -33,28 +37,31 @@
 #include <editline/readline.h>
 #endif
 
-#include "dnsname.hh"
-#include "dnswriter.hh"
-#include "base64.hh"
-#include <fstream>
-#include "delaypipe.hh"
-#include <unistd.h>
-#include "sodcrypto.hh"
-#include "dnsdist-lua.hh"
-#include <grp.h>
-#include <pwd.h>
-#include "lock.hh"
-#include <getopt.h>
-#include <sys/resource.h>
-#include "dnsdist-cache.hh"
-#include "gettime.hh"
-#include "ednsoptions.hh"
-
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
 #endif
 
+#include "dnsdist.hh"
+#include "dnsdist-cache.hh"
+#include "dnsdist-ecs.hh"
+#include "dnsdist-lua.hh"
+
+#include "base64.hh"
+#include "delaypipe.hh"
+#include "dolog.hh"
+#include "dnsname.hh"
+#include "dnswriter.hh"
+#include "ednsoptions.hh"
+#include "gettime.hh"
+#include "lock.hh"
+#include "misc.hh"
+#include "sodcrypto.hh"
+#include "sstuff.hh"
+#include "xpf.hh"
+
+#ifdef HAVE_PROTOBUF
 thread_local boost::uuids::random_generator t_uuidGenerator;
+#endif
 
 /* Known sins:
 
@@ -1095,6 +1102,38 @@ static ssize_t udpClientSendRequestToBackend(DownstreamState* ss, const int sd, 
   return result;
 }
 
+bool addXPF(DNSQuestion& dq, uint16_t optionCode)
+{
+  std::string payload = generateXPFPayload(dq.tcp, *dq.remote, *dq.local);
+  uint8_t root = '\0';
+  dnsrecordheader drh;
+  drh.d_type = htons(optionCode);
+  drh.d_class = htons(QClass::IN);
+  drh.d_ttl = 0;
+  drh.d_clen = htons(payload.size());
+  size_t recordHeaderLen = sizeof(root) + sizeof(drh);
+
+  size_t available = dq.size - dq.len;
+
+  if ((payload.size() + recordHeaderLen) > available) {
+    return false;
+  }
+
+  size_t pos = dq.len;
+  memcpy(reinterpret_cast<char*>(dq.dh) + pos, &root, sizeof(root));
+  pos += sizeof(root);
+  memcpy(reinterpret_cast<char*>(dq.dh) + pos, &drh, sizeof(drh));
+  pos += sizeof(drh);
+  memcpy(reinterpret_cast<char*>(dq.dh) + pos, payload.data(), payload.size());
+  pos += payload.size();
+
+  dq.len = pos;
+
+  dq.dh->arcount = htons(ntohs(dq.dh->arcount) + 1);
+
+  return true;
+}
+
 static bool isUDPQueryAcceptable(ClientState& cs, LocalHolders& holders, const struct msghdr* msgh, const ComboAddress& remote, ComboAddress& dest)
 {
   if (msgh->msg_flags & MSG_TRUNC) {
@@ -1369,6 +1408,10 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       }
       vinfolog("%s query for %s|%s from %s, no policy applied", g_servFailOnNoPolicy ? "ServFailed" : "Dropped", dq.qname->toString(), QType(dq.qtype).getName(), remote.toStringWithPort());
       return;
+    }
+
+    if (dq.addXPF && ss->xpfRRCode != 0) {
+      addXPF(dq, ss->xpfRRCode);
     }
 
     ss->queries++;
