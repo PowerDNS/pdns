@@ -72,7 +72,7 @@ zoneSizeHint
 ^^^^^^^^^^^^
 An indication of the number of expected entries in the zone, speeding up the loading of huge zones by reserving space in advance.
 
-Extra Settings for rzpMaster
+Extra settings for rpzMaster
 ----------------------------
 In addition to the settings above the settings for :func:`rpzMaster` may contain:
 
