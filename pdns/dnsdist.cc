@@ -135,6 +135,7 @@ DNSDistSNMPAgent* g_snmpAgent{nullptr};
 GlobalStateHolder<vector<DNSDistRuleAction> > g_rulactions;
 GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_resprulactions;
 GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_cachehitresprulactions;
+GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_selfansweredresprulactions;
 
 Rings g_rings;
 QueryCount g_qcount;
@@ -1236,6 +1237,16 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
         char* response = query;
         uint16_t responseLen = dq.len;
 
+        DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.local, dq.remote, reinterpret_cast<dnsheader*>(response), dq.size, responseLen, false, &realTime);
+#ifdef HAVE_PROTOBUF
+        dr.uniqueId = dq.uniqueId;
+#endif
+        dr.qTag = dq.qTag;
+
+        if (!processResponse(holders.selfAnsweredRespRulactions, dr, &delayMsec)) {
+          return;
+        }
+
 #ifdef HAVE_DNSCRYPT
         if (!encryptResponse(response, &responseLen, dq.size, false, dnsCryptQuery, nullptr, nullptr)) {
           return;
@@ -1329,6 +1340,16 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
 
         dq.dh->rcode = RCode::ServFail;
         dq.dh->qr = true;
+
+        DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.local, dq.remote, reinterpret_cast<dnsheader*>(response), dq.size, responseLen, false, &realTime);
+#ifdef HAVE_PROTOBUF
+        dr.uniqueId = dq.uniqueId;
+#endif
+        dr.qTag = dq.qTag;
+
+        if (!processResponse(holders.selfAnsweredRespRulactions, dr, &delayMsec)) {
+          return;
+        }
 
 #ifdef HAVE_DNSCRYPT
         if (!encryptResponse(response, &responseLen, dq.size, false, dnsCryptQuery, nullptr, nullptr)) {

@@ -78,7 +78,8 @@ class TestAPIBasics(DNSDistTest):
 
         self.assertEquals(content['daemon_type'], 'dnsdist')
 
-        for key in ['version', 'acl', 'local', 'rules', 'response-rules', 'cache-hit-response-rules', 'servers', 'frontends', 'pools']:
+        rule_groups = ['response-rules', 'cache-hit-response-rules', 'self-answered-response-rules']
+        for key in ['version', 'acl', 'local', 'rules', 'servers', 'frontends', 'pools'] + rule_groups:
             self.assertIn(key, content)
 
         for rule in content['rules']:
@@ -87,17 +88,12 @@ class TestAPIBasics(DNSDistTest):
             for key in ['id', 'matches']:
                 self.assertTrue(rule[key] >= 0)
 
-        for rule in content['response-rules']:
-            for key in ['id', 'matches', 'rule', 'action', 'uuid']:
-                self.assertIn(key, rule)
-            for key in ['id', 'matches']:
-                self.assertTrue(rule[key] >= 0)
-
-        for rule in content['cache-hit-response-rules']:
-            for key in ['id', 'matches', 'rule', 'action']:
-                self.assertIn(key, rule)
-            for key in ['id', 'matches']:
-                self.assertTrue(rule[key] >= 0)
+        for rule_group in rule_groups:
+            for rule in content[rule_group]:
+                for key in ['id', 'matches', 'rule', 'action', 'uuid']:
+                    self.assertIn(key, rule)
+                for key in ['id', 'matches']:
+                    self.assertTrue(rule[key] >= 0)
 
         for server in content['servers']:
             for key in ['id', 'latency', 'name', 'weight', 'outstanding', 'qpsLimit',

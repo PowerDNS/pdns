@@ -365,9 +365,9 @@ For Rules related to responses:
 
   Move the last response rule to the first position.
 
-Functions for manipulation Cache Hit Rules:
+Functions for manipulating Cache Hit Respone Rules:
 
-.. function:: addCacheHitResponseAction(DNSRule, action)
+.. function:: addCacheHitResponseAction(DNSRule, action [, options])
 
   .. versionadded:: 1.2.0
 
@@ -416,6 +416,49 @@ Functions for manipulation Cache Hit Rules:
   .. versionadded:: 1.2.0
 
   Move the last cache hit response rule to the first position.
+
+Functions for manipulating Self-Answered Response Rules:
+
+.. function:: addSelfAnsweredResponseAction(DNSRule, action [, options])
+
+  .. versionadded:: 1.3.0
+
+  Add a Rule and Action for Self-Answered queries to the existing rules.
+
+  :param DNSRule: A DNSRule, e.g. an :func:`allRule` or a compounded bunch of rules using e.g. :func:`AndRule`
+  :param action: The action to take
+
+.. function:: mvSelfAnsweredResponseRule(from, to)
+
+  .. versionadded:: 1.3.0
+
+  Move self answered response rule ``from`` to a position where it is in front of ``to``.
+  ``to`` can be one larger than the largest rule, in which case the rule will be moved to the last position.
+
+  :param int from: Rule number to move
+  :param int to: Location to more the Rule to
+
+.. function:: rmSelfAnsweredResponseRule(id)
+
+  .. versionadded:: 1.3.0
+
+  Remove self answered response rule ``id``.
+
+  :param int id: The UUID of the rule to remove if ``id`` is an UUID, its position otherwise
+
+.. function:: showSelfAnsweredResponseRules([showUUIDs])
+
+  .. versionadded:: 1.3.0
+
+  Show all defined self answered response rules, optionally displaying their UUIDs.
+
+  :param bool showUUIDs: Whether to display the UUIDs, defaults to false
+
+.. function:: topSelfAnsweredResponseRule()
+
+  .. versionadded:: 1.3.0
+
+  Move the last self answered response rule to the first position.
 
 .. _RulesIntro:
 
@@ -635,8 +678,8 @@ Combining Rules
 
   :param {Rule} selector: A table of Rules
 
-Convience Functions
-~~~~~~~~~~~~~~~~~~~
+Convenience Functions
+~~~~~~~~~~~~~~~~~~~~~
 
 .. function:: makeRule(rule)
 
