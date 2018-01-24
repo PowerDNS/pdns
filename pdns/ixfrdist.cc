@@ -222,7 +222,7 @@ void updateThread() {
       if (g_verbose) {
         cerr<<"[INFO] Attempting to receive full zonedata for '"<<domain<<"'"<<endl;
       }
-      ComboAddress local = g_master.sin4.sin_family == AF_INET ? ComboAddress("0.0.0.0") : ComboAddress("::");
+      ComboAddress local = g_master.isIPv4() ? ComboAddress("0.0.0.0") : ComboAddress("::");
       TSIGTriplet tt;
       shared_ptr<SOARecordContent> soa;
       try {
