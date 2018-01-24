@@ -40,20 +40,16 @@ std::string generateXPFPayload(bool tcp, const ComboAddress& source, const Combo
   ret.append(reinterpret_cast<const char*>(&version), sizeof(version));
   ret.append(reinterpret_cast<const char*>(&protocol), sizeof(protocol));
 
+  // We already established source and destination sin_family equivalence
   if (source.isIPv4()) {
     assert(addrSize == sizeof(source.sin4.sin_addr.s_addr));
     ret.append(reinterpret_cast<const char*>(&source.sin4.sin_addr.s_addr), addrSize);
-  }
-  else {
-    assert(addrSize == sizeof(source.sin6.sin6_addr.s6_addr));
-    ret.append(reinterpret_cast<const char*>(&source.sin6.sin6_addr.s6_addr), addrSize);
-  }
-
-  if (source.isIPv4()) {
     assert(addrSize == sizeof(destination.sin4.sin_addr.s_addr));
     ret.append(reinterpret_cast<const char*>(&destination.sin4.sin_addr.s_addr), addrSize);
   }
   else {
+    assert(addrSize == sizeof(source.sin6.sin6_addr.s6_addr));
+    ret.append(reinterpret_cast<const char*>(&source.sin6.sin6_addr.s6_addr), addrSize);
     assert(addrSize == sizeof(destination.sin6.sin6_addr.s6_addr));
     ret.append(reinterpret_cast<const char*>(&destination.sin6.sin6_addr.s6_addr), addrSize);
   }

@@ -1589,15 +1589,15 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       }
 #endif
       if(dc->d_mdp.d_header.qr) {
-        delete dc;
         g_stats.ignoredCount++;
         L<<Logger::Error<<"Ignoring answer from TCP client "<< dc->getRemote() <<" on server socket!"<<endl;
+        delete dc;
         return;
       }
       if(dc->d_mdp.d_header.opcode) {
-        delete dc;
         g_stats.ignoredCount++;
         L<<Logger::Error<<"Ignoring non-query opcode from TCP client "<< dc->getRemote() <<" on server socket!"<<endl;
+        delete dc;
         return;
       }
       else {
