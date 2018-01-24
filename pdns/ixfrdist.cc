@@ -80,7 +80,7 @@ void handleSignal(int signum) {
   }
   if (g_exiting) {
     if (g_verbose) {
-      cerr<<", forcefully exiting"<<endl;
+      cerr<<", this is the second time we were asked to stop, forcefully exiting"<<endl;
     }
     exit(EXIT_FAILURE);
   }
