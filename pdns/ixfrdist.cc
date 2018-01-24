@@ -599,44 +599,49 @@ void handleTCPRequest(int fd, boost::any&) {
 }
 
 int main(int argc, char** argv) {
-  po::options_description desc("IXFR distribution tool");
-  desc.add_options()
-    ("help", "produce help message")
-    ("version", "Display the version of ixfrdist")
-    ("verbose", "Be verbose")
-    ("debug", "Be even more verbose")
-    ("listen-address", po::value< vector< string>>(), "IP Address(es) to listen on")
-    ("server-address", po::value<string>()->default_value("127.0.0.1:5300"), "server address")
-    ("work-dir", po::value<string>()->default_value("."), "Directory for storing AXFR and IXFR data")
-    ;
-  po::options_description alloptions;
-  po::options_description hidden("hidden options");
-  hidden.add_options()
-    ("domains", po::value< vector<string> >(), "domains");
+  try {
+    po::options_description desc("IXFR distribution tool");
+    desc.add_options()
+      ("help", "produce help message")
+      ("version", "Display the version of ixfrdist")
+      ("verbose", "Be verbose")
+      ("debug", "Be even more verbose")
+      ("listen-address", po::value< vector< string>>(), "IP Address(es) to listen on")
+      ("server-address", po::value<string>()->default_value("127.0.0.1:5300"), "server address")
+      ("work-dir", po::value<string>()->default_value("."), "Directory for storing AXFR and IXFR data")
+      ;
+    po::options_description alloptions;
+    po::options_description hidden("hidden options");
+    hidden.add_options()
+      ("domains", po::value< vector<string> >(), "domains");
 
-  alloptions.add(desc).add(hidden);
-  po::positional_options_description p;
-  p.add("domains", -1);
+    alloptions.add(desc).add(hidden);
+    po::positional_options_description p;
+    p.add("domains", -1);
 
-  po::store(po::command_line_parser(argc, argv).options(alloptions).positional(p).run(), g_vm);
-  po::notify(g_vm);
+    po::store(po::command_line_parser(argc, argv).options(alloptions).positional(p).run(), g_vm);
+    po::notify(g_vm);
 
-  if (g_vm.count("help") > 0) {
-    usage(desc);
-    return EXIT_SUCCESS;
-  }
+    if (g_vm.count("help") > 0) {
+      usage(desc);
+      return EXIT_SUCCESS;
+    }
 
-  if (g_vm.count("version") > 0) {
-    cout<<"ixfrdist "<<VERSION<<endl;
-    return EXIT_SUCCESS;
-  }
+    if (g_vm.count("version") > 0) {
+      cout<<"ixfrdist "<<VERSION<<endl;
+      return EXIT_SUCCESS;
+    }
 
-  if (g_vm.count("verbose") > 0 || g_vm.count("debug") > 0) {
-    g_verbose = true;
-  }
+    if (g_vm.count("verbose") > 0 || g_vm.count("debug") > 0) {
+      g_verbose = true;
+    }
 
-  if (g_vm.count("debug") > 0) {
-    g_debug = true;
+    if (g_vm.count("debug") > 0) {
+      g_debug = true;
+    }
+  } catch (po::error &e) {
+    cerr<<"[ERROR] "<<e.what()<<". See `ixfrdist --help` for valid options"<<endl;
+    return(EXIT_FAILURE);
   }
 
   bool had_error = false;
@@ -665,14 +670,14 @@ int main(int argc, char** argv) {
   if (!g_vm.count("domains")) {
     cerr<<"[ERROR] No domain(s) specified!"<<endl;
     had_error = true;
-  }
-
-  for (const auto &domain : g_vm["domains"].as<vector<string>>()) {
-    try {
-      g_domains.insert(DNSName(domain));
-    } catch (PDNSException &e) {
-      cerr<<"[ERROR] '"<<domain<<"' is not a valid domain name: "<<e.reason<<endl;
-      had_error = true;
+  } else {
+    for (const auto &domain : g_vm["domains"].as<vector<string>>()) {
+      try {
+        g_domains.insert(DNSName(domain));
+      } catch (PDNSException &e) {
+        cerr<<"[ERROR] '"<<domain<<"' is not a valid domain name: "<<e.reason<<endl;
+        had_error = true;
+      }
     }
   }
 
