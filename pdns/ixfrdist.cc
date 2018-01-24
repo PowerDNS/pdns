@@ -707,15 +707,6 @@ int main(int argc, char** argv) {
       cout<<"ixfrdist "<<VERSION<<endl;
       return EXIT_SUCCESS;
     }
-
-    if (g_vm.count("verbose") > 0 || g_vm.count("debug") > 0) {
-      g_verbose = true;
-    }
-
-    if (g_vm.count("debug") > 0) {
-      g_debug = true;
-    }
-
   } catch (po::error &e) {
     cerr<<"[ERROR] "<<e.what()<<". See `ixfrdist --help` for valid options"<<endl;
     return(EXIT_FAILURE);
@@ -723,7 +714,15 @@ int main(int argc, char** argv) {
 
   bool had_error = false;
 
-  if (g_vm.count("keep")) {
+  if (g_vm.count("verbose") > 0 || g_vm.count("debug") > 0) {
+    g_verbose = true;
+  }
+
+  if (g_vm.count("debug") > 0) {
+    g_debug = true;
+  }
+
+  if (g_vm.count("keep") > 0) {
     g_keep = g_vm["keep"].as<uint16_t>();
   }
 
