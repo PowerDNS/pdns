@@ -26,6 +26,7 @@
 #include <sys/stat.h>
 #include <mutex>
 #include <thread>
+#include <dirent.h>
 #include "ixfr.hh"
 #include "ixfrutils.hh"
 #include "resolver.hh"
@@ -70,9 +71,21 @@ bool g_debug = false;
 
 bool g_exiting = false;
 
+#define KEEP_DEFAULT 20
+uint16_t g_keep = KEEP_DEFAULT;
+
 void handleSignal(int signum) {
   if (g_verbose) {
-    cerr<<"[INFO] Got "<<strsignal(signum)<<" signal, exiting"<<endl;
+    cerr<<"[INFO] Got "<<strsignal(signum)<<" signal";
+  }
+  if (g_exiting) {
+    if (g_verbose) {
+      cerr<<", forcefully exiting"<<endl;
+    }
+    exit(EXIT_FAILURE);
+  }
+  if (g_verbose) {
+    cerr<<", stopping"<<endl;
   }
   g_exiting = true;
 }
@@ -80,6 +93,57 @@ void handleSignal(int signum) {
 void usage(po::options_description &desc) {
   cerr << "Usage: ixfrdist [OPTION]... DOMAIN [DOMAIN]..."<<endl;
   cerr << desc << "\n";
+}
+
+// The compiler does not like using rfc1982LessThan in std::sort directly
+bool sortSOA(uint32_t i, uint32_t j) {
+  return rfc1982LessThan(i, j);
+}
+
+void cleanUpDomain(const DNSName& domain) {
+  string dir = g_workdir + "/" + domain.toString();
+  DIR *dp;
+  dp = opendir(dir.c_str());
+  if (dp == nullptr) {
+    return;
+  }
+  vector<uint32_t> zoneVersions;
+  struct dirent *d;
+  while ((d = readdir(dp)) != nullptr) {
+    if(!strcmp(d->d_name, ".") || !strcmp(d->d_name, "..")) {
+      continue;
+    }
+    zoneVersions.push_back(std::stoi(d->d_name));
+  }
+  closedir(dp);
+  if (g_verbose) {
+    cerr<<"[INFO] Found "<<zoneVersions.size()<<" versions of "<<domain<<", asked to keep "<<g_keep<<", ";
+  }
+  if (zoneVersions.size() <= g_keep) {
+    if (g_verbose) {
+      cerr<<"not cleaning up"<<endl;
+    }
+    return;
+  }
+  if (g_verbose) {
+    cerr<<"cleaning up the oldest "<<zoneVersions.size() - g_keep<<endl;
+  }
+
+  // Sort the versions
+  std::sort(zoneVersions.begin(), zoneVersions.end(), sortSOA);
+
+  // And delete all the old ones
+  {
+    // Lock to ensure no one reads this.
+    std::lock_guard<std::mutex> guard(g_soas_mutex);
+    for (auto iter = zoneVersions.cbegin(); iter != zoneVersions.cend() - g_keep; ++iter) {
+      string fname = dir + "/" + std::to_string(*iter);
+      if (g_debug) {
+        cerr<<"[DEBUG] Removing "<<fname<<endl;
+      }
+      unlink(fname.c_str());
+    }
+  }
 }
 
 void updateThread() {
@@ -99,6 +163,10 @@ void updateThread() {
           g_soas[domain] = soa;
         }
       }
+      if (soa != nullptr) {
+        // Initial cleanup
+        cleanUpDomain(domain);
+      }
     } catch (runtime_error &e) {
       // Most likely, the directory does not exist.
       cerr<<"[INFO] "<<e.what()<<", attempting to create"<<endl;
@@ -109,6 +177,7 @@ void updateThread() {
       }
     }
   }
+
 
   if (g_verbose) {
     cerr<<"[INFO] Update Thread started"<<endl;
@@ -194,6 +263,9 @@ void updateThread() {
         std::lock_guard<std::mutex> guard(g_soas_mutex);
         g_soas[domain] = soa;
       }
+
+      // Now clean up the directory
+      cleanUpDomain(domain);
     } /* for (const auto &domain : domains) */
     sleep(1);
   } /* while (true) */
@@ -342,11 +414,6 @@ bool makeIXFRPackets(const MOADNSParser& mdp, const shared_ptr<SOARecordContent>
   // updateThread.
   uint32_t newSerial = g_soas[mdp.d_qname]->d_st.serial;
 
-  // Let's see if we have the old zone
-  // TODO lock the zone from clean up (when implemented)
-  string oldZoneFname = dir + "/" + std::to_string(clientSOA->d_st.serial);
-  string newZoneFname = dir + "/" + std::to_string(newSerial);
-
   if (rfc1982LessThan(newSerial, clientSOA->d_st.serial)){
     /* RFC 1995 Section 2
      *    If an IXFR query with the same or newer version number than that of
@@ -361,31 +428,39 @@ bool makeIXFRPackets(const MOADNSParser& mdp, const shared_ptr<SOARecordContent>
     return ret;
   }
 
-  // Check if we can actually make an IXFR
-  struct stat s;
-  if (stat(oldZoneFname.c_str(), &s) == -1) {
-    if (errno == ENOENT) {
-      if (g_verbose) {
-        cerr<<"[INFO] IXFR for "<<mdp.d_qname<<" not possible: no zone data with serial "<<clientSOA->d_st.serial<<", sending out AXFR"<<endl;
-      }
-      return makeAXFRPackets(mdp, packets);
-    }
-    cerr<<"[WARNING] Could not determine existence of "<<oldZoneFname<<" for IXFR: "<<strerror(errno)<<endl;
-    return false;
-  }
-
-  shared_ptr<SOARecordContent> newSOA;
-  loadSOAFromDisk(mdp.d_qname, newZoneFname, newSOA);
-
-  if (newSOA == nullptr) {
-    // :(
-    cerr<<"[WARNING] Could not retrieve SOA record from "<<newZoneFname<<" for IXFR"<<endl;
-    return false;
-  }
-
+  // Let's see if we have the old zone
+  string oldZoneFname = dir + "/" + std::to_string(clientSOA->d_st.serial);
+  string newZoneFname = dir + "/" + std::to_string(newSerial);
   records_t oldRecords, newRecords;
-  loadZoneFromDisk(oldRecords, oldZoneFname, mdp.d_qname);
-  loadZoneFromDisk(newRecords, newZoneFname, mdp.d_qname);
+  shared_ptr<SOARecordContent> newSOA;
+  {
+    // Make sure the update thread does not clean this in front of our feet
+    std::lock_guard<std::mutex> guard(g_soas_mutex);
+
+    // Check if we can actually make an IXFR
+    struct stat s;
+    if (stat(oldZoneFname.c_str(), &s) == -1) {
+      if (errno == ENOENT) {
+        if (g_verbose) {
+          cerr<<"[INFO] IXFR for "<<mdp.d_qname<<" not possible: no zone data with serial "<<clientSOA->d_st.serial<<", sending out AXFR"<<endl;
+        }
+        return makeAXFRPackets(mdp, packets);
+      }
+      cerr<<"[WARNING] Could not determine existence of "<<oldZoneFname<<" for IXFR: "<<strerror(errno)<<endl;
+      return false;
+    }
+
+    loadSOAFromDisk(mdp.d_qname, newZoneFname, newSOA);
+
+    if (newSOA == nullptr) {
+      // :(
+      cerr<<"[WARNING] Could not retrieve SOA record from "<<newZoneFname<<" for IXFR"<<endl;
+      return false;
+    }
+
+    loadZoneFromDisk(oldRecords, oldZoneFname, mdp.d_qname);
+    loadZoneFromDisk(newRecords, newZoneFname, mdp.d_qname);
+  }
 
   if (oldRecords.empty() || newRecords.empty()) {
     if (oldRecords.empty()) {
@@ -609,6 +684,7 @@ int main(int argc, char** argv) {
       ("listen-address", po::value< vector< string>>(), "IP Address(es) to listen on")
       ("server-address", po::value<string>()->default_value("127.0.0.1:5300"), "server address")
       ("work-dir", po::value<string>()->default_value("."), "Directory for storing AXFR and IXFR data")
+      ("keep", po::value<uint16_t>()->default_value(KEEP_DEFAULT), "Number of old zone versions to retain")
       ;
     po::options_description alloptions;
     po::options_description hidden("hidden options");
@@ -639,12 +715,17 @@ int main(int argc, char** argv) {
     if (g_vm.count("debug") > 0) {
       g_debug = true;
     }
+
   } catch (po::error &e) {
     cerr<<"[ERROR] "<<e.what()<<". See `ixfrdist --help` for valid options"<<endl;
     return(EXIT_FAILURE);
   }
 
   bool had_error = false;
+
+  if (g_vm.count("keep")) {
+    g_keep = g_vm["keep"].as<uint16_t>();
+  }
 
   vector<ComboAddress> listen_addresses = {ComboAddress("127.0.0.1:53")};
 

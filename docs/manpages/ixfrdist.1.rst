@@ -32,6 +32,8 @@ Options
                                 127.0.0.1:5300 by default.
 --work-dir <DIR>                Path to a directory where the AXFR data are saved.
                                 By default, this is the current working directory.
+--keep <NUM>                    Keep at most *NUM* versions of any zone.
+                                By default, 20 versions are kept.
 
 See also
 --------
