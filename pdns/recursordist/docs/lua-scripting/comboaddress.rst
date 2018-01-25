@@ -24,44 +24,50 @@ To compare the address (so not the port) of two ComboAddresses, use :meth:`:equa
 To convert an address to human-friendly representation, use :meth:`:toString <ComboAddress:toString>` or :meth:`:toStringWithPort <ComboAddress:toStringWithPort()>`.
 To get only the port number, use :meth:`:getPort() <ComboAddress:getPort>`.
 
+.. function:: NewCA(address) -> ComboAddress
+
+  Creates a :class:`ComboAddress`.
+
+  :param string address: The address to convert
+
 .. class:: ComboAddress
 
-    An object representing an IP address and port tuple.
+  An object representing an IP address and port tuple.
 
-.. classmethod:: ComboAddress:getPort() -> int
+  .. method:: ComboAddress:getPort() -> int
 
-    The portnumber.
+      The portnumber.
 
-.. classmethod:: ComboAddress:getRaw() -> str
+  .. method:: ComboAddress:getRaw() -> str
 
-    A bytestring representing the address.
+      A bytestring representing the address.
 
-.. classmethod:: ComboAddress:isIPv4() -> bool
+  .. method:: ComboAddress:isIPv4() -> bool
 
-    True if the address is an IPv4 address.
+      True if the address is an IPv4 address.
 
-.. classmethod:: ComboAddress:isIPv6() -> bool
+  .. method:: ComboAddress:isIPv6() -> bool
 
-    True if the address is an IPv6 address.
+      True if the address is an IPv6 address.
 
-.. classmethod:: ComboAddress:isMappedIPv4() -> bool
+  .. method:: ComboAddress:isMappedIPv4() -> bool
 
-    True if the address is an IPv4 address mapped into an IPv6 one.
+      True if the address is an IPv4 address mapped into an IPv6 one.
 
-.. classmethod:: ComboAddress:mapToIPv4() -> ???
+  .. method:: ComboAddress:mapToIPv4() -> ComboAddress
 
-    If the address is an IPv4 mapped into an IPv6 one, return the corresponding IPv4 address.
+      If the address is an IPv4 mapped into an IPv6 one, return the corresponding IPv4 :class:`ComboAddress`.
 
-.. classmethod:: ComboAddress:toString() -> str
+  .. method:: ComboAddress:toString() -> str
 
-    Returns the IP address without the port number as a string.
+      Returns the IP address without the port number as a string.
 
-.. classmethod:: ComboAddress:toStringWithPort() -> str
+  .. method:: ComboAddress:toStringWithPort() -> str
 
-    Returns the IP address with the port number as a string.
+      Returns the IP address with the port number as a string.
 
-.. classmethod:: ComboAddress:truncate(bits)
+  .. method:: ComboAddress:truncate(bits)
 
-    Truncate to the supplied number of bits
+      Truncate to the supplied number of bits
 
-    :param int bits: The number of bits to truncate to
+      :param int bits: The number of bits to truncate to
