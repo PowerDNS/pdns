@@ -125,6 +125,7 @@ pdns_recursor_SOURCES = \
 	packetcache.hh \
 	pdns_recursor.cc \
 	pdnsexception.hh \
+	pollmplexer.cc \
 	protobuf.cc protobuf.hh \
 	pubsuffix.hh pubsuffix.cc \
 	qtype.hh qtype.cc \
@@ -148,7 +149,6 @@ pdns_recursor_SOURCES = \
 	rpzloader.cc rpzloader.hh \
 	secpoll-recursor.cc \
 	secpoll-recursor.hh \
-	selectmplexer.cc \
 	sholder.hh \
 	sillyrecords.cc \
 	snmp-agent.hh snmp-agent.cc \

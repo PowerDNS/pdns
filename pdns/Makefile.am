@@ -945,9 +945,9 @@ nproxy_SOURCES = \
 	mplexer.hh \
 	nproxy.cc \
 	nsecrecords.cc \
+	pollmplexer.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
-	selectmplexer.cc \
 	sillyrecords.cc \
 	statbag.cc \
 	unix_utility.cc
@@ -975,9 +975,9 @@ pdns_notify_SOURCES = \
 	misc.cc \
 	notify.cc \
 	nsecrecords.cc \
+	pollmplexer.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
-	selectmplexer.cc \
 	sillyrecords.cc \
 	statbag.cc \
 	unix_utility.cc
