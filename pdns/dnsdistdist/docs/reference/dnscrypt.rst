@@ -58,41 +58,41 @@ Certificates
 
   Represents a DNSCrypt certificate.
 
-.. classmethod:: DNSCryptCert:getClientMagic() -> string
+  .. method:: DNSCryptCert:getClientMagic() -> string
 
-  Return this certificate's client magic value.
+    Return this certificate's client magic value.
 
-.. classmethod:: DNSCryptCert:getEsVersion() -> string
+  .. method:: DNSCryptCert:getEsVersion() -> string
 
-  Return the cryptographic construction to use with this certificate,.
+    Return the cryptographic construction to use with this certificate,.
 
-.. classmethod:: DNSCryptCert:getMagic() -> string
+  .. method:: DNSCryptCert:getMagic() -> string
 
-  Return the certificate magic number.
+    Return the certificate magic number.
 
-.. classmethod:: DNSCryptCert:getProtocolMinorVersion() -> string
+  .. method:: DNSCryptCert:getProtocolMinorVersion() -> string
 
-  Return this certificate's minor version.
+    Return this certificate's minor version.
 
-.. classmethod:: DNSCryptCert:getResolverPublicKey() -> string
+  .. method:: DNSCryptCert:getResolverPublicKey() -> string
 
-  Return the public key corresponding to this certificate.
+    Return the public key corresponding to this certificate.
 
-.. classmethod:: DNSCryptCert:getSerial() -> int
+  .. method:: DNSCryptCert:getSerial() -> int
 
-  Return the certificate serial number.
+    Return the certificate serial number.
 
-.. classmethod:: DNSCryptCert:getSignature() -> string
+  .. method:: DNSCryptCert:getSignature() -> string
 
-  Return this certificate's signature.
+    Return this certificate's signature.
 
-.. classmethod:: DNSCryptCert:getTSEnd() -> int
+  .. method:: DNSCryptCert:getTSEnd() -> int
 
-  Return the date the certificate is valid from, as a Unix timestamp.
+    Return the date the certificate is valid from, as a Unix timestamp.
 
-.. classmethod:: DNSCryptCert:getTSStart() -> int
+  .. method:: DNSCryptCert:getTSStart() -> int
 
-  Return the date the certificate is valid until (inclusive), as a Unix timestamp
+    Return the date the certificate is valid until (inclusive), as a Unix timestamp
 
 Context
 -------
@@ -101,34 +101,34 @@ Context
 
   Represents a DNSCrypt content. Can be used to rotate certs.
 
-.. classmethod:: DNSCryptContext:generateAndLoadInMemoryCertificate(keyfile, serial, begin, end)
+  .. method:: DNSCryptContext:generateAndLoadInMemoryCertificate(keyfile, serial, begin, end)
 
-  Generate a new resolver key and the associated certificate in-memory, sign it with the provided provider key, and use the new certificate
+    Generate a new resolver key and the associated certificate in-memory, sign it with the provided provider key, and use the new certificate
 
-  :param string keyfile: Path to the key file to use
-  :param int serial: The serial number of the certificate
-  :param int begin: Unix timestamp from when the certificate is valid
-  :param int end: Unix timestamp from until the certificate is valid
+    :param string keyfile: Path to the key file to use
+    :param int serial: The serial number of the certificate
+    :param int begin: Unix timestamp from when the certificate is valid
+    :param int end: Unix timestamp from until the certificate is valid
 
-.. classmethod:: DNSCryptContext:getCurrentCertificate() -> DNSCryptCert
+  .. method:: DNSCryptContext:getCurrentCertificate() -> DNSCryptCert
 
-  Return the current certificate.
+    Return the current certificate.
 
-.. classmethod:: DNSCryptContext:getOldCertificate() -> DNSCryptCert
+  .. method:: DNSCryptContext:getOldCertificate() -> DNSCryptCert
 
-  Return the previous certificate.
+    Return the previous certificate.
 
-.. classmethod:: DNSCryptContext:getProviderName() -> string
+  .. method:: DNSCryptContext:getProviderName() -> string
 
-  Return the provider name
+    Return the provider name
 
-.. classmethod:: DNSCryptContext:hasOldCertificate() -> bool
+  .. method:: DNSCryptContext:hasOldCertificate() -> bool
 
-  Whether or not the context has a previous certificate, from a certificate rotation.
+    Whether or not the context has a previous certificate, from a certificate rotation.
 
-.. classmethod:: DNSCryptContext:loadNewCertificate(certificate, keyfile)
+  .. method:: DNSCryptContext:loadNewCertificate(certificate, keyfile)
 
-  Load a new certificate and the corresponding private key, and use it
+    Load a new certificate and the corresponding private key, and use it
 
-  :param string certificate: Path to a certificate file
-  :param string keyfile: Path to a the corresponding key file
+    :param string certificate: Path to a certificate file
+    :param string keyfile: Path to a the corresponding key file
