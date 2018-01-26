@@ -144,6 +144,13 @@ void BaseLua4::prepareContext() {
   d_lw->registerFunction<bool(cas_t::*)(const ComboAddress&)>("check",[](const cas_t& cas, const ComboAddress&ca) { return cas.count(ca)>0; });
   d_lw->registerFunction<bool(ComboAddress::*)(const ComboAddress&)>("equal", [](const ComboAddress& lhs, const ComboAddress& rhs) { return ComboAddress::addressOnlyEqual()(lhs, rhs); });
 
+  // QType
+  d_lw->writeFunction("newQType", [](const string& s) { QType q; q = s; return q; });
+  d_lw->registerFunction("getCode", &QType::getCode);
+  d_lw->registerFunction("getName", &QType::getName);
+  d_lw->registerEqFunction<bool(QType::*)(const QType&)>([](const QType& a, const QType& b){ return a == b;}); // operator overloading confuses LuaContext
+  d_lw->registerToStringFunction(&QType::getName);
+
   // Netmask
   d_lw->writeFunction("newNetmask", [](const string& s) { return Netmask(s); });
   d_lw->registerFunction<ComboAddress(Netmask::*)()>("getNetwork", [](const Netmask& nm) { return nm.getNetwork(); } ); // const reference makes this necessary
