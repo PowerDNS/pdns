@@ -8,6 +8,23 @@
 #include "misc.hh"
 #include "namespaces.hh"
 
+FDMultiplexer* FDMultiplexer::getMultiplexerSilent()
+{
+  FDMultiplexer* ret = nullptr;
+  for(const auto& i : FDMultiplexer::getMultiplexerMap()) {
+    try {
+      ret = i.second();
+      return ret;
+    }
+    catch(const FDMultiplexerException& fe) {
+    }
+    catch(...) {
+    }
+  }
+  return ret;
+}
+
+
 class PollFDMultiplexer : public FDMultiplexer
 {
 public:

@@ -67,6 +67,8 @@ public:
   virtual ~FDMultiplexer()
   {}
 
+  static FDMultiplexer* getMultiplexerSilent();
+  
   /* tv will be updated to 'now' before run returns */
   /* timeout is in ms */
   virtual int run(struct timeval* tv, int timeout=500) = 0;
@@ -160,23 +162,6 @@ protected:
   }
 };
 
-class SelectFDMultiplexer : public FDMultiplexer
-{
-public:
-  SelectFDMultiplexer()
-  {}
-  virtual ~SelectFDMultiplexer()
-  {}
-
-  virtual int run(struct timeval* tv, int timeout=500);
-
-  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const funcparam_t& parameter);
-  virtual void removeFD(callbackmap_t& cbmap, int fd);
-  std::string getName()
-  {
-    return "select";
-  }
-};
 
 #endif
 
