@@ -135,16 +135,22 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
     });
 
   Lua.writeFunction("rpzMaster", [&lci, checkOnly](const string& master_, const string& zoneName, const boost::optional<std::unordered_map<string,boost::variant<uint32_t, string>>>& options) {
+
+      boost::optional<DNSFilterEngine::Policy> defpol;
+      std::shared_ptr<DNSFilterEngine::Zone> zone = std::make_shared<DNSFilterEngine::Zone>();
+      TSIGTriplet tt;
+      uint32_t refresh=0;
+      size_t maxReceivedXFRMBytes = 0;
+      uint16_t axfrTimeout = 20;
+      uint32_t maxTTL = std::numeric_limits<uint32_t>::max();
+      ComboAddress localAddress;
+      ComboAddress master(master_, 53);
+      DNSName domain(zoneName);
+      size_t zoneIdx;
+      std::shared_ptr<SOARecordContent> sr;
+
       try {
-        boost::optional<DNSFilterEngine::Policy> defpol;
-        std::shared_ptr<DNSFilterEngine::Zone> zone = std::make_shared<DNSFilterEngine::Zone>();
-        TSIGTriplet tt;
-        uint32_t refresh=0;
         std::string polName(zoneName);
-        size_t maxReceivedXFRMBytes = 0;
-        uint16_t axfrTimeout = 20;
-        uint32_t maxTTL = std::numeric_limits<uint32_t>::max();
-        ComboAddress localAddress;
         if(options) {
           auto& have = *options;
           size_t zoneSizeHint = 0;
@@ -171,35 +177,52 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
             axfrTimeout = static_cast<uint16_t>(boost::get<uint32_t>(constGet(have, "axfrTimeout")));
           }
         }
-        ComboAddress master(master_, 53);
         if (localAddress != ComboAddress() && localAddress.sin4.sin_family != master.sin4.sin_family) {
           // We were passed a localAddress, check if its AF matches the master's
           throw PDNSException("Master address("+master.toString()+") is not of the same Address Family as the local address ("+localAddress.toString()+").");
         }
 
-        DNSName domain(zoneName);
         zone->setDomain(domain);
         zone->setName(polName);
         zone->setRefresh(refresh);
-        size_t zoneIdx = lci.dfe.addZone(zone);
+        zoneIdx = lci.dfe.addZone(zone);
+      }
+      catch(const std::exception& e) {
+        theL()<<Logger::Error<<"Problem configuring 'rpzMaster': "<<e.what()<<endl;
+        // FIXME exit program here
+      }
+      catch(const PDNSException& e) {
+        theL()<<Logger::Error<<"Problem configuring 'rpzMaster': "<<e.reason<<endl;
+        // FIXME exit program here
+      }
 
+      try {
         if (!checkOnly) {
-          auto sr=loadRPZFromServer(master, domain, zone, defpol, maxTTL, tt, maxReceivedXFRMBytes * 1024 * 1024, localAddress, axfrTimeout);
+          sr=loadRPZFromServer(master, domain, zone, defpol, maxTTL, tt, maxReceivedXFRMBytes * 1024 * 1024, localAddress, axfrTimeout);
           if(refresh)
             sr->d_st.refresh=refresh;
           zone->setSerial(sr->d_st.serial);
-
-          std::thread t(RPZIXFRTracker, master, DNSName(zoneName), defpol, maxTTL, zoneIdx, tt, sr, maxReceivedXFRMBytes * 1024 * 1024, localAddress, axfrTimeout);
-          t.detach();
         }
       }
       catch(const std::exception& e) {
-        theL()<<Logger::Error<<"Unable to load RPZ zone '"<<zoneName<<"' from '"<<master_<<"': "<<e.what()<<endl;
+        theL()<<Logger::Warning<<"Unable to load RPZ zone '"<<zoneName<<"' from '"<<master_<<"': "<<e.what()<<"\nWill try again later."<<endl;
       }
       catch(const PDNSException& e) {
-        theL()<<Logger::Error<<"Unable to load RPZ zone '"<<zoneName<<"' from '"<<master_<<"': "<<e.reason<<endl;
+        theL()<<Logger::Warning<<"Unable to load RPZ zone '"<<zoneName<<"' from '"<<master_<<"': "<<e.reason<<"\nWill try again later."<<endl;
       }
 
+      try {
+        std::thread t(RPZIXFRTracker, master, DNSName(zoneName), defpol, maxTTL, zoneIdx, tt, sr, maxReceivedXFRMBytes * 1024 * 1024, localAddress, axfrTimeout);
+        t.detach();
+      }
+      catch(const std::exception& e) {
+        theL()<<Logger::Error<<"Problem starting RPZIXFRTracker thread: "<<e.what()<<endl;
+        // XXX exit program here?
+      }
+      catch(const PDNSException& e) {
+        theL()<<Logger::Error<<"Problem starting RPZIXFRTracker thread: "<<e.reason<<endl;
+        // XXX exit program here?
+      }
     });
 
   typedef vector<pair<int,boost::variant<string, vector<pair<int, string> > > > > argvec_t;

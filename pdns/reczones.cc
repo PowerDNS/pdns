@@ -320,14 +320,40 @@ string reloadAuthAndForwards()
 
 void RPZIXFRTracker(const ComboAddress& master, const DNSName& zoneName, boost::optional<DNSFilterEngine::Policy> defpol, uint32_t maxTTL, size_t zoneIdx, const TSIGTriplet& tt, shared_ptr<SOARecordContent> oursr, size_t maxReceivedBytes, const ComboAddress& localAddress, const uint16_t axfrTimeout)
 {
-  uint32_t refresh = oursr->d_st.refresh;
+  uint32_t refresh = 5;  // FIXME properly init from somewhere
+  if (oursr != 0) {  // FIXME replace with 'official' null check
+      refresh = oursr->d_st.refresh;
+  }
+
   for(;;) {
     DNSRecord dr;
     dr.d_content=oursr;
 
     sleep(refresh);
-    
-    L<<Logger::Info<<"Getting IXFR deltas for "<<zoneName<<" from "<<master.toStringWithPort()<<", our serial: "<<getRR<SOARecordContent>(dr)->d_st.serial<<endl;
+
+    if (oursr == 0) {  // FIXME replace with 'official' null check
+        theL()<<Logger::Info<<"Trying to do initial RPZ load from server again..."<<endl;
+        try {
+            std::shared_ptr<DNSFilterEngine::Zone> zone = std::make_shared<DNSFilterEngine::Zone>();
+            DNSName domain(zoneName);
+            zone->setDomain(domain);
+            zone->setName("FIXMECHANGEME");
+            zone->setRefresh(refresh);
+            oursr=loadRPZFromServer(master, domain, zone, defpol, maxTTL, tt, maxReceivedBytes, localAddress);
+            refresh = oursr->d_st.refresh;
+            dr.d_content=oursr;
+        }
+        catch(const std::exception& e) {
+            theL()<<Logger::Warning<<"Unable to load RPZ zone '"<<zoneName<<"' from '"<<master<<"': "<<e.what()<<"\nWill try again later."<<endl;
+        }
+        catch(const PDNSException& e) {
+            theL()<<Logger::Warning<<"Unable to load RPZ zone '"<<zoneName<<"' from '"<<master<<"': "<<e.reason<<"\nWill try again later."<<endl;
+        }
+    }
+
+    if (oursr != 0) {  // FIXME replace with 'official' null check
+        L<<Logger::Info<<"Getting IXFR deltas for "<<zoneName<<" from "<<master.toStringWithPort()<<", our serial: "<<getRR<SOARecordContent>(dr)->d_st.serial<<endl;
+    }
     vector<pair<vector<DNSRecord>, vector<DNSRecord> > > deltas;
 
     ComboAddress local(localAddress);
@@ -335,7 +361,9 @@ void RPZIXFRTracker(const ComboAddress& master, const DNSName& zoneName, boost::
       local = getQueryLocalAddress(master.sin4.sin_family, 0);
 
     try {
-      deltas = getIXFRDeltas(master, zoneName, dr, tt, &local, maxReceivedBytes);
+      if (oursr != 0) {  // FIXME replace with 'official' null check
+          deltas = getIXFRDeltas(master, zoneName, dr, tt, &local, maxReceivedBytes);
+      }
     } catch(std::runtime_error& e ){
       L<<Logger::Warning<<e.what()<<endl;
       continue;
