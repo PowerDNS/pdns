@@ -15,6 +15,13 @@ using std::string;
 BOOST_AUTO_TEST_SUITE(dnsname_cc)
 
 BOOST_AUTO_TEST_CASE(test_basic) {
+  DNSName aroot("a.root-servers.net"), broot("b.root-servers.net");
+  BOOST_CHECK(aroot < broot);
+  BOOST_CHECK(!(broot < aroot));  
+  BOOST_CHECK(aroot.canonCompare(broot));
+  BOOST_CHECK(!broot.canonCompare(aroot));  
+  
+
   string before("www.ds9a.nl.");
   DNSName b(before);
   BOOST_CHECK_EQUAL(b.getRawLabels().size(), 3);
