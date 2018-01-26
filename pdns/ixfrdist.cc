@@ -50,7 +50,7 @@ ArgvMap &arg()
 
 
 // For all the listen-sockets
-SelectFDMultiplexer g_fdm;
+FDMultiplexer* g_fdm;
 
 // The domains we support
 set<DNSName> g_domains;
@@ -761,6 +761,12 @@ int main(int argc, char** argv) {
     }
   }
 
+  g_fdm = FDMultiplexer::getMultiplexerSilent();
+  if (g_fdm == nullptr) {
+    cerr<<"[ERROR] Could not enable a multiplexer for the listen sockets!"<<endl;
+    return EXIT_FAILURE;
+  }
+
   set<int> allSockets;
   for (const auto& addr : listen_addresses) {
     for (const auto& stype : {SOCK_DGRAM, SOCK_STREAM}) {
@@ -772,7 +778,7 @@ int main(int argc, char** argv) {
         if (stype == SOCK_STREAM) {
           SListen(s, 30); // TODO make this configurable
         }
-        g_fdm.addReadFD(s, stype == SOCK_DGRAM ? handleUDPRequest : handleTCPRequest);
+        g_fdm->addReadFD(s, stype == SOCK_DGRAM ? handleUDPRequest : handleTCPRequest);
         allSockets.insert(s);
       } catch(runtime_error &e) {
         cerr<<"[ERROR] "<<e.what()<<endl;
@@ -807,7 +813,7 @@ int main(int argc, char** argv) {
   struct timeval now;
   for(;;) {
     gettimeofday(&now, 0);
-    g_fdm.run(&now);
+    g_fdm->run(&now);
     if (g_exiting) {
       if (g_verbose) {
         cerr<<"[INFO] Shutting down!"<<endl;

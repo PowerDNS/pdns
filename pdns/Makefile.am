@@ -612,7 +612,7 @@ ixfrdist_SOURCES = \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
 	resolver.cc \
-	selectmplexer.cc \
+	pollmplexer.cc \
 	sillyrecords.cc \
 	sstuff.hh \
 	statbag.cc \
