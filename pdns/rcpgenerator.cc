@@ -35,7 +35,7 @@
 #include "base64.hh"
 #include "namespaces.hh"
 
-RecordTextReader::RecordTextReader(const string& str, const string& zone) : d_string(str), d_zone(zone), d_pos(0)
+RecordTextReader::RecordTextReader(const string& str, const DNSName& zone) : d_string(str), d_zone(zone), d_pos(0)
 {
    /* remove whitespace */
    boost::trim_if(d_string, boost::algorithm::is_space());
@@ -229,8 +229,7 @@ void RecordTextReader::xfr8BitInt(uint8_t &val)
 void RecordTextReader::xfrName(DNSName& val, bool, bool)
 {
   skipSpaces();
-  string sval;
-  sval.reserve(d_end - d_pos);
+  DNSName sval;
 
   const char* strptr=d_string.c_str();
   string::size_type begin_pos = d_pos;
@@ -240,19 +239,13 @@ void RecordTextReader::xfrName(DNSName& val, bool, bool)
       
     d_pos++;
   }
-  sval.append(strptr+begin_pos, strptr+d_pos);      
+  sval = DNSName(std::string(strptr+begin_pos, strptr+d_pos));
 
   if(sval.empty())
     sval=d_zone;
-  else if(!d_zone.empty()) {
-    char last=sval[sval.size()-1];
-   
-    if(last =='.')
-      sval.resize(sval.size()-1);
-    else if(last != '.' && !isdigit(last)) // don't add zone to IP address
-      sval+="."+d_zone;
-  }
-  val = DNSName(sval);
+  else if(!d_zone.empty())
+    sval+=d_zone;
+  val = sval;
 }
 
 static bool isbase64(char c, bool acceptspace)
