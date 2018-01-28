@@ -119,7 +119,7 @@ dnsdist_SOURCES = \
 	protobuf.cc protobuf.hh \
 	qtype.cc qtype.hh \
 	remote_logger.cc remote_logger.hh \
-	selectmplexer.cc \
+	pollmplexer.cc \
 	sholder.hh \
 	snmp-agent.cc snmp-agent.hh \
 	sodcrypto.cc sodcrypto.hh \

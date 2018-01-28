@@ -52,7 +52,7 @@ po::variables_map g_vm;
 
 StatBag S;
 
-SelectFDMultiplexer g_fdm;
+FDMultiplexer* g_fdm;
 int g_pdnssocket;
 bool g_verbose;
 
@@ -218,6 +218,11 @@ try
   reportAllTypes();
   openlog("nproxy", LOG_NDELAY | LOG_PID, LOG_DAEMON);
 
+  g_fdm = FDMultiplexer::getMultiplexerSilent();
+  if(!g_fdm) {
+    throw std::runtime_error("Could not enable a multiplexer");
+  }
+  
   po::options_description desc("Allowed options");
   desc.add_options()
     ("help,h", "produce help message")
@@ -273,7 +278,7 @@ try
     if(::bind(sock,(sockaddr*) &local, local.getSocklen()) < 0)
       throw runtime_error("Binding socket for incoming packets to '"+ local.toStringWithPort()+"': "+stringerror());
 
-    g_fdm.addReadFD(sock, handleOutsideUDPPacket); // add to fdmultiplexer for each socket
+    g_fdm->addReadFD(sock, handleOutsideUDPPacket); // add to fdmultiplexer for each socket
     syslogFmt(boost::format("Listening for external notifications on address %s") % local.toStringWithPort());
   }
 
@@ -294,7 +299,7 @@ try
 
   syslogFmt(boost::format("Sending notifications from %s to internal address %s") % originAddress.toString() % pdns.toStringWithPort());
 
-  g_fdm.addReadFD(g_pdnssocket, handleInsideUDPPacket);
+  g_fdm->addReadFD(g_pdnssocket, handleInsideUDPPacket);
 
   int null_fd=open("/dev/null",O_RDWR); /* open stdin */
   if(null_fd < 0)
@@ -332,7 +337,7 @@ try
   struct timeval now;
   for(;;) {
     gettimeofday(&now, 0);
-    g_fdm.run(&now);
+    g_fdm->run(&now);
     // check for notifications that have been outstanding for more than 10 seconds
     expireOldNotifications();
   }

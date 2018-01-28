@@ -8,6 +8,42 @@
 #include "misc.hh"
 #include "namespaces.hh"
 
+FDMultiplexer* FDMultiplexer::getMultiplexerSilent()
+{
+  FDMultiplexer* ret = nullptr;
+  for(const auto& i : FDMultiplexer::getMultiplexerMap()) {
+    try {
+      ret = i.second();
+      return ret;
+    }
+    catch(const FDMultiplexerException& fe) {
+    }
+    catch(...) {
+    }
+  }
+  return ret;
+}
+
+
+class PollFDMultiplexer : public FDMultiplexer
+{
+public:
+  PollFDMultiplexer()
+  {}
+  virtual ~PollFDMultiplexer()
+  {
+  }
+
+  virtual int run(struct timeval* tv, int timeout=500);
+
+  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const funcparam_t& parameter);
+  virtual void removeFD(callbackmap_t& cbmap, int fd);
+  string getName()
+  {
+    return "poll";
+  }
+private:
+};
 
 static FDMultiplexer* make()
 {
@@ -46,7 +82,7 @@ bool pollfdcomp(const struct pollfd& a, const struct pollfd& b)
   return a.fd < b.fd;
 }
 
-int PollFDMultiplexer::run(struct timeval* now, int timeout=500)
+int PollFDMultiplexer::run(struct timeval* now, int timeout)
 {
   if(d_inrun) {
     throw FDMultiplexerException("FDMultiplexer::run() is not reentrant!\n");

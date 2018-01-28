@@ -121,24 +121,6 @@ DNSDistSNMPAgent* g_snmpAgent{nullptr};
    IDs are assigned by atomic increments of the socket offset.
  */
 
-/* for our load balancing, we want to support:
-   Round-robin
-   Round-robin with basic uptime checks
-   Send to least loaded server (least outstanding)
-   Send it to the first server that is not overloaded
-   Hashed weighted random
-*/
-
-/* Idea:
-   Multiple server groups, by default we load balance to the group with no name.
-   Each instance is either 'up', 'down' or 'auto', where 'auto' means that dnsdist 
-   determines if the instance is up or not. Auto should be the default and very very good.
-
-   In addition, to each instance you can attach a QPS object with rate & burst, which will optionally
-   limit the amount of queries we send there.
-
-   If all downstreams are over QPS, we pick the fastest server */
-
 GlobalStateHolder<vector<DNSDistRuleAction> > g_rulactions;
 GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_resprulactions;
 GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_cachehitresprulactions;
