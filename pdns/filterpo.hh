@@ -122,6 +122,14 @@ public:
     {
       return d_name;
     }
+    DNSName getDomain()
+    {
+      return d_domain;
+    }
+    uint32_t getRefresh()
+    {
+      return d_refresh;
+    }
     void dump(FILE * fp) const;
 
     void addClientTrigger(const Netmask& nm, Policy pol);

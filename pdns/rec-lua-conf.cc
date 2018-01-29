@@ -145,9 +145,7 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
       uint32_t maxTTL = std::numeric_limits<uint32_t>::max();
       ComboAddress localAddress;
       ComboAddress master(master_, 53);
-      DNSName domain(zoneName);
       size_t zoneIdx;
-      std::shared_ptr<SOARecordContent> sr;
 
       try {
         std::string polName(zoneName);
@@ -182,46 +180,33 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
           throw PDNSException("Master address("+master.toString()+") is not of the same Address Family as the local address ("+localAddress.toString()+").");
         }
 
-        zone->setDomain(domain);
+        zone->setDomain(DNSName(zoneName));
         zone->setName(polName);
         zone->setRefresh(refresh);
         zoneIdx = lci.dfe.addZone(zone);
       }
       catch(const std::exception& e) {
         theL()<<Logger::Error<<"Problem configuring 'rpzMaster': "<<e.what()<<endl;
-        // FIXME exit program here
+        exit(1);  // FIXME proper exit code?
       }
       catch(const PDNSException& e) {
         theL()<<Logger::Error<<"Problem configuring 'rpzMaster': "<<e.reason<<endl;
-        // FIXME exit program here
+        exit(1);  // FIXME proper exit code?
       }
 
       try {
         if (!checkOnly) {
-          sr=loadRPZFromServer(master, domain, zone, defpol, maxTTL, tt, maxReceivedXFRMBytes * 1024 * 1024, localAddress, axfrTimeout);
-          if(refresh)
-            sr->d_st.refresh=refresh;
-          zone->setSerial(sr->d_st.serial);
+          std::thread t(RPZIXFRTracker, master, defpol, maxTTL, zoneIdx, tt, maxReceivedXFRMBytes * 1024 * 1024, localAddress, zone, axfrTimeout);
+          t.detach();
         }
       }
       catch(const std::exception& e) {
-        theL()<<Logger::Warning<<"Unable to load RPZ zone '"<<zoneName<<"' from '"<<master_<<"': "<<e.what()<<"\nWill try again later."<<endl;
-      }
-      catch(const PDNSException& e) {
-        theL()<<Logger::Warning<<"Unable to load RPZ zone '"<<zoneName<<"' from '"<<master_<<"': "<<e.reason<<"\nWill try again later."<<endl;
-      }
-
-      try {
-        std::thread t(RPZIXFRTracker, master, DNSName(zoneName), defpol, maxTTL, zoneIdx, tt, sr, maxReceivedXFRMBytes * 1024 * 1024, localAddress, axfrTimeout);
-        t.detach();
-      }
-      catch(const std::exception& e) {
         theL()<<Logger::Error<<"Problem starting RPZIXFRTracker thread: "<<e.what()<<endl;
-        // XXX exit program here?
+        exit(1);  // FIXME proper exit code?
       }
       catch(const PDNSException& e) {
         theL()<<Logger::Error<<"Problem starting RPZIXFRTracker thread: "<<e.reason<<endl;
-        // XXX exit program here?
+        exit(1);  // FIXME proper exit code?
       }
     });
 
