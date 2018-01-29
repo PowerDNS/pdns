@@ -715,7 +715,7 @@ this reason it is disabled by default.
 
 .. versionadded:: 4.1.0
 
-Script to be used to edit incoming AXFRs, see :ref:_modes-of-operation-axfrfilter`
+Script to be used to edit incoming AXFRs, see :ref:`modes-of-operation-axfrfilter`
 
 .. _setting-local-address-nonexist-fail:
 

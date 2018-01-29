@@ -7,87 +7,99 @@ There are two classes in the PowerDNS Recursor that can be used to match IP addr
 
 Netmask class
 -------------
+The :class:`Netmask` class represents an IP netmask.
+
+.. code-block:: Lua
+
+    mask = newNetmask("192.0.2.1/24")
+    mask:isIPv4() -- true
+    mask:match("192.0.2.8") -- true
+
+.. function:: newNetmask(mask) -> Netmask
+
+  Creates a new :class:`Netmask`.
+
+  :param str mask: The mask to convert.
 
 .. class:: Netmask
 
-    Represents an IP netmask.
-    Can be created with
+  Represents a netmask.
 
-    .. code-block:: Lua
+  .. method:: Netmask:empty() -> bool
 
-        newNetmask("192.0.2.1/24")
+      True if the netmask doesn't contain a valid address.
 
-.. classmethod:: Netmask:empty() -> bool
+  .. method:: Netmask:getBits() -> int
 
-    True if the netmask doesn't contain a valid address.
+      The number of bits in the address.
 
-.. classmethod:: Netmask:getBits() -> int
+  .. method:: Netmask:getNetwork() -> ComboAddress
 
-    The number of bits in the address.
+      Returns a :class:`ComboAddress` representing the network (no mask applied).
 
-.. classmethod:: Netmask:getNetwork() -> ComboAddress
+  .. method:: Netmask:getMaskedNetwork() -> ComboAddress
 
-    Returns a :class:`ComboAddress` representing the network (no mask applied).
+      Returns a :class:`ComboAddress` representing the network (truncating according to the mask).
 
-.. classmethod:: Netmask:getMaskedNetwork() -> ComboAddress
+  .. method:: Netmask:isIpv4() -> bool
 
-    Returns a :class:`ComboAddress` representing the network (truncating according to the mask).
+      True if the netmask is an IPv4 netmask.
 
-.. classmethod:: Netmask:isIpv4() -> bool
+  .. method:: Netmask:isIpv6() -> bool
 
-    True if the netmask is an IPv4 netmask.
+      True if the netmask is an IPv6 netmask.
 
-.. classmethod:: Netmask:isIpv6 -> bool
+  .. method:: Netmask:match(address) -> bool
 
-    True if the netmask is an IPv6 netmask.
+      True if the address passed in address matches
 
-.. classmethod:: Netmask:match(address) -> bool
+      :param str address: IP Address to match against.
 
-    True if the address passed in address matches
+  .. method:: Netmask:toString() -> str
 
-    :param str address: IP Address to match against.
-
-.. classmethod:: Netmask:toString() -> str
-
-    Returns a human-friendly representation.
+      Returns a human-friendly representation.
 
 NetMaskGroup class
 ------------------
 
 NetMaskGroups are more powerful than plain Netmasks.
+They can be matched against netmasks objects:
+
+.. code-block:: lua
+
+  nmg = newNMG()
+  nmg:addMask("127.0.0.0/8")
+  nmg:addMasks({"213.244.168.0/24", "130.161.0.0/16"})
+  nmg:addMasks(dofile("bad.ips")) -- contains return {"ip1","ip2"..}
+
+  if nmg:match(dq.remoteaddr) then
+    print("Intercepting query from ", dq.remoteaddr)
+  end
+
+Prefixing a mask with ``!`` excludes that mask from matching.
+
+.. function:: newNMG() -> NetMaskGroup
+
+  Returns a new, empty :class:`NetMaskGroup`.
 
 .. class:: NetMaskGroup
 
-   IP addresses are passed to Lua in native format.
-   They can be matched against netmasks objects:
+  IP addresses are passed to Lua in native format.
 
-   .. code-block:: Lua
+  .. method:: NetMaskGroup:addMask(mask)
 
-        nmg = newNMG()
-        nmg:addMask("127.0.0.0/8")
-        nmg:addMasks({"213.244.168.0/24", "130.161.0.0/16"})
-        nmg:addMasks(dofile("bad.ips")) -- contains return {"ip1","ip2"..}
+      Adds ``mask`` to the NetMaskGroup.
 
-        if nmg:match(dq.remoteaddr) then
-            print("Intercepting query from ", dq.remoteaddr)
-        end
+      :param str mask: The mask to add.
 
-   Prefixing a mask with ``!`` excludes that mask from matching.
+  .. method:: NetMaskGroup:addMasks(masks)
 
-.. classmethod:: NetMaskGroup:addMask(mask)
+      Adds ``masks`` to the NetMaskGroup.
 
-    Adds ``mask`` to the NetMaskGroup.
+      :param {str} mask: The masks to add.
 
-    :param str mask: The mask to add.
+  .. method:: NetMaskGroup:match(address) -> bool
 
-.. classmethod:: NetMaskGroup:addMasks(masks)
+      Returns true if ``address`` matches any of the masks in the group.
 
-    Adds ``masks`` to the NetMaskGroup.
-
-    :param {str} mask: The masks to add.
-
-.. classmethod:: NetMaskGroup:match(address) -> bool
-
-    Returns true if ``address`` matches any of the masks in the group.
-
-    :param ComboAddress address: The IP addres to match the netmasks against.
+      :param ComboAddress address: The IP addres to match the netmasks against.

@@ -9,7 +9,7 @@ Changelogs for 4.1.x
 
   This release fixes PowerDNS Security Advisory :doc:`2018-01 <../security-advisories/powerdns-advisory-2018-01>`.
 
-  The full release notes can be read `on the blog <https://blog.powerdns.com/2018/01/22/powerdns-recursor-4-1-1/>`_.
+  The full release notes can be read `on the blog <https://blog.powerdns.com/2018/01/22/powerdns-recursor-4-1-1/>`__.
 
   This is a release on the stable branch, containing a fix for the
   abovementioned security issue and several bug fixes from the
@@ -76,7 +76,7 @@ Changelogs for 4.1.x
 
   This is the first release in the 4.1 train.
 
-  The full release notes can be read `on the blog <https://blog.powerdns.com/2017/12/04/powerdns-recursor-4-1/>`_.
+  The full release notes can be read `on the blog <https://blog.powerdns.com/2017/12/04/powerdns-recursor-4-1/>`__.
 
   This is a major release containing significant speedups (both in throughput and latency), enhanced capabilities and a highly conformant and robust DNSSEC validation implementation that is ready for heavy production use. In addition, our EDNS Client Subnet implementation now scales effortlessly to networks needing very fine grained scopes (as used by some ‘country sized’ service providers).
 

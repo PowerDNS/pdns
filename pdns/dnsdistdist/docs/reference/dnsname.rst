@@ -3,11 +3,7 @@
 DNSName objects
 ===============
 
-.. class:: DNSName
-
-  A ``DNSName`` object represents a name in the DNS.
-  It is returned by several functions and has several functions to programmatically interact with it.
-
+A :class:`DNSName` object represents a name in the DNS. It has serveral functions that can manipulate it without conversions to strings.
 Creating a ``DNSName`` is done with the :func:`newDNSName`::
 
   myname = newDNSName("www.example.com")
@@ -25,7 +21,6 @@ The ``myname`` variable has several functions to get information from it
     print('it is')
   end
 
-
 Functions and methods of a ``DNSName``
 --------------------------------------
 
@@ -35,28 +30,33 @@ Functions and methods of a ``DNSName``
 
   :param string name: The name to create a DNSName for
 
-.. classmethod:: DNSName::chopoff() -> bool
+.. class:: DNSName
 
-  .. versionadded:: 1.2.0
+  A ``DNSName`` object represents a name in the DNS.
+  It is returned by several functions and has several functions to programmatically interact with it.
 
-  Removes the left-most label and returns ``true``.
-  ``false`` is returned if no label was removed
+  .. method:: DNSName:chopoff() -> bool
 
-.. classmethod:: DNSName:countLabels() -> int
+    .. versionadded:: 1.2.0
 
-  Returns the number of DNSLabels in the name
+    Removes the left-most label and returns ``true``.
+    ``false`` is returned if no label was removed
 
-.. classmethod:: DNSName:isPartOf(name) -> bool
+  .. method:: DNSName:countLabels() -> int
 
-  Returns true if the DNSName is part of the DNS tree of ``name``.
+    Returns the number of DNSLabels in the name
 
-  :param DNSName name: The name to check against
+  .. method:: DNSName:isPartOf(name) -> bool
 
-.. classmethod:: DNSName:toString() -> string
-                 DNSName:tostring() -> string
+    Returns true if the DNSName is part of the DNS tree of ``name``.
 
-  Returns a human-readable form of the DNSName.
+    :param DNSName name: The name to check against
 
-.. classmethod:: DNSName:wirelength -> int
+  .. method:: DNSName:toString() -> string
+              DNSName:tostring() -> string
 
-  Returns the length in bytes of the DNSName as it would be on the wire.
+    Returns a human-readable form of the DNSName.
+
+  .. method:: DNSName:wirelength() -> int
+
+    Returns the length in bytes of the DNSName as it would be on the wire.
