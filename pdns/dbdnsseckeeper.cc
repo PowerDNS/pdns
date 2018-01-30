@@ -667,11 +667,13 @@ bool DNSSECKeeper::rectifyZone(const DNSName& zone, string& error, string& info,
   }
 
   NSEC3PARAMRecordContent ns3pr;
-  bool narrow;
-  bool haveNSEC3 = getNSEC3PARAM(zone, &ns3pr, &narrow);
-  bool isOptOut = (haveNSEC3 && ns3pr.d_flags);
+  bool securedZone = isSecuredZone(zone);
+  bool haveNSEC3 = false, isOptOut = false, narrow = false;
 
-  if(isSecuredZone(zone)) {
+  if(securedZone) {
+    haveNSEC3 = getNSEC3PARAM(zone, &ns3pr, &narrow);
+    isOptOut = (haveNSEC3 && ns3pr.d_flags);
+
     if(!haveNSEC3) {
       infostream<<"Adding NSEC ordering information ";
     }
@@ -749,7 +751,7 @@ bool DNSSECKeeper::rectifyZone(const DNSName& zone, string& error, string& info,
       } else if(!realrr)
         auth=false;
     }
-    else if (realrr) // NSEC
+    else if (realrr && securedZone) // NSEC
       ordername=qname.makeRelative(zone);
 
     sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, auth);
