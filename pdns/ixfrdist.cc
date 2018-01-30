@@ -74,6 +74,8 @@ bool g_exiting = false;
 #define KEEP_DEFAULT 20
 uint16_t g_keep = KEEP_DEFAULT;
 
+NetmaskGroup g_acl;
+
 void handleSignal(int signum) {
   if (g_verbose) {
     cerr<<"[INFO] Got "<<strsignal(signum)<<" signal";
@@ -503,6 +505,10 @@ bool makeIXFRPackets(const MOADNSParser& mdp, const shared_ptr<SOARecordContent>
   return true;
 }
 
+bool allowedByACL(const ComboAddress& addr) {
+  return g_acl.match(addr);
+}
+
 void handleUDPRequest(int fd, boost::any&) {
   // TODO make the buffer-size configurable
   char buf[4096];
@@ -518,6 +524,11 @@ void handleUDPRequest(int fd, boost::any&) {
   if(res < 0) {
     auto savedErrno = errno;
     cerr<<"[WARNING] Could not read message from "<<saddr.toStringWithPort()<<": "<<strerror(savedErrno)<<endl;
+    return;
+  }
+
+  if (!allowedByACL(saddr)) {
+    cerr<<"[WARNING] UDP query from "<<saddr.toString()<<" is not allowed, dropping"<<endl;
     return;
   }
 
@@ -560,6 +571,12 @@ void handleTCPRequest(int fd, boost::any&) {
     setBlocking(cfd);
   } catch(runtime_error &e) {
     cerr<<"[ERROR] "<<e.what()<<endl;
+    return;
+  }
+
+  if (!allowedByACL(saddr)) {
+    cerr<<"[WARNING] TCP query from "<<saddr.toString()<<" is not allowed, dropping"<<endl;
+    close(cfd);
     return;
   }
 
@@ -682,6 +699,7 @@ int main(int argc, char** argv) {
       ("verbose", "Be verbose")
       ("debug", "Be even more verbose")
       ("listen-address", po::value< vector< string>>(), "IP Address(es) to listen on")
+      ("acl", po::value<vector<string>>(), "IP Address masks that are allowed access, by default only loopback addresses are allowed")
       ("server-address", po::value<string>()->default_value("127.0.0.1:5300"), "server address")
       ("work-dir", po::value<string>()->default_value("."), "Directory for storing AXFR and IXFR data")
       ("keep", po::value<uint16_t>()->default_value(KEEP_DEFAULT), "Number of old zone versions to retain")
@@ -765,6 +783,22 @@ int main(int argc, char** argv) {
   if (g_fdm == nullptr) {
     cerr<<"[ERROR] Could not enable a multiplexer for the listen sockets!"<<endl;
     return EXIT_FAILURE;
+  }
+
+  vector<string> acl = {"127.0.0.0/8", "::1/128"};
+  if (g_vm.count("acl") > 0) {
+    acl = g_vm["acl"].as<vector<string>>();
+  }
+  for (const auto &addr : acl) {
+    try {
+      g_acl.addMask(addr);
+    } catch (const NetmaskException &e) {
+      cerr<<"[ERROR] "<<e.reason<<endl;
+      had_error = true;
+    }
+  }
+  if (g_verbose) {
+    cerr<<"[INFO] ACL set to "<<g_acl.toString()<<"."<<endl;
   }
 
   set<int> allSockets;
