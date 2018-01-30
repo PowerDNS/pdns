@@ -677,10 +677,10 @@ bool DNSSECKeeper::rectifyZone(const DNSName& zone, string& error, string& info,
     }
     else if(!narrow) {
       if(!isOptOut) {
-	infostream<<"Adding NSEC3 hashed ordering information for '"<<zone<<"'";
+        infostream<<"Adding NSEC3 hashed ordering information for '"<<zone<<"'";
       }
       else {
-	infostream<<"Adding NSEC3 opt-out hashed ordering information for '"<<zone<<"'";
+        infostream<<"Adding NSEC3 opt-out hashed ordering information for '"<<zone<<"'";
       }
     } else {
       infostream<<"Erasing NSEC3 ordering since we are narrow, only setting 'auth' fields";
