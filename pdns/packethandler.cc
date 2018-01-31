@@ -388,7 +388,7 @@ bool PacketHandler::getBestWildcard(DNSPacket *p, SOAData& sd, const DNSName &ta
           for(const auto& r : recvec) {
             rr.dr.d_type = rec->d_type; // might be CNAME
             rr.dr.d_content = r;
-            rr.scopeMask = 32; // XXX or 128 - needs to disable cache in any case
+            rr.scopeMask = p->getRealRemote().getBits(); // this makes sure answer is a specific as your question
             ret->push_back(rr);
           }
         }
@@ -1342,7 +1342,8 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
             for(const auto& r : recvec) {
               rr.dr.d_type = rec->d_type; // might be CNAME
               rr.dr.d_content = r;
-              rr.scopeMask = 32;
+              rr.scopeMask = p->getRealRemote().getBits(); // this makes sure answer is a specific as your question
+
               rrset.push_back(rr);
             }
             if(rec->d_type == QType::CNAME && p->qtype.getCode() != QType::CNAME)
