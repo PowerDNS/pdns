@@ -182,7 +182,7 @@ public:
       // prepare for result
       d_resnum = mysql_stmt_num_rows(d_stmt);
       
-      if (d_resnum>0 && d_res_bind == NULL) {
+      if (d_resnum > 0 && d_res_bind == nullptr) {
         MYSQL_RES* meta = mysql_stmt_result_metadata(d_stmt);
         d_fnum = static_cast<int>(mysql_num_fields(meta)); // ensure correct number of fields
         d_res_bind = new MYSQL_BIND[d_fnum];
@@ -201,12 +201,17 @@ public:
         }
   
         mysql_free_result(meta);
-  
-        if ((err = mysql_stmt_bind_result(d_stmt, d_res_bind))) {
-          string error(mysql_stmt_error(d_stmt));
-          releaseStatement();
-          throw SSqlException("Could not bind parameters to mysql statement: " + d_query + string(": ") + error);
-        }
+      }
+
+      /* we need to bind the results array again because a call to mysql_stmt_next_result() followed
+         by a call to mysql_stmt_store_result() might have invalidated it (the first one sets
+         stmt->bind_result_done to false, causing the second to reset the existing binding),
+         and we can't bind it right after the call to mysql_stmt_store_result() if it returned
+         no rows, because then the statement 'contains no metadata' */
+      if (d_res_bind != nullptr && (err = mysql_stmt_bind_result(d_stmt, d_res_bind))) {
+        string error(mysql_stmt_error(d_stmt));
+        releaseStatement();
+        throw SSqlException("Could not bind parameters to mysql statement: " + d_query + string(": ") + error);
       }
     }
 
@@ -220,9 +225,11 @@ public:
   SSqlStatement* nextRow(row_t& row) {
     int err;
     row.clear();
-    if (!hasNextRow()) return this;
+    if (!hasNextRow()) {
+      return this;
+    }
 
-    if ((err =mysql_stmt_fetch(d_stmt))) {
+    if ((err = mysql_stmt_fetch(d_stmt))) {
       if (err != MYSQL_DATA_TRUNCATED) {
         string error(mysql_stmt_error(d_stmt));
         releaseStatement();
@@ -252,13 +259,13 @@ public:
         if ((err = mysql_stmt_store_result(d_stmt))) {
           string error(mysql_stmt_error(d_stmt));
           releaseStatement();
-          throw SSqlException("Could not store mysql statement: " + d_query + string(": ") + error);
+          throw SSqlException("Could not store mysql statement while processing additional sets: " + d_query + string(": ") + error);
         }
         d_resnum = mysql_stmt_num_rows(d_stmt);
         // XXX: For some reason mysql_stmt_result_metadata returns NULL here, so we cannot
         // ensure row field count matches first result set.
-        if (d_resnum>0) { // ignore empty result set
-          if ((err = mysql_stmt_bind_result(d_stmt, d_res_bind))) {
+        if (d_resnum > 0) { // ignore empty result set
+          if (d_res_bind != nullptr && (err = mysql_stmt_bind_result(d_stmt, d_res_bind))) {
             string error(mysql_stmt_error(d_stmt));
             releaseStatement();
             throw SSqlException("Could not bind parameters to mysql statement: " + d_query + string(": ") + error);
