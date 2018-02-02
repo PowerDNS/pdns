@@ -52,10 +52,11 @@ PDNS_CHECK_LUA_HPP
 DNSDIST_ENABLE_DNS_OVER_TLS
 DNSDIST_CHECK_GNUTLS
 DNSDIST_CHECK_LIBSSL
+PDNS_CHECK_LIBCRYPTO
 AS_IF([test "x$enable_dns_over_tls" != "xno"], [
   AS_IF([test "$HAVE_LIBSSL" = "1"], [
     # we need libcrypto if libssl is enabled
-    PDNS_CHECK_LIBCRYPTO
+
   ])
   AS_IF([test "$HAVE_GNUTLS" = "0" -a "$HAVE_LIBSSL" = "0"], [
     AC_MSG_ERROR([DNS over TLS support requested but neither GnuTLS nor OpenSSL are available])
