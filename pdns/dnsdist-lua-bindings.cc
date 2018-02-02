@@ -31,6 +31,7 @@
 #include "dolog.hh"
 #include "fstrm_logger.hh"
 #include "remote_logger.hh"
+#include "ipcrypt.hh"
 
 void setupLuaBindings(bool client)
 {
@@ -166,6 +167,13 @@ void setupLuaBindings(bool client)
   g_lua.registerFunction<ComboAddress(ComboAddress::*)()>("mapToIPv4", [](const ComboAddress& ca) { return ca.mapToIPv4(); });
   g_lua.registerFunction<bool(nmts_t::*)(const ComboAddress&)>("match", [](nmts_t& s, const ComboAddress& ca) { return s.match(ca); });
 
+  g_lua.registerFunction<ComboAddress(ComboAddress::*)(const std::string& key)>("ipencrypt", [](const ComboAddress& ca, const std::string& key) {
+      return encryptCA(ca, key);
+    });
+  g_lua.registerFunction<ComboAddress(ComboAddress::*)(const std::string& key)>("ipdecrypt", [](const ComboAddress& ca, const std::string& key) {
+      return decryptCA(ca, key);
+    });
+  
   /* DNSName */
   g_lua.registerFunction("isPartOf", &DNSName::isPartOf);
   g_lua.registerFunction<bool(DNSName::*)()>("chopOff", [](DNSName&dn ) { return dn.chopOff(); });

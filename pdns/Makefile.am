@@ -1272,6 +1272,7 @@ testrunner_SOURCES = \
 	ednssubnet.cc \
 	gettime.cc gettime.hh \
 	gss_context.cc gss_context.hh \
+	ipcrypt.cc ipcrypt.hh ../ext/ipcrypt/ipcrypt.c ../ext/ipcrypt.h \
 	iputils.cc \
 	ixfr.cc ixfr.hh \
 	logger.cc \
@@ -1301,6 +1302,7 @@ testrunner_SOURCES = \
 	test-dnsparser_cc.cc \
 	test-dnsparser_hh.cc \
 	test-dnsrecords_cc.cc \
+	test-ipcrypt_cc.cc \
 	test-iputils_hh.cc \
 	test-ixfr_cc.cc \
 	test-lock_hh.cc \
