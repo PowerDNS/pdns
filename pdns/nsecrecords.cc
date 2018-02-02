@@ -36,7 +36,7 @@ DNSRecordContent* NSECRecordContent::make(const string& content)
 
 NSECRecordContent::NSECRecordContent(const string& content, const string& zone) 
 {
-  RecordTextReader rtr(content, zone);
+  RecordTextReader rtr(content, DNSName(zone));
   rtr.xfrName(d_next);
 
   while(!rtr.eof()) {
@@ -143,7 +143,7 @@ DNSRecordContent* NSEC3RecordContent::make(const string& content)
 
 NSEC3RecordContent::NSEC3RecordContent(const string& content, const string& zone)
 {
-  RecordTextReader rtr(content, zone);
+  RecordTextReader rtr(content, DNSName(zone));
   rtr.xfr8BitInt(d_algorithm);
   rtr.xfr8BitInt(d_flags);
   rtr.xfr16BitInt(d_iterations);
@@ -279,7 +279,7 @@ DNSRecordContent* NSEC3PARAMRecordContent::make(const string& content)
 
 NSEC3PARAMRecordContent::NSEC3PARAMRecordContent(const string& content, const string& zone) 
 {
-  RecordTextReader rtr(content, zone);
+  RecordTextReader rtr(content, DNSName(zone));
   rtr.xfr8BitInt(d_algorithm); 
   rtr.xfr8BitInt(d_flags); 
   rtr.xfr16BitInt(d_iterations); 
