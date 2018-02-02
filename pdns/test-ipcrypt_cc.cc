@@ -37,6 +37,7 @@ BOOST_AUTO_TEST_CASE(test_ipcrypt4_vector)
     BOOST_CHECK_EQUAL(decrypted.toString(), p.first);
   }
 
+  // test from Frank Denis' test.cc
   ComboAddress ip("192.168.69.42"), out, dec;
   string key2;
   for(int n=0; n<16; ++n)
