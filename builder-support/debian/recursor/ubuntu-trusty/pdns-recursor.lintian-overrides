@@ -1,0 +1,4 @@
+# Source carries OpenSSL Exception
+pdns-recursor: possible-gpl-code-linked-with-openssl
+# We load lsb-functions conditionally.
+pdns-recursor: init.d-script-needs-depends-on-lsb-base

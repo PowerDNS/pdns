@@ -30,13 +30,13 @@ override_dh_auto_configure:
 		--with-luajit \
 		--enable-libsodium \
 		--with-protobuf=yes \
-		--without-net-snmp \
+		--with-net-snmp \
 		--disable-silent-rules \
 		$(CONFIGURE_ARGS)
 
 override_dh_auto_install:
-	dh_auto_install
-	rm -f debian/pdns-recursor/etc/powerdns/recursor.conf-dist
+	dh_auto_install -- STRIP_BINARIES=0
+	rm -f debian/tmp/etc/powerdns/recursor.conf-dist
 	./pdns_recursor --no-config --config | sed \
 		-e 's!# config-dir=.*!config-dir=/etc/powerdns!' \
 		-e 's!# local-address=.*!local-address=127.0.0.1!' \
@@ -45,10 +45,10 @@ override_dh_auto_install:
 		-e 's!# setuid=.*!setuid=pdns!' \
 		-e 's!# hint-file=.*!&\nhint-file=/usr/share/dns/root.hints!' \
 		-e 's!# security-poll-suffix=.*!&\nsecurity-poll-suffix=!' \
-		> debian/pdns-recursor/etc/powerdns/recursor.conf
+		> debian/tmp/etc/powerdns/recursor.conf
 
 override_dh_strip:
-	dh_strip --ddeb-migration='pdns-recursor-dbg'
+	dh_strip --dbg-package=pdns-recursor-dbg
 
 override_dh_installinit:
 	dh_installinit --error-handler=initscript_error

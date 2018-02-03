@@ -1,0 +1,3 @@
+usr/sbin/pdns_recursor
+usr/bin/rec_control
+etc/powerdns
