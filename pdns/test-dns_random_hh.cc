@@ -37,7 +37,6 @@ BOOST_AUTO_TEST_SUITE(test_dns_random_hh)
 
 BOOST_AUTO_TEST_CASE(test_dns_random_average) {
 
-  dns_random_init("loremipsumdolorx");
   acc_t acc;
 
   for(unsigned int n=0; n < 100000; ++n)  {

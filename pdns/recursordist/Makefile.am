@@ -130,7 +130,6 @@ pdns_recursor_SOURCES = \
 	protobuf.cc protobuf.hh \
 	pubsuffix.hh pubsuffix.cc \
 	qtype.hh qtype.cc \
-	randomhelper.cc \
 	rcpgenerator.cc rcpgenerator.hh \
 	rec-carbon.cc \
 	rec-lua-conf.hh rec-lua-conf.cc \
@@ -191,7 +190,7 @@ testrunner_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	dns.cc dns.hh \
-	dns_random.cc dns_random.hh \
+	dns_random_urandom.cc dns_random.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.hh dnsparser.cc \
@@ -217,7 +216,6 @@ testrunner_SOURCES = \
 	opensslsigners.cc opensslsigners.hh \
 	protobuf.cc protobuf.hh \
 	qtype.cc qtype.hh \
-	randomhelper.cc \
 	rcpgenerator.cc \
 	rec-protobuf.cc rec-protobuf.hh \
 	recpacketcache.cc recpacketcache.hh \

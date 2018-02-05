@@ -3037,7 +3037,6 @@ static int serviceMain(int argc, char*argv[])
   }
 
   showProductVersion();
-  seedRandom(::arg()["entropy-source"]);
 
   g_disthashseed=dns_random(0xffffffff);
 
@@ -3267,6 +3266,8 @@ static int serviceMain(int argc, char*argv[])
 
   openssl_thread_setup();
   openssl_seed();
+  /* setup rng before chroot */
+  dns_random_init();
 
   int newgid=0;
   if(!::arg()["setgid"].empty())
@@ -3665,6 +3666,7 @@ int main(int argc, char **argv)
     ::arg().set("udp-source-port-min", "Minimum UDP port to bind on")="1024";
     ::arg().set("udp-source-port-max", "Maximum UDP port to bind on")="65535";
     ::arg().set("udp-source-port-avoid", "List of comma separated UDP port number to avoid")="11211";
+    ::arg().set("rng", "Specify random number generator to use. Valid values are auto,sodium,openssl,getrandom,arc4random,urandom.")="auto";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");

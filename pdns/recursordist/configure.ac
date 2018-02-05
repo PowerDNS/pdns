@@ -121,7 +121,7 @@ PDNS_WITH_NET_SNMP
 PDNS_CHECK_RAGEL([pdns/dnslabeltext.cc], [www.powerdns.com])
 PDNS_CHECK_CURL
 
-AC_CHECK_FUNCS_ONCE([strcasestr localtime_r recvmmsg getrandom arc4random])
+AC_CHECK_FUNCS_ONCE([strcasestr getrandom arc4random])
 
 PDNS_CHECK_PTHREAD_NP
 

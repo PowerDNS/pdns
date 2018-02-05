@@ -204,6 +204,8 @@ void declareArguments()
   ::arg().set("xfr-max-received-mbytes", "Maximum number of megabytes received from an incoming XFR")="100";
 
   ::arg().set("tcp-fast-open", "Enable TCP Fast Open support on the listening sockets, using the supplied numerical value as the queue size")="0";
+
+  ::arg().set("rng", "Specify the random number generator to use. Valid values are auto,sodium,openssl,getrandom,arc4random,urandom.")="auto";
 }
 
 static time_t s_start=time(0);

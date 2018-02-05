@@ -494,8 +494,6 @@ int main(int argc, char **argv)
     }
 #endif
 
-    seedRandom(::arg()["entropy-source"]);
-
 #ifdef HAVE_LIBSODIUM
       if (sodium_init() == -1) {
         cerr<<"Unable to initialize sodium crypto library"<<endl;
@@ -505,6 +503,8 @@ int main(int argc, char **argv)
 
     openssl_thread_setup();
     openssl_seed();
+    /* setup rng */
+    dns_random_init();
 
     loadModules();
     BackendMakers().launch(::arg()["launch"]); // vrooooom!
