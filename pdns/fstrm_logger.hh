@@ -20,50 +20,42 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
-#ifdef HAVE_CONFIG_H
 #include "config.h"
+#include "remote_logger.hh"
+
+#ifdef HAVE_FSTRM
+
+#include <fstrm.h>
+#include <fstrm/iothr.h>
+#include <fstrm/unix_writer.h>
+#ifdef HAVE_FSTRM_TCP_WRITER_INIT
+#include <fstrm/tcp_writer.h>
 #endif
 
-#include <atomic>
-#include <condition_variable>
-#include <queue>
-#include <thread>
-
-#include "iputils.hh"
-
-class RemoteLoggerInterface
+class FrameStreamLogger : public RemoteLoggerInterface, boost::noncopyable
 {
 public:
-  virtual ~RemoteLoggerInterface() {};
-  virtual void queueData(const std::string& data) = 0;
-  virtual std::string toString() = 0;
-};
-
-class RemoteLogger : public RemoteLoggerInterface
-{
-public:
-  RemoteLogger(const ComboAddress& remote, uint16_t timeout=2, uint64_t maxQueuedEntries=100, uint8_t reconnectWaitTime=1, bool asyncConnect=false);
-  virtual ~RemoteLogger();
+  FrameStreamLogger(int family, const std::string& address);
+  virtual ~FrameStreamLogger();
   virtual void queueData(const std::string& data) override;
   virtual std::string toString() override
   {
-    return "RemoteLogger to " + d_remote.toStringWithPort();
+    return "FrameStreamLogger to " + d_address;
   }
 private:
-  void busyReconnectLoop();
-  bool reconnect();
-  void worker();
+  const int d_family;
+  const std::string d_address;
+  struct fstrm_iothr_queue *d_ioqueue{nullptr};
+  struct fstrm_writer_options *d_fwopt{nullptr};
+  struct fstrm_unix_writer_options *d_uwopt{nullptr};
+#ifdef HAVE_FSTRM_TCP_WRITER_INIT
+  struct fstrm_tcp_writer_options *d_twopt{nullptr};
+#endif
+  struct fstrm_writer *d_writer{nullptr};
+  struct fstrm_iothr_options *d_iothropt{nullptr};
+  struct fstrm_iothr *d_iothr{nullptr};
 
-  std::queue<std::string> d_writeQueue;
-  std::mutex d_writeMutex;
-  std::condition_variable d_queueCond;
-  ComboAddress d_remote;
-  uint64_t d_maxQueuedEntries;
-  int d_socket{-1};
-  uint16_t d_timeout;
-  uint8_t d_reconnectWaitTime;
-  std::atomic<bool> d_exiting{false};
-  bool d_asyncConnect{false};
-  bool d_connected{false};
-  std::thread d_thread;
+  void cleanup();
 };
+
+#endif /* HAVE_FSTRM */

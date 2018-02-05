@@ -19,25 +19,33 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#pragma once
+
+#include <cstddef>
+#include <string>
+
 #include "config.h"
 
-#include "dnsdist.hh"
-
-#include "dnsdist-protobuf.hh"
+#include "dnsname.hh"
+#include "iputils.hh"
 
 #ifdef HAVE_PROTOBUF
-#include "dnsmessage.pb.h"
-
-DNSDistProtoBufMessage::DNSDistProtoBufMessage(const DNSQuestion& dq): DNSProtoBufMessage(Query, dq.uniqueId ? *dq.uniqueId : t_uuidGenerator(), dq.remote, dq.local, *dq.qname, dq.qtype, dq.qclass, dq.dh->id, dq.tcp, dq.len)
-{
-  setQueryTime(dq.queryTime->tv_sec, dq.queryTime->tv_nsec / 1000);
-};
-
-DNSDistProtoBufMessage::DNSDistProtoBufMessage(const DNSResponse& dr, bool includeCNAME): DNSProtoBufMessage(Response, dr.uniqueId ? *dr.uniqueId : t_uuidGenerator(), dr.remote, dr.local, *dr.qname, dr.qtype, dr.qclass, dr.dh->id, dr.tcp, dr.len)
-{
-  setQueryTime(dr.queryTime->tv_sec, dr.queryTime->tv_nsec / 1000);
-  setResponseCode(dr.dh->rcode);
-  addRRsFromPacket((const char*) dr.dh, dr.len, includeCNAME);
-};
-
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include "dnstap.pb.h"
 #endif /* HAVE_PROTOBUF */
+
+class DnstapMessage
+{
+public:
+  DnstapMessage(const std::string& identity, const ComboAddress* requestor, const ComboAddress* responder, bool isTCP, const char* packet, const size_t len, const struct timespec* queryTime, const struct timespec* responseTime);
+  void serialize(std::string& data) const;
+  std::string toDebugString() const;
+
+  void setExtra(const std::string& extra);
+
+#ifdef HAVE_PROTOBUF
+protected:
+  dnstap::Dnstap proto_message;
+#endif /* HAVE_PROTOBUF */
+};

@@ -25,7 +25,9 @@
 #include "dnsdist-protobuf.hh"
 
 #include "dolog.hh"
+#include "dnstap.hh"
 #include "ednsoptions.hh"
+#include "fstrm_logger.hh"
 #include "remote_logger.hh"
 
 class DropAction : public DNSAction
@@ -599,10 +601,42 @@ public:
   }
 };
 
+class DnstapLogAction : public DNSAction, public boost::noncopyable
+{
+public:
+  DnstapLogAction(const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(const DNSQuestion&, DnstapMessage*)> > alterFunc): d_identity(identity), d_logger(logger), d_alterFunc(alterFunc)
+  {
+  }
+  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  {
+#ifdef HAVE_PROTOBUF
+    DnstapMessage message(d_identity, dq->remote, dq->local, dq->tcp, reinterpret_cast<const char*>(dq->dh), dq->len, dq->queryTime, nullptr);
+    {
+      if (d_alterFunc) {
+        std::lock_guard<std::mutex> lock(g_luamutex);
+        (*d_alterFunc)(*dq, &message);
+      }
+    }
+    std::string data;
+    message.serialize(data);
+    d_logger->queueData(data);
+#endif /* HAVE_PROTOBUF */
+    return Action::None;
+  }
+  string toString() const override
+  {
+    return "remote log as dnstap to " + (d_logger ? d_logger->toString() : "");
+  }
+private:
+  std::string d_identity;
+  std::shared_ptr<RemoteLoggerInterface> d_logger;
+  boost::optional<std::function<void(const DNSQuestion&, DnstapMessage*)> > d_alterFunc;
+};
+
 class RemoteLogAction : public DNSAction, public boost::noncopyable
 {
 public:
-  RemoteLogAction(std::shared_ptr<RemoteLogger> logger, boost::optional<std::function<void(const DNSQuestion&, DNSDistProtoBufMessage*)> > alterFunc): d_logger(logger), d_alterFunc(alterFunc)
+  RemoteLogAction(std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(const DNSQuestion&, DNSDistProtoBufMessage*)> > alterFunc): d_logger(logger), d_alterFunc(alterFunc)
   {
   }
   DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
@@ -630,7 +664,7 @@ public:
     return "remote log to " + (d_logger ? d_logger->toString() : "");
   }
 private:
-  std::shared_ptr<RemoteLogger> d_logger;
+  std::shared_ptr<RemoteLoggerInterface> d_logger;
   boost::optional<std::function<void(const DNSQuestion&, DNSDistProtoBufMessage*)> > d_alterFunc;
 };
 
@@ -681,10 +715,44 @@ private:
   std::string d_value;
 };
 
+class DnstapLogResponseAction : public DNSResponseAction, public boost::noncopyable
+{
+public:
+  DnstapLogResponseAction(const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(const DNSResponse&, DnstapMessage*)> > alterFunc): d_identity(identity), d_logger(logger), d_alterFunc(alterFunc)
+  {
+  }
+  DNSResponseAction::Action operator()(DNSResponse* dr, string* ruleresult) const override
+  {
+#ifdef HAVE_PROTOBUF
+    struct timespec now;
+    gettime(&now, true);
+    DnstapMessage message(d_identity, dr->remote, dr->local, dr->tcp, reinterpret_cast<const char*>(dr->dh), dr->len, dr->queryTime, &now);
+    {
+      if (d_alterFunc) {
+        std::lock_guard<std::mutex> lock(g_luamutex);
+        (*d_alterFunc)(*dr, &message);
+      }
+    }
+    std::string data;
+    message.serialize(data);
+    d_logger->queueData(data);
+#endif /* HAVE_PROTOBUF */
+    return Action::None;
+  }
+  string toString() const override
+  {
+    return "log response as dnstap to " + (d_logger ? d_logger->toString() : "");
+  }
+private:
+  std::string d_identity;
+  std::shared_ptr<RemoteLoggerInterface> d_logger;
+  boost::optional<std::function<void(const DNSResponse&, DnstapMessage*)> > d_alterFunc;
+};
+
 class RemoteLogResponseAction : public DNSResponseAction, public boost::noncopyable
 {
 public:
-  RemoteLogResponseAction(std::shared_ptr<RemoteLogger> logger, boost::optional<std::function<void(const DNSResponse&, DNSDistProtoBufMessage*)> > alterFunc, bool includeCNAME): d_logger(logger), d_alterFunc(alterFunc), d_includeCNAME(includeCNAME)
+  RemoteLogResponseAction(std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(const DNSResponse&, DNSDistProtoBufMessage*)> > alterFunc, bool includeCNAME): d_logger(logger), d_alterFunc(alterFunc), d_includeCNAME(includeCNAME)
   {
   }
   DNSResponseAction::Action operator()(DNSResponse* dr, string* ruleresult) const override
@@ -712,7 +780,7 @@ public:
     return "remote log response to " + (d_logger ? d_logger->toString() : "");
   }
 private:
-  std::shared_ptr<RemoteLogger> d_logger;
+  std::shared_ptr<RemoteLoggerInterface> d_logger;
   boost::optional<std::function<void(const DNSResponse&, DNSDistProtoBufMessage*)> > d_alterFunc;
   bool d_includeCNAME;
 };
@@ -991,7 +1059,13 @@ void setupLuaActions()
       return std::shared_ptr<DNSResponseAction>(new LuaResponseAction(func));
     });
 
-  g_lua.writeFunction("RemoteLogAction", [](std::shared_ptr<RemoteLogger> logger, boost::optional<std::function<void(const DNSQuestion&, DNSDistProtoBufMessage*)> > alterFunc) {
+  g_lua.writeFunction("RemoteLogAction", [](std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(const DNSQuestion&, DNSDistProtoBufMessage*)> > alterFunc) {
+      // avoids potentially-evaluated-expression warning with clang.
+      RemoteLoggerInterface& rl = *logger.get();
+      if (typeid(rl) != typeid(RemoteLogger)) {
+        // We could let the user do what he wants, but wrapping PowerDNS Protobuf inside a FrameStream tagged as dnstap is logically wrong.
+        throw std::runtime_error(std::string("RemoteLogAction only takes RemoteLogger. For other types, please look at DnstapLogAction."));
+      }
 #ifdef HAVE_PROTOBUF
       return std::shared_ptr<DNSAction>(new RemoteLogAction(logger, alterFunc));
 #else
@@ -999,11 +1073,33 @@ void setupLuaActions()
 #endif
     });
 
-  g_lua.writeFunction("RemoteLogResponseAction", [](std::shared_ptr<RemoteLogger> logger, boost::optional<std::function<void(const DNSResponse&, DNSDistProtoBufMessage*)> > alterFunc, boost::optional<bool> includeCNAME) {
+  g_lua.writeFunction("RemoteLogResponseAction", [](std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(const DNSResponse&, DNSDistProtoBufMessage*)> > alterFunc, boost::optional<bool> includeCNAME) {
+      // avoids potentially-evaluated-expression warning with clang.
+      RemoteLoggerInterface& rl = *logger.get();
+      if (typeid(rl) != typeid(RemoteLogger)) {
+        // We could let the user do what he wants, but wrapping PowerDNS Protobuf inside a FrameStream tagged as dnstap is logically wrong.
+        throw std::runtime_error("RemoteLogResponseAction only takes RemoteLogger. For other types, please look at DnstapLogResponseAction.");
+      }
 #ifdef HAVE_PROTOBUF
       return std::shared_ptr<DNSResponseAction>(new RemoteLogResponseAction(logger, alterFunc, includeCNAME ? *includeCNAME : false));
 #else
       throw std::runtime_error("Protobuf support is required to use RemoteLogResponseAction");
+#endif
+    });
+
+  g_lua.writeFunction("DnstapLogAction", [](const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(const DNSQuestion&, DnstapMessage*)> > alterFunc) {
+#ifdef HAVE_PROTOBUF
+      return std::shared_ptr<DNSAction>(new DnstapLogAction(identity, logger, alterFunc));
+#else
+      throw std::runtime_error("Protobuf support is required to use DnstapLogAction");
+#endif
+    });
+
+  g_lua.writeFunction("DnstapLogResponseAction", [](const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(const DNSResponse&, DnstapMessage*)> > alterFunc) {
+#ifdef HAVE_PROTOBUF
+      return std::shared_ptr<DNSResponseAction>(new DnstapLogResponseAction(identity, logger, alterFunc));
+#else
+      throw std::runtime_error("Protobuf support is required to use DnstapLogResponseAction");
 #endif
     });
 

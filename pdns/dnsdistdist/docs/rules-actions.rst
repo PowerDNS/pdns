@@ -727,6 +727,24 @@ The following actions exist.
 
   Set the CD bit in the query and let it go through.
 
+.. function:: DnstapLogAction(identity, logger[, alterFunction])
+
+  Send the the current query to a remote logger as a dnstap message.
+  ``alterFunction`` is a callback, receiving a :class:`DNSQuestion` and a :class:`DnstapMessage`, that can be used to modify the message.
+
+  :param string identity: Server identity to store in the dnstap message
+  :param logger: The :func:`FrameStreamLogger <newFrameStreamUnixLogger>` or :func:`RemoteLogger <newRemoteLogger>` object to write to
+  :param alterFunction: A Lua function to alter the message before sending
+
+.. function:: DnstapLogResponseAction(identity, logger[, alterFunction])
+
+  Send the the current response to a remote logger as a dnstap message.
+  ``alterFunction`` is a callback, receiving a :class:`DNSQuestion` and a :class:`DnstapMessage`, that can be used to modify the message.
+
+  :param string identity: Server identity to store in the dnstap message
+  :param logger: The :func:`FrameStreamLogger <newFrameStreamUnixLogger>` or :func:`RemoteLogger <newRemoteLogger>` object to write to
+  :param alterFunction: A Lua function to alter the message before sending
+
 .. function:: DropAction()
 
   Drop the packet.

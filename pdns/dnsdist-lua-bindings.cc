@@ -23,7 +23,9 @@
 #include "dnsdist-lua.hh"
 #include "dnsdist-protobuf.hh"
 
+#include "dnstap.hh"
 #include "dolog.hh"
+#include "fstrm_logger.hh"
 #include "remote_logger.hh"
 
 void setupLuaBindings(bool client)
@@ -257,13 +259,40 @@ void setupLuaBindings(bool client)
       message.setResponder(str);
     });
 
+  g_lua.registerFunction<std::string(DnstapMessage::*)()>("toDebugString", [](const DnstapMessage& message) { return message.toDebugString(); });
+  g_lua.registerFunction<void(DnstapMessage::*)(const std::string&)>("setExtra", [](DnstapMessage& message, const std::string& str) {
+      message.setExtra(str);
+    });
+
   /* RemoteLogger */
   g_lua.writeFunction("newRemoteLogger", [client](const std::string& remote, boost::optional<uint16_t> timeout, boost::optional<uint64_t> maxQueuedEntries, boost::optional<uint8_t> reconnectWaitTime) {
       if (client) {
-        return std::shared_ptr<RemoteLogger>();
+        return std::shared_ptr<RemoteLoggerInterface>();
       }
-      return std::make_shared<RemoteLogger>(ComboAddress(remote), timeout ? *timeout : 2, maxQueuedEntries ? *maxQueuedEntries : 100, reconnectWaitTime ? *reconnectWaitTime : 1);
-      });
+      return std::shared_ptr<RemoteLoggerInterface>(new RemoteLogger(ComboAddress(remote), timeout ? *timeout : 2, maxQueuedEntries ? *maxQueuedEntries : 100, reconnectWaitTime ? *reconnectWaitTime : 1));
+    });
+
+  g_lua.writeFunction("newFrameStreamUnixLogger", [client](const std::string& address) {
+      if (client) {
+        return std::shared_ptr<RemoteLoggerInterface>();
+      }
+#ifdef HAVE_FSTRM
+      return std::shared_ptr<RemoteLoggerInterface>(new FrameStreamLogger(AF_UNIX, address));
+#else
+      throw std::runtime_error("fstrm support is required to build an AF_UNIX FrameStreamLogger");
+#endif /* HAVE_FSTRM */
+    });
+
+  g_lua.writeFunction("newFrameStreamTcpLogger", [client](const std::string& address) {
+      if (client) {
+        return std::shared_ptr<RemoteLoggerInterface>();
+      }
+#if defined(HAVE_FSTRM) && defined(HAVE_FSTRM_TCP_WRITER_INIT)
+      return std::shared_ptr<RemoteLoggerInterface>(new FrameStreamLogger(AF_INET, address));
+#else
+      throw std::runtime_error("fstrm with TCP support is required to build an AF_INET FrameStreamLogger");
+#endif /* HAVE_FSTRM */
+    });
 
 #ifdef HAVE_DNSCRYPT
   /* DnsCryptContext bindings */

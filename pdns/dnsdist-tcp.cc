@@ -340,13 +340,6 @@ void* tcpClientThread(int pipefd)
           goto drop;
         }
 
-	const uint16_t* flags = getFlagsFromDNSHeader(dh);
-	uint16_t origFlags = *flags;
-	uint16_t qtype, qclass;
-	unsigned int consumed = 0;
-	DNSName qname(query, qlen, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
-	DNSQuestion dq(&qname, qtype, qclass, &dest, &ci.remote, dh, queryBuffer.capacity(), qlen, true);
-
 	string poolname;
 	int delayMsec=0;
 	/* we need this one to be accurate ("real") for the protobuf message */
@@ -354,6 +347,13 @@ void* tcpClientThread(int pipefd)
 	struct timespec now;
 	gettime(&now);
 	gettime(&queryRealTime, true);
+
+	const uint16_t* flags = getFlagsFromDNSHeader(dh);
+	uint16_t origFlags = *flags;
+	uint16_t qtype, qclass;
+	unsigned int consumed = 0;
+	DNSName qname(query, qlen, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
+	DNSQuestion dq(&qname, qtype, qclass, &dest, &ci.remote, dh, queryBuffer.capacity(), qlen, true, &queryRealTime);
 
 	if (!processQuery(holders, dq, poolname, &delayMsec, now)) {
 	  goto drop;

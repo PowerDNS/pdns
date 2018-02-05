@@ -30,8 +30,8 @@
 /missing
 /testrunner
 /dnsdist
-/dnsmessage.pb.cc
-/dnsmessage.pb.h
+/*.pb.cc
+/*.pb.h
 /dnsdist.service
 /dnsdist@.service
 /lua.hpp
