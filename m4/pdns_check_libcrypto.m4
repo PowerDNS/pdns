@@ -107,6 +107,7 @@ AC_DEFUN([PDNS_CHECK_LIBCRYPTO], [
         [AC_LANG_PROGRAM([#include <openssl/crypto.h>], [ERR_load_CRYPTO_strings()])],
         [
             AC_MSG_RESULT([yes])
+            AC_CHECK_FUNCS([RAND_bytes RAND_pseudo_bytes])
             $1
         ], [
             AC_MSG_RESULT([no])
