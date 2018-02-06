@@ -20,6 +20,7 @@
 #include "zoneparser-tng.hh"
 #include "signingpipe.hh"
 #include "dns_random.hh"
+#include "ipcrypt.hh"
 #include <fstream>
 #include <termios.h>            //termios, TCSANOW, ECHO, ICANON
 #include "opensslsigners.hh"
@@ -1002,6 +1003,20 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
   return EXIT_SUCCESS;
 }
 
+static int xcryptIP(const std::string& cmd, const std::string& ip, const std::string& key)
+{
+  string rkey = makeIPCryptKey(key);
+  ComboAddress ca(ip), ret;
+  
+  if(cmd=="ipencrypt")
+    ret = encryptCA(ca, rkey);
+  else
+    ret = decryptCA(ca, rkey);
+
+  cout<<ret.toString()<<endl;
+  return EXIT_SUCCESS;
+}
+
 
 int loadZone(DNSName zone, const string& fname) {
   UeberBackend B;
@@ -1956,6 +1971,8 @@ try
     cout<<"import-tsig-key NAME ALGORITHM KEY Import TSIG key"<<endl;
     cout<<"import-zone-key ZONE FILE          Import from a file a private key, ZSK or KSK"<<endl;
     cout<<"       [active|inactive] [ksk|zsk]  Defaults to KSK and active"<<endl;
+    cout<<"ipdecrypt IP key                   Encrypt an IP address using 'key' (string or base64)"<<endl;    
+    cout<<"ipencrypt IP key                   Encrypt an IP address using 'key' (string or base64)"<<endl;
     cout<<"load-zone ZONE FILE                Load ZONE from FILE, possibly creating zone or atomically"<<endl;
     cout<<"                                   replacing contents"<<endl;
     cout<<"list-algorithms [with-backend]     List all DNSSEC algorithms supported, optionally also listing the crypto library used"<<endl;
@@ -2003,6 +2020,15 @@ try
       return 0;
     return 1;
   }
+
+  if(cmds[0] == "ipencrypt" || cmds[0]=="ipdecrypt") {
+    if(cmds.size() != 3) {
+      cerr<<"Syntax: pdnsutil [ipencrypt|ipdecrypt] IP password"<<endl;
+      return 0;
+    }
+    exit(xcryptIP(cmds[0], cmds[1], cmds[2]));
+  }
+
 
   if(cmds[0] == "test-algorithms") {
     if (testAlgorithms())

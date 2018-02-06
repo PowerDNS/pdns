@@ -1,6 +1,21 @@
 #include "ipcrypt.hh"
 #include "ext/ipcrypt/ipcrypt.h"
 #include <openssl/aes.h>
+#include <openssl/evp.h>
+
+/*
+int PKCS5_PBKDF2_HMAC_SHA1(const char *pass, int passlen,
+                           const unsigned char *salt, int saltlen, int iter,
+                           int keylen, unsigned char *out);
+*/
+std::string makeIPCryptKey(const std::string& password)
+{
+  static const char* salt="ipcryptipcrypt";
+  unsigned char out[16];
+  PKCS5_PBKDF2_HMAC_SHA1(password.c_str(), password.size(), (const unsigned char*)salt, sizeof(salt), 50000, sizeof(out), out);
+
+  return std::string((const char*)out, (const char*)out + sizeof(out));
+}
 
 static ComboAddress encryptCA4(const ComboAddress& ca, const std::string &key)
 {
