@@ -10,7 +10,7 @@ int PKCS5_PBKDF2_HMAC_SHA1(const char *pass, int passlen,
 */
 std::string makeIPCipherKey(const std::string& password)
 {
-  static const char salt[]="ipcryptipcrypt";
+  static const char salt[]="ipcipheripcipher";
   unsigned char out[16];
 
   PKCS5_PBKDF2_HMAC_SHA1(password.c_str(), password.size(), (const unsigned char*)salt, sizeof(salt)-1, 50000, sizeof(out), out);
