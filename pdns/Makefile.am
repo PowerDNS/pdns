@@ -54,7 +54,8 @@ EXTRA_DIST = \
 	bindparser.h \
 	named.conf.parsertest \
 	delaypipe.hh delaypipe.cc \
-	pdns.service.in
+	pdns.service.in \
+	ixfrdist.service.in
 
 BUILT_SOURCES = \
 	bind-dnssec.schema.sqlite3.sql.h \
@@ -1357,4 +1358,13 @@ systemdsystemunitdir = $(SYSTEMD_DIR)
 systemdsystemunit_DATA = \
 	pdns.service \
 	pdns@.service
-endif
+
+if TOOLS
+ixfrdist.service: ixfrdist.service.in
+	$(AM_V_GEN)sed -e 's![@]bindir[@]!$(bindir)!' < $< > $@
+
+systemdsystemunit_DATA += \
+	ixfrdist.service
+endif # TOOLS
+
+endif # HAVE_SYSTEMD
