@@ -54,7 +54,8 @@ EXTRA_DIST = \
 	bindparser.h \
 	named.conf.parsertest \
 	delaypipe.hh delaypipe.cc \
-	pdns.service.in
+	pdns.service.in \
+	ixfrdist.service.in
 
 BUILT_SOURCES = \
 	bind-dnssec.schema.sqlite3.sql.h \
@@ -95,6 +96,7 @@ bin_PROGRAMS += \
 	saxfr \
 	stubquery \
 	ixplore \
+	ixfrdist \
 	sdig
 
 if HAVE_RECVMMSG
@@ -123,6 +125,7 @@ EXTRA_PROGRAMS = \
 	dumresp \
 	kvresp \
 	ixplore \
+	ixfrdist \
 	pdns_notify \
 	nproxy \
 	nsec3dig \
@@ -586,6 +589,55 @@ if GSS_TSIG
 saxfr_LDADD += $(GSS_LIBS)
 endif
 
+ixfrdist_SOURCES = \
+	arguments.cc \
+	base32.cc \
+	base64.cc base64.hh \
+	dns.cc \
+	dns_random.cc dns_random.hh \
+	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
+	dnsparser.cc dnsparser.hh \
+	dnsrecords.cc \
+	dnssecinfra.cc \
+	dnswriter.cc dnswriter.hh \
+	gss_context.cc gss_context.hh \
+	iputils.hh iputils.cc \
+	ixfr.cc ixfr.hh \
+	ixfrdist.cc \
+	ixfrutils.cc ixfrutils.hh \
+	logger.cc \
+	misc.cc misc.hh \
+	mplexer.hh \
+	nsecrecords.cc \
+	qtype.cc \
+	rcpgenerator.cc rcpgenerator.hh \
+	resolver.cc \
+	pollmplexer.cc \
+	sillyrecords.cc \
+	sstuff.hh \
+	statbag.cc \
+	tsigverifier.cc tsigverifier.hh \
+	unix_utility.cc zoneparser-tng.cc
+
+ixfrdist_LDADD = \
+	$(BOOST_PROGRAM_OPTIONS_LIBS) \
+	$(LIBCRYPTO_LIBS)
+
+ixfrdist_LDFLAGS = \
+	$(AM_LDFLAGS) \
+	$(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
+	$(LIBCRYPTO_LDFLAGS)
+
+if PKCS11
+ixfrdist_SOURCES += pkcs11signers.cc pkcs11signers.hh
+ixfrdist_LDADD += $(P11KIT1_LIBS)
+endif
+
+if GSS_TSIG
+ixfrdist_LDADD += $(GSS_LIBS)
+endif
+
 
 ixplore_SOURCES = \
 	arguments.cc \
@@ -607,6 +659,7 @@ ixplore_SOURCES = \
 	rcpgenerator.cc rcpgenerator.hh \
 	resolver.cc \
 	ixfr.cc ixfr.hh \
+	ixfrutils.cc ixfrutils.hh \
 	ixplore.cc \
 	sillyrecords.cc \
 	sstuff.hh \
@@ -1305,4 +1358,13 @@ systemdsystemunitdir = $(SYSTEMD_DIR)
 systemdsystemunit_DATA = \
 	pdns.service \
 	pdns@.service
-endif
+
+if TOOLS
+ixfrdist.service: ixfrdist.service.in
+	$(AM_V_GEN)sed -e 's![@]bindir[@]!$(bindir)!' < $< > $@
+
+systemdsystemunit_DATA += \
+	ixfrdist.service
+endif # TOOLS
+
+endif # HAVE_SYSTEMD

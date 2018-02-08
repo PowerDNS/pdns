@@ -534,6 +534,7 @@ bool setBlocking( int sock );
 //! Sets the socket into non-blocking mode.
 bool setNonBlocking( int sock );
 bool setTCPNoDelay(int sock);
+bool setReuseAddr(int sock);
 bool isNonBlocking(int sock);
 int closesocket(int fd);
 bool setCloseOnExec(int sock);

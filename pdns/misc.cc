@@ -1051,6 +1051,14 @@ bool setBlocking(int sock)
   return true;
 }
 
+bool setReuseAddr(int sock)
+{
+  int tmp = 1;
+  if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char*)&tmp, static_cast<unsigned>(sizeof tmp))<0)
+    throw PDNSException(string("Setsockopt failed: ")+strerror(errno));
+  return true;
+}
+
 bool isNonBlocking(int sock)
 {
   int flags=fcntl(sock,F_GETFL,0);
