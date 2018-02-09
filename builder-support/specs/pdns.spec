@@ -293,6 +293,7 @@ fi
 %{_bindir}/dnsscope
 %{_bindir}/dnswasher
 %{_bindir}/dumresp
+%{_bindir}/ixfrdist
 %{_bindir}/ixplore
 %{_bindir}/pdns_notify
 %{_bindir}/nproxy
@@ -306,6 +307,7 @@ fi
 %{_mandir}/man1/dnsscope.1.gz
 %{_mandir}/man1/dnswasher.1.gz
 %{_mandir}/man1/dumresp.1.gz
+%{_mandir}/man1/ixfrdist.1.gz
 %{_mandir}/man1/ixplore.1.gz
 %{_mandir}/man1/pdns_notify.1.gz
 %{_mandir}/man1/nproxy.1.gz
@@ -319,6 +321,7 @@ fi
 %{_mandir}/man1/dnsbulktest.1.gz
 %{_mandir}/man1/dnspcap2protobuf.1.gz
 %{_mandir}/man1/dnstcpbench.1.gz
+%{_unitdir}/ixfrdist.service
 %endif
 
 %files backend-mysql

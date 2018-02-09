@@ -8,6 +8,7 @@ usr/bin/dnsscope
 usr/bin/dnstcpbench
 usr/bin/dnswasher
 usr/bin/dumresp
+usr/bin/ixfrdist
 usr/bin/ixplore
 usr/bin/nproxy
 usr/bin/nsec3dig
