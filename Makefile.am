@@ -15,4 +15,12 @@ EXTRA_DIST = \
 
 ACLOCAL_AMFLAGS = -I m4
 
+if HAVE_STATIC_ANALYSIS
+analyze:
+	$(MAKE) -C pdns analyze
+
+.PHONY: analyze
+endif
+
+
 dvi: # do nothing to build dvi
