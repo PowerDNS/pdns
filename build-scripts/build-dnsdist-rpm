@@ -31,6 +31,11 @@ SODIUM_BUILDREQUIRES='BuildRequires: libsodium-devel'
 SODIUM_CONFIGURE='--enable-libsodium \'
 DNSCRYPT_CONFIGURE='--enable-dnscrypt \'
 
+# CentOS 6 needs a more modern Boost
+BOOST_BUILDREQUIRES='boost-devel'
+BOOST_CONFIGURE=' \'
+BOOST_MAKEENV=''
+
 # SLES 12 SP1 does not have re2
 RE2_BUILDREQUIRES='BuildRequires: re2-devel'
 RE2_CONFIGURE='--enable-re2 \'
@@ -83,8 +88,6 @@ if [ -f /etc/redhat-release ]; then
       INIT_INSTALL='install -d -m 755 %{buildroot}/%{_initrddir} && install -m 755 contrib/dnsdist.init.centos6 %{buildroot}/%{_initrddir}/dnsdist'
       INIT_FILES='%{_initrddir}/dnsdist'
       INIT_CONFIGURE='\'
-      PROTOBUF_CONFIGURE='--without-protobuf \'
-      PROTOBUF_BUILDREQUIRES=''
       SODIUM_BUILDREQUIRES=''
       SODIUM_CONFIGURE='--disable-libsodium \'
       DNSCRYPT_CONFIGURE='--disable-dnscrypt \'
@@ -92,6 +95,9 @@ if [ -f /etc/redhat-release ]; then
       LUA_CONFIGURE=' \'
       SETUP="%setup -n %{name}-${TARBALLVERSION}"
       RPMBUILD_COMMAND="scl enable devtoolset-3 -- ${RPMBUILD_COMMAND}"
+      BOOST_BUILDREQUIRES="boost148-devel"
+      BOOST_CONFIGURE='--with-boost=/usr/include/boost148 LIBRARY_PATH=/usr/lib64/boost148'
+      BOOST_MAKEENV='LIBRARY_PATH=/usr/lib64/boost148'
       ;;
     CentOS\ Linux\ *\ 7*)
       ;;
@@ -113,7 +119,7 @@ Vendor: PowerDNS.COM BV
 Group: System/DNS
 Source: dnsdist-${TARBALLVERSION}.tar.bz2
 Requires(pre): ${SHADOW_REQUIRES}
-BuildRequires: boost-devel
+BuildRequires: ${BOOST_BUILDREQUIRES}
 BuildRequires: readline-devel
 ${SNMP_BUILDREQUIRES}
 ${LUA_BUILDREQUIRES}
@@ -141,8 +147,9 @@ sed -i '/^ExecStart/ s/dnsdist/dnsdist -u dnsdist -g dnsdist/' dnsdist.service.i
   ${DNSCRYPT_CONFIGURE}
   ${INIT_CONFIGURE}
   ${PROTOBUF_CONFIGURE}
+  ${BOOST_CONFIGURE}
 
-make
+make ${BOOST_MAKEENV}
 mv dnsdistconf.lua dnsdist.conf.sample
 
 %check
