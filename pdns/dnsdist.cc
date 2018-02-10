@@ -59,9 +59,7 @@
 #include "sstuff.hh"
 #include "xpf.hh"
 
-#ifdef HAVE_PROTOBUF
 thread_local boost::uuids::random_generator t_uuidGenerator;
-#endif
 
 /* Known sins:
 
