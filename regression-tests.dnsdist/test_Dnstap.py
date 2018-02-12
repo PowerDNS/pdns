@@ -79,7 +79,7 @@ def checkDnstapResponse(testinstance, dnstap, protocol, response, initiator='127
 
 
 class TestDnstapOverRemoteLogger(DNSDistTest):
-    _remoteLoggerServerPort = 4242
+    _remoteLoggerServerPort = 4243
     _remoteLoggerQueue = Queue.Queue()
     _remoteLoggerCounter = 0
     _config_params = ['_testServerPort', '_remoteLoggerServerPort']
