@@ -206,15 +206,19 @@ void updateThread() {
       try {
         lastCheck[domain] = now;
         auto newSerial = getSerialFromMaster(g_master, domain, sr); // TODO TSIG
-        if(g_soas.find(domain) != g_soas.end() && g_verbose) {
-          cerr<<"[INFO] Got SOA Serial for "<<domain<<" from "<<g_master.toStringWithPort()<<": "<< newSerial<<", had Serial: "<<g_soas[domain]->d_st.serial;
+        if(g_soas.find(domain) != g_soas.end()) {
+          if (g_verbose) {
+            cerr<<"[INFO] Got SOA Serial for "<<domain<<" from "<<g_master.toStringWithPort()<<": "<< newSerial<<", had Serial: "<<g_soas[domain]->d_st.serial;
+          }
           if (newSerial == g_soas[domain]->d_st.serial) {
             if (g_verbose) {
               cerr<<", not updating."<<endl;
             }
             continue;
           }
-          cerr<<", will update."<<endl;
+          if (g_verbose) {
+            cerr<<", will update."<<endl;
+          }
         }
       } catch (runtime_error &e) {
         cerr<<"[WARNING] Unable to get SOA serial update for '"<<domain<<"': "<<e.what()<<endl;
