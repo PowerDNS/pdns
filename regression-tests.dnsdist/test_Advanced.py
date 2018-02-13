@@ -921,7 +921,7 @@ class TestAdvancedRestoreFlagsOnSelfResponse(DNSDistTest):
 class TestAdvancedQPS(DNSDistTest):
 
     _config_template = """
-    addQPSLimit("qps.advanced.tests.powerdns.com", 10)
+    addAction("qps.advanced.tests.powerdns.com", QPSAction(10))
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -969,7 +969,7 @@ class TestAdvancedQPS(DNSDistTest):
 class TestAdvancedQPSNone(DNSDistTest):
 
     _config_template = """
-    addQPSLimit("qpsnone.advanced.tests.powerdns.com", 100)
+    addAction("qpsnone.advanced.tests.powerdns.com", QPSAction(100))
     addAction(AllRule(), RCodeAction(dnsdist.REFUSED))
     newServer{address="127.0.0.1:%s"}
     """
