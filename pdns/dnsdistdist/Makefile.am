@@ -158,6 +158,7 @@ testrunner_SOURCES = \
 	test-dnsdist_cc.cc \
 	test-dnsdistpacketcache_cc.cc \
 	test-dnscrypt_cc.cc \
+	test-iputils_hh.cc \
 	dnsdist.hh \
 	dnsdist-cache.cc dnsdist-cache.hh \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
