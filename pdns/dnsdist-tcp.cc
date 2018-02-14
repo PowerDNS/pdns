@@ -56,7 +56,9 @@ static int setupTCPDownstream(shared_ptr<DownstreamState> ds, uint16_t& downstre
       if (!IsAnyAddress(ds->sourceAddr)) {
         SSetsockopt(sock, SOL_SOCKET, SO_REUSEADDR, 1);
 #ifdef IP_BIND_ADDRESS_NO_PORT
-        SSetsockopt(sock, SOL_IP, IP_BIND_ADDRESS_NO_PORT, 1);
+        if (ds->ipBindAddrNoPort) {
+          SSetsockopt(sock, SOL_IP, IP_BIND_ADDRESS_NO_PORT, 1);
+        }
 #endif
         SBind(sock, ds->sourceAddr);
       }
