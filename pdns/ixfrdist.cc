@@ -260,16 +260,16 @@ void updateThread() {
         if (g_verbose) {
           cerr<<"[INFO] Wrote zonedata for "<<domain<<" with serial "<<soa->d_st.serial<<" to "<<dir<<endl;
         }
+        {
+          std::lock_guard<std::mutex> guard(g_soas_mutex);
+          g_soas[domain] = soa;
+        }
+
       } catch (ResolverException &e) {
         cerr<<"[WARNING] Could not retrieve AXFR for '"<<domain<<"': "<<e.reason<<endl;
       } catch (runtime_error &e) {
         cerr<<"[WARNING] Could not save zone '"<<domain<<"' to disk: "<<e.what()<<endl;
       }
-      {
-        std::lock_guard<std::mutex> guard(g_soas_mutex);
-        g_soas[domain] = soa;
-      }
-
       // Now clean up the directory
       cleanUpDomain(domain);
     } /* for (const auto &domain : domains) */
