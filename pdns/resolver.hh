@@ -90,12 +90,12 @@ class AXFRRetriever : public boost::noncopyable
                   const ComboAddress* laddr = NULL,
                   size_t maxReceivedBytes=0);
     ~AXFRRetriever();
-    int getChunk(Resolver::res_t &res, vector<DNSRecord>* records=0);  
+    int getChunk(Resolver::res_t &res, vector<DNSRecord>* records=0, uint16_t timeout=10);
   
   private:
     void connect();
     int getLength();
-    void timeoutReadn(uint16_t bytes);  
+    void timeoutReadn(uint16_t bytes, uint16_t timeoutsec=10);
 
     shared_array<char> d_buf;
     string d_domain;
