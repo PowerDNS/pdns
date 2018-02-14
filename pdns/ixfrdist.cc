@@ -195,9 +195,11 @@ void updateThread() {
     time_t now = time(nullptr);
     for (const auto &domain : g_domains) {
       shared_ptr<SOARecordContent> current_soa;
-      if (g_soas.find(domain) != g_soas.end()) {
+      {
         std::lock_guard<std::mutex> guard(g_soas_mutex);
-        current_soa = g_soas[domain];
+        if (g_soas.find(domain) != g_soas.end()) {
+          current_soa = g_soas[domain];
+        }
       }
       if ((current_soa != nullptr && now - lastCheck[domain] < current_soa->d_st.refresh) || // Only check if we have waited `refresh` seconds
           (current_soa == nullptr && now - lastCheck[domain] < 30))  {                       // Or if we could not get an update at all still, every 30 seconds
@@ -299,12 +301,15 @@ bool checkQuery(const MOADNSParser& mdp, const ComboAddress& saddr, const bool u
     info_msg.push_back("QType is unsupported (" + QType(mdp.d_qtype).getName() + " is not in {SOA,IXFR,AXFR}");
   }
 
-  if (g_domains.find(mdp.d_qname) == g_domains.end()) {
-    info_msg.push_back("Domain name '" + mdp.d_qname.toLogString() + "' is not configured for distribution");
-  }
+  {
+    std::lock_guard<std::mutex> guard(g_soas_mutex);
+    if (g_domains.find(mdp.d_qname) == g_domains.end()) {
+      info_msg.push_back("Domain name '" + mdp.d_qname.toLogString() + "' is not configured for distribution");
+    }
 
-  if (g_soas.find(mdp.d_qname) == g_soas.end()) {
-    info_msg.push_back("Domain has not been transferred yet");
+    if (g_soas.find(mdp.d_qname) == g_soas.end()) {
+      info_msg.push_back("Domain has not been transferred yet");
+    }
   }
 
   if (!info_msg.empty()) {
