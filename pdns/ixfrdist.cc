@@ -194,8 +194,13 @@ void updateThread() {
     }
     time_t now = time(nullptr);
     for (const auto &domain : g_domains) {
-      if ((g_soas.find(domain) != g_soas.end() && now - lastCheck[domain] < g_soas[domain]->d_st.refresh) || // Only check if we have waited `refresh` seconds
-          (g_soas.find(domain) == g_soas.end() && now - lastCheck[domain] < 30))  {                          // Or if we could not get an update at all still, every 30 seconds
+      shared_ptr<SOARecordContent> current_soa;
+      if (g_soas.find(domain) != g_soas.end()) {
+        std::lock_guard<std::mutex> guard(g_soas_mutex);
+        current_soa = g_soas[domain];
+      }
+      if ((current_soa != nullptr && now - lastCheck[domain] < current_soa->d_st.refresh) || // Only check if we have waited `refresh` seconds
+          (current_soa == nullptr && now - lastCheck[domain] < 30))  {                       // Or if we could not get an update at all still, every 30 seconds
         continue;
       }
       string dir = g_workdir + "/" + domain.toString();
@@ -206,11 +211,11 @@ void updateThread() {
       try {
         lastCheck[domain] = now;
         auto newSerial = getSerialFromMaster(g_master, domain, sr); // TODO TSIG
-        if(g_soas.find(domain) != g_soas.end()) {
+        if(current_soa != nullptr) {
           if (g_verbose) {
-            cerr<<"[INFO] Got SOA Serial for "<<domain<<" from "<<g_master.toStringWithPort()<<": "<< newSerial<<", had Serial: "<<g_soas[domain]->d_st.serial;
+            cerr<<"[INFO] Got SOA Serial for "<<domain<<" from "<<g_master.toStringWithPort()<<": "<< newSerial<<", had Serial: "<<current_soa->d_st.serial;
           }
-          if (newSerial == g_soas[domain]->d_st.serial) {
+          if (newSerial == current_soa->d_st.serial) {
             if (g_verbose) {
               cerr<<", not updating."<<endl;
             }
@@ -230,6 +235,8 @@ void updateThread() {
       }
       ComboAddress local = g_master.isIPv4() ? ComboAddress("0.0.0.0") : ComboAddress("::");
       TSIGTriplet tt;
+
+      // The *new* SOA
       shared_ptr<SOARecordContent> soa;
       try {
         AXFRRetriever axfr(g_master, domain, tt, &local);
@@ -331,7 +338,10 @@ bool makeSOAPacket(const MOADNSParser& mdp, vector<uint8_t>& packet) {
   pw.getHeader()->qr = 1;
 
   pw.startRecord(mdp.d_qname, QType::SOA);
-  g_soas[mdp.d_qname]->toPacket(pw);
+  {
+    std::lock_guard<std::mutex> guard(g_soas_mutex);
+    g_soas[mdp.d_qname]->toPacket(pw);
+  }
   pw.commit();
 
   return true;
@@ -418,7 +428,11 @@ bool makeIXFRPackets(const MOADNSParser& mdp, const shared_ptr<SOARecordContent>
   string dir = g_workdir + "/" + mdp.d_qname.toString();
   // Get the new SOA only once, so it will not change under our noses from the
   // updateThread.
-  uint32_t newSerial = g_soas[mdp.d_qname]->d_st.serial;
+  uint32_t newSerial;
+  {
+    std::lock_guard<std::mutex> guard(g_soas_mutex);
+    newSerial = g_soas[mdp.d_qname]->d_st.serial;
+  }
 
   if (rfc1982LessThan(newSerial, clientSOA->d_st.serial)){
     /* RFC 1995 Section 2
