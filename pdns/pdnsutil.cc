@@ -20,7 +20,7 @@
 #include "zoneparser-tng.hh"
 #include "signingpipe.hh"
 #include "dns_random.hh"
-#include "ipcrypt.hh"
+#include "ipcipher.hh"
 #include <fstream>
 #include <termios.h>            //termios, TCSANOW, ECHO, ICANON
 #include "opensslsigners.hh"
@@ -1005,7 +1005,7 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
 
 static int xcryptIP(const std::string& cmd, const std::string& ip, const std::string& key)
 {
-  string rkey = makeIPCryptKey(key);
+  string rkey = makeIPCipherKey(key);
   ComboAddress ca(ip), ret;
   
   if(cmd=="ipencrypt")

@@ -2,6 +2,8 @@
 #include "iputils.hh"
 #include <string>
 
+// see https://powerdns.org/ipcipher
+
 ComboAddress encryptCA(const ComboAddress& ca, const std::string& key);
 ComboAddress decryptCA(const ComboAddress& ca, const std::string& key);
-std::string makeIPCryptKey(const std::string& password);
+std::string makeIPCipherKey(const std::string& password);

@@ -177,7 +177,7 @@ endif
 
 if HAVE_LIBSSL
 dnsdist_LDADD += $(LIBSSL_LIBS) $(LIBCRYPTO_LIBS)
-dnsdist_SOURCES += ipcrypt.cc ipcrypt.hh ext/ipcrypt/ipcrypt.c ext/ipcrypt/ipcrypt.h 
+dnsdist_SOURCES += ipcipher.cc ipcipher.hh ext/ipcrypt/ipcrypt.c ext/ipcrypt/ipcrypt.h 
 endif
 
 if !HAVE_LUA_HPP

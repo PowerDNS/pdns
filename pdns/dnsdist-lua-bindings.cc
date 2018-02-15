@@ -31,7 +31,7 @@
 #include "dolog.hh"
 #include "fstrm_logger.hh"
 #include "remote_logger.hh"
-#include "ipcrypt.hh"
+#include "ipcipher.hh"
 
 void setupLuaBindings(bool client)
 {
