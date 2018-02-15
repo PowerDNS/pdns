@@ -3,7 +3,7 @@ Changelog
 
 .. changelog::
   :version: 1.2.1
-  :released: TBD
+  :released: 16th of February 2018
 
   .. change::
     :tags: New Features
