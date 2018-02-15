@@ -25,7 +25,7 @@
 
 #include "dolog.hh"
 #include "remote_logger.hh"
-#include "ipcrypt.hh"
+#include "ipcipher.hh"
 
 void setupLuaBindings(bool client)
 {
