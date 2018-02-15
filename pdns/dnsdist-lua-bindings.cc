@@ -173,6 +173,10 @@ void setupLuaBindings(bool client)
   g_lua.registerFunction<ComboAddress(ComboAddress::*)(const std::string& key)>("ipdecrypt", [](const ComboAddress& ca, const std::string& key) {
       return decryptCA(ca, key);
     });
+
+  g_lua.writeFunction("makeIPCipherKey", [](const std::string& password) {
+      return makeIPCipherKey(password);
+    });
   
   /* DNSName */
   g_lua.registerFunction("isPartOf", &DNSName::isPartOf);
