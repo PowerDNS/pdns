@@ -299,7 +299,7 @@ pdnsutil_SOURCES = \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc \
 	gss_context.cc gss_context.hh \
-	ipcrypt.cc ipcrypt.hh ../ext/ipcrypt/ipcrypt.c ../ext/ipcrypt/ipcrypt.h \
+	ipcipher.cc ipcipher.hh ../ext/ipcrypt/ipcrypt.c ../ext/ipcrypt/ipcrypt.h \
 	iputils.cc iputils.hh \
 	json.cc \
 	logger.cc \
@@ -1154,7 +1154,7 @@ testrunner_SOURCES = \
 	ednssubnet.cc \
 	gettime.cc gettime.hh \
 	gss_context.cc gss_context.hh \
-	ipcrypt.cc ipcrypt.hh ../ext/ipcrypt/ipcrypt.c ../ext/ipcrypt/ipcrypt.h \
+	ipcipher.cc ipcipher.hh ../ext/ipcrypt/ipcrypt.c ../ext/ipcrypt/ipcrypt.h \
 	iputils.cc \
 	ixfr.cc ixfr.hh \
 	logger.cc \

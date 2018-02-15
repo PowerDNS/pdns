@@ -1,4 +1,4 @@
-#include "ipcrypt.hh"
+#include "ipcipher.hh"
 #include "ext/ipcrypt/ipcrypt.h"
 #include <openssl/aes.h>
 #include <openssl/evp.h>
@@ -8,7 +8,7 @@ int PKCS5_PBKDF2_HMAC_SHA1(const char *pass, int passlen,
                            const unsigned char *salt, int saltlen, int iter,
                            int keylen, unsigned char *out);
 */
-std::string makeIPCryptKey(const std::string& password)
+std::string makeIPCipherKey(const std::string& password)
 {
   static const char* salt="ipcryptipcrypt";
   unsigned char out[16];
