@@ -149,6 +149,7 @@ try
             *dst=ipo.obf6(*dst);
           else
             *src=ipo.obf6(*src);
+          // IPv6 checksum does not cover source/destination addresses
         }
         pw.write();
       }
