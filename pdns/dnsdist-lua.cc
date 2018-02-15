@@ -394,24 +394,6 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			  ret->qps=QPSLimiter(qpsVal, qpsVal);
 			}
 
-			auto localPools = g_pools.getCopy();
-			if(vars.count("pool")) {
-			  if(auto* pool = boost::get<string>(&vars["pool"]))
-			    ret->pools.insert(*pool);
-			  else {
-			    auto* pools = boost::get<vector<pair<int, string> > >(&vars["pool"]);
-			    for(auto& p : *pools)
-			      ret->pools.insert(p.second);
-			  }
-			  for(const auto& poolName: ret->pools) {
-			    addServerToPool(localPools, poolName, ret);
-			  }
-			}
-			else {
-			  addServerToPool(localPools, "", ret);
-			}
-			g_pools.setState(localPools);
-
 			if(vars.count("order")) {
 			  ret->order=std::stoi(boost::get<string>(vars["order"]));
 			}
@@ -471,9 +453,35 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			  ret->useECS=boost::get<bool>(vars["useClientSubnet"]);
 			}
 
+			if(vars.count("ipBindAddrNoPort")) {
+			  ret->ipBindAddrNoPort=boost::get<bool>(vars["ipBindAddrNoPort"]);
+			}
+
 			if(vars.count("maxCheckFailures")) {
 			  ret->maxCheckFailures=std::stoi(boost::get<string>(vars["maxCheckFailures"]));
 			}
+
+                        /* this needs to be done _AFTER_ the order has been set,
+                           since the server are kept ordered inside the pool */
+                        auto localPools = g_pools.getCopy();
+                        if(vars.count("pool")) {
+                          if(auto* pool = boost::get<string>(&vars["pool"])) {
+                            ret->pools.insert(*pool);
+                          }
+                          else {
+                            auto pools = boost::get<vector<pair<int, string> > >(vars["pool"]);
+                            for(auto& p : pools) {
+			      ret->pools.insert(p.second);
+                            }
+                          }
+                          for(const auto& poolName: ret->pools) {
+                            addServerToPool(localPools, poolName, ret);
+                          }
+                        }
+                        else {
+                          addServerToPool(localPools, "", ret);
+                        }
+                        g_pools.setState(localPools);
 
 			if (ret->connected) {
 			  if(g_launchWork) {
@@ -786,6 +794,10 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
   g_lua.writeFunction("PoolAction", [](const string& a) {
       return std::shared_ptr<DNSAction>(new PoolAction(a));
+    });
+
+  g_lua.writeFunction("QPSAction", [](int limit) {
+      return std::shared_ptr<DNSAction>(new QPSAction(limit));
     });
 
   g_lua.writeFunction("QPSPoolAction", [](int limit, const string& a) {

@@ -56,7 +56,9 @@ static int setupTCPDownstream(shared_ptr<DownstreamState> ds, uint16_t& downstre
       if (!IsAnyAddress(ds->sourceAddr)) {
         SSetsockopt(sock, SOL_SOCKET, SO_REUSEADDR, 1);
 #ifdef IP_BIND_ADDRESS_NO_PORT
-        SSetsockopt(sock, SOL_IP, IP_BIND_ADDRESS_NO_PORT, 1);
+        if (ds->ipBindAddrNoPort) {
+          SSetsockopt(sock, SOL_IP, IP_BIND_ADDRESS_NO_PORT, 1);
+        }
 #endif
         SBind(sock, ds->sourceAddr);
       }
@@ -278,8 +280,9 @@ void* tcpClientThread(int pipefd)
         ds = nullptr;
         outstanding = false;
 
-        if(!getNonBlockingMsgLen(ci.fd, &qlen, g_tcpRecvTimeout))
+        if(!getNonBlockingMsgLen(ci.fd, &qlen, g_tcpRecvTimeout)) {
           break;
+        }
 
         ci.cs->queries++;
         g_stats.queries++;
@@ -376,7 +379,7 @@ void* tcpClientThread(int pipefd)
 #endif
           sendResponseToClient(ci.fd, query, dq.len);
 	  g_stats.selfAnswered++;
-	  goto drop;
+	  continue;
 	}
 
         std::shared_ptr<ServerPool> serverPool = getPool(*localPools, poolname);
@@ -424,7 +427,7 @@ void* tcpClientThread(int pipefd)
 #endif
             sendResponseToClient(ci.fd, cachedResponse, cachedResponseSize);
             g_stats.cacheHits++;
-            goto drop;
+            continue;
           }
           g_stats.cacheMisses++;
         }
@@ -443,6 +446,7 @@ void* tcpClientThread(int pipefd)
             }
 #endif
             sendResponseToClient(ci.fd, query, dq.len);
+            continue;
           }
 
           break;

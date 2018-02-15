@@ -360,7 +360,7 @@ class TestDynBlockQPSActionTruncated(DNSDistTest):
                 # let's clear the response queue
                 self.clearToResponderQueue()
 
-        # we might be already blocked, but we should have been able to send
+        # we might be already truncated, but we should have been able to send
         # at least self._dynBlockQPS queries
         self.assertGreaterEqual(allowed, self._dynBlockQPS)
 
@@ -371,6 +371,12 @@ class TestDynBlockQPSActionTruncated(DNSDistTest):
         # we should now be 'truncated' for up to self._dynBlockDuration + self._dynBlockPeriod
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertEquals(receivedResponse, truncatedResponse)
+
+        # check over TCP, which should not be truncated
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
 
         # wait until we are not blocked anymore
         time.sleep(self._dynBlockDuration + self._dynBlockPeriod)

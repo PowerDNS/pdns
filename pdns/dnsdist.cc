@@ -396,6 +396,7 @@ try {
   uint16_t queryId = 0;
   for(;;) {
     dnsheader* dh = reinterpret_cast<struct dnsheader*>(packet);
+    bool outstandingDecreased = false;
     try {
       ssize_t got = recv(state->fd, packet, sizeof(packet), 0);
       char * response = packet;
@@ -428,6 +429,7 @@ try {
       }
 
       --state->outstanding;  // you'd think an attacker could game this, but we're using connected socket
+      outstandingDecreased = true;
 
       if(dh->tc && g_truncateTC) {
         truncateTC(response, &responseLen);
@@ -501,12 +503,21 @@ try {
         ids->dnsCryptQuery = 0;
 #endif
         ids->origFD = -1;
+        outstandingDecreased = false;
       }
 
       rewrittenResponse.clear();
     }
-    catch(std::exception& e){
+    catch(const std::exception& e){
       vinfolog("Got an error in UDP responder thread while parsing a response from %s, id %d: %s", state->remote.toStringWithPort(), queryId, e.what());
+      if (outstandingDecreased) {
+        /* so an exception was raised after we decreased the outstanding queries counter,
+           but before we could set ids->origFD to -1 (because we also set outstandingDecreased
+           to false then), meaning the IDS is still considered active and we will decrease the
+           counter again on a duplicate, or simply while reaping downstream timeouts, so let's
+           increase it back. */
+        state->outstanding++;
+      }
     }
   }
   return 0;
@@ -877,26 +888,39 @@ bool processQuery(LocalStateHolder<NetmaskTree<DynBlock> >& localDynNMGBlock,
   }
 
   if(auto got=localDynNMGBlock->lookup(*dq.remote)) {
-    if(now < got->second.until) {
+    auto updateBlockStats = [&got]() {
       g_stats.dynBlocked++;
       got->second.blocks++;
+    };
+
+    if(now < got->second.until) {
       DNSAction::Action action = got->second.action;
       if (action == DNSAction::Action::None) {
         action = g_dynBlockAction;
       }
       if (action == DNSAction::Action::Refused) {
         vinfolog("Query from %s refused because of dynamic block", dq.remote->toStringWithPort());
+        updateBlockStats();
+      
         dq.dh->rcode = RCode::Refused;
         dq.dh->qr=true;
         return true;
       }
-      else if (action == DNSAction::Action::Truncate && !dq.tcp) {
-        vinfolog("Query from %s truncated because of dynamic block", dq.remote->toStringWithPort());
-        dq.dh->tc = true;
-        dq.dh->qr = true;
-        return true;
+      else if (action == DNSAction::Action::Truncate) {
+        if(!dq.tcp) {
+          updateBlockStats();
+          vinfolog("Query from %s truncated because of dynamic block", dq.remote->toStringWithPort());
+          dq.dh->tc = true;
+          dq.dh->qr = true;
+          return true;
+        }
+        else {
+          vinfolog("Query from %s for %s over TCP *not* truncated because of dynamic block", dq.remote->toStringWithPort(), dq.qname->toString());
+        }
+
       }
       else {
+        updateBlockStats();
         vinfolog("Query from %s dropped because of dynamic block", dq.remote->toStringWithPort());
         return false;
       }
@@ -904,26 +928,39 @@ bool processQuery(LocalStateHolder<NetmaskTree<DynBlock> >& localDynNMGBlock,
   }
 
   if(auto got=localDynSMTBlock->lookup(*dq.qname)) {
-    if(now < got->until) {
+    auto updateBlockStats = [&got]() {
       g_stats.dynBlocked++;
       got->blocks++;
+    };
+
+    if(now < got->until) {
       DNSAction::Action action = got->action;
       if (action == DNSAction::Action::None) {
         action = g_dynBlockAction;
       }
       if (action == DNSAction::Action::Refused) {
         vinfolog("Query from %s for %s refused because of dynamic block", dq.remote->toStringWithPort(), dq.qname->toString());
+        updateBlockStats();
+
         dq.dh->rcode = RCode::Refused;
         dq.dh->qr=true;
         return true;
       }
-      else if (action == DNSAction::Action::Truncate && !dq.tcp) {
-        vinfolog("Query from %s for %s truncated because of dynamic block", dq.remote->toStringWithPort(), dq.qname->toString());
-        dq.dh->tc = true;
-        dq.dh->qr = true;
-        return true;
+      else if (action == DNSAction::Action::Truncate) {
+        if(!dq.tcp) {
+          updateBlockStats();
+      
+          vinfolog("Query from %s for %s truncated because of dynamic block", dq.remote->toStringWithPort(), dq.qname->toString());
+          dq.dh->tc = true;
+          dq.dh->qr = true;
+          return true;
+        }
+        else {
+          vinfolog("Query from %s for %s over TCP *not* truncated because of dynamic block", dq.remote->toStringWithPort(), dq.qname->toString());
+        }
       }
       else {
+        updateBlockStats();
         vinfolog("Query from %s for %s dropped because of dynamic block", dq.remote->toStringWithPort(), dq.qname->toString());
         return false;
       }
@@ -1619,7 +1656,7 @@ catch(std::exception& e)
 
 static void bindAny(int af, int sock)
 {
-  int one = 1;
+  __attribute__((unused)) int one = 1;
 
 #ifdef IP_FREEBIND
   if (setsockopt(sock, IPPROTO_IP, IP_FREEBIND, &one, sizeof(one)) < 0)

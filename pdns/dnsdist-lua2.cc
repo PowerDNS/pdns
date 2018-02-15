@@ -874,6 +874,9 @@ void moreLua(bool client)
       });
 
     g_lua.writeFunction("newRemoteLogger", [client](const std::string& remote, boost::optional<uint16_t> timeout, boost::optional<uint64_t> maxQueuedEntries, boost::optional<uint8_t> reconnectWaitTime) {
+        if (client) {
+          return std::shared_ptr<RemoteLogger>();
+        }
         return std::make_shared<RemoteLogger>(ComboAddress(remote), timeout ? *timeout : 2, maxQueuedEntries ? *maxQueuedEntries : 100, reconnectWaitTime ? *reconnectWaitTime : 1);
       });
 
@@ -1382,7 +1385,9 @@ void moreLua(bool client)
         g_useTCPSinglePipe = flag;
       });
 
-    g_lua.writeFunction("snmpAgent", [](bool enableTraps, boost::optional<std::string> masterSocket) {
+    g_lua.writeFunction("snmpAgent", [client](bool enableTraps, boost::optional<std::string> masterSocket) {
+        if(client)
+          return;
 #ifdef HAVE_NET_SNMP
         if (g_configurationDone) {
           errlog("snmpAgent() cannot be used at runtime!");
