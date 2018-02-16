@@ -23,6 +23,9 @@
 #include "config.h"
 #endif
 #include <boost/program_options.hpp>
+#include <sys/types.h>
+#include <grp.h>
+#include <pwd.h>
 #include <sys/stat.h>
 #include <mutex>
 #include <thread>
@@ -197,8 +200,15 @@ void updateThread() {
     }
     time_t now = time(nullptr);
     for (const auto &domain : g_domains) {
-      if ((g_soas.find(domain) != g_soas.end() && now - lastCheck[domain] < g_soas[domain]->d_st.refresh) || // Only check if we have waited `refresh` seconds
-          (g_soas.find(domain) == g_soas.end() && now - lastCheck[domain] < 30))  {                          // Or if we could not get an update at all still, every 30 seconds
+      shared_ptr<SOARecordContent> current_soa;
+      {
+        std::lock_guard<std::mutex> guard(g_soas_mutex);
+        if (g_soas.find(domain) != g_soas.end()) {
+          current_soa = g_soas[domain];
+        }
+      }
+      if ((current_soa != nullptr && now - lastCheck[domain] < current_soa->d_st.refresh) || // Only check if we have waited `refresh` seconds
+          (current_soa == nullptr && now - lastCheck[domain] < 30))  {                       // Or if we could not get an update at all still, every 30 seconds
         continue;
       }
       string dir = g_workdir + "/" + domain.toString();
@@ -209,11 +219,11 @@ void updateThread() {
       try {
         lastCheck[domain] = now;
         auto newSerial = getSerialFromMaster(g_master, domain, sr); // TODO TSIG
-        if(g_soas.find(domain) != g_soas.end()) {
+        if(current_soa != nullptr) {
           if (g_verbose) {
-            cerr<<"[INFO] Got SOA Serial for "<<domain<<" from "<<g_master.toStringWithPort()<<": "<< newSerial<<", had Serial: "<<g_soas[domain]->d_st.serial;
+            cerr<<"[INFO] Got SOA Serial for "<<domain<<" from "<<g_master.toStringWithPort()<<": "<< newSerial<<", had Serial: "<<current_soa->d_st.serial;
           }
-          if (newSerial == g_soas[domain]->d_st.serial) {
+          if (newSerial == current_soa->d_st.serial) {
             if (g_verbose) {
               cerr<<", not updating."<<endl;
             }
@@ -233,6 +243,8 @@ void updateThread() {
       }
       ComboAddress local = g_master.isIPv4() ? ComboAddress("0.0.0.0") : ComboAddress("::");
       TSIGTriplet tt;
+
+      // The *new* SOA
       shared_ptr<SOARecordContent> soa;
       try {
         AXFRRetriever axfr(g_master, domain, tt, &local);
@@ -267,16 +279,15 @@ void updateThread() {
         if (g_verbose) {
           cerr<<"[INFO] Wrote zonedata for "<<domain<<" with serial "<<soa->d_st.serial<<" to "<<dir<<endl;
         }
+        {
+          std::lock_guard<std::mutex> guard(g_soas_mutex);
+          g_soas[domain] = soa;
+        }
       } catch (PDNSException &e) {
         cerr<<"[WARNING] Could not retrieve AXFR for '"<<domain<<"': "<<e.reason<<endl;
       } catch (runtime_error &e) {
         cerr<<"[WARNING] Could not save zone '"<<domain<<"' to disk: "<<e.what()<<endl;
       }
-      {
-        std::lock_guard<std::mutex> guard(g_soas_mutex);
-        g_soas[domain] = soa;
-      }
-
       // Now clean up the directory
       cleanUpDomain(domain);
     } /* for (const auto &domain : domains) */
@@ -299,12 +310,15 @@ bool checkQuery(const MOADNSParser& mdp, const ComboAddress& saddr, const bool u
     info_msg.push_back("QType is unsupported (" + QType(mdp.d_qtype).getName() + " is not in {SOA,IXFR,AXFR}");
   }
 
-  if (g_domains.find(mdp.d_qname) == g_domains.end()) {
-    info_msg.push_back("Domain name '" + mdp.d_qname.toLogString() + "' is not configured for distribution");
-  }
+  {
+    std::lock_guard<std::mutex> guard(g_soas_mutex);
+    if (g_domains.find(mdp.d_qname) == g_domains.end()) {
+      info_msg.push_back("Domain name '" + mdp.d_qname.toLogString() + "' is not configured for distribution");
+    }
 
-  if (g_soas.find(mdp.d_qname) == g_soas.end()) {
-    info_msg.push_back("Domain has not been transferred yet");
+    if (g_soas.find(mdp.d_qname) == g_soas.end()) {
+      info_msg.push_back("Domain has not been transferred yet");
+    }
   }
 
   if (!info_msg.empty()) {
@@ -338,7 +352,10 @@ bool makeSOAPacket(const MOADNSParser& mdp, vector<uint8_t>& packet) {
   pw.getHeader()->qr = 1;
 
   pw.startRecord(mdp.d_qname, QType::SOA);
-  g_soas[mdp.d_qname]->toPacket(pw);
+  {
+    std::lock_guard<std::mutex> guard(g_soas_mutex);
+    g_soas[mdp.d_qname]->toPacket(pw);
+  }
   pw.commit();
 
   return true;
@@ -425,7 +442,11 @@ bool makeIXFRPackets(const MOADNSParser& mdp, const shared_ptr<SOARecordContent>
   string dir = g_workdir + "/" + mdp.d_qname.toString();
   // Get the new SOA only once, so it will not change under our noses from the
   // updateThread.
-  uint32_t newSerial = g_soas[mdp.d_qname]->d_st.serial;
+  uint32_t newSerial;
+  {
+    std::lock_guard<std::mutex> guard(g_soas_mutex);
+    newSerial = g_soas[mdp.d_qname]->d_st.serial;
+  }
 
   if (rfc1982LessThan(newSerial, clientSOA->d_st.serial)){
     /* RFC 1995 Section 2
@@ -709,6 +730,8 @@ int main(int argc, char** argv) {
       ("version", "Display the version of ixfrdist")
       ("verbose", "Be verbose")
       ("debug", "Be even more verbose")
+      ("uid", po::value<string>(), "Drop privileges to this user after binding the listen sockets")
+      ("gid", po::value<string>(), "Drop privileges to this group after binding the listen sockets")
       ("listen-address", po::value< vector< string>>(), "IP Address(es) to listen on")
       ("acl", po::value<vector<string>>(), "IP Address masks that are allowed access, by default only loopback addresses are allowed")
       ("server-address", po::value<string>()->default_value("127.0.0.1:5300"), "server address")
@@ -839,6 +862,64 @@ int main(int argc, char** argv) {
   }
 
   g_workdir = g_vm["work-dir"].as<string>();
+
+  int newgid = 0;
+
+  if (g_vm.count("gid") > 0) {
+    string gid = g_vm["gid"].as<string>();
+    if (!(newgid = atoi(gid.c_str()))) {
+      struct group *gr = getgrnam(gid.c_str());
+      if (gr == nullptr) {
+        cerr<<"[ERROR] Can not determine group-id for gid "<<gid<<endl;
+        had_error = true;
+      } else {
+        newgid = gr->gr_gid;
+      }
+    }
+    if(g_verbose) {
+      cerr<<"[INFO] Dropping effective group-id to "<<newgid<<endl;
+    }
+    if (setgid(newgid) < 0) {
+      cerr<<"[ERROR] Could not set group id to "<<newgid<<": "<<stringerror()<<endl;
+      had_error = true;
+    }
+  }
+
+  int newuid = 0;
+
+  if (g_vm.count("uid") > 0) {
+    string uid = g_vm["uid"].as<string>();
+    if (!(newuid = atoi(uid.c_str()))) {
+      struct passwd *pw = getpwnam(uid.c_str());
+      if (pw == nullptr) {
+        cerr<<"[ERROR] Can not determine user-id for uid "<<uid<<endl;
+        had_error = true;
+      } else {
+        newuid = pw->pw_uid;
+      }
+    }
+
+    struct passwd *pw = getpwuid(newuid);
+    if (pw == nullptr) {
+      if (setgroups(0, nullptr) < 0) {
+        cerr<<"[ERROR] Unable to drop supplementary gids: "<<stringerror()<<endl;
+        had_error = true;
+      }
+    } else {
+      if (initgroups(pw->pw_name, newgid) < 0) {
+        cerr<<"[ERROR] Unable to set supplementary groups: "<<stringerror()<<endl;
+        had_error = true;
+      }
+    }
+
+    if(g_verbose) {
+      cerr<<"[INFO] Dropping effective user-id to "<<newuid<<endl;
+    }
+    if (setuid(pw->pw_uid) < 0) {
+      cerr<<"[ERROR] Could not set user id to "<<newuid<<": "<<stringerror()<<endl;
+      had_error = true;
+    }
+  }
 
   if (had_error) {
     // We have already sent the errors to stderr, just die

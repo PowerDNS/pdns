@@ -2,6 +2,84 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.2.1
+  :released: 16th of February 2018
+
+  .. change::
+    :tags: New Features
+    :pullreq: 5880
+
+    Add configuration option to disable IP_BIND_ADDRESS_NO_PORT (Dan McCombs).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6057
+
+    Handle bracketed IPv6 addresses without ports (Chris Hofstaedtler).
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5647
+
+    Make dnsdist dynamic truncate do right thing on TCP/IP.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5686
+
+    Add missing QPSAction
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5847
+
+    Don't create a Remote Logger in client mode.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5858
+
+    Use libsodium's CFLAGS, we might need them to find the includes.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6012
+
+    Keep the TCP connection open on cache hit, generated answers.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6041
+
+    Add the missing <sys/time.h> include to mplexer.hh for struct timeval.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6043
+
+    Sort the servers based on their 'order' after it has been set.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6073
+
+    Quiet unused variable warning on macOS (Chris Hofstaedtler).
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6094
+    :tickets: 5652
+
+    Fix the outstanding counter when an exception is raised.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6164
+    :tickets: 6163
+
+    Do not connect the snmpAgent from a dnsdist client.
+
+.. changelog::
   :version: 1.2.0
   :released: 21st of August 2017
 
