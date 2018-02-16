@@ -253,10 +253,8 @@ void updateThread() {
         vector<DNSRecord> chunk;
         records_t records;
         time_t t_start = time(nullptr);
-        while(axfr.getChunk(nop, &chunk)) {
-          if (time(nullptr) - t_start > g_axfrTimeout) {
-            throw PDNSException("AXFR timeout exceeded");
-          }
+        time_t axfr_now = time(nullptr);
+        while(axfr.getChunk(nop, &chunk, (axfr_now - t_start + g_axfrTimeout))) {
           for(auto& dr : chunk) {
             if(dr.d_type == QType::TSIG)
               continue;
@@ -266,6 +264,10 @@ void updateThread() {
             if (dr.d_type == QType::SOA) {
               soa = getRR<SOARecordContent>(dr);
             }
+          }
+          axfr_now = time(nullptr);
+          if (axfr_now - t_start > g_axfrTimeout) {
+            throw PDNSException("Total AXFR time exceeded!");
           }
         }
         if (soa == nullptr) {
