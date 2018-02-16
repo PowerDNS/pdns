@@ -70,7 +70,7 @@ Changelog
     :pullreq: 6094
     :tickets: 5652
 
-    Fix the oustanding counter when an exception is raised.
+    Fix the outstanding counter when an exception is raised.
 
   .. change::
     :tags: Bug Fixes
