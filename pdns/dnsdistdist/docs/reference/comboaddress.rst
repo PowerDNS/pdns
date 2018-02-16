@@ -24,15 +24,15 @@ ComboAddresses can be IPv4 or IPv6, and unless you want to know, you don't need 
 
   .. method:: ComboAddress:ipdecrypt(key) -> ComboAddress
 
-    Decrypt this IP address as described in https://medium.com/@bert.hubert/on-ip-address-encryption-security-analysis-with-respect-for-privacy-dabe1201b476
+    Decrypt this IP address as described in https://powerdns.org/ipcipher
 
-    :param string key: A 16 byte key
+    :param string key: A 16 byte key. Note that this can be derived from a passphrase with the standalone function `makeIPCipherKey`
 
   .. method:: ComboAddress:ipencrypt(key) -> ComboAddress
 
-    Encrypt this IP address as described in https://medium.com/@bert.hubert/on-ip-address-encryption-security-analysis-with-respect-for-privacy-dabe1201b476
+    Encrypt this IP address as described in https://powerdns.org/ipcipher
     
-    :param string key: A 16 byte key
+    :param string key: A 16 byte key. Note that this can be derived from a passphrase with the standalone function `makeIPCipherKey`
   
   .. method:: ComboAddress:isIPv4() -> bool
 
