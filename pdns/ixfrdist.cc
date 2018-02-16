@@ -23,6 +23,9 @@
 #include "config.h"
 #endif
 #include <boost/program_options.hpp>
+#include <sys/types.h>
+#include <grp.h>
+#include <pwd.h>
 #include <sys/stat.h>
 #include <mutex>
 #include <thread>
@@ -721,6 +724,8 @@ int main(int argc, char** argv) {
       ("version", "Display the version of ixfrdist")
       ("verbose", "Be verbose")
       ("debug", "Be even more verbose")
+      ("uid", po::value<string>(), "Drop privileges to this user after binding the listen sockets")
+      ("gid", po::value<string>(), "Drop privileges to this group after binding the listen sockets")
       ("listen-address", po::value< vector< string>>(), "IP Address(es) to listen on")
       ("acl", po::value<vector<string>>(), "IP Address masks that are allowed access, by default only loopback addresses are allowed")
       ("server-address", po::value<string>()->default_value("127.0.0.1:5300"), "server address")
@@ -846,6 +851,64 @@ int main(int argc, char** argv) {
   }
 
   g_workdir = g_vm["work-dir"].as<string>();
+
+  int newgid = 0;
+
+  if (g_vm.count("gid") > 0) {
+    string gid = g_vm["gid"].as<string>();
+    if (!(newgid = atoi(gid.c_str()))) {
+      struct group *gr = getgrnam(gid.c_str());
+      if (gr == nullptr) {
+        cerr<<"[ERROR] Can not determine group-id for gid "<<gid<<endl;
+        had_error = true;
+      } else {
+        newgid = gr->gr_gid;
+      }
+    }
+    if(g_verbose) {
+      cerr<<"[INFO] Dropping effective group-id to "<<newgid<<endl;
+    }
+    if (setgid(newgid) < 0) {
+      cerr<<"[ERROR] Could not set group id to "<<newgid<<": "<<stringerror()<<endl;
+      had_error = true;
+    }
+  }
+
+  int newuid = 0;
+
+  if (g_vm.count("uid") > 0) {
+    string uid = g_vm["uid"].as<string>();
+    if (!(newuid = atoi(uid.c_str()))) {
+      struct passwd *pw = getpwnam(uid.c_str());
+      if (pw == nullptr) {
+        cerr<<"[ERROR] Can not determine user-id for uid "<<uid<<endl;
+        had_error = true;
+      } else {
+        newuid = pw->pw_uid;
+      }
+    }
+
+    struct passwd *pw = getpwuid(newuid);
+    if (pw == nullptr) {
+      if (setgroups(0, nullptr) < 0) {
+        cerr<<"[ERROR] Unable to drop supplementary gids: "<<stringerror()<<endl;
+        had_error = true;
+      }
+    } else {
+      if (initgroups(pw->pw_name, newgid) < 0) {
+        cerr<<"[ERROR] Unable to set supplementary groups: "<<stringerror()<<endl;
+        had_error = true;
+      }
+    }
+
+    if(g_verbose) {
+      cerr<<"[INFO] Dropping effective user-id to "<<newuid<<endl;
+    }
+    if (setuid(pw->pw_uid) < 0) {
+      cerr<<"[ERROR] Could not set user id to "<<newuid<<": "<<stringerror()<<endl;
+      had_error = true;
+    }
+  }
 
   if (had_error) {
     // We have already sent the errors to stderr, just die
