@@ -30,6 +30,7 @@
 #include <map>
 #include <stdexcept>
 #include <string>
+#include <sys/time.h>
 
 class FDMultiplexerException : public std::runtime_error
 {

@@ -125,6 +125,15 @@ void loadMainConfig(const std::string& configdir)
 
   seedRandom(::arg()["entropy-source"]);
 
+#ifdef HAVE_LIBSODIUM
+  if (sodium_init() == -1) {
+    cerr<<"Unable to initialize sodium crypto library"<<endl;
+    exit(99);
+  }
+#endif
+
+  openssl_seed();
+
   if (!::arg()["chroot"].empty()) {
     if (chroot(::arg()["chroot"].c_str())<0 || chdir("/") < 0) {
       cerr<<"Unable to chroot to '"+::arg()["chroot"]+"': "<<strerror (errno)<<endl;
@@ -1955,15 +1964,6 @@ try
   }
 
   loadMainConfig(g_vm["config-dir"].as<string>());
-
-#ifdef HAVE_LIBSODIUM
-  if (sodium_init() == -1) {
-    cerr<<"Unable to initialize sodium crypto library"<<endl;
-    exit(99);
-  }
-#endif
-
-  openssl_seed();
 
   if (cmds[0] == "test-algorithm") {
     if(cmds.size() != 2) {
