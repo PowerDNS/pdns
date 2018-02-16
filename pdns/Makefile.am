@@ -881,18 +881,22 @@ speedtest_LDADD = $(LIBCRYPTO_LIBS) \
 	$(RT_LIBS)
 
 dnswasher_SOURCES = \
+	base64.cc \
 	dnslabeltext.cc \
 	dnsname.hh dnsname.cc \
 	dnsparser.hh \
 	dnspcap.cc dnspcap.hh \
 	dnswasher.cc \
 	dnswriter.hh \
+	ipcipher.cc ipcipher.hh ../ext/ipcrypt/ipcrypt.c ../ext/ipcrypt/ipcrypt.h \
 	logger.cc \
 	misc.cc \
 	qtype.cc \
 	statbag.cc \
 	unix_utility.cc
 
+dnswasher_LDFLAGS = 	$(AM_LDFLAGS) $(BOOST_PROGRAM_OPTIONS_LDFLAGS) 	$(LIBCRYPTO_LDFLAGS) 
+dnswasher_LDADD = 	$(BOOST_PROGRAM_OPTIONS_LIBS) $(LIBCRYPTO_LIBS)
 
 dnsbulktest_SOURCES = \
 	base32.cc \
