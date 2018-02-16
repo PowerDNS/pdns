@@ -368,9 +368,9 @@ paths:
           schema:
             type: array
             items:
-              $ref: '#/definitions/StatisticItem'
-              $ref: '#/definitions/MapStatisticItem'
-              $ref: '#/definitions/RingStatisticItem'
+            - $ref: '#/definitions/StatisticItem'
+            - $ref: '#/definitions/MapStatisticItem'
+            - $ref: '#/definitions/RingStatisticItem'
 
   '/servers/{server_id}/search-log':
     get:
@@ -891,8 +891,8 @@ definitions:
   StatisticItem:
     title: StatisticItem
     allOf:
-      $ref: "#/definitions/BaseStatisticItem"
-      properties:
+    - $ref: "#/definitions/BaseStatisticItem"
+    - properties:
         type:
           enum: [StatisticItem]
           description: 'set to "StatisticItem"'
@@ -903,8 +903,8 @@ definitions:
   MapStatisticItem:
     title: MapStatisticItem
     allOf:
-      $ref: "#/definitions/BaseStatisticItem"
-      properties:
+    - $ref: "#/definitions/BaseStatisticItem"
+    - properties:
         type:
           enum: [MapStatisticItem]
           description: 'set to "MapStatisticItem"'
@@ -924,8 +924,8 @@ definitions:
   RingStatisticItem:
     title: RingStatisticItem
     allOf:
-      $ref: "#/definitions/BaseStatisticItem"
-      properties:
+    - $ref: "#/definitions/BaseStatisticItem"
+    - properties:
         type:
           enum: [RingStatisticItem]
           description: 'set to "RingStatisticItem"'
