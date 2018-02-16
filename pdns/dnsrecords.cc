@@ -136,7 +136,7 @@ boilerplate_conv(AAAA, QType::AAAA, conv.xfrIP6(d_ip6); );
 boilerplate_conv(NS, QType::NS, conv.xfrName(d_content, true));
 boilerplate_conv(PTR, QType::PTR, conv.xfrName(d_content, true));
 boilerplate_conv(CNAME, QType::CNAME, conv.xfrName(d_content, true));
-boilerplate_conv(ALIAS, QType::ALIAS, conv.xfrName(d_content, true));
+boilerplate_conv(ALIAS, QType::ALIAS, conv.xfrName(d_content, false));
 boilerplate_conv(DNAME, QType::DNAME, conv.xfrName(d_content));
 boilerplate_conv(MR, QType::MR, conv.xfrName(d_alias, true));
 boilerplate_conv(MINFO, QType::MINFO, conv.xfrName(d_rmailbx, true); conv.xfrName(d_emailbx, true));
