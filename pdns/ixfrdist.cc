@@ -240,7 +240,11 @@ void updateThread() {
         Resolver::res_t nop;
         vector<DNSRecord> chunk;
         records_t records;
-        while(axfr.getChunk(nop, &chunk, g_axfrTimeout)) {
+        time_t t_start = time(nullptr);
+        while(axfr.getChunk(nop, &chunk)) {
+          if (time(nullptr) - t_start > g_axfrTimeout) {
+            throw PDNSException("AXFR timeout exceeded");
+          }
           for(auto& dr : chunk) {
             if(dr.d_type == QType::TSIG)
               continue;
@@ -263,7 +267,7 @@ void updateThread() {
         if (g_verbose) {
           cerr<<"[INFO] Wrote zonedata for "<<domain<<" with serial "<<soa->d_st.serial<<" to "<<dir<<endl;
         }
-      } catch (ResolverException &e) {
+      } catch (PDNSException &e) {
         cerr<<"[WARNING] Could not retrieve AXFR for '"<<domain<<"': "<<e.reason<<endl;
       } catch (runtime_error &e) {
         cerr<<"[WARNING] Could not save zone '"<<domain<<"' to disk: "<<e.what()<<endl;
