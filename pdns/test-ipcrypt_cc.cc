@@ -4,7 +4,7 @@
 #include "config.h"
 #endif
 #include <boost/test/unit_test.hpp>
-#include "ipcrypt.hh"
+#include "ipcipher.hh"
 #include "misc.hh"
 
 using namespace boost;
