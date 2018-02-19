@@ -831,12 +831,12 @@ public:
   }
   bool matches(const DNSQuestion* dq) const override
   {
-    if (dq->qTag == nullptr) {
+    if (!dq->qTag) {
       return false;
     }
 
-    const auto got = dq->qTag->tagData.find(d_tag);
-    if (got == dq->qTag->tagData.cend()) {
+    const auto it = dq->qTag->find(d_tag);
+    if (it == dq->qTag->cend()) {
       return false;
     }
 
@@ -844,7 +844,7 @@ public:
       return true;
     }
 
-    return got->second == *d_value;
+    return it->second == *d_value;
   }
 
   string toString() const override
