@@ -3324,6 +3324,12 @@ static int serviceMain(int argc, char*argv[])
   /* setup rng before chroot */
   dns_random_init();
 
+  if(::arg()["server-id"].empty()) {
+    char tmp[128];
+    gethostname(tmp, sizeof(tmp)-1);
+    ::arg().set("server-id") = tmp;
+  }
+
   int newgid=0;
   if(!::arg()["setgid"].empty())
     newgid=Utility::makeGidNumeric(::arg()["setgid"]);
