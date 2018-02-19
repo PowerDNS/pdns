@@ -1003,9 +1003,9 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
   return EXIT_SUCCESS;
 }
 
-static int xcryptIP(const std::string& cmd, const std::string& ip, const std::string& key)
+static int xcryptIP(const std::string& cmd, const std::string& ip, const std::string& rkey)
 {
-  string rkey = makeIPCipherKey(key);
+
   ComboAddress ca(ip), ret;
   
   if(cmd=="ipencrypt")
@@ -1970,9 +1970,9 @@ try
     cout<<"increase-serial ZONE               Increases the SOA-serial by 1. Uses SOA-EDIT"<<endl;
     cout<<"import-tsig-key NAME ALGORITHM KEY Import TSIG key"<<endl;
     cout<<"import-zone-key ZONE FILE          Import from a file a private key, ZSK or KSK"<<endl;
-    cout<<"       [active|inactive] [ksk|zsk]  Defaults to KSK and active"<<endl;
-    cout<<"ipdecrypt IP key                   Encrypt an IP address using 'key' (string or base64)"<<endl;    
-    cout<<"ipencrypt IP key                   Encrypt an IP address using 'key' (string or base64)"<<endl;
+    cout<<"       [active|inactive] [ksk|zsk] Defaults to KSK and active"<<endl;
+    cout<<"ipdecrypt IP passphrase/key [key]  Encrypt IP address using passphrase or base64 key"<<endl;    
+    cout<<"ipencrypt IP passphrase/key [key]  Encrypt IP address using passphrase or base64 key"<<endl;
     cout<<"load-zone ZONE FILE                Load ZONE from FILE, possibly creating zone or atomically"<<endl;
     cout<<"                                   replacing contents"<<endl;
     cout<<"list-algorithms [with-backend]     List all DNSSEC algorithms supported, optionally also listing the crypto library used"<<endl;
@@ -2022,11 +2022,21 @@ try
   }
 
   if(cmds[0] == "ipencrypt" || cmds[0]=="ipdecrypt") {
-    if(cmds.size() != 3) {
-      cerr<<"Syntax: pdnsutil [ipencrypt|ipdecrypt] IP password"<<endl;
+    if(cmds.size() < 3 || (cmds.size()== 4 && cmds[3]!="key")) {
+      cerr<<"Syntax: pdnsutil [ipencrypt|ipdecrypt] IP passphrase [key]"<<endl;
       return 0;
     }
-    exit(xcryptIP(cmds[0], cmds[1], cmds[2]));
+    string key;
+    if(cmds.size()==4) {
+      if(B64Decode(cmds[2], key) < 0) {
+        cerr<<"Could not parse '"<<cmds[3]<<"' as base64"<<endl;
+        return 0;
+      }
+    }
+    else {
+      key = makeIPCipherKey(cmds[2]);
+    }
+    exit(xcryptIP(cmds[0], cmds[1], key));
   }
 
 
