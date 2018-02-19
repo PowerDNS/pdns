@@ -872,6 +872,7 @@ static void startDoResolve(void *p)
     EDNSOpts edo;
     std::vector<pair<uint16_t, string> > ednsOpts;
     bool haveEDNS=false;
+    bool wantsNSID = false;
     if(getEDNSOpts(dc->d_mdp, &edo)) {
       if(!dc->d_tcp) {
         /* rfc6891 6.2.3:
@@ -882,12 +883,11 @@ static void startDoResolve(void *p)
       ednsOpts = edo.d_options;
       haveEDNS=true;
 
-      if (g_useIncomingECS && !dc->d_ecsParsed) {
-        for (const auto& o : edo.d_options) {
-          if (o.first == EDNSOptionCode::ECS) {
-            dc->d_ecsFound = getEDNSSubnetOptsFromString(o.second, &dc->d_ednssubnet);
-            break;
-          }
+      for (const auto& o : edo.d_options) {
+        if (o.first == EDNSOptionCode::ECS && g_useIncomingECS && !dc->d_ecsParsed) {
+          dc->d_ecsFound = getEDNSSubnetOptsFromString(o.second, &dc->d_ednssubnet);
+        } else if (o.first == EDNSOptionCode::NSID) {
+          wantsNSID = true;
         }
       }
     }
@@ -1295,9 +1295,16 @@ static void startDoResolve(void *p)
          OPT record.  This MUST also occur when a truncated response (using
          the DNS header's TC bit) is returned."
       */
-      if (addRecordToPacket(pw, makeOpt(edo.d_packetsize, 0, edo.d_Z & EDNSOpts::DNSSECOK), minTTL, dc->d_ttlCap, maxanswersize)) {
-        pw.commit();
+      DNSPacketWriter::optvect_t opts;
+      if(wantsNSID) {
+        const static string mode_server_id = ::arg()["server-id"];
+        if(mode_server_id != "disabled" && !mode_server_id.empty()) {
+          opts.push_back(make_pair(3, mode_server_id));
+          variableAnswer = true; // Can't packetcache an answer with NSID
+        }
       }
+      pw.addOpt(maxanswersize, 0, DNSSECOK ? EDNSOpts::DNSSECOK : 0, opts);
+      pw.commit();
     }
 
     g_rs.submitResponse(dc->d_mdp.d_qtype, packet.size(), !dc->d_tcp);
