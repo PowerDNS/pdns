@@ -77,6 +77,9 @@ bool g_exiting = false;
 #define KEEP_DEFAULT 20
 uint16_t g_keep = KEEP_DEFAULT;
 
+#define AXFRTIMEOUT_DEFAULT 20
+uint16_t g_axfrTimeout = AXFRTIMEOUT_DEFAULT;
+
 NetmaskGroup g_acl;
 
 void handleSignal(int signum) {
@@ -249,7 +252,9 @@ void updateThread() {
         Resolver::res_t nop;
         vector<DNSRecord> chunk;
         records_t records;
-        while(axfr.getChunk(nop, &chunk)) {
+        time_t t_start = time(nullptr);
+        time_t axfr_now = time(nullptr);
+        while(axfr.getChunk(nop, &chunk, (axfr_now - t_start + g_axfrTimeout))) {
           for(auto& dr : chunk) {
             if(dr.d_type == QType::TSIG)
               continue;
@@ -259,6 +264,10 @@ void updateThread() {
             if (dr.d_type == QType::SOA) {
               soa = getRR<SOARecordContent>(dr);
             }
+          }
+          axfr_now = time(nullptr);
+          if (axfr_now - t_start > g_axfrTimeout) {
+            throw PDNSException("Total AXFR time exceeded!");
           }
         }
         if (soa == nullptr) {
@@ -276,8 +285,7 @@ void updateThread() {
           std::lock_guard<std::mutex> guard(g_soas_mutex);
           g_soas[domain] = soa;
         }
-
-      } catch (ResolverException &e) {
+      } catch (PDNSException &e) {
         cerr<<"[WARNING] Could not retrieve AXFR for '"<<domain<<"': "<<e.reason<<endl;
       } catch (runtime_error &e) {
         cerr<<"[WARNING] Could not save zone '"<<domain<<"' to disk: "<<e.what()<<endl;
@@ -731,6 +739,7 @@ int main(int argc, char** argv) {
       ("server-address", po::value<string>()->default_value("127.0.0.1:5300"), "server address")
       ("work-dir", po::value<string>()->default_value("."), "Directory for storing AXFR and IXFR data")
       ("keep", po::value<uint16_t>()->default_value(KEEP_DEFAULT), "Number of old zone versions to retain")
+      ("axfr-timeout", po::value<uint16_t>()->default_value(AXFRTIMEOUT_DEFAULT), "Timeout in seconds for an AXFR to complete")
       ;
     po::options_description alloptions;
     po::options_description hidden("hidden options");
@@ -770,6 +779,10 @@ int main(int argc, char** argv) {
 
   if (g_vm.count("keep") > 0) {
     g_keep = g_vm["keep"].as<uint16_t>();
+  }
+
+  if (g_vm.count("axfr-timeout") > 0) {
+    g_axfrTimeout = g_vm["axfr-timeout"].as<uint16_t>();
   }
 
   vector<ComboAddress> listen_addresses = {ComboAddress("127.0.0.1:53")};
