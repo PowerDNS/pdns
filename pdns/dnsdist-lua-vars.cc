@@ -33,13 +33,15 @@ void setupLuaVars()
       {"Pool", (int)DNSAction::Action::Pool},
       {"None",(int)DNSAction::Action::None},
       {"Delay", (int)DNSAction::Action::Delay},
-      {"Truncate", (int)DNSAction::Action::Truncate}
+      {"Truncate", (int)DNSAction::Action::Truncate},
+      {"ServFail", (int)DNSAction::Action::ServFail}
     });
 
   g_lua.writeVariable("DNSResponseAction", std::unordered_map<string,int>{
       {"Allow",        (int)DNSResponseAction::Action::Allow        },
       {"Delay",        (int)DNSResponseAction::Action::Delay        },
       {"HeaderModify", (int)DNSResponseAction::Action::HeaderModify },
+      {"ServFail",     (int)DNSResponseAction::Action::ServFail     },
       {"None",         (int)DNSResponseAction::Action::None         }
     });
 

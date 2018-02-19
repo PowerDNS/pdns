@@ -318,6 +318,14 @@ dynBlockNMGSize OBJECT-TYPE
 	"Dynamic blocks (NMG) size"
     ::= { stats 36 }
 
+ruleServFail OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Number of ServFail responses returned because of a rule"
+    ::= { stats 37 }
+
 backendStatTable OBJECT-TYPE
     SYNTAX SEQUENCE OF BackendStatEntry
     MAX-ACCESS not-accessible

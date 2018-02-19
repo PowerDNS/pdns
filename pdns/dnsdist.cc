@@ -992,6 +992,12 @@ bool processQuery(LocalHolders& holders, DNSQuestion& dq, string& poolname, int*
         g_stats.ruleRefused++;
         return true;
         break;
+      case DNSAction::Action::ServFail:
+        dq.dh->rcode = RCode::ServFail;
+        dq.dh->qr=true;
+        g_stats.ruleServFail++;
+        return true;
+        break;
       case DNSAction::Action::Spoof:
         spoofResponseFromString(dq, ruleresult);
         return true;
@@ -1037,6 +1043,10 @@ bool processResponse(LocalStateHolder<vector<DNSDistResponseRuleAction> >& local
         return false;
         break;
       case DNSResponseAction::Action::HeaderModify:
+        return true;
+        break;
+      case DNSResponseAction::Action::ServFail:
+        dr.dh->rcode = RCode::ServFail;
         return true;
         break;
         /* non-terminal actions follow */
