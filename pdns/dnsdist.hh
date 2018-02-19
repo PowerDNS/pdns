@@ -53,76 +53,9 @@ extern uint16_t g_ECSSourcePrefixV4;
 extern uint16_t g_ECSSourcePrefixV6;
 extern bool g_ECSOverride;
 
-class QTag
-{
-public:
-  QTag()
-  {
-  }
-
-  ~QTag()
-  {
-  }
-
-  void add(const std::string& strLabel, const std::string& strValue)
-  {
-    tagData.insert({strLabel, strValue});
-    return;
-  }
-
-  std::string getMatch(const std::string& strLabel)  const
-  {
-    const auto got = tagData.find(strLabel);
-    if (got == tagData.cend()) {
-      return "";
-    }
-
-    return got->second;
-  }
-
-  std::string getEntry(size_t iEntry) const
-  {
-    std::string strEntry;
-    size_t iCounter = 0;
-
-    for (const auto& itr : tagData) {
-      iCounter++;
-      if(iCounter == iEntry) {
-        strEntry = itr.first;
-        strEntry += strSep;
-        strEntry += itr.second;
-        break;
-      }
-    }
-
-    return strEntry;
-  }
-
-  size_t count() const
-  {
-    return tagData.size();
-  }
-
-  std::string dumpString() const
-  {
-    std::string strRet;
-
-    for (const auto& itr : tagData) {
-      strRet += itr.first;
-      strRet += strSep;
-      strRet += itr.second;
-      strRet += "\n";
-    }
-    return strRet;
-  }
-
-  std::unordered_map<std::string, std::string> tagData;
-
-private:
-  static constexpr char const *strSep = "\t";
-};
-
 extern thread_local boost::uuids::random_generator t_uuidGenerator;
+
+typedef std::unordered_map<string, string> QTag;
 
 struct DNSQuestion
 {
@@ -137,7 +70,7 @@ struct DNSQuestion
   const uint16_t qclass;
   const ComboAddress* local;
   const ComboAddress* remote;
-  std::shared_ptr<QTag> qTag;
+  std::shared_ptr<QTag> qTag{nullptr};
   struct dnsheader* dh;
   size_t size;
   uint16_t len;

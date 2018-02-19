@@ -693,16 +693,16 @@ private:
 class TagAction : public DNSAction
 {
 public:
-  TagAction(const std::string tag, std::string value): d_tag(tag), d_value(value)
+  TagAction(const std::string tag, const std::string value): d_tag(tag), d_value(value)
   {
   }
   DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
   {
-    if (dq->qTag == nullptr) {
+    if (!dq->qTag) {
       dq->qTag = std::make_shared<QTag>();
     }
 
-    dq->qTag->add(d_tag, d_value);
+    dq->qTag->insert({d_tag, d_value});
 
     return Action::None;
   }
@@ -854,16 +854,16 @@ private:
 class TagResponseAction : public DNSResponseAction
 {
 public:
-  TagResponseAction(const std::string tag, std::string value): d_tag(tag), d_value(value)
+  TagResponseAction(const std::string tag, const std::string value): d_tag(tag), d_value(value)
   {
   }
   DNSResponseAction::Action operator()(DNSResponse* dr, string* ruleresult) const override
   {
-    if (dr->qTag == nullptr) {
+    if (!dr->qTag) {
       dr->qTag = std::make_shared<QTag>();
     }
 
-    dr->qTag->add(d_tag, d_value);
+    dr->qTag->insert({d_tag, d_value});
 
     return Action::None;
   }

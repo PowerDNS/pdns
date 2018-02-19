@@ -62,40 +62,39 @@ void setupLuaBindingsDNSQuestion()
 #endif /* HAVE_NET_SNMP */
     });
   g_lua.registerFunction<void(DNSQuestion::*)(std::string, std::string)>("setTag", [](DNSQuestion& dq, const std::string& strLabel, const std::string& strValue) {
-
       if(dq.qTag == nullptr) {
         dq.qTag = std::make_shared<QTag>();
       }
-      dq.qTag->add(strLabel, strValue);
-
+      dq.qTag->insert({strLabel, strValue});
     });
   g_lua.registerFunction<void(DNSQuestion::*)(vector<pair<string, string>>)>("setTagArray", [](DNSQuestion& dq, const vector<pair<string, string>>&tags) {
-
-      if(dq.qTag == nullptr) {
+      if (!dq.qTag) {
         dq.qTag = std::make_shared<QTag>();
       }
 
       for (const auto& tag : tags) {
-        dq.qTag->add(tag.first, tag.second);
+        dq.qTag->insert({tag.first, tag.second});
       }
-
     });
   g_lua.registerFunction<string(DNSQuestion::*)(std::string)>("getTag", [](const DNSQuestion& dq, const std::string& strLabel) {
+      if (!dq.qTag) {
+        return string();
+      }
 
       std::string strValue;
-      if(dq.qTag != nullptr) {
-        strValue = dq.qTag->getMatch(strLabel);
+      const auto it = dq.qTag->find(strLabel);
+      if (it == dq.qTag->cend()) {
+        return string();
       }
-      return strValue;
+      return it->second;
     });
-  g_lua.registerFunction<std::unordered_map<string, string>(DNSQuestion::*)(void)>("getTagArray", [](const DNSQuestion& dq) {
-
-      if(dq.qTag != nullptr) {
-        return dq.qTag->tagData;
-      } else {
-        std::unordered_map<string, string> XX;
-        return XX;
+  g_lua.registerFunction<QTag(DNSQuestion::*)(void)>("getTagArray", [](const DNSQuestion& dq) {
+      if (!dq.qTag) {
+        QTag empty;
+        return empty;
       }
+
+      return *dq.qTag;
     });
 
   /* LuaWrapper doesn't support inheritance */
