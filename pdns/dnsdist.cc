@@ -1259,7 +1259,6 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     }
 
     if(dq.dh->qr) { // something turned it into a response
-      g_stats.selfAnswered++;
       restoreFlags(dh, origFlags);
 
       if (!cs.muted) {
@@ -1291,6 +1290,8 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
         {
           sendUDPResponse(cs.udpFD, response, responseLen, delayMsec, dest, remote);
         }
+
+        g_stats.selfAnswered++;
       }
 
       return;
