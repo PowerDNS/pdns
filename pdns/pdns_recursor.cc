@@ -1304,6 +1304,10 @@ static void startDoResolve(void *p)
         }
       }
       pw.addOpt(g_udpTruncationThreshold, 0, DNSSECOK ? EDNSOpts::DNSSECOK : 0, opts);
+      if (pw.size() > maxanswersize) {
+        pw.rollback();
+        pw.addOpt(g_udpTruncationThreshold, 0, DNSSECOK ? EDNSOpts::DNSSECOK : 0, opts);
+      }
       pw.commit();
     }
 
