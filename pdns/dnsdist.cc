@@ -179,8 +179,15 @@ struct DelayedPacket
 
 DelayPipe<DelayedPacket> * g_delay = 0;
 
-static void doLatencyAverages(double udiff)
+static void doLatencyStats(double udiff)
 {
+  if(udiff < 1000) g_stats.latency0_1++;
+  else if(udiff < 10000) g_stats.latency1_10++;
+  else if(udiff < 50000) g_stats.latency10_50++;
+  else if(udiff < 100000) g_stats.latency50_100++;
+  else if(udiff < 1000000) g_stats.latency100_1000++;
+  else g_stats.latencySlow++;
+
   auto doAvg = [](double& var, double n, double weight) {
     var = (weight -1) * var/weight + n/weight;
   };
@@ -489,14 +496,7 @@ try {
         g_stats.servfailResponses++;
       dss->latencyUsec = (127.0 * dss->latencyUsec / 128.0) + udiff/128.0;
 
-      if(udiff < 1000) g_stats.latency0_1++;
-      else if(udiff < 10000) g_stats.latency1_10++;
-      else if(udiff < 50000) g_stats.latency10_50++;
-      else if(udiff < 100000) g_stats.latency50_100++;
-      else if(udiff < 1000000) g_stats.latency100_1000++;
-      else g_stats.latencySlow++;
-    
-      doLatencyAverages(udiff);
+      doLatencyStats(udiff);
 
       if (ids->origFD == origFD) {
 #ifdef HAVE_DNSCRYPT
@@ -1292,6 +1292,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
         }
 
         g_stats.selfAnswered++;
+        doLatencyStats(0);  // we're not going to measure this
       }
 
       return;
@@ -1353,8 +1354,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
         }
 
         g_stats.cacheHits++;
-        g_stats.latency0_1++;  // we're not going to measure this
-        doLatencyAverages(0);  // same
+        doLatencyStats(0);  // we're not going to measure this
         return;
       }
       g_stats.cacheMisses++;
@@ -1396,6 +1396,9 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
         {
           sendUDPResponse(cs.udpFD, response, responseLen, 0, dest, remote);
         }
+
+        // no response-only statistics counter to update.
+        doLatencyStats(0);  // we're not going to measure this
       }
       vinfolog("%s query for %s|%s from %s, no policy applied", g_servFailOnNoPolicy ? "ServFailed" : "Dropped", dq.qname->toString(), QType(dq.qtype).getName(), remote.toStringWithPort());
       return;
