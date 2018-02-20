@@ -1299,11 +1299,11 @@ static void startDoResolve(void *p)
       if(wantsNSID) {
         const static string mode_server_id = ::arg()["server-id"];
         if(mode_server_id != "disabled" && !mode_server_id.empty()) {
-          opts.push_back(make_pair(3, mode_server_id));
+          opts.push_back(make_pair(EDNSOptionCode::NSID, mode_server_id));
           variableAnswer = true; // Can't packetcache an answer with NSID
         }
       }
-      pw.addOpt(maxanswersize, 0, DNSSECOK ? EDNSOpts::DNSSECOK : 0, opts);
+      pw.addOpt(g_udpTruncationThreshold, 0, DNSSECOK ? EDNSOpts::DNSSECOK : 0, opts);
       pw.commit();
     }
 
