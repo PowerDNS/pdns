@@ -100,9 +100,19 @@ void DNSPacketWriter::addOpt(uint16_t udpsize, int extRCode, int Z, const vector
 
   EDNS0Record stuff;
 
-  stuff.extRCode=extRCode;
   stuff.version=version;
   stuff.Z=htons(Z);
+
+  /* RFC 6891 section 4 on the Extended RCode wire format
+   *    EXTENDED-RCODE
+   *        Forms the upper 8 bits of extended 12-bit RCODE (together with the
+   *        4 bits defined in [RFC1035].  Note that EXTENDED-RCODE value 0
+   *        indicates that an unextended RCODE is in use (values 0 through 15).
+   */
+  stuff.extRCode = extRCode>>4;
+  if (extRCode != 0) { // As this trumps the existing RCODE
+    getHeader()->rcode = extRCode;
+  }
 
   static_assert(sizeof(EDNS0Record) == sizeof(ttl), "sizeof(EDNS0Record) must match sizeof(ttl)");
   memcpy(&ttl, &stuff, sizeof(stuff));

@@ -871,9 +871,16 @@ static void startDoResolve(void *p)
     uint16_t maxanswersize = dc->d_tcp ? 65535 : min(static_cast<uint16_t>(512), g_udpTruncationThreshold);
     EDNSOpts edo;
     std::vector<pair<uint16_t, string> > ednsOpts;
+    bool variableAnswer = false;
     bool haveEDNS=false;
-    bool wantsNSID = false;
+    DNSPacketWriter::optvect_t returnedEdnsOptions; // Here we stuff all the options for the return packet
+    uint8_t ednsExtRCode = 0;
     if(getEDNSOpts(dc->d_mdp, &edo)) {
+      haveEDNS=true;
+      if (edo.d_version != 0) {
+        ednsExtRCode = ERCode::BADVERS;
+      }
+
       if(!dc->d_tcp) {
         /* rfc6891 6.2.3:
            "Values lower than 512 MUST be treated as equal to 512."
@@ -887,7 +894,13 @@ static void startDoResolve(void *p)
         if (o.first == EDNSOptionCode::ECS && g_useIncomingECS && !dc->d_ecsParsed) {
           dc->d_ecsFound = getEDNSSubnetOptsFromString(o.second, &dc->d_ednssubnet);
         } else if (o.first == EDNSOptionCode::NSID) {
-          wantsNSID = true;
+          const static string mode_server_id = ::arg()["server-id"];
+          if(mode_server_id != "disabled" && !mode_server_id.empty()) {
+            returnedEdnsOptions.push_back(make_pair(EDNSOptionCode::NSID, mode_server_id));
+            variableAnswer = true; // Can't packetcache an answer with NSID
+            // Option Code and Option Length are both 2
+            maxanswersize -= 2 + 2 + mode_server_id.size();
+          }
         }
       }
     }
@@ -955,7 +968,7 @@ static void startDoResolve(void *p)
     sr.setQuerySource(dc->d_remote, g_useIncomingECS && !dc->d_ednssubnet.source.empty() ? boost::optional<const EDNSSubnetOpts&>(dc->d_ednssubnet) : boost::none);
 
     bool tracedQuery=false; // we could consider letting Lua know about this too
-    bool variableAnswer = dc->d_variable;
+    variableAnswer = dc->d_variable || variableAnswer;
     bool shouldNotValidate = false;
 
     /* preresolve expects res (dq.rcode) to be set to RCode::NoError by default */
@@ -1295,19 +1308,7 @@ static void startDoResolve(void *p)
          OPT record.  This MUST also occur when a truncated response (using
          the DNS header's TC bit) is returned."
       */
-      DNSPacketWriter::optvect_t opts;
-      if(wantsNSID) {
-        const static string mode_server_id = ::arg()["server-id"];
-        if(mode_server_id != "disabled" && !mode_server_id.empty()) {
-          opts.push_back(make_pair(EDNSOptionCode::NSID, mode_server_id));
-          variableAnswer = true; // Can't packetcache an answer with NSID
-        }
-      }
-      pw.addOpt(g_udpTruncationThreshold, 0, DNSSECOK ? EDNSOpts::DNSSECOK : 0, opts);
-      if (pw.size() > maxanswersize) {
-        pw.rollback();
-        pw.addOpt(g_udpTruncationThreshold, 0, DNSSECOK ? EDNSOpts::DNSSECOK : 0, opts);
-      }
+      pw.addOpt(g_udpTruncationThreshold, ednsExtRCode, DNSSECOK ? EDNSOpts::DNSSECOK : 0, returnedEdnsOptions);
       pw.commit();
     }
 
