@@ -218,6 +218,7 @@ struct DNSDistStats
 
 
 extern struct DNSDistStats g_stats;
+void doLatencyStats(double udiff);
 
 
 struct StopWatch

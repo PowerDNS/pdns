@@ -179,7 +179,7 @@ struct DelayedPacket
 
 DelayPipe<DelayedPacket> * g_delay = 0;
 
-static void doLatencyStats(double udiff)
+void doLatencyStats(double udiff)
 {
   if(udiff < 1000) g_stats.latency0_1++;
   else if(udiff < 10000) g_stats.latency1_10++;
