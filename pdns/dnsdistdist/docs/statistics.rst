@@ -12,15 +12,15 @@ dnsdist keeps statistics on the queries is receives and send out. They can be ac
 
 acl-drops
 ---------
-The number of packets dropped bacause of the :doc:`ACL <advanced/acl>`.
+The number of packets dropped because of the :doc:`ACL <advanced/acl>`.
 
 cache-hits
 ----------
-Number of times an answer was retrieved from :doc:`cache <guides/cache>`.
+Number of times a response was sent using data found in the :doc:`packet cache <guides/cache>`.
 
 cache-misses
 ------------
-Number of times an answer was not found in the :doc:`cache <guides/cache>`.
+Number of times an answer was not found in the :doc:`packet cache <guides/cache>`. Only counted if a packet cache was setup for the selected pool.
 
 cpu-sys-msec
 ------------
