@@ -576,8 +576,11 @@ int main(int argc, char **argv)
 
     if(::arg()["server-id"].empty()) {
       char tmp[128];
-      gethostname(tmp, sizeof(tmp)-1);
-      ::arg().set("server-id")=tmp;
+      if(gethostname(tmp, sizeof(tmp)-1) == 0) {
+        ::arg().set("server-id")=tmp;
+      } else {
+        g_log<<Logger::Warning<<"Unable to get the hostname, NSID and id.server values will be empty: "<<strerror(errno)<<endl;
+      }
     }
 
     UeberBackend::go();

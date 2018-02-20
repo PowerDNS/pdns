@@ -3212,7 +3212,7 @@ static int serviceMain(int argc, char*argv[])
     if (gethostname(tmp, sizeof(tmp)-1) == 0){
       SyncRes::s_serverID = tmp;
     } else {
-      L<<Logger::Warning<<"Unable to get the hostname, NSID and id.server values will be empty: "<<strerror(errno)<<endl;
+      g_log<<Logger::Warning<<"Unable to get the hostname, NSID and id.server values will be empty: "<<strerror(errno)<<endl;
     }
   }
 
