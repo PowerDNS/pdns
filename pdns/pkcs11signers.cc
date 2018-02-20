@@ -14,6 +14,10 @@
 #include "pdns/sha.hh"
 #include "pdns/lock.hh"
 
+#ifdef HAVE_LIBCRYPTO_ECDSA
+#include <openssl/ec.h>
+#endif
+
 #include "pkcs11signers.hh"
 /* TODO
 
@@ -291,6 +295,35 @@ class Pkcs11Token {
       }
     }
 
+    unsigned int ecparam2bits(const std::string& obj) const {
+      // if we can use some library to parse the EC parameters, better use it.
+      // otherwise fall back to using hardcoded primev256 and secp384r1
+#ifdef HAVE_LIBCRYPTO_ECDSA
+      EC_KEY *key = NULL;
+      BIGNUM *order;
+      unsigned int bits = 0;
+      const unsigned char *in = reinterpret_cast<const unsigned char*>(obj.c_str());
+      order = BN_new();
+      if ((key = d2i_ECParameters(NULL, &in, obj.size())) != NULL &&
+          EC_GROUP_get_order(EC_KEY_get0_group(key), order, NULL) == 1) {
+         bits = BN_num_bits(order);
+      }
+
+      BN_free(order);
+      if (key != NULL)
+        EC_KEY_free(key);
+
+      if (bits == 0)
+        throw PDNSException("Unsupported EC key");
+
+      return bits;
+#else
+      if (d_ecdsa_params == "\x06\x08\x2a\x86\x48\xce\x3d\x03\x01\x07") return 256;
+      else if (d_ecdsa_params == "\x06\x05\x2b\x81\x04\x00\x22") return 384;
+      else throw PDNSException("Unsupported EC key");
+#endif
+    }
+
   public:
     Pkcs11Token(const std::shared_ptr<Pkcs11Slot>& slot, const std::string& label, const std::string& pub_label); 
     ~Pkcs11Token();
@@ -359,9 +392,7 @@ class Pkcs11Token {
           attr.push_back(P11KitAttribute(CKA_EC_POINT, ""));
           if (!GetAttributeValue2(d_public_key, attr)) {
             d_ecdsa_params = attr[0].str();
-            if (d_ecdsa_params == "\x06\x08\x2a\x86\x48\xce\x3d\x03\x01\x07") d_bits = 256;
-            else if (d_ecdsa_params == "\x06\x05\x2b\x81\x04\x00\x22") d_bits = 384;
-            else throw PDNSException("Unsupported EC key");
+            d_bits = ecparam2bits(d_ecdsa_params);
             if (attr[1].str().length() != (d_bits*2/8 + 3)) throw PDNSException("EC Point data invalid");
             d_ec_point = attr[1].str().substr(3);
           } else {
