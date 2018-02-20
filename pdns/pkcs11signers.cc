@@ -626,6 +626,7 @@ static std::map<std::string, std::shared_ptr<Pkcs11Token> > pkcs11_tokens;
 CK_RV Pkcs11Slot::HuntSlot(const string& tokenId, CK_SLOT_ID &slotId, _CK_SLOT_INFO* info, CK_FUNCTION_LIST* functions)
 {
   CK_RV err;
+  unsigned int i;
   unsigned long slots;
   _CK_TOKEN_INFO tinfo;
 
@@ -637,8 +638,19 @@ CK_RV Pkcs11Slot::HuntSlot(const string& tokenId, CK_SLOT_ID &slotId, _CK_SLOT_I
     return err;
   }
 
+  // get the actual slot ids
+  CK_SLOT_ID slotIds[slots];
+  err = functions->C_GetSlotList(CK_FALSE, slotIds, &slots);
+  if (err) {
+    L<<Logger::Warning<<"C_GetSlotList(CK_FALSE, slotIds, &slots) = " << err << std::endl;
+    return err;
+  }
+
   // iterate all slots
-  for(slotId=0;slotId<slots;slotId++) {
+  for(i=0;i<slots;i++) {
+    slotId=slotIds[i];
+    if (slotId == static_cast<CK_SLOT_ID>(-1))
+      continue;
     if ((err = functions->C_GetSlotInfo(slotId, info))) {
       L<<Logger::Warning<<"C_GetSlotList("<<slotId<<", info) = " << err << std::endl;
       return err;
@@ -651,6 +663,7 @@ CK_RV Pkcs11Slot::HuntSlot(const string& tokenId, CK_SLOT_ID &slotId, _CK_SLOT_I
     slotName.assign(reinterpret_cast<char*>(tinfo.label), 32);
     // trim it
     boost::trim(slotName);
+
     if (boost::iequals(slotName, tokenId)) {
       return 0;
     }
