@@ -222,7 +222,7 @@ class TestAPIBasics(DNSDistTest):
                     'latency-avg1000000', 'uptime', 'real-memory-usage', 'noncompliant-queries',
                     'noncompliant-responses', 'rdqueries', 'empty-queries', 'cache-hits',
                     'cache-misses', 'cpu-user-msec', 'cpu-sys-msec', 'fd-usage', 'dyn-blocked',
-                    'dyn-block-nmg-size']
+                    'dyn-block-nmg-size', 'rule-servfail']
 
         for key in expected:
             self.assertIn(key, values)

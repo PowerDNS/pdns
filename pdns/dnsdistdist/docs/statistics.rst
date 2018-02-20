@@ -134,6 +134,10 @@ rule-refused
 ------------
 Number of Refused answers returned because of a rule.
 
+rule-servfail
+-------------
+Number of ServFail answers returned because of a rule.
+
 self-answered
 -------------
 Number of self-answered responses.

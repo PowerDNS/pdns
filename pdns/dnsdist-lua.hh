@@ -21,6 +21,8 @@
  */
 #pragma once
 
+#include "dolog.hh"
+
 class LuaAction : public DNSAction
 {
 public:
@@ -31,10 +33,17 @@ public:
   Action operator()(DNSQuestion* dq, string* ruleresult) const override
   {
     std::lock_guard<std::mutex> lock(g_luamutex);
-    auto ret = d_func(dq);
-    if(ruleresult)
-      *ruleresult=std::get<1>(ret);
-    return (Action)std::get<0>(ret);
+    try {
+      auto ret = d_func(dq);
+      if(ruleresult)
+        *ruleresult=std::get<1>(ret);
+      return (Action)std::get<0>(ret);
+    } catch (std::exception &e) {
+      warnlog("LuaAction failed inside lua, returning ServFail: %s", e.what());
+    } catch (...) {
+      warnlog("LuaAction failed inside lua, returning ServFail: [unknown exception]");
+    }
+    return DNSAction::Action::ServFail;
   }
 
   string toString() const override
@@ -56,10 +65,17 @@ public:
   Action operator()(DNSResponse* dr, string* ruleresult) const override
   {
     std::lock_guard<std::mutex> lock(g_luamutex);
-    auto ret = d_func(dr);
-    if(ruleresult)
-      *ruleresult=std::get<1>(ret);
-    return (Action)std::get<0>(ret);
+    try {
+      auto ret = d_func(dr);
+      if(ruleresult)
+        *ruleresult=std::get<1>(ret);
+      return (Action)std::get<0>(ret);
+    } catch (std::exception &e) {
+      warnlog("LuaResponseAction failed inside lua, returning ServFail: %s", e.what());
+    } catch (...) {
+      warnlog("LuaResponseAction failed inside lua, returning ServFail: [unknown exception]");
+    }
+    return DNSResponseAction::Action::ServFail;
   }
 
   string toString() const override

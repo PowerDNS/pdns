@@ -102,7 +102,7 @@ struct DNSResponse : DNSQuestion
 class DNSAction
 {
 public:
-  enum class Action { Drop, Nxdomain, Refused, Spoof, Allow, HeaderModify, Pool, Delay, Truncate, None};
+  enum class Action { Drop, Nxdomain, Refused, Spoof, Allow, HeaderModify, Pool, Delay, Truncate, ServFail, None};
   virtual Action operator()(DNSQuestion*, string* ruleresult) const =0;
   virtual ~DNSAction()
   {
@@ -117,7 +117,7 @@ public:
 class DNSResponseAction
 {
 public:
-  enum class Action { Allow, Delay, Drop, HeaderModify, None };
+  enum class Action { Allow, Delay, Drop, HeaderModify, ServFail, None };
   virtual Action operator()(DNSResponse*, string* ruleresult) const =0;
   virtual ~DNSResponseAction()
   {
@@ -163,6 +163,7 @@ struct DNSDistStats
   stat_t ruleDrop{0};
   stat_t ruleNXDomain{0};
   stat_t ruleRefused{0};
+  stat_t ruleServFail{0};
   stat_t selfAnswered{0};
   stat_t downstreamTimeouts{0};
   stat_t downstreamSendErrors{0};
@@ -183,6 +184,7 @@ struct DNSDistStats
     {"rule-drop", &ruleDrop},
     {"rule-nxdomain", &ruleNXDomain},
     {"rule-refused", &ruleRefused},
+    {"rule-servfail", &ruleServFail},
     {"self-answered", &selfAnswered},
     {"downstream-timeouts", &downstreamTimeouts},
     {"downstream-send-errors", &downstreamSendErrors}, 

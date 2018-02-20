@@ -150,7 +150,7 @@ Rule Generators
 
   Invoke a Lua function that accepts a :class:`DNSQuestion`.
   This function works similar to using :func:`LuaAction`.
-  The ``function`` should return a :ref:`DNSAction`.
+  The ``function`` should return a :ref:`DNSAction`. If the Lua code fails, ServFail is returned.
 
   :param DNSRule: match queries based on this rule
   :param string function: the name of a Lua function
@@ -165,10 +165,9 @@ Rule Generators
   .. versionchanged:: 1.3.0
     Added the optional parameter ``options``.
 
-  Invoke a Lua function that accepts a :class:`DNSQuestion` on the response.
-  This function works similar to using :func:`LuaAction`.
-
-  The ``function`` should return a :ref:`DNSAction`.
+  Invoke a Lua function that accepts a :class:`DNSResponse`.
+  This function works similar to using :func:`LuaResponseAction`.
+  The ``function`` should return a :ref:`DNSResponseAction`. If the Lua code fails, ServFail is returned.
 
   :param DNSRule: match queries based on this rule
   :param string function: the name of a Lua function
@@ -785,7 +784,7 @@ The following actions exist.
 
   Invoke a Lua function that accepts a :class:`DNSQuestion`.
 
-  The ``function`` should return a :ref:`DNSAction`.
+  The ``function`` should return a :ref:`DNSAction`. If the Lua code fails, ServFail is returned.
 
   :param string function: the name of a Lua function
 
@@ -793,7 +792,7 @@ The following actions exist.
 
   Invoke a Lua function that accepts a :class:`DNSResponse`.
 
-  The ``function`` should return a :ref:`DNSResponseAction`.
+  The ``function`` should return a :ref:`DNSResponseAction`. If the Lua code fails, ServFail is returned.
 
   :param string function: the name of a Lua function
 

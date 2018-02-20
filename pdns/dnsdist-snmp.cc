@@ -46,6 +46,7 @@ static const oid cpuSysMSecOID[] = { DNSDIST_STATS_OID, 33 };
 static const oid fdUsageOID[] = { DNSDIST_STATS_OID, 34 };
 static const oid dynBlockedOID[] = { DNSDIST_STATS_OID, 35 };
 static const oid dynBlockedNMGSizeOID[] = { DNSDIST_STATS_OID, 36 };
+static const oid ruleServFailOID[] = { DNSDIST_STATS_OID, 37 };
 
 static std::unordered_map<oid, DNSDistStats::entry_t> s_statsMap;
 
@@ -547,6 +548,7 @@ DNSDistSNMPAgent::DNSDistSNMPAgent(const std::string& name, const std::string& m
   registerCounter64Stat("ruleDrop", ruleDropOID, OID_LENGTH(ruleDropOID), &g_stats.ruleDrop);
   registerCounter64Stat("ruleNXDomain", ruleNXDomainOID, OID_LENGTH(ruleNXDomainOID), &g_stats.ruleNXDomain);
   registerCounter64Stat("ruleRefused", ruleRefusedOID, OID_LENGTH(ruleRefusedOID), &g_stats.ruleRefused);
+  registerCounter64Stat("ruleServFail", ruleServFailOID, OID_LENGTH(ruleServFailOID), &g_stats.ruleServFail);
   registerCounter64Stat("selfAnswered", selfAnsweredOID, OID_LENGTH(selfAnsweredOID), &g_stats.selfAnswered);
   registerCounter64Stat("downstreamTimeouts", downstreamTimeoutsOID, OID_LENGTH(downstreamTimeoutsOID), &g_stats.downstreamTimeouts);
   registerCounter64Stat("downstreamSendErrors", downstreamSendErrorsOID, OID_LENGTH(downstreamSendErrorsOID), &g_stats.downstreamSendErrors);
