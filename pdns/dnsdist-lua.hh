@@ -21,36 +21,17 @@
  */
 #pragma once
 
-#include "dolog.hh"
-
 class LuaAction : public DNSAction
 {
 public:
   typedef std::function<std::tuple<int, string>(DNSQuestion* dq)> func_t;
   LuaAction(LuaAction::func_t func) : d_func(func)
   {}
-
-  Action operator()(DNSQuestion* dq, string* ruleresult) const override
-  {
-    std::lock_guard<std::mutex> lock(g_luamutex);
-    try {
-      auto ret = d_func(dq);
-      if(ruleresult)
-        *ruleresult=std::get<1>(ret);
-      return (Action)std::get<0>(ret);
-    } catch (std::exception &e) {
-      warnlog("LuaAction failed inside lua, returning ServFail: %s", e.what());
-    } catch (...) {
-      warnlog("LuaAction failed inside lua, returning ServFail: [unknown exception]");
-    }
-    return DNSAction::Action::ServFail;
-  }
-
+  Action operator()(DNSQuestion* dq, string* ruleresult) const override;
   string toString() const override
   {
     return "Lua script";
   }
-
 private:
   func_t d_func;
 };
@@ -61,28 +42,11 @@ public:
   typedef std::function<std::tuple<int, string>(DNSResponse* dr)> func_t;
   LuaResponseAction(LuaResponseAction::func_t func) : d_func(func)
   {}
-
-  Action operator()(DNSResponse* dr, string* ruleresult) const override
-  {
-    std::lock_guard<std::mutex> lock(g_luamutex);
-    try {
-      auto ret = d_func(dr);
-      if(ruleresult)
-        *ruleresult=std::get<1>(ret);
-      return (Action)std::get<0>(ret);
-    } catch (std::exception &e) {
-      warnlog("LuaResponseAction failed inside lua, returning ServFail: %s", e.what());
-    } catch (...) {
-      warnlog("LuaResponseAction failed inside lua, returning ServFail: [unknown exception]");
-    }
-    return DNSResponseAction::Action::ServFail;
-  }
-
+  Action operator()(DNSResponse* dr, string* ruleresult) const override;
   string toString() const override
   {
     return "Lua response script";
   }
-
 private:
   func_t d_func;
 };
