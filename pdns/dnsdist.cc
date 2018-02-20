@@ -377,7 +377,7 @@ static bool sendUDPResponse(int origFD, char* response, uint16_t responseLen, in
 }
 
 // listens on a dedicated socket, lobs answers from downstream servers to original requestors
-void* responderThread(std::shared_ptr<DownstreamState> state)
+void* responderThread(std::shared_ptr<DownstreamState> dss)
 try {
   auto localRespRulactions = g_resprulactions.getLocal();
 #ifdef HAVE_DNSCRYPT
@@ -396,7 +396,7 @@ try {
     dnsheader* dh = reinterpret_cast<struct dnsheader*>(packet);
     bool outstandingDecreased = false;
     try {
-      ssize_t got = recv(state->fd, packet, sizeof(packet), 0);
+      ssize_t got = recv(dss->fd, packet, sizeof(packet), 0);
       char * response = packet;
       size_t responseSize = sizeof(packet);
 
@@ -406,10 +406,10 @@ try {
       uint16_t responseLen = (uint16_t) got;
       queryId = dh->id;
 
-      if(queryId >= state->idStates.size())
+      if(queryId >= dss->idStates.size())
         continue;
 
-      IDState* ids = &state->idStates[queryId];
+      IDState* ids = &dss->idStates[queryId];
       int origFD = ids->origFD;
 
       if(origFD < 0) // duplicate
@@ -422,11 +422,11 @@ try {
       */
       ids->age = 0;
 
-      if (!responseContentMatches(response, responseLen, ids->qname, ids->qtype, ids->qclass, state->remote)) {
+      if (!responseContentMatches(response, responseLen, ids->qname, ids->qtype, ids->qclass, dss->remote)) {
         continue;
       }
 
-      --state->outstanding;  // you'd think an attacker could game this, but we're using connected socket
+      --dss->outstanding;  // you'd think an attacker could game this, but we're using connected socket
       outstandingDecreased = true;
 
       if(dh->tc && g_truncateTC) {
@@ -476,18 +476,18 @@ try {
       g_stats.responses++;
 
       double udiff = ids->sentTime.udiff();
-      vinfolog("Got answer from %s, relayed to %s, took %f usec", state->remote.toStringWithPort(), ids->origRemote.toStringWithPort(), udiff);
+      vinfolog("Got answer from %s, relayed to %s, took %f usec", dss->remote.toStringWithPort(), ids->origRemote.toStringWithPort(), udiff);
 
       {
         struct timespec ts;
         gettime(&ts);
         std::lock_guard<std::mutex> lock(g_rings.respMutex);
-        g_rings.respRing.push_back({ts, ids->origRemote, ids->qname, ids->qtype, (unsigned int)udiff, (unsigned int)got, *dh, state->remote});
+        g_rings.respRing.push_back({ts, ids->origRemote, ids->qname, ids->qtype, (unsigned int)udiff, (unsigned int)got, *dh, dss->remote});
       }
 
       if(dh->rcode == RCode::ServFail)
         g_stats.servfailResponses++;
-      state->latencyUsec = (127.0 * state->latencyUsec / 128.0) + udiff/128.0;
+      dss->latencyUsec = (127.0 * dss->latencyUsec / 128.0) + udiff/128.0;
 
       if(udiff < 1000) g_stats.latency0_1++;
       else if(udiff < 10000) g_stats.latency1_10++;
@@ -509,14 +509,14 @@ try {
       rewrittenResponse.clear();
     }
     catch(const std::exception& e){
-      vinfolog("Got an error in UDP responder thread while parsing a response from %s, id %d: %s", state->remote.toStringWithPort(), queryId, e.what());
+      vinfolog("Got an error in UDP responder thread while parsing a response from %s, id %d: %s", dss->remote.toStringWithPort(), queryId, e.what());
       if (outstandingDecreased) {
         /* so an exception was raised after we decreased the outstanding queries counter,
            but before we could set ids->origFD to -1 (because we also set outstandingDecreased
            to false then), meaning the IDS is still considered active and we will decrease the
            counter again on a duplicate, or simply while reaping downstream timeouts, so let's
            increase it back. */
-        state->outstanding++;
+        dss->outstanding++;
       }
     }
   }
