@@ -3209,8 +3209,11 @@ static int serviceMain(int argc, char*argv[])
   SyncRes::s_rootNXTrust = ::arg().mustDo( "root-nx-trust");
   if(SyncRes::s_serverID.empty()) {
     char tmp[128];
-    gethostname(tmp, sizeof(tmp)-1);
-    SyncRes::s_serverID=tmp;
+    if (gethostname(tmp, sizeof(tmp)-1) == 0){
+      SyncRes::s_serverID = tmp;
+    } else {
+      L<<Logger::Warning<<"Unable to get the hostname, NSID and id.server values will be empty: "<<strerror(errno)<<endl;
+    }
   }
 
   SyncRes::s_ecsipv4limit = ::arg().asNum("ecs-ipv4-bits");
