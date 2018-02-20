@@ -2901,7 +2901,10 @@ try
   } else if (cmds[0]=="hsm") {
 #ifdef HAVE_P11KIT1
     UeberBackend B("default");
-    if (cmds[1] == "assign") {
+    if (cmds.size() < 2) {
+      cerr << "Missing sub-command for pdnsutil hsm"<< std::endl;
+      return 0;
+    } else if (cmds[1] == "assign") {
       DNSCryptoKeyEngine::storvector_t storvect;
       DomainInfo di;
       std::vector<DNSBackend::KeyData> keys;
