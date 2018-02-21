@@ -327,8 +327,8 @@ void RPZIXFRTracker(const ComboAddress& master, boost::optional<DNSFilterEngine:
   while (!sr) {
     try {
       sr=loadRPZFromServer(master, zoneName, zone, defpol, maxTTL, tt, maxReceivedBytes, localAddress);
-      if(refresh) {
-        sr->d_st.refresh=refresh;
+      if(refresh == 0) {
+        refresh = sr->d_st.refresh;
       }
       zone->setSerial(sr->d_st.serial);
     }
@@ -340,7 +340,11 @@ void RPZIXFRTracker(const ComboAddress& master, boost::optional<DNSFilterEngine:
     }
 
     if (!sr) {
-      sleep(refresh);
+      if (refresh == 0) {
+        sleep(10);
+      } else {
+        sleep(refresh);
+      }
     }
   }
 
