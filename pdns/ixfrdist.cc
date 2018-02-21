@@ -23,6 +23,7 @@
 #include "config.h"
 #endif
 #include <boost/program_options.hpp>
+#include <arpa/inet.h>
 #include <sys/types.h>
 #include <grp.h>
 #include <pwd.h>
@@ -619,8 +620,7 @@ void handleTCPRequest(int fd, boost::any&) {
     return;
   }
 
-  char buf[4096];
-  // Discard the first 2 bytes (qlen)
+  char buf[65535];
   int res;
   res = recv(cfd, &buf, 2, 0);
   if (res != 2) {
@@ -636,7 +636,8 @@ void handleTCPRequest(int fd, boost::any&) {
     }
   }
 
-  res = recv(cfd, &buf, sizeof(buf), 0);
+  size_t toRead = std::min(static_cast<size_t>(ntohs((buf[0]<<8) + buf[1])), sizeof(buf));
+  res = recv(cfd, &buf, toRead, 0);
 
   if (res == -1) {
     auto savedErrno = errno;
