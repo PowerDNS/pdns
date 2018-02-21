@@ -174,7 +174,7 @@ void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngine::Zon
   }
 }
 
-shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const DNSName& zoneName, std::shared_ptr<DNSFilterEngine::Zone> zone, boost::optional<DNSFilterEngine::Policy> defpol, uint32_t maxTTL, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress)
+shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const DNSName& zoneName, std::shared_ptr<DNSFilterEngine::Zone> zone, boost::optional<DNSFilterEngine::Policy> defpol, uint32_t maxTTL, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, uint16_t axfrTimeout)
 {
   L<<Logger::Warning<<"Loading RPZ zone '"<<zoneName<<"' from "<<master.toStringWithPort()<<endl;
   if(!tt.name.empty())
@@ -189,8 +189,10 @@ shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const
   Resolver::res_t nop;
   vector<DNSRecord> chunk;
   time_t last=0;
+  time_t axfrStart = time(0);
+  time_t axfrNow = time(0);
   shared_ptr<SOARecordContent> sr;
-  while(axfr.getChunk(nop, &chunk)) {
+  while(axfr.getChunk(nop, &chunk, (axfrStart + axfrTimeout - axfrNow))) {
     for(auto& dr : chunk) {
       if(dr.d_type==QType::NS || dr.d_type==QType::TSIG) {
 	continue;
@@ -205,6 +207,10 @@ shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const
       RPZRecordToPolicy(dr, zone, true, defpol, maxTTL);
       nrecords++;
     } 
+    axfrNow = time(nullptr);
+    if (axfrNow - axfrStart > axfrTimeout) {
+      throw PDNSException("Total AXFR time exceeded!");
+    }
     if(last != time(0)) {
       L<<Logger::Info<<"Loaded & indexed "<<nrecords<<" policy records so far"<<endl;
       last=time(0);

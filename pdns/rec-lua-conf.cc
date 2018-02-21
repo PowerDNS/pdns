@@ -142,6 +142,7 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
         uint32_t refresh=0;
         std::string polName(zoneName);
         size_t maxReceivedXFRMBytes = 0;
+        uint16_t axfrTimeout = 20;
         uint32_t maxTTL = std::numeric_limits<uint32_t>::max();
         ComboAddress localAddress;
         if(options) {
@@ -166,6 +167,9 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
           if(have.count("localAddress")) {
             localAddress = ComboAddress(boost::get<string>(constGet(have,"localAddress")));
           }
+          if(have.count("axfrTimeout")) {
+            axfrTimeout = static_cast<uint16_t>(boost::get<uint32_t>(constGet(have, "axfrTimeout")));
+          }
         }
         ComboAddress master(master_, 53);
         if (localAddress != ComboAddress() && localAddress.sin4.sin_family != master.sin4.sin_family) {
@@ -180,12 +184,12 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
         size_t zoneIdx = lci.dfe.addZone(zone);
 
         if (!checkOnly) {
-          auto sr=loadRPZFromServer(master, domain, zone, defpol, maxTTL, tt, maxReceivedXFRMBytes * 1024 * 1024, localAddress);
+          auto sr=loadRPZFromServer(master, domain, zone, defpol, maxTTL, tt, maxReceivedXFRMBytes * 1024 * 1024, localAddress, axfrTimeout);
           if(refresh)
             sr->d_st.refresh=refresh;
           zone->setSerial(sr->d_st.serial);
 
-          std::thread t(RPZIXFRTracker, master, DNSName(zoneName), defpol, maxTTL, zoneIdx, tt, sr, maxReceivedXFRMBytes * 1024 * 1024, localAddress);
+          std::thread t(RPZIXFRTracker, master, DNSName(zoneName), defpol, maxTTL, zoneIdx, tt, sr, maxReceivedXFRMBytes * 1024 * 1024, localAddress, axfrTimeout);
           t.detach();
         }
       }

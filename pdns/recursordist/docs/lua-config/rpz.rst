@@ -104,6 +104,14 @@ localAddress
 The source IP address to use when transferring the RPZ.
 When unset, :ref:`setting-query-local-address` and :ref:`setting-query-local-address6` are used.
 
+axfrTimeout
+^^^^^^^^^^^
+.. versionadded:: 4.1.2
+  Before 4.1.2, the timeout was fixed on 10 seconds.
+
+The timeout in seconds of the total initial AXFR transaction.
+20 by default.
+
 Policy Actions
 --------------
 
