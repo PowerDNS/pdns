@@ -141,6 +141,7 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
       TSIGTriplet tt;
       uint32_t refresh=0;
       size_t maxReceivedXFRMBytes = 0;
+      uint16_t axfrTimeout = 20;
       uint32_t maxTTL = std::numeric_limits<uint32_t>::max();
       ComboAddress localAddress;
       ComboAddress master(master_, 53);
@@ -170,6 +171,9 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
           if(have.count("localAddress")) {
             localAddress = ComboAddress(boost::get<string>(constGet(have,"localAddress")));
           }
+          if(have.count("axfrTimeout")) {
+            axfrTimeout = static_cast<uint16_t>(boost::get<uint32_t>(constGet(have, "axfrTimeout")));
+          }
         }
         if (localAddress != ComboAddress() && localAddress.sin4.sin_family != master.sin4.sin_family) {
           // We were passed a localAddress, check if its AF matches the master's
@@ -192,7 +196,7 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
 
       try {
           if (!checkOnly) {
-            std::thread t(RPZIXFRTracker, master, defpol, maxTTL, zoneIdx, tt, maxReceivedXFRMBytes * 1024 * 1024, localAddress, zone);
+            std::thread t(RPZIXFRTracker, master, defpol, maxTTL, zoneIdx, tt, maxReceivedXFRMBytes * 1024 * 1024, localAddress, zone, axfrTimeout);
             t.detach();
           }
       }
