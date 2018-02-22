@@ -597,12 +597,13 @@ int PacketHandler::forwardPacket(const string &msgPrefix, DNSPacket *p, DomainIn
     }
 
     ComboAddress local;
-    if(remote.sin4.sin_family == AF_INET)
+    if (remote.sin4.sin_family == AF_INET && !::arg()["query-local-address"].empty()) {
       local = ComboAddress(::arg()["query-local-address"]);
-    else if(!::arg()["query-local-address6"].empty())
+    } else if(remote.sin4.sin_family == AF_INET6 && !::arg()["query-local-address6"].empty()) {
       local = ComboAddress(::arg()["query-local-address6"]);
-    else
-      local = ComboAddress("::");
+    } else {
+      continue;
+    }
     int sock = makeQuerySocket(local, false); // create TCP socket. RFC2136 section 6.2 seems to be ok with this.
     if(sock < 0) {
       L<<Logger::Error<<msgPrefix<<"Error creating socket: "<<stringerror()<<endl;

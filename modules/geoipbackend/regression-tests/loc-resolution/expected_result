@@ -1,0 +1,8 @@
+0	loc.geo.example.com.	IN	LOC	30	1 0 0.000 N 1 0 0.000 E 0.00m 1.00m 10000.00m 10.00m
+2	.	IN	OPT	0	AAgACAABIBgBAQEB
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='loc.geo.example.com.', qtype=LOC
+0	loc.geo.example.com.	IN	TXT	30	"1.000000 1.000000"
+2	.	IN	OPT	0	AAgACAABIBgBAQEB
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='loc.geo.example.com.', qtype=TXT

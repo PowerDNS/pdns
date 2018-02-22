@@ -162,9 +162,10 @@ time_t CommunicatorClass::doNotifications()
   char buffer[1500];
   int sock;
   ssize_t size;
+  set<int> fds = {d_nsock4, d_nsock6};
 
   // receive incoming notifications on the nonblocking socket and take them off the list
-  while(waitFor2Data(d_nsock4, d_nsock6, 0, 0, &sock) > 0) {
+  while(waitForMultiData(fds, 0, 0, &sock) > 0) {
     fromlen=sizeof(from);
     size=recvfrom(sock,buffer,sizeof(buffer),0,(struct sockaddr *)&from,&fromlen);
     if(size < 0)
@@ -200,12 +201,15 @@ time_t CommunicatorClass::doNotifications()
       try {
         ComboAddress remote(ip, 53); // default to 53
         if((d_nsock6 < 0 && remote.sin4.sin_family == AF_INET6) ||
-           (d_nsock4 < 0 && remote.sin4.sin_family == AF_INET))
+           (d_nsock4 < 0 && remote.sin4.sin_family == AF_INET)) {
+             L<<Logger::Warning<<"Unable to notify "<<remote.toStringWithPort()<<" for domain '"<<domain<<"', address family is disabled. Is query-local-address"<<(remote.sin4.sin_family == AF_INET ? "" : "6")<<" unset?"<<endl;
+             d_nq.removeIf(remote.toStringWithPort(), id, domain); // Remove, we'll never be able to notify
              continue; // don't try to notify what we can't!
+        }
         if(d_preventSelfNotification && AddressIsUs(remote))
           continue;
 
-        sendNotification(remote.sin4.sin_family == AF_INET ? d_nsock4 : d_nsock6, domain, remote, id); 
+        sendNotification(remote.sin4.sin_family == AF_INET ? d_nsock4 : d_nsock6, domain, remote, id);
         drillHole(domain, ip);
       }
       catch(ResolverException &re) {
@@ -284,11 +288,16 @@ bool CommunicatorClass::justNotified(const DNSName &domain, const string &ip)
 
 void CommunicatorClass::makeNotifySockets()
 {
-  d_nsock4 = makeQuerySocket(ComboAddress(::arg()["query-local-address"]), true, ::arg().mustDo("non-local-bind"));
-  if(!::arg()["query-local-address6"].empty())
+  if(!::arg()["query-local-address"].empty()) {
+    d_nsock4 = makeQuerySocket(ComboAddress(::arg()["query-local-address"]), true, ::arg().mustDo("non-local-bind"));
+  } else {
+    d_nsock4 = -1;
+  }
+  if(!::arg()["query-local-address6"].empty()) {
     d_nsock6 = makeQuerySocket(ComboAddress(::arg()["query-local-address6"]), true, ::arg().mustDo("non-local-bind"));
-  else
+  } else {
     d_nsock6 = -1;
+  }
 }
 
 void CommunicatorClass::notify(const DNSName &domain, const string &ip)

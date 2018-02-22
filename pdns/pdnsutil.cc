@@ -2236,7 +2236,7 @@ try
   }
   else if(cmds[0] == "replace-rrset") {
     if(cmds.size() < 5) {
-      cerr<<"Syntax: pdnsutil replace-record ZONE name type [ttl] \"content\" [\"content\"...]"<<endl;
+      cerr<<"Syntax: pdnsutil replace-rrset ZONE name type [ttl] \"content\" [\"content\"...]"<<endl;
       return 0;
     }
     exit(addOrReplaceRecord(false , cmds));

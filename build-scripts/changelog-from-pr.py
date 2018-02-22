@@ -32,12 +32,12 @@ for pr in arguments.pullrequest:
         )
     else:
         out += '  .. change::\n' + \
-               '  :tags: XXXXXX\n' + \
-               '  :pullreq: {}\n'.format(pr)
+               '    :tags: XXXXXX\n' + \
+               '    :pullreq: {}\n'.format(pr)
         tickets = re.findall(ticket_regex, pr_info['body'])
         if len(tickets):
-            out += '  :tickets: {}\n'.format(', '.join(tickets))
-        out += '\n  {}'.format(pr_info['title'].capitalize())
+            out += '    :tickets: {}\n'.format(', '.join(tickets))
+        out += '\n    {}'.format(pr_info['title'].capitalize())
 
     if pr_info['user']['login'].lower() not in ['ahupowerdns', 'habbie',
                                                 'pieterlexis', 'rgacogne',

@@ -34,6 +34,10 @@ ipv6 support, set the respective setting to "". Leaving it unset leaves
 it pointing to default location, preventing the software from starting
 up.
 
+Since v4.2.0 libgeoip is optional. You can use also libmaxminddb, but
+that is optional too. If no geo backend is provided, no geoip database
+based expansions can be used. Other expansions will work.
+
 Configuration Parameters
 ------------------------
 
@@ -46,14 +50,35 @@ defaults suite you.
 ``geoip-database-files``
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. deprecated:: 4.2.0
+  This setting has been removed
+
 Comma, tab or space separated list of files to open. You can use
 `geoip-cvs-to-dat <https://github.com/dankamongmen/sprezzos-world/blob/master/packaging/geoip/debian/src/geoip-csv-to-dat.cpp>`__
 to generate your own.
 
+For MMDB files, see `https://github.com/maxmind/getting-started-with-mmdb <https://github.com/maxmind/getting-started-with-mmdb>`
+
+Since v4.2.0, database type is determined by file suffix, or you can use new syntax.
+New syntax is ``[driver:]path[;options]``.
+
+Currently supported options for dat driver (legacy libGeoIP):
+  - mode=standard, memory, index or mmap
+
+Currently supported options for mmdb driver (libmaxminddb):
+  - mode=mmap
+  - language=en (which language to use)
+
+.. warning::
+  This option has been changed since v4.2.0
+
 .. _setting-geoip-database-cache:
 
-``geoip-database-cache``
+``geoip-database-cache`` (before v4.2.0)
 ~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. deprecated:: 4.2.0
+  This setting is removed
 
 Specifies the kind of caching that is done on the database. This is one
 of "standard", "memory", "index" or "mmap". These options map to the
@@ -127,14 +152,13 @@ Keys explained
 -  **records**: Put fully qualified name as subkey, under which you must
    define at least soa: key. Note that this is an array of records, so ‐
    is needed for the values.
--  **services**: Defines one or more services for querying. The format
-   supports following placeholders, %% = %, %co = 3-letter country, %cn
-   = continent, %af = v4 or v6. There are also other specifiers that
-   will only work with suitable database and currently are untested.
-   These are %re = region, %na = Name (such as, organisation), %ci =
-   City. If the record which a service points to exists under "records"
-   then it is returned as a direct answer. If it does not exist under
-   "records" then it is returned as a CNAME.
+-  **services**: Defines one or more services for querying.
+-  From 4.2.0, you can also use %lat, %lon, %loc to expand for geographic
+   location, if available in backend. %loc in particular can be safely
+   used with LOC record type.
+-  From 4.2.0, you can also use %ip4 and %ip6 that will expand to the
+   IP address when AFI matches, and empty otherwise. Can be particularly
+   used with A and AAAA record types.
 -  From 4.1.0, you can also use %cc = 2 letter country code
 -  From 4.0.0, you can also use %as = ASn, %ip = Remote IP
 -  From 4.0.0, you can also use additional specifiers. These are %hh =
@@ -169,6 +193,42 @@ for it.
 
 Since v4.1.0 you can mix service and static records to produce the sum
 of these records, including apex record.
+
+Format explained
+~~~~~~~~~~~~~~~~
+
+Following placeholders are supported, and support subnet caching with EDNS.
+- %%: %
+- %co: With legacy GeoIP database only expands to three letter country name,
+       with MMDB and others this will expand into ISO3166 country code.
+- %cc: ISO3166 country code.
+- %cn: ISO3166 continent code.
+- %af: v4 or v6.
+- %re: Region code
+- %na: AS organization name (spaces are converted to _)
+- %as: AS number
+- %ci: City name
+- %loc: LOC record style expansion of location
+- %lat: Decimal degree latitude
+- %lon: Decimal degree longitude
+
+Following placeholders disable caching completely.
+- %yy: Year
+- %mos: Month name
+- %mo: Month
+- %wds: Weekday name
+- %wd: Weekday
+- %dd: Year day
+- %hh: Hour
+- %ip: IP address
+- %ip4: IPv4 address
+- %ip6: IPv6 address
+
+.. warning::
+  Before 4.2.0 if record expanded to empty value it could cause SERVFAIL. Since 4.2.0 such expansions for non-TXT record types are not included in response.
+
+.. warning::
+  If the record which a service points to exists under "records" then it is returned as a direct answer. If it does not exist under "records" then it is returned as a CNAME.
 
 .. warning::
   If your services match wildcard records in your zone file
