@@ -55,3 +55,16 @@ uint32_t getSerialFromRecords(const records_t& records, DNSRecord& soaret);
 void writeZoneToDisk(const records_t& records, const DNSName& zone, const std::string& directory);
 void loadZoneFromDisk(records_t& records, const string& fname, const DNSName& zone);
 void loadSOAFromDisk(const DNSName& zone, const string& fname, shared_ptr<SOARecordContent>& soa);
+
+struct ixfrdiff_t {
+  shared_ptr<SOARecordContent> oldSOA;
+  shared_ptr<SOARecordContent> newSOA;
+  vector<DNSRecord> removals;
+  vector<DNSRecord> additions;
+};
+
+struct ixfrinfo_t {
+  shared_ptr<SOARecordContent> soa; // The SOA of the latestAXFR
+  records_t latestAXFR;             // The most recent AXFR
+  vector<ixfrdiff_t> ixfrDiffs;
+};
