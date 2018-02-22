@@ -189,8 +189,8 @@ shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const
   Resolver::res_t nop;
   vector<DNSRecord> chunk;
   time_t last=0;
-  time_t axfrStart = time(0);
-  time_t axfrNow = time(0);
+  time_t axfrStart = time(nullptr);
+  time_t axfrNow = time(nullptr);
   shared_ptr<SOARecordContent> sr;
   while(axfr.getChunk(nop, &chunk, (axfrStart + axfrTimeout - axfrNow))) {
     for(auto& dr : chunk) {
@@ -208,7 +208,7 @@ shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const
       nrecords++;
     } 
     axfrNow = time(nullptr);
-    if (axfrNow - axfrStart > axfrTimeout) {
+    if (axfrNow < axfrStart || axfrNow - axfrStart > axfrTimeout) {
       throw PDNSException("Total AXFR time exceeded!");
     }
     if(last != time(0)) {
