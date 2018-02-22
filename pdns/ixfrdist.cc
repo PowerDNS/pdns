@@ -154,7 +154,7 @@ void cleanUpDomain(const DNSName& domain) {
   }
 }
 
-shared_ptr<SOARecordContent> getSOAFromRecords(const records_t& records) {
+static shared_ptr<SOARecordContent> getSOAFromRecords(const records_t& records) {
   for (const auto& dnsrecord : records) {
     if (dnsrecord.d_type == QType::SOA) {
       auto soa = getRR<SOARecordContent>(dnsrecord);
@@ -167,11 +167,17 @@ shared_ptr<SOARecordContent> getSOAFromRecords(const records_t& records) {
   throw PDNSException("No SOA in supplied records");
 }
 
-void makeIXFRDiff(const records_t& from, const records_t& to, ixfrdiff_t& diff) {
+static void makeIXFRDiff(const records_t& from, const records_t& to, ixfrdiff_t& diff, const shared_ptr<SOARecordContent>& fromSOA = nullptr, const shared_ptr<SOARecordContent>& toSOA = nullptr) {
   set_difference(from.cbegin(), from.cend(), to.cbegin(), to.cend(), back_inserter(diff.removals), from.value_comp());
   set_difference(to.cbegin(), to.cend(), from.cbegin(), from.cend(), back_inserter(diff.additions), from.value_comp());
-  diff.oldSOA = getSOAFromRecords(from);
-  diff.newSOA = getSOAFromRecords(to);
+  diff.oldSOA = fromSOA;
+  if (fromSOA == nullptr) {
+    getSOAFromRecords(from);
+  }
+  diff.newSOA = toSOA;
+  if (toSOA == nullptr) {
+    getSOAFromRecords(to);
+  }
 }
 
 void updateThread() {
@@ -195,7 +201,6 @@ void updateThread() {
           loadZoneFromDisk(records, fname, domain);
         }
         std::lock_guard<std::mutex> guard(g_soas_mutex);
-        g_soas[domain] = ixfrinfo_t();
         g_soas[domain].latestAXFR = records;
         g_soas[domain].soa = soa;
       }
@@ -316,7 +321,7 @@ void updateThread() {
           std::lock_guard<std::mutex> guard(g_soas_mutex);
           ixfrdiff_t diff;
           if (!g_soas[domain].latestAXFR.empty()) {
-            makeIXFRDiff(g_soas[domain].latestAXFR, records, diff);
+            makeIXFRDiff(g_soas[domain].latestAXFR, records, diff, g_soas[domain].soa, soa);
             g_soas[domain].ixfrDiffs.push_back(diff);
           }
           // Clean up the diffs
