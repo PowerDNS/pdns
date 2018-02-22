@@ -1,0 +1,3 @@
+#!/bin/sh
+cleandig loc.geo.example.com LOC ednssubnet $geoipregionip
+cleandig loc.geo.example.com TXT ednssubnet $geoipregionip

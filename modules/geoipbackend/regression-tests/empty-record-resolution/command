@@ -1,0 +1,4 @@
+#!/bin/sh
+
+$SDIG $nameserver $port ip.geo.example.com ANY tcp ednssubnet 127.0.0.2 | LC_ALL=C sort
+$SDIG $nameserver $port ip.geo.example.com ANY tcp ednssubnet ::2 | LC_ALL=C sort

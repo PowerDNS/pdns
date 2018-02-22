@@ -207,9 +207,14 @@ install_auth() {
     libp11-kit-dev"
 
   # geoip-backend
+  run "sudo add-apt-repository -y ppa:maxmind/ppa"
+  run "gpg --keyserver keyserver.ubuntu.com --recv-keys DE742AFA"
+  run "gpg --export DE742AFA | sudo apt-key add -"
+  run "sudo apt-get update"
   run "sudo apt-get -qq --no-install-recommends install \
     libgeoip-dev \
-    libyaml-cpp-dev"
+    libyaml-cpp-dev \
+    libmaxminddb-dev"
 
   # ldap-backend
   run "sudo apt-get -qq --no-install-recommends install \
@@ -453,9 +458,10 @@ test_auth() {
   run "./timestamp ./start-test-stop 5300 bind-hybrid-nsec3"
   #ecdsa - ./timestamp ./start-test-stop 5300 bind-dnssec-pkcs11
 
-  run "export geoipregion=oc geoipregionip=1.2.3.4"
   run "./timestamp ./start-test-stop 5300 geoip"
   run "./timestamp ./start-test-stop 5300 geoip-nsec3-narrow"
+  run "export geoipdatabase=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb"
+  run "./timestamp ./start-test-stop 5300 geoip"
 
   run "./timestamp ./start-test-stop 5300 gmysql-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 gmysql-both"
