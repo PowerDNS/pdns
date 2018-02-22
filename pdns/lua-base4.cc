@@ -43,7 +43,7 @@ void BaseLua4::prepareContext() {
   d_lw = std::unique_ptr<LuaContext>(new LuaContext);
 
   // dnsheader
-  d_lw->registerFunction<int(dnsheader::*)()>("getID", [](dnsheader& dh) { return dh.id; });
+  d_lw->registerFunction<int(dnsheader::*)()>("getID", [](dnsheader& dh) { return ntohs(dh.id); });
   d_lw->registerFunction<bool(dnsheader::*)()>("getCD", [](dnsheader& dh) { return dh.cd; });
   d_lw->registerFunction<bool(dnsheader::*)()>("getTC", [](dnsheader& dh) { return dh.tc; });
   d_lw->registerFunction<bool(dnsheader::*)()>("getRA", [](dnsheader& dh) { return dh.ra; });
