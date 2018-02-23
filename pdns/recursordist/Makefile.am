@@ -4,7 +4,6 @@ AM_CPPFLAGS = $(LUA_CFLAGS) $(YAHTTP_CFLAGS) $(BOOST_CPPFLAGS) $(BOTAN_CFLAGS) $
 
 AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/json11 \
-	-I$(top_srcdir)/ext/rapidjson/include \
 	$(YAHTTP_CFLAGS) \
 	$(LIBCRYPTO_INCLUDES)
 
