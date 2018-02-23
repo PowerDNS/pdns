@@ -318,7 +318,7 @@ string reloadAuthAndForwards()
 }
 
 
-void RPZIXFRTracker(const ComboAddress& master, const DNSName& zoneName, boost::optional<DNSFilterEngine::Policy> defpol, uint32_t maxTTL, size_t zoneIdx, const TSIGTriplet& tt, shared_ptr<SOARecordContent> oursr, size_t maxReceivedBytes, const ComboAddress& localAddress)
+void RPZIXFRTracker(const ComboAddress& master, const DNSName& zoneName, boost::optional<DNSFilterEngine::Policy> defpol, uint32_t maxTTL, size_t zoneIdx, const TSIGTriplet& tt, shared_ptr<SOARecordContent> oursr, size_t maxReceivedBytes, const ComboAddress& localAddress, const uint16_t axfrTimeout)
 {
   uint32_t refresh = oursr->d_st.refresh;
   for(;;) {

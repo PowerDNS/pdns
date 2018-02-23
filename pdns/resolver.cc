@@ -446,7 +446,7 @@ AXFRRetriever::~AXFRRetriever()
 
 
 
-int AXFRRetriever::getChunk(Resolver::res_t &res, vector<DNSRecord>* records) // Implementation is making sure RFC2845 4.4 is followed.
+int AXFRRetriever::getChunk(Resolver::res_t &res, vector<DNSRecord>* records, uint16_t timeout) // Implementation is making sure RFC2845 4.4 is followed.
 {
   if(d_soacount > 1)
     return false;
@@ -459,7 +459,7 @@ int AXFRRetriever::getChunk(Resolver::res_t &res, vector<DNSRecord>* records) //
   if (d_maxReceivedBytes > 0 && (d_maxReceivedBytes - d_receivedBytes) < (size_t) len)
     throw ResolverException("Reached the maximum number of received bytes during AXFR");
 
-  timeoutReadn(len);
+  timeoutReadn(len, timeout);
 
   d_receivedBytes += (uint16_t) len;
 
@@ -492,13 +492,13 @@ int AXFRRetriever::getChunk(Resolver::res_t &res, vector<DNSRecord>* records) //
   return true;
 }
 
-void AXFRRetriever::timeoutReadn(uint16_t bytes)
+void AXFRRetriever::timeoutReadn(uint16_t bytes, uint16_t timeoutsec)
 {
-  time_t start=time(0);
+  time_t start=time(nullptr);
   int n=0;
   int numread;
   while(n<bytes) {
-    int res=waitForData(d_sock, 10-(time(0)-start));
+    int res=waitForData(d_sock, timeoutsec-(time(nullptr)-start));
     if(res<0)
       throw ResolverException("Reading data from remote nameserver over TCP: "+stringerror());
     if(!res)
