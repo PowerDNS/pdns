@@ -23,6 +23,7 @@
 #include "config.h"
 #endif
 #include <boost/program_options.hpp>
+#include <arpa/inet.h>
 #include <sys/types.h>
 #include <grp.h>
 #include <pwd.h>
@@ -625,32 +626,14 @@ void handleTCPRequest(int fd, boost::any&) {
   }
 
   char buf[4096];
-  // Discard the first 2 bytes (qlen)
-  int res;
-  res = recv(cfd, &buf, 2, 0);
-  if (res != 2) {
-    if (res == 0) { // Connection is closed
-      close(cfd);
-      return;
-    }
-    if (res == -1) {
-      auto savedErrno = errno;
-      cerr<<"[WARNING] Could not read message from "<<saddr.toStringWithPort()<<": "<<strerror(savedErrno)<<endl;
-      close(cfd);
-      return;
-    }
-  }
-
-  res = recv(cfd, &buf, sizeof(buf), 0);
-
-  if (res == -1) {
-    auto savedErrno = errno;
-    cerr<<"[WARNING] Could not read message from "<<saddr.toStringWithPort()<<": "<<strerror(savedErrno)<<endl;
-    close(cfd);
-    return;
-  }
-
-  if (res == 0) { // Connection is closed
+  ssize_t res;
+  try {
+    uint16_t toRead;
+    readn2(cfd, &toRead, sizeof(toRead));
+    toRead = std::min(ntohs(toRead), static_cast<uint16_t>(sizeof(buf)));
+    res = readn2WithTimeout(cfd, &buf, toRead, 2);
+  } catch (runtime_error &e) {
+    cerr<<"[WARNING] Could not read message from "<<saddr.toStringWithPort()<<": "<<e.what()<<endl;
     close(cfd);
     return;
   }
@@ -712,11 +695,11 @@ void handleTCPRequest(int fd, boost::any&) {
     } /* if (mdp.d_qtype == QType::IXFR) */
 
     for (const auto& packet : packets) {
-      char buf[2];
-      buf[0]=packet.size()/256;
-      buf[1]=packet.size()%256;
+      char sendBuf[2];
+      sendBuf[0]=packet.size()/256;
+      sendBuf[1]=packet.size()%256;
 
-      int send = writen2(cfd, buf, 2);
+      ssize_t send = writen2(cfd, sendBuf, 2);
       send += writen2(cfd, &packet[0], packet.size());
     }
     shutdown(cfd, 2);
