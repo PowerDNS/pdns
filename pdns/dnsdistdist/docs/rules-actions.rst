@@ -495,10 +495,10 @@ These ``DNSRule``\ s be one of the following items:
 
 .. function:: MaxQPSRule(qps)
 
-  Matches traffic exceeding this qps limit. If e.g. this is set to 50, starting at the 51st query of the current second traffic is matched.
+  Matches traffic **not** exceeding this qps limit. If e.g. this is set to 50, starting at the 51st query of the current second traffic stops being matched.
   This can be used to enforce a global QPS limit.
 
-  :param int qps: The number of queries per second allowed, above this number traffic is matched
+  :param int qps: The number of queries per second allowed, above this number the traffic is **not** matched anymore
 
 .. function:: NetmaskGroupRule(nmg[, src])
 
