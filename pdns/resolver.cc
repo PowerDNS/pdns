@@ -442,7 +442,7 @@ int AXFRRetriever::getChunk(Resolver::res_t &res, vector<DNSRecord>* records, ui
     return false;
 
   // d_sock is connected and is about to spit out a packet
-  int len=getLength();
+  int len=getLength(timeout);
   if(len<0)
     throw ResolverException("EOF trying to read axfr chunk from remote TCP client");
 
@@ -557,9 +557,9 @@ void AXFRRetriever::connect()
   // d_sock now connected
 }
 
-int AXFRRetriever::getLength()
+int AXFRRetriever::getLength(uint16_t timeout)
 {
-  timeoutReadn(2);
+  timeoutReadn(2, timeout);
   return (unsigned char)d_buf[0]*256+(unsigned char)d_buf[1];
 }
 
