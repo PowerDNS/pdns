@@ -168,7 +168,7 @@ function get()
 	logger(log_debug, "(l_get) begin")
 	while rrsetidx < rrsetsize do
 		rrsetidx = rrsetidx + 1
-		logger(log_debug, "(l_get) rrset ", rrsetidx, " : ", rrset[rrsetidx])
+		logger(log_debug, "(l_get) rrset ", rrsetidx)
 		return rrset[rrsetidx]
 	end
 	logger(log_debug, "(l_get) done")
