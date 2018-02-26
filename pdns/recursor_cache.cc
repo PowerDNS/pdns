@@ -272,14 +272,21 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
     isNew = true;
   }
 
-  /* don't bother building an ecsIndex if we don't have any netmask-specific entries */
-  if (ednsmask && !ednsmask->empty()) {
-    auto ecsIndexKey = boost::make_tuple(qname, qt.getCode());
-    auto ecsIndex = d_ecsIndex.find(ecsIndexKey);
-    if (ecsIndex == d_ecsIndex.end()) {
-      ecsIndex = d_ecsIndex.insert(ECSIndexEntry(qname, qt.getCode())).first;
+  /* if we are inserting a new entry or updating an expired one (in which case the
+     ECS index might have been removed but the entry still exists because it has not
+     been garbage collected yet) we might need to update the ECS index.
+     Otherwise it should already be indexed and we don't need to update it.
+  */
+  if (isNew || stored->d_ttd <= now) {
+    /* don't bother building an ecsIndex if we don't have any netmask-specific entries */
+    if (ednsmask && !ednsmask->empty()) {
+      auto ecsIndexKey = boost::make_tuple(qname, qt.getCode());
+      auto ecsIndex = d_ecsIndex.find(ecsIndexKey);
+      if (ecsIndex == d_ecsIndex.end()) {
+        ecsIndex = d_ecsIndex.insert(ECSIndexEntry(qname, qt.getCode())).first;
+      }
+      ecsIndex->addMask(*ednsmask);
     }
-    ecsIndex->addMask(*ednsmask);
   }
 
   time_t maxTTD=std::numeric_limits<time_t>::max();
