@@ -974,10 +974,6 @@ make install DESTDIR=%{buildroot}
 
 chmod 600 %{buildroot}%{_sysconfdir}/%{name}/pdns.conf
 
-# rename zone2ldap to pdns-zone2ldap (#1193116)
-%{__mv} %{buildroot}/%{_bindir}/zone2ldap %{buildroot}/%{_bindir}/pdns-zone2ldap
-%{__mv} %{buildroot}/%{_mandir}/man1/zone2ldap.1 %{buildroot}/%{_mandir}/man1/pdns-zone2ldap.1
-
 %check
 make %{?_smp_mflags} -C pdns check || (cat pdns/test-suite.log && false)
 
@@ -1003,7 +999,6 @@ exit 0
 %doc COPYING README
 %{_bindir}/pdns_control
 %{_bindir}/pdnsutil
-%{_bindir}/pdns-zone2ldap
 %{_bindir}/zone2sql
 %{_bindir}/zone2json
 %{_sbindir}/pdns_server
@@ -1012,7 +1007,6 @@ exit 0
 %{_mandir}/man1/pdns_server.1.gz
 %{_mandir}/man1/zone2sql.1.gz
 %{_mandir}/man1/zone2json.1.gz
-%{_mandir}/man1/pdns-zone2ldap.1.gz
 %{_mandir}/man1/pdnsutil.1.gz
 %{_unitdir}/pdns.service
 %{_unitdir}/pdns@.service
