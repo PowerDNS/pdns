@@ -93,7 +93,6 @@ MemRecursorCache::cache_t::const_iterator MemRecursorCache::getEntryUsingECSInde
         /* we have nothing more specific for you */
         break;
       }
-
       auto key = boost::make_tuple(qname, qtype, best);
       auto entry = d_cache.find(key);
       if (entry == d_cache.end()) {
@@ -264,23 +263,23 @@ bool MemRecursorCache::attemptToRefreshNSTTL(const QType& qt, const vector<DNSRe
 void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt, const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, boost::optional<Netmask> ednsmask, vState state)
 {
   d_cachecachevalid = false;
-
+  //  cerr<<"Replacing "<<qname<<" for "<< (ednsmask ? ednsmask->toString() : "everyone") << endl;
   auto key = boost::make_tuple(qname, qt.getCode(), ednsmask ? *ednsmask : Netmask());
   bool isNew = false;
   cache_t::iterator stored = d_cache.find(key);
   if (stored == d_cache.end()) {
     stored = d_cache.insert(CacheEntry(key, CacheEntry::records_t(), auth)).first;
     isNew = true;
+  }
 
-    /* don't bother building an ecsIndex if we don't have any netmask-specific entries */
-    if (ednsmask && !ednsmask->empty()) {
-      auto ecsIndexKey = boost::make_tuple(qname, qt.getCode());
-      auto ecsIndex = d_ecsIndex.find(ecsIndexKey);
-      if (ecsIndex == d_ecsIndex.end()) {
-        ecsIndex = d_ecsIndex.insert(ECSIndexEntry(qname, qt.getCode())).first;
-      }
-      ecsIndex->addMask(*ednsmask);
+  /* don't bother building an ecsIndex if we don't have any netmask-specific entries */
+  if (ednsmask && !ednsmask->empty()) {
+    auto ecsIndexKey = boost::make_tuple(qname, qt.getCode());
+    auto ecsIndex = d_ecsIndex.find(ecsIndexKey);
+    if (ecsIndex == d_ecsIndex.end()) {
+      ecsIndex = d_ecsIndex.insert(ECSIndexEntry(qname, qt.getCode())).first;
     }
+    ecsIndex->addMask(*ednsmask);
   }
 
   time_t maxTTD=std::numeric_limits<time_t>::max();
