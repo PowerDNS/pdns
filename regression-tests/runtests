@@ -22,7 +22,7 @@ spectest=$1
 [ -z $spectest ] && spectest=""
 
 for prog in $SDIG $SAXFR $NOTIFY $NSEC3DIG; do
-  if `echo $prog | grep -q '../pdns'`; then
+  if `echo $prog | grep -q '\.\./pdns'`; then
     ${MAKE} -C ../pdns ${prog##*../pdns/} || exit
   fi
 done
