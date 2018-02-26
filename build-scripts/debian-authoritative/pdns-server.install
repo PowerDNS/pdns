@@ -1,4 +1,5 @@
 usr/bin/pdns_control
+usr/bin/zone2json
 usr/bin/zone2sql
 usr/bin/pdnsutil
 usr/lib/*/pdns/libbindbackend.so*
