@@ -908,16 +908,6 @@ Requires: %{name}%{?_isa} = %{version}-%{release}
 %description backend-remote
 This package contains the remote backend for %{name}
 
-%package backend-ldap
-Summary: LDAP backend for %{name}
-Group: System Environment/Daemons
-Requires: %{name}%{?_isa} = %{version}-%{release}
-BuildRequires: openldap2-devel
-%global backends %{backends} ldap
-
-%description backend-ldap
-This package contains the LDAP backend for %{name}
-
 %package backend-lua
 Summary: Lua backend for %{name}
 Group: System Environment/Daemons
@@ -1078,11 +1068,6 @@ exit 0
 
 %files backend-remote
 %{_libdir}/%{name}/libremotebackend.so
-
-%files backend-ldap
-%{_libdir}/%{name}/libldapbackend.so
-%doc %{_defaultdocdir}/%{name}/dnsdomain2.schema
-%doc %{_defaultdocdir}/%{name}/pdns-domaininfo.schema
 
 %files backend-lua
 %{_libdir}/%{name}/libluabackend.so
