@@ -91,7 +91,7 @@ class AXFRRetriever : public boost::noncopyable
   
   private:
     void connect();
-    int getLength();
+    int getLength(uint16_t timeout);
     void timeoutReadn(uint16_t bytes, uint16_t timeoutsec=10);
 
     shared_array<char> d_buf;
