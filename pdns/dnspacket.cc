@@ -442,7 +442,7 @@ int DNSPacket::noparse(const char *mesg, size_t length)
 {
   d_rawpacket.assign(mesg,length); 
   if(length < 12) { 
-    L << Logger::Warning << "Ignoring packet: too short ("<<length<<" < 12) from "
+    L << Logger::Debug << "Ignoring packet: too short ("<<length<<" < 12) from "
       << d_remote.toStringWithPort()<< endl;
     return -1;
   }
