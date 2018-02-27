@@ -4,12 +4,15 @@ MAIN_MANS = pdns_server.1 \
 	zone2json.1 \
 	zone2sql.1
 
-if LDAP
-MAIN_MANS += zone2ldap.1
-endif
-
 MANPAGES_INSTALL = $(MAIN_MANS)
+
+MAIN_MANS += zone2ldap.1
+
 MANPAGES_DIST = $(MAIN_MANS)
+
+if LDAP
+MANPAGES_INSTALL += zone2ldap.1
+endif
 
 MANPAGES_TARGET_TOOLS = calidns.1 \
 	dnsgram.1 \
