@@ -667,20 +667,22 @@ bool DNSSECKeeper::rectifyZone(const DNSName& zone, string& error, string& info,
   }
 
   NSEC3PARAMRecordContent ns3pr;
-  bool narrow;
-  bool haveNSEC3 = getNSEC3PARAM(zone, &ns3pr, &narrow);
-  bool isOptOut = (haveNSEC3 && ns3pr.d_flags);
+  bool securedZone = isSecuredZone(zone);
+  bool haveNSEC3 = false, isOptOut = false, narrow = false;
 
-  if(isSecuredZone(zone)) {
+  if(securedZone) {
+    haveNSEC3 = getNSEC3PARAM(zone, &ns3pr, &narrow);
+    isOptOut = (haveNSEC3 && ns3pr.d_flags);
+
     if(!haveNSEC3) {
       infostream<<"Adding NSEC ordering information ";
     }
     else if(!narrow) {
       if(!isOptOut) {
-	infostream<<"Adding NSEC3 hashed ordering information for '"<<zone<<"'";
+        infostream<<"Adding NSEC3 hashed ordering information for '"<<zone<<"'";
       }
       else {
-	infostream<<"Adding NSEC3 opt-out hashed ordering information for '"<<zone<<"'";
+        infostream<<"Adding NSEC3 opt-out hashed ordering information for '"<<zone<<"'";
       }
     } else {
       infostream<<"Erasing NSEC3 ordering since we are narrow, only setting 'auth' fields";
@@ -749,7 +751,7 @@ bool DNSSECKeeper::rectifyZone(const DNSName& zone, string& error, string& info,
       } else if(!realrr)
         auth=false;
     }
-    else if (realrr) // NSEC
+    else if (realrr && securedZone) // NSEC
       ordername=qname.makeRelative(zone);
 
     sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, auth);
