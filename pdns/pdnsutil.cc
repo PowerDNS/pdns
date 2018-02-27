@@ -2906,13 +2906,16 @@ try
   } else if (cmds[0]=="hsm") {
 #ifdef HAVE_P11KIT1
     UeberBackend B("default");
-    if (cmds[1] == "assign") {
+    if (cmds.size() < 2) {
+      cerr << "Missing sub-command for pdnsutil hsm"<< std::endl;
+      return 0;
+    } else if (cmds[1] == "assign") {
       DNSCryptoKeyEngine::storvector_t storvect;
       DomainInfo di;
       std::vector<DNSBackend::KeyData> keys;
 
       if (cmds.size() < 9) {
-        std::cout << "Usage: pdnsutil hsm assign ZONE ALGORITHM {ksk|zsk} MODULE TOKEN PIN LABEL" << std::endl;
+        std::cout << "Usage: pdnsutil hsm assign ZONE ALGORITHM {ksk|zsk} MODULE TOKEN PIN LABEL (PUBLABEL)" << std::endl;
         return 1;
       }
 
@@ -2936,6 +2939,11 @@ try
       string slot = cmds[6];
       string pin = cmds[7];
       string label = cmds[8];
+      string pub_label;
+      if (cmds.size() > 9)
+         pub_label = cmds[9];
+      else
+         pub_label = label;
 
       std::ostringstream iscString;
       iscString << "Private-key-format: v1.2" << std::endl << 
@@ -2943,7 +2951,8 @@ try
         "Engine: " << module << std::endl <<
         "Slot: " << slot << std::endl <<
         "PIN: " << pin << std::endl << 
-        "Label: " << label << std::endl;
+        "Label: " << label << std::endl <<
+        "PubLabel: " << pub_label << std::endl;
 
       DNSKEYRecordContent drc;
       DNSSECPrivateKey dpk;

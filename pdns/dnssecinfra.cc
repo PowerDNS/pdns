@@ -96,6 +96,9 @@ shared_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromISCString(DNSKEYRecor
     }  else if (pdns_iequals(key,"label")) {
       stormap["label"]=value;
       continue;
+    } else if (pdns_iequals(key,"publabel")) {
+      stormap["publabel"]=value;
+      continue;
     }
     else if(pdns_iequals(key, "Private-key-format"))
       continue;
@@ -131,7 +134,7 @@ std::string DNSCryptoKeyEngine::convertToISC() const
   for(const stormap_t::value_type& value :  stormap) {
     if(value.first != "Algorithm" && value.first != "PIN" && 
        value.first != "Slot" && value.first != "Engine" &&
-       value.first != "Label") 
+       value.first != "Label" && value.first != "PubLabel")
       ret<<value.first<<": "<<Base64Encode(value.second)<<"\n";
     else
       ret<<value.first<<": "<<value.second<<"\n";

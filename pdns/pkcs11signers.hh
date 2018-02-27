@@ -29,6 +29,7 @@ class PKCS11DNSCryptoKeyEngine : public DNSCryptoKeyEngine
     std::string d_slot_id;
     std::string d_pin;
     std::string d_label;
+    std::string d_pub_label;
 
   public:
     PKCS11DNSCryptoKeyEngine(unsigned int algorithm);
