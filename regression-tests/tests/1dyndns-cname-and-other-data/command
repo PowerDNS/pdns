@@ -1,0 +1,76 @@
+#!/bin/sh
+
+RECORDNAME=cname-and-other.test.dyndns
+
+echo '* Check if there is nothing there'
+cleandig $RECORDNAME ANY hidesoadetails
+
+echo '* Try to add 2 records that are not allowed together (should lead to FORMERR)'
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update add $RECORDNAME. 3600 CNAME powerdns-cname.example.
+update add $RECORDNAME. 3600 A 192.0.2.1
+send
+answer
+!
+
+echo '* check that indeed nothing was added'
+cleandig $RECORDNAME A hidesoadetails
+cleandig $RECORDNAME CNAME hidesoadetails
+
+echo '* Add a CNAME'
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update add $RECORDNAME. 3600 CNAME powerdns-cname.example.
+send
+answer
+!
+
+echo '* Attempt to add an A record (should be REFUSED)'
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update add $RECORDNAME. 3600 A 192.0.2.1
+send
+answer
+!
+
+echo '* Check that we only still have the CNAME'
+cleandig $RECORDNAME A hidesoadetails
+
+echo '* Delete the CNAME and add the A record in one go'
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update delete $RECORDNAME. 3600 CNAME powerdns-cname.example.
+update add $RECORDNAME. 3600 A 192.0.2.1
+send
+answer
+!
+
+echo '* Check that we have only the A-record'
+cleandig $RECORDNAME A hidesoadetails
+cleandig $RECORDNAME CNAME hidesoadetails
+
+echo '* Attempt to add a CNAME (should be REFUSED)'
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update add $RECORDNAME. 3600 CNAME powerdns-cname.example.
+send
+answer
+!
+
+echo '* check that we have only the A-record'
+cleandig $RECORDNAME ANY hidesoadetails
+
+echo '* Clean up'
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update delete $RECORDNAME. 3600 A 192.0.2.1
+send
+answer
+!
