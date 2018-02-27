@@ -15,4 +15,4 @@ usr/bin/nsec3dig
 usr/bin/pdns_notify
 usr/bin/saxfr
 usr/bin/sdig
-lib/systemd/system/pdns.service
+lib/systemd/system/ixfrdist.service
