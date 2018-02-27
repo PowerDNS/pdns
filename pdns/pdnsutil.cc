@@ -299,8 +299,13 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
     records=*suppliedrecords;
 
   for(auto rr : records) { // we modify this
-    if(!rr.qtype.getCode())
-      continue;
+    // if(!rr.qtype.getCode()) {
+    //   if(rr.content.length()) {
+    //     cout<<"[Error] ENT (or unknown type) has content: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " '" << rr.content<<"'"<<endl;
+    //     numerrors++;
+    //   }
+    //   continue;
+    // }
 
     numrecords++;
 
