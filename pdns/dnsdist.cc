@@ -1981,6 +1981,40 @@ struct
 
 std::atomic<bool> g_configurationDone{false};
 
+static void usage()
+{
+  cout<<endl;
+  cout<<"Syntax: dnsdist [-C,--config file] [-c,--client [IP[:PORT]]] [-d,--daemon]\n";
+  cout<<"[-p,--pidfile file] [-e,--execute cmd] [-h,--help] [-l,--local addr]\n";
+  cout<<"[-v,--verbose] [--check-config]\n";
+  cout<<"\n";
+  cout<<"-a,--acl netmask      Add this netmask to the ACL\n";
+  cout<<"-C,--config file      Load configuration from 'file'\n";
+  cout<<"-c,--client           Operate as a client, connect to dnsdist. This reads\n";
+  cout<<"                      controlSocket from your configuration file, but also\n";
+  cout<<"                      accepts an IP:PORT argument\n";
+#ifdef HAVE_LIBSODIUM
+  cout<<"-k,--setkey KEY       Use KEY for encrypted communication to dnsdist. This\n";
+  cout<<"                      is similar to setting setKey in the configuration file.\n";
+  cout<<"                      NOTE: this will leak this key in your shell's history!\n";
+#endif
+  cout<<"--check-config        Validate the configuration file and exit. The exit-code\n";
+  cout<<"                      reflects the validation, 0 is OK, 1 means an error.\n";
+  cout<<"                      Any errors are printed as well.\n";
+  cout<<"-d,--daemon           Operate as a daemon\n";
+  cout<<"-e,--execute cmd      Connect to dnsdist and execute 'cmd'\n";
+  cout<<"-g,--gid gid          Change the process group ID after binding sockets\n";
+  cout<<"-h,--help             Display this helpful message\n";
+  cout<<"-l,--local address    Listen on this local address\n";
+  cout<<"--supervised          Don't open a console, I'm supervised\n";
+  cout<<"                        (use with e.g. systemd and daemontools)\n";
+  cout<<"--disable-syslog      Don't log to syslog, only to stdout\n";
+  cout<<"                        (use with e.g. systemd)\n";
+  cout<<"-p,--pidfile file     Write a pidfile, works only with --daemon\n";
+  cout<<"-u,--uid uid          Change the process user ID after binding sockets\n";
+  cout<<"-v,--verbose          Enable verbose mode\n";
+}
+
 int main(int argc, char** argv)
 try
 {
@@ -2067,36 +2101,7 @@ try
       break;
     case 'h':
       cout<<"dnsdist "<<VERSION<<endl;
-      cout<<endl;
-      cout<<"Syntax: dnsdist [-C,--config file] [-c,--client [IP[:PORT]]] [-d,--daemon]\n";
-      cout<<"[-p,--pidfile file] [-e,--execute cmd] [-h,--help] [-l,--local addr]\n";
-      cout<<"[-v,--verbose] [--check-config]\n";
-      cout<<"\n";
-      cout<<"-a,--acl netmask      Add this netmask to the ACL\n";
-      cout<<"-C,--config file      Load configuration from 'file'\n";
-      cout<<"-c,--client           Operate as a client, connect to dnsdist. This reads\n";
-      cout<<"                      controlSocket from your configuration file, but also\n";
-      cout<<"                      accepts an IP:PORT argument\n";
-#ifdef HAVE_LIBSODIUM
-      cout<<"-k,--setkey KEY       Use KEY for encrypted communication to dnsdist. This\n";
-      cout<<"                      is similar to setting setKey in the configuration file.\n";
-      cout<<"                      NOTE: this will leak this key in your shell's history!\n";
-#endif
-      cout<<"--check-config        Validate the configuration file and exit. The exit-code\n";
-      cout<<"                      reflects the validation, 0 is OK, 1 means an error.\n";
-      cout<<"                      Any errors are printed as well.\n";
-      cout<<"-d,--daemon           Operate as a daemon\n";
-      cout<<"-e,--execute cmd      Connect to dnsdist and execute 'cmd'\n";
-      cout<<"-g,--gid gid          Change the process group ID after binding sockets\n";
-      cout<<"-h,--help             Display this helpful message\n";
-      cout<<"-l,--local address    Listen on this local address\n";
-      cout<<"--supervised          Don't open a console, I'm supervised\n";
-      cout<<"                        (use with e.g. systemd and daemontools)\n";
-      cout<<"--disable-syslog      Don't log to syslog, only to stdout\n";
-      cout<<"                        (use with e.g. systemd)\n";
-      cout<<"-p,--pidfile file     Write a pidfile, works only with --daemon\n";
-      cout<<"-u,--uid uid          Change the process user ID after binding sockets\n";
-      cout<<"-v,--verbose          Enable verbose mode\n";
+      usage();
       cout<<"\n";
       exit(EXIT_SUCCESS);
       break;
@@ -2173,6 +2178,11 @@ try
 #endif
       cout<<endl;
       exit(EXIT_SUCCESS);
+      break;
+    case '?':
+      //getopt_long printed an error message.
+      usage();
+      exit(EXIT_FAILURE);
       break;
     }
   }
