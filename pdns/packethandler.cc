@@ -836,8 +836,12 @@ int PacketHandler::processNotify(DNSPacket *p)
   //
   DomainInfo di;
   if(!B.getDomainInfo(p->qdomain, di, false) || !di.backend) {
-    g_log<<Logger::Warning<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" for which we are not authoritative, trying supermaster"<<endl;
-    return trySuperMaster(p, p->getTSIGKeyname()); // FIXME a global 'off' switch for supermaster support will save some resources in setups without supermasters
+    if(::arg().mustDo("supermaster")) {
+      g_log<<Logger::Warning<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" for which we are not authoritative, trying supermaster"<<endl;
+      return trySuperMaster(p, p->getTSIGKeyname());
+    }
+    g_log<<Logger::Notice<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" for which we are not authoritative (Refused)"<<endl;
+    return RCode::Refused;
   }
 
   if(::arg().contains("trusted-notification-proxy", p->getRemote().toString())) {
@@ -855,7 +859,7 @@ int PacketHandler::processNotify(DNSPacket *p)
     g_log<<Logger::Warning<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" which is not a master (Refused)"<<endl;
     return RCode::Refused;
   }
-    
+
   if(!s_forwardNotify.empty()) {
     set<string> forwardNotify(s_forwardNotify);
     for(set<string>::const_iterator j=forwardNotify.begin();j!=forwardNotify.end();++j) {

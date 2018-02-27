@@ -1325,6 +1325,18 @@ This path will also contain the pidfile for this instance of PowerDNS
 called ``pdns.pid`` by default. See :ref:`setting-config-name`
 and :doc:`Virtual Hosting <guides/virtual-instances>` how this can differ.
 
+.. _setting-supermaster:
+
+``supermaster``
+------------
+
+-  Boolean
+-  Default: no
+
+.. versionadded:: 4.2.0
+
+Turn on supermaster support. See :ref:`supemaster-operation`.
+
 .. _setting-tcp-control-address:
 
 ``tcp-control-address``
