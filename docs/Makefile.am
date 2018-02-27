@@ -6,9 +6,7 @@ MAIN_MANS = pdns_server.1 \
 
 MANPAGES_INSTALL = $(MAIN_MANS)
 
-MAIN_MANS += zone2ldap.1
-
-MANPAGES_DIST = $(MAIN_MANS)
+MANPAGES_DIST = $(MAIN_MANS) zone2ldap.1
 
 if LDAP
 MANPAGES_INSTALL += zone2ldap.1
