@@ -2,8 +2,11 @@ MAIN_MANS = pdns_server.1 \
 	pdns_control.1 \
 	pdnsutil.1 \
 	zone2json.1 \
-	zone2ldap.1 \
 	zone2sql.1
+
+if LDAP
+MAIN_MANS += zone2ldap.1
+endif
 
 MANPAGES_INSTALL = $(MAIN_MANS)
 MANPAGES_DIST = $(MAIN_MANS)
