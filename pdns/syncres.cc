@@ -319,8 +319,10 @@ int SyncRes::AuthDomain::getRecords(const DNSName& qname, uint16_t qtype, std::v
   return result;
 }
 
-bool SyncRes::doOOBResolve(const AuthDomain& domain, const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, int& res) const
+bool SyncRes::doOOBResolve(const AuthDomain& domain, const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, int& res)
 {
+  d_authzonequeries++;
+
   res = domain.getRecords(qname, qtype.getCode(), ret);
   return true;
 }

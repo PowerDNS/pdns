@@ -1263,7 +1263,12 @@ static void startDoResolve(void *p)
 
     }
 
-    sr.d_outqueries ? t_RC->cacheMisses++ : t_RC->cacheHits++;
+    if (sr.d_outqueries || sr.d_authzonequeries) {
+      t_RC->cacheMisses++;
+    }
+    else {
+      t_RC->cacheHits++;
+    }
 
     if(spent < 0.001)
       g_stats.answers0_1++;
