@@ -56,6 +56,7 @@ unsigned int SyncRes::s_packetcachettl;
 unsigned int SyncRes::s_packetcacheservfailttl;
 unsigned int SyncRes::s_serverdownmaxfails;
 unsigned int SyncRes::s_serverdownthrottletime;
+std::atomic<uint64_t> SyncRes::s_authzonequeries;
 std::atomic<uint64_t> SyncRes::s_queries;
 std::atomic<uint64_t> SyncRes::s_outgoingtimeouts;
 std::atomic<uint64_t> SyncRes::s_outgoing4timeouts;
@@ -322,6 +323,7 @@ int SyncRes::AuthDomain::getRecords(const DNSName& qname, uint16_t qtype, std::v
 bool SyncRes::doOOBResolve(const AuthDomain& domain, const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, int& res)
 {
   d_authzonequeries++;
+  s_authzonequeries++;
 
   res = domain.getRecords(qname, qtype.getCode(), ret);
   return true;
