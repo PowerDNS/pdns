@@ -383,6 +383,34 @@ static bool sendUDPResponse(int origFD, char* response, uint16_t responseLen, in
   return true;
 }
 
+
+static int pickBackendFD(DownstreamState* state)
+{
+  return state->fds[state->fdOffset++ % state->fds.size()];
+}
+
+static int selectBackendFD(const std::shared_ptr<DownstreamState>& state)
+{
+  if (state->fds.size() == 1) {
+    return state->fds[0];
+  }
+
+  std::set<int> fds;
+  for (auto fd : state->fds) {
+    if (fd >= 0) {
+      fds.insert(fd);
+    }
+  }
+
+  int selected = -1;
+  int res = waitForMultiData(fds, -1, -1, &selected);
+  if (res != 1) {
+    throw std::runtime_error("Error selecting a socket for a backend " + state->remote.toStringWithPort() + ": " + strerror(errno));
+  }
+
+  return selected;
+}
+
 // listens on a dedicated socket, lobs answers from downstream servers to original requestors
 void* responderThread(std::shared_ptr<DownstreamState> dss)
 try {
@@ -403,7 +431,8 @@ try {
     dnsheader* dh = reinterpret_cast<struct dnsheader*>(packet);
     bool outstandingDecreased = false;
     try {
-      ssize_t got = recv(dss->fd, packet, sizeof(packet), 0);
+      int fd = selectBackendFD(dss);
+      ssize_t got = recv(fd, packet, sizeof(packet), 0);
       char * response = packet;
       size_t responseSize = sizeof(packet);
 
@@ -541,30 +570,37 @@ catch(...)
 void DownstreamState::reconnect()
 {
   connected = false;
-  if (fd != -1) {
-    /* shutdown() is needed to wake up recv() in the responderThread */
-    shutdown(fd, SHUT_RDWR);
-    close(fd);
-    fd = -1;
-  }
-  if (!IsAnyAddress(remote)) {
-    fd = SSocket(remote.sin4.sin_family, SOCK_DGRAM, 0);
-    if (!IsAnyAddress(sourceAddr)) {
-      SSetsockopt(fd, SOL_SOCKET, SO_REUSEADDR, 1);
-      SBind(fd, sourceAddr);
+  for (auto& fd : fds) {
+    if (fd != -1) {
+      /* shutdown() is needed to wake up recv() in the responderThread */
+      shutdown(fd, SHUT_RDWR);
+      close(fd);
+      fd = -1;
     }
-    try {
-      SConnect(fd, remote);
-      connected = true;
-    }
-    catch(const std::runtime_error& error) {
-      infolog("Error connecting to new server with address %s: %s", remote.toStringWithPort(), error.what());
+    if (!IsAnyAddress(remote)) {
+      fd = SSocket(remote.sin4.sin_family, SOCK_DGRAM, 0);
+      if (!IsAnyAddress(sourceAddr)) {
+        SSetsockopt(fd, SOL_SOCKET, SO_REUSEADDR, 1);
+        SBind(fd, sourceAddr);
+      }
+      try {
+        SConnect(fd, remote);
+        connected = true;
+      }
+      catch(const std::runtime_error& error) {
+        infolog("Error connecting to new server with address %s: %s", remote.toStringWithPort(), error.what());
+      }
     }
   }
 }
 
-DownstreamState::DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf_): remote(remote_), sourceAddr(sourceAddr_), sourceItf(sourceItf_)
+DownstreamState::DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf_, size_t numberOfSockets): remote(remote_), sourceAddr(sourceAddr_), sourceItf(sourceItf_)
 {
+  fds.resize(numberOfSockets);
+  for (auto& fd : fds) {
+    fd = -1;
+  }
+
   if (!IsAnyAddress(remote)) {
     reconnect();
     idStates.resize(g_maxOutstanding);
@@ -1462,7 +1498,8 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
 
     dh->id = idOffset;
 
-    ssize_t ret = udpClientSendRequestToBackend(ss, ss->fd, query, dq.len);
+    int fd = pickBackendFD(ss);
+    ssize_t ret = udpClientSendRequestToBackend(ss, fd, query, dq.len);
 
     if(ret < 0) {
       ss->sendErrors++;
@@ -1791,15 +1828,19 @@ void* healthChecksThread()
           warnlog("Marking downstream %s as '%s'", dss->getNameWithAddr(), newState ? "up" : "down");
 
           if (newState && !dss->connected) {
-            try {
-              SConnect(dss->fd, dss->remote);
-              dss->connected = true;
-              dss->tid = thread(responderThread, dss);
+            for (auto& fd : dss->fds) {
+              try {
+                SConnect(fd, dss->remote);
+                dss->connected = true;
+              }
+              catch(const std::runtime_error& error) {
+                infolog("Error connecting to new server with address %s: %s", dss->remote.toStringWithPort(), error.what());
+                newState = false;
+                dss->connected = false;
+              }
             }
-            catch(const std::runtime_error& error) {
-              infolog("Error connecting to new server with address %s: %s", dss->remote.toStringWithPort(), error.what());
-              newState = false;
-              dss->connected = false;
+            if (dss->connected) {
+              dss->tid = thread(responderThread, dss);
             }
           }
 

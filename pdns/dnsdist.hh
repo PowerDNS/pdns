@@ -523,15 +523,19 @@ extern std::shared_ptr<TCPClientCollection> g_tcpclientthreads;
 
 struct DownstreamState
 {
-  DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf);
-  DownstreamState(const ComboAddress& remote_): DownstreamState(remote_, ComboAddress(), 0) {}
+  DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf, size_t numberOfSockets);
+  DownstreamState(const ComboAddress& remote_): DownstreamState(remote_, ComboAddress(), 0, 1) {}
   ~DownstreamState()
   {
-    if (fd >= 0)
-      close(fd);
+    for (auto& fd : fds) {
+      if (fd >= 0) {
+        close(fd);
+        fd = -1;
+      }
+    }
   }
 
-  int fd{-1};
+  std::vector<int> fds;
   std::thread tid;
   ComboAddress remote;
   QPSLimiter qps;
@@ -551,6 +555,7 @@ struct DownstreamState
     std::atomic<uint64_t> queries{0};
   } prev;
   string name;
+  size_t fdOffset{0};
   double queryLoad{0.0};
   double dropRate{0.0};
   double latencyUsec{0.0};

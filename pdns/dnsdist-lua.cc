@@ -117,6 +117,7 @@ void setupLuaConfig(bool client)
 			}
 			ComboAddress sourceAddr;
 			unsigned int sourceItf = 0;
+                        size_t numberOfSockets = 1;
                         std::set<int> cpus;
 			if(auto addressStr = boost::get<string>(&pvars)) {
 			  std::shared_ptr<DownstreamState> ret;
@@ -216,6 +217,10 @@ void setupLuaConfig(bool client)
 			  }
 			}
 
+			if(vars.count("sockets")) {
+			  numberOfSockets=std::stoi(boost::get<string>(vars["sockets"]));
+			}
+
 			std::shared_ptr<DownstreamState> ret;
 			try {
 			  ComboAddress address(boost::get<string>(vars["address"]), 53);
@@ -224,7 +229,7 @@ void setupLuaConfig(bool client)
 			    errlog("Error creating new server: %s is not a valid address for a downstream server", boost::get<string>(vars["address"]));
 			    return ret;
 			  }
-			  ret=std::make_shared<DownstreamState>(address, sourceAddr, sourceItf);
+			  ret=std::make_shared<DownstreamState>(address, sourceAddr, sourceItf, numberOfSockets);
 			}
 			catch(const PDNSException& e) {
 			  g_outputBuffer="Error creating new server: "+string(e.reason);
