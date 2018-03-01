@@ -378,6 +378,27 @@ static bool sendUDPResponse(int origFD, char* response, uint16_t responseLen, in
   return true;
 }
 
+
+static int pickBackendSocketForSending(DownstreamState* state)
+{
+  return state->sockets[state->socketsOffset++ % state->sockets.size()];
+}
+
+static void pickBackendSocketsReadyForReceiving(const std::shared_ptr<DownstreamState>& state, std::vector<int>& ready)
+{
+  ready.clear();
+
+  if (state->sockets.size() == 1) {
+    ready.push_back(state->sockets[0]);
+    return ;
+  }
+
+  {
+    std::lock_guard<std::mutex> lock(state->socketsLock);
+    state->mplexer->getAvailableFDs(ready, -1);
+  }
+}
+
 // listens on a dedicated socket, lobs answers from downstream servers to original requestors
 void* responderThread(std::shared_ptr<DownstreamState> state)
 try {
@@ -394,119 +415,126 @@ try {
   vector<uint8_t> rewrittenResponse;
 
   uint16_t queryId = 0;
+  std::vector<int> sockets;
+  sockets.reserve(state->sockets.size());
+
   for(;;) {
     dnsheader* dh = reinterpret_cast<struct dnsheader*>(packet);
     bool outstandingDecreased = false;
     try {
-      ssize_t got = recv(state->fd, packet, sizeof(packet), 0);
-      char * response = packet;
-      size_t responseSize = sizeof(packet);
+      pickBackendSocketsReadyForReceiving(state, sockets);
+      for (const auto& fd : sockets) {
+        ssize_t got = recv(fd, packet, sizeof(packet), 0);
+        char * response = packet;
+        size_t responseSize = sizeof(packet);
 
-      if (got < (ssize_t) sizeof(dnsheader))
-        continue;
+        if (got < (ssize_t) sizeof(dnsheader))
+          continue;
 
-      uint16_t responseLen = (uint16_t) got;
-      queryId = dh->id;
+        uint16_t responseLen = (uint16_t) got;
+        queryId = dh->id;
 
-      if(queryId >= state->idStates.size())
-        continue;
+        if(queryId >= state->idStates.size())
+          continue;
 
-      IDState* ids = &state->idStates[queryId];
-      int origFD = ids->origFD;
+        IDState* ids = &state->idStates[queryId];
+        int origFD = ids->origFD;
 
-      if(origFD < 0) // duplicate
-        continue;
+        if(origFD < 0) // duplicate
+          continue;
 
-      /* setting age to 0 to prevent the maintainer thread from
-         cleaning this IDS while we process the response.
-         We have already a copy of the origFD, so it would
-         mostly mess up the outstanding counter.
-      */
-      ids->age = 0;
+        /* setting age to 0 to prevent the maintainer thread from
+           cleaning this IDS while we process the response.
+           We have already a copy of the origFD, so it would
+           mostly mess up the outstanding counter.
+        */
+        ids->age = 0;
 
-      if (!responseContentMatches(response, responseLen, ids->qname, ids->qtype, ids->qclass, state->remote)) {
-        continue;
-      }
-
-      --state->outstanding;  // you'd think an attacker could game this, but we're using connected socket
-      outstandingDecreased = true;
-
-      if(dh->tc && g_truncateTC) {
-        truncateTC(response, &responseLen);
-      }
-
-      dh->id = ids->origID;
-
-      uint16_t addRoom = 0;
-      DNSResponse dr(&ids->qname, ids->qtype, ids->qclass, &ids->origDest, &ids->origRemote, dh, sizeof(packet), responseLen, false, &ids->sentTime.d_start);
-#ifdef HAVE_PROTOBUF
-      dr.uniqueId = ids->uniqueId;
-#endif
-      if (!processResponse(localRespRulactions, dr, &ids->delayMsec)) {
-        continue;
-      }
-
-#ifdef HAVE_DNSCRYPT
-      if (ids->dnsCryptQuery) {
-        addRoom = DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE;
-      }
-#endif
-      if (!fixUpResponse(&response, &responseLen, &responseSize, ids->qname, ids->origFlags, ids->ednsAdded, ids->ecsAdded, rewrittenResponse, addRoom)) {
-        continue;
-      }
-
-      if (ids->packetCache && !ids->skipCache) {
-        ids->packetCache->insert(ids->cacheKey, ids->qname, ids->qtype, ids->qclass, response, responseLen, false, dh->rcode);
-      }
-
-      if (ids->cs && !ids->cs->muted) {
-#ifdef HAVE_DNSCRYPT
-        if (!encryptResponse(response, &responseLen, responseSize, false, ids->dnsCryptQuery, &dh, &dhCopy)) {
+        if (!responseContentMatches(response, responseLen, ids->qname, ids->qtype, ids->qclass, state->remote)) {
           continue;
         }
+
+        --state->outstanding;  // you'd think an attacker could game this, but we're using connected socket
+        outstandingDecreased = true;
+
+        if(dh->tc && g_truncateTC) {
+          truncateTC(response, &responseLen);
+        }
+
+        dh->id = ids->origID;
+
+        uint16_t addRoom = 0;
+        DNSResponse dr(&ids->qname, ids->qtype, ids->qclass, &ids->origDest, &ids->origRemote, dh, sizeof(packet), responseLen, false, &ids->sentTime.d_start);
+#ifdef HAVE_PROTOBUF
+        dr.uniqueId = ids->uniqueId;
 #endif
+        if (!processResponse(localRespRulactions, dr, &ids->delayMsec)) {
+          continue;
+        }
 
-        ComboAddress empty;
-        empty.sin4.sin_family = 0;
-        /* if ids->destHarvested is false, origDest holds the listening address.
-           We don't want to use that as a source since it could be 0.0.0.0 for example. */
-        sendUDPResponse(origFD, response, responseLen, ids->delayMsec, ids->destHarvested ? ids->origDest : empty, ids->origRemote);
-      }
-
-      g_stats.responses++;
-
-      double udiff = ids->sentTime.udiff();
-      vinfolog("Got answer from %s, relayed to %s, took %f usec", state->remote.toStringWithPort(), ids->origRemote.toStringWithPort(), udiff);
-
-      {
-        struct timespec ts;
-        gettime(&ts);
-        std::lock_guard<std::mutex> lock(g_rings.respMutex);
-        g_rings.respRing.push_back({ts, ids->origRemote, ids->qname, ids->qtype, (unsigned int)udiff, (unsigned int)got, *dh, state->remote});
-      }
-
-      if(dh->rcode == RCode::ServFail)
-        g_stats.servfailResponses++;
-      state->latencyUsec = (127.0 * state->latencyUsec / 128.0) + udiff/128.0;
-
-      if(udiff < 1000) g_stats.latency0_1++;
-      else if(udiff < 10000) g_stats.latency1_10++;
-      else if(udiff < 50000) g_stats.latency10_50++;
-      else if(udiff < 100000) g_stats.latency50_100++;
-      else if(udiff < 1000000) g_stats.latency100_1000++;
-      else g_stats.latencySlow++;
-    
-      doLatencyAverages(udiff);
-
-      if (ids->origFD == origFD) {
 #ifdef HAVE_DNSCRYPT
-        ids->dnsCryptQuery = 0;
+        if (ids->dnsCryptQuery) {
+          addRoom = DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE;
+        }
 #endif
-        ids->origFD = -1;
-        outstandingDecreased = false;
-      }
+        if (!fixUpResponse(&response, &responseLen, &responseSize, ids->qname, ids->origFlags, ids->ednsAdded, ids->ecsAdded, rewrittenResponse, addRoom)) {
+          continue;
+        }
 
-      rewrittenResponse.clear();
+        if (ids->packetCache && !ids->skipCache) {
+          ids->packetCache->insert(ids->cacheKey, ids->qname, ids->qtype, ids->qclass, response, responseLen, false, dh->rcode);
+        }
+
+        if (ids->cs && !ids->cs->muted) {
+#ifdef HAVE_DNSCRYPT
+          if (!encryptResponse(response, &responseLen, responseSize, false, ids->dnsCryptQuery, &dh, &dhCopy)) {
+            continue;
+          }
+#endif
+
+          ComboAddress empty;
+          empty.sin4.sin_family = 0;
+          /* if ids->destHarvested is false, origDest holds the listening address.
+             We don't want to use that as a source since it could be 0.0.0.0 for example. */
+          sendUDPResponse(origFD, response, responseLen, ids->delayMsec, ids->destHarvested ? ids->origDest : empty, ids->origRemote);
+        }
+
+        g_stats.responses++;
+
+        double udiff = ids->sentTime.udiff();
+        vinfolog("Got answer from %s, relayed to %s, took %f usec", state->remote.toStringWithPort(), ids->origRemote.toStringWithPort(), udiff);
+
+        {
+          struct timespec ts;
+          gettime(&ts);
+          std::lock_guard<std::mutex> lock(g_rings.respMutex);
+          g_rings.respRing.push_back({ts, ids->origRemote, ids->qname, ids->qtype, (unsigned int)udiff, (unsigned int)got, *dh, state->remote});
+        }
+
+        if(dh->rcode == RCode::ServFail)
+          g_stats.servfailResponses++;
+
+        state->latencyUsec = (127.0 * state->latencyUsec / 128.0) + udiff/128.0;
+
+        if(udiff < 1000) g_stats.latency0_1++;
+        else if(udiff < 10000) g_stats.latency1_10++;
+        else if(udiff < 50000) g_stats.latency10_50++;
+        else if(udiff < 100000) g_stats.latency50_100++;
+        else if(udiff < 1000000) g_stats.latency100_1000++;
+        else g_stats.latencySlow++;
+
+        doLatencyAverages(udiff);
+
+        if (ids->origFD == origFD) {
+#ifdef HAVE_DNSCRYPT
+          ids->dnsCryptQuery = nullptr;
+#endif
+          ids->origFD = -1;
+          outstandingDecreased = false;
+        }
+
+        rewrittenResponse.clear();
+      }
     }
     catch(const std::exception& e){
       vinfolog("Got an error in UDP responder thread while parsing a response from %s, id %d: %s", state->remote.toStringWithPort(), queryId, e.what());
@@ -541,30 +569,61 @@ catch(...)
 void DownstreamState::reconnect()
 {
   connected = false;
-  if (fd != -1) {
-    /* shutdown() is needed to wake up recv() in the responderThread */
-    shutdown(fd, SHUT_RDWR);
-    close(fd);
-    fd = -1;
+  for (auto& fd : sockets) {
+    if (fd != -1) {
+      {
+        std::lock_guard<std::mutex> lock(socketsLock);
+        mplexer->removeReadFD(fd);
+      }
+      /* shutdown() is needed to wake up recv() in the responderThread */
+      shutdown(fd, SHUT_RDWR);
+      close(fd);
+      fd = -1;
+    }
+    if (!IsAnyAddress(remote)) {
+      fd = SSocket(remote.sin4.sin_family, SOCK_DGRAM, 0);
+      if (!IsAnyAddress(sourceAddr)) {
+        SSetsockopt(fd, SOL_SOCKET, SO_REUSEADDR, 1);
+        SBind(fd, sourceAddr);
+      }
+      try {
+        SConnect(fd, remote);
+        {
+          std::lock_guard<std::mutex> lock(socketsLock);
+          mplexer->addReadFD(fd, [](int, boost::any) {});
+        }
+        connected = true;
+      }
+      catch(const std::runtime_error& error) {
+        infolog("Error connecting to new server with address %s: %s", remote.toStringWithPort(), error.what());
+        connected = false;
+        break;
+      }
+    }
   }
-  if (!IsAnyAddress(remote)) {
-    fd = SSocket(remote.sin4.sin_family, SOCK_DGRAM, 0);
-    if (!IsAnyAddress(sourceAddr)) {
-      SSetsockopt(fd, SOL_SOCKET, SO_REUSEADDR, 1);
-      SBind(fd, sourceAddr);
-    }
-    try {
-      SConnect(fd, remote);
-      connected = true;
-    }
-    catch(const std::runtime_error& error) {
-      infolog("Error connecting to new server with address %s: %s", remote.toStringWithPort(), error.what());
+
+  /* if at least one (re-)connection failed, close all sockets */
+  if (!connected) {
+    for (auto& fd : sockets) {
+      if (fd != -1) {
+        /* shutdown() is needed to wake up recv() in the responderThread */
+        shutdown(fd, SHUT_RDWR);
+        close(fd);
+        fd = -1;
+      }
     }
   }
 }
 
-DownstreamState::DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf_): remote(remote_), sourceAddr(sourceAddr_), sourceItf(sourceItf_)
+DownstreamState::DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf_, size_t numberOfSockets): remote(remote_), sourceAddr(sourceAddr_), sourceItf(sourceItf_)
 {
+  mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
+
+  sockets.resize(numberOfSockets);
+  for (auto& fd : sockets) {
+    fd = -1;
+  }
+
   if (!IsAnyAddress(remote)) {
     reconnect();
     idStates.resize(g_maxOutstanding);
@@ -1356,11 +1415,13 @@ try
 
       dh->id = idOffset;
 
+      int fd = pickBackendSocketForSending(ss);
+
       if (largerQuery.empty()) {
-        ret = udpClientSendRequestToBackend(ss, ss->fd, query, dq.len);
+        ret = udpClientSendRequestToBackend(ss, fd, query, dq.len);
       }
       else {
-        ret = udpClientSendRequestToBackend(ss, ss->fd, largerQuery.c_str(), largerQuery.size());
+        ret = udpClientSendRequestToBackend(ss, fd, largerQuery.c_str(), largerQuery.size());
         largerQuery.clear();
       }
 
@@ -1567,15 +1628,23 @@ void* healthChecksThread()
           warnlog("Marking downstream %s as '%s'", dss->getNameWithAddr(), newState ? "up" : "down");
 
           if (newState && !dss->connected) {
-            try {
-              SConnect(dss->fd, dss->remote);
-              dss->connected = true;
-              dss->tid = thread(responderThread, dss);
+            for (auto& fd : dss->sockets) {
+              try {
+                SConnect(fd, dss->remote);
+                {
+                  std::lock_guard<std::mutex> lock(dss->socketsLock);
+                  dss->mplexer->addReadFD(fd, [](int, boost::any) {});
+                }
+                dss->connected = true;
+              }
+              catch(const std::runtime_error& error) {
+                infolog("Error connecting to new server with address %s: %s", dss->remote.toStringWithPort(), error.what());
+                newState = false;
+                dss->connected = false;
+              }
             }
-            catch(const std::runtime_error& error) {
-              infolog("Error connecting to new server with address %s: %s", dss->remote.toStringWithPort(), error.what());
-              newState = false;
-              dss->connected = false;
+            if (dss->connected) {
+              dss->tid = thread(responderThread, dss);
             }
           }
 
@@ -1706,7 +1775,15 @@ static void checkFileDescriptorsLimits(size_t udpBindsCount, size_t tcpBindsCoun
 {
   /* stdin, stdout, stderr */
   size_t requiredFDsCount = 3;
-  size_t backendsCount = g_dstates.getCopy().size();
+  const auto backends = g_dstates.getCopy();
+  /* UDP sockets to backends */
+  size_t backendUDPSocketsCount = 0;
+  for (const auto& backend : backends) {
+    backendUDPSocketsCount += backend->sockets.size();
+  }
+  requiredFDsCount += backendUDPSocketsCount;
+  /* TCP sockets to backends */
+  requiredFDsCount += (backends.size() * g_maxTCPClientThreads);
   /* listening sockets */
   requiredFDsCount += udpBindsCount;
   requiredFDsCount += tcpBindsCount;
@@ -1714,10 +1791,6 @@ static void checkFileDescriptorsLimits(size_t udpBindsCount, size_t tcpBindsCoun
   requiredFDsCount += g_maxTCPClientThreads;
   /* max pipes for communicating between TCP acceptors and client threads */
   requiredFDsCount += (g_maxTCPClientThreads * 2);
-  /* UDP sockets to backends */
-  requiredFDsCount += backendsCount;
-  /* TCP sockets to backends */
-  requiredFDsCount += (backendsCount * g_maxTCPClientThreads);
   /* max TCP queued connections */
   requiredFDsCount += g_maxTCPQueuedConnections;
   /* DelayPipe pipe */

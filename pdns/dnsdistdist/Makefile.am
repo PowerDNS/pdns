@@ -46,7 +46,11 @@ EXTRA_DIST=dnslabeltext.rl \
 	   bpf-filter.main.ebpf \
 	   bpf-filter.qname.ebpf \
 	   bpf-filter.ebpf.src \
-	   DNSDIST-MIB.txt
+	   DNSDIST-MIB.txt \
+	   devpollmplexer.cc \
+	   epollmplexer.cc \
+	   kqueuemplexer.cc \
+	   portsmplexer.cc
 
 bin_PROGRAMS = dnsdist
 
@@ -95,9 +99,11 @@ dnsdist_SOURCES = \
 	iputils.cc iputils.hh \
 	lock.hh \
 	misc.cc misc.hh \
+	mplexer.hh \
 	htmlfiles.h \
 	namespaces.hh \
 	pdnsexception.hh \
+	pollmplexer.cc \
 	protobuf.cc protobuf.hh \
 	qtype.cc qtype.hh \
 	remote_logger.cc remote_logger.hh \
@@ -149,6 +155,20 @@ dnsdist_LDADD += $(PROTOBUF_LIBS)
 
 dnsdist.$(OBJEXT): dnsmessage.pb.cc
 endif
+endif
+
+if HAVE_FREEBSD
+dnsdist_SOURCES += kqueuemplexer.cc
+endif
+
+if HAVE_LINUX
+dnsdist_SOURCES += epollmplexer.cc
+endif
+
+if HAVE_SOLARIS
+dnsdist_SOURCES += \
+        devpollmplexer.cc \
+        portsmplexer.cc
 endif
 
 testrunner_SOURCES = \

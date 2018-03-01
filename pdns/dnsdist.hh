@@ -24,6 +24,7 @@
 #include "ext/luawrapper/include/LuaContext.hpp"
 #include <time.h>
 #include "misc.hh"
+#include "mplexer.hh"
 #include "iputils.hh"
 #include "dnsname.hh"
 #include <atomic>
@@ -580,15 +581,21 @@ extern std::shared_ptr<TCPClientCollection> g_tcpclientthreads;
 
 struct DownstreamState
 {
-  DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf);
-  DownstreamState(const ComboAddress& remote_): DownstreamState(remote_, ComboAddress(), 0) {}
+  DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf, size_t numberOfSockets);
+  DownstreamState(const ComboAddress& remote_): DownstreamState(remote_, ComboAddress(), 0, 1) {}
   ~DownstreamState()
   {
-    if (fd >= 0)
-      close(fd);
+    for (auto& fd : sockets) {
+      if (fd >= 0) {
+        close(fd);
+        fd = -1;
+      }
+    }
   }
 
-  int fd{-1};
+  std::vector<int> sockets;
+  std::mutex socketsLock;
+  std::unique_ptr<FDMultiplexer> mplexer{nullptr};
   std::thread tid;
   ComboAddress remote;
   QPSLimiter qps;
@@ -607,6 +614,7 @@ struct DownstreamState
     std::atomic<uint64_t> queries{0};
   } prev;
   string name;
+  size_t socketsOffset{0};
   double queryLoad{0.0};
   double dropRate{0.0};
   double latencyUsec{0.0};
