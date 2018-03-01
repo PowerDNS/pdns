@@ -189,7 +189,7 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
       }
       auto entryAAAA = getEntryUsingECSIndex(now, qname, QType::AAAA, requireAuth, who);
       if (entryAAAA != d_cache.end()) {
-        int32_t ttdAAAA = handleHit(entryA, qname, who, res, signatures, authorityRecs, variable, state, wasAuth);
+        int32_t ttdAAAA = handleHit(entryAAAA, qname, who, res, signatures, authorityRecs, variable, state, wasAuth);
         if (ret > 0) {
           ret = std::min(ret, ttdAAAA);
         } else {
