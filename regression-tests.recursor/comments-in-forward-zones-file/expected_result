@@ -1,20 +1,20 @@
-  ]
-  ]
-{
-{
-}
-}
     "8.8.8.8:53"
     "8.8.8.8:53"
-  "id": "forward-zones-test2.non-existing.powerdns.com."
   "id": "forward-zones-test.non-existing.powerdns.com."
+  "id": "forward-zones-test2.non-existing.powerdns.com."
   "kind": "Forwarded"
   "kind": "Forwarded"
-  "name": "forward-zones-test2.non-existing.powerdns.com."
   "name": "forward-zones-test.non-existing.powerdns.com."
+  "name": "forward-zones-test2.non-existing.powerdns.com."
   "recursion_desired": false
   "recursion_desired": false
   "servers": [
   "servers": [
-  "url": "/api/v1/servers/localhost/zones/forward-zones-test2.non-existing.powerdns.com."
   "url": "/api/v1/servers/localhost/zones/forward-zones-test.non-existing.powerdns.com."
+  "url": "/api/v1/servers/localhost/zones/forward-zones-test2.non-existing.powerdns.com."
+  ]
+  ]
+{
+{
+}
+}
