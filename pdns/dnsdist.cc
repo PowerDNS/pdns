@@ -1985,7 +1985,15 @@ static void checkFileDescriptorsLimits(size_t udpBindsCount, size_t tcpBindsCoun
 {
   /* stdin, stdout, stderr */
   size_t requiredFDsCount = 3;
-  size_t backendsCount = g_dstates.getCopy().size();
+  const auto backends = g_dstates.getCopy();
+  /* UDP sockets to backends */
+  size_t backendUDPSocketsCount = 0;
+  for (const auto& backend : backends) {
+    backendUDPSocketsCount += backend->fds.size();
+  }
+  requiredFDsCount += backendUDPSocketsCount;
+  /* TCP sockets to backends */
+  requiredFDsCount += (backends.size() * g_maxTCPClientThreads);
   /* listening sockets */
   requiredFDsCount += udpBindsCount;
   requiredFDsCount += tcpBindsCount;
@@ -1993,10 +2001,6 @@ static void checkFileDescriptorsLimits(size_t udpBindsCount, size_t tcpBindsCoun
   requiredFDsCount += g_maxTCPClientThreads;
   /* max pipes for communicating between TCP acceptors and client threads */
   requiredFDsCount += (g_maxTCPClientThreads * 2);
-  /* UDP sockets to backends */
-  requiredFDsCount += backendsCount;
-  /* TCP sockets to backends */
-  requiredFDsCount += (backendsCount * g_maxTCPClientThreads);
   /* max TCP queued connections */
   requiredFDsCount += g_maxTCPQueuedConnections;
   /* DelayPipe pipe */
