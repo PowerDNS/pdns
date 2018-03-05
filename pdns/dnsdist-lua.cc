@@ -217,9 +217,13 @@ void setupLuaConfig(bool client)
 			  }
 			}
 
-			if(vars.count("sockets")) {
-			  numberOfSockets=std::stoi(boost::get<string>(vars["sockets"]));
-			}
+                        if (vars.count("sockets")) {
+                          numberOfSockets = std::stoul(boost::get<string>(vars["sockets"]));
+                          if (numberOfSockets == 0) {
+                            warnlog("Dismissing invalid number of sockets '%s', using 1 instead", boost::get<string>(vars["sockets"]));
+                            numberOfSockets = 1;
+                          }
+                        }
 
 			std::shared_ptr<DownstreamState> ret;
 			try {
