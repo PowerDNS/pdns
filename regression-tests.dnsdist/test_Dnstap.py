@@ -1,12 +1,11 @@
 #!/usr/bin/env python
-import Queue
 import threading
 import os
 import socket
 import struct
 import sys
 import time
-from dnsdisttests import DNSDistTest
+from dnsdisttests import DNSDistTest, Queue
 
 import dns
 import dnstap_pb2
@@ -21,9 +20,9 @@ FSTRM_CONTROL_FINISH = 0x05
 def checkDnstapBase(testinstance, dnstap, protocol, initiator):
     testinstance.assertTrue(dnstap)
     testinstance.assertTrue(dnstap.HasField('identity'))
-    testinstance.assertEqual(dnstap.identity, 'a.server')
+    testinstance.assertEqual(dnstap.identity, b'a.server')
     testinstance.assertTrue(dnstap.HasField('version'))
-    testinstance.assertIn('dnsdist ', dnstap.version)
+    testinstance.assertIn(b'dnsdist ', dnstap.version)
     testinstance.assertTrue(dnstap.HasField('type'))
     testinstance.assertEqual(dnstap.type, dnstap.MESSAGE)
     testinstance.assertTrue(dnstap.HasField('message'))
@@ -80,7 +79,7 @@ def checkDnstapResponse(testinstance, dnstap, protocol, response, initiator='127
 
 class TestDnstapOverRemoteLogger(DNSDistTest):
     _remoteLoggerServerPort = 4243
-    _remoteLoggerQueue = Queue.Queue()
+    _remoteLoggerQueue = Queue()
     _remoteLoggerCounter = 0
     _config_params = ['_testServerPort', '_remoteLoggerServerPort']
     _config_template = """
@@ -266,12 +265,12 @@ class TestDnstapOverRemoteLogger(DNSDistTest):
         # check the dnstap message corresponding to the UDP query
         dnstap = self.getFirstDnstap()
         checkDnstapQuery(self, dnstap, dnstap_pb2.UDP, query)
-        checkDnstapExtra(self, dnstap, "Type,Query")
+        checkDnstapExtra(self, dnstap, b"Type,Query")
 
         # check the dnstap message corresponding to the UDP response
         dnstap = self.getFirstDnstap()
         checkDnstapResponse(self, dnstap, dnstap_pb2.UDP, response)
-        checkDnstapExtra(self, dnstap, "Type,Response")
+        checkDnstapExtra(self, dnstap, b"Type,Response")
 
         (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
         self.assertTrue(receivedQuery)
@@ -286,12 +285,12 @@ class TestDnstapOverRemoteLogger(DNSDistTest):
         # check the dnstap message corresponding to the TCP query
         dnstap = self.getFirstDnstap()
         checkDnstapQuery(self, dnstap, dnstap_pb2.TCP, query)
-        checkDnstapExtra(self, dnstap, "Type,Query")
+        checkDnstapExtra(self, dnstap, b"Type,Query")
 
         # check the dnstap message corresponding to the TCP response
         dnstap = self.getFirstDnstap()
         checkDnstapResponse(self, dnstap, dnstap_pb2.TCP, response)
-        checkDnstapExtra(self, dnstap, "Type,Response")
+        checkDnstapExtra(self, dnstap, b"Type,Response")
 
 
 def fstrm_get_control_frame_type(data):
@@ -302,7 +301,7 @@ def fstrm_get_control_frame_type(data):
 def fstrm_make_control_frame_reply(cft, data):
     if cft == FSTRM_CONTROL_READY:
         # Reply with ACCEPT frame and content-type
-        contenttype = 'protobuf:dnstap.Dnstap'
+        contenttype = b'protobuf:dnstap.Dnstap'
         frame = struct.pack('!LLL', FSTRM_CONTROL_ACCEPT, 1,
                             len(contenttype)) + contenttype
         buf = struct.pack("!LL", 0, len(frame)) + frame
@@ -349,7 +348,7 @@ def fstrm_handle_bidir_connection(conn, on_data):
 
 class TestDnstapOverFrameStreamUnixLogger(DNSDistTest):
     _fstrmLoggerAddress = '/tmp/fslutest.sock'
-    _fstrmLoggerQueue = Queue.Queue()
+    _fstrmLoggerQueue = Queue()
     _fstrmLoggerCounter = 0
     _config_params = ['_testServerPort', '_fstrmLoggerAddress']
     _config_template = """
@@ -435,7 +434,7 @@ class TestDnstapOverFrameStreamUnixLogger(DNSDistTest):
 
 class TestDnstapOverFrameStreamTcpLogger(DNSDistTest):
     _fstrmLoggerPort = 4000
-    _fstrmLoggerQueue = Queue.Queue()
+    _fstrmLoggerQueue = Queue()
     _fstrmLoggerCounter = 0
     _config_params = ['_testServerPort', '_fstrmLoggerPort']
     _config_template = """

@@ -1,10 +1,18 @@
 #!/usr/bin/env bash
 set -e
 
-PYTHON=${PYTHON:-python2}
-
 if [ ! -d .venv ]; then
-	virtualenv -p ${PYTHON} .venv
+  if [ -z "$PYTHON" ]; then
+    if [ ! -z "$(python3 --version | egrep '^Python 3.[6789]' 2>/dev/null)" ]; then
+      # found python3.6 or better
+      PYTHON=python3
+    else
+      # until we have better Linux distribution detection.
+      PYTHON=python2
+    fi
+  fi
+
+  virtualenv -p ${PYTHON} .venv
 fi
 . .venv/bin/activate
 python -V
@@ -13,7 +21,7 @@ protoc -I=../pdns/ --python_out=. ../pdns/dnsmessage.proto
 protoc -I=../pdns/ --python_out=. ../pdns/dnstap.proto
 
 if [ -z "${DNSDISTBIN}" ]; then
-    DNSDISTBIN=$(ls ../pdns/dnsdistdist/dnsdist-*/dnsdist)
+  DNSDISTBIN=$(ls ../pdns/dnsdistdist/dnsdist-*/dnsdist)
 fi
 export DNSDISTBIN
 

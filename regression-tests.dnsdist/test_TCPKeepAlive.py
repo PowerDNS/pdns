@@ -2,7 +2,7 @@
 import struct
 import time
 import dns
-from dnsdisttests import DNSDistTest
+from dnsdisttests import DNSDistTest, range
 
 class TestTCPKeepAlive(DNSDistTest):
     """
@@ -45,7 +45,7 @@ class TestTCPKeepAlive(DNSDistTest):
         conn = self.openTCPConnection()
 
         count = 0
-        for idx in xrange(5):
+        for idx in range(5):
             try:
                 self.sendTCPQueryOverConnection(conn, query)
                 response = self.recvTCPResponseOverConnection(conn)
@@ -84,7 +84,7 @@ class TestTCPKeepAlive(DNSDistTest):
         conn = self.openTCPConnection()
 
         count = 0
-        for idx in xrange(5):
+        for idx in range(5):
             try:
                 self.sendTCPQueryOverConnection(conn, query)
                 response = self.recvTCPResponseOverConnection(conn)
@@ -114,7 +114,7 @@ class TestTCPKeepAlive(DNSDistTest):
         conn = self.openTCPConnection()
 
         count = 0
-        for idx in xrange(5):
+        for idx in range(5):
             try:
                 self.sendTCPQueryOverConnection(conn, query)
                 response = self.recvTCPResponseOverConnection(conn)
@@ -139,7 +139,7 @@ class TestTCPKeepAlive(DNSDistTest):
         conn = self.openTCPConnection()
 
         count = 0
-        for idx in xrange(5):
+        for idx in range(5):
             try:
                 self.sendTCPQueryOverConnection(conn, query)
                 response = self.recvTCPResponseOverConnection(conn)
@@ -163,7 +163,7 @@ class TestTCPKeepAlive(DNSDistTest):
         conn = self.openTCPConnection()
 
         count = 0
-        for idx in xrange(5):
+        for idx in range(5):
             try:
                 self.sendTCPQueryOverConnection(conn, query)
                 response = self.recvTCPResponseOverConnection(conn)
@@ -186,7 +186,7 @@ class TestTCPKeepAlive(DNSDistTest):
         conn = self.openTCPConnection()
 
         count = 0
-        for idx in xrange(5):
+        for idx in range(5):
             try:
                 self.sendTCPQueryOverConnection(conn, query)
                 response = self.recvTCPResponseOverConnection(conn)
@@ -236,7 +236,7 @@ class TestTCPKeepAliveNoDownstreamDrop(DNSDistTest):
         conn = self.openTCPConnection()
 
         count = 0
-        for idx in xrange(5):
+        for idx in range(5):
             try:
                 self.sendTCPQueryOverConnection(conn, query)
                 response = self.recvTCPResponseOverConnection(conn)

@@ -2,7 +2,7 @@
 import base64
 import time
 import dns
-from dnsdisttests import DNSDistTest
+from dnsdisttests import DNSDistTest, range
 
 class TestDynBlockQPS(DNSDistTest):
 
@@ -33,7 +33,7 @@ class TestDynBlockQPS(DNSDistTest):
 
         allowed = 0
         sent = 0
-        for _ in xrange((self._dynBlockQPS * self._dynBlockPeriod) + 1):
+        for _ in range((self._dynBlockQPS * self._dynBlockPeriod) + 1):
             (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
             sent = sent + 1
             if receivedQuery:
@@ -70,7 +70,7 @@ class TestDynBlockQPS(DNSDistTest):
         # again, over TCP this time
         allowed = 0
         sent = 0
-        for _ in xrange((self._dynBlockQPS * self._dynBlockPeriod) + 1):
+        for _ in range((self._dynBlockQPS * self._dynBlockPeriod) + 1):
             (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
             sent = sent + 1
             if receivedQuery:
@@ -136,7 +136,7 @@ class TestDynBlockQPSRefused(DNSDistTest):
 
         allowed = 0
         sent = 0
-        for _ in xrange((self._dynBlockQPS * self._dynBlockPeriod) + 1):
+        for _ in range((self._dynBlockQPS * self._dynBlockPeriod) + 1):
             (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
             sent = sent + 1
             if receivedQuery:
@@ -174,7 +174,7 @@ class TestDynBlockQPSRefused(DNSDistTest):
         allowed = 0
         sent = 0
         # again, over TCP this time
-        for _ in xrange((self._dynBlockQPS * self._dynBlockPeriod) + 1):
+        for _ in range((self._dynBlockQPS * self._dynBlockPeriod) + 1):
             (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
             sent = sent + 1
             if receivedQuery:
@@ -241,7 +241,7 @@ class TestDynBlockQPSActionRefused(DNSDistTest):
 
         allowed = 0
         sent = 0
-        for _ in xrange((self._dynBlockQPS * self._dynBlockPeriod) + 1):
+        for _ in range((self._dynBlockQPS * self._dynBlockPeriod) + 1):
             (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
             sent = sent + 1
             if receivedQuery:
@@ -279,7 +279,7 @@ class TestDynBlockQPSActionRefused(DNSDistTest):
         allowed = 0
         sent = 0
         # again, over TCP this time
-        for _ in xrange((self._dynBlockQPS * self._dynBlockPeriod) + 1):
+        for _ in range((self._dynBlockQPS * self._dynBlockPeriod) + 1):
             (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
             sent = sent + 1
             if receivedQuery:
@@ -346,7 +346,7 @@ class TestDynBlockQPSActionTruncated(DNSDistTest):
 
         allowed = 0
         sent = 0
-        for _ in xrange((self._dynBlockQPS * self._dynBlockPeriod) + 1):
+        for _ in range((self._dynBlockQPS * self._dynBlockPeriod) + 1):
             (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
             sent = sent + 1
             if receivedQuery:
@@ -390,7 +390,7 @@ class TestDynBlockQPSActionTruncated(DNSDistTest):
         allowed = 0
         sent = 0
         # again, over TCP this time, we should never get truncated!
-        for _ in xrange((self._dynBlockQPS * self._dynBlockPeriod) + 1):
+        for _ in range((self._dynBlockQPS * self._dynBlockPeriod) + 1):
             (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
             sent = sent + 1
             self.assertEquals(query, receivedQuery)
@@ -430,7 +430,7 @@ class TestDynBlockServFails(DNSDistTest):
         servfailResponse.set_rcode(dns.rcode.SERVFAIL)
 
         # start with normal responses
-        for _ in xrange((self._dynBlockQPS * self._dynBlockPeriod) + 1):
+        for _ in range((self._dynBlockQPS * self._dynBlockPeriod) + 1):
             (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
             receivedQuery.id = query.id
             self.assertEquals(query, receivedQuery)
@@ -446,7 +446,7 @@ class TestDynBlockServFails(DNSDistTest):
         # now with ServFail!
         sent = 0
         allowed = 0
-        for _ in xrange((self._dynBlockQPS * self._dynBlockPeriod) + 1):
+        for _ in range((self._dynBlockQPS * self._dynBlockPeriod) + 1):
             (receivedQuery, receivedResponse) = self.sendUDPQuery(query, servfailResponse)
             sent = sent + 1
             if receivedQuery:
@@ -482,7 +482,7 @@ class TestDynBlockServFails(DNSDistTest):
 
         # again, over TCP this time
         # start with normal responses
-        for _ in xrange((self._dynBlockQPS * self._dynBlockPeriod) + 1):
+        for _ in range((self._dynBlockQPS * self._dynBlockPeriod) + 1):
             (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
             receivedQuery.id = query.id
             self.assertEquals(query, receivedQuery)
@@ -498,7 +498,7 @@ class TestDynBlockServFails(DNSDistTest):
         # now with ServFail!
         sent = 0
         allowed = 0
-        for _ in xrange((self._dynBlockQPS * self._dynBlockPeriod) + 1):
+        for _ in range((self._dynBlockQPS * self._dynBlockPeriod) + 1):
             (receivedQuery, receivedResponse) = self.sendTCPQuery(query, servfailResponse)
             sent = sent + 1
             if receivedQuery:
@@ -538,7 +538,7 @@ class TestDynBlockResponseBytes(DNSDistTest):
     _dynBlockPeriod = 2
     _dynBlockDuration = 5
     _consoleKey = DNSDistTest.generateConsoleKey()
-    _consoleKeyB64 = base64.b64encode(_consoleKey)
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
     _config_params = ['_consoleKeyB64', '_consolePort', '_dynBlockBytesPerSecond', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort']
     _config_template = """
     setKey("%s")
@@ -572,7 +572,7 @@ class TestDynBlockResponseBytes(DNSDistTest):
 
         print(time.time())
 
-        for _ in xrange(self._dynBlockBytesPerSecond * 5 / len(response.to_wire())):
+        for _ in range(int(self._dynBlockBytesPerSecond * 5 / len(response.to_wire()))):
             (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
             sent = sent + len(response.to_wire())
             if receivedQuery:
@@ -633,7 +633,7 @@ class TestDynBlockResponseBytes(DNSDistTest):
         # again, over TCP this time
         allowed = 0
         sent = 0
-        for _ in xrange(self._dynBlockBytesPerSecond * 5 / len(response.to_wire())):
+        for _ in range(int(self._dynBlockBytesPerSecond * 5 / len(response.to_wire()))):
             (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
             sent = sent + len(response.to_wire())
             if receivedQuery:

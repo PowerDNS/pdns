@@ -1,10 +1,9 @@
 #!/usr/bin/env python
-import Queue
 import threading
 import socket
 import sys
 import time
-from dnsdisttests import DNSDistTest
+from dnsdisttests import DNSDistTest, Queue
 
 class TestCarbon(DNSDistTest):
 
@@ -12,8 +11,8 @@ class TestCarbon(DNSDistTest):
     _carbonServer1Name = "carbonname1"
     _carbonServer2Port = 8001
     _carbonServer2Name = "carbonname2"
-    _carbonQueue1 = Queue.Queue()
-    _carbonQueue2 = Queue.Queue()
+    _carbonQueue1 = Queue()
+    _carbonQueue2 = Queue()
     _carbonInterval = 2
     _carbonCounters = {}
     _config_params = ['_carbonServer1Port', '_carbonServer1Name', '_carbonInterval', '_carbonServer2Port', '_carbonServer2Name', '_carbonInterval']
@@ -36,7 +35,7 @@ class TestCarbon(DNSDistTest):
         while True:
             (conn, _) = sock.accept()
             conn.settimeout(2.0)
-            lines = ""
+            lines = b''
             while True:
                 data = conn.recv(4096)
                 if not data:
@@ -82,10 +81,10 @@ class TestCarbon(DNSDistTest):
 
         self.assertTrue(data1)
         self.assertTrue(len(data1.splitlines()) > 1)
-        expectedStart = "dnsdist." + self._carbonServer1Name + ".main."
+        expectedStart = b"dnsdist.%s.main." % self._carbonServer1Name.encode('UTF-8')
         for line in data1.splitlines():
             self.assertTrue(line.startswith(expectedStart))
-            parts = line.split(' ')
+            parts = line.split(b' ')
             self.assertEquals(len(parts), 3)
             self.assertTrue(parts[1].isdigit())
             self.assertTrue(parts[2].isdigit())
@@ -93,10 +92,10 @@ class TestCarbon(DNSDistTest):
 
         self.assertTrue(data2)
         self.assertTrue(len(data2.splitlines()) > 1)
-        expectedStart = "dnsdist." + self._carbonServer2Name + ".main."
+        expectedStart = b"dnsdist.%s.main." % self._carbonServer2Name.encode('UTF-8')
         for line in data2.splitlines():
             self.assertTrue(line.startswith(expectedStart))
-            parts = line.split(' ')
+            parts = line.split(b' ')
             self.assertEquals(len(parts), 3)
             self.assertTrue(parts[1].isdigit())
             self.assertTrue(parts[2].isdigit())
