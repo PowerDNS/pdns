@@ -73,16 +73,16 @@ class TestTeeAction(DNSDistTest):
 
         # check the TeeAction stats
         stats = self.sendConsoleCommand("getAction(0):printStats()")
-        self.assertEquals(stats, """refuseds\t0
+        self.assertEquals(stats, """noerrors\t%d
 nxdomains\t0
-noerrors\t%d
-servfails\t0
-recv-errors\t0
-tcp-drops\t0
-responses\t%d
 other-rcode\t0
-send-errors\t0
 queries\t%d
+recv-errors\t0
+refuseds\t0
+responses\t%d
+send-errors\t0
+servfails\t0
+tcp-drops\t0
 """ % (numberOfQueries, numberOfQueries, numberOfQueries))
 
     def testTeeWithoutECS(self):
@@ -121,14 +121,14 @@ queries\t%d
 
         # check the TeeAction stats
         stats = self.sendConsoleCommand("getAction(0):printStats()")
-        self.assertEquals(stats, """refuseds\t0
+        self.assertEquals(stats, """noerrors\t%d
 nxdomains\t0
-noerrors\t%d
-servfails\t0
-recv-errors\t0
-tcp-drops\t0
-responses\t%d
 other-rcode\t0
-send-errors\t0
 queries\t%d
+recv-errors\t0
+refuseds\t0
+responses\t%d
+send-errors\t0
+servfails\t0
+tcp-drops\t0
 """ % (numberOfQueries, numberOfQueries, numberOfQueries))

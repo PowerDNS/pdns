@@ -103,7 +103,7 @@ public:
   ~TeeAction() override;
   DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override;
   string toString() const override;
-  std::unordered_map<string, double> getStats() const override;
+  std::map<string, double> getStats() const override;
 
 private:
   ComboAddress d_remote;
@@ -181,7 +181,7 @@ string TeeAction::toString() const
   return "tee to "+d_remote.toStringWithPort();
 }
 
-std::unordered_map<string,double> TeeAction::getStats() const
+std::map<string,double> TeeAction::getStats() const
 {
   return {{"queries", d_queries},
           {"responses", d_responses},
