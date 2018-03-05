@@ -380,12 +380,10 @@ int waitForMultiData(const set<int>& fds, const int seconds, const int useconds,
     return ret;
 
   set<int> pollinFDs;
-  ctr = 0;
-  for (const auto& fd : realFDs) {
-    if (pfds[ctr].revents & POLLIN) {
-      pollinFDs.insert(pfds[ctr].fd);
+  for (const auto& pfd : pfds) {
+    if (pfd.revents & POLLIN) {
+      pollinFDs.insert(pfd.fd);
     }
-    ctr++;
   }
   set<int>::const_iterator it(pollinFDs.begin());
   advance(it, random() % pollinFDs.size());
