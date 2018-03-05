@@ -908,16 +908,6 @@ Requires: %{name}%{?_isa} = %{version}-%{release}
 %description backend-remote
 This package contains the remote backend for %{name}
 
-%package backend-ldap
-Summary: LDAP backend for %{name}
-Group: System Environment/Daemons
-Requires: %{name}%{?_isa} = %{version}-%{release}
-BuildRequires: openldap2-devel
-%global backends %{backends} ldap
-
-%description backend-ldap
-This package contains the LDAP backend for %{name}
-
 %package backend-lua
 Summary: Lua backend for %{name}
 Group: System Environment/Daemons
@@ -984,10 +974,6 @@ make install DESTDIR=%{buildroot}
 
 chmod 600 %{buildroot}%{_sysconfdir}/%{name}/pdns.conf
 
-# rename zone2ldap to pdns-zone2ldap (#1193116)
-%{__mv} %{buildroot}/%{_bindir}/zone2ldap %{buildroot}/%{_bindir}/pdns-zone2ldap
-%{__mv} %{buildroot}/%{_mandir}/man1/zone2ldap.1 %{buildroot}/%{_mandir}/man1/pdns-zone2ldap.1
-
 %check
 make %{?_smp_mflags} -C pdns check || (cat pdns/test-suite.log && false)
 
@@ -1013,7 +999,6 @@ exit 0
 %doc COPYING README
 %{_bindir}/pdns_control
 %{_bindir}/pdnsutil
-%{_bindir}/pdns-zone2ldap
 %{_bindir}/zone2sql
 %{_bindir}/zone2json
 %{_sbindir}/pdns_server
@@ -1022,7 +1007,6 @@ exit 0
 %{_mandir}/man1/pdns_server.1.gz
 %{_mandir}/man1/zone2sql.1.gz
 %{_mandir}/man1/zone2json.1.gz
-%{_mandir}/man1/pdns-zone2ldap.1.gz
 %{_mandir}/man1/pdnsutil.1.gz
 %{_unitdir}/pdns.service
 %{_unitdir}/pdns@.service
@@ -1041,6 +1025,7 @@ exit 0
 %{_bindir}/dnstcpbench
 %{_bindir}/dnswasher
 %{_bindir}/dumresp
+%{_bindir}/ixfrdist
 %{_bindir}/ixplore
 %{_bindir}/pdns_notify
 %{_bindir}/nproxy
@@ -1056,12 +1041,14 @@ exit 0
 %{_mandir}/man1/dnstcpbench.1.gz
 %{_mandir}/man1/dnswasher.1.gz
 %{_mandir}/man1/dumresp.1.gz
+%{_mandir}/man1/ixfrdist.1.gz
 %{_mandir}/man1/ixplore.1.gz
 %{_mandir}/man1/pdns_notify.1.gz
 %{_mandir}/man1/nproxy.1.gz
 %{_mandir}/man1/nsec3dig.1.gz
 %{_mandir}/man1/saxfr.1.gz
 %{_mandir}/man1/sdig.1.gz
+%{_unitdir}/ixfrdist.service
 
 %files backend-mysql
 %doc modules/gmysqlbackend/schema.mysql.sql
@@ -1078,11 +1065,6 @@ exit 0
 
 %files backend-remote
 %{_libdir}/%{name}/libremotebackend.so
-
-%files backend-ldap
-%{_libdir}/%{name}/libldapbackend.so
-%doc %{_defaultdocdir}/%{name}/dnsdomain2.schema
-%doc %{_defaultdocdir}/%{name}/pdns-domaininfo.schema
 
 %files backend-lua
 %{_libdir}/%{name}/libluabackend.so
