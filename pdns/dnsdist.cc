@@ -384,12 +384,12 @@ static bool sendUDPResponse(int origFD, char* response, uint16_t responseLen, in
 }
 
 
-static int pickBackendFD(DownstreamState* state)
+static int pickBackendSocketForSending(DownstreamState* state)
 {
   return state->fds[state->fdOffset++ % state->fds.size()];
 }
 
-static int selectBackendFD(const std::shared_ptr<DownstreamState>& state)
+static int pickBackendSocketForReceiving(const std::shared_ptr<DownstreamState>& state)
 {
   if (state->fds.size() == 1) {
     return state->fds[0];
@@ -431,7 +431,7 @@ try {
     dnsheader* dh = reinterpret_cast<struct dnsheader*>(packet);
     bool outstandingDecreased = false;
     try {
-      int fd = selectBackendFD(dss);
+      int fd = pickBackendSocketForReceiving(dss);
       ssize_t got = recv(fd, packet, sizeof(packet), 0);
       char * response = packet;
       size_t responseSize = sizeof(packet);
@@ -589,6 +589,20 @@ void DownstreamState::reconnect()
       }
       catch(const std::runtime_error& error) {
         infolog("Error connecting to new server with address %s: %s", remote.toStringWithPort(), error.what());
+        connected = false;
+        break;
+      }
+    }
+  }
+
+  /* if at least one (re-)connection failed, close all sockets */
+  if (!connected) {
+    for (auto& fd : fds) {
+      if (fd != -1) {
+        /* shutdown() is needed to wake up recv() in the responderThread */
+        shutdown(fd, SHUT_RDWR);
+        close(fd);
+        fd = -1;
       }
     }
   }
@@ -1498,7 +1512,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
 
     dh->id = idOffset;
 
-    int fd = pickBackendFD(ss);
+    int fd = pickBackendSocketForSending(ss);
     ssize_t ret = udpClientSendRequestToBackend(ss, fd, query, dq.len);
 
     if(ret < 0) {
