@@ -41,10 +41,6 @@ void RemoteLogger::busyReconnectLoop()
 
 void RemoteLogger::worker()
 {
-  if (d_asyncConnect) {
-    busyReconnectLoop();
-  }
-
   while(true) {
     std::string data;
     {

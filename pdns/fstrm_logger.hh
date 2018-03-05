@@ -35,7 +35,7 @@
 class FrameStreamLogger : public RemoteLoggerInterface, boost::noncopyable
 {
 public:
-  FrameStreamLogger(int family, const std::string& address);
+  FrameStreamLogger(int family, const std::string& address, bool connect);
   virtual ~FrameStreamLogger();
   virtual void queueData(const std::string& data) override;
   virtual std::string toString() override

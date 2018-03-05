@@ -9,7 +9,7 @@
 
 #ifdef HAVE_FSTRM
 
-FrameStreamLogger::FrameStreamLogger(const int family, const std::string& address): d_family(family), d_address(address)
+FrameStreamLogger::FrameStreamLogger(const int family, const std::string& address, bool connect): d_family(family), d_address(address)
 {
   fstrm_res res;
 
@@ -78,14 +78,16 @@ FrameStreamLogger::FrameStreamLogger(const int family, const std::string& addres
       throw std::runtime_error("FrameStreamLogger: fstrm_iothr_options_set_queue_model failed: " + std::to_string(res));
     }
 
-    d_iothr = fstrm_iothr_init(d_iothropt, &d_writer);
-    if (!d_iothr) {
-      throw std::runtime_error("FrameStreamLogger: fstrm_iothr_init() failed.");
-    }
+    if (connect) {
+      d_iothr = fstrm_iothr_init(d_iothropt, &d_writer);
+      if (!d_iothr) {
+        throw std::runtime_error("FrameStreamLogger: fstrm_iothr_init() failed.");
+      }
 
-    d_ioqueue = fstrm_iothr_get_input_queue(d_iothr);
-    if (!d_ioqueue) {
-      throw std::runtime_error("FrameStreamLogger: fstrm_iothr_get_input_queue() failed.");
+      d_ioqueue = fstrm_iothr_get_input_queue(d_iothr);
+      if (!d_ioqueue) {
+        throw std::runtime_error("FrameStreamLogger: fstrm_iothr_get_input_queue() failed.");
+      }
     }
   } catch (std::runtime_error &e) {
     this->cleanup();
@@ -130,6 +132,9 @@ FrameStreamLogger::~FrameStreamLogger()
 
 void FrameStreamLogger::queueData(const std::string& data)
 {
+  if (!d_ioqueue || !d_iothr) {
+    return;
+  }
   uint8_t *frame = (uint8_t*)malloc(data.length());
   if (!frame) {
     warnlog("FrameStreamLogger: cannot allocate memory for stream.");
