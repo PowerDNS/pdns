@@ -6,6 +6,8 @@ import dns
 import dns.message
 import libnacl
 import libnacl.utils
+import binascii
+
 
 class DNSCryptResolverCertificate(object):
     DNSCRYPT_CERT_MAGIC = '\x44\x4e\x53\x43'
@@ -65,7 +67,7 @@ class DNSCryptClient(object):
 
     def __init__(self, providerName, providerFingerprint, resolverAddress, resolverPort=443, timeout=2):
         self._providerName = providerName
-        self._providerFingerprint = providerFingerprint.lower().replace(':', '').decode('hex')
+        self._providerFingerprint = binascii.unhexlify(providerFingerprint.lower().replace(':', ''))
         self._resolverAddress = resolverAddress
         self._resolverPort = resolverPort
         self._resolverCertificates = []

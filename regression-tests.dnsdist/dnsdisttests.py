@@ -1,7 +1,6 @@
 #!/usr/bin/env python2
 
 import copy
-import Queue
 import os
 import socket
 import ssl
@@ -17,6 +16,15 @@ import dns.message
 import libnacl
 import libnacl.utils
 
+# Python2/3 compatibility hacks
+if sys.version_info[0] == 2:
+  from Queue import Queue
+  range = xrange
+else:
+  from queue import Queue
+  range = range  # allow re-export of the builtin name
+
+
 class DNSDistTest(unittest.TestCase):
     """
     Set up a dnsdist instance and responder threads.
@@ -29,8 +37,8 @@ class DNSDistTest(unittest.TestCase):
     _dnsDistPort = 5340
     _dnsDistListeningAddr = "127.0.0.1"
     _testServerPort = 5350
-    _toResponderQueue = Queue.Queue()
-    _fromResponderQueue = Queue.Queue()
+    _toResponderQueue = Queue()
+    _fromResponderQueue = Queue()
     _queueTimeout = 1
     _dnsdistStartupDelay = 2.0
     _dnsdist = None
@@ -402,6 +410,7 @@ class DNSDistTest(unittest.TestCase):
 
     @classmethod
     def _encryptConsole(cls, command, nonce):
+        command = command.encode('UTF-8')
         if cls._consoleKey is None:
             return command
         return libnacl.crypto_secretbox(command, nonce, cls._consoleKey)
@@ -409,8 +418,10 @@ class DNSDistTest(unittest.TestCase):
     @classmethod
     def _decryptConsole(cls, command, nonce):
         if cls._consoleKey is None:
-            return command
-        return libnacl.crypto_secretbox_open(command, nonce, cls._consoleKey)
+            result = command
+        else:
+            result = libnacl.crypto_secretbox_open(command, nonce, cls._consoleKey)
+        return result.decode('UTF-8')
 
     @classmethod
     def sendConsoleCommand(cls, command, timeout=1.0):
@@ -427,7 +438,7 @@ class DNSDistTest(unittest.TestCase):
             print("Received a nonce of size %d, expecting %d, console command will not be sent!" % (len(theirNonce), len(ourNonce)))
             return None
 
-        halfNonceSize = len(ourNonce) / 2
+        halfNonceSize = int(len(ourNonce) / 2)
         readingNonce = ourNonce[0:halfNonceSize] + theirNonce[halfNonceSize:]
         writingNonce = theirNonce[0:halfNonceSize] + ourNonce[halfNonceSize:]
         msg = cls._encryptConsole(command, writingNonce)
@@ -441,7 +452,7 @@ class DNSDistTest(unittest.TestCase):
 
     def compareOptions(self, a, b):
         self.assertEquals(len(a), len(b))
-        for idx in xrange(len(a)):
+        for idx in range(len(a)):
             self.assertEquals(a[idx], b[idx])
 
     def checkMessageNoEDNS(self, expected, received):

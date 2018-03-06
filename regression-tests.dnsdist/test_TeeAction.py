@@ -1,18 +1,17 @@
 #!/usr/bin/env python
 import base64
-import Queue
 import threading
 import clientsubnetoption
 import dns
-from dnsdisttests import DNSDistTest
+from dnsdisttests import DNSDistTest, Queue
 
 class TestTeeAction(DNSDistTest):
 
     _consoleKey = DNSDistTest.generateConsoleKey()
-    _consoleKeyB64 = base64.b64encode(_consoleKey)
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
     _teeServerPort = 5390
-    _toTeeQueue = Queue.Queue()
-    _fromTeeQueue = Queue.Queue()
+    _toTeeQueue = Queue()
+    _fromTeeQueue = Queue()
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%s")
@@ -73,16 +72,16 @@ class TestTeeAction(DNSDistTest):
 
         # check the TeeAction stats
         stats = self.sendConsoleCommand("getAction(0):printStats()")
-        self.assertEquals(stats, """refuseds\t0
+        self.assertEquals(stats, """noerrors\t%d
 nxdomains\t0
-noerrors\t%d
-servfails\t0
-recv-errors\t0
-tcp-drops\t0
-responses\t%d
 other-rcode\t0
-send-errors\t0
 queries\t%d
+recv-errors\t0
+refuseds\t0
+responses\t%d
+send-errors\t0
+servfails\t0
+tcp-drops\t0
 """ % (numberOfQueries, numberOfQueries, numberOfQueries))
 
     def testTeeWithoutECS(self):
@@ -121,14 +120,14 @@ queries\t%d
 
         # check the TeeAction stats
         stats = self.sendConsoleCommand("getAction(0):printStats()")
-        self.assertEquals(stats, """refuseds\t0
+        self.assertEquals(stats, """noerrors\t%d
 nxdomains\t0
-noerrors\t%d
-servfails\t0
-recv-errors\t0
-tcp-drops\t0
-responses\t%d
 other-rcode\t0
-send-errors\t0
 queries\t%d
+recv-errors\t0
+refuseds\t0
+responses\t%d
+send-errors\t0
+servfails\t0
+tcp-drops\t0
 """ % (numberOfQueries, numberOfQueries, numberOfQueries))

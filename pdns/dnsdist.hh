@@ -108,7 +108,7 @@ public:
   {
   }
   virtual string toString() const = 0;
-  virtual std::unordered_map<string, double> getStats() const 
+  virtual std::map<string, double> getStats() const
   {
     return {{}};
   }

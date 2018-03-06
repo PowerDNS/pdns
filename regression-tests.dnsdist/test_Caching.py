@@ -531,7 +531,7 @@ class TestCachingCacheFull(DNSDistTest):
 class TestCachingNoStale(DNSDistTest):
 
     _consoleKey = DNSDistTest.generateConsoleKey()
-    _consoleKeyB64 = base64.b64encode(_consoleKey)
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort']
     _config_template = """
     pc = newPacketCache(100, 86400, 1)
@@ -581,7 +581,7 @@ class TestCachingNoStale(DNSDistTest):
 class TestCachingStale(DNSDistTest):
 
     _consoleKey = DNSDistTest.generateConsoleKey()
-    _consoleKeyB64 = base64.b64encode(_consoleKey)
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
     _staleCacheTTL = 60
     _config_params = ['_staleCacheTTL', '_consoleKeyB64', '_consolePort', '_testServerPort']
     _config_template = """
@@ -642,7 +642,7 @@ class TestCachingStale(DNSDistTest):
 class TestCacheManagement(DNSDistTest):
 
     _consoleKey = DNSDistTest.generateConsoleKey()
-    _consoleKeyB64 = base64.b64encode(_consoleKey)
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort']
     _config_template = """
     pc = newPacketCache(100, 86400, 1)
