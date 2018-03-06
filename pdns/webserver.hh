@@ -102,6 +102,11 @@ public:
   HttpMethodNotAllowedException() : HttpException(405) { };
 };
 
+class HttpConflictException : public HttpException {
+public:
+  HttpConflictException() : HttpException(409) { };
+};
+
 class HttpInternalServerErrorException : public HttpException {
 public:
   HttpInternalServerErrorException() : HttpException(500) { };

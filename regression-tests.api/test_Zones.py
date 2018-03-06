@@ -141,6 +141,20 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
         print(data)
         self.assertEquals(data['soa_edit_api'], 'DEFAULT')
 
+    def test_create_zone_exists(self):
+        name, payload, data = self.create_zone()
+        print(data)
+        payload = {
+            'name': name,
+            'kind': 'Native'
+        }
+        print(payload)
+        r = self.session.post(
+            self.url("/api/v1/servers/localhost/zones"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 409)  # Conflict - already exists
+
     def test_create_zone_with_soa_edit(self):
         name, payload, data = self.create_zone(soa_edit='INCEPTION-INCREMENT', soa_edit_api='SOA-EDIT-INCREASE')
         print(data)

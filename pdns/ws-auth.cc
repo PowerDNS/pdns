@@ -1195,7 +1195,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 
     bool exists = B.getDomainInfo(zonename, di);
     if(exists)
-      throw ApiException("Domain '"+zonename.toString()+"' already exists");
+      throw HttpConflictException();
 
     // validate 'kind' is set
     DomainInfo::DomainKind zonekind = DomainInfo::stringToKind(stringFromJson(document, "kind"));
