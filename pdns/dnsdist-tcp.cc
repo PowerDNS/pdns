@@ -378,9 +378,9 @@ void* tcpClientThread(int pipefd)
           }
 #endif
           handler.writeSizeAndMsg(query, dq.len, g_tcpSendTimeout);
-	  g_stats.selfAnswered++;
-	  continue;
-	}
+          g_stats.selfAnswered++;
+          continue;
+        }
 
         std::shared_ptr<ServerPool> serverPool = getPool(*holders.pools, poolname);
         std::shared_ptr<DNSDistPacketCache> packetCache = nullptr;
@@ -455,6 +455,8 @@ void* tcpClientThread(int pipefd)
             }
 #endif
             handler.writeSizeAndMsg(query, dq.len, g_tcpSendTimeout);
+
+            // no response-only statistics counter to update.
             continue;
           }
 
