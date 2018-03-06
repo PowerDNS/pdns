@@ -1,10 +1,16 @@
 from datetime import datetime
 import os
 import requests
-import urlparse
 import unittest
 import sqlite3
 import subprocess
+import sys
+
+if sys.version_info[0] == 2:
+    from urlparse import urljoin
+else:
+    from urllib.parse import urljoin
+
 
 DAEMON = os.environ.get('DAEMON', 'authoritative')
 PDNSUTIL_CMD = os.environ.get('PDNSUTIL_CMD', 'NOT_SET BUT_THIS MIGHT_BE_A_LIST').split(' ')
@@ -22,13 +28,13 @@ class ApiTestCase(unittest.TestCase):
         self.session.headers = {'X-API-Key': os.environ.get('APIKEY', 'changeme-key'), 'Origin': 'http://%s:%s' % (self.server_address, self.server_port)}
 
     def url(self, relative_url):
-        return urlparse.urljoin(self.server_url, relative_url)
+        return urljoin(self.server_url, relative_url)
 
     def assert_success_json(self, result):
         try:
             result.raise_for_status()
         except:
-            print result.content
+            print(result.content)
             raise
         self.assertEquals(result.headers['Content-Type'], 'application/json')
 
@@ -40,7 +46,7 @@ class ApiTestCase(unittest.TestCase):
         try:
             result.raise_for_status()
         except:
-            print result.content
+            print(result.content)
             raise
 
 
@@ -70,10 +76,17 @@ def get_db_records(zonename, qtype):
                 SELECT id FROM domains WHERE name = ?
             )""", (qtype, zonename.rstrip('.'))).fetchall()
         recs = [{'name': row[0], 'type': row[1], 'content': row[2], 'ttl': row[3]} for row in rows]
-        print "DB Records:", recs
+        print("DB Records:", recs)
         return recs
+
+
+def pdnsutil(subcommand, *args):
+    try:
+        return subprocess.check_output(PDNSUTIL_CMD + [subcommand] + list(args), close_fds=True).decode('ascii')
+    except subprocess.CalledProcessError as except_inst:
+        raise RuntimeError("pdnsutil %s %s failed: %s" % (command, args, except_inst.output.decode('ascii', errors='replace')))
 
 
 def pdnsutil_rectify(zonename):
     """Run pdnsutil rectify-zone on the given zone."""
-    subprocess.check_call(PDNSUTIL_CMD + ['rectify-zone', zonename])
+    pdnsutil('rectify-zone', zonename)
