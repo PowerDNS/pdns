@@ -24,6 +24,7 @@
 #include "ext/luawrapper/include/LuaContext.hpp"
 #include <time.h>
 #include "misc.hh"
+#include "mplexer.hh"
 #include "iputils.hh"
 #include "dnsname.hh"
 #include <atomic>
@@ -527,7 +528,7 @@ struct DownstreamState
   DownstreamState(const ComboAddress& remote_): DownstreamState(remote_, ComboAddress(), 0, 1) {}
   ~DownstreamState()
   {
-    for (auto& fd : fds) {
+    for (auto& fd : sockets) {
       if (fd >= 0) {
         close(fd);
         fd = -1;
@@ -535,7 +536,9 @@ struct DownstreamState
     }
   }
 
-  std::vector<int> fds;
+  std::vector<int> sockets;
+  std::mutex socketsLock;
+  std::unique_ptr<FDMultiplexer> mplexer{nullptr};
   std::thread tid;
   ComboAddress remote;
   QPSLimiter qps;
@@ -555,7 +558,7 @@ struct DownstreamState
     std::atomic<uint64_t> queries{0};
   } prev;
   string name;
-  size_t fdOffset{0};
+  size_t socketsOffset{0};
   double queryLoad{0.0};
   double dropRate{0.0};
   double latencyUsec{0.0};

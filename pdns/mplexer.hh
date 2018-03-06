@@ -73,6 +73,9 @@ public:
   /* timeout is in ms */
   virtual int run(struct timeval* tv, int timeout=500) = 0;
 
+  /* timeout is in ms, 0 will return immediatly, -1 will block until at least one FD is ready */
+  virtual void getAvailableFDs(std::vector<int>& fds, int timeout) = 0;
+
   //! Add an fd to the read watch list - currently an fd can only be on one list at a time!
   virtual void addReadFD(int fd, callbackfunc_t toDo, const funcparam_t& parameter=funcparam_t())
   {
@@ -132,7 +135,7 @@ public:
     return theMap;
   }
   
-  virtual std::string getName() = 0;
+  virtual std::string getName() const = 0;
 
 protected:
   typedef std::map<int, Callback> callbackmap_t;
