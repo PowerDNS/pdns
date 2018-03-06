@@ -70,6 +70,12 @@ class DNSDistTest(unittest.TestCase):
             dnsdistcmd.extend(['--acl', acl])
         print(' '.join(dnsdistcmd))
 
+        # validate config with --check-config, which sets client=true, possibly exposing bugs.
+        testcmd = dnsdistcmd + ['--check-config']
+        output = subprocess.check_output(testcmd, close_fds=True)
+        if output != b'Configuration \'dnsdist_test.conf\' OK!\n':
+            raise AssertionError('dnsdist --check-config failed: %s' % output)
+
         if shutUp:
             with open(os.devnull, 'w') as fdDevNull:
                 cls._dnsdist = subprocess.Popen(dnsdistcmd, close_fds=True, stdout=fdDevNull)
