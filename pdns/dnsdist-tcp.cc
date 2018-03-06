@@ -379,7 +379,6 @@ void* tcpClientThread(int pipefd)
 #endif
           handler.writeSizeAndMsg(query, dq.len, g_tcpSendTimeout);
           g_stats.selfAnswered++;
-          doLatencyStats(0);  // we're not going to measure this
           continue;
         }
 
@@ -426,7 +425,6 @@ void* tcpClientThread(int pipefd)
             }
 #endif
             handler.writeSizeAndMsg(cachedResponse, cachedResponseSize, g_tcpSendTimeout);
-            doLatencyStats(0);  // we're not going to measure this
             g_stats.cacheHits++;
             continue;
           }
@@ -459,7 +457,6 @@ void* tcpClientThread(int pipefd)
             handler.writeSizeAndMsg(query, dq.len, g_tcpSendTimeout);
 
             // no response-only statistics counter to update.
-            doLatencyStats(0);  // we're not going to measure this
             continue;
           }
 
@@ -632,7 +629,6 @@ void* tcpClientThread(int pipefd)
           std::lock_guard<std::mutex> lock(g_rings.respMutex);
           g_rings.respRing.push_back({answertime, ci.remote, qname, dq.qtype, (unsigned int)udiff, (unsigned int)responseLen, *dh, ds->remote});
         }
-        doLatencyStats(udiff);
 
         rewrittenResponse.clear();
       }
