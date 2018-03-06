@@ -424,6 +424,7 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
   d_ws->registerApiHandler("/api/v1/servers/localhost/cache/flush", &apiServerCacheFlush);
   d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-from", &apiServerConfigAllowFrom);
   d_ws->registerApiHandler("/api/v1/servers/localhost/config", &apiServerConfig);
+  d_ws->registerApiHandler("/api/v1/servers/localhost/rpz", &apiServerRPZ);
   d_ws->registerApiHandler("/api/v1/servers/localhost/search-log", &apiServerSearchLog);
   d_ws->registerApiHandler("/api/v1/servers/localhost/search-data", &apiServerSearchData);
   d_ws->registerApiHandler("/api/v1/servers/localhost/statistics", &apiServerStatistics);
