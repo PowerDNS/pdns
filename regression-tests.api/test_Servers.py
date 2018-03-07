@@ -42,7 +42,7 @@ class Servers(ApiTestCase):
         data = r.json()
         self.assertIn('uptime', [e['name'] for e in data])
         if is_auth():
-            print data
+            print(data)
             qtype_stats, respsize_stats, queries_stats = None, None, None
             for elem in data:
                 if elem['type'] == 'MapStatisticItem' and elem['name'] == 'queries-by-qtype':

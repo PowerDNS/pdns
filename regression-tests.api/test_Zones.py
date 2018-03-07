@@ -1,3 +1,4 @@
+from __future__ import print_function
 import json
 import time
 import unittest
@@ -23,23 +24,23 @@ def get_first_rec(data, qname, qtype):
 def eq_zone_rrsets(rrsets, expected):
     data_got = {}
     data_expected = {}
-    for type_, expected_records in expected.iteritems():
+    for type_, expected_records in expected.items():
         type_ = str(type_)
         data_got[type_] = set()
         data_expected[type_] = set()
         uses_name = any(['name' in expected_record for expected_record in expected_records])
         # minify + convert received data
         for rrset in [rrset for rrset in rrsets if rrset['type'] == type_]:
-            print rrset
+            print(rrset)
             for r in rrset['records']:
                 data_got[type_].add((rrset['name'] if uses_name else '@', rrset['type'], r['content']))
         # minify expected data
         for r in expected_records:
             data_expected[type_].add((r['name'] if uses_name else '@', type_, r['content']))
 
-    print "eq_zone_rrsets: got:"
+    print("eq_zone_rrsets: got:")
     pprint(data_got)
-    print "eq_zone_rrsets: expected:"
+    print("eq_zone_rrsets: expected:")
     pprint(data_expected)
 
     assert data_got == data_expected, "%r != %r" % (data_got, data_expected)
@@ -79,7 +80,7 @@ class AuthZonesHelperMixin(object):
                 del payload[k]
             else:
                 payload[k] = v
-        print "sending", payload
+        print("sending", payload)
         r = self.session.post(
             self.url("/api/v1/servers/localhost/zones"),
             data=json.dumps(payload),
@@ -87,7 +88,7 @@ class AuthZonesHelperMixin(object):
         self.assert_success_json(r)
         self.assertEquals(r.status_code, 201)
         reply = r.json()
-        print "reply", reply
+        print("reply", reply)
         return name, payload, reply
 
 
@@ -120,7 +121,7 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
             if k in payload:
                 self.assertEquals(data[k], payload[k])
         # generated EPOCH serial surely is > fixed serial we passed in
-        print data
+        print(data)
         self.assertGreater(data['serial'], payload['serial'])
         soa_serial = int(get_first_rec(data, name, 'SOA')['content'].split(' ')[2])
         self.assertGreater(soa_serial, payload['serial'])
@@ -129,7 +130,7 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
     def test_create_zone_with_account(self):
         # soa_edit_api wins over serial
         name, payload, data = self.create_zone(account='anaccount', serial=10)
-        print data
+        print(data)
         for k in ('account', ):
             self.assertIn(k, data)
             if k in payload:
@@ -137,12 +138,26 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
 
     def test_create_zone_default_soa_edit_api(self):
         name, payload, data = self.create_zone()
-        print data
+        print(data)
         self.assertEquals(data['soa_edit_api'], 'DEFAULT')
+
+    def test_create_zone_exists(self):
+        name, payload, data = self.create_zone()
+        print(data)
+        payload = {
+            'name': name,
+            'kind': 'Native'
+        }
+        print(payload)
+        r = self.session.post(
+            self.url("/api/v1/servers/localhost/zones"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 409)  # Conflict - already exists
 
     def test_create_zone_with_soa_edit(self):
         name, payload, data = self.create_zone(soa_edit='INCEPTION-INCREMENT', soa_edit_api='SOA-EDIT-INCREASE')
-        print data
+        print(data)
         self.assertEquals(data['soa_edit'], 'INCEPTION-INCREMENT')
         self.assertEquals(data['soa_edit_api'], 'SOA-EDIT-INCREASE')
         soa_serial = get_first_rec(data, name, 'SOA')['content'].split(' ')[2]
@@ -222,7 +237,7 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
             'kind': 'Native',
             'nameservers': ['uncanon.example.com']
         }
-        print payload
+        print(payload)
         r = self.session.post(
             self.url("/api/v1/servers/localhost/zones"),
             data=json.dumps(payload),
@@ -236,7 +251,7 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
             'name': '',
             'kind': 'Native',
         }
-        print payload
+        print(payload)
         r = self.session.post(
             self.url("/api/v1/servers/localhost/zones"),
             data=json.dumps(payload),
@@ -268,7 +283,7 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
             'kind': 'Native',
             'nameservers': ['ns1.example.com.']
         }
-        print payload
+        print(payload)
         r = self.session.post(
             self.url("/api/v1/servers/localhost/zones"),
             data=json.dumps(payload),
@@ -283,7 +298,7 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
             'kind': 'Native',
             'nameservers': ['ns1.example.com']
         }
-        print payload
+        print(payload)
         r = self.session.post(
             self.url("/api/v1/servers/localhost/zones"),
             data=json.dumps(payload),
@@ -308,7 +323,7 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
             'nameservers': ['ns1.example.com.'],
             'rrsets': [rrset],
         }
-        print payload
+        print(payload)
         r = self.session.post(
             self.url("/api/v1/servers/localhost/zones"),
             data=json.dumps(payload),
@@ -333,7 +348,7 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
             'nameservers': ['ns1.example.com.'],
             'rrsets': [rrset],
         }
-        print payload
+        print(payload)
         r = self.session.post(
             self.url("/api/v1/servers/localhost/zones"),
             data=json.dumps(payload),
@@ -360,7 +375,7 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
             'kind': 'Native',
             'nameservers': [{'a': 'ns1.example.com'}]  # invalid
         }
-        print payload
+        print(payload)
         r = self.session.post(
             self.url("/api/v1/servers/localhost/zones"),
             data=json.dumps(payload),
@@ -385,7 +400,7 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
 
         keys = r.json()
 
-        print keys
+        print(keys)
 
         self.assertEquals(r.status_code, 200)
         self.assertEquals(len(keys), 1)
@@ -436,7 +451,7 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
 
         data = r.json()
 
-        print data
+        print(data)
 
         self.assertEquals(r.status_code, 200)
         self.assertEquals(len(data['metadata']), 1)
@@ -463,7 +478,7 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
 
         data = r.json()
 
-        print data
+        print(data)
 
         self.assertEquals(r.status_code, 200)
         self.assertEquals(len(data['metadata']), 1)
@@ -540,17 +555,17 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
         for k in ('name', 'masters', 'kind'):
             self.assertIn(k, data)
             self.assertEquals(data[k], payload[k])
-        print "payload:", payload
-        print "data:", data
+        print("payload:", payload)
+        print("data:", data)
         # Because slave zones don't get a SOA, we need to test that they'll show up in the zone list.
         r = self.session.get(self.url("/api/v1/servers/localhost/zones"))
         zonelist = r.json()
-        print "zonelist:", zonelist
+        print("zonelist:", zonelist)
         self.assertIn(payload['name'], [zone['name'] for zone in zonelist])
         # Also test that fetching the zone works.
         r = self.session.get(self.url("/api/v1/servers/localhost/zones/" + data['id']))
         data = r.json()
-        print "zone (fetched):", data
+        print("zone (fetched):", data)
         for k in ('name', 'masters', 'kind'):
             self.assertIn(k, data)
             self.assertEquals(data[k], payload[k])
@@ -564,21 +579,21 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
 
     def test_retrieve_slave_zone(self):
         name, payload, data = self.create_zone(kind='Slave', nameservers=None, masters=['127.0.0.2'])
-        print "payload:", payload
-        print "data:", data
+        print("payload:", payload)
+        print("data:", data)
         r = self.session.put(self.url("/api/v1/servers/localhost/zones/" + data['id'] + "/axfr-retrieve"))
         data = r.json()
-        print "status for axfr-retrieve:", data
+        print("status for axfr-retrieve:", data)
         self.assertEqual(data['result'], u'Added retrieval request for \'' + payload['name'] +
                          '\' from master 127.0.0.2')
 
     def test_notify_master_zone(self):
         name, payload, data = self.create_zone(kind='Master')
-        print "payload:", payload
-        print "data:", data
+        print("payload:", payload)
+        print("data:", data)
         r = self.session.put(self.url("/api/v1/servers/localhost/zones/" + data['id'] + "/notify"))
         data = r.json()
-        print "status for notify:", data
+        print("status for notify:", data)
         self.assertEqual(data['result'], 'Notification queued')
 
     def test_get_zone_with_symbols(self):
@@ -1172,7 +1187,7 @@ fred   IN  A      192.168.0.4
             self.url("/api/v1/servers/localhost/zones/" + name),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
-        print r.content
+        print(r.content)
         self.assert_success(r)  # succeed so users can fix their wrong, old data
 
     def test_zone_delete(self):
@@ -1209,7 +1224,7 @@ fred   IN  A      192.168.0.4
         # records are still present
         data = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name)).json()
         serverset = get_rrset(data, name, 'NS')
-        print serverset
+        print(serverset)
         self.assertNotEquals(serverset['records'], [])
         self.assertNotEquals(serverset['comments'], [])
         # verify that modified_at has been set by pdns
@@ -1235,7 +1250,7 @@ fred   IN  A      192.168.0.4
         # make sure the NS records are still present
         data = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name)).json()
         serverset = get_rrset(data, name, 'NS')
-        print serverset
+        print(serverset)
         self.assertNotEquals(serverset['records'], [])
         self.assertEquals(serverset['comments'], [])
 
@@ -1283,7 +1298,7 @@ fred   IN  A      192.168.0.4
         # make sure the comments still exist
         data = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name)).json()
         serverset = get_rrset(data, name, 'NS')
-        print serverset
+        print(serverset)
         self.assertEquals(serverset['records'], rrset2['records'])
         self.assertEquals(serverset['comments'], rrset['comments'])
 
@@ -1306,7 +1321,7 @@ fred   IN  A      192.168.0.4
         self.assertEquals(get_rrset(data, name, 'A')['records'], rrset['records'])
         r = self.session.get(self.url("/api/v1/servers/localhost/zones/" + revzone)).json()
         revsets = [s for s in r['rrsets'] if s['type'] == 'PTR']
-        print revsets
+        print(revsets)
         self.assertEquals(revsets, [{
             u'name': u'44.4.2.192.in-addr.arpa.',
             u'ttl': 3600,
@@ -1345,7 +1360,7 @@ fred   IN  A      192.168.0.4
         self.assert_success(r)
         r = self.session.get(self.url("/api/v1/servers/localhost/zones/" + revzone)).json()
         revsets = [s for s in r['rrsets'] if s['type'] == 'PTR']
-        print revsets
+        print(revsets)
         self.assertEquals(revsets, [{
             u'name': u'2.0.2.192.in-addr.arpa.',
             u'ttl': 3600,
@@ -1385,7 +1400,7 @@ fred   IN  A      192.168.0.4
         self.assert_success(r)
         r = self.session.get(self.url("/api/v1/servers/localhost/zones/" + revzone)).json()
         revsets = [s for s in r['rrsets'] if s['type'] == 'PTR']
-        print revsets
+        print(revsets)
         self.assertEquals(revsets, [{
             u'name': u'a.a.0.0.b.b.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa.',
             u'ttl': 3600,
@@ -1404,7 +1419,7 @@ fred   IN  A      192.168.0.4
         self.create_zone(name=name, serial=22, soa_edit_api='')
         r = self.session.get(self.url("/api/v1/servers/localhost/search-data?q=" + name.rstrip('.')))
         self.assert_success_json(r)
-        print r.json()
+        print(r.json())
         self.assertEquals(r.json(), [
             {u'object_type': u'zone', u'name': name, u'zone_id': name},
             {u'content': u'a.misconfigured.powerdns.server. hostmaster.'+name+' 22 10800 3600 604800 3600',
@@ -1419,25 +1434,27 @@ fred   IN  A      192.168.0.4
         ])
 
     def test_search_rr_substring(self):
-        name = 'search-rr-zone.name.'
+        name = unique_zone_name()
+        search = name[5:-5]
         self.create_zone(name=name)
-        r = self.session.get(self.url("/api/v1/servers/localhost/search-data?q=*rr-zone*"))
+        r = self.session.get(self.url("/api/v1/servers/localhost/search-data?q=*%s*" % search))
         self.assert_success_json(r)
-        print r.json()
+        print(r.json())
         # should return zone, SOA, ns1, ns2
         self.assertEquals(len(r.json()), 4)
 
     def test_search_rr_case_insensitive(self):
-        name = 'search-rr-insenszone.name.'
+        name = unique_zone_name()+'testsuffix.'
         self.create_zone(name=name)
-        r = self.session.get(self.url("/api/v1/servers/localhost/search-data?q=*rr-insensZONE*"))
+        r = self.session.get(self.url("/api/v1/servers/localhost/search-data?q=*testSUFFIX*"))
         self.assert_success_json(r)
-        print r.json()
+        print(r.json())
         # should return zone, SOA, ns1, ns2
         self.assertEquals(len(r.json()), 4)
 
     def test_search_after_rectify_with_ent(self):
-        name = 'search-rectified.name.'
+        name = unique_zone_name()
+        search = name.split('.')[0]
         rrset = {
             "name": 'sub.sub.' + name,
             "type": "A",
@@ -1449,9 +1466,9 @@ fred   IN  A      192.168.0.4
         }
         self.create_zone(name=name, rrsets=[rrset])
         pdnsutil_rectify(name)
-        r = self.session.get(self.url("/api/v1/servers/localhost/search-data?q=*search-rectified*"))
+        r = self.session.get(self.url("/api/v1/servers/localhost/search-data?q=*%s*" % search))
         self.assert_success_json(r)
-        print r.json()
+        print(r.json())
         # should return zone, SOA, ns1, ns2, sub.sub A (but not the ENT)
         self.assertEquals(len(r.json()), 5)
 
@@ -1466,7 +1483,7 @@ fred   IN  A      192.168.0.4
             self.url("/api/v1/servers/localhost/zones?rrsets=false"),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
-        print r.json()
+        print(r.json())
         self.assert_success_json(r)
         self.assertEquals(r.status_code, 201)
         self.assertEquals(r.json().get('rrsets'), None)
@@ -1476,7 +1493,7 @@ fred   IN  A      192.168.0.4
         self.create_zone(name=name, kind='Native')
         r = self.session.get(self.url("/api/v1/servers/localhost/zones/"+name+"?rrsets=false"))
         self.assert_success_json(r)
-        print r.json()
+        print(r.json())
         self.assertEquals(r.json().get('rrsets'), None)
 
     def test_rrset_true_parameter(self):
@@ -1484,7 +1501,7 @@ fred   IN  A      192.168.0.4
         self.create_zone(name=name, kind='Native')
         r = self.session.get(self.url("/api/v1/servers/localhost/zones/"+name+"?rrsets=true"))
         self.assert_success_json(r)
-        print r.json()
+        print(r.json())
         self.assertEquals(len(r.json().get('rrsets')), 2)
 
     def test_wrong_rrset_parameter(self):
@@ -1518,13 +1535,13 @@ class AuthRootZone(ApiTestCase, AuthZonesHelperMixin):
         )
         # Regression test: verify zone list works
         zonelist = self.session.get(self.url("/api/v1/servers/localhost/zones")).json()
-        print "zonelist:", zonelist
+        print("zonelist:", zonelist)
         self.assertIn(payload['name'], [zone['name'] for zone in zonelist])
         # Also test that fetching the zone works.
-        print "id:", data['id']
+        print("id:", data['id'])
         self.assertEquals(data['id'], '=2E')
         data = self.session.get(self.url("/api/v1/servers/localhost/zones/" + data['id'])).json()
-        print "zone (fetched):", data
+        print("zone (fetched):", data)
         for k in ('name', 'kind'):
             self.assertIn(k, data)
             self.assertEquals(data[k], payload[k])
@@ -1599,7 +1616,7 @@ class RecursorZones(ApiTestCase):
             'servers': ['8.8.8.8'],
             'recursion_desired': False,
         }
-        print payload
+        print(payload)
         r = self.session.post(
             self.url("/api/v1/servers/localhost/zones"),
             data=json.dumps(payload),
@@ -1658,7 +1675,7 @@ class RecursorZones(ApiTestCase):
         self.create_zone(name=name, kind='Native')
         r = self.session.get(self.url("/api/v1/servers/localhost/search-data?q=" + name))
         self.assert_success_json(r)
-        print r.json()
+        print(r.json())
         self.assertEquals(r.json(), [{u'type': u'zone', u'name': name, u'zone_id': name}])
 
     def test_search_rr_substring(self):
@@ -1666,7 +1683,7 @@ class RecursorZones(ApiTestCase):
         self.create_zone(name=name, kind='Native')
         r = self.session.get(self.url("/api/v1/servers/localhost/search-data?q=rr-zone"))
         self.assert_success_json(r)
-        print r.json()
+        print(r.json())
         # should return zone, SOA
         self.assertEquals(len(r.json()), 2)
 
