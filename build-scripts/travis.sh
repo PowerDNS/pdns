@@ -370,7 +370,7 @@ build_auth() {
   run "./bootstrap"
   # Build without --enable-botan, no botan 2.x in Travis CI
   run "CFLAGS='-O1' CXXFLAGS='-O1' ./configure \
-    --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 ldap lua mydns opendbx pipe random remote tinydns godbc' \
+    --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 ldap lua mydns opendbx pipe random remote tinydns godbc lua2' \
     --with-modules='' \
     --with-sqlite3 \
     --enable-libsodium \
@@ -531,6 +531,9 @@ test_auth() {
   run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-both"
   run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both"
   run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-narrow"
+
+  run "./timestamp ./start-test-stop 5300 lua2"
+  run "./timestamp ./start-test-stop 5300 lua2-dnssec"
 
   run "cd .."
 

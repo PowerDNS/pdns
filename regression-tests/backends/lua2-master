@@ -1,0 +1,40 @@
+case $context in
+	lua2*)
+		lua2sec=$(echo $context | cut -d- -f 2)
+		testsdir=../modules/lua2backend/regression-tests/
+
+		# cleanup unbound-host.conf to avoid failures
+		rm -f unbound-host.conf
+
+		skipreasons="nodnssec nodyndns"
+
+		luascript="lua2.lua"
+
+		if [ "$lua2sec" = "dnssec" ]
+		then
+			lua2dosec="yes"
+			extracontexts="dnssec"
+			skipreasons="nonsec3 nonarrow nodyndns"
+			luascript="lua2-dnssec.lua"
+		fi
+
+		# generate pdns.conf for pdnsutil
+		cat > pdns-lua2.conf <<EOF
+module-dir=./modules
+launch=lua2
+lua2-filename=$testsdir/$luascript
+lua2-api=2
+allow-axfr-ips=0.0.0.0/0,::/0
+EOF
+
+		$RUNWRAPPER $PDNS --daemon=no --local-address=$address --local-port=$port --socket-dir=./ \
+			--no-shuffle --launch=lua2 \
+			--cache-ttl=$cachettl --dname-processing --no-config \
+			--distributor-threads=1 \
+			--allow-axfr-ips=0.0.0.0/0,::/0 \
+			--lua2-filename=$testsdir/$luascript --lua2-api=2 --module-dir=./modules &
+		;;
+
+	*)
+		nocontext=yes
+esac

@@ -59,6 +59,9 @@ void BaseLua4::prepareContext() {
 
   // DNSName
   d_lw->writeFunction("newDN", [](const std::string& dom){ return DNSName(dom); });
+  d_lw->registerFunction("__lt", &DNSName::operator<);
+  d_lw->registerFunction("canonCompare", &DNSName::canonCompare);
+  d_lw->registerFunction("makeRelative", &DNSName::makeRelative);
   d_lw->registerFunction("isPartOf", &DNSName::isPartOf);
   d_lw->registerFunction<unsigned int(DNSName::*)()>("countLabels", [](const DNSName& name) { return name.countLabels(); });
   d_lw->registerFunction<size_t(DNSName::*)()>("wirelength", [](const DNSName& name) { return name.wirelength(); });
@@ -71,6 +74,18 @@ void BaseLua4::prepareContext() {
   d_lw->registerFunction<bool(DNSName::*)()>("chopOff", [](DNSName&dn ) { return dn.chopOff(); });
 
   // DNSResourceRecord
+  d_lw->writeFunction("newDRR", [](const DNSName& qname, const string& qtype, const unsigned int ttl, const string& content, boost::optional<int> domain_id, boost::optional<int> auth){
+    auto drr = DNSResourceRecord();
+    drr.qname = qname;
+    drr.qtype = qtype;
+    drr.ttl = ttl;
+    drr.setContent(content);
+    if (domain_id)
+      drr.domain_id = *domain_id;
+    if (auth)
+      drr.auth = *auth;
+     return drr;
+  });
   d_lw->registerEqFunction(&DNSResourceRecord::operator==);
   d_lw->registerFunction("__lt", &DNSResourceRecord::operator<);
   d_lw->registerFunction<string(DNSResourceRecord::*)()>("toString", [](const DNSResourceRecord& rec) { return rec.getZoneRepresentation();} );
@@ -128,6 +143,13 @@ void BaseLua4::prepareContext() {
     });
   d_lw->registerFunction<bool(cas_t::*)(const ComboAddress&)>("check",[](const cas_t& cas, const ComboAddress&ca) { return cas.count(ca)>0; });
   d_lw->registerFunction<bool(ComboAddress::*)(const ComboAddress&)>("equal", [](const ComboAddress& lhs, const ComboAddress& rhs) { return ComboAddress::addressOnlyEqual()(lhs, rhs); });
+
+  // QType
+  d_lw->writeFunction("newQType", [](const string& s) { QType q; q = s; return q; });
+  d_lw->registerFunction("getCode", &QType::getCode);
+  d_lw->registerFunction("getName", &QType::getName);
+  d_lw->registerEqFunction<bool(QType::*)(const QType&)>([](const QType& a, const QType& b){ return a == b;}); // operator overloading confuses LuaContext
+  d_lw->registerToStringFunction(&QType::getName);
 
   // Netmask
   d_lw->writeFunction("newNetmask", [](const string& s) { return Netmask(s); });
