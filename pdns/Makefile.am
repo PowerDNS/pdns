@@ -491,11 +491,14 @@ calidns_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	calidns.cc \
+	dns_random.cc dns_random.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
+	ednsoptions.cc ednsoptions.hh \
+	ednssubnet.cc ednssubnet.hh \
 	iputils.cc \
 	logger.cc \
 	misc.cc misc.hh \

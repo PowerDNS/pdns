@@ -22,19 +22,26 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
+#include <atomic>
 #include <iostream>
+#include <fstream>
+#include <memory>
+#include <poll.h>
+#include <thread>
+
+#include <boost/program_options.hpp>
+
+#include "dns_random.hh"
 #include "dnsparser.hh"
-#include "sstuff.hh"
-#include "misc.hh"
 #include "dnswriter.hh"
 #include "dnsrecords.hh"
-#include <thread>
-#include <atomic>
+#include "ednsoptions.hh"
+#include "ednssubnet.hh"
+#include "misc.hh"
+#include "sstuff.hh"
 #include "statbag.hh"
-#include <fstream>
-#include <poll.h>
-#include <memory>
-#include <boost/program_options.hpp>
+
 using std::thread;
 using std::unique_ptr;
 
@@ -46,7 +53,7 @@ volatile bool g_done;
 namespace po = boost::program_options;
 po::variables_map g_vm;
 
-void* recvThread(const vector<Socket*>* sockets)
+static void* recvThread(const vector<Socket*>* sockets)
 {
   vector<pollfd> rfds, fds;
   for(const auto& s : *sockets) {
@@ -93,8 +100,7 @@ void* recvThread(const vector<Socket*>* sockets)
   return 0;
 }
 
-
-void setSocketBuffer(int fd, int optname, uint32_t size)
+static void setSocketBuffer(int fd, int optname, uint32_t size)
 {
   uint32_t psize=0;
   socklen_t len=sizeof(psize);
@@ -119,7 +125,30 @@ static void setSocketSendBuffer(int fd, uint32_t size)
   setSocketBuffer(fd, SO_SNDBUF, size);
 }
 
-void sendPackets(const vector<Socket*>* sockets, const vector<vector<uint8_t>* >& packets, int qps, ComboAddress dest)
+static ComboAddress getRandomAddressFromRange(const Netmask& ecsRange)
+{
+  ComboAddress result = ecsRange.getMaskedNetwork();
+  uint8_t bits = ecsRange.getBits();
+  uint32_t mod = 1 << (32 - bits);
+  result.sin4.sin_addr.s_addr = result.sin4.sin_addr.s_addr + ntohl(dns_random(mod));
+  return result;
+}
+
+static void replaceEDNSClientSubnet(vector<uint8_t>* packet, const Netmask& ecsRange)
+{
+  /* the last 4 bytes of the packet are the IPv4 address */
+  ComboAddress rnd = getRandomAddressFromRange(ecsRange);
+  uint32_t addr = rnd.sin4.sin_addr.s_addr;
+
+  const auto packetSize = packet->size();
+  if (packetSize < sizeof(addr)) {
+    return;
+  }
+
+  memcpy(&packet->at(packetSize - sizeof(addr)), &addr, sizeof(addr));
+}
+
+static void sendPackets(const vector<Socket*>* sockets, const vector<vector<uint8_t>* >& packets, int qps, ComboAddress dest, const Netmask& ecsRange)
 {
   unsigned int burst=100;
   struct timespec nsec;
@@ -140,6 +169,10 @@ void sendPackets(const vector<Socket*>* sockets, const vector<vector<uint8_t>* >
 
     Unit u;
 
+    if (!ecsRange.empty()) {
+      replaceEDNSClientSubnet(p, ecsRange);
+    }
+
     fillMSGHdr(&u.msgh, &u.iov, u.cbuf, 0, (char*)&(*p)[0], p->size(), &dest);
     if((ret=sendmsg((*sockets)[count % sockets->size()]->getHandle(), 
 		    &u.msgh, 0)))
@@ -152,7 +185,7 @@ void sendPackets(const vector<Socket*>* sockets, const vector<vector<uint8_t>* >
   }
 }
 
-void usage(po::options_description &desc) {
+static void usage(po::options_description &desc) {
   cerr<<"Syntax: calidns [OPTIONS] QUERY_FILE DESTINATION INITIAL_QPS HITRATE"<<endl;
   cerr<<desc<<endl;
 }
@@ -188,6 +221,7 @@ try
   desc.add_options()
     ("help,h", "Show this helpful message")
     ("version", "Show the version number")
+    ("ecs", po::value<string>(), "Add EDNS Client Subnet option to outgoing queries using random addresses from the specified range (IPv4 only)")
     ("increment", po::value<float>()->default_value(1.1),  "Set the factor to increase the QPS load per run")
     ("want-recursion", "Set the Recursion Desired flag on queries");
   po::options_description alloptions;
@@ -240,6 +274,28 @@ try
   hitrate /= 100;
   uint32_t qpsstart = g_vm["initial-qps"].as<uint32_t>();
 
+  Netmask ecsRange;
+  if (g_vm.count("ecs")) {
+    dns_random_init("0123456789abcdef");
+
+    try {
+      ecsRange = Netmask(g_vm["ecs"].as<string>());
+      if (!ecsRange.empty()) {
+
+        if (!ecsRange.isIpv4()) {
+          cerr<<"Only IPv4 ranges are supported for ECS at the moment!"<<endl;
+          return EXIT_FAILURE;
+        }
+
+        cout<<"Adding ECS option to outgoing queries with random addresses from the "<<ecsRange.toString()<<" range"<<endl;
+      }
+    }
+    catch (const NetmaskException& e) {
+      cerr<<"Error while parsing the ECS netmask: "<<e.reason<<endl;
+      return EXIT_FAILURE;
+    }
+  }
+
   struct sched_param param;
   param.sched_priority=99;
 
@@ -252,14 +308,22 @@ try
   vector<std::shared_ptr<vector<uint8_t> > > unknown, known;
   while(getline(ifs, line)) {
     vector<uint8_t> packet;
+    DNSPacketWriter::optvect_t ednsOptions;
     boost::trim(line);
     const auto fields = splitField(line, ' ');
     DNSPacketWriter pw(packet, DNSName(fields.first), DNSRecordContent::TypeToNumber(fields.second));
     pw.getHeader()->rd=wantRecursion;
     pw.getHeader()->id=random();
-    if(pw.getHeader()->id % 2) {
-        pw.addOpt(1500, 0, EDNSOpts::DNSSECOK);
-        pw.commit();
+
+    if(!ecsRange.empty()) {
+      EDNSSubnetOpts opt;
+      opt.source = Netmask("0.0.0.0/32");
+      ednsOptions.push_back(std::make_pair(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt)));
+    }
+
+    if(!ednsOptions.empty() || pw.getHeader()->id % 2) {
+      pw.addOpt(1500, 0, EDNSOpts::DNSSECOK, ednsOptions);
+      pw.commit();
     }
     unknown.emplace_back(std::make_shared<vector<uint8_t>>(packet));
   }
@@ -317,7 +381,7 @@ try
     DTime dt;
     dt.set();
 
-    sendPackets(&sockets, toSend, qps, dest);
+    sendPackets(&sockets, toSend, qps, dest, ecsRange);
     
     auto udiff = dt.udiff();
     auto realqps=toSend.size()/(udiff/1000000.0);
