@@ -515,7 +515,6 @@ void mainthread()
   AuthWebServer webserver;
   Utility::dropUserPrivs(newuid);
 
-  // We need to start the Recursor Proxy before doing secpoll, see issue #2453
   if(::arg().mustDo("resolver")){
     DP=new DNSProxy(::arg()["resolver"]);
     DP->go();
