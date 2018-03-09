@@ -9,8 +9,6 @@ class TestCarbon(DNSDistTest):
 
     _serverCount = 3
     _serverUpCount = 2
-    _baseUDPPort = 5350
-    _serverTemplate = """newServer{address="127.0.0.1:%s"}"""
     _toResponderQueue1 = Queue()
     _fromResponderQueue1 = Queue()
     _carbonServer1Port = 8000
@@ -24,6 +22,12 @@ class TestCarbon(DNSDistTest):
     _config_params = ['_carbonServer1Port', '_carbonServer1Name', '_carbonInterval',
                       '_carbonServer2Port', '_carbonServer2Name', '_carbonInterval']
     _config_template = """
+    s = newServer{address="127.0.0.1:5353"}
+    s:setDown()
+    s = newServer{address="127.0.0.1:5354"}
+    s:setUp()
+    s = newServer{address="127.0.0.1:5355"}
+    s:setUp()
     carbonServer("127.0.0.1:%s", "%s", %s)
     carbonServer("127.0.0.1:%s", "%s", %s)
     """
@@ -62,13 +66,7 @@ class TestCarbon(DNSDistTest):
         sock.close()
 
     @classmethod
-    def UDPResponder(cls, port, fromQueue, toQueue):
-        DNSDistTest.UDPResponder.im_func(cls, port, fromQueue, toQueue)
-
-    @classmethod
     def startResponders(cls):
-        cls.startUDPResponders(cls._serverCount, cls._serverUpCount)
-
         cls._CarbonResponder1 = threading.Thread(name='Carbon Responder 1', target=cls.CarbonResponder, args=[cls._carbonServer1Port])
         cls._CarbonResponder1.setDaemon(True)
         cls._CarbonResponder1.start()
@@ -76,30 +74,6 @@ class TestCarbon(DNSDistTest):
         cls._CarbonResponder2 = threading.Thread(name='Carbon Responder 2', target=cls.CarbonResponder, args=[cls._carbonServer2Port])
         cls._CarbonResponder2.setDaemon(True)
         cls._CarbonResponder2.start()
-
-    @classmethod
-    def startUDPResponders(cls, servers, servers_up):
-        if servers < servers_up:
-            print('startUDPResponders failed: servers cannot be less than servers_up')
-            sys.exit(1)
-
-        serverCollectionTemplate = b''
-
-        # set up a number of UDP servers
-        # metric: dnsdist.{CARBON_SERVER_NAME}.main.pools._default_.servers {SERVERS} {TIME}
-        for num in xrange(0, servers):
-            ns = str(cls._baseUDPPort+num)
-            serverCollectionTemplate += cls._serverTemplate % ns
-
-        cls._config_template += serverCollectionTemplate
-
-        # add a specific amount to the response queue marking them 'up'
-        # metric: dnsdist.{CARBON_SERVER_NAME}.main.pools._default_.servers-up {SERVERS_UP} {TIME}
-        for num in xrange(0, servers_up):
-            port = cls._baseUDPPort+num
-            cls._UDPResponder = threading.Thread(name='UDP Responder 1', target=cls.UDPResponder, args=[port, cls._toResponderQueue1, cls._fromResponderQueue1])
-            cls._UDPResponder.setDaemon(True)
-            cls._UDPResponder.start()
 
     def testCarbon(self):
         """
