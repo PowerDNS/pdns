@@ -32,6 +32,9 @@
 #include "logger.hh"
 #include "statbag.hh"
 #include "dns_random.hh"
+#include "stubresolver.hh"
+#include "tcpreceiver.hh"
+#include "arguments.hh"
 
 extern StatBag S;
 
@@ -85,9 +88,39 @@ void DNSProxy::go()
   pthread_create(&tid,0,&launchhelper,this);
 }
 
+extern TCPNameserver *TN;
+
 //! look up qname aname with r->qtype, plonk it in the answer section of 'r' with name target
 bool DNSProxy::completePacket(DNSPacket *r, const DNSName& target,const DNSName& aname)
 {
+  if(r->d_tcp) {
+    cerr<<"qtype="<<r->qtype.getCode()<<endl;
+    vector<DNSZoneRecord> ips;
+    int ret1 = 0, ret2 = 0;
+
+    if(r->qtype == QType::A || r->qtype == QType::ANY)
+      ret1 = stubDoResolve(target, QType::A, ips);
+    if(r->qtype == QType::AAAA || r->qtype == QType::ANY)
+      ret2 = stubDoResolve(target, QType::AAAA, ips);
+
+    if(ret1 != RCode::NoError || ret2 != RCode::NoError) {
+      L<<Logger::Error<<"Error resolving for ALIAS "<<target<<", returning SERVFAIL"<<endl;
+    }
+
+    for (auto &ip : ips)
+    {
+      ip.dr.d_name = target;
+      r->addRecord(ip);
+    }
+
+    uint16_t len=htons(r->getString().length());
+    string buffer((const char*)&len, 2);
+    buffer.append(r->getString());
+    writen2WithTimeout(r->getSocket(), buffer.c_str(), buffer.length(), ::arg().asNum("tcp-idle-timeout"));
+
+    return true;
+  }
+
   uint16_t id;
   {
     Lock l(&d_lock);
