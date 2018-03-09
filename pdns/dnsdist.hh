@@ -648,12 +648,12 @@ struct ServerPool
   std::shared_ptr<ServerPolicy> policy{nullptr};
 
   int countServersUp() {
-    int upFound = 0;
-    for(unsigned idx=0; idx<servers.size(); idx++) {
-      if ( std::get<1>(servers[idx])->isUp() ) {
+    size_t upFound = 0;
+    for (const auto& server : servers) {
+      if (std::get<1>(server)->isUp() ) {
         upFound++;
-      }
-    }
+      };
+    };
     return upFound;
   };
 };
