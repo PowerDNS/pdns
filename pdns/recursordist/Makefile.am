@@ -112,6 +112,7 @@ pdns_recursor_SOURCES = \
 	lock.hh \
 	logger.hh logger.cc \
 	lua-recursor4.cc lua-recursor4.hh \
+	lua-recursor4-ffi.hh \
 	lwres.cc lwres.hh \
 	misc.hh misc.cc \
 	mplexer.hh \

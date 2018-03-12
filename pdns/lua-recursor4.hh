@@ -35,6 +35,8 @@
 #include "ednsoptions.hh"
 #include "validate.hh"
 
+#include "lua-recursor4-ffi.hh"
+
 string GenUDPQueryResponse(const ComboAddress& dest, const string& query);
 unsigned int getRecursorThreadId();
 
@@ -107,6 +109,7 @@ public:
   };
 
   unsigned int gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const std::map<uint16_t, EDNSOptionView>&, bool tcp, std::string& requestorId, std::string& deviceId);
+  unsigned int gettag_ffi(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const std::map<uint16_t, EDNSOptionView>&, bool tcp, std::string& requestorId, std::string& deviceId, uint32_t& ttlCap, bool& variable);
 
   bool prerpz(DNSQuestion& dq, int& ret);
   bool preresolve(DNSQuestion& dq, int& ret);
@@ -128,6 +131,9 @@ public:
 
   typedef std::function<std::tuple<unsigned int,boost::optional<std::unordered_map<int,string> >,boost::optional<LuaContext::LuaObject>,boost::optional<std::string>,boost::optional<std::string> >(ComboAddress, Netmask, ComboAddress, DNSName, uint16_t, const std::map<uint16_t, EDNSOptionView>&, bool)> gettag_t;
   gettag_t d_gettag; // public so you can query if we have this hooked
+
+  typedef std::function<boost::optional<LuaContext::LuaObject>(pdns_ffi_param_t*)> gettag_ffi_t;
+  gettag_ffi_t d_gettag_ffi;
 
 private:
   typedef std::function<bool(DNSQuestion*)> luacall_t;
