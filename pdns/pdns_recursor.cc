@@ -250,6 +250,8 @@ struct DNSComboWriter {
   vector<pair<uint16_t, string> > d_ednsOpts;
   std::vector<std::string> d_policyTags;
   LuaContext::LuaObject d_data;
+  uint32_t d_ttlCap{std::numeric_limits<uint32_t>::max()};
+  bool d_variable{false};
 };
 
 MT_t* getMT()
@@ -741,9 +743,9 @@ static void handleRPZCustom(const DNSRecord& spoofed, const QType& qtype, SyncRe
   }
 }
 
-static bool addRecordToPacket(DNSPacketWriter& pw, const DNSRecord& rec, uint32_t& minTTL, const uint16_t maxAnswerSize)
+static bool addRecordToPacket(DNSPacketWriter& pw, const DNSRecord& rec, uint32_t& minTTL, uint32_t ttlCap, const uint16_t maxAnswerSize)
 {
-  pw.startRecord(rec.d_name, rec.d_type, rec.d_ttl, rec.d_class, rec.d_place);
+  pw.startRecord(rec.d_name, rec.d_type, (rec.d_ttl > ttlCap ? ttlCap : rec.d_ttl), rec.d_class, rec.d_place);
 
   if(rec.d_type != QType::OPT) // their TTL ain't real
     minTTL = min(minTTL, rec.d_ttl);
@@ -819,7 +821,11 @@ static void startDoResolve(void *p)
     pw.getHeader()->rd=dc->d_mdp.d_header.rd;
     pw.getHeader()->cd=dc->d_mdp.d_header.cd;
 
-    uint32_t minTTL=std::numeric_limits<uint32_t>::max();
+    /* This is the lowest TTL seen in the records of the response,
+       so we can't cache it for longer than this value.
+       If we have a TTL cap, this value can't be larger than the
+       cap no matter what. */
+    uint32_t minTTL = dc->d_ttlCap;
 
     SyncRes sr(dc->d_now);
 
@@ -848,7 +854,7 @@ static void startDoResolve(void *p)
     sr.setQuerySource(dc->d_remote, g_useIncomingECS && !dc->d_ednssubnet.source.empty() ? boost::optional<const EDNSSubnetOpts&>(dc->d_ednssubnet) : boost::none);
 
     bool tracedQuery=false; // we could consider letting Lua know about this too
-    bool variableAnswer = false;
+    bool variableAnswer = dc->d_variable;
     bool shouldNotValidate = false;
 
     /* preresolve expects res (dq.rcode) to be set to RCode::NoError by default */
@@ -1164,7 +1170,7 @@ static void startDoResolve(void *p)
           continue;
         }
 
-        if (!addRecordToPacket(pw, *i, minTTL, maxanswersize)) {
+        if (!addRecordToPacket(pw, *i, minTTL, dc->d_ttlCap, maxanswersize)) {
           needCommit = false;
           break;
         }
@@ -1188,7 +1194,7 @@ static void startDoResolve(void *p)
          OPT record.  This MUST also occur when a truncated response (using
          the DNS header's TC bit) is returned."
       */
-      if (addRecordToPacket(pw, makeOpt(edo.d_packetsize, 0, edo.d_Z), minTTL, maxanswersize)) {
+      if (addRecordToPacket(pw, makeOpt(edo.d_packetsize, 0, edo.d_Z), minTTL, dc->d_ttlCap, maxanswersize)) {
         pw.commit();
       }
     }
@@ -1222,6 +1228,7 @@ static void startDoResolve(void *p)
       }
       if(sendmsg(dc->d_socket, &msgh, 0) < 0 && g_logCommonErrors) 
         L<<Logger::Warning<<"Sending UDP reply to client "<<dc->getRemote()<<" failed with: "<<strerror(errno)<<endl;
+
       if(!SyncRes::s_nopacketcache && !variableAnswer && !sr.wasVariable() ) {
         t_packetCache->insertResponsePacket(dc->d_tag, dc->d_qhash, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass,
                                             string((const char*)&*packet.begin(), packet.size()),
@@ -1545,7 +1552,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       }
 #endif
 
-      if(needECS || needXPF || (t_pdl && t_pdl->d_gettag)) {
+      if(needECS || needXPF || (t_pdl && (t_pdl->d_gettag_ffi || t_pdl->d_gettag))) {
 
         try {
           std::map<uint16_t, EDNSOptionView> ednsOptions;
@@ -1556,17 +1563,22 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
                             dc->d_ecsFound, &dc->d_ednssubnet, g_gettagNeedsEDNSOptions ? &ednsOptions : nullptr,
                             xpfFound, needXPF ? &dc->d_source : nullptr, needXPF ? &dc->d_destination : nullptr);
 
-          if(t_pdl && t_pdl->d_gettag) {
+          if(t_pdl) {
             try {
-              dc->d_tag = t_pdl->gettag(dc->d_source, dc->d_ednssubnet.source, dc->d_destination, qname, qtype, &dc->d_policyTags, dc->d_data, ednsOptions, true, requestorId, deviceId);
+              if (t_pdl->d_gettag_ffi) {
+                dc->d_tag = t_pdl->gettag_ffi(dc->d_source, dc->d_ednssubnet.source, dc->d_destination, qname, qtype, &dc->d_policyTags, dc->d_data, ednsOptions, true, requestorId, deviceId, dc->d_ttlCap, dc->d_variable);
+              }
+              else if (t_pdl->d_gettag) {
+                dc->d_tag = t_pdl->gettag(dc->d_source, dc->d_ednssubnet.source, dc->d_destination, qname, qtype, &dc->d_policyTags, dc->d_data, ednsOptions, true, requestorId, deviceId);
+              }
             }
-            catch(std::exception& e)  {
+            catch(const std::exception& e)  {
               if(g_logCommonErrors)
                 L<<Logger::Warning<<"Error parsing a query packet qname='"<<qname<<"' for tag determination, setting tag=0: "<<e.what()<<endl;
             }
           }
         }
-        catch(std::exception& e)
+        catch(const std::exception& e)
         {
           if(g_logCommonErrors)
             L<<Logger::Warning<<"Error parsing a query packet for tag determination, setting tag=0: "<<e.what()<<endl;
@@ -1711,6 +1723,8 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   EDNSSubnetOpts ednssubnet;
   bool ecsFound = false;
   bool ecsParsed = false;
+  uint32_t ttlCap = std::numeric_limits<uint32_t>::max();
+  bool variable = false;
   try {
     DNSName qname;
     uint16_t qtype=0;
@@ -1729,7 +1743,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     */
 #endif
 
-    if(needECS || needXPF || (t_pdl && t_pdl->d_gettag)) {
+    if(needECS || needXPF || (t_pdl && (t_pdl->d_gettag || t_pdl->d_gettag_ffi))) {
       try {
         std::map<uint16_t, EDNSOptionView> ednsOptions;
         bool xpfFound = false;
@@ -1743,17 +1757,22 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         qnameParsed = true;
         ecsParsed = true;
 
-        if(t_pdl && t_pdl->d_gettag) {
+        if(t_pdl) {
           try {
-            ctag=t_pdl->gettag(source, ednssubnet.source, destination, qname, qtype, &policyTags, data, ednsOptions, false, requestorId, deviceId);
+            if (t_pdl->d_gettag_ffi) {
+              ctag = t_pdl->gettag_ffi(source, ednssubnet.source, destination, qname, qtype, &policyTags, data, ednsOptions, false, requestorId, deviceId, ttlCap, variable);
+            }
+            else if (t_pdl->d_gettag) {
+              ctag = t_pdl->gettag(source, ednssubnet.source, destination, qname, qtype, &policyTags, data, ednsOptions, false, requestorId, deviceId);
+            }
           }
-          catch(std::exception& e)  {
+          catch(const std::exception& e)  {
             if(g_logCommonErrors)
               L<<Logger::Warning<<"Error parsing a query packet qname='"<<qname<<"' for tag determination, setting tag=0: "<<e.what()<<endl;
           }
         }
       }
-      catch(std::exception& e)
+      catch(const std::exception& e)
       {
         if(g_logCommonErrors)
           L<<Logger::Warning<<"Error parsing a query packet for tag determination, setting tag=0: "<<e.what()<<endl;
@@ -1770,6 +1789,9 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     }
 #endif /* HAVE_PROTOBUF */
 
+    /* It might seem like a good idea to skip the packet cache lookup if we know that the answer is not cacheable,
+       but it means that the hash would not be computed. If some script decides at a later time to mark back the answer
+       as cacheable we would cache it with a wrong tag, so better safe than sorry. */
     if (qnameParsed) {
       cacheHit = (!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, question, qname, qtype, qclass, g_now.tv_sec, &response, &age, &qhash, &pbMessage));
     }
@@ -1855,6 +1877,8 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   dc->d_ecsFound = ecsFound;
   dc->d_ecsParsed = ecsParsed;
   dc->d_ednssubnet = ednssubnet;
+  dc->d_ttlCap = ttlCap;
+  dc->d_variable = variable;
 #ifdef HAVE_PROTOBUF
   if (luaconfsLocal->protobufServer || luaconfsLocal->outgoingProtobufServer) {
     dc->d_uuid = uniqueId;
