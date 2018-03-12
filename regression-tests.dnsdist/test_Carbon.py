@@ -7,10 +7,6 @@ from dnsdisttests import DNSDistTest, Queue
 
 class TestCarbon(DNSDistTest):
 
-    _serverCount = 3
-    _serverUpCount = 2
-    _toResponderQueue1 = Queue()
-    _fromResponderQueue1 = Queue()
     _carbonServer1Port = 8000
     _carbonServer1Name = "carbonname1"
     _carbonServer2Port = 8001
@@ -141,13 +137,13 @@ class TestCarbon(DNSDistTest):
                 if 'servers-up' in line:
                     self.assertEquals(len(parts), 3)
                     self.assertTrue(parts[1].isdigit())
-                    self.assertEquals(int(parts[1]), self._serverUpCount)
+                    self.assertEquals(int(parts[1]), 2)
                     self.assertTrue(parts[2].isdigit())
                     self.assertTrue(int(parts[2]) <= int(after))
                 else:
                     self.assertEquals(len(parts), 3)
                     self.assertTrue(parts[1].isdigit())
-                    self.assertEquals(int(parts[1]), self._serverCount)
+                    self.assertEquals(int(parts[1]), 3)
                     self.assertTrue(parts[2].isdigit())
                     self.assertTrue(int(parts[2]) <= int(after))
 
@@ -164,12 +160,12 @@ class TestCarbon(DNSDistTest):
                 if 'servers-up' in line:
                     self.assertEquals(len(parts), 3)
                     self.assertTrue(parts[1].isdigit())
-                    self.assertEquals(int(parts[1]), self._serverUpCount)
+                    self.assertEquals(int(parts[1]), 2)
                     self.assertTrue(parts[2].isdigit())
                     self.assertTrue(int(parts[2]) <= int(after))
                 else:
                     self.assertEquals(len(parts), 3)
                     self.assertTrue(parts[1].isdigit())
-                    self.assertEquals(int(parts[1]), self._serverCount)
+                    self.assertEquals(int(parts[1]), 3)
                     self.assertTrue(parts[2].isdigit())
                     self.assertTrue(int(parts[2]) <= int(after))
