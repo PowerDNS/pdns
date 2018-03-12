@@ -48,6 +48,18 @@ class LuaContext;
 #define L theL()
 #endif
 
+// pdns_ffi_param_t is a lightuserdata
+template<>
+struct LuaContext::Pusher<pdns_ffi_param*> {
+    static const int minSize = 1;
+    static const int maxSize = 1;
+
+    static PushedObject push(lua_State* state, pdns_ffi_param* ptr) noexcept {
+        lua_pushlightuserdata(state, ptr);
+        return PushedObject{state, 1};
+    }
+};
+
 class RecursorLua4 : public boost::noncopyable
 {
 private:
