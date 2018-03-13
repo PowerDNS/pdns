@@ -1,3 +1,5 @@
+#include <sys/stat.h>
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -14,9 +16,15 @@
 #include "statbag.hh"
 #include "stubresolver.hh"
 
+#define LOCAL_RESOLV_CONF_PATH "/etc/resolv.conf"
+
 // s_resolversForStub contains the ComboAddresses that are used by
 // stubDoResolve
 static vector<ComboAddress> s_resolversForStub;
+static pthread_mutex_t s_resolversForStubLock = PTHREAD_MUTEX_INITIALIZER;
+
+// /etc/resolv.conf last modification time
+static auto s_localResolvConfMtime = 0;
 
 /*
  * Returns false if no resolvers are configured, while emitting a warning about this
@@ -28,6 +36,47 @@ bool resolversDefined()
     return false;
   }
   return true;
+}
+
+/*
+ * Parse /etc/resolv.conf and add those nameservers to s_resolversForStub
+ */
+static void parseLocalResolvConf()
+{
+  ifstream ifs(LOCAL_RESOLV_CONF_PATH);
+  struct stat st;
+  string line;
+
+  if(!ifs)
+    return;
+  if (stat(LOCAL_RESOLV_CONF_PATH, &st) == -1)
+    return ;
+  s_localResolvConfMtime = st.st_mtime;
+
+  pthread_mutex_lock(&s_resolversForStubLock);
+  s_resolversForStub.clear();
+  while(std::getline(ifs, line)) {
+    boost::trim_right_if(line, is_any_of(" \r\n\x1a"));
+    boost::trim_left(line); // leading spaces, let's be nice
+
+    string::size_type tpos = line.find_first_of(";#");
+    if(tpos != string::npos)
+      line.resize(tpos);
+
+    if(boost::starts_with(line, "nameserver ") || boost::starts_with(line, "nameserver\t")) {
+      vector<string> parts;
+      stringtok(parts, line, " \t,"); // be REALLY nice
+      for(vector<string>::const_iterator iter = parts.begin()+1; iter != parts.end(); ++iter) {
+        try {
+          s_resolversForStub.push_back(ComboAddress(*iter, 53));
+        }
+        catch(...)
+        {
+        }
+      }
+    }
+  }
+  pthread_mutex_unlock(&s_resolversForStubLock);
 }
 
 /*
@@ -46,32 +95,7 @@ void stubParseResolveConf()
   }
 
   if (s_resolversForStub.empty()) {
-    ifstream ifs("/etc/resolv.conf");
-    if(!ifs)
-      return;
-
-    string line;
-    while(std::getline(ifs, line)) {
-      boost::trim_right_if(line, is_any_of(" \r\n\x1a"));
-      boost::trim_left(line); // leading spaces, let's be nice
-
-      string::size_type tpos = line.find_first_of(";#");
-      if(tpos != string::npos)
-        line.resize(tpos);
-
-      if(boost::starts_with(line, "nameserver ") || boost::starts_with(line, "nameserver\t")) {
-        vector<string> parts;
-        stringtok(parts, line, " \t,"); // be REALLY nice
-        for(vector<string>::const_iterator iter = parts.begin()+1; iter != parts.end(); ++iter) {
-          try {
-            s_resolversForStub.push_back(ComboAddress(*iter, 53));
-          }
-          catch(...)
-          {
-          }
-        }
-      }
-    }
+    parseLocalResolvConf();
   }
   // Emit a warning if there are no stubs.
   resolversDefined();
@@ -80,6 +104,16 @@ void stubParseResolveConf()
 // s_resolversForStub contains the ComboAddresses that are used to resolve the
 int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& ret)
 {
+  // only check if resolvers come from he local resolv.conf in the first place
+  if (s_localResolvConfMtime != 0) {
+    struct stat st;
+
+    if (stat(LOCAL_RESOLV_CONF_PATH, &st) != -1) {
+      if (st.st_mtime > s_localResolvConfMtime) {
+        parseLocalResolvConf();
+      }
+    }
+  }
   if (!resolversDefined())
     return RCode::ServFail;
 
