@@ -24,7 +24,7 @@ static vector<ComboAddress> s_resolversForStub;
 static pthread_mutex_t s_resolversForStubLock = PTHREAD_MUTEX_INITIALIZER;
 
 // /etc/resolv.conf last modification time
-static auto s_localResolvConfMtime = 0;
+static time_t s_localResolvConfMtime = 0;
 
 /*
  * Returns false if no resolvers are configured, while emitting a warning about this
@@ -46,6 +46,7 @@ static void parseLocalResolvConf()
   ifstream ifs(LOCAL_RESOLV_CONF_PATH);
   struct stat st;
   string line;
+  Lock l(&s_resolversForStubLock);
 
   if(!ifs)
     return;
@@ -53,7 +54,6 @@ static void parseLocalResolvConf()
     return ;
   s_localResolvConfMtime = st.st_mtime;
 
-  pthread_mutex_lock(&s_resolversForStubLock);
   s_resolversForStub.clear();
   while(std::getline(ifs, line)) {
     boost::trim_right_if(line, is_any_of(" \r\n\x1a"));
@@ -76,7 +76,6 @@ static void parseLocalResolvConf()
       }
     }
   }
-  pthread_mutex_unlock(&s_resolversForStubLock);
 }
 
 /*
@@ -109,7 +108,7 @@ int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& r
     struct stat st;
 
     if (stat(LOCAL_RESOLV_CONF_PATH, &st) != -1) {
-      if (st.st_mtime > s_localResolvConfMtime) {
+      if (st.st_mtime != s_localResolvConfMtime) {
         parseLocalResolvConf();
       }
     }
