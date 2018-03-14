@@ -821,7 +821,7 @@ void setupLuaConfig(bool client)
     });
 
   g_lua.writeFunction("addDynBlocks",
-                      [](const map<ComboAddress,int>& m, const std::string& msg, boost::optional<int> seconds, boost::optional<DNSAction::Action> action) {
+                      [](const map<ComboAddress,unsigned int, ComboAddress::addressOnlyLessThan>& m, const std::string& msg, boost::optional<int> seconds, boost::optional<DNSAction::Action> action) {
                            setLuaSideEffect();
 			   auto slow = g_dynblockNMG.getCopy();
 			   struct timespec until, now;
