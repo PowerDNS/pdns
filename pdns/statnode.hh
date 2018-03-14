@@ -29,7 +29,7 @@ class StatNode
 {
 public:
 
-  struct Stat 
+  struct Stat
   {
     Stat() : queries(0), noerrors(0), nxdomains(0), servfails(0), drops(0){}
     int queries, noerrors, nxdomains, servfails, drops;
@@ -41,13 +41,13 @@ public:
       servfails+=rhs.servfails;
       drops+=rhs.drops;
 
-      for(const remotes_t::value_type& rem :  rhs.remotes) {
-	remotes[rem.first]+=rem.second;
-      }
+      //for(const remotes_t::value_type& rem :  rhs.remotes) {
+      //  remotes[rem.first]+=rem.second;
+      //}
       return *this;
     }
-    typedef std::map<ComboAddress,int,ComboAddress::addressOnlyLessThan> remotes_t;
-    remotes_t remotes;
+    //typedef std::map<ComboAddress,int,ComboAddress::addressOnlyLessThan> remotes_t;
+    //remotes_t remotes;
   };
 
   Stat s;
@@ -56,12 +56,13 @@ public:
   unsigned int labelsCount{0};
 
   void submit(const DNSName& domain, int rcode, const ComboAddress& remote);
-  void submit(std::deque<std::string>& labels, const std::string& domain, int rcode, const ComboAddress& remote, unsigned int count);
 
   Stat print(unsigned int depth=0, Stat newstat=Stat(), bool silent=false) const;
   typedef boost::function<void(const StatNode*, const Stat& selfstat, const Stat& childstat)> visitor_t;
   void visit(visitor_t visitor, Stat& newstat, unsigned int depth=0) const;
   typedef std::map<std::string,StatNode, CIStringCompare> children_t;
   children_t children;
-  
+
+private:
+  void submit(std::deque<std::string>& labels, const std::string& domain, int rcode, const ComboAddress& remote, unsigned int count);
 };

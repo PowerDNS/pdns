@@ -39,10 +39,10 @@ void  StatNode::visit(visitor_t visitor, Stat &newstat, unsigned int depth) cons
   childstat.nxdomains += s.nxdomains;
   childstat.servfails += s.servfails;
   childstat.drops += s.drops;
-  childstat.remotes = s.remotes;
+//  childstat.remotes = s.remotes;
   
-  Stat selfstat(childstat);
 
+  Stat selfstat(childstat);
 
   for(const children_t::value_type& child :  children) {
     child.second.visit(visitor, childstat, depth+8);
@@ -107,7 +107,7 @@ void StatNode::submit(deque<string>& labels, const std::string& domain, int rcod
       s.servfails++;
     else if(rcode==3)
       s.nxdomains++;
-    s.remotes[remote]++;
+//    s.remotes[remote]++;
   }
   else {
     if (fullname.empty()) {
