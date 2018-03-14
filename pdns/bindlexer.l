@@ -113,17 +113,31 @@ include                 BEGIN(incl);
 
 
 
-
-zone			return ZONETOK; 
-
-file			return FILETOK;
-options                 return OPTIONSTOK;
-also-notify		return ALSONOTIFYTOK;
+ /* Clause tokens */
 acl                     return ACLTOK;
+control                 return CONTROLTOK;
+dlz                     return DLZTOK;
+key                     return KEYTOK;
 logging                 return LOGGINGTOK;
+lwres                   return LWRESTOK;
+managed-keys            return MANAGEDKEYSTOK;
+masters                 return MASTERSTOK;
+options                 return OPTIONSTOK;
+server                  return SERVERTOK;
+statistics-channel      return STATISTICSCHANNELTOK;
+trusted-keys            return TRUSTEDKEYSTOK;
+view                    return VIEWTOK;
+zone                    return ZONETOK;
+
+ /* Statement block tokens */
+also-notify             return ALSONOTIFYTOK;
+channel                 return CHANNELTOK;
+
+ /* Statement tokens */
 directory               return DIRECTORYTOK;
-masters                 return MASTERTOK;
+file                    return FILETOK;
 type                    return TYPETOK;
+
 \"                      yy_push_state(quoted);
 <quoted>[^\"]*          yylval=strdup(yytext); return QUOTEDWORD;
 <quoted>\"              yy_pop_state();
