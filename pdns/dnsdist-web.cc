@@ -309,12 +309,12 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
         };
 
         for(const auto& e : g_stats.entries) {
-          if(const auto& val = boost::get<DNSDistStats::stat_t*>(&e.second))
-            obj.insert({e.first, (double)(*val)->load()});
-          else if (const auto& dval = boost::get<double*>(&e.second))
-            obj.insert({e.first, (**dval)});
+          if(const auto& val = boost::get<DNSDistStats::stat_t*>(&std::get<1>(e)))
+            obj.insert({std::get<0>(e), (double)(*val)->load()});
+          else if (const auto& dval = boost::get<double*>(&std::get<1>(e)))
+            obj.insert({std::get<0>(e), (**dval)});
           else
-            obj.insert({e.first, (int)(*boost::get<DNSDistStats::statfunction_t>(&e.second))(e.first)});
+            obj.insert({std::get<0>(e), (int)(*boost::get<DNSDistStats::statfunction_t>(&std::get<1>(e)))(std::get<0>(e))});
         }
         Json my_json = obj;
         resp.body=my_json.dump();
@@ -518,25 +518,25 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
 
       Json::array doc;
       for(const auto& item : g_stats.entries) {
-        if(const auto& val = boost::get<DNSDistStats::stat_t*>(&item.second)) {
+        if(const auto& val = boost::get<DNSDistStats::stat_t*>(&std::get<1>(item))) {
           doc.push_back(Json::object {
               { "type", "StatisticItem" },
-              { "name", item.first },
+              { "name", std::get<0>(item) },
               { "value", (double)(*val)->load() }
             });
         }
-        else if (const auto& dval = boost::get<double*>(&item.second)) {
+        else if (const auto& dval = boost::get<double*>(&std::get<1>(item))) {
           doc.push_back(Json::object {
               { "type", "StatisticItem" },
-              { "name", item.first },
+              { "name", std::get<0>(item) },
               { "value", (**dval) }
             });
         }
         else {
           doc.push_back(Json::object {
               { "type", "StatisticItem" },
-              { "name", item.first },
-              { "value", (int)(*boost::get<DNSDistStats::statfunction_t>(&item.second))(item.first) }
+              { "name", std::get<0>(item) },
+              { "value", (int)(*boost::get<DNSDistStats::statfunction_t>(&std::get<1>(item)))(std::get<0>(item)) }
             });
         }
       }

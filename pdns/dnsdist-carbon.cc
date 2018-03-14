@@ -73,13 +73,13 @@ try
         ostringstream str;
         time_t now=time(0);
         for(const auto& e : g_stats.entries) {
-          str<<"dnsdist."<<hostname<<".main."<<e.first<<' ';
-          if(const auto& val = boost::get<DNSDistStats::stat_t*>(&e.second))
+          str<<"dnsdist."<<hostname<<".main."<<std::get<0>(e)<<' ';
+          if(const auto& val = boost::get<DNSDistStats::stat_t*>(&std::get<1>(e)))
             str<<(*val)->load();
-          else if (const auto& dval = boost::get<double*>(&e.second))
+          else if (const auto& dval = boost::get<double*>(&std::get<1>(e)))
             str<<**dval;
           else
-            str<<(*boost::get<DNSDistStats::statfunction_t>(&e.second))(e.first);
+            str<<(*boost::get<DNSDistStats::statfunction_t>(&std::get<1>(e)))(std::get<0>(e));
           str<<' '<<now<<"\r\n";
         }
         const auto states = g_dstates.getCopy();
