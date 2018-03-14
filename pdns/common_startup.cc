@@ -67,6 +67,7 @@ void declareArguments()
   ::arg().setSwitch("forward-dnsupdate","A global setting to allow DNS update packages that are for a Slave domain, to be forwarded to the master.")="yes";
   ::arg().setSwitch("log-dns-details","If PDNS should log DNS non-erroneous details")="no";
   ::arg().setSwitch("log-dns-queries","If PDNS should log all incoming DNS queries")="no";
+  ::arg().setSwitch("except-send-servfail","If PDNS should send ServFail on backends exception")="yes";
   ::arg().set("local-address","Local IP addresses to which we bind")="0.0.0.0";
   ::arg().setSwitch("local-address-nonexist-fail","Fail to start if one or more of the local-address's do not exist on this server")="yes";
   ::arg().setSwitch("non-local-bind", "Enable binding to non-local addresses by using FREEBIND / BINDANY socket options")="no";

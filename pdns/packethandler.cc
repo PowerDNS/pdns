@@ -63,6 +63,7 @@ PacketHandler::PacketHandler():B(s_programname), d_dk(&B)
   d_doDNAME=::arg().mustDo("dname-processing");
   d_doExpandALIAS = ::arg().mustDo("expand-alias");
   d_logDNSDetails= ::arg().mustDo("log-dns-details");
+  d_exceptSendServFail= ::arg().mustDo("except-send-servfail");
   d_doIPv6AdditionalProcessing = ::arg().mustDo("do-ipv6-additional-processing");
   string fname= ::arg()["lua-prequery-script"];
   if(fname.empty())
@@ -1461,12 +1462,18 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
     throw; // we WANT to die at this point
   }
   catch(std::exception &e) {
-    L<<Logger::Error<<"Exception building answer packet for "<<p->qdomain<<"/"<<p->qtype.getName()<<" ("<<e.what()<<") sending out servfail"<<endl;
-    delete r;
-    r=p->replyPacket(); // generate an empty reply packet
-    r->setRcode(RCode::ServFail);
-    S.inc("servfail-packets");
-    S.ringAccount("servfail-queries",p->qdomain.toLogString());
+    if (d_exceptSendServFail) {
+      L<<Logger::Error<<"Exception building answer packet for "<<p->qdomain<<"/"<<p->qtype.getName()<<" ("<<e.what()<<") sending out servfail"<<endl;
+      delete r;
+      r=p->replyPacket(); // generate an empty reply packet
+      r->setRcode(RCode::ServFail);
+      S.inc("servfail-packets");
+      S.ringAccount("servfail-queries",p->qdomain.toLogString());
+    }else {
+      L<<Logger::Error<<"Exception building answer packet ("<<e.what()<<") ignore for send out servfail"<<endl;
+      delete r;
+      return 0;
+    }
   }
   return r; 
 

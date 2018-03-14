@@ -106,6 +106,7 @@ private:
   static AtomicCounter s_count;
   static pthread_mutex_t s_rfc2136lock;
   bool d_logDNSDetails;
+  bool d_exceptSendServFail;
   bool d_doIPv6AdditionalProcessing;
   bool d_doDNAME;
   bool d_doExpandALIAS;
