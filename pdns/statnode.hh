@@ -64,5 +64,5 @@ public:
   children_t children;
 
 private:
-  void submit(std::deque<std::string>& labels, const std::string& domain, int rcode, const ComboAddress& remote, unsigned int count);
+  void submit(std::vector<string>::const_iterator end, std::vector<string>::const_iterator begin, const std::string& domain, int rcode, const ComboAddress& remote, unsigned int count);
 };

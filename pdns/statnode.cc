@@ -57,15 +57,12 @@ void  StatNode::visit(visitor_t visitor, Stat &newstat, unsigned int depth) cons
 void StatNode::submit(const DNSName& domain, int rcode, const ComboAddress& remote)
 {
   //  cerr<<"FIRST submit called on '"<<domain<<"'"<<endl;
-  vector<string> tmp = domain.getRawLabels();
+  std::vector<string> tmp = domain.getRawLabels();
   if(tmp.empty())
     return;
 
-  deque<string> parts;
-  for(auto const i : tmp) {
-    parts.push_back(i);
-  }
-  children[parts.back()].submit(parts, "", rcode, remote, 1);
+  auto last = tmp.end() - 1;
+  children[*last].submit(last, tmp.begin(), "", rcode, remote, 1);
 }
 
 /* www.powerdns.com. -> 
@@ -75,24 +72,22 @@ void StatNode::submit(const DNSName& domain, int rcode, const ComboAddress& remo
    www.powerdns.com. 
 */
 
-void StatNode::submit(deque<string>& labels, const std::string& domain, int rcode, const ComboAddress& remote, unsigned int count)
+void StatNode::submit(std::vector<string>::const_iterator end, std::vector<string>::const_iterator begin, const std::string& domain, int rcode, const ComboAddress& remote, unsigned int count)
 {
-  if(labels.empty())
-    return;
   //  cerr<<"Submit called for domain='"<<domain<<"': ";
   //  for(const std::string& n :  labels) 
   //    cerr<<n<<".";
   //  cerr<<endl;
   if(name.empty()) {
 
-    name=labels.back();
+    name=*end;
     //    cerr<<"Set short name to '"<<name<<"'"<<endl;
   }
   else {
     //    cerr<<"Short name was already set to '"<<name<<"'"<<endl;
   }
 
-  if(labels.size()==1) {
+  if(end == begin) {
     if (fullname.empty()) {
       fullname=name+"."+domain;
       labelsCount = count;
@@ -115,8 +110,8 @@ void StatNode::submit(deque<string>& labels, const std::string& domain, int rcod
       labelsCount = count;
     }
     //    cerr<<"Not yet end, set our fullname to '"<<fullname<<"', recursing"<<endl;
-    labels.pop_back();
-    children[labels.back()].submit(labels, fullname, rcode, remote, count+1);
+    end--;
+    children[*end].submit(end, begin, fullname, rcode, remote, count+1);
   }
 }
 
