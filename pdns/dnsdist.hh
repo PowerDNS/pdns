@@ -647,7 +647,7 @@ struct ServerPool
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};
   std::shared_ptr<ServerPolicy> policy{nullptr};
 
-  const size_t countServersUp() {
+  size_t countServersUp() const {
     size_t upFound = 0;
     for (const auto& server : servers) {
       if (std::get<1>(server)->isUp() ) {
