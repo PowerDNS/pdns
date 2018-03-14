@@ -564,32 +564,32 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   d_gettag_ffi = d_lw->readVariable<boost::optional<gettag_ffi_t>>("gettag_ffi").get_value_or(0);
 }
 
-bool RecursorLua4::prerpz(DNSQuestion& dq, int& ret)
+bool RecursorLua4::prerpz(DNSQuestion& dq, int& ret) const
 {
   return genhook(d_prerpz, dq, ret);
 }
 
-bool RecursorLua4::preresolve(DNSQuestion& dq, int& ret)
+bool RecursorLua4::preresolve(DNSQuestion& dq, int& ret) const
 {
   return genhook(d_preresolve, dq, ret);
 }
 
-bool RecursorLua4::nxdomain(DNSQuestion& dq, int& ret)
+bool RecursorLua4::nxdomain(DNSQuestion& dq, int& ret) const
 {
   return genhook(d_nxdomain, dq, ret);
 }
 
-bool RecursorLua4::nodata(DNSQuestion& dq, int& ret)
+bool RecursorLua4::nodata(DNSQuestion& dq, int& ret) const
 {
   return genhook(d_nodata, dq, ret);
 }
 
-bool RecursorLua4::postresolve(DNSQuestion& dq, int& ret)
+bool RecursorLua4::postresolve(DNSQuestion& dq, int& ret) const
 {
   return genhook(d_postresolve, dq, ret);
 }
 
-bool RecursorLua4::preoutquery(const ComboAddress& ns, const ComboAddress& requestor, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, int& ret)
+bool RecursorLua4::preoutquery(const ComboAddress& ns, const ComboAddress& requestor, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, int& ret) const
 {
   bool variableAnswer = false;
   bool wantsRPZ = false;
@@ -599,14 +599,14 @@ bool RecursorLua4::preoutquery(const ComboAddress& ns, const ComboAddress& reque
   return genhook(d_preoutquery, dq, ret);
 }
 
-bool RecursorLua4::ipfilter(const ComboAddress& remote, const ComboAddress& local, const struct dnsheader& dh)
+bool RecursorLua4::ipfilter(const ComboAddress& remote, const ComboAddress& local, const struct dnsheader& dh) const
 {
   if(d_ipfilter)
     return d_ipfilter(remote, local, dh);
   return false; // don't block
 }
 
-unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const std::map<uint16_t, EDNSOptionView>& ednsOptions, bool tcp, std::string& requestorId, std::string& deviceId)
+unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const std::map<uint16_t, EDNSOptionView>& ednsOptions, bool tcp, std::string& requestorId, std::string& deviceId) const
 {
   if(d_gettag) {
     auto ret = d_gettag(remote, ednssubnet, local, qname, qtype, ednsOptions, tcp);
@@ -665,7 +665,7 @@ public:
   bool tcp;
 };
 
-unsigned int RecursorLua4::gettag_ffi(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const std::map<uint16_t, EDNSOptionView>& ednsOptions, bool tcp, std::string& requestorId, std::string& deviceId, uint32_t& ttlCap, bool& variable)
+unsigned int RecursorLua4::gettag_ffi(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const std::map<uint16_t, EDNSOptionView>& ednsOptions, bool tcp, std::string& requestorId, std::string& deviceId, uint32_t& ttlCap, bool& variable) const
 {
   if (d_gettag_ffi) {
     pdns_ffi_param_t param(qname, qtype, local, remote, ednssubnet, *policyTags, ednsOptions, requestorId, deviceId, ttlCap, variable, tcp);
@@ -680,7 +680,7 @@ unsigned int RecursorLua4::gettag_ffi(const ComboAddress& remote, const Netmask&
   return 0;
 }
 
-bool RecursorLua4::genhook(luacall_t& func, DNSQuestion& dq, int& ret)
+bool RecursorLua4::genhook(const luacall_t& func, DNSQuestion& dq, int& ret) const
 {
   if(!func)
     return false;
