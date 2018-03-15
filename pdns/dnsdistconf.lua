@@ -44,7 +44,7 @@ addAction("192.168.1.0/24", PoolAction("abuse"))
 
 -- send the queries for the "com" suffix to the "abuse"
 -- pool, but only up to 100 qps
-addAction("com.", QPSPoolRule(100, "abuse"))
+addAction("com.", QPSPoolAction(100, "abuse"))
 
 -- declare a Lua action function, routing NAPTR queries
 -- to the abuse pool
