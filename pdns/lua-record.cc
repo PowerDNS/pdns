@@ -426,11 +426,12 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
   if(dnsp.hasEDNSSubnet()) {
     lua.writeVariable("ecswho", dnsp.getRealRemote());
     bestwho=dnsp.getRealRemote().getNetwork();
-    lua.writeVariable("bestwho", dnsp.getRealRemote().getNetwork());
   }
   else {
     bestwho=dnsp.getRemote();
   }
+
+  lua.writeVariable("bestwho", bestwho);
 
   lua.writeFunction("latlon", [&bestwho]() {
       double lat, lon;
