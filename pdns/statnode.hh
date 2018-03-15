@@ -55,13 +55,14 @@ public:
   std::string fullname;
   unsigned int labelsCount{0};
 
-  void submit(const DNSName& domain, int rcode, const ComboAddress& remote);
-  void submit(std::deque<std::string>& labels, const std::string& domain, int rcode, const ComboAddress& remote, unsigned int count);
+  void submit(const DNSName& domain, int rcode, boost::optional<const ComboAddress&> remote);
 
   Stat print(unsigned int depth=0, Stat newstat=Stat(), bool silent=false) const;
   typedef boost::function<void(const StatNode*, const Stat& selfstat, const Stat& childstat)> visitor_t;
   void visit(visitor_t visitor, Stat& newstat, unsigned int depth=0) const;
   typedef std::map<std::string,StatNode, CIStringCompare> children_t;
   children_t children;
-  
+
+private:
+  void submit(std::deque<std::string>& labels, const std::string& domain, int rcode, boost::optional<const ComboAddress&> remote, unsigned int count);
 };
