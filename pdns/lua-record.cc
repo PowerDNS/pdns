@@ -718,10 +718,10 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
     });
 
 
-  lua.writeFunction("closest", [&bestwho](std::unordered_map<int, std::unordered_map<int, string> > ips) {
+  lua.writeFunction("closest", [&bestwho](std::unordered_map<int, string> ips) {
       vector<ComboAddress > conv;
       for(auto& i : ips) 
-        conv.emplace_back(i.second[2]);
+        conv.emplace_back(i.second);
       
       return closest(bestwho, conv).toString();
       
