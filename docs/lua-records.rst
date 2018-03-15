@@ -123,18 +123,18 @@ which indicates no 'return ' should be prepended.
 To keep records more concise and readable, configuration can be stored in
 separate records. The full example from above can also be written as::
 
-    config    IN    LUA    LUA (";settings={stringmatch='Programming in Lua'}  "
+    config    IN    LUA    LUA ("settings={stringmatch='Programming in Lua'}  "
                                 "EUips={'192.0.2.1', '192.0.2.2'}             "
                                 "USAips={'198.51.100.1'}                      ")
 
     www       IN    LUA    CNAME ( ";if(continent('EU')) then return 'west.powerdns.org' "
                                    "else return 'usa.powerdns.org' end" )
 
-    usa       IN    LUA    A    ( ";include(config)                               "
+    usa       IN    LUA    A    ( ";include('config')                               "
                                   "return ifurlup('https://www.lua.org/',        "
                                   "{USAips, EUips}, settings)                    " )
 
-    west      IN    LUA    A    ( ";include(config)                               "
+    west      IN    LUA    A    ( ";include('config')                               "
                                   "return ifurlup('https://www.lua.org/',        "
                                   "{EUips, USAips}, settings)                    " )
 
