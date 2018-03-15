@@ -32,7 +32,7 @@ public:
   struct Stat
   {
     Stat() : queries(0), noerrors(0), nxdomains(0), servfails(0), drops(0){}
-    int queries, noerrors, nxdomains, servfails, drops;
+    uint64_t queries, noerrors, nxdomains, servfails, drops;
 
     Stat& operator+=(const Stat& rhs) {
       queries+=rhs.queries;
