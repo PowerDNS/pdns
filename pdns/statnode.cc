@@ -41,8 +41,7 @@ void  StatNode::visit(visitor_t visitor, Stat &newstat, unsigned int depth) cons
   childstat.drops += s.drops;
   childstat.remotes = s.remotes;
   
-
-  Stat selfstat;
+  Stat selfstat(childstat);
 
   for(const children_t::value_type& child :  children) {
     child.second.visit(visitor, childstat, depth+8);
