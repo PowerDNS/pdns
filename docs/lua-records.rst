@@ -98,7 +98,7 @@ the second set is tried.
 
 This configuration makes sense in the following context::
 
-    www    IN    LUA    CNAME   ( "if(continent('EU')) then return 'west.powerdns.org' "
+    www    IN    LUA    CNAME   ( ";if(continent('EU')) then return 'west.powerdns.org' "
                                   "else return 'usa.powerdns.org' end" )
 
 
@@ -106,7 +106,7 @@ This sends queries that are geolocated to Europe to 'west.powerdns.org', and
 the rest to 'usa.powerdns.org'. The configuration for that name would then
 be::
 
-    usa    IN    LUA    A    ( "return ifurlup('https://www.lua.org/',           "
+    usa    IN    LUA    A    ( "ifurlup('https://www.lua.org/',           "
                                "{{'198.51.100.1'}, {'192.0.2.1', '192.0.2.2'}},  "
                                "{stringmatch='Programming in Lua'})              " )
 
