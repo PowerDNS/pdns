@@ -27,6 +27,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <boost/container/flat_set.hpp>
 #include "ws-recursor.hh"
 #include <pthread.h>
 #include "recpacketcache.hh"
@@ -60,7 +61,6 @@
 #include <boost/shared_array.hpp>
 #include <boost/function.hpp>
 #include <boost/algorithm/string.hpp>
-#include <boost/container/flat_set.hpp>
 #ifdef MALLOC_TRACE
 #include "malloctrace.hh"
 #endif
@@ -3207,25 +3207,25 @@ static int serviceMain(int argc, char*argv[])
     g_snmpAgent->run();
   }
 
-  int port = ::arg().asNum("min-udp-source-port");
+  int port = ::arg().asNum("udp-source-port-min");
   if(port < 1025 || port > 65535){
-    L<<Logger::Error<<"Unable to launch, min-udp-source-port is not a valid port number"<<endl;
+    L<<Logger::Error<<"Unable to launch, udp-source-port-min is not a valid port number"<<endl;
     exit(99); // this isn't going to fix itself either
   }
   s_minUdpSourcePort = port;
-  port = ::arg().asNum("max-udp-source-port");
+  port = ::arg().asNum("udp-source-port-max");
   if(port < 1025 || port > 65535 || port < s_minUdpSourcePort){
-    L<<Logger::Error<<"Unable to launch, max-udp-source-port is not a valid port number or is smaller than min-udp-source-port"<<endl;
+    L<<Logger::Error<<"Unable to launch, udp-source-port-max is not a valid port number or is smaller than udp-source-port-min"<<endl;
     exit(99); // this isn't going to fix itself either
   }
   s_maxUdpSourcePort = port;
   std::vector<string> parts {};
-  stringtok(parts, ::arg()["avoid-udp-source-port"], ", ");
+  stringtok(parts, ::arg()["udp-source-port-avoid"], ", ");
   for (const auto &part : parts)
   {
     port = std::stoi(part);
     if(port < 1025 || port > 65535){
-      L<<Logger::Error<<"Unable to launch, avoid-udp-source-port contains an invalid port number: "<<part<<endl;
+      L<<Logger::Error<<"Unable to launch, udp-source-port-avoid contains an invalid port number: "<<part<<endl;
       exit(99); // this isn't going to fix itself either
     }
     s_avoidUdpSourcePorts.insert(port);
@@ -3548,9 +3548,9 @@ int main(int argc, char **argv)
     ::arg().set("xpf-allow-from","XPF information is only processed from these subnets")="";
     ::arg().set("xpf-rr-code","XPF option code to use")="0";
 
-    ::arg().set("min-udp-source-port", "Minimum UDP port to bind on")="1025";
-    ::arg().set("max-udp-source-port", "Maximum UDP port to bind on")="65535";
-    ::arg().set("avoid-udp-source-port", "List of comma separated UDP port number to avoid")="11211";
+    ::arg().set("udp-source-port-min", "Minimum UDP port to bind on")="1025";
+    ::arg().set("udp-source-port-max", "Maximum UDP port to bind on")="65535";
+    ::arg().set("udp-source-port-avoid", "List of comma separated UDP port number to avoid")="11211";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");
