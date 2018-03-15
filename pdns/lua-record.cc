@@ -809,8 +809,9 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
   try {
     string actual;
     if(!code.empty() && code[0]!=';')
-      actual = "return ";
-    actual+=code;
+      actual = "return " + code;
+    else
+      actual = code.substr(1);
 
     auto content=lua.executeCode<boost::variant<string, vector<pair<int, string> > > >(actual);
 
