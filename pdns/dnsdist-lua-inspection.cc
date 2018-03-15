@@ -114,7 +114,7 @@ static void statNodeRespRing(statvisitor_t visitor, unsigned int seconds)
       if (seconds && c.when < cutoff)
         continue;
 
-      root.submit(c.name, c.dh.rcode, c.requestor);
+      root.submit(c.name, c.dh.rcode, boost::none);
     }
   }
 

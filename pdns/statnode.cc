@@ -39,10 +39,10 @@ void  StatNode::visit(visitor_t visitor, Stat &newstat, unsigned int depth) cons
   childstat.nxdomains += s.nxdomains;
   childstat.servfails += s.servfails;
   childstat.drops += s.drops;
-//  childstat.remotes = s.remotes;
+  childstat.remotes = s.remotes;
   
 
-  Stat selfstat(childstat);
+  Stat selfstat;
 
   for(const children_t::value_type& child :  children) {
     child.second.visit(visitor, childstat, depth+8);
@@ -54,7 +54,7 @@ void  StatNode::visit(visitor_t visitor, Stat &newstat, unsigned int depth) cons
 }
 
 
-void StatNode::submit(const DNSName& domain, int rcode, const ComboAddress& remote)
+void StatNode::submit(const DNSName& domain, int rcode, boost::optional<const ComboAddress&> remote)
 {
   //  cerr<<"FIRST submit called on '"<<domain<<"'"<<endl;
   std::vector<string> tmp = domain.getRawLabels();
@@ -72,7 +72,7 @@ void StatNode::submit(const DNSName& domain, int rcode, const ComboAddress& remo
    www.powerdns.com. 
 */
 
-void StatNode::submit(std::vector<string>::const_iterator end, std::vector<string>::const_iterator begin, const std::string& domain, int rcode, const ComboAddress& remote, unsigned int count)
+void StatNode::submit(std::vector<string>::const_iterator end, std::vector<string>::const_iterator begin, const std::string& domain, int rcode, boost::optional<const ComboAddress&> remote, unsigned int count)
 {
   //  cerr<<"Submit called for domain='"<<domain<<"': ";
   //  for(const std::string& n :  labels) 
@@ -102,7 +102,10 @@ void StatNode::submit(std::vector<string>::const_iterator end, std::vector<strin
       s.servfails++;
     else if(rcode==3)
       s.nxdomains++;
-//    s.remotes[remote]++;
+
+    if (remote) {
+      s.remotes[*remote]++;
+    }
   }
   else {
     if (fullname.empty()) {
