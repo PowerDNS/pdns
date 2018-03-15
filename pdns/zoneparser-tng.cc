@@ -268,7 +268,10 @@ string ZoneParserTNG::getLineOfFile()
 
 pair<string,int> ZoneParserTNG::getLineNumAndFile()
 {
-  return {d_filestates.top().d_filename, d_filestates.top().d_lineno};
+  if (d_filestates.empty())
+    return {"", 0};
+  else
+    return {d_filestates.top().d_filename, d_filestates.top().d_lineno};
 }
 
 bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
