@@ -734,7 +734,11 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
     });
   lua.executeCode("debug.sethook(report, '', 1000)");
 
-  
+  // TODO: make this better. Accept netmask/CA objects; provide names for the attr constants
+  lua.writeFunction("geoiplookup", [](const string &ip, const GeoIPBackend::GeoIPQueryAttribute attr) {
+    return getGeo(ip, attr);
+  });
+
   typedef const boost::variant<string,vector<pair<int,string> > > combovar_t;
   lua.writeFunction("continent", [&bestwho](const combovar_t& continent) {
       string res=getGeo(bestwho.toString(), GeoIPBackend::Continent);
