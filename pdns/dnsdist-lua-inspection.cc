@@ -75,19 +75,21 @@ static std::unordered_map<unsigned int, vector<boost::variant<string,double>>> g
   return ret;
 }
 
-static void filterScore(map<ComboAddress, unsigned int,ComboAddress::addressOnlyLessThan >& counts,
+typedef std::unordered_map<ComboAddress, unsigned int, ComboAddress::addressOnlyHash, ComboAddress::addressOnlyEqual> counts_t;
+
+static counts_t filterScore(const counts_t& counts,
                         double delta, unsigned int rate)
 {
+  counts_t ret;
+
   double lim = delta*rate;
-  for(auto iter = counts.begin(); iter != counts.end();) {
-    if (iter->second <= lim) {
-      iter = counts.erase(iter);
-    }
-    else {
-      iter++;
+  for(const auto& c : counts) {
+    if (c.second > lim) {
+      ret[c.first] = c.second;
     }
   }
 
+  return ret;
 }
 
 
@@ -140,7 +142,6 @@ static vector<pair<unsigned int, std::unordered_map<string,string> > > getRespRi
   return ret;
 }
 
-typedef   map<ComboAddress, unsigned int,ComboAddress::addressOnlyLessThan > counts_t;
 static counts_t exceedRespGen(unsigned int rate, int seconds, std::function<void(counts_t&, const Rings::Response&)> T)
 {
   counts_t counts;
@@ -151,6 +152,7 @@ static counts_t exceedRespGen(unsigned int rate, int seconds, std::function<void
 
   {
     std::lock_guard<std::mutex> lock(g_rings.respMutex);
+    counts.reserve(g_rings.respRing.size());
     for(const auto& c : g_rings.respRing) {
       if(seconds && c.when < cutoff)
         continue;
@@ -164,8 +166,7 @@ static counts_t exceedRespGen(unsigned int rate, int seconds, std::function<void
   }
 
   double delta = seconds ? seconds : DiffTime(now, mintime);
-  filterScore(counts, delta, rate);
-  return counts;
+  return filterScore(counts, delta, rate);
 }
 
 static counts_t exceedQueryGen(unsigned int rate, int seconds, std::function<void(counts_t&, const Rings::Query&)> T)
@@ -178,6 +179,7 @@ static counts_t exceedQueryGen(unsigned int rate, int seconds, std::function<voi
 
   {
     ReadLock rl(&g_rings.queryLock);
+    counts.reserve(g_rings.respRing.size());
     for(const auto& c : g_rings.queryRing) {
       if(seconds && c.when < cutoff)
         continue;
@@ -190,8 +192,7 @@ static counts_t exceedQueryGen(unsigned int rate, int seconds, std::function<voi
   }
 
   double delta = seconds ? seconds : DiffTime(now, mintime);
-  filterScore(counts, delta, rate);
-  return counts;
+  return filterScore(counts, delta, rate);
 }
 
 
