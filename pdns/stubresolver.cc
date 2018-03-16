@@ -114,7 +114,7 @@ void stubParseResolveConf()
 // s_resolversForStub contains the ComboAddresses that are used to resolve the
 int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& ret)
 {
-  // only check if resolvers come from he local resolv.conf in the first place
+  // only check if resolvers come from local resolv.conf in the first place
   if (s_localResolvConfMtime != 0) {
         parseLocalResolvConf();
   }
