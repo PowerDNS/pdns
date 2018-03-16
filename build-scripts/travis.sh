@@ -261,7 +261,7 @@ install_auth() {
     alien\
     fakeroot"
   run "cd .."
-  run "wget ftp://ftp.nominum.com/pub/nominum/dnsperf/2.0.0.0/dnsperf-2.0.0.0-1-rhel-6-x86_64.tar.gz"
+  run "wget https://downloads.powerdns.com/tmp/dnsperf-2.0.0.0-1-rhel-6-x86_64.tar.gz"
   run "tar xzvf dnsperf-2.0.0.0-1-rhel-6-x86_64.tar.gz"
   run "fakeroot alien --to-deb dnsperf-2.0.0.0-1/dnsperf-2.0.0.0-1.el6.x86_64.rpm"
   run "sudo dpkg -i dnsperf_2.0.0.0-2_amd64.deb"
