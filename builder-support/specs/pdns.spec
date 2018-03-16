@@ -111,6 +111,15 @@ Requires: %{name}%{?_isa} = %{version}-%{release}
 %description backend-lua
 This package contains the lua backend for %{name}
 
+%package backend-lua2
+Summary: Lua backend for %{name}
+Group: System Environment/Daemons
+Requires: %{name}%{?_isa} = %{version}-%{release}
+%global backends %{backends} lua2
+
+%description backend-lua2
+This package contains the lua2 backend for %{name}
+
 %package backend-sqlite
 Summary: SQLite backend for %{name}
 Group: System Environment/Daemons
@@ -350,6 +359,9 @@ fi
 
 %files backend-lua
 %{_libdir}/%{name}/libluabackend.so
+
+%files backend-lua2
+%{_libdir}/%{name}/liblua2backend.so
 
 %files backend-sqlite
 %doc modules/gsqlite3backend/schema.sqlite3.sql
