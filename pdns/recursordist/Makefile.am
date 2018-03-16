@@ -61,7 +61,8 @@ EXTRA_DIST = \
 	html incfiles \
 	test_libcrypto \
 	pdns-recursor.service.in \
-	RECURSOR-MIB.txt
+	RECURSOR-MIB.txt \
+	builder-support/gen-version
 
 dist-hook:
 	for file in $$(find $(distdir)/docs -type l); do \

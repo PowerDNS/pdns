@@ -64,7 +64,8 @@ EXTRA_DIST=dnslabeltext.rl \
 	   devpollmplexer.cc \
 	   epollmplexer.cc \
 	   kqueuemplexer.cc \
-	   portsmplexer.cc
+	   portsmplexer.cc \
+	   builder-support/gen-version
 
 bin_PROGRAMS = dnsdist
 
