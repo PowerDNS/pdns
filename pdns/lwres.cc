@@ -236,7 +236,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
 
     if(domain != mdp.d_qname) { 
       if(!mdp.d_qname.empty() && domain.toString().find((char)0) == string::npos /* ugly */) {// embedded nulls are too noisy, plus empty domains are too
-        L<<Logger::Notice<<"Packet purporting to come from remote server "<<ip.toString()<<" contained wrong answer: '" << domain << "' != '" << mdp.d_qname << "'" << endl;
+        g_log<<Logger::Notice<<"Packet purporting to come from remote server "<<ip.toString()<<" contained wrong answer: '" << domain << "' != '" << mdp.d_qname << "'" << endl;
       }
       // unexpected count has already been done @ pdns_recursor.cc
       goto out;
@@ -276,7 +276,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
   }
   catch(std::exception &mde) {
     if(::arg().mustDo("log-common-errors"))
-      L<<Logger::Notice<<"Unable to parse packet from remote server "<<ip.toString()<<": "<<mde.what()<<endl;
+      g_log<<Logger::Notice<<"Unable to parse packet from remote server "<<ip.toString()<<": "<<mde.what()<<endl;
     lwr->d_rcode = RCode::FormErr;
     g_stats.serverParseError++;
 #ifdef HAVE_PROTOBUF
@@ -287,7 +287,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
     return 1; // success - oddly enough
   }
   catch(...) {
-    L<<Logger::Notice<<"Unknown error parsing packet from remote server"<<endl;
+    g_log<<Logger::Notice<<"Unknown error parsing packet from remote server"<<endl;
   }
   
   g_stats.serverParseError++; 

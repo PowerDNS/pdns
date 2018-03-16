@@ -43,11 +43,11 @@ gODBCBackend::gODBCBackend (const std::string & mode, const std::string & suffix
   }
   catch( SSqlException & e )
   {
-    L<<Logger::Error<< mode << " Connection failed: " << e.txtReason() << std::endl;
+    g_log<<Logger::Error<< mode << " Connection failed: " << e.txtReason() << std::endl;
     throw PDNSException( "Unable to launch " + mode + " connection: " + e.txtReason());
   }
 
-  L << Logger::Warning << mode << " Connection successful" << std::endl;
+  g_log << Logger::Warning << mode << " Connection successful" << std::endl;
 }
 
 
@@ -165,7 +165,7 @@ public:
   gODBCLoader()
   {
     BackendMakers().report( new gODBCFactory("godbc"));
-    L<<Logger::Warning << "This is module godbcbackend reporting" << std::endl;
+    g_log<<Logger::Warning << "This is module godbcbackend reporting" << std::endl;
   }
 };
 

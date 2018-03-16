@@ -443,7 +443,7 @@ bool ArgvMap::file(const char *fname, bool lax, bool included)
     set("include-dir","Directory to include configuration files from");
 
   if(!parseFile(fname, "", lax)) {
-    L << Logger::Warning << "Unable to open " << fname << std::endl;
+    g_log << Logger::Warning << "Unable to open " << fname << std::endl;
     return false;
   }
 
@@ -453,7 +453,7 @@ bool ArgvMap::file(const char *fname, bool lax, bool included)
     gatherIncludes(extraConfigs); 
     for(const std::string& fn :  extraConfigs) {
       if (!file(fn.c_str(), lax, true)) {
-        L << Logger::Error << fn << " could not be parsed" << std::endl;
+        g_log << Logger::Error << fn << " could not be parsed" << std::endl;
         throw ArgException(fn + " could not be parsed");
       }
     }
@@ -471,18 +471,18 @@ void ArgvMap::gatherIncludes(std::vector<std::string> &extraConfigs) {
 
     // stat
     if (stat(params["include-dir"].c_str(), &st)) {
-       L << Logger::Error << params["include-dir"] << " does not exist!" << std::endl;
+       g_log << Logger::Error << params["include-dir"] << " does not exist!" << std::endl;
        throw ArgException(params["include-dir"] + " does not exist!");
     }
 
     // wonder if it's accessible directory
     if (!S_ISDIR(st.st_mode)) {
-       L << Logger::Error << params["include-dir"] << " is not a directory" << std::endl;
+       g_log << Logger::Error << params["include-dir"] << " is not a directory" << std::endl;
        throw ArgException(params["include-dir"] + " is not a directory");
     }
 
     if (!(dir = opendir(params["include-dir"].c_str()))) {
-       L << Logger::Error << params["include-dir"] << " is not accessible" << std::endl;
+       g_log << Logger::Error << params["include-dir"] << " is not accessible" << std::endl;
        throw ArgException(params["include-dir"] + " is not accessible");
     }
 
@@ -494,7 +494,7 @@ void ArgvMap::gatherIncludes(std::vector<std::string> &extraConfigs) {
         namebuf << params["include-dir"].c_str() << "/" << ent->d_name; // FIXME: Use some path separator
         // ensure it's readable file
         if (stat(namebuf.str().c_str(), &st) || !S_ISREG(st.st_mode)) {
-          L << Logger::Error << namebuf.str() << " is not a file" << std::endl;
+          g_log << Logger::Error << namebuf.str() << " is not a file" << std::endl;
           closedir(dir);
           throw ArgException(namebuf.str() + " does not exist!");
         }

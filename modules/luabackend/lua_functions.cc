@@ -158,7 +158,7 @@ int l_logger (lua_State *lua) {
 	space = " ";
     }
 
-    L.log(lb->backend_name + s.str(), (Logger::Urgency) log_level);
+    g_log.log(lb->backend_name + s.str(), (Logger::Urgency) log_level);
 
     return 0;
 }

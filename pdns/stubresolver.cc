@@ -35,7 +35,7 @@ static time_t s_localResolvConfLastCheck = 0;
 bool resolversDefined()
 {
   if (s_resolversForStub.empty()) {
-    L<<Logger::Warning<<"No upstream resolvers configured, stub resolving (including secpoll and ALIAS) impossible."<<endl;
+    g_log<<Logger::Warning<<"No upstream resolvers configured, stub resolving (including secpoll and ALIAS) impossible."<<endl;
     return false;
   }
   return true;
@@ -131,7 +131,7 @@ int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& r
   for (const auto& server : s_resolversForStub) {
     msg += server.toString() + ", ";
   }
-  L<<Logger::Debug<<msg.substr(0, msg.length() - 2)<<endl;
+  g_log<<Logger::Debug<<msg.substr(0, msg.length() - 2)<<endl;
 
   for(const ComboAddress& dest :  s_resolversForStub) {
     Socket sock(dest.sin4.sin_family, SOCK_DGRAM);
@@ -167,7 +167,7 @@ int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& r
         ret.push_back(zrr);
       }
     }
-    L<<Logger::Debug<<"Question got answered by "<<dest.toString()<<endl;
+    g_log<<Logger::Debug<<"Question got answered by "<<dest.toString()<<endl;
     return mdp.d_header.rcode;
   }
   return RCode::ServFail;

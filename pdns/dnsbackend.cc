@@ -96,7 +96,7 @@ void BackendMakerClass::load_all()
   // TODO: Implement this?
   DIR *dir=opendir(arg()["module-dir"].c_str());
   if(!dir) {
-    L<<Logger::Error<<"Unable to open module directory '"<<arg()["module-dir"]<<"'"<<endl;
+    g_log<<Logger::Error<<"Unable to open module directory '"<<arg()["module-dir"]<<"'"<<endl;
     return;
   }
   struct dirent *entry;
@@ -121,7 +121,7 @@ void BackendMakerClass::load(const string &module)
     res=UeberBackend::loadmodule(arg()["module-dir"]+"/"+module);
 
   if(res==false) {
-    L<<Logger::Error<<"DNSBackend unable to load module in "<<module<<endl;
+    g_log<<Logger::Error<<"DNSBackend unable to load module in "<<module<<endl;
     exit(1);
   }
 }
@@ -184,14 +184,14 @@ vector<DNSBackend *>BackendMakerClass::all(bool metadataOnly)
     }
   }
   catch(PDNSException &ae) {
-    L<<Logger::Error<<"Caught an exception instantiating a backend: "<<ae.reason<<endl;
-    L<<Logger::Error<<"Cleaning up"<<endl;
+    g_log<<Logger::Error<<"Caught an exception instantiating a backend: "<<ae.reason<<endl;
+    g_log<<Logger::Error<<"Cleaning up"<<endl;
     for(vector<DNSBackend *>::const_iterator i=ret.begin();i!=ret.end();++i)
       delete *i;
     throw;
   } catch(...) {
     // and cleanup
-    L<<Logger::Error<<"Caught an exception instantiating a backend, cleaning up"<<endl;
+    g_log<<Logger::Error<<"Caught an exception instantiating a backend, cleaning up"<<endl;
     for(vector<DNSBackend *>::const_iterator i=ret.begin();i!=ret.end();++i)
       delete *i;
     throw;
@@ -249,14 +249,14 @@ bool DNSBackend::getSOA(const DNSName &domain, SOAData &sd, bool unmodifiedSeria
   }
 
   if(!unmodifiedSerial && !sd.serial) { // magic time!
-    DLOG(L<<Logger::Warning<<"Doing SOA serial number autocalculation for "<<rr.qname<<endl);
+    DLOG(g_log<<Logger::Warning<<"Doing SOA serial number autocalculation for "<<rr.qname<<endl);
 
     uint32_t serial = 0;
     if (calculateSOASerial(domain, sd, serial)) {
       sd.serial = serial;
-      //DLOG(L<<"autocalculated soa serialnumber for "<<rr.qname<<" is "<<newest<<endl);
+      //DLOG(g_log<<"autocalculated soa serialnumber for "<<rr.qname<<" is "<<newest<<endl);
     } else {
-      DLOG(L<<"soa serialnumber calculation failed for "<<rr.qname<<endl);
+      DLOG(g_log<<"soa serialnumber calculation failed for "<<rr.qname<<endl);
     }
 
   }
@@ -339,7 +339,7 @@ bool DNSBackend::calculateSOASerial(const DNSName& domain, const SOAData& sd, ui
     uint32_t newest=0;
 
     if(!(this->list(domain, sd.domain_id))) {
-      DLOG(L<<Logger::Warning<<"Backend error trying to determine magic serial number of zone '"<<domain<<"'"<<endl);
+      DLOG(g_log<<Logger::Warning<<"Backend error trying to determine magic serial number of zone '"<<domain<<"'"<<endl);
       return false;
     }
 

@@ -77,7 +77,7 @@ bool SyncRes::s_nopacketcache;
 bool SyncRes::s_rootNXTrust;
 bool SyncRes::s_noEDNS;
 
-#define LOG(x) if(d_lm == Log) { L <<Logger::Warning << x; } else if(d_lm == Store) { d_trace << x; }
+#define LOG(x) if(d_lm == Log) { g_log <<Logger::Warning << x; } else if(d_lm == Store) { d_trace << x; }
 
 static void accountAuthLatency(int usec, int family)
 {
@@ -2890,23 +2890,23 @@ int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback) {
     return res;
   }
   catch(const PDNSException& e) {
-    L<<Logger::Error<<"Failed to update . records, got an exception: "<<e.reason<<endl;
+    g_log<<Logger::Error<<"Failed to update . records, got an exception: "<<e.reason<<endl;
   }
   catch(const ImmediateServFailException& e) {
-    L<<Logger::Error<<"Failed to update . records, got an exception: "<<e.reason<<endl;
+    g_log<<Logger::Error<<"Failed to update . records, got an exception: "<<e.reason<<endl;
   }
   catch(const std::exception& e) {
-    L<<Logger::Error<<"Failed to update . records, got an exception: "<<e.what()<<endl;
+    g_log<<Logger::Error<<"Failed to update . records, got an exception: "<<e.what()<<endl;
   }
   catch(...) {
-    L<<Logger::Error<<"Failed to update . records, got an exception"<<endl;
+    g_log<<Logger::Error<<"Failed to update . records, got an exception"<<endl;
   }
 
   if(!res) {
-    L<<Logger::Notice<<"Refreshed . records"<<endl;
+    g_log<<Logger::Notice<<"Refreshed . records"<<endl;
   }
   else
-    L<<Logger::Error<<"Failed to update . records, RCODE="<<res<<endl;
+    g_log<<Logger::Error<<"Failed to update . records, RCODE="<<res<<endl;
 
   return res;
 }

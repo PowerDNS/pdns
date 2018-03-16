@@ -71,8 +71,6 @@ What to do with timeouts. We keep around at most 65536 outstanding answers.
 #include "dnsrecords.hh"
 #include "ednssubnet.hh"
 #include "ednsoptions.hh"
-// this is needed because boost multi_index also uses 'L', as do we (which is sad enough)
-#undef L
 
 #include <set>
 #include <deque>

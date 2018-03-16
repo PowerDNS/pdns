@@ -2258,7 +2258,7 @@ try
     bindAny(cs->local.sin4.sin_family, cs->udpFD);
 
     //    if (!setSocketTimestamps(cs->udpFD))
-    //      L<<Logger::Warning<<"Unable to enable timestamp reporting for socket"<<endl;
+    //      g_log<<Logger::Warning<<"Unable to enable timestamp reporting for socket"<<endl;
 
 
     if(IsAnyAddress(cs->local)) {

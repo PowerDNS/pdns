@@ -212,7 +212,7 @@ class Pkcs11Slot {
     void logError(const std::string& operation) const {
       if (d_err) {
         std::string msg = boost::str( boost::format("PKCS#11 operation %s failed: %s (0x%X)") % operation % p11_kit_strerror(d_err) % d_err );
-        L<<Logger::Error<< msg << endl;
+        g_log<<Logger::Error<< msg << endl;
       }
     }
 
@@ -291,7 +291,7 @@ class Pkcs11Token {
     void logError(const std::string& operation) const {
       if (d_err) {
         std::string msg = boost::str( boost::format("PKCS#11 operation %s failed: %s (0x%X)") % operation % p11_kit_strerror(d_err) % d_err );
-        L<<Logger::Error<< msg << endl;
+        g_log<<Logger::Error<< msg << endl;
       }
     }
 
@@ -353,7 +353,7 @@ class Pkcs11Token {
       attr.push_back(P11KitAttribute(CKA_LABEL, d_label));
       FindObjects2(attr, key, 1);
       if (key.size() == 0) {
-        L<<Logger::Warning<<"Cannot load PCKS#11 private key "<<d_label<<std::endl;;
+        g_log<<Logger::Warning<<"Cannot load PCKS#11 private key "<<d_label<<std::endl;;
         return;
       }
       d_private_key = key[0];
@@ -363,7 +363,7 @@ class Pkcs11Token {
       attr.push_back(P11KitAttribute(CKA_LABEL, d_pub_label));
       FindObjects2(attr, key, 1);
       if (key.size() == 0) {
-        L<<Logger::Warning<<"Cannot load PCKS#11 public key "<<d_pub_label<<std::endl;
+        g_log<<Logger::Warning<<"Cannot load PCKS#11 public key "<<d_pub_label<<std::endl;
         return;
       }
       d_public_key = key[0];
@@ -667,7 +667,7 @@ CK_RV Pkcs11Slot::HuntSlot(const string& tokenId, CK_SLOT_ID &slotId, _CK_SLOT_I
   // this is required by certain tokens, otherwise C_GetSlotInfo will not return a token
   err = functions->C_GetSlotList(CK_FALSE, NULL_PTR, &slots);
   if (err) {
-    L<<Logger::Warning<<"C_GetSlotList(CK_FALSE, NULL_PTR, &slots) = " << err << std::endl;
+    g_log<<Logger::Warning<<"C_GetSlotList(CK_FALSE, NULL_PTR, &slots) = " << err << std::endl;
     return err;
   }
 
@@ -675,7 +675,7 @@ CK_RV Pkcs11Slot::HuntSlot(const string& tokenId, CK_SLOT_ID &slotId, _CK_SLOT_I
   std::vector<CK_SLOT_ID> slotIds(slots);
   err = functions->C_GetSlotList(CK_FALSE, slotIds.data(), &slots);
   if (err) {
-    L<<Logger::Warning<<"C_GetSlotList(CK_FALSE, slotIds, &slots) = " << err << std::endl;
+    g_log<<Logger::Warning<<"C_GetSlotList(CK_FALSE, slotIds, &slots) = " << err << std::endl;
     return err;
   }
 
@@ -685,11 +685,11 @@ CK_RV Pkcs11Slot::HuntSlot(const string& tokenId, CK_SLOT_ID &slotId, _CK_SLOT_I
     if (slotId == static_cast<CK_SLOT_ID>(-1))
       continue;
     if ((err = functions->C_GetSlotInfo(slotId, info))) {
-      L<<Logger::Warning<<"C_GetSlotList("<<slotId<<", info) = " << err << std::endl;
+      g_log<<Logger::Warning<<"C_GetSlotList("<<slotId<<", info) = " << err << std::endl;
       return err;
     }
     if ((err = functions->C_GetTokenInfo(slotId, &tinfo))) {
-      L<<Logger::Warning<<"C_GetSlotList("<<slotId<<", &tinfo) = " << err << std::endl;
+      g_log<<Logger::Warning<<"C_GetSlotList("<<slotId<<", &tinfo) = " << err << std::endl;
       return err;
     }
     std::string slotName;
@@ -706,10 +706,10 @@ CK_RV Pkcs11Slot::HuntSlot(const string& tokenId, CK_SLOT_ID &slotId, _CK_SLOT_I
   try {
     slotId = std::stoi(tokenId);
     if ((err = functions->C_GetSlotInfo(slotId, info))) {
-      L<<Logger::Warning<<"C_GetSlotList("<<slotId<<", info) = " << err << std::endl;
+      g_log<<Logger::Warning<<"C_GetSlotList("<<slotId<<", info) = " << err << std::endl;
       return err;
     }
-    L<<Logger::Warning<<"Specifying PKCS#11 token by SLOT ID is deprecated and should not be used"<<std::endl;
+    g_log<<Logger::Warning<<"Specifying PKCS#11 token by SLOT ID is deprecated and should not be used"<<std::endl;
     return 0;
   } catch (...) {
     return CKR_SLOT_ID_INVALID;
@@ -873,7 +873,7 @@ std::string PKCS11DNSCryptoKeyEngine::hash(const std::string& msg) const {
       throw PDNSException("Not logged in to token");
 
   if (d_slot->Digest(msg, result, &mech)) {
-    L<<Logger::Error<<"Could not digest using PKCS#11 token - using software workaround"<<endl;
+    g_log<<Logger::Error<<"Could not digest using PKCS#11 token - using software workaround"<<endl;
     // FINE! I'll do this myself, then, shall I?
     switch(d_algorithm) {
     case 5: {

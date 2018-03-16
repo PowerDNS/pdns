@@ -337,7 +337,7 @@ void RecursorLua4::postPrepareContext()
         }
       }
       catch(std::exception& e) {
-        theL() <<Logger::Error<<e.what()<<endl;
+        g_log <<Logger::Error<<e.what()<<endl;
       }
     }
   );
@@ -563,7 +563,7 @@ loop:;
         dq.udpAnswer = GenUDPQueryResponse(dq.udpQueryDest, dq.udpQuery);
         auto cbFunc = d_lw->readVariable<boost::optional<luacall_t>>(dq.udpCallback).get_value_or(0);
         if(!cbFunc) {
-          theL()<<Logger::Error<<"Attempted callback for Lua UDP Query/Response which could not be found"<<endl;
+          g_log<<Logger::Error<<"Attempted callback for Lua UDP Query/Response which could not be found"<<endl;
           return false;
         }
         bool result=cbFunc(&dq);

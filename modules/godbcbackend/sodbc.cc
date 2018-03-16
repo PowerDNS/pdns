@@ -189,7 +189,7 @@ public:
     SQLRETURN result;
     // cerr<<"execute("<<d_query<<")"<<endl;
     if (d_dolog) {
-      L<<Logger::Warning<<"Query: "<<d_query<<endl;
+      g_log<<Logger::Warning<<"Query: "<<d_query<<endl;
     }
 
     result = SQLExecute(d_statement);

@@ -54,11 +54,11 @@ gSQLite3Backend::gSQLite3Backend( const std::string & mode, const std::string & 
   }  
   catch( SSqlException & e ) 
   {
-    L << Logger::Error << mode << ": connection failed: " << e.txtReason() << std::endl;
+    g_log << Logger::Error << mode << ": connection failed: " << e.txtReason() << std::endl;
     throw PDNSException( "Unable to launch " + mode + " connection: " + e.txtReason());
   }
 
-  L << Logger::Info << mode << ": connection to '"<<getArg("database")<<"' successful" << std::endl;
+  g_log << Logger::Info << mode << ": connection to '"<<getArg("database")<<"' successful" << std::endl;
 }
 
 
@@ -174,7 +174,7 @@ public:
   gSQLite3Loader()
   {
     BackendMakers().report( new gSQLite3Factory( "gsqlite3" ));
-    L << Logger::Info << "[gsqlite3] This is the gsqlite3 backend version " VERSION
+    g_log << Logger::Info << "[gsqlite3] This is the gsqlite3 backend version " VERSION
 #ifndef REPRODUCIBLE
       << " (" __DATE__ " " __TIME__ ")"
 #endif

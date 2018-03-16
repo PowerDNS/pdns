@@ -2155,7 +2155,7 @@ private:
         throw OracleException("Setting session pool get mode", oraerr);
       }
     } catch (OracleException &theException) {
-      L << Logger::Critical << "OracleFactory: "
+      g_log << Logger::Critical << "OracleFactory: "
         << theException.reason << endl;
       Cleanup();
       throw theException;
@@ -2176,7 +2176,7 @@ private:
           throw OracleException("OCISessionPoolDestroy", oraerr);
         }
       } catch (OracleException &theException) {
-        L << Logger::Error << "Failed to destroy Oracle session pool: "
+        g_log << Logger::Error << "Failed to destroy Oracle session pool: "
           << theException.reason << endl;
       }
     }
@@ -2290,7 +2290,7 @@ public:
   OracleLoader()
   {
     BackendMakers().report(new OracleFactory);
-    L << Logger::Info << "[oraclebackend] This is the oracle backend version " VERSION
+    g_log << Logger::Info << "[oraclebackend] This is the oracle backend version " VERSION
 #ifndef REPRODUCIBLE
       << " (" __DATE__ " " __TIME__ ")"
 #endif

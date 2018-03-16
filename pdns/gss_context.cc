@@ -456,17 +456,17 @@ bool gss_add_signature(const DNSName& context, const std::string& message, std::
   string tmp_mac;
   GssContext gssctx(context);
   if (!gssctx.valid()) {
-    L<<Logger::Error<<"GSS context '"<<context<<"' is not valid"<<endl;
+    g_log<<Logger::Error<<"GSS context '"<<context<<"' is not valid"<<endl;
     for(const string& error :  gssctx.getErrorStrings()) {
-       L<<Logger::Error<<"GSS error: "<<error<<endl;;
+       g_log<<Logger::Error<<"GSS error: "<<error<<endl;;
     }
     return false;
   }
 
   if (!gssctx.sign(message, tmp_mac)) {
-    L<<Logger::Error<<"Could not sign message using GSS context '"<<context<<"'"<<endl;
+    g_log<<Logger::Error<<"Could not sign message using GSS context '"<<context<<"'"<<endl;
     for(const string& error :  gssctx.getErrorStrings()) {
-       L<<Logger::Error<<"GSS error: "<<error<<endl;;
+       g_log<<Logger::Error<<"GSS error: "<<error<<endl;;
     }
     return false;
   }
@@ -477,17 +477,17 @@ bool gss_add_signature(const DNSName& context, const std::string& message, std::
 bool gss_verify_signature(const DNSName& context, const std::string& message, const std::string& mac) {
   GssContext gssctx(context);
   if (!gssctx.valid()) {
-    L<<Logger::Error<<"GSS context '"<<context<<"' is not valid"<<endl;
+    g_log<<Logger::Error<<"GSS context '"<<context<<"' is not valid"<<endl;
     for(const string& error :  gssctx.getErrorStrings()) {
-       L<<Logger::Error<<"GSS error: "<<error<<endl;;
+       g_log<<Logger::Error<<"GSS error: "<<error<<endl;;
     }
     return false;
   }
 
   if (!gssctx.verify(message, mac)) {
-    L<<Logger::Error<<"Could not verify message using GSS context '"<<context<<"'"<<endl;
+    g_log<<Logger::Error<<"Could not verify message using GSS context '"<<context<<"'"<<endl;
     for(const string& error :  gssctx.getErrorStrings()) {
-       L<<Logger::Error<<"GSS error: "<<error<<endl;;
+       g_log<<Logger::Error<<"GSS error: "<<error<<endl;;
     }
     return false;
   }

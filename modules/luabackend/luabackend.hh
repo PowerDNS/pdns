@@ -36,7 +36,6 @@
 #include <string>
 using std::string;
 
-//#undef L
 
 
 

@@ -110,7 +110,7 @@ void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngine::Zon
     else if(!crcTarget.empty() && !crcTarget.isRoot() && crcTarget.getRawLabel(crcTarget.countLabels() - 1).compare(0, rpzPrefix.length(), rpzPrefix) == 0) {
       /* this is very likely an higher format number or a configuration error,
          let's just ignore it. */
-      L<<Logger::Info<<"Discarding unsupported RPZ entry "<<crcTarget<<" for "<<dr.d_name<<endl;
+      g_log<<Logger::Info<<"Discarding unsupported RPZ entry "<<crcTarget<<" for "<<dr.d_name<<endl;
       return;
     }
     else {
@@ -177,9 +177,9 @@ void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngine::Zon
 
 shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const DNSName& zoneName, std::shared_ptr<DNSFilterEngine::Zone> zone, boost::optional<DNSFilterEngine::Policy> defpol, uint32_t maxTTL, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, uint16_t axfrTimeout)
 {
-  L<<Logger::Warning<<"Loading RPZ zone '"<<zoneName<<"' from "<<master.toStringWithPort()<<endl;
+  g_log<<Logger::Warning<<"Loading RPZ zone '"<<zoneName<<"' from "<<master.toStringWithPort()<<endl;
   if(!tt.name.empty())
-    L<<Logger::Warning<<"With TSIG key '"<<tt.name<<"' of algorithm '"<<tt.algo<<"'"<<endl;
+    g_log<<Logger::Warning<<"With TSIG key '"<<tt.name<<"' of algorithm '"<<tt.algo<<"'"<<endl;
 
   ComboAddress local(localAddress);
   if (local == ComboAddress())
@@ -213,11 +213,11 @@ shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const
       throw PDNSException("Total AXFR time exceeded!");
     }
     if(last != time(0)) {
-      L<<Logger::Info<<"Loaded & indexed "<<nrecords<<" policy records so far"<<endl;
+      g_log<<Logger::Info<<"Loaded & indexed "<<nrecords<<" policy records so far"<<endl;
       last=time(0);
     }
   }
-  L<<Logger::Info<<"Done: "<<nrecords<<" policy records active, SOA: "<<sr->getZoneRepresentation()<<endl;
+  g_log<<Logger::Info<<"Done: "<<nrecords<<" policy records active, SOA: "<<sr->getZoneRepresentation()<<endl;
   return sr;
 }
 
@@ -300,11 +300,11 @@ void RPZIXFRTracker(const ComboAddress& master, boost::optional<DNSFilterEngine:
       setRPZZoneNewState(polName, sr->d_st.serial, zone->size(), true);
     }
     catch(const std::exception& e) {
-      theL()<<Logger::Warning<<"Unable to load RPZ zone '"<<zoneName<<"' from '"<<master<<"': '"<<e.what()<<"'. (Will try again in "<<refresh<<" seconds...)"<<endl;
+      g_log<<Logger::Warning<<"Unable to load RPZ zone '"<<zoneName<<"' from '"<<master<<"': '"<<e.what()<<"'. (Will try again in "<<refresh<<" seconds...)"<<endl;
       incRPZFailedTransfers(polName);
     }
     catch(const PDNSException& e) {
-      theL()<<Logger::Warning<<"Unable to load RPZ zone '"<<zoneName<<"' from '"<<master<<"': '"<<e.reason<<"'. (Will try again in "<<refresh<<" seconds...)"<<endl;
+      g_log<<Logger::Warning<<"Unable to load RPZ zone '"<<zoneName<<"' from '"<<master<<"': '"<<e.reason<<"'. (Will try again in "<<refresh<<" seconds...)"<<endl;
       incRPZFailedTransfers(polName);
     }
 
@@ -323,7 +323,7 @@ void RPZIXFRTracker(const ComboAddress& master, boost::optional<DNSFilterEngine:
 
     sleep(refresh);
 
-    L<<Logger::Info<<"Getting IXFR deltas for "<<zoneName<<" from "<<master.toStringWithPort()<<", our serial: "<<getRR<SOARecordContent>(dr)->d_st.serial<<endl;
+    g_log<<Logger::Info<<"Getting IXFR deltas for "<<zoneName<<" from "<<master.toStringWithPort()<<", our serial: "<<getRR<SOARecordContent>(dr)->d_st.serial<<endl;
     vector<pair<vector<DNSRecord>, vector<DNSRecord> > > deltas;
 
     ComboAddress local(localAddress);
@@ -333,13 +333,13 @@ void RPZIXFRTracker(const ComboAddress& master, boost::optional<DNSFilterEngine:
     try {
       deltas = getIXFRDeltas(master, zoneName, dr, tt, &local, maxReceivedBytes);
     } catch(std::runtime_error& e ){
-      L<<Logger::Warning<<e.what()<<endl;
+      g_log<<Logger::Warning<<e.what()<<endl;
       incRPZFailedTransfers(polName);
       continue;
     }
     if(deltas.empty())
       continue;
-    L<<Logger::Info<<"Processing "<<deltas.size()<<" delta"<<addS(deltas)<<" for RPZ "<<zoneName<<endl;
+    g_log<<Logger::Info<<"Processing "<<deltas.size()<<" delta"<<addS(deltas)<<" for RPZ "<<zoneName<<endl;
 
     auto luaconfsLocal = g_luaconfs.getLocal();
     const std::shared_ptr<DNSFilterEngine::Zone> oldZone = luaconfsLocal->dfe.getZone(zoneIdx);
@@ -352,7 +352,7 @@ void RPZIXFRTracker(const ComboAddress& master, boost::optional<DNSFilterEngine:
       const auto& remove = delta.first;
       const auto& add = delta.second;
       if(remove.empty()) {
-        L<<Logger::Warning<<"IXFR update is a whole new zone"<<endl;
+        g_log<<Logger::Warning<<"IXFR update is a whole new zone"<<endl;
         newZone->clear();
         fullUpdate = true;
       }
@@ -365,11 +365,11 @@ void RPZIXFRTracker(const ComboAddress& master, boost::optional<DNSFilterEngine:
 	    //	    cout<<"Got good removal of SOA serial "<<oldsr->d_st.serial<<endl;
 	  }
 	  else
-	    L<<Logger::Error<<"GOT WRONG SOA SERIAL REMOVAL, SHOULD TRIGGER WHOLE RELOAD"<<endl;
+	    g_log<<Logger::Error<<"GOT WRONG SOA SERIAL REMOVAL, SHOULD TRIGGER WHOLE RELOAD"<<endl;
 	}
 	else {
           totremove++;
-	  L<<(g_logRPZChanges ? Logger::Info : Logger::Debug)<<"Had removal of "<<rr.d_name<<" from RPZ zone "<<zoneName<<endl;
+	  g_log<<(g_logRPZChanges ? Logger::Info : Logger::Debug)<<"Had removal of "<<rr.d_name<<" from RPZ zone "<<zoneName<<endl;
 	  RPZRecordToPolicy(rr, newZone, false, defpol, maxTTL);
 	}
       }
@@ -379,19 +379,19 @@ void RPZIXFRTracker(const ComboAddress& master, boost::optional<DNSFilterEngine:
           continue;
 	if(rr.d_type == QType::SOA) {
 	  auto newsr = getRR<SOARecordContent>(rr);
-	  //	  L<<Logger::Info<<"New SOA serial for "<<zoneName<<": "<<newsr->d_st.serial<<endl;
+	  //	  g_log<<Logger::Info<<"New SOA serial for "<<zoneName<<": "<<newsr->d_st.serial<<endl;
 	  if (newsr) {
 	    sr = newsr;
 	  }
 	}
 	else {
           totadd++;
-	  L<<(g_logRPZChanges ? Logger::Info : Logger::Debug)<<"Had addition of "<<rr.d_name<<" to RPZ zone "<<zoneName<<endl;
+	  g_log<<(g_logRPZChanges ? Logger::Info : Logger::Debug)<<"Had addition of "<<rr.d_name<<" to RPZ zone "<<zoneName<<endl;
 	  RPZRecordToPolicy(rr, newZone, true, defpol, maxTTL);
 	}
       }
     }
-    L<<Logger::Info<<"Had "<<totremove<<" RPZ removal"<<addS(totremove)<<", "<<totadd<<" addition"<<addS(totadd)<<" for "<<zoneName<<" New serial: "<<sr->d_st.serial<<endl;
+    g_log<<Logger::Info<<"Had "<<totremove<<" RPZ removal"<<addS(totremove)<<", "<<totadd<<" addition"<<addS(totadd)<<" for "<<zoneName<<" New serial: "<<sr->d_st.serial<<endl;
     newZone->setSerial(sr->d_st.serial);
     setRPZZoneNewState(polName, sr->d_st.serial, newZone->size(), fullUpdate);
 
