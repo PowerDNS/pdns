@@ -9,7 +9,7 @@ if [ -n "$PDNSDEBUG" ]; then
   set -x
 fi
 
-PKGNAME="pdns-backend-gmysql"
+PKGNAME="pdns-backend-mysql"
 
 # rename ucf-conffile. This was mostly stolen from cacti.postinst after
 # a short discussion on debian-mentors, see
@@ -41,6 +41,10 @@ renameconffile() {
 }
 
 if [ "$1" = "configure" ]; then
+  if ucfq -w /etc/powerdns/pdns.d/pdns.local.gmysql.conf | grep 'pdns-backend-gmysql' >/dev/null; then
+    # before 4.0.0~beta1 (Debian), 4.1.2... (powerdns.com), PKGNAME was incorrectly set to pdns-backend-gmysql. Fix that.
+    ucfr --purge 'pdns-backend-gmysql' '/etc/powerdns/pdns.d/pdns.local.gmysql.conf'
+  fi
   if [ -n "$2" ] && dpkg --compare-versions "$2" lt 3.3; then
     renameconffile /etc/powerdns/pdns.d/pdns.local.gmysql /etc/powerdns/pdns.d/pdns.local.gmysql.conf /dev/null
   fi

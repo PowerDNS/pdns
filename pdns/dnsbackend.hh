@@ -128,7 +128,7 @@ public:
   virtual bool getSOA(const DNSName &name, SOAData &soadata, bool unmodifiedSerial=false);
 
   //! Calculates a SOA serial for the zone and stores it in the third argument.
-  virtual bool calculateSOASerial(const DNSName& domain, const SOAData& sd, time_t& serial);
+  virtual bool calculateSOASerial(const DNSName& domain, const SOAData& sd, uint32_t& serial);
 
   virtual bool replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset)
   {

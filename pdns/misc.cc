@@ -354,6 +354,44 @@ int waitForRWData(int fd, bool waitForRead, int seconds, int useconds, bool* err
 }
 
 // returns -1 in case of error, 0 if no data is available, 1 if there is. In the first two cases, errno is set
+int waitForMultiData(const set<int>& fds, const int seconds, const int useconds, int* fd) {
+  set<int> realFDs;
+  for (const auto& fd : fds) {
+    if (fd >= 0 && realFDs.count(fd) == 0) {
+      realFDs.insert(fd);
+    }
+  }
+
+  struct pollfd pfds[realFDs.size()];
+  memset(&pfds[0], 0, realFDs.size()*sizeof(struct pollfd));
+  int ctr = 0;
+  for (const auto& fd : realFDs) {
+    pfds[ctr].fd = fd;
+    pfds[ctr].events = POLLIN;
+    ctr++;
+  }
+
+  int ret;
+  if(seconds >= 0)
+    ret = poll(pfds, realFDs.size(), seconds * 1000 + useconds/1000);
+  else
+    ret = poll(pfds, realFDs.size(), -1);
+  if(ret <= 0)
+    return ret;
+
+  set<int> pollinFDs;
+  for (const auto& pfd : pfds) {
+    if (pfd.revents & POLLIN) {
+      pollinFDs.insert(pfd.fd);
+    }
+  }
+  set<int>::const_iterator it(pollinFDs.begin());
+  advance(it, random() % pollinFDs.size());
+  *fd = *it;
+  return 1;
+}
+
+// returns -1 in case of error, 0 if no data is available, 1 if there is. In the first two cases, errno is set
 int waitFor2Data(int fd1, int fd2, int seconds, int useconds, int*fd)
 {
   int ret;
@@ -1048,6 +1086,14 @@ bool setBlocking(int sock)
   int flags=fcntl(sock,F_GETFL,0);
   if(flags<0 || fcntl(sock, F_SETFL,flags&(~O_NONBLOCK)) <0)
     return false;
+  return true;
+}
+
+bool setReuseAddr(int sock)
+{
+  int tmp = 1;
+  if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char*)&tmp, static_cast<unsigned>(sizeof tmp))<0)
+    throw PDNSException(string("Setsockopt failed: ")+strerror(errno));
   return true;
 }
 

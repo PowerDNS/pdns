@@ -48,47 +48,46 @@ These are all the functions, objects and methods related to the :doc:`../advance
 
   Represents an eBPF filter
 
-.. classmethod:: BPFFilter:attachToAllBinds()
+  .. method:: BPFFilter:attachToAllBinds()
 
-  Attach this filter to every bind already defined.
-  This is the run-time equivalent of :func:`setDefaultBPFFilter`
+    Attach this filter to every bind already defined.
+    This is the run-time equivalent of :func:`setDefaultBPFFilter`
 
-.. classmethod:: BPFFilter:block(address)
+  .. method:: BPFFilter:block(address)
 
-  Block this address
+    Block this address
 
-  :param ComboAddress address: The address to block
+    :param ComboAddress address: The address to block
 
-.. classmethod:: BPFFilter:blockQName(name [, qtype=255])
+  .. method:: BPFFilter:blockQName(name [, qtype=255])
 
-  Block queries for this exact qname. An optional qtype can be used, defaults to 255.
+    Block queries for this exact qname. An optional qtype can be used, defaults to 255.
 
-  :param DNSName name: The name to block
-  :param int qtype: QType to block
+    :param DNSName name: The name to block
+    :param int qtype: QType to block
 
-.. classmethod:: BPFFilter:getStats()
+  .. method:: BPFFilter:getStats()
 
-  Print the block tables.
+    Print the block tables.
 
-.. classmethod:: BPFFilter:unblock(address)
+  .. method:: BPFFilter:purgeExpired()
 
-  Unblock this address.
+    Remove the expired ephemeral rules associated with this filter.
 
-  :param ComboAddress address: The address to unblock
+  .. method:: BPFFilter:unblock(address)
 
-.. classmethod:: BPFFilter:unblockQName(name [, qtype=255])
+    Unblock this address.
 
-  Remove this qname from the block list.
+    :param ComboAddress address: The address to unblock
 
-  :param DNSName name: the name to unblock
-  :param int qtype: The qtype to unblock
+  .. method:: BPFFilter:unblockQName(name [, qtype=255])
+
+    Remove this qname from the block list.
+
+    :param DNSName name: the name to unblock
+    :param int qtype: The qtype to unblock
 
 .. class:: DynBPFFilter
 
   Represents an dynamic eBPF filter, allowing the use of ephemeral rules to an existing eBPF filter.
-
-.. classmethod:: BPFFilter:purgeExpired()
-
-  Remove the expired ephemeral rules associated with this filter.
-
 

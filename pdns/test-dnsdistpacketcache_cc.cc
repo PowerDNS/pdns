@@ -7,6 +7,7 @@
 #include "iputils.hh"
 #include "dnswriter.hh"
 #include "dnsdist-cache.hh"
+#include "gettime.hh"
 
 BOOST_AUTO_TEST_SUITE(dnsdistpacketcache_cc)
 
@@ -14,6 +15,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
   const size_t maxEntries = 150000;
   DNSDistPacketCache PC(maxEntries, 86400, 1);
   BOOST_CHECK_EQUAL(PC.getSize(), 0);
+  struct timespec queryTime;
+  gettime(&queryTime);  // does not have to be accurate ("realTime") in tests
 
   size_t counter=0;
   size_t skipped=0;
@@ -41,7 +44,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
       char responseBuf[4096];
       uint16_t responseBufSize = sizeof(responseBuf);
       uint32_t key = 0;
-      DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, (struct dnsheader*) query.data(), query.size(), query.size(), false);
+      DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, (struct dnsheader*) query.data(), query.size(), query.size(), false, &queryTime);
       bool found = PC.get(dq, a.wirelength(), 0, responseBuf, &responseBufSize, &key);
       BOOST_CHECK_EQUAL(found, false);
 
@@ -71,7 +74,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
       char responseBuf[4096];
       uint16_t responseBufSize = sizeof(responseBuf);
       uint32_t key = 0;
-      DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, (struct dnsheader*) query.data(), query.size(), query.size(), false);
+      DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, (struct dnsheader*) query.data(), query.size(), query.size(), false, &queryTime);
       bool found = PC.get(dq, a.wirelength(), 0, responseBuf, &responseBufSize, &key);
       if (found == true) {
         PC.expungeByName(a);
@@ -93,7 +96,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
       uint32_t key = 0;
       char response[4096];
       uint16_t responseSize = sizeof(response);
-      DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, (struct dnsheader*) query.data(), len, query.size(), false);
+      DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, (struct dnsheader*) query.data(), len, query.size(), false, &queryTime);
       if(PC.get(dq, a.wirelength(), pwQ.getHeader()->id, response, &responseSize, &key)) {
         matches++;
       }
@@ -112,6 +115,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
 BOOST_AUTO_TEST_CASE(test_PacketCacheServFailTTL) {
   const size_t maxEntries = 150000;
   DNSDistPacketCache PC(maxEntries, 86400, 1);
+  struct timespec queryTime;
+  gettime(&queryTime);  // does not have to be accurate ("realTime") in tests
 
   ComboAddress remote;
   try {
@@ -135,7 +140,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheServFailTTL) {
     char responseBuf[4096];
     uint16_t responseBufSize = sizeof(responseBuf);
     uint32_t key = 0;
-    DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, (struct dnsheader*) query.data(), query.size(), query.size(), false);
+    DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, (struct dnsheader*) query.data(), query.size(), query.size(), false, &queryTime);
     bool found = PC.get(dq, a.wirelength(), 0, responseBuf, &responseBufSize, &key);
     BOOST_CHECK_EQUAL(found, false);
 
@@ -159,6 +164,8 @@ static DNSDistPacketCache PC(500000);
 
 static void *threadMangler(void* off)
 {
+  struct timespec queryTime;
+  gettime(&queryTime);  // does not have to be accurate ("realTime") in tests
   try {
     ComboAddress remote;
     unsigned int offset=(unsigned int)(unsigned long)off;
@@ -182,7 +189,7 @@ static void *threadMangler(void* off)
       char responseBuf[4096];
       uint16_t responseBufSize = sizeof(responseBuf);
       uint32_t key = 0;
-      DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, (struct dnsheader*) query.data(), query.size(), query.size(), false);
+      DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, (struct dnsheader*) query.data(), query.size(), query.size(), false, &queryTime);
       PC.get(dq, a.wirelength(), 0, responseBuf, &responseBufSize, &key);
 
       PC.insert(key, a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false, 0, boost::none);
@@ -199,6 +206,8 @@ AtomicCounter g_missing;
 
 static void *threadReader(void* off)
 {
+  struct timespec queryTime;
+  gettime(&queryTime);  // does not have to be accurate ("realTime") in tests
   try
   {
     unsigned int offset=(unsigned int)(unsigned long)off;
@@ -213,7 +222,7 @@ static void *threadReader(void* off)
       char responseBuf[4096];
       uint16_t responseBufSize = sizeof(responseBuf);
       uint32_t key = 0;
-      DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, (struct dnsheader*) query.data(), query.size(), query.size(), false);
+      DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, (struct dnsheader*) query.data(), query.size(), query.size(), false, &queryTime);
       bool found = PC.get(dq, a.wirelength(), 0, responseBuf, &responseBufSize, &key);
       if (!found) {
 	g_missing++;

@@ -219,6 +219,26 @@ static void addCustomHeaders(YaHTTP::Response& resp, const boost::optional<std::
   }
 }
 
+template<typename T>
+static json11::Json::array someResponseRulesToJson(GlobalStateHolder<vector<T>>* someResponseRules)
+{
+  using namespace json11;
+  Json::array responseRules;
+  int num=0;
+  auto localResponseRules = someResponseRules->getCopy();
+  for(const auto& a : localResponseRules) {
+    Json::object rule{
+      {"id", num++},
+      {"uuid", boost::uuids::to_string(a.d_id)},
+      {"matches", (double)a.d_rule->d_matches},
+      {"rule", a.d_rule->toString()},
+      {"action", a.d_action->toString()},
+    };
+    responseRules.push_back(rule);
+  }
+  return responseRules;
+}
+
 static void connectionThread(int sock, ComboAddress remote, string password, string apiKey, const boost::optional<std::map<std::string, std::string> >& customHeaders)
 {
   using namespace json11;
@@ -448,39 +468,18 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
       for(const auto& a : localRules) {
 	Json::object rule{
           {"id", num++},
-          {"matches", (double)a.first->d_matches},
-          {"rule", a.first->toString()},
-          {"action", a.second->toString()},
-          {"action-stats", a.second->getStats()}
+          {"uuid", boost::uuids::to_string(a.d_id)},
+          {"matches", (double)a.d_rule->d_matches},
+          {"rule", a.d_rule->toString()},
+          {"action", a.d_action->toString()},
+          {"action-stats", a.d_action->getStats()}
         };
 	rules.push_back(rule);
       }
       
-      Json::array responseRules;
-      auto localResponseRules = g_resprulactions.getCopy();
-      num=0;
-      for(const auto& a : localResponseRules) {
-        Json::object rule{
-          {"id", num++},
-          {"matches", (double)a.first->d_matches},
-          {"rule", a.first->toString()},
-          {"action", a.second->toString()},
-        };
-        responseRules.push_back(rule);
-      }
-
-      Json::array cacheHitResponseRules;
-      num=0;
-      auto localCacheHitResponseRules = g_cachehitresprulactions.getCopy();
-      for(const auto& a : localCacheHitResponseRules) {
-        Json::object rule{
-          {"id", num++},
-          {"matches", (double)a.first->d_matches},
-          {"rule", a.first->toString()},
-          {"action", a.second->toString()},
-        };
-        cacheHitResponseRules.push_back(rule);
-      }
+      auto responseRules = someResponseRulesToJson(&g_resprulactions);
+      auto cacheHitResponseRules = someResponseRulesToJson(&g_cachehitresprulactions);
+      auto selfAnsweredResponseRules = someResponseRulesToJson(&g_selfansweredresprulactions);
 
       string acl;
 
@@ -506,6 +505,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
         { "rules", rules},
         { "response-rules", responseRules},
         { "cache-hit-response-rules", cacheHitResponseRules},
+        { "self-answered-response-rules", selfAnsweredResponseRules},
         { "acl", acl},
         { "local", localaddresses}
       };

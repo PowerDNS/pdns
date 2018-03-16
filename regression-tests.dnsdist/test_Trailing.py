@@ -42,7 +42,7 @@ class TestTrailing(DNSDistTest):
         response.answer.append(rrset)
 
         raw = query.to_wire()
-        raw = raw + 'A'* 20
+        raw = raw + b'A'* 20
         (receivedQuery, receivedResponse) = self.sendUDPQuery(raw, response, rawQuery=True)
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
@@ -66,7 +66,7 @@ class TestTrailing(DNSDistTest):
         query = dns.message.make_query(name, 'AAAA', 'IN')
 
         raw = query.to_wire()
-        raw = raw + 'A'* 20
+        raw = raw + b'A'* 20
 
         (_, receivedResponse) = self.sendUDPQuery(raw, response=None, rawQuery=True)
         self.assertEquals(receivedResponse, None)

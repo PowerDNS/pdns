@@ -1,9 +1,9 @@
 #!/usr/bin/env python2
 
 import copy
-import Queue
 import os
 import socket
+import ssl
 import struct
 import subprocess
 import sys
@@ -15,6 +15,15 @@ import dns
 import dns.message
 import libnacl
 import libnacl.utils
+
+# Python2/3 compatibility hacks
+if sys.version_info[0] == 2:
+  from Queue import Queue
+  range = xrange
+else:
+  from queue import Queue
+  range = range  # allow re-export of the builtin name
+
 
 class DNSDistTest(unittest.TestCase):
     """
@@ -28,8 +37,8 @@ class DNSDistTest(unittest.TestCase):
     _dnsDistPort = 5340
     _dnsDistListeningAddr = "127.0.0.1"
     _testServerPort = 5350
-    _toResponderQueue = Queue.Queue()
-    _fromResponderQueue = Queue.Queue()
+    _toResponderQueue = Queue()
+    _fromResponderQueue = Queue()
     _queueTimeout = 1
     _dnsdistStartupDelay = 2.0
     _dnsdist = None
@@ -68,6 +77,12 @@ class DNSDistTest(unittest.TestCase):
         for acl in cls._acl:
             dnsdistcmd.extend(['--acl', acl])
         print(' '.join(dnsdistcmd))
+
+        # validate config with --check-config, which sets client=true, possibly exposing bugs.
+        testcmd = dnsdistcmd + ['--check-config']
+        output = subprocess.check_output(testcmd, close_fds=True)
+        if output != b'Configuration \'dnsdist_test.conf\' OK!\n':
+            raise AssertionError('dnsdist --check-config failed: %s' % output)
 
         if shutUp:
             with open(os.devnull, 'w') as fdDevNull:
@@ -251,17 +266,36 @@ class DNSDistTest(unittest.TestCase):
         return sock
 
     @classmethod
-    def sendTCPQueryOverConnection(cls, sock, query, rawQuery=False):
+    def openTLSConnection(cls, port, serverName, caCert=None, timeout=None):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        if timeout:
+            sock.settimeout(timeout)
+
+        # 2.7.9+
+        if hasattr(ssl, 'create_default_context'):
+            sslctx = ssl.create_default_context(cafile=caCert)
+            sslsock = sslctx.wrap_socket(sock, server_hostname=serverName)
+        else:
+            sslsock = ssl.wrap_socket(sock, ca_certs=caCert, cert_reqs=ssl.CERT_REQUIRED)
+
+        sslsock.connect(("127.0.0.1", port))
+        return sslsock
+
+    @classmethod
+    def sendTCPQueryOverConnection(cls, sock, query, rawQuery=False, response=None, timeout=2.0):
         if not rawQuery:
             wire = query.to_wire()
         else:
             wire = query
 
+        if response:
+            cls._toResponderQueue.put(response, True, timeout)
+
         sock.send(struct.pack("!H", len(wire)))
         sock.send(wire)
 
     @classmethod
-    def recvTCPResponseOverConnection(cls, sock):
+    def recvTCPResponseOverConnection(cls, sock, useQueue=False, timeout=2.0):
         message = None
         data = sock.recv(2)
         if data:
@@ -269,7 +303,12 @@ class DNSDistTest(unittest.TestCase):
             data = sock.recv(datalen)
             if data:
                 message = dns.message.from_wire(data)
-        return message
+
+        if useQueue and not cls._fromResponderQueue.empty():
+            receivedQuery = cls._fromResponderQueue.get(True, timeout)
+            return (receivedQuery, message)
+        else:
+            return message
 
     @classmethod
     def sendTCPQuery(cls, query, response, useQueue=True, timeout=2.0, rawQuery=False):
@@ -371,6 +410,7 @@ class DNSDistTest(unittest.TestCase):
 
     @classmethod
     def _encryptConsole(cls, command, nonce):
+        command = command.encode('UTF-8')
         if cls._consoleKey is None:
             return command
         return libnacl.crypto_secretbox(command, nonce, cls._consoleKey)
@@ -378,8 +418,10 @@ class DNSDistTest(unittest.TestCase):
     @classmethod
     def _decryptConsole(cls, command, nonce):
         if cls._consoleKey is None:
-            return command
-        return libnacl.crypto_secretbox_open(command, nonce, cls._consoleKey)
+            result = command
+        else:
+            result = libnacl.crypto_secretbox_open(command, nonce, cls._consoleKey)
+        return result.decode('UTF-8')
 
     @classmethod
     def sendConsoleCommand(cls, command, timeout=1.0):
@@ -393,10 +435,10 @@ class DNSDistTest(unittest.TestCase):
         sock.send(ourNonce)
         theirNonce = sock.recv(len(ourNonce))
         if len(theirNonce) != len(ourNonce):
-            print("Received a nonce of size %, expecting %, console command will not be sent!" % (len(theirNonce), len(ourNonce)))
+            print("Received a nonce of size %d, expecting %d, console command will not be sent!" % (len(theirNonce), len(ourNonce)))
             return None
 
-        halfNonceSize = len(ourNonce) / 2
+        halfNonceSize = int(len(ourNonce) / 2)
         readingNonce = ourNonce[0:halfNonceSize] + theirNonce[halfNonceSize:]
         writingNonce = theirNonce[0:halfNonceSize] + ourNonce[halfNonceSize:]
         msg = cls._encryptConsole(command, writingNonce)
@@ -410,7 +452,7 @@ class DNSDistTest(unittest.TestCase):
 
     def compareOptions(self, a, b):
         self.assertEquals(len(a), len(b))
-        for idx in xrange(len(a)):
+        for idx in range(len(a)):
             self.assertEquals(a[idx], b[idx])
 
     def checkMessageNoEDNS(self, expected, received):

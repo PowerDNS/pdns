@@ -2,6 +2,7 @@
 #
 # Shell-script style.
 
+from __future__ import print_function
 import os
 import requests
 import shutil
@@ -70,7 +71,7 @@ def format_call_args(cmd):
 
 
 def run_check_call(cmd, *args, **kwargs):
-    print format_call_args(cmd)
+    print(format_call_args(cmd))
     subprocess.check_call(cmd, *args, **kwargs)
 
 
@@ -86,7 +87,7 @@ tests = [opt.split('=', 1)[1] for opt in tests]
 
 daemon = (len(sys.argv) == 2) and sys.argv[1] or None
 if daemon not in ('authoritative', 'recursor'):
-    print "Usage: ./runtests (authoritative|recursor)"
+    print("Usage: ./runtests (authoritative|recursor)")
     sys.exit(2)
 
 daemon = sys.argv[1]
@@ -99,6 +100,15 @@ common_args = [
     "--webserver=yes", "--webserver-port="+str(WEBPORT), "--webserver-address=127.0.0.1", "--webserver-password=something",
     "--api-key="+APIKEY
 ]
+
+# Take sdig if it exists (recursor in travis), otherwise build it from Authoritative source.
+sdig = os.environ.get("SDIG", "")
+if sdig:
+    sdig = os.path.abspath(sdig)
+if not sdig or not os.path.exists(sdig):
+    run_check_call(["make", "-C", "../pdns", "sdig"])
+    sdig = "../pdns/sdig"
+
 
 if daemon == 'authoritative':
 
@@ -142,11 +152,11 @@ else:
 
 
 # Now run pdns and the tests.
-print "Launching server..."
-print format_call_args(servercmd)
+print("Launching server...")
+print(format_call_args(servercmd))
 serverproc = subprocess.Popen(servercmd, close_fds=True)
 
-print "Waiting for webserver port to become available..."
+print("Waiting for webserver port to become available...")
 available = False
 for try_number in range(0, 10):
     try:
@@ -157,12 +167,15 @@ for try_number in range(0, 10):
         time.sleep(0.5)
 
 if not available:
-    print "Webserver port not reachable after 10 tries, giving up."
+    print("Webserver port not reachable after 10 tries, giving up.")
     serverproc.terminate()
     serverproc.wait()
     sys.exit(2)
 
-print "Running tests..."
+print("Query for example.com/A to create statistic data...")
+run_check_call([sdig, "127.0.0.1", str(DNSPORT), "example.com", "A"])
+
+print("Running tests...")
 returncode = 0
 test_env = {}
 test_env.update(os.environ)
@@ -175,13 +188,13 @@ test_env.update({
 })
 
 try:
-    print ""
+    print("")
     run_check_call(["nosetests", "--with-xunit", "-v"] + tests, env=test_env)
 except subprocess.CalledProcessError as ex:
     returncode = ex.returncode
 finally:
     if wait:
-        print "Waiting as requested, press ENTER to stop."
+        print("Waiting as requested, press ENTER to stop.")
         raw_input()
     serverproc.terminate()
     serverproc.wait()

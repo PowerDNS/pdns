@@ -597,12 +597,13 @@ int PacketHandler::forwardPacket(const string &msgPrefix, DNSPacket *p, DomainIn
     }
 
     ComboAddress local;
-    if(remote.sin4.sin_family == AF_INET)
+    if (remote.sin4.sin_family == AF_INET && !::arg()["query-local-address"].empty()) {
       local = ComboAddress(::arg()["query-local-address"]);
-    else if(!::arg()["query-local-address6"].empty())
+    } else if(remote.sin4.sin_family == AF_INET6 && !::arg()["query-local-address6"].empty()) {
       local = ComboAddress(::arg()["query-local-address6"]);
-    else
-      local = ComboAddress("::");
+    } else {
+      continue;
+    }
     int sock = makeQuerySocket(local, false); // create TCP socket. RFC2136 section 6.2 seems to be ok with this.
     if(sock < 0) {
       L<<Logger::Error<<msgPrefix<<"Error creating socket: "<<stringerror()<<endl;
@@ -833,7 +834,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
     if (rr->d_place == DNSResourceRecord::ANSWER) {
       int res = checkUpdatePrerequisites(rr, &di);
       if (res>0) {
-        L<<Logger::Error<<msgPrefix<<"Failed PreRequisites check, returning "<<res<<endl;
+        L<<Logger::Error<<msgPrefix<<"Failed PreRequisites check, returning "<<RCode::to_s(res)<<endl;
         di.backend->abortTransaction();
         return res;
       }
@@ -880,7 +881,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
         }
       }
       if (matchRR != foundRR || foundRR != vec->size()) {
-        L<<Logger::Error<<msgPrefix<<"Failed PreRequisites check, returning NXRRSet"<<endl;
+        L<<Logger::Error<<msgPrefix<<"Failed PreRequisites check (RRs differ), returning NXRRSet"<<endl;
         di.backend->abortTransaction();
         return RCode::NXRRSet;
       }
@@ -915,6 +916,28 @@ int PacketHandler::processUpdate(DNSPacket *p) {
     // There's a special condition where deleting the last NS record at zone apex is never deleted (3.4.2.4)
     // This means we must do it outside the normal performUpdate() because that focusses only on a separate RR.
     vector<const DNSRecord *> nsRRtoDelete;
+
+    // Another special case is the addition of both a CNAME and a non-CNAME for the same name (#6270)
+    set<DNSName> cn, nocn;
+    for (const auto &rr : mdp.d_answers) {
+      if (rr.first.d_place == DNSResourceRecord::AUTHORITY && rr.first.d_class == QClass::IN && rr.first.d_ttl > 0) {
+        // Addition
+        if (rr.first.d_type == QType::CNAME) {
+          cn.insert(rr.first.d_name);
+        } else if (rr.first.d_type != QType::RRSIG) {
+          nocn.insert(rr.first.d_name);
+        }
+      }
+    }
+    for (auto const &n : cn) {
+      if (nocn.count(n) > 0) {
+        L<<Logger::Error<<msgPrefix<<"Refusing update, found CNAME and non-CNAME addition"<<endl;
+        di.backend->abortTransaction();
+        return RCode::FormErr;
+      }
+    }
+
+    vector<const DNSRecord *> cnamesToAdd, nonCnamesToAdd;
     for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i != mdp.d_answers.end(); ++i) {
       const DNSRecord *rr = &i->first;
       if (rr->d_place == DNSResourceRecord::AUTHORITY) {
@@ -930,9 +953,40 @@ int PacketHandler::processUpdate(DNSPacket *p) {
 
         if (rr->d_class == QClass::NONE  && rr->d_type == QType::NS && rr->d_name == di.zone)
           nsRRtoDelete.push_back(rr);
+        else if (rr->d_class == QClass::IN &&  rr->d_ttl > 0) {
+          if (rr->d_type == QType::CNAME) {
+            cnamesToAdd.push_back(rr);
+          } else {
+            nonCnamesToAdd.push_back(rr);
+          }
+        }
         else
           changedRecords += performUpdate(msgPrefix, rr, &di, isPresigned, &narrow, &haveNSEC3, &ns3pr, &updatedSerial);
       }
+    }
+    for (const auto &rr : cnamesToAdd) {
+      DNSResourceRecord rec;
+      di.backend->lookup(QType(QType::ANY), rr->d_name);
+      while (di.backend->get(rec)) {
+        if (rec.qtype != QType::CNAME && rec.qtype != QType::RRSIG) {
+          L<<Logger::Warning<<msgPrefix<<"Refusing update for " << rr->d_name << "/" << QType(rr->d_type).getName() << ": Data other than CNAME exists for the same name"<<endl;
+          di.backend->abortTransaction();
+          return RCode::Refused;
+        }
+      }
+      changedRecords += performUpdate(msgPrefix, rr, &di, isPresigned, &narrow, &haveNSEC3, &ns3pr, &updatedSerial);
+    }
+    for (const auto &rr : nonCnamesToAdd) {
+      DNSResourceRecord rec;
+      di.backend->lookup(QType(QType::CNAME), rr->d_name);
+      while (di.backend->get(rec)) {
+        if (rec.qtype == QType::CNAME && rr->d_type != QType::RRSIG) {
+          L<<Logger::Warning<<msgPrefix<<"Refusing update for " << rr->d_name << "/" << QType(rr->d_type).getName() << ": CNAME exists for the same name"<<endl;
+          di.backend->abortTransaction();
+          return RCode::Refused;
+        }
+      }
+      changedRecords += performUpdate(msgPrefix, rr, &di, isPresigned, &narrow, &haveNSEC3, &ns3pr, &updatedSerial);
     }
     if (nsRRtoDelete.size()) {
       vector<DNSResourceRecord> nsRRInZone;

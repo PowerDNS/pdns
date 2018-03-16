@@ -27,21 +27,11 @@ public:
   typedef std::function<std::tuple<int, string>(DNSQuestion* dq)> func_t;
   LuaAction(LuaAction::func_t func) : d_func(func)
   {}
-
-  Action operator()(DNSQuestion* dq, string* ruleresult) const override
-  {
-    std::lock_guard<std::mutex> lock(g_luamutex);
-    auto ret = d_func(dq);
-    if(ruleresult)
-      *ruleresult=std::get<1>(ret);
-    return (Action)std::get<0>(ret);
-  }
-
+  Action operator()(DNSQuestion* dq, string* ruleresult) const override;
   string toString() const override
   {
     return "Lua script";
   }
-
 private:
   func_t d_func;
 };
@@ -52,21 +42,11 @@ public:
   typedef std::function<std::tuple<int, string>(DNSResponse* dr)> func_t;
   LuaResponseAction(LuaResponseAction::func_t func) : d_func(func)
   {}
-
-  Action operator()(DNSResponse* dr, string* ruleresult) const override
-  {
-    std::lock_guard<std::mutex> lock(g_luamutex);
-    auto ret = d_func(dr);
-    if(ruleresult)
-      *ruleresult=std::get<1>(ret);
-    return (Action)std::get<0>(ret);
-  }
-
+  Action operator()(DNSResponse* dr, string* ruleresult) const override;
   string toString() const override
   {
     return "Lua response script";
   }
-
 private:
   func_t d_func;
 };
@@ -99,6 +79,8 @@ private:
 
 typedef boost::variant<string, vector<pair<int, string>>, std::shared_ptr<DNSRule>, DNSName, vector<pair<int, DNSName> > > luadnsrule_t;
 std::shared_ptr<DNSRule> makeRule(const luadnsrule_t& var);
+typedef std::unordered_map<std::string, boost::variant<std::string> > luaruleparams_t;
+void parseRuleParams(boost::optional<luaruleparams_t> params, boost::uuids::uuid& uuid);
 
 typedef NetmaskTree<DynBlock> nmts_t;
 

@@ -207,7 +207,7 @@ public:
   bool updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& insert ,set<DNSName>& erase, bool remove) override;
   bool doesDNSSEC() override;
 
-  bool calculateSOASerial(const DNSName& domain, const SOAData& sd, time_t& serial) override;
+  bool calculateSOASerial(const DNSName& domain, const SOAData& sd, uint32_t& serial) override;
 
   bool replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset) override;
   bool listSubZone(const DNSName &zone, int domain_id) override;

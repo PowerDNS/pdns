@@ -326,7 +326,7 @@ BOOST_AUTO_TEST_CASE(test_method_abortTransaction) {
 
 BOOST_AUTO_TEST_CASE(test_method_calculateSOASerial) {
    SOAData sd;
-   time_t serial;
+   uint32_t serial;
  
    be->getSOA(DNSName("unit.test."),sd);
    BOOST_CHECK(be->calculateSOASerial(DNSName("unit.test."),sd,serial));

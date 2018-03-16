@@ -72,7 +72,7 @@ zoneSizeHint
 ^^^^^^^^^^^^
 An indication of the number of expected entries in the zone, speeding up the loading of huge zones by reserving space in advance.
 
-Extra Settings for rzpMaster
+Extra settings for rpzMaster
 ----------------------------
 In addition to the settings above the settings for :func:`rpzMaster` may contain:
 
@@ -103,6 +103,14 @@ localAddress
 ^^^^^^^^^^^^
 The source IP address to use when transferring the RPZ.
 When unset, :ref:`setting-query-local-address` and :ref:`setting-query-local-address6` are used.
+
+axfrTimeout
+^^^^^^^^^^^
+.. versionadded:: 4.1.2
+  Before 4.1.2, the timeout was fixed on 10 seconds.
+
+The timeout in seconds of the total initial AXFR transaction.
+20 by default.
 
 Policy Actions
 --------------

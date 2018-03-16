@@ -6,37 +6,42 @@ DNS record objects are returned by :meth:`DNSQuestion:getRecords`.
 .. class:: DNSRecord
 
   Represents a single DNS record.
+  It has these attributes:
 
-.. attribute:: DNSRecord.name -> DNSName
+  .. attribute:: DNSRecord.name
 
-  The name of the record.
+    The name of the record. A :class:`DNSName`.
 
-.. attribute:: DNSRecord.place -> int
+  .. attribute:: DNSRecord.place
 
-  The place where the record is located,
-  - 1 for the answer section
-  - 2 for the authority section
-  - 3 for the additional section
+    The place where the record is located,
 
-.. attribute:: DNSRecord.ttl -> int
+    - 0 for the question section
+    - 1 for the answer section
+    - 2 for the authority section
+    - 3 for the additional section
 
-  The TTL of the record
+  .. attribute:: DNSRecord.ttl
 
-.. attribute:: DNSRecord.type -> int
+    The TTL of the record
 
-  The type of the record, for example pdns.A
+  .. attribute:: DNSRecord.type
 
-.. classmethod:: DNSRecord:changeContent(newcontent)
+    The type of the record (as an integer). Can for example be compared to ``pdns.A``.
 
-  Replace the record content with ``newcontent``.
-  The type and class cannot be changed.
+  And the following methods:
 
-  :param str newcontent: The replacing content
+  .. method:: DNSRecord:changeContent(newcontent)
 
-.. classmethod:: DNSRecord:getCA() -> ComboAddress
+    Replace the record content with ``newcontent``.
+    The type and class cannot be changed.
 
-  If the record type is A or AAAA, a :class:`ComboAddress` representing the content is returned, nil otherwise.
+    :param str newcontent: The replacing content
 
-.. classmethod:: DNSRecord:getContent() -> str
+  .. method:: DNSRecord:getCA() -> ComboAddress
 
-  Return a string representation of the record content.
+    If the record type is A or AAAA, a :class:`ComboAddress` representing the content is returned, nil otherwise.
+
+  .. method:: DNSRecord:getContent() -> str
+
+    Return a string representation of the record content.

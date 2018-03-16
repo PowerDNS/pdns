@@ -103,6 +103,7 @@ URL Endpoints
 
   :>json string acl: A string of comma-separated netmasks currently allowed by the :ref:`ACL <ACL>`.
   :>json list cache-hit-response-rules: A list of :json:object:`ResponseRule` objects applied on cache hits
+  :>json list self-answered-response-rules: A list of :json:object:`ResponseRule` objects applied on self-answered queries
   :>json string daemon_type: The type of daemon, always "dnsdist"
   :>json list frontends: A list of :json:object:`Frontend` objects
   :>json list pools: A list of :json:object:`Pool` objects
@@ -187,9 +188,10 @@ JSON Objects
 
   :property string action: The action taken when the rule matches (e.g. "to pool abuse")
   :property dict action-stats: A list of statistics whose content varies depending on the kind of rule
-  :property integer id: The identifier (or order) of this rule
+  :property integer id: The position of this rule
   :property integer matches: How many times this rule was hit
   :property string rule: The matchers for the packet (e.g. "qname==bad-domain1.example., bad-domain2.example.")
+  :property string uuid: The UUID of this rule
 
 .. json:object:: ResponseRule
 

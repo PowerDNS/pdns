@@ -136,8 +136,9 @@ void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, c
         vector<DNSRecord> rrset;
         {
           DNSZoneRecord zrr;
-          B.lookup(QType(g.first.second), g.first.first, 0, di.id);
+          B.lookup(QType(g.first.second), g.first.first+domain, 0, di.id);
           while(B.get(zrr)) {
+            zrr.dr.d_name.makeUsRelative(domain);
             rrset.push_back(zrr.dr);
           }
         }
@@ -363,13 +364,16 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
         L<<Logger::Error<<"Failed to load AXFR source '"<<localaddr[0]<<"' for incoming AXFR of '"<<domain<<"': "<<e.what()<<endl;
         return;
       }
-    } else { 
-      if(raddr.sin4.sin_family == AF_INET)
-        laddr=ComboAddress(::arg()["query-local-address"]);
-      else if(!::arg()["query-local-address6"].empty())
-        laddr=ComboAddress(::arg()["query-local-address6"]);
-      else
-        laddr.sin4.sin_family = 0;
+    } else {
+      if(raddr.sin4.sin_family == AF_INET && !::arg()["query-local-address"].empty()) {
+        laddr = ComboAddress(::arg()["query-local-address"]);
+      } else if(raddr.sin4.sin_family == AF_INET6 && !::arg()["query-local-address6"].empty()) {
+        laddr = ComboAddress(::arg()["query-local-address6"]);
+      } else {
+        bool isv6 = raddr.sin4.sin_family == AF_INET6;
+        L<<Logger::Error<<"Unable to AXFR, destination address is IPv" << (isv6 ? "6" : "4") << ", but query-local-address"<< (isv6 ? "6" : "") << " is unset!"<<endl;
+        return;
+      }
     }
 
     bool hadDnssecZone = false;
@@ -639,7 +643,7 @@ struct DomainNotificationInfo
 
 struct SlaveSenderReceiver
 {
-  typedef pair<DNSName, uint16_t> Identifier;
+  typedef std::tuple<DNSName, ComboAddress, uint16_t> Identifier;
 
   struct Answer {
     uint32_t theirSerial;
@@ -661,13 +665,16 @@ struct SlaveSenderReceiver
   {
     random_shuffle(dni.di.masters.begin(), dni.di.masters.end());
     try {
-      return make_pair(dni.di.zone,
-        d_resolver.sendResolve(ComboAddress(*dni.di.masters.begin(), 53), dni.localaddr,
-          dni.di.zone,
-          QType::SOA,
-          nullptr,
-          dni.dnssecOk, dni.tsigkeyname, dni.tsigalgname, dni.tsigsecret)
-      );
+      ComboAddress remote(*dni.di.masters.begin(), 53);
+      return std::make_tuple(dni.di.zone,
+                             remote,
+                             d_resolver.sendResolve(remote,
+                                                    dni.localaddr,
+                                                    dni.di.zone,
+                                                    QType::SOA,
+                                                    nullptr,
+                                                    dni.dnssecOk, dni.tsigkeyname, dni.tsigalgname, dni.tsigsecret)
+        );
     }
     catch(PDNSException& e) {
       throw runtime_error("While attempting to query freshness of '"+dni.di.zone.toLogString()+"': "+e.reason);
@@ -676,7 +683,7 @@ struct SlaveSenderReceiver
 
   bool receive(Identifier& id, Answer& a)
   {
-    if(d_resolver.tryGetSOASerial(&id.first, &a.theirSerial, &a.theirInception, &a.theirExpire, &id.second)) {
+    if(d_resolver.tryGetSOASerial(&(std::get<0>(id)), &(std::get<1>(id)), &a.theirSerial, &a.theirInception, &a.theirExpire, &(std::get<2>(id)))) {
       return 1;
     }
     return 0;
@@ -695,6 +702,19 @@ void CommunicatorClass::addSlaveCheckRequest(const DomainInfo& di, const ComboAd
   Lock l(&d_lock);
   DomainInfo ours = di;
   ours.backend = 0;
+  string remote_address = remote.toString();
+
+  // When adding a check, if the remote addr from which notification was
+  // received is a master, clear all other masters so we can be sure the
+  // query goes to that one.
+  for (const auto& master : ours.masters) {
+    if (master == remote_address) {
+      ours.masters.clear();
+      ours.masters.push_back(remote_address);
+      break;
+    }
+  }
+  d_tocheck.erase(di);
   d_tocheck.insert(ours);
   d_any_sem.post(); // kick the loop!
 }
@@ -841,10 +861,17 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
   time_t now = time(0);
   for(val_t& val :  sdomains) {
     DomainInfo& di(val.di);
+    DomainInfo tempdi;
     // might've come from the packethandler
-    if(!di.backend && !B->getDomainInfo(di.zone, di)) {
+    // Please do not overwrite received DI just to make sure it exists in backend.
+    if(!di.backend) {
+      if (!B->getDomainInfo(di.zone, tempdi)) {
         L<<Logger::Warning<<"Ignore domain "<< di.zone<<" since it has been removed from our backend"<<endl;
         continue;
+      }
+      // Backend for di still doesn't exist and this might cause us to
+      // SEGFAULT on the setFresh command later on
+      di.backend = tempdi.backend;
     }
 
     if(!ssr.d_freshness.count(di.id)) { // If we don't have an answer for the domain

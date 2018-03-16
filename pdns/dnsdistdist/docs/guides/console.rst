@@ -18,7 +18,7 @@ To enable encryption, first generate a key with :func:`makeKey`::
   > makeKey()
   setKey("ENCODED KEY")
 
-Add the generated :func:`setKey` line to you dnsdist configuration file, along with a :func:`controlSocket`:
+Add the generated :func:`setKey` line to your dnsdist configuration file, along with a :func:`controlSocket`:
 
 .. code-block:: lua
 

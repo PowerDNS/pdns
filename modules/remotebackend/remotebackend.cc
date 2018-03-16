@@ -845,7 +845,7 @@ bool RemoteBackend::abortTransaction() {
    return true;
 }
 
-bool RemoteBackend::calculateSOASerial(const DNSName& domain, const SOAData& sd, time_t& serial) {
+bool RemoteBackend::calculateSOASerial(const DNSName& domain, const SOAData& sd, uint32_t& serial) {
    Json query = Json::object{
      { "method", "calculateSOASerial" },
      { "parameters", Json::object{

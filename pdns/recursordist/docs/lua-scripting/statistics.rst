@@ -8,11 +8,15 @@ Generating Metrics
 Custom metrics can be added which will be shown in the output of 'rec_control get-all' and sent to the metrics server over the Carbon protocol.
 They will also appear in the JSON HTTP API.
 
-Create a custom metric with: ``myMetric=getMetric("myspecialmetric")``.
+Create a custom metric with:
+
+.. code-block:: lua
+
+  myMetric=getMetric("myspecialmetric")
 
 .. function:: getMetric(name) -> Metric
 
-  Returns the :class:`Metric` object with the name ``name``.
+  Returns the :class:`Metric` object with the name ``name``, creating the metric if it does not exist.
 
   :param str name: The metric to retrieve
 
@@ -20,25 +24,25 @@ Create a custom metric with: ``myMetric=getMetric("myspecialmetric")``.
 
   Represents a custom metric
 
-.. classmethod:: Metric::inc()
+  .. method:: Metric::inc()
 
-  Increase metric by 1
+    Increase metric by 1
 
-.. classmethod:: Metric::incBy(amount)
+  .. method:: Metric::incBy(amount)
 
-  Increase metric by amount
+    Increase metric by amount
 
-  :param int amount:
+    :param int amount:
 
-.. classmethod:: Metric::set(to)
+  .. method:: Metric::set(to)
 
-  Set metric to value ``to``
+    Set metric to value ``to``
 
-  :param int to:
+    :param int to:
 
-.. classmethod:: Metric::get() -> int
+  .. method:: Metric::get() -> int
 
-  Get value of metric
+    Get value of metric
 
 Metrics are shared across all of PowerDNS and are fully atomic and high performance.
 A :class:`Metric` object is effectively a pointer to an atomic value.

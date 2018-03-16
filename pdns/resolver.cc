@@ -99,13 +99,16 @@ Resolver::Resolver()
   locals["default4"] = -1;
   locals["default6"] = -1;
   try {
-    locals["default4"] = makeQuerySocket(ComboAddress(::arg()["query-local-address"]), true, ::arg().mustDo("non-local-bind"));
+    if(!::arg()["query-local-address"].empty())
+      locals["default4"] = makeQuerySocket(ComboAddress(::arg()["query-local-address"]), true, ::arg().mustDo("non-local-bind"));
     if(!::arg()["query-local-address6"].empty())
       locals["default6"] = makeQuerySocket(ComboAddress(::arg()["query-local-address6"]), true, ::arg().mustDo("non-local-bind"));
   }
   catch(...) {
     if(locals["default4"]>=0)
       close(locals["default4"]);
+    if(locals["default6"]>=0)
+      close(locals["default6"]);
     throw;
   }
 }
@@ -153,6 +156,11 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const ComboAddress& l
   if (local.sin4.sin_family == 0) {
     // up to us.
     sock = remote.sin4.sin_family == AF_INET ? locals["default4"] : locals["default6"];
+    if (sock == -1) {
+      string ipv = remote.sin4.sin_family == AF_INET ? "4" : "6";
+      string qla = remote.sin4.sin_family == AF_INET ? "" : "6";
+      throw ResolverException("No IPv" + ipv + " socket available, is query-local-address" + qla + " unset?");
+    }
   } else {
     std::string lstr = local.toString();
     std::map<std::string, int>::iterator lptr;
@@ -208,7 +216,7 @@ static int parseResult(MOADNSParser& mdp, const DNSName& origQname, uint16_t ori
   return 0;
 }
 
-bool Resolver::tryGetSOASerial(DNSName *domain, uint32_t *theirSerial, uint32_t *theirInception, uint32_t *theirExpire, uint16_t* id)
+bool Resolver::tryGetSOASerial(DNSName *domain, ComboAddress* remote, uint32_t *theirSerial, uint32_t *theirInception, uint32_t *theirExpire, uint16_t* id)
 {
   auto fds = std::unique_ptr<struct pollfd[]>(new struct pollfd[locals.size()]);
   size_t i = 0, k;
@@ -236,10 +244,10 @@ bool Resolver::tryGetSOASerial(DNSName *domain, uint32_t *theirSerial, uint32_t 
   if (sock < 0) return false; // false alarm
 
   int err;
-  ComboAddress fromaddr;
-  socklen_t addrlen=fromaddr.getSocklen();
+  remote->sin6.sin6_family = AF_INET6; // make sure getSocklen() below returns a large enough value
+  socklen_t addrlen=remote->getSocklen();
   char buf[3000];
-  err = recvfrom(sock, buf, sizeof(buf), 0,(struct sockaddr*)(&fromaddr), &addrlen);
+  err = recvfrom(sock, buf, sizeof(buf), 0,(struct sockaddr*)(remote), &addrlen);
   if(err < 0) {
     if(errno == EAGAIN)
       return false;
@@ -252,13 +260,13 @@ bool Resolver::tryGetSOASerial(DNSName *domain, uint32_t *theirSerial, uint32_t 
   *domain = mdp.d_qname;
   
   if(domain->empty())
-    throw ResolverException("SOA query to '" + fromaddr.toStringWithPort() + "' produced response without domain name (RCode: " + RCode::to_s(mdp.d_header.rcode) + ")");
+    throw ResolverException("SOA query to '" + remote->toStringWithPort() + "' produced response without domain name (RCode: " + RCode::to_s(mdp.d_header.rcode) + ")");
 
   if(mdp.d_answers.empty())
-    throw ResolverException("Query to '" + fromaddr.toStringWithPort() + "' for SOA of '" + domain->toString() + "' produced no results (RCode: " + RCode::to_s(mdp.d_header.rcode) + ")");
+    throw ResolverException("Query to '" + remote->toStringWithPort() + "' for SOA of '" + domain->toLogString() + "' produced no results (RCode: " + RCode::to_s(mdp.d_header.rcode) + ")");
   
   if(mdp.d_qtype != QType::SOA)
-    throw ResolverException("Query to '" + fromaddr.toStringWithPort() + "' for SOA of '" + domain->toString() + "' returned wrong record type");
+    throw ResolverException("Query to '" + remote->toStringWithPort() + "' for SOA of '" + domain->toLogString() + "' returned wrong record type");
 
   *theirInception = *theirExpire = 0;
   bool gotSOA=false;
@@ -279,7 +287,7 @@ bool Resolver::tryGetSOASerial(DNSName *domain, uint32_t *theirSerial, uint32_t 
     }
   }
   if(!gotSOA)
-    throw ResolverException("Query to '" + fromaddr.toString() + "' for SOA of '" + domain->toLogString() + "' did not return a SOA");
+    throw ResolverException("Query to '" + remote->toString() + "' for SOA of '" + domain->toLogString() + "' did not return a SOA");
   return true;
 }
 
@@ -302,10 +310,14 @@ int Resolver::resolve(const string &ipport, const DNSName &domain, int type, Res
     socklen_t addrlen = sizeof(from);
     char buffer[3000];
     int len;
-    
+
     if((len=recvfrom(sock, buffer, sizeof(buffer), 0,(struct sockaddr*)(&from), &addrlen)) < 0) 
       throw ResolverException("recvfrom error waiting for answer: "+stringerror());
-  
+
+    if (from != to) {
+      throw ResolverException("Got answer from the wrong peer while resolving ("+from.toStringWithPort()+" instead of "+to.toStringWithPort()+", discarding");
+    }
+
     MOADNSParser mdp(false, buffer, len);
     return parseResult(mdp, domain, type, id, res);
   }
@@ -353,15 +365,14 @@ AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
   : d_tsigVerifier(tt, remote, d_trc), d_receivedBytes(0), d_maxReceivedBytes(maxReceivedBytes)
 {
   ComboAddress local;
-  if (laddr != NULL) {
-    local = (ComboAddress) (*laddr);
+  if (laddr != nullptr) {
+    local = ComboAddress(*laddr);
   } else {
-    if(remote.sin4.sin_family == AF_INET)
-      local=ComboAddress(::arg()["query-local-address"]);
-    else if(!::arg()["query-local-address6"].empty())
-      local=ComboAddress(::arg()["query-local-address6"]);
-    else
-      local=ComboAddress("::");
+    string qlas = remote.sin4.sin_family == AF_INET ? "query-local-address" : "query-local-address6";
+    if (::arg()[qlas].empty()) {
+      throw ResolverException("Unable to determine source address for AXFR request to " + remote.toStringWithPort() + " for " + domain.toLogString() + ". " + qlas + " is unset");
+    }
+    local=ComboAddress(::arg()[qlas]);
   }
   d_sock = -1;
   try {
@@ -425,20 +436,20 @@ AXFRRetriever::~AXFRRetriever()
 
 
 
-int AXFRRetriever::getChunk(Resolver::res_t &res, vector<DNSRecord>* records) // Implementation is making sure RFC2845 4.4 is followed.
+int AXFRRetriever::getChunk(Resolver::res_t &res, vector<DNSRecord>* records, uint16_t timeout) // Implementation is making sure RFC2845 4.4 is followed.
 {
   if(d_soacount > 1)
     return false;
 
   // d_sock is connected and is about to spit out a packet
-  int len=getLength();
+  int len=getLength(timeout);
   if(len<0)
     throw ResolverException("EOF trying to read axfr chunk from remote TCP client");
 
   if (d_maxReceivedBytes > 0 && (d_maxReceivedBytes - d_receivedBytes) < (size_t) len)
     throw ResolverException("Reached the maximum number of received bytes during AXFR");
 
-  timeoutReadn(len);
+  timeoutReadn(len, timeout);
 
   d_receivedBytes += (uint16_t) len;
 
@@ -471,13 +482,13 @@ int AXFRRetriever::getChunk(Resolver::res_t &res, vector<DNSRecord>* records) //
   return true;
 }
 
-void AXFRRetriever::timeoutReadn(uint16_t bytes)
+void AXFRRetriever::timeoutReadn(uint16_t bytes, uint16_t timeoutsec)
 {
-  time_t start=time(0);
+  time_t start=time(nullptr);
   int n=0;
   int numread;
   while(n<bytes) {
-    int res=waitForData(d_sock, 10-(time(0)-start));
+    int res=waitForData(d_sock, timeoutsec-(time(nullptr)-start));
     if(res<0)
       throw ResolverException("Reading data from remote nameserver over TCP: "+stringerror());
     if(!res)
@@ -546,9 +557,9 @@ void AXFRRetriever::connect()
   // d_sock now connected
 }
 
-int AXFRRetriever::getLength()
+int AXFRRetriever::getLength(uint16_t timeout)
 {
-  timeoutReadn(2);
+  timeoutReadn(2, timeout);
   return (unsigned char)d_buf[0]*256+(unsigned char)d_buf[1];
 }
 

@@ -29,6 +29,7 @@
 /dnsscope
 /dnstcpbench
 /dnswasher
+/ixfrdist
 /ixplore
 /kvresp
 /pdns_notify
@@ -57,7 +58,6 @@ version_generated.h
 effective_tld_names.dat
 /dnsmessage.pb.cc
 /dnsmessage.pb.h
-/pdns.service
-/pdns@.service
+/*.service
 /pdns.conf-dist
 /stubquery

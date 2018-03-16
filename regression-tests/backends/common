@@ -59,6 +59,10 @@ start_master ()
 				source ./backends/ldap-master
 				;;
 
+			lua2*)
+				source ./backends/lua2-master
+				;;
+
 			ext-nsd*)
 				source ./ext/nsd-master
 				;;

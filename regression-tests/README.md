@@ -142,7 +142,7 @@ Debian Jessie notes
 On debian-jessie, most of these tools can be retrieved with:
 ```
 $ sudo apt-get install validns ldnsutils bind9utils libnet-dns-perl
-$ sudo apt-get -t jessie-backports install unbound-host
+$ sudo apt-get -t jessie-backports install unbound-host libunbound2
 ```
 
 libnet-dns-perl is needed for one dyndns test.

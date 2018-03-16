@@ -54,7 +54,7 @@ enabled.
 
 .. warning::
   Notifications are only sent for domains with type MASTER in
-  your backend.
+  your backend unless :ref:`setting-slave-renotify` is enabled.
 
 Left open by :rfc:`1996` is who is to be notified - which is harder to
 figure out than it sounds. All slaves for this domain must receive a

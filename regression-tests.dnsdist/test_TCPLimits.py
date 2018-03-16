@@ -2,7 +2,7 @@
 import struct
 import time
 import dns
-from dnsdisttests import DNSDistTest
+from dnsdisttests import DNSDistTest, range
 
 class TestTCPLimits(DNSDistTest):
 
@@ -28,7 +28,7 @@ class TestTCPLimits(DNSDistTest):
         conn = self.openTCPConnection()
 
         count = 0
-        for idx in xrange(self._maxTCPQueriesPerConn):
+        for idx in range(self._maxTCPQueriesPerConn):
             try:
                 self.sendTCPQueryOverConnection(conn, query)
                 response = self.recvTCPResponseOverConnection(conn)
@@ -62,7 +62,7 @@ class TestTCPLimits(DNSDistTest):
         query = dns.message.make_query(name, 'A', 'IN')
         conns = []
 
-        for idx in xrange(self._maxTCPConnsPerClient + 1):
+        for idx in range(self._maxTCPConnsPerClient + 1):
             conns.append(self.openTCPConnection())
 
         count = 0

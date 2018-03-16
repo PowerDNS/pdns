@@ -2,11 +2,15 @@ MAIN_MANS = pdns_server.1 \
 	pdns_control.1 \
 	pdnsutil.1 \
 	zone2json.1 \
-	zone2ldap.1 \
 	zone2sql.1
 
 MANPAGES_INSTALL = $(MAIN_MANS)
-MANPAGES_DIST = $(MAIN_MANS)
+
+MANPAGES_DIST = $(MAIN_MANS) zone2ldap.1
+
+if LDAP
+MANPAGES_INSTALL += zone2ldap.1
+endif
 
 MANPAGES_TARGET_TOOLS = calidns.1 \
 	dnsgram.1 \
@@ -15,6 +19,7 @@ MANPAGES_TARGET_TOOLS = calidns.1 \
 	dnsscope.1 \
 	dnswasher.1 \
 	dumresp.1 \
+	ixfrdist.1 \
 	ixplore.1 \
 	nproxy.1 \
 	nsec3dig.1 \

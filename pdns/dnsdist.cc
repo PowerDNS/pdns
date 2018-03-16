@@ -19,13 +19,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#include "dnsdist.hh"
-#include "dnsdist-ecs.hh"
-#include "sstuff.hh"
-#include "misc.hh"
-#include <netinet/tcp.h>
+
+#include "config.h"
+
+#include <fstream>
+#include <getopt.h>
+#include <grp.h>
 #include <limits>
-#include "dolog.hh"
+#include <netinet/tcp.h>
+#include <pwd.h>
+#include <sys/resource.h>
+#include <unistd.h>
 
 #if defined (__OpenBSD__) || defined(__NetBSD__)
 #include <readline/readline.h>
@@ -33,30 +37,29 @@
 #include <editline/readline.h>
 #endif
 
-#include "dnsname.hh"
-#include "dnswriter.hh"
-#include "base64.hh"
-#include <fstream>
-#include "delaypipe.hh"
-#include <unistd.h>
-#include "sodcrypto.hh"
-#include "dnsdist-lua.hh"
-#include <grp.h>
-#include <pwd.h>
-#include "lock.hh"
-#include <getopt.h>
-#include <sys/resource.h>
-#include "dnsdist-cache.hh"
-#include "gettime.hh"
-#include "ednsoptions.hh"
-
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
 #endif
 
-#ifdef HAVE_PROTOBUF
+#include "dnsdist.hh"
+#include "dnsdist-cache.hh"
+#include "dnsdist-ecs.hh"
+#include "dnsdist-lua.hh"
+
+#include "base64.hh"
+#include "delaypipe.hh"
+#include "dolog.hh"
+#include "dnsname.hh"
+#include "dnswriter.hh"
+#include "ednsoptions.hh"
+#include "gettime.hh"
+#include "lock.hh"
+#include "misc.hh"
+#include "sodcrypto.hh"
+#include "sstuff.hh"
+#include "xpf.hh"
+
 thread_local boost::uuids::random_generator t_uuidGenerator;
-#endif
 
 /* Known sins:
 
@@ -83,7 +86,9 @@ bool g_syslog{true};
 
 GlobalStateHolder<NetmaskGroup> g_ACL;
 string g_outputBuffer;
+
 vector<std::tuple<ComboAddress, bool, bool, int, string, std::set<int>>> g_locals;
+std::vector<std::shared_ptr<TLSFrontend>> g_tlslocals;
 #ifdef HAVE_DNSCRYPT
 std::vector<std::tuple<ComboAddress,DnsCryptContext,bool, int, string, std::set<int>>> g_dnsCryptLocals;
 #endif
@@ -114,27 +119,11 @@ DNSDistSNMPAgent* g_snmpAgent{nullptr};
    IDs are assigned by atomic increments of the socket offset.
  */
 
-/* for our load balancing, we want to support:
-   Round-robin
-   Round-robin with basic uptime checks
-   Send to least loaded server (least outstanding)
-   Send it to the first server that is not overloaded
-   Hashed weighted random
-*/
+GlobalStateHolder<vector<DNSDistRuleAction> > g_rulactions;
+GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_resprulactions;
+GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_cachehitresprulactions;
+GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_selfansweredresprulactions;
 
-/* Idea:
-   Multiple server groups, by default we load balance to the group with no name.
-   Each instance is either 'up', 'down' or 'auto', where 'auto' means that dnsdist 
-   determines if the instance is up or not. Auto should be the default and very very good.
-
-   In addition, to each instance you can attach a QPS object with rate & burst, which will optionally
-   limit the amount of queries we send there.
-
-   If all downstreams are over QPS, we pick the fastest server */
-
-GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > > g_rulactions;
-GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSResponseAction> > > > g_resprulactions;
-GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSResponseAction> > > > g_cachehitresprulactions;
 Rings g_rings;
 QueryCount g_qcount;
 
@@ -190,8 +179,15 @@ struct DelayedPacket
 
 DelayPipe<DelayedPacket> * g_delay = 0;
 
-static void doLatencyAverages(double udiff)
+void doLatencyStats(double udiff)
 {
+  if(udiff < 1000) g_stats.latency0_1++;
+  else if(udiff < 10000) g_stats.latency1_10++;
+  else if(udiff < 50000) g_stats.latency10_50++;
+  else if(udiff < 100000) g_stats.latency50_100++;
+  else if(udiff < 1000000) g_stats.latency100_1000++;
+  else g_stats.latencySlow++;
+
   auto doAvg = [](double& var, double n, double weight) {
     var = (weight -1) * var/weight + n/weight;
   };
@@ -388,7 +384,7 @@ static bool sendUDPResponse(int origFD, char* response, uint16_t responseLen, in
 }
 
 // listens on a dedicated socket, lobs answers from downstream servers to original requestors
-void* responderThread(std::shared_ptr<DownstreamState> state)
+void* responderThread(std::shared_ptr<DownstreamState> dss)
 try {
   auto localRespRulactions = g_resprulactions.getLocal();
 #ifdef HAVE_DNSCRYPT
@@ -407,7 +403,7 @@ try {
     dnsheader* dh = reinterpret_cast<struct dnsheader*>(packet);
     bool outstandingDecreased = false;
     try {
-      ssize_t got = recv(state->fd, packet, sizeof(packet), 0);
+      ssize_t got = recv(dss->fd, packet, sizeof(packet), 0);
       char * response = packet;
       size_t responseSize = sizeof(packet);
 
@@ -417,10 +413,10 @@ try {
       uint16_t responseLen = (uint16_t) got;
       queryId = dh->id;
 
-      if(queryId >= state->idStates.size())
+      if(queryId >= dss->idStates.size())
         continue;
 
-      IDState* ids = &state->idStates[queryId];
+      IDState* ids = &dss->idStates[queryId];
       int origFD = ids->origFD;
 
       if(origFD < 0) // duplicate
@@ -433,11 +429,11 @@ try {
       */
       ids->age = 0;
 
-      if (!responseContentMatches(response, responseLen, ids->qname, ids->qtype, ids->qclass, state->remote)) {
+      if (!responseContentMatches(response, responseLen, ids->qname, ids->qtype, ids->qclass, dss->remote)) {
         continue;
       }
 
-      --state->outstanding;  // you'd think an attacker could game this, but we're using connected socket
+      --dss->outstanding;  // you'd think an attacker could game this, but we're using connected socket
       outstandingDecreased = true;
 
       if(dh->tc && g_truncateTC) {
@@ -487,27 +483,20 @@ try {
       g_stats.responses++;
 
       double udiff = ids->sentTime.udiff();
-      vinfolog("Got answer from %s, relayed to %s, took %f usec", state->remote.toStringWithPort(), ids->origRemote.toStringWithPort(), udiff);
+      vinfolog("Got answer from %s, relayed to %s, took %f usec", dss->remote.toStringWithPort(), ids->origRemote.toStringWithPort(), udiff);
 
       {
         struct timespec ts;
         gettime(&ts);
         std::lock_guard<std::mutex> lock(g_rings.respMutex);
-        g_rings.respRing.push_back({ts, ids->origRemote, ids->qname, ids->qtype, (unsigned int)udiff, (unsigned int)got, *dh, state->remote});
+        g_rings.respRing.push_back({ts, ids->origRemote, ids->qname, ids->qtype, (unsigned int)udiff, (unsigned int)got, *dh, dss->remote});
       }
 
       if(dh->rcode == RCode::ServFail)
         g_stats.servfailResponses++;
-      state->latencyUsec = (127.0 * state->latencyUsec / 128.0) + udiff/128.0;
+      dss->latencyUsec = (127.0 * dss->latencyUsec / 128.0) + udiff/128.0;
 
-      if(udiff < 1000) g_stats.latency0_1++;
-      else if(udiff < 10000) g_stats.latency1_10++;
-      else if(udiff < 50000) g_stats.latency10_50++;
-      else if(udiff < 100000) g_stats.latency50_100++;
-      else if(udiff < 1000000) g_stats.latency100_1000++;
-      else g_stats.latencySlow++;
-    
-      doLatencyAverages(udiff);
+      doLatencyStats(udiff);
 
       if (ids->origFD == origFD) {
 #ifdef HAVE_DNSCRYPT
@@ -520,14 +509,14 @@ try {
       rewrittenResponse.clear();
     }
     catch(const std::exception& e){
-      vinfolog("Got an error in UDP responder thread while parsing a response from %s, id %d: %s", state->remote.toStringWithPort(), queryId, e.what());
+      vinfolog("Got an error in UDP responder thread while parsing a response from %s, id %d: %s", dss->remote.toStringWithPort(), queryId, e.what());
       if (outstandingDecreased) {
         /* so an exception was raised after we decreased the outstanding queries counter,
            but before we could set ids->origFD to -1 (because we also set outstandingDecreased
            to false then), meaning the IDS is still considered active and we will decrease the
            counter again on a duplicate, or simply while reaping downstream timeouts, so let's
            increase it back. */
-        state->outstanding++;
+        dss->outstanding++;
       }
     }
   }
@@ -979,9 +968,9 @@ bool processQuery(LocalHolders& holders, DNSQuestion& dq, string& poolname, int*
   DNSAction::Action action=DNSAction::Action::None;
   string ruleresult;
   for(const auto& lr : *holders.rulactions) {
-    if(lr.first->matches(&dq)) {
-      lr.first->d_matches++;
-      action=(*lr.second)(&dq, &ruleresult);
+    if(lr.d_rule->matches(&dq)) {
+      lr.d_rule->d_matches++;
+      action=(*lr.d_action)(&dq, &ruleresult);
 
       switch(action) {
       case DNSAction::Action::Allow:
@@ -1001,6 +990,12 @@ bool processQuery(LocalHolders& holders, DNSQuestion& dq, string& poolname, int*
         dq.dh->rcode = RCode::Refused;
         dq.dh->qr=true;
         g_stats.ruleRefused++;
+        return true;
+        break;
+      case DNSAction::Action::ServFail:
+        dq.dh->rcode = RCode::ServFail;
+        dq.dh->qr=true;
+        g_stats.ruleServFail++;
         return true;
         break;
       case DNSAction::Action::Spoof:
@@ -1032,14 +1027,14 @@ bool processQuery(LocalHolders& holders, DNSQuestion& dq, string& poolname, int*
   return true;
 }
 
-bool processResponse(LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSResponseAction> > > >& localRespRulactions, DNSResponse& dr, int* delayMsec)
+bool processResponse(LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, int* delayMsec)
 {
   DNSResponseAction::Action action=DNSResponseAction::Action::None;
   std::string ruleresult;
   for(const auto& lr : *localRespRulactions) {
-    if(lr.first->matches(&dr)) {
-      lr.first->d_matches++;
-      action=(*lr.second)(&dr, &ruleresult);
+    if(lr.d_rule->matches(&dr)) {
+      lr.d_rule->d_matches++;
+      action=(*lr.d_action)(&dr, &ruleresult);
       switch(action) {
       case DNSResponseAction::Action::Allow:
         return true;
@@ -1048,6 +1043,10 @@ bool processResponse(LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std:
         return false;
         break;
       case DNSResponseAction::Action::HeaderModify:
+        return true;
+        break;
+      case DNSResponseAction::Action::ServFail:
+        dr.dh->rcode = RCode::ServFail;
         return true;
         break;
         /* non-terminal actions follow */
@@ -1091,6 +1090,38 @@ static ssize_t udpClientSendRequestToBackend(DownstreamState* ss, const int sd, 
   }
 
   return result;
+}
+
+bool addXPF(DNSQuestion& dq, uint16_t optionCode)
+{
+  std::string payload = generateXPFPayload(dq.tcp, *dq.remote, *dq.local);
+  uint8_t root = '\0';
+  dnsrecordheader drh;
+  drh.d_type = htons(optionCode);
+  drh.d_class = htons(QClass::IN);
+  drh.d_ttl = 0;
+  drh.d_clen = htons(payload.size());
+  size_t recordHeaderLen = sizeof(root) + sizeof(drh);
+
+  size_t available = dq.size - dq.len;
+
+  if ((payload.size() + recordHeaderLen) > available) {
+    return false;
+  }
+
+  size_t pos = dq.len;
+  memcpy(reinterpret_cast<char*>(dq.dh) + pos, &root, sizeof(root));
+  pos += sizeof(root);
+  memcpy(reinterpret_cast<char*>(dq.dh) + pos, &drh, sizeof(drh));
+  pos += sizeof(drh);
+  memcpy(reinterpret_cast<char*>(dq.dh) + pos, payload.data(), payload.size());
+  pos += payload.size();
+
+  dq.len = pos;
+
+  dq.dh->arcount = htons(ntohs(dq.dh->arcount) + 1);
+
+  return true;
 }
 
 static bool isUDPQueryAcceptable(ClientState& cs, LocalHolders& holders, const struct msghdr* msgh, const ComboAddress& remote, ComboAddress& dest)
@@ -1205,22 +1236,22 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       return;
     }
 
-    const uint16_t * flags = getFlagsFromDNSHeader(dh);
-    const uint16_t origFlags = *flags;
-    uint16_t qtype, qclass;
-    unsigned int consumed = 0;
-    DNSName qname(query, len, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
-    DNSQuestion dq(&qname, qtype, qclass, dest.sin4.sin_family != 0 ? &dest : &cs.local, &remote, dh, queryBufferSize, len, false);
-
     string poolname;
     int delayMsec = 0;
     /* we need an accurate ("real") value for the response and
        to store into the IDS, but not for insertion into the
        rings for example */
-    struct timespec realTime;
+    struct timespec queryRealTime;
     struct timespec now;
     gettime(&now);
-    gettime(&realTime, true);
+    gettime(&queryRealTime, true);
+
+    const uint16_t * flags = getFlagsFromDNSHeader(dh);
+    const uint16_t origFlags = *flags;
+    uint16_t qtype, qclass;
+    unsigned int consumed = 0;
+    DNSName qname(query, len, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
+    DNSQuestion dq(&qname, qtype, qclass, dest.sin4.sin_family != 0 ? &dest : &cs.local, &remote, dh, queryBufferSize, len, false, &queryRealTime);
 
     if (!processQuery(holders, dq, poolname, &delayMsec, now))
     {
@@ -1228,12 +1259,21 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     }
 
     if(dq.dh->qr) { // something turned it into a response
-      g_stats.selfAnswered++;
       restoreFlags(dh, origFlags);
 
       if (!cs.muted) {
         char* response = query;
         uint16_t responseLen = dq.len;
+
+        DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.local, dq.remote, reinterpret_cast<dnsheader*>(response), dq.size, responseLen, false, &queryRealTime);
+#ifdef HAVE_PROTOBUF
+        dr.uniqueId = dq.uniqueId;
+#endif
+        dr.qTag = dq.qTag;
+
+        if (!processResponse(holders.selfAnsweredRespRulactions, dr, &delayMsec)) {
+          return;
+        }
 
 #ifdef HAVE_DNSCRYPT
         if (!encryptResponse(response, &responseLen, dq.size, false, dnsCryptQuery, nullptr, nullptr)) {
@@ -1250,6 +1290,9 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
         {
           sendUDPResponse(cs.udpFD, response, responseLen, delayMsec, dest, remote);
         }
+
+        g_stats.selfAnswered++;
+        doLatencyStats(0);  // we're not going to measure this
       }
 
       return;
@@ -1282,7 +1325,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       uint16_t cachedResponseSize = dq.size;
       uint32_t allowExpired = ss ? 0 : g_staleCacheEntriesTTL;
       if (packetCache->get(dq, consumed, dh->id, query, &cachedResponseSize, &cacheKey, allowExpired)) {
-        DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.local, dq.remote, reinterpret_cast<dnsheader*>(query), dq.size, cachedResponseSize, false, &realTime);
+        DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.local, dq.remote, reinterpret_cast<dnsheader*>(query), dq.size, cachedResponseSize, false, &queryRealTime);
 #ifdef HAVE_PROTOBUF
         dr.uniqueId = dq.uniqueId;
 #endif
@@ -1311,8 +1354,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
         }
 
         g_stats.cacheHits++;
-        g_stats.latency0_1++;  // we're not going to measure this
-        doLatencyAverages(0);  // same
+        doLatencyStats(0);  // we're not going to measure this
         return;
       }
       g_stats.cacheMisses++;
@@ -1329,6 +1371,16 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
         dq.dh->rcode = RCode::ServFail;
         dq.dh->qr = true;
 
+        DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.local, dq.remote, reinterpret_cast<dnsheader*>(response), dq.size, responseLen, false, &queryRealTime);
+#ifdef HAVE_PROTOBUF
+        dr.uniqueId = dq.uniqueId;
+#endif
+        dr.qTag = dq.qTag;
+
+        if (!processResponse(holders.selfAnsweredRespRulactions, dr, &delayMsec)) {
+          return;
+        }
+
 #ifdef HAVE_DNSCRYPT
         if (!encryptResponse(response, &responseLen, dq.size, false, dnsCryptQuery, nullptr, nullptr)) {
           return;
@@ -1344,9 +1396,16 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
         {
           sendUDPResponse(cs.udpFD, response, responseLen, 0, dest, remote);
         }
+
+        // no response-only statistics counter to update.
+        doLatencyStats(0);  // we're not going to measure this
       }
       vinfolog("%s query for %s|%s from %s, no policy applied", g_servFailOnNoPolicy ? "ServFailed" : "Dropped", dq.qname->toString(), QType(dq.qtype).getName(), remote.toStringWithPort());
       return;
+    }
+
+    if (dq.addXPF && ss->xpfRRCode != 0) {
+      addXPF(dq, ss->xpfRRCode);
     }
 
     ss->queries++;
@@ -1366,7 +1425,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     ids->origFD = cs.udpFD;
     ids->origID = dh->id;
     ids->origRemote = remote;
-    ids->sentTime.set(realTime);
+    ids->sentTime.set(queryRealTime);
     ids->qname = qname;
     ids->qtype = dq.qtype;
     ids->qclass = dq.qclass;
@@ -1926,6 +1985,40 @@ struct
 
 std::atomic<bool> g_configurationDone{false};
 
+static void usage()
+{
+  cout<<endl;
+  cout<<"Syntax: dnsdist [-C,--config file] [-c,--client [IP[:PORT]]] [-d,--daemon]\n";
+  cout<<"[-p,--pidfile file] [-e,--execute cmd] [-h,--help] [-l,--local addr]\n";
+  cout<<"[-v,--verbose] [--check-config]\n";
+  cout<<"\n";
+  cout<<"-a,--acl netmask      Add this netmask to the ACL\n";
+  cout<<"-C,--config file      Load configuration from 'file'\n";
+  cout<<"-c,--client           Operate as a client, connect to dnsdist. This reads\n";
+  cout<<"                      controlSocket from your configuration file, but also\n";
+  cout<<"                      accepts an IP:PORT argument\n";
+#ifdef HAVE_LIBSODIUM
+  cout<<"-k,--setkey KEY       Use KEY for encrypted communication to dnsdist. This\n";
+  cout<<"                      is similar to setting setKey in the configuration file.\n";
+  cout<<"                      NOTE: this will leak this key in your shell's history!\n";
+#endif
+  cout<<"--check-config        Validate the configuration file and exit. The exit-code\n";
+  cout<<"                      reflects the validation, 0 is OK, 1 means an error.\n";
+  cout<<"                      Any errors are printed as well.\n";
+  cout<<"-d,--daemon           Operate as a daemon\n";
+  cout<<"-e,--execute cmd      Connect to dnsdist and execute 'cmd'\n";
+  cout<<"-g,--gid gid          Change the process group ID after binding sockets\n";
+  cout<<"-h,--help             Display this helpful message\n";
+  cout<<"-l,--local address    Listen on this local address\n";
+  cout<<"--supervised          Don't open a console, I'm supervised\n";
+  cout<<"                        (use with e.g. systemd and daemontools)\n";
+  cout<<"--disable-syslog      Don't log to syslog, only to stdout\n";
+  cout<<"                        (use with e.g. systemd)\n";
+  cout<<"-p,--pidfile file     Write a pidfile, works only with --daemon\n";
+  cout<<"-u,--uid uid          Change the process user ID after binding sockets\n";
+  cout<<"-v,--verbose          Enable verbose mode\n";
+}
+
 int main(int argc, char** argv)
 try
 {
@@ -2012,36 +2105,7 @@ try
       break;
     case 'h':
       cout<<"dnsdist "<<VERSION<<endl;
-      cout<<endl;
-      cout<<"Syntax: dnsdist [-C,--config file] [-c,--client [IP[:PORT]]] [-d,--daemon]\n";
-      cout<<"[-p,--pidfile file] [-e,--execute cmd] [-h,--help] [-l,--local addr]\n";
-      cout<<"[-v,--verbose] [--check-config]\n";
-      cout<<"\n";
-      cout<<"-a,--acl netmask      Add this netmask to the ACL\n";
-      cout<<"-C,--config file      Load configuration from 'file'\n";
-      cout<<"-c,--client           Operate as a client, connect to dnsdist. This reads\n";
-      cout<<"                      controlSocket from your configuration file, but also\n";
-      cout<<"                      accepts an IP:PORT argument\n";
-#ifdef HAVE_LIBSODIUM
-      cout<<"-k,--setkey KEY       Use KEY for encrypted communication to dnsdist. This\n";
-      cout<<"                      is similar to setting setKey in the configuration file.\n";
-      cout<<"                      NOTE: this will leak this key in your shell's history!\n";
-#endif
-      cout<<"--check-config        Validate the configuration file and exit. The exit-code\n";
-      cout<<"                      reflects the validation, 0 is OK, 1 means an error.\n";
-      cout<<"                      Any errors are printed as well.\n";
-      cout<<"-d,--daemon           Operate as a daemon\n";
-      cout<<"-e,--execute cmd      Connect to dnsdist and execute 'cmd'\n";
-      cout<<"-g,--gid gid          Change the process group ID after binding sockets\n";
-      cout<<"-h,--help             Display this helpful message\n";
-      cout<<"-l,--local address    Listen on this local address\n";
-      cout<<"--supervised          Don't open a console, I'm supervised\n";
-      cout<<"                        (use with e.g. systemd and daemontools)\n";
-      cout<<"--disable-syslog      Don't log to syslog, only to stdout\n";
-      cout<<"                        (use with e.g. systemd)\n";
-      cout<<"-p,--pidfile file     Write a pidfile, works only with --daemon\n";
-      cout<<"-u,--uid uid          Change the process user ID after binding sockets\n";
-      cout<<"-v,--verbose          Enable verbose mode\n";
+      usage();
       cout<<"\n";
       exit(EXIT_SUCCESS);
       break;
@@ -2079,6 +2143,16 @@ try
       cout<<"dnsdist "<<VERSION<<" ("<<LUA_RELEASE<<")"<<endl;
 #endif
       cout<<"Enabled features: ";
+#ifdef HAVE_DNS_OVER_TLS
+      cout<<"dns-over-tls(";
+#ifdef HAVE_GNUTLS
+      cout<<"gnutls ";
+#endif
+#ifdef HAVE_LIBSSL
+      cout<<"openssl";
+#endif
+      cout<<") ";
+#endif
 #ifdef HAVE_DNSCRYPT
       cout<<"dnscrypt ";
 #endif
@@ -2087,6 +2161,9 @@ try
 #endif
 #ifdef HAVE_LIBSODIUM
       cout<<"libsodium ";
+#endif
+#ifdef HAVE_FSTRM
+      cout<<"fstrm ";
 #endif
 #ifdef HAVE_PROTOBUF
       cout<<"protobuf ";
@@ -2105,6 +2182,11 @@ try
 #endif
       cout<<endl;
       exit(EXIT_SUCCESS);
+      break;
+    case '?':
+      //getopt_long printed an error message.
+      usage();
+      exit(EXIT_FAILURE);
       break;
     }
   }
@@ -2227,7 +2309,7 @@ try
 
     SSetsockopt(cs->tcpFD, SOL_SOCKET, SO_REUSEADDR, 1);
 #ifdef TCP_DEFER_ACCEPT
-    SSetsockopt(cs->tcpFD, SOL_TCP,TCP_DEFER_ACCEPT, 1);
+    SSetsockopt(cs->tcpFD, IPPROTO_TCP, TCP_DEFER_ACCEPT, 1);
 #endif
     if (std::get<3>(local) > 0) {
 #ifdef TCP_FASTOPEN
@@ -2330,7 +2412,7 @@ try
     cs->tcpFD = SSocket(cs->local.sin4.sin_family, SOCK_STREAM, 0);
     SSetsockopt(cs->tcpFD, SOL_SOCKET, SO_REUSEADDR, 1);
 #ifdef TCP_DEFER_ACCEPT
-    SSetsockopt(cs->tcpFD, SOL_TCP,TCP_DEFER_ACCEPT, 1);
+    SSetsockopt(cs->tcpFD, IPPROTO_TCP, TCP_DEFER_ACCEPT, 1);
 #endif
     if (std::get<3>(dcLocal) > 0) {
 #ifdef TCP_FASTOPEN
@@ -2379,6 +2461,62 @@ try
     tcpBindsCount++;
   }
 #endif
+
+  for(auto& frontend : g_tlslocals) {
+    ClientState* cs = new ClientState;
+    cs->local = frontend->d_addr;
+    cs->tcpFD = SSocket(cs->local.sin4.sin_family, SOCK_STREAM, 0);
+    SSetsockopt(cs->tcpFD, SOL_SOCKET, SO_REUSEADDR, 1);
+#ifdef TCP_DEFER_ACCEPT
+    SSetsockopt(cs->tcpFD, IPPROTO_TCP, TCP_DEFER_ACCEPT, 1);
+#endif
+    if (frontend->d_tcpFastOpenQueueSize > 0) {
+#ifdef TCP_FASTOPEN
+      SSetsockopt(cs->tcpFD, IPPROTO_TCP, TCP_FASTOPEN, frontend->d_tcpFastOpenQueueSize);
+#else
+      warnlog("TCP Fast Open has been configured on local address '%s' but is not supported", cs->local.toStringWithPort());
+#endif
+    }
+    if (frontend->d_reusePort) {
+#ifdef SO_REUSEPORT
+      SSetsockopt(cs->tcpFD, SOL_SOCKET, SO_REUSEPORT, 1);
+#else
+      warnlog("SO_REUSEPORT has been configured on local address '%s' but is not supported", cs.local.toStringWithPort());
+#endif
+    }
+    if(cs->local.sin4.sin_family == AF_INET6) {
+      SSetsockopt(cs->tcpFD, IPPROTO_IPV6, IPV6_V6ONLY, 1);
+    }
+
+    if (!frontend->d_interface.empty()) {
+#ifdef SO_BINDTODEVICE
+      int res = setsockopt(cs->tcpFD, SOL_SOCKET, SO_BINDTODEVICE, frontend->d_interface.c_str(), frontend->d_interface.length());
+      if (res != 0) {
+        warnlog("Error setting up the interface on local address '%s': %s", cs->local.toStringWithPort(), strerror(errno));
+      }
+#else
+      warnlog("An interface has been configured on local address '%s' but SO_BINDTODEVICE is not supported", cs->local.toStringWithPort());
+#endif
+    }
+
+    cs->cpus = frontend->d_cpus;
+
+    bindAny(cs->local.sin4.sin_family, cs->tcpFD);
+    if (frontend->setupTLS()) {
+      cs->tlsFrontend = frontend;
+      SBind(cs->tcpFD, cs->local);
+      SListen(cs->tcpFD, 64);
+      warnlog("Listening on %s for TLS", cs->local.toStringWithPort());
+      toLaunch.push_back(cs);
+      g_frontends.push_back(cs);
+      tcpBindsCount++;
+    }
+    else {
+      delete cs;
+      errlog("Error while setting up TLS on local address '%s', exiting", cs->local.toStringWithPort());
+      _exit(EXIT_FAILURE);
+    }
+  }
 
   if(g_cmdLine.beDaemon) {
     g_console=false;

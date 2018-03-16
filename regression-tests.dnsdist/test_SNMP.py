@@ -22,7 +22,7 @@ class TestSNMP(DNSDistTest):
     """
 
     def _checkStatsValues(self, results, queriesCountersValue):
-        for i in range(1, 5) + range(6, 20) + range(24, 35) + [ 35 ] :
+        for i in list(range(1, 5)) + list(range(6, 20)) + list(range(24, 35)) + [ 35 ] :
             oid = self._snmpOID + '.1.' + str(i) + '.0'
             self.assertTrue(oid in results)
             self.assertTrue(isinstance(results[oid], Counter64))
@@ -42,7 +42,7 @@ class TestSNMP(DNSDistTest):
             self.assertEquals(results[oid], queriesCountersValue)
 
         # the others counters (except for latency ones) should still be at 0
-        for i in range(3, 5) + range(6, 14) + [26, 27, 29, 30, 31, 35, 36]:
+        for i in [3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 26, 27, 29, 30, 31, 35, 36]:
             oid = self._snmpOID + '.1.' + str(i) + '.0'
             self.assertEquals(results[oid], 0)
 

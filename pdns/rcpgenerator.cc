@@ -35,7 +35,7 @@
 #include "base64.hh"
 #include "namespaces.hh"
 
-RecordTextReader::RecordTextReader(const string& str, const string& zone) : d_string(str), d_zone(zone), d_pos(0)
+RecordTextReader::RecordTextReader(const string& str, const DNSName& zone) : d_string(str), d_zone(zone), d_pos(0)
 {
    /* remove whitespace */
    boost::trim_if(d_string, boost::algorithm::is_space());
@@ -180,6 +180,28 @@ void RecordTextReader::xfrIP6(std::string &val)
   d_pos += len;
 }
 
+void RecordTextReader::xfrCAWithoutPort(uint8_t version, ComboAddress &val)
+{
+  if (version == 4) {
+    uint32_t ip;
+    xfrIP(ip);
+    val = makeComboAddressFromRaw(4, string((const char*) &ip, 4));
+  }
+  else if (version == 6) {
+    string ip;
+    xfrIP6(ip);
+    val = makeComboAddressFromRaw(6, ip);
+  }
+  else throw RecordTextException("invalid address family");
+}
+
+void RecordTextReader::xfrCAPort(ComboAddress &val)
+{
+  uint16_t port;
+  xfr16BitInt(port);
+  val.sin4.sin_port = port;
+}
+
 bool RecordTextReader::eof()
 {
   return d_pos==d_end;
@@ -207,8 +229,7 @@ void RecordTextReader::xfr8BitInt(uint8_t &val)
 void RecordTextReader::xfrName(DNSName& val, bool, bool)
 {
   skipSpaces();
-  string sval;
-  sval.reserve(d_end - d_pos);
+  DNSName sval;
 
   const char* strptr=d_string.c_str();
   string::size_type begin_pos = d_pos;
@@ -218,19 +239,13 @@ void RecordTextReader::xfrName(DNSName& val, bool, bool)
       
     d_pos++;
   }
-  sval.append(strptr+begin_pos, strptr+d_pos);      
+  sval = DNSName(std::string(strptr+begin_pos, strptr+d_pos));
 
   if(sval.empty())
     sval=d_zone;
-  else if(!d_zone.empty()) {
-    char last=sval[sval.size()-1];
-   
-    if(last =='.')
-      sval.resize(sval.size()-1);
-    else if(last != '.' && !isdigit(last)) // don't add zone to IP address
-      sval+="."+d_zone;
-  }
-  val = DNSName(sval);
+  else if(!d_zone.empty())
+    sval+=d_zone;
+  val = sval;
 }
 
 static bool isbase64(char c, bool acceptspace)
@@ -504,6 +519,21 @@ void RecordTextWriter::xfrIP6(const std::string& val)
     throw RecordTextException("Unable to convert to ipv6 address");
   
   d_string += std::string(addrbuf);
+}
+
+void RecordTextWriter::xfrCAWithoutPort(uint8_t version, ComboAddress &val)
+{
+  string ip = val.toString();
+
+  if(!d_string.empty())
+    d_string.append(1,' ');
+
+  d_string += ip;
+}
+
+void RecordTextWriter::xfrCAPort(ComboAddress &val)
+{
+  xfr16BitInt(val.sin4.sin_port);
 }
 
 void RecordTextWriter::xfrTime(const uint32_t& val)

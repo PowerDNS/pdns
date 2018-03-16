@@ -40,12 +40,11 @@
 #include "bpf-filter.hh"
 #include <string>
 #include <unordered_map>
+#include "tcpiohandler.hh"
 
-
-#ifdef HAVE_PROTOBUF
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
-#endif
+#include <boost/uuid/uuid_io.hpp>
 
 void* carbonDumpThread();
 uint64_t uptimeOfProcess(const std::string& str);
@@ -54,82 +53,14 @@ extern uint16_t g_ECSSourcePrefixV4;
 extern uint16_t g_ECSSourcePrefixV6;
 extern bool g_ECSOverride;
 
-class QTag
-{
-public:
-  QTag()
-  {
-  }
-
-  ~QTag()
-  {
-  }
-
-  void add(const std::string& strLabel, const std::string& strValue)
-  {
-    tagData.insert({strLabel, strValue});
-    return;
-  }
-
-  std::string getMatch(const std::string& strLabel)  const
-  {
-    const auto got = tagData.find(strLabel);
-    if (got == tagData.cend()) {
-      return "";
-    }
-
-    return got->second;
-  }
-
-  std::string getEntry(size_t iEntry) const
-  {
-    std::string strEntry;
-    size_t iCounter = 0;
-
-    for (const auto& itr : tagData) {
-      iCounter++;
-      if(iCounter == iEntry) {
-        strEntry = itr.first;
-        strEntry += strSep;
-        strEntry += itr.second;
-        break;
-      }
-    }
-
-    return strEntry;
-  }
-
-  size_t count() const
-  {
-    return tagData.size();
-  }
-
-  std::string dumpString() const
-  {
-    std::string strRet;
-
-    for (const auto& itr : tagData) {
-      strRet += itr.first;
-      strRet += strSep;
-      strRet += itr.second;
-      strRet += "\n";
-    }
-    return strRet;
-  }
-
-  std::unordered_map<std::string, std::string> tagData;
-
-private:
-  static constexpr char const *strSep = "\t";
-};
-
-#ifdef HAVE_PROTOBUF
 extern thread_local boost::uuids::random_generator t_uuidGenerator;
-#endif
+
+typedef std::unordered_map<string, string> QTag;
 
 struct DNSQuestion
 {
-  DNSQuestion(const DNSName* name, uint16_t type, uint16_t class_, const ComboAddress* lc, const ComboAddress* rem, struct dnsheader* header, size_t bufferSize, uint16_t queryLen, bool isTcp): qname(name), qtype(type), qclass(class_), local(lc), remote(rem), dh(header), size(bufferSize), len(queryLen), ecsPrefixLength(rem->sin4.sin_family == AF_INET ? g_ECSSourcePrefixV4 : g_ECSSourcePrefixV6), tempFailureTTL(boost::none), tcp(isTcp), ecsOverride(g_ECSOverride) { }
+  DNSQuestion(const DNSName* name, uint16_t type, uint16_t class_, const ComboAddress* lc, const ComboAddress* rem, struct dnsheader* header, size_t bufferSize, uint16_t queryLen, bool isTcp, const struct timespec* queryTime_):
+    qname(name), qtype(type), qclass(class_), local(lc), remote(rem), dh(header), size(bufferSize), len(queryLen), ecsPrefixLength(rem->sin4.sin_family == AF_INET ? g_ECSSourcePrefixV4 : g_ECSSourcePrefixV6), tempFailureTTL(boost::none), tcp(isTcp), queryTime(queryTime_), ecsOverride(g_ECSOverride) { }
 
 #ifdef HAVE_PROTOBUF
   boost::optional<boost::uuids::uuid> uniqueId;
@@ -139,23 +70,24 @@ struct DNSQuestion
   const uint16_t qclass;
   const ComboAddress* local;
   const ComboAddress* remote;
-  std::shared_ptr<QTag> qTag;
+  std::shared_ptr<QTag> qTag{nullptr};
   struct dnsheader* dh;
   size_t size;
   uint16_t len;
   uint16_t ecsPrefixLength;
   boost::optional<uint32_t> tempFailureTTL;
   const bool tcp;
+  const struct timespec* queryTime;
   bool skipCache{false};
   bool ecsOverride;
   bool useECS{true};
+  bool addXPF{true};
 };
 
 struct DNSResponse : DNSQuestion
 {
-  DNSResponse(const DNSName* name, uint16_t type, uint16_t class_, const ComboAddress* lc, const ComboAddress* rem, struct dnsheader* header, size_t bufferSize, uint16_t responseLen, bool isTcp, const struct timespec* queryTime_): DNSQuestion(name, type, class_, lc, rem, header, bufferSize, responseLen, isTcp), queryTime(queryTime_) { }
-
-  const struct timespec* queryTime;
+  DNSResponse(const DNSName* name, uint16_t type, uint16_t class_, const ComboAddress* lc, const ComboAddress* rem, struct dnsheader* header, size_t bufferSize, uint16_t responseLen, bool isTcp, const struct timespec* queryTime_):
+    DNSQuestion(name, type, class_, lc, rem, header, bufferSize, responseLen, isTcp, queryTime_) { }
 };
 
 /* so what could you do: 
@@ -170,13 +102,13 @@ struct DNSResponse : DNSQuestion
 class DNSAction
 {
 public:
-  enum class Action { Drop, Nxdomain, Refused, Spoof, Allow, HeaderModify, Pool, Delay, Truncate, None};
+  enum class Action { Drop, Nxdomain, Refused, Spoof, Allow, HeaderModify, Pool, Delay, Truncate, ServFail, None};
   virtual Action operator()(DNSQuestion*, string* ruleresult) const =0;
   virtual ~DNSAction()
   {
   }
   virtual string toString() const = 0;
-  virtual std::unordered_map<string, double> getStats() const 
+  virtual std::map<string, double> getStats() const
   {
     return {{}};
   }
@@ -185,7 +117,7 @@ public:
 class DNSResponseAction
 {
 public:
-  enum class Action { Allow, Delay, Drop, HeaderModify, None };
+  enum class Action { Allow, Delay, Drop, HeaderModify, ServFail, None };
   virtual Action operator()(DNSResponse*, string* ruleresult) const =0;
   virtual ~DNSResponseAction()
   {
@@ -231,6 +163,7 @@ struct DNSDistStats
   stat_t ruleDrop{0};
   stat_t ruleNXDomain{0};
   stat_t ruleRefused{0};
+  stat_t ruleServFail{0};
   stat_t selfAnswered{0};
   stat_t downstreamTimeouts{0};
   stat_t downstreamSendErrors{0};
@@ -251,6 +184,7 @@ struct DNSDistStats
     {"rule-drop", &ruleDrop},
     {"rule-nxdomain", &ruleNXDomain},
     {"rule-refused", &ruleRefused},
+    {"rule-servfail", &ruleServFail},
     {"self-answered", &selfAnswered},
     {"downstream-timeouts", &downstreamTimeouts},
     {"downstream-send-errors", &downstreamSendErrors}, 
@@ -284,6 +218,7 @@ struct DNSDistStats
 
 
 extern struct DNSDistStats g_stats;
+void doLatencyStats(double udiff);
 
 
 struct StopWatch
@@ -499,6 +434,7 @@ struct ClientState
 #ifdef HAVE_DNSCRYPT
   DnsCryptContext* dnscryptCtx{0};
 #endif
+  shared_ptr<TLSFrontend> tlsFrontend;
   std::atomic<uint64_t> queries{0};
   int udpFD{-1};
   int tcpFD{-1};
@@ -625,6 +561,7 @@ struct DownstreamState
   int tcpSendTimeout{30};
   unsigned int sourceItf{0};
   uint16_t retries{5};
+  uint16_t xpfRRCode{0};
   uint8_t currentCheckFailures{0};
   uint8_t maxCheckFailures{1};
   StopWatch sw;
@@ -727,6 +664,20 @@ enum ednsHeaderFlags {
   EDNS_HEADER_FLAG_DO = 32768
 };
 
+struct DNSDistRuleAction
+{
+  std::shared_ptr<DNSRule> d_rule;
+  std::shared_ptr<DNSAction> d_action;
+  boost::uuids::uuid d_id;
+};
+
+struct DNSDistResponseRuleAction
+{
+  std::shared_ptr<DNSRule> d_rule;
+  std::shared_ptr<DNSResponseAction> d_action;
+  boost::uuids::uuid d_id;
+};
+
 extern GlobalStateHolder<SuffixMatchTree<DynBlock>> g_dynblockSMT;
 extern DNSAction::Action g_dynBlockAction;
 
@@ -734,14 +685,16 @@ extern GlobalStateHolder<vector<CarbonConfig> > g_carbon;
 extern GlobalStateHolder<ServerPolicy> g_policy;
 extern GlobalStateHolder<servers_t> g_dstates;
 extern GlobalStateHolder<pools_t> g_pools;
-extern GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > > g_rulactions;
-extern GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSResponseAction> > > > g_resprulactions;
-extern GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSResponseAction> > > > g_cachehitresprulactions;
+extern GlobalStateHolder<vector<DNSDistRuleAction> > g_rulactions;
+extern GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_resprulactions;
+extern GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_cachehitresprulactions;
+extern GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_selfansweredresprulactions;
 extern GlobalStateHolder<NetmaskGroup> g_ACL;
 
 extern ComboAddress g_serverControl; // not changed during runtime
 
 extern std::vector<std::tuple<ComboAddress, bool, bool, int, std::string, std::set<int>>> g_locals; // not changed at runtime (we hope XXX)
+extern std::vector<shared_ptr<TLSFrontend>> g_tlslocals;
 extern vector<ClientState*> g_frontends;
 extern std::string g_key; // in theory needs locking
 extern bool g_truncateTC;
@@ -794,14 +747,15 @@ extern std::vector<std::shared_ptr<DynBPFFilter> > g_dynBPFFilters;
 
 struct LocalHolders
 {
-  LocalHolders(): acl(g_ACL.getLocal()), policy(g_policy.getLocal()), rulactions(g_rulactions.getLocal()), cacheHitRespRulactions(g_cachehitresprulactions.getLocal()), servers(g_dstates.getLocal()), dynNMGBlock(g_dynblockNMG.getLocal()), dynSMTBlock(g_dynblockSMT.getLocal()), pools(g_pools.getLocal())
+  LocalHolders(): acl(g_ACL.getLocal()), policy(g_policy.getLocal()), rulactions(g_rulactions.getLocal()), cacheHitRespRulactions(g_cachehitresprulactions.getLocal()), selfAnsweredRespRulactions(g_selfansweredresprulactions.getLocal()), servers(g_dstates.getLocal()), dynNMGBlock(g_dynblockNMG.getLocal()), dynSMTBlock(g_dynblockSMT.getLocal()), pools(g_pools.getLocal())
   {
   }
 
   LocalStateHolder<NetmaskGroup> acl;
   LocalStateHolder<ServerPolicy> policy;
-  LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > > rulactions;
-  LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSResponseAction> > > > cacheHitRespRulactions;
+  LocalStateHolder<vector<DNSDistRuleAction> > rulactions;
+  LocalStateHolder<vector<DNSDistResponseRuleAction> > cacheHitRespRulactions;
+  LocalStateHolder<vector<DNSDistResponseRuleAction> > selfAnsweredRespRulactions;
   LocalStateHolder<servers_t> servers;
   LocalStateHolder<NetmaskTree<DynBlock> > dynNMGBlock;
   LocalStateHolder<SuffixMatchTree<DynBlock> > dynSMTBlock;
@@ -842,7 +796,7 @@ void resetLuaSideEffect(); // reset to indeterminate state
 
 bool responseContentMatches(const char* response, const uint16_t responseLen, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const ComboAddress& remote);
 bool processQuery(LocalHolders& holders, DNSQuestion& dq, string& poolname, int* delayMsec, const struct timespec& now);
-bool processResponse(LocalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSResponseAction> > > >& localRespRulactions, DNSResponse& dr, int* delayMsec);
+bool processResponse(LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, int* delayMsec);
 bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize, const DNSName& qname, uint16_t origFlags, bool ednsAdded, bool ecsAdded, std::vector<uint8_t>& rewrittenResponse, uint16_t addRoom);
 void restoreFlags(struct dnsheader* dh, uint16_t origFlags);
 bool checkQueryHeaders(const struct dnsheader* dh);
@@ -853,6 +807,8 @@ extern std::vector<std::tuple<ComboAddress,DnsCryptContext,bool,int, std::string
 int handleDnsCryptQuery(DnsCryptContext* ctx, char* packet, uint16_t len, std::shared_ptr<DnsCryptQuery>& query, uint16_t* decryptedQueryLen, bool tcp, std::vector<uint8_t>& response);
 bool encryptResponse(char* response, uint16_t* responseLen, size_t responseSize, bool tcp, std::shared_ptr<DnsCryptQuery> dnsCryptQuery, dnsheader** dh, dnsheader* dhCopy);
 #endif
+
+bool addXPF(DNSQuestion& dq, uint16_t optionCode);
 
 #include "dnsdist-snmp.hh"
 

@@ -1,11 +1,10 @@
 #!/usr/bin/env python
-import Queue
 import threading
 import socket
 import struct
 import sys
 import time
-from dnsdisttests import DNSDistTest
+from dnsdisttests import DNSDistTest, Queue
 
 import dns
 import dnsmessage_pb2
@@ -13,7 +12,7 @@ import dnsmessage_pb2
 
 class TestProtobuf(DNSDistTest):
     _protobufServerPort = 4242
-    _protobufQueue = Queue.Queue()
+    _protobufQueue = Queue()
     _protobufCounter = 0
     _config_params = ['_testServerPort', '_protobufServerPort']
     _config_template = """

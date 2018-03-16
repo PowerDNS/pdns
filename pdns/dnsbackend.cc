@@ -255,7 +255,7 @@ bool DNSBackend::getSOA(const DNSName &domain, SOAData &sd, bool unmodifiedSeria
   if(!unmodifiedSerial && !sd.serial) { // magic time!
     DLOG(L<<Logger::Warning<<"Doing SOA serial number autocalculation for "<<rr.qname<<endl);
 
-    time_t serial;
+    uint32_t serial = 0;
     if (calculateSOASerial(domain, sd, serial)) {
       sd.serial = serial;
       //DLOG(L<<"autocalculated soa serialnumber for "<<rr.qname<<" is "<<newest<<endl);
@@ -335,12 +335,12 @@ bool DNSBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonename, co
  * \param sd Information about the SOA record already available
  * \param serial Output parameter. Only inspected when we return true
  */
-bool DNSBackend::calculateSOASerial(const DNSName& domain, const SOAData& sd, time_t& serial)
+bool DNSBackend::calculateSOASerial(const DNSName& domain, const SOAData& sd, uint32_t& serial)
 {
     // we do this by listing the domain and taking the maximum last modified timestamp
 
     DNSResourceRecord i;
-    time_t newest=0;
+    uint32_t newest=0;
 
     if(!(this->list(domain, sd.domain_id))) {
       DLOG(L<<Logger::Warning<<"Backend error trying to determine magic serial number of zone '"<<domain<<"'"<<endl);

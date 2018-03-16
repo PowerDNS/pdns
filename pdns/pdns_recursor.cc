@@ -94,6 +94,8 @@
 
 #include "namespaces.hh"
 
+#include "xpf.hh"
+
 typedef map<ComboAddress, uint32_t, ComboAddress::addressOnlyLessThan> tcpClientCounts_t;
 
 static thread_local std::shared_ptr<RecursorLua4> t_pdl;
@@ -136,6 +138,7 @@ static vector<ComboAddress> g_localQueryAddresses4, g_localQueryAddresses6;
 static AtomicCounter counter;
 static std::shared_ptr<SyncRes::domainmap_t> g_initialDomainMap; // new threads needs this to be setup
 static std::shared_ptr<NetmaskGroup> g_initialAllowFrom; // new thread needs to be setup with this
+static NetmaskGroup g_XPFAcl;
 static size_t g_tcpMaxQueriesPerConn;
 static uint64_t g_latencyStatSize;
 static uint32_t g_disthashseed;
@@ -145,6 +148,7 @@ static unsigned int g_maxMThreads;
 static unsigned int g_numWorkerThreads;
 static int g_tcpTimeout;
 static uint16_t g_udpTruncationThreshold;
+static uint16_t g_xpfRRCode{0};
 static std::atomic<bool> statsWanted;
 static std::atomic<bool> g_quiet;
 static bool g_logCommonErrors;
@@ -181,10 +185,15 @@ struct DNSComboWriter {
   DNSComboWriter(const char* data, uint16_t len, const struct timeval& now) : d_mdp(true, data, len), d_now(now),
                                                                                                         d_tcp(false), d_socket(-1)
   {}
-  MOADNSParser d_mdp;
-  void setRemote(const ComboAddress* sa)
+
+  void setRemote(const ComboAddress& sa)
   {
-    d_remote=*sa;
+    d_remote=sa;
+  }
+
+  void setSource(const ComboAddress& sa)
+  {
+    d_source=sa;
   }
 
   void setLocal(const ComboAddress& sa)
@@ -192,6 +201,10 @@ struct DNSComboWriter {
     d_local=sa;
   }
 
+  void setDestination(const ComboAddress& sa)
+  {
+    d_destination=sa;
+  }
 
   void setSocket(int sock)
   {
@@ -200,11 +213,26 @@ struct DNSComboWriter {
 
   string getRemote() const
   {
-    return d_remote.toString();
+    if (d_source == d_remote) {
+      return d_source.toStringWithPort();
+    }
+    return d_source.toStringWithPort() + " (proxied by " + d_remote.toStringWithPort() + ")";
   }
 
+  MOADNSParser d_mdp;
   struct timeval d_now;
-  ComboAddress d_remote, d_local;
+  /* Remote client, might differ from d_source
+     in case of XPF, in which case d_source holds
+     the IP of the client and d_remote of the proxy
+  */
+  ComboAddress d_remote;
+  ComboAddress d_source;
+  /* Destination address, might differ from
+     d_destination in case of XPF, in which case
+     d_destination holds the IP of the proxy and
+     d_local holds our own. */
+  ComboAddress d_local;
+  ComboAddress d_destination;
 #ifdef HAVE_PROTOBUF
   boost::uuids::uuid d_uuid;
   string d_requestorId;
@@ -295,7 +323,15 @@ static void handleGenUDPQueryResponse(int fd, FDMultiplexer::funcparam_t& var)
 {
   PacketID pident=*any_cast<PacketID>(&var);
   char resp[512];
-  ssize_t ret=recv(fd, resp, sizeof(resp), 0);
+  ComboAddress fromaddr;
+  socklen_t addrlen=sizeof(fromaddr);
+
+  ssize_t ret=recvfrom(fd, resp, sizeof(resp), 0, (sockaddr *)&fromaddr, &addrlen);
+  if (fromaddr != pident.remote) {
+    L<<Logger::Notice<<"Response received from the wrong remote host ("<<fromaddr.toStringWithPort()<<" instead of "<<pident.remote.toStringWithPort()<<"), discarding"<<endl;
+
+  }
+
   t_fdm->removeReadFD(fd);
   if(ret >= 0) {
     string data(resp, (size_t) ret);
@@ -319,6 +355,7 @@ string GenUDPQueryResponse(const ComboAddress& dest, const string& query)
 
   PacketID pident;
   pident.sock=&s;
+  pident.remote=dest;
   pident.type=0;
   t_fdm->addReadFD(s.getHandle(), handleGenUDPQueryResponse, pident);
 
@@ -642,7 +679,7 @@ static void updateResponseStats(int res, const ComboAddress& remote, unsigned in
 static string makeLoginfo(DNSComboWriter* dc)
 try
 {
-  return "("+dc->d_mdp.d_qname.toLogString()+"/"+DNSRecordContent::NumberToType(dc->d_mdp.d_qtype)+" from "+(dc->d_remote.toString())+")";
+  return "("+dc->d_mdp.d_qname.toLogString()+"/"+DNSRecordContent::NumberToType(dc->d_mdp.d_qtype)+" from "+(dc->getRemote())+")";
 }
 catch(...)
 {
@@ -764,9 +801,9 @@ static void startDoResolve(void *p)
     RecProtoBufMessage pbMessage(RecProtoBufMessage::Response);
 #ifdef HAVE_PROTOBUF
     if (luaconfsLocal->protobufServer) {
-      Netmask requestorNM(dc->d_remote, dc->d_remote.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
+      Netmask requestorNM(dc->d_source, dc->d_source.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
       const ComboAddress& requestor = requestorNM.getMaskedNetwork();
-      pbMessage.update(dc->d_uuid, &requestor, &dc->d_local, dc->d_tcp, dc->d_mdp.d_header.id);
+      pbMessage.update(dc->d_uuid, &requestor, &dc->d_destination, dc->d_tcp, dc->d_mdp.d_header.id);
       pbMessage.setEDNSSubnet(dc->d_ednssubnet.source, dc->d_ednssubnet.source.isIpv4() ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
       pbMessage.setQuestion(dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass);
     }
@@ -818,7 +855,7 @@ static void startDoResolve(void *p)
     int res = RCode::NoError;
     DNSFilterEngine::Policy appliedPolicy;
     DNSRecord spoofed;
-    RecursorLua4::DNSQuestion dq(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_tcp, variableAnswer, wantsRPZ);
+    RecursorLua4::DNSQuestion dq(dc->d_source, dc->d_destination, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_tcp, variableAnswer, wantsRPZ);
     dq.ednsFlags = &edo.d_Z;
     dq.ednsOptions = &dc->d_ednsOpts;
     dq.tag = dc->d_tag;
@@ -865,7 +902,7 @@ static void startDoResolve(void *p)
 
     // Check if the query has a policy attached to it
     if (wantsRPZ) {
-      appliedPolicy = luaconfsLocal->dfe.getQueryPolicy(dc->d_mdp.d_qname, dc->d_remote, sr.d_discardedPolicies);
+      appliedPolicy = luaconfsLocal->dfe.getQueryPolicy(dc->d_mdp.d_qname, dc->d_source, sr.d_discardedPolicies);
     }
 
     // if there is a RecursorLua active, and it 'took' the query in preResolve, we don't launch beginResolve
@@ -1054,14 +1091,14 @@ static void startDoResolve(void *p)
       if(!shouldNotValidate && sr.isDNSSECValidationRequested()) {
         try {
           if(sr.doLog()) {
-            L<<Logger::Warning<<"Starting validation of answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<" for "<<dc->d_remote.toStringWithPort()<<endl;
+            L<<Logger::Warning<<"Starting validation of answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<" for "<<dc->getRemote()<<endl;
           }
 
           auto state = sr.getValidationState();
 
           if(state == Secure) {
             if(sr.doLog()) {
-              L<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<" for "<<dc->d_remote.toStringWithPort()<<" validates correctly"<<endl;
+              L<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<" for "<<dc->getRemote()<<" validates correctly"<<endl;
             }
             
             // Is the query source interested in the value of the ad-bit?
@@ -1070,14 +1107,14 @@ static void startDoResolve(void *p)
           }
           else if(state == Insecure) {
             if(sr.doLog()) {
-              L<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<" for "<<dc->d_remote.toStringWithPort()<<" validates as Insecure"<<endl;
+              L<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<" for "<<dc->getRemote()<<" validates as Insecure"<<endl;
             }
             
             pw.getHeader()->ad=0;
           }
           else if(state == Bogus) {
             if(g_dnssecLogBogus || sr.doLog() || g_dnssecmode == DNSSECMode::ValidateForLog) {
-              L<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<" for "<<dc->d_remote.toStringWithPort()<<" validates as Bogus"<<endl;
+              L<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<" for "<<dc->getRemote()<<" validates as Bogus"<<endl;
             }
             
             // Does the query or validation mode sending out a SERVFAIL on validation errors?
@@ -1105,7 +1142,7 @@ static void startDoResolve(void *p)
 
       if(ret.size()) {
         orderAndShuffle(ret);
-	if(auto sl = luaconfsLocal->sortlist.getOrderCmp(dc->d_remote)) {
+	if(auto sl = luaconfsLocal->sortlist.getOrderCmp(dc->d_source)) {
 	  stable_sort(ret.begin(), ret.end(), *sl);
 	  variableAnswer=true;
 	}
@@ -1157,7 +1194,7 @@ static void startDoResolve(void *p)
     }
 
     g_rs.submitResponse(dc->d_mdp.d_qtype, packet.size(), !dc->d_tcp);
-    updateResponseStats(res, dc->d_remote, packet.size(), &dc->d_mdp.d_qname, dc->d_mdp.d_qtype);
+    updateResponseStats(res, dc->d_source, packet.size(), &dc->d_mdp.d_qname, dc->d_mdp.d_qtype);
 #ifdef HAVE_PROTOBUF
     if (luaconfsLocal->protobufServer && (!luaconfsLocal->protobufTaggedOnly || (appliedPolicy.d_name && !appliedPolicy.d_name->empty()) || !dc->d_policyTags.empty())) {
       pbMessage.setBytes(packet.size());
@@ -1184,7 +1221,7 @@ static void startDoResolve(void *p)
 	addCMsgSrcAddr(&msgh, cbuf, &dc->d_local, 0);
       }
       if(sendmsg(dc->d_socket, &msgh, 0) < 0 && g_logCommonErrors) 
-        L<<Logger::Warning<<"Sending UDP reply to client "<<dc->d_remote.toStringWithPort()<<" failed with: "<<strerror(errno)<<endl;
+        L<<Logger::Warning<<"Sending UDP reply to client "<<dc->getRemote()<<" failed with: "<<strerror(errno)<<endl;
       if(!SyncRes::s_nopacketcache && !variableAnswer && !sr.wasVariable() ) {
         t_packetCache->insertResponsePacket(dc->d_tag, dc->d_qhash, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass,
                                             string((const char*)&*packet.begin(), packet.size()),
@@ -1251,7 +1288,12 @@ static void startDoResolve(void *p)
 
     }
 
-    sr.d_outqueries ? t_RC->cacheMisses++ : t_RC->cacheHits++;
+    if (sr.d_outqueries || sr.d_authzonequeries) {
+      t_RC->cacheMisses++;
+    }
+    else {
+      t_RC->cacheHits++;
+    }
 
     if(spent < 0.001)
       g_stats.answers0_1++;
@@ -1353,48 +1395,75 @@ static void makeControlChannelSocket(int processNum=-1)
   }
 }
 
-static bool getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* qtype, uint16_t* qclass, EDNSSubnetOpts* ednssubnet, std::map<uint16_t, EDNSOptionView>* options)
+static void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* qtype, uint16_t* qclass,
+                              bool& foundECS, EDNSSubnetOpts* ednssubnet, std::map<uint16_t, EDNSOptionView>* options,
+                              bool& foundXPF, ComboAddress* xpfSource, ComboAddress* xpfDest)
 {
-  bool found = false;
-  const struct dnsheader* dh = (struct dnsheader*)question.c_str();
+  const bool lookForXPF = xpfSource != nullptr && g_xpfRRCode != 0;
+  const bool lookForECS = ednssubnet != nullptr;
+  const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(question.c_str());
   size_t questionLen = question.length();
   unsigned int consumed=0;
   *dnsname=DNSName(question.c_str(), questionLen, sizeof(dnsheader), false, qtype, qclass, &consumed);
 
   size_t pos= sizeof(dnsheader)+consumed+4;
-  /* at least OPT root label (1), type (2), class (2) and ttl (4) + OPT RR rdlen (2)
-     = 11 */
-  if(ntohs(dh->arcount) == 1 && questionLen > pos + 11) { // this code can extract one (1) EDNS Subnet option
+  const size_t headerSize = /* root */ 1 + sizeof(dnsrecordheader);
+  const uint16_t arcount = ntohs(dh->arcount);
+
+  for (uint16_t arpos = 0; arpos < arcount && questionLen > (pos + headerSize) && ((lookForECS && !foundECS) || (lookForXPF && !foundXPF)); arpos++) {
+    if (question.at(pos) != 0) {
+      /* not an OPT or a XPF, bye. */
+      return;
+    }
+
+    pos += 1;
+    const dnsrecordheader* drh = reinterpret_cast<const dnsrecordheader*>(&question.at(pos));
+    pos += sizeof(dnsrecordheader);
+
+    if (pos >= questionLen) {
+      return;
+    }
+
     /* OPT root label (1) followed by type (2) */
-    if(question.at(pos)==0 && question.at(pos+1)==0 && question.at(pos+2)==QType::OPT) {
+    if(lookForECS && ntohs(drh->d_type) == QType::OPT) {
       if (!options) {
         char* ecsStart = nullptr;
         size_t ecsLen = 0;
-        int res = getEDNSOption((char*)question.c_str()+pos+9, questionLen - pos - 9, EDNSOptionCode::ECS, &ecsStart, &ecsLen);
+        /* we need to pass the record len */
+        int res = getEDNSOption(const_cast<char*>(reinterpret_cast<const char*>(&question.at(pos - sizeof(drh->d_clen)))), questionLen - pos + sizeof(drh->d_clen), EDNSOptionCode::ECS, &ecsStart, &ecsLen);
         if (res == 0 && ecsLen > 4) {
           EDNSSubnetOpts eso;
           if(getEDNSSubnetOptsFromString(ecsStart + 4, ecsLen - 4, &eso)) {
             *ednssubnet=eso;
-            found = true;
+            foundECS = true;
           }
         }
       }
       else {
-        int res = getEDNSOptions((char*)question.c_str()+pos+9, questionLen - pos - 9, *options);
+        /* we need to pass the record len */
+        int res = getEDNSOptions(reinterpret_cast<const char*>(&question.at(pos -sizeof(drh->d_clen))), questionLen - pos + (sizeof(drh->d_clen)), *options);
         if (res == 0) {
           const auto& it = options->find(EDNSOptionCode::ECS);
           if (it != options->end() && it->second.content != nullptr && it->second.size > 0) {
             EDNSSubnetOpts eso;
             if(getEDNSSubnetOptsFromString(it->second.content, it->second.size, &eso)) {
               *ednssubnet=eso;
-              found = true;
+              foundECS = true;
             }
           }
         }
       }
     }
+    else if (lookForXPF && ntohs(drh->d_type) == g_xpfRRCode && ntohs(drh->d_class) == QClass::IN && drh->d_ttl == 0) {
+      if ((questionLen - pos) < ntohs(drh->d_clen)) {
+        return;
+      }
+
+      foundXPF = parseXPFPayload(reinterpret_cast<const char*>(&question.at(pos)), ntohs(drh->d_clen), *xpfSource, xpfDest);
+    }
+
+    pos += ntohs(drh->d_clen);
   }
-  return found;
 }
 
 static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
@@ -1424,7 +1493,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
     }
     if(!bytes || bytes < 0) {
       if(g_logCommonErrors)
-        L<<Logger::Error<<"TCP client "<< conn->d_remote.toString() <<" disconnected after first byte"<<endl;
+        L<<Logger::Error<<"TCP client "<< conn->d_remote.toStringWithPort() <<" disconnected after first byte"<<endl;
       t_fdm->removeReadFD(fd);
       return;
     }
@@ -1432,7 +1501,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   else if(conn->state==TCPConnection::GETQUESTION) {
     ssize_t bytes=recv(conn->getFD(), conn->data + conn->bytesread, conn->qlen - conn->bytesread, 0);
     if(!bytes || bytes < 0 || bytes > std::numeric_limits<std::uint16_t>::max()) {
-      L<<Logger::Error<<"TCP client "<< conn->d_remote.toString() <<" disconnected while reading question body"<<endl;
+      L<<Logger::Error<<"TCP client "<< conn->d_remote.toStringWithPort() <<" disconnected while reading question body"<<endl;
       t_fdm->removeReadFD(fd);
       return;
     }
@@ -1447,23 +1516,26 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       catch(MOADNSException &mde) {
         g_stats.clientParseError++;
         if(g_logCommonErrors)
-          L<<Logger::Error<<"Unable to parse packet from TCP client "<< conn->d_remote.toString() <<endl;
+          L<<Logger::Error<<"Unable to parse packet from TCP client "<< conn->d_remote.toStringWithPort() <<endl;
         return;
       }
       dc->d_tcpConnection = conn; // carry the torch
       dc->setSocket(conn->getFD()); // this is the only time a copy is made of the actual fd
       dc->d_tcp=true;
-      dc->setRemote(&conn->d_remote);
+      dc->setRemote(conn->d_remote);
+      dc->setSource(conn->d_remote);
       ComboAddress dest;
       memset(&dest, 0, sizeof(dest));
       dest.sin4.sin_family = conn->d_remote.sin4.sin_family;
       socklen_t len = dest.getSocklen();
       getsockname(conn->getFD(), (sockaddr*)&dest, &len); // if this fails, we're ok with it
       dc->setLocal(dest);
+      dc->setDestination(dest);
       DNSName qname;
       uint16_t qtype=0;
       uint16_t qclass=0;
       bool needECS = false;
+      bool needXPF = g_XPFAcl.match(conn->d_remote);
       string requestorId;
       string deviceId;
 #ifdef HAVE_PROTOBUF
@@ -1473,16 +1545,20 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       }
 #endif
 
-      if(needECS || (t_pdl && t_pdl->d_gettag)) {
+      if(needECS || needXPF || (t_pdl && t_pdl->d_gettag)) {
 
         try {
           std::map<uint16_t, EDNSOptionView> ednsOptions;
+          bool xpfFound = false;
           dc->d_ecsParsed = true;
-          dc->d_ecsFound = getQNameAndSubnet(std::string(conn->data, conn->qlen), &qname, &qtype, &qclass, &dc->d_ednssubnet, g_gettagNeedsEDNSOptions ? &ednsOptions : nullptr);
+          dc->d_ecsFound = false;
+          getQNameAndSubnet(std::string(conn->data, conn->qlen), &qname, &qtype, &qclass,
+                            dc->d_ecsFound, &dc->d_ednssubnet, g_gettagNeedsEDNSOptions ? &ednsOptions : nullptr,
+                            xpfFound, needXPF ? &dc->d_source : nullptr, needXPF ? &dc->d_destination : nullptr);
 
           if(t_pdl && t_pdl->d_gettag) {
             try {
-              dc->d_tag = t_pdl->gettag(conn->d_remote, dc->d_ednssubnet.source, dest, qname, qtype, &dc->d_policyTags, dc->d_data, ednsOptions, true, requestorId, deviceId);
+              dc->d_tag = t_pdl->gettag(dc->d_source, dc->d_ednssubnet.source, dc->d_destination, qname, qtype, &dc->d_policyTags, dc->d_data, ednsOptions, true, requestorId, deviceId);
             }
             catch(std::exception& e)  {
               if(g_logCommonErrors)
@@ -1508,7 +1584,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           const struct dnsheader* dh = (const struct dnsheader*) conn->data;
 
           if (!luaconfsLocal->protobufTaggedOnly) {
-            protobufLogQuery(luaconfsLocal->protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, dc->d_uuid, conn->d_remote, dest, dc->d_ednssubnet.source, true, dh->id, conn->qlen, qname, qtype, qclass, dc->d_policyTags, dc->d_requestorId, dc->d_deviceId);
+            protobufLogQuery(luaconfsLocal->protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, dc->d_uuid, dc->d_source, dc->d_destination, dc->d_ednssubnet.source, true, dh->id, conn->qlen, qname, qtype, qclass, dc->d_policyTags, dc->d_requestorId, dc->d_deviceId);
           }
         }
         catch(std::exception& e) {
@@ -1518,15 +1594,15 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       }
 #endif
       if(dc->d_mdp.d_header.qr) {
-        delete dc;
         g_stats.ignoredCount++;
-        L<<Logger::Error<<"Ignoring answer from TCP client "<< conn->d_remote.toString() <<" on server socket!"<<endl;
+        L<<Logger::Error<<"Ignoring answer from TCP client "<< dc->getRemote() <<" on server socket!"<<endl;
+        delete dc;
         return;
       }
       if(dc->d_mdp.d_header.opcode) {
-        delete dc;
         g_stats.ignoredCount++;
-        L<<Logger::Error<<"Ignoring non-query opcode from TCP client "<< conn->d_remote.toString() <<" on server socket!"<<endl;
+        L<<Logger::Error<<"Ignoring non-query opcode from TCP client "<< dc->getRemote() <<" on server socket!"<<endl;
+        delete dc;
         return;
       }
       else {
@@ -1615,8 +1691,11 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   unsigned int ctag=0;
   uint32_t qhash = 0;
   bool needECS = false;
+  bool needXPF = g_XPFAcl.match(fromaddr);
   std::vector<std::string> policyTags;
   LuaContext::LuaObject data;
+  ComboAddress source = fromaddr;
+  ComboAddress destination = destaddr;
   string requestorId;
   string deviceId;
 #ifdef HAVE_PROTOBUF
@@ -1650,16 +1729,23 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     */
 #endif
 
-    if(needECS || (t_pdl && t_pdl->d_gettag)) {
+    if(needECS || needXPF || (t_pdl && t_pdl->d_gettag)) {
       try {
         std::map<uint16_t, EDNSOptionView> ednsOptions;
-        ecsFound = getQNameAndSubnet(question, &qname, &qtype, &qclass, &ednssubnet, g_gettagNeedsEDNSOptions ? &ednsOptions : nullptr);
+        bool xpfFound = false;
+
+        ecsFound = false;
+
+        getQNameAndSubnet(question, &qname, &qtype, &qclass,
+                          ecsFound, &ednssubnet, g_gettagNeedsEDNSOptions ? &ednsOptions : nullptr,
+                          xpfFound, needXPF ? &source : nullptr, needXPF ? &destination : nullptr);
+
         qnameParsed = true;
         ecsParsed = true;
 
         if(t_pdl && t_pdl->d_gettag) {
           try {
-            ctag=t_pdl->gettag(fromaddr, ednssubnet.source, destaddr, qname, qtype, &policyTags, data, ednsOptions, false, requestorId, deviceId);
+            ctag=t_pdl->gettag(source, ednssubnet.source, destination, qname, qtype, &policyTags, data, ednsOptions, false, requestorId, deviceId);
           }
           catch(std::exception& e)  {
             if(g_logCommonErrors)
@@ -1679,7 +1765,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 #ifdef HAVE_PROTOBUF
     if(luaconfsLocal->protobufServer) {
       if (!luaconfsLocal->protobufTaggedOnly || !policyTags.empty()) {
-        protobufLogQuery(luaconfsLocal->protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, uniqueId, fromaddr, destaddr, ednssubnet.source, false, dh->id, question.size(), qname, qtype, qclass, policyTags, requestorId, deviceId);
+        protobufLogQuery(luaconfsLocal->protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, uniqueId, source, destination, ednssubnet.source, false, dh->id, question.size(), qname, qtype, qclass, policyTags, requestorId, deviceId);
       }
     }
 #endif /* HAVE_PROTOBUF */
@@ -1694,9 +1780,9 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     if (cacheHit) {
 #ifdef HAVE_PROTOBUF
       if(luaconfsLocal->protobufServer && (!luaconfsLocal->protobufTaggedOnly || !pbMessage.getAppliedPolicy().empty() || !pbMessage.getPolicyTags().empty())) {
-        Netmask requestorNM(fromaddr, fromaddr.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
+        Netmask requestorNM(source, source.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
         const ComboAddress& requestor = requestorNM.getMaskedNetwork();
-        pbMessage.update(uniqueId, &requestor, &destaddr, false, dh->id);
+        pbMessage.update(uniqueId, &requestor, &destination, false, dh->id);
         pbMessage.setEDNSSubnet(ednssubnet.source, ednssubnet.source.isIpv4() ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
         pbMessage.setQueryTime(g_now.tv_sec, g_now.tv_usec);
         pbMessage.setRequestorId(requestorId);
@@ -1705,7 +1791,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
       }
 #endif /* HAVE_PROTOBUF */
       if(!g_quiet)
-        L<<Logger::Notice<<t_id<< " question answered from packet cache tag="<<ctag<<" from "<<fromaddr.toString()<<endl;
+        L<<Logger::Notice<<t_id<< " question answered from packet cache tag="<<ctag<<" from "<<source.toStringWithPort()<<(source != fromaddr ? " (via "+fromaddr.toStringWithPort()+")" : "")<<endl;
 
       g_stats.packetCacheHits++;
       SyncRes::s_queries++;
@@ -1720,12 +1806,12 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 	addCMsgSrcAddr(&msgh, cbuf, &destaddr, 0);
       }
       if(sendmsg(fd, &msgh, 0) < 0 && g_logCommonErrors)
-        L<<Logger::Warning<<"Sending UDP reply to client "<<fromaddr.toStringWithPort()<<" failed with: "<<strerror(errno)<<endl;
+        L<<Logger::Warning<<"Sending UDP reply to client "<<source.toStringWithPort()<<(source != fromaddr ? " (via "+fromaddr.toStringWithPort()+")" : "")<<" failed with: "<<strerror(errno)<<endl;
 
       if(response.length() >= sizeof(struct dnsheader)) {
         struct dnsheader tmpdh;
         memcpy(&tmpdh, response.c_str(), sizeof(tmpdh));
-        updateResponseStats(tmpdh.rcode, fromaddr, response.length(), 0, 0);
+        updateResponseStats(tmpdh.rcode, source, response.length(), 0, 0);
       }
       g_stats.avgLatencyUsec=(1-1.0/g_latencyStatSize)*g_stats.avgLatencyUsec + 0.0; // we assume 0 usec
       g_stats.avgLatencyOursUsec=(1-1.0/g_latencyStatSize)*g_stats.avgLatencyOursUsec + 0.0; // we assume 0 usec
@@ -1738,9 +1824,9 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   }
 
   if(t_pdl) {
-    if(t_pdl->ipfilter(fromaddr, destaddr, *dh)) {
+    if(t_pdl->ipfilter(source, destination, *dh)) {
       if(!g_quiet)
-	L<<Logger::Notice<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED question from "<<fromaddr.toStringWithPort()<<" based on policy"<<endl;
+	L<<Logger::Notice<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED question from "<<source.toStringWithPort()<<(source != fromaddr ? " (via "+fromaddr.toStringWithPort()+")" : "")<<" based on policy"<<endl;
       g_stats.policyDrops++;
       return 0;
     }
@@ -1748,7 +1834,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 
   if(MT->numProcesses() > g_maxMThreads) {
     if(!g_quiet)
-      L<<Logger::Notice<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED question from "<<fromaddr.toStringWithPort()<<", over capacity"<<endl;
+      L<<Logger::Notice<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED question from "<<source.toStringWithPort()<<(source != fromaddr ? " (via "+fromaddr.toStringWithPort()+")" : "")<<", over capacity"<<endl;
 
     g_stats.overCapacityDrops++;
     return 0;
@@ -1759,8 +1845,10 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   dc->d_tag=ctag;
   dc->d_qhash=qhash;
   dc->d_query = question;
-  dc->setRemote(&fromaddr);
+  dc->setRemote(fromaddr);
+  dc->setSource(source);
   dc->setLocal(destaddr);
+  dc->setDestination(destination);
   dc->d_tcp=false;
   dc->d_policyTags = policyTags;
   dc->d_data = data;
@@ -1917,7 +2005,7 @@ static void makeTCPServerSockets(unsigned int threadId)
     }
 
 #ifdef TCP_DEFER_ACCEPT
-    if(setsockopt(fd, SOL_TCP, TCP_DEFER_ACCEPT, &tmp, sizeof tmp) >= 0) {
+    if(setsockopt(fd, IPPROTO_TCP, TCP_DEFER_ACCEPT, &tmp, sizeof tmp) >= 0) {
       if(i==locals.begin())
         L<<Logger::Error<<"Enabled TCP data-ready filter for (slight) DoS protection"<<endl;
     }
@@ -2990,6 +3078,9 @@ static int serviceMain(int argc, char*argv[])
   SyncRes::parseEDNSSubnetAddFor(::arg()["ecs-add-for"]);
   g_useIncomingECS = ::arg().mustDo("use-incoming-edns-subnet");
 
+  g_XPFAcl.toMasks(::arg()["xpf-allow-from"]);
+  g_xpfRRCode = ::arg().asNum("xpf-rr-code");
+
   g_networkTimeoutMsec = ::arg().asNum("network-timeout");
 
   g_initialDomainMap = parseAuthAndForwards();
@@ -3242,7 +3333,7 @@ try
       for(expired_t::iterator i=expired.begin() ; i != expired.end(); ++i) {
         shared_ptr<TCPConnection> conn=any_cast<shared_ptr<TCPConnection> >(i->second);
         if(g_logCommonErrors)
-          L<<Logger::Warning<<"Timeout from remote TCP client "<< conn->d_remote.toString() <<endl;
+          L<<Logger::Warning<<"Timeout from remote TCP client "<< conn->d_remote.toStringWithPort() <<endl;
         t_fdm->removeReadFD(i->first);
       }
     }
@@ -3422,6 +3513,9 @@ int main(int argc, char **argv)
 
     ::arg().setSwitch("log-rpz-changes", "Log additions and removals to RPZ zones at Info level")="no";
 
+    ::arg().set("xpf-allow-from","XPF information is only processed from these subnets")="";
+    ::arg().set("xpf-rr-code","XPF option code to use")="0";
+
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");
     ::arg().setCmd("config","Output blank configuration");
@@ -3434,6 +3528,11 @@ int main(int argc, char **argv)
       s_programname+="-"+::arg()["config-name"];
     }
     cleanSlashes(configname);
+
+    if(!::arg().getCommands().empty()) {
+      cerr<<"Fatal: non-option on the command line, perhaps a '--setting=123' statement missed the '='?"<<endl;
+      exit(99);
+    }
 
     if(::arg().mustDo("config")) {
       cout<<::arg().configstring()<<endl;

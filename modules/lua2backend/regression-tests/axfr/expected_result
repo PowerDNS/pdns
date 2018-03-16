@@ -1,0 +1,14 @@
+_ssh._tcp.service.test.invalid.	60	IN	SRV	0 0 22 shell.test.invalid.
+ns1.test.invalid.	60	IN	A	127.0.0.1
+ns1.test.invalid.	60	IN	AAAA	fe80::1
+ns2.test.invalid.	60	IN	A	127.0.0.2
+ns2.test.invalid.	60	IN	AAAA	fe80::2
+shell.test.invalid.	60	IN	A	127.0.0.4
+shell.test.invalid.	60	IN	AAAA	fe80::4
+test.invalid.	60	IN	NS	ns1.test.invalid.
+test.invalid.	60	IN	NS	ns2.test.invalid.
+test.invalid.	60	IN	SOA	ns1.test.invalid. root.test.invalid. 20180115 1 2 3 4
+test.invalid.	60	IN	SOA	ns1.test.invalid. root.test.invalid. 20180115 1 2 3 4
+test.invalid.	60	IN	TXT	"this is a test record" "in two parts"
+www.test.invalid.	60	IN	A	127.0.0.3
+www.test.invalid.	60	IN	AAAA	fe80::3

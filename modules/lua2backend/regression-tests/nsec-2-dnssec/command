@@ -1,0 +1,3 @@
+#!/bin/sh
+
+cleandig wap.test.invalid A dnssec

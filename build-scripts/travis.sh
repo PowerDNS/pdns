@@ -207,9 +207,14 @@ install_auth() {
     libp11-kit-dev"
 
   # geoip-backend
+  run "sudo add-apt-repository -y ppa:maxmind/ppa"
+  run "gpg --keyserver keyserver.ubuntu.com --recv-keys DE742AFA"
+  run "gpg --export DE742AFA | sudo apt-key add -"
+  run "sudo apt-get update"
   run "sudo apt-get -qq --no-install-recommends install \
     libgeoip-dev \
-    libyaml-cpp-dev"
+    libyaml-cpp-dev \
+    libmaxminddb-dev"
 
   # ldap-backend
   run "sudo apt-get -qq --no-install-recommends install \
@@ -347,9 +352,13 @@ install_recursor() {
 
 install_dnsdist() {
   # test requirements / setup
+  run "sudo add-apt-repository -y ppa:zeha/libfstrm-ppa"
+  run 'curl "http://keyserver.ubuntu.com:11371/pks/lookup?op=get&search=0x396160EF8126A2E2" | sudo apt-key add - '
+  run "sudo apt-get -qq update"
   run "sudo apt-get -qq --no-install-recommends install \
     snmpd \
-    libsnmp-dev"
+    libsnmp-dev \
+    libfstrm-dev"
   run "sudo sed -i \"s/agentxperms 0700 0755 dnsdist/agentxperms 0700 0755 ${USER}/g\" regression-tests.dnsdist/snmpd.conf"
   run "sudo cp -f regression-tests.dnsdist/snmpd.conf /etc/snmp/snmpd.conf"
   run "sudo service snmpd restart"
@@ -361,7 +370,7 @@ build_auth() {
   run "./bootstrap"
   # Build without --enable-botan, no botan 2.x in Travis CI
   run "CFLAGS='-O1' CXXFLAGS='-O1' ./configure \
-    --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 ldap lua mydns opendbx pipe random remote tinydns godbc' \
+    --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 ldap lua mydns opendbx pipe random remote tinydns godbc lua2' \
     --with-modules='' \
     --with-sqlite3 \
     --enable-libsodium \
@@ -407,6 +416,8 @@ build_dnsdist(){
     --enable-unit-tests \
     --enable-libsodium \
     --enable-dnscrypt \
+    --enable-dns-over-tls \
+    --enable-fstrm \
     --prefix=$HOME/dnsdist \
     --disable-silent-rules"
   run "make -k -j3"
@@ -447,9 +458,10 @@ test_auth() {
   run "./timestamp ./start-test-stop 5300 bind-hybrid-nsec3"
   #ecdsa - ./timestamp ./start-test-stop 5300 bind-dnssec-pkcs11
 
-  run "export geoipregion=oc geoipregionip=1.2.3.4"
   run "./timestamp ./start-test-stop 5300 geoip"
   run "./timestamp ./start-test-stop 5300 geoip-nsec3-narrow"
+  run "export geoipdatabase=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb"
+  run "./timestamp ./start-test-stop 5300 geoip"
 
   run "./timestamp ./start-test-stop 5300 gmysql-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 gmysql-both"
@@ -519,6 +531,9 @@ test_auth() {
   run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-both"
   run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both"
   run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-narrow"
+
+  run "./timestamp ./start-test-stop 5300 lua2"
+  run "./timestamp ./start-test-stop 5300 lua2-dnssec"
 
   run "cd .."
 

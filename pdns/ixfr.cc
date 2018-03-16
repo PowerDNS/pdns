@@ -168,8 +168,13 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > > getIXFRDeltas(const ComboAd
   std::shared_ptr<SOARecordContent> masterSOA = nullptr;
   vector<DNSRecord> records;
   size_t receivedBytes = 0;
+  int8_t ixfrInProgress = -2;
 
   for(;;) {
+    // IXFR end
+    if (ixfrInProgress >= 0)
+      break;
+
     if(s.read((char*)&len, sizeof(len)) != sizeof(len))
       break;
 
@@ -203,8 +208,8 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > > getIXFRDeltas(const ComboAd
           throw std::runtime_error("The first record of the IXFR answer for zone '"+zone.toLogString()+"' from master '"+master.toStringWithPort()+"' is not a SOA ("+QType(r.first.d_type).getName()+")");
         }
 
-	auto sr = getRR<SOARecordContent>(r.first);
-	if (!sr) {
+        auto sr = getRR<SOARecordContent>(r.first);
+        if (!sr) {
           throw std::runtime_error("Error getting the content of the first SOA record of the IXFR answer for zone '"+zone.toLogString()+"' from master '"+master.toStringWithPort()+"'");
         }
 
@@ -213,6 +218,17 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > > getIXFRDeltas(const ComboAd
           return ret;
         }
         masterSOA = sr;
+      } else if (r.first.d_type == QType::SOA) {
+        auto sr = getRR<SOARecordContent>(r.first);
+        if (!sr) {
+          throw std::runtime_error("Error getting the content of SOA record of IXFR answer for zone '"+zone.toLogString()+"' from master '"+master.toStringWithPort()+"'");
+        }
+
+        // we hit the last SOA record
+        // IXFR is considered to be done if we hit the last SOA record twice
+        if (masterSOA->d_st.serial == sr->d_st.serial) {
+          ixfrInProgress++;
+        }
       }
 
       if(r.first.d_place != DNSResourceRecord::ANSWER) {

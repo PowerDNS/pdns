@@ -237,6 +237,10 @@ AM_CONDITIONAL([SQLITE3], [test "x$needsqlite3" = "xyes"])
 
 for a in $modules; do
   AC_MSG_CHECKING([whether we can build module "${a}"])
+  AS_IF([test "x$a" = "xlua2"], [
+     AS_IF([test "x$with_lua" != "xyes"],
+           AC_MSG_ERROR([Cannot build lua2 module without lua]),[])
+  ])
   if [[ -d "$srcdir/modules/${a}backend" ]]; then
     AC_MSG_RESULT([yes])
     moduledirs="$moduledirs ${a}backend"
@@ -314,6 +318,7 @@ AC_CONFIG_FILES([
   modules/gsqlite3backend/Makefile
   modules/ldapbackend/Makefile
   modules/luabackend/Makefile
+  modules/lua2backend/Makefile
   modules/mydnsbackend/Makefile
   modules/opendbxbackend/Makefile
   modules/oraclebackend/Makefile

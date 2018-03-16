@@ -80,6 +80,7 @@ void loadMainConfig(const std::string& configdir)
   string configname=::arg()["config-dir"]+"/"+s_programname+".conf";
   cleanSlashes(configname);
 
+  ::arg().set("resolver","Use this resolver for ALIAS and the internal stub resolver")="no";
   ::arg().set("default-ksk-algorithm","Default KSK algorithm")="ecdsa256";
   ::arg().set("default-ksk-size","Default KSK size (0 means default)")="0";
   ::arg().set("default-zsk-algorithm","Default ZSK algorithm")="";
@@ -121,7 +122,7 @@ void loadMainConfig(const std::string& configdir)
 
   // Keep this line below all ::arg().set() statements
   if (! ::arg().laxFile(configname.c_str()))
-    cerr<<"Warning: unable to read configuration file '"<<configname<<"'."<<endl;
+    cerr<<"Warning: unable to read configuration file '"<<configname<<"': "<<strerror(errno)<<endl;
 
   seedRandom(::arg()["entropy-source"]);
 
@@ -299,8 +300,13 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
     records=*suppliedrecords;
 
   for(auto rr : records) { // we modify this
-    if(!rr.qtype.getCode())
-      continue;
+    // if(!rr.qtype.getCode()) {
+    //   if(rr.content.length()) {
+    //     cout<<"[Error] ENT (or unknown type) has content: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " '" << rr.content<<"'"<<endl;
+    //     numerrors++;
+    //   }
+    //   continue;
+    // }
 
     numrecords++;
 
@@ -2236,7 +2242,7 @@ try
   }
   else if(cmds[0] == "replace-rrset") {
     if(cmds.size() < 5) {
-      cerr<<"Syntax: pdnsutil replace-record ZONE name type [ttl] \"content\" [\"content\"...]"<<endl;
+      cerr<<"Syntax: pdnsutil replace-rrset ZONE name type [ttl] \"content\" [\"content\"...]"<<endl;
       return 0;
     }
     exit(addOrReplaceRecord(false , cmds));
@@ -2901,13 +2907,16 @@ try
   } else if (cmds[0]=="hsm") {
 #ifdef HAVE_P11KIT1
     UeberBackend B("default");
-    if (cmds[1] == "assign") {
+    if (cmds.size() < 2) {
+      cerr << "Missing sub-command for pdnsutil hsm"<< std::endl;
+      return 0;
+    } else if (cmds[1] == "assign") {
       DNSCryptoKeyEngine::storvector_t storvect;
       DomainInfo di;
       std::vector<DNSBackend::KeyData> keys;
 
       if (cmds.size() < 9) {
-        std::cout << "Usage: pdnsutil hsm assign ZONE ALGORITHM {ksk|zsk} MODULE TOKEN PIN LABEL" << std::endl;
+        std::cout << "Usage: pdnsutil hsm assign ZONE ALGORITHM {ksk|zsk} MODULE TOKEN PIN LABEL (PUBLABEL)" << std::endl;
         return 1;
       }
 
@@ -2931,6 +2940,11 @@ try
       string slot = cmds[6];
       string pin = cmds[7];
       string label = cmds[8];
+      string pub_label;
+      if (cmds.size() > 9)
+         pub_label = cmds[9];
+      else
+         pub_label = label;
 
       std::ostringstream iscString;
       iscString << "Private-key-format: v1.2" << std::endl << 
@@ -2938,7 +2952,8 @@ try
         "Engine: " << module << std::endl <<
         "Slot: " << slot << std::endl <<
         "PIN: " << pin << std::endl << 
-        "Label: " << label << std::endl;
+        "Label: " << label << std::endl <<
+        "PubLabel: " << pub_label << std::endl;
 
       DNSKEYRecordContent drc;
       DNSSECPrivateKey dpk;

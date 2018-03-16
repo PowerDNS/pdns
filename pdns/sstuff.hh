@@ -133,9 +133,11 @@ public:
 
   void setReuseAddr()
   {
-    int tmp = 1;
-    if (setsockopt(d_socket, SOL_SOCKET, SO_REUSEADDR, (char*)&tmp, static_cast<unsigned>(sizeof tmp))<0)
-      throw NetworkError(string("Setsockopt failed: ")+strerror(errno));
+    try {
+      ::setReuseAddr(d_socket);
+    } catch (PDNSException &e) {
+      throw NetworkError(e.reason);
+    }
   }
 
   //! Bind the socket to a specified endpoint

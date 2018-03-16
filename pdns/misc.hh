@@ -63,6 +63,7 @@ string getHostname();
 string urlEncode(const string &text);
 int waitForData(int fd, int seconds, int useconds=0);
 int waitFor2Data(int fd1, int fd2, int seconds, int useconds, int* fd);
+int waitForMultiData(const set<int>& fds, const int seconds, const int useconds, int* fd);
 int waitForRWData(int fd, bool waitForRead, int seconds, int useconds, bool* error=nullptr, bool* disconnected=nullptr);
 uint16_t getShort(const unsigned char *p);
 uint16_t getShort(const char *p);
@@ -534,6 +535,7 @@ bool setBlocking( int sock );
 //! Sets the socket into non-blocking mode.
 bool setNonBlocking( int sock );
 bool setTCPNoDelay(int sock);
+bool setReuseAddr(int sock);
 bool isNonBlocking(int sock);
 int closesocket(int fd);
 bool setCloseOnExec(int sock);

@@ -53,7 +53,7 @@ void primeHints(void)
     arr.d_ttl=aaaarr.d_ttl=nsrr.d_ttl=time(0)+3600000;
     
     for(char c='a';c<='m';++c) {
-      static char templ[40];
+      char templ[40];
       strncpy(templ,"a.root-servers.net.", sizeof(templ) - 1);
       templ[sizeof(templ)-1] = '\0';
       *templ=c;
@@ -318,15 +318,42 @@ string reloadAuthAndForwards()
 }
 
 
-void RPZIXFRTracker(const ComboAddress& master, const DNSName& zoneName, boost::optional<DNSFilterEngine::Policy> defpol, uint32_t maxTTL, size_t zoneIdx, const TSIGTriplet& tt, shared_ptr<SOARecordContent> oursr, size_t maxReceivedBytes, const ComboAddress& localAddress)
+void RPZIXFRTracker(const ComboAddress& master, boost::optional<DNSFilterEngine::Policy> defpol, uint32_t maxTTL, size_t zoneIdx, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, std::shared_ptr<DNSFilterEngine::Zone> zone, const uint16_t axfrTimeout)
 {
-  uint32_t refresh = oursr->d_st.refresh;
+  uint32_t refresh = zone->getRefresh();
+  DNSName zoneName = zone->getDomain();
+  shared_ptr<SOARecordContent> sr;
+
+  while (!sr) {
+    try {
+      sr=loadRPZFromServer(master, zoneName, zone, defpol, maxTTL, tt, maxReceivedBytes, localAddress, axfrTimeout);
+      if(refresh == 0) {
+        refresh = sr->d_st.refresh;
+      }
+      zone->setSerial(sr->d_st.serial);
+    }
+    catch(const std::exception& e) {
+      theL()<<Logger::Warning<<"Unable to load RPZ zone '"<<zoneName<<"' from '"<<master<<"': '"<<e.what()<<"'. (Will try again in "<<refresh<<" seconds...)"<<endl;
+    }
+    catch(const PDNSException& e) {
+      theL()<<Logger::Warning<<"Unable to load RPZ zone '"<<zoneName<<"' from '"<<master<<"': '"<<e.reason<<"'. (Will try again in "<<refresh<<" seconds...)"<<endl;
+    }
+
+    if (!sr) {
+      if (refresh == 0) {
+        sleep(10);
+      } else {
+        sleep(refresh);
+      }
+    }
+  }
+
   for(;;) {
     DNSRecord dr;
-    dr.d_content=oursr;
+    dr.d_content=sr;
 
     sleep(refresh);
-    
+
     L<<Logger::Info<<"Getting IXFR deltas for "<<zoneName<<" from "<<master.toStringWithPort()<<", our serial: "<<getRR<SOARecordContent>(dr)->d_st.serial<<endl;
     vector<pair<vector<DNSRecord>, vector<DNSRecord> > > deltas;
 
@@ -362,7 +389,7 @@ void RPZIXFRTracker(const ComboAddress& master, const DNSName& zoneName, boost::
           continue;
 	if(rr.d_type == QType::SOA) {
 	  auto oldsr = getRR<SOARecordContent>(rr);
-	  if(oldsr && oldsr->d_st.serial == oursr->d_st.serial) {
+	  if(oldsr && oldsr->d_st.serial == sr->d_st.serial) {
 	    //	    cout<<"Got good removal of SOA serial "<<oldsr->d_st.serial<<endl;
 	  }
 	  else
@@ -382,7 +409,7 @@ void RPZIXFRTracker(const ComboAddress& master, const DNSName& zoneName, boost::
 	  auto newsr = getRR<SOARecordContent>(rr);
 	  //	  L<<Logger::Info<<"New SOA serial for "<<zoneName<<": "<<newsr->d_st.serial<<endl;
 	  if (newsr) {
-	    oursr = newsr;
+	    sr = newsr;
 	  }
 	}
 	else {
@@ -392,8 +419,8 @@ void RPZIXFRTracker(const ComboAddress& master, const DNSName& zoneName, boost::
 	}
       }
     }
-    L<<Logger::Info<<"Had "<<totremove<<" RPZ removal"<<addS(totremove)<<", "<<totadd<<" addition"<<addS(totadd)<<" for "<<zoneName<<" New serial: "<<oursr->d_st.serial<<endl;
-    newZone->setSerial(oursr->d_st.serial);
+    L<<Logger::Info<<"Had "<<totremove<<" RPZ removal"<<addS(totremove)<<", "<<totadd<<" addition"<<addS(totadd)<<" for "<<zoneName<<" New serial: "<<sr->d_st.serial<<endl;
+    newZone->setSerial(sr->d_st.serial);
 
     /* we need to replace the existing zone with the new one,
        but we don't want to touch anything else, especially other zones,

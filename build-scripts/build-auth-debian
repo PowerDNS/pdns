@@ -34,7 +34,8 @@ export VERSION_ID="${VERSION_ID}"
 
 if [ ${ID} = "ubuntu" ]; then
   if [ ${VERSION_ID} = "14.04" ]; then
-    sed -i '/lib\/systemd\/system\/pdns@\?\.service/d' debian/pdns-server.install
+    sed -i '/lib\/systemd\/system\/pdns@\?\.service/d' debian/*.install
+    sed -i '/lib\/systemd\/system\/ixfrdist@\?\.service/d' debian/*.install
   fi
   if [ $VERSION_ID} = "16.10" ];then
     sed -i 's!libzmq-dev!libzmq3-dev!' debian/control.in

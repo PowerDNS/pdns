@@ -4,7 +4,6 @@ AM_CPPFLAGS = $(LUA_CFLAGS) $(YAHTTP_CFLAGS) $(BOOST_CPPFLAGS) $(BOTAN_CFLAGS) $
 
 AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/json11 \
-	-I$(top_srcdir)/ext/rapidjson/include \
 	$(YAHTTP_CFLAGS) \
 	$(LIBCRYPTO_INCLUDES)
 
@@ -125,6 +124,7 @@ pdns_recursor_SOURCES = \
 	packetcache.hh \
 	pdns_recursor.cc \
 	pdnsexception.hh \
+	pollmplexer.cc \
 	protobuf.cc protobuf.hh \
 	pubsuffix.hh pubsuffix.cc \
 	qtype.hh qtype.cc \
@@ -148,7 +148,6 @@ pdns_recursor_SOURCES = \
 	rpzloader.cc rpzloader.hh \
 	secpoll-recursor.cc \
 	secpoll-recursor.hh \
-	selectmplexer.cc \
 	sholder.hh \
 	sillyrecords.cc \
 	snmp-agent.hh snmp-agent.cc \
@@ -164,6 +163,7 @@ pdns_recursor_SOURCES = \
 	webserver.cc webserver.hh \
 	ws-api.cc ws-api.hh \
 	ws-recursor.cc ws-recursor.hh \
+	xpf.cc xpf.hh \
 	zoneparser-tng.cc zoneparser-tng.hh
 
 if !HAVE_LUA_HPP
@@ -248,11 +248,13 @@ testrunner_SOURCES = \
 	test-signers.cc \
 	test-syncres_cc.cc \
 	test-tsig.cc \
+	test-xpf_cc.cc \
 	testrunner.cc \
 	tsigverifier.cc tsigverifier.hh \
 	unix_utility.cc \
 	validate.cc validate.hh \
 	validate-recursor.cc validate-recursor.hh \
+	xpf.cc xpf.hh \
 	zoneparser-tng.cc zoneparser-tng.hh
 
 testrunner_LDFLAGS = \

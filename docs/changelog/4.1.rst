@@ -2,6 +2,75 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.1
+  :released: 16th of Feburary 2018
+
+  This is the second release in the 4.1 train.
+
+  This is a bug-fix only release, with fixes to the LDAP and MySQL backends, the ``pdnsutil`` tool, and PDNS internals.
+
+  Changes since 4.1.1:
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 6260
+    :tickets: 6028
+
+    Backport: forbid label compression in alias wire format
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 6077
+
+    Include unistd.h for chroot(2) et al. (Florian Obser)
+
+  .. change::
+    :tags: Bug Fixes, LDAP
+    :pullreq: 6048
+
+    Ldap: fix getdomaininfo() to set ``this`` as di.backend (Grégory Oestreicher)
+
+  .. change::
+    :tags: Bug Fixes, Improvements
+    :pullreq: 6172
+
+    Ixfr: correct behavior of dealing with dns name with multiple records (Leon Xu)
+
+  .. change::
+    :tags: Bug Fixes, MySQL
+    :pullreq: 6134
+    :tickets: 6115
+
+    Auth: always bind the results array after executing a mysql statement
+
+  .. change::
+    :tags: Bug Fixes, Tools
+    :pullreq: 6129
+    :tickets: 6125
+
+    Auth: init openssl and libsodium before chrooting in pdnsutil
+
+  .. change::
+    :tags: Bug Fixes, LDAP
+    :pullreq: 6122
+    :tickets: 6097, 6060
+
+    Ldapbackend: fix listing zones incl. axfr (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 6103
+
+    Auth: fix out of bounds exception in caa processing, fixes #6089
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 6041
+    :tickets: 6040
+
+    Add the missing <sys/time.h> include to mplexer.hh for struct timeval
+
+.. changelog::
   :version: 4.1.0
   :released: 30th of November 2017
 

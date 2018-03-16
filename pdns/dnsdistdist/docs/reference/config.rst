@@ -83,6 +83,31 @@ Listen Sockets
                                   higher than 0 to enable TCP Fast Open when available.
                                   Default is 0.
 
+.. function:: addTLSLocal(address, certFile, keyFile[, options])
+
+  .. versionadded:: 1.3.0
+
+  Listen on the specified address and TCP port for incoming DNS over TLS connections, presenting the specified X.509 certificate.
+
+  :param str address: The IP Address with an optional port to listen on.
+                      The default port is 853.
+  :param str certFile: The path to a X.509 certificate file in PEM format.
+  :param str keyFile: The path to the private key file corresponding to the certificate.
+  :param table options: A table with key: value pairs with listen options.
+
+  Options:
+
+  * ``doTCP=true``: bool - Also bind on TCP on ``address``.
+  * ``reusePort=false``: bool - Set the ``SO_REUSEPORT`` socket option.
+  * ``tcpFastOpenSize=0``: int - Set the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0.
+  * ``interface=""``: str - Set the network interface to use.
+  * ``cpus={}``: table - Set the CPU affinity for this listener thread, asking the scheduler to run it on a single CPU id, or a set of CPU ids. This parameter is only available if the OS provides the pthread_setaffinity_np() function.
+  * ``provider``: str - The TLS library to use between GnuTLS and OpenSSL, if they were available and enabled at compilation time.
+  * ``ciphers``: str - The TLS ciphers to use. The exact format depends on the provider used.
+  * ``numberOfTicketsKeys``: int - The maximum number of tickets keys to keep in memory at the same time, if the provider supports it (GnuTLS doesn't, OpenSSL does). Only one key is marked as active and used to encrypt new tickets while the remaining ones can still be used to decrypt existing tickets after a rotation. Default to 5.
+  * ``ticketKeyFile``: str - The path to a file from where TLS tickets keys should be loaded, to support RFC 5077. These keys should be rotated often and never written to persistent storage to preserve forward secrecy. The default is to generate a random key. The OpenSSL provider supports several tickets keys to be able to decrypt existing sessions after the rotation, while the GnuTLS provider only supports one key.
+  * ``ticketsKeysRotationDelay``: int - Set the delay before the TLS tickets key is rotated, in seconds. Default is 43200 (12h).
+
 .. function:: setLocal(address[, options])
 
   .. versionadded:: 1.2.0
@@ -235,14 +260,16 @@ Servers
       checkName=STRING,      -- Use STRING as QNAME in the health-check query, default: "a.root-servers.net."
       checkType=STRING,      -- Use STRING as QTYPE in the health-check query, default: "A"
       setCD=BOOL,            -- Set the CD (Checking Disabled) flag in the health-check query, default: false
-      maxCheckFailures=NUM,  -- Allow NUM check failures before declaring the backend down, default: false
+      maxCheckFailures=NUM,  -- Allow NUM check failures before declaring the backend down, default: 1
       mustResolve=BOOL,      -- Set to true when the health check MUST return a NOERROR RCODE and an answer
       useClientSubnet=BOOL,  -- Add the client's IP address in the EDNS Client Subnet option when forwarding the query to this backend
-      source=STRING          -- The source address or interface to use for queries to this backend, by default this is left to the kernel's address selection
+      source=STRING,         -- The source address or interface to use for queries to this backend, by default this is left to the kernel's address selection
                              -- The following formats are supported:
                              --   "address", e.g. "192.0.2.2"
                              --   "interface name", e.g. "eth0"
                              --   "address@interface", e.g. "192.0.2.2@eth0"
+      addXPF=NUM             -- Add the client's IP address and port to the query, along with the original destination address and port,
+                             -- using the experimental XPF record from `draft-bellis-dnsop-xpf <https://datatracker.ietf.org/doc/draft-bellis-dnsop-xpf/>`_ and the specified option code. Default is disabled (0)
     })
 
   :param str server_string: A simple IP:PORT string.
@@ -275,86 +302,85 @@ A server object returned by :func:`getServer` can be manipulated with these func
 
   This object represents a backend server. It has several methods.
 
-.. classmethod:: Server:addPool(pool)
+  .. method:: Server:addPool(pool)
 
-  Add this server to a pool.
+    Add this server to a pool.
 
-  :param str pool: The pool to add the server to
+    :param str pool: The pool to add the server to
 
-.. classmethod:: Server:getName() -> string
+  .. method:: Server:getName() -> string
 
-  Get the name of this server.
+    Get the name of this server.
 
-  :returns: The name of the server, or an empty string if it does not have one
+    :returns: The name of the server, or an empty string if it does not have one
 
-.. classmethod:: Server:getNameWithAddr() -> string
+  .. method:: Server:getNameWithAddr() -> string
 
-  Get the name plus IP address and port of the server
+    Get the name plus IP address and port of the server
 
-  :returns: A string containing the server name if any plus the server address and port
+    :returns: A string containing the server name if any plus the server address and port
 
-.. classmethod:: Server:getOutstanding() -> int
+  .. method:: Server:getOutstanding() -> int
 
-  Get the number of outstanding queries for this server.
+    Get the number of outstanding queries for this server.
 
-  :returns: The number of outstanding queries
+    :returns: The number of outstanding queries
 
-.. classmethod:: Server:isUp() -> bool
+  .. method:: Server:isUp() -> bool
 
-  Returns the up status of the server
+    Returns the up status of the server
 
-  :returns: true when the server is up, false otherwise
+    :returns: true when the server is up, false otherwise
 
-.. classmethod:: Server:rmPool(pool)
+  .. method:: Server:rmPool(pool)
 
-  Removes the server from the named pool
+    Removes the server from the named pool
 
-  :param str pool: The pool to remove the server from
+    :param str pool: The pool to remove the server from
 
-.. classmethod:: Server:setAuto([status])
+  .. method:: Server:setAuto([status])
 
-.. versionchanged:: 1.3.0
-    ``status`` optional parameter added.
+    .. versionchanged:: 1.3.0
+        ``status`` optional parameter added.
 
-  Set the server in the default auto state.
-  This will enable health check queries that will set the server ``up`` and ``down`` appropriately.
+    Set the server in the default auto state.
+    This will enable health check queries that will set the server ``up`` and ``down`` appropriately.
 
-  :param bool status: Set the initial status of the server to ``up`` (true) or ``down`` (false) instead of using the last known status
+    :param bool status: Set the initial status of the server to ``up`` (true) or ``down`` (false) instead of using the last known status
 
-.. classmethod:: Server:setQPS(limit)
+  .. method:: Server:setQPS(limit)
 
-  Limit the queries per second for this server.
+    Limit the queries per second for this server.
 
-  :param int limit: The maximum number of queries per second
+    :param int limit: The maximum number of queries per second
 
-.. classmethod:: Server:setDown()
+  .. method:: Server:setDown()
 
-  Set the server in an ``DOWN`` state.
-  The server will not receive queries and the health checks are disabled
+    Set the server in an ``DOWN`` state.
+    The server will not receive queries and the health checks are disabled
 
-.. classmethod:: Server:setUp()
+  .. method:: Server:setUp()
 
-  Set the server in an ``UP`` state.
-  This server will still receive queries and health checks are disabled
+    Set the server in an ``UP`` state.
+    This server will still receive queries and health checks are disabled
 
-Attributes
-~~~~~~~~~~
+  Apart from the functions, a :class:`Server` object has these attributes:
 
-.. attribute:: Server.name
+  .. attribute:: Server.name
 
-  The name of the server
+    The name of the server
 
-.. attribute:: Server.upStatus
+  .. attribute:: Server.upStatus
 
-  Whether or not this server is up or down
+    Whether or not this server is up or down
 
-.. attribute:: Server.order
+  .. attribute:: Server.order
 
-  The order of the server
+    The order of the server
 
-.. attribute:: Server.weight
+  .. attribute:: Server.weight
 
-  The weight of the server
+    The weight of the server
 
 Pools
 -----
@@ -390,19 +416,19 @@ Pools are automatically created when a server is added to a pool (with :func:`ne
 
   This represents the pool where zero or more servers are part of.
 
-.. classmethod:: ServerPool:getCache() -> PacketCache
+  .. method:: ServerPool:getCache() -> PacketCache
 
-  Returns the :class:`PacketCache` for this pool or nil.
+    Returns the :class:`PacketCache` for this pool or nil.
 
-.. classmethod:: ServerPool:setCache(cache)
+  .. method:: ServerPool:setCache(cache)
 
-  Adds ``cache`` as the pool's cache.
+    Adds ``cache`` as the pool's cache.
 
-  :param PacketCache cache: The new cache to add to the pool
+    :param PacketCache cache: The new cache to add to the pool
 
-.. classmethod:: ServerPool:unsetCache()
+  .. method:: ServerPool:unsetCache()
 
-  Removes the cache from this pool.
+    Removes the cache from this pool.
 
 PacketCache
 ~~~~~~~~~~~
@@ -430,40 +456,40 @@ See :doc:`../guides/cache` for a how to.
 
   Represents a cache that can be part of :class:`ServerPool`.
 
-.. classmethod:: PacketCache:expunge(n)
+  .. method:: PacketCache:expunge(n)
 
-  Remove entries from the cache, leaving at most ``n`` entries
+    Remove entries from the cache, leaving at most ``n`` entries
 
-  :param int n: Number of entries to keep
+    :param int n: Number of entries to keep
 
-.. classmethod:: PacketCache:expungeByName(name [, qtype=dnsdist.ANY[, suffixMatch=false]])
+  .. method:: PacketCache:expungeByName(name [, qtype=dnsdist.ANY[, suffixMatch=false]])
 
-  .. versionchanged:: 1.2.0
-    ``suffixMatch`` parameter added.
+    .. versionchanged:: 1.2.0
+      ``suffixMatch`` parameter added.
 
-  Remove entries matching ``name`` and type from the cache.
+    Remove entries matching ``name`` and type from the cache.
 
-  :param DNSName name: The name to expunge
-  :param int qtype: The type to expunge
-  :param bool suffixMatch: When set to true, remove al entries under ``name``
+    :param DNSName name: The name to expunge
+    :param int qtype: The type to expunge
+    :param bool suffixMatch: When set to true, remove al entries under ``name``
 
-.. classmethod:: PacketCache:isFull() -> bool
+  .. method:: PacketCache:isFull() -> bool
 
-  Return true if the cache has reached the maximum number of entries.
+    Return true if the cache has reached the maximum number of entries.
 
-.. classmethod:: PacketCache:printStats()
+  .. method:: PacketCache:printStats()
 
-  Print the cache stats (hits, misses, deferred lookups and deferred inserts).
+    Print the cache stats (hits, misses, deferred lookups and deferred inserts).
 
-.. classmethod:: PacketCache:purgeExpired(n)
+  .. method:: PacketCache:purgeExpired(n)
 
-  Remove expired entries from the cache until there is at most ``n`` entries remaining in the cache.
+    Remove expired entries from the cache until there is at most ``n`` entries remaining in the cache.
 
-  :param int n: Number of entries to keep
+    :param int n: Number of entries to keep
 
-.. classmethod:: PacketCache:toString() -> string
+  .. method:: PacketCache:toString() -> string
 
-  Return the number of entries in the Packet Cache, and the maximum number of entries
+    Return the number of entries in the Packet Cache, and the maximum number of entries
 
 Client State
 ------------
@@ -472,7 +498,7 @@ Also called frontend or bind, the Client State object returned by :func:`getBind
 
 .. function:: getBind(index) -> ClientState
 
-  Return a ClientState object.
+  Return a :class:`ClientState` object.
 
   :param int index: The object index
 
@@ -483,34 +509,25 @@ ClientState functions
 
   This object represents an address and port dnsdist is listening on. When ``reuseport`` is in use, several ClientState objects can be present for the same address and port.
 
-.. classmethod:: Server:addPool(pool)
+  .. method:: ClientState:attachFilter(filter)
 
-  Add this server to a pool.
+     Attach a BPF filter to this frontend.
 
-  :param str pool: The pool to add the server to
+     :param BPFFilter filter: The filter to attach to this frontend
 
-.. classmethod:: ClientState:attachFilter(filter)
+  .. method:: ClientState:detachFilter()
 
-   Attach a BPF filter to this frontend.
+     Remove the BPF filter associated to this frontend, if any.
 
-   :param BPFFilter filter: The filter to attach to this frontend
+  .. method:: ClientState:toString() -> string
 
-.. classmethod:: ClientState:detachFilter()
+    Return the address and port this frontend is listening on.
 
-   Remove the BPF filter associated to this frontend, if any.
+    :returns: The address and port this frontend is listening on
 
-.. classmethod:: ClientState:toString() -> string
+  .. attribute:: ClientState.muted
 
-  Return the address and port this frontend is listening on.
-
-  :returns: The address and port this frontend is listening on
-
-Attributes
-~~~~~~~~~~
-
-.. attribute:: ClientState.muted
-
-  If set to true, queries received on this frontend will be normally processed and sent to a backend if needed, but no response will be ever be sent to the client over UDP. TCP queries are processed normally and responses sent to the client.
+    If set to true, queries received on this frontend will be normally processed and sent to a backend if needed, but no response will be ever be sent to the client over UDP. TCP queries are processed normally and responses sent to the client.
 
 Status, Statistics and More
 ---------------------------
@@ -518,6 +535,12 @@ Status, Statistics and More
 .. function:: dumpStats()
 
   Print all statistics dnsdist gathers
+
+.. function:: getTLSContext(idx)
+
+  .. versionadded:: 1.3.0
+
+  Return the TLSContext object for the context of index ``idx``.
 
 .. function:: grepq(selector[, num])
               grepq(selectors[, num])
@@ -567,6 +590,12 @@ Status, Statistics and More
 .. function:: showTCPStats()
 
   Show some statistics regarding TCP
+
+.. function:: showTLSContexts()
+
+  .. versionadded:: 1.3.0
+
+  Print the list of all availables DNS over TLS contexts.
 
 .. function:: showVersion()
 
@@ -689,3 +718,22 @@ Other functions
 
   If this function exists, it is called every second to so regular tasks.
   This can be used for e.g. :doc:`Dynamic Blocks <../guides/dynblocks>`.
+
+TLSContext
+~~~~~~~~~~
+
+.. class:: TLSContext
+
+  .. versionadded:: 1.3.0
+
+  This object represents an address and port dnsdist is listening on for DNS over TLS queries.
+
+  .. method:: TLSContext:rotateTicketsKey()
+
+     Replace the current TLS tickets key by a new random one.
+
+  .. method:: TLSContext:loadTicketsKeys(ticketsKeysFile)
+
+     Load new tickets keys from the selected file, replacing the existing ones. These keys should be rotated often and never written to persistent storage to preserve forward secrecy. The default is to generate a random key. The OpenSSL provider supports several tickets keys to be able to decrypt existing sessions after the rotation, while the GnuTLS provider only supports one key.
+
+    :param str ticketsKeysFile: The path to a file from where TLS tickets keys should be loaded.

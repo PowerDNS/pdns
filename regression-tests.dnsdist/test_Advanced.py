@@ -1325,7 +1325,7 @@ class TestAdvancedLuaTruncated(DNSDistTest):
 class TestStatNodeRespRingSince(DNSDistTest):
 
     _consoleKey = DNSDistTest.generateConsoleKey()
-    _consoleKeyB64 = base64.b64encode(_consoleKey)
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort']
     _config_template = """
     setKey("%s")
@@ -1362,7 +1362,7 @@ class TestStatNodeRespRingSince(DNSDistTest):
         self.sendConsoleCommand("nodesSeen = {}")
         self.sendConsoleCommand("statNodeRespRing(visitor)")
         nodes = self.sendConsoleCommand("str = '' for key,value in pairs(nodesSeen) do str = str..value..\"\\n\" end return str")
-        nodes = string.strip(nodes, "\n")
+        nodes = nodes.strip("\n")
         self.assertEquals(nodes, """statnodesince.advanced.tests.powerdns.com.
 advanced.tests.powerdns.com.
 tests.powerdns.com.
@@ -1372,7 +1372,7 @@ com.""")
         self.sendConsoleCommand("nodesSeen = {}")
         self.sendConsoleCommand("statNodeRespRing(visitor, 0)")
         nodes = self.sendConsoleCommand("str = '' for key,value in pairs(nodesSeen) do str = str..value..\"\\n\" end return str")
-        nodes = string.strip(nodes, "\n")
+        nodes = nodes.strip("\n")
         self.assertEquals(nodes, """statnodesince.advanced.tests.powerdns.com.
 advanced.tests.powerdns.com.
 tests.powerdns.com.
@@ -1384,7 +1384,7 @@ com.""")
         self.sendConsoleCommand("nodesSeen = {}")
         self.sendConsoleCommand("statNodeRespRing(visitor)")
         nodes = self.sendConsoleCommand("str = '' for key,value in pairs(nodesSeen) do str = str..value..\"\\n\" end return str")
-        nodes = string.strip(nodes, "\n")
+        nodes = nodes.strip("\n")
         self.assertEquals(nodes, """statnodesince.advanced.tests.powerdns.com.
 advanced.tests.powerdns.com.
 tests.powerdns.com.
@@ -1394,13 +1394,13 @@ com.""")
         self.sendConsoleCommand("nodesSeen = {}")
         self.sendConsoleCommand("statNodeRespRing(visitor, 5)")
         nodes = self.sendConsoleCommand("str = '' for key,value in pairs(nodesSeen) do str = str..value..\"\\n\" end return str")
-        nodes = string.strip(nodes, "\n")
+        nodes = nodes.strip("\n")
         self.assertEquals(nodes, """""")
 
         self.sendConsoleCommand("nodesSeen = {}")
         self.sendConsoleCommand("statNodeRespRing(visitor, 10)")
         nodes = self.sendConsoleCommand("str = '' for key,value in pairs(nodesSeen) do str = str..value..\"\\n\" end return str")
-        nodes = string.strip(nodes, "\n")
+        nodes = nodes.strip("\n")
         self.assertEquals(nodes, """statnodesince.advanced.tests.powerdns.com.
 advanced.tests.powerdns.com.
 tests.powerdns.com.

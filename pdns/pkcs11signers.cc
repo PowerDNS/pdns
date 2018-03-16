@@ -14,6 +14,10 @@
 #include "pdns/sha.hh"
 #include "pdns/lock.hh"
 
+#ifdef HAVE_LIBCRYPTO_ECDSA
+#include <openssl/ec.h>
+#endif
+
 #include "pkcs11signers.hh"
 /* TODO
 
@@ -279,6 +283,8 @@ class Pkcs11Token {
     std::string d_ecdsa_params;
 
     std::string d_label;
+    std::string d_pub_label;
+
     bool d_loaded;
     CK_RV d_err;
 
@@ -289,8 +295,37 @@ class Pkcs11Token {
       }
     }
 
+    unsigned int ecparam2bits(const std::string& obj) const {
+      // if we can use some library to parse the EC parameters, better use it.
+      // otherwise fall back to using hardcoded primev256 and secp384r1
+#ifdef HAVE_LIBCRYPTO_ECDSA
+      EC_KEY *key = NULL;
+      BIGNUM *order;
+      unsigned int bits = 0;
+      const unsigned char *in = reinterpret_cast<const unsigned char*>(obj.c_str());
+      order = BN_new();
+      if ((key = d2i_ECParameters(NULL, &in, obj.size())) != NULL &&
+          EC_GROUP_get_order(EC_KEY_get0_group(key), order, NULL) == 1) {
+         bits = BN_num_bits(order);
+      }
+
+      BN_free(order);
+      if (key != NULL)
+        EC_KEY_free(key);
+
+      if (bits == 0)
+        throw PDNSException("Unsupported EC key");
+
+      return bits;
+#else
+      if (d_ecdsa_params == "\x06\x08\x2a\x86\x48\xce\x3d\x03\x01\x07") return 256;
+      else if (d_ecdsa_params == "\x06\x05\x2b\x81\x04\x00\x22") return 384;
+      else throw PDNSException("Unsupported EC key");
+#endif
+    }
+
   public:
-    Pkcs11Token(const std::shared_ptr<Pkcs11Slot>& slot, const std::string& label); 
+    Pkcs11Token(const std::shared_ptr<Pkcs11Slot>& slot, const std::string& label, const std::string& pub_label); 
     ~Pkcs11Token();
 
     bool Login(const std::string& pin) {
@@ -325,10 +360,10 @@ class Pkcs11Token {
       attr.clear();
       attr.push_back(P11KitAttribute(CKA_CLASS, (unsigned long)CKO_PUBLIC_KEY));
 //      attr.push_back(P11KitAttribute(CKA_VERIFY, (char)CK_TRUE));
-      attr.push_back(P11KitAttribute(CKA_LABEL, d_label));
+      attr.push_back(P11KitAttribute(CKA_LABEL, d_pub_label));
       FindObjects2(attr, key, 1);
       if (key.size() == 0) {
-        L<<Logger::Warning<<"Cannot load PCKS#11 public key "<<d_label<<std::endl;
+        L<<Logger::Warning<<"Cannot load PCKS#11 public key "<<d_pub_label<<std::endl;
         return;
       }
       d_public_key = key[0];
@@ -349,7 +384,7 @@ class Pkcs11Token {
             d_exponent = attr[1].str();
             d_bits = attr[2].ulong();
           } else {
-            throw PDNSException("Cannot load attributes for PCKS#11 public key " + d_label);
+            throw PDNSException("Cannot load attributes for PCKS#11 public key " + d_pub_label);
           }
         } else if (d_key_type == CKK_EC || d_key_type == CKK_ECDSA) {
           attr.clear();
@@ -357,19 +392,17 @@ class Pkcs11Token {
           attr.push_back(P11KitAttribute(CKA_EC_POINT, ""));
           if (!GetAttributeValue2(d_public_key, attr)) {
             d_ecdsa_params = attr[0].str();
-            if (d_ecdsa_params == "\x06\x08\x2a\x86\x48\xce\x3d\x03\x01\x07") d_bits = 256;
-            else if (d_ecdsa_params == "\x06\x05\x2b\x81\x04\x00\x22") d_bits = 384;
-            else throw PDNSException("Unsupported EC key");
+            d_bits = ecparam2bits(d_ecdsa_params);
             if (attr[1].str().length() != (d_bits*2/8 + 3)) throw PDNSException("EC Point data invalid");
             d_ec_point = attr[1].str().substr(3);
           } else {
-            throw PDNSException("Cannot load attributes for PCKS#11 public key " + d_label);
+            throw PDNSException("Cannot load attributes for PCKS#11 public key " + d_pub_label);
           }
         } else {
-          throw PDNSException("Cannot determine type for PCKS#11 public key " + d_label);
+          throw PDNSException("Cannot determine type for PCKS#11 public key " + d_pub_label);
         }
       } else {
-        throw PDNSException("Cannot load attributes for PCKS#11 public key " + d_label);
+        throw PDNSException("Cannot load attributes for PCKS#11 public key " + d_pub_label);
       }
 
       d_loaded = true;
@@ -617,7 +650,7 @@ class Pkcs11Token {
       return d_bits;
     }
 
-    static std::shared_ptr<Pkcs11Token> GetToken(const std::string& module, const string& tokenId, const std::string& label);
+    static std::shared_ptr<Pkcs11Token> GetToken(const std::string& module, const string& tokenId, const std::string& label, const std::string& pub_label);
 };
 
 static std::map<std::string, std::shared_ptr<Pkcs11Slot> > pkcs11_slots;
@@ -626,6 +659,7 @@ static std::map<std::string, std::shared_ptr<Pkcs11Token> > pkcs11_tokens;
 CK_RV Pkcs11Slot::HuntSlot(const string& tokenId, CK_SLOT_ID &slotId, _CK_SLOT_INFO* info, CK_FUNCTION_LIST* functions)
 {
   CK_RV err;
+  unsigned int i;
   unsigned long slots;
   _CK_TOKEN_INFO tinfo;
 
@@ -637,8 +671,19 @@ CK_RV Pkcs11Slot::HuntSlot(const string& tokenId, CK_SLOT_ID &slotId, _CK_SLOT_I
     return err;
   }
 
+  // get the actual slot ids
+  CK_SLOT_ID slotIds[slots];
+  err = functions->C_GetSlotList(CK_FALSE, slotIds, &slots);
+  if (err) {
+    L<<Logger::Warning<<"C_GetSlotList(CK_FALSE, slotIds, &slots) = " << err << std::endl;
+    return err;
+  }
+
   // iterate all slots
-  for(slotId=0;slotId<slots;slotId++) {
+  for(i=0;i<slots;i++) {
+    slotId=slotIds[i];
+    if (slotId == static_cast<CK_SLOT_ID>(-1))
+      continue;
     if ((err = functions->C_GetSlotInfo(slotId, info))) {
       L<<Logger::Warning<<"C_GetSlotList("<<slotId<<", info) = " << err << std::endl;
       return err;
@@ -651,6 +696,7 @@ CK_RV Pkcs11Slot::HuntSlot(const string& tokenId, CK_SLOT_ID &slotId, _CK_SLOT_I
     slotName.assign(reinterpret_cast<char*>(tinfo.label), 32);
     // trim it
     boost::trim(slotName);
+
     if (boost::iequals(slotName, tokenId)) {
       return 0;
     }
@@ -707,7 +753,7 @@ std::shared_ptr<Pkcs11Slot> Pkcs11Slot::GetSlot(const std::string& module, const
   return pkcs11_slots[sidx];
 }
 
-std::shared_ptr<Pkcs11Token> Pkcs11Token::GetToken(const std::string& module, const string& tokenId, const std::string& label) {
+std::shared_ptr<Pkcs11Token> Pkcs11Token::GetToken(const std::string& module, const string& tokenId, const std::string& label, const std::string& pub_label) {
   // see if we can find module
   std::string tidx = module;
   tidx.append("|");
@@ -718,15 +764,16 @@ std::shared_ptr<Pkcs11Token> Pkcs11Token::GetToken(const std::string& module, co
   if ((tokenIter = pkcs11_tokens.find(tidx)) != pkcs11_tokens.end()) return tokenIter->second;
 
   std::shared_ptr<Pkcs11Slot> slot = Pkcs11Slot::GetSlot(module, tokenId);
-  pkcs11_tokens[tidx] = std::make_shared<Pkcs11Token>(slot, label);
+  pkcs11_tokens[tidx] = std::make_shared<Pkcs11Token>(slot, label, pub_label);
   return pkcs11_tokens[tidx];
 }
 
-Pkcs11Token::Pkcs11Token(const std::shared_ptr<Pkcs11Slot>& slot, const std::string& label) {
+Pkcs11Token::Pkcs11Token(const std::shared_ptr<Pkcs11Slot>& slot, const std::string& label, const std::string& pub_label) {
   // open a session
   this->d_bits = 0;
   this->d_slot = slot;
   this->d_label = label;
+  this->d_pub_label = pub_label;
   this->d_err = 0;
   this->d_loaded = false;
   if (this->d_slot->LoggedIn()) LoadAttributes();
@@ -754,7 +801,7 @@ void PKCS11DNSCryptoKeyEngine::create(unsigned int bits) {
   CK_OBJECT_HANDLE pubKey, privKey;
   CK_RV rv;
   std::shared_ptr<Pkcs11Token> d_slot;
-  d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label);
+  d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label, d_pub_label);
   if (d_slot->LoggedIn() == false)
     if (d_slot->Login(d_pin) == false)
       throw PDNSException("Not logged in to token");
@@ -769,7 +816,7 @@ void PKCS11DNSCryptoKeyEngine::create(unsigned int bits) {
   pubAttr.push_back(P11KitAttribute(CKA_WRAP, (char)CK_TRUE));
   pubAttr.push_back(P11KitAttribute(CKA_MODULUS_BITS, (unsigned long)bits));
   pubAttr.push_back(P11KitAttribute(CKA_PUBLIC_EXPONENT, pubExp));
-  pubAttr.push_back(P11KitAttribute(CKA_LABEL, d_label));
+  pubAttr.push_back(P11KitAttribute(CKA_LABEL, d_pub_label));
 
   privAttr.push_back(P11KitAttribute(CKA_CLASS, (unsigned long)CKO_PRIVATE_KEY));
   privAttr.push_back(P11KitAttribute(CKA_KEY_TYPE, (unsigned long)CKK_RSA));
@@ -795,7 +842,7 @@ void PKCS11DNSCryptoKeyEngine::create(unsigned int bits) {
 std::string PKCS11DNSCryptoKeyEngine::sign(const std::string& msg) const {
   std::string result;
   std::shared_ptr<Pkcs11Token> d_slot;
-  d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label);
+  d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label, d_pub_label);
   if (d_slot->LoggedIn() == false)
     if (d_slot->Login(d_pin) == false)
       throw PDNSException("Not logged in to token");
@@ -820,7 +867,7 @@ std::string PKCS11DNSCryptoKeyEngine::hash(const std::string& msg) const {
   mech.pParameter = NULL;
   mech.ulParameterLen = 0;
   std::shared_ptr<Pkcs11Token> d_slot;
-  d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label);
+  d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label, d_pub_label);
   if (d_slot->LoggedIn() == false)
     if (d_slot->Login(d_pin) == false)
       throw PDNSException("Not logged in to token");
@@ -851,7 +898,7 @@ std::string PKCS11DNSCryptoKeyEngine::hash(const std::string& msg) const {
 
 bool PKCS11DNSCryptoKeyEngine::verify(const std::string& msg, const std::string& signature) const {
   std::shared_ptr<Pkcs11Token> d_slot;
-  d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label);
+  d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label, d_pub_label);
   if (d_slot->LoggedIn() == false)
     if (d_slot->Login(d_pin) == false)
       throw PDNSException("Not logged in to token");
@@ -870,7 +917,7 @@ bool PKCS11DNSCryptoKeyEngine::verify(const std::string& msg, const std::string&
 std::string PKCS11DNSCryptoKeyEngine::getPubKeyHash() const {
   // find us a public key
   std::shared_ptr<Pkcs11Token> d_slot;
-  d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label);
+  d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label, d_pub_label);
   if (d_slot->LoggedIn() == false)
     if (d_slot->Login(d_pin) == false)
       throw PDNSException("Not logged in to token");
@@ -883,7 +930,7 @@ std::string PKCS11DNSCryptoKeyEngine::getPubKeyHash() const {
 std::string PKCS11DNSCryptoKeyEngine::getPublicKeyString() const {
   std::string result("");
   std::shared_ptr<Pkcs11Token> d_slot;
-  d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label);
+  d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label, d_pub_label);
   if (d_slot->LoggedIn() == false)
     if (d_slot->Login(d_pin) == false)
       throw PDNSException("Not logged in to token");
@@ -906,7 +953,7 @@ std::string PKCS11DNSCryptoKeyEngine::getPublicKeyString() const {
 
 int PKCS11DNSCryptoKeyEngine::getBits() const {
   std::shared_ptr<Pkcs11Token> d_slot;
-  d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label);
+  d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label, d_pub_label);
   if (d_slot->LoggedIn() == false)
     if (d_slot->Login(d_pin) == false)
       throw PDNSException("Not logged in to token");
@@ -924,7 +971,8 @@ DNSCryptoKeyEngine::storvector_t PKCS11DNSCryptoKeyEngine::convertToISCVector() 
    (make_pair("Engine", d_module))
    (make_pair("Slot", d_slot_id))
    (make_pair("PIN", d_pin))
-   (make_pair("Label", d_label));
+   (make_pair("Label", d_label))
+   (make_pair("PubLabel", d_pub_label));
   return storvect;
 };
 
@@ -935,10 +983,14 @@ void PKCS11DNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, stormap_t& s
   boost::trim(d_slot_id);
   d_pin = stormap["pin"];
   d_label = stormap["label"];
+  if (stormap.find("publabel") != stormap.end())
+    d_pub_label = stormap["publabel"];
+  else
+    d_pub_label = d_label;
   // validate parameters
 
   std::shared_ptr<Pkcs11Token> d_slot;
-  d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label);
+  d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label, d_pub_label);
   if (d_pin != "" && d_slot->LoggedIn() == false)
     if (d_slot->Login(d_pin) == false)
       throw PDNSException("Could not log in to token (PIN wrong?)");
