@@ -50,7 +50,7 @@ public:
 };
 
 static vector<GeoIPDomain> s_domains;
-static int s_rc = 0; // refcount
+static int s_rc = 0; // refcount - always accessed under lock
 
 static string GeoIP_WEEKDAYS[] = { "mon", "tue", "wed", "thu", "fri", "sat", "sun" };
 static string GeoIP_MONTHS[] = { "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec" };
@@ -84,6 +84,8 @@ GeoIPBackend::GeoIPBackend(const string& suffix) {
 
 static vector<std::unique_ptr<GeoIPInterface> > s_geoip_files;
 
+string getGeoForLua(const std::string& ip, int qaint);
+
 void GeoIPBackend::initialize() {
   YAML::Node config;
   vector<GeoIPDomain> tmp_domains;
@@ -101,7 +103,8 @@ void GeoIPBackend::initialize() {
   if (s_geoip_files.empty())
     L<<Logger::Warning<<"No GeoIP database files loaded!"<<endl;
 
-  config = YAML::LoadFile(getArg("zones-file"));
+  if(!getArg("zones-file").empty())
+    config = YAML::LoadFile(getArg("zones-file"));
 
   for(YAML::Node domain :  config["domains"]) {
     GeoIPDomain dom;
@@ -264,6 +267,9 @@ void GeoIPBackend::initialize() {
 
   s_domains.clear();
   std::swap(s_domains, tmp_domains);
+
+  extern std::function<std::string(const std::string& ip, int)> g_getGeo;
+  g_getGeo = getGeoForLua;
 }
 
 GeoIPBackend::~GeoIPBackend() {
@@ -434,6 +440,13 @@ string queryGeoIP(const string &ip, bool v6, GeoIPInterface::GeoIPQueryAttribute
       if (v6) found = gi->queryCityV6(val, gl, ip);
       else found = gi->queryCity(val, gl, ip);
       break;
+    case GeoIPInterface::Location:
+      double lat=0, lon=0;
+      boost::optional<int> alt, prec;
+      if (v6) found = gi->queryLocationV6(gl, ip, lat, lon, alt, prec);
+      else found = gi->queryLocation(gl, ip, lat, lon, alt, prec);
+      val = std::to_string(lat)+" "+std::to_string(lon);
+      break;
     }
 
     if (!found || val.empty() || val == "--") continue; // try next database
@@ -444,6 +457,26 @@ string queryGeoIP(const string &ip, bool v6, GeoIPInterface::GeoIPQueryAttribute
 
   if (ret == "unknown") gl.netmask = (v6?128:32); // prevent caching
   return ret;
+}
+
+string getGeoForLua(const std::string& ip, int qaint)
+{
+  GeoIPInterface::GeoIPQueryAttribute qa((GeoIPInterface::GeoIPQueryAttribute)qaint);
+  try {
+    GeoIPNetmask gl;
+    string res=queryGeoIP(ip, false, qa, gl);
+    //    cout<<"Result for "<<ip<<" lookup: "<<res<<endl;
+    if(qa==GeoIPInterface::ASn && boost::starts_with(res, "as"))
+      return res.substr(2);
+    return res;
+  }
+  catch(std::exception& e) {
+    cout<<"Error: "<<e.what()<<endl;
+  }
+  catch(PDNSException& e) {
+    cout<<"Error: "<<e.reason<<endl;
+  }
+  return "";
 }
 
 bool queryGeoLocation(const string &ip, bool v6, GeoIPNetmask& gl, double& lat, double& lon,

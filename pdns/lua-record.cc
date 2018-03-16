@@ -7,7 +7,7 @@
 #include "ueberbackend.hh"
 #include <boost/format.hpp>
 
-#include "../modules/geoipbackend/geoipbackend.hh" // only for the enum
+#include "../modules/geoipbackend/geoipinterface.hh" // only for the enum
 
 /* to do:
    block AXFR unless TSIG, or override
@@ -232,7 +232,7 @@ bool doCompare(const T& var, const std::string& res, const C& cmp)
 }
 
 
-std::string getGeo(const std::string& ip, GeoIPBackend::GeoIPQueryAttribute qa)
+std::string getGeo(const std::string& ip, GeoIPInterface::GeoIPQueryAttribute qa)
 {
   static bool initialized;
   extern std::function<std::string(const std::string& ip, int)> g_getGeo;
@@ -288,7 +288,7 @@ static ComboAddress whashed(const ComboAddress& bestwho, vector<pair<int,ComboAd
 
 static bool getLatLon(const std::string& ip, double& lat, double& lon)
 {
-  string inp = getGeo(ip, GeoIPBackend::LatLon);
+  string inp = getGeo(ip, GeoIPInterface::Location);
   if(inp.empty())
     return false;
   lat=atof(inp.c_str());
@@ -735,27 +735,27 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
   lua.executeCode("debug.sethook(report, '', 1000)");
 
   // TODO: make this better. Accept netmask/CA objects; provide names for the attr constants
-  lua.writeFunction("geoiplookup", [](const string &ip, const GeoIPBackend::GeoIPQueryAttribute attr) {
+  lua.writeFunction("geoiplookup", [](const string &ip, const GeoIPInterface::GeoIPQueryAttribute attr) {
     return getGeo(ip, attr);
   });
 
   typedef const boost::variant<string,vector<pair<int,string> > > combovar_t;
   lua.writeFunction("continent", [&bestwho](const combovar_t& continent) {
-      string res=getGeo(bestwho.toString(), GeoIPBackend::Continent);
+      string res=getGeo(bestwho.toString(), GeoIPInterface::Continent);
       return doCompare(continent, res, [](const std::string& a, const std::string& b) {
           return !strcasecmp(a.c_str(), b.c_str());
         });
     });
 
   lua.writeFunction("asnum", [&bestwho](const combovar_t& asns) {
-      string res=getGeo(bestwho.toString(), GeoIPBackend::ASn);
+      string res=getGeo(bestwho.toString(), GeoIPInterface::ASn);
       return doCompare(asns, res, [](const std::string& a, const std::string& b) {
           return !strcasecmp(a.c_str(), b.c_str());
         });
     });
   
   lua.writeFunction("country", [&bestwho](const combovar_t& var) {
-      string res = getGeo(bestwho.toString(), GeoIPBackend::Country2);
+      string res = getGeo(bestwho.toString(), GeoIPInterface::Country2);
       return doCompare(var, res, [](const std::string& a, const std::string& b) {
           return !strcasecmp(a.c_str(), b.c_str());
         });
