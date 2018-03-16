@@ -29,24 +29,24 @@ extern "C" {
     const void* data;
   } pdns_ednsoption_t;
 
-  const char* pdns_ffi_param_get_qname(pdns_ffi_param_t* ref);
-  uint16_t pdns_ffi_param_get_qtype(const pdns_ffi_param_t* ref);
-  const char* pdns_ffi_param_get_remote(pdns_ffi_param_t* ref);
-  uint16_t pdns_ffi_param_get_remote_port(const pdns_ffi_param_t* ref);
-  const char* pdns_ffi_param_get_local(pdns_ffi_param_t* ref);
-  uint16_t pdns_ffi_param_get_local_port(const pdns_ffi_param_t* ref);
-  const char* pdns_ffi_param_get_edns_cs(pdns_ffi_param_t* ref);
-  uint8_t pdns_ffi_param_get_edns_cs_source_mask(const pdns_ffi_param_t* ref);
+  const char* pdns_ffi_param_get_qname(pdns_ffi_param_t* ref) __attribute__ ((visibility ("default")));
+  uint16_t pdns_ffi_param_get_qtype(const pdns_ffi_param_t* ref) __attribute__ ((visibility ("default")));
+  const char* pdns_ffi_param_get_remote(pdns_ffi_param_t* ref) __attribute__ ((visibility ("default")));
+  uint16_t pdns_ffi_param_get_remote_port(const pdns_ffi_param_t* ref) __attribute__ ((visibility ("default")));
+  const char* pdns_ffi_param_get_local(pdns_ffi_param_t* ref) __attribute__ ((visibility ("default")));
+  uint16_t pdns_ffi_param_get_local_port(const pdns_ffi_param_t* ref) __attribute__ ((visibility ("default")));
+  const char* pdns_ffi_param_get_edns_cs(pdns_ffi_param_t* ref) __attribute__ ((visibility ("default")));
+  uint8_t pdns_ffi_param_get_edns_cs_source_mask(const pdns_ffi_param_t* ref) __attribute__ ((visibility ("default")));
 
   // returns the length of the resulting 'out' array. 'out' is not set if the length is 0
-  size_t pdns_ffi_param_get_edns_options(pdns_ffi_param_t* ref, const pdns_ednsoption_t** out);
-  size_t pdns_ffi_param_get_edns_options_by_code(pdns_ffi_param_t* ref, uint16_t optionCode, const pdns_ednsoption_t** out);
+  size_t pdns_ffi_param_get_edns_options(pdns_ffi_param_t* ref, const pdns_ednsoption_t** out) __attribute__ ((visibility ("default")));
+  size_t pdns_ffi_param_get_edns_options_by_code(pdns_ffi_param_t* ref, uint16_t optionCode, const pdns_ednsoption_t** out) __attribute__ ((visibility ("default")));
 
-  void pdns_ffi_param_set_tag(pdns_ffi_param_t* ref, unsigned int tag);
-  void pdns_ffi_param_add_policytag(pdns_ffi_param_t *ref, const char* name);
-  void pdns_ffi_param_set_requestorid(pdns_ffi_param_t* ref, const char* name);
-  void pdns_ffi_param_set_devicename(pdns_ffi_param_t* ref, const char* name);
-  void pdns_ffi_param_set_deviceid(pdns_ffi_param_t* ref, size_t len, const void* name);
-  void pdns_ffi_param_set_variable(pdns_ffi_param_t* ref, bool variable);
-  void pdns_ffi_param_set_ttl_cap(pdns_ffi_param_t* ref, uint32_t ttl);
+  void pdns_ffi_param_set_tag(pdns_ffi_param_t* ref, unsigned int tag) __attribute__ ((visibility ("default")));
+  void pdns_ffi_param_add_policytag(pdns_ffi_param_t *ref, const char* name) __attribute__ ((visibility ("default")));
+  void pdns_ffi_param_set_requestorid(pdns_ffi_param_t* ref, const char* name) __attribute__ ((visibility ("default")));
+  void pdns_ffi_param_set_devicename(pdns_ffi_param_t* ref, const char* name) __attribute__ ((visibility ("default")));
+  void pdns_ffi_param_set_deviceid(pdns_ffi_param_t* ref, size_t len, const void* name) __attribute__ ((visibility ("default")));
+  void pdns_ffi_param_set_variable(pdns_ffi_param_t* ref, bool variable) __attribute__ ((visibility ("default")));
+  void pdns_ffi_param_set_ttl_cap(pdns_ffi_param_t* ref, uint32_t ttl) __attribute__ ((visibility ("default")));
 }
