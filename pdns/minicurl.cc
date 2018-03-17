@@ -33,7 +33,6 @@ static string extractHostFromURL(const std::string& url)
   return url.substr(pos, endpos-pos);
 }
 
-#ifdef CURLOPT_RESOLVE
 void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const ComboAddress* src)
 {
   if(rem) {
@@ -67,7 +66,6 @@ void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const C
   
   d_data.clear();
 }
-
 std::string MiniCurl::getURL(const std::string& str, const ComboAddress* rem, const ComboAddress* src)
 {
   setupURL(str, rem, src);
@@ -97,4 +95,3 @@ std::string MiniCurl::postURL(const std::string& str, const std::string& postdat
   d_data.clear();
   return ret;
 }
-#endif
