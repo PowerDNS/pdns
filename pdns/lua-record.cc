@@ -28,6 +28,7 @@
    pool of UeberBackends?
  */
 
+#ifdef CURLOPT_RESOLVE
 class IsUpOracle
 {
 private:
@@ -178,7 +179,6 @@ void IsUpOracle::checkTCPThread(ComboAddress rem, opts_t opts)
   }
 }
 
-
 void IsUpOracle::checkURLThread(ComboAddress rem, std::string url, opts_t opts) 
 {
   setDown(rem, url, opts);
@@ -212,9 +212,12 @@ void IsUpOracle::checkURLThread(ComboAddress rem, std::string url, opts_t opts)
     sleep(5);
   }
 }
+#endif
 
-
+#ifdef CURLOPT_RESOLVE
 IsUpOracle g_up;
+#endif
+
 namespace {
 template<typename T, typename C>
 bool doCompare(const T& var, const std::string& res, const C& cmp)
@@ -608,7 +611,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
       return std::string("unknown");
     });
 
-  
+#ifdef CURLOPT_RESOLVE
   lua.writeFunction("ifportup", [&bestwho](int port, const vector<pair<int, string> >& ips, const boost::optional<std::unordered_map<string,string>> options) {
       vector<ComboAddress> candidates;
       std::unordered_map<string, string> opts;
@@ -687,6 +690,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
 
       return ret;
                     });
+#endif
 
 
 
