@@ -22,9 +22,6 @@
 #include "dnsdist.hh"
 #include "lock.hh"
 
-std::atomic<size_t> Rings::s_queryInserterId;
-std::atomic<size_t> Rings::s_responseInserterId;
-
 size_t Rings::numDistinctRequestors()
 {
   std::set<ComboAddress, ComboAddress::addressOnlyLessThan> s;

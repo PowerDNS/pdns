@@ -405,9 +405,12 @@ struct Rings {
     std::mutex respLock;
   };
 
-  Rings(size_t capacity=10000, size_t numberOfShards=1): d_numberOfShards(numberOfShards)
+  Rings(size_t capacity=10000, size_t numberOfShards=1, size_t nbLockTries=5): d_numberOfShards(numberOfShards), d_nbLockTries(nbLockTries)
   {
     setCapacity(capacity, numberOfShards);
+    if (numberOfShards <= 1) {
+      d_nbLockTries = 0;
+    }
   }
   std::unordered_map<int, vector<boost::variant<string,double> > > getTopBandwidth(unsigned int numentries);
   size_t numDistinctRequestors();
@@ -434,14 +437,13 @@ struct Rings {
     }
   }
 
-  static size_t getQueryInserterId()
+  void setNumberOfLockRetries(size_t retries)
   {
-    return s_queryInserterId++;
-  }
-
-  static size_t getResponseInserterId()
-  {
-    return s_responseInserterId++;
+    if (d_numberOfShards <= 1) {
+      d_nbLockTries = 0;
+    } else {
+      d_nbLockTries = retries;
+    }
   }
 
   size_t getNumberOfShards() const
@@ -449,16 +451,35 @@ struct Rings {
     return d_numberOfShards;
   }
 
-  void insertQuery(const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, uint16_t size, const struct dnsheader& dh, size_t queryInserterId)
+  void insertQuery(const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, uint16_t size, const struct dnsheader& dh)
   {
-    auto shardId = getShardId(queryInserterId);
+    for (size_t idx = 0; idx < d_nbLockTries; idx++) {
+      auto shardId = getShardId();
+      std::unique_lock<std::mutex> wl(d_shards[shardId]->queryLock, std::try_to_lock);
+      if (wl.owns_lock()) {
+        d_shards[shardId]->queryRing.push_back({when, requestor, name, size, qtype, dh});
+        return;
+      }
+    }
+
+    /* out of luck, let's just wait */
+    auto shardId = getShardId();
     std::lock_guard<std::mutex> wl(d_shards[shardId]->queryLock);
     d_shards[shardId]->queryRing.push_back({when, requestor, name, size, qtype, dh});
   }
 
-  void insertResponse(const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, unsigned int usec, unsigned int size, const struct dnsheader& dh, const ComboAddress& backend, size_t responseInserterId)
+  void insertResponse(const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, unsigned int usec, unsigned int size, const struct dnsheader& dh, const ComboAddress& backend)
   {
-    auto shardId = getShardId(responseInserterId);
+    for (size_t idx = 0; idx < d_nbLockTries; idx++) {
+      auto shardId = getShardId();
+      std::unique_lock<std::mutex> wl(d_shards[shardId]->respLock, std::try_to_lock);
+      if (wl.owns_lock()) {
+        d_shards[shardId]->respRing.push_back({when, requestor, name, qtype, usec, size, dh, backend});
+      }
+    }
+
+    /* out of luck, let's just wait */
+    auto shardId = getShardId();
     std::lock_guard<std::mutex> wl(d_shards[shardId]->respLock);
     d_shards[shardId]->respRing.push_back({when, requestor, name, qtype, usec, size, dh, backend});
   }
@@ -466,15 +487,16 @@ struct Rings {
   std::vector<std::unique_ptr<Shard> > d_shards;
 
 private:
-  size_t getShardId(size_t id) const
+  size_t getShardId()
   {
-    return (id % d_numberOfShards);
+    return (d_currentShardId++ % d_numberOfShards);
   }
 
-  static std::atomic<size_t> s_queryInserterId;
-  static std::atomic<size_t> s_responseInserterId;
+  std::atomic<size_t> d_currentShardId;
 
   size_t d_numberOfShards;
+  size_t d_nbLockTries = 5;
+
 };
 
 extern Rings g_rings;
@@ -688,7 +710,7 @@ using servers_t =vector<std::shared_ptr<DownstreamState>>;
 
 template <class T> using NumberedVector = std::vector<std::pair<unsigned int, T> >;
 
-void* responderThread(std::shared_ptr<DownstreamState> state, size_t responseInserterId);
+void* responderThread(std::shared_ptr<DownstreamState> state);
 extern std::mutex g_luamutex;
 extern LuaContext g_lua;
 extern std::string g_outputBuffer; // locking for this is ok, as locked by g_luamutex
@@ -923,7 +945,7 @@ bool getLuaNoSideEffect(); // set if there were only explicit declarations of _n
 void resetLuaSideEffect(); // reset to indeterminate state
 
 bool responseContentMatches(const char* response, const uint16_t responseLen, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const ComboAddress& remote);
-bool processQuery(LocalHolders& holders, DNSQuestion& dq, string& poolname, int* delayMsec, const struct timespec& now, size_t queryInserterId);
+bool processQuery(LocalHolders& holders, DNSQuestion& dq, string& poolname, int* delayMsec, const struct timespec& now);
 bool processResponse(LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, int* delayMsec);
 bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize, const DNSName& qname, uint16_t origFlags, bool ednsAdded, bool ecsAdded, std::vector<uint8_t>& rewrittenResponse, uint16_t addRoom);
 void restoreFlags(struct dnsheader* dh, uint16_t origFlags);

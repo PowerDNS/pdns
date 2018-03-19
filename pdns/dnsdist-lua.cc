@@ -325,14 +325,14 @@ void setupLuaConfig(bool client)
 			if (ret->connected) {
 			  if(g_launchWork) {
 			    g_launchWork->push_back([ret,cpus]() {
-                              ret->tid = thread(responderThread, ret, g_rings.getResponseInserterId());
+                              ret->tid = thread(responderThread, ret);
                               if (!cpus.empty()) {
                                 mapThreadToCPUList(ret->tid.native_handle(), cpus);
                               }
 			    });
 			  }
 			  else {
-                            ret->tid = thread(responderThread, ret, g_rings.getResponseInserterId());
+                            ret->tid = thread(responderThread, ret);
                             if (!cpus.empty()) {
                               mapThreadToCPUList(ret->tid.native_handle(), cpus);
                             }
@@ -1306,6 +1306,11 @@ void setupLuaConfig(bool client)
         return;
       }
       g_rings.setCapacity(capacity, numberOfShards ? *numberOfShards : 1);
+    });
+
+  g_lua.writeFunction("setRingBuffersLockRetries", [](size_t retries) {
+      setLuaSideEffect();
+      g_rings.setNumberOfLockRetries(retries);
     });
 
   g_lua.writeFunction("setWHashedPertubation", [](uint32_t pertub) {

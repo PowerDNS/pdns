@@ -406,7 +406,7 @@ static void pickBackendSocketsReadyForReceiving(const std::shared_ptr<Downstream
 }
 
 // listens on a dedicated socket, lobs answers from downstream servers to original requestors
-void* responderThread(std::shared_ptr<DownstreamState> dss, const size_t responseInserterId)
+void* responderThread(std::shared_ptr<DownstreamState> dss)
 try {
   auto localRespRulactions = g_resprulactions.getLocal();
 #ifdef HAVE_DNSCRYPT
@@ -514,7 +514,7 @@ try {
 
         struct timespec ts;
         gettime(&ts);
-        g_rings.insertResponse(ts, ids->origRemote, ids->qname, ids->qtype, (unsigned int)udiff, (unsigned int)got, *dh, dss->remote, responseInserterId);
+        g_rings.insertResponse(ts, ids->origRemote, ids->qname, ids->qtype, (unsigned int)udiff, (unsigned int)got, *dh, dss->remote);
 
         if(dh->rcode == RCode::ServFail)
           g_stats.servfailResponses++;
@@ -856,9 +856,9 @@ static void spoofResponseFromString(DNSQuestion& dq, const string& spoofContent)
   }
 }
 
-bool processQuery(LocalHolders& holders, DNSQuestion& dq, string& poolname, int* delayMsec, const struct timespec& now, size_t queryInserterId)
+bool processQuery(LocalHolders& holders, DNSQuestion& dq, string& poolname, int* delayMsec, const struct timespec& now)
 {
-  g_rings.insertQuery(now,*dq.remote,*dq.qname,dq.len,dq.qtype,*dq.dh, queryInserterId);
+  g_rings.insertQuery(now,*dq.remote,*dq.qname,dq.len,dq.qtype,*dq.dh);
 
   if(g_qcount.enabled) {
     string qname = (*dq.qname).toString(".");
@@ -1203,7 +1203,7 @@ static void queueResponse(const ClientState& cs, const char* response, uint16_t 
 }
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
 
-static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct msghdr* msgh, const ComboAddress& remote, ComboAddress& dest, char* query, uint16_t len, size_t queryBufferSize, struct mmsghdr* responsesVect, unsigned int* queuedResponses, struct iovec* respIOV, char* respCBuf, size_t queryInserterId)
+static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct msghdr* msgh, const ComboAddress& remote, ComboAddress& dest, char* query, uint16_t len, size_t queryBufferSize, struct mmsghdr* responsesVect, unsigned int* queuedResponses, struct iovec* respIOV, char* respCBuf)
 {
   assert(responsesVect == nullptr || (queuedResponses != nullptr && respIOV != nullptr && respCBuf != nullptr));
   uint16_t queryId = 0;
@@ -1245,7 +1245,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     DNSName qname(query, len, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
     DNSQuestion dq(&qname, qtype, qclass, dest.sin4.sin_family != 0 ? &dest : &cs.local, &remote, dh, queryBufferSize, len, false, &queryRealTime);
 
-    if (!processQuery(holders, dq, poolname, &delayMsec, now, queryInserterId))
+    if (!processQuery(holders, dq, poolname, &delayMsec, now))
     {
       return;
     }
@@ -1473,7 +1473,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
 }
 
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
-static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holders, size_t queryInserterId)
+static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holders)
 {
   struct MMReceiver
   {
@@ -1534,7 +1534,7 @@ static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holde
         continue;
       }
 
-      processUDPQuery(*cs, holders, msgh, remote, recvData[msgIdx].dest, recvData[msgIdx].packet, static_cast<uint16_t>(got), sizeof(recvData[msgIdx].packet), outMsgVec.get(), &msgsToSend, &recvData[msgIdx].iov, recvData[msgIdx].cbuf, queryInserterId);
+      processUDPQuery(*cs, holders, msgh, remote, recvData[msgIdx].dest, recvData[msgIdx].packet, static_cast<uint16_t>(got), sizeof(recvData[msgIdx].packet), outMsgVec.get(), &msgsToSend, &recvData[msgIdx].iov, recvData[msgIdx].cbuf);
 
     }
 
@@ -1554,14 +1554,14 @@ static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holde
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
 
 // listens to incoming queries, sends out to downstream servers, noting the intended return path
-static void* udpClientThread(ClientState* cs, size_t queryInserterId)
+static void* udpClientThread(ClientState* cs)
 try
 {
   LocalHolders holders;
 
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
   if (g_udpVectorSize > 1) {
-    MultipleMessagesUDPClientThread(cs, holders, queryInserterId);
+    MultipleMessagesUDPClientThread(cs, holders);
 
   }
   else
@@ -1592,7 +1592,7 @@ try
         continue;
       }
 
-      processUDPQuery(*cs, holders, &msgh, remote, dest, packet, static_cast<uint16_t>(got), s_udpIncomingBufferSize, nullptr, nullptr, nullptr, nullptr, queryInserterId);
+      processUDPQuery(*cs, holders, &msgh, remote, dest, packet, static_cast<uint16_t>(got), s_udpIncomingBufferSize, nullptr, nullptr, nullptr, nullptr);
     }
   }
 
@@ -1801,7 +1801,7 @@ void* healthChecksThread()
               }
             }
             if (dss->connected) {
-              dss->tid = thread(responderThread, dss, g_rings.getResponseInserterId());
+              dss->tid = thread(responderThread, dss);
             }
           }
 
@@ -1845,7 +1845,7 @@ void* healthChecksThread()
           memset(&fake, 0, sizeof(fake));
           fake.id = ids.origID;
 
-          g_rings.insertResponse(ts, ids.origRemote, ids.qname, ids.qtype, std::numeric_limits<unsigned int>::max(), 0, fake, dss->remote, 0);
+          g_rings.insertResponse(ts, ids.origRemote, ids.qname, ids.qtype, std::numeric_limits<unsigned int>::max(), 0, fake, dss->remote);
         }          
       }
     }
@@ -2544,7 +2544,7 @@ try
       auto ret=std::make_shared<DownstreamState>(ComboAddress(address, 53));
       addServerToPool(localPools, "", ret);
       if (ret->connected) {
-        ret->tid = thread(responderThread, ret, g_rings.getResponseInserterId());
+        ret->tid = thread(responderThread, ret);
       }
       g_dstates.modify([ret](servers_t& servers) { servers.push_back(ret); });
     }
@@ -2568,7 +2568,7 @@ try
 
   for(auto& cs : toLaunch) {
     if (cs->udpFD >= 0) {
-      thread t1(udpClientThread, cs, g_rings.getQueryInserterId());
+      thread t1(udpClientThread, cs);
       if (!cs->cpus.empty()) {
         mapThreadToCPUList(t1.native_handle(), cs->cpus);
       }

@@ -402,6 +402,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "setPoolServerPolicy", true, "name, func, pool", "set the server selection policy for this pool to one named 'name' and provided by 'function'" },
   { "setQueryCount", true, "bool", "set whether queries should be counted" },
   { "setQueryCountFilter", true, "func", "filter queries that would be counted, where `func` is a function with parameter `dq` which decides whether a query should and how it should be counted" },
+  { "setRingBuffersLockRetries", true, "n", "set the number of attempts to get a non-blocking lock to a ringbuffer shard before blocking" },
   { "setRingBuffersSize", true, "n", "set the capacity of the ringbuffers used for live traffic inspection to `n`" },
   { "setRules", true, "list of rules", "replace the current rules with the supplied list of pairs of DNS Rules and DNS Actions (see `newRuleAction()`)" },
   { "setServerPolicy", true, "policy", "set server selection policy to that policy" },
