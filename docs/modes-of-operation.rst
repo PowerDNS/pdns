@@ -272,7 +272,7 @@ Consider the following simple example:
            if record:qtype() == pdns.HINFO then
               resp = {}
               resp[1] = {
-                qname   = record:qname:toString(),
+                qname   = record:qname():toString(),
                 qtype   = pdns.TXT,
                 ttl     = 99,
                 content = "Hello Ahu!"
@@ -281,7 +281,7 @@ Consider the following simple example:
            end
 
            -- Grab each _tstamp TXT record and add a time stamp
-           if record:qtype() == pdns.TXT and string.starts(record:qname:toString(), "_tstamp.") then
+           if record:qtype() == pdns.TXT and string.starts(record:qname():toString(), "_tstamp.") then
               resp = {}
               resp[1] = {
                 qname   = record:qname():toString(),
@@ -296,7 +296,7 @@ Consider the following simple example:
            if record:qtype() == pdns.A then
               resp = {}
               resp[1] = {
-                qname   = record:qname:toString(),
+                qname   = record:qname():toString(),
                 qtype   = pdns.TXT,
                 ttl     = 99,
                 content = "Hello Ahu, again!"
