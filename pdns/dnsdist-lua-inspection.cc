@@ -179,7 +179,7 @@ static counts_t exceedQueryGen(unsigned int rate, int seconds, std::function<voi
 
   {
     ReadLock rl(&g_rings.queryLock);
-    counts.reserve(g_rings.respRing.size());
+    counts.reserve(g_rings.queryRing.size());
     for(const auto& c : g_rings.queryRing) {
       if(seconds && c.when < cutoff)
         continue;
